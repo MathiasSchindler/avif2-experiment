@@ -5,6 +5,7 @@
 
 typedef struct {
     Av2hSequenceInfo info;
+    uint8_t sequence_header_id;
     uint16_t superblock_size;
     uint8_t num_bits_width;
     uint8_t num_bits_height;

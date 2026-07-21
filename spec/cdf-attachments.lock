@@ -1,0 +1,9 @@
+# AV2 v1.0.0 normative attachments used for initial partition CDF evidence.
+# Base URL: https://av2.aomedia.org/v1.0.0/attachments/
+
+default_do_ext_partition_cdf.h = "34e128f47a3331f44e41eec3faaeac3f68dc66a02d94d69707623e07451b7372"
+default_do_split_cdf.h = "bb40c072c47561c4742cb96cd6e91cb1ea18ba153862e3e6bd1f88ef19c0b692"
+default_do_square_split_cdf.h = "73cf5e0851fc98be518dc6d47a31657d2c503f34512e1428403e6ccf19eb4ace"
+default_do_uneven_4way_partition_cdf.h = "a7644325eb682179358f27dc1d788d1c996efec6e23f00e9f512de312ff2d3b3"
+default_rect_type_cdf.h = "f5fab585693d795883ff86519a9fa544a02dec1b768e88e7afe8e4b26a3f3c8a"
+para_adjustment_list.h = "0488e7e0a8d16a89f53ba8cf1ec8e449a9a3e74aa34ba2fa49e287159336ef80"

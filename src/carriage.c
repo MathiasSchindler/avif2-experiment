@@ -400,6 +400,7 @@ Av2hStatus av2h_sequence_state_parse(Av2hSpan input,
     av2h_bit_reader_init(&reader, input.data + obu->payload_offset,
                          obu->payload_size, obu->payload_offset);
     sequence_id = av2h_bit_reader_uvlc(&reader);
+    state->sequence_header_id = (uint8_t)sequence_id;
     sequence->seq_profile_idc = (uint8_t)av2h_bit_reader_read(&reader, 5U);
     if (reader.status != AV2H_OK) {
         return fail_obu(error, reader.status, obu,

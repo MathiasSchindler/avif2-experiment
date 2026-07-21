@@ -57,6 +57,7 @@ static void test_fixture_offsets(void) {
 static void test_failures(void) {
     static const unsigned char not_first[] = { 0x00U, 0x80U };
     static const unsigned char header_only[] = { 0x80U };
+    static const unsigned char bad_padding[] = { 0x81U, 0x5aU };
     Av2hTileGroup group;
     CHECK(av2h_tile_group_single_parse(
               (Av2hSpan){ not_first, sizeof(not_first) }, 0U,
@@ -64,6 +65,9 @@ static void test_failures(void) {
     CHECK(av2h_tile_group_single_parse(
               (Av2hSpan){ header_only, sizeof(header_only) }, 0U,
               &group) == AV2H_TRUNCATED);
+    CHECK(av2h_tile_group_single_parse(
+              (Av2hSpan){ bad_padding, sizeof(bad_padding) }, 0U,
+              &group) == AV2H_INVALID_DATA);
     CHECK(av2h_tile_group_single_parse(
               (Av2hSpan){ header_only, sizeof(header_only) }, SIZE_MAX,
               &group) == AV2H_OVERFLOW);

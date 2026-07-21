@@ -43,3 +43,14 @@ freestanding implementations are project-owned CC0 code and are validated by
 independent fixture and boundary vectors in `tests/substrate_unit.c`. The
 one-tile framing implementation in `src/decoder/tile.c` is likewise
 project-owned CC0 code and is checked against fixture-derived AVM offsets.
+The Closed Loop Key field order and directly controlling helper behavior were
+checked against pinned AVM while implementing `src/decoder/frame.c`; no AVM
+code is copied or linked. The project-owned parser is independently gated by
+four exact header-length vectors, truncation checks, strict alignment tests,
+and the freestanding undefined-symbol inspection.
+
+The compact binary CDF initializer in `src/decoder/cdf.c` is written from the
+normative AV2 v1.0.0 symbol-decoding equation, `Para_Adjustment_List`, and
+default CDF attachments. Attachment URLs and hashes are locked in
+`spec/cdf-attachments.lock`; the separately licensed AVM copy is used only by
+the hosted semantic equivalence checker.
