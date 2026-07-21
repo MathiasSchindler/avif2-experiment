@@ -5,9 +5,11 @@ HOST_CFLAGS := -std=c11 -Wall -Wextra -Wpedantic -Werror -O1 -g \
 	-fsanitize=address,undefined -fno-omit-frame-pointer -Iinclude -Isrc
 HOST_SUBSTRATE_UNIT := build/host/substrate-unit
 HOST_CONTAINER_UNIT := build/host/container-unit
-HOST_UNITS := $(HOST_SUBSTRATE_UNIT) $(HOST_CONTAINER_UNIT)
+HOST_RANGE_UNIT := build/host/range-unit
+HOST_UNITS := $(HOST_SUBSTRATE_UNIT) $(HOST_CONTAINER_UNIT) $(HOST_RANGE_UNIT)
 HOST_ARTIFACT_TOOL := build/host/av2heif-artifact
-CORE_SOURCES := src/base.c src/carriage.c src/bmff.c src/container.c src/query.c
+CORE_SOURCES := src/base.c src/carriage.c src/bmff.c src/container.c src/query.c \
+	src/decoder/range.c
 CORE_HEADERS := include/av2heif.h src/base.h
 STRICT_DIR := build/freestanding
 STRICT_OBJECTS := $(patsubst src/%.c,$(STRICT_DIR)/%.o,$(CORE_SOURCES))
@@ -27,6 +29,7 @@ test: test-c test-freestanding $(HOST_ARTIFACT_TOOL)
 test-c: $(HOST_UNITS)
 	$(HOST_SUBSTRATE_UNIT)
 	$(HOST_CONTAINER_UNIT)
+	$(HOST_RANGE_UNIT)
 
 $(HOST_SUBSTRATE_UNIT): tests/substrate_unit.c $(CORE_SOURCES) $(CORE_HEADERS)
 	@mkdir -p $(dir $@)
@@ -35,6 +38,11 @@ $(HOST_SUBSTRATE_UNIT): tests/substrate_unit.c $(CORE_SOURCES) $(CORE_HEADERS)
 $(HOST_CONTAINER_UNIT): tests/container_unit.c $(CORE_SOURCES) $(CORE_HEADERS)
 	@mkdir -p $(dir $@)
 	$(CC) $(HOST_CFLAGS) tests/container_unit.c $(CORE_SOURCES) -o $@
+
+$(HOST_RANGE_UNIT): tests/range_unit.c $(CORE_SOURCES) $(CORE_HEADERS) \
+		src/decoder/range.h
+	@mkdir -p $(dir $@)
+	$(CC) $(HOST_CFLAGS) tests/range_unit.c $(CORE_SOURCES) -o $@
 
 $(HOST_ARTIFACT_TOOL): tools/av2heif_artifact.c $(CORE_SOURCES) $(CORE_HEADERS)
 	@mkdir -p $(dir $@)

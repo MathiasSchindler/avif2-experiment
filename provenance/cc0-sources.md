@@ -27,3 +27,12 @@ and Python laboratory orchestration under `tools/` are project-owned CC0 code;
 they remain outside the freestanding product boundary. The bounded dialect,
 validation, and query implementation in `src/query.c` is project-owned CC0
 freestanding code written for this experiment.
+
+The AV2 arithmetic-decoder ownership and checked-span structure in
+`src/decoder/range.c` was adapted from the sibling CC0 implementation in
+`src/codec/av1_symbol.c` at the same commit. AV2 inverse-Q15 probability
+scaling, exact bypass decoding, adaptive CDF state, tell semantics, and
+validation were independently implemented for this project. Deterministic
+bytes and state transitions are compared with a separately built pinned AVM
+oracle through `tools/m5_entropy_oracle.c`; no AVM source or object is included
+in the CC0 production core.

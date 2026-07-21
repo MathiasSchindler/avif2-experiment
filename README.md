@@ -21,11 +21,14 @@ separate reference experiment and is fetched into ignored `vendor/` and
   muxes, inspects, extracts, decodes, and compares the four-fixture matrix.
 - Milestone 4 provides bounded freestanding validation, structural dialect
   detection, metadata query, exact I420 output sizing, and input binding.
+- Milestone 5 is in progress: its independent freestanding AV2 entropy decoder
+  passes fixed and adaptive pinned-AVM oracle transcripts. Pixel reconstruction
+  and the public decode API are not implemented yet.
 
 The public API is declared in `include/av2heif.h`. Milestone details and
 limitations are recorded in `docs/milestone-0.md`, `docs/milestone-1.md`, and
-`docs/milestone-2.md`, `docs/milestone-3.md`, and `docs/milestone-4.md`; the
-longer roadmap is in `plan.md`.
+`docs/milestone-2.md`, `docs/milestone-3.md`, `docs/milestone-4.md`, and
+`docs/milestone-5.md`; the longer roadmap is in `plan.md`.
 
 ## Build and test
 
@@ -35,10 +38,11 @@ Run the vendor-free gate with:
 make test
 ```
 
-This runs the C harness under AddressSanitizer and UndefinedBehaviorSanitizer,
+This runs the C harnesses under AddressSanitizer and UndefinedBehaviorSanitizer,
 builds the core with `-ffreestanding -nostdinc`, verifies that the linked
 relocatable core has no undefined symbols, and runs the Python carriage tests.
-The C gate has separate substrate/carriage and container test binaries.
+The C gate has separate substrate/carriage, container, and AV2 range-decoder
+test binaries.
 
 Run the hosted AVM differential experiment with:
 
