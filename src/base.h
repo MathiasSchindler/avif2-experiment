@@ -11,6 +11,19 @@ void av2h_memory_copy(void *destination, const void *source, size_t count);
 void av2h_memory_fill(void *destination, unsigned char value, size_t count);
 int av2h_memory_compare(const void *left, const void *right, size_t count);
 
+typedef struct {
+    Av2hSpan av2c_payload;
+    Av2hSpan item_payload;
+    uint8_t has_mif1_brand;
+    uint8_t has_avif_brand;
+    uint8_t has_primary_av02;
+    uint8_t av2c_associated;
+} Av2hContainerProbe;
+
+Av2hStatus av2h_container_probe(Av2hSpan input,
+                                Av2hContainerProbe *probe,
+                                Av2hError *error);
+
 uint16_t av2h_load_u16be(const unsigned char *bytes);
 uint32_t av2h_load_u32be(const unsigned char *bytes);
 uint64_t av2h_load_u64be(const unsigned char *bytes);

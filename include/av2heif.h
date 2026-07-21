@@ -24,7 +24,10 @@ typedef enum {
     AV2H_CONTEXT_CONTENT_INTERPRETATION = 5,
     AV2H_CONTEXT_AV2C = 6,
     AV2H_CONTEXT_BOX = 7,
-    AV2H_CONTEXT_HEIF = 8
+    AV2H_CONTEXT_HEIF = 8,
+    AV2H_CONTEXT_DIALECT = 9,
+    AV2H_CONTEXT_LIMITS = 10,
+    AV2H_CONTEXT_QUERY = 11
 } Av2hErrorContext;
 
 typedef struct {
@@ -142,7 +145,51 @@ typedef struct {
     uint32_t height;
     uint8_t channel_count;
     uint8_t bits_per_channel;
+    size_t property_count;
 } Av2hHeifImage;
+
+typedef enum {
+    AV2H_DIALECT_UNKNOWN = 0,
+    AV2H_DIALECT_CANONICAL_V0,
+    AV2H_DIALECT_LIBAVIF_AVM_2026_07,
+    AV2H_DIALECT_CONFLICTING
+} Av2hDialect;
+
+typedef struct {
+    size_t max_input_size;
+    size_t max_config_obus_size;
+    size_t max_item_payload_size;
+    size_t max_pixels;
+    size_t max_output_size;
+    uint32_t max_width;
+    uint32_t max_height;
+    size_t max_obu_count;
+    size_t max_property_count;
+    size_t max_recursion_depth;
+} Av2hLimits;
+
+typedef struct {
+    uint32_t width;
+    uint32_t height;
+    size_t row_bytes;
+    size_t offset;
+    size_t size;
+} Av2hPlaneLayout;
+
+typedef struct {
+    Av2hDialect dialect;
+    Av2hHeifImage image;
+    Av2hPlaneLayout planes[3];
+    size_t output_size;
+    /* Query and validation need no caller workspace before decode exists. */
+    size_t workspace_size;
+    size_t workspace_alignment;
+    size_t obu_count;
+    size_t property_count;
+    size_t container_depth;
+    size_t input_size;
+    uint64_t input_fingerprint;
+} Av2hInfo;
 
 Av2hStatus av2h_leb128_read(Av2hSpan input,
                             size_t *value,
@@ -193,5 +240,16 @@ Av2hStatus av2h_heif_write(const Av2hHeifSource *source,
                            size_t output_size,
                            size_t *written,
                            Av2hError *error);
+void av2h_limits_default(Av2hLimits *limits);
+Av2hStatus av2h_dialect_detect(Av2hSpan input,
+                               Av2hDialect *dialect,
+                               Av2hError *error);
+Av2hStatus av2h_query(Av2hSpan input,
+                      const Av2hLimits *limits,
+                      Av2hInfo *info,
+                      Av2hError *error);
+Av2hStatus av2h_validate(Av2hSpan input,
+                         const Av2hLimits *limits,
+                         Av2hError *error);
 
 #endif

@@ -21,6 +21,7 @@ enum {
     BOX_COLR = AV2H_FOURCC('c', 'o', 'l', 'r'),
     BOX_MDAT = AV2H_FOURCC('m', 'd', 'a', 't'),
     BRAND_MIF1 = AV2H_FOURCC('m', 'i', 'f', '1'),
+    BRAND_AVIF = AV2H_FOURCC('a', 'v', 'i', 'f'),
     HANDLER_PICT = AV2H_FOURCC('p', 'i', 'c', 't'),
     ITEM_AV02 = AV2H_FOURCC('a', 'v', '0', '2'),
     COLOR_NCLX = AV2H_FOURCC('n', 'c', 'l', 'x')
@@ -626,6 +627,183 @@ static Av2hStatus parse_meta(Av2hSpan input,
     return AV2H_OK;
 }
 
+static Av2hStatus probe_ftyp(Av2hSpan input,
+                             const ContainerBox *box,
+                             Av2hContainerProbe *probe,
+                             Av2hError *error) {
+    size_t offset;
+    if (box->payload_size < 8U || (box->payload_size % 4U) != 0U) {
+        return heif_fail(error, AV2H_INVALID_DATA, box->payload_offset);
+    }
+    for (offset = box->payload_offset; offset < box->end; offset += 4U) {
+        uint32_t brand;
+        if (offset == box->payload_offset + 4U) continue;
+        brand = av2h_load_u32be(input.data + offset);
+        if (brand == BRAND_MIF1) probe->has_mif1_brand = 1U;
+        if (brand == BRAND_AVIF) probe->has_avif_brand = 1U;
+    }
+    return AV2H_OK;
+}
+
+static Av2hStatus probe_iprp(Av2hSpan input,
+                             const ContainerBox *box,
+                             ContainerState *state,
+                             Av2hContainerProbe *probe,
+                             Av2hError *error) {
+    ContainerBox ipco;
+    ContainerBox ipma;
+    size_t offset;
+    Av2hStatus status = read_box(input, box->payload_offset, box->end,
+                                 &ipco, error);
+    if (status != AV2H_OK) return status;
+    if (ipco.type != BOX_IPCO) {
+        return heif_fail(error, AV2H_INVALID_DATA, ipco.offset);
+    }
+    offset = ipco.payload_offset;
+    while (offset < ipco.end) {
+        ContainerBox property;
+        uint8_t kind = PROPERTY_UNKNOWN;
+        if (state->property_count == 16U) {
+            return heif_fail(error, AV2H_LIMIT_EXCEEDED, offset);
+        }
+        status = read_box(input, offset, ipco.end, &property, error);
+        if (status != AV2H_OK) return status;
+        if (property.type == BOX_AV2C) {
+            if (probe->av2c_payload.data != 0) {
+                return heif_fail(error, AV2H_INVALID_DATA, property.offset);
+            }
+            kind = PROPERTY_AV2C;
+            probe->av2c_payload.data = input.data + property.payload_offset;
+            probe->av2c_payload.size = property.payload_size;
+        }
+        state->properties[state->property_count].type = property.type;
+        state->properties[state->property_count].kind = kind;
+        ++state->property_count;
+        offset = property.end;
+    }
+    status = read_box(input, ipco.end, box->end, &ipma, error);
+    if (status != AV2H_OK) return status;
+    if (ipma.type != BOX_IPMA || ipma.end != box->end) {
+        return heif_fail(error, AV2H_INVALID_DATA, ipma.offset);
+    }
+    status = parse_ipma(input, &ipma, state, error);
+    if (status != AV2H_OK) return status;
+    probe->av2c_associated = state->association_counts[PROPERTY_AV2C];
+    return AV2H_OK;
+}
+
+static Av2hStatus probe_meta(Av2hSpan input,
+                             const ContainerBox *box,
+                             ContainerState *state,
+                             Av2hContainerProbe *probe,
+                             Av2hError *error) {
+    size_t offset;
+    int seen_hdlr = 0;
+    int seen_pitm = 0;
+    int seen_iloc = 0;
+    int seen_iinf = 0;
+    int seen_iprp = 0;
+    if (box->payload_size < 4U) {
+        return heif_fail(error, AV2H_TRUNCATED, box->payload_offset);
+    }
+    if (av2h_load_u32be(input.data + box->payload_offset) != 0U) {
+        return heif_fail(error, AV2H_UNSUPPORTED, box->payload_offset);
+    }
+    offset = box->payload_offset + 4U;
+    while (offset < box->end) {
+        ContainerBox child;
+        Av2hStatus status = read_box(input, offset, box->end, &child, error);
+        if (status != AV2H_OK) return status;
+        if (!seen_hdlr && child.type != BOX_HDLR) {
+            return heif_fail(error, AV2H_INVALID_DATA, child.offset);
+        }
+        if (child.type == BOX_HDLR) {
+            if (seen_hdlr) return heif_fail(error, AV2H_INVALID_DATA, child.offset);
+            seen_hdlr = 1;
+            status = parse_hdlr(input, &child, error);
+        } else if (child.type == BOX_PITM) {
+            if (seen_pitm) return heif_fail(error, AV2H_INVALID_DATA, child.offset);
+            seen_pitm = 1;
+            status = parse_pitm(input, &child, state, error);
+        } else if (child.type == BOX_ILOC) {
+            if (seen_iloc) return heif_fail(error, AV2H_INVALID_DATA, child.offset);
+            seen_iloc = 1;
+            status = parse_iloc(input, &child, state, error);
+        } else if (child.type == BOX_IINF) {
+            if (seen_iinf) return heif_fail(error, AV2H_INVALID_DATA, child.offset);
+            seen_iinf = 1;
+            status = parse_iinf(input, &child, state, error);
+        } else if (child.type == BOX_IPRP) {
+            if (seen_iprp) return heif_fail(error, AV2H_INVALID_DATA, child.offset);
+            seen_iprp = 1;
+            status = probe_iprp(input, &child, state, probe, error);
+        } else {
+            status = AV2H_OK;
+        }
+        if (status != AV2H_OK) return status;
+        offset = child.end;
+    }
+    if (!seen_hdlr || !seen_pitm || !seen_iloc || !seen_iinf || !seen_iprp) {
+        return heif_fail(error, AV2H_INVALID_DATA, box->offset);
+    }
+    probe->has_primary_av02 =
+        (uint8_t)(state->primary_item_id == state->information_item_id &&
+                  state->primary_item_id == state->location_item_id &&
+                  state->primary_item_id == state->association_item_id);
+    return AV2H_OK;
+}
+
+Av2hStatus av2h_container_probe(Av2hSpan input,
+                                Av2hContainerProbe *probe,
+                                Av2hError *error) {
+    ContainerState state = { 0 };
+    ContainerBox mdat = { 0U, 0U, 0U, 0U, 0U };
+    size_t offset = 0U;
+    size_t extent_end;
+    int seen_ftyp = 0;
+    int seen_meta = 0;
+    int seen_mdat = 0;
+    if (probe == 0 || (input.data == 0 && input.size != 0U)) {
+        return heif_fail(error, AV2H_INVALID_ARGUMENT, 0U);
+    }
+    av2h_memory_fill(probe, 0U, sizeof(*probe));
+    while (offset < input.size) {
+        ContainerBox box;
+        Av2hStatus status = read_box(input, offset, input.size, &box, error);
+        if (status != AV2H_OK) return status;
+        if (box.type == BOX_FTYP) {
+            if (seen_ftyp || box.offset != 0U) {
+                return heif_fail(error, AV2H_INVALID_DATA, box.offset);
+            }
+            seen_ftyp = 1;
+            status = probe_ftyp(input, &box, probe, error);
+            if (status != AV2H_OK) return status;
+        } else if (box.type == BOX_META) {
+            if (seen_meta) return heif_fail(error, AV2H_INVALID_DATA, box.offset);
+            seen_meta = 1;
+            status = probe_meta(input, &box, &state, probe, error);
+            if (status != AV2H_OK) return status;
+        } else if (box.type == BOX_MDAT) {
+            if (seen_mdat) return heif_fail(error, AV2H_INVALID_DATA, box.offset);
+            seen_mdat = 1;
+            mdat = box;
+        }
+        offset = box.end;
+    }
+    if (!seen_ftyp || !seen_meta || !seen_mdat || !probe->has_primary_av02 ||
+        probe->av2c_associated != 1U || probe->av2c_payload.data == 0) {
+        return heif_fail(error, AV2H_INVALID_DATA, 0U);
+    }
+    if (!av2h_size_add(state.extent_offset, state.extent_length, &extent_end) ||
+        state.extent_offset < mdat.payload_offset || extent_end > mdat.end ||
+        state.extent_length == 0U) {
+        return heif_fail(error, AV2H_INVALID_DATA, state.extent_offset);
+    }
+    probe->item_payload.data = input.data + state.extent_offset;
+    probe->item_payload.size = state.extent_length;
+    return AV2H_OK;
+}
+
 Av2hStatus av2h_heif_parse(Av2hSpan input,
                            Av2hHeifImage *image,
                            Av2hError *error) {
@@ -720,6 +898,7 @@ Av2hStatus av2h_heif_parse(Av2hSpan input,
     image->height = state.height;
     image->channel_count = state.channel_count;
     image->bits_per_channel = state.bits_per_channel;
+    image->property_count = state.property_count;
     return AV2H_OK;
 }
 

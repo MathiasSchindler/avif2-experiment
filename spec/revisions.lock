@@ -7,7 +7,7 @@ tree = "b0b36ed9716aee1426b8443fe750d766cd6cd49d"
 url = "https://github.com/AOMediaCodec/avm.git"
 license = "BSD-3-Clause"
 retrieval = "git checkout"
-purpose = "Milestone 0 reference encoder and differential decoder"
+purpose = "Milestone 0 and 3 reference encoder and differential decoder"
 
 [[source]]
 name = "AV2 specification v1.0.0"

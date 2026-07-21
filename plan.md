@@ -263,6 +263,10 @@ the expected layer without AVM or other hosted dependencies.
 
 ## Milestone 3: artifact laboratory
 
+**Status:** Implemented. The four-fixture offline generate, normalize, mux,
+inspect, extract, decode, and compare gate passes; see `docs/milestone-3.md` for
+the artifact schemas, comparison semantics, reproducible command, and limits.
+
 Create a common hosted artifact description containing:
 
 - source and generated-file hashes;
@@ -291,6 +295,11 @@ and compare the initial fixture matrix using pinned local reference builds.
 Normal comparison runs must not require network access.
 
 ## Milestone 4: freestanding query surface
+
+**Status:** Implemented. Bounded validation, structural dialect detection,
+metadata query, exact I420 plane sizing, input binding, and the strict
+freestanding dependency gate pass; see `docs/milestone-4.md` for the public
+contract, defaults, diagnostics, fixture parity, and limitations.
 
 Add the public API for caller limits, structured errors, container validation,
 dialect detection, metadata query, output sizing, and conservative workspace

@@ -5,3 +5,4 @@ __pycache__/
 /results/
 /vendor/*
 !/vendor/README.md
+/images/

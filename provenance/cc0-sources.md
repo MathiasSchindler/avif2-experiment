@@ -22,4 +22,8 @@ The byte and bit writers, AV2 LEB128 and OBU carriage parser, Sequence Header
 and Content Interpretation parsers, draft-shaped `av2C`, and BMFF box framing
 in this repository are project-owned CC0 code written for this experiment. The
 typed AV2-HEIF parser and deterministic writer in `src/container.c` are also
-project-owned CC0 code written for this experiment.
+project-owned CC0 code written for this experiment. The hosted artifact adapter
+and Python laboratory orchestration under `tools/` are project-owned CC0 code;
+they remain outside the freestanding product boundary. The bounded dialect,
+validation, and query implementation in `src/query.c` is project-owned CC0
+freestanding code written for this experiment.

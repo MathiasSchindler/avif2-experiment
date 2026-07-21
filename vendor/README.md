@@ -15,7 +15,8 @@ licensing, and build boundaries.
 - Commit: `966a7d7cd6fcf60360caf5dc413b2aeeb65e144d`
 - License: BSD 3-Clause; retain `avm/LICENSE` and all upstream notices
 - Purpose: encode one-frame AV2 OBU fixtures and differentially decode original
-  and reconstructed logical streams for Milestone 0
+  and reconstructed logical streams for Milestone 0, and generate and decode
+  the offline Milestone 3 artifact matrix
 - Setup: `scripts/setup-avm.sh`
 - Build output: `build/reference/avm/avmenc` and
   `build/reference/avm/avmdec`

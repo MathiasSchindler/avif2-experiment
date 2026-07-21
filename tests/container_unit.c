@@ -126,6 +126,30 @@ static void set_u32(unsigned char *bytes, size_t offset, uint32_t value) {
     bytes[offset + 3U] = (unsigned char)value;
 }
 
+static size_t make_libavif_fixture(unsigned char *bytes) {
+    av2h_memory_copy(bytes, canonical, 163U);
+    set_u32(bytes, 20U, 233U);
+    set_u32(bytes, 101U, 261U);
+    set_u32(bytes, 105U, 16U);
+    set_u32(bytes, 147U, 106U);
+    set_u32(bytes, 155U, 75U);
+    set_u32(bytes, 163U, 12U);
+    set_u32(bytes, 167U, 0x61763243U);
+    bytes[171U] = 0x81U;
+    bytes[172U] = 0U;
+    bytes[173U] = 0U;
+    bytes[174U] = 0U;
+    av2h_memory_copy(bytes + 175U, canonical + 193U, 78U);
+    set_u32(bytes, 253U, 24U);
+    set_u32(bytes, 257U, 0x6d646174U);
+    av2h_memory_copy(bytes + 261U, config_obu, sizeof(config_obu));
+    av2h_memory_copy(bytes + 261U + sizeof(config_obu),
+                     item_payload, sizeof(item_payload));
+    set_u32(bytes, 8U, 0x61766966U);
+    set_u32(bytes, 16U, 0x61766966U);
+    return 277U;
+}
+
 static Av2hStatus parse_changed(size_t offset,
                                 unsigned char value,
                                 Av2hError *error) {
@@ -381,6 +405,117 @@ static void test_forbidden_av2_metadata(void) {
                            &written, &error) == AV2H_INVALID_DATA);
 }
 
+static void test_query_and_limits(void) {
+    Av2hInfo info;
+    Av2hLimits limits;
+    Av2hError error;
+    CHECK(av2h_query((Av2hSpan){ canonical, sizeof(canonical) }, 0,
+                     &info, &error) == AV2H_OK);
+    CHECK(info.dialect == AV2H_DIALECT_CANONICAL_V0);
+    CHECK(info.image.width == 16U && info.image.height == 16U);
+    CHECK(info.image.property_count == 4U);
+    CHECK(info.planes[0].width == 16U && info.planes[0].height == 16U);
+    CHECK(info.planes[0].offset == 0U && info.planes[0].size == 256U);
+    CHECK(info.planes[1].width == 8U && info.planes[1].height == 8U);
+    CHECK(info.planes[1].offset == 256U && info.planes[1].size == 64U);
+    CHECK(info.planes[2].offset == 320U && info.planes[2].size == 64U);
+    CHECK(info.output_size == 384U);
+    CHECK(info.workspace_size == 0U && info.workspace_alignment == 1U);
+    CHECK(info.obu_count == 2U && info.property_count == 4U);
+    CHECK(info.container_depth == 3U);
+    CHECK(info.input_size == sizeof(canonical));
+    CHECK(info.input_fingerprint != 0U);
+    CHECK(av2h_validate((Av2hSpan){ canonical, sizeof(canonical) }, 0,
+                        &error) == AV2H_OK);
+
+    av2h_limits_default(&limits);
+    limits.max_input_size = sizeof(canonical) - 1U;
+    CHECK(av2h_query((Av2hSpan){ canonical, sizeof(canonical) }, &limits,
+                     &info, &error) == AV2H_LIMIT_EXCEEDED);
+    CHECK(error.context == AV2H_CONTEXT_LIMITS);
+    av2h_limits_default(&limits);
+    limits.max_config_obus_size = sizeof(config_obu) - 1U;
+    CHECK(av2h_query((Av2hSpan){ canonical, sizeof(canonical) }, &limits,
+                     &info, &error) == AV2H_LIMIT_EXCEEDED);
+    CHECK(error.context == AV2H_CONTEXT_LIMITS);
+    av2h_limits_default(&limits);
+    limits.max_item_payload_size = sizeof(item_payload) - 1U;
+    CHECK(av2h_query((Av2hSpan){ canonical, sizeof(canonical) }, &limits,
+                     &info, &error) == AV2H_LIMIT_EXCEEDED);
+    CHECK(error.context == AV2H_CONTEXT_LIMITS);
+    av2h_limits_default(&limits);
+    limits.max_width = 15U;
+    CHECK(av2h_query((Av2hSpan){ canonical, sizeof(canonical) }, &limits,
+                     &info, &error) == AV2H_LIMIT_EXCEEDED);
+    CHECK(error.context == AV2H_CONTEXT_LIMITS);
+    av2h_limits_default(&limits);
+    limits.max_height = 15U;
+    CHECK(av2h_query((Av2hSpan){ canonical, sizeof(canonical) }, &limits,
+                     &info, &error) == AV2H_LIMIT_EXCEEDED);
+    CHECK(error.context == AV2H_CONTEXT_LIMITS);
+    av2h_limits_default(&limits);
+    limits.max_pixels = 255U;
+    CHECK(av2h_query((Av2hSpan){ canonical, sizeof(canonical) }, &limits,
+                     &info, &error) == AV2H_LIMIT_EXCEEDED);
+    CHECK(error.context == AV2H_CONTEXT_LIMITS);
+    av2h_limits_default(&limits);
+    limits.max_obu_count = 1U;
+    CHECK(av2h_query((Av2hSpan){ canonical, sizeof(canonical) }, &limits,
+                     &info, &error) == AV2H_LIMIT_EXCEEDED);
+    CHECK(error.context == AV2H_CONTEXT_LIMITS);
+    av2h_limits_default(&limits);
+    limits.max_recursion_depth = 2U;
+    CHECK(av2h_query((Av2hSpan){ canonical, sizeof(canonical) }, &limits,
+                     &info, &error) == AV2H_LIMIT_EXCEEDED);
+    CHECK(error.context == AV2H_CONTEXT_LIMITS);
+    av2h_limits_default(&limits);
+    limits.max_output_size = 383U;
+    CHECK(av2h_query((Av2hSpan){ canonical, sizeof(canonical) }, &limits,
+                     &info, &error) == AV2H_LIMIT_EXCEEDED);
+    CHECK(error.context == AV2H_CONTEXT_LIMITS);
+    av2h_limits_default(&limits);
+    limits.max_property_count = 3U;
+    CHECK(av2h_query((Av2hSpan){ canonical, sizeof(canonical) }, &limits,
+                     &info, &error) == AV2H_LIMIT_EXCEEDED);
+    CHECK(error.context == AV2H_CONTEXT_LIMITS);
+}
+
+static void test_dialect_detection(void) {
+    unsigned char compatibility[277];
+    unsigned char conflicting[sizeof(canonical)];
+    unsigned char unknown_version[sizeof(canonical)];
+    Av2hDialect dialect;
+    Av2hInfo info;
+    Av2hError error;
+    size_t size = make_libavif_fixture(compatibility);
+    CHECK(size == sizeof(compatibility));
+    CHECK(av2h_dialect_detect((Av2hSpan){ canonical, sizeof(canonical) },
+                              &dialect, &error) == AV2H_OK);
+    CHECK(dialect == AV2H_DIALECT_CANONICAL_V0);
+    CHECK(av2h_dialect_detect((Av2hSpan){ compatibility, size },
+                              &dialect, &error) == AV2H_OK);
+    CHECK(dialect == AV2H_DIALECT_LIBAVIF_AVM_2026_07);
+    CHECK(av2h_query((Av2hSpan){ compatibility, size }, 0,
+                     &info, &error) == AV2H_UNSUPPORTED);
+    CHECK(error.context == AV2H_CONTEXT_DIALECT);
+
+    av2h_memory_copy(conflicting, canonical, sizeof(conflicting));
+    set_u32(conflicting, 8U, 0x61766966U);
+    set_u32(conflicting, 16U, 0x61766966U);
+    CHECK(av2h_dialect_detect((Av2hSpan){ conflicting, sizeof(conflicting) },
+                              &dialect, &error) == AV2H_INVALID_DATA);
+    CHECK(dialect == AV2H_DIALECT_CONFLICTING);
+    CHECK(error.context == AV2H_CONTEXT_DIALECT);
+
+    av2h_memory_copy(unknown_version, canonical, sizeof(unknown_version));
+    unknown_version[171U] = 2U;
+    CHECK(av2h_dialect_detect(
+              (Av2hSpan){ unknown_version, sizeof(unknown_version) },
+              &dialect, &error) == AV2H_UNSUPPORTED);
+    CHECK(dialect == AV2H_DIALECT_UNKNOWN);
+    CHECK(error.context == AV2H_CONTEXT_AV2C);
+}
+
 int main(void) {
     test_golden_and_round_trip();
     test_writer_errors();
@@ -389,6 +524,8 @@ int main(void) {
     test_property_mutations();
     test_mdat_before_meta();
     test_forbidden_av2_metadata();
+    test_query_and_limits();
+    test_dialect_detection();
     if (failures != 0) return 1;
     puts("container_unit: ok");
     return 0;

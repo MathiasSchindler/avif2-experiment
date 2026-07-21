@@ -17,10 +17,15 @@ separate reference experiment and is fetched into ignored `vendor/` and
   v0 carriage validation, and checked BMFF box headers.
 - Milestone 2 provides a strict zero-copy typed parser and deterministic writer
   for one primary `av02` item, with byte-exact output and mutation coverage.
+- Milestone 3 provides an offline hosted artifact laboratory that generates,
+  muxes, inspects, extracts, decodes, and compares the four-fixture matrix.
+- Milestone 4 provides bounded freestanding validation, structural dialect
+  detection, metadata query, exact I420 output sizing, and input binding.
 
 The public API is declared in `include/av2heif.h`. Milestone details and
 limitations are recorded in `docs/milestone-0.md`, `docs/milestone-1.md`, and
-`docs/milestone-2.md`; the longer roadmap is in `plan.md`.
+`docs/milestone-2.md`, `docs/milestone-3.md`, and `docs/milestone-4.md`; the
+longer roadmap is in `plan.md`.
 
 ## Build and test
 
@@ -43,3 +48,18 @@ make milestone-0
 
 That target downloads or verifies the pinned AVM checkout and is intentionally
 outside the production dependency boundary.
+
+After the pinned AVM build is available, run the complete artifact laboratory
+without network access with:
+
+```sh
+make milestone-3
+```
+
+The machine-readable result is `build/m3/laboratory/manifest.json`.
+
+Run the Milestone 4 query and fixture-parity gate with:
+
+```sh
+make milestone-4
+```
