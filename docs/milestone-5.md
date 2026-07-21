@@ -67,12 +67,44 @@ and every shorter prefix must report truncation.
 The normal strict gate compiles the module with `-ffreestanding -nostdinc` and
 includes it in the zero-undefined-symbol relocatable core.
 
+## Raw syntax and tile framing
+
+The checked bit reader now implements UVLC and signed VLC values, inverse
+signed literals, quasi-uniform symbols, and strict zero-padding alignment.
+Focused sanitizer tests cover maximum-length and truncated UVLC prefixes,
+signed boundaries, complete non-power-of-two quasi-uniform alphabets, and
+valid and invalid alignment padding. Carriage parsing uses these shared
+primitives rather than maintaining private copies.
+
+`src/decoder/tile.c` implements the locked one-tile tile-group boundary. Given
+an independently parsed uncompressed-header length, it validates the first
+tile-group flag, consumes only zero alignment padding, and returns the exact
+entropy span. Fixture-derived tests cover all four payload offsets and reject
+bad padding, a non-first group, empty entropy data, and truncation. Header
+lengths remain test evidence and are not constants in production code.
+
+## Sequence Header state
+
+The existing public Sequence Header summary remains unchanged. A private
+decoder state now retains the dimensions and tool flags needed to parse frame
+syntax and initialize reconstruction. Its values are checked for all four
+locked Sequence Headers against the hosted AVM inspection build.
+
+The common profile enables SDP, MRL, FSC/IDTX, IST, CFL, MHCCP, and CCTX, while
+TCQ, parity hiding, restoration, extended segmentation, sequence segmentation
+data, and sequence tile data are disabled. Filter availability varies by
+fixture: CDEF, GDF, and CCSO therefore remain real parser branches rather than
+profile constants. The frame traces likewise show both disabled and enabled
+intraBC.
+
 ## Remaining work
 
-The next required evidence is a hosted frame/tile transcript containing frame
-flags, tile byte ranges, partition and mode maps, coefficient checksums, and
-plane hashes after reconstruction, deblock, CDEF, CCSO, and restoration. The
-implementation then proceeds through frame/tile syntax, partition state,
+The next required implementation is a private Closed Loop Key frame-header
+parser that derives the one-tile entropy boundary from syntax. Hosted evidence
+already contains frame flags, exact uncompressed-header lengths, and tile-grid
+facts; it must next expand to partition and mode maps, coefficient checksums,
+and plane hashes after reconstruction, deblock, CDEF, CCSO, and restoration.
+The implementation then proceeds through partition state,
 coefficient decoding, inverse transforms, prediction, reconstruction, filters,
 workspace planning, and finally the public decode API.
 

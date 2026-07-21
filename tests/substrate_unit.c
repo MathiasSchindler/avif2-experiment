@@ -1,4 +1,5 @@
 #include "base.h"
+#include "decoder/sequence.h"
 
 #include <stdio.h>
 
@@ -37,6 +38,60 @@ static void test_readers(void) {
     CHECK(av2h_bit_reader_read(&bit_reader, 4U) == 1U);
     CHECK(av2h_bit_reader_read(&bit_reader, 8U) == 0x23U);
     CHECK(av2h_bit_reader_remaining(&bit_reader) == 20U);
+}
+
+static void test_raw_syntax_readers(void) {
+    static const unsigned char uvlc[] = { 0xa6U, 0x42U, 0x80U };
+    static const unsigned char svlc[] = { 0xa6U, 0x40U };
+    static const unsigned char signed_values[] = { 0xf8U, 0x70U };
+    static const unsigned char quniform[] = { 0x1bU, 0x70U };
+    static const unsigned char zero_padding[] = { 0xa0U };
+    static const unsigned char nonzero_padding[] = { 0xa1U };
+    static const unsigned char too_long[4] = { 0U, 0U, 0U, 0U };
+    Av2hBitReader reader;
+    av2h_bit_reader_init(&reader, uvlc, sizeof(uvlc), 0U);
+    CHECK(av2h_bit_reader_uvlc(&reader) == 0U);
+    CHECK(av2h_bit_reader_uvlc(&reader) == 1U);
+    CHECK(av2h_bit_reader_uvlc(&reader) == 2U);
+    CHECK(av2h_bit_reader_uvlc(&reader) == 3U);
+    CHECK(av2h_bit_reader_uvlc(&reader) == 4U);
+
+    av2h_bit_reader_init(&reader, svlc, sizeof(svlc), 0U);
+    CHECK(av2h_bit_reader_svlc(&reader) == 0);
+    CHECK(av2h_bit_reader_svlc(&reader) == 1);
+    CHECK(av2h_bit_reader_svlc(&reader) == -1);
+    CHECK(av2h_bit_reader_svlc(&reader) == 2);
+
+    av2h_bit_reader_init(&reader, signed_values, sizeof(signed_values), 0U);
+    CHECK(av2h_bit_reader_inverse_signed(&reader, 3U) == -1);
+    CHECK(av2h_bit_reader_inverse_signed(&reader, 3U) == -8);
+    CHECK(av2h_bit_reader_inverse_signed(&reader, 3U) == 7);
+
+    av2h_bit_reader_init(&reader, quniform, sizeof(quniform), 0U);
+    CHECK(av2h_bit_reader_quasi_uniform(&reader, 5U) == 0U);
+    CHECK(av2h_bit_reader_quasi_uniform(&reader, 5U) == 1U);
+    CHECK(av2h_bit_reader_quasi_uniform(&reader, 5U) == 2U);
+    CHECK(av2h_bit_reader_quasi_uniform(&reader, 5U) == 3U);
+    CHECK(av2h_bit_reader_quasi_uniform(&reader, 5U) == 4U);
+    CHECK(av2h_bit_reader_quasi_uniform(&reader, 1U) == 0U);
+
+    av2h_bit_reader_init(&reader, zero_padding, sizeof(zero_padding), 0U);
+    CHECK(av2h_bit_reader_read(&reader, 3U) == 5U);
+    CHECK(av2h_bit_reader_align_zero(&reader) == AV2H_OK);
+    av2h_bit_reader_init(&reader, nonzero_padding,
+                         sizeof(nonzero_padding), 0U);
+    CHECK(av2h_bit_reader_read(&reader, 3U) == 5U);
+    CHECK(av2h_bit_reader_align_zero(&reader) == AV2H_INVALID_DATA);
+
+    av2h_bit_reader_init(&reader, too_long, sizeof(too_long), 0U);
+    CHECK(av2h_bit_reader_uvlc(&reader) == 0U);
+    CHECK(reader.status == AV2H_INVALID_DATA);
+    av2h_bit_reader_init(&reader, zero_padding, 0U, 0U);
+    CHECK(av2h_bit_reader_uvlc(&reader) == 0U);
+    CHECK(reader.status == AV2H_TRUNCATED);
+    av2h_bit_reader_init(&reader, zero_padding, sizeof(zero_padding), 0U);
+    CHECK(av2h_bit_reader_quasi_uniform(&reader, 0U) == 0U);
+    CHECK(reader.status == AV2H_INVALID_ARGUMENT);
 }
 
 static void test_writers(void) {
@@ -181,10 +236,16 @@ static void test_obu_header_rules(void) {
 static void check_sequence(const unsigned char *bytes,
                            size_t size,
                            unsigned int width,
-                           unsigned int height) {
+                           unsigned int height,
+                           unsigned int width_bits,
+                           unsigned int height_bits,
+                           unsigned int enable_cdef,
+                           unsigned int enable_gdf,
+                           unsigned int enable_ccso) {
     Av2hObu entry;
     Av2hObuLedger ledger = { &entry, 1U, 0U };
     Av2hSequenceInfo sequence;
+    Av2hSequenceState state;
     Av2hError error;
     Av2hStatus status;
     CHECK(av2h_obu_parse((Av2hSpan){ bytes, size }, &ledger, &error) == AV2H_OK);
@@ -205,6 +266,29 @@ static void check_sequence(const unsigned char *bytes,
     CHECK(sequence.film_grain_params_present == 0U);
     CHECK(sequence.max_frame_width_minus_1 == width - 1U);
     CHECK(sequence.max_frame_height_minus_1 == height - 1U);
+    CHECK(av2h_sequence_state_parse((Av2hSpan){ bytes, size }, &entry,
+                                    &state, &error) == AV2H_OK);
+    CHECK(state.num_bits_width == width_bits);
+    CHECK(state.num_bits_height == height_bits);
+    CHECK(state.force_screen_content_tools == 2U);
+    CHECK(state.force_integer_mv == 2U);
+    CHECK(state.enable_tcq == 0U);
+    CHECK(state.enable_sdp == 1U);
+    CHECK(state.enable_mrls == 1U);
+    CHECK(state.enable_fsc == 1U);
+    CHECK(state.enable_idtx_intra == 1U);
+    CHECK(state.enable_ist == 1U);
+    CHECK(state.enable_cfl_intra == 1U);
+    CHECK(state.enable_mhccp == 1U);
+    CHECK(state.enable_cctx == 1U);
+    CHECK(state.enable_cdef == enable_cdef);
+    CHECK(state.enable_gdf == enable_gdf);
+    CHECK(state.enable_restoration == 0U);
+    CHECK(state.enable_ccso == enable_ccso);
+    CHECK(state.enable_parity_hiding == 0U);
+    CHECK(state.enable_ext_seg == 0U);
+    CHECK(state.seq_seg_info_present_flag == 0U);
+    CHECK(state.seq_tile_info_present_flag == 0U);
 }
 
 static void test_sequence_headers(void) {
@@ -232,10 +316,12 @@ static void test_sequence_headers(void) {
     Av2hObuLedger ledger = { &entry, 1U, 0U };
     Av2hSequenceInfo sequence;
     Av2hError error;
-    check_sequence(tiny, sizeof(tiny), 16U, 16U);
-    check_sequence(odd, sizeof(odd), 17U, 15U);
-    check_sequence(ordinary, sizeof(ordinary), 160U, 120U);
-    check_sequence(detail, sizeof(detail), 96U, 80U);
+    check_sequence(tiny, sizeof(tiny), 16U, 16U, 4U, 4U, 1U, 0U, 0U);
+    check_sequence(odd, sizeof(odd), 17U, 15U, 5U, 4U, 1U, 1U, 1U);
+    check_sequence(ordinary, sizeof(ordinary), 160U, 120U,
+                   8U, 7U, 1U, 0U, 1U);
+    check_sequence(detail, sizeof(detail), 96U, 80U,
+                   7U, 7U, 0U, 0U, 1U);
     av2h_memory_copy(film_grain, tiny, sizeof(tiny));
     film_grain[sizeof(film_grain) - 1U] |= 0x80U;
     CHECK(av2h_obu_parse((Av2hSpan){ film_grain, sizeof(film_grain) },
@@ -461,6 +547,7 @@ static void test_box_framing(void) {
 int main(void) {
     test_arithmetic();
     test_readers();
+    test_raw_syntax_readers();
     test_writers();
     test_arena();
     test_leb128_and_obus();

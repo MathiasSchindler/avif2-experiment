@@ -214,6 +214,88 @@ Av2hStatus av2h_bit_reader_align(Av2hBitReader *reader) {
     return reader->status;
 }
 
+Av2hStatus av2h_bit_reader_align_zero(Av2hBitReader *reader) {
+    size_t remainder;
+    unsigned int padding;
+    if (reader == 0) return AV2H_INVALID_ARGUMENT;
+    if (reader->status != AV2H_OK) return reader->status;
+    remainder = reader->bit_position & 7U;
+    if (remainder == 0U) return AV2H_OK;
+    padding = 8U - (unsigned int)remainder;
+    if (av2h_bit_reader_read(reader, padding) != 0U &&
+        reader->status == AV2H_OK) {
+        bit_reader_fail(reader, AV2H_INVALID_DATA);
+    }
+    return reader->status;
+}
+
+uint32_t av2h_bit_reader_uvlc(Av2hBitReader *reader) {
+    unsigned int leading_zeros = 0U;
+    uint32_t suffix;
+    if (reader == 0 || reader->status != AV2H_OK) return 0U;
+    while (leading_zeros < 32U) {
+        uint32_t bit = av2h_bit_reader_read(reader, 1U);
+        if (reader->status != AV2H_OK) return 0U;
+        if (bit != 0U) break;
+        ++leading_zeros;
+    }
+    if (leading_zeros == 32U) {
+        bit_reader_fail(reader, AV2H_INVALID_DATA);
+        return 0U;
+    }
+    suffix = av2h_bit_reader_read(reader, leading_zeros);
+    if (reader->status != AV2H_OK) return 0U;
+    return (((uint32_t)1U << leading_zeros) - 1U) + suffix;
+}
+
+int32_t av2h_bit_reader_svlc(Av2hBitReader *reader) {
+    uint32_t value = av2h_bit_reader_uvlc(reader);
+    uint32_t magnitude;
+    if (reader == 0 || reader->status != AV2H_OK) return 0;
+    magnitude = (value >> 1U) + (value & 1U);
+    return (value & 1U) != 0U
+        ? (int32_t)magnitude : -(int32_t)magnitude;
+}
+
+int32_t av2h_bit_reader_inverse_signed(Av2hBitReader *reader,
+                                       unsigned int magnitude_bits) {
+    uint32_t value;
+    uint32_t sign_bit;
+    unsigned int total_bits;
+    if (reader == 0 || magnitude_bits >= 31U) {
+        if (reader != 0) bit_reader_fail(reader, AV2H_INVALID_ARGUMENT);
+        return 0;
+    }
+    total_bits = magnitude_bits + 1U;
+    value = av2h_bit_reader_read(reader, total_bits);
+    if (reader->status != AV2H_OK) return 0;
+    sign_bit = (uint32_t)1U << magnitude_bits;
+    if ((value & sign_bit) == 0U) return (int32_t)value;
+    return (int32_t)(value | (~(uint32_t)0U << total_bits));
+}
+
+uint32_t av2h_bit_reader_quasi_uniform(Av2hBitReader *reader,
+                                       uint32_t symbol_count) {
+    unsigned int bits = 0U;
+    uint32_t threshold;
+    uint32_t value;
+    uint32_t probe;
+    if (reader == 0 || symbol_count == 0U || symbol_count > 65535U) {
+        if (reader != 0) bit_reader_fail(reader, AV2H_INVALID_ARGUMENT);
+        return 0U;
+    }
+    if (symbol_count == 1U) return 0U;
+    probe = symbol_count - 1U;
+    while (probe != 0U) {
+        ++bits;
+        probe >>= 1U;
+    }
+    threshold = ((uint32_t)1U << bits) - symbol_count;
+    value = av2h_bit_reader_read(reader, bits - 1U);
+    if (reader->status != AV2H_OK || value < threshold) return value;
+    return (value << 1U) - threshold + av2h_bit_reader_read(reader, 1U);
+}
+
 static void byte_writer_fail(Av2hByteWriter *writer, Av2hStatus status) {
     if (writer->status == AV2H_OK) writer->status = status;
 }

@@ -65,6 +65,13 @@ size_t av2h_bit_reader_remaining(const Av2hBitReader *reader);
 uint32_t av2h_bit_reader_read(Av2hBitReader *reader, unsigned int bit_count);
 Av2hStatus av2h_bit_reader_skip(Av2hBitReader *reader, size_t bit_count);
 Av2hStatus av2h_bit_reader_align(Av2hBitReader *reader);
+Av2hStatus av2h_bit_reader_align_zero(Av2hBitReader *reader);
+uint32_t av2h_bit_reader_uvlc(Av2hBitReader *reader);
+int32_t av2h_bit_reader_svlc(Av2hBitReader *reader);
+int32_t av2h_bit_reader_inverse_signed(Av2hBitReader *reader,
+                                       unsigned int magnitude_bits);
+uint32_t av2h_bit_reader_quasi_uniform(Av2hBitReader *reader,
+                                       uint32_t symbol_count);
 
 typedef struct {
     unsigned char *data;

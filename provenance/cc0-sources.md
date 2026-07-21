@@ -36,3 +36,10 @@ validation were independently implemented for this project. Deterministic
 bytes and state transitions are compared with a separately built pinned AVM
 oracle through `tools/m5_entropy_oracle.c`; no AVM source or object is included
 in the CC0 production core.
+
+The raw UVLC, signed-literal, quasi-uniform, and alignment behavior and the AV2
+Sequence Header field order were checked against the pinned AVM source. The
+freestanding implementations are project-owned CC0 code and are validated by
+independent fixture and boundary vectors in `tests/substrate_unit.c`. The
+one-tile framing implementation in `src/decoder/tile.c` is likewise
+project-owned CC0 code and is checked against fixture-derived AVM offsets.

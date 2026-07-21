@@ -6,11 +6,14 @@ HOST_CFLAGS := -std=c11 -Wall -Wextra -Wpedantic -Werror -O1 -g \
 HOST_SUBSTRATE_UNIT := build/host/substrate-unit
 HOST_CONTAINER_UNIT := build/host/container-unit
 HOST_RANGE_UNIT := build/host/range-unit
-HOST_UNITS := $(HOST_SUBSTRATE_UNIT) $(HOST_CONTAINER_UNIT) $(HOST_RANGE_UNIT)
+HOST_TILE_UNIT := build/host/tile-unit
+HOST_UNITS := $(HOST_SUBSTRATE_UNIT) $(HOST_CONTAINER_UNIT) $(HOST_RANGE_UNIT) \
+	$(HOST_TILE_UNIT)
 HOST_ARTIFACT_TOOL := build/host/av2heif-artifact
 CORE_SOURCES := src/base.c src/carriage.c src/bmff.c src/container.c src/query.c \
-	src/decoder/range.c
-CORE_HEADERS := include/av2heif.h src/base.h
+	src/decoder/range.c src/decoder/tile.c
+CORE_HEADERS := include/av2heif.h src/base.h src/decoder/sequence.h \
+	src/decoder/range.h src/decoder/tile.h
 STRICT_DIR := build/freestanding
 STRICT_OBJECTS := $(patsubst src/%.c,$(STRICT_DIR)/%.o,$(CORE_SOURCES))
 STRICT_CORE := $(STRICT_DIR)/av2heif-core.o
@@ -30,6 +33,7 @@ test-c: $(HOST_UNITS)
 	$(HOST_SUBSTRATE_UNIT)
 	$(HOST_CONTAINER_UNIT)
 	$(HOST_RANGE_UNIT)
+	$(HOST_TILE_UNIT)
 
 $(HOST_SUBSTRATE_UNIT): tests/substrate_unit.c $(CORE_SOURCES) $(CORE_HEADERS)
 	@mkdir -p $(dir $@)
@@ -43,6 +47,11 @@ $(HOST_RANGE_UNIT): tests/range_unit.c $(CORE_SOURCES) $(CORE_HEADERS) \
 		src/decoder/range.h
 	@mkdir -p $(dir $@)
 	$(CC) $(HOST_CFLAGS) tests/range_unit.c $(CORE_SOURCES) -o $@
+
+$(HOST_TILE_UNIT): tests/tile_unit.c $(CORE_SOURCES) $(CORE_HEADERS) \
+		src/decoder/tile.h
+	@mkdir -p $(dir $@)
+	$(CC) $(HOST_CFLAGS) tests/tile_unit.c $(CORE_SOURCES) -o $@
 
 $(HOST_ARTIFACT_TOOL): tools/av2heif_artifact.c $(CORE_SOURCES) $(CORE_HEADERS)
 	@mkdir -p $(dir $@)

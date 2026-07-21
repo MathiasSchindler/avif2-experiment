@@ -1,4 +1,5 @@
 #include "base.h"
+#include "decoder/sequence.h"
 
 static Av2hStatus fail(Av2hError *error,
                        Av2hStatus status,
@@ -237,114 +238,131 @@ Av2hStatus av2h_obu_parse(Av2hSpan input,
     return AV2H_OK;
 }
 
-static uint32_t read_uvlc(Av2hBitReader *reader) {
-    unsigned int zeros = 0U;
-    uint32_t suffix;
-    while (zeros < 32U && reader->status == AV2H_OK &&
-           av2h_bit_reader_read(reader, 1U) == 0U) {
-        ++zeros;
-    }
-    if (reader->status != AV2H_OK) return UINT32_MAX;
-    if (zeros == 32U) {
-        reader->status = AV2H_INVALID_DATA;
-        return UINT32_MAX;
-    }
-    suffix = av2h_bit_reader_read(reader, zeros);
-    if (reader->status != AV2H_OK) return UINT32_MAX;
-    return ((uint32_t)1U << zeros) - 1U + suffix;
-}
-
-static uint32_t read_quniform(Av2hBitReader *reader, uint32_t count) {
-    unsigned int bits = 0U;
-    uint32_t threshold;
-    uint32_t value;
-    uint32_t probe = count;
-    if (count <= 1U) return 0U;
-    while (probe != 0U) {
-        ++bits;
-        probe >>= 1;
-    }
-    threshold = ((uint32_t)1U << bits) - count;
-    value = av2h_bit_reader_read(reader, bits - 1U);
-    if (value < threshold) return value;
-    return (value << 1) - threshold + av2h_bit_reader_read(reader, 1U);
-}
-
 static int read_sequence_tools(Av2hBitReader *reader,
                                uint8_t monochrome,
                                uint8_t single_picture,
-                               unsigned int *superblock_size) {
+                               Av2hSequenceState *state) {
     uint32_t value;
-    uint32_t enable_fsc;
-    uint32_t enable_tcq;
-    uint32_t equal_ac_dc;
-    uint32_t enable_gdf;
-    uint32_t enable_restoration;
-    uint32_t enable_ccso;
     if (av2h_bit_reader_read(reader, 1U) != 0U) {
-        *superblock_size = 256U;
+        state->superblock_size = 256U;
     } else if (av2h_bit_reader_read(reader, 1U) != 0U) {
-        *superblock_size = 128U;
+        state->superblock_size = 128U;
     } else {
-        *superblock_size = 64U;
+        state->superblock_size = 64U;
     }
-    if (!monochrome) (void)av2h_bit_reader_read(reader, 1U);
-    value = av2h_bit_reader_read(reader, 1U);
-    if (value != 0U) (void)av2h_bit_reader_read(reader, 1U);
+    state->enable_sdp = monochrome
+        ? 0U : (uint8_t)av2h_bit_reader_read(reader, 1U);
+    state->enable_ext_partitions =
+        (uint8_t)av2h_bit_reader_read(reader, 1U);
+    if (state->enable_ext_partitions != 0U) {
+        state->enable_uneven_4way_partitions =
+            (uint8_t)av2h_bit_reader_read(reader, 1U);
+    }
+    state->max_pb_aspect_ratio_log2_minus_1 = 2U;
     if (av2h_bit_reader_read(reader, 1U) != 0U) {
-        (void)av2h_bit_reader_read(reader, 1U);
+        state->max_pb_aspect_ratio_log2_minus_1 =
+            (uint8_t)av2h_bit_reader_read(reader, 1U);
     }
 
-    (void)av2h_bit_reader_read(reader, 1U);
-    if (av2h_bit_reader_read(reader, 1U) != 0U) return 0;
+    state->enable_ext_seg = (uint8_t)av2h_bit_reader_read(reader, 1U);
+    state->seq_seg_info_present_flag =
+        (uint8_t)av2h_bit_reader_read(reader, 1U);
+    if (state->seq_seg_info_present_flag != 0U) return 0;
 
-    (void)av2h_bit_reader_read(reader, 4U);
-    if (!monochrome) (void)av2h_bit_reader_read(reader, 2U);
-    (void)av2h_bit_reader_read(reader, 2U);
+    state->enable_intra_dip = (uint8_t)av2h_bit_reader_read(reader, 1U);
+    state->enable_intra_edge_filter =
+        (uint8_t)av2h_bit_reader_read(reader, 1U);
+    state->enable_mrls = (uint8_t)av2h_bit_reader_read(reader, 1U);
+    state->enable_cfl_intra = (uint8_t)av2h_bit_reader_read(reader, 1U);
+    state->cfl_downsample_filter_index = monochrome
+        ? 0U : (uint8_t)av2h_bit_reader_read(reader, 2U);
+    state->enable_mhccp = (uint8_t)av2h_bit_reader_read(reader, 1U);
+    state->enable_ibp = (uint8_t)av2h_bit_reader_read(reader, 1U);
 
-    (void)av2h_bit_reader_read(reader, 1U);
+    state->enable_refmvbank = (uint8_t)av2h_bit_reader_read(reader, 1U);
     if (av2h_bit_reader_read(reader, 1U) == 0U) {
-        (void)av2h_bit_reader_read(reader, 1U);
+        state->enable_drl_reorder =
+            av2h_bit_reader_read(reader, 1U) != 0U ? 1U : 2U;
     }
-    (void)read_quniform(reader, 3U);
-    (void)av2h_bit_reader_read(reader, 1U);
+    state->default_max_bvp_drl_bits = (uint8_t)
+        (av2h_bit_reader_quasi_uniform(reader, 3U) + 1U);
+    state->allow_frame_max_bvp_drl_bits =
+        (uint8_t)av2h_bit_reader_read(reader, 1U);
     if (single_picture) {
-        (void)av2h_bit_reader_read(reader, 1U);
+        state->enable_bawp = (uint8_t)av2h_bit_reader_read(reader, 1U);
+        state->force_screen_content_tools = 2U;
+        state->force_integer_mv = 2U;
     } else {
         return 0;
     }
 
-    enable_fsc = av2h_bit_reader_read(reader, 1U);
-    if (enable_fsc == 0U) (void)av2h_bit_reader_read(reader, 1U);
-    (void)av2h_bit_reader_read(reader, 3U);
-    (void)av2h_bit_reader_read(reader, 1U);
-    if (!monochrome) (void)av2h_bit_reader_read(reader, 1U);
-    enable_tcq = av2h_bit_reader_read(reader, 1U);
-    if (enable_tcq == 0U) (void)av2h_bit_reader_read(reader, 1U);
-    if (!monochrome) (void)av2h_bit_reader_read(reader, 1U);
-    equal_ac_dc = av2h_bit_reader_read(reader, 1U);
-    if (equal_ac_dc == 0U) (void)av2h_bit_reader_read(reader, 6U);
+    state->enable_fsc = (uint8_t)av2h_bit_reader_read(reader, 1U);
+    state->enable_idtx_intra = state->enable_fsc != 0U
+        ? 1U : (uint8_t)av2h_bit_reader_read(reader, 1U);
+    state->enable_ist = (uint8_t)av2h_bit_reader_read(reader, 1U);
+    state->enable_inter_ist = (uint8_t)av2h_bit_reader_read(reader, 1U);
+    state->enable_chroma_dctonly = monochrome
+        ? 0U : (uint8_t)av2h_bit_reader_read(reader, 1U);
+    state->reduced_tx_partition_set =
+        (uint8_t)av2h_bit_reader_read(reader, 1U);
+    state->enable_cctx = monochrome
+        ? 0U : (uint8_t)av2h_bit_reader_read(reader, 1U);
+    state->enable_tcq = (uint8_t)av2h_bit_reader_read(reader, 1U);
+    if (state->enable_tcq == 0U) {
+        state->enable_parity_hiding =
+            (uint8_t)av2h_bit_reader_read(reader, 1U);
+    }
+    state->separate_uv_delta_q = monochrome
+        ? 0U : (uint8_t)av2h_bit_reader_read(reader, 1U);
+    state->equal_ac_dc_q = (uint8_t)av2h_bit_reader_read(reader, 1U);
+    if (state->equal_ac_dc_q == 0U) {
+        value = av2h_bit_reader_read(reader, 5U);
+        state->base_y_dc_delta_q = (int8_t)((int32_t)value - 23);
+        state->y_dc_delta_q_enabled =
+            (uint8_t)av2h_bit_reader_read(reader, 1U);
+    }
     if (!monochrome) {
-        if (equal_ac_dc == 0U) (void)av2h_bit_reader_read(reader, 6U);
-        (void)av2h_bit_reader_read(reader, 6U);
+        if (state->equal_ac_dc_q == 0U) {
+            value = av2h_bit_reader_read(reader, 5U);
+            state->base_uv_dc_delta_q = (int8_t)((int32_t)value - 23);
+            state->uv_dc_delta_q_enabled =
+                (uint8_t)av2h_bit_reader_read(reader, 1U);
+        }
+        value = av2h_bit_reader_read(reader, 5U);
+        state->base_uv_ac_delta_q = (int8_t)((int32_t)value - 23);
+        state->uv_ac_delta_q_enabled =
+            (uint8_t)av2h_bit_reader_read(reader, 1U);
+        if (state->equal_ac_dc_q != 0U) {
+            state->base_uv_dc_delta_q = state->base_uv_ac_delta_q;
+        }
     }
 
-    (void)av2h_bit_reader_read(reader, 2U);
-    enable_gdf = av2h_bit_reader_read(reader, 1U);
-    if (enable_gdf != 0U && *superblock_size == 64U) {
-        (void)av2h_bit_reader_read(reader, 1U);
+    state->disable_loopfilters_across_tiles =
+        (uint8_t)av2h_bit_reader_read(reader, 1U);
+    state->enable_cdef = (uint8_t)av2h_bit_reader_read(reader, 1U);
+    state->enable_gdf = (uint8_t)av2h_bit_reader_read(reader, 1U);
+    if (state->enable_gdf != 0U && state->superblock_size == 64U) {
+        state->gdf_unit_matches_superblock_size =
+            (uint8_t)av2h_bit_reader_read(reader, 1U);
     }
-    enable_restoration = av2h_bit_reader_read(reader, 1U);
-    if (enable_restoration != 0U) {
+    state->enable_restoration =
+        (uint8_t)av2h_bit_reader_read(reader, 1U);
+    if (state->enable_restoration != 0U) {
         (void)av2h_bit_reader_read(reader, 2U);
         if (av2h_bit_reader_read(reader, 1U) != 0U) {
             (void)av2h_bit_reader_read(reader, 1U);
         }
     }
-    enable_ccso = av2h_bit_reader_read(reader, 1U);
-    if (enable_ccso != 0U) (void)av2h_bit_reader_read(reader, 1U);
-    (void)av2h_bit_reader_read(reader, 2U);
-    if (av2h_bit_reader_read(reader, 1U) != 0U) return 0;
+    state->enable_ccso = (uint8_t)av2h_bit_reader_read(reader, 1U);
+    if (state->enable_ccso != 0U) {
+        state->ccso_unit_matches_superblock_size =
+            (uint8_t)av2h_bit_reader_read(reader, 1U);
+    }
+    state->deblock_parameter_bits_minus_2 =
+        (uint8_t)av2h_bit_reader_read(reader, 2U);
+    state->seq_tile_info_present_flag =
+        (uint8_t)av2h_bit_reader_read(reader, 1U);
+    if (state->seq_tile_info_present_flag != 0U) return 0;
     return reader->status == AV2H_OK;
 }
 
@@ -359,27 +377,29 @@ static int check_trailing_bits(Av2hBitReader *reader) {
     return reader->status == AV2H_OK;
 }
 
-Av2hStatus av2h_sequence_header_parse(Av2hSpan input,
-                                      const Av2hObu *obu,
-                                      Av2hSequenceInfo *sequence,
-                                      Av2hError *error) {
+Av2hStatus av2h_sequence_state_parse(Av2hSpan input,
+                                     const Av2hObu *obu,
+                                     Av2hSequenceState *state,
+                                     Av2hError *error) {
     Av2hBitReader reader;
+    Av2hSequenceInfo *sequence;
     uint32_t sequence_id;
     uint32_t chroma;
     uint32_t bit_depth;
     uint32_t width_bits;
     uint32_t height_bits;
-    unsigned int superblock_size;
-    if (obu == 0 || sequence == 0 || input.data == 0 ||
+    if (obu == 0 || state == 0 || input.data == 0 ||
         obu->type != AV2H_OBU_SEQUENCE_HEADER || obu->extension_flag != 0U ||
         obu->temporal_id != 0U || obu->payload_offset > input.size ||
         obu->payload_size > input.size - obu->payload_offset) {
         return fail_obu(error, AV2H_INVALID_ARGUMENT, obu, 0U,
                 AV2H_CONTEXT_SEQUENCE_HEADER);
     }
+    av2h_memory_fill(state, 0U, sizeof(*state));
+    sequence = &state->info;
     av2h_bit_reader_init(&reader, input.data + obu->payload_offset,
                          obu->payload_size, obu->payload_offset);
-    sequence_id = read_uvlc(&reader);
+    sequence_id = av2h_bit_reader_uvlc(&reader);
     sequence->seq_profile_idc = (uint8_t)av2h_bit_reader_read(&reader, 5U);
     if (reader.status != AV2H_OK) {
         return fail_obu(error, reader.status, obu,
@@ -404,8 +424,8 @@ Av2hStatus av2h_sequence_header_parse(Av2hSpan input,
                         AV2H_CONTEXT_SEQUENCE_HEADER);
     }
     sequence->seq_tier = 0U;
-    chroma = read_uvlc(&reader);
-    bit_depth = read_uvlc(&reader);
+    chroma = av2h_bit_reader_uvlc(&reader);
+    bit_depth = av2h_bit_reader_uvlc(&reader);
     if (reader.status != AV2H_OK) {
         return fail_obu(error, reader.status, obu,
                         av2h_bit_reader_offset(&reader),
@@ -424,6 +444,8 @@ Av2hStatus av2h_sequence_header_parse(Av2hSpan input,
     sequence->initial_display_delay_minus_1 = 0U;
     width_bits = av2h_bit_reader_read(&reader, 4U) + 1U;
     height_bits = av2h_bit_reader_read(&reader, 4U) + 1U;
+    state->num_bits_width = (uint8_t)width_bits;
+    state->num_bits_height = (uint8_t)height_bits;
     sequence->max_frame_width_minus_1 =
         (uint16_t)av2h_bit_reader_read(&reader, width_bits);
     sequence->max_frame_height_minus_1 =
@@ -443,7 +465,7 @@ Av2hStatus av2h_sequence_header_parse(Av2hSpan input,
                         av2h_bit_reader_offset(&reader),
                         AV2H_CONTEXT_SEQUENCE_HEADER);
     }
-    if (!read_sequence_tools(&reader, 0U, 1U, &superblock_size)) {
+    if (!read_sequence_tools(&reader, 0U, 1U, state)) {
         return fail_obu(error,
                         reader.status == AV2H_OK ? AV2H_UNSUPPORTED
                                                  : reader.status,
@@ -469,6 +491,21 @@ Av2hStatus av2h_sequence_header_parse(Av2hSpan input,
                         AV2H_CONTEXT_SEQUENCE_HEADER);
     }
     return AV2H_OK;
+}
+
+Av2hStatus av2h_sequence_header_parse(Av2hSpan input,
+                                      const Av2hObu *obu,
+                                      Av2hSequenceInfo *sequence,
+                                      Av2hError *error) {
+    Av2hSequenceState state;
+    Av2hStatus status;
+    if (sequence == 0) {
+        return fail_obu(error, AV2H_INVALID_ARGUMENT, obu, 0U,
+                        AV2H_CONTEXT_SEQUENCE_HEADER);
+    }
+    status = av2h_sequence_state_parse(input, obu, &state, error);
+    if (status == AV2H_OK) *sequence = state.info;
+    return status;
 }
 
 void av2h_color_info_default(Av2hColorInfo *color) {
@@ -562,8 +599,8 @@ Av2hStatus av2h_content_interpretation_parse(Av2hSpan input,
         color->full_range_flag = (uint8_t)av2h_bit_reader_read(&reader, 1U);
     }
     if (chroma_position_present != 0U) {
-        (void)read_uvlc(&reader);
-        if (scan_type != 1U) (void)read_uvlc(&reader);
+        (void)av2h_bit_reader_uvlc(&reader);
+        if (scan_type != 1U) (void)av2h_bit_reader_uvlc(&reader);
     }
     if (aspect_present != 0U || timing_present != 0U) {
         return fail_obu(error, AV2H_UNSUPPORTED, obu,
