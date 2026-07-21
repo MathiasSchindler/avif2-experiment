@@ -15,11 +15,12 @@ separate reference experiment and is fetched into ignored `vendor/` and
 - Milestone 1 provides checked readers, writers, arenas, AV2 OBU framing,
   Sequence Header and Content Interpretation parsing, nine-byte `av2C`, strict
   v0 carriage validation, and checked BMFF box headers.
-- Milestone 2, deterministic HEIF parsing and writing, is not implemented.
+- Milestone 2 provides a strict zero-copy typed parser and deterministic writer
+  for one primary `av02` item, with byte-exact output and mutation coverage.
 
-The public carriage API is declared in `include/av2heif.h`. Milestone details
-and limitations are recorded in `docs/milestone-0.md` and
-`docs/milestone-1.md`; the longer roadmap is in `plan.md`.
+The public API is declared in `include/av2heif.h`. Milestone details and
+limitations are recorded in `docs/milestone-0.md`, `docs/milestone-1.md`, and
+`docs/milestone-2.md`; the longer roadmap is in `plan.md`.
 
 ## Build and test
 
@@ -32,6 +33,7 @@ make test
 This runs the C harness under AddressSanitizer and UndefinedBehaviorSanitizer,
 builds the core with `-ffreestanding -nostdinc`, verifies that the linked
 relocatable core has no undefined symbols, and runs the Python carriage tests.
+The C gate has separate substrate/carriage and container test binaries.
 
 Run the hosted AVM differential experiment with:
 

@@ -236,6 +236,10 @@ rejected deterministically.
 
 ## Milestone 2: deterministic AV2-HEIF v0
 
+**Status:** Implemented. The byte-exact writer, strict typed parser, sanitizer,
+freestanding, and undefined-symbol gates pass; see `docs/milestone-2.md` for
+the canonical graph, API contract, mutation coverage, and limitations.
+
 Implement a strict typed parser and deterministic writer for one primary image
 item with:
 

@@ -23,7 +23,8 @@ typedef enum {
     AV2H_CONTEXT_SEQUENCE_HEADER = 4,
     AV2H_CONTEXT_CONTENT_INTERPRETATION = 5,
     AV2H_CONTEXT_AV2C = 6,
-    AV2H_CONTEXT_BOX = 7
+    AV2H_CONTEXT_BOX = 7,
+    AV2H_CONTEXT_HEIF = 8
 } Av2hErrorContext;
 
 typedef struct {
@@ -128,6 +129,21 @@ typedef struct {
     uint32_t type;
 } Av2hBoxHeader;
 
+typedef struct {
+    Av2hSpan config_obus;
+    Av2hSpan item_payload;
+    Av2hColorInfo color;
+} Av2hHeifSource;
+
+typedef struct {
+    Av2hHeifSource source;
+    Av2hSequenceInfo sequence;
+    uint32_t width;
+    uint32_t height;
+    uint8_t channel_count;
+    uint8_t bits_per_channel;
+} Av2hHeifImage;
+
 Av2hStatus av2h_leb128_read(Av2hSpan input,
                             size_t *value,
                             size_t *encoded_size,
@@ -169,5 +185,13 @@ Av2hStatus av2h_box_header_write(uint32_t type,
                                  void *output,
                                  size_t output_size,
                                  size_t *written);
+Av2hStatus av2h_heif_parse(Av2hSpan input,
+                           Av2hHeifImage *image,
+                           Av2hError *error);
+Av2hStatus av2h_heif_write(const Av2hHeifSource *source,
+                           void *output,
+                           size_t output_size,
+                           size_t *written,
+                           Av2hError *error);
 
 #endif

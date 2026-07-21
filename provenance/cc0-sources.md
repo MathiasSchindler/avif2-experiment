@@ -20,4 +20,6 @@ copied.
 
 The byte and bit writers, AV2 LEB128 and OBU carriage parser, Sequence Header
 and Content Interpretation parsers, draft-shaped `av2C`, and BMFF box framing
-in this repository are project-owned CC0 code written for this experiment.
+in this repository are project-owned CC0 code written for this experiment. The
+typed AV2-HEIF parser and deterministic writer in `src/container.c` are also
+project-owned CC0 code written for this experiment.

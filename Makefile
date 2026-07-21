@@ -3,8 +3,10 @@ CC ?= cc
 NM ?= nm
 HOST_CFLAGS := -std=c11 -Wall -Wextra -Wpedantic -Werror -O1 -g \
 	-fsanitize=address,undefined -fno-omit-frame-pointer -Iinclude -Isrc
-HOST_UNIT := build/host/core-unit
-CORE_SOURCES := src/base.c src/carriage.c src/bmff.c
+HOST_SUBSTRATE_UNIT := build/host/substrate-unit
+HOST_CONTAINER_UNIT := build/host/container-unit
+HOST_UNITS := $(HOST_SUBSTRATE_UNIT) $(HOST_CONTAINER_UNIT)
+CORE_SOURCES := src/base.c src/carriage.c src/bmff.c src/container.c
 CORE_HEADERS := include/av2heif.h src/base.h
 STRICT_DIR := build/freestanding
 STRICT_OBJECTS := $(patsubst src/%.c,$(STRICT_DIR)/%.o,$(CORE_SOURCES))
@@ -20,12 +22,17 @@ STRICT_CFLAGS := -std=c11 -Wall -Wextra -Wpedantic -Werror -O2 \
 test: test-c test-freestanding
 	$(PYTHON) -m unittest discover -s tests -p 'test_*.py'
 
-test-c: $(HOST_UNIT)
-	$(HOST_UNIT)
+test-c: $(HOST_UNITS)
+	$(HOST_SUBSTRATE_UNIT)
+	$(HOST_CONTAINER_UNIT)
 
-$(HOST_UNIT): tests/substrate_unit.c $(CORE_SOURCES) $(CORE_HEADERS)
+$(HOST_SUBSTRATE_UNIT): tests/substrate_unit.c $(CORE_SOURCES) $(CORE_HEADERS)
 	@mkdir -p $(dir $@)
 	$(CC) $(HOST_CFLAGS) tests/substrate_unit.c $(CORE_SOURCES) -o $@
+
+$(HOST_CONTAINER_UNIT): tests/container_unit.c $(CORE_SOURCES) $(CORE_HEADERS)
+	@mkdir -p $(dir $@)
+	$(CC) $(HOST_CFLAGS) tests/container_unit.c $(CORE_SOURCES) -o $@
 
 test-freestanding: $(STRICT_CORE)
 	@$(NM) -u $(STRICT_CORE) > $(STRICT_DIR)/undefined-symbols.txt
