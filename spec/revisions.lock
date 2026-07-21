@@ -1,0 +1,42 @@
+# Immutable sources reviewed or used by AV2-HEIF experimental v0.
+
+[[source]]
+name = "AVM v1.0.0"
+revision = "966a7d7cd6fcf60360caf5dc413b2aeeb65e144d"
+tree = "b0b36ed9716aee1426b8443fe750d766cd6cd49d"
+url = "https://github.com/AOMediaCodec/avm.git"
+license = "BSD-3-Clause"
+retrieval = "git checkout"
+purpose = "Milestone 0 reference encoder and differential decoder"
+
+[[source]]
+name = "AV2 specification v1.0.0"
+revision = "016ffa9cbb0d5538f92736100f82f78733581149"
+url = "https://av2.aomedia.org/v1.0.0/index.html"
+license = "AOMedia specification terms"
+retrieval = "reviewed source revision"
+purpose = "Normative codec syntax and semantics"
+
+[[source]]
+name = "AV2 specification v1.0.0 HTML blob"
+revision = "75b46fae50d6e8aaf38fe99a6f2a7b7e38b88abe"
+url = "https://av2.aomedia.org/v1.0.0/index.html"
+license = "AOMedia specification terms"
+retrieval = "reviewed content blob"
+purpose = "Exact rendered specification reviewed for the design report"
+
+[[source]]
+name = "AV2-ISOBMFF working draft"
+revision = "1b5fed56bf183a0d2790b30a57bb0605e474b1dc"
+url = "https://aomediacodec.github.io/av2-isobmff/main/index.html"
+license = "AOMedia specification terms"
+retrieval = "reviewed source revision"
+purpose = "Draft-shaped av2C and length-delimited sample prior art"
+
+[[source]]
+name = "Local avif-decoder reuse source"
+revision = "57667e4e01f62bc03593e2f84129eca428afaa7b"
+url = "local sibling checkout"
+license = "CC0-1.0"
+retrieval = "git checkout"
+purpose = "Potential generic freestanding substrate for later milestones"
