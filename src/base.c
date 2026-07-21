@@ -1,0 +1,408 @@
+#include "base.h"
+
+const char *av2h_status_string(Av2hStatus status) {
+    switch (status) {
+        case AV2H_OK: return "ok";
+        case AV2H_INVALID_ARGUMENT: return "invalid argument";
+        case AV2H_TRUNCATED: return "truncated input";
+        case AV2H_INVALID_DATA: return "invalid data";
+        case AV2H_OVERFLOW: return "integer overflow";
+        case AV2H_LIMIT_EXCEEDED: return "limit exceeded";
+        case AV2H_OUT_OF_MEMORY: return "out of memory";
+        case AV2H_UNSUPPORTED: return "unsupported feature";
+    }
+    return "unknown error";
+}
+
+int av2h_size_add(size_t left, size_t right, size_t *result) {
+    if (result == 0 || right > SIZE_MAX - left) return 0;
+    *result = left + right;
+    return 1;
+}
+
+int av2h_size_multiply(size_t left, size_t right, size_t *result) {
+    if (result == 0 || (left != 0U && right > SIZE_MAX / left)) return 0;
+    *result = left * right;
+    return 1;
+}
+
+int av2h_size_align(size_t value, size_t alignment, size_t *result) {
+    size_t mask;
+    if (result == 0 || alignment == 0U || (alignment & (alignment - 1U)) != 0U) {
+        return 0;
+    }
+    mask = alignment - 1U;
+    if (value > SIZE_MAX - mask) return 0;
+    *result = (value + mask) & ~mask;
+    return 1;
+}
+
+void av2h_memory_copy(void *destination, const void *source, size_t count) {
+    unsigned char *output = (unsigned char *)destination;
+    const unsigned char *input = (const unsigned char *)source;
+    size_t index;
+    for (index = 0U; index < count; ++index) output[index] = input[index];
+}
+
+void av2h_memory_fill(void *destination, unsigned char value, size_t count) {
+    unsigned char *output = (unsigned char *)destination;
+    size_t index;
+    for (index = 0U; index < count; ++index) output[index] = value;
+}
+
+int av2h_memory_compare(const void *left, const void *right, size_t count) {
+    const unsigned char *left_bytes = (const unsigned char *)left;
+    const unsigned char *right_bytes = (const unsigned char *)right;
+    size_t index;
+    for (index = 0U; index < count; ++index) {
+        if (left_bytes[index] < right_bytes[index]) return -1;
+        if (left_bytes[index] > right_bytes[index]) return 1;
+    }
+    return 0;
+}
+
+uint16_t av2h_load_u16be(const unsigned char *bytes) {
+    return (uint16_t)(((uint16_t)bytes[0] << 8) | (uint16_t)bytes[1]);
+}
+
+uint32_t av2h_load_u32be(const unsigned char *bytes) {
+    return ((uint32_t)bytes[0] << 24) | ((uint32_t)bytes[1] << 16) |
+           ((uint32_t)bytes[2] << 8) | (uint32_t)bytes[3];
+}
+
+uint64_t av2h_load_u64be(const unsigned char *bytes) {
+    return ((uint64_t)av2h_load_u32be(bytes) << 32) |
+           (uint64_t)av2h_load_u32be(bytes + 4U);
+}
+
+static void byte_reader_fail(Av2hByteReader *reader, Av2hStatus status) {
+    if (reader->status == AV2H_OK) reader->status = status;
+}
+
+void av2h_byte_reader_init(Av2hByteReader *reader,
+                           const void *data,
+                           size_t size,
+                           size_t base_offset) {
+    size_t end_offset;
+    if (reader == 0) return;
+    reader->data = (const unsigned char *)data;
+    reader->size = size;
+    reader->position = 0U;
+    reader->base_offset = base_offset;
+    reader->status = AV2H_OK;
+    if ((data == 0 && size != 0U) ||
+        !av2h_size_add(base_offset, size, &end_offset)) {
+        reader->status = AV2H_INVALID_ARGUMENT;
+    }
+}
+
+size_t av2h_byte_reader_offset(const Av2hByteReader *reader) {
+    return reader->base_offset + reader->position;
+}
+
+size_t av2h_byte_reader_remaining(const Av2hByteReader *reader) {
+    if (reader->position > reader->size) return 0U;
+    return reader->size - reader->position;
+}
+
+const unsigned char *av2h_byte_reader_take(Av2hByteReader *reader, size_t count) {
+    const unsigned char *result;
+    if (reader == 0 || reader->status != AV2H_OK) return 0;
+    if (count > av2h_byte_reader_remaining(reader)) {
+        byte_reader_fail(reader, AV2H_TRUNCATED);
+        return 0;
+    }
+    result = reader->data == 0 ? 0 : reader->data + reader->position;
+    reader->position += count;
+    return result;
+}
+
+uint8_t av2h_byte_reader_u8(Av2hByteReader *reader) {
+    const unsigned char *bytes = av2h_byte_reader_take(reader, 1U);
+    return bytes == 0 ? 0U : bytes[0];
+}
+
+uint16_t av2h_byte_reader_u16be(Av2hByteReader *reader) {
+    const unsigned char *bytes = av2h_byte_reader_take(reader, 2U);
+    return bytes == 0 ? 0U : av2h_load_u16be(bytes);
+}
+
+uint32_t av2h_byte_reader_u32be(Av2hByteReader *reader) {
+    const unsigned char *bytes = av2h_byte_reader_take(reader, 4U);
+    return bytes == 0 ? 0U : av2h_load_u32be(bytes);
+}
+
+Av2hStatus av2h_byte_reader_skip(Av2hByteReader *reader, size_t count) {
+    (void)av2h_byte_reader_take(reader, count);
+    return reader == 0 ? AV2H_INVALID_ARGUMENT : reader->status;
+}
+
+static void bit_reader_fail(Av2hBitReader *reader, Av2hStatus status) {
+    if (reader->status == AV2H_OK) reader->status = status;
+}
+
+void av2h_bit_reader_init(Av2hBitReader *reader,
+                          const void *data,
+                          size_t size,
+                          size_t base_offset) {
+    size_t end_offset;
+    if (reader == 0) return;
+    reader->data = (const unsigned char *)data;
+    reader->size = size;
+    reader->bit_position = 0U;
+    reader->base_offset = base_offset;
+    reader->status = AV2H_OK;
+    if ((data == 0 && size != 0U) ||
+        !av2h_size_add(base_offset, size, &end_offset)) {
+        reader->status = AV2H_INVALID_ARGUMENT;
+    }
+}
+
+size_t av2h_bit_reader_offset(const Av2hBitReader *reader) {
+    return reader->base_offset + (reader->bit_position >> 3);
+}
+
+size_t av2h_bit_reader_remaining(const Av2hBitReader *reader) {
+    size_t total_bits;
+    if (reader == 0 || !av2h_size_multiply(reader->size, 8U, &total_bits) ||
+        reader->bit_position > total_bits) {
+        return 0U;
+    }
+    return total_bits - reader->bit_position;
+}
+
+uint32_t av2h_bit_reader_read(Av2hBitReader *reader, unsigned int bit_count) {
+    uint32_t value = 0U;
+    unsigned int index;
+    if (reader == 0 || reader->status != AV2H_OK) return 0U;
+    if (bit_count > 32U) {
+        bit_reader_fail(reader, AV2H_INVALID_ARGUMENT);
+        return 0U;
+    }
+    if ((size_t)bit_count > av2h_bit_reader_remaining(reader)) {
+        bit_reader_fail(reader, AV2H_TRUNCATED);
+        return 0U;
+    }
+    for (index = 0U; index < bit_count; ++index) {
+        size_t byte_index = reader->bit_position >> 3;
+        unsigned int shift = 7U - (unsigned int)(reader->bit_position & 7U);
+        value = (value << 1) |
+                ((uint32_t)(reader->data[byte_index] >> shift) & 1U);
+        ++reader->bit_position;
+    }
+    return value;
+}
+
+Av2hStatus av2h_bit_reader_skip(Av2hBitReader *reader, size_t bit_count) {
+    size_t remaining = bit_count;
+    if (reader == 0) return AV2H_INVALID_ARGUMENT;
+    while (remaining != 0U && reader->status == AV2H_OK) {
+        unsigned int chunk = remaining > 32U ? 32U : (unsigned int)remaining;
+        (void)av2h_bit_reader_read(reader, chunk);
+        remaining -= chunk;
+    }
+    return reader->status;
+}
+
+Av2hStatus av2h_bit_reader_align(Av2hBitReader *reader) {
+    size_t remainder;
+    if (reader == 0) return AV2H_INVALID_ARGUMENT;
+    remainder = reader->bit_position & 7U;
+    if (remainder != 0U) {
+        (void)av2h_bit_reader_skip(reader, 8U - remainder);
+    }
+    return reader->status;
+}
+
+static void byte_writer_fail(Av2hByteWriter *writer, Av2hStatus status) {
+    if (writer->status == AV2H_OK) writer->status = status;
+}
+
+void av2h_byte_writer_init(Av2hByteWriter *writer, void *data, size_t size) {
+    if (writer == 0) return;
+    writer->data = (unsigned char *)data;
+    writer->size = size;
+    writer->position = 0U;
+    writer->status = data == 0 && size != 0U ? AV2H_INVALID_ARGUMENT : AV2H_OK;
+    writer->sizing_only = 0;
+}
+
+void av2h_byte_writer_init_sizing(Av2hByteWriter *writer) {
+    if (writer == 0) return;
+    writer->data = 0;
+    writer->size = 0U;
+    writer->position = 0U;
+    writer->status = AV2H_OK;
+    writer->sizing_only = 1;
+}
+
+Av2hStatus av2h_byte_writer_write(Av2hByteWriter *writer,
+                                  const void *data,
+                                  size_t size) {
+    size_t end;
+    if (writer == 0 || (data == 0 && size != 0U)) return AV2H_INVALID_ARGUMENT;
+    if (writer->status != AV2H_OK) return writer->status;
+    if (!av2h_size_add(writer->position, size, &end)) {
+        byte_writer_fail(writer, AV2H_OVERFLOW);
+        return writer->status;
+    }
+    if (!writer->sizing_only && end > writer->size) {
+        byte_writer_fail(writer, AV2H_OUT_OF_MEMORY);
+        return writer->status;
+    }
+    if (!writer->sizing_only && size != 0U) {
+        av2h_memory_copy(writer->data + writer->position, data, size);
+    }
+    writer->position = end;
+    return writer->status;
+}
+
+Av2hStatus av2h_byte_writer_u8(Av2hByteWriter *writer, uint8_t value) {
+    return av2h_byte_writer_write(writer, &value, 1U);
+}
+
+Av2hStatus av2h_byte_writer_u16be(Av2hByteWriter *writer, uint16_t value) {
+    unsigned char bytes[2];
+    bytes[0] = (unsigned char)(value >> 8);
+    bytes[1] = (unsigned char)value;
+    return av2h_byte_writer_write(writer, bytes, sizeof(bytes));
+}
+
+Av2hStatus av2h_byte_writer_u32be(Av2hByteWriter *writer, uint32_t value) {
+    unsigned char bytes[4];
+    bytes[0] = (unsigned char)(value >> 24);
+    bytes[1] = (unsigned char)(value >> 16);
+    bytes[2] = (unsigned char)(value >> 8);
+    bytes[3] = (unsigned char)value;
+    return av2h_byte_writer_write(writer, bytes, sizeof(bytes));
+}
+
+size_t av2h_byte_writer_required(const Av2hByteWriter *writer) {
+    return writer == 0 ? 0U : writer->position;
+}
+
+static void bit_writer_fail(Av2hBitWriter *writer, Av2hStatus status) {
+    if (writer->status == AV2H_OK) writer->status = status;
+}
+
+void av2h_bit_writer_init(Av2hBitWriter *writer, void *data, size_t size) {
+    if (writer == 0) return;
+    writer->data = (unsigned char *)data;
+    writer->size = size;
+    writer->bit_position = 0U;
+    writer->status = data == 0 && size != 0U ? AV2H_INVALID_ARGUMENT : AV2H_OK;
+    writer->sizing_only = 0;
+}
+
+void av2h_bit_writer_init_sizing(Av2hBitWriter *writer) {
+    if (writer == 0) return;
+    writer->data = 0;
+    writer->size = 0U;
+    writer->bit_position = 0U;
+    writer->status = AV2H_OK;
+    writer->sizing_only = 1;
+}
+
+Av2hStatus av2h_bit_writer_write(Av2hBitWriter *writer,
+                                 uint32_t value,
+                                 unsigned int bit_count) {
+    unsigned int index;
+    size_t end_bits;
+    size_t capacity_bits;
+    if (writer == 0 || bit_count > 32U) return AV2H_INVALID_ARGUMENT;
+    if (writer->status != AV2H_OK) return writer->status;
+    if (!av2h_size_add(writer->bit_position, bit_count, &end_bits) ||
+        !av2h_size_multiply(writer->size, 8U, &capacity_bits)) {
+        bit_writer_fail(writer, AV2H_OVERFLOW);
+        return writer->status;
+    }
+    if (!writer->sizing_only && end_bits > capacity_bits) {
+        bit_writer_fail(writer, AV2H_OUT_OF_MEMORY);
+        return writer->status;
+    }
+    for (index = 0U; index < bit_count; ++index) {
+        size_t byte_index = writer->bit_position >> 3;
+        unsigned int output_shift = 7U - (unsigned int)(writer->bit_position & 7U);
+        unsigned int input_shift = bit_count - index - 1U;
+        if (!writer->sizing_only) {
+            if ((writer->bit_position & 7U) == 0U) writer->data[byte_index] = 0U;
+            writer->data[byte_index] |=
+                (unsigned char)(((value >> input_shift) & 1U) << output_shift);
+        }
+        ++writer->bit_position;
+    }
+    return writer->status;
+}
+
+Av2hStatus av2h_bit_writer_align_zero(Av2hBitWriter *writer) {
+    size_t remainder;
+    if (writer == 0) return AV2H_INVALID_ARGUMENT;
+    remainder = writer->bit_position & 7U;
+    if (remainder != 0U) {
+        return av2h_bit_writer_write(writer, 0U, (unsigned int)(8U - remainder));
+    }
+    return writer->status;
+}
+
+size_t av2h_bit_writer_required(const Av2hBitWriter *writer) {
+    if (writer == 0) return 0U;
+    return (writer->bit_position >> 3) +
+           ((writer->bit_position & 7U) != 0U ? 1U : 0U);
+}
+
+void av2h_arena_init(Av2hArena *arena, void *data, size_t size) {
+    if (arena == 0) return;
+    arena->data = (unsigned char *)data;
+    arena->size = size;
+    arena->used = 0U;
+    arena->status = data == 0 && size != 0U ? AV2H_INVALID_ARGUMENT : AV2H_OK;
+    arena->sizing_only = 0;
+}
+
+void av2h_arena_init_sizing(Av2hArena *arena) {
+    if (arena == 0) return;
+    arena->data = 0;
+    arena->size = 0U;
+    arena->used = 0U;
+    arena->status = AV2H_OK;
+    arena->sizing_only = 1;
+}
+
+void *av2h_arena_allocate(Av2hArena *arena, size_t size, size_t alignment) {
+    size_t mask;
+    size_t base_modulo;
+    size_t used_modulo;
+    size_t padding;
+    size_t aligned;
+    size_t end;
+    if (arena == 0 || arena->status != AV2H_OK) return 0;
+    if (alignment == 0U || (alignment & (alignment - 1U)) != 0U) {
+        arena->status = AV2H_INVALID_ARGUMENT;
+        return 0;
+    }
+    mask = alignment - 1U;
+    if (arena->sizing_only) {
+        padding = mask;
+    } else {
+        base_modulo = (size_t)((uintptr_t)arena->data & mask);
+        used_modulo = arena->used & mask;
+        padding = (alignment - ((base_modulo + used_modulo) & mask)) & mask;
+    }
+    if (!av2h_size_add(arena->used, padding, &aligned) ||
+        !av2h_size_add(aligned, size, &end)) {
+        arena->status = AV2H_OVERFLOW;
+        return 0;
+    }
+    arena->used = end;
+    if (arena->sizing_only) return 0;
+    if (end > arena->size) {
+        arena->status = AV2H_OUT_OF_MEMORY;
+        return 0;
+    }
+    if (arena->data == 0) return 0;
+    return arena->data + aligned;
+}
+
+size_t av2h_arena_required(const Av2hArena *arena) {
+    return arena == 0 ? 0U : arena->used;
+}

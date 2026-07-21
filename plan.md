@@ -203,6 +203,10 @@ image-item rules.
 
 ## Milestone 1: freestanding substrate and carriage core
 
+**Status:** Implemented. The vendor-free sanitizer, strict freestanding, and
+undefined-symbol gates pass; see `docs/milestone-1.md` for the supported
+profile, API surface, negative coverage, and limitations.
+
 Extract only reusable generic pieces from `avif-decoder`:
 
 - checked size arithmetic;

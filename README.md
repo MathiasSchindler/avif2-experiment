@@ -1,1 +1,43 @@
-# avif2-experiment
+# AV2-HEIF experiment
+
+This repository explores a project-defined AV2 still-image carriage in HEIF.
+It does not define or claim a standardized AVIF successor.
+
+The implemented core is CC0, freestanding C11, allocation-free, and does not
+depend on libc or vendored codecs. Hosted AVM tooling is used only for the
+separate reference experiment and is fetched into ignored `vendor/` and
+`build/` paths.
+
+## Current status
+
+- Milestone 0 proves sample-exact Sequence Header normalization with four AVM
+  v1.0.0 fixtures.
+- Milestone 1 provides checked readers, writers, arenas, AV2 OBU framing,
+  Sequence Header and Content Interpretation parsing, nine-byte `av2C`, strict
+  v0 carriage validation, and checked BMFF box headers.
+- Milestone 2, deterministic HEIF parsing and writing, is not implemented.
+
+The public carriage API is declared in `include/av2heif.h`. Milestone details
+and limitations are recorded in `docs/milestone-0.md` and
+`docs/milestone-1.md`; the longer roadmap is in `plan.md`.
+
+## Build and test
+
+Run the vendor-free gate with:
+
+```sh
+make test
+```
+
+This runs the C harness under AddressSanitizer and UndefinedBehaviorSanitizer,
+builds the core with `-ffreestanding -nostdinc`, verifies that the linked
+relocatable core has no undefined symbols, and runs the Python carriage tests.
+
+Run the hosted AVM differential experiment with:
+
+```sh
+make milestone-0
+```
+
+That target downloads or verifies the pinned AVM checkout and is intentionally
+outside the production dependency boundary.

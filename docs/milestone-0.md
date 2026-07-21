@@ -25,6 +25,12 @@ still-picture, 8-bit 4:2:0, quality, speed, and thread settings. The runner
 rejects any AVM checkout other than commit
 `966a7d7cd6fcf60360caf5dc413b2aeeb65e144d` or a dirty checkout.
 
+The original experiment passed `--full-still-picture-hdr`, but that option
+selects the longer full still-picture Sequence Header rather than the compact
+single-picture syntax required by canonical v0. The corrected matrix omits
+the option, independently parses the resulting short Sequence Headers, and
+still produces sample-exact decoded output before and after normalization.
+
 ## Result
 
 The exit gate passed on macOS arm64 with these reference binary hashes:
@@ -34,10 +40,10 @@ The exit gate passed on macOS arm64 with these reference binary hashes:
 
 | Fixture | Size | Source SHA-256 | Original OBU SHA-256 | Decoded I420 SHA-256 |
 | --- | ---: | --- | --- | --- |
-| tiny | 16x16 | `ab42238158a28dd09c0b8770b45b66054f30010a7990d474e2d405fd8bb0b5cf` | `f1671801dd0e83b837562e845c5f5bc8062db225f8d687b45feed3a0b9e80b12` | `5c18646460bb9f13c53baa6e65861a5cc746706a173e9c4f9b1cdeda86fd7ab5` |
-| odd | 17x15 | `d2335215ead313209788de6df81a202e57d7f499c18c779a1c22f22736f83252` | `fbd99c5971da00073a3cb9b526df00129b1cff24734e5ef1f1b52fab35581c04` | `74b176943ef8760c8971600c4e6ec25d6e3b6a4b21ffc3a55df845a41bdef9af` |
-| ordinary | 160x120 | `6a8516bc3702135f8af853572503be21f8c47013739b3a3b0e5fa9261f624252` | `8594be37f3f06510afccfdd0aed9dd4076c3f7ac1d3c495a365f55cf606d82d9` | `def0ced80c4bc1866d0d865fb392c80020ac0a823f310b2f62999d10eede1af5` |
-| high-detail | 96x80 | `b92b6949cafe80bb80660249c18830d49ffaf70e7310fb9711c3b681d3fa42b2` | `248fc661313998b6c52a16f2daf85a4432e07ce649c11e9e165af5bcd5de6864` | `4120930c9c9c49f73d4aa3e1d4c56cbb4b557679b42fe3b9de984bca1431745a` |
+| tiny | 16x16 | `ab42238158a28dd09c0b8770b45b66054f30010a7990d474e2d405fd8bb0b5cf` | `9d0d4888795cc89c9a0982ecc4dd8cd3c228bfe7163410748d4d0da240dc8e2a` | `5c18646460bb9f13c53baa6e65861a5cc746706a173e9c4f9b1cdeda86fd7ab5` |
+| odd | 17x15 | `d2335215ead313209788de6df81a202e57d7f499c18c779a1c22f22736f83252` | `458b164bce45e2ead530f5c901f806e244d27d28cb02f604505cb5f95cf881db` | `74b176943ef8760c8971600c4e6ec25d6e3b6a4b21ffc3a55df845a41bdef9af` |
+| ordinary | 160x120 | `6a8516bc3702135f8af853572503be21f8c47013739b3a3b0e5fa9261f624252` | `d14ec9fbe436181a9b2becc97eb50679bf59aaad9d015ba55f97d720fb505378` | `def0ced80c4bc1866d0d865fb392c80020ac0a823f310b2f62999d10eede1af5` |
+| high-detail | 96x80 | `b92b6949cafe80bb80660249c18830d49ffaf70e7310fb9711c3b681d3fa42b2` | `544cf228b81054e000698970d2ff3478b0cf2acd0e46a561d93c0e59b060c8e3` | `4120930c9c9c49f73d4aa3e1d4c56cbb4b557679b42fe3b9de984bca1431745a` |
 
 Every original stream had this ordered ledger:
 

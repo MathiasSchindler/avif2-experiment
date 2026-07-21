@@ -147,7 +147,7 @@ def verify_reference(
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
     ).stdout
-    for marker in ("--obu", "--passes=<arg>", "--full-still-picture-hdr"):
+    for marker in ("--obu", "--passes=<arg>"):
         if marker not in encoder_help:
             raise RuntimeError(f"pinned avmenc help lacks expected marker: {marker}")
     for marker in ("--i420", "AOMedia Project AV2 Decoder 1.0.0"):
@@ -213,7 +213,6 @@ def run_fixture(
         "--input-chroma-subsampling-x=1",
         "--input-chroma-subsampling-y=1",
         "--chroma-sample-position=unspecified",
-        "--full-still-picture-hdr",
         "--force-video-mode=0",
         "--film-grain-test=0",
         "--enable-lcr=0",
