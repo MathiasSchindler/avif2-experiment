@@ -64,16 +64,35 @@ equivalence evidence for node geometry, forced/implied provenance, contexts,
 symbols, and entropy positions; no AVM partition code or table is included or
 linked into production.
 
-The first-leaf pre-mode controls and luma mode implementation in
+The first-leaf pre-mode controls, luma mode, and bounded first-chroma mode implementation in
 `src/decoder/leaf.c` are project-owned CC0 code written from the AV2 v1.0.0
-parsing process and hash-locked intraBC, CCSO, and luma-mode CDF attachments.
+parsing process and hash-locked intraBC, CCSO, luma-mode, CFL, and UV-mode CDF attachments.
 A separately licensed AVM inspection build supplies hosted symbol-order and
 fixture correspondence evidence only. No AVM mode code, table, header, or
 object is included or linked into production.
 
-The FSC and first-transform `all_zero`/EOB continuation in
-`src/decoder/leaf.c` and `src/decoder/coeff.c` is project-owned CC0 code
+The FSC, first-transform `all_zero`/EOB, transform type, first-chroma separate
+U/V skip and CCTX-none syntax, reverse luma/UV coefficient, and bounded
+forward-IDTX coefficient continuation in
+`src/decoder/leaf.c`, `src/decoder/coeff.c`, and
+`src/decoder/transform.c` plus `src/decoder/coeff_level.c` is project-owned CC0 code
 written from the AV2 v1.0.0 parsing processes and hash-locked normative CDF
 attachments. Hosted checkers compare the compact rows with pinned AVM's
 separately licensed defaults; no AVM coefficient code, table, or object is
 included or linked into production.
+
+The first-block prediction and inverse-transform implementation, plus the tiny
+fixture's 4x4 `DCT_ADST`, `H_ADST`, `DCT_DCT`, and `IDTX` continuations,
+8x8 `DCT_ADST`, generated D203, D45, MRL-1 and MRL-3 D67 prediction, live-edge Paeth, and 8x4
+D45/`ADST_FLIPADST` continuation, plus AV2 4x4 smooth prediction, in
+`src/decoder/reconstruct.c` is project-owned CC0 code written from the AV2
+v1.0.0 integer transform matrices, rectangular scaling rule, transform-type
+mapping, shift table, directional derivative attachment, interpolation phases,
+and clipping process. This includes the first tiny chroma leaf's DC-128 U/V
+prediction and 4x4 `DCT_DCT` reconstruction. Attachment hashes are locked in
+`spec/cdf-attachments.lock`, and `tools/check_m5_prediction.py` verifies the
+selected production constants against the normative derivative and pinned AVM
+tables. A separately licensed AVM
+inspection build supplies only hosted reconstructed-pixel correspondence
+evidence; no AVM transform source, table, header, or object is included or
+linked into production.

@@ -23,8 +23,16 @@ separate reference experiment and is fetched into ignored `vendor/` and
   detection, metadata query, exact I420 output sizing, and input binding.
 - Milestone 5 is in progress: its freestanding entropy decoder and private
   Closed Loop Key frame parser pass pinned-AVM oracle checks and derive all four
-  tile entropy boundaries from syntax. Pixel reconstruction and the public
-  decode API are not implemented yet.
+  tile entropy boundaries from syntax. First blocks for all fixtures and the
+  tiny fixture's next ten luma blocks reconstruct sample-exactly in private
+  tests. Production derives the 4x4 D203 predictors from reconstructed left
+  samples, the 8x4 and 4x4 D45 predictors from reconstructed above samples,
+  the 4x4 Paeth predictor from live above, left, and top-left samples, and the
+  8x8 and 4x4 D67 predictors from live MRL edges, including MRL index 3, and
+  the final 4x4 smooth predictor from live top and left edges. The first tiny
+  chroma leaf decodes UV DC mode and reconstructs its 4x4 U and V blocks
+  sample-exactly through tell 469. Remaining chroma leaves, filters, general
+  traversal, and the public decode API are not implemented yet.
 
 The public API is declared in `include/av2heif.h`. Milestone details and
 limitations are recorded in `docs/milestone-0.md`, `docs/milestone-1.md`, and
@@ -45,6 +53,12 @@ relocatable core has no undefined symbols, and runs the Python carriage tests.
 The C gate has separate substrate/carriage, container, AV2 range-decoder,
 CDF-initialization, partition-prefix, frame-header, and tile-framing test
 binaries.
+
+Run the hosted Milestone 5 normative and pinned-AVM correspondence checks with:
+
+```sh
+make milestone-5-evidence
+```
 
 Run the hosted AVM differential experiment with:
 

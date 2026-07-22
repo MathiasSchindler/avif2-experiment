@@ -383,3 +383,94 @@ Av2hStatus av2h_partition_ordinary_prefix_read(
     prefix->after_extension_bits = av2h_range_tell(decoder);
     return value == 0U ? AV2H_OK : AV2H_UNSUPPORTED;
 }
+
+Av2hStatus av2h_partition_node_read_for_structure(
+    Av2hRangeDecoder *decoder,
+    Av2hPartitionCdfs *cdfs,
+    size_t structure,
+    Av2hPartitionNode node,
+    size_t split_context,
+    size_t rect_type_context,
+    size_t extension_context,
+    unsigned int enable_ext_partitions,
+    Av2hPartitionDecision *decision,
+    Av2hPartitionNode *child) {
+    Av2hPartitionAxis axis;
+    uint32_t value;
+    if (decoder == 0 || cdfs == 0 || decision == 0 || child == 0 ||
+        structure >= AV2H_PARTITION_STRUCTURE_COUNT ||
+        node.block_size >= AV2H_BLOCK_SIZE_COUNT ||
+        split_context >= AV2H_PARTITION_CONTEXT_COUNT ||
+        rect_type_context >= AV2H_PARTITION_CONTEXT_COUNT ||
+        extension_context >= AV2H_PARTITION_CONTEXT_COUNT ||
+        enable_ext_partitions > 1U) {
+        return AV2H_INVALID_ARGUMENT;
+    }
+    if (!is_partition_point(node.block_size)) return AV2H_UNSUPPORTED;
+    decision->node = node;
+    decision->forced = 0U;
+    value = av2h_range_read_adaptive(
+        decoder, cdfs->do_split[structure][split_context], 2U);
+    if (av2h_range_status(decoder) != AV2H_OK) {
+        return av2h_range_status(decoder);
+    }
+    if (value == 0U) {
+        decision->partition = AV2H_PARTITION_NONE;
+        decision->axis_implied = 1U;
+        decision->extension_implied = 1U;
+        decision->after_bits = av2h_range_tell(decoder);
+        *child = node;
+        return AV2H_OK;
+    }
+    axis = implied_axis(node.block_size);
+    if (structure == 1U && node.block_size == AV2H_BLOCK_16X8) {
+        axis = AV2H_PARTITION_VERTICAL;
+    } else if (structure == 1U && node.block_size == AV2H_BLOCK_8X16) {
+        axis = AV2H_PARTITION_HORIZONTAL;
+    }
+    decision->axis_implied = (uint8_t)(axis != (Av2hPartitionAxis)255);
+    if (!decision->axis_implied) {
+        value = av2h_range_read_adaptive(
+            decoder, cdfs->rect_type[structure][rect_type_context], 2U);
+        if (av2h_range_status(decoder) != AV2H_OK) {
+            return av2h_range_status(decoder);
+        }
+        axis = value == 0U ? AV2H_PARTITION_HORIZONTAL
+                           : AV2H_PARTITION_VERTICAL;
+    }
+    decision->extension_implied = (uint8_t)(structure == 1U ||
+        !enable_ext_partitions ||
+        !extension_is_allowed(node.block_size, axis));
+    if (!decision->extension_implied) {
+        value = av2h_range_read_adaptive(
+            decoder,
+            cdfs->do_ext_partition[structure][extension_context], 2U);
+        if (av2h_range_status(decoder) != AV2H_OK) {
+            return av2h_range_status(decoder);
+        }
+        if (value != 0U) return AV2H_UNSUPPORTED;
+    }
+    decision->partition = axis == AV2H_PARTITION_HORIZONTAL
+        ? AV2H_PARTITION_HORZ : AV2H_PARTITION_VERT;
+    decision->after_bits = av2h_range_tell(decoder);
+    *child = node;
+    child->block_size = ordinary_subsize(node.block_size,
+                                         decision->partition);
+    if (child->block_size == AV2H_BLOCK_INVALID) return AV2H_UNSUPPORTED;
+    return AV2H_OK;
+}
+
+Av2hStatus av2h_partition_node_read(
+    Av2hRangeDecoder *decoder,
+    Av2hPartitionCdfs *cdfs,
+    Av2hPartitionNode node,
+    size_t split_context,
+    size_t rect_type_context,
+    size_t extension_context,
+    unsigned int enable_ext_partitions,
+    Av2hPartitionDecision *decision,
+    Av2hPartitionNode *child) {
+    return av2h_partition_node_read_for_structure(
+        decoder, cdfs, 0U, node, split_context, rect_type_context,
+        extension_context, enable_ext_partitions, decision, child);
+}

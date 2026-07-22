@@ -315,11 +315,25 @@ runtime, or compiler helper references in freestanding artifacts.
 **Status:** In progress. The independent freestanding entropy decoder, private
 Closed Loop Key frame parser, complete partition CDF initialization, and
 bounded first-leaf traversal through luma mode, FSC, transform `all_zero`, and
-complete EOB pass pinned-AVM oracle checks under sanitizers and the strict
+complete EOB, transform type, and first-transform coefficient decoding pass
+pinned-AVM oracle checks under
+sanitizers and the strict
 dependency gate. The parser derives all four tile entropy boundaries from
-syntax. Full frame traversal, remaining coefficient syntax,
-reconstruction, filter execution, workspace sizing, and the public decode API
-remain; see `docs/milestone-5.md`.
+syntax. The tiny fixture additionally continues through exact mode,
+coefficients, production neighbor-derived D203 prediction, and inverse
+transform for its second and third luma blocks, plus exact partition, mode,
+coefficient, D45 prediction, and inverse-transform handling for its fourth
+luma block. Its fifth block adds live-edge Paeth and `DCT_DCT`; its sixth adds
+the forward FSC coefficient path, D45, and `IDTX`. The seventh adds
+neighbor-reordered D67 with MRL and 8x8 `DCT_ADST`; the eighth and ninth extend
+the 4x4 FSC/IDTX path. The tenth adds D67 angle delta -3 with MRL index 3 and
+extends FSC BOB base-range decoding. The eleventh completes the tiny luma
+leaves with AV2 4x4 smooth prediction and `DCT_ADST`. A bounded chroma-tree
+continuation decodes the first tiny leaf's UV DC mode, separate U/V skip
+syntax, CCTX-none selection, coefficients, and sample-exact 4x4 reconstruction
+through tell 469. Remaining chroma leaves and full frame
+traversal, complete reconstruction, filter execution, final workspace sizing, and the public
+decode API remain; see `docs/milestone-5.md`.
 
 Implement only the smallest profile that pinned AVM can reliably emit and the
 project can validate completely. The initial target is one 8-bit 4:2:0

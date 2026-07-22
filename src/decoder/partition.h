@@ -140,5 +140,26 @@ Av2hStatus av2h_partition_ordinary_prefix_read(
     size_t rect_type_context,
     size_t extension_context,
     Av2hOrdinaryPartitionPrefix *prefix);
+Av2hStatus av2h_partition_node_read(
+    Av2hRangeDecoder *decoder,
+    Av2hPartitionCdfs *cdfs,
+    Av2hPartitionNode node,
+    size_t split_context,
+    size_t rect_type_context,
+    size_t extension_context,
+    unsigned int enable_ext_partitions,
+    Av2hPartitionDecision *decision,
+    Av2hPartitionNode *child);
+Av2hStatus av2h_partition_node_read_for_structure(
+    Av2hRangeDecoder *decoder,
+    Av2hPartitionCdfs *cdfs,
+    size_t structure,
+    Av2hPartitionNode node,
+    size_t split_context,
+    size_t rect_type_context,
+    size_t extension_context,
+    unsigned int enable_ext_partitions,
+    Av2hPartitionDecision *decision,
+    Av2hPartitionNode *child);
 
 #endif

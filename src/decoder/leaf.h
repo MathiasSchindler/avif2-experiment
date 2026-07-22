@@ -12,6 +12,11 @@
 #define AV2H_Y_MODE_OFFSET_SYMBOLS 6U
 #define AV2H_FSC_MODE_CONTEXT_COUNT 4U
 #define AV2H_FSC_BLOCK_CONTEXT_COUNT 6U
+#define AV2H_MRL_CONTEXT_COUNT 3U
+#define AV2H_MRL_INDEX_SYMBOLS 4U
+#define AV2H_CFL_CONTEXT_COUNT 3U
+#define AV2H_UV_MODE_CONTEXT_COUNT 2U
+#define AV2H_UV_MODE_SYMBOLS 8U
 
 typedef struct {
     uint16_t intrabc[AV2H_INTRABC_CONTEXT_COUNT][AV2H_BINARY_CDF_SIZE];
@@ -25,10 +30,24 @@ typedef struct {
     uint16_t fsc_mode[AV2H_FSC_MODE_CONTEXT_COUNT]
                      [AV2H_FSC_BLOCK_CONTEXT_COUNT]
                      [AV2H_BINARY_CDF_SIZE];
+    uint16_t mrl_index[AV2H_MRL_CONTEXT_COUNT]
+                      [AV2H_MRL_INDEX_SYMBOLS + 4U];
+    uint16_t mrl_secondary[AV2H_MRL_CONTEXT_COUNT]
+                          [AV2H_BINARY_CDF_SIZE];
+    uint16_t is_cfl[AV2H_CFL_CONTEXT_COUNT][AV2H_BINARY_CDF_SIZE];
+    uint16_t uv_mode[AV2H_UV_MODE_CONTEXT_COUNT][AV2H_UV_MODE_SYMBOLS + 4U];
 } Av2hLeafCdfs;
 
 typedef enum {
     AV2H_INTRA_DC = 0,
+    AV2H_INTRA_VERTICAL = 1,
+    AV2H_INTRA_HORIZONTAL = 2,
+    AV2H_INTRA_D45 = 3,
+    AV2H_INTRA_D135 = 4,
+    AV2H_INTRA_D113 = 5,
+    AV2H_INTRA_D157 = 6,
+    AV2H_INTRA_D203 = 7,
+    AV2H_INTRA_D67 = 8,
     AV2H_INTRA_SMOOTH = 9,
     AV2H_INTRA_SMOOTH_VERTICAL = 10,
     AV2H_INTRA_SMOOTH_HORIZONTAL = 11,
@@ -43,12 +62,35 @@ typedef struct {
     uint8_t mode_index;
     uint8_t fsc_mode;
     uint8_t fsc_block_context;
+    uint8_t joint_mode;
+    int8_t angle_delta;
+    uint8_t mrl_index;
+    uint8_t multi_line_mrl;
     Av2hFirstLeafIntraMode mode;
     size_t before_mode_bits;
     size_t after_mode_set_bits;
     size_t after_mode_index_bits;
     size_t after_fsc_bits;
+    size_t after_mrl_bits;
 } Av2hFirstLeafMode;
+
+typedef struct {
+    uint8_t present[2];
+    uint8_t joint_mode[2];
+    uint8_t fsc_mode[2];
+    uint8_t mrl_index[2];
+    uint8_t multi_line_mrl[2];
+} Av2hLumaModeNeighbors;
+
+typedef struct {
+    uint8_t is_cfl;
+    uint8_t mode_index;
+    Av2hFirstLeafIntraMode mode;
+    int8_t angle_delta;
+    size_t before_cfl_bits;
+    size_t after_cfl_bits;
+    size_t after_mode_bits;
+} Av2hFirstChromaMode;
 
 Av2hStatus av2h_leaf_cdfs_init(Av2hLeafCdfs *cdfs);
 Av2hStatus av2h_first_leaf_mode_read(Av2hRangeDecoder *decoder,
@@ -57,5 +99,19 @@ Av2hStatus av2h_first_leaf_mode_read(Av2hRangeDecoder *decoder,
                                      const Av2hFrameState *frame,
                                      const Av2hPartitionNode *leaf,
                                      Av2hFirstLeafMode *mode);
+Av2hStatus av2h_luma_mode_read(Av2hRangeDecoder *decoder,
+                                 Av2hLeafCdfs *cdfs,
+                                 const Av2hSequenceState *sequence,
+                                 const Av2hFrameState *frame,
+                                 const Av2hPartitionNode *leaf,
+                                 const Av2hLumaModeNeighbors *neighbors,
+                                 Av2hFirstLeafMode *mode);
+Av2hStatus av2h_chroma_mode_read(
+    Av2hRangeDecoder *decoder,
+    Av2hLeafCdfs *cdfs,
+    const Av2hSequenceState *sequence,
+    Av2hFirstLeafIntraMode colocated_luma_mode,
+    uint8_t cfl_context,
+    Av2hFirstChromaMode *mode);
 
 #endif

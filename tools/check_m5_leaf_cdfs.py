@@ -18,6 +18,14 @@ EXPECTED_HASHES = {
         "53279fa370568aa6d098755566252bca56e4f4d26fa25fe76e3c654a737db59c",
     "default_y_mode_set_cdf.h":
         "90aef3ee9186b3244092611a287ffd2f690acf8449bb685ed8a816c79703fcd3",
+    "default_mrl_index_cdf.h":
+        "07763f90a8d3bea6d382ac40318a3ffd7f906b2e46e261277c04b2cc51659aca",
+    "default_mrl_sec_index_cdf.h":
+        "42edaf55429854a15be6ca82d660e39da9192afe300590702d0b1b04d7043d5b",
+    "default_is_cfl_cdf.h":
+        "ad9a994a9e00791516eac75cbf18df0d49c9c2437cc6fdecb8d58d3048ab8ea7",
+    "default_uv_mode_cfl_not_allowed_cdf.h":
+        "4cce070ef9b76498769313a9caa2e5e04f516331b3a60e689d576f2f61b68927",
     "para_adjustment_list.h":
         "0488e7e0a8d16a89f53ba8cf1ec8e449a9a3e74aa34ba2fa49e287159336ef80",
 }
@@ -127,6 +135,14 @@ def main() -> int:
          "default_y_mode_idx_cdf", 8, multi_rows),
         ("y_mode_offset", "default_y_mode_offset_cdf.h",
          "default_y_mode_idx_offset_cdf", 6, multi_rows),
+        ("mrl_index", "default_mrl_index_cdf.h",
+         "default_mrl_index_cdf", 4, multi_rows),
+        ("mrl_secondary", "default_mrl_sec_index_cdf.h",
+         "default_multi_line_mrl_cdf", 2, binary_rows),
+        ("is_cfl", "default_is_cfl_cdf.h",
+         "default_cfl_cdf", 2, binary_rows),
+        ("uv_mode", "default_uv_mode_cfl_not_allowed_cdf.h",
+         "default_uv_mode_cdf", 8, multi_rows),
     )
     total = 0
     for name, filename, avm_name, symbols, parser_function in checks:
