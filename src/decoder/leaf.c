@@ -262,42 +262,86 @@ static Av2hStatus fixed_small_mode(uint8_t mode_index, uint8_t *joint_mode) {
     return AV2H_OK;
 }
 
-static Av2hStatus reordered_8x8_mode(
-    uint8_t mode_index, const Av2hLumaModeNeighbors *neighbors,
-    uint8_t *joint_mode) {
+static Av2hStatus reordered_larger_mode(
+    uint8_t mode_index, Av2hBlockSize block_size,
+    const Av2hLumaModeNeighbors *neighbors, uint8_t *joint_mode) {
+    uint8_t modes[61U];
     uint8_t selected[61U] = { 0U };
     size_t count = 5U;
+    size_t directional_count = 0U;
+    size_t width;
+    size_t height;
     size_t neighbor;
     size_t index;
+    Av2hStatus status;
     if (mode_index < 5U) {
         *joint_mode = mode_index;
         return AV2H_OK;
     }
+    status = av2h_block_dimensions_mi(block_size, &width, &height);
+    if (status != AV2H_OK) return status;
+    for (index = 0U; index < 5U; ++index) {
+        modes[index] = (uint8_t)index;
+        selected[index] = 1U;
+    }
     for (neighbor = 0U; neighbor < 2U; ++neighbor) {
         uint8_t candidate = neighbors->joint_mode[neighbor];
-        size_t prior;
         if (!neighbors->present[neighbor] ||
             !is_directional_joint_mode(candidate)) {
             continue;
         }
-        for (prior = 5U; prior < count; ++prior) {
-            if (selected[prior] == candidate) break;
+        if (selected[candidate]) continue;
+        modes[count++] = candidate;
+        selected[candidate] = 1U;
+        ++directional_count;
+    }
+    if (width * height > 4U) {
+        size_t offset;
+        for (offset = 0U; offset < 4U; ++offset) {
+            for (neighbor = 0U; neighbor < directional_count; ++neighbor) {
+                uint8_t center = modes[5U + neighbor];
+                uint8_t left = (uint8_t)(5U +
+                    ((size_t)center - 5U + 55U - offset) % 56U);
+                uint8_t right = (uint8_t)(5U +
+                    ((size_t)center - 5U + 1U + offset) % 56U);
+                if (!selected[left]) {
+                    modes[count++] = left;
+                    selected[left] = 1U;
+                }
+                if (!selected[right]) {
+                    modes[count++] = right;
+                    selected[right] = 1U;
+                }
+            }
         }
-        if (prior == count) selected[count++] = candidate;
     }
     for (index = 0U; index < sizeof(default_directional_modes) /
                                   sizeof(default_directional_modes[0]);
          ++index) {
         uint8_t candidate = default_directional_modes[index];
-        size_t prior;
-        for (prior = 5U; prior < count; ++prior) {
-            if (selected[prior] == candidate) break;
-        }
-        if (prior == count) selected[count++] = candidate;
+        if (selected[candidate]) continue;
+        modes[count++] = candidate;
+        selected[candidate] = 1U;
     }
     if (mode_index >= count) return AV2H_INVALID_DATA;
-    *joint_mode = selected[mode_index];
+    *joint_mode = modes[mode_index];
     return AV2H_OK;
+}
+
+Av2hStatus av2h_luma_joint_mode_from_index(
+    uint8_t mode_index,
+    Av2hBlockSize block_size,
+    const Av2hLumaModeNeighbors *neighbors,
+    uint8_t *joint_mode) {
+    if (neighbors == 0 || joint_mode == 0 ||
+        block_size >= AV2H_BLOCK_SIZE_COUNT) {
+        return AV2H_INVALID_ARGUMENT;
+    }
+    if (block_size <= AV2H_BLOCK_8X4) {
+        return fixed_small_mode(mode_index, joint_mode);
+    }
+    return reordered_larger_mode(
+        mode_index, block_size, neighbors, joint_mode);
 }
 
 static uint8_t block_allows_intrabc(Av2hBlockSize block_size) {
@@ -469,14 +513,17 @@ Av2hStatus av2h_luma_mode_read(Av2hRangeDecoder *decoder,
         mode->use_intrabc = (uint8_t)value;
         if (value != 0U) return AV2H_UNSUPPORTED;
     }
-    for (plane = 0U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
-        if (!frame->ccso[plane].enabled) continue;
-        value = av2h_range_read_adaptive(decoder, cdfs->ccso[plane][0], 2U);
-        if (av2h_range_status(decoder) != AV2H_OK) {
-            return av2h_range_status(decoder);
+    if ((leaf->row & 15U) == 0U && (leaf->column & 15U) == 0U) {
+        for (plane = 0U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
+            if (!frame->ccso[plane].enabled) continue;
+            value = av2h_range_read_adaptive(
+                decoder, cdfs->ccso[plane][0], 2U);
+            if (av2h_range_status(decoder) != AV2H_OK) {
+                return av2h_range_status(decoder);
+            }
+            mode->ccso_present_mask |= (uint8_t)(1U << plane);
+            mode->ccso_block_control[plane] = (uint8_t)value;
         }
-        mode->ccso_present_mask |= (uint8_t)(1U << plane);
-        mode->ccso_block_control[plane] = (uint8_t)value;
     }
     mode->before_mode_bits = av2h_range_tell(decoder);
     value = av2h_range_read_adaptive(
@@ -511,18 +558,11 @@ Av2hStatus av2h_luma_mode_read(Av2hRangeDecoder *decoder,
         }
     }
     mode->after_mode_index_bits = av2h_range_tell(decoder);
-    if (leaf->block_size <= AV2H_BLOCK_8X4) {
-        Av2hStatus status = fixed_small_mode(mode->mode_index,
-                                             &mode->joint_mode);
+    {
+        Av2hStatus status = av2h_luma_joint_mode_from_index(
+            mode->mode_index, leaf->block_size, neighbors,
+            &mode->joint_mode);
         if (status != AV2H_OK) return status;
-    } else if (leaf->block_size == AV2H_BLOCK_8X8) {
-        Av2hStatus status = reordered_8x8_mode(
-            mode->mode_index, neighbors, &mode->joint_mode);
-        if (status != AV2H_OK) return status;
-    } else if (mode->mode_index < 5U) {
-        mode->joint_mode = mode->mode_index;
-    } else {
-        return AV2H_UNSUPPORTED;
     }
     if (map_joint_mode(mode->joint_mode, &mode->mode,
                        &mode->angle_delta) != AV2H_OK) {

@@ -34,9 +34,12 @@ separate reference experiment and is fetched into ignored `vendor/` and
   sample-exactly through tell 725. Bounded caller-owned partition, luma-mode,
   and packed per-plane coefficient maps now derive every later tiny-fixture
   neighbor context. A bounded depth-first partition traversal yields and
-  commits all tiny luma and chroma leaves in entropy order. General leaf
-  orchestration, larger-fixture reconstruction, filters, final workspace
-  sizing, and the public decode API are not implemented yet.
+  commits all tiny luma and chroma leaves in entropy order. A private bounded
+  tile orchestrator now owns the range decoder, adaptive CDFs, both partition
+  traversals, neighbor maps, and colocated luma modes; it decodes all 15 tiny
+  leaves through tell 725 without fixture-supplied contexts. General
+  reconstruction wiring, larger-fixture reconstruction, filters, final
+  workspace sizing, and the public decode API are not implemented yet.
 
 The public API is declared in `include/av2heif.h`. Milestone details and
 limitations are recorded in `docs/milestone-0.md`, `docs/milestone-1.md`, and

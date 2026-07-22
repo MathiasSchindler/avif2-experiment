@@ -26,7 +26,7 @@ typedef struct {
 } Av2hBrSpec;
 
 static const Av2hCoeffKey eob_base_keys[] = {
-    { 0U, 3U }, { 1U, 3U }, { 3U, 1U }
+    { 0U, 3U }, { 1U, 3U }, { 3U, 1U }, { 1U, 2U }
 };
 static const Av2hCoeffKey base_keys[] = {
     { 0U, 15U }, { 0U, 16U }, { 0U, 17U },
@@ -110,6 +110,7 @@ Av2hStatus av2h_first_coeff_level_cdfs_init(Av2hFirstCoeffLevelCdfs *cdfs) {
         28506U, 31820U, 32509U, 32686U
     };
     static const uint16_t eob_base_txs1[] = { 31276U, 32538U };
+    static const uint16_t eob_base_txs1_ctx2[] = { 31889U, 32651U };
     static const uint16_t eob_base_txs3[] = { 32677U, 32743U };
     static const uint16_t eob_lf_txs1[] = {
         31747U, 32600U, 32712U, 32740U
@@ -189,6 +190,9 @@ Av2hStatus av2h_first_coeff_level_cdfs_init(Av2hFirstCoeffLevelCdfs *cdfs) {
     if (status != AV2H_OK) return status;
     status = av2h_cdf_init(cdfs->eob_base[2], 7U, eob_base_txs3, 3U, 68U, 0U);
     if (status != AV2H_OK) return status;
+    status = av2h_cdf_init(cdfs->eob_base[3], 7U, eob_base_txs1_ctx2,
+                           3U, 93U, 0U);
+    if (status != AV2H_OK) return status;
     status = av2h_cdf_init(cdfs->eob_lf[0], 9U, eob_lf_txs0, 5U, 0U, 0U);
     if (status != AV2H_OK) return status;
     status = av2h_cdf_init(cdfs->eob_lf[1], 9U, eob_lf_txs1, 5U, 78U, 0U);
@@ -211,7 +215,7 @@ Av2hStatus av2h_first_coeff_level_cdfs_init(Av2hFirstCoeffLevelCdfs *cdfs) {
                                base_lf_specs[index].parameter, 0U);
         if (status != AV2H_OK) return status;
     }
-    for (index = 0U; index < 6U; ++index) {
+    for (index = 0U; index < sizeof(br_specs) / sizeof(br_specs[0]); ++index) {
         status = av2h_cdf_init(cdfs->br[index], 8U,
                                br_specs[index].threshold, 4U,
                                br_specs[index].parameter, 0U);
@@ -843,7 +847,8 @@ Av2hStatus av2h_coeff_block_read(
             level = (uint8_t)(symbol + 1U);
             if (level > 4U) return AV2H_UNSUPPORTED;
         } else {
-            cdf = find_key(&cdfs->eob_base[0][0], 7U, eob_base_keys, 3U,
+            cdf = find_key(&cdfs->eob_base[0][0], 7U, eob_base_keys,
+                           sizeof(eob_base_keys) / sizeof(eob_base_keys[0]),
                            tx_context, context);
             if (cdf == 0) return AV2H_UNSUPPORTED;
             symbol = av2h_range_read_adaptive(decoder, cdf, 3U);

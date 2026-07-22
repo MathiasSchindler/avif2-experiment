@@ -108,6 +108,11 @@ typedef struct {
 } Av2hFirstChromaMode;
 
 Av2hStatus av2h_leaf_cdfs_init(Av2hLeafCdfs *cdfs);
+Av2hStatus av2h_luma_joint_mode_from_index(
+    uint8_t mode_index,
+    Av2hBlockSize block_size,
+    const Av2hLumaModeNeighbors *neighbors,
+    uint8_t *joint_mode);
 Av2hStatus av2h_first_leaf_mode_read(Av2hRangeDecoder *decoder,
                                      Av2hLeafCdfs *cdfs,
                                      const Av2hSequenceState *sequence,

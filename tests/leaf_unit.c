@@ -13,6 +13,32 @@ static int failures;
         }                                                                      \
     } while (0)
 
+static void test_larger_mode_ordering(void) {
+    Av2hLumaModeNeighbors neighbors = { { 0U, 0U }, { 0U, 0U },
+        { 0U, 0U }, { 0U, 0U }, { 0U, 0U } };
+    uint8_t joint_mode = 0U;
+    CHECK(av2h_luma_joint_mode_from_index(
+              59U, AV2H_BLOCK_8X32, &neighbors, &joint_mode) == AV2H_OK);
+    CHECK(joint_mode == 54U);
+    neighbors.present[0] = 1U;
+    neighbors.joint_mode[0] = 22U;
+    CHECK(av2h_luma_joint_mode_from_index(
+              5U, AV2H_BLOCK_16X16, &neighbors, &joint_mode) == AV2H_OK);
+    CHECK(joint_mode == 22U);
+    CHECK(av2h_luma_joint_mode_from_index(
+              6U, AV2H_BLOCK_16X16, &neighbors, &joint_mode) == AV2H_OK);
+    CHECK(joint_mode == 21U);
+    CHECK(av2h_luma_joint_mode_from_index(
+              7U, AV2H_BLOCK_16X16, &neighbors, &joint_mode) == AV2H_OK);
+    CHECK(joint_mode == 23U);
+    CHECK(av2h_luma_joint_mode_from_index(
+              6U, AV2H_BLOCK_8X8, &neighbors, &joint_mode) == AV2H_OK);
+    CHECK(joint_mode == 50U);
+    CHECK(av2h_luma_joint_mode_from_index(
+              0U, AV2H_BLOCK_INVALID, &neighbors, &joint_mode) ==
+          AV2H_INVALID_ARGUMENT);
+}
+
 static void check_fixture(const char *name,
                           const unsigned char *bytes,
                           size_t size,
@@ -1650,6 +1676,7 @@ static void test_arguments(void) {
 }
 
 int main(void) {
+    test_larger_mode_ordering();
     test_fixture_modes();
     test_tiny_second_luma_leaf();
     test_arguments();

@@ -8,9 +8,13 @@ in private tests. The 4x4 continuations use production D203
 prediction from live reconstructed left samples; later blocks use D45 and
 Paeth prediction from live reconstructed edges. All four tiny chroma leaves
 also reconstruct their U and V blocks sample-exactly through tell 725.
-Complete tile traversal for the larger fixtures, filter execution, final
-workspace sizing, and the public decode API are not yet implemented. The
-milestone exit gate has therefore not been reached.
+A private bounded tile orchestrator owns the range decoder, adaptive CDFs,
+luma and chroma partition traversals, neighbor maps, and a compact caller-owned
+colocated-luma mode map. It decodes all eleven tiny luma and four chroma leaves
+through tell 725 without fixture-supplied syntax contexts. General
+reconstruction wiring, complete traversal for the larger fixtures, filter
+execution, final workspace sizing, and the public decode API are not yet
+implemented. The milestone exit gate has therefore not been reached.
 
 ## Fixture inventory
 
@@ -198,12 +202,18 @@ zero followed by a Y CCSO control of one. GDF consumes no symbol because the
 only enabled fixture uses mode 1; CDEF consumes no symbol because enabled
 fixtures have one strength.
 
+CCSO block control is read only at a 64x64 unit origin, matching the normative
+MI-coordinate gate. Later leaves inside the same unit do not consume or adapt
+a CCSO symbol. Luma mode-index mapping now builds the complete 61-entry list
+for every block at least 8x8, with left/above directional candidates and the
+additional wrapped angular neighbors for blocks larger than 64 samples. Small
+4x4, 4x8, and 8x4 blocks retain the fixed normative ordering.
+
 All four streams then decode luma mode set zero. Their mode indexes are 0, 0,
 0, and 4, mapping to DC, DC, DC, and PAETH. Sanitizer-backed tests freeze the
 conditional symbols, every touched observation count, and production integer
 tells `(11,11,12)`, `(17,17,18)`, `(8,8,9)`, and `(18,18,22)` at the pre-mode,
-post-set, and post-index boundaries. Other mode sets and directional mode
-indexes fail closed until their neighbor-dependent mapping is implemented.
+post-set, and post-index boundaries.
 
 All four first leaves then decode FSC mode zero with context zero and size
 groups 1, 1, 5, and 2. Their integer tells remain 12, 18, 9, and 22. The
@@ -285,7 +295,7 @@ pinned AVM defaults in hosted evidence, while no AVM table enters production.
 
 ## First transform coefficients
 
-A private 1,606-byte sparse CDF state decodes the validated luma and tiny
+A private 1,620-byte sparse CDF state decodes the validated luma and tiny
 chroma transforms:
 normative diagonal or vertical scan, base and low-frequency magnitudes,
 base-range extensions, bypass and adaptive DC-axis signs, adaptive
@@ -344,7 +354,7 @@ diagonal scan contains quantized coefficients `3` and `-1` at positions 0 and
 4, and coefficient decoding ends at integer tell 415. No additional sparse
 CDF storage is required at that point. The four chroma leaves add sparse UV
 EOB, base, LF, and base-range rows for every reached 4x4 scan context,
-increasing caller-owned coefficient level state to 1,606 bytes. Their U/V
+increasing caller-owned coefficient level state to 1,620 bytes. Their U/V
 coefficient endpoints are 469, 571, 643, and 725.
 
 ## First-block reconstruction
@@ -419,15 +429,16 @@ samples match pinned AVM through tell 725.
 
 ## Remaining work
 
-Bounded partition traversal plus luma-mode and packed coefficient neighbor
-state now owns all traversal and context updates exercised by the tiny
-fixture. The next required implementation replaces the remaining long
-fixture-specific leaf decode sequence with a bounded tile orchestrator, then
-extends full prediction and reconstruction to the odd, ordinary, and
-high-detail fixtures. Hosted evidence must expand to complete coefficient
-checksums and plane hashes after deblock, CDEF, CCSO, and restoration. Final
-workspace planning and the public decode API follow only after those complete
-filtered outputs pass sample-exactly.
+The bounded tile orchestrator now owns all syntax traversal and context updates
+exercised by the tiny fixture. The long sample-exact test retains explicit
+reconstruction references as oracle data, but production leaf decoding no
+longer receives fixture-specific partition, mode, coefficient, or colocated
+luma inputs. The next required implementation connects orchestrated leaves to
+general output-plane reference and reconstruction state, then extends full
+prediction and reconstruction to the odd, ordinary, and high-detail fixtures.
+Hosted evidence must expand to complete coefficient checksums and plane hashes
+after deblock, CDEF, and CCSO. Final workspace planning and the public decode
+API follow only after those complete filtered outputs pass sample-exactly.
 
 Until those stages reconstruct all four fixtures sample-exactly, Milestone 5
 must remain marked in progress.

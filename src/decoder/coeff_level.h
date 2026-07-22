@@ -6,7 +6,7 @@
 #define AV2H_FIRST_COEFF_CAPACITY 1024U
 
 typedef struct {
-    uint16_t eob_base[3U][3U + 4U];
+    uint16_t eob_base[4U][3U + 4U];
     uint16_t eob_lf[4U][5U + 4U];
     uint16_t base[12U][4U + 4U];
     uint16_t base_lf[25U][6U + 4U];
