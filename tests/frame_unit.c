@@ -14,12 +14,117 @@ static int failures;
         }                                                                      \
     } while (0)
 
+typedef struct {
+    uint16_t index;
+    int8_t value;
+} ExpectedCcsoOffset;
+
+static void check_ccso_lut(const Av2hCcsoPlane *plane,
+                           const ExpectedCcsoOffset *expected,
+                           size_t expected_count) {
+    size_t index;
+    size_t expected_index;
+    for (index = 0U; index < AV2H_CCSO_LUT_SIZE; ++index) {
+        int8_t value = 0;
+        for (expected_index = 0U; expected_index < expected_count;
+             ++expected_index) {
+            if (expected[expected_index].index == index) {
+                value = expected[expected_index].value;
+                break;
+            }
+        }
+        CHECK(plane->filter_offset[index] == value);
+    }
+}
+
+static void check_fixture_ccso(const Av2hFrameState *frame,
+                               unsigned int fixture_index) {
+    static const ExpectedCcsoOffset odd_u[] = {
+        { 17U, 3 }, { 21U, -30 }, { 32U, -30 }, { 37U, 3 },
+        { 48U, -30 }, { 69U, 3 }, { 85U, 3 }, { 101U, 3 }
+    };
+    static const ExpectedCcsoOffset odd_v[] = {
+        { 0U, 21 }, { 1U, 3 }, { 4U, -3 }, { 5U, 3 }
+    };
+    static const ExpectedCcsoOffset ordinary_y[] = {
+        { 0U, 7 }, { 1U, 3 }, { 4U, 1 }, { 6U, -3 },
+        { 9U, -1 }, { 10U, -1 }
+    };
+    static const ExpectedCcsoOffset detail_y[] = {
+        { 1U, 1 }, { 2U, -1 }, { 4U, 1 }, { 5U, -3 }, { 8U, -1 }
+    };
+    if (fixture_index == 0U) {
+        CHECK(frame->ccso[0].enabled == 0U);
+        CHECK(frame->ccso[1].enabled == 0U);
+        CHECK(frame->ccso[2].enabled == 0U);
+        check_ccso_lut(&frame->ccso[0], 0, 0U);
+        check_ccso_lut(&frame->ccso[1], 0, 0U);
+        check_ccso_lut(&frame->ccso[2], 0, 0U);
+    } else if (fixture_index == 1U) {
+        CHECK(frame->ccso[0].enabled == 0U);
+        CHECK(frame->ccso[1].enabled == 1U);
+        CHECK(frame->ccso[1].scale_index == 2U);
+        CHECK(frame->ccso[1].offset_count == 32U);
+        CHECK(frame->ccso[2].enabled == 1U);
+        CHECK(frame->ccso[2].scale_index == 2U);
+        CHECK(frame->ccso[2].offset_count == 4U);
+        check_ccso_lut(&frame->ccso[1], odd_u,
+                       sizeof(odd_u) / sizeof(odd_u[0]));
+        check_ccso_lut(&frame->ccso[2], odd_v,
+                       sizeof(odd_v) / sizeof(odd_v[0]));
+    } else if (fixture_index == 2U) {
+        CHECK(frame->ccso[0].enabled == 1U);
+        CHECK(frame->ccso[0].offset_count == 9U);
+        check_ccso_lut(&frame->ccso[0], ordinary_y,
+                       sizeof(ordinary_y) / sizeof(ordinary_y[0]));
+    } else {
+        CHECK(frame->ccso[0].enabled == 1U);
+        CHECK(frame->ccso[0].offset_count == 9U);
+        check_ccso_lut(&frame->ccso[0], detail_y,
+                       sizeof(detail_y) / sizeof(detail_y[0]));
+    }
+}
+
+static void check_fixture_filters(const Av2hFrameState *frame,
+                                  unsigned int fixture_index) {
+    CHECK(frame->deblock_enabled[0] == 1U);
+    CHECK(frame->deblock_enabled[1] == 1U);
+    if (fixture_index < 2U) {
+        CHECK(frame->deblock_enabled[2] == 0U);
+        CHECK(frame->deblock_enabled[3] == 0U);
+        CHECK(frame->deblock_delta[0] == 3);
+        CHECK(frame->deblock_delta[1] == 3);
+    } else {
+        CHECK(frame->deblock_enabled[2] == 1U);
+        CHECK(frame->deblock_enabled[3] == 1U);
+        CHECK(frame->deblock_delta[0] == (fixture_index == 2U ? -2 : 0));
+        CHECK(frame->deblock_delta[1] == frame->deblock_delta[0]);
+        CHECK(frame->deblock_delta[2] == frame->deblock_delta[0]);
+        CHECK(frame->deblock_delta[3] == frame->deblock_delta[0]);
+    }
+    if (fixture_index < 3U) {
+        CHECK(frame->cdef_damping == 5U);
+        CHECK(frame->cdef_strength_count == 1U);
+        CHECK(frame->cdef_on_skip_transform == 1U);
+        CHECK(frame->cdef_y_strength[0] ==
+              (fixture_index == 0U ? 56U : 34U));
+        CHECK(frame->cdef_uv_strength[0] ==
+              (fixture_index == 2U ? 58U : 56U));
+    } else {
+        CHECK(frame->cdef_strength_count == 0U);
+    }
+    CHECK(frame->gdf_mode == (fixture_index == 1U ? 1U : 0U));
+    CHECK(frame->gdf_qp_index == (fixture_index == 1U ? 3U : 0U));
+    CHECK(frame->gdf_scale_index == (fixture_index == 1U ? 3U : 0U));
+}
+
 static void check_fixture(const unsigned char *sequence_bytes,
                           size_t sequence_size,
                           const unsigned char *payload,
                           size_t payload_size,
                           size_t expected_header_bits,
-                          unsigned int expected_intrabc) {
+                          unsigned int expected_intrabc,
+                          unsigned int fixture_index) {
     Av2hObu obu;
     Av2hObuLedger ledger = { &obu, 1U, 0U };
     Av2hSequenceState sequence;
@@ -46,6 +151,8 @@ static void check_fixture(const unsigned char *sequence_bytes,
     CHECK(frame.delta_q_present == 0U);
     CHECK(frame.tx_mode == 1U);
     CHECK(frame.reduced_tx_set == 0U);
+    check_fixture_ccso(&frame, fixture_index);
+    check_fixture_filters(&frame, fixture_index);
     CHECK(av2h_tile_group_single_parse(
               (Av2hSpan){ payload, payload_size },
               frame.uncompressed_header_bits, &group) == AV2H_OK);
@@ -91,13 +198,13 @@ static void test_fixtures(void) {
         0x16U, 0xbcU, 0xc0U, 0x00U, 0x5aU
     };
     check_fixture(tiny_sequence, sizeof(tiny_sequence), tiny, sizeof(tiny),
-                  49U, 0U);
+                  49U, 0U, 0U);
     check_fixture(odd_sequence, sizeof(odd_sequence), odd, sizeof(odd),
-                  148U, 1U);
+                  148U, 1U, 1U);
     check_fixture(ordinary_sequence, sizeof(ordinary_sequence),
-                  ordinary, sizeof(ordinary), 101U, 1U);
+                  ordinary, sizeof(ordinary), 101U, 1U, 2U);
     check_fixture(detail_sequence, sizeof(detail_sequence),
-                  detail, sizeof(detail), 65U, 1U);
+                  detail, sizeof(detail), 65U, 1U, 3U);
 }
 
 static void test_failures(void) {

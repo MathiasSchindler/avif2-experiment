@@ -12,9 +12,12 @@ A private bounded tile orchestrator owns the range decoder, adaptive CDFs,
 luma and chroma partition traversals, neighbor maps, and a compact caller-owned
 colocated-luma mode map. It decodes all eleven tiny luma and four chroma leaves
 through tell 725 without fixture-supplied syntax contexts. General
-reconstruction wiring, complete traversal for the larger fixtures, filter
-execution, final workspace sizing, and the public decode API are not yet
-implemented. The milestone exit gate has therefore not been reached.
+reconstruction wiring and complete traversal for the larger fixtures are not
+yet implemented. A private bounded filter pipeline now executes deblock, CDEF,
+CCSO, and accepted-profile GDF, while restoration remains unsupported and
+fail-closed. Filtered fixture parity, final workspace sizing, and the public
+decode API are not yet implemented. The milestone exit gate has therefore not
+been reached.
 
 ## Fixture inventory
 
@@ -427,6 +430,29 @@ D45 prediction, plus implied `DCT_DCT`, `DCT_ADST`, and `ADST_DCT` transforms.
 Each predictor uses reconstructed chroma edges, and all 128 predictor and final
 samples match pinned AVM through tell 725.
 
+## Filter pipeline
+
+The private filter pipeline uses caller-owned reconstructed, deblocked, CDEF,
+and final planes. A bounded per-4x4 metadata map supplies prediction and
+transform bases, transform extents, final Q indexes, skip state, and lossless
+state to the deblock scheduler. Vertical edges are processed before horizontal
+edges, with normative threshold and asymmetric width derivation. CDEF runs
+out of place, CCSO classifies against the immutable pre-CDEF luma plane, and
+GDF writes final luma from an immutable post-CCSO source. Filter planes cover
+the coded MI extent, so the 17x15 fixture uses 24x16 luma storage before final
+cropping.
+
+GDF's five trained tables and the deblock side-threshold table are generated
+from hash-locked AV2 v1.0.0 normative attachments. Focused sanitizer vectors
+cover deblock edge and frame scheduling, CDEF direction/block/frame filtering,
+CCSO controls and classifiers, a complete independently computed 8x8 GDF
+output, coded bounds, and preflight failures. Restoration and unsupported
+per-block GDF or multi-strength CDEF modes reject before final-plane mutation.
+
+These kernel and orchestration checks do not establish fixture stage parity.
+The larger-fixture tile and reconstruction work must first produce complete
+coded planes and populate every deblock and CCSO control cell.
+
 ## Remaining work
 
 The bounded tile orchestrator now owns all syntax traversal and context updates
@@ -437,8 +463,9 @@ luma inputs. The next required implementation connects orchestrated leaves to
 general output-plane reference and reconstruction state, then extends full
 prediction and reconstruction to the odd, ordinary, and high-detail fixtures.
 Hosted evidence must expand to complete coefficient checksums and plane hashes
-after deblock, CDEF, and CCSO. Final workspace planning and the public decode
-API follow only after those complete filtered outputs pass sample-exactly.
+after deblock, CDEF, CCSO, and GDF where enabled. Final workspace planning and
+the public decode API follow only after those complete filtered outputs pass
+sample-exactly.
 
 Until those stages reconstruct all four fixtures sample-exactly, Milestone 5
 must remain marked in progress.

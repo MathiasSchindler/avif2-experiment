@@ -37,9 +37,12 @@ separate reference experiment and is fetched into ignored `vendor/` and
   commits all tiny luma and chroma leaves in entropy order. A private bounded
   tile orchestrator now owns the range decoder, adaptive CDFs, both partition
   traversals, neighbor maps, and colocated luma modes; it decodes all 15 tiny
-  leaves through tell 725 without fixture-supplied contexts. General
-  reconstruction wiring, larger-fixture reconstruction, filters, final
-  workspace sizing, and the public decode API are not implemented yet.
+  leaves through tell 725 without fixture-supplied contexts. A private bounded
+  pipeline executes deblock, CDEF, CCSO, and accepted-profile GDF from
+  caller-owned planes and metadata; restoration remains unsupported and
+  fail-closed. General reconstruction wiring, larger-fixture reconstruction,
+  filtered fixture parity, final workspace sizing, and the public decode API
+  are not implemented yet.
 
 The public API is declared in `include/av2heif.h`. Milestone details and
 limitations are recorded in `docs/milestone-0.md`, `docs/milestone-1.md`, and

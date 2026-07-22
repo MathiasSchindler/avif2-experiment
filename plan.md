@@ -335,9 +335,11 @@ through tell 469. The remaining three tiny chroma leaves add D203, inherited
 D67 angle delta -1, D45, implied `DCT_ADST`/`ADST_DCT`/`DCT_DCT` transforms,
 and complete sparse U/V coefficient decoding through tell 725. Full frame
 leaf syntax now runs through a bounded caller-owned tile orchestrator with
-colocated luma-mode storage. General reconstruction, larger-fixture traversal,
-filter execution, final workspace sizing, and the public decode API remain;
-see `docs/milestone-5.md`.
+colocated luma-mode storage. A private caller-owned pipeline now executes
+deblock, CDEF, CCSO, and accepted-profile GDF while restoration fails closed.
+General reconstruction, larger-fixture traversal, filtered fixture parity,
+final workspace sizing, and the public decode API remain; see
+`docs/milestone-5.md`.
 
 Implement only the smallest profile that pinned AVM can reliably emit and the
 project can validate completely. The initial target is one 8-bit 4:2:0

@@ -162,7 +162,14 @@ static void read_cdef(Av2hBitReader *reader, Av2hFrameState *frame) {
     }
 }
 
+static int8_t ccso_offset_from_index(unsigned int index,
+                                     unsigned int scale_index) {
+    static const int8_t values[8] = { 0, 1, -1, 3, -3, 7, -7, -10 };
+    return (int8_t)(values[index] * (int8_t)(scale_index + 1U));
+}
+
 static uint16_t read_ccso_offsets(Av2hBitReader *reader,
+                                  Av2hCcsoPlane *plane,
                                   uint32_t edge_intervals,
                                   uint32_t band_count) {
     uint32_t first;
@@ -176,6 +183,8 @@ static uint16_t read_ccso_offsets(Av2hBitReader *reader,
                 for (unary = 0U; unary < 7U; ++unary) {
                     if (av2h_bit_reader_read(reader, 1U) == 0U) break;
                 }
+                plane->filter_offset[(band << 4U) + (first << 2U) + second] =
+                    ccso_offset_from_index(unary, plane->scale_index);
                 ++count;
                 if (reader->status != AV2H_OK) return count;
             }
@@ -223,7 +232,7 @@ static void read_ccso(Av2hBitReader *reader, Av2hFrameState *frame) {
         }
         band_count = (uint32_t)1U << plane->max_band_log2;
         plane->offset_count =
-            read_ccso_offsets(reader, edge_intervals, band_count);
+            read_ccso_offsets(reader, plane, edge_intervals, band_count);
         if (reader->status != AV2H_OK) return;
     }
 }

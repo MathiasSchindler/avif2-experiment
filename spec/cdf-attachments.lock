@@ -1,6 +1,14 @@
 # AV2 v1.0.0 normative attachments used for initial partition CDF evidence.
 # Base URL: https://av2.aomedia.org/v1.0.0/attachments/
 
+# Normative Guided Directional Filter tables.
+gdf_alpha.h = "8286d7fe2a4feadec5ef776123791a253cd5e70e658bafb8a40827148ecf3600"
+gdf_weight.h = "58b154df018156ca88e8320009e0c4ebd024e7fbd6351b2215a3af637862f666"
+gdf_bias.h = "9c9790f96d0a9067c3ee55c16fe96c1d6296ff4279747924b30e547cd18b2372"
+gdf_intra_error.h = "5c92199161ce38a981805f444cd2906917502231fd2a9b1f8c6377ea336f13e5"
+gdf_inter_error.h = "4ca252f213b3f230ef1eb40683f3066d304fc54f43b132133f691aabb9c5376f"
+side_thresholds.h = "9880d3ac26c5f31372ebeeaeb9302ac07bae51c514c89e58e37e0e8ba763bed0"
+
 default_do_ext_partition_cdf.h = "34e128f47a3331f44e41eec3faaeac3f68dc66a02d94d69707623e07451b7372"
 default_do_split_cdf.h = "bb40c072c47561c4742cb96cd6e91cb1ea18ba153862e3e6bd1f88ef19c0b692"
 default_do_square_split_cdf.h = "73cf5e0851fc98be518dc6d47a31657d2c503f34512e1428403e6ccf19eb4ace"

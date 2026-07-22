@@ -96,3 +96,10 @@ tables. A separately licensed AVM
 inspection build supplies only hosted reconstructed-pixel correspondence
 evidence; no AVM transform source, table, header, or object is included or
 linked into production.
+
+The bounded deblock, CDEF, CCSO, and GDF implementation in
+`src/decoder/filter.c` is project-owned CC0 code written from the AV2 v1.0.0
+decoding processes. GDF's trained alpha, weight, bias, intra-error, and
+inter-error tables and the deblock side-threshold table are generated from
+hash-locked normative specification attachments. No AVM filter source, table,
+header, or object is included or linked into production.

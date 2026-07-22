@@ -5,6 +5,8 @@
 
 #define AV2H_CDEF_MAX_STRENGTHS 8U
 #define AV2H_FRAME_PLANE_COUNT 3U
+#define AV2H_CCSO_BAND_COUNT 64U
+#define AV2H_CCSO_LUT_SIZE (AV2H_CCSO_BAND_COUNT * 16U)
 
 typedef struct {
     uint8_t enabled;
@@ -15,6 +17,7 @@ typedef struct {
     uint8_t edge_classifier;
     uint8_t max_band_log2;
     uint16_t offset_count;
+    int8_t filter_offset[AV2H_CCSO_LUT_SIZE];
 } Av2hCcsoPlane;
 
 typedef struct {
