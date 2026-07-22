@@ -8,6 +8,7 @@
 
 typedef enum {
     AV2H_TX_DCT_DCT = 0,
+    AV2H_TX_ADST_DCT = 1,
     AV2H_TX_DCT_ADST = 2,
     AV2H_TX_ADST_FLIPADST = 7,
     AV2H_TX_IDTX = 9,
@@ -47,6 +48,14 @@ Av2hStatus av2h_first_chroma_transform_type_read(
     Av2hRangeDecoder *decoder,
     Av2hFirstTransformCdfs *cdfs,
     const Av2hFrameState *frame,
+    uint8_t plane,
+    const Av2hFirstCoeffPrefix *coeff,
+    Av2hFirstTransformType *transform);
+Av2hStatus av2h_chroma_transform_type_read(
+    Av2hRangeDecoder *decoder,
+    Av2hFirstTransformCdfs *cdfs,
+    const Av2hFrameState *frame,
+    const Av2hFirstChromaMode *mode,
     uint8_t plane,
     const Av2hFirstCoeffPrefix *coeff,
     Av2hFirstTransformType *transform);

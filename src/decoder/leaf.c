@@ -132,6 +132,18 @@ Av2hStatus av2h_chroma_mode_read(
     Av2hFirstLeafIntraMode colocated_luma_mode,
     uint8_t cfl_context,
     Av2hFirstChromaMode *mode) {
+    return av2h_chroma_mode_read_with_delta(
+        decoder, cdfs, sequence, colocated_luma_mode, 0, cfl_context, mode);
+}
+
+Av2hStatus av2h_chroma_mode_read_with_delta(
+    Av2hRangeDecoder *decoder,
+    Av2hLeafCdfs *cdfs,
+    const Av2hSequenceState *sequence,
+    Av2hFirstLeafIntraMode colocated_luma_mode,
+    int8_t colocated_luma_delta,
+    uint8_t cfl_context,
+    Av2hFirstChromaMode *mode) {
     uint8_t mode_context;
     uint32_t value;
     if (decoder == 0 || cdfs == 0 || sequence == 0 || mode == 0) {
@@ -156,11 +168,50 @@ Av2hStatus av2h_chroma_mode_read(
     if (av2h_range_status(decoder) != AV2H_OK) {
         return av2h_range_status(decoder);
     }
+    if (value == AV2H_UV_MODE_SYMBOLS - 1U) {
+        value += av2h_range_read_bypass(decoder, 3U);
+        if (av2h_range_status(decoder) != AV2H_OK) {
+            return av2h_range_status(decoder);
+        }
+    }
     mode->mode_index = (uint8_t)value;
     mode->after_mode_bits = av2h_range_tell(decoder);
-    if (value != 0U) return AV2H_UNSUPPORTED;
-    mode->mode = AV2H_INTRA_DC;
-    mode->angle_delta = 0;
+    if (value > 12U) return AV2H_INVALID_DATA;
+    if (mode_context) {
+        static const Av2hFirstLeafIntraMode defaults[] = {
+            AV2H_INTRA_VERTICAL, AV2H_INTRA_HORIZONTAL, AV2H_INTRA_D45,
+            AV2H_INTRA_D135, AV2H_INTRA_D67, AV2H_INTRA_D113,
+            AV2H_INTRA_D157, AV2H_INTRA_D203
+        };
+        Av2hFirstLeafIntraMode ordered[13U];
+        size_t count = 0U;
+        size_t index;
+        ordered[count++] = colocated_luma_mode;
+        ordered[count++] = AV2H_INTRA_DC;
+        ordered[count++] = AV2H_INTRA_SMOOTH;
+        ordered[count++] = AV2H_INTRA_SMOOTH_VERTICAL;
+        ordered[count++] = AV2H_INTRA_SMOOTH_HORIZONTAL;
+        ordered[count++] = AV2H_INTRA_PAETH;
+        for (index = 0U; index < sizeof(defaults) / sizeof(defaults[0]);
+             ++index) {
+            if (defaults[index] != colocated_luma_mode) {
+                ordered[count++] = defaults[index];
+            }
+        }
+        if (value >= count) return AV2H_INVALID_DATA;
+        mode->mode = ordered[value];
+    } else {
+        static const Av2hFirstLeafIntraMode ordered[] = {
+            AV2H_INTRA_DC, AV2H_INTRA_SMOOTH, AV2H_INTRA_SMOOTH_VERTICAL,
+            AV2H_INTRA_SMOOTH_HORIZONTAL, AV2H_INTRA_PAETH,
+            AV2H_INTRA_VERTICAL, AV2H_INTRA_HORIZONTAL, AV2H_INTRA_D45,
+            AV2H_INTRA_D135, AV2H_INTRA_D67, AV2H_INTRA_D113,
+            AV2H_INTRA_D157, AV2H_INTRA_D203
+        };
+        mode->mode = ordered[value];
+    }
+    mode->angle_delta = mode->mode == colocated_luma_mode ?
+        colocated_luma_delta : 0;
     return AV2H_OK;
 }
 
@@ -262,6 +313,107 @@ static uint8_t fsc_block_context(Av2hBlockSize block_size) {
         3U, 4U, 4U, 6U, 6U, 4U, 4U, 6U, 6U
     };
     return contexts[block_size];
+}
+
+Av2hStatus av2h_luma_mode_context_state_init(
+    Av2hLumaModeContextState *state,
+    Av2hLumaModeContext *above,
+    size_t above_count,
+    Av2hLumaModeContext *left,
+    size_t left_count) {
+    size_t index;
+    if (state == 0 || above == 0 || left == 0 || above_count == 0U ||
+        left_count == 0U) {
+        return AV2H_INVALID_ARGUMENT;
+    }
+    state->above = above;
+    state->left = left;
+    state->above_count = above_count;
+    state->left_count = left_count;
+    for (index = 0U; index < above_count; ++index) {
+        above[index] = (Av2hLumaModeContext){ 0U, 0U, 0U, 0U, 0U };
+    }
+    for (index = 0U; index < left_count; ++index) {
+        left[index] = (Av2hLumaModeContext){ 0U, 0U, 0U, 0U, 0U };
+    }
+    return AV2H_OK;
+}
+
+Av2hStatus av2h_luma_mode_neighbors_from_state(
+    const Av2hLumaModeContextState *state,
+    const Av2hPartitionNode *leaf,
+    Av2hLumaModeNeighbors *neighbors) {
+    size_t left_index;
+    if (state == 0 || leaf == 0 || neighbors == 0 ||
+        leaf->block_size >= AV2H_BLOCK_SIZE_COUNT) {
+        return AV2H_INVALID_ARGUMENT;
+    }
+    left_index = leaf->row % state->left_count;
+    if (leaf->column >= state->above_count ||
+        left_index >= state->left_count) {
+        return AV2H_OVERFLOW;
+    }
+    neighbors->present[0] = state->left[left_index].present;
+    neighbors->joint_mode[0] = state->left[left_index].joint_mode;
+    neighbors->fsc_mode[0] = state->left[left_index].fsc_mode;
+    neighbors->mrl_index[0] = state->left[left_index].mrl_index;
+    neighbors->multi_line_mrl[0] = state->left[left_index].multi_line_mrl;
+    neighbors->present[1] = state->above[leaf->column].present;
+    neighbors->joint_mode[1] = state->above[leaf->column].joint_mode;
+    neighbors->fsc_mode[1] = state->above[leaf->column].fsc_mode;
+    neighbors->mrl_index[1] = state->above[leaf->column].mrl_index;
+    neighbors->multi_line_mrl[1] = state->above[leaf->column].multi_line_mrl;
+    return AV2H_OK;
+}
+
+Av2hStatus av2h_luma_mode_context_state_update(
+    Av2hLumaModeContextState *state,
+    const Av2hPartitionNode *leaf,
+    const Av2hFirstLeafMode *mode) {
+    Av2hLumaModeContext context;
+    size_t width;
+    size_t height;
+    size_t left_index;
+    size_t index;
+    Av2hStatus status;
+    if (state == 0 || leaf == 0 || mode == 0) {
+        return AV2H_INVALID_ARGUMENT;
+    }
+    status = av2h_block_dimensions_mi(leaf->block_size, &width, &height);
+    if (status != AV2H_OK) return status;
+    left_index = leaf->row % state->left_count;
+    if ((size_t)leaf->column + width > state->above_count ||
+        left_index + height > state->left_count) {
+        return AV2H_OVERFLOW;
+    }
+    context.present = 1U;
+    context.joint_mode = mode->joint_mode;
+    context.fsc_mode = mode->fsc_mode;
+    context.mrl_index = mode->mrl_index;
+    context.multi_line_mrl = mode->multi_line_mrl;
+    for (index = 0U; index < width; ++index) {
+        state->above[leaf->column + index] = context;
+    }
+    for (index = 0U; index < height; ++index) {
+        state->left[left_index + index] = context;
+    }
+    return AV2H_OK;
+}
+
+Av2hStatus av2h_luma_mode_read_with_state(
+    Av2hRangeDecoder *decoder,
+    Av2hLeafCdfs *cdfs,
+    const Av2hSequenceState *sequence,
+    const Av2hFrameState *frame,
+    const Av2hPartitionNode *leaf,
+    const Av2hLumaModeContextState *state,
+    Av2hFirstLeafMode *mode) {
+    Av2hLumaModeNeighbors neighbors;
+    Av2hStatus status = av2h_luma_mode_neighbors_from_state(
+        state, leaf, &neighbors);
+    if (status != AV2H_OK) return status;
+    return av2h_luma_mode_read(decoder, cdfs, sequence, frame, leaf,
+                               &neighbors, mode);
 }
 
 Av2hStatus av2h_luma_mode_read(Av2hRangeDecoder *decoder,

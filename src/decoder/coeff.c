@@ -26,6 +26,22 @@ Av2hStatus av2h_first_coeff_cdfs_init(Av2hFirstCoeffCdfs *cdfs) {
         (Av2hBinaryCdfSpec){ 8778U, 31U, 0U });
     if (status != AV2H_OK) return status;
     status = av2h_binary_cdf_init(
+        cdfs->txb_skip_chroma_txs0_ctx7,
+        (Av2hBinaryCdfSpec){ 17506U, 0U, 0U });
+    if (status != AV2H_OK) return status;
+    status = av2h_binary_cdf_init(
+        cdfs->txb_skip_chroma_txs0_ctx8,
+        (Av2hBinaryCdfSpec){ 26467U, 0U, 0U });
+    if (status != AV2H_OK) return status;
+    status = av2h_binary_cdf_init(
+        cdfs->txb_skip_chroma_v_ctx7,
+        (Av2hBinaryCdfSpec){ 16919U, 0U, 0U });
+    if (status != AV2H_OK) return status;
+    status = av2h_binary_cdf_init(
+        cdfs->txb_skip_chroma_v_ctx8,
+        (Av2hBinaryCdfSpec){ 25248U, 0U, 0U });
+    if (status != AV2H_OK) return status;
+    status = av2h_binary_cdf_init(
         cdfs->txb_skip_chroma_v_ctx9,
         (Av2hBinaryCdfSpec){ 8448U, 50U, 0U });
     if (status != AV2H_OK) return status;
@@ -75,6 +91,136 @@ static Av2hStatus derive_tx_size(Av2hBlockSize block_size,
         *tx_size_context = 3U;
     } else {
         return AV2H_UNSUPPORTED;
+    }
+    return AV2H_OK;
+}
+
+static uint8_t *coefficient_plane(uint8_t *contexts, size_t count,
+                                  uint8_t plane) {
+    return contexts + (size_t)plane * count;
+}
+
+Av2hStatus av2h_coeff_context_state_init(
+    Av2hCoeffContextState *state,
+    uint8_t *above,
+    size_t above_count,
+    uint8_t *left,
+    size_t left_count) {
+    size_t index;
+    if (state == 0 || above == 0 || left == 0 || above_count == 0U ||
+        left_count == 0U) {
+        return AV2H_INVALID_ARGUMENT;
+    }
+    state->above = above;
+    state->left = left;
+    state->above_count = above_count;
+    state->left_count = left_count;
+    for (index = 0U; index < AV2H_FRAME_PLANE_COUNT * above_count; ++index) {
+        above[index] = 0U;
+    }
+    for (index = 0U; index < AV2H_FRAME_PLANE_COUNT * left_count; ++index) {
+        left[index] = 0U;
+    }
+    return AV2H_OK;
+}
+
+Av2hStatus av2h_coeff_contexts_from_state(
+    const Av2hCoeffContextState *state,
+    uint8_t plane,
+    const Av2hPartitionNode *leaf,
+    uint8_t fsc_mode,
+    uint8_t *txb_skip_context,
+    uint8_t *dc_sign_context) {
+    const uint8_t *above;
+    const uint8_t *left;
+    const uint8_t *u_above;
+    const uint8_t *u_left;
+    size_t width;
+    size_t height;
+    size_t left_index;
+    size_t index;
+    int dc_sign = 0;
+    unsigned int above_nonzero = 0U;
+    unsigned int left_nonzero = 0U;
+    Av2hStatus status;
+    if (state == 0 || state->above == 0 || state->left == 0 ||
+        state->above_count == 0U || state->left_count == 0U || leaf == 0 ||
+        plane >= AV2H_FRAME_PLANE_COUNT || fsc_mode > 1U ||
+        txb_skip_context == 0 || dc_sign_context == 0) {
+        return AV2H_INVALID_ARGUMENT;
+    }
+    status = av2h_block_dimensions_mi(leaf->block_size, &width, &height);
+    if (status != AV2H_OK) return status;
+    left_index = leaf->row % state->left_count;
+    if ((size_t)leaf->column + width > state->above_count ||
+        left_index + height > state->left_count) {
+        return AV2H_OVERFLOW;
+    }
+    above = coefficient_plane(state->above, state->above_count, plane);
+    left = coefficient_plane(state->left, state->left_count, plane);
+    u_above = coefficient_plane(state->above, state->above_count, 1U);
+    u_left = coefficient_plane(state->left, state->left_count, 1U);
+    for (index = 0U; index < width; ++index) {
+        uint8_t context = above[leaf->column + index];
+        above_nonzero |= context & 7U;
+        dc_sign += (context & 16U) != 0U ? 1 :
+                   (context & 8U) != 0U ? -1 : 0;
+    }
+    for (index = 0U; index < height; ++index) {
+        uint8_t context = left[left_index + index];
+        left_nonzero |= context & 7U;
+        dc_sign += (context & 16U) != 0U ? 1 :
+                   (context & 8U) != 0U ? -1 : 0;
+    }
+    if (plane == 0U) {
+        *txb_skip_context = fsc_mode ? 9U : 0U;
+    } else if (plane == 1U) {
+        *txb_skip_context = (uint8_t)(6U + (above_nonzero != 0U) +
+                                     (left_nonzero != 0U));
+    } else {
+        unsigned int u_nonzero =
+            (u_above[leaf->column] & 7U) | (u_left[left_index] & 7U);
+        unsigned int neighbor_count =
+            (above_nonzero != 0U) + (left_nonzero != 0U);
+        *txb_skip_context = (uint8_t)(u_nonzero != 0U ?
+            (neighbor_count == 0U ? 9U : 6U + neighbor_count) :
+            neighbor_count);
+    }
+    *dc_sign_context = dc_sign < 0 ? 1U : dc_sign > 0 ? 2U : 0U;
+    return AV2H_OK;
+}
+
+Av2hStatus av2h_coeff_context_state_update(
+    Av2hCoeffContextState *state,
+    uint8_t plane,
+    const Av2hPartitionNode *leaf,
+    uint8_t cul_level) {
+    uint8_t *above;
+    uint8_t *left;
+    size_t width;
+    size_t height;
+    size_t left_index;
+    size_t index;
+    Av2hStatus status;
+    if (state == 0 || state->above == 0 || state->left == 0 ||
+        state->above_count == 0U || state->left_count == 0U || leaf == 0 ||
+        plane >= AV2H_FRAME_PLANE_COUNT) {
+        return AV2H_INVALID_ARGUMENT;
+    }
+    status = av2h_block_dimensions_mi(leaf->block_size, &width, &height);
+    if (status != AV2H_OK) return status;
+    left_index = leaf->row % state->left_count;
+    if ((size_t)leaf->column + width > state->above_count ||
+        left_index + height > state->left_count) {
+        return AV2H_OVERFLOW;
+    }
+    above = coefficient_plane(state->above, state->above_count, plane);
+    left = coefficient_plane(state->left, state->left_count, plane);
+    for (index = 0U; index < width; ++index) {
+        above[leaf->column + index] = cul_level;
+    }
+    for (index = 0U; index < height; ++index) {
+        left[left_index + index] = cul_level;
     }
     return AV2H_OK;
 }
@@ -222,6 +368,41 @@ Av2hStatus av2h_first_coeff_prefix_read(
                                   prefix);
 }
 
+Av2hStatus av2h_coeff_prefix_read_with_state(
+    Av2hRangeDecoder *decoder,
+    Av2hFirstCoeffCdfs *cdfs,
+    const Av2hFrameState *frame,
+    const Av2hPartitionNode *leaf,
+    const Av2hFirstLeafMode *mode,
+    const Av2hCoeffContextState *state,
+    Av2hFirstCoeffPrefix *prefix,
+    uint8_t *dc_sign_context) {
+    uint8_t txb_skip_context;
+    Av2hStatus status = av2h_coeff_contexts_from_state(
+        state, 0U, leaf, mode != 0 ? mode->fsc_mode : 0U,
+        &txb_skip_context, dc_sign_context);
+    if (status != AV2H_OK) return status;
+    return av2h_coeff_prefix_read(decoder, cdfs, frame, leaf, mode,
+                                  txb_skip_context, prefix);
+}
+
+Av2hStatus av2h_chroma_coeff_prefix_read_with_state(
+    Av2hRangeDecoder *decoder,
+    Av2hFirstCoeffCdfs *cdfs,
+    const Av2hFrameState *frame,
+    const Av2hPartitionNode *leaf,
+    uint8_t plane,
+    const Av2hCoeffContextState *state,
+    Av2hFirstCoeffPrefix *prefix) {
+    uint8_t txb_skip_context;
+    uint8_t dc_sign_context;
+    Av2hStatus status = av2h_coeff_contexts_from_state(
+        state, plane, leaf, 0U, &txb_skip_context, &dc_sign_context);
+    if (status != AV2H_OK) return status;
+    return av2h_chroma_coeff_prefix_read(
+        decoder, cdfs, frame, leaf, plane, txb_skip_context, prefix);
+}
+
 Av2hStatus av2h_first_chroma_coeff_prefix_read(
     Av2hRangeDecoder *decoder,
     Av2hFirstCoeffCdfs *cdfs,
@@ -229,11 +410,26 @@ Av2hStatus av2h_first_chroma_coeff_prefix_read(
     const Av2hPartitionNode *leaf,
     uint8_t plane,
     Av2hFirstCoeffPrefix *prefix) {
+    return av2h_chroma_coeff_prefix_read(
+        decoder, cdfs, frame, leaf, plane, plane == 1U ? 6U : 9U, prefix);
+}
+
+Av2hStatus av2h_chroma_coeff_prefix_read(
+    Av2hRangeDecoder *decoder,
+    Av2hFirstCoeffCdfs *cdfs,
+    const Av2hFrameState *frame,
+    const Av2hPartitionNode *leaf,
+    uint8_t plane,
+    uint8_t txb_skip_context,
+    Av2hFirstCoeffPrefix *prefix) {
+    uint16_t *skip_cdf;
     uint32_t value;
     if (decoder == 0 || cdfs == 0 || frame == 0 || leaf == 0 || prefix == 0) {
         return AV2H_INVALID_ARGUMENT;
     }
-    if ((plane != 1U && plane != 2U) ||
+    if ((plane != 1U && plane != 2U) || txb_skip_context < 6U ||
+        txb_skip_context > 9U || (plane == 1U && txb_skip_context > 8U) ||
+        (plane == 2U && txb_skip_context < 7U) ||
         leaf->block_size != AV2H_BLOCK_8X8 ||
         frame->base_q_index != 128U || frame->tx_mode != 1U ||
         frame->disable_cdf_update) {
@@ -241,11 +437,19 @@ Av2hStatus av2h_first_chroma_coeff_prefix_read(
     }
     prefix->tx_size = AV2H_TX_4X4;
     prefix->tx_size_context = 0U;
-    prefix->txb_skip_context = plane == 1U ? 6U : 9U;
+    prefix->txb_skip_context = txb_skip_context;
     prefix->before_all_zero_bits = av2h_range_tell(decoder);
-    value = av2h_range_read_adaptive(
-        decoder, plane == 1U ? cdfs->txb_skip_chroma_txs0_ctx6 :
-                              cdfs->txb_skip_chroma_v_ctx9, 2U);
+    if (plane == 1U) {
+        skip_cdf = txb_skip_context == 6U ?
+            cdfs->txb_skip_chroma_txs0_ctx6 : txb_skip_context == 7U ?
+            cdfs->txb_skip_chroma_txs0_ctx7 :
+            cdfs->txb_skip_chroma_txs0_ctx8;
+    } else {
+        skip_cdf = txb_skip_context == 7U ? cdfs->txb_skip_chroma_v_ctx7 :
+            txb_skip_context == 8U ? cdfs->txb_skip_chroma_v_ctx8 :
+                                    cdfs->txb_skip_chroma_v_ctx9;
+    }
+    value = av2h_range_read_adaptive(decoder, skip_cdf, 2U);
     if (av2h_range_status(decoder) != AV2H_OK) {
         return av2h_range_status(decoder);
     }

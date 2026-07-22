@@ -167,6 +167,21 @@ static void test_tiny_second_luma_leaf(void) {
     Av2hFirstCoeffBlock block;
     Av2hReconstructionScratch scratch;
     Av2hFirstReconstruction reconstruction;
+    Av2hPartitionContextState partition_state;
+    Av2hPartitionTraversal luma_traversal;
+    Av2hPartitionTraversal chroma_traversal;
+    Av2hLumaModeContextState mode_state;
+    Av2hCoeffContextState coeff_state;
+    uint8_t luma_partition_above[16U];
+    uint8_t luma_partition_left[16U];
+    uint8_t chroma_partition_above[16U];
+    uint8_t chroma_partition_left[16U];
+    Av2hLumaModeContext mode_above[16U];
+    Av2hLumaModeContext mode_left[16U];
+    uint8_t coeff_above[AV2H_FRAME_PLANE_COUNT * 16U];
+    uint8_t coeff_left[AV2H_FRAME_PLANE_COUNT * 16U];
+    uint8_t dc_sign_context;
+    uint8_t has_leaf;
     uint8_t left[4U];
     uint8_t above[16U];
     uint8_t second_above[16U];
@@ -185,8 +200,6 @@ static void test_tiny_second_luma_leaf(void) {
     };
     Av2hPartitionNode second_leaf = { 0U, 2U, AV2H_BLOCK_4X4 };
     Av2hPartitionNode third_leaf = { 0U, 3U, AV2H_BLOCK_4X4 };
-    Av2hLumaModeNeighbors neighbors = { { 0U, 0U }, { 0U, 0U },
-        { 0U, 0U }, { 0U, 0U }, { 0U, 0U } };
     Av2hFirstLeafMode second_mode;
     sequence.enable_sdp = 1U;
     sequence.enable_idtx_intra = 1U;
@@ -201,21 +214,39 @@ static void test_tiny_second_luma_leaf(void) {
     CHECK(av2h_first_coeff_cdfs_init(&coeff_cdfs) == AV2H_OK);
     CHECK(av2h_first_transform_cdfs_init(&transform_cdfs) == AV2H_OK);
     CHECK(av2h_first_coeff_level_cdfs_init(&level_cdfs) == AV2H_OK);
+    CHECK(av2h_partition_context_state_init(
+              &partition_state, luma_partition_above, luma_partition_left,
+              chroma_partition_above, chroma_partition_left, 16U, 16U) ==
+          AV2H_OK);
+    CHECK(av2h_luma_mode_context_state_init(
+              &mode_state, mode_above, 16U, mode_left, 16U) == AV2H_OK);
+    CHECK(av2h_coeff_context_state_init(
+              &coeff_state, coeff_above, 16U, coeff_left, 16U) == AV2H_OK);
+    CHECK(av2h_partition_traversal_init(
+              &luma_traversal, 4U, 4U,
+              (Av2hPartitionNode){ 0U, 0U, AV2H_BLOCK_64X64 }, 0U, 1U) ==
+          AV2H_OK);
     CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
-    CHECK(av2h_partition_first_leaf_read(
-              &decoder, &partition_cdfs, 16U, 16U, 1U, &path) == AV2H_OK);
+    CHECK(av2h_partition_traversal_next(
+              &luma_traversal, &decoder, &partition_cdfs, &partition_state,
+              &path, &has_leaf) == AV2H_OK);
+    CHECK(has_leaf == 1U);
     CHECK(av2h_first_leaf_mode_read(
               &decoder, &leaf_cdfs, &sequence, &frame, &path.leaf,
               &first_mode) == AV2H_OK);
-    CHECK(av2h_first_coeff_prefix_read(
+    CHECK(av2h_luma_mode_context_state_update(
+              &mode_state, &path.leaf, &first_mode) == AV2H_OK);
+    CHECK(av2h_coeff_prefix_read_with_state(
               &decoder, &coeff_cdfs, &frame, &path.leaf, &first_mode,
-              &prefix) == AV2H_OK);
+              &coeff_state, &prefix, &dc_sign_context) == AV2H_OK);
+    CHECK(dc_sign_context == 0U);
     CHECK(av2h_first_transform_type_read(
               &decoder, &transform_cdfs, &sequence, &frame, &first_mode,
               &prefix, &transform) == AV2H_OK);
-    CHECK(av2h_first_coeff_block_read(
-              &decoder, &level_cdfs, &sequence, &frame, &first_mode,
-              &prefix, &transform, &block) == AV2H_OK);
+    CHECK(av2h_coeff_block_read_with_state(
+              &decoder, &level_cdfs, &sequence, &frame, &path.leaf,
+              &first_mode, &prefix, &transform, &coeff_state, &block) ==
+          AV2H_OK);
     CHECK(av2h_range_tell(&decoder) == 51U);
     CHECK(av2h_first_luma_reconstruct(
               &first_mode, &prefix, &transform, &block, &scratch,
@@ -232,12 +263,21 @@ static void test_tiny_second_luma_leaf(void) {
     left[1] = reconstruction.pixels[15U];
     left[2] = reconstruction.pixels[23U];
     left[3] = reconstruction.pixels[31U];
-    CHECK(av2h_range_read_adaptive(
-              &decoder, partition_cdfs.do_split[0][2], 2U) == 1U);
+    CHECK(av2h_partition_traversal_commit_leaf(
+              &luma_traversal, &partition_state, path.leaf) == AV2H_OK);
+    CHECK(av2h_partition_traversal_next(
+              &luma_traversal, &decoder, &partition_cdfs, &partition_state,
+              &path, &has_leaf) == AV2H_OK);
+    CHECK(has_leaf == 1U);
+    CHECK(path.leaf.row == second_leaf.row);
+    CHECK(path.leaf.column == second_leaf.column);
+    CHECK(path.leaf.block_size == second_leaf.block_size);
     CHECK(av2h_range_tell(&decoder) == 53U);
-    CHECK(av2h_luma_mode_read(
+    CHECK(av2h_luma_mode_read_with_state(
               &decoder, &leaf_cdfs, &sequence, &frame, &second_leaf,
-              &neighbors, &second_mode) == AV2H_OK);
+              &mode_state, &second_mode) == AV2H_OK);
+    CHECK(av2h_luma_mode_context_state_update(
+              &mode_state, &second_leaf, &second_mode) == AV2H_OK);
     CHECK(second_mode.before_mode_bits == 53U);
     CHECK(second_mode.mode_set == 0U);
     CHECK(second_mode.mode_index == 12U);
@@ -256,9 +296,9 @@ static void test_tiny_second_luma_leaf(void) {
     CHECK(leaf_cdfs.y_mode_offset[0][AV2H_Y_MODE_OFFSET_SYMBOLS] == 1U);
     CHECK(leaf_cdfs.fsc_mode[0][0][2] == 1U);
     CHECK(leaf_cdfs.mrl_index[0][AV2H_MRL_INDEX_SYMBOLS] == 1U);
-    CHECK(av2h_coeff_prefix_read(
+    CHECK(av2h_coeff_prefix_read_with_state(
               &decoder, &coeff_cdfs, &frame, &second_leaf, &second_mode,
-              0U, &prefix) == AV2H_OK);
+              &coeff_state, &prefix, &dc_sign_context) == AV2H_OK);
     CHECK(prefix.tx_size == AV2H_TX_4X4);
     CHECK(prefix.tx_size_context == 0U);
     CHECK(prefix.txb_skip_context == 0U);
@@ -279,7 +319,9 @@ static void test_tiny_second_luma_leaf(void) {
     CHECK(transform.after_secondary_bits == 67U);
     CHECK(av2h_coeff_block_read(
               &decoder, &level_cdfs, &sequence, &frame, &second_mode,
-              &prefix, &transform, 1U, &block) == AV2H_OK);
+              &prefix, &transform, dc_sign_context, &block) == AV2H_OK);
+    CHECK(av2h_coeff_context_state_update(
+              &coeff_state, 0U, &second_leaf, block.cul_level) == AV2H_OK);
     CHECK(block.width == 4U);
     CHECK(block.height == 4U);
     CHECK(block.nonzero_count == 2U);
@@ -333,14 +375,20 @@ static void test_tiny_second_luma_leaf(void) {
     left[1] = reconstruction.pixels[7U];
     left[2] = reconstruction.pixels[11U];
     left[3] = reconstruction.pixels[15U];
-    neighbors.present[0] = 1U;
-    neighbors.joint_mode[0] = second_mode.joint_mode;
-    neighbors.fsc_mode[0] = second_mode.fsc_mode;
-    neighbors.mrl_index[0] = second_mode.mrl_index;
-    neighbors.multi_line_mrl[0] = second_mode.multi_line_mrl;
-    CHECK(av2h_luma_mode_read(
+    CHECK(av2h_partition_traversal_commit_leaf(
+              &luma_traversal, &partition_state, second_leaf) == AV2H_OK);
+    CHECK(av2h_partition_traversal_next(
+              &luma_traversal, &decoder, &partition_cdfs, &partition_state,
+              &path, &has_leaf) == AV2H_OK);
+    CHECK(has_leaf == 1U);
+    CHECK(path.leaf.row == third_leaf.row);
+    CHECK(path.leaf.column == third_leaf.column);
+    CHECK(path.leaf.block_size == third_leaf.block_size);
+    CHECK(av2h_luma_mode_read_with_state(
               &decoder, &leaf_cdfs, &sequence, &frame, &third_leaf,
-              &neighbors, &second_mode) == AV2H_OK);
+              &mode_state, &second_mode) == AV2H_OK);
+    CHECK(av2h_luma_mode_context_state_update(
+              &mode_state, &third_leaf, &second_mode) == AV2H_OK);
     CHECK(second_mode.before_mode_bits == 74U);
     CHECK(second_mode.mode_set == 0U);
     CHECK(second_mode.mode_index == 12U);
@@ -351,9 +399,9 @@ static void test_tiny_second_luma_leaf(void) {
     CHECK(second_mode.fsc_mode == 0U);
     CHECK(second_mode.mrl_index == 0U);
     CHECK(second_mode.after_mrl_bits == 80U);
-    CHECK(av2h_coeff_prefix_read(
+    CHECK(av2h_coeff_prefix_read_with_state(
               &decoder, &coeff_cdfs, &frame, &third_leaf, &second_mode,
-              0U, &prefix) == AV2H_OK);
+              &coeff_state, &prefix, &dc_sign_context) == AV2H_OK);
     CHECK(prefix.tx_size == AV2H_TX_4X4);
     CHECK(prefix.txb_skip_context == 0U);
     CHECK(prefix.all_zero == 0U);
@@ -369,7 +417,9 @@ static void test_tiny_second_luma_leaf(void) {
     CHECK(transform.after_primary_bits == 88U);
     CHECK(av2h_coeff_block_read(
               &decoder, &level_cdfs, &sequence, &frame, &second_mode,
-              &prefix, &transform, 2U, &block) == AV2H_OK);
+              &prefix, &transform, dc_sign_context, &block) == AV2H_OK);
+    CHECK(av2h_coeff_context_state_update(
+              &coeff_state, 0U, &third_leaf, block.cul_level) == AV2H_OK);
     CHECK(block.width == 4U);
     CHECK(block.height == 4U);
     CHECK(block.nonzero_count == 8U);
@@ -414,34 +464,23 @@ static void test_tiny_second_luma_leaf(void) {
         above[14] = reconstruction.pixels[14U];
         above[15] = reconstruction.pixels[15U];
     }
+        CHECK(av2h_partition_traversal_commit_leaf(
+              &luma_traversal, &partition_state, third_leaf) == AV2H_OK);
     {
-        Av2hPartitionDecision decision;
         Av2hPartitionNode node = { 1U, 0U, AV2H_BLOCK_16X4 };
         Av2hPartitionNode child;
-        CHECK(av2h_partition_node_read(
-                  &decoder, &partition_cdfs, node, 45U, 0U, 45U, 1U,
-                  &decision, &child) == AV2H_OK);
-        CHECK(decision.partition == AV2H_PARTITION_VERT);
-        CHECK(decision.axis_implied == 1U);
-        CHECK(decision.extension_implied == 1U);
-        CHECK(child.row == 1U && child.column == 0U);
-        CHECK(child.block_size == AV2H_BLOCK_8X4);
-        CHECK(av2h_range_tell(&decoder) == 127U);
-        CHECK(av2h_partition_node_read(
-                  &decoder, &partition_cdfs, child, 0U, 0U, 0U, 1U,
-                  &decision, &node) == AV2H_OK);
-        CHECK(decision.partition == AV2H_PARTITION_NONE);
+          CHECK(av2h_partition_traversal_next(
+                &luma_traversal, &decoder, &partition_cdfs,
+                &partition_state, &path, &has_leaf) == AV2H_OK);
+          CHECK(has_leaf == 1U);
+          node = path.leaf;
         CHECK(node.block_size == AV2H_BLOCK_8X4);
         CHECK(av2h_range_tell(&decoder) == 127U);
-        neighbors.present[0] = 0U;
-        neighbors.present[1] = 1U;
-        neighbors.joint_mode[1] = first_mode.joint_mode;
-        neighbors.fsc_mode[1] = first_mode.fsc_mode;
-        neighbors.mrl_index[1] = first_mode.mrl_index;
-        neighbors.multi_line_mrl[1] = first_mode.multi_line_mrl;
-        CHECK(av2h_luma_mode_read(
-                  &decoder, &leaf_cdfs, &sequence, &frame, &node,
-                  &neighbors, &second_mode) == AV2H_OK);
+        CHECK(av2h_luma_mode_read_with_state(
+              &decoder, &leaf_cdfs, &sequence, &frame, &node,
+              &mode_state, &second_mode) == AV2H_OK);
+        CHECK(av2h_luma_mode_context_state_update(
+              &mode_state, &node, &second_mode) == AV2H_OK);
         CHECK(second_mode.before_mode_bits == 127U);
         CHECK(second_mode.mode_set == 3U);
         CHECK(second_mode.mode_index == 50U);
@@ -452,9 +491,9 @@ static void test_tiny_second_luma_leaf(void) {
         CHECK(second_mode.fsc_mode == 0U);
         CHECK(second_mode.mrl_index == 0U);
         CHECK(second_mode.after_mrl_bits == 137U);
-        CHECK(av2h_coeff_prefix_read(
-                  &decoder, &coeff_cdfs, &frame, &node, &second_mode, 0U,
-                  &prefix) == AV2H_OK);
+        CHECK(av2h_coeff_prefix_read_with_state(
+              &decoder, &coeff_cdfs, &frame, &node, &second_mode,
+              &coeff_state, &prefix, &dc_sign_context) == AV2H_OK);
         CHECK(prefix.tx_size == AV2H_TX_8X4);
         CHECK(prefix.tx_size_context == 1U);
         CHECK(prefix.txb_skip_context == 0U);
@@ -475,7 +514,9 @@ static void test_tiny_second_luma_leaf(void) {
         CHECK(transform.after_secondary_bits == 145U);
         CHECK(av2h_coeff_block_read(
                   &decoder, &level_cdfs, &sequence, &frame, &second_mode,
-                  &prefix, &transform, 1U, &block) == AV2H_OK);
+                  &prefix, &transform, dc_sign_context, &block) == AV2H_OK);
+        CHECK(av2h_coeff_context_state_update(
+                  &coeff_state, 0U, &node, block.cul_level) == AV2H_OK);
         CHECK(block.width == 8U);
         CHECK(block.height == 4U);
         CHECK(block.nonzero_count == 2U);
@@ -525,31 +566,21 @@ static void test_tiny_second_luma_leaf(void) {
                 second_above[index] = reconstruction.pixels[16U + index];
             }
         }
-        node.row = 1U;
-        node.column = 2U;
-        node.block_size = AV2H_BLOCK_8X4;
-        CHECK(av2h_partition_node_read(
-                  &decoder, &partition_cdfs, node, 3U, 0U, 0U, 1U,
-                  &decision, &child) == AV2H_OK);
-        CHECK(decision.partition == AV2H_PARTITION_VERT);
-        CHECK(decision.axis_implied == 1U);
-        CHECK(decision.extension_implied == 1U);
+          CHECK(av2h_partition_traversal_commit_leaf(
+                &luma_traversal, &partition_state, node) == AV2H_OK);
+          CHECK(av2h_partition_traversal_next(
+                &luma_traversal, &decoder, &partition_cdfs,
+                &partition_state, &path, &has_leaf) == AV2H_OK);
+          CHECK(has_leaf == 1U);
+          child = path.leaf;
         CHECK(child.row == 1U && child.column == 2U);
         CHECK(child.block_size == AV2H_BLOCK_4X4);
         CHECK(av2h_range_tell(&decoder) == 153U);
-        neighbors.present[0] = 1U;
-        neighbors.present[1] = 1U;
-        neighbors.joint_mode[0] = 57U;
-        neighbors.joint_mode[1] = second_mode.joint_mode;
-        neighbors.fsc_mode[0] = 0U;
-        neighbors.fsc_mode[1] = second_mode.fsc_mode;
-        neighbors.mrl_index[0] = 0U;
-        neighbors.mrl_index[1] = second_mode.mrl_index;
-        neighbors.multi_line_mrl[0] = 0U;
-        neighbors.multi_line_mrl[1] = second_mode.multi_line_mrl;
-        CHECK(av2h_luma_mode_read(
-                  &decoder, &leaf_cdfs, &sequence, &frame, &child,
-                  &neighbors, &second_mode) == AV2H_OK);
+        CHECK(av2h_luma_mode_read_with_state(
+              &decoder, &leaf_cdfs, &sequence, &frame, &child,
+              &mode_state, &second_mode) == AV2H_OK);
+        CHECK(av2h_luma_mode_context_state_update(
+              &mode_state, &child, &second_mode) == AV2H_OK);
         CHECK(second_mode.before_mode_bits == 153U);
         CHECK(second_mode.mode_set == 0U);
         CHECK(second_mode.mode_index == 4U);
@@ -559,9 +590,9 @@ static void test_tiny_second_luma_leaf(void) {
         CHECK(second_mode.fsc_mode == 0U);
         CHECK(second_mode.mrl_index == 0U);
         CHECK(second_mode.after_mrl_bits == 159U);
-        CHECK(av2h_coeff_prefix_read(
-                  &decoder, &coeff_cdfs, &frame, &child, &second_mode,
-                  0U, &prefix) == AV2H_OK);
+        CHECK(av2h_coeff_prefix_read_with_state(
+              &decoder, &coeff_cdfs, &frame, &child, &second_mode,
+              &coeff_state, &prefix, &dc_sign_context) == AV2H_OK);
         CHECK(prefix.tx_size == AV2H_TX_4X4);
         CHECK(prefix.tx_size_context == 0U);
         CHECK(prefix.txb_skip_context == 0U);
@@ -582,7 +613,9 @@ static void test_tiny_second_luma_leaf(void) {
         CHECK(transform.after_secondary_bits == 166U);
         CHECK(av2h_coeff_block_read(
                   &decoder, &level_cdfs, &sequence, &frame, &second_mode,
-                  &prefix, &transform, 0U, &block) == AV2H_OK);
+                  &prefix, &transform, dc_sign_context, &block) == AV2H_OK);
+        CHECK(av2h_coeff_context_state_update(
+                  &coeff_state, 0U, &child, block.cul_level) == AV2H_OK);
         CHECK(block.width == 4U);
         CHECK(block.height == 4U);
         CHECK(block.nonzero_count == 3U);
@@ -641,20 +674,20 @@ static void test_tiny_second_luma_leaf(void) {
                 lower_above[index] = reconstruction.pixels[12U + index];
             }
         }
-        child.column = 3U;
-        neighbors.present[0] = 1U;
-        neighbors.present[1] = 1U;
-        neighbors.joint_mode[0] = 57U;
-        neighbors.joint_mode[1] = second_mode.joint_mode;
-        neighbors.fsc_mode[0] = 0U;
-        neighbors.fsc_mode[1] = second_mode.fsc_mode;
-        neighbors.mrl_index[0] = 0U;
-        neighbors.mrl_index[1] = second_mode.mrl_index;
-        neighbors.multi_line_mrl[0] = 0U;
-        neighbors.multi_line_mrl[1] = second_mode.multi_line_mrl;
-        CHECK(av2h_luma_mode_read(
-                  &decoder, &leaf_cdfs, &sequence, &frame, &child,
-                  &neighbors, &second_mode) == AV2H_OK);
+        CHECK(av2h_partition_traversal_commit_leaf(
+              &luma_traversal, &partition_state, child) == AV2H_OK);
+        CHECK(av2h_partition_traversal_next(
+              &luma_traversal, &decoder, &partition_cdfs,
+              &partition_state, &path, &has_leaf) == AV2H_OK);
+        CHECK(has_leaf == 1U);
+        child = path.leaf;
+        CHECK(child.row == 1U && child.column == 3U);
+        CHECK(child.block_size == AV2H_BLOCK_4X4);
+        CHECK(av2h_luma_mode_read_with_state(
+              &decoder, &leaf_cdfs, &sequence, &frame, &child,
+              &mode_state, &second_mode) == AV2H_OK);
+        CHECK(av2h_luma_mode_context_state_update(
+              &mode_state, &child, &second_mode) == AV2H_OK);
         CHECK(second_mode.before_mode_bits == 172U);
         CHECK(second_mode.mode_set == 0U);
         CHECK(second_mode.mode_index == 7U);
@@ -664,9 +697,9 @@ static void test_tiny_second_luma_leaf(void) {
         CHECK(second_mode.fsc_mode == 1U);
         CHECK(second_mode.mrl_index == 0U);
         CHECK(second_mode.after_mrl_bits == 181U);
-        CHECK(av2h_coeff_prefix_read(
-                  &decoder, &coeff_cdfs, &frame, &child, &second_mode, 9U,
-                  &prefix) == AV2H_OK);
+        CHECK(av2h_coeff_prefix_read_with_state(
+              &decoder, &coeff_cdfs, &frame, &child, &second_mode,
+              &coeff_state, &prefix, &dc_sign_context) == AV2H_OK);
         CHECK(prefix.txb_skip_context == 9U);
         CHECK(prefix.all_zero == 0U);
         CHECK(prefix.eob == 15U);
@@ -679,7 +712,9 @@ static void test_tiny_second_luma_leaf(void) {
         CHECK(transform.after_secondary_bits == 185U);
         CHECK(av2h_coeff_block_read(
                   &decoder, &level_cdfs, &sequence, &frame, &second_mode,
-                  &prefix, &transform, 0U, &block) == AV2H_OK);
+                  &prefix, &transform, dc_sign_context, &block) == AV2H_OK);
+        CHECK(av2h_coeff_context_state_update(
+                  &coeff_state, 0U, &child, block.cul_level) == AV2H_OK);
         CHECK(block.nonzero_count == 5U);
         CHECK(block.quantized[4] == -1);
         CHECK(block.quantized[8] == 9);
@@ -727,27 +762,20 @@ static void test_tiny_second_luma_leaf(void) {
                 lower_above[4U + index] = reconstruction.pixels[12U + index];
             }
         }
-        node.row = 2U;
-        node.column = 0U;
-        node.block_size = AV2H_BLOCK_16X8;
-        CHECK(av2h_partition_node_read(
-                  &decoder, &partition_cdfs, node, 5U, 9U, 5U, 1U,
-                  &decision, &child) == AV2H_OK);
-        CHECK(decision.partition == AV2H_PARTITION_VERT);
-        CHECK(child.block_size == AV2H_BLOCK_8X8);
-        CHECK(av2h_partition_node_read(
-                  &decoder, &partition_cdfs, child, 0U, 0U, 0U, 1U,
-                  &decision, &node) == AV2H_OK);
-        CHECK(decision.partition == AV2H_PARTITION_NONE);
-        neighbors.present[0] = 0U;
-        neighbors.present[1] = 1U;
-        neighbors.joint_mode[1] = 11U;
-        neighbors.fsc_mode[1] = 0U;
-        neighbors.mrl_index[1] = 0U;
-        neighbors.multi_line_mrl[1] = 0U;
-        CHECK(av2h_luma_mode_read(
-                  &decoder, &leaf_cdfs, &sequence, &frame, &node,
-                  &neighbors, &second_mode) == AV2H_OK);
+          CHECK(av2h_partition_traversal_commit_leaf(
+                &luma_traversal, &partition_state, child) == AV2H_OK);
+          CHECK(av2h_partition_traversal_next(
+                &luma_traversal, &decoder, &partition_cdfs,
+                &partition_state, &path, &has_leaf) == AV2H_OK);
+          CHECK(has_leaf == 1U);
+          node = path.leaf;
+          CHECK(node.row == 2U && node.column == 0U);
+          CHECK(node.block_size == AV2H_BLOCK_8X8);
+        CHECK(av2h_luma_mode_read_with_state(
+              &decoder, &leaf_cdfs, &sequence, &frame, &node,
+              &mode_state, &second_mode) == AV2H_OK);
+        CHECK(av2h_luma_mode_context_state_update(
+              &mode_state, &node, &second_mode) == AV2H_OK);
         CHECK(second_mode.before_mode_bits == 233U);
         CHECK(second_mode.mode_set == 2U);
         CHECK(second_mode.mode_index == 36U);
@@ -758,9 +786,9 @@ static void test_tiny_second_luma_leaf(void) {
         CHECK(second_mode.mrl_index == 1U);
         CHECK(second_mode.multi_line_mrl == 0U);
         CHECK(second_mode.after_mrl_bits == 248U);
-        CHECK(av2h_coeff_prefix_read(
-                  &decoder, &coeff_cdfs, &frame, &node, &second_mode, 0U,
-                  &prefix) == AV2H_OK);
+        CHECK(av2h_coeff_prefix_read_with_state(
+              &decoder, &coeff_cdfs, &frame, &node, &second_mode,
+              &coeff_state, &prefix, &dc_sign_context) == AV2H_OK);
         CHECK(prefix.tx_size == AV2H_TX_8X8);
         CHECK(prefix.eob == 2U);
         CHECK(prefix.after_eob_bits == 254U);
@@ -772,7 +800,9 @@ static void test_tiny_second_luma_leaf(void) {
         CHECK(transform.after_secondary_bits == 258U);
         CHECK(av2h_coeff_block_read(
                   &decoder, &level_cdfs, &sequence, &frame, &second_mode,
-                  &prefix, &transform, 1U, &block) == AV2H_OK);
+                  &prefix, &transform, dc_sign_context, &block) == AV2H_OK);
+        CHECK(av2h_coeff_context_state_update(
+                  &coeff_state, 0U, &node, block.cul_level) == AV2H_OK);
         CHECK(block.quantized[0] == 2);
         CHECK(block.quantized[8] == -1);
         CHECK(block.nonzero_count == 2U);
@@ -814,32 +844,20 @@ static void test_tiny_second_luma_leaf(void) {
                 CHECK(reconstruction.pixels[index] == pixels[index]);
             }
         }
-        node.row = 2U;
-        node.column = 2U;
-        node.block_size = AV2H_BLOCK_8X8;
-        CHECK(av2h_partition_node_read(
-                  &decoder, &partition_cdfs, node, 1U, 1U, 0U, 1U,
-                  &decision, &child) == AV2H_OK);
-        CHECK(decision.partition == AV2H_PARTITION_HORZ);
-        CHECK(child.block_size == AV2H_BLOCK_8X4);
-        CHECK(av2h_partition_node_read(
-                  &decoder, &partition_cdfs, child, 1U, 0U, 0U, 1U,
-                  &decision, &node) == AV2H_OK);
-        CHECK(decision.partition == AV2H_PARTITION_VERT);
+          CHECK(av2h_partition_traversal_commit_leaf(
+                &luma_traversal, &partition_state, node) == AV2H_OK);
+          CHECK(av2h_partition_traversal_next(
+                &luma_traversal, &decoder, &partition_cdfs,
+                &partition_state, &path, &has_leaf) == AV2H_OK);
+          CHECK(has_leaf == 1U);
+          node = path.leaf;
+          CHECK(node.row == 2U && node.column == 2U);
         CHECK(node.block_size == AV2H_BLOCK_4X4);
-        neighbors.present[0] = 1U;
-        neighbors.present[1] = 1U;
-        neighbors.joint_mode[0] = 14U;
-        neighbors.joint_mode[1] = 4U;
-        neighbors.fsc_mode[0] = 0U;
-        neighbors.fsc_mode[1] = 0U;
-        neighbors.mrl_index[0] = 1U;
-        neighbors.mrl_index[1] = 0U;
-        neighbors.multi_line_mrl[0] = 0U;
-        neighbors.multi_line_mrl[1] = 0U;
-        CHECK(av2h_luma_mode_read(
-                  &decoder, &leaf_cdfs, &sequence, &frame, &node,
-                  &neighbors, &second_mode) == AV2H_OK);
+        CHECK(av2h_luma_mode_read_with_state(
+              &decoder, &leaf_cdfs, &sequence, &frame, &node,
+              &mode_state, &second_mode) == AV2H_OK);
+        CHECK(av2h_luma_mode_context_state_update(
+              &mode_state, &node, &second_mode) == AV2H_OK);
         CHECK(second_mode.before_mode_bits == 267U);
         CHECK(second_mode.mode_set == 1U);
         CHECK(second_mode.mode_index == 19U);
@@ -849,9 +867,9 @@ static void test_tiny_second_luma_leaf(void) {
         CHECK(second_mode.fsc_mode == 1U);
         CHECK(second_mode.mrl_index == 1U);
         CHECK(second_mode.after_mrl_bits == 282U);
-        CHECK(av2h_coeff_prefix_read(
-                  &decoder, &coeff_cdfs, &frame, &node, &second_mode, 9U,
-                  &prefix) == AV2H_OK);
+        CHECK(av2h_coeff_prefix_read_with_state(
+              &decoder, &coeff_cdfs, &frame, &node, &second_mode,
+              &coeff_state, &prefix, &dc_sign_context) == AV2H_OK);
         CHECK(prefix.eob == 8U);
         CHECK(prefix.after_eob_bits == 286U);
         CHECK(av2h_first_transform_type_read(
@@ -861,7 +879,9 @@ static void test_tiny_second_luma_leaf(void) {
         CHECK(transform.after_secondary_bits == 286U);
         CHECK(av2h_coeff_block_read(
                   &decoder, &level_cdfs, &sequence, &frame, &second_mode,
-                  &prefix, &transform, 0U, &block) == AV2H_OK);
+                  &prefix, &transform, dc_sign_context, &block) == AV2H_OK);
+        CHECK(av2h_coeff_context_state_update(
+                  &coeff_state, 0U, &node, block.cul_level) == AV2H_OK);
         CHECK(block.quantized[6] == -1);
         CHECK(block.quantized[7] == 5);
         CHECK(block.quantized[14] == -6);
@@ -907,18 +927,20 @@ static void test_tiny_second_luma_leaf(void) {
                 top_lower_above[index] = reconstruction.pixels[index];
             }
         }
-        node.column = 3U;
-        neighbors.present[0] = 1U;
-        neighbors.present[1] = 1U;
-        neighbors.joint_mode[0] = 13U;
-        neighbors.joint_mode[1] = 8U;
-        neighbors.fsc_mode[0] = 1U;
-        neighbors.fsc_mode[1] = 1U;
-        neighbors.mrl_index[0] = 1U;
-        neighbors.mrl_index[1] = 0U;
-        CHECK(av2h_luma_mode_read(
-                  &decoder, &leaf_cdfs, &sequence, &frame, &node,
-                  &neighbors, &second_mode) == AV2H_OK);
+        CHECK(av2h_partition_traversal_commit_leaf(
+              &luma_traversal, &partition_state, node) == AV2H_OK);
+        CHECK(av2h_partition_traversal_next(
+              &luma_traversal, &decoder, &partition_cdfs,
+              &partition_state, &path, &has_leaf) == AV2H_OK);
+        CHECK(has_leaf == 1U);
+        node = path.leaf;
+        CHECK(node.row == 2U && node.column == 3U);
+        CHECK(node.block_size == AV2H_BLOCK_4X4);
+        CHECK(av2h_luma_mode_read_with_state(
+              &decoder, &leaf_cdfs, &sequence, &frame, &node,
+              &mode_state, &second_mode) == AV2H_OK);
+        CHECK(av2h_luma_mode_context_state_update(
+              &mode_state, &node, &second_mode) == AV2H_OK);
         CHECK(second_mode.before_mode_bits == 309U);
         CHECK(second_mode.mode_set == 0U);
         CHECK(second_mode.mode_index == 7U);
@@ -928,9 +950,9 @@ static void test_tiny_second_luma_leaf(void) {
         CHECK(second_mode.fsc_mode == 1U);
         CHECK(second_mode.mrl_index == 0U);
         CHECK(second_mode.after_mrl_bits == 316U);
-        CHECK(av2h_coeff_prefix_read(
-                  &decoder, &coeff_cdfs, &frame, &node, &second_mode, 9U,
-                  &prefix) == AV2H_OK);
+        CHECK(av2h_coeff_prefix_read_with_state(
+              &decoder, &coeff_cdfs, &frame, &node, &second_mode,
+              &coeff_state, &prefix, &dc_sign_context) == AV2H_OK);
         CHECK(prefix.eob == 13U);
         CHECK(prefix.after_eob_bits == 320U);
         CHECK(av2h_first_transform_type_read(
@@ -939,7 +961,9 @@ static void test_tiny_second_luma_leaf(void) {
         CHECK(transform.primary_type == AV2H_TX_IDTX);
         CHECK(av2h_coeff_block_read(
                   &decoder, &level_cdfs, &sequence, &frame, &second_mode,
-                  &prefix, &transform, 0U, &block) == AV2H_OK);
+                  &prefix, &transform, dc_sign_context, &block) == AV2H_OK);
+        CHECK(av2h_coeff_context_state_update(
+                  &coeff_state, 0U, &node, block.cul_level) == AV2H_OK);
         CHECK(block.quantized[8] == -1);
         CHECK(block.quantized[5] == -1);
         CHECK(block.quantized[15] == 1);
@@ -976,25 +1000,20 @@ static void test_tiny_second_luma_leaf(void) {
                 final_above[index] = reconstruction.pixels[12U + index];
             }
         }
-        node.row = 3U;
-        node.column = 2U;
-        node.block_size = AV2H_BLOCK_8X4;
-        CHECK(av2h_partition_node_read(
-                  &decoder, &partition_cdfs, node, 1U, 0U, 0U, 1U,
-                  &decision, &node) == AV2H_OK);
-        CHECK(decision.partition == AV2H_PARTITION_VERT);
+          CHECK(av2h_partition_traversal_commit_leaf(
+                &luma_traversal, &partition_state, node) == AV2H_OK);
+          CHECK(av2h_partition_traversal_next(
+                &luma_traversal, &decoder, &partition_cdfs,
+                &partition_state, &path, &has_leaf) == AV2H_OK);
+          CHECK(has_leaf == 1U);
+          node = path.leaf;
+          CHECK(node.row == 3U && node.column == 2U);
         CHECK(node.block_size == AV2H_BLOCK_4X4);
-        neighbors.present[0] = 1U;
-        neighbors.present[1] = 1U;
-        neighbors.joint_mode[0] = 14U;
-        neighbors.joint_mode[1] = 13U;
-        neighbors.fsc_mode[0] = 0U;
-        neighbors.fsc_mode[1] = 1U;
-        neighbors.mrl_index[0] = 1U;
-        neighbors.mrl_index[1] = 1U;
-        CHECK(av2h_luma_mode_read(
-                  &decoder, &leaf_cdfs, &sequence, &frame, &node,
-                  &neighbors, &second_mode) == AV2H_OK);
+        CHECK(av2h_luma_mode_read_with_state(
+              &decoder, &leaf_cdfs, &sequence, &frame, &node,
+              &mode_state, &second_mode) == AV2H_OK);
+        CHECK(av2h_luma_mode_context_state_update(
+              &mode_state, &node, &second_mode) == AV2H_OK);
         CHECK(second_mode.before_mode_bits == 337U);
         CHECK(second_mode.mode_set == 3U);
         CHECK(second_mode.mode_index == 51U);
@@ -1004,9 +1023,9 @@ static void test_tiny_second_luma_leaf(void) {
         CHECK(second_mode.fsc_mode == 1U);
         CHECK(second_mode.mrl_index == 3U);
         CHECK(second_mode.after_mrl_bits == 352U);
-        CHECK(av2h_coeff_prefix_read(
-                  &decoder, &coeff_cdfs, &frame, &node, &second_mode, 9U,
-                  &prefix) == AV2H_OK);
+        CHECK(av2h_coeff_prefix_read_with_state(
+              &decoder, &coeff_cdfs, &frame, &node, &second_mode,
+              &coeff_state, &prefix, &dc_sign_context) == AV2H_OK);
         CHECK(prefix.eob == 13U);
         CHECK(prefix.after_eob_bits == 356U);
         CHECK(av2h_first_transform_type_read(
@@ -1015,7 +1034,9 @@ static void test_tiny_second_luma_leaf(void) {
         CHECK(transform.primary_type == AV2H_TX_IDTX);
         CHECK(av2h_coeff_block_read(
                   &decoder, &level_cdfs, &sequence, &frame, &second_mode,
-                  &prefix, &transform, 0U, &block) == AV2H_OK);
+                  &prefix, &transform, dc_sign_context, &block) == AV2H_OK);
+        CHECK(av2h_coeff_context_state_update(
+                  &coeff_state, 0U, &node, block.cul_level) == AV2H_OK);
         CHECK(block.quantized[8] == -10);
         CHECK(block.quantized[2] == 3);
         CHECK(block.quantized[12] == 1);
@@ -1062,20 +1083,20 @@ static void test_tiny_second_luma_leaf(void) {
                 final_left[index] = reconstruction.pixels[index * 4U + 3U];
             }
         }
-        node.row = 3U;
-        node.column = 3U;
-        node.block_size = AV2H_BLOCK_4X4;
-        neighbors.present[0] = 1U;
-        neighbors.present[1] = 1U;
-        neighbors.joint_mode[0] = 12U;
-        neighbors.joint_mode[1] = 8U;
-        neighbors.fsc_mode[0] = 1U;
-        neighbors.fsc_mode[1] = 1U;
-        neighbors.mrl_index[0] = 3U;
-        neighbors.mrl_index[1] = 0U;
-        CHECK(av2h_luma_mode_read(
-                  &decoder, &leaf_cdfs, &sequence, &frame, &node,
-                  &neighbors, &second_mode) == AV2H_OK);
+        CHECK(av2h_partition_traversal_commit_leaf(
+              &luma_traversal, &partition_state, node) == AV2H_OK);
+        CHECK(av2h_partition_traversal_next(
+              &luma_traversal, &decoder, &partition_cdfs,
+              &partition_state, &path, &has_leaf) == AV2H_OK);
+        CHECK(has_leaf == 1U);
+        node = path.leaf;
+        CHECK(node.row == 3U && node.column == 3U);
+        CHECK(node.block_size == AV2H_BLOCK_4X4);
+        CHECK(av2h_luma_mode_read_with_state(
+              &decoder, &leaf_cdfs, &sequence, &frame, &node,
+              &mode_state, &second_mode) == AV2H_OK);
+        CHECK(av2h_luma_mode_context_state_update(
+              &mode_state, &node, &second_mode) == AV2H_OK);
         CHECK(second_mode.before_mode_bits == 399U);
         CHECK(second_mode.mode_set == 0U);
         CHECK(second_mode.mode_index == 1U);
@@ -1085,9 +1106,9 @@ static void test_tiny_second_luma_leaf(void) {
         CHECK(second_mode.fsc_mode == 0U);
         CHECK(second_mode.mrl_index == 0U);
         CHECK(second_mode.after_mrl_bits == 403U);
-        CHECK(av2h_coeff_prefix_read(
-                  &decoder, &coeff_cdfs, &frame, &node, &second_mode, 0U,
-                  &prefix) == AV2H_OK);
+        CHECK(av2h_coeff_prefix_read_with_state(
+              &decoder, &coeff_cdfs, &frame, &node, &second_mode,
+              &coeff_state, &prefix, &dc_sign_context) == AV2H_OK);
         CHECK(prefix.eob == 2U);
         CHECK(prefix.after_eob_bits == 407U);
         CHECK(av2h_first_transform_type_read(
@@ -1097,7 +1118,9 @@ static void test_tiny_second_luma_leaf(void) {
         CHECK(transform.after_primary_bits == 410U);
         CHECK(av2h_coeff_block_read(
                   &decoder, &level_cdfs, &sequence, &frame, &second_mode,
-                  &prefix, &transform, 0U, &block) == AV2H_OK);
+                  &prefix, &transform, dc_sign_context, &block) == AV2H_OK);
+        CHECK(av2h_coeff_context_state_update(
+                  &coeff_state, 0U, &node, block.cul_level) == AV2H_OK);
         CHECK(block.quantized[0] == 3);
         CHECK(block.quantized[4] == -1);
         CHECK(block.nonzero_count == 2U);
@@ -1138,18 +1161,22 @@ static void test_tiny_second_luma_leaf(void) {
                 CHECK(reconstruction.pixels[index] == pixels[index]);
             }
         }
-        node.row = 0U;
-        node.column = 0U;
-        node.block_size = AV2H_BLOCK_16X16;
-        CHECK(av2h_partition_node_read_for_structure(
-              &decoder, &partition_cdfs, 1U, node, 4U, 0U, 4U, 1U,
-                  &decision, &node) == AV2H_OK);
-        CHECK(decision.partition == AV2H_PARTITION_HORZ);
-        CHECK(node.block_size == AV2H_BLOCK_16X8);
-        CHECK(av2h_partition_node_read_for_structure(
-              &decoder, &partition_cdfs, 1U, node, 4U, 0U, 0U, 1U,
-                  &decision, &node) == AV2H_OK);
-        CHECK(decision.partition == AV2H_PARTITION_VERT);
+        CHECK(av2h_partition_traversal_commit_leaf(
+              &luma_traversal, &partition_state, node) == AV2H_OK);
+        CHECK(av2h_partition_traversal_next(
+              &luma_traversal, &decoder, &partition_cdfs,
+              &partition_state, &path, &has_leaf) == AV2H_OK);
+        CHECK(has_leaf == 0U);
+        CHECK(av2h_partition_traversal_init(
+              &chroma_traversal, 4U, 4U,
+              (Av2hPartitionNode){ 0U, 0U, AV2H_BLOCK_16X16 }, 1U,
+              1U) == AV2H_OK);
+        CHECK(av2h_partition_traversal_next(
+              &chroma_traversal, &decoder, &partition_cdfs,
+              &partition_state, &path, &has_leaf) == AV2H_OK);
+        CHECK(has_leaf == 1U);
+        node = path.leaf;
+        CHECK(node.row == 0U && node.column == 0U);
         CHECK(node.block_size == AV2H_BLOCK_8X8);
         CHECK(av2h_range_tell(&decoder) == 420U);
         CHECK(av2h_chroma_mode_read(
@@ -1161,9 +1188,9 @@ static void test_tiny_second_luma_leaf(void) {
         CHECK(chroma_mode.mode == AV2H_INTRA_DC);
         CHECK(chroma_mode.angle_delta == 0);
         CHECK(chroma_mode.after_mode_bits == 423U);
-        CHECK(av2h_first_chroma_coeff_prefix_read(
-                  &decoder, &coeff_cdfs, &frame, &node, 1U, &prefix) ==
-              AV2H_OK);
+        CHECK(av2h_chroma_coeff_prefix_read_with_state(
+                  &decoder, &coeff_cdfs, &frame, &node, 1U, &coeff_state,
+                  &prefix) == AV2H_OK);
         CHECK(prefix.tx_size == AV2H_TX_4X4);
         CHECK(prefix.txb_skip_context == 6U);
         CHECK(prefix.before_all_zero_bits == 423U);
@@ -1175,9 +1202,9 @@ static void test_tiny_second_luma_leaf(void) {
               &transform) == AV2H_OK);
         CHECK(transform.primary_type == AV2H_TX_DCT_DCT);
         CHECK(transform.after_primary_bits == 429U);
-        CHECK(av2h_first_chroma_coeff_block_read(
-                  &decoder, &level_cdfs, &sequence, &frame, 1U, &prefix,
-                  &block) == AV2H_OK);
+        CHECK(av2h_chroma_coeff_block_read_with_state(
+              &decoder, &level_cdfs, &sequence, &frame, &node, 1U,
+              &prefix, &coeff_state, &block) == AV2H_OK);
         CHECK(block.quantized[0] == 0);
         CHECK(block.quantized[1] == -3);
         CHECK(block.quantized[4] == -1);
@@ -1200,9 +1227,9 @@ static void test_tiny_second_luma_leaf(void) {
                       (int16_t)((int)expected_u[index] - 128));
             }
         }
-        CHECK(av2h_first_chroma_coeff_prefix_read(
-              &decoder, &coeff_cdfs, &frame, &node, 2U, &prefix) ==
-              AV2H_OK);
+          CHECK(av2h_chroma_coeff_prefix_read_with_state(
+                &decoder, &coeff_cdfs, &frame, &node, 2U, &coeff_state,
+                &prefix) == AV2H_OK);
         CHECK(prefix.eob == 3U);
         CHECK(prefix.after_eob_bits == 450U);
         CHECK(av2h_first_chroma_transform_type_read(
@@ -1212,6 +1239,8 @@ static void test_tiny_second_luma_leaf(void) {
         CHECK(av2h_first_chroma_coeff_block_read(
                   &decoder, &level_cdfs, &sequence, &frame, 2U, &prefix,
                   &block) == AV2H_OK);
+        CHECK(av2h_coeff_context_state_update(
+              &coeff_state, 2U, &node, block.cul_level) == AV2H_OK);
         CHECK(block.quantized[0] == 11);
         CHECK(block.quantized[1] == -3);
         CHECK(block.quantized[4] == -1);
@@ -1234,6 +1263,370 @@ static void test_tiny_second_luma_leaf(void) {
                       (int16_t)((int)expected_v[index] - 128));
             }
         }
+          CHECK(av2h_partition_traversal_commit_leaf(
+                &chroma_traversal, &partition_state, node) == AV2H_OK);
+          CHECK(av2h_partition_traversal_next(
+                &chroma_traversal, &decoder, &partition_cdfs,
+                &partition_state, &path, &has_leaf) == AV2H_OK);
+          CHECK(has_leaf == 1U);
+          node = path.leaf;
+          CHECK(node.row == 0U && node.column == 2U);
+          CHECK(node.block_size == AV2H_BLOCK_8X8);
+        CHECK(av2h_range_tell(&decoder) == 469U);
+        CHECK(av2h_chroma_mode_read(
+                  &decoder, &leaf_cdfs, &sequence, AV2H_INTRA_D203, 0U,
+                  &chroma_mode) == AV2H_OK);
+        CHECK(chroma_mode.before_cfl_bits == 469U);
+        CHECK(chroma_mode.is_cfl == 0U);
+        CHECK(chroma_mode.mode_index == 0U);
+        CHECK(chroma_mode.mode == AV2H_INTRA_D203);
+        CHECK(chroma_mode.angle_delta == 0);
+        CHECK(chroma_mode.after_mode_bits == 470U);
+        CHECK(av2h_chroma_coeff_prefix_read_with_state(
+                  &decoder, &coeff_cdfs, &frame, &node, 1U, &coeff_state,
+                  &prefix) == AV2H_OK);
+        CHECK(prefix.txb_skip_context == 7U);
+        CHECK(prefix.before_all_zero_bits == 470U);
+        CHECK(prefix.all_zero == 0U);
+        CHECK(prefix.eob == 2U);
+        CHECK(prefix.after_eob_bits == 475U);
+        CHECK(av2h_chroma_transform_type_read(
+              &decoder, &transform_cdfs, &frame, &chroma_mode, 1U, &prefix,
+                  &transform) == AV2H_OK);
+        CHECK(transform.primary_type == AV2H_TX_DCT_ADST);
+        CHECK(transform.after_primary_bits == 476U);
+        CHECK(av2h_first_chroma_coeff_block_read(
+                  &decoder, &level_cdfs, &sequence, &frame, 1U, &prefix,
+                  &block) == AV2H_OK);
+        CHECK(av2h_coeff_context_state_update(
+              &coeff_state, 1U, &node, block.cul_level) == AV2H_OK);
+        CHECK(block.quantized[0] == 6);
+        CHECK(block.quantized[4] == -1);
+        CHECK(block.nonzero_count == 2U);
+        CHECK(block.after_coefficients_bits == 485U);
+        {
+            static const uint8_t chroma_left[] = { 144U, 148U, 155U, 160U };
+            static const uint8_t expected_predictor[] = {
+                146U, 147U, 149U, 152U,
+                151U, 153U, 156U, 158U,
+                157U, 159U, 160U, 160U,
+                160U, 160U, 160U, 160U
+            };
+            static const uint8_t expected_u[] = {
+                154U, 169U, 183U, 192U,
+                160U, 179U, 195U, 204U,
+                168U, 190U, 207U, 216U,
+                173U, 195U, 212U, 222U
+            };
+            size_t index;
+            second_mode = (Av2hFirstLeafMode){ 0 };
+            second_mode.mode = chroma_mode.mode;
+            second_mode.angle_delta = chroma_mode.angle_delta;
+            second_mode.mrl_index = 0U;
+            second_mode.multi_line_mrl = 0U;
+            references.left = chroma_left;
+            references.left_count = 4U;
+            references.above = 0;
+            references.above_count = 0U;
+            CHECK(av2h_chroma_predict(
+                      &chroma_mode, 4U, 4U, &references, predictor, 4U) ==
+                  AV2H_OK);
+            CHECK(av2h_luma_reconstruct(
+                      &second_mode, &prefix, &transform, &block, predictor, 4U,
+                      &scratch, &reconstruction) == AV2H_OK);
+            for (index = 0U; index < 16U; ++index) {
+                CHECK(predictor[index] == expected_predictor[index]);
+                CHECK(reconstruction.pixels[index] == expected_u[index]);
+            }
+        }
+        CHECK(av2h_chroma_coeff_prefix_read_with_state(
+                  &decoder, &coeff_cdfs, &frame, &node, 2U, &coeff_state,
+                  &prefix) == AV2H_OK);
+        CHECK(prefix.txb_skip_context == 7U);
+        CHECK(prefix.eob == 16U);
+        CHECK(prefix.after_eob_bits == 492U);
+        CHECK(av2h_chroma_transform_type_read(
+              &decoder, &transform_cdfs, &frame, &chroma_mode, 2U, &prefix,
+                  &transform) == AV2H_OK);
+        CHECK(transform.after_primary_bits == 492U);
+        CHECK(av2h_first_chroma_coeff_block_read(
+                  &decoder, &level_cdfs, &sequence, &frame, 2U, &prefix,
+                  &block) == AV2H_OK);
+        CHECK(av2h_coeff_context_state_update(
+              &coeff_state, 2U, &node, block.cul_level) == AV2H_OK);
+        CHECK(block.quantized[0] == -20);
+        CHECK(block.quantized[4] == 5);
+        CHECK(block.quantized[1] == 6);
+        CHECK(block.quantized[15] == -1);
+        CHECK(block.nonzero_count == 15U);
+        CHECK(block.after_coefficients_bits == 571U);
+        {
+            static const uint8_t chroma_left[] = { 211U, 216U, 223U, 227U };
+            static const uint8_t expected_predictor[] = {
+                213U, 215U, 217U, 220U,
+                219U, 221U, 224U, 225U,
+                225U, 226U, 227U, 227U,
+                227U, 227U, 227U, 227U
+            };
+            static const uint8_t expected_v[] = {
+                212U, 216U, 243U, 6U,
+                234U, 234U, 6U, 9U,
+                224U, 255U, 25U, 31U,
+                247U, 16U, 21U, 37U
+            };
+            size_t index;
+            references.left = chroma_left;
+            references.left_count = 4U;
+            CHECK(av2h_chroma_predict(
+                      &chroma_mode, 4U, 4U, &references, predictor, 4U) ==
+                  AV2H_OK);
+            CHECK(av2h_luma_reconstruct(
+                      &second_mode, &prefix, &transform, &block, predictor, 4U,
+                      &scratch, &reconstruction) == AV2H_OK);
+            for (index = 0U; index < 16U; ++index) {
+                CHECK(predictor[index] == expected_predictor[index]);
+                CHECK(reconstruction.pixels[index] == expected_v[index]);
+            }
+        }
+          CHECK(av2h_partition_traversal_commit_leaf(
+                &chroma_traversal, &partition_state, node) == AV2H_OK);
+          CHECK(av2h_partition_traversal_next(
+                &chroma_traversal, &decoder, &partition_cdfs,
+                &partition_state, &path, &has_leaf) == AV2H_OK);
+          CHECK(has_leaf == 1U);
+          node = path.leaf;
+          CHECK(node.row == 2U && node.column == 0U);
+          CHECK(node.block_size == AV2H_BLOCK_8X8);
+        CHECK(av2h_range_tell(&decoder) == 572U);
+        CHECK(av2h_chroma_mode_read_with_delta(
+                  &decoder, &leaf_cdfs, &sequence, AV2H_INTRA_D67, -1, 0U,
+                  &chroma_mode) == AV2H_OK);
+        CHECK(chroma_mode.mode_index == 0U);
+        CHECK(chroma_mode.mode == AV2H_INTRA_D67);
+        CHECK(chroma_mode.angle_delta == -1);
+        CHECK(chroma_mode.after_mode_bits == 574U);
+        CHECK(av2h_chroma_coeff_prefix_read_with_state(
+                  &decoder, &coeff_cdfs, &frame, &node, 1U, &coeff_state,
+                  &prefix) == AV2H_OK);
+        CHECK(prefix.eob == 1U);
+        CHECK(prefix.after_eob_bits == 577U);
+        CHECK(av2h_chroma_transform_type_read(
+                  &decoder, &transform_cdfs, &frame, &chroma_mode, 1U, &prefix,
+                  &transform) == AV2H_OK);
+        CHECK(transform.primary_type == AV2H_TX_ADST_DCT);
+        CHECK(transform.after_primary_bits == 577U);
+        CHECK(av2h_first_chroma_coeff_block_read(
+                  &decoder, &level_cdfs, &sequence, &frame, 1U, &prefix,
+                  &block) == AV2H_OK);
+        CHECK(av2h_coeff_context_state_update(
+              &coeff_state, 1U, &node, block.cul_level) == AV2H_OK);
+        CHECK(block.quantized[0] == 2);
+        CHECK(block.nonzero_count == 1U);
+        CHECK(block.after_coefficients_bits == 582U);
+        {
+            static const uint8_t chroma_above[] = {
+                112U, 126U, 146U, 160U, 173U, 195U, 212U, 222U
+            };
+            static const uint8_t expected_predictor[] = {
+                118U, 135U, 152U, 166U,
+                124U, 144U, 158U, 171U,
+                132U, 150U, 164U, 180U,
+                141U, 157U, 170U, 190U
+            };
+            static const uint8_t expected_u[] = {
+                121U, 138U, 155U, 169U,
+                134U, 154U, 168U, 181U,
+                146U, 164U, 178U, 194U,
+                158U, 174U, 187U, 207U
+            };
+            size_t index;
+            second_mode = (Av2hFirstLeafMode){ 0 };
+            second_mode.mode = chroma_mode.mode;
+            second_mode.angle_delta = chroma_mode.angle_delta;
+            references.above = chroma_above;
+            references.above_count = 8U;
+            CHECK(av2h_chroma_predict(
+                      &chroma_mode, 4U, 4U, &references, predictor, 4U) ==
+                  AV2H_OK);
+            CHECK(av2h_luma_reconstruct(
+                      &second_mode, &prefix, &transform, &block, predictor, 4U,
+                      &scratch, &reconstruction) == AV2H_OK);
+            for (index = 0U; index < 16U; ++index) {
+                CHECK(predictor[index] == expected_predictor[index]);
+                CHECK(reconstruction.pixels[index] == expected_u[index]);
+            }
+        }
+        CHECK(av2h_chroma_coeff_prefix_read_with_state(
+                  &decoder, &coeff_cdfs, &frame, &node, 2U, &coeff_state,
+                  &prefix) == AV2H_OK);
+        CHECK(prefix.eob == 16U);
+        CHECK(prefix.after_eob_bits == 587U);
+        CHECK(av2h_chroma_transform_type_read(
+                  &decoder, &transform_cdfs, &frame, &chroma_mode, 2U, &prefix,
+                  &transform) == AV2H_OK);
+        CHECK(transform.primary_type == AV2H_TX_ADST_DCT);
+        CHECK(av2h_first_chroma_coeff_block_read(
+                  &decoder, &level_cdfs, &sequence, &frame, 2U, &prefix,
+                  &block) == AV2H_OK);
+        CHECK(av2h_coeff_context_state_update(
+              &coeff_state, 2U, &node, block.cul_level) == AV2H_OK);
+        CHECK(block.quantized[0] == -2);
+        CHECK(block.quantized[1] == 4);
+        CHECK(block.quantized[15] == 1);
+        CHECK(block.nonzero_count == 13U);
+        CHECK(block.after_coefficients_bits == 643U);
+        {
+            static const uint8_t chroma_above[] = {
+                180U, 193U, 213U, 227U, 247U, 16U, 21U, 37U
+            };
+            static const uint8_t expected_predictor[] = {
+                186U, 202U, 219U, 236U,
+                191U, 211U, 225U, 245U,
+                199U, 217U, 233U, 175U,
+                208U, 224U, 242U, 74U
+            };
+            static const uint8_t expected_v[] = {
+                189U, 199U, 235U, 249U,
+                206U, 227U, 235U, 242U,
+                213U, 222U, 245U, 5U,
+                210U, 221U, 247U, 18U
+            };
+            size_t index;
+            references.above = chroma_above;
+            references.above_count = 8U;
+            CHECK(av2h_chroma_predict(
+                      &chroma_mode, 4U, 4U, &references, predictor, 4U) ==
+                  AV2H_OK);
+            CHECK(av2h_luma_reconstruct(
+                      &second_mode, &prefix, &transform, &block, predictor, 4U,
+                      &scratch, &reconstruction) == AV2H_OK);
+            for (index = 0U; index < 16U; ++index) {
+                CHECK(predictor[index] == expected_predictor[index]);
+                CHECK(reconstruction.pixels[index] == expected_v[index]);
+            }
+        }
+          CHECK(av2h_partition_traversal_commit_leaf(
+                &chroma_traversal, &partition_state, node) == AV2H_OK);
+          CHECK(av2h_partition_traversal_next(
+                &chroma_traversal, &decoder, &partition_cdfs,
+                &partition_state, &path, &has_leaf) == AV2H_OK);
+          CHECK(has_leaf == 1U);
+          node = path.leaf;
+          CHECK(node.row == 2U && node.column == 2U);
+          CHECK(node.block_size == AV2H_BLOCK_8X8);
+        CHECK(av2h_range_tell(&decoder) == 643U);
+        CHECK(av2h_chroma_mode_read_with_delta(
+                  &decoder, &leaf_cdfs, &sequence, AV2H_INTRA_D67, -3, 0U,
+                  &chroma_mode) == AV2H_OK);
+        CHECK(chroma_mode.mode_index == 8U);
+        CHECK(chroma_mode.mode == AV2H_INTRA_D45);
+        CHECK(chroma_mode.angle_delta == 0);
+        CHECK(chroma_mode.after_mode_bits == 652U);
+        CHECK(av2h_chroma_coeff_prefix_read_with_state(
+                  &decoder, &coeff_cdfs, &frame, &node, 1U, &coeff_state,
+                  &prefix) == AV2H_OK);
+        CHECK(prefix.eob == 15U);
+        CHECK(prefix.after_eob_bits == 657U);
+        CHECK(av2h_chroma_transform_type_read(
+                  &decoder, &transform_cdfs, &frame, &chroma_mode, 1U, &prefix,
+                  &transform) == AV2H_OK);
+        CHECK(transform.primary_type == AV2H_TX_DCT_DCT);
+        CHECK(transform.after_primary_bits == 658U);
+        CHECK(av2h_first_chroma_coeff_block_read(
+                  &decoder, &level_cdfs, &sequence, &frame, 1U, &prefix,
+                  &block) == AV2H_OK);
+        CHECK(av2h_coeff_context_state_update(
+              &coeff_state, 1U, &node, block.cul_level) == AV2H_OK);
+        CHECK(block.quantized[0] == -2);
+        CHECK(block.quantized[4] == 3);
+        CHECK(block.quantized[11] == 1);
+        CHECK(block.nonzero_count == 15U);
+        CHECK(block.after_coefficients_bits == 710U);
+        {
+            static const uint8_t chroma_above[] = {
+                173U, 195U, 212U, 222U
+            };
+            static const uint8_t expected_predictor[] = {
+                195U, 212U, 222U, 222U,
+                212U, 222U, 222U, 222U,
+                222U, 222U, 222U, 222U,
+                222U, 222U, 222U, 222U
+            };
+            static const uint8_t expected_u[] = {
+                188U, 212U, 222U, 240U,
+                208U, 229U, 215U, 235U,
+                210U, 209U, 235U, 225U,
+                224U, 223U, 221U, 14U
+            };
+            size_t index;
+            second_mode = (Av2hFirstLeafMode){ 0 };
+            second_mode.mode = chroma_mode.mode;
+            references.above = chroma_above;
+            references.above_count = 4U;
+            CHECK(av2h_chroma_predict(
+                      &chroma_mode, 4U, 4U, &references, predictor, 4U) ==
+                  AV2H_OK);
+            CHECK(av2h_luma_reconstruct(
+                      &second_mode, &prefix, &transform, &block, predictor, 4U,
+                      &scratch, &reconstruction) == AV2H_OK);
+            for (index = 0U; index < 16U; ++index) {
+                CHECK(predictor[index] == expected_predictor[index]);
+                CHECK(reconstruction.pixels[index] == expected_u[index]);
+            }
+        }
+        CHECK(av2h_chroma_coeff_prefix_read_with_state(
+                  &decoder, &coeff_cdfs, &frame, &node, 2U, &coeff_state,
+                  &prefix) == AV2H_OK);
+        CHECK(prefix.eob == 6U);
+        CHECK(prefix.after_eob_bits == 715U);
+        CHECK(av2h_chroma_transform_type_read(
+                  &decoder, &transform_cdfs, &frame, &chroma_mode, 2U, &prefix,
+                  &transform) == AV2H_OK);
+        CHECK(transform.after_primary_bits == 715U);
+        CHECK(av2h_first_chroma_coeff_block_read(
+                  &decoder, &level_cdfs, &sequence, &frame, 2U, &prefix,
+                  &block) == AV2H_OK);
+        CHECK(av2h_coeff_context_state_update(
+              &coeff_state, 2U, &node, block.cul_level) == AV2H_OK);
+        CHECK(block.quantized[1] == -1);
+        CHECK(block.quantized[2] == 1);
+        CHECK(block.quantized[8] == 1);
+        CHECK(block.nonzero_count == 3U);
+        CHECK(block.after_coefficients_bits == 725U);
+        {
+            static const uint8_t chroma_above[] = { 247U, 16U, 21U, 37U };
+            static const uint8_t expected_predictor[] = {
+                16U, 21U, 37U, 37U,
+                21U, 37U, 37U, 37U,
+                37U, 37U, 37U, 37U,
+                37U, 37U, 37U, 37U
+            };
+            static const uint8_t expected_v[] = {
+                20U, 18U, 40U, 57U,
+                13U, 21U, 28U, 45U,
+                29U, 21U, 28U, 45U,
+                41U, 34U, 40U, 57U
+            };
+            size_t index;
+            references.above = chroma_above;
+            references.above_count = 4U;
+            CHECK(av2h_chroma_predict(
+                      &chroma_mode, 4U, 4U, &references, predictor, 4U) ==
+                  AV2H_OK);
+            CHECK(av2h_luma_reconstruct(
+                      &second_mode, &prefix, &transform, &block, predictor, 4U,
+                      &scratch, &reconstruction) == AV2H_OK);
+            for (index = 0U; index < 16U; ++index) {
+                CHECK(predictor[index] == expected_predictor[index]);
+                CHECK(reconstruction.pixels[index] == expected_v[index]);
+            }
+        }
+        CHECK(av2h_partition_traversal_commit_leaf(
+                  &chroma_traversal, &partition_state, node) == AV2H_OK);
+        CHECK(av2h_partition_traversal_next(
+                  &chroma_traversal, &decoder, &partition_cdfs,
+                  &partition_state, &path, &has_leaf) == AV2H_OK);
+        CHECK(has_leaf == 0U);
     }
 }
 

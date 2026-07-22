@@ -3,12 +3,14 @@
 Milestone 5 is in progress. The freestanding AV2 entropy decoder, Sequence
 Header state, locked Closed Loop Key frame-header parser, and one-tile boundary
 derivation are implemented and independently checked. The first luma block of
-all four fixtures and the tiny fixture's next eight luma blocks reconstruct
-sample-exactly in private tests. The 4x4 continuations use production D203
+all four fixtures and all eleven tiny luma blocks reconstruct sample-exactly
+in private tests. The 4x4 continuations use production D203
 prediction from live reconstructed left samples; later blocks use D45 and
-Paeth prediction from live reconstructed edges. Complete tile traversal, chroma, filter
-execution, final workspace sizing, and the public decode API are not yet
-implemented. The milestone exit gate has therefore not been reached.
+Paeth prediction from live reconstructed edges. All four tiny chroma leaves
+also reconstruct their U and V blocks sample-exactly through tell 725.
+Complete tile traversal for the larger fixtures, filter execution, final
+workspace sizing, and the public decode API are not yet implemented. The
+milestone exit gate has therefore not been reached.
 
 ## Fixture inventory
 
@@ -148,10 +150,10 @@ attachments is byte-identical.
 
 ## First partition traversal
 
-The private ordinary-partition prefix reader now consumes `do_split`,
-`rect_type`, and `do_ext_partition` with caller-owned range and CDF state. It
-accepts only the validated `do_split = 1`, `do_ext_partition = 0` path and
-fails closed on a leaf or extended partition until those paths are complete.
+The private partition reader consumes `do_split`, `rect_type`, and
+`do_ext_partition` with caller-owned range and CDF state. It accepts the
+reached leaf and ordinary horizontal/vertical paths and fails closed on
+unvalidated extended partitions.
 
 Hosted AVM inspection established an important edge distinction. The 160x120
 and 96x80 fixtures signal at their 64x64 root with contexts `(12, 24, 12)`.
@@ -160,25 +162,24 @@ edge-forced ancestors, respectively; their first signaled nodes use contexts
 `(4, 0, 4)` and `(8, 8, 8)`. All four fixture-derived entropy prefixes decode
 to the same values and CDF mutations as the pinned oracle under sanitizers.
 
-The project-owned geometry layer now defines the 29 normative AV2 block sizes,
+The project-owned geometry layer defines the 29 normative AV2 block sizes,
 ordinary horizontal and vertical child sizes, partition size adjustments,
-MI-grid rounding, and midpoint boundary forcing. A bounded traversal follows
-the coded top-left child through forced, signaled, and implied decisions and
-stops at the first leaf, before consuming mode syntax. The four locked paths
-contain 8, 8, 3, and 7 partition nodes and end at 8x4, 8x4, 32x32, and 8x8
-leaves, respectively.
+MI-grid rounding, and midpoint boundary forcing. A 32-node caller-owned stack
+performs depth-first traversal through forced, signaled, and implied
+decisions. It yields one leaf at a time and requires an explicit commit after
+the interleaved leaf work; that commit updates bounded above/left partition
+state before traversal may resume. The four locked first paths contain 8, 8,
+3, and 7 partition nodes and end at 8x4, 8x4, 32x32, and 8x8 leaves,
+respectively.
 
-Tests freeze every node's block size, partition type, forced/implied
-provenance, selected CDF behavior, and integer entropy tell. In particular,
-edge-forced and implied choices do not advance entropy or adapt a CDF. The
-neighbor context inputs remain zero only because this checkpoint follows the
-first top-left path; full traversal will own and update bounded above/left
-partition state.
-
-This remains a first-leaf checkpoint rather than a complete partition-tree
-claim. Mode and coefficient syntax is interleaved at each leaf, so later
-partition decisions cannot be reached honestly until the corresponding leaf
-parser advances the same entropy decoder.
+Tests freeze every first-path node's block size, partition type,
+forced/implied provenance, selected CDF behavior, and integer entropy tell. In
+particular, edge-forced and implied choices do not advance entropy or adapt a
+CDF. The same traversal now yields and commits all eleven tiny luma leaves and
+all four separate chroma-tree leaves around their interleaved syntax, then
+reports each tree exhausted at tells 415 and 725. Calling next before commit,
+committing a different leaf, stack overflow, and out-of-bounds geometry fail
+closed. Larger fixtures remain first-leaf checkpoints.
 
 ## First-leaf luma mode
 
@@ -213,8 +214,9 @@ The tiny fixture then reaches its second 4x4 leaf at `(0,2)` on the same range
 decoder. Neighbor-aware mode-set/index/offset mapping selects D203, FSC and MRL
 both decode zero, and the mode endpoint has integer tell 59. The adjacent third
 4x4 block selects the same mode and reaches integer tell 80 after MRL. Tests
-freeze the touched CDF updates and mode results. This is not yet a general
-mode-map or tile traversal implementation.
+freeze the touched CDF updates and mode results. Caller-owned mode maps now
+derive every later tiny luma neighbor, but the leaf decode sequence is not yet
+a general tile-level orchestration implementation.
 
 After the final tiny luma leaf at tell 415, partition CDF structure one decodes
 the first chroma-tree 16x16 horizontal and 16x8 implied-vertical decisions,
@@ -225,8 +227,12 @@ attachments and pinned AVM. U then decodes EOB 3, CCTX none, quantized
 coefficients `-3` and `-1` at positions 1 and 4, and sample-exact 4x4 pixels
 through tell 445. V uses its separate context-9 skip row, decodes EOB 3 and
 quantized coefficients `11`, `-3`, and `-1` at positions 0, 1, and 4, and
-reconstructs sample-exactly through tell 469. Other chroma leaves remain fail
-closed.
+reconstructs sample-exactly through tell 469. The continuation covers the
+other three leaves as well: D203 through tell 571, inherited D67 angle delta
+-1 through tell 643,
+and D45 through tell 725. Their mode escape literals, separate U/V skip
+contexts, implied primary transforms, and sparse coefficient contexts match
+the pinned oracle.
 
 ## First coefficient prefix
 
@@ -236,10 +242,16 @@ state decodes the normative luma `all_zero` symbol and complete EOB, then stops
 before transform-type syntax. All four `all_zero` values are zero. Exact EOBs
 are 10, 10, 29, and 63, with final integer tells 18, 24, 15, and 29.
 
-The coefficient prefix state is 186 bytes after adding the tiny 4x4 luma, U,
-and separate V skip rows plus luma and chroma EOB-point rows. The second luma
+The coefficient prefix state is 234 bytes after adding the tiny 4x4 luma and
+all reached U/V skip and EOB-point rows. The second luma
 block has EOB 2 and reaches integer tell 64; the third has EOB
 16 and reaches integer tell 84.
+Caller-owned packed coefficient maps replicate each block's capped magnitude
+and DC-sign flags across its MI footprint. Prefix and level continuations use
+that shared state to derive full-leaf luma context 0, FSC luma context 9,
+chroma U contexts 6 through 8, the separate U-dependent V contexts 7 through
+9, and luma DC-sign contexts 0 through 2. No later tiny-fixture coefficient
+call receives a hardcoded neighbor context.
 The checkpoint validates transform capacity, Q context 1, intra-luma plane
 context zero, adaptive observation counts, and every point/extra/bypass tell.
 It fails closed on unsupported transform geometry, all-zero transforms, and
@@ -273,7 +285,7 @@ pinned AVM defaults in hosted evidence, while no AVM table enters production.
 
 ## First transform coefficients
 
-A private 1,366-byte sparse CDF state decodes the validated luma and first
+A private 1,606-byte sparse CDF state decodes the validated luma and tiny
 chroma transforms:
 normative diagonal or vertical scan, base and low-frequency magnitudes,
 base-range extensions, bypass and adaptive DC-axis signs, adaptive
@@ -330,9 +342,10 @@ at integer tell 399.
 The eleventh and final tiny luma leaf reuses existing low-frequency rows. Its
 diagonal scan contains quantized coefficients `3` and `-1` at positions 0 and
 4, and coefficient decoding ends at integer tell 415. No additional sparse
-CDF storage is required at that point. The first chroma leaf then adds sparse
-UV EOB, base, LF, and base-range rows, increasing caller-owned coefficient
-level state to 1,366 bytes.
+CDF storage is required at that point. The four chroma leaves add sparse UV
+EOB, base, LF, and base-range rows for every reached 4x4 scan context,
+increasing caller-owned coefficient level state to 1,606 bytes. Their U/V
+coefficient endpoints are 469, 571, 643, and 725.
 
 ## First-block reconstruction
 
@@ -396,18 +409,25 @@ symbol 3 as `DCT_ADST`, and reads reconstructed samples from block nine above
 and block ten to the left. Its AV2 smooth process uses the derived 4x4 blend
 values 32, 8, 2, and 0 with replicated unavailable edge extensions. All 16
 predictor, residual, and final samples match pinned AVM at tell 415. This
-completes the tiny fixture's luma leaves, but not its remaining chroma leaves
-or filtering.
+completes the tiny fixture's luma leaves.
+
+The four tiny chroma leaves then reconstruct sample-exact 4x4 U and V blocks.
+They exercise DC, D203, D67 angle delta -1 inherited from colocated luma, and
+D45 prediction, plus implied `DCT_DCT`, `DCT_ADST`, and `ADST_DCT` transforms.
+Each predictor uses reconstructed chroma edges, and all 128 predictor and final
+samples match pinned AVM through tell 725.
 
 ## Remaining work
 
-The next required implementation advances to the remaining tiny chroma leaves
-and adds bounded neighbor partition, mode, and coefficient context updates to
-generalize the traversal. Hosted evidence must expand to partition and mode
-maps, coefficient checksums, and plane hashes after complete reconstruction,
-deblock, CDEF, CCSO, and restoration. The implementation then proceeds through
-full prediction and reconstruction, filter execution, workspace planning,
-and finally the public decode API.
+Bounded partition traversal plus luma-mode and packed coefficient neighbor
+state now owns all traversal and context updates exercised by the tiny
+fixture. The next required implementation replaces the remaining long
+fixture-specific leaf decode sequence with a bounded tile orchestrator, then
+extends full prediction and reconstruction to the odd, ordinary, and
+high-detail fixtures. Hosted evidence must expand to complete coefficient
+checksums and plane hashes after deblock, CDEF, CCSO, and restoration. Final
+workspace planning and the public decode API follow only after those complete
+filtered outputs pass sample-exactly.
 
 Until those stages reconstruct all four fixtures sample-exactly, Milestone 5
 must remain marked in progress.

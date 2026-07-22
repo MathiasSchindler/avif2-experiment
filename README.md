@@ -24,15 +24,19 @@ separate reference experiment and is fetched into ignored `vendor/` and
 - Milestone 5 is in progress: its freestanding entropy decoder and private
   Closed Loop Key frame parser pass pinned-AVM oracle checks and derive all four
   tile entropy boundaries from syntax. First blocks for all fixtures and the
-  tiny fixture's next ten luma blocks reconstruct sample-exactly in private
-  tests. Production derives the 4x4 D203 predictors from reconstructed left
+  tiny fixture's remaining ten luma blocks reconstruct sample-exactly in
+  private tests. Production derives the 4x4 D203 predictors from reconstructed left
   samples, the 8x4 and 4x4 D45 predictors from reconstructed above samples,
   the 4x4 Paeth predictor from live above, left, and top-left samples, and the
   8x8 and 4x4 D67 predictors from live MRL edges, including MRL index 3, and
-  the final 4x4 smooth predictor from live top and left edges. The first tiny
-  chroma leaf decodes UV DC mode and reconstructs its 4x4 U and V blocks
-  sample-exactly through tell 469. Remaining chroma leaves, filters, general
-  traversal, and the public decode API are not implemented yet.
+  the final 4x4 smooth predictor from live top and left edges. All four tiny
+  chroma leaves decode their UV modes, transforms, and 4x4 U and V blocks
+  sample-exactly through tell 725. Bounded caller-owned partition, luma-mode,
+  and packed per-plane coefficient maps now derive every later tiny-fixture
+  neighbor context. A bounded depth-first partition traversal yields and
+  commits all tiny luma and chroma leaves in entropy order. General leaf
+  orchestration, larger-fixture reconstruction, filters, final workspace
+  sizing, and the public decode API are not implemented yet.
 
 The public API is declared in `include/av2heif.h`. Milestone details and
 limitations are recorded in `docs/milestone-0.md`, `docs/milestone-1.md`, and

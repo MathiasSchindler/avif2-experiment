@@ -65,6 +65,7 @@ typedef struct {
 
 #define AV2H_MAX_FORCED_PARTITION_ANCESTORS 8U
 #define AV2H_MAX_FIRST_LEAF_PARTITIONS 16U
+#define AV2H_MAX_PARTITION_TRAVERSAL_NODES 32U
 
 typedef struct {
     Av2hPartitionNode node;
@@ -107,6 +108,28 @@ typedef struct {
     Av2hPartitionNode leaf;
 } Av2hFirstLeafPath;
 
+typedef struct {
+    uint8_t *above[AV2H_PARTITION_STRUCTURE_COUNT];
+    uint8_t *left[AV2H_PARTITION_STRUCTURE_COUNT];
+    size_t above_count;
+    size_t left_count;
+} Av2hPartitionContextState;
+
+typedef struct {
+    Av2hPartitionNode stack[AV2H_MAX_PARTITION_TRAVERSAL_NODES];
+    Av2hPartitionNode pending_leaf;
+    size_t stack_count;
+    uint16_t mi_rows;
+    uint16_t mi_columns;
+    uint8_t structure;
+    uint8_t enable_ext_partitions;
+    uint8_t has_pending_leaf;
+} Av2hPartitionTraversal;
+
+Av2hStatus av2h_block_dimensions_mi(Av2hBlockSize block_size,
+                                     size_t *width,
+                                     size_t *height);
+
 Av2hStatus av2h_partition_forced_path(uint16_t mi_rows,
                                        uint16_t mi_columns,
                                        Av2hPartitionNode root,
@@ -119,6 +142,44 @@ Av2hStatus av2h_partition_contexts(Av2hBlockSize block_size,
                                     size_t *split_context,
                                     size_t *rect_type_context,
                                     size_t *extension_context);
+Av2hStatus av2h_partition_context_state_init(
+    Av2hPartitionContextState *state,
+    uint8_t *luma_above,
+    uint8_t *luma_left,
+    uint8_t *chroma_above,
+    uint8_t *chroma_left,
+    size_t above_count,
+    size_t left_count);
+Av2hStatus av2h_partition_contexts_from_state(
+    const Av2hPartitionContextState *state,
+    size_t structure,
+    Av2hPartitionNode node,
+    Av2hPartitionAxis axis,
+    size_t *split_context,
+    size_t *rect_type_context,
+    size_t *extension_context);
+Av2hStatus av2h_partition_context_state_update(
+    Av2hPartitionContextState *state,
+    size_t structure,
+    Av2hPartitionNode leaf);
+Av2hStatus av2h_partition_traversal_init(
+    Av2hPartitionTraversal *traversal,
+    uint16_t mi_rows,
+    uint16_t mi_columns,
+    Av2hPartitionNode root,
+    size_t structure,
+    unsigned int enable_ext_partitions);
+Av2hStatus av2h_partition_traversal_next(
+    Av2hPartitionTraversal *traversal,
+    Av2hRangeDecoder *decoder,
+    Av2hPartitionCdfs *cdfs,
+    const Av2hPartitionContextState *state,
+    Av2hFirstLeafPath *path,
+    uint8_t *has_leaf);
+Av2hStatus av2h_partition_traversal_commit_leaf(
+    Av2hPartitionTraversal *traversal,
+    Av2hPartitionContextState *state,
+    Av2hPartitionNode leaf);
 Av2hStatus av2h_partition_first_prefix_read(
     Av2hRangeDecoder *decoder,
     Av2hPartitionCdfs *cdfs,
@@ -158,6 +219,15 @@ Av2hStatus av2h_partition_node_read_for_structure(
     size_t split_context,
     size_t rect_type_context,
     size_t extension_context,
+    unsigned int enable_ext_partitions,
+    Av2hPartitionDecision *decision,
+    Av2hPartitionNode *child);
+Av2hStatus av2h_partition_node_read_with_state(
+    Av2hRangeDecoder *decoder,
+    Av2hPartitionCdfs *cdfs,
+    const Av2hPartitionContextState *state,
+    size_t structure,
+    Av2hPartitionNode node,
     unsigned int enable_ext_partitions,
     Av2hPartitionDecision *decision,
     Av2hPartitionNode *child);

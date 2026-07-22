@@ -32,6 +32,13 @@ Av2hStatus av2h_luma_predict(
     const Av2hLumaReferences *references,
     uint8_t *predictor,
     size_t predictor_stride);
+Av2hStatus av2h_chroma_predict(
+    const Av2hFirstChromaMode *mode,
+    uint16_t width,
+    uint16_t height,
+    const Av2hLumaReferences *references,
+    uint8_t *predictor,
+    size_t predictor_stride);
 
 Av2hStatus av2h_first_luma_reconstruct(
     const Av2hFirstLeafMode *mode,

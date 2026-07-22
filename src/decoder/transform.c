@@ -156,23 +156,39 @@ Av2hStatus av2h_first_chroma_transform_type_read(
     uint8_t plane,
     const Av2hFirstCoeffPrefix *coeff,
     Av2hFirstTransformType *transform) {
+    Av2hFirstChromaMode mode = { 0 };
+    mode.mode = AV2H_INTRA_DC;
+    return av2h_chroma_transform_type_read(
+        decoder, cdfs, frame, &mode, plane, coeff, transform);
+}
+
+Av2hStatus av2h_chroma_transform_type_read(
+    Av2hRangeDecoder *decoder,
+    Av2hFirstTransformCdfs *cdfs,
+    const Av2hFrameState *frame,
+    const Av2hFirstChromaMode *mode,
+    uint8_t plane,
+    const Av2hFirstCoeffPrefix *coeff,
+    Av2hFirstTransformType *transform) {
     uint32_t symbol = 0U;
-    if (decoder == 0 || cdfs == 0 || frame == 0 || coeff == 0 ||
+    if (decoder == 0 || cdfs == 0 || frame == 0 || mode == 0 || coeff == 0 ||
         transform == 0) {
         return AV2H_INVALID_ARGUMENT;
     }
     if ((plane != 1U && plane != 2U) || frame->reduced_tx_set ||
         frame->base_q_index != 128U || coeff->tx_size != AV2H_TX_4X4 ||
-        coeff->all_zero || coeff->eob != 3U) {
+        coeff->all_zero || coeff->eob == 0U || coeff->eob > 16U) {
         return AV2H_UNSUPPORTED;
     }
     transform->before_primary_bits = av2h_range_tell(decoder);
-    transform->primary_type = AV2H_TX_DCT_DCT;
+    transform->primary_type = mode->mode == AV2H_INTRA_D203 ?
+        AV2H_TX_DCT_ADST : mode->mode == AV2H_INTRA_D67 ?
+        AV2H_TX_ADST_DCT : AV2H_TX_DCT_DCT;
     transform->primary_signaled = 0U;
     transform->primary_symbol = 0U;
     transform->secondary_signaled = 0U;
     transform->secondary_symbol = 0U;
-    if (plane == 1U) {
+    if (plane == 1U && coeff->eob != 1U) {
         symbol = av2h_range_read_adaptive(
             decoder, cdfs->chroma_cross_type, 7U);
         if (av2h_range_status(decoder) != AV2H_OK) {

@@ -383,6 +383,83 @@ Av2hStatus av2h_luma_predict(
     return AV2H_OK;
 }
 
+Av2hStatus av2h_chroma_predict(
+    const Av2hFirstChromaMode *mode,
+    uint16_t width,
+    uint16_t height,
+    const Av2hLumaReferences *references,
+    uint8_t *predictor,
+    size_t predictor_stride) {
+    uint16_t row;
+    uint16_t column;
+    if (mode == 0 || references == 0 || predictor == 0 ||
+        predictor_stride < width) {
+        return AV2H_INVALID_ARGUMENT;
+    }
+    if (width != 4U || height != 4U ||
+        !((mode->mode == AV2H_INTRA_D203 && mode->angle_delta == 0) ||
+          (mode->mode == AV2H_INTRA_D67 && mode->angle_delta == -1) ||
+          (mode->mode == AV2H_INTRA_D45 && mode->angle_delta == 0))) {
+        return AV2H_UNSUPPORTED;
+    }
+    if (mode->mode == AV2H_INTRA_D45) {
+        if (references->above == 0 || references->above_count == 0U) {
+            return AV2H_INVALID_ARGUMENT;
+        }
+        for (row = 0U; row < height; ++row) {
+            for (column = 0U; column < width; ++column) {
+                size_t source = (size_t)row + column + 1U;
+                if (source >= references->above_count) {
+                    source = references->above_count - 1U;
+                }
+                predictor[(size_t)row * predictor_stride + column] =
+                    references->above[source];
+            }
+        }
+        return AV2H_OK;
+    }
+    if (mode->mode == AV2H_INTRA_D67) {
+        if (references->above == 0 || references->above_count == 0U) {
+            return AV2H_INVALID_ARGUMENT;
+        }
+        for (row = 0U; row < height; ++row) {
+            uint16_t offset = (uint16_t)((row + 1U) * 28U);
+            uint16_t base = offset >> 6U;
+            uint16_t shift = (offset & 63U) >> 1U;
+            for (column = 0U; column < width; ++column, ++base) {
+                size_t first = base < references->above_count ?
+                    base : references->above_count - 1U;
+                size_t second = first + 1U < references->above_count ?
+                    first + 1U : references->above_count - 1U;
+                int32_t value = references->above[first] * (32 - shift) +
+                    references->above[second] * shift;
+                predictor[(size_t)row * predictor_stride + column] =
+                    (uint8_t)((value + 16) >> 5U);
+            }
+        }
+        return AV2H_OK;
+    }
+    if (references->left == 0 || references->left_count == 0U) {
+        return AV2H_INVALID_ARGUMENT;
+    }
+    for (column = 0U; column < width; ++column) {
+        uint16_t offset = (uint16_t)((column + 1U) * 24U);
+        uint16_t base = offset >> 6U;
+        uint16_t shift = (offset & 63U) >> 1U;
+        for (row = 0U; row < height; ++row, ++base) {
+            size_t first = base < references->left_count ?
+                base : references->left_count - 1U;
+            size_t second = first + 1U < references->left_count ?
+                first + 1U : references->left_count - 1U;
+            int32_t value = references->left[first] * (32 - shift) +
+                references->left[second] * shift;
+            predictor[(size_t)row * predictor_stride + column] =
+                (uint8_t)((value + 16) >> 5U);
+        }
+    }
+    return AV2H_OK;
+}
+
 static Av2hStatus matrix_value(uint16_t size, uint16_t frequency,
                                uint16_t output, int32_t *value) {
     size_t index;
@@ -571,9 +648,17 @@ Av2hStatus av2h_luma_reconstruct(
         identity_columns = 0U;
         adst_columns = 0U;
     } else if (prefix->tx_size == AV2H_TX_4X4 &&
-               transform->primary_type == AV2H_TX_DCT_DCT &&
-               (mode->mode == AV2H_INTRA_PAETH ||
-                mode->mode == AV2H_INTRA_DC)) {
+               transform->primary_type == AV2H_TX_ADST_DCT) {
+        first_shift = 7U;
+        second_shift = 10U;
+        rectangular = 0U;
+        identity_rows = 0U;
+        adst_rows = 0U;
+        flip_adst_rows = 0U;
+        identity_columns = 0U;
+        adst_columns = 1U;
+    } else if (prefix->tx_size == AV2H_TX_4X4 &&
+               transform->primary_type == AV2H_TX_DCT_DCT) {
         first_shift = 7U;
         second_shift = 10U;
         rectangular = 0U;

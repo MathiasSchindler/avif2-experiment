@@ -83,6 +83,21 @@ typedef struct {
 } Av2hLumaModeNeighbors;
 
 typedef struct {
+    uint8_t present;
+    uint8_t joint_mode;
+    uint8_t fsc_mode;
+    uint8_t mrl_index;
+    uint8_t multi_line_mrl;
+} Av2hLumaModeContext;
+
+typedef struct {
+    Av2hLumaModeContext *above;
+    Av2hLumaModeContext *left;
+    size_t above_count;
+    size_t left_count;
+} Av2hLumaModeContextState;
+
+typedef struct {
     uint8_t is_cfl;
     uint8_t mode_index;
     Av2hFirstLeafIntraMode mode;
@@ -106,11 +121,41 @@ Av2hStatus av2h_luma_mode_read(Av2hRangeDecoder *decoder,
                                  const Av2hPartitionNode *leaf,
                                  const Av2hLumaModeNeighbors *neighbors,
                                  Av2hFirstLeafMode *mode);
+Av2hStatus av2h_luma_mode_context_state_init(
+    Av2hLumaModeContextState *state,
+    Av2hLumaModeContext *above,
+    size_t above_count,
+    Av2hLumaModeContext *left,
+    size_t left_count);
+Av2hStatus av2h_luma_mode_neighbors_from_state(
+    const Av2hLumaModeContextState *state,
+    const Av2hPartitionNode *leaf,
+    Av2hLumaModeNeighbors *neighbors);
+Av2hStatus av2h_luma_mode_context_state_update(
+    Av2hLumaModeContextState *state,
+    const Av2hPartitionNode *leaf,
+    const Av2hFirstLeafMode *mode);
+Av2hStatus av2h_luma_mode_read_with_state(
+    Av2hRangeDecoder *decoder,
+    Av2hLeafCdfs *cdfs,
+    const Av2hSequenceState *sequence,
+    const Av2hFrameState *frame,
+    const Av2hPartitionNode *leaf,
+    const Av2hLumaModeContextState *state,
+    Av2hFirstLeafMode *mode);
 Av2hStatus av2h_chroma_mode_read(
     Av2hRangeDecoder *decoder,
     Av2hLeafCdfs *cdfs,
     const Av2hSequenceState *sequence,
     Av2hFirstLeafIntraMode colocated_luma_mode,
+    uint8_t cfl_context,
+    Av2hFirstChromaMode *mode);
+Av2hStatus av2h_chroma_mode_read_with_delta(
+    Av2hRangeDecoder *decoder,
+    Av2hLeafCdfs *cdfs,
+    const Av2hSequenceState *sequence,
+    Av2hFirstLeafIntraMode colocated_luma_mode,
+    int8_t colocated_luma_delta,
     uint8_t cfl_context,
     Av2hFirstChromaMode *mode);
 

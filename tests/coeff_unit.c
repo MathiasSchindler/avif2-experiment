@@ -148,7 +148,7 @@ static void test_arguments(void) {
     Av2hPartitionNode leaf = { 0U, 0U, AV2H_BLOCK_8X8 };
     Av2hFirstLeafMode mode = { 0 };
     Av2hFirstCoeffPrefix prefix;
-    CHECK(sizeof(Av2hFirstCoeffCdfs) == 186U);
+    CHECK(sizeof(Av2hFirstCoeffCdfs) == 234U);
     CHECK(av2h_first_coeff_cdfs_init(0) == AV2H_INVALID_ARGUMENT);
     CHECK(av2h_first_coeff_prefix_read(
               0, &cdfs, &frame, &leaf, &mode, &prefix) ==
@@ -160,9 +160,75 @@ static void test_arguments(void) {
           AV2H_UNSUPPORTED);
 }
 
+static void test_context_state(void) {
+    uint8_t above[AV2H_FRAME_PLANE_COUNT * 4U];
+    uint8_t left[AV2H_FRAME_PLANE_COUNT * 4U];
+    Av2hCoeffContextState state;
+    Av2hPartitionNode leaf = { 0U, 0U, AV2H_BLOCK_4X4 };
+    uint8_t skip_context;
+    uint8_t dc_sign_context;
+
+    CHECK(av2h_coeff_context_state_init(
+              &state, above, 4U, left, 4U) == AV2H_OK);
+    CHECK(av2h_coeff_contexts_from_state(
+              &state, 1U, &leaf, 0U, &skip_context, &dc_sign_context) ==
+          AV2H_OK);
+    CHECK(skip_context == 6U);
+    CHECK(dc_sign_context == 0U);
+    CHECK(av2h_coeff_context_state_update(
+              &state, 1U, &leaf, 18U) == AV2H_OK);
+    CHECK(av2h_coeff_contexts_from_state(
+              &state, 2U, &leaf, 0U, &skip_context, &dc_sign_context) ==
+          AV2H_OK);
+    CHECK(skip_context == 9U);
+
+    CHECK(av2h_coeff_context_state_update(
+              &state, 2U, &leaf, 11U) == AV2H_OK);
+    leaf.column = 1U;
+    CHECK(av2h_coeff_contexts_from_state(
+              &state, 1U, &leaf, 0U, &skip_context, &dc_sign_context) ==
+          AV2H_OK);
+    CHECK(skip_context == 7U);
+    CHECK(dc_sign_context == 2U);
+    CHECK(av2h_coeff_context_state_update(
+              &state, 1U, &leaf, 9U) == AV2H_OK);
+    CHECK(av2h_coeff_contexts_from_state(
+              &state, 2U, &leaf, 0U, &skip_context, &dc_sign_context) ==
+          AV2H_OK);
+    CHECK(skip_context == 7U);
+    CHECK(dc_sign_context == 1U);
+
+    leaf.row = 1U;
+    leaf.column = 0U;
+    CHECK(av2h_coeff_context_state_update(
+              &state, 1U, &leaf, 5U) == AV2H_OK);
+    leaf.column = 1U;
+    CHECK(av2h_coeff_contexts_from_state(
+              &state, 1U, &leaf, 0U, &skip_context, &dc_sign_context) ==
+          AV2H_OK);
+    CHECK(skip_context == 8U);
+    CHECK(dc_sign_context == 1U);
+    CHECK(av2h_coeff_contexts_from_state(
+              &state, 0U, &leaf, 1U, &skip_context, &dc_sign_context) ==
+          AV2H_OK);
+    CHECK(skip_context == 9U);
+    CHECK(dc_sign_context == 0U);
+
+    leaf.column = 4U;
+    CHECK(av2h_coeff_context_state_update(
+              &state, 0U, &leaf, 0U) == AV2H_OVERFLOW);
+    CHECK(av2h_coeff_context_state_init(
+              0, above, 4U, left, 4U) == AV2H_INVALID_ARGUMENT);
+    state.above_count = 0U;
+    CHECK(av2h_coeff_contexts_from_state(
+              &state, 0U, &leaf, 0U, &skip_context, &dc_sign_context) ==
+          AV2H_INVALID_ARGUMENT);
+}
+
 int main(void) {
     test_fixture_prefixes();
     test_arguments();
+    test_context_state();
     if (failures != 0) {
         fprintf(stderr, "%d coefficient checks failed\n", failures);
         return 1;

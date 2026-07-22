@@ -172,6 +172,15 @@ static void check_first_leaf(const unsigned char *bytes,
     Av2hRangeDecoder decoder;
     Av2hPartitionCdfs cdfs;
     Av2hFirstLeafPath path;
+    Av2hPartitionTraversal traversal;
+    Av2hPartitionContextState contexts;
+    uint8_t luma_above[64U];
+    uint8_t luma_left[64U];
+    uint8_t chroma_above[64U];
+    uint8_t chroma_left[64U];
+    uint8_t has_leaf;
+    uint16_t mi_rows;
+    uint16_t mi_columns;
     size_t index;
     CHECK(av2h_partition_cdfs_init(&cdfs) == AV2H_OK);
     CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
@@ -193,6 +202,25 @@ static void check_first_leaf(const unsigned char *bytes,
                   path.decisions[index].after_bits);
         }
     }
+
+    mi_columns = (uint16_t)(2U * (((uint32_t)width + 7U) / 8U));
+    mi_rows = (uint16_t)(2U * (((uint32_t)height + 7U) / 8U));
+    CHECK(av2h_partition_cdfs_init(&cdfs) == AV2H_OK);
+    CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
+    CHECK(av2h_partition_context_state_init(
+              &contexts, luma_above, luma_left, chroma_above, chroma_left,
+              64U, 64U) == AV2H_OK);
+    CHECK(av2h_partition_traversal_init(
+              &traversal, mi_rows, mi_columns,
+              (Av2hPartitionNode){ 0U, 0U, AV2H_BLOCK_64X64 }, 0U, 1U) ==
+          AV2H_OK);
+    CHECK(av2h_partition_traversal_next(
+              &traversal, &decoder, &cdfs, &contexts, &path, &has_leaf) ==
+          AV2H_OK);
+    CHECK(has_leaf == 1U);
+    CHECK(path.decision_count == count);
+    CHECK(path.leaf.row == 0U && path.leaf.column == 0U);
+    CHECK(path.leaf.block_size == leaf);
 }
 
 static void test_first_leaf_paths(void) {
@@ -298,6 +326,109 @@ static void test_first_leaf_paths(void) {
                      AV2H_BLOCK_8X8);
 }
 
+static void test_context_state(void) {
+    uint8_t luma_above[16U];
+    uint8_t luma_left[16U];
+    uint8_t chroma_above[16U];
+    uint8_t chroma_left[16U];
+    Av2hPartitionContextState state;
+    size_t split_context;
+    size_t rect_context;
+    size_t extension_context;
+    CHECK(av2h_partition_context_state_init(
+              &state, luma_above, luma_left, chroma_above, chroma_left,
+              16U, 16U) == AV2H_OK);
+    CHECK(av2h_partition_context_state_update(
+              &state, 0U,
+              (Av2hPartitionNode){ 0U, 0U, AV2H_BLOCK_8X4 }) == AV2H_OK);
+    CHECK(av2h_partition_contexts_from_state(
+              &state, 0U,
+              (Av2hPartitionNode){ 0U, 2U, AV2H_BLOCK_8X4 },
+              AV2H_PARTITION_VERTICAL, &split_context, &rect_context,
+              &extension_context) == AV2H_OK);
+    CHECK(split_context == 2U);
+    CHECK(rect_context == 2U);
+    CHECK(extension_context == 0U);
+
+    CHECK(av2h_partition_context_state_update(
+              &state, 0U,
+              (Av2hPartitionNode){ 0U, 2U, AV2H_BLOCK_4X4 }) == AV2H_OK);
+    CHECK(av2h_partition_context_state_update(
+              &state, 0U,
+              (Av2hPartitionNode){ 0U, 3U, AV2H_BLOCK_4X4 }) == AV2H_OK);
+    CHECK(av2h_partition_contexts_from_state(
+              &state, 0U,
+              (Av2hPartitionNode){ 1U, 0U, AV2H_BLOCK_16X4 },
+              AV2H_PARTITION_VERTICAL, &split_context, &rect_context,
+              &extension_context) == AV2H_OK);
+    CHECK(split_context == 45U);
+    CHECK(rect_context == 57U);
+    CHECK(extension_context == 45U);
+
+    CHECK(av2h_partition_context_state_update(
+              &state, 0U,
+              (Av2hPartitionNode){ 1U, 0U, AV2H_BLOCK_8X4 }) == AV2H_OK);
+    CHECK(av2h_partition_contexts_from_state(
+              &state, 0U,
+              (Av2hPartitionNode){ 1U, 2U, AV2H_BLOCK_8X4 },
+              AV2H_PARTITION_VERTICAL, &split_context, &rect_context,
+              &extension_context) == AV2H_OK);
+    CHECK(split_context == 3U);
+    CHECK(rect_context == 3U);
+    CHECK(extension_context == 3U);
+}
+
+static void test_traversal(void) {
+    static const unsigned char bytes[] = { 0U, 0U, 0U, 0U };
+    uint8_t luma_above[4U];
+    uint8_t luma_left[4U];
+    uint8_t chroma_above[4U];
+    uint8_t chroma_left[4U];
+    Av2hSpan span = { bytes, sizeof(bytes) };
+    Av2hRangeDecoder decoder;
+    Av2hPartitionCdfs cdfs;
+    Av2hPartitionContextState contexts;
+    Av2hPartitionTraversal traversal;
+    Av2hFirstLeafPath path;
+    uint8_t has_leaf;
+
+    CHECK(av2h_partition_cdfs_init(&cdfs) == AV2H_OK);
+    CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
+    CHECK(av2h_partition_context_state_init(
+              &contexts, luma_above, luma_left, chroma_above, chroma_left,
+              4U, 4U) == AV2H_OK);
+    CHECK(av2h_partition_traversal_init(
+              &traversal, 1U, 1U,
+              (Av2hPartitionNode){ 0U, 0U, AV2H_BLOCK_16X16 }, 0U, 1U) ==
+          AV2H_OK);
+    CHECK(av2h_partition_traversal_next(
+              &traversal, &decoder, &cdfs, &contexts, &path, &has_leaf) ==
+          AV2H_OK);
+    CHECK(has_leaf == 1U);
+    CHECK(path.decision_count == 4U);
+    CHECK(path.leaf.row == 0U && path.leaf.column == 0U);
+    CHECK(path.leaf.block_size == AV2H_BLOCK_4X4);
+    CHECK(av2h_partition_traversal_next(
+              &traversal, &decoder, &cdfs, &contexts, &path, &has_leaf) ==
+          AV2H_INVALID_ARGUMENT);
+    CHECK(av2h_partition_traversal_commit_leaf(
+              &traversal, &contexts,
+              (Av2hPartitionNode){ 0U, 0U, AV2H_BLOCK_8X4 }) ==
+          AV2H_INVALID_ARGUMENT);
+    CHECK(av2h_partition_traversal_commit_leaf(
+              &traversal, &contexts, path.leaf) == AV2H_OK);
+    CHECK(luma_above[0] == 63U);
+    CHECK(luma_left[0] == 63U);
+    CHECK(av2h_partition_traversal_next(
+              &traversal, &decoder, &cdfs, &contexts, &path, &has_leaf) ==
+          AV2H_OK);
+    CHECK(has_leaf == 0U);
+    CHECK(av2h_partition_traversal_init(
+              &traversal, 0U, 1U,
+              (Av2hPartitionNode){ 0U, 0U, AV2H_BLOCK_4X4 }, 0U, 1U) ==
+          AV2H_INVALID_ARGUMENT);
+}
+
 static void test_arguments(void) {
     static const unsigned char empty_storage[] = { 0U };
     Av2hSpan empty = { empty_storage, 0U };
@@ -336,6 +467,8 @@ int main(void) {
     test_fixture_prefixes();
     test_forced_geometry();
     test_first_leaf_paths();
+    test_context_state();
+    test_traversal();
     test_arguments();
     if (failures != 0) {
         fprintf(stderr, "%d partition checks failed\n", failures);
