@@ -10,16 +10,20 @@ HOST_TILE_UNIT := build/host/tile-unit
 HOST_FRAME_UNIT := build/host/frame-unit
 HOST_CDF_UNIT := build/host/cdf-unit
 HOST_PARTITION_UNIT := build/host/partition-unit
+HOST_LEAF_UNIT := build/host/leaf-unit
+HOST_COEFF_UNIT := build/host/coeff-unit
 HOST_UNITS := $(HOST_SUBSTRATE_UNIT) $(HOST_CONTAINER_UNIT) $(HOST_RANGE_UNIT) \
 	$(HOST_TILE_UNIT) $(HOST_FRAME_UNIT) $(HOST_CDF_UNIT) \
-	$(HOST_PARTITION_UNIT)
+	$(HOST_PARTITION_UNIT) $(HOST_LEAF_UNIT) $(HOST_COEFF_UNIT)
 HOST_ARTIFACT_TOOL := build/host/av2heif-artifact
 CORE_SOURCES := src/base.c src/carriage.c src/bmff.c src/container.c src/query.c \
-	src/decoder/cdf.c src/decoder/frame.c src/decoder/partition.c \
+	src/decoder/cdf.c src/decoder/coeff.c src/decoder/frame.c src/decoder/leaf.c \
+	src/decoder/partition.c \
 	src/decoder/partition_cdf.c \
 	src/decoder/range.c src/decoder/tile.c
 CORE_HEADERS := include/av2heif.h src/base.h src/decoder/sequence.h \
-	src/decoder/cdf.h src/decoder/frame.h src/decoder/partition.h \
+	src/decoder/cdf.h src/decoder/coeff.h src/decoder/frame.h src/decoder/leaf.h \
+	src/decoder/partition.h \
 	src/decoder/partition_cdf.h \
 	src/decoder/partition_cdf_data.inc src/decoder/range.h src/decoder/tile.h
 STRICT_DIR := build/freestanding
@@ -45,6 +49,8 @@ test-c: $(HOST_UNITS)
 	$(HOST_FRAME_UNIT)
 	$(HOST_CDF_UNIT)
 	$(HOST_PARTITION_UNIT)
+	$(HOST_LEAF_UNIT)
+	$(HOST_COEFF_UNIT)
 
 $(HOST_SUBSTRATE_UNIT): tests/substrate_unit.c $(CORE_SOURCES) $(CORE_HEADERS)
 	@mkdir -p $(dir $@)
@@ -75,6 +81,14 @@ $(HOST_CDF_UNIT): tests/cdf_unit.c $(CORE_SOURCES) $(CORE_HEADERS)
 $(HOST_PARTITION_UNIT): tests/partition_unit.c $(CORE_SOURCES) $(CORE_HEADERS)
 	@mkdir -p $(dir $@)
 	$(CC) $(HOST_CFLAGS) tests/partition_unit.c $(CORE_SOURCES) -o $@
+
+$(HOST_LEAF_UNIT): tests/leaf_unit.c $(CORE_SOURCES) $(CORE_HEADERS)
+	@mkdir -p $(dir $@)
+	$(CC) $(HOST_CFLAGS) tests/leaf_unit.c $(CORE_SOURCES) -o $@
+
+$(HOST_COEFF_UNIT): tests/coeff_unit.c $(CORE_SOURCES) $(CORE_HEADERS)
+	@mkdir -p $(dir $@)
+	$(CC) $(HOST_CFLAGS) tests/coeff_unit.c $(CORE_SOURCES) -o $@
 
 $(HOST_ARTIFACT_TOOL): tools/av2heif_artifact.c $(CORE_SOURCES) $(CORE_HEADERS)
 	@mkdir -p $(dir $@)

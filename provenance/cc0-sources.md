@@ -49,8 +49,31 @@ code is copied or linked. The project-owned parser is independently gated by
 four exact header-length vectors, truncation checks, strict alignment tests,
 and the freestanding undefined-symbol inspection.
 
-The compact binary CDF initializer in `src/decoder/cdf.c` is written from the
+The compact CDF initializer in `src/decoder/cdf.c` is written from the
 normative AV2 v1.0.0 symbol-decoding equation, `Para_Adjustment_List`, and
-default CDF attachments. Attachment URLs and hashes are locked in
+default CDF attachments for alphabets of 2 through 16 symbols. Attachment URLs
+and hashes are locked in
 `spec/cdf-attachments.lock`; the separately licensed AVM copy is used only by
 the hosted semantic equivalence checker.
+
+The block catalog, MI dimensions, partition size adjustments, ordinary child
+geometry, and boundary-forcing rules in `src/decoder/partition.c` are written
+from the AV2 v1.0.0 conversion tables and partition parsing process. A locally
+instrumented, separately licensed AVM inspection build supplies only hosted
+equivalence evidence for node geometry, forced/implied provenance, contexts,
+symbols, and entropy positions; no AVM partition code or table is included or
+linked into production.
+
+The first-leaf pre-mode controls and luma mode implementation in
+`src/decoder/leaf.c` are project-owned CC0 code written from the AV2 v1.0.0
+parsing process and hash-locked intraBC, CCSO, and luma-mode CDF attachments.
+A separately licensed AVM inspection build supplies hosted symbol-order and
+fixture correspondence evidence only. No AVM mode code, table, header, or
+object is included or linked into production.
+
+The FSC and first-transform `all_zero`/EOB continuation in
+`src/decoder/leaf.c` and `src/decoder/coeff.c` is project-owned CC0 code
+written from the AV2 v1.0.0 parsing processes and hash-locked normative CDF
+attachments. Hosted checkers compare the compact rows with pinned AVM's
+separately licensed defaults; no AVM coefficient code, table, or object is
+included or linked into production.

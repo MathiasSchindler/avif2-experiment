@@ -16,34 +16,44 @@ static int failures;
 static void check_prefix(const char *name,
                          const unsigned char *bytes,
                          size_t size,
-                         size_t split_context,
-                         size_t rect_type_context,
-                         size_t extension_context,
+                         uint16_t width,
+                         uint16_t height,
+                         size_t expected_forced_steps,
+                         Av2hBlockSize expected_node,
+                         size_t expected_split_context,
+                         size_t expected_rect_type_context,
+                         size_t expected_extension_context,
                          Av2hPartitionAxis expected_axis) {
     Av2hSpan span = { bytes, size };
     Av2hRangeDecoder decoder;
     Av2hPartitionCdfs cdfs;
-    Av2hOrdinaryPartitionPrefix prefix;
+    Av2hFirstPartitionPrefix prefix;
     CHECK(av2h_partition_cdfs_init(&cdfs) == AV2H_OK);
     CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
     {
         Av2hStatus status =
-            av2h_partition_ordinary_prefix_read(
-                &decoder, &cdfs, split_context, rect_type_context,
-                extension_context, &prefix);
+            av2h_partition_first_prefix_read(
+                &decoder, &cdfs, width, height, &prefix);
         if (status != AV2H_OK) {
             fprintf(stderr, "%s: status=%d axis=%d tell=%zu\n", name,
-                    status, (int)prefix.axis, av2h_range_tell(&decoder));
+                    status, (int)prefix.ordinary.axis,
+                    av2h_range_tell(&decoder));
             ++failures;
             return;
         }
     }
-    CHECK(prefix.axis == expected_axis);
-    CHECK(prefix.after_split_bits <= prefix.after_axis_bits);
-    CHECK(prefix.after_axis_bits <= prefix.after_extension_bits);
-    CHECK(cdfs.do_split[0][split_context][2] == 1U);
-    CHECK(cdfs.rect_type[0][rect_type_context][2] == 1U);
-    CHECK(cdfs.do_ext_partition[0][extension_context][2] == 1U);
+    CHECK(prefix.forced.step_count == expected_forced_steps);
+    CHECK(prefix.forced.next.block_size == expected_node);
+    CHECK(prefix.split_context == expected_split_context);
+    CHECK(prefix.rect_type_context == expected_rect_type_context);
+    CHECK(prefix.extension_context == expected_extension_context);
+    CHECK(prefix.ordinary.axis == expected_axis);
+    CHECK(prefix.ordinary.after_split_bits <= prefix.ordinary.after_axis_bits);
+    CHECK(prefix.ordinary.after_axis_bits <=
+          prefix.ordinary.after_extension_bits);
+    CHECK(cdfs.do_split[0][expected_split_context][2] == 1U);
+    CHECK(cdfs.rect_type[0][expected_rect_type_context][2] == 1U);
+    CHECK(cdfs.do_ext_partition[0][expected_extension_context][2] == 1U);
 }
 
 static void test_fixture_prefixes(void) {
@@ -63,14 +73,229 @@ static void test_fixture_prefixes(void) {
         0xc7U, 0x43U, 0xf5U, 0xb7U, 0xcbU, 0xdeU, 0xd0U, 0x78U,
         0xe8U, 0xfdU, 0x2dU, 0x87U, 0x60U, 0xdaU, 0x52U, 0x31U
     };
-    check_prefix("tiny", tiny, sizeof(tiny), 4U, 0U, 4U,
+    check_prefix("tiny", tiny, sizeof(tiny), 16U, 16U, 4U,
+                 AV2H_BLOCK_16X16, 4U, 0U, 4U,
                  AV2H_PARTITION_HORIZONTAL);
-    check_prefix("odd", odd, sizeof(odd), 8U, 8U, 8U,
+    check_prefix("odd", odd, sizeof(odd), 17U, 15U, 3U,
+                 AV2H_BLOCK_32X16, 8U, 8U, 8U,
                  AV2H_PARTITION_VERTICAL);
-    check_prefix("ordinary", ordinary, sizeof(ordinary), 12U, 24U, 12U,
+    check_prefix("ordinary", ordinary, sizeof(ordinary), 160U, 120U, 0U,
+                 AV2H_BLOCK_64X64, 12U, 24U, 12U,
                  AV2H_PARTITION_HORIZONTAL);
-    check_prefix("high-detail", detail, sizeof(detail), 12U, 24U, 12U,
+    check_prefix("high-detail", detail, sizeof(detail), 96U, 80U, 0U,
+                 AV2H_BLOCK_64X64, 12U, 24U, 12U,
                  AV2H_PARTITION_HORIZONTAL);
+}
+
+static void check_forced_path(uint16_t mi_rows,
+                              uint16_t mi_columns,
+                              const Av2hBlockSize *blocks,
+                              const Av2hPartitionType *partitions,
+                              size_t count,
+                              Av2hBlockSize next) {
+    Av2hForcedPartitionPath path;
+    size_t index;
+    CHECK(av2h_partition_forced_path(
+              mi_rows, mi_columns,
+              (Av2hPartitionNode){ 0U, 0U, AV2H_BLOCK_64X64 },
+              &path) == AV2H_OK);
+    CHECK(path.step_count == count);
+    CHECK(path.next.row == 0U && path.next.column == 0U);
+    CHECK(path.next.block_size == next);
+    for (index = 0U; index < count && index < path.step_count; ++index) {
+        CHECK(path.steps[index].node.block_size == blocks[index]);
+        CHECK(path.steps[index].partition == partitions[index]);
+    }
+}
+
+static void test_forced_geometry(void) {
+    static const Av2hBlockSize tiny_blocks[] = {
+        AV2H_BLOCK_64X64, AV2H_BLOCK_64X32,
+        AV2H_BLOCK_32X32, AV2H_BLOCK_32X16
+    };
+    static const Av2hPartitionType tiny_partitions[] = {
+        AV2H_PARTITION_HORZ, AV2H_PARTITION_VERT,
+        AV2H_PARTITION_HORZ, AV2H_PARTITION_VERT
+    };
+    static const Av2hBlockSize odd_blocks[] = {
+        AV2H_BLOCK_64X64, AV2H_BLOCK_64X32, AV2H_BLOCK_32X32
+    };
+    static const Av2hPartitionType odd_partitions[] = {
+        AV2H_PARTITION_HORZ, AV2H_PARTITION_VERT, AV2H_PARTITION_HORZ
+    };
+    size_t split_context;
+    size_t rect_context;
+    size_t extension_context;
+    check_forced_path(4U, 4U, tiny_blocks, tiny_partitions, 4U,
+                      AV2H_BLOCK_16X16);
+    check_forced_path(4U, 6U, odd_blocks, odd_partitions, 3U,
+                      AV2H_BLOCK_32X16);
+    check_forced_path(30U, 40U, 0, 0, 0U, AV2H_BLOCK_64X64);
+    check_forced_path(20U, 24U, 0, 0, 0U, AV2H_BLOCK_64X64);
+
+    CHECK(av2h_partition_contexts(AV2H_BLOCK_16X16, 0U, 0U, 0U, 0U,
+              &split_context, &rect_context, &extension_context) == AV2H_OK);
+    CHECK(split_context == 4U && rect_context == 0U &&
+          extension_context == 4U);
+    CHECK(av2h_partition_contexts(AV2H_BLOCK_32X16, 0U, 0U, 0U, 0U,
+              &split_context, &rect_context, &extension_context) == AV2H_OK);
+    CHECK(split_context == 8U && rect_context == 8U &&
+          extension_context == 8U);
+    CHECK(av2h_partition_contexts(AV2H_BLOCK_64X64, 0U, 0U, 0U, 0U,
+              &split_context, &rect_context, &extension_context) == AV2H_OK);
+    CHECK(split_context == 12U && rect_context == 24U &&
+          extension_context == 12U);
+    {
+        Av2hForcedPartitionPath path;
+        CHECK(av2h_partition_forced_path(
+                  16U, 2U,
+                  (Av2hPartitionNode){ 0U, 0U, AV2H_BLOCK_8X64 },
+                  &path) == AV2H_OK);
+        CHECK(path.step_count == 0U);
+        CHECK(path.next.block_size == AV2H_BLOCK_8X64);
+    }
+}
+
+static void check_first_leaf(const unsigned char *bytes,
+                             size_t size,
+                             uint16_t width,
+                             uint16_t height,
+                             const Av2hBlockSize *blocks,
+                             const Av2hPartitionType *partitions,
+                             const uint8_t *forced,
+                             const uint8_t *axis_implied,
+                             const uint8_t *extension_implied,
+                             const size_t *after_bits,
+                             size_t count,
+                             Av2hBlockSize leaf) {
+    Av2hSpan span = { bytes, size };
+    Av2hRangeDecoder decoder;
+    Av2hPartitionCdfs cdfs;
+    Av2hFirstLeafPath path;
+    size_t index;
+    CHECK(av2h_partition_cdfs_init(&cdfs) == AV2H_OK);
+    CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
+    CHECK(av2h_partition_first_leaf_read(
+              &decoder, &cdfs, width, height, 1U, &path) == AV2H_OK);
+    CHECK(path.decision_count == count);
+    CHECK(path.leaf.row == 0U && path.leaf.column == 0U);
+    CHECK(path.leaf.block_size == leaf);
+    for (index = 0U; index < count && index < path.decision_count; ++index) {
+        CHECK(path.decisions[index].node.block_size == blocks[index]);
+        CHECK(path.decisions[index].partition == partitions[index]);
+        CHECK(path.decisions[index].forced == forced[index]);
+          CHECK(path.decisions[index].axis_implied == axis_implied[index]);
+          CHECK(path.decisions[index].extension_implied ==
+              extension_implied[index]);
+        CHECK(path.decisions[index].after_bits == after_bits[index]);
+        if (index != 0U) {
+            CHECK(path.decisions[index - 1U].after_bits <=
+                  path.decisions[index].after_bits);
+        }
+    }
+}
+
+static void test_first_leaf_paths(void) {
+    static const unsigned char tiny[] = {
+        0xd7U, 0xc3U, 0x43U, 0x86U, 0xffU, 0x01U, 0xfcU, 0x2aU,
+        0x52U, 0xaaU, 0x8fU, 0x5dU, 0x63U, 0xc5U, 0x9cU, 0x36U
+    };
+    static const unsigned char odd[] = {
+        0xf3U, 0x99U, 0x9cU, 0x59U, 0x42U, 0xfbU, 0xe6U, 0x50U,
+        0x15U, 0x7dU, 0x6eU, 0x92U, 0x8aU, 0x57U, 0x4aU, 0x49U
+    };
+    static const unsigned char ordinary[] = {
+        0xcdU, 0x77U, 0xc5U, 0x58U, 0x5fU, 0x4dU, 0x54U, 0x7fU,
+        0xf3U, 0x9eU, 0xfcU, 0x9cU, 0x09U, 0x95U, 0xb7U, 0x37U
+    };
+    static const unsigned char detail[] = {
+        0xc7U, 0x43U, 0xf5U, 0xb7U, 0xcbU, 0xdeU, 0xd0U, 0x78U,
+        0xe8U, 0xfdU, 0x2dU, 0x87U, 0x60U, 0xdaU, 0x52U, 0x31U
+    };
+    static const Av2hBlockSize tiny_blocks[] = {
+        AV2H_BLOCK_64X64, AV2H_BLOCK_64X32, AV2H_BLOCK_32X32,
+        AV2H_BLOCK_32X16, AV2H_BLOCK_16X16, AV2H_BLOCK_16X8,
+        AV2H_BLOCK_16X4, AV2H_BLOCK_8X4
+    };
+    static const Av2hPartitionType tiny_parts[] = {
+        AV2H_PARTITION_HORZ, AV2H_PARTITION_VERT, AV2H_PARTITION_HORZ,
+        AV2H_PARTITION_VERT, AV2H_PARTITION_HORZ, AV2H_PARTITION_HORZ,
+        AV2H_PARTITION_VERT, AV2H_PARTITION_NONE
+    };
+    static const uint8_t tiny_forced[] = { 1U, 1U, 1U, 1U, 0U, 0U, 0U, 0U };
+    static const uint8_t tiny_axis_implied[] = {
+        1U, 1U, 1U, 1U, 0U, 0U, 1U, 1U
+    };
+    static const uint8_t tiny_extension_implied[] = {
+        1U, 1U, 1U, 1U, 0U, 1U, 1U, 1U
+    };
+    static const size_t tiny_after_bits[] = {
+        1U, 1U, 1U, 1U, 5U, 8U, 11U, 11U
+    };
+    static const Av2hBlockSize odd_blocks[] = {
+        AV2H_BLOCK_64X64, AV2H_BLOCK_64X32, AV2H_BLOCK_32X32,
+        AV2H_BLOCK_32X16, AV2H_BLOCK_16X16, AV2H_BLOCK_16X8,
+        AV2H_BLOCK_16X4, AV2H_BLOCK_8X4
+    };
+    static const Av2hPartitionType odd_parts[] = {
+        AV2H_PARTITION_HORZ, AV2H_PARTITION_VERT, AV2H_PARTITION_HORZ,
+        AV2H_PARTITION_VERT, AV2H_PARTITION_HORZ, AV2H_PARTITION_HORZ,
+        AV2H_PARTITION_VERT, AV2H_PARTITION_NONE
+    };
+    static const uint8_t odd_forced[] = { 1U, 1U, 1U, 0U, 0U, 0U, 0U, 0U };
+    static const uint8_t odd_axis_implied[] = {
+        1U, 1U, 1U, 0U, 0U, 0U, 1U, 1U
+    };
+    static const uint8_t odd_extension_implied[] = {
+        1U, 1U, 1U, 0U, 0U, 1U, 1U, 1U
+    };
+    static const size_t odd_after_bits[] = {
+        1U, 1U, 1U, 4U, 7U, 11U, 13U, 13U
+    };
+    static const Av2hBlockSize ordinary_blocks[] = {
+        AV2H_BLOCK_64X64, AV2H_BLOCK_64X32, AV2H_BLOCK_32X32
+    };
+    static const Av2hPartitionType ordinary_parts[] = {
+        AV2H_PARTITION_HORZ, AV2H_PARTITION_VERT, AV2H_PARTITION_NONE
+    };
+    static const uint8_t ordinary_forced[] = { 0U, 0U, 0U };
+    static const uint8_t ordinary_axis_implied[] = { 0U, 0U, 1U };
+    static const uint8_t ordinary_extension_implied[] = { 0U, 0U, 1U };
+    static const size_t ordinary_after_bits[] = { 4U, 6U, 7U };
+    static const Av2hBlockSize detail_blocks[] = {
+        AV2H_BLOCK_64X64, AV2H_BLOCK_64X32, AV2H_BLOCK_64X16,
+        AV2H_BLOCK_32X16, AV2H_BLOCK_32X8, AV2H_BLOCK_16X8,
+        AV2H_BLOCK_8X8
+    };
+    static const Av2hPartitionType detail_parts[] = {
+        AV2H_PARTITION_HORZ, AV2H_PARTITION_HORZ, AV2H_PARTITION_VERT,
+        AV2H_PARTITION_HORZ, AV2H_PARTITION_VERT, AV2H_PARTITION_VERT,
+        AV2H_PARTITION_NONE
+    };
+    static const uint8_t detail_forced[] = { 0U, 0U, 0U, 0U, 0U, 0U, 0U };
+    static const uint8_t detail_axis_implied[] = {
+        0U, 0U, 0U, 0U, 0U, 0U, 1U
+    };
+    static const uint8_t detail_extension_implied[] = {
+        0U, 0U, 0U, 0U, 0U, 0U, 1U
+    };
+    static const size_t detail_after_bits[] = {
+        4U, 6U, 8U, 12U, 14U, 16U, 17U
+    };
+    check_first_leaf(tiny, sizeof(tiny), 16U, 16U, tiny_blocks, tiny_parts,
+                     tiny_forced, tiny_axis_implied, tiny_extension_implied,
+                     tiny_after_bits, 8U, AV2H_BLOCK_8X4);
+    check_first_leaf(odd, sizeof(odd), 17U, 15U, odd_blocks, odd_parts,
+                     odd_forced, odd_axis_implied, odd_extension_implied,
+                     odd_after_bits, 8U, AV2H_BLOCK_8X4);
+    check_first_leaf(ordinary, sizeof(ordinary), 160U, 120U,
+                     ordinary_blocks, ordinary_parts, ordinary_forced,
+                     ordinary_axis_implied, ordinary_extension_implied,
+                     ordinary_after_bits, 3U, AV2H_BLOCK_32X32);
+    check_first_leaf(detail, sizeof(detail), 96U, 80U, detail_blocks,
+                     detail_parts, detail_forced, detail_axis_implied,
+                     detail_extension_implied, detail_after_bits, 7U,
+                     AV2H_BLOCK_8X8);
 }
 
 static void test_arguments(void) {
@@ -79,6 +304,7 @@ static void test_arguments(void) {
     Av2hRangeDecoder decoder;
     Av2hPartitionCdfs cdfs;
         Av2hOrdinaryPartitionPrefix prefix;
+    Av2hFirstPartitionPrefix first;
         CHECK(av2h_partition_ordinary_prefix_read(
               0, &cdfs, 0U, 0U, 0U, &prefix) ==
           AV2H_INVALID_ARGUMENT);
@@ -91,6 +317,15 @@ static void test_arguments(void) {
         CHECK(av2h_partition_ordinary_prefix_read(
               &decoder, &cdfs, AV2H_PARTITION_CONTEXT_COUNT, 0U, 0U,
               &prefix) == AV2H_INVALID_ARGUMENT);
+        CHECK(av2h_partition_forced_path(
+                  0U, 1U, (Av2hPartitionNode){ 0U, 0U, AV2H_BLOCK_64X64 },
+                  (Av2hForcedPartitionPath *)&prefix) == AV2H_INVALID_ARGUMENT);
+        CHECK(av2h_partition_contexts(
+                  AV2H_BLOCK_INVALID, 0U, 0U, 0U, 0U,
+                  &prefix.after_split_bits, &prefix.after_axis_bits,
+                  &prefix.after_extension_bits) == AV2H_INVALID_ARGUMENT);
+        CHECK(av2h_partition_first_prefix_read(
+                  &decoder, &cdfs, 0U, 1U, &first) == AV2H_INVALID_ARGUMENT);
         CHECK(av2h_partition_cdfs_init(&cdfs) == AV2H_OK);
         CHECK(av2h_range_init(&decoder, &empty, 1U) == AV2H_TRUNCATED);
         CHECK(av2h_partition_ordinary_prefix_read(
@@ -99,6 +334,8 @@ static void test_arguments(void) {
 
 int main(void) {
     test_fixture_prefixes();
+    test_forced_geometry();
+    test_first_leaf_paths();
     test_arguments();
     if (failures != 0) {
         fprintf(stderr, "%d partition checks failed\n", failures);

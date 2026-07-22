@@ -313,12 +313,13 @@ runtime, or compiler helper references in freestanding artifacts.
 ## Milestone 5: first complete decode slice
 
 **Status:** In progress. The independent freestanding entropy decoder, private
-Closed Loop Key frame parser, complete partition CDF initialization, and first
-ordinary-partition syntax prefix pass pinned-AVM oracle checks under sanitizers
-and the strict dependency gate. The parser derives all four tile entropy
-boundaries from syntax. Full partition traversal, leaf syntax, reconstruction,
-filter execution, workspace sizing, and the public decode API remain; see
-`docs/milestone-5.md`.
+Closed Loop Key frame parser, complete partition CDF initialization, and
+bounded first-leaf traversal through luma mode, FSC, transform `all_zero`, and
+complete EOB pass pinned-AVM oracle checks under sanitizers and the strict
+dependency gate. The parser derives all four tile entropy boundaries from
+syntax. Full frame traversal, remaining coefficient syntax,
+reconstruction, filter execution, workspace sizing, and the public decode API
+remain; see `docs/milestone-5.md`.
 
 Implement only the smallest profile that pinned AVM can reliably emit and the
 project can validate completely. The initial target is one 8-bit 4:2:0
