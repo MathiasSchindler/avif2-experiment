@@ -56,6 +56,11 @@ static int round_shift_signed(int value, unsigned int shift) {
     return -(int)(((unsigned int)(-adjusted) + ((1U << shift) - 1U)) >> shift);
 }
 
+static int floor_shift_signed(int value, unsigned int shift) {
+    if (value >= 0) return value >> shift;
+    return -(int)(((unsigned int)(-value) + ((1U << shift) - 1U)) >> shift);
+}
+
 static size_t gdf_alpha_index(unsigned int qp_index,
                               unsigned int kernel_index,
                               unsigned int class_index) {
@@ -613,6 +618,10 @@ Av2hStatus av2h_cdef_filter_block(
     if (destination == 0 || source == 0 || destination->data == 0 ||
         source->data == 0 || destination->stride < destination->width ||
         source->stride < source->width || plane_index >= 3U ||
+        primary_strength > 15U ||
+        (secondary_strength != 0U && secondary_strength != 1U &&
+         secondary_strength != 2U && secondary_strength != 4U) ||
+        damping > 6U ||
         direction >= 8U || width == 0U || height == 0U ||
         width > (plane_index == 0U ? 8U : 4U) ||
         height > (plane_index == 0U ? 8U : 4U) ||
@@ -677,7 +686,7 @@ Av2hStatus av2h_cdef_filter_block(
                     }
                 }
             }
-            center += round_shift_signed(8 + sum - (sum < 0), 4U);
+            center += floor_shift_signed(8 + sum - (sum < 0), 4U);
             if (clipping_required) {
                 center = clamp_value(center, minimum, maximum);
             }
@@ -743,6 +752,12 @@ Av2hStatus av2h_cdef_filter_frame(
          (frame->cdef_on_skip_transform == 0U ||
           frame->cdef_damping < 3U))) {
         return AV2H_UNSUPPORTED;
+    }
+    if (frame->cdef_strength_count != 0U &&
+        (frame->cdef_damping > 6U ||
+         frame->cdef_y_strength[0] > 63U ||
+         frame->cdef_uv_strength[0] > 63U)) {
+        return AV2H_INVALID_ARGUMENT;
     }
     for (plane = 0U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
         if (destination->plane[plane].data == deblocked->plane[plane].data) {
@@ -823,6 +838,44 @@ static uint8_t gdf_source_sample(const Av2hFilterPlane *cdef_luma,
         source = deblocked_luma;
     }
     return source->data[(size_t)y * source->stride + (size_t)x];
+}
+
+static int filter_planes_overlap(const Av2hFilterPlane *left,
+                                 const Av2hFilterPlane *right) {
+    size_t left_row = 0U;
+    size_t right_row = 0U;
+    uintptr_t pointer_max = (uintptr_t)-1;
+    while (left_row < left->height && right_row < right->height) {
+        size_t left_offset;
+        size_t right_offset;
+        uintptr_t left_start;
+        uintptr_t left_end;
+        uintptr_t right_start;
+        uintptr_t right_end;
+        if (!av2h_size_multiply(left_row, left->stride, &left_offset) ||
+            !av2h_size_multiply(right_row, right->stride, &right_offset) ||
+            left_offset > (size_t)pointer_max ||
+            right_offset > (size_t)pointer_max ||
+            (uintptr_t)left->data > pointer_max - (uintptr_t)left_offset ||
+            (uintptr_t)right->data > pointer_max - (uintptr_t)right_offset) {
+            return 1;
+        }
+        left_start = (uintptr_t)left->data + (uintptr_t)left_offset;
+        right_start = (uintptr_t)right->data + (uintptr_t)right_offset;
+        if ((uintptr_t)left->width > pointer_max - left_start ||
+            (uintptr_t)right->width > pointer_max - right_start) {
+            return 1;
+        }
+        left_end = left_start + (uintptr_t)left->width;
+        right_end = right_start + (uintptr_t)right->width;
+        if (left_start < right_end && right_start < left_end) return 1;
+        if (left_end <= right_start) {
+            ++left_row;
+        } else {
+            ++right_row;
+        }
+    }
+    return 0;
 }
 
 static unsigned int gdf_gradient_sum(const uint16_t gradient[4][6][6],
@@ -979,11 +1032,15 @@ Av2hStatus av2h_gdf_filter_frame(
         deblocked_luma->data == 0 || destination->stride < destination->width ||
         cdef_luma->stride < cdef_luma->width ||
         deblocked_luma->stride < deblocked_luma->width ||
+        destination->width == 0U || destination->height == 0U ||
         destination->width != cdef_luma->width ||
         destination->height != cdef_luma->height ||
         destination->width != deblocked_luma->width ||
         destination->height != deblocked_luma->height ||
-        destination->data == cdef_luma->data || frame->gdf_mode > 1U ||
+        filter_planes_overlap(destination, cdef_luma) ||
+        filter_planes_overlap(destination, deblocked_luma) ||
+        filter_planes_overlap(cdef_luma, deblocked_luma) ||
+        frame->gdf_mode > 1U ||
         frame->gdf_qp_index >= 6U || frame->gdf_scale_index >= 4U ||
         (destination->width & 3U) != 0U ||
         (destination->height & 3U) != 0U) {
@@ -1011,6 +1068,160 @@ Av2hStatus av2h_gdf_filter_frame(
 
 static size_t coded_dimension(uint16_t value) {
     return ((size_t)value + 7U) & ~(size_t)7U;
+}
+
+static int workspace_reserve(size_t *size,
+                             size_t count,
+                             size_t element_size,
+                             size_t alignment) {
+    size_t bytes;
+    size_t aligned;
+    if (!av2h_size_multiply(count, element_size, &bytes) ||
+        !av2h_size_align(*size, alignment, &aligned) ||
+        !av2h_size_add(aligned, bytes, size)) {
+        return 0;
+    }
+    return 1;
+}
+
+Av2hStatus av2h_filter_workspace_query(
+    const Av2hFrameState *frame,
+    Av2hFilterWorkspaceLayout *layout) {
+    size_t coded_width;
+    size_t coded_height;
+    size_t size = 0U;
+    unsigned int stage;
+    unsigned int plane;
+    if (frame == 0 || layout == 0 || frame->width == 0U ||
+        frame->height == 0U) {
+        return AV2H_INVALID_ARGUMENT;
+    }
+    av2h_memory_fill(layout, 0U, sizeof(*layout));
+    coded_width = coded_dimension(frame->width);
+    coded_height = coded_dimension(frame->height);
+    layout->alignment = _Alignof(Av2hDeblockCell);
+    for (plane = 0U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
+        size_t width = coded_width >> (plane == 0U ? 0U : 1U);
+        size_t height = coded_height >> (plane == 0U ? 0U : 1U);
+        if (width > UINT16_MAX || height > UINT16_MAX ||
+            !av2h_size_multiply(
+                width, height, &layout->stage_plane_bytes[plane]) ||
+            !av2h_size_multiply(
+                width / 4U, height / 4U,
+                &layout->deblock_cell_count[plane])) {
+            return AV2H_OVERFLOW;
+        }
+        layout->plane_width[plane] = (uint16_t)width;
+        layout->plane_height[plane] = (uint16_t)height;
+        layout->deblock_columns[plane] = width / 4U;
+        layout->deblock_rows[plane] = height / 4U;
+    }
+    layout->ccso_columns =
+        (coded_width + AV2H_CCSO_UNIT_SIZE - 1U) / AV2H_CCSO_UNIT_SIZE;
+    layout->ccso_rows =
+        (coded_height + AV2H_CCSO_UNIT_SIZE - 1U) / AV2H_CCSO_UNIT_SIZE;
+    if (!av2h_size_multiply(
+            layout->ccso_columns, layout->ccso_rows,
+            &layout->ccso_control_count)) {
+        return AV2H_OVERFLOW;
+    }
+    for (stage = 0U; stage < 2U; ++stage) {
+        for (plane = 0U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
+            if (!workspace_reserve(
+                    &size, layout->stage_plane_bytes[plane],
+                    sizeof(uint8_t), _Alignof(uint8_t))) {
+                return AV2H_OVERFLOW;
+            }
+        }
+    }
+    for (plane = 0U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
+        if (!workspace_reserve(
+                &size, layout->deblock_cell_count[plane],
+                sizeof(Av2hDeblockCell), _Alignof(Av2hDeblockCell))) {
+            return AV2H_OVERFLOW;
+        }
+    }
+    for (plane = 0U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
+        if (!workspace_reserve(
+                &size, layout->ccso_control_count,
+                sizeof(uint8_t), _Alignof(uint8_t))) {
+            return AV2H_OVERFLOW;
+        }
+    }
+    layout->size = size;
+    return AV2H_OK;
+}
+
+Av2hStatus av2h_filter_workspace_init(
+    const Av2hFrameState *frame,
+    void *memory,
+    size_t memory_size,
+    Av2hFilterWorkspace *workspace,
+    Av2hFilterWorkspaceStorage *storage) {
+    Av2hFilterWorkspaceLayout layout;
+    Av2hArena arena;
+    unsigned int plane;
+    Av2hStatus status;
+    if (workspace == 0 || storage == 0) return AV2H_INVALID_ARGUMENT;
+    status = av2h_filter_workspace_query(frame, &layout);
+    if (status != AV2H_OK) return status;
+    if (memory == 0 ||
+        ((uintptr_t)memory & (layout.alignment - 1U)) != 0U) {
+        return AV2H_INVALID_ARGUMENT;
+    }
+    if (memory_size < layout.size) return AV2H_OUT_OF_MEMORY;
+    av2h_memory_fill(workspace, 0U, sizeof(*workspace));
+    av2h_memory_fill(storage, 0U, sizeof(*storage));
+    av2h_memory_fill(memory, 0U, layout.size);
+    av2h_arena_init(&arena, memory, layout.size);
+    for (plane = 0U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
+        workspace->deblocked.plane[plane] = (Av2hFilterPlane){
+            av2h_arena_allocate(
+                &arena, layout.stage_plane_bytes[plane],
+                _Alignof(uint8_t)),
+            layout.plane_width[plane],
+            layout.plane_width[plane],
+            layout.plane_height[plane]
+        };
+    }
+    for (plane = 0U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
+        workspace->cdef.plane[plane] = (Av2hFilterPlane){
+            av2h_arena_allocate(
+                &arena, layout.stage_plane_bytes[plane],
+                _Alignof(uint8_t)),
+            layout.plane_width[plane],
+            layout.plane_width[plane],
+            layout.plane_height[plane]
+        };
+    }
+    for (plane = 0U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
+        storage->deblock_cells[plane] = av2h_arena_allocate(
+            &arena,
+            layout.deblock_cell_count[plane] * sizeof(Av2hDeblockCell),
+            _Alignof(Av2hDeblockCell));
+        workspace->deblock_map.plane[plane] =
+            storage->deblock_cells[plane];
+        workspace->deblock_map.stride[plane] =
+            layout.deblock_columns[plane];
+        workspace->deblock_map.columns[plane] =
+            layout.deblock_columns[plane];
+        workspace->deblock_map.rows[plane] =
+            layout.deblock_rows[plane];
+    }
+    workspace->ccso_controls.columns = layout.ccso_columns;
+    workspace->ccso_controls.rows = layout.ccso_rows;
+    for (plane = 0U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
+        storage->ccso_controls[plane] = av2h_arena_allocate(
+            &arena, layout.ccso_control_count, _Alignof(uint8_t));
+        workspace->ccso_controls.plane[plane] =
+            storage->ccso_controls[plane];
+        workspace->ccso_controls.stride[plane] = layout.ccso_columns;
+    }
+    if (arena.status != AV2H_OK ||
+        av2h_arena_required(&arena) > layout.size) {
+        return arena.status != AV2H_OK ? arena.status : AV2H_OVERFLOW;
+    }
+    return AV2H_OK;
 }
 
 static int dimensions_valid(const Av2hFilterPlanes *planes,
@@ -1048,6 +1259,58 @@ static int controls_valid(const Av2hFrameState *frame,
              controls->stride[plane] < columns)) {
             return 0;
         }
+        if (frame->ccso[plane].enabled != 0U) {
+            size_t row;
+            for (row = 0U; row < rows; ++row) {
+                size_t column;
+                for (column = 0U; column < columns; ++column) {
+                    if (controls->plane[plane][
+                            row * controls->stride[plane] + column] > 1U) {
+                        return 0;
+                    }
+                }
+            }
+        }
+    }
+    return 1;
+}
+
+static int ccso_parameters_valid(const Av2hFrameState *frame) {
+    unsigned int plane;
+    for (plane = 0U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
+        const Av2hCcsoPlane *parameters = &frame->ccso[plane];
+        unsigned int edge_intervals;
+        uint16_t expected_offsets;
+        if (parameters->enabled > 1U || parameters->band_only > 1U) {
+            return 0;
+        }
+        if (parameters->enabled == 0U) continue;
+        if (parameters->scale_index >= 4U) return 0;
+        if (parameters->band_only != 0U) {
+            if (parameters->quant_index != 0U ||
+                parameters->extended_filter_support != 0U ||
+                parameters->edge_classifier != 0U ||
+                parameters->max_band_log2 > 6U) {
+                return 0;
+            }
+            edge_intervals = 1U;
+        } else {
+            if (parameters->quant_index >= 4U ||
+                parameters->extended_filter_support >= 7U ||
+                parameters->edge_classifier >= 2U ||
+                parameters->max_band_log2 > 3U ||
+                (parameters->scale_index == 0U &&
+                 parameters->quant_index == 3U &&
+                 parameters->edge_classifier != 0U)) {
+                return 0;
+            }
+            edge_intervals =
+                parameters->edge_classifier != 0U ? 2U : 3U;
+        }
+        expected_offsets = (uint16_t)(
+            ((uint16_t)1U << parameters->max_band_log2) *
+            edge_intervals * edge_intervals);
+        if (parameters->offset_count != expected_offsets) return 0;
     }
     return 1;
 }
@@ -1169,18 +1432,10 @@ Av2hStatus av2h_ccso_filter_frame(
     if (planes == 0 || pre_cdef_luma == 0 || frame == 0 ||
         frame->width == 0U || frame->height == 0U ||
         pre_cdef_luma_stride < coded_dimension(frame->width) ||
-        !dimensions_valid(planes, frame) || !controls_valid(frame, controls)) {
+        !dimensions_valid(planes, frame) ||
+        !ccso_parameters_valid(frame) ||
+        !controls_valid(frame, controls)) {
         return AV2H_INVALID_ARGUMENT;
-    }
-    for (plane = 0U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
-        const Av2hCcsoPlane *parameters = &frame->ccso[plane];
-        if (parameters->enabled == 0U) continue;
-        if (parameters->scale_index >= 4U || parameters->quant_index >= 4U ||
-            parameters->extended_filter_support >= 7U ||
-            parameters->edge_classifier >= 2U ||
-            parameters->max_band_log2 > 6U) {
-            return AV2H_INVALID_ARGUMENT;
-        }
     }
     for (plane = 0U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
         if (frame->ccso[plane].enabled == 0U) continue;
@@ -1210,7 +1465,18 @@ Av2hStatus av2h_filter_frame(
           frame->cdef_damping < 3U))) {
         return AV2H_UNSUPPORTED;
     }
-    if ((frame->gdf_mode != 0U && sequence->enable_gdf == 0U) ||
+    if ((frame->cdef_strength_count != 0U &&
+         sequence->enable_cdef == 0U) ||
+        ((frame->ccso[0].enabled != 0U ||
+          frame->ccso[1].enabled != 0U ||
+          frame->ccso[2].enabled != 0U) &&
+         sequence->enable_ccso == 0U) ||
+        (frame->gdf_mode != 0U && sequence->enable_gdf == 0U) ||
+        (frame->cdef_strength_count != 0U &&
+         (frame->cdef_damping > 6U ||
+          frame->cdef_y_strength[0] > 63U ||
+          frame->cdef_uv_strength[0] > 63U)) ||
+        !ccso_parameters_valid(frame) ||
         !dimensions_valid(planes, frame) ||
         !dimensions_valid(&workspace->deblocked, frame) ||
         !dimensions_valid(&workspace->cdef, frame) ||

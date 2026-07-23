@@ -96,12 +96,6 @@ typedef struct {
     size_t after_mode_index_bits;
     size_t after_fsc_bits;
     size_t after_mrl_bits;
-    uint32_t before_mode_range;
-    uint32_t before_mode_value;
-    uint32_t after_mode_index_range;
-    uint32_t after_mode_index_value;
-    uint32_t after_fsc_range;
-    uint32_t after_fsc_value;
 } Av2hFirstLeafMode;
 
 typedef struct {

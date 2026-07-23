@@ -13,6 +13,26 @@ static int failures;
         }                                                                      \
     } while (0)
 
+static size_t load_fixture(const char *path,
+                           unsigned char *bytes,
+                           size_t capacity) {
+    FILE *source = fopen(path, "rb");
+    size_t size;
+    if (source == 0) {
+        fprintf(stderr, "failed to open fixture: %s\n", path);
+        ++failures;
+        return 0U;
+    }
+    size = fread(bytes, 1U, capacity, source);
+    if (ferror(source) || !feof(source)) {
+        fprintf(stderr, "failed to read fixture: %s\n", path);
+        ++failures;
+        size = 0U;
+    }
+    fclose(source);
+    return size;
+}
+
 static void check_plane_crop(const char *name,
                              const uint8_t *actual,
                              size_t stride,
@@ -354,20 +374,13 @@ static void test_odd_luma_reconstruction(void) {
         if (status != AV2H_OK) {
             fprintf(stderr,
                     "odd mode raw set/index/joint/fsc/context/block="
-                    "%u/%u/%u/%u/%u/%u "
-                    "before=%u/%u after-index=%u/%u after-fsc=%u/%u\n",
+                    "%u/%u/%u/%u/%u/%u\n",
                     (unsigned int)leaf.mode.mode_set,
                     (unsigned int)leaf.mode.mode_index,
                     (unsigned int)leaf.mode.joint_mode,
                     (unsigned int)leaf.mode.fsc_mode,
                     (unsigned int)leaf.mode.fsc_neighbor_context,
-                    (unsigned int)leaf.mode.fsc_block_context,
-                    (unsigned int)leaf.mode.before_mode_range,
-                    (unsigned int)leaf.mode.before_mode_value,
-                    (unsigned int)leaf.mode.after_mode_index_range,
-                    (unsigned int)leaf.mode.after_mode_index_value,
-                    (unsigned int)leaf.mode.after_fsc_range,
-                    (unsigned int)leaf.mode.after_fsc_value);
+                    (unsigned int)leaf.mode.fsc_block_context);
             fprintf(stderr,
                     "odd luma syntax failed after %zu leaves at (%u,%u), "
                     "block %u, "
@@ -591,16 +604,12 @@ static void test_odd_luma_reconstruction(void) {
 }
 
 static void test_ordinary_luma_frontier(void) {
-    static const unsigned char entropy[] = {
-        0xcdU, 0x77U, 0xc5U, 0x58U, 0x5fU, 0x4dU, 0x54U, 0x7fU,
-        0xf3U, 0x9eU, 0xfcU, 0x9cU, 0x09U, 0x95U, 0xb7U, 0x37U,
-        0xbdU, 0x19U, 0x38U, 0x54U, 0x85U, 0x67U, 0x37U, 0x09U,
-        0xb1U, 0x96U, 0x89U, 0xb7U, 0x9aU, 0xb9U, 0xbaU, 0x98U,
-        0xaeU, 0xd3U, 0x6cU, 0x14U, 0x15U, 0x2bU, 0xffU, 0xf8U,
-        0xdcU, 0x8eU, 0xb8U, 0x66U, 0xd7U, 0x14U, 0x09U, 0x49U,
-        0x8dU, 0xafU, 0xd5U, 0x71U, 0x66U, 0x76U, 0x56U, 0x88U,
-        0x8dU, 0x35U, 0xb3U, 0x28U, 0x69U, 0xc9U, 0x23U, 0xf4U
-    };
+    unsigned char stream[1024U];
+    size_t stream_size;
+    Av2hObu entries[2U];
+    Av2hObuLedger ledger = { entries, 2U, 0U };
+    Av2hError error;
+    Av2hTileGroup group;
     uint8_t luma_partition_above[40U];
     uint8_t luma_partition_left[30U];
     uint8_t chroma_partition_above[40U];
@@ -634,23 +643,27 @@ static void test_ordinary_luma_frontier(void) {
     uint8_t has_leaf = 0U;
     size_t leaf_count = 0U;
 
-    sequence.enable_sdp = 1U;
-    sequence.enable_ext_partitions = 1U;
-    sequence.enable_idtx_intra = 1U;
-    sequence.enable_ist = 1U;
-    sequence.enable_mrls = 1U;
-    sequence.enable_cfl_intra = 1U;
-    frame.width = 160U;
-    frame.height = 120U;
-    frame.base_q_index = 128U;
-    frame.tx_mode = 1U;
-    frame.allow_intrabc = 1U;
-    frame.cdef_strength_count = 1U;
-    frame.ccso[0].enabled = 1U;
+    stream_size = load_fixture("tests/fixtures/ordinary-160x120.obu",
+                               stream, sizeof(stream));
+    CHECK(stream_size != 0U);
+    CHECK(av2h_obu_parse((Av2hSpan){ stream, stream_size }, &ledger,
+                         &error) == AV2H_OK);
+    CHECK(ledger.count == 2U);
+    CHECK(av2h_sequence_state_parse(
+              (Av2hSpan){ stream, stream_size }, &entries[0],
+              &sequence, &error) == AV2H_OK);
+    CHECK(av2h_frame_header_closed_key_parse(
+              (Av2hSpan){ stream + entries[1].payload_offset,
+                           entries[1].payload_size },
+              &sequence, &frame) == AV2H_OK);
+    CHECK(av2h_tile_group_single_parse(
+              (Av2hSpan){ stream + entries[1].payload_offset,
+                           entries[1].payload_size },
+              frame.uncompressed_header_bits, &group) == AV2H_OK);
     av2h_memory_fill(luma_pixels, 0U, sizeof(luma_pixels));
     av2h_memory_fill(luma_reconstructed, 0U, sizeof(luma_reconstructed));
     CHECK(av2h_tile_decoder_init(
-              &decoder, (Av2hSpan){ entropy, sizeof(entropy) }, &sequence,
+              &decoder, group.entropy, &sequence,
               &frame, &storage) == AV2H_OK);
     for (;;) {
         status = av2h_tile_decoder_next_luma(
@@ -660,6 +673,25 @@ static void test_ordinary_luma_frontier(void) {
             &leaf.node, &leaf.mode, &leaf.prefix, &leaf.transform,
             &block, &luma_plane, &scratch);
         if (reconstruction_status != AV2H_OK) break;
+        fprintf(stderr,
+            "ordinary luma leaf %zu at (%u,%u), block %u "
+                "mode %zu/%zu/%zu/%zu/%zu raw %u/%u/%u/%u tx %u/%u/%u "
+            "coeff %zu/%zu/%zu tell %zu\n",
+            leaf_count, leaf.node.row, leaf.node.column,
+            (unsigned int)leaf.node.block_size,
+            leaf.mode.before_mode_bits, leaf.mode.after_mode_set_bits,
+            leaf.mode.after_mode_index_bits, leaf.mode.after_fsc_bits,
+            leaf.mode.after_mrl_bits,
+            (unsigned int)leaf.mode.mode_set,
+            (unsigned int)leaf.mode.mode_index,
+            (unsigned int)leaf.mode.joint_mode,
+            (unsigned int)leaf.mode.fsc_mode,
+            (unsigned int)leaf.prefix.tx_size,
+            (unsigned int)leaf.transform.primary_type,
+            (unsigned int)leaf.prefix.eob,
+            block.before_levels_bits, block.after_levels_bits,
+            block.after_coefficients_bits,
+            av2h_range_tell(&decoder.range));
         CHECK(av2h_tile_decoder_commit_leaf(
                   &decoder, leaf.node) == AV2H_OK);
         ++leaf_count;
@@ -667,6 +699,7 @@ static void test_ordinary_luma_frontier(void) {
     fprintf(stderr,
             "ordinary luma frontier after %zu leaves at (%u,%u), block %u "
             "mode %u angle/mrl/multi/fsc %d/%u/%u/%u "
+            "intrabc/mode/drl/prec/dv %u/%u/%u/%u/%d,%d "
             "mode-stages %zu/%zu/%zu/%zu/%zu tx %u/%u/%u/%u eob %u "
             "coeff %u/%u/%u nz %u tell %zu: "
             "%u/%u stages %zu/%zu/%zu/%zu/%zu partition (%u,%u)/%u@%zu\n",
@@ -677,6 +710,12 @@ static void test_ordinary_luma_frontier(void) {
             (unsigned int)leaf.mode.mrl_index,
             (unsigned int)leaf.mode.multi_line_mrl,
             (unsigned int)leaf.mode.fsc_mode,
+            (unsigned int)leaf.mode.use_intrabc,
+            (unsigned int)leaf.mode.intrabc_mode,
+            (unsigned int)leaf.mode.intrabc_drl_index,
+            (unsigned int)leaf.mode.mv_precision,
+            (int)leaf.mode.displacement_x,
+            (int)leaf.mode.displacement_y,
             leaf.mode.before_mode_bits,
             leaf.mode.after_mode_set_bits,
             leaf.mode.after_mode_index_bits,
@@ -714,9 +753,23 @@ static void test_ordinary_luma_frontier(void) {
         }
         fprintf(stderr, "\n");
     }
-    CHECK(status == AV2H_UNSUPPORTED ||
-          reconstruction_status == AV2H_UNSUPPORTED);
-    CHECK(leaf_count >= 1U);
+    CHECK(status == AV2H_OK);
+    CHECK(reconstruction_status == AV2H_UNSUPPORTED);
+    CHECK(leaf_count == 5U);
+    CHECK(leaf.node.row == 10U);
+    CHECK(leaf.node.column == 0U);
+    CHECK(leaf.node.block_size == AV2H_BLOCK_16X4);
+    CHECK(leaf.mode.mode == AV2H_INTRA_D45);
+    CHECK(leaf.mode.angle_delta == -1);
+    CHECK(leaf.prefix.tx_size == AV2H_TX_16X4);
+    CHECK(leaf.prefix.eob == 1U);
+    CHECK(leaf.transform.primary_type == AV2H_TX_DCT_DCT);
+    CHECK(block.nonzero_count == 1U);
+    CHECK(block.dequantized[0] != 0);
+    CHECK(leaf.prefix.after_eob_bits == 256U);
+    CHECK(block.after_levels_bits == 265U);
+    CHECK(block.after_coefficients_bits == 276U);
+    CHECK(av2h_range_tell(&decoder.range) == 276U);
 }
 
 static void test_orchestrator_failures(void) {

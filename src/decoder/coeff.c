@@ -22,6 +22,9 @@ Av2hStatus av2h_first_coeff_cdfs_init(Av2hFirstCoeffCdfs *cdfs) {
     static const uint16_t eob_pt_256[] = {
         790U, 1184U, 2218U, 5022U, 11432U, 20289U, 23689U
     };
+    static const uint16_t eob_pt_512[] = {
+        1311U, 2019U, 3578U, 6876U, 13781U, 23541U, 24922U
+    };
     static const uint16_t eob_pt_1024[] = {
         634U, 1777U, 3873U, 6293U, 12653U, 23825U, 24712U
     };
@@ -104,6 +107,9 @@ Av2hStatus av2h_first_coeff_cdfs_init(Av2hFirstCoeffCdfs *cdfs) {
     status = av2h_cdf_init(cdfs->eob_pt_256, 8U + 4U, eob_pt_256,
                            8U, 57U, 0U);
     if (status != AV2H_OK) return status;
+    status = av2h_cdf_init(cdfs->eob_pt_512, 8U + 4U, eob_pt_512,
+                           8U, 0U, 0U);
+    if (status != AV2H_OK) return status;
     status = av2h_cdf_init(cdfs->eob_pt_1024, 8U + 4U, eob_pt_1024,
                            8U, 57U, 0U);
     if (status != AV2H_OK) return status;
@@ -132,9 +138,18 @@ static Av2hStatus derive_tx_size(Av2hBlockSize block_size,
     } else if (block_size == AV2H_BLOCK_16X8) {
         *tx_size = AV2H_TX_16X8;
         *tx_size_context = 2U;
+    } else if (block_size == AV2H_BLOCK_16X4) {
+        *tx_size = AV2H_TX_16X4;
+        *tx_size_context = 1U;
     } else if (block_size == AV2H_BLOCK_8X32) {
         *tx_size = AV2H_TX_8X32;
         *tx_size_context = 2U;
+    } else if (block_size == AV2H_BLOCK_32X8) {
+        *tx_size = AV2H_TX_32X8;
+        *tx_size_context = 2U;
+    } else if (block_size == AV2H_BLOCK_16X32) {
+        *tx_size = AV2H_TX_16X32;
+        *tx_size_context = 3U;
     } else if (block_size == AV2H_BLOCK_32X32) {
         *tx_size = AV2H_TX_32X32;
         *tx_size_context = 3U;
@@ -288,7 +303,7 @@ static Av2hStatus eob_parameters(
         *point_cdf = cdfs->eob_pt_32;
         *point_symbols = 6U;
         *capacity = 32U;
-    } else if (tx_size == AV2H_TX_8X8) {
+    } else if (tx_size == AV2H_TX_8X8 || tx_size == AV2H_TX_16X4) {
         *point_cdf = cdfs->eob_pt_64;
         *point_symbols = 7U;
         *capacity = 64U;
@@ -296,10 +311,14 @@ static Av2hStatus eob_parameters(
         *point_cdf = cdfs->eob_pt_128;
         *point_symbols = 8U;
         *capacity = 128U;
-    } else if (tx_size == AV2H_TX_8X32) {
+    } else if (tx_size == AV2H_TX_8X32 || tx_size == AV2H_TX_32X8) {
         *point_cdf = cdfs->eob_pt_256;
         *point_symbols = 8U;
         *capacity = 256U;
+    } else if (tx_size == AV2H_TX_16X32) {
+        *point_cdf = cdfs->eob_pt_512;
+        *point_symbols = 8U;
+        *capacity = 512U;
     } else if (tx_size == AV2H_TX_32X32) {
         *point_cdf = cdfs->eob_pt_1024;
         *point_symbols = 8U;

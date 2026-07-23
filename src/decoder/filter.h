@@ -47,6 +47,35 @@ typedef struct {
     Av2hCcsoControlMap ccso_controls;
 } Av2hFilterWorkspace;
 
+typedef struct {
+    uint16_t plane_width[AV2H_FRAME_PLANE_COUNT];
+    uint16_t plane_height[AV2H_FRAME_PLANE_COUNT];
+    size_t stage_plane_bytes[AV2H_FRAME_PLANE_COUNT];
+    size_t deblock_columns[AV2H_FRAME_PLANE_COUNT];
+    size_t deblock_rows[AV2H_FRAME_PLANE_COUNT];
+    size_t deblock_cell_count[AV2H_FRAME_PLANE_COUNT];
+    size_t ccso_columns;
+    size_t ccso_rows;
+    size_t ccso_control_count;
+    size_t size;
+    size_t alignment;
+} Av2hFilterWorkspaceLayout;
+
+typedef struct {
+    Av2hDeblockCell *deblock_cells[AV2H_FRAME_PLANE_COUNT];
+    uint8_t *ccso_controls[AV2H_FRAME_PLANE_COUNT];
+} Av2hFilterWorkspaceStorage;
+
+Av2hStatus av2h_filter_workspace_query(
+    const Av2hFrameState *frame,
+    Av2hFilterWorkspaceLayout *layout);
+Av2hStatus av2h_filter_workspace_init(
+    const Av2hFrameState *frame,
+    void *memory,
+    size_t memory_size,
+    Av2hFilterWorkspace *workspace,
+    Av2hFilterWorkspaceStorage *storage);
+
 Av2hStatus av2h_deblock_edge(
     Av2hFilterPlane *plane,
     uint16_t x,

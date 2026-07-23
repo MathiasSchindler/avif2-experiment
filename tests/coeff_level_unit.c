@@ -172,7 +172,7 @@ static void test_arguments(void) {
     Av2hFirstCoeffPrefix prefix = { 0 };
     Av2hFirstTransformType transform = { 0 };
     Av2hFirstCoeffBlock block;
-    CHECK(sizeof(Av2hFirstCoeffLevelCdfs) == 2980U);
+    CHECK(sizeof(Av2hFirstCoeffLevelCdfs) == 3130U);
     CHECK(av2h_first_coeff_level_cdfs_init(0) == AV2H_INVALID_ARGUMENT);
     CHECK(av2h_first_coeff_block_read(
               0, &cdfs, &sequence, &frame, &mode, &prefix, &transform,

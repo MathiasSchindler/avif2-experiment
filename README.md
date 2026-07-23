@@ -30,9 +30,10 @@ separate reference experiment and is fetched into ignored `vendor/` and
   visible reference bounds from padded storage, retain per-4x4 reconstruction
   readiness, and reconstruct all 12 odd luma and five odd chroma leaves
   sample-exactly through tell 696 before filtering.
-- Milestone 7 is in progress through six committed ordinary luma leaves and
-  currently stops at `(4,14)`, 4x8 DC, TX_4X8, EOB 29, primary
-  `FLIPADST_ADST`, before coefficient scanning.
+- Milestone 7 is paused at a verified checkpoint: five ordinary luma leaves
+  reconstruct sample-exactly through tell 241. The next 16x4 leaf at `(10,0)`
+  decodes to the pinned AVM entropy endpoint at tell 276, then fails closed
+  before its unsupported D45 angle-minus-one/DCT_DCT reconstruction.
 - Milestone 8 owns high-detail, CFL, intraBC, and remaining advanced transform
   coverage. Milestone 9 owns mandatory-filter integration and filtered parity.
   Milestone 10 alone owns workspace finalization and public decoder exposure.

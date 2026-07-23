@@ -63,13 +63,15 @@ static const Av2hCoeffKey base_lf_keys[] = {
     { 1U, 15U }, { 1U, 16U }, { 1U, 17U }, { 1U, 18U }, { 1U, 19U },
     { 1U, 20U },
     { 1U, 25U }, { 1U, 26U }, { 1U, 27U }, { 1U, 31U }, { 1U, 32U },
-    { 3U, 5U }, { 3U, 11U }, { 3U, 16U }, { 3U, 17U }, { 3U, 18U }
-    , { 2U, 2U }, { 2U, 10U }, { 2U, 16U }, { 2U, 17U }, { 2U, 21U }, { 2U, 22U }, { 2U, 23U },
+    { 3U, 2U }, { 3U, 5U }, { 3U, 9U }, { 3U, 10U }, { 3U, 11U },
+    { 3U, 16U }, { 3U, 17U },
+    { 3U, 18U }
+    , { 2U, 1U }, { 2U, 2U }, { 2U, 9U }, { 2U, 10U }, { 2U, 16U }, { 2U, 17U }, { 2U, 21U }, { 2U, 22U }, { 2U, 23U },
     { 2U, 28U }, { 2U, 29U }
 };
 static const uint8_t br_keys[] = { 0U, 1U, 2U, 3U, 4U, 5U, 6U };
 static const uint8_t br_lf_keys[] = {
-    2U, 4U, 5U, 6U, 7U, 9U, 10U, 11U, 13U
+    0U, 1U, 2U, 4U, 5U, 6U, 7U, 9U, 10U, 11U, 13U
 };
 static const uint8_t fsc_base_keys[] = { 0U, 1U, 2U, 3U, 4U, 6U };
 static const uint8_t fsc_bob_keys[] = { 0U, 1U, 2U };
@@ -147,12 +149,17 @@ static const Av2hLfSpec base_lf_specs[] = {
     { 1U, 27U, { 1616U, 4713U, 7922U, 10951U, 13675U }, 93U },
     { 1U, 31U, { 7718U, 18010U, 24057U, 27609U, 29598U }, 75U },
     { 1U, 32U, { 3560U, 10218U, 15775U, 20026U, 23024U }, 75U },
+    { 3U, 2U, { 9152U, 21002U, 26411U, 29197U, 30838U }, 0U },
     { 3U, 5U, { 2381U, 7283U, 11060U, 13175U, 15657U }, 78U },
+    { 3U, 9U, { 26289U, 31974U, 32589U, 32707U, 32732U }, 0U },
+    { 3U, 10U, { 14722U, 28032U, 31407U, 32465U, 32660U }, 0U },
     { 3U, 11U, { 14143U, 25751U, 29446U, 31254U, 32093U }, 75U },
     { 3U, 16U, { 28318U, 32551U, 32737U, 32741U, 32745U }, 75U },
     { 3U, 17U, { 21238U, 31149U, 32509U, 32707U, 32732U }, 75U },
     { 3U, 18U, { 16317U, 28616U, 31700U, 32471U, 32706U }, 1U }
+    , { 2U, 1U, { 4579U, 20789U, 27200U, 30357U, 31565U }, 0U }
     , { 2U, 2U, { 10553U, 22962U, 27982U, 30214U, 31394U }, 1U }
+    , { 2U, 9U, { 25676U, 31984U, 32605U, 32712U, 32732U }, 75U }
     , { 2U, 10U, { 13894U, 27451U, 31145U, 32228U, 32639U }, 15U }
     , { 2U, 16U, { 26506U, 32458U, 32715U, 32736U, 32740U }, 90U }
     , { 2U, 17U, { 20516U, 31118U, 32508U, 32699U, 32732U }, 75U }
@@ -172,6 +179,8 @@ static const Av2hBrSpec br_specs[] = {
     { 6U, { 5802U, 12294U, 17499U }, 78U }
 };
 static const Av2hBrSpec br_lf_specs[] = {
+    { 0U, { 11992U, 17977U, 23847U }, 37U },
+    { 1U, { 14229U, 22329U, 26075U }, 90U },
     { 2U, { 11443U, 20390U, 22820U }, 76U },
     { 4U, { 5827U, 11883U, 14653U }, 90U },
     { 5U, { 4416U, 9159U, 11664U }, 90U },
@@ -210,6 +219,9 @@ Av2hStatus av2h_first_coeff_level_cdfs_init(Av2hFirstCoeffLevelCdfs *cdfs) {
     };
     static const uint16_t eob_lf_txs2_ctx1[] = {
         31836U, 32524U, 32640U, 32686U
+    };
+    static const uint16_t eob_lf_txs3_ctx1[] = {
+        32054U, 32674U, 32735U, 32740U
     };
     static const uint16_t dc_sign[3U] = { 16540U, 14804U, 18312U };
     static const uint16_t fsc_bob[][2U] = {
@@ -342,6 +354,9 @@ Av2hStatus av2h_first_coeff_level_cdfs_init(Av2hFirstCoeffLevelCdfs *cdfs) {
     if (status != AV2H_OK) return status;
     status = av2h_cdf_init(cdfs->eob_lf[6], 9U, eob_lf_txs1_ctx0, 5U,
                            1U, 0U);
+    if (status != AV2H_OK) return status;
+    status = av2h_cdf_init(cdfs->eob_lf[7], 9U, eob_lf_txs3_ctx1, 5U,
+                           0U, 0U);
     if (status != AV2H_OK) return status;
         for (index = 0U;
             index < sizeof(base_specs) / sizeof(base_specs[0]); ++index) {
@@ -990,10 +1005,22 @@ Av2hStatus av2h_coeff_block_read(
         block->width = 16U;
         block->height = 8U;
         tx_context = 2U;
+    } else if (prefix->tx_size == AV2H_TX_16X4) {
+        block->width = 16U;
+        block->height = 4U;
+        tx_context = 1U;
     } else if (prefix->tx_size == AV2H_TX_8X32) {
         block->width = 8U;
         block->height = 32U;
         tx_context = 2U;
+    } else if (prefix->tx_size == AV2H_TX_32X8) {
+        block->width = 32U;
+        block->height = 8U;
+        tx_context = 2U;
+    } else if (prefix->tx_size == AV2H_TX_16X32) {
+        block->width = 16U;
+        block->height = 32U;
+        tx_context = 3U;
     } else if (prefix->tx_size == AV2H_TX_32X32) {
         block->width = 32U;
         block->height = 32U;
@@ -1012,6 +1039,7 @@ Av2hStatus av2h_coeff_block_read(
                transform->primary_type != AV2H_TX_DCT_ADST &&
                transform->primary_type != AV2H_TX_ADST_ADST &&
                transform->primary_type != AV2H_TX_ADST_FLIPADST &&
+               transform->primary_type != AV2H_TX_FLIPADST_ADST &&
                transform->primary_type != AV2H_TX_IDTX &&
                transform->primary_type != AV2H_TX_V_DCT &&
                transform->primary_type != AV2H_TX_V_ADST &&
@@ -1066,6 +1094,8 @@ Av2hStatus av2h_coeff_block_read(
                 cdf = cdfs->eob_lf[6];
             } else if (tx_context == 2U && context == 1U) {
                 cdf = cdfs->eob_lf[5];
+            } else if (tx_context == 3U && context == 1U) {
+                cdf = cdfs->eob_lf[7];
             } else {
                 return AV2H_UNSUPPORTED;
             }

@@ -349,10 +349,12 @@ fixture-supplied contexts or references.
 
 ## Milestone 7: ordinary fixture coverage
 
-**Status:** In progress, with an early six-leaf checkpoint. Ordinary luma
-currently commits six leaves and stops fail-closed at the 4x8 DC sibling at
-`(4,14)`, TX_4X8, EOB 29, primary `FLIPADST_ADST`, before coefficient
-scanning.
+**Status:** Paused at a verified fail-closed checkpoint. Ordinary luma commits
+five sample-exact leaves through tell 241. The next leaf at `(10,0)` is 16x4
+D45 angle-minus-one, TX_16X4, EOB 1, and DCT_DCT; its entropy path matches
+pinned AVM through tell 276, then reconstruction returns `AV2H_UNSUPPORTED`
+before leaf commit or plane mutation. See `docs/milestone-7.md` for the exact
+leaf endpoints and handoff.
 
 Complete the ordinary fixture's remaining partition, mode, transform,
 coefficient, prediction, reconstruction, and chroma paths. Admit only locked
@@ -377,7 +379,18 @@ and the freestanding gate.
 
 ## Milestone 9: mandatory filters and filtered parity
 
-**Status:** Planned; private filter kernels and focused vectors already pass.
+**Status:** Planned; isolated filter hardening is implemented, while
+fixture-level metadata wiring and filtered parity remain open.
+
+Completed preparation corrects normative CDEF signed rounding, validates
+CDEF/CCSO parser-produced state and Sequence Header consistency before
+mutation, rejects overlap among all GDF stage storage, and freezes
+focused failure and nonmutation vectors. A private checked workspace model,
+synthetic complete filter-pipeline vector, deblock/CCSO/GDF boundary vectors,
+and hosted stage-evidence recorder/comparator are also implemented. The work
+is confined to the filter implementation/header, focused C/Python tests,
+`tools/run_m9_filter_evidence.py`, and Milestone 9 documentation; see the
+milestone document for the exact handoff and remaining dependencies.
 
 Populate complete deblock and CCSO metadata from reconstructed leaves, execute
 deblock, CDEF, CCSO, and GDF in normative order over coded planes, crop to
@@ -433,12 +446,22 @@ Release validation additionally includes:
 
 ## Current work order
 
-1. Complete Milestone 6 frame-wide wiring and odd-fixture parity.
-2. Resume the existing Milestone 7 ordinary-fixture frontier.
-3. Complete Milestone 8 high-detail, CFL, and intraBC coverage.
-4. Integrate and prove the mandatory filter pipeline in Milestone 9.
-5. Finalize workspace contracts and expose decoding only in Milestone 10.
+1. Resume Milestone 7 with sample-exact reconstruction of the decoded 16x4
+  leaf, then complete ordinary luma and chroma parity.
+2. Complete Milestone 8 high-detail, CFL, intraBC, coefficient-range, and
+  advanced-transform coverage.
+3. Integrate and prove the mandatory filter pipeline in Milestone 9 after the
+  unfiltered fixture dependencies are complete.
+4. Finalize workspace contracts and expose decoding only in Milestone 10.
 
 Early work in a later milestone may be retained when it is already validated,
 but it does not waive an earlier exit gate. Each milestone must leave the
 decoder fail-closed at the first unsupported owner.
+
+The remaining-work audit is complete: Milestone 7 owns all unfinished ordinary
+unfiltered luma/chroma work; Milestone 8 owns the high-detail and advanced
+prediction/transform profile; Milestone 9 owns metadata wiring and normative
+filtered parity; and Milestone 10 owns bounded workspace, public API, fuzz, and
+release finalization. Restoration remains outside the accepted profile and
+must continue to fail closed; adding it belongs to later profile expansion,
+not to an unassigned current milestone.

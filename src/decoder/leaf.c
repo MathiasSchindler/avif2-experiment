@@ -778,8 +778,6 @@ Av2hStatus av2h_luma_mode_read(Av2hRangeDecoder *decoder,
         }
     }
     mode->before_mode_bits = av2h_range_tell(decoder);
-    mode->before_mode_range = decoder->range;
-    mode->before_mode_value = decoder->value;
     value = av2h_range_read_adaptive(
         decoder, cdfs->y_mode_set, AV2H_Y_MODE_SET_SYMBOLS);
     if (av2h_range_status(decoder) != AV2H_OK) {
@@ -812,8 +810,6 @@ Av2hStatus av2h_luma_mode_read(Av2hRangeDecoder *decoder,
         }
     }
     mode->after_mode_index_bits = av2h_range_tell(decoder);
-    mode->after_mode_index_range = decoder->range;
-    mode->after_mode_index_value = decoder->value;
     {
         Av2hStatus status = av2h_luma_joint_mode_from_index(
             mode->mode_index, leaf->block_size, neighbors,
@@ -843,8 +839,6 @@ Av2hStatus av2h_luma_mode_read(Av2hRangeDecoder *decoder,
         }
     }
     mode->after_fsc_bits = av2h_range_tell(decoder);
-    mode->after_fsc_range = decoder->range;
-    mode->after_fsc_value = decoder->value;
     mode->mrl_index = 0U;
     mode->multi_line_mrl = 0U;
     if (sequence->enable_mrls && is_directional_joint_mode(mode->joint_mode)) {
