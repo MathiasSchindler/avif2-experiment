@@ -138,7 +138,7 @@ static void test_arguments(void) {
     Av2hFirstLeafMode mode = { 0 };
     Av2hFirstCoeffPrefix prefix = { 0 };
     Av2hFirstTransformType transform;
-    CHECK(sizeof(Av2hFirstTransformCdfs) == 178U);
+    CHECK(sizeof(Av2hFirstTransformCdfs) == 214U);
     CHECK(av2h_first_transform_cdfs_init(0) == AV2H_INVALID_ARGUMENT);
     CHECK(av2h_first_transform_type_read(
               0, &cdfs, &sequence, &frame, &mode, &prefix, &transform) ==
@@ -151,8 +151,34 @@ static void test_arguments(void) {
               &transform) == AV2H_UNSUPPORTED);
 }
 
+static void test_fsc_single_coefficient_uses_idtx(void) {
+    static const unsigned char bytes[] = { 0U, 0U, 0U, 0U };
+    Av2hSpan span = { bytes, sizeof(bytes) };
+    Av2hRangeDecoder decoder;
+    Av2hFirstTransformCdfs cdfs;
+    Av2hSequenceState sequence = { 0 };
+    Av2hFrameState frame = { 0 };
+    Av2hFirstLeafMode mode = { 0 };
+    Av2hFirstCoeffPrefix prefix = { 0 };
+    Av2hFirstTransformType transform;
+
+    frame.base_q_index = 128U;
+    mode.fsc_mode = 1U;
+    prefix.tx_size = AV2H_TX_16X4;
+    prefix.eob = 1U;
+    CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
+    CHECK(av2h_first_transform_cdfs_init(&cdfs) == AV2H_OK);
+    CHECK(av2h_first_transform_type_read(
+              &decoder, &cdfs, &sequence, &frame, &mode, &prefix,
+              &transform) == AV2H_OK);
+    CHECK(transform.primary_type == AV2H_TX_IDTX);
+    CHECK(transform.primary_signaled == 0U);
+    CHECK(transform.secondary_signaled == 0U);
+}
+
 int main(void) {
     test_fixture_transform_types();
+    test_fsc_single_coefficient_uses_idtx();
     test_arguments();
     if (failures != 0) {
         fprintf(stderr, "%d transform checks failed\n", failures);

@@ -834,7 +834,8 @@ Av2hStatus av2h_luma_mode_read(Av2hRangeDecoder *decoder,
         }
         mode->fsc_mode = (uint8_t)value;
         if (value != 0U && leaf->block_size != AV2H_BLOCK_4X4 &&
-            leaf->block_size != AV2H_BLOCK_8X16) {
+            leaf->block_size != AV2H_BLOCK_8X16 &&
+            leaf->block_size != AV2H_BLOCK_16X4) {
             return AV2H_UNSUPPORTED;
         }
     }

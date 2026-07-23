@@ -16,6 +16,9 @@ Av2hStatus av2h_first_transform_cdfs_init(Av2hFirstTransformCdfs *cdfs) {
     static const uint16_t intrabc_type_index[] = {
         8914U, 10732U, 12270U, 14822U, 17128U, 19586U, 21964U
     };
+    static const uint16_t intrabc_type_index_eob_ctx1[] = {
+        1160U, 1555U, 1972U, 3414U, 3962U, 5151U, 5908U
+    };
     static const uint16_t secondary_32x32[] = {
         2472U, 8725U, 13853U
     };
@@ -55,6 +58,16 @@ Av2hStatus av2h_first_transform_cdfs_init(Av2hFirstTransformCdfs *cdfs) {
         cdfs->intrabc_type_index,
         AV2H_INTER_TX_TYPE_INDEX_SYMBOLS + 4U, intrabc_type_index,
         AV2H_INTER_TX_TYPE_INDEX_SYMBOLS, 25U, 0U);
+    if (status != AV2H_OK) return status;
+    status = av2h_binary_cdf_init(
+        cdfs->intrabc_type_set_eob_ctx1,
+        (Av2hBinaryCdfSpec){ 16423U, 26U, 0U });
+    if (status != AV2H_OK) return status;
+    status = av2h_cdf_init(
+        cdfs->intrabc_type_index_eob_ctx1,
+        AV2H_INTER_TX_TYPE_INDEX_SYMBOLS + 4U,
+        intrabc_type_index_eob_ctx1, AV2H_INTER_TX_TYPE_INDEX_SYMBOLS,
+        31U, 0U);
     if (status != AV2H_OK) return status;
     status = av2h_cdf_init(
         cdfs->secondary_32x32, AV2H_SECONDARY_TX_TYPE_SYMBOLS + 4U,
@@ -106,12 +119,27 @@ static Av2hStatus read_primary(Av2hRangeDecoder *decoder,
         return AV2H_OK;
     }
     if (coeff->tx_size == AV2H_TX_4X4 && mode->use_intrabc) {
+        uint16_t last = (uint16_t)(coeff->eob - 1U);
+        uint8_t diagonal =
+            (uint8_t)((last >> 2U) + (last & 3U));
+        uint8_t eob_context =
+            diagonal < 2U ? 1U : diagonal > 4U ? 2U : 0U;
+        uint16_t *set_cdf = eob_context == 1U ?
+            cdfs->intrabc_type_set_eob_ctx1 :
+            eob_context == 0U ? cdfs->intrabc_type_set : 0;
+        uint16_t *index_cdf = eob_context == 1U ?
+            cdfs->intrabc_type_index_eob_ctx1 :
+            eob_context == 0U ? cdfs->intrabc_type_index : 0;
+        if (set_cdf == 0 || index_cdf == 0) return AV2H_UNSUPPORTED;
         uint32_t set = av2h_range_read_adaptive(
-            decoder, cdfs->intrabc_type_set, 2U);
+            decoder, set_cdf, 2U);
         symbol = av2h_range_read_adaptive(
-            decoder, cdfs->intrabc_type_index,
-            AV2H_INTER_TX_TYPE_INDEX_SYMBOLS);
-        if (set == 0U && symbol == 6U) {
+            decoder, index_cdf, AV2H_INTER_TX_TYPE_INDEX_SYMBOLS);
+        transform->primary_long_side_symbol = (uint8_t)set;
+        transform->primary_symbol = (uint8_t)symbol;
+        if (set == 0U && symbol == 0U) {
+            transform->primary_type = AV2H_TX_IDTX;
+        } else if (set == 0U && symbol == 6U) {
             transform->primary_type = AV2H_TX_H_FLIPADST;
         } else {
             return AV2H_UNSUPPORTED;
@@ -244,20 +272,10 @@ Av2hStatus av2h_first_transform_type_read(
         return AV2H_UNSUPPORTED;
     }
     transform->before_primary_bits = av2h_range_tell(decoder);
-    if (coeff->eob == 1U) {
-        if (mode->use_intrabc) return AV2H_UNSUPPORTED;
-        transform->primary_type = AV2H_TX_DCT_DCT;
-        transform->primary_signaled = 0U;
-        transform->primary_symbol = 0U;
-        transform->secondary_signaled = 0U;
-        transform->secondary_symbol = 0U;
-        transform->after_primary_bits = transform->before_primary_bits;
-        transform->after_secondary_bits = transform->before_primary_bits;
-        return AV2H_OK;
-    }
     if (mode->fsc_mode) {
         if (coeff->tx_size != AV2H_TX_4X4 &&
-            coeff->tx_size != AV2H_TX_8X16) {
+            coeff->tx_size != AV2H_TX_8X16 &&
+            coeff->tx_size != AV2H_TX_16X4) {
             return AV2H_UNSUPPORTED;
         }
         transform->primary_type = AV2H_TX_IDTX;
@@ -266,6 +284,17 @@ Av2hStatus av2h_first_transform_type_read(
         transform->after_primary_bits = transform->before_primary_bits;
         transform->secondary_signaled = 0U;
         transform->secondary_symbol = 0U;
+        transform->after_secondary_bits = transform->before_primary_bits;
+        return AV2H_OK;
+    }
+    if (coeff->eob == 1U) {
+        if (mode->use_intrabc) return AV2H_UNSUPPORTED;
+        transform->primary_type = AV2H_TX_DCT_DCT;
+        transform->primary_signaled = 0U;
+        transform->primary_symbol = 0U;
+        transform->secondary_signaled = 0U;
+        transform->secondary_symbol = 0U;
+        transform->after_primary_bits = transform->before_primary_bits;
         transform->after_secondary_bits = transform->before_primary_bits;
         return AV2H_OK;
     }

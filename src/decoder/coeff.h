@@ -30,6 +30,7 @@ typedef struct {
     uint16_t txb_skip_chroma_v_ctx8[AV2H_BINARY_CDF_SIZE];
     uint16_t txb_skip_chroma_v_ctx9[AV2H_BINARY_CDF_SIZE];
     uint16_t txb_skip_fsc_txs0_ctx9[AV2H_BINARY_CDF_SIZE];
+    uint16_t txb_skip_fsc_txs1_ctx9[AV2H_BINARY_CDF_SIZE];
     uint16_t txb_skip_fsc_txs2_ctx9[AV2H_BINARY_CDF_SIZE];
     uint16_t txb_skip_txs1[AV2H_BINARY_CDF_SIZE];
     uint16_t txb_skip_txs2[AV2H_BINARY_CDF_SIZE];

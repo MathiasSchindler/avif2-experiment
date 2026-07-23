@@ -604,6 +604,35 @@ static void test_odd_luma_reconstruction(void) {
 }
 
 static void test_ordinary_luma_frontier(void) {
+    static const uint8_t expected_sixth[64U] = {
+        216U, 218U, 220U, 222U, 224U, 226U, 228U, 230U,
+        232U, 233U, 235U, 237U, 239U, 241U, 243U, 245U,
+        219U, 221U, 223U, 225U, 227U, 229U, 231U, 232U,
+        233U, 236U, 238U, 240U, 242U, 244U, 246U, 249U,
+        221U, 223U, 225U, 227U, 229U, 231U, 232U, 234U,
+        236U, 238U, 240U, 242U, 244U, 246U, 249U, 251U,
+        223U, 225U, 227U, 229U, 231U, 233U, 234U, 236U,
+        238U, 240U, 242U, 244U, 247U, 249U, 251U, 251U
+    };
+    static const uint8_t expected_seventh[64U] = {
+        225U, 227U, 229U, 231U, 233U, 234U, 236U, 238U,
+        240U, 242U, 244U, 247U, 249U, 250U, 251U, 251U,
+        228U, 230U, 232U, 233U, 234U, 237U, 239U, 241U,
+        243U, 245U, 248U, 249U, 250U, 251U, 6U, 6U,
+        230U, 232U, 233U, 235U, 237U, 239U, 241U, 243U,
+        245U, 248U, 249U, 250U, 251U, 6U, 6U, 6U,
+        232U, 234U, 235U, 237U, 239U, 241U, 243U, 246U,
+        248U, 250U, 251U, 6U, 6U, 6U, 6U, 6U
+    };
+    static const uint8_t expected_eighth[16U] = {
+        247U, 249U, 251U, 251U,
+        249U, 250U, 251U, 251U,
+        250U, 251U, 251U, 6U,
+        251U, 6U, 6U, 6U
+    };
+    static const uint8_t seventh_nonzero[10U] = {
+        30U, 31U, 45U, 46U, 47U, 59U, 60U, 61U, 62U, 63U
+    };
     unsigned char stream[1024U];
     size_t stream_size;
     Av2hObu entries[2U];
@@ -666,9 +695,90 @@ static void test_ordinary_luma_frontier(void) {
               &decoder, group.entropy, &sequence,
               &frame, &storage) == AV2H_OK);
     for (;;) {
+        av2h_memory_fill(&leaf, 0U, sizeof(leaf));
+        av2h_memory_fill(&block, 0U, sizeof(block));
         status = av2h_tile_decoder_next_luma(
             &decoder, &leaf, &block, &has_leaf);
         if (status != AV2H_OK || !has_leaf) break;
+        if (leaf_count == 5U) {
+            CHECK(leaf.node.row == 10U);
+            CHECK(leaf.node.column == 0U);
+            CHECK(leaf.node.block_size == AV2H_BLOCK_16X4);
+            CHECK(leaf.mode.mode == AV2H_INTRA_D45);
+            CHECK(leaf.mode.angle_delta == -1);
+            CHECK(leaf.prefix.tx_size == AV2H_TX_16X4);
+            CHECK(leaf.prefix.eob == 1U);
+            CHECK(leaf.transform.primary_type == AV2H_TX_DCT_DCT);
+            CHECK(block.nonzero_count == 1U);
+            CHECK(block.dequantized[0] == 5096);
+            CHECK(leaf.prefix.after_eob_bits == 256U);
+            CHECK(block.after_levels_bits == 265U);
+            CHECK(block.after_coefficients_bits == 276U);
+            CHECK(av2h_range_tell(&decoder.range) == 276U);
+        } else if (leaf_count == 6U) {
+            size_t coefficient_index;
+            size_t nonzero_index = 0U;
+            CHECK(leaf.node.row == 11U);
+            CHECK(leaf.node.column == 0U);
+            CHECK(leaf.node.block_size == AV2H_BLOCK_16X4);
+            CHECK(leaf.mode.mode == AV2H_INTRA_D45);
+            CHECK(leaf.mode.angle_delta == -1);
+            CHECK(leaf.mode.fsc_mode == 1U);
+            CHECK(leaf.prefix.tx_size == AV2H_TX_16X4);
+            CHECK(leaf.prefix.eob == 14U);
+            CHECK(leaf.transform.primary_type == AV2H_TX_IDTX);
+            CHECK(block.nonzero_count == 10U);
+            CHECK(block.cul_level == 7U);
+            CHECK(leaf.prefix.after_all_zero_bits == 285U);
+            CHECK(leaf.prefix.after_eob_point_bits == 288U);
+            CHECK(leaf.prefix.after_eob_bits == 291U);
+            CHECK(block.before_levels_bits == 291U);
+            CHECK(block.after_levels_bits == 322U);
+            CHECK(block.after_coefficients_bits == 365U);
+            CHECK(av2h_range_tell(&decoder.range) == 365U);
+            for (coefficient_index = 0U; coefficient_index < 64U;
+                 ++coefficient_index) {
+                if (nonzero_index < sizeof(seventh_nonzero) &&
+                    coefficient_index ==
+                        seventh_nonzero[nonzero_index]) {
+                    CHECK(block.quantized[coefficient_index] == -10);
+                    CHECK(block.dequantized[coefficient_index] == -1960);
+                    ++nonzero_index;
+                } else {
+                    CHECK(block.quantized[coefficient_index] == 0);
+                    CHECK(block.dequantized[coefficient_index] == 0);
+                }
+            }
+            CHECK(nonzero_index == sizeof(seventh_nonzero));
+        } else if (leaf_count == 7U) {
+            size_t coefficient_index;
+            CHECK(leaf.node.row == 10U);
+            CHECK(leaf.node.column == 4U);
+            CHECK(leaf.node.block_size == AV2H_BLOCK_4X4);
+            CHECK(leaf.mode.use_intrabc == 1U);
+            CHECK(leaf.mode.fsc_mode == 0U);
+            CHECK(leaf.mode.displacement_x == -32);
+            CHECK(leaf.mode.displacement_y == 24);
+            CHECK(leaf.prefix.tx_size == AV2H_TX_4X4);
+            CHECK(leaf.prefix.eob == 5U);
+            CHECK(leaf.transform.primary_type == AV2H_TX_IDTX);
+            CHECK(leaf.transform.primary_long_side_symbol == 0U);
+            CHECK(leaf.transform.primary_symbol == 0U);
+            CHECK(leaf.transform.before_primary_bits == 396U);
+            CHECK(leaf.transform.after_primary_bits == 402U);
+            CHECK(block.before_levels_bits == 402U);
+            CHECK(block.after_levels_bits == 409U);
+            CHECK(block.after_coefficients_bits == 414U);
+            CHECK(block.nonzero_count == 1U);
+            CHECK(block.cul_level == 7U);
+            for (coefficient_index = 0U; coefficient_index < 16U;
+                 ++coefficient_index) {
+                CHECK(block.quantized[coefficient_index] ==
+                      (coefficient_index == 10U ? 10 : 0));
+                CHECK(block.dequantized[coefficient_index] ==
+                      (coefficient_index == 10U ? 1960 : 0));
+            }
+        }
         reconstruction_status = av2h_luma_reconstruct_to_plane(
             &leaf.node, &leaf.mode, &leaf.prefix, &leaf.transform,
             &block, &luma_plane, &scratch);
@@ -698,17 +808,15 @@ static void test_ordinary_luma_frontier(void) {
     }
     fprintf(stderr,
             "ordinary luma frontier after %zu leaves at (%u,%u), block %u "
-            "mode %u angle/mrl/multi/fsc %d/%u/%u/%u "
-            "intrabc/mode/drl/prec/dv %u/%u/%u/%u/%d,%d "
-            "mode-stages %zu/%zu/%zu/%zu/%zu tx %u/%u/%u/%u eob %u "
-            "coeff %u/%u/%u nz %u tell %zu: "
-            "%u/%u stages %zu/%zu/%zu/%zu/%zu partition (%u,%u)/%u@%zu\n",
+            "mode %u angle/fsc %d/%u intrabc %u/%u/%u/%u/%d,%d "
+            "mode-stages %zu/%zu/%zu/%zu/%zu "
+            "tx/eob %u/%u prefix %zu/%zu/%zu transform %u/%u/%u@%zu "
+            "coeff %zu/%zu/%zu diag %u/%u/%u nz %u "
+            "tell %zu: %u/%u partition (%u,%u)/%u@%zu\n",
             leaf_count, leaf.node.row, leaf.node.column,
             (unsigned int)leaf.node.block_size,
             (unsigned int)leaf.mode.mode,
             (int)leaf.mode.angle_delta,
-            (unsigned int)leaf.mode.mrl_index,
-            (unsigned int)leaf.mode.multi_line_mrl,
             (unsigned int)leaf.mode.fsc_mode,
             (unsigned int)leaf.mode.use_intrabc,
             (unsigned int)leaf.mode.intrabc_mode,
@@ -722,54 +830,67 @@ static void test_ordinary_luma_frontier(void) {
             leaf.mode.after_fsc_bits,
             leaf.mode.after_mrl_bits,
             (unsigned int)leaf.prefix.tx_size,
-            (unsigned int)leaf.transform.primary_type,
-            (unsigned int)leaf.transform.secondary_signaled,
-            (unsigned int)leaf.transform.secondary_symbol,
             (unsigned int)leaf.prefix.eob,
+            leaf.prefix.after_all_zero_bits,
+            leaf.prefix.after_eob_point_bits,
+            leaf.prefix.after_eob_bits,
+            (unsigned int)leaf.transform.primary_type,
+            (unsigned int)leaf.transform.primary_long_side_symbol,
+            (unsigned int)leaf.transform.primary_symbol,
+            leaf.transform.after_primary_bits,
+            block.before_levels_bits,
+            block.after_levels_bits,
+            block.after_coefficients_bits,
+            (unsigned int)block.diagnostic_kind,
             (unsigned int)block.diagnostic_position,
             (unsigned int)block.diagnostic_context,
-            (unsigned int)block.diagnostic_kind,
             (unsigned int)block.nonzero_count,
             av2h_range_tell(&decoder.range), (unsigned int)status,
             (unsigned int)reconstruction_status,
-            leaf.prefix.after_eob_bits,
-            leaf.transform.before_primary_bits,
-            leaf.transform.after_primary_bits,
-            leaf.transform.after_secondary_bits,
-            block.before_levels_bits,
             decoder.luma_traversal.diagnostic_node.row,
             decoder.luma_traversal.diagnostic_node.column,
             (unsigned int)decoder.luma_traversal.diagnostic_node.block_size,
             decoder.luma_traversal.diagnostic_before_bits);
-    if (status == AV2H_OK && reconstruction_status == AV2H_UNSUPPORTED) {
-        size_t coefficient_index;
-        fprintf(stderr, "ordinary nonzero positions:");
-        for (coefficient_index = 0U;
-             coefficient_index < block.coefficient_count;
-             ++coefficient_index) {
-            if (block.dequantized[coefficient_index] != 0) {
-                fprintf(stderr, " %zu", coefficient_index);
-            }
-        }
-        fprintf(stderr, "\n");
-    }
-    CHECK(status == AV2H_OK);
-    CHECK(reconstruction_status == AV2H_UNSUPPORTED);
-    CHECK(leaf_count == 5U);
+    check_plane_crop("ordinary sixth luma",
+                     luma_pixels + 40U * 160U, 160U,
+                     expected_sixth, 16U, 4U);
+    check_plane_crop("ordinary seventh luma",
+                     luma_pixels + 44U * 160U, 160U,
+                     expected_seventh, 16U, 4U);
+    check_plane_crop("ordinary eighth luma",
+                     luma_pixels + 40U * 160U + 16U, 160U,
+                     expected_eighth, 4U, 4U);
+    CHECK(status == AV2H_UNSUPPORTED);
+    CHECK(reconstruction_status == AV2H_OK);
+    CHECK(has_leaf == 1U);
+    CHECK(leaf_count == 8U);
     CHECK(leaf.node.row == 10U);
-    CHECK(leaf.node.column == 0U);
-    CHECK(leaf.node.block_size == AV2H_BLOCK_16X4);
-    CHECK(leaf.mode.mode == AV2H_INTRA_D45);
-    CHECK(leaf.mode.angle_delta == -1);
-    CHECK(leaf.prefix.tx_size == AV2H_TX_16X4);
-    CHECK(leaf.prefix.eob == 1U);
-    CHECK(leaf.transform.primary_type == AV2H_TX_DCT_DCT);
-    CHECK(block.nonzero_count == 1U);
-    CHECK(block.dequantized[0] != 0);
-    CHECK(leaf.prefix.after_eob_bits == 256U);
-    CHECK(block.after_levels_bits == 265U);
-    CHECK(block.after_coefficients_bits == 276U);
-    CHECK(av2h_range_tell(&decoder.range) == 276U);
+    CHECK(leaf.node.column == 5U);
+    CHECK(leaf.node.block_size == AV2H_BLOCK_4X4);
+    CHECK(leaf.mode.mode == AV2H_INTRA_D203);
+    CHECK(leaf.mode.angle_delta == 3);
+    CHECK(leaf.mode.fsc_mode == 1U);
+    CHECK(leaf.mode.use_intrabc == 0U);
+    CHECK(leaf.mode.before_mode_bits == 415U);
+    CHECK(leaf.mode.after_mode_set_bits == 420U);
+    CHECK(leaf.mode.after_mode_index_bits == 424U);
+    CHECK(leaf.mode.after_fsc_bits == 428U);
+    CHECK(leaf.mode.after_mrl_bits == 428U);
+    CHECK(leaf.prefix.tx_size == AV2H_TX_4X4);
+    CHECK(leaf.prefix.eob == 15U);
+    CHECK(leaf.prefix.after_all_zero_bits == 428U);
+    CHECK(leaf.prefix.after_eob_point_bits == 429U);
+    CHECK(leaf.prefix.after_eob_bits == 432U);
+    CHECK(leaf.transform.before_primary_bits == 432U);
+    CHECK(leaf.transform.primary_type == AV2H_TX_IDTX);
+    CHECK(leaf.transform.primary_long_side_symbol == 0U);
+    CHECK(leaf.transform.primary_symbol == 0U);
+    CHECK(leaf.transform.after_primary_bits == 432U);
+    CHECK(block.before_levels_bits == 432U);
+    CHECK(block.diagnostic_kind == 15U);
+    CHECK(block.diagnostic_position == 5U);
+    CHECK(block.diagnostic_context == 5U);
+    CHECK(av2h_range_tell(&decoder.range) == 443U);
 }
 
 static void test_orchestrator_failures(void) {

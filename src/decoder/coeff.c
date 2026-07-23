@@ -74,6 +74,10 @@ Av2hStatus av2h_first_coeff_cdfs_init(Av2hFirstCoeffCdfs *cdfs) {
         (Av2hBinaryCdfSpec){ 32128U, 78U, 0U });
     if (status != AV2H_OK) return status;
     status = av2h_binary_cdf_init(
+        cdfs->txb_skip_fsc_txs1_ctx9,
+        (Av2hBinaryCdfSpec){ 31738U, 75U, 0U });
+    if (status != AV2H_OK) return status;
+    status = av2h_binary_cdf_init(
         cdfs->txb_skip_fsc_txs2_ctx9,
         (Av2hBinaryCdfSpec){ 29599U, 7U, 0U });
     if (status != AV2H_OK) return status;
@@ -413,7 +417,8 @@ Av2hStatus av2h_coeff_prefix_read(
     }
     if ((mode->fsc_mode ?
                  ((leaf->block_size != AV2H_BLOCK_4X4 &&
-                     leaf->block_size != AV2H_BLOCK_8X16) ||
+                     leaf->block_size != AV2H_BLOCK_8X16 &&
+                     leaf->block_size != AV2H_BLOCK_16X4) ||
                     txb_skip_context != 9U) :
          txb_skip_context != 0U) ||
         frame->base_q_index != 128U || frame->tx_mode != 1U ||
@@ -428,6 +433,8 @@ Av2hStatus av2h_coeff_prefix_read(
         cdf = mode->use_intrabc ? cdfs->txb_skip_inter_txs0 :
             mode->fsc_mode && prefix->tx_size_context == 0U ?
                 cdfs->txb_skip_fsc_txs0_ctx9 :
+            mode->fsc_mode && prefix->tx_size_context == 1U ?
+                cdfs->txb_skip_fsc_txs1_ctx9 :
             mode->fsc_mode && prefix->tx_size_context == 2U ?
                 cdfs->txb_skip_fsc_txs2_ctx9 :
             prefix->tx_size_context == 0U ? cdfs->txb_skip_txs0 :

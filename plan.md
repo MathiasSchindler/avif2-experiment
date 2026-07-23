@@ -350,11 +350,19 @@ fixture-supplied contexts or references.
 ## Milestone 7: ordinary fixture coverage
 
 **Status:** Paused at a verified fail-closed checkpoint. Ordinary luma commits
-five sample-exact leaves through tell 241. The next leaf at `(10,0)` is 16x4
-D45 angle-minus-one, TX_16X4, EOB 1, and DCT_DCT; its entropy path matches
-pinned AVM through tell 276, then reconstruction returns `AV2H_UNSUPPORTED`
-before leaf commit or plane mutation. See `docs/milestone-7.md` for the exact
-leaf endpoints and handoff.
+eight sample-exact leaves through tell 414. The eighth leaf at `(10,4)` is
+4x4 intraBC with displacement `(-32,24)`, EOB 5, transform set/index 0/0
+mapped to IDTX, and one +1960 coefficient at position 10. Its sole +245
+residual and all 16 reconstructed samples match pinned AVM. The next 4x4 D203
+angle-plus-three FSC/IDTX leaf at `(10,5)` reaches its coefficient levels,
+then returns `AV2H_UNSUPPORTED` at omitted TX-size-context-0 FSC base context
+5, tell 443. See `docs/milestone-7.md` for the exact endpoints and handoff.
+
+An audit of all 21 `images/artifacts/*.obu` streams found no artifact-relevant
+Milestone 7 gap: 17 stop earlier at Milestone 9 large-frame GDF header
+handling, and four reach their first luma leaf but require the broader
+QP-dependent Milestone 8 syntax/coefficient profile. The ordinary 4x4 intraBC
+intraBC leaf is now implemented, but none of the artifact streams reaches it.
 
 Complete the ordinary fixture's remaining partition, mode, transform,
 coefficient, prediction, reconstruction, and chroma paths. Admit only locked
@@ -446,8 +454,8 @@ Release validation additionally includes:
 
 ## Current work order
 
-1. Resume Milestone 7 with sample-exact reconstruction of the decoded 16x4
-  leaf, then complete ordinary luma and chroma parity.
+1. Resume Milestone 7 with TX-size-context-0 FSC base context 5 at `(10,5)`,
+  then complete ordinary luma and chroma parity.
 2. Complete Milestone 8 high-detail, CFL, intraBC, coefficient-range, and
   advanced-transform coverage.
 3. Integrate and prove the mandatory filter pipeline in Milestone 9 after the

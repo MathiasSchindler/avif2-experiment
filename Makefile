@@ -16,11 +16,12 @@ HOST_TRANSFORM_UNIT := build/host/transform-unit
 HOST_COEFF_LEVEL_UNIT := build/host/coeff-level-unit
 HOST_RECONSTRUCT_UNIT := build/host/reconstruct-unit
 HOST_FILTER_UNIT := build/host/filter-unit
+HOST_ARTIFACT_PROFILE_UNIT := build/host/artifact-profile-unit
 HOST_UNITS := $(HOST_SUBSTRATE_UNIT) $(HOST_CONTAINER_UNIT) $(HOST_RANGE_UNIT) \
 	$(HOST_TILE_UNIT) $(HOST_FRAME_UNIT) $(HOST_CDF_UNIT) \
 	$(HOST_PARTITION_UNIT) $(HOST_LEAF_UNIT) $(HOST_COEFF_UNIT) \
 	$(HOST_TRANSFORM_UNIT) $(HOST_COEFF_LEVEL_UNIT) $(HOST_RECONSTRUCT_UNIT) \
-	$(HOST_FILTER_UNIT)
+	$(HOST_FILTER_UNIT) $(HOST_ARTIFACT_PROFILE_UNIT)
 HOST_ARTIFACT_TOOL := build/host/av2heif-artifact
 CORE_SOURCES := src/base.c src/carriage.c src/bmff.c src/container.c src/query.c \
 	src/decoder/cdf.c src/decoder/coeff.c src/decoder/coeff_level.c \
@@ -66,6 +67,7 @@ test-c: $(HOST_UNITS)
 	$(HOST_COEFF_LEVEL_UNIT)
 	$(HOST_RECONSTRUCT_UNIT)
 	$(HOST_FILTER_UNIT)
+	$(HOST_ARTIFACT_PROFILE_UNIT)
 
 $(HOST_SUBSTRATE_UNIT): tests/substrate_unit.c $(CORE_SOURCES) $(CORE_HEADERS)
 	@mkdir -p $(dir $@)
@@ -120,6 +122,11 @@ $(HOST_RECONSTRUCT_UNIT): tests/reconstruct_unit.c $(CORE_SOURCES) $(CORE_HEADER
 $(HOST_FILTER_UNIT): tests/filter_unit.c $(CORE_SOURCES) $(CORE_HEADERS)
 	@mkdir -p $(dir $@)
 	$(CC) $(HOST_CFLAGS) tests/filter_unit.c $(CORE_SOURCES) -o $@
+
+$(HOST_ARTIFACT_PROFILE_UNIT): tests/artifact_profile_unit.c \
+		$(CORE_SOURCES) $(CORE_HEADERS)
+	@mkdir -p $(dir $@)
+	$(CC) $(HOST_CFLAGS) tests/artifact_profile_unit.c $(CORE_SOURCES) -o $@
 
 $(HOST_ARTIFACT_TOOL): tools/av2heif_artifact.c $(CORE_SOURCES) $(CORE_HEADERS)
 	@mkdir -p $(dir $@)

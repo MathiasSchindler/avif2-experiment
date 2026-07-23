@@ -560,39 +560,43 @@ Av2hStatus av2h_luma_predict(
         return AV2H_OK;
     }
     if (mode->mode == AV2H_INTRA_D45 && mode->angle_delta == -1 &&
-        mode->mrl_index == 0U && width == 32U && height == 8U) {
+        mode->mrl_index == 0U &&
+        ((width == 16U && height == 4U) ||
+         (width == 32U && height == 8U))) {
         uint8_t source[41U];
         uint8_t *edge = above;
         uint8_t *filtered = &edge[-1];
+        size_t edge_count = (size_t)width + height;
+        size_t filtered_count = edge_count + 1U;
         if (references->above == 0 || references->above_count == 0U) {
             return AV2H_INVALID_ARGUMENT;
         }
         edge[-1] = references->has_above_left ? references->above_left :
                                                     references->above[0];
-        for (index = 0U; index < 40U; ++index) {
+        for (index = 0U; index < edge_count; ++index) {
             size_t reference = index < references->above_count ?
                 index : references->above_count - 1U;
             edge[index] = references->above[reference];
         }
-        for (index = 0U; index < sizeof(source); ++index) {
+        for (index = 0U; index < filtered_count; ++index) {
             source[index] = filtered[index];
         }
-        for (index = 1U; index < sizeof(source); ++index) {
+        for (index = 1U; index < filtered_count; ++index) {
             static const uint8_t kernel[5U] = { 2U, 4U, 4U, 4U, 2U };
             size_t tap;
             unsigned int sum = 0U;
             for (tap = 0U; tap < 5U; ++tap) {
                 int32_t source_index = (int32_t)index - 2 + (int32_t)tap;
                 if (source_index < 0) source_index = 0;
-                if (source_index >= (int32_t)sizeof(source)) {
-                    source_index = (int32_t)sizeof(source) - 1;
+                if (source_index >= (int32_t)filtered_count) {
+                    source_index = (int32_t)filtered_count - 1;
                 }
                 sum += kernel[tap] * source[source_index];
             }
             filtered[index] = (uint8_t)((sum + 8U) >> 4U);
         }
-        edge[40] = edge[39];
-        edge[41] = edge[39];
+        edge[edge_count] = edge[edge_count - 1U];
+        edge[edge_count + 1U] = edge[edge_count - 1U];
         for (row = 0U; row < height; ++row) {
             uint16_t position = (uint16_t)((row + 1U) * 73U);
             uint16_t base = position >> 6U;
@@ -600,9 +604,9 @@ Av2hStatus av2h_luma_predict(
             for (column = 0U; column < width; ++column, ++base) {
                 size_t tap;
                 int32_t sum = 0;
-                if (base > 39U) {
+                if (base >= edge_count) {
                     predictor[(size_t)row * predictor_stride + column] =
-                        edge[39];
+                        edge[edge_count - 1U];
                     continue;
                 }
                 for (tap = 0U; tap < 4U; ++tap) {
@@ -1334,6 +1338,28 @@ Av2hStatus av2h_luma_reconstruct(
         flip_adst_rows = 0U;
         identity_columns = 0U;
         adst_columns = 0U;
+    } else if (prefix->tx_size == AV2H_TX_16X4 &&
+               transform->primary_type == AV2H_TX_DCT_DCT &&
+               mode->mode == AV2H_INTRA_D45) {
+        first_shift = 6U;
+        second_shift = 12U;
+        rectangular = 0U;
+        identity_rows = 0U;
+        adst_rows = 0U;
+        flip_adst_rows = 0U;
+        identity_columns = 0U;
+        adst_columns = 0U;
+    } else if (prefix->tx_size == AV2H_TX_16X4 &&
+               transform->primary_type == AV2H_TX_IDTX &&
+               mode->mode == AV2H_INTRA_D45 && mode->fsc_mode) {
+        first_shift = 6U;
+        second_shift = 12U;
+        rectangular = 0U;
+        identity_rows = 1U;
+        adst_rows = 0U;
+        flip_adst_rows = 0U;
+        identity_columns = 1U;
+        adst_columns = 0U;
     } else if (prefix->tx_size == AV2H_TX_32X8 &&
                transform->primary_type == AV2H_TX_DCT_DCT &&
                mode->mode == AV2H_INTRA_D45) {
@@ -1510,11 +1536,13 @@ Av2hStatus av2h_luma_reconstruct_to_plane(
             (uint32_t)source_y + coefficients->height > plane->height) {
             return AV2H_INVALID_DATA;
         }
-        if ((uint32_t)source_y + coefficients->height > block_y) {
-            return AV2H_UNSUPPORTED;
-        }
         for (row = 0U; row < coefficients->height; ++row) {
             for (column = 0U; column < coefficients->width; ++column) {
+                if (!plane_sample_reconstructed(
+                        plane, (size_t)source_x + column,
+                        (size_t)source_y + row)) {
+                    return AV2H_UNSUPPORTED;
+                }
                 scratch->predictor[row * coefficients->width + column] =
                     plane->data[((size_t)source_y + row) * plane->stride +
                                 (size_t)source_x + column];
