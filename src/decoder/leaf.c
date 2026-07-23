@@ -714,7 +714,6 @@ Av2hStatus av2h_luma_mode_read(Av2hRangeDecoder *decoder,
         return AV2H_INVALID_ARGUMENT;
     }
     if (leaf->block_size >= AV2H_BLOCK_SIZE_COUNT ||
-        frame->base_q_index != 128U ||
         frame->disable_cdf_update || frame->segmentation_enabled ||
         frame->delta_q_present || frame->gdf_mode >= 2U ||
         frame->cdef_strength_count > 1U || !sequence->enable_sdp ||

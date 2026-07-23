@@ -39,6 +39,7 @@ typedef struct {
         intrabc_type_index_eob_ctx1[AV2H_INTER_TX_TYPE_INDEX_SYMBOLS + 4U];
     uint16_t secondary_4x4[AV2H_SECONDARY_TX_TYPE_SYMBOLS + 4U];
     uint16_t secondary_8x8[AV2H_SECONDARY_TX_TYPE_SYMBOLS + 4U];
+    uint16_t secondary_16x16[AV2H_SECONDARY_TX_TYPE_SYMBOLS + 4U];
     uint16_t secondary_32x32[AV2H_SECONDARY_TX_TYPE_SYMBOLS + 4U];
     uint16_t chroma_cross_type[7U + 4U];
 } Av2hFirstTransformCdfs;

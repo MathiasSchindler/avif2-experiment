@@ -22,6 +22,12 @@ not depend on Milestone 7 traversal work:
   corresponding Sequence Header tool is disabled.
 - GDF rejects overlapping destination, CDEF-source, or immutable
   deblocked-source storage while accepting non-overlapping padded strides.
+- Closed-key Frame Headers derive the GDF block count from the Sequence Header
+  unit-size flag and frame dimensions, read the mode-2 bit only for
+  multi-block frames, and retain picture QP and scale indices. All 21 artifact
+  streams match the pinned AVM `uncompressedHeaderBits` endpoint.
+- GDF mode 2 rejects at tile initialization before entropy decoding because
+  its per-block on/off symbols are not yet implemented.
 - A checked private workspace query derives coded Y/U/V dimensions, two
   complete stage-plane sets, per-4x4 deblock-cell counts, per-64x64 CCSO
   control counts, total bytes, and required alignment. The matching initializer
@@ -100,6 +106,8 @@ final-plane mutation.
 The following work still depends on complete Milestones 7 and 8 syntax and
 reconstruction:
 
+- decode and store GDF mode-2 block flags at their superblock entropy
+  positions;
 - populate deblock cells and CCSO control maps from every committed luma and
   chroma leaf;
 - connect the prepared workspace binding to the post-Milestone-8 frame

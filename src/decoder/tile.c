@@ -39,6 +39,21 @@ static Av2hStatus tile_decoder_fail(Av2hTileDecoder *decoder,
     return status;
 }
 
+static int q_luma_geometry_supported(uint16_t base_q_index,
+                                     Av2hBlockSize block_size) {
+    if (base_q_index == 128U) return 1;
+    switch (block_size) {
+        case AV2H_BLOCK_16X32:
+        case AV2H_BLOCK_32X32:
+        case AV2H_BLOCK_32X64:
+        case AV2H_BLOCK_64X64:
+        case AV2H_BLOCK_64X16:
+            return 1;
+        default:
+            return 0;
+    }
+}
+
 static Av2hStatus tile_store_luma_mode(Av2hTileDecoder *decoder,
                                        const Av2hPartitionNode *node,
                                        const Av2hFirstLeafMode *mode) {
@@ -93,6 +108,7 @@ Av2hStatus av2h_tile_decoder_init(
         storage->colocated_luma == 0) {
         return AV2H_INVALID_ARGUMENT;
     }
+    if (frame->gdf_mode > 1U) return AV2H_UNSUPPORTED;
     decoder->mi_columns = ((size_t)frame->width + 3U) / 4U;
     decoder->mi_rows = ((size_t)frame->height + 3U) / 4U;
     if (decoder->mi_columns > storage->above_count ||
@@ -119,11 +135,13 @@ Av2hStatus av2h_tile_decoder_init(
     if (status != AV2H_OK) return tile_decoder_fail(decoder, status);
     status = av2h_leaf_cdfs_init(&decoder->leaf_cdfs);
     if (status != AV2H_OK) return tile_decoder_fail(decoder, status);
-    status = av2h_first_coeff_cdfs_init(&decoder->coeff_cdfs);
+    status = av2h_first_coeff_cdfs_init_for_q(
+        &decoder->coeff_cdfs, frame->base_q_index);
     if (status != AV2H_OK) return tile_decoder_fail(decoder, status);
     status = av2h_first_transform_cdfs_init(&decoder->transform_cdfs);
     if (status != AV2H_OK) return tile_decoder_fail(decoder, status);
-    status = av2h_first_coeff_level_cdfs_init(&decoder->level_cdfs);
+    status = av2h_first_coeff_level_cdfs_init_for_q(
+        &decoder->level_cdfs, frame->base_q_index);
     if (status != AV2H_OK) return tile_decoder_fail(decoder, status);
     status = av2h_partition_context_state_init(
         &decoder->partition_contexts, storage->luma_partition_above,
@@ -182,6 +200,10 @@ Av2hStatus av2h_tile_decoder_next_luma(
         return AV2H_OK;
     }
     leaf->node = path.leaf;
+    if (!q_luma_geometry_supported(
+            decoder->frame->base_q_index, leaf->node.block_size)) {
+        return tile_decoder_fail(decoder, AV2H_UNSUPPORTED);
+    }
     status = av2h_luma_mode_read_with_state(
         &decoder->range, &decoder->leaf_cdfs, decoder->sequence,
         decoder->frame, &leaf->node, &decoder->luma_mode_contexts,

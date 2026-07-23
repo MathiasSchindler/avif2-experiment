@@ -148,11 +148,36 @@ static void test_arguments(void) {
     Av2hPartitionNode leaf = { 0U, 0U, AV2H_BLOCK_8X8 };
     Av2hFirstLeafMode mode = { 0 };
     Av2hFirstCoeffPrefix prefix;
-    CHECK(sizeof(Av2hFirstCoeffCdfs) == 396U);
+    CHECK(sizeof(Av2hFirstCoeffCdfs) == 398U);
     CHECK(av2h_first_coeff_cdfs_init(0) == AV2H_INVALID_ARGUMENT);
+    CHECK(av2h_first_coeff_cdfs_init_for_q(0, 64U) ==
+          AV2H_INVALID_ARGUMENT);
+    CHECK(av2h_first_coeff_cdfs_init_for_q(&cdfs, 64U) == AV2H_OK);
+    CHECK(cdfs.q_context == 0U);
+    CHECK(cdfs.txb_skip_txs2[0] == 13822U);
+    CHECK(cdfs.eob_pt_128[0] == 32432U);
+    CHECK(cdfs.eob_extra[0] == 16377U);
+    CHECK(av2h_first_coeff_cdfs_init_for_q(&cdfs, 160U) == AV2H_OK);
+    CHECK(cdfs.q_context == 2U);
+    CHECK(cdfs.txb_skip_txs3[0] == 961U);
+    CHECK(cdfs.eob_pt_512[0] == 31114U);
+    CHECK(cdfs.eob_extra[0] == 13095U);
+    CHECK(av2h_first_coeff_cdfs_init_for_q(&cdfs, 208U) == AV2H_OK);
+    CHECK(cdfs.q_context == 3U);
+    CHECK(cdfs.txb_skip_txs3[0] == 210U);
+    CHECK(cdfs.eob_pt_1024[0] == 26930U);
+    CHECK(cdfs.eob_extra[0] == 12404U);
+    CHECK(av2h_first_coeff_cdfs_init(&cdfs) == AV2H_OK);
+    CHECK(cdfs.q_context == 1U);
+    CHECK(cdfs.eob_pt_512[9] == 1U);
     CHECK(av2h_first_coeff_prefix_read(
               0, &cdfs, &frame, &leaf, &mode, &prefix) ==
           AV2H_INVALID_ARGUMENT);
+    frame.base_q_index = 160U;
+    frame.tx_mode = 1U;
+    CHECK(av2h_first_coeff_prefix_read(
+              &decoder, &cdfs, &frame, &leaf, &mode, &prefix) ==
+          AV2H_UNSUPPORTED);
     frame.base_q_index = 128U;
     frame.tx_mode = 2U;
     CHECK(av2h_first_coeff_prefix_read(

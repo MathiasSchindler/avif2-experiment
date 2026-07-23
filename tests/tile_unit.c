@@ -1051,6 +1051,11 @@ static void test_orchestrator_failures(void) {
     frame.width = 4U;
     frame.height = 4U;
     sequence.enable_ext_partitions = 1U;
+    frame.gdf_mode = 2U;
+    CHECK(av2h_tile_decoder_init(
+              &decoder, (Av2hSpan){ entropy, sizeof(entropy) }, &sequence,
+              &frame, &storage) == AV2H_UNSUPPORTED);
+    frame.gdf_mode = 0U;
     CHECK(av2h_tile_decoder_init(
               &decoder, (Av2hSpan){ entropy, sizeof(entropy) }, &sequence,
               &frame, &storage) == AV2H_OK);

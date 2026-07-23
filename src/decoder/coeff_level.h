@@ -7,9 +7,9 @@
 
 typedef struct {
     uint16_t eob_base[6U][3U + 4U];
-    uint16_t eob_lf[8U][5U + 4U];
+    uint16_t eob_lf[9U][5U + 4U];
     uint16_t base[31U][4U + 4U];
-    uint16_t base_lf[56U][6U + 4U];
+    uint16_t base_lf[58U][6U + 4U];
     uint16_t br[7U][4U + 4U];
     uint16_t br_lf[11U][4U + 4U];
     uint16_t dc_sign[3U][AV2H_BINARY_CDF_SIZE];
@@ -49,6 +49,7 @@ typedef struct {
     uint16_t uv_br_ctx1[4U + 4U];
     uint16_t uv_br_ctx2[4U + 4U];
     uint16_t uv_br_ctx3[4U + 4U];
+    uint8_t q_context;
 } Av2hFirstCoeffLevelCdfs;
 
 typedef struct {
@@ -71,7 +72,13 @@ typedef struct {
     size_t after_coefficients_bits;
 } Av2hFirstCoeffBlock;
 
+int32_t av2h_coeff_clamp_dequantized_8bit(
+    uint64_t magnitude,
+    uint8_t sign);
 Av2hStatus av2h_first_coeff_level_cdfs_init(Av2hFirstCoeffLevelCdfs *cdfs);
+Av2hStatus av2h_first_coeff_level_cdfs_init_for_q(
+    Av2hFirstCoeffLevelCdfs *cdfs,
+    uint16_t base_q_index);
 Av2hStatus av2h_coeff_block_read(
     Av2hRangeDecoder *decoder,
     Av2hFirstCoeffLevelCdfs *cdfs,

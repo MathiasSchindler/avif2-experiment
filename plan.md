@@ -359,10 +359,13 @@ returns `AV2H_UNSUPPORTED` because skipped intraBC reconstruction is omitted.
 See `docs/milestone-7.md` for the exact endpoints and handoff.
 
 An audit of all 21 `images/artifacts/*.obu` streams found no artifact-relevant
-Milestone 7 gap: 17 stop earlier at Milestone 9 large-frame GDF header
-handling, and four reach their first luma leaf but require the broader
-QP-dependent Milestone 8 syntax/coefficient profile. The ordinary 4x4 intraBC
-leaf is now implemented, but none of the artifact streams reaches it.
+Milestone 7 gap. Every Frame Header now parses to the exact pinned-AVM bit
+endpoint, including multi-block GDF mode and picture parameters. Six streams
+select GDF mode 2 and fail closed at tile initialization because block-level
+GDF flags are not implemented. Of the other 15, four now complete their exact
+first coefficient block through Milestone 8 and eleven remain fail-closed at
+an earlier first-luma syntax frontier. The ordinary 4x4 intraBC leaf is
+implemented, but none of the artifact streams reaches it.
 
 Complete the ordinary fixture's remaining partition, mode, transform,
 coefficient, prediction, reconstruction, and chroma paths. Admit only locked
@@ -374,7 +377,24 @@ endpoint without unsupported paths.
 
 ## Milestone 8: high-detail and advanced prediction
 
-**Status:** Planned.
+**Status:** In progress. Q-aware first-block coefficient parsing is pinned for
+four artifact streams.
+
+The decoder now derives the four coefficient Q contexts, initializes the exact
+Q2/Q3 prefix, level, and DC-sign CDF rows reached by the artifact matrix, and
+rejects every unpinned Q2/Q3 row before entropy consumption. Normative 8-bit
+QTX lookup, luma DC delta, large-transform scaling, and coefficient saturation
+are implemented. The reached 16x32 large-transform orientation and secondary
+CDF are also pinned.
+
+First-block coefficient endpoints now match AVM for
+`cuckoo-157x105-qp160` (tell 35, DC -6),
+`emerald-192x96-qp208` (tell 27, DC -2),
+`louis-463x342-qp224` (tell 27, DC +6), and
+`pastell-512x341-qp160` (tell 65, DC -8). The artifact test compares the full
+quantized and dequantized arrays, not only endpoints. Six GDF-mode-2 streams
+remain Milestone 9-owned; eleven other streams still stop at their first-luma
+Milestone 8 frontier.
 
 Complete the high-detail fixture and the remaining reached high-energy,
 secondary-transform, CFL, intraBC, coefficient-range, and large-transform
@@ -399,6 +419,10 @@ and hosted stage-evidence recorder/comparator are also implemented. The work
 is confined to the filter implementation/header, focused C/Python tests,
 `tools/run_m9_filter_evidence.py`, and Milestone 9 documentation; see the
 milestone document for the exact handoff and remaining dependencies.
+Frame-header GDF signaling is also complete for the artifact profile: the
+parser derives the normative 64/128-pixel GDF block count, conditionally reads
+the mode-2 bit, and matches all 21 AVM header endpoints. Mode-2 block flags
+remain a tile-syntax dependency and reject before range decoding.
 
 Populate complete deblock and CCSO metadata from reconstructed leaves, execute
 deblock, CDEF, CCSO, and GDF in normative order over coded planes, crop to

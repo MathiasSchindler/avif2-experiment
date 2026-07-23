@@ -19,6 +19,7 @@ typedef enum {
 } Av2hFirstTxSize;
 
 typedef struct {
+    uint8_t q_context;
     uint16_t txb_skip_txs0[AV2H_BINARY_CDF_SIZE];
     uint16_t txb_skip_inter_txs0[AV2H_BINARY_CDF_SIZE];
     uint16_t txb_skip_chroma_txs0_ctx6[AV2H_BINARY_CDF_SIZE];
@@ -71,6 +72,9 @@ typedef struct {
 } Av2hCoeffContextState;
 
 Av2hStatus av2h_first_coeff_cdfs_init(Av2hFirstCoeffCdfs *cdfs);
+Av2hStatus av2h_first_coeff_cdfs_init_for_q(
+    Av2hFirstCoeffCdfs *cdfs,
+    uint16_t base_q_index);
 Av2hStatus av2h_coeff_context_state_init(
     Av2hCoeffContextState *state,
     uint8_t *above,

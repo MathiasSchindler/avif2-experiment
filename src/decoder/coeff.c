@@ -1,6 +1,59 @@
 #include "coeff.h"
 
-Av2hStatus av2h_first_coeff_cdfs_init(Av2hFirstCoeffCdfs *cdfs) {
+static uint8_t coefficient_q_context(uint16_t base_q_index) {
+    return base_q_index <= 90U ? 0U :
+           base_q_index <= 140U ? 1U :
+           base_q_index <= 190U ? 2U : 3U;
+}
+
+Av2hStatus av2h_first_coeff_cdfs_init_for_q(
+    Av2hFirstCoeffCdfs *cdfs,
+    uint16_t base_q_index) {
+    static const Av2hBinaryCdfSpec txb_skip[4U][4U] = {
+        {
+            { 25759U, 31U, 0U }, { 24799U, 56U, 0U },
+            { 18946U, 62U, 0U }, { 7809U, 62U, 0U }
+        },
+        {
+            { 30296U, 5U, 0U }, { 31530U, 30U, 0U },
+            { 31362U, 25U, 0U }, { 27230U, 62U, 0U }
+        },
+        {
+            { 28021U, 3U, 0U }, { 30300U, 0U, 0U },
+            { 31298U, 25U, 0U }, { 31807U, 56U, 0U }
+        },
+        {
+            { 21443U, 16U, 0U }, { 27522U, 0U, 0U },
+            { 30197U, 6U, 0U }, { 32558U, 56U, 0U }
+        }
+    };
+    static const uint16_t eob_pt_128[4U][7U] = {
+        { 336U, 988U, 2984U, 5382U, 9800U, 16995U, 24488U },
+        { 654U, 1068U, 2257U, 5580U, 12362U, 21455U, 26067U },
+        { 1672U, 2600U, 5666U, 11986U, 21596U, 28733U, 30851U },
+        { 4122U, 6840U, 13278U, 20906U, 28131U, 31450U, 32305U }
+    };
+    static const uint8_t eob_pt_128_parameter[4U] = { 32U, 32U, 31U, 31U };
+    static const uint16_t eob_pt_512[4U][7U] = {
+        { 139U, 5954U, 13032U, 16244U, 20068U, 24954U, 25897U },
+        { 1311U, 2019U, 3578U, 6876U, 13781U, 23541U, 24922U },
+        { 1654U, 2720U, 5317U, 10565U, 19306U, 29790U, 30875U },
+        { 3753U, 5634U, 10147U, 17539U, 26473U, 32201U, 32398U }
+    };
+    static const uint8_t eob_pt_512_parameter[4U] = { 32U, 62U, 32U, 6U };
+    static const uint16_t eob_pt_1024[4U][7U] = {
+        { 576U, 1953U, 8086U, 14995U, 20006U, 24682U, 25870U },
+        { 634U, 1777U, 3873U, 6293U, 12653U, 23825U, 24712U },
+        { 2101U, 3304U, 6486U, 12539U, 21781U, 30341U, 30738U },
+        { 5838U, 8921U, 14454U, 21162U, 27888U, 32275U, 32424U }
+    };
+    static const uint8_t eob_pt_1024_parameter[4U] = {
+        62U, 57U, 32U, 31U
+    };
+    static const Av2hBinaryCdfSpec eob_extra[4U] = {
+        { 16391U, 0U, 0U }, { 18326U, 0U, 0U },
+        { 19673U, 78U, 0U }, { 20364U, 3U, 0U }
+    };
     static const uint16_t eob_pt_16[] = {
         1839U, 2995U, 6796U, 15126U
     };
@@ -16,22 +69,16 @@ Av2hStatus av2h_first_coeff_cdfs_init(Av2hFirstCoeffCdfs *cdfs) {
     static const uint16_t eob_pt_64[] = {
         939U, 1381U, 3142U, 6536U, 13617U, 21799U
     };
-    static const uint16_t eob_pt_128[] = {
-        654U, 1068U, 2257U, 5580U, 12362U, 21455U, 26067U
-    };
     static const uint16_t eob_pt_256[] = {
         790U, 1184U, 2218U, 5022U, 11432U, 20289U, 23689U
     };
-    static const uint16_t eob_pt_512[] = {
-        1311U, 2019U, 3578U, 6876U, 13781U, 23541U, 24922U
-    };
-    static const uint16_t eob_pt_1024[] = {
-        634U, 1777U, 3873U, 6293U, 12653U, 23825U, 24712U
-    };
+    uint8_t q_context;
     Av2hStatus status;
     if (cdfs == 0) return AV2H_INVALID_ARGUMENT;
+    q_context = coefficient_q_context(base_q_index);
+    cdfs->q_context = q_context;
     status = av2h_binary_cdf_init(
-        cdfs->txb_skip_txs0, (Av2hBinaryCdfSpec){ 30296U, 5U, 0U });
+        cdfs->txb_skip_txs0, txb_skip[q_context][0U]);
     if (status != AV2H_OK) return status;
     status = av2h_binary_cdf_init(
         cdfs->txb_skip_inter_txs0,
@@ -82,13 +129,13 @@ Av2hStatus av2h_first_coeff_cdfs_init(Av2hFirstCoeffCdfs *cdfs) {
         (Av2hBinaryCdfSpec){ 29599U, 7U, 0U });
     if (status != AV2H_OK) return status;
     status = av2h_binary_cdf_init(
-        cdfs->txb_skip_txs1, (Av2hBinaryCdfSpec){ 31530U, 30U, 0U });
+        cdfs->txb_skip_txs1, txb_skip[q_context][1U]);
     if (status != AV2H_OK) return status;
     status = av2h_binary_cdf_init(
-        cdfs->txb_skip_txs2, (Av2hBinaryCdfSpec){ 31362U, 25U, 0U });
+        cdfs->txb_skip_txs2, txb_skip[q_context][2U]);
     if (status != AV2H_OK) return status;
     status = av2h_binary_cdf_init(
-        cdfs->txb_skip_txs3, (Av2hBinaryCdfSpec){ 27230U, 62U, 0U });
+        cdfs->txb_skip_txs3, txb_skip[q_context][3U]);
     if (status != AV2H_OK) return status;
     status = av2h_cdf_init(cdfs->eob_pt_16, 5U + 4U, eob_pt_16,
                            5U, 30U, 0U);
@@ -105,20 +152,26 @@ Av2hStatus av2h_first_coeff_cdfs_init(Av2hFirstCoeffCdfs *cdfs) {
     status = av2h_cdf_init(cdfs->eob_pt_64, 7U + 4U, eob_pt_64,
                            7U, 31U, 0U);
     if (status != AV2H_OK) return status;
-    status = av2h_cdf_init(cdfs->eob_pt_128, 8U + 4U, eob_pt_128,
-                           8U, 32U, 0U);
+    status = av2h_cdf_init(
+        cdfs->eob_pt_128, 8U + 4U, eob_pt_128[q_context],
+        8U, eob_pt_128_parameter[q_context], 0U);
     if (status != AV2H_OK) return status;
     status = av2h_cdf_init(cdfs->eob_pt_256, 8U + 4U, eob_pt_256,
                            8U, 57U, 0U);
     if (status != AV2H_OK) return status;
-    status = av2h_cdf_init(cdfs->eob_pt_512, 8U + 4U, eob_pt_512,
-                           8U, 0U, 0U);
+    status = av2h_cdf_init(
+        cdfs->eob_pt_512, 8U + 4U, eob_pt_512[q_context],
+        8U, eob_pt_512_parameter[q_context], 0U);
     if (status != AV2H_OK) return status;
-    status = av2h_cdf_init(cdfs->eob_pt_1024, 8U + 4U, eob_pt_1024,
-                           8U, 57U, 0U);
+    status = av2h_cdf_init(
+        cdfs->eob_pt_1024, 8U + 4U, eob_pt_1024[q_context],
+        8U, eob_pt_1024_parameter[q_context], 0U);
     if (status != AV2H_OK) return status;
-    return av2h_binary_cdf_init(
-        cdfs->eob_extra, (Av2hBinaryCdfSpec){ 18326U, 0U, 0U });
+    return av2h_binary_cdf_init(cdfs->eob_extra, eob_extra[q_context]);
+}
+
+Av2hStatus av2h_first_coeff_cdfs_init(Av2hFirstCoeffCdfs *cdfs) {
+    return av2h_first_coeff_cdfs_init_for_q(cdfs, 128U);
 }
 
 static Av2hStatus derive_tx_size(Av2hBlockSize block_size,
@@ -415,32 +468,43 @@ Av2hStatus av2h_coeff_prefix_read(
         mode == 0 || prefix == 0) {
         return AV2H_INVALID_ARGUMENT;
     }
+    if (cdfs->q_context != coefficient_q_context(frame->base_q_index)) {
+        return AV2H_UNSUPPORTED;
+    }
     if ((mode->fsc_mode ?
                  ((leaf->block_size != AV2H_BLOCK_4X4 &&
                      leaf->block_size != AV2H_BLOCK_8X16 &&
                      leaf->block_size != AV2H_BLOCK_16X4) ||
                     txb_skip_context != 9U) :
          txb_skip_context != 0U) ||
-        frame->base_q_index != 128U || frame->tx_mode != 1U ||
+        frame->tx_mode != 1U ||
         frame->disable_cdf_update) {
         return AV2H_UNSUPPORTED;
     }
     status = derive_tx_size(leaf->block_size, &prefix->tx_size,
                             &prefix->tx_size_context);
     if (status != AV2H_OK) return status;
+    if (cdfs->q_context != 1U &&
+        prefix->tx_size != AV2H_TX_16X32 &&
+        prefix->tx_size != AV2H_TX_32X32) {
+        return AV2H_UNSUPPORTED;
+    }
     prefix->txb_skip_context = txb_skip_context;
     prefix->before_all_zero_bits = av2h_range_tell(decoder);
-        cdf = mode->use_intrabc ? cdfs->txb_skip_inter_txs0 :
-            mode->fsc_mode && prefix->tx_size_context == 0U ?
-                cdfs->txb_skip_fsc_txs0_ctx9 :
-            mode->fsc_mode && prefix->tx_size_context == 1U ?
+    if (mode->use_intrabc) {
+        cdf = cdfs->txb_skip_inter_txs0;
+    } else if (mode->fsc_mode) {
+        cdf = prefix->tx_size_context == 0U ?
+            cdfs->txb_skip_fsc_txs0_ctx9 :
+            prefix->tx_size_context == 1U ?
                 cdfs->txb_skip_fsc_txs1_ctx9 :
-            mode->fsc_mode && prefix->tx_size_context == 2U ?
-                cdfs->txb_skip_fsc_txs2_ctx9 :
-            prefix->tx_size_context == 0U ? cdfs->txb_skip_txs0 :
-          prefix->tx_size_context == 1U ? cdfs->txb_skip_txs1 :
-                    prefix->tx_size_context == 2U ? cdfs->txb_skip_txs2 :
-                                                                                    cdfs->txb_skip_txs3;
+                cdfs->txb_skip_fsc_txs2_ctx9;
+    } else {
+        cdf = prefix->tx_size_context == 0U ? cdfs->txb_skip_txs0 :
+            prefix->tx_size_context == 1U ? cdfs->txb_skip_txs1 :
+            prefix->tx_size_context == 2U ? cdfs->txb_skip_txs2 :
+                                            cdfs->txb_skip_txs3;
+    }
     value = av2h_range_read_adaptive(decoder, cdf, 2U);
     if (av2h_range_status(decoder) != AV2H_OK) {
         return av2h_range_status(decoder);

@@ -27,6 +27,57 @@ static uint64_t coefficient_hash(const Av2hFirstCoeffBlock *block) {
     return hash;
 }
 
+static void check_words(const uint16_t *actual,
+                        const uint16_t *expected,
+                        size_t count) {
+    size_t index;
+    for (index = 0U; index < count; ++index) {
+        CHECK(actual[index] == expected[index]);
+    }
+}
+
+static void test_q_context_cdfs(void) {
+    static const uint16_t q2_base_ctx0[] = {
+        5584U, 96U, 20U, 0U, 0U, 3U, 4U, 4U
+    };
+    static const uint16_t q2_base_lf_ctx18[] = {
+        17195U, 4126U, 850U, 196U, 50U, 0U, 0U, 3U, 4U, 4U
+    };
+    static const uint16_t q2_dc_sign_ctx0[] = {
+        15193U, 0U, 0U, 3U, 3U, 4U
+    };
+    static const uint16_t q3_eob_lf_ctx0[] = {
+        2636U, 554U, 214U, 101U, 0U, 0U, 3U, 3U, 3U
+    };
+    static const uint16_t q3_base_lf_ctx16[] = {
+        9392U, 154U, 28U, 24U, 20U, 0U, 0U, 3U, 3U, 5U
+    };
+    static const uint16_t q3_dc_sign_ctx0[] = {
+        12660U, 0U, 0U, 2U, 3U, 3U
+    };
+    Av2hFirstCoeffLevelCdfs cdfs;
+    CHECK(av2h_first_coeff_level_cdfs_init_for_q(0, 160U) ==
+          AV2H_INVALID_ARGUMENT);
+    CHECK(av2h_first_coeff_level_cdfs_init_for_q(&cdfs, 160U) == AV2H_OK);
+    CHECK(cdfs.q_context == 2U);
+    check_words(cdfs.base[21], q2_base_ctx0, 8U);
+    check_words(cdfs.base_lf[44], q2_base_lf_ctx18, 10U);
+    check_words(cdfs.dc_sign[0], q2_dc_sign_ctx0, 6U);
+    CHECK(av2h_first_coeff_level_cdfs_init_for_q(&cdfs, 224U) == AV2H_OK);
+    CHECK(cdfs.q_context == 3U);
+    check_words(cdfs.eob_lf[8], q3_eob_lf_ctx0, 9U);
+    check_words(cdfs.base_lf[42], q3_base_lf_ctx16, 10U);
+    check_words(cdfs.dc_sign[0], q3_dc_sign_ctx0, 6U);
+}
+
+static void test_dequantized_clamp(void) {
+    CHECK(av2h_coeff_clamp_dequantized_8bit(32766U, 0U) == 32766);
+    CHECK(av2h_coeff_clamp_dequantized_8bit(32768U, 0U) == 32767);
+    CHECK(av2h_coeff_clamp_dequantized_8bit(32767U, 1U) == -32767);
+    CHECK(av2h_coeff_clamp_dequantized_8bit(32768U, 1U) == -32768);
+    CHECK(av2h_coeff_clamp_dequantized_8bit(UINT64_MAX, 1U) == -32768);
+}
+
 static void check_fixture(const char *name,
                           const unsigned char *bytes,
                           size_t size,
@@ -172,11 +223,21 @@ static void test_arguments(void) {
     Av2hFirstCoeffPrefix prefix = { 0 };
     Av2hFirstTransformType transform = { 0 };
     Av2hFirstCoeffBlock block;
-    CHECK(sizeof(Av2hFirstCoeffLevelCdfs) == 3292U);
+    CHECK(sizeof(Av2hFirstCoeffLevelCdfs) == 3352U);
     CHECK(av2h_first_coeff_level_cdfs_init(0) == AV2H_INVALID_ARGUMENT);
     CHECK(av2h_first_coeff_block_read(
               0, &cdfs, &sequence, &frame, &mode, &prefix, &transform,
               &block) == AV2H_INVALID_ARGUMENT);
+    CHECK(av2h_first_coeff_level_cdfs_init(&cdfs) == AV2H_OK);
+    frame.base_q_index = 160U;
+    mode.fsc_mode = 1U;
+    prefix.tx_size = AV2H_TX_4X4;
+    prefix.eob = 1U;
+    transform.primary_type = AV2H_TX_IDTX;
+    CHECK(av2h_first_coeff_block_read(
+              &decoder, &cdfs, &sequence, &frame, &mode, &prefix,
+              &transform, &block) == AV2H_UNSUPPORTED);
+    mode.fsc_mode = 0U;
     sequence.enable_tcq = 1U;
     frame.base_q_index = 128U;
     prefix.eob = 1U;
@@ -186,6 +247,8 @@ static void test_arguments(void) {
 }
 
 int main(void) {
+    test_q_context_cdfs();
+    test_dequantized_clamp();
     test_fixture_coefficients();
     test_arguments();
     if (failures != 0) {

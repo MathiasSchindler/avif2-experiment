@@ -146,18 +146,24 @@ admits only non-skipped intraBC leaves.
 
 The 20 generated streams listed by `images/artifacts/manifest.json` and the
 legacy `chalk-320x240.obu` have been checked against the current private
-decoder. All 21 Sequence Headers parse, but none of the streams reaches the
-ordinary-fixture Milestone 7 frontier or another missing Milestone 7 path.
+decoder. All 21 Sequence Headers and Frame Headers parse, but none of the
+streams reaches the ordinary-fixture Milestone 7 frontier or another missing
+Milestone 7 path.
 
-- 17 streams stop in the frame header because GDF is enabled on a frame larger
-  than one superblock. Carrying that frame metadata and later applying GDF are
-  Milestone 9 responsibilities.
-- The remaining four streams parse their frame and single tile, then stop at
-  the first luma mode. Their QP-dependent mode and coefficient profile is
-  broader Milestone 8 work.
-- The only generated QP-128 stream,
-  `emerald-480x240-qp128.obu`, belongs to the first group and is blocked by
-  large-frame GDF header handling before tile syntax.
+- Every `uncompressed_header_bits` endpoint matches the pinned AVM inspector.
+  GDF mode, picture QP index, and scale index are retained for all streams.
+- Six streams select GDF mode 2. They fail closed at tile initialization,
+  before range decoding, because the per-GDF-block on/off symbols are not yet
+  implemented.
+- The other 15 streams parse their frame and single tile. Four now complete
+  their first luma coefficient block through exact pinned-AVM endpoints:
+  `cuckoo-157x105-qp160` at tell 35, `emerald-192x96-qp208` at tell 27,
+  `louis-463x342-qp224` at tell 27, and `pastell-512x341-qp160` at tell 65.
+  The remaining eleven stop fail-closed at an earlier first-luma syntax
+  frontier. This remains Milestone 8 work.
+- The generated QP-128 stream `emerald-480x240-qp128.obu` is one of the six
+  GDF-mode-2 streams. The legacy QP-128 `chalk-320x240.obu` reaches its first
+  8x16 luma leaf.
 
 Consequently, the newly committed ordinary 4x4 intraBC leaf does not make any
 artifact stream decode farther. No base-Q guard may be removed merely to admit
@@ -165,8 +171,11 @@ the artifact matrix: non-128 streams require matching Q-context CDF
 initialization and dequantization rather than permissive parsing.
 
 `tests/artifact_profile_unit.c` locks the per-stream dimensions, base Q,
-Sequence Header filter flags, frame-parser status, and the first block/tell for
-the four streams that reach tile decoding. It is part of `make test-c`.
+Sequence Header filter flags, exact Frame Header endpoint, GDF parameters,
+mode-2 tile-initialization rejection, and the first block/tell for all 15
+streams that reach luma decoding. For the four completed Milestone 8 first
+blocks it additionally locks mode, prefix, transform, level, coefficient, and
+complete quantized/dequantized arrays. It is part of `make test-c`.
 
 ## Scope
 

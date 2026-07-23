@@ -33,6 +33,20 @@ static unsigned int ceil_log2_u32(uint32_t value) {
     return bits;
 }
 
+static uint32_t gdf_block_count(const Av2hSequenceState *sequence,
+                                const Av2hFrameState *frame) {
+    uint32_t block_size = sequence->superblock_size;
+    uint32_t columns;
+    uint32_t rows;
+    if (sequence->gdf_unit_matches_superblock_size == 0U &&
+        block_size < 128U) {
+        block_size = 128U;
+    }
+    columns = ((uint32_t)frame->width + block_size - 1U) / block_size;
+    rows = ((uint32_t)frame->height + block_size - 1U) / block_size;
+    return columns * rows;
+}
+
 static int read_one_tile(Av2hBitReader *reader,
                          const Av2hSequenceState *sequence,
                          Av2hFrameState *frame) {
@@ -312,11 +326,11 @@ Av2hStatus av2h_frame_header_closed_key_parse(
     }
     read_deblock(&reader, sequence, frame);
     if (sequence->enable_gdf != 0U) {
-        if (frame->width > sequence->superblock_size ||
-            frame->height > sequence->superblock_size) {
-            return AV2H_UNSUPPORTED;
-        }
         frame->gdf_mode = 1U;
+        if (gdf_block_count(sequence, frame) > 1U) {
+            frame->gdf_mode = (uint8_t)(
+                frame->gdf_mode + av2h_bit_reader_read(&reader, 1U));
+        }
         frame->gdf_qp_index =
             (uint8_t)av2h_bit_reader_read(&reader, 2U);
         frame->gdf_scale_index =
