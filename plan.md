@@ -364,13 +364,17 @@ endpoint, including multi-block GDF mode and picture parameters. Six streams
 select GDF mode 2; they now initialize the tile decoder and decode their first
 block flag at the exact pinned-AVM endpoint. The first five now also decode and
 store their first multi-strength CDEF index exactly. All six then decode their
-first enabled Y/U/V CCSO controls on the normative 256x256 unit grid and reach
-exact AVM tells 9, 12, 13, 24, 20, and 8. The last endpoint belongs to
-`silene-479x383-qp176`, which now rejects at screen-content handling only
-after CCSO. Of the other 15, four complete their exact first coefficient block
-through Milestone 8 and eleven remain fail-closed at an earlier first-luma
-syntax frontier. The ordinary 4x4 intraBC leaf is implemented, but none of the
-artifact streams reaches it.
+first enabled Y/U/V CCSO controls on the normative 256x256 unit grid. The
+decoder now continues through their exact mode syntax: emerald reaches tell
+17, flycatcher 25, laarim 20, pastell 25, schwaebisch 32, and silene 9.
+Large-block FSC context 6 is treated normatively as implicit zero, and
+silene's reached palette flag is decoded as zero. Non-mode-2 multi-strength
+CDEF and CCSO are also decoded for chalk, chinnathurai, cuckoo, louis, and the
+smaller silene stream. Of the other streams, four complete their exact first
+coefficient block through Milestone 8 and the remaining frontiers are
+fail-closed at transform-size, EOB, coefficient, prediction, or reconstruction
+paths. The ordinary 4x4 intraBC leaf is implemented, but none of the artifact
+streams reaches it.
 
 Complete the ordinary fixture's remaining partition, mode, transform,
 coefficient, prediction, reconstruction, and chroma paths. Admit only locked
@@ -443,6 +447,10 @@ match their first enabled plane controls and exact post-CCSO endpoint. A
 read-once sentinel protects each plane/unit entry, and an all-units guard
 prevents chroma transition while controls remain unread. The filter workspace
 now derives the same parsed unit size instead of assuming 64x64 controls.
+The same filter entropy path now runs for non-mode-2 frames. Large FSC block
+context 6 is an implicit-zero sentinel rather than a CDF row, and the reached
+screen-content path decodes Palette=0 with the pinned adaptive CDF while
+retaining fail-closed behavior for real palettes.
 
 Populate complete deblock and CCSO metadata from reconstructed leaves, execute
 deblock, CDEF, CCSO, and GDF in normative order over coded planes, crop to

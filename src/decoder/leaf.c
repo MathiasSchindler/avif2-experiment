@@ -59,6 +59,10 @@ static const Av2hBinaryCdfSpec fsc_defaults[] = {
     { 32583U, 15U, 0U }, { 32683U, 76U, 0U }
 };
 
+static const Av2hBinaryCdfSpec palette_y_mode_default = {
+    30045U, 62U, 0U
+};
+
 static Av2hStatus initialize_binary_table(
     uint16_t (*destination)[AV2H_BINARY_CDF_SIZE],
     const Av2hBinaryCdfSpec *source,
@@ -149,6 +153,9 @@ Av2hStatus av2h_leaf_cdfs_init(Av2hLeafCdfs *cdfs) {
     status = initialize_binary_table(
         &cdfs->fsc_mode[0][0], fsc_defaults,
         AV2H_FSC_MODE_CONTEXT_COUNT * AV2H_FSC_BLOCK_CONTEXT_COUNT);
+    if (status != AV2H_OK) return status;
+    status = av2h_binary_cdf_init(
+        cdfs->palette_y_mode, palette_y_mode_default);
     if (status != AV2H_OK) return status;
     status = av2h_cdf_init(cdfs->y_mode_set,
                            AV2H_Y_MODE_SET_SYMBOLS + 4U, mode_set,
@@ -997,6 +1004,13 @@ static uint8_t fsc_block_context(Av2hBlockSize block_size) {
     return contexts[block_size];
 }
 
+static uint8_t block_allows_palette(Av2hBlockSize block_size) {
+    size_t width;
+    size_t height;
+    return av2h_block_dimensions_mi(block_size, &width, &height) == AV2H_OK &&
+        width >= 2U && height >= 2U && width <= 16U && height <= 16U;
+}
+
 static Av2hStatus read_first_intrabc(
     Av2hRangeDecoder *decoder,
     Av2hLeafCdfs *cdfs,
@@ -1360,13 +1374,11 @@ static Av2hStatus luma_mode_read_internal(
     mode->before_ccso_bits = mode->before_gdf_bits;
     mode->after_ccso_bits = mode->before_gdf_bits;
     mode->ccso_controls_read = 0U;
+    mode->palette_mode = 0U;
+    mode->before_palette_bits = mode->before_gdf_bits;
+    mode->after_palette_bits = mode->before_gdf_bits;
     for (plane = 0U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
         mode->ccso_block_control[plane] = 0U;
-    }
-    if (frame->gdf_mode < 2U &&
-        (frame->cdef_strength_count > 1U ||
-         frame->allow_screen_content_tools)) {
-        return AV2H_UNSUPPORTED;
     }
     if (frame->allow_intrabc && block_allows_intrabc(leaf->block_size)) {
         value = av2h_range_read_adaptive(
@@ -1397,9 +1409,6 @@ static Av2hStatus luma_mode_read_internal(
                     decoder, cdfs, sequence, frame, leaf, mode);
             }
             if (status != AV2H_OK) return status;
-            if (frame->allow_screen_content_tools) {
-                return AV2H_UNSUPPORTED;
-            }
             if (frame->gdf_mode >= 2U) return AV2H_UNSUPPORTED;
             if (mode->skip_transform != 0U) return AV2H_UNSUPPORTED;
             return read_first_intrabc(
@@ -1424,13 +1433,6 @@ static Av2hStatus luma_mode_read_internal(
         Av2hStatus status = read_first_ccso_without_state(
             decoder, cdfs, sequence, frame, leaf, mode);
         if (status != AV2H_OK) return status;
-    }
-    if (frame->allow_screen_content_tools) {
-        return AV2H_UNSUPPORTED;
-    }
-    if (frame->gdf_mode >= 2U &&
-        frame->cdef_strength_count > 1U) {
-        return AV2H_UNSUPPORTED;
     }
     mode->before_mode_bits = av2h_range_tell(decoder);
     value = av2h_range_read_adaptive(
@@ -1478,10 +1480,8 @@ static Av2hStatus luma_mode_read_internal(
     mode->fsc_mode = 0U;
     mode->fsc_neighbor_context = (uint8_t)fsc_context;
     mode->fsc_block_context = fsc_block_context(leaf->block_size);
-    if (sequence->enable_idtx_intra) {
-        if (mode->fsc_block_context >= AV2H_FSC_BLOCK_CONTEXT_COUNT) {
-            return AV2H_UNSUPPORTED;
-        }
+    if (sequence->enable_idtx_intra &&
+        mode->fsc_block_context < AV2H_FSC_BLOCK_CONTEXT_COUNT) {
         value = av2h_range_read_adaptive(
             decoder, cdfs->fsc_mode[fsc_context][mode->fsc_block_context], 2U);
         if (av2h_range_status(decoder) != AV2H_OK) {
@@ -1514,6 +1514,21 @@ static Av2hStatus luma_mode_read_internal(
         }
     }
     mode->after_mrl_bits = av2h_range_tell(decoder);
+    mode->palette_mode = 0U;
+    mode->before_palette_bits = mode->after_mrl_bits;
+    mode->after_palette_bits = mode->before_palette_bits;
+    if (frame->allow_screen_content_tools &&
+        block_allows_palette(leaf->block_size) &&
+        mode->mode == AV2H_INTRA_DC) {
+        value = av2h_range_read_adaptive(
+            decoder, cdfs->palette_y_mode, 2U);
+        if (av2h_range_status(decoder) != AV2H_OK) {
+            return av2h_range_status(decoder);
+        }
+        mode->palette_mode = (uint8_t)value;
+        mode->after_palette_bits = av2h_range_tell(decoder);
+        if (value != 0U) return AV2H_UNSUPPORTED;
+    }
     return AV2H_OK;
 }
 

@@ -70,8 +70,10 @@ not depend on Milestone 7 traversal work:
   | `schwaebisch-353x234-qp112` | Y/U/V | 1/1/0 | 16 | 20 |
   | `silene-479x383-qp176` | Y/U/V | 1/1/1 | 3 | 8 |
 
-  The first five then fail closed at their next mode/coefficient profile
-  frontier. Silene fails at screen-content handling after CCSO. An all-units
+  The decoder now continues beyond this table through exact mode syntax.
+  Blocks larger than 32 pixels use implicit FSC=0 rather than indexing a
+  nonexistent context-6 CDF row. The reached screen-content streams decode the
+  pinned Palette=0 symbol; nonzero palettes remain unsupported. An all-units
   guard prevents transition to chroma while any enabled CCSO unit remains
   untransmitted.
 - A checked private workspace query derives coded Y/U/V dimensions, two

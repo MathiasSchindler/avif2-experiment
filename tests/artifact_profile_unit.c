@@ -123,6 +123,148 @@ static void check_decoded_block(
     }
 }
 
+static void check_advanced_frontier(
+    const ArtifactExpectation *expected,
+    const Av2hTileLumaLeaf *leaf) {
+    if (expected->gdf_mode == 2U && expected->base_q_index != 176U) {
+        CHECK(leaf->mode.before_mode_bits == leaf->mode.after_ccso_bits);
+        CHECK(leaf->mode.fsc_mode == 0U);
+        switch (expected->base_q_index) {
+            case 48U:
+                CHECK(leaf->mode.before_mode_bits == 12U);
+                CHECK(leaf->mode.after_mode_set_bits == 13U);
+                CHECK(leaf->mode.after_mode_index_bits == 14U);
+                CHECK(leaf->mode.mode == AV2H_INTRA_DC);
+                CHECK(leaf->prefix.before_all_zero_bits == 14U);
+                CHECK(leaf->prefix.after_all_zero_bits == 16U);
+                CHECK(leaf->prefix.after_eob_point_bits == 20U);
+                CHECK(leaf->prefix.after_eob_bits == 25U);
+                CHECK(leaf->prefix.eob_point == 7U);
+                CHECK(leaf->prefix.eob == 45U);
+                break;
+            case 64U:
+                CHECK(leaf->mode.before_mode_bits == 24U);
+                CHECK(leaf->mode.after_mode_index_bits == 25U);
+                CHECK(leaf->mode.mode == AV2H_INTRA_DC);
+                CHECK(leaf->prefix.before_all_zero_bits == 0U);
+                break;
+            case 96U:
+                CHECK(leaf->mode.before_mode_bits == 13U);
+                CHECK(leaf->mode.after_mode_index_bits == 17U);
+                CHECK(leaf->mode.mode == AV2H_INTRA_D45);
+                CHECK(leaf->prefix.before_all_zero_bits == 17U);
+                CHECK(leaf->prefix.after_all_zero_bits == 18U);
+                CHECK(leaf->prefix.after_eob_point_bits == 0U);
+                break;
+            case 112U:
+                CHECK(leaf->mode.before_mode_bits == 20U);
+                CHECK(leaf->mode.after_mode_index_bits == 21U);
+                CHECK(leaf->mode.mode == AV2H_INTRA_DC);
+                CHECK(leaf->prefix.before_all_zero_bits == 21U);
+                CHECK(leaf->prefix.after_eob_bits == 27U);
+                CHECK(leaf->prefix.eob == 2U);
+                CHECK(leaf->transform.after_secondary_bits == 32U);
+                CHECK(leaf->transform.primary_type == AV2H_TX_DCT_DCT);
+                break;
+            case 128U:
+                CHECK(leaf->mode.before_mode_bits == 9U);
+                CHECK(leaf->mode.after_mode_set_bits == 13U);
+                CHECK(leaf->mode.after_mode_index_bits == 17U);
+                CHECK(leaf->mode.mode == AV2H_INTRA_VERTICAL);
+                CHECK(leaf->mode.angle_delta == 2);
+                CHECK(leaf->mode.fsc_block_context == 6U);
+                CHECK(leaf->mode.after_fsc_bits == 17U);
+                break;
+            default:
+                break;
+        }
+    } else if (expected->base_q_index == 176U &&
+               expected->first_block == AV2H_BLOCK_32X64) {
+        CHECK(leaf->mode.before_mode_bits == 10U);
+        CHECK(leaf->mode.after_mode_index_bits == 11U);
+        CHECK(leaf->mode.after_fsc_bits == 11U);
+        CHECK(leaf->mode.fsc_block_context == 6U);
+        CHECK(leaf->mode.fsc_mode == 0U);
+    } else if (expected->base_q_index == 192U &&
+               expected->first_block == AV2H_BLOCK_64X64) {
+        CHECK(leaf->mode.before_mode_bits == 3U);
+        CHECK(leaf->mode.after_mode_index_bits == 5U);
+        CHECK(leaf->mode.after_fsc_bits == 5U);
+        CHECK(leaf->mode.fsc_block_context == 6U);
+        CHECK(leaf->mode.fsc_mode == 0U);
+    } else if (expected->base_q_index == 208U &&
+               expected->first_block == AV2H_BLOCK_64X16) {
+        CHECK(leaf->mode.before_mode_bits == 8U);
+        CHECK(leaf->mode.after_mode_index_bits == 9U);
+        CHECK(leaf->mode.after_fsc_bits == 9U);
+        CHECK(leaf->mode.fsc_block_context == 6U);
+        CHECK(leaf->mode.fsc_mode == 0U);
+    } else if (expected->base_q_index == 128U &&
+               expected->first_block == AV2H_BLOCK_8X16) {
+        CHECK(leaf->mode.after_cdef_bits == 15U);
+        CHECK(leaf->mode.cdef_strength_index == 2U);
+        CHECK(leaf->mode.after_ccso_bits == 20U);
+        CHECK(leaf->mode.ccso_present_mask == 7U);
+        CHECK(leaf->mode.before_mode_bits == 20U);
+        CHECK(leaf->mode.after_mode_index_bits == 21U);
+        CHECK(leaf->prefix.after_eob_bits == 27U);
+        CHECK(leaf->prefix.eob == 6U);
+        CHECK(leaf->transform.after_primary_bits == 28U);
+        CHECK(leaf->transform.after_secondary_bits == 32U);
+    } else if (expected->base_q_index == 112U &&
+               expected->first_block == AV2H_BLOCK_32X64) {
+        CHECK(leaf->mode.after_cdef_bits == 6U);
+        CHECK(leaf->mode.cdef_strength_index == 1U);
+        CHECK(leaf->mode.after_ccso_bits == 8U);
+        CHECK(leaf->mode.ccso_present_mask == 2U);
+        CHECK(leaf->mode.ccso_block_control[1] == 1U);
+        CHECK(leaf->mode.after_mode_index_bits == 9U);
+        CHECK(leaf->mode.fsc_block_context == 6U);
+    } else if (expected->base_q_index == 224U &&
+               expected->width == 333U) {
+        CHECK(leaf->mode.after_ccso_bits == 5U);
+        CHECK(leaf->mode.ccso_present_mask == 5U);
+        CHECK(leaf->mode.ccso_block_control[0] == 1U);
+        CHECK(leaf->mode.ccso_block_control[2] == 1U);
+        CHECK(leaf->mode.after_mode_index_bits == 6U);
+        CHECK(leaf->mode.before_palette_bits == 6U);
+        CHECK(leaf->mode.after_palette_bits == 7U);
+        CHECK(leaf->mode.palette_mode == 0U);
+    } else if (expected->base_q_index == 80U &&
+               expected->width == 431U) {
+        CHECK(leaf->mode.after_cdef_bits == 4U);
+        CHECK(leaf->mode.cdef_strength_index == 2U);
+        CHECK(leaf->mode.after_ccso_bits == 7U);
+        CHECK(leaf->mode.ccso_present_mask == 6U);
+        CHECK(leaf->mode.ccso_block_control[1] == 1U);
+        CHECK(leaf->mode.ccso_block_control[2] == 1U);
+        CHECK(leaf->mode.after_mode_index_bits == 9U);
+    } else if (expected->base_q_index == 144U) {
+        CHECK(leaf->mode.after_cdef_bits == 10U);
+        CHECK(leaf->mode.cdef_strength_index == 0U);
+        CHECK(leaf->mode.after_ccso_bits == 15U);
+        CHECK(leaf->mode.ccso_present_mask == 7U);
+        CHECK(leaf->mode.after_mode_index_bits == 16U);
+    } else if (expected->base_q_index == 80U &&
+               expected->width == 384U) {
+        CHECK(leaf->mode.after_cdef_bits == 3U);
+        CHECK(leaf->mode.cdef_strength_index == 1U);
+        CHECK(leaf->mode.after_ccso_bits == 5U);
+        CHECK(leaf->mode.ccso_present_mask == 2U);
+        CHECK(leaf->mode.after_mode_index_bits == 6U);
+        CHECK(leaf->mode.before_palette_bits == 6U);
+        CHECK(leaf->mode.after_palette_bits == 6U);
+        CHECK(leaf->mode.palette_mode == 0U);
+    } else if (expected->base_q_index == 176U &&
+               expected->first_block == AV2H_BLOCK_64X64) {
+        CHECK(leaf->mode.after_ccso_bits == 8U);
+        CHECK(leaf->mode.after_mode_index_bits == 9U);
+        CHECK(leaf->mode.before_palette_bits == 9U);
+        CHECK(leaf->mode.after_palette_bits == 9U);
+        CHECK(leaf->mode.palette_mode == 0U);
+    }
+}
+
 static size_t load_artifact(const char *name) {
     char path[256U];
     FILE *source;
@@ -211,6 +353,14 @@ static void check_first_luma(const ArtifactExpectation *expected,
     CHECK(leaf.node.column == 0U);
     CHECK(leaf.node.block_size == expected->first_block);
     CHECK(av2h_range_tell(&decoder.range) == expected->first_tell);
+    check_advanced_frontier(expected, &leaf);
+    if ((expected->base_q_index == 224U && expected->width == 333U) ||
+        (expected->base_q_index == 80U && expected->width == 384U) ||
+        (expected->base_q_index == 176U &&
+         expected->first_block == AV2H_BLOCK_64X64 &&
+         expected->gdf_mode == 2U)) {
+        CHECK(decoder.leaf_cdfs.palette_y_mode[2] == 1U);
+    }
     if (expected->gdf_mode == 2U) {
         uint8_t expected_cdef_count;
         uint8_t expected_cdef_index;
@@ -438,7 +588,7 @@ static const ArtifactDecodedExpectation pastell_q160_decoded = {
 static void test_artifact_profiles(void) {
     static const ArtifactExpectation expected[] = {
         { "chalk-320x240.obu", 320U, 240U, 128U, 1U, 1U, 1U, 1U,
-          219U, 1U, 2U, 3U, AV2H_BLOCK_8X16, 14U,
+          219U, 1U, 2U, 3U, AV2H_BLOCK_8X16, 32U,
           AV2H_UNSUPPORTED, 0 },
         { "chimp-240x287-qp192.obu", 240U, 287U, 192U, 0U, 1U, 1U, 1U,
           217U, 1U, 1U, 3U, AV2H_BLOCK_8X16, 15U,
@@ -447,58 +597,58 @@ static void test_artifact_profiles(void) {
           179U, 0U, 0U, 0U, AV2H_BLOCK_8X8, 16U,
           AV2H_UNSUPPORTED, 0 },
         { "chinnathurai-128x128-qp112.obu", 128U, 128U, 112U, 1U,
-          1U, 1U, 1U, 134U, 1U, 2U, 0U, AV2H_BLOCK_32X64, 5U,
+          1U, 1U, 1U, 134U, 1U, 2U, 0U, AV2H_BLOCK_32X64, 9U,
           AV2H_UNSUPPORTED, 0 },
         { "chinnathurai-333x333-qp224.obu", 333U, 333U, 224U, 0U,
-          1U, 0U, 1U, 98U, 1U, 3U, 2U, AV2H_BLOCK_64X64, 2U,
+          1U, 0U, 1U, 98U, 1U, 3U, 2U, AV2H_BLOCK_64X64, 7U,
           AV2H_UNSUPPORTED, 0 },
         { "cuckoo-157x105-qp160.obu", 157U, 105U, 160U, 1U, 1U, 1U, 0U,
           69U, 1U, 1U, 3U, AV2H_BLOCK_16X32, 35U,
           AV2H_OK, &cuckoo_q160_decoded },
         { "cuckoo-431x287-qp080.obu", 431U, 287U, 80U, 1U, 0U, 1U, 1U,
-          174U, 0U, 0U, 0U, AV2H_BLOCK_64X64, 2U,
+          174U, 0U, 0U, 0U, AV2H_BLOCK_64X64, 9U,
           AV2H_UNSUPPORTED, 0 },
         { "emerald-192x96-qp208.obu", 192U, 96U, 208U, 0U, 0U, 0U, 0U,
           36U, 0U, 0U, 0U, AV2H_BLOCK_32X32, 27U,
           AV2H_OK, &emerald_q208_decoded },
         { "emerald-480x240-qp128.obu", 480U, 240U, 128U, 1U, 1U, 1U, 1U,
-          344U, 2U, 1U, 2U, AV2H_BLOCK_64X64, 9U,
+          344U, 2U, 1U, 2U, AV2H_BLOCK_64X64, 17U,
           AV2H_UNSUPPORTED, 0 },
         { "flycatcher-223x149-qp176.obu", 223U, 149U, 176U, 0U,
           1U, 1U, 1U, 125U, 1U, 0U, 3U, AV2H_BLOCK_32X64, 11U,
           AV2H_UNSUPPORTED, 0 },
         { "flycatcher-397x265-qp048.obu", 397U, 265U, 48U, 1U,
-          1U, 1U, 1U, 256U, 2U, 3U, 3U, AV2H_BLOCK_32X32, 12U,
+          1U, 1U, 1U, 256U, 2U, 3U, 3U, AV2H_BLOCK_32X32, 25U,
           AV2H_UNSUPPORTED, 0 },
         { "laarim-256x171-qp096.obu", 256U, 171U, 96U, 1U, 1U, 1U, 1U,
-          120U, 2U, 1U, 3U, AV2H_BLOCK_32X32, 13U,
+          120U, 2U, 1U, 3U, AV2H_BLOCK_32X32, 20U,
           AV2H_UNSUPPORTED, 0 },
         { "laarim-448x299-qp192.obu", 448U, 299U, 192U, 0U, 1U, 1U, 1U,
           98U, 1U, 2U, 2U, AV2H_BLOCK_64X64, 5U,
           AV2H_UNSUPPORTED, 0 },
         { "louis-301x222-qp144.obu", 301U, 222U, 144U, 1U, 1U, 1U, 1U,
-          192U, 1U, 2U, 3U, AV2H_BLOCK_64X16, 7U,
+          192U, 1U, 2U, 3U, AV2H_BLOCK_64X16, 16U,
           AV2H_UNSUPPORTED, 0 },
         { "louis-463x342-qp224.obu", 463U, 342U, 224U, 0U, 1U, 1U, 1U,
           131U, 1U, 3U, 3U, AV2H_BLOCK_32X32, 27U,
           AV2H_OK, &louis_q224_decoded },
         { "pastell-320x213-qp064.obu", 320U, 213U, 64U, 1U, 1U, 1U, 1U,
-          252U, 2U, 2U, 1U, AV2H_BLOCK_8X8, 24U,
+          252U, 2U, 2U, 1U, AV2H_BLOCK_8X8, 25U,
           AV2H_UNSUPPORTED, 0 },
         { "pastell-512x341-qp160.obu", 512U, 341U, 160U, 1U, 1U, 1U, 1U,
           332U, 1U, 2U, 3U, AV2H_BLOCK_16X32, 65U,
           AV2H_OK, &pastell_q160_decoded },
         { "schwaebisch-353x234-qp112.obu", 353U, 234U, 112U, 1U,
-          1U, 1U, 1U, 200U, 2U, 1U, 3U, AV2H_BLOCK_32X8, 20U,
+          1U, 1U, 1U, 200U, 2U, 1U, 3U, AV2H_BLOCK_32X8, 32U,
           AV2H_UNSUPPORTED, 0 },
         { "schwaebisch-417x277-qp208.obu", 417U, 277U, 208U, 1U,
           1U, 1U, 1U, 111U, 1U, 3U, 1U, AV2H_BLOCK_64X16, 9U,
           AV2H_UNSUPPORTED, 0 },
         { "silene-384x307-qp080.obu", 384U, 307U, 80U, 1U, 0U, 1U, 1U,
-          131U, 0U, 0U, 0U, AV2H_BLOCK_64X64, 2U,
+          131U, 0U, 0U, 0U, AV2H_BLOCK_64X64, 6U,
           AV2H_UNSUPPORTED, 0 },
         { "silene-479x383-qp176.obu", 479U, 383U, 176U, 1U, 1U, 1U, 1U,
-          175U, 2U, 1U, 3U, AV2H_BLOCK_64X64, 8U,
+          175U, 2U, 1U, 3U, AV2H_BLOCK_64X64, 9U,
           AV2H_UNSUPPORTED, 0 }
     };
     size_t index;

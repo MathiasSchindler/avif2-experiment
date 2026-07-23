@@ -156,9 +156,13 @@ Milestone 7 path.
   consume their first per-block on/off symbol at the exact pinned-AVM tell.
   Five then consume and store their exact first multi-strength CDEF index; the
   sixth has one implicit CDEF strength. All six subsequently consume their
-  first enabled CCSO controls on the 256x256 unit grid. Emerald, flycatcher,
-  laarim, pastell, schwaebisch, and silene reach exact tells 9, 12, 13, 24,
-  20, and 8. Silene rejects at screen-content handling only after CCSO.
+  first enabled CCSO controls on the 256x256 unit grid and continue through
+  exact mode syntax. Emerald, flycatcher, laarim, pastell, schwaebisch, and
+  silene now reach tells 17, 25, 20, 25, 32, and 9. Large-block FSC is
+  correctly implicit zero, and silene consumes Palette=0.
+- Non-mode-2 multi-strength CDEF and CCSO now run in the same normative order.
+  Chalk reaches tell 32; chinnathurai-128 reaches 9, chinnathurai-333 reaches
+  7, cuckoo-431 reaches 9, louis-301 reaches 16, and silene-384 reaches 6.
 - The other 15 streams parse their frame and single tile. Four now complete
   their first luma coefficient block through exact pinned-AVM endpoints:
   `cuckoo-157x105-qp160` at tell 35, `emerald-192x96-qp208` at tell 27,

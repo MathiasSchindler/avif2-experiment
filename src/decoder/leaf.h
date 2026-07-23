@@ -50,6 +50,7 @@ typedef struct {
                          [AV2H_Y_MODE_INDEX_SYMBOLS + 4U];
     uint16_t y_mode_offset[AV2H_Y_MODE_CONTEXT_COUNT]
                           [AV2H_Y_MODE_OFFSET_SYMBOLS + 4U];
+    uint16_t palette_y_mode[AV2H_BINARY_CDF_SIZE];
     uint16_t fsc_mode[AV2H_FSC_MODE_CONTEXT_COUNT]
                      [AV2H_FSC_BLOCK_CONTEXT_COUNT]
                      [AV2H_BINARY_CDF_SIZE];
@@ -96,12 +97,15 @@ typedef struct {
     int8_t angle_delta;
     uint8_t mrl_index;
     uint8_t multi_line_mrl;
+    uint8_t palette_mode;
     Av2hFirstLeafIntraMode mode;
     size_t before_mode_bits;
     size_t after_mode_set_bits;
     size_t after_mode_index_bits;
     size_t after_fsc_bits;
     size_t after_mrl_bits;
+    size_t before_palette_bits;
+    size_t after_palette_bits;
     size_t before_gdf_bits;
     size_t after_gdf_bits;
     uint16_t gdf_flags_read;

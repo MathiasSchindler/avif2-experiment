@@ -1674,7 +1674,7 @@ static void test_arguments(void) {
     };
     Av2hSpan span = { bytes, sizeof(bytes) };
     size_t tell;
-    CHECK(sizeof(Av2hLeafCdfs) == 1010U);
+    CHECK(sizeof(Av2hLeafCdfs) == 1022U);
     CHECK(av2h_leaf_cdfs_init(0) == AV2H_INVALID_ARGUMENT);
     CHECK(av2h_first_leaf_mode_read(
               0, &cdfs, &sequence, &frame, &leaf, &mode) ==
@@ -1776,8 +1776,11 @@ static void test_arguments(void) {
     tell = av2h_range_tell(&decoder);
     CHECK(av2h_first_leaf_mode_read(
               &decoder, &cdfs, &sequence, &frame, &leaf, &mode) ==
-          AV2H_UNSUPPORTED);
-    CHECK(av2h_range_tell(&decoder) == tell);
+          AV2H_OK);
+    CHECK(av2h_range_tell(&decoder) > tell);
+    CHECK(mode.palette_mode == 0U);
+    CHECK(mode.before_palette_bits == mode.after_mrl_bits);
+    CHECK(mode.after_palette_bits >= mode.before_palette_bits);
 }
 
 static void test_gdf_after_intrabc(void) {

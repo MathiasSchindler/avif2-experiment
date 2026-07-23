@@ -338,6 +338,7 @@ Av2hStatus av2h_first_transform_type_read(
     if (sequence->enable_ist &&
         ((((coeff->tx_size == AV2H_TX_8X4 &&
             mode->mode == AV2H_INTRA_D203 && coeff->eob == 3U) ||
+           coeff->tx_size == AV2H_TX_8X16 ||
            coeff->tx_size == AV2H_TX_8X32 ||
            coeff->tx_size == AV2H_TX_16X32 ||
            coeff->tx_size == AV2H_TX_32X8 ||

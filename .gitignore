@@ -5,4 +5,7 @@ __pycache__/
 /results/
 /vendor/*
 !/vendor/README.md
-/images/
+/images/*
+!/images/artifacts/
+/images/artifacts/*
+!/images/artifacts/status.md

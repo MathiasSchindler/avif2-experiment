@@ -764,7 +764,12 @@ static int q_level_profile_supported(
     if (cdfs->q_context != coefficient_q_context(frame->base_q_index)) {
         return 0;
     }
-    if (frame->base_q_index == 128U) return 1;
+    if (frame->base_q_index == 128U) {
+        return !(prefix->tx_size == AV2H_TX_8X16 &&
+                 prefix->eob == 6U &&
+                 transform->primary_type == AV2H_TX_DCT_DCT &&
+                 transform->secondary_symbol == 0U);
+    }
     if (cdfs->q_context == 2U && prefix->tx_size == AV2H_TX_16X32) {
         return (prefix->eob == 5U &&
                 transform->primary_type == AV2H_TX_DCT_DCT) ||

@@ -40,18 +40,18 @@ values are `-6/-1488`, `-2/-1984`, `+6/+9408`, and `-8/-1984`.
 
 Across all 21 artifact streams, six GDF-mode-2 streams decode their first GDF
 flag, CDEF strength index, and enabled first-unit CCSO controls at the exact
-pinned-AVM endpoints. Their post-CCSO tells are 9, 12, 13, 24, 20, and 8.
+pinned-AVM endpoints. They now continue through mode, implicit large-block
+FSC, and reached Palette=0 syntax to tells 17, 25, 20, 25, 32, and 9.
 Four other streams complete their first coefficient block, and eleven remain
 fail-closed at an earlier first-luma syntax frontier. The QP-192
 `chimp-240x287` stream remains intentionally gated at tell 15 because its
 partition range state diverges before mode syntax; consuming CCSO there would
 decode different symbols from AVM.
 
-The next exact blockers after CCSO are FSC context 6 for emerald, the Q48
-coefficient-level profile for flycatcher, extended 32x32 EOB point 7 for
-laarim, Q-context-0 8x8 coefficient-prefix geometry for pastell, the Q112
-coefficient-level profile for schwaebisch, and the screen-content/FSC path for
-silene.
+The next exact blockers are large-block transform-size derivation for emerald
+and silene, the Q48 coefficient-level profile for flycatcher, extended 32x32
+EOB point 7 for laarim, Q-context-0 8x8 coefficient-prefix geometry for
+pastell, and the Q112 coefficient-level profile for schwaebisch.
 
 ## Scope
 
