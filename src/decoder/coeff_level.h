@@ -14,7 +14,7 @@ typedef struct {
     uint16_t br_lf[11U][4U + 4U];
     uint16_t dc_sign[3U][AV2H_BINARY_CDF_SIZE];
     uint16_t fsc_bob[3U][3U + 4U];
-    uint16_t fsc_base[6U][4U + 4U];
+    uint16_t fsc_base[7U][4U + 4U];
     uint16_t fsc_br[3U][4U + 4U];
     uint16_t fsc_sign[5U][AV2H_BINARY_CDF_SIZE];
     uint16_t fsc_bob_txs1_ctx2[3U + 4U];

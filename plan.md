@@ -350,19 +350,19 @@ fixture-supplied contexts or references.
 ## Milestone 7: ordinary fixture coverage
 
 **Status:** Paused at a verified fail-closed checkpoint. Ordinary luma commits
-eight sample-exact leaves through tell 414. The eighth leaf at `(10,4)` is
-4x4 intraBC with displacement `(-32,24)`, EOB 5, transform set/index 0/0
-mapped to IDTX, and one +1960 coefficient at position 10. Its sole +245
-residual and all 16 reconstructed samples match pinned AVM. The next 4x4 D203
-angle-plus-three FSC/IDTX leaf at `(10,5)` reaches its coefficient levels,
-then returns `AV2H_UNSUPPORTED` at omitted TX-size-context-0 FSC base context
-5, tell 443. See `docs/milestone-7.md` for the exact endpoints and handoff.
+eleven sample-exact leaves through tell 505. The eleventh leaf at `(10,6)` is
+8x8 D203 angle-plus-three with MRL index 1, ADST_ADST, the reached
+secondary-transform symbol 0, and two coefficients. Its angle-213 predictor,
+residuals, and all 64 reconstructed samples match pinned AVM. The next 16x8
+intraBC leaf at `(12,0)` signals `skip_transform=1` through tell 516, then
+returns `AV2H_UNSUPPORTED` because skipped intraBC reconstruction is omitted.
+See `docs/milestone-7.md` for the exact endpoints and handoff.
 
 An audit of all 21 `images/artifacts/*.obu` streams found no artifact-relevant
 Milestone 7 gap: 17 stop earlier at Milestone 9 large-frame GDF header
 handling, and four reach their first luma leaf but require the broader
 QP-dependent Milestone 8 syntax/coefficient profile. The ordinary 4x4 intraBC
-intraBC leaf is now implemented, but none of the artifact streams reaches it.
+leaf is now implemented, but none of the artifact streams reaches it.
 
 Complete the ordinary fixture's remaining partition, mode, transform,
 coefficient, prediction, reconstruction, and chroma paths. Admit only locked
@@ -454,8 +454,8 @@ Release validation additionally includes:
 
 ## Current work order
 
-1. Resume Milestone 7 with TX-size-context-0 FSC base context 5 at `(10,5)`,
-  then complete ordinary luma and chroma parity.
+1. Resume Milestone 7 with the skipped 16x8 intraBC leaf at `(12,0)`, then
+  complete ordinary luma and chroma parity.
 2. Complete Milestone 8 high-detail, CFL, intraBC, coefficient-range, and
   advanced-transform coverage.
 3. Integrate and prove the mandatory filter pipeline in Milestone 9 after the

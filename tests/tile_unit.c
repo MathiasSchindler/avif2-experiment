@@ -630,6 +630,28 @@ static void test_ordinary_luma_frontier(void) {
         250U, 251U, 251U, 6U,
         251U, 6U, 6U, 6U
     };
+    static const uint8_t expected_ninth[16U] = {
+        255U, 255U, 5U, 0U,
+        4U, 0U, 0U, 6U,
+        0U, 6U, 6U, 6U,
+        6U, 6U, 6U, 6U
+    };
+    static const uint8_t expected_tenth[32U] = {
+        9U, 0U, 1U, 4U, 6U, 8U, 10U, 11U,
+        2U, 3U, 5U, 7U, 9U, 11U, 13U, 14U,
+        7U, 8U, 9U, 11U, 14U, 16U, 18U, 19U,
+        10U, 11U, 13U, 15U, 17U, 19U, 21U, 22U
+    };
+    static const uint8_t expected_eleventh[64U] = {
+        1U, 5U, 6U, 6U, 8U, 10U, 13U, 16U,
+        6U, 6U, 7U, 10U, 11U, 14U, 18U, 20U,
+        7U, 10U, 12U, 14U, 17U, 20U, 21U, 21U,
+        11U, 14U, 17U, 21U, 23U, 23U, 24U, 24U,
+        15U, 20U, 23U, 25U, 26U, 27U, 27U, 28U,
+        20U, 25U, 27U, 28U, 30U, 31U, 32U, 32U,
+        23U, 26U, 29U, 31U, 33U, 35U, 36U, 36U,
+        23U, 27U, 30U, 32U, 35U, 37U, 38U, 39U
+    };
     static const uint8_t seventh_nonzero[10U] = {
         30U, 31U, 45U, 46U, 47U, 59U, 60U, 61U, 62U, 63U
     };
@@ -778,6 +800,110 @@ static void test_ordinary_luma_frontier(void) {
                 CHECK(block.dequantized[coefficient_index] ==
                       (coefficient_index == 10U ? 1960 : 0));
             }
+        } else if (leaf_count == 8U) {
+            size_t coefficient_index;
+            CHECK(leaf.node.row == 10U);
+            CHECK(leaf.node.column == 5U);
+            CHECK(leaf.node.block_size == AV2H_BLOCK_4X4);
+            CHECK(leaf.mode.mode == AV2H_INTRA_D203);
+            CHECK(leaf.mode.angle_delta == 3);
+            CHECK(leaf.mode.fsc_mode == 1U);
+            CHECK(leaf.prefix.tx_size == AV2H_TX_4X4);
+            CHECK(leaf.prefix.eob == 15U);
+            CHECK(leaf.transform.primary_type == AV2H_TX_IDTX);
+            CHECK(leaf.prefix.after_eob_bits == 432U);
+            CHECK(block.before_levels_bits == 432U);
+            CHECK(block.after_levels_bits == 453U);
+            CHECK(block.after_coefficients_bits == 457U);
+            CHECK(block.nonzero_count == 3U);
+            CHECK(block.cul_level == 7U);
+            for (coefficient_index = 0U; coefficient_index < 16U;
+                 ++coefficient_index) {
+                int32_t quantized =
+                    coefficient_index == 1U ? 2 :
+                    coefficient_index == 2U ? -2 :
+                    coefficient_index == 4U ? -4 : 0;
+                int32_t dequantized = quantized * 196;
+                CHECK(block.quantized[coefficient_index] == quantized);
+                CHECK(block.dequantized[coefficient_index] == dequantized);
+            }
+        } else if (leaf_count == 9U) {
+            size_t coefficient_index;
+            CHECK(leaf.node.row == 11U);
+            CHECK(leaf.node.column == 4U);
+            CHECK(leaf.node.block_size == AV2H_BLOCK_8X4);
+            CHECK(leaf.mode.mode == AV2H_INTRA_D203);
+            CHECK(leaf.mode.angle_delta == 3);
+            CHECK(leaf.mode.fsc_mode == 0U);
+            CHECK(leaf.mode.mrl_index == 0U);
+            CHECK(leaf.prefix.tx_size == AV2H_TX_8X4);
+            CHECK(leaf.prefix.eob == 3U);
+            CHECK(leaf.transform.primary_type == AV2H_TX_DCT_DCT);
+            CHECK(leaf.transform.primary_signaled == 1U);
+            CHECK(leaf.transform.primary_symbol == 0U);
+            CHECK(leaf.transform.secondary_signaled == 1U);
+            CHECK(leaf.transform.secondary_symbol == 0U);
+            CHECK(leaf.transform.before_primary_bits == 471U);
+            CHECK(leaf.transform.after_primary_bits == 474U);
+            CHECK(leaf.transform.after_secondary_bits == 477U);
+            CHECK(block.before_levels_bits == 477U);
+            CHECK(block.after_levels_bits == 479U);
+            CHECK(block.after_coefficients_bits == 482U);
+            CHECK(block.nonzero_count == 3U);
+            CHECK(block.cul_level == 19U);
+            CHECK(block.dc_value == 1);
+            for (coefficient_index = 0U; coefficient_index < 32U;
+                 ++coefficient_index) {
+                int32_t quantized =
+                    coefficient_index == 0U ? 1 :
+                    coefficient_index == 1U ||
+                    coefficient_index == 8U ? -1 : 0;
+                CHECK(block.quantized[coefficient_index] == quantized);
+                CHECK(block.dequantized[coefficient_index] ==
+                      quantized * 196);
+            }
+        } else if (leaf_count == 10U) {
+            size_t coefficient_index;
+            CHECK(leaf.node.row == 10U);
+            CHECK(leaf.node.column == 6U);
+            CHECK(leaf.node.block_size == AV2H_BLOCK_8X8);
+            CHECK(leaf.mode.mode == AV2H_INTRA_D203);
+            CHECK(leaf.mode.angle_delta == 3);
+            CHECK(leaf.mode.fsc_mode == 0U);
+            CHECK(leaf.mode.mrl_index == 1U);
+            CHECK(leaf.mode.multi_line_mrl == 0U);
+            CHECK(leaf.mode.before_mode_bits == 483U);
+            CHECK(leaf.mode.after_mode_set_bits == 483U);
+            CHECK(leaf.mode.after_mode_index_bits == 486U);
+            CHECK(leaf.mode.after_fsc_bits == 486U);
+            CHECK(leaf.mode.after_mrl_bits == 491U);
+            CHECK(leaf.prefix.tx_size == AV2H_TX_8X8);
+            CHECK(leaf.prefix.eob == 2U);
+            CHECK(leaf.prefix.after_all_zero_bits == 491U);
+            CHECK(leaf.prefix.after_eob_point_bits == 497U);
+            CHECK(leaf.prefix.after_eob_bits == 497U);
+            CHECK(leaf.transform.primary_type == AV2H_TX_ADST_ADST);
+            CHECK(leaf.transform.primary_signaled == 1U);
+            CHECK(leaf.transform.primary_symbol == 1U);
+            CHECK(leaf.transform.secondary_signaled == 1U);
+            CHECK(leaf.transform.secondary_symbol == 0U);
+            CHECK(leaf.transform.before_primary_bits == 497U);
+            CHECK(leaf.transform.after_primary_bits == 499U);
+            CHECK(leaf.transform.after_secondary_bits == 502U);
+            CHECK(block.before_levels_bits == 502U);
+            CHECK(block.after_levels_bits == 504U);
+            CHECK(block.after_coefficients_bits == 505U);
+            CHECK(block.nonzero_count == 2U);
+            CHECK(block.dc_value == 2);
+            for (coefficient_index = 0U; coefficient_index < 64U;
+                 ++coefficient_index) {
+                int32_t quantized =
+                    coefficient_index == 0U ? 2 :
+                    coefficient_index == 8U ? -1 : 0;
+                CHECK(block.quantized[coefficient_index] == quantized);
+                CHECK(block.dequantized[coefficient_index] ==
+                      quantized * 196);
+            }
         }
         reconstruction_status = av2h_luma_reconstruct_to_plane(
             &leaf.node, &leaf.mode, &leaf.prefix, &leaf.transform,
@@ -860,37 +986,30 @@ static void test_ordinary_luma_frontier(void) {
     check_plane_crop("ordinary eighth luma",
                      luma_pixels + 40U * 160U + 16U, 160U,
                      expected_eighth, 4U, 4U);
+    check_plane_crop("ordinary ninth luma",
+                     luma_pixels + 40U * 160U + 20U, 160U,
+                     expected_ninth, 4U, 4U);
+    check_plane_crop("ordinary tenth luma",
+                     luma_pixels + 44U * 160U + 16U, 160U,
+                     expected_tenth, 8U, 4U);
+    check_plane_crop("ordinary eleventh luma",
+                     luma_pixels + 40U * 160U + 24U, 160U,
+                     expected_eleventh, 8U, 8U);
     CHECK(status == AV2H_UNSUPPORTED);
     CHECK(reconstruction_status == AV2H_OK);
     CHECK(has_leaf == 1U);
-    CHECK(leaf_count == 8U);
-    CHECK(leaf.node.row == 10U);
-    CHECK(leaf.node.column == 5U);
-    CHECK(leaf.node.block_size == AV2H_BLOCK_4X4);
-    CHECK(leaf.mode.mode == AV2H_INTRA_D203);
-    CHECK(leaf.mode.angle_delta == 3);
-    CHECK(leaf.mode.fsc_mode == 1U);
-    CHECK(leaf.mode.use_intrabc == 0U);
-    CHECK(leaf.mode.before_mode_bits == 415U);
-    CHECK(leaf.mode.after_mode_set_bits == 420U);
-    CHECK(leaf.mode.after_mode_index_bits == 424U);
-    CHECK(leaf.mode.after_fsc_bits == 428U);
-    CHECK(leaf.mode.after_mrl_bits == 428U);
-    CHECK(leaf.prefix.tx_size == AV2H_TX_4X4);
-    CHECK(leaf.prefix.eob == 15U);
-    CHECK(leaf.prefix.after_all_zero_bits == 428U);
-    CHECK(leaf.prefix.after_eob_point_bits == 429U);
-    CHECK(leaf.prefix.after_eob_bits == 432U);
-    CHECK(leaf.transform.before_primary_bits == 432U);
-    CHECK(leaf.transform.primary_type == AV2H_TX_IDTX);
-    CHECK(leaf.transform.primary_long_side_symbol == 0U);
-    CHECK(leaf.transform.primary_symbol == 0U);
-    CHECK(leaf.transform.after_primary_bits == 432U);
-    CHECK(block.before_levels_bits == 432U);
-    CHECK(block.diagnostic_kind == 15U);
-    CHECK(block.diagnostic_position == 5U);
-    CHECK(block.diagnostic_context == 5U);
-    CHECK(av2h_range_tell(&decoder.range) == 443U);
+    CHECK(leaf_count == 11U);
+    CHECK(leaf.node.row == 12U);
+    CHECK(leaf.node.column == 0U);
+    CHECK(leaf.node.block_size == AV2H_BLOCK_16X8);
+    CHECK(leaf.mode.use_intrabc == 1U);
+    CHECK(leaf.mode.skip_transform == 1U);
+    CHECK(decoder.luma_traversal.diagnostic_node.row == 12U);
+    CHECK(decoder.luma_traversal.diagnostic_node.column == 0U);
+    CHECK(decoder.luma_traversal.diagnostic_node.block_size ==
+          AV2H_BLOCK_16X8);
+    CHECK(decoder.luma_traversal.diagnostic_before_bits == 509U);
+    CHECK(av2h_range_tell(&decoder.range) == 516U);
 }
 
 static void test_orchestrator_failures(void) {

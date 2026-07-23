@@ -373,6 +373,185 @@ static void test_tx4x4_intrabc_idtx_reconstruction(void) {
     }
 }
 
+static void test_tx4x4_d203_fsc_reconstruction(void) {
+    static const uint8_t left[4U] = { 251U, 251U, 6U, 6U };
+    static const uint8_t predictor[16U] = {
+        255U, 211U, 54U, 0U,
+        102U, 0U, 0U, 6U,
+        0U, 6U, 6U, 6U,
+        6U, 6U, 6U, 6U
+    };
+    static const uint8_t expected[16U] = {
+        255U, 255U, 5U, 0U,
+        4U, 0U, 0U, 6U,
+        0U, 6U, 6U, 6U,
+        6U, 6U, 6U, 6U
+    };
+    Av2hFirstLeafMode mode = { 0 };
+    Av2hFirstCoeffPrefix prefix = { 0 };
+    Av2hFirstTransformType transform = { 0 };
+    Av2hFirstCoeffBlock block = { 0 };
+    Av2hLumaReferences references = { 0 };
+    Av2hReconstructionScratch scratch;
+    Av2hFirstReconstruction reconstruction;
+    uint8_t predicted[16U];
+    size_t index;
+
+    mode.mode = AV2H_INTRA_D203;
+    mode.angle_delta = 3;
+    mode.fsc_mode = 1U;
+    references.left = left;
+    references.left_count = sizeof(left);
+    CHECK(av2h_luma_predict(
+              &mode, 4U, 4U, &references, predicted, 4U) == AV2H_OK);
+    for (index = 0U; index < 16U; ++index) {
+        CHECK(predicted[index] == predictor[index]);
+    }
+    prefix.tx_size = AV2H_TX_4X4;
+    transform.primary_type = AV2H_TX_IDTX;
+    block.width = 4U;
+    block.height = 4U;
+    block.coefficient_count = 16U;
+    block.dequantized[1U] = 392;
+    block.dequantized[2U] = -392;
+    block.dequantized[4U] = -784;
+
+    CHECK(av2h_luma_reconstruct(
+              &mode, &prefix, &transform, &block, predictor, 4U,
+              &scratch, &reconstruction) == AV2H_OK);
+    CHECK(reconstruction.width == 4U);
+    CHECK(reconstruction.height == 4U);
+    for (index = 0U; index < 16U; ++index) {
+        int32_t residual =
+            index == 1U ? 49 : index == 2U ? -49 :
+            index == 4U ? -98 : 0;
+        CHECK(reconstruction.residual[index] == residual);
+        CHECK(reconstruction.pixels[index] == expected[index]);
+    }
+}
+
+static void test_tx8x4_d203_reconstruction(void) {
+    static const uint8_t above[12U] = {
+        251U, 6U, 6U, 6U, 6U, 6U, 6U, 6U, 6U, 6U, 6U, 6U
+    };
+    static const uint8_t predictor[32U] = {
+        16U, 1U, 6U, 6U, 6U, 6U, 6U, 6U,
+        6U, 6U, 6U, 6U, 6U, 6U, 6U, 6U,
+        6U, 6U, 6U, 6U, 6U, 6U, 6U, 6U,
+        6U, 6U, 6U, 6U, 6U, 6U, 6U, 6U
+    };
+    static const uint8_t expected[32U] = {
+        9U, 0U, 1U, 4U, 6U, 8U, 10U, 11U,
+        2U, 3U, 5U, 7U, 9U, 11U, 13U, 14U,
+        7U, 8U, 9U, 11U, 14U, 16U, 18U, 19U,
+        10U, 11U, 13U, 15U, 17U, 19U, 21U, 22U
+    };
+    Av2hFirstLeafMode mode = { 0 };
+    Av2hFirstCoeffPrefix prefix = { 0 };
+    Av2hFirstTransformType transform = { 0 };
+    Av2hFirstCoeffBlock block = { 0 };
+    Av2hLumaReferences references = { 0 };
+    Av2hReconstructionScratch scratch;
+    Av2hFirstReconstruction reconstruction;
+    uint8_t predicted[32U];
+    size_t index;
+
+    mode.mode = AV2H_INTRA_D203;
+    mode.angle_delta = 3;
+    references.above = above;
+    references.above_count = sizeof(above);
+    references.has_above_left = 1U;
+    references.above_left = 251U;
+    CHECK(av2h_luma_predict(
+              &mode, 8U, 4U, &references, predicted, 8U) == AV2H_OK);
+    for (index = 0U; index < 32U; ++index) {
+        CHECK(predicted[index] == predictor[index]);
+    }
+
+    prefix.tx_size = AV2H_TX_8X4;
+    transform.primary_type = AV2H_TX_DCT_DCT;
+    block.width = 8U;
+    block.height = 4U;
+    block.coefficient_count = 32U;
+    block.dequantized[0U] = 196;
+    block.dequantized[1U] = -196;
+    block.dequantized[8U] = -196;
+    CHECK(av2h_luma_reconstruct(
+              &mode, &prefix, &transform, &block, predictor, 8U,
+              &scratch, &reconstruction) == AV2H_OK);
+    for (index = 0U; index < 32U; ++index) {
+        int32_t expected_residual =
+            index == 1U ? -6 :
+            (int32_t)expected[index] - predictor[index];
+        CHECK(reconstruction.pixels[index] == expected[index]);
+        CHECK(reconstruction.residual[index] == expected_residual);
+    }
+}
+
+static void test_tx8x8_d203_mrl_reconstruction(void) {
+    static const uint8_t left[8U] = {
+        5U, 0U, 6U, 6U, 10U, 13U, 18U, 21U
+    };
+    static const uint8_t predictor[64U] = {
+        1U, 5U, 6U, 7U, 9U, 11U, 14U, 17U,
+        6U, 6U, 8U, 11U, 12U, 15U, 19U, 21U,
+        7U, 10U, 12U, 14U, 17U, 20U, 21U, 21U,
+        11U, 13U, 16U, 19U, 21U, 21U, 21U, 21U,
+        14U, 18U, 20U, 21U, 21U, 21U, 21U, 21U,
+        19U, 21U, 21U, 21U, 21U, 21U, 21U, 21U,
+        21U, 21U, 21U, 21U, 21U, 21U, 21U, 21U,
+        21U, 21U, 21U, 21U, 21U, 21U, 21U, 21U
+    };
+    static const uint8_t expected[64U] = {
+        1U, 5U, 6U, 6U, 8U, 10U, 13U, 16U,
+        6U, 6U, 7U, 10U, 11U, 14U, 18U, 20U,
+        7U, 10U, 12U, 14U, 17U, 20U, 21U, 21U,
+        11U, 14U, 17U, 21U, 23U, 23U, 24U, 24U,
+        15U, 20U, 23U, 25U, 26U, 27U, 27U, 28U,
+        20U, 25U, 27U, 28U, 30U, 31U, 32U, 32U,
+        23U, 26U, 29U, 31U, 33U, 35U, 36U, 36U,
+        23U, 27U, 30U, 32U, 35U, 37U, 38U, 39U
+    };
+    Av2hFirstLeafMode mode = { 0 };
+    Av2hFirstCoeffPrefix prefix = { 0 };
+    Av2hFirstTransformType transform = { 0 };
+    Av2hFirstCoeffBlock block = { 0 };
+    Av2hLumaReferences references = { 0 };
+    Av2hReconstructionScratch scratch;
+    Av2hFirstReconstruction reconstruction;
+    uint8_t predicted[64U];
+    size_t index;
+
+    mode.mode = AV2H_INTRA_D203;
+    mode.angle_delta = 3;
+    mode.mrl_index = 1U;
+    references.left = left;
+    references.left_count = sizeof(left);
+    references.has_above_left = 1U;
+    references.above_left = 175U;
+    CHECK(av2h_luma_predict(
+              &mode, 8U, 8U, &references, predicted, 8U) == AV2H_OK);
+    for (index = 0U; index < 64U; ++index) {
+        CHECK(predicted[index] == predictor[index]);
+    }
+
+    prefix.tx_size = AV2H_TX_8X8;
+    transform.primary_type = AV2H_TX_ADST_ADST;
+    block.width = 8U;
+    block.height = 8U;
+    block.coefficient_count = 64U;
+    block.dequantized[0U] = 392;
+    block.dequantized[8U] = -196;
+    CHECK(av2h_luma_reconstruct(
+              &mode, &prefix, &transform, &block, predictor, 8U,
+              &scratch, &reconstruction) == AV2H_OK);
+    for (index = 0U; index < 64U; ++index) {
+        CHECK(reconstruction.pixels[index] == expected[index]);
+        CHECK(reconstruction.residual[index] ==
+              (int32_t)expected[index] - predictor[index]);
+    }
+}
+
 static void test_live_plane_reconstruction(void) {
     static const unsigned char tiny[] = {
         0xd7U, 0xc3U, 0x43U, 0x86U, 0xffU, 0x01U, 0xfcU, 0x2aU,
@@ -491,6 +670,9 @@ int main(void) {
     test_tx16x4_dct_reconstruction();
     test_tx16x4_fsc_reconstruction();
     test_tx4x4_intrabc_idtx_reconstruction();
+    test_tx4x4_d203_fsc_reconstruction();
+    test_tx8x4_d203_reconstruction();
+    test_tx8x8_d203_mrl_reconstruction();
     test_live_plane_reconstruction();
     test_arguments();
     if (failures != 0) {

@@ -30,11 +30,12 @@ separate reference experiment and is fetched into ignored `vendor/` and
   visible reference bounds from padded storage, retain per-4x4 reconstruction
   readiness, and reconstruct all 12 odd luma and five odd chroma leaves
   sample-exactly through tell 696 before filtering.
-- Milestone 7 is paused at a verified checkpoint: eight ordinary luma leaves
-  reconstruct sample-exactly through tell 414. The eighth 4x4 intraBC/IDTX
-  leaf copies a readiness-validated below-left reference and applies one +245
-  residual sample. The next 4x4 D203 angle-plus-three FSC/IDTX leaf at `(10,5)`
-  fails closed at the omitted TX-size-context-0 FSC base context 5, tell 443.
+- Milestone 7 is paused at a verified checkpoint: eleven ordinary luma leaves
+  reconstruct sample-exactly through tell 505. The eleventh 8x8 D203
+  angle-plus-three MRL-1 leaf uses ADST_ADST, secondary-transform symbol 0,
+  and two locked coefficients. The next 16x8 intraBC leaf at `(12,0)` signals
+  `skip_transform=1` through tell 516, then fails closed because skipped
+  intraBC reconstruction is omitted.
 - Milestone 8 owns high-detail, CFL, intraBC, and remaining advanced transform
   coverage. Milestone 9 owns mandatory-filter integration and filtered parity.
   Milestone 10 alone owns workspace finalization and public decoder exposure.

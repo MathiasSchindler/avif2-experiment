@@ -73,7 +73,7 @@ static const uint8_t br_keys[] = { 0U, 1U, 2U, 3U, 4U, 5U, 6U };
 static const uint8_t br_lf_keys[] = {
     0U, 1U, 2U, 4U, 5U, 6U, 7U, 9U, 10U, 11U, 13U
 };
-static const uint8_t fsc_base_keys[] = { 0U, 1U, 2U, 3U, 4U, 6U };
+static const uint8_t fsc_base_keys[] = { 0U, 1U, 2U, 3U, 4U, 5U, 6U };
 static const uint8_t fsc_bob_keys[] = { 0U, 1U, 2U };
 static const uint8_t fsc_br_keys[] = { 0U, 1U, 5U };
 static const uint8_t fsc_sign_keys[] = { 0U, 1U, 2U, 3U, 4U };
@@ -234,10 +234,11 @@ Av2hStatus av2h_first_coeff_level_cdfs_init(Av2hFirstCoeffLevelCdfs *cdfs) {
         { 15075U, 22557U, 26893U },
         { 11632U, 16975U, 20254U },
         { 5659U, 12007U, 16445U },
+        { 3855U, 7854U, 12411U },
         { 2360U, 4192U, 5868U }
     };
     static const uint8_t fsc_base_parameter[] = {
-        78U, 75U, 0U, 0U, 0U, 0U
+        78U, 75U, 0U, 0U, 0U, 1U, 0U
     };
     static const uint16_t fsc_br[][3U] = {
         { 11825U, 18784U, 22974U },
@@ -414,7 +415,7 @@ Av2hStatus av2h_first_coeff_level_cdfs_init(Av2hFirstCoeffLevelCdfs *cdfs) {
                                3U, fsc_bob_parameter[index], 0U);
         if (status != AV2H_OK) return status;
     }
-    for (index = 0U; index < 6U; ++index) {
+    for (index = 0U; index < 7U; ++index) {
         status = av2h_cdf_init(cdfs->fsc_base[index], 8U, fsc_base[index],
                                4U, fsc_base_parameter[index], 0U);
         if (status != AV2H_OK) return status;
@@ -953,7 +954,7 @@ static Av2hStatus read_fsc_block(
              context == 6U ? cdfs->fsc_base_txs1_ctx6 : 0) :
             txs2 ? cdfs->fsc_base_txs2[context] :
             find_context(&cdfs->fsc_base[0][0], 8U,
-                         fsc_base_keys, 6U, context);
+                         fsc_base_keys, 7U, context);
         uint32_t symbol;
         block->diagnostic_position = position;
         block->diagnostic_context = context;

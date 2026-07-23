@@ -1,17 +1,17 @@
 # Milestone 7: ordinary fixture coverage
 
 Milestone 7 is paused at a verified fail-closed checkpoint. It is not complete.
-The private decoder commits eight ordinary luma leaves sample-exactly through
-tell 414. The next 4x4 leaf at `(10,5)` reaches FSC/IDTX coefficient decoding,
-then fails closed at tell 443 because TX-size-context-0 FSC base context 5 is
-not yet present in the sparse table.
+The private decoder commits eleven ordinary luma leaves sample-exactly through
+tell 505. The next 16x8 intraBC leaf at `(12,0)` signals
+`skip_transform=1`, then fails closed at tell 516 because skipped intraBC
+reconstruction is not yet admitted.
 
 The locked input is `tests/fixtures/ordinary-160x120.obu`, 843 bytes, SHA-256
 `adbb88447dacbdf6895964df6a6fc1a1506cdf007d27044ea42171ccbb12810f`.
 
 ## Verified checkpoint
 
-The eight committed luma leaves end at these exact tells:
+The eleven committed luma leaves end at these exact tells:
 
 | Leaf | Position | Block | Transform | Endpoint |
 | --- | --- | --- | --- | --- |
@@ -23,6 +23,9 @@ The eight committed luma leaves end at these exact tells:
 | 5 | `(10,0)` | 16x4 | DCT_DCT | 276 |
 | 6 | `(11,0)` | 16x4 | IDTX/FSC | 365 |
 | 7 | `(10,4)` | 4x4 | IDTX/intraBC | 414 |
+| 8 | `(10,5)` | 4x4 | IDTX/FSC | 457 |
+| 9 | `(11,4)` | 8x4 | DCT_DCT | 482 |
+| 10 | `(10,6)` | 8x8 | ADST_ADST | 505 |
 
 The reached 16x32 path includes smooth-vertical prediction and the pinned
 AVM tuned 16-point DDT matrix. The 32x8 path includes the exact edge-filtered
@@ -73,11 +76,71 @@ references extending below the destination row. Reconstruction adds +245 at
 local sample `(2,2)`, changing 6 to 251, and leaves the other 15 predictor
 samples unchanged. All predictor and reconstructed samples match pinned AVM.
 
-The current frontier is `(10,5)`, a 4x4 D203 angle-plus-three block with FSC
-mode 1 and IDTX. Mode parsing ends at tell 428, its EOB 15 prefix and forced
-IDTX selection end at tell 432, and level decoding reaches position 5 with
-TX-size-context-0 FSC base context 5. That sparse row is omitted, so decoding
-fails closed before coefficient completion or reconstruction at tell 443.
+The committed `(10,5)` leaf is a 4x4 D203 angle-plus-three block with FSC mode
+1 and forced IDTX. Mode parsing ends at tell 428, its EOB 15 prefix and IDTX
+selection end at tell 432, level decoding ends at tell 453, and coefficient
+sign decoding ends at tell 457. The reached TX-size-context-0 FSC base context
+5 row uses thresholds `3855/7854/12411` and parameter index 1.
+
+Three coefficients are nonzero: position 1 is quantized +2/dequantized +392,
+position 2 is -2/-392, and position 4 is -4/-784. The D203 predictor uses the
+reached derivative 38 and reconstructs with identity residuals +49, -49, and
+-98 at those positions. The exact 4x4 prefiltered output is:
+
+```text
+255 255 5 0
+4   0   0 6
+0   6   6 6
+6   6   6 6
+```
+
+The committed `(11,4)` leaf is an 8x4 D203 angle-plus-three block with FSC mode
+0. Mode parsing ends at tell 467 and its EOB 3 prefix ends at tell 471.
+Primary-transform symbol 0 maps to DCT_DCT and ends at tell 474. The reached
+secondary 4x4 symbol 0 ends at tell 477. Three coefficient levels end at tell
+479, and their signs end at tells 480, 481, and 482. Positions 1 and 8 are
+quantized -1/dequantized -196; position 0 is +1/+196.
+
+The rectangular wide-angle mapping uses angle 32, derivative 107, and the
+filtered above edge. The predictor's first row is `16 1 6 6 6 6 6 6`; the
+other three rows contain only 6. DCT_DCT reconstruction produces the exact
+prefiltered output:
+
+```text
+9  0  1  4  6  8 10 11
+2  3  5  7  9 11 13 14
+7  8  9 11 14 16 18 19
+10 11 13 15 17 19 21 22
+```
+
+The committed `(10,6)` leaf is an 8x8 D203 angle-plus-three block with FSC mode
+0 and MRL index 1 selecting multi-line MRL 0. Mode parsing ends at tell 491 and
+its EOB 2 prefix ends at tell 497. Primary-transform symbol 1 maps to
+ADST_ADST and ends at tell 499. Secondary-transform symbol 0 ends at tell 502.
+Level decoding ends at tell 504 and both coefficients complete at tell 505:
+position 8 is quantized -1/dequantized -196 and position 0 is +2/+392.
+
+The MRL predictor uses angle 213, derivative 41, and the second reference line
+without edge filtering. Its first two rows are `1 5 6 7 9 11 14 17` and
+`6 6 8 11 12 15 19 21`. ADST_ADST reconstruction produces the exact
+prefiltered output:
+
+```text
+1  5  6  6  8 10 13 16
+6  6  7 10 11 14 18 20
+7 10 12 14 17 20 21 21
+11 14 17 21 23 23 24 24
+15 20 23 25 26 27 27 28
+20 25 27 28 30 31 32 32
+23 26 29 31 33 35 36 36
+23 27 30 32 35 37 38 39
+```
+
+The current frontier is `(12,0)`, a 16x8 intraBC block. Partition traversal
+reaches the leaf at tell 509. The normative skip-transform context is 0; AVM
+reads symbol 1 from inverse CDF `6041,0,1` and reaches tell 516. The private
+decoder consumes the same symbol and then fails closed because it currently
+admits only non-skipped intraBC leaves.
 
 ## JPEG artifact OBU audit
 
@@ -117,11 +180,12 @@ the four streams that reach tile decoding. It is part of `make test-c`.
 
 ## Handoff
 
-Resume with TX-size-context-0 FSC base context 5 at `(10,5)`, then add only the
-remaining FSC rows reached by that leaf until its coefficient and sample
-endpoint match pinned AVM. Continue the remaining ordinary luma traversal and
-all ordinary chroma paths without adding later syntax from a divergent entropy
-or sample frontier. Broad intraBC coverage remains Milestone 8 work.
+Resume with the skipped 16x8 intraBC leaf at `(12,0)`. Pin its displacement,
+predictor source, skipped residual semantics, samples, and exact endpoint
+against AVM before admitting only that reached path. Continue the remaining
+ordinary luma traversal and all ordinary chroma paths without adding later
+syntax from a divergent entropy or sample frontier. Broad intraBC coverage
+remains Milestone 8 work.
 
 Run the current focused checkpoint with:
 
