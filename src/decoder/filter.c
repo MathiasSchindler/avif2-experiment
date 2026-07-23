@@ -2,7 +2,12 @@
 
 #include "gdf_data.inc"
 
-#define AV2H_CCSO_UNIT_SIZE 64U
+#define AV2H_CCSO_LEGACY_UNIT_SIZE 64U
+
+static uint16_t ccso_unit_size(const Av2hFrameState *frame) {
+    return frame->ccso_unit_size != 0U ?
+        frame->ccso_unit_size : AV2H_CCSO_LEGACY_UNIT_SIZE;
+}
 #define AV2H_DEBLOCK_MAX_SAMPLES 8U
 
 static const uint8_t deblock_weight[AV2H_DEBLOCK_MAX_SAMPLES] = {
@@ -1096,6 +1101,11 @@ Av2hStatus av2h_filter_workspace_query(
         frame->height == 0U) {
         return AV2H_INVALID_ARGUMENT;
     }
+    if (ccso_unit_size(frame) != 64U &&
+        ccso_unit_size(frame) != 128U &&
+        ccso_unit_size(frame) != 256U) {
+        return AV2H_INVALID_ARGUMENT;
+    }
     av2h_memory_fill(layout, 0U, sizeof(*layout));
     coded_width = coded_dimension(frame->width);
     coded_height = coded_dimension(frame->height);
@@ -1116,10 +1126,13 @@ Av2hStatus av2h_filter_workspace_query(
         layout->deblock_columns[plane] = width / 4U;
         layout->deblock_rows[plane] = height / 4U;
     }
-    layout->ccso_columns =
-        (coded_width + AV2H_CCSO_UNIT_SIZE - 1U) / AV2H_CCSO_UNIT_SIZE;
-    layout->ccso_rows =
-        (coded_height + AV2H_CCSO_UNIT_SIZE - 1U) / AV2H_CCSO_UNIT_SIZE;
+    {
+        uint16_t unit_size = ccso_unit_size(frame);
+        layout->ccso_columns =
+            (coded_width + unit_size - 1U) / unit_size;
+        layout->ccso_rows =
+            (coded_height + unit_size - 1U) / unit_size;
+    }
     if (!av2h_size_multiply(
             layout->ccso_columns, layout->ccso_rows,
             &layout->ccso_control_count)) {
@@ -1242,15 +1255,15 @@ static int dimensions_valid(const Av2hFilterPlanes *planes,
 
 static int controls_valid(const Av2hFrameState *frame,
                           const Av2hCcsoControlMap *controls) {
+    uint16_t unit_size = ccso_unit_size(frame);
     size_t columns = (coded_dimension(frame->width) +
-                      AV2H_CCSO_UNIT_SIZE - 1U) /
-                     AV2H_CCSO_UNIT_SIZE;
+                      unit_size - 1U) / unit_size;
     size_t rows = (coded_dimension(frame->height) +
-                   AV2H_CCSO_UNIT_SIZE - 1U) /
-                  AV2H_CCSO_UNIT_SIZE;
+                   unit_size - 1U) / unit_size;
     unsigned int plane;
     if (controls == 0 || controls->columns != columns ||
-        controls->rows != rows) {
+        controls->rows != rows ||
+        (unit_size != 64U && unit_size != 128U && unit_size != 256U)) {
         return 0;
     }
     for (plane = 0U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
@@ -1366,9 +1379,10 @@ static void ccso_filter_plane(Av2hFilterPlane *destination,
                               const Av2hCcsoPlane *parameters,
                               const uint8_t *controls,
                               size_t control_stride,
+                              uint16_t luma_unit_size,
                               unsigned int plane_index) {
     unsigned int subsampling = plane_index == 0U ? 0U : 1U;
-    unsigned int unit_size = AV2H_CCSO_UNIT_SIZE >> subsampling;
+    unsigned int unit_size = luma_unit_size >> subsampling;
     unsigned int shift = 8U - parameters->max_band_log2;
     uint16_t threshold = ccso_quant_size[parameters->scale_index]
                                         [parameters->quant_index];
@@ -1443,7 +1457,7 @@ Av2hStatus av2h_ccso_filter_frame(
                           pre_cdef_luma_stride, planes->plane[0].width,
                           planes->plane[0].height, &frame->ccso[plane],
                           controls->plane[plane], controls->stride[plane],
-                          plane);
+                          ccso_unit_size(frame), plane);
     }
     return AV2H_OK;
 }

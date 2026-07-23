@@ -1664,9 +1664,14 @@ static void test_arguments(void) {
     Av2hFirstLeafMode mode;
     Av2hGdfEntropyState gdf;
     Av2hCdefEntropyState cdef;
+    Av2hCcsoEntropyState ccso;
     uint8_t bytes[8U] = { 0 };
     uint8_t gdf_flags[4U] = { 1U, 1U, 1U, 1U };
     uint8_t cdef_strengths[4U] = { 0U, 0U, 0U, 0U };
+    uint8_t ccso_controls[AV2H_FRAME_PLANE_COUNT][4U] = { { 0U } };
+    uint8_t *ccso_planes[AV2H_FRAME_PLANE_COUNT] = {
+        ccso_controls[0], 0, 0
+    };
     Av2hSpan span = { bytes, sizeof(bytes) };
     size_t tell;
     CHECK(sizeof(Av2hLeafCdfs) == 1010U);
@@ -1720,6 +1725,41 @@ static void test_arguments(void) {
     CHECK(cdef.index0_cdf[0][0] == 3734U);
     CHECK(cdef.remainder_cdf[0][0] == 15060U);
     CHECK(cdef_strengths[0] == AV2H_CDEF_UNTRANSMITTED);
+    frame.ccso[0].enabled = 1U;
+    CHECK(av2h_ccso_entropy_state_init(
+              0, &sequence, &frame, ccso_planes, 4U) ==
+          AV2H_INVALID_ARGUMENT);
+    CHECK(av2h_ccso_entropy_state_init(
+              &ccso, &sequence, &frame, ccso_planes, 4U) ==
+          AV2H_INVALID_DATA);
+    sequence.enable_ccso = 1U;
+    CHECK(av2h_ccso_entropy_state_init(
+              &ccso, &sequence, &frame, 0, 0U) == AV2H_OUT_OF_MEMORY);
+    CHECK(av2h_ccso_entropy_state_init(
+              &ccso, &sequence, &frame, ccso_planes, 0U) ==
+          AV2H_OUT_OF_MEMORY);
+    CHECK(av2h_ccso_entropy_state_init(
+              &ccso, &sequence, &frame, ccso_planes, 1U) == AV2H_OK);
+    CHECK(ccso.unit_size == 256U);
+    CHECK(ccso.unit_columns == 1U);
+    CHECK(ccso.unit_rows == 1U);
+    CHECK(ccso.unit_count == 1U);
+    CHECK(ccso_controls[0][0] == AV2H_CCSO_UNTRANSMITTED);
+    sequence.ccso_unit_matches_superblock_size = 1U;
+    CHECK(av2h_ccso_entropy_state_init(
+              &ccso, &sequence, &frame, ccso_planes, 3U) ==
+          AV2H_OUT_OF_MEMORY);
+    CHECK(av2h_ccso_entropy_state_init(
+              &ccso, &sequence, &frame, ccso_planes, 4U) == AV2H_OK);
+    CHECK(ccso.unit_size == 64U);
+    CHECK(ccso.unit_count == 4U);
+    sequence.superblock_size = 256U;
+    CHECK(av2h_ccso_entropy_state_init(
+              &ccso, &sequence, &frame, ccso_planes, 4U) == AV2H_OK);
+    CHECK(ccso.unit_size == 256U);
+    CHECK(ccso.unit_count == 1U);
+    sequence.superblock_size = 64U;
+    frame.ccso[0].enabled = 0U;
     frame.cdef_strength_count = 0U;
     frame.gdf_mode = 0U;
     frame.base_q_index = 128U;
@@ -1780,7 +1820,7 @@ static void test_gdf_after_intrabc(void) {
         CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
         status = av2h_luma_mode_read_with_state_and_gdf(
             &decoder, &cdfs, &sequence, &frame, &leaf, &contexts,
-            &gdf, 0, &mode);
+            &gdf, 0, 0, &mode);
         if (mode.use_intrabc != 0U) {
             CHECK(status == AV2H_UNSUPPORTED);
             CHECK(mode.gdf_flags_read == 1U);

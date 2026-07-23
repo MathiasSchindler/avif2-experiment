@@ -615,6 +615,244 @@ static Av2hStatus read_cdef_entropy(
     return AV2H_OK;
 }
 
+Av2hStatus av2h_ccso_entropy_state_init(
+    Av2hCcsoEntropyState *state,
+    const Av2hSequenceState *sequence,
+    const Av2hFrameState *frame,
+    uint8_t *const unit_controls[AV2H_FRAME_PLANE_COUNT],
+    size_t unit_control_capacity) {
+    size_t plane;
+    size_t index;
+    if (state == 0 || sequence == 0 || frame == 0) {
+        return AV2H_INVALID_ARGUMENT;
+    }
+    av2h_memory_fill(state, 0U, sizeof(*state));
+    for (plane = 0U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
+        if (frame->ccso[plane].enabled) {
+            state->enabled_mask |= (uint8_t)(1U << plane);
+        }
+    }
+    if (state->enabled_mask == 0U) return AV2H_OK;
+    if (!sequence->enable_ccso ||
+        (sequence->superblock_size != 64U &&
+         sequence->superblock_size != 128U &&
+         sequence->superblock_size != 256U)) {
+        return AV2H_INVALID_DATA;
+    }
+    state->unit_size = sequence->ccso_unit_matches_superblock_size ?
+        sequence->superblock_size : AV2H_CCSO_MAX_UNIT_SIZE;
+    if (frame->ccso_unit_size != 0U &&
+        frame->ccso_unit_size != state->unit_size) {
+        return AV2H_INVALID_DATA;
+    }
+    state->unit_size_mi = (uint16_t)(state->unit_size / 4U);
+    state->unit_columns = (uint16_t)(
+        ((uint32_t)frame->width + state->unit_size - 1U) /
+        state->unit_size);
+    state->unit_rows = (uint16_t)(
+        ((uint32_t)frame->height + state->unit_size - 1U) /
+        state->unit_size);
+    if (state->unit_size_mi == 0U ||
+        state->unit_columns == 0U || state->unit_rows == 0U ||
+        !av2h_size_multiply(state->unit_columns, state->unit_rows,
+                            &state->unit_count)) {
+        return AV2H_INVALID_DATA;
+    }
+    if (unit_controls == 0) {
+        return AV2H_OUT_OF_MEMORY;
+    }
+    if (unit_control_capacity < state->unit_count) {
+        return AV2H_OUT_OF_MEMORY;
+    }
+    for (plane = 0U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
+        if ((state->enabled_mask & (uint8_t)(1U << plane)) == 0U) {
+            continue;
+        }
+        if (unit_controls[plane] == 0) {
+            return AV2H_OUT_OF_MEMORY;
+        }
+        state->unit_controls[plane] = unit_controls[plane];
+        for (index = 0U; index < state->unit_count; ++index) {
+            unit_controls[plane][index] = AV2H_CCSO_UNTRANSMITTED;
+        }
+    }
+    state->unit_control_capacity = unit_control_capacity;
+    return AV2H_OK;
+}
+
+static Av2hStatus ccso_context(
+    const Av2hCcsoEntropyState *state,
+    size_t plane,
+    size_t unit_row,
+    size_t unit_column,
+    size_t *context) {
+    uint8_t left = AV2H_CCSO_UNTRANSMITTED;
+    uint8_t above = AV2H_CCSO_UNTRANSMITTED;
+    uint8_t left_available;
+    uint8_t above_available;
+    if (state == 0 || context == 0 ||
+        plane >= AV2H_FRAME_PLANE_COUNT ||
+        unit_row >= state->unit_rows ||
+        unit_column >= state->unit_columns ||
+        state->unit_controls[plane] == 0) {
+        return AV2H_INVALID_ARGUMENT;
+    }
+    if (unit_column != 0U) {
+        left = state->unit_controls[plane][
+            unit_row * state->unit_columns + unit_column - 1U];
+    }
+    if (unit_row != 0U) {
+        above = state->unit_controls[plane][
+            (unit_row - 1U) * state->unit_columns + unit_column];
+    }
+    left_available = left != AV2H_CCSO_UNTRANSMITTED;
+    above_available = above != AV2H_CCSO_UNTRANSMITTED;
+    if ((left_available && left > 1U) ||
+        (above_available && above > 1U)) {
+        return AV2H_INVALID_DATA;
+    }
+    if (left_available && above_available) {
+        *context = left && above ? 3U : (size_t)(left || above);
+    } else if (left_available || above_available) {
+        uint8_t neighbor = left_available ? left : above;
+        *context = neighbor ? 2U : 0U;
+    } else {
+        *context = 0U;
+    }
+    return AV2H_OK;
+}
+
+static Av2hStatus read_ccso_entropy(
+    Av2hRangeDecoder *decoder,
+    Av2hLeafCdfs *cdfs,
+    const Av2hSequenceState *sequence,
+    const Av2hFrameState *frame,
+    const Av2hPartitionNode *leaf,
+    Av2hCcsoEntropyState *state,
+    Av2hFirstLeafMode *mode) {
+    size_t plane;
+    size_t width;
+    size_t height;
+    size_t unit_row;
+    size_t unit_column;
+    size_t unit_index;
+    size_t expected_count;
+    uint16_t expected_size;
+    uint16_t expected_columns;
+    uint16_t expected_rows;
+    uint8_t expected_mask = 0U;
+    Av2hStatus status;
+    mode->before_ccso_bits = av2h_range_tell(decoder);
+    mode->after_ccso_bits = mode->before_ccso_bits;
+    mode->ccso_controls_read = 0U;
+    if (state == 0 || state->enabled_mask == 0U) return AV2H_OK;
+    for (plane = 0U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
+        if (frame->ccso[plane].enabled) {
+            expected_mask |= (uint8_t)(1U << plane);
+        }
+    }
+    expected_size = sequence->ccso_unit_matches_superblock_size ?
+        sequence->superblock_size : AV2H_CCSO_MAX_UNIT_SIZE;
+    expected_columns = (uint16_t)(
+        ((uint32_t)frame->width + expected_size - 1U) / expected_size);
+    expected_rows = (uint16_t)(
+        ((uint32_t)frame->height + expected_size - 1U) / expected_size);
+    if (!av2h_size_multiply(
+            expected_columns, expected_rows, &expected_count) ||
+        state->unit_size != expected_size ||
+        (frame->ccso_unit_size != 0U &&
+         frame->ccso_unit_size != expected_size) ||
+        state->unit_size_mi != expected_size / 4U ||
+        state->enabled_mask != expected_mask ||
+        state->unit_columns != expected_columns ||
+        state->unit_rows != expected_rows ||
+        state->unit_count != expected_count ||
+        state->unit_control_capacity < state->unit_count) {
+        return AV2H_INVALID_DATA;
+    }
+    if (leaf->row % state->unit_size_mi != 0U ||
+        leaf->column % state->unit_size_mi != 0U) {
+        return AV2H_OK;
+    }
+    status = av2h_block_dimensions_mi(
+        leaf->block_size, &width, &height);
+    if (status != AV2H_OK) return status;
+    if (width > state->unit_size_mi ||
+        height > state->unit_size_mi) {
+        return AV2H_UNSUPPORTED;
+    }
+    unit_row = leaf->row / state->unit_size_mi;
+    unit_column = leaf->column / state->unit_size_mi;
+    if (unit_row >= state->unit_rows ||
+        unit_column >= state->unit_columns) {
+        return AV2H_INVALID_DATA;
+    }
+    unit_index = unit_row * state->unit_columns + unit_column;
+    for (plane = 0U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
+        size_t context;
+        uint32_t value;
+        if ((state->enabled_mask & (uint8_t)(1U << plane)) == 0U) {
+            continue;
+        }
+        if (state->unit_controls[plane] == 0 ||
+            state->unit_controls[plane][unit_index] !=
+                AV2H_CCSO_UNTRANSMITTED) {
+            return AV2H_INVALID_DATA;
+        }
+        status = ccso_context(
+            state, plane, unit_row, unit_column, &context);
+        if (status != AV2H_OK) return status;
+        value = av2h_range_read_adaptive(
+            decoder, cdfs->ccso[plane][context], 2U);
+        if (av2h_range_status(decoder) != AV2H_OK) {
+            return av2h_range_status(decoder);
+        }
+        state->unit_controls[plane][unit_index] = (uint8_t)value;
+        mode->ccso_present_mask |= (uint8_t)(1U << plane);
+        mode->ccso_block_control[plane] = (uint8_t)value;
+        ++mode->ccso_controls_read;
+    }
+    mode->after_ccso_bits = av2h_range_tell(decoder);
+    return AV2H_OK;
+}
+
+static Av2hStatus read_first_ccso_without_state(
+    Av2hRangeDecoder *decoder,
+    Av2hLeafCdfs *cdfs,
+    const Av2hSequenceState *sequence,
+    const Av2hFrameState *frame,
+    const Av2hPartitionNode *leaf,
+    Av2hFirstLeafMode *mode) {
+    size_t plane;
+    uint16_t unit_size;
+    uint16_t unit_size_mi;
+    mode->before_ccso_bits = av2h_range_tell(decoder);
+    mode->after_ccso_bits = mode->before_ccso_bits;
+    mode->ccso_controls_read = 0U;
+    unit_size = sequence->ccso_unit_matches_superblock_size ?
+        sequence->superblock_size : AV2H_CCSO_MAX_UNIT_SIZE;
+    unit_size_mi = (uint16_t)(unit_size / 4U);
+    if (unit_size_mi == 0U ||
+        leaf->row % unit_size_mi != 0U ||
+        leaf->column % unit_size_mi != 0U) {
+        return AV2H_OK;
+    }
+    for (plane = 0U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
+        uint32_t value;
+        if (!frame->ccso[plane].enabled) continue;
+        value = av2h_range_read_adaptive(
+            decoder, cdfs->ccso[plane][0], 2U);
+        if (av2h_range_status(decoder) != AV2H_OK) {
+            return av2h_range_status(decoder);
+        }
+        mode->ccso_present_mask |= (uint8_t)(1U << plane);
+        mode->ccso_block_control[plane] = (uint8_t)value;
+        ++mode->ccso_controls_read;
+    }
+    mode->after_ccso_bits = av2h_range_tell(decoder);
+    return AV2H_OK;
+}
+
 static uint8_t is_directional_joint_mode(uint8_t joint_mode) {
     return joint_mode >= 5U;
 }
@@ -1019,6 +1257,7 @@ static Av2hStatus luma_mode_read_internal(
     const Av2hLumaModeNeighbors *neighbors,
     Av2hGdfEntropyState *gdf_state,
     Av2hCdefEntropyState *cdef_state,
+    Av2hCcsoEntropyState *ccso_state,
     Av2hFirstLeafMode *mode);
 
 Av2hStatus av2h_luma_mode_read_with_state(
@@ -1030,7 +1269,7 @@ Av2hStatus av2h_luma_mode_read_with_state(
     const Av2hLumaModeContextState *state,
     Av2hFirstLeafMode *mode) {
     return av2h_luma_mode_read_with_state_and_gdf(
-        decoder, cdfs, sequence, frame, leaf, state, 0, 0, mode);
+        decoder, cdfs, sequence, frame, leaf, state, 0, 0, 0, mode);
 }
 
 Av2hStatus av2h_luma_mode_read_with_state_and_gdf(
@@ -1042,6 +1281,7 @@ Av2hStatus av2h_luma_mode_read_with_state_and_gdf(
     const Av2hLumaModeContextState *state,
     Av2hGdfEntropyState *gdf_state,
     Av2hCdefEntropyState *cdef_state,
+    Av2hCcsoEntropyState *ccso_state,
     Av2hFirstLeafMode *mode) {
     Av2hLumaModeNeighbors neighbors;
     Av2hStatus status = av2h_luma_mode_neighbors_from_state(
@@ -1049,7 +1289,7 @@ Av2hStatus av2h_luma_mode_read_with_state_and_gdf(
     if (status != AV2H_OK) return status;
     status = luma_mode_read_internal(
         decoder, cdfs, sequence, frame, leaf, &neighbors, gdf_state,
-        cdef_state, mode);
+        cdef_state, ccso_state, mode);
     if (status == AV2H_OK && mode->use_intrabc && state->has_intrabc) {
         return AV2H_UNSUPPORTED;
     }
@@ -1065,6 +1305,7 @@ static Av2hStatus luma_mode_read_internal(
     const Av2hLumaModeNeighbors *neighbors,
     Av2hGdfEntropyState *gdf_state,
     Av2hCdefEntropyState *cdef_state,
+    Av2hCcsoEntropyState *ccso_state,
     Av2hFirstLeafMode *mode) {
     size_t plane;
     size_t neighbor;
@@ -1116,6 +1357,9 @@ static Av2hStatus luma_mode_read_internal(
     mode->after_cdef_bits = mode->before_gdf_bits;
     mode->cdef_strengths_read = 0U;
     mode->cdef_strength_index = 0U;
+    mode->before_ccso_bits = mode->before_gdf_bits;
+    mode->after_ccso_bits = mode->before_gdf_bits;
+    mode->ccso_controls_read = 0U;
     for (plane = 0U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
         mode->ccso_block_control[plane] = 0U;
     }
@@ -1144,10 +1388,19 @@ static Av2hStatus luma_mode_read_internal(
             status = read_cdef_entropy(
                 decoder, frame, leaf, cdef_state, mode);
             if (status != AV2H_OK) return status;
-            if (frame->gdf_mode >= 2U ||
-                frame->allow_screen_content_tools) {
+            if (ccso_state != 0 && ccso_state->enabled_mask != 0U) {
+                status = read_ccso_entropy(
+                    decoder, cdfs, sequence, frame, leaf,
+                    ccso_state, mode);
+            } else {
+                status = read_first_ccso_without_state(
+                    decoder, cdfs, sequence, frame, leaf, mode);
+            }
+            if (status != AV2H_OK) return status;
+            if (frame->allow_screen_content_tools) {
                 return AV2H_UNSUPPORTED;
             }
+            if (frame->gdf_mode >= 2U) return AV2H_UNSUPPORTED;
             if (mode->skip_transform != 0U) return AV2H_UNSUPPORTED;
             return read_first_intrabc(
                 decoder, cdfs, sequence, frame, leaf, mode);
@@ -1163,24 +1416,21 @@ static Av2hStatus luma_mode_read_internal(
             decoder, frame, leaf, cdef_state, mode);
         if (status != AV2H_OK) return status;
     }
-    if (frame->gdf_mode >= 2U &&
-        frame->cdef_strength_count > 1U) {
-        return AV2H_UNSUPPORTED;
+    if (ccso_state != 0 && ccso_state->enabled_mask != 0U) {
+        Av2hStatus status = read_ccso_entropy(
+            decoder, cdfs, sequence, frame, leaf, ccso_state, mode);
+        if (status != AV2H_OK) return status;
+    } else {
+        Av2hStatus status = read_first_ccso_without_state(
+            decoder, cdfs, sequence, frame, leaf, mode);
+        if (status != AV2H_OK) return status;
     }
     if (frame->allow_screen_content_tools) {
         return AV2H_UNSUPPORTED;
     }
-    if ((leaf->row & 15U) == 0U && (leaf->column & 15U) == 0U) {
-        for (plane = 0U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
-            if (!frame->ccso[plane].enabled) continue;
-            value = av2h_range_read_adaptive(
-                decoder, cdfs->ccso[plane][0], 2U);
-            if (av2h_range_status(decoder) != AV2H_OK) {
-                return av2h_range_status(decoder);
-            }
-            mode->ccso_present_mask |= (uint8_t)(1U << plane);
-            mode->ccso_block_control[plane] = (uint8_t)value;
-        }
+    if (frame->gdf_mode >= 2U &&
+        frame->cdef_strength_count > 1U) {
+        return AV2H_UNSUPPORTED;
     }
     mode->before_mode_bits = av2h_range_tell(decoder);
     value = av2h_range_read_adaptive(
@@ -1276,7 +1526,7 @@ Av2hStatus av2h_luma_mode_read(
     const Av2hLumaModeNeighbors *neighbors,
     Av2hFirstLeafMode *mode) {
     return luma_mode_read_internal(
-        decoder, cdfs, sequence, frame, leaf, neighbors, 0, 0, mode);
+        decoder, cdfs, sequence, frame, leaf, neighbors, 0, 0, 0, mode);
 }
 
 Av2hStatus av2h_first_leaf_mode_read(Av2hRangeDecoder *decoder,

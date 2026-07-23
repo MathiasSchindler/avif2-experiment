@@ -56,6 +56,7 @@ typedef struct {
     uint8_t cdef_on_skip_transform;
     uint8_t cdef_y_strength[AV2H_CDEF_MAX_STRENGTHS];
     uint8_t cdef_uv_strength[AV2H_CDEF_MAX_STRENGTHS];
+    uint16_t ccso_unit_size;
     Av2hCcsoPlane ccso[AV2H_FRAME_PLANE_COUNT];
     uint8_t tx_mode;
     uint8_t reduced_tx_set;

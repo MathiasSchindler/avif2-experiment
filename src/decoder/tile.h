@@ -32,6 +32,8 @@ typedef struct {
     size_t gdf_block_flag_capacity;
     uint8_t *cdef_unit_strengths;
     size_t cdef_unit_strength_capacity;
+    uint8_t *ccso_unit_controls[AV2H_FRAME_PLANE_COUNT];
+    size_t ccso_unit_control_capacity;
 } Av2hTileContextStorage;
 
 typedef struct {
@@ -69,6 +71,7 @@ typedef struct {
     Av2hCoeffContextState coefficient_contexts;
     Av2hGdfEntropyState gdf_entropy;
     Av2hCdefEntropyState cdef_entropy;
+    Av2hCcsoEntropyState ccso_entropy;
     Av2hPartitionTraversal luma_traversal;
     Av2hPartitionTraversal chroma_traversal;
     Av2hTileLumaModeCell *colocated_luma;

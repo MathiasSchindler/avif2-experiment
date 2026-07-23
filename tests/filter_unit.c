@@ -120,6 +120,14 @@ static void test_workspace_model(void) {
     CHECK(layout.ccso_columns == 3U);
     CHECK(layout.ccso_rows == 2U);
     CHECK(layout.ccso_control_count == 6U);
+    frame.ccso_unit_size = 256U;
+    CHECK(av2h_filter_workspace_query(&frame, &layout) == AV2H_OK);
+    CHECK(layout.ccso_columns == 1U);
+    CHECK(layout.ccso_rows == 1U);
+    CHECK(layout.ccso_control_count == 1U);
+    frame.ccso_unit_size = 63U;
+    CHECK(av2h_filter_workspace_query(&frame, &layout) ==
+          AV2H_INVALID_ARGUMENT);
 
     frame.width = 0U;
     CHECK(av2h_filter_workspace_query(&frame, &layout) ==

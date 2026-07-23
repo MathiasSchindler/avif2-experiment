@@ -26,6 +26,8 @@
 #define AV2H_CDEF_REMAINDER_CDF_COUNT 6U
 #define AV2H_CDEF_MAX_REMAINDER_SYMBOLS 7U
 #define AV2H_CDEF_UNTRANSMITTED 255U
+#define AV2H_CCSO_UNTRANSMITTED 255U
+#define AV2H_CCSO_MAX_UNIT_SIZE 256U
 
 typedef struct {
     uint16_t intrabc[AV2H_INTRABC_CONTEXT_COUNT][AV2H_BINARY_CDF_SIZE];
@@ -107,6 +109,9 @@ typedef struct {
     size_t after_cdef_bits;
     uint8_t cdef_strengths_read;
     uint8_t cdef_strength_index;
+    size_t before_ccso_bits;
+    size_t after_ccso_bits;
+    uint8_t ccso_controls_read;
 } Av2hFirstLeafMode;
 
 typedef struct {
@@ -162,6 +167,17 @@ typedef struct {
 } Av2hCdefEntropyState;
 
 typedef struct {
+    uint8_t *unit_controls[AV2H_FRAME_PLANE_COUNT];
+    size_t unit_control_capacity;
+    size_t unit_count;
+    uint16_t unit_columns;
+    uint16_t unit_rows;
+    uint16_t unit_size;
+    uint16_t unit_size_mi;
+    uint8_t enabled_mask;
+} Av2hCcsoEntropyState;
+
+typedef struct {
     uint8_t is_cfl;
     uint8_t mode_index;
     Av2hFirstLeafIntraMode mode;
@@ -208,6 +224,12 @@ Av2hStatus av2h_cdef_entropy_state_init(
     const Av2hFrameState *frame,
     uint8_t *unit_strengths,
     size_t unit_strength_capacity);
+Av2hStatus av2h_ccso_entropy_state_init(
+    Av2hCcsoEntropyState *state,
+    const Av2hSequenceState *sequence,
+    const Av2hFrameState *frame,
+    uint8_t *const unit_controls[AV2H_FRAME_PLANE_COUNT],
+    size_t unit_control_capacity);
 Av2hStatus av2h_luma_mode_neighbors_from_state(
     const Av2hLumaModeContextState *state,
     const Av2hPartitionNode *leaf,
@@ -233,6 +255,7 @@ Av2hStatus av2h_luma_mode_read_with_state_and_gdf(
     const Av2hLumaModeContextState *state,
     Av2hGdfEntropyState *gdf_state,
     Av2hCdefEntropyState *cdef_state,
+    Av2hCcsoEntropyState *ccso_state,
     Av2hFirstLeafMode *mode);
 Av2hStatus av2h_chroma_mode_read(
     Av2hRangeDecoder *decoder,

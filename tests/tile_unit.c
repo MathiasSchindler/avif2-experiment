@@ -146,12 +146,16 @@ static void test_bounded_orchestrator(void) {
     uint8_t coefficient_above[AV2H_FRAME_PLANE_COUNT * 16U];
     uint8_t coefficient_left[AV2H_FRAME_PLANE_COUNT * 16U];
     Av2hTileLumaModeCell colocated_luma[16U];
+    uint8_t ccso_unit_controls[AV2H_FRAME_PLANE_COUNT][1U];
     Av2hTileContextStorage storage = {
         luma_partition_above, luma_partition_left,
         chroma_partition_above, chroma_partition_left,
         luma_mode_above, luma_mode_left,
         coefficient_above, coefficient_left, colocated_luma,
-        16U, 16U, 16U, 0, 0U, 0, 0U
+        16U, 16U, 16U, 0, 0U, 0, 0U,
+        { ccso_unit_controls[0], ccso_unit_controls[1],
+          ccso_unit_controls[2] },
+        1U
     };
     Av2hSequenceState sequence = { 0 };
     Av2hFrameState frame = { 0 };
@@ -290,12 +294,16 @@ static void test_odd_luma_reconstruction(void) {
     uint8_t coefficient_above[AV2H_FRAME_PLANE_COUNT * 6U];
     uint8_t coefficient_left[AV2H_FRAME_PLANE_COUNT * 4U];
     Av2hTileLumaModeCell colocated_luma[24U];
+    uint8_t ccso_unit_controls[AV2H_FRAME_PLANE_COUNT][1U];
     Av2hTileContextStorage storage = {
         luma_partition_above, luma_partition_left,
         chroma_partition_above, chroma_partition_left,
         luma_mode_above, luma_mode_left,
         coefficient_above, coefficient_left, colocated_luma,
-        6U, 4U, 24U, 0, 0U, 0, 0U
+        6U, 4U, 24U, 0, 0U, 0, 0U,
+        { ccso_unit_controls[0], ccso_unit_controls[1],
+          ccso_unit_controls[2] },
+        1U
     };
     uint8_t luma_pixels[24U * 16U];
     uint8_t u_pixels[12U * 8U];
@@ -670,12 +678,16 @@ static void test_ordinary_luma_frontier(void) {
     uint8_t coefficient_above[AV2H_FRAME_PLANE_COUNT * 40U];
     uint8_t coefficient_left[AV2H_FRAME_PLANE_COUNT * 30U];
     Av2hTileLumaModeCell colocated_luma[40U * 30U];
+    uint8_t ccso_unit_controls[AV2H_FRAME_PLANE_COUNT][1U];
     Av2hTileContextStorage storage = {
         luma_partition_above, luma_partition_left,
         chroma_partition_above, chroma_partition_left,
         luma_mode_above, luma_mode_left,
         coefficient_above, coefficient_left, colocated_luma,
-        40U, 30U, 40U * 30U, 0, 0U, 0, 0U
+        40U, 30U, 40U * 30U, 0, 0U, 0, 0U,
+        { ccso_unit_controls[0], ccso_unit_controls[1],
+          ccso_unit_controls[2] },
+        1U
     };
     uint8_t luma_pixels[160U * 120U];
     uint8_t luma_reconstructed[40U * 30U];
@@ -1023,12 +1035,16 @@ static void test_orchestrator_failures(void) {
     uint8_t coefficient_above[AV2H_FRAME_PLANE_COUNT * 4U];
     uint8_t coefficient_left[AV2H_FRAME_PLANE_COUNT * 4U];
     Av2hTileLumaModeCell colocated_luma[4U];
+    uint8_t ccso_unit_controls[AV2H_FRAME_PLANE_COUNT][1U];
     Av2hTileContextStorage storage = {
         luma_partition_above, luma_partition_left,
         chroma_partition_above, chroma_partition_left,
         luma_mode_above, luma_mode_left,
         coefficient_above, coefficient_left, colocated_luma,
-        4U, 4U, 4U, 0, 0U, 0, 0U
+        4U, 4U, 4U, 0, 0U, 0, 0U,
+        { ccso_unit_controls[0], ccso_unit_controls[1],
+          ccso_unit_controls[2] },
+        1U
     };
     Av2hSequenceState sequence = { 0 };
     Av2hFrameState frame = { 0 };

@@ -56,14 +56,30 @@ not depend on Milestone 7 traversal work:
   | `schwaebisch-353x234-qp112` | 6 | 13 | 5 | 16 |
   | `silene-479x383-qp176` | 1 | 3 | 0 (implicit) | 3 |
 
-  The five multi-strength streams stop fail-closed before consuming the next
-  unaudited CCSO controls. `silene-479x383-qp176` still rejects at
-  screen-content handling.
+  CCSO control entropy now follows CDEF in pinned AVM order, including the
+  intraBC/screen-content path. It uses caller-backed per-plane maps, the four
+  neighbor contexts, read-once sentinels, and the Sequence Header-selected
+  64/128/256-pixel unit size. These artifact streams use 256x256 units:
+
+  | Stream | Enabled | Controls Y/U/V | Before | After |
+  | --- | --- | --- | ---: | ---: |
+  | `emerald-480x240-qp128` | Y/U/V | 1/1/1 | 4 | 9 |
+  | `flycatcher-397x265-qp048` | U/V | -/0/0 | 11 | 12 |
+  | `laarim-256x171-qp096` | U | -/1/- | 11 | 13 |
+  | `pastell-320x213-qp064` | U/V | -/1/1 | 21 | 24 |
+  | `schwaebisch-353x234-qp112` | Y/U/V | 1/1/0 | 16 | 20 |
+  | `silene-479x383-qp176` | Y/U/V | 1/1/1 | 3 | 8 |
+
+  The first five then fail closed at their next mode/coefficient profile
+  frontier. Silene fails at screen-content handling after CCSO. An all-units
+  guard prevents transition to chroma while any enabled CCSO unit remains
+  untransmitted.
 - A checked private workspace query derives coded Y/U/V dimensions, two
-  complete stage-plane sets, per-4x4 deblock-cell counts, per-64x64 CCSO
-  control counts, total bytes, and required alignment. The matching initializer
-  binds aligned caller-owned memory and returns writable map storage without
-  exposing a public decode API.
+  complete stage-plane sets, per-4x4 deblock-cell counts, CCSO control counts
+  from the parsed 64/128/256-pixel unit geometry (with a 64-pixel legacy
+  default for synthetic states), total bytes, and required alignment. The matching
+  initializer binds aligned caller-owned memory and returns writable map
+  storage without exposing a public decode API.
 - A synthetic full-pipeline vector compares the orchestrator with explicit
   deblock, CDEF, CCSO, and GDF calls using independent stage planes.
 - Focused vectors now cover skipped non-block transform edges, all-lossless
@@ -139,7 +155,8 @@ The following work still depends on complete Milestones 7 and 8 syntax,
 reconstruction, and traversal:
 
 - extend tile traversal beyond its current first 64x64 root so every GDF
-  mode-2 block flag is decoded at its row-major superblock entropy position;
+  mode-2 block flag and every enabled CCSO unit control is decoded at its
+  row-major entropy position;
 - connect the decoded per-64x64 CDEF strength-index map to frame filtering;
   the current filter orchestrator still rejects multiple strengths;
 - populate deblock cells and CCSO control maps from every committed luma and

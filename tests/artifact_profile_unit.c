@@ -175,6 +175,7 @@ static void check_first_luma(const ArtifactExpectation *expected,
     Av2hTileLumaModeCell colocated_luma[MAX_MI_COLUMNS * MAX_MI_ROWS];
     uint8_t gdf_block_flags[MAX_GDF_BLOCKS];
     uint8_t cdef_unit_strengths[MAX_CDEF_UNITS];
+    uint8_t ccso_unit_controls[AV2H_FRAME_PLANE_COUNT][MAX_CDEF_UNITS];
     Av2hTileContextStorage storage = {
         luma_partition_above, luma_partition_left,
         chroma_partition_above, chroma_partition_left,
@@ -182,7 +183,10 @@ static void check_first_luma(const ArtifactExpectation *expected,
         coefficient_above, coefficient_left, colocated_luma,
         MAX_MI_COLUMNS, MAX_MI_ROWS, MAX_MI_COLUMNS * MAX_MI_ROWS,
         gdf_block_flags, MAX_GDF_BLOCKS,
-        cdef_unit_strengths, MAX_CDEF_UNITS
+        cdef_unit_strengths, MAX_CDEF_UNITS,
+        { ccso_unit_controls[0], ccso_unit_controls[1],
+          ccso_unit_controls[2] },
+        MAX_CDEF_UNITS
     };
     Av2hTileDecoder decoder;
     Av2hTileLumaLeaf leaf;
@@ -210,9 +214,13 @@ static void check_first_luma(const ArtifactExpectation *expected,
     if (expected->gdf_mode == 2U) {
         uint8_t expected_cdef_count;
         uint8_t expected_cdef_index;
+        uint8_t expected_ccso_mask;
+        uint8_t expected_ccso_controls[AV2H_FRAME_PLANE_COUNT] = { 0U };
         uint8_t expected_flag =
             expected->base_q_index == 48U ||
             expected->base_q_index == 64U ? 0U : 1U;
+        size_t expected_cdef_tell;
+        size_t expected_ccso_tell;
         CHECK(leaf.mode.gdf_flags_read == 1U);
         CHECK(leaf.mode.before_gdf_bits + 1U ==
               leaf.mode.after_gdf_bits);
@@ -222,26 +230,55 @@ static void check_first_luma(const ArtifactExpectation *expected,
             case 48U:
                 expected_cdef_count = 8U;
                 expected_cdef_index = 6U;
+                expected_cdef_tell = 11U;
+                expected_ccso_mask = 6U;
+                expected_ccso_tell = 12U;
                 break;
             case 64U:
                 expected_cdef_count = 8U;
                 expected_cdef_index = 3U;
+                expected_cdef_tell = 21U;
+                expected_ccso_mask = 6U;
+                expected_ccso_controls[1] = 1U;
+                expected_ccso_controls[2] = 1U;
+                expected_ccso_tell = 24U;
                 break;
             case 96U:
                 expected_cdef_count = 3U;
                 expected_cdef_index = 0U;
+                expected_cdef_tell = 11U;
+                expected_ccso_mask = 2U;
+                expected_ccso_controls[1] = 1U;
+                expected_ccso_tell = 13U;
                 break;
             case 112U:
                 expected_cdef_count = 6U;
                 expected_cdef_index = 5U;
+                expected_cdef_tell = 16U;
+                expected_ccso_mask = 7U;
+                expected_ccso_controls[0] = 1U;
+                expected_ccso_controls[1] = 1U;
+                expected_ccso_tell = 20U;
                 break;
             case 128U:
                 expected_cdef_count = 3U;
                 expected_cdef_index = 1U;
+                expected_cdef_tell = 4U;
+                expected_ccso_mask = 7U;
+                expected_ccso_controls[0] = 1U;
+                expected_ccso_controls[1] = 1U;
+                expected_ccso_controls[2] = 1U;
+                expected_ccso_tell = 9U;
                 break;
             default:
                 expected_cdef_count = 1U;
                 expected_cdef_index = 0U;
+                expected_cdef_tell = 3U;
+                expected_ccso_mask = 7U;
+                expected_ccso_controls[0] = 1U;
+                expected_ccso_controls[1] = 1U;
+                expected_ccso_controls[2] = 1U;
+                expected_ccso_tell = 8U;
                 break;
         }
         CHECK(frame->cdef_strength_count == expected_cdef_count);
@@ -249,9 +286,27 @@ static void check_first_luma(const ArtifactExpectation *expected,
         CHECK(leaf.mode.cdef_strength_index == expected_cdef_index);
         CHECK(leaf.mode.cdef_strengths_read ==
               (expected_cdef_count > 1U ? 1U : 0U));
-        CHECK(leaf.mode.after_cdef_bits == expected->first_tell);
+        CHECK(leaf.mode.after_cdef_bits == expected_cdef_tell);
         if (expected_cdef_count > 1U) {
             CHECK(cdef_unit_strengths[0] == expected_cdef_index);
+        }
+        CHECK(leaf.mode.before_ccso_bits == leaf.mode.after_cdef_bits);
+        CHECK(leaf.mode.after_ccso_bits == expected_ccso_tell);
+        CHECK(leaf.mode.ccso_present_mask == expected_ccso_mask);
+        CHECK(leaf.mode.ccso_controls_read ==
+              (uint8_t)((expected_ccso_mask & 1U) +
+                        ((expected_ccso_mask >> 1U) & 1U) +
+                        ((expected_ccso_mask >> 2U) & 1U)));
+        CHECK(decoder.ccso_entropy.unit_size == 256U);
+        for (size_t plane = 0U;
+             plane < AV2H_FRAME_PLANE_COUNT;
+             ++plane) {
+            CHECK(leaf.mode.ccso_block_control[plane] ==
+                  expected_ccso_controls[plane]);
+            if ((expected_ccso_mask & (uint8_t)(1U << plane)) != 0U) {
+                CHECK(ccso_unit_controls[plane][0] ==
+                      expected_ccso_controls[plane]);
+            }
         }
     }
     if (expected->decoded != 0) {
@@ -311,6 +366,7 @@ static void check_artifact(const ArtifactExpectation *expected) {
     CHECK(frame.gdf_mode == expected->gdf_mode);
     CHECK(frame.gdf_qp_index == expected->gdf_qp_index);
     CHECK(frame.gdf_scale_index == expected->gdf_scale_index);
+    CHECK(frame.ccso_unit_size == 256U);
     if (sequence.enable_gdf) {
         uint16_t block_size =
             sequence.gdf_unit_matches_superblock_size ?
@@ -406,16 +462,16 @@ static void test_artifact_profiles(void) {
           36U, 0U, 0U, 0U, AV2H_BLOCK_32X32, 27U,
           AV2H_OK, &emerald_q208_decoded },
         { "emerald-480x240-qp128.obu", 480U, 240U, 128U, 1U, 1U, 1U, 1U,
-          344U, 2U, 1U, 2U, AV2H_BLOCK_64X64, 4U,
+          344U, 2U, 1U, 2U, AV2H_BLOCK_64X64, 9U,
           AV2H_UNSUPPORTED, 0 },
         { "flycatcher-223x149-qp176.obu", 223U, 149U, 176U, 0U,
           1U, 1U, 1U, 125U, 1U, 0U, 3U, AV2H_BLOCK_32X64, 11U,
           AV2H_UNSUPPORTED, 0 },
         { "flycatcher-397x265-qp048.obu", 397U, 265U, 48U, 1U,
-          1U, 1U, 1U, 256U, 2U, 3U, 3U, AV2H_BLOCK_32X32, 11U,
+          1U, 1U, 1U, 256U, 2U, 3U, 3U, AV2H_BLOCK_32X32, 12U,
           AV2H_UNSUPPORTED, 0 },
         { "laarim-256x171-qp096.obu", 256U, 171U, 96U, 1U, 1U, 1U, 1U,
-          120U, 2U, 1U, 3U, AV2H_BLOCK_32X32, 11U,
+          120U, 2U, 1U, 3U, AV2H_BLOCK_32X32, 13U,
           AV2H_UNSUPPORTED, 0 },
         { "laarim-448x299-qp192.obu", 448U, 299U, 192U, 0U, 1U, 1U, 1U,
           98U, 1U, 2U, 2U, AV2H_BLOCK_64X64, 5U,
@@ -427,13 +483,13 @@ static void test_artifact_profiles(void) {
           131U, 1U, 3U, 3U, AV2H_BLOCK_32X32, 27U,
           AV2H_OK, &louis_q224_decoded },
         { "pastell-320x213-qp064.obu", 320U, 213U, 64U, 1U, 1U, 1U, 1U,
-          252U, 2U, 2U, 1U, AV2H_BLOCK_8X8, 21U,
+          252U, 2U, 2U, 1U, AV2H_BLOCK_8X8, 24U,
           AV2H_UNSUPPORTED, 0 },
         { "pastell-512x341-qp160.obu", 512U, 341U, 160U, 1U, 1U, 1U, 1U,
           332U, 1U, 2U, 3U, AV2H_BLOCK_16X32, 65U,
           AV2H_OK, &pastell_q160_decoded },
         { "schwaebisch-353x234-qp112.obu", 353U, 234U, 112U, 1U,
-          1U, 1U, 1U, 200U, 2U, 1U, 3U, AV2H_BLOCK_32X8, 16U,
+          1U, 1U, 1U, 200U, 2U, 1U, 3U, AV2H_BLOCK_32X8, 20U,
           AV2H_UNSUPPORTED, 0 },
         { "schwaebisch-417x277-qp208.obu", 417U, 277U, 208U, 1U,
           1U, 1U, 1U, 111U, 1U, 3U, 1U, AV2H_BLOCK_64X16, 9U,
@@ -442,7 +498,7 @@ static void test_artifact_profiles(void) {
           131U, 0U, 0U, 0U, AV2H_BLOCK_64X64, 2U,
           AV2H_UNSUPPORTED, 0 },
         { "silene-479x383-qp176.obu", 479U, 383U, 176U, 1U, 1U, 1U, 1U,
-          175U, 2U, 1U, 3U, AV2H_BLOCK_64X64, 3U,
+          175U, 2U, 1U, 3U, AV2H_BLOCK_64X64, 8U,
           AV2H_UNSUPPORTED, 0 }
     };
     size_t index;

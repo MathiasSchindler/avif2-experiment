@@ -363,13 +363,14 @@ Milestone 7 gap. Every Frame Header now parses to the exact pinned-AVM bit
 endpoint, including multi-block GDF mode and picture parameters. Six streams
 select GDF mode 2; they now initialize the tile decoder and decode their first
 block flag at the exact pinned-AVM endpoint. The first five now also decode and
-store their first multi-strength CDEF index exactly, reaching tells 4, 11, 11,
-21, and 16 respectively before the unaudited CCSO continuation.
-`silene-479x383-qp176` has one implicit CDEF strength and still rejects at
-screen-content handling at tell 3. Of the other 15, four complete their exact
-first coefficient block through Milestone 8 and eleven remain fail-closed at
-an earlier first-luma syntax frontier. The ordinary 4x4 intraBC leaf is
-implemented, but none of the artifact streams reaches it.
+store their first multi-strength CDEF index exactly. All six then decode their
+first enabled Y/U/V CCSO controls on the normative 256x256 unit grid and reach
+exact AVM tells 9, 12, 13, 24, 20, and 8. The last endpoint belongs to
+`silene-479x383-qp176`, which now rejects at screen-content handling only
+after CCSO. Of the other 15, four complete their exact first coefficient block
+through Milestone 8 and eleven remain fail-closed at an earlier first-luma
+syntax frontier. The ordinary 4x4 intraBC leaf is implemented, but none of the
+artifact streams reaches it.
 
 Complete the ordinary fixture's remaining partition, mode, transform,
 coefficient, prediction, reconstruction, and chroma paths. Admit only locked
@@ -397,8 +398,8 @@ First-block coefficient endpoints now match AVM for
 `louis-463x342-qp224` (tell 27, DC +6), and
 `pastell-512x341-qp160` (tell 65, DC -8). The artifact test compares the full
 quantized and dequantized arrays, not only endpoints. Six GDF-mode-2 streams
-now consume one exact Milestone 9-owned GDF flag before their next unsupported
-filter/profile state; eleven other streams still stop at their first-luma
+now consume exact first-unit GDF, CDEF, and CCSO syntax before their next
+unsupported profile path; eleven other streams still stop at their first-luma
 Milestone 8 frontier.
 
 Complete the high-detail fixture and the remaining reached high-energy,
@@ -436,8 +437,12 @@ chroma while expected flags remain unread. A separate caller-backed CDEF
 entropy state now implements all 2-through-8-strength CDFs, the index-zero
 split, nonzero remainder symbols, skip gating, and 64x64 unit storage. The five
 multi-strength mode-2 artifacts match their first AVM CDEF index and endpoint;
-continuation into CCSO remains deliberately fail-closed until that changed
-range state is pinned.
+the following caller-backed CCSO entropy state uses the pinned four-context
+CDFs and the Sequence Header's 64/128/256-pixel unit geometry. All six streams
+match their first enabled plane controls and exact post-CCSO endpoint. A
+read-once sentinel protects each plane/unit entry, and an all-units guard
+prevents chroma transition while controls remain unread. The filter workspace
+now derives the same parsed unit size instead of assuming 64x64 controls.
 
 Populate complete deblock and CCSO metadata from reconstructed leaves, execute
 deblock, CDEF, CCSO, and GDF in normative order over coded planes, crop to

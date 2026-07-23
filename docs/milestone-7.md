@@ -154,10 +154,11 @@ Milestone 7 path.
   GDF mode, picture QP index, and scale index are retained for all streams.
 - Six streams select GDF mode 2. They now initialize the tile decoder and
   consume their first per-block on/off symbol at the exact pinned-AVM tell.
-  Five then consume and store their exact first multi-strength CDEF index,
-  reaching tells 4, 11, 11, 21, and 16 before the unaudited CCSO continuation.
-  The sixth, `silene-479x383-qp176`, has one implicit CDEF strength and rejects
-  at screen-content handling at tell 3.
+  Five then consume and store their exact first multi-strength CDEF index; the
+  sixth has one implicit CDEF strength. All six subsequently consume their
+  first enabled CCSO controls on the 256x256 unit grid. Emerald, flycatcher,
+  laarim, pastell, schwaebisch, and silene reach exact tells 9, 12, 13, 24,
+  20, and 8. Silene rejects at screen-content handling only after CCSO.
 - The other 15 streams parse their frame and single tile. Four now complete
   their first luma coefficient block through exact pinned-AVM endpoints:
   `cuckoo-157x105-qp160` at tell 35, `emerald-192x96-qp208` at tell 27,
@@ -175,11 +176,11 @@ initialization and dequantization rather than permissive parsing.
 
 `tests/artifact_profile_unit.c` locks the per-stream dimensions, base Q,
 Sequence Header filter flags, exact Frame Header endpoint, GDF parameters,
-the first mode-2 GDF flag, the first CDEF strength index and tell endpoint,
-and the first block/tell for all streams. For the four completed Milestone 8
-first blocks it additionally locks mode, prefix, transform, level,
-coefficient, and complete quantized/dequantized arrays. It is part of
-`make test-c`.
+the first mode-2 GDF flag, the first CDEF strength index, the first enabled
+Y/U/V CCSO controls and their caller-backed map values, and the first
+block/tell for all streams. For the four completed Milestone 8 first blocks it
+additionally locks mode, prefix, transform, level, coefficient, and complete
+quantized/dequantized arrays. It is part of `make test-c`.
 
 ## Scope
 
