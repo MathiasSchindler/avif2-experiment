@@ -1663,8 +1663,10 @@ static void test_arguments(void) {
     Av2hPartitionNode leaf = { 0U, 0U, AV2H_BLOCK_8X8 };
     Av2hFirstLeafMode mode;
     Av2hGdfEntropyState gdf;
+    Av2hCdefEntropyState cdef;
     uint8_t bytes[8U] = { 0 };
     uint8_t gdf_flags[4U] = { 1U, 1U, 1U, 1U };
+    uint8_t cdef_strengths[4U] = { 0U, 0U, 0U, 0U };
     Av2hSpan span = { bytes, sizeof(bytes) };
     size_t tell;
     CHECK(sizeof(Av2hLeafCdfs) == 1010U);
@@ -1697,6 +1699,28 @@ static void test_arguments(void) {
     CHECK(gdf.cdf[0] == 18175U);
     CHECK(gdf.decoded_count == 0U);
     CHECK(gdf_flags[0] == 0U);
+    frame.cdef_strength_count = 3U;
+    CHECK(av2h_cdef_entropy_state_init(
+              0, &sequence, &frame, cdef_strengths, 4U) ==
+          AV2H_INVALID_ARGUMENT);
+    CHECK(av2h_cdef_entropy_state_init(
+              &cdef, &sequence, &frame, cdef_strengths, 4U) ==
+          AV2H_INVALID_DATA);
+    sequence.enable_cdef = 1U;
+    CHECK(av2h_cdef_entropy_state_init(
+              &cdef, &sequence, &frame, 0, 0U) == AV2H_OUT_OF_MEMORY);
+    CHECK(av2h_cdef_entropy_state_init(
+              &cdef, &sequence, &frame, cdef_strengths, 3U) ==
+          AV2H_OUT_OF_MEMORY);
+    CHECK(av2h_cdef_entropy_state_init(
+              &cdef, &sequence, &frame, cdef_strengths, 4U) == AV2H_OK);
+    CHECK(cdef.unit_columns == 2U);
+    CHECK(cdef.unit_rows == 2U);
+    CHECK(cdef.unit_count == 4U);
+    CHECK(cdef.index0_cdf[0][0] == 3734U);
+    CHECK(cdef.remainder_cdf[0][0] == 15060U);
+    CHECK(cdef_strengths[0] == AV2H_CDEF_UNTRANSMITTED);
+    frame.cdef_strength_count = 0U;
     frame.gdf_mode = 0U;
     frame.base_q_index = 128U;
     frame.disable_cdf_update = 1U;
@@ -1756,7 +1780,7 @@ static void test_gdf_after_intrabc(void) {
         CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
         status = av2h_luma_mode_read_with_state_and_gdf(
             &decoder, &cdfs, &sequence, &frame, &leaf, &contexts,
-            &gdf, &mode);
+            &gdf, 0, &mode);
         if (mode.use_intrabc != 0U) {
             CHECK(status == AV2H_UNSUPPORTED);
             CHECK(mode.gdf_flags_read == 1U);

@@ -138,6 +138,11 @@ Av2hStatus av2h_tile_decoder_init(
         &decoder->gdf_entropy, sequence, frame, storage->gdf_block_flags,
         storage->gdf_block_flag_capacity);
     if (status != AV2H_OK) return tile_decoder_fail(decoder, status);
+    status = av2h_cdef_entropy_state_init(
+        &decoder->cdef_entropy, sequence, frame,
+        storage->cdef_unit_strengths,
+        storage->cdef_unit_strength_capacity);
+    if (status != AV2H_OK) return tile_decoder_fail(decoder, status);
     status = av2h_first_coeff_cdfs_init_for_q(
         &decoder->coeff_cdfs, frame->base_q_index);
     if (status != AV2H_OK) return tile_decoder_fail(decoder, status);
@@ -216,7 +221,7 @@ Av2hStatus av2h_tile_decoder_next_luma(
     status = av2h_luma_mode_read_with_state_and_gdf(
         &decoder->range, &decoder->leaf_cdfs, decoder->sequence,
         decoder->frame, &leaf->node, &decoder->luma_mode_contexts,
-        &decoder->gdf_entropy, &leaf->mode);
+        &decoder->gdf_entropy, &decoder->cdef_entropy, &leaf->mode);
     if (status != AV2H_OK) return tile_decoder_fail(decoder, status);
     status = av2h_luma_mode_context_state_update(
         &decoder->luma_mode_contexts, &leaf->node, &leaf->mode);

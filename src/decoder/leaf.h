@@ -22,6 +22,10 @@
 #define AV2H_INTRABC_GREATER_CONTEXT_COUNT 2U
 #define AV2H_INTRABC_INDEX_CONTEXT_COUNT 4U
 #define AV2H_SKIP_TRANSFORM_CONTEXT_COUNT 6U
+#define AV2H_CDEF_INDEX0_CONTEXT_COUNT 4U
+#define AV2H_CDEF_REMAINDER_CDF_COUNT 6U
+#define AV2H_CDEF_MAX_REMAINDER_SYMBOLS 7U
+#define AV2H_CDEF_UNTRANSMITTED 255U
 
 typedef struct {
     uint16_t intrabc[AV2H_INTRABC_CONTEXT_COUNT][AV2H_BINARY_CDF_SIZE];
@@ -99,6 +103,10 @@ typedef struct {
     size_t before_gdf_bits;
     size_t after_gdf_bits;
     uint16_t gdf_flags_read;
+    size_t before_cdef_bits;
+    size_t after_cdef_bits;
+    uint8_t cdef_strengths_read;
+    uint8_t cdef_strength_index;
 } Av2hFirstLeafMode;
 
 typedef struct {
@@ -138,6 +146,20 @@ typedef struct {
     uint16_t superblock_mi;
     uint8_t mode;
 } Av2hGdfEntropyState;
+
+typedef struct {
+    uint16_t index0_cdf[AV2H_CDEF_INDEX0_CONTEXT_COUNT]
+                       [AV2H_BINARY_CDF_SIZE];
+    uint16_t remainder_cdf[AV2H_CDEF_REMAINDER_CDF_COUNT]
+                           [AV2H_CDEF_MAX_REMAINDER_SYMBOLS + 4U];
+    uint8_t *unit_strengths;
+    size_t unit_strength_capacity;
+    size_t unit_count;
+    uint16_t unit_columns;
+    uint16_t unit_rows;
+    uint16_t superblock_mi;
+    uint8_t strength_count;
+} Av2hCdefEntropyState;
 
 typedef struct {
     uint8_t is_cfl;
@@ -180,6 +202,12 @@ Av2hStatus av2h_gdf_entropy_state_init(
     const Av2hFrameState *frame,
     uint8_t *block_flags,
     size_t block_flag_capacity);
+Av2hStatus av2h_cdef_entropy_state_init(
+    Av2hCdefEntropyState *state,
+    const Av2hSequenceState *sequence,
+    const Av2hFrameState *frame,
+    uint8_t *unit_strengths,
+    size_t unit_strength_capacity);
 Av2hStatus av2h_luma_mode_neighbors_from_state(
     const Av2hLumaModeContextState *state,
     const Av2hPartitionNode *leaf,
@@ -204,6 +232,7 @@ Av2hStatus av2h_luma_mode_read_with_state_and_gdf(
     const Av2hPartitionNode *leaf,
     const Av2hLumaModeContextState *state,
     Av2hGdfEntropyState *gdf_state,
+    Av2hCdefEntropyState *cdef_state,
     Av2hFirstLeafMode *mode);
 Av2hStatus av2h_chroma_mode_read(
     Av2hRangeDecoder *decoder,

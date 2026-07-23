@@ -151,7 +151,7 @@ static void test_bounded_orchestrator(void) {
         chroma_partition_above, chroma_partition_left,
         luma_mode_above, luma_mode_left,
         coefficient_above, coefficient_left, colocated_luma,
-        16U, 16U, 16U, 0, 0U
+        16U, 16U, 16U, 0, 0U, 0, 0U
     };
     Av2hSequenceState sequence = { 0 };
     Av2hFrameState frame = { 0 };
@@ -295,7 +295,7 @@ static void test_odd_luma_reconstruction(void) {
         chroma_partition_above, chroma_partition_left,
         luma_mode_above, luma_mode_left,
         coefficient_above, coefficient_left, colocated_luma,
-        6U, 4U, 24U, 0, 0U
+        6U, 4U, 24U, 0, 0U, 0, 0U
     };
     uint8_t luma_pixels[24U * 16U];
     uint8_t u_pixels[12U * 8U];
@@ -675,7 +675,7 @@ static void test_ordinary_luma_frontier(void) {
         chroma_partition_above, chroma_partition_left,
         luma_mode_above, luma_mode_left,
         coefficient_above, coefficient_left, colocated_luma,
-        40U, 30U, 40U * 30U, 0, 0U
+        40U, 30U, 40U * 30U, 0, 0U, 0, 0U
     };
     uint8_t luma_pixels[160U * 120U];
     uint8_t luma_reconstructed[40U * 30U];
@@ -1028,7 +1028,7 @@ static void test_orchestrator_failures(void) {
         chroma_partition_above, chroma_partition_left,
         luma_mode_above, luma_mode_left,
         coefficient_above, coefficient_left, colocated_luma,
-        4U, 4U, 4U, 0, 0U
+        4U, 4U, 4U, 0, 0U, 0, 0U
     };
     Av2hSequenceState sequence = { 0 };
     Av2hFrameState frame = { 0 };

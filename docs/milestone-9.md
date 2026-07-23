@@ -42,8 +42,23 @@ not depend on Milestone 7 traversal work:
   | `schwaebisch-353x234-qp112` | 32x8 | 12 | 1 | 13 |
   | `silene-479x383-qp176` | 64x64 | 2 | 1 | 3 |
 
-  The first five then reject at unsupported multi-strength CDEF state;
-  `silene-479x383-qp176` rejects at screen-content handling.
+  CDEF multiple-strength entropy is now implemented immediately after GDF.
+  It uses the four pinned index-zero contexts, all six nonzero-remainder CDFs
+  for frame strength counts 3 through 8, caller-backed 64x64 unit storage,
+  first-eligible-block transmission, and the frame's skip-transform policy:
+
+  | Stream | Strengths | Before | Index | After |
+  | --- | ---: | ---: | ---: | ---: |
+  | `emerald-480x240-qp128` | 3 | 3 | 1 | 4 |
+  | `flycatcher-397x265-qp048` | 8 | 8 | 6 | 11 |
+  | `laarim-256x171-qp096` | 3 | 8 | 0 | 11 |
+  | `pastell-320x213-qp064` | 8 | 18 | 3 | 21 |
+  | `schwaebisch-353x234-qp112` | 6 | 13 | 5 | 16 |
+  | `silene-479x383-qp176` | 1 | 3 | 0 (implicit) | 3 |
+
+  The five multi-strength streams stop fail-closed before consuming the next
+  unaudited CCSO controls. `silene-479x383-qp176` still rejects at
+  screen-content handling.
 - A checked private workspace query derives coded Y/U/V dimensions, two
   complete stage-plane sets, per-4x4 deblock-cell counts, per-64x64 CCSO
   control counts, total bytes, and required alignment. The matching initializer
@@ -125,6 +140,8 @@ reconstruction, and traversal:
 
 - extend tile traversal beyond its current first 64x64 root so every GDF
   mode-2 block flag is decoded at its row-major superblock entropy position;
+- connect the decoded per-64x64 CDEF strength-index map to frame filtering;
+  the current filter orchestrator still rejects multiple strengths;
 - populate deblock cells and CCSO control maps from every committed luma and
   chroma leaf;
 - connect the prepared workspace binding to the post-Milestone-8 frame

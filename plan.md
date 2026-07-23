@@ -362,11 +362,13 @@ An audit of all 21 `images/artifacts/*.obu` streams found no artifact-relevant
 Milestone 7 gap. Every Frame Header now parses to the exact pinned-AVM bit
 endpoint, including multi-block GDF mode and picture parameters. Six streams
 select GDF mode 2; they now initialize the tile decoder and decode their first
-block flag at the exact pinned-AVM endpoint. The first five then reject at
-unsupported multi-strength CDEF state, while `silene-479x383-qp176` rejects at
-screen-content handling. Of the other 15, four complete their exact first
-coefficient block through Milestone 8 and eleven remain fail-closed at an
-earlier first-luma syntax frontier. The ordinary 4x4 intraBC leaf is
+block flag at the exact pinned-AVM endpoint. The first five now also decode and
+store their first multi-strength CDEF index exactly, reaching tells 4, 11, 11,
+21, and 16 respectively before the unaudited CCSO continuation.
+`silene-479x383-qp176` has one implicit CDEF strength and still rejects at
+screen-content handling at tell 3. Of the other 15, four complete their exact
+first coefficient block through Milestone 8 and eleven remain fail-closed at
+an earlier first-luma syntax frontier. The ordinary 4x4 intraBC leaf is
 implemented, but none of the artifact streams reaches it.
 
 Complete the ordinary fixture's remaining partition, mode, transform,
@@ -430,7 +432,12 @@ now uses the pinned adaptive binary CDF and caller-backed row-major flag
 storage. All six mode-2 artifacts decode their first GDF flag at the exact AVM
 tell. Complete frame-wide flag decoding remains blocked by the tile
 traversal's single 64x64 root; a decoded-count guard prevents transition to
-chroma while expected flags remain unread.
+chroma while expected flags remain unread. A separate caller-backed CDEF
+entropy state now implements all 2-through-8-strength CDFs, the index-zero
+split, nonzero remainder symbols, skip gating, and 64x64 unit storage. The five
+multi-strength mode-2 artifacts match their first AVM CDEF index and endpoint;
+continuation into CCSO remains deliberately fail-closed until that changed
+range state is pinned.
 
 Populate complete deblock and CCSO metadata from reconstructed leaves, execute
 deblock, CDEF, CCSO, and GDF in normative order over coded planes, crop to
