@@ -49,9 +49,15 @@ static Av2hStatus tile_store_luma_mode(Av2hTileDecoder *decoder,
     Av2hStatus status = av2h_block_dimensions_mi(
         node->block_size, &width, &height);
     if (status != AV2H_OK) return status;
-    if ((size_t)node->column + width > decoder->mi_columns ||
-        (size_t)node->row + height > decoder->mi_rows) {
+    if (node->column >= decoder->mi_columns ||
+        node->row >= decoder->mi_rows) {
         return AV2H_OVERFLOW;
+    }
+    if (width > decoder->mi_columns - node->column) {
+        width = decoder->mi_columns - node->column;
+    }
+    if (height > decoder->mi_rows - node->row) {
+        height = decoder->mi_rows - node->row;
     }
     for (row = 0U; row < height; ++row) {
         for (column = 0U; column < width; ++column) {
@@ -87,8 +93,8 @@ Av2hStatus av2h_tile_decoder_init(
         storage->colocated_luma == 0) {
         return AV2H_INVALID_ARGUMENT;
     }
-    decoder->mi_columns = 2U * (((size_t)frame->width + 7U) / 8U);
-    decoder->mi_rows = 2U * (((size_t)frame->height + 7U) / 8U);
+    decoder->mi_columns = ((size_t)frame->width + 3U) / 4U;
+    decoder->mi_rows = ((size_t)frame->height + 3U) / 4U;
     if (decoder->mi_columns > storage->above_count ||
         decoder->mi_rows > storage->left_count ||
         !av2h_size_multiply(decoder->mi_columns, decoder->mi_rows,
@@ -201,6 +207,28 @@ Av2hStatus av2h_tile_decoder_next_luma(
         &leaf->transform, &decoder->coefficient_contexts, block);
     if (status != AV2H_OK) return tile_decoder_fail(decoder, status);
     return AV2H_OK;
+}
+
+Av2hStatus av2h_tile_decoder_reconstruct_next_luma(
+    Av2hTileDecoder *decoder,
+    Av2hReconstructionPlane *plane,
+    Av2hReconstructionScratch *scratch,
+    Av2hTileLumaLeaf *leaf,
+    uint8_t *has_leaf) {
+    Av2hFirstCoeffBlock block;
+    Av2hStatus status;
+    if (decoder == 0 || plane == 0 || scratch == 0 || leaf == 0 ||
+        has_leaf == 0) {
+        return AV2H_INVALID_ARGUMENT;
+    }
+    status = av2h_tile_decoder_next_luma(
+        decoder, leaf, &block, has_leaf);
+    if (status != AV2H_OK || !*has_leaf) return status;
+    status = av2h_luma_reconstruct_to_plane(
+        &leaf->node, &leaf->mode, &leaf->prefix, &leaf->transform,
+        &block, plane, scratch);
+    if (status != AV2H_OK) return tile_decoder_fail(decoder, status);
+    return av2h_tile_decoder_commit_leaf(decoder, leaf->node);
 }
 
 Av2hStatus av2h_tile_decoder_next_chroma(

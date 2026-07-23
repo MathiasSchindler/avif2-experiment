@@ -17,9 +17,26 @@
 #define AV2H_CFL_CONTEXT_COUNT 3U
 #define AV2H_UV_MODE_CONTEXT_COUNT 2U
 #define AV2H_UV_MODE_SYMBOLS 8U
+#define AV2H_INTRABC_SHELL_CLASS_SYMBOLS 7U
+#define AV2H_INTRABC_LOW_CLASS_COUNT 2U
+#define AV2H_INTRABC_GREATER_CONTEXT_COUNT 2U
+#define AV2H_INTRABC_INDEX_CONTEXT_COUNT 4U
+#define AV2H_SKIP_TRANSFORM_CONTEXT_COUNT 6U
 
 typedef struct {
     uint16_t intrabc[AV2H_INTRABC_CONTEXT_COUNT][AV2H_BINARY_CDF_SIZE];
+    uint16_t intrabc_mode[AV2H_BINARY_CDF_SIZE];
+    uint16_t intrabc_precision[AV2H_BINARY_CDF_SIZE];
+    uint16_t intrabc_shell_set[AV2H_BINARY_CDF_SIZE];
+    uint16_t intrabc_shell_class[AV2H_INTRABC_SHELL_CLASS_SYMBOLS + 4U];
+    uint16_t intrabc_shell_offset[AV2H_INTRABC_LOW_CLASS_COUNT]
+                                  [AV2H_BINARY_CDF_SIZE];
+    uint16_t intrabc_col_greater[AV2H_INTRABC_GREATER_CONTEXT_COUNT]
+                                [AV2H_BINARY_CDF_SIZE];
+    uint16_t intrabc_col_index[AV2H_INTRABC_INDEX_CONTEXT_COUNT]
+                              [AV2H_BINARY_CDF_SIZE];
+    uint16_t skip_transform[AV2H_SKIP_TRANSFORM_CONTEXT_COUNT]
+                           [AV2H_BINARY_CDF_SIZE];
     uint16_t ccso[AV2H_FRAME_PLANE_COUNT][AV2H_CCSO_CONTEXT_COUNT]
                  [AV2H_BINARY_CDF_SIZE];
     uint16_t y_mode_set[AV2H_Y_MODE_SET_SYMBOLS + 4U];
@@ -56,11 +73,18 @@ typedef enum {
 
 typedef struct {
     uint8_t use_intrabc;
+    uint8_t intrabc_mode;
+    uint8_t skip_transform;
+    uint8_t intrabc_drl_index;
+    uint8_t mv_precision;
+    int16_t displacement_x;
+    int16_t displacement_y;
     uint8_t ccso_present_mask;
     uint8_t ccso_block_control[AV2H_FRAME_PLANE_COUNT];
     uint8_t mode_set;
     uint8_t mode_index;
     uint8_t fsc_mode;
+    uint8_t fsc_neighbor_context;
     uint8_t fsc_block_context;
     uint8_t joint_mode;
     int8_t angle_delta;
@@ -72,10 +96,17 @@ typedef struct {
     size_t after_mode_index_bits;
     size_t after_fsc_bits;
     size_t after_mrl_bits;
+    uint32_t before_mode_range;
+    uint32_t before_mode_value;
+    uint32_t after_mode_index_range;
+    uint32_t after_mode_index_value;
+    uint32_t after_fsc_range;
+    uint32_t after_fsc_value;
 } Av2hFirstLeafMode;
 
 typedef struct {
     uint8_t present[2];
+    uint8_t use_intrabc[2];
     uint8_t joint_mode[2];
     uint8_t fsc_mode[2];
     uint8_t mrl_index[2];
@@ -84,6 +115,7 @@ typedef struct {
 
 typedef struct {
     uint8_t present;
+    uint8_t use_intrabc;
     uint8_t joint_mode;
     uint8_t fsc_mode;
     uint8_t mrl_index;
@@ -95,6 +127,7 @@ typedef struct {
     Av2hLumaModeContext *left;
     size_t above_count;
     size_t left_count;
+    uint8_t has_intrabc;
 } Av2hLumaModeContextState;
 
 typedef struct {

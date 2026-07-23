@@ -1,7 +1,7 @@
 #ifndef AV2H_DECODER_TILE_H
 #define AV2H_DECODER_TILE_H
 
-#include "coeff_level.h"
+#include "reconstruct.h"
 
 typedef struct {
     size_t header_bits;
@@ -86,6 +86,12 @@ Av2hStatus av2h_tile_decoder_next_luma(
     Av2hTileDecoder *decoder,
     Av2hTileLumaLeaf *leaf,
     Av2hFirstCoeffBlock *block,
+    uint8_t *has_leaf);
+Av2hStatus av2h_tile_decoder_reconstruct_next_luma(
+    Av2hTileDecoder *decoder,
+    Av2hReconstructionPlane *plane,
+    Av2hReconstructionScratch *scratch,
+    Av2hTileLumaLeaf *leaf,
     uint8_t *has_leaf);
 Av2hStatus av2h_tile_decoder_next_chroma(
     Av2hTileDecoder *decoder,

@@ -114,9 +114,14 @@ static void test_bounded_orchestrator(void) {
     Av2hTileDecoder decoder;
     Av2hTileLumaLeaf luma_leaf;
     Av2hTileChromaLeaf chroma_leaf;
-    Av2hFirstCoeffBlock luma_block;
+    uint8_t luma_pixels[16U * 16U];
+    Av2hReconstructionPlane luma_plane = {
+        luma_pixels, 16U, 16U, 16U
+    };
+    Av2hReconstructionScratch reconstruction_scratch;
     Av2hFirstCoeffBlock u_block;
     Av2hFirstCoeffBlock v_block;
+    Av2hStatus status;
     uint8_t has_leaf;
     size_t luma_count = 0U;
     size_t chroma_count = 0U;
@@ -132,16 +137,23 @@ static void test_bounded_orchestrator(void) {
     frame.base_q_index = 128U;
     frame.tx_mode = 1U;
     frame.cdef_strength_count = 1U;
+    av2h_memory_fill(luma_pixels, 0U, sizeof(luma_pixels));
     CHECK(av2h_tile_decoder_init(
               &decoder, (Av2hSpan){ tiny, sizeof(tiny) }, &sequence, &frame,
               &storage) == AV2H_OK);
     for (;;) {
-        CHECK(av2h_tile_decoder_next_luma(
-                  &decoder, &luma_leaf, &luma_block, &has_leaf) == AV2H_OK);
+        status = av2h_tile_decoder_reconstruct_next_luma(
+            &decoder, &luma_plane, &reconstruction_scratch,
+            &luma_leaf, &has_leaf);
+        CHECK(status == AV2H_OK);
+        if (status != AV2H_OK) {
+            fprintf(stderr, "tiny luma failed after %zu leaves at (%u,%u): "
+                    "%u\n", luma_count, luma_leaf.node.row,
+                    luma_leaf.node.column, (unsigned int)status);
+            return;
+        }
         if (!has_leaf) break;
         ++luma_count;
-        CHECK(av2h_tile_decoder_commit_leaf(
-                  &decoder, luma_leaf.node) == AV2H_OK);
     }
     CHECK(luma_count == 11U);
     CHECK(av2h_range_tell(&decoder.range) == 415U);
@@ -162,6 +174,465 @@ static void test_bounded_orchestrator(void) {
     CHECK(colocated_luma[2U].mode == AV2H_INTRA_D203);
     CHECK(colocated_luma[8U].mode == AV2H_INTRA_D67);
     CHECK(colocated_luma[8U].angle_delta == -1);
+}
+
+static void test_odd_luma_reconstruction(void) {
+    static const unsigned char sequence_bytes[] = {
+        0x0cU, 0x04U, 0x82U, 0x0aU, 0x43U, 0x87U, 0x0eU,
+        0x1cU, 0xe6U, 0xf2U, 0x37U, 0x32U, 0x44U
+    };
+    static const unsigned char frame_bytes[] = {
+        0xeeU, 0xc0U, 0x0cU, 0xf7U, 0xc2U, 0x89U, 0xc2U, 0x93U,
+        0xcfU, 0xffU, 0xc1U, 0x00U, 0x00U, 0xffU, 0x2aU, 0x52U,
+        0x67U, 0xd6U, 0x80U, 0xf3U, 0x99U, 0x9cU, 0x59U, 0x42U,
+        0xfbU, 0xe6U, 0x50U, 0x15U, 0x7dU, 0x6eU, 0x92U, 0x8aU,
+        0x57U, 0x4aU, 0x49U, 0xd0U, 0xb7U, 0x83U, 0xaeU, 0x2fU,
+        0x1dU, 0x7fU, 0xcaU, 0x2dU, 0xd3U, 0x46U, 0xf6U, 0x12U,
+        0x54U, 0xa5U, 0x0aU, 0x1fU, 0xb1U, 0x8eU, 0xe1U, 0x60U,
+        0x41U, 0xa3U, 0xf1U, 0x29U, 0xb4U, 0x5bU, 0xf3U, 0xa4U,
+        0x7cU, 0x8eU, 0x9aU, 0x2eU, 0x0aU, 0x44U, 0x0fU, 0x56U,
+        0x21U, 0xbaU, 0x51U, 0xfdU, 0xd5U, 0x16U, 0x78U, 0x3cU,
+        0xecU, 0x4bU, 0xeaU, 0x0bU, 0xcfU, 0xe1U, 0xfcU, 0xeeU,
+        0xcfU, 0x27U, 0x92U, 0x47U, 0x60U, 0xa1U, 0xd5U, 0x70U,
+        0x6bU, 0xddU, 0xc5U, 0x0bU, 0x25U, 0x6cU, 0x72U, 0x4dU,
+        0xfbU, 0xc9U
+    };
+    uint8_t luma_partition_above[6U];
+    uint8_t luma_partition_left[4U];
+    uint8_t chroma_partition_above[6U];
+    uint8_t chroma_partition_left[4U];
+    Av2hLumaModeContext luma_mode_above[6U];
+    Av2hLumaModeContext luma_mode_left[4U];
+    uint8_t coefficient_above[AV2H_FRAME_PLANE_COUNT * 6U];
+    uint8_t coefficient_left[AV2H_FRAME_PLANE_COUNT * 4U];
+    Av2hTileLumaModeCell colocated_luma[24U];
+    Av2hTileContextStorage storage = {
+        luma_partition_above, luma_partition_left,
+        chroma_partition_above, chroma_partition_left,
+        luma_mode_above, luma_mode_left,
+        coefficient_above, coefficient_left, colocated_luma,
+        6U, 4U, 24U
+    };
+    uint8_t luma_pixels[24U * 16U];
+    Av2hReconstructionPlane luma_plane = {
+        luma_pixels, 24U, 24U, 16U
+    };
+    Av2hReconstructionScratch reconstruction_scratch;
+    Av2hObu obu;
+    Av2hObuLedger ledger = { &obu, 1U, 0U };
+    Av2hSequenceState sequence;
+    Av2hFrameState frame;
+    Av2hTileGroup group;
+    Av2hTileDecoder decoder;
+    Av2hTileLumaLeaf leaf;
+    Av2hTileChromaLeaf chroma_leaf;
+    Av2hFirstCoeffBlock block;
+    Av2hFirstCoeffBlock u_block;
+    Av2hFirstCoeffBlock v_block;
+    Av2hError error;
+    Av2hStatus status;
+    uint8_t has_leaf = 0U;
+    size_t leaf_count = 0U;
+    size_t chroma_count = 0U;
+    CHECK(av2h_obu_parse(
+              (Av2hSpan){ sequence_bytes, sizeof(sequence_bytes) },
+              &ledger, &error) == AV2H_OK);
+    CHECK(av2h_sequence_state_parse(
+              (Av2hSpan){ sequence_bytes, sizeof(sequence_bytes) }, &obu,
+              &sequence, &error) == AV2H_OK);
+    CHECK(av2h_frame_header_closed_key_parse(
+              (Av2hSpan){ frame_bytes, sizeof(frame_bytes) }, &sequence,
+              &frame) == AV2H_OK);
+    CHECK(av2h_tile_group_single_parse(
+              (Av2hSpan){ frame_bytes, sizeof(frame_bytes) },
+              frame.uncompressed_header_bits, &group) == AV2H_OK);
+    av2h_memory_fill(luma_pixels, 0U, sizeof(luma_pixels));
+        CHECK(av2h_tile_decoder_init(
+                  &decoder, group.entropy, &sequence, &frame, &storage) ==
+              AV2H_OK);
+    do {
+        if (leaf_count == 10U) {
+            fprintf(stderr,
+                    "odd ymode cdf set=%u,%u,%u idx=%u,%u,%u,%u,%u "
+                    "range=%u value=%u available=%lld tell=%zu\n",
+                    (unsigned int)decoder.leaf_cdfs.y_mode_set[0],
+                    (unsigned int)decoder.leaf_cdfs.y_mode_set[1],
+                    (unsigned int)decoder.leaf_cdfs.y_mode_set[2],
+                    (unsigned int)decoder.leaf_cdfs.y_mode_index[1][0],
+                    (unsigned int)decoder.leaf_cdfs.y_mode_index[1][1],
+                    (unsigned int)decoder.leaf_cdfs.y_mode_index[1][2],
+                    (unsigned int)decoder.leaf_cdfs.y_mode_index[1][3],
+                    (unsigned int)decoder.leaf_cdfs.y_mode_index[1][4],
+                    (unsigned int)decoder.range.range,
+                    (unsigned int)decoder.range.value,
+                    (long long)decoder.range.available_bits,
+                    av2h_range_tell(&decoder.range));
+        }
+        status = av2h_tile_decoder_next_luma(
+            &decoder, &leaf, &block, &has_leaf);
+        if (status != AV2H_OK) {
+            fprintf(stderr,
+                    "odd mode raw set/index/joint/fsc/context/block="
+                    "%u/%u/%u/%u/%u/%u "
+                    "before=%u/%u after-index=%u/%u after-fsc=%u/%u\n",
+                    (unsigned int)leaf.mode.mode_set,
+                    (unsigned int)leaf.mode.mode_index,
+                    (unsigned int)leaf.mode.joint_mode,
+                    (unsigned int)leaf.mode.fsc_mode,
+                    (unsigned int)leaf.mode.fsc_neighbor_context,
+                    (unsigned int)leaf.mode.fsc_block_context,
+                    (unsigned int)leaf.mode.before_mode_range,
+                    (unsigned int)leaf.mode.before_mode_value,
+                    (unsigned int)leaf.mode.after_mode_index_range,
+                    (unsigned int)leaf.mode.after_mode_index_value,
+                    (unsigned int)leaf.mode.after_fsc_range,
+                    (unsigned int)leaf.mode.after_fsc_value);
+            fprintf(stderr,
+                    "odd luma syntax failed after %zu leaves at (%u,%u), "
+                    "block %u, "
+                    "mode %u angle %d mrl %u/%u fsc %u intrabc %u "
+                    "mode/drl/prec/max %u/%u/%u/%u dv %d,%d, "
+                    "stages %zu/%zu/%zu/%zu/%zu, tx %u/%u/%u "
+                    "secondary %u/%u eob %u zero %u coeff %u/%u/%u, "
+                    "eob-point/extra %u/%u tell %zu: %u\n",
+                    leaf_count, leaf.node.row, leaf.node.column,
+                    (unsigned int)leaf.node.block_size,
+                    (unsigned int)leaf.mode.mode,
+                    (int)leaf.mode.angle_delta,
+                    (unsigned int)leaf.mode.mrl_index,
+                    (unsigned int)leaf.mode.multi_line_mrl,
+                    (unsigned int)leaf.mode.fsc_mode,
+                    (unsigned int)leaf.mode.use_intrabc,
+                    (unsigned int)leaf.mode.intrabc_mode,
+                    (unsigned int)leaf.mode.intrabc_drl_index,
+                    (unsigned int)leaf.mode.mv_precision,
+                    (unsigned int)frame.max_bvp_drl_bits,
+                    (int)leaf.mode.displacement_x,
+                    (int)leaf.mode.displacement_y,
+                    leaf.mode.before_mode_bits,
+                    leaf.mode.after_mode_set_bits,
+                    leaf.mode.after_mode_index_bits,
+                    leaf.mode.after_fsc_bits,
+                    leaf.mode.after_mrl_bits,
+                    (unsigned int)leaf.prefix.tx_size,
+                    (unsigned int)leaf.transform.primary_type,
+                    (unsigned int)leaf.transform.primary_symbol,
+                    (unsigned int)leaf.transform.secondary_signaled,
+                    (unsigned int)leaf.transform.secondary_symbol,
+                    (unsigned int)leaf.prefix.eob,
+                    (unsigned int)leaf.prefix.all_zero,
+                    (unsigned int)block.diagnostic_position,
+                    (unsigned int)block.diagnostic_context,
+                    (unsigned int)block.diagnostic_kind,
+                    (unsigned int)leaf.prefix.eob_point,
+                    (unsigned int)leaf.prefix.eob_extra,
+                    av2h_range_tell(&decoder.range), (unsigned int)status);
+            break;
+        }
+        if (has_leaf) {
+            size_t coefficient_index;
+            fprintf(stderr,
+                    "odd leaf %zu (%u,%u) block %u mode %u tx %u/%u/%u "
+                    "eob %u zero %u fsc %u/%u/%u stages %zu/%zu/%zu/%zu "
+                    "range %u value %u available %lld offset %zu tell %zu\n",
+                    leaf_count, leaf.node.row, leaf.node.column,
+                    (unsigned int)leaf.node.block_size,
+                    (unsigned int)leaf.mode.mode,
+                    (unsigned int)leaf.prefix.tx_size,
+                    (unsigned int)leaf.transform.primary_type,
+                    (unsigned int)leaf.transform.primary_symbol,
+                    (unsigned int)leaf.prefix.eob,
+                    (unsigned int)leaf.prefix.all_zero,
+                    (unsigned int)leaf.mode.fsc_mode,
+                    (unsigned int)leaf.mode.fsc_neighbor_context,
+                    (unsigned int)leaf.mode.fsc_block_context,
+                    leaf.mode.before_mode_bits,
+                    leaf.mode.after_mode_set_bits,
+                    leaf.mode.after_mode_index_bits,
+                    leaf.mode.after_fsc_bits,
+                    (unsigned int)decoder.range.range,
+                    (unsigned int)decoder.range.value,
+                    (long long)decoder.range.available_bits,
+                    decoder.range.bit_position,
+                    av2h_range_tell(&decoder.range));
+            if (leaf.node.row == 3U && leaf.node.column == 2U) {
+                fprintf(stderr,
+                        "odd levels range=%u value=%u tell=%zu\n",
+                        (unsigned int)block.after_levels_range,
+                        (unsigned int)block.after_levels_value,
+                        block.after_levels_bits);
+                for (coefficient_index = 0U;
+                     coefficient_index < block.coefficient_count;
+                     ++coefficient_index) {
+                    if (block.quantized[coefficient_index] != 0) {
+                        fprintf(stderr, "odd coeff pos=%zu value=%d\n",
+                                coefficient_index,
+                                (int)block.quantized[coefficient_index]);
+                    }
+                }
+            }
+            status = av2h_luma_reconstruct_to_plane(
+                &leaf.node, &leaf.mode, &leaf.prefix, &leaf.transform,
+                &block, &luma_plane, &reconstruction_scratch);
+            if (status != AV2H_OK) {
+                fprintf(stderr,
+                        "odd luma reconstruction failed after %zu leaves "
+                        "at (%u,%u): %u\n",
+                        leaf_count, leaf.node.row, leaf.node.column,
+                        (unsigned int)status);
+                break;
+            }
+            CHECK(av2h_tile_decoder_commit_leaf(
+                      &decoder, leaf.node) == AV2H_OK);
+            ++leaf_count;
+        }
+    } while (has_leaf);
+    CHECK(status == AV2H_OK);
+    CHECK(has_leaf == 0U);
+    CHECK(leaf_count == 12U);
+    CHECK(leaf.mode.use_intrabc == 0U);
+    CHECK(decoder.phase == AV2H_TILE_DECODE_CHROMA);
+    {
+        Av2hRangeDecoder range_probe = decoder.range;
+        Av2hPartitionCdfs cdf_probe = decoder.partition_cdfs;
+        uint32_t symbol;
+        symbol = av2h_range_read_adaptive(
+            &range_probe, cdf_probe.do_split[1][8], 2U);
+        fprintf(stderr,
+                "odd chroma replay split32 value=%u range=%u value=%u "
+                "available=%lld tell=%zu cdf=%u\n",
+                (unsigned int)symbol, (unsigned int)range_probe.range,
+                (unsigned int)range_probe.value,
+                (long long)range_probe.available_bits,
+                av2h_range_tell(&range_probe),
+                (unsigned int)cdf_probe.do_split[1][8][0]);
+        symbol = av2h_range_read_adaptive(
+            &range_probe, cdf_probe.rect_type[1][8], 2U);
+        fprintf(stderr,
+                "odd chroma replay rect32 value=%u range=%u value=%u "
+                "available=%lld tell=%zu cdf=%u\n",
+                (unsigned int)symbol, (unsigned int)range_probe.range,
+                (unsigned int)range_probe.value,
+                (long long)range_probe.available_bits,
+                av2h_range_tell(&range_probe),
+                (unsigned int)cdf_probe.rect_type[1][8][0]);
+        symbol = av2h_range_read_adaptive(
+            &range_probe, cdf_probe.do_ext_partition[1][8], 2U);
+        fprintf(stderr,
+                "odd chroma replay ext32 value=%u range=%u value=%u "
+                "available=%lld tell=%zu cdf=%u\n",
+                (unsigned int)symbol, (unsigned int)range_probe.range,
+                (unsigned int)range_probe.value,
+                (long long)range_probe.available_bits,
+                av2h_range_tell(&range_probe),
+                (unsigned int)cdf_probe.do_ext_partition[1][8][0]);
+        symbol = av2h_range_read_adaptive(
+            &range_probe, cdf_probe.do_split[1][4], 2U);
+        fprintf(stderr,
+                "odd chroma replay split16 value=%u range=%u value=%u "
+                "available=%lld tell=%zu cdf=%u\n",
+                (unsigned int)symbol, (unsigned int)range_probe.range,
+                (unsigned int)range_probe.value,
+                (long long)range_probe.available_bits,
+                av2h_range_tell(&range_probe),
+                (unsigned int)cdf_probe.do_split[1][4][0]);
+    }
+    {
+        Av2hTileDecoder probe = decoder;
+        Av2hFirstLeafPath path;
+        size_t decision_index;
+        CHECK(av2h_partition_traversal_next(
+                  &probe.chroma_traversal, &probe.range,
+                  &probe.partition_cdfs, &probe.partition_contexts,
+                  &path, &has_leaf) == AV2H_OK);
+        for (decision_index = 0U; decision_index < path.decision_count;
+             ++decision_index) {
+            fprintf(stderr,
+                    "odd chroma partition %zu block=%u part=%u forced=%u "
+                    "extctx=%zu tell=%zu\n",
+                    decision_index,
+                    (unsigned int)path.decisions[decision_index].node.block_size,
+                    (unsigned int)path.decisions[decision_index].partition,
+                    (unsigned int)path.decisions[decision_index].forced,
+                    path.decisions[decision_index].extension_context,
+                    path.decisions[decision_index].after_bits);
+        }
+    }
+    for (;;) {
+        status = av2h_tile_decoder_next_chroma(
+            &decoder, &chroma_leaf, &u_block, &v_block, &has_leaf);
+        if (status != AV2H_OK) {
+            fprintf(stderr,
+                    "odd chroma failed after %zu leaves at (%u,%u), "
+                    "block %u mode %u angle %d cfl/index %u/%u "
+                    "u %u/%u/%u/%u v %u/%u/%u/%u tell %zu: %u\n",
+                    chroma_count, chroma_leaf.node.row,
+                    chroma_leaf.node.column,
+                    (unsigned int)chroma_leaf.node.block_size,
+                    (unsigned int)chroma_leaf.mode.mode,
+                    (int)chroma_leaf.mode.angle_delta,
+                    (unsigned int)chroma_leaf.mode.is_cfl,
+                    (unsigned int)chroma_leaf.mode.mode_index,
+                    (unsigned int)chroma_leaf.prefix[0].tx_size,
+                    (unsigned int)chroma_leaf.transform[0].primary_type,
+                    (unsigned int)chroma_leaf.prefix[0].eob,
+                    (unsigned int)u_block.diagnostic_position,
+                    (unsigned int)chroma_leaf.prefix[1].tx_size,
+                    (unsigned int)chroma_leaf.transform[1].primary_type,
+                    (unsigned int)chroma_leaf.prefix[1].eob,
+                    (unsigned int)v_block.diagnostic_position,
+                    av2h_range_tell(&decoder.range), (unsigned int)status);
+            break;
+        }
+        if (!has_leaf) break;
+        fprintf(stderr,
+                "odd chroma leaf %zu (%u,%u) block %u mode %u "
+                "u %u/%u/%u v %u/%u/%u tell %zu\n",
+                chroma_count, chroma_leaf.node.row, chroma_leaf.node.column,
+                (unsigned int)chroma_leaf.node.block_size,
+                (unsigned int)chroma_leaf.mode.mode,
+                (unsigned int)chroma_leaf.prefix[0].tx_size,
+                (unsigned int)chroma_leaf.transform[0].primary_type,
+                (unsigned int)chroma_leaf.prefix[0].eob,
+                (unsigned int)chroma_leaf.prefix[1].tx_size,
+                (unsigned int)chroma_leaf.transform[1].primary_type,
+                (unsigned int)chroma_leaf.prefix[1].eob,
+                av2h_range_tell(&decoder.range));
+        CHECK(av2h_tile_decoder_commit_leaf(
+                  &decoder, chroma_leaf.node) == AV2H_OK);
+        ++chroma_count;
+    }
+    CHECK(status == AV2H_OK);
+    CHECK(has_leaf == 0U);
+    CHECK(chroma_count == 5U);
+    CHECK(av2h_range_tell(&decoder.range) == 696U);
+    CHECK(decoder.phase == AV2H_TILE_DECODE_DONE);
+}
+
+static void test_ordinary_luma_frontier(void) {
+    static const unsigned char entropy[] = {
+        0xcdU, 0x77U, 0xc5U, 0x58U, 0x5fU, 0x4dU, 0x54U, 0x7fU,
+        0xf3U, 0x9eU, 0xfcU, 0x9cU, 0x09U, 0x95U, 0xb7U, 0x37U,
+        0xbdU, 0x19U, 0x38U, 0x54U, 0x85U, 0x67U, 0x37U, 0x09U,
+        0xb1U, 0x96U, 0x89U, 0xb7U, 0x9aU, 0xb9U, 0xbaU, 0x98U,
+        0xaeU, 0xd3U, 0x6cU, 0x14U, 0x15U, 0x2bU, 0xffU, 0xf8U,
+        0xdcU, 0x8eU, 0xb8U, 0x66U, 0xd7U, 0x14U, 0x09U, 0x49U,
+        0x8dU, 0xafU, 0xd5U, 0x71U, 0x66U, 0x76U, 0x56U, 0x88U,
+        0x8dU, 0x35U, 0xb3U, 0x28U, 0x69U, 0xc9U, 0x23U, 0xf4U
+    };
+    uint8_t luma_partition_above[40U];
+    uint8_t luma_partition_left[30U];
+    uint8_t chroma_partition_above[40U];
+    uint8_t chroma_partition_left[30U];
+    Av2hLumaModeContext luma_mode_above[40U];
+    Av2hLumaModeContext luma_mode_left[30U];
+    uint8_t coefficient_above[AV2H_FRAME_PLANE_COUNT * 40U];
+    uint8_t coefficient_left[AV2H_FRAME_PLANE_COUNT * 30U];
+    Av2hTileLumaModeCell colocated_luma[40U * 30U];
+    Av2hTileContextStorage storage = {
+        luma_partition_above, luma_partition_left,
+        chroma_partition_above, chroma_partition_left,
+        luma_mode_above, luma_mode_left,
+        coefficient_above, coefficient_left, colocated_luma,
+        40U, 30U, 40U * 30U
+    };
+    uint8_t luma_pixels[160U * 120U];
+    Av2hReconstructionPlane luma_plane = {
+        luma_pixels, 160U, 160U, 120U
+    };
+    Av2hReconstructionScratch scratch;
+    Av2hSequenceState sequence = { 0 };
+    Av2hFrameState frame = { 0 };
+    Av2hTileDecoder decoder;
+    Av2hTileLumaLeaf leaf;
+    Av2hFirstCoeffBlock block;
+    Av2hStatus status;
+    Av2hStatus reconstruction_status = AV2H_OK;
+    uint8_t has_leaf = 0U;
+    size_t leaf_count = 0U;
+
+    sequence.enable_sdp = 1U;
+    sequence.enable_ext_partitions = 1U;
+    sequence.enable_idtx_intra = 1U;
+    sequence.enable_ist = 1U;
+    sequence.enable_mrls = 1U;
+    sequence.enable_cfl_intra = 1U;
+    frame.width = 160U;
+    frame.height = 120U;
+    frame.base_q_index = 128U;
+    frame.tx_mode = 1U;
+    frame.allow_intrabc = 1U;
+    frame.cdef_strength_count = 1U;
+    frame.ccso[0].enabled = 1U;
+    av2h_memory_fill(luma_pixels, 0U, sizeof(luma_pixels));
+    CHECK(av2h_tile_decoder_init(
+              &decoder, (Av2hSpan){ entropy, sizeof(entropy) }, &sequence,
+              &frame, &storage) == AV2H_OK);
+    for (;;) {
+        status = av2h_tile_decoder_next_luma(
+            &decoder, &leaf, &block, &has_leaf);
+        if (status != AV2H_OK || !has_leaf) break;
+        reconstruction_status = av2h_luma_reconstruct_to_plane(
+            &leaf.node, &leaf.mode, &leaf.prefix, &leaf.transform,
+            &block, &luma_plane, &scratch);
+        if (reconstruction_status != AV2H_OK) break;
+        CHECK(av2h_tile_decoder_commit_leaf(
+                  &decoder, leaf.node) == AV2H_OK);
+        ++leaf_count;
+    }
+    fprintf(stderr,
+            "ordinary luma frontier after %zu leaves at (%u,%u), block %u "
+            "mode %u angle/mrl/multi/fsc %d/%u/%u/%u "
+            "mode-stages %zu/%zu/%zu/%zu/%zu tx %u/%u/%u/%u eob %u "
+            "coeff %u/%u/%u nz %u tell %zu: "
+            "%u/%u stages %zu/%zu/%zu/%zu/%zu partition (%u,%u)/%u@%zu\n",
+            leaf_count, leaf.node.row, leaf.node.column,
+            (unsigned int)leaf.node.block_size,
+            (unsigned int)leaf.mode.mode,
+            (int)leaf.mode.angle_delta,
+            (unsigned int)leaf.mode.mrl_index,
+            (unsigned int)leaf.mode.multi_line_mrl,
+            (unsigned int)leaf.mode.fsc_mode,
+            leaf.mode.before_mode_bits,
+            leaf.mode.after_mode_set_bits,
+            leaf.mode.after_mode_index_bits,
+            leaf.mode.after_fsc_bits,
+            leaf.mode.after_mrl_bits,
+            (unsigned int)leaf.prefix.tx_size,
+            (unsigned int)leaf.transform.primary_type,
+            (unsigned int)leaf.transform.secondary_signaled,
+            (unsigned int)leaf.transform.secondary_symbol,
+            (unsigned int)leaf.prefix.eob,
+            (unsigned int)block.diagnostic_position,
+            (unsigned int)block.diagnostic_context,
+            (unsigned int)block.diagnostic_kind,
+            (unsigned int)block.nonzero_count,
+            av2h_range_tell(&decoder.range), (unsigned int)status,
+            (unsigned int)reconstruction_status,
+            leaf.prefix.after_eob_bits,
+            leaf.transform.before_primary_bits,
+            leaf.transform.after_primary_bits,
+            leaf.transform.after_secondary_bits,
+            block.before_levels_bits,
+            decoder.luma_traversal.diagnostic_node.row,
+            decoder.luma_traversal.diagnostic_node.column,
+            (unsigned int)decoder.luma_traversal.diagnostic_node.block_size,
+            decoder.luma_traversal.diagnostic_before_bits);
+    if (status == AV2H_OK && reconstruction_status == AV2H_UNSUPPORTED) {
+        size_t coefficient_index;
+        fprintf(stderr, "ordinary nonzero positions:");
+        for (coefficient_index = 0U;
+             coefficient_index < block.coefficient_count;
+             ++coefficient_index) {
+            if (block.dequantized[coefficient_index] != 0) {
+                fprintf(stderr, " %zu", coefficient_index);
+            }
+        }
+        fprintf(stderr, "\n");
+    }
+    CHECK(status == AV2H_UNSUPPORTED ||
+          reconstruction_status == AV2H_UNSUPPORTED);
+    CHECK(leaf_count >= 1U);
 }
 
 static void test_orchestrator_failures(void) {
@@ -224,6 +695,8 @@ int main(void) {
     test_fixture_offsets();
     test_failures();
     test_bounded_orchestrator();
+    test_odd_luma_reconstruction();
+    test_ordinary_luma_frontier();
     test_orchestrator_failures();
     if (failures != 0) {
         fprintf(stderr, "%d tile checks failed\n", failures);

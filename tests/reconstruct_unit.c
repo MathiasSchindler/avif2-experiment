@@ -195,8 +195,116 @@ static void test_arguments(void) {
           AV2H_UNSUPPORTED);
 }
 
+static void test_live_plane_reconstruction(void) {
+    static const unsigned char tiny[] = {
+        0xd7U, 0xc3U, 0x43U, 0x86U, 0xffU, 0x01U, 0xfcU, 0x2aU,
+        0x52U, 0xaaU, 0x8fU, 0x5dU, 0x63U, 0xc5U, 0x9cU, 0x36U,
+        0x73U, 0x4cU, 0xe8U, 0x9eU, 0xe7U, 0x78U, 0x71U, 0x35U,
+        0x9cU, 0x23U, 0x32U, 0xb7U, 0xaaU, 0x18U, 0x5cU, 0x83U,
+        0x17U, 0x25U, 0x0fU, 0xfdU, 0xb5U, 0x2aU, 0x0fU, 0xdbU,
+        0x55U, 0xb9U, 0xd5U, 0xe7U, 0xc8U, 0x3eU, 0xebU, 0xf5U
+    };
+    static const uint8_t expected_second[16] = {
+        138U, 150U, 161U, 170U, 151U, 167U, 181U, 189U,
+        167U, 184U, 196U, 203U, 173U, 189U, 201U, 208U
+    };
+    Av2hSpan span = { tiny, sizeof(tiny) };
+    Av2hSequenceState sequence = { 0 };
+    Av2hFrameState frame = { 0 };
+    Av2hRangeDecoder decoder;
+    Av2hPartitionCdfs partition_cdfs;
+    Av2hLeafCdfs leaf_cdfs;
+    Av2hFirstCoeffCdfs coeff_cdfs;
+    Av2hFirstTransformCdfs transform_cdfs;
+    Av2hFirstCoeffLevelCdfs level_cdfs;
+    Av2hPartitionContextState partition_state;
+    Av2hLumaModeContextState mode_state;
+    Av2hCoeffContextState coeff_state;
+    Av2hPartitionTraversal traversal;
+    uint8_t partition_above[16U];
+    uint8_t partition_left[16U];
+    uint8_t chroma_partition_above[16U];
+    uint8_t chroma_partition_left[16U];
+    Av2hLumaModeContext mode_above[16U];
+    Av2hLumaModeContext mode_left[16U];
+    uint8_t coeff_above[AV2H_FRAME_PLANE_COUNT * 16U];
+    uint8_t coeff_left[AV2H_FRAME_PLANE_COUNT * 16U];
+    uint8_t pixels[16U * 16U];
+    Av2hReconstructionPlane plane = { pixels, 16U, 16U, 16U };
+    Av2hReconstructionScratch scratch;
+    Av2hFirstLeafPath path;
+    Av2hFirstLeafMode mode;
+    Av2hFirstCoeffPrefix prefix;
+    Av2hFirstTransformType transform;
+    Av2hFirstCoeffBlock block;
+    uint8_t dc_sign_context;
+    uint8_t has_leaf;
+    size_t index;
+    av2h_memory_fill(pixels, 0U, sizeof(pixels));
+    sequence.enable_sdp = 1U;
+    sequence.enable_ext_partitions = 1U;
+    sequence.enable_idtx_intra = 1U;
+    sequence.enable_ist = 1U;
+    sequence.enable_mrls = 1U;
+    frame.width = 16U;
+    frame.height = 16U;
+    frame.base_q_index = 128U;
+    frame.tx_mode = 1U;
+    frame.cdef_strength_count = 1U;
+    CHECK(av2h_partition_cdfs_init(&partition_cdfs) == AV2H_OK);
+    CHECK(av2h_leaf_cdfs_init(&leaf_cdfs) == AV2H_OK);
+    CHECK(av2h_first_coeff_cdfs_init(&coeff_cdfs) == AV2H_OK);
+    CHECK(av2h_first_transform_cdfs_init(&transform_cdfs) == AV2H_OK);
+    CHECK(av2h_first_coeff_level_cdfs_init(&level_cdfs) == AV2H_OK);
+    CHECK(av2h_partition_context_state_init(
+              &partition_state, partition_above, partition_left,
+              chroma_partition_above, chroma_partition_left, 16U, 16U) ==
+          AV2H_OK);
+    CHECK(av2h_luma_mode_context_state_init(
+              &mode_state, mode_above, 16U, mode_left, 16U) == AV2H_OK);
+    CHECK(av2h_coeff_context_state_init(
+              &coeff_state, coeff_above, 16U, coeff_left, 16U) == AV2H_OK);
+    CHECK(av2h_partition_traversal_init(
+              &traversal, 4U, 4U,
+              (Av2hPartitionNode){ 0U, 0U, AV2H_BLOCK_64X64 }, 0U, 1U) ==
+          AV2H_OK);
+    CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
+    for (index = 0U; index < 2U; ++index) {
+        CHECK(av2h_partition_traversal_next(
+                  &traversal, &decoder, &partition_cdfs, &partition_state,
+                  &path, &has_leaf) == AV2H_OK);
+        CHECK(has_leaf == 1U);
+        CHECK(av2h_luma_mode_read_with_state(
+                  &decoder, &leaf_cdfs, &sequence, &frame, &path.leaf,
+                  &mode_state, &mode) == AV2H_OK);
+        CHECK(av2h_luma_mode_context_state_update(
+                  &mode_state, &path.leaf, &mode) == AV2H_OK);
+        CHECK(av2h_coeff_prefix_read_with_state(
+                  &decoder, &coeff_cdfs, &frame, &path.leaf, &mode,
+                  &coeff_state, &prefix, &dc_sign_context) == AV2H_OK);
+        CHECK(av2h_first_transform_type_read(
+                  &decoder, &transform_cdfs, &sequence, &frame, &mode,
+                  &prefix, &transform) == AV2H_OK);
+        CHECK(av2h_coeff_block_read_with_state(
+                  &decoder, &level_cdfs, &sequence, &frame, &path.leaf,
+                  &mode, &prefix, &transform, &coeff_state, &block) ==
+              AV2H_OK);
+        CHECK(av2h_luma_reconstruct_to_plane(
+                  &path.leaf, &mode, &prefix, &transform, &block,
+                  &plane, &scratch) == AV2H_OK);
+        CHECK(av2h_partition_traversal_commit_leaf(
+                  &traversal, &partition_state, path.leaf) == AV2H_OK);
+    }
+    for (index = 0U; index < 16U; ++index) {
+        CHECK(pixels[(index / 4U) * 16U + 8U + index % 4U] ==
+              expected_second[index]);
+    }
+    CHECK(av2h_range_tell(&decoder) == 74U);
+}
+
 int main(void) {
     test_fixture_reconstruction();
+    test_live_plane_reconstruction();
     test_arguments();
     if (failures != 0) {
         fprintf(stderr, "%d reconstruction checks failed\n", failures);

@@ -99,6 +99,7 @@ typedef struct {
     uint8_t forced;
     uint8_t axis_implied;
     uint8_t extension_implied;
+    size_t extension_context;
     size_t after_bits;
 } Av2hPartitionDecision;
 
@@ -124,6 +125,8 @@ typedef struct {
     uint8_t structure;
     uint8_t enable_ext_partitions;
     uint8_t has_pending_leaf;
+    Av2hPartitionNode diagnostic_node;
+    size_t diagnostic_before_bits;
 } Av2hPartitionTraversal;
 
 Av2hStatus av2h_block_dimensions_mi(Av2hBlockSize block_size,

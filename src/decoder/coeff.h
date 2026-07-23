@@ -7,25 +7,37 @@ typedef enum {
     AV2H_TX_4X4 = 0,
     AV2H_TX_8X8 = 1,
     AV2H_TX_32X32 = 3,
+    AV2H_TX_4X8 = 5,
     AV2H_TX_8X4 = 6,
+    AV2H_TX_8X16 = 7,
+    AV2H_TX_16X8 = 8,
+    AV2H_TX_8X32 = 15,
     AV2H_TX_INVALID = 255
 } Av2hFirstTxSize;
 
 typedef struct {
     uint16_t txb_skip_txs0[AV2H_BINARY_CDF_SIZE];
+    uint16_t txb_skip_inter_txs0[AV2H_BINARY_CDF_SIZE];
     uint16_t txb_skip_chroma_txs0_ctx6[AV2H_BINARY_CDF_SIZE];
     uint16_t txb_skip_chroma_txs0_ctx7[AV2H_BINARY_CDF_SIZE];
     uint16_t txb_skip_chroma_txs0_ctx8[AV2H_BINARY_CDF_SIZE];
+    uint16_t txb_skip_chroma_txs1_ctx7[AV2H_BINARY_CDF_SIZE];
+    uint16_t txb_skip_chroma_v_ctx1[AV2H_BINARY_CDF_SIZE];
     uint16_t txb_skip_chroma_v_ctx7[AV2H_BINARY_CDF_SIZE];
     uint16_t txb_skip_chroma_v_ctx8[AV2H_BINARY_CDF_SIZE];
     uint16_t txb_skip_chroma_v_ctx9[AV2H_BINARY_CDF_SIZE];
     uint16_t txb_skip_fsc_txs0_ctx9[AV2H_BINARY_CDF_SIZE];
+    uint16_t txb_skip_fsc_txs2_ctx9[AV2H_BINARY_CDF_SIZE];
     uint16_t txb_skip_txs1[AV2H_BINARY_CDF_SIZE];
+    uint16_t txb_skip_txs2[AV2H_BINARY_CDF_SIZE];
     uint16_t txb_skip_txs3[AV2H_BINARY_CDF_SIZE];
     uint16_t eob_pt_16[5U + 4U];
+    uint16_t eob_pt_16_inter[5U + 4U];
     uint16_t eob_pt_16_chroma[5U + 4U];
     uint16_t eob_pt_32[6U + 4U];
     uint16_t eob_pt_64[7U + 4U];
+    uint16_t eob_pt_128[8U + 4U];
+    uint16_t eob_pt_256[8U + 4U];
     uint16_t eob_pt_1024[8U + 4U];
     uint16_t eob_extra[AV2H_BINARY_CDF_SIZE];
 } Av2hFirstCoeffCdfs;

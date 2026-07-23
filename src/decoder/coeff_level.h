@@ -6,17 +6,21 @@
 #define AV2H_FIRST_COEFF_CAPACITY 1024U
 
 typedef struct {
-    uint16_t eob_base[4U][3U + 4U];
-    uint16_t eob_lf[4U][5U + 4U];
-    uint16_t base[12U][4U + 4U];
-    uint16_t base_lf[25U][6U + 4U];
-    uint16_t br[6U][4U + 4U];
-    uint16_t br_lf[5U][4U + 4U];
+    uint16_t eob_base[6U][3U + 4U];
+    uint16_t eob_lf[7U][5U + 4U];
+    uint16_t base[31U][4U + 4U];
+    uint16_t base_lf[51U][6U + 4U];
+    uint16_t br[7U][4U + 4U];
+    uint16_t br_lf[9U][4U + 4U];
     uint16_t dc_sign[3U][AV2H_BINARY_CDF_SIZE];
     uint16_t fsc_bob[3U][3U + 4U];
     uint16_t fsc_base[6U][4U + 4U];
     uint16_t fsc_br[3U][4U + 4U];
     uint16_t fsc_sign[5U][AV2H_BINARY_CDF_SIZE];
+    uint16_t fsc_bob_txs2[3U][3U + 4U];
+    uint16_t fsc_base_txs2[7U][4U + 4U];
+    uint16_t fsc_br_txs2[7U][4U + 4U];
+    uint16_t fsc_sign_txs2[9U][AV2H_BINARY_CDF_SIZE];
     uint16_t uv_eob_lf_ctx0[5U + 4U];
     uint16_t uv_eob_ctx1[3U + 4U];
     uint16_t uv_eob_ctx3[3U + 4U];
@@ -47,8 +51,13 @@ typedef struct {
     uint16_t nonzero_count;
     uint8_t cul_level;
     int32_t dc_value;
+    uint16_t diagnostic_position;
+    uint8_t diagnostic_context;
+    uint8_t diagnostic_kind;
     size_t before_levels_bits;
     size_t after_levels_bits;
+    uint32_t after_levels_range;
+    uint32_t after_levels_value;
     size_t after_coefficients_bits;
 } Av2hFirstCoeffBlock;
 

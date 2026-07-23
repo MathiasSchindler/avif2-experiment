@@ -67,6 +67,18 @@ static Av2hBlockSize ordinary_subsize(Av2hBlockSize block_size,
     return AV2H_BLOCK_INVALID;
 }
 
+static Av2hBlockSize block_size_from_dimensions(uint8_t width,
+                                                uint8_t height) {
+    size_t index;
+    for (index = 0U; index < AV2H_BLOCK_SIZE_COUNT; ++index) {
+        if (block_geometry[index].mi_width == width &&
+            block_geometry[index].mi_height == height) {
+            return (Av2hBlockSize)index;
+        }
+    }
+    return AV2H_BLOCK_INVALID;
+}
+
 static Av2hPartitionAxis implied_axis(Av2hBlockSize block_size) {
     if (block_size == AV2H_BLOCK_128X256 ||
         block_size == AV2H_BLOCK_4X8 ||
@@ -84,13 +96,24 @@ static Av2hPartitionAxis implied_axis(Av2hBlockSize block_size) {
 }
 
 static int extension_is_allowed(Av2hBlockSize block_size,
-                                Av2hPartitionAxis axis) {
+                                Av2hPartitionAxis axis,
+                                size_t structure) {
     if (block_size >= AV2H_BLOCK_SIZE_COUNT ||
         block_size <= AV2H_BLOCK_8X8 ||
         (block_size > AV2H_BLOCK_64X64 &&
          block_size <= AV2H_BLOCK_256X256) ||
         block_size == AV2H_BLOCK_4X16 ||
         block_size == AV2H_BLOCK_16X4) {
+        return 0;
+    }
+    if (structure == 1U &&
+        (block_size <= AV2H_BLOCK_16X16 ||
+         block_size == AV2H_BLOCK_8X32 ||
+         block_size == AV2H_BLOCK_32X8 ||
+         (block_size == AV2H_BLOCK_32X16 &&
+          axis == AV2H_PARTITION_HORIZONTAL) ||
+         (block_size == AV2H_BLOCK_16X32 &&
+          axis == AV2H_PARTITION_VERTICAL))) {
         return 0;
     }
     if ((block_size == AV2H_BLOCK_16X8 &&
@@ -344,8 +367,8 @@ Av2hStatus av2h_partition_first_prefix_read(
         frame_width == 0U || frame_height == 0U) {
         return AV2H_INVALID_ARGUMENT;
     }
-    mi_columns = (uint16_t)(2U * (((uint32_t)frame_width + 7U) / 8U));
-    mi_rows = (uint16_t)(2U * (((uint32_t)frame_height + 7U) / 8U));
+    mi_columns = (uint16_t)(((uint32_t)frame_width + 3U) / 4U);
+    mi_rows = (uint16_t)(((uint32_t)frame_height + 3U) / 4U);
     status = av2h_partition_forced_path(
         mi_rows, mi_columns,
         (Av2hPartitionNode){ 0U, 0U, AV2H_BLOCK_64X64 },
@@ -396,8 +419,8 @@ Av2hStatus av2h_partition_first_leaf_read(
         frame_height == 0U || enable_ext_partitions > 1U) {
         return AV2H_INVALID_ARGUMENT;
     }
-    mi_columns = (uint16_t)(2U * (((uint32_t)frame_width + 7U) / 8U));
-    mi_rows = (uint16_t)(2U * (((uint32_t)frame_height + 7U) / 8U));
+    mi_columns = (uint16_t)(((uint32_t)frame_width + 3U) / 4U);
+    mi_rows = (uint16_t)(((uint32_t)frame_height + 3U) / 4U);
     path->decision_count = 0U;
     for (;;) {
         Av2hPartitionType partition =
@@ -454,7 +477,7 @@ Av2hStatus av2h_partition_first_leaf_read(
                                : AV2H_PARTITION_VERTICAL;
         }
         extension_was_implied = !enable_ext_partitions ||
-            !extension_is_allowed(node.block_size, axis);
+            !extension_is_allowed(node.block_size, axis, 0U);
         if (!extension_was_implied) {
             value = av2h_range_read_adaptive(
                 decoder, cdfs->do_ext_partition[0][extension_context], 2U);
@@ -543,6 +566,7 @@ Av2hStatus av2h_partition_node_read_for_structure(
     if (!is_partition_point(node.block_size)) return AV2H_UNSUPPORTED;
     decision->node = node;
     decision->forced = 0U;
+    decision->extension_context = 0U;
     if (structure == 1U && node.block_size == AV2H_BLOCK_8X8) {
         decision->partition = AV2H_PARTITION_NONE;
         decision->forced = 1U;
@@ -583,7 +607,7 @@ Av2hStatus av2h_partition_node_read_for_structure(
     }
     decision->extension_implied = (uint8_t)(structure == 1U ||
         !enable_ext_partitions ||
-        !extension_is_allowed(node.block_size, axis));
+        !extension_is_allowed(node.block_size, axis, structure));
     if (!decision->extension_implied) {
         value = av2h_range_read_adaptive(
             decoder,
@@ -686,15 +710,22 @@ Av2hStatus av2h_partition_node_read_with_state(
         state, structure, node, axis, &split_context, &rect_type_context,
         &extension_context);
     if (status != AV2H_OK) return status;
-    decision->extension_implied = (uint8_t)(structure == 1U ||
-        !enable_ext_partitions || !extension_is_allowed(node.block_size, axis));
+    decision->extension_context = extension_context;
+    decision->extension_implied = (uint8_t)(!enable_ext_partitions ||
+        !extension_is_allowed(node.block_size, axis, structure));
     if (!decision->extension_implied) {
         value = av2h_range_read_adaptive(
             decoder, cdfs->do_ext_partition[structure][extension_context], 2U);
         if (av2h_range_status(decoder) != AV2H_OK) {
             return av2h_range_status(decoder);
         }
-        if (value != 0U) return AV2H_UNSUPPORTED;
+        if (value != 0U) {
+            decision->partition = axis == AV2H_PARTITION_HORIZONTAL
+                ? AV2H_PARTITION_HORZ_3 : AV2H_PARTITION_VERT_3;
+            decision->after_bits = av2h_range_tell(decoder);
+            *child = node;
+            return AV2H_OK;
+        }
     }
     decision->partition = axis == AV2H_PARTITION_HORIZONTAL
         ? AV2H_PARTITION_HORZ : AV2H_PARTITION_VERT;
@@ -714,6 +745,47 @@ static Av2hStatus traversal_push_children(
     Av2hPartitionNode second = node;
     size_t width;
     size_t height;
+    if (partition == AV2H_PARTITION_HORZ_3 ||
+        partition == AV2H_PARTITION_VERT_3) {
+        Av2hPartitionNode children[4U];
+        uint8_t width = block_geometry[node.block_size].mi_width;
+        uint8_t height = block_geometry[node.block_size].mi_height;
+        Av2hBlockSize outer;
+        Av2hBlockSize middle;
+        size_t index;
+        if (traversal->stack_count + 4U >
+            AV2H_MAX_PARTITION_TRAVERSAL_NODES) {
+            return AV2H_OVERFLOW;
+        }
+        outer = partition == AV2H_PARTITION_HORZ_3 ?
+            block_size_from_dimensions(width, (uint8_t)(height / 4U)) :
+            block_size_from_dimensions((uint8_t)(width / 4U), height);
+        middle = block_size_from_dimensions(
+            (uint8_t)(width / 2U), (uint8_t)(height / 2U));
+        if (outer == AV2H_BLOCK_INVALID || middle == AV2H_BLOCK_INVALID) {
+            return AV2H_UNSUPPORTED;
+        }
+        for (index = 0U; index < 4U; ++index) children[index] = node;
+        children[0].block_size = outer;
+        children[3].block_size = outer;
+        children[1].block_size = middle;
+        children[2].block_size = middle;
+        if (partition == AV2H_PARTITION_HORZ_3) {
+            children[1].row = (uint16_t)(node.row + height / 4U);
+            children[2].row = children[1].row;
+            children[2].column = (uint16_t)(node.column + width / 2U);
+            children[3].row = (uint16_t)(node.row + 3U * height / 4U);
+        } else {
+            children[1].column = (uint16_t)(node.column + width / 4U);
+            children[2].column = children[1].column;
+            children[2].row = (uint16_t)(node.row + height / 2U);
+            children[3].column = (uint16_t)(node.column + 3U * width / 4U);
+        }
+        for (index = 4U; index != 0U; --index) {
+            traversal->stack[traversal->stack_count++] = children[index - 1U];
+        }
+        return AV2H_OK;
+    }
     first.block_size = ordinary_subsize(node.block_size, partition);
     if (first.block_size == AV2H_BLOCK_INVALID ||
         traversal->stack_count + 2U > AV2H_MAX_PARTITION_TRAVERSAL_NODES) {
@@ -761,6 +833,8 @@ Av2hStatus av2h_partition_traversal_init(
     traversal->structure = (uint8_t)structure;
     traversal->enable_ext_partitions = (uint8_t)enable_ext_partitions;
     traversal->has_pending_leaf = 0U;
+    traversal->diagnostic_node = root;
+    traversal->diagnostic_before_bits = 0U;
     return AV2H_OK;
 }
 
@@ -788,6 +862,8 @@ Av2hStatus av2h_partition_traversal_next(
             node.column >= traversal->mi_columns) {
             continue;
         }
+        traversal->diagnostic_node = node;
+        traversal->diagnostic_before_bits = av2h_range_tell(decoder);
         forced = forced_at_boundary(
             traversal->mi_rows, traversal->mi_columns, node);
         if (forced != AV2H_PARTITION_INVALID &&
