@@ -310,48 +310,94 @@ Exit gate: query results match fixture manifests, failures identify the owning
 layer, and dependency inspection finds no unintended libc, allocator, C++
 runtime, or compiler helper references in freestanding artifacts.
 
-## Milestone 5: first complete decode slice
+The original complete-decode slice is divided below into six approximately
+equal engineering-risk packets. They are balanced by ownership boundary and
+proof burden rather than projected line count: private foundation, frame-wide
+wiring, ordinary coverage, advanced coverage, filter parity, and public API
+hardening each receive an independent exit gate.
 
-**Status:** In progress. The independent freestanding entropy decoder, private
-Closed Loop Key frame parser, complete partition CDF initialization, and
-bounded first-leaf traversal through luma mode, FSC, transform `all_zero`, and
-complete EOB, transform type, and first-transform coefficient decoding pass
-pinned-AVM oracle checks under
-sanitizers and the strict
-dependency gate. The parser derives all four tile entropy boundaries from
-syntax. The tiny fixture additionally continues through exact mode,
-coefficients, production neighbor-derived D203 prediction, and inverse
-transform for its second and third luma blocks, plus exact partition, mode,
-coefficient, D45 prediction, and inverse-transform handling for its fourth
-luma block. Its fifth block adds live-edge Paeth and `DCT_DCT`; its sixth adds
-the forward FSC coefficient path, D45, and `IDTX`. The seventh adds
-neighbor-reordered D67 with MRL and 8x8 `DCT_ADST`; the eighth and ninth extend
-the 4x4 FSC/IDTX path. The tenth adds D67 angle delta -3 with MRL index 3 and
-extends FSC BOB base-range decoding. The eleventh completes the tiny luma
-leaves with AV2 4x4 smooth prediction and `DCT_ADST`. A bounded chroma-tree
-continuation decodes the first tiny leaf's UV DC mode, separate U/V skip
-syntax, CCTX-none selection, coefficients, and sample-exact 4x4 reconstruction
-through tell 469. The remaining three tiny chroma leaves add D203, inherited
-D67 angle delta -1, D45, implied `DCT_ADST`/`ADST_DCT`/`DCT_DCT` transforms,
-and complete sparse U/V coefficient decoding through tell 725. Full frame
-leaf syntax now runs through a bounded caller-owned tile orchestrator with
-colocated luma-mode storage. A private caller-owned pipeline now executes
-deblock, CDEF, CCSO, and accepted-profile GDF while restoration fails closed.
-General reconstruction, larger-fixture traversal, filtered fixture parity,
-final workspace sizing, and the public decode API remain; see
-`docs/milestone-5.md`.
+## Milestone 5: private decoder foundation and tiny fixture
 
-Implement only the smallest profile that pinned AVM can reliably emit and the
-project can validate completely. The initial target is one 8-bit 4:2:0
-single-picture, single-layer, closed-random-access stream.
+**Status:** Implemented. The private, allocation-free decoder foundation owns
+frame and tile syntax, adaptive entropy state, bounded partition traversal,
+neighbor contexts, luma/chroma mode syntax, sparse coefficient decoding,
+prediction, inverse transforms, and live-plane writes. All eleven tiny luma
+leaves and four tiny chroma leaves reconstruct sample-exactly through tell 725.
+Focused private kernels cover deblock, CDEF, CCSO, and accepted-profile GDF;
+restoration remains unsupported and fail-closed. See `docs/milestone-5.md`.
 
-Add entropy decoding, prediction, inverse quantization, transforms,
-reconstruction, and every mandatory filter for accepted syntax. Do not accept
-a syntax path that can reach an unimplemented reconstruction operation.
+Exit gate: the tiny fixture reconstructs sample-exactly on every unfiltered
+plane through a caller-owned tile orchestrator under hosted sanitizers and the
+strict freestanding dependency gate. Every unimplemented syntax or
+reconstruction path fails before leaf commit or final-plane mutation.
 
-Exit gate: every supported fixture reconstructs sample-exactly with pinned AVM
-on every plane under hosted sanitizers and freestanding builds, with bounded
-workspace behavior across alignments and truncations.
+## Milestone 6: frame-wide wiring and odd fixture
+
+**Status:** Planned.
+
+Connect tile traversal, live references, reconstruction planes, and per-4x4
+metadata for a complete coded frame. Complete every luma and chroma path
+reached by the 17x15 odd fixture, including coded-edge extension and cropping.
+Keep reconstruction private and restoration fail-closed.
+
+Exit gate: the odd fixture reconstructs sample-exact unfiltered Y, U, and V
+planes with exact entropy endpoints, coded-plane bounds, and no
+fixture-supplied contexts or references.
+
+## Milestone 7: ordinary fixture coverage
+
+**Status:** In progress, with an early six-leaf checkpoint. Ordinary luma
+currently commits six leaves and stops fail-closed at the 4x8 DC sibling at
+`(4,14)`, TX_4X8, EOB 29, primary `FLIPADST_ADST`, before coefficient
+scanning.
+
+Complete the ordinary fixture's remaining partition, mode, transform,
+coefficient, prediction, reconstruction, and chroma paths. Admit only locked
+normative CDF rows and transform constants reached by the fixture.
+
+Exit gate: the ordinary fixture reconstructs sample-exact unfiltered Y, U,
+and V planes and the full traversal terminates at the pinned AVM entropy
+endpoint without unsupported paths.
+
+## Milestone 8: high-detail and advanced prediction
+
+**Status:** Planned.
+
+Complete the high-detail fixture and the remaining reached high-energy,
+secondary-transform, CFL, intraBC, coefficient-range, and large-transform
+paths. Preserve bounded sparse tables where they remain sufficient; complete
+normative implementations where fixture reach makes sparse admission fragile.
+
+Exit gate: the high-detail fixture reconstructs sample-exact unfiltered Y, U,
+and V planes, including every reached CFL and intraBC block, under sanitizers
+and the freestanding gate.
+
+## Milestone 9: mandatory filters and filtered parity
+
+**Status:** Planned; private filter kernels and focused vectors already pass.
+
+Populate complete deblock and CCSO metadata from reconstructed leaves, execute
+deblock, CDEF, CCSO, and GDF in normative order over coded planes, crop to
+display dimensions, and compare each intermediate stage where the hosted
+oracle exposes it. Restoration remains outside the accepted profile and must
+fail before output mutation.
+
+Exit gate: all four locked fixtures match pinned AVM sample-exactly on final
+filtered Y, U, and V planes, with stage-local hashes identifying any failure.
+
+## Milestone 10: bounded public decode surface
+
+**Status:** Planned.
+
+Finalize workspace size and alignment calculations, query-to-decode input
+binding, caller-owned output layouts, truncation behavior, error ownership,
+fuzz limits, release documentation, and the public decode API. Do not expose
+the API before Milestone 9 parity is complete.
+
+Exit gate: public decoding of all four fixtures is sample-exact across allowed
+workspace alignments; undersized workspace, stale input, malformed syntax,
+and truncation fail deterministically; release artifacts remain CC0,
+freestanding, allocator-free, nolibc, and free of vendored dependencies.
 
 ## Later work
 
@@ -382,14 +428,14 @@ Release validation additionally includes:
 - verification that vendored source and build products are absent from CC0
   release archives and link graphs.
 
-## Immediate work order
+## Current work order
 
-1. Correct and pin the evidence record in the design report.
-2. Choose the permanent repository name, API prefix, and CC0 license files.
-3. Create the repository skeleton and dependency/provenance policy.
-4. Integrate pinned AVM as the first hosted reference dependency.
-5. Complete the Milestone 0 carriage-equivalence experiment.
-6. Proceed to the freestanding substrate only after the experiment passes.
+1. Complete Milestone 6 frame-wide wiring and odd-fixture parity.
+2. Resume the existing Milestone 7 ordinary-fixture frontier.
+3. Complete Milestone 8 high-detail, CFL, and intraBC coverage.
+4. Integrate and prove the mandatory filter pipeline in Milestone 9.
+5. Finalize workspace contracts and expose decoding only in Milestone 10.
 
-The exact AVM one-frame invocation remains deliberately unrecorded until it is
-verified against the pinned build and its produced OBU syntax is inspected.
+Early work in a later milestone may be retained when it is already validated,
+but it does not waive an earlier exit gate. Each milestone must leave the
+decoder fail-closed at the first unsupported owner.

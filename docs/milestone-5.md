@@ -1,23 +1,24 @@
-# Milestone 5: first complete decode slice
+# Milestone 5: private decoder foundation and tiny fixture
 
-Milestone 5 is in progress. The freestanding AV2 entropy decoder, Sequence
+Milestone 5 is implemented. The freestanding AV2 entropy decoder, Sequence
 Header state, locked Closed Loop Key frame-header parser, and one-tile boundary
-derivation are implemented and independently checked. The first luma block of
-all four fixtures and all eleven tiny luma blocks reconstruct sample-exactly
-in private tests. The 4x4 continuations use production D203
-prediction from live reconstructed left samples; later blocks use D45 and
-Paeth prediction from live reconstructed edges. All four tiny chroma leaves
-also reconstruct their U and V blocks sample-exactly through tell 725.
+derivation are independently checked. All eleven tiny luma blocks and all four
+tiny chroma leaves reconstruct sample-exactly through tell 725 using live
+reconstructed references and caller-owned state.
+
 A private bounded tile orchestrator owns the range decoder, adaptive CDFs,
 luma and chroma partition traversals, neighbor maps, and a compact caller-owned
-colocated-luma mode map. It decodes all eleven tiny luma and four chroma leaves
-through tell 725 without fixture-supplied syntax contexts. General
-reconstruction wiring and complete traversal for the larger fixtures are not
-yet implemented. A private bounded filter pipeline now executes deblock, CDEF,
-CCSO, and accepted-profile GDF, while restoration remains unsupported and
-fail-closed. Filtered fixture parity, final workspace sizing, and the public
-decode API are not yet implemented. The milestone exit gate has therefore not
-been reached.
+colocated-luma mode map. No tiny-fixture leaf receives fixture-supplied syntax
+contexts. Private focused kernels execute deblock, CDEF, CCSO, and
+accepted-profile GDF, while restoration remains unsupported and fail-closed.
+Frame-wide larger-fixture reconstruction, filtered fixture parity, final
+workspace sizing, and public API exposure are intentionally assigned to
+Milestones 6 through 10 rather than remaining hidden inside Milestone 5.
+
+The Milestone 5 exit gate is unfiltered sample parity for the complete tiny
+fixture under sanitizers and the strict freestanding dependency gate. That gate
+passes. Filter-kernel vectors are supporting evidence, not a claim of filtered
+fixture parity.
 
 ## Fixture inventory
 
@@ -186,7 +187,8 @@ CDF. The same traversal now yields and commits all eleven tiny luma leaves and
 all four separate chroma-tree leaves around their interleaved syntax, then
 reports each tree exhausted at tells 415 and 725. Calling next before commit,
 committing a different leaf, stack overflow, and out-of-bounds geometry fail
-closed. Larger fixtures remain first-leaf checkpoints.
+closed. Post-Milestone-5 work has advanced the ordinary fixture to six
+committed luma leaves; that checkpoint belongs to Milestone 7.
 
 ## First-leaf luma mode
 
@@ -228,8 +230,7 @@ decoder. Neighbor-aware mode-set/index/offset mapping selects D203, FSC and MRL
 both decode zero, and the mode endpoint has integer tell 59. The adjacent third
 4x4 block selects the same mode and reaches integer tell 80 after MRL. Tests
 freeze the touched CDF updates and mode results. Caller-owned mode maps now
-derive every later tiny luma neighbor, but the leaf decode sequence is not yet
-a general tile-level orchestration implementation.
+derive every later tiny luma neighbor through the bounded tile orchestrator.
 
 After the final tiny luma leaf at tell 415, partition CDF structure one decodes
 the first chroma-tree 16x16 horizontal and 16x8 implied-vertical decisions,
@@ -453,19 +454,21 @@ These kernel and orchestration checks do not establish fixture stage parity.
 The larger-fixture tile and reconstruction work must first produce complete
 coded planes and populate every deblock and CCSO control cell.
 
-## Remaining work
+## Successor milestones
 
-The bounded tile orchestrator now owns all syntax traversal and context updates
-exercised by the tiny fixture. The long sample-exact test retains explicit
-reconstruction references as oracle data, but production leaf decoding no
-longer receives fixture-specific partition, mode, coefficient, or colocated
-luma inputs. The next required implementation connects orchestrated leaves to
-general output-plane reference and reconstruction state, then extends full
-prediction and reconstruction to the odd, ordinary, and high-detail fixtures.
-Hosted evidence must expand to complete coefficient checksums and plane hashes
-after deblock, CDEF, CCSO, and GDF where enabled. Final workspace planning and
-the public decode API follow only after those complete filtered outputs pass
-sample-exactly.
+The work formerly grouped into this milestone is split into bounded successors:
 
-Until those stages reconstruct all four fixtures sample-exactly, Milestone 5
-must remain marked in progress.
+- [Milestone 6](milestone-6.md) connects frame-wide state and completes the odd
+  fixture.
+- [Milestone 7](milestone-7.md) completes the ordinary fixture from its current
+  six-leaf checkpoint.
+- [Milestone 8](milestone-8.md) completes high-detail, CFL, intraBC, and the
+  remaining advanced transform paths.
+- [Milestone 9](milestone-9.md) integrates mandatory filters and proves final
+  filtered parity for all four fixtures.
+- [Milestone 10](milestone-10.md) finalizes bounded workspace contracts and
+  exposes the public decoder only after parity passes.
+
+This split changes scheduling, not acceptance. Unsupported syntax still fails
+closed, restoration remains outside the accepted profile, and no public decode
+surface exists before Milestone 10.

@@ -21,33 +21,22 @@ separate reference experiment and is fetched into ignored `vendor/` and
   muxes, inspects, extracts, decodes, and compares the four-fixture matrix.
 - Milestone 4 provides bounded freestanding validation, structural dialect
   detection, metadata query, exact I420 output sizing, and input binding.
-- Milestone 5 is in progress: its freestanding entropy decoder and private
-  Closed Loop Key frame parser pass pinned-AVM oracle checks and derive all four
-  tile entropy boundaries from syntax. First blocks for all fixtures and the
-  tiny fixture's remaining ten luma blocks reconstruct sample-exactly in
-  private tests. Production derives the 4x4 D203 predictors from reconstructed left
-  samples, the 8x4 and 4x4 D45 predictors from reconstructed above samples,
-  the 4x4 Paeth predictor from live above, left, and top-left samples, and the
-  8x8 and 4x4 D67 predictors from live MRL edges, including MRL index 3, and
-  the final 4x4 smooth predictor from live top and left edges. All four tiny
-  chroma leaves decode their UV modes, transforms, and 4x4 U and V blocks
-  sample-exactly through tell 725. Bounded caller-owned partition, luma-mode,
-  and packed per-plane coefficient maps now derive every later tiny-fixture
-  neighbor context. A bounded depth-first partition traversal yields and
-  commits all tiny luma and chroma leaves in entropy order. A private bounded
-  tile orchestrator now owns the range decoder, adaptive CDFs, both partition
-  traversals, neighbor maps, and colocated luma modes; it decodes all 15 tiny
-  leaves through tell 725 without fixture-supplied contexts. A private bounded
-  pipeline executes deblock, CDEF, CCSO, and accepted-profile GDF from
-  caller-owned planes and metadata; restoration remains unsupported and
-  fail-closed. General reconstruction wiring, larger-fixture reconstruction,
-  filtered fixture parity, final workspace sizing, and the public decode API
-  are not implemented yet.
+- Milestone 5 is implemented: the private freestanding decoder reconstructs all
+  eleven tiny luma and four tiny chroma leaves sample-exactly through tell 725
+  with caller-owned traversal, context, scratch, and live-plane state. Focused
+  deblock, CDEF, CCSO, and GDF kernels pass; restoration remains unsupported
+  and fail-closed.
+- Milestone 6 will connect complete frame-wide state and prove the odd fixture.
+- Milestone 7 is in progress through six committed ordinary luma leaves and
+  currently stops at `(4,14)`, 4x8 DC, TX_4X8, EOB 29, primary
+  `FLIPADST_ADST`, before coefficient scanning.
+- Milestone 8 owns high-detail, CFL, intraBC, and remaining advanced transform
+  coverage. Milestone 9 owns mandatory-filter integration and filtered parity.
+  Milestone 10 alone owns workspace finalization and public decoder exposure.
 
 The public API is declared in `include/av2heif.h`. Milestone details and
-limitations are recorded in `docs/milestone-0.md`, `docs/milestone-1.md`, and
-`docs/milestone-2.md`, `docs/milestone-3.md`, `docs/milestone-4.md`, and
-`docs/milestone-5.md`; the longer roadmap is in `plan.md`.
+limitations are recorded in `docs/milestone-0.md` through
+`docs/milestone-10.md`; the longer roadmap is in `plan.md`.
 
 ## Build and test
 
