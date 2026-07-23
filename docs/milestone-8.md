@@ -38,8 +38,9 @@ coefficient, and final tell endpoint. It also compares every quantized and
 dequantized coefficient against the pinned AVM vectors. Representative DC
 values are `-6/-1488`, `-2/-1984`, `+6/+9408`, and `-8/-1984`.
 
-Across all 21 artifact streams, six GDF-mode-2 streams still reject at tile
-initialization, four now complete their first coefficient block, and eleven
+Across all 21 artifact streams, six GDF-mode-2 streams now decode their first
+GDF flag at the exact pinned-AVM endpoint before an unsupported Milestone 9
+filter/profile state, four complete their first coefficient block, and eleven
 remain fail-closed at an earlier first-luma syntax frontier. The QP-192
 `chimp-240x287` stream remains intentionally gated at tell 15 because its
 partition range state diverges before mode syntax; consuming CCSO there would

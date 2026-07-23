@@ -28,6 +28,8 @@ typedef struct {
     size_t above_count;
     size_t left_count;
     size_t colocated_luma_count;
+    uint8_t *gdf_block_flags;
+    size_t gdf_block_flag_capacity;
 } Av2hTileContextStorage;
 
 typedef struct {
@@ -63,6 +65,7 @@ typedef struct {
     Av2hPartitionContextState partition_contexts;
     Av2hLumaModeContextState luma_mode_contexts;
     Av2hCoeffContextState coefficient_contexts;
+    Av2hGdfEntropyState gdf_entropy;
     Av2hPartitionTraversal luma_traversal;
     Av2hPartitionTraversal chroma_traversal;
     Av2hTileLumaModeCell *colocated_luma;

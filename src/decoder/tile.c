@@ -108,7 +108,6 @@ Av2hStatus av2h_tile_decoder_init(
         storage->colocated_luma == 0) {
         return AV2H_INVALID_ARGUMENT;
     }
-    if (frame->gdf_mode > 1U) return AV2H_UNSUPPORTED;
     decoder->mi_columns = ((size_t)frame->width + 3U) / 4U;
     decoder->mi_rows = ((size_t)frame->height + 3U) / 4U;
     if (decoder->mi_columns > storage->above_count ||
@@ -134,6 +133,10 @@ Av2hStatus av2h_tile_decoder_init(
     status = av2h_partition_cdfs_init(&decoder->partition_cdfs);
     if (status != AV2H_OK) return tile_decoder_fail(decoder, status);
     status = av2h_leaf_cdfs_init(&decoder->leaf_cdfs);
+    if (status != AV2H_OK) return tile_decoder_fail(decoder, status);
+    status = av2h_gdf_entropy_state_init(
+        &decoder->gdf_entropy, sequence, frame, storage->gdf_block_flags,
+        storage->gdf_block_flag_capacity);
     if (status != AV2H_OK) return tile_decoder_fail(decoder, status);
     status = av2h_first_coeff_cdfs_init_for_q(
         &decoder->coeff_cdfs, frame->base_q_index);
@@ -196,18 +199,24 @@ Av2hStatus av2h_tile_decoder_next_luma(
         has_leaf);
     if (status != AV2H_OK) return tile_decoder_fail(decoder, status);
     if (!*has_leaf) {
+        if (decoder->frame->gdf_mode >= 2U &&
+            decoder->gdf_entropy.decoded_count !=
+                decoder->frame->gdf_block_count) {
+            return tile_decoder_fail(decoder, AV2H_UNSUPPORTED);
+        }
         decoder->phase = AV2H_TILE_DECODE_CHROMA;
         return AV2H_OK;
     }
     leaf->node = path.leaf;
-    if (!q_luma_geometry_supported(
+    if (decoder->frame->gdf_mode < 2U &&
+        !q_luma_geometry_supported(
             decoder->frame->base_q_index, leaf->node.block_size)) {
         return tile_decoder_fail(decoder, AV2H_UNSUPPORTED);
     }
-    status = av2h_luma_mode_read_with_state(
+    status = av2h_luma_mode_read_with_state_and_gdf(
         &decoder->range, &decoder->leaf_cdfs, decoder->sequence,
         decoder->frame, &leaf->node, &decoder->luma_mode_contexts,
-        &leaf->mode);
+        &decoder->gdf_entropy, &leaf->mode);
     if (status != AV2H_OK) return tile_decoder_fail(decoder, status);
     status = av2h_luma_mode_context_state_update(
         &decoder->luma_mode_contexts, &leaf->node, &leaf->mode);

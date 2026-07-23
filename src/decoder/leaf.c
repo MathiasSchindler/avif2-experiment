@@ -279,6 +279,125 @@ Av2hStatus av2h_chroma_mode_read_with_delta(
     return AV2H_OK;
 }
 
+Av2hStatus av2h_gdf_entropy_state_init(
+    Av2hGdfEntropyState *state,
+    const Av2hSequenceState *sequence,
+    const Av2hFrameState *frame,
+    uint8_t *block_flags,
+    size_t block_flag_capacity) {
+    size_t index;
+    Av2hStatus status;
+    if (state == 0 || sequence == 0 || frame == 0) {
+        return AV2H_INVALID_ARGUMENT;
+    }
+    av2h_memory_fill(state, 0U, sizeof(*state));
+    state->mode = frame->gdf_mode;
+    state->block_size = frame->gdf_block_size;
+    state->block_columns = frame->gdf_block_columns;
+    state->block_rows = frame->gdf_block_rows;
+    state->superblock_mi = (uint16_t)(sequence->superblock_size / 4U);
+    if (frame->gdf_mode > 2U) return AV2H_INVALID_DATA;
+    if (frame->gdf_mode < 2U) return AV2H_OK;
+    {
+        uint32_t expected_block_size = sequence->superblock_size;
+        uint32_t expected_columns;
+        uint32_t expected_rows;
+        if (!sequence->enable_gdf ||
+            (sequence->superblock_size != 64U &&
+             sequence->superblock_size != 128U)) {
+            return AV2H_INVALID_DATA;
+        }
+        if (sequence->gdf_unit_matches_superblock_size == 0U &&
+            expected_block_size < 128U) {
+            expected_block_size = 128U;
+        }
+        expected_columns =
+            ((uint32_t)frame->width + expected_block_size - 1U) /
+            expected_block_size;
+        expected_rows =
+            ((uint32_t)frame->height + expected_block_size - 1U) /
+            expected_block_size;
+        if (frame->gdf_block_size != expected_block_size ||
+            frame->gdf_block_columns != expected_columns ||
+            frame->gdf_block_rows != expected_rows ||
+            frame->gdf_block_count != expected_columns * expected_rows ||
+            frame->gdf_block_count <= 1U ||
+            state->superblock_mi == 0U) {
+            return AV2H_INVALID_DATA;
+        }
+    }
+    if (block_flags == 0 ||
+        block_flag_capacity < frame->gdf_block_count) {
+        return AV2H_OUT_OF_MEMORY;
+    }
+    state->block_flags = block_flags;
+    state->block_flag_capacity = block_flag_capacity;
+    for (index = 0U; index < frame->gdf_block_count; ++index) {
+        block_flags[index] = 0U;
+    }
+    status = av2h_binary_cdf_init(
+        state->cdf, (Av2hBinaryCdfSpec){ 14593U, 32U, 0U });
+    if (status != AV2H_OK) return status;
+    return AV2H_OK;
+}
+
+static Av2hStatus read_gdf_entropy(
+    Av2hRangeDecoder *decoder,
+    const Av2hFrameState *frame,
+    const Av2hPartitionNode *leaf,
+    Av2hGdfEntropyState *state,
+    Av2hFirstLeafMode *mode) {
+    size_t mi_rows = ((size_t)frame->height + 3U) / 4U;
+    size_t mi_columns = ((size_t)frame->width + 3U) / 4U;
+    size_t mi_row;
+    size_t mi_column;
+    mode->before_gdf_bits = av2h_range_tell(decoder);
+    mode->after_gdf_bits = mode->before_gdf_bits;
+    mode->gdf_flags_read = 0U;
+    if (frame->gdf_mode < 2U) return AV2H_OK;
+    if (state == 0 || state->mode != frame->gdf_mode ||
+        state->block_flags == 0 ||
+        state->block_flag_capacity < frame->gdf_block_count) {
+        return AV2H_UNSUPPORTED;
+    }
+    if (leaf->row % state->superblock_mi != 0U ||
+        leaf->column % state->superblock_mi != 0U) {
+        return AV2H_OK;
+    }
+    for (mi_row = leaf->row;
+         mi_row < (size_t)leaf->row + state->superblock_mi &&
+         mi_row < mi_rows;
+         ++mi_row) {
+        size_t pixel_row = mi_row * 4U;
+        if (pixel_row % state->block_size != 0U) continue;
+        for (mi_column = leaf->column;
+             mi_column < (size_t)leaf->column + state->superblock_mi &&
+             mi_column < mi_columns;
+             ++mi_column) {
+            size_t pixel_column = mi_column * 4U;
+            size_t block_index;
+            uint32_t value;
+            if (pixel_column % state->block_size != 0U) continue;
+            block_index =
+                (pixel_row / state->block_size) * state->block_columns +
+                pixel_column / state->block_size;
+            if (block_index >= frame->gdf_block_count ||
+                block_index != state->decoded_count) {
+                return AV2H_INVALID_DATA;
+            }
+            value = av2h_range_read_adaptive(decoder, state->cdf, 2U);
+            if (av2h_range_status(decoder) != AV2H_OK) {
+                return av2h_range_status(decoder);
+            }
+            state->block_flags[block_index] = (uint8_t)value;
+            ++state->decoded_count;
+            ++mode->gdf_flags_read;
+        }
+    }
+    mode->after_gdf_bits = av2h_range_tell(decoder);
+    return AV2H_OK;
+}
+
 static uint8_t is_directional_joint_mode(uint8_t joint_mode) {
     return joint_mode >= 5U;
 }
@@ -674,6 +793,16 @@ Av2hStatus av2h_luma_mode_context_state_update(
     return AV2H_OK;
 }
 
+static Av2hStatus luma_mode_read_internal(
+    Av2hRangeDecoder *decoder,
+    Av2hLeafCdfs *cdfs,
+    const Av2hSequenceState *sequence,
+    const Av2hFrameState *frame,
+    const Av2hPartitionNode *leaf,
+    const Av2hLumaModeNeighbors *neighbors,
+    Av2hGdfEntropyState *gdf_state,
+    Av2hFirstLeafMode *mode);
+
 Av2hStatus av2h_luma_mode_read_with_state(
     Av2hRangeDecoder *decoder,
     Av2hLeafCdfs *cdfs,
@@ -682,25 +811,40 @@ Av2hStatus av2h_luma_mode_read_with_state(
     const Av2hPartitionNode *leaf,
     const Av2hLumaModeContextState *state,
     Av2hFirstLeafMode *mode) {
+    return av2h_luma_mode_read_with_state_and_gdf(
+        decoder, cdfs, sequence, frame, leaf, state, 0, mode);
+}
+
+Av2hStatus av2h_luma_mode_read_with_state_and_gdf(
+    Av2hRangeDecoder *decoder,
+    Av2hLeafCdfs *cdfs,
+    const Av2hSequenceState *sequence,
+    const Av2hFrameState *frame,
+    const Av2hPartitionNode *leaf,
+    const Av2hLumaModeContextState *state,
+    Av2hGdfEntropyState *gdf_state,
+    Av2hFirstLeafMode *mode) {
     Av2hLumaModeNeighbors neighbors;
     Av2hStatus status = av2h_luma_mode_neighbors_from_state(
         state, leaf, &neighbors);
     if (status != AV2H_OK) return status;
-    status = av2h_luma_mode_read(decoder, cdfs, sequence, frame, leaf,
-                                 &neighbors, mode);
+    status = luma_mode_read_internal(
+        decoder, cdfs, sequence, frame, leaf, &neighbors, gdf_state, mode);
     if (status == AV2H_OK && mode->use_intrabc && state->has_intrabc) {
         return AV2H_UNSUPPORTED;
     }
     return status;
 }
 
-Av2hStatus av2h_luma_mode_read(Av2hRangeDecoder *decoder,
-                               Av2hLeafCdfs *cdfs,
-                               const Av2hSequenceState *sequence,
-                               const Av2hFrameState *frame,
-                               const Av2hPartitionNode *leaf,
-                               const Av2hLumaModeNeighbors *neighbors,
-                               Av2hFirstLeafMode *mode) {
+static Av2hStatus luma_mode_read_internal(
+    Av2hRangeDecoder *decoder,
+    Av2hLeafCdfs *cdfs,
+    const Av2hSequenceState *sequence,
+    const Av2hFrameState *frame,
+    const Av2hPartitionNode *leaf,
+    const Av2hLumaModeNeighbors *neighbors,
+    Av2hGdfEntropyState *gdf_state,
+    Av2hFirstLeafMode *mode) {
     size_t plane;
     size_t neighbor;
     size_t mode_context = 0U;
@@ -715,9 +859,9 @@ Av2hStatus av2h_luma_mode_read(Av2hRangeDecoder *decoder,
     }
     if (leaf->block_size >= AV2H_BLOCK_SIZE_COUNT ||
         frame->disable_cdf_update || frame->segmentation_enabled ||
-        frame->delta_q_present || frame->gdf_mode >= 2U ||
-        frame->cdef_strength_count > 1U || !sequence->enable_sdp ||
-        sequence->enable_intra_dip || frame->allow_screen_content_tools) {
+        frame->delta_q_present || !sequence->enable_sdp ||
+        sequence->enable_intra_dip ||
+        (frame->gdf_mode >= 2U && gdf_state == 0)) {
         return AV2H_UNSUPPORTED;
     }
     for (neighbor = 0U; neighbor < 2U; ++neighbor) {
@@ -743,8 +887,16 @@ Av2hStatus av2h_luma_mode_read(Av2hRangeDecoder *decoder,
     mode->displacement_x = 0;
     mode->displacement_y = 0;
     mode->ccso_present_mask = 0U;
+    mode->before_gdf_bits = av2h_range_tell(decoder);
+    mode->after_gdf_bits = mode->before_gdf_bits;
+    mode->gdf_flags_read = 0U;
     for (plane = 0U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
         mode->ccso_block_control[plane] = 0U;
+    }
+    if (frame->gdf_mode < 2U &&
+        (frame->cdef_strength_count > 1U ||
+         frame->allow_screen_content_tools)) {
+        return AV2H_UNSUPPORTED;
     }
     if (frame->allow_intrabc && block_allows_intrabc(leaf->block_size)) {
         value = av2h_range_read_adaptive(
@@ -754,15 +906,31 @@ Av2hStatus av2h_luma_mode_read(Av2hRangeDecoder *decoder,
         }
         mode->use_intrabc = (uint8_t)value;
         if (value != 0U) {
+            Av2hStatus status;
             mode->skip_transform = (uint8_t)av2h_range_read_adaptive(
                 decoder, cdfs->skip_transform[0], 2U);
             if (av2h_range_status(decoder) != AV2H_OK) {
                 return av2h_range_status(decoder);
             }
+            if (frame->gdf_mode >= 2U) {
+                status = read_gdf_entropy(
+                    decoder, frame, leaf, gdf_state, mode);
+                if (status != AV2H_OK) return status;
+                return AV2H_UNSUPPORTED;
+            }
             if (mode->skip_transform != 0U) return AV2H_UNSUPPORTED;
             return read_first_intrabc(
                 decoder, cdfs, sequence, frame, leaf, mode);
         }
+    }
+    {
+        Av2hStatus status = read_gdf_entropy(
+            decoder, frame, leaf, gdf_state, mode);
+        if (status != AV2H_OK) return status;
+    }
+    if (frame->cdef_strength_count > 1U ||
+        frame->allow_screen_content_tools) {
+        return AV2H_UNSUPPORTED;
     }
     if ((leaf->row & 15U) == 0U && (leaf->column & 15U) == 0U) {
         for (plane = 0U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
@@ -859,6 +1027,18 @@ Av2hStatus av2h_luma_mode_read(Av2hRangeDecoder *decoder,
     }
     mode->after_mrl_bits = av2h_range_tell(decoder);
     return AV2H_OK;
+}
+
+Av2hStatus av2h_luma_mode_read(
+    Av2hRangeDecoder *decoder,
+    Av2hLeafCdfs *cdfs,
+    const Av2hSequenceState *sequence,
+    const Av2hFrameState *frame,
+    const Av2hPartitionNode *leaf,
+    const Av2hLumaModeNeighbors *neighbors,
+    Av2hFirstLeafMode *mode) {
+    return luma_mode_read_internal(
+        decoder, cdfs, sequence, frame, leaf, neighbors, 0, mode);
 }
 
 Av2hStatus av2h_first_leaf_mode_read(Av2hRangeDecoder *decoder,

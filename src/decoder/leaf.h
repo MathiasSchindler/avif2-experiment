@@ -96,6 +96,9 @@ typedef struct {
     size_t after_mode_index_bits;
     size_t after_fsc_bits;
     size_t after_mrl_bits;
+    size_t before_gdf_bits;
+    size_t after_gdf_bits;
+    uint16_t gdf_flags_read;
 } Av2hFirstLeafMode;
 
 typedef struct {
@@ -123,6 +126,18 @@ typedef struct {
     size_t left_count;
     uint8_t has_intrabc;
 } Av2hLumaModeContextState;
+
+typedef struct {
+    uint16_t cdf[AV2H_BINARY_CDF_SIZE];
+    uint8_t *block_flags;
+    size_t block_flag_capacity;
+    size_t decoded_count;
+    uint16_t block_size;
+    uint16_t block_columns;
+    uint16_t block_rows;
+    uint16_t superblock_mi;
+    uint8_t mode;
+} Av2hGdfEntropyState;
 
 typedef struct {
     uint8_t is_cfl;
@@ -159,6 +174,12 @@ Av2hStatus av2h_luma_mode_context_state_init(
     size_t above_count,
     Av2hLumaModeContext *left,
     size_t left_count);
+Av2hStatus av2h_gdf_entropy_state_init(
+    Av2hGdfEntropyState *state,
+    const Av2hSequenceState *sequence,
+    const Av2hFrameState *frame,
+    uint8_t *block_flags,
+    size_t block_flag_capacity);
 Av2hStatus av2h_luma_mode_neighbors_from_state(
     const Av2hLumaModeContextState *state,
     const Av2hPartitionNode *leaf,
@@ -174,6 +195,15 @@ Av2hStatus av2h_luma_mode_read_with_state(
     const Av2hFrameState *frame,
     const Av2hPartitionNode *leaf,
     const Av2hLumaModeContextState *state,
+    Av2hFirstLeafMode *mode);
+Av2hStatus av2h_luma_mode_read_with_state_and_gdf(
+    Av2hRangeDecoder *decoder,
+    Av2hLeafCdfs *cdfs,
+    const Av2hSequenceState *sequence,
+    const Av2hFrameState *frame,
+    const Av2hPartitionNode *leaf,
+    const Av2hLumaModeContextState *state,
+    Av2hGdfEntropyState *gdf_state,
     Av2hFirstLeafMode *mode);
 Av2hStatus av2h_chroma_mode_read(
     Av2hRangeDecoder *decoder,

@@ -152,9 +152,10 @@ Milestone 7 path.
 
 - Every `uncompressed_header_bits` endpoint matches the pinned AVM inspector.
   GDF mode, picture QP index, and scale index are retained for all streams.
-- Six streams select GDF mode 2. They fail closed at tile initialization,
-  before range decoding, because the per-GDF-block on/off symbols are not yet
-  implemented.
+- Six streams select GDF mode 2. They now initialize the tile decoder and
+  consume their first per-block on/off symbol at the exact pinned-AVM tell.
+  Five then reject at unsupported multi-strength CDEF state; the sixth,
+  `silene-479x383-qp176`, rejects at screen-content handling.
 - The other 15 streams parse their frame and single tile. Four now complete
   their first luma coefficient block through exact pinned-AVM endpoints:
   `cuckoo-157x105-qp160` at tell 35, `emerald-192x96-qp208` at tell 27,
@@ -172,10 +173,10 @@ initialization and dequantization rather than permissive parsing.
 
 `tests/artifact_profile_unit.c` locks the per-stream dimensions, base Q,
 Sequence Header filter flags, exact Frame Header endpoint, GDF parameters,
-mode-2 tile-initialization rejection, and the first block/tell for all 15
-streams that reach luma decoding. For the four completed Milestone 8 first
-blocks it additionally locks mode, prefix, transform, level, coefficient, and
-complete quantized/dequantized arrays. It is part of `make test-c`.
+the first mode-2 GDF flag and tell endpoint, and the first block/tell for all
+streams. For the four completed Milestone 8 first blocks it additionally
+locks mode, prefix, transform, level, coefficient, and complete
+quantized/dequantized arrays. It is part of `make test-c`.
 
 ## Scope
 

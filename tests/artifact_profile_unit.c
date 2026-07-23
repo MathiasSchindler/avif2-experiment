@@ -5,6 +5,7 @@
 #define STREAM_CAPACITY 65536U
 #define MAX_MI_COLUMNS 128U
 #define MAX_MI_ROWS 96U
+#define MAX_GDF_BLOCKS 128U
 
 static int failures;
 static unsigned char stream[STREAM_CAPACITY];
@@ -171,12 +172,14 @@ static void check_first_luma(const ArtifactExpectation *expected,
     uint8_t coefficient_above[AV2H_FRAME_PLANE_COUNT * MAX_MI_COLUMNS];
     uint8_t coefficient_left[AV2H_FRAME_PLANE_COUNT * MAX_MI_ROWS];
     Av2hTileLumaModeCell colocated_luma[MAX_MI_COLUMNS * MAX_MI_ROWS];
+    uint8_t gdf_block_flags[MAX_GDF_BLOCKS];
     Av2hTileContextStorage storage = {
         luma_partition_above, luma_partition_left,
         chroma_partition_above, chroma_partition_left,
         luma_mode_above, luma_mode_left,
         coefficient_above, coefficient_left, colocated_luma,
-        MAX_MI_COLUMNS, MAX_MI_ROWS, MAX_MI_COLUMNS * MAX_MI_ROWS
+        MAX_MI_COLUMNS, MAX_MI_ROWS, MAX_MI_COLUMNS * MAX_MI_ROWS,
+        gdf_block_flags, MAX_GDF_BLOCKS
     };
     Av2hTileDecoder decoder;
     Av2hTileLumaLeaf leaf;
@@ -190,10 +193,6 @@ static void check_first_luma(const ArtifactExpectation *expected,
                 frame->uncompressed_header_bits, &group) == AV2H_OK);
     status = av2h_tile_decoder_init(
         &decoder, group.entropy, sequence, frame, &storage);
-    if (expected->gdf_mode == 2U) {
-        CHECK(status == AV2H_UNSUPPORTED);
-        return;
-    }
     REQUIRE(status == AV2H_OK);
     av2h_memory_fill(&leaf, 0U, sizeof(leaf));
     av2h_memory_fill(&block, 0U, sizeof(block));
@@ -205,6 +204,17 @@ static void check_first_luma(const ArtifactExpectation *expected,
     CHECK(leaf.node.column == 0U);
     CHECK(leaf.node.block_size == expected->first_block);
     CHECK(av2h_range_tell(&decoder.range) == expected->first_tell);
+    if (expected->gdf_mode == 2U) {
+        uint8_t expected_flag =
+            expected->base_q_index == 48U ||
+            expected->base_q_index == 64U ? 0U : 1U;
+        CHECK(leaf.mode.gdf_flags_read == 1U);
+        CHECK(leaf.mode.after_gdf_bits == expected->first_tell);
+        CHECK(leaf.mode.before_gdf_bits + 1U ==
+              leaf.mode.after_gdf_bits);
+        CHECK(decoder.gdf_entropy.decoded_count == 1U);
+        CHECK(gdf_block_flags[0] == expected_flag);
+    }
     if (expected->decoded != 0) {
         CHECK(status == AV2H_OK);
         check_decoded_block(expected->decoded, &leaf, &block);
@@ -262,6 +272,19 @@ static void check_artifact(const ArtifactExpectation *expected) {
     CHECK(frame.gdf_mode == expected->gdf_mode);
     CHECK(frame.gdf_qp_index == expected->gdf_qp_index);
     CHECK(frame.gdf_scale_index == expected->gdf_scale_index);
+    if (sequence.enable_gdf) {
+        uint16_t block_size =
+            sequence.gdf_unit_matches_superblock_size ?
+                sequence.superblock_size : 128U;
+        uint16_t columns = (uint16_t)(
+            ((uint32_t)frame.width + block_size - 1U) / block_size);
+        uint16_t rows = (uint16_t)(
+            ((uint32_t)frame.height + block_size - 1U) / block_size);
+        CHECK(frame.gdf_block_size == block_size);
+        CHECK(frame.gdf_block_columns == columns);
+        CHECK(frame.gdf_block_rows == rows);
+        CHECK(frame.gdf_block_count == (uint32_t)columns * rows);
+    }
     if (status == AV2H_OK) {
         check_first_luma(expected, frame_obu, &sequence, &frame);
     }
@@ -344,16 +367,16 @@ static void test_artifact_profiles(void) {
           36U, 0U, 0U, 0U, AV2H_BLOCK_32X32, 27U,
           AV2H_OK, &emerald_q208_decoded },
         { "emerald-480x240-qp128.obu", 480U, 240U, 128U, 1U, 1U, 1U, 1U,
-          344U, 2U, 1U, 2U, AV2H_BLOCK_SIZE_COUNT, 0U,
+          344U, 2U, 1U, 2U, AV2H_BLOCK_64X64, 3U,
           AV2H_UNSUPPORTED, 0 },
         { "flycatcher-223x149-qp176.obu", 223U, 149U, 176U, 0U,
           1U, 1U, 1U, 125U, 1U, 0U, 3U, AV2H_BLOCK_32X64, 11U,
           AV2H_UNSUPPORTED, 0 },
         { "flycatcher-397x265-qp048.obu", 397U, 265U, 48U, 1U,
-          1U, 1U, 1U, 256U, 2U, 3U, 3U, AV2H_BLOCK_SIZE_COUNT, 0U,
+          1U, 1U, 1U, 256U, 2U, 3U, 3U, AV2H_BLOCK_32X32, 8U,
           AV2H_UNSUPPORTED, 0 },
         { "laarim-256x171-qp096.obu", 256U, 171U, 96U, 1U, 1U, 1U, 1U,
-          120U, 2U, 1U, 3U, AV2H_BLOCK_SIZE_COUNT, 0U,
+          120U, 2U, 1U, 3U, AV2H_BLOCK_32X32, 8U,
           AV2H_UNSUPPORTED, 0 },
         { "laarim-448x299-qp192.obu", 448U, 299U, 192U, 0U, 1U, 1U, 1U,
           98U, 1U, 2U, 2U, AV2H_BLOCK_64X64, 5U,
@@ -365,13 +388,13 @@ static void test_artifact_profiles(void) {
           131U, 1U, 3U, 3U, AV2H_BLOCK_32X32, 27U,
           AV2H_OK, &louis_q224_decoded },
         { "pastell-320x213-qp064.obu", 320U, 213U, 64U, 1U, 1U, 1U, 1U,
-          252U, 2U, 2U, 1U, AV2H_BLOCK_SIZE_COUNT, 0U,
+          252U, 2U, 2U, 1U, AV2H_BLOCK_8X8, 18U,
           AV2H_UNSUPPORTED, 0 },
         { "pastell-512x341-qp160.obu", 512U, 341U, 160U, 1U, 1U, 1U, 1U,
           332U, 1U, 2U, 3U, AV2H_BLOCK_16X32, 65U,
           AV2H_OK, &pastell_q160_decoded },
         { "schwaebisch-353x234-qp112.obu", 353U, 234U, 112U, 1U,
-          1U, 1U, 1U, 200U, 2U, 1U, 3U, AV2H_BLOCK_SIZE_COUNT, 0U,
+          1U, 1U, 1U, 200U, 2U, 1U, 3U, AV2H_BLOCK_32X8, 13U,
           AV2H_UNSUPPORTED, 0 },
         { "schwaebisch-417x277-qp208.obu", 417U, 277U, 208U, 1U,
           1U, 1U, 1U, 111U, 1U, 3U, 1U, AV2H_BLOCK_64X16, 9U,
@@ -380,7 +403,7 @@ static void test_artifact_profiles(void) {
           131U, 0U, 0U, 0U, AV2H_BLOCK_64X64, 2U,
           AV2H_UNSUPPORTED, 0 },
         { "silene-479x383-qp176.obu", 479U, 383U, 176U, 1U, 1U, 1U, 1U,
-          175U, 2U, 1U, 3U, AV2H_BLOCK_SIZE_COUNT, 0U,
+          175U, 2U, 1U, 3U, AV2H_BLOCK_64X64, 3U,
           AV2H_UNSUPPORTED, 0 }
     };
     size_t index;

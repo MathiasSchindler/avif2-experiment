@@ -47,6 +47,10 @@ typedef struct {
     uint8_t gdf_mode;
     uint8_t gdf_qp_index;
     uint8_t gdf_scale_index;
+    uint16_t gdf_block_size;
+    uint16_t gdf_block_columns;
+    uint16_t gdf_block_rows;
+    uint32_t gdf_block_count;
     uint8_t cdef_damping;
     uint8_t cdef_strength_count;
     uint8_t cdef_on_skip_transform;

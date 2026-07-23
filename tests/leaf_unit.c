@@ -1662,16 +1662,110 @@ static void test_arguments(void) {
     Av2hFrameState frame = { 0 };
     Av2hPartitionNode leaf = { 0U, 0U, AV2H_BLOCK_8X8 };
     Av2hFirstLeafMode mode;
+    Av2hGdfEntropyState gdf;
+    uint8_t bytes[8U] = { 0 };
+    uint8_t gdf_flags[4U] = { 1U, 1U, 1U, 1U };
+    Av2hSpan span = { bytes, sizeof(bytes) };
+    size_t tell;
     CHECK(sizeof(Av2hLeafCdfs) == 1010U);
     CHECK(av2h_leaf_cdfs_init(0) == AV2H_INVALID_ARGUMENT);
-        CHECK(av2h_first_leaf_mode_read(
+    CHECK(av2h_first_leaf_mode_read(
               0, &cdfs, &sequence, &frame, &leaf, &mode) ==
           AV2H_INVALID_ARGUMENT);
+    CHECK(av2h_gdf_entropy_state_init(
+              0, &sequence, &frame, gdf_flags, 4U) ==
+          AV2H_INVALID_ARGUMENT);
+    sequence.superblock_size = 64U;
+    frame.width = 128U;
+    frame.height = 128U;
+    frame.gdf_mode = 2U;
+    frame.gdf_block_size = 64U;
+    frame.gdf_block_columns = 2U;
+    frame.gdf_block_rows = 2U;
+    frame.gdf_block_count = 4U;
+    CHECK(av2h_gdf_entropy_state_init(
+              &gdf, &sequence, &frame, 0, 0U) == AV2H_INVALID_DATA);
+    sequence.enable_gdf = 1U;
+    sequence.gdf_unit_matches_superblock_size = 1U;
+    CHECK(av2h_gdf_entropy_state_init(
+              &gdf, &sequence, &frame, 0, 0U) == AV2H_OUT_OF_MEMORY);
+    CHECK(av2h_gdf_entropy_state_init(
+              &gdf, &sequence, &frame, gdf_flags, 3U) ==
+          AV2H_OUT_OF_MEMORY);
+    CHECK(av2h_gdf_entropy_state_init(
+              &gdf, &sequence, &frame, gdf_flags, 4U) == AV2H_OK);
+    CHECK(gdf.cdf[0] == 18175U);
+    CHECK(gdf.decoded_count == 0U);
+    CHECK(gdf_flags[0] == 0U);
+    frame.gdf_mode = 0U;
     frame.base_q_index = 128U;
     frame.disable_cdf_update = 1U;
-        CHECK(av2h_first_leaf_mode_read(
+    CHECK(av2h_first_leaf_mode_read(
               &decoder, &cdfs, &sequence, &frame, &leaf, &mode) ==
-            AV2H_UNSUPPORTED);
+          AV2H_UNSUPPORTED);
+    CHECK(av2h_leaf_cdfs_init(&cdfs) == AV2H_OK);
+    CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
+    sequence.enable_sdp = 1U;
+    frame.disable_cdf_update = 0U;
+    frame.allow_intrabc = 1U;
+    frame.allow_screen_content_tools = 1U;
+    tell = av2h_range_tell(&decoder);
+    CHECK(av2h_first_leaf_mode_read(
+              &decoder, &cdfs, &sequence, &frame, &leaf, &mode) ==
+          AV2H_UNSUPPORTED);
+    CHECK(av2h_range_tell(&decoder) == tell);
+}
+
+static void test_gdf_after_intrabc(void) {
+    uint8_t bytes[8U] = { 0 };
+    uint8_t flags[2U];
+    Av2hLumaModeContext above[32U];
+    Av2hLumaModeContext left[16U];
+    Av2hSpan span = { bytes, sizeof(bytes) };
+    Av2hSequenceState sequence = { 0 };
+    Av2hFrameState frame = { 0 };
+    Av2hPartitionNode leaf = { 0U, 0U, AV2H_BLOCK_8X8 };
+    Av2hLeafCdfs cdfs;
+    Av2hLumaModeContextState contexts;
+    Av2hGdfEntropyState gdf;
+    Av2hFirstLeafMode mode;
+    Av2hRangeDecoder decoder;
+    unsigned int first_byte;
+    uint8_t found = 0U;
+
+    sequence.superblock_size = 64U;
+    sequence.enable_gdf = 1U;
+    sequence.gdf_unit_matches_superblock_size = 1U;
+    sequence.enable_sdp = 1U;
+    frame.width = 128U;
+    frame.height = 64U;
+    frame.allow_intrabc = 1U;
+    frame.gdf_mode = 2U;
+    frame.gdf_block_size = 64U;
+    frame.gdf_block_columns = 2U;
+    frame.gdf_block_rows = 1U;
+    frame.gdf_block_count = 2U;
+    for (first_byte = 0U; first_byte <= 255U; ++first_byte) {
+        Av2hStatus status;
+        bytes[0] = (uint8_t)first_byte;
+        CHECK(av2h_leaf_cdfs_init(&cdfs) == AV2H_OK);
+        CHECK(av2h_luma_mode_context_state_init(
+                  &contexts, above, 32U, left, 16U) == AV2H_OK);
+        CHECK(av2h_gdf_entropy_state_init(
+                  &gdf, &sequence, &frame, flags, 2U) == AV2H_OK);
+        CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
+        status = av2h_luma_mode_read_with_state_and_gdf(
+            &decoder, &cdfs, &sequence, &frame, &leaf, &contexts,
+            &gdf, &mode);
+        if (mode.use_intrabc != 0U) {
+            CHECK(status == AV2H_UNSUPPORTED);
+            CHECK(mode.gdf_flags_read == 1U);
+            CHECK(gdf.decoded_count == 1U);
+            found = 1U;
+            break;
+        }
+    }
+    CHECK(found == 1U);
 }
 
 int main(void) {
@@ -1679,6 +1773,7 @@ int main(void) {
     test_fixture_modes();
     test_tiny_second_luma_leaf();
     test_arguments();
+    test_gdf_after_intrabc();
     if (failures != 0) {
         fprintf(stderr, "%d leaf checks failed\n", failures);
         return 1;

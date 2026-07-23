@@ -361,10 +361,12 @@ See `docs/milestone-7.md` for the exact endpoints and handoff.
 An audit of all 21 `images/artifacts/*.obu` streams found no artifact-relevant
 Milestone 7 gap. Every Frame Header now parses to the exact pinned-AVM bit
 endpoint, including multi-block GDF mode and picture parameters. Six streams
-select GDF mode 2 and fail closed at tile initialization because block-level
-GDF flags are not implemented. Of the other 15, four now complete their exact
-first coefficient block through Milestone 8 and eleven remain fail-closed at
-an earlier first-luma syntax frontier. The ordinary 4x4 intraBC leaf is
+select GDF mode 2; they now initialize the tile decoder and decode their first
+block flag at the exact pinned-AVM endpoint. The first five then reject at
+unsupported multi-strength CDEF state, while `silene-479x383-qp176` rejects at
+screen-content handling. Of the other 15, four complete their exact first
+coefficient block through Milestone 8 and eleven remain fail-closed at an
+earlier first-luma syntax frontier. The ordinary 4x4 intraBC leaf is
 implemented, but none of the artifact streams reaches it.
 
 Complete the ordinary fixture's remaining partition, mode, transform,
@@ -393,7 +395,8 @@ First-block coefficient endpoints now match AVM for
 `louis-463x342-qp224` (tell 27, DC +6), and
 `pastell-512x341-qp160` (tell 65, DC -8). The artifact test compares the full
 quantized and dequantized arrays, not only endpoints. Six GDF-mode-2 streams
-remain Milestone 9-owned; eleven other streams still stop at their first-luma
+now consume one exact Milestone 9-owned GDF flag before their next unsupported
+filter/profile state; eleven other streams still stop at their first-luma
 Milestone 8 frontier.
 
 Complete the high-detail fixture and the remaining reached high-energy,
@@ -415,14 +418,19 @@ CDEF/CCSO parser-produced state and Sequence Header consistency before
 mutation, rejects overlap among all GDF stage storage, and freezes
 focused failure and nonmutation vectors. A private checked workspace model,
 synthetic complete filter-pipeline vector, deblock/CCSO/GDF boundary vectors,
-and hosted stage-evidence recorder/comparator are also implemented. The work
-is confined to the filter implementation/header, focused C/Python tests,
+and hosted stage-evidence recorder/comparator are also implemented. That
+isolated filter preparation is confined to the filter implementation/header,
+focused C/Python tests,
 `tools/run_m9_filter_evidence.py`, and Milestone 9 documentation; see the
 milestone document for the exact handoff and remaining dependencies.
 Frame-header GDF signaling is also complete for the artifact profile: the
 parser derives the normative 64/128-pixel GDF block count, conditionally reads
-the mode-2 bit, and matches all 21 AVM header endpoints. Mode-2 block flags
-remain a tile-syntax dependency and reject before range decoding.
+the mode-2 bit, and matches all 21 AVM header endpoints. Mode-2 tile entropy
+now uses the pinned adaptive binary CDF and caller-backed row-major flag
+storage. All six mode-2 artifacts decode their first GDF flag at the exact AVM
+tell. Complete frame-wide flag decoding remains blocked by the tile
+traversal's single 64x64 root; a decoded-count guard prevents transition to
+chroma while expected flags remain unread.
 
 Populate complete deblock and CCSO metadata from reconstructed leaves, execute
 deblock, CDEF, CCSO, and GDF in normative order over coded planes, crop to
