@@ -230,7 +230,11 @@ static void test_live_plane_reconstruction(void) {
     uint8_t coeff_above[AV2H_FRAME_PLANE_COUNT * 16U];
     uint8_t coeff_left[AV2H_FRAME_PLANE_COUNT * 16U];
     uint8_t pixels[16U * 16U];
-    Av2hReconstructionPlane plane = { pixels, 16U, 16U, 16U };
+    uint8_t reconstructed[4U * 4U];
+    Av2hReconstructionPlane plane = {
+        pixels, 16U, 16U, 16U, 16U, 16U,
+        reconstructed, 4U, sizeof(reconstructed)
+    };
     Av2hReconstructionScratch scratch;
     Av2hFirstLeafPath path;
     Av2hFirstLeafMode mode;
@@ -241,6 +245,7 @@ static void test_live_plane_reconstruction(void) {
     uint8_t has_leaf;
     size_t index;
     av2h_memory_fill(pixels, 0U, sizeof(pixels));
+    av2h_memory_fill(reconstructed, 0U, sizeof(reconstructed));
     sequence.enable_sdp = 1U;
     sequence.enable_ext_partitions = 1U;
     sequence.enable_idtx_intra = 1U;

@@ -13,6 +13,30 @@ static int failures;
         }                                                                      \
     } while (0)
 
+static void check_plane_crop(const char *name,
+                             const uint8_t *actual,
+                             size_t stride,
+                             const uint8_t *expected,
+                             size_t width,
+                             size_t height) {
+    size_t row;
+    size_t column;
+    for (row = 0U; row < height; ++row) {
+        for (column = 0U; column < width; ++column) {
+            uint8_t value = actual[row * stride + column];
+            uint8_t oracle = expected[row * width + column];
+            if (value != oracle) {
+                fprintf(stderr,
+                        "%s mismatch at (%zu,%zu): %u != %u\n",
+                        name, row, column, (unsigned int)value,
+                        (unsigned int)oracle);
+                ++failures;
+                return;
+            }
+        }
+    }
+}
+
 static void check_vector(const unsigned char *header,
                          size_t header_size,
                          size_t uncompressed_header_bits) {
@@ -115,8 +139,10 @@ static void test_bounded_orchestrator(void) {
     Av2hTileLumaLeaf luma_leaf;
     Av2hTileChromaLeaf chroma_leaf;
     uint8_t luma_pixels[16U * 16U];
+    uint8_t luma_reconstructed[4U * 4U];
     Av2hReconstructionPlane luma_plane = {
-        luma_pixels, 16U, 16U, 16U
+        luma_pixels, 16U, 16U, 16U, 16U, 16U,
+        luma_reconstructed, 4U, sizeof(luma_reconstructed)
     };
     Av2hReconstructionScratch reconstruction_scratch;
     Av2hFirstCoeffBlock u_block;
@@ -138,6 +164,7 @@ static void test_bounded_orchestrator(void) {
     frame.tx_mode = 1U;
     frame.cdef_strength_count = 1U;
     av2h_memory_fill(luma_pixels, 0U, sizeof(luma_pixels));
+    av2h_memory_fill(luma_reconstructed, 0U, sizeof(luma_reconstructed));
     CHECK(av2h_tile_decoder_init(
               &decoder, (Av2hSpan){ tiny, sizeof(tiny) }, &sequence, &frame,
               &storage) == AV2H_OK);
@@ -197,6 +224,43 @@ static void test_odd_luma_reconstruction(void) {
         0x6bU, 0xddU, 0xc5U, 0x0bU, 0x25U, 0x6cU, 0x72U, 0x4dU,
         0xfbU, 0xc9U
     };
+    static const uint8_t expected_y[] = {
+        23,37,55,70,83,98,116,130,138,150,161,170,183,203,220,231,243,
+        33,47,65,80,93,107,126,140,151,167,181,189,202,220,233,241,8,
+        47,61,79,94,107,121,140,154,167,184,196,203,226,254,255,245,12,
+        57,71,89,104,117,131,150,163,173,189,201,208,211,244,249,12,12,
+        60,80,98,112,124,141,157,169,169,190,209,220,244,249,12,12,13,
+        64,85,104,119,134,149,159,175,176,195,213,225,225,233,12,12,37,
+        70,90,111,128,144,153,163,184,192,201,220,232,233,12,12,12,37,
+        77,97,118,141,152,157,171,192,204,209,225,236,12,255,12,37,37,
+        87,110,130,145,153,164,184,193,201,219,232,237,255,12,37,37,38,
+        94,120,140,151,157,175,192,197,209,227,229,255,12,13,37,37,62,
+        102,128,150,157,164,187,197,203,219,232,238,22,13,37,37,37,62,
+        107,137,157,161,173,193,202,212,226,253,0,0,37,37,37,62,62,114,
+        145,163,168,185,198,208,222,232,237,255,12,37,37,62,62,87,120,
+        150,168,178,191,202,217,231,239,238,16,27,37,62,62,87,87,126,
+        154,174,189,194,207,228,236,4,0,38,27,62,62,62,62,111
+    };
+    static const uint8_t expected_u[] = {
+        96,110,130,144,154,169,183,192,209,
+        101,115,135,148,160,179,195,204,219,
+        108,121,141,155,168,190,207,216,225,
+        112,126,146,160,173,195,212,222,229,
+        121,138,155,169,187,209,225,230,230,
+        131,151,165,178,204,219,225,230,230,
+        143,160,174,191,214,219,225,230,230,
+        155,169,182,204,214,219,225,230,230
+    };
+    static const uint8_t expected_v[] = {
+        164,177,197,211,212,216,243,6,20,
+        168,182,202,216,234,234,6,9,32,
+        175,189,209,223,224,255,25,31,40,
+        180,193,213,227,247,16,21,37,44,
+        187,211,216,250,8,18,40,45,45,
+        200,213,236,254,13,34,40,45,45,
+        193,227,245,11,29,34,40,45,45,
+        220,234,255,4,29,34,40,45,45
+    };
     uint8_t luma_partition_above[6U];
     uint8_t luma_partition_left[4U];
     uint8_t chroma_partition_above[6U];
@@ -214,8 +278,22 @@ static void test_odd_luma_reconstruction(void) {
         6U, 4U, 24U
     };
     uint8_t luma_pixels[24U * 16U];
+    uint8_t u_pixels[12U * 8U];
+    uint8_t v_pixels[12U * 8U];
+    uint8_t luma_reconstructed[6U * 4U];
+    uint8_t u_reconstructed[3U * 2U];
+    uint8_t v_reconstructed[3U * 2U];
     Av2hReconstructionPlane luma_plane = {
-        luma_pixels, 24U, 24U, 16U
+        luma_pixels, 24U, 24U, 16U, 17U, 15U,
+        luma_reconstructed, 6U, sizeof(luma_reconstructed)
+    };
+    Av2hReconstructionPlane u_plane = {
+        u_pixels, 12U, 12U, 8U, 9U, 8U,
+        u_reconstructed, 3U, sizeof(u_reconstructed)
+    };
+    Av2hReconstructionPlane v_plane = {
+        v_pixels, 12U, 12U, 8U, 9U, 8U,
+        v_reconstructed, 3U, sizeof(v_reconstructed)
     };
     Av2hReconstructionScratch reconstruction_scratch;
     Av2hObu obu;
@@ -227,8 +305,6 @@ static void test_odd_luma_reconstruction(void) {
     Av2hTileLumaLeaf leaf;
     Av2hTileChromaLeaf chroma_leaf;
     Av2hFirstCoeffBlock block;
-    Av2hFirstCoeffBlock u_block;
-    Av2hFirstCoeffBlock v_block;
     Av2hError error;
     Av2hStatus status;
     uint8_t has_leaf = 0U;
@@ -247,6 +323,11 @@ static void test_odd_luma_reconstruction(void) {
               (Av2hSpan){ frame_bytes, sizeof(frame_bytes) },
               frame.uncompressed_header_bits, &group) == AV2H_OK);
     av2h_memory_fill(luma_pixels, 0U, sizeof(luma_pixels));
+    av2h_memory_fill(u_pixels, 0U, sizeof(u_pixels));
+    av2h_memory_fill(v_pixels, 0U, sizeof(v_pixels));
+    av2h_memory_fill(luma_reconstructed, 0U, sizeof(luma_reconstructed));
+    av2h_memory_fill(u_reconstructed, 0U, sizeof(u_reconstructed));
+    av2h_memory_fill(v_reconstructed, 0U, sizeof(v_reconstructed));
         CHECK(av2h_tile_decoder_init(
                   &decoder, group.entropy, &sequence, &frame, &storage) ==
               AV2H_OK);
@@ -459,13 +540,14 @@ static void test_odd_luma_reconstruction(void) {
         }
     }
     for (;;) {
-        status = av2h_tile_decoder_next_chroma(
-            &decoder, &chroma_leaf, &u_block, &v_block, &has_leaf);
+        status = av2h_tile_decoder_reconstruct_next_chroma(
+            &decoder, &u_plane, &v_plane, &reconstruction_scratch,
+            &chroma_leaf, &has_leaf);
         if (status != AV2H_OK) {
             fprintf(stderr,
                     "odd chroma failed after %zu leaves at (%u,%u), "
                     "block %u mode %u angle %d cfl/index %u/%u "
-                    "u %u/%u/%u/%u v %u/%u/%u/%u tell %zu: %u\n",
+                    "u %u/%u/%u v %u/%u/%u tell %zu: %u\n",
                     chroma_count, chroma_leaf.node.row,
                     chroma_leaf.node.column,
                     (unsigned int)chroma_leaf.node.block_size,
@@ -476,11 +558,9 @@ static void test_odd_luma_reconstruction(void) {
                     (unsigned int)chroma_leaf.prefix[0].tx_size,
                     (unsigned int)chroma_leaf.transform[0].primary_type,
                     (unsigned int)chroma_leaf.prefix[0].eob,
-                    (unsigned int)u_block.diagnostic_position,
                     (unsigned int)chroma_leaf.prefix[1].tx_size,
                     (unsigned int)chroma_leaf.transform[1].primary_type,
                     (unsigned int)chroma_leaf.prefix[1].eob,
-                    (unsigned int)v_block.diagnostic_position,
                     av2h_range_tell(&decoder.range), (unsigned int)status);
             break;
         }
@@ -498,8 +578,6 @@ static void test_odd_luma_reconstruction(void) {
                 (unsigned int)chroma_leaf.transform[1].primary_type,
                 (unsigned int)chroma_leaf.prefix[1].eob,
                 av2h_range_tell(&decoder.range));
-        CHECK(av2h_tile_decoder_commit_leaf(
-                  &decoder, chroma_leaf.node) == AV2H_OK);
         ++chroma_count;
     }
     CHECK(status == AV2H_OK);
@@ -507,6 +585,9 @@ static void test_odd_luma_reconstruction(void) {
     CHECK(chroma_count == 5U);
     CHECK(av2h_range_tell(&decoder.range) == 696U);
     CHECK(decoder.phase == AV2H_TILE_DECODE_DONE);
+    check_plane_crop("odd Y", luma_pixels, 24U, expected_y, 17U, 15U);
+    check_plane_crop("odd U", u_pixels, 12U, expected_u, 9U, 8U);
+    check_plane_crop("odd V", v_pixels, 12U, expected_v, 9U, 8U);
 }
 
 static void test_ordinary_luma_frontier(void) {
@@ -537,8 +618,10 @@ static void test_ordinary_luma_frontier(void) {
         40U, 30U, 40U * 30U
     };
     uint8_t luma_pixels[160U * 120U];
+    uint8_t luma_reconstructed[40U * 30U];
     Av2hReconstructionPlane luma_plane = {
-        luma_pixels, 160U, 160U, 120U
+        luma_pixels, 160U, 160U, 120U, 160U, 120U,
+        luma_reconstructed, 40U, sizeof(luma_reconstructed)
     };
     Av2hReconstructionScratch scratch;
     Av2hSequenceState sequence = { 0 };
@@ -565,6 +648,7 @@ static void test_ordinary_luma_frontier(void) {
     frame.cdef_strength_count = 1U;
     frame.ccso[0].enabled = 1U;
     av2h_memory_fill(luma_pixels, 0U, sizeof(luma_pixels));
+    av2h_memory_fill(luma_reconstructed, 0U, sizeof(luma_reconstructed));
     CHECK(av2h_tile_decoder_init(
               &decoder, (Av2hSpan){ entropy, sizeof(entropy) }, &sequence,
               &frame, &storage) == AV2H_OK);

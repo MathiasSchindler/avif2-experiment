@@ -138,7 +138,7 @@ static void test_arguments(void) {
     Av2hFirstLeafMode mode = { 0 };
     Av2hFirstCoeffPrefix prefix = { 0 };
     Av2hFirstTransformType transform;
-    CHECK(sizeof(Av2hFirstTransformCdfs) == 82U);
+    CHECK(sizeof(Av2hFirstTransformCdfs) == 146U);
     CHECK(av2h_first_transform_cdfs_init(0) == AV2H_INVALID_ARGUMENT);
     CHECK(av2h_first_transform_type_read(
               0, &cdfs, &sequence, &frame, &mode, &prefix, &transform) ==

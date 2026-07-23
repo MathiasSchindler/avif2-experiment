@@ -14,8 +14,7 @@ static int failures;
     } while (0)
 
 static void test_larger_mode_ordering(void) {
-    Av2hLumaModeNeighbors neighbors = { { 0U, 0U }, { 0U, 0U },
-        { 0U, 0U }, { 0U, 0U }, { 0U, 0U } };
+    Av2hLumaModeNeighbors neighbors = { 0 };
     uint8_t joint_mode = 0U;
     CHECK(av2h_luma_joint_mode_from_index(
               59U, AV2H_BLOCK_8X32, &neighbors, &joint_mode) == AV2H_OK);
@@ -1663,7 +1662,7 @@ static void test_arguments(void) {
     Av2hFrameState frame = { 0 };
     Av2hPartitionNode leaf = { 0U, 0U, AV2H_BLOCK_8X8 };
     Av2hFirstLeafMode mode;
-    CHECK(sizeof(Av2hLeafCdfs) == 784U);
+    CHECK(sizeof(Av2hLeafCdfs) == 1010U);
     CHECK(av2h_leaf_cdfs_init(0) == AV2H_INVALID_ARGUMENT);
         CHECK(av2h_first_leaf_mode_read(
               0, &cdfs, &sequence, &frame, &leaf, &mode) ==

@@ -24,6 +24,11 @@ typedef struct {
     size_t stride;
     uint16_t width;
     uint16_t height;
+    uint16_t reference_width;
+    uint16_t reference_height;
+    uint8_t *reconstructed;
+    size_t reconstructed_stride;
+    size_t reconstructed_count;
 } Av2hReconstructionPlane;
 
 typedef struct {
@@ -69,6 +74,14 @@ Av2hStatus av2h_luma_reconstruct(
 Av2hStatus av2h_luma_reconstruct_to_plane(
     const Av2hPartitionNode *leaf,
     const Av2hFirstLeafMode *mode,
+    const Av2hFirstCoeffPrefix *prefix,
+    const Av2hFirstTransformType *transform,
+    const Av2hFirstCoeffBlock *coefficients,
+    Av2hReconstructionPlane *plane,
+    Av2hReconstructionScratch *scratch);
+Av2hStatus av2h_chroma_reconstruct_to_plane(
+    const Av2hPartitionNode *leaf,
+    const Av2hFirstChromaMode *mode,
     const Av2hFirstCoeffPrefix *prefix,
     const Av2hFirstTransformType *transform,
     const Av2hFirstCoeffBlock *coefficients,

@@ -26,7 +26,10 @@ separate reference experiment and is fetched into ignored `vendor/` and
   with caller-owned traversal, context, scratch, and live-plane state. Focused
   deblock, CDEF, CCSO, and GDF kernels pass; restoration remains unsupported
   and fail-closed.
-- Milestone 6 will connect complete frame-wide state and prove the odd fixture.
+- Milestone 6 is implemented: caller-owned coded Y/U/V planes distinguish
+  visible reference bounds from padded storage, retain per-4x4 reconstruction
+  readiness, and reconstruct all 12 odd luma and five odd chroma leaves
+  sample-exactly through tell 696 before filtering.
 - Milestone 7 is in progress through six committed ordinary luma leaves and
   currently stops at `(4,14)`, 4x8 DC, TX_4X8, EOB 29, primary
   `FLIPADST_ADST`, before coefficient scanning.

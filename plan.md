@@ -333,10 +333,13 @@ reconstruction path fails before leaf commit or final-plane mutation.
 
 ## Milestone 6: frame-wide wiring and odd fixture
 
-**Status:** Planned.
+**Status:** Implemented. Caller-owned coded Y, U, and V planes now retain
+visible reference bounds separately from padded storage and use per-4x4
+readiness maps to prevent references to future leaves. All 12 luma and five
+chroma leaves of the 17x15 fixture reconstruct sample-exactly through tell 696.
 
 Connect tile traversal, live references, reconstruction planes, and per-4x4
-metadata for a complete coded frame. Complete every luma and chroma path
+reconstruction-readiness metadata for a complete coded frame. Complete every luma and chroma path
 reached by the 17x15 odd fixture, including coded-edge extension and cropping.
 Keep reconstruction private and restoration fail-closed.
 

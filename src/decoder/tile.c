@@ -296,6 +296,34 @@ Av2hStatus av2h_tile_decoder_next_chroma(
     return AV2H_OK;
 }
 
+Av2hStatus av2h_tile_decoder_reconstruct_next_chroma(
+    Av2hTileDecoder *decoder,
+    Av2hReconstructionPlane *u_plane,
+    Av2hReconstructionPlane *v_plane,
+    Av2hReconstructionScratch *scratch,
+    Av2hTileChromaLeaf *leaf,
+    uint8_t *has_leaf) {
+    Av2hFirstCoeffBlock u_block;
+    Av2hFirstCoeffBlock v_block;
+    Av2hStatus status;
+    if (decoder == 0 || u_plane == 0 || v_plane == 0 || scratch == 0 ||
+        leaf == 0 || has_leaf == 0) {
+        return AV2H_INVALID_ARGUMENT;
+    }
+    status = av2h_tile_decoder_next_chroma(
+        decoder, leaf, &u_block, &v_block, has_leaf);
+    if (status != AV2H_OK || !*has_leaf) return status;
+    status = av2h_chroma_reconstruct_to_plane(
+        &leaf->node, &leaf->mode, &leaf->prefix[0], &leaf->transform[0],
+        &u_block, u_plane, scratch);
+    if (status != AV2H_OK) return tile_decoder_fail(decoder, status);
+    status = av2h_chroma_reconstruct_to_plane(
+        &leaf->node, &leaf->mode, &leaf->prefix[1], &leaf->transform[1],
+        &v_block, v_plane, scratch);
+    if (status != AV2H_OK) return tile_decoder_fail(decoder, status);
+    return av2h_tile_decoder_commit_leaf(decoder, leaf->node);
+}
+
 Av2hStatus av2h_tile_decoder_commit_leaf(
     Av2hTileDecoder *decoder,
     Av2hPartitionNode leaf) {

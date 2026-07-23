@@ -99,6 +99,13 @@ Av2hStatus av2h_tile_decoder_next_chroma(
     Av2hFirstCoeffBlock *u_block,
     Av2hFirstCoeffBlock *v_block,
     uint8_t *has_leaf);
+Av2hStatus av2h_tile_decoder_reconstruct_next_chroma(
+    Av2hTileDecoder *decoder,
+    Av2hReconstructionPlane *u_plane,
+    Av2hReconstructionPlane *v_plane,
+    Av2hReconstructionScratch *scratch,
+    Av2hTileChromaLeaf *leaf,
+    uint8_t *has_leaf);
 Av2hStatus av2h_tile_decoder_commit_leaf(
     Av2hTileDecoder *decoder,
     Av2hPartitionNode leaf);
