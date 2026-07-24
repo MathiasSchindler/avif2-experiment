@@ -7,6 +7,9 @@ Av2hStatus av2h_first_transform_cdfs_init(Av2hFirstTransformCdfs *cdfs) {
     static const uint16_t primary_size1[] = {
         14910U, 25257U, 26964U, 29323U, 30237U, 31535U
     };
+    static const uint16_t primary_size2[] = {
+        13759U, 26108U, 27688U, 29793U, 30265U, 31576U
+    };
     static const uint16_t primary_short_side_8[] = {
         26700U, 32160U, 32748U
     };
@@ -43,6 +46,10 @@ Av2hStatus av2h_first_transform_cdfs_init(Av2hFirstTransformCdfs *cdfs) {
     status = av2h_cdf_init(
         cdfs->primary_size1, AV2H_PRIMARY_TX_TYPE_SYMBOLS + 4U,
         primary_size1, AV2H_PRIMARY_TX_TYPE_SYMBOLS, 0U, 0U);
+    if (status != AV2H_OK) return status;
+    status = av2h_cdf_init(
+        cdfs->primary_size2, AV2H_PRIMARY_TX_TYPE_SYMBOLS + 4U,
+        primary_size2, AV2H_PRIMARY_TX_TYPE_SYMBOLS, 35U, 0U);
     if (status != AV2H_OK) return status;
     status = av2h_binary_cdf_init(
         cdfs->primary_long_side_32,
@@ -241,6 +248,7 @@ static Av2hStatus read_primary(Av2hRangeDecoder *decoder,
             }
         }
     } else if ((coeff->tx_size == AV2H_TX_8X8 ||
+                coeff->tx_size == AV2H_TX_16X16 ||
                 coeff->tx_size == AV2H_TX_8X16 ||
                 coeff->tx_size == AV2H_TX_16X8) &&
                (mode->mode == AV2H_INTRA_PAETH ||
@@ -251,9 +259,15 @@ static Av2hStatus read_primary(Av2hRangeDecoder *decoder,
                 mode->mode == AV2H_INTRA_D203 ||
                 mode->mode == AV2H_INTRA_D45)) {
         symbol = av2h_range_read_adaptive(
-            decoder, cdfs->primary_size1, AV2H_PRIMARY_TX_TYPE_SYMBOLS);
+            decoder,
+            coeff->tx_size == AV2H_TX_16X16 ?
+                cdfs->primary_size2 : cdfs->primary_size1,
+            AV2H_PRIMARY_TX_TYPE_SYMBOLS);
         transform->primary_symbol = (uint8_t)symbol;
-        if (coeff->tx_size == AV2H_TX_8X16 &&
+        if (coeff->tx_size == AV2H_TX_16X16 &&
+            mode->mode == AV2H_INTRA_SMOOTH && symbol == 1U) {
+            transform->primary_type = AV2H_TX_ADST_ADST;
+        } else if (coeff->tx_size == AV2H_TX_8X16 &&
             mode->mode == AV2H_INTRA_D203) {
             static const Av2hFirstTxType d203_8x16[] = {
                 AV2H_TX_DCT_DCT, AV2H_TX_ADST_ADST,
@@ -382,9 +396,14 @@ Av2hStatus av2h_first_transform_type_read(
           transform->primary_type == AV2H_TX_ADST_ADST) ||
          (coeff->tx_size == AV2H_TX_16X8 &&
           mode->mode == AV2H_INTRA_SMOOTH && coeff->eob == 3U &&
+          transform->primary_type == AV2H_TX_ADST_ADST) ||
+         (coeff->tx_size == AV2H_TX_16X16 &&
+          mode->mode == AV2H_INTRA_SMOOTH && coeff->eob == 4U &&
           transform->primary_type == AV2H_TX_ADST_ADST))) {
         symbol = av2h_range_read_adaptive(
             decoder, coeff->tx_size == AV2H_TX_8X4 ? cdfs->secondary_4x4 :
+                     coeff->tx_size == AV2H_TX_16X16 ?
+                         cdfs->secondary_16x16 :
                      (coeff->tx_size == AV2H_TX_16X32 ||
                       coeff->tx_size == AV2H_TX_64X16) ?
                          cdfs->secondary_16x16 :

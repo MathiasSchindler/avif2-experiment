@@ -203,6 +203,9 @@ static Av2hStatus derive_tx_size(Av2hBlockSize block_size,
     } else if (block_size == AV2H_BLOCK_8X8) {
         *tx_size = AV2H_TX_8X8;
         *tx_size_context = 1U;
+    } else if (block_size == AV2H_BLOCK_16X16) {
+        *tx_size = AV2H_TX_16X16;
+        *tx_size_context = 2U;
     } else if (block_size == AV2H_BLOCK_8X16) {
         *tx_size = AV2H_TX_8X16;
         *tx_size_context = 2U;
@@ -426,6 +429,10 @@ static Av2hStatus eob_parameters(
         *point_cdf = cdfs->eob_pt_256;
         *point_symbols = 8U;
         *capacity = 256U;
+    } else if (tx_size == AV2H_TX_16X16) {
+        *point_cdf = cdfs->eob_pt_256;
+        *point_symbols = 8U;
+        *capacity = 256U;
     } else if (tx_size == AV2H_TX_16X32 ||
                tx_size == AV2H_TX_64X16) {
         *point_cdf = cdfs->eob_pt_512;
@@ -473,16 +480,14 @@ static Av2hStatus decode_eob(Av2hRangeDecoder *decoder,
             return av2h_range_status(decoder);
         }
     }
-    if ((prefix->tx_size == AV2H_TX_32X64 ||
+    if ((prefix->tx_size == AV2H_TX_32X32 ||
+         prefix->tx_size == AV2H_TX_32X64 ||
          prefix->tx_size == AV2H_TX_64X64 ||
          prefix->tx_size == AV2H_TX_64X16) && value == 7U) {
         value += av2h_range_read_bypass(decoder, 2U);
         if (av2h_range_status(decoder) != AV2H_OK) {
             return av2h_range_status(decoder);
         }
-    }
-    if (prefix->tx_size == AV2H_TX_32X32 && value == 7U) {
-        return AV2H_UNSUPPORTED;
     }
     prefix->eob_point = (uint8_t)(value + 1U);
     prefix->after_eob_point_bits = av2h_range_tell(decoder);
@@ -552,7 +557,20 @@ Av2hStatus av2h_coeff_prefix_read(
     if (!large_tx_prefix_profile_supported(frame, prefix->tx_size)) {
         return AV2H_UNSUPPORTED;
     }
+    if (prefix->tx_size == AV2H_TX_16X16 &&
+        !(frame->base_q_index == 208U &&
+          frame->width == 192U && frame->height == 96U &&
+          leaf->row == 10U &&
+          ((leaf->column == 0U &&
+            mode->mode == AV2H_INTRA_DC) ||
+           (leaf->column == 4U &&
+            mode->mode == AV2H_INTRA_SMOOTH)) &&
+          mode->angle_delta == 0 && mode->mrl_index == 0U &&
+          mode->enable_ibp == 1U && mode->use_intrabc == 0U)) {
+        return AV2H_UNSUPPORTED;
+    }
     if (cdfs->q_context != 1U &&
+        prefix->tx_size != AV2H_TX_16X16 &&
         prefix->tx_size != AV2H_TX_32X8 &&
         prefix->tx_size != AV2H_TX_16X32 &&
         prefix->tx_size != AV2H_TX_32X32 &&

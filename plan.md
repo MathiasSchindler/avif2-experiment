@@ -414,13 +414,33 @@ now consume exact first-unit GDF, CDEF, and CCSO syntax before their next
 unsupported profile path; eleven other streams still stop at their first-luma
 Milestone 8 frontier.
 
-Emerald Q208 now continues through two adjacent 32x32 luma leaves and the
-following `(8,0)` 32x8 DC leaf at tell 46. The decoder derives DC from the
-available reconstructed references, applies sequence-enabled normative IBP,
-and matches all pinned AVM predictor and prefilter samples. The 32x8 block
-uses the Q-context-3 EOB-256 path, implicit DCT_DCT, one coefficient at
-`q=-1`/`dq=-1984`, and a constant -15 inverse-transform residual. Its new
-fail-closed frontier is the `(10,0)` 16x16 Q208 luma profile at tell 47.
+Cuckoo Q160 and pastell Q160 now reconstruct and commit those first 16x32
+blocks sample-exactly, with pinned full-block hashes `fb97d9776de897f5` and
+`73f9aa733e29f1c7` plus first/last-row locks. Cuckoo next reaches `(0,4)`
+8x16 at tell 41 and fails before mode syntax on Q160 profile admission.
+Pastell next reaches `(0,4)` 16x32 Smooth, EOB 3, DCT_DCT, and secondary
+symbol 0 at tell 78, then fails before coefficient-level entropy.
+
+Laarim Q96 now applies the normative two-bypass-bit extension to TX_32X32 raw
+EOB point 7, reaching EOB point 8, EOB 126, and implicit DCT_DCT at tell 28.
+The sparse normative Q-context-1 TX-context-3 rows decode 126 levels through
+tell 314 and 82 coefficients through tell 471. Its D45 predictor and
+prefilter hashes are `75290844cee19be7` and `51b573f06c63948a`; traversal
+then reaches `(0,8)` 16x16 fail-closed at tell 476.
+
+Emerald Q208 now continues through two adjacent 32x32 luma leaves, the
+following `(8,0)` 32x8 DC leaf, and both `(10,*)` 16x16 leaves. `(10,0)`
+completes all-zero at tell 52. `(10,4)` uses the normative
+`intra_ext_tx_cdf[1][2]` primary row, maps symbol 1 to ADST_ADST at tell 61,
+reads STX 0 through tell 65, and decodes coefficients
+`+2@0,+1@16,-1@32` through tell 72. Its constant-98 predictor plus real
+ADST_ADST inverse transform matches all pinned samples and trace hash
+`7959e335`; `(14,0)` 32x8 is the new tell-74 fail-closed frontier.
+
+Schwaebisch Q208 reconstructs its first 64x16 all-zero DC block with adjusted
+32x16 coefficient geometry. Predictor and prefilter are constant 128 with
+hash `d495a039fba13383`; the block ends at tell 17 and `(4,0)` 32x16 remains
+the tell-19 frontier.
 
 Complete the high-detail fixture and the remaining reached high-energy,
 secondary-transform, CFL, intraBC, coefficient-range, and large-transform

@@ -29,6 +29,7 @@ typedef enum {
 typedef struct {
     uint16_t primary_size0[AV2H_PRIMARY_TX_TYPE_SYMBOLS + 4U];
     uint16_t primary_size1[AV2H_PRIMARY_TX_TYPE_SYMBOLS + 4U];
+    uint16_t primary_size2[AV2H_PRIMARY_TX_TYPE_SYMBOLS + 4U];
     uint16_t primary_long_side_32[AV2H_BINARY_CDF_SIZE];
     uint16_t primary_short_side_8[4U + 4U];
     uint16_t primary_short_side_16[4U + 4U];

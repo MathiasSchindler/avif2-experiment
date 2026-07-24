@@ -131,6 +131,10 @@ static void test_fixture_transform_types(void) {
 }
 
 static void test_arguments(void) {
+    static const uint16_t primary_size2[] = {
+        19009U, 6660U, 5080U, 2975U, 2503U, 1192U,
+        0U, 0U, 2U, 2U, 5U
+    };
     Av2hRangeDecoder decoder;
     Av2hFirstTransformCdfs cdfs;
     Av2hSequenceState sequence = { 0 };
@@ -138,8 +142,13 @@ static void test_arguments(void) {
     Av2hFirstLeafMode mode = { 0 };
     Av2hFirstCoeffPrefix prefix = { 0 };
     Av2hFirstTransformType transform;
-    CHECK(sizeof(Av2hFirstTransformCdfs) == 246U);
+    CHECK(sizeof(Av2hFirstTransformCdfs) == 268U);
     CHECK(av2h_first_transform_cdfs_init(0) == AV2H_INVALID_ARGUMENT);
+    CHECK(av2h_first_transform_cdfs_init(&cdfs) == AV2H_OK);
+    for (size_t index = 0U;
+         index < sizeof(primary_size2) / sizeof(primary_size2[0]); ++index) {
+        CHECK(cdfs.primary_size2[index] == primary_size2[index]);
+    }
     CHECK(av2h_first_transform_type_read(
               0, &cdfs, &sequence, &frame, &mode, &prefix, &transform) ==
           AV2H_INVALID_ARGUMENT);

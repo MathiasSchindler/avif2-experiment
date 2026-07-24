@@ -1,4 +1,4 @@
-#include "decoder/reconstruct.h"
+#include "decoder/tile.h"
 
 #include <stdio.h>
 
@@ -19,6 +19,25 @@ static uint64_t pixel_hash(const Av2hFirstReconstruction *reconstruction) {
     size_t count = (size_t)reconstruction->width * reconstruction->height;
     for (index = 0U; index < count; ++index) {
         hash ^= reconstruction->pixels[index];
+        hash *= UINT64_C(1099511628211);
+    }
+    return hash;
+}
+
+static uint32_t trace_sample_hash(const uint8_t *samples, size_t count) {
+    uint32_t hash = 5381U;
+    size_t index;
+    for (index = 0U; index < count; ++index) {
+        hash = (hash * 33U) ^ samples[index];
+    }
+    return hash;
+}
+
+static uint64_t sample_hash(const uint8_t *samples, size_t count) {
+    uint64_t hash = UINT64_C(1469598103934665603);
+    size_t index;
+    for (index = 0U; index < count; ++index) {
+        hash ^= samples[index];
         hash *= UINT64_C(1099511628211);
     }
     return hash;
@@ -238,6 +257,417 @@ static void test_skipped_16x8_intrabc_reconstruction(void) {
     CHECK(av2h_luma_reconstruct(
               &mode, &prefix, &transform, &block, predictor, 16U,
               &scratch, &reconstruction) == AV2H_UNSUPPORTED);
+}
+
+static void test_all_zero_16x16_reconstruction(void) {
+    Av2hFirstLeafMode mode = { 0 };
+    Av2hFirstCoeffPrefix prefix = { 0 };
+    Av2hFirstTransformType transform = { 0 };
+    Av2hFirstCoeffBlock block = { 0 };
+    Av2hReconstructionScratch scratch;
+    Av2hFirstReconstruction reconstruction;
+    Av2hLumaReferences references = { 0 };
+    uint8_t above[16U];
+    uint8_t predictor[256U];
+    size_t index;
+
+    av2h_memory_fill(above, 98U, sizeof(above));
+    mode.mode = AV2H_INTRA_DC;
+    mode.enable_ibp = 1U;
+    references.above = above;
+    references.above_count = sizeof(above);
+    CHECK(av2h_luma_predict(
+                  &mode, 16U, 16U, &references, predictor, 16U) == AV2H_OK);
+    for (index = 0U; index < sizeof(predictor); ++index) {
+        CHECK(predictor[index] == 98U);
+    }
+
+    {
+        static const uint8_t expected[256U] = {
+            98U, 98U, 98U, 98U, 98U, 98U, 98U, 98U,
+            98U, 98U, 98U, 98U, 98U, 98U, 98U, 98U,
+            98U, 99U, 99U, 99U, 99U, 100U, 100U, 100U,
+            100U, 100U, 101U, 101U, 101U, 101U, 101U, 101U,
+            99U, 100U, 101U, 102U, 102U, 103U, 104U, 105U,
+            105U, 106U, 106U, 107U, 107U, 108U, 108U, 108U,
+            100U, 102U, 104U, 106U, 108U, 109U, 111U, 113U,
+            114U, 115U, 116U, 117U, 118U, 119U, 119U, 119U,
+            101U, 105U, 108U, 111U, 115U, 118U, 120U, 123U,
+            125U, 128U, 129U, 131U, 132U, 134U, 134U, 134U,
+            103U, 108U, 113U, 118U, 123U, 127U, 131U, 135U,
+            138U, 142U, 144U, 147U, 149U, 150U, 151U, 152U,
+            104U, 111U, 118U, 124U, 130U, 136U, 141U, 147U,
+            151U, 155U, 159U, 162U, 164U, 166U, 167U, 168U,
+            105U, 114U, 121U, 129U, 136U, 143U, 149U, 156U,
+            160U, 166U, 170U, 173U, 176U, 179U, 180U, 181U,
+            106U, 115U, 123U, 131U, 139U, 146U, 153U, 160U,
+            165U, 171U, 175U, 179U, 182U, 185U, 186U, 187U,
+            106U, 115U, 123U, 130U, 138U, 145U, 152U, 159U,
+            164U, 170U, 174U, 178U, 181U, 184U, 185U, 186U,
+            105U, 113U, 120U, 127U, 134U, 140U, 146U, 152U,
+            157U, 162U, 165U, 169U, 171U, 174U, 175U, 176U,
+            104U, 110U, 116U, 121U, 127U, 132U, 137U, 141U,
+            145U, 149U, 152U, 155U, 157U, 159U, 160U, 160U,
+            102U, 106U, 110U, 114U, 118U, 121U, 125U, 128U,
+            130U, 133U, 135U, 137U, 139U, 140U, 141U, 141U,
+            100U, 103U, 105U, 107U, 109U, 111U, 113U, 115U,
+            117U, 118U, 120U, 121U, 122U, 122U, 123U, 123U,
+            99U, 100U, 101U, 101U, 102U, 103U, 104U, 105U,
+            105U, 106U, 106U, 107U, 107U, 107U, 107U, 107U,
+            98U, 98U, 98U, 98U, 98U, 99U, 99U, 99U,
+            99U, 99U, 99U, 99U, 99U, 99U, 99U, 99U
+        };
+        Av2hFirstLeafMode mode = { 0 };
+        Av2hFirstCoeffPrefix prefix = { 0 };
+        Av2hFirstTransformType transform = { 0 };
+        Av2hFirstCoeffBlock block = { 0 };
+        Av2hReconstructionScratch scratch;
+        Av2hFirstReconstruction reconstruction;
+        uint8_t predictor[256U];
+        size_t index;
+
+        av2h_memory_fill(predictor, 98U, sizeof(predictor));
+        mode.mode = AV2H_INTRA_SMOOTH;
+        prefix.tx_size = AV2H_TX_16X16;
+        prefix.eob = 4U;
+        transform.primary_type = AV2H_TX_ADST_ADST;
+        block.width = 16U;
+        block.height = 16U;
+        block.coefficient_count = 256U;
+        block.nonzero_count = 3U;
+        block.dequantized[0U] = 3968;
+        block.dequantized[16U] = 1984;
+        block.dequantized[32U] = -1984;
+
+        CHECK(av2h_luma_reconstruct(
+                  &mode, &prefix, &transform, &block, predictor, 16U,
+                  &scratch, &reconstruction) == AV2H_OK);
+        CHECK(reconstruction.width == 16U);
+        CHECK(reconstruction.height == 16U);
+        CHECK(trace_sample_hash(reconstruction.pixels, 256U) == 0x7959e335U);
+        for (index = 0U; index < 256U; ++index) {
+            CHECK(reconstruction.pixels[index] == expected[index]);
+            CHECK(reconstruction.residual[index] ==
+                  (int32_t)expected[index] - 98);
+        }
+    }
+
+    prefix.tx_size = AV2H_TX_16X16;
+    prefix.all_zero = 1U;
+    transform.primary_type = AV2H_TX_DCT_DCT;
+    block.width = 16U;
+    block.height = 16U;
+    block.coefficient_count = 256U;
+    CHECK(av2h_luma_reconstruct(
+                  &mode, &prefix, &transform, &block, predictor, 16U,
+                  &scratch, &reconstruction) == AV2H_OK);
+    CHECK(reconstruction.width == 16U);
+    CHECK(reconstruction.height == 16U);
+    for (index = 0U; index < 256U; ++index) {
+        CHECK(reconstruction.residual[index] == 0);
+        CHECK(reconstruction.pixels[index] == 98U);
+    }
+
+    block.quantized[255U] = 1;
+    CHECK(av2h_luma_reconstruct(
+                  &mode, &prefix, &transform, &block, predictor, 16U,
+                  &scratch, &reconstruction) == AV2H_UNSUPPORTED);
+}
+
+static void test_laarim_q96_32x32_reconstruction(void) {
+    typedef struct {
+        uint16_t position;
+        int32_t quantized;
+        int32_t dequantized;
+    } Coefficient;
+    static const Coefficient coefficients[] = {
+        { 0U, 67, 2613 }, { 1U, 6, 234 }, { 2U, -15, -585 },
+        { 3U, 3, 117 }, { 5U, 5, 195 }, { 6U, -2, -78 },
+        { 7U, 1, 39 }, { 8U, 2, 78 }, { 9U, -2, -78 },
+        { 32U, -24, -936 }, { 33U, 5, 195 }, { 34U, -3, -117 },
+        { 35U, -7, -273 }, { 36U, 5, 195 }, { 37U, 3, 117 },
+        { 38U, -3, -117 }, { 40U, -4, -156 }, { 41U, -2, -78 },
+        { 43U, -1, -39 }, { 64U, -40, -1560 }, { 65U, 18, 702 },
+        { 66U, -8, -312 }, { 67U, -6, -234 }, { 68U, -1, -39 },
+        { 69U, 2, 78 }, { 73U, -2, -78 }, { 96U, 3, 117 },
+        { 97U, 4, 156 }, { 98U, -8, -312 }, { 99U, -1, -39 },
+        { 100U, 2, 78 }, { 101U, 1, 39 }, { 102U, 4, 156 },
+        { 103U, 2, 78 }, { 104U, -1, -39 }, { 105U, -1, -39 },
+        { 106U, -1, -39 }, { 128U, 11, 429 }, { 129U, 18, 702 },
+        { 130U, 4, 156 }, { 131U, -6, -234 }, { 132U, -7, -273 },
+        { 133U, -1, -39 }, { 134U, -1, -39 }, { 135U, 1, 39 },
+        { 136U, -1, -39 }, { 160U, 5, 195 }, { 161U, -9, -351 },
+        { 162U, 2, 78 }, { 163U, 11, 429 }, { 164U, -4, -156 },
+        { 165U, -2, -78 }, { 166U, -1, -39 }, { 192U, 4, 156 },
+        { 193U, 3, 117 }, { 194U, 9, 351 }, { 195U, -2, -78 },
+        { 196U, 1, 39 }, { 198U, -2, -78 }, { 224U, 1, 39 },
+        { 226U, -2, -78 }, { 227U, 4, 156 }, { 228U, 3, 117 },
+        { 229U, -2, -78 }, { 230U, -4, -156 }, { 256U, -1, -39 },
+        { 258U, 1, 39 }, { 259U, -1, -39 }, { 260U, 3, 117 },
+        { 261U, 1, 39 }, { 262U, -2, -78 }, { 288U, 2, 78 },
+        { 289U, 4, 156 }, { 290U, -1, -39 }, { 291U, -2, -78 },
+        { 292U, 1, 39 }, { 323U, -1, -39 }, { 324U, -1, -39 },
+        { 325U, 1, 39 }, { 353U, 2, 78 }, { 355U, -1, -39 },
+        { 356U, -1, -39 }
+    };
+    static const uint8_t expected_first[32U] = {
+        138U, 144U, 152U, 156U, 156U, 152U, 147U, 147U,
+        151U, 155U, 158U, 158U, 154U, 151U, 148U, 146U,
+        144U, 139U, 131U, 121U, 110U, 103U, 100U, 103U,
+        109U, 113U, 113U, 109U, 102U, 95U, 89U, 87U
+    };
+    static const uint8_t expected_last[32U] = {
+        159U, 158U, 157U, 158U, 162U, 167U, 172U, 174U,
+        173U, 171U, 166U, 161U, 156U, 151U, 145U, 139U,
+        133U, 126U, 119U, 114U, 114U, 117U, 124U, 130U,
+        134U, 134U, 132U, 129U, 127U, 126U, 126U, 127U
+    };
+    Av2hFirstLeafMode mode = { 0 };
+    Av2hFirstCoeffPrefix prefix = { 0 };
+    Av2hFirstTransformType transform = { 0 };
+    Av2hFirstCoeffBlock block = { 0 };
+    Av2hLumaReferences references = { 0 };
+    Av2hReconstructionScratch scratch;
+    Av2hFirstReconstruction reconstruction;
+    size_t index;
+
+    mode.mode = AV2H_INTRA_D45;
+    mode.enable_ibp = 1U;
+    prefix.tx_size = AV2H_TX_32X32;
+    prefix.eob = 126U;
+    transform.primary_type = AV2H_TX_DCT_DCT;
+    block.width = 32U;
+    block.height = 32U;
+    block.coefficient_count = 1024U;
+    block.nonzero_count =
+        sizeof(coefficients) / sizeof(coefficients[0]);
+    for (index = 0U;
+         index < sizeof(coefficients) / sizeof(coefficients[0]); ++index) {
+        block.quantized[coefficients[index].position] =
+            coefficients[index].quantized;
+        block.dequantized[coefficients[index].position] =
+            coefficients[index].dequantized;
+    }
+
+    CHECK(av2h_luma_predict(
+              &mode, 32U, 32U, &references, scratch.predictor, 32U) ==
+          AV2H_OK);
+    CHECK(sample_hash(scratch.predictor, 1024U) ==
+          UINT64_C(0x75290844cee19be7));
+    CHECK(av2h_luma_reconstruct(
+              &mode, &prefix, &transform, &block, scratch.predictor, 32U,
+              &scratch, &reconstruction) == AV2H_OK);
+    CHECK(sample_hash(reconstruction.pixels, 1024U) ==
+          UINT64_C(0x51b573f06c63948a));
+    for (index = 0U; index < 32U; ++index) {
+        CHECK(reconstruction.pixels[index] == expected_first[index]);
+        CHECK(reconstruction.pixels[992U + index] == expected_last[index]);
+    }
+}
+
+static void test_schwaebisch_q208_64x16_reconstruction(void) {
+    enum {
+        MI_COLUMNS = 105,
+        MI_ROWS = 70,
+        STREAM_CAPACITY = 1024,
+        GDF_CAPACITY = 128,
+        CDEF_CAPACITY = 128
+    };
+    static unsigned char stream[STREAM_CAPACITY];
+    static uint8_t luma_partition_above[MI_COLUMNS];
+    static uint8_t luma_partition_left[MI_ROWS];
+    static uint8_t chroma_partition_above[MI_COLUMNS];
+    static uint8_t chroma_partition_left[MI_ROWS];
+    static Av2hLumaModeContext luma_mode_above[MI_COLUMNS];
+    static Av2hLumaModeContext luma_mode_left[MI_ROWS];
+    static uint8_t coefficient_above[AV2H_FRAME_PLANE_COUNT * MI_COLUMNS];
+    static uint8_t coefficient_left[AV2H_FRAME_PLANE_COUNT * MI_ROWS];
+    static Av2hTileLumaModeCell colocated_luma[MI_COLUMNS * MI_ROWS];
+    static uint8_t gdf_block_flags[GDF_CAPACITY];
+    static uint8_t cdef_unit_strengths[CDEF_CAPACITY];
+    static uint8_t
+        ccso_unit_controls[AV2H_FRAME_PLANE_COUNT][CDEF_CAPACITY];
+    static uint8_t pixels[417U * 277U];
+    static uint8_t reconstructed[MI_COLUMNS * MI_ROWS];
+    Av2hObu entries[4U];
+    Av2hObuLedger ledger = { entries, 4U, 0U };
+    Av2hError error;
+    const Av2hObu *sequence_obu = 0;
+    const Av2hObu *frame_obu = 0;
+    Av2hSequenceState sequence;
+    Av2hFrameState frame;
+    Av2hTileGroup group;
+    Av2hTileContextStorage storage = {
+        luma_partition_above, luma_partition_left,
+        chroma_partition_above, chroma_partition_left,
+        luma_mode_above, luma_mode_left,
+        coefficient_above, coefficient_left, colocated_luma,
+        MI_COLUMNS, MI_ROWS, MI_COLUMNS * MI_ROWS,
+        gdf_block_flags, GDF_CAPACITY,
+        cdef_unit_strengths, CDEF_CAPACITY,
+        { ccso_unit_controls[0], ccso_unit_controls[1],
+          ccso_unit_controls[2] },
+        CDEF_CAPACITY
+    };
+    Av2hTileDecoder decoder;
+    Av2hTileLumaLeaf leaf;
+    Av2hFirstCoeffBlock block;
+    Av2hReconstructionPlane plane = {
+        pixels, 417U, 417U, 277U, 417U, 277U,
+        reconstructed, MI_COLUMNS, sizeof(reconstructed)
+    };
+    Av2hReconstructionScratch scratch;
+    Av2hFirstReconstruction reconstruction;
+    Av2hStatus status;
+    FILE *source;
+    long file_size;
+    size_t stream_size;
+    size_t index;
+    uint8_t has_leaf = 0U;
+
+    source = fopen(
+        "images/artifacts/schwaebisch-417x277-qp208.obu", "rb");
+    if (source == 0) {
+        CHECK(source != 0);
+        return;
+    }
+    CHECK(fseek(source, 0L, SEEK_END) == 0);
+    file_size = ftell(source);
+    CHECK(file_size > 0L);
+    CHECK((unsigned long)file_size <= STREAM_CAPACITY);
+    CHECK(fseek(source, 0L, SEEK_SET) == 0);
+    if (file_size <= 0L || (unsigned long)file_size > STREAM_CAPACITY) {
+        fclose(source);
+        return;
+    }
+    stream_size = fread(stream, 1U, (size_t)file_size, source);
+    CHECK(stream_size == (size_t)file_size);
+    CHECK(fclose(source) == 0);
+    if (stream_size != (size_t)file_size) return;
+
+    CHECK(av2h_obu_parse(
+              (Av2hSpan){ stream, stream_size }, &ledger, &error) ==
+          AV2H_OK);
+    for (index = 0U; index < ledger.count; ++index) {
+        if (entries[index].type == AV2H_OBU_SEQUENCE_HEADER) {
+            sequence_obu = &entries[index];
+        } else if (entries[index].type == AV2H_OBU_CLOSED_LOOP_KEY) {
+            frame_obu = &entries[index];
+        }
+    }
+    CHECK(sequence_obu != 0);
+    CHECK(frame_obu != 0);
+    if (sequence_obu == 0 || frame_obu == 0) return;
+    CHECK(av2h_sequence_state_parse(
+              (Av2hSpan){ stream, stream_size }, sequence_obu,
+              &sequence, &error) == AV2H_OK);
+    CHECK(av2h_frame_header_closed_key_parse(
+              (Av2hSpan){ stream + frame_obu->payload_offset,
+                           frame_obu->payload_size },
+              &sequence, &frame) == AV2H_OK);
+    CHECK(frame.width == 417U);
+    CHECK(frame.height == 277U);
+    CHECK(frame.base_q_index == 208U);
+    CHECK(av2h_tile_group_single_parse(
+              (Av2hSpan){ stream + frame_obu->payload_offset,
+                           frame_obu->payload_size },
+              frame.uncompressed_header_bits, &group) == AV2H_OK);
+    CHECK(av2h_tile_decoder_init(
+              &decoder, group.entropy, &sequence, &frame, &storage) ==
+          AV2H_OK);
+
+    av2h_memory_fill(pixels, 0U, sizeof(pixels));
+    av2h_memory_fill(reconstructed, 0U, sizeof(reconstructed));
+    av2h_memory_fill(&leaf, 0U, sizeof(leaf));
+    av2h_memory_fill(&block, 0U, sizeof(block));
+    status = av2h_tile_decoder_next_luma(
+        &decoder, &leaf, &block, &has_leaf);
+    CHECK(status == AV2H_OK);
+    CHECK(has_leaf == 1U);
+    CHECK(leaf.node.row == 0U);
+    CHECK(leaf.node.column == 0U);
+    CHECK(leaf.node.block_size == AV2H_BLOCK_64X16);
+    CHECK(leaf.mode.before_mode_bits == 8U);
+    CHECK(leaf.mode.after_mode_set_bits == 8U);
+    CHECK(leaf.mode.after_mode_index_bits == 9U);
+    CHECK(leaf.mode.after_fsc_bits == 9U);
+    CHECK(leaf.mode.after_mrl_bits == 9U);
+    CHECK(leaf.mode.mode == AV2H_INTRA_DC);
+    CHECK(leaf.mode.angle_delta == 0);
+    CHECK(leaf.mode.mrl_index == 0U);
+    CHECK(leaf.mode.enable_ibp == 1U);
+    CHECK(leaf.mode.use_intrabc == 0U);
+    CHECK(leaf.mode.skip_transform == 0U);
+    CHECK(leaf.mode.fsc_mode == 0U);
+    CHECK(leaf.prefix.tx_size == AV2H_TX_64X16);
+    CHECK(leaf.prefix.tx_size_context == 3U);
+    CHECK(leaf.prefix.txb_skip_context == 0U);
+    CHECK(leaf.prefix.before_all_zero_bits == 9U);
+    CHECK(leaf.prefix.after_all_zero_bits == 17U);
+    CHECK(leaf.prefix.after_eob_point_bits == 17U);
+    CHECK(leaf.prefix.after_eob_extra_bit == 17U);
+    CHECK(leaf.prefix.after_eob_bits == 17U);
+    CHECK(leaf.prefix.all_zero == 1U);
+    CHECK(leaf.prefix.eob == 0U);
+    CHECK(leaf.transform.primary_type == AV2H_TX_DCT_DCT);
+    CHECK(leaf.transform.before_primary_bits == 17U);
+    CHECK(leaf.transform.after_primary_bits == 17U);
+    CHECK(leaf.transform.after_secondary_bits == 17U);
+    CHECK(block.width == 32U);
+    CHECK(block.height == 16U);
+    CHECK(block.coefficient_count == 512U);
+    CHECK(block.nonzero_count == 0U);
+    CHECK(block.before_levels_bits == 17U);
+    CHECK(block.after_levels_bits == 17U);
+    CHECK(block.after_coefficients_bits == 17U);
+    CHECK(av2h_range_tell(&decoder.range) == 17U);
+    for (index = 0U; index < 512U; ++index) {
+        CHECK(block.quantized[index] == 0);
+        CHECK(block.dequantized[index] == 0);
+    }
+
+    CHECK(av2h_luma_reconstruct_to_plane(
+              &leaf.node, &leaf.mode, &leaf.prefix, &leaf.transform,
+              &block, &plane, &scratch) == AV2H_OK);
+    CHECK(av2h_range_tell(&decoder.range) == 17U);
+    for (index = 0U; index < 1024U; ++index) {
+        size_t row = index >> 6U;
+        size_t column = index & 63U;
+        CHECK(scratch.predictor[index] == 128U);
+        CHECK(pixels[row * 417U + column] == 128U);
+    }
+    CHECK(pixels[64U] == 0U);
+    for (index = 0U; index < 4U * 16U; ++index) {
+        size_t row = index >> 4U;
+        size_t column = index & 15U;
+        CHECK(reconstructed[row * MI_COLUMNS + column] == 1U);
+    }
+    CHECK(reconstructed[16U] == 0U);
+
+    block.quantized[511U] = 1;
+    CHECK(av2h_luma_reconstruct(
+              &leaf.mode, &leaf.prefix, &leaf.transform, &block,
+              scratch.predictor, 64U, &scratch, &reconstruction) ==
+          AV2H_UNSUPPORTED);
+    block.quantized[511U] = 0;
+    CHECK(av2h_tile_decoder_commit_leaf(&decoder, leaf.node) == AV2H_OK);
+    CHECK(av2h_range_tell(&decoder.range) == 17U);
+
+    av2h_memory_fill(&leaf, 0U, sizeof(leaf));
+    av2h_memory_fill(&block, 0U, sizeof(block));
+    status = av2h_tile_decoder_next_luma(
+        &decoder, &leaf, &block, &has_leaf);
+    CHECK(status == AV2H_UNSUPPORTED);
+    CHECK(has_leaf == 1U);
+    CHECK(leaf.node.row == 4U);
+    CHECK(leaf.node.column == 0U);
+    CHECK(leaf.node.block_size == AV2H_BLOCK_32X16);
+    CHECK(leaf.mode.before_mode_bits == 0U);
+    CHECK(leaf.prefix.before_all_zero_bits == 0U);
+    CHECK(av2h_range_tell(&decoder.range) == 19U);
+    CHECK(av2h_tile_decoder_next_luma(
+              &decoder, &leaf, &block, &has_leaf) == AV2H_UNSUPPORTED);
+    CHECK(av2h_range_tell(&decoder.range) == 19U);
 }
 
 static void test_d45_minus_one_16x4_prediction(void) {
@@ -759,6 +1189,189 @@ static void test_live_plane_reconstruction(void) {
     CHECK(av2h_range_tell(&decoder) == 74U);
 }
 
+static void test_tx16x32_dc_dct_reconstruction(void) {
+    static const uint8_t expected_first_row[16U] = {
+        117U, 117U, 116U, 116U, 115U, 114U, 113U, 112U,
+        111U, 110U, 109U, 108U, 107U, 107U, 106U, 106U
+    };
+    static const uint8_t expected_last_row[16U] = {
+        114U, 114U, 114U, 115U, 116U, 117U, 118U, 119U,
+        120U, 121U, 122U, 123U, 123U, 124U, 124U, 125U
+    };
+    Av2hFirstLeafMode mode = { 0 };
+    Av2hFirstCoeffPrefix prefix = { 0 };
+    Av2hFirstTransformType transform = { 0 };
+    Av2hFirstCoeffBlock block = { 0 };
+    Av2hReconstructionScratch scratch;
+    Av2hFirstReconstruction reconstruction;
+    size_t index;
+
+    mode.mode = AV2H_INTRA_DC;
+    mode.enable_ibp = 1U;
+    prefix.tx_size = AV2H_TX_16X32;
+    prefix.eob = 5U;
+    transform.primary_type = AV2H_TX_DCT_DCT;
+    block.width = 16U;
+    block.height = 32U;
+    block.coefficient_count = 512U;
+    block.nonzero_count = 4U;
+    block.dequantized[0] = -1488;
+    block.dequantized[16] = -248;
+    block.dequantized[17] = 248;
+    block.dequantized[32] = 248;
+
+    CHECK(av2h_first_luma_reconstruct(
+              &mode, &prefix, &transform, &block, &scratch,
+              &reconstruction) == AV2H_OK);
+    CHECK(reconstruction.width == 16U);
+    CHECK(reconstruction.height == 32U);
+    CHECK(pixel_hash(&reconstruction) == UINT64_C(0xfb97d9776de897f5));
+    for (index = 0U; index < 16U; ++index) {
+        CHECK(reconstruction.pixels[index] == expected_first_row[index]);
+    }
+    for (index = 0U; index < 16U; ++index) {
+        CHECK(reconstruction.pixels[496U + index] == expected_last_row[index]);
+    }
+
+    block.dequantized[96U] = 248;
+    CHECK(av2h_first_luma_reconstruct(
+              &mode, &prefix, &transform, &block, &scratch,
+              &reconstruction) == AV2H_UNSUPPORTED);
+}
+
+static void test_tx16x32_dc_flipadst_reconstruction(void) {
+    static const uint8_t expected_first_row[16U] = {
+        21U, 29U, 43U, 62U, 82U, 99U, 112U, 122U,
+        126U, 130U, 131U, 131U, 132U, 131U, 130U, 130U
+    };
+    static const uint8_t expected_last_row[16U] = {
+        95U, 97U, 101U, 105U, 107U, 108U, 107U, 105U,
+        103U, 102U, 103U, 106U, 111U, 116U, 120U, 125U
+    };
+    Av2hFirstLeafMode mode = { 0 };
+    Av2hFirstCoeffPrefix prefix = { 0 };
+    Av2hFirstTransformType transform = { 0 };
+    Av2hFirstCoeffBlock block = { 0 };
+    Av2hReconstructionScratch scratch;
+    Av2hFirstReconstruction reconstruction;
+    size_t index;
+
+    mode.mode = AV2H_INTRA_DC;
+    mode.enable_ibp = 1U;
+    prefix.tx_size = AV2H_TX_16X32;
+    prefix.eob = 13U;
+    transform.primary_type = AV2H_TX_DCT_FLIPADST;
+    block.width = 16U;
+    block.height = 32U;
+    block.coefficient_count = 512U;
+    block.nonzero_count = 10U;
+    block.dequantized[0] = -1984;
+    block.dequantized[1] = -744;
+    block.dequantized[2] = -248;
+    block.dequantized[3] = -248;
+    block.dequantized[16] = -496;
+    block.dequantized[17] = -992;
+    block.dequantized[18] = -248;
+    block.dequantized[32] = -496;
+    block.dequantized[33] = -248;
+    block.dequantized[34] = -248;
+
+    CHECK(av2h_first_luma_reconstruct(
+              &mode, &prefix, &transform, &block, &scratch,
+              &reconstruction) == AV2H_OK);
+    CHECK(reconstruction.width == 16U);
+    CHECK(reconstruction.height == 32U);
+    CHECK(pixel_hash(&reconstruction) == UINT64_C(0x73f9aa733e29f1c7));
+    for (index = 0U; index < 16U; ++index) {
+        CHECK(reconstruction.pixels[index] == expected_first_row[index]);
+    }
+    for (index = 0U; index < 16U; ++index) {
+        CHECK(reconstruction.pixels[496U + index] == expected_last_row[index]);
+    }
+
+    block.dequantized[4U] = -248;
+    CHECK(av2h_first_luma_reconstruct(
+              &mode, &prefix, &transform, &block, &scratch,
+              &reconstruction) == AV2H_UNSUPPORTED);
+}
+
+static void test_dc_16x32_prediction(void) {
+    static const uint8_t above[16U] = {
+        100U, 102U, 104U, 106U, 108U, 110U, 112U, 114U,
+        116U, 118U, 120U, 122U, 124U, 126U, 128U, 130U
+    };
+    static const uint8_t left[32U] = {
+        80U, 82U, 84U, 86U, 88U, 90U, 92U, 94U,
+        96U, 98U, 100U, 102U, 104U, 106U, 108U, 110U,
+        112U, 114U, 116U, 118U, 120U, 122U, 124U, 126U,
+        128U, 130U, 132U, 134U, 136U, 138U, 140U, 142U
+    };
+    Av2hFirstLeafMode mode = { 0 };
+    Av2hLumaReferences references = { 0 };
+    uint8_t predictor[16U * 32U];
+    unsigned int sum;
+    uint8_t expected_dc;
+    size_t index;
+
+    mode.mode = AV2H_INTRA_DC;
+    references.above = above;
+    references.above_count = sizeof(above);
+    references.left = left;
+    references.left_count = sizeof(left);
+
+    sum = 0U;
+    for (index = 0U; index < 16U; ++index) sum += above[index];
+    for (index = 0U; index < 32U; ++index) sum += left[index];
+    expected_dc = (uint8_t)((sum + 24U) / 48U);
+
+    CHECK(av2h_luma_predict(
+              &mode, 16U, 32U, &references, predictor, 16U) == AV2H_OK);
+    for (index = 0U; index < 512U; ++index) {
+        CHECK(predictor[index] == expected_dc);
+    }
+
+    references.above = 0;
+    references.above_count = 0U;
+    references.left = 0;
+    references.left_count = 0U;
+    CHECK(av2h_luma_predict(
+              &mode, 16U, 32U, &references, predictor, 16U) == AV2H_OK);
+    for (index = 0U; index < 512U; ++index) {
+        CHECK(predictor[index] == 128U);
+    }
+}
+
+static void test_dc_16x32_ibp_prediction(void) {
+    static const uint8_t above[16U] = {
+        200U, 200U, 200U, 200U, 200U, 200U, 200U, 200U,
+        200U, 200U, 200U, 200U, 200U, 200U, 200U, 200U
+    };
+    static const uint8_t left[32U] = {
+        50U, 50U, 50U, 50U, 50U, 50U, 50U, 50U,
+        50U, 50U, 50U, 50U, 50U, 50U, 50U, 50U,
+        50U, 50U, 50U, 50U, 50U, 50U, 50U, 50U,
+        50U, 50U, 50U, 50U, 50U, 50U, 50U, 50U
+    };
+    Av2hFirstLeafMode mode = { 0 };
+    Av2hLumaReferences references = { 0 };
+    uint8_t predictor[16U * 32U];
+    uint8_t dc;
+
+    mode.mode = AV2H_INTRA_DC;
+    mode.enable_ibp = 1U;
+    references.above = above;
+    references.above_count = sizeof(above);
+    references.left = left;
+    references.left_count = sizeof(left);
+
+    dc = (uint8_t)((200U * 16U + 50U * 32U + 24U) / 48U);
+
+    CHECK(av2h_luma_predict(
+              &mode, 16U, 32U, &references, predictor, 16U) == AV2H_OK);
+    CHECK(predictor[0] != dc);
+    CHECK(predictor[255] != predictor[0]);
+}
+
 int main(void) {
     test_fixture_reconstruction();
     test_d45_minus_one_16x4_prediction();
@@ -770,6 +1383,13 @@ int main(void) {
     test_tx8x4_d203_reconstruction();
     test_tx8x8_d203_mrl_reconstruction();
     test_skipped_16x8_intrabc_reconstruction();
+    test_all_zero_16x16_reconstruction();
+    test_laarim_q96_32x32_reconstruction();
+    test_schwaebisch_q208_64x16_reconstruction();
+    test_tx16x32_dc_dct_reconstruction();
+    test_tx16x32_dc_flipadst_reconstruction();
+    test_dc_16x32_prediction();
+    test_dc_16x32_ibp_prediction();
     test_live_plane_reconstruction();
     test_arguments();
     if (failures != 0) {

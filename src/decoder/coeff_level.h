@@ -8,8 +8,8 @@
 typedef struct {
     uint16_t eob_base[7U][3U + 4U];
     uint16_t eob_lf[10U][5U + 4U];
-    uint16_t base[31U][4U + 4U];
-    uint16_t base_lf[58U][6U + 4U];
+    uint16_t base[39U][4U + 4U];
+    uint16_t base_lf[61U][6U + 4U];
     uint16_t br[7U][4U + 4U];
     uint16_t br_lf[11U][4U + 4U];
     uint16_t dc_sign[3U][AV2H_BINARY_CDF_SIZE];

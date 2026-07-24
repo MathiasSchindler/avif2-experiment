@@ -51,32 +51,56 @@ endpoint. The exact new frontiers are:
 | `silene-384x307-qp080.obu` | 64x64 EOB 46 and transform complete at tell 20 |
 | `silene-479x383-qp176.obu` | 64x64 EOB 3, reject before IST at tell 13 |
 
-After committing the all-zero block in the entropy-only traversal,
-`schwaebisch-417x277-qp208` reaches a 32x16 leaf at `(4,0)`, tell 19. Full
-decoding first needs 64x16 all-zero DC reconstruction, then the Q208 32x16
-luma profile. `chinnathurai-333x333-qp224` next needs the Q224 64x64
-coefficient-level profile.
+The same raw-symbol-7 extension now covers TX_32X32. For
+`laarim-256x171-qp096.obu`, two bypass bits extend the raw point to EOB point
+8; EOB 126 and implicit DCT_DCT complete at tell 28. The reached Q-context-1
+TX-context-3 base, LF-base, BR, BR-LF, EOB, and DC-sign rows then decode all
+126 levels through tell 314 and all 82 signed/high-range coefficients through
+tell 471. The pinned coefficient hash is `ec5538b90b63a6e7`.
+
+`schwaebisch-417x277-qp208` now reconstructs its first 64x16 all-zero DC
+block using adjusted 32x16 coefficient geometry. Its predictor and prefilter
+are constant 128 with hash `d495a039fba13383`; the block ends at tell 17 and
+the next `(4,0)` 32x16 leaf remains fail-closed at tell 19.
+`chinnathurai-333x333-qp224` next needs the Q224 64x64 coefficient-level
+profile.
 
 The ordinary coefficient path now applies the normative 8-bit QTX lookup,
 luma DC delta, large-transform post-dequant shift, and asymmetric
 `[-32768,32767]` saturation. The same saturation applies to FSC/IDTX
 dequantization.
 
-Four artifact first blocks now complete coefficient parsing exactly:
+Five artifact first blocks now complete coefficient parsing exactly:
 
 | Stream | Transform | Levels | Coefficients | Nonzero / DC |
 | --- | --- | ---: | ---: | --- |
 | `cuckoo-157x105-qp160.obu` | 16x32 DCT_DCT | 31 | 35 | 4 / -6 |
 | `emerald-192x96-qp208.obu` | 32x32 DCT_DCT | 24 | 27 | 3 / -2 |
+| `laarim-256x171-qp096.obu` | 32x32 DCT_DCT | 314 | 471 | 82 / +67 |
 | `louis-463x342-qp224.obu` | 32x32 DCT_DCT | 26 | 27 | 1 / +6 |
 | `pastell-512x341-qp160.obu` | 16x32 DCT_FLIPADST | 53 | 65 | 10 / -8 |
 
 `tests/artifact_profile_unit.c` freezes each mode, prefix, transform, level,
 coefficient, and final tell endpoint. It also compares every quantized and
 dequantized coefficient against the pinned AVM vectors. Representative DC
-values are `-6/-1488`, `-2/-1984`, `+6/+9408`, and `-8/-1984`.
+values include `-6/-1488`, `-2/-1984`, `+67/+2613`, `+6/+9408`, and
+`-8/-1984`.
 
-`emerald-192x96-qp208.obu` now reconstructs its first three luma leaves
+The Laarim block also reconstructs sample-exactly. Its D45 predictor hash is
+`75290844cee19be7`, its prefilter hash is `51b573f06c63948a`, and the AVM
+postfilter reconstruction evidence hash is `4ae64e670eb54810`. After the
+block is committed, partition traversal reaches `(0,8)` 16x16 at tell 476
+and rejects before unpinned mode/profile syntax.
+
+The Q160 cuckoo and pastell first blocks now also reconstruct sample-exactly
+and are committed in the artifact traversal. Their complete 16x32 sample
+hashes are `fb97d9776de897f5` and `73f9aa733e29f1c7`, with first and last row
+locks matching the pinned AVM samples. Cuckoo next reaches `(0,4)` 8x16 at
+tell 41 and rejects before mode syntax at the unpinned Q160 8x16 profile.
+Pastell next reaches `(0,4)` 16x32 Smooth, EOB 3, DCT_DCT, and secondary
+symbol 0 through tell 78, then rejects before coefficient-level entropy.
+
+`emerald-192x96-qp208.obu` now reconstructs its first five luma leaves
 sample-exactly. The second 32x32 leaf has no above references and uses the
 rounded mean of the first leaf's 32 right-edge samples as its DC value.
 Because the sequence enables IBP, the first eight columns are refined with
@@ -88,26 +112,46 @@ references. Its Q-context-3 EOB-256 prefix selects EOB 1, implicit DCT_DCT,
 and the sole coefficient `q=-1`, `dq=-1984` through tell 46. The height-8
 IBP weights refine its first two predictor rows, and the inverse transform
 adds a constant -15 residual. The artifact test pins all 256 predictor and
-reconstructed samples. The new fail-closed frontier is the `(10,0)` 16x16
-Q208 luma profile at tell 47.
+reconstructed samples.
+
+The reached TX_16X16 profile now derives normative ID 2, size context 2, and
+the 256-coefficient EOB class. The `(10,0)` DC block completes its all-zero
+symbol at tell 52, uses implicit DCT_DCT, initializes 256 zero coefficients,
+and reconstructs a constant-98 predictor and prefilter surface exactly.
+
+After that leaf is committed, `(10,4)` is a 16x16 Smooth block. Its mode ends
+at tell 55 and EOB point 3 produces EOB 4 at tell 59. The primary CDF is
+`intra_ext_tx_cdf[1][2]`, with default thresholds
+`13759,26108,27688,29793,30265,31576`; primary symbol 1 maps to ADST_ADST and
+ends at tell 61. STX symbol 0 uses `stx_cdf[0][2]`, whose AVM trace shows the
+adapted cumulative row `30423,23962,17764`, and ends at tell 65 with no
+secondary transform.
+
+The LF 2D scan is `[0,16,1,32]`. Levels end at tell 69 and signs end at tell
+72, producing `q/dq` values `+2/+3968` at 0, `+1/+1984` at 16, zero at 1,
+and `-1/-1984` at 32. There are no BR reads, parity hiding, or further
+high-range expansion; `cul_level=20` and DC is +2. The predictor is constant
+98. The complete ADST_ADST prefilter surface matches pinned AVM with trace
+hash `7959e335`, including the locked representative rows in the artifact
+test. The next `(14,0)` 32x8 leaf is reached fail-closed at tell 74.
 
 Across all 21 artifact streams, six GDF-mode-2 streams decode their first GDF
 flag, CDEF strength index, and enabled first-unit CCSO controls at the exact
 pinned-AVM endpoints. They now continue through mode, implicit large-block
 FSC, and reached Palette=0 syntax to tells 17, 25, 20, 25, 32, and 9.
-Four other streams complete their first coefficient block, and eleven remain
-fail-closed at an earlier first-luma syntax frontier. The QP-192
+Five streams complete their first coefficient block, and the newly admitted
+Emerald, Laarim, and Schwaebisch surfaces are sample-locked. The remaining
+streams stay fail-closed at their earlier first-luma syntax frontiers. The QP-192
 `chimp-240x287` stream remains intentionally gated at tell 15 because its
 partition range state diverges before mode syntax; consuming CCSO there would
 decode different symbols from AVM.
 
-The next exact blockers are emerald Q208 16x16 luma-profile admission,
-emerald/silene adjusted-size IST entropy,
-Q80/Q112/Q144/Q176/Q192/Q224 large-transform coefficient levels, 64x16
-all-zero reconstruction, the Q48 coefficient-level profile for flycatcher,
-extended
-32x32 EOB point 7 for laarim, Q-context-0 8x8 coefficient-prefix geometry for
-pastell, and the Q112 coefficient-level profile for schwaebisch.
+The next exact blockers include Emerald Q208 32x8 and Laarim Q96 16x16
+luma-profile admission, emerald/silene adjusted-size IST entropy,
+Q80/Q112/Q144/Q176/Q192/Q224 large-transform coefficient levels, the Q48
+coefficient-level profile for flycatcher, Q-context-0 8x8 coefficient-prefix
+geometry for pastell, the Q160 cuckoo 8x16 profile, the Q160 pastell 16x32
+EOB-3 coefficient profile, and the Q208 Schwaebisch 32x16 profile.
 
 ## Scope
 
@@ -120,9 +164,10 @@ pastell, and the Q112 coefficient-level profile for schwaebisch.
   where the reached frequency set makes sparse handling fragile; and
 - retain deterministic failure for restoration and unreached profile features.
 
-The next artifact work is to add the reached emerald Q208 16x16 profile or
-repair emerald/silene IST range-state parity, then continue the reached
-large-transform coefficient and 64x16 all-zero reconstruction paths.
+The next artifact work is to admit only the newly reached Emerald 32x8,
+Laarim 16x16, and Schwaebisch 32x16 profiles with matching AVM evidence, or
+repair emerald/silene IST range-state parity, then continue the remaining
+large-transform coefficient paths.
 Traversal should continue beyond a block only where every newly reached CDF,
 transform, coefficient, prediction, and reconstruction path has matching AVM
 evidence. The ordinary Milestone 7 frontier remains ordinary chroma after the

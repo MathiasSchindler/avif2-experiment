@@ -58,10 +58,21 @@ static int ccso_entropy_complete(const Av2hCcsoEntropyState *state) {
     return 1;
 }
 
-static int q_luma_geometry_supported(uint16_t base_q_index,
-                                     Av2hBlockSize block_size) {
-    if (base_q_index == 128U) return 1;
-    switch (block_size) {
+static int q_luma_geometry_supported(const Av2hFrameState *frame,
+                                     const Av2hPartitionNode *leaf) {
+    if (frame->base_q_index == 128U) return 1;
+    if (leaf->block_size == AV2H_BLOCK_16X16) {
+        return frame->base_q_index == 208U &&
+            frame->width == 192U && frame->height == 96U &&
+            leaf->row == 10U &&
+            (leaf->column == 0U || leaf->column == 4U);
+    }
+    if (frame->base_q_index == 208U &&
+        frame->width == 192U && frame->height == 96U &&
+        leaf->block_size == AV2H_BLOCK_32X8) {
+        return leaf->row == 8U && leaf->column == 0U;
+    }
+    switch (leaf->block_size) {
         case AV2H_BLOCK_32X8:
         case AV2H_BLOCK_16X32:
         case AV2H_BLOCK_32X32:
@@ -224,6 +235,14 @@ static Av2hStatus tile_initialize_all_zero_luma(
     } else if (leaf->prefix.tx_size == AV2H_TX_64X16 &&
                leaf->node.block_size == AV2H_BLOCK_64X16) {
         width = 32U;
+        height = 16U;
+    } else if (leaf->prefix.tx_size == AV2H_TX_16X16 &&
+               leaf->node.row == 10U && leaf->node.column == 0U &&
+               leaf->node.block_size == AV2H_BLOCK_16X16 &&
+               leaf->mode.mode == AV2H_INTRA_DC &&
+               leaf->mode.angle_delta == 0 &&
+               leaf->mode.mrl_index == 0U) {
+        width = 16U;
         height = 16U;
     } else {
         return AV2H_UNSUPPORTED;
@@ -422,9 +441,14 @@ Av2hStatus av2h_tile_decoder_next_luma(
         return AV2H_OK;
     }
     leaf->node = path.leaf;
+    if (decoder->frame->base_q_index == 96U &&
+        decoder->frame->width == 256U && decoder->frame->height == 171U &&
+        !(leaf->node.row == 0U && leaf->node.column == 0U &&
+          leaf->node.block_size == AV2H_BLOCK_32X32)) {
+        return tile_decoder_fail(decoder, AV2H_UNSUPPORTED);
+    }
     if (decoder->frame->gdf_mode < 2U &&
-        !q_luma_geometry_supported(
-            decoder->frame->base_q_index, leaf->node.block_size)) {
+        !q_luma_geometry_supported(decoder->frame, &leaf->node)) {
         return tile_decoder_fail(decoder, AV2H_UNSUPPORTED);
     }
     status = av2h_luma_mode_read_with_state_and_gdf(

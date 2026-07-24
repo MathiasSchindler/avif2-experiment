@@ -191,6 +191,54 @@ static void test_arguments(void) {
           AV2H_UNSUPPORTED);
 }
 
+static void test_tx_32x32_eob_point_extension(void) {
+    static const unsigned char bytes[] = {
+        0xa1U, 0x10U, 0x43U, 0x86U, 0xffU, 0x01U, 0xfcU, 0x2aU,
+        0x52U, 0xaaU, 0x8fU, 0x5dU, 0x63U, 0xc5U, 0x9cU, 0x36U
+    };
+    Av2hSpan span = { bytes, sizeof(bytes) };
+    Av2hRangeDecoder decoder;
+    Av2hRangeDecoder point_decoder;
+    Av2hFirstCoeffCdfs cdfs;
+    Av2hFirstCoeffCdfs point_cdfs;
+    Av2hFrameState frame = { 0 };
+    Av2hPartitionNode leaf = { 0U, 0U, AV2H_BLOCK_32X32 };
+    Av2hFirstLeafMode mode = { 0 };
+    Av2hFirstCoeffPrefix prefix;
+    uint32_t value;
+
+    frame.base_q_index = 96U;
+    frame.width = 256U;
+    frame.height = 171U;
+    frame.tx_mode = 1U;
+    CHECK(av2h_first_coeff_cdfs_init_for_q(&cdfs, frame.base_q_index) ==
+          AV2H_OK);
+    CHECK(av2h_first_coeff_cdfs_init_for_q(
+              &point_cdfs, frame.base_q_index) == AV2H_OK);
+    CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
+    CHECK(av2h_range_init(&point_decoder, &span, 1U) == AV2H_OK);
+    CHECK(av2h_range_read_adaptive(
+              &point_decoder, point_cdfs.txb_skip_txs3, 2U) == 0U);
+    value = av2h_range_read_adaptive(
+        &point_decoder, point_cdfs.eob_pt_1024, 8U);
+    CHECK(value == 7U);
+    CHECK(av2h_range_tell(&point_decoder) == 4U);
+    CHECK(av2h_first_coeff_prefix_read(
+              &decoder, &cdfs, &frame, &leaf, &mode, &prefix) == AV2H_OK);
+    CHECK(prefix.tx_size == AV2H_TX_32X32);
+    CHECK(prefix.all_zero == 0U);
+    CHECK(prefix.after_all_zero_bits == 2U);
+    CHECK(prefix.eob_point == 8U);
+    CHECK(prefix.eob_offset_bits == 6U);
+    CHECK(prefix.eob_extra == 0U);
+    CHECK(prefix.eob == 65U);
+    CHECK(prefix.after_eob_point_bits == 6U);
+    CHECK(prefix.after_eob_point_bits ==
+          av2h_range_tell(&point_decoder) + 2U);
+    CHECK(prefix.after_eob_extra_bit == 7U);
+    CHECK(prefix.after_eob_bits == 12U);
+}
+
 static void test_context_state(void) {
     uint8_t above[AV2H_FRAME_PLANE_COUNT * 4U];
     uint8_t left[AV2H_FRAME_PLANE_COUNT * 4U];
@@ -259,6 +307,7 @@ static void test_context_state(void) {
 int main(void) {
     test_fixture_prefixes();
     test_arguments();
+    test_tx_32x32_eob_point_extension();
     test_context_state();
     if (failures != 0) {
         fprintf(stderr, "%d coefficient checks failed\n", failures);

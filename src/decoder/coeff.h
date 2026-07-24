@@ -6,6 +6,7 @@
 typedef enum {
     AV2H_TX_4X4 = 0,
     AV2H_TX_8X8 = 1,
+    AV2H_TX_16X16 = 2,
     AV2H_TX_32X32 = 3,
     AV2H_TX_64X64 = 4,
     AV2H_TX_4X8 = 5,
