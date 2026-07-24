@@ -1,16 +1,16 @@
 # Milestone 7: ordinary fixture coverage
 
-Milestone 7 is paused at a verified fail-closed checkpoint. It is not complete.
-The private decoder commits twelve ordinary luma leaves sample-exactly through
-tell 529. The next 16x8 Smooth leaf at `(12,4)` decodes EOB 3, then fails
-closed at tell 540 before the omitted TX_16X8/Smooth transform-type path.
+Milestone 7 has complete ordinary-luma coverage but is not complete. The
+private decoder commits all 22 ordinary luma leaves sample-exactly through
+tell 762 and then enters chroma traversal. Ordinary chroma remains the next
+Milestone 7 owner.
 
 The locked input is `tests/fixtures/ordinary-160x120.obu`, 843 bytes, SHA-256
 `adbb88447dacbdf6895964df6a6fc1a1506cdf007d27044ea42171ccbb12810f`.
 
 ## Verified checkpoint
 
-The twelve committed luma leaves end at these exact tells:
+The 22 committed luma leaves end at these exact tells:
 
 | Leaf | Position | Block | Transform | Endpoint |
 | --- | --- | --- | --- | --- |
@@ -26,9 +26,19 @@ The twelve committed luma leaves end at these exact tells:
 | 9 | `(11,4)` | 8x4 | DCT_DCT | 482 |
 | 10 | `(10,6)` | 8x8 | ADST_ADST | 505 |
 | 11 | `(12,0)` | 16x8 | skipped intraBC | 529 |
+| 12 | `(12,4)` | 16x8 | ADST_ADST | 551 |
+| 13 | `(14,0)` | 32x8 | ADST_DCT | 576 |
+| 14 | `(8,8)` | 8x32 | DCT_DCT | 616 |
+| 15 | `(8,10)` | 8x32 | DCT_DCT | 647 |
+| 16 | `(8,12)` | 8x4 | all-zero D45 | 671 |
+| 17 | `(9,12)` | 8x4 | skipped intraBC | 696 |
+| 18 | `(8,14)` | 8x8 | skipped intraBC | 703 |
+| 19 | `(10,12)` | 8x16 | all-zero D203/MRL | 723 |
+| 20 | `(10,14)` | 8x16 | skipped intraBC | 744 |
+| 21 | `(14,12)` | 16x8 | skipped intraBC | 762 |
 
 The reached 16x32 path includes smooth-vertical prediction and the pinned
-AVM tuned 16-point DDT matrix. The 32x8 path includes the exact edge-filtered
+AVM tuned 16-point ADST matrix. The 32x8 path includes the exact edge-filtered
 D45 angle-minus-one predictor, square-mapped secondary-transform signaling,
 and nonzero coefficients at positions 32 and 0.
 
@@ -150,10 +160,18 @@ EOB, level, or coefficient bits. The tile path records TX_16X8, EOB 0, and
 `cul_level=0`, and reconstructs the destination as an unchanged predictor
 copy. All 128 samples match the pinned AVM prefiltered frame buffer.
 
-The current frontier is `(12,4)`, a 16x8 Smooth block. Partition traversal
-reaches it at tell 529, mode parsing ends at tell 534, and EOB 3 ends at tell
-540. The decoder then fails closed before reading the currently omitted
-TX_16X8/Smooth transform-type syntax.
+The final ten leaves add the reached 16x8 and 32x8 smooth predictors and
+transforms, two 8x32 DCT_DCT paths, the 8x4 D45 all-zero path with implicit
+intra-bi-prediction, the 8x16 D203 MRL all-zero path with extended below-left
+references, and four additional skipped intraBC copies. The AV2 smooth
+predictors use the current geometric blend rather than the legacy AV1 weight
+tables. All 22 leaf surfaces are locked by complete AVM-prefilter FNV hashes,
+including the earlier 8x32, 16x32, and 32x8 surfaces that previously lacked
+full-surface sample oracles.
+
+The current frontier is the ordinary chroma traversal immediately after tell
+762. No luma syntax or reconstruction path remains unfinished for this
+fixture.
 
 ## JPEG artifact OBU audit
 
@@ -211,12 +229,10 @@ quantized/dequantized arrays. It is part of `make test-c`.
 
 ## Handoff
 
-Resume with the 16x8 Smooth leaf at `(12,4)`. Pin its transform-type syntax,
-coefficients, predictor, inverse transform, samples, and exact endpoint against
-AVM before admitting only that reached path. Continue the remaining ordinary
-luma traversal and all ordinary chroma paths without adding later syntax from
-a divergent entropy or sample frontier. Broad intraBC coverage remains
-Milestone 8 work.
+Resume with the first ordinary chroma leaf after the luma-to-chroma handoff at
+tell 762. Pin its partition, mode, transform, coefficients, predictor,
+reconstruction, and exact endpoint against AVM before admitting only that
+reached path. Broad intraBC coverage remains Milestone 8 work.
 
 Run the current focused checkpoint with:
 

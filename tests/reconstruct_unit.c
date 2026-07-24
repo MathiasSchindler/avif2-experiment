@@ -281,6 +281,56 @@ static void test_d45_minus_one_16x4_prediction(void) {
     }
 }
 
+static void test_d45_8x4_ibp_prediction(void) {
+    static const uint8_t above[12U] = {
+        223U, 226U, 228U, 230U, 232U, 233U,
+        235U, 237U, 239U, 241U, 244U, 246U
+    };
+    static const uint8_t left[8U] = {
+        230U, 230U, 231U, 233U, 237U, 240U, 243U, 245U
+    };
+    static const uint8_t expected[32U] = {
+        228U, 229U, 231U, 233U, 234U, 236U, 238U, 240U,
+        230U, 232U, 234U, 235U, 237U, 239U, 240U, 242U,
+        233U, 235U, 237U, 238U, 240U, 241U, 242U, 244U,
+        236U, 238U, 240U, 241U, 242U, 243U, 244U, 246U
+    };
+    Av2hFirstLeafMode mode = { 0 };
+    Av2hLumaReferences references = { 0 };
+    uint8_t predictor[40U];
+    size_t row;
+    size_t column;
+
+    mode.mode = AV2H_INTRA_D45;
+    references.above = above;
+    references.above_count = sizeof(above);
+    references.left = left;
+    references.left_count = sizeof(left);
+    references.has_above_left = 1U;
+    references.above_left = 221U;
+    av2h_memory_fill(predictor, 0xa5U, sizeof(predictor));
+
+    CHECK(av2h_luma_predict(
+              &mode, 8U, 4U, &references, predictor, 10U) == AV2H_OK);
+    for (row = 0U; row < 4U; ++row) {
+        for (column = 0U; column < 8U; ++column) {
+            CHECK(predictor[row * 10U + column] ==
+                  expected[row * 8U + column]);
+        }
+        CHECK(predictor[row * 10U + 8U] == 0xa5U);
+        CHECK(predictor[row * 10U + 9U] == 0xa5U);
+    }
+
+    references.left = 0;
+    references.left_count = 0U;
+    CHECK(av2h_luma_predict(
+              &mode, 8U, 4U, &references, predictor, 10U) == AV2H_OK);
+    references.above = 0;
+    references.above_count = 0U;
+    CHECK(av2h_luma_predict(
+              &mode, 8U, 4U, &references, predictor, 10U) == AV2H_OK);
+}
+
 static void test_tx16x4_dct_reconstruction(void) {
     static const uint8_t predictor[64U] = {
         136U, 138U, 140U, 142U, 144U, 146U, 148U, 150U,
@@ -712,6 +762,7 @@ static void test_live_plane_reconstruction(void) {
 int main(void) {
     test_fixture_reconstruction();
     test_d45_minus_one_16x4_prediction();
+    test_d45_8x4_ibp_prediction();
     test_tx16x4_dct_reconstruction();
     test_tx16x4_fsc_reconstruction();
     test_tx4x4_intrabc_idtx_reconstruction();

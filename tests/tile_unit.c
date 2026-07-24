@@ -635,12 +635,18 @@ static void test_odd_luma_reconstruction(void) {
 }
 
 static void test_ordinary_luma_frontier(void) {
-    static const uint64_t expected_later_hashes[10U] = {
-        UINT64_C(0x1e18e9321a384f99), UINT64_C(0x71901e64d5db40b1),
-        UINT64_C(0xb7e23be00f1d682a), UINT64_C(0x1f1aeff8dd6e80ed),
-        UINT64_C(0x7e8325efa6af7ca2), UINT64_C(0x6df501602e5800e1),
-        UINT64_C(0x49da95e476d8c9f4), UINT64_C(0xc8553a7bc4bc0f42),
-        UINT64_C(0xcff46f7c945e03f5), UINT64_C(0x11146e08cfcc3f75)
+    static const uint64_t expected_luma_hashes[22U] = {
+        UINT64_C(0xb666ec5be3701956), UINT64_C(0xf66e6f01aeb5ad97),
+        UINT64_C(0x6fad48acc36f7004), UINT64_C(0x61c8894e341d8337),
+        UINT64_C(0x36e4f79d7a1afd8d), UINT64_C(0xaecac4eff4fa36ab),
+        UINT64_C(0x11e0a7da897ac03d), UINT64_C(0xc53ea1f293f270bb),
+        UINT64_C(0x68068c76727ff434), UINT64_C(0x049dc4b15c078fb8),
+        UINT64_C(0x3710120e3f473aff), UINT64_C(0xd314b0ad8369bbbe),
+        UINT64_C(0x01b14473c2f9ca43), UINT64_C(0xd83566b66f870732),
+        UINT64_C(0x7b9930a70121e35f), UINT64_C(0x1809c269cc990229),
+        UINT64_C(0x33ff0d2f73f81429), UINT64_C(0xddbbc7f54f5f2763),
+        UINT64_C(0x54c4f4576bdc6aa5), UINT64_C(0x8df97d08a2214684),
+        UINT64_C(0x08618ffe09f8d977), UINT64_C(0x04918cb0bfb81c67)
     };
     static const uint8_t expected_sixth[64U] = {
         216U, 218U, 220U, 222U, 224U, 226U, 228U, 230U,
@@ -1106,14 +1112,12 @@ static void test_ordinary_luma_frontier(void) {
             &leaf.node, &leaf.mode, &leaf.prefix, &leaf.transform,
             &block, &luma_plane, &scratch);
         if (reconstruction_status != AV2H_OK) break;
-        if (leaf_count >= 12U) {
-            check_plane_crop_hash(
-                "ordinary later luma",
-                luma_pixels + (size_t)leaf.node.row * 4U * 160U +
-                    (size_t)leaf.node.column * 4U,
-                160U, block.width, block.height,
-                expected_later_hashes[leaf_count - 12U]);
-        }
+        check_plane_crop_hash(
+            "ordinary luma",
+            luma_pixels + (size_t)leaf.node.row * 4U * 160U +
+                (size_t)leaf.node.column * 4U,
+            160U, block.width, block.height,
+            expected_luma_hashes[leaf_count]);
         fprintf(stderr,
             "ordinary luma leaf %zu at (%u,%u), block %u "
                 "mode %zu/%zu/%zu/%zu/%zu raw %u/%u/%u/%u tx %u/%u/%u "

@@ -132,13 +132,13 @@ static const int8_t dct16[13U][16U] = {
             35, -83, 83, -35, -35, 83, -83, 35 }
 };
 
-static const int8_t ddt16[3U][16U] = {
-        { 12, 15, 19, 23, 30, 39, 51, 66,
-            78, 88, 94, 97, 93, 83, 68, 50 },
-        { 17, 23, 30, 38, 48, 61, 76, 87,
-            83, 59, 19, -30, -73, -99, -99, -76 },
-        { 37, 49, 60, 69, 75, 75, 61, 29,
-            -18, -67, -96, -83, -28, 40, 84, 83 }
+static const int8_t adst16[3U][16U] = {
+        { 8, 17, 25, 33, 41, 48, 55, 62,
+            67, 73, 77, 81, 84, 87, 88, 89 },
+        { 25, 48, 67, 81, 88, 88, 81, 67,
+            48, 25, 0, -25, -48, -67, -81, -88 },
+        { 41, 73, 88, 84, 62, 25, -17, -55,
+            -81, -89, -77, -48, -8, 33, 67, 87 }
 };
 
 static const uint8_t dct32_frequency[] = { 0U, 1U, 3U, 4U, 5U, 7U };
@@ -206,6 +206,75 @@ static uint8_t smooth_scale(uint16_t width, uint16_t height) {
 static uint8_t smooth_blend(uint16_t position, uint8_t scale) {
     unsigned int shift = ((unsigned int)position << 1U) >> scale;
     return shift >= 7U ? 0U : (uint8_t)(64U >> shift);
+}
+
+static Av2hStatus predict_d45_8x4_ibp(
+    const Av2hLumaReferences *references,
+    uint8_t *predictor,
+    size_t predictor_stride) {
+    static const uint8_t weights[4U][8U] = {
+        { 64U, 85U, 96U, 103U, 107U, 110U, 112U, 114U },
+        { 43U, 64U, 77U, 85U, 92U, 96U, 100U, 103U },
+        { 32U, 51U, 64U, 73U, 80U, 85U, 90U, 93U },
+        { 26U, 43U, 55U, 64U, 71U, 77U, 81U, 85U }
+    };
+    uint8_t above_edge[13U];
+    uint8_t left_edge[13U];
+    uint8_t source[13U];
+    uint8_t base;
+    size_t index;
+    uint16_t row;
+    uint16_t column;
+    base = references->above_count != 0U ? references->above[0] :
+        references->left_count != 0U ? references->left[0] : 128U;
+    above_edge[0] = references->has_above_left ?
+        references->above_left : base;
+    left_edge[0] = above_edge[0];
+    for (index = 0U; index < 12U; ++index) {
+        if (references->above_count != 0U) {
+            size_t above_index = index < references->above_count ?
+                index : references->above_count - 1U;
+            above_edge[index + 1U] = references->above[above_index];
+        } else {
+            above_edge[index + 1U] = base;
+        }
+        if (references->left_count != 0U) {
+            size_t left_index = index < references->left_count ?
+                index : references->left_count - 1U;
+            left_edge[index + 1U] = references->left[left_index];
+        } else {
+            left_edge[index + 1U] = base;
+        }
+    }
+    for (index = 0U; index < 13U; ++index) {
+        source[index] = above_edge[index];
+    }
+    for (index = 1U; index < 13U; ++index) {
+        size_t next = index < 12U ? index + 1U : index;
+        above_edge[index] = (uint8_t)(
+            (source[index - 1U] + 2U * source[index] +
+             source[next] + 2U) >> 2U);
+    }
+    for (index = 0U; index < 13U; ++index) {
+        source[index] = left_edge[index];
+    }
+    for (index = 1U; index < 13U; ++index) {
+        size_t next = index < 12U ? index + 1U : index;
+        left_edge[index] = (uint8_t)(
+            (source[index - 1U] + 2U * source[index] +
+             source[next] + 2U) >> 2U);
+    }
+    for (row = 0U; row < 4U; ++row) {
+        for (column = 0U; column < 8U; ++column) {
+            unsigned int weight = weights[row][column];
+            unsigned int primary = above_edge[row + column + 2U];
+            unsigned int secondary = left_edge[row + column + 2U];
+            predictor[(size_t)row * predictor_stride + column] =
+                (uint8_t)((primary * weight +
+                           secondary * (128U - weight) + 64U) >> 7U);
+        }
+    }
+    return AV2H_OK;
 }
 
 Av2hStatus av2h_luma_predict(
@@ -483,8 +552,12 @@ Av2hStatus av2h_luma_predict(
         return AV2H_OK;
     }
     if (mode->mode == AV2H_INTRA_D45 && mode->angle_delta == 0 &&
+        width == 8U && height == 4U) {
+        return predict_d45_8x4_ibp(
+            references, predictor, predictor_stride);
+    }
+    if (mode->mode == AV2H_INTRA_D45 && mode->angle_delta == 0 &&
         ((width == 4U && height == 4U) ||
-         (width == 8U && height == 4U) ||
          (width == 16U && height == 8U))) {
         size_t edge_count = (size_t)width + height;
         if (references->above_count == 0U && references->left_count == 0U) {
@@ -495,22 +568,6 @@ Av2hStatus av2h_luma_predict(
                 index : references->above_count - (references->above_count != 0U);
             above[index] = references->above_count != 0U ?
                 references->above[source] : references->left[0];
-        }
-        if (width == 8U && height == 4U) {
-            uint8_t source[13U];
-            uint8_t *filtered = &above[-1];
-            above[-1] = references->has_above_left ?
-                references->above_left : above[0];
-            for (index = 0U; index <= edge_count; ++index) {
-                source[index] = filtered[index];
-            }
-            for (index = 1U; index <= edge_count; ++index) {
-                size_t previous = index - 1U;
-                size_t next = index < edge_count ? index + 1U : index;
-                filtered[index] = (uint8_t)(
-                    (source[previous] + 2U * source[index] +
-                     source[next] + 2U) >> 2U);
-            }
         }
         for (row = 0U; row < height; ++row) {
             for (column = 0U; column < width; ++column) {
@@ -1162,7 +1219,7 @@ static Av2hStatus inverse_rows(const int32_t *input, int32_t *transposed,
                     for (frequency = 0U; frequency < 3U; ++frequency) {
                         sum += (int64_t)input[
                             (size_t)row * width + frequency] *
-                            ddt16[frequency][output];
+                            adst16[frequency][output];
                     }
                 } else {
                     return AV2H_UNSUPPORTED;
@@ -1759,6 +1816,14 @@ Av2hStatus av2h_luma_reconstruct_to_plane(
     if (left_count != 0U && mode->mode == AV2H_INTRA_SMOOTH &&
         block_y + left_count < plane->height) {
         ++left_count;
+    } else if (left_count != 0U && mode->mode == AV2H_INTRA_D45 &&
+               mode->angle_delta == 0 && mode->mrl_index == 0U &&
+               coefficients->width == 8U && coefficients->height == 4U) {
+        left_count += coefficients->height;
+    } else if (left_count != 0U && mode->mode == AV2H_INTRA_D203 &&
+               mode->angle_delta == 3 && mode->mrl_index == 1U &&
+               coefficients->width == 8U && coefficients->height == 16U) {
+        left_count += coefficients->width + 2U;
     }
     if (left_count > sizeof(scratch->left)) {
         left_count = sizeof(scratch->left);

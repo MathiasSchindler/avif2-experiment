@@ -349,14 +349,13 @@ fixture-supplied contexts or references.
 
 ## Milestone 7: ordinary fixture coverage
 
-**Status:** Paused at a verified fail-closed checkpoint. Ordinary luma commits
-twelve sample-exact leaves through tell 529. The twelfth leaf at `(12,0)` is
-16x8 intraBC with DRL index 3, integer-pixel displacement `(96,-64)`, and
-`skip_transform=1`. It copies the already reconstructed source at pixel
-`(12,40)` to `(0,48)` with a zero residual. The next 16x8 Smooth leaf at
-`(12,4)` decodes EOB 3 through tell 540, then returns `AV2H_UNSUPPORTED`
-before the omitted TX_16X8/Smooth transform-type path. See
-`docs/milestone-7.md` for the exact endpoints and handoff.
+**Status:** Ordinary luma is complete. All 22 leaves reconstruct
+sample-exactly against the pinned AVM prefilter through tell 762, including
+the reached AV2 smooth predictors, tuned 16-point ADST, D45 intra-bi-
+prediction, D203 MRL below-left references, and four final skipped intraBC
+copies. The decoder then enters ordinary chroma traversal, which remains the
+Milestone 7 frontier. See `docs/milestone-7.md` for the exact endpoints and
+handoff.
 
 An audit of all 21 `images/artifacts/*.obu` streams found no artifact-relevant
 Milestone 7 gap. Every Frame Header now parses to the exact pinned-AVM bit
@@ -506,8 +505,8 @@ Release validation additionally includes:
 
 ## Current work order
 
-1. Resume Milestone 7 with the TX_16X8/Smooth leaf at `(12,4)`, then complete
-  ordinary luma and chroma parity.
+1. Resume Milestone 7 at the ordinary chroma handoff after tell 762 and
+  complete chroma parity.
 2. Complete Milestone 8 high-detail, CFL, intraBC, coefficient-range, and
   advanced-transform coverage.
 3. Integrate and prove the mandatory filter pipeline in Milestone 9 after the

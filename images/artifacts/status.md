@@ -41,7 +41,7 @@ Summary:
 - the remaining streams stop at earlier Q-profile admission, prediction, or
   inverse-reconstruction paths.
 
-None reaches the remaining Milestone 7 ordinary-fixture frontier at the
-skipped 16x8 intraBC leaf `(12,0)`. The current artifact frontiers belong to
-Milestone 8 transform/coefficient/reconstruction work or Milestone 9
-frame-filter integration.
+None reaches the ordinary fixture's now-complete 22-leaf luma path through
+tell 762. The current artifact frontiers belong to Milestone 8
+transform/coefficient/reconstruction work or Milestone 9 frame-filter
+integration; ordinary chroma remains a separate Milestone 7 frontier.
