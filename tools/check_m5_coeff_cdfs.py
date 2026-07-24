@@ -118,7 +118,7 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--spec-dir", type=Path,
-        default=Path("build/reference/av2-spec-v1.0.0"))
+        default=Path("docs/spec/av2-v1.0.0"))
     parser.add_argument(
         "--avm-defaults", type=Path,
         default=Path("vendor/avm/av2/common/entropy_inits_coeffs.h"))

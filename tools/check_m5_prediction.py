@@ -10,7 +10,6 @@ DERIVATIVE_HASH = (
 )
 D203_DERIVATIVE_INDEX = 67
 D203_DERIVATIVE = 24
-D203_FILTER_PHASES = (12, 24, 4, 16)
 D45_DERIVATIVE_INDEX = 54
 D45_DERIVATIVE = 44
 D45_FILTER_PHASES = (22, 12, 2, 24)
@@ -23,7 +22,7 @@ D67_MRL4_FILTER_PHASES = (31, 14, 30, 13)
 D67_MRL3_DERIVATIVE_INDEX = 58
 D67_MRL3_DERIVATIVE = 38
 D67_MRL3_FILTER_PHASES = (12, 31, 18, 5)
-SMOOTH4_BLEND = (32, 8, 2, 0)
+SMOOTH8_BLEND = (32, 16, 8, 4, 2, 1, 0, 0)
 
 
 def initializer(source: str, name: str) -> str:
@@ -51,7 +50,7 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--spec-derivative", type=Path,
-        default=Path("build/reference/av2-spec-v1.0.0/dr_intra_derivative.h"))
+        default=Path("docs/spec/av2-v1.0.0/dr_intra_derivative.h"))
     parser.add_argument(
         "--avm-common", type=Path,
         default=Path("vendor/avm/av2/common/av2_common_int.h"))
@@ -88,16 +87,14 @@ def main() -> int:
 
     avm_filters = rows(integers(initializer(
         args.avm_intra.read_text(), "av2_dr_interp_filter")), 4)
+    production = args.production.read_text()
     production_filters = rows(integers(initializer(
-        args.production.read_text(), "d203_filter")), 4)
-    expected_filters = [avm_filters[phase] for phase in D203_FILTER_PHASES]
-    if production_filters != expected_filters:
-        raise ValueError(
-            f"production D203 filters differ: {production_filters} != "
-            f"{expected_filters}")
+        production, "dr_interp_filter")), 4)
+    if production_filters != avm_filters:
+        raise ValueError("production interpolation table differs from AVM")
 
     production_filters = rows(integers(initializer(
-        args.production.read_text(), "d45_filter")), 4)
+        production, "d45_filter")), 4)
     expected_filters = [avm_filters[phase] for phase in D45_FILTER_PHASES]
     if production_filters != expected_filters:
         raise ValueError(
@@ -105,7 +102,7 @@ def main() -> int:
             f"{expected_filters}")
 
     production_filters = rows(integers(initializer(
-        args.production.read_text(), "d67_filter")), 4)
+        production, "d67_filter")), 4)
     expected_filters = [avm_filters[phase] for phase in D67_FILTER_PHASES]
     if production_filters != expected_filters:
         raise ValueError(
@@ -113,7 +110,7 @@ def main() -> int:
             f"{expected_filters}")
 
     production_filters = rows(integers(initializer(
-        args.production.read_text(), "d67_mrl4_filter")), 4)
+        production, "d67_mrl4_filter")), 4)
     expected_filters = [
         avm_filters[phase] for phase in D67_MRL4_FILTER_PHASES]
     if production_filters != expected_filters:
@@ -122,7 +119,7 @@ def main() -> int:
             f"{expected_filters}")
 
     production_filters = rows(integers(initializer(
-        args.production.read_text(), "d67_mrl3_filter")), 4)
+        production, "d67_mrl3_filter")), 4)
     expected_filters = [
         avm_filters[phase] for phase in D67_MRL3_FILTER_PHASES]
     if production_filters != expected_filters:
@@ -137,14 +134,19 @@ def main() -> int:
             avm_predictor, re.DOTALL):
         raise ValueError("pinned AVM smooth blend process differs")
     production_blend = tuple(integers(initializer(
-        args.production.read_text(), "smooth4_blend")))
-    if production_blend != SMOOTH4_BLEND:
+        production, "smooth8_blend")))
+    if production_blend != SMOOTH8_BLEND:
         raise ValueError(
-            f"production 4x4 smooth blend differs: {production_blend} != "
-            f"{SMOOTH4_BLEND}")
+            f"production 8-wide smooth blend differs: {production_blend} != "
+            f"{SMOOTH8_BLEND}")
+    if ("unsigned int shift = ((unsigned int)position << 1U) >> scale;"
+            not in production or
+            "return shift >= 6U ? 0U : (uint8_t)(64U >> shift);"
+            not in production):
+        raise ValueError("production geometric smooth blend process differs")
 
     print("D203 derivative: normative attachment and 90 AVM entries match")
-    print("D203 interpolation: production phases 12,24,4,16 match pinned AVM")
+    print("directional interpolation: all 32 production phases match pinned AVM")
     print("D45 +3 derivative: normative index 54 is 44")
     print("D45 interpolation: production phases 22,12,2,24 match pinned AVM")
     print("D67 MRL derivative: normative index 65 is 27")
@@ -153,7 +155,7 @@ def main() -> int:
     print("D67 4x4 interpolation: production phases 31,14,30,13 match pinned AVM")
     print("D67 4x4 MRL-3 derivative: normative index 58 is 38")
     print("D67 4x4 MRL-3 interpolation: production phases 12,31,18,5 match pinned AVM")
-    print("smooth 4x4 blend: production values 32,8,2,0 match pinned AVM process")
+    print("smooth blend: production geometric process matches pinned AVM")
     return 0
 
 

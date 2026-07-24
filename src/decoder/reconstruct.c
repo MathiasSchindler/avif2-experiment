@@ -205,7 +205,7 @@ static uint8_t smooth_scale(uint16_t width, uint16_t height) {
 
 static uint8_t smooth_blend(uint16_t position, uint8_t scale) {
     unsigned int shift = ((unsigned int)position << 1U) >> scale;
-    return shift >= 7U ? 0U : (uint8_t)(64U >> shift);
+    return shift >= 6U ? 0U : (uint8_t)(64U >> shift);
 }
 
 static Av2hStatus predict_d45_8x4_ibp(
