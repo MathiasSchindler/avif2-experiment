@@ -29,24 +29,26 @@ while 64x16 uses 32x16 storage with a 512-entry capacity and context 3.
 is still decoded. All-zero initialization uses the same adjusted geometry.
 
 The implementation remains fail-closed at the first unconfirmed entropy row.
-Five streams have a pre-prefix range state that does not yet reproduce AVM and
-therefore reject before the all-zero symbol. Flycatcher and louis now consume
-their exact large-transform primary/secondary syntax and stop at coefficient
-levels. Silene reaches its AVM-exact EOB but rejects before adjusted-size IST
-entropy because a direct read would produce a different symbol and endpoint.
-The exact new frontiers are:
+Using the normative context 4 fixes four earlier pre-prefix divergences. The
+remaining cuckoo path requires the normative two-bit extension of EOB raw
+symbol 7 for the 512/1024 classes; with that extension it also reaches AVM's
+EOB 87 at tell 23. Seven streams now consume exact large-transform EOB and
+transform syntax before stopping at coefficient levels. Emerald and the
+larger silene reach AVM-exact EOB endpoints but reject before adjusted-size
+IST entropy because a direct read would produce a different symbol and
+endpoint. The exact new frontiers are:
 
 | Stream | New large-transform frontier |
 | --- | --- |
-| `chinnathurai-128x128-qp112.obu` | 32x64 derived, reject before prefix at tell 9 |
+| `chinnathurai-128x128-qp112.obu` | 32x64 EOB 22 and IST 0 complete at tell 19 |
 | `chinnathurai-333x333-qp224.obu` | 64x64 EOB 1, implicit DCT_DCT, tell 9 |
-| `cuckoo-431x287-qp080.obu` | 64x64 derived, reject before prefix at tell 9 |
-| `emerald-480x240-qp128.obu` | 64x64 derived, reject before prefix at tell 17 |
+| `cuckoo-431x287-qp080.obu` | 64x64 EOB 87 and transform complete at tell 23 |
+| `emerald-480x240-qp128.obu` | 64x64 EOB 27, reject before IST at tell 23 |
 | `flycatcher-223x149-qp176.obu` | 32x64 EOB 8 and IST 0 complete at tell 20 |
-| `laarim-448x299-qp192.obu` | 64x64 derived, reject before prefix at tell 5 |
+| `laarim-448x299-qp192.obu` | 64x64 EOB 49 and transform complete at tell 18 |
 | `louis-301x222-qp144.obu` | 64x16 short-side 0 and IST 0 complete at tell 26 |
 | `schwaebisch-417x277-qp208.obu` | 64x16 all-zero block complete at tell 17 |
-| `silene-384x307-qp080.obu` | 64x64 derived, reject before prefix at tell 6 |
+| `silene-384x307-qp080.obu` | 64x64 EOB 46 and transform complete at tell 20 |
 | `silene-479x383-qp176.obu` | 64x64 EOB 3, reject before IST at tell 13 |
 
 After committing the all-zero block in the entropy-only traversal,
@@ -84,10 +86,10 @@ fail-closed at an earlier first-luma syntax frontier. The QP-192
 partition range state diverges before mode syntax; consuming CCSO there would
 decode different symbols from AVM.
 
-The next exact blockers are large-transform prefix range-state parity,
-silene's adjusted-size IST entropy, Q176 32x64, Q144 64x16, and Q224 64x64
-coefficient levels, 64x16 all-zero reconstruction, the Q48 coefficient-level
-profile for flycatcher, extended
+The next exact blockers are emerald/silene adjusted-size IST entropy,
+Q80/Q112/Q144/Q176/Q192/Q224 large-transform coefficient levels, 64x16
+all-zero reconstruction, the Q48 coefficient-level profile for flycatcher,
+extended
 32x32 EOB point 7 for laarim, Q-context-0 8x8 coefficient-prefix geometry for
 pastell, and the Q112 coefficient-level profile for schwaebisch.
 
@@ -102,8 +104,8 @@ pastell, and the Q112 coefficient-level profile for schwaebisch.
   where the reached frequency set makes sparse handling fragile; and
 - retain deterministic failure for restoration and unreached profile features.
 
-The next artifact work is to repair large-prefix and silene IST range-state
-parity, then add the reached large-transform coefficient and 64x16 all-zero
+The next artifact work is to repair emerald/silene IST range-state parity,
+then add the reached large-transform coefficient and 64x16 all-zero
 reconstruction paths.
 Traversal should continue beyond a block only where every newly reached CDF,
 transform, coefficient, prediction, and reconstruction path has matching AVM

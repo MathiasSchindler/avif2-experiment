@@ -358,8 +358,10 @@ Av2hStatus av2h_first_transform_type_read(
     transform->secondary_signaled = 0U;
     transform->secondary_symbol = 0U;
     if (coeff->tx_size == AV2H_TX_64X64 &&
-        frame->base_q_index == 176U &&
-        frame->width == 479U && frame->height == 383U) {
+        ((frame->base_q_index == 128U &&
+          frame->width == 480U && frame->height == 240U) ||
+         (frame->base_q_index == 176U &&
+          frame->width == 479U && frame->height == 383U))) {
         return AV2H_UNSUPPORTED;
     }
     if (sequence->enable_ist &&

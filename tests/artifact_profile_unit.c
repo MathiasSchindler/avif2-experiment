@@ -267,7 +267,16 @@ static void check_advanced_frontier(
         CHECK(leaf->prefix.tx_size == AV2H_TX_32X64);
         CHECK(leaf->prefix.tx_size_context == 4U);
         if (expected->base_q_index == 112U) {
-            CHECK(leaf->prefix.before_all_zero_bits == 0U);
+            CHECK(leaf->prefix.before_all_zero_bits == 9U);
+            CHECK(leaf->prefix.after_all_zero_bits == 10U);
+            CHECK(leaf->prefix.after_eob_point_bits == 11U);
+            CHECK(leaf->prefix.after_eob_bits == 15U);
+            CHECK(leaf->prefix.eob == 22U);
+            CHECK(leaf->transform.primary_type == AV2H_TX_DCT_DCT);
+            CHECK(leaf->transform.before_primary_bits == 15U);
+            CHECK(leaf->transform.after_primary_bits == 15U);
+            CHECK(leaf->transform.secondary_symbol == 0U);
+            CHECK(leaf->transform.after_secondary_bits == 19U);
         } else {
             CHECK(leaf->prefix.before_all_zero_bits == 11U);
             CHECK(leaf->prefix.after_all_zero_bits == 11U);
@@ -326,8 +335,46 @@ static void check_advanced_frontier(
             CHECK(leaf->transform.before_primary_bits == 13U);
             CHECK(leaf->transform.after_primary_bits == 13U);
             CHECK(leaf->transform.after_secondary_bits == 0U);
+        } else if (expected->base_q_index == 128U) {
+            CHECK(leaf->prefix.before_all_zero_bits == 17U);
+            CHECK(leaf->prefix.after_all_zero_bits == 17U);
+            CHECK(leaf->prefix.after_eob_point_bits == 19U);
+            CHECK(leaf->prefix.after_eob_bits == 23U);
+            CHECK(leaf->prefix.eob == 27U);
+            CHECK(leaf->transform.primary_type == AV2H_TX_DCT_DCT);
+            CHECK(leaf->transform.before_primary_bits == 23U);
+            CHECK(leaf->transform.after_primary_bits == 23U);
+            CHECK(leaf->transform.after_secondary_bits == 0U);
+        } else if (expected->base_q_index == 192U) {
+            CHECK(leaf->prefix.before_all_zero_bits == 5U);
+            CHECK(leaf->prefix.after_all_zero_bits == 5U);
+            CHECK(leaf->prefix.after_eob_point_bits == 13U);
+            CHECK(leaf->prefix.after_eob_bits == 18U);
+            CHECK(leaf->prefix.eob == 49U);
+            CHECK(leaf->transform.primary_type == AV2H_TX_DCT_DCT);
+            CHECK(leaf->transform.before_primary_bits == 18U);
+            CHECK(leaf->transform.after_primary_bits == 18U);
+            CHECK(leaf->transform.after_secondary_bits == 18U);
+        } else if (expected->width == 384U) {
+            CHECK(leaf->prefix.before_all_zero_bits == 6U);
+            CHECK(leaf->prefix.after_all_zero_bits == 10U);
+            CHECK(leaf->prefix.after_eob_point_bits == 15U);
+            CHECK(leaf->prefix.after_eob_bits == 20U);
+            CHECK(leaf->prefix.eob == 46U);
+            CHECK(leaf->transform.primary_type == AV2H_TX_DCT_DCT);
+            CHECK(leaf->transform.before_primary_bits == 20U);
+            CHECK(leaf->transform.after_primary_bits == 20U);
+            CHECK(leaf->transform.after_secondary_bits == 20U);
         } else {
-            CHECK(leaf->prefix.before_all_zero_bits == 0U);
+            CHECK(leaf->prefix.before_all_zero_bits == 9U);
+            CHECK(leaf->prefix.after_all_zero_bits == 12U);
+            CHECK(leaf->prefix.after_eob_point_bits == 17U);
+            CHECK(leaf->prefix.after_eob_bits == 23U);
+            CHECK(leaf->prefix.eob == 87U);
+            CHECK(leaf->transform.primary_type == AV2H_TX_DCT_DCT);
+            CHECK(leaf->transform.before_primary_bits == 23U);
+            CHECK(leaf->transform.after_primary_bits == 23U);
+            CHECK(leaf->transform.after_secondary_bits == 23U);
         }
     }
 }
@@ -678,7 +725,7 @@ static void test_artifact_profiles(void) {
           179U, 0U, 0U, 0U, AV2H_BLOCK_8X8, 16U,
           AV2H_UNSUPPORTED, 0 },
         { "chinnathurai-128x128-qp112.obu", 128U, 128U, 112U, 1U,
-          1U, 1U, 1U, 134U, 1U, 2U, 0U, AV2H_BLOCK_32X64, 9U,
+          1U, 1U, 1U, 134U, 1U, 2U, 0U, AV2H_BLOCK_32X64, 19U,
           AV2H_UNSUPPORTED, 0 },
         { "chinnathurai-333x333-qp224.obu", 333U, 333U, 224U, 0U,
           1U, 0U, 1U, 98U, 1U, 3U, 2U, AV2H_BLOCK_64X64, 9U,
@@ -687,13 +734,13 @@ static void test_artifact_profiles(void) {
           69U, 1U, 1U, 3U, AV2H_BLOCK_16X32, 35U,
           AV2H_OK, &cuckoo_q160_decoded },
         { "cuckoo-431x287-qp080.obu", 431U, 287U, 80U, 1U, 0U, 1U, 1U,
-          174U, 0U, 0U, 0U, AV2H_BLOCK_64X64, 9U,
+          174U, 0U, 0U, 0U, AV2H_BLOCK_64X64, 23U,
           AV2H_UNSUPPORTED, 0 },
         { "emerald-192x96-qp208.obu", 192U, 96U, 208U, 0U, 0U, 0U, 0U,
           36U, 0U, 0U, 0U, AV2H_BLOCK_32X32, 27U,
           AV2H_OK, &emerald_q208_decoded },
         { "emerald-480x240-qp128.obu", 480U, 240U, 128U, 1U, 1U, 1U, 1U,
-          344U, 2U, 1U, 2U, AV2H_BLOCK_64X64, 17U,
+          344U, 2U, 1U, 2U, AV2H_BLOCK_64X64, 23U,
           AV2H_UNSUPPORTED, 0 },
         { "flycatcher-223x149-qp176.obu", 223U, 149U, 176U, 0U,
           1U, 1U, 1U, 125U, 1U, 0U, 3U, AV2H_BLOCK_32X64, 20U,
@@ -705,7 +752,7 @@ static void test_artifact_profiles(void) {
           120U, 2U, 1U, 3U, AV2H_BLOCK_32X32, 20U,
           AV2H_UNSUPPORTED, 0 },
         { "laarim-448x299-qp192.obu", 448U, 299U, 192U, 0U, 1U, 1U, 1U,
-          98U, 1U, 2U, 2U, AV2H_BLOCK_64X64, 5U,
+          98U, 1U, 2U, 2U, AV2H_BLOCK_64X64, 18U,
           AV2H_UNSUPPORTED, 0 },
         { "louis-301x222-qp144.obu", 301U, 222U, 144U, 1U, 1U, 1U, 1U,
           192U, 1U, 2U, 3U, AV2H_BLOCK_64X16, 26U,
@@ -726,7 +773,7 @@ static void test_artifact_profiles(void) {
           1U, 1U, 1U, 111U, 1U, 3U, 1U, AV2H_BLOCK_64X16, 17U,
           AV2H_OK, 0 },
         { "silene-384x307-qp080.obu", 384U, 307U, 80U, 1U, 0U, 1U, 1U,
-          131U, 0U, 0U, 0U, AV2H_BLOCK_64X64, 6U,
+          131U, 0U, 0U, 0U, AV2H_BLOCK_64X64, 20U,
           AV2H_UNSUPPORTED, 0 },
         { "silene-479x383-qp176.obu", 479U, 383U, 176U, 1U, 1U, 1U, 1U,
           175U, 2U, 1U, 3U, AV2H_BLOCK_64X64, 13U,

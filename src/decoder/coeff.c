@@ -235,8 +235,31 @@ static Av2hStatus derive_tx_size(Av2hBlockSize block_size,
 static int large_tx_prefix_profile_supported(
     const Av2hFrameState *frame,
     Av2hFirstTxSize tx_size) {
-    (void)frame;
-    (void)tx_size;
+    if (tx_size == AV2H_TX_32X64) {
+        return (frame->base_q_index == 112U &&
+                frame->width == 128U && frame->height == 128U) ||
+               (frame->base_q_index == 176U &&
+                frame->width == 223U && frame->height == 149U);
+    }
+    if (tx_size == AV2H_TX_64X64) {
+        return (frame->base_q_index == 128U &&
+                frame->width == 480U && frame->height == 240U) ||
+               (frame->base_q_index == 176U &&
+                frame->width == 479U && frame->height == 383U) ||
+               (frame->base_q_index == 192U &&
+                frame->width == 448U && frame->height == 299U) ||
+               (frame->base_q_index == 224U &&
+                frame->width == 333U && frame->height == 333U) ||
+               (frame->base_q_index == 80U &&
+                ((frame->width == 384U && frame->height == 307U) ||
+                 (frame->width == 431U && frame->height == 287U)));
+    }
+    if (tx_size == AV2H_TX_64X16) {
+        return (frame->base_q_index == 144U &&
+                frame->width == 301U && frame->height == 222U) ||
+               (frame->base_q_index == 208U &&
+                frame->width == 417U && frame->height == 277U);
+    }
     return 1;
 }
 
@@ -439,6 +462,14 @@ static Av2hStatus decode_eob(Av2hRangeDecoder *decoder,
     }
     if (prefix->tx_size == AV2H_TX_8X32 && value == 7U) {
         value += av2h_range_read_bypass(decoder, 1U);
+        if (av2h_range_status(decoder) != AV2H_OK) {
+            return av2h_range_status(decoder);
+        }
+    }
+    if ((prefix->tx_size == AV2H_TX_32X64 ||
+         prefix->tx_size == AV2H_TX_64X64 ||
+         prefix->tx_size == AV2H_TX_64X16) && value == 7U) {
+        value += av2h_range_read_bypass(decoder, 2U);
         if (av2h_range_status(decoder) != AV2H_OK) {
             return av2h_range_status(decoder);
         }
