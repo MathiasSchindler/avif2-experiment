@@ -49,6 +49,9 @@ static void test_q_context_cdfs(void) {
     static const uint16_t q3_eob_lf_ctx0[] = {
         2636U, 554U, 214U, 101U, 0U, 0U, 3U, 3U, 3U
     };
+    static const uint16_t q3_eob_lf_txs2_ctx0[] = {
+        1420U, 262U, 114U, 44U, 0U, 0U, 3U, 3U, 4U
+    };
     static const uint16_t q3_base_lf_ctx16[] = {
         9392U, 154U, 28U, 24U, 20U, 0U, 0U, 3U, 3U, 5U
     };
@@ -66,6 +69,7 @@ static void test_q_context_cdfs(void) {
     CHECK(av2h_first_coeff_level_cdfs_init_for_q(&cdfs, 224U) == AV2H_OK);
     CHECK(cdfs.q_context == 3U);
     check_words(cdfs.eob_lf[8], q3_eob_lf_ctx0, 9U);
+    check_words(cdfs.eob_lf[9], q3_eob_lf_txs2_ctx0, 9U);
     check_words(cdfs.base_lf[42], q3_base_lf_ctx16, 10U);
     check_words(cdfs.dc_sign[0], q3_dc_sign_ctx0, 6U);
 }
@@ -223,7 +227,7 @@ static void test_arguments(void) {
     Av2hFirstCoeffPrefix prefix = { 0 };
     Av2hFirstTransformType transform = { 0 };
     Av2hFirstCoeffBlock block;
-    CHECK(sizeof(Av2hFirstCoeffLevelCdfs) == 3366U);
+    CHECK(sizeof(Av2hFirstCoeffLevelCdfs) == 3384U);
     CHECK(av2h_first_coeff_level_cdfs_init(0) == AV2H_INVALID_ARGUMENT);
     CHECK(av2h_first_coeff_block_read(
               0, &cdfs, &sequence, &frame, &mode, &prefix, &transform,

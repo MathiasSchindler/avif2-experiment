@@ -591,6 +591,189 @@ static void check_first_luma(const ArtifactExpectation *expected,
         CHECK(block.after_levels_bits == 17U);
         CHECK(block.after_coefficients_bits == 17U);
     }
+    if (expected->width == 192U && expected->height == 96U &&
+        expected->base_q_index == 208U) {
+        static const uint8_t expected_left[32U] = {
+            75U, 75U, 76U, 76U, 77U, 77U, 78U, 79U,
+            80U, 82U, 83U, 84U, 86U, 87U, 88U, 90U,
+            91U, 93U, 94U, 96U, 97U, 99U, 100U, 101U,
+            102U, 103U, 104U, 105U, 105U, 106U, 106U, 106U
+        };
+        static const uint8_t expected_ibp_edge[32U * 8U] = {
+            84U, 85U, 86U, 87U, 88U, 88U, 89U, 90U,
+            84U, 85U, 86U, 87U, 88U, 88U, 89U, 90U,
+            84U, 85U, 86U, 87U, 88U, 89U, 89U, 90U,
+            84U, 85U, 86U, 87U, 88U, 89U, 89U, 90U,
+            85U, 86U, 86U, 87U, 88U, 89U, 89U, 90U,
+            85U, 86U, 86U, 87U, 88U, 89U, 89U, 90U,
+            85U, 86U, 87U, 87U, 88U, 89U, 90U, 90U,
+            86U, 86U, 87U, 88U, 88U, 89U, 90U, 90U,
+            86U, 87U, 87U, 88U, 89U, 89U, 90U, 90U,
+            87U, 87U, 88U, 88U, 89U, 90U, 90U, 91U,
+            87U, 88U, 88U, 89U, 89U, 90U, 90U, 91U,
+            88U, 88U, 89U, 89U, 89U, 90U, 90U, 91U,
+            89U, 89U, 89U, 90U, 90U, 90U, 90U, 91U,
+            89U, 89U, 90U, 90U, 90U, 90U, 91U, 91U,
+            90U, 90U, 90U, 90U, 90U, 91U, 91U, 91U,
+            91U, 91U, 91U, 91U, 91U, 91U, 91U, 91U,
+            91U, 91U, 91U, 91U, 91U, 91U, 91U, 91U,
+            92U, 92U, 92U, 92U, 91U, 91U, 91U, 91U,
+            92U, 92U, 92U, 92U, 92U, 91U, 91U, 91U,
+            93U, 93U, 93U, 92U, 92U, 92U, 92U, 91U,
+            94U, 93U, 93U, 93U, 92U, 92U, 92U, 91U,
+            95U, 94U, 94U, 93U, 93U, 92U, 92U, 91U,
+            95U, 95U, 94U, 94U, 93U, 92U, 92U, 91U,
+            95U, 95U, 94U, 94U, 93U, 93U, 92U, 92U,
+            96U, 95U, 95U, 94U, 93U, 93U, 92U, 92U,
+            96U, 96U, 95U, 94U, 94U, 93U, 92U, 92U,
+            97U, 96U, 95U, 95U, 94U, 93U, 92U, 92U,
+            97U, 96U, 96U, 95U, 94U, 93U, 93U, 92U,
+            97U, 96U, 96U, 95U, 94U, 93U, 93U, 92U,
+            98U, 97U, 96U, 95U, 94U, 93U, 93U, 92U,
+            98U, 97U, 96U, 95U, 94U, 93U, 93U, 92U,
+            98U, 97U, 96U, 95U, 94U, 93U, 93U, 92U
+        };
+        static const uint8_t expected_32x8_row0[32U] = {
+            115U, 115U, 115U, 115U, 115U, 115U, 115U, 114U,
+            114U, 114U, 114U, 114U, 114U, 113U, 113U, 113U,
+            113U, 113U, 112U, 112U, 112U, 112U, 112U, 111U,
+            111U, 111U, 111U, 111U, 111U, 111U, 111U, 111U
+        };
+        static const uint8_t expected_32x8_row1[32U] = {
+            114U, 114U, 114U, 114U, 114U, 114U, 114U, 114U,
+            114U, 113U, 113U, 113U, 113U, 113U, 113U, 113U,
+            113U, 113U, 113U, 113U, 113U, 112U, 112U, 112U,
+            112U, 112U, 112U, 112U, 112U, 112U, 112U, 112U
+        };
+        uint8_t pixels[192U * 96U];
+        uint8_t reconstructed[48U * 24U];
+        Av2hReconstructionPlane plane = {
+            pixels, 192U, 192U, 96U, 192U, 96U,
+            reconstructed, 48U, sizeof(reconstructed)
+        };
+        Av2hReconstructionScratch scratch;
+        size_t row;
+        size_t column;
+
+        av2h_memory_fill(pixels, 0U, sizeof(pixels));
+        av2h_memory_fill(reconstructed, 0U, sizeof(reconstructed));
+        CHECK(av2h_luma_reconstruct_to_plane(
+                  &leaf.node, &leaf.mode, &leaf.prefix, &leaf.transform,
+                  &block, &plane, &scratch) == AV2H_OK);
+        for (row = 0U; row < 32U; ++row) {
+            CHECK(pixels[row * 192U + 31U] == expected_left[row]);
+        }
+        REQUIRE(av2h_tile_decoder_commit_leaf(&decoder, leaf.node) ==
+                AV2H_OK);
+
+        av2h_memory_fill(&leaf, 0U, sizeof(leaf));
+        av2h_memory_fill(&block, 0U, sizeof(block));
+        status = av2h_tile_decoder_next_luma(
+            &decoder, &leaf, &block, &has_leaf);
+        REQUIRE(status == AV2H_OK);
+        CHECK(has_leaf == 1U);
+        CHECK(leaf.node.row == 0U);
+        CHECK(leaf.node.column == 8U);
+        CHECK(leaf.node.block_size == AV2H_BLOCK_32X32);
+        CHECK(leaf.mode.mode == AV2H_INTRA_DC);
+        CHECK(leaf.mode.enable_ibp == 1U);
+        CHECK(leaf.prefix.tx_size == AV2H_TX_32X32);
+        CHECK(leaf.prefix.eob == 1U);
+        CHECK(block.nonzero_count == 1U);
+        CHECK(block.dc_value == -1);
+        CHECK(block.dequantized[0U] == -992);
+        CHECK(av2h_range_tell(&decoder.range) == 32U);
+        REQUIRE(av2h_luma_reconstruct_to_plane(
+                    &leaf.node, &leaf.mode, &leaf.prefix, &leaf.transform,
+                    &block, &plane, &scratch) == AV2H_OK);
+        for (row = 0U; row < 32U; ++row) {
+            for (column = 0U; column < 32U; ++column) {
+                uint8_t prediction = column < 8U ?
+                    expected_ibp_edge[row * 8U + column] : 91U;
+                CHECK(pixels[row * 192U + 32U + column] ==
+                      (uint8_t)(prediction - 8U));
+            }
+        }
+        REQUIRE(av2h_tile_decoder_commit_leaf(&decoder, leaf.node) ==
+                AV2H_OK);
+
+        av2h_memory_fill(&leaf, 0U, sizeof(leaf));
+        av2h_memory_fill(&block, 0U, sizeof(block));
+        status = av2h_tile_decoder_next_luma(
+            &decoder, &leaf, &block, &has_leaf);
+        REQUIRE(status == AV2H_OK);
+        CHECK(has_leaf == 1U);
+        CHECK(leaf.node.row == 8U);
+        CHECK(leaf.node.column == 0U);
+        CHECK(leaf.node.block_size == AV2H_BLOCK_32X8);
+        CHECK(leaf.mode.mode == AV2H_INTRA_DC);
+        CHECK(leaf.mode.enable_ibp == 1U);
+        CHECK(leaf.prefix.tx_size == AV2H_TX_32X8);
+        CHECK(leaf.prefix.before_all_zero_bits == 42U);
+        CHECK(leaf.prefix.after_all_zero_bits == 42U);
+        CHECK(leaf.prefix.after_eob_point_bits == 45U);
+        CHECK(leaf.prefix.after_eob_bits == 45U);
+        CHECK(leaf.prefix.eob_point == 1U);
+        CHECK(leaf.prefix.eob == 1U);
+        CHECK(leaf.transform.primary_type == AV2H_TX_DCT_DCT);
+        CHECK(leaf.transform.before_primary_bits == 45U);
+        CHECK(leaf.transform.after_primary_bits == 45U);
+        CHECK(leaf.transform.after_secondary_bits == 45U);
+        CHECK(block.width == 32U);
+        CHECK(block.height == 8U);
+        CHECK(block.coefficient_count == 256U);
+        CHECK(block.nonzero_count == 1U);
+        CHECK(block.quantized[0U] == -1);
+        CHECK(block.dequantized[0U] == -1984);
+        CHECK(block.dc_value == -1);
+        CHECK(block.cul_level == 9U);
+        CHECK(block.before_levels_bits == 45U);
+        CHECK(block.after_levels_bits == 46U);
+        CHECK(block.after_coefficients_bits == 46U);
+        CHECK(av2h_range_tell(&decoder.range) == 46U);
+        {
+            Av2hLumaReferences references = {
+                0, 0U, pixels + 31U * 192U, 32U, 0U, 0U
+            };
+            REQUIRE(av2h_luma_predict(
+                        &leaf.mode, 32U, 8U, &references,
+                        scratch.predictor, 32U) == AV2H_OK);
+            for (row = 0U; row < 8U; ++row) {
+                for (column = 0U; column < 32U; ++column) {
+                    uint8_t expected_prediction =
+                        row == 0U ? expected_32x8_row0[column] :
+                        row == 1U ? expected_32x8_row1[column] : 113U;
+                    CHECK(scratch.predictor[row * 32U + column] ==
+                          expected_prediction);
+                }
+            }
+        }
+        REQUIRE(av2h_luma_reconstruct_to_plane(
+                    &leaf.node, &leaf.mode, &leaf.prefix, &leaf.transform,
+                    &block, &plane, &scratch) == AV2H_OK);
+        for (row = 0U; row < 8U; ++row) {
+            for (column = 0U; column < 32U; ++column) {
+                uint8_t expected_prediction =
+                    row == 0U ? expected_32x8_row0[column] :
+                    row == 1U ? expected_32x8_row1[column] : 113U;
+                CHECK(pixels[(32U + row) * 192U + column] ==
+                      (uint8_t)(expected_prediction - 15U));
+            }
+        }
+        REQUIRE(av2h_tile_decoder_commit_leaf(&decoder, leaf.node) ==
+                AV2H_OK);
+
+        av2h_memory_fill(&leaf, 0U, sizeof(leaf));
+        av2h_memory_fill(&block, 0U, sizeof(block));
+        status = av2h_tile_decoder_next_luma(
+            &decoder, &leaf, &block, &has_leaf);
+        CHECK(status == AV2H_UNSUPPORTED);
+        CHECK(has_leaf == 1U);
+        CHECK(leaf.node.row == 10U);
+        CHECK(leaf.node.column == 0U);
+        CHECK(leaf.node.block_size == AV2H_BLOCK_16X16);
+        CHECK(av2h_range_tell(&decoder.range) == 47U);
+    }
 }
 
 static void check_artifact(const ArtifactExpectation *expected) {

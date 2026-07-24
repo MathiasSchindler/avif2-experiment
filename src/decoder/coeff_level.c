@@ -229,6 +229,9 @@ Av2hStatus av2h_first_coeff_level_cdfs_init(Av2hFirstCoeffLevelCdfs *cdfs) {
     static const uint16_t eob_lf_txs2_ctx1[] = {
         31836U, 32524U, 32640U, 32686U
     };
+    static const uint16_t eob_lf_txs2_ctx0[] = {
+        27239U, 31085U, 31883U, 32247U
+    };
     static const uint16_t eob_lf_txs3_ctx1[] = {
         32054U, 32674U, 32735U, 32740U
     };
@@ -396,6 +399,9 @@ Av2hStatus av2h_first_coeff_level_cdfs_init(Av2hFirstCoeffLevelCdfs *cdfs) {
     if (status != AV2H_OK) return status;
     status = av2h_cdf_init(cdfs->eob_lf[8], 9U, eob_lf_txs3_ctx0, 5U,
                            37U, 0U);
+    if (status != AV2H_OK) return status;
+    status = av2h_cdf_init(cdfs->eob_lf[9], 9U, eob_lf_txs2_ctx0, 5U,
+                           7U, 0U);
     if (status != AV2H_OK) return status;
         for (index = 0U;
             index < sizeof(base_specs) / sizeof(base_specs[0]); ++index) {
@@ -635,6 +641,9 @@ Av2hStatus av2h_first_coeff_level_cdfs_init_for_q(
     static const uint16_t q3_eob_lf_txs3_ctx1[] = {
         32297U, 32711U, 32744U, 32748U
     };
+    static const uint16_t q3_eob_lf_txs2_ctx0[] = {
+        31348U, 32506U, 32654U, 32724U
+    };
     static const uint16_t q3_base_lf_ctx2[] = {
         11218U, 23056U, 28975U, 31289U, 32045U
     };
@@ -709,6 +718,9 @@ Av2hStatus av2h_first_coeff_level_cdfs_init_for_q(
     }
     if (q_context == 3U) {
         status = initialize_level_row(
+            cdfs->eob_lf[9], 9U, q3_eob_lf_txs2_ctx0, 5U, 6U);
+        if (status != AV2H_OK) return status;
+        status = initialize_level_row(
             cdfs->eob_lf[8], 9U, q3_eob_lf_txs3_ctx0, 5U, 7U);
         if (status != AV2H_OK) return status;
         status = initialize_level_row(
@@ -781,8 +793,9 @@ static int q_level_profile_supported(
                 transform->primary_type == AV2H_TX_DCT_FLIPADST);
     }
     return cdfs->q_context == 3U &&
-           prefix->tx_size == AV2H_TX_32X32 &&
-           (prefix->eob == 1U || prefix->eob == 5U) &&
+           ((prefix->tx_size == AV2H_TX_32X32 &&
+             (prefix->eob == 1U || prefix->eob == 5U)) ||
+            (prefix->tx_size == AV2H_TX_32X8 && prefix->eob == 1U)) &&
            transform->primary_type == AV2H_TX_DCT_DCT;
 }
 
@@ -795,8 +808,10 @@ static int q_eob_context_supported(
     if (cdfs->q_context == 2U) {
         return tx_context == 3U && context == 1U;
     }
-    return cdfs->q_context == 3U && low && tx_context == 3U &&
-           (context == 0U || context == 1U);
+    return cdfs->q_context == 3U && low &&
+           ((tx_context == 3U &&
+              (context == 0U || context == 1U)) ||
+             (tx_context == 2U && context == 0U));
 }
 
 static int q_base_context_supported(
@@ -1490,6 +1505,8 @@ Av2hStatus av2h_coeff_block_read(
                 cdf = cdfs->eob_lf[6];
             } else if (tx_context == 2U && context == 1U) {
                 cdf = cdfs->eob_lf[5];
+            } else if (tx_context == 2U && context == 0U) {
+                cdf = cdfs->eob_lf[9];
             } else if (tx_context == 3U && context == 1U) {
                 cdf = cdfs->eob_lf[7];
             } else if (tx_context == 3U && context == 0U) {

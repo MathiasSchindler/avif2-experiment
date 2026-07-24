@@ -101,6 +101,7 @@ typedef struct {
     uint8_t mrl_index;
     uint8_t multi_line_mrl;
     uint8_t palette_mode;
+    uint8_t enable_ibp;
     Av2hFirstLeafIntraMode mode;
     size_t before_mode_bits;
     size_t after_mode_set_bits;

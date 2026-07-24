@@ -73,8 +73,14 @@ Av2hStatus av2h_first_coeff_cdfs_init_for_q(
     static const uint16_t eob_pt_64[] = {
         939U, 1381U, 3142U, 6536U, 13617U, 21799U
     };
-    static const uint16_t eob_pt_256[] = {
-        790U, 1184U, 2218U, 5022U, 11432U, 20289U, 23689U
+    static const uint16_t eob_pt_256[4U][7U] = {
+        { 321U, 2376U, 5427U, 7836U, 12726U, 18552U, 21084U },
+        { 790U, 1184U, 2218U, 5022U, 11432U, 20289U, 23689U },
+        { 1556U, 2520U, 5142U, 10585U, 19507U, 28407U, 30571U },
+        { 3574U, 5683U, 11604U, 19611U, 27344U, 30852U, 31552U }
+    };
+    static const uint8_t eob_pt_256_parameter[4U] = {
+        32U, 57U, 32U, 31U
     };
     uint8_t q_context;
     Av2hStatus status;
@@ -163,8 +169,9 @@ Av2hStatus av2h_first_coeff_cdfs_init_for_q(
         cdfs->eob_pt_128, 8U + 4U, eob_pt_128[q_context],
         8U, eob_pt_128_parameter[q_context], 0U);
     if (status != AV2H_OK) return status;
-    status = av2h_cdf_init(cdfs->eob_pt_256, 8U + 4U, eob_pt_256,
-                           8U, 57U, 0U);
+    status = av2h_cdf_init(
+        cdfs->eob_pt_256, 8U + 4U, eob_pt_256[q_context],
+        8U, eob_pt_256_parameter[q_context], 0U);
     if (status != AV2H_OK) return status;
     status = av2h_cdf_init(
         cdfs->eob_pt_512, 8U + 4U, eob_pt_512[q_context],
@@ -546,6 +553,7 @@ Av2hStatus av2h_coeff_prefix_read(
         return AV2H_UNSUPPORTED;
     }
     if (cdfs->q_context != 1U &&
+        prefix->tx_size != AV2H_TX_32X8 &&
         prefix->tx_size != AV2H_TX_16X32 &&
         prefix->tx_size != AV2H_TX_32X32 &&
         prefix->tx_size != AV2H_TX_32X64 &&

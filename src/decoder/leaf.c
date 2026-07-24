@@ -1473,6 +1473,7 @@ static Av2hStatus luma_mode_read_internal(
         (frame->cdef_strength_count > 1U && cdef_state == 0)) {
         return AV2H_UNSUPPORTED;
     }
+    mode->enable_ibp = sequence->enable_ibp;
     for (neighbor = 0U; neighbor < 2U; ++neighbor) {
         if (!neighbors->present[neighbor]) continue;
         if (neighbors->joint_mode[neighbor] >= 61U ||

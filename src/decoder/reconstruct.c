@@ -78,6 +78,15 @@ static const uint8_t smooth8_blend[8U] = {
     32U, 16U, 8U, 4U, 2U, 1U, 0U, 0U
 };
 
+static const uint8_t ibp_weights[5U][16U] = {
+    { 96U },
+    { 86U, 107U },
+    { 77U, 90U, 102U, 115U },
+    { 71U, 78U, 86U, 92U, 100U, 107U, 114U, 121U },
+    { 68U, 72U, 76U, 79U, 83U, 87U, 90U, 94U,
+      98U, 102U, 106U, 109U, 113U, 117U, 121U, 124U }
+};
+
 static const int8_t adst8[8U][8U] = {
     { 11, 28, 44, 58, 70, 79, 86, 89 },
     { 34, 74, 89, 76, 39, -12, -58, -86 },
@@ -316,7 +325,9 @@ Av2hStatus av2h_luma_predict(
         return AV2H_UNSUPPORTED;
     }
     if (mode->mode == AV2H_INTRA_DC && mode->angle_delta == 0 &&
-        width == 4U && (height == 4U || height == 8U)) {
+        ((width == 4U && (height == 4U || height == 8U)) ||
+         (width == 32U && height == 8U) ||
+         (width == 32U && height == 32U))) {
         unsigned int sum = 0U;
         unsigned int count = 0U;
         uint8_t value;
@@ -337,6 +348,55 @@ Av2hStatus av2h_luma_predict(
         for (row = 0U; row < height; ++row) {
             for (column = 0U; column < width; ++column) {
                 predictor[(size_t)row * predictor_stride + column] = value;
+            }
+        }
+        if (mode->enable_ibp && !(width == 4U && height == 4U)) {
+            if (references->above != 0 &&
+                references->above_count >= width) {
+                uint16_t row_limit = (uint16_t)(height >> 2U);
+                uint16_t column_start =
+                    width < height && references->left != 0 &&
+                        references->left_count >= height ?
+                        (uint16_t)(width >> 2U) : 0U;
+                uint8_t weight_row = (uint8_t)(block_log2(height) - 2U);
+                for (row = 0U; row < row_limit; ++row) {
+                    unsigned int weight = ibp_weights[weight_row][row];
+                    for (column = column_start; column < width; ++column) {
+                        predictor[(size_t)row * predictor_stride + column] =
+                            (uint8_t)(
+                                (references->above[column] *
+                                     (128U - weight) +
+                                 predictor[
+                                     (size_t)row * predictor_stride + column] *
+                                     weight +
+                                 64U) >>
+                                7U);
+                    }
+                }
+            }
+            if (references->left != 0 &&
+                references->left_count >= height) {
+                uint16_t row_start =
+                    width >= height && references->above != 0 &&
+                        references->above_count >= width ?
+                        (uint16_t)(height >> 2U) : 0U;
+                uint16_t column_limit = (uint16_t)(width >> 2U);
+                uint8_t weight_row = (uint8_t)(block_log2(width) - 2U);
+                for (row = row_start; row < height; ++row) {
+                    for (column = 0U; column < column_limit; ++column) {
+                        unsigned int weight =
+                            ibp_weights[weight_row][column];
+                        predictor[(size_t)row * predictor_stride + column] =
+                            (uint8_t)(
+                                (references->left[row] *
+                                     (128U - weight) +
+                                 predictor[
+                                     (size_t)row * predictor_stride + column] *
+                                     weight +
+                                 64U) >>
+                                7U);
+                    }
+                }
             }
         }
         return AV2H_OK;
@@ -1679,7 +1739,8 @@ Av2hStatus av2h_luma_reconstruct(
         adst_columns = 0U;
     } else if (prefix->tx_size == AV2H_TX_32X8 &&
                transform->primary_type == AV2H_TX_DCT_DCT &&
-               mode->mode == AV2H_INTRA_D45) {
+               (mode->mode == AV2H_INTRA_DC ||
+                mode->mode == AV2H_INTRA_D45)) {
         first_shift = 6U;
         second_shift = 13U;
         rectangular = 0U;

@@ -76,6 +76,21 @@ coefficient, and final tell endpoint. It also compares every quantized and
 dequantized coefficient against the pinned AVM vectors. Representative DC
 values are `-6/-1488`, `-2/-1984`, `+6/+9408`, and `-8/-1984`.
 
+`emerald-192x96-qp208.obu` now reconstructs its first three luma leaves
+sample-exactly. The second 32x32 leaf has no above references and uses the
+rounded mean of the first leaf's 32 right-edge samples as its DC value.
+Because the sequence enables IBP, the first eight columns are refined with
+the normative 32-wide `Ibp_Weights` row before the constant -8 inverse-DC
+residual is added.
+
+The following `(8,0)` 32x8 leaf uses 32 above references and no left
+references. Its Q-context-3 EOB-256 prefix selects EOB 1, implicit DCT_DCT,
+and the sole coefficient `q=-1`, `dq=-1984` through tell 46. The height-8
+IBP weights refine its first two predictor rows, and the inverse transform
+adds a constant -15 residual. The artifact test pins all 256 predictor and
+reconstructed samples. The new fail-closed frontier is the `(10,0)` 16x16
+Q208 luma profile at tell 47.
+
 Across all 21 artifact streams, six GDF-mode-2 streams decode their first GDF
 flag, CDEF strength index, and enabled first-unit CCSO controls at the exact
 pinned-AVM endpoints. They now continue through mode, implicit large-block
@@ -86,7 +101,8 @@ fail-closed at an earlier first-luma syntax frontier. The QP-192
 partition range state diverges before mode syntax; consuming CCSO there would
 decode different symbols from AVM.
 
-The next exact blockers are emerald/silene adjusted-size IST entropy,
+The next exact blockers are emerald Q208 16x16 luma-profile admission,
+emerald/silene adjusted-size IST entropy,
 Q80/Q112/Q144/Q176/Q192/Q224 large-transform coefficient levels, 64x16
 all-zero reconstruction, the Q48 coefficient-level profile for flycatcher,
 extended
@@ -104,9 +120,9 @@ pastell, and the Q112 coefficient-level profile for schwaebisch.
   where the reached frequency set makes sparse handling fragile; and
 - retain deterministic failure for restoration and unreached profile features.
 
-The next artifact work is to repair emerald/silene IST range-state parity,
-then add the reached large-transform coefficient and 64x16 all-zero
-reconstruction paths.
+The next artifact work is to add the reached emerald Q208 16x16 profile or
+repair emerald/silene IST range-state parity, then continue the reached
+large-transform coefficient and 64x16 all-zero reconstruction paths.
 Traversal should continue beyond a block only where every newly reached CDF,
 transform, coefficient, prediction, and reconstruction path has matching AVM
 evidence. The ordinary Milestone 7 frontier remains ordinary chroma after the

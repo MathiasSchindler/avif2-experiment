@@ -62,6 +62,7 @@ static int q_luma_geometry_supported(uint16_t base_q_index,
                                      Av2hBlockSize block_size) {
     if (base_q_index == 128U) return 1;
     switch (block_size) {
+        case AV2H_BLOCK_32X8:
         case AV2H_BLOCK_16X32:
         case AV2H_BLOCK_32X32:
         case AV2H_BLOCK_32X64:

@@ -414,6 +414,14 @@ now consume exact first-unit GDF, CDEF, and CCSO syntax before their next
 unsupported profile path; eleven other streams still stop at their first-luma
 Milestone 8 frontier.
 
+Emerald Q208 now continues through two adjacent 32x32 luma leaves and the
+following `(8,0)` 32x8 DC leaf at tell 46. The decoder derives DC from the
+available reconstructed references, applies sequence-enabled normative IBP,
+and matches all pinned AVM predictor and prefilter samples. The 32x8 block
+uses the Q-context-3 EOB-256 path, implicit DCT_DCT, one coefficient at
+`q=-1`/`dq=-1984`, and a constant -15 inverse-transform residual. Its new
+fail-closed frontier is the `(10,0)` 16x16 Q208 luma profile at tell 47.
+
 Complete the high-detail fixture and the remaining reached high-energy,
 secondary-transform, CFL, intraBC, coefficient-range, and large-transform
 paths. Preserve bounded sparse tables where they remain sufficient; complete

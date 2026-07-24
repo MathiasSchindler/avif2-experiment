@@ -16,7 +16,7 @@ in 4x4 units.
 | `chinnathurai-333x333-qp224.obu` | 64x64 EOB 1 and implicit DCT_DCT complete, tell 9 | Q224 64x64 coefficient-level profile |
 | `cuckoo-157x105-qp160.obu` | First 16x32 coefficient block complete, tell 35 | 16x32 DCT_DCT inverse reconstruction for DC prediction |
 | `cuckoo-431x287-qp080.obu` | 64x64 EOB 87 and implicit DCT_DCT complete, tell 23 | Q80 64x64 coefficient-level profile |
-| `emerald-192x96-qp208.obu` | One leaf reconstructed; second 32x32 leaf at `(0,8)`, tell 32 | 32x32 DC prediction with references |
+| `emerald-192x96-qp208.obu` | Three leaves reconstructed sample-exactly through the `(8,0)` 32x8 DC block at tell 46; traversal reaches `(10,0)` 16x16 at tell 47 | Q208 16x16 luma-profile admission |
 | `emerald-480x240-qp128.obu` | 64x64 EOB 27 and implicit DCT_DCT complete, tell 23 | Adjusted-32x32 secondary-transform entropy/range-state parity |
 | `flycatcher-223x149-qp176.obu` | 32x64 EOB 8, implicit DCT_DCT, and secondary symbol 0 complete, tell 20 | Q176 32x64 coefficient-level profile |
 | `flycatcher-397x265-qp048.obu` | EOB 45 and DCT_DCT selected, tell 25 | Q48 coefficient-level profile |
@@ -43,7 +43,10 @@ Summary:
 - two reach exact EOB endpoints but stop before unconfirmed adjusted-size
   secondary-transform entropy, and one completes a 64x16 all-zero block
   before reconstruction and the following leaf; and
-- the other eleven retain their earlier Q-profile, coefficient, prediction,
+- emerald Q208 now reconstructs two adjacent 32x32 leaves and the following
+  32x8 DC leaf with normative referenced DC, IBP refinement, and exact
+  inverse-DC residuals before its 16x16 profile frontier; and
+- the other streams retain their earlier Q-profile, coefficient, prediction,
   or inverse-reconstruction blockers.
 
 None reaches the ordinary fixture's now-complete 22-leaf luma path through
