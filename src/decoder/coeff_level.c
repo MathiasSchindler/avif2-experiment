@@ -1407,6 +1407,15 @@ Av2hStatus av2h_coeff_block_read(
         block->width = 32U;
         block->height = 32U;
         tx_context = 3U;
+    } else if (prefix->tx_size == AV2H_TX_32X64 ||
+               prefix->tx_size == AV2H_TX_64X64) {
+        block->width = 32U;
+        block->height = 32U;
+        tx_context = 4U;
+    } else if (prefix->tx_size == AV2H_TX_64X16) {
+        block->width = 32U;
+        block->height = 16U;
+        tx_context = 3U;
     } else {
         return AV2H_UNSUPPORTED;
     }

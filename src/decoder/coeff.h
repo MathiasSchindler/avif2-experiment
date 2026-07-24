@@ -7,14 +7,17 @@ typedef enum {
     AV2H_TX_4X4 = 0,
     AV2H_TX_8X8 = 1,
     AV2H_TX_32X32 = 3,
+    AV2H_TX_64X64 = 4,
     AV2H_TX_4X8 = 5,
     AV2H_TX_8X4 = 6,
     AV2H_TX_8X16 = 7,
     AV2H_TX_16X8 = 8,
     AV2H_TX_16X32 = 9,
+    AV2H_TX_32X64 = 11,
     AV2H_TX_16X4 = 14,
     AV2H_TX_8X32 = 15,
     AV2H_TX_32X8 = 16,
+    AV2H_TX_64X16 = 18,
     AV2H_TX_INVALID = 255
 } Av2hFirstTxSize;
 
@@ -36,6 +39,7 @@ typedef struct {
     uint16_t txb_skip_txs1[AV2H_BINARY_CDF_SIZE];
     uint16_t txb_skip_txs2[AV2H_BINARY_CDF_SIZE];
     uint16_t txb_skip_txs3[AV2H_BINARY_CDF_SIZE];
+    uint16_t txb_skip_txs4[AV2H_BINARY_CDF_SIZE];
     uint16_t eob_pt_16[5U + 4U];
     uint16_t eob_pt_16_inter[5U + 4U];
     uint16_t eob_pt_16_chroma[5U + 4U];

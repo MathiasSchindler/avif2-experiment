@@ -9,22 +9,26 @@ static uint8_t coefficient_q_context(uint16_t base_q_index) {
 Av2hStatus av2h_first_coeff_cdfs_init_for_q(
     Av2hFirstCoeffCdfs *cdfs,
     uint16_t base_q_index) {
-    static const Av2hBinaryCdfSpec txb_skip[4U][4U] = {
+    static const Av2hBinaryCdfSpec txb_skip[4U][5U] = {
         {
             { 25759U, 31U, 0U }, { 24799U, 56U, 0U },
-            { 18946U, 62U, 0U }, { 7809U, 62U, 0U }
+            { 18946U, 62U, 0U }, { 7809U, 62U, 0U },
+            { 2800U, 62U, 0U }
         },
         {
             { 30296U, 5U, 0U }, { 31530U, 30U, 0U },
-            { 31362U, 25U, 0U }, { 27230U, 62U, 0U }
+            { 31362U, 25U, 0U }, { 27230U, 62U, 0U },
+            { 23062U, 62U, 0U }
         },
         {
             { 28021U, 3U, 0U }, { 30300U, 0U, 0U },
-            { 31298U, 25U, 0U }, { 31807U, 56U, 0U }
+            { 31298U, 25U, 0U }, { 31807U, 56U, 0U },
+            { 32278U, 61U, 0U }
         },
         {
             { 21443U, 16U, 0U }, { 27522U, 0U, 0U },
-            { 30197U, 6U, 0U }, { 32558U, 56U, 0U }
+            { 30197U, 6U, 0U }, { 32558U, 56U, 0U },
+            { 32683U, 93U, 0U }
         }
     };
     static const uint16_t eob_pt_128[4U][7U] = {
@@ -137,6 +141,9 @@ Av2hStatus av2h_first_coeff_cdfs_init_for_q(
     status = av2h_binary_cdf_init(
         cdfs->txb_skip_txs3, txb_skip[q_context][3U]);
     if (status != AV2H_OK) return status;
+    status = av2h_binary_cdf_init(
+        cdfs->txb_skip_txs4, txb_skip[q_context][4U]);
+    if (status != AV2H_OK) return status;
     status = av2h_cdf_init(cdfs->eob_pt_16, 5U + 4U, eob_pt_16,
                            5U, 30U, 0U);
     if (status != AV2H_OK) return status;
@@ -210,10 +217,27 @@ static Av2hStatus derive_tx_size(Av2hBlockSize block_size,
     } else if (block_size == AV2H_BLOCK_32X32) {
         *tx_size = AV2H_TX_32X32;
         *tx_size_context = 3U;
+    } else if (block_size == AV2H_BLOCK_32X64) {
+        *tx_size = AV2H_TX_32X64;
+        *tx_size_context = 4U;
+    } else if (block_size == AV2H_BLOCK_64X64) {
+        *tx_size = AV2H_TX_64X64;
+        *tx_size_context = 4U;
+    } else if (block_size == AV2H_BLOCK_64X16) {
+        *tx_size = AV2H_TX_64X16;
+        *tx_size_context = 3U;
     } else {
         return AV2H_UNSUPPORTED;
     }
     return AV2H_OK;
+}
+
+static int large_tx_prefix_profile_supported(
+    const Av2hFrameState *frame,
+    Av2hFirstTxSize tx_size) {
+    (void)frame;
+    (void)tx_size;
+    return 1;
 }
 
 static uint8_t *coefficient_plane(uint8_t *contexts, size_t count,
@@ -372,11 +396,14 @@ static Av2hStatus eob_parameters(
         *point_cdf = cdfs->eob_pt_256;
         *point_symbols = 8U;
         *capacity = 256U;
-    } else if (tx_size == AV2H_TX_16X32) {
+    } else if (tx_size == AV2H_TX_16X32 ||
+               tx_size == AV2H_TX_64X16) {
         *point_cdf = cdfs->eob_pt_512;
         *point_symbols = 8U;
         *capacity = 512U;
-    } else if (tx_size == AV2H_TX_32X32) {
+    } else if (tx_size == AV2H_TX_32X32 ||
+               tx_size == AV2H_TX_32X64 ||
+               tx_size == AV2H_TX_64X64) {
         *point_cdf = cdfs->eob_pt_1024;
         *point_symbols = 8U;
         *capacity = 1024U;
@@ -484,9 +511,15 @@ Av2hStatus av2h_coeff_prefix_read(
     status = derive_tx_size(leaf->block_size, &prefix->tx_size,
                             &prefix->tx_size_context);
     if (status != AV2H_OK) return status;
+    if (!large_tx_prefix_profile_supported(frame, prefix->tx_size)) {
+        return AV2H_UNSUPPORTED;
+    }
     if (cdfs->q_context != 1U &&
         prefix->tx_size != AV2H_TX_16X32 &&
-        prefix->tx_size != AV2H_TX_32X32) {
+        prefix->tx_size != AV2H_TX_32X32 &&
+        prefix->tx_size != AV2H_TX_32X64 &&
+        prefix->tx_size != AV2H_TX_64X64 &&
+        prefix->tx_size != AV2H_TX_64X16) {
         return AV2H_UNSUPPORTED;
     }
     prefix->txb_skip_context = txb_skip_context;
@@ -503,7 +536,8 @@ Av2hStatus av2h_coeff_prefix_read(
         cdf = prefix->tx_size_context == 0U ? cdfs->txb_skip_txs0 :
             prefix->tx_size_context == 1U ? cdfs->txb_skip_txs1 :
             prefix->tx_size_context == 2U ? cdfs->txb_skip_txs2 :
-                                            cdfs->txb_skip_txs3;
+            prefix->tx_size_context == 3U ? cdfs->txb_skip_txs3 :
+                                            cdfs->txb_skip_txs4;
     }
     value = av2h_range_read_adaptive(decoder, cdf, 2U);
     if (av2h_range_status(decoder) != AV2H_OK) {

@@ -393,7 +393,15 @@ Q2/Q3 prefix, level, and DC-sign CDF rows reached by the artifact matrix, and
 rejects every unpinned Q2/Q3 row before entropy consumption. Normative 8-bit
 QTX lookup, luma DC delta, large-transform scaling, and coefficient saturation
 are implemented. The reached 16x32 large-transform orientation and secondary
-CDF are also pinned.
+CDF are also pinned. TX_32X64, TX_64X64, and TX_64X16 now derive their
+normative IDs, adjusted 32x32/32x16 coefficient geometries, EOB capacities,
+and entropy contexts. 32x64/64x64 use implicit DCT_DCT; 64x16 reads the
+normative short-side transform symbol with its 64-pixel side fixed to DCT.
+Five streams reject before unconfirmed large-transform prefix entropy,
+silene reaches an exact EOB before adjusted-size IST, flycatcher Q176, louis
+Q144, and chinnathurai Q224 reach large-transform coefficient levels, and
+schwaebisch Q208 completes a 64x16 all-zero block before its reconstruction
+and following 32x16 profile frontier.
 
 First-block coefficient endpoints now match AVM for
 `cuckoo-157x105-qp160` (tell 35, DC -6),

@@ -212,6 +212,18 @@ static Av2hStatus tile_initialize_all_zero_luma(
                leaf->mode.multi_line_mrl == 0U) {
         width = 8U;
         height = 16U;
+    } else if (leaf->prefix.tx_size == AV2H_TX_32X64 &&
+               leaf->node.block_size == AV2H_BLOCK_32X64) {
+        width = 32U;
+        height = 32U;
+    } else if (leaf->prefix.tx_size == AV2H_TX_64X64 &&
+               leaf->node.block_size == AV2H_BLOCK_64X64) {
+        width = 32U;
+        height = 32U;
+    } else if (leaf->prefix.tx_size == AV2H_TX_64X16 &&
+               leaf->node.block_size == AV2H_BLOCK_64X16) {
+        width = 32U;
+        height = 16U;
     } else {
         return AV2H_UNSUPPORTED;
     }

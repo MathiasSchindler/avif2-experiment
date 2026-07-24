@@ -263,6 +263,73 @@ static void check_advanced_frontier(
         CHECK(leaf->mode.after_palette_bits == 9U);
         CHECK(leaf->mode.palette_mode == 0U);
     }
+    if (expected->first_block == AV2H_BLOCK_32X64) {
+        CHECK(leaf->prefix.tx_size == AV2H_TX_32X64);
+        CHECK(leaf->prefix.tx_size_context == 4U);
+        if (expected->base_q_index == 112U) {
+            CHECK(leaf->prefix.before_all_zero_bits == 0U);
+        } else {
+            CHECK(leaf->prefix.before_all_zero_bits == 11U);
+            CHECK(leaf->prefix.after_all_zero_bits == 11U);
+            CHECK(leaf->prefix.after_eob_point_bits == 14U);
+            CHECK(leaf->prefix.after_eob_bits == 16U);
+            CHECK(leaf->prefix.eob == 8U);
+            CHECK(leaf->transform.primary_type == AV2H_TX_DCT_DCT);
+            CHECK(leaf->transform.before_primary_bits == 16U);
+            CHECK(leaf->transform.after_primary_bits == 16U);
+            CHECK(leaf->transform.secondary_symbol == 0U);
+            CHECK(leaf->transform.after_secondary_bits == 20U);
+        }
+    } else if (expected->first_block == AV2H_BLOCK_64X16) {
+        CHECK(leaf->prefix.tx_size == AV2H_TX_64X16);
+        CHECK(leaf->prefix.tx_size_context == 3U);
+        if (expected->base_q_index == 144U) {
+            CHECK(leaf->prefix.before_all_zero_bits == 16U);
+            CHECK(leaf->prefix.after_all_zero_bits == 16U);
+            CHECK(leaf->prefix.after_eob_point_bits == 18U);
+            CHECK(leaf->prefix.after_eob_bits == 21U);
+            CHECK(leaf->prefix.eob == 10U);
+            CHECK(leaf->transform.primary_type == AV2H_TX_DCT_DCT);
+            CHECK(leaf->transform.before_primary_bits == 21U);
+            CHECK(leaf->transform.after_primary_bits == 21U);
+            CHECK(leaf->transform.primary_signaled == 1U);
+            CHECK(leaf->transform.primary_long_side_symbol == 1U);
+            CHECK(leaf->transform.primary_symbol == 0U);
+            CHECK(leaf->transform.secondary_symbol == 0U);
+            CHECK(leaf->transform.after_secondary_bits == 26U);
+        } else {
+            CHECK(leaf->prefix.before_all_zero_bits == 9U);
+            CHECK(leaf->prefix.after_all_zero_bits == 17U);
+            CHECK(leaf->prefix.after_eob_point_bits == 17U);
+            CHECK(leaf->prefix.after_eob_bits == 17U);
+            CHECK(leaf->prefix.all_zero == 1U);
+            CHECK(leaf->prefix.eob == 0U);
+        }
+    } else if (expected->first_block == AV2H_BLOCK_64X64) {
+        CHECK(leaf->prefix.tx_size == AV2H_TX_64X64);
+        CHECK(leaf->prefix.tx_size_context == 4U);
+        if (expected->base_q_index == 224U) {
+            CHECK(leaf->prefix.before_all_zero_bits == 7U);
+            CHECK(leaf->prefix.after_all_zero_bits == 7U);
+            CHECK(leaf->prefix.after_eob_point_bits == 9U);
+            CHECK(leaf->prefix.after_eob_bits == 9U);
+            CHECK(leaf->prefix.eob == 1U);
+            CHECK(leaf->transform.primary_type == AV2H_TX_DCT_DCT);
+            CHECK(leaf->transform.after_secondary_bits == 9U);
+        } else if (expected->base_q_index == 176U) {
+            CHECK(leaf->prefix.before_all_zero_bits == 9U);
+            CHECK(leaf->prefix.after_all_zero_bits == 9U);
+            CHECK(leaf->prefix.after_eob_point_bits == 13U);
+            CHECK(leaf->prefix.after_eob_bits == 13U);
+            CHECK(leaf->prefix.eob == 3U);
+            CHECK(leaf->transform.primary_type == AV2H_TX_DCT_DCT);
+            CHECK(leaf->transform.before_primary_bits == 13U);
+            CHECK(leaf->transform.after_primary_bits == 13U);
+            CHECK(leaf->transform.after_secondary_bits == 0U);
+        } else {
+            CHECK(leaf->prefix.before_all_zero_bits == 0U);
+        }
+    }
 }
 
 static size_t load_artifact(const char *name) {
@@ -462,6 +529,20 @@ static void check_first_luma(const ArtifactExpectation *expected,
     if (expected->decoded != 0) {
         CHECK(status == AV2H_OK);
         check_decoded_block(expected->decoded, &leaf, &block);
+    } else if (expected->base_q_index == 208U &&
+               expected->first_block == AV2H_BLOCK_64X16) {
+        CHECK(status == AV2H_OK);
+        CHECK(leaf.transform.primary_type == AV2H_TX_DCT_DCT);
+        CHECK(leaf.transform.before_primary_bits == 17U);
+        CHECK(leaf.transform.after_primary_bits == 17U);
+        CHECK(leaf.transform.after_secondary_bits == 17U);
+        CHECK(block.width == 32U);
+        CHECK(block.height == 16U);
+        CHECK(block.coefficient_count == 512U);
+        CHECK(block.nonzero_count == 0U);
+        CHECK(block.before_levels_bits == 17U);
+        CHECK(block.after_levels_bits == 17U);
+        CHECK(block.after_coefficients_bits == 17U);
     }
 }
 
@@ -600,7 +681,7 @@ static void test_artifact_profiles(void) {
           1U, 1U, 1U, 134U, 1U, 2U, 0U, AV2H_BLOCK_32X64, 9U,
           AV2H_UNSUPPORTED, 0 },
         { "chinnathurai-333x333-qp224.obu", 333U, 333U, 224U, 0U,
-          1U, 0U, 1U, 98U, 1U, 3U, 2U, AV2H_BLOCK_64X64, 7U,
+          1U, 0U, 1U, 98U, 1U, 3U, 2U, AV2H_BLOCK_64X64, 9U,
           AV2H_UNSUPPORTED, 0 },
         { "cuckoo-157x105-qp160.obu", 157U, 105U, 160U, 1U, 1U, 1U, 0U,
           69U, 1U, 1U, 3U, AV2H_BLOCK_16X32, 35U,
@@ -615,7 +696,7 @@ static void test_artifact_profiles(void) {
           344U, 2U, 1U, 2U, AV2H_BLOCK_64X64, 17U,
           AV2H_UNSUPPORTED, 0 },
         { "flycatcher-223x149-qp176.obu", 223U, 149U, 176U, 0U,
-          1U, 1U, 1U, 125U, 1U, 0U, 3U, AV2H_BLOCK_32X64, 11U,
+          1U, 1U, 1U, 125U, 1U, 0U, 3U, AV2H_BLOCK_32X64, 20U,
           AV2H_UNSUPPORTED, 0 },
         { "flycatcher-397x265-qp048.obu", 397U, 265U, 48U, 1U,
           1U, 1U, 1U, 256U, 2U, 3U, 3U, AV2H_BLOCK_32X32, 25U,
@@ -627,7 +708,7 @@ static void test_artifact_profiles(void) {
           98U, 1U, 2U, 2U, AV2H_BLOCK_64X64, 5U,
           AV2H_UNSUPPORTED, 0 },
         { "louis-301x222-qp144.obu", 301U, 222U, 144U, 1U, 1U, 1U, 1U,
-          192U, 1U, 2U, 3U, AV2H_BLOCK_64X16, 16U,
+          192U, 1U, 2U, 3U, AV2H_BLOCK_64X16, 26U,
           AV2H_UNSUPPORTED, 0 },
         { "louis-463x342-qp224.obu", 463U, 342U, 224U, 0U, 1U, 1U, 1U,
           131U, 1U, 3U, 3U, AV2H_BLOCK_32X32, 27U,
@@ -642,13 +723,13 @@ static void test_artifact_profiles(void) {
           1U, 1U, 1U, 200U, 2U, 1U, 3U, AV2H_BLOCK_32X8, 32U,
           AV2H_UNSUPPORTED, 0 },
         { "schwaebisch-417x277-qp208.obu", 417U, 277U, 208U, 1U,
-          1U, 1U, 1U, 111U, 1U, 3U, 1U, AV2H_BLOCK_64X16, 9U,
-          AV2H_UNSUPPORTED, 0 },
+          1U, 1U, 1U, 111U, 1U, 3U, 1U, AV2H_BLOCK_64X16, 17U,
+          AV2H_OK, 0 },
         { "silene-384x307-qp080.obu", 384U, 307U, 80U, 1U, 0U, 1U, 1U,
           131U, 0U, 0U, 0U, AV2H_BLOCK_64X64, 6U,
           AV2H_UNSUPPORTED, 0 },
         { "silene-479x383-qp176.obu", 479U, 383U, 176U, 1U, 1U, 1U, 1U,
-          175U, 2U, 1U, 3U, AV2H_BLOCK_64X64, 9U,
+          175U, 2U, 1U, 3U, AV2H_BLOCK_64X64, 13U,
           AV2H_UNSUPPORTED, 0 }
     };
     size_t index;
