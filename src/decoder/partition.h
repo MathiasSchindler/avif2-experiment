@@ -124,6 +124,7 @@ typedef struct {
     uint16_t mi_columns;
     uint8_t structure;
     uint8_t enable_ext_partitions;
+    uint8_t enable_uneven_4way_partitions;
     uint8_t has_pending_leaf;
     Av2hPartitionNode diagnostic_node;
     size_t diagnostic_before_bits;
@@ -171,7 +172,8 @@ Av2hStatus av2h_partition_traversal_init(
     uint16_t mi_columns,
     Av2hPartitionNode root,
     size_t structure,
-    unsigned int enable_ext_partitions);
+    unsigned int enable_ext_partitions,
+    unsigned int enable_uneven_4way_partitions);
 Av2hStatus av2h_partition_traversal_next(
     Av2hPartitionTraversal *traversal,
     Av2hRangeDecoder *decoder,
@@ -232,6 +234,7 @@ Av2hStatus av2h_partition_node_read_with_state(
     size_t structure,
     Av2hPartitionNode node,
     unsigned int enable_ext_partitions,
+    unsigned int enable_uneven_4way_partitions,
     Av2hPartitionDecision *decision,
     Av2hPartitionNode *child);
 

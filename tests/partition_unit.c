@@ -212,7 +212,7 @@ static void check_first_leaf(const unsigned char *bytes,
               64U, 64U) == AV2H_OK);
     CHECK(av2h_partition_traversal_init(
               &traversal, mi_rows, mi_columns,
-              (Av2hPartitionNode){ 0U, 0U, AV2H_BLOCK_64X64 }, 0U, 1U) ==
+              (Av2hPartitionNode){ 0U, 0U, AV2H_BLOCK_64X64 }, 0U, 1U, 0U) ==
           AV2H_OK);
     CHECK(av2h_partition_traversal_next(
               &traversal, &decoder, &cdfs, &contexts, &path, &has_leaf) ==
@@ -399,7 +399,7 @@ static void test_traversal(void) {
               4U, 4U) == AV2H_OK);
     CHECK(av2h_partition_traversal_init(
               &traversal, 1U, 1U,
-              (Av2hPartitionNode){ 0U, 0U, AV2H_BLOCK_16X16 }, 0U, 1U) ==
+              (Av2hPartitionNode){ 0U, 0U, AV2H_BLOCK_16X16 }, 0U, 1U, 0U) ==
           AV2H_OK);
     CHECK(av2h_partition_traversal_next(
               &traversal, &decoder, &cdfs, &contexts, &path, &has_leaf) ==
@@ -425,7 +425,7 @@ static void test_traversal(void) {
     CHECK(has_leaf == 0U);
     CHECK(av2h_partition_traversal_init(
               &traversal, 0U, 1U,
-              (Av2hPartitionNode){ 0U, 0U, AV2H_BLOCK_4X4 }, 0U, 1U) ==
+              (Av2hPartitionNode){ 0U, 0U, AV2H_BLOCK_4X4 }, 0U, 1U, 0U) ==
           AV2H_INVALID_ARGUMENT);
 }
 

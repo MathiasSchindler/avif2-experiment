@@ -227,6 +227,7 @@ static Av2hStatus read_primary(Av2hRangeDecoder *decoder,
                 coeff->tx_size == AV2H_TX_16X8) &&
                (mode->mode == AV2H_INTRA_PAETH ||
                 mode->mode == AV2H_INTRA_DC ||
+                mode->mode == AV2H_INTRA_SMOOTH ||
                 mode->mode == AV2H_INTRA_SMOOTH_VERTICAL ||
                 mode->mode == AV2H_INTRA_D67 ||
                 mode->mode == AV2H_INTRA_D203 ||
@@ -262,6 +263,9 @@ static Av2hStatus read_primary(Av2hRangeDecoder *decoder,
         } else if (coeff->tx_size == AV2H_TX_8X8 &&
                    mode->mode == AV2H_INTRA_SMOOTH_VERTICAL &&
                    symbol == 1U) {
+            transform->primary_type = AV2H_TX_ADST_ADST;
+        } else if (coeff->tx_size == AV2H_TX_16X8 &&
+                   mode->mode == AV2H_INTRA_SMOOTH && symbol == 1U) {
             transform->primary_type = AV2H_TX_ADST_ADST;
         } else if (coeff->tx_size == AV2H_TX_8X8 &&
                    mode->mode == AV2H_INTRA_D203 && symbol == 1U) {
@@ -347,6 +351,9 @@ Av2hStatus av2h_first_transform_type_read(
           mode->mode < AV2H_INTRA_PAETH && coeff->eob <= 32U) ||
          (coeff->tx_size == AV2H_TX_8X8 &&
           mode->mode == AV2H_INTRA_D203 && coeff->eob == 2U &&
+          transform->primary_type == AV2H_TX_ADST_ADST) ||
+         (coeff->tx_size == AV2H_TX_16X8 &&
+          mode->mode == AV2H_INTRA_SMOOTH && coeff->eob == 3U &&
           transform->primary_type == AV2H_TX_ADST_ADST))) {
         symbol = av2h_range_read_adaptive(
             decoder, coeff->tx_size == AV2H_TX_8X4 ? cdfs->secondary_4x4 :

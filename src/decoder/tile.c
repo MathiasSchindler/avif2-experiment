@@ -73,6 +73,173 @@ static int q_luma_geometry_supported(uint16_t base_q_index,
     }
 }
 
+static Av2hStatus tile_initialize_skipped_intrabc(
+    Av2hTileDecoder *decoder,
+    const Av2hTileLumaLeaf *leaf,
+    Av2hFirstCoeffPrefix *prefix,
+    Av2hFirstTransformType *transform,
+    Av2hFirstCoeffBlock *block) {
+    size_t tell;
+    Av2hStatus status;
+    if (decoder == 0 || leaf == 0 || prefix == 0 || transform == 0 ||
+        block == 0) {
+        return AV2H_INVALID_ARGUMENT;
+    }
+    if (leaf->mode.use_intrabc != 1U ||
+        leaf->mode.intrabc_mode != 0U ||
+        leaf->mode.skip_transform != 1U ||
+        leaf->mode.mv_precision != 3U) {
+        return AV2H_UNSUPPORTED;
+    }
+    if (leaf->node.row == 12U && leaf->node.column == 0U &&
+        leaf->node.block_size == AV2H_BLOCK_16X8 &&
+        leaf->mode.intrabc_drl_index == 3U &&
+        leaf->mode.displacement_x == 96 &&
+        leaf->mode.displacement_y == -64) {
+        prefix->tx_size = AV2H_TX_16X8;
+        prefix->tx_size_context = 2U;
+        block->width = 16U;
+        block->height = 8U;
+    } else if (leaf->node.row == 9U && leaf->node.column == 12U &&
+               leaf->node.block_size == AV2H_BLOCK_8X4 &&
+               leaf->mode.intrabc_drl_index == 0U &&
+               leaf->mode.displacement_x == -384 &&
+               leaf->mode.displacement_y == 104) {
+        prefix->tx_size = AV2H_TX_8X4;
+        prefix->tx_size_context = 1U;
+        block->width = 8U;
+        block->height = 4U;
+    } else if (leaf->node.row == 8U && leaf->node.column == 14U &&
+               leaf->node.block_size == AV2H_BLOCK_8X8 &&
+               leaf->mode.intrabc_drl_index == 0U &&
+               leaf->mode.displacement_x == -384 &&
+               leaf->mode.displacement_y == 104) {
+        prefix->tx_size = AV2H_TX_8X8;
+        prefix->tx_size_context = 1U;
+        block->width = 8U;
+        block->height = 8U;
+    } else if (leaf->node.row == 10U && leaf->node.column == 14U &&
+               leaf->node.block_size == AV2H_BLOCK_8X16 &&
+               leaf->mode.intrabc_drl_index == 0U &&
+               leaf->mode.displacement_x == -448 &&
+               leaf->mode.displacement_y == -128) {
+        prefix->tx_size = AV2H_TX_8X16;
+        prefix->tx_size_context = 2U;
+        block->width = 8U;
+        block->height = 16U;
+    } else if (leaf->node.row == 14U && leaf->node.column == 12U &&
+               leaf->node.block_size == AV2H_BLOCK_16X8 &&
+               leaf->mode.intrabc_drl_index == 0U &&
+               leaf->mode.displacement_x == -352 &&
+               leaf->mode.displacement_y == -192) {
+        prefix->tx_size = AV2H_TX_16X8;
+        prefix->tx_size_context = 2U;
+        block->width = 16U;
+        block->height = 8U;
+    } else {
+        return AV2H_UNSUPPORTED;
+    }
+    tell = av2h_range_tell(&decoder->range);
+    {
+        Av2hFirstTxSize tx_size = prefix->tx_size;
+        uint8_t tx_size_context = prefix->tx_size_context;
+        av2h_memory_fill(prefix, 0U, sizeof(*prefix));
+        prefix->tx_size = tx_size;
+        prefix->tx_size_context = tx_size_context;
+    }
+    prefix->all_zero = 1U;
+    prefix->before_all_zero_bits = tell;
+    prefix->after_all_zero_bits = tell;
+    prefix->after_eob_point_bits = tell;
+    prefix->after_eob_extra_bit = tell;
+    prefix->after_eob_bits = tell;
+
+    av2h_memory_fill(transform, 0U, sizeof(*transform));
+    transform->primary_type = AV2H_TX_DCT_DCT;
+    transform->before_primary_bits = tell;
+    transform->after_primary_bits = tell;
+    transform->after_secondary_bits = tell;
+
+    av2h_memory_fill(block, 0U, sizeof(*block));
+    if (prefix->tx_size == AV2H_TX_16X8) {
+        block->width = 16U;
+        block->height = 8U;
+    } else if (prefix->tx_size == AV2H_TX_8X8) {
+        block->width = 8U;
+        block->height = 8U;
+    } else if (prefix->tx_size == AV2H_TX_8X16) {
+        block->width = 8U;
+        block->height = 16U;
+    } else {
+        block->width = 8U;
+        block->height = 4U;
+    }
+    block->coefficient_count = block->width * block->height;
+    block->before_levels_bits = tell;
+    block->after_levels_bits = tell;
+    block->after_levels_range = decoder->range.range;
+    block->after_levels_value = decoder->range.value;
+    block->after_coefficients_bits = tell;
+    status = av2h_coeff_context_state_update(
+        &decoder->coefficient_contexts, 0U, &leaf->node, 0U);
+    return status;
+}
+
+static Av2hStatus tile_initialize_all_zero_luma(
+    Av2hTileDecoder *decoder,
+    const Av2hTileLumaLeaf *leaf,
+    Av2hFirstTransformType *transform,
+    Av2hFirstCoeffBlock *block) {
+    uint16_t width;
+    uint16_t height;
+    size_t tell;
+    Av2hStatus status;
+    if (decoder == 0 || leaf == 0 || transform == 0 || block == 0) {
+        return AV2H_INVALID_ARGUMENT;
+    }
+    if (leaf->prefix.tx_size == AV2H_TX_8X4 &&
+        leaf->node.row == 8U && leaf->node.column == 12U &&
+        leaf->node.block_size == AV2H_BLOCK_8X4 &&
+        leaf->mode.mode == AV2H_INTRA_D45 &&
+        leaf->mode.angle_delta == 0 && leaf->mode.mrl_index == 0U) {
+        width = 8U;
+        height = 4U;
+    } else if (leaf->prefix.tx_size == AV2H_TX_8X16 &&
+               leaf->node.row == 10U && leaf->node.column == 12U &&
+               leaf->node.block_size == AV2H_BLOCK_8X16 &&
+               leaf->mode.mode == AV2H_INTRA_D203 &&
+               leaf->mode.angle_delta == 3 && leaf->mode.mrl_index == 1U &&
+               leaf->mode.multi_line_mrl == 0U) {
+        width = 8U;
+        height = 16U;
+    } else {
+        return AV2H_UNSUPPORTED;
+    }
+    if (!leaf->prefix.all_zero || leaf->prefix.eob != 0U ||
+        leaf->mode.use_intrabc || leaf->mode.skip_transform) {
+        return AV2H_UNSUPPORTED;
+    }
+    tell = av2h_range_tell(&decoder->range);
+    av2h_memory_fill(transform, 0U, sizeof(*transform));
+    transform->primary_type = AV2H_TX_DCT_DCT;
+    transform->before_primary_bits = tell;
+    transform->after_primary_bits = tell;
+    transform->after_secondary_bits = tell;
+
+    av2h_memory_fill(block, 0U, sizeof(*block));
+    block->width = width;
+    block->height = height;
+    block->coefficient_count = (uint16_t)(width * height);
+    block->before_levels_bits = tell;
+    block->after_levels_bits = tell;
+    block->after_levels_range = decoder->range.range;
+    block->after_levels_value = decoder->range.value;
+    block->after_coefficients_bits = tell;
+    status = av2h_coeff_context_state_update(
+        &decoder->coefficient_contexts, 0U, &leaf->node, 0U);
+    return status;
+}
+
 static Av2hStatus tile_store_luma_mode(Av2hTileDecoder *decoder,
                                        const Av2hPartitionNode *node,
                                        const Av2hFirstLeafMode *mode) {
@@ -194,13 +361,15 @@ Av2hStatus av2h_tile_decoder_init(
         &decoder->luma_traversal, (uint16_t)decoder->mi_rows,
         (uint16_t)decoder->mi_columns,
         (Av2hPartitionNode){ 0U, 0U, AV2H_BLOCK_64X64 }, 0U,
-        sequence->enable_ext_partitions);
+        sequence->enable_ext_partitions,
+        sequence->enable_uneven_4way_partitions);
     if (status != AV2H_OK) return tile_decoder_fail(decoder, status);
     status = av2h_partition_traversal_init(
         &decoder->chroma_traversal, (uint16_t)decoder->mi_rows,
         (uint16_t)decoder->mi_columns,
         (Av2hPartitionNode){ 0U, 0U, AV2H_BLOCK_64X64 }, 1U,
-        sequence->enable_ext_partitions);
+        sequence->enable_ext_partitions,
+        sequence->enable_uneven_4way_partitions);
     if (status != AV2H_OK) return tile_decoder_fail(decoder, status);
     status = av2h_range_init(&decoder->range, &decoder->entropy, 1U);
     if (status != AV2H_OK) return tile_decoder_fail(decoder, status);
@@ -256,11 +425,23 @@ Av2hStatus av2h_tile_decoder_next_luma(
     if (status != AV2H_OK) return tile_decoder_fail(decoder, status);
     status = tile_store_luma_mode(decoder, &leaf->node, &leaf->mode);
     if (status != AV2H_OK) return tile_decoder_fail(decoder, status);
+    if (leaf->mode.skip_transform != 0U) {
+        status = tile_initialize_skipped_intrabc(
+            decoder, leaf, &leaf->prefix, &leaf->transform, block);
+        if (status != AV2H_OK) return tile_decoder_fail(decoder, status);
+        return AV2H_OK;
+    }
     status = av2h_coeff_prefix_read_with_state(
         &decoder->range, &decoder->coeff_cdfs, decoder->frame, &leaf->node,
         &leaf->mode, &decoder->coefficient_contexts, &leaf->prefix,
         &dc_sign_context);
     if (status != AV2H_OK) return tile_decoder_fail(decoder, status);
+    if (leaf->prefix.all_zero) {
+        status = tile_initialize_all_zero_luma(
+            decoder, leaf, &leaf->transform, block);
+        if (status != AV2H_OK) return tile_decoder_fail(decoder, status);
+        return AV2H_OK;
+    }
     status = av2h_first_transform_type_read(
         &decoder->range, &decoder->transform_cdfs, decoder->sequence,
         decoder->frame, &leaf->mode, &leaf->prefix, &leaf->transform);

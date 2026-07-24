@@ -133,6 +133,29 @@ static int extension_is_allowed(Av2hBlockSize block_size,
     return 1;
 }
 
+static int uneven_4way_is_allowed(Av2hBlockSize block_size,
+                                  Av2hPartitionAxis axis,
+                                  size_t structure) {
+    const Av2hBlockGeometry *geometry;
+    int size_allowed;
+    if (!extension_is_allowed(block_size, axis, structure)) return 0;
+    geometry = &block_geometry[block_size];
+    if (block_size <= AV2H_BLOCK_64X64) {
+        size_allowed = structure == 0U
+            ? block_size >= AV2H_BLOCK_16X32
+            : block_size >= AV2H_BLOCK_32X64;
+    } else {
+        size_allowed =
+            block_size >= AV2H_BLOCK_8X32 &&
+            block_size <= AV2H_BLOCK_64X16 &&
+            (structure == 0U || block_size >= AV2H_BLOCK_16X64);
+    }
+    if (!size_allowed) return 0;
+    return axis == AV2H_PARTITION_HORIZONTAL
+        ? geometry->mi_height >= 8U
+        : geometry->mi_width >= 8U;
+}
+
 static Av2hPartitionType forced_at_boundary(uint16_t mi_rows,
                                              uint16_t mi_columns,
                                              Av2hPartitionNode node) {
@@ -649,6 +672,7 @@ Av2hStatus av2h_partition_node_read_with_state(
     size_t structure,
     Av2hPartitionNode node,
     unsigned int enable_ext_partitions,
+    unsigned int enable_uneven_4way_partitions,
     Av2hPartitionDecision *decision,
     Av2hPartitionNode *child) {
     Av2hPartitionAxis axis = implied_axis(node.block_size);
@@ -660,7 +684,9 @@ Av2hStatus av2h_partition_node_read_with_state(
     if (decoder == 0 || cdfs == 0 || state == 0 || decision == 0 ||
         child == 0 || structure >= AV2H_PARTITION_STRUCTURE_COUNT ||
         node.block_size >= AV2H_BLOCK_SIZE_COUNT ||
-        enable_ext_partitions > 1U || !is_partition_point(node.block_size)) {
+        enable_ext_partitions > 1U ||
+        enable_uneven_4way_partitions > 1U ||
+        !is_partition_point(node.block_size)) {
         return AV2H_INVALID_ARGUMENT;
     }
     decision->node = node;
@@ -720,6 +746,18 @@ Av2hStatus av2h_partition_node_read_with_state(
             return av2h_range_status(decoder);
         }
         if (value != 0U) {
+            if (enable_uneven_4way_partitions &&
+                uneven_4way_is_allowed(node.block_size, axis, structure)) {
+                value = av2h_range_read_adaptive(
+                    decoder,
+                    cdfs->do_uneven_4way_partition[structure]
+                                                       [extension_context],
+                    2U);
+                if (av2h_range_status(decoder) != AV2H_OK) {
+                    return av2h_range_status(decoder);
+                }
+                if (value != 0U) return AV2H_UNSUPPORTED;
+            }
             decision->partition = axis == AV2H_PARTITION_HORIZONTAL
                 ? AV2H_PARTITION_HORZ_3 : AV2H_PARTITION_VERT_3;
             decision->after_bits = av2h_range_tell(decoder);
@@ -817,12 +855,14 @@ Av2hStatus av2h_partition_traversal_init(
     uint16_t mi_columns,
     Av2hPartitionNode root,
     size_t structure,
-    unsigned int enable_ext_partitions) {
+    unsigned int enable_ext_partitions,
+    unsigned int enable_uneven_4way_partitions) {
     if (traversal == 0 || mi_rows == 0U || mi_columns == 0U ||
         root.row >= mi_rows || root.column >= mi_columns ||
         root.block_size >= AV2H_BLOCK_SIZE_COUNT ||
         structure >= AV2H_PARTITION_STRUCTURE_COUNT ||
-        enable_ext_partitions > 1U) {
+        enable_ext_partitions > 1U ||
+        enable_uneven_4way_partitions > 1U) {
         return AV2H_INVALID_ARGUMENT;
     }
     traversal->stack[0] = root;
@@ -832,6 +872,8 @@ Av2hStatus av2h_partition_traversal_init(
     traversal->mi_columns = mi_columns;
     traversal->structure = (uint8_t)structure;
     traversal->enable_ext_partitions = (uint8_t)enable_ext_partitions;
+    traversal->enable_uneven_4way_partitions =
+        (uint8_t)enable_uneven_4way_partitions;
     traversal->has_pending_leaf = 0U;
     traversal->diagnostic_node = root;
     traversal->diagnostic_before_bits = 0U;
@@ -885,7 +927,8 @@ Av2hStatus av2h_partition_traversal_next(
         }
         status = av2h_partition_node_read_with_state(
             decoder, cdfs, state, traversal->structure, node,
-            traversal->enable_ext_partitions, &decision, &child);
+            traversal->enable_ext_partitions,
+            traversal->enable_uneven_4way_partitions, &decision, &child);
         if (status != AV2H_OK) return status;
         status = append_decision(
             path, decision.node, decision.partition, decision.forced,

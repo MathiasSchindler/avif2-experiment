@@ -27,7 +27,7 @@ typedef struct {
 
 static const Av2hCoeffKey eob_base_keys[] = {
     { 0U, 3U }, { 1U, 3U }, { 3U, 1U }, { 1U, 2U }, { 2U, 3U },
-    { 2U, 2U }
+    { 2U, 2U }, { 2U, 1U }
 };
 static const Av2hCoeffKey base_keys[] = {
     { 0U, 15U }, { 0U, 16U }, { 0U, 17U },
@@ -212,6 +212,7 @@ Av2hStatus av2h_first_coeff_level_cdfs_init(Av2hFirstCoeffLevelCdfs *cdfs) {
     static const uint16_t eob_base_txs1_ctx2[] = { 31889U, 32651U };
     static const uint16_t eob_base_txs2_ctx3[] = { 32695U, 32756U };
     static const uint16_t eob_base_txs2_ctx2[] = { 32688U, 32756U };
+    static const uint16_t eob_base_txs2_ctx1[] = { 32624U, 32752U };
     static const uint16_t eob_base_txs3[] = { 32677U, 32743U };
     static const uint16_t eob_lf_txs1[] = {
         31747U, 32600U, 32712U, 32740U
@@ -367,6 +368,9 @@ Av2hStatus av2h_first_coeff_level_cdfs_init(Av2hFirstCoeffLevelCdfs *cdfs) {
     if (status != AV2H_OK) return status;
     status = av2h_cdf_init(cdfs->eob_base[5], 7U, eob_base_txs2_ctx2,
                            3U, 93U, 0U);
+    if (status != AV2H_OK) return status;
+    status = av2h_cdf_init(cdfs->eob_base[6], 7U, eob_base_txs2_ctx1,
+                           3U, 0U, 0U);
     if (status != AV2H_OK) return status;
     status = av2h_cdf_init(cdfs->eob_lf[0], 9U, eob_lf_txs0, 5U, 0U, 0U);
     if (status != AV2H_OK) return status;

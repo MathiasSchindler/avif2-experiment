@@ -249,7 +249,7 @@ static void test_tiny_second_luma_leaf(void) {
               &coeff_state, coeff_above, 16U, coeff_left, 16U) == AV2H_OK);
     CHECK(av2h_partition_traversal_init(
               &luma_traversal, 4U, 4U,
-              (Av2hPartitionNode){ 0U, 0U, AV2H_BLOCK_64X64 }, 0U, 1U) ==
+              (Av2hPartitionNode){ 0U, 0U, AV2H_BLOCK_64X64 }, 0U, 1U, 0U) ==
           AV2H_OK);
     CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
     CHECK(av2h_partition_traversal_next(
@@ -1195,7 +1195,7 @@ static void test_tiny_second_luma_leaf(void) {
         CHECK(av2h_partition_traversal_init(
               &chroma_traversal, 4U, 4U,
               (Av2hPartitionNode){ 0U, 0U, AV2H_BLOCK_16X16 }, 1U,
-              1U) == AV2H_OK);
+              1U, 0U) == AV2H_OK);
         CHECK(av2h_partition_traversal_next(
               &chroma_traversal, &decoder, &partition_cdfs,
               &partition_state, &path, &has_leaf) == AV2H_OK);
@@ -1674,7 +1674,7 @@ static void test_arguments(void) {
     };
     Av2hSpan span = { bytes, sizeof(bytes) };
     size_t tell;
-    CHECK(sizeof(Av2hLeafCdfs) == 1022U);
+    CHECK(sizeof(Av2hLeafCdfs) == 1094U);
     CHECK(av2h_leaf_cdfs_init(0) == AV2H_INVALID_ARGUMENT);
     CHECK(av2h_first_leaf_mode_read(
               0, &cdfs, &sequence, &frame, &leaf, &mode) ==

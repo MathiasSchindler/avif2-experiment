@@ -19,6 +19,7 @@
 #define AV2H_UV_MODE_SYMBOLS 8U
 #define AV2H_INTRABC_SHELL_CLASS_SYMBOLS 7U
 #define AV2H_INTRABC_LOW_CLASS_COUNT 2U
+#define AV2H_INTRABC_OTHER_CLASS_OFFSET_COUNT 6U
 #define AV2H_INTRABC_GREATER_CONTEXT_COUNT 2U
 #define AV2H_INTRABC_INDEX_CONTEXT_COUNT 4U
 #define AV2H_SKIP_TRANSFORM_CONTEXT_COUNT 6U
@@ -37,6 +38,8 @@ typedef struct {
     uint16_t intrabc_shell_class[AV2H_INTRABC_SHELL_CLASS_SYMBOLS + 4U];
     uint16_t intrabc_shell_offset[AV2H_INTRABC_LOW_CLASS_COUNT]
                                   [AV2H_BINARY_CDF_SIZE];
+    uint16_t intrabc_shell_offset_other
+        [AV2H_INTRABC_OTHER_CLASS_OFFSET_COUNT][AV2H_BINARY_CDF_SIZE];
     uint16_t intrabc_col_greater[AV2H_INTRABC_GREATER_CONTEXT_COUNT]
                                 [AV2H_BINARY_CDF_SIZE];
     uint16_t intrabc_col_index[AV2H_INTRABC_INDEX_CONTEXT_COUNT]
@@ -121,15 +124,22 @@ typedef struct {
 typedef struct {
     uint8_t present[2];
     uint8_t use_intrabc[2];
+    uint8_t skip_transform[2];
     uint8_t joint_mode[2];
     uint8_t fsc_mode[2];
     uint8_t mrl_index[2];
     uint8_t multi_line_mrl[2];
+    uint8_t spatial_present[2];
+    uint8_t spatial_use_intrabc[2];
+    uint8_t spatial_fsc_mode[2];
+    uint8_t spatial_mrl_index[2];
+    uint8_t spatial_multi_line_mrl[2];
 } Av2hLumaModeNeighbors;
 
 typedef struct {
     uint8_t present;
     uint8_t use_intrabc;
+    uint8_t skip_transform;
     uint8_t joint_mode;
     uint8_t fsc_mode;
     uint8_t mrl_index;

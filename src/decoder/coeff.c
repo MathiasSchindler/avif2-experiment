@@ -511,7 +511,16 @@ Av2hStatus av2h_coeff_prefix_read(
     }
     prefix->all_zero = (uint8_t)value;
     prefix->after_all_zero_bits = av2h_range_tell(decoder);
-    if (value != 0U) return AV2H_UNSUPPORTED;
+    if (value != 0U) {
+        prefix->eob_point = 0U;
+        prefix->eob_offset_bits = 0U;
+        prefix->eob_extra = 0U;
+        prefix->eob = 0U;
+        prefix->after_eob_point_bits = prefix->after_all_zero_bits;
+        prefix->after_eob_extra_bit = prefix->after_all_zero_bits;
+        prefix->after_eob_bits = prefix->after_all_zero_bits;
+        return AV2H_OK;
+    }
     return decode_eob(decoder, cdfs,
                       mode->use_intrabc ? cdfs->eob_pt_16_inter : 0,
                       prefix);

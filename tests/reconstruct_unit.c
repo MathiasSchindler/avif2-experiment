@@ -195,6 +195,51 @@ static void test_arguments(void) {
           AV2H_UNSUPPORTED);
 }
 
+static void test_skipped_16x8_intrabc_reconstruction(void) {
+    Av2hFirstLeafMode mode = { 0 };
+    Av2hFirstCoeffPrefix prefix = { 0 };
+    Av2hFirstTransformType transform = { 0 };
+    Av2hFirstCoeffBlock block = { 0 };
+    Av2hReconstructionScratch scratch;
+    Av2hFirstReconstruction reconstruction;
+    uint8_t predictor[128U];
+    size_t index;
+    mode.mode = AV2H_INTRA_DC;
+    mode.use_intrabc = 1U;
+    mode.skip_transform = 1U;
+    mode.intrabc_drl_index = 3U;
+    mode.mv_precision = 3U;
+    mode.displacement_x = 96;
+    mode.displacement_y = -64;
+    prefix.tx_size = AV2H_TX_16X8;
+    prefix.all_zero = 1U;
+    transform.primary_type = AV2H_TX_DCT_DCT;
+    block.width = 16U;
+    block.height = 8U;
+    block.coefficient_count = 128U;
+    for (index = 0U; index < sizeof(predictor); ++index) {
+        predictor[index] = (uint8_t)(index * 17U + 3U);
+    }
+    CHECK(av2h_luma_reconstruct(
+              &mode, &prefix, &transform, &block, predictor, 16U,
+              &scratch, &reconstruction) == AV2H_OK);
+    CHECK(reconstruction.width == 16U);
+    CHECK(reconstruction.height == 8U);
+    for (index = 0U; index < sizeof(predictor); ++index) {
+        CHECK(reconstruction.residual[index] == 0);
+        CHECK(reconstruction.pixels[index] == predictor[index]);
+    }
+    block.nonzero_count = 1U;
+    CHECK(av2h_luma_reconstruct(
+              &mode, &prefix, &transform, &block, predictor, 16U,
+              &scratch, &reconstruction) == AV2H_UNSUPPORTED);
+    block.nonzero_count = 0U;
+    block.quantized[17U] = 1;
+    CHECK(av2h_luma_reconstruct(
+              &mode, &prefix, &transform, &block, predictor, 16U,
+              &scratch, &reconstruction) == AV2H_UNSUPPORTED);
+}
+
 static void test_d45_minus_one_16x4_prediction(void) {
     static const uint8_t above[20U] = {
         134U, 136U, 138U, 140U, 142U, 143U, 145U, 148U,
@@ -628,7 +673,7 @@ static void test_live_plane_reconstruction(void) {
               &coeff_state, coeff_above, 16U, coeff_left, 16U) == AV2H_OK);
     CHECK(av2h_partition_traversal_init(
               &traversal, 4U, 4U,
-              (Av2hPartitionNode){ 0U, 0U, AV2H_BLOCK_64X64 }, 0U, 1U) ==
+              (Av2hPartitionNode){ 0U, 0U, AV2H_BLOCK_64X64 }, 0U, 1U, 0U) ==
           AV2H_OK);
     CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
     for (index = 0U; index < 2U; ++index) {
@@ -673,6 +718,7 @@ int main(void) {
     test_tx4x4_d203_fsc_reconstruction();
     test_tx8x4_d203_reconstruction();
     test_tx8x8_d203_mrl_reconstruction();
+    test_skipped_16x8_intrabc_reconstruction();
     test_live_plane_reconstruction();
     test_arguments();
     if (failures != 0) {

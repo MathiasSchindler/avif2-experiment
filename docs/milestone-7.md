@@ -1,17 +1,16 @@
 # Milestone 7: ordinary fixture coverage
 
 Milestone 7 is paused at a verified fail-closed checkpoint. It is not complete.
-The private decoder commits eleven ordinary luma leaves sample-exactly through
-tell 505. The next 16x8 intraBC leaf at `(12,0)` signals
-`skip_transform=1`, then fails closed at tell 516 because skipped intraBC
-reconstruction is not yet admitted.
+The private decoder commits twelve ordinary luma leaves sample-exactly through
+tell 529. The next 16x8 Smooth leaf at `(12,4)` decodes EOB 3, then fails
+closed at tell 540 before the omitted TX_16X8/Smooth transform-type path.
 
 The locked input is `tests/fixtures/ordinary-160x120.obu`, 843 bytes, SHA-256
 `adbb88447dacbdf6895964df6a6fc1a1506cdf007d27044ea42171ccbb12810f`.
 
 ## Verified checkpoint
 
-The eleven committed luma leaves end at these exact tells:
+The twelve committed luma leaves end at these exact tells:
 
 | Leaf | Position | Block | Transform | Endpoint |
 | --- | --- | --- | --- | --- |
@@ -26,6 +25,7 @@ The eleven committed luma leaves end at these exact tells:
 | 8 | `(10,5)` | 4x4 | IDTX/FSC | 457 |
 | 9 | `(11,4)` | 8x4 | DCT_DCT | 482 |
 | 10 | `(10,6)` | 8x8 | ADST_ADST | 505 |
+| 11 | `(12,0)` | 16x8 | skipped intraBC | 529 |
 
 The reached 16x32 path includes smooth-vertical prediction and the pinned
 AVM tuned 16-point DDT matrix. The 32x8 path includes the exact edge-filtered
@@ -136,11 +136,24 @@ prefiltered output:
 23 27 30 32 35 37 38 39
 ```
 
-The current frontier is `(12,0)`, a 16x8 intraBC block. Partition traversal
-reaches the leaf at tell 509. The normative skip-transform context is 0; AVM
-reads symbol 1 from inverse CDF `6041,0,1` and reaches tell 516. The private
-decoder consumes the same symbol and then fails closed because it currently
-admits only non-skipped intraBC leaves.
+The committed `(12,0)` leaf is a 16x8 intraBC block. The normative
+skip-transform context is 0; AVM reads symbol 1 from inverse CDF `6041,0,1`
+and reaches tell 516. The remaining intraBC syntax ends at tell 529:
+mode 0, DRL index 3, integer-pixel precision, and motion vector `(96,-64)` in
+eighth-pixel units. Shell class 3 uses the three reached LSB-first offset CDF
+rows. The selected BVP is `(0,-64)` and the decoded difference is `(96,0)`.
+
+The motion vector copies the already reconstructed 16x8 source at pixel
+`(12,40)` to destination `(0,48)`. `skip_transform=1` consumes no transform,
+EOB, level, or coefficient bits. The tile path records TX_16X8, EOB 0, and
+128 zero coefficients at tell 529, updates coefficient contexts with
+`cul_level=0`, and reconstructs the destination as an unchanged predictor
+copy. All 128 samples match the pinned AVM prefiltered frame buffer.
+
+The current frontier is `(12,4)`, a 16x8 Smooth block. Partition traversal
+reaches it at tell 529, mode parsing ends at tell 534, and EOB 3 ends at tell
+540. The decoder then fails closed before reading the currently omitted
+TX_16X8/Smooth transform-type syntax.
 
 ## JPEG artifact OBU audit
 
@@ -198,12 +211,12 @@ quantized/dequantized arrays. It is part of `make test-c`.
 
 ## Handoff
 
-Resume with the skipped 16x8 intraBC leaf at `(12,0)`. Pin its displacement,
-predictor source, skipped residual semantics, samples, and exact endpoint
-against AVM before admitting only that reached path. Continue the remaining
-ordinary luma traversal and all ordinary chroma paths without adding later
-syntax from a divergent entropy or sample frontier. Broad intraBC coverage
-remains Milestone 8 work.
+Resume with the 16x8 Smooth leaf at `(12,4)`. Pin its transform-type syntax,
+coefficients, predictor, inverse transform, samples, and exact endpoint against
+AVM before admitting only that reached path. Continue the remaining ordinary
+luma traversal and all ordinary chroma paths without adding later syntax from
+a divergent entropy or sample frontier. Broad intraBC coverage remains
+Milestone 8 work.
 
 Run the current focused checkpoint with:
 
