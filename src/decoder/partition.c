@@ -880,6 +880,25 @@ Av2hStatus av2h_partition_traversal_init(
     return AV2H_OK;
 }
 
+Av2hStatus av2h_partition_traversal_reset_root(
+    Av2hPartitionTraversal *traversal,
+    Av2hPartitionNode root) {
+    if (traversal == 0 || traversal->mi_rows == 0U ||
+        traversal->mi_columns == 0U || traversal->has_pending_leaf ||
+        root.row >= traversal->mi_rows ||
+        root.column >= traversal->mi_columns ||
+        root.block_size >= AV2H_BLOCK_SIZE_COUNT) {
+        return AV2H_INVALID_ARGUMENT;
+    }
+    traversal->stack[0] = root;
+    traversal->pending_leaf = root;
+    traversal->stack_count = 1U;
+    traversal->has_pending_leaf = 0U;
+    traversal->diagnostic_node = root;
+    traversal->diagnostic_before_bits = 0U;
+    return AV2H_OK;
+}
+
 Av2hStatus av2h_partition_traversal_next(
     Av2hPartitionTraversal *traversal,
     Av2hRangeDecoder *decoder,

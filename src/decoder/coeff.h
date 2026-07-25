@@ -14,11 +14,22 @@ typedef enum {
     AV2H_TX_8X16 = 7,
     AV2H_TX_16X8 = 8,
     AV2H_TX_16X32 = 9,
+    AV2H_TX_32X16 = 10,
     AV2H_TX_32X64 = 11,
+    AV2H_TX_64X32 = 12,
+    AV2H_TX_4X16 = 13,
     AV2H_TX_16X4 = 14,
     AV2H_TX_8X32 = 15,
     AV2H_TX_32X8 = 16,
+    AV2H_TX_16X64 = 17,
     AV2H_TX_64X16 = 18,
+    AV2H_TX_4X32 = 19,
+    AV2H_TX_32X4 = 20,
+    AV2H_TX_8X64 = 21,
+    AV2H_TX_64X8 = 22,
+    AV2H_TX_4X64 = 23,
+    AV2H_TX_64X4 = 24,
+    AV2H_TX_SIZE_COUNT = 25,
     AV2H_TX_INVALID = 255
 } Av2hFirstTxSize;
 

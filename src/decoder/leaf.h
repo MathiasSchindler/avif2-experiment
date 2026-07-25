@@ -62,6 +62,7 @@ typedef struct {
     uint16_t mrl_secondary[AV2H_MRL_CONTEXT_COUNT]
                           [AV2H_BINARY_CDF_SIZE];
     uint16_t is_cfl[AV2H_CFL_CONTEXT_COUNT][AV2H_BINARY_CDF_SIZE];
+    uint16_t cfl_index[AV2H_BINARY_CDF_SIZE];
     uint16_t uv_mode[AV2H_UV_MODE_CONTEXT_COUNT][AV2H_UV_MODE_SYMBOLS + 4U];
 } Av2hLeafCdfs;
 
@@ -192,13 +193,28 @@ typedef struct {
     uint8_t enabled_mask;
 } Av2hCcsoEntropyState;
 
+typedef enum {
+    AV2H_CFL_NONE = 0,
+    AV2H_CFL_EXPLICIT_ALPHA = 1,
+    AV2H_CFL_DERIVED_ALPHA = 2,
+    AV2H_CFL_MULTI_PARAM = 3
+} Av2hChromaCflKind;
+
 typedef struct {
     uint8_t is_cfl;
+    uint8_t uses_cfl;
+    uint8_t cfl_index;
+    uint8_t cfl_derived_alpha;
+    uint8_t explicit_alpha_coded;
+    Av2hChromaCflKind cfl_kind;
+    uint8_t uv_mode;
     uint8_t mode_index;
     Av2hFirstLeafIntraMode mode;
     int8_t angle_delta;
     size_t before_cfl_bits;
     size_t after_cfl_bits;
+    size_t before_cfl_index_bits;
+    size_t after_cfl_index_bits;
     size_t after_mode_bits;
 } Av2hFirstChromaMode;
 

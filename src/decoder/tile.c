@@ -39,6 +39,41 @@ static Av2hStatus tile_decoder_fail(Av2hTileDecoder *decoder,
     return status;
 }
 
+static Av2hStatus tile_superblock_geometry(
+    const Av2hSequenceState *sequence,
+    uint16_t *superblock_mi,
+    Av2hBlockSize *root_block_size) {
+    if (sequence == 0 || superblock_mi == 0 || root_block_size == 0) {
+        return AV2H_INVALID_ARGUMENT;
+    }
+    if (sequence->superblock_size == 0U ||
+        sequence->superblock_size == 64U) {
+        *superblock_mi = 16U;
+        *root_block_size = AV2H_BLOCK_64X64;
+        return AV2H_OK;
+    }
+    if (sequence->superblock_size == 128U) {
+        *superblock_mi = 32U;
+        *root_block_size = AV2H_BLOCK_128X128;
+        return AV2H_OK;
+    }
+    return AV2H_UNSUPPORTED;
+}
+
+static Av2hStatus tile_reset_traversal_roots(Av2hTileDecoder *decoder) {
+    Av2hPartitionNode root;
+    Av2hStatus status;
+    if (decoder == 0) return AV2H_INVALID_ARGUMENT;
+    root.row = decoder->sb_row;
+    root.column = decoder->sb_column;
+    root.block_size = decoder->root_block_size;
+    status = av2h_partition_traversal_reset_root(
+        &decoder->luma_traversal, root);
+    if (status != AV2H_OK) return status;
+    return av2h_partition_traversal_reset_root(
+        &decoder->chroma_traversal, root);
+}
+
 static int ccso_entropy_complete(const Av2hCcsoEntropyState *state) {
     size_t plane;
     size_t index;
@@ -312,6 +347,8 @@ Av2hStatus av2h_tile_decoder_init(
     const Av2hFrameState *frame,
     const Av2hTileContextStorage *storage) {
     size_t cell_count;
+    size_t sb_columns;
+    size_t sb_rows;
     size_t index;
     Av2hStatus status;
     if (decoder == 0 || sequence == 0 || frame == 0 || storage == 0 ||
@@ -341,7 +378,24 @@ Av2hStatus av2h_tile_decoder_init(
     decoder->frame = frame;
     decoder->colocated_luma = storage->colocated_luma;
     decoder->colocated_luma_count = storage->colocated_luma_count;
+    status = tile_superblock_geometry(
+        sequence, &decoder->superblock_mi, &decoder->root_block_size);
+    if (status != AV2H_OK) return tile_decoder_fail(decoder, status);
+    sb_columns =
+        (decoder->mi_columns + decoder->superblock_mi - 1U) /
+        decoder->superblock_mi;
+    sb_rows =
+        (decoder->mi_rows + decoder->superblock_mi - 1U) /
+        decoder->superblock_mi;
+    if (!av2h_size_multiply(sb_columns, sb_rows, &decoder->sb_count)) {
+        return tile_decoder_fail(decoder, AV2H_OVERFLOW);
+    }
+    if (!sequence->enable_sdp) decoder->sb_count = 1U;
+    decoder->sb_row = 0U;
+    decoder->sb_column = 0U;
+    decoder->sb_index = 0U;
     decoder->phase = AV2H_TILE_DECODE_LUMA;
+    decoder->event = AV2H_TILE_EVENT_NONE;
     decoder->status = AV2H_OK;
     for (index = 0U; index < cell_count; ++index) {
         decoder->colocated_luma[index].present = 0U;
@@ -392,14 +446,14 @@ Av2hStatus av2h_tile_decoder_init(
     status = av2h_partition_traversal_init(
         &decoder->luma_traversal, (uint16_t)decoder->mi_rows,
         (uint16_t)decoder->mi_columns,
-        (Av2hPartitionNode){ 0U, 0U, AV2H_BLOCK_64X64 }, 0U,
+        (Av2hPartitionNode){ 0U, 0U, decoder->root_block_size }, 0U,
         sequence->enable_ext_partitions,
         sequence->enable_uneven_4way_partitions);
     if (status != AV2H_OK) return tile_decoder_fail(decoder, status);
     status = av2h_partition_traversal_init(
         &decoder->chroma_traversal, (uint16_t)decoder->mi_rows,
         (uint16_t)decoder->mi_columns,
-        (Av2hPartitionNode){ 0U, 0U, AV2H_BLOCK_64X64 }, 1U,
+        (Av2hPartitionNode){ 0U, 0U, decoder->root_block_size }, 1U,
         sequence->enable_ext_partitions,
         sequence->enable_uneven_4way_partitions);
     if (status != AV2H_OK) return tile_decoder_fail(decoder, status);
@@ -429,16 +483,7 @@ Av2hStatus av2h_tile_decoder_next_luma(
         has_leaf);
     if (status != AV2H_OK) return tile_decoder_fail(decoder, status);
     if (!*has_leaf) {
-        if (decoder->frame->gdf_mode >= 2U &&
-            decoder->gdf_entropy.decoded_count !=
-                decoder->frame->gdf_block_count) {
-            return tile_decoder_fail(decoder, AV2H_UNSUPPORTED);
-        }
-        if (!ccso_entropy_complete(&decoder->ccso_entropy)) {
-            return tile_decoder_fail(decoder, AV2H_UNSUPPORTED);
-        }
-        decoder->phase = AV2H_TILE_DECODE_CHROMA;
-        return AV2H_OK;
+        return av2h_tile_decoder_finish_root(decoder);
     }
     leaf->node = path.leaf;
     if (decoder->frame->base_q_index == 96U &&
@@ -466,6 +511,7 @@ Av2hStatus av2h_tile_decoder_next_luma(
         status = tile_initialize_skipped_intrabc(
             decoder, leaf, &leaf->prefix, &leaf->transform, block);
         if (status != AV2H_OK) return tile_decoder_fail(decoder, status);
+        decoder->event = AV2H_TILE_EVENT_LUMA_LEAF;
         return AV2H_OK;
     }
     status = av2h_coeff_prefix_read_with_state(
@@ -477,6 +523,7 @@ Av2hStatus av2h_tile_decoder_next_luma(
         status = tile_initialize_all_zero_luma(
             decoder, leaf, &leaf->transform, block);
         if (status != AV2H_OK) return tile_decoder_fail(decoder, status);
+        decoder->event = AV2H_TILE_EVENT_LUMA_LEAF;
         return AV2H_OK;
     }
     status = av2h_first_transform_type_read(
@@ -488,6 +535,7 @@ Av2hStatus av2h_tile_decoder_next_luma(
         decoder->frame, &leaf->node, &leaf->mode, &leaf->prefix,
         &leaf->transform, &decoder->coefficient_contexts, block);
     if (status != AV2H_OK) return tile_decoder_fail(decoder, status);
+    decoder->event = AV2H_TILE_EVENT_LUMA_LEAF;
     return AV2H_OK;
 }
 
@@ -538,8 +586,7 @@ Av2hStatus av2h_tile_decoder_next_chroma(
         has_leaf);
     if (status != AV2H_OK) return tile_decoder_fail(decoder, status);
     if (!*has_leaf) {
-        decoder->phase = AV2H_TILE_DECODE_DONE;
-        return AV2H_OK;
+        return av2h_tile_decoder_finish_root(decoder);
     }
     leaf->node = path.leaf;
     index = (size_t)leaf->node.row * decoder->mi_columns + leaf->node.column;
@@ -575,6 +622,7 @@ Av2hStatus av2h_tile_decoder_next_chroma(
             &decoder->coefficient_contexts, blocks[index]);
         if (status != AV2H_OK) return tile_decoder_fail(decoder, status);
     }
+    decoder->event = AV2H_TILE_EVENT_CHROMA_LEAF;
     return AV2H_OK;
 }
 
@@ -604,6 +652,58 @@ Av2hStatus av2h_tile_decoder_reconstruct_next_chroma(
         &v_block, v_plane, scratch);
     if (status != AV2H_OK) return tile_decoder_fail(decoder, status);
     return av2h_tile_decoder_commit_leaf(decoder, leaf->node);
+}
+
+Av2hStatus av2h_tile_decoder_finish_root(Av2hTileDecoder *decoder) {
+    Av2hPartitionTraversal *traversal;
+    Av2hStatus status;
+    if (decoder == 0) return AV2H_INVALID_ARGUMENT;
+    if (decoder->status != AV2H_OK) return decoder->status;
+    if (decoder->phase == AV2H_TILE_DECODE_LUMA) {
+        traversal = &decoder->luma_traversal;
+    } else if (decoder->phase == AV2H_TILE_DECODE_CHROMA) {
+        traversal = &decoder->chroma_traversal;
+    } else {
+        return tile_decoder_fail(decoder, AV2H_INVALID_ARGUMENT);
+    }
+    if (traversal->stack_count != 0U ||
+        decoder->luma_traversal.has_pending_leaf ||
+        decoder->chroma_traversal.has_pending_leaf) {
+        return tile_decoder_fail(decoder, AV2H_INVALID_ARGUMENT);
+    }
+    if (decoder->phase == AV2H_TILE_DECODE_LUMA) {
+        decoder->phase = AV2H_TILE_DECODE_CHROMA;
+        decoder->event = AV2H_TILE_EVENT_ROOT_HANDOFF;
+        return AV2H_OK;
+    }
+    if (decoder->sb_index + 1U < decoder->sb_count) {
+        ++decoder->sb_index;
+        if ((size_t)decoder->sb_column + decoder->superblock_mi <
+            decoder->mi_columns) {
+            decoder->sb_column =
+                (uint16_t)(decoder->sb_column + decoder->superblock_mi);
+        } else {
+            decoder->sb_column = 0U;
+            decoder->sb_row =
+                (uint16_t)(decoder->sb_row + decoder->superblock_mi);
+        }
+        status = tile_reset_traversal_roots(decoder);
+        if (status != AV2H_OK) return tile_decoder_fail(decoder, status);
+        decoder->phase = AV2H_TILE_DECODE_LUMA;
+        decoder->event = AV2H_TILE_EVENT_ROOT_HANDOFF;
+        return AV2H_OK;
+    }
+    if (decoder->frame->gdf_mode >= 2U &&
+        decoder->gdf_entropy.decoded_count !=
+            decoder->frame->gdf_block_count) {
+        return tile_decoder_fail(decoder, AV2H_UNSUPPORTED);
+    }
+    if (!ccso_entropy_complete(&decoder->ccso_entropy)) {
+        return tile_decoder_fail(decoder, AV2H_UNSUPPORTED);
+    }
+    decoder->phase = AV2H_TILE_DECODE_DONE;
+    decoder->event = AV2H_TILE_EVENT_DONE;
+    return AV2H_OK;
 }
 
 Av2hStatus av2h_tile_decoder_commit_leaf(

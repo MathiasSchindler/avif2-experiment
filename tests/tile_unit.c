@@ -232,6 +232,7 @@ static void test_bounded_orchestrator(void) {
     CHECK(luma_count == 11U);
     CHECK(av2h_range_tell(&decoder.range) == 415U);
     CHECK(decoder.phase == AV2H_TILE_DECODE_CHROMA);
+    CHECK(decoder.event == AV2H_TILE_EVENT_ROOT_HANDOFF);
     for (;;) {
         CHECK(av2h_tile_decoder_next_chroma(
                   &decoder, &chroma_leaf, &u_block, &v_block, &has_leaf) ==
@@ -244,6 +245,7 @@ static void test_bounded_orchestrator(void) {
     CHECK(chroma_count == 4U);
     CHECK(av2h_range_tell(&decoder.range) == 725U);
     CHECK(decoder.phase == AV2H_TILE_DECODE_DONE);
+    CHECK(decoder.event == AV2H_TILE_EVENT_DONE);
     CHECK(colocated_luma[0U].mode == AV2H_INTRA_DC);
     CHECK(colocated_luma[2U].mode == AV2H_INTRA_D203);
     CHECK(colocated_luma[8U].mode == AV2H_INTRA_D67);
@@ -1285,6 +1287,176 @@ static void test_orchestrator_failures(void) {
           AV2H_INVALID_ARGUMENT);
 }
 
+static void initialize_scheduler_decoder(
+    Av2hTileDecoder *decoder,
+    Av2hSequenceState *sequence,
+    Av2hFrameState *frame,
+    Av2hTileContextStorage *storage) {
+    static const unsigned char entropy[] = { 0U, 0U, 0U, 0U };
+    CHECK(av2h_tile_decoder_init(
+              decoder, (Av2hSpan){ entropy, sizeof(entropy) }, sequence,
+              frame, storage) == AV2H_OK);
+}
+
+static void test_sdp_superblock_scheduler(void) {
+    static const uint16_t rows[] = { 0U, 0U, 0U, 16U, 16U, 16U };
+    static const uint16_t columns[] = { 0U, 16U, 32U, 0U, 16U, 32U };
+    uint8_t luma_partition_above[48U];
+    uint8_t luma_partition_left[24U];
+    uint8_t chroma_partition_above[48U];
+    uint8_t chroma_partition_left[24U];
+    Av2hLumaModeContext luma_mode_above[48U];
+    Av2hLumaModeContext luma_mode_left[24U];
+    uint8_t coefficient_above[AV2H_FRAME_PLANE_COUNT * 48U];
+    uint8_t coefficient_left[AV2H_FRAME_PLANE_COUNT * 24U];
+    Av2hTileLumaModeCell colocated_luma[48U * 24U];
+    uint8_t ccso_unit_controls[AV2H_FRAME_PLANE_COUNT][1U];
+    Av2hTileContextStorage storage = {
+        luma_partition_above, luma_partition_left,
+        chroma_partition_above, chroma_partition_left,
+        luma_mode_above, luma_mode_left,
+        coefficient_above, coefficient_left, colocated_luma,
+        48U, 24U, 48U * 24U, 0, 0U, 0, 0U,
+        { ccso_unit_controls[0], ccso_unit_controls[1],
+          ccso_unit_controls[2] },
+        1U
+    };
+    Av2hSequenceState sequence = { 0 };
+    Av2hFrameState frame = { 0 };
+    Av2hTileDecoder decoder;
+    uint32_t range;
+    uint32_t value;
+    size_t index;
+
+    sequence.superblock_size = 64U;
+    sequence.enable_sdp = 1U;
+    frame.width = 192U;
+    frame.height = 96U;
+    frame.base_q_index = 128U;
+    initialize_scheduler_decoder(&decoder, &sequence, &frame, &storage);
+    CHECK(decoder.superblock_mi == 16U);
+    CHECK(decoder.root_block_size == AV2H_BLOCK_64X64);
+    CHECK(decoder.sb_count == 6U);
+    range = decoder.range.range;
+    value = decoder.range.value;
+    decoder.partition_cdfs.do_split[0][0][0] = 1234U;
+    luma_partition_above[0] = 37U;
+    chroma_partition_left[0] = 41U;
+    luma_mode_above[0].joint_mode = 53U;
+    coefficient_above[0] = 43U;
+    decoder.colocated_luma[0].present = 1U;
+    decoder.gdf_entropy.decoded_count = 7U;
+    decoder.cdef_entropy.index0_cdf[0][0] = 901U;
+    ccso_unit_controls[0][0] = 47U;
+
+    for (index = 0U; index < 6U; ++index) {
+        CHECK(decoder.phase == AV2H_TILE_DECODE_LUMA);
+        CHECK(decoder.sb_index == index);
+        CHECK(decoder.sb_row == rows[index]);
+        CHECK(decoder.sb_column == columns[index]);
+        decoder.luma_traversal.stack_count = 0U;
+        CHECK(av2h_tile_decoder_finish_root(&decoder) == AV2H_OK);
+        CHECK(decoder.phase == AV2H_TILE_DECODE_CHROMA);
+        CHECK(decoder.event == AV2H_TILE_EVENT_ROOT_HANDOFF);
+        CHECK(decoder.sb_row == rows[index]);
+        CHECK(decoder.sb_column == columns[index]);
+
+        decoder.chroma_traversal.stack_count = 0U;
+        CHECK(av2h_tile_decoder_finish_root(&decoder) == AV2H_OK);
+        if (index + 1U < 6U) {
+            CHECK(decoder.phase == AV2H_TILE_DECODE_LUMA);
+            CHECK(decoder.event == AV2H_TILE_EVENT_ROOT_HANDOFF);
+            CHECK(decoder.luma_traversal.stack[0].row == rows[index + 1U]);
+            CHECK(decoder.luma_traversal.stack[0].column ==
+                  columns[index + 1U]);
+            CHECK(decoder.chroma_traversal.stack[0].row ==
+                  rows[index + 1U]);
+            CHECK(decoder.chroma_traversal.stack[0].column ==
+                  columns[index + 1U]);
+            CHECK(decoder.luma_traversal.diagnostic_before_bits == 0U);
+            CHECK(decoder.chroma_traversal.diagnostic_before_bits == 0U);
+        } else {
+            CHECK(decoder.phase == AV2H_TILE_DECODE_DONE);
+            CHECK(decoder.event == AV2H_TILE_EVENT_DONE);
+        }
+        CHECK(decoder.range.range == range);
+        CHECK(decoder.range.value == value);
+        CHECK(decoder.partition_cdfs.do_split[0][0][0] == 1234U);
+        CHECK(luma_partition_above[0] == 37U);
+        CHECK(chroma_partition_left[0] == 41U);
+        CHECK(luma_mode_above[0].joint_mode == 53U);
+        CHECK(coefficient_above[0] == 43U);
+        CHECK(decoder.colocated_luma[0].present == 1U);
+        CHECK(decoder.gdf_entropy.decoded_count == 7U);
+        CHECK(decoder.cdef_entropy.index0_cdf[0][0] == 901U);
+        CHECK(ccso_unit_controls[0][0] == 47U);
+    }
+}
+
+static void test_scheduler_guards_and_root_size(void) {
+    static const unsigned char entropy[] = { 0U, 0U, 0U, 0U };
+    uint8_t luma_partition_above[48U];
+    uint8_t luma_partition_left[32U];
+    uint8_t chroma_partition_above[48U];
+    uint8_t chroma_partition_left[32U];
+    Av2hLumaModeContext luma_mode_above[48U];
+    Av2hLumaModeContext luma_mode_left[32U];
+    uint8_t coefficient_above[AV2H_FRAME_PLANE_COUNT * 48U];
+    uint8_t coefficient_left[AV2H_FRAME_PLANE_COUNT * 32U];
+    Av2hTileLumaModeCell colocated_luma[48U * 32U];
+    uint8_t ccso_unit_controls[AV2H_FRAME_PLANE_COUNT][1U];
+    Av2hTileContextStorage storage = {
+        luma_partition_above, luma_partition_left,
+        chroma_partition_above, chroma_partition_left,
+        luma_mode_above, luma_mode_left,
+        coefficient_above, coefficient_left, colocated_luma,
+        48U, 32U, 48U * 32U, 0, 0U, 0, 0U,
+        { ccso_unit_controls[0], ccso_unit_controls[1],
+          ccso_unit_controls[2] },
+        1U
+    };
+    Av2hSequenceState sequence = { 0 };
+    Av2hFrameState frame = { 0 };
+    Av2hTileDecoder decoder;
+
+    sequence.superblock_size = 128U;
+    sequence.enable_sdp = 1U;
+    frame.width = 192U;
+    frame.height = 96U;
+    frame.base_q_index = 128U;
+    initialize_scheduler_decoder(&decoder, &sequence, &frame, &storage);
+    CHECK(decoder.superblock_mi == 32U);
+    CHECK(decoder.root_block_size == AV2H_BLOCK_128X128);
+    CHECK(decoder.sb_count == 2U);
+    CHECK(decoder.luma_traversal.stack[0].block_size ==
+          AV2H_BLOCK_128X128);
+
+    decoder.luma_traversal.stack_count = 0U;
+    decoder.luma_traversal.has_pending_leaf = 1U;
+    CHECK(av2h_tile_decoder_finish_root(&decoder) ==
+          AV2H_INVALID_ARGUMENT);
+    CHECK(decoder.phase == AV2H_TILE_DECODE_LUMA);
+
+    sequence.superblock_size = 64U;
+    frame.width = 64U;
+    frame.height = 64U;
+    initialize_scheduler_decoder(&decoder, &sequence, &frame, &storage);
+    frame.gdf_mode = 2U;
+    frame.gdf_block_count = 1U;
+    decoder.luma_traversal.stack_count = 0U;
+    CHECK(av2h_tile_decoder_finish_root(&decoder) == AV2H_OK);
+    CHECK(decoder.phase == AV2H_TILE_DECODE_CHROMA);
+    decoder.chroma_traversal.stack_count = 0U;
+    CHECK(av2h_tile_decoder_finish_root(&decoder) == AV2H_UNSUPPORTED);
+    CHECK(decoder.phase == AV2H_TILE_DECODE_CHROMA);
+
+    sequence.superblock_size = 256U;
+    frame.gdf_mode = 0U;
+    CHECK(av2h_tile_decoder_init(
+              &decoder, (Av2hSpan){ entropy, sizeof(entropy) }, &sequence,
+              &frame, &storage) == AV2H_UNSUPPORTED);
+}
+
 int main(void) {
     test_fixture_offsets();
     test_failures();
@@ -1292,6 +1464,8 @@ int main(void) {
     test_odd_luma_reconstruction();
     test_ordinary_luma_frontier();
     test_orchestrator_failures();
+    test_sdp_superblock_scheduler();
+    test_scheduler_guards_and_root_size();
     if (failures != 0) {
         fprintf(stderr, "%d tile checks failed\n", failures);
         return 1;

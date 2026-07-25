@@ -29,7 +29,7 @@ CORE_SOURCES := src/base.c src/carriage.c src/bmff.c src/container.c src/query.c
 	src/decoder/partition.c \
 	src/decoder/partition_cdf.c \
 	src/decoder/range.c src/decoder/reconstruct.c src/decoder/tile.c \
-	src/decoder/transform.c
+	src/decoder/transform.c src/decoder/tx_geometry.c
 CORE_HEADERS := include/av2heif.h src/base.h src/decoder/sequence.h \
 	src/decoder/cdf.h src/decoder/coeff.h src/decoder/coeff_level.h \
 	src/decoder/filter.h src/decoder/frame.h src/decoder/leaf.h \
@@ -37,7 +37,7 @@ CORE_HEADERS := include/av2heif.h src/base.h src/decoder/sequence.h \
 	src/decoder/partition_cdf.h \
 	src/decoder/partition_cdf_data.inc src/decoder/gdf_data.inc \
 	src/decoder/range.h src/decoder/tile.h \
-	src/decoder/transform.h src/decoder/reconstruct.h
+	src/decoder/transform.h src/decoder/tx_geometry.h src/decoder/reconstruct.h
 STRICT_DIR := build/freestanding
 STRICT_OBJECTS := $(patsubst src/%.c,$(STRICT_DIR)/%.o,$(CORE_SOURCES))
 STRICT_CORE := $(STRICT_DIR)/av2heif-core.o

@@ -816,6 +816,138 @@ int32_t av2h_coeff_clamp_dequantized_8bit(
     return magnitude > 32767U ? 32767 : (int32_t)magnitude;
 }
 
+uint32_t av2h_coeff_dequant_step_8bit(uint16_t base_q_index, int delta) {
+    static const uint16_t lookup[25U] = {
+        64U, 40U, 41U, 43U, 44U, 45U, 47U, 48U, 49U, 51U, 52U, 54U,
+        55U, 57U, 59U, 60U, 62U, 64U, 66U, 68U, 70U, 72U, 74U, 76U,
+        78U
+    };
+    int q_index = (int)base_q_index + delta;
+    if (base_q_index == 0U && delta <= 0) return lookup[0];
+    if (q_index < 1) q_index = 1;
+    if (q_index > 255) q_index = 255;
+    if (q_index < 25) return lookup[q_index];
+    return (uint32_t)lookup[((q_index - 1) % 24) + 1] <<
+           ((q_index - 1) / 24);
+}
+
+/*
+ * Exact AVM 8-bit inverse quantization for a single decoded coefficient level.
+ * Mirrors av2_read_coeffs_txb() / get_dqv():
+ *   dq_hp = (level * dequant_step) & 0xffffff        (24-bit working range)
+ *   dq    = ROUND_POWER_OF_TWO(dq_hp, QUANT_TABLE_BITS=3)
+ *   dq  >>= shift                                    (av2_get_tx_scale)
+ * then the signed clamp to the 8-bit dequantized range.
+ */
+int32_t av2h_coeff_dequantize_level(
+    uint32_t level,
+    uint8_t sign,
+    uint32_t dequant_step,
+    uint8_t shift) {
+    uint64_t high_precision =
+        ((uint64_t)level * dequant_step) & UINT64_C(0xffffff);
+    uint64_t magnitude = (high_precision + 4U) >> 3U;
+    magnitude >>= shift;
+    return av2h_coeff_clamp_dequantized_8bit(magnitude, sign);
+}
+
+/*
+ * Normative running coefficient level for neighbour context, matching
+ * set_dc_sign() with COEFF_CONTEXT_BITS=3 / COEFF_CONTEXT_MASK=7.  Note this is
+ * distinct from the trace's informational "cul_level_capped" field
+ * (sum(min(|level|,15))) which does not carry the DC-sign flags.
+ */
+uint8_t av2h_coeff_finalize_cul_level(
+    uint32_t summed_level,
+    int32_t dc_value) {
+    uint32_t cul_level = summed_level > 7U ? 7U : summed_level;
+    if (dc_value < 0) {
+        cul_level |= 8U;
+    } else if (dc_value > 0) {
+        cul_level += 16U;
+    }
+    return (uint8_t)cul_level;
+}
+
+static uint8_t coeff_dim_log2(uint16_t dimension) {
+    uint8_t log2 = 0U;
+    while ((dimension >> log2) > 1U) ++log2;
+    return log2;
+}
+
+Av2hStatus av2h_coeff_tx_geometry_from_dims(
+    uint16_t tx_width,
+    uint16_t tx_height,
+    Av2hCoeffTxGeometry *geometry) {
+    uint32_t pels;
+    uint8_t low_log2;
+    uint8_t high_log2;
+    if (geometry == 0) return AV2H_INVALID_ARGUMENT;
+    if (tx_width < 4U || tx_width > 64U || tx_height < 4U ||
+        tx_height > 64U ||
+        (tx_width & (tx_width - 1U)) != 0U ||
+        (tx_height & (tx_height - 1U)) != 0U) {
+        return AV2H_INVALID_ARGUMENT;
+    }
+    geometry->tx_width = tx_width;
+    geometry->tx_height = tx_height;
+    geometry->width = tx_width > 32U ? 32U : tx_width;
+    geometry->height = tx_height > 32U ? 32U : tx_height;
+    geometry->coefficient_count =
+        (uint32_t)geometry->width * geometry->height;
+    pels = (uint32_t)tx_width * tx_height;
+    geometry->dequant_shift =
+        (uint8_t)((pels > 256U ? 1U : 0U) + (pels > 1024U ? 1U : 0U));
+    /* get_txsize_entropy_ctx: (sqr + sqr_up + 1) >> 1, squares indexed by
+     * log2(side) - 2 for the minimum and maximum transform sides. */
+    low_log2 = coeff_dim_log2(
+        tx_width < tx_height ? tx_width : tx_height);
+    high_log2 = coeff_dim_log2(
+        tx_width > tx_height ? tx_width : tx_height);
+    geometry->tx_context = (uint8_t)(
+        ((low_log2 - 2U) + (high_log2 - 2U) + 1U) >> 1U);
+    return AV2H_OK;
+}
+
+Av2hStatus av2h_coeff_tx_geometry(
+    Av2hFirstTxSize tx_size,
+    Av2hCoeffTxGeometry *geometry) {
+    uint16_t tx_width;
+    uint16_t tx_height;
+    Av2hStatus status;
+    if (geometry == 0) return AV2H_INVALID_ARGUMENT;
+    switch (tx_size) {
+        case AV2H_TX_4X4: tx_width = 4U; tx_height = 4U; break;
+        case AV2H_TX_8X8: tx_width = 8U; tx_height = 8U; break;
+        case AV2H_TX_16X16: tx_width = 16U; tx_height = 16U; break;
+        case AV2H_TX_32X32: tx_width = 32U; tx_height = 32U; break;
+        case AV2H_TX_64X64: tx_width = 64U; tx_height = 64U; break;
+        case AV2H_TX_4X8: tx_width = 4U; tx_height = 8U; break;
+        case AV2H_TX_8X4: tx_width = 8U; tx_height = 4U; break;
+        case AV2H_TX_8X16: tx_width = 8U; tx_height = 16U; break;
+        case AV2H_TX_16X8: tx_width = 16U; tx_height = 8U; break;
+        case AV2H_TX_16X32: tx_width = 16U; tx_height = 32U; break;
+        case AV2H_TX_32X64: tx_width = 32U; tx_height = 64U; break;
+        case AV2H_TX_16X4: tx_width = 16U; tx_height = 4U; break;
+        case AV2H_TX_8X32: tx_width = 8U; tx_height = 32U; break;
+        case AV2H_TX_32X8: tx_width = 32U; tx_height = 8U; break;
+        case AV2H_TX_64X16: tx_width = 64U; tx_height = 16U; break;
+        default: return AV2H_UNSUPPORTED;
+    }
+    status = av2h_coeff_tx_geometry_from_dims(tx_width, tx_height, geometry);
+    if (status != AV2H_OK) return status;
+    /*
+     * Behaviour-preserving legacy nuance: the existing decoder keys TX_8X16 to
+     * coefficient tx-context 1 (not the get_txsize_entropy_ctx value of 2).
+     * None of the Emerald remaining-luma target sizes are TX_8X16, so the pure
+     * dimension formula is authoritative for every reached block.
+     */
+    if (tx_size == AV2H_TX_8X16) {
+        geometry->tx_context = 1U;
+    }
+    return AV2H_OK;
+}
+
 static int q_level_profile_supported(
     const Av2hFirstCoeffLevelCdfs *cdfs,
     const Av2hFrameState *frame,
@@ -899,21 +1031,6 @@ static int q_br_context_supported(
         return context == 1U || context == 5U;
     }
     return cdfs->q_context == 3U && context == 0U;
-}
-
-static uint32_t qtx_8bit(uint16_t base_q_index, int delta) {
-    static const uint16_t lookup[25U] = {
-        64U, 40U, 41U, 43U, 44U, 45U, 47U, 48U, 49U, 51U, 52U, 54U,
-        55U, 57U, 59U, 60U, 62U, 64U, 66U, 68U, 70U, 72U, 74U, 76U,
-        78U
-    };
-    int q_index = (int)base_q_index + delta;
-    if (base_q_index == 0U && delta <= 0) return lookup[0];
-    if (q_index < 1) q_index = 1;
-    if (q_index > 255) q_index = 255;
-    if (q_index < 25) return lookup[q_index];
-    return (uint32_t)lookup[((q_index - 1) % 24) + 1] <<
-           ((q_index - 1) / 24);
 }
 
 static unsigned int level_at(const Av2hFirstCoeffBlock *block,
@@ -1415,6 +1532,7 @@ Av2hStatus av2h_coeff_block_read(
     uint32_t symbol;
     uint32_t high_average = 0U;
     uint32_t cul_level = 0U;
+    Av2hCoeffTxGeometry geometry;
     Av2hStatus status;
     if (decoder == 0 || cdfs == 0 || sequence == 0 || frame == 0 ||
         mode == 0 || prefix == 0 || transform == 0 || block == 0) {
@@ -1436,66 +1554,12 @@ Av2hStatus av2h_coeff_block_read(
         !q_level_profile_supported(cdfs, frame, prefix, transform)) {
         return AV2H_UNSUPPORTED;
     }
-    if (prefix->tx_size == AV2H_TX_4X4) {
-        block->width = 4U;
-        block->height = 4U;
-        tx_context = 0U;
-    } else if (prefix->tx_size == AV2H_TX_4X8) {
-        block->width = 4U;
-        block->height = 8U;
-        tx_context = 1U;
-    } else if (prefix->tx_size == AV2H_TX_8X4) {
-        block->width = 8U;
-        block->height = 4U;
-        tx_context = 1U;
-    } else if (prefix->tx_size == AV2H_TX_8X8) {
-        block->width = 8U;
-        block->height = 8U;
-        tx_context = 1U;
-    } else if (prefix->tx_size == AV2H_TX_8X16) {
-        block->width = 8U;
-        block->height = 16U;
-        tx_context = 1U;
-    } else if (prefix->tx_size == AV2H_TX_16X8) {
-        block->width = 16U;
-        block->height = 8U;
-        tx_context = 2U;
-    } else if (prefix->tx_size == AV2H_TX_16X16) {
-        block->width = 16U;
-        block->height = 16U;
-        tx_context = 2U;
-    } else if (prefix->tx_size == AV2H_TX_16X4) {
-        block->width = 16U;
-        block->height = 4U;
-        tx_context = 1U;
-    } else if (prefix->tx_size == AV2H_TX_8X32) {
-        block->width = 8U;
-        block->height = 32U;
-        tx_context = 2U;
-    } else if (prefix->tx_size == AV2H_TX_32X8) {
-        block->width = 32U;
-        block->height = 8U;
-        tx_context = 2U;
-    } else if (prefix->tx_size == AV2H_TX_16X32) {
-        block->width = 16U;
-        block->height = 32U;
-        tx_context = 3U;
-    } else if (prefix->tx_size == AV2H_TX_32X32) {
-        block->width = 32U;
-        block->height = 32U;
-        tx_context = 3U;
-    } else if (prefix->tx_size == AV2H_TX_32X64 ||
-               prefix->tx_size == AV2H_TX_64X64) {
-        block->width = 32U;
-        block->height = 32U;
-        tx_context = 4U;
-    } else if (prefix->tx_size == AV2H_TX_64X16) {
-        block->width = 32U;
-        block->height = 16U;
-        tx_context = 3U;
-    } else {
+    if (av2h_coeff_tx_geometry(prefix->tx_size, &geometry) != AV2H_OK) {
         return AV2H_UNSUPPORTED;
     }
+    block->width = geometry.width;
+    block->height = geometry.height;
+    tx_context = geometry.tx_context;
     vertical = (uint8_t)(transform->primary_type == AV2H_TX_V_DCT ||
                          transform->primary_type == AV2H_TX_V_ADST);
     column_scan = (uint8_t)(transform->primary_type == AV2H_TX_H_DCT ||
@@ -1650,7 +1714,6 @@ Av2hStatus av2h_coeff_block_read(
         uint8_t low;
         uint8_t sign;
         uint32_t final_level;
-        uint64_t dequantized_magnitude;
         uint32_t dequant;
         --scan_index;
         position = scan_position(scan_index, block->width, block->height,
@@ -1688,29 +1751,20 @@ Av2hStatus av2h_coeff_block_read(
         if (final_level > 32767U) return AV2H_INVALID_DATA;
         block->quantized[position] = sign ? -(int32_t)final_level :
                                              (int32_t)final_level;
-        dequant = qtx_8bit(
+        dequant = av2h_coeff_dequant_step_8bit(
             frame->base_q_index,
             scan_index == 0U ?
                 frame->y_dc_delta_q + sequence->base_y_dc_delta_q : 0);
-        dequantized_magnitude =
-            ((uint64_t)final_level * dequant + 4U) >> 3U;
-        if (block->coefficient_count > 256U) dequantized_magnitude >>= 1U;
-        block->dequantized[position] =
-            av2h_coeff_clamp_dequantized_8bit(
-                dequantized_magnitude, sign);
+        block->dequantized[position] = av2h_coeff_dequantize_level(
+            final_level, sign, dequant, geometry.dequant_shift);
         ++block->nonzero_count;
         cul_level += final_level;
         if (scan_index == 0U) {
             block->dc_value = block->quantized[position];
         }
     }
-    cul_level = minimum(cul_level, 7U);
-    if (block->dc_value < 0) {
-        cul_level |= 8U;
-    } else if (block->dc_value > 0) {
-        cul_level += 16U;
-    }
-    block->cul_level = (uint8_t)cul_level;
+    block->cul_level =
+        av2h_coeff_finalize_cul_level(cul_level, block->dc_value);
     block->after_coefficients_bits = av2h_range_tell(decoder);
     return AV2H_OK;
 }

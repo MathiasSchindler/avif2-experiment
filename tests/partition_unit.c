@@ -429,6 +429,57 @@ static void test_traversal(void) {
           AV2H_INVALID_ARGUMENT);
 }
 
+static void test_superblock_roots(void) {
+    static const uint16_t rows[] = { 0U, 0U, 0U, 16U, 16U, 16U };
+    static const uint16_t columns[] = { 0U, 16U, 32U, 0U, 16U, 32U };
+    Av2hPartitionTraversal traversal;
+    Av2hForcedPartitionPath path;
+    size_t index;
+    CHECK(av2h_partition_traversal_init(
+              &traversal, 24U, 48U,
+              (Av2hPartitionNode){ rows[0], columns[0],
+                                   AV2H_BLOCK_64X64 },
+              0U, 1U, 0U) == AV2H_OK);
+    for (index = 0U; index < 6U; ++index) {
+        Av2hPartitionNode root = {
+            rows[index], columns[index], AV2H_BLOCK_64X64
+        };
+        if (index != 0U) {
+            CHECK(av2h_partition_traversal_reset_root(
+                      &traversal, root) == AV2H_OK);
+        }
+        CHECK(traversal.stack_count == 1U);
+        CHECK(traversal.stack[0].row == rows[index]);
+        CHECK(traversal.stack[0].column == columns[index]);
+        CHECK(traversal.diagnostic_node.row == rows[index]);
+        CHECK(traversal.diagnostic_node.column == columns[index]);
+        CHECK(traversal.diagnostic_before_bits == 0U);
+        CHECK(traversal.mi_rows == 24U);
+        CHECK(traversal.mi_columns == 48U);
+        CHECK(traversal.structure == 0U);
+        CHECK(traversal.enable_ext_partitions == 1U);
+        CHECK(traversal.enable_uneven_4way_partitions == 0U);
+        CHECK(av2h_partition_forced_path(
+                  24U, 48U, root, &path) == AV2H_OK);
+        CHECK(path.next.row == rows[index]);
+        CHECK(path.next.column == columns[index]);
+        if (rows[index] == 16U) {
+            CHECK(path.step_count == 1U);
+            CHECK(path.steps[0].partition == AV2H_PARTITION_HORZ);
+            CHECK(path.next.block_size == AV2H_BLOCK_64X32);
+        } else {
+            CHECK(path.step_count == 0U);
+            CHECK(path.next.block_size == AV2H_BLOCK_64X64);
+        }
+        traversal.stack_count = 0U;
+    }
+    traversal.has_pending_leaf = 1U;
+    CHECK(av2h_partition_traversal_reset_root(
+              &traversal,
+              (Av2hPartitionNode){ 0U, 0U, AV2H_BLOCK_64X64 }) ==
+          AV2H_INVALID_ARGUMENT);
+}
+
 static void test_arguments(void) {
     static const unsigned char empty_storage[] = { 0U };
     Av2hSpan empty = { empty_storage, 0U };
@@ -469,6 +520,7 @@ int main(void) {
     test_first_leaf_paths();
     test_context_state();
     test_traversal();
+    test_superblock_roots();
     test_arguments();
     if (failures != 0) {
         fprintf(stderr, "%d partition checks failed\n", failures);

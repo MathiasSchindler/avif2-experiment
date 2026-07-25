@@ -197,6 +197,9 @@ Av2hStatus av2h_leaf_cdfs_init(Av2hLeafCdfs *cdfs) {
     status = initialize_binary_table(cdfs->is_cfl, is_cfl,
                                      AV2H_CFL_CONTEXT_COUNT);
     if (status != AV2H_OK) return status;
+    status = av2h_binary_cdf_init(
+        cdfs->cfl_index, (Av2hBinaryCdfSpec){ 12507U, 30U, 0U });
+    if (status != AV2H_OK) return status;
     for (context = 0U; context < AV2H_UV_MODE_CONTEXT_COUNT; ++context) {
         status = av2h_cdf_init(
             cdfs->uv_mode[context], AV2H_UV_MODE_SYMBOLS + 4U,
@@ -242,7 +245,45 @@ Av2hStatus av2h_chroma_mode_read_with_delta(
     }
     mode->is_cfl = (uint8_t)value;
     mode->after_cfl_bits = av2h_range_tell(decoder);
-    if (value != 0U) return AV2H_UNSUPPORTED;
+    mode->uses_cfl = 0U;
+    mode->cfl_index = 0U;
+    mode->cfl_derived_alpha = 0U;
+    mode->explicit_alpha_coded = 0U;
+    mode->cfl_kind = AV2H_CFL_NONE;
+    mode->before_cfl_index_bits = mode->after_cfl_bits;
+    mode->after_cfl_index_bits = mode->after_cfl_bits;
+    if (value != 0U) {
+        /* uv_mode == UV_CFL_PRED. Read the CfL index (CFL_TYPE_COUNT - 1 == 2
+         * symbols) since mhccp is not exercised by Emerald and CfL intra is
+         * enabled. cfl_idx == CFL_DERIVED_ALPHA (1) codes no explicit alpha or
+         * joint sign; cfl_idx == CFL_EXPLICIT (0) would code cfl_alpha_idx and
+         * the joint sign, which is not present in any traced leaf. */
+        mode->uses_cfl = 1U;
+        mode->uv_mode = 13U;
+        mode->mode_index = 13U;
+        mode->before_cfl_index_bits = mode->after_cfl_bits;
+        value = av2h_range_read_adaptive(decoder, cdfs->cfl_index, 2U);
+        if (av2h_range_status(decoder) != AV2H_OK) {
+            return av2h_range_status(decoder);
+        }
+        mode->cfl_index = (uint8_t)value;
+        mode->after_cfl_index_bits = av2h_range_tell(decoder);
+        mode->after_mode_bits = mode->after_cfl_index_bits;
+        mode->angle_delta = 0;
+        if (value == 1U) {
+            mode->cfl_derived_alpha = 1U;
+            mode->cfl_kind = AV2H_CFL_DERIVED_ALPHA;
+            /* Derived CfL predicts from a DC base surface; no residual-side
+             * alpha or sign is decoded here. */
+            mode->mode = AV2H_INTRA_DC;
+            return AV2H_OK;
+        }
+        /* cfl_idx == CFL_EXPLICIT (0): explicit alpha/sign coding is not
+         * covered by the pinned trace. Fail closed deterministically rather
+         * than consume unverified symbols. */
+        mode->cfl_kind = AV2H_CFL_EXPLICIT_ALPHA;
+        return AV2H_UNSUPPORTED;
+    }
     mode_context = (uint8_t)(colocated_luma_mode >= AV2H_INTRA_VERTICAL &&
         colocated_luma_mode <= AV2H_INTRA_D67);
     value = av2h_range_read_adaptive(
@@ -294,6 +335,7 @@ Av2hStatus av2h_chroma_mode_read_with_delta(
     }
     mode->angle_delta = mode->mode == colocated_luma_mode ?
         colocated_luma_delta : 0;
+    mode->uv_mode = (uint8_t)mode->mode;
     return AV2H_OK;
 }
 

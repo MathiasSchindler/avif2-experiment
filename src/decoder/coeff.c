@@ -1,4 +1,5 @@
 #include "coeff.h"
+#include "tx_geometry.h"
 
 static uint8_t coefficient_q_context(uint16_t base_q_index) {
     return base_q_index <= 90U ? 0U :
@@ -191,65 +192,57 @@ Av2hStatus av2h_first_coeff_cdfs_init(Av2hFirstCoeffCdfs *cdfs) {
 static Av2hStatus derive_tx_size(Av2hBlockSize block_size,
                                  Av2hFirstTxSize *tx_size,
                                  uint8_t *tx_size_context) {
-    if (block_size == AV2H_BLOCK_4X4) {
-        *tx_size = AV2H_TX_4X4;
-        *tx_size_context = 0U;
-    } else if (block_size == AV2H_BLOCK_4X8) {
-        *tx_size = AV2H_TX_4X8;
-        *tx_size_context = 1U;
-    } else if (block_size == AV2H_BLOCK_8X4) {
-        *tx_size = AV2H_TX_8X4;
-        *tx_size_context = 1U;
-    } else if (block_size == AV2H_BLOCK_8X8) {
-        *tx_size = AV2H_TX_8X8;
-        *tx_size_context = 1U;
-    } else if (block_size == AV2H_BLOCK_16X16) {
-        *tx_size = AV2H_TX_16X16;
-        *tx_size_context = 2U;
-    } else if (block_size == AV2H_BLOCK_8X16) {
-        *tx_size = AV2H_TX_8X16;
-        *tx_size_context = 2U;
-    } else if (block_size == AV2H_BLOCK_16X8) {
-        *tx_size = AV2H_TX_16X8;
-        *tx_size_context = 2U;
-    } else if (block_size == AV2H_BLOCK_16X4) {
-        *tx_size = AV2H_TX_16X4;
-        *tx_size_context = 1U;
-    } else if (block_size == AV2H_BLOCK_8X32) {
-        *tx_size = AV2H_TX_8X32;
-        *tx_size_context = 2U;
-    } else if (block_size == AV2H_BLOCK_32X8) {
-        *tx_size = AV2H_TX_32X8;
-        *tx_size_context = 2U;
-    } else if (block_size == AV2H_BLOCK_16X32) {
-        *tx_size = AV2H_TX_16X32;
-        *tx_size_context = 3U;
-    } else if (block_size == AV2H_BLOCK_32X32) {
-        *tx_size = AV2H_TX_32X32;
-        *tx_size_context = 3U;
-    } else if (block_size == AV2H_BLOCK_32X64) {
-        *tx_size = AV2H_TX_32X64;
-        *tx_size_context = 4U;
-    } else if (block_size == AV2H_BLOCK_64X64) {
-        *tx_size = AV2H_TX_64X64;
-        *tx_size_context = 4U;
-    } else if (block_size == AV2H_BLOCK_64X16) {
-        *tx_size = AV2H_TX_64X16;
-        *tx_size_context = 3U;
-    } else {
-        return AV2H_UNSUPPORTED;
+    const Av2hTxDescriptor *descriptor;
+    Av2hStatus status;
+    if (tx_size == 0 || tx_size_context == 0) {
+        return AV2H_INVALID_ARGUMENT;
     }
+    status = av2h_luma_tx_descriptor_get(block_size, &descriptor);
+    if (status != AV2H_OK) return status;
+    switch (descriptor->tx_size) {
+        case AV2H_TX_4X4:
+        case AV2H_TX_4X8:
+        case AV2H_TX_8X4:
+        case AV2H_TX_8X8:
+        case AV2H_TX_8X16:
+        case AV2H_TX_16X8:
+        case AV2H_TX_16X16:
+        case AV2H_TX_16X32:
+        case AV2H_TX_32X16:
+        case AV2H_TX_32X32:
+        case AV2H_TX_32X64:
+        case AV2H_TX_64X32:
+        case AV2H_TX_64X64:
+        case AV2H_TX_16X4:
+        case AV2H_TX_8X32:
+        case AV2H_TX_32X8:
+        case AV2H_TX_16X64:
+        case AV2H_TX_64X16:
+            break;
+        default:
+            return AV2H_UNSUPPORTED;
+    }
+    *tx_size = descriptor->tx_size;
+    *tx_size_context = descriptor->tx_size_context;
     return AV2H_OK;
 }
 
 static int large_tx_prefix_profile_supported(
     const Av2hFrameState *frame,
     Av2hFirstTxSize tx_size) {
+    if (tx_size == AV2H_TX_32X16 ||
+        tx_size == AV2H_TX_64X32 ||
+        tx_size == AV2H_TX_16X64) {
+        return frame->base_q_index == 208U &&
+               frame->width == 192U && frame->height == 96U;
+    }
     if (tx_size == AV2H_TX_32X64) {
         return (frame->base_q_index == 112U &&
                 frame->width == 128U && frame->height == 128U) ||
                (frame->base_q_index == 176U &&
-                frame->width == 223U && frame->height == 149U);
+                frame->width == 223U && frame->height == 149U) ||
+               (frame->base_q_index == 208U &&
+                frame->width == 192U && frame->height == 96U);
     }
     if (tx_size == AV2H_TX_64X64) {
         return (frame->base_q_index == 128U &&
@@ -268,7 +261,8 @@ static int large_tx_prefix_profile_supported(
         return (frame->base_q_index == 144U &&
                 frame->width == 301U && frame->height == 222U) ||
                (frame->base_q_index == 208U &&
-                frame->width == 417U && frame->height == 277U);
+                ((frame->width == 417U && frame->height == 277U) ||
+                 (frame->width == 192U && frame->height == 96U)));
     }
     return 1;
 }
@@ -408,45 +402,42 @@ static Av2hStatus eob_parameters(
     Av2hFirstTxSize tx_size,
     uint16_t **point_cdf,
     size_t *point_symbols,
-    uint16_t *capacity) {
-    if (tx_size == AV2H_TX_4X4) {
+    uint16_t *capacity,
+    Av2hTxEobClass *eob_class) {
+    const Av2hTxDescriptor *descriptor;
+    Av2hStatus status;
+    if (cdfs == 0 || point_cdf == 0 || point_symbols == 0 ||
+        capacity == 0 || eob_class == 0) {
+        return AV2H_INVALID_ARGUMENT;
+    }
+    status = av2h_tx_descriptor_get(tx_size, &descriptor);
+    if (status != AV2H_OK) return status;
+    if (descriptor->eob_class == AV2H_TX_EOB_16) {
         *point_cdf = cdfs->eob_pt_16;
         *point_symbols = 5U;
-        *capacity = 16U;
-    } else if (tx_size == AV2H_TX_4X8 || tx_size == AV2H_TX_8X4) {
+    } else if (descriptor->eob_class == AV2H_TX_EOB_32) {
         *point_cdf = cdfs->eob_pt_32;
         *point_symbols = 6U;
-        *capacity = 32U;
-    } else if (tx_size == AV2H_TX_8X8 || tx_size == AV2H_TX_16X4) {
+    } else if (descriptor->eob_class == AV2H_TX_EOB_64) {
         *point_cdf = cdfs->eob_pt_64;
         *point_symbols = 7U;
-        *capacity = 64U;
-    } else if (tx_size == AV2H_TX_8X16 || tx_size == AV2H_TX_16X8) {
+    } else if (descriptor->eob_class == AV2H_TX_EOB_128) {
         *point_cdf = cdfs->eob_pt_128;
         *point_symbols = 8U;
-        *capacity = 128U;
-    } else if (tx_size == AV2H_TX_8X32 || tx_size == AV2H_TX_32X8) {
+    } else if (descriptor->eob_class == AV2H_TX_EOB_256) {
         *point_cdf = cdfs->eob_pt_256;
         *point_symbols = 8U;
-        *capacity = 256U;
-    } else if (tx_size == AV2H_TX_16X16) {
-        *point_cdf = cdfs->eob_pt_256;
-        *point_symbols = 8U;
-        *capacity = 256U;
-    } else if (tx_size == AV2H_TX_16X32 ||
-               tx_size == AV2H_TX_64X16) {
+    } else if (descriptor->eob_class == AV2H_TX_EOB_512) {
         *point_cdf = cdfs->eob_pt_512;
         *point_symbols = 8U;
-        *capacity = 512U;
-    } else if (tx_size == AV2H_TX_32X32 ||
-               tx_size == AV2H_TX_32X64 ||
-               tx_size == AV2H_TX_64X64) {
+    } else if (descriptor->eob_class == AV2H_TX_EOB_1024) {
         *point_cdf = cdfs->eob_pt_1024;
         *point_symbols = 8U;
-        *capacity = 1024U;
     } else {
         return AV2H_UNSUPPORTED;
     }
+    *capacity = descriptor->eob_capacity;
+    *eob_class = descriptor->eob_class;
     return AV2H_OK;
 }
 
@@ -464,8 +455,9 @@ static Av2hStatus decode_eob(Av2hRangeDecoder *decoder,
     uint16_t capacity;
     size_t point_symbols;
     uint32_t value;
+    Av2hTxEobClass eob_class;
     Av2hStatus status = eob_parameters(cdfs, prefix->tx_size, &point_cdf,
-                                       &point_symbols, &capacity);
+                                       &point_symbols, &capacity, &eob_class);
     if (status != AV2H_OK) return status;
     if (prefix->tx_size == AV2H_TX_4X4 && eob_pt_16_override != 0) {
         point_cdf = eob_pt_16_override;
@@ -474,16 +466,14 @@ static Av2hStatus decode_eob(Av2hRangeDecoder *decoder,
     if (av2h_range_status(decoder) != AV2H_OK) {
         return av2h_range_status(decoder);
     }
-    if (prefix->tx_size == AV2H_TX_8X32 && value == 7U) {
+    if (eob_class == AV2H_TX_EOB_256 && value == 7U) {
         value += av2h_range_read_bypass(decoder, 1U);
         if (av2h_range_status(decoder) != AV2H_OK) {
             return av2h_range_status(decoder);
         }
     }
-    if ((prefix->tx_size == AV2H_TX_32X32 ||
-         prefix->tx_size == AV2H_TX_32X64 ||
-         prefix->tx_size == AV2H_TX_64X64 ||
-         prefix->tx_size == AV2H_TX_64X16) && value == 7U) {
+    if ((eob_class == AV2H_TX_EOB_512 ||
+         eob_class == AV2H_TX_EOB_1024) && value == 7U) {
         value += av2h_range_read_bypass(decoder, 2U);
         if (av2h_range_status(decoder) != AV2H_OK) {
             return av2h_range_status(decoder);
@@ -560,11 +550,9 @@ Av2hStatus av2h_coeff_prefix_read(
     if (prefix->tx_size == AV2H_TX_16X16 &&
         !(frame->base_q_index == 208U &&
           frame->width == 192U && frame->height == 96U &&
-          leaf->row == 10U &&
-          ((leaf->column == 0U &&
-            mode->mode == AV2H_INTRA_DC) ||
-           (leaf->column == 4U &&
-            mode->mode == AV2H_INTRA_SMOOTH)) &&
+          (mode->mode == AV2H_INTRA_DC ||
+           mode->mode == AV2H_INTRA_SMOOTH ||
+           mode->mode == AV2H_INTRA_D113) &&
           mode->angle_delta == 0 && mode->mrl_index == 0U &&
           mode->enable_ibp == 1U && mode->use_intrabc == 0U)) {
         return AV2H_UNSUPPORTED;
@@ -573,9 +561,12 @@ Av2hStatus av2h_coeff_prefix_read(
         prefix->tx_size != AV2H_TX_16X16 &&
         prefix->tx_size != AV2H_TX_32X8 &&
         prefix->tx_size != AV2H_TX_16X32 &&
+        prefix->tx_size != AV2H_TX_32X16 &&
         prefix->tx_size != AV2H_TX_32X32 &&
         prefix->tx_size != AV2H_TX_32X64 &&
+        prefix->tx_size != AV2H_TX_64X32 &&
         prefix->tx_size != AV2H_TX_64X64 &&
+        prefix->tx_size != AV2H_TX_16X64 &&
         prefix->tx_size != AV2H_TX_64X16) {
         return AV2H_UNSUPPORTED;
     }
