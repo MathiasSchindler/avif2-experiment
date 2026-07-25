@@ -185,9 +185,114 @@ static void test_fsc_single_coefficient_uses_idtx(void) {
     CHECK(transform.secondary_signaled == 0U);
 }
 
+static void check_primary_map(Av2hFirstTxSize tx_size,
+                              Av2hFirstLeafIntraMode mode,
+                              uint8_t long_side_symbol,
+                              uint8_t primary_symbol,
+                              Av2hFirstTxType expected_type) {
+    Av2hFirstTxType tx_type = AV2H_TX_TYPE_INVALID;
+    CHECK(av2h_primary_tx_type_map(
+              tx_size, mode, long_side_symbol, primary_symbol, &tx_type) ==
+          AV2H_OK);
+    CHECK(tx_type == expected_type);
+}
+
+static void test_emerald_primary_mappings(void) {
+    Av2hFirstTxType tx_type;
+    check_primary_map(AV2H_TX_32X8, AV2H_INTRA_DC, 1U, 1U,
+                      AV2H_TX_ADST_DCT);
+    check_primary_map(AV2H_TX_32X32, AV2H_INTRA_SMOOTH, 0U, 0U,
+                      AV2H_TX_DCT_DCT);
+    check_primary_map(AV2H_TX_64X32, AV2H_INTRA_DC, 0U, 0U,
+                      AV2H_TX_DCT_DCT);
+    check_primary_map(AV2H_TX_32X64, AV2H_INTRA_DC, 0U, 0U,
+                      AV2H_TX_DCT_DCT);
+    check_primary_map(AV2H_TX_32X16, AV2H_INTRA_HORIZONTAL, 1U, 0U,
+                      AV2H_TX_DCT_DCT);
+    check_primary_map(AV2H_TX_16X64, AV2H_INTRA_D157, 1U, 0U,
+                      AV2H_TX_DCT_DCT);
+    check_primary_map(AV2H_TX_64X16, AV2H_INTRA_SMOOTH_HORIZONTAL, 1U, 0U,
+                      AV2H_TX_DCT_DCT);
+    check_primary_map(AV2H_TX_16X16, AV2H_INTRA_SMOOTH, 0U, 1U,
+                      AV2H_TX_ADST_ADST);
+
+    CHECK(av2h_primary_tx_type_map(
+              AV2H_TX_32X16, AV2H_INTRA_HORIZONTAL, 1U, 1U, &tx_type) ==
+          AV2H_UNSUPPORTED);
+    CHECK(av2h_primary_tx_type_map(
+              AV2H_TX_16X64, AV2H_INTRA_D157, 1U, 1U, &tx_type) ==
+          AV2H_UNSUPPORTED);
+    CHECK(av2h_primary_tx_type_map(
+              AV2H_TX_64X32, AV2H_INTRA_DC, 1U, 0U, &tx_type) ==
+          AV2H_UNSUPPORTED);
+    CHECK(av2h_primary_tx_type_map(
+              AV2H_TX_32X8, AV2H_INTRA_DC, 0U, 2U, &tx_type) ==
+          AV2H_UNSUPPORTED);
+    CHECK(av2h_primary_tx_type_map(
+              AV2H_TX_32X8, AV2H_INTRA_DC, 1U, 1U, 0) ==
+          AV2H_INVALID_ARGUMENT);
+}
+
+static void check_secondary_signal(Av2hFirstTxSize tx_size,
+                                   Av2hFirstLeafIntraMode mode_value,
+                                   uint16_t eob,
+                                   Av2hFirstTxType primary_type,
+                                   uint8_t expected) {
+    Av2hSequenceState sequence = { 0 };
+    Av2hFirstLeafMode mode = { 0 };
+    Av2hFirstCoeffPrefix coeff = { 0 };
+    uint8_t signaled = 0U;
+    sequence.enable_ist = 1U;
+    mode.mode = mode_value;
+    coeff.tx_size = tx_size;
+    coeff.eob = eob;
+    CHECK(av2h_secondary_tx_type_signal(
+              &sequence, &mode, &coeff, primary_type, &signaled) == AV2H_OK);
+    CHECK(signaled == expected);
+}
+
+static void test_emerald_secondary_signaling(void) {
+    Av2hSequenceState sequence = { 0 };
+    Av2hFirstLeafMode mode = { 0 };
+    Av2hFirstCoeffPrefix coeff = { 0 };
+    uint8_t signaled;
+    check_secondary_signal(
+        AV2H_TX_32X32, AV2H_INTRA_SMOOTH, 19U, AV2H_TX_DCT_DCT, 1U);
+    check_secondary_signal(
+        AV2H_TX_64X32, AV2H_INTRA_DC, 6U, AV2H_TX_DCT_DCT, 1U);
+    check_secondary_signal(
+        AV2H_TX_64X32, AV2H_INTRA_HORIZONTAL, 58U, AV2H_TX_DCT_DCT, 0U);
+    check_secondary_signal(
+        AV2H_TX_64X16, AV2H_INTRA_DC, 5U, AV2H_TX_DCT_DCT, 1U);
+    check_secondary_signal(
+        AV2H_TX_64X16, AV2H_INTRA_SMOOTH_HORIZONTAL, 63U,
+        AV2H_TX_DCT_DCT, 0U);
+    check_secondary_signal(
+        AV2H_TX_16X16, AV2H_INTRA_SMOOTH, 4U, AV2H_TX_ADST_ADST, 1U);
+    check_secondary_signal(
+        AV2H_TX_16X16, AV2H_INTRA_SMOOTH, 9U, AV2H_TX_ADST_ADST, 1U);
+    check_secondary_signal(
+        AV2H_TX_32X16, AV2H_INTRA_HORIZONTAL, 18U, AV2H_TX_DCT_DCT, 1U);
+    check_secondary_signal(
+        AV2H_TX_16X64, AV2H_INTRA_D157, 4U, AV2H_TX_DCT_DCT, 1U);
+    check_secondary_signal(
+        AV2H_TX_32X64, AV2H_INTRA_DC, 4U, AV2H_TX_DCT_DCT, 1U);
+    check_secondary_signal(
+        AV2H_TX_32X8, AV2H_INTRA_DC, 2U, AV2H_TX_ADST_DCT, 0U);
+
+    CHECK(av2h_secondary_tx_type_signal(
+              0, &mode, &coeff, AV2H_TX_DCT_DCT, &signaled) ==
+          AV2H_INVALID_ARGUMENT);
+    CHECK(av2h_secondary_tx_type_signal(
+              &sequence, &mode, &coeff, AV2H_TX_DCT_DCT, 0) ==
+          AV2H_INVALID_ARGUMENT);
+}
+
 int main(void) {
     test_fixture_transform_types();
     test_fsc_single_coefficient_uses_idtx();
+    test_emerald_primary_mappings();
+    test_emerald_secondary_signaling();
     test_arguments();
     if (failures != 0) {
         fprintf(stderr, "%d transform checks failed\n", failures);

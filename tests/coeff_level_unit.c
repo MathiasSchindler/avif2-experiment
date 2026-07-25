@@ -95,6 +95,11 @@ static void test_q_context_cdfs(void) {
     check_words(cdfs.base_lf[52], q3_base_lf_txs2_ctx9, 10U);
     check_words(cdfs.base_lf[53], q3_base_lf_txs2_ctx10, 10U);
     check_words(cdfs.dc_sign[0], q3_dc_sign_ctx0, 6U);
+    CHECK(cdfs.q3_uv_eob_lf[0][0] == 1423U);
+    CHECK(cdfs.q3_uv_eob[1][0] == 781U);
+    CHECK(cdfs.q3_uv_base_lf[0][0] == 24782U);
+    CHECK(cdfs.q3_uv_base[0][0] == 6638U);
+    CHECK(cdfs.q3_uv_br[0][0] == 5791U);
     CHECK(av2h_first_coeff_level_cdfs_init_for_q(&cdfs, 96U) == AV2H_OK);
     CHECK(cdfs.q_context == 1U);
     check_words(cdfs.base[28], q1_base_txs3_ctx10, 8U);
@@ -245,6 +250,170 @@ static void test_fixture_coefficients(void) {
                   UINT64_C(0x1fe5fa5f0e64c0f3));
 }
 
+/*
+ * Emerald Q-context-3 remaining-luma coefficient evidence (base_q_index = 208,
+ * emerald-192x96-qp208.obu, traversal indices 5..19).  Pinned directly from the
+ * authoritative per-block trace JSON: transform geometry, exact quantized and
+ * dequantized coefficient arrays, non-zero counts, DC values, the normative
+ * running cul_level, and the trace's informational cul_level_capped
+ * (sum(min(|level|,15))).  These exercise the enum-independent coefficient
+ * machinery for every unique reached transform-context / geometry path,
+ * including the sizes (TX_64X32, TX_32X16, TX_16X64) whose enum names the
+ * transform-geometry package has not yet added to coeff.h. */
+typedef struct { uint16_t pos; int32_t q; int32_t dq; } TraceCoeff;
+typedef struct {
+    const char *name; uint16_t tx_w, tx_h, exp_w, exp_h;
+    uint8_t exp_ctx, exp_shift; uint32_t exp_count; uint8_t all_zero;
+    uint16_t nonzero; int32_t dc_q, dc_dq; uint32_t sum_levels;
+    uint8_t cul_level; uint16_t cul_capped;
+    const TraceCoeff *coeffs; size_t coeff_count;
+} TraceBlock;
+static const TraceCoeff coeffs_5[] = { {0U,4,7936}, {32U,1,1984} };
+static const TraceCoeff coeffs_6[] = { {0U,-1,-992}, {2U,1,992}, {3U,1,992}, {33U,-1,-992}, {64U,1,992}, {65U,1,992}, {66U,-1,-992}, {67U,-1,-992}, {96U,1,992}, {97U,1,992}, {129U,-1,-992} };
+static const TraceCoeff coeffs_7[] = { {0U,-2,-992}, {1U,1,496}, {2U,-1,-496} };
+static const TraceCoeff coeffs_8[] = { {1U,1,992}, {32U,-1,-992}, {33U,-1,-992}, {64U,1,992} };
+static const TraceCoeff coeffs_10[] = { {0U,-1,-1984}, {1U,-1,-1984}, {18U,1,1984}, {32U,1,1984} };
+static const TraceCoeff coeffs_11[] = { {0U,2,1984}, {1U,-1,-992}, {2U,-1,-992}, {32U,-1,-992}, {33U,1,992}, {34U,1,992}, {64U,-1,-992}, {98U,-1,-992}, {160U,1,992} };
+static const TraceCoeff coeffs_12[] = { {0U,-1,-992}, {32U,1,992} };
+static const TraceCoeff coeffs_14[] = { {0U,1,496}, {1U,-1,-496}, {64U,1,496} };
+static const TraceCoeff coeffs_15[] = { {1U,1,496}, {3U,-1,-496}, {4U,1,496}, {33U,1,496}, {34U,-1,-496}, {35U,-1,-496}, {36U,1,496}, {64U,-1,-496}, {66U,-1,-496}, {96U,-1,-496}, {128U,1,496}, {131U,1,496}, {160U,-1,-496}, {192U,-1,-496}, {194U,1,496}, {224U,1,496}, {257U,1,496}, {258U,1,496} };
+static const TraceCoeff coeffs_16[] = { {3U,2,992}, {5U,-1,-496}, {32U,-2,-992}, {34U,1,496}, {35U,1,496}, {36U,-1,-496}, {37U,-1,-496}, {65U,1,496}, {66U,-1,-496}, {96U,1,496}, {132U,1,496}, {226U,1,496} };
+static const TraceCoeff coeffs_17[] = { {1U,-1,-992}, {34U,1,992}, {35U,-1,-992}, {64U,1,992}, {65U,1,992}, {66U,-1,-992} };
+static const TraceCoeff coeffs_18[] = { {0U,2,1984}, {1U,-1,-992}, {32U,-1,-992}, {33U,1,992}, {66U,-1,-992}, {96U,-1,-992}, {160U,1,992} };
+static const TraceCoeff coeffs_19[] = { {1U,1,992}, {32U,-2,-1984}, {33U,-1,-992}, {66U,-1,-992}, {103U,1,992}, {129U,1,992}, {132U,-1,-992}, {162U,1,992} };
+static const TraceBlock trace_blocks[] = {
+    { "(14,0)", 32U, 8U, 32U, 8U, 2U, 0U, 256U, 0U, 2U, 4, 7936, 5U, 21U, 5U, coeffs_5, sizeof(coeffs_5)/sizeof(coeffs_5[0]) },
+    { "(8,8)", 32U, 32U, 32U, 32U, 3U, 1U, 1024U, 0U, 11U, -1, -992, 11U, 15U, 11U, coeffs_6, sizeof(coeffs_6)/sizeof(coeffs_6[0]) },
+    { "(0,16)", 64U, 32U, 32U, 32U, 4U, 2U, 1024U, 0U, 3U, -2, -992, 4U, 12U, 4U, coeffs_7, sizeof(coeffs_7)/sizeof(coeffs_7[0]) },
+    { "(8,16)", 64U, 16U, 32U, 16U, 3U, 1U, 512U, 0U, 4U, 0, 0, 4U, 4U, 4U, coeffs_8, sizeof(coeffs_8)/sizeof(coeffs_8[0]) },
+    { "(12,16)", 16U, 16U, 16U, 16U, 2U, 0U, 256U, 1U, 0U, 0, 0, 0U, 0U, 0U, 0, 0U },
+    { "(12,20)", 16U, 16U, 16U, 16U, 2U, 0U, 256U, 0U, 4U, -1, -1984, 4U, 12U, 4U, coeffs_10, sizeof(coeffs_10)/sizeof(coeffs_10[0]) },
+    { "(12,24)", 32U, 16U, 32U, 16U, 3U, 1U, 512U, 0U, 9U, 2, 1984, 10U, 23U, 10U, coeffs_11, sizeof(coeffs_11)/sizeof(coeffs_11[0]) },
+    { "(0,32)", 16U, 64U, 16U, 32U, 3U, 1U, 512U, 0U, 2U, -1, -992, 2U, 10U, 2U, coeffs_12, sizeof(coeffs_12)/sizeof(coeffs_12[0]) },
+    { "(0,36)", 16U, 64U, 16U, 32U, 3U, 1U, 512U, 1U, 0U, 0, 0, 0U, 0U, 0U, 0, 0U },
+    { "(0,40)", 32U, 64U, 32U, 32U, 4U, 2U, 1024U, 0U, 3U, 1, 496, 3U, 19U, 3U, coeffs_14, sizeof(coeffs_14)/sizeof(coeffs_14[0]) },
+    { "(16,0)", 64U, 32U, 32U, 32U, 4U, 2U, 1024U, 0U, 18U, 0, 0, 18U, 7U, 18U, coeffs_15, sizeof(coeffs_15)/sizeof(coeffs_15[0]) },
+    { "(16,16)", 64U, 32U, 32U, 32U, 4U, 2U, 1024U, 0U, 12U, 0, 0, 14U, 7U, 14U, coeffs_16, sizeof(coeffs_16)/sizeof(coeffs_16[0]) },
+    { "(16,32)", 32U, 16U, 32U, 16U, 3U, 1U, 512U, 0U, 6U, 0, 0, 6U, 6U, 6U, coeffs_17, sizeof(coeffs_17)/sizeof(coeffs_17[0]) },
+    { "(16,40)", 32U, 16U, 32U, 16U, 3U, 1U, 512U, 0U, 7U, 2, 1984, 8U, 23U, 8U, coeffs_18, sizeof(coeffs_18)/sizeof(coeffs_18[0]) },
+    { "(20,32)", 64U, 16U, 32U, 16U, 3U, 1U, 512U, 0U, 8U, 0, 0, 9U, 7U, 9U, coeffs_19, sizeof(coeffs_19)/sizeof(coeffs_19[0]) },
+};
+
+static void test_emerald_remaining_luma_blocks(void) {
+    /* Emerald frame quantiser: base_q_index 208 -> q-context 3; DC and AC share
+     * dequant step 15872 (y_dc_delta_q == 0). */
+    const uint32_t step = av2h_coeff_dequant_step_8bit(208U, 0);
+    Av2hFirstCoeffLevelCdfs cdfs;
+    size_t block_index;
+    CHECK(step == 15872U);
+    CHECK(av2h_coeff_dequantize_level(1U, 0U, step, 1U) == 992);
+    CHECK(av2h_first_coeff_level_cdfs_init_for_q(&cdfs, 208U) == AV2H_OK);
+    CHECK(cdfs.q_context == 3U);
+    for (block_index = 0U;
+         block_index < sizeof(trace_blocks) / sizeof(trace_blocks[0]);
+         ++block_index) {
+        const TraceBlock *tb = &trace_blocks[block_index];
+        Av2hCoeffTxGeometry geometry;
+        uint32_t summed = 0U;
+        uint32_t summed_capped = 0U;
+        size_t coeff_index;
+        CHECK(av2h_coeff_tx_geometry_from_dims(
+                  tb->tx_w, tb->tx_h, &geometry) == AV2H_OK);
+        if (geometry.width != tb->exp_w || geometry.height != tb->exp_h ||
+            geometry.tx_context != tb->exp_ctx ||
+            geometry.dequant_shift != tb->exp_shift ||
+            geometry.coefficient_count != tb->exp_count) {
+            fprintf(stderr, "%s: geometry mismatch w=%u h=%u ctx=%u sh=%u n=%u\n",
+                    tb->name, geometry.width, geometry.height,
+                    geometry.tx_context, geometry.dequant_shift,
+                    geometry.coefficient_count);
+            ++failures;
+        }
+        for (coeff_index = 0U; coeff_index < tb->coeff_count; ++coeff_index) {
+            const TraceCoeff *c = &tb->coeffs[coeff_index];
+            uint8_t sign = (uint8_t)(c->q < 0);
+            uint32_t level = (uint32_t)(c->q < 0 ? -c->q : c->q);
+            int32_t dq = av2h_coeff_dequantize_level(
+                level, sign, step, tb->exp_shift);
+            if (dq != c->dq) {
+                fprintf(stderr, "%s: pos %u q %d dequant got %d exp %d\n",
+                        tb->name, c->pos, c->q, dq, c->dq);
+                ++failures;
+            }
+            summed += level;
+            summed_capped += level > 15U ? 15U : level;
+        }
+        if (tb->all_zero) {
+            CHECK(tb->coeff_count == 0U);
+            continue;
+        }
+        CHECK(tb->coeff_count == tb->nonzero);
+        CHECK(summed == tb->sum_levels);
+        CHECK(summed_capped == tb->cul_capped);
+        CHECK(av2h_coeff_finalize_cul_level(summed, tb->dc_q) ==
+              tb->cul_level);
+    }
+}
+
+static void test_tx_geometry_helpers(void) {
+    Av2hCoeffTxGeometry geometry;
+    /* Enum wrapper mirrors the pure-dimension mapping for every currently
+     * defined transform size reached in the Emerald luma set. */
+    CHECK(av2h_coeff_tx_geometry(AV2H_TX_32X8, &geometry) == AV2H_OK);
+    CHECK(geometry.tx_context == 2U && geometry.dequant_shift == 0U &&
+          geometry.coefficient_count == 256U);
+    CHECK(av2h_coeff_tx_geometry(AV2H_TX_32X32, &geometry) == AV2H_OK);
+    CHECK(geometry.tx_context == 3U && geometry.dequant_shift == 1U);
+    CHECK(av2h_coeff_tx_geometry(AV2H_TX_64X16, &geometry) == AV2H_OK);
+    CHECK(geometry.width == 32U && geometry.height == 16U &&
+          geometry.tx_context == 3U && geometry.dequant_shift == 1U);
+    CHECK(av2h_coeff_tx_geometry(AV2H_TX_32X64, &geometry) == AV2H_OK);
+    CHECK(geometry.width == 32U && geometry.height == 32U &&
+          geometry.tx_context == 4U && geometry.dequant_shift == 2U);
+    CHECK(av2h_coeff_tx_geometry(AV2H_TX_16X16, &geometry) == AV2H_OK);
+    CHECK(geometry.tx_context == 2U && geometry.dequant_shift == 0U);
+    /* Behaviour-preserving legacy nuance: TX_8X16 keeps tx-context 1. */
+    CHECK(av2h_coeff_tx_geometry(AV2H_TX_8X16, &geometry) == AV2H_OK);
+    CHECK(geometry.tx_context == 1U);
+    CHECK(av2h_coeff_tx_geometry(AV2H_TX_INVALID, &geometry) ==
+          AV2H_UNSUPPORTED);
+    CHECK(av2h_coeff_tx_geometry(AV2H_TX_4X4, 0) == AV2H_INVALID_ARGUMENT);
+    /* Dimension helper validates power-of-two transform sides in [4,64]. */
+    CHECK(av2h_coeff_tx_geometry_from_dims(0U, 8U, &geometry) ==
+          AV2H_INVALID_ARGUMENT);
+    CHECK(av2h_coeff_tx_geometry_from_dims(12U, 8U, &geometry) ==
+          AV2H_INVALID_ARGUMENT);
+    CHECK(av2h_coeff_tx_geometry_from_dims(128U, 8U, &geometry) ==
+          AV2H_INVALID_ARGUMENT);
+    CHECK(av2h_coeff_tx_geometry_from_dims(8U, 8U, 0) ==
+          AV2H_INVALID_ARGUMENT);
+    /* Missing-enum sizes still resolve through the dimension helper, matching
+     * the integration adaptation documented in coeff_level.h. */
+    CHECK(av2h_coeff_tx_geometry_from_dims(64U, 32U, &geometry) == AV2H_OK);
+    CHECK(geometry.tx_context == 4U && geometry.dequant_shift == 2U &&
+          geometry.coefficient_count == 1024U);
+    CHECK(av2h_coeff_tx_geometry_from_dims(32U, 16U, &geometry) == AV2H_OK);
+    CHECK(geometry.tx_context == 3U && geometry.dequant_shift == 1U &&
+          geometry.coefficient_count == 512U);
+    CHECK(av2h_coeff_tx_geometry_from_dims(16U, 64U, &geometry) == AV2H_OK);
+    CHECK(geometry.tx_context == 3U && geometry.dequant_shift == 1U &&
+          geometry.coefficient_count == 512U);
+}
+
+static void test_dequant_helper_edges(void) {
+    /* Exact 24-bit working range and rounding of the shared dequant helper. */
+    CHECK(av2h_coeff_dequantize_level(4U, 0U, 15872U, 0U) == 7936);
+    CHECK(av2h_coeff_dequantize_level(1U, 1U, 15872U, 2U) == -496);
+    CHECK(av2h_coeff_dequantize_level(0U, 0U, 15872U, 0U) == 0);
+    /* Signed clamp at the 8-bit dequantized limits. */
+    CHECK(av2h_coeff_dequantize_level(32768U, 0U, 8U, 0U) == 32767);
+    CHECK(av2h_coeff_dequantize_level(32768U, 1U, 8U, 0U) == -32768);
+    /* cul_level DC-sign flags mirror set_dc_sign(). */
+    CHECK(av2h_coeff_finalize_cul_level(3U, 5) == 3U + 16U);
+    CHECK(av2h_coeff_finalize_cul_level(3U, -5) == (3U | 8U));
+    CHECK(av2h_coeff_finalize_cul_level(18U, 0) == 7U);
+}
+
 static void test_arguments(void) {
     Av2hFirstCoeffLevelCdfs cdfs;
     Av2hRangeDecoder decoder;
@@ -254,7 +423,7 @@ static void test_arguments(void) {
     Av2hFirstCoeffPrefix prefix = { 0 };
     Av2hFirstTransformType transform = { 0 };
     Av2hFirstCoeffBlock block;
-    CHECK(sizeof(Av2hFirstCoeffLevelCdfs) == 3572U);
+    CHECK(sizeof(Av2hFirstCoeffLevelCdfs) == 4600U);
     CHECK(av2h_first_coeff_level_cdfs_init(0) == AV2H_INVALID_ARGUMENT);
     CHECK(av2h_first_coeff_block_read(
               0, &cdfs, &sequence, &frame, &mode, &prefix, &transform,
@@ -280,6 +449,9 @@ static void test_arguments(void) {
 int main(void) {
     test_q_context_cdfs();
     test_dequantized_clamp();
+    test_tx_geometry_helpers();
+    test_dequant_helper_edges();
+    test_emerald_remaining_luma_blocks();
     test_fixture_coefficients();
     test_arguments();
     if (failures != 0) {

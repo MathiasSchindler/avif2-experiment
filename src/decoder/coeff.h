@@ -14,11 +14,22 @@ typedef enum {
     AV2H_TX_8X16 = 7,
     AV2H_TX_16X8 = 8,
     AV2H_TX_16X32 = 9,
+    AV2H_TX_32X16 = 10,
     AV2H_TX_32X64 = 11,
+    AV2H_TX_64X32 = 12,
+    AV2H_TX_4X16 = 13,
     AV2H_TX_16X4 = 14,
     AV2H_TX_8X32 = 15,
     AV2H_TX_32X8 = 16,
+    AV2H_TX_16X64 = 17,
     AV2H_TX_64X16 = 18,
+    AV2H_TX_4X32 = 19,
+    AV2H_TX_32X4 = 20,
+    AV2H_TX_8X64 = 21,
+    AV2H_TX_64X8 = 22,
+    AV2H_TX_4X64 = 23,
+    AV2H_TX_64X4 = 24,
+    AV2H_TX_SIZE_COUNT = 25,
     AV2H_TX_INVALID = 255
 } Av2hFirstTxSize;
 
@@ -34,6 +45,8 @@ typedef struct {
     uint16_t txb_skip_chroma_v_ctx7[AV2H_BINARY_CDF_SIZE];
     uint16_t txb_skip_chroma_v_ctx8[AV2H_BINARY_CDF_SIZE];
     uint16_t txb_skip_chroma_v_ctx9[AV2H_BINARY_CDF_SIZE];
+    uint16_t q3_chroma_txb_skip[2U][3U][AV2H_BINARY_CDF_SIZE];
+    uint16_t q3_chroma_v_txb_skip[12U][AV2H_BINARY_CDF_SIZE];
     uint16_t txb_skip_fsc_txs0_ctx9[AV2H_BINARY_CDF_SIZE];
     uint16_t txb_skip_fsc_txs1_ctx9[AV2H_BINARY_CDF_SIZE];
     uint16_t txb_skip_fsc_txs2_ctx9[AV2H_BINARY_CDF_SIZE];
@@ -50,6 +63,9 @@ typedef struct {
     uint16_t eob_pt_256[8U + 4U];
     uint16_t eob_pt_512[8U + 4U];
     uint16_t eob_pt_1024[8U + 4U];
+    uint16_t q3_chroma_eob_pt_128[8U + 4U];
+    uint16_t q3_chroma_eob_pt_512[8U + 4U];
+    uint16_t q3_chroma_eob_pt_1024[8U + 4U];
     uint16_t eob_extra[AV2H_BINARY_CDF_SIZE];
 } Av2hFirstCoeffCdfs;
 

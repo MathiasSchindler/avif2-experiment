@@ -174,6 +174,9 @@ Av2hStatus av2h_partition_traversal_init(
     size_t structure,
     unsigned int enable_ext_partitions,
     unsigned int enable_uneven_4way_partitions);
+Av2hStatus av2h_partition_traversal_reset_root(
+    Av2hPartitionTraversal *traversal,
+    Av2hPartitionNode root);
 Av2hStatus av2h_partition_traversal_next(
     Av2hPartitionTraversal *traversal,
     Av2hRangeDecoder *decoder,

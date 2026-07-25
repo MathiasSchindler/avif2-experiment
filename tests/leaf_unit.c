@@ -1674,7 +1674,7 @@ static void test_arguments(void) {
     };
     Av2hSpan span = { bytes, sizeof(bytes) };
     size_t tell;
-    CHECK(sizeof(Av2hLeafCdfs) == 1094U);
+    CHECK(sizeof(Av2hLeafCdfs) == 1118U);
     CHECK(av2h_leaf_cdfs_init(0) == AV2H_INVALID_ARGUMENT);
     CHECK(av2h_first_leaf_mode_read(
               0, &cdfs, &sequence, &frame, &leaf, &mode) ==
@@ -1835,12 +1835,95 @@ static void test_gdf_after_intrabc(void) {
     CHECK(found == 1U);
 }
 
+static void test_chroma_cfl_derived_alpha(void) {
+    /* Emerald Q208 leaf (0,32) signals UV_CFL_PRED with cfl_idx == 1
+     * (CFL_DERIVED_ALPHA): is_cfl is read, the CfL index is read, and no
+     * explicit cfl_alpha_idx / joint sign is coded. These byte vectors are
+     * hand-selected so the shared OD_EC range decoder resolves the exact
+     * symbol sequence for each CfL branch. */
+    Av2hLeafCdfs cdfs;
+    Av2hSequenceState sequence = { 0 };
+    /* is_cfl == 1, cfl_index == 1 -> derived alpha, DC base predictor. */
+    static const uint8_t derived[] = { 0xC4U, 0x44U, 0x00U };
+    /* is_cfl == 1, cfl_index == 0 -> explicit alpha (untraced) -> fail closed. */
+    static const uint8_t explicit_alpha[] = { 0x9FU, 0x80U, 0x00U };
+    /* is_cfl == 0 -> plain UV_DC_PRED. */
+    static const uint8_t dc[] = { 0x00U, 0x00U, 0x00U };
+    Av2hSpan span;
+    Av2hRangeDecoder decoder;
+    Av2hFirstChromaMode mode;
+
+    sequence.enable_cfl_intra = 1U;
+
+    span = (Av2hSpan){ derived, sizeof(derived) };
+    CHECK(av2h_leaf_cdfs_init(&cdfs) == AV2H_OK);
+    CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
+    CHECK(av2h_chroma_mode_read(
+              &decoder, &cdfs, &sequence, AV2H_INTRA_DC, 0U, &mode) == AV2H_OK);
+    CHECK(mode.is_cfl == 1U);
+    CHECK(mode.uses_cfl == 1U);
+    CHECK(mode.cfl_index == 1U);
+    CHECK(mode.cfl_derived_alpha == 1U);
+    CHECK(mode.cfl_kind == AV2H_CFL_DERIVED_ALPHA);
+    CHECK(mode.explicit_alpha_coded == 0U);
+    CHECK(mode.uv_mode == 13U);
+    CHECK(mode.mode == AV2H_INTRA_DC);
+    CHECK(mode.angle_delta == 0);
+    /* The CfL index read consumes bits after is_cfl; the mode is fully
+     * resolved once the index is decoded (no alpha/sign follow). */
+    CHECK(mode.after_cfl_index_bits > mode.after_cfl_bits);
+    CHECK(mode.after_mode_bits == mode.after_cfl_index_bits);
+
+    span = (Av2hSpan){ explicit_alpha, sizeof(explicit_alpha) };
+    CHECK(av2h_leaf_cdfs_init(&cdfs) == AV2H_OK);
+    CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
+    CHECK(av2h_chroma_mode_read(
+              &decoder, &cdfs, &sequence, AV2H_INTRA_DC, 0U, &mode) ==
+          AV2H_UNSUPPORTED);
+    CHECK(mode.is_cfl == 1U);
+    CHECK(mode.uses_cfl == 1U);
+    CHECK(mode.cfl_index == 0U);
+    CHECK(mode.cfl_derived_alpha == 0U);
+    CHECK(mode.cfl_kind == AV2H_CFL_EXPLICIT_ALPHA);
+    CHECK(mode.explicit_alpha_coded == 0U);
+
+    span = (Av2hSpan){ dc, sizeof(dc) };
+    CHECK(av2h_leaf_cdfs_init(&cdfs) == AV2H_OK);
+    CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
+    CHECK(av2h_chroma_mode_read(
+              &decoder, &cdfs, &sequence, AV2H_INTRA_DC, 0U, &mode) == AV2H_OK);
+    CHECK(mode.is_cfl == 0U);
+    CHECK(mode.uses_cfl == 0U);
+    CHECK(mode.cfl_kind == AV2H_CFL_NONE);
+    CHECK(mode.uv_mode == 0U);
+    CHECK(mode.mode == AV2H_INTRA_DC);
+    CHECK(mode.after_cfl_index_bits == mode.after_cfl_bits);
+}
+
+static void test_chroma_cfl_cdf_defaults(void) {
+    /* The CfL index and is_cfl CDFs must match the pinned AVM defaults
+     * (default_cfl_index_cdf = AVM_CDF2(12507); default_cfl_cdf contexts
+     * 20441 / 11610 / 4643). Stored form is the inverse CDF (32768 - p). */
+    Av2hLeafCdfs cdfs;
+    CHECK(av2h_leaf_cdfs_init(&cdfs) == AV2H_OK);
+    CHECK(cdfs.cfl_index[0] == (uint16_t)(32768U - 12507U));
+    CHECK(cdfs.cfl_index[1] == 0U);
+    CHECK(cdfs.cfl_index[2] == 0U);
+    CHECK(cdfs.cfl_mhccp_switch[0] ==
+          (uint16_t)(32768U - 15499U));
+    CHECK(cdfs.is_cfl[0][0] == (uint16_t)(32768U - 20441U));
+    CHECK(cdfs.is_cfl[1][0] == (uint16_t)(32768U - 11610U));
+    CHECK(cdfs.is_cfl[2][0] == (uint16_t)(32768U - 4643U));
+}
+
 int main(void) {
     test_larger_mode_ordering();
     test_fixture_modes();
     test_tiny_second_luma_leaf();
     test_arguments();
     test_gdf_after_intrabc();
+    test_chroma_cfl_derived_alpha();
+    test_chroma_cfl_cdf_defaults();
     if (failures != 0) {
         fprintf(stderr, "%d leaf checks failed\n", failures);
         return 1;

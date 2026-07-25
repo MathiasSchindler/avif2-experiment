@@ -139,6 +139,10 @@ static int uneven_4way_is_allowed(Av2hBlockSize block_size,
     const Av2hBlockGeometry *geometry;
     int size_allowed;
     if (!extension_is_allowed(block_size, axis, structure)) return 0;
+    if (structure == 1U && block_size == AV2H_BLOCK_64X32 &&
+        axis == AV2H_PARTITION_HORIZONTAL) {
+        return 0;
+    }
     geometry = &block_geometry[block_size];
     if (block_size <= AV2H_BLOCK_64X64) {
         size_allowed = structure == 0U
@@ -874,6 +878,25 @@ Av2hStatus av2h_partition_traversal_init(
     traversal->enable_ext_partitions = (uint8_t)enable_ext_partitions;
     traversal->enable_uneven_4way_partitions =
         (uint8_t)enable_uneven_4way_partitions;
+    traversal->has_pending_leaf = 0U;
+    traversal->diagnostic_node = root;
+    traversal->diagnostic_before_bits = 0U;
+    return AV2H_OK;
+}
+
+Av2hStatus av2h_partition_traversal_reset_root(
+    Av2hPartitionTraversal *traversal,
+    Av2hPartitionNode root) {
+    if (traversal == 0 || traversal->mi_rows == 0U ||
+        traversal->mi_columns == 0U || traversal->has_pending_leaf ||
+        root.row >= traversal->mi_rows ||
+        root.column >= traversal->mi_columns ||
+        root.block_size >= AV2H_BLOCK_SIZE_COUNT) {
+        return AV2H_INVALID_ARGUMENT;
+    }
+    traversal->stack[0] = root;
+    traversal->pending_leaf = root;
+    traversal->stack_count = 1U;
     traversal->has_pending_leaf = 0U;
     traversal->diagnostic_node = root;
     traversal->diagnostic_before_bits = 0U;

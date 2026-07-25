@@ -58,6 +58,18 @@ typedef struct {
 } Av2hFirstTransformType;
 
 Av2hStatus av2h_first_transform_cdfs_init(Av2hFirstTransformCdfs *cdfs);
+Av2hStatus av2h_primary_tx_type_map(
+    Av2hFirstTxSize tx_size,
+    Av2hFirstLeafIntraMode mode,
+    uint8_t long_side_symbol,
+    uint8_t primary_symbol,
+    Av2hFirstTxType *tx_type);
+Av2hStatus av2h_secondary_tx_type_signal(
+    const Av2hSequenceState *sequence,
+    const Av2hFirstLeafMode *mode,
+    const Av2hFirstCoeffPrefix *coeff,
+    Av2hFirstTxType primary_type,
+    uint8_t *signaled);
 Av2hStatus av2h_first_transform_type_read(
     Av2hRangeDecoder *decoder,
     Av2hFirstTransformCdfs *cdfs,

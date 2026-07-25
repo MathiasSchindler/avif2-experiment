@@ -1,4 +1,5 @@
 #include "decoder/coeff.h"
+#include "decoder/tx_geometry.h"
 
 #include <stdio.h>
 
@@ -150,7 +151,7 @@ static void test_arguments(void) {
     Av2hPartitionNode leaf = { 0U, 0U, AV2H_BLOCK_8X8 };
     Av2hFirstLeafMode mode = { 0 };
     Av2hFirstCoeffPrefix prefix;
-    CHECK(sizeof(Av2hFirstCoeffCdfs) == 410U);
+    CHECK(sizeof(Av2hFirstCoeffCdfs) == 698U);
     CHECK(av2h_first_coeff_cdfs_init(0) == AV2H_INVALID_ARGUMENT);
     CHECK(av2h_first_coeff_cdfs_init_for_q(0, 64U) ==
           AV2H_INVALID_ARGUMENT);
@@ -172,6 +173,11 @@ static void test_arguments(void) {
     CHECK(cdfs.txb_skip_txs4[0] == 85U);
     CHECK(cdfs.eob_pt_1024[0] == 26930U);
     CHECK(cdfs.eob_extra[0] == 12404U);
+    CHECK(cdfs.q3_chroma_txb_skip[0][0][0] == 30432U);
+    CHECK(cdfs.q3_chroma_txb_skip[1][0][0] == 29245U);
+    CHECK(cdfs.q3_chroma_v_txb_skip[0][0] == 32162U);
+    CHECK(cdfs.q3_chroma_eob_pt_512[0] == 10528U);
+    CHECK(cdfs.q3_chroma_eob_pt_1024[0] == 9701U);
     CHECK(av2h_first_coeff_cdfs_init(&cdfs) == AV2H_OK);
     CHECK(cdfs.q_context == 1U);
     CHECK(cdfs.txb_skip_txs4[0] == 9706U);
@@ -259,7 +265,7 @@ static void test_context_state(void) {
     CHECK(av2h_coeff_contexts_from_state(
               &state, 2U, &leaf, 0U, &skip_context, &dc_sign_context) ==
           AV2H_OK);
-    CHECK(skip_context == 9U);
+    CHECK(skip_context == 6U);
 
     CHECK(av2h_coeff_context_state_update(
               &state, 2U, &leaf, 11U) == AV2H_OK);
@@ -304,11 +310,90 @@ static void test_context_state(void) {
           AV2H_INVALID_ARGUMENT);
 }
 
+static void test_tx_descriptors(void) {
+    static const uint8_t widths[AV2H_TX_SIZE_COUNT] = {
+        4U, 8U, 16U, 32U, 64U, 4U, 8U, 8U, 16U, 16U, 32U, 32U,
+        64U, 4U, 16U, 8U, 32U, 16U, 64U, 4U, 32U, 8U, 64U, 4U, 64U
+    };
+    static const uint8_t heights[AV2H_TX_SIZE_COUNT] = {
+        4U, 8U, 16U, 32U, 64U, 8U, 4U, 16U, 8U, 32U, 16U, 64U,
+        32U, 16U, 4U, 32U, 8U, 64U, 16U, 32U, 4U, 64U, 8U, 64U, 4U
+    };
+    static const uint8_t contexts[AV2H_TX_SIZE_COUNT] = {
+        0U, 1U, 2U, 3U, 4U, 1U, 1U, 2U, 2U, 3U, 3U, 4U, 4U,
+        1U, 1U, 2U, 2U, 3U, 3U, 2U, 2U, 3U, 3U, 2U, 2U
+    };
+    static const Av2hTxSignalingClass signaling[AV2H_TX_SIZE_COUNT] = {
+        AV2H_TX_SIGNAL_INTRA_4,
+        AV2H_TX_SIGNAL_INTRA_8,
+        AV2H_TX_SIGNAL_INTRA_16,
+        AV2H_TX_SIGNAL_DCT_ONLY,
+        AV2H_TX_SIGNAL_DCT_ONLY,
+        AV2H_TX_SIGNAL_INTRA_4,
+        AV2H_TX_SIGNAL_INTRA_4,
+        AV2H_TX_SIGNAL_INTRA_8,
+        AV2H_TX_SIGNAL_INTRA_8,
+        AV2H_TX_SIGNAL_HIGH_32,
+        AV2H_TX_SIGNAL_WIDE_32,
+        AV2H_TX_SIGNAL_DCT_ONLY,
+        AV2H_TX_SIGNAL_DCT_ONLY,
+        AV2H_TX_SIGNAL_INTRA_4,
+        AV2H_TX_SIGNAL_INTRA_4,
+        AV2H_TX_SIGNAL_HIGH_32,
+        AV2H_TX_SIGNAL_WIDE_32,
+        AV2H_TX_SIGNAL_HIGH_64,
+        AV2H_TX_SIGNAL_WIDE_64,
+        AV2H_TX_SIGNAL_HIGH_32,
+        AV2H_TX_SIGNAL_WIDE_32,
+        AV2H_TX_SIGNAL_HIGH_64,
+        AV2H_TX_SIGNAL_WIDE_64,
+        AV2H_TX_SIGNAL_HIGH_64,
+        AV2H_TX_SIGNAL_WIDE_64
+    };
+    const Av2hTxDescriptor *descriptor;
+    size_t index;
+    for (index = 0U; index < AV2H_TX_SIZE_COUNT; ++index) {
+        uint8_t coefficient_width = widths[index] > 32U ? 32U : widths[index];
+        uint8_t coefficient_height =
+            heights[index] > 32U ? 32U : heights[index];
+        uint16_t capacity =
+            (uint16_t)coefficient_width * coefficient_height;
+        CHECK(av2h_tx_descriptor_get(
+                  (Av2hFirstTxSize)index, &descriptor) == AV2H_OK);
+        CHECK(descriptor != 0);
+        CHECK(descriptor->tx_size == (Av2hFirstTxSize)index);
+        CHECK(descriptor->output_width == widths[index]);
+        CHECK(descriptor->output_height == heights[index]);
+        CHECK(descriptor->coefficient_width == coefficient_width);
+        CHECK(descriptor->coefficient_height == coefficient_height);
+        CHECK(descriptor->tx_size_context == contexts[index]);
+        CHECK(descriptor->eob_capacity == capacity);
+        CHECK((uint16_t)(16U << descriptor->eob_class) == capacity);
+        CHECK(descriptor->signaling_class == signaling[index]);
+    }
+    CHECK(av2h_tx_descriptor_get(AV2H_TX_INVALID, &descriptor) ==
+          AV2H_UNSUPPORTED);
+    CHECK(descriptor == 0);
+    CHECK(av2h_tx_descriptor_get(AV2H_TX_32X16, 0) ==
+          AV2H_INVALID_ARGUMENT);
+
+    CHECK(av2h_luma_tx_descriptor_get(
+              AV2H_BLOCK_64X32, &descriptor) == AV2H_OK);
+    CHECK(descriptor->tx_size == AV2H_TX_64X32);
+    CHECK(av2h_luma_tx_descriptor_get(
+              AV2H_BLOCK_16X64, &descriptor) == AV2H_OK);
+    CHECK(descriptor->tx_size == AV2H_TX_16X64);
+    CHECK(av2h_luma_tx_descriptor_get(
+              AV2H_BLOCK_32X16, &descriptor) == AV2H_OK);
+    CHECK(descriptor->tx_size == AV2H_TX_32X16);
+}
+
 int main(void) {
     test_fixture_prefixes();
     test_arguments();
     test_tx_32x32_eob_point_extension();
     test_context_state();
+    test_tx_descriptors();
     if (failures != 0) {
         fprintf(stderr, "%d coefficient checks failed\n", failures);
         return 1;
