@@ -1,4 +1,5 @@
 #include "decoder/frame_output.h"
+#include "decoder/tile.h"
 #include "emerald_q208_vectors.h"
 
 #include <stdio.h>

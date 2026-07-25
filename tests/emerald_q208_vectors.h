@@ -91,7 +91,6 @@ typedef struct {
     uint32_t absolute_delta_sum;
     uint8_t maximum_absolute_delta;
 } EmeraldQ208PlaneDelta;
-
 static const EmeraldQ208Handoff emerald_q208_handoffs[] = {
     {
         0U, 0U,
@@ -474,7 +473,6 @@ static const EmeraldQ208PlaneDelta emerald_q208_deblock_deltas[] = {
 
 static const char emerald_q208_final_i420_sha256[] =
     "403c2e7245ec484984e60c1eaf8bd1b47487c0ba6b60afc916b9532025fc51ad";
-
 static const EmeraldQ208EntropyPoint emerald_q208_tile_done = {
     731U, 47862749U, 52224U,
     UINT64_C(14123288431433875455), 16328U
