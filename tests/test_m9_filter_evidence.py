@@ -1,3 +1,4 @@
+import hashlib
 import sys
 import tempfile
 import unittest
@@ -21,6 +22,29 @@ def i420_size(width: int, height: int) -> int:
 
 
 class FilterEvidenceTests(unittest.TestCase):
+    def test_emerald_q208_final_artifact_hashes(self) -> None:
+        data = (
+            ROOT / "images/artifacts/emerald-192x96-qp208-decoded.i420"
+        ).read_bytes()
+        self.assertEqual(len(data), 27648)
+        self.assertEqual(
+            hashlib.sha256(data).hexdigest(),
+            "403c2e7245ec484984e60c1eaf8bd1b47487c0ba6b60afc916b9532025fc51ad",
+        )
+        planes = (
+            data[:18432],
+            data[18432:23040],
+            data[23040:],
+        )
+        self.assertEqual(
+            [hashlib.sha256(plane).hexdigest() for plane in planes],
+            [
+                "583292a3570303579c3d372beddd334fe13985abe93af52cf35d58f9ab2eceb3",
+                "ff6be9432b94cc8260cc07e6de47c054fb4df298d186e8b23ba2b21b306cb94b",
+                "ea936f8ef9359bc3796c84bef089fbb12aa75c78d87d4f00a9ea6802d8783597",
+            ],
+        )
+
     def test_records_and_compares_stage_local_hashes(self) -> None:
         with tempfile.TemporaryDirectory() as directory_name:
             directory = Path(directory_name)

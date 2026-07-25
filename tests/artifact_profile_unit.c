@@ -8,7 +8,9 @@
 #define MAX_MI_ROWS 96U
 #define MAX_GDF_BLOCKS 128U
 #define MAX_CDEF_UNITS 128U
-#define EMERALD_I420_SIZE 27648U
+#define EMERALD_Y_SIZE (192U * 96U)
+#define EMERALD_UV_SIZE (96U * 48U)
+#define EMERALD_I420_SIZE (EMERALD_Y_SIZE + 2U * EMERALD_UV_SIZE)
 #define EMERALD_FILTER_MEMORY_SIZE 80000U
 
 static int failures;
@@ -685,6 +687,264 @@ static size_t load_artifact(const char *name) {
     return size;
 }
 
+static int load_exact_artifact(const char *name,
+                               uint8_t *destination,
+                               size_t expected_size) {
+    char path[256U];
+    FILE *source;
+    size_t size;
+    int written = snprintf(path, sizeof(path), "images/artifacts/%s", name);
+    if (written < 0 || (size_t)written >= sizeof(path)) return 0;
+    source = fopen(path, "rb");
+    if (source == 0) return 0;
+    size = fread(destination, 1U, expected_size, source);
+    if (size != expected_size || ferror(source) || fgetc(source) != EOF) {
+        fclose(source);
+        return 0;
+    }
+    fclose(source);
+    return 1;
+}
+
+static int buffer_is_value(const uint8_t *data,
+                           size_t size,
+                           uint8_t value) {
+    size_t index;
+    for (index = 0U; index < size; ++index) {
+        if (data[index] != value) return 0;
+    }
+    return 1;
+}
+
+static void check_emerald_deblock_delta(
+    const uint8_t *prefilter,
+    const uint8_t *final,
+    size_t sample_count,
+    const EmeraldQ208PlaneDelta *expected) {
+    size_t changed = 0U;
+    size_t absolute_sum = 0U;
+    unsigned int maximum = 0U;
+    size_t index;
+    for (index = 0U; index < sample_count; ++index) {
+        unsigned int delta = prefilter[index] > final[index] ?
+            (unsigned int)prefilter[index] - final[index] :
+            (unsigned int)final[index] - prefilter[index];
+        if (delta != 0U) {
+            ++changed;
+            absolute_sum += delta;
+            if (delta > maximum) maximum = delta;
+        }
+    }
+    CHECK(changed == expected->changed_samples);
+    CHECK(absolute_sum == expected->absolute_delta_sum);
+    CHECK(maximum == expected->maximum_absolute_delta);
+}
+
+static void check_emerald_deblock_region(
+    const Av2hDeblockMap *map,
+    unsigned int plane,
+    uint16_t column,
+    uint16_t row,
+    uint16_t width,
+    uint16_t height,
+    uint8_t skip) {
+    size_t cell_row;
+    for (cell_row = row; cell_row < row + height / 4U; ++cell_row) {
+        size_t cell_column;
+        for (cell_column = column;
+             cell_column < column + width / 4U;
+             ++cell_column) {
+            const Av2hDeblockCell *cell = &map->plane[plane][
+                cell_row * map->stride[plane] + cell_column];
+            CHECK(cell->block_column == column);
+            CHECK(cell->block_row == row);
+            CHECK(cell->transform_column == column);
+            CHECK(cell->transform_row == row);
+            CHECK(cell->transform_width == width);
+            CHECK(cell->transform_height == height);
+            CHECK(cell->q_index == 208U);
+            CHECK(cell->skip == skip);
+            CHECK(cell->lossless == 0U);
+        }
+    }
+}
+
+static void check_emerald_deblock_map(
+    const Av2hFilterWorkspaceLayout *layout,
+    const Av2hDeblockMap *map) {
+    size_t index;
+    unsigned int plane;
+    CHECK(map->columns[0] == 48U);
+    CHECK(map->rows[0] == 24U);
+    CHECK(map->columns[1] == 24U);
+    CHECK(map->rows[1] == 12U);
+    CHECK(map->columns[2] == 24U);
+    CHECK(map->rows[2] == 12U);
+    for (index = 0U;
+         index < sizeof(emerald_q208_luma_leaves) /
+                     sizeof(emerald_q208_luma_leaves[0]);
+         ++index) {
+        const EmeraldQ208LumaLeaf *leaf = &emerald_q208_luma_leaves[index];
+        check_emerald_deblock_region(
+            map, 0U, leaf->column, leaf->row,
+            leaf->tx_width, leaf->tx_height, leaf->all_zero);
+    }
+    for (index = 0U;
+         index < sizeof(emerald_q208_chroma_leaves) /
+                     sizeof(emerald_q208_chroma_leaves[0]);
+         ++index) {
+        const EmeraldQ208ChromaLeaf *leaf =
+            &emerald_q208_chroma_leaves[index];
+        check_emerald_deblock_region(
+            map, 1U, (uint16_t)(leaf->column / 2U),
+            (uint16_t)(leaf->row / 2U),
+            leaf->u.tx_width, leaf->u.tx_height, leaf->u.all_zero);
+        check_emerald_deblock_region(
+            map, 2U, (uint16_t)(leaf->column / 2U),
+            (uint16_t)(leaf->row / 2U),
+            leaf->v.tx_width, leaf->v.tx_height, leaf->v.all_zero);
+    }
+    for (plane = 0U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
+        size_t populated = 0U;
+        size_t row;
+        for (row = 0U; row < map->rows[plane]; ++row) {
+            size_t column;
+            for (column = 0U; column < map->columns[plane]; ++column) {
+                const Av2hDeblockCell *cell = &map->plane[plane][
+                    row * map->stride[plane] + column];
+                if (cell->transform_width != 0U &&
+                    cell->transform_height != 0U) {
+                    ++populated;
+                }
+            }
+        }
+        CHECK(populated == layout->deblock_cell_count[plane]);
+    }
+    CHECK(map->plane[0][0].transform_column == 0U);
+    CHECK(map->plane[0][0].transform_row == 0U);
+    CHECK(map->plane[0][23U * map->stride[0] + 47U].q_index == 208U);
+    CHECK(map->plane[1][11U * map->stride[1] + 23U].q_index == 208U);
+    CHECK(map->plane[2][11U * map->stride[2] + 23U].q_index == 208U);
+}
+
+static void check_emerald_private_frame_output(
+    Av2hSpan entropy,
+    const Av2hSequenceState *sequence,
+    const Av2hFrameState *frame,
+    const Av2hTileContextStorage *tile_context) {
+    Av2hFilterWorkspaceLayout layout;
+    Av2hFilterWorkspace filter_workspace;
+    Av2hFilterWorkspaceStorage filter_storage;
+    Av2hReconstructionScratch scratch;
+    Av2hFrameDecodeWorkspace workspace;
+    Av2hFrameDecodeWorkspace invalid_workspace;
+    Av2hFilterWorkspace invalid_filter;
+    Av2hFrameDecodeResult result;
+    Av2hFrameDecodeResult preserved_result;
+    Av2hSequenceState restoration_sequence;
+    Av2hFrameState invalid_stage_frame;
+    Av2hStatus status;
+    size_t output_size = 0U;
+
+    REQUIRE(av2h_filter_workspace_query(frame, &layout) == AV2H_OK);
+    REQUIRE(layout.size <= sizeof(emerald_filter_memory));
+    REQUIRE(av2h_filter_workspace_init(
+                frame, emerald_filter_memory,
+                sizeof(emerald_filter_memory),
+                &filter_workspace, &filter_storage) == AV2H_OK);
+    av2h_memory_fill(&workspace, 0U, sizeof(workspace));
+    workspace.coded[0] = (Av2hReconstructionPlane){
+        luma_pixels, 192U, 192U, 96U, 192U, 96U,
+        luma_reconstructed, 48U, sizeof(luma_reconstructed)
+    };
+    workspace.coded[1] = (Av2hReconstructionPlane){
+        emerald_u_pixels, 96U, 96U, 48U, 96U, 48U,
+        emerald_u_reconstructed, 24U, sizeof(emerald_u_reconstructed)
+    };
+    workspace.coded[2] = (Av2hReconstructionPlane){
+        emerald_v_pixels, 96U, 96U, 48U, 96U, 48U,
+        emerald_v_reconstructed, 24U, sizeof(emerald_v_reconstructed)
+    };
+    workspace.coded_data_size[0] = sizeof(luma_pixels);
+    workspace.coded_data_size[1] = sizeof(emerald_u_pixels);
+    workspace.coded_data_size[2] = sizeof(emerald_v_pixels);
+    workspace.tile_context = *tile_context;
+    workspace.reconstruction_scratch = &scratch;
+    workspace.filter_workspace = &filter_workspace;
+    REQUIRE(av2h_i420_output_size(frame, &output_size) == AV2H_OK);
+    CHECK(output_size == sizeof(emerald_output));
+
+    av2h_memory_fill(emerald_output, 0xa5U, sizeof(emerald_output));
+    av2h_memory_fill(&result, 0x5aU, sizeof(result));
+    preserved_result = result;
+    status = av2h_decode_frame_i420_private(
+        entropy, sequence, frame, &workspace, emerald_output,
+        sizeof(emerald_output) - 1U, &result);
+    CHECK(status == AV2H_OUT_OF_MEMORY);
+    CHECK(buffer_is_value(
+              emerald_output, sizeof(emerald_output), 0xa5U));
+    CHECK(av2h_memory_compare(
+              &result, &preserved_result, sizeof(result)) == 0);
+
+    invalid_workspace = workspace;
+    invalid_filter = filter_workspace;
+    --invalid_filter.deblock_map.columns[0];
+    invalid_workspace.filter_workspace = &invalid_filter;
+    av2h_memory_fill(emerald_output, 0xa5U, sizeof(emerald_output));
+    status = av2h_decode_frame_i420_private(
+        entropy, sequence, frame, &invalid_workspace, emerald_output,
+        sizeof(emerald_output), 0);
+    CHECK(status == AV2H_INVALID_ARGUMENT);
+    CHECK(buffer_is_value(
+              emerald_output, sizeof(emerald_output), 0xa5U));
+
+    av2h_memory_fill(emerald_output, 0xa5U, sizeof(emerald_output));
+    status = av2h_decode_frame_i420_private(
+        (Av2hSpan){ entropy.data, entropy.size - 1U },
+        sequence, frame, &workspace, emerald_output,
+        sizeof(emerald_output), 0);
+    CHECK(status != AV2H_OK);
+    CHECK(buffer_is_value(
+              emerald_output, sizeof(emerald_output), 0xa5U));
+
+    restoration_sequence = *sequence;
+    restoration_sequence.enable_restoration = 1U;
+    av2h_memory_fill(emerald_output, 0xa5U, sizeof(emerald_output));
+    status = av2h_decode_frame_i420_private(
+        entropy, &restoration_sequence, frame, &workspace,
+        emerald_output, sizeof(emerald_output), 0);
+    CHECK(status == AV2H_UNSUPPORTED);
+    CHECK(buffer_is_value(
+              emerald_output, sizeof(emerald_output), 0xa5U));
+
+    invalid_stage_frame = *frame;
+    invalid_stage_frame.cdef_strength_count = 1U;
+    invalid_stage_frame.cdef_on_skip_transform = 1U;
+    invalid_stage_frame.cdef_damping = 5U;
+    av2h_memory_fill(emerald_output, 0xa5U, sizeof(emerald_output));
+    status = av2h_decode_frame_i420_private(
+        entropy, sequence, &invalid_stage_frame, &workspace,
+        emerald_output, sizeof(emerald_output), 0);
+    CHECK(status == AV2H_INVALID_ARGUMENT);
+    CHECK(buffer_is_value(
+              emerald_output, sizeof(emerald_output), 0xa5U));
+
+    av2h_memory_fill(emerald_output, 0xa5U, sizeof(emerald_output));
+    av2h_memory_fill(&result, 0U, sizeof(result));
+    status = av2h_decode_frame_i420_private(
+        entropy, sequence, frame, &workspace,
+        emerald_output, sizeof(emerald_output), &result);
+    REQUIRE(status == AV2H_OK);
+    CHECK(result.luma_leaf_count == 20U);
+    CHECK(result.chroma_leaf_count == 11U);
+    CHECK(result.entropy_tell == 731U);
+    CHECK(av2h_memory_compare(
+              emerald_output, emerald_reference,
+              sizeof(emerald_output)) == 0);
+    check_emerald_deblock_map(
+        &layout, &filter_workspace.deblock_map);
+}
+
 static const Av2hObu *find_obu(const Av2hObuLedger *ledger, uint8_t type) {
     size_t index;
     for (index = 0U; index < ledger->count; ++index) {
@@ -750,6 +1010,10 @@ static void check_emerald_q208_full_tile(
     };
     Av2hTileDecoder decoder;
     Av2hReconstructionScratch scratch;
+    Av2hFilterWorkspaceLayout filter_layout;
+    Av2hFilterWorkspace filter_workspace;
+    Av2hFilterWorkspaceStorage filter_storage;
+    Av2hFilterPlanes final_planes;
     size_t luma_index = 0U;
     size_t chroma_index = 0U;
     size_t handoff_index = 0U;
@@ -761,6 +1025,17 @@ static void check_emerald_q208_full_tile(
     REQUIRE(av2h_tile_decoder_init(
                 &decoder, group.entropy, sequence, frame, &storage) ==
             AV2H_OK);
+    REQUIRE(av2h_filter_workspace_query(frame, &filter_layout) == AV2H_OK);
+    CHECK(filter_layout.size == 79491U);
+    CHECK(filter_layout.alignment == _Alignof(Av2hDeblockCell));
+    REQUIRE(filter_layout.size <= sizeof(emerald_filter_memory));
+    REQUIRE(av2h_filter_workspace_init(
+                frame, emerald_filter_memory,
+                sizeof(emerald_filter_memory),
+                &filter_workspace, &filter_storage) == AV2H_OK);
+    REQUIRE(load_exact_artifact(
+                "emerald-192x96-qp208-decoded.i420",
+                emerald_reference, sizeof(emerald_reference)));
     av2h_memory_fill(luma_pixels, 0U, sizeof(luma_pixels));
     av2h_memory_fill(luma_reconstructed, 0U, sizeof(luma_reconstructed));
     av2h_memory_fill(emerald_u_pixels, 0U, sizeof(emerald_u_pixels));
@@ -934,6 +1209,12 @@ static void check_emerald_q208_full_tile(
                       luma_pixels + (size_t)block_y * 192U + block_x,
                       192U, expected->tx_width, expected->tx_height) ==
                   expected->prefilter_fnv1a64);
+            REQUIRE(av2h_deblock_map_commit_transform(
+                        &filter_workspace.deblock_map, 0U,
+                        &leaf.node, &leaf.prefix,
+                        (uint8_t)frame->base_q_index,
+                        leaf.mode.skip_transform, leaf.prefix.all_zero,
+                        0U) == AV2H_OK);
             REQUIRE(av2h_tile_decoder_commit_leaf(
                         &decoder, leaf.node) == AV2H_OK);
             ++luma_index;
@@ -1091,6 +1372,15 @@ static void check_emerald_q208_full_tile(
                            block->after_coefficients_bits) ==
                       expected_plane->syntax_end_tell);
             }
+            for (plane_index = 0U; plane_index < 2U; ++plane_index) {
+                REQUIRE(av2h_deblock_map_commit_transform(
+                            &filter_workspace.deblock_map,
+                            (unsigned int)plane_index + 1U,
+                            &leaf.node, &leaf.prefix[plane_index],
+                            (uint8_t)frame->base_q_index, 0U,
+                            leaf.prefix[plane_index].all_zero,
+                            0U) == AV2H_OK);
+            }
             REQUIRE(av2h_tile_decoder_commit_leaf(
                         &decoder, leaf.node) == AV2H_OK);
             ++chroma_index;
@@ -1115,6 +1405,75 @@ static void check_emerald_q208_full_tile(
           emerald_q208_prefilter_hashes[2].sample_djb2);
     CHECK(block_pixel_hash(emerald_v_pixels, 96U, 96U, 48U) ==
           emerald_q208_prefilter_hashes[2].sample_fnv1a64);
+    check_emerald_deblock_map(
+        &filter_layout, &filter_workspace.deblock_map);
+    check_emerald_deblock_delta(
+        luma_pixels, emerald_reference, EMERALD_Y_SIZE,
+        &emerald_q208_deblock_deltas[0]);
+    check_emerald_deblock_delta(
+        emerald_u_pixels, emerald_reference + EMERALD_Y_SIZE,
+        sizeof(emerald_u_pixels), &emerald_q208_deblock_deltas[1]);
+    check_emerald_deblock_delta(
+        emerald_v_pixels,
+        emerald_reference + EMERALD_Y_SIZE + EMERALD_UV_SIZE,
+        sizeof(emerald_v_pixels), &emerald_q208_deblock_deltas[2]);
+    final_planes.plane[0] = (Av2hFilterPlane){
+        luma_pixels, 192U, 192U, 96U
+    };
+    final_planes.plane[1] = (Av2hFilterPlane){
+        emerald_u_pixels, 96U, 96U, 48U
+    };
+    final_planes.plane[2] = (Av2hFilterPlane){
+        emerald_v_pixels, 96U, 96U, 48U
+    };
+    REQUIRE(av2h_filter_frame(
+                &final_planes, sequence, frame, &filter_workspace) ==
+            AV2H_OK);
+    {
+        const uint8_t *final_data[AV2H_FRAME_PLANE_COUNT] = {
+            luma_pixels, emerald_u_pixels, emerald_v_pixels
+        };
+        size_t final_size[AV2H_FRAME_PLANE_COUNT] = {
+            EMERALD_Y_SIZE, sizeof(emerald_u_pixels),
+            sizeof(emerald_v_pixels)
+        };
+        size_t final_stride[AV2H_FRAME_PLANE_COUNT] = {
+            192U, 96U, 96U
+        };
+        unsigned int plane;
+        for (plane = 0U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
+            const EmeraldQ208PlaneHash *expected =
+                &emerald_q208_final_hashes[plane];
+            CHECK(av2h_memory_compare(
+                      filter_workspace.deblocked.plane[plane].data,
+                      filter_workspace.cdef.plane[plane].data,
+                      final_size[plane]) == 0);
+            CHECK(av2h_memory_compare(
+                      filter_workspace.cdef.plane[plane].data,
+                      final_data[plane], final_size[plane]) == 0);
+            CHECK(trace_sample_hash(
+                      final_data[plane], final_stride[plane],
+                      expected->width, expected->height) ==
+                  expected->sample_djb2);
+            CHECK(block_pixel_hash(
+                      final_data[plane], final_stride[plane],
+                      expected->width, expected->height) ==
+                  expected->sample_fnv1a64);
+        }
+    }
+    av2h_memory_copy(
+        emerald_output, luma_pixels, EMERALD_Y_SIZE);
+    av2h_memory_copy(
+        emerald_output + EMERALD_Y_SIZE,
+        emerald_u_pixels, sizeof(emerald_u_pixels));
+    av2h_memory_copy(
+        emerald_output + EMERALD_Y_SIZE + EMERALD_UV_SIZE,
+        emerald_v_pixels, sizeof(emerald_v_pixels));
+    CHECK(av2h_memory_compare(
+              emerald_output, emerald_reference,
+              sizeof(emerald_output)) == 0);
+    check_emerald_private_frame_output(
+        group.entropy, sequence, frame, &storage);
 }
 
 static void check_first_luma(const ArtifactExpectation *expected,
@@ -1863,6 +2222,25 @@ static void check_artifact(const ArtifactExpectation *expected) {
     CHECK(frame.gdf_qp_index == expected->gdf_qp_index);
     CHECK(frame.gdf_scale_index == expected->gdf_scale_index);
     CHECK(frame.ccso_unit_size == 256U);
+    if (expected->base_q_index == 208U &&
+        expected->width == 192U && expected->height == 96U) {
+        CHECK(frame.deblock_enabled[0] == 1U);
+        CHECK(frame.deblock_enabled[1] == 1U);
+        CHECK(frame.deblock_enabled[2] == 1U);
+        CHECK(frame.deblock_enabled[3] == 1U);
+        CHECK(frame.deblock_delta[0] == 2);
+        CHECK(frame.deblock_delta[1] == 0);
+        CHECK(frame.deblock_delta[2] == 0);
+        CHECK(frame.deblock_delta[3] == 0);
+        CHECK(sequence.enable_restoration == 0U);
+        CHECK(sequence.enable_gdf == 0U);
+        CHECK(sequence.enable_cdef == 0U);
+        CHECK(sequence.enable_ccso == 0U);
+        CHECK(frame.cdef_strength_count == 0U);
+        CHECK(frame.ccso[0].enabled == 0U);
+        CHECK(frame.ccso[1].enabled == 0U);
+        CHECK(frame.ccso[2].enabled == 0U);
+    }
     if (sequence.enable_gdf) {
         uint16_t block_size =
             sequence.gdf_unit_matches_superblock_size ?

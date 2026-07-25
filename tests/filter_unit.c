@@ -1,4 +1,4 @@
-#include "decoder/filter.h"
+#include "decoder/frame_output.h"
 
 #include <stdio.h>
 
@@ -12,6 +12,16 @@ static int failures;
             ++failures;                                                        \
         }                                                                      \
     } while (0)
+
+static int buffer_is_value(const uint8_t *data,
+                           size_t size,
+                           uint8_t value) {
+    size_t index;
+    for (index = 0U; index < size; ++index) {
+        if (data[index] != value) return 0;
+    }
+    return 1;
+}
 
 static void initialize_planes(Av2hFilterPlanes *planes,
                               uint8_t *y,
@@ -253,6 +263,127 @@ static void test_filter_pipeline(void) {
               actual_workspace.cdef.plane[0].data,
               expected_workspace.cdef.plane[0].data,
               sizeof(actual_y)) == 0);
+}
+
+static void test_disabled_filters_no_op(void) {
+    _Alignas(16) uint8_t memory[4096];
+    uint8_t y[64];
+    uint8_t u[16];
+    uint8_t v[16];
+    uint8_t expected_y[64];
+    uint8_t expected_u[16];
+    uint8_t expected_v[16];
+    Av2hFilterPlanes planes;
+    Av2hFilterWorkspace workspace;
+    Av2hFilterWorkspaceStorage storage;
+    Av2hFilterWorkspaceLayout layout;
+    Av2hSequenceState sequence;
+    Av2hFrameState frame;
+    size_t index;
+    av2h_memory_fill(&sequence, 0U, sizeof(sequence));
+    av2h_memory_fill(&frame, 0U, sizeof(frame));
+    frame.width = 8U;
+    frame.height = 8U;
+    for (index = 0U; index < sizeof(y); ++index) {
+        y[index] = (uint8_t)(index * 3U + 7U);
+        expected_y[index] = y[index];
+    }
+    for (index = 0U; index < sizeof(u); ++index) {
+        u[index] = (uint8_t)(index * 5U + 11U);
+        v[index] = (uint8_t)(index * 7U + 13U);
+        expected_u[index] = u[index];
+        expected_v[index] = v[index];
+    }
+    initialize_planes(&planes, y, u, v);
+    CHECK(av2h_filter_workspace_query(&frame, &layout) == AV2H_OK);
+    CHECK(av2h_filter_workspace_init(
+              &frame, memory, sizeof(memory),
+              &workspace, &storage) == AV2H_OK);
+    populate_workspace_maps(&layout, &storage, 208U);
+    CHECK(av2h_filter_frame(
+              &planes, &sequence, &frame, &workspace) == AV2H_OK);
+    CHECK(av2h_memory_compare(y, expected_y, sizeof(y)) == 0);
+    CHECK(av2h_memory_compare(u, expected_u, sizeof(u)) == 0);
+    CHECK(av2h_memory_compare(v, expected_v, sizeof(v)) == 0);
+    CHECK(av2h_memory_compare(
+              workspace.deblocked.plane[0].data,
+              expected_y, sizeof(expected_y)) == 0);
+    CHECK(av2h_memory_compare(
+              workspace.cdef.plane[1].data,
+              expected_u, sizeof(expected_u)) == 0);
+    CHECK(av2h_memory_compare(
+              workspace.cdef.plane[2].data,
+              expected_v, sizeof(expected_v)) == 0);
+}
+
+static void test_visible_i420_crop(void) {
+    uint8_t y[26U * 16U];
+    uint8_t u[14U * 8U];
+    uint8_t v[14U * 8U];
+    uint8_t output[403U];
+    size_t capacities[AV2H_FRAME_PLANE_COUNT] = {
+        sizeof(y), sizeof(u), sizeof(v)
+    };
+    Av2hFilterPlanes coded = {
+        {
+            { y, 26U, 24U, 16U },
+            { u, 14U, 12U, 8U },
+            { v, 14U, 12U, 8U }
+        }
+    };
+    Av2hFrameState frame;
+    size_t expected_size = 0U;
+    size_t offset;
+    size_t row;
+    av2h_memory_fill(&frame, 0U, sizeof(frame));
+    frame.width = 17U;
+    frame.height = 15U;
+    av2h_memory_fill(y, 0xeeU, sizeof(y));
+    av2h_memory_fill(u, 0xeeU, sizeof(u));
+    av2h_memory_fill(v, 0xeeU, sizeof(v));
+    for (row = 0U; row < 15U; ++row) {
+        size_t column;
+        for (column = 0U; column < 17U; ++column) {
+            y[row * 26U + column] = (uint8_t)(row + column);
+        }
+    }
+    for (row = 0U; row < 8U; ++row) {
+        size_t column;
+        for (column = 0U; column < 9U; ++column) {
+            u[row * 14U + column] = (uint8_t)(40U + row + column);
+            v[row * 14U + column] = (uint8_t)(90U + row + column);
+        }
+    }
+    CHECK(av2h_i420_output_size(&frame, &expected_size) == AV2H_OK);
+    CHECK(expected_size == 399U);
+    av2h_memory_fill(output, 0xa5U, sizeof(output));
+    CHECK(av2h_copy_visible_i420_private(
+              &frame, &coded, capacities, output,
+              expected_size - 1U) == AV2H_OUT_OF_MEMORY);
+    CHECK(buffer_is_value(output, sizeof(output), 0xa5U));
+    CHECK(av2h_copy_visible_i420_private(
+              &frame, &coded, capacities, output,
+              sizeof(output)) == AV2H_OK);
+    offset = 0U;
+    for (row = 0U; row < 15U; ++row) {
+        CHECK(av2h_memory_compare(
+                  output + offset, y + row * 26U, 17U) == 0);
+        offset += 17U;
+    }
+    for (row = 0U; row < 8U; ++row) {
+        CHECK(av2h_memory_compare(
+                  output + offset, u + row * 14U, 9U) == 0);
+        offset += 9U;
+    }
+    for (row = 0U; row < 8U; ++row) {
+        CHECK(av2h_memory_compare(
+                  output + offset, v + row * 14U, 9U) == 0);
+        offset += 9U;
+    }
+    CHECK(offset == expected_size);
+    CHECK(buffer_is_value(
+              output + expected_size,
+              sizeof(output) - expected_size, 0xa5U));
 }
 
 static void test_deblock_edge(void) {
@@ -1048,6 +1179,8 @@ static void test_fail_closed(void) {
 int main(void) {
     test_workspace_model();
     test_filter_pipeline();
+    test_disabled_filters_no_op();
+    test_visible_i420_crop();
     test_deblock_edge();
     test_deblock_asymmetric_lengths();
     test_deblock_frame();

@@ -222,9 +222,70 @@ static void test_failures(void) {
               &frame) == AV2H_INVALID_ARGUMENT);
 }
 
+static void test_emerald_q208_deblock_header(void) {
+    unsigned char input[256U];
+    Av2hObu entries[4U];
+    Av2hObuLedger ledger = { entries, 4U, 0U };
+    Av2hError error;
+    Av2hSequenceState sequence;
+    Av2hFrameState frame;
+    const Av2hObu *sequence_obu = 0;
+    const Av2hObu *frame_obu = 0;
+    FILE *source = fopen(
+        "images/artifacts/emerald-192x96-qp208.obu", "rb");
+    size_t size;
+    size_t index;
+    CHECK(source != 0);
+    if (source == 0) return;
+    size = fread(input, 1U, sizeof(input), source);
+    CHECK(!ferror(source));
+    CHECK(feof(source));
+    fclose(source);
+    CHECK(size == 115U);
+    CHECK(av2h_obu_parse(
+              (Av2hSpan){ input, size }, &ledger, &error) == AV2H_OK);
+    for (index = 0U; index < ledger.count; ++index) {
+        if (ledger.entries[index].type == AV2H_OBU_SEQUENCE_HEADER) {
+            sequence_obu = &ledger.entries[index];
+        } else if (ledger.entries[index].type == AV2H_OBU_CLOSED_LOOP_KEY) {
+            frame_obu = &ledger.entries[index];
+        }
+    }
+    CHECK(sequence_obu != 0);
+    CHECK(frame_obu != 0);
+    if (sequence_obu == 0 || frame_obu == 0) return;
+    CHECK(av2h_sequence_state_parse(
+              (Av2hSpan){ input, size }, sequence_obu,
+              &sequence, &error) == AV2H_OK);
+    CHECK(av2h_frame_header_closed_key_parse(
+              (Av2hSpan){ input + frame_obu->payload_offset,
+                           frame_obu->payload_size },
+              &sequence, &frame) == AV2H_OK);
+    CHECK(frame.width == 192U);
+    CHECK(frame.height == 96U);
+    CHECK(frame.base_q_index == 208U);
+    CHECK(frame.deblock_enabled[0] == 1U);
+    CHECK(frame.deblock_enabled[1] == 1U);
+    CHECK(frame.deblock_enabled[2] == 1U);
+    CHECK(frame.deblock_enabled[3] == 1U);
+    CHECK(frame.deblock_delta[0] == 2);
+    CHECK(frame.deblock_delta[1] == 0);
+    CHECK(frame.deblock_delta[2] == 0);
+    CHECK(frame.deblock_delta[3] == 0);
+    CHECK(sequence.enable_restoration == 0U);
+    CHECK(sequence.enable_gdf == 0U);
+    CHECK(sequence.enable_cdef == 0U);
+    CHECK(sequence.enable_ccso == 0U);
+    CHECK(frame.cdef_strength_count == 0U);
+    CHECK(frame.ccso[0].enabled == 0U);
+    CHECK(frame.ccso[1].enabled == 0U);
+    CHECK(frame.ccso[2].enabled == 0U);
+}
+
 int main(void) {
     test_fixtures();
     test_failures();
+    test_emerald_q208_deblock_header();
     if (failures != 0) {
         fprintf(stderr, "%d frame checks failed\n", failures);
         return 1;
