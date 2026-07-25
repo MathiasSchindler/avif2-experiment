@@ -417,7 +417,8 @@ static Av2hStatus deblock_frame_edge(
     } else {
         maximum_positive = plane == 0U ? 8U : 4U;
     }
-    superblock_edge = pass != 0U && (row * 4U % 64U) == 0U;
+    superblock_edge = pass != 0U &&
+        (row * 4U % (plane == 0U ? 64U : 32U)) == 0U;
     maximum_negative = maximum_positive;
     if (superblock_edge != 0U) {
         unsigned int limit = plane == 0U ? 6U : 2U;

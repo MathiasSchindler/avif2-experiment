@@ -1,0 +1,499 @@
+#include "decoder/frame_output.h"
+
+#include "decoder/tx_geometry.h"
+
+static int ranges_overlap(const void *left,
+                          size_t left_size,
+                          const void *right,
+                          size_t right_size) {
+    uintptr_t maximum = (uintptr_t)-1;
+    uintptr_t left_start = (uintptr_t)left;
+    uintptr_t right_start = (uintptr_t)right;
+    uintptr_t left_end;
+    uintptr_t right_end;
+    if (left_size == 0U || right_size == 0U) return 0;
+    if (left == 0 || right == 0 ||
+        left_size > maximum - left_start ||
+        right_size > maximum - right_start) {
+        return 1;
+    }
+    left_end = left_start + left_size;
+    right_end = right_start + right_size;
+    return left_start < right_end && right_start < left_end;
+}
+
+static int output_overlaps(uint8_t *output,
+                           size_t output_size,
+                           const void *memory,
+                           size_t memory_size) {
+    return ranges_overlap(output, output_size, memory, memory_size);
+}
+
+static int sized_plane_bytes(size_t stride,
+                             size_t height,
+                             size_t *bytes) {
+    return av2h_size_multiply(stride, height, bytes);
+}
+
+Av2hStatus av2h_i420_output_size(
+    const Av2hFrameState *frame,
+    size_t *size) {
+    size_t luma;
+    size_t chroma;
+    size_t total;
+    size_t chroma_width;
+    size_t chroma_height;
+    if (frame == 0 || size == 0 || frame->width == 0U ||
+        frame->height == 0U) {
+        return AV2H_INVALID_ARGUMENT;
+    }
+    chroma_width = ((size_t)frame->width + 1U) >> 1U;
+    chroma_height = ((size_t)frame->height + 1U) >> 1U;
+    if (!av2h_size_multiply(frame->width, frame->height, &luma) ||
+        !av2h_size_multiply(chroma_width, chroma_height, &chroma) ||
+        !av2h_size_add(chroma, chroma, &total) ||
+        !av2h_size_add(luma, total, &total)) {
+        return AV2H_OVERFLOW;
+    }
+    *size = total;
+    return AV2H_OK;
+}
+
+Av2hStatus av2h_deblock_map_commit_transform(
+    Av2hDeblockMap *map,
+    unsigned int plane,
+    const Av2hPartitionNode *leaf,
+    const Av2hFirstCoeffPrefix *prefix,
+    uint8_t q_index,
+    uint8_t skip,
+    uint8_t all_zero,
+    uint8_t lossless) {
+    const Av2hTxDescriptor *descriptor;
+    size_t block_column;
+    size_t block_row;
+    size_t transform_columns;
+    size_t transform_rows;
+    size_t row;
+    Av2hStatus status;
+    if (map == 0 || leaf == 0 || prefix == 0 ||
+        plane >= AV2H_FRAME_PLANE_COUNT || skip > 1U ||
+        all_zero > 1U || lossless > 1U || map->plane[plane] == 0 ||
+        map->columns[plane] == 0U || map->rows[plane] == 0U ||
+        map->stride[plane] < map->columns[plane]) {
+        return AV2H_INVALID_ARGUMENT;
+    }
+    status = av2h_tx_descriptor_get(prefix->tx_size, &descriptor);
+    if (status != AV2H_OK) return status;
+    if ((descriptor->output_width & 3U) != 0U ||
+        (descriptor->output_height & 3U) != 0U) {
+        return AV2H_UNSUPPORTED;
+    }
+    if (plane == 0U) {
+        block_column = leaf->column;
+        block_row = leaf->row;
+    } else {
+        if ((leaf->column & 1U) != 0U || (leaf->row & 1U) != 0U) {
+            return AV2H_UNSUPPORTED;
+        }
+        block_column = leaf->column >> 1U;
+        block_row = leaf->row >> 1U;
+    }
+    transform_columns = descriptor->output_width >> 2U;
+    transform_rows = descriptor->output_height >> 2U;
+    if (block_column >= map->columns[plane] ||
+        block_row >= map->rows[plane] ||
+        transform_columns > map->columns[plane] - block_column ||
+        transform_rows > map->rows[plane] - block_row) {
+        return AV2H_INVALID_ARGUMENT;
+    }
+    for (row = 0U; row < transform_rows; ++row) {
+        size_t column;
+        for (column = 0U; column < transform_columns; ++column) {
+            Av2hDeblockCell *cell = (Av2hDeblockCell *)&map->plane[plane][
+                (block_row + row) * map->stride[plane] +
+                block_column + column];
+            if (cell->transform_width != 0U ||
+                cell->transform_height != 0U) {
+                return AV2H_INVALID_DATA;
+            }
+            *cell = (Av2hDeblockCell){
+                (uint16_t)block_column,
+                (uint16_t)block_row,
+                (uint16_t)block_column,
+                (uint16_t)block_row,
+                descriptor->output_width,
+                descriptor->output_height,
+                q_index,
+                (uint8_t)(skip != 0U || all_zero != 0U),
+                lossless
+            };
+        }
+    }
+    return AV2H_OK;
+}
+
+static int filter_workspace_valid(
+    const Av2hFilterWorkspaceLayout *layout,
+    const Av2hFilterWorkspace *workspace) {
+    unsigned int plane;
+    if (layout == 0 || workspace == 0 ||
+        workspace->ccso_controls.columns != layout->ccso_columns ||
+        workspace->ccso_controls.rows != layout->ccso_rows) {
+        return 0;
+    }
+    for (plane = 0U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
+        const Av2hFilterPlane *deblocked =
+            &workspace->deblocked.plane[plane];
+        const Av2hFilterPlane *cdef = &workspace->cdef.plane[plane];
+        if (deblocked->data == 0 || cdef->data == 0 ||
+            deblocked->width != layout->plane_width[plane] ||
+            deblocked->height != layout->plane_height[plane] ||
+            cdef->width != layout->plane_width[plane] ||
+            cdef->height != layout->plane_height[plane] ||
+            deblocked->stride < deblocked->width ||
+            cdef->stride < cdef->width ||
+            workspace->deblock_map.plane[plane] == 0 ||
+            workspace->deblock_map.columns[plane] !=
+                layout->deblock_columns[plane] ||
+            workspace->deblock_map.rows[plane] !=
+                layout->deblock_rows[plane] ||
+            workspace->deblock_map.stride[plane] <
+                layout->deblock_columns[plane] ||
+            workspace->ccso_controls.plane[plane] == 0 ||
+            workspace->ccso_controls.stride[plane] <
+                layout->ccso_columns) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
+static int decode_planes_valid(
+    const Av2hFrameState *frame,
+    const Av2hFilterWorkspaceLayout *layout,
+    const Av2hFrameDecodeWorkspace *workspace) {
+    unsigned int plane;
+    for (plane = 0U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
+        const Av2hReconstructionPlane *coded = &workspace->coded[plane];
+        size_t required_data;
+        size_t required_ready;
+        size_t reference_width = plane == 0U ?
+            frame->width : ((size_t)frame->width + 1U) >> 1U;
+        size_t reference_height = plane == 0U ?
+            frame->height : ((size_t)frame->height + 1U) >> 1U;
+        if (coded->data == 0 || coded->reconstructed == 0 ||
+            coded->width != layout->plane_width[plane] ||
+            coded->height != layout->plane_height[plane] ||
+            coded->stride < coded->width ||
+            coded->reference_width != reference_width ||
+            coded->reference_height != reference_height ||
+            coded->reconstructed_stride <
+                ((size_t)coded->width + 3U) / 4U ||
+            !sized_plane_bytes(coded->stride, coded->height,
+                               &required_data) ||
+            required_data > workspace->coded_data_size[plane] ||
+            !av2h_size_multiply(
+                coded->reconstructed_stride,
+                ((size_t)coded->height + 3U) / 4U,
+                &required_ready) ||
+            required_ready > coded->reconstructed_count) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
+static int output_is_disjoint(
+    uint8_t *output,
+    size_t output_size,
+    const Av2hFilterWorkspaceLayout *layout,
+    const Av2hFrameDecodeWorkspace *workspace,
+    const Av2hFrameDecodeResult *result) {
+    const Av2hTileContextStorage *context = &workspace->tile_context;
+    size_t coefficient_above_size;
+    size_t coefficient_left_size;
+    unsigned int plane;
+    if (!av2h_size_multiply(
+            context->above_count, AV2H_FRAME_PLANE_COUNT,
+            &coefficient_above_size) ||
+        !av2h_size_multiply(
+            context->left_count, AV2H_FRAME_PLANE_COUNT,
+            &coefficient_left_size)) {
+        return 0;
+    }
+    for (plane = 0U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
+        const Av2hReconstructionPlane *coded = &workspace->coded[plane];
+        const Av2hFilterPlane *deblocked =
+            &workspace->filter_workspace->deblocked.plane[plane];
+        const Av2hFilterPlane *cdef =
+            &workspace->filter_workspace->cdef.plane[plane];
+        size_t coded_size;
+        size_t deblocked_size;
+        size_t cdef_size;
+        size_t map_size;
+        size_t control_size;
+        if (!sized_plane_bytes(coded->stride, coded->height, &coded_size) ||
+            !sized_plane_bytes(
+                deblocked->stride, deblocked->height, &deblocked_size) ||
+            !sized_plane_bytes(cdef->stride, cdef->height, &cdef_size) ||
+            !av2h_size_multiply(
+                workspace->filter_workspace->deblock_map.stride[plane],
+                workspace->filter_workspace->deblock_map.rows[plane],
+                &map_size) ||
+            !av2h_size_multiply(
+                map_size, sizeof(Av2hDeblockCell), &map_size) ||
+            !av2h_size_multiply(
+                workspace->filter_workspace->ccso_controls.stride[plane],
+                layout->ccso_rows, &control_size) ||
+            output_overlaps(output, output_size, coded->data, coded_size) ||
+            output_overlaps(
+                output, output_size, coded->reconstructed,
+                coded->reconstructed_count) ||
+            output_overlaps(
+                output, output_size, deblocked->data, deblocked_size) ||
+            output_overlaps(output, output_size, cdef->data, cdef_size) ||
+            output_overlaps(
+                output, output_size,
+                workspace->filter_workspace->deblock_map.plane[plane],
+                map_size) ||
+            output_overlaps(
+                output, output_size,
+                workspace->filter_workspace->ccso_controls.plane[plane],
+                control_size)) {
+            return 0;
+        }
+    }
+    if (output_overlaps(
+            output, output_size, context->luma_partition_above,
+            context->above_count) ||
+        output_overlaps(
+            output, output_size, context->luma_partition_left,
+            context->left_count) ||
+        output_overlaps(
+            output, output_size, context->chroma_partition_above,
+            context->above_count) ||
+        output_overlaps(
+            output, output_size, context->chroma_partition_left,
+            context->left_count) ||
+        output_overlaps(
+            output, output_size, context->luma_mode_above,
+            context->above_count * sizeof(*context->luma_mode_above)) ||
+        output_overlaps(
+            output, output_size, context->luma_mode_left,
+            context->left_count * sizeof(*context->luma_mode_left)) ||
+        output_overlaps(
+            output, output_size, context->coefficient_above,
+            coefficient_above_size) ||
+        output_overlaps(
+            output, output_size, context->coefficient_left,
+            coefficient_left_size) ||
+        output_overlaps(
+            output, output_size, context->colocated_luma,
+            context->colocated_luma_count * sizeof(*context->colocated_luma)) ||
+        output_overlaps(
+            output, output_size, context->gdf_block_flags,
+            context->gdf_block_flag_capacity) ||
+        output_overlaps(
+            output, output_size, context->cdef_unit_strengths,
+            context->cdef_unit_strength_capacity) ||
+        output_overlaps(
+            output, output_size, workspace->reconstruction_scratch,
+            sizeof(*workspace->reconstruction_scratch)) ||
+        (result != 0 &&
+         output_overlaps(output, output_size, result, sizeof(*result)))) {
+        return 0;
+    }
+    for (plane = 0U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
+        if (output_overlaps(
+                output, output_size, context->ccso_unit_controls[plane],
+                context->ccso_unit_control_capacity)) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
+static void clear_decode_storage(
+    const Av2hFilterWorkspaceLayout *layout,
+    Av2hFrameDecodeWorkspace *workspace) {
+    unsigned int plane;
+    for (plane = 0U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
+        Av2hReconstructionPlane *coded = &workspace->coded[plane];
+        size_t data_size = coded->stride * coded->height;
+        size_t ready_size = coded->reconstructed_stride *
+            (((size_t)coded->height + 3U) / 4U);
+        size_t map_size =
+            workspace->filter_workspace->deblock_map.stride[plane] *
+            workspace->filter_workspace->deblock_map.rows[plane] *
+            sizeof(Av2hDeblockCell);
+        size_t control_size =
+            workspace->filter_workspace->ccso_controls.stride[plane] *
+            layout->ccso_rows;
+        av2h_memory_fill(coded->data, 0U, data_size);
+        av2h_memory_fill(coded->reconstructed, 0U, ready_size);
+        av2h_memory_fill(
+            (void *)workspace->filter_workspace->deblock_map.plane[plane],
+            0U, map_size);
+        av2h_memory_fill(
+            (void *)workspace->filter_workspace->ccso_controls.plane[plane],
+            0U, control_size);
+    }
+}
+
+static int maps_and_readiness_complete(
+    const Av2hFrameDecodeWorkspace *workspace) {
+    unsigned int plane;
+    for (plane = 0U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
+        const Av2hDeblockMap *map =
+            &workspace->filter_workspace->deblock_map;
+        const Av2hReconstructionPlane *coded = &workspace->coded[plane];
+        size_t row;
+        for (row = 0U; row < map->rows[plane]; ++row) {
+            size_t column;
+            for (column = 0U; column < map->columns[plane]; ++column) {
+                const Av2hDeblockCell *cell =
+                    &map->plane[plane][row * map->stride[plane] + column];
+                if (cell->transform_width == 0U ||
+                    cell->transform_height == 0U ||
+                    coded->reconstructed[
+                        row * coded->reconstructed_stride + column] == 0U) {
+                    return 0;
+                }
+            }
+        }
+    }
+    return 1;
+}
+
+static void copy_visible_i420(
+    const Av2hFrameState *frame,
+    const Av2hFrameDecodeWorkspace *workspace,
+    uint8_t *output) {
+    size_t offset = 0U;
+    unsigned int plane;
+    for (plane = 0U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
+        const Av2hReconstructionPlane *coded = &workspace->coded[plane];
+        size_t width = plane == 0U ?
+            frame->width : ((size_t)frame->width + 1U) >> 1U;
+        size_t height = plane == 0U ?
+            frame->height : ((size_t)frame->height + 1U) >> 1U;
+        size_t row;
+        for (row = 0U; row < height; ++row) {
+            av2h_memory_copy(
+                output + offset,
+                coded->data + row * coded->stride,
+                width);
+            offset += width;
+        }
+    }
+}
+
+Av2hStatus av2h_decode_frame_i420_private(
+    Av2hSpan entropy,
+    const Av2hSequenceState *sequence,
+    const Av2hFrameState *frame,
+    Av2hFrameDecodeWorkspace *workspace,
+    uint8_t *output,
+    size_t output_size,
+    Av2hFrameDecodeResult *result) {
+    Av2hFilterWorkspaceLayout layout;
+    Av2hTileDecoder decoder;
+    Av2hFilterPlanes final_planes;
+    Av2hFrameDecodeResult decoded = { 0U, 0U, 0U };
+    size_t required_output;
+    Av2hStatus status;
+    unsigned int plane;
+    if (sequence == 0 || frame == 0 || workspace == 0 || output == 0 ||
+        workspace->reconstruction_scratch == 0 ||
+        workspace->filter_workspace == 0) {
+        return AV2H_INVALID_ARGUMENT;
+    }
+    if (sequence->enable_restoration != 0U) return AV2H_UNSUPPORTED;
+    status = av2h_i420_output_size(frame, &required_output);
+    if (status != AV2H_OK) return status;
+    if (output_size < required_output) return AV2H_OUT_OF_MEMORY;
+    status = av2h_filter_workspace_query(frame, &layout);
+    if (status != AV2H_OK) return status;
+    if (!filter_workspace_valid(&layout, workspace->filter_workspace) ||
+        !decode_planes_valid(frame, &layout, workspace) ||
+        !output_is_disjoint(
+            output, required_output, &layout, workspace, result)) {
+        return AV2H_INVALID_ARGUMENT;
+    }
+    clear_decode_storage(&layout, workspace);
+    status = av2h_tile_decoder_init(
+        &decoder, entropy, sequence, frame, &workspace->tile_context);
+    if (status != AV2H_OK) return status;
+    while (decoder.phase != AV2H_TILE_DECODE_DONE) {
+        uint8_t has_leaf = 0U;
+        if (decoder.phase == AV2H_TILE_DECODE_LUMA) {
+            Av2hTileLumaLeaf leaf;
+            Av2hFirstCoeffBlock block;
+            status = av2h_tile_decoder_next_luma(
+                &decoder, &leaf, &block, &has_leaf);
+            if (status != AV2H_OK) return status;
+            if (!has_leaf) continue;
+            status = av2h_luma_reconstruct_to_plane(
+                &leaf.node, &leaf.mode, &leaf.prefix, &leaf.transform,
+                &block, &workspace->coded[0],
+                workspace->reconstruction_scratch);
+            if (status != AV2H_OK) return status;
+            status = av2h_deblock_map_commit_transform(
+                &workspace->filter_workspace->deblock_map, 0U,
+                &leaf.node, &leaf.prefix, (uint8_t)frame->base_q_index,
+                leaf.mode.skip_transform, leaf.prefix.all_zero,
+                (uint8_t)(frame->base_q_index == 0U));
+            if (status != AV2H_OK) return status;
+            status = av2h_tile_decoder_commit_leaf(&decoder, leaf.node);
+            if (status != AV2H_OK) return status;
+            ++decoded.luma_leaf_count;
+        } else if (decoder.phase == AV2H_TILE_DECODE_CHROMA) {
+            Av2hTileChromaLeaf leaf;
+            Av2hFirstCoeffBlock blocks[2U];
+            status = av2h_tile_decoder_next_chroma(
+                &decoder, &leaf, &blocks[0], &blocks[1], &has_leaf);
+            if (status != AV2H_OK) return status;
+            if (!has_leaf) continue;
+            for (plane = 1U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
+                unsigned int index = plane - 1U;
+                status = av2h_chroma_reconstruct_to_plane_ex(
+                    &leaf.node, &leaf.mode, &leaf.prefix[index],
+                    &leaf.transform[index], &blocks[index],
+                    &workspace->coded[plane], &workspace->coded[0], 0,
+                    workspace->reconstruction_scratch);
+                if (status != AV2H_OK) return status;
+            }
+            for (plane = 1U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
+                unsigned int index = plane - 1U;
+                status = av2h_deblock_map_commit_transform(
+                    &workspace->filter_workspace->deblock_map, plane,
+                    &leaf.node, &leaf.prefix[index],
+                    (uint8_t)frame->base_q_index, 0U,
+                    leaf.prefix[index].all_zero,
+                    (uint8_t)(frame->base_q_index == 0U));
+                if (status != AV2H_OK) return status;
+            }
+            status = av2h_tile_decoder_commit_leaf(&decoder, leaf.node);
+            if (status != AV2H_OK) return status;
+            ++decoded.chroma_leaf_count;
+        } else {
+            return AV2H_INVALID_DATA;
+        }
+    }
+    if (!maps_and_readiness_complete(workspace)) return AV2H_INVALID_DATA;
+    decoded.entropy_tell = av2h_range_tell(&decoder.range);
+    for (plane = 0U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
+        final_planes.plane[plane] = (Av2hFilterPlane){
+            workspace->coded[plane].data,
+            workspace->coded[plane].stride,
+            workspace->coded[plane].width,
+            workspace->coded[plane].height
+        };
+    }
+    status = av2h_filter_frame(
+        &final_planes, sequence, frame, workspace->filter_workspace);
+    if (status != AV2H_OK) return status;
+    copy_visible_i420(frame, workspace, output);
+    if (result != 0) *result = decoded;
+    return AV2H_OK;
+}

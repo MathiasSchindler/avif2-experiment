@@ -86,6 +86,12 @@ typedef struct {
     uint64_t sample_fnv1a64;
 } EmeraldQ208PlaneHash;
 
+typedef struct {
+    uint16_t changed_samples;
+    uint32_t absolute_delta_sum;
+    uint8_t maximum_absolute_delta;
+} EmeraldQ208PlaneDelta;
+
 static const EmeraldQ208Handoff emerald_q208_handoffs[] = {
     {
         0U, 0U,
@@ -441,6 +447,33 @@ static const EmeraldQ208PlaneHash emerald_q208_prefilter_hashes[] = {
         0xfc9b2b18U, UINT64_C(0xd1c0b4d179f58f4a)
     }
 };
+
+static const EmeraldQ208PlaneHash emerald_q208_final_hashes[] = {
+    {
+        192U, 96U,
+        "583292a3570303579c3d372beddd334fe13985abe93af52cf35d58f9ab2eceb3",
+        0x091df68dU, UINT64_C(0x2f4e42ba4af114fd)
+    },
+    {
+        96U, 48U,
+        "ff6be9432b94cc8260cc07e6de47c054fb4df298d186e8b23ba2b21b306cb94b",
+        0xb30a1bc9U, UINT64_C(0x6bd8ce08081d4bdf)
+    },
+    {
+        96U, 48U,
+        "ea936f8ef9359bc3796c84bef089fbb12aa75c78d87d4f00a9ea6802d8783597",
+        0x40d0686eU, UINT64_C(0x96a4677b5fdbf2f4)
+    }
+};
+
+static const EmeraldQ208PlaneDelta emerald_q208_deblock_deltas[] = {
+    { 4852U, 20760U, 37U },
+    { 1120U, 3415U, 14U },
+    { 824U, 1718U, 7U }
+};
+
+static const char emerald_q208_final_i420_sha256[] =
+    "403c2e7245ec484984e60c1eaf8bd1b47487c0ba6b60afc916b9532025fc51ad";
 
 static const EmeraldQ208EntropyPoint emerald_q208_tile_done = {
     731U, 47862749U, 52224U,

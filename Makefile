@@ -26,6 +26,7 @@ HOST_ARTIFACT_TOOL := build/host/av2heif-artifact
 CORE_SOURCES := src/base.c src/carriage.c src/bmff.c src/container.c src/query.c \
 	src/decoder/cdf.c src/decoder/coeff.c src/decoder/coeff_level.c \
 	src/decoder/filter.c src/decoder/frame.c src/decoder/leaf.c \
+	src/decoder/frame_output.c \
 	src/decoder/partition.c \
 	src/decoder/partition_cdf.c \
 	src/decoder/range.c src/decoder/reconstruct.c src/decoder/tile.c \
@@ -33,6 +34,7 @@ CORE_SOURCES := src/base.c src/carriage.c src/bmff.c src/container.c src/query.c
 CORE_HEADERS := include/av2heif.h src/base.h src/decoder/sequence.h \
 	src/decoder/cdf.h src/decoder/coeff.h src/decoder/coeff_level.h \
 	src/decoder/filter.h src/decoder/frame.h src/decoder/leaf.h \
+	src/decoder/frame_output.h \
 	src/decoder/partition.h \
 	src/decoder/partition_cdf.h \
 	src/decoder/partition_cdf_data.inc src/decoder/gdf_data.inc \

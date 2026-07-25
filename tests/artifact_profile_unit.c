@@ -1,4 +1,4 @@
-#include "decoder/tile.h"
+#include "decoder/frame_output.h"
 #include "emerald_q208_vectors.h"
 
 #include <stdio.h>
@@ -8,6 +8,8 @@
 #define MAX_MI_ROWS 96U
 #define MAX_GDF_BLOCKS 128U
 #define MAX_CDEF_UNITS 128U
+#define EMERALD_I420_SIZE 27648U
+#define EMERALD_FILTER_MEMORY_SIZE 80000U
 
 static int failures;
 static unsigned char stream[STREAM_CAPACITY];
@@ -21,6 +23,10 @@ static uint8_t emerald_u_reconstructed[(96U / 4U) * (48U / 4U)];
 static uint8_t emerald_v_reconstructed[(96U / 4U) * (48U / 4U)];
 static uint8_t emerald_u_predictor_reconstructed[(96U / 4U) * (48U / 4U)];
 static uint8_t emerald_v_predictor_reconstructed[(96U / 4U) * (48U / 4U)];
+static _Alignas(Av2hDeblockCell)
+    uint8_t emerald_filter_memory[EMERALD_FILTER_MEMORY_SIZE];
+static uint8_t emerald_output[EMERALD_I420_SIZE];
+static uint8_t emerald_reference[EMERALD_I420_SIZE];
 
 #define CHECK(condition)                                                       \
     do {                                                                       \
@@ -235,6 +241,24 @@ static void check_emerald_q208_vector_fixture(void) {
         CHECK(hash->sample_djb2 != 0U);
         CHECK(hash->sample_fnv1a64 != 0U);
     }
+    CHECK(sizeof(emerald_q208_final_hashes) /
+          sizeof(emerald_q208_final_hashes[0]) == 3U);
+    CHECK(sizeof(emerald_q208_deblock_deltas) /
+          sizeof(emerald_q208_deblock_deltas[0]) == 3U);
+    for (index = 0U;
+         index < sizeof(emerald_q208_final_hashes) /
+                     sizeof(emerald_q208_final_hashes[0]);
+         ++index) {
+        const EmeraldQ208PlaneHash *hash =
+            &emerald_q208_final_hashes[index];
+        CHECK(emerald_q208_sha256_is_hex(hash->text_sha256));
+        CHECK(hash->sample_djb2 != 0U);
+        CHECK(hash->sample_fnv1a64 != 0U);
+        CHECK(emerald_q208_deblock_deltas[index].changed_samples != 0U);
+        CHECK(emerald_q208_deblock_deltas[index].absolute_delta_sum != 0U);
+        CHECK(emerald_q208_deblock_deltas[index].maximum_absolute_delta != 0U);
+    }
+    CHECK(emerald_q208_sha256_is_hex(emerald_q208_final_i420_sha256));
 
     CHECK(emerald_q208_tile_done.tell == 731U);
     CHECK(emerald_q208_tile_done.tell_fraction == 47862749U);
