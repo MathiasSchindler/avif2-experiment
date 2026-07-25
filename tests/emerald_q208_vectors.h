@@ -367,10 +367,10 @@ static const EmeraldQ208ChromaLeaf emerald_q208_chroma_leaves[] = {
     },
     {
         8U, 16U, 28U, EMERALD_Q208_UV_DC, 0U, 323U,
-        { 16U, 4U, AV2H_TX_DCT_DCT, 0U, 1U, 10U, 0U, 323U, 324U,
-          0x1be3265bU, UINT64_C(0x2790304a3e3b7b15) },
-        { 16U, 4U, AV2H_TX_DCT_DCT, 0U, 1U, 10U, 0U, 324U, 325U,
-          0x12c56064U, UINT64_C(0xb19ddba6750749ce) }
+        { 32U, 4U, AV2H_TX_DCT_DCT, 0U, 1U, 10U, 0U, 323U, 324U,
+          0x99cbc65bU, UINT64_C(0x5e6100ec45335215) },
+        { 32U, 4U, AV2H_TX_DCT_DCT, 0U, 1U, 10U, 0U, 324U, 325U,
+          0xc5077464U, UINT64_C(0xdaa961858356560e) }
     },
     {
         10U, 16U, 8U, EMERALD_Q208_UV_HORIZONTAL, 0U, 330U,
@@ -388,10 +388,10 @@ static const EmeraldQ208ChromaLeaf emerald_q208_chroma_leaves[] = {
     },
     {
         14U, 16U, 28U, EMERALD_Q208_UV_DC, 0U, 337U,
-        { 16U, 4U, AV2H_TX_DCT_DCT, 0U, 1U, 10U, 0U, 337U, 337U,
-          0x5557d66fU, UINT64_C(0x6de4bc1344fb571f) },
-        { 16U, 4U, AV2H_TX_DCT_DCT, 0U, 1U, 10U, 0U, 337U, 337U,
-          0x724d2a4bU, UINT64_C(0x97979fb992199615) }
+        { 32U, 4U, AV2H_TX_DCT_DCT, 0U, 1U, 10U, 0U, 337U, 337U,
+          0x8310b64eU, UINT64_C(0xd96198d0401fc716) },
+        { 32U, 4U, AV2H_TX_DCT_DCT, 0U, 1U, 10U, 0U, 337U, 337U,
+          0x759b15abU, UINT64_C(0x1f9658ffb9576097) }
     },
     {
         0U, 32U, 12U, EMERALD_Q208_UV_CFL, 1U, 409U,

@@ -139,6 +139,10 @@ static int uneven_4way_is_allowed(Av2hBlockSize block_size,
     const Av2hBlockGeometry *geometry;
     int size_allowed;
     if (!extension_is_allowed(block_size, axis, structure)) return 0;
+    if (structure == 1U && block_size == AV2H_BLOCK_64X32 &&
+        axis == AV2H_PARTITION_HORIZONTAL) {
+        return 0;
+    }
     geometry = &block_geometry[block_size];
     if (block_size <= AV2H_BLOCK_64X64) {
         size_allowed = structure == 0U

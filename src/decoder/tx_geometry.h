@@ -52,5 +52,8 @@ Av2hStatus av2h_tx_descriptor_get(
 Av2hStatus av2h_luma_tx_descriptor_get(
     Av2hBlockSize block_size,
     const Av2hTxDescriptor **descriptor);
+Av2hStatus av2h_chroma_tx_descriptor_get(
+    Av2hBlockSize block_size,
+    const Av2hTxDescriptor **descriptor);
 
 #endif

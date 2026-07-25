@@ -45,6 +45,8 @@ typedef struct {
     uint16_t txb_skip_chroma_v_ctx7[AV2H_BINARY_CDF_SIZE];
     uint16_t txb_skip_chroma_v_ctx8[AV2H_BINARY_CDF_SIZE];
     uint16_t txb_skip_chroma_v_ctx9[AV2H_BINARY_CDF_SIZE];
+    uint16_t q3_chroma_txb_skip[2U][3U][AV2H_BINARY_CDF_SIZE];
+    uint16_t q3_chroma_v_txb_skip[12U][AV2H_BINARY_CDF_SIZE];
     uint16_t txb_skip_fsc_txs0_ctx9[AV2H_BINARY_CDF_SIZE];
     uint16_t txb_skip_fsc_txs1_ctx9[AV2H_BINARY_CDF_SIZE];
     uint16_t txb_skip_fsc_txs2_ctx9[AV2H_BINARY_CDF_SIZE];
@@ -61,6 +63,9 @@ typedef struct {
     uint16_t eob_pt_256[8U + 4U];
     uint16_t eob_pt_512[8U + 4U];
     uint16_t eob_pt_1024[8U + 4U];
+    uint16_t q3_chroma_eob_pt_128[8U + 4U];
+    uint16_t q3_chroma_eob_pt_512[8U + 4U];
+    uint16_t q3_chroma_eob_pt_1024[8U + 4U];
     uint16_t eob_extra[AV2H_BINARY_CDF_SIZE];
 } Av2hFirstCoeffCdfs;
 

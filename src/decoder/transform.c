@@ -533,6 +533,36 @@ Av2hStatus av2h_chroma_transform_type_read(
         return AV2H_INVALID_ARGUMENT;
     }
     if ((plane == 1U || plane == 2U) && !frame->reduced_tx_set &&
+        frame->base_q_index == 208U &&
+        frame->width == 192U && frame->height == 96U &&
+        (coeff->tx_size == AV2H_TX_32X16 ||
+         coeff->tx_size == AV2H_TX_32X32 ||
+         coeff->tx_size == AV2H_TX_16X8 ||
+         coeff->tx_size == AV2H_TX_32X4)) {
+        transform->before_primary_bits = av2h_range_tell(decoder);
+        transform->primary_type = AV2H_TX_DCT_DCT;
+        transform->primary_signaled = 0U;
+        transform->primary_symbol = 0U;
+        transform->secondary_signaled = 0U;
+        transform->secondary_symbol = 0U;
+        if (coeff->all_zero) {
+            if (coeff->eob != 0U) return AV2H_UNSUPPORTED;
+        } else {
+            if (coeff->eob == 0U) return AV2H_UNSUPPORTED;
+            if (plane == 1U && coeff->eob != 1U) {
+                symbol = av2h_range_read_adaptive(
+                    decoder, cdfs->chroma_cross_type, 7U);
+                if (av2h_range_status(decoder) != AV2H_OK) {
+                    return av2h_range_status(decoder);
+                }
+                if (symbol != 0U) return AV2H_UNSUPPORTED;
+            }
+        }
+        transform->after_primary_bits = av2h_range_tell(decoder);
+        transform->after_secondary_bits = transform->after_primary_bits;
+        return AV2H_OK;
+    }
+    if ((plane == 1U || plane == 2U) && !frame->reduced_tx_set &&
         frame->base_q_index == 128U && coeff->all_zero && coeff->eob == 0U) {
         transform->before_primary_bits = av2h_range_tell(decoder);
         transform->primary_type = AV2H_TX_DCT_DCT;

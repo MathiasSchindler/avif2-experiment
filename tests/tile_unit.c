@@ -234,9 +234,10 @@ static void test_bounded_orchestrator(void) {
     CHECK(decoder.phase == AV2H_TILE_DECODE_CHROMA);
     CHECK(decoder.event == AV2H_TILE_EVENT_ROOT_HANDOFF);
     for (;;) {
-        CHECK(av2h_tile_decoder_next_chroma(
-                  &decoder, &chroma_leaf, &u_block, &v_block, &has_leaf) ==
-              AV2H_OK);
+        status = av2h_tile_decoder_next_chroma(
+            &decoder, &chroma_leaf, &u_block, &v_block, &has_leaf);
+        CHECK(status == AV2H_OK);
+        if (status != AV2H_OK) return;
         if (!has_leaf) break;
         ++chroma_count;
         CHECK(av2h_tile_decoder_commit_leaf(

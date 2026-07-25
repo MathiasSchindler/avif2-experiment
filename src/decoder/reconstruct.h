@@ -24,8 +24,8 @@ typedef struct {
     int32_t transposed[AV2H_FIRST_COEFF_CAPACITY];
     int32_t residual[AV2H_FIRST_COEFF_CAPACITY];
     uint8_t predictor[AV2H_RECON_SAMPLE_CAPACITY];
-    uint8_t above[64U];
-    uint8_t left[64U];
+    uint8_t above[128U];
+    uint8_t left[128U];
 } Av2hReconstructionScratch;
 
 typedef struct {

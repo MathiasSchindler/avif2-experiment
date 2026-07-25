@@ -62,6 +62,7 @@ typedef struct {
     uint16_t mrl_secondary[AV2H_MRL_CONTEXT_COUNT]
                           [AV2H_BINARY_CDF_SIZE];
     uint16_t is_cfl[AV2H_CFL_CONTEXT_COUNT][AV2H_BINARY_CDF_SIZE];
+    uint16_t cfl_mhccp_switch[AV2H_BINARY_CDF_SIZE];
     uint16_t cfl_index[AV2H_BINARY_CDF_SIZE];
     uint16_t uv_mode[AV2H_UV_MODE_CONTEXT_COUNT][AV2H_UV_MODE_SYMBOLS + 4U];
 } Av2hLeafCdfs;
@@ -204,6 +205,7 @@ typedef struct {
     uint8_t is_cfl;
     uint8_t uses_cfl;
     uint8_t cfl_index;
+    uint8_t cfl_mhccp_switch;
     uint8_t cfl_derived_alpha;
     uint8_t explicit_alpha_coded;
     Av2hChromaCflKind cfl_kind;
@@ -215,6 +217,8 @@ typedef struct {
     size_t after_cfl_bits;
     size_t before_cfl_index_bits;
     size_t after_cfl_index_bits;
+    size_t before_cfl_switch_bits;
+    size_t after_cfl_switch_bits;
     size_t after_mode_bits;
 } Av2hFirstChromaMode;
 

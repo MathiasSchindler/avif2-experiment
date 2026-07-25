@@ -198,6 +198,10 @@ Av2hStatus av2h_leaf_cdfs_init(Av2hLeafCdfs *cdfs) {
                                      AV2H_CFL_CONTEXT_COUNT);
     if (status != AV2H_OK) return status;
     status = av2h_binary_cdf_init(
+        cdfs->cfl_mhccp_switch,
+        (Av2hBinaryCdfSpec){ 15499U, 30U, 0U });
+    if (status != AV2H_OK) return status;
+    status = av2h_binary_cdf_init(
         cdfs->cfl_index, (Av2hBinaryCdfSpec){ 12507U, 30U, 0U });
     if (status != AV2H_OK) return status;
     for (context = 0U; context < AV2H_UV_MODE_CONTEXT_COUNT; ++context) {
@@ -247,11 +251,14 @@ Av2hStatus av2h_chroma_mode_read_with_delta(
     mode->after_cfl_bits = av2h_range_tell(decoder);
     mode->uses_cfl = 0U;
     mode->cfl_index = 0U;
+    mode->cfl_mhccp_switch = 0U;
     mode->cfl_derived_alpha = 0U;
     mode->explicit_alpha_coded = 0U;
     mode->cfl_kind = AV2H_CFL_NONE;
     mode->before_cfl_index_bits = mode->after_cfl_bits;
     mode->after_cfl_index_bits = mode->after_cfl_bits;
+    mode->before_cfl_switch_bits = mode->after_cfl_bits;
+    mode->after_cfl_switch_bits = mode->after_cfl_bits;
     if (value != 0U) {
         /* uv_mode == UV_CFL_PRED. Read the CfL index (CFL_TYPE_COUNT - 1 == 2
          * symbols) since mhccp is not exercised by Emerald and CfL intra is
@@ -261,7 +268,23 @@ Av2hStatus av2h_chroma_mode_read_with_delta(
         mode->uses_cfl = 1U;
         mode->uv_mode = 13U;
         mode->mode_index = 13U;
-        mode->before_cfl_index_bits = mode->after_cfl_bits;
+        mode->before_cfl_switch_bits = mode->after_cfl_bits;
+        if (sequence->enable_mhccp) {
+            value = av2h_range_read_adaptive(
+                decoder, cdfs->cfl_mhccp_switch, 2U);
+            if (av2h_range_status(decoder) != AV2H_OK) {
+                return av2h_range_status(decoder);
+            }
+            mode->cfl_mhccp_switch = (uint8_t)value;
+            mode->after_cfl_switch_bits = av2h_range_tell(decoder);
+            if (value != 0U) {
+                mode->cfl_kind = AV2H_CFL_MULTI_PARAM;
+                mode->cfl_index = 2U;
+                mode->after_mode_bits = mode->after_cfl_switch_bits;
+                return AV2H_UNSUPPORTED;
+            }
+        }
+        mode->before_cfl_index_bits = mode->after_cfl_switch_bits;
         value = av2h_range_read_adaptive(decoder, cdfs->cfl_index, 2U);
         if (av2h_range_status(decoder) != AV2H_OK) {
             return av2h_range_status(decoder);
@@ -1327,7 +1350,7 @@ Av2hStatus av2h_luma_mode_neighbors_from_state(
         candidates[2] = left;
         selected[0] = bottom_left->present ? bottom_left : left;
     }
-    if ((leaf->row & 15U) != 0U &&
+    if (leaf->row != 0U &&
         (size_t)leaf->column + width - 1U < state->above_count) {
         const Av2hLumaModeContext *above_right =
             &state->above[leaf->column + width - 1U];

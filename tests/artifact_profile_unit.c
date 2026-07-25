@@ -13,6 +13,14 @@ static int failures;
 static unsigned char stream[STREAM_CAPACITY];
 static uint8_t luma_pixels[512U * 341U];
 static uint8_t luma_reconstructed[MAX_MI_COLUMNS * MAX_MI_ROWS];
+static uint8_t emerald_u_pixels[96U * 48U];
+static uint8_t emerald_v_pixels[96U * 48U];
+static uint8_t emerald_u_predictor[96U * 48U];
+static uint8_t emerald_v_predictor[96U * 48U];
+static uint8_t emerald_u_reconstructed[(96U / 4U) * (48U / 4U)];
+static uint8_t emerald_v_reconstructed[(96U / 4U) * (48U / 4U)];
+static uint8_t emerald_u_predictor_reconstructed[(96U / 4U) * (48U / 4U)];
+static uint8_t emerald_v_predictor_reconstructed[(96U / 4U) * (48U / 4U)];
 
 #define CHECK(condition)                                                       \
     do {                                                                       \
@@ -661,6 +669,428 @@ static const Av2hObu *find_obu(const Av2hObuLedger *ledger, uint8_t type) {
         }
     }
     return 0;
+}
+
+static void check_emerald_q208_full_tile(
+    const Av2hObu *frame_obu,
+    const Av2hSequenceState *sequence,
+    const Av2hFrameState *frame) {
+    Av2hTileGroup group;
+    uint8_t luma_partition_above[MAX_MI_COLUMNS];
+    uint8_t luma_partition_left[MAX_MI_ROWS];
+    uint8_t chroma_partition_above[MAX_MI_COLUMNS];
+    uint8_t chroma_partition_left[MAX_MI_ROWS];
+    Av2hLumaModeContext luma_mode_above[MAX_MI_COLUMNS];
+    Av2hLumaModeContext luma_mode_left[MAX_MI_ROWS];
+    uint8_t coefficient_above[AV2H_FRAME_PLANE_COUNT * MAX_MI_COLUMNS];
+    uint8_t coefficient_left[AV2H_FRAME_PLANE_COUNT * MAX_MI_ROWS];
+    Av2hTileLumaModeCell colocated_luma[MAX_MI_COLUMNS * MAX_MI_ROWS];
+    uint8_t gdf_block_flags[MAX_GDF_BLOCKS];
+    uint8_t cdef_unit_strengths[MAX_CDEF_UNITS];
+    uint8_t ccso_unit_controls[AV2H_FRAME_PLANE_COUNT][MAX_CDEF_UNITS];
+    Av2hTileContextStorage storage = {
+        luma_partition_above, luma_partition_left,
+        chroma_partition_above, chroma_partition_left,
+        luma_mode_above, luma_mode_left,
+        coefficient_above, coefficient_left, colocated_luma,
+        MAX_MI_COLUMNS, MAX_MI_ROWS, MAX_MI_COLUMNS * MAX_MI_ROWS,
+        gdf_block_flags, MAX_GDF_BLOCKS,
+        cdef_unit_strengths, MAX_CDEF_UNITS,
+        { ccso_unit_controls[0], ccso_unit_controls[1],
+          ccso_unit_controls[2] },
+        MAX_CDEF_UNITS
+    };
+    Av2hReconstructionPlane y_plane = {
+        luma_pixels, 192U, 192U, 96U, 192U, 96U,
+        luma_reconstructed, 192U / 4U, sizeof(luma_reconstructed)
+    };
+    Av2hReconstructionPlane u_plane = {
+        emerald_u_pixels, 96U, 96U, 48U, 96U, 48U,
+        emerald_u_reconstructed, 96U / 4U,
+        sizeof(emerald_u_reconstructed)
+    };
+    Av2hReconstructionPlane v_plane = {
+        emerald_v_pixels, 96U, 96U, 48U, 96U, 48U,
+        emerald_v_reconstructed, 96U / 4U,
+        sizeof(emerald_v_reconstructed)
+    };
+    Av2hReconstructionPlane u_predictor_plane = {
+        emerald_u_predictor, 96U, 96U, 48U, 96U, 48U,
+        emerald_u_predictor_reconstructed, 96U / 4U,
+        sizeof(emerald_u_predictor_reconstructed)
+    };
+    Av2hReconstructionPlane v_predictor_plane = {
+        emerald_v_predictor, 96U, 96U, 48U, 96U, 48U,
+        emerald_v_predictor_reconstructed, 96U / 4U,
+        sizeof(emerald_v_predictor_reconstructed)
+    };
+    Av2hTileDecoder decoder;
+    Av2hReconstructionScratch scratch;
+    size_t luma_index = 0U;
+    size_t chroma_index = 0U;
+    size_t handoff_index = 0U;
+
+    REQUIRE(av2h_tile_group_single_parse(
+                (Av2hSpan){ stream + frame_obu->payload_offset,
+                             frame_obu->payload_size },
+                frame->uncompressed_header_bits, &group) == AV2H_OK);
+    REQUIRE(av2h_tile_decoder_init(
+                &decoder, group.entropy, sequence, frame, &storage) ==
+            AV2H_OK);
+    av2h_memory_fill(luma_pixels, 0U, sizeof(luma_pixels));
+    av2h_memory_fill(luma_reconstructed, 0U, sizeof(luma_reconstructed));
+    av2h_memory_fill(emerald_u_pixels, 0U, sizeof(emerald_u_pixels));
+    av2h_memory_fill(emerald_v_pixels, 0U, sizeof(emerald_v_pixels));
+    av2h_memory_fill(emerald_u_predictor, 0U, sizeof(emerald_u_predictor));
+    av2h_memory_fill(emerald_v_predictor, 0U, sizeof(emerald_v_predictor));
+    av2h_memory_fill(
+        emerald_u_reconstructed, 0U, sizeof(emerald_u_reconstructed));
+    av2h_memory_fill(
+        emerald_v_reconstructed, 0U, sizeof(emerald_v_reconstructed));
+    av2h_memory_fill(
+        emerald_u_predictor_reconstructed, 0U,
+        sizeof(emerald_u_predictor_reconstructed));
+    av2h_memory_fill(
+        emerald_v_predictor_reconstructed, 0U,
+        sizeof(emerald_v_predictor_reconstructed));
+
+    while (decoder.phase != AV2H_TILE_DECODE_DONE &&
+           decoder.status == AV2H_OK) {
+        uint8_t has_leaf = 0U;
+        Av2hStatus status;
+        if (decoder.phase == AV2H_TILE_DECODE_LUMA) {
+            Av2hTileLumaLeaf leaf;
+            Av2hFirstCoeffBlock block;
+            const EmeraldQ208LumaLeaf *expected;
+            size_t coefficient_index;
+            uint16_t block_x;
+            uint16_t block_y;
+            av2h_memory_fill(&leaf, 0U, sizeof(leaf));
+            av2h_memory_fill(&block, 0U, sizeof(block));
+            status = av2h_tile_decoder_next_luma(
+                &decoder, &leaf, &block, &has_leaf);
+            if (status != AV2H_OK) {
+                fprintf(stderr,
+                        "Emerald luma %zu failed at tell %zu: %d "
+                        "node=%u,%u/%u mode=%u set/index=%u/%u "
+                        "tx=%u eob=%u type=%u "
+                        "mode_tells=%zu/%zu tx_tells=%zu/%zu "
+                        "diag=%u/%u/%u\n",
+                        luma_index, av2h_range_tell(&decoder.range), status,
+                        leaf.node.row, leaf.node.column, leaf.node.block_size,
+                        leaf.mode.mode, leaf.mode.mode_set,
+                        leaf.mode.mode_index, leaf.prefix.tx_size,
+                        leaf.prefix.eob,
+                        leaf.transform.primary_type,
+                        leaf.mode.before_mode_bits,
+                        leaf.mode.after_mode_index_bits,
+                        leaf.prefix.before_all_zero_bits,
+                        leaf.prefix.after_eob_bits,
+                        block.diagnostic_position, block.diagnostic_context,
+                        block.diagnostic_kind);
+                ++failures;
+                return;
+            }
+            if (!has_leaf) {
+                REQUIRE(handoff_index <
+                        sizeof(emerald_q208_handoffs) /
+                            sizeof(emerald_q208_handoffs[0]));
+                CHECK(av2h_range_tell(&decoder.range) ==
+                      emerald_q208_handoffs[handoff_index].luma_end.tell);
+                if (decoder.range.range !=
+                    emerald_q208_handoffs[handoff_index].luma_end.range) {
+                    fprintf(stderr,
+                            "Emerald handoff %zu luma range=%u expected=%u\n",
+                            handoff_index, decoder.range.range,
+                            emerald_q208_handoffs[
+                                handoff_index].luma_end.range);
+                }
+                CHECK(decoder.range.range ==
+                      emerald_q208_handoffs[handoff_index].luma_end.range);
+                CHECK(decoder.event == AV2H_TILE_EVENT_ROOT_HANDOFF);
+                continue;
+            }
+            REQUIRE(luma_index <
+                    sizeof(emerald_q208_luma_leaves) /
+                        sizeof(emerald_q208_luma_leaves[0]));
+            expected = &emerald_q208_luma_leaves[luma_index];
+            CHECK(leaf.node.row == expected->row);
+            CHECK(leaf.node.column == expected->column);
+            CHECK(leaf.node.block_size == expected->block_size);
+            CHECK(leaf.mode.mode == expected->mode);
+            CHECK(leaf.mode.angle_delta == expected->angle_delta);
+            CHECK(leaf.mode.before_mode_bits == expected->syntax_start_tell);
+            CHECK(leaf.prefix.all_zero == expected->all_zero);
+            CHECK(leaf.prefix.eob == expected->eob);
+            CHECK(leaf.transform.primary_type == expected->tx_type);
+            CHECK(block.width == (expected->tx_width > 32U ?
+                                  32U : expected->tx_width));
+            CHECK(block.height == (expected->tx_height > 32U ?
+                                   32U : expected->tx_height));
+            CHECK(block.coefficient_count == expected->coefficient_count);
+            if (block.nonzero_count != expected->nonzero_count ||
+                av2h_range_tell(&decoder.range) !=
+                    expected->syntax_end_tell) {
+                fprintf(stderr,
+                        "Emerald luma actual %zu tell=%zu expected=%zu "
+                        "nz=%u expected=%u diag=%u/%u/%u\n",
+                        luma_index, av2h_range_tell(&decoder.range),
+                        expected->syntax_end_tell, block.nonzero_count,
+                        expected->nonzero_count, block.diagnostic_position,
+                        block.diagnostic_context, block.diagnostic_kind);
+            }
+            CHECK(block.nonzero_count == expected->nonzero_count);
+            for (coefficient_index = 0U;
+                 coefficient_index < expected->nonzero_count;
+                 ++coefficient_index) {
+                const EmeraldQ208Coefficient *coefficient =
+                    &emerald_q208_luma_coefficients[
+                        expected->coefficient_offset + coefficient_index];
+                CHECK(block.quantized[coefficient->position] ==
+                      coefficient->quantized);
+                CHECK(block.dequantized[coefficient->position] ==
+                      coefficient->dequantized);
+            }
+            CHECK(av2h_range_tell(&decoder.range) ==
+                  expected->syntax_end_tell);
+            status = av2h_luma_reconstruct_to_plane(
+                &leaf.node, &leaf.mode, &leaf.prefix, &leaf.transform,
+                &block, &y_plane, &scratch);
+            if (status != AV2H_OK) {
+                fprintf(stderr, "Emerald luma reconstruction %zu: %d\n",
+                        luma_index, status);
+                ++failures;
+                return;
+            }
+            block_x = (uint16_t)(leaf.node.column * 4U);
+            block_y = (uint16_t)(leaf.node.row * 4U);
+            {
+                uint32_t predictor_djb2 = trace_sample_hash(
+                    scratch.predictor, expected->tx_width,
+                    expected->tx_width, expected->tx_height);
+                uint64_t predictor_fnv = block_pixel_hash(
+                    scratch.predictor, expected->tx_width,
+                    expected->tx_width, expected->tx_height);
+                uint32_t recon_djb2 = trace_sample_hash(
+                    luma_pixels + (size_t)block_y * 192U + block_x,
+                    192U, expected->tx_width, expected->tx_height);
+                uint64_t recon_fnv = block_pixel_hash(
+                    luma_pixels + (size_t)block_y * 192U + block_x,
+                    192U, expected->tx_width, expected->tx_height);
+                if (predictor_djb2 != expected->predictor_djb2 ||
+                    predictor_fnv != expected->predictor_fnv1a64 ||
+                    recon_djb2 != expected->prefilter_djb2 ||
+                    recon_fnv != expected->prefilter_fnv1a64) {
+                    fprintf(stderr,
+                            "Emerald luma hash %zu pred=%08x/%016llx "
+                            "exp=%08x/%016llx recon=%08x/%016llx "
+                            "exp=%08x/%016llx\n",
+                            luma_index, predictor_djb2,
+                            (unsigned long long)predictor_fnv,
+                            expected->predictor_djb2,
+                            (unsigned long long)expected->predictor_fnv1a64,
+                            recon_djb2, (unsigned long long)recon_fnv,
+                            expected->prefilter_djb2,
+                            (unsigned long long)expected->prefilter_fnv1a64);
+                }
+            }
+            CHECK(trace_sample_hash(
+                      scratch.predictor, expected->tx_width,
+                      expected->tx_width, expected->tx_height) ==
+                  expected->predictor_djb2);
+            CHECK(block_pixel_hash(
+                      scratch.predictor, expected->tx_width,
+                      expected->tx_width, expected->tx_height) ==
+                  expected->predictor_fnv1a64);
+            CHECK(trace_sample_hash(
+                      luma_pixels + (size_t)block_y * 192U + block_x,
+                      192U, expected->tx_width, expected->tx_height) ==
+                  expected->prefilter_djb2);
+            CHECK(block_pixel_hash(
+                      luma_pixels + (size_t)block_y * 192U + block_x,
+                      192U, expected->tx_width, expected->tx_height) ==
+                  expected->prefilter_fnv1a64);
+            REQUIRE(av2h_tile_decoder_commit_leaf(
+                        &decoder, leaf.node) == AV2H_OK);
+            ++luma_index;
+        } else {
+            Av2hTileChromaLeaf leaf;
+            Av2hFirstCoeffBlock blocks[2U];
+            const EmeraldQ208ChromaLeaf *expected;
+            const EmeraldQ208ChromaPlane *expected_planes[2U];
+            Av2hReconstructionPlane *planes[2U] = { &u_plane, &v_plane };
+            Av2hReconstructionPlane *predictor_planes[2U] = {
+                &u_predictor_plane, &v_predictor_plane
+            };
+            size_t plane_index;
+            av2h_memory_fill(&leaf, 0U, sizeof(leaf));
+            av2h_memory_fill(blocks, 0U, sizeof(blocks));
+            status = av2h_tile_decoder_next_chroma(
+                &decoder, &leaf, &blocks[0], &blocks[1], &has_leaf);
+            if (status != AV2H_OK) {
+                fprintf(stderr,
+                        "Emerald chroma %zu failed at tell %zu: %d "
+                        "node=%u,%u/%u mode=%u "
+                        "u=%u/%u/%u/%u/%u v=%u/%u/%u/%u/%u\n",
+                        chroma_index, av2h_range_tell(&decoder.range), status,
+                        leaf.node.row, leaf.node.column, leaf.node.block_size,
+                        leaf.mode.uv_mode,
+                        leaf.prefix[0].tx_size,
+                        leaf.prefix[0].txb_skip_context,
+                        leaf.prefix[0].all_zero, leaf.prefix[0].eob,
+                        blocks[0].diagnostic_kind,
+                        leaf.prefix[1].tx_size,
+                        leaf.prefix[1].txb_skip_context,
+                        leaf.prefix[1].all_zero, leaf.prefix[1].eob,
+                        blocks[1].diagnostic_kind);
+                ++failures;
+                return;
+            }
+            if (!has_leaf) {
+                REQUIRE(handoff_index <
+                        sizeof(emerald_q208_handoffs) /
+                            sizeof(emerald_q208_handoffs[0]));
+                CHECK(av2h_range_tell(&decoder.range) ==
+                      emerald_q208_handoffs[handoff_index].chroma_end.tell);
+                if (decoder.range.range !=
+                    emerald_q208_handoffs[handoff_index].chroma_end.range) {
+                    fprintf(stderr,
+                            "Emerald handoff %zu chroma range=%u expected=%u\n",
+                            handoff_index, decoder.range.range,
+                            emerald_q208_handoffs[
+                                handoff_index].chroma_end.range);
+                }
+                CHECK(decoder.range.range ==
+                      emerald_q208_handoffs[handoff_index].chroma_end.range);
+                CHECK(decoder.event ==
+                      (handoff_index + 1U ==
+                               sizeof(emerald_q208_handoffs) /
+                                   sizeof(emerald_q208_handoffs[0]) ?
+                           AV2H_TILE_EVENT_DONE :
+                           AV2H_TILE_EVENT_ROOT_HANDOFF));
+                ++handoff_index;
+                continue;
+            }
+            REQUIRE(chroma_index <
+                    sizeof(emerald_q208_chroma_leaves) /
+                        sizeof(emerald_q208_chroma_leaves[0]));
+            expected = &emerald_q208_chroma_leaves[chroma_index];
+            expected_planes[0] = &expected->u;
+            expected_planes[1] = &expected->v;
+            CHECK(leaf.node.row == expected->row);
+            CHECK(leaf.node.column == expected->column);
+            CHECK(leaf.mode.uv_mode == expected->mode);
+            CHECK(leaf.mode.cfl_index == expected->cfl_index);
+            CHECK(leaf.mode.after_mode_bits == expected->mode_end_tell);
+            for (plane_index = 0U; plane_index < 2U; ++plane_index) {
+                const EmeraldQ208ChromaPlane *expected_plane =
+                    expected_planes[plane_index];
+                const Av2hFirstCoeffBlock *block = &blocks[plane_index];
+                size_t coefficient_index;
+                uint16_t block_x = (uint16_t)(leaf.node.column * 2U);
+                uint16_t block_y = (uint16_t)(leaf.node.row * 2U);
+                CHECK(leaf.prefix[plane_index].before_all_zero_bits ==
+                      expected_plane->syntax_start_tell);
+                CHECK(leaf.prefix[plane_index].all_zero ==
+                      expected_plane->all_zero);
+                CHECK(leaf.prefix[plane_index].eob == expected_plane->eob);
+                CHECK(leaf.transform[plane_index].primary_type ==
+                      expected_plane->tx_type);
+                CHECK(block->width == expected_plane->tx_width);
+                CHECK(block->height == expected_plane->tx_height);
+                CHECK(block->nonzero_count ==
+                      expected_plane->nonzero_count);
+                for (coefficient_index = 0U;
+                     coefficient_index < expected_plane->nonzero_count;
+                     ++coefficient_index) {
+                    const EmeraldQ208Coefficient *coefficient =
+                        &emerald_q208_chroma_coefficients[
+                            expected_plane->coefficient_offset +
+                            coefficient_index];
+                    CHECK(block->quantized[coefficient->position] ==
+                          coefficient->quantized);
+                    CHECK(block->dequantized[coefficient->position] ==
+                          coefficient->dequantized);
+                }
+                status = av2h_chroma_reconstruct_to_plane_ex(
+                    &leaf.node, &leaf.mode, &leaf.prefix[plane_index],
+                    &leaf.transform[plane_index], block,
+                    planes[plane_index], &y_plane,
+                    predictor_planes[plane_index], &scratch);
+                if (status != AV2H_OK) {
+                    fprintf(stderr,
+                            "Emerald chroma reconstruction %zu/%zu: %d "
+                            "mode=%u tx=%u zero=%u eob=%u block=%ux%u "
+                            "nz=%u\n",
+                            chroma_index, plane_index, status,
+                            leaf.mode.mode, leaf.prefix[plane_index].tx_size,
+                            leaf.prefix[plane_index].all_zero,
+                            leaf.prefix[plane_index].eob,
+                            block->width, block->height,
+                            block->nonzero_count);
+                    ++failures;
+                    return;
+                }
+                {
+                    uint32_t actual_djb2 = trace_sample_hash(
+                        planes[plane_index]->data +
+                            (size_t)block_y * 96U + block_x,
+                        96U, block->width, block->height);
+                    uint64_t actual_fnv = block_pixel_hash(
+                        planes[plane_index]->data +
+                            (size_t)block_y * 96U + block_x,
+                        96U, block->width, block->height);
+                    if (actual_djb2 != expected_plane->prefilter_djb2 ||
+                        actual_fnv != expected_plane->prefilter_fnv1a64) {
+                        fprintf(stderr,
+                                "Emerald chroma hash %zu/%zu actual="
+                                "%08x/%016llx expected=%08x/%016llx\n",
+                                chroma_index, plane_index, actual_djb2,
+                                (unsigned long long)actual_fnv,
+                                expected_plane->prefilter_djb2,
+                                (unsigned long long)
+                                    expected_plane->prefilter_fnv1a64);
+                    }
+                }
+                CHECK(trace_sample_hash(
+                          planes[plane_index]->data +
+                              (size_t)block_y * 96U + block_x,
+                          96U, block->width, block->height) ==
+                      expected_plane->prefilter_djb2);
+                CHECK(block_pixel_hash(
+                          planes[plane_index]->data +
+                              (size_t)block_y * 96U + block_x,
+                          96U, block->width, block->height) ==
+                      expected_plane->prefilter_fnv1a64);
+                CHECK((leaf.prefix[plane_index].all_zero ?
+                           leaf.prefix[plane_index].after_all_zero_bits :
+                           block->after_coefficients_bits) ==
+                      expected_plane->syntax_end_tell);
+            }
+            REQUIRE(av2h_tile_decoder_commit_leaf(
+                        &decoder, leaf.node) == AV2H_OK);
+            ++chroma_index;
+        }
+    }
+    CHECK(decoder.status == AV2H_OK);
+    CHECK(decoder.phase == AV2H_TILE_DECODE_DONE);
+    CHECK(luma_index == 20U);
+    CHECK(chroma_index == 11U);
+    CHECK(handoff_index == 6U);
+    CHECK(av2h_range_tell(&decoder.range) == emerald_q208_tile_done.tell);
+    CHECK(decoder.range.range == emerald_q208_tile_done.range);
+    CHECK(trace_sample_hash(luma_pixels, 192U, 192U, 96U) ==
+          emerald_q208_prefilter_hashes[0].sample_djb2);
+    CHECK(block_pixel_hash(luma_pixels, 192U, 192U, 96U) ==
+          emerald_q208_prefilter_hashes[0].sample_fnv1a64);
+    CHECK(trace_sample_hash(emerald_u_pixels, 96U, 96U, 48U) ==
+          emerald_q208_prefilter_hashes[1].sample_djb2);
+    CHECK(block_pixel_hash(emerald_u_pixels, 96U, 96U, 48U) ==
+          emerald_q208_prefilter_hashes[1].sample_fnv1a64);
+    CHECK(trace_sample_hash(emerald_v_pixels, 96U, 96U, 48U) ==
+          emerald_q208_prefilter_hashes[2].sample_djb2);
+    CHECK(block_pixel_hash(emerald_v_pixels, 96U, 96U, 48U) ==
+          emerald_q208_prefilter_hashes[2].sample_fnv1a64);
 }
 
 static void check_first_luma(const ArtifactExpectation *expected,
@@ -1345,12 +1775,15 @@ static void check_first_luma(const ArtifactExpectation *expected,
         av2h_memory_fill(&block, 0U, sizeof(block));
         status = av2h_tile_decoder_next_luma(
             &decoder, &leaf, &block, &has_leaf);
-        CHECK(status == AV2H_UNSUPPORTED);
+        CHECK(status == AV2H_OK);
         CHECK(has_leaf == 1U);
         CHECK(leaf.node.row == 14U);
         CHECK(leaf.node.column == 0U);
         CHECK(leaf.node.block_size == AV2H_BLOCK_32X8);
-        CHECK(av2h_range_tell(&decoder.range) == 74U);
+        CHECK(leaf.mode.mode == AV2H_INTRA_DC);
+        CHECK(leaf.prefix.eob == 2U);
+        CHECK(leaf.transform.primary_type == AV2H_TX_ADST_DCT);
+        CHECK(av2h_range_tell(&decoder.range) == 89U);
     }
 }
 
@@ -1421,6 +1854,10 @@ static void check_artifact(const ArtifactExpectation *expected) {
     }
     if (status == AV2H_OK) {
         check_first_luma(expected, frame_obu, &sequence, &frame);
+        if (expected->base_q_index == 208U &&
+            expected->width == 192U && expected->height == 96U) {
+            check_emerald_q208_full_tile(frame_obu, &sequence, &frame);
+        }
     }
 }
 

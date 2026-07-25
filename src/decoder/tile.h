@@ -13,6 +13,7 @@ typedef struct {
     uint8_t present;
     uint8_t mode;
     int8_t angle_delta;
+    uint8_t chroma_cfl;
 } Av2hTileLumaModeCell;
 
 typedef struct {

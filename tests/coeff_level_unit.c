@@ -95,6 +95,11 @@ static void test_q_context_cdfs(void) {
     check_words(cdfs.base_lf[52], q3_base_lf_txs2_ctx9, 10U);
     check_words(cdfs.base_lf[53], q3_base_lf_txs2_ctx10, 10U);
     check_words(cdfs.dc_sign[0], q3_dc_sign_ctx0, 6U);
+    CHECK(cdfs.q3_uv_eob_lf[0][0] == 1423U);
+    CHECK(cdfs.q3_uv_eob[1][0] == 781U);
+    CHECK(cdfs.q3_uv_base_lf[0][0] == 24782U);
+    CHECK(cdfs.q3_uv_base[0][0] == 6638U);
+    CHECK(cdfs.q3_uv_br[0][0] == 5791U);
     CHECK(av2h_first_coeff_level_cdfs_init_for_q(&cdfs, 96U) == AV2H_OK);
     CHECK(cdfs.q_context == 1U);
     check_words(cdfs.base[28], q1_base_txs3_ctx10, 8U);
@@ -301,6 +306,7 @@ static void test_emerald_remaining_luma_blocks(void) {
     Av2hFirstCoeffLevelCdfs cdfs;
     size_t block_index;
     CHECK(step == 15872U);
+    CHECK(av2h_coeff_dequantize_level(1U, 0U, step, 1U) == 992);
     CHECK(av2h_first_coeff_level_cdfs_init_for_q(&cdfs, 208U) == AV2H_OK);
     CHECK(cdfs.q_context == 3U);
     for (block_index = 0U;
@@ -417,7 +423,7 @@ static void test_arguments(void) {
     Av2hFirstCoeffPrefix prefix = { 0 };
     Av2hFirstTransformType transform = { 0 };
     Av2hFirstCoeffBlock block;
-    CHECK(sizeof(Av2hFirstCoeffLevelCdfs) == 3572U);
+    CHECK(sizeof(Av2hFirstCoeffLevelCdfs) == 4600U);
     CHECK(av2h_first_coeff_level_cdfs_init(0) == AV2H_INVALID_ARGUMENT);
     CHECK(av2h_first_coeff_block_read(
               0, &cdfs, &sequence, &frame, &mode, &prefix, &transform,

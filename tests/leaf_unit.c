@@ -1674,7 +1674,7 @@ static void test_arguments(void) {
     };
     Av2hSpan span = { bytes, sizeof(bytes) };
     size_t tell;
-    CHECK(sizeof(Av2hLeafCdfs) == 1106U);
+    CHECK(sizeof(Av2hLeafCdfs) == 1118U);
     CHECK(av2h_leaf_cdfs_init(0) == AV2H_INVALID_ARGUMENT);
     CHECK(av2h_first_leaf_mode_read(
               0, &cdfs, &sequence, &frame, &leaf, &mode) ==
@@ -1909,6 +1909,8 @@ static void test_chroma_cfl_cdf_defaults(void) {
     CHECK(cdfs.cfl_index[0] == (uint16_t)(32768U - 12507U));
     CHECK(cdfs.cfl_index[1] == 0U);
     CHECK(cdfs.cfl_index[2] == 0U);
+    CHECK(cdfs.cfl_mhccp_switch[0] ==
+          (uint16_t)(32768U - 15499U));
     CHECK(cdfs.is_cfl[0][0] == (uint16_t)(32768U - 20441U));
     CHECK(cdfs.is_cfl[1][0] == (uint16_t)(32768U - 11610U));
     CHECK(cdfs.is_cfl[2][0] == (uint16_t)(32768U - 4643U));

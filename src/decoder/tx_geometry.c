@@ -194,3 +194,31 @@ Av2hStatus av2h_luma_tx_descriptor_get(
     }
     return av2h_tx_descriptor_get(tx_size, descriptor);
 }
+
+Av2hStatus av2h_chroma_tx_descriptor_get(
+    Av2hBlockSize block_size,
+    const Av2hTxDescriptor **descriptor) {
+    size_t width_mi;
+    size_t height_mi;
+    uint8_t width;
+    uint8_t height;
+    size_t index;
+    Av2hStatus status;
+    if (descriptor == 0) return AV2H_INVALID_ARGUMENT;
+    *descriptor = 0;
+    status = av2h_block_dimensions_mi(block_size, &width_mi, &height_mi);
+    if (status != AV2H_OK) return status;
+    if (width_mi > 32U || height_mi > 32U) return AV2H_UNSUPPORTED;
+    width = (uint8_t)(width_mi * 2U);
+    height = (uint8_t)(height_mi * 2U);
+    for (index = 0U; index < AV2H_TX_SIZE_COUNT; ++index) {
+        const Av2hTxDescriptor *candidate = &tx_descriptors[index];
+        if (candidate->output_width == width &&
+            candidate->output_height == height &&
+            tx_descriptor_valid(candidate, candidate->tx_size)) {
+            *descriptor = candidate;
+            return AV2H_OK;
+        }
+    }
+    return AV2H_UNSUPPORTED;
+}
