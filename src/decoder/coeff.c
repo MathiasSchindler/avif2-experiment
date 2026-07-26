@@ -291,8 +291,10 @@ static int large_tx_prefix_profile_supported(
     if (tx_size == AV2H_TX_32X16 ||
         tx_size == AV2H_TX_64X32 ||
         tx_size == AV2H_TX_16X64) {
-        return frame->base_q_index == 208U &&
-               frame->width == 192U && frame->height == 96U;
+         return frame->base_q_index == 208U &&
+             ((frame->width == 192U && frame->height == 96U) ||
+              (tx_size == AV2H_TX_32X16 &&
+               frame->width == 417U && frame->height == 277U));
     }
     if (tx_size == AV2H_TX_32X64) {
         return (frame->base_q_index == 112U &&
@@ -607,17 +609,24 @@ Av2hStatus av2h_coeff_prefix_read(
         return AV2H_UNSUPPORTED;
     }
     if (prefix->tx_size == AV2H_TX_16X16 &&
-        !(frame->base_q_index == 208U &&
-          frame->width == 192U && frame->height == 96U &&
-          (mode->mode == AV2H_INTRA_DC ||
-           mode->mode == AV2H_INTRA_SMOOTH ||
-           mode->mode == AV2H_INTRA_D113) &&
-          mode->angle_delta == 0 && mode->mrl_index == 0U &&
-          mode->enable_ibp == 1U && mode->use_intrabc == 0U)) {
+                !((frame->base_q_index == 208U &&
+                     frame->width == 192U && frame->height == 96U &&
+                     (mode->mode == AV2H_INTRA_DC ||
+                        mode->mode == AV2H_INTRA_SMOOTH ||
+                        mode->mode == AV2H_INTRA_D113) &&
+                     mode->angle_delta == 0 && mode->mrl_index == 0U &&
+                     mode->enable_ibp == 1U && mode->use_intrabc == 0U) ||
+                    (frame->base_q_index == 96U &&
+                     frame->width == 256U && frame->height == 171U &&
+                     leaf->row == 0U && leaf->column == 8U &&
+                     mode->mode == AV2H_INTRA_HORIZONTAL &&
+                       mode->angle_delta == 1 && mode->mrl_index == 0U &&
+                     mode->use_intrabc == 0U))) {
         return AV2H_UNSUPPORTED;
     }
     if (cdfs->q_context != 1U &&
         prefix->tx_size != AV2H_TX_16X16 &&
+        prefix->tx_size != AV2H_TX_8X16 &&
         prefix->tx_size != AV2H_TX_32X8 &&
         prefix->tx_size != AV2H_TX_16X32 &&
         prefix->tx_size != AV2H_TX_32X16 &&

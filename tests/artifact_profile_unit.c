@@ -1696,16 +1696,31 @@ static void check_first_luma(const ArtifactExpectation *expected,
             av2h_memory_fill(&block, 0U, sizeof(block));
             status = av2h_tile_decoder_next_luma(
                 &decoder, &leaf, &block, &has_leaf);
-            CHECK(status == AV2H_UNSUPPORTED);
             CHECK(has_leaf == 1U);
             CHECK(leaf.node.row == 0U);
             CHECK(leaf.node.column == 4U);
             if (expected->width == 157U) {
+                CHECK(status == AV2H_OK);
                 CHECK(leaf.node.block_size == AV2H_BLOCK_8X16);
-                CHECK(av2h_range_tell(&decoder.range) == 41U);
-                CHECK(leaf.mode.before_mode_bits == 0U);
-                CHECK(leaf.prefix.before_all_zero_bits == 0U);
+                CHECK(av2h_range_tell(&decoder.range) == 49U);
+                CHECK(leaf.mode.before_mode_bits == 41U);
+                CHECK(leaf.mode.after_mode_index_bits == 44U);
+                CHECK(leaf.mode.mode == AV2H_INTRA_SMOOTH);
+                CHECK(leaf.prefix.before_all_zero_bits == 44U);
+                CHECK(leaf.prefix.after_all_zero_bits == 49U);
+                CHECK(leaf.prefix.all_zero == 1U);
+                CHECK(leaf.prefix.eob == 0U);
+                CHECK(leaf.transform.primary_type == AV2H_TX_DCT_DCT);
+                CHECK(block.coefficient_count == 128U);
+                REQUIRE(av2h_luma_reconstruct_to_plane(
+                            &leaf.node, &leaf.mode, &leaf.prefix,
+                            &leaf.transform, &block, &plane,
+                            &scratch) == AV2H_OK);
+                CHECK(block_pixel_hash(
+                          luma_pixels + 16U, expected->width, 8U, 16U) ==
+                      UINT64_C(0xd6618d86609b01bb));
             } else {
+                CHECK(status == AV2H_OK);
                 CHECK(leaf.node.block_size == AV2H_BLOCK_16X32);
                 CHECK(leaf.mode.before_mode_bits == 66U);
                 CHECK(leaf.mode.after_mode_set_bits == 66U);
@@ -1729,11 +1744,38 @@ static void check_first_luma(const ArtifactExpectation *expected,
                 CHECK(leaf.transform.secondary_signaled == 1U);
                 CHECK(leaf.transform.secondary_symbol == 0U);
                 CHECK(leaf.transform.after_secondary_bits == 78U);
-                CHECK(block.before_levels_bits == 0U);
-                CHECK(av2h_range_tell(&decoder.range) == 78U);
+                CHECK(block.before_levels_bits == 78U);
+                CHECK(block.after_levels_bits == 81U);
+                CHECK(block.after_coefficients_bits == 83U);
+                CHECK(av2h_range_tell(&decoder.range) == 83U);
+                CHECK(block.nonzero_count == 2U);
+                CHECK(block.quantized[0] == 2);
+                CHECK(block.dequantized[0] == 496);
+                CHECK(block.quantized[1] == -1);
+                CHECK(block.dequantized[1] == -248);
+                REQUIRE(av2h_luma_reconstruct_to_plane(
+                            &leaf.node, &leaf.mode, &leaf.prefix,
+                            &leaf.transform, &block, &plane,
+                            &scratch) == AV2H_OK);
+                CHECK(block_pixel_hash(
+                          scratch.predictor, 16U, 16U, 32U) ==
+                      UINT64_C(0x7b5a4f04146e5eb7));
+                CHECK(block_pixel_hash(
+                          luma_pixels + 16U, expected->width, 16U, 32U) ==
+                      UINT64_C(0x4324e4ef5962723d));
             }
         } else if (expected->base_q_index == 96U &&
                    expected->first_block == AV2H_BLOCK_32X32) {
+            static const ArtifactCoefficient second_coefficients[] = {
+                { 0U, -7, -546 }, { 1U, -9, -702 },
+                { 2U, -3, -234 }, { 3U, -1, -78 }, { 4U, 1, 78 },
+                { 16U, -7, -546 }, { 18U, -3, -234 },
+                { 19U, -2, -156 }, { 20U, 1, 78 }, { 32U, 1, 78 },
+                { 34U, 1, 78 }, { 35U, -1, -78 }, { 48U, 3, 234 },
+                { 50U, 1, 78 }, { 51U, 1, 78 }, { 64U, 3, 234 },
+                { 65U, 1, 78 }, { 80U, 1, 78 }, { 81U, 1, 78 },
+                { 96U, 1, 78 }
+            };
             static const uint8_t first_row[32U] = {
                 138U, 144U, 152U, 156U, 156U, 152U, 147U, 147U,
                 151U, 155U, 158U, 158U, 154U, 151U, 148U, 146U,
@@ -1779,12 +1821,53 @@ static void check_first_luma(const ArtifactExpectation *expected,
             av2h_memory_fill(&block, 0U, sizeof(block));
             status = av2h_tile_decoder_next_luma(
                 &decoder, &leaf, &block, &has_leaf);
-            CHECK(status == AV2H_UNSUPPORTED);
+            CHECK(status == AV2H_OK);
             CHECK(has_leaf == 1U);
             CHECK(leaf.node.row == 0U);
             CHECK(leaf.node.column == 8U);
             CHECK(leaf.node.block_size == AV2H_BLOCK_16X16);
-            CHECK(av2h_range_tell(&decoder.range) == 476U);
+            CHECK(leaf.mode.mode == AV2H_INTRA_HORIZONTAL);
+            CHECK(leaf.mode.angle_delta == 1);
+            CHECK(leaf.prefix.tx_size == AV2H_TX_16X16);
+            CHECK(leaf.prefix.eob == 25U);
+            CHECK(leaf.transform.primary_type == AV2H_TX_DCT_ADST);
+            CHECK(leaf.transform.primary_symbol == 3U);
+            CHECK(block.before_levels_bits == 496U);
+            CHECK(block.after_levels_bits == 558U);
+            CHECK(block.after_coefficients_bits == 580U);
+            CHECK(av2h_range_tell(&decoder.range) == 580U);
+            CHECK(block.nonzero_count ==
+                  sizeof(second_coefficients) /
+                      sizeof(second_coefficients[0]));
+            for (index = 0U; index < block.coefficient_count; ++index) {
+                int32_t quantized = 0;
+                int32_t dequantized = 0;
+                size_t coefficient_index;
+                for (coefficient_index = 0U;
+                     coefficient_index < sizeof(second_coefficients) /
+                         sizeof(second_coefficients[0]);
+                     ++coefficient_index) {
+                    if (second_coefficients[coefficient_index].position ==
+                        index) {
+                        quantized =
+                            second_coefficients[coefficient_index].quantized;
+                        dequantized = second_coefficients[
+                            coefficient_index].dequantized;
+                        break;
+                    }
+                }
+                CHECK(block.quantized[index] == quantized);
+                CHECK(block.dequantized[index] == dequantized);
+            }
+            status = av2h_luma_reconstruct_to_plane(
+                &leaf.node, &leaf.mode, &leaf.prefix, &leaf.transform,
+                &block, &plane, &scratch);
+            REQUIRE(status == AV2H_OK);
+            CHECK(block_pixel_hash(scratch.predictor, 16U, 16U, 16U) ==
+                  UINT64_C(0x9ce7a07cb54fc415));
+            CHECK(block_pixel_hash(
+                      luma_pixels + 32U, expected->width, 16U, 16U) ==
+                  UINT64_C(0x47e939a7e9c07f46));
         }
     } else if (expected->base_q_index == 208U &&
                expected->first_block == AV2H_BLOCK_64X16) {
@@ -1826,12 +1909,39 @@ static void check_first_luma(const ArtifactExpectation *expected,
         av2h_memory_fill(&block, 0U, sizeof(block));
         status = av2h_tile_decoder_next_luma(
             &decoder, &leaf, &block, &has_leaf);
-        CHECK(status == AV2H_UNSUPPORTED);
+        CHECK(status == AV2H_OK);
         CHECK(has_leaf == 1U);
         CHECK(leaf.node.row == 4U);
         CHECK(leaf.node.column == 0U);
         CHECK(leaf.node.block_size == AV2H_BLOCK_32X16);
-        CHECK(av2h_range_tell(&decoder.range) == 19U);
+        CHECK(leaf.mode.mode == AV2H_INTRA_DC);
+        CHECK(leaf.prefix.tx_size == AV2H_TX_32X16);
+        CHECK(leaf.prefix.eob == 3U);
+        CHECK(leaf.prefix.after_eob_bits == 25U);
+        CHECK(leaf.transform.primary_type == AV2H_TX_DCT_DCT);
+        CHECK(leaf.transform.primary_long_side_symbol == 1U);
+        CHECK(leaf.transform.primary_symbol == 0U);
+        CHECK(leaf.transform.after_primary_bits == 25U);
+        CHECK(leaf.transform.secondary_signaled == 1U);
+        CHECK(leaf.transform.secondary_symbol == 0U);
+        CHECK(block.before_levels_bits == 30U);
+        CHECK(block.after_levels_bits == 42U);
+        CHECK(block.after_coefficients_bits == 43U);
+        CHECK(av2h_range_tell(&decoder.range) == 43U);
+        CHECK(block.nonzero_count == 2U);
+        CHECK(block.quantized[0] == 4);
+        CHECK(block.dequantized[0] == 3968);
+        CHECK(block.quantized[1] == -2);
+        CHECK(block.dequantized[1] == -1984);
+        REQUIRE(av2h_luma_reconstruct_to_plane(
+                    &leaf.node, &leaf.mode, &leaf.prefix, &leaf.transform,
+                    &block, &plane, &scratch) == AV2H_OK);
+        CHECK(block_pixel_hash(scratch.predictor, 32U, 32U, 16U) ==
+              UINT64_C(0xa5db4e9a973f1b83));
+        CHECK(block_pixel_hash(
+                  luma_pixels + 16U * expected->width,
+                  expected->width, 32U, 16U) ==
+              UINT64_C(0x3304535c9bf698c3));
     }
     if (expected->width == 192U && expected->height == 96U &&
         expected->base_q_index == 208U) {
@@ -2358,7 +2468,7 @@ static void test_artifact_profiles(void) {
           219U, 1U, 2U, 3U, AV2H_BLOCK_8X16, 32U,
           AV2H_UNSUPPORTED, 0 },
         { "chimp-240x287-qp192.obu", 240U, 287U, 192U, 0U, 1U, 1U, 1U,
-          217U, 1U, 1U, 3U, AV2H_BLOCK_8X16, 15U,
+                    217U, 1U, 1U, 3U, AV2H_BLOCK_8X16, 29U,
           AV2H_UNSUPPORTED, 0 },
         { "chimp-93x111-qp064.obu", 93U, 111U, 64U, 1U, 0U, 1U, 1U,
           179U, 0U, 0U, 0U, AV2H_BLOCK_8X8, 16U,

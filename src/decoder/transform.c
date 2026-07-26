@@ -350,6 +350,7 @@ static Av2hStatus read_primary(Av2hRangeDecoder *decoder,
                 coeff->tx_size == AV2H_TX_16X8) &&
                (mode->mode == AV2H_INTRA_PAETH ||
                 mode->mode == AV2H_INTRA_DC ||
+                mode->mode == AV2H_INTRA_HORIZONTAL ||
                 mode->mode == AV2H_INTRA_SMOOTH ||
                 mode->mode == AV2H_INTRA_SMOOTH_VERTICAL ||
                 mode->mode == AV2H_INTRA_D67 ||
@@ -367,6 +368,9 @@ static Av2hStatus read_primary(Av2hRangeDecoder *decoder,
                 coeff->tx_size, mode->mode, 0U, (uint8_t)symbol,
                 &transform->primary_type);
             if (status != AV2H_OK) return status;
+        } else if (coeff->tx_size == AV2H_TX_16X16 &&
+                   mode->mode == AV2H_INTRA_HORIZONTAL && symbol == 3U) {
+            transform->primary_type = AV2H_TX_DCT_ADST;
         } else if (coeff->tx_size == AV2H_TX_8X16 &&
             mode->mode == AV2H_INTRA_D203) {
             static const Av2hFirstTxType d203_8x16[] = {

@@ -30,15 +30,13 @@ separate reference experiment and is fetched into ignored `vendor/` and
   visible reference bounds from padded storage, retain per-4x4 reconstruction
   readiness, and reconstruct all 12 odd luma and five odd chroma leaves
   sample-exactly through tell 696 before filtering.
-- Milestone 7 is paused at a verified checkpoint: eleven ordinary luma leaves
-  reconstruct sample-exactly through tell 505. The eleventh 8x8 D203
-  angle-plus-three MRL-1 leaf uses ADST_ADST, secondary-transform symbol 0,
-  and two locked coefficients. The next 16x8 intraBC leaf at `(12,0)` signals
-  `skip_transform=1` through tell 516, then fails closed because skipped
-  intraBC reconstruction is omitted.
+- Milestone 7 has complete ordinary luma coverage: all 22 leaves reconstruct
+  sample-exactly through tell 762. Ordinary chroma is the remaining frontier.
 - Milestone 8 owns high-detail, CFL, intraBC, and remaining advanced transform
   coverage. Milestone 9 owns mandatory-filter integration and filtered parity.
   Milestone 10 alone owns workspace finalization and public decoder exposure.
+- The private pipeline completely decodes `emerald-192x96-qp208.obu`, including
+  20 luma leaves, 11 chroma leaves, deblocking, and byte-exact I420 output.
 
 The public API is declared in `include/av2heif.h`. Milestone details and
 limitations are recorded in `docs/milestone-0.md` through
@@ -71,6 +69,32 @@ ctest --preset windows-x86_64
 The portable decoder remains in `src/`; only PE startup and Windows imports
 live under `src/platform/windows/`. Architecture-specific code belongs under
 `src/arch/` when an optimized or ABI-specific implementation is introduced.
+
+### Experimental Windows OBU decoder
+
+The Windows build produces `build/windows-x86_64/av2heif-decoder.exe`. It is a
+project-owned, statically linked PE with no standard C library, compiler
+runtime, vendored codec, or AVM dependency. Its only imported DLL is
+`KERNEL32.dll`, used for file I/O, virtual memory, and process startup.
+
+Decode a raw AV2 OBU stream to I420 or 24-bit BMP by selecting the output
+extension:
+
+```powershell
+.\build\windows-x86_64\av2heif-decoder.exe `
+  .\images\artifacts\emerald-192x96-qp208.obu `
+  -o .\build\emerald.i420
+
+.\build\windows-x86_64\av2heif-decoder.exe `
+  .\images\artifacts\emerald-192x96-qp208.obu `
+  -o .\build\emerald.bmp
+```
+
+BMP output currently applies deterministic limited-range BT.601 I420-to-BGR
+conversion. The Emerald artifact above is the only artifact profile that
+currently completes the full private decoder; unsupported streams fail closed
+with exit code 3 and do not create output. The CLI accepts raw OBU input only.
+HEIF item extraction and the stable public decode API remain Milestone 10 work.
 
 Run the hosted Milestone 5 normative and pinned-AVM correspondence checks with:
 

@@ -1,7 +1,5 @@
 #include "av2heif.h"
-
-__declspec(dllimport) __attribute__((noreturn))
-void __stdcall ExitProcess(unsigned int exit_code);
+#include "platform/windows/win32_min.h"
 
 __declspec(noreturn) void mainCRTStartup(void) {
     unsigned char encoded[2];

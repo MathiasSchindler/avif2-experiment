@@ -13,6 +13,7 @@ set(AV2HEIF_CORE_SOURCES
     src/decoder/coeff_level.c
     src/decoder/filter.c
     src/decoder/frame.c
+    src/decoder/frame_output.c
     src/decoder/leaf.c
     src/decoder/partition.c
     src/decoder/partition_cdf.c
@@ -20,6 +21,7 @@ set(AV2HEIF_CORE_SOURCES
     src/decoder/reconstruct.c
     src/decoder/tile.c
     src/decoder/transform.c
+    src/decoder/tx_geometry.c
 )
 
 add_library(av2heif-core STATIC ${AV2HEIF_CORE_SOURCES})
@@ -41,6 +43,7 @@ endif()
 if(WIN32 AND CMAKE_C_COMPILER_ID MATCHES "Clang")
     set(CMAKE_C_STANDARD_LIBRARIES "")
     find_program(LLVM_DLLTOOL llvm-dlltool REQUIRED)
+    target_compile_options(av2heif-core PRIVATE -mno-stack-arg-probe)
 
     set(KERNEL32_IMPORT_LIBRARY
         "${CMAKE_CURRENT_BINARY_DIR}/platform/windows/kernel32.lib")
@@ -60,12 +63,13 @@ if(WIN32 AND CMAKE_C_COMPILER_ID MATCHES "Clang")
 
     add_executable(av2heif-windows-smoke src/platform/windows/smoke.c)
     add_dependencies(av2heif-windows-smoke av2heif-kernel32-import)
-    target_include_directories(av2heif-windows-smoke PRIVATE src/shared)
+    target_include_directories(av2heif-windows-smoke PRIVATE src src/shared)
     target_link_libraries(av2heif-windows-smoke PRIVATE
         av2heif-core "${KERNEL32_IMPORT_LIBRARY}")
     target_compile_options(av2heif-windows-smoke PRIVATE
         -Wall -Wextra -Wpedantic -Werror -Oz
         -ffreestanding -fno-builtin -fno-stack-protector
+        -mno-stack-arg-probe
         -fno-unwind-tables -fno-asynchronous-unwind-tables
         -ffunction-sections -fdata-sections -nostdinc
     )
@@ -75,6 +79,39 @@ if(WIN32 AND CMAKE_C_COMPILER_ID MATCHES "Clang")
         -Wl,-s,--gc-sections,--stack,8388608
     )
 
+    add_executable(av2heif-decoder src/platform/windows/decoder.c)
+    add_dependencies(av2heif-decoder av2heif-kernel32-import)
+    target_include_directories(av2heif-decoder PRIVATE src src/shared)
+    target_link_libraries(av2heif-decoder PRIVATE
+        av2heif-core "${KERNEL32_IMPORT_LIBRARY}")
+    target_compile_options(av2heif-decoder PRIVATE
+        -Wall -Wextra -Wpedantic -Werror -Oz
+        -ffreestanding -fno-builtin -fno-stack-protector
+        -mno-stack-arg-probe
+        -fno-unwind-tables -fno-asynchronous-unwind-tables
+        -ffunction-sections -fdata-sections -nostdinc
+    )
+    target_link_options(av2heif-decoder PRIVATE
+        -nostdlib -fuse-ld=lld
+        -Wl,-e,mainCRTStartup
+        -Wl,-s,--gc-sections
+        "SHELL:-Xlinker --stack -Xlinker 8388608,8388608"
+    )
+
     enable_testing()
     add_test(NAME windows-smoke COMMAND av2heif-windows-smoke)
+    add_test(NAME windows-decoder-emerald-i420
+        COMMAND av2heif-decoder
+            "${CMAKE_CURRENT_SOURCE_DIR}/images/artifacts/emerald-192x96-qp208.obu"
+            -o "${CMAKE_CURRENT_BINARY_DIR}/emerald-decoder.i420")
+    add_test(NAME windows-decoder-emerald-i420-compare
+        COMMAND "${CMAKE_COMMAND}" -E compare_files
+            "${CMAKE_CURRENT_BINARY_DIR}/emerald-decoder.i420"
+            "${CMAKE_CURRENT_SOURCE_DIR}/images/artifacts/emerald-192x96-qp208-decoded.i420")
+    set_tests_properties(windows-decoder-emerald-i420-compare PROPERTIES
+        DEPENDS windows-decoder-emerald-i420)
+    add_test(NAME windows-decoder-emerald-bmp
+        COMMAND av2heif-decoder
+            "${CMAKE_CURRENT_SOURCE_DIR}/images/artifacts/emerald-192x96-qp208.obu"
+            -o "${CMAKE_CURRENT_BINARY_DIR}/emerald-decoder.bmp")
 endif()

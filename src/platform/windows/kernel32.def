@@ -1,3 +1,12 @@
 LIBRARY KERNEL32.dll
 EXPORTS
+    CloseHandle
+    CreateFileW
     ExitProcess
+    GetCommandLineW
+    GetFileSizeEx
+    GetStdHandle
+    ReadFile
+    VirtualAlloc
+    VirtualFree
+    WriteFile

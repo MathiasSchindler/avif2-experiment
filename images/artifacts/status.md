@@ -25,9 +25,9 @@ in 4x4 units.
 | `louis-301x222-qp144.obu` | 64x16 EOB 10, short-side symbol 0, and secondary symbol 0 complete, tell 26 | Q144 64x16 coefficient-level profile |
 | `louis-463x342-qp224.obu` | One leaf reconstructed; second 16x16 leaf at `(0,8)`, tell 32 | Q224 16x16 luma profile |
 | `pastell-320x213-qp064.obu` | DC mode complete, tell 25 | Q-context-0 8x8 coefficient-prefix geometry |
-| `pastell-512x341-qp160.obu` | First 16x32 DCT_FLIPADST block reconstructed sample-exactly and committed at tell 65; next `(0,4)` 16x32 Smooth block reaches EOB 3, DCT_DCT, and secondary symbol 0 at tell 78 | Q160 16x32 EOB-3 coefficient-level profile |
+| `pastell-512x341-qp160.obu` | First 16x32 DCT_FLIPADST block and second `(0,4)` 16x32 Smooth/DCT_DCT block reconstruct sample-exactly; the second block has levels/signs at tells 81/83 and predictor/output hashes `7b5a4f04146e5eb7`/`4324e4ef5962723d` | Next Q160 luma-profile admission |
 | `schwaebisch-353x234-qp112.obu` | EOB 2, DCT_DCT, and secondary symbol 0 complete, tell 32 | Q112 coefficient-level profile |
-| `schwaebisch-417x277-qp208.obu` | First 64x16 all-zero DC block reconstructs sample-exactly at tell 17; predictor/prefilter are constant 128 with hash `d495a039fba13383`; next `(4,0)` 32x16 is reached at tell 19 | Q208 32x16 luma-profile admission |
+| `schwaebisch-417x277-qp208.obu` | First 64x16 all-zero DC block and second `(4,0)` 32x16 DC/DCT_DCT block reconstruct sample-exactly; the second block has levels/signs at tells 42/43 and predictor/output hashes `a5db4e9a973f1b83`/`3304535c9bf698c3` | Next Q208 luma-profile admission |
 | `silene-384x307-qp080.obu` | 64x64 EOB 46 and implicit DCT_DCT complete, tell 20 | Q80 64x64 coefficient-level profile |
 | `silene-479x383-qp176.obu` | 64x64 EOB 3 and implicit DCT_DCT complete, tell 13 | Adjusted-32x32 secondary-transform entropy/range-state parity |
 

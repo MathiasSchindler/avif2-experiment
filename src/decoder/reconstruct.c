@@ -364,7 +364,8 @@ static const int16_t directional_derivative[90U] = {
 };
 
 static int directional_base_angle(Av2hFirstLeafIntraMode mode) {
-    return mode == AV2H_INTRA_D45 ? 45 :
+    return mode == AV2H_INTRA_HORIZONTAL ? 180 :
+           mode == AV2H_INTRA_D45 ? 45 :
            mode == AV2H_INTRA_D67 ? 67 :
            mode == AV2H_INTRA_D113 ? 113 :
            mode == AV2H_INTRA_D135 ? 135 :
@@ -464,7 +465,10 @@ static Av2hStatus predict_directional_idif(
         left[-2] = left[-1] = corner;
         for (index = 0U; index < edge_count; ++index) {
             size_t above_source = index < width ? index : width - 1U;
-            size_t left_source = index < height ? index : height - 1U;
+            size_t left_source =
+                mode->mode == AV2H_INTRA_HORIZONTAL &&
+                    mode->angle_delta == 1 && width == 16U && height == 16U ?
+                index : index < height ? index : height - 1U;
             above[index] = references->above != 0 &&
                 references->above_count != 0U ?
                 references->above[
@@ -491,8 +495,13 @@ static Av2hStatus predict_directional_idif(
                     width, height, angle - 90));
         }
         if (references->left != 0 && references->left_count != 0U) {
+            size_t left_filter_count = (size_t)height + 1U;
+            if (mode->mode == AV2H_INTRA_HORIZONTAL &&
+                mode->angle_delta == 1 && width == 16U && height == 16U) {
+                left_filter_count += width;
+            }
             directional_filter_edge(
-                left - 1, (size_t)height + 1U,
+                left - 1, left_filter_count,
                 directional_filter_strength(
                     height, width, angle - 180));
         }
@@ -807,25 +816,34 @@ Av2hStatus av2h_luma_predict(
     }
     if (mode->mode == AV2H_INTRA_SMOOTH && mode->angle_delta == 0 &&
         ((width == 4U && height == 4U) ||
+         (width == 8U && height == 16U) ||
+         (width == 16U && height == 32U) ||
          (width == 16U && height == 16U) ||
          (width == 32U && height == 32U))) {
         uint8_t scale = smooth_scale(width, height);
         uint8_t bottom_left;
         uint8_t top_right;
-        if (references->above == 0 || references->above_count < width ||
+        int extend_above = ((width == 8U && height == 16U) ||
+                            (width == 16U && height == 32U)) &&
+            references->above_count == 0U;
+        if ((!extend_above &&
+             (references->above == 0 || references->above_count < width)) ||
             references->left == 0 || references->left_count < height) {
             return AV2H_INVALID_ARGUMENT;
         }
         bottom_left = references->left_count > height ?
             references->left[height] : references->left[height - 1U];
-        top_right = references->above_count > width ?
+        top_right = extend_above ? references->left[0] :
+            references->above_count > width ?
             references->above[width] : references->above[width - 1U];
         for (row = 0U; row < height; ++row) {
             for (column = 0U; column < width; ++column) {
+                uint8_t top = extend_above ? references->left[0] :
+                    references->above[column];
                 uint8_t top_blend = smooth_blend(row, scale);
                 uint8_t left_blend = smooth_blend(column, scale);
                 int32_t vertical = bottom_left + round_shift(
-                    ((int64_t)references->above[column] - bottom_left) *
+                    ((int64_t)top - bottom_left) *
                         (height - 1U - row),
                     block_log2(height));
                 int32_t horizontal = top_right + round_shift(
@@ -833,7 +851,7 @@ Av2hStatus av2h_luma_predict(
                         (width - 1U - column),
                     block_log2(width));
                 vertical += round_shift(
-                    ((int64_t)references->above[column] - vertical) *
+                    ((int64_t)top - vertical) *
                         top_blend, 7U);
                 horizontal += round_shift(
                     ((int64_t)references->left[row] - horizontal) *
@@ -965,6 +983,8 @@ Av2hStatus av2h_luma_predict(
     }
     if (((mode->mode == AV2H_INTRA_D113 &&
           width == 16U && height == 16U) ||
+           (mode->mode == AV2H_INTRA_HORIZONTAL &&
+            mode->angle_delta == 1 && width == 16U && height == 16U) ||
          (mode->mode == AV2H_INTRA_D157 &&
           width == 16U && height == 64U) ||
          (mode->mode == AV2H_INTRA_D135 &&
@@ -2159,6 +2179,44 @@ Av2hStatus av2h_luma_reconstruct(
         scratch == 0 || reconstruction == 0) {
         return AV2H_INVALID_ARGUMENT;
     }
+    if (prefix->all_zero) {
+        const Av2hTxDescriptor *descriptor;
+        size_t output_count;
+        Av2hStatus descriptor_status;
+        if (prefix->eob != 0U || coefficients->nonzero_count != 0U ||
+            predictor == 0) {
+            return AV2H_UNSUPPORTED;
+        }
+        descriptor_status = av2h_tx_descriptor_get(
+            prefix->tx_size, &descriptor);
+        if (descriptor_status != AV2H_OK) return descriptor_status;
+        if (predictor_stride < descriptor->output_width ||
+            coefficients->coefficient_count !=
+                coefficients->width * coefficients->height) {
+            return AV2H_UNSUPPORTED;
+        }
+        for (index = 0U; index < coefficients->coefficient_count; ++index) {
+            if (coefficients->quantized[index] != 0 ||
+                coefficients->dequantized[index] != 0) {
+                return AV2H_UNSUPPORTED;
+            }
+        }
+        output_count = (size_t)descriptor->output_width *
+            descriptor->output_height;
+        if (output_count > AV2H_RECON_SAMPLE_CAPACITY) {
+            return AV2H_LIMIT_EXCEEDED;
+        }
+        reconstruction->width = descriptor->output_width;
+        reconstruction->height = descriptor->output_height;
+        for (index = 0U; index < output_count; ++index) {
+            size_t row = index / descriptor->output_width;
+            size_t column = index % descriptor->output_width;
+            reconstruction->residual[index] = 0;
+            reconstruction->pixels[index] =
+                predictor[row * predictor_stride + column];
+        }
+        return AV2H_OK;
+    }
     if (reconstruct_generic_selected(mode, transform, prefix->tx_size)) {
         return reconstruct_transform_generic(
             prefix, transform, coefficients, predictor, predictor_stride,
@@ -2290,6 +2348,8 @@ Av2hStatus av2h_luma_reconstruct(
            transform->primary_type == AV2H_TX_ADST_ADST) ||
           (prefix->tx_size == AV2H_TX_16X16 &&
            transform->primary_type == AV2H_TX_ADST_ADST) ||
+          (prefix->tx_size == AV2H_TX_16X32 &&
+           transform->primary_type == AV2H_TX_DCT_DCT) ||
           (prefix->tx_size == AV2H_TX_8X32 &&
            transform->primary_type == AV2H_TX_H_DCT))) {
         return AV2H_UNSUPPORTED;
@@ -2567,6 +2627,23 @@ Av2hStatus av2h_luma_reconstruct(
             if (coefficients->dequantized[index] != 0 &&
                 index != 0U && index != 16U &&
                 index != 17U && index != 32U) {
+                return AV2H_UNSUPPORTED;
+            }
+        }
+        first_shift = 6U;
+        second_shift = 12U;
+        rectangular = 1U;
+        identity_rows = 0U;
+        adst_rows = 0U;
+        flip_adst_rows = 0U;
+        identity_columns = 0U;
+        adst_columns = 0U;
+    } else if (prefix->tx_size == AV2H_TX_16X32 &&
+               transform->primary_type == AV2H_TX_DCT_DCT &&
+               mode->mode == AV2H_INTRA_SMOOTH) {
+        for (index = 0U; index < coefficients->coefficient_count; ++index) {
+            if (coefficients->dequantized[index] != 0 &&
+                index != 0U && index != 1U) {
                 return AV2H_UNSUPPORTED;
             }
         }
@@ -2865,6 +2942,11 @@ Av2hStatus av2h_luma_reconstruct_to_plane(
                mode->angle_delta == 3 && mode->mrl_index == 1U &&
                output_width == 8U && output_height == 16U) {
         left_count += output_width + 2U;
+    } else if (left_count != 0U &&
+               mode->mode == AV2H_INTRA_HORIZONTAL &&
+               mode->angle_delta == 1 && mode->mrl_index == 0U &&
+               output_width == 16U && output_height == 16U) {
+        left_count += output_width;
     }
     if (left_count > sizeof(scratch->left)) {
         left_count = sizeof(scratch->left);
