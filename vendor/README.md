@@ -18,8 +18,9 @@ licensing, and build boundaries.
   and reconstructed logical streams for Milestone 0, and generate and decode
   the offline Milestone 3 artifact matrix
 - Setup: `scripts/setup-avm.sh`
+- Native Windows setup: `scripts/setup-avm.ps1` (LLVM-MinGW UCRT)
 - Build output: `build/reference/avm/avmenc` and
-  `build/reference/avm/avmdec`
+  `build/reference/avm/avmdec` (with `.exe` on Windows)
 
 The setup script checks out only the pinned revision, configures a Release
 hosted build, and builds the two command-line tools needed by the experiment.

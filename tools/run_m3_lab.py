@@ -15,7 +15,7 @@ from typing import Any
 
 from generate_m0_fixtures import FIXTURES, Fixture
 from m0_carriage import hash_i420, parse_obus
-from run_m0_matrix import artifact, decoded_output, verify_reference
+from run_m0_matrix import artifact, decoded_output, reference_binary, verify_reference
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -392,8 +392,8 @@ def main() -> int:
     if not artifact_tool.is_file():
         raise SystemExit(f"error: missing artifact tool: {artifact_tool}")
 
-    encoder = build_dir / "avmenc"
-    decoder = build_dir / "avmdec"
+    encoder = reference_binary(build_dir, "avmenc")
+    decoder = reference_binary(build_dir, "avmdec")
     reference = verify_reference(ROOT / "vendor" / "avm", build_dir, encoder, decoder)
     selected = [
         fixture

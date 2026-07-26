@@ -10,6 +10,7 @@ import os
 import platform
 import re
 import shlex
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -90,6 +91,24 @@ def cmake_build_identity(build_dir: Path) -> dict[str, object]:
         "ENABLE_TOOLS",
     )
     configuration = {key: cache[key] for key in selected_keys if key in cache}
+    for language in ("C", "CXX"):
+        key = f"CMAKE_{language}_COMPILER"
+        if key in configuration:
+            continue
+        metadata_files = list(
+            (build_dir / "CMakeFiles").glob(
+                f"*/CMake{language}Compiler.cmake"
+            )
+        )
+        for metadata_path in metadata_files:
+            match = re.search(
+                rf'^set\({key} "([^"]+)"\)$',
+                metadata_path.read_text(encoding="utf-8"),
+                re.MULTILINE,
+            )
+            if match is not None:
+                configuration[key] = match.group(1)
+                break
     compiler = configuration.get("CMAKE_C_COMPILER")
     if compiler is None:
         raise RuntimeError("AVM CMake cache does not identify the C compiler")
@@ -108,14 +127,29 @@ def cmake_build_identity(build_dir: Path) -> dict[str, object]:
 
 def binary_identity(path: Path) -> dict[str, object]:
     identity = artifact(path, ROOT)
-    identity["file_description"] = subprocess.run(
-        ["file", "-b", str(path)],
-        check=True,
-        text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-    ).stdout.strip()
+    file_command = shutil.which("file")
+    if file_command is not None:
+        identity["file_description"] = subprocess.run(
+            [file_command, "-b", str(path)],
+            check=True,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+        ).stdout.strip()
+    else:
+        with path.open("rb") as binary:
+            identity["file_description"] = (
+                "PE executable" if binary.read(2) == b"MZ" else "unknown"
+            )
     return identity
+
+
+def reference_binary(build_dir: Path, name: str) -> Path:
+    binary = build_dir / name
+    if binary.is_file():
+        return binary
+    windows_binary = binary.with_suffix(".exe")
+    return windows_binary if windows_binary.is_file() else binary
 
 
 def verify_reference(
@@ -351,8 +385,8 @@ def main() -> int:
     source_dir = output_dir / "sources"
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    encoder = build_dir / "avmenc"
-    decoder = build_dir / "avmdec"
+    encoder = reference_binary(build_dir, "avmenc")
+    decoder = reference_binary(build_dir, "avmdec")
     reference = verify_reference(
         ROOT / "vendor" / "avm", build_dir, encoder, decoder
     )

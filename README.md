@@ -59,6 +59,19 @@ The C gate has separate substrate/carriage, container, AV2 range-decoder,
 CDF-initialization, partition-prefix, frame-header, and tile-framing test
 binaries.
 
+On Windows x86-64, LLVM, CMake, and Ninja can build a native freestanding PE
+smoke executable without the Microsoft C runtime or Windows SDK headers:
+
+```powershell
+cmake --preset windows-x86_64
+cmake --build --preset windows-x86_64
+ctest --preset windows-x86_64
+```
+
+The portable decoder remains in `src/`; only PE startup and Windows imports
+live under `src/platform/windows/`. Architecture-specific code belongs under
+`src/arch/` when an optimized or ABI-specific implementation is introduced.
+
 Run the hosted Milestone 5 normative and pinned-AVM correspondence checks with:
 
 ```sh
@@ -73,6 +86,17 @@ make milestone-0
 
 That target downloads or verifies the pinned AVM checkout and is intentionally
 outside the production dependency boundary.
+
+On Windows, build the native x86-64 AVM tools with LLVM-MinGW UCRT:
+
+```powershell
+winget install --id MartinStorsjo.LLVM-MinGW.UCRT --exact --scope user
+.\scripts\setup-avm.ps1
+```
+
+This produces `build/reference/avm/avmenc.exe` and `avmdec.exe`. The Windows
+configuration uses AVM's generic C path and disables the two encoder heuristics
+that otherwise require TensorFlow Lite.
 
 After the pinned AVM build is available, run the complete artifact laboratory
 without network access with:

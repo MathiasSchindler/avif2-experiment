@@ -1,0 +1,32 @@
+{
+  "version": 3,
+  "configurePresets": [
+    {
+      "name": "windows-x86_64",
+      "displayName": "Windows x86-64 (freestanding LLVM)",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/windows-x86_64",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_C_COMPILER": "clang",
+        "CMAKE_C_COMPILER_TARGET": "x86_64-w64-windows-gnu",
+        "CMAKE_TRY_COMPILE_TARGET_TYPE": "STATIC_LIBRARY"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "windows-x86_64",
+      "configurePreset": "windows-x86_64"
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "windows-x86_64",
+      "configurePreset": "windows-x86_64",
+      "output": {
+        "outputOnFailure": true
+      }
+    }
+  ]
+}
