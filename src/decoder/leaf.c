@@ -111,6 +111,15 @@ Av2hStatus av2h_leaf_cdfs_init(Av2hLeafCdfs *cdfs) {
     static const Av2hBinaryCdfSpec is_cfl[] = {
         { 20441U, 30U, 0U }, { 11610U, 6U, 0U }, { 4643U, 0U, 0U }
     };
+    static const uint16_t mhccp_direction
+        [AV2H_MHCCP_CONTEXT_GROUP_COUNT][AV2H_MHCCP_DIRECTION_SYMBOLS - 1U] = {
+        { 10923U, 21845U },
+        { 8795U, 15105U },
+        { 10433U, 15974U },
+        { 17085U, 21689U }
+    };
+    static const uint8_t mhccp_direction_parameter
+        [AV2H_MHCCP_CONTEXT_GROUP_COUNT] = { 0U, 6U, 32U, 32U };
     static const uint16_t uv_mode[AV2H_UV_MODE_CONTEXT_COUNT][7U] = {
         { 9363U, 20957U, 22865U, 24753U, 26411U, 27983U, 30428U },
         { 21282U, 23610U, 28208U, 29311U, 30348U, 31158U, 31491U }
@@ -201,6 +210,14 @@ Av2hStatus av2h_leaf_cdfs_init(Av2hLeafCdfs *cdfs) {
         cdfs->cfl_mhccp_switch,
         (Av2hBinaryCdfSpec){ 15499U, 30U, 0U });
     if (status != AV2H_OK) return status;
+    for (context = 0U; context < AV2H_MHCCP_CONTEXT_GROUP_COUNT; ++context) {
+        status = av2h_cdf_init(
+            cdfs->mhccp_direction[context],
+            AV2H_MHCCP_DIRECTION_SYMBOLS + 4U,
+            mhccp_direction[context], AV2H_MHCCP_DIRECTION_SYMBOLS,
+            mhccp_direction_parameter[context], 0U);
+        if (status != AV2H_OK) return status;
+    }
     status = av2h_binary_cdf_init(
         cdfs->cfl_index, (Av2hBinaryCdfSpec){ 12507U, 30U, 0U });
     if (status != AV2H_OK) return status;
@@ -222,7 +239,8 @@ Av2hStatus av2h_chroma_mode_read(
     uint8_t cfl_context,
     Av2hFirstChromaMode *mode) {
     return av2h_chroma_mode_read_with_delta(
-        decoder, cdfs, sequence, colocated_luma_mode, 0, cfl_context, mode);
+        decoder, cdfs, sequence, colocated_luma_mode, 0,
+        AV2H_BLOCK_INVALID, cfl_context, mode);
 }
 
 Av2hStatus av2h_chroma_mode_read_with_delta(
@@ -231,6 +249,7 @@ Av2hStatus av2h_chroma_mode_read_with_delta(
     const Av2hSequenceState *sequence,
     Av2hFirstLeafIntraMode colocated_luma_mode,
     int8_t colocated_luma_delta,
+    Av2hBlockSize block_size,
     uint8_t cfl_context,
     Av2hFirstChromaMode *mode) {
     uint8_t mode_context;
@@ -252,6 +271,7 @@ Av2hStatus av2h_chroma_mode_read_with_delta(
     mode->uses_cfl = 0U;
     mode->cfl_index = 0U;
     mode->cfl_mhccp_switch = 0U;
+    mode->mhccp_direction = 0U;
     mode->cfl_derived_alpha = 0U;
     mode->explicit_alpha_coded = 0U;
     mode->cfl_kind = AV2H_CFL_NONE;
@@ -259,6 +279,8 @@ Av2hStatus av2h_chroma_mode_read_with_delta(
     mode->after_cfl_index_bits = mode->after_cfl_bits;
     mode->before_cfl_switch_bits = mode->after_cfl_bits;
     mode->after_cfl_switch_bits = mode->after_cfl_bits;
+    mode->before_mhccp_direction_bits = mode->after_cfl_bits;
+    mode->after_mhccp_direction_bits = mode->after_cfl_bits;
     if (value != 0U) {
         /* uv_mode == UV_CFL_PRED. Read the CfL index (CFL_TYPE_COUNT - 1 == 2
          * symbols) since mhccp is not exercised by Emerald and CfL intra is
@@ -278,10 +300,33 @@ Av2hStatus av2h_chroma_mode_read_with_delta(
             mode->cfl_mhccp_switch = (uint8_t)value;
             mode->after_cfl_switch_bits = av2h_range_tell(decoder);
             if (value != 0U) {
+                static const uint8_t size_group[AV2H_BLOCK_SIZE_COUNT] = {
+                    0U, 0U, 0U, 1U, 1U, 1U, 2U, 2U, 2U, 3U,
+                    3U, 3U, 3U, 3U, 3U, 3U, 3U, 3U, 3U, 0U,
+                    0U, 1U, 1U, 2U, 2U, 1U, 1U, 2U, 2U
+                };
+                uint8_t group;
                 mode->cfl_kind = AV2H_CFL_MULTI_PARAM;
                 mode->cfl_index = 2U;
-                mode->after_mode_bits = mode->after_cfl_switch_bits;
-                return AV2H_UNSUPPORTED;
+                if (block_size >= AV2H_BLOCK_SIZE_COUNT) {
+                    mode->after_mode_bits = mode->after_cfl_switch_bits;
+                    return AV2H_UNSUPPORTED;
+                }
+                group = size_group[block_size];
+                mode->before_mhccp_direction_bits =
+                    mode->after_cfl_switch_bits;
+                value = av2h_range_read_adaptive(
+                    decoder, cdfs->mhccp_direction[group],
+                    AV2H_MHCCP_DIRECTION_SYMBOLS);
+                if (av2h_range_status(decoder) != AV2H_OK) {
+                    return av2h_range_status(decoder);
+                }
+                mode->mhccp_direction = (uint8_t)value;
+                mode->after_mhccp_direction_bits = av2h_range_tell(decoder);
+                mode->after_mode_bits = mode->after_mhccp_direction_bits;
+                mode->mode = AV2H_INTRA_DC;
+                mode->angle_delta = 0;
+                return AV2H_OK;
             }
         }
         mode->before_cfl_index_bits = mode->after_cfl_switch_bits;
@@ -1407,9 +1452,15 @@ Av2hStatus av2h_luma_mode_context_state_update(
     status = av2h_block_dimensions_mi(leaf->block_size, &width, &height);
     if (status != AV2H_OK) return status;
     left_index = leaf->row % state->left_count;
-    if ((size_t)leaf->column + width > state->above_count ||
-        left_index + height > state->left_count) {
+    if (leaf->column >= state->above_count ||
+        left_index >= state->left_count) {
         return AV2H_OVERFLOW;
+    }
+    if (width > state->above_count - leaf->column) {
+        width = state->above_count - leaf->column;
+    }
+    if (height > state->left_count - left_index) {
+        height = state->left_count - left_index;
     }
     context.present = 1U;
     context.use_intrabc = mode->use_intrabc;

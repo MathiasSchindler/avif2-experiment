@@ -358,6 +358,8 @@ Av2hStatus av2h_partition_context_state_update(
     size_t structure,
     Av2hPartitionNode leaf) {
     const Av2hBlockGeometry *geometry;
+    size_t width;
+    size_t height;
     size_t index;
     size_t left_index;
     if (state == 0 || structure >= AV2H_PARTITION_STRUCTURE_COUNT ||
@@ -365,16 +367,24 @@ Av2hStatus av2h_partition_context_state_update(
         return AV2H_INVALID_ARGUMENT;
     }
     geometry = &block_geometry[leaf.block_size];
+    width = geometry->mi_width;
+    height = geometry->mi_height;
     left_index = leaf.row % state->left_count;
-    if ((size_t)leaf.column + geometry->mi_width > state->above_count ||
-        left_index + geometry->mi_height > state->left_count) {
+    if (leaf.column >= state->above_count ||
+        left_index >= state->left_count) {
         return AV2H_OVERFLOW;
     }
-    for (index = 0U; index < geometry->mi_width; ++index) {
+    if (width > state->above_count - leaf.column) {
+        width = state->above_count - leaf.column;
+    }
+    if (height > state->left_count - left_index) {
+        height = state->left_count - left_index;
+    }
+    for (index = 0U; index < width; ++index) {
         state->above[structure][leaf.column + index] =
             (uint8_t)(64U - geometry->mi_width);
     }
-    for (index = 0U; index < geometry->mi_height; ++index) {
+    for (index = 0U; index < height; ++index) {
         state->left[structure][left_index + index] =
             (uint8_t)(64U - geometry->mi_height);
     }

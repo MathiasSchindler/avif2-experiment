@@ -13,6 +13,11 @@
 #define EMERALD_UV_SIZE (96U * 48U)
 #define EMERALD_I420_SIZE (EMERALD_Y_SIZE + 2U * EMERALD_UV_SIZE)
 #define EMERALD_FILTER_MEMORY_SIZE 80000U
+#define CHINNATHURAI_UV_WIDTH 168U
+#define CHINNATHURAI_UV_HEIGHT 168U
+#define CHINNATHURAI_UV_REFERENCE_WIDTH 167U
+#define CHINNATHURAI_UV_REFERENCE_HEIGHT 167U
+#define CHINNATHURAI_UV_RECONSTRUCTED_STRIDE 42U
 
 static int failures;
 static unsigned char stream[STREAM_CAPACITY];
@@ -26,6 +31,16 @@ static uint8_t emerald_u_reconstructed[(96U / 4U) * (48U / 4U)];
 static uint8_t emerald_v_reconstructed[(96U / 4U) * (48U / 4U)];
 static uint8_t emerald_u_predictor_reconstructed[(96U / 4U) * (48U / 4U)];
 static uint8_t emerald_v_predictor_reconstructed[(96U / 4U) * (48U / 4U)];
+static uint8_t chinnathurai_u_pixels[
+    CHINNATHURAI_UV_WIDTH * CHINNATHURAI_UV_HEIGHT];
+static uint8_t chinnathurai_v_pixels[
+    CHINNATHURAI_UV_WIDTH * CHINNATHURAI_UV_HEIGHT];
+static uint8_t chinnathurai_u_reconstructed[
+    CHINNATHURAI_UV_RECONSTRUCTED_STRIDE *
+    CHINNATHURAI_UV_RECONSTRUCTED_STRIDE];
+static uint8_t chinnathurai_v_reconstructed[
+    CHINNATHURAI_UV_RECONSTRUCTED_STRIDE *
+    CHINNATHURAI_UV_RECONSTRUCTED_STRIDE];
 static _Alignas(Av2hDeblockCell)
     uint8_t emerald_filter_memory[EMERALD_FILTER_MEMORY_SIZE];
 static uint8_t emerald_output[EMERALD_I420_SIZE];
@@ -1638,7 +1653,460 @@ static void check_first_luma(const ArtifactExpectation *expected,
     if (expected->decoded != 0) {
         CHECK(status == AV2H_OK);
         check_decoded_block(expected->decoded, &leaf, &block);
-        if (expected->base_q_index == 160U &&
+        if (expected->width == 333U && expected->height == 333U) {
+            Av2hTileChromaLeaf chroma_leaf;
+            Av2hFirstCoeffBlock chroma_blocks[2U];
+            Av2hReconstructionPlane plane = {
+                luma_pixels, 336U, 336U, 336U,
+                expected->width, expected->height,
+                luma_reconstructed, 84U,
+                sizeof(luma_reconstructed)
+            };
+                        Av2hReconstructionPlane chroma_planes[2U] = {
+                                { chinnathurai_u_pixels, CHINNATHURAI_UV_WIDTH,
+                                    CHINNATHURAI_UV_WIDTH, CHINNATHURAI_UV_HEIGHT,
+                                    CHINNATHURAI_UV_REFERENCE_WIDTH,
+                                    CHINNATHURAI_UV_REFERENCE_HEIGHT,
+                                    chinnathurai_u_reconstructed,
+                                    CHINNATHURAI_UV_RECONSTRUCTED_STRIDE,
+                                    sizeof(chinnathurai_u_reconstructed) },
+                                { chinnathurai_v_pixels, CHINNATHURAI_UV_WIDTH,
+                                    CHINNATHURAI_UV_WIDTH, CHINNATHURAI_UV_HEIGHT,
+                                    CHINNATHURAI_UV_REFERENCE_WIDTH,
+                                    CHINNATHURAI_UV_REFERENCE_HEIGHT,
+                                    chinnathurai_v_reconstructed,
+                                    CHINNATHURAI_UV_RECONSTRUCTED_STRIDE,
+                                    sizeof(chinnathurai_v_reconstructed) }
+                        };
+            Av2hReconstructionScratch scratch;
+                        size_t plane_index;
+                        size_t coefficient_index;
+
+            av2h_memory_fill(luma_pixels, 0U, sizeof(luma_pixels));
+            av2h_memory_fill(
+                luma_reconstructed, 0U, sizeof(luma_reconstructed));
+            REQUIRE(av2h_luma_reconstruct_to_plane(
+                        &leaf.node, &leaf.mode, &leaf.prefix,
+                        &leaf.transform, &block, &plane,
+                        &scratch) == AV2H_OK);
+            CHECK(block_pixel_hash(
+                      scratch.predictor, 64U, 64U, 64U) ==
+                  UINT64_C(0xcae2b824a5adc383));
+            CHECK(block_pixel_hash(
+                      luma_pixels, plane.stride, 64U, 64U) ==
+                  UINT64_C(0x46f8b031947ac383));
+            REQUIRE(av2h_tile_decoder_commit_leaf(&decoder, leaf.node) ==
+                    AV2H_OK);
+            av2h_memory_fill(&leaf, 0U, sizeof(leaf));
+            av2h_memory_fill(&block, 0U, sizeof(block));
+            status = av2h_tile_decoder_next_luma(
+                &decoder, &leaf, &block, &has_leaf);
+            CHECK(status == AV2H_OK);
+            CHECK(has_leaf == 0U);
+            CHECK(decoder.phase == AV2H_TILE_DECODE_CHROMA);
+            CHECK(av2h_range_tell(&decoder.range) == 10U);
+            av2h_memory_fill(&chroma_leaf, 0U, sizeof(chroma_leaf));
+            av2h_memory_fill(chroma_blocks, 0U, sizeof(chroma_blocks));
+            status = av2h_tile_decoder_next_chroma(
+                &decoder, &chroma_leaf, &chroma_blocks[0],
+                &chroma_blocks[1], &has_leaf);
+            REQUIRE(status == AV2H_OK);
+            CHECK(has_leaf == 1U);
+            CHECK(chroma_leaf.node.row == 0U);
+            CHECK(chroma_leaf.node.column == 0U);
+            CHECK(chroma_leaf.node.block_size == AV2H_BLOCK_64X64);
+            CHECK(chroma_leaf.mode.is_cfl == 0U);
+            CHECK(chroma_leaf.mode.mode_index == 0U);
+            CHECK(chroma_leaf.mode.mode == AV2H_INTRA_DC);
+            CHECK(chroma_leaf.mode.after_mode_bits == 12U);
+            CHECK(chroma_leaf.prefix[0].tx_size == AV2H_TX_32X32);
+            CHECK(chroma_leaf.prefix[0].txb_skip_context == 6U);
+            CHECK(chroma_leaf.prefix[0].before_all_zero_bits == 12U);
+            CHECK(chroma_leaf.prefix[0].after_all_zero_bits == 16U);
+            CHECK(chroma_leaf.prefix[0].eob == 1U);
+            CHECK(chroma_leaf.prefix[0].after_eob_bits == 16U);
+            CHECK(chroma_leaf.transform[0].primary_type == AV2H_TX_DCT_DCT);
+            CHECK(chroma_blocks[0].before_levels_bits == 16U);
+            CHECK(chroma_blocks[0].after_levels_bits == 23U);
+            CHECK(chroma_blocks[0].after_coefficients_bits == 24U);
+            CHECK(chroma_blocks[0].nonzero_count == 1U);
+            CHECK(chroma_blocks[0].quantized[0] == 3);
+            CHECK(chroma_blocks[0].dequantized[0] == 4704);
+            CHECK(chroma_leaf.prefix[1].tx_size == AV2H_TX_32X32);
+            CHECK(chroma_leaf.prefix[1].txb_skip_context == 6U);
+            CHECK(chroma_leaf.prefix[1].before_all_zero_bits == 24U);
+            CHECK(chroma_leaf.prefix[1].after_all_zero_bits == 26U);
+            CHECK(chroma_leaf.prefix[1].eob == 1U);
+            CHECK(chroma_leaf.prefix[1].after_eob_bits == 27U);
+            CHECK(chroma_leaf.transform[1].primary_type == AV2H_TX_DCT_DCT);
+            CHECK(chroma_blocks[1].before_levels_bits == 27U);
+            CHECK(chroma_blocks[1].after_levels_bits == 32U);
+            CHECK(chroma_blocks[1].after_coefficients_bits == 33U);
+            CHECK(chroma_blocks[1].nonzero_count == 1U);
+            CHECK(chroma_blocks[1].quantized[0] == -3);
+            CHECK(chroma_blocks[1].dequantized[0] == -4704);
+            CHECK(av2h_range_tell(&decoder.range) == 33U);
+            av2h_memory_fill(
+                chinnathurai_u_pixels, 0U, sizeof(chinnathurai_u_pixels));
+            av2h_memory_fill(
+                chinnathurai_v_pixels, 0U, sizeof(chinnathurai_v_pixels));
+            av2h_memory_fill(
+                chinnathurai_u_reconstructed, 0U,
+                sizeof(chinnathurai_u_reconstructed));
+            av2h_memory_fill(
+                chinnathurai_v_reconstructed, 0U,
+                sizeof(chinnathurai_v_reconstructed));
+            for (plane_index = 0U; plane_index < 2U; ++plane_index) {
+                for (coefficient_index = 1U;
+                     coefficient_index <
+                         chroma_blocks[plane_index].coefficient_count;
+                     ++coefficient_index) {
+                    CHECK(chroma_blocks[plane_index].quantized[
+                              coefficient_index] == 0);
+                    CHECK(chroma_blocks[plane_index].dequantized[
+                              coefficient_index] == 0);
+                }
+                REQUIRE(av2h_chroma_reconstruct_to_plane(
+                            &chroma_leaf.node, &chroma_leaf.mode,
+                            &chroma_leaf.prefix[plane_index],
+                            &chroma_leaf.transform[plane_index],
+                            &chroma_blocks[plane_index],
+                            &chroma_planes[plane_index], &scratch) ==
+                        AV2H_OK);
+                CHECK(block_pixel_hash(
+                          scratch.predictor, 32U, 32U, 32U) ==
+                      UINT64_C(0xd495a039fba13383));
+            }
+            CHECK(block_pixel_hash(
+                      chinnathurai_u_pixels, CHINNATHURAI_UV_WIDTH,
+                      32U, 32U) == UINT64_C(0x2515bc54e6347783));
+            CHECK(block_pixel_hash(
+                      chinnathurai_v_pixels, CHINNATHURAI_UV_WIDTH,
+                      32U, 32U) == UINT64_C(0x9cbfc397491c5783));
+            REQUIRE(av2h_tile_decoder_commit_leaf(
+                        &decoder, chroma_leaf.node) == AV2H_OK);
+            av2h_memory_fill(&chroma_leaf, 0U, sizeof(chroma_leaf));
+            av2h_memory_fill(chroma_blocks, 0U, sizeof(chroma_blocks));
+            status = av2h_tile_decoder_next_chroma(
+                &decoder, &chroma_leaf, &chroma_blocks[0],
+                &chroma_blocks[1], &has_leaf);
+            CHECK(status == AV2H_OK);
+            CHECK(has_leaf == 0U);
+            CHECK(decoder.phase == AV2H_TILE_DECODE_LUMA);
+            CHECK(decoder.sb_index == 1U);
+            CHECK(decoder.sb_row == 0U);
+            CHECK(decoder.sb_column == 16U);
+            CHECK(av2h_range_tell(&decoder.range) == 33U);
+            av2h_memory_fill(&leaf, 0U, sizeof(leaf));
+            av2h_memory_fill(&block, 0U, sizeof(block));
+            status = av2h_tile_decoder_next_luma(
+                &decoder, &leaf, &block, &has_leaf);
+            if (status == AV2H_OK && has_leaf) {
+                Av2hStatus reconstruction_status =
+                    av2h_luma_reconstruct_to_plane(
+                        &leaf.node, &leaf.mode, &leaf.prefix,
+                        &leaf.transform, &block, &plane, &scratch);
+                fprintf(stderr,
+                        "chinnathurai q224 sb1 status=%d tell=%lu leaf=%u row=%u column=%u block=%u mode=%u modebits=%lu/%lu/%lu/%lu/%lu prefix=%u/%u/%u/%lu/%lu transform=%u/%lu coeff=%lu/%lu/%lu nonzero=%u recon=%d predictor=%llx output=%llx diagnostic=%u/%u/%u\n",
+                        status,
+                        (unsigned long)av2h_range_tell(&decoder.range),
+                        has_leaf, leaf.node.row, leaf.node.column,
+                        leaf.node.block_size, leaf.mode.mode,
+                        (unsigned long)leaf.mode.before_mode_bits,
+                        (unsigned long)leaf.mode.after_mode_set_bits,
+                        (unsigned long)leaf.mode.after_mode_index_bits,
+                        (unsigned long)leaf.mode.after_fsc_bits,
+                        (unsigned long)leaf.mode.after_mrl_bits,
+                        leaf.prefix.tx_size, leaf.prefix.all_zero,
+                        leaf.prefix.eob,
+                        (unsigned long)leaf.prefix.before_all_zero_bits,
+                        (unsigned long)leaf.prefix.after_all_zero_bits,
+                        leaf.transform.primary_type,
+                        (unsigned long)leaf.transform.after_secondary_bits,
+                        (unsigned long)block.before_levels_bits,
+                        (unsigned long)block.after_levels_bits,
+                        (unsigned long)block.after_coefficients_bits,
+                        block.nonzero_count, reconstruction_status,
+                        (unsigned long long)block_pixel_hash(
+                            scratch.predictor, 64U, 64U, 64U),
+                        (unsigned long long)block_pixel_hash(
+                            luma_pixels + 64U, expected->width, 64U, 64U),
+                        block.diagnostic_kind, block.diagnostic_context,
+                        block.diagnostic_position);
+                if (reconstruction_status == AV2H_OK) {
+                    REQUIRE(av2h_tile_decoder_commit_leaf(
+                                &decoder, leaf.node) == AV2H_OK);
+                    av2h_memory_fill(&leaf, 0U, sizeof(leaf));
+                    av2h_memory_fill(&block, 0U, sizeof(block));
+                    status = av2h_tile_decoder_next_luma(
+                        &decoder, &leaf, &block, &has_leaf);
+                    CHECK(status == AV2H_OK);
+                    CHECK(has_leaf == 0U);
+                    CHECK(decoder.phase == AV2H_TILE_DECODE_CHROMA);
+                    av2h_memory_fill(
+                        &chroma_leaf, 0U, sizeof(chroma_leaf));
+                    av2h_memory_fill(
+                        chroma_blocks, 0U, sizeof(chroma_blocks));
+                    status = av2h_tile_decoder_next_chroma(
+                        &decoder, &chroma_leaf, &chroma_blocks[0],
+                        &chroma_blocks[1], &has_leaf);
+                    if (status == AV2H_OK && has_leaf) {
+                        uint64_t predictor_hashes[2U];
+                        uint64_t output_hashes[2U];
+                        for (plane_index = 0U; plane_index < 2U;
+                             ++plane_index) {
+                            REQUIRE(av2h_chroma_reconstruct_to_plane(
+                                        &chroma_leaf.node,
+                                        &chroma_leaf.mode,
+                                        &chroma_leaf.prefix[plane_index],
+                                        &chroma_leaf.transform[plane_index],
+                                        &chroma_blocks[plane_index],
+                                        &chroma_planes[plane_index],
+                                        &scratch) == AV2H_OK);
+                            predictor_hashes[plane_index] = block_pixel_hash(
+                                scratch.predictor, 32U, 32U, 32U);
+                            output_hashes[plane_index] = block_pixel_hash(
+                                chroma_planes[plane_index].data + 32U,
+                                CHINNATHURAI_UV_WIDTH, 32U, 32U);
+                        }
+                        fprintf(stderr,
+                                "chinnathurai q224 sb1 chroma status=%d tell=%lu leaf=%u row=%u column=%u block=%u mode=%u modebits=%lu/%lu u=%u/%u/%u/%lu/%lu/%lu v=%u/%u/%u/%lu/%lu/%lu predictor=%llx/%llx output=%llx/%llx\n",
+                                status,
+                                (unsigned long)av2h_range_tell(
+                                    &decoder.range),
+                                has_leaf, chroma_leaf.node.row,
+                                chroma_leaf.node.column,
+                                chroma_leaf.node.block_size,
+                                chroma_leaf.mode.mode,
+                                (unsigned long)chroma_leaf.mode.before_cfl_bits,
+                                (unsigned long)chroma_leaf.mode.after_mode_bits,
+                                chroma_leaf.prefix[0].tx_size,
+                                chroma_leaf.prefix[0].all_zero,
+                                chroma_leaf.prefix[0].eob,
+                                (unsigned long)chroma_leaf.prefix[
+                                    0].before_all_zero_bits,
+                                (unsigned long)chroma_leaf.prefix[
+                                    0].after_all_zero_bits,
+                                (unsigned long)chroma_blocks[
+                                    0].after_coefficients_bits,
+                                chroma_leaf.prefix[1].tx_size,
+                                chroma_leaf.prefix[1].all_zero,
+                                chroma_leaf.prefix[1].eob,
+                                (unsigned long)chroma_leaf.prefix[
+                                    1].before_all_zero_bits,
+                                (unsigned long)chroma_leaf.prefix[
+                                    1].after_all_zero_bits,
+                                (unsigned long)chroma_blocks[
+                                    1].after_coefficients_bits,
+                                (unsigned long long)predictor_hashes[0],
+                                (unsigned long long)predictor_hashes[1],
+                                (unsigned long long)output_hashes[0],
+                                (unsigned long long)output_hashes[1]);
+                        REQUIRE(av2h_tile_decoder_commit_leaf(
+                                    &decoder, chroma_leaf.node) == AV2H_OK);
+                        av2h_memory_fill(
+                            &chroma_leaf, 0U, sizeof(chroma_leaf));
+                        av2h_memory_fill(
+                            chroma_blocks, 0U, sizeof(chroma_blocks));
+                        status = av2h_tile_decoder_next_chroma(
+                            &decoder, &chroma_leaf, &chroma_blocks[0],
+                            &chroma_blocks[1], &has_leaf);
+                        CHECK(status == AV2H_OK);
+                        CHECK(has_leaf == 0U);
+                        CHECK(decoder.phase == AV2H_TILE_DECODE_LUMA);
+                        av2h_memory_fill(&leaf, 0U, sizeof(leaf));
+                        av2h_memory_fill(&block, 0U, sizeof(block));
+                        status = av2h_tile_decoder_next_luma(
+                            &decoder, &leaf, &block, &has_leaf);
+                        fprintf(stderr,
+                                "chinnathurai q224 sb2 status=%d tell=%lu leaf=%u row=%u column=%u block=%u mode=%u prefix=%u/%u transform=%u diagnostic=%u/%u/%u\n",
+                                status,
+                                (unsigned long)av2h_range_tell(
+                                    &decoder.range),
+                                has_leaf, leaf.node.row, leaf.node.column,
+                                leaf.node.block_size, leaf.mode.mode,
+                                leaf.prefix.tx_size, leaf.prefix.eob,
+                                leaf.transform.primary_type,
+                                block.diagnostic_kind,
+                                block.diagnostic_context,
+                                block.diagnostic_position);
+                        for (size_t probe_step = 0U;
+                             probe_step < 256U &&
+                                 decoder.phase != AV2H_TILE_DECODE_DONE;
+                             ++probe_step) {
+                            if (status != AV2H_OK) {
+                                break;
+                            }
+                            if (has_leaf) {
+                                if (decoder.phase == AV2H_TILE_DECODE_LUMA) {
+                                    status = av2h_luma_reconstruct_to_plane(
+                                        &leaf.node, &leaf.mode,
+                                        &leaf.prefix, &leaf.transform,
+                                        &block, &plane, &scratch);
+                                    fprintf(stderr,
+                                            "chinnathurai q224 probe luma-recon status=%d tell=%lu row=%u column=%u block=%u predictor=%llx\n",
+                                            status,
+                                            (unsigned long)av2h_range_tell(
+                                                &decoder.range),
+                                            leaf.node.row,
+                                            leaf.node.column,
+                                            leaf.node.block_size,
+                                            (unsigned long long)
+                                                block_pixel_hash(
+                                                    scratch.predictor,
+                                                    64U, 64U, 64U));
+                                    if (status != AV2H_OK) {
+                                        break;
+                                    }
+                                    status = av2h_tile_decoder_commit_leaf(
+                                        &decoder, leaf.node);
+                                } else {
+                                    for (plane_index = 0U;
+                                         plane_index < 2U;
+                                         ++plane_index) {
+                                        status =
+                                            av2h_chroma_reconstruct_to_plane_ex(
+                                                &chroma_leaf.node,
+                                                &chroma_leaf.mode,
+                                                &chroma_leaf.prefix[
+                                                    plane_index],
+                                                &chroma_leaf.transform[
+                                                    plane_index],
+                                                &chroma_blocks[plane_index],
+                                                &chroma_planes[plane_index],
+                                                &plane, 0,
+                                                &scratch);
+                                        if (status != AV2H_OK) {
+                                            break;
+                                        }
+                                    }
+                                    fprintf(stderr,
+                                            "chinnathurai q224 probe chroma-recon status=%d tell=%lu row=%u column=%u block=%u uhash=%llx vhash=%llx\n",
+                                            status,
+                                            (unsigned long)av2h_range_tell(
+                                                &decoder.range),
+                                            chroma_leaf.node.row,
+                                            chroma_leaf.node.column,
+                                            chroma_leaf.node.block_size,
+                                            (unsigned long long)block_pixel_hash(
+                                                chroma_planes[0].data +
+                                                    (size_t)chroma_leaf.node.row *
+                                                        2U * CHINNATHURAI_UV_WIDTH +
+                                                    (size_t)chroma_leaf.node.column * 2U,
+                                                CHINNATHURAI_UV_WIDTH,
+                                                chroma_leaf.node.column == 80U ? 7U :
+                                                    chroma_blocks[0].width,
+                                                chroma_blocks[0].height),
+                                            (unsigned long long)block_pixel_hash(
+                                                chroma_planes[1].data +
+                                                    (size_t)chroma_leaf.node.row *
+                                                        2U * CHINNATHURAI_UV_WIDTH +
+                                                    (size_t)chroma_leaf.node.column * 2U,
+                                                CHINNATHURAI_UV_WIDTH,
+                                                chroma_leaf.node.column == 80U ? 7U :
+                                                    chroma_blocks[1].width,
+                                                chroma_blocks[1].height));
+                                    if (status != AV2H_OK) {
+                                        break;
+                                    }
+                                    status = av2h_tile_decoder_commit_leaf(
+                                        &decoder, chroma_leaf.node);
+                                }
+                                has_leaf = 0U;
+                                continue;
+                            }
+                            if (decoder.phase == AV2H_TILE_DECODE_LUMA) {
+                                av2h_memory_fill(
+                                    &leaf, 0U, sizeof(leaf));
+                                av2h_memory_fill(
+                                    &block, 0U, sizeof(block));
+                                status = av2h_tile_decoder_next_luma(
+                                    &decoder, &leaf, &block, &has_leaf);
+                                fprintf(stderr,
+                                        "chinnathurai q224 probe luma status=%d tell=%lu leaf=%u sb=%lu row=%u column=%u block=%u mode=%u angle=%d mrl=%u/%u ibp=%u modebits=%lu/%lu/%lu/%lu/%lu/%lu tx=%u zero=%u eob=%u transform=%u/%u diagnostic=%u/%u/%u\n",
+                                        status,
+                                        (unsigned long)av2h_range_tell(
+                                            &decoder.range),
+                                        has_leaf,
+                                        (unsigned long)decoder.sb_index,
+                                        leaf.node.row,
+                                        leaf.node.column,
+                                        leaf.node.block_size,
+                                        leaf.mode.mode,
+                                        leaf.mode.angle_delta,
+                                        leaf.mode.mrl_index,
+                                        leaf.mode.multi_line_mrl,
+                                        leaf.mode.enable_ibp,
+                                        (unsigned long)leaf.mode.before_mode_bits,
+                                        (unsigned long)leaf.mode.after_mode_set_bits,
+                                        (unsigned long)leaf.mode.after_mode_index_bits,
+                                        (unsigned long)leaf.mode.after_fsc_bits,
+                                        (unsigned long)leaf.mode.after_mrl_bits,
+                                        (unsigned long)leaf.mode.before_palette_bits,
+                                        leaf.prefix.tx_size,
+                                        leaf.prefix.all_zero,
+                                        leaf.prefix.eob,
+                                        leaf.transform.primary_type,
+                                        leaf.transform.secondary_symbol,
+                                        block.diagnostic_kind,
+                                        block.diagnostic_context,
+                                        block.diagnostic_position);
+                            } else {
+                                av2h_memory_fill(
+                                    &chroma_leaf, 0U,
+                                    sizeof(chroma_leaf));
+                                av2h_memory_fill(
+                                    chroma_blocks, 0U,
+                                    sizeof(chroma_blocks));
+                                status = av2h_tile_decoder_next_chroma(
+                                    &decoder, &chroma_leaf,
+                                    &chroma_blocks[0],
+                                    &chroma_blocks[1], &has_leaf);
+                                fprintf(stderr,
+                                        "chinnathurai q224 probe chroma status=%d tell=%lu leaf=%u sb=%lu row=%u column=%u block=%u mode=%u cfl=%u/%u/%u/%u mh=%u/%lu/%lu modebits=%lu/%lu/%lu/%lu u=%u/%u/%u v=%u/%u/%u diagnostic=%u/%u\n",
+                                        status,
+                                        (unsigned long)av2h_range_tell(
+                                            &decoder.range),
+                                        has_leaf,
+                                        (unsigned long)decoder.sb_index,
+                                        chroma_leaf.node.row,
+                                        chroma_leaf.node.column,
+                                        chroma_leaf.node.block_size,
+                                        chroma_leaf.mode.mode,
+                                        chroma_leaf.mode.is_cfl,
+                                        chroma_leaf.mode.cfl_kind,
+                                        chroma_leaf.mode.cfl_index,
+                                        chroma_leaf.mode.cfl_mhccp_switch,
+                                        chroma_leaf.mode.mhccp_direction,
+                                        (unsigned long)chroma_leaf.mode.before_mhccp_direction_bits,
+                                        (unsigned long)chroma_leaf.mode.after_mhccp_direction_bits,
+                                        (unsigned long)chroma_leaf.mode.before_cfl_bits,
+                                        (unsigned long)chroma_leaf.mode.after_cfl_bits,
+                                        (unsigned long)chroma_leaf.mode.after_cfl_switch_bits,
+                                        (unsigned long)chroma_leaf.mode.after_cfl_index_bits,
+                                        chroma_leaf.prefix[0].tx_size,
+                                        chroma_leaf.prefix[0].all_zero,
+                                        chroma_leaf.prefix[0].eob,
+                                        chroma_leaf.prefix[1].tx_size,
+                                        chroma_leaf.prefix[1].all_zero,
+                                        chroma_leaf.prefix[1].eob,
+                                        chroma_blocks[0].diagnostic_kind,
+                                        chroma_blocks[1].diagnostic_kind);
+                            }
+                        }
+                    }
+                }
+            } else {
+            fprintf(stderr,
+                    "chinnathurai q224 sb1 status=%d tell=%lu leaf=%u row=%u column=%u block=%u mode=%u prefix=%u/%u transform=%u diagnostic=%u/%u/%u\n",
+                    status, (unsigned long)av2h_range_tell(&decoder.range),
+                    has_leaf, leaf.node.row, leaf.node.column,
+                    leaf.node.block_size, leaf.mode.mode,
+                    leaf.prefix.tx_size, leaf.prefix.eob,
+                    leaf.transform.primary_type, block.diagnostic_kind,
+                    block.diagnostic_context, block.diagnostic_position);
+                    }
+        } else if (expected->base_q_index == 160U &&
             expected->first_block == AV2H_BLOCK_16X32) {
             static const uint8_t cuckoo_first_row[16U] = {
                 117U, 117U, 116U, 116U, 115U, 114U, 113U, 112U,
@@ -2378,6 +2846,9 @@ static const ArtifactCoefficient cuckoo_q160_coefficients[] = {
     { 0U, -6, -1488 }, { 16U, -1, -248 },
     { 17U, 1, 248 }, { 32U, 1, 248 }
 };
+static const ArtifactCoefficient chinnathurai_q224_coefficients[] = {
+    { 0U, 1, 784 }
+};
 static const ArtifactCoefficient emerald_q208_coefficients[] = {
     { 0U, -2, -1984 }, { 1U, 2, 1984 }, { 33U, 1, 992 }
 };
@@ -2429,6 +2900,15 @@ static const ArtifactDecodedExpectation cuckoo_q160_decoded = {
     cuckoo_q160_coefficients,
     sizeof(cuckoo_q160_coefficients) / sizeof(cuckoo_q160_coefficients[0])
 };
+static const ArtifactDecodedExpectation chinnathurai_q224_decoded = {
+    5U, 5U, 6U, 6U, 6U,
+    AV2H_TX_64X64, 1U, 7U, 9U, 9U,
+    AV2H_TX_DCT_DCT, 0U, 9U,
+    1024U, 1U, 1, 9U, 9U, 10U,
+    chinnathurai_q224_coefficients,
+    sizeof(chinnathurai_q224_coefficients) /
+        sizeof(chinnathurai_q224_coefficients[0])
+};
 static const ArtifactDecodedExpectation emerald_q208_decoded = {
     7U, 7U, 8U, 8U, 8U,
     AV2H_TX_32X32, 5U, 8U, 10U, 12U,
@@ -2477,8 +2957,8 @@ static void test_artifact_profiles(void) {
           1U, 1U, 1U, 134U, 1U, 2U, 0U, AV2H_BLOCK_32X64, 19U,
           AV2H_UNSUPPORTED, 0 },
         { "chinnathurai-333x333-qp224.obu", 333U, 333U, 224U, 0U,
-          1U, 0U, 1U, 98U, 1U, 3U, 2U, AV2H_BLOCK_64X64, 9U,
-          AV2H_UNSUPPORTED, 0 },
+                    1U, 0U, 1U, 98U, 1U, 3U, 2U, AV2H_BLOCK_64X64, 10U,
+                    AV2H_OK, &chinnathurai_q224_decoded },
         { "cuckoo-157x105-qp160.obu", 157U, 105U, 160U, 1U, 1U, 1U, 0U,
           69U, 1U, 1U, 3U, AV2H_BLOCK_16X32, 35U,
           AV2H_OK, &cuckoo_q160_decoded },

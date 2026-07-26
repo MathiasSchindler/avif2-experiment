@@ -68,6 +68,7 @@ static Av2hStatus tile_reset_traversal_roots(Av2hTileDecoder *decoder) {
     root.row = decoder->sb_row;
     root.column = decoder->sb_column;
     root.block_size = decoder->root_block_size;
+    decoder->chroma_root_forced_none = 0U;
     status = av2h_partition_traversal_reset_root(
         &decoder->luma_traversal, root);
     if (status != AV2H_OK) return status;
@@ -131,6 +132,7 @@ static int q_luma_geometry_supported(const Av2hFrameState *frame,
         case AV2H_BLOCK_16X32:
         case AV2H_BLOCK_32X32:
         case AV2H_BLOCK_32X64:
+        case AV2H_BLOCK_64X32:
         case AV2H_BLOCK_64X64:
         case AV2H_BLOCK_64X16:
             return 1;
@@ -557,6 +559,13 @@ Av2hStatus av2h_tile_decoder_next_luma(
         return av2h_tile_decoder_finish_root(decoder);
     }
     leaf->node = path.leaf;
+    if (decoder->sequence->enable_sdp &&
+        leaf->node.row == decoder->sb_row &&
+        leaf->node.column == decoder->sb_column &&
+        leaf->node.block_size == decoder->root_block_size &&
+        decoder->luma_traversal.stack_count == 0U) {
+        decoder->chroma_root_forced_none = 1U;
+    }
     if (decoder->frame->gdf_mode < 2U &&
         !q_luma_geometry_supported(decoder->frame, &leaf->node)) {
         return tile_decoder_fail(decoder, AV2H_UNSUPPORTED);
@@ -646,10 +655,32 @@ Av2hStatus av2h_tile_decoder_next_chroma(
     if (decoder->phase != AV2H_TILE_DECODE_CHROMA) {
         return tile_decoder_fail(decoder, AV2H_INVALID_ARGUMENT);
     }
-    status = av2h_partition_traversal_next(
-        &decoder->chroma_traversal, &decoder->range,
-        &decoder->partition_cdfs, &decoder->partition_contexts, &path,
-        has_leaf);
+    if (decoder->chroma_root_forced_none) {
+        Av2hPartitionNode root = {
+            decoder->sb_row, decoder->sb_column, decoder->root_block_size
+        };
+        if (decoder->chroma_traversal.stack_count != 1U ||
+            decoder->chroma_traversal.has_pending_leaf ||
+            decoder->chroma_traversal.stack[0].row != root.row ||
+            decoder->chroma_traversal.stack[0].column != root.column ||
+            decoder->chroma_traversal.stack[0].block_size !=
+                root.block_size) {
+            return tile_decoder_fail(decoder, AV2H_INVALID_DATA);
+        }
+        decoder->chroma_traversal.stack_count = 0U;
+        decoder->chroma_traversal.pending_leaf = root;
+        decoder->chroma_traversal.has_pending_leaf = 1U;
+        path.decision_count = 0U;
+        path.leaf = root;
+        *has_leaf = 1U;
+        decoder->chroma_root_forced_none = 0U;
+        status = AV2H_OK;
+    } else {
+        status = av2h_partition_traversal_next(
+            &decoder->chroma_traversal, &decoder->range,
+            &decoder->partition_cdfs, &decoder->partition_contexts, &path,
+            has_leaf);
+    }
     if (status != AV2H_OK) return tile_decoder_fail(decoder, status);
     if (!*has_leaf) {
         return av2h_tile_decoder_finish_root(decoder);
@@ -678,7 +709,7 @@ Av2hStatus av2h_tile_decoder_next_chroma(
     status = av2h_chroma_mode_read_with_delta(
         &decoder->range, &decoder->leaf_cdfs, decoder->sequence,
         (Av2hFirstLeafIntraMode)colocated->mode, colocated->angle_delta,
-        cfl_context, &leaf->mode);
+        leaf->node.block_size, cfl_context, &leaf->mode);
     if (status != AV2H_OK) return tile_decoder_fail(decoder, status);
     status = tile_store_chroma_mode(decoder, &leaf->node, &leaf->mode);
     if (status != AV2H_OK) return tile_decoder_fail(decoder, status);

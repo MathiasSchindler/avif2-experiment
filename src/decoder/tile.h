@@ -94,6 +94,7 @@ typedef struct {
     size_t sb_index;
     size_t sb_count;
     Av2hBlockSize root_block_size;
+    uint8_t chroma_root_forced_none;
     Av2hTileDecodePhase phase;
     Av2hTileDecodeEvent event;
     Av2hStatus status;

@@ -109,10 +109,14 @@ Av2hStatus av2h_deblock_map_commit_transform(
     transform_columns = descriptor->output_width >> 2U;
     transform_rows = descriptor->output_height >> 2U;
     if (block_column >= map->columns[plane] ||
-        block_row >= map->rows[plane] ||
-        transform_columns > map->columns[plane] - block_column ||
-        transform_rows > map->rows[plane] - block_row) {
+        block_row >= map->rows[plane]) {
         return AV2H_INVALID_ARGUMENT;
+    }
+    if (transform_columns > map->columns[plane] - block_column) {
+        transform_columns = map->columns[plane] - block_column;
+    }
+    if (transform_rows > map->rows[plane] - block_row) {
+        transform_rows = map->rows[plane] - block_row;
     }
     for (row = 0U; row < transform_rows; ++row) {
         size_t column;

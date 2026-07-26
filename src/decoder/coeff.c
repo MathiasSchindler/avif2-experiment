@@ -289,12 +289,17 @@ static int large_tx_prefix_profile_supported(
     const Av2hFrameState *frame,
     Av2hFirstTxSize tx_size) {
     if (tx_size == AV2H_TX_32X16 ||
-        tx_size == AV2H_TX_64X32 ||
         tx_size == AV2H_TX_16X64) {
          return frame->base_q_index == 208U &&
              ((frame->width == 192U && frame->height == 96U) ||
               (tx_size == AV2H_TX_32X16 &&
                frame->width == 417U && frame->height == 277U));
+    }
+    if (tx_size == AV2H_TX_64X32) {
+        return (frame->base_q_index == 208U &&
+                frame->width == 192U && frame->height == 96U) ||
+               (frame->base_q_index == 224U &&
+                frame->width == 333U && frame->height == 333U);
     }
     if (tx_size == AV2H_TX_32X64) {
         return (frame->base_q_index == 112U &&
@@ -302,7 +307,9 @@ static int large_tx_prefix_profile_supported(
                (frame->base_q_index == 176U &&
                 frame->width == 223U && frame->height == 149U) ||
                (frame->base_q_index == 208U &&
-                frame->width == 192U && frame->height == 96U);
+                frame->width == 192U && frame->height == 96U) ||
+               (frame->base_q_index == 224U &&
+                frame->width == 333U && frame->height == 333U);
     }
     if (tx_size == AV2H_TX_64X64) {
         return (frame->base_q_index == 128U &&
@@ -384,9 +391,15 @@ Av2hStatus av2h_coeff_contexts_from_state(
     status = av2h_block_dimensions_mi(leaf->block_size, &width, &height);
     if (status != AV2H_OK) return status;
     left_index = leaf->row % state->left_count;
-    if ((size_t)leaf->column + width > state->above_count ||
-        left_index + height > state->left_count) {
+    if (leaf->column >= state->above_count ||
+        left_index >= state->left_count) {
         return AV2H_OVERFLOW;
+    }
+    if (width > state->above_count - leaf->column) {
+        width = state->above_count - leaf->column;
+    }
+    if (height > state->left_count - left_index) {
+        height = state->left_count - left_index;
     }
     above = coefficient_plane(state->above, state->above_count, plane);
     left = coefficient_plane(state->left, state->left_count, plane);
@@ -441,9 +454,15 @@ Av2hStatus av2h_coeff_context_state_update(
     status = av2h_block_dimensions_mi(leaf->block_size, &width, &height);
     if (status != AV2H_OK) return status;
     left_index = leaf->row % state->left_count;
-    if ((size_t)leaf->column + width > state->above_count ||
-        left_index + height > state->left_count) {
+    if (leaf->column >= state->above_count ||
+        left_index >= state->left_count) {
         return AV2H_OVERFLOW;
+    }
+    if (width > state->above_count - leaf->column) {
+        width = state->above_count - leaf->column;
+    }
+    if (height > state->left_count - left_index) {
+        height = state->left_count - left_index;
     }
     above = coefficient_plane(state->above, state->above_count, plane);
     left = coefficient_plane(state->left, state->left_count, plane);
@@ -762,15 +781,21 @@ Av2hStatus av2h_chroma_coeff_prefix_read(
         cdfs->q_context != coefficient_q_context(frame->base_q_index)) {
         return AV2H_UNSUPPORTED;
     }
-    if (frame->base_q_index == 208U &&
-        frame->width == 192U && frame->height == 96U) {
+    if ((frame->base_q_index == 208U &&
+         frame->width == 192U && frame->height == 96U) ||
+        (frame->base_q_index == 224U &&
+         frame->width == 333U && frame->height == 333U)) {
         status = av2h_chroma_tx_descriptor_get(
             leaf->block_size, &descriptor);
         if (status != AV2H_OK) return status;
-        if (descriptor->tx_size != AV2H_TX_32X16 &&
-            descriptor->tx_size != AV2H_TX_32X32 &&
-            descriptor->tx_size != AV2H_TX_16X8 &&
-            descriptor->tx_size != AV2H_TX_32X4) {
+           if ((frame->base_q_index == 224U &&
+               descriptor->tx_size != AV2H_TX_32X32 &&
+               descriptor->tx_size != AV2H_TX_16X32) ||
+            (frame->base_q_index == 208U &&
+             descriptor->tx_size != AV2H_TX_32X16 &&
+             descriptor->tx_size != AV2H_TX_32X32 &&
+             descriptor->tx_size != AV2H_TX_16X8 &&
+             descriptor->tx_size != AV2H_TX_32X4)) {
             return AV2H_UNSUPPORTED;
         }
         prefix->tx_size = descriptor->tx_size;

@@ -1424,8 +1424,8 @@ static void test_tiny_second_luma_leaf(void) {
           CHECK(node.block_size == AV2H_BLOCK_8X8);
         CHECK(av2h_range_tell(&decoder) == 572U);
         CHECK(av2h_chroma_mode_read_with_delta(
-                  &decoder, &leaf_cdfs, &sequence, AV2H_INTRA_D67, -1, 0U,
-                  &chroma_mode) == AV2H_OK);
+                  &decoder, &leaf_cdfs, &sequence, AV2H_INTRA_D67, -1,
+                  node.block_size, 0U, &chroma_mode) == AV2H_OK);
         CHECK(chroma_mode.mode_index == 0U);
         CHECK(chroma_mode.mode == AV2H_INTRA_D67);
         CHECK(chroma_mode.angle_delta == -1);
@@ -1541,8 +1541,8 @@ static void test_tiny_second_luma_leaf(void) {
           CHECK(node.block_size == AV2H_BLOCK_8X8);
         CHECK(av2h_range_tell(&decoder) == 643U);
         CHECK(av2h_chroma_mode_read_with_delta(
-                  &decoder, &leaf_cdfs, &sequence, AV2H_INTRA_D67, -3, 0U,
-                  &chroma_mode) == AV2H_OK);
+                  &decoder, &leaf_cdfs, &sequence, AV2H_INTRA_D67, -3,
+                  node.block_size, 0U, &chroma_mode) == AV2H_OK);
         CHECK(chroma_mode.mode_index == 8U);
         CHECK(chroma_mode.mode == AV2H_INTRA_D45);
         CHECK(chroma_mode.angle_delta == 0);
@@ -1674,7 +1674,7 @@ static void test_arguments(void) {
     };
     Av2hSpan span = { bytes, sizeof(bytes) };
     size_t tell;
-    CHECK(sizeof(Av2hLeafCdfs) == 1118U);
+    CHECK(sizeof(Av2hLeafCdfs) == 1174U);
     CHECK(av2h_leaf_cdfs_init(0) == AV2H_INVALID_ARGUMENT);
     CHECK(av2h_first_leaf_mode_read(
               0, &cdfs, &sequence, &frame, &leaf, &mode) ==

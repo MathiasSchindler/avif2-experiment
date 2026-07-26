@@ -15,6 +15,8 @@
 #define AV2H_MRL_CONTEXT_COUNT 3U
 #define AV2H_MRL_INDEX_SYMBOLS 4U
 #define AV2H_CFL_CONTEXT_COUNT 3U
+#define AV2H_MHCCP_CONTEXT_GROUP_COUNT 4U
+#define AV2H_MHCCP_DIRECTION_SYMBOLS 3U
 #define AV2H_UV_MODE_CONTEXT_COUNT 2U
 #define AV2H_UV_MODE_SYMBOLS 8U
 #define AV2H_INTRABC_SHELL_CLASS_SYMBOLS 7U
@@ -63,6 +65,8 @@ typedef struct {
                           [AV2H_BINARY_CDF_SIZE];
     uint16_t is_cfl[AV2H_CFL_CONTEXT_COUNT][AV2H_BINARY_CDF_SIZE];
     uint16_t cfl_mhccp_switch[AV2H_BINARY_CDF_SIZE];
+    uint16_t mhccp_direction[AV2H_MHCCP_CONTEXT_GROUP_COUNT]
+                            [AV2H_MHCCP_DIRECTION_SYMBOLS + 4U];
     uint16_t cfl_index[AV2H_BINARY_CDF_SIZE];
     uint16_t uv_mode[AV2H_UV_MODE_CONTEXT_COUNT][AV2H_UV_MODE_SYMBOLS + 4U];
 } Av2hLeafCdfs;
@@ -206,6 +210,7 @@ typedef struct {
     uint8_t uses_cfl;
     uint8_t cfl_index;
     uint8_t cfl_mhccp_switch;
+    uint8_t mhccp_direction;
     uint8_t cfl_derived_alpha;
     uint8_t explicit_alpha_coded;
     Av2hChromaCflKind cfl_kind;
@@ -219,6 +224,8 @@ typedef struct {
     size_t after_cfl_index_bits;
     size_t before_cfl_switch_bits;
     size_t after_cfl_switch_bits;
+    size_t before_mhccp_direction_bits;
+    size_t after_mhccp_direction_bits;
     size_t after_mode_bits;
 } Av2hFirstChromaMode;
 
@@ -305,6 +312,7 @@ Av2hStatus av2h_chroma_mode_read_with_delta(
     const Av2hSequenceState *sequence,
     Av2hFirstLeafIntraMode colocated_luma_mode,
     int8_t colocated_luma_delta,
+    Av2hBlockSize block_size,
     uint8_t cfl_context,
     Av2hFirstChromaMode *mode);
 

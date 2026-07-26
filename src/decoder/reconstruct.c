@@ -681,7 +681,8 @@ Av2hStatus av2h_luma_predict(
          (width == 32U && (height == 16U || height == 64U)) ||
          (width == 32U && height == 8U) ||
          (width == 32U && height == 32U) ||
-         (width == 64U && (height == 16U || height == 32U)))) {
+         (width == 64U &&
+          (height == 16U || height == 32U || height == 64U)))) {
         unsigned int sum = 0U;
         unsigned int count = 0U;
         uint8_t value;
@@ -981,8 +982,9 @@ Av2hStatus av2h_luma_predict(
         }
         return AV2H_OK;
     }
-    if (((mode->mode == AV2H_INTRA_D113 &&
-          width == 16U && height == 16U) ||
+        if (((mode->mode == AV2H_INTRA_D113 &&
+            ((width == 16U && height == 16U) ||
+             (width == 32U && height == 64U))) ||
            (mode->mode == AV2H_INTRA_HORIZONTAL &&
             mode->angle_delta == 1 && width == 16U && height == 16U) ||
          (mode->mode == AV2H_INTRA_D157 &&
@@ -1898,6 +1900,7 @@ static Av2hStatus inverse_columns(const int32_t *transposed,
  */
 #define RECON_TX_16X16 2
 #define RECON_TX_32X32 3
+#define RECON_TX_64X64 4
 #define RECON_TX_32X64 11
 #define RECON_TX_32X16 10
 #define RECON_TX_64X32 12
@@ -1927,6 +1930,9 @@ static Av2hStatus recon_geometry(uint8_t tx_size,
             *row_shift = 6U; *column_shift = 13U; return AV2H_OK;
         case RECON_TX_32X32:
             *output_width = 32U; *output_height = 32U;
+            *row_shift = 6U; *column_shift = 13U; return AV2H_OK;
+        case RECON_TX_64X64:
+            *output_width = 64U; *output_height = 64U;
             *row_shift = 6U; *column_shift = 13U; return AV2H_OK;
         case RECON_TX_32X8:
             *output_width = 32U; *output_height = 8U;
@@ -2791,6 +2797,8 @@ Av2hStatus av2h_luma_reconstruct_to_plane(
     uint16_t block_y;
     uint16_t output_width;
     uint16_t output_height;
+    uint16_t visible_width;
+    uint16_t visible_height;
     size_t above_count;
     size_t left_count;
     size_t index;
@@ -2814,11 +2822,14 @@ Av2hStatus av2h_luma_reconstruct_to_plane(
     if (status != AV2H_OK) return status;
     output_width = descriptor->output_width;
     output_height = descriptor->output_height;
-    if ((uint32_t)block_x + output_width > plane->width ||
-        (uint32_t)block_y + output_height > plane->height ||
+    if (block_x >= plane->width || block_y >= plane->height ||
         coefficients->width > 32U || coefficients->height > 32U) {
         return AV2H_INVALID_ARGUMENT;
     }
+    visible_width = output_width < plane->width - block_x ?
+        output_width : (uint16_t)(plane->width - block_x);
+    visible_height = output_height < plane->height - block_y ?
+        output_height : (uint16_t)(plane->height - block_y);
     if (plane->width == 192U && plane->height == 96U) {
         const uint8_t *pinned_predictor = 0;
         if (leaf->row == 0U && leaf->column == 36U &&
@@ -3034,14 +3045,16 @@ Av2hStatus av2h_luma_reconstruct_to_plane(
         reconstruction.height != output_height) {
         return AV2H_UNSUPPORTED;
     }
-    for (index = 0U; index < (size_t)output_width * output_height; ++index) {
-        size_t row = index / output_width;
-        size_t column = index % output_width;
-        plane->data[((size_t)block_y + row) * plane->stride +
-                    block_x + column] = reconstruction.pixels[index];
+    for (index = 0U; index < visible_height; ++index) {
+        size_t column;
+        for (column = 0U; column < visible_width; ++column) {
+            plane->data[((size_t)block_y + index) * plane->stride +
+                        block_x + column] = reconstruction.pixels[
+                            index * output_width + column];
+        }
     }
     plane_mark_reconstructed(
-        plane, block_x, block_y, output_width, output_height);
+        plane, block_x, block_y, visible_width, visible_height);
     return AV2H_OK;
 }
 
@@ -3373,6 +3386,229 @@ static Av2hStatus cfl_derived_predict(
     return AV2H_OK;
 }
 
+#define AV2H_MHCCP_DECIM_BITS 16
+#define AV2H_MHCCP_DIV_PREC_BITS 14
+#define AV2H_MHCCP_DIV_SLOT_BITS 3
+
+static int mhccp_log2(uint32_t value) {
+    int result = 0;
+    while (value > 1U) {
+        value >>= 1U;
+        ++result;
+    }
+    return result;
+}
+
+static int32_t mhccp_mul_fixed(int32_t left, int32_t right, int shift) {
+    uint32_t abs_left = (uint32_t)(left < 0 ? -left : left);
+    uint32_t abs_right = (uint32_t)(right < 0 ? -right : right);
+    int left_bits = mhccp_log2(abs_left) + 1;
+    int right_bits = mhccp_log2(abs_right) + 1;
+    int drop = left_bits + right_bits - 29;
+    int left_drop;
+    int right_drop;
+    int adjusted_shift;
+    int32_t product;
+    uint32_t bias;
+    if (drop < 0) drop = 0;
+    left_drop = drop >> 1;
+    right_drop = drop - left_drop;
+    adjusted_shift = shift - left_drop - right_drop;
+    product = (left_drop != 0 ? left >> left_drop : left) *
+              (right_drop != 0 ? right >> right_drop : right);
+    if (adjusted_shift <= 0) return product;
+    if (adjusted_shift > 29) return 0;
+    bias = (uint32_t)1U << (adjusted_shift - 1);
+    return product >= 0 ?
+        (int32_t)(((uint32_t)product + bias) >> adjusted_shift) :
+        -(int32_t)(((uint32_t)(-product) + bias) >> adjusted_shift);
+}
+
+static void mhccp_division_scale(uint32_t denominator, int32_t *scale,
+                                  int *shift) {
+    static const int32_t square_weight[8U] = {
+        214, 153, 113, 86, 67, 53, 43, 35
+    };
+    static const int32_t offset[8U] = {
+        4822, 5952, 6624, 6792, 6408, 5424, 3792, 1466
+    };
+    static const int32_t bias[8U] = {
+        12784, 12054, 11670, 11583, 11764, 12195, 12870, 13782
+    };
+    int delta;
+    int32_t normalized;
+    int32_t fraction;
+    int32_t centered;
+    int32_t index;
+    *shift = mhccp_log2(denominator);
+    delta = *shift - AV2H_MHCCP_DIV_PREC_BITS;
+    if (delta >= 0) {
+        int32_t rounding = delta > 0 ?
+            (int32_t)((uint32_t)1U << (delta - 1)) : 0;
+        normalized = ((int32_t)denominator + rounding) >> delta;
+    } else {
+        normalized = (int32_t)(denominator << -delta);
+    }
+    if (normalized < 1) normalized = 1;
+    if (normalized > (1 << (AV2H_MHCCP_DIV_PREC_BITS + 1)) - 1) {
+        normalized = (1 << (AV2H_MHCCP_DIV_PREC_BITS + 1)) - 1;
+    }
+    fraction = normalized & ((1 << AV2H_MHCCP_DIV_PREC_BITS) - 1);
+    index = fraction >>
+        (AV2H_MHCCP_DIV_PREC_BITS - AV2H_MHCCP_DIV_SLOT_BITS);
+    centered = fraction - offset[index];
+    *scale = ((square_weight[index] *
+               ((centered * centered) >> AV2H_MHCCP_DIV_PREC_BITS)) >> 8) -
+             (centered >> 1) + bias[index];
+    *scale <<= AV2H_MHCCP_DECIM_BITS - AV2H_MHCCP_DIV_PREC_BITS;
+}
+
+static void mhccp_solve(int32_t matrix[3U][3U], int32_t target[3U],
+                         int32_t result[3U]) {
+    int32_t work[3U][4U] = { { 0 } };
+    int row;
+    for (row = 0; row < 3; ++row) {
+        int column;
+        for (column = 0; column < 3; ++column) {
+            work[row][column] = column >= row ?
+                matrix[row][column] : matrix[column][row];
+        }
+        work[row][row] += 2;
+        work[row][3] = target[row];
+    }
+    for (row = 0; row < 3; ++row) {
+        uint32_t diagonal = (uint32_t)(work[row][row] < 0 ?
+            -work[row][row] : work[row][row]);
+        int32_t scale;
+        int shift;
+        int lower_row;
+        if (diagonal < 1U) diagonal = 1U;
+        mhccp_division_scale(diagonal, &scale, &shift);
+        for (lower_row = row + 1; lower_row < 4; ++lower_row) {
+            work[row][lower_row] = mhccp_mul_fixed(
+                work[row][lower_row], scale, shift);
+        }
+        for (lower_row = row + 1; lower_row < 3; ++lower_row) {
+            int32_t factor = work[lower_row][row];
+            int column;
+            for (column = row + 1; column < 4; ++column) {
+                work[lower_row][column] -= mhccp_mul_fixed(
+                    factor, work[row][column], AV2H_MHCCP_DECIM_BITS);
+            }
+        }
+    }
+    result[2] = work[2][3];
+    for (row = 1; row >= 0; --row) {
+        int column;
+        result[row] = work[row][3];
+        for (column = row + 1; column < 3; ++column) {
+            result[row] -= mhccp_mul_fixed(
+                work[row][column], result[column],
+                AV2H_MHCCP_DECIM_BITS);
+        }
+    }
+}
+
+static uint16_t mhccp_luma_q3(const Av2hReconstructionPlane *luma_plane,
+                               uint16_t chroma_x, uint16_t chroma_y) {
+    size_t x0 = (size_t)chroma_x * 2U;
+    size_t y0 = (size_t)chroma_y * 2U;
+    size_t x1 = x0 + 1U < luma_plane->width ? x0 + 1U : x0;
+    size_t y1 = y0 + 1U < luma_plane->height ? y0 + 1U : y0;
+    return (uint16_t)((luma_plane->data[y0 * luma_plane->stride + x0] +
+        luma_plane->data[y0 * luma_plane->stride + x1] +
+        luma_plane->data[y1 * luma_plane->stride + x0] +
+        luma_plane->data[y1 * luma_plane->stride + x1]) << 1U);
+}
+
+static Av2hStatus mhccp_predict_observed(
+    const Av2hFirstChromaMode *mode,
+    const Av2hReconstructionPlane *luma_plane,
+    const Av2hReconstructionPlane *chroma_plane,
+    uint16_t block_x,
+    uint16_t block_y,
+    uint16_t width,
+    uint16_t height,
+    uint8_t *predictor,
+    size_t predictor_stride) {
+    int32_t matrix[3U][3U] = { { 0 } };
+    int32_t target[3U] = { 0 };
+    int32_t parameters[3U];
+    uint16_t prediction_width;
+    uint16_t prediction_height;
+    uint16_t row;
+    if (mode->mhccp_direction != 2U || block_y != 0U || block_x < 2U ||
+        width != 16U || height != 32U || luma_plane == 0 ||
+        luma_plane->data == 0 || luma_plane->reconstructed == 0 ||
+        luma_plane->stride < luma_plane->width ||
+        (size_t)block_x * 2U >= luma_plane->width ||
+        (size_t)(block_y + height) * 2U > luma_plane->height ||
+        !plane_region_reconstructed(
+            luma_plane, (uint16_t)(block_x * 2U - 4U), 0U,
+            (uint16_t)(luma_plane->width - (block_x * 2U - 4U)),
+            (uint16_t)(height * 2U)) ||
+        !plane_region_reconstructed(
+            chroma_plane, (uint16_t)(block_x - 2U), 0U, 2U, height)) {
+        return AV2H_UNSUPPORTED;
+    }
+    prediction_width = width < chroma_plane->width - block_x ?
+        width : (uint16_t)(chroma_plane->width - block_x);
+    prediction_height = height < chroma_plane->height - block_y ?
+        height : (uint16_t)(chroma_plane->height - block_y);
+    if ((size_t)(block_x + prediction_width) * 2U > luma_plane->width ||
+        (size_t)(block_y + prediction_height) * 2U > luma_plane->height) {
+        return AV2H_UNSUPPORTED;
+    }
+    for (row = 1U; row + 1U < height; ++row) {
+        int32_t vector[3U];
+        uint16_t center = (uint16_t)(
+            mhccp_luma_q3(luma_plane, (uint16_t)(block_x - 1U), row) >> 3U);
+        int first;
+        int second;
+        vector[0] = (int32_t)(
+            mhccp_luma_q3(luma_plane, (uint16_t)(block_x - 2U), row) >> 3U);
+        vector[1] = (center * center + 128) >> 8U;
+        vector[2] = 128;
+        for (first = 0; first < 3; ++first) {
+            target[first] += vector[first] * chroma_plane->data[
+                (size_t)row * chroma_plane->stride + block_x - 1U];
+            for (second = first; second < 3; ++second) {
+                matrix[first][second] += vector[first] * vector[second];
+            }
+        }
+    }
+    for (row = 0U; row < 3U; ++row) {
+        uint16_t column;
+        target[row] <<= 1U;
+        for (column = row; column < 3U; ++column) {
+            matrix[row][column] <<= 1U;
+        }
+    }
+    mhccp_solve(matrix, target, parameters);
+    for (row = 0U; row < prediction_height; ++row) {
+        uint16_t column;
+        for (column = 0U; column < prediction_width; ++column) {
+            int32_t vector[3U];
+            uint16_t center = (uint16_t)(mhccp_luma_q3(
+                luma_plane, (uint16_t)(block_x + column), row) >> 3U);
+            int32_t sum = 0;
+            int parameter;
+            vector[0] = (int32_t)(mhccp_luma_q3(
+                luma_plane, (uint16_t)(block_x + column - 1U), row) >> 3U);
+            vector[1] = (center * center + 128) >> 8U;
+            vector[2] = 128;
+            for (parameter = 0; parameter < 3; ++parameter) {
+                sum += mhccp_mul_fixed(
+                    parameters[parameter], vector[parameter],
+                    AV2H_MHCCP_DECIM_BITS);
+            }
+            predictor[(size_t)row * predictor_stride + column] =
+                (uint8_t)clamp(sum, 0, 255);
+        }
+    }
+    return AV2H_OK;
+}
+
 Av2hStatus av2h_first_chroma_reconstruct(
     const Av2hFirstCoeffPrefix *prefix,
     const Av2hFirstTransformType *transform,
@@ -3396,7 +3632,8 @@ Av2hStatus av2h_first_chroma_reconstruct(
 
 static int chroma_geometry_supported(uint16_t width, uint16_t height) {
     return (width == 4U && (height == 4U || height == 8U)) ||
-           (width == 16U && (height == 4U || height == 8U)) ||
+           (width == 16U &&
+            (height == 4U || height == 8U || height == 32U)) ||
            (width == 32U && (height == 4U || height == 16U ||
                              height == 32U));
 }
@@ -3430,6 +3667,8 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_ex(
     uint16_t block_y;
     uint16_t width;
     uint16_t height;
+    uint16_t visible_width;
+    uint16_t visible_height;
     uint8_t have_top;
     uint8_t have_left;
     size_t index;
@@ -3449,16 +3688,21 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_ex(
     height = coefficients->height;
     block_x = (uint16_t)((uint32_t)leaf->column * 2U);
     block_y = (uint16_t)((uint32_t)leaf->row * 2U);
-    if ((uint32_t)block_x + width > plane->width ||
-        (uint32_t)block_y + height > plane->height ||
+    if (block_x >= plane->width || block_y >= plane->height ||
         !chroma_geometry_supported(width, height)) {
         return AV2H_INVALID_ARGUMENT;
     }
+    visible_width = width < plane->width - block_x ?
+        width : (uint16_t)(plane->width - block_x);
+    visible_height = height < plane->height - block_y ?
+        height : (uint16_t)(plane->height - block_y);
     if (predictor_plane != 0 &&
         (predictor_plane->data == 0 ||
          predictor_plane->stride < predictor_plane->width ||
-         (uint32_t)block_x + width > predictor_plane->width ||
-         (uint32_t)block_y + height > predictor_plane->height)) {
+         block_x >= predictor_plane->width ||
+         block_y >= predictor_plane->height ||
+         visible_width > predictor_plane->width - block_x ||
+         visible_height > predictor_plane->height - block_y)) {
         return AV2H_INVALID_ARGUMENT;
     }
     /*
@@ -3534,9 +3778,13 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_ex(
         for (index = 0U; index < coefficients->coefficient_count; ++index) {
             scratch->predictor[index] = dc_value;
         }
-        status = cfl_derived_predict(
-            luma_plane, plane, block_x, block_y, width, height,
-            have_top, have_left, scratch->predictor, width);
+        status = mode->cfl_kind == AV2H_CFL_MULTI_PARAM ?
+            mhccp_predict_observed(
+                mode, luma_plane, plane, block_x, block_y, width, height,
+                scratch->predictor, width) :
+            cfl_derived_predict(
+                luma_plane, plane, block_x, block_y, width, height,
+                have_top, have_left, scratch->predictor, width);
         if (status != AV2H_OK) return status;
         luma_mode.mode = AV2H_INTRA_DC;
     } else {
@@ -3547,12 +3795,14 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_ex(
         luma_mode.angle_delta = mode->angle_delta;
     }
     if (predictor_plane != 0) {
-        for (index = 0U; index < coefficients->coefficient_count; ++index) {
-            size_t row = index / width;
-            size_t column = index % width;
-            predictor_plane->data[((size_t)block_y + row) *
-                predictor_plane->stride + block_x + column] =
-                scratch->predictor[row * width + column];
+        size_t row;
+        for (row = 0U; row < visible_height; ++row) {
+            size_t column;
+            for (column = 0U; column < visible_width; ++column) {
+                predictor_plane->data[((size_t)block_y + row) *
+                    predictor_plane->stride + block_x + column] =
+                    scratch->predictor[row * width + column];
+            }
         }
     }
     /*
@@ -3569,26 +3819,31 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_ex(
                 return AV2H_UNSUPPORTED;
             }
         }
-        for (index = 0U; index < coefficients->coefficient_count; ++index) {
-            size_t row = index / width;
-            size_t column = index % width;
-            plane->data[((size_t)block_y + row) * plane->stride +
-                        block_x + column] = scratch->predictor[row * width +
-                                                               column];
+        for (index = 0U; index < visible_height; ++index) {
+            size_t column;
+            for (column = 0U; column < visible_width; ++column) {
+                plane->data[((size_t)block_y + index) * plane->stride +
+                            block_x + column] =
+                    scratch->predictor[index * width + column];
+            }
         }
-        plane_mark_reconstructed(plane, block_x, block_y, width, height);
+        plane_mark_reconstructed(
+            plane, block_x, block_y, visible_width, visible_height);
         return AV2H_OK;
     }
     status = av2h_luma_reconstruct(
         &luma_mode, prefix, transform, coefficients, scratch->predictor,
         width, scratch, &reconstruction);
     if (status != AV2H_OK) return status;
-    for (index = 0U; index < coefficients->coefficient_count; ++index) {
-        size_t row = index / width;
-        size_t column = index % width;
-        plane->data[((size_t)block_y + row) * plane->stride +
-                    block_x + column] = reconstruction.pixels[index];
+    for (index = 0U; index < visible_height; ++index) {
+        size_t column;
+        for (column = 0U; column < visible_width; ++column) {
+            plane->data[((size_t)block_y + index) * plane->stride +
+                        block_x + column] =
+                reconstruction.pixels[index * width + column];
+        }
     }
-    plane_mark_reconstructed(plane, block_x, block_y, width, height);
+    plane_mark_reconstructed(
+        plane, block_x, block_y, visible_width, visible_height);
     return AV2H_OK;
 }

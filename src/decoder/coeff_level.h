@@ -9,6 +9,7 @@ typedef struct {
     uint16_t eob_base[7U][3U + 4U];
     uint16_t q3_eob_base_txs4_ctx1[3U + 4U];
     uint16_t eob_lf[10U][5U + 4U];
+    uint16_t q3_eob_lf_txs4_ctx0[5U + 4U];
     uint16_t q3_eob_lf_txs4_ctx1[5U + 4U];
     uint16_t base[40U][4U + 4U];
     uint16_t q3_base_txs4_ctx0[4U + 4U];

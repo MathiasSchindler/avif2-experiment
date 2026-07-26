@@ -536,13 +536,17 @@ Av2hStatus av2h_chroma_transform_type_read(
         transform == 0) {
         return AV2H_INVALID_ARGUMENT;
     }
-    if ((plane == 1U || plane == 2U) && !frame->reduced_tx_set &&
-        frame->base_q_index == 208U &&
-        frame->width == 192U && frame->height == 96U &&
-        (coeff->tx_size == AV2H_TX_32X16 ||
-         coeff->tx_size == AV2H_TX_32X32 ||
-         coeff->tx_size == AV2H_TX_16X8 ||
-         coeff->tx_size == AV2H_TX_32X4)) {
+        if ((plane == 1U || plane == 2U) && !frame->reduced_tx_set &&
+                ((frame->base_q_index == 208U &&
+                    frame->width == 192U && frame->height == 96U &&
+                    (coeff->tx_size == AV2H_TX_32X16 ||
+                     coeff->tx_size == AV2H_TX_32X32 ||
+                     coeff->tx_size == AV2H_TX_16X8 ||
+                     coeff->tx_size == AV2H_TX_32X4)) ||
+                 (frame->base_q_index == 224U &&
+                    frame->width == 333U && frame->height == 333U &&
+                    (coeff->tx_size == AV2H_TX_32X32 ||
+                     coeff->tx_size == AV2H_TX_16X32)))) {
         transform->before_primary_bits = av2h_range_tell(decoder);
         transform->primary_type = AV2H_TX_DCT_DCT;
         transform->primary_signaled = 0U;
