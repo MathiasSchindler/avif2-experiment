@@ -47,6 +47,9 @@ typedef struct {
     size_t above_count;
     uint8_t above_left;
     uint8_t has_above_left;
+    uint8_t above_negative[5U];
+    uint8_t left_negative[5U];
+    uint8_t negative_count;
 } Av2hLumaReferences;
 
 Av2hStatus av2h_luma_predict(

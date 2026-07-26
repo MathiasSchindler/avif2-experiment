@@ -1944,19 +1944,41 @@ static void check_first_luma(const ArtifactExpectation *expected,
                                         &leaf.prefix, &leaf.transform,
                                         &block, &plane, &scratch);
                                     fprintf(stderr,
-                                            "chinnathurai q224 probe luma-recon status=%d tell=%lu row=%u column=%u block=%u predictor=%llx\n",
+                                            "chinnathurai q224 probe luma-recon status=%d tell=%lu row=%u column=%u block=%u flags=%u/%u/%u coeff=%ux%u/%u predictor=%llx\n",
                                             status,
                                             (unsigned long)av2h_range_tell(
                                                 &decoder.range),
                                             leaf.node.row,
                                             leaf.node.column,
                                             leaf.node.block_size,
+                                            leaf.mode.skip_transform,
+                                            leaf.mode.fsc_mode,
+                                            leaf.mode.use_intrabc,
+                                            block.width,
+                                            block.height,
+                                            block.nonzero_count,
                                             (unsigned long long)
                                                 block_pixel_hash(
                                                     scratch.predictor,
                                                     64U, 64U, 64U));
                                     if (status != AV2H_OK) {
                                         break;
+                                    }
+                                    if (leaf.node.row == 16U &&
+                                        leaf.node.column == 0U) {
+                                        uint64_t predictor_hash = block_pixel_hash(
+                                            scratch.predictor, 64U, 64U, 32U);
+                                        uint64_t output_hash = block_pixel_hash(
+                                            plane.data + 64U * plane.stride,
+                                            plane.stride, 64U, 32U);
+                                        fprintf(stderr,
+                                                "chinnathurai q224 ist predictor=%llx output=%llx\n",
+                                                (unsigned long long)predictor_hash,
+                                                (unsigned long long)output_hash);
+                                        CHECK(predictor_hash ==
+                                              UINT64_C(0x26d7ccc6960be383));
+                                        CHECK(output_hash ==
+                                              UINT64_C(0x32f4d94a920d0383));
                                     }
                                     status = av2h_tile_decoder_commit_leaf(
                                         &decoder, leaf.node);
@@ -2016,6 +2038,102 @@ static void check_first_luma(const ArtifactExpectation *expected,
                                 continue;
                             }
                             if (decoder.phase == AV2H_TILE_DECODE_LUMA) {
+                                if (decoder.sb_index >= 3U &&
+                                    decoder.sb_index <= 5U) {
+                                    Av2hTileDecoder partition_probe = decoder;
+                                    Av2hTileDecoder entropy_probe = decoder;
+                                    Av2hFirstLeafPath partition_path;
+                                    uint8_t partition_has_leaf = 0U;
+                                    uint16_t cdf_before =
+                                        partition_probe.partition_cdfs
+                                            .do_split[0][56][0];
+                                    uint16_t count_before =
+                                        partition_probe.partition_cdfs
+                                            .do_split[0][56][2];
+                                    uint32_t range_before =
+                                        partition_probe.range.range;
+                                    uint32_t value_before =
+                                        partition_probe.range.value;
+                                    size_t tell_before = av2h_range_tell(
+                                        &partition_probe.range);
+                                    Av2hStatus partition_status =
+                                        av2h_partition_traversal_next(
+                                            &partition_probe.luma_traversal,
+                                            &partition_probe.range,
+                                            &partition_probe.partition_cdfs,
+                                            &partition_probe.partition_contexts,
+                                            &partition_path,
+                                            &partition_has_leaf);
+                                    fprintf(stderr,
+                                            "chinnathurai q224 partition=%lu/%d/%u/%u/%u/%lu/%lu/%u/%u/%u/%u/%lu/%u\n",
+                                            (unsigned long)decoder.sb_index,
+                                            partition_status,
+                                            partition_has_leaf,
+                                            partition_path.leaf.block_size,
+                                            (unsigned int)
+                                                partition_path.decision_count,
+                                            (unsigned long)tell_before,
+                                            (unsigned long)av2h_range_tell(
+                                                &partition_probe.range),
+                                            range_before, value_before,
+                                            partition_probe.range.range,
+                                            partition_probe.range.value,
+                                            (unsigned long)cdf_before,
+                                            count_before);
+                                    if (decoder.sb_index == 5U) {
+                                        uint32_t rect_symbol =
+                                            av2h_range_read_adaptive(
+                                                &entropy_probe.range,
+                                                entropy_probe.partition_cdfs
+                                                    .rect_type[0][16],
+                                                2U);
+                                        uint32_t rect_range =
+                                            entropy_probe.range.range;
+                                        uint32_t rect_value =
+                                            entropy_probe.range.value;
+                                        uint32_t split_symbol =
+                                            av2h_range_read_adaptive(
+                                                &entropy_probe.range,
+                                                entropy_probe.partition_cdfs
+                                                    .do_split[0][56],
+                                                2U);
+                                        fprintf(stderr,
+                                                "chinnathurai q224 entropy replay=%u/%u/%u/%u/%u/%u\n",
+                                                rect_symbol, rect_range,
+                                                rect_value, split_symbol,
+                                                entropy_probe.range.range,
+                                                entropy_probe.range.value);
+                                    }
+                                    if (decoder.sb_index == 5U) {
+                                        fprintf(stderr,
+                                                "chinnathurai q224 edge cdf=%u/%u\n",
+                                                partition_probe.partition_cdfs
+                                                    .do_split[0][56][0],
+                                                partition_probe.partition_cdfs
+                                                    .do_split[0][56][2]);
+                                            fprintf(stderr,
+                                                    "chinnathurai q224 square cdf=%u/%u/%u/%u\n",
+                                                    decoder.partition_cdfs
+                                                        .do_square_split[0][0][0],
+                                                    decoder.partition_cdfs
+                                                        .do_square_split[0][1][0],
+                                                    decoder.partition_cdfs
+                                                        .do_square_split[0][2][0],
+                                                    decoder.partition_cdfs
+                                                        .do_square_split[0][3][0]);
+                                            fprintf(stderr,
+                                                    "chinnathurai q224 rect cdf=%u/%u/%u/%lu\n",
+                                                    decoder.partition_cdfs
+                                                        .rect_type[0][16][0],
+                                                    partition_probe.partition_cdfs
+                                                        .rect_type[0][16][0],
+                                                    partition_path.decisions[1]
+                                                        .partition,
+                                                    (unsigned long)
+                                                        partition_path.decisions[1]
+                                                            .extension_context);
+                                    }
+                                }
                                 av2h_memory_fill(
                                     &leaf, 0U, sizeof(leaf));
                                 av2h_memory_fill(
@@ -2023,7 +2141,7 @@ static void check_first_luma(const ArtifactExpectation *expected,
                                 status = av2h_tile_decoder_next_luma(
                                     &decoder, &leaf, &block, &has_leaf);
                                 fprintf(stderr,
-                                        "chinnathurai q224 probe luma status=%d tell=%lu leaf=%u sb=%lu row=%u column=%u block=%u mode=%u angle=%d mrl=%u/%u ibp=%u modebits=%lu/%lu/%lu/%lu/%lu/%lu tx=%u zero=%u eob=%u transform=%u/%u diagnostic=%u/%u/%u\n",
+                                    "chinnathurai q224 probe luma status=%d tell=%lu leaf=%u sb=%lu row=%u column=%u block=%u mode=%u angle=%d mrl=%u/%u ibp=%u modebits=%lu/%lu/%lu/%lu/%lu/%lu tx=%u zero=%u eob=%u transform=%u/%u/%u/%u diagnostic=%u/%u/%u\n",
                                         status,
                                         (unsigned long)av2h_range_tell(
                                             &decoder.range),
@@ -2048,6 +2166,8 @@ static void check_first_luma(const ArtifactExpectation *expected,
                                         leaf.prefix.eob,
                                         leaf.transform.primary_type,
                                         leaf.transform.secondary_symbol,
+                                        leaf.transform.secondary_set_symbol,
+                                        leaf.transform.secondary_set,
                                         block.diagnostic_kind,
                                         block.diagnostic_context,
                                         block.diagnostic_position);
@@ -2063,7 +2183,7 @@ static void check_first_luma(const ArtifactExpectation *expected,
                                     &chroma_blocks[0],
                                     &chroma_blocks[1], &has_leaf);
                                 fprintf(stderr,
-                                        "chinnathurai q224 probe chroma status=%d tell=%lu leaf=%u sb=%lu row=%u column=%u block=%u mode=%u cfl=%u/%u/%u/%u mh=%u/%lu/%lu modebits=%lu/%lu/%lu/%lu u=%u/%u/%u v=%u/%u/%u diagnostic=%u/%u\n",
+                                        "chinnathurai q224 probe chroma status=%d tell=%lu leaf=%u sb=%lu row=%u column=%u block=%u mode=%u cfl=%u/%u/%u/%u mh=%u/%lu/%lu modebits=%lu/%lu/%lu/%lu/%lu u=%u/%u/%u v=%u/%u/%u diagnostic=%u/%u\n",
                                         status,
                                         (unsigned long)av2h_range_tell(
                                             &decoder.range),
@@ -2084,6 +2204,7 @@ static void check_first_luma(const ArtifactExpectation *expected,
                                         (unsigned long)chroma_leaf.mode.after_cfl_bits,
                                         (unsigned long)chroma_leaf.mode.after_cfl_switch_bits,
                                         (unsigned long)chroma_leaf.mode.after_cfl_index_bits,
+                                        (unsigned long)chroma_leaf.mode.after_mode_bits,
                                         chroma_leaf.prefix[0].tx_size,
                                         chroma_leaf.prefix[0].all_zero,
                                         chroma_leaf.prefix[0].eob,
@@ -2553,7 +2674,8 @@ static void check_first_luma(const ArtifactExpectation *expected,
         CHECK(av2h_range_tell(&decoder.range) == 46U);
         {
             Av2hLumaReferences references = {
-                0, 0U, pixels + 31U * 192U, 32U, 0U, 0U
+                .above = pixels + 31U * 192U,
+                .above_count = 32U
             };
             REQUIRE(av2h_luma_predict(
                         &leaf.mode, 32U, 8U, &references,
@@ -2628,7 +2750,8 @@ static void check_first_luma(const ArtifactExpectation *expected,
         CHECK(av2h_range_tell(&decoder.range) == 52U);
         {
             Av2hLumaReferences references = {
-                0, 0U, pixels + 39U * 192U, 16U, 0U, 0U
+                .above = pixels + 39U * 192U,
+                .above_count = 16U
             };
             REQUIRE(av2h_luma_predict(
                         &leaf.mode, 16U, 16U, &references,

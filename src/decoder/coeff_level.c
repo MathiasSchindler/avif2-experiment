@@ -1374,6 +1374,13 @@ static int q_level_profile_supported(
         prefix->eob == 1U) {
         return transform->primary_type == AV2H_TX_DCT_DCT;
     }
+    if (frame->base_q_index == 224U &&
+        frame->width == 333U && frame->height == 333U &&
+        prefix->tx_size == AV2H_TX_64X32 && prefix->eob == 15U) {
+        return transform->primary_type == AV2H_TX_DCT_DCT &&
+               transform->secondary_symbol == 3U &&
+               transform->secondary_set == 1U;
+    }
     if (cdfs->q_context != 3U) return 0;
     if (prefix->tx_size == AV2H_TX_32X8 &&
         prefix->eob == 2U &&
@@ -1382,15 +1389,19 @@ static int q_level_profile_supported(
     }
     if (transform->primary_type != AV2H_TX_DCT_DCT) return 0;
     switch (prefix->tx_size) {
+        case AV2H_TX_16X32:
+            return prefix->eob == 1U || prefix->eob == 45U;
         case AV2H_TX_32X8:
             return prefix->eob == 1U;
         case AV2H_TX_32X16:
-            return prefix->eob == 14U || prefix->eob == 16U ||
+             return prefix->eob == 3U || prefix->eob == 14U ||
+                 prefix->eob == 16U ||
                    prefix->eob == 18U;
         case AV2H_TX_32X32:
             return prefix->eob == 1U || prefix->eob == 5U ||
                    prefix->eob == 19U;
         case AV2H_TX_32X64:
+            return prefix->eob == 4U || prefix->eob == 6U;
         case AV2H_TX_16X64:
             return prefix->eob == 4U;
         case AV2H_TX_64X16:
@@ -2031,8 +2042,7 @@ Av2hStatus av2h_coeff_block_read(
     }
     if (sequence->enable_tcq || sequence->enable_parity_hiding ||
         frame->using_qmatrix || mode->fsc_mode ||
-        transform->secondary_symbol != 0U || prefix->all_zero ||
-        prefix->eob == 0U || dc_sign_context >= 3U ||
+        prefix->all_zero || prefix->eob == 0U || dc_sign_context >= 3U ||
         !q_level_profile_supported(cdfs, frame, prefix, transform)) {
         return AV2H_UNSUPPORTED;
     }
@@ -2326,7 +2336,8 @@ static Av2hStatus read_q3_chroma_block(
     }
     if ((frame->base_q_index == 224U &&
             prefix->tx_size != AV2H_TX_32X32 &&
-            prefix->tx_size != AV2H_TX_16X32) ||
+            prefix->tx_size != AV2H_TX_16X32 &&
+            prefix->tx_size != AV2H_TX_8X32) ||
         (frame->base_q_index == 208U &&
          prefix->tx_size != AV2H_TX_32X16 &&
          prefix->tx_size != AV2H_TX_32X32 &&

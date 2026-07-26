@@ -132,6 +132,7 @@ static int q_luma_geometry_supported(const Av2hFrameState *frame,
         case AV2H_BLOCK_16X32:
         case AV2H_BLOCK_32X32:
         case AV2H_BLOCK_32X64:
+        case AV2H_BLOCK_16X64:
         case AV2H_BLOCK_64X32:
         case AV2H_BLOCK_64X64:
         case AV2H_BLOCK_64X16:
@@ -310,6 +311,14 @@ static Av2hStatus tile_initialize_all_zero_luma(
                leaf->node.block_size == AV2H_BLOCK_64X16) {
         width = 32U;
         height = 16U;
+    } else if (leaf->prefix.tx_size == AV2H_TX_32X16 &&
+               leaf->node.block_size == AV2H_BLOCK_32X16) {
+        width = 32U;
+        height = 16U;
+    } else if (leaf->prefix.tx_size == AV2H_TX_16X64 &&
+               leaf->node.block_size == AV2H_BLOCK_16X64) {
+        width = 16U;
+        height = 32U;
     } else if (leaf->prefix.tx_size == AV2H_TX_16X16 &&
                leaf->node.row == 10U && leaf->node.column == 0U &&
                leaf->node.block_size == AV2H_BLOCK_16X16 &&

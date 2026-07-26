@@ -35,6 +35,9 @@ Av2hStatus av2h_first_transform_cdfs_init(Av2hFirstTransformCdfs *cdfs) {
     static const uint16_t secondary_4x4[] = {
         4486U, 15589U, 26440U
     };
+    static const uint16_t secondary_set[] = {
+        20712U, 26263U, 30623U, 32732U, 32736U, 32740U
+    };
     static const uint16_t chroma_cross_type[] = {
         14350U, 14836U, 16054U, 17075U, 19408U, 28530U
     };
@@ -99,8 +102,36 @@ Av2hStatus av2h_first_transform_cdfs_init(Av2hFirstTransformCdfs *cdfs) {
         cdfs->secondary_16x16, AV2H_SECONDARY_TX_TYPE_SYMBOLS + 4U,
         secondary_16x16, AV2H_SECONDARY_TX_TYPE_SYMBOLS, 0U, 0U);
     if (status != AV2H_OK) return status;
+    status = av2h_cdf_init(
+        cdfs->secondary_set, AV2H_SECONDARY_TX_SET_SYMBOLS + 4U,
+        secondary_set, AV2H_SECONDARY_TX_SET_SYMBOLS, 55U, 0U);
+    if (status != AV2H_OK) return status;
     return av2h_cdf_init(cdfs->chroma_cross_type, 7U + 4U,
                          chroma_cross_type, 7U, 62U, 0U);
+}
+
+static Av2hStatus secondary_tx_set_map(
+    Av2hFirstLeafIntraMode mode, uint8_t symbol, uint8_t *set) {
+    static const uint8_t inverse_mapping[12U][7U] = {
+        { 6U, 1U, 0U, 5U, 4U, 3U, 2U },
+        { 1U, 6U, 0U, 4U, 2U, 5U, 3U },
+        { 1U, 6U, 0U, 4U, 2U, 5U, 3U },
+        { 2U, 6U, 0U, 5U, 1U, 4U, 3U },
+        { 3U, 4U, 6U, 1U, 0U, 2U, 5U },
+        { 4U, 1U, 3U, 6U, 0U, 5U, 2U },
+        { 4U, 1U, 3U, 6U, 0U, 5U, 2U },
+        { 5U, 0U, 6U, 2U, 1U, 4U, 3U },
+        { 5U, 0U, 6U, 2U, 1U, 4U, 3U },
+        { 6U, 1U, 0U, 5U, 4U, 3U, 2U },
+        { 1U, 6U, 0U, 4U, 2U, 5U, 3U },
+        { 1U, 6U, 0U, 4U, 2U, 5U, 3U }
+    };
+    if (set == 0) return AV2H_INVALID_ARGUMENT;
+    if ((uint8_t)mode >= 12U || symbol >= AV2H_SECONDARY_TX_SET_SYMBOLS) {
+        return AV2H_UNSUPPORTED;
+    }
+    *set = inverse_mapping[(uint8_t)mode][symbol];
+    return AV2H_OK;
 }
 
 Av2hStatus av2h_primary_tx_type_map(
@@ -458,6 +489,9 @@ Av2hStatus av2h_first_transform_type_read(
         transform->after_primary_bits = transform->before_primary_bits;
         transform->secondary_signaled = 0U;
         transform->secondary_symbol = 0U;
+        transform->secondary_set_symbol = 0U;
+        transform->secondary_set = 0U;
+        transform->after_secondary_type_bits = transform->before_primary_bits;
         transform->after_secondary_bits = transform->before_primary_bits;
         return AV2H_OK;
     }
@@ -468,7 +502,10 @@ Av2hStatus av2h_first_transform_type_read(
         transform->primary_symbol = 0U;
         transform->secondary_signaled = 0U;
         transform->secondary_symbol = 0U;
+        transform->secondary_set_symbol = 0U;
+        transform->secondary_set = 0U;
         transform->after_primary_bits = transform->before_primary_bits;
+        transform->after_secondary_type_bits = transform->before_primary_bits;
         transform->after_secondary_bits = transform->before_primary_bits;
         return AV2H_OK;
     }
@@ -479,6 +516,9 @@ Av2hStatus av2h_first_transform_type_read(
     transform->after_primary_bits = av2h_range_tell(decoder);
     transform->secondary_signaled = 0U;
     transform->secondary_symbol = 0U;
+    transform->secondary_set_symbol = 0U;
+    transform->secondary_set = 0U;
+    transform->after_secondary_type_bits = transform->after_primary_bits;
     if (coeff->tx_size == AV2H_TX_64X64 &&
         ((frame->base_q_index == 128U &&
           frame->width == 480U && frame->height == 240U) ||
@@ -504,7 +544,19 @@ Av2hStatus av2h_first_transform_type_read(
         }
         transform->secondary_signaled = 1U;
         transform->secondary_symbol = (uint8_t)symbol;
-        if (symbol != 0U) return AV2H_UNSUPPORTED;
+        transform->after_secondary_type_bits = av2h_range_tell(decoder);
+        if (symbol != 0U) {
+            symbol = av2h_range_read_adaptive(
+                decoder, cdfs->secondary_set,
+                AV2H_SECONDARY_TX_SET_SYMBOLS);
+            if (av2h_range_status(decoder) != AV2H_OK) {
+                return av2h_range_status(decoder);
+            }
+            transform->secondary_set_symbol = (uint8_t)symbol;
+            status = secondary_tx_set_map(
+                mode->mode, (uint8_t)symbol, &transform->secondary_set);
+            if (status != AV2H_OK) return status;
+        }
     }
     transform->after_secondary_bits = av2h_range_tell(decoder);
     return AV2H_OK;
@@ -546,7 +598,8 @@ Av2hStatus av2h_chroma_transform_type_read(
                  (frame->base_q_index == 224U &&
                     frame->width == 333U && frame->height == 333U &&
                     (coeff->tx_size == AV2H_TX_32X32 ||
-                     coeff->tx_size == AV2H_TX_16X32)))) {
+                     coeff->tx_size == AV2H_TX_16X32 ||
+                     coeff->tx_size == AV2H_TX_8X32)))) {
         transform->before_primary_bits = av2h_range_tell(decoder);
         transform->primary_type = AV2H_TX_DCT_DCT;
         transform->primary_signaled = 0U;

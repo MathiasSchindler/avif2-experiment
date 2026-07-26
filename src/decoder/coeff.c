@@ -290,10 +290,16 @@ static int large_tx_prefix_profile_supported(
     Av2hFirstTxSize tx_size) {
     if (tx_size == AV2H_TX_32X16 ||
         tx_size == AV2H_TX_16X64) {
-         return frame->base_q_index == 208U &&
-             ((frame->width == 192U && frame->height == 96U) ||
-              (tx_size == AV2H_TX_32X16 &&
-               frame->width == 417U && frame->height == 277U));
+         return (frame->base_q_index == 208U &&
+                 ((frame->width == 192U && frame->height == 96U) ||
+                  (tx_size == AV2H_TX_32X16 &&
+                   frame->width == 417U && frame->height == 277U))) ||
+                (tx_size == AV2H_TX_16X64 &&
+                 frame->base_q_index == 224U &&
+                 frame->width == 333U && frame->height == 333U) ||
+                (tx_size == AV2H_TX_32X16 &&
+                 frame->base_q_index == 224U &&
+                 frame->width == 333U && frame->height == 333U);
     }
     if (tx_size == AV2H_TX_64X32) {
         return (frame->base_q_index == 208U &&
@@ -327,6 +333,8 @@ static int large_tx_prefix_profile_supported(
     if (tx_size == AV2H_TX_64X16) {
         return (frame->base_q_index == 144U &&
                 frame->width == 301U && frame->height == 222U) ||
+               (frame->base_q_index == 224U &&
+                frame->width == 333U && frame->height == 333U) ||
                (frame->base_q_index == 208U &&
                 ((frame->width == 417U && frame->height == 277U) ||
                  (frame->width == 192U && frame->height == 96U)));
@@ -790,7 +798,8 @@ Av2hStatus av2h_chroma_coeff_prefix_read(
         if (status != AV2H_OK) return status;
            if ((frame->base_q_index == 224U &&
                descriptor->tx_size != AV2H_TX_32X32 &&
-               descriptor->tx_size != AV2H_TX_16X32) ||
+               descriptor->tx_size != AV2H_TX_16X32 &&
+               descriptor->tx_size != AV2H_TX_8X32) ||
             (frame->base_q_index == 208U &&
              descriptor->tx_size != AV2H_TX_32X16 &&
              descriptor->tx_size != AV2H_TX_32X32 &&
@@ -818,8 +827,6 @@ Av2hStatus av2h_chroma_coeff_prefix_read(
             eob_cdf = cdfs->q3_chroma_eob_pt_512;
         } else if (descriptor->eob_class == AV2H_TX_EOB_1024) {
             eob_cdf = cdfs->q3_chroma_eob_pt_1024;
-        } else {
-            return AV2H_UNSUPPORTED;
         }
         eob_symbols = 8U;
     } else if (frame->base_q_index == 128U &&
@@ -877,6 +884,7 @@ Av2hStatus av2h_chroma_coeff_prefix_read(
         prefix->after_eob_bits = prefix->after_all_zero_bits;
         return AV2H_OK;
     }
+    if (eob_cdf == 0 || eob_symbols == 0U) return AV2H_UNSUPPORTED;
     return decode_eob(
         decoder, cdfs, eob_cdf, eob_symbols, prefix);
 }

@@ -5,6 +5,7 @@
 
 #define AV2H_PRIMARY_TX_TYPE_SYMBOLS 7U
 #define AV2H_SECONDARY_TX_TYPE_SYMBOLS 4U
+#define AV2H_SECONDARY_TX_SET_SYMBOLS 7U
 #define AV2H_INTER_TX_TYPE_INDEX_SYMBOLS 8U
 
 typedef enum {
@@ -42,6 +43,7 @@ typedef struct {
     uint16_t secondary_8x8[AV2H_SECONDARY_TX_TYPE_SYMBOLS + 4U];
     uint16_t secondary_16x16[AV2H_SECONDARY_TX_TYPE_SYMBOLS + 4U];
     uint16_t secondary_32x32[AV2H_SECONDARY_TX_TYPE_SYMBOLS + 4U];
+    uint16_t secondary_set[AV2H_SECONDARY_TX_SET_SYMBOLS + 4U];
     uint16_t chroma_cross_type[7U + 4U];
 } Av2hFirstTransformCdfs;
 
@@ -52,8 +54,11 @@ typedef struct {
     uint8_t primary_long_side_symbol;
     uint8_t secondary_signaled;
     uint8_t secondary_symbol;
+    uint8_t secondary_set_symbol;
+    uint8_t secondary_set;
     size_t before_primary_bits;
     size_t after_primary_bits;
+    size_t after_secondary_type_bits;
     size_t after_secondary_bits;
 } Av2hFirstTransformType;
 

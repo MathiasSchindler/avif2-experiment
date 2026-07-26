@@ -1674,7 +1674,7 @@ static void test_arguments(void) {
     };
     Av2hSpan span = { bytes, sizeof(bytes) };
     size_t tell;
-    CHECK(sizeof(Av2hLeafCdfs) == 1174U);
+    CHECK(sizeof(Av2hLeafCdfs) == 1196U);
     CHECK(av2h_leaf_cdfs_init(0) == AV2H_INVALID_ARGUMENT);
     CHECK(av2h_first_leaf_mode_read(
               0, &cdfs, &sequence, &frame, &leaf, &mode) ==

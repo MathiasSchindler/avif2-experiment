@@ -195,6 +195,24 @@ static Av2hPartitionType forced_at_boundary(uint16_t mi_rows,
     return AV2H_PARTITION_INVALID;
 }
 
+static Av2hPartitionAxis partial_boundary_axis(
+    uint16_t mi_rows, uint16_t mi_columns, Av2hPartitionNode node) {
+    const Av2hBlockGeometry *geometry = &block_geometry[node.block_size];
+    unsigned int has_rows =
+        (size_t)node.row + geometry->mi_height / 2U < mi_rows;
+    unsigned int has_columns =
+        (size_t)node.column + geometry->mi_width / 2U < mi_columns;
+    if (geometry->mi_height > geometry->mi_width && has_rows &&
+        !has_columns) {
+        return AV2H_PARTITION_VERTICAL;
+    }
+    if (geometry->mi_width > geometry->mi_height && !has_rows &&
+        has_columns) {
+        return AV2H_PARTITION_HORIZONTAL;
+    }
+    return (Av2hPartitionAxis)255;
+}
+
 Av2hStatus av2h_partition_forced_path(uint16_t mi_rows,
                                        uint16_t mi_columns,
                                        Av2hPartitionNode root,
@@ -334,18 +352,18 @@ Av2hStatus av2h_partition_contexts_from_state(
                                 geometry->mi_width, 1U);
     if (axis == AV2H_PARTITION_HORIZONTAL) {
         second_index = left_index + geometry->mi_height / 2U;
-        if (second_index >= state->left_count) return AV2H_OVERFLOW;
         first_half_smaller = context_bit(
             state->left[structure][left_index], geometry->mi_height, 2U);
-        second_half_smaller = context_bit(
-            state->left[structure][second_index], geometry->mi_height, 2U);
+        second_half_smaller = second_index < state->left_count ?
+            context_bit(state->left[structure][second_index],
+                        geometry->mi_height, 2U) : 0U;
     } else {
         second_index = (size_t)node.column + geometry->mi_width / 2U;
-        if (second_index >= state->above_count) return AV2H_OVERFLOW;
         first_half_smaller = context_bit(
             state->above[structure][node.column], geometry->mi_width, 2U);
-        second_half_smaller = context_bit(
-            state->above[structure][second_index], geometry->mi_width, 2U);
+        second_half_smaller = second_index < state->above_count ?
+            context_bit(state->above[structure][second_index],
+                        geometry->mi_width, 2U) : 0U;
     }
     return av2h_partition_contexts(
         node.block_size, left_smaller, above_smaller, first_half_smaller,
@@ -685,6 +703,8 @@ Av2hStatus av2h_partition_node_read_with_state(
     const Av2hPartitionContextState *state,
     size_t structure,
     Av2hPartitionNode node,
+    uint16_t mi_rows,
+    uint16_t mi_columns,
     unsigned int enable_ext_partitions,
     unsigned int enable_uneven_4way_partitions,
     Av2hPartitionDecision *decision,
@@ -698,6 +718,7 @@ Av2hStatus av2h_partition_node_read_with_state(
     if (decoder == 0 || cdfs == 0 || state == 0 || decision == 0 ||
         child == 0 || structure >= AV2H_PARTITION_STRUCTURE_COUNT ||
         node.block_size >= AV2H_BLOCK_SIZE_COUNT ||
+        mi_rows == 0U || mi_columns == 0U ||
         enable_ext_partitions > 1U ||
         enable_uneven_4way_partitions > 1U ||
         !is_partition_point(node.block_size)) {
@@ -714,6 +735,44 @@ Av2hStatus av2h_partition_node_read_with_state(
         *child = node;
         return AV2H_OK;
     }
+    axis = partial_boundary_axis(
+        mi_rows, mi_columns, node);
+    if (axis != (Av2hPartitionAxis)255) {
+        status = av2h_partition_contexts_from_state(
+            state, structure, node, axis, &split_context,
+            &rect_type_context, &extension_context);
+        if (status != AV2H_OK) return status;
+        value = av2h_range_read_adaptive(
+            decoder, cdfs->rect_type[structure][rect_type_context], 2U);
+        if (av2h_range_status(decoder) != AV2H_OK) {
+            return av2h_range_status(decoder);
+        }
+        axis = value == 0U ? AV2H_PARTITION_HORIZONTAL
+                           : AV2H_PARTITION_VERTICAL;
+        decision->axis_implied = 0U;
+        status = av2h_partition_contexts_from_state(
+            state, structure, node, axis, &split_context,
+            &rect_type_context, &extension_context);
+        if (status != AV2H_OK) return status;
+        value = av2h_range_read_adaptive(
+            decoder,
+            cdfs->do_ext_partition[structure][extension_context], 2U);
+        if (av2h_range_status(decoder) != AV2H_OK) {
+            return av2h_range_status(decoder);
+        }
+        if (value != 0U) return AV2H_UNSUPPORTED;
+        decision->extension_implied = 0U;
+        decision->extension_context = extension_context;
+        decision->partition = axis == AV2H_PARTITION_HORIZONTAL
+            ? AV2H_PARTITION_HORZ : AV2H_PARTITION_VERT;
+        decision->after_bits = av2h_range_tell(decoder);
+        *child = node;
+        child->block_size = ordinary_subsize(
+            node.block_size, decision->partition);
+        return child->block_size == AV2H_BLOCK_INVALID
+            ? AV2H_UNSUPPORTED : AV2H_OK;
+    }
+    axis = implied_axis(node.block_size);
     status = av2h_partition_contexts_from_state(
         state, structure, node, AV2H_PARTITION_HORIZONTAL, &split_context,
         &rect_type_context, &extension_context);
@@ -960,6 +1019,7 @@ Av2hStatus av2h_partition_traversal_next(
         }
         status = av2h_partition_node_read_with_state(
             decoder, cdfs, state, traversal->structure, node,
+            traversal->mi_rows, traversal->mi_columns,
             traversal->enable_ext_partitions,
             traversal->enable_uneven_4way_partitions, &decision, &child);
         if (status != AV2H_OK) return status;

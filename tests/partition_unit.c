@@ -123,6 +123,7 @@ static void test_forced_geometry(void) {
     static const Av2hPartitionType odd_partitions[] = {
         AV2H_PARTITION_HORZ, AV2H_PARTITION_VERT, AV2H_PARTITION_HORZ
     };
+    Av2hForcedPartitionPath right_edge_path;
     size_t split_context;
     size_t rect_context;
     size_t extension_context;
@@ -132,6 +133,34 @@ static void test_forced_geometry(void) {
                       AV2H_BLOCK_32X16);
     check_forced_path(30U, 40U, 0, 0, 0U, AV2H_BLOCK_64X64);
     check_forced_path(20U, 24U, 0, 0, 0U, AV2H_BLOCK_64X64);
+
+        CHECK(av2h_partition_forced_path(
+              84U, 84U,
+              (Av2hPartitionNode){ 0U, 80U, AV2H_BLOCK_64X64 },
+              &right_edge_path) == AV2H_OK);
+        CHECK(right_edge_path.step_count == 1U);
+        CHECK(right_edge_path.next.row == 0U);
+        CHECK(right_edge_path.next.column == 80U);
+            CHECK(right_edge_path.next.block_size == AV2H_BLOCK_32X64);
+            CHECK(right_edge_path.steps[0].node.block_size == AV2H_BLOCK_64X64);
+            CHECK(right_edge_path.steps[0].partition == AV2H_PARTITION_VERT);
+    {
+        Av2hPartitionContextState contexts;
+        uint8_t luma_above[84U];
+        uint8_t luma_left[84U];
+        uint8_t chroma_above[84U];
+        uint8_t chroma_left[84U];
+        CHECK(av2h_partition_context_state_init(
+                  &contexts, luma_above, luma_left,
+                  chroma_above, chroma_left, 84U, 84U) == AV2H_OK);
+        CHECK(av2h_partition_contexts_from_state(
+                  &contexts, 0U,
+                  (Av2hPartitionNode){ 0U, 80U, AV2H_BLOCK_32X64 },
+                  AV2H_PARTITION_VERTICAL, &split_context, &rect_context,
+                  &extension_context) == AV2H_OK);
+        CHECK(split_context == 12U && rect_context == 16U &&
+              extension_context == 12U);
+    }
 
     CHECK(av2h_partition_contexts(AV2H_BLOCK_16X16, 0U, 0U, 0U, 0U,
               &split_context, &rect_context, &extension_context) == AV2H_OK);
@@ -214,9 +243,20 @@ static void check_first_leaf(const unsigned char *bytes,
               &traversal, mi_rows, mi_columns,
               (Av2hPartitionNode){ 0U, 0U, AV2H_BLOCK_64X64 }, 0U, 1U, 0U) ==
           AV2H_OK);
-    CHECK(av2h_partition_traversal_next(
-              &traversal, &decoder, &cdfs, &contexts, &path, &has_leaf) ==
-          AV2H_OK);
+    {
+        Av2hStatus traversal_status = av2h_partition_traversal_next(
+            &traversal, &decoder, &cdfs, &contexts, &path, &has_leaf);
+        if (traversal_status != AV2H_OK) {
+                fprintf(stderr,
+                    "partition fixture %ux%u status=%d node=%u/%u/%u tell=%lu\n",
+                    width, height, traversal_status,
+                    traversal.diagnostic_node.row,
+                    traversal.diagnostic_node.column,
+                    traversal.diagnostic_node.block_size,
+                    (unsigned long)traversal.diagnostic_before_bits);
+        }
+        CHECK(traversal_status == AV2H_OK);
+    }
     CHECK(has_leaf == 1U);
     CHECK(path.decision_count == count);
     CHECK(path.leaf.row == 0U && path.leaf.column == 0U);

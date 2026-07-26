@@ -236,6 +236,8 @@ Av2hStatus av2h_partition_node_read_with_state(
     const Av2hPartitionContextState *state,
     size_t structure,
     Av2hPartitionNode node,
+    uint16_t mi_rows,
+    uint16_t mi_columns,
     unsigned int enable_ext_partitions,
     unsigned int enable_uneven_4way_partitions,
     Av2hPartitionDecision *decision,
