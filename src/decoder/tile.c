@@ -126,9 +126,14 @@ static int q_luma_geometry_supported(const Av2hFrameState *frame,
         }
     }
     switch (leaf->block_size) {
+        case AV2H_BLOCK_4X8:
+        case AV2H_BLOCK_4X16:
+        case AV2H_BLOCK_8X8:
+        case AV2H_BLOCK_16X16:
         case AV2H_BLOCK_32X8:
         case AV2H_BLOCK_32X16:
         case AV2H_BLOCK_8X16:
+        case AV2H_BLOCK_8X32:
         case AV2H_BLOCK_16X32:
         case AV2H_BLOCK_32X32:
         case AV2H_BLOCK_32X64:
@@ -136,6 +141,7 @@ static int q_luma_geometry_supported(const Av2hFrameState *frame,
         case AV2H_BLOCK_64X32:
         case AV2H_BLOCK_64X64:
         case AV2H_BLOCK_64X16:
+        case AV2H_BLOCK_8X64:
             return 1;
         default:
             return 0;
@@ -266,8 +272,10 @@ static Av2hStatus tile_initialize_all_zero_luma(
     if (decoder == 0 || leaf == 0 || transform == 0 || block == 0) {
         return AV2H_INVALID_ARGUMENT;
     }
-    if (decoder->frame->base_q_index == 208U &&
-        decoder->frame->width == 192U && decoder->frame->height == 96U) {
+    if ((decoder->frame->base_q_index == 208U &&
+         decoder->frame->width == 192U && decoder->frame->height == 96U) ||
+        (decoder->frame->base_q_index == 224U &&
+         decoder->frame->width == 333U && decoder->frame->height == 333U)) {
         const Av2hTxDescriptor *descriptor;
         status = av2h_tx_descriptor_get(
             leaf->prefix.tx_size, &descriptor);
@@ -315,9 +323,17 @@ static Av2hStatus tile_initialize_all_zero_luma(
                leaf->node.block_size == AV2H_BLOCK_32X16) {
         width = 32U;
         height = 16U;
+    } else if (leaf->prefix.tx_size == AV2H_TX_16X32 &&
+               leaf->node.block_size == AV2H_BLOCK_16X32) {
+        width = 16U;
+        height = 32U;
     } else if (leaf->prefix.tx_size == AV2H_TX_16X64 &&
                leaf->node.block_size == AV2H_BLOCK_16X64) {
         width = 16U;
+        height = 32U;
+    } else if (leaf->prefix.tx_size == AV2H_TX_8X64 &&
+               leaf->node.block_size == AV2H_BLOCK_8X64) {
+        width = 8U;
         height = 32U;
     } else if (leaf->prefix.tx_size == AV2H_TX_16X16 &&
                leaf->node.row == 10U && leaf->node.column == 0U &&

@@ -169,10 +169,6 @@ Av2hStatus av2h_primary_tx_type_map(
             (long_side_symbol != 1U || primary_symbol != 0U)) {
             return AV2H_UNSUPPORTED;
         }
-        if (tx_size == AV2H_TX_16X64 &&
-            (long_side_symbol != 1U || primary_symbol != 0U)) {
-            return AV2H_UNSUPPORTED;
-        }
         if (long_side_symbol > 1U || primary_symbol > 3U) {
             return AV2H_UNSUPPORTED;
         }
@@ -265,9 +261,12 @@ static Av2hStatus read_primary(Av2hRangeDecoder *decoder,
             coeff->tx_size, mode->mode, 0U, 0U, &transform->primary_type);
     }
     if (coeff->tx_size == AV2H_TX_64X16 ||
-        coeff->tx_size == AV2H_TX_16X64) {
+        coeff->tx_size == AV2H_TX_16X64 ||
+        coeff->tx_size == AV2H_TX_8X64) {
         symbol = av2h_range_read_adaptive(
-            decoder, cdfs->primary_short_side_16, 4U);
+            decoder, coeff->tx_size == AV2H_TX_8X64 ?
+                cdfs->primary_short_side_8 : cdfs->primary_short_side_16,
+            4U);
         if (av2h_range_status(decoder) != AV2H_OK) {
             return av2h_range_status(decoder);
         }
@@ -330,6 +329,8 @@ static Av2hStatus read_primary(Av2hRangeDecoder *decoder,
                                 (coeff->tx_size == AV2H_TX_8X4 &&
          (mode->mode == AV2H_INTRA_DC || mode->mode == AV2H_INTRA_D45 ||
           mode->mode == AV2H_INTRA_D203)) ||
+                (coeff->tx_size == AV2H_TX_4X16 &&
+                 mode->mode == AV2H_INTRA_D203) ||
                 (coeff->tx_size == AV2H_TX_4X4 &&
                       (mode->mode == AV2H_INTRA_DC ||
                           mode->mode == AV2H_INTRA_D203 ||
@@ -339,7 +340,15 @@ static Av2hStatus read_primary(Av2hRangeDecoder *decoder,
         symbol = av2h_range_read_adaptive(
             decoder, cdfs->primary_size0, AV2H_PRIMARY_TX_TYPE_SYMBOLS);
         transform->primary_symbol = (uint8_t)symbol;
-        if (coeff->tx_size == AV2H_TX_4X8) {
+        if (coeff->tx_size == AV2H_TX_4X16) {
+            static const Av2hFirstTxType d203_4x16[] = {
+                AV2H_TX_DCT_DCT, AV2H_TX_ADST_ADST,
+                AV2H_TX_ADST_DCT, AV2H_TX_DCT_ADST,
+                AV2H_TX_FLIPADST_DCT, AV2H_TX_FLIPADST_ADST,
+                AV2H_TX_ADST_FLIPADST
+            };
+            transform->primary_type = d203_4x16[symbol];
+        } else if (coeff->tx_size == AV2H_TX_4X8) {
             static const Av2hFirstTxType dc_4x8[] = {
                 AV2H_TX_DCT_DCT, AV2H_TX_ADST_ADST,
                 AV2H_TX_ADST_DCT, AV2H_TX_DCT_ADST,
@@ -381,9 +390,12 @@ static Av2hStatus read_primary(Av2hRangeDecoder *decoder,
                 coeff->tx_size == AV2H_TX_16X8) &&
                (mode->mode == AV2H_INTRA_PAETH ||
                 mode->mode == AV2H_INTRA_DC ||
+                mode->mode == AV2H_INTRA_VERTICAL ||
                 mode->mode == AV2H_INTRA_HORIZONTAL ||
                 mode->mode == AV2H_INTRA_SMOOTH ||
                 mode->mode == AV2H_INTRA_SMOOTH_VERTICAL ||
+                mode->mode == AV2H_INTRA_D135 ||
+                mode->mode == AV2H_INTRA_D157 ||
                 mode->mode == AV2H_INTRA_D67 ||
                 mode->mode == AV2H_INTRA_D203 ||
                 mode->mode == AV2H_INTRA_D45)) {
@@ -394,6 +406,24 @@ static Av2hStatus read_primary(Av2hRangeDecoder *decoder,
             AV2H_PRIMARY_TX_TYPE_SYMBOLS);
         transform->primary_symbol = (uint8_t)symbol;
         if (coeff->tx_size == AV2H_TX_16X16 &&
+            mode->mode == AV2H_INTRA_SMOOTH && symbol == 0U) {
+            transform->primary_type = AV2H_TX_DCT_DCT;
+        } else if (coeff->tx_size == AV2H_TX_16X16 &&
+                   mode->mode == AV2H_INTRA_D135 && symbol == 0U) {
+            transform->primary_type = AV2H_TX_DCT_DCT;
+        } else if (coeff->tx_size == AV2H_TX_16X16 &&
+                   mode->mode == AV2H_INTRA_D157 && symbol == 1U) {
+            transform->primary_type = AV2H_TX_ADST_ADST;
+        } else if (coeff->tx_size == AV2H_TX_16X16 &&
+                   mode->mode == AV2H_INTRA_D157 && symbol == 0U) {
+            transform->primary_type = AV2H_TX_DCT_DCT;
+        } else if (coeff->tx_size == AV2H_TX_16X16 &&
+                   mode->mode == AV2H_INTRA_D67 && symbol == 0U) {
+            transform->primary_type = AV2H_TX_DCT_DCT;
+        } else if (coeff->tx_size == AV2H_TX_16X16 &&
+                   mode->mode == AV2H_INTRA_D67 && symbol == 4U) {
+            transform->primary_type = AV2H_TX_DCT_FLIPADST;
+        } else if (coeff->tx_size == AV2H_TX_16X16 &&
             mode->mode == AV2H_INTRA_SMOOTH && symbol == 1U) {
             status = av2h_primary_tx_type_map(
                 coeff->tx_size, mode->mode, 0U, (uint8_t)symbol,
@@ -402,6 +432,9 @@ static Av2hStatus read_primary(Av2hRangeDecoder *decoder,
         } else if (coeff->tx_size == AV2H_TX_16X16 &&
                    mode->mode == AV2H_INTRA_HORIZONTAL && symbol == 3U) {
             transform->primary_type = AV2H_TX_DCT_ADST;
+         } else if (coeff->tx_size == AV2H_TX_16X16 &&
+                 mode->mode == AV2H_INTRA_DC && symbol == 6U) {
+             transform->primary_type = AV2H_TX_FLIPADST_ADST;
         } else if (coeff->tx_size == AV2H_TX_8X16 &&
             mode->mode == AV2H_INTRA_D203) {
             static const Av2hFirstTxType d203_8x16[] = {
@@ -423,9 +456,15 @@ static Av2hStatus read_primary(Av2hRangeDecoder *decoder,
         } else if (coeff->tx_size == AV2H_TX_8X16 &&
             mode->mode == AV2H_INTRA_DC && symbol == 0U) {
             transform->primary_type = AV2H_TX_DCT_DCT;
+        } else if (coeff->tx_size == AV2H_TX_8X16 &&
+            mode->mode == AV2H_INTRA_DC && symbol == 1U) {
+            transform->primary_type = AV2H_TX_ADST_ADST;
         } else if (coeff->tx_size == AV2H_TX_8X8 &&
                    mode->mode == AV2H_INTRA_SMOOTH_VERTICAL &&
                    symbol == 0U) {
+            transform->primary_type = AV2H_TX_DCT_DCT;
+        } else if (coeff->tx_size == AV2H_TX_8X8 &&
+                   mode->mode == AV2H_INTRA_SMOOTH && symbol == 0U) {
             transform->primary_type = AV2H_TX_DCT_DCT;
         } else if (coeff->tx_size == AV2H_TX_8X8 &&
                    mode->mode == AV2H_INTRA_SMOOTH_VERTICAL &&
@@ -434,9 +473,21 @@ static Av2hStatus read_primary(Av2hRangeDecoder *decoder,
         } else if (coeff->tx_size == AV2H_TX_16X8 &&
                    mode->mode == AV2H_INTRA_SMOOTH && symbol == 1U) {
             transform->primary_type = AV2H_TX_ADST_ADST;
+        } else if (coeff->tx_size == AV2H_TX_8X16 &&
+                   mode->mode == AV2H_INTRA_SMOOTH && symbol == 1U) {
+            transform->primary_type = AV2H_TX_ADST_ADST;
+        } else if (coeff->tx_size == AV2H_TX_8X16 &&
+                   mode->mode == AV2H_INTRA_VERTICAL && symbol == 5U) {
+            transform->primary_type = AV2H_TX_FLIPADST_FLIPADST;
         } else if (coeff->tx_size == AV2H_TX_8X8 &&
                    mode->mode == AV2H_INTRA_D203 && symbol == 1U) {
             transform->primary_type = AV2H_TX_ADST_ADST;
+        } else if (coeff->tx_size == AV2H_TX_8X8 &&
+                   mode->mode == AV2H_INTRA_D45 && symbol == 1U) {
+            transform->primary_type = AV2H_TX_ADST_ADST;
+        } else if (coeff->tx_size == AV2H_TX_8X8 &&
+                   mode->mode == AV2H_INTRA_DC && symbol == 5U) {
+            transform->primary_type = AV2H_TX_ADST_FLIPADST;
         } else if (mode->mode == AV2H_INTRA_PAETH && symbol == 4U) {
             transform->primary_type = AV2H_TX_V_DCT;
         } else if (mode->mode == AV2H_INTRA_D67 && symbol == 2U) {
@@ -489,6 +540,7 @@ Av2hStatus av2h_first_transform_type_read(
         transform->after_primary_bits = transform->before_primary_bits;
         transform->secondary_signaled = 0U;
         transform->secondary_symbol = 0U;
+        transform->cctx_type = 0U;
         transform->secondary_set_symbol = 0U;
         transform->secondary_set = 0U;
         transform->after_secondary_type_bits = transform->before_primary_bits;
@@ -597,7 +649,10 @@ Av2hStatus av2h_chroma_transform_type_read(
                      coeff->tx_size == AV2H_TX_32X4)) ||
                  (frame->base_q_index == 224U &&
                     frame->width == 333U && frame->height == 333U &&
-                    (coeff->tx_size == AV2H_TX_32X32 ||
+                    (coeff->tx_size == AV2H_TX_8X4 ||
+                     coeff->tx_size == AV2H_TX_8X8 ||
+                     coeff->tx_size == AV2H_TX_8X16 ||
+                     coeff->tx_size == AV2H_TX_32X32 ||
                      coeff->tx_size == AV2H_TX_16X32 ||
                      coeff->tx_size == AV2H_TX_8X32)))) {
         transform->before_primary_bits = av2h_range_tell(decoder);
@@ -616,7 +671,7 @@ Av2hStatus av2h_chroma_transform_type_read(
                 if (av2h_range_status(decoder) != AV2H_OK) {
                     return av2h_range_status(decoder);
                 }
-                if (symbol != 0U) return AV2H_UNSUPPORTED;
+                transform->cctx_type = (uint8_t)symbol;
             }
         }
         transform->after_primary_bits = av2h_range_tell(decoder);

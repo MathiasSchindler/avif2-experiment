@@ -26,7 +26,11 @@ typedef struct {
     uint8_t predictor[AV2H_RECON_SAMPLE_CAPACITY];
     uint8_t above[128U];
     uint8_t left[128U];
+    uint8_t secondary_above[128U];
+    uint8_t secondary_left[128U];
 } Av2hReconstructionScratch;
+
+extern uint8_t av2h_debug_luma_reconstruct_stage;
 
 typedef struct {
     uint8_t *data;
@@ -45,6 +49,12 @@ typedef struct {
     size_t left_count;
     const uint8_t *above;
     size_t above_count;
+    const uint8_t *secondary_left;
+    size_t secondary_left_count;
+    const uint8_t *secondary_above;
+    size_t secondary_above_count;
+    uint8_t secondary_above_left;
+    uint8_t has_secondary_above_left;
     uint8_t above_left;
     uint8_t has_above_left;
     uint8_t above_negative[5U];

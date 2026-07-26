@@ -71,6 +71,11 @@ Av2hStatus av2h_first_coeff_cdfs_init_for_q(
             { 17710U, 7U, 0U }
         }
     };
+    static const Av2hBinaryCdfSpec q3_chroma_txb_skip_txs1[3U] = {
+        { 1317U, 0U, 0U },
+        { 5966U, 90U, 0U },
+        { 10326U, 75U, 0U }
+    };
     static const Av2hBinaryCdfSpec q3_chroma_v_txb_skip[12U] = {
         { 606U, 90U, 0U }, { 6309U, 0U, 0U },
         { 13697U, 1U, 0U }, { 801U, 10U, 0U },
@@ -81,6 +86,12 @@ Av2hStatus av2h_first_coeff_cdfs_init_for_q(
     };
     static const uint16_t q3_chroma_eob_pt_128[] = {
         23490U, 25861U, 30005U, 32096U, 32701U, 32720U, 32724U
+    };
+    static const uint16_t q3_chroma_eob_pt_32[] = {
+        26250U, 28453U, 31497U, 32596U, 32732U
+    };
+    static const uint16_t q3_chroma_eob_pt_64[] = {
+        24202U, 26714U, 30623U, 32371U, 32728U, 32732U
     };
     static const uint16_t q3_chroma_eob_pt_512[] = {
         22240U, 24551U, 29042U, 31545U, 32498U, 32720U, 32724U
@@ -166,6 +177,10 @@ Av2hStatus av2h_first_coeff_cdfs_init_for_q(
             cdfs->q3_chroma_txb_skip[1U][index],
             q3_chroma_txb_skip[1U][index]);
         if (status != AV2H_OK) return status;
+        status = av2h_binary_cdf_init(
+            cdfs->q3_chroma_txb_skip_txs1[index],
+            q3_chroma_txb_skip_txs1[index]);
+        if (status != AV2H_OK) return status;
     }
     for (index = 0U; index < 12U; ++index) {
         status = av2h_binary_cdf_init(
@@ -233,6 +248,14 @@ Av2hStatus av2h_first_coeff_cdfs_init_for_q(
         q3_chroma_eob_pt_128, 8U, 1U, 0U);
     if (status != AV2H_OK) return status;
     status = av2h_cdf_init(
+        cdfs->q3_chroma_eob_pt_32, 6U + 4U,
+        q3_chroma_eob_pt_32, 6U, 32U, 0U);
+    if (status != AV2H_OK) return status;
+    status = av2h_cdf_init(
+        cdfs->q3_chroma_eob_pt_64, 7U + 4U,
+        q3_chroma_eob_pt_64, 7U, 1U, 0U);
+    if (status != AV2H_OK) return status;
+    status = av2h_cdf_init(
         cdfs->q3_chroma_eob_pt_512, 8U + 4U,
         q3_chroma_eob_pt_512, 8U, 7U, 0U);
     if (status != AV2H_OK) return status;
@@ -271,11 +294,13 @@ static Av2hStatus derive_tx_size(Av2hBlockSize block_size,
         case AV2H_TX_32X64:
         case AV2H_TX_64X32:
         case AV2H_TX_64X64:
+        case AV2H_TX_4X16:
         case AV2H_TX_16X4:
         case AV2H_TX_8X32:
         case AV2H_TX_32X8:
         case AV2H_TX_16X64:
         case AV2H_TX_64X16:
+        case AV2H_TX_8X64:
             break;
         default:
             return AV2H_UNSUPPORTED;
@@ -648,12 +673,33 @@ Av2hStatus av2h_coeff_prefix_read(
                      leaf->row == 0U && leaf->column == 8U &&
                      mode->mode == AV2H_INTRA_HORIZONTAL &&
                        mode->angle_delta == 1 && mode->mrl_index == 0U &&
-                     mode->use_intrabc == 0U))) {
+                                         mode->use_intrabc == 0U) ||
+                                        (frame->base_q_index == 224U &&
+                                         frame->width == 333U && frame->height == 333U &&
+                                                                                 (((mode->mode == AV2H_INTRA_DC ||
+                                                                                        mode->mode == AV2H_INTRA_SMOOTH) &&
+                                                                                     mode->angle_delta == 0) ||
+                                                                                    (mode->mode == AV2H_INTRA_D135 &&
+                                                                                       mode->angle_delta == 1) ||
+                                                                                      (mode->mode == AV2H_INTRA_D157 &&
+                                                                                                                    mode->angle_delta == 2) ||
+                                                                                                                                                                                                                                    (mode->mode == AV2H_INTRA_D67 &&
+                                                                                                                                                                                                                                        (mode->angle_delta == 0 ||
+                                                                                                                                                                                                                                         mode->angle_delta == 1))) &&
+                                                                                                                                                                 (mode->mrl_index == 0U ||
+                                                                                                                                                                    (mode->mode == AV2H_INTRA_D157 &&
+                                                                                                                                                                     mode->angle_delta == 2 &&
+                                                                                                                                                                     mode->mrl_index == 2U)) &&
+                                         mode->enable_ibp == 1U && mode->use_intrabc == 0U))) {
         return AV2H_UNSUPPORTED;
     }
     if (cdfs->q_context != 1U &&
         prefix->tx_size != AV2H_TX_16X16 &&
+        prefix->tx_size != AV2H_TX_8X8 &&
+        prefix->tx_size != AV2H_TX_4X8 &&
+        prefix->tx_size != AV2H_TX_4X16 &&
         prefix->tx_size != AV2H_TX_8X16 &&
+        prefix->tx_size != AV2H_TX_8X32 &&
         prefix->tx_size != AV2H_TX_32X8 &&
         prefix->tx_size != AV2H_TX_16X32 &&
         prefix->tx_size != AV2H_TX_32X16 &&
@@ -662,7 +708,8 @@ Av2hStatus av2h_coeff_prefix_read(
         prefix->tx_size != AV2H_TX_64X32 &&
         prefix->tx_size != AV2H_TX_64X64 &&
         prefix->tx_size != AV2H_TX_16X64 &&
-        prefix->tx_size != AV2H_TX_64X16) {
+        prefix->tx_size != AV2H_TX_64X16 &&
+        prefix->tx_size != AV2H_TX_8X64) {
         return AV2H_UNSUPPORTED;
     }
     prefix->txb_skip_context = txb_skip_context;
@@ -797,6 +844,9 @@ Av2hStatus av2h_chroma_coeff_prefix_read(
             leaf->block_size, &descriptor);
         if (status != AV2H_OK) return status;
            if ((frame->base_q_index == 224U &&
+               descriptor->tx_size != AV2H_TX_8X4 &&
+               descriptor->tx_size != AV2H_TX_8X8 &&
+               descriptor->tx_size != AV2H_TX_8X16 &&
                descriptor->tx_size != AV2H_TX_32X32 &&
                descriptor->tx_size != AV2H_TX_16X32 &&
                descriptor->tx_size != AV2H_TX_8X32) ||
@@ -811,24 +861,33 @@ Av2hStatus av2h_chroma_coeff_prefix_read(
         prefix->tx_size_context = descriptor->tx_size_context;
         if (plane == 1U) {
             if (txb_skip_context < 6U || txb_skip_context > 8U ||
-                (prefix->tx_size_context != 2U &&
+                (prefix->tx_size_context != 1U &&
+                 prefix->tx_size_context != 2U &&
                  prefix->tx_size_context != 3U)) {
                 return AV2H_UNSUPPORTED;
             }
-            skip_cdf = cdfs->q3_chroma_txb_skip[
-                prefix->tx_size_context - 2U][txb_skip_context - 6U];
+            skip_cdf = prefix->tx_size_context == 1U ?
+                cdfs->q3_chroma_txb_skip_txs1[txb_skip_context - 6U] :
+                cdfs->q3_chroma_txb_skip[
+                    prefix->tx_size_context - 2U][txb_skip_context - 6U];
         } else {
             if (txb_skip_context >= 12U) return AV2H_UNSUPPORTED;
             skip_cdf = cdfs->q3_chroma_v_txb_skip[txb_skip_context];
         }
-        if (descriptor->eob_class == AV2H_TX_EOB_128) {
+        if (descriptor->eob_class == AV2H_TX_EOB_32) {
+            eob_cdf = cdfs->q3_chroma_eob_pt_32;
+            eob_symbols = 6U;
+        } else if (descriptor->eob_class == AV2H_TX_EOB_64) {
+            eob_cdf = cdfs->q3_chroma_eob_pt_64;
+            eob_symbols = 7U;
+        } else if (descriptor->eob_class == AV2H_TX_EOB_128) {
             eob_cdf = cdfs->q3_chroma_eob_pt_128;
         } else if (descriptor->eob_class == AV2H_TX_EOB_512) {
             eob_cdf = cdfs->q3_chroma_eob_pt_512;
         } else if (descriptor->eob_class == AV2H_TX_EOB_1024) {
             eob_cdf = cdfs->q3_chroma_eob_pt_1024;
         }
-        eob_symbols = 8U;
+        if (eob_symbols == 0U) eob_symbols = 8U;
     } else if (frame->base_q_index == 128U &&
                (leaf->block_size == AV2H_BLOCK_8X8 ||
                 leaf->block_size == AV2H_BLOCK_8X16)) {

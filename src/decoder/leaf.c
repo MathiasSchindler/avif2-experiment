@@ -272,6 +272,8 @@ Av2hStatus av2h_chroma_mode_read_with_delta(
     mode->cfl_index = 0U;
     mode->cfl_mhccp_switch = 0U;
     mode->mhccp_direction = 0U;
+    mode->cfl_downsample_filter_index =
+        sequence->cfl_downsample_filter_index;
     mode->cfl_derived_alpha = 0U;
     mode->explicit_alpha_coded = 0U;
     mode->cfl_kind = AV2H_CFL_NONE;

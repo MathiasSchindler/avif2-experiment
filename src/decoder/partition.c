@@ -1,5 +1,8 @@
 #include "partition.h"
 
+uint8_t av2h_debug_partition_stage;
+Av2hPartitionNode av2h_debug_partition_node;
+
 typedef struct {
     uint8_t mi_width;
     uint8_t mi_height;
@@ -155,6 +158,12 @@ static int uneven_4way_is_allowed(Av2hBlockSize block_size,
             (structure == 0U || block_size >= AV2H_BLOCK_16X64);
     }
     if (!size_allowed) return 0;
+    if ((axis == AV2H_PARTITION_HORIZONTAL &&
+         geometry->mi_height < geometry->mi_width) ||
+        (axis == AV2H_PARTITION_VERTICAL &&
+         geometry->mi_width < geometry->mi_height)) {
+        return 0;
+    }
     return axis == AV2H_PARTITION_HORIZONTAL
         ? geometry->mi_height >= 8U
         : geometry->mi_width >= 8U;
@@ -670,7 +679,11 @@ Av2hStatus av2h_partition_node_read_for_structure(
         if (av2h_range_status(decoder) != AV2H_OK) {
             return av2h_range_status(decoder);
         }
-        if (value != 0U) return AV2H_UNSUPPORTED;
+        if (value != 0U) {
+            av2h_debug_partition_stage = 1U;
+            av2h_debug_partition_node = node;
+            return AV2H_UNSUPPORTED;
+        }
     }
     decision->partition = axis == AV2H_PARTITION_HORIZONTAL
         ? AV2H_PARTITION_HORZ : AV2H_PARTITION_VERT;
@@ -760,7 +773,42 @@ Av2hStatus av2h_partition_node_read_with_state(
         if (av2h_range_status(decoder) != AV2H_OK) {
             return av2h_range_status(decoder);
         }
-        if (value != 0U) return AV2H_UNSUPPORTED;
+        if (value != 0U) {
+            if (enable_uneven_4way_partitions &&
+                uneven_4way_is_allowed(node.block_size, axis, structure)) {
+                value = av2h_range_read_adaptive(
+                    decoder,
+                    cdfs->do_uneven_4way_partition[structure]
+                                                       [extension_context],
+                    2U);
+                if (av2h_range_status(decoder) != AV2H_OK) {
+                    return av2h_range_status(decoder);
+                }
+                if (value != 0U) {
+                    uint32_t uneven_type =
+                        av2h_range_read_bypass(decoder, 1U);
+                    if (av2h_range_status(decoder) != AV2H_OK) {
+                        return av2h_range_status(decoder);
+                    }
+                    decision->partition =
+                        axis == AV2H_PARTITION_HORIZONTAL ?
+                            (uneven_type == 0U ?
+                                AV2H_PARTITION_HORZ_4A :
+                                AV2H_PARTITION_HORZ_4B) :
+                            (uneven_type == 0U ?
+                                AV2H_PARTITION_VERT_4A :
+                                AV2H_PARTITION_VERT_4B);
+                    decision->after_bits = av2h_range_tell(decoder);
+                    *child = node;
+                    return AV2H_OK;
+                }
+            }
+            decision->partition = axis == AV2H_PARTITION_HORIZONTAL ?
+                AV2H_PARTITION_HORZ_3 : AV2H_PARTITION_VERT_3;
+            decision->after_bits = av2h_range_tell(decoder);
+            *child = node;
+            return AV2H_OK;
+        }
         decision->extension_implied = 0U;
         decision->extension_context = extension_context;
         decision->partition = axis == AV2H_PARTITION_HORIZONTAL
@@ -829,7 +877,20 @@ Av2hStatus av2h_partition_node_read_with_state(
                 if (av2h_range_status(decoder) != AV2H_OK) {
                     return av2h_range_status(decoder);
                 }
-                if (value != 0U) return AV2H_UNSUPPORTED;
+                if (value != 0U) {
+                    uint32_t uneven_type = av2h_range_read_bypass(decoder, 1U);
+                    if (av2h_range_status(decoder) != AV2H_OK) {
+                        return av2h_range_status(decoder);
+                    }
+                    decision->partition = axis == AV2H_PARTITION_HORIZONTAL ?
+                        (uneven_type == 0U ? AV2H_PARTITION_HORZ_4A :
+                                             AV2H_PARTITION_HORZ_4B) :
+                        (uneven_type == 0U ? AV2H_PARTITION_VERT_4A :
+                                             AV2H_PARTITION_VERT_4B);
+                    decision->after_bits = av2h_range_tell(decoder);
+                    *child = node;
+                    return AV2H_OK;
+                }
             }
             decision->partition = axis == AV2H_PARTITION_HORIZONTAL
                 ? AV2H_PARTITION_HORZ_3 : AV2H_PARTITION_VERT_3;
@@ -856,6 +917,56 @@ static Av2hStatus traversal_push_children(
     Av2hPartitionNode second = node;
     size_t width;
     size_t height;
+    if (partition == AV2H_PARTITION_HORZ_4A ||
+        partition == AV2H_PARTITION_HORZ_4B ||
+        partition == AV2H_PARTITION_VERT_4A ||
+        partition == AV2H_PARTITION_VERT_4B) {
+        static const uint8_t ratios[2U][4U] = {
+            { 1U, 2U, 4U, 1U },
+            { 1U, 4U, 2U, 1U }
+        };
+        Av2hPartitionNode children[4U];
+        const uint8_t *partition_ratios = ratios[
+            partition == AV2H_PARTITION_HORZ_4B ||
+            partition == AV2H_PARTITION_VERT_4B ? 1U : 0U];
+        uint8_t mi_width = block_geometry[node.block_size].mi_width;
+        uint8_t mi_height = block_geometry[node.block_size].mi_height;
+        uint16_t offset = 0U;
+        size_t index;
+        int horizontal = partition == AV2H_PARTITION_HORZ_4A ||
+                         partition == AV2H_PARTITION_HORZ_4B;
+        if (traversal->stack_count + 4U >
+                AV2H_MAX_PARTITION_TRAVERSAL_NODES ||
+            (horizontal ? mi_height : mi_width) % 8U != 0U) {
+            return traversal->stack_count + 4U >
+                    AV2H_MAX_PARTITION_TRAVERSAL_NODES ?
+                AV2H_OVERFLOW : AV2H_UNSUPPORTED;
+        }
+        for (index = 0U; index < 4U; ++index) {
+            uint8_t child_width = horizontal ? mi_width :
+                (uint8_t)((mi_width / 8U) * partition_ratios[index]);
+            uint8_t child_height = horizontal ?
+                (uint8_t)((mi_height / 8U) * partition_ratios[index]) :
+                mi_height;
+            children[index] = node;
+            children[index].block_size = block_size_from_dimensions(
+                child_width, child_height);
+            if (children[index].block_size == AV2H_BLOCK_INVALID) {
+                return AV2H_UNSUPPORTED;
+            }
+            if (horizontal) {
+                children[index].row = (uint16_t)(node.row + offset);
+                offset = (uint16_t)(offset + child_height);
+            } else {
+                children[index].column = (uint16_t)(node.column + offset);
+                offset = (uint16_t)(offset + child_width);
+            }
+        }
+        for (index = 4U; index != 0U; --index) {
+            traversal->stack[traversal->stack_count++] = children[index - 1U];
+        }
+        return AV2H_OK;
+    }
     if (partition == AV2H_PARTITION_HORZ_3 ||
         partition == AV2H_PARTITION_VERT_3) {
         Av2hPartitionNode children[4U];
@@ -1022,7 +1133,11 @@ Av2hStatus av2h_partition_traversal_next(
             traversal->mi_rows, traversal->mi_columns,
             traversal->enable_ext_partitions,
             traversal->enable_uneven_4way_partitions, &decision, &child);
-        if (status != AV2H_OK) return status;
+        if (status != AV2H_OK) {
+            av2h_debug_partition_stage = 2U;
+            av2h_debug_partition_node = node;
+            return status;
+        }
         status = append_decision(
             path, decision.node, decision.partition, decision.forced,
             decision.axis_implied, decision.extension_implied,
@@ -1037,7 +1152,12 @@ Av2hStatus av2h_partition_traversal_next(
         }
         status = traversal_push_children(
             traversal, node, decision.partition);
-        if (status != AV2H_OK) return status;
+        if (status != AV2H_OK) {
+            av2h_debug_partition_stage =
+                (uint8_t)(32U + decision.partition);
+            av2h_debug_partition_node = node;
+            return status;
+        }
     }
     return AV2H_OK;
 }

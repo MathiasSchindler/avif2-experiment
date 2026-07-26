@@ -56,6 +56,7 @@ typedef struct {
     uint8_t secondary_symbol;
     uint8_t secondary_set_symbol;
     uint8_t secondary_set;
+    uint8_t cctx_type;
     size_t before_primary_bits;
     size_t after_primary_bits;
     size_t after_secondary_type_bits;

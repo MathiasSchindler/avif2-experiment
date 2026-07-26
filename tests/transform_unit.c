@@ -211,6 +211,8 @@ static void test_emerald_primary_mappings(void) {
                       AV2H_TX_DCT_DCT);
     check_primary_map(AV2H_TX_16X64, AV2H_INTRA_D157, 1U, 0U,
                       AV2H_TX_DCT_DCT);
+    check_primary_map(AV2H_TX_16X64, AV2H_INTRA_SMOOTH, 1U, 1U,
+                      AV2H_TX_DCT_ADST);
     check_primary_map(AV2H_TX_64X16, AV2H_INTRA_SMOOTH_HORIZONTAL, 1U, 0U,
                       AV2H_TX_DCT_DCT);
     check_primary_map(AV2H_TX_16X16, AV2H_INTRA_SMOOTH, 0U, 1U,
@@ -218,9 +220,6 @@ static void test_emerald_primary_mappings(void) {
 
     CHECK(av2h_primary_tx_type_map(
               AV2H_TX_32X16, AV2H_INTRA_HORIZONTAL, 1U, 1U, &tx_type) ==
-          AV2H_UNSUPPORTED);
-    CHECK(av2h_primary_tx_type_map(
-              AV2H_TX_16X64, AV2H_INTRA_D157, 1U, 1U, &tx_type) ==
           AV2H_UNSUPPORTED);
     CHECK(av2h_primary_tx_type_map(
               AV2H_TX_64X32, AV2H_INTRA_DC, 1U, 0U, &tx_type) ==

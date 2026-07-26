@@ -7,11 +7,25 @@
 
 typedef struct {
     uint16_t eob_base[7U][3U + 4U];
+    uint16_t q3_eob_base_txs1_ctx3[3U + 4U];
+    uint16_t q3_eob_base_txs2_ctx2[3U + 4U];
     uint16_t q3_eob_base_txs4_ctx1[3U + 4U];
     uint16_t eob_lf[10U][5U + 4U];
+    uint16_t q3_eob_lf_txs3_ctx2[5U + 4U];
     uint16_t q3_eob_lf_txs4_ctx0[5U + 4U];
     uint16_t q3_eob_lf_txs4_ctx1[5U + 4U];
     uint16_t base[40U][4U + 4U];
+    uint16_t q3_base_txs1_ctx0[4U + 4U];
+    uint16_t q3_base_txs1_ctx1[4U + 4U];
+    uint16_t q3_base_txs1_ctx5[4U + 4U];
+    uint16_t q3_base_txs1_ctx6[4U + 4U];
+    uint16_t q3_base_txs1_ctx7[4U + 4U];
+    uint16_t q3_base_txs1_ctx10[4U + 4U];
+    uint16_t q3_base_txs1_ctx11[4U + 4U];
+    uint16_t q3_base_txs2_ctx5[4U + 4U];
+    uint16_t q3_base_txs2_ctx6[4U + 4U];
+    uint16_t q3_base_txs2_ctx10[4U + 4U];
+    uint16_t q3_base_txs2_ctx11[4U + 4U];
     uint16_t q3_base_txs4_ctx0[4U + 4U];
     uint16_t q3_base_txs4_ctx1[4U + 4U];
     uint16_t q3_base_txs4_ctx2[4U + 4U];
@@ -20,9 +34,20 @@ typedef struct {
     uint16_t q3_base_txs4_ctx10[4U + 4U];
     uint16_t q3_base_txs4_ctx11[4U + 4U];
     uint16_t base_lf[66U][6U + 4U];
+    uint16_t q3_base_lf_txs1_ctx0[6U + 4U];
+    uint16_t q3_base_lf_txs1_ctx1[6U + 4U];
+    uint16_t q3_base_lf_txs1_ctx3[6U + 4U];
+    uint16_t q3_base_lf_txs1_ctx9[6U + 4U];
+    uint16_t q3_base_lf_txs1_ctx10[6U + 4U];
+    uint16_t q3_base_lf_txs1_ctx11[6U + 4U];
+    uint16_t q3_base_lf_txs1_ctx16[6U + 4U];
+    uint16_t q3_base_lf_txs1_ctx17[6U + 4U];
+    uint16_t q3_base_lf_txs1_ctx18[6U + 4U];
     uint16_t q2_base_lf_txs3_ctx1[6U + 4U];
+    uint16_t q3_base_lf_txs2_ctx11[6U + 4U];
     uint16_t q3_base_lf_txs3_ctx1[6U + 4U];
     uint16_t q3_base_lf_txs3_ctx3[6U + 4U];
+    uint16_t q3_base_lf_txs2_ctx4[6U + 4U];
     uint16_t q3_base_lf_txs4_ctx3[6U + 4U];
     uint16_t q3_base_lf_txs4_ctx1[6U + 4U];
     uint16_t q3_base_lf_txs4_ctx2[6U + 4U];
@@ -36,6 +61,7 @@ typedef struct {
     uint16_t q3_base_lf_txs4_ctx19[6U + 4U];
     uint16_t br[7U][4U + 4U];
     uint16_t br_lf[12U][4U + 4U];
+    uint16_t q3_br_lf_ctx3[4U + 4U];
     uint16_t dc_sign[3U][AV2H_BINARY_CDF_SIZE];
     uint16_t fsc_bob[3U][3U + 4U];
     uint16_t fsc_base[7U][4U + 4U];
