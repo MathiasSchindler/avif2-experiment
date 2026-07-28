@@ -11,6 +11,14 @@ extern uint32_t av2h_debug_use_intrabc[10U];
 extern uint32_t av2h_debug_mode_ranges[6U];
 extern uint32_t av2h_debug_mrl_state[10U];
 extern uint32_t av2h_debug_y_mode_context;
+extern uint16_t av2h_debug_y_mode_set_cdf[8U];
+extern uint16_t av2h_debug_y_mode_index_cdf[12U];
+extern uint32_t av2h_debug_y_mode_range;
+extern uint16_t av2h_debug_ccso_cdf[4U];
+extern uint32_t av2h_debug_ccso_range_before;
+extern uint32_t av2h_debug_ccso_range_after;
+extern uint32_t av2h_debug_ccso_context;
+extern uint8_t av2h_debug_luma_mode_neighbors[4U];
 
 #define AV2H_INTRABC_CONTEXT_COUNT 3U
 #define AV2H_CCSO_CONTEXT_COUNT 4U
@@ -330,6 +338,16 @@ Av2hStatus av2h_chroma_mode_read_with_delta(
     int8_t colocated_luma_delta,
     Av2hBlockSize block_size,
     uint8_t cfl_context,
+    Av2hFirstChromaMode *mode);
+Av2hStatus av2h_chroma_mode_read_with_delta_for_sdp(
+    Av2hRangeDecoder *decoder,
+    Av2hLeafCdfs *cdfs,
+    const Av2hSequenceState *sequence,
+    Av2hFirstLeafIntraMode colocated_luma_mode,
+    int8_t colocated_luma_delta,
+    Av2hBlockSize block_size,
+    uint8_t cfl_context,
+    uint8_t cfl_allowed,
     Av2hFirstChromaMode *mode);
 
 #endif

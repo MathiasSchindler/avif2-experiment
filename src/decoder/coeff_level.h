@@ -6,6 +6,8 @@
 extern uint32_t av2h_debug_target_base[5U][10U];
 extern uint8_t av2h_debug_target_base_count;
 extern uint32_t av2h_debug_target_eob[10U];
+extern uint32_t av2h_debug_target_sign[2U][7U];
+extern uint8_t av2h_debug_target_sign_count;
 
 #define AV2H_FIRST_COEFF_CAPACITY 1024U
 

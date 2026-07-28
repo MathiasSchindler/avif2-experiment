@@ -11,6 +11,7 @@ uint32_t av2h_debug_partition_split_value;
 uint32_t av2h_debug_partition_range_before;
 uint32_t av2h_debug_partition_value_before;
 int64_t av2h_debug_partition_available_before;
+Av2hFirstLeafPath av2h_debug_partition_path;
 
 typedef struct {
     uint8_t mi_width;
@@ -220,12 +221,12 @@ static Av2hPartitionAxis partial_boundary_axis(
         (size_t)node.row + geometry->mi_height / 2U < mi_rows;
     unsigned int has_columns =
         (size_t)node.column + geometry->mi_width / 2U < mi_columns;
-    if (geometry->mi_height > geometry->mi_width && has_rows &&
-        !has_columns) {
+    if (geometry->mi_height > geometry->mi_width &&
+        geometry->mi_width >= 4U && has_rows && !has_columns) {
         return AV2H_PARTITION_VERTICAL;
     }
-    if (geometry->mi_width > geometry->mi_height && !has_rows &&
-        has_columns) {
+    if (geometry->mi_width > geometry->mi_height &&
+        geometry->mi_height >= 4U && !has_rows && has_columns) {
         return AV2H_PARTITION_HORIZONTAL;
     }
     return (Av2hPartitionAxis)255;
@@ -834,7 +835,10 @@ Av2hStatus av2h_partition_node_read_with_state(
         state, structure, node, AV2H_PARTITION_HORIZONTAL, &split_context,
         &rect_type_context, &extension_context);
     if (status != AV2H_OK) return status;
-    if (structure == 0U && node.block_size == AV2H_BLOCK_64X64) {
+    if ((structure == 0U || structure == 1U) &&
+        (node.block_size == AV2H_BLOCK_64X64 ||
+         (node.row == 26U && node.column == 80U &&
+          node.block_size == AV2H_BLOCK_32X8))) {
         av2h_debug_partition_split_context = split_context;
         av2h_debug_partition_before_bits = av2h_range_tell(decoder);
         av2h_debug_partition_cdf_before =
@@ -845,7 +849,10 @@ Av2hStatus av2h_partition_node_read_with_state(
     }
     value = av2h_range_read_adaptive(
         decoder, cdfs->do_split[structure][split_context], 2U);
-    if (structure == 0U && node.block_size == AV2H_BLOCK_64X64) {
+    if ((structure == 0U || structure == 1U) &&
+        (node.block_size == AV2H_BLOCK_64X64 ||
+         (node.row == 26U && node.column == 80U &&
+          node.block_size == AV2H_BLOCK_32X8))) {
         av2h_debug_partition_split_value = value;
         av2h_debug_partition_after_bits = av2h_range_tell(decoder);
         av2h_debug_partition_cdf_after =
@@ -1147,6 +1154,7 @@ Av2hStatus av2h_partition_traversal_next(
         }
         if (!is_partition_point(node.block_size)) {
             path->leaf = node;
+            av2h_debug_partition_path = *path;
             traversal->pending_leaf = node;
             traversal->has_pending_leaf = 1U;
             *has_leaf = 1U;
@@ -1169,6 +1177,7 @@ Av2hStatus av2h_partition_traversal_next(
         if (status != AV2H_OK) return status;
         if (decision.partition == AV2H_PARTITION_NONE) {
             path->leaf = child;
+            av2h_debug_partition_path = *path;
             traversal->pending_leaf = child;
             traversal->has_pending_leaf = 1U;
             *has_leaf = 1U;

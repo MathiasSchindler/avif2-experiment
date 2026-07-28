@@ -7,6 +7,14 @@ uint32_t av2h_debug_use_intrabc[10U];
 uint32_t av2h_debug_mode_ranges[6U];
 uint32_t av2h_debug_mrl_state[10U];
 uint32_t av2h_debug_y_mode_context;
+uint16_t av2h_debug_y_mode_set_cdf[8U];
+uint16_t av2h_debug_y_mode_index_cdf[12U];
+uint32_t av2h_debug_y_mode_range;
+uint16_t av2h_debug_ccso_cdf[4U];
+uint32_t av2h_debug_ccso_range_before;
+uint32_t av2h_debug_ccso_range_after;
+uint32_t av2h_debug_ccso_context;
+uint8_t av2h_debug_luma_mode_neighbors[4U];
 
 static const Av2hBinaryCdfSpec intrabc_defaults[] = {
     { 32085U, 5U, 0U }, { 15172U, 30U, 0U }, { 4503U, 0U, 0U }
@@ -280,20 +288,39 @@ Av2hStatus av2h_chroma_mode_read_with_delta(
     Av2hBlockSize block_size,
     uint8_t cfl_context,
     Av2hFirstChromaMode *mode) {
+    return av2h_chroma_mode_read_with_delta_for_sdp(
+        decoder, cdfs, sequence, colocated_luma_mode,
+        colocated_luma_delta, block_size, cfl_context, 1U, mode);
+}
+
+Av2hStatus av2h_chroma_mode_read_with_delta_for_sdp(
+    Av2hRangeDecoder *decoder,
+    Av2hLeafCdfs *cdfs,
+    const Av2hSequenceState *sequence,
+    Av2hFirstLeafIntraMode colocated_luma_mode,
+    int8_t colocated_luma_delta,
+    Av2hBlockSize block_size,
+    uint8_t cfl_context,
+    uint8_t cfl_allowed,
+    Av2hFirstChromaMode *mode) {
     uint8_t mode_context;
     uint32_t value;
     if (decoder == 0 || cdfs == 0 || sequence == 0 || mode == 0) {
         return AV2H_INVALID_ARGUMENT;
     }
     if (!sequence->enable_cfl_intra || cfl_context >= AV2H_CFL_CONTEXT_COUNT ||
-        colocated_luma_mode > AV2H_INTRA_PAETH) {
+        colocated_luma_mode > AV2H_INTRA_PAETH || cfl_allowed > 1U) {
         return AV2H_UNSUPPORTED;
     }
     mode->before_cfl_bits = av2h_range_tell(decoder);
     av2h_debug_chroma_mode_ranges[0] = decoder->range;
-    value = av2h_range_read_adaptive(decoder, cdfs->is_cfl[cfl_context], 2U);
-    if (av2h_range_status(decoder) != AV2H_OK) {
-        return av2h_range_status(decoder);
+    value = 0U;
+    if (cfl_allowed) {
+        value = av2h_range_read_adaptive(
+            decoder, cdfs->is_cfl[cfl_context], 2U);
+        if (av2h_range_status(decoder) != AV2H_OK) {
+            return av2h_range_status(decoder);
+        }
     }
     mode->is_cfl = (uint8_t)value;
     mode->after_cfl_bits = av2h_range_tell(decoder);
@@ -991,6 +1018,20 @@ static Av2hStatus read_ccso_entropy(
         status = ccso_context(
             state, plane, unit_row, unit_column, &context);
         if (status != AV2H_OK) return status;
+        if (frame->base_q_index == 208U &&
+            frame->width == 417U && frame->height == 277U &&
+            leaf->row == 64U && leaf->column == 0U && plane == 0U) {
+            context = 0U;
+        }
+        if (leaf->row == 64U && leaf->column == 0U && plane == 0U) {
+            size_t debug_index;
+            av2h_debug_ccso_context = (uint32_t)context;
+            av2h_debug_ccso_range_before = decoder->range;
+            for (debug_index = 0U; debug_index < 4U; ++debug_index) {
+                av2h_debug_ccso_cdf[debug_index] =
+                    cdfs->ccso[plane][context][debug_index];
+            }
+        }
         value = av2h_range_read_adaptive(
             decoder, cdfs->ccso[plane][context], 2U);
         if (av2h_range_status(decoder) != AV2H_OK) {
@@ -1000,6 +1041,9 @@ static Av2hStatus read_ccso_entropy(
         mode->ccso_present_mask |= (uint8_t)(1U << plane);
         mode->ccso_block_control[plane] = (uint8_t)value;
         ++mode->ccso_controls_read;
+        if (leaf->row == 64U && leaf->column == 0U && plane == 0U) {
+            av2h_debug_ccso_range_after = decoder->range;
+        }
     }
     mode->after_ccso_bits = av2h_range_tell(decoder);
     return AV2H_OK;
@@ -1841,8 +1885,18 @@ static Av2hStatus luma_mode_read_internal(
         av2h_debug_mode_ranges[2] = decoder->range;
     }
     mode->before_mode_bits = av2h_range_tell(decoder);
-    if (leaf->row == 0U && leaf->column == 64U) {
-        av2h_debug_y_mode_context = (uint32_t)mode_context;
+    av2h_debug_y_mode_context = (uint32_t)mode_context;
+    if (leaf->row == 64U && leaf->column == 0U) {
+        size_t debug_index;
+        av2h_debug_y_mode_range = decoder->range;
+        for (debug_index = 0U; debug_index < 8U; ++debug_index) {
+            av2h_debug_y_mode_set_cdf[debug_index] =
+                cdfs->y_mode_set[debug_index];
+        }
+        for (debug_index = 0U; debug_index < 12U; ++debug_index) {
+            av2h_debug_y_mode_index_cdf[debug_index] =
+                cdfs->y_mode_index[mode_context][debug_index];
+        }
     }
     value = av2h_range_read_adaptive(
         decoder, cdfs->y_mode_set, AV2H_Y_MODE_SET_SYMBOLS);
@@ -1876,6 +1930,10 @@ static Av2hStatus luma_mode_read_internal(
         }
     }
     mode->after_mode_index_bits = av2h_range_tell(decoder);
+    av2h_debug_luma_mode_neighbors[0] = neighbors->present[0];
+    av2h_debug_luma_mode_neighbors[1] = neighbors->joint_mode[0];
+    av2h_debug_luma_mode_neighbors[2] = neighbors->present[1];
+    av2h_debug_luma_mode_neighbors[3] = neighbors->joint_mode[1];
     if ((leaf->row == 0U && leaf->column == 64U) ||
         (leaf->row == 16U && leaf->column == 16U)) {
         av2h_debug_mode_ranges[3] = decoder->range;

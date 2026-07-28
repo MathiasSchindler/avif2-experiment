@@ -600,7 +600,8 @@ static Av2hStatus decode_eob(Av2hRangeDecoder *decoder,
     if (prefix->tx_size == AV2H_TX_32X8 ||
         prefix->tx_size == AV2H_TX_16X16 ||
         prefix->tx_size == AV2H_TX_32X16 ||
-        prefix->tx_size == AV2H_TX_32X32) {
+        prefix->tx_size == AV2H_TX_32X32 ||
+        prefix->tx_size == AV2H_TX_64X32) {
         size_t debug_index;
         size_t debug_count = prefix->tx_size == AV2H_TX_16X16 ? 9U : 12U;
         for (debug_index = 0U; debug_index < debug_count; ++debug_index) {
@@ -709,35 +710,64 @@ Av2hStatus av2h_coeff_prefix_read(
                      frame->width == 417U && frame->height == 277U &&
                      (mode->mode == AV2H_INTRA_DC ||
                       mode->mode == AV2H_INTRA_HORIZONTAL ||
+                      mode->mode == AV2H_INTRA_D45 ||
                       mode->mode == AV2H_INTRA_D157 ||
                       (mode->mode == AV2H_INTRA_D203 &&
-                       mode->angle_delta == -2) ||
+                                             (mode->angle_delta == -2 ||
+                                                                mode->angle_delta == -1 ||
+                                                                mode->angle_delta == 2)) ||
                       mode->mode == AV2H_INTRA_SMOOTH ||
+                      mode->mode == AV2H_INTRA_SMOOTH_VERTICAL ||
                       mode->mode == AV2H_INTRA_PAETH ||
                                             mode->mode == AV2H_INTRA_SMOOTH_HORIZONTAL ||
                                             (mode->mode == AV2H_INTRA_VERTICAL &&
-                                                                                         (mode->angle_delta == 2 ||
+                                                                                                                      (mode->angle_delta == -2 ||
+                                                                                                                          mode->angle_delta == 2 ||
                                                                                             mode->angle_delta == 3)) ||
                                             (mode->mode == AV2H_INTRA_D113 &&
-                                             mode->angle_delta == -3) ||
+                                                                                         (mode->angle_delta == -3 ||
+                                                                                            mode->angle_delta == 0)) ||
                                             (mode->mode == AV2H_INTRA_D67 &&
-                                             mode->angle_delta == -3)) &&
+                                                                                         (mode->angle_delta == -3 ||
+                                                                                            mode->angle_delta == -2))) &&
                                          (mode->angle_delta == 0 ||
+                                            (mode->mode == AV2H_INTRA_D45 &&
+                                             mode->angle_delta == -1) ||
+                                            (mode->mode ==
+                                                 AV2H_INTRA_HORIZONTAL &&
+                                             (mode->angle_delta == -3 ||
+                                              mode->angle_delta == -2 ||
+                                                                                            mode->angle_delta == 1 ||
+                                                                                            mode->angle_delta == 2)) ||
                                             mode->mode == AV2H_INTRA_D113 ||
                                             mode->mode == AV2H_INTRA_D67 ||
                                             (mode->mode == AV2H_INTRA_D157 &&
                                                                                          (mode->angle_delta == -1 ||
                                                                                             mode->angle_delta == 3)) ||
                                             (mode->mode == AV2H_INTRA_D203 &&
-                                             mode->angle_delta == -2) ||
+                                                                                         (mode->angle_delta == -2 ||
+                                                                                                                          mode->angle_delta == -1 ||
+                                                                                                                          mode->angle_delta == 2)) ||
                                             (mode->mode == AV2H_INTRA_VERTICAL &&
-                                                                                         (mode->angle_delta == 2 ||
+                                                                                                                      (mode->angle_delta == -2 ||
+                                                                                                                          mode->angle_delta == 2 ||
                                                                                             mode->angle_delta == 3))) &&
                                          (mode->mrl_index == 0U ||
                                           (mode->mode ==
                                                AV2H_INTRA_HORIZONTAL &&
-                                           mode->angle_delta == 0 &&
-                                           mode->mrl_index == 3U)) &&
+                                                                                     (mode->angle_delta == -3 ||
+                                              mode->angle_delta == -2 ||
+                                              mode->angle_delta == 0 ||
+                                              mode->angle_delta == 2) &&
+                                                         mode->mrl_index == 3U) ||
+                                                        (mode->mode == AV2H_INTRA_D203 &&
+                                                         mode->angle_delta == 2 &&
+                                                         mode->mrl_index == 3U)) &&
+                     mode->enable_ibp == 1U && mode->use_intrabc == 0U) ||
+                    (frame->base_q_index == 208U &&
+                     frame->width == 417U && frame->height == 277U &&
+                     mode->mode == AV2H_INTRA_D135 &&
+                     mode->angle_delta == -2 && mode->mrl_index == 3U &&
                      mode->enable_ibp == 1U && mode->use_intrabc == 0U) ||
                     (frame->base_q_index == 96U &&
                      frame->width == 256U && frame->height == 171U &&
@@ -807,7 +837,8 @@ Av2hStatus av2h_coeff_prefix_read(
     if (prefix->tx_size == AV2H_TX_32X8 ||
         prefix->tx_size == AV2H_TX_16X16 ||
         prefix->tx_size == AV2H_TX_32X16 ||
-        prefix->tx_size == AV2H_TX_32X32) {
+        prefix->tx_size == AV2H_TX_32X32 ||
+        prefix->tx_size == AV2H_TX_64X32) {
         size_t debug_index;
         for (debug_index = 0U; debug_index < 6U; ++debug_index) {
             av2h_debug_skip_cdf[debug_index] = cdf[debug_index];
@@ -936,6 +967,7 @@ Av2hStatus av2h_chroma_coeff_prefix_read(
             (frame->base_q_index == 208U &&
              descriptor->tx_size != AV2H_TX_32X16 &&
              descriptor->tx_size != AV2H_TX_32X32 &&
+             descriptor->tx_size != AV2H_TX_16X32 &&
              descriptor->tx_size != AV2H_TX_16X8 &&
              descriptor->tx_size != AV2H_TX_32X4)) {
             return AV2H_UNSUPPORTED;

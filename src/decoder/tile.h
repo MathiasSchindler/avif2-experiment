@@ -4,6 +4,8 @@
 #include "reconstruct.h"
 
 extern uint32_t av2h_debug_luma_stage_ranges[5U];
+extern uint8_t av2h_debug_chroma_colocated_mode;
+extern int8_t av2h_debug_chroma_colocated_delta;
 
 typedef struct {
     size_t header_bits;
@@ -96,7 +98,11 @@ typedef struct {
     size_t sb_index;
     size_t sb_count;
     Av2hBlockSize root_block_size;
-    uint8_t chroma_root_forced_none;
+    Av2hPartitionType luma_root_partition;
+    Av2hPartitionType chroma_root_partition;
+    Av2hPartitionType chroma_root_forced_partition;
+    uint8_t luma_root_child_count;
+    uint8_t luma_root_children_share;
     Av2hTileDecodePhase phase;
     Av2hTileDecodeEvent event;
     Av2hStatus status;

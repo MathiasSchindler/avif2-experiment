@@ -5,6 +5,7 @@
 #include "ist_type1_data.inc"
 #include "ist_type2_data.inc"
 #include "ist_set6_data.inc"
+#include "ist_set2_data.inc"
 
 static const int8_t dct4[4U][4U] = {
     { 64, 64, 64, 64 },
@@ -461,6 +462,12 @@ static Av2hStatus inverse_secondary_transform(
                transform->secondary_set == 4U) {
         kernel = av2h_ist_8x8_set4_type2_kernel;
         scan_map = av2h_ist_8x8_set4_type3_scan_map;
+    } else if (mode->mode == AV2H_INTRA_D45 &&
+               prefix->tx_size == AV2H_TX_32X16 &&
+               transform->secondary_symbol == 3U &&
+               transform->secondary_set == 2U) {
+        kernel = av2h_ist_8x8_set2_type3_kernel;
+        scan_map = av2h_ist_8x8_set2_type3_scan_map;
     } else if (mode->mode == AV2H_INTRA_HORIZONTAL &&
                prefix->tx_size == AV2H_TX_32X16 &&
                transform->secondary_symbol == 3U &&
@@ -757,10 +764,12 @@ static Av2hStatus predict_directional_idif(
     size_t index;
     uint16_t row;
     uint16_t column;
-    int missing_left_ibp =
-        mode->mode == AV2H_INTRA_D203 && mode->angle_delta == 0 &&
-        mode->mrl_index == 0U && mode->enable_ibp == 1U &&
-        width == 32U && height == 16U &&
+        int missing_left_ibp =
+                ((mode->mode == AV2H_INTRA_D203 && mode->angle_delta == 0 &&
+                    width == 32U && height == 16U) ||
+                 (mode->mode == AV2H_INTRA_HORIZONTAL && mode->angle_delta == 2 &&
+                    width == 64U && height == 16U)) &&
+                mode->mrl_index == 0U && mode->enable_ibp == 1U &&
         (references->left == 0 || references->left_count == 0U) &&
         references->above != 0 && references->above_count != 0U;
     if (mode->mrl_index == 1U) {
@@ -789,12 +798,11 @@ static Av2hStatus predict_directional_idif(
         left[-4] = left[-3] = left[-2] = left[-1] = corner;
         if (mode->mrl_index != 0U) {
             size_t negative_count = (size_t)mode->mrl_index + 1U;
-            if (references->negative_count < negative_count) {
-                return AV2H_INVALID_ARGUMENT;
-            }
             for (index = 1U; index <= negative_count; ++index) {
-                above[-(int)index] = references->above_negative[index];
-                left[-(int)index] = references->left_negative[index];
+                above[-(int)index] = index <= references->negative_count ?
+                    references->above_negative[index] : corner;
+                left[-(int)index] = index <= references->negative_count ?
+                    references->left_negative[index] : corner;
             }
             above[-(int)negative_count - 1] =
                 above[-(int)negative_count];
@@ -1120,11 +1128,199 @@ Av2hStatus av2h_luma_predict(
             mode, 171, width, height, references,
             predictor, predictor_stride);
     }
-    if (mode->mode == AV2H_INTRA_D157 && mode->angle_delta == -1 &&
+    if (mode->mode == AV2H_INTRA_HORIZONTAL && mode->angle_delta == 1 &&
+        mode->multi_line_mrl == 0U &&
+                mode->enable_ibp == 1U &&
+                (((mode->mrl_index == 0U || mode->mrl_index == 2U) &&
+                    width == 16U && height == 32U) ||
+                 (mode->mrl_index == 3U && width == 32U && height == 32U))) {
+        return predict_directional_idif(
+            mode, 183, width, height, references,
+            predictor, predictor_stride);
+    }
+    if (mode->mode == AV2H_INTRA_HORIZONTAL && mode->angle_delta == -1 &&
+        mode->mrl_index == 0U && mode->multi_line_mrl == 0U &&
+        mode->enable_ibp == 1U &&
+        ((width == 32U && height == 16U) ||
+         (width == 16U && height == 32U))) {
+        return predict_directional_idif(
+            mode, 177, width, height, references,
+            predictor, predictor_stride);
+    }
+    if (mode->mode == AV2H_INTRA_D135 && mode->angle_delta == 0 &&
+        mode->mrl_index == 0U && mode->multi_line_mrl == 0U &&
+        mode->enable_ibp == 1U &&
+        ((width == 32U && height == 8U) ||
+         (width == 64U && height == 8U))) {
+        return predict_directional_idif(
+            mode, 135, width, height, references,
+            predictor, predictor_stride);
+    }
+    if (mode->mode == AV2H_INTRA_D135 && mode->angle_delta == 1 &&
+        mode->mrl_index == 0U && mode->multi_line_mrl == 0U &&
+        mode->enable_ibp == 1U && width == 16U && height == 32U) {
+        return predict_directional_idif(
+            mode, 138, width, height, references,
+            predictor, predictor_stride);
+    }
+    if (mode->mode == AV2H_INTRA_HORIZONTAL && mode->angle_delta == -2 &&
         mode->mrl_index == 0U && mode->multi_line_mrl == 0U &&
         mode->enable_ibp == 1U && width == 16U && height == 16U) {
         return predict_directional_idif(
+            mode, 174, width, height, references,
+            predictor, predictor_stride);
+    }
+    if (mode->mode == AV2H_INTRA_D157 && mode->angle_delta == -1 &&
+        mode->mrl_index == 0U && mode->multi_line_mrl == 0U &&
+        mode->enable_ibp == 1U &&
+        ((width == 16U && height == 16U) ||
+         (width == 32U && height == 16U))) {
+        return predict_directional_idif(
             mode, 154, width, height, references,
+            predictor, predictor_stride);
+    }
+    if (mode->mode == AV2H_INTRA_D157 && mode->angle_delta == -2 &&
+        mode->mrl_index == 0U && mode->multi_line_mrl == 0U &&
+        mode->enable_ibp == 1U &&
+        ((width == 16U && height == 8U) ||
+         (width == 32U && height == 16U))) {
+        return predict_directional_idif(
+            mode, 151, width, height, references,
+            predictor, predictor_stride);
+    }
+    if (mode->mode == AV2H_INTRA_D157 && mode->angle_delta == -3 &&
+        mode->mrl_index == 0U && mode->multi_line_mrl == 0U &&
+        mode->enable_ibp == 1U && width == 32U && height == 8U) {
+        return predict_directional_idif(
+            mode, 148, width, height, references,
+            predictor, predictor_stride);
+    }
+    if (mode->mode == AV2H_INTRA_D157 && mode->angle_delta == 0 &&
+        mode->mrl_index == 0U && mode->multi_line_mrl == 0U &&
+        mode->enable_ibp == 1U && width == 16U && height == 8U) {
+        return predict_directional_idif(
+            mode, 157, width, height, references,
+            predictor, predictor_stride);
+    }
+    if (mode->mode == AV2H_INTRA_D203 && mode->angle_delta == 1 &&
+        mode->mrl_index == 0U && mode->multi_line_mrl == 0U &&
+        mode->enable_ibp == 1U &&
+        ((width == 16U && height == 8U) ||
+         (width == 32U && height == 8U))) {
+        return predict_directional_idif(
+            mode, 206, width, height, references,
+            predictor, predictor_stride);
+    }
+    if (mode->mode == AV2H_INTRA_D203 && mode->angle_delta == 2 &&
+        (mode->mrl_index == 0U || mode->mrl_index == 3U) &&
+        mode->multi_line_mrl == 0U &&
+        mode->enable_ibp == 1U && width == 16U && height == 16U) {
+        return predict_directional_idif(
+            mode, 209, width, height, references,
+            predictor, predictor_stride);
+    }
+    if (mode->mode == AV2H_INTRA_D135 && mode->angle_delta == 3 &&
+        (mode->mrl_index == 0U || mode->mrl_index == 3U) &&
+        mode->multi_line_mrl == 0U &&
+        mode->enable_ibp == 1U && width == 16U && height == 8U) {
+        return predict_directional_idif(
+            mode, 144, width, height, references,
+            predictor, predictor_stride);
+    }
+    if (mode->mode == AV2H_INTRA_D45 && mode->angle_delta == 2 &&
+        mode->mrl_index == 3U && mode->multi_line_mrl == 0U &&
+        mode->enable_ibp == 1U && width == 8U && height == 16U) {
+        return predict_directional_idif(
+            mode, 51, width, height, references,
+            predictor, predictor_stride);
+    }
+    if (mode->mode == AV2H_INTRA_D45 && mode->angle_delta == 0 &&
+        mode->mrl_index == 1U && mode->multi_line_mrl == 0U &&
+        mode->enable_ibp == 1U && width == 32U && height == 8U) {
+        return predict_directional_idif(
+            mode, 45, width, height, references,
+            predictor, predictor_stride);
+    }
+    if (mode->mode == AV2H_INTRA_D45 && mode->angle_delta == -1 &&
+        mode->mrl_index == 0U && mode->multi_line_mrl == 0U &&
+        mode->enable_ibp == 1U && width == 16U && height == 16U) {
+        return predict_directional_idif(
+            mode, 42, width, height, references,
+            predictor, predictor_stride);
+    }
+    if (mode->mode == AV2H_INTRA_HORIZONTAL && mode->angle_delta == 2 &&
+        mode->mrl_index == 3U && mode->multi_line_mrl == 0U &&
+        mode->enable_ibp == 1U &&
+        ((width == 16U && height == 16U) ||
+         (width == 16U && height == 32U) ||
+         (width == 64U && height == 16U))) {
+        return predict_directional_idif(
+            mode, 186, width, height, references,
+            predictor, predictor_stride);
+    }
+    if (mode->mode == AV2H_INTRA_D67 && mode->angle_delta == -2 &&
+        mode->mrl_index == 0U && mode->multi_line_mrl == 0U &&
+        mode->enable_ibp == 1U && width == 16U && height == 16U) {
+        return predict_directional_idif(
+            mode, 61, width, height, references,
+            predictor, predictor_stride);
+    }
+    if (mode->mode == AV2H_INTRA_HORIZONTAL && mode->angle_delta == 2 &&
+        mode->mrl_index == 0U && mode->multi_line_mrl == 0U &&
+        mode->enable_ibp == 1U &&
+        ((width == 16U && height == 8U) ||
+         (width == 16U && height == 32U) ||
+         (width == 32U && height == 16U) ||
+         (width == 32U && height == 32U) ||
+         (width == 64U && height == 16U))) {
+        return predict_directional_idif(
+            mode, 186, width, height, references,
+            predictor, predictor_stride);
+    }
+    if (mode->mode == AV2H_INTRA_HORIZONTAL && mode->angle_delta == 2 &&
+        mode->multi_line_mrl == 0U &&
+        mode->enable_ibp == 1U &&
+        ((mode->mrl_index == 1U && width == 16U && height == 32U) ||
+         (mode->mrl_index == 2U && width == 64U && height == 16U) ||
+         ((mode->mrl_index == 1U || mode->mrl_index == 2U) &&
+          width == 32U && height == 32U))) {
+        return predict_directional_idif(
+            mode, 186, width, height, references,
+            predictor, predictor_stride);
+    }
+    if (mode->mode == AV2H_INTRA_VERTICAL && mode->angle_delta == -2 &&
+        mode->mrl_index == 0U && mode->multi_line_mrl == 0U &&
+        mode->enable_ibp == 1U && width == 16U && height == 16U) {
+        return predict_directional_idif(
+            mode, 84, width, height, references,
+            predictor, predictor_stride);
+    }
+    if (mode->mode == AV2H_INTRA_D203 && mode->angle_delta == -1 &&
+        mode->mrl_index == 0U && mode->multi_line_mrl == 0U &&
+        mode->enable_ibp == 1U &&
+        ((width == 16U && height == 16U) ||
+         (width == 32U && height == 4U))) {
+        return predict_directional_idif(
+            mode, 200, width, height, references,
+            predictor, predictor_stride);
+    }
+    if (mode->mode == AV2H_INTRA_D203 && mode->angle_delta == -2 &&
+        mode->mrl_index == 0U && mode->multi_line_mrl == 0U &&
+        mode->enable_ibp == 1U &&
+        ((width == 16U && height == 8U) ||
+         (width == 32U && height == 8U) ||
+         (width == 64U && height == 16U))) {
+        return predict_directional_idif(
+            mode, 197, width, height, references,
+            predictor, predictor_stride);
+    }
+    if (mode->mode == AV2H_INTRA_HORIZONTAL && mode->angle_delta == -3 &&
+        (mode->mrl_index == 0U || mode->mrl_index == 3U) &&
+        mode->multi_line_mrl == 0U &&
+        mode->enable_ibp == 1U && width == 16U &&
+        (height == 16U || height == 32U)) {
+        return predict_directional_idif(
+            mode, 171, width, height, references,
             predictor, predictor_stride);
     }
     if (mode->mode == AV2H_INTRA_VERTICAL && mode->angle_delta == 0 &&
@@ -1176,7 +1372,7 @@ Av2hStatus av2h_luma_predict(
     }
     if (mode->mode == AV2H_INTRA_D203 && mode->angle_delta == 3 &&
         mode->mrl_index == 0U && mode->multi_line_mrl == 0U &&
-        width == 64U && height == 64U) {
+        width == 64U && (height == 16U || height == 64U)) {
         return predict_directional_idif(
             mode, 212, width, height, references,
             predictor, predictor_stride);
@@ -1185,14 +1381,16 @@ Av2hStatus av2h_luma_predict(
         mode->mrl_index == 0U && mode->multi_line_mrl == 0U &&
         ((width == 8U && height == 16U) ||
          (width == 8U && height == 32U) ||
-         (width == 16U && height == 8U))) {
+         (width == 16U && height == 8U) ||
+         (width == 32U && height == 4U))) {
         return predict_directional_idif(
             mode, 166, width, height, references,
             predictor, predictor_stride);
     }
     if (mode->mode == AV2H_INTRA_HORIZONTAL && mode->angle_delta == -2 &&
         mode->mrl_index == 3U && mode->multi_line_mrl == 0U &&
-        width == 32U && height == 16U) {
+        ((width == 16U && height == 16U) ||
+         (width == 32U && height == 16U))) {
         return predict_directional_idif(
             mode, 174, width, height, references,
             predictor, predictor_stride);
@@ -1282,6 +1480,31 @@ Av2hStatus av2h_luma_predict(
             mode, 96, width, height, references,
             predictor, predictor_stride);
     }
+    if (mode->mode == AV2H_INTRA_D67 && mode->angle_delta == 0 &&
+        mode->mrl_index == 3U && mode->multi_line_mrl == 0U &&
+        mode->enable_ibp == 1U &&
+        ((width == 32U && height == 32U) ||
+         (width == 64U && height == 16U))) {
+        return predict_directional_idif(
+            mode, directional_base_angle(mode->mode), width, height,
+            references, predictor, predictor_stride);
+    }
+    if (mode->mode == AV2H_INTRA_HORIZONTAL && mode->angle_delta == 3 &&
+        mode->multi_line_mrl == 0U && mode->enable_ibp == 1U &&
+        ((mode->mrl_index == 3U && width == 8U && height == 32U) ||
+                 ((mode->mrl_index == 1U || mode->mrl_index == 2U) &&
+                    width == 32U && height == 32U))) {
+        return predict_directional_idif(
+            mode, 189, width, height, references,
+            predictor, predictor_stride);
+    }
+    if (mode->mode == AV2H_INTRA_D135 && mode->angle_delta == -2 &&
+        mode->mrl_index == 3U && mode->multi_line_mrl == 0U &&
+        mode->enable_ibp == 1U && width == 16U && height == 16U) {
+        return predict_directional_idif(
+            mode, 129, width, height, references,
+            predictor, predictor_stride);
+    }
     if ((mode->mrl_index != 0U || mode->multi_line_mrl != 0U) &&
                                 !(mode->mode == AV2H_INTRA_VERTICAL &&
                                     mode->multi_line_mrl == 1U &&
@@ -1347,7 +1570,11 @@ Av2hStatus av2h_luma_predict(
                                                 !(mode->mode == AV2H_INTRA_D203 &&
                                                     mode->multi_line_mrl <= 1U && mode->mrl_index == 1U &&
                                                     mode->angle_delta == 1 && width == 16U &&
-                                                    height == 64U)) {
+                                                    height == 64U) &&
+                                                !(mode->mode == AV2H_INTRA_D203 &&
+                                                    mode->multi_line_mrl == 0U && mode->mrl_index == 3U &&
+                                                    mode->angle_delta == -2 && width == 16U &&
+                                                    height == 32U)) {
         return AV2H_UNSUPPORTED;
     }
     if (mode->mode == AV2H_INTRA_VERTICAL && mode->angle_delta == 0 &&
@@ -1558,9 +1785,12 @@ Av2hStatus av2h_luma_predict(
          (width == 8U && height == 8U) ||
          (width == 8U && height == 32U) ||
          (width == 16U && height == 8U) ||
+         (width == 16U && height == 16U) ||
          (width == 16U && height == 32U) ||
+         (width == 32U && height == 8U) ||
          (width == 32U && height == 16U) ||
-         (width == 64U && height == 8U))) {
+         (width == 64U && height == 8U) ||
+         (width == 64U && height == 16U))) {
         uint8_t scale = smooth_scale(width, height);
         uint8_t bottom_left;
         int extend_left = references->left_count == 0U &&
@@ -1594,9 +1824,12 @@ Av2hStatus av2h_luma_predict(
         ((width == 4U && height == 8U) ||
          (width == 8U && height == 32U) ||
          (width == 8U && height == 64U) ||
+         (width == 16U && height == 8U) ||
          (width == 16U && height == 16U) ||
+         (width == 16U && height == 32U) ||
          (width == 16U && height == 64U) ||
          (width == 32U && height == 8U) ||
+         (width == 32U && height == 16U) ||
          (width == 32U && height == 32U) ||
          (width == 64U && height == 16U) ||
          (width == 64U && height == 64U))) {
@@ -1638,6 +1871,7 @@ Av2hStatus av2h_luma_predict(
          (width == 16U && height == 32U) ||
          (width == 16U && height == 64U) ||
          (width == 16U && height == 16U) ||
+         (width == 32U && height == 4U) ||
          (width == 32U && height == 8U) ||
          (width == 32U && height == 16U) ||
          (width == 32U && height == 32U) ||
@@ -1853,8 +2087,14 @@ Av2hStatus av2h_luma_predict(
                 width == 8U && height == 64U)))) ||
                          (mode->mode == AV2H_INTRA_D45 &&
                             ((mode->angle_delta == 0 &&
-                                          ((width == 32U && height == 16U) ||
+                                                                                    ((width == 16U && height == 16U) ||
+                                                                                        (width == 32U && height == 8U) ||
+                                                                                        (width == 32U && height == 16U) ||
+                                                                                        (width == 64U && height == 16U) ||
                                             (width == 64U && height == 64U))) ||
+                                                                            (mode->angle_delta == -2 &&
+                                                                                (width == 32U || width == 64U) &&
+                                                                                height == 16U) ||
                                       (mode->angle_delta == 2 && mode->mrl_index == 0U &&
                                           width == 4U && height == 16U) ||
                              (mode->angle_delta == -1 && mode->mrl_index == 1U &&
@@ -1894,7 +2134,10 @@ Av2hStatus av2h_luma_predict(
                                                                                  (width == 32U && height == 8U))) ||
                              (mode->angle_delta == 0 &&
                               mode->mrl_index == 2U &&
-                              width == 8U && height == 64U))) ||
+                              width == 8U && height == 64U) ||
+                             (mode->angle_delta == 0 &&
+                              mode->mrl_index == 3U &&
+                              width == 32U && height == 32U))) ||
              (mode->mode == AV2H_INTRA_D67 &&
               mode->angle_delta == -2 && mode->mrl_index == 0U &&
               width == 8U && height == 16U) ||
@@ -1960,7 +2203,9 @@ Av2hStatus av2h_luma_predict(
           ((width == 64U && height == 32U) ||
               (width == 32U && height == 16U) ||
               (mode->angle_delta == -2 &&
-               width == 16U && height == 16U) ||
+                             width == 16U &&
+                             (height == 16U ||
+                                (height == 32U && mode->mrl_index == 3U))) ||
               (mode->angle_delta == -1 && mode->mrl_index == 1U &&
                width == 16U && height == 32U) ||
               (mode->angle_delta == -1 && mode->mrl_index == 0U &&
@@ -2612,6 +2857,40 @@ Av2hStatus av2h_chroma_predict(
         luma_mode.enable_ibp = 1U;
         return av2h_luma_predict(
             &luma_mode, width, height, references,
+            predictor, predictor_stride);
+    }
+    if (mode->mode == AV2H_INTRA_HORIZONTAL &&
+        (mode->angle_delta == -3 || mode->angle_delta == -2) &&
+        width == 32U && height == 16U) {
+        Av2hFirstLeafMode luma_mode = { 0 };
+        luma_mode.mode = mode->mode;
+        luma_mode.angle_delta = mode->angle_delta;
+        luma_mode.enable_ibp = 1U;
+        return predict_directional_idif(
+            &luma_mode, 180 + mode->angle_delta * 3,
+            width, height, references,
+            predictor, predictor_stride);
+    }
+    if (mode->mode == AV2H_INTRA_HORIZONTAL && mode->angle_delta == 2 &&
+        ((width == 32U && height == 16U) ||
+         (width == 16U && height == 32U) ||
+         (width == 32U && height == 32U))) {
+        Av2hFirstLeafMode luma_mode = { 0 };
+        luma_mode.mode = mode->mode;
+        luma_mode.angle_delta = mode->angle_delta;
+        luma_mode.enable_ibp = 1U;
+        return predict_directional_idif(
+            &luma_mode, 186, width, height, references,
+            predictor, predictor_stride);
+    }
+    if (mode->mode == AV2H_INTRA_HORIZONTAL && mode->angle_delta == 1 &&
+        width == 16U && height == 32U) {
+        Av2hFirstLeafMode luma_mode = { 0 };
+        luma_mode.mode = mode->mode;
+        luma_mode.angle_delta = mode->angle_delta;
+        luma_mode.enable_ibp = 1U;
+        return predict_directional_idif(
+            &luma_mode, 183, width, height, references,
             predictor, predictor_stride);
     }
         if (!((width == 4U && height == 4U &&
@@ -4348,6 +4627,7 @@ Av2hStatus av2h_luma_reconstruct_to_plane(
     }
     if (mode->mode == AV2H_INTRA_SMOOTH &&
         ((output_width == 64U && output_height == 16U) ||
+         (output_width == 8U && output_height == 16U) ||
          (output_width == 4U && output_height == 4U)) &&
         above_count != 0U &&
         above_count < output_width) {

@@ -2603,11 +2603,12 @@ static void check_first_luma(const ArtifactExpectation *expected,
     } else if (expected->base_q_index == 208U &&
                expected->first_block == AV2H_BLOCK_64X16) {
         fprintf(stderr,
-            "schwaebisch filters restoration=%u gdf=%u cdef=%u/%u/%u ccso=%u/%u/%u\n",
+            "schwaebisch filters restoration=%u gdf=%u cdef=%u/%u/%u ccso=%u/%u/%u tcq=%u parity=%u\n",
             sequence->enable_restoration, frame->gdf_mode,
             frame->cdef_strength_count, frame->cdef_on_skip_transform,
             frame->cdef_damping, frame->ccso[0].enabled,
-            frame->ccso[1].enabled, frame->ccso[2].enabled);
+            frame->ccso[1].enabled, frame->ccso[2].enabled,
+            sequence->enable_tcq, sequence->enable_parity_hiding);
         size_t reconstructed_stride =
             (424U + 3U) / 4U;
         Av2hReconstructionPlane plane = {
@@ -2815,6 +2816,14 @@ static void check_first_luma(const ArtifactExpectation *expected,
                     av2h_memory_fill(&block, 0U, sizeof(block));
                     status = av2h_tile_decoder_next_luma(
                         &decoder, &leaf, &block, &has_leaf);
+                    if (decoder.sb_index == 18U && has_leaf == 0U) {
+                        fprintf(stderr,
+                                "schwaebisch sb18 inheritance=%u/%u/%u/%u\n",
+                                decoder.luma_root_partition,
+                                decoder.luma_root_child_count,
+                                decoder.luma_root_children_share,
+                                decoder.chroma_root_forced_partition);
+                    }
                     if (leaf.mode.use_intrabc != 0U) {
                         fprintf(stderr,
                                 "schwaebisch intrabc=%u/%u/%u/%u/%u/%u/%d/%d/%u\n",
@@ -2833,7 +2842,7 @@ static void check_first_luma(const ArtifactExpectation *expected,
                             &leaf.transform, &block, &plane, &scratch);
                     }
                     fprintf(stderr,
-                            "schwaebisch q208 continue-y status=%d reconstruct=%d stage=%u tell=%lu leaf=%u sb=%lu row=%u column=%u block=%u mode=%u/%u/%u/%u angle=%d fsc=%u/%u mrl=%u/%u ibp=%u intrabc=%u modebits=%lu/%lu/%lu/%lu/%lu/%lu/%lu cdefccso=%u/%u gdf=%u/%lu/%u/%u/%u ranges=%u/%u/%u/%u/%u prefix=%u/%u/%u/%u/%u/%u/%lu/%lu/%lu transform=%u/%u/%u/%u/%u coeff=%u/%u diagnostic=%u/%u/%u partition=%u/%u/%u/%u split=%lu/%lu/%lu/%u/%u/%lu/%lu/%lu/%lld\n",
+                            "schwaebisch q208 continue-y status=%d reconstruct=%d stage=%u tell=%lu leaf=%u sb=%lu row=%u column=%u block=%u mode=%u/%u/%u/%u angle=%d neighbors=%u/%u:%u/%u fsc=%u/%u mrl=%u/%u ibp=%u intrabc=%u modebits=%lu/%lu/%lu/%lu/%lu/%lu/%lu cdefccso=%u/%u gdf=%u/%lu/%u/%u/%u ranges=%u/%u/%u/%u/%u prefix=%u/%u/%u/%u/%u/%u/%lu/%lu/%lu transform=%u/%u/%u/%u/%u coeff=%u/%u/%lu/%lu/%u/%lu diagnostic=%u/%u/%u partition=%u/%u/%u/%u split=%lu/%lu/%lu/%u/%u/%lu/%lu/%lu/%lld\n",
                             status, reconstruct_status,
                             av2h_debug_luma_reconstruct_stage,
                             (unsigned long)av2h_range_tell(&decoder.range),
@@ -2842,6 +2851,10 @@ static void check_first_luma(const ArtifactExpectation *expected,
                             leaf.node.block_size, leaf.mode.mode,
                             leaf.mode.mode_set, leaf.mode.mode_index,
                             leaf.mode.joint_mode, leaf.mode.angle_delta,
+                            av2h_debug_luma_mode_neighbors[0],
+                            av2h_debug_luma_mode_neighbors[1],
+                            av2h_debug_luma_mode_neighbors[2],
+                            av2h_debug_luma_mode_neighbors[3],
                             leaf.mode.fsc_mode, leaf.mode.fsc_block_context,
                             leaf.mode.mrl_index,
                             leaf.mode.multi_line_mrl, leaf.mode.enable_ibp,
@@ -2879,6 +2892,10 @@ static void check_first_luma(const ArtifactExpectation *expected,
                             leaf.transform.secondary_set,
                             leaf.transform.secondary_symbol,
                             block.width, block.height,
+                            (unsigned long)block.before_levels_bits,
+                            (unsigned long)block.after_levels_bits,
+                            block.after_levels_range,
+                            (unsigned long)block.after_coefficients_bits,
                             block.diagnostic_kind,
                             block.diagnostic_context,
                             block.diagnostic_position,
@@ -2895,6 +2912,161 @@ static void check_first_luma(const ArtifactExpectation *expected,
                             (unsigned long)av2h_debug_partition_range_before,
                             (unsigned long)av2h_debug_partition_value_before,
                             (long long)av2h_debug_partition_available_before);
+                            if (leaf.prefix.tx_size == AV2H_TX_64X32) {
+                            fprintf(stderr,
+                                "local-sb28-eob=%u/%u/%u/%u/%u/%u/%u/%u/%u\n",
+                                av2h_debug_eob_range, av2h_debug_eob_cdf[0],
+                                av2h_debug_eob_cdf[1], av2h_debug_eob_cdf[2],
+                                av2h_debug_eob_cdf[3], av2h_debug_eob_cdf[4],
+                                av2h_debug_eob_cdf[5], av2h_debug_eob_cdf[6],
+                                av2h_debug_eob_cdf[7]);
+                            fprintf(stderr,
+                                "local-sb28-skip=%u/%u/%u/%u\n",
+                                av2h_debug_skip_range, av2h_debug_skip_cdf[0],
+                                av2h_debug_skip_cdf[1], av2h_debug_skip_cdf[2]);
+                            fprintf(stderr,
+                                "local-sb28-mode=%u/%u/%u/%u/%u/%u/%u/%u/%u/%u/%u\n",
+                                av2h_debug_y_mode_context,
+                                av2h_debug_y_mode_range,
+                                av2h_debug_y_mode_set_cdf[0],
+                                av2h_debug_y_mode_set_cdf[1],
+                                av2h_debug_y_mode_set_cdf[2],
+                                av2h_debug_y_mode_set_cdf[3],
+                                av2h_debug_y_mode_index_cdf[0],
+                                av2h_debug_y_mode_index_cdf[1],
+                                av2h_debug_y_mode_index_cdf[2],
+                                av2h_debug_y_mode_index_cdf[3],
+                                av2h_debug_y_mode_index_cdf[4]);
+                            fprintf(stderr,
+                                "local-sb28-ccso=%u/%u/%u/%u/%u/%u/%u\n",
+                                av2h_debug_ccso_context,
+                                av2h_debug_ccso_range_before,
+                                av2h_debug_ccso_range_after,
+                                av2h_debug_ccso_cdf[0], av2h_debug_ccso_cdf[1],
+                                av2h_debug_ccso_cdf[2], av2h_debug_ccso_cdf[3]);
+                            fprintf(stderr, "local-sb28-prior-ccso=%u\n",
+                                decoder.ccso_entropy.unit_controls[0][0]);
+                            }
+                    if (decoder.sb_index == 16U || decoder.sb_index == 17U ||
+                        decoder.sb_index == 18U) {
+                        if (leaf.node.row == 35U && leaf.node.column == 48U) {
+                            fprintf(stderr,
+                                    "schwaebisch mode-35-48=%lu/%lu/%lu/%u/%u/%u\n",
+                                    (unsigned long)leaf.mode.before_mode_bits,
+                                    (unsigned long)leaf.mode.after_mode_set_bits,
+                                    (unsigned long)leaf.mode.after_mode_index_bits,
+                                    av2h_debug_y_mode_context,
+                                    leaf.mode.mode_set,
+                                    leaf.mode.mode_index);
+                        }
+                        if ((leaf.node.row == 33U && leaf.node.column == 52U) ||
+                            (leaf.node.row == 32U && leaf.node.column == 64U)) {
+                            size_t coeff_index;
+                            fprintf(stderr, "schwaebisch coeff-33-52=");
+                            for (coeff_index = 0U;
+                                 coeff_index < block.coefficient_count;
+                                 ++coeff_index) {
+                                if (block.quantized[coeff_index] != 0) {
+                                    fprintf(stderr, "%lu:%d,",
+                                            (unsigned long)coeff_index,
+                                            block.quantized[coeff_index]);
+                                }
+                            }
+                            fprintf(stderr, "\n");
+                                fprintf(stderr,
+                                    "schwaebisch eob-33-52=%lu/%lu/%lu/%lu/%lu/%lu/%lu/%lu/%lu/%lu\n",
+                                    (unsigned long)av2h_debug_target_eob[0],
+                                    (unsigned long)av2h_debug_target_eob[1],
+                                    (unsigned long)av2h_debug_target_eob[2],
+                                    (unsigned long)av2h_debug_target_eob[3],
+                                    (unsigned long)av2h_debug_target_eob[4],
+                                    (unsigned long)av2h_debug_target_eob[5],
+                                    (unsigned long)av2h_debug_target_eob[6],
+                                    (unsigned long)av2h_debug_target_eob[7],
+                                    (unsigned long)av2h_debug_target_eob[8],
+                                    (unsigned long)av2h_debug_target_eob[9]);
+                            for (coeff_index = 0U;
+                                 coeff_index < av2h_debug_target_base_count;
+                                 ++coeff_index) {
+                                uint32_t *base =
+                                    av2h_debug_target_base[coeff_index];
+                                fprintf(stderr,
+                                        "schwaebisch base-33-52=%lu/%lu/%lu/%lu/%lu/%lu/%lu/%lu/%lu/%lu\n",
+                                        (unsigned long)base[0],
+                                        (unsigned long)base[1],
+                                        (unsigned long)base[2],
+                                        (unsigned long)base[3],
+                                        (unsigned long)base[4],
+                                        (unsigned long)base[5],
+                                        (unsigned long)base[6],
+                                        (unsigned long)base[7],
+                                        (unsigned long)base[8],
+                                        (unsigned long)base[9]);
+                            }
+                        }
+                        size_t decision_index;
+                        for (decision_index = 0U;
+                             decision_index < av2h_debug_partition_path.decision_count;
+                             ++decision_index) {
+                            const Av2hPartitionDecision *decision =
+                                &av2h_debug_partition_path.decisions[decision_index];
+                            fprintf(stderr,
+                                    "schwaebisch sb%lu partition=%lu/%u/%u/%u/%u/%lu\n",
+                                    (unsigned long)decoder.sb_index,
+                                    (unsigned long)decision_index,
+                                    decision->node.row, decision->node.column,
+                                    decision->node.block_size,
+                                    decision->partition,
+                                    (unsigned long)decision->after_bits);
+                        }
+                    }
+                    if (decoder.sb_index == 29U && has_leaf != 0U) {
+                        size_t coeff_index;
+                        fprintf(stderr, "local-sb29-coeff=");
+                        for (coeff_index = 0U;
+                             coeff_index < block.coefficient_count;
+                             ++coeff_index) {
+                            if (block.quantized[coeff_index] != 0) {
+                                fprintf(stderr, "%lu:%d,",
+                                        (unsigned long)coeff_index,
+                                        block.quantized[coeff_index]);
+                            }
+                        }
+                        fprintf(stderr, "\n");
+                        for (coeff_index = 0U;
+                             coeff_index < av2h_debug_target_base_count;
+                             ++coeff_index) {
+                            uint32_t *base =
+                                av2h_debug_target_base[coeff_index];
+                            fprintf(stderr,
+                                    "local-sb29-base=%lu/%lu/%lu/%lu/%lu/%lu/%lu/%lu/%lu/%lu\n",
+                                    (unsigned long)base[0],
+                                    (unsigned long)base[1],
+                                    (unsigned long)base[2],
+                                    (unsigned long)base[3],
+                                    (unsigned long)base[4],
+                                    (unsigned long)base[5],
+                                    (unsigned long)base[6],
+                                    (unsigned long)base[7],
+                                    (unsigned long)base[8],
+                                    (unsigned long)base[9]);
+                        }
+                        for (coeff_index = 0U;
+                             coeff_index < av2h_debug_target_sign_count;
+                             ++coeff_index) {
+                            uint32_t *sign =
+                                av2h_debug_target_sign[coeff_index];
+                            fprintf(stderr,
+                                    "local-sb29-sign=%lu/%lu/%lu/%lu/%lu/%lu/%lu\n",
+                                    (unsigned long)sign[0],
+                                    (unsigned long)sign[1],
+                                    (unsigned long)sign[2],
+                                    (unsigned long)sign[3],
+                                    (unsigned long)sign[4],
+                                    (unsigned long)sign[5],
+                                    (unsigned long)sign[6]);
+                        }
+                    }
                             if ((leaf.node.row == 0U &&
                                 leaf.node.column == 64U) ||
                                 (leaf.node.row == 16U &&
@@ -2963,7 +3135,15 @@ static void check_first_luma(const ArtifactExpectation *expected,
                                 decoder.coeff_cdfs.txb_skip_txs3[2],
                                 av2h_debug_y_mode_context);
                             }
-                    if (leaf.node.row == 16U && leaf.node.column == 16U) {
+                    if ((leaf.node.row == 16U && leaf.node.column == 56U) ||
+                        (leaf.node.row == 32U && leaf.node.column == 4U)) {
+                        fprintf(stderr,
+                                "schwaebisch target-transform=%lu/%lu/%lu/%lu/%u\n",
+                                (unsigned long)leaf.transform.before_primary_bits,
+                                (unsigned long)leaf.transform.after_primary_bits,
+                                (unsigned long)leaf.transform.after_secondary_type_bits,
+                                (unsigned long)leaf.transform.after_secondary_bits,
+                                leaf.transform.secondary_signaled);
                         fprintf(stderr,
                                 "schwaebisch target-levels=%lu/%u/%u/%u/%u/%u/%u/%u\n",
                                 (unsigned long)block.after_levels_bits,
@@ -2995,6 +3175,17 @@ static void check_first_luma(const ArtifactExpectation *expected,
                                     debug[5], debug[6], debug[7], debug[8]);
                         }
                     }
+                    if (leaf.node.row == 24U && leaf.node.column == 84U) {
+                        fprintf(stderr,
+                                "schwaebisch stx-24-84=%lu/%lu/%lu/%lu/%u/%u/%u\n",
+                                (unsigned long)leaf.transform.before_primary_bits,
+                                (unsigned long)leaf.transform.after_primary_bits,
+                                (unsigned long)leaf.transform.after_secondary_type_bits,
+                                (unsigned long)leaf.transform.after_secondary_bits,
+                                leaf.transform.secondary_set,
+                                leaf.transform.secondary_symbol,
+                                decoder.transform_cdfs.secondary_16x16[0]);
+                    }
                     if (leaf.node.row == 20U && leaf.node.column == 16U) {
                         fprintf(stderr,
                                 "schwaebisch coeff-20-16=%lu/%lu/%lu/%u/%u/%d/%d/%d/%d/%d/%u\n",
@@ -3006,6 +3197,16 @@ static void check_first_luma(const ArtifactExpectation *expected,
                                 block.quantized[0], block.quantized[1],
                                 block.quantized[8], block.quantized[2],
                                 block.quantized[9], block.nonzero_count);
+                    }
+                    if (leaf.node.row == 28U && leaf.node.column == 24U) {
+                        fprintf(stderr,
+                                "schwaebisch coeff-28-24=%lu/%lu/%lu/%u/%d/%d/%d/%u\n",
+                                (unsigned long)block.before_levels_bits,
+                                (unsigned long)block.after_levels_bits,
+                                (unsigned long)block.after_coefficients_bits,
+                                block.after_levels_range,
+                                block.quantized[0], block.quantized[1],
+                                block.quantized[16], block.nonzero_count);
                     }
                     if (status != AV2H_OK ||
                         reconstruct_status != AV2H_OK) {
@@ -3039,7 +3240,7 @@ static void check_first_luma(const ArtifactExpectation *expected,
                         }
                     }
                     fprintf(stderr,
-                            "schwaebisch q208 continue-uv status=%d reconstruct=%d/%d stage=%u tell=%lu leaf=%u sb=%lu row=%u column=%u block=%u mode=%u angle=%d cfl=%u/%u/%u cdf=%u/%u ranges=%u/%u/%u/%u:%u/%u:%u/%u prefix=%u/%u/%u/%u:%u/%u/%u/%u transform=%u/%u/%u:%u/%u/%u coeff=%u/%u/%lu/%lu diagnostic=%u/%u:%u/%u\n",
+                            "schwaebisch q208 continue-uv status=%d reconstruct=%d/%d stage=%u tell=%lu leaf=%u sb=%lu row=%u column=%u block=%u mode=%u angle=%d colocated=%u/%d cfl=%u/%u/%u cdf=%u/%u/%u ranges=%u/%u/%u/%u:%u/%u:%u/%u prefix=%u/%u/%u/%u:%u/%u/%u/%u transform=%u/%u/%u:%u/%u/%u coeff=%u/%u/%lu/%lu diagnostic=%u/%u:%u/%u\n",
                             status, plane_status[0], plane_status[1],
                             av2h_debug_luma_reconstruct_stage,
                             (unsigned long)av2h_range_tell(&decoder.range),
@@ -3047,9 +3248,12 @@ static void check_first_luma(const ArtifactExpectation *expected,
                             chroma_leaf.node.row, chroma_leaf.node.column,
                             chroma_leaf.node.block_size,
                             chroma_leaf.mode.mode, chroma_leaf.mode.angle_delta,
+                            av2h_debug_chroma_colocated_mode,
+                            av2h_debug_chroma_colocated_delta,
                             chroma_leaf.mode.is_cfl,
                             chroma_leaf.mode.cfl_mhccp_switch,
                             chroma_leaf.mode.cfl_index,
+                            decoder.leaf_cdfs.is_cfl[0][0],
                             decoder.leaf_cdfs.is_cfl[1][0],
                             decoder.leaf_cdfs.cfl_index[0],
                             av2h_debug_chroma_mode_ranges[0],
@@ -3082,6 +3286,33 @@ static void check_first_luma(const ArtifactExpectation *expected,
                             chroma_blocks[0].diagnostic_context,
                             chroma_blocks[1].diagnostic_kind,
                             chroma_blocks[1].diagnostic_context);
+                    if (decoder.sb_index == 16U) {
+                        fprintf(stderr,
+                                "schwaebisch sb16 chroma split=%lu/%lu/%u/%u/%lu/%lu/%u\n",
+                                (unsigned long)av2h_debug_partition_split_context,
+                                (unsigned long)av2h_debug_partition_before_bits,
+                                av2h_debug_partition_cdf_before,
+                                av2h_debug_partition_cdf_after,
+                                (unsigned long)av2h_debug_partition_split_value,
+                                (unsigned long)av2h_debug_partition_range_before,
+                                decoder.range.range);
+                        size_t decision_index;
+                        for (decision_index = 0U;
+                             decision_index < av2h_debug_partition_path.decision_count;
+                             ++decision_index) {
+                            const Av2hPartitionDecision *decision =
+                                &av2h_debug_partition_path.decisions[decision_index];
+                            fprintf(stderr,
+                                    "schwaebisch sb16 chroma partition=%lu/%u/%u/%u/%u/%u/%lu\n",
+                                    (unsigned long)decision_index,
+                                    decision->node.row,
+                                    decision->node.column,
+                                    decision->node.block_size,
+                                    decision->partition,
+                                    decision->forced,
+                                    (unsigned long)decision->after_bits);
+                        }
+                    }
                     if (status != AV2H_OK || plane_status[0] != AV2H_OK ||
                         plane_status[1] != AV2H_OK) {
                         break;
