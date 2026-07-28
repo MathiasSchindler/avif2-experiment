@@ -434,6 +434,8 @@ Av2hStatus av2h_coeff_context_state_init(
     state->left = left;
     state->above_count = above_count;
     state->left_count = left_count;
+    state->mi_columns = above_count;
+    state->mi_rows = left_count;
     for (index = 0U; index < AV2H_FRAME_PLANE_COUNT * above_count; ++index) {
         above[index] = 0U;
     }
@@ -472,6 +474,7 @@ Av2hStatus av2h_coeff_contexts_from_state(
     if (status != AV2H_OK) return status;
     left_index = leaf->row % state->left_count;
     if (leaf->column >= state->above_count ||
+        leaf->column >= state->mi_columns || leaf->row >= state->mi_rows ||
         left_index >= state->left_count) {
         return AV2H_OVERFLOW;
     }
@@ -480,6 +483,12 @@ Av2hStatus av2h_coeff_contexts_from_state(
     }
     if (height > state->left_count - left_index) {
         height = state->left_count - left_index;
+    }
+    if (width > state->mi_columns - leaf->column) {
+        width = state->mi_columns - leaf->column;
+    }
+    if (height > state->mi_rows - leaf->row) {
+        height = state->mi_rows - leaf->row;
     }
     above = coefficient_plane(state->above, state->above_count, plane);
     left = coefficient_plane(state->left, state->left_count, plane);
@@ -535,6 +544,7 @@ Av2hStatus av2h_coeff_context_state_update(
     if (status != AV2H_OK) return status;
     left_index = leaf->row % state->left_count;
     if (leaf->column >= state->above_count ||
+        leaf->column >= state->mi_columns || leaf->row >= state->mi_rows ||
         left_index >= state->left_count) {
         return AV2H_OVERFLOW;
     }
@@ -543,6 +553,12 @@ Av2hStatus av2h_coeff_context_state_update(
     }
     if (height > state->left_count - left_index) {
         height = state->left_count - left_index;
+    }
+    if (width > state->mi_columns - leaf->column) {
+        width = state->mi_columns - leaf->column;
+    }
+    if (height > state->mi_rows - leaf->row) {
+        height = state->mi_rows - leaf->row;
     }
     above = coefficient_plane(state->above, state->above_count, plane);
     left = coefficient_plane(state->left, state->left_count, plane);
@@ -747,6 +763,7 @@ Av2hStatus av2h_coeff_prefix_read(
                                             mode->mode == AV2H_INTRA_SMOOTH_HORIZONTAL ||
                                             (mode->mode == AV2H_INTRA_VERTICAL &&
                                                                                                                       (mode->angle_delta == -2 ||
+                                                                                                                          mode->angle_delta == 0 ||
                                                                                                                           mode->angle_delta == 2 ||
                                                                                             mode->angle_delta == 3)) ||
                                             (mode->mode == AV2H_INTRA_D113 &&

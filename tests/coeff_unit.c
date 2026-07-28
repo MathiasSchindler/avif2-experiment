@@ -299,6 +299,18 @@ static void test_context_state(void) {
     CHECK(skip_context == 9U);
     CHECK(dc_sign_context == 0U);
 
+    state.mi_rows = 3U;
+    leaf.row = 2U;
+    leaf.column = 2U;
+    leaf.block_size = AV2H_BLOCK_4X8;
+    left[2U] = 0U;
+    left[3U] = 23U;
+    CHECK(av2h_coeff_context_state_update(
+              &state, 0U, &leaf, 18U) == AV2H_OK);
+    CHECK(left[2U] == 18U);
+    CHECK(left[3U] == 23U);
+    state.mi_rows = state.left_count;
+
     leaf.column = 4U;
     CHECK(av2h_coeff_context_state_update(
               &state, 0U, &leaf, 0U) == AV2H_OVERFLOW);

@@ -1968,9 +1968,6 @@ Av2hStatus av2h_coeff_tx_geometry(
     }
     status = av2h_coeff_tx_geometry_from_dims(tx_width, tx_height, geometry);
     if (status != AV2H_OK) return status;
-    if (tx_size == AV2H_TX_8X16) {
-        geometry->tx_context = 1U;
-    }
     return status;
 }
 

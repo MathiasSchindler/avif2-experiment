@@ -103,6 +103,8 @@ typedef struct {
     uint8_t *left;
     size_t above_count;
     size_t left_count;
+    size_t mi_columns;
+    size_t mi_rows;
 } Av2hCoeffContextState;
 
 Av2hStatus av2h_first_coeff_cdfs_init(Av2hFirstCoeffCdfs *cdfs);

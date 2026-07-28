@@ -3240,6 +3240,17 @@ static void check_first_luma(const ArtifactExpectation *expected,
                                 block.quantized[0], block.quantized[1],
                                 block.quantized[16], block.nonzero_count);
                     }
+                    if (leaf.node.row == 64U && leaf.node.column == 16U) {
+                        CHECK(block.diagnostic_context == 2U);
+                        CHECK(block.before_levels_bits == 4182U);
+                        CHECK(block.after_levels_bits == 4184U);
+                        CHECK(block.after_levels_range == 39040U);
+                        CHECK(block.after_coefficients_bits == 4186U);
+                        CHECK(block.quantized[0] == 1);
+                        CHECK(block.quantized[1] == -1);
+                        CHECK(block.nonzero_count == 2U);
+                        CHECK(decoder.range.range == 48752U);
+                    }
                     if (status != AV2H_OK ||
                         reconstruct_status != AV2H_OK) {
                         break;

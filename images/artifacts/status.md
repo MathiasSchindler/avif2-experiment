@@ -29,7 +29,7 @@ in 4x4 units.
 | `pastell-320x213-qp064.obu` | DC mode and 8x8 coefficient-prefix entry reached; prefix starts at tell 25 and fails closed at tell 34 | Remaining Q-context-0 8x8 coefficient profile |
 | `pastell-512x341-qp160.obu` | First 16x32 DCT_FLIPADST block and second `(0,4)` 16x32 Smooth/DCT_DCT block reconstruct sample-exactly; the second block has levels/signs at tells 81/83 and predictor/output hashes `7b5a4f04146e5eb7`/`4324e4ef5962723d` | Next Q160 luma-profile admission |
 | `schwaebisch-353x234-qp112.obu` | EOB 2, DCT_DCT, and secondary symbol 0 complete, tell 32 | Q112 coefficient-level profile |
-| `schwaebisch-417x277-qp208.obu` | Decodes through superblock index 8; next `(20,18)` 16x16 leaf completes mode syntax at tell 991 before coefficient-prefix decoding | Q208 16x16 luma-profile admission |
+| `schwaebisch-417x277-qp208.obu` | Decodes through superblock index 31; frame-edge coefficient contexts match AVM at `(64,16)` through tell 4186/range 48752, eliminating the false `(68,40)` coefficient tuple; `(64,48)` reaches tell 4232 | Q208 32x8 D203/+3 MRL-3 reconstruction profile |
 | `silene-384x307-qp080.obu` | 64x64 EOB 46 and implicit DCT_DCT complete, tell 20 | Q80 64x64 coefficient-level profile |
 | `silene-479x383-qp176.obu` | First 64x64 luma predictor/output match AVM (`cae2b824a5adc383`/`6f9be39143f7d24f`); explicit-CfL U/V predictors and first 32x32 prefilters match through tell 71, range 53320 (`0e163de1147deb8a`/`a28b4981853199a6`, `3e5af7d08452fb90`/`8e29d20ab3284a74`) | Next luma/chroma traversal profile after the first exact leaf pair |
 
@@ -49,8 +49,10 @@ Summary:
   and 32x32 U/V reconstruction surfaces. Emerald reaches tell 197/range 53184;
   Silene reaches tell 71/range 53320 with exact plane-specific explicit-CfL
   predictors. Both still fail closed before completing their next profile;
-- Schwaebisch Q208 advances from two reconstructed blocks to superblock index
-  8 and tell 991 before the next 16x16 coefficient-prefix/profile gap;
+- Schwaebisch Q208 advances through superblock index 31 and tell 4232 after
+  correcting TX_8X16 entropy context, admitting three exact predictor
+  geometries, and clipping coefficient contexts at frame edges; its next gap
+  is the `(64,48)` 32x8 D203/+3 MRL-3 reconstruction profile;
 - the Q64 first-block frontiers advance to tells 30 and 34 for Chimp and
   Pastell respectively;
 - Laarim Q96, Cuckoo Q160, Pastell Q160, and Louis Q224 retain their locked

@@ -670,6 +670,8 @@ Av2hStatus av2h_tile_decoder_init(
         storage->above_count, storage->coefficient_left,
         storage->left_count);
     if (status != AV2H_OK) return tile_decoder_fail(decoder, status);
+    decoder->coefficient_contexts.mi_columns = decoder->mi_columns;
+    decoder->coefficient_contexts.mi_rows = decoder->mi_rows;
     status = av2h_partition_traversal_init(
         &decoder->luma_traversal, (uint16_t)decoder->mi_rows,
         (uint16_t)decoder->mi_columns,

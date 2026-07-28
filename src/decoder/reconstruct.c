@@ -1470,6 +1470,7 @@ Av2hStatus av2h_luma_predict(
     if (mode->mode == AV2H_INTRA_VERTICAL && mode->angle_delta == 0 &&
         mode->mrl_index == 0U && mode->multi_line_mrl == 0U &&
         ((width == 8U && height == 8U) ||
+         (width == 16U && height == 16U) ||
          (width == 32U && height == 8U))) {
         if (references->above == 0 || references->above_count == 0U) {
             return AV2H_INVALID_ARGUMENT;
@@ -1801,7 +1802,8 @@ Av2hStatus av2h_luma_predict(
          (width == 32U && height == 8U) ||
          (width == 32U && height == 16U) ||
          (width == 64U && height == 8U) ||
-         (width == 64U && height == 16U))) {
+         (width == 64U && height == 16U) ||
+         (width == 64U && height == 32U))) {
         uint8_t scale = smooth_scale(width, height);
         uint8_t bottom_left;
         int extend_left = references->left_count == 0U &&
@@ -2117,6 +2119,7 @@ Av2hStatus av2h_luma_predict(
                                                              (width == 8U && height == 32U) ||
                                                              (width == 16U && height == 16U) ||
                                                              (width == 16U && height == 64U) ||
+                                                             (width == 32U && height == 8U) ||
                                                              (width == 32U && height == 16U) ||
                                                              (width == 32U && height == 32U) ||
                                                              (width == 64U && height == 16U) ||
