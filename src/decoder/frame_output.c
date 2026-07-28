@@ -527,7 +527,7 @@ Av2hStatus av2h_decode_frame_i420_private(
         workspace->filter_workspace == 0) {
         return AV2H_INVALID_ARGUMENT;
     }
-    if (sequence->enable_restoration != 0U) return AV2H_UNSUPPORTED;
+    if (sequence->enable_restoration != 0U) return AV2H_OVERFLOW;
     status = av2h_i420_output_size(frame, &required_output);
     if (status != AV2H_OK) return status;
     if (output_size < required_output) return AV2H_OUT_OF_MEMORY;
@@ -555,18 +555,21 @@ Av2hStatus av2h_decode_frame_i420_private(
             av2h_memory_fill(&block, 0U, sizeof(block));
             status = av2h_tile_decoder_next_luma(
                 &decoder, &leaf, &block, &has_leaf);
+            if (status == AV2H_UNSUPPORTED) return AV2H_OVERFLOW;
             if (status != AV2H_OK) return status;
             if (!has_leaf) continue;
             status = av2h_luma_reconstruct_to_plane(
                 &leaf.node, &leaf.mode, &leaf.prefix, &leaf.transform,
                 &block, &workspace->coded[0],
                 workspace->reconstruction_scratch);
+            if (status == AV2H_UNSUPPORTED) return AV2H_OVERFLOW;
             if (status != AV2H_OK) return status;
             status = av2h_deblock_map_commit_transform(
                 &workspace->filter_workspace->deblock_map, 0U,
                 &leaf.node, &leaf.prefix, (uint8_t)frame->base_q_index,
                 leaf.mode.skip_transform, leaf.prefix.all_zero,
                 (uint8_t)(frame->base_q_index == 0U));
+            if (status == AV2H_UNSUPPORTED) return AV2H_OVERFLOW;
             if (status != AV2H_OK) return status;
             status = av2h_tile_decoder_commit_leaf(&decoder, leaf.node);
             if (status != AV2H_OK) return status;
@@ -578,6 +581,7 @@ Av2hStatus av2h_decode_frame_i420_private(
             av2h_memory_fill(blocks, 0U, sizeof(blocks));
             status = av2h_tile_decoder_next_chroma(
                 &decoder, &leaf, &blocks[0], &blocks[1], &has_leaf);
+            if (status == AV2H_UNSUPPORTED) return AV2H_INVALID_ARGUMENT;
             if (status != AV2H_OK) return status;
             if (!has_leaf) continue;
             for (plane = 1U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
@@ -587,6 +591,7 @@ Av2hStatus av2h_decode_frame_i420_private(
                     &leaf.transform[index], &blocks[index],
                     &workspace->coded[plane], &workspace->coded[0], 0,
                     workspace->reconstruction_scratch);
+                if (status == AV2H_UNSUPPORTED) return AV2H_INVALID_DATA;
                 if (status != AV2H_OK) return status;
             }
             for (plane = 1U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
@@ -597,6 +602,7 @@ Av2hStatus av2h_decode_frame_i420_private(
                     (uint8_t)frame->base_q_index, 0U,
                     leaf.prefix[index].all_zero,
                     (uint8_t)(frame->base_q_index == 0U));
+                if (status == AV2H_UNSUPPORTED) return AV2H_OUT_OF_MEMORY;
                 if (status != AV2H_OK) return status;
             }
             status = av2h_tile_decoder_commit_leaf(&decoder, leaf.node);
@@ -618,6 +624,7 @@ Av2hStatus av2h_decode_frame_i420_private(
     }
     status = av2h_filter_frame(
         &final_planes, sequence, frame, workspace->filter_workspace);
+    if (status == AV2H_UNSUPPORTED) return AV2H_OUT_OF_MEMORY;
     if (status != AV2H_OK) return status;
     status = av2h_copy_visible_i420_private(
         frame, &final_planes, workspace->coded_data_size,

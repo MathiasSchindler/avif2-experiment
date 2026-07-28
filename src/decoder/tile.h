@@ -3,6 +3,8 @@
 
 #include "reconstruct.h"
 
+extern uint32_t av2h_debug_luma_stage_ranges[5U];
+
 typedef struct {
     size_t header_bits;
     size_t header_size;

@@ -9,8 +9,8 @@ IST_SET_COUNT = 11
 IST_TYPE_COUNT = 3
 IST_HEIGHT = 32
 IST_WIDTH = 48
-SELECTED_SET = 1
-SELECTED_TYPE = 3
+SELECTED_KERNELS = ((0, 3), (1, 1), (1, 2), (1, 3), (4, 3), (5, 1), (5, 3), (6, 1))
+SELECTED_SCAN_MAPS = ((0, 1), (0, 2), (1, 1), (1, 2), (1, 3), (4, 3), (5, 1), (5, 3), (6, 1), (6, 3))
 KERNEL_HASH = "65d17c0e9a34843da3f5fe48262c7170383b59c15e477ab55733796de871fcc4"
 SCAN_MAP_HASH = "8825c77db8b394c9274df8cb368c14271d12eed218eb228aae133956c4ec7146"
 
@@ -33,8 +33,9 @@ def read_initializer(path: Path, expected_hash: str, expected_count: int) -> lis
     return values
 
 
-def selected_slice(values: list[int], stride: int) -> list[int]:
-    offset = ((SELECTED_SET * IST_TYPE_COUNT) + SELECTED_TYPE - 1) * stride
+def selected_slice(values: list[int], selected_set: int,
+                   selected_type: int, stride: int) -> list[int]:
+    offset = ((selected_set * IST_TYPE_COUNT) + selected_type - 1) * stride
     return values[offset:offset + stride]
 
 
@@ -52,30 +53,44 @@ def main() -> int:
     scan_map = read_initializer(
         args.spec_dir / "stx_scan_map.h", SCAN_MAP_HASH,
         IST_SET_COUNT * IST_TYPE_COUNT * IST_WIDTH)
-    kernel = selected_slice(kernel, IST_HEIGHT * IST_WIDTH)
-    scan_map = selected_slice(scan_map, IST_WIDTH)
-    if min(kernel) < -32768 or max(kernel) > 32767:
+    kernels = {
+        (selected_set, selected_type): selected_slice(
+            kernel, selected_set, selected_type, IST_HEIGHT * IST_WIDTH)
+        for selected_set, selected_type in SELECTED_KERNELS
+    }
+    scan_maps = {
+        (selected_set, selected_type): selected_slice(
+            scan_map, selected_set, selected_type, IST_WIDTH)
+        for selected_set, selected_type in SELECTED_SCAN_MAPS
+    }
+    if any(min(values) < -32768 or max(values) > 32767
+           for values in kernels.values()):
         raise ValueError("selected IST kernel does not fit int16_t")
-    if min(scan_map) < 0 or max(scan_map) >= 64 or len(set(scan_map)) != IST_WIDTH:
+    if any(min(values) < 0 or max(values) >= 64 or
+           len(set(values)) != IST_WIDTH for values in scan_maps.values()):
         raise ValueError("selected IST scan map is invalid")
 
     lines = [
         "/* Generated from hash-locked AV2 v1.0.0 normative attachments. */",
-        "static const int16_t av2h_ist_8x8_set1_type3_kernel[32U][48U] = {",
     ]
-    for row in range(IST_HEIGHT):
-        start = row * IST_WIDTH
-        values = ", ".join(str(value) for value in kernel[start:start + IST_WIDTH])
-        lines.append(f"    {{ {values} }},")
-    lines.extend((
-        "};",
-        "",
-        "static const uint8_t av2h_ist_8x8_set1_type3_scan_map[48U] = {",
-    ))
-    for start in range(0, IST_WIDTH, 16):
-        values = ", ".join(str(value) for value in scan_map[start:start + 16])
-        lines.append(f"    {values},")
-    lines.extend(("};", ""))
+    for (selected_set, selected_type), kernel_values in kernels.items():
+        lines.append(
+            f"static const int16_t av2h_ist_8x8_set{selected_set}_type{selected_type}_kernel[32U][48U] = {{")
+        for row in range(IST_HEIGHT):
+            start = row * IST_WIDTH
+            values = ", ".join(
+                str(value) for value in
+                kernel_values[start:start + IST_WIDTH])
+            lines.append(f"    {{ {values} }},")
+        lines.extend(("};", ""))
+    for (selected_set, selected_type), scan_values in scan_maps.items():
+        lines.append(
+            f"static const uint8_t av2h_ist_8x8_set{selected_set}_type{selected_type}_scan_map[48U] = {{")
+        for start in range(0, IST_WIDTH, 16):
+            values = ", ".join(
+                str(value) for value in scan_values[start:start + 16])
+            lines.append(f"    {values},")
+        lines.extend(("};", ""))
     args.output.write_text("\n".join(lines), encoding="ascii")
     return 0
 

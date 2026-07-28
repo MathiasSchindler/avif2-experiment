@@ -4,6 +4,14 @@
 #include "frame.h"
 #include "partition.h"
 
+extern uint32_t av2h_debug_chroma_mode_ranges[4U];
+extern uint32_t av2h_debug_intrabc_ranges[3U];
+extern uint16_t av2h_debug_intrabc_mode_cdf[6U];
+extern uint32_t av2h_debug_use_intrabc[10U];
+extern uint32_t av2h_debug_mode_ranges[6U];
+extern uint32_t av2h_debug_mrl_state[10U];
+extern uint32_t av2h_debug_y_mode_context;
+
 #define AV2H_INTRABC_CONTEXT_COUNT 3U
 #define AV2H_CCSO_CONTEXT_COUNT 4U
 #define AV2H_Y_MODE_CONTEXT_COUNT 3U
@@ -68,6 +76,8 @@ typedef struct {
     uint16_t mhccp_direction[AV2H_MHCCP_CONTEXT_GROUP_COUNT]
                             [AV2H_MHCCP_DIRECTION_SYMBOLS + 4U];
     uint16_t cfl_index[AV2H_BINARY_CDF_SIZE];
+    uint16_t cfl_sign[8U + 4U];
+    uint16_t cfl_alpha[6U][8U + 4U];
     uint16_t uv_mode[AV2H_UV_MODE_CONTEXT_COUNT][AV2H_UV_MODE_SYMBOLS + 4U];
 } Av2hLeafCdfs;
 
@@ -138,6 +148,8 @@ typedef struct {
     uint8_t multi_line_mrl[2];
     uint8_t spatial_present[2];
     uint8_t spatial_use_intrabc[2];
+    uint8_t spatial_skip_transform[2];
+    uint8_t spatial_joint_mode[2];
     uint8_t spatial_fsc_mode[2];
     uint8_t spatial_mrl_index[2];
     uint8_t spatial_multi_line_mrl[2];
@@ -158,6 +170,7 @@ typedef struct {
     Av2hLumaModeContext *left;
     size_t above_count;
     size_t left_count;
+    uint16_t superblock_mi;
     uint8_t has_intrabc;
 } Av2hLumaModeContextState;
 
@@ -214,6 +227,8 @@ typedef struct {
     uint8_t cfl_downsample_filter_index;
     uint8_t cfl_derived_alpha;
     uint8_t explicit_alpha_coded;
+    uint8_t cfl_alpha_signs;
+    uint8_t cfl_alpha_idx;
     Av2hChromaCflKind cfl_kind;
     uint8_t uv_mode;
     uint8_t mode_index;

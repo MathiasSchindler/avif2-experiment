@@ -30,6 +30,7 @@ typedef enum {
 typedef struct {
     uint16_t primary_size0[AV2H_PRIMARY_TX_TYPE_SYMBOLS + 4U];
     uint16_t primary_size1[AV2H_PRIMARY_TX_TYPE_SYMBOLS + 4U];
+    uint16_t primary_short_side_4[4U + 4U];
     uint16_t primary_size2[AV2H_PRIMARY_TX_TYPE_SYMBOLS + 4U];
     uint16_t primary_long_side_32[AV2H_BINARY_CDF_SIZE];
     uint16_t primary_short_side_8[4U + 4U];
@@ -43,6 +44,7 @@ typedef struct {
     uint16_t secondary_8x8[AV2H_SECONDARY_TX_TYPE_SYMBOLS + 4U];
     uint16_t secondary_16x16[AV2H_SECONDARY_TX_TYPE_SYMBOLS + 4U];
     uint16_t secondary_32x32[AV2H_SECONDARY_TX_TYPE_SYMBOLS + 4U];
+    uint16_t secondary_64x64[AV2H_SECONDARY_TX_TYPE_SYMBOLS + 4U];
     uint16_t secondary_set[AV2H_SECONDARY_TX_SET_SYMBOLS + 4U];
     uint16_t chroma_cross_type[7U + 4U];
 } Av2hFirstTransformCdfs;

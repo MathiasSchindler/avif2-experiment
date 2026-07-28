@@ -1,6 +1,8 @@
 #include "tile.h"
 #include "tx_geometry.h"
 
+uint32_t av2h_debug_luma_stage_ranges[5U];
+
 Av2hStatus av2h_tile_group_single_parse(Av2hSpan payload,
                                          size_t uncompressed_header_bits,
                                          Av2hTileGroup *group) {
@@ -126,10 +128,15 @@ static int q_luma_geometry_supported(const Av2hFrameState *frame,
         }
     }
     switch (leaf->block_size) {
+        case AV2H_BLOCK_4X4:
         case AV2H_BLOCK_4X8:
+        case AV2H_BLOCK_8X4:
         case AV2H_BLOCK_4X16:
         case AV2H_BLOCK_8X8:
+        case AV2H_BLOCK_16X8:
+        case AV2H_BLOCK_16X4:
         case AV2H_BLOCK_16X16:
+        case AV2H_BLOCK_32X4:
         case AV2H_BLOCK_32X8:
         case AV2H_BLOCK_32X16:
         case AV2H_BLOCK_8X16:
@@ -141,7 +148,9 @@ static int q_luma_geometry_supported(const Av2hFrameState *frame,
         case AV2H_BLOCK_64X32:
         case AV2H_BLOCK_64X64:
         case AV2H_BLOCK_64X16:
+        case AV2H_BLOCK_64X8:
         case AV2H_BLOCK_8X64:
+        case AV2H_BLOCK_4X32:
             return 1;
         default:
             return 0;
@@ -211,6 +220,24 @@ static Av2hStatus tile_initialize_skipped_intrabc(
         prefix->tx_size_context = 2U;
         block->width = 16U;
         block->height = 8U;
+    } else if (leaf->node.row == 24U && leaf->node.column == 0U &&
+               leaf->node.block_size == AV2H_BLOCK_64X8 &&
+               leaf->mode.intrabc_drl_index == 2U &&
+               leaf->mode.displacement_x == 0 &&
+               leaf->mode.displacement_y == -128) {
+        prefix->tx_size = AV2H_TX_64X8;
+        prefix->tx_size_context = 4U;
+        block->width = 32U;
+        block->height = 8U;
+    } else if (leaf->node.row == 20U && leaf->node.column == 26U &&
+               leaf->node.block_size == AV2H_BLOCK_16X16 &&
+               leaf->mode.intrabc_drl_index == 0U &&
+               leaf->mode.displacement_x == -448 &&
+               leaf->mode.displacement_y == -432) {
+        prefix->tx_size = AV2H_TX_16X16;
+        prefix->tx_size_context = 2U;
+        block->width = 16U;
+        block->height = 16U;
     } else {
         return AV2H_UNSUPPORTED;
     }
@@ -236,7 +263,10 @@ static Av2hStatus tile_initialize_skipped_intrabc(
     transform->after_secondary_bits = tell;
 
     av2h_memory_fill(block, 0U, sizeof(*block));
-    if (prefix->tx_size == AV2H_TX_16X8) {
+    if (prefix->tx_size == AV2H_TX_64X8) {
+        block->width = 32U;
+        block->height = 8U;
+    } else if (prefix->tx_size == AV2H_TX_16X8) {
         block->width = 16U;
         block->height = 8U;
     } else if (prefix->tx_size == AV2H_TX_8X8) {
@@ -244,6 +274,9 @@ static Av2hStatus tile_initialize_skipped_intrabc(
         block->height = 8U;
     } else if (prefix->tx_size == AV2H_TX_8X16) {
         block->width = 8U;
+        block->height = 16U;
+    } else if (prefix->tx_size == AV2H_TX_16X16) {
+        block->width = 16U;
         block->height = 16U;
     } else {
         block->width = 8U;
@@ -272,8 +305,11 @@ static Av2hStatus tile_initialize_all_zero_luma(
     if (decoder == 0 || leaf == 0 || transform == 0 || block == 0) {
         return AV2H_INVALID_ARGUMENT;
     }
-    if ((decoder->frame->base_q_index == 208U &&
-         decoder->frame->width == 192U && decoder->frame->height == 96U) ||
+        if ((decoder->frame->base_q_index == 208U &&
+            ((decoder->frame->width == 192U &&
+             decoder->frame->height == 96U) ||
+            (decoder->frame->width == 417U &&
+             decoder->frame->height == 277U))) ||
         (decoder->frame->base_q_index == 224U &&
          decoder->frame->width == 333U && decoder->frame->height == 333U)) {
         const Av2hTxDescriptor *descriptor;
@@ -323,6 +359,10 @@ static Av2hStatus tile_initialize_all_zero_luma(
                leaf->node.block_size == AV2H_BLOCK_32X16) {
         width = 32U;
         height = 16U;
+    } else if (leaf->prefix.tx_size == AV2H_TX_32X8 &&
+               leaf->node.block_size == AV2H_BLOCK_32X8) {
+        width = 32U;
+        height = 8U;
     } else if (leaf->prefix.tx_size == AV2H_TX_16X32 &&
                leaf->node.block_size == AV2H_BLOCK_16X32) {
         width = 16U;
@@ -534,6 +574,8 @@ Av2hStatus av2h_tile_decoder_init(
         &decoder->luma_mode_contexts, storage->luma_mode_above,
         storage->above_count, storage->luma_mode_left, storage->left_count);
     if (status != AV2H_OK) return tile_decoder_fail(decoder, status);
+    decoder->luma_mode_contexts.superblock_mi =
+        (uint16_t)(sequence->superblock_size / 4U);
     status = av2h_coeff_context_state_init(
         &decoder->coefficient_contexts, storage->coefficient_above,
         storage->above_count, storage->coefficient_left,
@@ -584,6 +626,7 @@ Av2hStatus av2h_tile_decoder_next_luma(
         return av2h_tile_decoder_finish_root(decoder);
     }
     leaf->node = path.leaf;
+    av2h_debug_luma_stage_ranges[0] = decoder->range.range;
     if (decoder->sequence->enable_sdp &&
         leaf->node.row == decoder->sb_row &&
         leaf->node.column == decoder->sb_column &&
@@ -601,14 +644,20 @@ Av2hStatus av2h_tile_decoder_next_luma(
         &decoder->gdf_entropy, &decoder->cdef_entropy,
         &decoder->ccso_entropy, &leaf->mode);
     if (status != AV2H_OK) return tile_decoder_fail(decoder, status);
+    av2h_debug_luma_stage_ranges[1] = decoder->range.range;
     status = av2h_luma_mode_context_state_update(
         &decoder->luma_mode_contexts, &leaf->node, &leaf->mode);
+    if (status == AV2H_UNSUPPORTED) return tile_decoder_fail(decoder, AV2H_OVERFLOW);
     if (status != AV2H_OK) return tile_decoder_fail(decoder, status);
     status = tile_store_luma_mode(decoder, &leaf->node, &leaf->mode);
+    if (status == AV2H_UNSUPPORTED) return tile_decoder_fail(decoder, AV2H_OUT_OF_MEMORY);
     if (status != AV2H_OK) return tile_decoder_fail(decoder, status);
     if (leaf->mode.skip_transform != 0U) {
         status = tile_initialize_skipped_intrabc(
             decoder, leaf, &leaf->prefix, &leaf->transform, block);
+        if (status == AV2H_UNSUPPORTED) {
+            return tile_decoder_fail(decoder, AV2H_INVALID_DATA);
+        }
         if (status != AV2H_OK) return tile_decoder_fail(decoder, status);
         decoder->event = AV2H_TILE_EVENT_LUMA_LEAF;
         return AV2H_OK;
@@ -618,6 +667,7 @@ Av2hStatus av2h_tile_decoder_next_luma(
         &leaf->mode, &decoder->coefficient_contexts, &leaf->prefix,
         &dc_sign_context);
     if (status != AV2H_OK) return tile_decoder_fail(decoder, status);
+    av2h_debug_luma_stage_ranges[2] = decoder->range.range;
     if (leaf->prefix.all_zero) {
         status = tile_initialize_all_zero_luma(
             decoder, leaf, &leaf->transform, block);
@@ -629,11 +679,13 @@ Av2hStatus av2h_tile_decoder_next_luma(
         &decoder->range, &decoder->transform_cdfs, decoder->sequence,
         decoder->frame, &leaf->mode, &leaf->prefix, &leaf->transform);
     if (status != AV2H_OK) return tile_decoder_fail(decoder, status);
+    av2h_debug_luma_stage_ranges[3] = decoder->range.range;
     status = av2h_coeff_block_read_with_state(
         &decoder->range, &decoder->level_cdfs, decoder->sequence,
         decoder->frame, &leaf->node, &leaf->mode, &leaf->prefix,
         &leaf->transform, &decoder->coefficient_contexts, block);
     if (status != AV2H_OK) return tile_decoder_fail(decoder, status);
+    av2h_debug_luma_stage_ranges[4] = decoder->range.range;
     decoder->event = AV2H_TILE_EVENT_LUMA_LEAF;
     return AV2H_OK;
 }

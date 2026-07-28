@@ -18,6 +18,11 @@
 #define CHINNATHURAI_UV_REFERENCE_WIDTH 167U
 #define CHINNATHURAI_UV_REFERENCE_HEIGHT 167U
 #define CHINNATHURAI_UV_RECONSTRUCTED_STRIDE 42U
+#define SCHWAEBISCH_UV_WIDTH 212U
+#define SCHWAEBISCH_UV_HEIGHT 140U
+#define SCHWAEBISCH_UV_REFERENCE_WIDTH 209U
+#define SCHWAEBISCH_UV_REFERENCE_HEIGHT 139U
+#define SCHWAEBISCH_UV_RECONSTRUCTED_STRIDE 53U
 
 static int failures;
 static unsigned char stream[STREAM_CAPACITY];
@@ -41,6 +46,16 @@ static uint8_t chinnathurai_u_reconstructed[
 static uint8_t chinnathurai_v_reconstructed[
     CHINNATHURAI_UV_RECONSTRUCTED_STRIDE *
     CHINNATHURAI_UV_RECONSTRUCTED_STRIDE];
+static uint8_t schwaebisch_u_pixels[
+    SCHWAEBISCH_UV_WIDTH * SCHWAEBISCH_UV_HEIGHT];
+static uint8_t schwaebisch_v_pixels[
+    SCHWAEBISCH_UV_WIDTH * SCHWAEBISCH_UV_HEIGHT];
+static uint8_t schwaebisch_u_reconstructed[
+    SCHWAEBISCH_UV_RECONSTRUCTED_STRIDE *
+    ((SCHWAEBISCH_UV_REFERENCE_HEIGHT + 3U) / 4U)];
+static uint8_t schwaebisch_v_reconstructed[
+    SCHWAEBISCH_UV_RECONSTRUCTED_STRIDE *
+    ((SCHWAEBISCH_UV_REFERENCE_HEIGHT + 3U) / 4U)];
 static _Alignas(Av2hDeblockCell)
     uint8_t emerald_filter_memory[EMERALD_FILTER_MEMORY_SIZE];
 static uint8_t emerald_output[EMERALD_I420_SIZE];
@@ -367,6 +382,15 @@ extern uint64_t av2h_debug_chroma_cfl_hash[2U];
 extern uint8_t av2h_debug_chroma_cfl_count;
 extern uint8_t av2h_debug_partition_stage;
 extern Av2hPartitionNode av2h_debug_partition_node;
+extern size_t av2h_debug_partition_split_context;
+extern size_t av2h_debug_partition_before_bits;
+extern size_t av2h_debug_partition_after_bits;
+extern uint16_t av2h_debug_partition_cdf_before;
+extern uint16_t av2h_debug_partition_cdf_after;
+extern uint32_t av2h_debug_partition_split_value;
+extern uint32_t av2h_debug_partition_range_before;
+extern uint32_t av2h_debug_partition_value_before;
+extern int64_t av2h_debug_partition_available_before;
 
 static uint32_t trace_sample_hash(const uint8_t *pixels, size_t stride,
                                   uint16_t width, uint16_t height) {
@@ -2578,11 +2602,17 @@ static void check_first_luma(const ArtifactExpectation *expected,
         }
     } else if (expected->base_q_index == 208U &&
                expected->first_block == AV2H_BLOCK_64X16) {
+        fprintf(stderr,
+            "schwaebisch filters restoration=%u gdf=%u cdef=%u/%u/%u ccso=%u/%u/%u\n",
+            sequence->enable_restoration, frame->gdf_mode,
+            frame->cdef_strength_count, frame->cdef_on_skip_transform,
+            frame->cdef_damping, frame->ccso[0].enabled,
+            frame->ccso[1].enabled, frame->ccso[2].enabled);
         size_t reconstructed_stride =
-            ((size_t)expected->width + 3U) / 4U;
+            (424U + 3U) / 4U;
         Av2hReconstructionPlane plane = {
-            luma_pixels, expected->width, expected->width,
-            expected->height, expected->width, expected->height,
+            luma_pixels, 424U, 424U, 280U,
+            expected->width, expected->height,
             luma_reconstructed, reconstructed_stride,
             sizeof(luma_reconstructed)
         };
@@ -2649,6 +2679,420 @@ static void check_first_luma(const ArtifactExpectation *expected,
                   luma_pixels + 16U * expected->width,
                   expected->width, 32U, 16U) ==
               UINT64_C(0x3304535c9bf698c3));
+        REQUIRE(av2h_tile_decoder_commit_leaf(&decoder, leaf.node) ==
+            AV2H_OK);
+        av2h_memory_fill(&leaf, 0U, sizeof(leaf));
+        av2h_memory_fill(&block, 0U, sizeof(block));
+        status = av2h_tile_decoder_next_luma(
+            &decoder, &leaf, &block, &has_leaf);
+        for (size_t probe_step = 0U;
+             probe_step < 256U && decoder.phase == AV2H_TILE_DECODE_LUMA;
+             ++probe_step) {
+            Av2hStatus reconstruct_status = status;
+            if (status == AV2H_OK && has_leaf != 0U) {
+                reconstruct_status = av2h_luma_reconstruct_to_plane(
+                    &leaf.node, &leaf.mode, &leaf.prefix, &leaf.transform,
+                    &block, &plane, &scratch);
+            }
+            fprintf(stderr,
+                    "schwaebisch q208 probe status=%d reconstruct=%d stage=%u tell=%lu leaf=%u sb=%lu row=%u column=%u block=%u mode=%u angle=%d mrl=%u/%u ibp=%u modebits=%lu/%lu prefix=%u/%u/%u transform=%u/%u/%u diagnostic=%u/%u/%u\n",
+                    status, reconstruct_status,
+                    av2h_debug_luma_reconstruct_stage,
+                    (unsigned long)av2h_range_tell(&decoder.range),
+                    has_leaf, (unsigned long)decoder.sb_index,
+                    leaf.node.row, leaf.node.column, leaf.node.block_size,
+                    leaf.mode.mode, leaf.mode.angle_delta,
+                    leaf.mode.mrl_index, leaf.mode.multi_line_mrl,
+                    leaf.mode.enable_ibp,
+                    (unsigned long)leaf.mode.before_mode_bits,
+                    (unsigned long)leaf.mode.after_mode_index_bits,
+                    leaf.prefix.tx_size, leaf.prefix.all_zero,
+                    leaf.prefix.eob, leaf.transform.primary_type,
+                    leaf.transform.primary_symbol,
+                    leaf.transform.secondary_symbol,
+                    block.diagnostic_kind, block.diagnostic_context,
+                    block.diagnostic_position);
+            if (status != AV2H_OK || reconstruct_status != AV2H_OK ||
+                has_leaf == 0U) {
+                break;
+            }
+            status = av2h_tile_decoder_commit_leaf(&decoder, leaf.node);
+            if (status != AV2H_OK) break;
+            av2h_memory_fill(&leaf, 0U, sizeof(leaf));
+            av2h_memory_fill(&block, 0U, sizeof(block));
+            status = av2h_tile_decoder_next_luma(
+                &decoder, &leaf, &block, &has_leaf);
+        }
+        if (decoder.phase == AV2H_TILE_DECODE_CHROMA) {
+            Av2hTileChromaLeaf chroma_leaf;
+            Av2hFirstCoeffBlock chroma_blocks[2U];
+            Av2hReconstructionPlane chroma_planes[2U] = {
+                { schwaebisch_u_pixels, SCHWAEBISCH_UV_WIDTH,
+                  SCHWAEBISCH_UV_WIDTH, SCHWAEBISCH_UV_HEIGHT,
+                  SCHWAEBISCH_UV_REFERENCE_WIDTH,
+                  SCHWAEBISCH_UV_REFERENCE_HEIGHT,
+                  schwaebisch_u_reconstructed,
+                  SCHWAEBISCH_UV_RECONSTRUCTED_STRIDE,
+                  sizeof(schwaebisch_u_reconstructed) },
+                { schwaebisch_v_pixels, SCHWAEBISCH_UV_WIDTH,
+                  SCHWAEBISCH_UV_WIDTH, SCHWAEBISCH_UV_HEIGHT,
+                  SCHWAEBISCH_UV_REFERENCE_WIDTH,
+                  SCHWAEBISCH_UV_REFERENCE_HEIGHT,
+                  schwaebisch_v_reconstructed,
+                  SCHWAEBISCH_UV_RECONSTRUCTED_STRIDE,
+                  sizeof(schwaebisch_v_reconstructed) }
+            };
+            av2h_memory_fill(
+                schwaebisch_u_pixels, 0U, sizeof(schwaebisch_u_pixels));
+            av2h_memory_fill(
+                schwaebisch_v_pixels, 0U, sizeof(schwaebisch_v_pixels));
+            av2h_memory_fill(schwaebisch_u_reconstructed, 0U,
+                             sizeof(schwaebisch_u_reconstructed));
+            av2h_memory_fill(schwaebisch_v_reconstructed, 0U,
+                             sizeof(schwaebisch_v_reconstructed));
+            for (size_t probe_step = 0U;
+                 probe_step < 64U &&
+                     decoder.phase == AV2H_TILE_DECODE_CHROMA;
+                 ++probe_step) {
+                Av2hStatus plane_status[2U] = { AV2H_OK, AV2H_OK };
+                size_t plane_index;
+                av2h_memory_fill(&chroma_leaf, 0U, sizeof(chroma_leaf));
+                av2h_memory_fill(chroma_blocks, 0U, sizeof(chroma_blocks));
+                status = av2h_tile_decoder_next_chroma(
+                    &decoder, &chroma_leaf, &chroma_blocks[0],
+                    &chroma_blocks[1], &has_leaf);
+                if (status == AV2H_OK && has_leaf != 0U) {
+                    for (plane_index = 0U; plane_index < 2U; ++plane_index) {
+                        plane_status[plane_index] =
+                            av2h_chroma_reconstruct_to_plane_ex(
+                                &chroma_leaf.node, &chroma_leaf.mode,
+                                &chroma_leaf.prefix[plane_index],
+                                &chroma_leaf.transform[plane_index],
+                                &chroma_blocks[plane_index],
+                                &chroma_planes[plane_index], &plane, 0,
+                                &scratch);
+                        if (plane_status[plane_index] != AV2H_OK) break;
+                    }
+                }
+                fprintf(stderr,
+                        "schwaebisch q208 chroma status=%d reconstruct=%d/%d tell=%lu leaf=%u sb=%lu row=%u column=%u block=%u mode=%u cfl=%u/%u/%u prefix=%u/%u/%u:%u/%u/%u transform=%u/%u diagnostic=%u/%u:%u/%u\n",
+                        status, plane_status[0], plane_status[1],
+                        (unsigned long)av2h_range_tell(&decoder.range),
+                        has_leaf, (unsigned long)decoder.sb_index,
+                        chroma_leaf.node.row, chroma_leaf.node.column,
+                        chroma_leaf.node.block_size, chroma_leaf.mode.mode,
+                        chroma_leaf.mode.is_cfl,
+                        chroma_leaf.mode.cfl_mhccp_switch,
+                        chroma_leaf.mode.cfl_index,
+                        chroma_leaf.prefix[0].tx_size,
+                        chroma_leaf.prefix[0].all_zero,
+                        chroma_leaf.prefix[0].eob,
+                        chroma_leaf.prefix[1].tx_size,
+                        chroma_leaf.prefix[1].all_zero,
+                        chroma_leaf.prefix[1].eob,
+                        chroma_leaf.transform[0].cctx_type,
+                        chroma_leaf.transform[1].cctx_type,
+                        chroma_blocks[0].diagnostic_kind,
+                        chroma_blocks[0].diagnostic_context,
+                        chroma_blocks[1].diagnostic_kind,
+                        chroma_blocks[1].diagnostic_context);
+                if (status != AV2H_OK || has_leaf == 0U ||
+                    plane_status[0] != AV2H_OK ||
+                    plane_status[1] != AV2H_OK) {
+                    break;
+                }
+                status = av2h_tile_decoder_commit_leaf(
+                    &decoder, chroma_leaf.node);
+                if (status != AV2H_OK) break;
+            }
+            for (size_t phase_step = 0U;
+                 phase_step < 1024U &&
+                     decoder.phase != AV2H_TILE_DECODE_DONE;
+                 ++phase_step) {
+                if (decoder.phase == AV2H_TILE_DECODE_LUMA) {
+                    Av2hStatus reconstruct_status = AV2H_OK;
+                    av2h_memory_fill(&leaf, 0U, sizeof(leaf));
+                    av2h_memory_fill(&block, 0U, sizeof(block));
+                    status = av2h_tile_decoder_next_luma(
+                        &decoder, &leaf, &block, &has_leaf);
+                    if (leaf.mode.use_intrabc != 0U) {
+                        fprintf(stderr,
+                                "schwaebisch intrabc=%u/%u/%u/%u/%u/%u/%d/%d/%u\n",
+                                leaf.node.row, leaf.node.column,
+                                leaf.node.block_size,
+                                leaf.mode.skip_transform,
+                                leaf.mode.intrabc_mode,
+                                leaf.mode.intrabc_drl_index,
+                                leaf.mode.displacement_x,
+                                leaf.mode.displacement_y,
+                                leaf.mode.mv_precision);
+                    }
+                    if (status == AV2H_OK && has_leaf != 0U) {
+                        reconstruct_status = av2h_luma_reconstruct_to_plane(
+                            &leaf.node, &leaf.mode, &leaf.prefix,
+                            &leaf.transform, &block, &plane, &scratch);
+                    }
+                    fprintf(stderr,
+                            "schwaebisch q208 continue-y status=%d reconstruct=%d stage=%u tell=%lu leaf=%u sb=%lu row=%u column=%u block=%u mode=%u/%u/%u/%u angle=%d fsc=%u/%u mrl=%u/%u ibp=%u intrabc=%u modebits=%lu/%lu/%lu/%lu/%lu/%lu/%lu cdefccso=%u/%u gdf=%u/%lu/%u/%u/%u ranges=%u/%u/%u/%u/%u prefix=%u/%u/%u/%u/%u/%u/%lu/%lu/%lu transform=%u/%u/%u/%u/%u coeff=%u/%u diagnostic=%u/%u/%u partition=%u/%u/%u/%u split=%lu/%lu/%lu/%u/%u/%lu/%lu/%lu/%lld\n",
+                            status, reconstruct_status,
+                            av2h_debug_luma_reconstruct_stage,
+                            (unsigned long)av2h_range_tell(&decoder.range),
+                            has_leaf, (unsigned long)decoder.sb_index,
+                            leaf.node.row, leaf.node.column,
+                            leaf.node.block_size, leaf.mode.mode,
+                            leaf.mode.mode_set, leaf.mode.mode_index,
+                            leaf.mode.joint_mode, leaf.mode.angle_delta,
+                            leaf.mode.fsc_mode, leaf.mode.fsc_block_context,
+                            leaf.mode.mrl_index,
+                            leaf.mode.multi_line_mrl, leaf.mode.enable_ibp,
+                            leaf.mode.use_intrabc,
+                            (unsigned long)leaf.mode.after_gdf_bits,
+                            (unsigned long)leaf.mode.after_cdef_bits,
+                            (unsigned long)leaf.mode.after_ccso_bits,
+                            (unsigned long)leaf.mode.before_mode_bits,
+                            (unsigned long)leaf.mode.after_mode_index_bits,
+                            (unsigned long)leaf.mode.after_fsc_bits,
+                            (unsigned long)leaf.mode.after_mrl_bits,
+                            leaf.mode.cdef_strengths_read,
+                            leaf.mode.ccso_controls_read,
+                            leaf.mode.gdf_flags_read,
+                            (unsigned long)decoder.gdf_entropy.decoded_count,
+                            decoder.gdf_entropy.block_size,
+                            decoder.gdf_entropy.block_columns,
+                            decoder.gdf_entropy.superblock_mi,
+                            av2h_debug_luma_stage_ranges[0],
+                            av2h_debug_luma_stage_ranges[1],
+                            av2h_debug_luma_stage_ranges[2],
+                            av2h_debug_luma_stage_ranges[3],
+                            av2h_debug_luma_stage_ranges[4],
+                            leaf.prefix.tx_size,
+                            leaf.prefix.txb_skip_context,
+                            leaf.prefix.all_zero, leaf.prefix.eob,
+                            leaf.prefix.eob_point,
+                            leaf.prefix.eob_offset_bits,
+                            (unsigned long)leaf.prefix.after_all_zero_bits,
+                            (unsigned long)leaf.prefix.after_eob_point_bits,
+                            (unsigned long)leaf.prefix.after_eob_bits,
+                            leaf.transform.primary_type,
+                            leaf.transform.primary_long_side_symbol,
+                            leaf.transform.primary_symbol,
+                            leaf.transform.secondary_set,
+                            leaf.transform.secondary_symbol,
+                            block.width, block.height,
+                            block.diagnostic_kind,
+                            block.diagnostic_context,
+                            block.diagnostic_position,
+                            av2h_debug_partition_stage,
+                            av2h_debug_partition_node.row,
+                            av2h_debug_partition_node.column,
+                            av2h_debug_partition_node.block_size,
+                            (unsigned long)av2h_debug_partition_split_context,
+                            (unsigned long)av2h_debug_partition_before_bits,
+                            (unsigned long)av2h_debug_partition_after_bits,
+                            av2h_debug_partition_cdf_before,
+                            av2h_debug_partition_cdf_after,
+                            (unsigned long)av2h_debug_partition_split_value,
+                            (unsigned long)av2h_debug_partition_range_before,
+                            (unsigned long)av2h_debug_partition_value_before,
+                            (long long)av2h_debug_partition_available_before);
+                            if ((leaf.node.row == 0U &&
+                                leaf.node.column == 64U) ||
+                                (leaf.node.row == 16U &&
+                                (leaf.node.column == 8U ||
+                                 leaf.node.column == 16U ||
+                                leaf.node.column == 20U))) {
+                            fprintf(stderr,
+                                        "schwaebisch eob-state=%u/%u/%u/%u/%u/%u/%u/%u/%u/%u/%u/%u/%u skip=%u/%u/%u/%u/%u/%u/%u intrabc=%u/%u/%u/%u/%u/%u/%u/%u/%u use=%u/%u/%u/%u/%u/%u/%u/%u/%u/%u mode-ranges=%u/%u/%u/%u/%u/%u mrl=%u/%u/%u/%u/%u/%u/%u/%u/%u/%u txctx=%u/%u/%u yctx=%u\n",
+                                av2h_debug_eob_cdf[0],
+                                av2h_debug_eob_cdf[1],
+                                av2h_debug_eob_cdf[2],
+                                av2h_debug_eob_cdf[3],
+                                av2h_debug_eob_cdf[4],
+                                av2h_debug_eob_cdf[5],
+                                av2h_debug_eob_cdf[6],
+                                av2h_debug_eob_cdf[7],
+                                av2h_debug_eob_cdf[8],
+                                av2h_debug_eob_cdf[9],
+                                av2h_debug_eob_cdf[10],
+                                av2h_debug_eob_cdf[11],
+                                av2h_debug_eob_range,
+                                av2h_debug_skip_cdf[0],
+                                av2h_debug_skip_cdf[1],
+                                av2h_debug_skip_cdf[2],
+                                av2h_debug_skip_cdf[3],
+                                av2h_debug_skip_cdf[4],
+                                av2h_debug_skip_cdf[5],
+                                av2h_debug_skip_range,
+                                av2h_debug_intrabc_ranges[0],
+                                av2h_debug_intrabc_ranges[1],
+                                av2h_debug_intrabc_ranges[2],
+                                av2h_debug_intrabc_mode_cdf[0],
+                                av2h_debug_intrabc_mode_cdf[1],
+                                av2h_debug_intrabc_mode_cdf[2],
+                                av2h_debug_intrabc_mode_cdf[3],
+                                av2h_debug_intrabc_mode_cdf[4],
+                                av2h_debug_intrabc_mode_cdf[5],
+                                av2h_debug_use_intrabc[0],
+                                av2h_debug_use_intrabc[1],
+                                av2h_debug_use_intrabc[2],
+                                av2h_debug_use_intrabc[3],
+                                av2h_debug_use_intrabc[4],
+                                av2h_debug_use_intrabc[5],
+                                av2h_debug_use_intrabc[6],
+                                av2h_debug_use_intrabc[7],
+                                av2h_debug_use_intrabc[8],
+                                av2h_debug_use_intrabc[9],
+                                av2h_debug_mode_ranges[0],
+                                av2h_debug_mode_ranges[1],
+                                av2h_debug_mode_ranges[2],
+                                av2h_debug_mode_ranges[3],
+                                av2h_debug_mode_ranges[4],
+                                av2h_debug_mode_ranges[5],
+                                av2h_debug_mrl_state[0],
+                                av2h_debug_mrl_state[1],
+                                av2h_debug_mrl_state[2],
+                                av2h_debug_mrl_state[3],
+                                av2h_debug_mrl_state[4],
+                                av2h_debug_mrl_state[5],
+                                av2h_debug_mrl_state[6],
+                                av2h_debug_mrl_state[7],
+                                av2h_debug_mrl_state[8],
+                                av2h_debug_mrl_state[9],
+                                leaf.prefix.tx_size_context,
+                                decoder.coeff_cdfs.txb_skip_txs2[2],
+                                decoder.coeff_cdfs.txb_skip_txs3[2],
+                                av2h_debug_y_mode_context);
+                            }
+                    if (leaf.node.row == 16U && leaf.node.column == 16U) {
+                        fprintf(stderr,
+                                "schwaebisch target-levels=%lu/%u/%u/%u/%u/%u/%u/%u\n",
+                                (unsigned long)block.after_levels_bits,
+                                block.after_levels_range,
+                                block.base_levels[0], block.base_levels[1],
+                                block.base_levels[16], block.base_levels[2],
+                                block.base_levels[17], block.nonzero_count);
+                            fprintf(stderr,
+                                "schwaebisch target-eob=%u/%u/%u/%u/%u/%u/%u/%u/%u/%u\n",
+                                av2h_debug_target_eob[0],
+                                av2h_debug_target_eob[1],
+                                av2h_debug_target_eob[2],
+                                av2h_debug_target_eob[3],
+                                av2h_debug_target_eob[4],
+                                av2h_debug_target_eob[5],
+                                av2h_debug_target_eob[6],
+                                av2h_debug_target_eob[7],
+                                av2h_debug_target_eob[8],
+                                av2h_debug_target_eob[9]);
+                        for (size_t debug_index = 0U;
+                             debug_index < av2h_debug_target_base_count;
+                             ++debug_index) {
+                            uint32_t *debug =
+                                av2h_debug_target_base[debug_index];
+                            fprintf(stderr,
+                                    "schwaebisch target-base=%lu/%u/%u/%u/%u/%u/%u/%u/%u/%u\n",
+                                    (unsigned long)debug_index, debug[0],
+                                    debug[1], debug[2], debug[3], debug[4],
+                                    debug[5], debug[6], debug[7], debug[8]);
+                        }
+                    }
+                    if (leaf.node.row == 20U && leaf.node.column == 16U) {
+                        fprintf(stderr,
+                                "schwaebisch coeff-20-16=%lu/%lu/%lu/%u/%u/%d/%d/%d/%d/%d/%u\n",
+                                (unsigned long)block.before_levels_bits,
+                                (unsigned long)block.after_levels_bits,
+                                (unsigned long)block.after_coefficients_bits,
+                                av2h_debug_luma_stage_ranges[3],
+                                block.after_levels_range,
+                                block.quantized[0], block.quantized[1],
+                                block.quantized[8], block.quantized[2],
+                                block.quantized[9], block.nonzero_count);
+                    }
+                    if (status != AV2H_OK ||
+                        reconstruct_status != AV2H_OK) {
+                        break;
+                    }
+                    if (has_leaf == 0U) continue;
+                    status = av2h_tile_decoder_commit_leaf(
+                        &decoder, leaf.node);
+                    if (status != AV2H_OK) break;
+                } else {
+                    Av2hStatus plane_status[2U] = { AV2H_OK, AV2H_OK };
+                    size_t plane_index;
+                    av2h_memory_fill(&chroma_leaf, 0U, sizeof(chroma_leaf));
+                    av2h_memory_fill(
+                        chroma_blocks, 0U, sizeof(chroma_blocks));
+                    status = av2h_tile_decoder_next_chroma(
+                        &decoder, &chroma_leaf, &chroma_blocks[0],
+                        &chroma_blocks[1], &has_leaf);
+                    if (status == AV2H_OK && has_leaf != 0U) {
+                        for (plane_index = 0U; plane_index < 2U;
+                             ++plane_index) {
+                            plane_status[plane_index] =
+                                av2h_chroma_reconstruct_to_plane_ex(
+                                    &chroma_leaf.node, &chroma_leaf.mode,
+                                    &chroma_leaf.prefix[plane_index],
+                                    &chroma_leaf.transform[plane_index],
+                                    &chroma_blocks[plane_index],
+                                    &chroma_planes[plane_index], &plane, 0,
+                                    &scratch);
+                            if (plane_status[plane_index] != AV2H_OK) break;
+                        }
+                    }
+                    fprintf(stderr,
+                            "schwaebisch q208 continue-uv status=%d reconstruct=%d/%d stage=%u tell=%lu leaf=%u sb=%lu row=%u column=%u block=%u mode=%u angle=%d cfl=%u/%u/%u cdf=%u/%u ranges=%u/%u/%u/%u:%u/%u:%u/%u prefix=%u/%u/%u/%u:%u/%u/%u/%u transform=%u/%u/%u:%u/%u/%u coeff=%u/%u/%lu/%lu diagnostic=%u/%u:%u/%u\n",
+                            status, plane_status[0], plane_status[1],
+                            av2h_debug_luma_reconstruct_stage,
+                            (unsigned long)av2h_range_tell(&decoder.range),
+                            has_leaf, (unsigned long)decoder.sb_index,
+                            chroma_leaf.node.row, chroma_leaf.node.column,
+                            chroma_leaf.node.block_size,
+                            chroma_leaf.mode.mode, chroma_leaf.mode.angle_delta,
+                            chroma_leaf.mode.is_cfl,
+                            chroma_leaf.mode.cfl_mhccp_switch,
+                            chroma_leaf.mode.cfl_index,
+                            decoder.leaf_cdfs.is_cfl[1][0],
+                            decoder.leaf_cdfs.cfl_index[0],
+                            av2h_debug_chroma_mode_ranges[0],
+                            av2h_debug_chroma_mode_ranges[1],
+                            av2h_debug_chroma_mode_ranges[2],
+                            av2h_debug_chroma_mode_ranges[3],
+                            av2h_debug_chroma_skip_ranges[0][0],
+                            av2h_debug_chroma_skip_ranges[0][1],
+                            av2h_debug_chroma_skip_ranges[1][0],
+                            av2h_debug_chroma_skip_ranges[1][1],
+                            chroma_leaf.prefix[0].tx_size,
+                            chroma_leaf.prefix[0].txb_skip_context,
+                            chroma_leaf.prefix[0].all_zero,
+                            chroma_leaf.prefix[0].eob,
+                            chroma_leaf.prefix[1].tx_size,
+                            chroma_leaf.prefix[1].txb_skip_context,
+                            chroma_leaf.prefix[1].all_zero,
+                            chroma_leaf.prefix[1].eob,
+                            chroma_leaf.transform[0].primary_type,
+                            chroma_leaf.transform[0].secondary_symbol,
+                            chroma_leaf.transform[0].secondary_set,
+                            chroma_leaf.transform[1].primary_type,
+                            chroma_leaf.transform[1].secondary_symbol,
+                            chroma_leaf.transform[1].secondary_set,
+                            chroma_blocks[0].width,
+                            chroma_blocks[0].height,
+                            (unsigned long)chroma_blocks[0].coefficient_count,
+                            (unsigned long)chroma_blocks[0].nonzero_count,
+                            chroma_blocks[0].diagnostic_kind,
+                            chroma_blocks[0].diagnostic_context,
+                            chroma_blocks[1].diagnostic_kind,
+                            chroma_blocks[1].diagnostic_context);
+                    if (status != AV2H_OK || plane_status[0] != AV2H_OK ||
+                        plane_status[1] != AV2H_OK) {
+                        break;
+                    }
+                    if (has_leaf == 0U) continue;
+                    status = av2h_tile_decoder_commit_leaf(
+                        &decoder, chroma_leaf.node);
+                    if (status != AV2H_OK) break;
+                }
+            }
+        }
     }
     if (expected->width == 192U && expected->height == 96U &&
         expected->base_q_index == 208U) {

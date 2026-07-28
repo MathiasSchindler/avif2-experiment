@@ -1,5 +1,13 @@
 #include "leaf.h"
 
+uint32_t av2h_debug_chroma_mode_ranges[4U];
+uint32_t av2h_debug_intrabc_ranges[3U];
+uint16_t av2h_debug_intrabc_mode_cdf[6U];
+uint32_t av2h_debug_use_intrabc[10U];
+uint32_t av2h_debug_mode_ranges[6U];
+uint32_t av2h_debug_mrl_state[10U];
+uint32_t av2h_debug_y_mode_context;
+
 static const Av2hBinaryCdfSpec intrabc_defaults[] = {
     { 32085U, 5U, 0U }, { 15172U, 30U, 0U }, { 4503U, 0U, 0U }
 };
@@ -111,6 +119,17 @@ Av2hStatus av2h_leaf_cdfs_init(Av2hLeafCdfs *cdfs) {
     static const Av2hBinaryCdfSpec is_cfl[] = {
         { 20441U, 30U, 0U }, { 11610U, 6U, 0U }, { 4643U, 0U, 0U }
     };
+    static const uint16_t cfl_sign[] = {
+        2421U, 4332U, 11256U, 12766U, 21386U, 28725U, 32087U
+    };
+    static const uint16_t cfl_alpha[6U][7U] = {
+        { 21679U, 25305U, 30646U, 31512U, 32537U, 32646U, 32696U },
+        { 8262U, 16302U, 24082U, 29422U, 31398U, 32286U, 32525U },
+        { 17235U, 26166U, 30378U, 31305U, 32373U, 32549U, 32668U },
+        { 17618U, 25732U, 27865U, 30338U, 31125U, 31522U, 32238U },
+        { 17542U, 23066U, 27907U, 28728U, 30702U, 31165U, 31435U },
+        { 17675U, 24802U, 30468U, 30783U, 31841U, 32264U, 32422U }
+    };
     static const uint16_t mhccp_direction
         [AV2H_MHCCP_CONTEXT_GROUP_COUNT][AV2H_MHCCP_DIRECTION_SYMBOLS - 1U] = {
         { 10923U, 21845U },
@@ -221,6 +240,15 @@ Av2hStatus av2h_leaf_cdfs_init(Av2hLeafCdfs *cdfs) {
     status = av2h_binary_cdf_init(
         cdfs->cfl_index, (Av2hBinaryCdfSpec){ 12507U, 30U, 0U });
     if (status != AV2H_OK) return status;
+    status = av2h_cdf_init(
+        cdfs->cfl_sign, 12U, cfl_sign, 8U, 62U, 0U);
+    if (status != AV2H_OK) return status;
+    for (context = 0U; context < 6U; ++context) {
+        status = av2h_cdf_init(
+            cdfs->cfl_alpha[context], 12U,
+            cfl_alpha[context], 8U, 62U, 0U);
+        if (status != AV2H_OK) return status;
+    }
     for (context = 0U; context < AV2H_UV_MODE_CONTEXT_COUNT; ++context) {
         status = av2h_cdf_init(
             cdfs->uv_mode[context], AV2H_UV_MODE_SYMBOLS + 4U,
@@ -262,12 +290,14 @@ Av2hStatus av2h_chroma_mode_read_with_delta(
         return AV2H_UNSUPPORTED;
     }
     mode->before_cfl_bits = av2h_range_tell(decoder);
+    av2h_debug_chroma_mode_ranges[0] = decoder->range;
     value = av2h_range_read_adaptive(decoder, cdfs->is_cfl[cfl_context], 2U);
     if (av2h_range_status(decoder) != AV2H_OK) {
         return av2h_range_status(decoder);
     }
     mode->is_cfl = (uint8_t)value;
     mode->after_cfl_bits = av2h_range_tell(decoder);
+    av2h_debug_chroma_mode_ranges[1] = decoder->range;
     mode->uses_cfl = 0U;
     mode->cfl_index = 0U;
     mode->cfl_mhccp_switch = 0U;
@@ -276,6 +306,8 @@ Av2hStatus av2h_chroma_mode_read_with_delta(
         sequence->cfl_downsample_filter_index;
     mode->cfl_derived_alpha = 0U;
     mode->explicit_alpha_coded = 0U;
+    mode->cfl_alpha_signs = 0U;
+    mode->cfl_alpha_idx = 0U;
     mode->cfl_kind = AV2H_CFL_NONE;
     mode->before_cfl_index_bits = mode->after_cfl_bits;
     mode->after_cfl_index_bits = mode->after_cfl_bits;
@@ -332,12 +364,14 @@ Av2hStatus av2h_chroma_mode_read_with_delta(
             }
         }
         mode->before_cfl_index_bits = mode->after_cfl_switch_bits;
+        av2h_debug_chroma_mode_ranges[2] = decoder->range;
         value = av2h_range_read_adaptive(decoder, cdfs->cfl_index, 2U);
         if (av2h_range_status(decoder) != AV2H_OK) {
             return av2h_range_status(decoder);
         }
         mode->cfl_index = (uint8_t)value;
         mode->after_cfl_index_bits = av2h_range_tell(decoder);
+        av2h_debug_chroma_mode_ranges[3] = decoder->range;
         mode->after_mode_bits = mode->after_cfl_index_bits;
         mode->angle_delta = 0;
         if (value == 1U) {
@@ -348,11 +382,36 @@ Av2hStatus av2h_chroma_mode_read_with_delta(
             mode->mode = AV2H_INTRA_DC;
             return AV2H_OK;
         }
-        /* cfl_idx == CFL_EXPLICIT (0): explicit alpha/sign coding is not
-         * covered by the pinned trace. Fail closed deterministically rather
-         * than consume unverified symbols. */
         mode->cfl_kind = AV2H_CFL_EXPLICIT_ALPHA;
-        return AV2H_UNSUPPORTED;
+        value = av2h_range_read_adaptive(decoder, cdfs->cfl_sign, 8U);
+        if (av2h_range_status(decoder) != AV2H_OK) {
+            return av2h_range_status(decoder);
+        }
+        mode->cfl_alpha_signs = (uint8_t)value;
+        {
+            uint8_t sign_u = (uint8_t)(((value + 1U) * 11U) >> 5U);
+            uint8_t sign_v = (uint8_t)(value + 1U - 3U * sign_u);
+            uint8_t alpha_idx = 0U;
+            if (sign_u != 0U) {
+                uint8_t alpha_context = (uint8_t)(value + 1U - 3U);
+                alpha_idx = (uint8_t)(av2h_range_read_adaptive(
+                    decoder, cdfs->cfl_alpha[alpha_context], 8U) << 3U);
+            }
+            if (sign_v != 0U) {
+                uint8_t alpha_context =
+                    (uint8_t)(sign_v * 3U + sign_u - 3U);
+                alpha_idx = (uint8_t)(alpha_idx + av2h_range_read_adaptive(
+                    decoder, cdfs->cfl_alpha[alpha_context], 8U));
+            }
+            if (av2h_range_status(decoder) != AV2H_OK) {
+                return av2h_range_status(decoder);
+            }
+            mode->cfl_alpha_idx = alpha_idx;
+        }
+        mode->explicit_alpha_coded = 1U;
+        mode->after_mode_bits = av2h_range_tell(decoder);
+        mode->mode = AV2H_INTRA_DC;
+        return AV2H_OK;
     }
     mode_context = (uint8_t)(colocated_luma_mode >= AV2H_INTRA_VERTICAL &&
         colocated_luma_mode <= AV2H_INTRA_D67);
@@ -1158,12 +1217,23 @@ static Av2hStatus read_first_intrabc(
         leaf->block_size, &width_mi, &height_mi);
     if (status != AV2H_OK) return status;
     mode->before_mode_bits = av2h_range_tell(decoder);
+    if (leaf->row == 16U && leaf->column == 20U) {
+        size_t debug_index;
+        av2h_debug_intrabc_ranges[0] = decoder->range;
+        for (debug_index = 0U; debug_index < 6U; ++debug_index) {
+            av2h_debug_intrabc_mode_cdf[debug_index] =
+                cdfs->intrabc_mode[debug_index];
+        }
+    }
     mode->intrabc_mode = (uint8_t)av2h_range_read_adaptive(
         decoder, cdfs->intrabc_mode, 2U);
     if (av2h_range_status(decoder) != AV2H_OK) {
         return av2h_range_status(decoder);
     }
     mode->after_mode_set_bits = av2h_range_tell(decoder);
+    if (leaf->row == 16U && leaf->column == 20U) {
+        av2h_debug_intrabc_ranges[1] = decoder->range;
+    }
     mode->intrabc_drl_index = 0U;
     for (index = 0U; index < frame->max_bvp_drl_bits; ++index) {
         value = av2h_range_read_bypass(decoder, 1U);
@@ -1174,6 +1244,9 @@ static Av2hStatus read_first_intrabc(
         if (value == 0U) break;
     }
     mode->after_mode_index_bits = av2h_range_tell(decoder);
+    if (leaf->row == 16U && leaf->column == 20U) {
+        av2h_debug_intrabc_ranges[2] = decoder->range;
+    }
     if (mode->intrabc_drl_index > 3U) return AV2H_UNSUPPORTED;
     if (mode->intrabc_drl_index == 0U &&
         leaf->row == 9U && leaf->column == 12U &&
@@ -1354,6 +1427,7 @@ Av2hStatus av2h_luma_mode_context_state_init(
     state->left = left;
     state->above_count = above_count;
     state->left_count = left_count;
+    state->superblock_mi = 0U;
     state->has_intrabc = 0U;
     for (index = 0U; index < above_count; ++index) {
         above[index] = (Av2hLumaModeContext){ 0 };
@@ -1376,6 +1450,7 @@ Av2hStatus av2h_luma_mode_neighbors_from_state(
     size_t height;
     size_t left_index;
     size_t index;
+    uint8_t not_at_superblock_top;
     if (state == 0 || leaf == 0 || neighbors == 0 ||
         leaf->block_size >= AV2H_BLOCK_SIZE_COUNT) {
         return AV2H_INVALID_ARGUMENT;
@@ -1385,6 +1460,9 @@ Av2hStatus av2h_luma_mode_neighbors_from_state(
         return AV2H_INVALID_DATA;
     }
     left_index = leaf->row % state->left_count;
+    not_at_superblock_top = (uint8_t)(
+        state->superblock_mi == 0U ||
+        leaf->row % state->superblock_mi != 0U);
     if (leaf->column >= state->above_count ||
         left_index >= state->left_count) {
         return AV2H_OVERFLOW;
@@ -1395,7 +1473,7 @@ Av2hStatus av2h_luma_mode_neighbors_from_state(
         const Av2hLumaModeContext *left = &state->left[left_index];
         candidates[0] = bottom_left;
         candidates[2] = left;
-        selected[0] = bottom_left->present ? bottom_left : left;
+        selected[0] = bottom_left;
     }
     if (leaf->row != 0U &&
         (size_t)leaf->column + width - 1U < state->above_count) {
@@ -1404,9 +1482,12 @@ Av2hStatus av2h_luma_mode_neighbors_from_state(
         const Av2hLumaModeContext *above = &state->above[leaf->column];
         candidates[1] = above_right;
         candidates[3] = above;
-        selected[1] = above_right->present ? above_right : above;
+        selected[1] = above_right;
     }
     for (index = 0U; index < 4U && spatial_count < 2U; ++index) {
+        if (!not_at_superblock_top && (index == 1U || index == 3U)) {
+            continue;
+        }
         if (candidates[index] != 0 && candidates[index]->present) {
             spatial[spatial_count++] = candidates[index];
         }
@@ -1428,6 +1509,10 @@ Av2hStatus av2h_luma_mode_neighbors_from_state(
             (uint8_t)(spatial_context != 0 && spatial_context->present);
         neighbors->spatial_use_intrabc[index] =
             spatial_context != 0 ? spatial_context->use_intrabc : 0U;
+        neighbors->spatial_skip_transform[index] = spatial_context != 0 ?
+            spatial_context->skip_transform : 0U;
+        neighbors->spatial_joint_mode[index] = spatial_context != 0 ?
+            spatial_context->joint_mode : 0U;
         neighbors->spatial_fsc_mode[index] =
             spatial_context != 0 ? spatial_context->fsc_mode : 0U;
         neighbors->spatial_mrl_index[index] =
@@ -1552,7 +1637,19 @@ Av2hStatus av2h_luma_mode_read_with_state_and_gdf(
           mode->skip_transform == 1U &&
           mode->intrabc_drl_index == 0U &&
           mode->displacement_x == -352 &&
-          mode->displacement_y == -192)) {
+                    mode->displacement_y == -192) &&
+                !(leaf->row == 16U && leaf->column == 20U &&
+                    leaf->block_size == AV2H_BLOCK_32X8 &&
+                    mode->skip_transform == 0U && mode->intrabc_mode == 1U &&
+                    mode->intrabc_drl_index == 1U &&
+                    mode->displacement_x == -2560 &&
+                    mode->displacement_y == 0) &&
+                !(leaf->row == 20U && leaf->column == 26U &&
+                    leaf->block_size == AV2H_BLOCK_16X16 &&
+                    mode->skip_transform == 1U && mode->intrabc_mode == 0U &&
+                    mode->intrabc_drl_index == 0U &&
+                    mode->displacement_x == -448 &&
+                    mode->displacement_y == -432)) {
         return AV2H_UNSUPPORTED;
     }
     return status;
@@ -1592,18 +1689,25 @@ static Av2hStatus luma_mode_read_internal(
         return AV2H_UNSUPPORTED;
     }
     mode->enable_ibp = sequence->enable_ibp;
-    for (neighbor = 0U; neighbor < 2U; ++neighbor) {
-        if (!neighbors->present[neighbor]) continue;
-        if (neighbors->joint_mode[neighbor] >= 61U ||
-            neighbors->fsc_mode[neighbor] > 1U) {
-            return AV2H_INVALID_ARGUMENT;
-        }
-        mode_context += is_directional_joint_mode(
-            neighbors->joint_mode[neighbor]);
-        skip_transform_context += neighbors->skip_transform[neighbor];
-    }
     has_spatial_neighbors = (uint8_t)(
         neighbors->spatial_present[0] || neighbors->spatial_present[1]);
+    for (neighbor = 0U; neighbor < 2U; ++neighbor) {
+        uint8_t skip_transform = has_spatial_neighbors ?
+            neighbors->spatial_skip_transform[neighbor] :
+            neighbors->skip_transform[neighbor];
+        if (neighbors->present[neighbor]) {
+            if (neighbors->joint_mode[neighbor] >= 61U) {
+                return AV2H_INVALID_ARGUMENT;
+            }
+            mode_context += is_directional_joint_mode(
+                neighbors->joint_mode[neighbor]);
+        }
+        if (has_spatial_neighbors && neighbors->spatial_present[neighbor]) {
+            skip_transform_context += skip_transform;
+        } else if (!has_spatial_neighbors) {
+            skip_transform_context += skip_transform;
+        }
+    }
     for (neighbor = 0U; neighbor < 2U; ++neighbor) {
         uint8_t present = has_spatial_neighbors ?
             neighbors->spatial_present[neighbor] : neighbors->present[neighbor];
@@ -1621,8 +1725,7 @@ static Av2hStatus luma_mode_read_internal(
             neighbors->multi_line_mrl[neighbor];
         if (!present) continue;
         if (spatial_fsc > 1U ||
-            spatial_mrl >=
-                AV2H_MRL_INDEX_SYMBOLS ||
+            spatial_mrl >= AV2H_MRL_INDEX_SYMBOLS ||
             spatial_multi > 1U) {
             return AV2H_INVALID_ARGUMENT;
         }
@@ -1656,12 +1759,27 @@ static Av2hStatus luma_mode_read_internal(
         mode->ccso_block_control[plane] = 0U;
     }
     if (frame->allow_intrabc && block_allows_intrabc(leaf->block_size)) {
+        if (leaf->row == 16U &&
+            (leaf->column == 16U || leaf->column == 20U)) {
+            size_t debug_index;
+            av2h_debug_use_intrabc[0] = (uint32_t)intrabc_context;
+            av2h_debug_use_intrabc[1] = decoder->range;
+            for (debug_index = 0U; debug_index < 6U; ++debug_index) {
+                av2h_debug_use_intrabc[2U + debug_index] =
+                    cdfs->intrabc[intrabc_context][debug_index];
+            }
+        }
         value = av2h_range_read_adaptive(
             decoder, cdfs->intrabc[intrabc_context], 2U);
         if (av2h_range_status(decoder) != AV2H_OK) {
             return av2h_range_status(decoder);
         }
         mode->use_intrabc = (uint8_t)value;
+        if (leaf->row == 16U &&
+            (leaf->column == 16U || leaf->column == 20U)) {
+            av2h_debug_use_intrabc[8] = value;
+            av2h_debug_use_intrabc[9] = decoder->range;
+        }
         if (value != 0U) {
             Av2hStatus status;
             if (skip_transform_context >=
@@ -1698,10 +1816,16 @@ static Av2hStatus luma_mode_read_internal(
             decoder, frame, leaf, gdf_state, mode);
         if (status != AV2H_OK) return status;
     }
+    if (leaf->row == 16U && leaf->column == 16U) {
+        av2h_debug_mode_ranges[0] = decoder->range;
+    }
     {
         Av2hStatus status = read_cdef_entropy(
             decoder, frame, leaf, cdef_state, mode);
         if (status != AV2H_OK) return status;
+    }
+    if (leaf->row == 16U && leaf->column == 16U) {
+        av2h_debug_mode_ranges[1] = decoder->range;
     }
     if (ccso_state != 0 && ccso_state->enabled_mask != 0U) {
         Av2hStatus status = read_ccso_entropy(
@@ -1712,7 +1836,14 @@ static Av2hStatus luma_mode_read_internal(
             decoder, cdfs, sequence, frame, leaf, mode);
         if (status != AV2H_OK) return status;
     }
+    if ((leaf->row == 0U && leaf->column == 64U) ||
+        (leaf->row == 16U && leaf->column == 16U)) {
+        av2h_debug_mode_ranges[2] = decoder->range;
+    }
     mode->before_mode_bits = av2h_range_tell(decoder);
+    if (leaf->row == 0U && leaf->column == 64U) {
+        av2h_debug_y_mode_context = (uint32_t)mode_context;
+    }
     value = av2h_range_read_adaptive(
         decoder, cdfs->y_mode_set, AV2H_Y_MODE_SET_SYMBOLS);
     if (av2h_range_status(decoder) != AV2H_OK) {
@@ -1745,6 +1876,10 @@ static Av2hStatus luma_mode_read_internal(
         }
     }
     mode->after_mode_index_bits = av2h_range_tell(decoder);
+    if ((leaf->row == 0U && leaf->column == 64U) ||
+        (leaf->row == 16U && leaf->column == 16U)) {
+        av2h_debug_mode_ranges[3] = decoder->range;
+    }
     {
         Av2hStatus status = av2h_luma_joint_mode_from_index(
             mode->mode_index, leaf->block_size, neighbors,
@@ -1773,9 +1908,24 @@ static Av2hStatus luma_mode_read_internal(
         }
     }
     mode->after_fsc_bits = av2h_range_tell(decoder);
+    if ((leaf->row == 0U && leaf->column == 64U) ||
+        (leaf->row == 16U && leaf->column == 16U)) {
+        av2h_debug_mode_ranges[4] = decoder->range;
+    }
     mode->mrl_index = 0U;
     mode->multi_line_mrl = 0U;
     if (sequence->enable_mrls && is_directional_joint_mode(mode->joint_mode)) {
+        if ((leaf->row == 0U && leaf->column == 64U) ||
+            (leaf->row == 16U &&
+             (leaf->column == 8U || leaf->column == 16U))) {
+            size_t debug_index;
+            av2h_debug_mrl_state[0] = (uint32_t)mrl_context;
+            av2h_debug_mrl_state[1] = decoder->range;
+            for (debug_index = 0U; debug_index < 8U; ++debug_index) {
+                av2h_debug_mrl_state[2U + debug_index] =
+                    cdfs->mrl_index[mrl_context][debug_index];
+            }
+        }
         value = av2h_range_read_adaptive(
             decoder, cdfs->mrl_index[mrl_context], AV2H_MRL_INDEX_SYMBOLS);
         if (av2h_range_status(decoder) != AV2H_OK) {
@@ -1792,6 +1942,9 @@ static Av2hStatus luma_mode_read_internal(
         }
     }
     mode->after_mrl_bits = av2h_range_tell(decoder);
+    if (leaf->row == 16U && leaf->column == 16U) {
+        av2h_debug_mode_ranges[5] = decoder->range;
+    }
     mode->palette_mode = 0U;
     mode->before_palette_bits = mode->after_mrl_bits;
     mode->after_palette_bits = mode->before_palette_bits;

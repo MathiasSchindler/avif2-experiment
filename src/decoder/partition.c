@@ -2,6 +2,15 @@
 
 uint8_t av2h_debug_partition_stage;
 Av2hPartitionNode av2h_debug_partition_node;
+size_t av2h_debug_partition_split_context;
+size_t av2h_debug_partition_before_bits;
+size_t av2h_debug_partition_after_bits;
+uint16_t av2h_debug_partition_cdf_before;
+uint16_t av2h_debug_partition_cdf_after;
+uint32_t av2h_debug_partition_split_value;
+uint32_t av2h_debug_partition_range_before;
+uint32_t av2h_debug_partition_value_before;
+int64_t av2h_debug_partition_available_before;
 
 typedef struct {
     uint8_t mi_width;
@@ -825,8 +834,23 @@ Av2hStatus av2h_partition_node_read_with_state(
         state, structure, node, AV2H_PARTITION_HORIZONTAL, &split_context,
         &rect_type_context, &extension_context);
     if (status != AV2H_OK) return status;
+    if (structure == 0U && node.block_size == AV2H_BLOCK_64X64) {
+        av2h_debug_partition_split_context = split_context;
+        av2h_debug_partition_before_bits = av2h_range_tell(decoder);
+        av2h_debug_partition_cdf_before =
+            cdfs->do_split[structure][split_context][0];
+        av2h_debug_partition_range_before = decoder->range;
+        av2h_debug_partition_value_before = decoder->value;
+        av2h_debug_partition_available_before = decoder->available_bits;
+    }
     value = av2h_range_read_adaptive(
         decoder, cdfs->do_split[structure][split_context], 2U);
+    if (structure == 0U && node.block_size == AV2H_BLOCK_64X64) {
+        av2h_debug_partition_split_value = value;
+        av2h_debug_partition_after_bits = av2h_range_tell(decoder);
+        av2h_debug_partition_cdf_after =
+            cdfs->do_split[structure][split_context][0];
+    }
     if (av2h_range_status(decoder) != AV2H_OK) {
         return av2h_range_status(decoder);
     }

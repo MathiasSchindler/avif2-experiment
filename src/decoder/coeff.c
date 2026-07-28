@@ -1,6 +1,12 @@
 #include "coeff.h"
 #include "tx_geometry.h"
 
+uint32_t av2h_debug_chroma_skip_ranges[2U][2U];
+uint16_t av2h_debug_eob_cdf[12U];
+uint32_t av2h_debug_eob_range;
+uint16_t av2h_debug_skip_cdf[6U];
+uint32_t av2h_debug_skip_range;
+
 static uint8_t coefficient_q_context(uint16_t base_q_index) {
     return base_q_index <= 90U ? 0U :
            base_q_index <= 140U ? 1U :
@@ -99,8 +105,14 @@ Av2hStatus av2h_first_coeff_cdfs_init_for_q(
     static const uint16_t q3_chroma_eob_pt_1024[] = {
         23067U, 25626U, 29608U, 31655U, 32465U, 32687U, 32716U
     };
-    static const uint16_t eob_pt_16[] = {
-        1839U, 2995U, 6796U, 15126U
+    static const uint16_t eob_pt_16[4U][4U] = {
+        { 1946U, 3059U, 6834U, 15123U },
+        { 1839U, 2995U, 6796U, 15126U },
+        { 3946U, 6406U, 13325U, 26004U },
+        { 5029U, 12046U, 26017U, 32453U }
+    };
+    static const uint8_t eob_pt_16_parameter[4U] = {
+        6U, 30U, 30U, 31U
     };
     static const uint16_t eob_pt_16_inter[] = {
         1354U, 1787U, 4813U, 9327U
@@ -212,8 +224,9 @@ Av2hStatus av2h_first_coeff_cdfs_init_for_q(
     status = av2h_binary_cdf_init(
         cdfs->txb_skip_txs4, txb_skip[q_context][4U]);
     if (status != AV2H_OK) return status;
-    status = av2h_cdf_init(cdfs->eob_pt_16, 5U + 4U, eob_pt_16,
-                           5U, 30U, 0U);
+    status = av2h_cdf_init(
+        cdfs->eob_pt_16, 5U + 4U, eob_pt_16[q_context],
+        5U, eob_pt_16_parameter[q_context], 0U);
     if (status != AV2H_OK) return status;
     status = av2h_cdf_init(cdfs->eob_pt_16_inter, 5U + 4U,
                            eob_pt_16_inter, 5U, 30U, 0U);
@@ -300,7 +313,10 @@ static Av2hStatus derive_tx_size(Av2hBlockSize block_size,
         case AV2H_TX_32X8:
         case AV2H_TX_16X64:
         case AV2H_TX_64X16:
+        case AV2H_TX_4X32:
+        case AV2H_TX_32X4:
         case AV2H_TX_8X64:
+        case AV2H_TX_64X8:
             break;
         default:
             return AV2H_UNSUPPORTED;
@@ -317,7 +333,8 @@ static int large_tx_prefix_profile_supported(
         tx_size == AV2H_TX_16X64) {
          return (frame->base_q_index == 208U &&
                  ((frame->width == 192U && frame->height == 96U) ||
-                  (tx_size == AV2H_TX_32X16 &&
+                                    ((tx_size == AV2H_TX_32X16 ||
+                                        tx_size == AV2H_TX_16X64) &&
                    frame->width == 417U && frame->height == 277U))) ||
                 (tx_size == AV2H_TX_16X64 &&
                  frame->base_q_index == 224U &&
@@ -328,7 +345,8 @@ static int large_tx_prefix_profile_supported(
     }
     if (tx_size == AV2H_TX_64X32) {
         return (frame->base_q_index == 208U &&
-                frame->width == 192U && frame->height == 96U) ||
+                ((frame->width == 192U && frame->height == 96U) ||
+                 (frame->width == 417U && frame->height == 277U))) ||
                (frame->base_q_index == 224U &&
                 frame->width == 333U && frame->height == 333U);
     }
@@ -339,6 +357,8 @@ static int large_tx_prefix_profile_supported(
                 frame->width == 223U && frame->height == 149U) ||
                (frame->base_q_index == 208U &&
                 frame->width == 192U && frame->height == 96U) ||
+               (frame->base_q_index == 208U &&
+                frame->width == 417U && frame->height == 277U) ||
                (frame->base_q_index == 224U &&
                 frame->width == 333U && frame->height == 333U);
     }
@@ -351,6 +371,8 @@ static int large_tx_prefix_profile_supported(
                 frame->width == 448U && frame->height == 299U) ||
                (frame->base_q_index == 224U &&
                 frame->width == 333U && frame->height == 333U) ||
+               (frame->base_q_index == 208U &&
+                frame->width == 417U && frame->height == 277U) ||
                (frame->base_q_index == 80U &&
                 ((frame->width == 384U && frame->height == 307U) ||
                  (frame->width == 431U && frame->height == 287U)));
@@ -575,6 +597,20 @@ static Av2hStatus decode_eob(Av2hRangeDecoder *decoder,
         point_cdf = point_override;
         point_symbols = point_override_symbols;
     }
+    if (prefix->tx_size == AV2H_TX_32X8 ||
+        prefix->tx_size == AV2H_TX_16X16 ||
+        prefix->tx_size == AV2H_TX_32X16 ||
+        prefix->tx_size == AV2H_TX_32X32) {
+        size_t debug_index;
+        size_t debug_count = prefix->tx_size == AV2H_TX_16X16 ? 9U : 12U;
+        for (debug_index = 0U; debug_index < debug_count; ++debug_index) {
+            av2h_debug_eob_cdf[debug_index] = point_cdf[debug_index];
+        }
+        for (; debug_index < 12U; ++debug_index) {
+            av2h_debug_eob_cdf[debug_index] = 0U;
+        }
+        av2h_debug_eob_range = decoder->range;
+    }
     value = av2h_range_read_adaptive(decoder, point_cdf, point_symbols);
     if (av2h_range_status(decoder) != AV2H_OK) {
         return av2h_range_status(decoder);
@@ -644,6 +680,10 @@ Av2hStatus av2h_coeff_prefix_read(
     if (cdfs->q_context != coefficient_q_context(frame->base_q_index)) {
         return AV2H_UNSUPPORTED;
     }
+    status = derive_tx_size(leaf->block_size, &prefix->tx_size,
+                            &prefix->tx_size_context);
+    if (status != AV2H_OK) return status;
+    prefix->txb_skip_context = txb_skip_context;
     if ((mode->fsc_mode ?
                  ((leaf->block_size != AV2H_BLOCK_4X4 &&
                      leaf->block_size != AV2H_BLOCK_8X16 &&
@@ -654,9 +694,6 @@ Av2hStatus av2h_coeff_prefix_read(
         frame->disable_cdf_update) {
         return AV2H_UNSUPPORTED;
     }
-    status = derive_tx_size(leaf->block_size, &prefix->tx_size,
-                            &prefix->tx_size_context);
-    if (status != AV2H_OK) return status;
     if (!large_tx_prefix_profile_supported(frame, prefix->tx_size)) {
         return AV2H_UNSUPPORTED;
     }
@@ -667,6 +704,40 @@ Av2hStatus av2h_coeff_prefix_read(
                         mode->mode == AV2H_INTRA_SMOOTH ||
                         mode->mode == AV2H_INTRA_D113) &&
                      mode->angle_delta == 0 && mode->mrl_index == 0U &&
+                     mode->enable_ibp == 1U && mode->use_intrabc == 0U) ||
+                    (frame->base_q_index == 208U &&
+                     frame->width == 417U && frame->height == 277U &&
+                     (mode->mode == AV2H_INTRA_DC ||
+                      mode->mode == AV2H_INTRA_HORIZONTAL ||
+                      mode->mode == AV2H_INTRA_D157 ||
+                      (mode->mode == AV2H_INTRA_D203 &&
+                       mode->angle_delta == -2) ||
+                      mode->mode == AV2H_INTRA_SMOOTH ||
+                      mode->mode == AV2H_INTRA_PAETH ||
+                                            mode->mode == AV2H_INTRA_SMOOTH_HORIZONTAL ||
+                                            (mode->mode == AV2H_INTRA_VERTICAL &&
+                                                                                         (mode->angle_delta == 2 ||
+                                                                                            mode->angle_delta == 3)) ||
+                                            (mode->mode == AV2H_INTRA_D113 &&
+                                             mode->angle_delta == -3) ||
+                                            (mode->mode == AV2H_INTRA_D67 &&
+                                             mode->angle_delta == -3)) &&
+                                         (mode->angle_delta == 0 ||
+                                            mode->mode == AV2H_INTRA_D113 ||
+                                            mode->mode == AV2H_INTRA_D67 ||
+                                            (mode->mode == AV2H_INTRA_D157 &&
+                                                                                         (mode->angle_delta == -1 ||
+                                                                                            mode->angle_delta == 3)) ||
+                                            (mode->mode == AV2H_INTRA_D203 &&
+                                             mode->angle_delta == -2) ||
+                                            (mode->mode == AV2H_INTRA_VERTICAL &&
+                                                                                         (mode->angle_delta == 2 ||
+                                                                                            mode->angle_delta == 3))) &&
+                                         (mode->mrl_index == 0U ||
+                                          (mode->mode ==
+                                               AV2H_INTRA_HORIZONTAL &&
+                                           mode->angle_delta == 0 &&
+                                           mode->mrl_index == 3U)) &&
                      mode->enable_ibp == 1U && mode->use_intrabc == 0U) ||
                     (frame->base_q_index == 96U &&
                      frame->width == 256U && frame->height == 171U &&
@@ -694,11 +765,15 @@ Av2hStatus av2h_coeff_prefix_read(
         return AV2H_UNSUPPORTED;
     }
     if (cdfs->q_context != 1U &&
+        prefix->tx_size != AV2H_TX_4X4 &&
         prefix->tx_size != AV2H_TX_16X16 &&
         prefix->tx_size != AV2H_TX_8X8 &&
+        prefix->tx_size != AV2H_TX_8X4 &&
         prefix->tx_size != AV2H_TX_4X8 &&
         prefix->tx_size != AV2H_TX_4X16 &&
+        prefix->tx_size != AV2H_TX_16X4 &&
         prefix->tx_size != AV2H_TX_8X16 &&
+        prefix->tx_size != AV2H_TX_16X8 &&
         prefix->tx_size != AV2H_TX_8X32 &&
         prefix->tx_size != AV2H_TX_32X8 &&
         prefix->tx_size != AV2H_TX_16X32 &&
@@ -709,14 +784,14 @@ Av2hStatus av2h_coeff_prefix_read(
         prefix->tx_size != AV2H_TX_64X64 &&
         prefix->tx_size != AV2H_TX_16X64 &&
         prefix->tx_size != AV2H_TX_64X16 &&
-        prefix->tx_size != AV2H_TX_8X64) {
+        prefix->tx_size != AV2H_TX_8X64 &&
+        prefix->tx_size != AV2H_TX_64X8 &&
+        prefix->tx_size != AV2H_TX_4X32 &&
+        prefix->tx_size != AV2H_TX_32X4) {
         return AV2H_UNSUPPORTED;
     }
-    prefix->txb_skip_context = txb_skip_context;
     prefix->before_all_zero_bits = av2h_range_tell(decoder);
-    if (mode->use_intrabc) {
-        cdf = cdfs->txb_skip_inter_txs0;
-    } else if (mode->fsc_mode) {
+    if (mode->fsc_mode) {
         cdf = prefix->tx_size_context == 0U ?
             cdfs->txb_skip_fsc_txs0_ctx9 :
             prefix->tx_size_context == 1U ?
@@ -728,6 +803,16 @@ Av2hStatus av2h_coeff_prefix_read(
             prefix->tx_size_context == 2U ? cdfs->txb_skip_txs2 :
             prefix->tx_size_context == 3U ? cdfs->txb_skip_txs3 :
                                             cdfs->txb_skip_txs4;
+    }
+    if (prefix->tx_size == AV2H_TX_32X8 ||
+        prefix->tx_size == AV2H_TX_16X16 ||
+        prefix->tx_size == AV2H_TX_32X16 ||
+        prefix->tx_size == AV2H_TX_32X32) {
+        size_t debug_index;
+        for (debug_index = 0U; debug_index < 6U; ++debug_index) {
+            av2h_debug_skip_cdf[debug_index] = cdf[debug_index];
+        }
+        av2h_debug_skip_range = decoder->range;
     }
     value = av2h_range_read_adaptive(decoder, cdf, 2U);
     if (av2h_range_status(decoder) != AV2H_OK) {
@@ -745,10 +830,7 @@ Av2hStatus av2h_coeff_prefix_read(
         prefix->after_eob_bits = prefix->after_all_zero_bits;
         return AV2H_OK;
     }
-    return decode_eob(
-        decoder, cdfs,
-        mode->use_intrabc ? cdfs->eob_pt_16_inter : 0,
-        mode->use_intrabc ? 5U : 0U, prefix);
+    return decode_eob(decoder, cdfs, 0, 0U, prefix);
 }
 
 Av2hStatus av2h_first_coeff_prefix_read(
@@ -836,8 +918,9 @@ Av2hStatus av2h_chroma_coeff_prefix_read(
         cdfs->q_context != coefficient_q_context(frame->base_q_index)) {
         return AV2H_UNSUPPORTED;
     }
-    if ((frame->base_q_index == 208U &&
-         frame->width == 192U && frame->height == 96U) ||
+        if ((frame->base_q_index == 208U &&
+            ((frame->width == 192U && frame->height == 96U) ||
+            (frame->width == 417U && frame->height == 277U))) ||
         (frame->base_q_index == 224U &&
          frame->width == 333U && frame->height == 333U)) {
         status = av2h_chroma_tx_descriptor_get(
@@ -927,12 +1010,14 @@ Av2hStatus av2h_chroma_coeff_prefix_read(
     }
     prefix->txb_skip_context = txb_skip_context;
     prefix->before_all_zero_bits = av2h_range_tell(decoder);
+    av2h_debug_chroma_skip_ranges[plane - 1U][0] = decoder->range;
     value = av2h_range_read_adaptive(decoder, skip_cdf, 2U);
     if (av2h_range_status(decoder) != AV2H_OK) {
         return av2h_range_status(decoder);
     }
     prefix->all_zero = (uint8_t)value;
     prefix->after_all_zero_bits = av2h_range_tell(decoder);
+    av2h_debug_chroma_skip_ranges[plane - 1U][1] = decoder->range;
     if (value != 0U) {
         prefix->eob_point = 0U;
         prefix->eob_offset_bits = 0U;

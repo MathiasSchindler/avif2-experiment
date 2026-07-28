@@ -3,6 +3,12 @@
 
 #include "leaf.h"
 
+extern uint32_t av2h_debug_chroma_skip_ranges[2U][2U];
+extern uint16_t av2h_debug_eob_cdf[12U];
+extern uint32_t av2h_debug_eob_range;
+extern uint16_t av2h_debug_skip_cdf[6U];
+extern uint32_t av2h_debug_skip_range;
+
 typedef enum {
     AV2H_TX_4X4 = 0,
     AV2H_TX_8X8 = 1,
