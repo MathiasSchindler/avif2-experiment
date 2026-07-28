@@ -657,17 +657,27 @@ static void test_schwaebisch_q208_64x16_reconstruction(void) {
     av2h_memory_fill(&block, 0U, sizeof(block));
     status = av2h_tile_decoder_next_luma(
         &decoder, &leaf, &block, &has_leaf);
-    CHECK(status == AV2H_UNSUPPORTED);
+    CHECK(status == AV2H_OK);
     CHECK(has_leaf == 1U);
     CHECK(leaf.node.row == 4U);
     CHECK(leaf.node.column == 0U);
     CHECK(leaf.node.block_size == AV2H_BLOCK_32X16);
-    CHECK(leaf.mode.before_mode_bits == 0U);
-    CHECK(leaf.prefix.before_all_zero_bits == 0U);
-    CHECK(av2h_range_tell(&decoder.range) == 19U);
-    CHECK(av2h_tile_decoder_next_luma(
-              &decoder, &leaf, &block, &has_leaf) == AV2H_UNSUPPORTED);
-    CHECK(av2h_range_tell(&decoder.range) == 19U);
+    CHECK(leaf.mode.before_mode_bits == 20U);
+    CHECK(leaf.mode.after_mode_index_bits == 21U);
+    CHECK(leaf.mode.mode == AV2H_INTRA_DC);
+    CHECK(leaf.prefix.before_all_zero_bits == 21U);
+    CHECK(leaf.prefix.after_eob_bits == 25U);
+    CHECK(leaf.prefix.tx_size == AV2H_TX_32X16);
+    CHECK(leaf.prefix.eob == 3U);
+    CHECK(leaf.transform.primary_type == AV2H_TX_DCT_DCT);
+    CHECK(block.before_levels_bits == 30U);
+    CHECK(block.after_levels_bits == 42U);
+    CHECK(block.after_coefficients_bits == 43U);
+    CHECK(av2h_range_tell(&decoder.range) == 43U);
+    status = av2h_tile_decoder_next_luma(
+        &decoder, &leaf, &block, &has_leaf);
+    CHECK(status == AV2H_INVALID_ARGUMENT);
+    CHECK(av2h_range_tell(&decoder.range) == 43U);
 }
 
 static void test_d45_minus_one_16x4_prediction(void) {
@@ -1204,6 +1214,7 @@ static void test_tx16x32_dc_dct_reconstruction(void) {
     Av2hFirstCoeffBlock block = { 0 };
     Av2hReconstructionScratch scratch;
     Av2hFirstReconstruction reconstruction;
+    Av2hStatus status;
     size_t index;
 
     mode.mode = AV2H_INTRA_DC;
@@ -1234,9 +1245,10 @@ static void test_tx16x32_dc_dct_reconstruction(void) {
     }
 
     block.dequantized[96U] = 248;
-    CHECK(av2h_first_luma_reconstruct(
-              &mode, &prefix, &transform, &block, &scratch,
-              &reconstruction) == AV2H_UNSUPPORTED);
+    status = av2h_first_luma_reconstruct(
+        &mode, &prefix, &transform, &block, &scratch, &reconstruction);
+    CHECK(status == AV2H_OK);
+    CHECK(pixel_hash(&reconstruction) == UINT64_C(0x675e7f3b31f00b94));
 }
 
 static void test_tx16x32_dc_flipadst_reconstruction(void) {
@@ -1254,6 +1266,7 @@ static void test_tx16x32_dc_flipadst_reconstruction(void) {
     Av2hFirstCoeffBlock block = { 0 };
     Av2hReconstructionScratch scratch;
     Av2hFirstReconstruction reconstruction;
+    Av2hStatus status;
     size_t index;
 
     mode.mode = AV2H_INTRA_DC;
@@ -1290,9 +1303,10 @@ static void test_tx16x32_dc_flipadst_reconstruction(void) {
     }
 
     block.dequantized[4U] = -248;
-    CHECK(av2h_first_luma_reconstruct(
-              &mode, &prefix, &transform, &block, &scratch,
-              &reconstruction) == AV2H_UNSUPPORTED);
+    status = av2h_first_luma_reconstruct(
+        &mode, &prefix, &transform, &block, &scratch, &reconstruction);
+    CHECK(status == AV2H_OK);
+    CHECK(pixel_hash(&reconstruction) == UINT64_C(0xe217fa29c5ee582c));
 }
 
 static void test_dc_16x32_prediction(void) {
@@ -3130,7 +3144,7 @@ static void test_emerald_chroma_plane_ex_checks(void) {
     }
     av2h_memory_fill(luma_rec, 1U, sizeof(luma_rec));
 
-    /* Unsupported geometry is rejected without touching the plane. */
+    /* Supported 8x8 DC reconstruction uses the available left edge. */
     {
         Av2hReconstructionPlane cp = {
             chroma_data, 96U, 96U, 48U, 96U, 48U, chroma_rec, 96U / 4U,
@@ -3138,13 +3152,20 @@ static void test_emerald_chroma_plane_ex_checks(void) {
         };
         Av2hFirstChromaMode dc_mode = { 0 };
         Av2hFirstCoeffBlock bad = { 0 };
+        Av2hStatus bad_status;
         dc_mode.mode = AV2H_INTRA_DC;
         bad.width = 8U;
         bad.height = 8U;
         bad.coefficient_count = 64U;
-        CHECK(av2h_chroma_reconstruct_to_plane_ex(
-                  &cfl_leaf, &dc_mode, &prefix, &transform, &bad, &cp,
-                  &luma, 0, &scratch) == AV2H_INVALID_ARGUMENT);
+        bad_status = av2h_chroma_reconstruct_to_plane_ex(
+            &cfl_leaf, &dc_mode, &prefix, &transform, &bad, &cp,
+            &luma, 0, &scratch);
+        CHECK(bad_status == AV2H_OK);
+        for (r = 0U; r < 8U; ++r) {
+            for (c = 0U; c < 8U; ++c) {
+                CHECK(chroma_data[r * 96U + 64U + c] == 139U);
+            }
+        }
     }
 
     /* A malformed predictor plane is rejected. */

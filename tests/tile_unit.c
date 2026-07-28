@@ -1149,7 +1149,8 @@ static void test_ordinary_luma_frontier(void) {
             "mode %u angle/fsc %d/%u intrabc %u/%u/%u/%u/%d,%d "
             "mode-stages %zu/%zu/%zu/%zu/%zu "
             "tx/eob %u/%u prefix %zu/%zu/%zu transform %u/%u/%u@%zu "
-            "coeff %zu/%zu/%zu diag %u/%u/%u nz %u "
+            "coeff %zu/%zu/%zu "
+            "diag %u/%u/%u nz %u "
             "tell %zu: %u/%u partition (%u,%u)/%u@%zu\n",
             leaf_count, leaf.node.row, leaf.node.column,
             (unsigned int)leaf.node.block_size,

@@ -821,7 +821,9 @@ Av2hStatus av2h_coeff_prefix_read(
         return AV2H_UNSUPPORTED;
     }
     prefix->before_all_zero_bits = av2h_range_tell(decoder);
-    if (mode->fsc_mode) {
+    if (mode->use_intrabc) {
+        cdf = cdfs->txb_skip_inter_txs0;
+    } else if (mode->fsc_mode) {
         cdf = prefix->tx_size_context == 0U ?
             cdfs->txb_skip_fsc_txs0_ctx9 :
             prefix->tx_size_context == 1U ?
@@ -861,7 +863,10 @@ Av2hStatus av2h_coeff_prefix_read(
         prefix->after_eob_bits = prefix->after_all_zero_bits;
         return AV2H_OK;
     }
-    return decode_eob(decoder, cdfs, 0, 0U, prefix);
+    return decode_eob(
+        decoder, cdfs,
+        mode->use_intrabc ? cdfs->eob_pt_16_inter : 0,
+        mode->use_intrabc ? 5U : 0U, prefix);
 }
 
 Av2hStatus av2h_first_coeff_prefix_read(

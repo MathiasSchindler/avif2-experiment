@@ -91,6 +91,10 @@ static const uint8_t fsc_bob_keys[] = { 0U, 1U, 2U };
 static const uint8_t fsc_br_keys[] = { 0U, 1U, 5U };
 static const uint8_t fsc_sign_keys[] = { 0U, 1U, 2U, 3U, 4U };
 
+static uint16_t *find_key(uint16_t *rows, size_t row_words,
+                          const Av2hCoeffKey *keys, size_t count,
+                          uint8_t tx_context, uint8_t context);
+
 static const Av2hBaseSpec base_specs[] = {
     { 0U, 15U, { 27562U, 31970U, 32298U }, 75U },
     { 0U, 16U, { 11965U, 23262U, 28482U }, 75U },
@@ -434,16 +438,27 @@ Av2hStatus av2h_first_coeff_level_cdfs_init(Av2hFirstCoeffLevelCdfs *cdfs) {
     status = av2h_cdf_init(cdfs->eob_lf[9], 9U, eob_lf_txs2_ctx0, 5U,
                            7U, 0U);
     if (status != AV2H_OK) return status;
-        for (index = 0U;
-            index < sizeof(base_specs) / sizeof(base_specs[0]); ++index) {
-        status = av2h_cdf_init(cdfs->base[index], 8U,
+    for (index = 0U;
+         index < sizeof(base_specs) / sizeof(base_specs[0]); ++index) {
+        uint16_t *base = find_key(
+            &cdfs->base[0][0], 8U, base_keys,
+            sizeof(base_keys) / sizeof(base_keys[0]),
+            base_specs[index].tx_context, base_specs[index].context);
+        if (base == 0) return AV2H_UNSUPPORTED;
+        status = av2h_cdf_init(base, 8U,
                                base_specs[index].threshold, 4U,
                                base_specs[index].parameter, 0U);
         if (status != AV2H_OK) return status;
     }
-        for (index = 0U;
-            index < sizeof(base_lf_specs) / sizeof(base_lf_specs[0]); ++index) {
-        status = av2h_cdf_init(cdfs->base_lf[index], 10U,
+    for (index = 0U;
+         index < sizeof(base_lf_specs) / sizeof(base_lf_specs[0]); ++index) {
+        uint16_t *base_lf = find_key(
+            &cdfs->base_lf[0][0], 10U, base_lf_keys,
+            sizeof(base_lf_keys) / sizeof(base_lf_keys[0]),
+            base_lf_specs[index].tx_context,
+            base_lf_specs[index].context);
+        if (base_lf == 0) return AV2H_UNSUPPORTED;
+        status = av2h_cdf_init(base_lf, 10U,
                                base_lf_specs[index].threshold, 6U,
                                base_lf_specs[index].parameter, 0U);
         if (status != AV2H_OK) return status;
@@ -1088,11 +1103,6 @@ Av2hStatus av2h_first_coeff_level_cdfs_init_for_q(
         if (status != AV2H_OK) return status;
         status = initialize_level_row(
             find_key(&cdfs->base[0][0], 8U, base_keys,
-                     sizeof(base_keys) / sizeof(base_keys[0]), 1U, 15U),
-            8U, q3_base_txs1_ctx15, 4U, 75U);
-        if (status != AV2H_OK) return status;
-        status = initialize_level_row(
-            find_key(&cdfs->base[0][0], 8U, base_keys,
                      sizeof(base_keys) / sizeof(base_keys[0]), 3U, 0U),
             8U, q2_base_ctx0, 4U, 1U);
         if (status != AV2H_OK) return status;
@@ -1137,6 +1147,11 @@ Av2hStatus av2h_first_coeff_level_cdfs_init_for_q(
         return AV2H_OK;
     }
     if (q_context == 3U) {
+        status = initialize_level_row(
+            find_key(&cdfs->base[0][0], 8U, base_keys,
+                     sizeof(base_keys) / sizeof(base_keys[0]), 1U, 15U),
+            8U, q3_base_txs1_ctx15, 4U, 75U);
+        if (status != AV2H_OK) return status;
         status = initialize_level_row(
             cdfs->q3_eob_lf_txs1_ctx0, 9U,
             q3_eob_lf_txs1_ctx0, 5U, 1U);
@@ -1779,6 +1794,10 @@ Av2hStatus av2h_coeff_tx_geometry(
         default: return AV2H_UNSUPPORTED;
     }
     status = av2h_coeff_tx_geometry_from_dims(tx_width, tx_height, geometry);
+    if (status != AV2H_OK) return status;
+    if (tx_size == AV2H_TX_8X16) {
+        geometry->tx_context = 1U;
+    }
     return status;
 }
 

@@ -142,7 +142,7 @@ static void test_arguments(void) {
     Av2hFirstLeafMode mode = { 0 };
     Av2hFirstCoeffPrefix prefix = { 0 };
     Av2hFirstTransformType transform;
-    CHECK(sizeof(Av2hFirstTransformCdfs) == 290U);
+    CHECK(sizeof(Av2hFirstTransformCdfs) == 322U);
     CHECK(av2h_first_transform_cdfs_init(0) == AV2H_INVALID_ARGUMENT);
     CHECK(av2h_first_transform_cdfs_init(&cdfs) == AV2H_OK);
     for (size_t index = 0U;
@@ -218,9 +218,8 @@ static void test_emerald_primary_mappings(void) {
     check_primary_map(AV2H_TX_16X16, AV2H_INTRA_SMOOTH, 0U, 1U,
                       AV2H_TX_ADST_ADST);
 
-    CHECK(av2h_primary_tx_type_map(
-              AV2H_TX_32X16, AV2H_INTRA_HORIZONTAL, 1U, 1U, &tx_type) ==
-          AV2H_UNSUPPORTED);
+    check_primary_map(AV2H_TX_32X16, AV2H_INTRA_HORIZONTAL, 1U, 1U,
+                      AV2H_TX_ADST_DCT);
     CHECK(av2h_primary_tx_type_map(
               AV2H_TX_64X32, AV2H_INTRA_DC, 1U, 0U, &tx_type) ==
           AV2H_UNSUPPORTED);

@@ -83,15 +83,6 @@ static Av2hStatus tile_reset_traversal_roots(Av2hTileDecoder *decoder) {
     status = av2h_partition_traversal_reset_root(
         &decoder->chroma_traversal, root);
     if (status != AV2H_OK) return status;
-    if (decoder->frame->base_q_index == 208U &&
-        decoder->frame->width == 192U && decoder->frame->height == 96U &&
-        decoder->sb_row == 0U && decoder->sb_column == 0U) {
-        decoder->chroma_traversal.stack[0] =
-            (Av2hPartitionNode){ 8U, 0U, AV2H_BLOCK_64X32 };
-        decoder->chroma_traversal.stack[1] =
-            (Av2hPartitionNode){ 0U, 0U, AV2H_BLOCK_64X32 };
-        decoder->chroma_traversal.stack_count = 2U;
-    }
     return AV2H_OK;
 }
 

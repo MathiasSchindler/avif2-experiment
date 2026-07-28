@@ -1674,7 +1674,7 @@ static void test_arguments(void) {
     };
     Av2hSpan span = { bytes, sizeof(bytes) };
     size_t tell;
-    CHECK(sizeof(Av2hLeafCdfs) == 1196U);
+    CHECK(sizeof(Av2hLeafCdfs) == 1342U);
     CHECK(av2h_leaf_cdfs_init(0) == AV2H_INVALID_ARGUMENT);
     CHECK(av2h_first_leaf_mode_read(
               0, &cdfs, &sequence, &frame, &leaf, &mode) ==
@@ -1845,7 +1845,7 @@ static void test_chroma_cfl_derived_alpha(void) {
     Av2hSequenceState sequence = { 0 };
     /* is_cfl == 1, cfl_index == 1 -> derived alpha, DC base predictor. */
     static const uint8_t derived[] = { 0xC4U, 0x44U, 0x00U };
-    /* is_cfl == 1, cfl_index == 0 -> explicit alpha (untraced) -> fail closed. */
+    /* is_cfl == 1, cfl_index == 0 -> explicit alpha. */
     static const uint8_t explicit_alpha[] = { 0x9FU, 0x80U, 0x00U };
     /* is_cfl == 0 -> plain UV_DC_PRED. */
     static const uint8_t dc[] = { 0x00U, 0x00U, 0x00U };
@@ -1879,13 +1879,13 @@ static void test_chroma_cfl_derived_alpha(void) {
     CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
     CHECK(av2h_chroma_mode_read(
               &decoder, &cdfs, &sequence, AV2H_INTRA_DC, 0U, &mode) ==
-          AV2H_UNSUPPORTED);
+          AV2H_OK);
     CHECK(mode.is_cfl == 1U);
     CHECK(mode.uses_cfl == 1U);
     CHECK(mode.cfl_index == 0U);
     CHECK(mode.cfl_derived_alpha == 0U);
     CHECK(mode.cfl_kind == AV2H_CFL_EXPLICIT_ALPHA);
-    CHECK(mode.explicit_alpha_coded == 0U);
+    CHECK(mode.explicit_alpha_coded == 1U);
 
     span = (Av2hSpan){ dc, sizeof(dc) };
     CHECK(av2h_leaf_cdfs_init(&cdfs) == AV2H_OK);

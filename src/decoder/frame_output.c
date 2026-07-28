@@ -527,7 +527,7 @@ Av2hStatus av2h_decode_frame_i420_private(
         workspace->filter_workspace == 0) {
         return AV2H_INVALID_ARGUMENT;
     }
-    if (sequence->enable_restoration != 0U) return AV2H_OVERFLOW;
+    if (sequence->enable_restoration != 0U) return AV2H_UNSUPPORTED;
     status = av2h_i420_output_size(frame, &required_output);
     if (status != AV2H_OK) return status;
     if (output_size < required_output) return AV2H_OUT_OF_MEMORY;

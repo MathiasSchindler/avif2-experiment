@@ -472,7 +472,7 @@ static void check_advanced_frontier(
                 CHECK(leaf->mode.before_mode_bits == 24U);
                 CHECK(leaf->mode.after_mode_index_bits == 25U);
                 CHECK(leaf->mode.mode == AV2H_INTRA_DC);
-                CHECK(leaf->prefix.before_all_zero_bits == 0U);
+                CHECK(leaf->prefix.before_all_zero_bits == 25U);
                 break;
             case 96U:
                 CHECK(leaf->mode.before_mode_bits == 13U);
@@ -2639,7 +2639,7 @@ static void check_first_luma(const ArtifactExpectation *expected,
         CHECK(block_pixel_hash(scratch.predictor, 64U, 64U, 16U) ==
               UINT64_C(0xd495a039fba13383));
         CHECK(block_pixel_hash(
-                  luma_pixels, expected->width, 64U, 16U) ==
+                  luma_pixels, plane.stride, 64U, 16U) ==
               UINT64_C(0xd495a039fba13383));
         REQUIRE(av2h_tile_decoder_commit_leaf(&decoder, leaf.node) ==
                 AV2H_OK);
@@ -2677,8 +2677,8 @@ static void check_first_luma(const ArtifactExpectation *expected,
         CHECK(block_pixel_hash(scratch.predictor, 32U, 32U, 16U) ==
               UINT64_C(0xa5db4e9a973f1b83));
         CHECK(block_pixel_hash(
-                  luma_pixels + 16U * expected->width,
-                  expected->width, 32U, 16U) ==
+                  luma_pixels + 16U * plane.stride,
+                  plane.stride, 32U, 16U) ==
               UINT64_C(0x3304535c9bf698c3));
         REQUIRE(av2h_tile_decoder_commit_leaf(&decoder, leaf.node) ==
             AV2H_OK);
@@ -3867,7 +3867,7 @@ static void test_artifact_profiles(void) {
                     217U, 1U, 1U, 3U, AV2H_BLOCK_8X16, 29U,
           AV2H_UNSUPPORTED, 0 },
         { "chimp-93x111-qp064.obu", 93U, 111U, 64U, 1U, 0U, 1U, 1U,
-          179U, 0U, 0U, 0U, AV2H_BLOCK_8X8, 16U,
+                    179U, 0U, 0U, 0U, AV2H_BLOCK_8X8, 30U,
           AV2H_UNSUPPORTED, 0 },
         { "chinnathurai-128x128-qp112.obu", 128U, 128U, 112U, 1U,
           1U, 1U, 1U, 134U, 1U, 2U, 0U, AV2H_BLOCK_32X64, 19U,
@@ -3906,7 +3906,7 @@ static void test_artifact_profiles(void) {
           131U, 1U, 3U, 3U, AV2H_BLOCK_32X32, 27U,
           AV2H_OK, &louis_q224_decoded },
         { "pastell-320x213-qp064.obu", 320U, 213U, 64U, 1U, 1U, 1U, 1U,
-          252U, 2U, 2U, 1U, AV2H_BLOCK_8X8, 25U,
+                    252U, 2U, 2U, 1U, AV2H_BLOCK_8X8, 34U,
           AV2H_UNSUPPORTED, 0 },
         { "pastell-512x341-qp160.obu", 512U, 341U, 160U, 1U, 1U, 1U, 1U,
           332U, 1U, 2U, 3U, AV2H_BLOCK_16X32, 65U,
