@@ -1,7 +1,7 @@
 # Decoder status snapshot
 
-Snapshot from 2026-07-28 at base revision `789a954`, including the current
-uncommitted entropy, reconstruction, and Emerald frame-output fixes.
+Snapshot from 2026-07-28 at base revision `dce27a6`, including the current
+uncommitted entropy and reconstruction profile work.
 
 The public decoder completes 1 of the 21 `.obu` files in this directory.
 `emerald-192x96-qp208.obu` decodes to an I420 file that is byte-identical to
@@ -19,7 +19,7 @@ in 4x4 units.
 | `cuckoo-157x105-qp160.obu` | First 16x32 DCT_DCT block reconstructed sample-exactly and committed at tell 35; next `(0,4)` 8x16 leaf reached at tell 41 before mode syntax | Q160 8x16 luma-profile admission |
 | `cuckoo-431x287-qp080.obu` | 64x64 EOB 87 and implicit DCT_DCT complete, tell 23 | Q80 64x64 coefficient-level profile |
 | `emerald-192x96-qp208.obu` | **Complete:** 20 luma and 11 chroma leaves, tile done at tell 731, filtered I420 byte-identical to the AVM reference | None for the accepted profile |
-| `emerald-480x240-qp128.obu` | 64x64 EOB 27, DCT_DCT, and secondary-transform symbol 0 match AVM through tell 25, range 38560 | Q128 64x64 EOB-27 coefficient-level profile |
+| `emerald-480x240-qp128.obu` | First 64x64 luma predictor/output match AVM (`d4ea93e1129d09a3`/`2bc3d4c50c228831`); first 32x32 U/V blocks match through tell 197, range 53184, with prefilter hashes `57a7c38258f413ff`/`15846509fdb0b4f1` | Next luma/chroma traversal profile after the first exact leaf pair |
 | `flycatcher-223x149-qp176.obu` | 32x64 EOB 8, implicit DCT_DCT, and secondary symbol 0 complete, tell 20 | Q176 32x64 coefficient-level profile |
 | `flycatcher-397x265-qp048.obu` | EOB 45 and DCT_DCT selected, tell 25 | Q48 coefficient-level profile |
 | `laarim-256x171-qp096.obu` | First 32x32 D45/DCT_DCT block reconstructed sample-exactly through 126 levels and 82 coefficients at tell 471; next `(0,8)` 16x16 leaf is reached at tell 476 | Q96 16x16 luma-profile admission |
@@ -31,7 +31,7 @@ in 4x4 units.
 | `schwaebisch-353x234-qp112.obu` | EOB 2, DCT_DCT, and secondary symbol 0 complete, tell 32 | Q112 coefficient-level profile |
 | `schwaebisch-417x277-qp208.obu` | Decodes through superblock index 8; next `(20,18)` 16x16 leaf completes mode syntax at tell 991 before coefficient-prefix decoding | Q208 16x16 luma-profile admission |
 | `silene-384x307-qp080.obu` | 64x64 EOB 46 and implicit DCT_DCT complete, tell 20 | Q80 64x64 coefficient-level profile |
-| `silene-479x383-qp176.obu` | 64x64 EOB 3, DCT_DCT, and secondary-transform symbol 0 match AVM through tell 15, range 33216 | Q176 64x64 EOB-3 coefficient-level profile |
+| `silene-479x383-qp176.obu` | First 64x64 luma predictor/output match AVM (`cae2b824a5adc383`/`6f9be39143f7d24f`); explicit-CfL U/V predictors and first 32x32 prefilters match through tell 71, range 53320 (`0e163de1147deb8a`/`a28b4981853199a6`, `3e5af7d08452fb90`/`8e29d20ab3284a74`) | Next luma/chroma traversal profile after the first exact leaf pair |
 
 Summary:
 
@@ -45,9 +45,10 @@ Summary:
   its EOB-15 coefficient entry at tell 611/range 34904; the previously
   reported one-bit difference compared unlike syntax boundaries and is not a
   decoder/AVM discrepancy;
-- Emerald Q128 and Silene Q176 consume the same secondary-transform symbol 0
-  as AVM and match its arithmetic state through tells 25 and 15 respectively;
-  both now fail closed at their unpinned coefficient-level profiles;
+- Emerald Q128 and Silene Q176 now match AVM through their first 64x64 luma
+  and 32x32 U/V reconstruction surfaces. Emerald reaches tell 197/range 53184;
+  Silene reaches tell 71/range 53320 with exact plane-specific explicit-CfL
+  predictors. Both still fail closed before completing their next profile;
 - Schwaebisch Q208 advances from two reconstructed blocks to superblock index
   8 and tell 991 before the next 16x16 coefficient-prefix/profile gap;
 - the Q64 first-block frontiers advance to tells 30 and 34 for Chimp and

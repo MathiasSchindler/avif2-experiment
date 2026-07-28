@@ -151,7 +151,7 @@ static void test_arguments(void) {
     Av2hPartitionNode leaf = { 0U, 0U, AV2H_BLOCK_8X8 };
     Av2hFirstLeafMode mode = { 0 };
     Av2hFirstCoeffPrefix prefix;
-    CHECK(sizeof(Av2hFirstCoeffCdfs) == 776U);
+    CHECK(sizeof(Av2hFirstCoeffCdfs) == 872U);
     CHECK(av2h_first_coeff_cdfs_init(0) == AV2H_INVALID_ARGUMENT);
     CHECK(av2h_first_coeff_cdfs_init_for_q(0, 64U) ==
           AV2H_INVALID_ARGUMENT);

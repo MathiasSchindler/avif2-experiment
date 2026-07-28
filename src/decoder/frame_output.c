@@ -589,7 +589,8 @@ Av2hStatus av2h_decode_frame_i420_private(
                 status = av2h_chroma_reconstruct_to_plane_ex(
                     &leaf.node, &leaf.mode, &leaf.prefix[index],
                     &leaf.transform[index], &blocks[index],
-                    &workspace->coded[plane], &workspace->coded[0], 0,
+                    &workspace->coded[plane], &workspace->coded[0],
+                    (uint8_t)plane, 0,
                     workspace->reconstruction_scratch);
                 if (status == AV2H_UNSUPPORTED) return AV2H_INVALID_DATA;
                 if (status != AV2H_OK) return status;

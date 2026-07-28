@@ -18,12 +18,14 @@ typedef struct {
     uint16_t q3_eob_base_txs2_ctx1[3U + 4U];
     uint16_t q3_eob_base_txs2_ctx2[3U + 4U];
     uint16_t q3_eob_base_txs4_ctx1[3U + 4U];
+    uint16_t q1_eob_base_txs4_ctx1[3U + 4U];
     uint16_t eob_lf[10U][5U + 4U];
     uint16_t q3_eob_lf_txs1_ctx0[5U + 4U];
     uint16_t q3_eob_lf_txs1_ctx1[5U + 4U];
     uint16_t q3_eob_lf_txs3_ctx2[5U + 4U];
     uint16_t q3_eob_lf_txs4_ctx0[5U + 4U];
     uint16_t q3_eob_lf_txs4_ctx1[5U + 4U];
+    uint16_t q2_eob_lf_txs4_ctx1[5U + 4U];
     uint16_t base[40U][4U + 4U];
     uint16_t q3_base_txs1_ctx0[4U + 4U];
     uint16_t q3_base_txs1_ctx1[4U + 4U];
@@ -46,6 +48,10 @@ typedef struct {
     uint16_t q3_base_txs4_ctx6[4U + 4U];
     uint16_t q3_base_txs4_ctx10[4U + 4U];
     uint16_t q3_base_txs4_ctx11[4U + 4U];
+    uint16_t q1_base_txs4_ctx0[4U + 4U];
+    uint16_t q1_base_txs4_ctx1[4U + 4U];
+    uint16_t q1_base_txs4_ctx2[4U + 4U];
+    uint16_t q1_base_txs4_ctx5[4U + 4U];
     uint16_t base_lf[67U][6U + 4U];
     uint16_t q3_base_lf_txs1_ctx21[6U + 4U];
     uint16_t q3_base_lf_txs1_ctx22[6U + 4U];
@@ -91,10 +97,18 @@ typedef struct {
     uint16_t q3_base_lf_txs4_ctx17[6U + 4U];
     uint16_t q3_base_lf_txs4_ctx18[6U + 4U];
     uint16_t q3_base_lf_txs4_ctx19[6U + 4U];
+    uint16_t q2_base_lf_txs4_ctx1[6U + 4U];
+    uint16_t q2_base_lf_txs4_ctx9[6U + 4U];
+    uint16_t q1_base_lf_txs4_ctx8[6U + 4U];
+    uint16_t q1_base_lf_txs4_ctx15[6U + 4U];
+    uint16_t q1_base_lf_txs4_ctx17[6U + 4U];
+    uint16_t q1_base_lf_txs4_ctx19[6U + 4U];
+    uint16_t q1_base_lf_txs4_ctx20[6U + 4U];
     uint16_t br[7U][4U + 4U];
     uint16_t br_lf[12U][4U + 4U];
     uint16_t q3_br_lf_ctx3[4U + 4U];
     uint16_t q3_br_lf_ctx9[4U + 4U];
+    uint16_t q1_br_lf_ctx12[4U + 4U];
     uint16_t dc_sign[3U][AV2H_BINARY_CDF_SIZE];
     uint16_t fsc_bob[3U][3U + 4U];
     uint16_t fsc_base[7U][4U + 4U];
@@ -137,6 +151,11 @@ typedef struct {
     uint16_t q3_uv_base_lf[12U][6U + 4U];
     uint16_t q3_uv_base[12U][4U + 4U];
     uint16_t q3_uv_br[4U][4U + 4U];
+    uint16_t adjusted_uv_eob[2U][3U + 4U];
+    uint16_t adjusted_uv_eob_lf[2U][5U + 4U];
+    uint16_t adjusted_uv_base[2U][7U][4U + 4U];
+    uint16_t adjusted_uv_base_lf[2U][8U][6U + 4U];
+    uint16_t adjusted_uv_br[2U][3U][4U + 4U];
     uint8_t q_context;
 } Av2hFirstCoeffLevelCdfs;
 

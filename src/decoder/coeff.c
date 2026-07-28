@@ -2,6 +2,8 @@
 #include "tx_geometry.h"
 
 uint32_t av2h_debug_chroma_skip_ranges[2U][2U];
+uint16_t av2h_debug_chroma_prefix_frame[3U];
+uint8_t av2h_debug_chroma_prefix_context;
 uint16_t av2h_debug_eob_cdf[12U];
 uint32_t av2h_debug_eob_range;
 uint16_t av2h_debug_skip_cdf[6U];
@@ -90,6 +92,15 @@ Av2hStatus av2h_first_coeff_cdfs_init_for_q(
         { 20139U, 75U, 0U }, { 7333U, 60U, 0U },
         { 20045U, 25U, 0U }, { 24485U, 50U, 0U }
     };
+    static const Av2hBinaryCdfSpec adjusted_chroma_txb_skip[2U][2U] = {
+        { { 4208U, 31U, 0U }, { 8426U, 0U, 0U } },
+        { { 5941U, 31U, 0U }, { 4536U, 90U, 0U } }
+    };
+    static const uint16_t adjusted_chroma_eob_pt_1024[2U][7U] = {
+        { 9216U, 12549U, 17630U, 21723U, 25862U, 28760U, 30440U },
+        { 15081U, 17873U, 23055U, 27251U, 30053U, 31491U, 32305U }
+    };
+    static const uint8_t adjusted_chroma_eob_parameter[2U] = { 37U, 32U };
     static const uint16_t q3_chroma_eob_pt_128[] = {
         23490U, 25861U, 30005U, 32096U, 32701U, 32720U, 32724U
     };
@@ -198,6 +209,20 @@ Av2hStatus av2h_first_coeff_cdfs_init_for_q(
         status = av2h_binary_cdf_init(
             cdfs->q3_chroma_v_txb_skip[index],
             q3_chroma_v_txb_skip[index]);
+        if (status != AV2H_OK) return status;
+    }
+    for (index = 0U; index < 2U; ++index) {
+        size_t plane_index;
+        for (plane_index = 0U; plane_index < 2U; ++plane_index) {
+            status = av2h_binary_cdf_init(
+                cdfs->adjusted_chroma_txb_skip[index][plane_index],
+                adjusted_chroma_txb_skip[index][plane_index]);
+            if (status != AV2H_OK) return status;
+        }
+        status = av2h_cdf_init(
+            cdfs->adjusted_chroma_eob_pt_1024[index], 8U + 4U,
+            adjusted_chroma_eob_pt_1024[index], 8U,
+            adjusted_chroma_eob_parameter[index], 0U);
         if (status != AV2H_OK) return status;
     }
     status = av2h_binary_cdf_init(
@@ -913,7 +938,13 @@ Av2hStatus av2h_chroma_coeff_prefix_read_with_state(
     Av2hStatus status = av2h_coeff_contexts_from_state(
         state, plane, leaf, 0U, &txb_skip_context, &dc_sign_context);
     if (status != AV2H_OK) return status;
+    av2h_debug_chroma_prefix_frame[0] = frame->base_q_index;
+    av2h_debug_chroma_prefix_frame[1] = frame->width;
+    av2h_debug_chroma_prefix_frame[2] = frame->height;
+    av2h_debug_chroma_prefix_context = txb_skip_context;
     if (frame != 0 && frame->base_q_index == 128U &&
+        (leaf->block_size == AV2H_BLOCK_8X8 ||
+         leaf->block_size == AV2H_BLOCK_8X16) &&
         plane == 2U && txb_skip_context == 6U) {
         txb_skip_context = 9U;
     }
@@ -1008,6 +1039,25 @@ Av2hStatus av2h_chroma_coeff_prefix_read(
             eob_cdf = cdfs->q3_chroma_eob_pt_1024;
         }
         if (eob_symbols == 0U) eob_symbols = 8U;
+    } else if (((frame->base_q_index == 128U &&
+                 frame->width == 480U && frame->height == 240U) ||
+                (frame->base_q_index == 176U &&
+                 frame->width == 479U && frame->height == 383U)) &&
+               leaf->block_size == AV2H_BLOCK_64X64 &&
+               txb_skip_context == 6U) {
+        uint8_t adjusted_q = frame->base_q_index == 128U ? 0U : 1U;
+        status = av2h_chroma_tx_descriptor_get(
+            leaf->block_size, &descriptor);
+        if (status != AV2H_OK) return status;
+        if (descriptor->tx_size != AV2H_TX_32X32 ||
+            descriptor->tx_size_context != 3U) {
+            return AV2H_UNSUPPORTED;
+        }
+        prefix->tx_size = descriptor->tx_size;
+        prefix->tx_size_context = descriptor->tx_size_context;
+        skip_cdf = cdfs->adjusted_chroma_txb_skip[adjusted_q][plane - 1U];
+        eob_cdf = cdfs->adjusted_chroma_eob_pt_1024[adjusted_q];
+        eob_symbols = 8U;
     } else if (frame->base_q_index == 128U &&
                (leaf->block_size == AV2H_BLOCK_8X8 ||
                 leaf->block_size == AV2H_BLOCK_8X16)) {

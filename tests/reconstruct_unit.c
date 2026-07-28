@@ -2980,7 +2980,8 @@ static void test_emerald_q208_chroma_leaves(void) {
             block.dequantized[tc->coeff_pos[index]] = tc->coeff_val[index];
         }
         status = av2h_chroma_reconstruct_to_plane_ex(
-            &leaf, &mode, &prefix, &transform, &block, &cp, 0, &pp, &scratch);
+            &leaf, &mode, &prefix, &transform, &block, &cp, 0, 1U, &pp,
+            &scratch);
         if (status != AV2H_OK) {
             fprintf(stderr, "%s: reconstruct status %d\n", tc->name, status);
             ++failures;
@@ -3067,6 +3068,7 @@ static void test_emerald_q208_chroma_cfl(void) {
             sizeof(pred_rec)
         };
         mode.is_cfl = 1U;
+        mode.cfl_kind = AV2H_CFL_DERIVED_ALPHA;
         mode.mode = AV2H_INTRA_DC;
         prefix.tx_size = (Av2hFirstTxSize)3;
         prefix.all_zero = all_zero;
@@ -3078,8 +3080,8 @@ static void test_emerald_q208_chroma_cfl(void) {
         block.nonzero_count = all_zero ? 0U : 1U;
         if (!all_zero) block.dequantized[0] = -992;
         status = av2h_chroma_reconstruct_to_plane_ex(
-            &leaf, &mode, &prefix, &transform, &block, &cp, &luma, &pp,
-            &scratch);
+            &leaf, &mode, &prefix, &transform, &block, &cp, &luma,
+            (uint8_t)(plane_index + 1), &pp, &scratch);
         if (status != AV2H_OK) {
             fprintf(stderr, "cfl plane %d: status %d\n", plane_index, status);
             ++failures;
@@ -3133,6 +3135,7 @@ static void test_emerald_chroma_plane_ex_checks(void) {
         sizeof(luma_rec)
     };
     cfl_mode.is_cfl = 1U;
+    cfl_mode.cfl_kind = AV2H_CFL_DERIVED_ALPHA;
     cfl_mode.mode = AV2H_INTRA_DC;
     prefix.tx_size = (Av2hFirstTxSize)3;
     prefix.all_zero = 1U;
@@ -3158,7 +3161,7 @@ static void test_emerald_chroma_plane_ex_checks(void) {
         };
         CHECK(av2h_chroma_reconstruct_to_plane_ex(
                   &cfl_leaf, &cfl_mode, &prefix, &transform, &block, &cp,
-                  &luma, 0, &scratch) == AV2H_UNSUPPORTED);
+                  &luma, 1U, 0, &scratch) == AV2H_UNSUPPORTED);
         for (r = 0U; r < 32U; ++r) {
             for (c = 0U; c < 32U; ++c) {
                 CHECK(chroma_data[r * 96U + 64U + c] == 0xABU);
@@ -3167,7 +3170,7 @@ static void test_emerald_chroma_plane_ex_checks(void) {
         /* A NULL luma plane also fails closed for CFL. */
         CHECK(av2h_chroma_reconstruct_to_plane_ex(
                   &cfl_leaf, &cfl_mode, &prefix, &transform, &block, &cp,
-                  0, 0, &scratch) == AV2H_UNSUPPORTED);
+                  0, 1U, 0, &scratch) == AV2H_UNSUPPORTED);
         for (r = 0U; r < 32U; ++r) {
             for (c = 0U; c < 32U; ++c) {
                 CHECK(chroma_data[r * 96U + 64U + c] == 0xABU);
@@ -3191,7 +3194,7 @@ static void test_emerald_chroma_plane_ex_checks(void) {
         bad.coefficient_count = 64U;
         bad_status = av2h_chroma_reconstruct_to_plane_ex(
             &cfl_leaf, &dc_mode, &prefix, &transform, &bad, &cp,
-            &luma, 0, &scratch);
+            &luma, 1U, 0, &scratch);
         CHECK(bad_status == AV2H_OK);
         for (r = 0U; r < 8U; ++r) {
             for (c = 0U; c < 8U; ++c) {
@@ -3214,7 +3217,7 @@ static void test_emerald_chroma_plane_ex_checks(void) {
         dc_mode.mode = AV2H_INTRA_DC;
         CHECK(av2h_chroma_reconstruct_to_plane_ex(
                   &cfl_leaf, &dc_mode, &prefix, &transform, &block, &cp,
-                  &luma, &bad_pred, &scratch) == AV2H_INVALID_ARGUMENT);
+                  &luma, 1U, &bad_pred, &scratch) == AV2H_INVALID_ARGUMENT);
     }
 
     /* A neighbour-only all-zero DC leaf reconstructs to the flat DC surface
@@ -3236,7 +3239,8 @@ static void test_emerald_chroma_plane_ex_checks(void) {
         for (r = 0U; r < 16U; ++r) chroma_data[r * 96U + 31U] = 150U;
         av2h_memory_fill(chroma_rec, 1U, sizeof(chroma_rec));
         status = av2h_chroma_reconstruct_to_plane_ex(
-            &leaf, &dc_mode, &prefix, &transform, &az, &cp, 0, 0, &scratch);
+            &leaf, &dc_mode, &prefix, &transform, &az, &cp, 0, 1U, 0,
+            &scratch);
         CHECK(status == AV2H_OK);
         for (r = 0U; r < 16U; ++r) {
             for (c = 0U; c < 32U; ++c) {

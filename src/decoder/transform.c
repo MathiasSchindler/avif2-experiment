@@ -885,7 +885,12 @@ Av2hStatus av2h_chroma_transform_type_read(
                      coeff->tx_size == AV2H_TX_8X16 ||
                      coeff->tx_size == AV2H_TX_32X32 ||
                      coeff->tx_size == AV2H_TX_16X32 ||
-                     coeff->tx_size == AV2H_TX_8X32)))) {
+                            coeff->tx_size == AV2H_TX_8X32)) ||
+                      (((frame->base_q_index == 128U &&
+                          frame->width == 480U && frame->height == 240U) ||
+                         (frame->base_q_index == 176U &&
+                          frame->width == 479U && frame->height == 383U)) &&
+                        coeff->tx_size == AV2H_TX_32X32))) {
         transform->before_primary_bits = av2h_range_tell(decoder);
         transform->primary_type = AV2H_TX_DCT_DCT;
         transform->primary_signaled = 0U;

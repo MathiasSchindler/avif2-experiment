@@ -114,8 +114,10 @@ Av2hStatus av2h_chroma_reconstruct_to_plane(
  * reconstructed luma consumed by CFL_DERIVED_ALPHA (may be NULL for
  * neighbour-only DC/H leaves).  When `predictor_plane` is non-NULL the intra
  * (pre-residual) predictor samples are also written to it, enabling
- * predictor-plane hashing.  Both extra planes are optional; the legacy
- * av2h_chroma_reconstruct_to_plane forwards here with both NULL.
+ * predictor-plane hashing.  `chroma_plane` is 1 for U and 2 for V, selecting
+ * the corresponding explicit-CfL alpha.  Both extra planes are optional; the
+ * legacy av2h_chroma_reconstruct_to_plane forwards here as plane U with both
+ * extra planes NULL.
  */
 Av2hStatus av2h_chroma_reconstruct_to_plane_ex(
     const Av2hPartitionNode *leaf,
@@ -125,6 +127,7 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_ex(
     const Av2hFirstCoeffBlock *coefficients,
     Av2hReconstructionPlane *plane,
     const Av2hReconstructionPlane *luma_plane,
+    uint8_t chroma_plane,
     Av2hReconstructionPlane *predictor_plane,
     Av2hReconstructionScratch *scratch);
 Av2hStatus av2h_first_chroma_reconstruct(

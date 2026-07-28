@@ -788,10 +788,15 @@ static Av2hStatus predict_directional_idif(
                        directional_derivative[270 - angle];
     if (edge_count > 136U) return AV2H_UNSUPPORTED;
     {
+        uint8_t no_references =
+            (references->above == 0 || references->above_count == 0U) &&
+            (references->left == 0 || references->left_count == 0U);
         uint8_t fallback = references->above != 0 &&
             references->above_count != 0U ? references->above[0] :
             references->left != 0 && references->left_count != 0U ?
                 references->left[0] : 128U;
+        uint8_t above_fallback = no_references ? 127U : fallback;
+        uint8_t left_fallback = no_references ? 129U : fallback;
         uint8_t corner = references->has_above_left ?
             references->above_left : fallback;
         above[-4] = above[-3] = above[-2] = above[-1] = corner;
@@ -831,12 +836,12 @@ static Av2hStatus predict_directional_idif(
                 references->above[
                     above_source < references->above_count ?
                     above_source : references->above_count - 1U] :
-                fallback;
+                above_fallback;
             left[index] = references->left != 0 &&
                 references->left_count != 0U ?
                 references->left[left_source < references->left_count ?
                                  left_source : references->left_count - 1U] :
-                missing_left_ibp ? 129U : fallback;
+                missing_left_ibp ? 129U : left_fallback;
         }
         if (mode->mrl_index == 0U &&
             references->above != 0 && references->above_count != 0U &&
@@ -932,7 +937,12 @@ static Av2hStatus predict_directional_idif(
     if (angle < 180) {
         const int min_base = -1 - mode->mrl_index;
         if ((references->above == 0 || references->above_count == 0U) &&
-            (references->left == 0 || references->left_count == 0U)) {
+            (references->left == 0 || references->left_count == 0U) &&
+            !(mode->mode == AV2H_INTRA_VERTICAL &&
+              mode->angle_delta == 2 && mode->mrl_index == 0U &&
+                            mode->enable_ibp == 1U &&
+                            ((width == 32U && height == 32U) ||
+                             (width == 64U && height == 64U)))) {
             return AV2H_INVALID_ARGUMENT;
         }
         for (row = 0U; row < height; ++row) {
@@ -1475,7 +1485,8 @@ Av2hStatus av2h_luma_predict(
     }
     if (mode->mode == AV2H_INTRA_VERTICAL && mode->angle_delta == 2 &&
         mode->mrl_index == 0U && mode->multi_line_mrl == 0U &&
-        width == 8U && height == 16U) {
+        ((width == 8U && height == 16U) ||
+         (mode->enable_ibp == 1U && width == 64U && height == 64U))) {
         return predict_directional_idif(
             mode, 96, width, height, references,
             predictor, predictor_stride);
@@ -2892,6 +2903,16 @@ Av2hStatus av2h_chroma_predict(
         luma_mode.enable_ibp = 1U;
         return predict_directional_idif(
             &luma_mode, 183, width, height, references,
+            predictor, predictor_stride);
+    }
+    if (mode->mode == AV2H_INTRA_VERTICAL && mode->angle_delta == 2 &&
+        width == 32U && height == 32U) {
+        Av2hFirstLeafMode luma_mode = { 0 };
+        luma_mode.mode = mode->mode;
+        luma_mode.angle_delta = mode->angle_delta;
+        luma_mode.enable_ibp = 1U;
+        return predict_directional_idif(
+            &luma_mode, 96, width, height, references,
             predictor, predictor_stride);
     }
         if (!((width == 4U && height == 4U &&
@@ -4981,6 +5002,8 @@ static Av2hStatus cfl_derived_predict(
     const Av2hReconstructionPlane *luma_plane,
     const Av2hReconstructionPlane *chroma_plane,
     uint8_t filter_index,
+    uint8_t derive_alpha,
+    int32_t supplied_alpha_q3,
     uint16_t block_x,
     uint16_t block_y,
     uint16_t width,
@@ -5195,7 +5218,9 @@ static Av2hStatus cfl_derived_predict(
         }
     }
     shift = 3 + AV2H_CFL_ADD_BITS_ALPHA;
-    alpha = cfl_derive_alpha(sum_x, sum_y, sum_xx, sum_xy, count, shift);
+    alpha = derive_alpha ?
+        cfl_derive_alpha(sum_x, sum_y, sum_xx, sum_xy, count, shift) :
+        supplied_alpha_q3 * (1 << AV2H_CFL_ADD_BITS_ALPHA);
     /* Predict: DC base + scaled luma AC. */
     for (row = 0U; row < height; ++row) {
         for (column = 0U; column < width; ++column) {
@@ -5409,10 +5434,6 @@ uint64_t av2h_debug_mhccp_chroma_hash[2U];
 uint64_t av2h_debug_mhccp_chroma_top_hash[2U];
 uint64_t av2h_debug_mhccp_chroma_left_hash[2U];
 uint8_t av2h_debug_mhccp_count;
-uint64_t av2h_debug_chroma_dc_hash[2U][3U];
-uint8_t av2h_debug_chroma_dc_count;
-uint64_t av2h_debug_chroma_cfl_hash[2U];
-uint8_t av2h_debug_chroma_cfl_count;
 uint8_t av2h_debug_luma_reconstruct_stage;
 
 static Av2hStatus mhccp_predict_direction01(
@@ -5779,7 +5800,8 @@ Av2hStatus av2h_chroma_reconstruct_to_plane(
     Av2hReconstructionPlane *plane,
     Av2hReconstructionScratch *scratch) {
     return av2h_chroma_reconstruct_to_plane_ex(
-        leaf, mode, prefix, transform, coefficients, plane, 0, 0, scratch);
+        leaf, mode, prefix, transform, coefficients, plane, 0, 1U, 0,
+        scratch);
 }
 
 Av2hStatus av2h_chroma_reconstruct_to_plane_ex(
@@ -5790,6 +5812,7 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_ex(
     const Av2hFirstCoeffBlock *coefficients,
     Av2hReconstructionPlane *plane,
     const Av2hReconstructionPlane *luma_plane,
+    uint8_t chroma_plane,
     Av2hReconstructionPlane *predictor_plane,
     Av2hReconstructionScratch *scratch) {
     Av2hFirstLeafMode luma_mode = { 0 };
@@ -5807,6 +5830,7 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_ex(
     Av2hStatus status;
     if (leaf == 0 || mode == 0 || prefix == 0 || transform == 0 ||
         coefficients == 0 || plane == 0 || scratch == 0 || plane->data == 0 ||
+        chroma_plane < 1U || chroma_plane > 2U ||
         plane->stride < plane->width || plane->reference_width == 0U ||
         plane->reference_height == 0U || plane->reconstructed == 0 ||
         plane->reference_width > plane->width ||
@@ -5923,61 +5947,41 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_ex(
         for (index = 0U; index < coefficients->coefficient_count; ++index) {
             scratch->predictor[index] = dc_value;
         }
-        status = mode->cfl_kind == AV2H_CFL_MULTI_PARAM ?
-            mhccp_predict_observed(
+        if (mode->cfl_kind == AV2H_CFL_MULTI_PARAM) {
+            status = mhccp_predict_observed(
                 mode, luma_plane, plane, block_x, block_y, width, height,
-                scratch->predictor, width) :
-            cfl_derived_predict(
+                scratch->predictor, width);
+        } else {
+            uint8_t derive_alpha = (uint8_t)(
+                mode->cfl_kind == AV2H_CFL_DERIVED_ALPHA);
+            int32_t alpha_q3 = 0;
+            if (!derive_alpha) {
+                uint8_t sign = chroma_plane == 1U ?
+                    (uint8_t)(((mode->cfl_alpha_signs + 1U) * 11U) >> 5U) :
+                    (uint8_t)(mode->cfl_alpha_signs + 1U - 3U *
+                        (((mode->cfl_alpha_signs + 1U) * 11U) >> 5U));
+                uint8_t magnitude = chroma_plane == 1U ?
+                    (uint8_t)(mode->cfl_alpha_idx >> 3U) :
+                    (uint8_t)(mode->cfl_alpha_idx & 7U);
+                if (mode->cfl_kind != AV2H_CFL_EXPLICIT_ALPHA ||
+                    mode->cfl_alpha_signs >= 8U || sign > 2U) {
+                    return AV2H_UNSUPPORTED;
+                }
+                alpha_q3 = sign == 0U ? 0 :
+                    sign == 2U ? (int32_t)magnitude + 1 :
+                    -(int32_t)magnitude - 1;
+            }
+            status = cfl_derived_predict(
                 luma_plane, plane, mode->cfl_downsample_filter_index,
-                block_x, block_y, width, height,
+                derive_alpha, alpha_q3, block_x, block_y, width, height,
                 have_top, have_left, scratch->predictor, width);
+        }
         if (status != AV2H_OK) return status;
         luma_mode.mode = AV2H_INTRA_DC;
-        if (leaf->row == 16U && leaf->column == 32U && width == 32U &&
-            height == 32U && av2h_debug_chroma_cfl_count < 2U) {
-            uint8_t debug_index = av2h_debug_chroma_cfl_count++;
-            av2h_debug_chroma_cfl_hash[debug_index] =
-                1469598103934665603ULL;
-            for (index = 0U; index < (size_t)width * height; ++index) {
-                av2h_debug_chroma_cfl_hash[debug_index] ^=
-                    scratch->predictor[index];
-                av2h_debug_chroma_cfl_hash[debug_index] *=
-                    1099511628211ULL;
-            }
-        }
     } else {
         status = av2h_chroma_predict(
             mode, width, height, &references, scratch->predictor, width);
         if (status != AV2H_OK) return status;
-        if (leaf->row == 16U && leaf->column == 16U &&
-            mode->mode == AV2H_INTRA_DC && width == 32U && height == 32U &&
-            av2h_debug_chroma_dc_count < 2U) {
-            uint8_t debug_index = av2h_debug_chroma_dc_count++;
-            av2h_debug_chroma_dc_hash[debug_index][0] =
-                1469598103934665603ULL;
-            av2h_debug_chroma_dc_hash[debug_index][1] =
-                1469598103934665603ULL;
-            av2h_debug_chroma_dc_hash[debug_index][2] =
-                1469598103934665603ULL;
-            for (index = 0U; index < width; ++index) {
-                av2h_debug_chroma_dc_hash[debug_index][1] ^=
-                    references.above[index];
-                av2h_debug_chroma_dc_hash[debug_index][1] *=
-                    1099511628211ULL;
-            }
-            for (index = 0U; index < height; ++index) {
-                av2h_debug_chroma_dc_hash[debug_index][2] ^=
-                    references.left[index];
-                av2h_debug_chroma_dc_hash[debug_index][2] *=
-                    1099511628211ULL;
-            }
-            for (index = 0U; index < (size_t)width * height; ++index) {
-                av2h_debug_chroma_dc_hash[debug_index][0] ^=
-                    scratch->predictor[index];
-                av2h_debug_chroma_dc_hash[debug_index][0] *=
-                    1099511628211ULL;
-            }
-        }
         luma_mode.mode = mode->mode;
         luma_mode.angle_delta = mode->angle_delta;
     }

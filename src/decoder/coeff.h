@@ -4,6 +4,8 @@
 #include "leaf.h"
 
 extern uint32_t av2h_debug_chroma_skip_ranges[2U][2U];
+extern uint16_t av2h_debug_chroma_prefix_frame[3U];
+extern uint8_t av2h_debug_chroma_prefix_context;
 extern uint16_t av2h_debug_eob_cdf[12U];
 extern uint32_t av2h_debug_eob_range;
 extern uint16_t av2h_debug_skip_cdf[6U];
@@ -54,6 +56,8 @@ typedef struct {
     uint16_t q3_chroma_txb_skip[2U][3U][AV2H_BINARY_CDF_SIZE];
     uint16_t q3_chroma_txb_skip_txs1[3U][AV2H_BINARY_CDF_SIZE];
     uint16_t q3_chroma_v_txb_skip[12U][AV2H_BINARY_CDF_SIZE];
+    uint16_t adjusted_chroma_txb_skip[2U][2U][AV2H_BINARY_CDF_SIZE];
+    uint16_t adjusted_chroma_eob_pt_1024[2U][8U + 4U];
     uint16_t txb_skip_fsc_txs0_ctx9[AV2H_BINARY_CDF_SIZE];
     uint16_t txb_skip_fsc_txs1_ctx9[AV2H_BINARY_CDF_SIZE];
     uint16_t txb_skip_fsc_txs2_ctx9[AV2H_BINARY_CDF_SIZE];

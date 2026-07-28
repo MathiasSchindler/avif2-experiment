@@ -376,10 +376,6 @@ extern uint64_t av2h_debug_mhccp_chroma_hash[2U];
 extern uint64_t av2h_debug_mhccp_chroma_top_hash[2U];
 extern uint64_t av2h_debug_mhccp_chroma_left_hash[2U];
 extern uint8_t av2h_debug_mhccp_count;
-extern uint64_t av2h_debug_chroma_dc_hash[2U][3U];
-extern uint8_t av2h_debug_chroma_dc_count;
-extern uint64_t av2h_debug_chroma_cfl_hash[2U];
-extern uint8_t av2h_debug_chroma_cfl_count;
 extern uint8_t av2h_debug_partition_stage;
 extern Av2hPartitionNode av2h_debug_partition_node;
 extern size_t av2h_debug_partition_split_context;
@@ -1383,6 +1379,7 @@ static void check_emerald_q208_full_tile(
                     &leaf.node, &leaf.mode, &leaf.prefix[plane_index],
                     &leaf.transform[plane_index], block,
                     planes[plane_index], &y_plane,
+                    (uint8_t)(plane_index + 1U),
                     predictor_planes[plane_index], &scratch);
                 if (status != AV2H_OK) {
                     fprintf(stderr,
@@ -1584,6 +1581,48 @@ static void check_first_luma(const ArtifactExpectation *expected,
     av2h_memory_fill(&block, 0U, sizeof(block));
     status = av2h_tile_decoder_next_luma(
         &decoder, &leaf, &block, &has_leaf);
+    if ((expected->base_q_index == 128U && expected->width == 480U) ||
+        (expected->base_q_index == 176U && expected->width == 479U)) {
+        if (status == AV2H_OK) {
+            static uint8_t target_pixels[480U * 383U];
+            static uint8_t target_reconstructed[120U * 96U];
+            static Av2hReconstructionScratch target_scratch;
+            Av2hReconstructionPlane target_plane = {
+                target_pixels, expected->width,
+                expected->width, expected->height,
+                expected->width, expected->height,
+                target_reconstructed,
+                ((size_t)expected->width + 3U) / 4U,
+                sizeof(target_reconstructed)
+            };
+            Av2hStatus reconstruct_status;
+            uint64_t expected_predictor_hash =
+                expected->base_q_index == 128U ?
+                    UINT64_C(0xd4ea93e1129d09a3) :
+                    UINT64_C(0xcae2b824a5adc383);
+            uint64_t expected_pixel_hash =
+                expected->base_q_index == 128U ?
+                    UINT64_C(0x2bc3d4c50c228831) :
+                    UINT64_C(0x6f9be39143f7d24f);
+            CHECK(block.after_levels_range ==
+                  (expected->base_q_index == 128U ? 34296U : 38176U));
+            CHECK(decoder.range.range ==
+                  (expected->base_q_index == 128U ? 33648U : 41040U));
+            av2h_memory_fill(target_pixels, 0U, sizeof(target_pixels));
+            av2h_memory_fill(target_reconstructed, 0U,
+                             sizeof(target_reconstructed));
+            reconstruct_status = av2h_luma_reconstruct_to_plane(
+                &leaf.node, &leaf.mode, &leaf.prefix, &leaf.transform,
+                &block, &target_plane, &target_scratch);
+            REQUIRE(reconstruct_status == AV2H_OK);
+            CHECK(block_pixel_hash(
+                      target_scratch.predictor, 64U, 64U, 64U) ==
+                  expected_predictor_hash);
+            CHECK(block_pixel_hash(
+                      target_pixels, expected->width, 64U, 64U) ==
+                  expected_pixel_hash);
+        }
+    }
     CHECK(status == expected->first_status);
     CHECK(has_leaf == 1U);
     CHECK(leaf.node.row == 0U);
@@ -2063,7 +2102,8 @@ static void check_first_luma(const ArtifactExpectation *expected,
                                                     plane_index],
                                                 &chroma_blocks[plane_index],
                                                 &chroma_planes[plane_index],
-                                                &plane, 0,
+                                                &plane,
+                                                (uint8_t)(plane_index + 1U), 0,
                                                 &scratch);
                                         if (status != AV2H_OK) {
                                             break;
@@ -2131,28 +2171,6 @@ static void check_first_luma(const ArtifactExpectation *expected,
                                     }
                                     if (status != AV2H_OK) {
                                         break;
-                                    }
-                                    if (chroma_leaf.node.row == 16U &&
-                                        chroma_leaf.node.column == 16U) {
-                                        fprintf(stderr,
-                                                "chinnathurai-chroma-dc=%u/%llx/%llx/%llx\n",
-                                                av2h_debug_chroma_dc_count,
-                                                (unsigned long long)
-                                                    av2h_debug_chroma_dc_hash[0][0],
-                                                (unsigned long long)
-                                                    av2h_debug_chroma_dc_hash[0][1],
-                                                (unsigned long long)
-                                                    av2h_debug_chroma_dc_hash[0][2]);
-                                    }
-                                    if (chroma_leaf.node.row == 16U &&
-                                        chroma_leaf.node.column == 32U) {
-                                        fprintf(stderr,
-                                                "chinnathurai-chroma-cfl=%u/%llx/%llx\n",
-                                                av2h_debug_chroma_cfl_count,
-                                                (unsigned long long)
-                                                    av2h_debug_chroma_cfl_hash[0],
-                                                (unsigned long long)
-                                                    av2h_debug_chroma_cfl_hash[1]);
                                     }
                                     status = av2h_tile_decoder_commit_leaf(
                                         &decoder, chroma_leaf.node);
@@ -2783,7 +2801,8 @@ static void check_first_luma(const ArtifactExpectation *expected,
                                 &chroma_leaf.prefix[plane_index],
                                 &chroma_leaf.transform[plane_index],
                                 &chroma_blocks[plane_index],
-                                &chroma_planes[plane_index], &plane, 0,
+                                &chroma_planes[plane_index], &plane,
+                                (uint8_t)(plane_index + 1U), 0,
                                 &scratch);
                         if (plane_status[plane_index] != AV2H_OK) break;
                     }
@@ -3247,7 +3266,8 @@ static void check_first_luma(const ArtifactExpectation *expected,
                                     &chroma_leaf.prefix[plane_index],
                                     &chroma_leaf.transform[plane_index],
                                     &chroma_blocks[plane_index],
-                                    &chroma_planes[plane_index], &plane, 0,
+                                    &chroma_planes[plane_index], &plane,
+                                    (uint8_t)(plane_index + 1U), 0,
                                     &scratch);
                             if (plane_status[plane_index] != AV2H_OK) break;
                         }
@@ -3676,6 +3696,218 @@ static void check_first_luma(const ArtifactExpectation *expected,
         CHECK(leaf.transform.primary_type == AV2H_TX_ADST_DCT);
         CHECK(av2h_range_tell(&decoder.range) == 89U);
     }
+    if ((expected->base_q_index == 128U && expected->width == 480U) ||
+        (expected->base_q_index == 176U && expected->width == 479U)) {
+        static uint8_t target_luma_pixels[480U * 383U];
+        static uint8_t target_luma_reconstructed[120U * 96U];
+        static uint8_t target_chroma_pixels[2U][240U * 192U];
+        static uint8_t target_chroma_predictor_pixels[2U][240U * 192U];
+        static uint8_t target_chroma_reconstructed[2U][60U * 48U];
+        static Av2hReconstructionScratch target_scratch;
+        Av2hTileChromaLeaf chroma_leaf;
+        Av2hFirstCoeffBlock chroma_blocks[2U];
+        Av2hStatus reconstruct_status[2U];
+        uint16_t chroma_width = (uint16_t)((expected->width + 1U) / 2U);
+        uint16_t chroma_height = (uint16_t)((expected->height + 1U) / 2U);
+        Av2hReconstructionPlane target_luma_plane = {
+            target_luma_pixels, expected->width,
+            expected->width, expected->height,
+            expected->width, expected->height,
+            target_luma_reconstructed,
+            ((size_t)expected->width + 3U) / 4U,
+            sizeof(target_luma_reconstructed)
+        };
+        Av2hReconstructionPlane target_chroma_planes[2U] = {
+            {
+                target_chroma_pixels[0], chroma_width,
+                chroma_width, chroma_height, chroma_width, chroma_height,
+                target_chroma_reconstructed[0],
+                ((size_t)chroma_width + 3U) / 4U,
+                sizeof(target_chroma_reconstructed[0])
+            },
+            {
+                target_chroma_pixels[1], chroma_width,
+                chroma_width, chroma_height, chroma_width, chroma_height,
+                target_chroma_reconstructed[1],
+                ((size_t)chroma_width + 3U) / 4U,
+                sizeof(target_chroma_reconstructed[1])
+            }
+        };
+        Av2hReconstructionPlane target_chroma_predictor_planes[2U] = {
+            {
+                target_chroma_predictor_pixels[0], chroma_width,
+                chroma_width, chroma_height, chroma_width, chroma_height,
+                0, 0U, 0U
+            },
+            {
+                target_chroma_predictor_pixels[1], chroma_width,
+                chroma_width, chroma_height, chroma_width, chroma_height,
+                0, 0U, 0U
+            }
+        };
+        av2h_memory_fill(
+            target_luma_pixels, 0U, sizeof(target_luma_pixels));
+        av2h_memory_fill(
+            target_luma_reconstructed, 0U,
+            sizeof(target_luma_reconstructed));
+        REQUIRE(av2h_luma_reconstruct_to_plane(
+                    &leaf.node, &leaf.mode, &leaf.prefix, &leaf.transform,
+                    &block, &target_luma_plane, &target_scratch) == AV2H_OK);
+        REQUIRE(av2h_tile_decoder_commit_leaf(&decoder, leaf.node) ==
+                AV2H_OK);
+        av2h_memory_fill(&leaf, 0U, sizeof(leaf));
+        av2h_memory_fill(&block, 0U, sizeof(block));
+        status = av2h_tile_decoder_next_luma(
+            &decoder, &leaf, &block, &has_leaf);
+        REQUIRE(status == AV2H_OK);
+        CHECK(has_leaf == 0U);
+        CHECK(decoder.phase == AV2H_TILE_DECODE_CHROMA);
+        av2h_memory_fill(&chroma_leaf, 0U, sizeof(chroma_leaf));
+        av2h_memory_fill(chroma_blocks, 0U, sizeof(chroma_blocks));
+        status = av2h_tile_decoder_next_chroma(
+            &decoder, &chroma_leaf, &chroma_blocks[0],
+            &chroma_blocks[1], &has_leaf);
+        REQUIRE(status == AV2H_OK);
+        REQUIRE(has_leaf == 1U);
+        for (size_t plane_index = 0U; plane_index < 2U; ++plane_index) {
+            av2h_memory_fill(
+                target_chroma_pixels[plane_index], 0U,
+                sizeof(target_chroma_pixels[plane_index]));
+            av2h_memory_fill(
+                target_chroma_reconstructed[plane_index], 0U,
+                sizeof(target_chroma_reconstructed[plane_index]));
+            av2h_memory_fill(
+                target_chroma_predictor_pixels[plane_index], 0U,
+                sizeof(target_chroma_predictor_pixels[plane_index]));
+            reconstruct_status[plane_index] =
+                av2h_chroma_reconstruct_to_plane_ex(
+                    &chroma_leaf.node, &chroma_leaf.mode,
+                    &chroma_leaf.prefix[plane_index],
+                    &chroma_leaf.transform[plane_index],
+                    &chroma_blocks[plane_index],
+                    &target_chroma_planes[plane_index],
+                    &target_luma_plane,
+                    (uint8_t)(plane_index + 1U),
+                    &target_chroma_predictor_planes[plane_index],
+                    &target_scratch);
+        }
+        CHECK(chroma_leaf.node.row == 0U);
+        CHECK(chroma_leaf.node.column == 0U);
+        CHECK(chroma_leaf.node.block_size == AV2H_BLOCK_64X64);
+        for (size_t plane_index = 0U; plane_index < 2U; ++plane_index) {
+            CHECK(chroma_leaf.prefix[plane_index].tx_size ==
+                  AV2H_TX_32X32);
+            CHECK(chroma_leaf.transform[plane_index].primary_type ==
+                  AV2H_TX_DCT_DCT);
+            CHECK(chroma_leaf.transform[plane_index].secondary_symbol == 0U);
+            CHECK(chroma_blocks[plane_index].width == 32U);
+            CHECK(chroma_blocks[plane_index].height == 32U);
+            CHECK(chroma_blocks[plane_index].coefficient_count == 1024U);
+            REQUIRE(reconstruct_status[plane_index] == AV2H_OK);
+        }
+        if (expected->base_q_index == 128U) {
+            CHECK(chroma_leaf.mode.mode == AV2H_INTRA_VERTICAL);
+            CHECK(chroma_leaf.mode.angle_delta == 2);
+            CHECK(chroma_leaf.mode.is_cfl == 0U);
+            CHECK(chroma_leaf.prefix[0].eob_point == 5U);
+            CHECK(chroma_leaf.prefix[0].eob == 9U);
+            CHECK(chroma_leaf.prefix[0].after_all_zero_bits == 125U);
+            CHECK(chroma_leaf.prefix[0].after_eob_point_bits == 128U);
+            CHECK(chroma_leaf.prefix[0].after_eob_extra_bit == 129U);
+            CHECK(chroma_leaf.prefix[0].after_eob_bits == 131U);
+            CHECK(chroma_leaf.prefix[1].eob_point == 5U);
+            CHECK(chroma_leaf.prefix[1].eob == 9U);
+            CHECK(chroma_leaf.prefix[1].after_all_zero_bits == 166U);
+            CHECK(chroma_leaf.prefix[1].after_eob_point_bits == 168U);
+            CHECK(chroma_leaf.prefix[1].after_eob_extra_bit == 169U);
+            CHECK(chroma_leaf.prefix[1].after_eob_bits == 171U);
+            CHECK(chroma_blocks[0].after_levels_bits == 148U);
+            CHECK(chroma_blocks[0].after_coefficients_bits == 164U);
+            CHECK(chroma_blocks[0].after_levels_range == 62432U);
+            CHECK(chroma_blocks[0].nonzero_count == 4U);
+            CHECK(chroma_blocks[0].quantized[0] == 40);
+            CHECK(chroma_blocks[0].dequantized[0] == 3920);
+            CHECK(chroma_blocks[0].quantized[1] == 4);
+            CHECK(chroma_blocks[0].dequantized[1] == 392);
+            CHECK(chroma_blocks[0].quantized[33] == 3);
+            CHECK(chroma_blocks[0].dequantized[33] == 294);
+            CHECK(chroma_blocks[0].quantized[34] == -1);
+            CHECK(chroma_blocks[0].dequantized[34] == -98);
+            CHECK(chroma_blocks[1].after_levels_bits == 183U);
+            CHECK(chroma_blocks[1].after_coefficients_bits == 197U);
+            CHECK(chroma_blocks[1].after_levels_range == 53184U);
+            CHECK(chroma_blocks[1].nonzero_count == 4U);
+            CHECK(chroma_blocks[1].quantized[0] == -26);
+            CHECK(chroma_blocks[1].dequantized[0] == -2548);
+            CHECK(chroma_blocks[1].quantized[1] == -3);
+            CHECK(chroma_blocks[1].dequantized[1] == -294);
+            CHECK(chroma_blocks[1].quantized[33] == -2);
+            CHECK(chroma_blocks[1].dequantized[33] == -196);
+            CHECK(chroma_blocks[1].quantized[34] == 1);
+            CHECK(chroma_blocks[1].dequantized[34] == 98);
+            CHECK(av2h_range_tell(&decoder.range) == 197U);
+            CHECK(decoder.range.range == 53184U);
+            CHECK(block_pixel_hash(target_chroma_predictor_pixels[0],
+                                   chroma_width, 32U, 32U) ==
+                  UINT64_C(0xc35a603411dc727f));
+            CHECK(block_pixel_hash(target_chroma_predictor_pixels[1],
+                                   chroma_width, 32U, 32U) ==
+                  UINT64_C(0xc35a603411dc727f));
+            CHECK(block_pixel_hash(target_chroma_pixels[0], chroma_width,
+                                   32U, 32U) ==
+                  UINT64_C(0x57a7c38258f413ff));
+            CHECK(block_pixel_hash(target_chroma_pixels[1], chroma_width,
+                                   32U, 32U) ==
+                  UINT64_C(0x15846509fdb0b4f1));
+        } else {
+            CHECK(chroma_leaf.mode.mode == AV2H_INTRA_DC);
+            CHECK(chroma_leaf.mode.angle_delta == 0);
+            CHECK(chroma_leaf.mode.is_cfl == 1U);
+            CHECK(chroma_leaf.mode.cfl_kind == AV2H_CFL_EXPLICIT_ALPHA);
+            CHECK(chroma_leaf.mode.cfl_alpha_signs == 3U);
+            CHECK(chroma_leaf.mode.cfl_alpha_idx == 34U);
+            CHECK(chroma_leaf.prefix[0].eob_point == 3U);
+            CHECK(chroma_leaf.prefix[0].eob == 3U);
+            CHECK(chroma_leaf.prefix[0].after_all_zero_bits == 56U);
+            CHECK(chroma_leaf.prefix[0].after_eob_point_bits == 59U);
+            CHECK(chroma_leaf.prefix[0].after_eob_extra_bit == 60U);
+            CHECK(chroma_leaf.prefix[0].after_eob_bits == 60U);
+            CHECK(chroma_leaf.prefix[1].eob_point == 1U);
+            CHECK(chroma_leaf.prefix[1].eob == 1U);
+            CHECK(chroma_leaf.prefix[1].after_all_zero_bits == 69U);
+            CHECK(chroma_leaf.prefix[1].after_eob_point_bits == 70U);
+            CHECK(chroma_leaf.prefix[1].after_eob_extra_bit == 70U);
+            CHECK(chroma_leaf.prefix[1].after_eob_bits == 70U);
+            CHECK(chroma_blocks[0].after_levels_bits == 64U);
+            CHECK(chroma_blocks[0].after_coefficients_bits == 66U);
+            CHECK(chroma_blocks[0].after_levels_range == 57792U);
+            CHECK(chroma_blocks[0].nonzero_count == 2U);
+            CHECK(chroma_blocks[0].quantized[0] == -2);
+            CHECK(chroma_blocks[0].dequantized[0] == -784);
+            CHECK(chroma_blocks[0].quantized[1] == -1);
+            CHECK(chroma_blocks[0].dequantized[1] == -392);
+            CHECK(chroma_blocks[1].after_levels_bits == 70U);
+            CHECK(chroma_blocks[1].after_coefficients_bits == 71U);
+            CHECK(chroma_blocks[1].after_levels_range == 53320U);
+            CHECK(chroma_blocks[1].nonzero_count == 1U);
+            CHECK(chroma_blocks[1].quantized[0] == -1);
+            CHECK(chroma_blocks[1].dequantized[0] == -392);
+            CHECK(av2h_range_tell(&decoder.range) == 71U);
+            CHECK(decoder.range.range == 53320U);
+            CHECK(block_pixel_hash(target_chroma_predictor_pixels[0],
+                                   chroma_width, 32U, 32U) ==
+                  UINT64_C(0x0e163de1147deb8a));
+            CHECK(block_pixel_hash(target_chroma_predictor_pixels[1],
+                                   chroma_width, 32U, 32U) ==
+                  UINT64_C(0xa28b4981853199a6));
+            CHECK(block_pixel_hash(target_chroma_pixels[0], chroma_width,
+                                   32U, 32U) ==
+                  UINT64_C(0x3e5af7d08452fb90));
+            CHECK(block_pixel_hash(target_chroma_pixels[1], chroma_width,
+                                   32U, 32U) ==
+                  UINT64_C(0x8e29d20ab3284a74));
+        }
+    }
 }
 
 static void check_artifact(const ArtifactExpectation *expected) {
@@ -3870,6 +4102,34 @@ static const ArtifactDecodedExpectation pastell_q160_decoded = {
     pastell_q160_coefficients,
     sizeof(pastell_q160_coefficients) / sizeof(pastell_q160_coefficients[0])
 };
+static const ArtifactCoefficient emerald_q128_coefficients[] = {
+    { 0U, -28, -1372 }, { 1U, 36, 1764 }, { 2U, 7, 343 },
+    { 3U, 3, 147 }, { 4U, 2, 98 }, { 5U, 1, 49 },
+    { 32U, 8, 392 }, { 33U, 11, 539 }, { 34U, -2, -98 },
+    { 35U, -1, -49 }, { 36U, 1, 49 }, { 37U, 1, 49 },
+    { 64U, 4, 196 }, { 65U, -1, -49 }, { 66U, -3, -147 },
+    { 67U, 1, 49 }, { 96U, 1, 49 }, { 97U, 1, 49 },
+    { 128U, -1, -49 }
+};
+static const ArtifactDecodedExpectation emerald_q128_decoded = {
+    9U, 13U, 17U, 17U, 17U,
+    AV2H_TX_64X64, 27U, 17U, 19U, 23U,
+    AV2H_TX_DCT_DCT, 0U, 25U,
+    1024U, 19U, -28, 25U, 74U, 120U,
+    emerald_q128_coefficients,
+    sizeof(emerald_q128_coefficients) / sizeof(emerald_q128_coefficients[0])
+};
+static const ArtifactCoefficient silene_q176_coefficients[] = {
+    { 0U, 30, 5880 }, { 1U, -1, -196 }, { 32U, -1, -196 }
+};
+static const ArtifactDecodedExpectation silene_q176_decoded = {
+    8U, 8U, 9U, 9U, 9U,
+    AV2H_TX_64X64, 3U, 9U, 13U, 13U,
+    AV2H_TX_DCT_DCT, 0U, 15U,
+    1024U, 3U, 30, 15U, 24U, 39U,
+    silene_q176_coefficients,
+    sizeof(silene_q176_coefficients) / sizeof(silene_q176_coefficients[0])
+};
 
 static void test_artifact_profiles(void) {
     static const ArtifactExpectation expected[] = {
@@ -3898,8 +4158,8 @@ static void test_artifact_profiles(void) {
           36U, 0U, 0U, 0U, AV2H_BLOCK_32X32, 27U,
           AV2H_OK, &emerald_q208_decoded },
         { "emerald-480x240-qp128.obu", 480U, 240U, 128U, 1U, 1U, 1U, 1U,
-                    344U, 2U, 1U, 2U, AV2H_BLOCK_64X64, 25U,
-          AV2H_UNSUPPORTED, 0 },
+                    344U, 2U, 1U, 2U, AV2H_BLOCK_64X64, 120U,
+                    AV2H_OK, &emerald_q128_decoded },
         { "flycatcher-223x149-qp176.obu", 223U, 149U, 176U, 0U,
           1U, 1U, 1U, 125U, 1U, 0U, 3U, AV2H_BLOCK_32X64, 20U,
           AV2H_UNSUPPORTED, 0 },
@@ -3934,8 +4194,8 @@ static void test_artifact_profiles(void) {
           131U, 0U, 0U, 0U, AV2H_BLOCK_64X64, 20U,
           AV2H_UNSUPPORTED, 0 },
         { "silene-479x383-qp176.obu", 479U, 383U, 176U, 1U, 1U, 1U, 1U,
-                    175U, 2U, 1U, 3U, AV2H_BLOCK_64X64, 15U,
-          AV2H_UNSUPPORTED, 0 }
+                    175U, 2U, 1U, 3U, AV2H_BLOCK_64X64, 39U,
+                    AV2H_OK, &silene_q176_decoded }
     };
     size_t index;
     CHECK(sizeof(expected) / sizeof(expected[0]) == 21U);
