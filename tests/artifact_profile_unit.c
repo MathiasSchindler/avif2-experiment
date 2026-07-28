@@ -3860,7 +3860,7 @@ static const ArtifactDecodedExpectation pastell_q160_decoded = {
 
 static void test_artifact_profiles(void) {
     static const ArtifactExpectation expected[] = {
-        { "chalk-320x240.obu", 320U, 240U, 128U, 1U, 1U, 1U, 1U,
+    { "chalk-320x240-qp128.obu", 320U, 240U, 128U, 1U, 1U, 1U, 1U,
           219U, 1U, 2U, 3U, AV2H_BLOCK_8X16, 32U,
           AV2H_UNSUPPORTED, 0 },
         { "chimp-240x287-qp192.obu", 240U, 287U, 192U, 0U, 1U, 1U, 1U,

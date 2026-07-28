@@ -1154,7 +1154,8 @@ Av2hStatus av2h_partition_traversal_next(
         }
         if (!is_partition_point(node.block_size)) {
             path->leaf = node;
-            av2h_debug_partition_path = *path;
+            av2h_memory_copy(
+                &av2h_debug_partition_path, path, sizeof(*path));
             traversal->pending_leaf = node;
             traversal->has_pending_leaf = 1U;
             *has_leaf = 1U;
@@ -1177,7 +1178,8 @@ Av2hStatus av2h_partition_traversal_next(
         if (status != AV2H_OK) return status;
         if (decision.partition == AV2H_PARTITION_NONE) {
             path->leaf = child;
-            av2h_debug_partition_path = *path;
+            av2h_memory_copy(
+                &av2h_debug_partition_path, path, sizeof(*path));
             traversal->pending_leaf = child;
             traversal->has_pending_leaf = 1U;
             *has_leaf = 1U;

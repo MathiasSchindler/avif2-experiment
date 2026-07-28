@@ -176,7 +176,7 @@ fixture.
 ## JPEG artifact OBU audit
 
 The 20 generated streams listed by `images/artifacts/manifest.json` and the
-legacy `chalk-320x240.obu` have been checked against the current private
+legacy `chalk-320x240-qp128.obu` have been checked against the current private
 decoder. All 21 Sequence Headers and Frame Headers parse, but none of the
 streams reaches the ordinary-fixture Milestone 7 frontier or another missing
 Milestone 7 path.
@@ -201,7 +201,7 @@ Milestone 7 path.
   The remaining eleven stop fail-closed at an earlier first-luma syntax
   frontier. This remains Milestone 8 work.
 - The generated QP-128 stream `emerald-480x240-qp128.obu` is one of the six
-  GDF-mode-2 streams. The legacy QP-128 `chalk-320x240.obu` reaches its first
+  GDF-mode-2 streams. The legacy QP-128 `chalk-320x240-qp128.obu` reaches its first
   8x16 luma leaf.
 
 Consequently, the newly committed ordinary 4x4 intraBC leaf does not make any
