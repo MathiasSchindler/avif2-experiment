@@ -2149,6 +2149,7 @@ Av2hStatus av2h_luma_predict(
                          (width == 16U && height == 8U) ||
              (width == 16U && height == 16U) ||
              (width == 16U && height == 32U) ||
+             (width == 16U && height == 64U) ||
              (width == 4U && height == 32U) ||
              (width == 32U && height == 8U) ||
              (width == 32U && height == 16U) ||

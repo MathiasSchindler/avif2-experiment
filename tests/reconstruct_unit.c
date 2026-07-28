@@ -1386,6 +1386,38 @@ static void test_dc_16x32_ibp_prediction(void) {
     CHECK(predictor[255] != predictor[0]);
 }
 
+static void test_d113_16x64_prediction(void) {
+    Av2hFirstLeafMode mode = { 0 };
+    Av2hLumaReferences references = { 0 };
+    uint8_t above[80U];
+    uint8_t left[80U];
+    uint8_t storage[16U * 64U + 2U];
+    uint8_t *predictor = &storage[1U];
+    size_t index;
+
+    for (index = 0U; index < sizeof(above); ++index) {
+        above[index] = (uint8_t)(index * 17U + 31U);
+        left[index] = (uint8_t)(index * 29U + 7U);
+    }
+    av2h_memory_fill(storage, 0xa5U, sizeof(storage));
+    mode.mode = AV2H_INTRA_D113;
+    mode.angle_delta = -1;
+    mode.enable_ibp = 1U;
+    references.above = above;
+    references.above_count = sizeof(above);
+    references.left = left;
+    references.left_count = sizeof(left);
+    references.above_left = 113U;
+    references.has_above_left = 1U;
+
+    CHECK(av2h_luma_predict(
+              &mode, 16U, 64U, &references, predictor, 16U) == AV2H_OK);
+    CHECK(storage[0U] == 0xa5U);
+    CHECK(storage[sizeof(storage) - 1U] == 0xa5U);
+        CHECK(sample_hash(predictor, 16U * 64U) ==
+                    UINT64_C(0x193cfb9fe374f405));
+}
+
 /*
  * Sample-exact reconstruction tests for the 15 remaining Emerald Q208
  * luma blocks.  Inputs (dequantized coefficients and intra predictor)
@@ -3299,6 +3331,7 @@ int main(void) {
     test_tx16x32_dc_flipadst_reconstruction();
     test_dc_16x32_prediction();
     test_dc_16x32_ibp_prediction();
+    test_d113_16x64_prediction();
     test_live_plane_reconstruction();
     test_arguments();
     test_emerald_q208_luma_blocks();

@@ -672,7 +672,10 @@ static void check_advanced_frontier(
             CHECK(leaf->transform.primary_type == AV2H_TX_DCT_DCT);
             CHECK(leaf->transform.before_primary_bits == 13U);
             CHECK(leaf->transform.after_primary_bits == 13U);
-            CHECK(leaf->transform.after_secondary_bits == 0U);
+            CHECK(leaf->transform.secondary_signaled == 1U);
+            CHECK(leaf->transform.secondary_symbol == 0U);
+            CHECK(leaf->transform.after_secondary_type_bits == 15U);
+            CHECK(leaf->transform.after_secondary_bits == 15U);
         } else if (expected->base_q_index == 128U) {
             CHECK(leaf->prefix.before_all_zero_bits == 17U);
             CHECK(leaf->prefix.after_all_zero_bits == 17U);
@@ -682,7 +685,10 @@ static void check_advanced_frontier(
             CHECK(leaf->transform.primary_type == AV2H_TX_DCT_DCT);
             CHECK(leaf->transform.before_primary_bits == 23U);
             CHECK(leaf->transform.after_primary_bits == 23U);
-            CHECK(leaf->transform.after_secondary_bits == 0U);
+            CHECK(leaf->transform.secondary_signaled == 1U);
+            CHECK(leaf->transform.secondary_symbol == 0U);
+            CHECK(leaf->transform.after_secondary_type_bits == 25U);
+            CHECK(leaf->transform.after_secondary_bits == 25U);
         } else if (expected->base_q_index == 192U) {
             CHECK(leaf->prefix.before_all_zero_bits == 5U);
             CHECK(leaf->prefix.after_all_zero_bits == 5U);
@@ -2017,6 +2023,13 @@ static void check_first_luma(const ArtifactExpectation *expected,
                                     }
                                     if (status != AV2H_OK) {
                                         break;
+                                    }
+                                    if (leaf.node.row == 32U &&
+                                        leaf.node.column == 54U) {
+                                        CHECK(block_pixel_hash(
+                                                  scratch.predictor,
+                                                  64U, 64U, 64U) ==
+                                              UINT64_C(0x9496807c9972b1b7));
                                     }
                                     if (leaf.node.row == 16U &&
                                         leaf.node.column == 0U) {
@@ -3885,7 +3898,7 @@ static void test_artifact_profiles(void) {
           36U, 0U, 0U, 0U, AV2H_BLOCK_32X32, 27U,
           AV2H_OK, &emerald_q208_decoded },
         { "emerald-480x240-qp128.obu", 480U, 240U, 128U, 1U, 1U, 1U, 1U,
-          344U, 2U, 1U, 2U, AV2H_BLOCK_64X64, 23U,
+                    344U, 2U, 1U, 2U, AV2H_BLOCK_64X64, 25U,
           AV2H_UNSUPPORTED, 0 },
         { "flycatcher-223x149-qp176.obu", 223U, 149U, 176U, 0U,
           1U, 1U, 1U, 125U, 1U, 0U, 3U, AV2H_BLOCK_32X64, 20U,
@@ -3921,7 +3934,7 @@ static void test_artifact_profiles(void) {
           131U, 0U, 0U, 0U, AV2H_BLOCK_64X64, 20U,
           AV2H_UNSUPPORTED, 0 },
         { "silene-479x383-qp176.obu", 479U, 383U, 176U, 1U, 1U, 1U, 1U,
-          175U, 2U, 1U, 3U, AV2H_BLOCK_64X64, 13U,
+                    175U, 2U, 1U, 3U, AV2H_BLOCK_64X64, 15U,
           AV2H_UNSUPPORTED, 0 }
     };
     size_t index;

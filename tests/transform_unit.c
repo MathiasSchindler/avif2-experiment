@@ -274,6 +274,8 @@ static void test_emerald_secondary_signaling(void) {
     check_secondary_signal(
         AV2H_TX_16X64, AV2H_INTRA_D157, 4U, AV2H_TX_DCT_DCT, 1U);
     check_secondary_signal(
+        AV2H_TX_8X64, AV2H_INTRA_VERTICAL, 4U, AV2H_TX_DCT_DCT, 1U);
+    check_secondary_signal(
         AV2H_TX_32X64, AV2H_INTRA_DC, 4U, AV2H_TX_DCT_DCT, 1U);
     check_secondary_signal(
         AV2H_TX_32X8, AV2H_INTRA_DC, 2U, AV2H_TX_ADST_DCT, 0U);

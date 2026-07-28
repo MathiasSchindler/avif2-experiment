@@ -254,6 +254,7 @@ Av2hStatus av2h_secondary_tx_type_signal(
          coeff->tx_size == AV2H_TX_64X32 ||
          coeff->tx_size == AV2H_TX_64X64 ||
          coeff->tx_size == AV2H_TX_16X64 ||
+         coeff->tx_size == AV2H_TX_8X64 ||
          coeff->tx_size == AV2H_TX_64X16)) {
         *signaled = 1U;
     } else if (primary_type == AV2H_TX_ADST_ADST &&
@@ -804,13 +805,6 @@ Av2hStatus av2h_first_transform_type_read(
     transform->secondary_set_symbol = 0U;
     transform->secondary_set = 0U;
     transform->after_secondary_type_bits = transform->after_primary_bits;
-    if (coeff->tx_size == AV2H_TX_64X64 &&
-        ((frame->base_q_index == 128U &&
-          frame->width == 480U && frame->height == 240U) ||
-         (frame->base_q_index == 176U &&
-          frame->width == 479U && frame->height == 383U))) {
-        return AV2H_UNSUPPORTED;
-    }
     status = av2h_secondary_tx_type_signal(
         sequence, mode, coeff, transform->primary_type, &secondary_signaled);
     if (status != AV2H_OK) return status;
