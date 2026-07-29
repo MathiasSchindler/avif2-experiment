@@ -1,8 +1,9 @@
 # Decoder status snapshot
 
-Snapshot from 2026-07-29 at base revision `7db4a95`, including the current
-uncommitted Chimp Q192 entropy, FSC, transform, prediction, and reconstruction
-profile work.
+Snapshot verified on 2026-07-29 at base revision `c06486d`, including the
+current uncommitted MRL index 2 and complete CfL prediction work. The
+production Windows decoder was rebuilt and run against all 21 artifacts, and
+the pinned artifact profile frontier suite passed.
 
 The public decoder completes 1 of the 21 `.obu` files in this directory.
 `emerald-192x96-qp208.obu` decodes to an I420 file that is byte-identical to
@@ -36,11 +37,21 @@ in 4x4 units.
 
 Summary:
 
-- the public Windows decoder completes 1/21 artifacts; all 20 unsupported
-  streams currently report `integer overflow` and produce no accepted output;
+- the public Windows decoder completes 1/21 artifacts; 19 unsupported streams
+  report `integer overflow`, Chimp Q192 reports `invalid argument`, and none
+  produces accepted output;
 - Emerald Q208 is the first complete artifact: all locked luma/chroma handoffs
   reach tile completion at tell 731, frame filtering completes, and CTest
   verifies the emitted I420 byte-for-byte against the AVM reference;
+- MRL index 2 is admitted across every directional mode, luma angle delta,
+  legal prediction geometry, multi-line state, and IBP state. Chinnathurai Q224
+  pins a single-line 16x32 predictor/output pair, while Schwaebisch Q208 pins a
+  multi-line 16x8 pair at tell 706;
+- CfL prediction supports derived alpha, plane-specific explicit alpha, and
+  MHCCP directions 0/1/2 across all 16 legal chroma coefficient geometries.
+  Downsample filters 0/1/2, both chroma planes, no-neighbor fallback, and
+  interior reference derivation are covered exhaustively; Emerald Q208,
+  Silene Q176, and Chinnathurai Q224 retain their pinned live evidence;
 - Chinnathurai Q224 matches AVM through `(32,54)` coefficient levels and signs
   at tell 599/range 33656, starts the following leaf at tell 600, and reaches
   its EOB-15 coefficient entry at tell 611/range 34904; the previously
@@ -58,10 +69,11 @@ Summary:
   12, and 13 and advances deep into superblock 14. The current frontier is
   tell 8008/range 39360 after 270 luma and 16 chroma leaves; the next exact
   tuple is `(56,38)` 4x8 Vertical/-3 with MRL index 3, multi-line MRL enabled,
-  IBP enabled, and an all-zero coefficient prefix. This work adds the required
-  FSC 8x4 path, exact Q3 coefficient CDF rows, pinned primary-transform rows,
-  IST combinations, directional and multi-line predictors, and inverse
-  transform admissions while retaining fail-closed tuple checks;
+  IBP enabled, and an all-zero coefficient prefix. The production decoder
+  fails closed there with `invalid argument`. This work adds the required FSC
+  8x4 path, exact Q3 coefficient CDF rows, pinned primary-transform rows, IST
+  combinations, directional and multi-line predictors, and inverse transform
+  admissions while retaining fail-closed tuple checks;
 - the Q64 first-block frontiers advance to tells 30 and 34 for Chimp and
   Pastell respectively;
 - Laarim Q96, Cuckoo Q160, Pastell Q160, and Louis Q224 retain their locked

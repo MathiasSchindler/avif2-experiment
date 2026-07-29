@@ -1467,7 +1467,7 @@ Av2hStatus av2h_luma_predict(
         if (((mode->angle_delta == -3 || mode->angle_delta == -2 ||
                     mode->angle_delta == -1 || mode->angle_delta == 2 ||
                     mode->angle_delta == 3) ||
-         mode->mrl_index == 1U) &&
+         (mode->mrl_index == 1U || mode->mrl_index == 2U)) &&
         mode->angle_delta >= -3 && mode->angle_delta <= 3 &&
         directional_base_angle(mode->mode) != 0 &&
         mode->mrl_index < AV2H_MRL_INDEX_SYMBOLS &&
@@ -5740,12 +5740,9 @@ Av2hStatus av2h_luma_reconstruct_to_plane(
 }
 
 /*
- * CFL_DERIVED_ALPHA support (AV2 implicit chroma-from-luma).  The scaling
- * factor is derived from same-superblock reconstructed luma and the
- * reconstructed chroma neighbours with no explicit alpha syntax, exactly as
+ * CfL scaling and downsampling for derived and explicit alpha prediction.
+ * The fixed-point derivation and all three 4:2:0 downsampling filters match
  * the pinned AVM reference (av2/common/cfl.c, warped_motion.h divisor LUT).
- * Only the 4:2:0 box downsampling filter (cfl_ds_filter_index == 0, the
- * Emerald Q208 sequence value) is implemented; other filters fail closed.
  */
 #define AV2H_CFL_ADD_BITS_ALPHA 5
 #define AV2H_CFL_NUM_REF_SAM 8
@@ -5878,11 +5875,13 @@ static uint16_t mhccp_luma_filter2_q3(
 static uint16_t cfl_luma_filter2_current_q3(
     const Av2hReconstructionPlane *luma_plane,
     uint16_t chroma_x,
-    uint16_t chroma_y) {
+    uint16_t chroma_y,
+    uint16_t block_x,
+    uint16_t block_y) {
     size_t center_x = (size_t)chroma_x * 2U;
     size_t center_y = (size_t)chroma_y * 2U;
-    size_t left_x = center_x % 64U == 0U ? center_x : center_x - 1U;
-    size_t top_y = center_y % 64U == 0U ? center_y : center_y - 1U;
+    size_t left_x = chroma_x == block_x ? center_x : center_x - 1U;
+    size_t top_y = chroma_y == block_y ? center_y : center_y - 1U;
     return (uint16_t)(
         luma_plane->data[center_y * luma_plane->stride + left_x] +
         4U * luma_plane->data[center_y * luma_plane->stride + center_x] +
@@ -5937,7 +5936,7 @@ static Av2hStatus cfl_derived_predict(
     int32_t sum_xy;
     int shift;
     if (luma_plane == 0 || luma_plane->data == 0 ||
-        (filter_index != 0U && filter_index != 2U) ||
+        filter_index > 2U ||
         width > 32U ||
         height > 32U || width == 0U || height == 0U) {
         return AV2H_UNSUPPORTED;
@@ -5958,13 +5957,32 @@ static Av2hStatus cfl_derived_predict(
     }
     /* Left neighbour luma (box downsampled) and chroma. */
     if (have_left) {
-        if (luma_x < 2U ||
-            !plane_region_reconstructed(luma_plane, (uint16_t)(luma_x - 2U),
-                                        luma_y, 2U, luma_height)) {
+        uint16_t reference_x = filter_index == 0U ?
+            (uint16_t)(luma_x - 2U) : (uint16_t)(luma_x - 3U);
+        uint16_t reference_width = filter_index == 0U ? 2U : 3U;
+        if (luma_x < (filter_index == 0U ? 2U : 3U) ||
+            !plane_region_reconstructed(luma_plane, reference_x, luma_y,
+                                        reference_width, luma_height)) {
             return AV2H_UNSUPPORTED;
         }
         for (row = 0U; row < height; ++row) {
-            if (filter_index == 2U) {
+            if (filter_index == 1U) {
+                size_t center_x = (size_t)luma_x - 2U;
+                size_t center_y = (size_t)luma_y + (size_t)row * 2U;
+                luma_left_ds[row] = (int32_t)(
+                    luma_plane->data[center_y * luma_plane->stride +
+                                     center_x - 1U] +
+                    2U * luma_plane->data[center_y * luma_plane->stride +
+                                          center_x] +
+                    luma_plane->data[center_y * luma_plane->stride +
+                                     center_x + 1U] +
+                    luma_plane->data[(center_y + 1U) *
+                                     luma_plane->stride + center_x - 1U] +
+                    2U * luma_plane->data[(center_y + 1U) *
+                                          luma_plane->stride + center_x] +
+                    luma_plane->data[(center_y + 1U) *
+                                     luma_plane->stride + center_x + 1U]);
+            } else if (filter_index == 2U) {
                 size_t center_x = (size_t)luma_x - 2U;
                 size_t center_y = (size_t)luma_y + (size_t)row * 2U;
                 size_t top_y = row == 0U ? center_y : center_y - 1U;
@@ -6005,16 +6023,39 @@ static Av2hStatus cfl_derived_predict(
             return AV2H_UNSUPPORTED;
         }
         for (column = 0U; column < width; ++column) {
-            if (filter_index == 2U) {
+            if (filter_index == 1U) {
                 size_t center_x = (size_t)luma_x + (size_t)column * 2U;
-                size_t center_y = (size_t)luma_y - 1U;
                 size_t left_x = column == 0U ? center_x : center_x - 1U;
+                size_t top_row = (size_t)luma_y - (size_t)top_offset;
+                size_t bottom_row = top_row + (size_t)bottom_offset;
+                luma_above_ds[column] = (int32_t)(
+                    plane_clamped_sample(luma_plane, left_x, top_row) +
+                    2U * plane_clamped_sample(
+                        luma_plane, center_x, top_row) +
+                    plane_clamped_sample(
+                        luma_plane, center_x + 1U, top_row) +
+                    plane_clamped_sample(luma_plane, left_x, bottom_row) +
+                    2U * plane_clamped_sample(
+                        luma_plane, center_x, bottom_row) +
+                    plane_clamped_sample(
+                        luma_plane, center_x + 1U, bottom_row));
+            } else if (filter_index == 2U) {
+                size_t center_x = (size_t)luma_x + (size_t)column * 2U;
+                size_t center_y =
+                    (size_t)luma_y - (size_t)top_offset;
+                size_t left_x = column == 0U ? center_x : center_x - 1U;
+                size_t top_y = is_top_sb_boundary ?
+                    center_y : center_y - 1U;
+                size_t bottom_y = center_y + (size_t)bottom_offset;
                 luma_above_ds[column] = (int32_t)(
                     luma_plane->data[center_y * luma_plane->stride + left_x] +
-                    6U * luma_plane->data[center_y * luma_plane->stride +
+                    4U * luma_plane->data[center_y * luma_plane->stride +
                                           center_x] +
                     luma_plane->data[center_y * luma_plane->stride +
-                                     center_x + 1U]);
+                                     center_x + 1U] +
+                    luma_plane->data[top_y * luma_plane->stride + center_x] +
+                    luma_plane->data[bottom_y * luma_plane->stride +
+                                     center_x]);
             } else {
                 size_t c0 = (size_t)luma_x + (size_t)column * 2U;
                 size_t top_row = (size_t)luma_y - (size_t)top_offset;
@@ -6125,10 +6166,28 @@ static Av2hStatus cfl_derived_predict(
     for (row = 0U; row < height; ++row) {
         for (column = 0U; column < width; ++column) {
             int32_t recon_q3;
-            if (filter_index == 2U) {
+            if (filter_index == 1U) {
+                size_t sample_x =
+                    (size_t)luma_x + (size_t)column * 2U;
+                size_t sample_y =
+                    (size_t)luma_y + (size_t)row * 2U;
+                size_t left_x = column == 0U ? sample_x : sample_x - 1U;
+                recon_q3 = (int32_t)(
+                    plane_clamped_sample(luma_plane, left_x, sample_y) +
+                    2U * plane_clamped_sample(
+                        luma_plane, sample_x, sample_y) +
+                    plane_clamped_sample(
+                        luma_plane, sample_x + 1U, sample_y) +
+                    plane_clamped_sample(
+                        luma_plane, left_x, sample_y + 1U) +
+                    2U * plane_clamped_sample(
+                        luma_plane, sample_x, sample_y + 1U) +
+                    plane_clamped_sample(
+                        luma_plane, sample_x + 1U, sample_y + 1U));
+            } else if (filter_index == 2U) {
                 recon_q3 = cfl_luma_filter2_current_q3(
                     luma_plane, (uint16_t)(block_x + column),
-                    (uint16_t)(block_y + row));
+                    (uint16_t)(block_y + row), block_x, block_y);
             } else {
                 size_t sample_x =
                     (size_t)luma_x + (size_t)column * 2U;
@@ -6337,6 +6396,8 @@ uint8_t av2h_debug_mhccp_count;
 uint8_t av2h_debug_luma_reconstruct_stage;
 uint16_t av2h_debug_luma_dimensions[4U];
 
+static int chroma_geometry_supported(uint16_t width, uint16_t height);
+
 static Av2hStatus mhccp_predict_direction01(
     const Av2hReconstructionPlane *luma_plane,
     const Av2hReconstructionPlane *chroma_plane,
@@ -6370,9 +6431,6 @@ static Av2hStatus mhccp_predict_direction01(
     have_top = (uint8_t)(block_y >= 2U);
     have_left = (uint8_t)(block_x >= 2U);
     if (filter_index != 2U || direction > 2U ||
-        (!have_top && !have_left) ||
-        (direction == 1U && !have_top) ||
-        (direction == 2U && !have_top && !have_left) ||
         width == 0U || height == 0U ||
         block_x >= chroma_plane->reference_width ||
         block_y >= chroma_plane->reference_height ||
@@ -6385,6 +6443,22 @@ static Av2hStatus mhccp_predict_direction01(
         width : (uint16_t)(chroma_plane->reference_width - block_x);
     prediction_height = height < chroma_plane->reference_height - block_y ?
         height : (uint16_t)(chroma_plane->reference_height - block_y);
+    if (!have_top && !have_left) {
+        if (!plane_region_reconstructed(
+                luma_plane, (uint16_t)(block_x * 2U),
+                (uint16_t)(block_y * 2U),
+                (uint16_t)(prediction_width * 2U),
+                (uint16_t)(prediction_height * 2U))) {
+            return AV2H_UNSUPPORTED;
+        }
+        for (row = 0U; row < prediction_height; ++row) {
+            for (column = 0U; column < prediction_width; ++column) {
+                predictor[(size_t)row * predictor_stride + column] = 128U;
+            }
+        }
+        return AV2H_OK;
+    }
+    if (direction == 1U && !have_top) return AV2H_UNSUPPORTED;
     top_count = have_top ? (uint16_t)(width * 2U - 2U) : 0U;
     left_count = have_left ? (uint16_t)(height - 1U) : 0U;
     top_start_x = (uint16_t)(have_left ? block_x - 1U :
@@ -6425,9 +6499,9 @@ static Av2hStatus mhccp_predict_direction01(
     }
     if (direction == 1U &&
         !plane_region_reconstructed(
-            luma_plane, (uint16_t)(block_x * 2U - 2U),
+            luma_plane, (uint16_t)(top_start_x * 2U),
             (uint16_t)(block_y * 2U - 4U),
-            (uint16_t)(top_count * 2U), 2U)) {
+            top_luma_width, 2U)) {
         return AV2H_UNSUPPORTED;
     }
     if (debug_index < 2U) {
@@ -6614,9 +6688,7 @@ static Av2hStatus mhccp_predict_observed(
     uint16_t prediction_height;
     uint16_t row;
     if (mode->mhccp_direction <= 2U &&
-        ((width == 32U && height == 32U) ||
-         (width == 32U && height == 16U) ||
-         (width == 8U && height == 32U)) &&
+        chroma_geometry_supported(width, height) &&
         luma_plane != 0 && luma_plane->data != 0 &&
         luma_plane->reconstructed != 0 &&
         luma_plane->stride >= luma_plane->width) {
@@ -6720,14 +6792,16 @@ Av2hStatus av2h_first_chroma_reconstruct(
 }
 
 static int chroma_geometry_supported(uint16_t width, uint16_t height) {
-    return (width == 4U && (height == 4U || height == 8U)) ||
+        return (width == 4U && (height == 4U || height == 8U ||
+                                                        height == 16U || height == 32U)) ||
            (width == 8U &&
                         (height == 4U || height == 8U || height == 16U ||
                          height == 32U)) ||
            (width == 16U &&
-            (height == 4U || height == 8U || height == 32U)) ||
-           (width == 32U && (height == 4U || height == 16U ||
-                             height == 32U));
+                        (height == 4U || height == 8U || height == 16U ||
+                         height == 32U)) ||
+                     (width == 32U && (height == 4U || height == 8U ||
+                                                         height == 16U || height == 32U));
 }
 
 Av2hStatus av2h_chroma_reconstruct_to_plane(
@@ -6869,8 +6943,7 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_ex(
         references.has_above_left = 1U;
     }
     if (mode->is_cfl) {
-        /* CFL_DERIVED_ALPHA: flat DC base (CfL bypasses IBP) augmented by
-         * the derived luma-AC contribution. */
+        /* CfL bypasses IBP and starts from a flat chroma DC base. */
         unsigned int sum = 0U;
         unsigned int count = 0U;
         uint8_t dc_value;

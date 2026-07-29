@@ -28,8 +28,8 @@
     },
     {
       "feature": "CfL",
-      "status": "partial",
-      "evidence": "Derived and explicit CfL paths have validated fixtures, but general artifact traversal remains incomplete."
+      "status": "supported",
+      "evidence": "Derived alpha, explicit plane-specific alpha, and all MHCCP directions are validated across every legal chroma coefficient geometry, all normative downsample filters, boundary states, live parsing, and exact artifact vectors."
     },
     {
       "feature": "Luma FSC",
@@ -130,6 +130,12 @@
       "evidence": "Validated across every directional mode, luma angle delta, legal transform geometry, multi-line state, and IBP state, with sample-exact live decoding and tile regression coverage."
     },
     {
+      "match": "exact",
+      "value": "MRL index 2",
+      "status": "supported",
+      "evidence": "Validated across every directional mode, luma angle delta, legal prediction geometry, multi-line state, and IBP state, with exact single-line and multi-line artifact predictor and reconstruction hashes."
+    },
+    {
       "match": "prefix",
       "value": "MRL index ",
       "status": "partial",
@@ -144,8 +150,8 @@
     {
       "match": "exact",
       "value": "CfL prediction",
-      "status": "partial",
-      "evidence": "Derived and explicit CfL paths are validated on selected fixtures; general traversal remains incomplete."
+      "status": "supported",
+      "evidence": "Validated for derived alpha, explicit plane-specific alpha, and MHCCP directions across every legal chroma coefficient geometry and filters 0/1/2, with exact Emerald, Silene, and Chinnathurai artifact evidence."
     },
     {
       "match": "prefix",

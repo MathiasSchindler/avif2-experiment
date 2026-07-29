@@ -1489,7 +1489,8 @@ static void test_luma_directional_feature_matrix(void) {
                     size_t sample_count = (size_t)width * height;
                     for (mrl_index = 0U; mrl_index < 4U; ++mrl_index) {
                         mode.mrl_index = (uint8_t)mrl_index;
-                        if (mrl_index != 1U && mode.angle_delta != -3 &&
+                        if (mrl_index != 1U && mrl_index != 2U &&
+                            mode.angle_delta != -3 &&
                             mode.angle_delta != -2 &&
                             mode.angle_delta != -1 &&
                             mode.angle_delta != 2 &&
@@ -1532,7 +1533,7 @@ static void test_luma_directional_feature_matrix(void) {
                                         references;
                                     Av2hLumaReferences secondary_references =
                                         references;
-                                    if (mrl_index == 1U) {
+                                    if (mrl_index == 1U || mrl_index == 2U) {
                                         boundary_references.secondary_above = 0;
                                         boundary_references.secondary_above_count =
                                             0U;
@@ -3399,6 +3400,337 @@ static void test_emerald_q208_chroma_cfl(void) {
     }
 }
 
+static void test_cfl_filter1_explicit_alpha(void) {
+    uint8_t luma_data[8U * 8U];
+    uint8_t luma_rec[2U * 2U];
+    uint8_t chroma_data[4U * 4U];
+    uint8_t chroma_rec[1U];
+    uint8_t pred_data[4U * 4U];
+    uint8_t pred_rec[1U];
+    Av2hReconstructionScratch scratch = { 0 };
+    Av2hPartitionNode leaf = { 0U, 0U, 0U };
+    Av2hFirstChromaMode mode = { 0 };
+    Av2hFirstCoeffPrefix prefix = { 0 };
+    Av2hFirstTransformType transform = { 0 };
+    Av2hFirstCoeffBlock block = { 0 };
+    Av2hReconstructionPlane luma = {
+        luma_data, 8U, 8U, 8U, 8U, 8U, luma_rec, 2U, sizeof(luma_rec)
+    };
+    Av2hReconstructionPlane chroma = {
+        chroma_data, 4U, 4U, 4U, 4U, 4U, chroma_rec, 1U,
+        sizeof(chroma_rec)
+    };
+    Av2hReconstructionPlane predictor = {
+        pred_data, 4U, 4U, 4U, 4U, 4U, pred_rec, 1U, sizeof(pred_rec)
+    };
+    size_t row;
+    size_t column;
+    for (row = 0U; row < 8U; ++row) {
+        for (column = 0U; column < 8U; ++column) {
+            luma_data[row * 8U + column] =
+                (uint8_t)(96U + row * 8U + column);
+        }
+    }
+    av2h_memory_fill(luma_rec, 1U, sizeof(luma_rec));
+    av2h_memory_fill(chroma_data, 0U, sizeof(chroma_data));
+    av2h_memory_fill(chroma_rec, 1U, sizeof(chroma_rec));
+    av2h_memory_fill(pred_data, 0U, sizeof(pred_data));
+    av2h_memory_fill(pred_rec, 1U, sizeof(pred_rec));
+    mode.is_cfl = 1U;
+    mode.cfl_kind = AV2H_CFL_EXPLICIT_ALPHA;
+    mode.cfl_downsample_filter_index = 1U;
+    mode.cfl_alpha_signs = 5U;
+    mode.cfl_alpha_idx = 0U;
+    prefix.tx_size = AV2H_TX_4X4;
+    prefix.all_zero = 1U;
+    transform.primary_type = AV2H_TX_DCT_DCT;
+    block.width = 4U;
+    block.height = 4U;
+    block.coefficient_count = 16U;
+    CHECK(av2h_chroma_reconstruct_to_plane_ex(
+              &leaf, &mode, &prefix, &transform, &block, &chroma, &luma,
+              1U, &predictor, &scratch) == AV2H_OK);
+    for (row = 0U; row < 4U; ++row) {
+        for (column = 0U; column < 4U; ++column) {
+            size_t luma_row = row * 2U;
+            size_t luma_column = column * 2U;
+            size_t left_column = luma_column == 0U ? 0U : luma_column - 1U;
+            int32_t recon_q3 =
+                luma_data[luma_row * 8U + left_column] +
+                2 * luma_data[luma_row * 8U + luma_column] +
+                luma_data[luma_row * 8U + luma_column + 1U] +
+                luma_data[(luma_row + 1U) * 8U + left_column] +
+                2 * luma_data[(luma_row + 1U) * 8U + luma_column] +
+                luma_data[(luma_row + 1U) * 8U + luma_column + 1U];
+            int32_t ac = recon_q3 - 1024;
+            int32_t scaled = ac < 0 ? -((-ac + 32) >> 6) :
+                (ac + 32) >> 6;
+            int32_t expected = 128 + scaled;
+            if (expected < 0) expected = 0;
+            if (expected > 255) expected = 255;
+            CHECK(pred_data[row * 4U + column] == (uint8_t)expected);
+            CHECK(chroma_data[row * 4U + column] == (uint8_t)expected);
+        }
+    }
+}
+
+static void test_cfl_explicit_geometry_filter_matrix(void) {
+    static const struct {
+        Av2hFirstTxSize tx;
+        uint16_t width;
+        uint16_t height;
+    } geometries[] = {
+        { AV2H_TX_4X4, 4U, 4U },
+        { AV2H_TX_4X8, 4U, 8U },
+        { AV2H_TX_4X16, 4U, 16U },
+        { AV2H_TX_4X32, 4U, 32U },
+        { AV2H_TX_8X4, 8U, 4U },
+        { AV2H_TX_8X8, 8U, 8U },
+        { AV2H_TX_8X16, 8U, 16U },
+        { AV2H_TX_8X32, 8U, 32U },
+        { AV2H_TX_16X4, 16U, 4U },
+        { AV2H_TX_16X8, 16U, 8U },
+        { AV2H_TX_16X16, 16U, 16U },
+        { AV2H_TX_16X32, 16U, 32U },
+        { AV2H_TX_32X4, 32U, 4U },
+        { AV2H_TX_32X8, 32U, 8U },
+        { AV2H_TX_32X16, 32U, 16U },
+        { AV2H_TX_32X32, 32U, 32U }
+    };
+    static uint8_t luma_data[80U * 80U];
+    static uint8_t luma_rec[20U * 20U];
+    static uint8_t chroma_data[40U * 40U];
+    static uint8_t chroma_rec[10U * 10U];
+    static uint8_t pred_data[40U * 40U];
+    static uint8_t pred_rec[10U * 10U];
+    static Av2hReconstructionScratch scratch;
+    Av2hPartitionNode leaf = { 2U, 2U, 0U };
+    Av2hReconstructionPlane luma = {
+        luma_data, 80U, 80U, 80U, 80U, 80U, luma_rec, 20U,
+        sizeof(luma_rec)
+    };
+    Av2hReconstructionPlane chroma = {
+        chroma_data, 40U, 40U, 40U, 40U, 40U, chroma_rec, 10U,
+        sizeof(chroma_rec)
+    };
+    Av2hReconstructionPlane predictor = {
+        pred_data, 40U, 40U, 40U, 40U, 40U, pred_rec, 10U,
+        sizeof(pred_rec)
+    };
+    size_t geometry_index;
+    size_t row;
+    size_t column;
+    uint8_t filter_index;
+    uint8_t plane_index;
+    for (row = 0U; row < 80U; ++row) {
+        for (column = 0U; column < 80U; ++column) {
+            luma_data[row * 80U + column] =
+                (uint8_t)(32U + (row * 7U + column * 11U) % 192U);
+        }
+    }
+    av2h_memory_fill(luma_rec, 1U, sizeof(luma_rec));
+    for (geometry_index = 0U;
+         geometry_index < sizeof(geometries) / sizeof(geometries[0]);
+         ++geometry_index) {
+        for (filter_index = 0U; filter_index < 3U; ++filter_index) {
+            for (plane_index = 1U; plane_index <= 2U; ++plane_index) {
+                Av2hFirstChromaMode mode = { 0 };
+                Av2hFirstCoeffPrefix prefix = { 0 };
+                Av2hFirstTransformType transform = { 0 };
+                Av2hFirstCoeffBlock block = { 0 };
+                uint16_t width = geometries[geometry_index].width;
+                uint16_t height = geometries[geometry_index].height;
+                int32_t alpha_q3 = plane_index == 1U ? 3 : 5;
+                av2h_memory_fill(chroma_data, 0U, sizeof(chroma_data));
+                av2h_memory_fill(chroma_rec, 0U, sizeof(chroma_rec));
+                av2h_memory_fill(pred_data, 0U, sizeof(pred_data));
+                av2h_memory_fill(pred_rec, 0U, sizeof(pred_rec));
+                mode.is_cfl = 1U;
+                mode.cfl_kind = AV2H_CFL_EXPLICIT_ALPHA;
+                mode.cfl_downsample_filter_index = filter_index;
+                mode.cfl_alpha_signs = 7U;
+                mode.cfl_alpha_idx = (uint8_t)((2U << 3U) | 4U);
+                prefix.tx_size = geometries[geometry_index].tx;
+                prefix.all_zero = 1U;
+                transform.primary_type = AV2H_TX_DCT_DCT;
+                block.width = width;
+                block.height = height;
+                block.coefficient_count = (uint32_t)width * height;
+                CHECK(av2h_chroma_reconstruct_to_plane_ex(
+                          &leaf, &mode, &prefix, &transform, &block, &chroma,
+                          &luma, plane_index, &predictor, &scratch) == AV2H_OK);
+                for (row = 0U; row < height; ++row) {
+                    for (column = 0U; column < width; ++column) {
+                        size_t sample_x = 8U + column * 2U;
+                        size_t sample_y = 8U + row * 2U;
+                        int32_t recon_q3;
+                        int32_t product;
+                        int32_t scaled;
+                        int32_t expected;
+                        if (filter_index == 1U) {
+                            size_t left_x = column == 0U ?
+                                sample_x : sample_x - 1U;
+                            recon_q3 =
+                                luma_data[sample_y * 80U + left_x] +
+                                2 * luma_data[sample_y * 80U + sample_x] +
+                                luma_data[sample_y * 80U + sample_x + 1U] +
+                                luma_data[(sample_y + 1U) * 80U + left_x] +
+                                2 * luma_data[(sample_y + 1U) * 80U +
+                                              sample_x] +
+                                luma_data[(sample_y + 1U) * 80U +
+                                          sample_x + 1U];
+                        } else if (filter_index == 2U) {
+                            size_t left_x = column == 0U ?
+                                sample_x : sample_x - 1U;
+                            size_t top_y = row == 0U ?
+                                sample_y : sample_y - 1U;
+                            recon_q3 =
+                                luma_data[sample_y * 80U + left_x] +
+                                4 * luma_data[sample_y * 80U + sample_x] +
+                                luma_data[sample_y * 80U + sample_x + 1U] +
+                                luma_data[top_y * 80U + sample_x] +
+                                luma_data[(sample_y + 1U) * 80U + sample_x];
+                        } else {
+                            recon_q3 = (luma_data[sample_y * 80U + sample_x] +
+                                luma_data[sample_y * 80U + sample_x + 1U] +
+                                luma_data[(sample_y + 1U) * 80U + sample_x] +
+                                luma_data[(sample_y + 1U) * 80U +
+                                          sample_x + 1U]) << 1;
+                        }
+                        product = alpha_q3 * (recon_q3 - 1024);
+                        scaled = product < 0 ?
+                            -((-product + 32) >> 6) : (product + 32) >> 6;
+                        expected = 128 + scaled;
+                        if (expected < 0) expected = 0;
+                        if (expected > 255) expected = 255;
+                        CHECK(pred_data[(row + 4U) * 40U + column + 4U] ==
+                              (uint8_t)expected);
+                        CHECK(chroma_data[(row + 4U) * 40U + column + 4U] ==
+                              (uint8_t)expected);
+                    }
+                }
+            }
+        }
+    }
+}
+
+static void test_mhccp_geometry_direction_matrix(void) {
+    static const struct {
+        Av2hFirstTxSize tx;
+        uint16_t width;
+        uint16_t height;
+    } geometries[] = {
+        { AV2H_TX_4X4, 4U, 4U },
+        { AV2H_TX_4X8, 4U, 8U },
+        { AV2H_TX_4X16, 4U, 16U },
+        { AV2H_TX_4X32, 4U, 32U },
+        { AV2H_TX_8X4, 8U, 4U },
+        { AV2H_TX_8X8, 8U, 8U },
+        { AV2H_TX_8X16, 8U, 16U },
+        { AV2H_TX_8X32, 8U, 32U },
+        { AV2H_TX_16X4, 16U, 4U },
+        { AV2H_TX_16X8, 16U, 8U },
+        { AV2H_TX_16X16, 16U, 16U },
+        { AV2H_TX_16X32, 16U, 32U },
+        { AV2H_TX_32X4, 32U, 4U },
+        { AV2H_TX_32X8, 32U, 8U },
+        { AV2H_TX_32X16, 32U, 16U },
+        { AV2H_TX_32X32, 32U, 32U }
+    };
+    static uint8_t luma_data[80U * 80U];
+    static uint8_t luma_rec[20U * 20U];
+    static uint8_t chroma_data[40U * 40U];
+    static uint8_t chroma_rec[10U * 10U];
+    static uint8_t pred_data[40U * 40U];
+    static uint8_t pred_rec[10U * 10U];
+    static Av2hReconstructionScratch scratch;
+    Av2hReconstructionPlane luma = {
+        luma_data, 80U, 80U, 80U, 80U, 80U, luma_rec, 20U,
+        sizeof(luma_rec)
+    };
+    Av2hReconstructionPlane chroma = {
+        chroma_data, 40U, 40U, 40U, 40U, 40U, chroma_rec, 10U,
+        sizeof(chroma_rec)
+    };
+    Av2hReconstructionPlane predictor = {
+        pred_data, 40U, 40U, 40U, 40U, 40U, pred_rec, 10U,
+        sizeof(pred_rec)
+    };
+    size_t geometry_index;
+    size_t row;
+    size_t column;
+    uint8_t direction;
+    uint8_t plane_index;
+    for (row = 0U; row < 80U; ++row) {
+        for (column = 0U; column < 80U; ++column) {
+            luma_data[row * 80U + column] =
+                (uint8_t)(24U + (row * 9U + column * 13U) % 208U);
+        }
+    }
+    av2h_memory_fill(luma_rec, 1U, sizeof(luma_rec));
+    for (geometry_index = 0U;
+         geometry_index < sizeof(geometries) / sizeof(geometries[0]);
+         ++geometry_index) {
+        for (direction = 0U; direction < 3U; ++direction) {
+            for (plane_index = 1U; plane_index <= 2U; ++plane_index) {
+                Av2hFirstChromaMode mode = { 0 };
+                Av2hFirstCoeffPrefix prefix = { 0 };
+                Av2hFirstTransformType transform = { 0 };
+                Av2hFirstCoeffBlock block = { 0 };
+                Av2hPartitionNode leaf = { 0U, 0U, 0U };
+                uint16_t width = geometries[geometry_index].width;
+                uint16_t height = geometries[geometry_index].height;
+                mode.is_cfl = 1U;
+                mode.cfl_kind = AV2H_CFL_MULTI_PARAM;
+                mode.cfl_downsample_filter_index = 2U;
+                mode.mhccp_direction = direction;
+                prefix.tx_size = geometries[geometry_index].tx;
+                prefix.all_zero = 1U;
+                transform.primary_type = AV2H_TX_DCT_DCT;
+                block.width = width;
+                block.height = height;
+                block.coefficient_count = (uint32_t)width * height;
+
+                av2h_memory_fill(chroma_data, 17U, sizeof(chroma_data));
+                av2h_memory_fill(chroma_rec, 0U, sizeof(chroma_rec));
+                av2h_memory_fill(pred_data, 0U, sizeof(pred_data));
+                av2h_memory_fill(pred_rec, 0U, sizeof(pred_rec));
+                CHECK(av2h_chroma_reconstruct_to_plane_ex(
+                          &leaf, &mode, &prefix, &transform, &block, &chroma,
+                          &luma, plane_index, &predictor, &scratch) == AV2H_OK);
+                for (row = 0U; row < height; ++row) {
+                    for (column = 0U; column < width; ++column) {
+                        CHECK(pred_data[row * 40U + column] == 128U);
+                        CHECK(chroma_data[row * 40U + column] == 128U);
+                    }
+                }
+
+                leaf.row = 2U;
+                leaf.column = 2U;
+                for (row = 0U; row < 40U; ++row) {
+                    for (column = 0U; column < 40U; ++column) {
+                        chroma_data[row * 40U + column] =
+                            (uint8_t)(48U +
+                                (row * 5U + column * 7U) % 160U);
+                    }
+                }
+                av2h_memory_fill(chroma_rec, 1U, sizeof(chroma_rec));
+                av2h_memory_fill(pred_data, 0U, sizeof(pred_data));
+                av2h_memory_fill(pred_rec, 0U, sizeof(pred_rec));
+                CHECK(av2h_chroma_reconstruct_to_plane_ex(
+                          &leaf, &mode, &prefix, &transform, &block, &chroma,
+                          &luma, plane_index, &predictor, &scratch) == AV2H_OK);
+                for (row = 0U; row < height; ++row) {
+                    for (column = 0U; column < width; ++column) {
+                        CHECK(pred_data[(row + 4U) * 40U + column + 4U] ==
+                              chroma_data[(row + 4U) * 40U + column + 4U]);
+                    }
+                }
+            }
+        }
+    }
+}
+
 static void test_emerald_chroma_plane_ex_checks(void) {
     static uint8_t luma_data[192U * 96U];
     static uint8_t luma_rec[(192U / 4U) * (96U / 4U)];
@@ -3636,6 +3968,9 @@ int main(void) {
     test_emerald_reconstruct_invalid_preserves_output();
     test_emerald_q208_chroma_leaves();
     test_emerald_q208_chroma_cfl();
+    test_cfl_filter1_explicit_alpha();
+    test_cfl_explicit_geometry_filter_matrix();
+    test_mhccp_geometry_direction_matrix();
     test_emerald_chroma_plane_ex_checks();
     test_emerald_chroma_dct_geometries();
     if (failures != 0) {

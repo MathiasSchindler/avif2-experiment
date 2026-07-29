@@ -2718,6 +2718,27 @@ static void check_first_luma(const ArtifactExpectation *expected,
                                     if (status != AV2H_OK) {
                                         break;
                                     }
+                                    if (leaf.node.row == 20U &&
+                                        leaf.node.column == 44U) {
+                                        CHECK(leaf.mode.mode ==
+                                              AV2H_INTRA_D135);
+                                        CHECK(leaf.mode.angle_delta == 0);
+                                        CHECK(leaf.mode.mrl_index == 2U);
+                                        CHECK(leaf.mode.multi_line_mrl == 0U);
+                                        CHECK(leaf.mode.enable_ibp == 1U);
+                                        CHECK(block.width == 16U);
+                                        CHECK(block.height == 32U);
+                                        CHECK(block_pixel_hash(
+                                                  scratch.predictor, 16U,
+                                                  16U, 32U) ==
+                                              UINT64_C(0xab660d5cd5fc8402));
+                                        CHECK(block_pixel_hash(
+                                                  plane.data +
+                                                      80U * plane.stride +
+                                                      176U,
+                                                  plane.stride, 16U, 32U) ==
+                                              UINT64_C(0xb6ccd57edeaadb30));
+                                    }
                                     if (leaf.node.row == 32U &&
                                         leaf.node.column == 48U) {
                                         CHECK(block_pixel_hash(
@@ -3543,6 +3564,25 @@ static void check_first_luma(const ArtifactExpectation *expected,
                         reconstruct_status = av2h_luma_reconstruct_to_plane(
                             &leaf.node, &leaf.mode, &leaf.prefix,
                             &leaf.transform, &block, &plane, &scratch);
+                        if (reconstruct_status == AV2H_OK &&
+                            leaf.node.row == 20U &&
+                            leaf.node.column == 12U) {
+                            CHECK(leaf.mode.mode == AV2H_INTRA_HORIZONTAL);
+                            CHECK(leaf.mode.angle_delta == -2);
+                            CHECK(leaf.mode.mrl_index == 2U);
+                            CHECK(leaf.mode.multi_line_mrl == 1U);
+                            CHECK(leaf.mode.enable_ibp == 1U);
+                            CHECK(block.width == 16U);
+                            CHECK(block.height == 8U);
+                            CHECK(av2h_range_tell(&decoder.range) == 706U);
+                            CHECK(block_pixel_hash(
+                                      scratch.predictor, 16U, 16U, 8U) ==
+                                  UINT64_C(0xc22f7318f04ca634));
+                            CHECK(block_pixel_hash(
+                                      plane.data + 80U * plane.stride + 48U,
+                                      plane.stride, 16U, 8U) ==
+                                  UINT64_C(0x359f03023bdb7ed8));
+                        }
                     }
                     fprintf(stderr,
                             "schwaebisch q208 continue-y status=%d reconstruct=%d stage=%u tell=%lu leaf=%u sb=%lu row=%u column=%u block=%u mode=%u/%u/%u/%u angle=%d neighbors=%u/%u:%u/%u fsc=%u/%u mrl=%u/%u ibp=%u intrabc=%u modebits=%lu/%lu/%lu/%lu/%lu/%lu/%lu cdefccso=%u/%u gdf=%u/%lu/%u/%u/%u ranges=%u/%u/%u/%u/%u prefix=%u/%u/%u/%u/%u/%u/%lu/%lu/%lu transform=%u/%u/%u/%u/%u coeff=%u/%u/%lu/%lu/%u/%lu diagnostic=%u/%u/%u partition=%u/%u/%u/%u split=%lu/%lu/%lu/%u/%u/%lu/%lu/%lu/%lld\n",

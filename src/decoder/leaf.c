@@ -343,11 +343,8 @@ Av2hStatus av2h_chroma_mode_read_with_delta_for_sdp(
     mode->before_mhccp_direction_bits = mode->after_cfl_bits;
     mode->after_mhccp_direction_bits = mode->after_cfl_bits;
     if (value != 0U) {
-        /* uv_mode == UV_CFL_PRED. Read the CfL index (CFL_TYPE_COUNT - 1 == 2
-         * symbols) since mhccp is not exercised by Emerald and CfL intra is
-         * enabled. cfl_idx == CFL_DERIVED_ALPHA (1) codes no explicit alpha or
-         * joint sign; cfl_idx == CFL_EXPLICIT (0) would code cfl_alpha_idx and
-         * the joint sign, which is not present in any traced leaf. */
+        /* uv_mode == UV_CFL_PRED. MHCCP selects its direction directly;
+         * otherwise cfl_idx selects derived or explicit alpha syntax. */
         mode->uses_cfl = 1U;
         mode->uv_mode = 13U;
         mode->mode_index = 13U;
