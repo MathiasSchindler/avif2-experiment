@@ -1,9 +1,9 @@
 # Decoder status snapshot
 
 Snapshot verified on 2026-07-29 at base revision `c06486d`, including the
-current uncommitted MRL index 2 and complete CfL prediction work. The
-production Windows decoder was rebuilt and run against all 21 artifacts, and
-the pinned artifact profile frontier suite passed.
+current uncommitted MRL index 2, complete CfL prediction, and multi-line MRL
+work. The production Windows decoder was rebuilt and run against all 21
+artifacts, and the pinned artifact profile frontier suite passed.
 
 The public decoder completes 1 of the 21 `.obu` files in this directory.
 `emerald-192x96-qp208.obu` decodes to an I420 file that is byte-identical to
@@ -14,7 +14,7 @@ in 4x4 units.
 | File | Current endpoint | Blocker |
 | --- | --- | --- |
 | `chalk-320x240-qp128.obu` | `(0,0)` 8x16, tell 32 | Unpinned Q128 8x16 coefficient-level profile after exact CDEF, CCSO, mode, EOB, and secondary-transform syntax |
-| `chimp-240x287-qp192.obu` | Superblock 14, 270 luma and 16 chroma leaves; next `(56,38)` 4x8 Vertical/-3, MRL-3 multi-line all-zero leaf at tell 8008/range 39360 | Q192 4x8 Vertical angle 81, MRL index 3 multi-line predictor/reconstruction profile |
+| `chimp-240x287-qp192.obu` | Superblock 14, 271 luma and 16 chroma leaves; `(56,38)` 4x8 Vertical/-3 MRL-3 multi-line predictor/output match exactly (`8cf672b166c4e9ab`); next `(56,39)` starts at tell 8033/range 39832 | Q192 4x8 transform/coefficient profile |
 | `chimp-93x111-qp064.obu` | `(0,0)` 8x8 frontier, tell 30 | Remaining Q64 8x8 luma/coefficient profile |
 | `chinnathurai-128x128-qp112.obu` | 32x64 EOB 22, implicit DCT_DCT, and secondary symbol 0 complete, tell 19 | Q112 32x64 coefficient-level profile |
 | `chinnathurai-333x333-qp224.obu` | Exact AVM entropy parity through `(32,58)` 16x64 coefficient entry: tell 611, range 34904, EOB 15; `(32,54)` EOB 2 levels/signs end at tell 599, range 33656 | Q224 16x64 EOB-15 coefficient-level profile |
@@ -47,6 +47,10 @@ Summary:
   legal prediction geometry, multi-line state, and IBP state. Chinnathurai Q224
   pins a single-line 16x32 predictor/output pair, while Schwaebisch Q208 pins a
   multi-line 16x8 pair at tell 706;
+- Multi-line MRL is admitted across every directional mode, luma angle delta,
+  nonzero MRL index, legal prediction geometry, and IBP state. The selected
+  reference line is blended with line 0 using AVM's rounded average, including
+  exact cardinal directions and the normative 4x4 exception;
 - CfL prediction supports derived alpha, plane-specific explicit alpha, and
   MHCCP directions 0/1/2 across all 16 legal chroma coefficient geometries.
   Downsample filters 0/1/2, both chroma planes, no-neighbor fallback, and
@@ -66,14 +70,15 @@ Summary:
   geometries, and clipping coefficient contexts at frame edges; its next gap
   is the `(64,48)` 32x8 D203/+3 MRL-3 reconstruction profile;
 - Chimp Q192 now matches the pinned AVM entropy path through superblocks 11,
-  12, and 13 and advances deep into superblock 14. The current frontier is
-  tell 8008/range 39360 after 270 luma and 16 chroma leaves; the next exact
-  tuple is `(56,38)` 4x8 Vertical/-3 with MRL index 3, multi-line MRL enabled,
-  IBP enabled, and an all-zero coefficient prefix. The production decoder
-  fails closed there with `invalid argument`. This work adds the required FSC
-  8x4 path, exact Q3 coefficient CDF rows, pinned primary-transform rows, IST
-  combinations, directional and multi-line predictors, and inverse transform
-  admissions while retaining fail-closed tuple checks;
+  12, and 13 and advances deep into superblock 14. Its `(56,38)` 4x8
+  Vertical/-3 leaf with MRL index 3, multi-line MRL, and IBP enabled has exact
+  predictor/output hashes `8cf672b166c4e9ab`/`8cf672b166c4e9ab`. The current
+  frontier is `(56,39)` at tell 8033/range 39832 after 271 luma and 16 chroma
+  leaves, where the production decoder fails closed with `invalid argument`.
+  This work adds the required FSC 8x4 path, exact Q3 coefficient CDF rows,
+  pinned primary-transform rows, IST combinations, directional and multi-line
+  predictors, and inverse transform admissions while retaining fail-closed
+  tuple checks;
 - the Q64 first-block frontiers advance to tells 30 and 34 for Chimp and
   Pastell respectively;
 - Laarim Q96, Cuckoo Q160, Pastell Q160, and Louis Q224 retain their locked

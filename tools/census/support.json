@@ -23,8 +23,8 @@
     },
     {
       "feature": "Multi-line MRL",
-      "status": "partial",
-      "evidence": "Multi-line syntax and selected predictors are implemented, with remaining tuple-specific reconstruction gaps."
+      "status": "supported",
+      "evidence": "The binary multi-line feature is validated across every directional mode, luma angle delta, nonzero MRL index, legal prediction geometry, and IBP state, with exact cardinal, synthetic, and live artifact coverage."
     },
     {
       "feature": "CfL",
@@ -140,6 +140,12 @@
       "value": "MRL index ",
       "status": "partial",
       "evidence": "MRL syntax and selected predictors are validated; higher-index reconstruction profiles remain incomplete."
+    },
+    {
+      "match": "exact",
+      "value": "Multi-line MRL 1",
+      "status": "supported",
+      "evidence": "Validated across every directional mode, luma angle delta, nonzero MRL index, legal prediction geometry, and IBP state, with AVM selected-line blending, exact cardinal handling, and pinned live predictor and reconstruction hashes."
     },
     {
       "match": "prefix",

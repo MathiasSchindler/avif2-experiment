@@ -1489,17 +1489,17 @@ static void test_luma_directional_feature_matrix(void) {
                     size_t sample_count = (size_t)width * height;
                     for (mrl_index = 0U; mrl_index < 4U; ++mrl_index) {
                         mode.mrl_index = (uint8_t)mrl_index;
-                        if (mrl_index != 1U && mrl_index != 2U &&
-                            mode.angle_delta != -3 &&
-                            mode.angle_delta != -2 &&
-                            mode.angle_delta != -1 &&
-                            mode.angle_delta != 2 &&
-                            mode.angle_delta != 3) {
-                            continue;
-                        }
                         for (multi_line_mrl = 0U; multi_line_mrl <= 1U;
                              ++multi_line_mrl) {
                             mode.multi_line_mrl = (uint8_t)multi_line_mrl;
+                            if (multi_line_mrl == 0U && mrl_index != 1U &&
+                                mrl_index != 2U && mode.angle_delta != -3 &&
+                                mode.angle_delta != -2 &&
+                                mode.angle_delta != -1 &&
+                                mode.angle_delta != 2 &&
+                                mode.angle_delta != 3) {
+                                continue;
+                            }
                             for (ibp = 0U; ibp <= 1U; ++ibp) {
                                 Av2hStatus expected =
                                     multi_line_mrl != 0U && mrl_index == 0U
@@ -1533,7 +1533,30 @@ static void test_luma_directional_feature_matrix(void) {
                                         references;
                                     Av2hLumaReferences secondary_references =
                                         references;
-                                    if (mrl_index == 1U || mrl_index == 2U) {
+                                    if (mrl_index == 3U &&
+                                        mode.angle_delta == 0 &&
+                                        !(width == 4U && height == 4U) &&
+                                        (mode.mode == AV2H_INTRA_VERTICAL ||
+                                         mode.mode == AV2H_INTRA_HORIZONTAL)) {
+                                        for (index = 0U; index < sample_count;
+                                             ++index) {
+                                            size_t row = index / width;
+                                            size_t column = index % width;
+                                            uint8_t primary =
+                                                mode.mode ==
+                                                        AV2H_INTRA_VERTICAL ?
+                                                    above[column] : left[row];
+                                            uint8_t secondary =
+                                                mode.mode ==
+                                                        AV2H_INTRA_VERTICAL ?
+                                                    secondary_above[column] :
+                                                    secondary_left[row];
+                                            CHECK(predictor[index] ==
+                                                  (uint8_t)((primary +
+                                                      secondary + 1U) >> 1U));
+                                        }
+                                    }
+                                    if (mrl_index != 0U) {
                                         boundary_references.secondary_above = 0;
                                         boundary_references.secondary_above_count =
                                             0U;
@@ -1561,6 +1584,11 @@ static void test_luma_directional_feature_matrix(void) {
                                               (width == 4U && height == 4U
                                                    ? AV2H_OK
                                                    : AV2H_INVALID_ARGUMENT));
+                                    }
+                                    if (mrl_index == 3U &&
+                                        (mode.angle_delta == 0 ||
+                                         mode.angle_delta == 1)) {
+                                        continue;
                                     }
                                     component_mode.multi_line_mrl = 0U;
                                     component_mode.enable_ibp = 0U;

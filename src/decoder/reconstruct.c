@@ -1007,9 +1007,34 @@ static Av2hStatus predict_directional_idif(
     } else if (mode->mrl_index == 2U) {
         --angle;
     }
-    if (angle <= 0 || angle == 90 || angle >= 270 ||
-        mode->multi_line_mrl != 0U) {
+    if (angle <= 0 || angle >= 270 || mode->multi_line_mrl != 0U) {
         return AV2H_UNSUPPORTED;
+    }
+    if (angle == 90 || angle == 180) {
+        const uint8_t *edge = angle == 90 ? references->above :
+            references->left;
+        size_t edge_count_available = angle == 90 ? references->above_count :
+            references->left_count;
+        uint8_t fallback = angle == 90 ?
+            (references->left != 0 && references->left_count != 0U ?
+                references->left[0] : 128U) :
+            (references->above != 0 && references->above_count != 0U ?
+                references->above[0] : 128U);
+        if ((edge == 0 || edge_count_available == 0U) && fallback == 128U &&
+            (references->above == 0 || references->above_count == 0U) &&
+            (references->left == 0 || references->left_count == 0U)) {
+            return AV2H_INVALID_ARGUMENT;
+        }
+        for (row = 0U; row < height; ++row) {
+            for (column = 0U; column < width; ++column) {
+                size_t edge_index = angle == 90 ? column : row;
+                predictor[(size_t)row * predictor_stride + column] =
+                    edge != 0 && edge_count_available != 0U ?
+                        edge[edge_index < edge_count_available ? edge_index :
+                             edge_count_available - 1U] : fallback;
+            }
+        }
+        return AV2H_OK;
     }
     missing_left_ibp =
         ((mode->mode == AV2H_INTRA_D203 && mode->angle_delta == 0 &&
@@ -1464,10 +1489,11 @@ Av2hStatus av2h_luma_predict(
         predictor_stride < width) {
         return AV2H_INVALID_ARGUMENT;
     }
-        if (((mode->angle_delta == -3 || mode->angle_delta == -2 ||
-                    mode->angle_delta == -1 || mode->angle_delta == 2 ||
-                    mode->angle_delta == 3) ||
-         (mode->mrl_index == 1U || mode->mrl_index == 2U)) &&
+    if (((mode->angle_delta == -3 || mode->angle_delta == -2 ||
+          mode->angle_delta == -1 || mode->angle_delta == 2 ||
+          mode->angle_delta == 3) ||
+         (mode->mrl_index == 1U || mode->mrl_index == 2U) ||
+         mode->multi_line_mrl == 1U) &&
         mode->angle_delta >= -3 && mode->angle_delta <= 3 &&
         directional_base_angle(mode->mode) != 0 &&
         mode->mrl_index < AV2H_MRL_INDEX_SYMBOLS &&

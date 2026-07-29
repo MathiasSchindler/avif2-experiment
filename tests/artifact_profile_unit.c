@@ -2228,6 +2228,35 @@ static void check_first_luma(const ArtifactExpectation *expected,
                                                 &leaf.transform, &block,
                                                 &chimp_probe_plane,
                                                 &chimp_probe_scratch);
+                                        if (reconstruct_luma == AV2H_OK &&
+                                            leaf.node.row == 56U &&
+                                            leaf.node.column == 38U) {
+                                            CHECK(leaf.mode.mode ==
+                                                  AV2H_INTRA_VERTICAL);
+                                            CHECK(leaf.mode.angle_delta == -3);
+                                            CHECK(leaf.mode.mrl_index == 3U);
+                                            CHECK(leaf.mode.multi_line_mrl ==
+                                                  1U);
+                                            CHECK(leaf.mode.enable_ibp == 1U);
+                                            CHECK(block.width == 4U);
+                                            CHECK(block.height == 8U);
+                                            CHECK(block_pixel_hash(
+                                                      chimp_probe_scratch.predictor,
+                                                      4U, 4U, 8U) ==
+                                                  UINT64_C(
+                                                      0x8cf672b166c4e9ab));
+                                            CHECK(block_pixel_hash(
+                                                      chimp_probe_plane.data +
+                                                          (size_t)leaf.node.row *
+                                                              4U *
+                                                              chimp_probe_plane.stride +
+                                                          (size_t)leaf.node.column *
+                                                              4U,
+                                                      chimp_probe_plane.stride,
+                                                      4U, 8U) ==
+                                                  UINT64_C(
+                                                      0x8cf672b166c4e9ab));
+                                        }
                                         if (reconstruct_luma != AV2H_OK) {
                                             status = reconstruct_luma;
                                             break;

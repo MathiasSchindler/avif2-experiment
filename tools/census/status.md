@@ -83,7 +83,7 @@ Support state comes from the reviewed `tools/census/support.json` manifest; it i
 | Luma directional angle | Partial | 21 | 100.0% | 6,878 | Directional prediction is validated on selected angles and geometries; artifact frontiers still include directional reconstruction profiles. |
 | Chroma directional angle | Partial | 19 | 90.5% | 2,790 | Chroma directional syntax is present, but full corpus geometry coverage has not been demonstrated. |
 | MRL | Partial | 20 | 95.2% | 3,022 | MRL syntax and selected predictors are validated; MRL-3 reconstruction remains a known artifact blocker. |
-| Multi-line MRL | Partial | 19 | 90.5% | 1,785 | Multi-line syntax and selected predictors are implemented, with remaining tuple-specific reconstruction gaps. |
+| Multi-line MRL | Supported | 19 | 90.5% | 1,785 | The binary multi-line feature is validated across every directional mode, luma angle delta, nonzero MRL index, legal prediction geometry, and IBP state, with exact cardinal, synthetic, and live artifact coverage. |
 | CfL | Supported | 17 | 81.0% | 3,804 | Derived alpha, explicit plane-specific alpha, and all MHCCP directions are validated across every legal chroma coefficient geometry, all normative downsample filters, boundary states, live parsing, and exact artifact vectors. |
 | Luma FSC | Partial | 16 | 76.2% | 1,471 | Selected FSC geometries reconstruct exactly; positive FSC is explicitly limited to admitted block sizes. |
 | Chroma FSC | Unknown | 0 | 0.0% | 0 | The census observes chroma FSC metadata, but decoder support has not yet been audited independently. |
@@ -112,7 +112,7 @@ $$
 | 8 | Luma angle delta -1 | Supported | 94.2 | 20 | 95.2% | 904 |
 | 9 | MRL index 2 | Supported | 94.0 | 20 | 95.2% | 830 |
 | 10 | Luma angle delta 1 | Partial | 93.8 | 20 | 95.2% | 728 |
-| 11 | Multi-line MRL 1 | Partial | 91.3 | 19 | 90.5% | 1,785 |
+| 11 | Multi-line MRL 1 | Supported | 91.3 | 19 | 90.5% | 1,785 |
 | 12 | Primary tx ADST_DCT | Partial | 90.8 | 19 | 90.5% | 1,204 |
 | 13 | MRL index 3 | Partial | 89.5 | 19 | 90.5% | 599 |
 | 14 | CfL prediction | Supported | 84.2 | 17 | 81.0% | 3,804 |
@@ -130,25 +130,25 @@ This is the demand ranking above with values classified as `supported` removed. 
 | Rank | Feature value | Status | Demand score | Files | Coverage | Occurrences |
 |---:|---|---|---:|---:|---:|---:|
 | 1 | Luma angle delta 1 | Partial | 93.8 | 20 | 95.2% | 728 |
-| 2 | Multi-line MRL 1 | Partial | 91.3 | 19 | 90.5% | 1,785 |
-| 3 | Primary tx ADST_DCT | Partial | 90.8 | 19 | 90.5% | 1,204 |
-| 4 | MRL index 3 | Partial | 89.5 | 19 | 90.5% | 599 |
-| 5 | Primary tx ADST_FLIPADST | Partial | 80.8 | 17 | 81.0% | 410 |
-| 6 | Chroma angle delta 2 | Partial | 80.4 | 17 | 81.0% | 359 |
-| 7 | Primary tx FLIPADST_ADST | Partial | 80.1 | 17 | 81.0% | 333 |
-| 8 | Luma FSC 1 | Partial | 79.7 | 16 | 76.2% | 1,471 |
-| 9 | Primary tx IDTX | Partial | 79.7 | 16 | 76.2% | 1,467 |
-| 10 | Chroma angle delta 1 | Partial | 72.3 | 15 | 71.4% | 312 |
-| 11 | Chroma angle delta -2 | Partial | 71.4 | 14 | 66.7% | 928 |
-| 12 | Intra block copy | Partial | 70.8 | 15 | 71.4% | 216 |
-| 13 | Chroma angle delta 3 | Partial | 68.1 | 14 | 66.7% | 284 |
-| 14 | Chroma angle delta -3 | Partial | 66.1 | 13 | 61.9% | 478 |
-| 15 | Chroma angle delta -1 | Partial | 61.9 | 12 | 57.1% | 429 |
-| 16 | Primary tx V_ADST | Partial | 56.6 | 12 | 57.1% | 119 |
-| 17 | Primary tx DCT_FLIPADST | Partial | 54.4 | 13 | 61.9% | 32 |
-| 18 | Primary tx V_DCT | Partial | 54.0 | 12 | 57.1% | 71 |
-| 19 | Primary tx H_ADST | Partial | 53.6 | 11 | 52.4% | 140 |
-| 20 | Primary tx FLIPADST_FLIPADST | Partial | 49.6 | 11 | 52.4% | 63 |
+| 2 | Primary tx ADST_DCT | Partial | 90.8 | 19 | 90.5% | 1,204 |
+| 3 | MRL index 3 | Partial | 89.5 | 19 | 90.5% | 599 |
+| 4 | Primary tx ADST_FLIPADST | Partial | 80.8 | 17 | 81.0% | 410 |
+| 5 | Chroma angle delta 2 | Partial | 80.4 | 17 | 81.0% | 359 |
+| 6 | Primary tx FLIPADST_ADST | Partial | 80.1 | 17 | 81.0% | 333 |
+| 7 | Luma FSC 1 | Partial | 79.7 | 16 | 76.2% | 1,471 |
+| 8 | Primary tx IDTX | Partial | 79.7 | 16 | 76.2% | 1,467 |
+| 9 | Chroma angle delta 1 | Partial | 72.3 | 15 | 71.4% | 312 |
+| 10 | Chroma angle delta -2 | Partial | 71.4 | 14 | 66.7% | 928 |
+| 11 | Intra block copy | Partial | 70.8 | 15 | 71.4% | 216 |
+| 12 | Chroma angle delta 3 | Partial | 68.1 | 14 | 66.7% | 284 |
+| 13 | Chroma angle delta -3 | Partial | 66.1 | 13 | 61.9% | 478 |
+| 14 | Chroma angle delta -1 | Partial | 61.9 | 12 | 57.1% | 429 |
+| 15 | Primary tx V_ADST | Partial | 56.6 | 12 | 57.1% | 119 |
+| 16 | Primary tx DCT_FLIPADST | Partial | 54.4 | 13 | 61.9% | 32 |
+| 17 | Primary tx V_DCT | Partial | 54.0 | 12 | 57.1% | 71 |
+| 18 | Primary tx H_ADST | Partial | 53.6 | 11 | 52.4% | 140 |
+| 19 | Primary tx FLIPADST_FLIPADST | Partial | 49.6 | 11 | 52.4% | 63 |
+| 20 | Primary tx H_DCT | Partial | 47.3 | 10 | 47.6% | 85 |
 
 ## Compact regression set
 
