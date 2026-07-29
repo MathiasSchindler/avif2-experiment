@@ -33,8 +33,8 @@
     },
     {
       "feature": "Luma FSC",
-      "status": "partial",
-      "evidence": "Selected FSC geometries reconstruct exactly; positive FSC is explicitly limited to admitted block sizes."
+      "status": "supported",
+      "evidence": "Validated across all five legal luma geometries and all four coefficient Q contexts, with complete normative BOB, base, range, and sign CDF coverage, synthetic coefficient decoding, live parsing, and exact IDTX reconstruction."
     },
     {
       "feature": "Chroma FSC",
@@ -74,6 +74,12 @@
       "value": "Primary tx DCT_ADST",
       "status": "supported",
       "evidence": "Validated across every intra mode and legal transform geometry with normative symbol mapping, pinned AVM reconstruction hashes, live parsing, and artifact regression coverage."
+    },
+    {
+      "match": "exact",
+      "value": "Primary tx IDTX",
+      "status": "supported",
+      "evidence": "Validated across every intra mode and all six signaled 32-long geometries, all five FSC geometries, and IntraBC 4x4 with normative identity scaling, shifts, clipping, live parsing, and pinned tile reconstruction hashes."
     },
     {
       "match": "exact",
@@ -162,8 +168,8 @@
     {
       "match": "prefix",
       "value": "Luma FSC ",
-      "status": "partial",
-      "evidence": "Selected FSC geometries are validated; positive FSC remains block-size gated."
+      "status": "supported",
+      "evidence": "Luma FSC 1 is validated across all five legal geometries and all four coefficient Q contexts, including every normative BOB, base, range, and sign CDF row and exact IDTX reconstruction."
     },
     {
       "match": "prefix",

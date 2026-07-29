@@ -162,27 +162,38 @@ static void test_arguments(void) {
 
 static void test_fsc_single_coefficient_uses_idtx(void) {
     static const unsigned char bytes[] = { 0U, 0U, 0U, 0U };
+    static const Av2hFirstTxSize fsc_sizes[] = {
+        AV2H_TX_4X4, AV2H_TX_4X8, AV2H_TX_8X4,
+        AV2H_TX_8X16, AV2H_TX_16X4
+    };
     Av2hSpan span = { bytes, sizeof(bytes) };
-    Av2hRangeDecoder decoder;
     Av2hFirstTransformCdfs cdfs;
     Av2hSequenceState sequence = { 0 };
     Av2hFrameState frame = { 0 };
     Av2hFirstLeafMode mode = { 0 };
     Av2hFirstCoeffPrefix prefix = { 0 };
-    Av2hFirstTransformType transform;
+    size_t index;
 
     frame.base_q_index = 128U;
     mode.fsc_mode = 1U;
-    prefix.tx_size = AV2H_TX_16X4;
     prefix.eob = 1U;
-    CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
     CHECK(av2h_first_transform_cdfs_init(&cdfs) == AV2H_OK);
-    CHECK(av2h_first_transform_type_read(
-              &decoder, &cdfs, &sequence, &frame, &mode, &prefix,
-              &transform) == AV2H_OK);
-    CHECK(transform.primary_type == AV2H_TX_IDTX);
-    CHECK(transform.primary_signaled == 0U);
-    CHECK(transform.secondary_signaled == 0U);
+    for (index = 0U; index < sizeof(fsc_sizes) / sizeof(fsc_sizes[0]);
+         ++index) {
+        Av2hRangeDecoder decoder;
+        Av2hFirstTransformType transform;
+        prefix.tx_size = fsc_sizes[index];
+        CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
+        CHECK(av2h_first_transform_type_read(
+                  &decoder, &cdfs, &sequence, &frame, &mode, &prefix,
+                  &transform) == AV2H_OK);
+        CHECK(transform.primary_type == AV2H_TX_IDTX);
+        CHECK(transform.primary_signaled == 0U);
+        CHECK(transform.secondary_signaled == 0U);
+        CHECK(transform.after_primary_bits == transform.before_primary_bits);
+        CHECK(transform.after_secondary_bits ==
+              transform.before_primary_bits);
+    }
 }
 
 static void check_primary_map(Av2hFirstTxSize tx_size,
@@ -274,6 +285,25 @@ static void test_dct_adst_primary_mappings(void) {
           AV2H_UNSUPPORTED);
 }
 
+static void test_idtx_primary_mappings(void) {
+    static const Av2hFirstTxSize idtx_sizes[] = {
+        AV2H_TX_4X32, AV2H_TX_32X4, AV2H_TX_8X32,
+        AV2H_TX_32X8, AV2H_TX_16X32, AV2H_TX_32X16
+    };
+    size_t size_index;
+    size_t mode_index;
+    for (size_index = 0U;
+         size_index < sizeof(idtx_sizes) / sizeof(idtx_sizes[0]);
+         ++size_index) {
+        for (mode_index = AV2H_INTRA_DC;
+             mode_index <= AV2H_INTRA_PAETH; ++mode_index) {
+            check_primary_map(
+                idtx_sizes[size_index],
+                (Av2hFirstLeafIntraMode)mode_index, 0U, 3U, AV2H_TX_IDTX);
+        }
+    }
+}
+
 static void check_secondary_signal(Av2hFirstTxSize tx_size,
                                    Av2hFirstLeafIntraMode mode_value,
                                    uint16_t eob,
@@ -336,6 +366,7 @@ int main(void) {
     test_fsc_single_coefficient_uses_idtx();
     test_emerald_primary_mappings();
     test_dct_adst_primary_mappings();
+    test_idtx_primary_mappings();
     test_emerald_secondary_signaling();
     test_arguments();
     if (failures != 0) {

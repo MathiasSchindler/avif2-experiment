@@ -2,8 +2,9 @@
 
 Snapshot verified on 2026-07-29 at base revision `c06486d`, including the
 current uncommitted MRL index 2, complete CfL prediction, and multi-line MRL
-work. The production Windows decoder was rebuilt and run against all 21
-artifacts, and the pinned artifact profile frontier suite passed.
+work, plus complete luma FSC and primary IDTX reconstruction. The production
+Windows decoder was rebuilt and run against all 21 artifacts, and the pinned
+artifact profile frontier suite passed.
 
 The public decoder completes 1 of the 21 `.obu` files in this directory.
 `emerald-192x96-qp208.obu` decodes to an I420 file that is byte-identical to
@@ -51,6 +52,16 @@ Summary:
   nonzero MRL index, legal prediction geometry, and IBP state. The selected
   reference line is blended with line 0 using AVM's rounded average, including
   exact cardinal directions and the normative 4x4 exception;
+- Primary IDTX is admitted across all six signaled 32-long transform
+  geometries for every intra mode, all five FSC geometries, and IntraBC 4x4.
+  AVM identity scales, inverse shifts, rectangular scaling, signed rounding,
+  and clipping are checked sample-by-sample; the ordinary tile fixture retains
+  exact parsing and reconstruction hashes for three live IDTX leaves;
+- Luma FSC is admitted across all five legal geometries and all four
+  coefficient Q contexts. Complete normative BOB, base, range, and sign CDF
+  banks are checked row-by-row through pinned hashes, and a 20-case synthetic
+  matrix verifies coefficient decoding and dequantization alongside the live
+  ordinary tile fixture;
 - CfL prediction supports derived alpha, plane-specific explicit alpha, and
   MHCCP directions 0/1/2 across all 16 legal chroma coefficient geometries.
   Downsample filters 0/1/2, both chroma planes, no-neighbor fallback, and

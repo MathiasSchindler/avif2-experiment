@@ -908,6 +908,141 @@ static void test_tx4x4_intrabc_idtx_reconstruction(void) {
     }
 }
 
+static int32_t idtx_test_round_shift(int64_t value, uint8_t shift) {
+    int64_t adjusted = value + ((int64_t)1 << (shift - 1U));
+    if (adjusted >= 0) return (int32_t)(adjusted >> shift);
+    return (int32_t)-(((-adjusted) + (((int64_t)1 << shift) - 1)) >> shift);
+}
+
+static int32_t idtx_test_clamp(int32_t value, int32_t minimum,
+                               int32_t maximum) {
+    return value < minimum ? minimum : value > maximum ? maximum : value;
+}
+
+static int32_t idtx_test_scale(uint16_t size) {
+    return size == 4U ? 128 : size == 8U ? 181 :
+        size == 16U ? 256 : 362;
+}
+
+static int32_t idtx_test_residual(int32_t coefficient,
+                                  uint16_t width, uint16_t height,
+                                  uint8_t row_shift, uint8_t column_shift,
+                                  uint8_t rectangular) {
+    int32_t scaled = rectangular ? idtx_test_round_shift(
+        (int64_t)coefficient * 2896, 12U) : coefficient;
+    int32_t row = idtx_test_clamp(idtx_test_round_shift(
+        (int64_t)scaled * idtx_test_scale(width), row_shift),
+        -32768, 32767);
+    return idtx_test_clamp(idtx_test_round_shift(
+        (int64_t)row * idtx_test_scale(height), column_shift), -256, 255);
+}
+
+static void check_idtx_reconstruction(Av2hFirstTxSize tx_size,
+                                       uint16_t width, uint16_t height,
+                                       uint8_t row_shift,
+                                       uint8_t column_shift,
+                                       uint8_t rectangular,
+                                       Av2hFirstLeafIntraMode intra_mode,
+                                       uint8_t fsc_mode,
+                                       uint8_t use_intrabc) {
+    static Av2hReconstructionScratch scratch;
+    static Av2hFirstReconstruction reconstruction;
+    static Av2hFirstCoeffBlock block;
+    static uint8_t predictor[AV2H_RECON_SAMPLE_CAPACITY];
+    Av2hFirstLeafMode mode = { 0 };
+    Av2hFirstCoeffPrefix prefix = { 0 };
+    Av2hFirstTransformType transform = { 0 };
+    size_t count = (size_t)width * height;
+    size_t index;
+    av2h_memory_fill(&block, 0U, sizeof(block));
+    mode.mode = intra_mode;
+    mode.fsc_mode = fsc_mode;
+    mode.use_intrabc = use_intrabc;
+    prefix.tx_size = tx_size;
+    prefix.eob = 2U;
+    transform.primary_type = AV2H_TX_IDTX;
+    block.width = width;
+    block.height = height;
+    block.coefficient_count = (uint16_t)count;
+    block.nonzero_count = 2U;
+    block.dequantized[0] = 784;
+    block.dequantized[count - 1U] = -1176;
+    for (index = 0U; index < count; ++index) {
+        predictor[index] = (uint8_t)(40U + index % 151U);
+    }
+    CHECK(av2h_luma_reconstruct(
+              &mode, &prefix, &transform, &block, predictor, width,
+              &scratch, &reconstruction) == AV2H_OK);
+    CHECK(reconstruction.width == width);
+    CHECK(reconstruction.height == height);
+    for (index = 0U; index < count; ++index) {
+        int32_t coefficient = index == 0U ? 784 :
+            index + 1U == count ? -1176 : 0;
+        int32_t residual = idtx_test_residual(
+            coefficient, width, height, row_shift, column_shift,
+            rectangular);
+        int32_t pixel = predictor[index] + residual;
+        CHECK(reconstruction.residual[index] == residual);
+        CHECK(reconstruction.pixels[index] ==
+              (uint8_t)idtx_test_clamp(pixel, 0, 255));
+    }
+}
+
+static void test_primary_idtx_reconstruction_matrix(void) {
+    static const struct {
+        Av2hFirstTxSize tx_size;
+        uint16_t width;
+        uint16_t height;
+        uint8_t row_shift;
+        uint8_t column_shift;
+        uint8_t rectangular;
+    } signaled[] = {
+        { AV2H_TX_4X32, 4U, 32U, 7U, 11U, 1U },
+        { AV2H_TX_32X4, 32U, 4U, 7U, 11U, 1U },
+        { AV2H_TX_8X32, 8U, 32U, 6U, 13U, 0U },
+        { AV2H_TX_32X8, 32U, 8U, 6U, 13U, 0U },
+        { AV2H_TX_16X32, 16U, 32U, 6U, 12U, 1U },
+        { AV2H_TX_32X16, 32U, 16U, 6U, 12U, 1U }
+    };
+    static const struct {
+        Av2hFirstTxSize tx_size;
+        uint16_t width;
+        uint16_t height;
+        uint8_t row_shift;
+        uint8_t column_shift;
+        uint8_t rectangular;
+    } fsc[] = {
+        { AV2H_TX_4X4, 4U, 4U, 7U, 10U, 0U },
+        { AV2H_TX_4X8, 4U, 8U, 7U, 10U, 1U },
+        { AV2H_TX_8X4, 8U, 4U, 7U, 10U, 1U },
+        { AV2H_TX_8X16, 8U, 16U, 7U, 11U, 1U },
+        { AV2H_TX_16X4, 16U, 4U, 6U, 12U, 0U }
+    };
+    Av2hFirstLeafIntraMode mode;
+    size_t geometry;
+    for (mode = AV2H_INTRA_DC; mode <= AV2H_INTRA_PAETH;
+         mode = (Av2hFirstLeafIntraMode)(mode + 1)) {
+        for (geometry = 0U;
+             geometry < sizeof(signaled) / sizeof(signaled[0]); ++geometry) {
+            check_idtx_reconstruction(
+                signaled[geometry].tx_size, signaled[geometry].width,
+                signaled[geometry].height, signaled[geometry].row_shift,
+                signaled[geometry].column_shift,
+                signaled[geometry].rectangular, mode, 0U, 0U);
+        }
+        for (geometry = 0U;
+             geometry < sizeof(fsc) / sizeof(fsc[0]); ++geometry) {
+            check_idtx_reconstruction(
+                fsc[geometry].tx_size, fsc[geometry].width,
+                fsc[geometry].height, fsc[geometry].row_shift,
+                fsc[geometry].column_shift, fsc[geometry].rectangular,
+                mode, 1U, 0U);
+        }
+    }
+    check_idtx_reconstruction(
+        AV2H_TX_4X4, 4U, 4U, 7U, 10U, 0U, AV2H_INTRA_DC, 0U, 1U);
+}
+
 static void test_tx4x4_d203_fsc_reconstruction(void) {
     static const uint8_t left[4U] = { 251U, 251U, 6U, 6U };
     static const uint8_t predictor[16U] = {
@@ -3975,6 +4110,7 @@ int main(void) {
     test_tx16x4_dct_reconstruction();
     test_tx16x4_fsc_reconstruction();
     test_tx4x4_intrabc_idtx_reconstruction();
+    test_primary_idtx_reconstruction_matrix();
     test_tx4x4_d203_fsc_reconstruction();
     test_tx8x4_d203_reconstruction();
     test_tx8x8_d203_mrl_reconstruction();

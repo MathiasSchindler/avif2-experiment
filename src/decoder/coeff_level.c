@@ -35,6 +35,56 @@ typedef struct {
     uint8_t parameter;
 } Av2hBrSpec;
 
+typedef struct {
+    uint16_t threshold[3U];
+    uint8_t parameter;
+} Av2hFscCdfSpec;
+
+#include "fsc_cdf_data.inc"
+
+static Av2hStatus initialize_fsc_cdfs(
+    Av2hFirstCoeffLevelCdfs *cdfs, uint8_t q_context) {
+    size_t tx_context;
+    size_t context;
+    Av2hStatus status;
+    if (q_context >= 4U) return AV2H_INVALID_DATA;
+    for (tx_context = 0U; tx_context < 3U; ++tx_context) {
+        size_t bank = (size_t)q_context * 3U + tx_context;
+        for (context = 0U; context < 3U; ++context) {
+            const Av2hFscCdfSpec *spec =
+                &fsc_bob_specs[bank * 3U + context];
+            status = av2h_cdf_init(
+                cdfs->fsc_bob_all[tx_context][context], 7U,
+                spec->threshold, 3U, spec->parameter, 0U);
+            if (status != AV2H_OK) return status;
+        }
+        for (context = 0U; context < 7U; ++context) {
+            const Av2hFscCdfSpec *base_spec =
+                &fsc_base_specs[bank * 7U + context];
+            const Av2hFscCdfSpec *br_spec =
+                &fsc_br_specs[bank * 7U + context];
+            status = av2h_cdf_init(
+                cdfs->fsc_base_all[tx_context][context], 8U,
+                base_spec->threshold, 4U, base_spec->parameter, 0U);
+            if (status != AV2H_OK) return status;
+            status = av2h_cdf_init(
+                cdfs->fsc_br_all[tx_context][context], 8U,
+                br_spec->threshold, 4U, br_spec->parameter, 0U);
+            if (status != AV2H_OK) return status;
+        }
+        for (context = 0U; context < 9U; ++context) {
+            const Av2hFscCdfSpec *spec =
+                &fsc_sign_specs[bank * 9U + context];
+            status = av2h_cdf_init(
+                cdfs->fsc_sign_all[tx_context][context],
+                AV2H_BINARY_CDF_SIZE, spec->threshold, 2U,
+                spec->parameter, 0U);
+            if (status != AV2H_OK) return status;
+        }
+    }
+    return AV2H_OK;
+}
+
 static const Av2hCoeffKey eob_base_keys[] = {
     { 0U, 3U }, { 1U, 3U }, { 3U, 1U }, { 1U, 2U }, { 2U, 3U },
     { 2U, 2U }, { 2U, 1U }
@@ -89,10 +139,6 @@ static const uint8_t br_keys[] = { 0U, 1U, 2U, 3U, 4U, 5U, 6U };
 static const uint8_t br_lf_keys[] = {
     0U, 1U, 2U, 4U, 5U, 6U, 7U, 8U, 9U, 10U, 11U, 13U
 };
-static const uint8_t fsc_base_keys[] = { 0U, 1U, 2U, 3U, 4U, 5U, 6U };
-static const uint8_t fsc_bob_keys[] = { 0U, 1U, 2U };
-static const uint8_t fsc_br_keys[] = { 0U, 1U, 5U };
-static const uint8_t fsc_sign_keys[] = { 0U, 1U, 2U, 3U, 4U };
 
 static uint16_t *find_key(uint16_t *rows, size_t row_words,
                           const Av2hCoeffKey *keys, size_t count,
@@ -277,98 +323,6 @@ Av2hStatus av2h_first_coeff_level_cdfs_init(Av2hFirstCoeffLevelCdfs *cdfs) {
         22871U, 30729U, 31682U, 32000U
     };
     static const uint16_t dc_sign[3U] = { 16540U, 14804U, 18312U };
-    static const uint16_t fsc_bob[][2U] = {
-        { 16673U, 23002U }, { 19890U, 25933U }, { 18355U, 25595U }
-    };
-    static const uint8_t fsc_bob_parameter[] = { 75U, 90U, 75U };
-    static const uint16_t fsc_base[][3U] = {
-        { 28035U, 30893U, 31756U },
-        { 18097U, 26957U, 29476U },
-        { 15075U, 22557U, 26893U },
-        { 11632U, 16975U, 20254U },
-        { 5659U, 12007U, 16445U },
-        { 3855U, 7854U, 12411U },
-        { 2360U, 4192U, 5868U }
-    };
-    static const uint8_t fsc_base_parameter[] = {
-        78U, 75U, 0U, 0U, 0U, 1U, 0U
-    };
-    static const uint16_t fsc_br[][3U] = {
-        { 11825U, 18784U, 22974U },
-        { 10844U, 17662U, 22290U },
-        { 5350U, 9801U, 14462U }
-    };
-    static const uint8_t fsc_br_parameter[] = { 0U, 0U, 5U };
-    static const uint16_t fsc_sign[] = {
-        17010U, 25832U, 7718U, 29537U, 8925U
-    };
-    static const uint8_t fsc_sign_parameter[] = { 0U, 0U, 3U, 1U, 31U };
-    static const uint16_t fsc_bob_txs1_ctx2[] = { 22018U, 27887U };
-    static const uint16_t fsc_base_txs1_ctx0[] = {
-        31009U, 32323U, 32574U
-    };
-    static const uint16_t fsc_base_txs1_ctx1[] = {
-        21342U, 29678U, 31451U
-    };
-    static const uint16_t fsc_base_txs1_ctx2[] = {
-        16940U, 25075U, 29268U
-    };
-    static const uint16_t fsc_base_txs1_ctx3[] = {
-        12426U, 17800U, 21533U
-    };
-    static const uint16_t fsc_base_txs1_ctx6[] = {
-        2473U, 4631U, 6923U
-    };
-    static const uint16_t fsc_br_txs1_ctx0[] = {
-        13939U, 20762U, 24451U
-    };
-    static const uint16_t fsc_br_txs1_ctx2[] = {
-        32202U, 32681U, 32724U
-    };
-    static const uint16_t fsc_br_txs1_ctx3[] = {
-        16107U, 22725U, 26296U
-    };
-    static const uint16_t fsc_br_txs1_ctx5[] = {
-        5645U, 10671U, 15100U
-    };
-    static const uint16_t fsc_br_txs1_ctx6[] = {
-        4335U, 8679U, 12492U
-    };
-    static const uint16_t fsc_bob_txs2[][2U] = {
-        { 22395U, 27670U }, { 24275U, 28656U }, { 22595U, 28026U }
-    };
-    static const uint8_t fsc_bob_txs2_parameter[] = { 31U, 31U, 1U };
-    static const uint16_t fsc_base_txs2[][3U] = {
-        { 32079U, 32614U, 32706U },
-        { 22634U, 30655U, 31942U },
-        { 16704U, 25079U, 29917U },
-        { 12795U, 17039U, 20729U },
-        { 5362U, 11212U, 18340U },
-        { 3513U, 6916U, 12694U },
-        { 1883U, 3540U, 5856U }
-    };
-    static const uint8_t fsc_base_txs2_parameter[] = {
-        75U, 0U, 31U, 6U, 37U, 31U, 6U
-    };
-    static const uint16_t fsc_br_txs2[][3U] = {
-        { 14250U, 21163U, 24941U },
-        { 17217U, 23934U, 27433U },
-        { 17090U, 23993U, 27574U },
-        { 19725U, 25425U, 28697U },
-        { 12700U, 23765U, 28251U },
-        { 6542U, 11855U, 17108U },
-        { 5101U, 10468U, 15443U }
-    };
-    static const uint8_t fsc_br_txs2_parameter[] = {
-        37U, 32U, 37U, 37U, 37U, 37U, 37U
-    };
-    static const uint16_t fsc_sign_txs2[] = {
-        19157U, 30551U, 2788U, 30752U, 701U,
-        32565U, 359U, 32515U, 223U
-    };
-    static const uint8_t fsc_sign_txs2_parameter[] = {
-        31U, 31U, 31U, 37U, 26U, 15U, 8U, 87U, 37U
-    };
     static const uint16_t uv_eob_ctx1[] = { 31595U, 32587U };
     static const uint16_t uv_eob_ctx3[] = { 32287U, 32698U };
     static const uint16_t uv_eob_lf_ctx0[] = {
@@ -496,107 +450,6 @@ Av2hStatus av2h_first_coeff_level_cdfs_init(Av2hFirstCoeffLevelCdfs *cdfs) {
                                &dc_sign[index], 2U, 93U, 0U);
         if (status != AV2H_OK) return status;
     }
-    for (index = 0U; index < 3U; ++index) {
-        status = av2h_cdf_init(cdfs->fsc_bob[index], 7U, fsc_bob[index],
-                               3U, fsc_bob_parameter[index], 0U);
-        if (status != AV2H_OK) return status;
-    }
-    for (index = 0U; index < 7U; ++index) {
-        status = av2h_cdf_init(cdfs->fsc_base[index], 8U, fsc_base[index],
-                               4U, fsc_base_parameter[index], 0U);
-        if (status != AV2H_OK) return status;
-    }
-    for (index = 0U; index < 3U; ++index) {
-        status = av2h_cdf_init(cdfs->fsc_br[index], 8U, fsc_br[index], 4U,
-                               fsc_br_parameter[index], 0U);
-        if (status != AV2H_OK) return status;
-    }
-    for (index = 0U; index < 5U; ++index) {
-        status = av2h_cdf_init(cdfs->fsc_sign[index], AV2H_BINARY_CDF_SIZE,
-                               &fsc_sign[index], 2U,
-                               fsc_sign_parameter[index], 0U);
-        if (status != AV2H_OK) return status;
-    }
-    status = av2h_cdf_init(cdfs->fsc_bob_txs1_ctx2, 7U,
-                           fsc_bob_txs1_ctx2, 3U, 0U, 0U);
-    if (status != AV2H_OK) return status;
-    status = av2h_cdf_init(cdfs->fsc_base_txs1_ctx0, 8U,
-                           fsc_base_txs1_ctx0, 4U, 78U, 0U);
-    if (status != AV2H_OK) return status;
-    status = av2h_cdf_init(cdfs->fsc_base_txs1_ctx1, 8U,
-                           fsc_base_txs1_ctx1, 4U, 78U, 0U);
-    if (status != AV2H_OK) return status;
-    status = av2h_cdf_init(cdfs->fsc_base_txs1_ctx2, 8U,
-                           fsc_base_txs1_ctx2, 4U, 0U, 0U);
-    if (status != AV2H_OK) return status;
-    status = av2h_cdf_init(cdfs->fsc_base_txs1_ctx3, 8U,
-                           fsc_base_txs1_ctx3, 4U, 0U, 0U);
-    if (status != AV2H_OK) return status;
-    status = av2h_cdf_init(cdfs->fsc_base_txs1_ctx6, 8U,
-                           fsc_base_txs1_ctx6, 4U, 5U, 0U);
-    if (status != AV2H_OK) return status;
-    status = av2h_cdf_init(cdfs->fsc_br_txs1_ctx0, 8U,
-                           fsc_br_txs1_ctx0, 4U, 31U, 0U);
-    if (status != AV2H_OK) return status;
-    status = av2h_cdf_init(cdfs->fsc_br_txs1_ctx2, 8U,
-                           fsc_br_txs1_ctx2, 4U, 60U, 0U);
-    if (status != AV2H_OK) return status;
-    status = av2h_cdf_init(cdfs->fsc_br_txs1_ctx3, 8U,
-                           fsc_br_txs1_ctx3, 4U, 6U, 0U);
-    if (status != AV2H_OK) return status;
-    status = av2h_cdf_init(cdfs->fsc_br_txs1_ctx5, 8U,
-                           fsc_br_txs1_ctx5, 4U, 30U, 0U);
-    if (status != AV2H_OK) return status;
-    status = av2h_cdf_init(cdfs->fsc_br_txs1_ctx6, 8U,
-                           fsc_br_txs1_ctx6, 4U, 31U, 0U);
-    if (status != AV2H_OK) return status;
-    status = av2h_binary_cdf_init(
-        cdfs->fsc_sign_txs1_ctx0,
-        (Av2hBinaryCdfSpec){ 17528U, 25U, 0U });
-    if (status != AV2H_OK) return status;
-    status = av2h_binary_cdf_init(
-        cdfs->fsc_sign_txs1_ctx1,
-        (Av2hBinaryCdfSpec){ 32572U, 26U, 0U });
-    if (status != AV2H_OK) return status;
-    status = av2h_binary_cdf_init(
-        cdfs->fsc_sign_txs1_ctx2,
-        (Av2hBinaryCdfSpec){ 6222U, 0U, 0U });
-    if (status != AV2H_OK) return status;
-    status = av2h_binary_cdf_init(
-        cdfs->fsc_sign_txs1_ctx3,
-        (Av2hBinaryCdfSpec){ 29747U, 1U, 0U });
-    if (status != AV2H_OK) return status;
-    status = av2h_binary_cdf_init(
-        cdfs->fsc_sign_txs1_ctx4,
-        (Av2hBinaryCdfSpec){ 2848U, 31U, 0U });
-    if (status != AV2H_OK) return status;
-    status = av2h_binary_cdf_init(
-        cdfs->fsc_sign_txs1_ctx8,
-        (Av2hBinaryCdfSpec){ 474U, 18U, 0U });
-    if (status != AV2H_OK) return status;
-    for (index = 0U; index < 3U; ++index) {
-        status = av2h_cdf_init(cdfs->fsc_bob_txs2[index], 7U,
-                               fsc_bob_txs2[index], 3U,
-                               fsc_bob_txs2_parameter[index], 0U);
-        if (status != AV2H_OK) return status;
-    }
-    for (index = 0U; index < 7U; ++index) {
-        status = av2h_cdf_init(cdfs->fsc_base_txs2[index], 8U,
-                               fsc_base_txs2[index], 4U,
-                               fsc_base_txs2_parameter[index], 0U);
-        if (status != AV2H_OK) return status;
-        status = av2h_cdf_init(cdfs->fsc_br_txs2[index], 8U,
-                               fsc_br_txs2[index], 4U,
-                               fsc_br_txs2_parameter[index], 0U);
-        if (status != AV2H_OK) return status;
-    }
-    for (index = 0U; index < 9U; ++index) {
-        status = av2h_cdf_init(cdfs->fsc_sign_txs2[index],
-                               AV2H_BINARY_CDF_SIZE,
-                               &fsc_sign_txs2[index], 2U,
-                               fsc_sign_txs2_parameter[index], 0U);
-        if (status != AV2H_OK) return status;
-    }
     status = av2h_cdf_init(cdfs->uv_eob_lf_ctx0, 9U, uv_eob_lf_ctx0, 5U,
                            75U, 0U);
     if (status != AV2H_OK) return status;
@@ -644,7 +497,9 @@ Av2hStatus av2h_first_coeff_level_cdfs_init(Av2hFirstCoeffLevelCdfs *cdfs) {
     if (status != AV2H_OK) return status;
     status = av2h_cdf_init(cdfs->uv_br_ctx2, 8U, uv_br_ctx2, 4U, 93U, 0U);
     if (status != AV2H_OK) return status;
-    return av2h_cdf_init(cdfs->uv_br_ctx3, 8U, uv_br_ctx3, 4U, 75U, 0U);
+    status = av2h_cdf_init(cdfs->uv_br_ctx3, 8U, uv_br_ctx3, 4U, 75U, 0U);
+    if (status != AV2H_OK) return status;
+    return initialize_fsc_cdfs(cdfs, 1U);
 }
 
 static uint16_t *find_key(uint16_t *rows, size_t row_words,
@@ -1278,6 +1133,8 @@ Av2hStatus av2h_first_coeff_level_cdfs_init_for_q(
     if (status != AV2H_OK) return status;
     q_context = coefficient_q_context(base_q_index);
     cdfs->q_context = q_context;
+    status = initialize_fsc_cdfs(cdfs, q_context);
+    if (status != AV2H_OK) return status;
     if (q_context == 1U) {
         status = av2h_cdf_init(
             cdfs->adjusted_uv_eob[0U], 7U, adjusted_uv_eob[0U],
@@ -3561,14 +3418,11 @@ static Av2hStatus read_fsc_block(
     uint16_t bob;
     uint32_t high_average = 0U;
     uint32_t cul_level = 0U;
-    uint8_t txs1;
-    uint8_t txs2;
+    uint8_t tx_context;
     Av2hCoeffTxGeometry geometry;
     Av2hStatus status;
     if (sequence->enable_tcq || sequence->enable_parity_hiding ||
-        (frame->base_q_index != 128U && frame->base_q_index != 192U) ||
         frame->using_qmatrix ||
-        frame->y_dc_delta_q != 0 ||
         (prefix->tx_size != AV2H_TX_4X4 &&
          prefix->tx_size != AV2H_TX_4X8 &&
          prefix->tx_size != AV2H_TX_8X4 &&
@@ -3582,10 +3436,8 @@ static Av2hStatus read_fsc_block(
     if (av2h_coeff_tx_geometry(prefix->tx_size, &geometry) != AV2H_OK) {
         return AV2H_UNSUPPORTED;
     }
-    txs1 = (uint8_t)(prefix->tx_size == AV2H_TX_4X8 ||
-                     prefix->tx_size == AV2H_TX_8X4 ||
-                     prefix->tx_size == AV2H_TX_16X4);
-    txs2 = (uint8_t)(prefix->tx_size == AV2H_TX_8X16);
+    tx_context = (uint8_t)(prefix->tx_size == AV2H_TX_8X16 ? 2U :
+        prefix->tx_size == AV2H_TX_4X4 ? 0U : 1U);
     block->width = geometry.width;
     block->height = geometry.height;
     block->coefficient_count = (uint16_t)(block->width * block->height);
@@ -3603,11 +3455,7 @@ static Av2hStatus read_fsc_block(
         uint16_t position = scan_position(
             bob, block->width, block->height, 0U, 0U);
         uint8_t context = bob <= 2U ? 0U : bob <= 4U ? 1U : 2U;
-        uint16_t *cdf = txs1 ?
-            (context == 2U ? cdfs->fsc_bob_txs1_ctx2 : 0) :
-            txs2 ? cdfs->fsc_bob_txs2[context] :
-            find_context(&cdfs->fsc_bob[0][0], 7U,
-                         fsc_bob_keys, 3U, context);
+        uint16_t *cdf = cdfs->fsc_bob_all[tx_context][context];
         uint32_t symbol;
         block->diagnostic_position = position;
         block->diagnostic_context = context;
@@ -3622,11 +3470,7 @@ static Av2hStatus read_fsc_block(
             context = fsc_br_context(block, position);
             block->diagnostic_context = context;
             block->diagnostic_kind = 14U;
-            cdf = txs1 ?
-                (context == 0U ? cdfs->fsc_br_txs1_ctx0 : 0) :
-                find_context(&cdfs->fsc_br[0][0], 8U, fsc_br_keys, 3U,
-                             context);
-            if (cdf == 0) return AV2H_UNSUPPORTED;
+            cdf = cdfs->fsc_br_all[tx_context][context];
             symbol = av2h_range_read_adaptive(decoder, cdf, 4U);
             if (av2h_range_status(decoder) != AV2H_OK) {
                 return av2h_range_status(decoder);
@@ -3640,15 +3484,7 @@ static Av2hStatus read_fsc_block(
         uint16_t position = scan_position(
             scan_index, block->width, block->height, 0U, 0U);
         uint8_t context = fsc_base_context(block, position);
-        uint16_t *cdf = txs1 ?
-            (context == 0U ? cdfs->fsc_base_txs1_ctx0 :
-             context == 1U ? cdfs->fsc_base_txs1_ctx1 :
-             context == 2U ? cdfs->fsc_base_txs1_ctx2 :
-             context == 3U ? cdfs->fsc_base_txs1_ctx3 :
-             context == 6U ? cdfs->fsc_base_txs1_ctx6 : 0) :
-            txs2 ? cdfs->fsc_base_txs2[context] :
-            find_context(&cdfs->fsc_base[0][0], 8U,
-                         fsc_base_keys, 7U, context);
+        uint16_t *cdf = cdfs->fsc_base_all[tx_context][context];
         uint32_t symbol;
         block->diagnostic_position = position;
         block->diagnostic_context = context;
@@ -3663,16 +3499,7 @@ static Av2hStatus read_fsc_block(
             context = fsc_br_context(block, position);
             block->diagnostic_context = context;
             block->diagnostic_kind = 16U;
-            cdf = txs1 ?
-                (context == 0U ? cdfs->fsc_br_txs1_ctx0 :
-                 context == 2U ? cdfs->fsc_br_txs1_ctx2 :
-                 context == 3U ? cdfs->fsc_br_txs1_ctx3 :
-                 context == 5U ? cdfs->fsc_br_txs1_ctx5 :
-                 context == 6U ? cdfs->fsc_br_txs1_ctx6 : 0) :
-                txs2 ? cdfs->fsc_br_txs2[context] :
-                find_context(&cdfs->fsc_br[0][0], 8U, fsc_br_keys, 3U,
-                             context);
-            if (cdf == 0) return AV2H_UNSUPPORTED;
+            cdf = cdfs->fsc_br_all[tx_context][context];
             symbol = av2h_range_read_adaptive(decoder, cdf, 4U);
             if (av2h_range_status(decoder) != AV2H_OK) {
                 return av2h_range_status(decoder);
@@ -3696,17 +3523,7 @@ static Av2hStatus read_fsc_block(
         block->diagnostic_position = position;
         block->diagnostic_context = context;
         block->diagnostic_kind = 17U;
-        cdf = txs1 ?
-            (context == 0U ? cdfs->fsc_sign_txs1_ctx0 :
-             context == 1U ? cdfs->fsc_sign_txs1_ctx1 :
-             context == 2U ? cdfs->fsc_sign_txs1_ctx2 :
-             context == 3U ? cdfs->fsc_sign_txs1_ctx3 :
-             context == 4U ? cdfs->fsc_sign_txs1_ctx4 :
-             context == 8U ? cdfs->fsc_sign_txs1_ctx8 : 0) :
-            txs2 ? cdfs->fsc_sign_txs2[context] :
-            find_context(&cdfs->fsc_sign[0][0], AV2H_BINARY_CDF_SIZE,
-                         fsc_sign_keys, 5U, context);
-        if (cdf == 0) return AV2H_UNSUPPORTED;
+        cdf = cdfs->fsc_sign_all[tx_context][context];
         sign = (uint8_t)av2h_range_read_adaptive(decoder, cdf, 2U);
         if (av2h_range_status(decoder) != AV2H_OK) {
             return av2h_range_status(decoder);

@@ -4136,6 +4136,7 @@ typedef enum {
     RECON_1D_DCT,
     RECON_1D_ADST,
     RECON_1D_FLIPADST,
+    RECON_1D_IDENTITY,
     RECON_1D_NONE
 } Av2hRecon1dKind;
 
@@ -4263,6 +4264,10 @@ static Av2hStatus recon_transform_kinds(uint8_t primary_type,
             *row_kind = RECON_1D_FLIPADST;
             *column_kind = RECON_1D_ADST;
             return AV2H_OK;
+        case AV2H_TX_IDTX:
+            *row_kind = RECON_1D_IDENTITY;
+            *column_kind = RECON_1D_IDENTITY;
+            return AV2H_OK;
         default:
             *row_kind = RECON_1D_NONE; *column_kind = RECON_1D_NONE;
             return AV2H_UNSUPPORTED;
@@ -4276,6 +4281,10 @@ static Av2hStatus recon_kind_supported(Av2hRecon1dKind kind, uint16_t size) {
     }
     if (kind == RECON_1D_ADST || kind == RECON_1D_FLIPADST) {
         return (size == 4U || size == 8U || size == 16U) ?
+            AV2H_OK : AV2H_UNSUPPORTED;
+    }
+    if (kind == RECON_1D_IDENTITY) {
+        return (size == 4U || size == 8U || size == 16U || size == 32U) ?
             AV2H_OK : AV2H_UNSUPPORTED;
     }
     return AV2H_UNSUPPORTED;
@@ -4308,6 +4317,14 @@ static void recon_transform_1d(const int32_t *input, int32_t *output,
     int32_t maximum = ((int32_t)1 << (8U + (column_transform ? 0U : 7U))) - 1;
     uint16_t out;
     uint16_t frequency;
+    if (kind == RECON_1D_IDENTITY) {
+        for (out = 0U; out < size; ++out) {
+            output[out] = clamp(round_shift(
+                (int64_t)input[out] * identity_scale(size), shift),
+                minimum, maximum);
+        }
+        return;
+    }
     for (out = 0U; out < size; ++out) {
         int64_t sum = 0;
         for (frequency = 0U; frequency < size; ++frequency) {
@@ -4382,6 +4399,11 @@ static Av2hStatus reconstruct_transform_generic(
         recon_kind_supported(column_kind, coeff_height) != AV2H_OK) {
         return AV2H_UNSUPPORTED;
     }
+    if (transform->primary_type == AV2H_TX_IDTX &&
+        prefix->tx_size == RECON_TX_32X4) {
+        row_shift = 7U;
+        column_shift = 11U;
+    }
     reconstruction->width = output_width;
     reconstruction->height = output_height;
     rectangular = (uint8_t)((recon_size_log2(output_width) ^
@@ -4451,14 +4473,27 @@ static int reconstruct_generic_selected(
     uint8_t column_shift;
     Av2hRecon1dKind row_kind;
     Av2hRecon1dKind column_kind;
-    if (mode->use_intrabc || mode->skip_transform || mode->fsc_mode) {
+    int identity = transform->primary_type == AV2H_TX_IDTX;
+    if (identity) {
+        int legal_identity =
+            (mode->fsc_mode &&
+             (tx_size == RECON_TX_4X4 || tx_size == RECON_TX_4X8 ||
+              tx_size == RECON_TX_8X4 || tx_size == RECON_TX_8X16 ||
+              tx_size == RECON_TX_16X4)) ||
+            (mode->use_intrabc && tx_size == RECON_TX_4X4) ||
+            (!mode->fsc_mode && !mode->use_intrabc &&
+             (tx_size == RECON_TX_4X32 || tx_size == RECON_TX_32X4 ||
+              tx_size == RECON_TX_8X32 || tx_size == RECON_TX_32X8 ||
+              tx_size == RECON_TX_16X32 || tx_size == RECON_TX_32X16));
+        if (mode->skip_transform || !legal_identity) return 0;
+    } else if (mode->use_intrabc || mode->skip_transform || mode->fsc_mode) {
         return 0;
     }
     if (recon_geometry(tx_size, &output_width, &output_height,
                        &row_shift, &column_shift) != AV2H_OK) {
         return 0;
     }
-    if (tx_size == RECON_TX_4X4 &&
+    if (!identity && tx_size == RECON_TX_4X4 &&
                 transform->primary_type != AV2H_TX_FLIPADST_FLIPADST &&
                 transform->primary_type != AV2H_TX_DCT_ADST &&
                 !(mode->mode == AV2H_INTRA_SMOOTH &&
@@ -4470,7 +4505,7 @@ static int reconstruct_generic_selected(
                     transform->primary_type == AV2H_TX_DCT_ADST)) {
         return 0;
     }
-    if (tx_size == RECON_TX_8X4 &&
+    if (!identity && tx_size == RECON_TX_8X4 &&
         transform->primary_type != AV2H_TX_ADST_DCT &&
         transform->primary_type != AV2H_TX_DCT_ADST) {
         return 0;
