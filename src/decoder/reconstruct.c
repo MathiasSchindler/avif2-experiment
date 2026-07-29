@@ -4492,8 +4492,7 @@ static int reconstruct_generic_selected(
                 transform->primary_type != AV2H_TX_FLIPADST_FLIPADST &&
                 transform->primary_type != AV2H_TX_ADST_DCT &&
                 transform->primary_type != AV2H_TX_DCT_ADST &&
-                !(mode->mode == AV2H_INTRA_SMOOTH &&
-                    transform->primary_type == AV2H_TX_ADST_FLIPADST) &&
+                transform->primary_type != AV2H_TX_ADST_FLIPADST &&
                 !(mode->mode == AV2H_INTRA_D67 &&
                     transform->primary_type == AV2H_TX_ADST_ADST) &&
                 !((mode->mode == AV2H_INTRA_D157 ||
@@ -4503,7 +4502,8 @@ static int reconstruct_generic_selected(
     }
     if (!identity && !mode->use_intrabc && tx_size == RECON_TX_8X4 &&
         transform->primary_type != AV2H_TX_ADST_DCT &&
-        transform->primary_type != AV2H_TX_DCT_ADST) {
+        transform->primary_type != AV2H_TX_DCT_ADST &&
+        transform->primary_type != AV2H_TX_ADST_FLIPADST) {
         return 0;
     }
     if (recon_transform_kinds(transform->primary_type, &row_kind,

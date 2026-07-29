@@ -323,6 +323,54 @@ static void test_adst_dct_primary_mappings(void) {
     }
 }
 
+static void test_adst_flipadst_primary_mappings(void) {
+    static const struct {
+        Av2hFirstTxSize tx_size;
+        uint8_t size_class;
+    } compact_sizes[] = {
+        { AV2H_TX_4X4, 0U }, { AV2H_TX_4X8, 0U },
+        { AV2H_TX_8X4, 0U }, { AV2H_TX_4X16, 1U },
+        { AV2H_TX_16X4, 1U }, { AV2H_TX_8X8, 1U },
+        { AV2H_TX_8X16, 1U }, { AV2H_TX_16X8, 1U },
+        { AV2H_TX_16X16, 2U }
+    };
+    static const uint8_t symbols[3][13] = {
+        { 4U, 4U, 0xffU, 5U, 4U, 4U, 4U,
+          0xffU, 4U, 5U, 4U, 4U, 0xffU },
+        { 5U, 4U, 6U, 5U, 5U, 5U, 5U,
+          4U, 6U, 5U, 5U, 5U, 0xffU },
+        { 5U, 5U, 6U, 5U, 5U, 5U, 5U,
+          0xffU, 5U, 5U, 5U, 5U, 0xffU }
+    };
+    size_t size_index;
+    size_t mode_index;
+
+    for (size_index = 0U;
+         size_index < sizeof(compact_sizes) / sizeof(compact_sizes[0]);
+         ++size_index) {
+        for (mode_index = AV2H_INTRA_DC;
+             mode_index <= AV2H_INTRA_PAETH; ++mode_index) {
+            uint8_t expected_symbol =
+                symbols[compact_sizes[size_index].size_class][mode_index];
+            uint8_t symbol;
+            for (symbol = 0U; symbol < AV2H_PRIMARY_TX_TYPE_SYMBOLS;
+                 ++symbol) {
+                Av2hFirstTxType tx_type = AV2H_TX_TYPE_INVALID;
+                Av2hStatus status = av2h_primary_tx_type_map(
+                    compact_sizes[size_index].tx_size,
+                    (Av2hFirstLeafIntraMode)mode_index, 0U, symbol,
+                    &tx_type);
+                if (symbol == expected_symbol) {
+                    CHECK(status == AV2H_OK);
+                    CHECK(tx_type == AV2H_TX_ADST_FLIPADST);
+                } else if (status == AV2H_OK) {
+                    CHECK(tx_type != AV2H_TX_ADST_FLIPADST);
+                }
+            }
+        }
+    }
+}
+
 static void test_idtx_primary_mappings(void) {
     static const Av2hFirstTxSize idtx_sizes[] = {
         AV2H_TX_4X32, AV2H_TX_32X4, AV2H_TX_8X32,
@@ -405,6 +453,7 @@ int main(void) {
     test_emerald_primary_mappings();
     test_dct_adst_primary_mappings();
     test_adst_dct_primary_mappings();
+    test_adst_flipadst_primary_mappings();
     test_idtx_primary_mappings();
     test_emerald_secondary_signaling();
     test_arguments();

@@ -154,7 +154,16 @@ Av2hStatus av2h_primary_tx_type_map(
     uint8_t long_side_symbol,
     uint8_t primary_symbol,
     Av2hFirstTxType *tx_type) {
+        static const uint8_t adst_flipadst_symbols[3][13] = {
+                { 4U, 4U, 0xffU, 5U, 4U, 4U, 4U,
+                    0xffU, 4U, 5U, 4U, 4U, 0xffU },
+                { 5U, 4U, 6U, 5U, 5U, 5U, 5U,
+                    4U, 6U, 5U, 5U, 5U, 0xffU },
+                { 5U, 5U, 6U, 5U, 5U, 5U, 5U,
+                    0xffU, 5U, 5U, 5U, 5U, 0xffU }
+        };
     const Av2hTxDescriptor *descriptor;
+        uint8_t size_class;
     Av2hStatus status;
     if (tx_type == 0) return AV2H_INVALID_ARGUMENT;
     *tx_type = AV2H_TX_TYPE_INVALID;
@@ -165,6 +174,20 @@ Av2hStatus av2h_primary_tx_type_map(
             return AV2H_UNSUPPORTED;
         }
         *tx_type = AV2H_TX_DCT_DCT;
+        return AV2H_OK;
+    }
+    size_class =
+        tx_size == AV2H_TX_4X4 || tx_size == AV2H_TX_4X8 ||
+        tx_size == AV2H_TX_8X4 ? 0U :
+        tx_size == AV2H_TX_4X16 || tx_size == AV2H_TX_16X4 ||
+        tx_size == AV2H_TX_8X8 || tx_size == AV2H_TX_8X16 ||
+        tx_size == AV2H_TX_16X8 ? 1U :
+        tx_size == AV2H_TX_16X16 ? 2U : 0xffU;
+    if (size_class != 0xffU &&
+        (uint8_t)mode <= (uint8_t)AV2H_INTRA_PAETH &&
+        long_side_symbol == 0U &&
+        primary_symbol == adst_flipadst_symbols[size_class][(uint8_t)mode]) {
+        *tx_type = AV2H_TX_ADST_FLIPADST;
         return AV2H_OK;
     }
     if ((descriptor->signaling_class == AV2H_TX_SIGNAL_INTRA_4 ||

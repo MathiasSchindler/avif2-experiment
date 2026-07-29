@@ -2,8 +2,9 @@
 
 Snapshot verified on 2026-07-29 at base revision `c06486d`, including the
 current uncommitted MRL indices 2 and 3, complete CfL prediction, and
-multi-line MRL work, plus complete luma FSC, primary IDTX, and primary ADST_DCT
-reconstruction and IntraBC block-vector prediction/copy integration. The
+multi-line MRL work, plus complete luma FSC, primary IDTX, primary ADST_DCT,
+and primary ADST_FLIPADST reconstruction and IntraBC block-vector
+prediction/copy integration. The
 production Windows decoder was rebuilt and run against all 21 artifacts, and
 the pinned artifact profile frontier suite passed.
 
@@ -85,6 +86,12 @@ Summary:
   admission is matrix-tested in the complete ordinary Q1/Q3 banks; fixed
   reconstruction hashes cover every geometry/mode combination, including the
   newly completed 64x4 path, while Emerald retains its live 32x8 vector;
+- Primary ADST_FLIPADST follows AVM's mode-dependent compact symbol tables
+  across the 4, 8, and 16 size classes. Both transform axes are admitted only
+  through 16 samples: complete Q1/Q3 coefficient matrices and pinned all-mode
+  reconstruction hashes cover all nine legal geometries, every larger shape
+  fails closed, and the live 8x4 D45 vector retains exact syntax and
+  coefficient tells;
 - Luma FSC is admitted across all five legal geometries and all four
   coefficient Q contexts. Complete normative BOB, base, range, and sign CDF
   banks are checked row-by-row through pinned hashes, and a 20-case synthetic

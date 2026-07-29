@@ -83,6 +83,12 @@
     },
     {
       "match": "exact",
+      "value": "Primary tx ADST_FLIPADST",
+      "status": "supported",
+      "evidence": "Validated against AVM's mode-dependent compact symbol tables, across both coefficient Q banks and all nine legal transform geometries, with pinned all-mode reconstruction hashes, live parsing, and fail-closed rejection of every larger geometry."
+    },
+    {
+      "match": "exact",
       "value": "Primary tx IDTX",
       "status": "supported",
       "evidence": "Validated across every intra mode and all six signaled 32-long geometries, all five FSC geometries, and IntraBC 4x4 with normative identity scaling, shifts, clipping, live parsing, and pinned tile reconstruction hashes."

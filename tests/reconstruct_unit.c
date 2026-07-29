@@ -3437,6 +3437,95 @@ static void test_adst_dct_geometry_matrix(void) {
     }
 }
 
+static void test_adst_flipadst_geometry_matrix(void) {
+    static const struct {
+        Av2hFirstTxSize tx_size;
+        uint16_t width;
+        uint16_t height;
+        uint32_t expected_hash;
+    } supported[] = {
+        { AV2H_TX_4X4, 4U, 4U, 0xfd06c787U },
+        { AV2H_TX_4X8, 4U, 8U, 0x522a0eb5U },
+        { AV2H_TX_8X4, 8U, 4U, 0xdafd1d74U },
+        { AV2H_TX_4X16, 4U, 16U, 0x0be68c4fU },
+        { AV2H_TX_16X4, 16U, 4U, 0x4456d1efU },
+        { AV2H_TX_8X8, 8U, 8U, 0x19a44d03U },
+        { AV2H_TX_8X16, 8U, 16U, 0x2b45470cU },
+        { AV2H_TX_16X8, 16U, 8U, 0xa6098b8cU },
+        { AV2H_TX_16X16, 16U, 16U, 0xce550a63U }
+    };
+    static const Av2hFirstTxSize unsupported[] = {
+        AV2H_TX_32X32, AV2H_TX_64X64,
+        AV2H_TX_16X32, AV2H_TX_32X16,
+        AV2H_TX_32X64, AV2H_TX_64X32,
+        AV2H_TX_8X32, AV2H_TX_32X8,
+        AV2H_TX_16X64, AV2H_TX_64X16,
+        AV2H_TX_4X32, AV2H_TX_32X4,
+        AV2H_TX_8X64, AV2H_TX_64X8,
+        AV2H_TX_4X64, AV2H_TX_64X4
+    };
+    Av2hFirstLeafMode mode = { 0 };
+    Av2hFirstCoeffPrefix prefix = { 0 };
+    Av2hFirstTransformType transform = { 0 };
+    Av2hFirstCoeffBlock block = { 0 };
+    static Av2hReconstructionScratch scratch;
+    static Av2hFirstReconstruction reconstruction;
+    uint8_t predictor[AV2H_RECON_SAMPLE_CAPACITY];
+    size_t geometry;
+
+    av2h_memory_fill(predictor, 128U, sizeof(predictor));
+    transform.primary_type = AV2H_TX_ADST_FLIPADST;
+    for (geometry = 0U;
+         geometry < sizeof(supported) / sizeof(supported[0]); ++geometry) {
+        size_t mode_index;
+        prefix.tx_size = supported[geometry].tx_size;
+        prefix.eob = 1U;
+        block.width = supported[geometry].width;
+        block.height = supported[geometry].height;
+        block.coefficient_count = (uint16_t)(block.width * block.height);
+        block.nonzero_count = 1U;
+        block.dequantized[0U] = 512;
+        for (mode_index = AV2H_INTRA_DC;
+             mode_index <= AV2H_INTRA_PAETH; ++mode_index) {
+            Av2hStatus status;
+            uint32_t hash;
+            mode.mode = (Av2hFirstLeafIntraMode)mode_index;
+            status = av2h_luma_reconstruct(
+                &mode, &prefix, &transform, &block, predictor,
+                supported[geometry].width, &scratch, &reconstruction);
+            CHECK(status == AV2H_OK);
+            if (status != AV2H_OK) continue;
+            CHECK(reconstruction.width == supported[geometry].width);
+            CHECK(reconstruction.height == supported[geometry].height);
+            hash = trace_sample_hash(
+                reconstruction.pixels,
+                (size_t)reconstruction.width * reconstruction.height);
+            CHECK(hash == supported[geometry].expected_hash);
+        }
+        av2h_memory_fill(&block, 0U, sizeof(block));
+    }
+    mode.mode = AV2H_INTRA_DC;
+    for (geometry = 0U;
+         geometry < sizeof(unsupported) / sizeof(unsupported[0]);
+         ++geometry) {
+        const Av2hTxDescriptor *descriptor;
+        CHECK(av2h_tx_descriptor_get(unsupported[geometry], &descriptor) ==
+              AV2H_OK);
+        prefix.tx_size = unsupported[geometry];
+        prefix.eob = 1U;
+        block.width = descriptor->coefficient_width;
+        block.height = descriptor->coefficient_height;
+        block.coefficient_count = (uint16_t)(block.width * block.height);
+        block.nonzero_count = 1U;
+        block.dequantized[0U] = 512;
+        CHECK(av2h_luma_reconstruct(
+                  &mode, &prefix, &transform, &block, predictor,
+                  descriptor->output_width, &scratch,
+                  &reconstruction) == AV2H_UNSUPPORTED);
+        av2h_memory_fill(&block, 0U, sizeof(block));
+    }
+}
+
 static void test_emerald_reconstruct_invalid_preserves_output(void) {
     Av2hFirstLeafMode mode = { 0 };
     Av2hFirstCoeffPrefix prefix = { 0 };
@@ -4359,6 +4448,7 @@ int main(void) {
     test_emerald_reconstruct_clipping();
     test_dct_adst_geometry_matrix();
     test_adst_dct_geometry_matrix();
+    test_adst_flipadst_geometry_matrix();
     test_emerald_reconstruct_invalid_preserves_output();
     test_emerald_q208_chroma_leaves();
     test_emerald_q208_chroma_cfl();
