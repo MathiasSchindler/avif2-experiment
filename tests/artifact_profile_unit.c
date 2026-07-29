@@ -2719,11 +2719,20 @@ static void check_first_luma(const ArtifactExpectation *expected,
                                         break;
                                     }
                                     if (leaf.node.row == 32U &&
+                                        leaf.node.column == 48U) {
+                                        CHECK(block_pixel_hash(
+                                                  plane.data +
+                                                      128U * plane.stride +
+                                                      192U,
+                                                  plane.stride, 8U, 64U) ==
+                                              UINT64_C(0x8dc81c8022aad79d));
+                                    }
+                                    if (leaf.node.row == 32U &&
                                         leaf.node.column == 54U) {
                                         CHECK(block_pixel_hash(
                                                   scratch.predictor,
                                                   64U, 64U, 64U) ==
-                                              UINT64_C(0x9496807c9972b1b7));
+                                              UINT64_C(0xe1a5cb11fefc66f2));
                                     }
                                     if (leaf.node.row == 16U &&
                                         leaf.node.column == 0U) {

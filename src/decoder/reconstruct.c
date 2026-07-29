@@ -4084,6 +4084,7 @@ static Av2hStatus inverse_columns(const int32_t *transposed,
 #define RECON_TX_16X16 2
 #define RECON_TX_32X32 3
 #define RECON_TX_64X64 4
+#define RECON_TX_4X8 5
 #define RECON_TX_8X4 6
 #define RECON_TX_8X16 7
 #define RECON_TX_16X8 8
@@ -4097,9 +4098,11 @@ static Av2hStatus inverse_columns(const int32_t *transposed,
 #define RECON_TX_32X8 16
 #define RECON_TX_8X32 15
 #define RECON_TX_64X16 18
+#define RECON_TX_4X32 19
 #define RECON_TX_32X4 20
 #define RECON_TX_8X64 21
 #define RECON_TX_64X8 22
+#define RECON_TX_4X64 23
 
 typedef enum {
     RECON_1D_DCT,
@@ -4121,6 +4124,9 @@ static Av2hStatus recon_geometry(uint8_t tx_size,
     switch (tx_size) {
         case RECON_TX_4X4:
             *output_width = 4U; *output_height = 4U;
+            *row_shift = 7U; *column_shift = 10U; return AV2H_OK;
+        case RECON_TX_4X8:
+            *output_width = 4U; *output_height = 8U;
             *row_shift = 7U; *column_shift = 10U; return AV2H_OK;
         case RECON_TX_8X8:
             *output_width = 8U; *output_height = 8U;
@@ -4158,6 +4164,9 @@ static Av2hStatus recon_geometry(uint8_t tx_size,
         case RECON_TX_64X16:
             *output_width = 64U; *output_height = 16U;
             *row_shift = 6U; *column_shift = 13U; return AV2H_OK;
+        case RECON_TX_4X32:
+            *output_width = 4U; *output_height = 32U;
+            *row_shift = 7U; *column_shift = 11U; return AV2H_OK;
         case RECON_TX_32X16:
             *output_width = 32U; *output_height = 16U;
             *row_shift = 6U; *column_shift = 12U; return AV2H_OK;
@@ -4172,6 +4181,9 @@ static Av2hStatus recon_geometry(uint8_t tx_size,
             *row_shift = 6U; *column_shift = 13U; return AV2H_OK;
         case RECON_TX_8X64:
             *output_width = 8U; *output_height = 64U;
+            *row_shift = 6U; *column_shift = 12U; return AV2H_OK;
+        case RECON_TX_4X64:
+            *output_width = 4U; *output_height = 64U;
             *row_shift = 6U; *column_shift = 13U; return AV2H_OK;
         case RECON_TX_64X8:
             *output_width = 64U; *output_height = 8U;
@@ -4420,6 +4432,7 @@ static int reconstruct_generic_selected(
     }
     if (tx_size == RECON_TX_4X4 &&
                 transform->primary_type != AV2H_TX_FLIPADST_FLIPADST &&
+                transform->primary_type != AV2H_TX_DCT_ADST &&
                 !(mode->mode == AV2H_INTRA_SMOOTH &&
                     transform->primary_type == AV2H_TX_ADST_FLIPADST) &&
                 !(mode->mode == AV2H_INTRA_D67 &&

@@ -231,6 +231,49 @@ static void test_emerald_primary_mappings(void) {
           AV2H_INVALID_ARGUMENT);
 }
 
+static void test_dct_adst_primary_mappings(void) {
+    static const Av2hFirstTxSize compact_sizes[] = {
+        AV2H_TX_4X4, AV2H_TX_4X8, AV2H_TX_8X4,
+        AV2H_TX_4X16, AV2H_TX_16X4, AV2H_TX_8X8,
+        AV2H_TX_8X16, AV2H_TX_16X8, AV2H_TX_16X16
+    };
+    static const Av2hFirstTxSize tall_sizes[] = {
+        AV2H_TX_4X32, AV2H_TX_8X32, AV2H_TX_16X32,
+        AV2H_TX_4X64, AV2H_TX_8X64, AV2H_TX_16X64
+    };
+    Av2hFirstTxType tx_type;
+    size_t size_index;
+    size_t mode_index;
+
+    for (size_index = 0U;
+         size_index < sizeof(compact_sizes) / sizeof(compact_sizes[0]);
+         ++size_index) {
+        for (mode_index = AV2H_INTRA_DC;
+             mode_index <= AV2H_INTRA_PAETH; ++mode_index) {
+            uint8_t symbol = size_index < 5U &&
+                mode_index == AV2H_INTRA_PAETH ? 2U : 3U;
+            check_primary_map(
+                compact_sizes[size_index],
+                (Av2hFirstLeafIntraMode)mode_index, 0U, symbol,
+                AV2H_TX_DCT_ADST);
+        }
+    }
+    for (size_index = 0U;
+         size_index < sizeof(tall_sizes) / sizeof(tall_sizes[0]);
+         ++size_index) {
+        for (mode_index = AV2H_INTRA_DC;
+             mode_index <= AV2H_INTRA_PAETH; ++mode_index) {
+            check_primary_map(
+                tall_sizes[size_index],
+                (Av2hFirstLeafIntraMode)mode_index, 1U, 1U,
+                AV2H_TX_DCT_ADST);
+        }
+    }
+    CHECK(av2h_primary_tx_type_map(
+              AV2H_TX_4X4, AV2H_INTRA_PAETH, 0U, 3U, &tx_type) ==
+          AV2H_UNSUPPORTED);
+}
+
 static void check_secondary_signal(Av2hFirstTxSize tx_size,
                                    Av2hFirstLeafIntraMode mode_value,
                                    uint16_t eob,
@@ -292,6 +335,7 @@ int main(void) {
     test_fixture_transform_types();
     test_fsc_single_coefficient_uses_idtx();
     test_emerald_primary_mappings();
+    test_dct_adst_primary_mappings();
     test_emerald_secondary_signaling();
     test_arguments();
     if (failures != 0) {

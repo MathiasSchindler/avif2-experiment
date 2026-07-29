@@ -71,6 +71,12 @@
     },
     {
       "match": "exact",
+      "value": "Primary tx DCT_ADST",
+      "status": "supported",
+      "evidence": "Validated across every intra mode and legal transform geometry with normative symbol mapping, pinned AVM reconstruction hashes, live parsing, and artifact regression coverage."
+    },
+    {
+      "match": "exact",
       "value": "Luma angle delta 2",
       "status": "supported",
       "evidence": "Validated across every directional mode, legal transform geometry, MRL index, multi-line state, and IBP state, with artifact and tile regression coverage."

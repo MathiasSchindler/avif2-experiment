@@ -380,6 +380,14 @@ static void test_tx_geometry_helpers(void) {
     /* TX_8X16 averages its 8x8 and 16x16 square classes. */
     CHECK(av2h_coeff_tx_geometry(AV2H_TX_8X16, &geometry) == AV2H_OK);
     CHECK(geometry.tx_context == 2U);
+    CHECK(av2h_coeff_tx_geometry(AV2H_TX_4X64, &geometry) == AV2H_OK);
+    CHECK(geometry.width == 4U && geometry.height == 32U &&
+          geometry.coefficient_count == 128U && geometry.tx_context == 2U &&
+          geometry.dequant_shift == 0U);
+    CHECK(av2h_coeff_tx_geometry(AV2H_TX_64X4, &geometry) == AV2H_OK);
+    CHECK(geometry.width == 32U && geometry.height == 4U &&
+          geometry.coefficient_count == 128U && geometry.tx_context == 2U &&
+          geometry.dequant_shift == 0U);
     CHECK(av2h_coeff_tx_geometry(AV2H_TX_INVALID, &geometry) ==
           AV2H_UNSUPPORTED);
     CHECK(av2h_coeff_tx_geometry(AV2H_TX_4X4, 0) == AV2H_INVALID_ARGUMENT);

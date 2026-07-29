@@ -2165,6 +2165,8 @@ Av2hStatus av2h_coeff_tx_geometry(
         case AV2H_TX_32X4: tx_width = 32U; tx_height = 4U; break;
         case AV2H_TX_8X64: tx_width = 8U; tx_height = 64U; break;
         case AV2H_TX_64X8: tx_width = 64U; tx_height = 8U; break;
+        case AV2H_TX_4X64: tx_width = 4U; tx_height = 64U; break;
+        case AV2H_TX_64X4: tx_width = 64U; tx_height = 4U; break;
         default: return AV2H_UNSUPPORTED;
     }
     status = av2h_coeff_tx_geometry_from_dims(tx_width, tx_height, geometry);
@@ -2179,6 +2181,11 @@ static int q_level_profile_supported(
     const Av2hFirstTransformType *transform) {
     if (cdfs->q_context != coefficient_q_context(frame->base_q_index)) {
         return 0;
+    }
+    if (transform->primary_type == AV2H_TX_DCT_ADST) {
+        Av2hCoeffTxGeometry geometry;
+        return av2h_coeff_tx_geometry(prefix->tx_size, &geometry) == AV2H_OK &&
+               geometry.width <= 16U;
     }
     if (frame->base_q_index == 128U) {
         return !(prefix->tx_size == AV2H_TX_8X16 &&
