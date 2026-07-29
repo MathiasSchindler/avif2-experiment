@@ -1631,6 +1631,7 @@ static void test_luma_directional_feature_matrix(void) {
                                 mrl_index != 2U && mode.angle_delta != -3 &&
                                 mode.angle_delta != -2 &&
                                 mode.angle_delta != -1 &&
+                                mode.angle_delta != 1 &&
                                 mode.angle_delta != 2 &&
                                 mode.angle_delta != 3) {
                                 continue;
@@ -3210,6 +3211,100 @@ static void test_dct_adst_geometry_matrix(void) {
     }
 }
 
+static void test_adst_dct_geometry_matrix(void) {
+    static const struct {
+        Av2hFirstTxSize tx_size;
+        uint16_t output_width;
+        uint16_t output_height;
+        uint16_t coefficient_width;
+        uint16_t coefficient_height;
+        uint32_t expected_hash;
+    } supported[] = {
+        { AV2H_TX_4X4, 4U, 4U, 4U, 4U, 0xd2e3ac45U },
+        { AV2H_TX_4X8, 4U, 8U, 4U, 8U, 0x0a194185U },
+        { AV2H_TX_8X4, 8U, 4U, 8U, 4U, 0x48b4c885U },
+        { AV2H_TX_4X16, 4U, 16U, 4U, 16U, 0xd6b56ac5U },
+        { AV2H_TX_16X4, 16U, 4U, 16U, 4U, 0xcfec4505U },
+        { AV2H_TX_8X8, 8U, 8U, 8U, 8U, 0xd2c5b785U },
+        { AV2H_TX_8X16, 8U, 16U, 8U, 16U, 0xa9afab85U },
+        { AV2H_TX_16X8, 16U, 8U, 16U, 8U, 0x07c18005U },
+        { AV2H_TX_16X16, 16U, 16U, 16U, 16U, 0xcefb8505U },
+        { AV2H_TX_32X4, 32U, 4U, 32U, 4U, 0x7e19e105U },
+        { AV2H_TX_32X8, 32U, 8U, 32U, 8U, 0x35140105U },
+        { AV2H_TX_32X16, 32U, 16U, 32U, 16U, 0x8355ef05U },
+        { AV2H_TX_64X4, 64U, 4U, 32U, 4U, 0xc55bf905U },
+        { AV2H_TX_64X8, 64U, 8U, 32U, 8U, 0xa82b4505U },
+        { AV2H_TX_64X16, 64U, 16U, 32U, 16U, 0x7205d505U }
+    };
+    static const struct {
+        Av2hFirstTxSize tx_size;
+        uint16_t output_width;
+        uint16_t coefficient_width;
+        uint16_t coefficient_height;
+    } unsupported[] = {
+        { AV2H_TX_4X32, 4U, 4U, 32U },
+        { AV2H_TX_8X32, 8U, 8U, 32U },
+        { AV2H_TX_16X32, 16U, 16U, 32U },
+        { AV2H_TX_4X64, 4U, 4U, 32U },
+        { AV2H_TX_8X64, 8U, 8U, 32U },
+        { AV2H_TX_16X64, 16U, 16U, 32U }
+    };
+    Av2hFirstLeafMode mode = { 0 };
+    Av2hFirstCoeffPrefix prefix = { 0 };
+    Av2hFirstTransformType transform = { 0 };
+    Av2hFirstCoeffBlock block = { 0 };
+    static Av2hReconstructionScratch scratch;
+    static Av2hFirstReconstruction reconstruction;
+    uint8_t predictor[AV2H_RECON_SAMPLE_CAPACITY];
+    size_t geometry;
+    size_t mode_index;
+
+    av2h_memory_fill(predictor, 128U, sizeof(predictor));
+    transform.primary_type = AV2H_TX_ADST_DCT;
+    for (geometry = 0U;
+         geometry < sizeof(supported) / sizeof(supported[0]); ++geometry) {
+        prefix.tx_size = supported[geometry].tx_size;
+        prefix.eob = 1U;
+        block.width = supported[geometry].coefficient_width;
+        block.height = supported[geometry].coefficient_height;
+        block.coefficient_count = (uint16_t)(block.width * block.height);
+        block.nonzero_count = 1U;
+        block.dequantized[0U] = 512;
+        for (mode_index = AV2H_INTRA_DC;
+             mode_index <= AV2H_INTRA_PAETH; ++mode_index) {
+            mode.mode = (Av2hFirstLeafIntraMode)mode_index;
+            CHECK(av2h_luma_reconstruct(
+                      &mode, &prefix, &transform, &block, predictor,
+                      supported[geometry].output_width, &scratch,
+                      &reconstruction) == AV2H_OK);
+            CHECK(reconstruction.width == supported[geometry].output_width);
+            CHECK(reconstruction.height == supported[geometry].output_height);
+            CHECK(trace_sample_hash(
+                      reconstruction.pixels,
+                      (size_t)reconstruction.width * reconstruction.height) ==
+                  supported[geometry].expected_hash);
+        }
+        av2h_memory_fill(&block, 0U, sizeof(block));
+    }
+    mode.mode = AV2H_INTRA_DC;
+    for (geometry = 0U;
+         geometry < sizeof(unsupported) / sizeof(unsupported[0]);
+         ++geometry) {
+        prefix.tx_size = unsupported[geometry].tx_size;
+        prefix.eob = 1U;
+        block.width = unsupported[geometry].coefficient_width;
+        block.height = unsupported[geometry].coefficient_height;
+        block.coefficient_count = (uint16_t)(block.width * block.height);
+        block.nonzero_count = 1U;
+        block.dequantized[0U] = 512;
+        CHECK(av2h_luma_reconstruct(
+                  &mode, &prefix, &transform, &block, predictor,
+                  unsupported[geometry].output_width, &scratch,
+                  &reconstruction) == AV2H_UNSUPPORTED);
+        av2h_memory_fill(&block, 0U, sizeof(block));
+    }
+}
+
 static void test_emerald_reconstruct_invalid_preserves_output(void) {
     Av2hFirstLeafMode mode = { 0 };
     Av2hFirstCoeffPrefix prefix = { 0 };
@@ -4129,6 +4224,7 @@ int main(void) {
     test_emerald_q208_luma_blocks();
     test_emerald_reconstruct_clipping();
     test_dct_adst_geometry_matrix();
+    test_adst_dct_geometry_matrix();
     test_emerald_reconstruct_invalid_preserves_output();
     test_emerald_q208_chroma_leaves();
     test_emerald_q208_chroma_cfl();

@@ -285,6 +285,44 @@ static void test_dct_adst_primary_mappings(void) {
           AV2H_UNSUPPORTED);
 }
 
+static void test_adst_dct_primary_mappings(void) {
+    static const Av2hFirstTxSize compact_sizes[] = {
+        AV2H_TX_4X4, AV2H_TX_4X8, AV2H_TX_8X4,
+        AV2H_TX_4X16, AV2H_TX_16X4, AV2H_TX_8X8,
+        AV2H_TX_8X16, AV2H_TX_16X8, AV2H_TX_16X16
+    };
+    static const Av2hFirstTxSize wide_sizes[] = {
+        AV2H_TX_32X4, AV2H_TX_32X8, AV2H_TX_32X16,
+        AV2H_TX_64X4, AV2H_TX_64X8, AV2H_TX_64X16
+    };
+    size_t size_index;
+    size_t mode_index;
+
+    for (size_index = 0U;
+         size_index < sizeof(compact_sizes) / sizeof(compact_sizes[0]);
+         ++size_index) {
+        for (mode_index = AV2H_INTRA_DC;
+             mode_index <= AV2H_INTRA_PAETH; ++mode_index) {
+            if (size_index < 5U && mode_index == AV2H_INTRA_PAETH) continue;
+            check_primary_map(
+                compact_sizes[size_index],
+                (Av2hFirstLeafIntraMode)mode_index, 0U, 2U,
+                AV2H_TX_ADST_DCT);
+        }
+    }
+    for (size_index = 0U;
+         size_index < sizeof(wide_sizes) / sizeof(wide_sizes[0]);
+         ++size_index) {
+        for (mode_index = AV2H_INTRA_DC;
+             mode_index <= AV2H_INTRA_PAETH; ++mode_index) {
+            check_primary_map(
+                wide_sizes[size_index],
+                (Av2hFirstLeafIntraMode)mode_index, 1U, 1U,
+                AV2H_TX_ADST_DCT);
+        }
+    }
+}
+
 static void test_idtx_primary_mappings(void) {
     static const Av2hFirstTxSize idtx_sizes[] = {
         AV2H_TX_4X32, AV2H_TX_32X4, AV2H_TX_8X32,
@@ -366,6 +404,7 @@ int main(void) {
     test_fsc_single_coefficient_uses_idtx();
     test_emerald_primary_mappings();
     test_dct_adst_primary_mappings();
+    test_adst_dct_primary_mappings();
     test_idtx_primary_mappings();
     test_emerald_secondary_signaling();
     test_arguments();

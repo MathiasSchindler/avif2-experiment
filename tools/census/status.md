@@ -111,9 +111,9 @@ $$
 | 7 | Luma angle delta 3 | Supported | 94.3 | 20 | 95.2% | 957 |
 | 8 | Luma angle delta -1 | Supported | 94.2 | 20 | 95.2% | 904 |
 | 9 | MRL index 2 | Supported | 94.0 | 20 | 95.2% | 830 |
-| 10 | Luma angle delta 1 | Partial | 93.8 | 20 | 95.2% | 728 |
+| 10 | Luma angle delta 1 | Supported | 93.8 | 20 | 95.2% | 728 |
 | 11 | Multi-line MRL 1 | Supported | 91.3 | 19 | 90.5% | 1,785 |
-| 12 | Primary tx ADST_DCT | Partial | 90.8 | 19 | 90.5% | 1,204 |
+| 12 | Primary tx ADST_DCT | Supported | 90.8 | 19 | 90.5% | 1,204 |
 | 13 | MRL index 3 | Partial | 89.5 | 19 | 90.5% | 599 |
 | 14 | CfL prediction | Supported | 84.2 | 17 | 81.0% | 3,804 |
 | 15 | Primary tx ADST_FLIPADST | Partial | 80.8 | 17 | 81.0% | 410 |
@@ -129,26 +129,26 @@ This is the demand ranking above with values classified as `supported` removed. 
 
 | Rank | Feature value | Status | Demand score | Files | Coverage | Occurrences |
 |---:|---|---|---:|---:|---:|---:|
-| 1 | Luma angle delta 1 | Partial | 93.8 | 20 | 95.2% | 728 |
-| 2 | Primary tx ADST_DCT | Partial | 90.8 | 19 | 90.5% | 1,204 |
-| 3 | MRL index 3 | Partial | 89.5 | 19 | 90.5% | 599 |
-| 4 | Primary tx ADST_FLIPADST | Partial | 80.8 | 17 | 81.0% | 410 |
-| 5 | Chroma angle delta 2 | Partial | 80.4 | 17 | 81.0% | 359 |
-| 6 | Primary tx FLIPADST_ADST | Partial | 80.1 | 17 | 81.0% | 333 |
-| 7 | Chroma angle delta 1 | Partial | 72.3 | 15 | 71.4% | 312 |
-| 8 | Chroma angle delta -2 | Partial | 71.4 | 14 | 66.7% | 928 |
-| 9 | Intra block copy | Partial | 70.8 | 15 | 71.4% | 216 |
-| 10 | Chroma angle delta 3 | Partial | 68.1 | 14 | 66.7% | 284 |
-| 11 | Chroma angle delta -3 | Partial | 66.1 | 13 | 61.9% | 478 |
-| 12 | Chroma angle delta -1 | Partial | 61.9 | 12 | 57.1% | 429 |
-| 13 | Primary tx V_ADST | Partial | 56.6 | 12 | 57.1% | 119 |
-| 14 | Primary tx DCT_FLIPADST | Partial | 54.4 | 13 | 61.9% | 32 |
-| 15 | Primary tx V_DCT | Partial | 54.0 | 12 | 57.1% | 71 |
-| 16 | Primary tx H_ADST | Partial | 53.6 | 11 | 52.4% | 140 |
-| 17 | Primary tx FLIPADST_FLIPADST | Partial | 49.6 | 11 | 52.4% | 63 |
-| 18 | Primary tx H_DCT | Partial | 47.3 | 10 | 47.6% | 85 |
-| 19 | Primary tx FLIPADST_DCT | Partial | 43.6 | 10 | 47.6% | 38 |
-| 20 | Primary tx V_FLIPADST | Partial | 29.7 | 7 | 33.3% | 18 |
+| 1 | MRL index 3 | Partial | 89.5 | 19 | 90.5% | 599 |
+| 2 | Primary tx ADST_FLIPADST | Partial | 80.8 | 17 | 81.0% | 410 |
+| 3 | Chroma angle delta 2 | Partial | 80.4 | 17 | 81.0% | 359 |
+| 4 | Primary tx FLIPADST_ADST | Partial | 80.1 | 17 | 81.0% | 333 |
+| 5 | Chroma angle delta 1 | Partial | 72.3 | 15 | 71.4% | 312 |
+| 6 | Chroma angle delta -2 | Partial | 71.4 | 14 | 66.7% | 928 |
+| 7 | Intra block copy | Partial | 70.8 | 15 | 71.4% | 216 |
+| 8 | Chroma angle delta 3 | Partial | 68.1 | 14 | 66.7% | 284 |
+| 9 | Chroma angle delta -3 | Partial | 66.1 | 13 | 61.9% | 478 |
+| 10 | Chroma angle delta -1 | Partial | 61.9 | 12 | 57.1% | 429 |
+| 11 | Primary tx V_ADST | Partial | 56.6 | 12 | 57.1% | 119 |
+| 12 | Primary tx DCT_FLIPADST | Partial | 54.4 | 13 | 61.9% | 32 |
+| 13 | Primary tx V_DCT | Partial | 54.0 | 12 | 57.1% | 71 |
+| 14 | Primary tx H_ADST | Partial | 53.6 | 11 | 52.4% | 140 |
+| 15 | Primary tx FLIPADST_FLIPADST | Partial | 49.6 | 11 | 52.4% | 63 |
+| 16 | Primary tx H_DCT | Partial | 47.3 | 10 | 47.6% | 85 |
+| 17 | Primary tx FLIPADST_DCT | Partial | 43.6 | 10 | 47.6% | 38 |
+| 18 | Primary tx V_FLIPADST | Partial | 29.7 | 7 | 33.3% | 18 |
+| 19 | Transform skip | Partial | 29.1 | 7 | 33.3% | 14 |
+| 20 | Primary tx H_FLIPADST | Partial | 20.9 | 5 | 23.8% | 10 |
 
 ## Compact regression set
 

@@ -1489,9 +1489,9 @@ Av2hStatus av2h_luma_predict(
         predictor_stride < width) {
         return AV2H_INVALID_ARGUMENT;
     }
-    if (((mode->angle_delta == -3 || mode->angle_delta == -2 ||
-          mode->angle_delta == -1 || mode->angle_delta == 2 ||
-          mode->angle_delta == 3) ||
+        if (((mode->angle_delta == -3 || mode->angle_delta == -2 ||
+            mode->angle_delta == -1 || mode->angle_delta == 1 ||
+            mode->angle_delta == 2 || mode->angle_delta == 3) ||
          (mode->mrl_index == 1U || mode->mrl_index == 2U) ||
          mode->multi_line_mrl == 1U) &&
         mode->angle_delta >= -3 && mode->angle_delta <= 3 &&
@@ -4131,6 +4131,7 @@ static Av2hStatus inverse_columns(const int32_t *transposed,
 #define RECON_TX_8X64 21
 #define RECON_TX_64X8 22
 #define RECON_TX_4X64 23
+#define RECON_TX_64X4 24
 
 typedef enum {
     RECON_1D_DCT,
@@ -4213,6 +4214,9 @@ static Av2hStatus recon_geometry(uint8_t tx_size,
             *row_shift = 6U; *column_shift = 12U; return AV2H_OK;
         case RECON_TX_4X64:
             *output_width = 4U; *output_height = 64U;
+            *row_shift = 6U; *column_shift = 13U; return AV2H_OK;
+        case RECON_TX_64X4:
+            *output_width = 64U; *output_height = 4U;
             *row_shift = 6U; *column_shift = 13U; return AV2H_OK;
         case RECON_TX_64X8:
             *output_width = 64U; *output_height = 8U;
@@ -4495,6 +4499,7 @@ static int reconstruct_generic_selected(
     }
     if (!identity && tx_size == RECON_TX_4X4 &&
                 transform->primary_type != AV2H_TX_FLIPADST_FLIPADST &&
+                transform->primary_type != AV2H_TX_ADST_DCT &&
                 transform->primary_type != AV2H_TX_DCT_ADST &&
                 !(mode->mode == AV2H_INTRA_SMOOTH &&
                     transform->primary_type == AV2H_TX_ADST_FLIPADST) &&

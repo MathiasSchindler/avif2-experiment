@@ -77,6 +77,12 @@
     },
     {
       "match": "exact",
+      "value": "Primary tx ADST_DCT",
+      "status": "supported",
+      "evidence": "Validated across every intra mode and all 15 legal transform geometries with normative compact and long-side symbol mapping, vertical ADST coefficient admission, pinned reconstruction hashes, live parsing, and artifact regression coverage."
+    },
+    {
+      "match": "exact",
       "value": "Primary tx IDTX",
       "status": "supported",
       "evidence": "Validated across every intra mode and all six signaled 32-long geometries, all five FSC geometries, and IntraBC 4x4 with normative identity scaling, shifts, clipping, live parsing, and pinned tile reconstruction hashes."
@@ -86,6 +92,12 @@
       "value": "Luma angle delta 2",
       "status": "supported",
       "evidence": "Validated across every directional mode, legal transform geometry, MRL index, multi-line state, and IBP state, with artifact and tile regression coverage."
+    },
+    {
+      "match": "exact",
+      "value": "Luma angle delta 1",
+      "status": "supported",
+      "evidence": "Validated in signed joint-mode syntax and across every directional mode, legal prediction geometry, MRL index, multi-line state, and IBP state, with a pinned Laarim Q96 Horizontal +1 coefficient, predictor, and reconstruction vector."
     },
     {
       "match": "exact",

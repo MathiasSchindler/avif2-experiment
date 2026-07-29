@@ -172,6 +172,17 @@ Av2hStatus av2h_primary_tx_type_map(
          descriptor->signaling_class == AV2H_TX_SIGNAL_INTRA_16) &&
         (uint8_t)mode <= (uint8_t)AV2H_INTRA_PAETH &&
         long_side_symbol == 0U &&
+        primary_symbol == 2U &&
+        !(descriptor->square_class == AV2H_TX_SQUARE_4 &&
+          mode == AV2H_INTRA_PAETH)) {
+        *tx_type = AV2H_TX_ADST_DCT;
+        return AV2H_OK;
+        }
+        if ((descriptor->signaling_class == AV2H_TX_SIGNAL_INTRA_4 ||
+         descriptor->signaling_class == AV2H_TX_SIGNAL_INTRA_8 ||
+         descriptor->signaling_class == AV2H_TX_SIGNAL_INTRA_16) &&
+        (uint8_t)mode <= (uint8_t)AV2H_INTRA_PAETH &&
+        long_side_symbol == 0U &&
         primary_symbol ==
             (descriptor->square_class == AV2H_TX_SQUARE_4 &&
              mode == AV2H_INTRA_PAETH ? 2U : 3U)) {
