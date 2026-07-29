@@ -1234,12 +1234,224 @@ static uint8_t block_allows_palette(Av2hBlockSize block_size) {
         width >= 2U && height >= 2U && width <= 16U && height <= 16U;
 }
 
+typedef struct {
+    int16_t x;
+    int16_t y;
+    uint8_t weight;
+} Av2hIntrabcCandidate;
+
+static void add_intrabc_candidate(
+    Av2hIntrabcCandidate candidates[4U],
+    size_t *count,
+    const Av2hLumaModeContext *context,
+    uint8_t weight) {
+    size_t index;
+    if (context == 0 || !context->present || !context->use_intrabc) return;
+    for (index = 0U; index < *count; ++index) {
+        if (candidates[index].x == context->displacement_x &&
+            candidates[index].y == context->displacement_y) {
+            candidates[index].weight = (uint8_t)(
+                candidates[index].weight + weight);
+            return;
+        }
+    }
+    if (*count >= 4U) return;
+    candidates[*count].x = context->displacement_x;
+    candidates[*count].y = context->displacement_y;
+    candidates[*count].weight = weight;
+    ++*count;
+}
+
+static void add_intrabc_vector(
+    Av2hIntrabcCandidate candidates[4U],
+    size_t *count,
+    int16_t x,
+    int16_t y,
+    uint8_t weight) {
+    Av2hLumaModeContext context = { 0 };
+    context.present = 1U;
+    context.use_intrabc = 1U;
+    context.displacement_x = x;
+    context.displacement_y = y;
+    add_intrabc_candidate(candidates, count, &context, weight);
+}
+
+static const Av2hLumaModeContext *intrabc_spatial_context(
+    const Av2hLumaModeContextState *state,
+    int32_t row,
+    int32_t column) {
+    size_t index;
+    if (state == 0 || state->spatial == 0 || row < 0 || column < 0 ||
+        (size_t)row >= state->spatial_rows ||
+        (size_t)column >= state->spatial_columns) {
+        return 0;
+    }
+    index = (size_t)row * state->spatial_columns + (size_t)column;
+    return (const Av2hLumaModeContext *)(
+        state->spatial + index * state->spatial_stride);
+}
+
+static void build_intrabc_candidates(
+    const Av2hSequenceState *sequence,
+    const Av2hFrameState *frame,
+    const Av2hPartitionNode *leaf,
+    size_t width_mi,
+    size_t height_mi,
+    const Av2hLumaModeContextState *state,
+    Av2hIntrabcCandidate candidates[4U],
+    size_t *count) {
+    static const int16_t delay_pixels = 256;
+    const Av2hLumaModeContext *context;
+    size_t index;
+    size_t nearest_count = 0U;
+    size_t limit = (size_t)frame->max_bvp_drl_bits + 1U;
+    *count = 0U;
+    if (limit > 4U) limit = 4U;
+    if (state != 0) {
+        if (state->spatial != 0) {
+            int32_t row = leaf->row;
+            int32_t column = leaf->column;
+            int32_t above_right_column;
+            int32_t above_column;
+            int32_t top_right_column;
+            int32_t top_left_column;
+            uint8_t at_superblock_boundary = (uint8_t)(
+                state->superblock_mi != 0U &&
+                leaf->row % state->superblock_mi == 0U);
+            if (at_superblock_boundary) {
+                int32_t aligned_column = (column >> 1) << 1;
+                above_right_column = aligned_column +
+                    (width_mi >= 4U ? (int32_t)width_mi - 2 : 0);
+                above_column = -1;
+                top_right_column = aligned_column +
+                    (width_mi >= 4U ? (int32_t)width_mi : 2);
+                top_left_column = aligned_column - 2;
+            } else {
+                above_right_column = column + (int32_t)width_mi - 1;
+                above_column = width_mi > 1U ? column : -1;
+                top_right_column = column + (int32_t)width_mi;
+                top_left_column = column - 1;
+            }
+            context = intrabc_spatial_context(
+                state, row + (int32_t)height_mi - 1, column - 1);
+            add_intrabc_candidate(candidates, count, context, 1U);
+            context = intrabc_spatial_context(
+                state, row - 1, above_right_column);
+            add_intrabc_candidate(candidates, count, context, 1U);
+            if (height_mi > 1U) {
+                context = intrabc_spatial_context(
+                    state, row, column - 1);
+                add_intrabc_candidate(candidates, count, context, 1U);
+            }
+            context = intrabc_spatial_context(state, row - 1, above_column);
+            add_intrabc_candidate(candidates, count, context, 1U);
+            context = intrabc_spatial_context(
+                state, row + (int32_t)height_mi, column - 1);
+            add_intrabc_candidate(candidates, count, context, 1U);
+            context = intrabc_spatial_context(
+                state, row - 1, top_right_column);
+            add_intrabc_candidate(candidates, count, context, 1U);
+            context = intrabc_spatial_context(
+                state, row - 1, top_left_column);
+            add_intrabc_candidate(candidates, count, context, 0U);
+            nearest_count = *count;
+            {
+                int32_t column_adjustment =
+                    width_mi < 2U && (leaf->column & 1U) != 0U ? 1 : 0;
+                int32_t nonadjacent_column = column - 3 + column_adjustment;
+                context = intrabc_spatial_context(
+                    state, row + (int32_t)height_mi - 1,
+                    nonadjacent_column);
+                add_intrabc_candidate(candidates, count, context, 0U);
+                if (height_mi > 1U) {
+                    context = intrabc_spatial_context(
+                        state, row, nonadjacent_column);
+                    add_intrabc_candidate(candidates, count, context, 0U);
+                }
+            }
+        } else {
+            if (leaf->column != 0U) {
+                context = &state->left[
+                    (leaf->row + height_mi - 1U) % state->left_count];
+                add_intrabc_candidate(candidates, count, context, 1U);
+            }
+            if (leaf->row != 0U &&
+                (size_t)leaf->column + width_mi - 1U < state->above_count) {
+                context = &state->above[leaf->column + width_mi - 1U];
+                add_intrabc_candidate(candidates, count, context, 1U);
+            }
+            if (leaf->column != 0U && height_mi > 1U) {
+                context = &state->left[leaf->row % state->left_count];
+                add_intrabc_candidate(candidates, count, context, 1U);
+            }
+            if (leaf->row != 0U && width_mi > 1U &&
+                leaf->column < state->above_count) {
+                context = &state->above[leaf->column];
+                add_intrabc_candidate(candidates, count, context, 1U);
+            }
+            nearest_count = *count;
+        }
+        if ((sequence->enable_drl_reorder == 2U ||
+             (sequence->enable_drl_reorder == 1U && nearest_count >= 4U)) &&
+            nearest_count > 1U) {
+            size_t maximum = 0U;
+            for (index = 1U; index < nearest_count; ++index) {
+                if (candidates[index].weight > candidates[maximum].weight) {
+                    maximum = index;
+                }
+            }
+            if (maximum != 0U) {
+                Av2hIntrabcCandidate temporary = candidates[0];
+                candidates[0] = candidates[maximum];
+                candidates[maximum] = temporary;
+            }
+        }
+        if (sequence->enable_refmvbank) {
+            size_t bank_offset;
+            for (bank_offset = 0U;
+                 bank_offset < state->intrabc_bank_count && *count < limit;
+                 ++bank_offset) {
+                size_t bank_index =
+                    (state->intrabc_bank_start +
+                     state->intrabc_bank_count - 1U - bank_offset) % 4U;
+                int16_t x = state->intrabc_bank_x[bank_index];
+                int16_t y = state->intrabc_bank_y[bank_index];
+                int32_t reference_x = (int32_t)leaf->column * 4 + x / 8;
+                int32_t reference_y = (int32_t)leaf->row * 4 + y / 8;
+                if (reference_x <= -(int32_t)(width_mi * 4U) ||
+                    reference_y <= -(int32_t)(height_mi * 4U) ||
+                    reference_x >= frame->width ||
+                    reference_y >= frame->height) {
+                    continue;
+                }
+                add_intrabc_vector(candidates, count, x, y, 0U);
+            }
+        }
+    }
+    for (index = 0U; index < limit && *count < limit; ++index) {
+        Av2hIntrabcCandidate candidate = { 0, 0, 0U };
+        if (index == 0U) {
+            candidate.y = (int16_t)(-(int32_t)sequence->superblock_size * 8);
+        } else if (index == 1U) {
+            candidate.x = (int16_t)(
+                -((int32_t)sequence->superblock_size + delay_pixels) * 8);
+        } else if (index == 2U) {
+            candidate.y = (int16_t)(-(int32_t)height_mi * 32);
+        } else {
+            candidate.x = (int16_t)(-(int32_t)width_mi * 32);
+        }
+        candidates[*count] = candidate;
+        ++*count;
+    }
+}
+
 static Av2hStatus read_first_intrabc(
     Av2hRangeDecoder *decoder,
     Av2hLeafCdfs *cdfs,
     const Av2hSequenceState *sequence,
     const Av2hFrameState *frame,
     const Av2hPartitionNode *leaf,
+    const Av2hLumaModeContextState *state,
     Av2hFirstLeafMode *mode) {
     size_t width_mi;
     size_t height_mi;
@@ -1250,6 +1462,8 @@ static Av2hStatus read_first_intrabc(
     uint32_t shell_index;
     uint32_t pair_index = 0U;
     uint32_t maximum_pair_index;
+    Av2hIntrabcCandidate candidates[4U];
+    size_t candidate_count;
     int32_t reference_x;
     int32_t reference_y;
     int32_t difference_x = 0;
@@ -1288,44 +1502,12 @@ static Av2hStatus read_first_intrabc(
     if (leaf->row == 16U && leaf->column == 20U) {
         av2h_debug_intrabc_ranges[2] = decoder->range;
     }
-    if (mode->intrabc_drl_index > 3U) return AV2H_UNSUPPORTED;
-    if (mode->intrabc_drl_index == 0U &&
-        leaf->row == 9U && leaf->column == 12U &&
-        leaf->block_size == AV2H_BLOCK_8X4) {
-        reference_x = 96;
-        reference_y = -64;
-    } else if (mode->intrabc_drl_index == 0U &&
-               leaf->row == 8U && leaf->column == 14U &&
-               leaf->block_size == AV2H_BLOCK_8X8) {
-        reference_x = -384;
-        reference_y = 104;
-    } else if (mode->intrabc_drl_index == 0U &&
-               leaf->row == 10U && leaf->column == 14U &&
-               leaf->block_size == AV2H_BLOCK_8X16) {
-        reference_x = -384;
-        reference_y = 104;
-    } else if (mode->intrabc_drl_index == 0U &&
-               leaf->row == 14U && leaf->column == 12U &&
-               leaf->block_size == AV2H_BLOCK_16X8) {
-        reference_x = -448;
-        reference_y = -128;
-    } else if (mode->intrabc_drl_index == 0U) {
-        reference_x = 0;
-        reference_y = -(int32_t)sequence->superblock_size * 8;
-    } else if (mode->intrabc_drl_index == 1U) {
-        reference_x = -((int32_t)sequence->superblock_size + 256) * 8;
-        reference_y = 0;
-    } else if (mode->intrabc_drl_index == 2U) {
-        reference_x = 0;
-        reference_y = -(int32_t)height_mi * 32;
-    } else if (leaf->row == 12U && leaf->column == 0U &&
-               leaf->block_size == AV2H_BLOCK_16X8) {
-        reference_x = 0;
-        reference_y = -(int32_t)height_mi * 32;
-    } else {
-        reference_x = -(int32_t)width_mi * 32;
-        reference_y = 0;
-    }
+    build_intrabc_candidates(
+        sequence, frame, leaf, width_mi, height_mi, state,
+        candidates, &candidate_count);
+    if (mode->intrabc_drl_index >= candidate_count) return AV2H_INVALID_DATA;
+    reference_x = candidates[mode->intrabc_drl_index].x;
+    reference_y = candidates[mode->intrabc_drl_index].y;
     mode->mv_precision = 3U;
     if (mode->intrabc_mode == 0U && !frame->force_integer_mv) {
         value = av2h_range_read_adaptive(
@@ -1466,9 +1648,18 @@ Av2hStatus av2h_luma_mode_context_state_init(
     }
     state->above = above;
     state->left = left;
+    state->spatial = 0;
     state->above_count = above_count;
     state->left_count = left_count;
+    state->spatial_stride = 0U;
+    state->spatial_columns = 0U;
+    state->spatial_rows = 0U;
+    state->intrabc_bank_remaining_hits = 0U;
     state->superblock_mi = 0U;
+    state->intrabc_bank_count = 0U;
+    state->intrabc_bank_start = 0U;
+    state->intrabc_bank_unit_hits = 0U;
+    state->intrabc_bank_superblock_hits = 0U;
     state->has_intrabc = 0U;
     for (index = 0U; index < above_count; ++index) {
         above[index] = (Av2hLumaModeContext){ 0 };
@@ -1592,6 +1783,11 @@ Av2hStatus av2h_luma_mode_context_state_update(
     }
     context.present = 1U;
     context.use_intrabc = mode->use_intrabc;
+    context.intrabc_mode = mode->intrabc_mode;
+    context.intrabc_drl_index = mode->intrabc_drl_index;
+    context.mv_precision = mode->mv_precision;
+    context.displacement_x = mode->displacement_x;
+    context.displacement_y = mode->displacement_y;
     context.skip_transform = mode->skip_transform;
     context.joint_mode = mode->joint_mode;
     context.fsc_mode = mode->fsc_mode;
@@ -1603,7 +1799,82 @@ Av2hStatus av2h_luma_mode_context_state_update(
     for (index = 0U; index < height; ++index) {
         state->left[left_index + index] = context;
     }
-    if (mode->use_intrabc) state->has_intrabc = 1U;
+    if (state->superblock_mi != 0U) {
+        size_t row_in_superblock = leaf->row % state->superblock_mi;
+        size_t column_in_superblock = leaf->column % state->superblock_mi;
+        size_t unit_mi = state->superblock_mi / 8U;
+        size_t unit_count;
+        if (unit_mi == 0U) unit_mi = 1U;
+        unit_count = (width / unit_mi > 0U ? width / unit_mi : 1U) *
+                     (height / unit_mi > 0U ? height / unit_mi : 1U);
+        if (row_in_superblock == 0U && column_in_superblock == 0U) {
+            state->intrabc_bank_count = 0U;
+            state->intrabc_bank_start = 0U;
+            state->intrabc_bank_remaining_hits = (uint16_t)(
+                unit_count > 4U ? unit_count : 4U);
+            state->intrabc_bank_unit_hits = 0U;
+            state->intrabc_bank_superblock_hits = 0U;
+        } else if (row_in_superblock % unit_mi == 0U &&
+                   column_in_superblock % unit_mi == 0U) {
+            state->intrabc_bank_remaining_hits = (uint16_t)(
+                state->intrabc_bank_remaining_hits + unit_count);
+            state->intrabc_bank_unit_hits = 0U;
+        }
+    }
+    if (mode->use_intrabc) {
+        if (state->superblock_mi == 0U ||
+            (state->intrabc_bank_remaining_hits != 0U &&
+             state->intrabc_bank_unit_hits < 16U &&
+             state->intrabc_bank_superblock_hits < 64U)) {
+            size_t found = state->intrabc_bank_count;
+            for (index = 0U; index < state->intrabc_bank_count; ++index) {
+                size_t bank_index =
+                    (state->intrabc_bank_start + index) % 4U;
+                if (state->intrabc_bank_x[bank_index] == mode->displacement_x &&
+                    state->intrabc_bank_y[bank_index] == mode->displacement_y) {
+                    found = index;
+                    break;
+                }
+            }
+            if (found < state->intrabc_bank_count) {
+                int16_t x = state->intrabc_bank_x[
+                    (state->intrabc_bank_start + found) % 4U];
+                int16_t y = state->intrabc_bank_y[
+                    (state->intrabc_bank_start + found) % 4U];
+                for (index = found; index + 1U < state->intrabc_bank_count;
+                     ++index) {
+                    size_t destination =
+                        (state->intrabc_bank_start + index) % 4U;
+                    size_t source = (destination + 1U) % 4U;
+                    state->intrabc_bank_x[destination] =
+                        state->intrabc_bank_x[source];
+                    state->intrabc_bank_y[destination] =
+                        state->intrabc_bank_y[source];
+                }
+                index = (state->intrabc_bank_start +
+                         state->intrabc_bank_count - 1U) % 4U;
+                state->intrabc_bank_x[index] = x;
+                state->intrabc_bank_y[index] = y;
+            } else {
+                index = (state->intrabc_bank_start +
+                         state->intrabc_bank_count) % 4U;
+                state->intrabc_bank_x[index] = mode->displacement_x;
+                state->intrabc_bank_y[index] = mode->displacement_y;
+                if (state->intrabc_bank_count < 4U) {
+                    ++state->intrabc_bank_count;
+                } else {
+                    state->intrabc_bank_start =
+                        (uint8_t)((state->intrabc_bank_start + 1U) % 4U);
+                }
+            }
+            if (state->superblock_mi != 0U) {
+                --state->intrabc_bank_remaining_hits;
+                ++state->intrabc_bank_unit_hits;
+                ++state->intrabc_bank_superblock_hits;
+            }
+        }
+        state->has_intrabc = 1U;
+    }
     return AV2H_OK;
 }
 
@@ -1614,6 +1885,7 @@ static Av2hStatus luma_mode_read_internal(
     const Av2hFrameState *frame,
     const Av2hPartitionNode *leaf,
     const Av2hLumaModeNeighbors *neighbors,
+    const Av2hLumaModeContextState *state,
     Av2hGdfEntropyState *gdf_state,
     Av2hCdefEntropyState *cdef_state,
     Av2hCcsoEntropyState *ccso_state,
@@ -1647,52 +1919,8 @@ Av2hStatus av2h_luma_mode_read_with_state_and_gdf(
         state, leaf, &neighbors);
     if (status != AV2H_OK) return status;
     status = luma_mode_read_internal(
-        decoder, cdfs, sequence, frame, leaf, &neighbors, gdf_state,
+        decoder, cdfs, sequence, frame, leaf, &neighbors, state, gdf_state,
         cdef_state, ccso_state, mode);
-    if (status == AV2H_OK && mode->use_intrabc && state->has_intrabc &&
-        !(leaf->row == 12U && leaf->column == 0U &&
-          leaf->block_size == AV2H_BLOCK_16X8 &&
-          mode->skip_transform == 1U &&
-          mode->displacement_x == 96 &&
-          mode->displacement_y == -64) &&
-        !(leaf->row == 9U && leaf->column == 12U &&
-          leaf->block_size == AV2H_BLOCK_8X4 &&
-          mode->skip_transform == 1U &&
-          mode->intrabc_drl_index == 0U &&
-          mode->displacement_x == -384 &&
-          mode->displacement_y == 104) &&
-        !(leaf->row == 8U && leaf->column == 14U &&
-          leaf->block_size == AV2H_BLOCK_8X8 &&
-          mode->skip_transform == 1U &&
-          mode->intrabc_drl_index == 0U &&
-          mode->displacement_x == -384 &&
-          mode->displacement_y == 104) &&
-        !(leaf->row == 10U && leaf->column == 14U &&
-          leaf->block_size == AV2H_BLOCK_8X16 &&
-          mode->skip_transform == 1U &&
-          mode->intrabc_drl_index == 0U &&
-          mode->displacement_x == -448 &&
-          mode->displacement_y == -128) &&
-        !(leaf->row == 14U && leaf->column == 12U &&
-          leaf->block_size == AV2H_BLOCK_16X8 &&
-          mode->skip_transform == 1U &&
-          mode->intrabc_drl_index == 0U &&
-          mode->displacement_x == -352 &&
-                    mode->displacement_y == -192) &&
-                !(leaf->row == 16U && leaf->column == 20U &&
-                    leaf->block_size == AV2H_BLOCK_32X8 &&
-                    mode->skip_transform == 0U && mode->intrabc_mode == 1U &&
-                    mode->intrabc_drl_index == 1U &&
-                    mode->displacement_x == -2560 &&
-                    mode->displacement_y == 0) &&
-                !(leaf->row == 20U && leaf->column == 26U &&
-                    leaf->block_size == AV2H_BLOCK_16X16 &&
-                    mode->skip_transform == 1U && mode->intrabc_mode == 0U &&
-                    mode->intrabc_drl_index == 0U &&
-                    mode->displacement_x == -448 &&
-                    mode->displacement_y == -432)) {
-        return AV2H_UNSUPPORTED;
-    }
     return status;
 }
 
@@ -1703,6 +1931,7 @@ static Av2hStatus luma_mode_read_internal(
     const Av2hFrameState *frame,
     const Av2hPartitionNode *leaf,
     const Av2hLumaModeNeighbors *neighbors,
+    const Av2hLumaModeContextState *state,
     Av2hGdfEntropyState *gdf_state,
     Av2hCdefEntropyState *cdef_state,
     Av2hCcsoEntropyState *ccso_state,
@@ -1849,7 +2078,7 @@ static Av2hStatus luma_mode_read_internal(
             if (status != AV2H_OK) return status;
             if (frame->gdf_mode >= 2U) return AV2H_UNSUPPORTED;
             return read_first_intrabc(
-                decoder, cdfs, sequence, frame, leaf, mode);
+                decoder, cdfs, sequence, frame, leaf, state, mode);
         }
     }
     {
@@ -2029,7 +2258,7 @@ Av2hStatus av2h_luma_mode_read(
     const Av2hLumaModeNeighbors *neighbors,
     Av2hFirstLeafMode *mode) {
     return luma_mode_read_internal(
-        decoder, cdfs, sequence, frame, leaf, neighbors, 0, 0, 0, mode);
+        decoder, cdfs, sequence, frame, leaf, neighbors, 0, 0, 0, 0, mode);
 }
 
 Av2hStatus av2h_first_leaf_mode_read(Av2hRangeDecoder *decoder,

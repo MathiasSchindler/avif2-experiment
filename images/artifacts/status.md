@@ -3,8 +3,9 @@
 Snapshot verified on 2026-07-29 at base revision `c06486d`, including the
 current uncommitted MRL indices 2 and 3, complete CfL prediction, and
 multi-line MRL work, plus complete luma FSC, primary IDTX, and primary ADST_DCT
-reconstruction. The production Windows decoder was rebuilt and run against
-all 21 artifacts, and the pinned artifact profile frontier suite passed.
+reconstruction and IntraBC block-vector prediction/copy integration. The
+production Windows decoder was rebuilt and run against all 21 artifacts, and
+the pinned artifact profile frontier suite passed.
 
 The public decoder completes 1 of the 21 `.obu` files in this directory.
 `emerald-192x96-qp208.obu` decodes to an I420 file that is byte-identical to
@@ -57,6 +58,12 @@ Summary:
   nonzero MRL index, legal prediction geometry, and IBP state. The selected
   reference line is blended with line 0 using AVM's rounded average, including
   exact cardinal directions and the normative 4x4 exception;
+- IntraBC derives DRL references from decoded spatial block vectors, the
+  normative four-entry recency bank, and ordered fallback vectors instead of
+  coordinate-specific tuples. Both IntraBC modes and every legal skipped-copy
+  geometry are covered by a 44-case matrix; the ordinary 22-leaf fixture pins
+  six IntraBC leaves, including bank-shifted DRL 3 and chained vectors, through
+  exact tells, source pixels, and reconstructed output at tell 762;
 - Luma angle delta +1 is admitted through the shared IDIF predictor across
   every directional mode, legal prediction geometry, MRL index, multi-line
   state, and IBP state. Laarim Q96 pins a live 16x16 Horizontal/+1 DCT_ADST

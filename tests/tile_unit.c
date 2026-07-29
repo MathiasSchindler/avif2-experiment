@@ -1346,7 +1346,7 @@ static void test_sdp_superblock_scheduler(void) {
     chroma_partition_left[0] = 41U;
     luma_mode_above[0].joint_mode = 53U;
     coefficient_above[0] = 43U;
-    decoder.colocated_luma[0].present = 1U;
+    decoder.colocated_luma[0].context.present = 1U;
     decoder.gdf_entropy.decoded_count = 7U;
     decoder.cdef_entropy.index0_cdf[0][0] = 901U;
     ccso_unit_controls[0][0] = 47U;
@@ -1388,7 +1388,7 @@ static void test_sdp_superblock_scheduler(void) {
         CHECK(chroma_partition_left[0] == 41U);
         CHECK(luma_mode_above[0].joint_mode == 53U);
         CHECK(coefficient_above[0] == 43U);
-        CHECK(decoder.colocated_luma[0].present == 1U);
+        CHECK(decoder.colocated_luma[0].context.present == 1U);
         CHECK(decoder.gdf_entropy.decoded_count == 7U);
         CHECK(decoder.cdef_entropy.index0_cdf[0][0] == 901U);
         CHECK(ccso_unit_controls[0][0] == 47U);

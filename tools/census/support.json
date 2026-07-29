@@ -210,8 +210,8 @@
     {
       "match": "exact",
       "value": "Intra block copy",
-      "status": "partial",
-      "evidence": "Selected IntraBC syntax and reconstruction paths are tested; general profile coverage is incomplete."
+      "status": "supported",
+      "evidence": "Normative spatial and reference-bank block-vector prediction, DRL selection, both IntraBC modes, every legal skipped-copy geometry, residual transforms, reconstructed-source validation, and pinned multi-leaf parsing/output are covered."
     },
     {
       "match": "exact",

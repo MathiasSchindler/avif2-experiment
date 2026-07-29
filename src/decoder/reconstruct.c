@@ -4475,20 +4475,20 @@ static int reconstruct_generic_selected(
              (tx_size == RECON_TX_4X4 || tx_size == RECON_TX_4X8 ||
               tx_size == RECON_TX_8X4 || tx_size == RECON_TX_8X16 ||
               tx_size == RECON_TX_16X4)) ||
-            (mode->use_intrabc && tx_size == RECON_TX_4X4) ||
+            mode->use_intrabc ||
             (!mode->fsc_mode && !mode->use_intrabc &&
              (tx_size == RECON_TX_4X32 || tx_size == RECON_TX_32X4 ||
               tx_size == RECON_TX_8X32 || tx_size == RECON_TX_32X8 ||
               tx_size == RECON_TX_16X32 || tx_size == RECON_TX_32X16));
         if (mode->skip_transform || !legal_identity) return 0;
-    } else if (mode->use_intrabc || mode->skip_transform || mode->fsc_mode) {
+    } else if (mode->skip_transform || mode->fsc_mode) {
         return 0;
     }
     if (recon_geometry(tx_size, &output_width, &output_height,
                        &row_shift, &column_shift) != AV2H_OK) {
         return 0;
     }
-    if (!identity && tx_size == RECON_TX_4X4 &&
+    if (!identity && !mode->use_intrabc && tx_size == RECON_TX_4X4 &&
                 transform->primary_type != AV2H_TX_FLIPADST_FLIPADST &&
                 transform->primary_type != AV2H_TX_ADST_DCT &&
                 transform->primary_type != AV2H_TX_DCT_ADST &&
@@ -4501,7 +4501,7 @@ static int reconstruct_generic_selected(
                     transform->primary_type == AV2H_TX_DCT_ADST)) {
         return 0;
     }
-    if (!identity && tx_size == RECON_TX_8X4 &&
+    if (!identity && !mode->use_intrabc && tx_size == RECON_TX_8X4 &&
         transform->primary_type != AV2H_TX_ADST_DCT &&
         transform->primary_type != AV2H_TX_DCT_ADST) {
         return 0;

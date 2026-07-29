@@ -1,4 +1,5 @@
 #include "decoder/tile.h"
+#include "decoder/tx_geometry.h"
 
 #include <stdio.h>
 
@@ -257,6 +258,66 @@ static void test_skipped_16x8_intrabc_reconstruction(void) {
     CHECK(av2h_luma_reconstruct(
               &mode, &prefix, &transform, &block, predictor, 16U,
               &scratch, &reconstruction) == AV2H_UNSUPPORTED);
+}
+
+static void test_skipped_intrabc_geometry_matrix(void) {
+    static const Av2hBlockSize block_sizes[] = {
+        AV2H_BLOCK_4X4, AV2H_BLOCK_4X8, AV2H_BLOCK_8X4,
+        AV2H_BLOCK_8X8, AV2H_BLOCK_8X16, AV2H_BLOCK_16X8,
+        AV2H_BLOCK_16X16, AV2H_BLOCK_16X32, AV2H_BLOCK_32X16,
+        AV2H_BLOCK_32X32, AV2H_BLOCK_32X64, AV2H_BLOCK_64X32,
+        AV2H_BLOCK_4X16, AV2H_BLOCK_16X4, AV2H_BLOCK_8X32,
+        AV2H_BLOCK_32X8, AV2H_BLOCK_16X64, AV2H_BLOCK_64X16,
+        AV2H_BLOCK_4X32, AV2H_BLOCK_32X4, AV2H_BLOCK_8X64,
+        AV2H_BLOCK_64X8
+    };
+    Av2hReconstructionScratch scratch;
+    Av2hFirstReconstruction reconstruction;
+    uint8_t predictor[AV2H_RECON_SAMPLE_CAPACITY];
+    size_t block_index;
+    size_t index;
+    uint8_t intrabc_mode;
+    for (index = 0U; index < sizeof(predictor); ++index) {
+        predictor[index] = (uint8_t)(index * 29U + 7U);
+    }
+    for (block_index = 0U;
+         block_index < sizeof(block_sizes) / sizeof(block_sizes[0]);
+         ++block_index) {
+        const Av2hTxDescriptor *descriptor = 0;
+        Av2hFirstLeafMode mode = { 0 };
+        Av2hFirstCoeffPrefix prefix = { 0 };
+        Av2hFirstTransformType transform = { 0 };
+        Av2hFirstCoeffBlock block = { 0 };
+        size_t output_count;
+        CHECK(av2h_luma_tx_descriptor_get(
+                  block_sizes[block_index], &descriptor) == AV2H_OK);
+        if (descriptor == 0) continue;
+        prefix.tx_size = descriptor->tx_size;
+        prefix.all_zero = 1U;
+        transform.primary_type = AV2H_TX_DCT_DCT;
+        block.width = descriptor->coefficient_width;
+        block.height = descriptor->coefficient_height;
+        block.coefficient_count = descriptor->eob_capacity;
+        output_count = (size_t)descriptor->output_width *
+            descriptor->output_height;
+        for (intrabc_mode = 0U; intrabc_mode < 2U; ++intrabc_mode) {
+            mode.mode = AV2H_INTRA_DC;
+            mode.use_intrabc = 1U;
+            mode.intrabc_mode = intrabc_mode;
+            mode.skip_transform = 1U;
+            mode.mv_precision = 3U;
+            CHECK(av2h_luma_reconstruct(
+                      &mode, &prefix, &transform, &block, predictor,
+                      descriptor->output_width, &scratch,
+                      &reconstruction) == AV2H_OK);
+            CHECK(reconstruction.width == descriptor->output_width);
+            CHECK(reconstruction.height == descriptor->output_height);
+            for (index = 0U; index < output_count; ++index) {
+                CHECK(reconstruction.residual[index] == 0);
+                CHECK(reconstruction.pixels[index] == predictor[index]);
+            }
+        }
+    }
 }
 
 static void test_all_zero_16x16_reconstruction(void) {
@@ -4281,6 +4342,7 @@ int main(void) {
     test_tx8x4_d203_reconstruction();
     test_tx8x8_d203_mrl_reconstruction();
     test_skipped_16x8_intrabc_reconstruction();
+    test_skipped_intrabc_geometry_matrix();
     test_all_zero_16x16_reconstruction();
     test_laarim_q96_32x32_reconstruction();
     test_schwaebisch_q208_64x16_reconstruction();

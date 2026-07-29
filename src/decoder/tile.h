@@ -15,7 +15,7 @@ typedef struct {
 } Av2hTileGroup;
 
 typedef struct {
-    uint8_t present;
+    Av2hLumaModeContext context;
     uint8_t mode;
     int8_t angle_delta;
     uint8_t chroma_cfl;

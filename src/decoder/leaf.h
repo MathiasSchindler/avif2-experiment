@@ -166,6 +166,11 @@ typedef struct {
 typedef struct {
     uint8_t present;
     uint8_t use_intrabc;
+    uint8_t intrabc_mode;
+    uint8_t intrabc_drl_index;
+    uint8_t mv_precision;
+    int16_t displacement_x;
+    int16_t displacement_y;
     uint8_t skip_transform;
     uint8_t joint_mode;
     uint8_t fsc_mode;
@@ -176,9 +181,20 @@ typedef struct {
 typedef struct {
     Av2hLumaModeContext *above;
     Av2hLumaModeContext *left;
+    const uint8_t *spatial;
     size_t above_count;
     size_t left_count;
+    size_t spatial_stride;
+    size_t spatial_columns;
+    size_t spatial_rows;
+    int16_t intrabc_bank_x[4U];
+    int16_t intrabc_bank_y[4U];
+    uint16_t intrabc_bank_remaining_hits;
     uint16_t superblock_mi;
+    uint8_t intrabc_bank_count;
+    uint8_t intrabc_bank_start;
+    uint8_t intrabc_bank_unit_hits;
+    uint8_t intrabc_bank_superblock_hits;
     uint8_t has_intrabc;
 } Av2hLumaModeContextState;
 
