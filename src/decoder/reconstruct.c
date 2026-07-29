@@ -1066,6 +1066,7 @@ static Av2hStatus predict_directional_idif(
                 angle < 90 && mode->enable_ibp ?
                     (index < directional_extent ?
                         index : directional_extent - 1U) :
+                angle > 180 ? index :
                 mode->mode == AV2H_INTRA_HORIZONTAL &&
                     mode->angle_delta == 1 && width == 16U && height == 16U ?
                 index : index < height ? index : height - 1U;
@@ -1218,6 +1219,7 @@ static Av2hStatus predict_directional_idif(
         return AV2H_OK;
     }
     if ((references->left == 0 || references->left_count == 0U) &&
+        (references->above == 0 || references->above_count == 0U) &&
         !missing_left_ibp) {
         return AV2H_INVALID_ARGUMENT;
     }
@@ -1352,6 +1354,98 @@ static Av2hStatus predict_d45_8x4_ibp(
     return AV2H_OK;
 }
 
+static int luma_prediction_dimension_supported(uint16_t dimension) {
+    return dimension == 4U || dimension == 8U || dimension == 16U ||
+           dimension == 32U || dimension == 64U;
+}
+
+static int luma_wide_angle(int angle, uint16_t width, uint16_t height) {
+    int threshold = height == 2U * width ? 61 :
+                    height == 4U * width ? 73 :
+                    height == 8U * width ? 82 :
+                    height == 16U * width ? 86 : 0;
+    if (threshold != 0 && angle < threshold) return angle + 180;
+    threshold = width == 2U * height ? 61 :
+                width == 4U * height ? 73 :
+                width == 8U * height ? 82 :
+                width == 16U * height ? 86 : 0;
+    return threshold != 0 && angle > 270 - threshold ? angle - 180 : angle;
+}
+
+static Av2hStatus predict_luma_directional_feature(
+    const Av2hFirstLeafMode *mode,
+    uint16_t width,
+    uint16_t height,
+    const Av2hLumaReferences *references,
+    uint8_t *predictor,
+    size_t predictor_stride) {
+    Av2hFirstLeafMode primary_mode;
+    Av2hFirstLeafMode secondary_mode;
+    Av2hLumaReferences secondary_references;
+    uint8_t secondary_predictor[AV2H_RECON_SAMPLE_CAPACITY];
+    Av2hStatus status;
+    uint16_t row;
+    uint16_t column;
+    int mrl_angle_delta = mode->mrl_index == 1U ? 1 :
+                          mode->mrl_index == 2U ? -1 : 0;
+    int secondary_angle = luma_wide_angle(
+        directional_base_angle(mode->mode) + mode->angle_delta * 3 +
+            mrl_angle_delta,
+        width, height);
+    int primary_angle = secondary_angle - mrl_angle_delta;
+    if (mode->multi_line_mrl == 0U) {
+        return predict_directional_idif(
+            mode, primary_angle, width, height, references,
+            predictor, predictor_stride);
+    }
+    if (mode->multi_line_mrl != 1U || mode->mrl_index == 0U) {
+        return AV2H_INVALID_ARGUMENT;
+    }
+    if ((width != 4U || height != 4U) &&
+        (references->secondary_above == 0 ||
+         references->secondary_above_count == 0U) &&
+        (references->secondary_left == 0 ||
+         references->secondary_left_count == 0U)) {
+        return AV2H_INVALID_ARGUMENT;
+    }
+    av2h_memory_copy(&primary_mode, mode, sizeof(primary_mode));
+    av2h_memory_copy(&secondary_mode, mode, sizeof(secondary_mode));
+    av2h_memory_copy(
+        &secondary_references, references, sizeof(secondary_references));
+    primary_mode.multi_line_mrl = 0U;
+    primary_mode.enable_ibp = 0U;
+    secondary_mode.mrl_index = 0U;
+    secondary_mode.multi_line_mrl = 0U;
+    secondary_mode.enable_ibp = 0U;
+    status = predict_directional_idif(
+        &primary_mode, primary_angle, width, height, references,
+        predictor, predictor_stride);
+    if (status != AV2H_OK) return status;
+    if (width == 4U && height == 4U) return AV2H_OK;
+    secondary_references.above = references->secondary_above;
+    secondary_references.above_count = references->secondary_above_count;
+    secondary_references.left = references->secondary_left;
+    secondary_references.left_count = references->secondary_left_count;
+    secondary_references.above_left = references->secondary_above_left;
+    secondary_references.has_above_left =
+        references->has_secondary_above_left;
+    status = predict_directional_idif(
+        &secondary_mode, secondary_angle, width, height,
+        &secondary_references,
+        secondary_predictor, width);
+    if (status != AV2H_OK) return status;
+    for (row = 0U; row < height; ++row) {
+        for (column = 0U; column < width; ++column) {
+            size_t output = (size_t)row * predictor_stride + column;
+            predictor[output] = (uint8_t)(
+                (predictor[output] +
+                 secondary_predictor[(size_t)row * width + column] + 1U) >>
+                1U);
+        }
+    }
+    return AV2H_OK;
+}
+
 Av2hStatus av2h_luma_predict(
     const Av2hFirstLeafMode *mode,
     uint16_t width,
@@ -1369,6 +1463,17 @@ Av2hStatus av2h_luma_predict(
     if (mode == 0 || references == 0 || predictor == 0 ||
         predictor_stride < width) {
         return AV2H_INVALID_ARGUMENT;
+    }
+    if (((mode->angle_delta == -2 || mode->angle_delta == 2) ||
+         mode->mrl_index == 1U) &&
+        mode->angle_delta >= -3 && mode->angle_delta <= 3 &&
+        directional_base_angle(mode->mode) != 0 &&
+        mode->mrl_index < AV2H_MRL_INDEX_SYMBOLS &&
+        mode->multi_line_mrl <= 1U && mode->enable_ibp <= 1U &&
+        luma_prediction_dimension_supported(width) &&
+        luma_prediction_dimension_supported(height)) {
+        return predict_luma_directional_feature(
+            mode, width, height, references, predictor, predictor_stride);
     }
     if (mode->mode == AV2H_INTRA_HORIZONTAL && mode->angle_delta == -3 &&
         mode->multi_line_mrl == 0U &&
@@ -5436,9 +5541,12 @@ Av2hStatus av2h_luma_reconstruct_to_plane(
                mode->angle_delta == 0 && mode->mrl_index == 0U &&
                output_width == 8U && output_height == 4U) {
         left_count += output_height;
-    } else if (left_count != 0U && mode->mode == AV2H_INTRA_D203 &&
-               mode->angle_delta == 3 && mode->mrl_index == 1U &&
-               output_width == 8U && output_height == 16U) {
+    } else if (left_count != 0U && mode->mrl_index == 1U &&
+               directional_base_angle(mode->mode) != 0 &&
+               luma_wide_angle(
+                   directional_base_angle(mode->mode) +
+                       mode->angle_delta * 3 + 1,
+                   output_width, output_height) > 180) {
         left_count += output_width + 2U;
     } else if (left_count != 0U &&
                mode->mode == AV2H_INTRA_HORIZONTAL &&
@@ -5469,37 +5577,41 @@ Av2hStatus av2h_luma_reconstruct_to_plane(
             source_y * plane->stride + block_x - 1U -
             mode->mrl_index];
     }
-    if (mode->mrl_index != 0U && mode->multi_line_mrl != 0U &&
-        block_x != 0U && block_y != 0U) {
-        secondary_above_count = (size_t)plane->reference_width - block_x;
-        if (secondary_above_count > sizeof(scratch->secondary_above)) {
-            secondary_above_count = sizeof(scratch->secondary_above);
-        }
-        for (index = 0U; index < secondary_above_count; ++index) {
-            if (!plane_sample_reconstructed(
-                    plane, block_x + index, (size_t)block_y - 1U)) {
-                secondary_above_count = index;
-                break;
+    if (mode->mrl_index != 0U && mode->multi_line_mrl != 0U) {
+        if (block_y != 0U) {
+            secondary_above_count =
+                (size_t)plane->reference_width - block_x;
+            if (secondary_above_count > sizeof(scratch->secondary_above)) {
+                secondary_above_count = sizeof(scratch->secondary_above);
             }
-            scratch->secondary_above[index] = plane->data[
-                ((size_t)block_y - 1U) * plane->stride + block_x + index];
-        }
-        secondary_left_count = output_height;
-        if (secondary_left_count > sizeof(scratch->secondary_left)) {
-            secondary_left_count = sizeof(scratch->secondary_left);
-        }
-        for (index = 0U; index < secondary_left_count; ++index) {
-            size_t source_y = (size_t)block_y + index;
-            if (source_y >= plane->reference_height) {
-                source_y = plane->reference_height - 1U;
+            for (index = 0U; index < secondary_above_count; ++index) {
+                if (!plane_sample_reconstructed(
+                        plane, block_x + index, (size_t)block_y - 1U)) {
+                    secondary_above_count = index;
+                    break;
+                }
+                scratch->secondary_above[index] = plane->data[
+                    ((size_t)block_y - 1U) * plane->stride + block_x + index];
             }
-            if (!plane_sample_reconstructed(
-                    plane, (size_t)block_x - 1U, source_y)) {
-                secondary_left_count = index;
-                break;
+        }
+        if (block_x != 0U) {
+            secondary_left_count = output_height;
+            if (secondary_left_count > sizeof(scratch->secondary_left)) {
+                secondary_left_count = sizeof(scratch->secondary_left);
             }
-            scratch->secondary_left[index] =
-                plane->data[source_y * plane->stride + block_x - 1U];
+            for (index = 0U; index < secondary_left_count; ++index) {
+                size_t source_y = (size_t)block_y + index;
+                if (source_y >= plane->reference_height) {
+                    source_y = plane->reference_height - 1U;
+                }
+                if (!plane_sample_reconstructed(
+                        plane, (size_t)block_x - 1U, source_y)) {
+                    secondary_left_count = index;
+                    break;
+                }
+                scratch->secondary_left[index] =
+                    plane->data[source_y * plane->stride + block_x - 1U];
+            }
         }
     }
     references.left = left_count == 0U ? 0 : scratch->left;

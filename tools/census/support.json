@@ -70,6 +70,18 @@
       "evidence": "Validated in syntax mapping, two-axis ADST reconstruction, live parsing, artifact profiles, and production decode tests."
     },
     {
+      "match": "exact",
+      "value": "Luma angle delta 2",
+      "status": "supported",
+      "evidence": "Validated across every directional mode, legal transform geometry, MRL index, multi-line state, and IBP state, with artifact and tile regression coverage."
+    },
+    {
+      "match": "exact",
+      "value": "Luma angle delta -2",
+      "status": "supported",
+      "evidence": "Validated across every directional mode, legal transform geometry, MRL index, multi-line state, and IBP state, with artifact and tile regression coverage."
+    },
+    {
       "match": "prefix",
       "value": "Primary tx ",
       "status": "partial",
@@ -86,6 +98,12 @@
       "value": "Chroma angle delta ",
       "status": "partial",
       "evidence": "Chroma directional syntax is present, but full corpus geometry coverage is not demonstrated."
+    },
+    {
+      "match": "exact",
+      "value": "MRL index 1",
+      "status": "supported",
+      "evidence": "Validated across every directional mode, luma angle delta, legal transform geometry, multi-line state, and IBP state, with sample-exact live decoding and tile regression coverage."
     },
     {
       "match": "prefix",

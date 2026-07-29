@@ -858,6 +858,8 @@ static void test_tiny_second_luma_leaf(void) {
             size_t index;
             references.above = second_above;
             references.above_count = 16U;
+            references.has_above_left = 0U;
+            references.negative_count = 0U;
             CHECK(av2h_luma_predict(
                       &second_mode, 8U, 8U, &references, predictor, 8U) ==
                   AV2H_OK);

@@ -1418,6 +1418,195 @@ static void test_d113_16x64_prediction(void) {
                     UINT64_C(0x193cfb9fe374f405));
 }
 
+static void test_luma_directional_feature_matrix(void) {
+    static const Av2hFirstLeafIntraMode modes[] = {
+        AV2H_INTRA_D45,        AV2H_INTRA_D67,  AV2H_INTRA_VERTICAL,
+        AV2H_INTRA_D113,       AV2H_INTRA_D135, AV2H_INTRA_D157,
+        AV2H_INTRA_HORIZONTAL, AV2H_INTRA_D203
+    };
+    static const uint16_t dimensions[] = { 4U, 8U, 16U, 32U, 64U };
+    static const int8_t angle_deltas[] = { -3, -2, -1, 0, 1, 2, 3 };
+    Av2hFirstLeafMode mode = { 0 };
+    Av2hLumaReferences references = { 0 };
+    uint8_t above[136U];
+    uint8_t left[136U];
+    uint8_t secondary_above[136U];
+    uint8_t secondary_left[136U];
+    uint8_t storage[AV2H_RECON_SAMPLE_CAPACITY + 2U];
+    uint8_t boundary_predictor[AV2H_RECON_SAMPLE_CAPACITY];
+    uint8_t ibp_disabled_predictor[AV2H_RECON_SAMPLE_CAPACITY];
+    uint8_t primary_predictor[AV2H_RECON_SAMPLE_CAPACITY];
+    uint8_t secondary_predictor[AV2H_RECON_SAMPLE_CAPACITY];
+    uint8_t *predictor = &storage[1U];
+    size_t mode_index;
+    size_t delta_index;
+    size_t width_index;
+    size_t height_index;
+    size_t mrl_index;
+    size_t multi_line_mrl;
+    size_t ibp;
+    size_t index;
+
+    for (index = 0U; index < sizeof(above); ++index) {
+        above[index] = (uint8_t)(17U + index * 29U);
+        left[index] = (uint8_t)(91U + index * 13U);
+        secondary_above[index] = (uint8_t)(43U + index * 19U);
+        secondary_left[index] = (uint8_t)(151U + index * 7U);
+    }
+    references.above = above;
+    references.above_count = sizeof(above);
+    references.left = left;
+    references.left_count = sizeof(left);
+    references.secondary_above = secondary_above;
+    references.secondary_above_count = sizeof(secondary_above);
+    references.secondary_left = secondary_left;
+    references.secondary_left_count = sizeof(secondary_left);
+    references.above_left = 73U;
+    references.has_above_left = 1U;
+    references.secondary_above_left = 149U;
+    references.has_secondary_above_left = 1U;
+    references.negative_count = 4U;
+    for (index = 1U; index <= references.negative_count; ++index) {
+        references.above_negative[index] = (uint8_t)(73U - index);
+        references.left_negative[index] = (uint8_t)(73U + index);
+    }
+
+    for (delta_index = 0U;
+         delta_index < sizeof(angle_deltas) / sizeof(angle_deltas[0]);
+         ++delta_index) {
+        mode.angle_delta = angle_deltas[delta_index];
+        for (mode_index = 0U; mode_index < sizeof(modes) / sizeof(modes[0]);
+             ++mode_index) {
+            mode.mode = modes[mode_index];
+            for (width_index = 0U;
+                 width_index < sizeof(dimensions) / sizeof(dimensions[0]);
+                 ++width_index) {
+                uint16_t width = dimensions[width_index];
+                for (height_index = 0U;
+                     height_index < sizeof(dimensions) / sizeof(dimensions[0]);
+                     ++height_index) {
+                    uint16_t height = dimensions[height_index];
+                    size_t sample_count = (size_t)width * height;
+                    for (mrl_index = 0U; mrl_index < 4U; ++mrl_index) {
+                        mode.mrl_index = (uint8_t)mrl_index;
+                        if (mrl_index != 1U && mode.angle_delta != -2 &&
+                            mode.angle_delta != 2) {
+                            continue;
+                        }
+                        for (multi_line_mrl = 0U; multi_line_mrl <= 1U;
+                             ++multi_line_mrl) {
+                            mode.multi_line_mrl = (uint8_t)multi_line_mrl;
+                            for (ibp = 0U; ibp <= 1U; ++ibp) {
+                                Av2hStatus expected =
+                                    multi_line_mrl != 0U && mrl_index == 0U
+                                        ? AV2H_INVALID_ARGUMENT
+                                        : AV2H_OK;
+                                mode.enable_ibp = (uint8_t)ibp;
+                                av2h_memory_fill(storage, 0xa5U,
+                                                 sizeof(storage));
+                                CHECK(av2h_luma_predict(&mode, width, height,
+                                                        &references, predictor,
+                                                        width) == expected);
+                                CHECK(storage[0U] == 0xa5U);
+                                CHECK(storage[sizeof(storage) - 1U] == 0xa5U);
+                                if (expected == AV2H_OK && mrl_index != 0U) {
+                                    if (ibp == 0U) {
+                                        av2h_memory_copy(
+                                            ibp_disabled_predictor, predictor,
+                                            sample_count);
+                                    } else {
+                                        for (index = 0U; index < sample_count;
+                                             ++index) {
+                                            CHECK(predictor[index] ==
+                                                  ibp_disabled_predictor[index]);
+                                        }
+                                    }
+                                }
+                                if (expected == AV2H_OK &&
+                                    multi_line_mrl != 0U) {
+                                    Av2hFirstLeafMode component_mode = mode;
+                                    Av2hLumaReferences boundary_references =
+                                        references;
+                                    Av2hLumaReferences secondary_references =
+                                        references;
+                                    if (mrl_index == 1U) {
+                                        boundary_references.secondary_above = 0;
+                                        boundary_references.secondary_above_count =
+                                            0U;
+                                        CHECK(av2h_luma_predict(
+                                                  &mode, width, height,
+                                                  &boundary_references,
+                                                  boundary_predictor, width) ==
+                                              AV2H_OK);
+                                        boundary_references = references;
+                                        boundary_references.secondary_left = 0;
+                                        boundary_references.secondary_left_count =
+                                            0U;
+                                        CHECK(av2h_luma_predict(
+                                                  &mode, width, height,
+                                                  &boundary_references,
+                                                  boundary_predictor, width) ==
+                                              AV2H_OK);
+                                        boundary_references.secondary_above = 0;
+                                        boundary_references.secondary_above_count =
+                                            0U;
+                                        CHECK(av2h_luma_predict(
+                                                  &mode, width, height,
+                                                  &boundary_references,
+                                                  boundary_predictor, width) ==
+                                              (width == 4U && height == 4U
+                                                   ? AV2H_OK
+                                                   : AV2H_INVALID_ARGUMENT));
+                                    }
+                                    component_mode.multi_line_mrl = 0U;
+                                    component_mode.enable_ibp = 0U;
+                                    CHECK(av2h_luma_predict(
+                                              &component_mode, width, height,
+                                              &references, primary_predictor,
+                                              width) == AV2H_OK);
+                                    if (width == 4U && height == 4U) {
+                                        for (index = 0U; index < sample_count;
+                                             ++index) {
+                                            CHECK(predictor[index] ==
+                                                  primary_predictor[index]);
+                                        }
+                                        continue;
+                                    }
+                                    if (mrl_index != 3U) continue;
+                                    component_mode.mrl_index = 0U;
+                                    secondary_references.above =
+                                        secondary_above;
+                                    secondary_references.above_count =
+                                        sizeof(secondary_above);
+                                    secondary_references.left = secondary_left;
+                                    secondary_references.left_count =
+                                        sizeof(secondary_left);
+                                    secondary_references.above_left =
+                                        references.secondary_above_left;
+                                    secondary_references.has_above_left =
+                                        references.has_secondary_above_left;
+                                    CHECK(av2h_luma_predict(
+                                              &component_mode, width, height,
+                                              &secondary_references,
+                                              secondary_predictor,
+                                              width) == AV2H_OK);
+                                    for (index = 0U; index < sample_count;
+                                         ++index) {
+                                        CHECK(predictor[index] == (uint8_t)(
+                                            (primary_predictor[index] +
+                                             secondary_predictor[index] + 1U) >>
+                                            1U));
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 /*
  * Sample-exact reconstruction tests for the 15 remaining Emerald Q208
  * luma blocks.  Inputs (dequantized coefficients and intra predictor)
@@ -3336,6 +3525,7 @@ int main(void) {
     test_dc_16x32_prediction();
     test_dc_16x32_ibp_prediction();
     test_d113_16x64_prediction();
+    test_luma_directional_feature_matrix();
     test_live_plane_reconstruction();
     test_arguments();
     test_emerald_q208_luma_blocks();
