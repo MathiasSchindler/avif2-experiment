@@ -61,9 +61,16 @@ powershell -NoProfile -ExecutionPolicy Bypass -File `
 ```
 
 The generator accepts overrides for `-CensusExecutable`,
-`-ArtifactsDirectory`, `-CensusJson`, and `-OutputPath`. Corpus refreshes write
-to a per-run staging file and replace the canonical JSON only after a successful
-decode.
+`-ArtifactsDirectory`, `-CensusJson`, `-SupportManifest`, and `-OutputPath`.
+Corpus refreshes write to a per-run staging file and replace the canonical JSON
+only after a successful decode.
+
+Decoder support classifications live in `support.json`. The reviewed manifest
+separates implementation evidence from AVM-observed demand and classifies each
+reported family or value as `supported`, `partial`, `unsupported`, or `unknown`.
+The generator rejects unknown statuses, missing evidence, unmatched observed
+feature values, and support families without a corresponding demand category.
+Update the manifest when decoder evidence changes, then regenerate `status.md`.
 
 The `features` array reports coding-block geometry, luma/chroma modes and angle
 deltas, MRL and multi-line MRL, FSC, IBP availability, intrabc, transform skip,

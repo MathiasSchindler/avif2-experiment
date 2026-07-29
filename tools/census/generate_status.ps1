@@ -2,6 +2,7 @@ param(
     [string]$CensusExecutable = "",
     [string]$ArtifactsDirectory = "",
     [string]$CensusJson = "",
+    [string]$SupportManifest = "",
     [string]$OutputPath = "",
     [switch]$UseExistingCensus
 )
@@ -81,12 +82,47 @@ function Add-DemandStat([hashtable]$Stats, [string]$Name, [long]$Count,
     [void]$Stats[$Name].Files.Add($File)
 }
 
+function Assert-SupportRecord($Record, [string]$Description) {
+    $validStatuses = @("supported", "partial", "unsupported", "unknown")
+    if ($Record.status -notin $validStatuses) {
+        throw "Invalid support status '$($Record.status)' for $Description"
+    }
+    if (-not $Record.evidence) {
+        throw "Missing support evidence for $Description"
+    }
+}
+
+function Get-SupportRecord([string]$Feature, $Rules) {
+    $exact = @($Rules | Where-Object {
+        $_.match -eq "exact" -and $_.value -eq $Feature
+    })
+    if ($exact.Count -gt 1) {
+        throw "Multiple exact support rules match '$Feature'"
+    }
+    if ($exact.Count -eq 1) {
+        return $exact[0]
+    }
+    $prefix = @($Rules | Where-Object {
+        $_.match -eq "prefix" -and $Feature.StartsWith($_.value)
+    })
+    if ($prefix.Count -ne 1) {
+        throw "Expected one support rule for '$Feature', found $($prefix.Count)"
+    }
+    return $prefix[0]
+}
+
+function Format-SupportStatus([string]$Status) {
+    return $invariantCulture.TextInfo.ToTitleCase($Status)
+}
+
 $CensusExecutable = Resolve-RepositoryPath $CensusExecutable `
     "build\census\av2-census.exe"
 $ArtifactsDirectory = Resolve-RepositoryPath $ArtifactsDirectory `
     "images\artifacts"
 $CensusJson = Resolve-RepositoryPath $CensusJson `
     "build\census\all-artifacts-census.json"
+$SupportManifest = Resolve-RepositoryPath $SupportManifest `
+    "tools\census\support.json"
 $OutputPath = Resolve-RepositoryPath $OutputPath "tools\census\status.md"
 
 if (-not $UseExistingCensus) {
@@ -146,6 +182,23 @@ if (@($document.files).Count -eq 0) {
     throw "The census contains no files"
 }
 
+if (-not (Test-Path -LiteralPath $SupportManifest -PathType Leaf)) {
+    throw "Support manifest not found: $SupportManifest"
+}
+$support = Get-Content -LiteralPath $SupportManifest -Raw | ConvertFrom-Json
+if ($support.schema -ne "av2-decoder-feature-support/v1") {
+    throw "Unsupported support manifest schema: $($support.schema)"
+}
+foreach ($family in $support.families) {
+    Assert-SupportRecord $family "feature family '$($family.feature)'"
+}
+foreach ($rule in $support.rules) {
+    if ($rule.match -notin @("exact", "prefix") -or -not $rule.value) {
+        throw "Invalid support rule match '$($rule.match)' value '$($rule.value)'"
+    }
+    Assert-SupportRecord $rule "support rule '$($rule.value)'"
+}
+
 $featureSets = @{}
 $documentFrequency = @{}
 foreach ($file in $document.files) {
@@ -201,6 +254,12 @@ $categories = @(
     [PSCustomObject]@{ Name = "Non-DCT primary transform"; Test = {
         param($Feature) $Feature.primary_tx_type.name -ne "DCT_DCT"
     } },
+    [PSCustomObject]@{ Name = "Luma directional angle"; Test = {
+        param($Feature) $Feature.angle_delta -ne 0
+    } },
+    [PSCustomObject]@{ Name = "Chroma directional angle"; Test = {
+        param($Feature) $Feature.uv_angle_delta -ne 0
+    } },
     [PSCustomObject]@{ Name = "MRL"; Test = {
         param($Feature) $Feature.mrl_index -gt 0
     } },
@@ -212,6 +271,9 @@ $categories = @(
     } },
     [PSCustomObject]@{ Name = "Luma FSC"; Test = {
         param($Feature) $Feature.fsc_y -gt 0
+    } },
+    [PSCustomObject]@{ Name = "Chroma FSC"; Test = {
+        param($Feature) $Feature.fsc_uv -gt 0
     } },
     [PSCustomObject]@{ Name = "IntraBC"; Test = {
         param($Feature) $Feature.use_intrabc -gt 0
@@ -300,25 +362,30 @@ foreach ($file in $document.files) {
         }
     }
 }
-$wantedFeatures = @(
-    @(
-        foreach ($stat in $demandStats.Values) {
-            $coverage = $stat.Files.Count / $document.files.Count
-            $frequencySaturation = `
-                $stat.Occurrences / ($stat.Occurrences + 100.0)
-            [PSCustomObject]@{
-                Feature = $stat.Feature
-                Files = $stat.Files.Count
-                Coverage = 100.0 * $coverage
-                Occurrences = $stat.Occurrences
-                DemandScore = 80.0 * $coverage + 20.0 * $frequencySaturation
-            }
+$rankedDemand = @(
+    foreach ($stat in $demandStats.Values) {
+        $coverage = $stat.Files.Count / $document.files.Count
+        $frequencySaturation = `
+            $stat.Occurrences / ($stat.Occurrences + 100.0)
+        $supportRecord = Get-SupportRecord $stat.Feature $support.rules
+        [PSCustomObject]@{
+            Feature = $stat.Feature
+            Files = $stat.Files.Count
+            Coverage = 100.0 * $coverage
+            Occurrences = $stat.Occurrences
+            DemandScore = 80.0 * $coverage + 20.0 * $frequencySaturation
+            Status = $supportRecord.status
+            Evidence = $supportRecord.evidence
         }
-    ) | Sort-Object -Property `
-        @{ Expression = { $_.DemandScore }; Descending = $true }, `
-        @{ Expression = { $_.Feature }; Ascending = $true } |
-        Select-Object -First 20
+    }
 )
+$rankedDemand = @($rankedDemand | Sort-Object -Property `
+        @{ Expression = { $_.DemandScore }; Descending = $true }, `
+        @{ Expression = { $_.Feature }; Ascending = $true })
+$wantedFeatures = @($rankedDemand | Select-Object -First 20)
+$wantedNotFullySupported = @($rankedDemand | Where-Object {
+    $_.Status -ne "supported"
+} | Select-Object -First 20)
 
 $allAtoms = New-StringSet
 foreach ($set in $featureSets.Values) {
@@ -393,7 +460,8 @@ $lines = New-Object "System.Collections.Generic.List[string]"
 $lines.Add("# AV2 feature census status")
 $lines.Add("")
 $lines.Add("Generated by ``tools/census/generate_status.ps1`` from the pinned " +
-    "AVM-backed census. The report is deterministic and contains no timestamp.")
+    "AVM-backed census and reviewed ``tools/census/support.json`` manifest. " +
+    "The report is deterministic and contains no timestamp.")
 $lines.Add("")
 $lines.Add("Regenerate it from all artifact OBUs:")
 $lines.Add("")
@@ -453,6 +521,31 @@ foreach ($demand in $categoryDemand) {
         "$(Format-Integer $demand.Occurrences) |")
 }
 $lines.Add("")
+$lines.Add("## Decoder feature support matrix")
+$lines.Add("")
+$lines.Add("Support state comes from the reviewed ``tools/census/support.json`` " +
+    "manifest; it is not inferred from census frequency or decoder return " +
+    "statements. ``Supported`` means the feature path itself is validated, " +
+    "not that every surrounding coding tuple is accepted. ``Partial`` means " +
+    "implemented paths and known coverage gaps coexist. ``Unsupported`` means " +
+    "positive use is explicitly rejected. ``Unknown`` means the path has not " +
+    "been audited sufficiently.")
+$lines.Add("")
+$lines.Add("| Feature family | Status | Files | Coverage | Occurrences | Evidence |")
+$lines.Add("|---|---|---:|---:|---:|---|")
+foreach ($family in $support.families) {
+    $demand = @($categoryDemand | Where-Object {
+        $_.Feature -eq $family.feature
+    })
+    if ($demand.Count -ne 1) {
+        throw "Expected one demand category for support family '$($family.feature)'"
+    }
+    $lines.Add("| $($family.feature) | " +
+        "$(Format-SupportStatus $family.status) | $($demand[0].Files) | " +
+        "$(Format-Decimal $demand[0].Coverage)% | " +
+        "$(Format-Integer $demand[0].Occurrences) | $($family.evidence) |")
+}
+$lines.Add("")
 $lines.Add("## Most wanted feature values")
 $lines.Add("")
 $lines.Add("Demand score weights file breadth at 80% and a saturating occurrence " +
@@ -462,11 +555,30 @@ $lines.Add('$$')
 $lines.Add('D(a)=80\frac{F_a}{F}+20\frac{N_a}{N_a+100}')
 $lines.Add('$$')
 $lines.Add("")
-$lines.Add("| Rank | Feature value | Score | Files | Coverage | Occurrences |")
-$lines.Add("|---:|---|---:|---:|---:|---:|")
+$lines.Add("| Rank | Feature value | Status | Score | Files | Coverage | Occurrences |")
+$lines.Add("|---:|---|---|---:|---:|---:|---:|")
 for ($index = 0; $index -lt $wantedFeatures.Count; ++$index) {
     $feature = $wantedFeatures[$index]
     $lines.Add("| $($index + 1) | $($feature.Feature) | " +
+        "$(Format-SupportStatus $feature.Status) | " +
+        "$(Format-Decimal $feature.DemandScore) | $($feature.Files) | " +
+        "$(Format-Decimal $feature.Coverage)% | " +
+        "$(Format-Integer $feature.Occurrences) |")
+}
+$lines.Add("")
+$lines.Add("## Most wanted not fully supported feature values")
+$lines.Add("")
+$lines.Add("This is the demand ranking above with values classified as " +
+    "``supported`` removed. It includes ``partial``, ``unsupported``, and " +
+    "``unknown`` values; status is not converted into an arbitrary numeric " +
+    "multiplier.")
+$lines.Add("")
+$lines.Add("| Rank | Feature value | Status | Demand score | Files | Coverage | Occurrences |")
+$lines.Add("|---:|---|---|---:|---:|---:|---:|")
+for ($index = 0; $index -lt $wantedNotFullySupported.Count; ++$index) {
+    $feature = $wantedNotFullySupported[$index]
+    $lines.Add("| $($index + 1) | $($feature.Feature) | " +
+        "$(Format-SupportStatus $feature.Status) | " +
         "$(Format-Decimal $feature.DemandScore) | $($feature.Files) | " +
         "$(Format-Decimal $feature.Coverage)% | " +
         "$(Format-Integer $feature.Occurrences) |")
@@ -504,9 +616,12 @@ $lines.Add("- No corpus file uses a nonzero secondary-transform type. A dedicate
 $lines.Add("- ``enable_ibp`` records sequence capability. AVM applies IBP " +
     "deterministically to eligible transform sizes; it is not a separately " +
     "signaled per-block usage flag.")
-$lines.Add("- The score measures observed corpus value, not which features the " +
-    "experimental decoder still lacks. A missing-feature priority should multiply " +
-    "demand by support status and blocker severity.")
+$lines.Add("- Support classifications are a reviewed snapshot in " +
+    "``tools/census/support.json``. Update that manifest when decoder evidence " +
+    "changes; the generator validates coverage but cannot prove the entries.")
+$lines.Add("- The not-fully-supported ranking measures feature demand only. It " +
+    "does not include coefficient-profile or traversal blockers because those " +
+    "dimensions are outside the current AVM census schema.")
 $lines.Add("- AVM was built with ``CONFIG_ACCOUNTING=0``. Entropy symbols, CDF " +
     "contexts, EOB values, and coefficient levels are outside this census.")
 

@@ -1,0 +1,145 @@
+{
+  "schema": "av2-decoder-feature-support/v1",
+  "families": [
+    {
+      "feature": "Non-DCT primary transform",
+      "status": "partial",
+      "evidence": "Primary-transform syntax and inverse kernels exist, but accepted coefficient and geometry tuples remain profile-gated."
+    },
+    {
+      "feature": "Luma directional angle",
+      "status": "partial",
+      "evidence": "Directional prediction is validated on selected angles and geometries; artifact frontiers still include directional reconstruction profiles."
+    },
+    {
+      "feature": "Chroma directional angle",
+      "status": "partial",
+      "evidence": "Chroma directional syntax is present, but full corpus geometry coverage has not been demonstrated."
+    },
+    {
+      "feature": "MRL",
+      "status": "partial",
+      "evidence": "MRL syntax and selected predictors are validated; MRL-3 reconstruction remains a known artifact blocker."
+    },
+    {
+      "feature": "Multi-line MRL",
+      "status": "partial",
+      "evidence": "Multi-line syntax and selected predictors are implemented, with remaining tuple-specific reconstruction gaps."
+    },
+    {
+      "feature": "CfL",
+      "status": "partial",
+      "evidence": "Derived and explicit CfL paths have validated fixtures, but general artifact traversal remains incomplete."
+    },
+    {
+      "feature": "Luma FSC",
+      "status": "partial",
+      "evidence": "Selected FSC geometries reconstruct exactly; positive FSC is explicitly limited to admitted block sizes."
+    },
+    {
+      "feature": "Chroma FSC",
+      "status": "unknown",
+      "evidence": "The census observes chroma FSC metadata, but decoder support has not yet been audited independently."
+    },
+    {
+      "feature": "IntraBC",
+      "status": "partial",
+      "evidence": "Syntax and selected skipped/IDTX reconstruction paths are tested; general profile coverage is not established."
+    },
+    {
+      "feature": "Transform skip",
+      "status": "partial",
+      "evidence": "Skip syntax and selected reconstruction paths exist, but the corpus occurrences are not all validated end to end."
+    },
+    {
+      "feature": "Palette",
+      "status": "unsupported",
+      "evidence": "The luma mode reader explicitly returns AV2H_UNSUPPORTED when palette mode is nonzero."
+    },
+    {
+      "feature": "Secondary transform",
+      "status": "partial",
+      "evidence": "Secondary-transform syntax and selected IST kernels exist; this corpus has no nonzero secondary-transform occurrence."
+    }
+  ],
+  "rules": [
+    {
+      "match": "exact",
+      "value": "Primary tx ADST_ADST",
+      "status": "supported",
+      "evidence": "Validated in syntax mapping, two-axis ADST reconstruction, live parsing, artifact profiles, and production decode tests."
+    },
+    {
+      "match": "prefix",
+      "value": "Primary tx ",
+      "status": "partial",
+      "evidence": "The transform type is implemented, but accepted geometry and coefficient tuples remain profile-gated."
+    },
+    {
+      "match": "prefix",
+      "value": "Luma angle delta ",
+      "status": "partial",
+      "evidence": "Selected directional predictors are validated, with remaining geometry-specific reconstruction gaps."
+    },
+    {
+      "match": "prefix",
+      "value": "Chroma angle delta ",
+      "status": "partial",
+      "evidence": "Chroma directional syntax is present, but full corpus geometry coverage is not demonstrated."
+    },
+    {
+      "match": "prefix",
+      "value": "MRL index ",
+      "status": "partial",
+      "evidence": "MRL syntax and selected predictors are validated; higher-index reconstruction profiles remain incomplete."
+    },
+    {
+      "match": "prefix",
+      "value": "Multi-line MRL ",
+      "status": "partial",
+      "evidence": "Multi-line MRL is implemented for selected tuples, not all observed geometries."
+    },
+    {
+      "match": "exact",
+      "value": "CfL prediction",
+      "status": "partial",
+      "evidence": "Derived and explicit CfL paths are validated on selected fixtures; general traversal remains incomplete."
+    },
+    {
+      "match": "prefix",
+      "value": "Luma FSC ",
+      "status": "partial",
+      "evidence": "Selected FSC geometries are validated; positive FSC remains block-size gated."
+    },
+    {
+      "match": "prefix",
+      "value": "Chroma FSC ",
+      "status": "unknown",
+      "evidence": "Decoder support for the observed chroma FSC value has not been audited independently."
+    },
+    {
+      "match": "exact",
+      "value": "Intra block copy",
+      "status": "partial",
+      "evidence": "Selected IntraBC syntax and reconstruction paths are tested; general profile coverage is incomplete."
+    },
+    {
+      "match": "exact",
+      "value": "Transform skip",
+      "status": "partial",
+      "evidence": "Selected skip paths are tested, but all observed corpus tuples have not been validated end to end."
+    },
+    {
+      "match": "exact",
+      "value": "Palette prediction",
+      "status": "unsupported",
+      "evidence": "Positive palette mode is explicitly rejected by the luma mode reader."
+    },
+    {
+      "match": "prefix",
+      "value": "Secondary transform ",
+      "status": "partial",
+      "evidence": "Selected IST paths exist, but nonzero secondary transforms are absent from this corpus."
+    }
+  ]
+}
