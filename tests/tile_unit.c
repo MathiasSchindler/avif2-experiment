@@ -641,14 +641,14 @@ static void test_ordinary_luma_frontier(void) {
     static const uint64_t expected_luma_hashes[22U] = {
         UINT64_C(0xb666ec5be3701956), UINT64_C(0xf66e6f01aeb5ad97),
         UINT64_C(0x6fad48acc36f7004), UINT64_C(0x61c8894e341d8337),
-        UINT64_C(0x36e4f79d7a1afd8d), UINT64_C(0xaecac4eff4fa36ab),
-        UINT64_C(0x11e0a7da897ac03d), UINT64_C(0xc53ea1f293f270bb),
-        UINT64_C(0x68068c76727ff434), UINT64_C(0x049dc4b15c078fb8),
-        UINT64_C(0x3710120e3f473aff), UINT64_C(0xd314b0ad8369bbbe),
-        UINT64_C(0x01b14473c2f9ca43), UINT64_C(0xd83566b66f870732),
-        UINT64_C(0x7b9930a70121e35f), UINT64_C(0x1809c269cc990229),
-        UINT64_C(0x33ff0d2f73f81429), UINT64_C(0xddbbc7f54f5f2763),
-        UINT64_C(0x54c4f4576bdc6aa5), UINT64_C(0x8df97d08a2214684),
+        UINT64_C(0x5d61449d8e885cd9), UINT64_C(0x140819bddcea93f3),
+        UINT64_C(0x51b354a4f9625d1e), UINT64_C(0x59159bdf1bd9aa0b),
+        UINT64_C(0x8568a78c3ee65230), UINT64_C(0xb1fb34b3b9f69fb4),
+        UINT64_C(0x91ee2824221046b5), UINT64_C(0xb7488e6860351153),
+        UINT64_C(0x588141fd272cbf13), UINT64_C(0x26c9219765e31c1a),
+        UINT64_C(0x58f086378f647f07), UINT64_C(0x0a4e3d2a018ac751),
+        UINT64_C(0x33ff0d2f73f81429), UINT64_C(0xb3c3bf66a43a1cc8),
+        UINT64_C(0x65af8b9f4fbe616a), UINT64_C(0x061edd5afd44c0c4),
         UINT64_C(0x08618ffe09f8d977), UINT64_C(0x04918cb0bfb81c67)
     };
     static const uint8_t expected_sixth[64U] = {
@@ -657,65 +657,65 @@ static void test_ordinary_luma_frontier(void) {
         219U, 221U, 223U, 225U, 227U, 229U, 231U, 232U,
         233U, 236U, 238U, 240U, 242U, 244U, 246U, 249U,
         221U, 223U, 225U, 227U, 229U, 231U, 232U, 234U,
-        236U, 238U, 240U, 242U, 244U, 246U, 249U, 251U,
+        236U, 238U, 240U, 242U, 244U, 246U, 249U, 250U,
         223U, 225U, 227U, 229U, 231U, 233U, 234U, 236U,
-        238U, 240U, 242U, 244U, 247U, 249U, 251U, 251U
+        238U, 240U, 242U, 244U, 247U, 249U, 250U, 253U
     };
     static const uint8_t expected_seventh[64U] = {
         225U, 227U, 229U, 231U, 233U, 234U, 236U, 238U,
-        240U, 242U, 244U, 247U, 249U, 250U, 251U, 251U,
+        240U, 242U, 244U, 247U, 249U, 251U, 252U, 253U,
         228U, 230U, 232U, 233U, 234U, 237U, 239U, 241U,
-        243U, 245U, 248U, 249U, 250U, 251U, 6U, 6U,
+        243U, 245U, 248U, 250U, 251U, 252U, 8U, 8U,
         230U, 232U, 233U, 235U, 237U, 239U, 241U, 243U,
-        245U, 248U, 249U, 250U, 251U, 6U, 6U, 6U,
+        245U, 248U, 250U, 251U, 252U, 8U, 8U, 8U,
         232U, 234U, 235U, 237U, 239U, 241U, 243U, 246U,
-        248U, 250U, 251U, 6U, 6U, 6U, 6U, 6U
+        248U, 250U, 252U, 8U, 8U, 8U, 8U, 8U
     };
     static const uint8_t expected_eighth[16U] = {
-        247U, 249U, 251U, 251U,
-        249U, 250U, 251U, 251U,
-        250U, 251U, 251U, 6U,
-        251U, 6U, 6U, 6U
+        247U, 249U, 250U, 253U,
+        249U, 251U, 252U, 253U,
+        251U, 252U, 253U, 8U,
+        252U, 8U, 8U, 8U
     };
     static const uint8_t expected_ninth[16U] = {
-        255U, 255U, 5U, 0U,
-        4U, 0U, 0U, 6U,
-        0U, 6U, 6U, 6U,
-        6U, 6U, 6U, 6U
+        255U, 255U, 7U, 0U,
+        6U, 0U, 0U, 8U,
+        0U, 8U, 8U, 8U,
+        8U, 8U, 8U, 8U
     };
     static const uint8_t expected_tenth[32U] = {
-        9U, 0U, 1U, 4U, 6U, 8U, 10U, 11U,
-        2U, 3U, 5U, 7U, 9U, 11U, 13U, 14U,
-        7U, 8U, 9U, 11U, 14U, 16U, 18U, 19U,
-        10U, 11U, 13U, 15U, 17U, 19U, 21U, 22U
+        74U, 19U, 5U, 4U, 8U, 10U, 12U, 13U,
+        14U, 3U, 5U, 9U, 11U, 13U, 15U, 16U,
+        5U, 10U, 11U, 13U, 16U, 18U, 20U, 21U,
+        12U, 13U, 15U, 17U, 19U, 21U, 23U, 24U
     };
     static const uint8_t expected_eleventh[64U] = {
-        1U, 5U, 6U, 6U, 8U, 10U, 13U, 16U,
-        6U, 6U, 7U, 10U, 11U, 14U, 18U, 20U,
-        7U, 10U, 12U, 14U, 17U, 20U, 21U, 21U,
-        11U, 14U, 17U, 21U, 23U, 23U, 24U, 24U,
-        15U, 20U, 23U, 25U, 26U, 27U, 27U, 28U,
-        20U, 25U, 27U, 28U, 30U, 31U, 32U, 32U,
-        23U, 26U, 29U, 31U, 33U, 35U, 36U, 36U,
-        23U, 27U, 30U, 32U, 35U, 37U, 38U, 39U
+        1U, 7U, 8U, 8U, 10U, 12U, 15U, 18U,
+        8U, 8U, 9U, 12U, 13U, 16U, 20U, 22U,
+        9U, 12U, 14U, 16U, 19U, 22U, 23U, 23U,
+        13U, 16U, 19U, 23U, 25U, 25U, 26U, 26U,
+        17U, 22U, 25U, 27U, 28U, 29U, 29U, 30U,
+        22U, 27U, 29U, 30U, 32U, 33U, 34U, 34U,
+        25U, 28U, 31U, 33U, 35U, 37U, 38U, 38U,
+        25U, 29U, 32U, 34U, 37U, 39U, 40U, 41U
     };
     static const uint8_t expected_twelfth[128U] = {
-        239U, 241U, 243U, 245U, 247U, 249U, 251U, 251U,
-        255U, 255U, 5U, 0U, 1U, 5U, 6U, 6U,
-        242U, 244U, 246U, 249U, 249U, 250U, 251U, 251U,
-        4U, 0U, 0U, 6U, 6U, 6U, 7U, 10U,
-        244U, 246U, 249U, 251U, 250U, 251U, 251U, 6U,
-        0U, 6U, 6U, 6U, 7U, 10U, 12U, 14U,
-        247U, 249U, 251U, 251U, 251U, 6U, 6U, 6U,
-        6U, 6U, 6U, 6U, 11U, 14U, 17U, 21U,
-        249U, 250U, 251U, 251U, 9U, 0U, 1U, 4U,
-        6U, 8U, 10U, 11U, 15U, 20U, 23U, 25U,
-        250U, 251U, 6U, 6U, 2U, 3U, 5U, 7U,
-        9U, 11U, 13U, 14U, 20U, 25U, 27U, 28U,
-        251U, 6U, 6U, 6U, 7U, 8U, 9U, 11U,
-        14U, 16U, 18U, 19U, 23U, 26U, 29U, 31U,
-        6U, 6U, 6U, 6U, 10U, 11U, 13U, 15U,
-        17U, 19U, 21U, 22U, 23U, 27U, 30U, 32U
+        239U, 241U, 243U, 245U, 247U, 249U, 250U, 253U,
+        255U, 255U, 7U, 0U, 1U, 7U, 8U, 8U,
+        242U, 244U, 246U, 249U, 249U, 251U, 252U, 253U,
+        6U, 0U, 0U, 8U, 8U, 8U, 9U, 12U,
+        244U, 246U, 249U, 250U, 251U, 252U, 253U, 8U,
+        0U, 8U, 8U, 8U, 9U, 12U, 14U, 16U,
+        247U, 249U, 250U, 253U, 252U, 8U, 8U, 8U,
+        8U, 8U, 8U, 8U, 13U, 16U, 19U, 23U,
+        249U, 251U, 252U, 253U, 74U, 19U, 5U, 4U,
+        8U, 10U, 12U, 13U, 17U, 22U, 25U, 27U,
+        251U, 252U, 8U, 8U, 14U, 3U, 5U, 9U,
+        11U, 13U, 15U, 16U, 22U, 27U, 29U, 30U,
+        252U, 8U, 8U, 8U, 5U, 10U, 11U, 13U,
+        16U, 18U, 20U, 21U, 25U, 28U, 31U, 33U,
+        8U, 8U, 8U, 8U, 12U, 13U, 15U, 17U,
+        19U, 21U, 23U, 24U, 25U, 29U, 32U, 34U
     };
     static const uint8_t seventh_nonzero[10U] = {
         30U, 31U, 45U, 46U, 47U, 59U, 60U, 61U, 62U, 63U

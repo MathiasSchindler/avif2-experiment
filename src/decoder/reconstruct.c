@@ -1464,7 +1464,9 @@ Av2hStatus av2h_luma_predict(
         predictor_stride < width) {
         return AV2H_INVALID_ARGUMENT;
     }
-    if (((mode->angle_delta == -2 || mode->angle_delta == 2) ||
+        if (((mode->angle_delta == -3 || mode->angle_delta == -2 ||
+                    mode->angle_delta == -1 || mode->angle_delta == 2 ||
+                    mode->angle_delta == 3) ||
          mode->mrl_index == 1U) &&
         mode->angle_delta >= -3 && mode->angle_delta <= 3 &&
         directional_base_angle(mode->mode) != 0 &&

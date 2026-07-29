@@ -2728,11 +2728,18 @@ static void check_first_luma(const ArtifactExpectation *expected,
                                               UINT64_C(0x8dc81c8022aad79d));
                                     }
                                     if (leaf.node.row == 32U &&
+                                        leaf.node.column == 50U) {
+                                        CHECK(block_pixel_hash(
+                                                  scratch.predictor,
+                                                  64U, 64U, 64U) ==
+                                              UINT64_C(0x5b899a186e8cec57));
+                                    }
+                                    if (leaf.node.row == 32U &&
                                         leaf.node.column == 54U) {
                                         CHECK(block_pixel_hash(
                                                   scratch.predictor,
                                                   64U, 64U, 64U) ==
-                                              UINT64_C(0xe1a5cb11fefc66f2));
+                                              UINT64_C(0x633e46ff72d5f560));
                                     }
                                     if (leaf.node.row == 16U &&
                                         leaf.node.column == 0U) {

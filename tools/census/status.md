@@ -107,9 +107,9 @@ $$
 | 3 | Luma angle delta -2 | Supported | 95.2 | 20 | 95.2% | 1,962 |
 | 4 | MRL index 1 | Supported | 95.0 | 20 | 95.2% | 1,593 |
 | 5 | Primary tx DCT_ADST | Supported | 94.7 | 20 | 95.2% | 1,264 |
-| 6 | Luma angle delta -3 | Partial | 94.6 | 20 | 95.2% | 1,131 |
-| 7 | Luma angle delta 3 | Partial | 94.3 | 20 | 95.2% | 957 |
-| 8 | Luma angle delta -1 | Partial | 94.2 | 20 | 95.2% | 904 |
+| 6 | Luma angle delta -3 | Supported | 94.6 | 20 | 95.2% | 1,131 |
+| 7 | Luma angle delta 3 | Supported | 94.3 | 20 | 95.2% | 957 |
+| 8 | Luma angle delta -1 | Supported | 94.2 | 20 | 95.2% | 904 |
 | 9 | MRL index 2 | Partial | 94.0 | 20 | 95.2% | 830 |
 | 10 | Luma angle delta 1 | Partial | 93.8 | 20 | 95.2% | 728 |
 | 11 | Multi-line MRL 1 | Partial | 91.3 | 19 | 90.5% | 1,785 |
@@ -129,26 +129,26 @@ This is the demand ranking above with values classified as `supported` removed. 
 
 | Rank | Feature value | Status | Demand score | Files | Coverage | Occurrences |
 |---:|---|---|---:|---:|---:|---:|
-| 1 | Luma angle delta -3 | Partial | 94.6 | 20 | 95.2% | 1,131 |
-| 2 | Luma angle delta 3 | Partial | 94.3 | 20 | 95.2% | 957 |
-| 3 | Luma angle delta -1 | Partial | 94.2 | 20 | 95.2% | 904 |
-| 4 | MRL index 2 | Partial | 94.0 | 20 | 95.2% | 830 |
-| 5 | Luma angle delta 1 | Partial | 93.8 | 20 | 95.2% | 728 |
-| 6 | Multi-line MRL 1 | Partial | 91.3 | 19 | 90.5% | 1,785 |
-| 7 | Primary tx ADST_DCT | Partial | 90.8 | 19 | 90.5% | 1,204 |
-| 8 | MRL index 3 | Partial | 89.5 | 19 | 90.5% | 599 |
-| 9 | CfL prediction | Partial | 84.2 | 17 | 81.0% | 3,804 |
-| 10 | Primary tx ADST_FLIPADST | Partial | 80.8 | 17 | 81.0% | 410 |
-| 11 | Chroma angle delta 2 | Partial | 80.4 | 17 | 81.0% | 359 |
-| 12 | Primary tx FLIPADST_ADST | Partial | 80.1 | 17 | 81.0% | 333 |
-| 13 | Luma FSC 1 | Partial | 79.7 | 16 | 76.2% | 1,471 |
-| 14 | Primary tx IDTX | Partial | 79.7 | 16 | 76.2% | 1,467 |
-| 15 | Chroma angle delta 1 | Partial | 72.3 | 15 | 71.4% | 312 |
-| 16 | Chroma angle delta -2 | Partial | 71.4 | 14 | 66.7% | 928 |
-| 17 | Intra block copy | Partial | 70.8 | 15 | 71.4% | 216 |
-| 18 | Chroma angle delta 3 | Partial | 68.1 | 14 | 66.7% | 284 |
-| 19 | Chroma angle delta -3 | Partial | 66.1 | 13 | 61.9% | 478 |
-| 20 | Chroma angle delta -1 | Partial | 61.9 | 12 | 57.1% | 429 |
+| 1 | MRL index 2 | Partial | 94.0 | 20 | 95.2% | 830 |
+| 2 | Luma angle delta 1 | Partial | 93.8 | 20 | 95.2% | 728 |
+| 3 | Multi-line MRL 1 | Partial | 91.3 | 19 | 90.5% | 1,785 |
+| 4 | Primary tx ADST_DCT | Partial | 90.8 | 19 | 90.5% | 1,204 |
+| 5 | MRL index 3 | Partial | 89.5 | 19 | 90.5% | 599 |
+| 6 | CfL prediction | Partial | 84.2 | 17 | 81.0% | 3,804 |
+| 7 | Primary tx ADST_FLIPADST | Partial | 80.8 | 17 | 81.0% | 410 |
+| 8 | Chroma angle delta 2 | Partial | 80.4 | 17 | 81.0% | 359 |
+| 9 | Primary tx FLIPADST_ADST | Partial | 80.1 | 17 | 81.0% | 333 |
+| 10 | Luma FSC 1 | Partial | 79.7 | 16 | 76.2% | 1,471 |
+| 11 | Primary tx IDTX | Partial | 79.7 | 16 | 76.2% | 1,467 |
+| 12 | Chroma angle delta 1 | Partial | 72.3 | 15 | 71.4% | 312 |
+| 13 | Chroma angle delta -2 | Partial | 71.4 | 14 | 66.7% | 928 |
+| 14 | Intra block copy | Partial | 70.8 | 15 | 71.4% | 216 |
+| 15 | Chroma angle delta 3 | Partial | 68.1 | 14 | 66.7% | 284 |
+| 16 | Chroma angle delta -3 | Partial | 66.1 | 13 | 61.9% | 478 |
+| 17 | Chroma angle delta -1 | Partial | 61.9 | 12 | 57.1% | 429 |
+| 18 | Primary tx V_ADST | Partial | 56.6 | 12 | 57.1% | 119 |
+| 19 | Primary tx DCT_FLIPADST | Partial | 54.4 | 13 | 61.9% | 32 |
+| 20 | Primary tx V_DCT | Partial | 54.0 | 12 | 57.1% | 71 |
 
 ## Compact regression set
 

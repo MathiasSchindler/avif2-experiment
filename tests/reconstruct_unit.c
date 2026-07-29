@@ -692,9 +692,9 @@ static void test_d45_minus_one_16x4_prediction(void) {
         139U, 141U, 143U, 145U, 147U, 149U, 151U, 152U,
         153U, 156U, 158U, 160U, 162U, 164U, 166U, 169U,
         141U, 143U, 145U, 147U, 149U, 151U, 152U, 154U,
-        156U, 158U, 160U, 162U, 164U, 166U, 169U, 171U,
+        156U, 158U, 160U, 162U, 164U, 166U, 169U, 170U,
         143U, 145U, 147U, 149U, 151U, 153U, 154U, 156U,
-        158U, 160U, 162U, 164U, 167U, 169U, 171U, 171U
+        158U, 160U, 162U, 164U, 167U, 169U, 171U, 172U
     };
     Av2hFirstLeafMode mode = { 0 };
     Av2hLumaReferences references = { 0 };
@@ -1489,8 +1489,11 @@ static void test_luma_directional_feature_matrix(void) {
                     size_t sample_count = (size_t)width * height;
                     for (mrl_index = 0U; mrl_index < 4U; ++mrl_index) {
                         mode.mrl_index = (uint8_t)mrl_index;
-                        if (mrl_index != 1U && mode.angle_delta != -2 &&
-                            mode.angle_delta != 2) {
+                        if (mrl_index != 1U && mode.angle_delta != -3 &&
+                            mode.angle_delta != -2 &&
+                            mode.angle_delta != -1 &&
+                            mode.angle_delta != 2 &&
+                            mode.angle_delta != 3) {
                             continue;
                         }
                         for (multi_line_mrl = 0U; multi_line_mrl <= 1U;
