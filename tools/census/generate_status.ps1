@@ -82,6 +82,47 @@ function Add-DemandStat([hashtable]$Stats, [string]$Name, [long]$Count,
     [void]$Stats[$Name].Files.Add($File)
 }
 
+function Get-NamedFeatureValues($Feature) {
+    $values = @()
+    if ($Feature.mrl_index -gt 0) {
+        $values += "MRL index $($Feature.mrl_index)"
+    }
+    if ($Feature.multi_line_mrl -gt 0) {
+        $values += "Multi-line MRL $($Feature.multi_line_mrl)"
+    }
+    if ($Feature.angle_delta -ne 0) {
+        $values += "Luma angle delta $($Feature.angle_delta)"
+    }
+    if ($Feature.uv_angle_delta -ne 0) {
+        $values += "Chroma angle delta $($Feature.uv_angle_delta)"
+    }
+    if ($Feature.fsc_y -gt 0) {
+        $values += "Luma FSC $($Feature.fsc_y)"
+    }
+    if ($Feature.fsc_uv -gt 0) {
+        $values += "Chroma FSC $($Feature.fsc_uv)"
+    }
+    if ($Feature.secondary_tx_type -gt 0) {
+        $values += "Secondary transform $($Feature.secondary_tx_type)"
+    }
+    if ($Feature.skip_transform -gt 0) {
+        $values += "Transform skip"
+    }
+    if ($Feature.uv_mode.name -eq "CFL") {
+        $values += "CfL prediction"
+    }
+    if ($Feature.palette_y -gt 0 -or $Feature.palette_uv -gt 0) {
+        $values += "Palette prediction"
+    }
+    if ($Feature.use_intrabc -gt 0) {
+        $values += "Intra block copy"
+    }
+    if ($Feature.primary_tx_type.name -ne "DCT_DCT") {
+        $values += "Primary tx $($Feature.primary_tx_type.name)"
+    }
+    return $values
+}
+
 function Assert-SupportRecord($Record, [string]$Description) {
     $validStatuses = @("supported", "partial", "unsupported", "unknown")
     if ($Record.status -notin $validStatuses) {
@@ -315,50 +356,8 @@ $demandStats = @{}
 foreach ($file in $document.files) {
     foreach ($feature in $file.features) {
         $count = [long]$feature.count
-        if ($feature.mrl_index -gt 0) {
-            Add-DemandStat $demandStats "MRL index $($feature.mrl_index)" `
-                $count $file.path
-        }
-        if ($feature.multi_line_mrl -gt 0) {
-            Add-DemandStat $demandStats `
-                "Multi-line MRL $($feature.multi_line_mrl)" $count $file.path
-        }
-        if ($feature.angle_delta -ne 0) {
-            Add-DemandStat $demandStats `
-                "Luma angle delta $($feature.angle_delta)" $count $file.path
-        }
-        if ($feature.uv_angle_delta -ne 0) {
-            Add-DemandStat $demandStats `
-                "Chroma angle delta $($feature.uv_angle_delta)" $count $file.path
-        }
-        if ($feature.fsc_y -gt 0) {
-            Add-DemandStat $demandStats "Luma FSC $($feature.fsc_y)" `
-                $count $file.path
-        }
-        if ($feature.fsc_uv -gt 0) {
-            Add-DemandStat $demandStats "Chroma FSC $($feature.fsc_uv)" `
-                $count $file.path
-        }
-        if ($feature.secondary_tx_type -gt 0) {
-            Add-DemandStat $demandStats `
-                "Secondary transform $($feature.secondary_tx_type)" `
-                $count $file.path
-        }
-        if ($feature.skip_transform -gt 0) {
-            Add-DemandStat $demandStats "Transform skip" $count $file.path
-        }
-        if ($feature.uv_mode.name -eq "CFL") {
-            Add-DemandStat $demandStats "CfL prediction" $count $file.path
-        }
-        if ($feature.palette_y -gt 0 -or $feature.palette_uv -gt 0) {
-            Add-DemandStat $demandStats "Palette prediction" $count $file.path
-        }
-        if ($feature.use_intrabc -gt 0) {
-            Add-DemandStat $demandStats "Intra block copy" $count $file.path
-        }
-        if ($feature.primary_tx_type.name -ne "DCT_DCT") {
-            Add-DemandStat $demandStats `
-                "Primary tx $($feature.primary_tx_type.name)" $count $file.path
+        foreach ($name in @(Get-NamedFeatureValues $feature)) {
+            Add-DemandStat $demandStats $name $count $file.path
         }
     }
 }
@@ -386,6 +385,36 @@ $wantedFeatures = @($rankedDemand | Select-Object -First 20)
 $wantedNotFullySupported = @($rankedDemand | Where-Object {
     $_.Status -ne "supported"
 } | Select-Object -First 20)
+
+$artifactMissingFeatures = @(
+    foreach ($file in $document.files) {
+        $observed = New-StringSet
+        foreach ($feature in $file.features) {
+            foreach ($name in @(Get-NamedFeatureValues $feature)) {
+                [void]$observed.Add($name)
+            }
+        }
+        $missing = @(
+            foreach ($name in $observed) {
+                $record = Get-SupportRecord $name $support.rules
+                if ($record.status -ne "supported") {
+                    [PSCustomObject]@{
+                        Name = $name
+                        Status = Format-SupportStatus $record.status
+                    }
+                }
+            }
+        ) | Sort-Object -Property Name
+        $missing = @($missing)
+        [PSCustomObject]@{
+            File = [IO.Path]::GetFileName($file.path)
+            MissingCount = $missing.Count
+            Missing = $missing
+        }
+    }
+) | Sort-Object -Property `
+    @{ Expression = { $_.MissingCount }; Ascending = $true }, `
+    @{ Expression = { $_.File }; Ascending = $true }
 
 $allAtoms = New-StringSet
 foreach ($set in $featureSets.Values) {
@@ -594,6 +623,29 @@ $lines.Add("|---:|---|---:|---:|")
 foreach ($step in $setCover) {
     $lines.Add("| $($step.Step) | ``$($step.File)`` | $($step.NewValues) | " +
         "$(Format-Decimal $step.Coverage)% |")
+}
+$lines.Add("")
+$lines.Add("## Artifact missing-feature breadth")
+$lines.Add("")
+$lines.Add("A distinct missing feature is an observed named feature value whose " +
+    "reviewed manifest status is not ``Supported``. Files are sorted by this " +
+    "count ascending as a low-hanging-fruit heuristic. The count does not " +
+    "include coefficient-profile, entropy-context, or traversal blockers, so " +
+    "it is not an estimate of the work required for complete decoding.")
+$lines.Add("")
+$lines.Add("| Rank | File | Distinct missing features | Missing feature values |")
+$lines.Add("|---:|---|---:|---|")
+for ($index = 0; $index -lt $artifactMissingFeatures.Count; ++$index) {
+    $artifact = $artifactMissingFeatures[$index]
+    $missingText = if ($artifact.MissingCount -eq 0) {
+        "None"
+    } else {
+        @($artifact.Missing | ForEach-Object {
+            "$($_.Name) ($($_.Status))"
+        }) -join "<br>"
+    }
+    $lines.Add("| $($index + 1) | ``$($artifact.File)`` | " +
+        "$($artifact.MissingCount) | $missingText |")
 }
 $lines.Add("")
 $lines.Add("## Rare-feature fixtures")
