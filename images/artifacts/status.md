@@ -1,7 +1,8 @@
 # Decoder status snapshot
 
-Snapshot from 2026-07-28 at base revision `dce27a6`, including the current
-uncommitted entropy and reconstruction profile work.
+Snapshot from 2026-07-29 at base revision `7db4a95`, including the current
+uncommitted Chimp Q192 entropy, FSC, transform, prediction, and reconstruction
+profile work.
 
 The public decoder completes 1 of the 21 `.obu` files in this directory.
 `emerald-192x96-qp208.obu` decodes to an I420 file that is byte-identical to
@@ -12,7 +13,7 @@ in 4x4 units.
 | File | Current endpoint | Blocker |
 | --- | --- | --- |
 | `chalk-320x240-qp128.obu` | `(0,0)` 8x16, tell 32 | Unpinned Q128 8x16 coefficient-level profile after exact CDEF, CCSO, mode, EOB, and secondary-transform syntax |
-| `chimp-240x287-qp192.obu` | `(0,0)` 8x16, tell 15 | Q192 8x16 luma profile |
+| `chimp-240x287-qp192.obu` | Superblock 14, 270 luma and 16 chroma leaves; next `(56,38)` 4x8 Vertical/-3, MRL-3 multi-line all-zero leaf at tell 8008/range 39360 | Q192 4x8 Vertical angle 81, MRL index 3 multi-line predictor/reconstruction profile |
 | `chimp-93x111-qp064.obu` | `(0,0)` 8x8 frontier, tell 30 | Remaining Q64 8x8 luma/coefficient profile |
 | `chinnathurai-128x128-qp112.obu` | 32x64 EOB 22, implicit DCT_DCT, and secondary symbol 0 complete, tell 19 | Q112 32x64 coefficient-level profile |
 | `chinnathurai-333x333-qp224.obu` | Exact AVM entropy parity through `(32,58)` 16x64 coefficient entry: tell 611, range 34904, EOB 15; `(32,54)` EOB 2 levels/signs end at tell 599, range 33656 | Q224 16x64 EOB-15 coefficient-level profile |
@@ -53,6 +54,14 @@ Summary:
   correcting TX_8X16 entropy context, admitting three exact predictor
   geometries, and clipping coefficient contexts at frame edges; its next gap
   is the `(64,48)` 32x8 D203/+3 MRL-3 reconstruction profile;
+- Chimp Q192 now matches the pinned AVM entropy path through superblocks 11,
+  12, and 13 and advances deep into superblock 14. The current frontier is
+  tell 8008/range 39360 after 270 luma and 16 chroma leaves; the next exact
+  tuple is `(56,38)` 4x8 Vertical/-3 with MRL index 3, multi-line MRL enabled,
+  IBP enabled, and an all-zero coefficient prefix. This work adds the required
+  FSC 8x4 path, exact Q3 coefficient CDF rows, pinned primary-transform rows,
+  IST combinations, directional and multi-line predictors, and inverse
+  transform admissions while retaining fail-closed tuple checks;
 - the Q64 first-block frontiers advance to tells 30 and 34 for Chimp and
   Pastell respectively;
 - Laarim Q96, Cuckoo Q160, Pastell Q160, and Louis Q224 retain their locked

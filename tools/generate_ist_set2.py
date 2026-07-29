@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Extract the AV2 IST set-2/type-3 tables from the pinned AVM source."""
+"""Extract the AV2 IST set-2 tables from the pinned AVM source."""
 
 from pathlib import Path
 import re
@@ -45,18 +45,27 @@ def main() -> None:
     source = SOURCE.read_text(encoding="utf-8")
     kernels = parse_initializer(source, "ist_8x8_kernel")
     mappings = parse_initializer(source, "coeff8x8_mapping")
-    kernel = kernels[2][2]
-    scan_map = mappings[2 * 3 + 2]
-    if len(kernel) != 32 or any(len(row) != 48 for row in kernel):
-        raise ValueError("unexpected set-2/type-3 kernel dimensions")
-    if len(scan_map) != 48:
-        raise ValueError("unexpected set-2/type-3 scan-map dimensions")
-    content = (
-        "/* Generated from pinned AVM v1.0.0 normative tables. */\n"
-        + format_array("av2h_ist_8x8_set2_type3_kernel", kernel)
-        + "\n\nstatic const uint8_t av2h_ist_8x8_set2_type3_scan_map[48U] = {\n"
-        + "    " + ", ".join(f"{value}U" for value in scan_map) + "\n};\n"
-    )
+    sections = ["/* Generated from pinned AVM v1.0.0 normative tables. */"]
+    for type_index in (0, 2):
+        type_number = type_index + 1
+        kernel = kernels[2][type_index]
+        scan_map = mappings[2 * 3 + type_index]
+        if len(kernel) != 32 or any(len(row) != 48 for row in kernel):
+            raise ValueError(
+                f"unexpected set-2/type-{type_number} kernel dimensions"
+            )
+        if len(scan_map) != 48:
+            raise ValueError(
+                f"unexpected set-2/type-{type_number} scan-map dimensions"
+            )
+        sections.append(
+            format_array(
+                f"av2h_ist_8x8_set2_type{type_number}_kernel", kernel
+            )
+            + f"\n\nstatic const uint8_t av2h_ist_8x8_set2_type{type_number}_scan_map[48U] = {{\n"
+            + "    " + ", ".join(f"{value}U" for value in scan_map) + "\n};"
+        )
+    content = "\n".join(sections) + "\n"
     OUTPUT.write_text(content, encoding="ascii", newline="\n")
 
 

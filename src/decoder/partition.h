@@ -110,6 +110,8 @@ typedef struct {
 } Av2hFirstLeafPath;
 
 extern Av2hFirstLeafPath av2h_debug_partition_path;
+extern uint8_t av2h_debug_partition_stage;
+extern Av2hPartitionNode av2h_debug_partition_node;
 
 typedef struct {
     uint8_t *above[AV2H_PARTITION_STRUCTURE_COUNT];

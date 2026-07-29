@@ -1960,6 +1960,8 @@ static Av2hStatus luma_mode_read_internal(
         }
         mode->fsc_mode = (uint8_t)value;
         if (value != 0U && leaf->block_size != AV2H_BLOCK_4X4 &&
+            leaf->block_size != AV2H_BLOCK_4X8 &&
+            leaf->block_size != AV2H_BLOCK_8X4 &&
             leaf->block_size != AV2H_BLOCK_8X16 &&
             leaf->block_size != AV2H_BLOCK_16X4) {
             return AV2H_UNSUPPORTED;

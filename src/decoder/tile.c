@@ -2,6 +2,7 @@
 #include "tx_geometry.h"
 
 uint32_t av2h_debug_luma_stage_ranges[5U];
+uint8_t av2h_debug_luma_tile_stage;
 uint8_t av2h_debug_chroma_colocated_mode;
 int8_t av2h_debug_chroma_colocated_delta;
 
@@ -399,7 +400,9 @@ static Av2hStatus tile_initialize_all_zero_luma(
             (decoder->frame->width == 417U &&
              decoder->frame->height == 277U))) ||
         (decoder->frame->base_q_index == 224U &&
-         decoder->frame->width == 333U && decoder->frame->height == 333U)) {
+         decoder->frame->width == 333U && decoder->frame->height == 333U) ||
+        (decoder->frame->base_q_index == 192U &&
+         decoder->frame->width == 240U && decoder->frame->height == 287U)) {
         const Av2hTxDescriptor *descriptor;
         status = av2h_tx_descriptor_get(
             leaf->prefix.tx_size, &descriptor);
@@ -725,6 +728,7 @@ Av2hStatus av2h_tile_decoder_next_luma(
         !q_luma_geometry_supported(decoder->frame, &leaf->node)) {
         return tile_decoder_fail(decoder, AV2H_UNSUPPORTED);
     }
+    av2h_debug_luma_tile_stage = 1U;
     status = av2h_luma_mode_read_with_state_and_gdf(
         &decoder->range, &decoder->leaf_cdfs, decoder->sequence,
         decoder->frame, &leaf->node, &decoder->luma_mode_contexts,
@@ -749,6 +753,7 @@ Av2hStatus av2h_tile_decoder_next_luma(
         decoder->event = AV2H_TILE_EVENT_LUMA_LEAF;
         return AV2H_OK;
     }
+    av2h_debug_luma_tile_stage = 2U;
     status = av2h_coeff_prefix_read_with_state(
         &decoder->range, &decoder->coeff_cdfs, decoder->frame, &leaf->node,
         &leaf->mode, &decoder->coefficient_contexts, &leaf->prefix,
@@ -762,11 +767,13 @@ Av2hStatus av2h_tile_decoder_next_luma(
         decoder->event = AV2H_TILE_EVENT_LUMA_LEAF;
         return AV2H_OK;
     }
+    av2h_debug_luma_tile_stage = 3U;
     status = av2h_first_transform_type_read(
         &decoder->range, &decoder->transform_cdfs, decoder->sequence,
         decoder->frame, &leaf->mode, &leaf->prefix, &leaf->transform);
     if (status != AV2H_OK) return tile_decoder_fail(decoder, status);
     av2h_debug_luma_stage_ranges[3] = decoder->range.range;
+    av2h_debug_luma_tile_stage = 4U;
     status = av2h_coeff_block_read_with_state(
         &decoder->range, &decoder->level_cdfs, decoder->sequence,
         decoder->frame, &leaf->node, &leaf->mode, &leaf->prefix,

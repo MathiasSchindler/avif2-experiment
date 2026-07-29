@@ -10,3 +10,4 @@ __pycache__/
 /images/artifacts/*
 !/images/artifacts/status.md
 /docs/spec/av2-v1.0.0/
+/.vscode/

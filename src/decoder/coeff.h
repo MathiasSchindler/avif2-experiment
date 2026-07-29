@@ -8,8 +8,11 @@ extern uint16_t av2h_debug_chroma_prefix_frame[3U];
 extern uint8_t av2h_debug_chroma_prefix_context;
 extern uint16_t av2h_debug_eob_cdf[12U];
 extern uint32_t av2h_debug_eob_range;
+extern uint8_t av2h_debug_eob_tx;
+extern uint8_t av2h_debug_eob_class;
 extern uint16_t av2h_debug_skip_cdf[6U];
 extern uint32_t av2h_debug_skip_range;
+extern uint8_t av2h_debug_luma_prefix_stage;
 
 typedef enum {
     AV2H_TX_4X4 = 0,

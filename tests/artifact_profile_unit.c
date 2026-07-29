@@ -376,6 +376,9 @@ extern uint64_t av2h_debug_mhccp_chroma_hash[2U];
 extern uint64_t av2h_debug_mhccp_chroma_top_hash[2U];
 extern uint64_t av2h_debug_mhccp_chroma_left_hash[2U];
 extern uint8_t av2h_debug_mhccp_count;
+extern uint32_t av2h_debug_chimp_base[64U][18U];
+extern uint8_t av2h_debug_chimp_base_count;
+extern uint32_t av2h_debug_chimp_eob[18U];
 extern uint8_t av2h_debug_partition_stage;
 extern Av2hPartitionNode av2h_debug_partition_node;
 extern size_t av2h_debug_partition_split_context;
@@ -545,6 +548,27 @@ static void check_advanced_frontier(
         CHECK(leaf->prefix.eob == 6U);
         CHECK(leaf->transform.after_primary_bits == 28U);
         CHECK(leaf->transform.after_secondary_bits == 32U);
+    } else if (expected->base_q_index == 192U &&
+               expected->width == 240U &&
+               expected->first_block == AV2H_BLOCK_8X16) {
+        CHECK(leaf->mode.before_mode_bits == 20U);
+        CHECK(leaf->mode.after_mode_set_bits == 20U);
+        CHECK(leaf->mode.after_mode_index_bits == 21U);
+        CHECK(leaf->mode.after_fsc_bits == 21U);
+        CHECK(leaf->mode.after_mrl_bits == 21U);
+        CHECK(leaf->mode.mode == AV2H_INTRA_DC);
+        CHECK(leaf->mode.enable_ibp == 1U);
+        CHECK(leaf->prefix.tx_size == AV2H_TX_8X16);
+        CHECK(leaf->prefix.tx_size_context == 2U);
+        CHECK(leaf->prefix.before_all_zero_bits == 21U);
+        CHECK(leaf->prefix.after_all_zero_bits == 21U);
+        CHECK(leaf->prefix.after_eob_point_bits == 23U);
+        CHECK(leaf->prefix.after_eob_bits == 24U);
+        CHECK(leaf->prefix.eob_point == 3U);
+        CHECK(leaf->prefix.eob == 3U);
+        CHECK(leaf->transform.primary_type == AV2H_TX_DCT_DCT);
+        CHECK(leaf->transform.secondary_symbol == 0U);
+        CHECK(leaf->transform.after_secondary_bits == 29U);
     } else if (expected->base_q_index == 112U &&
                expected->first_block == AV2H_BLOCK_32X64) {
         CHECK(leaf->mode.after_cdef_bits == 6U);
@@ -1581,6 +1605,31 @@ static void check_first_luma(const ArtifactExpectation *expected,
     av2h_memory_fill(&block, 0U, sizeof(block));
     status = av2h_tile_decoder_next_luma(
         &decoder, &leaf, &block, &has_leaf);
+    if (expected->base_q_index == 192U && expected->width == 240U &&
+        status == AV2H_OK) {
+        static uint8_t chimp_pixels[240U * 287U];
+        static uint8_t chimp_reconstructed[60U * 72U];
+        static Av2hReconstructionScratch chimp_scratch;
+        Av2hReconstructionPlane chimp_plane = {
+            chimp_pixels, 240U, 240U, 287U, 240U, 287U,
+            chimp_reconstructed, 60U, sizeof(chimp_reconstructed)
+        };
+        CHECK(block.after_levels_range == 46592U);
+        CHECK(decoder.range.range == 57344U);
+        av2h_memory_fill(chimp_pixels, 0U, sizeof(chimp_pixels));
+        av2h_memory_fill(chimp_reconstructed, 0U,
+                         sizeof(chimp_reconstructed));
+        REQUIRE(av2h_luma_reconstruct_to_plane(
+                    &leaf.node, &leaf.mode, &leaf.prefix,
+                    &leaf.transform, &block, &chimp_plane,
+                    &chimp_scratch) == AV2H_OK);
+        CHECK(block_pixel_hash(
+                  chimp_scratch.predictor, 8U, 8U, 16U) ==
+              UINT64_C(0xfe3d9dfd52738983));
+        CHECK(block_pixel_hash(
+                  chimp_pixels, 240U, 8U, 16U) ==
+              UINT64_C(0x7537b64077829c43));
+    }
     if ((expected->base_q_index == 128U && expected->width == 480U) ||
         (expected->base_q_index == 176U && expected->width == 479U)) {
         if (status == AV2H_OK) {
@@ -1738,6 +1787,612 @@ static void check_first_luma(const ArtifactExpectation *expected,
     if (expected->decoded != 0) {
         CHECK(status == AV2H_OK);
         check_decoded_block(expected->decoded, &leaf, &block);
+        if (expected->base_q_index == 192U && expected->width == 240U) {
+            static uint8_t chimp_probe_pixels[240U * 287U];
+            static uint8_t chimp_probe_reconstructed[60U * 72U];
+            static uint8_t chimp_u_pixels[120U * 144U];
+            static uint8_t chimp_v_pixels[120U * 144U];
+            static uint8_t chimp_u_reconstructed[30U * 36U];
+            static uint8_t chimp_v_reconstructed[30U * 36U];
+            static Av2hReconstructionScratch chimp_probe_scratch;
+            Av2hReconstructionPlane chimp_probe_plane = {
+                chimp_probe_pixels, 240U, 240U, 287U, 240U, 287U,
+                chimp_probe_reconstructed, 60U,
+                sizeof(chimp_probe_reconstructed)
+            };
+                        Av2hReconstructionPlane chimp_chroma_planes[2U] = {
+                                { chimp_u_pixels, 120U, 120U, 144U, 120U, 144U,
+                                    chimp_u_reconstructed, 30U,
+                                    sizeof(chimp_u_reconstructed) },
+                                { chimp_v_pixels, 120U, 120U, 144U, 120U, 144U,
+                                    chimp_v_reconstructed, 30U,
+                                    sizeof(chimp_v_reconstructed) }
+                        };
+            size_t chimp_leaf_index = 0U;
+                fprintf(stderr,
+                    "local-chimp-eob-cdf-initial=%u/%u/%u/%u/%u/%u/%u\n",
+                    decoder.coeff_cdfs.eob_pt_64[0],
+                    decoder.coeff_cdfs.eob_pt_64[1],
+                    decoder.coeff_cdfs.eob_pt_64[2],
+                    decoder.coeff_cdfs.eob_pt_64[3],
+                    decoder.coeff_cdfs.eob_pt_64[4],
+                    decoder.coeff_cdfs.eob_pt_64[5],
+                    decoder.coeff_cdfs.eob_pt_64[6]);
+            av2h_memory_fill(chimp_probe_pixels, 0U,
+                             sizeof(chimp_probe_pixels));
+            av2h_memory_fill(chimp_probe_reconstructed, 0U,
+                             sizeof(chimp_probe_reconstructed));
+            av2h_memory_fill(chimp_u_pixels, 0U, sizeof(chimp_u_pixels));
+            av2h_memory_fill(chimp_v_pixels, 0U, sizeof(chimp_v_pixels));
+            av2h_memory_fill(chimp_u_reconstructed, 0U,
+                             sizeof(chimp_u_reconstructed));
+            av2h_memory_fill(chimp_v_reconstructed, 0U,
+                             sizeof(chimp_v_reconstructed));
+            status = av2h_luma_reconstruct_to_plane(
+                &leaf.node, &leaf.mode, &leaf.prefix, &leaf.transform,
+                &block, &chimp_probe_plane, &chimp_probe_scratch);
+            while (status == AV2H_OK &&
+                   decoder.phase == AV2H_TILE_DECODE_LUMA) {
+                if (has_leaf) {
+                    status = av2h_tile_decoder_commit_leaf(
+                        &decoder, leaf.node);
+                    ++chimp_leaf_index;
+                }
+                if (status != AV2H_OK) break;
+                av2h_memory_fill(&leaf, 0U, sizeof(leaf));
+                av2h_memory_fill(&block, 0U, sizeof(block));
+                status = av2h_tile_decoder_next_luma(
+                    &decoder, &leaf, &block, &has_leaf);
+                fprintf(stderr,
+                    "local-chimp-eob-now=%d/%u/%u/%u/%u/%u/%u/%u/%u/%u/%u\n",
+                    status, leaf.prefix.tx_size, leaf.prefix.eob,
+                    av2h_debug_eob_tx, av2h_debug_eob_class,
+                    av2h_debug_eob_cdf[0], av2h_debug_eob_cdf[1],
+                    av2h_debug_eob_cdf[2], av2h_debug_eob_cdf[3],
+                    av2h_debug_eob_cdf[4], av2h_debug_eob_cdf[5]);
+                if (status != AV2H_OK || !has_leaf) continue;
+                for (size_t decision = 0U;
+                     decision < av2h_debug_chimp_base_count; ++decision) {
+                    if (av2h_debug_chimp_base[decision][3] >= 568U &&
+                        av2h_debug_chimp_base[decision][3] <= 574U) {
+                        fprintf(stderr,
+                            "local-chimp-tell57x=%u/%u/%lu/%lu/%lu/%lu/%lu/%lu/%lu\n",
+                            leaf.node.row, leaf.node.column,
+                            (unsigned long)av2h_debug_chimp_base[decision][0],
+                            (unsigned long)av2h_debug_chimp_base[decision][1],
+                            (unsigned long)av2h_debug_chimp_base[decision][2],
+                            (unsigned long)av2h_debug_chimp_base[decision][3],
+                            (unsigned long)av2h_debug_chimp_base[decision][5],
+                            (unsigned long)av2h_debug_chimp_base[decision][15],
+                            (unsigned long)av2h_debug_chimp_base[decision][16]);
+                    }
+                    if (av2h_debug_chimp_base[decision][1] == 11U &&
+                        av2h_debug_chimp_base[decision][2] == 1U) {
+                        fprintf(stderr,
+                            "local-chimp-ctx11=%u/%u/%lu/%lu/%lu/%lu/%lu/%lu/%lu/%lu\n",
+                            leaf.node.row, leaf.node.column,
+                            (unsigned long)av2h_debug_chimp_base[decision][0],
+                            (unsigned long)av2h_debug_chimp_base[decision][3],
+                            (unsigned long)av2h_debug_chimp_base[decision][5],
+                            (unsigned long)av2h_debug_chimp_base[decision][6],
+                            (unsigned long)av2h_debug_chimp_base[decision][7],
+                            (unsigned long)av2h_debug_chimp_base[decision][15],
+                            (unsigned long)av2h_debug_chimp_base[decision][16],
+                            (unsigned long)av2h_debug_chimp_base[decision][17]);
+                    }
+                }
+                if (leaf.node.row == 0U && leaf.node.column == 8U) {
+                    fprintf(stderr,
+                        "local-chimp-eob-cdf-immediate=%u/%u/%u/%u/%u/%u/%u\n",
+                        av2h_debug_eob_cdf[0], av2h_debug_eob_cdf[1],
+                        av2h_debug_eob_cdf[2], av2h_debug_eob_cdf[3],
+                        av2h_debug_eob_cdf[4], av2h_debug_eob_cdf[5],
+                        av2h_debug_eob_cdf[6]);
+                }
+                fprintf(stderr,
+                    "chimp-q192-before-reconstruct=%lu/%u/%u/%u/%u/%d/%u/%u/%u/%u\n",
+                    (unsigned long)chimp_leaf_index,
+                    leaf.node.row, leaf.node.column,
+                    leaf.node.block_size, leaf.mode.mode,
+                    leaf.mode.angle_delta, leaf.mode.mrl_index,
+                    leaf.mode.multi_line_mrl, leaf.mode.enable_ibp,
+                    leaf.prefix.tx_size);
+                status = av2h_luma_reconstruct_to_plane(
+                    &leaf.node, &leaf.mode, &leaf.prefix, &leaf.transform,
+                    &block, &chimp_probe_plane, &chimp_probe_scratch);
+                fprintf(stderr, "chimp-q192-after-reconstruct=%d\n", status);
+                if (status == AV2H_OK) {
+                    if (leaf.node.row == 2U && leaf.node.column == 2U) {
+                        CHECK(block_pixel_hash(
+                                  chimp_probe_scratch.predictor,
+                                  8U, 8U, 8U) ==
+                              UINT64_C(0xa43428f4e2390926));
+                    }
+                    fprintf(stderr,
+                            "chimp-q192-leaf=%lu/%u/%u/%u/%u/%d/%u/%u/%u/%u/%lu/%u/%lu/%lu/%u/%lu",
+                            (unsigned long)chimp_leaf_index,
+                            leaf.node.row, leaf.node.column,
+                            leaf.node.block_size, leaf.mode.mode,
+                            leaf.mode.angle_delta, leaf.mode.mrl_index,
+                            leaf.mode.enable_ibp, leaf.prefix.tx_size,
+                            leaf.prefix.eob,
+                            (unsigned long)av2h_range_tell(&decoder.range),
+                                decoder.range.range,
+                                (unsigned long)block.before_levels_bits,
+                                (unsigned long)block.after_levels_bits,
+                                block.after_levels_range,
+                                (unsigned long)block.after_coefficients_bits);
+                            for (size_t coefficient = 0U;
+                             coefficient < block.coefficient_count;
+                             ++coefficient) {
+                            if (block.quantized[coefficient] != 0) {
+                                fprintf(stderr, "/%lu:%d:%d",
+                                    (unsigned long)coefficient,
+                                    block.quantized[coefficient],
+                                    block.dequantized[coefficient]);
+                            }
+                            }
+                            fprintf(stderr, "\n");
+                            if (leaf.node.row == 14U &&
+                                leaf.node.column == 14U) {
+                                fprintf(stderr,
+                                    "local-chimp-tail-transform=%u/%u/%u/%u/%u/%lu/%lu/%lu\n",
+                                    leaf.transform.primary_type,
+                                    leaf.transform.primary_symbol,
+                                    leaf.transform.secondary_symbol,
+                                    leaf.transform.secondary_set_symbol,
+                                    leaf.transform.secondary_set,
+                                    (unsigned long)
+                                        leaf.transform.before_primary_bits,
+                                    (unsigned long)
+                                        leaf.transform.after_primary_bits,
+                                    (unsigned long)
+                                        leaf.transform.after_secondary_bits);
+                            }
+                            fprintf(stderr,
+                                "local-chimp-range=%u/%lu/%lld/%lu/%u/%d\n",
+                                decoder.range.value,
+                                (unsigned long)decoder.range.bit_position,
+                                (long long)decoder.range.available_bits,
+                                (unsigned long)av2h_range_tell(&decoder.range),
+                                block.cul_level, block.dc_value);
+                            if (leaf.node.row == 14U &&
+                                leaf.node.column == 14U) {
+                                fprintf(stderr, "local-chimp-eob=");
+                                for (size_t field = 0U; field < 18U; ++field) {
+                                    fprintf(stderr, "%s%lu",
+                                            field == 0U ? "" : "/",
+                                            (unsigned long)
+                                                av2h_debug_chimp_eob[field]);
+                                }
+                                fprintf(stderr, "\n");
+                                for (size_t decision = 0U;
+                                     decision < av2h_debug_chimp_base_count;
+                                     ++decision) {
+                                    fprintf(stderr, "local-chimp-base=");
+                                    for (size_t field = 0U; field < 18U; ++field) {
+                                        fprintf(stderr, "%s%lu",
+                                                field == 0U ? "" : "/",
+                                                (unsigned long)
+                                                    av2h_debug_chimp_base[decision]
+                                                                             [field]);
+                                    }
+                                    fprintf(stderr, "\n");
+                                }
+                            }
+                }
+            }
+            fprintf(stderr,
+                "chimp-q192-loop-end=%d/%lu/%u/%lu/%u\n",
+                status, (unsigned long)chimp_leaf_index, decoder.phase,
+                (unsigned long)av2h_range_tell(&decoder.range),
+                decoder.range.range);
+            fprintf(stderr,
+                    "chimp-q192-next status=%d stage=%u tile=%u dims=%u/%u/%u/%u leaves=%lu phase=%u tell=%lu range=%u partition=%u/%u/%u/%u leaf=%u row=%u column=%u block=%u mode=%u angle=%d mrl=%u mlm=%u ibp=%u tx=%u skipctx=%u skip=%u/%lu/%lu eob=%u/%lu transform=%u/%u/%lu/%lu/%lu coeff=%lu/%lu/%u/%lu diag=%u/%u/%u\n",
+                    status, av2h_debug_luma_reconstruct_stage,
+                    av2h_debug_luma_tile_stage,
+                    av2h_debug_luma_dimensions[0],
+                    av2h_debug_luma_dimensions[1],
+                    av2h_debug_luma_dimensions[2],
+                    av2h_debug_luma_dimensions[3],
+                    (unsigned long)chimp_leaf_index, decoder.phase,
+                    (unsigned long)av2h_range_tell(&decoder.range),
+                    decoder.range.range, av2h_debug_partition_stage,
+                    av2h_debug_partition_node.row,
+                    av2h_debug_partition_node.column,
+                    av2h_debug_partition_node.block_size,
+                    has_leaf, leaf.node.row,
+                    leaf.node.column, leaf.node.block_size, leaf.mode.mode,
+                    leaf.mode.angle_delta, leaf.mode.mrl_index,
+                    leaf.mode.multi_line_mrl, leaf.mode.enable_ibp,
+                    leaf.prefix.tx_size, leaf.prefix.txb_skip_context,
+                    leaf.prefix.all_zero,
+                    (unsigned long)leaf.prefix.before_all_zero_bits,
+                    (unsigned long)leaf.prefix.after_all_zero_bits,
+                    leaf.prefix.eob,
+                    (unsigned long)leaf.prefix.after_eob_point_bits,
+                    leaf.transform.primary_type,
+                    leaf.transform.primary_symbol,
+                    (unsigned long)leaf.transform.before_primary_bits,
+                    (unsigned long)leaf.transform.after_primary_bits,
+                    (unsigned long)leaf.transform.after_secondary_bits,
+                    (unsigned long)block.before_levels_bits,
+                    (unsigned long)block.after_levels_bits,
+                    block.after_levels_range,
+                    (unsigned long)block.after_coefficients_bits,
+                    block.diagnostic_kind, block.diagnostic_context,
+                    block.diagnostic_position);
+                        fprintf(stderr, "local-chimp-next-coeff=%u/%d/%d/%d/%d/%u/%d/%u/%u/%u\n",
+                        block.nonzero_count, block.quantized[0],
+                        block.dequantized[0], block.quantized[16],
+                            block.dequantized[16], block.cul_level, block.dc_value,
+                            leaf.transform.secondary_symbol,
+                            leaf.transform.secondary_set_symbol,
+                            leaf.transform.secondary_set);
+                        for (size_t sign_index = 0U;
+                         sign_index < av2h_debug_target_sign_count; ++sign_index) {
+                        fprintf(stderr,
+                            "local-chimp-sign=%lu/%lu/%lu/%lu/%lu/%lu/%lu\n",
+                            (unsigned long)av2h_debug_target_sign[sign_index][0],
+                            (unsigned long)av2h_debug_target_sign[sign_index][1],
+                            (unsigned long)av2h_debug_target_sign[sign_index][2],
+                            (unsigned long)av2h_debug_target_sign[sign_index][3],
+                            (unsigned long)av2h_debug_target_sign[sign_index][4],
+                            (unsigned long)av2h_debug_target_sign[sign_index][5],
+                            (unsigned long)av2h_debug_target_sign[sign_index][6]);
+                        }
+                    for (size_t decision = 0U;
+                         decision < av2h_debug_chimp_base_count; ++decision) {
+                        fprintf(stderr, "local-chimp-final-base=");
+                        for (size_t field = 0U; field < 18U; ++field) {
+                            fprintf(stderr, "%s%lu", field == 0U ? "" : "/",
+                                (unsigned long)av2h_debug_chimp_base[decision][field]);
+                        }
+                        fprintf(stderr, "\n");
+                    }
+                    fprintf(stderr, "local-chimp-final-eob=");
+                    for (size_t field = 0U; field < 18U; ++field) {
+                        fprintf(stderr, "%s%lu", field == 0U ? "" : "/",
+                            (unsigned long)av2h_debug_chimp_eob[field]);
+                    }
+                    fprintf(stderr, "\n");
+                    if (status == AV2H_OK &&
+                        decoder.phase == AV2H_TILE_DECODE_CHROMA) {
+                        Av2hTileChromaLeaf chroma_leaf;
+                        Av2hFirstCoeffBlock chroma_blocks[2U];
+                        Av2hStatus continuation_plane_status[2U] = {
+                            AV2H_OK, AV2H_OK
+                        };
+                        av2h_memory_fill(
+                            &chroma_leaf, 0U, sizeof(chroma_leaf));
+                        av2h_memory_fill(
+                            chroma_blocks, 0U, sizeof(chroma_blocks));
+                        status = av2h_tile_decoder_next_chroma(
+                            &decoder, &chroma_leaf, &chroma_blocks[0],
+                            &chroma_blocks[1], &has_leaf);
+                        fprintf(stderr,
+                            "chimp-q192-chroma status=%d tell=%lu range=%u leaf=%u row=%u column=%u block=%u mode=%u cfl=%u/%u/%u/%u/%u/%u/%lu/%lu/%lu prefix=%u/%u/%u:%u/%u/%u transform=%u/%u diagnostic=%u/%u/%u:%u/%u/%u\n",
+                            status,
+                            (unsigned long)av2h_range_tell(&decoder.range),
+                            decoder.range.range, has_leaf,
+                            chroma_leaf.node.row,
+                            chroma_leaf.node.column,
+                            chroma_leaf.node.block_size,
+                            chroma_leaf.mode.mode,
+                            chroma_leaf.mode.is_cfl,
+                            chroma_leaf.mode.cfl_mhccp_switch,
+                            chroma_leaf.mode.cfl_index,
+                            chroma_leaf.mode.cfl_kind,
+                            chroma_leaf.mode.cfl_alpha_signs,
+                            chroma_leaf.mode.cfl_alpha_idx,
+                            (unsigned long)chroma_leaf.mode.after_cfl_bits,
+                            (unsigned long)
+                                chroma_leaf.mode.after_cfl_index_bits,
+                            (unsigned long)chroma_leaf.mode.after_mode_bits,
+                            chroma_leaf.prefix[0].tx_size,
+                            chroma_leaf.prefix[0].all_zero,
+                            chroma_leaf.prefix[0].eob,
+                            chroma_leaf.prefix[1].tx_size,
+                            chroma_leaf.prefix[1].all_zero,
+                            chroma_leaf.prefix[1].eob,
+                            chroma_leaf.transform[0].cctx_type,
+                            chroma_leaf.transform[1].cctx_type,
+                            chroma_blocks[0].diagnostic_kind,
+                            chroma_blocks[0].diagnostic_context,
+                            chroma_blocks[0].diagnostic_position,
+                            chroma_blocks[1].diagnostic_kind,
+                            chroma_blocks[1].diagnostic_context,
+                            chroma_blocks[1].diagnostic_position);
+                        for (size_t plane_index = 0U;
+                             plane_index < 2U; ++plane_index) {
+                            fprintf(stderr,
+                                "chimp-q192-chroma-coeff=%lu/%lu/%lu/%u/%d",
+                                (unsigned long)plane_index,
+                                (unsigned long)chroma_blocks[plane_index]
+                                    .before_levels_bits,
+                                (unsigned long)chroma_blocks[plane_index]
+                                    .after_coefficients_bits,
+                                chroma_blocks[plane_index].cul_level,
+                                chroma_blocks[plane_index].dc_value);
+                            for (size_t coefficient = 0U;
+                                 coefficient < chroma_blocks[plane_index]
+                                     .coefficient_count;
+                                 ++coefficient) {
+                                if (chroma_blocks[plane_index]
+                                        .quantized[coefficient] != 0) {
+                                    fprintf(stderr, "/%lu:%d:%d",
+                                        (unsigned long)coefficient,
+                                        chroma_blocks[plane_index]
+                                            .quantized[coefficient],
+                                        chroma_blocks[plane_index]
+                                            .dequantized[coefficient]);
+                                }
+                            }
+                            fprintf(stderr, "\n");
+                        }
+                        if (status == AV2H_OK) {
+                            Av2hStatus reconstruct_status[2U];
+                            for (size_t plane_index = 0U;
+                                 plane_index < 2U; ++plane_index) {
+                                reconstruct_status[plane_index] =
+                                    av2h_chroma_reconstruct_to_plane_ex(
+                                        &chroma_leaf.node,
+                                        &chroma_leaf.mode,
+                                        &chroma_leaf.prefix[plane_index],
+                                        &chroma_leaf.transform[plane_index],
+                                        &chroma_blocks[plane_index],
+                                        &chimp_chroma_planes[plane_index],
+                                        &chimp_probe_plane,
+                                        (uint8_t)(plane_index + 1U), 0,
+                                        &chimp_probe_scratch);
+                            }
+                            fprintf(stderr,
+                                "chimp-q192-chroma-reconstruct=%d/%d\n",
+                                reconstruct_status[0],
+                                reconstruct_status[1]);
+                            if (reconstruct_status[0] == AV2H_OK &&
+                                reconstruct_status[1] == AV2H_OK) {
+                                status = av2h_tile_decoder_commit_leaf(
+                                    &decoder, chroma_leaf.node);
+                            }
+                            if (status == AV2H_OK) {
+                                av2h_memory_fill(&chroma_leaf, 0U,
+                                                 sizeof(chroma_leaf));
+                                av2h_memory_fill(chroma_blocks, 0U,
+                                                 sizeof(chroma_blocks));
+                                status = av2h_tile_decoder_next_chroma(
+                                    &decoder, &chroma_leaf,
+                                    &chroma_blocks[0], &chroma_blocks[1],
+                                    &has_leaf);
+                            }
+                            fprintf(stderr,
+                                "chimp-q192-after-chroma status=%d phase=%u sb=%lu tell=%lu range=%u leaf=%u\n",
+                                status, decoder.phase,
+                                (unsigned long)decoder.sb_index,
+                                (unsigned long)
+                                    av2h_range_tell(&decoder.range),
+                                decoder.range.range, has_leaf);
+                            if (status == AV2H_OK &&
+                                decoder.phase == AV2H_TILE_DECODE_LUMA) {
+                                av2h_memory_fill(&leaf, 0U, sizeof(leaf));
+                                av2h_memory_fill(&block, 0U, sizeof(block));
+                                status = av2h_tile_decoder_next_luma(
+                                    &decoder, &leaf, &block, &has_leaf);
+                                fprintf(stderr,
+                                    "chimp-q192-sb1 status=%d phase=%u sb=%lu tell=%lu range=%u leaf=%u row=%u column=%u block=%u mode=%u/%d/%u/%u/%u tx=%u eob=%u diagnostic=%u/%u/%u\n",
+                                    status, decoder.phase,
+                                    (unsigned long)decoder.sb_index,
+                                    (unsigned long)
+                                        av2h_range_tell(&decoder.range),
+                                    decoder.range.range, has_leaf,
+                                    leaf.node.row, leaf.node.column,
+                                    leaf.node.block_size, leaf.mode.mode,
+                                    leaf.mode.angle_delta,
+                                    leaf.mode.mrl_index,
+                                    leaf.mode.multi_line_mrl,
+                                    leaf.mode.enable_ibp,
+                                    leaf.prefix.tx_size, leaf.prefix.eob,
+                                    block.diagnostic_kind,
+                                    block.diagnostic_context,
+                                    block.diagnostic_position);
+                            }
+                            {
+                                uint8_t pending_luma = has_leaf;
+                                size_t continued_luma = 0U;
+                                size_t continued_chroma = 0U;
+                                  for (size_t step = 0U;
+                                      step < 512U && status == AV2H_OK &&
+                                     decoder.phase != AV2H_TILE_DECODE_DONE;
+                                     ++step) {
+                                    if (decoder.phase ==
+                                        AV2H_TILE_DECODE_LUMA) {
+                                        Av2hStatus reconstruct_luma;
+                                        if (!pending_luma) {
+                                            av2h_memory_fill(
+                                                &leaf, 0U, sizeof(leaf));
+                                            av2h_memory_fill(
+                                                &block, 0U, sizeof(block));
+                                            status =
+                                                av2h_tile_decoder_next_luma(
+                                                    &decoder, &leaf, &block,
+                                                    &has_leaf);
+                                            if (status != AV2H_OK ||
+                                                !has_leaf) {
+                                                continue;
+                                            }
+                                        }
+                                        reconstruct_luma =
+                                            av2h_luma_reconstruct_to_plane(
+                                                &leaf.node, &leaf.mode,
+                                                &leaf.prefix,
+                                                &leaf.transform, &block,
+                                                &chimp_probe_plane,
+                                                &chimp_probe_scratch);
+                                        if (reconstruct_luma != AV2H_OK) {
+                                            status = reconstruct_luma;
+                                            break;
+                                        }
+                                        status =
+                                            av2h_tile_decoder_commit_leaf(
+                                                &decoder, leaf.node);
+                                        pending_luma = 0U;
+                                        ++continued_luma;
+                                    } else {
+                                        continuation_plane_status[0] =
+                                            AV2H_OK;
+                                        continuation_plane_status[1] =
+                                            AV2H_OK;
+                                        av2h_memory_fill(
+                                            &chroma_leaf, 0U,
+                                            sizeof(chroma_leaf));
+                                        av2h_memory_fill(
+                                            chroma_blocks, 0U,
+                                            sizeof(chroma_blocks));
+                                        status =
+                                            av2h_tile_decoder_next_chroma(
+                                                &decoder, &chroma_leaf,
+                                                &chroma_blocks[0],
+                                                &chroma_blocks[1],
+                                                &has_leaf);
+                                        if (status != AV2H_OK ||
+                                            !has_leaf) {
+                                            continue;
+                                        }
+                                        for (size_t plane_index = 0U;
+                                             plane_index < 2U;
+                                             ++plane_index) {
+                                            continuation_plane_status[
+                                                plane_index] =
+                                                av2h_chroma_reconstruct_to_plane_ex(
+                                                    &chroma_leaf.node,
+                                                    &chroma_leaf.mode,
+                                                    &chroma_leaf.prefix[
+                                                        plane_index],
+                                                    &chroma_leaf.transform[
+                                                        plane_index],
+                                                    &chroma_blocks[
+                                                        plane_index],
+                                                    &chimp_chroma_planes[
+                                                        plane_index],
+                                                    &chimp_probe_plane,
+                                                    (uint8_t)(plane_index +
+                                                              1U),
+                                                    0,
+                                                    &chimp_probe_scratch);
+                                            if (continuation_plane_status[
+                                                    plane_index] !=
+                                                AV2H_OK) {
+                                                status =
+                                                    continuation_plane_status[
+                                                        plane_index];
+                                                break;
+                                            }
+                                        }
+                                        if (status != AV2H_OK) break;
+                                        status =
+                                            av2h_tile_decoder_commit_leaf(
+                                                &decoder, chroma_leaf.node);
+                                        ++continued_chroma;
+                                    }
+                                }
+                                if (status != AV2H_OK &&
+                                    decoder.phase ==
+                                        AV2H_TILE_DECODE_CHROMA) {
+                                    fprintf(stderr,
+                                        "chimp-q192-continuation-chroma status=%d/%d/%d stage=%u node=%u/%u/%u mode=%u/%d/%u/%u/%u/%u/%u/%u prefix=%u/%u/%u:%u/%u/%u geometry=%u/%u/%u:%u/%u/%u coeff=%u/%u/%u:%u/%u/%u\n",
+                                        status,
+                                        continuation_plane_status[0],
+                                        continuation_plane_status[1],
+                                        av2h_debug_chroma_reconstruct_stage,
+                                        chroma_leaf.node.row,
+                                        chroma_leaf.node.column,
+                                        chroma_leaf.node.block_size,
+                                        chroma_leaf.mode.mode,
+                                        chroma_leaf.mode.angle_delta,
+                                        chroma_leaf.mode.is_cfl,
+                                        chroma_leaf.mode.cfl_kind,
+                                        chroma_leaf.mode.cfl_downsample_filter_index,
+                                        chroma_leaf.mode.mhccp_direction,
+                                        chroma_leaf.mode.cfl_alpha_signs,
+                                        chroma_leaf.mode.cfl_alpha_idx,
+                                        chroma_leaf.prefix[0].tx_size,
+                                        chroma_leaf.prefix[0].all_zero,
+                                        chroma_leaf.prefix[0].eob,
+                                        chroma_leaf.prefix[1].tx_size,
+                                        chroma_leaf.prefix[1].all_zero,
+                                        chroma_leaf.prefix[1].eob,
+                                        chroma_blocks[0].width,
+                                        chroma_blocks[0].height,
+                                        chroma_blocks[0].coefficient_count,
+                                        chroma_blocks[1].width,
+                                        chroma_blocks[1].height,
+                                        chroma_blocks[1].coefficient_count,
+                                        chroma_blocks[0].diagnostic_kind,
+                                        chroma_blocks[0].diagnostic_context,
+                                        chroma_blocks[0].diagnostic_position,
+                                        chroma_blocks[1].diagnostic_kind,
+                                        chroma_blocks[1].diagnostic_context,
+                                        chroma_blocks[1].diagnostic_position);
+                                }
+                                fprintf(stderr,
+                                    "chimp-q192-continuation status=%d stage=%u/%u/%u dims=%u/%u/%u/%u phase=%u sb=%lu tell=%lu range=%u luma=%lu chroma=%lu leaf=%u row=%u column=%u block=%u mode=%u/%d/%u/%u/%u/%u tx=%u skip=%u/%u/%lu/%lu eob=%u/%lu transform=%u/%u/%u/%u/%u/%u/%u/%u/%lu/%lu/%lu coeff=%lu/%u diagnostic=%u/%u/%u\n",
+                                    status,
+                                    av2h_debug_luma_reconstruct_stage,
+                                    av2h_debug_luma_tile_stage,
+                                    av2h_debug_luma_prefix_stage,
+                                    av2h_debug_luma_dimensions[0],
+                                    av2h_debug_luma_dimensions[1],
+                                    av2h_debug_luma_dimensions[2],
+                                    av2h_debug_luma_dimensions[3],
+                                    decoder.phase,
+                                    (unsigned long)decoder.sb_index,
+                                    (unsigned long)
+                                        av2h_range_tell(&decoder.range),
+                                    decoder.range.range,
+                                    (unsigned long)continued_luma,
+                                    (unsigned long)continued_chroma,
+                                    has_leaf, leaf.node.row,
+                                    leaf.node.column,
+                                    leaf.node.block_size, leaf.mode.mode,
+                                    leaf.mode.angle_delta,
+                                    leaf.mode.mrl_index,
+                                    leaf.mode.multi_line_mrl,
+                                    leaf.mode.enable_ibp,
+                                    leaf.mode.fsc_mode,
+                                    leaf.prefix.tx_size,
+                                    leaf.prefix.txb_skip_context,
+                                    leaf.prefix.all_zero,
+                                    (unsigned long)
+                                        leaf.prefix.before_all_zero_bits,
+                                    (unsigned long)
+                                        leaf.prefix.after_all_zero_bits,
+                                    leaf.prefix.eob,
+                                    (unsigned long)
+                                        leaf.prefix.after_eob_point_bits,
+                                    leaf.transform.primary_type,
+                                    leaf.transform.primary_signaled,
+                                    leaf.transform.primary_symbol,
+                                    leaf.transform.primary_long_side_symbol,
+                                    leaf.transform.secondary_symbol,
+                                    leaf.transform.secondary_set,
+                                    leaf.transform.secondary_signaled,
+                                    leaf.transform.cctx_type,
+                                    (unsigned long)
+                                        leaf.transform.before_primary_bits,
+                                    (unsigned long)
+                                        leaf.transform.after_primary_bits,
+                                    (unsigned long)
+                                        leaf.transform.after_secondary_bits,
+                                    (unsigned long)
+                                        block.after_coefficients_bits,
+                                    block.cul_level,
+                                    block.diagnostic_kind,
+                                    block.diagnostic_context,
+                                    block.diagnostic_position);
+                            }
+                        }
+                    }
+        }
         if (expected->width == 333U && expected->height == 333U) {
             Av2hTileChromaLeaf chroma_leaf;
             Av2hFirstCoeffBlock chroma_blocks[2U];
@@ -4141,6 +4796,17 @@ static const ArtifactDecodedExpectation silene_q176_decoded = {
     silene_q176_coefficients,
     sizeof(silene_q176_coefficients) / sizeof(silene_q176_coefficients[0])
 };
+static const ArtifactCoefficient chimp_q192_coefficients[] = {
+    { 0U, 4, 4992 }, { 1U, 1, 1248 }
+};
+static const ArtifactDecodedExpectation chimp_q192_decoded = {
+    20U, 20U, 21U, 21U, 21U,
+    AV2H_TX_8X16, 3U, 21U, 23U, 24U,
+    AV2H_TX_DCT_DCT, 0U, 29U,
+    128U, 2U, 4, 29U, 35U, 37U,
+    chimp_q192_coefficients,
+    sizeof(chimp_q192_coefficients) / sizeof(chimp_q192_coefficients[0])
+};
 
 static void test_artifact_profiles(void) {
     static const ArtifactExpectation expected[] = {
@@ -4148,8 +4814,8 @@ static void test_artifact_profiles(void) {
           219U, 1U, 2U, 3U, AV2H_BLOCK_8X16, 32U,
           AV2H_UNSUPPORTED, 0 },
         { "chimp-240x287-qp192.obu", 240U, 287U, 192U, 0U, 1U, 1U, 1U,
-                    217U, 1U, 1U, 3U, AV2H_BLOCK_8X16, 29U,
-          AV2H_UNSUPPORTED, 0 },
+                                        217U, 1U, 1U, 3U, AV2H_BLOCK_8X16, 37U,
+                    AV2H_OK, &chimp_q192_decoded },
         { "chimp-93x111-qp064.obu", 93U, 111U, 64U, 1U, 0U, 1U, 1U,
                     179U, 0U, 0U, 0U, AV2H_BLOCK_8X8, 30U,
           AV2H_UNSUPPORTED, 0 },
