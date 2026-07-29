@@ -1492,7 +1492,8 @@ Av2hStatus av2h_luma_predict(
         if (((mode->angle_delta == -3 || mode->angle_delta == -2 ||
             mode->angle_delta == -1 || mode->angle_delta == 1 ||
             mode->angle_delta == 2 || mode->angle_delta == 3) ||
-         (mode->mrl_index == 1U || mode->mrl_index == 2U) ||
+         (mode->mrl_index == 1U || mode->mrl_index == 2U ||
+          mode->mrl_index == 3U) ||
          mode->multi_line_mrl == 1U) &&
         mode->angle_delta >= -3 && mode->angle_delta <= 3 &&
         directional_base_angle(mode->mode) != 0 &&
@@ -3596,6 +3597,18 @@ Av2hStatus av2h_chroma_predict(
         predictor_stride < width) {
         return AV2H_INVALID_ARGUMENT;
     }
+    if ((mode->angle_delta == -2 || mode->angle_delta == 2) &&
+        directional_base_angle(mode->mode) != 0 &&
+        luma_prediction_dimension_supported(width) && width <= 32U &&
+        luma_prediction_dimension_supported(height) && height <= 32U) {
+        Av2hFirstLeafMode luma_mode = { 0 };
+        luma_mode.mode = mode->mode;
+        luma_mode.angle_delta = mode->angle_delta;
+        luma_mode.enable_ibp = 1U;
+        return av2h_luma_predict(
+            &luma_mode, width, height, references,
+            predictor, predictor_stride);
+    }
     if (mode->mode == AV2H_INTRA_SMOOTH && mode->angle_delta == 0 &&
         width == 32U && (height == 16U || height == 32U)) {
         Av2hFirstLeafMode luma_mode = { 0 };
@@ -3628,18 +3641,6 @@ Av2hStatus av2h_chroma_predict(
             width, height, references,
             predictor, predictor_stride);
     }
-    if (mode->mode == AV2H_INTRA_HORIZONTAL && mode->angle_delta == 2 &&
-        ((width == 32U && height == 16U) ||
-         (width == 16U && height == 32U) ||
-         (width == 32U && height == 32U))) {
-        Av2hFirstLeafMode luma_mode = { 0 };
-        luma_mode.mode = mode->mode;
-        luma_mode.angle_delta = mode->angle_delta;
-        luma_mode.enable_ibp = 1U;
-        return predict_directional_idif(
-            &luma_mode, 186, width, height, references,
-            predictor, predictor_stride);
-    }
     if (mode->mode == AV2H_INTRA_HORIZONTAL && mode->angle_delta == 1 &&
         width == 16U && height == 32U) {
         Av2hFirstLeafMode luma_mode = { 0 };
@@ -3648,16 +3649,6 @@ Av2hStatus av2h_chroma_predict(
         luma_mode.enable_ibp = 1U;
         return predict_directional_idif(
             &luma_mode, 183, width, height, references,
-            predictor, predictor_stride);
-    }
-    if (mode->mode == AV2H_INTRA_VERTICAL && mode->angle_delta == 2 &&
-        width == 32U && height == 32U) {
-        Av2hFirstLeafMode luma_mode = { 0 };
-        luma_mode.mode = mode->mode;
-        luma_mode.angle_delta = mode->angle_delta;
-        luma_mode.enable_ibp = 1U;
-        return predict_directional_idif(
-            &luma_mode, 96, width, height, references,
             predictor, predictor_stride);
     }
     if (mode->mode == AV2H_INTRA_VERTICAL && mode->angle_delta == 0 &&

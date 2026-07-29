@@ -114,10 +114,10 @@ $$
 | 10 | Luma angle delta 1 | Supported | 93.8 | 20 | 95.2% | 728 |
 | 11 | Multi-line MRL 1 | Supported | 91.3 | 19 | 90.5% | 1,785 |
 | 12 | Primary tx ADST_DCT | Supported | 90.8 | 19 | 90.5% | 1,204 |
-| 13 | MRL index 3 | Partial | 89.5 | 19 | 90.5% | 599 |
+| 13 | MRL index 3 | Supported | 89.5 | 19 | 90.5% | 599 |
 | 14 | CfL prediction | Supported | 84.2 | 17 | 81.0% | 3,804 |
 | 15 | Primary tx ADST_FLIPADST | Partial | 80.8 | 17 | 81.0% | 410 |
-| 16 | Chroma angle delta 2 | Partial | 80.4 | 17 | 81.0% | 359 |
+| 16 | Chroma angle delta 2 | Supported | 80.4 | 17 | 81.0% | 359 |
 | 17 | Primary tx FLIPADST_ADST | Partial | 80.1 | 17 | 81.0% | 333 |
 | 18 | Luma FSC 1 | Supported | 79.7 | 16 | 76.2% | 1,471 |
 | 19 | Primary tx IDTX | Supported | 79.7 | 16 | 76.2% | 1,467 |
@@ -129,26 +129,24 @@ This is the demand ranking above with values classified as `supported` removed. 
 
 | Rank | Feature value | Status | Demand score | Files | Coverage | Occurrences |
 |---:|---|---|---:|---:|---:|---:|
-| 1 | MRL index 3 | Partial | 89.5 | 19 | 90.5% | 599 |
-| 2 | Primary tx ADST_FLIPADST | Partial | 80.8 | 17 | 81.0% | 410 |
-| 3 | Chroma angle delta 2 | Partial | 80.4 | 17 | 81.0% | 359 |
-| 4 | Primary tx FLIPADST_ADST | Partial | 80.1 | 17 | 81.0% | 333 |
-| 5 | Chroma angle delta 1 | Partial | 72.3 | 15 | 71.4% | 312 |
-| 6 | Chroma angle delta -2 | Partial | 71.4 | 14 | 66.7% | 928 |
-| 7 | Intra block copy | Partial | 70.8 | 15 | 71.4% | 216 |
-| 8 | Chroma angle delta 3 | Partial | 68.1 | 14 | 66.7% | 284 |
-| 9 | Chroma angle delta -3 | Partial | 66.1 | 13 | 61.9% | 478 |
-| 10 | Chroma angle delta -1 | Partial | 61.9 | 12 | 57.1% | 429 |
-| 11 | Primary tx V_ADST | Partial | 56.6 | 12 | 57.1% | 119 |
-| 12 | Primary tx DCT_FLIPADST | Partial | 54.4 | 13 | 61.9% | 32 |
-| 13 | Primary tx V_DCT | Partial | 54.0 | 12 | 57.1% | 71 |
-| 14 | Primary tx H_ADST | Partial | 53.6 | 11 | 52.4% | 140 |
-| 15 | Primary tx FLIPADST_FLIPADST | Partial | 49.6 | 11 | 52.4% | 63 |
-| 16 | Primary tx H_DCT | Partial | 47.3 | 10 | 47.6% | 85 |
-| 17 | Primary tx FLIPADST_DCT | Partial | 43.6 | 10 | 47.6% | 38 |
-| 18 | Primary tx V_FLIPADST | Partial | 29.7 | 7 | 33.3% | 18 |
-| 19 | Transform skip | Partial | 29.1 | 7 | 33.3% | 14 |
-| 20 | Primary tx H_FLIPADST | Partial | 20.9 | 5 | 23.8% | 10 |
+| 1 | Primary tx ADST_FLIPADST | Partial | 80.8 | 17 | 81.0% | 410 |
+| 2 | Primary tx FLIPADST_ADST | Partial | 80.1 | 17 | 81.0% | 333 |
+| 3 | Chroma angle delta 1 | Partial | 72.3 | 15 | 71.4% | 312 |
+| 4 | Intra block copy | Partial | 70.8 | 15 | 71.4% | 216 |
+| 5 | Chroma angle delta 3 | Partial | 68.1 | 14 | 66.7% | 284 |
+| 6 | Chroma angle delta -3 | Partial | 66.1 | 13 | 61.9% | 478 |
+| 7 | Chroma angle delta -1 | Partial | 61.9 | 12 | 57.1% | 429 |
+| 8 | Primary tx V_ADST | Partial | 56.6 | 12 | 57.1% | 119 |
+| 9 | Primary tx DCT_FLIPADST | Partial | 54.4 | 13 | 61.9% | 32 |
+| 10 | Primary tx V_DCT | Partial | 54.0 | 12 | 57.1% | 71 |
+| 11 | Primary tx H_ADST | Partial | 53.6 | 11 | 52.4% | 140 |
+| 12 | Primary tx FLIPADST_FLIPADST | Partial | 49.6 | 11 | 52.4% | 63 |
+| 13 | Primary tx H_DCT | Partial | 47.3 | 10 | 47.6% | 85 |
+| 14 | Primary tx FLIPADST_DCT | Partial | 43.6 | 10 | 47.6% | 38 |
+| 15 | Primary tx V_FLIPADST | Partial | 29.7 | 7 | 33.3% | 18 |
+| 16 | Transform skip | Partial | 29.1 | 7 | 33.3% | 14 |
+| 17 | Primary tx H_FLIPADST | Partial | 20.9 | 5 | 23.8% | 10 |
+| 18 | Palette prediction | Unsupported | 4.2 | 1 | 4.8% | 2 |
 
 ## Compact regression set
 
@@ -170,27 +168,27 @@ A distinct missing feature is an observed named feature value whose reviewed man
 
 | Rank | File | Distinct missing features | Missing feature values |
 |---:|---|---:|---|
-| 1 | `emerald-192x96-qp208.obu` | 0 | None |
-| 2 | `chinnathurai-333x333-qp224.obu` | 1 | Chroma angle delta 2 (Partial) |
-| 3 | `louis-463x342-qp224.obu` | 3 | Chroma angle delta 2 (Partial)<br>Chroma angle delta -2 (Partial)<br>MRL index 3 (Partial) |
-| 4 | `cuckoo-157x105-qp160.obu` | 5 | Intra block copy (Partial)<br>MRL index 3 (Partial)<br>Primary tx ADST_FLIPADST (Partial)<br>Primary tx FLIPADST_ADST (Partial)<br>Primary tx V_DCT (Partial) |
-| 5 | `chimp-240x287-qp192.obu` | 7 | Chroma angle delta 2 (Partial)<br>MRL index 3 (Partial)<br>Primary tx ADST_FLIPADST (Partial)<br>Primary tx FLIPADST_ADST (Partial)<br>Primary tx FLIPADST_DCT (Partial)<br>Primary tx FLIPADST_FLIPADST (Partial)<br>Primary tx V_ADST (Partial) |
-| 6 | `schwaebisch-417x277-qp208.obu` | 7 | Chroma angle delta 1 (Partial)<br>Chroma angle delta 2 (Partial)<br>Chroma angle delta -2 (Partial)<br>Chroma angle delta -3 (Partial)<br>Intra block copy (Partial)<br>MRL index 3 (Partial)<br>Transform skip (Partial) |
-| 7 | `laarim-448x299-qp192.obu` | 8 | Chroma angle delta 1 (Partial)<br>Chroma angle delta 2 (Partial)<br>Chroma angle delta -2 (Partial)<br>Chroma angle delta 3 (Partial)<br>MRL index 3 (Partial)<br>Primary tx ADST_FLIPADST (Partial)<br>Primary tx FLIPADST_ADST (Partial)<br>Primary tx FLIPADST_DCT (Partial) |
-| 8 | `chinnathurai-128x128-qp112.obu` | 10 | Chroma angle delta 1 (Partial)<br>Intra block copy (Partial)<br>MRL index 3 (Partial)<br>Primary tx ADST_FLIPADST (Partial)<br>Primary tx DCT_FLIPADST (Partial)<br>Primary tx FLIPADST_ADST (Partial)<br>Primary tx H_ADST (Partial)<br>Primary tx H_DCT (Partial)<br>Primary tx V_ADST (Partial)<br>Primary tx V_DCT (Partial) |
-| 9 | `flycatcher-223x149-qp176.obu` | 10 | Chroma angle delta 1 (Partial)<br>Chroma angle delta 2 (Partial)<br>Chroma angle delta 3 (Partial)<br>MRL index 3 (Partial)<br>Primary tx ADST_FLIPADST (Partial)<br>Primary tx DCT_FLIPADST (Partial)<br>Primary tx FLIPADST_ADST (Partial)<br>Primary tx FLIPADST_FLIPADST (Partial)<br>Primary tx H_ADST (Partial)<br>Primary tx V_ADST (Partial) |
-| 10 | `pastell-512x341-qp160.obu` | 12 | Chroma angle delta 1 (Partial)<br>Chroma angle delta -1 (Partial)<br>Chroma angle delta 2 (Partial)<br>Chroma angle delta -2 (Partial)<br>Chroma angle delta 3 (Partial)<br>Chroma angle delta -3 (Partial)<br>Intra block copy (Partial)<br>MRL index 3 (Partial)<br>Primary tx ADST_FLIPADST (Partial)<br>Primary tx DCT_FLIPADST (Partial)<br>Primary tx FLIPADST_ADST (Partial)<br>Transform skip (Partial) |
-| 11 | `chalk-320x240-qp128.obu` | 13 | Chroma angle delta 1 (Partial)<br>Chroma angle delta -1 (Partial)<br>Chroma angle delta 2 (Partial)<br>Chroma angle delta -2 (Partial)<br>Chroma angle delta 3 (Partial)<br>Chroma angle delta -3 (Partial)<br>Intra block copy (Partial)<br>MRL index 3 (Partial)<br>Primary tx ADST_FLIPADST (Partial)<br>Primary tx DCT_FLIPADST (Partial)<br>Primary tx FLIPADST_ADST (Partial)<br>Primary tx V_ADST (Partial)<br>Primary tx V_DCT (Partial) |
-| 12 | `silene-479x383-qp176.obu` | 13 | Chroma angle delta 1 (Partial)<br>Chroma angle delta -1 (Partial)<br>Chroma angle delta 2 (Partial)<br>Chroma angle delta -2 (Partial)<br>Chroma angle delta 3 (Partial)<br>Chroma angle delta -3 (Partial)<br>Intra block copy (Partial)<br>MRL index 3 (Partial)<br>Primary tx ADST_FLIPADST (Partial)<br>Primary tx DCT_FLIPADST (Partial)<br>Primary tx FLIPADST_ADST (Partial)<br>Primary tx FLIPADST_DCT (Partial)<br>Transform skip (Partial) |
-| 13 | `chimp-93x111-qp064.obu` | 14 | Chroma angle delta -1 (Partial)<br>Chroma angle delta 3 (Partial)<br>Chroma angle delta -3 (Partial)<br>Intra block copy (Partial)<br>MRL index 3 (Partial)<br>Primary tx ADST_FLIPADST (Partial)<br>Primary tx FLIPADST_ADST (Partial)<br>Primary tx FLIPADST_FLIPADST (Partial)<br>Primary tx H_ADST (Partial)<br>Primary tx H_DCT (Partial)<br>Primary tx H_FLIPADST (Partial)<br>Primary tx V_ADST (Partial)<br>Primary tx V_DCT (Partial)<br>Primary tx V_FLIPADST (Partial) |
-| 14 | `silene-384x307-qp080.obu` | 17 | Chroma angle delta 1 (Partial)<br>Chroma angle delta -1 (Partial)<br>Chroma angle delta 2 (Partial)<br>Chroma angle delta -2 (Partial)<br>Chroma angle delta 3 (Partial)<br>Chroma angle delta -3 (Partial)<br>Intra block copy (Partial)<br>MRL index 3 (Partial)<br>Palette prediction (Unsupported)<br>Primary tx ADST_FLIPADST (Partial)<br>Primary tx DCT_FLIPADST (Partial)<br>Primary tx FLIPADST_ADST (Partial)<br>Primary tx FLIPADST_FLIPADST (Partial)<br>Primary tx H_ADST (Partial)<br>Primary tx H_DCT (Partial)<br>Primary tx V_ADST (Partial)<br>Primary tx V_DCT (Partial) |
-| 15 | `cuckoo-431x287-qp080.obu` | 18 | Chroma angle delta 1 (Partial)<br>Chroma angle delta -1 (Partial)<br>Chroma angle delta 2 (Partial)<br>Chroma angle delta -2 (Partial)<br>Chroma angle delta 3 (Partial)<br>Chroma angle delta -3 (Partial)<br>Intra block copy (Partial)<br>MRL index 3 (Partial)<br>Primary tx ADST_FLIPADST (Partial)<br>Primary tx DCT_FLIPADST (Partial)<br>Primary tx FLIPADST_ADST (Partial)<br>Primary tx FLIPADST_DCT (Partial)<br>Primary tx FLIPADST_FLIPADST (Partial)<br>Primary tx H_ADST (Partial)<br>Primary tx H_DCT (Partial)<br>Primary tx V_ADST (Partial)<br>Primary tx V_DCT (Partial)<br>Primary tx V_FLIPADST (Partial) |
-| 16 | `emerald-480x240-qp128.obu` | 18 | Chroma angle delta 1 (Partial)<br>Chroma angle delta -1 (Partial)<br>Chroma angle delta 2 (Partial)<br>Chroma angle delta -2 (Partial)<br>Chroma angle delta 3 (Partial)<br>Chroma angle delta -3 (Partial)<br>Intra block copy (Partial)<br>MRL index 3 (Partial)<br>Primary tx ADST_FLIPADST (Partial)<br>Primary tx DCT_FLIPADST (Partial)<br>Primary tx FLIPADST_ADST (Partial)<br>Primary tx FLIPADST_DCT (Partial)<br>Primary tx FLIPADST_FLIPADST (Partial)<br>Primary tx H_ADST (Partial)<br>Primary tx H_DCT (Partial)<br>Primary tx H_FLIPADST (Partial)<br>Primary tx V_DCT (Partial)<br>Primary tx V_FLIPADST (Partial) |
-| 17 | `laarim-256x171-qp096.obu` | 19 | Chroma angle delta 1 (Partial)<br>Chroma angle delta -1 (Partial)<br>Chroma angle delta 2 (Partial)<br>Chroma angle delta -2 (Partial)<br>Chroma angle delta 3 (Partial)<br>Chroma angle delta -3 (Partial)<br>Intra block copy (Partial)<br>MRL index 3 (Partial)<br>Primary tx ADST_FLIPADST (Partial)<br>Primary tx DCT_FLIPADST (Partial)<br>Primary tx FLIPADST_ADST (Partial)<br>Primary tx FLIPADST_DCT (Partial)<br>Primary tx FLIPADST_FLIPADST (Partial)<br>Primary tx H_ADST (Partial)<br>Primary tx H_DCT (Partial)<br>Primary tx H_FLIPADST (Partial)<br>Primary tx V_ADST (Partial)<br>Primary tx V_DCT (Partial)<br>Primary tx V_FLIPADST (Partial) |
-| 18 | `louis-301x222-qp144.obu` | 19 | Chroma angle delta 1 (Partial)<br>Chroma angle delta -1 (Partial)<br>Chroma angle delta 2 (Partial)<br>Chroma angle delta -2 (Partial)<br>Chroma angle delta 3 (Partial)<br>Chroma angle delta -3 (Partial)<br>Intra block copy (Partial)<br>MRL index 3 (Partial)<br>Primary tx ADST_FLIPADST (Partial)<br>Primary tx DCT_FLIPADST (Partial)<br>Primary tx FLIPADST_ADST (Partial)<br>Primary tx FLIPADST_DCT (Partial)<br>Primary tx FLIPADST_FLIPADST (Partial)<br>Primary tx H_ADST (Partial)<br>Primary tx H_DCT (Partial)<br>Primary tx V_ADST (Partial)<br>Primary tx V_DCT (Partial)<br>Primary tx V_FLIPADST (Partial)<br>Transform skip (Partial) |
-| 19 | `pastell-320x213-qp064.obu` | 19 | Chroma angle delta 1 (Partial)<br>Chroma angle delta -1 (Partial)<br>Chroma angle delta 2 (Partial)<br>Chroma angle delta -2 (Partial)<br>Chroma angle delta 3 (Partial)<br>Chroma angle delta -3 (Partial)<br>Intra block copy (Partial)<br>MRL index 3 (Partial)<br>Primary tx ADST_FLIPADST (Partial)<br>Primary tx DCT_FLIPADST (Partial)<br>Primary tx FLIPADST_ADST (Partial)<br>Primary tx FLIPADST_DCT (Partial)<br>Primary tx FLIPADST_FLIPADST (Partial)<br>Primary tx H_ADST (Partial)<br>Primary tx H_DCT (Partial)<br>Primary tx V_ADST (Partial)<br>Primary tx V_DCT (Partial)<br>Primary tx V_FLIPADST (Partial)<br>Transform skip (Partial) |
-| 20 | `schwaebisch-353x234-qp112.obu` | 19 | Chroma angle delta 1 (Partial)<br>Chroma angle delta -1 (Partial)<br>Chroma angle delta 2 (Partial)<br>Chroma angle delta -2 (Partial)<br>Chroma angle delta 3 (Partial)<br>Chroma angle delta -3 (Partial)<br>Intra block copy (Partial)<br>MRL index 3 (Partial)<br>Primary tx ADST_FLIPADST (Partial)<br>Primary tx DCT_FLIPADST (Partial)<br>Primary tx FLIPADST_ADST (Partial)<br>Primary tx FLIPADST_DCT (Partial)<br>Primary tx FLIPADST_FLIPADST (Partial)<br>Primary tx H_ADST (Partial)<br>Primary tx H_DCT (Partial)<br>Primary tx H_FLIPADST (Partial)<br>Primary tx V_ADST (Partial)<br>Primary tx V_DCT (Partial)<br>Transform skip (Partial) |
-| 21 | `flycatcher-397x265-qp048.obu` | 20 | Chroma angle delta 1 (Partial)<br>Chroma angle delta -1 (Partial)<br>Chroma angle delta 2 (Partial)<br>Chroma angle delta -2 (Partial)<br>Chroma angle delta 3 (Partial)<br>Chroma angle delta -3 (Partial)<br>Intra block copy (Partial)<br>MRL index 3 (Partial)<br>Primary tx ADST_FLIPADST (Partial)<br>Primary tx DCT_FLIPADST (Partial)<br>Primary tx FLIPADST_ADST (Partial)<br>Primary tx FLIPADST_DCT (Partial)<br>Primary tx FLIPADST_FLIPADST (Partial)<br>Primary tx H_ADST (Partial)<br>Primary tx H_DCT (Partial)<br>Primary tx H_FLIPADST (Partial)<br>Primary tx V_ADST (Partial)<br>Primary tx V_DCT (Partial)<br>Primary tx V_FLIPADST (Partial)<br>Transform skip (Partial) |
+| 1 | `chinnathurai-333x333-qp224.obu` | 0 | None |
+| 2 | `emerald-192x96-qp208.obu` | 0 | None |
+| 3 | `louis-463x342-qp224.obu` | 0 | None |
+| 4 | `cuckoo-157x105-qp160.obu` | 4 | Intra block copy (Partial)<br>Primary tx ADST_FLIPADST (Partial)<br>Primary tx FLIPADST_ADST (Partial)<br>Primary tx V_DCT (Partial) |
+| 5 | `schwaebisch-417x277-qp208.obu` | 4 | Chroma angle delta 1 (Partial)<br>Chroma angle delta -3 (Partial)<br>Intra block copy (Partial)<br>Transform skip (Partial) |
+| 6 | `chimp-240x287-qp192.obu` | 5 | Primary tx ADST_FLIPADST (Partial)<br>Primary tx FLIPADST_ADST (Partial)<br>Primary tx FLIPADST_DCT (Partial)<br>Primary tx FLIPADST_FLIPADST (Partial)<br>Primary tx V_ADST (Partial) |
+| 7 | `laarim-448x299-qp192.obu` | 5 | Chroma angle delta 1 (Partial)<br>Chroma angle delta 3 (Partial)<br>Primary tx ADST_FLIPADST (Partial)<br>Primary tx FLIPADST_ADST (Partial)<br>Primary tx FLIPADST_DCT (Partial) |
+| 8 | `flycatcher-223x149-qp176.obu` | 8 | Chroma angle delta 1 (Partial)<br>Chroma angle delta 3 (Partial)<br>Primary tx ADST_FLIPADST (Partial)<br>Primary tx DCT_FLIPADST (Partial)<br>Primary tx FLIPADST_ADST (Partial)<br>Primary tx FLIPADST_FLIPADST (Partial)<br>Primary tx H_ADST (Partial)<br>Primary tx V_ADST (Partial) |
+| 9 | `chinnathurai-128x128-qp112.obu` | 9 | Chroma angle delta 1 (Partial)<br>Intra block copy (Partial)<br>Primary tx ADST_FLIPADST (Partial)<br>Primary tx DCT_FLIPADST (Partial)<br>Primary tx FLIPADST_ADST (Partial)<br>Primary tx H_ADST (Partial)<br>Primary tx H_DCT (Partial)<br>Primary tx V_ADST (Partial)<br>Primary tx V_DCT (Partial) |
+| 10 | `pastell-512x341-qp160.obu` | 9 | Chroma angle delta 1 (Partial)<br>Chroma angle delta -1 (Partial)<br>Chroma angle delta 3 (Partial)<br>Chroma angle delta -3 (Partial)<br>Intra block copy (Partial)<br>Primary tx ADST_FLIPADST (Partial)<br>Primary tx DCT_FLIPADST (Partial)<br>Primary tx FLIPADST_ADST (Partial)<br>Transform skip (Partial) |
+| 11 | `chalk-320x240-qp128.obu` | 10 | Chroma angle delta 1 (Partial)<br>Chroma angle delta -1 (Partial)<br>Chroma angle delta 3 (Partial)<br>Chroma angle delta -3 (Partial)<br>Intra block copy (Partial)<br>Primary tx ADST_FLIPADST (Partial)<br>Primary tx DCT_FLIPADST (Partial)<br>Primary tx FLIPADST_ADST (Partial)<br>Primary tx V_ADST (Partial)<br>Primary tx V_DCT (Partial) |
+| 12 | `silene-479x383-qp176.obu` | 10 | Chroma angle delta 1 (Partial)<br>Chroma angle delta -1 (Partial)<br>Chroma angle delta 3 (Partial)<br>Chroma angle delta -3 (Partial)<br>Intra block copy (Partial)<br>Primary tx ADST_FLIPADST (Partial)<br>Primary tx DCT_FLIPADST (Partial)<br>Primary tx FLIPADST_ADST (Partial)<br>Primary tx FLIPADST_DCT (Partial)<br>Transform skip (Partial) |
+| 13 | `chimp-93x111-qp064.obu` | 13 | Chroma angle delta -1 (Partial)<br>Chroma angle delta 3 (Partial)<br>Chroma angle delta -3 (Partial)<br>Intra block copy (Partial)<br>Primary tx ADST_FLIPADST (Partial)<br>Primary tx FLIPADST_ADST (Partial)<br>Primary tx FLIPADST_FLIPADST (Partial)<br>Primary tx H_ADST (Partial)<br>Primary tx H_DCT (Partial)<br>Primary tx H_FLIPADST (Partial)<br>Primary tx V_ADST (Partial)<br>Primary tx V_DCT (Partial)<br>Primary tx V_FLIPADST (Partial) |
+| 14 | `silene-384x307-qp080.obu` | 14 | Chroma angle delta 1 (Partial)<br>Chroma angle delta -1 (Partial)<br>Chroma angle delta 3 (Partial)<br>Chroma angle delta -3 (Partial)<br>Intra block copy (Partial)<br>Palette prediction (Unsupported)<br>Primary tx ADST_FLIPADST (Partial)<br>Primary tx DCT_FLIPADST (Partial)<br>Primary tx FLIPADST_ADST (Partial)<br>Primary tx FLIPADST_FLIPADST (Partial)<br>Primary tx H_ADST (Partial)<br>Primary tx H_DCT (Partial)<br>Primary tx V_ADST (Partial)<br>Primary tx V_DCT (Partial) |
+| 15 | `cuckoo-431x287-qp080.obu` | 15 | Chroma angle delta 1 (Partial)<br>Chroma angle delta -1 (Partial)<br>Chroma angle delta 3 (Partial)<br>Chroma angle delta -3 (Partial)<br>Intra block copy (Partial)<br>Primary tx ADST_FLIPADST (Partial)<br>Primary tx DCT_FLIPADST (Partial)<br>Primary tx FLIPADST_ADST (Partial)<br>Primary tx FLIPADST_DCT (Partial)<br>Primary tx FLIPADST_FLIPADST (Partial)<br>Primary tx H_ADST (Partial)<br>Primary tx H_DCT (Partial)<br>Primary tx V_ADST (Partial)<br>Primary tx V_DCT (Partial)<br>Primary tx V_FLIPADST (Partial) |
+| 16 | `emerald-480x240-qp128.obu` | 15 | Chroma angle delta 1 (Partial)<br>Chroma angle delta -1 (Partial)<br>Chroma angle delta 3 (Partial)<br>Chroma angle delta -3 (Partial)<br>Intra block copy (Partial)<br>Primary tx ADST_FLIPADST (Partial)<br>Primary tx DCT_FLIPADST (Partial)<br>Primary tx FLIPADST_ADST (Partial)<br>Primary tx FLIPADST_DCT (Partial)<br>Primary tx FLIPADST_FLIPADST (Partial)<br>Primary tx H_ADST (Partial)<br>Primary tx H_DCT (Partial)<br>Primary tx H_FLIPADST (Partial)<br>Primary tx V_DCT (Partial)<br>Primary tx V_FLIPADST (Partial) |
+| 17 | `laarim-256x171-qp096.obu` | 16 | Chroma angle delta 1 (Partial)<br>Chroma angle delta -1 (Partial)<br>Chroma angle delta 3 (Partial)<br>Chroma angle delta -3 (Partial)<br>Intra block copy (Partial)<br>Primary tx ADST_FLIPADST (Partial)<br>Primary tx DCT_FLIPADST (Partial)<br>Primary tx FLIPADST_ADST (Partial)<br>Primary tx FLIPADST_DCT (Partial)<br>Primary tx FLIPADST_FLIPADST (Partial)<br>Primary tx H_ADST (Partial)<br>Primary tx H_DCT (Partial)<br>Primary tx H_FLIPADST (Partial)<br>Primary tx V_ADST (Partial)<br>Primary tx V_DCT (Partial)<br>Primary tx V_FLIPADST (Partial) |
+| 18 | `louis-301x222-qp144.obu` | 16 | Chroma angle delta 1 (Partial)<br>Chroma angle delta -1 (Partial)<br>Chroma angle delta 3 (Partial)<br>Chroma angle delta -3 (Partial)<br>Intra block copy (Partial)<br>Primary tx ADST_FLIPADST (Partial)<br>Primary tx DCT_FLIPADST (Partial)<br>Primary tx FLIPADST_ADST (Partial)<br>Primary tx FLIPADST_DCT (Partial)<br>Primary tx FLIPADST_FLIPADST (Partial)<br>Primary tx H_ADST (Partial)<br>Primary tx H_DCT (Partial)<br>Primary tx V_ADST (Partial)<br>Primary tx V_DCT (Partial)<br>Primary tx V_FLIPADST (Partial)<br>Transform skip (Partial) |
+| 19 | `pastell-320x213-qp064.obu` | 16 | Chroma angle delta 1 (Partial)<br>Chroma angle delta -1 (Partial)<br>Chroma angle delta 3 (Partial)<br>Chroma angle delta -3 (Partial)<br>Intra block copy (Partial)<br>Primary tx ADST_FLIPADST (Partial)<br>Primary tx DCT_FLIPADST (Partial)<br>Primary tx FLIPADST_ADST (Partial)<br>Primary tx FLIPADST_DCT (Partial)<br>Primary tx FLIPADST_FLIPADST (Partial)<br>Primary tx H_ADST (Partial)<br>Primary tx H_DCT (Partial)<br>Primary tx V_ADST (Partial)<br>Primary tx V_DCT (Partial)<br>Primary tx V_FLIPADST (Partial)<br>Transform skip (Partial) |
+| 20 | `schwaebisch-353x234-qp112.obu` | 16 | Chroma angle delta 1 (Partial)<br>Chroma angle delta -1 (Partial)<br>Chroma angle delta 3 (Partial)<br>Chroma angle delta -3 (Partial)<br>Intra block copy (Partial)<br>Primary tx ADST_FLIPADST (Partial)<br>Primary tx DCT_FLIPADST (Partial)<br>Primary tx FLIPADST_ADST (Partial)<br>Primary tx FLIPADST_DCT (Partial)<br>Primary tx FLIPADST_FLIPADST (Partial)<br>Primary tx H_ADST (Partial)<br>Primary tx H_DCT (Partial)<br>Primary tx H_FLIPADST (Partial)<br>Primary tx V_ADST (Partial)<br>Primary tx V_DCT (Partial)<br>Transform skip (Partial) |
+| 21 | `flycatcher-397x265-qp048.obu` | 17 | Chroma angle delta 1 (Partial)<br>Chroma angle delta -1 (Partial)<br>Chroma angle delta 3 (Partial)<br>Chroma angle delta -3 (Partial)<br>Intra block copy (Partial)<br>Primary tx ADST_FLIPADST (Partial)<br>Primary tx DCT_FLIPADST (Partial)<br>Primary tx FLIPADST_ADST (Partial)<br>Primary tx FLIPADST_DCT (Partial)<br>Primary tx FLIPADST_FLIPADST (Partial)<br>Primary tx H_ADST (Partial)<br>Primary tx H_DCT (Partial)<br>Primary tx H_FLIPADST (Partial)<br>Primary tx V_ADST (Partial)<br>Primary tx V_DCT (Partial)<br>Primary tx V_FLIPADST (Partial)<br>Transform skip (Partial) |
 
 ## Rare-feature fixtures
 

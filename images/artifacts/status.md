@@ -1,8 +1,8 @@
 # Decoder status snapshot
 
 Snapshot verified on 2026-07-29 at base revision `c06486d`, including the
-current uncommitted MRL index 2, complete CfL prediction, and multi-line MRL
-work, plus complete luma FSC, primary IDTX, and primary ADST_DCT
+current uncommitted MRL indices 2 and 3, complete CfL prediction, and
+multi-line MRL work, plus complete luma FSC, primary IDTX, and primary ADST_DCT
 reconstruction. The production Windows decoder was rebuilt and run against
 all 21 artifacts, and the pinned artifact profile frontier suite passed.
 
@@ -32,7 +32,7 @@ in 4x4 units.
 | `pastell-320x213-qp064.obu` | DC mode and 8x8 coefficient-prefix entry reached; prefix starts at tell 25 and fails closed at tell 34 | Remaining Q-context-0 8x8 coefficient profile |
 | `pastell-512x341-qp160.obu` | First 16x32 DCT_FLIPADST block and second `(0,4)` 16x32 Smooth/DCT_DCT block reconstruct sample-exactly; the second block has levels/signs at tells 81/83 and predictor/output hashes `7b5a4f04146e5eb7`/`4324e4ef5962723d` | Next Q160 luma-profile admission |
 | `schwaebisch-353x234-qp112.obu` | EOB 2, DCT_DCT, and secondary symbol 0 complete, tell 32 | Q112 coefficient-level profile |
-| `schwaebisch-417x277-qp208.obu` | Decodes through superblock index 31; frame-edge coefficient contexts match AVM at `(64,16)` through tell 4186/range 48752, eliminating the false `(68,40)` coefficient tuple; `(64,48)` reaches tell 4232 | Q208 32x8 D203/+3 MRL-3 reconstruction profile |
+| `schwaebisch-417x277-qp208.obu` | Decodes through superblock index 31; frame-edge coefficient contexts match AVM at `(64,16)` through tell 4186/range 48752, eliminating the false `(68,40)` coefficient tuple; `(64,48)` D203/+3 MRL-3 reconstructs and `(66,48)` reaches tell 4236 | Q208 32x8 D203/0 reconstruction admission |
 | `silene-384x307-qp080.obu` | 64x64 EOB 46 and implicit DCT_DCT complete, tell 20 | Q80 64x64 coefficient-level profile |
 | `silene-479x383-qp176.obu` | First 64x64 luma predictor/output match AVM (`cae2b824a5adc383`/`6f9be39143f7d24f`); explicit-CfL U/V predictors and first 32x32 prefilters match through tell 71, range 53320 (`0e163de1147deb8a`/`a28b4981853199a6`, `3e5af7d08452fb90`/`8e29d20ab3284a74`) | Next luma/chroma traversal profile after the first exact leaf pair |
 
@@ -48,6 +48,11 @@ Summary:
   legal prediction geometry, multi-line state, and IBP state. Chinnathurai Q224
   pins a single-line 16x32 predictor/output pair, while Schwaebisch Q208 pins a
   multi-line 16x8 pair at tell 706;
+- MRL index 3 is admitted across every directional mode, luma angle delta,
+  legal prediction geometry, multi-line state, and IBP state. Normative and
+  pinned AVM derivative/filter tables cover the 4x4 D67/-3 case, while Chimp
+  Q192 pins a live multi-line predictor/output pair and Schwaebisch Q208
+  advances through its D203/+3 MRL-3 leaf at tell 4232;
 - Multi-line MRL is admitted across every directional mode, luma angle delta,
   nonzero MRL index, legal prediction geometry, and IBP state. The selected
   reference line is blended with line 0 using AVM's rounded average, including
@@ -57,6 +62,11 @@ Summary:
   state, and IBP state. Laarim Q96 pins a live 16x16 Horizontal/+1 DCT_ADST
   leaf through EOB 25, coefficient tells, predictor hash
   `75290844cee19be7`, and sample-exact reconstruction;
+- Chroma angle delta -2 is admitted through the shared IDIF predictor across
+  every directional mode and legal chroma prediction geometry. Schwaebisch
+  Q208 pins a live 32x16 Horizontal/-2 leaf at tell 1372 with exact U/V
+  predictor and reconstruction hashes `fc417191e6d1c7b6` and
+  `3cfa5b1dcb7cf69b`;
 - Primary IDTX is admitted across all six signaled 32-long transform
   geometries for every intra mode, all five FSC geometries, and IntraBC 4x4.
   AVM identity scales, inverse shifts, rectangular scaling, signed rounding,
@@ -87,10 +97,11 @@ Summary:
   and 32x32 U/V reconstruction surfaces. Emerald reaches tell 197/range 53184;
   Silene reaches tell 71/range 53320 with exact plane-specific explicit-CfL
   predictors. Both still fail closed before completing their next profile;
-- Schwaebisch Q208 advances through superblock index 31 and tell 4232 after
+- Schwaebisch Q208 advances through superblock index 31 and tell 4236 after
   correcting TX_8X16 entropy context, admitting three exact predictor
-  geometries, and clipping coefficient contexts at frame edges; its next gap
-  is the `(64,48)` 32x8 D203/+3 MRL-3 reconstruction profile;
+  geometries, clipping coefficient contexts at frame edges, and admitting
+  MRL index 3 generically; its next gap is the `(66,48)` 32x8 D203/0
+  reconstruction admission;
 - Chimp Q192 now matches the pinned AVM entropy path through superblocks 11,
   12, and 13 and advances deep into superblock 14. Its `(56,38)` 4x8
   Vertical/-3 leaf with MRL index 3, multi-line MRL, and IBP enabled has exact

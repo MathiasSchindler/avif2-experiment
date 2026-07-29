@@ -1627,8 +1627,8 @@ static void test_luma_directional_feature_matrix(void) {
                         for (multi_line_mrl = 0U; multi_line_mrl <= 1U;
                              ++multi_line_mrl) {
                             mode.multi_line_mrl = (uint8_t)multi_line_mrl;
-                            if (multi_line_mrl == 0U && mrl_index != 1U &&
-                                mrl_index != 2U && mode.angle_delta != -3 &&
+                            if (multi_line_mrl == 0U && mrl_index == 0U &&
+                                mode.angle_delta != -3 &&
                                 mode.angle_delta != -2 &&
                                 mode.angle_delta != -1 &&
                                 mode.angle_delta != 1 &&
@@ -1768,6 +1768,77 @@ static void test_luma_directional_feature_matrix(void) {
                                 }
                             }
                         }
+                    }
+                }
+            }
+        }
+    }
+}
+
+static void test_chroma_angle_delta_two_matrix(void) {
+    static const Av2hFirstLeafIntraMode modes[] = {
+        AV2H_INTRA_D45,        AV2H_INTRA_D67,  AV2H_INTRA_VERTICAL,
+        AV2H_INTRA_D113,       AV2H_INTRA_D135, AV2H_INTRA_D157,
+        AV2H_INTRA_HORIZONTAL, AV2H_INTRA_D203
+    };
+    static const int8_t angle_deltas[] = { -2, 2 };
+    static const uint16_t dimensions[] = { 4U, 8U, 16U, 32U };
+    Av2hFirstChromaMode chroma_mode = { 0 };
+    Av2hFirstLeafMode luma_mode = { 0 };
+    Av2hLumaReferences references = { 0 };
+    uint8_t above[72U];
+    uint8_t left[72U];
+    uint8_t chroma_storage[AV2H_RECON_SAMPLE_CAPACITY + 2U];
+    uint8_t luma_predictor[AV2H_RECON_SAMPLE_CAPACITY];
+    uint8_t *chroma_predictor = &chroma_storage[1U];
+    size_t delta_index;
+    size_t mode_index;
+    size_t width_index;
+    size_t height_index;
+    size_t index;
+
+    for (index = 0U; index < sizeof(above); ++index) {
+        above[index] = (uint8_t)(23U + index * 31U);
+        left[index] = (uint8_t)(167U + index * 11U);
+    }
+    references.above = above;
+    references.above_count = sizeof(above);
+    references.left = left;
+    references.left_count = sizeof(left);
+    references.above_left = 109U;
+    references.has_above_left = 1U;
+    luma_mode.enable_ibp = 1U;
+
+    for (delta_index = 0U;
+         delta_index < sizeof(angle_deltas) / sizeof(angle_deltas[0]);
+         ++delta_index) {
+        chroma_mode.angle_delta = angle_deltas[delta_index];
+        luma_mode.angle_delta = angle_deltas[delta_index];
+        for (mode_index = 0U; mode_index < sizeof(modes) / sizeof(modes[0]);
+             ++mode_index) {
+            chroma_mode.mode = modes[mode_index];
+            luma_mode.mode = modes[mode_index];
+            for (width_index = 0U;
+                 width_index < sizeof(dimensions) / sizeof(dimensions[0]);
+                 ++width_index) {
+                uint16_t width = dimensions[width_index];
+                for (height_index = 0U;
+                     height_index < sizeof(dimensions) / sizeof(dimensions[0]);
+                     ++height_index) {
+                    uint16_t height = dimensions[height_index];
+                    size_t sample_count = (size_t)width * height;
+                    av2h_memory_fill(
+                        chroma_storage, 0xa5U, sizeof(chroma_storage));
+                    CHECK(av2h_chroma_predict(
+                              &chroma_mode, width, height, &references,
+                              chroma_predictor, width) == AV2H_OK);
+                    CHECK(av2h_luma_predict(
+                              &luma_mode, width, height, &references,
+                              luma_predictor, width) == AV2H_OK);
+                    CHECK(chroma_storage[0U] == 0xa5U);
+                    CHECK(chroma_storage[sizeof(chroma_storage) - 1U] == 0xa5U);
+                    for (index = 0U; index < sample_count; ++index) {
+                        CHECK(chroma_predictor[index] == luma_predictor[index]);
                     }
                 }
             }
@@ -4219,6 +4290,7 @@ int main(void) {
     test_dc_16x32_ibp_prediction();
     test_d113_16x64_prediction();
     test_luma_directional_feature_matrix();
+    test_chroma_angle_delta_two_matrix();
     test_live_plane_reconstruction();
     test_arguments();
     test_emerald_q208_luma_blocks();

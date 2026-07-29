@@ -4001,6 +4001,8 @@ static void check_first_luma(const ArtifactExpectation *expected,
                     if (status != AV2H_OK) break;
                 } else {
                     Av2hStatus plane_status[2U] = { AV2H_OK, AV2H_OK };
+                    uint64_t predictor_hashes[2U] = { 0U, 0U };
+                    uint64_t output_hashes[2U] = { 0U, 0U };
                     size_t plane_index;
                     av2h_memory_fill(&chroma_leaf, 0U, sizeof(chroma_leaf));
                     av2h_memory_fill(
@@ -4021,7 +4023,44 @@ static void check_first_luma(const ArtifactExpectation *expected,
                                     (uint8_t)(plane_index + 1U), 0,
                                     &scratch);
                             if (plane_status[plane_index] != AV2H_OK) break;
+                            predictor_hashes[plane_index] = block_pixel_hash(
+                                scratch.predictor, chroma_blocks[plane_index].width,
+                                chroma_blocks[plane_index].width,
+                                chroma_blocks[plane_index].height);
+                            output_hashes[plane_index] = block_pixel_hash(
+                                chroma_planes[plane_index].data +
+                                    (size_t)chroma_leaf.node.row * 2U *
+                                        chroma_planes[plane_index].stride +
+                                    (size_t)chroma_leaf.node.column * 2U,
+                                chroma_planes[plane_index].stride,
+                                chroma_blocks[plane_index].width,
+                                chroma_blocks[plane_index].height);
                         }
+                    }
+                    if (status == AV2H_OK && has_leaf != 0U &&
+                        chroma_leaf.node.row == 24U &&
+                        chroma_leaf.node.column == 32U) {
+                        CHECK(chroma_leaf.node.block_size ==
+                            AV2H_BLOCK_64X32);
+                        CHECK(chroma_leaf.mode.mode ==
+                            AV2H_INTRA_HORIZONTAL);
+                        CHECK(chroma_leaf.mode.angle_delta == -2);
+                        CHECK(chroma_leaf.mode.is_cfl == 0U);
+                        CHECK(chroma_blocks[0].width == 32U);
+                        CHECK(chroma_blocks[0].height == 16U);
+                        CHECK(chroma_blocks[1].width == 32U);
+                        CHECK(chroma_blocks[1].height == 16U);
+                        CHECK(plane_status[0] == AV2H_OK);
+                        CHECK(plane_status[1] == AV2H_OK);
+                        CHECK(av2h_range_tell(&decoder.range) == 1372U);
+                        CHECK(predictor_hashes[0] ==
+                            UINT64_C(0xfc417191e6d1c7b6));
+                        CHECK(predictor_hashes[1] ==
+                            UINT64_C(0x3cfa5b1dcb7cf69b));
+                        CHECK(output_hashes[0] ==
+                            UINT64_C(0xfc417191e6d1c7b6));
+                        CHECK(output_hashes[1] ==
+                            UINT64_C(0x3cfa5b1dcb7cf69b));
                     }
                     fprintf(stderr,
                             "schwaebisch q208 continue-uv status=%d reconstruct=%d/%d stage=%u tell=%lu leaf=%u sb=%lu row=%u column=%u block=%u mode=%u angle=%d colocated=%u/%d cfl=%u/%u/%u cdf=%u/%u/%u ranges=%u/%u/%u/%u:%u/%u:%u/%u prefix=%u/%u/%u/%u:%u/%u/%u/%u transform=%u/%u/%u:%u/%u/%u coeff=%u/%u/%lu/%lu diagnostic=%u/%u:%u/%u\n",

@@ -136,6 +136,18 @@
       "evidence": "Selected directional predictors are validated, with remaining geometry-specific reconstruction gaps."
     },
     {
+      "match": "exact",
+      "value": "Chroma angle delta 2",
+      "status": "supported",
+      "evidence": "Validated in chroma directional syntax and across every directional mode and legal chroma prediction geometry, with pinned Emerald Q128 predictor and reconstruction hashes."
+    },
+    {
+      "match": "exact",
+      "value": "Chroma angle delta -2",
+      "status": "supported",
+      "evidence": "Validated in chroma directional syntax and across every directional mode and legal chroma prediction geometry, with pinned Schwaebisch Q208 U/V predictor and reconstruction hashes."
+    },
+    {
       "match": "prefix",
       "value": "Chroma angle delta ",
       "status": "partial",
@@ -152,6 +164,12 @@
       "value": "MRL index 2",
       "status": "supported",
       "evidence": "Validated across every directional mode, luma angle delta, legal prediction geometry, multi-line state, and IBP state, with exact single-line and multi-line artifact predictor and reconstruction hashes."
+    },
+    {
+      "match": "exact",
+      "value": "MRL index 3",
+      "status": "supported",
+      "evidence": "Validated across every directional mode, luma angle delta, legal prediction geometry, multi-line state, and IBP state, with pinned AVM derivative/filter evidence and exact live predictor and reconstruction hashes."
     },
     {
       "match": "prefix",
