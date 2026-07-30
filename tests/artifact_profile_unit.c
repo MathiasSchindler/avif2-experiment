@@ -367,6 +367,20 @@ static uint64_t block_pixel_hash(const uint8_t *pixels, size_t stride,
     return hash;
 }
 
+static uint64_t block_coefficient_hash(const Av2hFirstCoeffBlock *block) {
+    uint64_t hash = UINT64_C(1469598103934665603);
+    size_t index;
+    for (index = 0U; index < block->coefficient_count; ++index) {
+        hash ^= (uint32_t)block->quantized[index];
+        hash *= UINT64_C(1099511628211);
+    }
+    for (index = 0U; index < block->coefficient_count; ++index) {
+        hash ^= (uint32_t)block->dequantized[index];
+        hash *= UINT64_C(1099511628211);
+    }
+    return hash;
+}
+
 extern uint64_t av2h_debug_smooth_above_hash;
 extern uint64_t av2h_debug_smooth_left_hash;
 extern int32_t av2h_debug_mhccp_parameters[2U][3U];
@@ -1675,6 +1689,420 @@ static void check_first_luma(const ArtifactExpectation *expected,
             CHECK(block_pixel_hash(
                       target_pixels, expected->width, 64U, 64U) ==
                   expected_pixel_hash);
+        }
+    }
+    if (expected->base_q_index <= 80U &&
+        expected->first_block == AV2H_BLOCK_64X64) {
+        size_t trace_index;
+        static uint8_t q0_pixels[431U * 307U];
+        static uint8_t q0_reconstructed[108U * 77U];
+        static uint8_t q0_chroma_pixels[2U][216U * 154U];
+        static uint8_t q0_chroma_reconstructed[2U][54U * 39U];
+        static Av2hReconstructionScratch q0_scratch;
+        Av2hReconstructionPlane q0_plane = {
+            q0_pixels, expected->width, expected->width, expected->height,
+            expected->width, expected->height, q0_reconstructed,
+            ((size_t)expected->width + 3U) / 4U,
+            sizeof(q0_reconstructed)
+        };
+        Av2hStatus reconstruct_status;
+        fprintf(stderr,
+                "q0-64x64 width=%u tools=%u/%u status=%d tell=%lu leaf=%u eob=%u "
+                "levels=%lu/%lu coeffs=%u hash=%016llx "
+                "diagnostic=%u/%u/%u\n",
+                expected->width, sequence->enable_tcq,
+                sequence->enable_parity_hiding, status,
+                (unsigned long)av2h_range_tell(&decoder.range), has_leaf,
+                leaf.prefix.eob, (unsigned long)block.before_levels_bits,
+                (unsigned long)block.after_levels_bits,
+                block.nonzero_count,
+                (unsigned long long)block_coefficient_hash(&block),
+                block.diagnostic_kind,
+                block.diagnostic_context, block.diagnostic_position);
+        fprintf(stderr, "q0-local-eob");
+        for (trace_index = 0U; trace_index < 18U; ++trace_index) {
+            fprintf(stderr, "/%u", av2h_debug_chimp_eob[trace_index]);
+        }
+        fprintf(stderr, "\n");
+        for (trace_index = 0U; trace_index < av2h_debug_chimp_base_count &&
+             trace_index < 5U; ++trace_index) {
+            size_t word;
+            fprintf(stderr, "q0-local-base");
+            for (word = 0U; word < 18U; ++word) {
+                fprintf(stderr, "/%u",
+                        av2h_debug_chimp_base[trace_index][word]);
+            }
+            fprintf(stderr, "\n");
+        }
+        av2h_memory_fill(q0_pixels, 0U, sizeof(q0_pixels));
+        av2h_memory_fill(q0_reconstructed, 0U, sizeof(q0_reconstructed));
+        reconstruct_status = av2h_luma_reconstruct_to_plane(
+            &leaf.node, &leaf.mode, &leaf.prefix, &leaf.transform,
+            &block, &q0_plane, &q0_scratch);
+        fprintf(stderr, "q0-local-reconstruct=%u/%d/%016llx/%016llx\n",
+                expected->width, reconstruct_status,
+                (unsigned long long)block_pixel_hash(
+                    q0_scratch.predictor, 64U, 64U, 64U),
+                (unsigned long long)block_pixel_hash(
+                    q0_pixels, expected->width, 64U, 64U));
+        if (reconstruct_status == AV2H_OK &&
+            av2h_tile_decoder_commit_leaf(&decoder, leaf.node) == AV2H_OK) {
+            Av2hTileChromaLeaf chroma_leaf;
+            Av2hFirstCoeffBlock chroma_blocks[2U];
+            av2h_memory_fill(&leaf, 0U, sizeof(leaf));
+            av2h_memory_fill(&block, 0U, sizeof(block));
+            status = av2h_tile_decoder_next_luma(
+                &decoder, &leaf, &block, &has_leaf);
+            fprintf(stderr,
+                    "q0-local-next=%u/%d/%lu/%u/%u/%u/%u/%u/%u/%u\n",
+                    expected->width, status,
+                    (unsigned long)av2h_range_tell(&decoder.range), has_leaf,
+                    leaf.node.row, leaf.node.column, leaf.node.block_size,
+                    leaf.prefix.tx_size, leaf.prefix.eob,
+                    block.diagnostic_kind);
+            av2h_memory_fill(&chroma_leaf, 0U, sizeof(chroma_leaf));
+            av2h_memory_fill(chroma_blocks, 0U, sizeof(chroma_blocks));
+            status = av2h_tile_decoder_next_chroma(
+                &decoder, &chroma_leaf, &chroma_blocks[0],
+                &chroma_blocks[1], &has_leaf);
+            fprintf(stderr,
+                    "q0-local-chroma=%u/%d/%lu/%u/%u/%u/%u/%u/%u/%u/%u/%u/%u/%u/%u\n",
+                    expected->width, status,
+                    (unsigned long)av2h_range_tell(&decoder.range), has_leaf,
+                    chroma_leaf.node.row, chroma_leaf.node.column,
+                    chroma_leaf.node.block_size, chroma_leaf.mode.mode,
+                    chroma_leaf.prefix[0].tx_size,
+                    chroma_leaf.prefix[0].eob,
+                    chroma_leaf.prefix[1].tx_size,
+                    chroma_leaf.prefix[1].eob,
+                    chroma_blocks[0].diagnostic_kind,
+                    chroma_blocks[1].diagnostic_kind,
+                    av2h_debug_chroma_tile_stage);
+            if (status == AV2H_OK) {
+                Av2hReconstructionPlane q0_chroma_planes[2U];
+                Av2hStatus chroma_reconstruct_status[2U];
+                size_t plane_index;
+                fprintf(stderr,
+                        "q0-local-uv=%u/1/%u/%lu/%u/%016llx\n",
+                        expected->width, chroma_leaf.prefix[0].eob,
+                        (unsigned long)chroma_blocks[0].after_coefficients_bits,
+                        chroma_blocks[0].after_levels_range,
+                        (unsigned long long)block_coefficient_hash(
+                            &chroma_blocks[0]));
+                fprintf(stderr,
+                        "q0-local-uv=%u/2/%u/%lu/%u/%016llx\n",
+                        expected->width, chroma_leaf.prefix[1].eob,
+                        (unsigned long)chroma_blocks[1].after_coefficients_bits,
+                        chroma_blocks[1].after_levels_range,
+                        (unsigned long long)block_coefficient_hash(
+                            &chroma_blocks[1]));
+                fprintf(stderr,
+                        "q0-local-v-prefix=%u/%lu/%lu/%u/%u/%u/%u/%u/%u/%u/%u/%u/%u\n",
+                        expected->width,
+                        (unsigned long)chroma_leaf.prefix[1].before_all_zero_bits,
+                        (unsigned long)chroma_leaf.prefix[1].after_all_zero_bits,
+                        av2h_debug_chroma_skip_ranges[1U][0U],
+                        av2h_debug_chroma_skip_ranges[1U][1U],
+                        av2h_debug_eob_range, av2h_debug_eob_cdf[0U],
+                        av2h_debug_eob_cdf[1U], av2h_debug_eob_cdf[2U],
+                        av2h_debug_eob_cdf[3U], av2h_debug_eob_cdf[4U],
+                        av2h_debug_eob_cdf[5U], av2h_debug_eob_cdf[6U]);
+                    fprintf(stderr, "q0-local-cctx=%u/%u\n", expected->width,
+                        chroma_leaf.transform[0].cctx_type);
+                    REQUIRE(av2h_chroma_inverse_cross_transform(
+                        &chroma_blocks[0], &chroma_blocks[1],
+                        chroma_leaf.transform[0].cctx_type) == AV2H_OK);
+                for (plane_index = 0U; plane_index < 2U; ++plane_index) {
+                    q0_chroma_planes[plane_index].data =
+                        q0_chroma_pixels[plane_index];
+                    q0_chroma_planes[plane_index].stride =
+                        ((size_t)expected->width + 1U) / 2U;
+                    q0_chroma_planes[plane_index].width =
+                        q0_chroma_planes[plane_index].stride;
+                    q0_chroma_planes[plane_index].height =
+                        ((size_t)expected->height + 1U) / 2U;
+                    q0_chroma_planes[plane_index].reference_width =
+                        q0_chroma_planes[plane_index].width;
+                    q0_chroma_planes[plane_index].reference_height =
+                        q0_chroma_planes[plane_index].height;
+                    q0_chroma_planes[plane_index].reconstructed =
+                        q0_chroma_reconstructed[plane_index];
+                    q0_chroma_planes[plane_index].reconstructed_stride =
+                        (q0_chroma_planes[plane_index].stride + 3U) / 4U;
+                    q0_chroma_planes[plane_index].reconstructed_count =
+                        sizeof(q0_chroma_reconstructed[plane_index]);
+                    av2h_memory_fill(
+                        q0_chroma_pixels[plane_index], 0U,
+                        sizeof(q0_chroma_pixels[plane_index]));
+                    av2h_memory_fill(
+                        q0_chroma_reconstructed[plane_index], 0U,
+                        sizeof(q0_chroma_reconstructed[plane_index]));
+                    chroma_reconstruct_status[plane_index] =
+                        av2h_chroma_reconstruct_to_plane_ex(
+                            &chroma_leaf.node, &chroma_leaf.mode,
+                            &chroma_leaf.prefix[plane_index],
+                            &chroma_leaf.transform[plane_index],
+                            &chroma_blocks[plane_index],
+                            &q0_chroma_planes[plane_index], &q0_plane,
+                            (uint8_t)(plane_index + 1U), 0, &q0_scratch);
+                    fprintf(stderr,
+                            "q0-local-uv-reconstruct=%u/%lu/%d/%u/%016llx\n",
+                            expected->width, (unsigned long)(plane_index + 1U),
+                            chroma_reconstruct_status[plane_index],
+                            av2h_debug_chroma_reconstruct_stage,
+                            (unsigned long long)block_pixel_hash(
+                                q0_chroma_pixels[plane_index],
+                                q0_chroma_planes[plane_index].stride,
+                                32U, 32U));
+                    fprintf(stderr,
+                            "q0-local-uv-predictor=%u/%lu/%016llx\n",
+                            expected->width, (unsigned long)(plane_index + 1U),
+                            (unsigned long long)block_pixel_hash(
+                                q0_scratch.predictor, 32U, 32U, 32U));
+                }
+                if (chroma_reconstruct_status[0U] == AV2H_OK &&
+                    chroma_reconstruct_status[1U] == AV2H_OK &&
+                    av2h_tile_decoder_commit_leaf(
+                        &decoder, chroma_leaf.node) == AV2H_OK) {
+                    av2h_memory_fill(&chroma_leaf, 0U, sizeof(chroma_leaf));
+                    av2h_memory_fill(chroma_blocks, 0U,
+                                     sizeof(chroma_blocks));
+                    status = av2h_tile_decoder_next_chroma(
+                        &decoder, &chroma_leaf, &chroma_blocks[0],
+                        &chroma_blocks[1], &has_leaf);
+                    if (status == AV2H_OK && has_leaf == 0U &&
+                        decoder.phase == AV2H_TILE_DECODE_LUMA) {
+                        av2h_memory_fill(&leaf, 0U, sizeof(leaf));
+                        av2h_memory_fill(&block, 0U, sizeof(block));
+                        status = av2h_tile_decoder_next_luma(
+                            &decoder, &leaf, &block, &has_leaf);
+                    }
+                    fprintf(stderr,
+                            "q0-local-frontier=%u/%d/%lu/%u/%u/%u/%u/%u/%u/%u/%u/%u/%u/%u\n",
+                            expected->width, status,
+                            (unsigned long)av2h_range_tell(&decoder.range),
+                            decoder.phase, has_leaf, leaf.node.row,
+                            leaf.node.column, leaf.node.block_size,
+                            leaf.prefix.tx_size, block.diagnostic_kind,
+                            block.diagnostic_context,
+                            av2h_debug_luma_tile_stage,
+                            av2h_debug_luma_prefix_stage,
+                            leaf.transform.primary_type);
+                            fprintf(stderr,
+                                "q0-local-frontier-prefix=%u/%lu/%lu/%lu/%u/%u/%u/%u/%u/%u/%u/%u/%u\n",
+                                expected->width,
+                                (unsigned long)leaf.prefix.before_all_zero_bits,
+                                (unsigned long)leaf.prefix.after_all_zero_bits,
+                                (unsigned long)leaf.prefix.after_eob_bits,
+                                leaf.prefix.all_zero, leaf.prefix.eob_point,
+                                leaf.prefix.eob, leaf.prefix.tx_size_context,
+                                av2h_debug_skip_range, av2h_debug_skip_cdf[0U],
+                                av2h_debug_eob_range, av2h_debug_eob_cdf[0U],
+                                av2h_debug_eob_cdf[1U]);
+                        if (status == AV2H_OK && has_leaf != 0U) {
+                            fprintf(stderr,
+                                    "q0-local-frontier-block=%u/%u/%u/%lu/%u/%016llx\n",
+                                    expected->width, leaf.prefix.eob,
+                                    block.coefficient_count,
+                                    (unsigned long)block.after_coefficients_bits,
+                                    block.after_levels_range,
+                                    (unsigned long long)block_coefficient_hash(
+                                        &block));
+                        }
+                        {
+                            size_t q0_luma_count = 1U;
+                            size_t q0_chroma_count = 1U;
+                            Av2hStatus walk_reconstruct_status = AV2H_OK;
+                            if (status == AV2H_OK && has_leaf != 0U) {
+                                walk_reconstruct_status =
+                                    av2h_luma_reconstruct_to_plane(
+                                        &leaf.node, &leaf.mode, &leaf.prefix,
+                                        &leaf.transform, &block, &q0_plane,
+                                        &q0_scratch);
+                                if (walk_reconstruct_status == AV2H_OK) {
+                                    status = av2h_tile_decoder_commit_leaf(
+                                        &decoder, leaf.node);
+                                    if (status == AV2H_OK) ++q0_luma_count;
+                                }
+                            }
+                            while (status == AV2H_OK &&
+                                   walk_reconstruct_status == AV2H_OK &&
+                                   decoder.phase != AV2H_TILE_DECODE_DONE &&
+                                   q0_luma_count + q0_chroma_count < 4096U) {
+                                has_leaf = 0U;
+                                if (decoder.phase == AV2H_TILE_DECODE_LUMA) {
+                                    av2h_memory_fill(&leaf, 0U, sizeof(leaf));
+                                    av2h_memory_fill(&block, 0U, sizeof(block));
+                                    status = av2h_tile_decoder_next_luma(
+                                        &decoder, &leaf, &block, &has_leaf);
+                                    if (status != AV2H_OK || has_leaf == 0U) {
+                                        continue;
+                                    }
+                                    fprintf(stderr,
+                                            "q0-local-leaf=%u/%lu/%u/%u/%u/%u/%u/%d/%u/%u/%u/%d/%d/%u/%u/%u/%u/%u/%u/%u/%u/%lu/%lu/%lu/%lu\n",
+                                            expected->width,
+                                            (unsigned long)q0_luma_count,
+                                            leaf.node.row, leaf.node.column,
+                                            leaf.prefix.tx_size,
+                                            leaf.prefix.eob,
+                                            leaf.mode.mode,
+                                            leaf.mode.angle_delta,
+                                            leaf.mode.fsc_mode,
+                                            leaf.mode.fsc_block_context,
+                                            leaf.mode.use_intrabc,
+                                            leaf.mode.displacement_x,
+                                            leaf.mode.displacement_y,
+                                            leaf.mode.intrabc_mode,
+                                            leaf.mode.intrabc_drl_index,
+                                            leaf.mode.skip_transform,
+                                            leaf.transform.primary_type,
+                                            leaf.transform.primary_long_side_symbol,
+                                            leaf.transform.primary_symbol,
+                                            leaf.transform.secondary_symbol,
+                                            leaf.transform.secondary_set,
+                                            (unsigned long)
+                                                leaf.transform.after_primary_bits,
+                                            (unsigned long)
+                                                leaf.transform.after_secondary_bits,
+                                            (unsigned long)
+                                                leaf.mode.after_fsc_bits,
+                                            (unsigned long)
+                                                block.after_coefficients_bits);
+                                    walk_reconstruct_status =
+                                        av2h_luma_reconstruct_to_plane(
+                                            &leaf.node, &leaf.mode,
+                                            &leaf.prefix, &leaf.transform,
+                                            &block, &q0_plane, &q0_scratch);
+                                    if (walk_reconstruct_status != AV2H_OK) {
+                                        break;
+                                    }
+                                    status = av2h_tile_decoder_commit_leaf(
+                                        &decoder, leaf.node);
+                                    if (status == AV2H_OK) ++q0_luma_count;
+                                } else {
+                                    av2h_memory_fill(&chroma_leaf, 0U,
+                                                     sizeof(chroma_leaf));
+                                    av2h_memory_fill(chroma_blocks, 0U,
+                                                     sizeof(chroma_blocks));
+                                    status = av2h_tile_decoder_next_chroma(
+                                        &decoder, &chroma_leaf,
+                                        &chroma_blocks[0], &chroma_blocks[1],
+                                        &has_leaf);
+                                    fprintf(stderr,
+                                            "q0-local-chroma=%u/%d/%u/%u/%u/%u/%u/%u/%u/%u/%u/%u/%u/%u/%u/%lu\n",
+                                            expected->width, status,
+                                            av2h_debug_chroma_tile_stage,
+                                            has_leaf, chroma_leaf.node.row,
+                                            chroma_leaf.node.column,
+                                            chroma_leaf.node.block_size,
+                                            chroma_leaf.mode.uv_mode,
+                                            chroma_leaf.prefix[0].tx_size,
+                                            chroma_leaf.prefix[0].eob,
+                                            chroma_leaf.transform[0].primary_type,
+                                            chroma_leaf.prefix[1].tx_size,
+                                            chroma_leaf.prefix[1].eob,
+                                            chroma_leaf.transform[1].primary_type,
+                                            chroma_leaf.transform[0].cctx_type,
+                                            (unsigned long)av2h_range_tell(
+                                                &decoder.range));
+                                    if (status != AV2H_OK || has_leaf == 0U) {
+                                        continue;
+                                    }
+                                    walk_reconstruct_status =
+                                        av2h_chroma_inverse_cross_transform(
+                                            &chroma_blocks[0],
+                                            &chroma_blocks[1],
+                                            chroma_leaf.transform[0].cctx_type);
+                                    for (plane_index = 0U;
+                                         walk_reconstruct_status == AV2H_OK &&
+                                         plane_index < 2U; ++plane_index) {
+                                        walk_reconstruct_status =
+                                            av2h_chroma_reconstruct_to_plane_ex(
+                                                &chroma_leaf.node,
+                                                &chroma_leaf.mode,
+                                                &chroma_leaf.prefix[plane_index],
+                                                &chroma_leaf.transform[plane_index],
+                                                &chroma_blocks[plane_index],
+                                                &q0_chroma_planes[plane_index],
+                                                &q0_plane,
+                                                (uint8_t)(plane_index + 1U),
+                                                0, &q0_scratch);
+                                    }
+                                    if (walk_reconstruct_status != AV2H_OK) {
+                                        break;
+                                    }
+                                    status = av2h_tile_decoder_commit_leaf(
+                                        &decoder, chroma_leaf.node);
+                                    if (status == AV2H_OK) ++q0_chroma_count;
+                                }
+                            }
+                            fprintf(stderr,
+                                    "q0-local-walk=%u/%d/%d/%lu/%lu/%lu/%u/%u/%u/%u/%u/%u/%u/%u/%u/%u/%u/%u/%u/%u/%u/%u/%lu/%lu/%u/%u/%u/%d/%u/%u/%u\n",
+                                    expected->width, status,
+                                    walk_reconstruct_status,
+                                    (unsigned long)q0_luma_count,
+                                    (unsigned long)q0_chroma_count,
+                                    (unsigned long)av2h_range_tell(
+                                        &decoder.range),
+                                    decoder.phase, has_leaf, leaf.node.row,
+                                    leaf.node.column, leaf.node.block_size,
+                                    leaf.prefix.tx_size,
+                                    av2h_debug_luma_tile_stage,
+                                    av2h_debug_luma_reconstruct_stage,
+                                    av2h_debug_chroma_reconstruct_stage,
+                                    av2h_debug_luma_prefix_stage,
+                                    leaf.prefix.eob,
+                                    leaf.transform.primary_type,
+                                    leaf.transform.primary_symbol,
+                                    leaf.transform.secondary_signaled,
+                                    leaf.transform.secondary_symbol,
+                                    leaf.transform.secondary_set,
+                                    (unsigned long)
+                                        leaf.transform.after_primary_bits,
+                                    (unsigned long)
+                                        leaf.transform.after_secondary_bits,
+                                    block.diagnostic_kind,
+                                    block.diagnostic_context,
+                                    leaf.mode.mode, leaf.mode.angle_delta,
+                                    leaf.mode.mrl_index,
+                                    leaf.mode.enable_ibp,
+                                    leaf.prefix.all_zero);
+                                    fprintf(stderr,
+                                        "q0-local-mode=%u/%u/%u/%u/%u/%d/%u/%u/%u\n",
+                                        expected->width, leaf.node.row,
+                                        leaf.node.column, leaf.prefix.tx_size,
+                                        leaf.mode.mode, leaf.mode.angle_delta,
+                                        leaf.mode.mrl_index,
+                                        leaf.mode.enable_ibp,
+                                        leaf.prefix.all_zero);
+                                        if (expected->width == 384U) {
+                                        fprintf(stderr,
+                                            "q0-local-intrabc=%u/%u/%u/%u/%u/%u/%u/%u/%u/%u\n",
+                                            av2h_debug_use_intrabc[0],
+                                            av2h_debug_use_intrabc[1],
+                                            av2h_debug_use_intrabc[2],
+                                            av2h_debug_use_intrabc[3],
+                                            av2h_debug_use_intrabc[4],
+                                            av2h_debug_use_intrabc[5],
+                                            av2h_debug_use_intrabc[6],
+                                            av2h_debug_use_intrabc[7],
+                                            av2h_debug_use_intrabc[8],
+                                            av2h_debug_use_intrabc[9]);
+                                    fprintf(stderr,
+                                            "q0-local-prefix=%lu/%lu/%lu/%u/%u/%u\n",
+                                            (unsigned long)
+                                                leaf.prefix.before_all_zero_bits,
+                                            (unsigned long)
+                                                leaf.prefix.after_all_zero_bits,
+                                            (unsigned long)
+                                                leaf.prefix.after_eob_bits,
+                                            leaf.prefix.all_zero,
+                                            leaf.prefix.eob_point,
+                                            leaf.prefix.eob);
+                                        }
+                        }
+                }
+            }
         }
     }
     CHECK(status == expected->first_status);

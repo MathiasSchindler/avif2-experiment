@@ -12,6 +12,28 @@ extern uint8_t av2h_debug_target_sign_count;
 #define AV2H_FIRST_COEFF_CAPACITY 1024U
 
 typedef struct {
+    uint16_t q0_txs4_eob_base[4U][3U + 4U];
+    uint16_t q0_txs4_eob_base_lf[4U][5U + 4U];
+    uint16_t q0_txs4_base[20U][4U + 4U];
+    uint16_t q0_txs4_base_lf[33U][6U + 4U];
+    uint16_t q0_txs3_eob_base[4U][3U + 4U];
+    uint16_t q0_txs3_eob_base_lf[4U][5U + 4U];
+    uint16_t q0_txs3_base[20U][4U + 4U];
+    uint16_t q0_txs3_base_lf[33U][6U + 4U];
+    uint16_t q0_txs2_eob_base[4U][3U + 4U];
+    uint16_t q0_txs2_eob_base_lf[4U][5U + 4U];
+    uint16_t q0_txs2_base[20U][4U + 4U];
+    uint16_t q0_txs2_base_lf[33U][6U + 4U];
+    uint16_t q0_txs1_eob_base[4U][3U + 4U];
+    uint16_t q0_txs1_eob_base_lf[4U][5U + 4U];
+    uint16_t q0_txs1_base[20U][4U + 4U];
+    uint16_t q0_txs1_base_lf[33U][6U + 4U];
+    uint16_t q0_txs0_eob_base[4U][3U + 4U];
+    uint16_t q0_txs0_eob_base_lf[4U][5U + 4U];
+    uint16_t q0_txs0_base[20U][4U + 4U];
+    uint16_t q0_txs0_base_lf[33U][6U + 4U];
+    uint16_t q0_br[7U][4U + 4U];
+    uint16_t q0_br_lf[14U][4U + 4U];
     uint16_t eob_base[7U][3U + 4U];
     uint16_t q3_eob_base_txs1_ctx1[3U + 4U];
     uint16_t q3_eob_base_txs1_ctx2[3U + 4U];
@@ -159,6 +181,11 @@ typedef struct {
     uint16_t q3_uv_base_lf[12U][6U + 4U];
     uint16_t q3_uv_base[12U][4U + 4U];
     uint16_t q3_uv_br[4U][4U + 4U];
+    uint16_t q0_uv_eob_lf[4U][5U + 4U];
+    uint16_t q0_uv_eob[4U][3U + 4U];
+    uint16_t q0_uv_base_lf[12U][6U + 4U];
+    uint16_t q0_uv_base[12U][4U + 4U];
+    uint16_t q0_uv_br[4U][4U + 4U];
     uint16_t adjusted_uv_eob[2U][3U + 4U];
     uint16_t adjusted_uv_eob_lf[2U][5U + 4U];
     uint16_t adjusted_uv_base[2U][7U][4U + 4U];

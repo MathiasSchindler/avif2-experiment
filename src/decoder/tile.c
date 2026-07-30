@@ -5,6 +5,7 @@ uint32_t av2h_debug_luma_stage_ranges[5U];
 uint8_t av2h_debug_luma_tile_stage;
 uint8_t av2h_debug_chroma_colocated_mode;
 int8_t av2h_debug_chroma_colocated_delta;
+uint8_t av2h_debug_chroma_tile_stage;
 
 Av2hStatus av2h_tile_group_single_parse(Av2hSpan payload,
                                          size_t uncompressed_header_bits,
@@ -316,7 +317,14 @@ static Av2hStatus tile_initialize_all_zero_luma(
     if (decoder == 0 || leaf == 0 || transform == 0 || block == 0) {
         return AV2H_INVALID_ARGUMENT;
     }
-        if ((decoder->frame->base_q_index == 208U &&
+    if (decoder->frame->base_q_index <= 90U) {
+        const Av2hTxDescriptor *descriptor;
+        status = av2h_tx_descriptor_get(
+            leaf->prefix.tx_size, &descriptor);
+        if (status != AV2H_OK) return status;
+        width = descriptor->coefficient_width;
+        height = descriptor->coefficient_height;
+    } else if ((decoder->frame->base_q_index == 208U &&
             ((decoder->frame->width == 192U &&
              decoder->frame->height == 96U) ||
             (decoder->frame->width == 417U &&
@@ -678,6 +686,9 @@ Av2hStatus av2h_tile_decoder_next_luma(
         &decoder->gdf_entropy, &decoder->cdef_entropy,
         &decoder->ccso_entropy, &leaf->mode);
     if (status != AV2H_OK) return tile_decoder_fail(decoder, status);
+    status = av2h_luma_palette_map_read(
+        &decoder->range, &decoder->leaf_cdfs, &leaf->node, &leaf->mode);
+    if (status != AV2H_OK) return tile_decoder_fail(decoder, status);
     av2h_debug_luma_stage_ranges[1] = decoder->range.range;
     status = av2h_luma_mode_context_state_update(
         &decoder->luma_mode_contexts, &leaf->node, &leaf->mode);
@@ -869,16 +880,19 @@ Av2hStatus av2h_tile_decoder_next_chroma(
     blocks[1] = v_block;
     for (index = 0U; index < 2U; ++index) {
         uint8_t plane = (uint8_t)(index + 1U);
+        av2h_debug_chroma_tile_stage = (uint8_t)(1U + index * 3U);
         status = av2h_chroma_coeff_prefix_read_with_state(
             &decoder->range, &decoder->coeff_cdfs, decoder->frame,
             &leaf->node, plane, &decoder->coefficient_contexts,
             &leaf->prefix[index]);
         if (status != AV2H_OK) return tile_decoder_fail(decoder, status);
+        av2h_debug_chroma_tile_stage = (uint8_t)(2U + index * 3U);
         status = av2h_chroma_transform_type_read(
             &decoder->range, &decoder->transform_cdfs, decoder->frame,
             &leaf->mode, plane, &leaf->prefix[index],
             &leaf->transform[index]);
         if (status != AV2H_OK) return tile_decoder_fail(decoder, status);
+        av2h_debug_chroma_tile_stage = (uint8_t)(3U + index * 3U);
         status = av2h_chroma_coeff_block_read_with_state(
             &decoder->range, &decoder->level_cdfs, decoder->sequence,
             decoder->frame, &leaf->node, plane, &leaf->prefix[index],
@@ -906,6 +920,9 @@ Av2hStatus av2h_tile_decoder_reconstruct_next_chroma(
     status = av2h_tile_decoder_next_chroma(
         decoder, leaf, &u_block, &v_block, has_leaf);
     if (status != AV2H_OK || !*has_leaf) return status;
+    status = av2h_chroma_inverse_cross_transform(
+        &u_block, &v_block, leaf->transform[0].cctx_type);
+    if (status != AV2H_OK) return tile_decoder_fail(decoder, status);
     status = av2h_chroma_reconstruct_to_plane(
         &leaf->node, &leaf->mode, &leaf->prefix[0], &leaf->transform[0],
         &u_block, u_plane, scratch);

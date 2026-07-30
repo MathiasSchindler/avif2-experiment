@@ -154,6 +154,53 @@ Av2hStatus av2h_primary_tx_type_map(
     uint8_t long_side_symbol,
     uint8_t primary_symbol,
     Av2hFirstTxType *tx_type) {
+    static const uint8_t intra_types[3U][13U][7U] = {
+        {
+            { 0U, 3U, 1U, 2U, 7U, 8U, 13U },
+            { 0U, 3U, 1U, 2U, 7U, 10U, 12U },
+            { 0U, 3U, 1U, 2U, 8U, 11U, 13U },
+            { 0U, 3U, 1U, 2U, 6U, 7U, 8U },
+            { 0U, 3U, 1U, 2U, 7U, 8U, 13U },
+            { 0U, 3U, 1U, 2U, 7U, 12U, 14U },
+            { 0U, 3U, 1U, 2U, 7U, 8U, 13U },
+            { 0U, 3U, 1U, 2U, 8U, 11U, 13U },
+            { 0U, 3U, 1U, 2U, 7U, 10U, 12U },
+            { 0U, 3U, 1U, 2U, 6U, 7U, 8U },
+            { 0U, 3U, 1U, 2U, 7U, 8U, 12U },
+            { 0U, 3U, 1U, 2U, 7U, 8U, 13U },
+            { 0U, 3U, 2U, 10U, 11U, 12U, 13U }
+        },
+        {
+            { 0U, 3U, 1U, 2U, 4U, 7U, 8U },
+            { 0U, 3U, 1U, 2U, 7U, 6U, 8U },
+            { 0U, 3U, 1U, 2U, 8U, 4U, 7U },
+            { 0U, 3U, 1U, 2U, 6U, 7U, 8U },
+            { 0U, 3U, 1U, 2U, 5U, 7U, 8U },
+            { 0U, 3U, 1U, 2U, 5U, 7U, 8U },
+            { 0U, 3U, 1U, 2U, 4U, 7U, 8U },
+            { 0U, 3U, 1U, 2U, 4U, 8U, 7U },
+            { 0U, 3U, 1U, 2U, 5U, 6U, 7U },
+            { 0U, 3U, 1U, 2U, 6U, 7U, 8U },
+            { 0U, 3U, 1U, 2U, 4U, 7U, 8U },
+            { 0U, 3U, 1U, 2U, 5U, 7U, 8U },
+            { 0U, 3U, 1U, 2U, 10U, 11U, 13U }
+        },
+        {
+            { 0U, 3U, 1U, 2U, 4U, 7U, 8U },
+            { 0U, 3U, 1U, 2U, 5U, 7U, 8U },
+            { 0U, 3U, 1U, 2U, 4U, 8U, 7U },
+            { 0U, 3U, 1U, 2U, 4U, 7U, 8U },
+            { 0U, 3U, 1U, 2U, 4U, 7U, 8U },
+            { 0U, 3U, 1U, 2U, 5U, 7U, 8U },
+            { 0U, 3U, 1U, 2U, 4U, 7U, 8U },
+            { 0U, 3U, 1U, 2U, 4U, 6U, 8U },
+            { 0U, 3U, 1U, 2U, 5U, 7U, 8U },
+            { 0U, 3U, 1U, 2U, 4U, 7U, 8U },
+            { 0U, 3U, 1U, 2U, 4U, 7U, 8U },
+            { 0U, 3U, 1U, 2U, 5U, 7U, 8U },
+            { 0U, 3U, 1U, 2U, 10U, 11U, 12U }
+        }
+    };
         static const uint8_t adst_flipadst_symbols[3][13] = {
                 { 4U, 4U, 0xffU, 5U, 4U, 4U, 4U,
                     0xffU, 4U, 5U, 4U, 4U, 0xffU },
@@ -183,6 +230,21 @@ Av2hStatus av2h_primary_tx_type_map(
         tx_size == AV2H_TX_8X8 || tx_size == AV2H_TX_8X16 ||
         tx_size == AV2H_TX_16X8 ? 1U :
         tx_size == AV2H_TX_16X16 ? 2U : 0xffU;
+    if (size_class < 3U &&
+        (uint8_t)mode <= (uint8_t)AV2H_INTRA_PAETH &&
+        long_side_symbol == 0U &&
+        primary_symbol < AV2H_PRIMARY_TX_TYPE_SYMBOLS) {
+        *tx_type = (Av2hFirstTxType)
+            intra_types[size_class][(uint8_t)mode][primary_symbol];
+        return AV2H_OK;
+    }
+    if (size_class != 0xffU &&
+        (uint8_t)mode <= (uint8_t)AV2H_INTRA_PAETH &&
+        long_side_symbol == 0U &&
+        primary_symbol == 0U) {
+        *tx_type = AV2H_TX_DCT_DCT;
+        return AV2H_OK;
+    }
     if (size_class != 0xffU &&
         (uint8_t)mode <= (uint8_t)AV2H_INTRA_PAETH &&
         long_side_symbol == 0U &&
@@ -456,7 +518,8 @@ static Av2hStatus read_primary(Av2hRangeDecoder *decoder,
                 coeff->tx_size == AV2H_TX_4X8 ||
                 coeff->tx_size == AV2H_TX_8X4 ||
                 coeff->tx_size == AV2H_TX_8X8 ||
-                coeff->tx_size == AV2H_TX_16X8) && mode->use_intrabc) {
+                coeff->tx_size == AV2H_TX_16X8 ||
+                coeff->tx_size == AV2H_TX_16X4) && mode->use_intrabc) {
         uint16_t last = (uint16_t)(coeff->eob - 1U);
         uint8_t diagonal =
             (uint8_t)((last >> 2U) + (last & 3U));
@@ -1286,7 +1349,9 @@ Av2hStatus av2h_chroma_transform_type_read(
                           frame->width == 480U && frame->height == 240U) ||
                          (frame->base_q_index == 176U &&
                           frame->width == 479U && frame->height == 383U)) &&
-                        coeff->tx_size == AV2H_TX_32X32))) {
+                                                coeff->tx_size == AV2H_TX_32X32) ||
+                                         (frame->base_q_index <= 90U &&
+                                            coeff->tx_size == AV2H_TX_32X32))) {
         transform->before_primary_bits = av2h_range_tell(decoder);
         transform->primary_type = AV2H_TX_DCT_DCT;
         transform->primary_signaled = 0U;

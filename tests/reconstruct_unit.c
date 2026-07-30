@@ -320,6 +320,53 @@ static void test_skipped_intrabc_geometry_matrix(void) {
     }
 }
 
+static void test_palette_prediction(void) {
+    uint8_t pixels[8U * 8U];
+    uint8_t reconstructed[2U * 2U];
+    Av2hReconstructionPlane plane = {
+        pixels, 8U, 8U, 8U, 8U, 8U,
+        reconstructed, 2U, sizeof(reconstructed)
+    };
+    Av2hPartitionNode leaf = { 0U, 0U, AV2H_BLOCK_8X8 };
+    Av2hFirstLeafMode mode = { 0 };
+    Av2hFirstCoeffPrefix prefix = { 0 };
+    Av2hFirstTransformType transform = { 0 };
+    Av2hFirstCoeffBlock block = { 0 };
+    Av2hReconstructionScratch scratch;
+    size_t index;
+
+    mode.mode = AV2H_INTRA_DC;
+    mode.palette_mode = 1U;
+    mode.palette_size = 2U;
+    mode.palette_width = 8U;
+    mode.palette_height = 8U;
+    mode.palette_colors[0] = 23U;
+    mode.palette_colors[1] = 211U;
+    for (index = 0U; index < AV2H_PALETTE_MAP_CAPACITY; ++index) {
+        mode.palette_map[index] = (uint8_t)((index + index / 8U) & 1U);
+    }
+    prefix.tx_size = AV2H_TX_8X8;
+    prefix.all_zero = 1U;
+    transform.primary_type = AV2H_TX_DCT_DCT;
+    block.width = 8U;
+    block.height = 8U;
+    block.coefficient_count = 64U;
+    av2h_memory_fill(pixels, 0U, sizeof(pixels));
+    av2h_memory_fill(reconstructed, 0U, sizeof(reconstructed));
+    CHECK(av2h_luma_reconstruct_to_plane(
+              &leaf, &mode, &prefix, &transform, &block,
+              &plane, &scratch) == AV2H_OK);
+    for (index = 0U; index < AV2H_PALETTE_MAP_CAPACITY; ++index) {
+        uint8_t expected = mode.palette_colors[mode.palette_map[index]];
+        CHECK(scratch.predictor[index] == expected);
+        CHECK(pixels[index] == expected);
+    }
+    mode.palette_map[63U] = 2U;
+    CHECK(av2h_luma_reconstruct_to_plane(
+              &leaf, &mode, &prefix, &transform, &block,
+              &plane, &scratch) == AV2H_INVALID_DATA);
+}
+
 static void test_all_zero_16x16_reconstruction(void) {
     Av2hFirstLeafMode mode = { 0 };
     Av2hFirstCoeffPrefix prefix = { 0 };
@@ -4609,6 +4656,7 @@ int main(void) {
     test_tx8x8_d203_mrl_reconstruction();
     test_skipped_16x8_intrabc_reconstruction();
     test_skipped_intrabc_geometry_matrix();
+    test_palette_prediction();
     test_all_zero_16x16_reconstruction();
     test_laarim_q96_32x32_reconstruction();
     test_schwaebisch_q208_64x16_reconstruction();

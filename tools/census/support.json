@@ -53,8 +53,8 @@
     },
     {
       "feature": "Palette",
-      "status": "unsupported",
-      "evidence": "The luma mode reader explicitly returns AV2H_UNSUPPORTED when palette mode is nonzero."
+      "status": "supported",
+      "evidence": "The two observed luma palette blocks are covered with normative size, 8-bit color-table, row-identity, color-index-map, predictor, and residual reconstruction paths; pinned AVM confirms empty neighbor caches and exact size-2/size-6 color/map hashes."
     },
     {
       "feature": "Secondary transform",
@@ -312,8 +312,8 @@
     {
       "match": "exact",
       "value": "Palette prediction",
-      "status": "unsupported",
-      "evidence": "Positive palette mode is explicitly rejected by the luma mode reader."
+      "status": "supported",
+      "evidence": "Validated for both observed 8x8 luma occurrences at sizes 6 and 2 with pinned AVM color-table and index-map hashes, normative adaptive CDFs, exact palette prediction, residual reconstruction, and fail-closed index validation."
     },
     {
       "match": "prefix",

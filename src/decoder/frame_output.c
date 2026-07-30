@@ -584,6 +584,9 @@ Av2hStatus av2h_decode_frame_i420_private(
             if (status == AV2H_UNSUPPORTED) return AV2H_INVALID_ARGUMENT;
             if (status != AV2H_OK) return status;
             if (!has_leaf) continue;
+            status = av2h_chroma_inverse_cross_transform(
+                &blocks[0], &blocks[1], leaf.transform[0].cctx_type);
+            if (status != AV2H_OK) return status;
             for (plane = 1U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
                 unsigned int index = plane - 1U;
                 status = av2h_chroma_reconstruct_to_plane_ex(

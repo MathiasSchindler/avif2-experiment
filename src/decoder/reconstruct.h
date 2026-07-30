@@ -132,6 +132,10 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_ex(
     uint8_t chroma_plane,
     Av2hReconstructionPlane *predictor_plane,
     Av2hReconstructionScratch *scratch);
+Av2hStatus av2h_chroma_inverse_cross_transform(
+    Av2hFirstCoeffBlock *u_coefficients,
+    Av2hFirstCoeffBlock *v_coefficients,
+    uint8_t cctx_type);
 Av2hStatus av2h_first_chroma_reconstruct(
     const Av2hFirstCoeffPrefix *prefix,
     const Av2hFirstTransformType *transform,

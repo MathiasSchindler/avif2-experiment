@@ -685,7 +685,8 @@ static Av2hStatus inverse_secondary_transform(
         kernel = av2h_ist_8x8_set3_type3_kernel;
         scan_map = av2h_ist_8x8_set3_type3_scan_map;
     } else if (mode->mode == AV2H_INTRA_D157 &&
-               prefix->tx_size == AV2H_TX_32X8 &&
+               (prefix->tx_size == AV2H_TX_16X16 ||
+                prefix->tx_size == AV2H_TX_32X8) &&
                transform->secondary_symbol == 1U &&
                transform->secondary_set == 4U) {
         kernel = av2h_ist_8x8_set4_type1_kernel;
@@ -2755,11 +2756,13 @@ Av2hStatus av2h_luma_predict(
         ((width == 4U && height == 4U) ||
          (width == 4U && height == 8U) ||
          (width == 4U && height == 16U) ||
+         (width == 4U && height == 32U) ||
          (width == 8U && height == 4U) ||
          (width == 8U && height == 8U) ||
          (width == 8U && height == 16U) ||
          (width == 8U && height == 32U) ||
          (width == 8U && height == 64U) ||
+         (width == 16U && height == 4U) ||
          (width == 16U && height == 8U) ||
          (width == 16U && height == 16U) ||
          (width == 16U && height == 32U) ||
@@ -3901,6 +3904,20 @@ Av2hStatus av2h_chroma_predict(
         }
         return AV2H_OK;
     }
+    if (mode->mode == AV2H_INTRA_VERTICAL && mode->angle_delta == 0 &&
+        width == 32U && height == 32U) {
+        for (row = 0U; row < height; ++row) {
+            for (column = 0U; column < width; ++column) {
+                predictor[(size_t)row * predictor_stride + column] =
+                    references->above != 0U &&
+                    references->above_count != 0U ?
+                        references->above[
+                            column < references->above_count ? column :
+                            references->above_count - 1U] : 127U;
+            }
+        }
+        return AV2H_OK;
+    }
         if (!((width == 4U && height == 4U &&
                     ((mode->mode == AV2H_INTRA_DC && mode->angle_delta == 0) ||
           (mode->mode == AV2H_INTRA_D203 && mode->angle_delta == 0) ||
@@ -4764,14 +4781,13 @@ static int reconstruct_generic_selected(
                 transform->primary_type != AV2H_TX_FLIPADST_DCT &&
                 transform->primary_type != AV2H_TX_ADST_FLIPADST &&
                 transform->primary_type != AV2H_TX_FLIPADST_ADST &&
+                transform->primary_type != AV2H_TX_ADST_ADST &&
                 transform->primary_type != AV2H_TX_H_ADST &&
                 transform->primary_type != AV2H_TX_V_ADST &&
                 transform->primary_type != AV2H_TX_V_DCT &&
                 transform->primary_type != AV2H_TX_H_DCT &&
                 transform->primary_type != AV2H_TX_V_FLIPADST &&
                 transform->primary_type != AV2H_TX_H_FLIPADST &&
-                !(mode->mode == AV2H_INTRA_D67 &&
-                    transform->primary_type == AV2H_TX_ADST_ADST) &&
                 !((mode->mode == AV2H_INTRA_D157 ||
                    mode->mode == AV2H_INTRA_VERTICAL) &&
                     transform->primary_type == AV2H_TX_DCT_ADST)) {
@@ -6001,7 +6017,24 @@ Av2hStatus av2h_luma_reconstruct_to_plane(
                 block_x - 1U - mode->mrl_index];
         }
     }
-    if (mode->use_intrabc) {
+    if (mode->palette_size != 0U) {
+        if (mode->palette_width != output_width ||
+            mode->palette_height != output_height ||
+            mode->palette_size > AV2H_PALETTE_MAX_SIZE) {
+            return AV2H_UNSUPPORTED;
+        }
+        for (index = 0U; index < (size_t)output_width * output_height;
+             ++index) {
+            uint8_t color_index = mode->palette_map[index];
+            if (color_index >= mode->palette_size) {
+                return AV2H_INVALID_DATA;
+            }
+            scratch->predictor[index] = mode->palette_colors[color_index];
+        }
+        status = av2h_luma_reconstruct(
+            mode, prefix, transform, coefficients, scratch->predictor,
+            output_width, scratch, &reconstruction);
+    } else if (mode->use_intrabc) {
         size_t row;
         size_t column;
         if (mode->displacement_x % 8 != 0 ||
@@ -7265,6 +7298,40 @@ Av2hStatus av2h_chroma_reconstruct_to_plane(
     return av2h_chroma_reconstruct_to_plane_ex(
         leaf, mode, prefix, transform, coefficients, plane, 0, 1U, 0,
         scratch);
+}
+
+Av2hStatus av2h_chroma_inverse_cross_transform(
+    Av2hFirstCoeffBlock *u_coefficients,
+    Av2hFirstCoeffBlock *v_coefficients,
+    uint8_t cctx_type) {
+    static const int32_t matrix[6U][2U] = {
+        { 181, 181 }, { 222, 128 }, { 128, 222 },
+        { 181, -181 }, { 222, -128 }, { 128, -222 }
+    };
+    size_t index;
+    if (u_coefficients == 0 || v_coefficients == 0 || cctx_type > 6U ||
+        u_coefficients->coefficient_count !=
+            v_coefficients->coefficient_count) {
+        return AV2H_INVALID_ARGUMENT;
+    }
+    if (cctx_type == 0U) return AV2H_OK;
+    for (index = 0U; index < u_coefficients->coefficient_count; ++index) {
+        int32_t u = u_coefficients->dequantized[index];
+        int32_t v = v_coefficients->dequantized[index];
+        int32_t first = round_shift_signed(
+            (int64_t)matrix[cctx_type - 1U][0U] * u -
+                (int64_t)matrix[cctx_type - 1U][1U] * v,
+            8U);
+        int32_t second = round_shift_signed(
+            (int64_t)matrix[cctx_type - 1U][1U] * u +
+                (int64_t)matrix[cctx_type - 1U][0U] * v,
+            8U);
+        u_coefficients->dequantized[index] =
+            clamp(first, -32768, 32767);
+        v_coefficients->dequantized[index] =
+            clamp(second, -32768, 32767);
+    }
+    return AV2H_OK;
 }
 
 Av2hStatus av2h_chroma_reconstruct_to_plane_ex(

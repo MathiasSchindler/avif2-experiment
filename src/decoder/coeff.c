@@ -95,6 +95,22 @@ Av2hStatus av2h_first_coeff_cdfs_init_for_q(
         { 20139U, 75U, 0U }, { 7333U, 60U, 0U },
         { 20045U, 25U, 0U }, { 24485U, 50U, 0U }
     };
+    static const Av2hBinaryCdfSpec q0_chroma_txb_skip_txs3[3U] = {
+        { 1300U, 36U, 0U },
+        { 11703U, 57U, 0U },
+        { 24729U, 33U, 0U }
+    };
+    static const Av2hBinaryCdfSpec q0_chroma_v_txb_skip[12U] = {
+        { 1439U, 78U, 0U }, { 6191U, 0U, 0U },
+        { 14610U, 1U, 0U }, { 180U, 50U, 0U },
+        { 16384U, 0U, 0U }, { 16384U, 0U, 0U },
+        { 7648U, 90U, 0U }, { 16148U, 90U, 0U },
+        { 24565U, 90U, 0U }, { 16384U, 0U, 0U },
+        { 16384U, 0U, 0U }, { 16384U, 0U, 0U }
+    };
+    static const uint16_t q0_chroma_eob_pt_1024[7U] = {
+        11873U, 15379U, 25835U, 27918U, 29093U, 30164U, 30782U
+    };
     static const Av2hBinaryCdfSpec adjusted_chroma_txb_skip[2U][2U] = {
         { { 4208U, 31U, 0U }, { 8426U, 0U, 0U } },
         { { 5941U, 31U, 0U }, { 4536U, 90U, 0U } }
@@ -219,7 +235,23 @@ Av2hStatus av2h_first_coeff_cdfs_init_for_q(
             cdfs->q3_chroma_v_txb_skip[index],
             q3_chroma_v_txb_skip[index]);
         if (status != AV2H_OK) return status;
+        status = av2h_binary_cdf_init(
+            cdfs->q0_chroma_v_txb_skip[index],
+            q0_chroma_v_txb_skip[index]);
+        if (status != AV2H_OK) return status;
     }
+    for (index = 0U; index < 3U; ++index) {
+        status = av2h_binary_cdf_init(
+            cdfs->q0_chroma_txb_skip_txs3[index],
+            q0_chroma_txb_skip_txs3[index]);
+        if (status != AV2H_OK) return status;
+    }
+    status = av2h_cdf_init(
+        cdfs->q0_chroma_eob_pt_1024,
+        sizeof(cdfs->q0_chroma_eob_pt_1024) /
+            sizeof(cdfs->q0_chroma_eob_pt_1024[0]),
+        q0_chroma_eob_pt_1024, 8U, 32U, 0U);
+    if (status != AV2H_OK) return status;
     for (index = 0U; index < 2U; ++index) {
         size_t plane_index;
         for (plane_index = 0U; plane_index < 2U; ++plane_index) {
@@ -430,7 +462,8 @@ static int large_tx_prefix_profile_supported(
                  (frame->width == 431U && frame->height == 287U)));
     }
     if (tx_size == AV2H_TX_64X16) {
-        return (frame->base_q_index == 144U &&
+        return frame->base_q_index <= 90U ||
+               (frame->base_q_index == 144U &&
                 frame->width == 301U && frame->height == 222U) ||
                (frame->base_q_index == 192U &&
                 frame->width == 240U && frame->height == 287U) ||
@@ -780,7 +813,7 @@ Av2hStatus av2h_coeff_prefix_read(
         return AV2H_UNSUPPORTED;
     }
     av2h_debug_luma_prefix_stage = 6U;
-    if (prefix->tx_size == AV2H_TX_16X16 &&
+    if (prefix->tx_size == AV2H_TX_16X16 && cdfs->q_context != 0U &&
                 !((frame->base_q_index == 208U &&
                      frame->width == 192U && frame->height == 96U &&
                      (mode->mode == AV2H_INTRA_DC ||
@@ -1194,6 +1227,29 @@ Av2hStatus av2h_chroma_coeff_prefix_read(
             eob_cdf = cdfs->q3_chroma_eob_pt_1024;
         }
         if (eob_symbols == 0U) eob_symbols = 8U;
+    } else if (frame->base_q_index <= 90U &&
+               leaf->block_size == AV2H_BLOCK_64X64) {
+        status = av2h_chroma_tx_descriptor_get(
+            leaf->block_size, &descriptor);
+        if (status != AV2H_OK) return status;
+        if (descriptor->tx_size != AV2H_TX_32X32 ||
+            descriptor->tx_size_context != 3U) {
+            return AV2H_UNSUPPORTED;
+        }
+        prefix->tx_size = descriptor->tx_size;
+        prefix->tx_size_context = descriptor->tx_size_context;
+        if (plane == 1U) {
+            if (txb_skip_context < 6U || txb_skip_context > 8U) {
+                return AV2H_UNSUPPORTED;
+            }
+            skip_cdf = cdfs->q0_chroma_txb_skip_txs3[
+                txb_skip_context - 6U];
+        } else {
+            if (txb_skip_context >= 12U) return AV2H_UNSUPPORTED;
+            skip_cdf = cdfs->q0_chroma_v_txb_skip[txb_skip_context];
+        }
+        eob_cdf = cdfs->q0_chroma_eob_pt_1024;
+        eob_symbols = 8U;
     } else if (((frame->base_q_index == 128U &&
                  frame->width == 480U && frame->height == 240U) ||
                 (frame->base_q_index == 176U &&

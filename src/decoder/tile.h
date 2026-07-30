@@ -7,6 +7,7 @@ extern uint32_t av2h_debug_luma_stage_ranges[5U];
 extern uint8_t av2h_debug_luma_tile_stage;
 extern uint8_t av2h_debug_chroma_colocated_mode;
 extern int8_t av2h_debug_chroma_colocated_delta;
+extern uint8_t av2h_debug_chroma_tile_stage;
 
 typedef struct {
     size_t header_bits;

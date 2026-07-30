@@ -59,6 +59,9 @@ typedef struct {
     uint16_t q3_chroma_txb_skip[2U][3U][AV2H_BINARY_CDF_SIZE];
     uint16_t q3_chroma_txb_skip_txs1[3U][AV2H_BINARY_CDF_SIZE];
     uint16_t q3_chroma_v_txb_skip[12U][AV2H_BINARY_CDF_SIZE];
+    uint16_t q0_chroma_txb_skip_txs3[3U][AV2H_BINARY_CDF_SIZE];
+    uint16_t q0_chroma_v_txb_skip[12U][AV2H_BINARY_CDF_SIZE];
+    uint16_t q0_chroma_eob_pt_1024[8U + 4U];
     uint16_t adjusted_chroma_txb_skip[2U][2U][AV2H_BINARY_CDF_SIZE];
     uint16_t adjusted_chroma_eob_pt_1024[2U][8U + 4U];
     uint16_t txb_skip_fsc_txs0_ctx9[AV2H_BINARY_CDF_SIZE];

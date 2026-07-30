@@ -48,6 +48,10 @@ extern uint8_t av2h_debug_luma_mode_neighbors[4U];
 #define AV2H_CDEF_UNTRANSMITTED 255U
 #define AV2H_CCSO_UNTRANSMITTED 255U
 #define AV2H_CCSO_MAX_UNIT_SIZE 256U
+#define AV2H_PALETTE_MAX_SIZE 8U
+#define AV2H_PALETTE_MAP_CAPACITY 64U
+#define AV2H_PALETTE_COLOR_CONTEXT_COUNT 5U
+#define AV2H_PALETTE_ROW_CONTEXT_COUNT 4U
 
 typedef struct {
     uint16_t intrabc[AV2H_INTRABC_CONTEXT_COUNT][AV2H_BINARY_CDF_SIZE];
@@ -73,6 +77,12 @@ typedef struct {
     uint16_t y_mode_offset[AV2H_Y_MODE_CONTEXT_COUNT]
                           [AV2H_Y_MODE_OFFSET_SYMBOLS + 4U];
     uint16_t palette_y_mode[AV2H_BINARY_CDF_SIZE];
+    uint16_t palette_y_size[7U + 4U];
+    uint16_t palette_y_identity[AV2H_PALETTE_ROW_CONTEXT_COUNT][3U + 4U];
+    uint16_t palette_y_color_index_2
+        [AV2H_PALETTE_COLOR_CONTEXT_COUNT][2U + 4U];
+    uint16_t palette_y_color_index_6
+        [AV2H_PALETTE_COLOR_CONTEXT_COUNT][6U + 4U];
     uint16_t fsc_mode[AV2H_FSC_MODE_CONTEXT_COUNT]
                      [AV2H_FSC_BLOCK_CONTEXT_COUNT]
                      [AV2H_BINARY_CDF_SIZE];
@@ -126,6 +136,11 @@ typedef struct {
     uint8_t mrl_index;
     uint8_t multi_line_mrl;
     uint8_t palette_mode;
+    uint8_t palette_size;
+    uint8_t palette_width;
+    uint8_t palette_height;
+    uint8_t palette_colors[AV2H_PALETTE_MAX_SIZE];
+    uint8_t palette_map[AV2H_PALETTE_MAP_CAPACITY];
     uint8_t enable_ibp;
     uint8_t above_smooth;
     uint8_t left_smooth;
@@ -137,6 +152,8 @@ typedef struct {
     size_t after_mrl_bits;
     size_t before_palette_bits;
     size_t after_palette_bits;
+    size_t after_palette_colors_bits;
+    size_t after_palette_map_bits;
     size_t before_gdf_bits;
     size_t after_gdf_bits;
     uint16_t gdf_flags_read;
@@ -343,6 +360,11 @@ Av2hStatus av2h_luma_mode_read_with_state_and_gdf(
     Av2hGdfEntropyState *gdf_state,
     Av2hCdefEntropyState *cdef_state,
     Av2hCcsoEntropyState *ccso_state,
+    Av2hFirstLeafMode *mode);
+Av2hStatus av2h_luma_palette_map_read(
+    Av2hRangeDecoder *decoder,
+    Av2hLeafCdfs *cdfs,
+    const Av2hPartitionNode *leaf,
     Av2hFirstLeafMode *mode);
 Av2hStatus av2h_chroma_mode_read(
     Av2hRangeDecoder *decoder,
