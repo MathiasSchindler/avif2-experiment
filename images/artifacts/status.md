@@ -5,7 +5,7 @@ Q-context-0 coefficient, primary-transform, cross-chroma-transform, and palette
 work. The production Windows decoder was rebuilt and run against all 21
 artifacts, with every emitted I420 compared by SHA-256 to its locked AVM
 reference. Native CTest passes all nine Windows tests, including structured
-diagnostic checks for chroma levels, luma prediction, and chroma prediction.
+diagnostic checks for luma inverse transform and chroma prediction.
 The strict hosted artifact-profile harness builds and runs, but its temporary
 bounded walks currently leave 64 failed assertions. The hosted tile fixture
 also runs but retains 24 sparse-prefix CDF sample/hash assertions. The detailed
@@ -25,30 +25,31 @@ an earlier entropy divergence can still be the underlying cause.
 
 | Current stopping surface | Files |
 | --- | --- |
-| Luma prediction | `chinnathurai-128x128-qp112.obu`, `cuckoo-431x287-qp080.obu`, `flycatcher-397x265-qp048.obu`, `laarim-448x299-qp192.obu`, `pastell-320x213-qp064.obu`, `schwaebisch-353x234-qp112.obu` |
-| Luma inverse transform or reconstruction setup | `chalk-320x240-qp128.obu`, `cuckoo-157x105-qp160.obu`, `flycatcher-223x149-qp176.obu`, `louis-301x222-qp144.obu`, `pastell-512x341-qp160.obu`, `schwaebisch-417x277-qp208.obu`, `silene-479x383-qp176.obu` |
-| Chroma prediction | `chimp-240x287-qp192.obu`, `emerald-480x240-qp128.obu`, `laarim-256x171-qp096.obu`, `louis-463x342-qp224.obu`, `silene-384x307-qp080.obu` |
+| Luma parse | `chinnathurai-128x128-qp112.obu` |
+| Luma inverse transform | `chalk-320x240-qp128.obu`, `cuckoo-431x287-qp080.obu`, `flycatcher-223x149-qp176.obu`, `flycatcher-397x265-qp048.obu`, `laarim-448x299-qp192.obu`, `louis-301x222-qp144.obu`, `pastell-512x341-qp160.obu`, `schwaebisch-353x234-qp112.obu`, `schwaebisch-417x277-qp208.obu`, `silene-479x383-qp176.obu` |
+| Luma reconstruction setup or special predictor | `cuckoo-157x105-qp160.obu` |
+| Chroma prediction | `chimp-240x287-qp192.obu`, `chimp-93x111-qp064.obu`, `emerald-480x240-qp128.obu`, `laarim-256x171-qp096.obu`, `louis-463x342-qp224.obu`, `pastell-320x213-qp064.obu`, `silene-384x307-qp080.obu` |
 
 | File | Current endpoint | Blocker |
 | --- | --- | --- |
 | `chalk-320x240-qp128.obu` | 15 luma and one chroma leaf committed; `(0,16)` 64x64 luma leaf reaches inverse transform at tell 554 | Later Q128 luma IST tuple |
 | `chimp-240x287-qp192.obu` | 58 luma and one chroma leaf committed; `(0,16)` 64x64 U leaf reaches prediction at tell 1537 | Q192 chroma prediction profile |
 | `chimp-93x111-qp064.obu` | 13 luma leaves committed; first 64x64 U block reaches chroma prediction at tell 173 | Q64 chroma prediction profile |
-| `chinnathurai-128x128-qp112.obu` | Eleven luma leaves committed; IntraBC transform parsing clears and `(3,12)` 16x4 reaches prediction at tell 513 | Q112 16x4 luma prediction profile |
+| `chinnathurai-128x128-qp112.obu` | 13 luma leaves committed after the 16x4 Vertical predictor clears; `(8,12)` 16x8 reaches luma parsing at tell 588 | Later Q112 IntraBC parse profile |
 | `chinnathurai-333x333-qp224.obu` | **Complete:** emitted 166,667-byte I420 is byte-identical to the AVM reference (SHA-256 `6f1868d8945e87350414baa1a49829b21dbcb8c4e0e44dee6633d844ef5d7182`) | None for the accepted profile |
 | `cuckoo-157x105-qp160.obu` | Two luma leaves committed; AVM's sole IntraBC vector `(-64,0)` passes source validation at `(0,6)`, then the 8x16 block reaches reconstruction setup at tell 106 | Q160 IntraBC secondary-transform/reconstruction tuple |
-| `cuckoo-431x287-qp080.obu` | First luma and chroma leaves committed; `(0,16)` 64x64 luma leaf reaches prediction at tell 418 | Q80 64x64 luma prediction profile |
+| `cuckoo-431x287-qp080.obu` | Three luma and two chroma leaves committed after the 64x64 D67 predictor clears; `(4,32)` 32x16 reaches inverse transform at tell 471 | Later Q80 luma IST tuple |
 | `emerald-192x96-qp208.obu` | **Complete:** 20 luma and 11 chroma leaves, tile done at tell 731, filtered I420 byte-identical to the AVM reference (SHA-256 `403c2e7245ec484984e60c1eaf8bd1b47487c0ba6b60afc916b9532025fc51ad`) | None for the accepted profile |
 | `emerald-480x240-qp128.obu` | First 64x64 luma predictor/output match AVM (`d4ea93e1129d09a3`/`2bc3d4c50c228831`); first 32x32 U/V blocks match through tell 197, range 53184, with prefilter hashes `57a7c38258f413ff`/`15846509fdb0b4f1` | Next luma/chroma traversal profile after the first exact leaf pair |
 | `flycatcher-223x149-qp176.obu` | Two luma and one chroma leaf committed; next luma leaf reaches inverse transform at tell 132 | Later Q176 luma IST tuple |
-| `flycatcher-397x265-qp048.obu` | 26 luma and two chroma leaves committed; `(13,16)` 8x4 luma leaf reaches prediction at tell 1130 | Next Q48 luma prediction profile |
+| `flycatcher-397x265-qp048.obu` | 44 luma and six chroma leaves committed after the 8x4 D203 and 8x16 Smooth-Vertical predictors clear; `(0,48)` 64x16 reaches inverse transform at tell 1468 | Later Q48 luma IST tuple |
 | `laarim-256x171-qp096.obu` | Seven luma and one chroma leaf committed; first chroma leaf reaches prediction at tell 1992 | Q96 chroma prediction profile |
-| `laarim-448x299-qp192.obu` | 13 luma and four chroma leaves committed; next luma leaf reaches prediction at tell 528 | Later Q192 luma prediction profile |
+| `laarim-448x299-qp192.obu` | 17 luma and four chroma leaves committed after the 4x16 D45 predictor clears; `(2,66)` 8x32 reaches inverse transform at tell 642 | Later Q192 luma IST tuple |
 | `louis-301x222-qp144.obu` | First 64x16 luma leaf committed; `(4,0)` 16x16 FSC block clears coefficient levels and reaches inverse transform at tell 87 | Q144 FSC inverse transform |
 | `louis-463x342-qp224.obu` | 78 luma and 39 chroma leaves committed; `(32,48)` 32x64 U leaf reaches prediction at tell 1318 | Q224 chroma prediction profile |
-| `pastell-320x213-qp064.obu` | 13 luma leaves committed; `(8,0)` 64x32 reaches prediction at tell 955 | Q64 64x32 Smooth Horizontal prediction profile |
+| `pastell-320x213-qp064.obu` | 14 luma leaves committed after the 64x32 Smooth-Horizontal predictor clears; first 64x64 U block reaches prediction at tell 960 | Q64 chroma prediction profile |
 | `pastell-512x341-qp160.obu` | 20 luma and five chroma leaves committed; next luma leaf reaches inverse transform at tell 776 | Later Q160 luma IST tuple |
-| `schwaebisch-353x234-qp112.obu` | Two luma leaves committed with AVM-matching second-leaf completion at tell 55/range 44736; `(2,2)` 4x8 reaches prediction at tell 94 | Q112 luma prediction profile |
+| `schwaebisch-353x234-qp112.obu` | Ten luma leaves committed after the 4x8 Smooth-Vertical predictor clears; `(2,8)` 16x8 reaches inverse transform at tell 374 | Later Q112 luma IST tuple |
 | `schwaebisch-417x277-qp208.obu` | 200 luma and 30 chroma leaves committed; `(56,56)` 32x32 luma leaf reaches inverse transform at tell 3678 | Later Q208 luma IST tuple |
 | `silene-384x307-qp080.obu` | Three luma and two chroma leaves committed; `(0,32)` 64x64 U leaf reaches prediction at tell 311 | Q80 chroma prediction profile |
 | `silene-479x383-qp176.obu` | First luma and chroma leaves committed; `(0,16)` 64x64 luma leaf reaches inverse transform at tell 103 | Later Q176 luma IST tuple |

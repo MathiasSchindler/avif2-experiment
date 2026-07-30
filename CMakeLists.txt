@@ -133,14 +133,14 @@ if(WIN32 AND CMAKE_C_COMPILER_ID MATCHES "Clang")
             "-DEXPECTED_LEAF=leaf: (0,16) block=64x64 plane=Y"
             "-DEXPECTED_PROGRESS=entropy tell: 554; completed leaves: Y=15 UV=1"
             -P "${CMAKE_CURRENT_SOURCE_DIR}/scripts/check-decoder-diagnostic.cmake")
-    add_test(NAME windows-decoder-diagnostic-luma-prediction
+    add_test(NAME windows-decoder-diagnostic-cuckoo-inverse-transform
         COMMAND "${CMAKE_COMMAND}"
             "-DDECODER=$<TARGET_FILE:av2heif-decoder>"
             "-DINPUT=${CMAKE_CURRENT_SOURCE_DIR}/images/artifacts/cuckoo-431x287-qp080.obu"
             "-DOUTPUT=${CMAKE_CURRENT_BINARY_DIR}/diagnostic-cuckoo.i420"
-            "-DEXPECTED_STAGE=stage: luma reconstruction / prediction"
-            "-DEXPECTED_LEAF=leaf: (0,16) block=64x64 plane=Y"
-            "-DEXPECTED_PROGRESS=entropy tell: 418; completed leaves: Y=1 UV=1"
+            "-DEXPECTED_STAGE=stage: luma reconstruction / inverse transform"
+            "-DEXPECTED_LEAF=leaf: (4,32) block=32x16 plane=Y"
+            "-DEXPECTED_PROGRESS=entropy tell: 471; completed leaves: Y=3 UV=2"
             -P "${CMAKE_CURRENT_SOURCE_DIR}/scripts/check-decoder-diagnostic.cmake")
     add_test(NAME windows-decoder-diagnostic-chroma-prediction
         COMMAND "${CMAKE_COMMAND}"

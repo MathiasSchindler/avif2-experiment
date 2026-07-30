@@ -1760,12 +1760,7 @@ static void test_luma_directional_feature_matrix(void) {
                              ++multi_line_mrl) {
                             mode.multi_line_mrl = (uint8_t)multi_line_mrl;
                             if (multi_line_mrl == 0U && mrl_index == 0U &&
-                                mode.angle_delta != -3 &&
-                                mode.angle_delta != -2 &&
-                                mode.angle_delta != -1 &&
-                                mode.angle_delta != 1 &&
-                                mode.angle_delta != 2 &&
-                                mode.angle_delta != 3) {
+                                mode.angle_delta == 0) {
                                 continue;
                             }
                             for (ibp = 0U; ibp <= 1U; ++ibp) {
@@ -1903,6 +1898,89 @@ static void test_luma_directional_feature_matrix(void) {
                     }
                 }
             }
+        }
+    }
+}
+
+static void test_luma_zero_angle_frontier_matrix(void) {
+    static const struct {
+        Av2hFirstLeafIntraMode mode;
+        uint16_t width;
+        uint16_t height;
+    } cases[] = {
+        { AV2H_INTRA_VERTICAL, 16U, 4U },
+        { AV2H_INTRA_D67, 64U, 64U },
+        { AV2H_INTRA_D203, 8U, 4U },
+        { AV2H_INTRA_D45, 4U, 16U }
+    };
+    Av2hFirstLeafMode mode = { 0 };
+    Av2hLumaReferences references = { 0 };
+    uint8_t above[136U];
+    uint8_t left[136U];
+    uint8_t storage[AV2H_RECON_SAMPLE_CAPACITY + 2U];
+    uint8_t *predictor = &storage[1U];
+    size_t case_index;
+    size_t index;
+
+    mode.enable_ibp = 1U;
+    for (index = 0U; index < sizeof(above); ++index) {
+        above[index] = (uint8_t)(17U + index * 29U);
+        left[index] = (uint8_t)(91U + index * 13U);
+    }
+    references.above = above;
+    references.above_count = sizeof(above);
+    references.left = left;
+    references.left_count = sizeof(left);
+    references.above_left = 73U;
+    references.has_above_left = 1U;
+    for (case_index = 0U;
+         case_index < sizeof(cases) / sizeof(cases[0]); ++case_index) {
+        mode.mode = cases[case_index].mode;
+        av2h_memory_fill(storage, 0xa5U, sizeof(storage));
+        CHECK(av2h_luma_predict(
+                  &mode, cases[case_index].width, cases[case_index].height,
+                  &references, predictor, cases[case_index].width) == AV2H_OK);
+        CHECK(storage[0U] == 0xa5U);
+        CHECK(storage[sizeof(storage) - 1U] == 0xa5U);
+    }
+}
+
+static void test_luma_smooth_vertical_geometry_matrix(void) {
+    static const uint16_t dimensions[] = { 4U, 8U, 16U, 32U, 64U };
+    Av2hFirstLeafMode mode = { 0 };
+    Av2hLumaReferences references = { 0 };
+    uint8_t above[65U];
+    uint8_t left[65U];
+    uint8_t storage[AV2H_RECON_SAMPLE_CAPACITY + 2U];
+    uint8_t *predictor = &storage[1U];
+    size_t width_index;
+    size_t height_index;
+    size_t index;
+
+    mode.mode = AV2H_INTRA_SMOOTH_VERTICAL;
+    mode.enable_ibp = 1U;
+    for (index = 0U; index < sizeof(above); ++index) {
+        above[index] = (uint8_t)(31U + index * 17U);
+        left[index] = (uint8_t)(7U + index * 29U);
+    }
+    references.above = above;
+    references.above_count = sizeof(above);
+    references.left = left;
+    references.left_count = sizeof(left);
+    for (width_index = 0U;
+         width_index < sizeof(dimensions) / sizeof(dimensions[0]);
+         ++width_index) {
+        for (height_index = 0U;
+             height_index < sizeof(dimensions) / sizeof(dimensions[0]);
+             ++height_index) {
+            uint16_t width = dimensions[width_index];
+            uint16_t height = dimensions[height_index];
+            av2h_memory_fill(storage, 0xa5U, sizeof(storage));
+            CHECK(av2h_luma_predict(
+                      &mode, width, height, &references,
+                      predictor, width) == AV2H_OK);
+            CHECK(storage[0U] == 0xa5U);
+            CHECK(storage[sizeof(storage) - 1U] == 0xa5U);
         }
     }
 }
@@ -4778,6 +4856,8 @@ int main(void) {
     test_dc_16x32_ibp_prediction();
     test_d113_16x64_prediction();
     test_luma_directional_feature_matrix();
+    test_luma_zero_angle_frontier_matrix();
+    test_luma_smooth_vertical_geometry_matrix();
     test_chroma_angle_delta_matrix();
     test_live_plane_reconstruction();
     test_arguments();

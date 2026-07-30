@@ -1735,12 +1735,22 @@ Av2hStatus av2h_luma_predict(
             mode, 90, width, height, references,
             predictor, predictor_stride);
     }
-        if (((mode->angle_delta == -3 || mode->angle_delta == -2 ||
+    if (((mode->angle_delta == -3 || mode->angle_delta == -2 ||
             mode->angle_delta == -1 || mode->angle_delta == 1 ||
             mode->angle_delta == 2 || mode->angle_delta == 3) ||
          (mode->mrl_index == 1U || mode->mrl_index == 2U ||
           mode->mrl_index == 3U) ||
-         mode->multi_line_mrl == 1U) &&
+         mode->multi_line_mrl == 1U ||
+         (mode->angle_delta == 0 && mode->mrl_index == 0U &&
+          mode->multi_line_mrl == 0U &&
+          ((mode->mode == AV2H_INTRA_VERTICAL &&
+            width == 16U && height == 4U) ||
+           (mode->mode == AV2H_INTRA_D67 &&
+            width == 64U && height == 64U) ||
+           (mode->mode == AV2H_INTRA_D203 &&
+            width == 8U && height == 4U) ||
+           (mode->mode == AV2H_INTRA_D45 &&
+            width == 4U && height == 16U)))) &&
         mode->angle_delta >= -3 && mode->angle_delta <= 3 &&
         directional_base_angle(mode->mode) != 0 &&
         mode->mrl_index < AV2H_MRL_INDEX_SYMBOLS &&
@@ -2755,18 +2765,8 @@ Av2hStatus av2h_luma_predict(
     }
     if (mode->mode == AV2H_INTRA_SMOOTH_VERTICAL &&
         mode->angle_delta == 0 &&
-        ((width == 4U && height == 4U) ||
-         (width == 8U && height == 8U) ||
-         (width == 8U && height == 32U) ||
-         (width == 16U && height == 8U) ||
-         (width == 16U && height == 16U) ||
-         (width == 16U && height == 32U) ||
-         (width == 32U && height == 8U) ||
-         (width == 32U && height == 16U) ||
-         (width == 32U && height == 32U) ||
-         (width == 64U && height == 8U) ||
-         (width == 64U && height == 16U) ||
-         (width == 64U && height == 32U))) {
+        luma_prediction_dimension_supported(width) &&
+        luma_prediction_dimension_supported(height)) {
         uint8_t scale = smooth_scale(width, height);
         uint8_t bottom_left;
         int extend_left = references->left_count == 0U &&
@@ -2815,6 +2815,7 @@ Av2hStatus av2h_luma_predict(
          (width == 32U && height == 16U) ||
          (width == 32U && height == 32U) ||
          (width == 64U && height == 16U) ||
+         (width == 64U && height == 32U) ||
          (width == 64U && height == 64U))) {
         uint8_t scale = smooth_scale(width, height);
         uint8_t top_right;
