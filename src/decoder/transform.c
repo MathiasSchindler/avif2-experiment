@@ -545,6 +545,7 @@ static Av2hStatus read_primary(Av2hRangeDecoder *decoder,
                 coeff->tx_size == AV2H_TX_4X8 ||
                 coeff->tx_size == AV2H_TX_8X4 ||
                 coeff->tx_size == AV2H_TX_8X8 ||
+                coeff->tx_size == AV2H_TX_8X16 ||
                 coeff->tx_size == AV2H_TX_16X8 ||
                 coeff->tx_size == AV2H_TX_16X4) && mode->use_intrabc) {
         uint16_t last = (uint16_t)(coeff->eob - 1U);

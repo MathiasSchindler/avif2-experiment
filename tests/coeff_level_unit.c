@@ -293,6 +293,44 @@ static void test_fsc_coefficient_matrix(void) {
     }
 }
 
+static void test_fsc_bob_context_scales_with_transform_area(void) {
+    static const unsigned char bytes[4096U] = { 0U };
+    Av2hSpan span = { bytes, sizeof(bytes) };
+    Av2hSequenceState sequence = { 0 };
+    Av2hFrameState frame = { 0 };
+    Av2hFirstLeafMode mode = { 0 };
+    Av2hFirstCoeffPrefix prefix = { 0 };
+    Av2hFirstTransformType transform = { 0 };
+    Av2hFirstCoeffLevelCdfs cdfs;
+    Av2hFirstCoeffBlock block;
+    Av2hCoeffTxGeometry geometry;
+    Av2hRangeDecoder decoder;
+    uint64_t before[3U];
+    size_t context;
+    frame.base_q_index = 128U;
+    mode.fsc_mode = 1U;
+    prefix.tx_size = AV2H_TX_8X4;
+    transform.primary_type = AV2H_TX_IDTX;
+    CHECK(av2h_coeff_tx_geometry(prefix.tx_size, &geometry) == AV2H_OK);
+    prefix.eob = (uint16_t)(geometry.coefficient_count * 3U / 4U);
+    CHECK(av2h_first_coeff_level_cdfs_init_for_q(
+              &cdfs, frame.base_q_index) == AV2H_OK);
+    for (context = 0U; context < 3U; ++context) {
+        before[context] = word_hash(
+            cdfs.fsc_bob_all[geometry.tx_context][context], 7U);
+    }
+    CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
+    CHECK(av2h_first_coeff_block_read(
+              &decoder, &cdfs, &sequence, &frame, &mode, &prefix,
+              &transform, &block) == AV2H_OK);
+    CHECK(word_hash(cdfs.fsc_bob_all[geometry.tx_context][0], 7U) ==
+          before[0]);
+    CHECK(word_hash(cdfs.fsc_bob_all[geometry.tx_context][1], 7U) !=
+          before[1]);
+    CHECK(word_hash(cdfs.fsc_bob_all[geometry.tx_context][2], 7U) ==
+          before[2]);
+}
+
 static void test_adst_dct_coefficient_matrix(void) {
     static const unsigned char bytes[4096U] = { 0U };
     static const uint16_t q_indices[] = { 128U, 224U };
@@ -899,6 +937,7 @@ int main(void) {
     test_chroma_all_zero_geometry();
     test_fsc_cdf_banks();
     test_fsc_coefficient_matrix();
+    test_fsc_bob_context_scales_with_transform_area();
     test_adst_dct_coefficient_matrix();
     test_adst_flipadst_coefficient_matrix();
     test_requested_transform_coefficient_matrix();

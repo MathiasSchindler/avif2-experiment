@@ -3728,7 +3728,8 @@ static Av2hStatus read_fsc_block(
     {
         uint16_t position = scan_position(
             bob, block->width, block->height, 0U, 0U);
-        uint8_t context = bob <= 2U ? 0U : bob <= 4U ? 1U : 2U;
+        uint8_t context = bob <= block->coefficient_count / 8U ? 0U :
+            bob <= block->coefficient_count / 4U ? 1U : 2U;
         uint16_t *cdf = cdfs->fsc_bob_all[tx_context][context];
         uint32_t symbol;
         block->diagnostic_position = position;

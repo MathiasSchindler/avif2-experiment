@@ -1147,6 +1147,8 @@ static void test_primary_idtx_reconstruction_matrix(void) {
         { AV2H_TX_4X4, 4U, 4U, 7U, 10U, 0U },
         { AV2H_TX_4X8, 4U, 8U, 7U, 10U, 1U },
         { AV2H_TX_8X4, 8U, 4U, 7U, 10U, 1U },
+        { AV2H_TX_8X8, 8U, 8U, 7U, 11U, 0U },
+        { AV2H_TX_16X16, 16U, 16U, 6U, 13U, 0U },
         { AV2H_TX_8X16, 8U, 16U, 7U, 11U, 1U },
         { AV2H_TX_16X4, 16U, 4U, 6U, 12U, 0U }
     };

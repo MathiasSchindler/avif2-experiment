@@ -4840,7 +4840,9 @@ static int reconstruct_generic_selected(
         int legal_identity =
             (mode->fsc_mode &&
              (tx_size == RECON_TX_4X4 || tx_size == RECON_TX_4X8 ||
-              tx_size == RECON_TX_8X4 || tx_size == RECON_TX_8X16 ||
+              tx_size == RECON_TX_8X4 || tx_size == RECON_TX_8X8 ||
+              tx_size == RECON_TX_16X16 ||
+              tx_size == RECON_TX_8X16 ||
               tx_size == RECON_TX_16X4)) ||
             mode->use_intrabc ||
             (!mode->fsc_mode && !mode->use_intrabc &&
