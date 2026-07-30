@@ -426,6 +426,12 @@ static Av2hStatus inverse_secondary_transform(
                transform->secondary_set == 6U) {
         kernel = av2h_ist_8x8_set6_type2_kernel;
         scan_map = av2h_ist_8x8_set6_type2_scan_map;
+    } else if (mode->mode == AV2H_INTRA_DC &&
+               prefix->tx_size == AV2H_TX_64X8 &&
+               transform->secondary_symbol == 2U &&
+               transform->secondary_set == 6U) {
+        kernel = av2h_ist_8x8_set6_type2_kernel;
+        scan_map = av2h_ist_8x8_set6_type2_scan_map;
     } else if ((mode->mode == AV2H_INTRA_DC ||
                 mode->mode == AV2H_INTRA_SMOOTH) &&
                prefix->tx_size == AV2H_TX_8X16 &&
@@ -452,7 +458,8 @@ static Av2hStatus inverse_secondary_transform(
         kernel = av2h_ist_8x8_set1_type3_kernel;
         scan_map = av2h_ist_8x8_set1_type3_scan_map;
     } else if (mode->mode == AV2H_INTRA_D45 &&
-               prefix->tx_size == AV2H_TX_8X16 &&
+               (prefix->tx_size == AV2H_TX_8X16 ||
+                prefix->tx_size == AV2H_TX_32X16) &&
                transform->secondary_symbol == 1U &&
                transform->secondary_set == 2U) {
         kernel = av2h_ist_8x8_set2_type1_kernel;
@@ -482,8 +489,10 @@ static Av2hStatus inverse_secondary_transform(
         kernel = av2h_ist_8x8_set1_type3_kernel;
         scan_map = av2h_ist_8x8_set1_type3_scan_map;
     } else if (mode->mode == AV2H_INTRA_DC &&
-               (prefix->tx_size == AV2H_TX_16X32 ||
-                prefix->tx_size == AV2H_TX_32X16) &&
+               (prefix->tx_size == AV2H_TX_16X16 ||
+                prefix->tx_size == AV2H_TX_16X32 ||
+                prefix->tx_size == AV2H_TX_32X16 ||
+                prefix->tx_size == AV2H_TX_64X8) &&
                transform->secondary_symbol == 3U &&
                transform->secondary_set == 6U) {
         kernel = av2h_ist_8x8_set6_type3_kernel;
@@ -622,6 +631,12 @@ static Av2hStatus inverse_secondary_transform(
         scan_map = av2h_ist_8x8_set4_type3_scan_map;
     } else if (mode->mode == AV2H_INTRA_D45 &&
                prefix->tx_size == AV2H_TX_32X16 &&
+               transform->secondary_symbol == 3U &&
+               transform->secondary_set == 2U) {
+        kernel = av2h_ist_8x8_set2_type3_kernel;
+        scan_map = av2h_ist_8x8_set2_type3_scan_map;
+    } else if (mode->mode == AV2H_INTRA_D45 &&
+               prefix->tx_size == AV2H_TX_16X16 &&
                transform->secondary_symbol == 3U &&
                transform->secondary_set == 2U) {
         kernel = av2h_ist_8x8_set2_type3_kernel;
@@ -891,7 +906,8 @@ static Av2hStatus inverse_secondary_transform(
         scan_map = av2h_ist_8x8_set5_type3_scan_map;
     } else if ((mode->mode == AV2H_INTRA_SMOOTH ||
                 mode->mode == AV2H_INTRA_SMOOTH_VERTICAL) &&
-               prefix->tx_size == AV2H_TX_16X32 &&
+               (prefix->tx_size == AV2H_TX_16X32 ||
+                prefix->tx_size == AV2H_TX_64X16) &&
                transform->secondary_symbol == 3U &&
                transform->secondary_set == 1U) {
         kernel = av2h_ist_8x8_set1_type3_kernel;
@@ -974,6 +990,12 @@ static Av2hStatus inverse_secondary_transform(
                transform->secondary_set == 2U) {
         kernel = av2h_ist_8x8_set2_type1_kernel;
         scan_map = av2h_ist_8x8_set2_type1_scan_map;
+    } else if (mode->mode == AV2H_INTRA_D45 &&
+               prefix->tx_size == AV2H_TX_64X64 &&
+               transform->secondary_symbol == 3U &&
+               transform->secondary_set == 2U) {
+        kernel = av2h_ist_8x8_set2_type3_kernel;
+        scan_map = av2h_ist_8x8_set2_type3_scan_map;
     } else if (mode->mode == AV2H_INTRA_DC &&
                prefix->tx_size == AV2H_TX_8X16 &&
                transform->secondary_symbol == 1U &&
@@ -1949,7 +1971,8 @@ Av2hStatus av2h_luma_predict(
                        (mode->mode == AV2H_INTRA_D113 &&
                         width == 4U && height == 16U) ||
                      (mode->mode == AV2H_INTRA_D135 &&
-                        ((width == 16U && height == 4U) ||
+                        ((width == 8U && height == 32U) ||
+                         (width == 16U && height == 4U) ||
                          (width == 8U && height == 16U) ||
                          (width == 32U && height == 64U))) ||
                      (mode->mode == AV2H_INTRA_D157 &&

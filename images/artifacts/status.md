@@ -33,7 +33,7 @@ an earlier entropy divergence can still be the underlying cause.
 | Luma IntraBC source bounds | `chinnathurai-128x128-qp112.obu` |
 | Luma IntraBC reference availability | `silene-384x307-qp080.obu` |
 | Luma inverse transform | `chalk-320x240-qp128.obu`, `chimp-240x287-qp192.obu`, `cuckoo-157x105-qp160.obu`, `cuckoo-431x287-qp080.obu`, `emerald-480x240-qp128.obu`, `flycatcher-223x149-qp176.obu`, `flycatcher-397x265-qp048.obu`, `laarim-256x171-qp096.obu`, `laarim-448x299-qp192.obu`, `louis-301x222-qp144.obu`, `pastell-320x213-qp064.obu`, `pastell-512x341-qp160.obu`, `silene-479x383-qp176.obu` |
-| Chroma parse | `louis-463x342-qp224.obu` |
+| Chroma parse | None |
 | Chroma deblock map | `schwaebisch-353x234-qp112.obu` |
 | Frame filter | `chimp-93x111-qp064.obu` |
 
@@ -53,7 +53,7 @@ an earlier entropy divergence can still be the underlying cause.
 | `laarim-256x171-qp096.obu` | 19 luma and 13 chroma leaves committed; `(10,38)` 8x16 Y reaches inverse transform at tell 4399 | Q96 luma inverse-transform profile |
 | `laarim-448x299-qp192.obu` | 22 luma and four chroma leaves committed; `(8,72)` 32x8 Y leaf reaches inverse transform at tell 800 | Q192 luma inverse-transform profile |
 | `louis-301x222-qp144.obu` | 16 luma and five chroma leaves committed; `(8,64)` 64x32 Y leaf reaches inverse transform at tell 955 | Q144 luma inverse-transform profile |
-| `louis-463x342-qp224.obu` | 78 luma and 40 chroma leaves committed; local chroma root `(32,48)` decodes `SPLIT`, creating `(32,56)` 32x32 U and escaped UV mode index 14 at tell 1327 | Upstream chroma-root entropy divergence; AVM uses `HORZ` geometry with leaves at `(32,48)` and `(40,48)` and never parses UV mode at `(32,56)` |
+| `louis-463x342-qp224.obu` | **Complete:** emitted 237,690-byte I420 (SHA-256 `f9492abd68347c32e64255a8dc3788ed3720f1ea3700b0ad8e17567192ad27ef`) | Output is not yet byte-identical to AVM; the first difference is luma sample `(0,88)`, before the Louis-specific syntax additions |
 | `pastell-320x213-qp064.obu` | 28 luma and seven chroma leaves committed; `(8,48)` 16x16 Y reaches inverse transform at tell 1396 | Q64 luma inverse-transform profile |
 | `pastell-512x341-qp160.obu` | 27 luma and ten chroma leaves committed; `(20,0)` 32x16 Y leaf reaches inverse transform at tell 928 | Q160 luma inverse-transform profile |
 | `schwaebisch-353x234-qp112.obu` | 72 luma and 21 chroma leaves committed; narrow chroma transform geometry advances past the `(8,72)` U prefix to `(8,73)` deblock-map commit at tell 2521 | Upstream chroma partition divergence: repeated vertical decisions at `(8,72)` produce a non-conformant 4x32 leaf with an odd chroma origin |
@@ -152,11 +152,11 @@ Summary:
   `(8,72)`, ending at tell 2519 and producing adjacent 4x32 leaves at columns
   72 and 73. Pinned AVM geometry contains no corresponding invalid chroma
   origin, so production remains fail-closed at the upstream traversal drift;
-- Louis Q224 likewise diverges before its reported chroma parse stop: local
-  decodes the `(32,48)` chroma root as `SPLIT`, then reaches a non-AVM
-  `(32,56)` leaf and UV mode index 14. Pinned accounting instead proceeds with
-  `HORZ` geometry through `(32,48)` and `(40,48)`. The invalid mode is not
-  admitted because it is downstream of chroma-root entropy divergence;
+- Louis Q224 now completes after admitting its observed D135 8x32 predictor,
+  existing IST kernels for its additional mode/geometry tuples, and secondary
+  transform signaling for DCT_DCT 64x8 and smooth ADST_ADST 16x16 at EOB 12.
+  The emitted frame is not byte-identical to pinned AVM: the first difference
+  is luma sample `(0,88)`, before these Louis-specific syntax additions;
 - Q-context-0 now has complete luma TXS0--TXS4 and UV coefficient-level CDF
   banks, geometry-based coefficient admission, the ordinary intra primary
   transform table, the observed 32x32 chroma coefficient path, and inverse
@@ -271,15 +271,15 @@ Summary:
   tuple checks;
 - the Q64 first-block frontiers advance to tells 30 and 34 for Chimp and
   Pastell respectively;
-- Cuckoo Q160, Pastell Q160, and Louis Q224 retain their locked sample-exact
-  partial reconstructions; and
+- Cuckoo Q160 and Pastell Q160 retain their locked sample-exact partial
+  reconstructions, while Louis Q224 now produces a complete frame; and
 - the remaining artifacts retain their earlier Q-profile, large-transform
   coefficient, prediction, or inverse-reconstruction blockers.
 
 The census now identifies Chinnathurai Q224, Emerald Q208, and Louis Q224 as
-feature-complete candidates at its named-feature granularity. Only the first
-two complete end-to-end; Louis Q224 still fails closed at its documented
-profile/traversal frontier.
+feature-complete candidates at its named-feature granularity. All three
+complete end-to-end; Chinnathurai Q224 and Emerald Q208 are byte-identical to
+their pinned AVM outputs, while Louis Q224 still has reconstruction differences.
 
 The ordinary 22-leaf/tell-762 fixture is not part of this artifact directory.
 Frame-wide decode and filter integration is now demonstrated for Emerald and

@@ -401,6 +401,7 @@ Av2hStatus av2h_secondary_tx_type_signal(
          coeff->tx_size == AV2H_TX_64X64 ||
          coeff->tx_size == AV2H_TX_16X64 ||
          coeff->tx_size == AV2H_TX_8X64 ||
+         coeff->tx_size == AV2H_TX_64X8 ||
          coeff->tx_size == AV2H_TX_64X16)) {
         *signaled = 1U;
     } else if (primary_type == AV2H_TX_ADST_ADST &&
@@ -425,6 +426,8 @@ Av2hStatus av2h_secondary_tx_type_signal(
                 (coeff->tx_size == AV2H_TX_8X8 &&
                  mode->mode == AV2H_INTRA_SMOOTH &&
                  (coeff->eob == 10U || coeff->eob == 12U)) ||
+                (coeff->tx_size == AV2H_TX_16X16 &&
+                 mode->mode == AV2H_INTRA_SMOOTH && coeff->eob == 12U) ||
                 (coeff->tx_size == AV2H_TX_16X16 &&
                  mode->mode == AV2H_INTRA_SMOOTH &&
                  (coeff->eob == 2U || coeff->eob == 3U ||
