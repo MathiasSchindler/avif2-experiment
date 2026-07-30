@@ -2054,6 +2054,16 @@ static int q_level_profile_supported(
         return av2h_coeff_tx_geometry(prefix->tx_size, &geometry) == AV2H_OK &&
                geometry.width <= 16U && geometry.height <= 16U;
     }
+    if (transform->primary_type == AV2H_TX_FLIPADST_ADST) {
+        Av2hCoeffTxGeometry geometry;
+        return av2h_coeff_tx_geometry(prefix->tx_size, &geometry) == AV2H_OK &&
+               geometry.width <= 16U && geometry.height <= 16U;
+    }
+    if (transform->primary_type == AV2H_TX_H_ADST) {
+        Av2hCoeffTxGeometry geometry;
+        return av2h_coeff_tx_geometry(prefix->tx_size, &geometry) == AV2H_OK &&
+               geometry.width <= 16U && geometry.height <= 8U;
+    }
     if (frame->base_q_index == 128U) {
         return !(prefix->tx_size == AV2H_TX_8X16 &&
                  prefix->eob == 6U &&
@@ -3715,8 +3725,9 @@ Av2hStatus av2h_coeff_block_read(
          prefix->tx_size != AV2H_TX_4X4 &&
          prefix->tx_size != AV2H_TX_4X8 &&
          prefix->tx_size != AV2H_TX_8X4 &&
+         prefix->tx_size != AV2H_TX_8X8 &&
          prefix->tx_size != AV2H_TX_16X4 &&
-         prefix->tx_size != AV2H_TX_8X32) ||
+         prefix->tx_size != AV2H_TX_16X8) ||
         (transform->primary_type == AV2H_TX_H_DCT &&
          prefix->tx_size != AV2H_TX_8X32 &&
          prefix->tx_size != AV2H_TX_32X4) ||

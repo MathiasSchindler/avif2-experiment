@@ -631,7 +631,9 @@ $lines.Add("A distinct missing feature is an observed named feature value whose 
     "reviewed manifest status is not ``Supported``. Files are sorted by this " +
     "count ascending as a low-hanging-fruit heuristic. The count does not " +
     "include coefficient-profile, entropy-context, or traversal blockers, so " +
-    "it is not an estimate of the work required for complete decoding.")
+    "it is not an estimate of the work required for complete decoding. A file " +
+    "with zero missing features is a feature-complete candidate at census " +
+    "granularity, not a guaranteed successful decode.")
 $lines.Add("")
 $lines.Add("| Rank | File | Distinct missing features | Missing feature values |")
 $lines.Add("|---:|---|---:|---|")
@@ -647,6 +649,15 @@ for ($index = 0; $index -lt $artifactMissingFeatures.Count; ++$index) {
     $lines.Add("| $($index + 1) | ``$($artifact.File)`` | " +
         "$($artifact.MissingCount) | $missingText |")
 }
+$lines.Add("")
+$featureCompleteFiles = @($artifactMissingFeatures | Where-Object {
+    $_.MissingCount -eq 0
+} | ForEach-Object {
+    "``$($_.File)``"
+}) -join ", "
+$lines.Add("Feature-complete candidates at census granularity: " +
+    $(if ($featureCompleteFiles) { $featureCompleteFiles } else { "None" }) +
+    ". See ``images/artifacts/status.md`` for verified end-to-end results.")
 $lines.Add("")
 $lines.Add("## Rare-feature fixtures")
 $lines.Add("")

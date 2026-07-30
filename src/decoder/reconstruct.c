@@ -3823,6 +3823,18 @@ Av2hStatus av2h_chroma_predict(
             directional_base_angle(mode->mode) + mode->angle_delta * 3,
             width, height, references, predictor, predictor_stride, 0U);
     }
+    if ((mode->angle_delta == -3 || mode->angle_delta == -1 ||
+         mode->angle_delta == 1 || mode->angle_delta == 3) &&
+        directional_base_angle(mode->mode) != 0 &&
+        luma_prediction_dimension_supported(width) && width <= 32U &&
+        luma_prediction_dimension_supported(height) && height <= 32U) {
+        Av2hFirstLeafMode luma_mode = { 0 };
+        luma_mode.mode = mode->mode;
+        luma_mode.angle_delta = mode->angle_delta;
+        return predict_luma_directional_feature(
+            &luma_mode, width, height, references,
+            predictor, predictor_stride);
+    }
     if (mode->mode == AV2H_INTRA_SMOOTH && mode->angle_delta == 0 &&
         ((width == 8U && (height == 4U || height == 8U)) ||
          (width == 16U && height == 16U) ||
@@ -4491,6 +4503,10 @@ static Av2hStatus recon_transform_kinds(uint8_t primary_type,
             *row_kind = RECON_1D_FLIPADST;
             *column_kind = RECON_1D_ADST;
             return AV2H_OK;
+        case AV2H_TX_H_ADST:
+            *row_kind = RECON_1D_ADST;
+            *column_kind = RECON_1D_IDENTITY;
+            return AV2H_OK;
         case AV2H_TX_IDTX:
             *row_kind = RECON_1D_IDENTITY;
             *column_kind = RECON_1D_IDENTITY;
@@ -4725,6 +4741,8 @@ static int reconstruct_generic_selected(
                 transform->primary_type != AV2H_TX_ADST_DCT &&
                 transform->primary_type != AV2H_TX_DCT_ADST &&
                 transform->primary_type != AV2H_TX_ADST_FLIPADST &&
+                transform->primary_type != AV2H_TX_FLIPADST_ADST &&
+                transform->primary_type != AV2H_TX_H_ADST &&
                 !(mode->mode == AV2H_INTRA_D67 &&
                     transform->primary_type == AV2H_TX_ADST_ADST) &&
                 !((mode->mode == AV2H_INTRA_D157 ||
@@ -4735,7 +4753,9 @@ static int reconstruct_generic_selected(
     if (!identity && !mode->use_intrabc && tx_size == RECON_TX_8X4 &&
         transform->primary_type != AV2H_TX_ADST_DCT &&
         transform->primary_type != AV2H_TX_DCT_ADST &&
-        transform->primary_type != AV2H_TX_ADST_FLIPADST) {
+        transform->primary_type != AV2H_TX_ADST_FLIPADST &&
+        transform->primary_type != AV2H_TX_FLIPADST_ADST &&
+        transform->primary_type != AV2H_TX_H_ADST) {
         return 0;
     }
     if (recon_transform_kinds(transform->primary_type, &row_kind,

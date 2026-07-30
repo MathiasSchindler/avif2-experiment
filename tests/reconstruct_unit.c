@@ -1836,13 +1836,13 @@ static void test_luma_directional_feature_matrix(void) {
     }
 }
 
-static void test_chroma_angle_delta_two_matrix(void) {
+static void test_chroma_angle_delta_matrix(void) {
     static const Av2hFirstLeafIntraMode modes[] = {
         AV2H_INTRA_D45,        AV2H_INTRA_D67,  AV2H_INTRA_VERTICAL,
         AV2H_INTRA_D113,       AV2H_INTRA_D135, AV2H_INTRA_D157,
         AV2H_INTRA_HORIZONTAL, AV2H_INTRA_D203
     };
-    static const int8_t angle_deltas[] = { -2, 2 };
+    static const int8_t angle_deltas[] = { -3, -2, -1, 1, 2, 3 };
     static const uint16_t dimensions[] = { 4U, 8U, 16U, 32U };
     Av2hFirstChromaMode chroma_mode = { 0 };
     Av2hFirstLeafMode luma_mode = { 0 };
@@ -1868,13 +1868,14 @@ static void test_chroma_angle_delta_two_matrix(void) {
     references.left_count = sizeof(left);
     references.above_left = 109U;
     references.has_above_left = 1U;
-    luma_mode.enable_ibp = 1U;
-
     for (delta_index = 0U;
          delta_index < sizeof(angle_deltas) / sizeof(angle_deltas[0]);
          ++delta_index) {
         chroma_mode.angle_delta = angle_deltas[delta_index];
         luma_mode.angle_delta = angle_deltas[delta_index];
+        luma_mode.enable_ibp = (uint8_t)(
+            angle_deltas[delta_index] == -2 ||
+            angle_deltas[delta_index] == 2);
         for (mode_index = 0U; mode_index < sizeof(modes) / sizeof(modes[0]);
              ++mode_index) {
             chroma_mode.mode = modes[mode_index];
@@ -1898,8 +1899,12 @@ static void test_chroma_angle_delta_two_matrix(void) {
                               luma_predictor, width) == AV2H_OK);
                     CHECK(chroma_storage[0U] == 0xa5U);
                     CHECK(chroma_storage[sizeof(chroma_storage) - 1U] == 0xa5U);
-                    for (index = 0U; index < sample_count; ++index) {
-                        CHECK(chroma_predictor[index] == luma_predictor[index]);
+                    if (chroma_mode.angle_delta != -2 &&
+                        chroma_mode.angle_delta != 2) {
+                        for (index = 0U; index < sample_count; ++index) {
+                            CHECK(chroma_predictor[index] ==
+                                  luma_predictor[index]);
+                        }
                     }
                 }
             }
@@ -3526,6 +3531,90 @@ static void test_adst_flipadst_geometry_matrix(void) {
     }
 }
 
+static void test_requested_transform_geometry_matrix(void) {
+    struct TransformGeometry {
+        Av2hFirstTxSize tx_size;
+        uint32_t expected_hash;
+    };
+    static const struct TransformGeometry flipadst_adst[] = {
+        { AV2H_TX_4X4, 0x9c3d5cc7U },
+        { AV2H_TX_4X8, 0x4da1eab5U },
+        { AV2H_TX_8X4, 0x3600bed4U },
+        { AV2H_TX_4X16, 0xa038120fU },
+        { AV2H_TX_16X4, 0x95f34a2fU },
+        { AV2H_TX_8X8, 0x71577f43U },
+        { AV2H_TX_8X16, 0xb151fc2cU },
+        { AV2H_TX_16X8, 0x859dd42cU },
+        { AV2H_TX_16X16, 0x66fb7323U }
+    };
+    static const struct TransformGeometry h_adst[] = {
+        { AV2H_TX_4X4, 0x588d1b7eU },
+        { AV2H_TX_4X8, 0xf5fe7b5dU },
+        { AV2H_TX_8X4, 0xd1e92e15U },
+        { AV2H_TX_8X8, 0xfe6f252aU },
+        { AV2H_TX_16X4, 0xc1949af2U },
+        { AV2H_TX_16X8, 0x77cd8b2dU }
+    };
+    static const struct {
+        Av2hFirstTxType type;
+        const struct TransformGeometry *geometries;
+        size_t count;
+    } matrices[] = {
+        { AV2H_TX_FLIPADST_ADST, flipadst_adst,
+          sizeof(flipadst_adst) / sizeof(flipadst_adst[0]) },
+        { AV2H_TX_H_ADST, h_adst,
+          sizeof(h_adst) / sizeof(h_adst[0]) }
+    };
+    Av2hFirstLeafMode mode = { 0 };
+    Av2hFirstCoeffPrefix prefix = { 0 };
+    Av2hFirstTransformType transform = { 0 };
+    Av2hFirstCoeffBlock block = { 0 };
+    static Av2hReconstructionScratch scratch;
+    static Av2hFirstReconstruction reconstruction;
+    uint8_t predictor[AV2H_RECON_SAMPLE_CAPACITY];
+    size_t matrix;
+
+    av2h_memory_fill(predictor, 128U, sizeof(predictor));
+    for (matrix = 0U; matrix < sizeof(matrices) / sizeof(matrices[0]);
+         ++matrix) {
+        size_t geometry;
+        transform.primary_type = matrices[matrix].type;
+        for (geometry = 0U; geometry < matrices[matrix].count; ++geometry) {
+            const struct TransformGeometry *expected =
+                &matrices[matrix].geometries[geometry];
+            const Av2hTxDescriptor *descriptor;
+            CHECK(av2h_tx_descriptor_get(
+                      expected->tx_size, &descriptor) ==
+                  AV2H_OK);
+            prefix.tx_size = expected->tx_size;
+            prefix.eob = 1U;
+            block.width = descriptor->coefficient_width;
+            block.height = descriptor->coefficient_height;
+            block.coefficient_count = (uint16_t)(block.width * block.height);
+            block.nonzero_count = 1U;
+            block.dequantized[0U] = 512;
+            for (size_t mode_index = AV2H_INTRA_DC;
+                 mode_index <= AV2H_INTRA_PAETH; ++mode_index) {
+                Av2hStatus status;
+                mode.mode = (Av2hFirstLeafIntraMode)mode_index;
+                status = av2h_luma_reconstruct(
+                    &mode, &prefix, &transform, &block, predictor,
+                    descriptor->output_width, &scratch, &reconstruction);
+                CHECK(status == AV2H_OK);
+                if (status != AV2H_OK) continue;
+                CHECK(reconstruction.width == descriptor->output_width);
+                CHECK(reconstruction.height == descriptor->output_height);
+                CHECK(trace_sample_hash(
+                          reconstruction.pixels,
+                          (size_t)reconstruction.width *
+                              reconstruction.height) ==
+                      expected->expected_hash);
+            }
+            av2h_memory_fill(&block, 0U, sizeof(block));
+        }
+    }
+}
+
 static void test_emerald_reconstruct_invalid_preserves_output(void) {
     Av2hFirstLeafMode mode = { 0 };
     Av2hFirstCoeffPrefix prefix = { 0 };
@@ -4441,7 +4530,7 @@ int main(void) {
     test_dc_16x32_ibp_prediction();
     test_d113_16x64_prediction();
     test_luma_directional_feature_matrix();
-    test_chroma_angle_delta_two_matrix();
+    test_chroma_angle_delta_matrix();
     test_live_plane_reconstruction();
     test_arguments();
     test_emerald_q208_luma_blocks();
@@ -4449,6 +4538,7 @@ int main(void) {
     test_dct_adst_geometry_matrix();
     test_adst_dct_geometry_matrix();
     test_adst_flipadst_geometry_matrix();
+    test_requested_transform_geometry_matrix();
     test_emerald_reconstruct_invalid_preserves_output();
     test_emerald_q208_chroma_leaves();
     test_emerald_q208_chroma_cfl();

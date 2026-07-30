@@ -27,11 +27,9 @@ CORE_SOURCES := src/base.c src/carriage.c src/bmff.c src/container.c src/query.c
 	src/decoder/cdf.c src/decoder/coeff.c src/decoder/coeff_level.c \
 	src/decoder/filter.c src/decoder/frame.c src/decoder/leaf.c \
 	src/decoder/frame_output.c \
-	src/decoder/partition.c \
+	src/decoder/partition.c src/decoder/range.c src/decoder/reconstruct.c \
 	src/decoder/partition_cdf.c \
-	src/decoder/emerald_q208_reconstruction.inc src/decoder/fsc_cdf_data.inc \
-	src/decoder/ist_data.inc \
-	src/decoder/transform.c src/decoder/tx_geometry.c
+	src/decoder/tile.c src/decoder/transform.c src/decoder/tx_geometry.c
 CORE_HEADERS := include/av2heif.h src/base.h src/decoder/sequence.h \
 	src/decoder/cdf.h src/decoder/coeff.h src/decoder/coeff_level.h \
 	src/decoder/filter.h src/decoder/frame.h src/decoder/leaf.h \

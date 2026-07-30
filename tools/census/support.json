@@ -13,13 +13,13 @@
     },
     {
       "feature": "Chroma directional angle",
-      "status": "partial",
-      "evidence": "Chroma directional syntax is present, but full corpus geometry coverage has not been demonstrated."
+      "status": "supported",
+      "evidence": "All six nonzero chroma angle deltas are validated across every directional mode and legal chroma prediction geometry, with shared IDIF matrix coverage and pinned live artifact vectors."
     },
     {
       "feature": "MRL",
-      "status": "partial",
-      "evidence": "MRL syntax and selected predictors are validated; MRL-3 reconstruction remains a known artifact blocker."
+      "status": "supported",
+      "evidence": "MRL indices 1, 2, and 3 are validated across every directional mode, luma angle delta, legal prediction geometry, multi-line state, and IBP state, with synthetic and live artifact coverage."
     },
     {
       "feature": "Multi-line MRL",
@@ -43,8 +43,8 @@
     },
     {
       "feature": "IntraBC",
-      "status": "partial",
-      "evidence": "Syntax and selected skipped/IDTX reconstruction paths are tested; general profile coverage is not established."
+      "status": "supported",
+      "evidence": "Normative spatial and reference-bank block-vector prediction, DRL selection, both IntraBC modes, every legal skipped-copy geometry, residual transforms, reconstructed-source validation, and pinned multi-leaf parsing/output are covered."
     },
     {
       "feature": "Transform skip",
@@ -86,6 +86,18 @@
       "value": "Primary tx ADST_FLIPADST",
       "status": "supported",
       "evidence": "Validated against AVM's mode-dependent compact symbol tables, across both coefficient Q banks and all nine legal transform geometries, with pinned all-mode reconstruction hashes, live parsing, and fail-closed rejection of every larger geometry."
+    },
+    {
+      "match": "exact",
+      "value": "Primary tx FLIPADST_ADST",
+      "status": "supported",
+      "evidence": "Validated across both coefficient Q banks and all nine observed 4/8/16 transform geometries, with fixed all-mode reconstruction hashes and shared normative FLIPADST/ADST inverse kernels."
+    },
+    {
+      "match": "exact",
+      "value": "Primary tx H_ADST",
+      "status": "supported",
+      "evidence": "Validated across both coefficient Q banks and all six observed 4x4 through 16x8 geometries, with fixed all-mode reconstruction hashes and horizontal ADST plus vertical identity inverse kernels."
     },
     {
       "match": "exact",
@@ -152,6 +164,30 @@
       "value": "Chroma angle delta -2",
       "status": "supported",
       "evidence": "Validated in chroma directional syntax and across every directional mode and legal chroma prediction geometry, with pinned Schwaebisch Q208 U/V predictor and reconstruction hashes."
+    },
+    {
+      "match": "exact",
+      "value": "Chroma angle delta 1",
+      "status": "supported",
+      "evidence": "Validated through the shared IDIF predictor across every directional mode and legal chroma prediction geometry."
+    },
+    {
+      "match": "exact",
+      "value": "Chroma angle delta -1",
+      "status": "supported",
+      "evidence": "Validated through the shared IDIF predictor across every directional mode and legal chroma prediction geometry."
+    },
+    {
+      "match": "exact",
+      "value": "Chroma angle delta 3",
+      "status": "supported",
+      "evidence": "Validated through the shared IDIF predictor across every directional mode and legal chroma prediction geometry."
+    },
+    {
+      "match": "exact",
+      "value": "Chroma angle delta -3",
+      "status": "supported",
+      "evidence": "Validated through the shared IDIF predictor across every directional mode and legal chroma prediction geometry."
     },
     {
       "match": "prefix",

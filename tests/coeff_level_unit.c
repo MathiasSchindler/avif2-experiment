@@ -330,6 +330,72 @@ static void test_adst_flipadst_coefficient_matrix(void) {
     }
 }
 
+static void test_requested_transform_coefficient_matrix(void) {
+    static const unsigned char bytes[4096U] = { 0U };
+    static const uint16_t q_indices[] = { 128U, 224U };
+    static const uint8_t flipadst_adst[] = {
+        AV2H_TX_4X4, AV2H_TX_4X8, AV2H_TX_8X4,
+        AV2H_TX_4X16, AV2H_TX_16X4, AV2H_TX_8X8,
+        AV2H_TX_8X16, AV2H_TX_16X8, AV2H_TX_16X16
+    };
+    static const uint8_t h_adst[] = {
+        AV2H_TX_4X4, AV2H_TX_4X8, AV2H_TX_8X4,
+        AV2H_TX_8X8, AV2H_TX_16X4, AV2H_TX_16X8
+    };
+    static const struct {
+        Av2hFirstTxType type;
+        const uint8_t *sizes;
+        size_t count;
+    } matrices[] = {
+        { AV2H_TX_FLIPADST_ADST, flipadst_adst,
+          sizeof(flipadst_adst) / sizeof(flipadst_adst[0]) },
+        { AV2H_TX_H_ADST, h_adst,
+          sizeof(h_adst) / sizeof(h_adst[0]) }
+    };
+    Av2hSpan span = { bytes, sizeof(bytes) };
+    Av2hSequenceState sequence = { 0 };
+    Av2hFirstLeafMode mode = { 0 };
+    size_t matrix;
+
+    for (matrix = 0U; matrix < sizeof(matrices) / sizeof(matrices[0]);
+         ++matrix) {
+        size_t q_context;
+        for (q_context = 0U;
+             q_context < sizeof(q_indices) / sizeof(q_indices[0]);
+             ++q_context) {
+            size_t tx_index;
+            for (tx_index = 0U; tx_index < matrices[matrix].count;
+                 ++tx_index) {
+                Av2hFrameState frame = { 0 };
+                Av2hFirstCoeffPrefix prefix = { 0 };
+                Av2hFirstTransformType transform = { 0 };
+                Av2hFirstCoeffLevelCdfs cdfs;
+                Av2hFirstCoeffBlock block;
+                Av2hCoeffTxGeometry geometry;
+                Av2hRangeDecoder decoder;
+                Av2hStatus status;
+                frame.base_q_index = q_indices[q_context];
+                prefix.tx_size = matrices[matrix].sizes[tx_index];
+                prefix.eob = 1U;
+                transform.primary_type = matrices[matrix].type;
+                CHECK(av2h_coeff_tx_geometry(prefix.tx_size, &geometry) ==
+                      AV2H_OK);
+                CHECK(av2h_first_coeff_level_cdfs_init_for_q(
+                          &cdfs, frame.base_q_index) == AV2H_OK);
+                CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
+                status = av2h_first_coeff_block_read(
+                    &decoder, &cdfs, &sequence, &frame, &mode, &prefix,
+                    &transform, &block);
+                CHECK(status == AV2H_OK);
+                if (status != AV2H_OK) continue;
+                CHECK(block.coefficient_count == geometry.coefficient_count);
+                CHECK(block.after_coefficients_bits >=
+                      block.after_levels_bits);
+            }
+        }
+    }
+}
+
 static void test_dequantized_clamp(void) {
     CHECK(av2h_coeff_clamp_dequantized_8bit(32766U, 0U) == 32766);
     CHECK(av2h_coeff_clamp_dequantized_8bit(32768U, 0U) == 32767);
@@ -684,6 +750,7 @@ int main(void) {
     test_fsc_coefficient_matrix();
     test_adst_dct_coefficient_matrix();
     test_adst_flipadst_coefficient_matrix();
+    test_requested_transform_coefficient_matrix();
     test_dequantized_clamp();
     test_tx_geometry_helpers();
     test_dequant_helper_edges();

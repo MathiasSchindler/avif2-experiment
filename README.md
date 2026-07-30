@@ -35,8 +35,8 @@ separate reference experiment and is fetched into ignored `vendor/` and
 - Milestone 8 owns high-detail, CFL, intraBC, and remaining advanced transform
   coverage. Milestone 9 owns mandatory-filter integration and filtered parity.
   Milestone 10 alone owns workspace finalization and public decoder exposure.
-- The private pipeline completely decodes `emerald-192x96-qp208.obu`, including
-  20 luma leaves, 11 chroma leaves, deblocking, and byte-exact I420 output.
+- The private pipeline completely decodes `emerald-192x96-qp208.obu` and
+  `chinnathurai-333x333-qp224.obu` to byte-exact I420 output.
 
 The public API is declared in `include/av2heif.h`. Milestone details and
 limitations are recorded in `docs/milestone-0.md` through
@@ -66,6 +66,10 @@ cmake --build --preset windows-x86_64
 ctest --preset windows-x86_64
 ```
 
+The preset passes the x86-64 target to both Clang compilation and executable
+linking, including when `clang.exe` comes from an AArch64-host LLVM-MinGW
+package.
+
 The portable decoder remains in `src/`; only PE startup and Windows imports
 live under `src/platform/windows/`. Architecture-specific code belongs under
 `src/arch/` when an optimized or ABI-specific implementation is introduced.
@@ -91,10 +95,11 @@ extension:
 ```
 
 BMP output currently applies deterministic limited-range BT.601 I420-to-BGR
-conversion. The Emerald artifact above is the only artifact profile that
-currently completes the full private decoder; unsupported streams fail closed
-with exit code 3 and do not create output. The CLI accepts raw OBU input only.
-HEIF item extraction and the stable public decode API remain Milestone 10 work.
+conversion. Emerald Q208 and Chinnathurai Q224 currently complete the full
+private decoder and match their locked AVM I420 references byte-for-byte;
+unsupported streams fail closed and do not create output. The CLI accepts raw
+OBU input only. HEIF item extraction and the stable public decode API remain
+Milestone 10 work.
 
 Run the hosted Milestone 5 normative and pinned-AVM correspondence checks with:
 

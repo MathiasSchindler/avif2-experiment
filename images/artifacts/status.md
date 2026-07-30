@@ -1,18 +1,17 @@
 # Decoder status snapshot
 
-Snapshot verified on 2026-07-29 at base revision `c06486d`, including the
-current uncommitted MRL indices 2 and 3, complete CfL prediction, and
-multi-line MRL work, plus complete luma FSC, primary IDTX, primary ADST_DCT,
-and primary ADST_FLIPADST reconstruction and IntraBC block-vector
-prediction/copy integration. The
-production Windows decoder was rebuilt and run against all 21 artifacts, and
-the pinned artifact profile frontier suite passed.
+Runtime snapshot verified on 2026-07-30 at revision `809b5d0` plus the current
+FLIPADST_ADST, H_ADST, and complete chroma angle-delta work. The production
+Windows decoder was rebuilt and run against all 21 artifacts. Native CTest
+passes all six Windows tests. The hosted artifact-profile suite builds but
+currently reports eight failed checks, so incomplete-file endpoints below are
+the last locked frontiers and are not presented as a passing current suite.
 
-The public decoder completes 1 of the 21 `.obu` files in this directory.
-`emerald-192x96-qp208.obu` decodes to an I420 file that is byte-identical to
-the locked AVM reference. The other 20 files fail closed. `Tell` counts bits
-from the beginning of the tile entropy stream. Block positions are expressed
-in 4x4 units.
+The public decoder completes 2 of the 21 `.obu` files in this directory.
+`emerald-192x96-qp208.obu` and `chinnathurai-333x333-qp224.obu` decode to I420
+files that are byte-identical to their locked AVM references. The other 19
+files fail closed without output. `Tell` counts bits from the beginning of the
+tile entropy stream. Block positions are expressed in 4x4 units.
 
 | File | Current endpoint | Blocker |
 | --- | --- | --- |
@@ -20,7 +19,7 @@ in 4x4 units.
 | `chimp-240x287-qp192.obu` | Superblock 14, 271 luma and 16 chroma leaves; `(56,38)` 4x8 Vertical/-3 MRL-3 multi-line predictor/output match exactly (`8cf672b166c4e9ab`); next `(56,39)` starts at tell 8033/range 39832 | Q192 4x8 transform/coefficient profile |
 | `chimp-93x111-qp064.obu` | `(0,0)` 8x8 frontier, tell 30 | Remaining Q64 8x8 luma/coefficient profile |
 | `chinnathurai-128x128-qp112.obu` | 32x64 EOB 22, implicit DCT_DCT, and secondary symbol 0 complete, tell 19 | Q112 32x64 coefficient-level profile |
-| `chinnathurai-333x333-qp224.obu` | Exact AVM entropy parity through `(32,58)` 16x64 coefficient entry: tell 611, range 34904, EOB 15; `(32,54)` EOB 2 levels/signs end at tell 599, range 33656 | Q224 16x64 EOB-15 coefficient-level profile |
+| `chinnathurai-333x333-qp224.obu` | **Complete:** emitted 166,667-byte I420 is byte-identical to the AVM reference (SHA-256 `6f1868d8945e87350414baa1a49829b21dbcb8c4e0e44dee6633d844ef5d7182`) | None for the accepted profile |
 | `cuckoo-157x105-qp160.obu` | First 16x32 DCT_DCT block reconstructed sample-exactly and committed at tell 35; next `(0,4)` 8x16 leaf reached at tell 41 before mode syntax | Q160 8x16 luma-profile admission |
 | `cuckoo-431x287-qp080.obu` | 64x64 EOB 87 and implicit DCT_DCT complete, tell 23 | Q80 64x64 coefficient-level profile |
 | `emerald-192x96-qp208.obu` | **Complete:** 20 luma and 11 chroma leaves, tile done at tell 731, filtered I420 byte-identical to the AVM reference | None for the accepted profile |
@@ -40,12 +39,15 @@ in 4x4 units.
 
 Summary:
 
-- the public Windows decoder completes 1/21 artifacts; 19 unsupported streams
-  report `integer overflow`, Chimp Q192 reports `invalid argument`, and none
-  produces accepted output;
+- the public Windows decoder completes 2/21 artifacts. Of the 19 streams that
+  fail closed, 17 report `integer overflow`; Emerald Q128 and Laarim Q96
+  report `invalid argument`. Chimp Q192 now reports `integer overflow`;
 - Emerald Q208 is the first complete artifact: all locked luma/chroma handoffs
   reach tile completion at tell 731, frame filtering completes, and CTest
   verifies the emitted I420 byte-for-byte against the AVM reference;
+- Chinnathurai Q224 is the second complete artifact. Its emitted I420 is
+  byte-for-byte identical to the AVM reference; the former `(32,58)`
+  EOB-15 coefficient frontier is no longer a production-decoder blocker;
 - MRL index 2 is admitted across every directional mode, luma angle delta,
   legal prediction geometry, multi-line state, and IBP state. Chinnathurai Q224
   pins a single-line 16x32 predictor/output pair, while Schwaebisch Q208 pins a
@@ -75,6 +77,10 @@ Summary:
   Q208 pins a live 32x16 Horizontal/-2 leaf at tell 1372 with exact U/V
   predictor and reconstruction hashes `fc417191e6d1c7b6` and
   `3cfa5b1dcb7cf69b`;
+- chroma angle deltas -3, -1, +1, and +3 are now admitted through the shared
+  IDIF predictor across every directional mode and every 4/8/16/32 chroma
+  prediction geometry. Together with the pinned +/-2 paths, all six nonzero
+  chroma angle deltas are covered;
 - Primary IDTX is admitted across all six signaled 32-long transform
   geometries for every intra mode, all five FSC geometries, and IntraBC 4x4.
   AVM identity scales, inverse shifts, rectangular scaling, signed rounding,
@@ -92,6 +98,14 @@ Summary:
   reconstruction hashes cover all nine legal geometries, every larger shape
   fails closed, and the live 8x4 D45 vector retains exact syntax and
   coefficient tells;
+- Primary FLIPADST_ADST is admitted across all nine observed 4/8/16
+  geometries. Complete Q1/Q3 coefficient matrices and fixed all-mode
+  reconstruction hashes cover the shared FLIPADST-column/ADST-row inverse
+  path;
+- Primary H_ADST is admitted across the six observed 4x4, 4x8, 8x4, 8x8,
+  16x4, and 16x8 geometries. Complete Q1/Q3 coefficient matrices and fixed
+  all-mode reconstruction hashes cover horizontal ADST with vertical
+  identity;
 - Luma FSC is admitted across all five legal geometries and all four
   coefficient Q contexts. Complete normative BOB, base, range, and sign CDF
   banks are checked row-by-row through pinned hashes, and a 20-case synthetic
@@ -102,11 +116,10 @@ Summary:
   Downsample filters 0/1/2, both chroma planes, no-neighbor fallback, and
   interior reference derivation are covered exhaustively; Emerald Q208,
   Silene Q176, and Chinnathurai Q224 retain their pinned live evidence;
-- Chinnathurai Q224 matches AVM through `(32,54)` coefficient levels and signs
-  at tell 599/range 33656, starts the following leaf at tell 600, and reaches
-  its EOB-15 coefficient entry at tell 611/range 34904; the previously
-  reported one-bit difference compared unlike syntax boundaries and is not a
-  decoder/AVM discrepancy;
+- the hosted artifact-profile suite currently has eight failed checks: two
+  required reconstruction checks and six pinned Schwaebisch predictor/output
+  hash checks. These failures must be reconciled before the detailed partial
+  frontiers can again be described as a passing suite;
 - Emerald Q128 and Silene Q176 now match AVM through their first 64x64 luma
   and 32x32 U/V reconstruction surfaces. Emerald reaches tell 197/range 53184;
   Silene reaches tell 71/range 53320 with exact plane-specific explicit-CfL
@@ -121,7 +134,7 @@ Summary:
   Vertical/-3 leaf with MRL index 3, multi-line MRL, and IBP enabled has exact
   predictor/output hashes `8cf672b166c4e9ab`/`8cf672b166c4e9ab`. The current
   frontier is `(56,39)` at tell 8033/range 39832 after 271 luma and 16 chroma
-  leaves, where the production decoder fails closed with `invalid argument`.
+  leaves. The current production decoder fails closed with `integer overflow`.
   This work adds the required FSC 8x4 path, exact Q3 coefficient CDF rows,
   pinned primary-transform rows, IST combinations, directional and multi-line
   predictors, and inverse transform admissions while retaining fail-closed
@@ -133,6 +146,11 @@ Summary:
 - the remaining artifacts retain their earlier Q-profile, large-transform
   coefficient, prediction, or inverse-reconstruction blockers.
 
+The census now identifies Chinnathurai Q224, Emerald Q208, and Louis Q224 as
+feature-complete candidates at its named-feature granularity. Only the first
+two complete end-to-end; Louis Q224 still fails closed at its documented
+profile/traversal frontier.
+
 The ordinary 22-leaf/tell-762 fixture is not part of this artifact directory.
-Frame-wide decode and filter integration is now demonstrated for Emerald, but
-general artifact coverage remains Milestone 8/9 work.
+Frame-wide decode and filter integration is now demonstrated for Emerald and
+Chinnathurai, but general artifact coverage remains Milestone 8/9 work.

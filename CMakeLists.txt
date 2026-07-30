@@ -110,6 +110,16 @@ if(WIN32 AND CMAKE_C_COMPILER_ID MATCHES "Clang")
             "${CMAKE_CURRENT_SOURCE_DIR}/images/artifacts/emerald-192x96-qp208-decoded.i420")
     set_tests_properties(windows-decoder-emerald-i420-compare PROPERTIES
         DEPENDS windows-decoder-emerald-i420)
+    add_test(NAME windows-decoder-chinnathurai-i420
+        COMMAND av2heif-decoder
+            "${CMAKE_CURRENT_SOURCE_DIR}/images/artifacts/chinnathurai-333x333-qp224.obu"
+            -o "${CMAKE_CURRENT_BINARY_DIR}/chinnathurai-decoder.i420")
+    add_test(NAME windows-decoder-chinnathurai-i420-compare
+        COMMAND "${CMAKE_COMMAND}" -E compare_files
+            "${CMAKE_CURRENT_BINARY_DIR}/chinnathurai-decoder.i420"
+            "${CMAKE_CURRENT_SOURCE_DIR}/images/artifacts/chinnathurai-333x333-qp224-decoded.i420")
+    set_tests_properties(windows-decoder-chinnathurai-i420-compare PROPERTIES
+        DEPENDS windows-decoder-chinnathurai-i420)
     add_test(NAME windows-decoder-emerald-bmp
         COMMAND av2heif-decoder
             "${CMAKE_CURRENT_SOURCE_DIR}/images/artifacts/emerald-192x96-qp208.obu"
