@@ -1150,6 +1150,7 @@ static void test_primary_idtx_reconstruction_matrix(void) {
         { AV2H_TX_8X8, 8U, 8U, 7U, 11U, 0U },
         { AV2H_TX_16X16, 16U, 16U, 6U, 13U, 0U },
         { AV2H_TX_8X16, 8U, 16U, 7U, 11U, 1U },
+        { AV2H_TX_16X8, 16U, 8U, 7U, 11U, 1U },
         { AV2H_TX_16X4, 16U, 4U, 6U, 12U, 0U }
     };
     Av2hFirstLeafIntraMode mode;
@@ -4720,8 +4721,42 @@ static void test_luma_ist_frontier_matrix(void) {
                     64U, 32U, 32U, 32U, 3U, 5U },
                 { AV2H_INTRA_SMOOTH, AV2H_TX_16X32,
                     16U, 32U, 16U, 32U, 3U, 1U },
+                { AV2H_INTRA_SMOOTH_VERTICAL, AV2H_TX_16X32,
+                    16U, 32U, 16U, 32U, 3U, 1U },
                 { AV2H_INTRA_HORIZONTAL, AV2H_TX_32X16,
-                    32U, 16U, 32U, 16U, 1U, 1U }
+                    32U, 16U, 32U, 16U, 1U, 1U },
+                { AV2H_INTRA_D45, AV2H_TX_32X8,
+                    32U, 8U, 32U, 8U, 2U, 6U },
+                { AV2H_INTRA_SMOOTH_HORIZONTAL, AV2H_TX_32X8,
+                    32U, 8U, 32U, 8U, 1U, 1U },
+                { AV2H_INTRA_DC, AV2H_TX_16X16,
+                    16U, 16U, 16U, 16U, 2U, 1U },
+                { AV2H_INTRA_HORIZONTAL, AV2H_TX_64X64,
+                    64U, 64U, 32U, 32U, 3U, 1U },
+                { AV2H_INTRA_D67, AV2H_TX_32X16,
+                    32U, 16U, 32U, 16U, 2U, 0U },
+                { AV2H_INTRA_SMOOTH_HORIZONTAL, AV2H_TX_64X64,
+                    64U, 64U, 32U, 32U, 1U, 1U },
+                { AV2H_INTRA_HORIZONTAL, AV2H_TX_64X16,
+                    64U, 16U, 32U, 16U, 3U, 6U },
+                { AV2H_INTRA_VERTICAL, AV2H_TX_8X32,
+                    8U, 32U, 8U, 32U, 3U, 4U },
+                { AV2H_INTRA_DC, AV2H_TX_16X8,
+                    16U, 8U, 16U, 8U, 3U, 6U },
+                { AV2H_INTRA_DC, AV2H_TX_64X64,
+                    64U, 64U, 32U, 32U, 1U, 6U },
+                { AV2H_INTRA_SMOOTH, AV2H_TX_32X32,
+                    32U, 32U, 32U, 32U, 3U, 6U },
+                { AV2H_INTRA_D45, AV2H_TX_64X64,
+                    64U, 64U, 32U, 32U, 1U, 2U },
+                { AV2H_INTRA_DC, AV2H_TX_8X16,
+                    8U, 16U, 8U, 16U, 1U, 1U },
+                { AV2H_INTRA_VERTICAL, AV2H_TX_16X32,
+                    16U, 32U, 16U, 32U, 3U, 4U },
+                { AV2H_INTRA_SMOOTH_HORIZONTAL, AV2H_TX_64X64,
+                    64U, 64U, 32U, 32U, 2U, 0U },
+                { AV2H_INTRA_D45, AV2H_TX_32X32,
+                    32U, 32U, 32U, 32U, 3U, 2U }
         };
         static Av2hReconstructionScratch scratch;
         static Av2hFirstReconstruction reconstruction;
@@ -4768,6 +4803,39 @@ static void test_luma_ist_frontier_matrix(void) {
                 }
                 CHECK(changed);
         }
+}
+
+static void test_tx8x4_adst_adst_reconstruction(void) {
+    Av2hFirstLeafMode mode = { 0 };
+    Av2hFirstCoeffPrefix prefix = { 0 };
+    Av2hFirstTransformType transform = { 0 };
+    Av2hFirstCoeffBlock block = { 0 };
+    Av2hReconstructionScratch scratch;
+    Av2hFirstReconstruction reconstruction;
+    uint8_t predictor[32U];
+    size_t index;
+    int changed = 0;
+    av2h_memory_fill(predictor, 128U, sizeof(predictor));
+    mode.mode = AV2H_INTRA_SMOOTH_HORIZONTAL;
+    prefix.tx_size = AV2H_TX_8X4;
+    prefix.eob = 5U;
+    transform.primary_type = AV2H_TX_ADST_ADST;
+    block.width = 8U;
+    block.height = 4U;
+    block.coefficient_count = 32U;
+    block.nonzero_count = 1U;
+    block.dequantized[0] = 256;
+    CHECK(av2h_luma_reconstruct(
+          &mode, &prefix, &transform, &block, predictor, 8U,
+          &scratch, &reconstruction) == AV2H_OK);
+    CHECK(reconstruction.width == 8U);
+    CHECK(reconstruction.height == 4U);
+    for (index = 0U; index < 32U; ++index) {
+        if (reconstruction.pixels[index] != predictor[index]) {
+            changed = 1;
+        }
+    }
+    CHECK(changed);
 }
 
 static void test_emerald_chroma_dct_geometries(void) {
@@ -4880,6 +4948,7 @@ int main(void) {
     test_mhccp_geometry_direction_matrix();
     test_emerald_chroma_plane_ex_checks();
     test_luma_ist_frontier_matrix();
+    test_tx8x4_adst_adst_reconstruction();
     test_emerald_chroma_dct_geometries();
     if (failures != 0) {
         fprintf(stderr, "%d reconstruction checks failed\n", failures);

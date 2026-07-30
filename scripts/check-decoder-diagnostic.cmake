@@ -3,6 +3,9 @@ if(NOT DEFINED DECODER OR NOT DEFINED INPUT OR NOT DEFINED OUTPUT OR
    NOT DEFINED EXPECTED_PROGRESS)
     message(FATAL_ERROR "missing decoder diagnostic test argument")
 endif()
+if(NOT DEFINED EXPECTED_CAUSE)
+    set(EXPECTED_CAUSE "cause: unsupported feature")
+endif()
 
 execute_process(
     COMMAND "${DECODER}" "${INPUT}" -o "${OUTPUT}"
@@ -19,7 +22,7 @@ if(EXISTS "${OUTPUT}")
 endif()
 
 foreach(expected IN ITEMS
-        "cause: unsupported feature"
+    "${EXPECTED_CAUSE}"
         "${EXPECTED_STAGE}"
         "${EXPECTED_LEAF}"
         "${EXPECTED_PROGRESS}")
