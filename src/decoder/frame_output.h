@@ -51,6 +51,8 @@ typedef struct {
     uint8_t enable_ibp;
     uint8_t tx_size;
     uint8_t primary_type;
+    uint8_t secondary_symbol;
+    uint8_t secondary_set;
     uint16_t eob;
     size_t after_all_zero_tell;
     size_t after_eob_point_tell;

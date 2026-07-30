@@ -196,6 +196,10 @@ static void write_decode_diagnostic(const Av2hFrameDecodeResult *result) {
     write_unsigned(result->eob_point);
     write_console(" tx-type=");
     write_unsigned(result->primary_type);
+    write_console(" secondary-symbol=");
+    write_unsigned(result->secondary_symbol);
+    write_console(" secondary-set=");
+    write_unsigned(result->secondary_set);
     write_console(" eob=");
     write_unsigned(result->eob);
     write_console(" coeff-kind=");

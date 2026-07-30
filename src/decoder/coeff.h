@@ -47,6 +47,7 @@ typedef enum {
 typedef struct {
     uint8_t q_context;
     uint16_t full_luma_txb_skip[5U][10U][AV2H_BINARY_CDF_SIZE];
+    uint16_t full_v_txb_skip[12U][AV2H_BINARY_CDF_SIZE];
     uint16_t txb_skip_txs0[AV2H_BINARY_CDF_SIZE];
     uint16_t txb_skip_inter_txs0[AV2H_BINARY_CDF_SIZE];
     uint16_t txb_skip_chroma_txs0_ctx6[AV2H_BINARY_CDF_SIZE];
@@ -81,6 +82,7 @@ typedef struct {
     uint16_t eob_pt_256[8U + 4U];
     uint16_t eob_pt_512[8U + 4U];
     uint16_t eob_pt_1024[8U + 4U];
+    uint16_t chroma_eob_pt[7U][8U + 4U];
     uint16_t q3_chroma_eob_pt_128[8U + 4U];
     uint16_t q3_chroma_eob_pt_256[8U + 4U];
     uint16_t q3_chroma_eob_pt_32[6U + 4U];

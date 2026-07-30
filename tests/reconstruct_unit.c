@@ -4601,6 +4601,79 @@ static void test_emerald_chroma_plane_ex_checks(void) {
     (void)index;
 }
 
+static void test_luma_ist_frontier_matrix(void) {
+        static const struct {
+                Av2hFirstLeafIntraMode mode;
+                Av2hFirstTxSize tx_size;
+                uint16_t output_width;
+                uint16_t output_height;
+                uint16_t coefficient_width;
+                uint16_t coefficient_height;
+                uint8_t secondary_symbol;
+                uint8_t secondary_set;
+        } cases[] = {
+                { AV2H_INTRA_HORIZONTAL, AV2H_TX_64X16,
+                    64U, 16U, 32U, 16U, 1U, 1U },
+                { AV2H_INTRA_D157, AV2H_TX_16X16,
+                    16U, 16U, 16U, 16U, 3U, 4U },
+                { AV2H_INTRA_VERTICAL, AV2H_TX_32X32,
+                    32U, 32U, 32U, 32U, 3U, 6U },
+                { AV2H_INTRA_DC, AV2H_TX_32X8,
+                    32U, 8U, 32U, 8U, 3U, 6U },
+                { AV2H_INTRA_D203, AV2H_TX_64X32,
+                    64U, 32U, 32U, 32U, 3U, 5U },
+                { AV2H_INTRA_SMOOTH, AV2H_TX_16X32,
+                    16U, 32U, 16U, 32U, 3U, 1U },
+                { AV2H_INTRA_HORIZONTAL, AV2H_TX_32X16,
+                    32U, 16U, 32U, 16U, 1U, 1U }
+        };
+        static Av2hReconstructionScratch scratch;
+        static Av2hFirstReconstruction reconstruction;
+        static Av2hFirstCoeffBlock block;
+        uint8_t predictor_storage[AV2H_RECON_SAMPLE_CAPACITY + 2U];
+        uint8_t *predictor = &predictor_storage[1U];
+        size_t case_index;
+        for (case_index = 0U;
+                 case_index < sizeof(cases) / sizeof(cases[0]);
+                 ++case_index) {
+                Av2hFirstLeafMode mode = { 0 };
+                Av2hFirstCoeffPrefix prefix = { 0 };
+                Av2hFirstTransformType transform = { 0 };
+                size_t output_count =
+                        (size_t)cases[case_index].output_width *
+                        cases[case_index].output_height;
+                size_t index;
+                int changed = 0;
+                av2h_memory_fill(&block, 0U, sizeof(block));
+                av2h_memory_fill(predictor_storage, 100U,
+                                                 sizeof(predictor_storage));
+                mode.mode = cases[case_index].mode;
+                prefix.tx_size = cases[case_index].tx_size;
+                prefix.eob = 1U;
+                transform.primary_type = AV2H_TX_DCT_DCT;
+                transform.secondary_symbol = cases[case_index].secondary_symbol;
+                transform.secondary_set = cases[case_index].secondary_set;
+                block.width = cases[case_index].coefficient_width;
+                block.height = cases[case_index].coefficient_height;
+                block.coefficient_count =
+                        (uint32_t)block.width * block.height;
+                block.nonzero_count = 1U;
+                block.dequantized[0] = 256;
+                CHECK(av2h_luma_reconstruct(
+                                    &mode, &prefix, &transform, &block, predictor,
+                                    cases[case_index].output_width, &scratch,
+                                    &reconstruction) == AV2H_OK);
+                CHECK(reconstruction.width == cases[case_index].output_width);
+                CHECK(reconstruction.height == cases[case_index].output_height);
+                CHECK(predictor_storage[0U] == 100U);
+                CHECK(predictor_storage[sizeof(predictor_storage) - 1U] == 100U);
+                for (index = 0U; index < output_count; ++index) {
+                        if (reconstruction.pixels[index] != 100U) changed = 1;
+                }
+                CHECK(changed);
+        }
+}
+
 static void test_emerald_chroma_dct_geometries(void) {
     static Av2hReconstructionScratch scratch;
     static Av2hFirstReconstruction reconstruction;
@@ -4707,6 +4780,7 @@ int main(void) {
     test_cfl_explicit_geometry_filter_matrix();
     test_mhccp_geometry_direction_matrix();
     test_emerald_chroma_plane_ex_checks();
+    test_luma_ist_frontier_matrix();
     test_emerald_chroma_dct_geometries();
     if (failures != 0) {
         fprintf(stderr, "%d reconstruction checks failed\n", failures);

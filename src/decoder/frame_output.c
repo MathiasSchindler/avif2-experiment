@@ -582,6 +582,8 @@ Av2hStatus av2h_decode_frame_i420_private(
                 decoded.enable_ibp = leaf.mode.enable_ibp;
                 decoded.tx_size = (uint8_t)leaf.prefix.tx_size;
                 decoded.primary_type = (uint8_t)leaf.transform.primary_type;
+                decoded.secondary_symbol = leaf.transform.secondary_symbol;
+                decoded.secondary_set = leaf.transform.secondary_set;
                 decoded.eob = leaf.prefix.eob;
                 decoded.prefix_stage = av2h_debug_luma_prefix_stage;
                 decoded.txb_skip_context = leaf.prefix.txb_skip_context;
@@ -613,6 +615,8 @@ Av2hStatus av2h_decode_frame_i420_private(
                 decoded.enable_ibp = leaf.mode.enable_ibp;
                 decoded.tx_size = (uint8_t)leaf.prefix.tx_size;
                 decoded.primary_type = (uint8_t)leaf.transform.primary_type;
+                decoded.secondary_symbol = leaf.transform.secondary_symbol;
+                decoded.secondary_set = leaf.transform.secondary_set;
                 decoded.eob = leaf.prefix.eob;
                 AV2H_DECODE_FAIL(
                     returned, status,
@@ -646,8 +650,37 @@ Av2hStatus av2h_decode_frame_i420_private(
             status = av2h_tile_decoder_next_chroma(
                 &decoder, &leaf, &blocks[0], &blocks[1], &has_leaf);
             if (status != AV2H_OK) {
+                unsigned int diagnostic_index =
+                    av2h_debug_chroma_tile_stage >= 4U ? 1U : 0U;
                 Av2hStatus returned = status == AV2H_UNSUPPORTED ?
                     AV2H_INVALID_ARGUMENT : status;
+                decoded.mode = (uint8_t)leaf.mode.mode;
+                decoded.angle_delta = leaf.mode.angle_delta;
+                decoded.tx_size =
+                    (uint8_t)leaf.prefix[diagnostic_index].tx_size;
+                decoded.primary_type = (uint8_t)
+                    leaf.transform[diagnostic_index].primary_type;
+                decoded.secondary_symbol =
+                    leaf.transform[diagnostic_index].secondary_symbol;
+                decoded.secondary_set =
+                    leaf.transform[diagnostic_index].secondary_set;
+                decoded.eob = leaf.prefix[diagnostic_index].eob;
+                decoded.txb_skip_context =
+                    leaf.prefix[diagnostic_index].txb_skip_context;
+                decoded.all_zero =
+                    leaf.prefix[diagnostic_index].all_zero;
+                decoded.eob_point =
+                    leaf.prefix[diagnostic_index].eob_point;
+                decoded.after_all_zero_tell =
+                    leaf.prefix[diagnostic_index].after_all_zero_bits;
+                decoded.after_eob_point_tell =
+                    leaf.prefix[diagnostic_index].after_eob_point_bits;
+                decoded.coefficient_position =
+                    blocks[diagnostic_index].diagnostic_position;
+                decoded.coefficient_context =
+                    blocks[diagnostic_index].diagnostic_context;
+                decoded.coefficient_kind =
+                    blocks[diagnostic_index].diagnostic_kind;
                 AV2H_DECODE_FAIL(
                     returned, status, AV2H_FRAME_DECODE_STAGE_CHROMA_PARSE,
                     av2h_debug_chroma_tile_stage >= 4U ? 2U : 1U,
@@ -678,6 +711,10 @@ Av2hStatus av2h_decode_frame_i420_private(
                     decoded.tx_size = (uint8_t)leaf.prefix[index].tx_size;
                     decoded.primary_type =
                         (uint8_t)leaf.transform[index].primary_type;
+                    decoded.secondary_symbol =
+                        leaf.transform[index].secondary_symbol;
+                    decoded.secondary_set =
+                        leaf.transform[index].secondary_set;
                     decoded.eob = leaf.prefix[index].eob;
                     AV2H_DECODE_FAIL(
                         returned, status,

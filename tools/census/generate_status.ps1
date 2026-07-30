@@ -518,10 +518,12 @@ $lines.Add("| Current stopping surface | Files |")
 $lines.Add("|---|---|")
 $lines.Add("| Luma mode or palette | ``chimp-93x111-qp064.obu``, ``cuckoo-157x105-qp160.obu``, ``louis-301x222-qp144.obu`` |")
 $lines.Add("| Luma coefficient prefix | ``schwaebisch-353x234-qp112.obu`` |")
-$lines.Add("| Luma transform type | ``chinnathurai-128x128-qp112.obu``, ``silene-384x307-qp080.obu`` |")
-$lines.Add("| Luma inverse transform | ``chalk-320x240-qp128.obu``, ``chimp-240x287-qp192.obu``, ``louis-463x342-qp224.obu``, ``pastell-320x213-qp064.obu``, ``pastell-512x341-qp160.obu``, ``schwaebisch-417x277-qp208.obu`` |")
-$lines.Add("| Chroma coefficient prefix | ``cuckoo-431x287-qp080.obu``, ``flycatcher-223x149-qp176.obu``, ``flycatcher-397x265-qp048.obu``, ``laarim-256x171-qp096.obu``, ``laarim-448x299-qp192.obu``, ``silene-479x383-qp176.obu`` |")
-$lines.Add("| Chroma prediction | ``emerald-480x240-qp128.obu`` |")
+$lines.Add("| Luma transform type | ``chinnathurai-128x128-qp112.obu`` |")
+$lines.Add("| Luma prediction | ``cuckoo-431x287-qp080.obu``, ``pastell-320x213-qp064.obu`` |")
+$lines.Add("| Luma inverse transform | ``schwaebisch-417x277-qp208.obu``, ``silene-479x383-qp176.obu`` |")
+$lines.Add("| Chroma coefficient levels | ``chalk-320x240-qp128.obu`` |")
+$lines.Add("| Chroma transform type | ``flycatcher-223x149-qp176.obu``, ``flycatcher-397x265-qp048.obu``, ``laarim-256x171-qp096.obu``, ``laarim-448x299-qp192.obu``, ``pastell-512x341-qp160.obu`` |")
+$lines.Add("| Chroma prediction | ``chimp-240x287-qp192.obu``, ``emerald-480x240-qp128.obu``, ``louis-463x342-qp224.obu``, ``silene-384x307-qp080.obu`` |")
 $lines.Add("")
 $lines.Add("## Corpus summary")
 $lines.Add("")
@@ -695,8 +697,10 @@ $lines.Add("- Non-DCT transforms, directional deltas, MRL, multi-line MRL, CfL, 
     "FSC, and IntraBC have the broadest corpus demand.")
 $lines.Add("- Palette appears only in ``silene-384x307-qp080.obu``. Transform " +
     "skip appears only 14 times across seven files.")
-$lines.Add("- No corpus file uses a nonzero secondary-transform type. A dedicated " +
-    "fixture is required before IST implementation coverage can be measured.")
+$lines.Add("- The census schema reports no nonzero secondary-transform " +
+    "occurrence, while production parsing exposes seven live IST tuples. " +
+    "The focused reconstruction matrix and artifact walks provide the " +
+    "current IST evidence.")
 $lines.Add("- ``enable_ibp`` records sequence capability. AVM applies IBP " +
     "deterministically to eligible transform sizes; it is not a separately " +
     "signaled per-block usage flag.")

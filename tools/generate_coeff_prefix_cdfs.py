@@ -5,6 +5,7 @@ import re
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / "docs" / "spec" / "av2-v1.0.0" / "default_txb_skip_cdf.h"
 OUTPUT = ROOT / "src" / "decoder" / "coeff_prefix_cdf_all.inc"
+EOB_SYMBOLS = (5, 6, 7, 8, 8, 8, 8)
 
 Q_CONTEXTS = 4
 INTER_CONTEXTS = 2
@@ -33,7 +34,7 @@ if len(values) != expected:
     raise ValueError(f"expected {expected} values, found {len(values)}")
 
 lines = [
-    "/* Generated from docs/spec/av2-v1.0.0/default_txb_skip_cdf.h. */",
+    "/* Generated from normative coefficient-prefix CDF attachments. */",
     "",
     "static const uint16_t av2h_luma_txb_skip[4U][5U][10U][6U] = {",
 ]
@@ -59,4 +60,54 @@ for q_context in range(Q_CONTEXTS):
     lines.append(f"    }}{suffix}")
 lines.append("};")
 lines.append("")
+v_skip_source = SOURCE.with_name("default_v_txb_skip_cdf.h")
+v_skip_text = v_skip_source.read_text(encoding="ascii")
+v_skip_values = [
+    int(value)
+    for value in re.findall(r"-?\d+", v_skip_text[v_skip_text.index("=") :])
+]
+expected = Q_CONTEXTS * 12 * INPUT_WORDS
+if len(v_skip_values) != expected:
+    raise ValueError(f"expected {expected} V skip values, found {len(v_skip_values)}")
+lines.append("static const uint16_t av2h_v_txb_skip[4U][12U][6U] = {")
+offset = 0
+for q_context in range(Q_CONTEXTS):
+    lines.append("    {")
+    for skip_context in range(12):
+        row = v_skip_values[offset : offset + INPUT_WORDS]
+        offset += INPUT_WORDS
+        suffix = "," if skip_context != 11 else ""
+        words = ", ".join(f"{value}U" for value in initialized(row))
+        lines.append(f"        {{ {words} }}{suffix}")
+    suffix = "," if q_context + 1 != Q_CONTEXTS else ""
+    lines.append(f"    }}{suffix}")
+lines.append("};")
+lines.append("")
+for eob_index, symbols in enumerate(EOB_SYMBOLS):
+    capacity = 1 << (eob_index + 4)
+    eob_source = SOURCE.with_name(f"default_eob_pt_{capacity}_cdf.h")
+    eob_text = eob_source.read_text(encoding="ascii")
+    eob_values = [
+        int(value)
+        for value in re.findall(r"-?\d+", eob_text[eob_text.index("=") :])
+    ]
+    input_words = symbols + 1
+    expected = Q_CONTEXTS * 3 * input_words
+    if len(eob_values) != expected:
+        raise ValueError(
+            f"expected {expected} values in {eob_source.name}, "
+            f"found {len(eob_values)}"
+        )
+    lines.append(
+        f"static const uint16_t av2h_chroma_eob_pt_{capacity}"
+        f"[4U][{input_words}U] = {{"
+    )
+    for q_context in range(Q_CONTEXTS):
+        offset = (q_context * 3 + 2) * input_words
+        row = eob_values[offset : offset + input_words]
+        suffix = "," if q_context + 1 != Q_CONTEXTS else ""
+        words = ", ".join(f"{value}U" for value in row)
+        lines.append(f"    {{ {words} }}{suffix}")
+    lines.append("};")
+    lines.append("")
 OUTPUT.write_text("\n".join(lines), encoding="ascii", newline="\n")

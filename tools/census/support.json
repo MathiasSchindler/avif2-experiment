@@ -59,7 +59,7 @@
     {
       "feature": "Secondary transform",
       "status": "partial",
-      "evidence": "Secondary-transform syntax and selected IST kernels exist; this corpus has no nonzero secondary-transform occurrence."
+      "evidence": "Secondary-transform syntax and selected IST kernels cover seven live production tuples across sets 1, 4, 5, and 6; exhaustive tuple coverage remains incomplete."
     }
   ],
   "rules": [
@@ -319,7 +319,7 @@
       "match": "prefix",
       "value": "Secondary transform ",
       "status": "partial",
-      "evidence": "Selected IST paths exist, but nonzero secondary transforms are absent from this corpus."
+      "evidence": "Seven live nonzero IST tuples are validated in production artifacts and a focused reconstruction matrix; other tuples remain unaudited."
     }
   ]
 }

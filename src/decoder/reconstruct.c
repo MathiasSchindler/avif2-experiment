@@ -850,6 +850,48 @@ static Av2hStatus inverse_secondary_transform(
                transform->secondary_symbol == 3U &&
                transform->secondary_set == 1U) {
         kernel = av2h_ist_8x8_set1_type3_kernel;
+    } else if (mode->mode == AV2H_INTRA_HORIZONTAL &&
+               prefix->tx_size == AV2H_TX_64X16 &&
+               transform->secondary_symbol == 1U &&
+               transform->secondary_set == 1U) {
+        kernel = av2h_ist_8x8_set1_type1_kernel;
+        scan_map = av2h_ist_8x8_set1_type1_scan_map;
+    } else if (mode->mode == AV2H_INTRA_D157 &&
+               prefix->tx_size == AV2H_TX_16X16 &&
+               transform->secondary_symbol == 3U &&
+               transform->secondary_set == 4U) {
+        kernel = av2h_ist_8x8_set4_type3_kernel;
+        scan_map = av2h_ist_8x8_set4_type3_scan_map;
+    } else if (mode->mode == AV2H_INTRA_VERTICAL &&
+               prefix->tx_size == AV2H_TX_32X32 &&
+               transform->secondary_symbol == 3U &&
+               transform->secondary_set == 6U) {
+        kernel = av2h_ist_8x8_set6_type3_kernel;
+        scan_map = av2h_ist_8x8_set6_type3_scan_map;
+    } else if (mode->mode == AV2H_INTRA_DC &&
+               prefix->tx_size == AV2H_TX_32X8 &&
+               transform->secondary_symbol == 3U &&
+               transform->secondary_set == 6U) {
+        kernel = av2h_ist_8x8_set6_type3_kernel;
+        scan_map = av2h_ist_8x8_set6_type3_scan_map;
+    } else if (mode->mode == AV2H_INTRA_D203 &&
+               prefix->tx_size == AV2H_TX_64X32 &&
+               transform->secondary_symbol == 3U &&
+               transform->secondary_set == 5U) {
+        kernel = av2h_ist_8x8_set5_type3_kernel;
+        scan_map = av2h_ist_8x8_set5_type3_scan_map;
+    } else if (mode->mode == AV2H_INTRA_SMOOTH &&
+               prefix->tx_size == AV2H_TX_16X32 &&
+               transform->secondary_symbol == 3U &&
+               transform->secondary_set == 1U) {
+        kernel = av2h_ist_8x8_set1_type3_kernel;
+        scan_map = av2h_ist_8x8_set1_type3_scan_map;
+    } else if (mode->mode == AV2H_INTRA_HORIZONTAL &&
+               prefix->tx_size == AV2H_TX_32X16 &&
+               transform->secondary_symbol == 1U &&
+               transform->secondary_set == 1U) {
+        kernel = av2h_ist_8x8_set1_type1_kernel;
+        scan_map = av2h_ist_8x8_set1_type1_scan_map;
     } else {
         return AV2H_UNSUPPORTED;
     }

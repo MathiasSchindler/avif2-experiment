@@ -182,6 +182,9 @@ Av2hStatus av2h_first_coeff_cdfs_init_for_q(
     av2h_memory_copy(cdfs->full_luma_txb_skip,
                      av2h_luma_txb_skip[q_context],
                      sizeof(cdfs->full_luma_txb_skip));
+    av2h_memory_copy(cdfs->full_v_txb_skip,
+                     av2h_v_txb_skip[q_context],
+                     sizeof(cdfs->full_v_txb_skip));
     status = av2h_binary_cdf_init(
         cdfs->txb_skip_txs0, txb_skip[q_context][0U]);
     if (status != AV2H_OK) return status;
@@ -327,6 +330,36 @@ Av2hStatus av2h_first_coeff_cdfs_init_for_q(
     status = av2h_cdf_init(
         cdfs->eob_pt_1024, 8U + 4U, eob_pt_1024[q_context],
         8U, eob_pt_1024_parameter[q_context], 0U);
+    if (status != AV2H_OK) return status;
+    av2h_memory_fill(cdfs->chroma_eob_pt, 0U,
+                     sizeof(cdfs->chroma_eob_pt));
+    status = av2h_cdf_init(cdfs->chroma_eob_pt[AV2H_TX_EOB_16],
+                           5U + 4U, av2h_chroma_eob_pt_16[q_context],
+                           5U, av2h_chroma_eob_pt_16[q_context][5U], 0U);
+    if (status != AV2H_OK) return status;
+    status = av2h_cdf_init(cdfs->chroma_eob_pt[AV2H_TX_EOB_32],
+                           6U + 4U, av2h_chroma_eob_pt_32[q_context],
+                           6U, av2h_chroma_eob_pt_32[q_context][6U], 0U);
+    if (status != AV2H_OK) return status;
+    status = av2h_cdf_init(cdfs->chroma_eob_pt[AV2H_TX_EOB_64],
+                           7U + 4U, av2h_chroma_eob_pt_64[q_context],
+                           7U, av2h_chroma_eob_pt_64[q_context][7U], 0U);
+    if (status != AV2H_OK) return status;
+    status = av2h_cdf_init(cdfs->chroma_eob_pt[AV2H_TX_EOB_128],
+                           8U + 4U, av2h_chroma_eob_pt_128[q_context],
+                           8U, av2h_chroma_eob_pt_128[q_context][8U], 0U);
+    if (status != AV2H_OK) return status;
+    status = av2h_cdf_init(cdfs->chroma_eob_pt[AV2H_TX_EOB_256],
+                           8U + 4U, av2h_chroma_eob_pt_256[q_context],
+                           8U, av2h_chroma_eob_pt_256[q_context][8U], 0U);
+    if (status != AV2H_OK) return status;
+    status = av2h_cdf_init(cdfs->chroma_eob_pt[AV2H_TX_EOB_512],
+                           8U + 4U, av2h_chroma_eob_pt_512[q_context],
+                           8U, av2h_chroma_eob_pt_512[q_context][8U], 0U);
+    if (status != AV2H_OK) return status;
+    status = av2h_cdf_init(cdfs->chroma_eob_pt[AV2H_TX_EOB_1024],
+                           8U + 4U, av2h_chroma_eob_pt_1024[q_context],
+                           8U, av2h_chroma_eob_pt_1024[q_context][8U], 0U);
     if (status != AV2H_OK) return status;
     status = av2h_cdf_init(
         cdfs->q3_chroma_eob_pt_128, 8U + 4U,
@@ -1088,7 +1121,23 @@ Av2hStatus av2h_chroma_coeff_prefix_read(
         cdfs->q_context != coefficient_q_context(frame->base_q_index)) {
         return AV2H_UNSUPPORTED;
     }
-        if ((frame->base_q_index == 208U &&
+    status = av2h_chroma_tx_descriptor_get(
+        leaf->block_size, &descriptor);
+    if (status == AV2H_OK && descriptor->tx_size_context < 5U &&
+        ((plane == 1U && txb_skip_context < 10U) ||
+         (plane == 2U && txb_skip_context < 12U))) {
+        static const uint8_t chroma_eob_symbols[7U] = {
+            5U, 6U, 7U, 8U, 8U, 8U, 8U
+        };
+        prefix->tx_size = descriptor->tx_size;
+        prefix->tx_size_context = descriptor->tx_size_context;
+        skip_cdf = plane == 1U ?
+            cdfs->full_luma_txb_skip[
+                prefix->tx_size_context][txb_skip_context] :
+            cdfs->full_v_txb_skip[txb_skip_context];
+        eob_cdf = cdfs->chroma_eob_pt[descriptor->eob_class];
+        eob_symbols = chroma_eob_symbols[descriptor->eob_class];
+    } else if ((frame->base_q_index == 208U &&
             ((frame->width == 192U && frame->height == 96U) ||
             (frame->width == 417U && frame->height == 277U))) ||
         (frame->base_q_index == 192U &&
@@ -1253,7 +1302,9 @@ Av2hStatus av2h_chroma_coeff_prefix_read(
         prefix->after_eob_bits = prefix->after_all_zero_bits;
         return AV2H_OK;
     }
-    if (eob_cdf == 0 || eob_symbols == 0U) return AV2H_UNSUPPORTED;
+    if (eob_cdf == 0 || eob_symbols == 0U) {
+        return decode_eob(decoder, cdfs, 0, 0U, prefix);
+    }
     return decode_eob(
         decoder, cdfs, eob_cdf, eob_symbols, prefix);
 }

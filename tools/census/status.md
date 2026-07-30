@@ -20,10 +20,12 @@ These groups come from the 2026-07-30 production decoder sweep. They name the su
 |---|---|
 | Luma mode or palette | `chimp-93x111-qp064.obu`, `cuckoo-157x105-qp160.obu`, `louis-301x222-qp144.obu` |
 | Luma coefficient prefix | `schwaebisch-353x234-qp112.obu` |
-| Luma transform type | `chinnathurai-128x128-qp112.obu`, `silene-384x307-qp080.obu` |
-| Luma inverse transform | `chalk-320x240-qp128.obu`, `chimp-240x287-qp192.obu`, `louis-463x342-qp224.obu`, `pastell-320x213-qp064.obu`, `pastell-512x341-qp160.obu`, `schwaebisch-417x277-qp208.obu` |
-| Chroma coefficient prefix | `cuckoo-431x287-qp080.obu`, `flycatcher-223x149-qp176.obu`, `flycatcher-397x265-qp048.obu`, `laarim-256x171-qp096.obu`, `laarim-448x299-qp192.obu`, `silene-479x383-qp176.obu` |
-| Chroma prediction | `emerald-480x240-qp128.obu` |
+| Luma transform type | `chinnathurai-128x128-qp112.obu` |
+| Luma prediction | `cuckoo-431x287-qp080.obu`, `pastell-320x213-qp064.obu` |
+| Luma inverse transform | `schwaebisch-417x277-qp208.obu`, `silene-479x383-qp176.obu` |
+| Chroma coefficient levels | `chalk-320x240-qp128.obu` |
+| Chroma transform type | `flycatcher-223x149-qp176.obu`, `flycatcher-397x265-qp048.obu`, `laarim-256x171-qp096.obu`, `laarim-448x299-qp192.obu`, `pastell-512x341-qp160.obu` |
+| Chroma prediction | `chimp-240x287-qp192.obu`, `emerald-480x240-qp128.obu`, `louis-463x342-qp224.obu`, `silene-384x307-qp080.obu` |
 
 ## Corpus summary
 
@@ -105,7 +107,7 @@ Support state comes from the reviewed `tools/census/support.json` manifest; it i
 | IntraBC | Supported | 15 | 71.4% | 216 | Normative spatial and reference-bank block-vector prediction, DRL selection, both IntraBC modes, every legal skipped-copy geometry, residual transforms, reconstructed-source validation, and pinned multi-leaf parsing/output are covered. |
 | Transform skip | Supported | 7 | 33.3% | 14 | IntraBC transform skip is validated for both IntraBC modes across every legal luma transform geometry, including full-output copying for reduced-coefficient 64-wide transforms. |
 | Palette | Supported | 1 | 4.8% | 2 | The two observed luma palette blocks are covered with normative size, 8-bit color-table, row-identity, color-index-map, predictor, and residual reconstruction paths; pinned AVM confirms empty neighbor caches and exact size-2/size-6 color/map hashes. |
-| Secondary transform | Partial | 0 | 0.0% | 0 | Secondary-transform syntax and selected IST kernels exist; this corpus has no nonzero secondary-transform occurrence. |
+| Secondary transform | Partial | 0 | 0.0% | 0 | Secondary-transform syntax and selected IST kernels cover seven live production tuples across sets 1, 4, 5, and 6; exhaustive tuple coverage remains incomplete. |
 
 ## Most wanted feature values
 
@@ -206,7 +208,7 @@ Feature-complete candidates at census granularity: `chalk-320x240-qp128.obu`, `c
 
 - Non-DCT transforms, directional deltas, MRL, multi-line MRL, CfL, FSC, and IntraBC have the broadest corpus demand.
 - Palette appears only in `silene-384x307-qp080.obu`. Transform skip appears only 14 times across seven files.
-- No corpus file uses a nonzero secondary-transform type. A dedicated fixture is required before IST implementation coverage can be measured.
+- The census schema reports no nonzero secondary-transform occurrence, while production parsing exposes seven live IST tuples. The focused reconstruction matrix and artifact walks provide the current IST evidence.
 - `enable_ibp` records sequence capability. AVM applies IBP deterministically to eligible transform sizes; it is not a separately signaled per-block usage flag.
 - Support classifications are a reviewed snapshot in `tools/census/support.json`. Update that manifest when decoder evidence changes; the generator validates coverage but cannot prove the entries.
 - The not-fully-supported ranking measures feature demand only. It does not include coefficient-profile or traversal blockers because those dimensions are outside the current AVM census schema.
