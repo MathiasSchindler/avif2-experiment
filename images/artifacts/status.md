@@ -5,8 +5,8 @@ Q-context-0 coefficient, primary-transform, cross-chroma-transform, and palette
 work. The production Windows decoder was rebuilt and run against all 21
 artifacts, with every emitted I420 compared by SHA-256 to its locked AVM
 reference. Native CTest passes all nine Windows tests, including structured
-diagnostic checks for luma prediction, chroma prefix, and IntraBC failures. The
-strict hosted artifact-profile harness builds and runs, but its temporary
+diagnostic checks for luma inverse transform, chroma prefix, and IntraBC
+failures. The strict hosted artifact-profile harness builds and runs, but its temporary
 bounded walks currently leave 64 failed assertions. The hosted tile fixture
 also runs but retains 24 sparse-prefix CDF sample/hash assertions. The detailed
 incomplete-file endpoints below are therefore diagnostic frontiers, not a
@@ -25,16 +25,16 @@ an earlier entropy divergence can still be the underlying cause.
 
 | Current stopping surface | Files |
 | --- | --- |
-| Luma prediction | `chalk-320x240-qp128.obu`, `flycatcher-223x149-qp176.obu`, `flycatcher-397x265-qp048.obu`, `pastell-320x213-qp064.obu`, `schwaebisch-353x234-qp112.obu`, `silene-479x383-qp176.obu` |
 | Luma mode or palette | `chimp-93x111-qp064.obu`, `cuckoo-157x105-qp160.obu`, `louis-301x222-qp144.obu` |
+| Luma coefficient prefix | `schwaebisch-353x234-qp112.obu` |
 | Luma transform type | `chinnathurai-128x128-qp112.obu`, `silene-384x307-qp080.obu` |
-| Luma inverse transform | `chimp-240x287-qp192.obu`, `louis-463x342-qp224.obu`, `pastell-512x341-qp160.obu`, `schwaebisch-417x277-qp208.obu` |
-| Chroma coefficient prefix | `cuckoo-431x287-qp080.obu`, `laarim-256x171-qp096.obu`, `laarim-448x299-qp192.obu` |
+| Luma inverse transform | `chalk-320x240-qp128.obu`, `chimp-240x287-qp192.obu`, `louis-463x342-qp224.obu`, `pastell-320x213-qp064.obu`, `pastell-512x341-qp160.obu`, `schwaebisch-417x277-qp208.obu` |
+| Chroma coefficient prefix | `cuckoo-431x287-qp080.obu`, `flycatcher-223x149-qp176.obu`, `flycatcher-397x265-qp048.obu`, `laarim-256x171-qp096.obu`, `laarim-448x299-qp192.obu`, `silene-479x383-qp176.obu` |
 | Chroma prediction | `emerald-480x240-qp128.obu` |
 
 | File | Current endpoint | Blocker |
 | --- | --- | --- |
-| `chalk-320x240-qp128.obu` | Four luma leaves committed; all-zero `(1,3)` 4x8 reaches prediction at tell 171 | Q128 4x8 D45 prediction profile |
+| `chalk-320x240-qp128.obu` | 13 luma leaves committed; `(4,0)` 64x16 reaches inverse transform at tell 411 | Q128 64x16 inverse-transform profile |
 | `chimp-240x287-qp192.obu` | 57 luma and one chroma leaf committed; `(12,28)` 16x16 reaches inverse transform at tell 1500 | Q192 16x16 inverse-transform profile |
 | `chimp-93x111-qp064.obu` | `(0,0)` 8x8 frontier, tell 30 | Remaining Q64 8x8 luma/coefficient profile |
 | `chinnathurai-128x128-qp112.obu` | Four luma leaves committed; `(9,10)` 8x4 decodes EOB 16 and reaches transform type at tell 156 | Q112 8x4 transform-type profile |
@@ -43,28 +43,33 @@ an earlier entropy divergence can still be the underlying cause.
 | `cuckoo-431x287-qp080.obu` | Hosted walk reconstructs and commits 26 luma and one chroma leaf, then reaches the next chroma leaf at `(0,16)`, tell 1567 | Q80 chroma coefficient-prefix profile after the completed luma walk; the public decoder fails closed with `invalid argument` |
 | `emerald-192x96-qp208.obu` | **Complete:** 20 luma and 11 chroma leaves, tile done at tell 731, filtered I420 byte-identical to the AVM reference (SHA-256 `403c2e7245ec484984e60c1eaf8bd1b47487c0ba6b60afc916b9532025fc51ad`) | None for the accepted profile |
 | `emerald-480x240-qp128.obu` | First 64x64 luma predictor/output match AVM (`d4ea93e1129d09a3`/`2bc3d4c50c228831`); first 32x32 U/V blocks match through tell 197, range 53184, with prefilter hashes `57a7c38258f413ff`/`15846509fdb0b4f1` | Next luma/chroma traversal profile after the first exact leaf pair |
-| `flycatcher-223x149-qp176.obu` | First 32x64 luma leaf committed; `(0,8)` 32x64 reaches tell 67 | Q176 directional prediction profile |
-| `flycatcher-397x265-qp048.obu` | First 32x32 luma leaf committed; `(0,8)` 32x32 reaches tell 362 | Q48 directional prediction profile |
+| `flycatcher-223x149-qp176.obu` | Two luma leaves committed; first 64x64 U leaf reaches tell 74 | Q176 chroma coefficient-prefix profile |
+| `flycatcher-397x265-qp048.obu` | 19 luma leaves committed; first 64x32 U leaf reaches tell 801 | Q48 chroma coefficient-prefix profile |
 | `laarim-256x171-qp096.obu` | Seven luma leaves committed; first 32x32 U leaf reaches tell 1773 | Q96 chroma coefficient-prefix profile |
 | `laarim-448x299-qp192.obu` | First 64x64 luma leaf committed; first U leaf reaches tell 115 | Q192 chroma coefficient-prefix profile |
 | `louis-301x222-qp144.obu` | First 64x16 luma leaf committed; `(4,0)` 16x16 reaches tell 76 | Q144 mode or palette profile |
 | `louis-463x342-qp224.obu` | 77 luma and 39 chroma leaves committed; `(40,56)` 32x32 reaches tell 1314 | Q224 inverse-transform profile |
-| `pastell-320x213-qp064.obu` | Three luma leaves committed; `(0,6)` 4x8 reaches tell 430 | Q64 directional prediction profile |
+| `pastell-320x213-qp064.obu` | Five luma leaves committed; `(2,0)` 32x8 reaches inverse transform at tell 558 | Q64 32x8 inverse-transform profile |
 | `pastell-512x341-qp160.obu` | Seven luma leaves committed; `(2,8)` 32x8 with EOB 22 reaches inverse transform at tell 259 | Q160 32x8 inverse-transform profile |
-| `schwaebisch-353x234-qp112.obu` | 12 luma leaves committed; `(6,4)` 16x8 reaches tell 1022 | Q112 directional prediction profile |
+| `schwaebisch-353x234-qp112.obu` | 13 luma leaves committed; `(4,8)` 32x16 reaches coefficient prefix at tell 1041 | Q112 32x16 coefficient-prefix profile |
 | `schwaebisch-417x277-qp208.obu` | 232 luma and 36 chroma leaves committed; `(64,16)` 64x32 reaches tell 4186 | Q208 64x32 inverse-transform profile |
 | `silene-384x307-qp080.obu` | Hosted walk reconstructs and commits six luma and one chroma leaf; the next `(7,20)` IntraBC leaf starts its coefficient prefix at tell 399. Local decodes EOB 10 at tell 402 while pinned AVM decodes EOB 30 at tell 405; local then fails closed by tell 407 | First arithmetic/CDF divergence in the IntraBC coefficient prefix; the public decoder reports `integer overflow` |
-| `silene-479x383-qp176.obu` | Five luma and one chroma leaf committed; all-zero `(14,16)` 32x8 reaches prediction at tell 177 | Q176 32x8 D157 prediction profile |
+| `silene-479x383-qp176.obu` | Eight luma and one chroma leaf committed; `(0,16)` 8x64 U leaf reaches coefficient prefix at tell 297 | Q176 chroma coefficient-prefix profile |
 
 Summary:
 
 - the public Windows decoder completes 2/21 artifacts. Of the 19 streams that
-  fail closed without output, 13 report `integer overflow` and six report
+  fail closed without output, 12 report `integer overflow` and seven report
   `invalid argument`. Those retained statuses are coarse compatibility buckets,
-  not root-cause categories. Structured diagnostics identify five luma-parse,
-  ten luma-reconstruction, three chroma-parse, and one chroma-reconstruction
-  stop; 16 carry the original cause `unsupported feature` and three carry
+  not root-cause categories. Structured diagnostics identify six luma-parse,
+  six luma-reconstruction, six chroma-parse, and one chroma-reconstruction
+  stop; 18 carry the original cause `unsupported feature` and one carries
   `invalid argument`. Every emitted I420 matches its locked AVM reference;
+- all six former luma-prediction blockers now advance. Zero-angle D45, D113,
+  D135, D157, and Vertical tuples use the existing IDIF predictor for the
+  newly observed legal geometries; cardinal, Smooth, and Paeth prediction now
+  synthesize missing boundary edges instead of rejecting legal frame-edge
+  blocks. No production artifact currently stops in luma prediction;
 - complete normative ordinary coefficient-level CDF banks now cover all five
   transform contexts for Q contexts 0--3. All nine former luma
   coefficient-level blockers advance to later syntax or reconstruction

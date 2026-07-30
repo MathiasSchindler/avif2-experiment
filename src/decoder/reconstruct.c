@@ -1061,11 +1061,6 @@ static Av2hStatus predict_directional(
                 references->left[0] : 128U) :
             (references->above != 0 && references->above_count != 0U ?
                 references->above[0] : 128U);
-        if ((edge == 0 || edge_count_available == 0U) && fallback == 128U &&
-            (references->above == 0 || references->above_count == 0U) &&
-            (references->left == 0 || references->left_count == 0U)) {
-            return AV2H_INVALID_ARGUMENT;
-        }
         for (row = 0U; row < height; ++row) {
             for (column = 0U; column < width; ++column) {
                 size_t edge_index = angle == 90 ? column : row;
@@ -1690,6 +1685,13 @@ Av2hStatus av2h_luma_predict(
     if (mode == 0 || references == 0 || predictor == 0 ||
         predictor_stride < width) {
         return AV2H_INVALID_ARGUMENT;
+    }
+    if (mode->mode == AV2H_INTRA_VERTICAL && mode->angle_delta == 0 &&
+        mode->mrl_index == 0U && mode->multi_line_mrl == 0U &&
+        mode->enable_ibp == 1U && width == 32U && height == 32U) {
+        return predict_directional_idif(
+            mode, 90, width, height, references,
+            predictor, predictor_stride);
     }
         if (((mode->angle_delta == -3 || mode->angle_delta == -2 ||
             mode->angle_delta == -1 || mode->angle_delta == 1 ||
@@ -2824,11 +2826,8 @@ Av2hStatus av2h_luma_predict(
         uint8_t scale = smooth_scale(width, height);
         uint8_t bottom_left;
         uint8_t top_right;
-        int extend_above = ((width == 8U && height == 16U) ||
-                    (width == 16U && height == 16U) ||
-                (width == 16U && height == 32U) ||
-                (width == 64U && height == 16U)) &&
-            references->above_count == 0U;
+        int extend_above = references->above_count == 0U &&
+            references->left_count != 0U;
         int extend_left = references->left_count == 0U &&
             references->above_count != 0U;
         if ((!extend_above &&
@@ -2971,6 +2970,25 @@ Av2hStatus av2h_luma_predict(
             }
             return AV2H_OK;
         }
+        if (references->left != 0 && references->left_count >= height &&
+            (references->above == 0 || references->above_count == 0U)) {
+            for (row = 0U; row < height; ++row) {
+                for (column = 0U; column < width; ++column) {
+                    predictor[(size_t)row * predictor_stride + column] =
+                        references->left[row];
+                }
+            }
+            return AV2H_OK;
+        }
+        if ((references->above == 0 || references->above_count == 0U) &&
+            (references->left == 0 || references->left_count == 0U)) {
+            for (row = 0U; row < height; ++row) {
+                for (column = 0U; column < width; ++column) {
+                    predictor[(size_t)row * predictor_stride + column] = 128U;
+                }
+            }
+            return AV2H_OK;
+        }
         if (references->above == 0 || references->above_count < width ||
             references->left == 0 || references->left_count < height ||
             !references->has_above_left) {
@@ -3031,7 +3049,9 @@ Av2hStatus av2h_luma_predict(
     }
           if ((((mode->mode == AV2H_INTRA_VERTICAL &&
                             ((mode->angle_delta == 0 &&
-                                width == 8U && height == 32U) ||
+                                ((width == 8U && height == 32U) ||
+                                 (width == 16U && height == 8U) ||
+                                 (width == 32U && height == 32U))) ||
                              (mode->angle_delta == 2 &&
                                 ((width == 16U && height == 16U) ||
                                  (width == 64U && height == 32U))) ||
@@ -3049,13 +3069,15 @@ Av2hStatus av2h_luma_predict(
                 width == 8U && height == 64U)))) ||
                          (mode->mode == AV2H_INTRA_D45 &&
                             ((mode->angle_delta == 0 &&
-                                                                                    ((width == 8U && height == 8U) ||
+                                                                                    ((width == 4U && height == 8U) ||
+                                                                                     (width == 8U && height == 8U) ||
 	                                                                                    (width == 8U && height == 64U) ||
 	                                                                                    (width == 16U && height == 4U) ||
                                                                                         (width == 16U && height == 16U) ||
                                                                                         (width == 32U && height == 8U) ||
                                                                                         (width == 32U && height == 16U) ||
                                                                                         (width == 32U && height == 32U) ||
+                                                                                        (width == 32U && height == 64U) ||
                                                                                         (width == 64U && height == 16U) ||
                                             (width == 64U && height == 64U))) ||
                                                                             (mode->angle_delta == -2 &&
@@ -3110,30 +3132,30 @@ Av2hStatus av2h_luma_predict(
              (mode->mode == AV2H_INTRA_D67 &&
               mode->angle_delta == -2 && mode->mrl_index == 0U &&
               width == 8U && height == 16U) ||
-             (mode->mode == AV2H_INTRA_D113 &&
-                        (((mode->angle_delta == 0 &&
-                            width == 8U && height == 8U)) ||
-                        ((mode->angle_delta == -3 &&
-                             width == 8U && height == 16U)) ||
-                         (mode->angle_delta == 2 &&
-                          mode->mrl_index == 0U &&
-                          width == 8U && height == 8U) ||
-                         (mode->angle_delta == 0 &&
-                          width == 16U && height == 4U) ||
-                         (mode->angle_delta == -2 &&
-                          width == 16U && height == 4U) ||
-                         (width == 16U && height == 8U) ||
-             (width == 16U && height == 16U) ||
-             (width == 16U && height == 32U) ||
-             (width == 16U && height == 64U) ||
-             (width == 4U && height == 32U) ||
-             (width == 32U && height == 8U) ||
-             (width == 32U && height == 16U) ||
-             (width == 32U && height == 32U) ||
-             (width == 32U && height == 64U) ||
-             (width == 64U && height == 16U) ||
-             (width == 64U && height == 32U) ||
-             (width == 64U && height == 64U))) ||
+                         (mode->mode == AV2H_INTRA_D113 &&
+                            ((mode->angle_delta == 0 &&
+                                ((width == 8U && height == 4U) ||
+                                 (width == 8U && height == 8U))) ||
+                             (mode->angle_delta == -3 &&
+                                width == 8U && height == 16U) ||
+                             (mode->angle_delta == 2 && mode->mrl_index == 0U &&
+                                width == 8U && height == 8U) ||
+                             (mode->angle_delta == 0 &&
+                                width == 16U && height == 4U) ||
+                             (mode->angle_delta == -2 &&
+                                width == 16U && height == 4U) ||
+                             (width == 16U && height == 8U) ||
+                             (width == 16U && height == 16U) ||
+                             (width == 16U && height == 32U) ||
+                             (width == 16U && height == 64U) ||
+                             (width == 4U && height == 32U) ||
+                             (width == 32U && height == 8U) ||
+                             (width == 32U && height == 16U) ||
+                             (width == 32U && height == 32U) ||
+                             (width == 32U && height == 64U) ||
+                             (width == 64U && height == 16U) ||
+                             (width == 64U && height == 32U) ||
+                             (width == 64U && height == 64U))) ||
            (mode->mode == AV2H_INTRA_HORIZONTAL &&
                         ((mode->angle_delta == 1 &&
                             width == 16U && height == 16U) ||
@@ -3148,7 +3170,9 @@ Av2hStatus av2h_luma_predict(
                                                      (width == 64U && height == 64U))))) ||
                                  (mode->mode == AV2H_INTRA_D157 &&
                                     ((mode->angle_delta == 0 &&
-                                        ((width == 16U && height == 16U) ||
+                                        ((width == 8U && height == 8U) ||
+                                         (width == 16U && height == 16U) ||
+                                         (width == 32U && height == 8U) ||
                                          (width == 32U && height == 16U))) ||
                                                  (mode->angle_delta == 1 &&
                                                     ((width == 8U && height == 16U) ||
@@ -3166,8 +3190,12 @@ Av2hStatus av2h_luma_predict(
                                      (mode->angle_delta == 0 &&
                                         width == 64U && height == 32U))) ||
          (mode->mode == AV2H_INTRA_D135 &&
-                                        (((mode->angle_delta == -3 || mode->angle_delta == 0) &&
+                                        ((mode->angle_delta == 0 &&
+                                            width == 4U && height == 4U) ||
+                                           ((mode->angle_delta == -3 || mode->angle_delta == 0) &&
                                             width == 4U && height == 8U) ||
+                     (mode->angle_delta == 0 &&
+                      width == 8U && height == 4U) ||
                      (mode->angle_delta == 0 &&
                       width == 4U && height == 16U) ||
                      (mode->angle_delta == 0 &&

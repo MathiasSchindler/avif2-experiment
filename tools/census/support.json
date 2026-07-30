@@ -9,7 +9,7 @@
     {
       "feature": "Luma directional angle",
       "status": "partial",
-      "evidence": "Directional prediction is validated on selected angles and geometries; artifact frontiers still include directional reconstruction profiles."
+      "evidence": "All production luma-prediction frontiers advance through the shared IDIF, cardinal, Smooth, or Paeth paths; exhaustive zero-angle geometry coverage remains incomplete."
     },
     {
       "feature": "Chroma directional angle",

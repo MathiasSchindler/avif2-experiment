@@ -18,11 +18,11 @@ These groups come from the 2026-07-30 production decoder sweep. They name the su
 
 | Current stopping surface | Files |
 |---|---|
-| Luma prediction | `chalk-320x240-qp128.obu`, `flycatcher-223x149-qp176.obu`, `flycatcher-397x265-qp048.obu`, `pastell-320x213-qp064.obu`, `schwaebisch-353x234-qp112.obu`, `silene-479x383-qp176.obu` |
 | Luma mode or palette | `chimp-93x111-qp064.obu`, `cuckoo-157x105-qp160.obu`, `louis-301x222-qp144.obu` |
+| Luma coefficient prefix | `schwaebisch-353x234-qp112.obu` |
 | Luma transform type | `chinnathurai-128x128-qp112.obu`, `silene-384x307-qp080.obu` |
-| Luma inverse transform | `chimp-240x287-qp192.obu`, `louis-463x342-qp224.obu`, `pastell-512x341-qp160.obu`, `schwaebisch-417x277-qp208.obu` |
-| Chroma coefficient prefix | `cuckoo-431x287-qp080.obu`, `laarim-256x171-qp096.obu`, `laarim-448x299-qp192.obu` |
+| Luma inverse transform | `chalk-320x240-qp128.obu`, `chimp-240x287-qp192.obu`, `louis-463x342-qp224.obu`, `pastell-320x213-qp064.obu`, `pastell-512x341-qp160.obu`, `schwaebisch-417x277-qp208.obu` |
+| Chroma coefficient prefix | `cuckoo-431x287-qp080.obu`, `flycatcher-223x149-qp176.obu`, `flycatcher-397x265-qp048.obu`, `laarim-256x171-qp096.obu`, `laarim-448x299-qp192.obu`, `silene-479x383-qp176.obu` |
 | Chroma prediction | `emerald-480x240-qp128.obu` |
 
 ## Corpus summary
@@ -95,7 +95,7 @@ Support state comes from the reviewed `tools/census/support.json` manifest; it i
 | Feature family | Status | Files | Coverage | Occurrences | Evidence |
 |---|---|---:|---:|---:|---|
 | Non-DCT primary transform | Supported | 21 | 100.0% | 7,206 | Every non-DCT primary transform value observed by the corpus has reviewed syntax, coefficient-profile, geometry, and inverse-reconstruction coverage. |
-| Luma directional angle | Partial | 21 | 100.0% | 6,878 | Directional prediction is validated on selected angles and geometries; artifact frontiers still include directional reconstruction profiles. |
+| Luma directional angle | Partial | 21 | 100.0% | 6,878 | All production luma-prediction frontiers advance through the shared IDIF, cardinal, Smooth, or Paeth paths; exhaustive zero-angle geometry coverage remains incomplete. |
 | Chroma directional angle | Supported | 19 | 90.5% | 2,790 | All six nonzero chroma angle deltas are validated across every directional mode and legal chroma prediction geometry, with shared IDIF matrix coverage and pinned live artifact vectors. |
 | MRL | Supported | 20 | 95.2% | 3,022 | MRL indices 1, 2, and 3 are validated across every directional mode, luma angle delta, legal prediction geometry, multi-line state, and IBP state, with synthetic and live artifact coverage. |
 | Multi-line MRL | Supported | 19 | 90.5% | 1,785 | The binary multi-line feature is validated across every directional mode, luma angle delta, nonzero MRL index, legal prediction geometry, and IBP state, with exact cardinal, synthetic, and live artifact coverage. |
