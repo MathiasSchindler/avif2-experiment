@@ -37,6 +37,33 @@ static uint64_t word_hash(const uint16_t *words, size_t count) {
     return hash;
 }
 
+static uint64_t hash_words(uint64_t hash,
+                           const uint16_t *words,
+                           size_t count) {
+    size_t index;
+    for (index = 0U; index < count; ++index) {
+        hash ^= words[index];
+        hash *= UINT64_C(1099511628211);
+    }
+    return hash;
+}
+
+static uint64_t complete_bank_hash(const Av2hFirstCoeffLevelCdfs *cdfs) {
+    uint64_t hash = UINT64_C(1469598103934665603);
+#define HASH_FIELD(field)                                                     \
+    hash = hash_words(hash, &cdfs->field[0][0][0],                            \
+                      sizeof(cdfs->field) / sizeof(uint16_t))
+    HASH_FIELD(full_eob_base);
+    HASH_FIELD(full_eob_base_lf);
+    HASH_FIELD(full_base);
+    HASH_FIELD(full_base_lf);
+#undef HASH_FIELD
+    hash = hash_words(hash, &cdfs->full_br[0][0],
+                      sizeof(cdfs->full_br) / sizeof(uint16_t));
+    return hash_words(hash, &cdfs->full_br_lf[0][0],
+                      sizeof(cdfs->full_br_lf) / sizeof(uint16_t));
+}
+
 static void check_words(const uint16_t *actual,
                         const uint16_t *expected,
                         size_t count) {
@@ -52,6 +79,13 @@ static void check_words(const uint16_t *actual,
 }
 
 static void test_q_context_cdfs(void) {
+    static const uint16_t q_indices[] = { 64U, 128U, 160U, 224U };
+    static const uint64_t complete_hashes[] = {
+        UINT64_C(0x76cfaa1d19f5e4b8),
+        UINT64_C(0x84b75b0d983a8dc3),
+        UINT64_C(0xae7bb6b10aa8e7eb),
+        UINT64_C(0x9551373a1d5217db)
+    };
     static const uint16_t q2_base_ctx0[] = {
         5584U, 96U, 20U, 0U, 0U, 3U, 4U, 4U
     };
@@ -89,10 +123,15 @@ static void test_q_context_cdfs(void) {
         29375U, 22832U, 17500U, 13281U, 10301U,
         0U, 0U, 4U, 4U, 4U
     };
+    static const uint16_t q1_base_lf_txs0_ctx11[] = {
+        26380U, 15719U, 8349U, 4385U, 2175U,
+        0U, 0U, 4U, 5U, 5U
+    };
     static const uint16_t q3_dc_sign_ctx0[] = {
         12660U, 0U, 0U, 2U, 3U, 3U
     };
     Av2hFirstCoeffLevelCdfs cdfs;
+    size_t index;
     CHECK(av2h_first_coeff_level_cdfs_init_for_q(0, 160U) ==
           AV2H_INVALID_ARGUMENT);
     CHECK(av2h_first_coeff_level_cdfs_init_for_q(&cdfs, 160U) == AV2H_OK);
@@ -119,6 +158,14 @@ static void test_q_context_cdfs(void) {
     CHECK(cdfs.q_context == 1U);
     check_words(cdfs.base[28], q1_base_txs3_ctx10, 8U);
     check_words(cdfs.base_lf[49], q1_base_lf_txs3_ctx20, 10U);
+    check_words(cdfs.full_base_lf[0U][11U],
+                q1_base_lf_txs0_ctx11, 10U);
+    for (index = 0U; index < sizeof(q_indices) / sizeof(q_indices[0]);
+         ++index) {
+        CHECK(av2h_first_coeff_level_cdfs_init_for_q(
+                  &cdfs, q_indices[index]) == AV2H_OK);
+        CHECK(complete_bank_hash(&cdfs) == complete_hashes[index]);
+    }
 }
 
 static void test_fsc_cdf_banks(void) {
@@ -770,7 +817,7 @@ static void test_arguments(void) {
     Av2hFirstCoeffPrefix prefix = { 0 };
     Av2hFirstTransformType transform = { 0 };
     Av2hFirstCoeffBlock block;
-    CHECK(sizeof(Av2hFirstCoeffLevelCdfs) == 7464U);
+    CHECK(sizeof(Av2hFirstCoeffLevelCdfs) == 19840U);
     CHECK(av2h_first_coeff_level_cdfs_init(0) == AV2H_INVALID_ARGUMENT);
     CHECK(av2h_first_coeff_block_read(
               0, &cdfs, &sequence, &frame, &mode, &prefix, &transform,

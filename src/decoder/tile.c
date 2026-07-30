@@ -662,6 +662,7 @@ Av2hStatus av2h_tile_decoder_next_luma(
     if (decoder->phase != AV2H_TILE_DECODE_LUMA) {
         return tile_decoder_fail(decoder, AV2H_INVALID_ARGUMENT);
     }
+    av2h_debug_luma_tile_stage = 0U;
     status = av2h_partition_traversal_next(
         &decoder->luma_traversal, &decoder->range,
         &decoder->partition_cdfs, &decoder->partition_contexts, &path,
@@ -780,6 +781,7 @@ Av2hStatus av2h_tile_decoder_next_chroma(
     if (decoder->phase != AV2H_TILE_DECODE_CHROMA) {
         return tile_decoder_fail(decoder, AV2H_INVALID_ARGUMENT);
     }
+    av2h_debug_chroma_tile_stage = 0U;
     if (decoder->chroma_root_forced_partition != AV2H_PARTITION_INVALID) {
         Av2hPartitionNode root = {
             decoder->sb_row, decoder->sb_column, decoder->root_block_size

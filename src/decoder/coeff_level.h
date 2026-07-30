@@ -12,6 +12,12 @@ extern uint8_t av2h_debug_target_sign_count;
 #define AV2H_FIRST_COEFF_CAPACITY 1024U
 
 typedef struct {
+    uint16_t full_eob_base[5U][4U][3U + 4U];
+    uint16_t full_eob_base_lf[5U][4U][5U + 4U];
+    uint16_t full_base[5U][20U][4U + 4U];
+    uint16_t full_base_lf[5U][33U][6U + 4U];
+    uint16_t full_br[7U][4U + 4U];
+    uint16_t full_br_lf[14U][4U + 4U];
     uint16_t q0_txs4_eob_base[4U][3U + 4U];
     uint16_t q0_txs4_eob_base_lf[4U][5U + 4U];
     uint16_t q0_txs4_base[20U][4U + 4U];

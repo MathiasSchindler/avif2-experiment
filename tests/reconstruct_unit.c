@@ -879,6 +879,30 @@ static void test_d45_8x4_ibp_prediction(void) {
               &mode, 8U, 4U, &references, predictor, 10U) == AV2H_OK);
 }
 
+static void test_d45_32x32_no_neighbor_ibp_prediction(void) {
+    Av2hFirstLeafMode mode = { 0 };
+    Av2hLumaReferences references = { 0 };
+    uint8_t predictor[32U * 32U];
+    size_t row;
+    size_t column;
+
+    mode.mode = AV2H_INTRA_D45;
+    mode.enable_ibp = 1U;
+    CHECK(av2h_luma_predict(
+              &mode, 32U, 32U, &references, predictor, 32U) == AV2H_OK);
+    for (row = 0U; row < 32U; ++row) {
+        size_t count_129 = row < 4U ? 0U :
+            2U * (((row - 4U) / 6U) + 1U);
+        size_t count_not_127 = 6U * (row / 2U + 1U);
+        if (count_not_127 > 32U) count_not_127 = 32U;
+        for (column = 0U; column < 32U; ++column) {
+            uint8_t expected = column < count_129 ? 129U :
+                column < count_not_127 ? 128U : 127U;
+            CHECK(predictor[row * 32U + column] == expected);
+        }
+    }
+}
+
 static void test_tx16x4_dct_reconstruction(void) {
     static const uint8_t predictor[64U] = {
         136U, 138U, 140U, 142U, 144U, 146U, 148U, 150U,
@@ -4647,6 +4671,7 @@ int main(void) {
     test_fixture_reconstruction();
     test_d45_minus_one_16x4_prediction();
     test_d45_8x4_ibp_prediction();
+    test_d45_32x32_no_neighbor_ibp_prediction();
     test_tx16x4_dct_reconstruction();
     test_tx16x4_fsc_reconstruction();
     test_tx4x4_intrabc_idtx_reconstruction();

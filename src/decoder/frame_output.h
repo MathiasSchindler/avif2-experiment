@@ -12,10 +12,45 @@ typedef struct {
     Av2hFilterWorkspace *filter_workspace;
 } Av2hFrameDecodeWorkspace;
 
+typedef enum {
+    AV2H_FRAME_DECODE_STAGE_NONE = 0,
+    AV2H_FRAME_DECODE_STAGE_INITIALIZE,
+    AV2H_FRAME_DECODE_STAGE_LUMA_PARSE,
+    AV2H_FRAME_DECODE_STAGE_LUMA_RECONSTRUCT,
+    AV2H_FRAME_DECODE_STAGE_LUMA_DEBLOCK,
+    AV2H_FRAME_DECODE_STAGE_LUMA_COMMIT,
+    AV2H_FRAME_DECODE_STAGE_CHROMA_PARSE,
+    AV2H_FRAME_DECODE_STAGE_CHROMA_CROSS_TRANSFORM,
+    AV2H_FRAME_DECODE_STAGE_CHROMA_RECONSTRUCT,
+    AV2H_FRAME_DECODE_STAGE_CHROMA_DEBLOCK,
+    AV2H_FRAME_DECODE_STAGE_CHROMA_COMMIT,
+    AV2H_FRAME_DECODE_STAGE_COMPLETENESS,
+    AV2H_FRAME_DECODE_STAGE_FILTER,
+    AV2H_FRAME_DECODE_STAGE_OUTPUT
+} Av2hFrameDecodeStage;
+
 typedef struct {
     size_t luma_leaf_count;
     size_t chroma_leaf_count;
     size_t entropy_tell;
+    Av2hStatus cause;
+    Av2hFrameDecodeStage stage;
+    uint16_t row;
+    uint16_t column;
+    uint8_t block_size;
+    uint8_t plane;
+    uint8_t syntax_stage;
+    uint8_t mode;
+    int8_t angle_delta;
+    uint8_t mrl_index;
+    uint8_t multi_line_mrl;
+    uint8_t enable_ibp;
+    uint8_t tx_size;
+    uint8_t primary_type;
+    uint16_t eob;
+    uint16_t coefficient_position;
+    uint8_t coefficient_context;
+    uint8_t coefficient_kind;
 } Av2hFrameDecodeResult;
 
 Av2hStatus av2h_i420_output_size(

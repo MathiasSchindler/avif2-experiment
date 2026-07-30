@@ -3012,6 +3012,23 @@ Av2hStatus av2h_luma_predict(
         }
         return AV2H_OK;
     }
+    if (mode->mode == AV2H_INTRA_D45 && mode->angle_delta == 0 &&
+        mode->enable_ibp == 1U && width == 32U && height == 32U &&
+        references->above_count == 0U && references->left_count == 0U) {
+        for (row = 0U; row < 32U; ++row) {
+            uint16_t count_129 = row < 4U ? 0U :
+                (uint16_t)(2U * (((row - 4U) / 6U) + 1U));
+            uint16_t count_not_127 =
+                (uint16_t)(6U * (row / 2U + 1U));
+            if (count_not_127 > 32U) count_not_127 = 32U;
+            for (column = 0U; column < 32U; ++column) {
+                predictor[(size_t)row * predictor_stride + column] =
+                    column < count_129 ? 129U :
+                    column < count_not_127 ? 128U : 127U;
+            }
+        }
+        return AV2H_OK;
+    }
           if ((((mode->mode == AV2H_INTRA_VERTICAL &&
                             ((mode->angle_delta == 0 &&
                                 width == 8U && height == 32U) ||
@@ -3195,23 +3212,6 @@ Av2hStatus av2h_luma_predict(
         width == 8U && height == 4U) {
         return predict_d45_8x4_ibp(
             references, predictor, predictor_stride);
-    }
-    if (mode->mode == AV2H_INTRA_D45 && mode->angle_delta == 0 &&
-        mode->enable_ibp == 1U && width == 32U && height == 32U &&
-        references->above_count == 0U && references->left_count == 0U) {
-        for (row = 0U; row < 32U; ++row) {
-            uint16_t count_129 = row < 4U ? 0U :
-                (uint16_t)(2U * (((row - 4U) / 6U) + 1U));
-            uint16_t count_not_127 =
-                (uint16_t)(6U * (row / 2U + 1U));
-            if (count_not_127 > 32U) count_not_127 = 32U;
-            for (column = 0U; column < 32U; ++column) {
-                predictor[(size_t)row * predictor_stride + column] =
-                    column < count_129 ? 129U :
-                    column < count_not_127 ? 128U : 127U;
-            }
-        }
-        return AV2H_OK;
     }
     if (mode->mode == AV2H_INTRA_D45 && mode->angle_delta == 0 &&
         mode->mrl_index == 1U && mode->multi_line_mrl == 0U &&

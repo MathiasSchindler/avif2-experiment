@@ -101,6 +101,18 @@ unsupported streams fail closed and do not create output. The CLI accepts raw
 OBU input only. HEIF item extraction and the stable public decode API remain
 Milestone 10 work.
 
+Failed frame decodes report the original cause separately from the retained
+coarse status, followed by the pipeline/syntax stage, plane, leaf position and
+geometry, entropy tell, and completed leaf counts. For example:
+
+```text
+error: decode failed: invalid argument
+  cause: unsupported feature
+  stage: chroma parse / U coefficient prefix
+  leaf: (0,16) block=64x32 plane=U
+  entropy tell: 1567; completed leaves: Y=26 UV=1
+```
+
 Run the hosted Milestone 5 normative and pinned-AVM correspondence checks with:
 
 ```sh

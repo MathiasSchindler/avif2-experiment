@@ -1,5 +1,7 @@
 #include "coeff_level.h"
 
+#include "coeff_cdf_all.inc"
+
 uint32_t av2h_debug_target_base[5U][10U];
 uint8_t av2h_debug_target_base_count;
 uint32_t av2h_debug_target_eob[10U];
@@ -9,6 +11,24 @@ uint32_t av2h_debug_chimp_base[64U][18U];
 uint8_t av2h_debug_chimp_base_count;
 uint32_t av2h_debug_chimp_eob[18U];
 static uint8_t debug_target_base_active;
+
+static void initialize_full_level_cdfs(
+    Av2hFirstCoeffLevelCdfs *cdfs, uint8_t q_context) {
+    av2h_memory_copy(cdfs->full_eob_base,
+                     av2h_coeff_eob_base[q_context],
+                     sizeof(cdfs->full_eob_base));
+    av2h_memory_copy(cdfs->full_eob_base_lf,
+                     av2h_coeff_eob_base_lf[q_context],
+                     sizeof(cdfs->full_eob_base_lf));
+    av2h_memory_copy(cdfs->full_base, av2h_coeff_base[q_context],
+                     sizeof(cdfs->full_base));
+    av2h_memory_copy(cdfs->full_base_lf, av2h_coeff_base_lf[q_context],
+                     sizeof(cdfs->full_base_lf));
+    av2h_memory_copy(cdfs->full_br, av2h_coeff_br[q_context],
+                     sizeof(cdfs->full_br));
+    av2h_memory_copy(cdfs->full_br_lf, av2h_coeff_br_lf[q_context],
+                     sizeof(cdfs->full_br_lf));
+}
 
 typedef struct {
     uint8_t tx_context;
@@ -365,6 +385,7 @@ Av2hStatus av2h_first_coeff_level_cdfs_init(Av2hFirstCoeffLevelCdfs *cdfs) {
     Av2hStatus status;
     if (cdfs == 0) return AV2H_INVALID_ARGUMENT;
     cdfs->q_context = 1U;
+    initialize_full_level_cdfs(cdfs, cdfs->q_context);
     status = av2h_cdf_init(cdfs->eob_base[0], 7U, eob_base_txs0, 3U, 3U, 0U);
     if (status != AV2H_OK) return status;
     status = av2h_cdf_init(cdfs->eob_base[1], 7U, eob_base_txs1, 3U, 93U, 0U);
@@ -1137,6 +1158,7 @@ Av2hStatus av2h_first_coeff_level_cdfs_init_for_q(
     if (status != AV2H_OK) return status;
     q_context = coefficient_q_context(base_q_index);
     cdfs->q_context = q_context;
+    initialize_full_level_cdfs(cdfs, q_context);
     status = initialize_fsc_cdfs(cdfs, q_context);
     if (status != AV2H_OK) return status;
     if (q_context == 0U) {
@@ -2112,7 +2134,16 @@ static int q_level_profile_supported(
     if (cdfs->q_context != coefficient_q_context(frame->base_q_index)) {
         return 0;
     }
+    {
+        Av2hCoeffTxGeometry geometry;
+        (void)transform;
+        return av2h_coeff_tx_geometry(prefix->tx_size, &geometry) == AV2H_OK;
+    }
     if (cdfs->q_context == 0U) {
+        Av2hCoeffTxGeometry geometry;
+        return av2h_coeff_tx_geometry(prefix->tx_size, &geometry) == AV2H_OK;
+    }
+    if (cdfs->q_context == 1U) {
         Av2hCoeffTxGeometry geometry;
         return av2h_coeff_tx_geometry(prefix->tx_size, &geometry) == AV2H_OK;
     }
@@ -2196,12 +2227,6 @@ static int q_level_profile_supported(
         transform->primary_type == AV2H_TX_DCT_DCT) {
         Av2hCoeffTxGeometry geometry;
         return av2h_coeff_tx_geometry(prefix->tx_size, &geometry) == AV2H_OK;
-    }
-    if (frame->base_q_index == 128U) {
-        return !(prefix->tx_size == AV2H_TX_8X16 &&
-                 prefix->eob == 6U &&
-                 transform->primary_type == AV2H_TX_DCT_DCT &&
-                 transform->secondary_symbol == 0U);
     }
     if (frame->base_q_index == 96U &&
         frame->width == 256U && frame->height == 171U) {
@@ -3009,9 +3034,8 @@ static int q_eob_context_supported(
     uint8_t tx_context,
     uint8_t context,
     uint8_t low) {
-    if (cdfs->q_context == 0U) {
+    if (cdfs->q_context < 4U)
         return tx_context < 5U && context < 4U;
-    }
     if (cdfs->q_context == 1U) return 1;
     if (cdfs->q_context == 2U) {
         return (tx_context == 3U || tx_context == 4U) && context == 1U;
@@ -3043,10 +3067,8 @@ static int q_base_context_supported(
     uint8_t tx_context,
     uint8_t context,
     uint8_t low) {
-    if (cdfs->q_context == 0U) {
-        return tx_context < 5U &&
-               context < (low ? 33U : 20U);
-    }
+    if (cdfs->q_context < 4U)
+        return tx_context < 5U && context < (low ? 33U : 20U);
     if (cdfs->q_context == 1U) return 1;
     if (cdfs->q_context == 2U) {
         if (tx_context == 4U) {
@@ -3117,7 +3139,7 @@ static int q_br_context_supported(
     const Av2hFirstCoeffLevelCdfs *cdfs,
     uint8_t context,
     uint8_t low) {
-    if (cdfs->q_context == 0U) return low ? context < 14U : context < 7U;
+    if (cdfs->q_context < 4U) return low ? context < 14U : context < 7U;
     if (cdfs->q_context == 1U) return 1;
     if (!low) return 0;
     if (cdfs->q_context == 2U) {
@@ -3368,6 +3390,9 @@ static Av2hStatus read_base_level(Av2hRangeDecoder *decoder,
     }
     if (cdfs->q_context == 0U) {
         cdf = q0_base_cdf(cdfs, tx_context, context, low);
+    } else if (cdfs->q_context < 4U) {
+        cdf = low ? cdfs->full_base_lf[tx_context][context] :
+                    cdfs->full_base[tx_context][context];
     } else if (low && cdfs->q_context == 2U && tx_context == 4U &&
         (context == 1U || context == 9U)) {
         cdf = context == 1U ? cdfs->q2_base_lf_txs4_ctx1 :
@@ -3569,7 +3594,7 @@ static Av2hStatus read_base_level(Av2hRangeDecoder *decoder,
             return AV2H_UNSUPPORTED;
         }
         cdf = low ?
-            (cdfs->q_context == 0U ? cdfs->q0_br_lf[context_br] :
+            (cdfs->q_context < 4U ? cdfs->full_br_lf[context_br] :
              cdfs->q_context == 1U && context_br == 12U ?
                 cdfs->q1_br_lf_ctx12 :
              cdfs->q_context == 3U && context_br == 3U ?
@@ -3580,7 +3605,7 @@ static Av2hStatus read_base_level(Av2hRangeDecoder *decoder,
                 cdfs->q3_br_lf_ctx9 :
                 find_context(&cdfs->br_lf[0][0], 8U, br_lf_keys,
                     sizeof(br_lf_keys) / sizeof(br_lf_keys[0]), context_br)) :
-                    (cdfs->q_context == 0U ? cdfs->q0_br[context_br] :
+                    (cdfs->q_context < 4U ? cdfs->full_br[context_br] :
                      find_context(&cdfs->br[0][0], 8U, br_keys, 7U,
                                   context_br));
         if (cdf == 0) return AV2H_UNSUPPORTED;
@@ -3983,6 +4008,8 @@ Av2hStatus av2h_coeff_block_read(
             if (cdfs->q_context == 0U) {
                 cdf = q0_eob_cdf(
                     cdfs, tx_context, context, 1U);
+            } else if (cdfs->q_context < 4U) {
+                cdf = cdfs->full_eob_base_lf[tx_context][context];
             } else if (tx_context == 0U && context == 0U) {
                 cdf = cdfs->q3_eob_lf_txs0_ctx0;
             } else if (tx_context == 0U && context == 1U) {
@@ -4061,7 +4088,8 @@ Av2hStatus av2h_coeff_block_read(
                 if (!q_br_context_supported(cdfs, context, low)) {
                     return AV2H_UNSUPPORTED;
                 }
-                cdf = cdfs->q_context == 3U && context == 3U ?
+                cdf = cdfs->q_context < 4U ? cdfs->full_br_lf[context] :
+                    cdfs->q_context == 3U && context == 3U ?
                     cdfs->q3_br_lf_ctx3 :
                     cdfs->q_context == 3U && context == 4U ?
                     cdfs->q3_br_lf_ctx4 :
@@ -4083,6 +4111,8 @@ Av2hStatus av2h_coeff_block_read(
             if (cdfs->q_context == 0U) {
                 cdf = q0_eob_cdf(
                     cdfs, tx_context, context, 0U);
+            } else if (cdfs->q_context < 4U) {
+                cdf = cdfs->full_eob_base[tx_context][context];
             } else if (cdfs->q_context == 3U && tx_context == 1U &&
                 context == 1U) {
                 cdf = cdfs->q3_eob_base_txs1_ctx1;
@@ -4133,7 +4163,7 @@ Av2hStatus av2h_coeff_block_read(
                 if (!q_br_context_supported(cdfs, 0U, low)) {
                     return AV2H_UNSUPPORTED;
                 }
-                cdf = cdfs->q_context == 0U ? cdfs->q0_br[0U] :
+                cdf = cdfs->q_context < 4U ? cdfs->full_br[0U] :
                     find_context(&cdfs->br[0][0], 8U, br_keys, 7U, 0U);
                 if (cdf == 0) return AV2H_UNSUPPORTED;
                 symbol = av2h_range_read_adaptive(decoder, cdf, 4U);

@@ -59,6 +59,146 @@ static void write_status(const char *prefix, Av2hStatus status) {
     write_console("\r\n");
 }
 
+static void write_unsigned(size_t value) {
+    char buffer[3U * sizeof(size_t) + 1U];
+    size_t index = sizeof(buffer);
+    buffer[--index] = '\0';
+    do {
+        buffer[--index] = (char)('0' + value % 10U);
+        value /= 10U;
+    } while (value != 0U);
+    write_console(buffer + index);
+}
+
+static const char *decode_stage_name(Av2hFrameDecodeStage stage) {
+    switch (stage) {
+        case AV2H_FRAME_DECODE_STAGE_INITIALIZE: return "initialize";
+        case AV2H_FRAME_DECODE_STAGE_LUMA_PARSE: return "luma parse";
+        case AV2H_FRAME_DECODE_STAGE_LUMA_RECONSTRUCT:
+            return "luma reconstruction";
+        case AV2H_FRAME_DECODE_STAGE_LUMA_DEBLOCK: return "luma deblock map";
+        case AV2H_FRAME_DECODE_STAGE_LUMA_COMMIT: return "luma commit";
+        case AV2H_FRAME_DECODE_STAGE_CHROMA_PARSE: return "chroma parse";
+        case AV2H_FRAME_DECODE_STAGE_CHROMA_CROSS_TRANSFORM:
+            return "chroma cross transform";
+        case AV2H_FRAME_DECODE_STAGE_CHROMA_RECONSTRUCT:
+            return "chroma reconstruction";
+        case AV2H_FRAME_DECODE_STAGE_CHROMA_DEBLOCK:
+            return "chroma deblock map";
+        case AV2H_FRAME_DECODE_STAGE_CHROMA_COMMIT: return "chroma commit";
+        case AV2H_FRAME_DECODE_STAGE_COMPLETENESS: return "completeness check";
+        case AV2H_FRAME_DECODE_STAGE_FILTER: return "frame filter";
+        case AV2H_FRAME_DECODE_STAGE_OUTPUT: return "I420 output";
+        default: return "unknown";
+    }
+}
+
+static const char *luma_syntax_stage_name(uint8_t stage) {
+    switch (stage) {
+        case 0U: return "partition or geometry";
+        case 1U: return "mode or palette";
+        case 2U: return "coefficient prefix";
+        case 3U: return "transform type";
+        case 4U: return "coefficient levels";
+        default: return "unknown";
+    }
+}
+
+static const char *chroma_syntax_stage_name(uint8_t stage) {
+    switch (stage) {
+        case 0U: return "partition or mode";
+        case 1U: return "U coefficient prefix";
+        case 2U: return "U transform type";
+        case 3U: return "U coefficient levels";
+        case 4U: return "V coefficient prefix";
+        case 5U: return "V transform type";
+        case 6U: return "V coefficient levels";
+        default: return "unknown";
+    }
+}
+
+static const char *reconstruction_stage_name(uint8_t stage) {
+    switch (stage) {
+        case 0U: return "setup or special predictor";
+        case 1U: return "prediction";
+        case 2U: return "inverse transform";
+        case 3U: return "output geometry";
+        default: return "unknown";
+    }
+}
+
+static const char *block_size_name(uint8_t block_size) {
+    static const char *const names[AV2H_BLOCK_SIZE_COUNT] = {
+        "4x4", "4x8", "8x4", "8x8", "8x16", "16x8", "16x16",
+        "16x32", "32x16", "32x32", "32x64", "64x32", "64x64",
+        "64x128", "128x64", "128x128", "128x256", "256x128",
+        "256x256", "4x16", "16x4", "8x32", "32x8", "16x64",
+        "64x16", "4x32", "32x4", "8x64", "64x8"
+    };
+    return block_size < AV2H_BLOCK_SIZE_COUNT ? names[block_size] : "unknown";
+}
+
+static void write_decode_diagnostic(const Av2hFrameDecodeResult *result) {
+    if (result->stage == AV2H_FRAME_DECODE_STAGE_NONE) return;
+    write_console("  cause: ");
+    write_console(av2h_status_string(result->cause));
+    write_console("\r\n  stage: ");
+    write_console(decode_stage_name(result->stage));
+    if (result->stage == AV2H_FRAME_DECODE_STAGE_LUMA_PARSE) {
+        write_console(" / ");
+        write_console(luma_syntax_stage_name(result->syntax_stage));
+    } else if (result->stage == AV2H_FRAME_DECODE_STAGE_CHROMA_PARSE) {
+        write_console(" / ");
+        write_console(chroma_syntax_stage_name(result->syntax_stage));
+    } else if (result->stage == AV2H_FRAME_DECODE_STAGE_LUMA_RECONSTRUCT ||
+               result->stage == AV2H_FRAME_DECODE_STAGE_CHROMA_RECONSTRUCT) {
+        write_console(" / ");
+        write_console(reconstruction_stage_name(result->syntax_stage));
+    }
+    write_console("\r\n  leaf: (");
+    write_unsigned(result->row);
+    write_console(",");
+    write_unsigned(result->column);
+    write_console(") block=");
+    write_console(block_size_name(result->block_size));
+    write_console(" plane=");
+    write_console(result->plane == 0U ? "Y" : result->plane == 1U ? "U" : "V");
+    write_console("\r\n  entropy tell: ");
+    write_unsigned(result->entropy_tell);
+    write_console("; completed leaves: Y=");
+    write_unsigned(result->luma_leaf_count);
+    write_console(" UV=");
+    write_unsigned(result->chroma_leaf_count);
+    write_console("\r\n  syntax: mode=");
+    write_unsigned(result->mode);
+    write_console(" angle=");
+    if (result->angle_delta < 0) {
+        write_console("-");
+        write_unsigned((size_t)(-result->angle_delta));
+    } else {
+        write_unsigned((size_t)result->angle_delta);
+    }
+    write_console(" mrl=");
+    write_unsigned(result->mrl_index);
+    write_console(" multi-line=");
+    write_unsigned(result->multi_line_mrl);
+    write_console(" ibp=");
+    write_unsigned(result->enable_ibp);
+    write_console(" tx-size=");
+    write_unsigned(result->tx_size);
+    write_console(" tx-type=");
+    write_unsigned(result->primary_type);
+    write_console(" eob=");
+    write_unsigned(result->eob);
+    write_console(" coeff-kind=");
+    write_unsigned(result->coefficient_kind);
+    write_console(" coeff-pos=");
+    write_unsigned(result->coefficient_position);
+    write_console(" coeff-ctx=");
+    write_unsigned(result->coefficient_context);
+    write_console("\r\n");
+}
+
 static int parse_arguments(Av2hWinChar *text,
                            Av2hWinChar **arguments,
                            int capacity) {
@@ -288,7 +428,8 @@ static Av2hStatus prepare_decode_workspace(
 static Av2hStatus decode_obu(Av2hSpan input,
                             Av2hOwnedMemory *output,
                             uint16_t *width,
-                            uint16_t *height) {
+                            uint16_t *height,
+                            Av2hFrameDecodeResult *decode_result) {
     Av2hObu entries[4U];
     Av2hObuLedger ledger = { entries, 4U, 0U };
     Av2hError error;
@@ -338,7 +479,7 @@ static Av2hStatus decode_obu(Av2hSpan input,
     if (status == AV2H_OK) {
         status = av2h_decode_frame_i420_private(
             group.entropy, &sequence, &frame, &workspace,
-            output->memory, output->size, 0);
+            output->memory, output->size, decode_result);
     }
     release_memory(&workspace_memory);
     if (status != AV2H_OK) {
@@ -456,6 +597,7 @@ static unsigned int run_decoder(void) {
     int argument_count;
     uint16_t width = 0U;
     uint16_t height = 0U;
+    Av2hFrameDecodeResult decode_result = { 0 };
     Av2hStatus status;
     int written;
     if (!allocate_memory(
@@ -482,9 +624,11 @@ static unsigned int run_decoder(void) {
         return 1U;
     }
     status = decode_obu(
-        (Av2hSpan){ input.memory, input.size }, &output, &width, &height);
+        (Av2hSpan){ input.memory, input.size }, &output, &width, &height,
+        &decode_result);
     if (status != AV2H_OK) {
         write_status("error: decode failed: ", status);
+        write_decode_diagnostic(&decode_result);
         release_memory(&output);
         release_memory(&input);
         release_memory(&command_line);

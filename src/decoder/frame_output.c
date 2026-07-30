@@ -517,11 +517,28 @@ Av2hStatus av2h_decode_frame_i420_private(
     Av2hFilterWorkspaceLayout layout;
     Av2hTileDecoder decoder;
     Av2hFilterPlanes final_planes;
-    Av2hFrameDecodeResult decoded = { 0U, 0U, 0U };
+    Av2hFrameDecodeResult decoded = { 0 };
     Av2hFrameContextSizes context_sizes;
     size_t required_output;
     Av2hStatus status;
     unsigned int plane;
+#define AV2H_DECODE_FAIL(returned_status, original_cause, failure_stage,       \
+                         failure_plane, failure_leaf, failure_syntax_stage)   \
+    do {                                                                       \
+    const Av2hPartitionNode *diagnostic_leaf = (failure_leaf);             \
+        decoded.entropy_tell = av2h_range_tell(&decoder.range);               \
+        decoded.cause = (original_cause);                                      \
+        decoded.stage = (failure_stage);                                       \
+        decoded.plane = (uint8_t)(failure_plane);                              \
+        decoded.syntax_stage = (uint8_t)(failure_syntax_stage);                \
+        if (diagnostic_leaf != 0) {                                            \
+            decoded.row = diagnostic_leaf->row;                                \
+            decoded.column = diagnostic_leaf->column;                          \
+            decoded.block_size = (uint8_t)diagnostic_leaf->block_size;         \
+        }                                                                      \
+        if (result != 0) *result = decoded;                                    \
+        return (returned_status);                                              \
+    } while (0)
     if (sequence == 0 || frame == 0 || workspace == 0 || output == 0 ||
         workspace->reconstruction_scratch == 0 ||
         workspace->filter_workspace == 0) {
@@ -555,24 +572,63 @@ Av2hStatus av2h_decode_frame_i420_private(
             av2h_memory_fill(&block, 0U, sizeof(block));
             status = av2h_tile_decoder_next_luma(
                 &decoder, &leaf, &block, &has_leaf);
-            if (status == AV2H_UNSUPPORTED) return AV2H_OVERFLOW;
-            if (status != AV2H_OK) return status;
+            if (status != AV2H_OK) {
+                Av2hStatus returned = status == AV2H_UNSUPPORTED ?
+                    AV2H_OVERFLOW : status;
+                decoded.mode = (uint8_t)leaf.mode.mode;
+                decoded.angle_delta = leaf.mode.angle_delta;
+                decoded.mrl_index = leaf.mode.mrl_index;
+                decoded.multi_line_mrl = leaf.mode.multi_line_mrl;
+                decoded.enable_ibp = leaf.mode.enable_ibp;
+                decoded.tx_size = (uint8_t)leaf.prefix.tx_size;
+                decoded.primary_type = (uint8_t)leaf.transform.primary_type;
+                decoded.eob = leaf.prefix.eob;
+                decoded.coefficient_position = block.diagnostic_position;
+                decoded.coefficient_context = block.diagnostic_context;
+                decoded.coefficient_kind = block.diagnostic_kind;
+                AV2H_DECODE_FAIL(
+                    returned, status, AV2H_FRAME_DECODE_STAGE_LUMA_PARSE,
+                    0U, &leaf.node, av2h_debug_luma_tile_stage);
+            }
             if (!has_leaf) continue;
             status = av2h_luma_reconstruct_to_plane(
                 &leaf.node, &leaf.mode, &leaf.prefix, &leaf.transform,
                 &block, &workspace->coded[0],
                 workspace->reconstruction_scratch);
-            if (status == AV2H_UNSUPPORTED) return AV2H_OVERFLOW;
-            if (status != AV2H_OK) return status;
+            if (status != AV2H_OK) {
+                Av2hStatus returned = status == AV2H_UNSUPPORTED ?
+                    AV2H_OVERFLOW : status;
+                decoded.mode = (uint8_t)leaf.mode.mode;
+                decoded.angle_delta = leaf.mode.angle_delta;
+                decoded.mrl_index = leaf.mode.mrl_index;
+                decoded.multi_line_mrl = leaf.mode.multi_line_mrl;
+                decoded.enable_ibp = leaf.mode.enable_ibp;
+                decoded.tx_size = (uint8_t)leaf.prefix.tx_size;
+                decoded.primary_type = (uint8_t)leaf.transform.primary_type;
+                decoded.eob = leaf.prefix.eob;
+                AV2H_DECODE_FAIL(
+                    returned, status,
+                    AV2H_FRAME_DECODE_STAGE_LUMA_RECONSTRUCT,
+                    0U, &leaf.node, av2h_debug_luma_reconstruct_stage);
+            }
             status = av2h_deblock_map_commit_transform(
                 &workspace->filter_workspace->deblock_map, 0U,
                 &leaf.node, &leaf.prefix, (uint8_t)frame->base_q_index,
                 leaf.mode.skip_transform, leaf.prefix.all_zero,
                 (uint8_t)(frame->base_q_index == 0U));
-            if (status == AV2H_UNSUPPORTED) return AV2H_OVERFLOW;
-            if (status != AV2H_OK) return status;
+            if (status != AV2H_OK) {
+                Av2hStatus returned = status == AV2H_UNSUPPORTED ?
+                    AV2H_OVERFLOW : status;
+                AV2H_DECODE_FAIL(
+                    returned, status, AV2H_FRAME_DECODE_STAGE_LUMA_DEBLOCK,
+                    0U, &leaf.node, 0U);
+            }
             status = av2h_tile_decoder_commit_leaf(&decoder, leaf.node);
-            if (status != AV2H_OK) return status;
+            if (status != AV2H_OK) {
+                AV2H_DECODE_FAIL(
+                    status, status, AV2H_FRAME_DECODE_STAGE_LUMA_COMMIT,
+                    0U, &leaf.node, 0U);
+            }
             ++decoded.luma_leaf_count;
         } else if (decoder.phase == AV2H_TILE_DECODE_CHROMA) {
             Av2hTileChromaLeaf leaf;
@@ -581,12 +637,23 @@ Av2hStatus av2h_decode_frame_i420_private(
             av2h_memory_fill(blocks, 0U, sizeof(blocks));
             status = av2h_tile_decoder_next_chroma(
                 &decoder, &leaf, &blocks[0], &blocks[1], &has_leaf);
-            if (status == AV2H_UNSUPPORTED) return AV2H_INVALID_ARGUMENT;
-            if (status != AV2H_OK) return status;
+            if (status != AV2H_OK) {
+                Av2hStatus returned = status == AV2H_UNSUPPORTED ?
+                    AV2H_INVALID_ARGUMENT : status;
+                AV2H_DECODE_FAIL(
+                    returned, status, AV2H_FRAME_DECODE_STAGE_CHROMA_PARSE,
+                    av2h_debug_chroma_tile_stage >= 4U ? 2U : 1U,
+                    &leaf.node, av2h_debug_chroma_tile_stage);
+            }
             if (!has_leaf) continue;
             status = av2h_chroma_inverse_cross_transform(
                 &blocks[0], &blocks[1], leaf.transform[0].cctx_type);
-            if (status != AV2H_OK) return status;
+            if (status != AV2H_OK) {
+                AV2H_DECODE_FAIL(
+                    status, status,
+                    AV2H_FRAME_DECODE_STAGE_CHROMA_CROSS_TRANSFORM,
+                    0U, &leaf.node, 0U);
+            }
             for (plane = 1U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
                 unsigned int index = plane - 1U;
                 status = av2h_chroma_reconstruct_to_plane_ex(
@@ -595,8 +662,21 @@ Av2hStatus av2h_decode_frame_i420_private(
                     &workspace->coded[plane], &workspace->coded[0],
                     (uint8_t)plane, 0,
                     workspace->reconstruction_scratch);
-                if (status == AV2H_UNSUPPORTED) return AV2H_INVALID_DATA;
-                if (status != AV2H_OK) return status;
+                if (status != AV2H_OK) {
+                    Av2hStatus returned = status == AV2H_UNSUPPORTED ?
+                        AV2H_INVALID_DATA : status;
+                    decoded.mode = (uint8_t)leaf.mode.mode;
+                    decoded.angle_delta = leaf.mode.angle_delta;
+                    decoded.tx_size = (uint8_t)leaf.prefix[index].tx_size;
+                    decoded.primary_type =
+                        (uint8_t)leaf.transform[index].primary_type;
+                    decoded.eob = leaf.prefix[index].eob;
+                    AV2H_DECODE_FAIL(
+                        returned, status,
+                        AV2H_FRAME_DECODE_STAGE_CHROMA_RECONSTRUCT,
+                        plane, &leaf.node,
+                        av2h_debug_chroma_reconstruct_stage);
+                }
             }
             for (plane = 1U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
                 unsigned int index = plane - 1U;
@@ -606,17 +686,34 @@ Av2hStatus av2h_decode_frame_i420_private(
                     (uint8_t)frame->base_q_index, 0U,
                     leaf.prefix[index].all_zero,
                     (uint8_t)(frame->base_q_index == 0U));
-                if (status == AV2H_UNSUPPORTED) return AV2H_OUT_OF_MEMORY;
-                if (status != AV2H_OK) return status;
+                if (status != AV2H_OK) {
+                    Av2hStatus returned = status == AV2H_UNSUPPORTED ?
+                        AV2H_OUT_OF_MEMORY : status;
+                    AV2H_DECODE_FAIL(
+                        returned, status,
+                        AV2H_FRAME_DECODE_STAGE_CHROMA_DEBLOCK,
+                        plane, &leaf.node, 0U);
+                }
             }
             status = av2h_tile_decoder_commit_leaf(&decoder, leaf.node);
-            if (status != AV2H_OK) return status;
+            if (status != AV2H_OK) {
+                AV2H_DECODE_FAIL(
+                    status, status, AV2H_FRAME_DECODE_STAGE_CHROMA_COMMIT,
+                    0U, &leaf.node, 0U);
+            }
             ++decoded.chroma_leaf_count;
         } else {
-            return AV2H_INVALID_DATA;
+            AV2H_DECODE_FAIL(
+                AV2H_INVALID_DATA, AV2H_INVALID_DATA,
+                AV2H_FRAME_DECODE_STAGE_COMPLETENESS,
+                0U, 0, 0U);
         }
     }
-    if (!maps_and_readiness_complete(workspace)) return AV2H_INVALID_DATA;
+    if (!maps_and_readiness_complete(workspace)) {
+        AV2H_DECODE_FAIL(
+            AV2H_INVALID_DATA, AV2H_INVALID_DATA,
+            AV2H_FRAME_DECODE_STAGE_COMPLETENESS, 0U, 0, 0U);
+    }
     decoded.entropy_tell = av2h_range_tell(&decoder.range);
     for (plane = 0U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
         if (workspace->tile_context.ccso_unit_controls[plane] != 0) {
@@ -634,12 +731,22 @@ Av2hStatus av2h_decode_frame_i420_private(
     }
     status = av2h_filter_frame(
         &final_planes, sequence, frame, workspace->filter_workspace);
-    if (status == AV2H_UNSUPPORTED) return AV2H_OUT_OF_MEMORY;
-    if (status != AV2H_OK) return status;
+    if (status != AV2H_OK) {
+        Av2hStatus returned = status == AV2H_UNSUPPORTED ?
+            AV2H_OUT_OF_MEMORY : status;
+        AV2H_DECODE_FAIL(
+            returned, status, AV2H_FRAME_DECODE_STAGE_FILTER,
+            0U, 0, 0U);
+    }
     status = av2h_copy_visible_i420_private(
         frame, &final_planes, workspace->coded_data_size,
         output, output_size);
-    if (status != AV2H_OK) return status;
+    if (status != AV2H_OK) {
+        AV2H_DECODE_FAIL(
+            status, status, AV2H_FRAME_DECODE_STAGE_OUTPUT,
+            0U, 0, 0U);
+    }
     if (result != 0) *result = decoded;
+#undef AV2H_DECODE_FAIL
     return AV2H_OK;
 }
