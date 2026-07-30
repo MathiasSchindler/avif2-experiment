@@ -3703,11 +3703,6 @@ static Av2hStatus read_fsc_block(
     Av2hStatus status;
     if (sequence->enable_tcq || sequence->enable_parity_hiding ||
         frame->using_qmatrix ||
-        (prefix->tx_size != AV2H_TX_4X4 &&
-         prefix->tx_size != AV2H_TX_4X8 &&
-         prefix->tx_size != AV2H_TX_8X4 &&
-         prefix->tx_size != AV2H_TX_8X16 &&
-         prefix->tx_size != AV2H_TX_16X4) ||
         prefix->all_zero ||
         transform->primary_type != AV2H_TX_IDTX ||
         transform->secondary_symbol != 0U) {
@@ -3716,8 +3711,7 @@ static Av2hStatus read_fsc_block(
     if (av2h_coeff_tx_geometry(prefix->tx_size, &geometry) != AV2H_OK) {
         return AV2H_UNSUPPORTED;
     }
-    tx_context = (uint8_t)(prefix->tx_size == AV2H_TX_8X16 ? 2U :
-        prefix->tx_size == AV2H_TX_4X4 ? 0U : 1U);
+    tx_context = geometry.tx_context > 2U ? 2U : geometry.tx_context;
     block->width = geometry.width;
     block->height = geometry.height;
     block->coefficient_count = (uint16_t)(block->width * block->height);

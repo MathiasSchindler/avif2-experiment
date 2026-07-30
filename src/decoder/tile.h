@@ -9,6 +9,7 @@ extern uint8_t av2h_debug_chroma_colocated_mode;
 extern int8_t av2h_debug_chroma_colocated_delta;
 extern uint8_t av2h_debug_chroma_tile_stage;
 
+
 typedef struct {
     size_t header_bits;
     size_t header_size;

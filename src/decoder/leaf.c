@@ -16,6 +16,7 @@ uint32_t av2h_debug_ccso_range_before;
 uint32_t av2h_debug_ccso_range_after;
 uint32_t av2h_debug_ccso_context;
 uint8_t av2h_debug_luma_mode_neighbors[4U];
+uint8_t av2h_debug_luma_mode_stage;
 
 static const Av2hBinaryCdfSpec intrabc_defaults[] = {
     { 32085U, 5U, 0U }, { 15172U, 30U, 0U }, { 4503U, 0U, 0U }
@@ -37,10 +38,15 @@ static const Av2hBinaryCdfSpec intrabc_shell_offset_defaults[] = {
     { 14587U, 36U, 0U }, { 20966U, 75U, 0U }
 };
 
+static const Av2hBinaryCdfSpec intrabc_shell_offset_class2_default = {
+    13189U, 0U, 0U
+};
+
 static const Av2hBinaryCdfSpec intrabc_shell_offset_other_defaults[] = {
     { 17943U, 93U, 0U }, { 18934U, 93U, 0U },
     { 18928U, 93U, 0U }, { 18696U, 93U, 0U },
-    { 19044U, 93U, 0U }, { 20362U, 93U, 0U }
+    { 19044U, 93U, 0U }, { 20362U, 93U, 0U },
+    { 20426U, 93U, 0U }
 };
 
 static const Av2hBinaryCdfSpec intrabc_col_greater_defaults[] = {
@@ -102,6 +108,9 @@ static Av2hStatus initialize_binary_table(
 Av2hStatus av2h_leaf_cdfs_init(Av2hLeafCdfs *cdfs) {
     static const uint16_t intrabc_shell_class[] = {
         8680U, 13723U, 18208U, 22686U, 26722U, 30020U
+    };
+    static const uint16_t intrabc_qtr_shell_class[] = {
+        7497U, 17301U, 23848U, 27438U, 29395U, 30879U, 32003U
     };
     static const uint16_t mode_set[] = { 28863U, 31022U, 31724U };
     static const uint16_t mode_index[AV2H_Y_MODE_CONTEXT_COUNT][7] = {
@@ -185,6 +194,12 @@ Av2hStatus av2h_leaf_cdfs_init(Av2hLeafCdfs *cdfs) {
     status = initialize_binary_table(cdfs->intrabc, intrabc_defaults,
                                      AV2H_INTRABC_CONTEXT_COUNT);
     if (status != AV2H_OK) return status;
+    status = av2h_cdf_init(
+        cdfs->intrabc_qtr_shell_class,
+        AV2H_INTRABC_QTR_SHELL_CLASS_SYMBOLS + 4U,
+        intrabc_qtr_shell_class, AV2H_INTRABC_QTR_SHELL_CLASS_SYMBOLS,
+        31U, 0U);
+    if (status != AV2H_OK) return status;
     status = av2h_binary_cdf_init(cdfs->intrabc_mode,
                                   intrabc_mode_default);
     if (status != AV2H_OK) return status;
@@ -202,6 +217,10 @@ Av2hStatus av2h_leaf_cdfs_init(Av2hLeafCdfs *cdfs) {
     status = initialize_binary_table(
         cdfs->intrabc_shell_offset, intrabc_shell_offset_defaults,
         AV2H_INTRABC_LOW_CLASS_COUNT);
+    if (status != AV2H_OK) return status;
+    status = av2h_binary_cdf_init(
+        cdfs->intrabc_shell_offset_class2,
+        intrabc_shell_offset_class2_default);
     if (status != AV2H_OK) return status;
     status = initialize_binary_table(
         cdfs->intrabc_shell_offset_other,
@@ -1726,6 +1745,7 @@ static Av2hStatus read_first_intrabc(
     Av2hStatus status = av2h_block_dimensions_mi(
         leaf->block_size, &width_mi, &height_mi);
     if (status != AV2H_OK) return status;
+    av2h_debug_luma_mode_stage = 20U;
     mode->before_mode_bits = av2h_range_tell(decoder);
     if (leaf->row == 16U && leaf->column == 20U) {
         size_t debug_index;
@@ -1741,6 +1761,7 @@ static Av2hStatus read_first_intrabc(
         return av2h_range_status(decoder);
     }
     mode->after_mode_set_bits = av2h_range_tell(decoder);
+    av2h_debug_luma_mode_stage = 21U;
     if (leaf->row == 16U && leaf->column == 20U) {
         av2h_debug_intrabc_ranges[1] = decoder->range;
     }
@@ -1754,6 +1775,7 @@ static Av2hStatus read_first_intrabc(
         if (value == 0U) break;
     }
     mode->after_mode_index_bits = av2h_range_tell(decoder);
+    av2h_debug_luma_mode_stage = 22U;
     if (leaf->row == 16U && leaf->column == 20U) {
         av2h_debug_intrabc_ranges[2] = decoder->range;
     }
@@ -1773,19 +1795,30 @@ static Av2hStatus read_first_intrabc(
         mode->mv_precision = value == 0U ? 3U : 5U;
     }
     mode->after_fsc_bits = av2h_range_tell(decoder);
+    av2h_debug_luma_mode_stage = 23U;
     if (mode->intrabc_mode == 0U) {
         value = av2h_range_read_adaptive(
             decoder, cdfs->intrabc_shell_set, 2U);
         if (av2h_range_status(decoder) != AV2H_OK) {
             return av2h_range_status(decoder);
         }
-        if (value != 0U || mode->mv_precision != 3U) {
+        if (mode->mv_precision != 3U && mode->mv_precision != 5U) {
+            av2h_debug_luma_mode_stage = value == 0U ? 231U : 233U;
             return AV2H_UNSUPPORTED;
         }
+        if (value != 0U) {
+            av2h_debug_luma_mode_stage = 232U;
+            return AV2H_UNSUPPORTED;
+        }
+        av2h_debug_luma_mode_stage = 24U;
         mode->after_mrl_bits = av2h_range_tell(decoder);
         shell_class = av2h_range_read_adaptive(
-            decoder, cdfs->intrabc_shell_class,
-            AV2H_INTRABC_SHELL_CLASS_SYMBOLS);
+            decoder,
+            mode->mv_precision == 5U ? cdfs->intrabc_qtr_shell_class :
+                                       cdfs->intrabc_shell_class,
+            mode->mv_precision == 5U ?
+                AV2H_INTRABC_QTR_SHELL_CLASS_SYMBOLS :
+                AV2H_INTRABC_SHELL_CLASS_SYMBOLS);
         if (av2h_range_status(decoder) != AV2H_OK) {
             return av2h_range_status(decoder);
         }
@@ -1794,6 +1827,18 @@ static Av2hStatus read_first_intrabc(
                 decoder, cdfs->intrabc_shell_offset[shell_class], 2U);
             if (av2h_range_status(decoder) != AV2H_OK) {
                 return av2h_range_status(decoder);
+            }
+        } else if (shell_class == 2U) {
+            shell_offset = 0U;
+            for (index = 0U; index < 3U; ++index) {
+                value = index == 0U ? av2h_range_read_adaptive(
+                    decoder, cdfs->intrabc_shell_offset_class2, 2U) :
+                    av2h_range_read_bypass(decoder, 1U);
+                if (av2h_range_status(decoder) != AV2H_OK) {
+                    return av2h_range_status(decoder);
+                }
+                shell_offset = index + value;
+                if (value == 0U) break;
             }
         } else if (shell_class <
                    AV2H_INTRABC_OTHER_CLASS_OFFSET_COUNT + 1U) {
@@ -1865,8 +1910,8 @@ static Av2hStatus read_first_intrabc(
             difference_x = (int32_t)maximum_pair_index;
         }
         difference_y = (int32_t)shell_index - difference_x;
-        difference_x <<= 3;
-        difference_y <<= 3;
+        difference_x <<= mode->mv_precision == 5U ? 1U : 3U;
+        difference_y <<= mode->mv_precision == 5U ? 1U : 3U;
         if (difference_y != 0 && av2h_range_read_bypass(decoder, 1U)) {
             difference_y = -difference_y;
         }
@@ -2267,6 +2312,7 @@ static Av2hStatus luma_mode_read_internal(
         mrl_context += spatial_mrl != 0U;
         secondary_context += spatial_multi;
     }
+    av2h_debug_luma_mode_stage = 1U;
     mode->use_intrabc = 0U;
     mode->intrabc_mode = 0U;
     mode->skip_transform = 0U;
@@ -2308,6 +2354,7 @@ static Av2hStatus luma_mode_read_internal(
             return av2h_range_status(decoder);
         }
         mode->use_intrabc = (uint8_t)value;
+        av2h_debug_luma_mode_stage = 2U;
         if ((leaf->row == 64U && leaf->column == 0U) ||
             (leaf->row == 7U && leaf->column == 20U)) {
             av2h_debug_use_intrabc[8] = value;
@@ -2340,6 +2387,7 @@ static Av2hStatus luma_mode_read_internal(
             }
             if (status != AV2H_OK) return status;
             if (frame->gdf_mode >= 2U) return AV2H_UNSUPPORTED;
+            av2h_debug_luma_mode_stage = 3U;
             return read_first_intrabc(
                 decoder, cdfs, sequence, frame, leaf, state, mode);
         }
@@ -2420,6 +2468,7 @@ static Av2hStatus luma_mode_read_internal(
         }
     }
     mode->after_mode_index_bits = av2h_range_tell(decoder);
+    av2h_debug_luma_mode_stage = 4U;
     av2h_debug_luma_mode_neighbors[0] = neighbors->present[0];
     av2h_debug_luma_mode_neighbors[1] = neighbors->joint_mode[0];
     av2h_debug_luma_mode_neighbors[2] = neighbors->present[1];
@@ -2446,15 +2495,18 @@ static Av2hStatus luma_mode_read_internal(
             return av2h_range_status(decoder);
         }
         mode->fsc_mode = (uint8_t)value;
-        if (value != 0U && leaf->block_size != AV2H_BLOCK_4X4 &&
-            leaf->block_size != AV2H_BLOCK_4X8 &&
-            leaf->block_size != AV2H_BLOCK_8X4 &&
-            leaf->block_size != AV2H_BLOCK_8X16 &&
-            leaf->block_size != AV2H_BLOCK_16X4) {
-            return AV2H_UNSUPPORTED;
+        if (value != 0U) {
+            size_t fsc_width;
+            size_t fsc_height;
+            if (av2h_block_dimensions_mi(
+                    leaf->block_size, &fsc_width, &fsc_height) != AV2H_OK ||
+                fsc_width > 8U || fsc_height > 8U) {
+                return AV2H_UNSUPPORTED;
+            }
         }
     }
     mode->after_fsc_bits = av2h_range_tell(decoder);
+    av2h_debug_luma_mode_stage = 5U;
     av2h_debug_mode_ranges[4] = decoder->range;
     mode->mrl_index = 0U;
     mode->multi_line_mrl = 0U;
@@ -2486,6 +2538,7 @@ static Av2hStatus luma_mode_read_internal(
         }
     }
     mode->after_mrl_bits = av2h_range_tell(decoder);
+    av2h_debug_luma_mode_stage = 6U;
     av2h_debug_mode_ranges[5] = decoder->range;
     mode->palette_mode = 0U;
     mode->palette_size = 0U;
@@ -2502,6 +2555,7 @@ static Av2hStatus luma_mode_read_internal(
             return av2h_range_status(decoder);
         }
         mode->palette_mode = (uint8_t)value;
+        av2h_debug_luma_mode_stage = 7U;
         mode->after_palette_bits = av2h_range_tell(decoder);
         if (value != 0U) {
             Av2hStatus status;

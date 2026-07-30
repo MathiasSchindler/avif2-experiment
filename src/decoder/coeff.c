@@ -189,10 +189,6 @@ Av2hStatus av2h_first_coeff_cdfs_init_for_q(
         cdfs->txb_skip_txs0, txb_skip[q_context][0U]);
     if (status != AV2H_OK) return status;
     status = av2h_binary_cdf_init(
-        cdfs->txb_skip_inter_txs0,
-        (Av2hBinaryCdfSpec){ 32764U, 0U, 0U });
-    if (status != AV2H_OK) return status;
-    status = av2h_binary_cdf_init(
         cdfs->txb_skip_chroma_txs0_ctx6,
         (Av2hBinaryCdfSpec){ 8778U, 31U, 0U });
     if (status != AV2H_OK) return status;
@@ -361,6 +357,28 @@ Av2hStatus av2h_first_coeff_cdfs_init_for_q(
                            8U + 4U, av2h_chroma_eob_pt_1024[q_context],
                            8U, av2h_chroma_eob_pt_1024[q_context][8U], 0U);
     if (status != AV2H_OK) return status;
+    {
+        const uint16_t *const inter_sources[7U] = {
+            av2h_inter_eob_pt_16[q_context],
+            av2h_inter_eob_pt_32[q_context],
+            av2h_inter_eob_pt_64[q_context],
+            av2h_inter_eob_pt_128[q_context],
+            av2h_inter_eob_pt_256[q_context],
+            av2h_inter_eob_pt_512[q_context],
+            av2h_inter_eob_pt_1024[q_context]
+        };
+        static const uint8_t symbols[7U] = { 5U, 6U, 7U, 8U, 8U, 8U, 8U };
+        size_t eob_class;
+        av2h_memory_fill(cdfs->inter_eob_pt, 0U,
+                         sizeof(cdfs->inter_eob_pt));
+        for (eob_class = 0U; eob_class < 7U; ++eob_class) {
+            status = av2h_cdf_init(cdfs->inter_eob_pt[eob_class],
+                (size_t)symbols[eob_class] + 4U,
+                inter_sources[eob_class], symbols[eob_class],
+                inter_sources[eob_class][symbols[eob_class]], 0U);
+            if (status != AV2H_OK) return status;
+        }
+    }
     status = av2h_cdf_init(
         cdfs->q3_chroma_eob_pt_128, 8U + 4U,
         q3_chroma_eob_pt_128, 8U, 1U, 0U);
@@ -759,13 +777,7 @@ Av2hStatus av2h_coeff_prefix_read(
     if (status != AV2H_OK) return status;
     av2h_debug_luma_prefix_stage = 4U;
     prefix->txb_skip_context = txb_skip_context;
-    if ((mode->fsc_mode ?
-                 ((leaf->block_size != AV2H_BLOCK_4X4 &&
-                     leaf->block_size != AV2H_BLOCK_4X8 &&
-                    leaf->block_size != AV2H_BLOCK_8X4 &&
-                     leaf->block_size != AV2H_BLOCK_8X16 &&
-                     leaf->block_size != AV2H_BLOCK_16X4) ||
-                    txb_skip_context != 9U) :
+    if ((mode->fsc_mode ? txb_skip_context != 9U :
          txb_skip_context >= 10U) ||
         frame->tx_mode != 1U ||
         frame->disable_cdf_update) {
@@ -988,17 +1000,16 @@ Av2hStatus av2h_coeff_prefix_read(
         return AV2H_UNSUPPORTED;
     }
     prefix->before_all_zero_bits = av2h_range_tell(decoder);
-    if (mode->use_intrabc) {
-        cdf = cdfs->txb_skip_inter_txs0;
-    } else if (mode->fsc_mode) {
+    if (mode->fsc_mode) {
         cdf = prefix->tx_size_context == 0U ?
             cdfs->txb_skip_fsc_txs0_ctx9 :
             prefix->tx_size_context == 1U ?
                 cdfs->txb_skip_fsc_txs1_ctx9 :
                 cdfs->txb_skip_fsc_txs2_ctx9;
     } else {
-        cdf = cdfs->full_luma_txb_skip[prefix->tx_size_context]
-                                          [txb_skip_context];
+        cdf = cdfs->full_luma_txb_skip[mode->use_intrabc]
+                                         [prefix->tx_size_context]
+                                         [txb_skip_context];
     }
     {
         size_t debug_index;
@@ -1023,10 +1034,20 @@ Av2hStatus av2h_coeff_prefix_read(
         prefix->after_eob_bits = prefix->after_all_zero_bits;
         return AV2H_OK;
     }
-    return decode_eob(
-        decoder, cdfs,
-        mode->use_intrabc ? cdfs->eob_pt_16_inter : 0,
-        mode->use_intrabc ? 5U : 0U, prefix);
+    if (mode->use_intrabc) {
+        static const uint8_t symbols[7U] = {
+            5U, 6U, 7U, 8U, 8U, 8U, 8U
+        };
+        const Av2hTxDescriptor *descriptor;
+        status = av2h_tx_descriptor_get(prefix->tx_size, &descriptor);
+        if (status != AV2H_OK || descriptor->eob_class >= 7U) {
+            return AV2H_UNSUPPORTED;
+        }
+        return decode_eob(decoder, cdfs,
+            cdfs->inter_eob_pt[descriptor->eob_class],
+            symbols[descriptor->eob_class], prefix);
+    }
+    return decode_eob(decoder, cdfs, 0, 0U, prefix);
 }
 
 Av2hStatus av2h_first_coeff_prefix_read(
@@ -1132,7 +1153,7 @@ Av2hStatus av2h_chroma_coeff_prefix_read(
         prefix->tx_size = descriptor->tx_size;
         prefix->tx_size_context = descriptor->tx_size_context;
         skip_cdf = plane == 1U ?
-            cdfs->full_luma_txb_skip[
+            cdfs->full_luma_txb_skip[0U][
                 prefix->tx_size_context][txb_skip_context] :
             cdfs->full_v_txb_skip[txb_skip_context];
         eob_cdf = cdfs->chroma_eob_pt[descriptor->eob_class];

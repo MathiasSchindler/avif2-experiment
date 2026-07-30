@@ -20,6 +20,7 @@ extern uint32_t av2h_debug_ccso_range_before;
 extern uint32_t av2h_debug_ccso_range_after;
 extern uint32_t av2h_debug_ccso_context;
 extern uint8_t av2h_debug_luma_mode_neighbors[4U];
+extern uint8_t av2h_debug_luma_mode_stage;
 
 #define AV2H_INTRABC_CONTEXT_COUNT 3U
 #define AV2H_CCSO_CONTEXT_COUNT 4U
@@ -37,8 +38,9 @@ extern uint8_t av2h_debug_luma_mode_neighbors[4U];
 #define AV2H_UV_MODE_CONTEXT_COUNT 2U
 #define AV2H_UV_MODE_SYMBOLS 8U
 #define AV2H_INTRABC_SHELL_CLASS_SYMBOLS 7U
+#define AV2H_INTRABC_QTR_SHELL_CLASS_SYMBOLS 8U
 #define AV2H_INTRABC_LOW_CLASS_COUNT 2U
-#define AV2H_INTRABC_OTHER_CLASS_OFFSET_COUNT 6U
+#define AV2H_INTRABC_OTHER_CLASS_OFFSET_COUNT 7U
 #define AV2H_INTRABC_GREATER_CONTEXT_COUNT 2U
 #define AV2H_INTRABC_INDEX_CONTEXT_COUNT 4U
 #define AV2H_SKIP_TRANSFORM_CONTEXT_COUNT 6U
@@ -59,8 +61,11 @@ typedef struct {
     uint16_t intrabc_precision[AV2H_BINARY_CDF_SIZE];
     uint16_t intrabc_shell_set[AV2H_BINARY_CDF_SIZE];
     uint16_t intrabc_shell_class[AV2H_INTRABC_SHELL_CLASS_SYMBOLS + 4U];
+    uint16_t intrabc_qtr_shell_class
+        [AV2H_INTRABC_QTR_SHELL_CLASS_SYMBOLS + 4U];
     uint16_t intrabc_shell_offset[AV2H_INTRABC_LOW_CLASS_COUNT]
                                   [AV2H_BINARY_CDF_SIZE];
+    uint16_t intrabc_shell_offset_class2[AV2H_BINARY_CDF_SIZE];
     uint16_t intrabc_shell_offset_other
         [AV2H_INTRABC_OTHER_CLASS_OFFSET_COUNT][AV2H_BINARY_CDF_SIZE];
     uint16_t intrabc_col_greater[AV2H_INTRABC_GREATER_CONTEXT_COUNT]

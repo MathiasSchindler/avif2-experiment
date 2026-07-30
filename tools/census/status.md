@@ -18,10 +18,8 @@ These groups come from the 2026-07-30 production decoder sweep. They name the su
 
 | Current stopping surface | Files |
 |---|---|
-| Luma mode or palette | `chimp-93x111-qp064.obu`, `chinnathurai-128x128-qp112.obu`, `cuckoo-157x105-qp160.obu`, `louis-301x222-qp144.obu` |
-| Luma coefficient prefix | `schwaebisch-353x234-qp112.obu` |
-| Luma prediction | `cuckoo-431x287-qp080.obu`, `flycatcher-397x265-qp048.obu`, `laarim-448x299-qp192.obu`, `pastell-320x213-qp064.obu` |
-| Luma inverse transform | `chalk-320x240-qp128.obu`, `flycatcher-223x149-qp176.obu`, `pastell-512x341-qp160.obu`, `schwaebisch-417x277-qp208.obu`, `silene-479x383-qp176.obu` |
+| Luma prediction | `chinnathurai-128x128-qp112.obu`, `cuckoo-431x287-qp080.obu`, `flycatcher-397x265-qp048.obu`, `laarim-448x299-qp192.obu`, `pastell-320x213-qp064.obu`, `schwaebisch-353x234-qp112.obu` |
+| Luma inverse transform or reconstruction setup | `chalk-320x240-qp128.obu`, `cuckoo-157x105-qp160.obu`, `flycatcher-223x149-qp176.obu`, `louis-301x222-qp144.obu`, `pastell-512x341-qp160.obu`, `schwaebisch-417x277-qp208.obu`, `silene-479x383-qp176.obu` |
 | Chroma prediction | `chimp-240x287-qp192.obu`, `emerald-480x240-qp128.obu`, `laarim-256x171-qp096.obu`, `louis-463x342-qp224.obu`, `silene-384x307-qp080.obu` |
 
 ## Corpus summary

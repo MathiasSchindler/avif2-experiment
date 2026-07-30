@@ -588,6 +588,9 @@ Av2hStatus av2h_decode_frame_i420_private(
                     leaf.transform.primary_long_side_symbol;
                 decoded.secondary_symbol = leaf.transform.secondary_symbol;
                 decoded.secondary_set = leaf.transform.secondary_set;
+                if (av2h_debug_luma_tile_stage == 1U) {
+                    decoded.syntax_stage = av2h_debug_luma_mode_stage;
+                }
                 if (av2h_debug_luma_tile_stage == 3U) {
                     decoded.syntax_stage = av2h_debug_transform_stage;
                 }
@@ -608,7 +611,8 @@ Av2hStatus av2h_decode_frame_i420_private(
                 decoded.coefficient_kind = block.diagnostic_kind;
                 AV2H_DECODE_FAIL(
                     returned, status, AV2H_FRAME_DECODE_STAGE_LUMA_PARSE,
-                    0U, &leaf.node, av2h_debug_luma_tile_stage);
+                    0U, &leaf.node, decoded.syntax_stage != 0U ?
+                        decoded.syntax_stage : av2h_debug_luma_tile_stage);
             }
             if (!has_leaf) continue;
             status = av2h_luma_reconstruct_to_plane(

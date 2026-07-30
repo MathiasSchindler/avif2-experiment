@@ -6111,27 +6111,67 @@ Av2hStatus av2h_luma_reconstruct_to_plane(
     } else if (mode->use_intrabc) {
         size_t row;
         size_t column;
-        if (mode->displacement_x % 8 != 0 ||
-            mode->displacement_y % 8 != 0) {
+        int32_t integer_x = mode->displacement_x / 8;
+        int32_t integer_y = mode->displacement_y / 8;
+        uint32_t fraction_x;
+        uint32_t fraction_y;
+        if (mode->displacement_x < 0 && mode->displacement_x % 8 != 0) {
+            --integer_x;
+        }
+        if (mode->displacement_y < 0 && mode->displacement_y % 8 != 0) {
+            --integer_y;
+        }
+        fraction_x = (uint32_t)(mode->displacement_x - integer_x * 8);
+        fraction_y = (uint32_t)(mode->displacement_y - integer_y * 8);
+        if ((fraction_x & 1U) != 0U || (fraction_y & 1U) != 0U) {
             return AV2H_UNSUPPORTED;
         }
-        source_x = (int32_t)block_x + mode->displacement_x / 8;
-        source_y = (int32_t)block_y + mode->displacement_y / 8;
+        source_x = (int32_t)block_x + integer_x;
+        source_y = (int32_t)block_y + integer_y;
         if (source_x < 0 || source_y < 0 ||
-            (uint32_t)source_x + output_width > plane->width ||
-            (uint32_t)source_y + output_height > plane->height) {
+            (uint32_t)source_x + output_width + (fraction_x != 0U) >
+                plane->width ||
+            (uint32_t)source_y + output_height + (fraction_y != 0U) >
+                plane->height) {
             return AV2H_INVALID_DATA;
         }
         for (row = 0U; row < output_height; ++row) {
             for (column = 0U; column < output_width; ++column) {
+                size_t sample_x = (size_t)source_x + column;
+                size_t sample_y = (size_t)source_y + row;
+                uint32_t left_weight = 8U - fraction_x;
+                uint32_t top_weight = 8U - fraction_y;
+                uint32_t prediction;
                 if (!plane_sample_reconstructed(
-                        plane, (size_t)source_x + column,
-                        (size_t)source_y + row)) {
+                        plane, sample_x, sample_y) ||
+                    (fraction_x != 0U && !plane_sample_reconstructed(
+                        plane, sample_x + 1U, sample_y)) ||
+                    (fraction_y != 0U && !plane_sample_reconstructed(
+                        plane, sample_x, sample_y + 1U)) ||
+                    (fraction_x != 0U && fraction_y != 0U &&
+                     !plane_sample_reconstructed(
+                         plane, sample_x + 1U, sample_y + 1U))) {
                     return AV2H_UNSUPPORTED;
                 }
+                prediction = plane->data[sample_y * plane->stride + sample_x] *
+                    left_weight * top_weight;
+                if (fraction_x != 0U) {
+                    prediction += plane->data[
+                        sample_y * plane->stride + sample_x + 1U] *
+                        fraction_x * top_weight;
+                }
+                if (fraction_y != 0U) {
+                    prediction += plane->data[
+                        (sample_y + 1U) * plane->stride + sample_x] *
+                        left_weight * fraction_y;
+                }
+                if (fraction_x != 0U && fraction_y != 0U) {
+                    prediction += plane->data[
+                        (sample_y + 1U) * plane->stride + sample_x + 1U] *
+                        fraction_x * fraction_y;
+                }
                 scratch->predictor[row * output_width + column] =
-                    plane->data[((size_t)source_y + row) * plane->stride +
-                                (size_t)source_x + column];
+                    (uint16_t)((prediction + 32U) >> 6U);
             }
         }
         status = av2h_luma_reconstruct(
