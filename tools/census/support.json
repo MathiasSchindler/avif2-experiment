@@ -59,7 +59,7 @@
     {
       "feature": "Secondary transform",
       "status": "partial",
-      "evidence": "Secondary-transform syntax and selected IST kernels cover seven live production tuples across sets 1, 4, 5, and 6; exhaustive tuple coverage remains incomplete."
+      "evidence": "Secondary-transform syntax and selected IST kernels cover 15 live production tuples across sets 1, 2, 4, 5, and 6; exhaustive tuple coverage remains incomplete."
     }
   ],
   "rules": [

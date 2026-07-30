@@ -57,6 +57,11 @@ typedef struct {
     uint8_t secondary_symbol;
     uint8_t secondary_set;
     uint8_t cctx_type;
+    uint8_t is_cfl;
+    uint8_t cfl_kind;
+    uint8_t mhccp_direction;
+    uint8_t cfl_filter_index;
+    uint8_t mhccp_reason;
     uint16_t eob;
     uint16_t u_coefficient_count;
     uint16_t v_coefficient_count;

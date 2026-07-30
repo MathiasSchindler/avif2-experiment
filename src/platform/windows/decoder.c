@@ -214,6 +214,16 @@ static void write_decode_diagnostic(const Av2hFrameDecodeResult *result) {
     write_unsigned(result->secondary_set);
     write_console(" cctx-type=");
     write_unsigned(result->cctx_type);
+    write_console(" is-cfl=");
+    write_unsigned(result->is_cfl);
+    write_console(" cfl-kind=");
+    write_unsigned(result->cfl_kind);
+    write_console(" mhccp-direction=");
+    write_unsigned(result->mhccp_direction);
+    write_console(" cfl-filter=");
+    write_unsigned(result->cfl_filter_index);
+    write_console(" mhccp-reason=");
+    write_unsigned(result->mhccp_reason);
     write_console(" eob=");
     write_unsigned(result->eob);
     write_console(" uv-coeff-counts=");

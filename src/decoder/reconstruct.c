@@ -996,6 +996,96 @@ static Av2hStatus inverse_secondary_transform(
                transform->secondary_set == 2U) {
         kernel = av2h_ist_8x8_set2_type3_kernel;
         scan_map = av2h_ist_8x8_set2_type3_scan_map;
+    } else if (mode->mode == AV2H_INTRA_HORIZONTAL &&
+               prefix->tx_size == AV2H_TX_64X64 &&
+               transform->secondary_symbol == 3U &&
+               transform->secondary_set == 6U) {
+        kernel = av2h_ist_8x8_set6_type3_kernel;
+        scan_map = av2h_ist_8x8_set6_type3_scan_map;
+    } else if (mode->mode == AV2H_INTRA_D45 &&
+               prefix->tx_size == AV2H_TX_64X16 &&
+               transform->secondary_symbol == 3U &&
+               transform->secondary_set == 2U) {
+        kernel = av2h_ist_8x8_set2_type3_kernel;
+        scan_map = av2h_ist_8x8_set2_type3_scan_map;
+    } else if (mode->mode == AV2H_INTRA_D113 &&
+               prefix->tx_size == AV2H_TX_16X32 &&
+               transform->secondary_symbol == 3U &&
+               transform->secondary_set == 3U) {
+        kernel = av2h_ist_8x8_set3_type3_kernel;
+        scan_map = av2h_ist_8x8_set3_type3_scan_map;
+    } else if (mode->mode == AV2H_INTRA_DC &&
+               prefix->tx_size == AV2H_TX_16X64 &&
+               transform->secondary_symbol == 1U &&
+               transform->secondary_set == 6U) {
+        kernel = av2h_ist_8x8_set6_type1_kernel;
+        scan_map = av2h_ist_8x8_set6_type1_scan_map;
+    } else if (mode->mode == AV2H_INTRA_DC &&
+               prefix->tx_size == AV2H_TX_64X32 &&
+               transform->secondary_symbol == 3U &&
+               transform->secondary_set == 1U) {
+        kernel = av2h_ist_8x8_set1_type3_kernel;
+        scan_map = av2h_ist_8x8_set1_type3_scan_map;
+    } else if (mode->mode == AV2H_INTRA_D203 &&
+               prefix->tx_size == AV2H_TX_16X16 &&
+               transform->secondary_symbol == 3U &&
+               transform->secondary_set == 5U) {
+        kernel = av2h_ist_8x8_set5_type3_kernel;
+        scan_map = av2h_ist_8x8_set5_type3_scan_map;
+    } else if (mode->mode == AV2H_INTRA_D45 &&
+               prefix->tx_size == AV2H_TX_16X32 &&
+               transform->secondary_symbol == 3U &&
+               transform->secondary_set == 6U) {
+        kernel = av2h_ist_8x8_set6_type3_kernel;
+        scan_map = av2h_ist_8x8_set6_type3_scan_map;
+    } else if (mode->mode == AV2H_INTRA_VERTICAL &&
+               prefix->tx_size == AV2H_TX_32X16 &&
+               transform->secondary_symbol == 2U &&
+               transform->secondary_set == 1U) {
+        kernel = av2h_ist_8x8_set1_type2_kernel;
+        scan_map = av2h_ist_8x8_set1_type2_scan_map;
+    } else if (mode->mode == AV2H_INTRA_DC &&
+               prefix->tx_size == AV2H_TX_64X16 &&
+               transform->secondary_symbol == 3U &&
+               transform->secondary_set == 6U) {
+        kernel = av2h_ist_8x8_set6_type3_kernel;
+        scan_map = av2h_ist_8x8_set6_type3_scan_map;
+    } else if (mode->mode == AV2H_INTRA_DC &&
+               prefix->tx_size == AV2H_TX_32X64 &&
+               transform->secondary_symbol == 1U &&
+               transform->secondary_set == 6U) {
+        kernel = av2h_ist_8x8_set6_type1_kernel;
+        scan_map = av2h_ist_8x8_set6_type1_scan_map;
+    } else if (mode->mode == AV2H_INTRA_HORIZONTAL &&
+               prefix->tx_size == AV2H_TX_32X16 &&
+               transform->secondary_symbol == 3U &&
+               transform->secondary_set == 6U) {
+        kernel = av2h_ist_8x8_set6_type3_kernel;
+        scan_map = av2h_ist_8x8_set6_type3_scan_map;
+    } else if (mode->mode == AV2H_INTRA_D135 &&
+               prefix->tx_size == AV2H_TX_32X64 &&
+               transform->secondary_symbol == 3U &&
+               transform->secondary_set == 3U) {
+        kernel = av2h_ist_8x8_set3_type3_kernel;
+        scan_map = av2h_ist_8x8_set3_type3_scan_map;
+    } else if (mode->mode == AV2H_INTRA_VERTICAL &&
+               prefix->tx_size == AV2H_TX_32X16 &&
+               transform->secondary_symbol == 3U &&
+               transform->secondary_set == 1U) {
+        kernel = av2h_ist_8x8_set1_type3_kernel;
+        scan_map = av2h_ist_8x8_set1_type3_scan_map;
+    } else if (mode->mode == AV2H_INTRA_D113 &&
+               prefix->tx_size == AV2H_TX_32X32 &&
+               transform->secondary_symbol == 3U &&
+               transform->secondary_set == 1U) {
+        kernel = av2h_ist_8x8_set1_type3_kernel;
+        scan_map = av2h_ist_8x8_set1_type3_scan_map;
+    } else if (mode->mode == AV2H_INTRA_SMOOTH &&
+               prefix->tx_size == AV2H_TX_64X64 &&
+               transform->secondary_symbol == 3U &&
+               transform->secondary_set == 6U) {
+        kernel = av2h_ist_8x8_set6_type3_kernel;
+        scan_map = av2h_ist_8x8_set6_type3_scan_map;
     } else {
         return AV2H_UNSUPPORTED;
     }
@@ -1848,11 +1938,26 @@ Av2hStatus av2h_luma_predict(
          (mode->angle_delta == 0 && mode->mrl_index == 0U &&
           mode->multi_line_mrl == 0U &&
           ((mode->mode == AV2H_INTRA_VERTICAL &&
-            width == 16U && height == 4U) ||
+                        ((width == 16U && height == 4U) ||
+                         (width == 32U && height == 16U) ||
+                         (width == 32U && height == 64U))) ||
+                     (mode->mode == AV2H_INTRA_D45 &&
+                        width == 16U && height == 32U) ||
+                       (mode->mode == AV2H_INTRA_D113 &&
+                        width == 4U && height == 16U) ||
+                     (mode->mode == AV2H_INTRA_D135 &&
+                        ((width == 8U && height == 16U) ||
+                         (width == 32U && height == 64U))) ||
+                     (mode->mode == AV2H_INTRA_D157 &&
+                        ((width == 8U && height == 16U) ||
+                         (width == 32U && height == 32U))) ||
            (mode->mode == AV2H_INTRA_D67 &&
-            width == 64U && height == 64U) ||
+                        ((width == 8U && height == 4U) ||
+                         (width == 64U && height == 64U))) ||
            (mode->mode == AV2H_INTRA_D203 &&
-            width == 8U && height == 4U) ||
+                        ((width == 8U && height == 4U) ||
+                         (width == 16U && height == 32U) ||
+                         (width == 64U && height == 64U))) ||
            (mode->mode == AV2H_INTRA_D45 &&
             width == 4U && height == 16U)))) &&
         mode->angle_delta >= -3 && mode->angle_delta <= 3 &&
@@ -2969,6 +3074,7 @@ Av2hStatus av2h_luma_predict(
          (width == 32U && height == 32U) ||
          (width == 32U && height == 64U) ||
          (width == 64U && height == 16U) ||
+         (width == 64U && height == 32U) ||
          (width == 64U && height == 64U))) {
         uint8_t scale = smooth_scale(width, height);
         uint8_t bottom_left;
@@ -4014,9 +4120,8 @@ Av2hStatus av2h_chroma_predict(
             predictor, predictor_stride);
     }
     if (mode->mode == AV2H_INTRA_SMOOTH && mode->angle_delta == 0 &&
-        ((width == 8U && (height == 4U || height == 8U)) ||
-         (width == 16U && height == 16U) ||
-         (width == 32U && (height == 16U || height == 32U)))) {
+        luma_prediction_dimension_supported(width) && width <= 32U &&
+        luma_prediction_dimension_supported(height) && height <= 32U) {
         Av2hFirstLeafMode luma_mode = { 0 };
         luma_mode.mode = mode->mode;
         luma_mode.angle_delta = mode->angle_delta;
@@ -4024,8 +4129,20 @@ Av2hStatus av2h_chroma_predict(
             &luma_mode, width, height, references,
             predictor, predictor_stride);
     }
+    if (mode->angle_delta == 0 &&
+        directional_base_angle(mode->mode) != 0 &&
+        luma_prediction_dimension_supported(width) && width <= 32U &&
+        luma_prediction_dimension_supported(height) && height <= 32U) {
+        Av2hFirstLeafMode luma_mode = { 0 };
+        luma_mode.mode = mode->mode;
+        return predict_directional(
+            &luma_mode, directional_base_angle(mode->mode),
+            width, height, references, predictor, predictor_stride, 0U);
+    }
     if (mode->mode == AV2H_INTRA_SMOOTH_VERTICAL &&
-        mode->angle_delta == 0 && width == 32U && height == 16U) {
+        mode->angle_delta == 0 &&
+        luma_prediction_dimension_supported(width) && width <= 32U &&
+        luma_prediction_dimension_supported(height) && height <= 32U) {
         Av2hFirstLeafMode luma_mode = { 0 };
         luma_mode.mode = mode->mode;
         return av2h_luma_predict(
@@ -4111,21 +4228,12 @@ Av2hStatus av2h_chroma_predict(
                      mode->mode == AV2H_INTRA_D45 && mode->angle_delta == 3) ||
                     (mode->angle_delta == 0 &&
                      (mode->mode == AV2H_INTRA_DC ||
-                                            mode->mode == AV2H_INTRA_HORIZONTAL ||
                       mode->mode == AV2H_INTRA_SMOOTH_HORIZONTAL ||
                       mode->mode == AV2H_INTRA_PAETH) &&
-                     ((width == 32U && height == 16U) ||
-                      (width == 16U && height == 32U) ||
-                      (width == 16U && height == 16U) ||
-                      (width == 16U && height == 8U) ||
-                      (width == 16U && height == 4U) ||
-                      (width == 8U && height == 4U) ||
-                      (width == 8U && height == 8U) ||
-                                            (width == 8U && height == 16U) ||
-                      (width == 8U && height == 32U) ||
-                      (width == 32U && height == 4U) ||
-                                              (width == 32U && height == 8U) ||
-                      (width == 32U && height == 32U))))) {
+                     luma_prediction_dimension_supported(width) &&
+                     width <= 32U &&
+                     luma_prediction_dimension_supported(height) &&
+                     height <= 32U))) {
         return AV2H_UNSUPPORTED;
     }
     if (mode->mode == AV2H_INTRA_HORIZONTAL) {
@@ -7030,12 +7138,27 @@ static uint16_t mhccp_luma_filter1_sb_top_q3(
         luma_plane->data[center_y * luma_plane->stride + right_x]));
 }
 
+static uint16_t mhccp_luma_filter0_sb_top_q3(
+    const Av2hReconstructionPlane *luma_plane,
+    uint16_t chroma_x,
+    uint16_t block_y) {
+    size_t center_x = (size_t)chroma_x * 2U;
+    size_t center_y = (size_t)block_y * 2U - 1U;
+    size_t right_x = center_x + 1U < luma_plane->reference_width ?
+        center_x + 1U : center_x;
+    return (uint16_t)(4U * (
+        luma_plane->data[center_y * luma_plane->stride + center_x] +
+        luma_plane->data[center_y * luma_plane->stride + right_x]));
+}
+
 static uint16_t mhccp_luma_sample_q3(
     const Av2hReconstructionPlane *luma_plane,
     uint8_t filter_index,
     uint16_t chroma_x,
     uint16_t chroma_y) {
-    return filter_index == 1U ?
+    return filter_index == 0U ?
+        mhccp_luma_q3(luma_plane, chroma_x, chroma_y) :
+        filter_index == 1U ?
         mhccp_luma_filter1_q3(luma_plane, chroma_x, chroma_y) :
         mhccp_luma_filter2_q3(luma_plane, chroma_x, chroma_y);
 }
@@ -7095,13 +7218,14 @@ static Av2hStatus mhccp_predict_direction01(
     have_left = (uint8_t)(block_x >= 2U);
     is_top_sb_boundary = (uint8_t)(superblock_size != 0U &&
         ((uint32_t)block_y * 2U) % superblock_size == 0U);
-    if ((filter_index != 1U && filter_index != 2U) || direction > 2U ||
+    if (filter_index > 2U || direction > 2U ||
         width == 0U || height == 0U ||
         block_x >= chroma_plane->reference_width ||
         block_y >= chroma_plane->reference_height ||
         (have_left &&
          (block_x - 1U >= chroma_plane->reference_width ||
           block_x * 2U - 2U >= luma_plane->reference_width))) {
+          av2h_debug_mhccp_reason = 6U;
         return AV2H_UNSUPPORTED;
     }
     prediction_width = width < chroma_plane->reference_width - block_x ?
@@ -7123,9 +7247,12 @@ static Av2hStatus mhccp_predict_direction01(
         }
         return AV2H_OK;
     }
-    if (direction == 1U && !have_top) return AV2H_UNSUPPORTED;
     top_count = have_top ? (uint16_t)(width * 2U - 2U) : 0U;
     left_count = have_left ? (uint16_t)(height - 1U) : 0U;
+    if (left_count > chroma_plane->reference_height - block_y) {
+        left_count = (uint16_t)(
+            chroma_plane->reference_height - block_y);
+    }
     top_start_x = (uint16_t)(have_left ? block_x - 1U :
         direction == 2U ? block_x + 1U : block_x);
     top_chroma_width = 0U;
@@ -7190,11 +7317,12 @@ static Av2hStatus mhccp_predict_direction01(
         av2h_debug_mhccp_reason = 5U;
         return AV2H_UNSUPPORTED;
     }
-    if (direction == 1U &&
+    if (direction == 1U && have_top &&
         !plane_region_reconstructed(
             luma_plane, (uint16_t)(top_start_x * 2U),
             (uint16_t)(block_y * 2U - 4U),
             top_luma_width, 2U)) {
+        av2h_debug_mhccp_reason = 8U;
         return AV2H_UNSUPPORTED;
     }
     if (debug_index < 2U) {
@@ -7219,7 +7347,10 @@ static Av2hStatus mhccp_predict_direction01(
         {
             int32_t center = (int32_t)((direction == 0U &&
                 is_top_sb_boundary ?
-                    (filter_index == 1U ?
+                    (filter_index == 0U ?
+                        mhccp_luma_filter0_sb_top_q3(
+                            luma_plane, chroma_x, block_y) :
+                     filter_index == 1U ?
                         mhccp_luma_filter1_sb_top_q3(
                             luma_plane, chroma_x, block_y) :
                         mhccp_luma_filter2_sb_top_q3(
@@ -7228,7 +7359,11 @@ static Av2hStatus mhccp_predict_direction01(
                         luma_plane, filter_index, chroma_x, chroma_y)) >> 3U);
             vector[0] = direction == 0U ? center :
                 direction == 1U ?
-                    (int32_t)((filter_index == 1U ?
+                    (int32_t)((filter_index == 0U ?
+                        mhccp_luma_q3(
+                            luma_plane, chroma_x,
+                            (uint16_t)(chroma_y - 1U)) :
+                     filter_index == 1U ?
                         mhccp_luma_filter1_q3(
                             luma_plane, chroma_x,
                             (uint16_t)(chroma_y - 1U)) :
@@ -7267,7 +7402,8 @@ static Av2hStatus mhccp_predict_direction01(
         }
         ++count;
     }
-    for (sample = 0U; sample < left_count; ++sample) {
+    for (sample = (uint16_t)(direction == 1U && !have_top ? 1U : 0U);
+         sample < left_count; ++sample) {
         uint16_t chroma_x = (uint16_t)(block_x - 1U);
         uint16_t chroma_y = (uint16_t)(block_y + sample);
         int32_t vector[3U];
@@ -7349,10 +7485,11 @@ static Av2hStatus mhccp_predict_direction01(
             int parameter;
             vector[0] = direction == 0U ? center :
                 direction == 1U ?
-                    (int32_t)(mhccp_luma_sample_q3(
-                        luma_plane, filter_index,
-                        (uint16_t)(block_x + column),
-                        (uint16_t)(block_y + row - 1U)) >> 3U) :
+                    (row == 0U && !have_top ? center :
+                        (int32_t)(mhccp_luma_sample_q3(
+                            luma_plane, filter_index,
+                            (uint16_t)(block_x + column),
+                            (uint16_t)(block_y + row - 1U)) >> 3U)) :
                     (int32_t)(mhccp_luma_sample_q3(
                         luma_plane,
                         filter_index,
@@ -7700,6 +7837,34 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_ex(
             plane, (size_t)block_x - 1U, (size_t)block_y - 1U)) {
         references.above_left = plane->data[
             ((size_t)block_y - 1U) * plane->stride + block_x - 1U];
+        references.has_above_left = 1U;
+    }
+    if (!mode->is_cfl &&
+        (references.above_count == 0U || references.left_count == 0U)) {
+        size_t above_count = (size_t)width + height;
+        size_t left_count = (size_t)height + width;
+        uint8_t had_above = references.above_count != 0U;
+        uint8_t had_left = references.left_count != 0U;
+        uint8_t above_value = had_left ? references.left[0] : 127U;
+        uint8_t left_value = had_above ? references.above[0] : 129U;
+        if (above_count > sizeof(scratch->above)) {
+            above_count = sizeof(scratch->above);
+        }
+        if (left_count > sizeof(scratch->left)) {
+            left_count = sizeof(scratch->left);
+        }
+        if (!had_above) {
+            av2h_memory_fill(scratch->above, above_value, above_count);
+            references.above = scratch->above;
+            references.above_count = above_count;
+        }
+        if (!had_left) {
+            av2h_memory_fill(scratch->left, left_value, left_count);
+            references.left = scratch->left;
+            references.left_count = left_count;
+        }
+        references.above_left = had_above ? left_value :
+            had_left ? above_value : 128U;
         references.has_above_left = 1U;
     }
     if (mode->is_cfl) {

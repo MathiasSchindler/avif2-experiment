@@ -2,6 +2,8 @@
 
 #include "decoder/tx_geometry.h"
 
+extern uint8_t av2h_debug_mhccp_reason;
+
 typedef struct {
     size_t luma_mode_above;
     size_t luma_mode_left;
@@ -740,6 +742,12 @@ Av2hStatus av2h_decode_frame_i420_private(
                         leaf.transform[index].secondary_symbol;
                     decoded.secondary_set =
                         leaf.transform[index].secondary_set;
+                    decoded.is_cfl = leaf.mode.is_cfl;
+                    decoded.cfl_kind = (uint8_t)leaf.mode.cfl_kind;
+                    decoded.mhccp_direction = leaf.mode.mhccp_direction;
+                    decoded.cfl_filter_index =
+                        leaf.mode.cfl_downsample_filter_index;
+                    decoded.mhccp_reason = av2h_debug_mhccp_reason;
                     decoded.eob = leaf.prefix[index].eob;
                     AV2H_DECODE_FAIL(
                         returned, status,

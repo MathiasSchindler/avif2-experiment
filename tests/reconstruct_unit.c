@@ -1912,8 +1912,19 @@ static void test_luma_zero_angle_frontier_matrix(void) {
         uint16_t height;
     } cases[] = {
         { AV2H_INTRA_VERTICAL, 16U, 4U },
+        { AV2H_INTRA_VERTICAL, 32U, 16U },
+        { AV2H_INTRA_VERTICAL, 32U, 64U },
+        { AV2H_INTRA_D45, 16U, 32U },
+        { AV2H_INTRA_D113, 4U, 16U },
+        { AV2H_INTRA_D135, 8U, 16U },
+        { AV2H_INTRA_D135, 32U, 64U },
+        { AV2H_INTRA_D157, 8U, 16U },
+        { AV2H_INTRA_D157, 32U, 32U },
+        { AV2H_INTRA_D67, 8U, 4U },
         { AV2H_INTRA_D67, 64U, 64U },
         { AV2H_INTRA_D203, 8U, 4U },
+        { AV2H_INTRA_D203, 16U, 32U },
+        { AV2H_INTRA_D203, 64U, 64U },
         { AV2H_INTRA_D45, 4U, 16U }
     };
     Av2hFirstLeafMode mode = { 0 };
@@ -1994,7 +2005,7 @@ static void test_chroma_angle_delta_matrix(void) {
         AV2H_INTRA_D113,       AV2H_INTRA_D135, AV2H_INTRA_D157,
         AV2H_INTRA_HORIZONTAL, AV2H_INTRA_D203
     };
-    static const int8_t angle_deltas[] = { -3, -2, -1, 1, 2, 3 };
+    static const int8_t angle_deltas[] = { -3, -2, -1, 0, 1, 2, 3 };
     static const uint16_t dimensions[] = { 4U, 8U, 16U, 32U };
     Av2hFirstChromaMode chroma_mode = { 0 };
     Av2hFirstLeafMode luma_mode = { 0 };
@@ -2046,12 +2057,15 @@ static void test_chroma_angle_delta_matrix(void) {
                     CHECK(av2h_chroma_predict(
                               &chroma_mode, width, height, &references,
                               chroma_predictor, width) == AV2H_OK);
-                    CHECK(av2h_luma_predict(
-                              &luma_mode, width, height, &references,
-                              luma_predictor, width) == AV2H_OK);
                     CHECK(chroma_storage[0U] == 0xa5U);
                     CHECK(chroma_storage[sizeof(chroma_storage) - 1U] == 0xa5U);
-                    if (chroma_mode.angle_delta != -2 &&
+                    if (chroma_mode.angle_delta != 0) {
+                        CHECK(av2h_luma_predict(
+                                  &luma_mode, width, height, &references,
+                                  luma_predictor, width) == AV2H_OK);
+                    }
+                    if (chroma_mode.angle_delta != 0 &&
+                        chroma_mode.angle_delta != -2 &&
                         chroma_mode.angle_delta != 2) {
                         for (index = 0U; index < sample_count; ++index) {
                             CHECK(chroma_predictor[index] ==
@@ -4482,6 +4496,7 @@ static void test_mhccp_geometry_direction_matrix(void) {
     size_t row;
     size_t column;
     uint8_t direction;
+    uint8_t filter_index;
     uint8_t plane_index;
     for (row = 0U; row < 80U; ++row) {
         for (column = 0U; column < 80U; ++column) {
@@ -4494,7 +4509,8 @@ static void test_mhccp_geometry_direction_matrix(void) {
          geometry_index < sizeof(geometries) / sizeof(geometries[0]);
          ++geometry_index) {
         for (direction = 0U; direction < 3U; ++direction) {
-            for (plane_index = 1U; plane_index <= 2U; ++plane_index) {
+            for (filter_index = 0U; filter_index < 3U; ++filter_index) {
+                for (plane_index = 1U; plane_index <= 2U; ++plane_index) {
                 Av2hFirstChromaMode mode = { 0 };
                 Av2hFirstCoeffPrefix prefix = { 0 };
                 Av2hFirstTransformType transform = { 0 };
@@ -4504,7 +4520,7 @@ static void test_mhccp_geometry_direction_matrix(void) {
                 uint16_t height = geometries[geometry_index].height;
                 mode.is_cfl = 1U;
                 mode.cfl_kind = AV2H_CFL_MULTI_PARAM;
-                mode.cfl_downsample_filter_index = 2U;
+                mode.cfl_downsample_filter_index = filter_index;
                 mode.mhccp_direction = direction;
                 prefix.tx_size = geometries[geometry_index].tx;
                 prefix.all_zero = 1U;
@@ -4548,6 +4564,28 @@ static void test_mhccp_geometry_direction_matrix(void) {
                               chroma_data[(row + 4U) * 40U + column + 4U]);
                     }
                 }
+                if (filter_index == 0U && direction == 1U) {
+                    leaf.row = 0U;
+                    leaf.column = 2U;
+                    av2h_memory_fill(pred_data, 0U, sizeof(pred_data));
+                    av2h_memory_fill(pred_rec, 0U, sizeof(pred_rec));
+                    CHECK(av2h_chroma_reconstruct_to_plane_ex(
+                              &leaf, &mode, &prefix, &transform, &block,
+                              &chroma, &luma, plane_index, &predictor,
+                              &scratch) == AV2H_OK);
+                }
+                if (width == 4U && height == 32U &&
+                    filter_index == 2U && direction == 0U) {
+                    leaf.row = 8U;
+                    leaf.column = 2U;
+                    av2h_memory_fill(pred_data, 0U, sizeof(pred_data));
+                    av2h_memory_fill(pred_rec, 0U, sizeof(pred_rec));
+                    CHECK(av2h_chroma_reconstruct_to_plane_ex(
+                              &leaf, &mode, &prefix, &transform, &block,
+                              &chroma, &luma, plane_index, &predictor,
+                              &scratch) == AV2H_OK);
+                }
+                                }
             }
         }
     }
@@ -4756,7 +4794,37 @@ static void test_luma_ist_frontier_matrix(void) {
                 { AV2H_INTRA_SMOOTH_HORIZONTAL, AV2H_TX_64X64,
                     64U, 64U, 32U, 32U, 2U, 0U },
                 { AV2H_INTRA_D45, AV2H_TX_32X32,
-                    32U, 32U, 32U, 32U, 3U, 2U }
+                    32U, 32U, 32U, 32U, 3U, 2U },
+                { AV2H_INTRA_HORIZONTAL, AV2H_TX_64X64,
+                    64U, 64U, 32U, 32U, 3U, 6U },
+                { AV2H_INTRA_D45, AV2H_TX_64X16,
+                    64U, 16U, 32U, 16U, 3U, 2U },
+                { AV2H_INTRA_D113, AV2H_TX_16X32,
+                    16U, 32U, 16U, 32U, 3U, 3U },
+                { AV2H_INTRA_DC, AV2H_TX_16X64,
+                    16U, 64U, 16U, 32U, 1U, 6U },
+                { AV2H_INTRA_DC, AV2H_TX_64X32,
+                    64U, 32U, 32U, 32U, 3U, 1U },
+                { AV2H_INTRA_D203, AV2H_TX_16X16,
+                    16U, 16U, 16U, 16U, 3U, 5U },
+                { AV2H_INTRA_D45, AV2H_TX_16X32,
+                    16U, 32U, 16U, 32U, 3U, 6U },
+                { AV2H_INTRA_VERTICAL, AV2H_TX_32X16,
+                    32U, 16U, 32U, 16U, 2U, 1U },
+                { AV2H_INTRA_DC, AV2H_TX_64X16,
+                    64U, 16U, 32U, 16U, 3U, 6U },
+                { AV2H_INTRA_DC, AV2H_TX_32X64,
+                    32U, 64U, 32U, 32U, 1U, 6U },
+                { AV2H_INTRA_HORIZONTAL, AV2H_TX_32X16,
+                    32U, 16U, 32U, 16U, 3U, 6U },
+                { AV2H_INTRA_D135, AV2H_TX_32X64,
+                    32U, 64U, 32U, 32U, 3U, 3U },
+                { AV2H_INTRA_VERTICAL, AV2H_TX_32X16,
+                    32U, 16U, 32U, 16U, 3U, 1U },
+                { AV2H_INTRA_D113, AV2H_TX_32X32,
+                    32U, 32U, 32U, 32U, 3U, 1U },
+                { AV2H_INTRA_SMOOTH, AV2H_TX_64X64,
+                    64U, 64U, 32U, 32U, 3U, 6U }
         };
         static Av2hReconstructionScratch scratch;
         static Av2hFirstReconstruction reconstruction;
