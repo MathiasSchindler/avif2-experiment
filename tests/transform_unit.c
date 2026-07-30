@@ -456,6 +456,129 @@ static void test_emerald_secondary_signaling(void) {
           AV2H_INVALID_ARGUMENT);
 }
 
+static void test_chroma_derived_transform_types(void) {
+    static const unsigned char bytes[] = { 0U, 0U, 0U, 0U };
+    static const Av2hFirstTxType mode_types[13U] = {
+        AV2H_TX_DCT_DCT,
+        AV2H_TX_ADST_DCT,
+        AV2H_TX_DCT_ADST,
+        AV2H_TX_DCT_DCT,
+        AV2H_TX_ADST_ADST,
+        AV2H_TX_ADST_DCT,
+        AV2H_TX_DCT_ADST,
+        AV2H_TX_DCT_ADST,
+        AV2H_TX_ADST_DCT,
+        AV2H_TX_ADST_ADST,
+        AV2H_TX_ADST_DCT,
+        AV2H_TX_DCT_ADST,
+        AV2H_TX_ADST_ADST
+    };
+    Av2hSpan span = { bytes, sizeof(bytes) };
+    Av2hFirstTransformCdfs cdfs;
+    Av2hFrameState frame = { 0 };
+    Av2hFirstChromaMode mode = { 0 };
+    Av2hFirstCoeffPrefix prefix = { 0 };
+    size_t mode_index;
+
+    prefix.tx_size = AV2H_TX_16X16;
+    prefix.eob = 1U;
+    CHECK(av2h_first_transform_cdfs_init(&cdfs) == AV2H_OK);
+    for (mode_index = 0U; mode_index < 13U; ++mode_index) {
+        Av2hRangeDecoder decoder;
+        Av2hFirstTransformType transform;
+        mode.mode = (Av2hFirstLeafIntraMode)mode_index;
+        CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
+        CHECK(av2h_chroma_transform_type_read(
+                  &decoder, &cdfs, &frame, &mode, 1U, &prefix,
+                  &transform) == AV2H_OK);
+        CHECK(transform.primary_type == mode_types[mode_index]);
+        CHECK(transform.primary_signaled == 0U);
+        CHECK(transform.secondary_signaled == 0U);
+        CHECK(transform.after_primary_bits == transform.before_primary_bits);
+    }
+
+    prefix.tx_size = AV2H_TX_32X16;
+    mode.mode = AV2H_INTRA_D203;
+    {
+        Av2hRangeDecoder decoder;
+        Av2hFirstTransformType transform;
+        CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
+        CHECK(av2h_chroma_transform_type_read(
+                  &decoder, &cdfs, &frame, &mode, 1U, &prefix,
+                  &transform) == AV2H_OK);
+        CHECK(transform.primary_type == AV2H_TX_DCT_DCT);
+    }
+
+    prefix.tx_size = AV2H_TX_64X16;
+    mode.mode = AV2H_INTRA_VERTICAL;
+    {
+        Av2hRangeDecoder decoder;
+        Av2hFirstTransformType transform;
+        CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
+        CHECK(av2h_chroma_transform_type_read(
+                  &decoder, &cdfs, &frame, &mode, 1U, &prefix,
+                  &transform) == AV2H_OK);
+        CHECK(transform.primary_type == AV2H_TX_ADST_DCT);
+    }
+    prefix.tx_size = AV2H_TX_16X64;
+    mode.mode = AV2H_INTRA_HORIZONTAL;
+    {
+        Av2hRangeDecoder decoder;
+        Av2hFirstTransformType transform;
+        CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
+        CHECK(av2h_chroma_transform_type_read(
+                  &decoder, &cdfs, &frame, &mode, 1U, &prefix,
+                  &transform) == AV2H_OK);
+        CHECK(transform.primary_type == AV2H_TX_DCT_ADST);
+    }
+
+    prefix.tx_size = AV2H_TX_16X16;
+    frame.reduced_tx_set = 1U;
+    {
+        Av2hRangeDecoder decoder;
+        Av2hFirstTransformType transform;
+        CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
+        CHECK(av2h_chroma_transform_type_read(
+                  &decoder, &cdfs, &frame, &mode, 1U, &prefix,
+                  &transform) == AV2H_OK);
+        CHECK(transform.primary_type == AV2H_TX_DCT_DCT);
+    }
+
+    frame.reduced_tx_set = 0U;
+    prefix.all_zero = 1U;
+    prefix.eob = 0U;
+    {
+        Av2hRangeDecoder decoder;
+        Av2hFirstTransformType transform;
+        CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
+        CHECK(av2h_chroma_transform_type_read(
+                  &decoder, &cdfs, &frame, &mode, 1U, &prefix,
+                  &transform) == AV2H_OK);
+        CHECK(transform.after_primary_bits == transform.before_primary_bits);
+    }
+
+    prefix.all_zero = 0U;
+    prefix.eob = 2U;
+    {
+        Av2hRangeDecoder u_decoder;
+        Av2hRangeDecoder v_decoder;
+        Av2hFirstTransformType transform;
+        CHECK(av2h_first_transform_cdfs_init(&cdfs) == AV2H_OK);
+        CHECK(av2h_range_init(&u_decoder, &span, 1U) == AV2H_OK);
+        CHECK(av2h_chroma_transform_type_read(
+                  &u_decoder, &cdfs, &frame, &mode, 1U, &prefix,
+                  &transform) == AV2H_OK);
+        CHECK(transform.after_primary_bits > transform.before_primary_bits);
+        CHECK(cdfs.chroma_cross_type[7U] == 1U);
+        CHECK(av2h_range_init(&v_decoder, &span, 1U) == AV2H_OK);
+        CHECK(av2h_chroma_transform_type_read(
+                  &v_decoder, &cdfs, &frame, &mode, 2U, &prefix,
+                  &transform) == AV2H_OK);
+        CHECK(transform.after_primary_bits == transform.before_primary_bits);
+        CHECK(cdfs.chroma_cross_type[7U] == 1U);
+    }
+}
+
 int main(void) {
     test_fixture_transform_types();
     test_fsc_single_coefficient_uses_idtx();
@@ -466,6 +589,7 @@ int main(void) {
     test_adst_flipadst_primary_mappings();
     test_idtx_primary_mappings();
     test_emerald_secondary_signaling();
+    test_chroma_derived_transform_types();
     test_arguments();
     if (failures != 0) {
         fprintf(stderr, "%d transform checks failed\n", failures);

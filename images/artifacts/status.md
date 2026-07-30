@@ -30,8 +30,7 @@ an earlier entropy divergence can still be the underlying cause.
 | Luma transform type | `chinnathurai-128x128-qp112.obu` |
 | Luma prediction | `cuckoo-431x287-qp080.obu`, `pastell-320x213-qp064.obu` |
 | Luma inverse transform | `schwaebisch-417x277-qp208.obu`, `silene-479x383-qp176.obu` |
-| Chroma coefficient levels | `chalk-320x240-qp128.obu` |
-| Chroma transform type | `flycatcher-223x149-qp176.obu`, `flycatcher-397x265-qp048.obu`, `laarim-256x171-qp096.obu`, `laarim-448x299-qp192.obu`, `pastell-512x341-qp160.obu` |
+| Chroma coefficient levels | `chalk-320x240-qp128.obu`, `flycatcher-223x149-qp176.obu`, `flycatcher-397x265-qp048.obu`, `laarim-256x171-qp096.obu`, `laarim-448x299-qp192.obu`, `pastell-512x341-qp160.obu` |
 | Chroma prediction | `chimp-240x287-qp192.obu`, `emerald-480x240-qp128.obu`, `louis-463x342-qp224.obu`, `silene-384x307-qp080.obu` |
 
 | File | Current endpoint | Blocker |
@@ -45,14 +44,14 @@ an earlier entropy divergence can still be the underlying cause.
 | `cuckoo-431x287-qp080.obu` | First luma and chroma leaves committed; `(0,16)` 64x64 luma leaf reaches prediction at tell 418 | Q80 64x64 luma prediction profile |
 | `emerald-192x96-qp208.obu` | **Complete:** 20 luma and 11 chroma leaves, tile done at tell 731, filtered I420 byte-identical to the AVM reference (SHA-256 `403c2e7245ec484984e60c1eaf8bd1b47487c0ba6b60afc916b9532025fc51ad`) | None for the accepted profile |
 | `emerald-480x240-qp128.obu` | First 64x64 luma predictor/output match AVM (`d4ea93e1129d09a3`/`2bc3d4c50c228831`); first 32x32 U/V blocks match through tell 197, range 53184, with prefilter hashes `57a7c38258f413ff`/`15846509fdb0b4f1` | Next luma/chroma traversal profile after the first exact leaf pair |
-| `flycatcher-223x149-qp176.obu` | Two luma leaves committed; first 64x64 U leaf decodes its prefix and reaches transform type at tell 81 | Q176 chroma transform-type profile |
-| `flycatcher-397x265-qp048.obu` | 19 luma leaves committed; first 64x32 U leaf decodes EOB 78 and reaches transform type at tell 818 | Q48 chroma transform-type profile |
-| `laarim-256x171-qp096.obu` | Seven luma leaves committed; first 32x32 U leaf decodes its prefix and reaches transform type at tell 1785 | Q96 chroma transform-type profile |
-| `laarim-448x299-qp192.obu` | First 64x64 luma leaf committed; first U leaf decodes its prefix and reaches transform type at tell 118 | Q192 chroma transform-type profile |
+| `flycatcher-223x149-qp176.obu` | Two luma leaves committed; first 64x64 U leaf derives DCT_DCT, reads CCTX, and reaches coefficient levels at tell 82 | Q176 chroma coefficient-level profile |
+| `flycatcher-397x265-qp048.obu` | 19 luma leaves committed; first 64x32 U leaf decodes EOB 78, derives DCT_DCT, reads CCTX, and reaches coefficient levels at tell 819 | Q48 chroma coefficient-level profile |
+| `laarim-256x171-qp096.obu` | Seven luma leaves committed; first 32x32 U leaf decodes EOB 41, derives DCT_DCT, reads CCTX, and reaches coefficient levels at tell 1786 | Q96 chroma coefficient-level profile |
+| `laarim-448x299-qp192.obu` | First 64x64 luma leaf committed; first U leaf derives DCT_DCT without CCTX for EOB 1 and reaches coefficient levels at tell 118 | Q192 chroma coefficient-level profile |
 | `louis-301x222-qp144.obu` | First 64x16 luma leaf committed; `(4,0)` 16x16 reaches tell 76 | Q144 mode or palette profile |
 | `louis-463x342-qp224.obu` | 78 luma and 39 chroma leaves committed; `(32,48)` 32x64 U leaf reaches prediction at tell 1318 | Q224 chroma prediction profile |
 | `pastell-320x213-qp064.obu` | 13 luma leaves committed; `(8,0)` 64x32 reaches prediction at tell 955 | Q64 64x32 Smooth Horizontal prediction profile |
-| `pastell-512x341-qp160.obu` | 18 luma leaves committed; first 64x32 U leaf decodes its prefix and reaches transform type at tell 700 | Q160 chroma transform-type profile |
+| `pastell-512x341-qp160.obu` | 18 luma leaves committed; first all-zero 64x32 U leaf derives DCT_DCT without consuming transform syntax and reaches coefficient levels at tell 700 | Q160 chroma coefficient-level profile |
 | `schwaebisch-353x234-qp112.obu` | 13 luma leaves committed; `(4,8)` 32x16 reaches coefficient prefix at tell 1041 | Q112 32x16 coefficient-prefix profile |
 | `schwaebisch-417x277-qp208.obu` | 200 luma and 30 chroma leaves committed; `(56,56)` 32x32 luma leaf reaches inverse transform at tell 3678 | Later Q208 luma IST tuple |
 | `silene-384x307-qp080.obu` | Three luma and two chroma leaves committed; `(0,32)` 64x64 U leaf reaches prediction at tell 311 | Q80 chroma prediction profile |
@@ -93,11 +92,18 @@ Summary:
   EOB-point banks for all Q contexts and transform capacities. Descriptor
   geometry replaces artifact/frame gates. All nine former chroma-prefix
   blockers advance, and no production artifact currently stops there;
+- chroma primary transform type is now derived from all 13 intra chroma modes
+  for compact transforms and aligned one-dimensional ADST on 64-long
+  rectangles, with normative DCT_DCT fallback for reduced, DCT-only, and
+  32-long rectangular geometries. U reads the adaptive CCTX symbol only for
+  nonzero blocks with EOB greater than one; V never reads it. All five former
+  chroma transform-type blockers advance, and no production artifact stops
+  there;
 - Laarim Q96 no longer fails in first-block prediction. The existing 32x32
   D45/0 no-neighbor IBP fallback was shadowed by the generic directional
   branch; ordering it first advances production from tell 471 with zero leaves
   to tell 584 after two committed luma leaves. Production now reaches the first
-  32x32 U transform type at tell 1785;
+  32x32 U coefficient levels at tell 1786;
 - Emerald Q208 is the first complete artifact: all locked luma/chroma handoffs
   reach tile completion at tell 731, frame filtering completes, and CTest
   verifies the emitted I420 byte-for-byte against the AVM reference;

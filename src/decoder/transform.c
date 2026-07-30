@@ -1303,6 +1303,44 @@ Av2hStatus av2h_first_chroma_transform_type_read(
         decoder, cdfs, frame, &mode, plane, coeff, transform);
 }
 
+static Av2hStatus chroma_primary_type(
+    const Av2hFirstChromaMode *mode,
+    const Av2hTxDescriptor *descriptor,
+    uint8_t reduced_tx_set,
+    Av2hFirstTxType *tx_type) {
+    static const Av2hFirstTxType mode_types[13U] = {
+        AV2H_TX_DCT_DCT,
+        AV2H_TX_ADST_DCT,
+        AV2H_TX_DCT_ADST,
+        AV2H_TX_DCT_DCT,
+        AV2H_TX_ADST_ADST,
+        AV2H_TX_ADST_DCT,
+        AV2H_TX_DCT_ADST,
+        AV2H_TX_DCT_ADST,
+        AV2H_TX_ADST_DCT,
+        AV2H_TX_ADST_ADST,
+        AV2H_TX_ADST_DCT,
+        AV2H_TX_DCT_ADST,
+        AV2H_TX_ADST_ADST
+    };
+    if (mode == 0 || descriptor == 0 || tx_type == 0 ||
+        (uint8_t)mode->mode >= 13U) {
+        return AV2H_INVALID_ARGUMENT;
+    }
+    *tx_type = mode_types[(uint8_t)mode->mode];
+    if (reduced_tx_set ||
+        descriptor->signaling_class == AV2H_TX_SIGNAL_DCT_ONLY ||
+        descriptor->signaling_class == AV2H_TX_SIGNAL_WIDE_32 ||
+        descriptor->signaling_class == AV2H_TX_SIGNAL_HIGH_32 ||
+        (descriptor->signaling_class == AV2H_TX_SIGNAL_WIDE_64 &&
+         *tx_type != AV2H_TX_ADST_DCT) ||
+        (descriptor->signaling_class == AV2H_TX_SIGNAL_HIGH_64 &&
+         *tx_type != AV2H_TX_DCT_ADST)) {
+        *tx_type = AV2H_TX_DCT_DCT;
+    }
+    return AV2H_OK;
+}
+
 Av2hStatus av2h_chroma_transform_type_read(
     Av2hRangeDecoder *decoder,
     Av2hFirstTransformCdfs *cdfs,
@@ -1311,57 +1349,33 @@ Av2hStatus av2h_chroma_transform_type_read(
     uint8_t plane,
     const Av2hFirstCoeffPrefix *coeff,
     Av2hFirstTransformType *transform) {
+    const Av2hTxDescriptor *descriptor;
     uint32_t symbol = 0U;
+    Av2hStatus status;
     if (decoder == 0 || cdfs == 0 || frame == 0 || mode == 0 || coeff == 0 ||
         transform == 0) {
         return AV2H_INVALID_ARGUMENT;
     }
-        if ((plane == 1U || plane == 2U) && !frame->reduced_tx_set &&
-                ((frame->base_q_index == 208U &&
-                    ((frame->width == 192U && frame->height == 96U) ||
-                     (frame->width == 417U && frame->height == 277U)) &&
-                    (coeff->tx_size == AV2H_TX_32X16 ||
-                     coeff->tx_size == AV2H_TX_32X32 ||
-                     coeff->tx_size == AV2H_TX_16X32 ||
-                     coeff->tx_size == AV2H_TX_16X8 ||
-                     coeff->tx_size == AV2H_TX_32X4)) ||
-                 (frame->base_q_index == 224U &&
-                    ((frame->width == 333U && frame->height == 333U) ||
-                     (frame->width == 463U && frame->height == 342U)) &&
-                    (coeff->tx_size == AV2H_TX_8X4 ||
-                     coeff->tx_size == AV2H_TX_8X8 ||
-                     coeff->tx_size == AV2H_TX_8X16 ||
-                     coeff->tx_size == AV2H_TX_32X16 ||
-                     coeff->tx_size == AV2H_TX_32X8 ||
-                     coeff->tx_size == AV2H_TX_32X32 ||
-                     coeff->tx_size == AV2H_TX_16X32 ||
-                    coeff->tx_size == AV2H_TX_8X32 ||
-                    (frame->width == 463U && frame->height == 342U &&
-                                            (coeff->tx_size == AV2H_TX_16X16 ||
-                                               coeff->tx_size == AV2H_TX_16X4 ||
-                                               coeff->tx_size == AV2H_TX_4X8 ||
-                                               coeff->tx_size == AV2H_TX_4X32)))) ||
-                     (frame->base_q_index == 192U &&
-                      frame->width == 240U && frame->height == 287U &&
-                                            (coeff->tx_size == AV2H_TX_32X16 ||
-                                             coeff->tx_size == AV2H_TX_32X32)) ||
-                      (((frame->base_q_index == 128U &&
-                          frame->width == 480U && frame->height == 240U) ||
-                         (frame->base_q_index == 176U &&
-                          frame->width == 479U && frame->height == 383U)) &&
-                                                coeff->tx_size == AV2H_TX_32X32) ||
-                                         (frame->base_q_index <= 90U &&
-                                            coeff->tx_size == AV2H_TX_32X32))) {
+    status = av2h_tx_descriptor_get(coeff->tx_size, &descriptor);
+    if ((plane == 1U || plane == 2U) && status == AV2H_OK) {
         transform->before_primary_bits = av2h_range_tell(decoder);
-        transform->primary_type = AV2H_TX_DCT_DCT;
+        status = chroma_primary_type(
+            mode, descriptor, frame->reduced_tx_set,
+            &transform->primary_type);
+        if (status != AV2H_OK) return status;
         transform->primary_signaled = 0U;
         transform->primary_symbol = 0U;
         transform->secondary_signaled = 0U;
         transform->secondary_symbol = 0U;
+        transform->secondary_set_symbol = 0U;
+        transform->secondary_set = 0U;
+        transform->cctx_type = 0U;
         if (coeff->all_zero) {
             if (coeff->eob != 0U) return AV2H_UNSUPPORTED;
         } else {
-            if (coeff->eob == 0U) return AV2H_UNSUPPORTED;
+            if (coeff->eob == 0U || coeff->eob > descriptor->eob_capacity) {
+                return AV2H_UNSUPPORTED;
+            }
             if (plane == 1U && coeff->eob != 1U) {
                 symbol = av2h_range_read_adaptive(
                     decoder, cdfs->chroma_cross_type, 7U);
@@ -1372,43 +1386,10 @@ Av2hStatus av2h_chroma_transform_type_read(
             }
         }
         transform->after_primary_bits = av2h_range_tell(decoder);
+        transform->after_secondary_type_bits =
+            transform->after_primary_bits;
         transform->after_secondary_bits = transform->after_primary_bits;
         return AV2H_OK;
     }
-    if ((plane == 1U || plane == 2U) && !frame->reduced_tx_set &&
-        frame->base_q_index == 128U && coeff->all_zero && coeff->eob == 0U) {
-        transform->before_primary_bits = av2h_range_tell(decoder);
-        transform->primary_type = AV2H_TX_DCT_DCT;
-        transform->primary_signaled = 0U;
-        transform->primary_symbol = 0U;
-        transform->secondary_signaled = 0U;
-        transform->secondary_symbol = 0U;
-        transform->after_primary_bits = transform->before_primary_bits;
-        transform->after_secondary_bits = transform->before_primary_bits;
-        return AV2H_OK;
-    }
-    if ((plane != 1U && plane != 2U) || frame->reduced_tx_set ||
-        frame->base_q_index != 128U || coeff->tx_size != AV2H_TX_4X4 ||
-        coeff->all_zero || coeff->eob == 0U || coeff->eob > 16U) {
-        return AV2H_UNSUPPORTED;
-    }
-    transform->before_primary_bits = av2h_range_tell(decoder);
-    transform->primary_type = mode->mode == AV2H_INTRA_D203 ?
-        AV2H_TX_DCT_ADST : mode->mode == AV2H_INTRA_D67 ?
-        AV2H_TX_ADST_DCT : AV2H_TX_DCT_DCT;
-    transform->primary_signaled = 0U;
-    transform->primary_symbol = 0U;
-    transform->secondary_signaled = 0U;
-    transform->secondary_symbol = 0U;
-    if (plane == 1U && coeff->eob != 1U) {
-        symbol = av2h_range_read_adaptive(
-            decoder, cdfs->chroma_cross_type, 7U);
-        if (av2h_range_status(decoder) != AV2H_OK) {
-            return av2h_range_status(decoder);
-        }
-        if (symbol != 0U) return AV2H_UNSUPPORTED;
-    }
-    transform->after_primary_bits = av2h_range_tell(decoder);
-    transform->after_secondary_bits = transform->after_primary_bits;
-    return AV2H_OK;
+    return status != AV2H_OK ? status : AV2H_UNSUPPORTED;
 }
