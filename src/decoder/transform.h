@@ -23,6 +23,7 @@ typedef enum {
     AV2H_TX_H_DCT = 11,
     AV2H_TX_V_ADST = 12,
     AV2H_TX_H_ADST = 13,
+    AV2H_TX_V_FLIPADST = 14,
     AV2H_TX_H_FLIPADST = 15,
     AV2H_TX_TYPE_INVALID = 255
 } Av2hFirstTxType;

@@ -190,6 +190,11 @@ Av2hStatus av2h_primary_tx_type_map(
         *tx_type = AV2H_TX_ADST_FLIPADST;
         return AV2H_OK;
     }
+    if (size_class == 0U && mode == AV2H_INTRA_D113 &&
+        long_side_symbol == 0U && primary_symbol == 6U) {
+        *tx_type = AV2H_TX_V_FLIPADST;
+        return AV2H_OK;
+    }
     if ((descriptor->signaling_class == AV2H_TX_SIGNAL_INTRA_4 ||
          descriptor->signaling_class == AV2H_TX_SIGNAL_INTRA_8 ||
          descriptor->signaling_class == AV2H_TX_SIGNAL_INTRA_16) &&
@@ -447,7 +452,11 @@ static Av2hStatus read_primary(Av2hRangeDecoder *decoder,
             coeff->tx_size, mode->mode, (uint8_t)long_side,
             (uint8_t)symbol, &transform->primary_type);
     }
-    if (coeff->tx_size == AV2H_TX_4X4 && mode->use_intrabc) {
+            if ((coeff->tx_size == AV2H_TX_4X4 ||
+                coeff->tx_size == AV2H_TX_4X8 ||
+                coeff->tx_size == AV2H_TX_8X4 ||
+                coeff->tx_size == AV2H_TX_8X8 ||
+                coeff->tx_size == AV2H_TX_16X8) && mode->use_intrabc) {
         uint16_t last = (uint16_t)(coeff->eob - 1U);
         uint8_t diagonal =
             (uint8_t)((last >> 2U) + (last & 3U));
@@ -468,6 +477,8 @@ static Av2hStatus read_primary(Av2hRangeDecoder *decoder,
         transform->primary_symbol = (uint8_t)symbol;
         if (set == 0U && symbol == 0U) {
             transform->primary_type = AV2H_TX_IDTX;
+        } else if (set == 0U && symbol == 5U) {
+            transform->primary_type = AV2H_TX_V_FLIPADST;
         } else if (set == 0U && symbol == 6U) {
             transform->primary_type = AV2H_TX_H_FLIPADST;
         } else {

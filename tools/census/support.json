@@ -3,8 +3,8 @@
   "families": [
     {
       "feature": "Non-DCT primary transform",
-      "status": "partial",
-      "evidence": "Primary-transform syntax and inverse kernels exist, but accepted coefficient and geometry tuples remain profile-gated."
+      "status": "supported",
+      "evidence": "Every non-DCT primary transform value observed by the corpus has reviewed syntax, coefficient-profile, geometry, and inverse-reconstruction coverage."
     },
     {
       "feature": "Luma directional angle",
@@ -48,8 +48,8 @@
     },
     {
       "feature": "Transform skip",
-      "status": "partial",
-      "evidence": "Skip syntax and selected reconstruction paths exist, but the corpus occurrences are not all validated end to end."
+      "status": "supported",
+      "evidence": "IntraBC transform skip is validated for both IntraBC modes across every legal luma transform geometry, including full-output copying for reduced-coefficient 64-wide transforms."
     },
     {
       "feature": "Palette",
@@ -98,6 +98,54 @@
       "value": "Primary tx H_ADST",
       "status": "supported",
       "evidence": "Validated across both coefficient Q banks and all six observed 4x4 through 16x8 geometries, with fixed all-mode reconstruction hashes and horizontal ADST plus vertical identity inverse kernels."
+    },
+    {
+      "match": "exact",
+      "value": "Primary tx V_ADST",
+      "status": "supported",
+      "evidence": "Validated across both coefficient Q banks and all five observed geometries, with fixed all-mode reconstruction hashes and vertical ADST plus horizontal identity inverse kernels."
+    },
+    {
+      "match": "exact",
+      "value": "Primary tx DCT_FLIPADST",
+      "status": "supported",
+      "evidence": "Validated across both coefficient Q banks and all ten observed geometries through 16x32, with fixed all-mode reconstruction hashes and a FLIPADST axis limited to 16 samples."
+    },
+    {
+      "match": "exact",
+      "value": "Primary tx V_DCT",
+      "status": "supported",
+      "evidence": "Validated across both coefficient Q banks and all eight observed geometries through 4x32, with fixed all-mode reconstruction hashes and vertical DCT plus horizontal identity inverse kernels."
+    },
+    {
+      "match": "exact",
+      "value": "Primary tx FLIPADST_FLIPADST",
+      "status": "supported",
+      "evidence": "Validated across both coefficient Q banks and all eight observed geometries, with fixed all-mode reconstruction hashes and two-axis FLIPADST inverse kernels."
+    },
+    {
+      "match": "exact",
+      "value": "Primary tx H_DCT",
+      "status": "supported",
+      "evidence": "Validated across both coefficient Q banks and all five observed geometries through 32x4, with fixed all-mode reconstruction hashes and horizontal DCT plus vertical identity inverse kernels."
+    },
+    {
+      "match": "exact",
+      "value": "Primary tx FLIPADST_DCT",
+      "status": "supported",
+      "evidence": "Validated across both coefficient Q banks and all eight observed geometries through 32x4, with fixed all-mode reconstruction hashes and a vertical FLIPADST axis limited to 16 samples."
+    },
+    {
+      "match": "exact",
+      "value": "Primary tx V_FLIPADST",
+      "status": "supported",
+      "evidence": "Validated with normative type-14 D113 and IntraBC syntax mappings, both coefficient Q banks, all three observed geometries, and fixed all-mode reconstruction hashes."
+    },
+    {
+      "match": "exact",
+      "value": "Primary tx H_FLIPADST",
+      "status": "supported",
+      "evidence": "Validated with normative IntraBC transform-subset syntax, both coefficient Q banks, all five observed geometries, and fixed IntraBC reconstruction hashes."
     },
     {
       "match": "exact",
@@ -258,8 +306,8 @@
     {
       "match": "exact",
       "value": "Transform skip",
-      "status": "partial",
-      "evidence": "Selected skip paths are tested, but all observed corpus tuples have not been validated end to end."
+      "status": "supported",
+      "evidence": "Validated for both IntraBC modes across all 22 legal luma transform geometries, with zero-residual checks and full output-surface predictor copies."
     },
     {
       "match": "exact",

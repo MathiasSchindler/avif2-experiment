@@ -4507,6 +4507,26 @@ static Av2hStatus recon_transform_kinds(uint8_t primary_type,
             *row_kind = RECON_1D_ADST;
             *column_kind = RECON_1D_IDENTITY;
             return AV2H_OK;
+        case AV2H_TX_V_ADST:
+            *row_kind = RECON_1D_IDENTITY;
+            *column_kind = RECON_1D_ADST;
+            return AV2H_OK;
+        case AV2H_TX_V_DCT:
+            *row_kind = RECON_1D_IDENTITY;
+            *column_kind = RECON_1D_DCT;
+            return AV2H_OK;
+        case AV2H_TX_H_DCT:
+            *row_kind = RECON_1D_DCT;
+            *column_kind = RECON_1D_IDENTITY;
+            return AV2H_OK;
+        case AV2H_TX_V_FLIPADST:
+            *row_kind = RECON_1D_IDENTITY;
+            *column_kind = RECON_1D_FLIPADST;
+            return AV2H_OK;
+        case AV2H_TX_H_FLIPADST:
+            *row_kind = RECON_1D_FLIPADST;
+            *column_kind = RECON_1D_IDENTITY;
+            return AV2H_OK;
         case AV2H_TX_IDTX:
             *row_kind = RECON_1D_IDENTITY;
             *column_kind = RECON_1D_IDENTITY;
@@ -4740,9 +4760,16 @@ static int reconstruct_generic_selected(
                 transform->primary_type != AV2H_TX_FLIPADST_FLIPADST &&
                 transform->primary_type != AV2H_TX_ADST_DCT &&
                 transform->primary_type != AV2H_TX_DCT_ADST &&
+                transform->primary_type != AV2H_TX_DCT_FLIPADST &&
+                transform->primary_type != AV2H_TX_FLIPADST_DCT &&
                 transform->primary_type != AV2H_TX_ADST_FLIPADST &&
                 transform->primary_type != AV2H_TX_FLIPADST_ADST &&
                 transform->primary_type != AV2H_TX_H_ADST &&
+                transform->primary_type != AV2H_TX_V_ADST &&
+                transform->primary_type != AV2H_TX_V_DCT &&
+                transform->primary_type != AV2H_TX_H_DCT &&
+                transform->primary_type != AV2H_TX_V_FLIPADST &&
+                transform->primary_type != AV2H_TX_H_FLIPADST &&
                 !(mode->mode == AV2H_INTRA_D67 &&
                     transform->primary_type == AV2H_TX_ADST_ADST) &&
                 !((mode->mode == AV2H_INTRA_D157 ||
@@ -4751,11 +4778,19 @@ static int reconstruct_generic_selected(
         return 0;
     }
     if (!identity && !mode->use_intrabc && tx_size == RECON_TX_8X4 &&
+        transform->primary_type != AV2H_TX_FLIPADST_FLIPADST &&
         transform->primary_type != AV2H_TX_ADST_DCT &&
         transform->primary_type != AV2H_TX_DCT_ADST &&
+        transform->primary_type != AV2H_TX_DCT_FLIPADST &&
+        transform->primary_type != AV2H_TX_FLIPADST_DCT &&
         transform->primary_type != AV2H_TX_ADST_FLIPADST &&
         transform->primary_type != AV2H_TX_FLIPADST_ADST &&
-        transform->primary_type != AV2H_TX_H_ADST) {
+        transform->primary_type != AV2H_TX_H_ADST &&
+        transform->primary_type != AV2H_TX_V_ADST &&
+        transform->primary_type != AV2H_TX_V_DCT &&
+        transform->primary_type != AV2H_TX_H_DCT &&
+        transform->primary_type != AV2H_TX_V_FLIPADST &&
+        transform->primary_type != AV2H_TX_H_FLIPADST) {
         return 0;
     }
     if (recon_transform_kinds(transform->primary_type, &row_kind,
@@ -4851,51 +4886,33 @@ Av2hStatus av2h_luma_reconstruct(
         return AV2H_UNSUPPORTED;
     }
     if (mode->use_intrabc && mode->skip_transform) {
-        int supported_copy =
-            (mode->intrabc_drl_index == 3U &&
-             mode->displacement_x == 96 &&
-             mode->displacement_y == -64 &&
-             prefix->tx_size == AV2H_TX_16X8 &&
-             coefficients->width == 16U && coefficients->height == 8U) ||
-            (mode->intrabc_drl_index == 0U &&
-             mode->displacement_x == -384 &&
-             mode->displacement_y == 104 &&
-             prefix->tx_size == AV2H_TX_8X4 &&
-             coefficients->width == 8U && coefficients->height == 4U) ||
-            (mode->intrabc_drl_index == 0U &&
-             mode->displacement_x == -384 &&
-             mode->displacement_y == 104 &&
-             prefix->tx_size == AV2H_TX_8X8 &&
-             coefficients->width == 8U && coefficients->height == 8U) ||
-            (mode->intrabc_drl_index == 0U &&
-             mode->displacement_x == -448 &&
-             mode->displacement_y == -128 &&
-             prefix->tx_size == AV2H_TX_8X16 &&
-             coefficients->width == 8U && coefficients->height == 16U) ||
-            (mode->intrabc_drl_index == 0U &&
-             mode->displacement_x == -352 &&
-             mode->displacement_y == -192 &&
-             prefix->tx_size == AV2H_TX_16X8 &&
-             coefficients->width == 16U && coefficients->height == 8U);
-        if (mode->intrabc_mode != 0U || mode->mv_precision != 3U ||
-            !supported_copy || !prefix->all_zero ||
+        const Av2hTxDescriptor *descriptor;
+        size_t output_count;
+        if (av2h_tx_descriptor_get(prefix->tx_size, &descriptor) != AV2H_OK ||
+            descriptor == 0 || mode->intrabc_mode > 1U ||
+            mode->mv_precision != 3U || !prefix->all_zero ||
             prefix->eob != 0U ||
             transform->primary_type != AV2H_TX_DCT_DCT ||
-            coefficients->coefficient_count !=
-                coefficients->width * coefficients->height ||
+            coefficients->width != descriptor->coefficient_width ||
+            coefficients->height != descriptor->coefficient_height ||
+            coefficients->coefficient_count != descriptor->eob_capacity ||
             coefficients->nonzero_count != 0U || predictor == 0 ||
-            predictor_stride < coefficients->width) {
+            predictor_stride < descriptor->output_width) {
             return AV2H_UNSUPPORTED;
         }
-        reconstruction->width = coefficients->width;
-        reconstruction->height = coefficients->height;
+        output_count = (size_t)descriptor->output_width *
+            descriptor->output_height;
+        reconstruction->width = descriptor->output_width;
+        reconstruction->height = descriptor->output_height;
         for (index = 0U; index < coefficients->coefficient_count; ++index) {
-            size_t row = index / coefficients->width;
-            size_t column = index % coefficients->width;
             if (coefficients->quantized[index] != 0 ||
                 coefficients->dequantized[index] != 0) {
                 return AV2H_UNSUPPORTED;
             }
+        }
+        for (index = 0U; index < output_count; ++index) {
+            size_t row = index / descriptor->output_width;
+            size_t column = index % descriptor->output_width;
             reconstruction->residual[index] = 0;
             reconstruction->pixels[index] =
                 predictor[row * predictor_stride + column];

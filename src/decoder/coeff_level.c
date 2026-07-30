@@ -2049,6 +2049,16 @@ static int q_level_profile_supported(
         return av2h_coeff_tx_geometry(prefix->tx_size, &geometry) == AV2H_OK &&
                geometry.height <= 16U;
     }
+    if (transform->primary_type == AV2H_TX_DCT_FLIPADST) {
+        Av2hCoeffTxGeometry geometry;
+        return av2h_coeff_tx_geometry(prefix->tx_size, &geometry) == AV2H_OK &&
+               geometry.width <= 16U;
+    }
+    if (transform->primary_type == AV2H_TX_FLIPADST_DCT) {
+        Av2hCoeffTxGeometry geometry;
+        return av2h_coeff_tx_geometry(prefix->tx_size, &geometry) == AV2H_OK &&
+               geometry.height <= 16U;
+    }
     if (transform->primary_type == AV2H_TX_ADST_FLIPADST) {
         Av2hCoeffTxGeometry geometry;
         return av2h_coeff_tx_geometry(prefix->tx_size, &geometry) == AV2H_OK &&
@@ -2059,10 +2069,51 @@ static int q_level_profile_supported(
         return av2h_coeff_tx_geometry(prefix->tx_size, &geometry) == AV2H_OK &&
                geometry.width <= 16U && geometry.height <= 16U;
     }
+    if (transform->primary_type == AV2H_TX_FLIPADST_FLIPADST) {
+        Av2hCoeffTxGeometry geometry;
+        return av2h_coeff_tx_geometry(prefix->tx_size, &geometry) == AV2H_OK &&
+               geometry.width <= 16U && geometry.height <= 16U;
+    }
     if (transform->primary_type == AV2H_TX_H_ADST) {
         Av2hCoeffTxGeometry geometry;
         return av2h_coeff_tx_geometry(prefix->tx_size, &geometry) == AV2H_OK &&
                geometry.width <= 16U && geometry.height <= 8U;
+    }
+    if (transform->primary_type == AV2H_TX_V_ADST) {
+        return prefix->tx_size == AV2H_TX_4X4 ||
+               prefix->tx_size == AV2H_TX_4X8 ||
+               prefix->tx_size == AV2H_TX_8X4 ||
+               prefix->tx_size == AV2H_TX_16X4 ||
+               prefix->tx_size == AV2H_TX_16X8;
+    }
+    if (transform->primary_type == AV2H_TX_V_DCT) {
+        return prefix->tx_size == AV2H_TX_4X4 ||
+               prefix->tx_size == AV2H_TX_4X8 ||
+               prefix->tx_size == AV2H_TX_8X4 ||
+               prefix->tx_size == AV2H_TX_8X8 ||
+               prefix->tx_size == AV2H_TX_4X16 ||
+               prefix->tx_size == AV2H_TX_8X16 ||
+               prefix->tx_size == AV2H_TX_16X4 ||
+               prefix->tx_size == AV2H_TX_4X32;
+    }
+    if (transform->primary_type == AV2H_TX_H_DCT) {
+        return prefix->tx_size == AV2H_TX_4X4 ||
+               prefix->tx_size == AV2H_TX_4X8 ||
+               prefix->tx_size == AV2H_TX_8X4 ||
+               prefix->tx_size == AV2H_TX_16X4 ||
+               prefix->tx_size == AV2H_TX_32X4;
+    }
+    if (transform->primary_type == AV2H_TX_V_FLIPADST) {
+        return prefix->tx_size == AV2H_TX_4X4 ||
+               prefix->tx_size == AV2H_TX_4X8 ||
+               prefix->tx_size == AV2H_TX_8X4;
+    }
+    if (transform->primary_type == AV2H_TX_H_FLIPADST) {
+        return prefix->tx_size == AV2H_TX_4X4 ||
+               prefix->tx_size == AV2H_TX_4X8 ||
+               prefix->tx_size == AV2H_TX_8X4 ||
+               prefix->tx_size == AV2H_TX_8X8 ||
+               prefix->tx_size == AV2H_TX_16X8;
     }
     if (frame->base_q_index == 128U) {
         return !(prefix->tx_size == AV2H_TX_8X16 &&
@@ -3717,10 +3768,17 @@ Av2hStatus av2h_coeff_block_read(
                transform->primary_type != AV2H_TX_V_ADST &&
                transform->primary_type != AV2H_TX_H_DCT &&
                transform->primary_type != AV2H_TX_H_ADST &&
+               transform->primary_type != AV2H_TX_V_FLIPADST &&
                transform->primary_type != AV2H_TX_H_FLIPADST) ||
         (transform->primary_type == AV2H_TX_V_DCT &&
+         prefix->tx_size != AV2H_TX_4X4 &&
+         prefix->tx_size != AV2H_TX_4X8 &&
+         prefix->tx_size != AV2H_TX_8X4 &&
          prefix->tx_size != AV2H_TX_8X8 &&
-         prefix->tx_size != AV2H_TX_4X8) ||
+         prefix->tx_size != AV2H_TX_4X16 &&
+         prefix->tx_size != AV2H_TX_8X16 &&
+         prefix->tx_size != AV2H_TX_16X4 &&
+         prefix->tx_size != AV2H_TX_4X32) ||
         (transform->primary_type == AV2H_TX_H_ADST &&
          prefix->tx_size != AV2H_TX_4X4 &&
          prefix->tx_size != AV2H_TX_4X8 &&
@@ -3728,11 +3786,28 @@ Av2hStatus av2h_coeff_block_read(
          prefix->tx_size != AV2H_TX_8X8 &&
          prefix->tx_size != AV2H_TX_16X4 &&
          prefix->tx_size != AV2H_TX_16X8) ||
+        (transform->primary_type == AV2H_TX_V_ADST &&
+         prefix->tx_size != AV2H_TX_4X4 &&
+         prefix->tx_size != AV2H_TX_4X8 &&
+         prefix->tx_size != AV2H_TX_8X4 &&
+         prefix->tx_size != AV2H_TX_16X4 &&
+         prefix->tx_size != AV2H_TX_16X8) ||
         (transform->primary_type == AV2H_TX_H_DCT &&
-         prefix->tx_size != AV2H_TX_8X32 &&
+         prefix->tx_size != AV2H_TX_4X4 &&
+         prefix->tx_size != AV2H_TX_4X8 &&
+         prefix->tx_size != AV2H_TX_8X4 &&
+         prefix->tx_size != AV2H_TX_16X4 &&
          prefix->tx_size != AV2H_TX_32X4) ||
+        (transform->primary_type == AV2H_TX_V_FLIPADST &&
+         prefix->tx_size != AV2H_TX_4X4 &&
+         prefix->tx_size != AV2H_TX_4X8 &&
+         prefix->tx_size != AV2H_TX_8X4) ||
         (transform->primary_type == AV2H_TX_H_FLIPADST &&
-         prefix->tx_size != AV2H_TX_4X4)) {
+         prefix->tx_size != AV2H_TX_4X4 &&
+         prefix->tx_size != AV2H_TX_4X8 &&
+         prefix->tx_size != AV2H_TX_8X4 &&
+         prefix->tx_size != AV2H_TX_8X8 &&
+         prefix->tx_size != AV2H_TX_16X8)) {
         return AV2H_UNSUPPORTED;
     }
     block->coefficient_count = (uint16_t)(block->width * block->height);

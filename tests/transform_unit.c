@@ -242,6 +242,15 @@ static void test_emerald_primary_mappings(void) {
           AV2H_INVALID_ARGUMENT);
 }
 
+static void test_v_flipadst_primary_mappings(void) {
+    check_primary_map(AV2H_TX_4X4, AV2H_INTRA_D113, 0U, 6U,
+                      AV2H_TX_V_FLIPADST);
+    check_primary_map(AV2H_TX_4X8, AV2H_INTRA_D113, 0U, 6U,
+                      AV2H_TX_V_FLIPADST);
+    check_primary_map(AV2H_TX_8X4, AV2H_INTRA_D113, 0U, 6U,
+                      AV2H_TX_V_FLIPADST);
+}
+
 static void test_dct_adst_primary_mappings(void) {
     static const Av2hFirstTxSize compact_sizes[] = {
         AV2H_TX_4X4, AV2H_TX_4X8, AV2H_TX_8X4,
@@ -451,6 +460,7 @@ int main(void) {
     test_fixture_transform_types();
     test_fsc_single_coefficient_uses_idtx();
     test_emerald_primary_mappings();
+    test_v_flipadst_primary_mappings();
     test_dct_adst_primary_mappings();
     test_adst_dct_primary_mappings();
     test_adst_flipadst_primary_mappings();

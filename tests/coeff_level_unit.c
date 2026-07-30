@@ -342,6 +342,39 @@ static void test_requested_transform_coefficient_matrix(void) {
         AV2H_TX_4X4, AV2H_TX_4X8, AV2H_TX_8X4,
         AV2H_TX_8X8, AV2H_TX_16X4, AV2H_TX_16X8
     };
+    static const uint8_t v_adst[] = {
+        AV2H_TX_4X4, AV2H_TX_4X8, AV2H_TX_8X4,
+        AV2H_TX_16X4, AV2H_TX_16X8
+    };
+    static const uint8_t dct_flipadst[] = {
+        AV2H_TX_4X4, AV2H_TX_8X4, AV2H_TX_16X4,
+        AV2H_TX_4X16, AV2H_TX_8X8, AV2H_TX_16X8,
+        AV2H_TX_8X16, AV2H_TX_4X32, AV2H_TX_8X32,
+        AV2H_TX_16X32
+    };
+    static const uint8_t v_dct[] = {
+        AV2H_TX_4X4, AV2H_TX_4X8, AV2H_TX_8X4, AV2H_TX_8X8,
+        AV2H_TX_4X16, AV2H_TX_8X16, AV2H_TX_16X4, AV2H_TX_4X32
+    };
+    static const uint8_t flipadst_flipadst[] = {
+        AV2H_TX_4X4, AV2H_TX_4X8, AV2H_TX_8X4, AV2H_TX_8X8,
+        AV2H_TX_4X16, AV2H_TX_8X16, AV2H_TX_16X4, AV2H_TX_16X8
+    };
+    static const uint8_t h_dct[] = {
+        AV2H_TX_4X4, AV2H_TX_4X8, AV2H_TX_8X4,
+        AV2H_TX_16X4, AV2H_TX_32X4
+    };
+    static const uint8_t flipadst_dct[] = {
+        AV2H_TX_4X4, AV2H_TX_8X4, AV2H_TX_16X4, AV2H_TX_32X4,
+        AV2H_TX_4X16, AV2H_TX_8X8, AV2H_TX_16X8, AV2H_TX_16X16
+    };
+    static const uint8_t v_flipadst[] = {
+        AV2H_TX_4X4, AV2H_TX_4X8, AV2H_TX_8X4
+    };
+    static const uint8_t h_flipadst[] = {
+        AV2H_TX_4X4, AV2H_TX_4X8, AV2H_TX_8X4,
+        AV2H_TX_8X8, AV2H_TX_16X8
+    };
     static const struct {
         Av2hFirstTxType type;
         const uint8_t *sizes;
@@ -350,7 +383,23 @@ static void test_requested_transform_coefficient_matrix(void) {
         { AV2H_TX_FLIPADST_ADST, flipadst_adst,
           sizeof(flipadst_adst) / sizeof(flipadst_adst[0]) },
         { AV2H_TX_H_ADST, h_adst,
-          sizeof(h_adst) / sizeof(h_adst[0]) }
+                    sizeof(h_adst) / sizeof(h_adst[0]) },
+                { AV2H_TX_V_ADST, v_adst,
+                    sizeof(v_adst) / sizeof(v_adst[0]) },
+                { AV2H_TX_DCT_FLIPADST, dct_flipadst,
+                    sizeof(dct_flipadst) / sizeof(dct_flipadst[0]) },
+                { AV2H_TX_V_DCT, v_dct,
+                    sizeof(v_dct) / sizeof(v_dct[0]) },
+                { AV2H_TX_FLIPADST_FLIPADST, flipadst_flipadst,
+                    sizeof(flipadst_flipadst) / sizeof(flipadst_flipadst[0]) },
+                { AV2H_TX_H_DCT, h_dct,
+                    sizeof(h_dct) / sizeof(h_dct[0]) },
+                { AV2H_TX_FLIPADST_DCT, flipadst_dct,
+                    sizeof(flipadst_dct) / sizeof(flipadst_dct[0]) },
+                { AV2H_TX_V_FLIPADST, v_flipadst,
+                    sizeof(v_flipadst) / sizeof(v_flipadst[0]) },
+                { AV2H_TX_H_FLIPADST, h_flipadst,
+                    sizeof(h_flipadst) / sizeof(h_flipadst[0]) }
     };
     Av2hSpan span = { bytes, sizeof(bytes) };
     Av2hSequenceState sequence = { 0 };

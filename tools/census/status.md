@@ -79,7 +79,7 @@ Support state comes from the reviewed `tools/census/support.json` manifest; it i
 
 | Feature family | Status | Files | Coverage | Occurrences | Evidence |
 |---|---|---:|---:|---:|---|
-| Non-DCT primary transform | Partial | 21 | 100.0% | 7,206 | Primary-transform syntax and inverse kernels exist, but accepted coefficient and geometry tuples remain profile-gated. |
+| Non-DCT primary transform | Supported | 21 | 100.0% | 7,206 | Every non-DCT primary transform value observed by the corpus has reviewed syntax, coefficient-profile, geometry, and inverse-reconstruction coverage. |
 | Luma directional angle | Partial | 21 | 100.0% | 6,878 | Directional prediction is validated on selected angles and geometries; artifact frontiers still include directional reconstruction profiles. |
 | Chroma directional angle | Supported | 19 | 90.5% | 2,790 | All six nonzero chroma angle deltas are validated across every directional mode and legal chroma prediction geometry, with shared IDIF matrix coverage and pinned live artifact vectors. |
 | MRL | Supported | 20 | 95.2% | 3,022 | MRL indices 1, 2, and 3 are validated across every directional mode, luma angle delta, legal prediction geometry, multi-line state, and IBP state, with synthetic and live artifact coverage. |
@@ -88,7 +88,7 @@ Support state comes from the reviewed `tools/census/support.json` manifest; it i
 | Luma FSC | Supported | 16 | 76.2% | 1,471 | Validated across all five legal luma geometries and all four coefficient Q contexts, with complete normative BOB, base, range, and sign CDF coverage, synthetic coefficient decoding, live parsing, and exact IDTX reconstruction. |
 | Chroma FSC | Unknown | 0 | 0.0% | 0 | The census observes chroma FSC metadata, but decoder support has not yet been audited independently. |
 | IntraBC | Supported | 15 | 71.4% | 216 | Normative spatial and reference-bank block-vector prediction, DRL selection, both IntraBC modes, every legal skipped-copy geometry, residual transforms, reconstructed-source validation, and pinned multi-leaf parsing/output are covered. |
-| Transform skip | Partial | 7 | 33.3% | 14 | Skip syntax and selected reconstruction paths exist, but the corpus occurrences are not all validated end to end. |
+| Transform skip | Supported | 7 | 33.3% | 14 | IntraBC transform skip is validated for both IntraBC modes across every legal luma transform geometry, including full-output copying for reduced-coefficient 64-wide transforms. |
 | Palette | Unsupported | 1 | 4.8% | 2 | The luma mode reader explicitly returns AV2H_UNSUPPORTED when palette mode is nonzero. |
 | Secondary transform | Partial | 0 | 0.0% | 0 | Secondary-transform syntax and selected IST kernels exist; this corpus has no nonzero secondary-transform occurrence. |
 
@@ -129,16 +129,7 @@ This is the demand ranking above with values classified as `supported` removed. 
 
 | Rank | Feature value | Status | Demand score | Files | Coverage | Occurrences |
 |---:|---|---|---:|---:|---:|---:|
-| 1 | Primary tx V_ADST | Partial | 56.6 | 12 | 57.1% | 119 |
-| 2 | Primary tx DCT_FLIPADST | Partial | 54.4 | 13 | 61.9% | 32 |
-| 3 | Primary tx V_DCT | Partial | 54.0 | 12 | 57.1% | 71 |
-| 4 | Primary tx FLIPADST_FLIPADST | Partial | 49.6 | 11 | 52.4% | 63 |
-| 5 | Primary tx H_DCT | Partial | 47.3 | 10 | 47.6% | 85 |
-| 6 | Primary tx FLIPADST_DCT | Partial | 43.6 | 10 | 47.6% | 38 |
-| 7 | Primary tx V_FLIPADST | Partial | 29.7 | 7 | 33.3% | 18 |
-| 8 | Transform skip | Partial | 29.1 | 7 | 33.3% | 14 |
-| 9 | Primary tx H_FLIPADST | Partial | 20.9 | 5 | 23.8% | 10 |
-| 10 | Palette prediction | Unsupported | 4.2 | 1 | 4.8% | 2 |
+| 1 | Palette prediction | Unsupported | 4.2 | 1 | 4.8% | 2 |
 
 ## Compact regression set
 
@@ -160,29 +151,29 @@ A distinct missing feature is an observed named feature value whose reviewed man
 
 | Rank | File | Distinct missing features | Missing feature values |
 |---:|---|---:|---|
-| 1 | `chinnathurai-333x333-qp224.obu` | 0 | None |
-| 2 | `emerald-192x96-qp208.obu` | 0 | None |
-| 3 | `louis-463x342-qp224.obu` | 0 | None |
-| 4 | `cuckoo-157x105-qp160.obu` | 1 | Primary tx V_DCT (Partial) |
-| 5 | `laarim-448x299-qp192.obu` | 1 | Primary tx FLIPADST_DCT (Partial) |
-| 6 | `schwaebisch-417x277-qp208.obu` | 1 | Transform skip (Partial) |
-| 7 | `pastell-512x341-qp160.obu` | 2 | Primary tx DCT_FLIPADST (Partial)<br>Transform skip (Partial) |
-| 8 | `chalk-320x240-qp128.obu` | 3 | Primary tx DCT_FLIPADST (Partial)<br>Primary tx V_ADST (Partial)<br>Primary tx V_DCT (Partial) |
-| 9 | `chimp-240x287-qp192.obu` | 3 | Primary tx FLIPADST_DCT (Partial)<br>Primary tx FLIPADST_FLIPADST (Partial)<br>Primary tx V_ADST (Partial) |
-| 10 | `flycatcher-223x149-qp176.obu` | 3 | Primary tx DCT_FLIPADST (Partial)<br>Primary tx FLIPADST_FLIPADST (Partial)<br>Primary tx V_ADST (Partial) |
-| 11 | `silene-479x383-qp176.obu` | 3 | Primary tx DCT_FLIPADST (Partial)<br>Primary tx FLIPADST_DCT (Partial)<br>Transform skip (Partial) |
-| 12 | `chinnathurai-128x128-qp112.obu` | 4 | Primary tx DCT_FLIPADST (Partial)<br>Primary tx H_DCT (Partial)<br>Primary tx V_ADST (Partial)<br>Primary tx V_DCT (Partial) |
-| 13 | `chimp-93x111-qp064.obu` | 6 | Primary tx FLIPADST_FLIPADST (Partial)<br>Primary tx H_DCT (Partial)<br>Primary tx H_FLIPADST (Partial)<br>Primary tx V_ADST (Partial)<br>Primary tx V_DCT (Partial)<br>Primary tx V_FLIPADST (Partial) |
-| 14 | `silene-384x307-qp080.obu` | 6 | Palette prediction (Unsupported)<br>Primary tx DCT_FLIPADST (Partial)<br>Primary tx FLIPADST_FLIPADST (Partial)<br>Primary tx H_DCT (Partial)<br>Primary tx V_ADST (Partial)<br>Primary tx V_DCT (Partial) |
-| 15 | `cuckoo-431x287-qp080.obu` | 7 | Primary tx DCT_FLIPADST (Partial)<br>Primary tx FLIPADST_DCT (Partial)<br>Primary tx FLIPADST_FLIPADST (Partial)<br>Primary tx H_DCT (Partial)<br>Primary tx V_ADST (Partial)<br>Primary tx V_DCT (Partial)<br>Primary tx V_FLIPADST (Partial) |
-| 16 | `emerald-480x240-qp128.obu` | 7 | Primary tx DCT_FLIPADST (Partial)<br>Primary tx FLIPADST_DCT (Partial)<br>Primary tx FLIPADST_FLIPADST (Partial)<br>Primary tx H_DCT (Partial)<br>Primary tx H_FLIPADST (Partial)<br>Primary tx V_DCT (Partial)<br>Primary tx V_FLIPADST (Partial) |
-| 17 | `laarim-256x171-qp096.obu` | 8 | Primary tx DCT_FLIPADST (Partial)<br>Primary tx FLIPADST_DCT (Partial)<br>Primary tx FLIPADST_FLIPADST (Partial)<br>Primary tx H_DCT (Partial)<br>Primary tx H_FLIPADST (Partial)<br>Primary tx V_ADST (Partial)<br>Primary tx V_DCT (Partial)<br>Primary tx V_FLIPADST (Partial) |
-| 18 | `louis-301x222-qp144.obu` | 8 | Primary tx DCT_FLIPADST (Partial)<br>Primary tx FLIPADST_DCT (Partial)<br>Primary tx FLIPADST_FLIPADST (Partial)<br>Primary tx H_DCT (Partial)<br>Primary tx V_ADST (Partial)<br>Primary tx V_DCT (Partial)<br>Primary tx V_FLIPADST (Partial)<br>Transform skip (Partial) |
-| 19 | `pastell-320x213-qp064.obu` | 8 | Primary tx DCT_FLIPADST (Partial)<br>Primary tx FLIPADST_DCT (Partial)<br>Primary tx FLIPADST_FLIPADST (Partial)<br>Primary tx H_DCT (Partial)<br>Primary tx V_ADST (Partial)<br>Primary tx V_DCT (Partial)<br>Primary tx V_FLIPADST (Partial)<br>Transform skip (Partial) |
-| 20 | `schwaebisch-353x234-qp112.obu` | 8 | Primary tx DCT_FLIPADST (Partial)<br>Primary tx FLIPADST_DCT (Partial)<br>Primary tx FLIPADST_FLIPADST (Partial)<br>Primary tx H_DCT (Partial)<br>Primary tx H_FLIPADST (Partial)<br>Primary tx V_ADST (Partial)<br>Primary tx V_DCT (Partial)<br>Transform skip (Partial) |
-| 21 | `flycatcher-397x265-qp048.obu` | 9 | Primary tx DCT_FLIPADST (Partial)<br>Primary tx FLIPADST_DCT (Partial)<br>Primary tx FLIPADST_FLIPADST (Partial)<br>Primary tx H_DCT (Partial)<br>Primary tx H_FLIPADST (Partial)<br>Primary tx V_ADST (Partial)<br>Primary tx V_DCT (Partial)<br>Primary tx V_FLIPADST (Partial)<br>Transform skip (Partial) |
+| 1 | `chalk-320x240-qp128.obu` | 0 | None |
+| 2 | `chimp-240x287-qp192.obu` | 0 | None |
+| 3 | `chimp-93x111-qp064.obu` | 0 | None |
+| 4 | `chinnathurai-128x128-qp112.obu` | 0 | None |
+| 5 | `chinnathurai-333x333-qp224.obu` | 0 | None |
+| 6 | `cuckoo-157x105-qp160.obu` | 0 | None |
+| 7 | `cuckoo-431x287-qp080.obu` | 0 | None |
+| 8 | `emerald-192x96-qp208.obu` | 0 | None |
+| 9 | `emerald-480x240-qp128.obu` | 0 | None |
+| 10 | `flycatcher-223x149-qp176.obu` | 0 | None |
+| 11 | `flycatcher-397x265-qp048.obu` | 0 | None |
+| 12 | `laarim-256x171-qp096.obu` | 0 | None |
+| 13 | `laarim-448x299-qp192.obu` | 0 | None |
+| 14 | `louis-301x222-qp144.obu` | 0 | None |
+| 15 | `louis-463x342-qp224.obu` | 0 | None |
+| 16 | `pastell-320x213-qp064.obu` | 0 | None |
+| 17 | `pastell-512x341-qp160.obu` | 0 | None |
+| 18 | `schwaebisch-353x234-qp112.obu` | 0 | None |
+| 19 | `schwaebisch-417x277-qp208.obu` | 0 | None |
+| 20 | `silene-479x383-qp176.obu` | 0 | None |
+| 21 | `silene-384x307-qp080.obu` | 1 | Palette prediction (Unsupported) |
 
-Feature-complete candidates at census granularity: `chinnathurai-333x333-qp224.obu`, `emerald-192x96-qp208.obu`, `louis-463x342-qp224.obu`. See `images/artifacts/status.md` for verified end-to-end results.
+Feature-complete candidates at census granularity: `chalk-320x240-qp128.obu`, `chimp-240x287-qp192.obu`, `chimp-93x111-qp064.obu`, `chinnathurai-128x128-qp112.obu`, `chinnathurai-333x333-qp224.obu`, `cuckoo-157x105-qp160.obu`, `cuckoo-431x287-qp080.obu`, `emerald-192x96-qp208.obu`, `emerald-480x240-qp128.obu`, `flycatcher-223x149-qp176.obu`, `flycatcher-397x265-qp048.obu`, `laarim-256x171-qp096.obu`, `laarim-448x299-qp192.obu`, `louis-301x222-qp144.obu`, `louis-463x342-qp224.obu`, `pastell-320x213-qp064.obu`, `pastell-512x341-qp160.obu`, `schwaebisch-353x234-qp112.obu`, `schwaebisch-417x277-qp208.obu`, `silene-479x383-qp176.obu`. See `images/artifacts/status.md` for verified end-to-end results.
 
 ## Rare-feature fixtures
 

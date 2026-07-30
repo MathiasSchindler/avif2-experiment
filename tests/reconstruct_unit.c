@@ -3555,6 +3555,74 @@ static void test_requested_transform_geometry_matrix(void) {
         { AV2H_TX_16X4, 0xc1949af2U },
         { AV2H_TX_16X8, 0x77cd8b2dU }
     };
+    static const struct TransformGeometry v_adst[] = {
+        { AV2H_TX_4X4, 0xde059afeU },
+        { AV2H_TX_4X8, 0x57b5536aU },
+        { AV2H_TX_8X4, 0x261903feU },
+        { AV2H_TX_16X4, 0x464611feU },
+        { AV2H_TX_16X8, 0x266d546aU }
+    };
+    static const struct TransformGeometry dct_flipadst[] = {
+        { AV2H_TX_4X4, 0x442e7905U },
+        { AV2H_TX_8X4, 0x6902be85U },
+        { AV2H_TX_16X4, 0xe19eda05U },
+        { AV2H_TX_4X16, 0x98ec4305U },
+        { AV2H_TX_8X8, 0x66b07905U },
+        { AV2H_TX_16X8, 0x602df505U },
+        { AV2H_TX_8X16, 0xa188dd05U },
+        { AV2H_TX_4X32, 0x38571d05U },
+        { AV2H_TX_8X32, 0x624b8905U },
+        { AV2H_TX_16X32, 0x74b79505U }
+    };
+    static const struct TransformGeometry v_dct[] = {
+        { AV2H_TX_4X4, 0xdd365d05U },
+        { AV2H_TX_4X8, 0x4af2a305U },
+        { AV2H_TX_8X4, 0x35c3a905U },
+        { AV2H_TX_8X8, 0x046c3105U },
+        { AV2H_TX_4X16, 0x41e5fd05U },
+        { AV2H_TX_8X16, 0xd72be505U },
+        { AV2H_TX_16X4, 0x23973d05U },
+        { AV2H_TX_4X32, 0x60d82d05U }
+    };
+    static const struct TransformGeometry flipadst_flipadst[] = {
+        { AV2H_TX_4X4, 0x3f948207U },
+        { AV2H_TX_4X8, 0xeb5bca75U },
+        { AV2H_TX_8X4, 0x9953c2f4U },
+        { AV2H_TX_8X8, 0x3a657203U },
+        { AV2H_TX_4X16, 0x9db5bb0fU },
+        { AV2H_TX_8X16, 0x6091598cU },
+        { AV2H_TX_16X4, 0x1cbfebefU },
+        { AV2H_TX_16X8, 0xf3de2f8cU }
+    };
+    static const struct TransformGeometry h_dct[] = {
+        { AV2H_TX_4X4, 0x3c946385U },
+        { AV2H_TX_4X8, 0xf13dcd85U },
+        { AV2H_TX_8X4, 0x3e5ba185U },
+        { AV2H_TX_16X4, 0x26afcd05U },
+        { AV2H_TX_32X4, 0xb016d105U }
+    };
+    static const struct TransformGeometry flipadst_dct[] = {
+        { AV2H_TX_4X4, 0x05c74c45U },
+        { AV2H_TX_8X4, 0xb3fe4885U },
+        { AV2H_TX_16X4, 0x2ef84505U },
+        { AV2H_TX_32X4, 0x14c9e105U },
+        { AV2H_TX_4X16, 0x9f0420c5U },
+        { AV2H_TX_8X8, 0x39f7af85U },
+        { AV2H_TX_16X8, 0x97578005U },
+        { AV2H_TX_16X16, 0xa3f78505U }
+    };
+    static const struct TransformGeometry v_flipadst[] = {
+        { AV2H_TX_4X4, 0x2042437eU },
+        { AV2H_TX_4X8, 0x4c62f4eaU },
+        { AV2H_TX_8X4, 0x3d07d0feU }
+    };
+    static const struct TransformGeometry h_flipadst[] = {
+        { AV2H_TX_4X4, 0xa230885eU },
+        { AV2H_TX_4X8, 0xe36f145dU },
+        { AV2H_TX_8X4, 0x3305f215U },
+        { AV2H_TX_8X8, 0xbf64ed4aU },
+        { AV2H_TX_16X8, 0x22824e2dU }
+    };
     static const struct {
         Av2hFirstTxType type;
         const struct TransformGeometry *geometries;
@@ -3563,7 +3631,23 @@ static void test_requested_transform_geometry_matrix(void) {
         { AV2H_TX_FLIPADST_ADST, flipadst_adst,
           sizeof(flipadst_adst) / sizeof(flipadst_adst[0]) },
         { AV2H_TX_H_ADST, h_adst,
-          sizeof(h_adst) / sizeof(h_adst[0]) }
+                    sizeof(h_adst) / sizeof(h_adst[0]) },
+                { AV2H_TX_V_ADST, v_adst,
+                    sizeof(v_adst) / sizeof(v_adst[0]) },
+                { AV2H_TX_DCT_FLIPADST, dct_flipadst,
+                    sizeof(dct_flipadst) / sizeof(dct_flipadst[0]) },
+                { AV2H_TX_V_DCT, v_dct,
+                    sizeof(v_dct) / sizeof(v_dct[0]) },
+                { AV2H_TX_FLIPADST_FLIPADST, flipadst_flipadst,
+                    sizeof(flipadst_flipadst) / sizeof(flipadst_flipadst[0]) },
+                { AV2H_TX_H_DCT, h_dct,
+                    sizeof(h_dct) / sizeof(h_dct[0]) },
+                { AV2H_TX_FLIPADST_DCT, flipadst_dct,
+                    sizeof(flipadst_dct) / sizeof(flipadst_dct[0]) },
+                { AV2H_TX_V_FLIPADST, v_flipadst,
+                    sizeof(v_flipadst) / sizeof(v_flipadst[0]) },
+                { AV2H_TX_H_FLIPADST, h_flipadst,
+                    sizeof(h_flipadst) / sizeof(h_flipadst[0]) }
     };
     Av2hFirstLeafMode mode = { 0 };
     Av2hFirstCoeffPrefix prefix = { 0 };
@@ -3579,6 +3663,8 @@ static void test_requested_transform_geometry_matrix(void) {
          ++matrix) {
         size_t geometry;
         transform.primary_type = matrices[matrix].type;
+        mode.use_intrabc = (uint8_t)(
+            transform.primary_type == AV2H_TX_H_FLIPADST);
         for (geometry = 0U; geometry < matrices[matrix].count; ++geometry) {
             const struct TransformGeometry *expected =
                 &matrices[matrix].geometries[geometry];
@@ -3594,7 +3680,9 @@ static void test_requested_transform_geometry_matrix(void) {
             block.nonzero_count = 1U;
             block.dequantized[0U] = 512;
             for (size_t mode_index = AV2H_INTRA_DC;
-                 mode_index <= AV2H_INTRA_PAETH; ++mode_index) {
+                  mode_index <= (mode.use_intrabc ? AV2H_INTRA_DC :
+                                             AV2H_INTRA_PAETH);
+                  ++mode_index) {
                 Av2hStatus status;
                 mode.mode = (Av2hFirstLeafIntraMode)mode_index;
                 status = av2h_luma_reconstruct(
