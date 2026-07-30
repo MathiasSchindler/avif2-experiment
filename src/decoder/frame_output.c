@@ -583,6 +583,14 @@ Av2hStatus av2h_decode_frame_i420_private(
                 decoded.tx_size = (uint8_t)leaf.prefix.tx_size;
                 decoded.primary_type = (uint8_t)leaf.transform.primary_type;
                 decoded.eob = leaf.prefix.eob;
+                decoded.prefix_stage = av2h_debug_luma_prefix_stage;
+                decoded.txb_skip_context = leaf.prefix.txb_skip_context;
+                decoded.all_zero = leaf.prefix.all_zero;
+                decoded.eob_point = leaf.prefix.eob_point;
+                decoded.after_all_zero_tell =
+                    leaf.prefix.after_all_zero_bits;
+                decoded.after_eob_point_tell =
+                    leaf.prefix.after_eob_point_bits;
                 decoded.coefficient_position = block.diagnostic_position;
                 decoded.coefficient_context = block.diagnostic_context;
                 decoded.coefficient_kind = block.diagnostic_kind;

@@ -40,6 +40,10 @@ typedef struct {
     uint8_t block_size;
     uint8_t plane;
     uint8_t syntax_stage;
+    uint8_t prefix_stage;
+    uint8_t txb_skip_context;
+    uint8_t all_zero;
+    uint8_t eob_point;
     uint8_t mode;
     int8_t angle_delta;
     uint8_t mrl_index;
@@ -48,6 +52,8 @@ typedef struct {
     uint8_t tx_size;
     uint8_t primary_type;
     uint16_t eob;
+    size_t after_all_zero_tell;
+    size_t after_eob_point_tell;
     uint16_t coefficient_position;
     uint8_t coefficient_context;
     uint8_t coefficient_kind;

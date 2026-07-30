@@ -14,6 +14,16 @@ static int failures;
         }                                                                      \
     } while (0)
 
+static uint64_t word_hash(const uint16_t *words, size_t count) {
+    uint64_t hash = UINT64_C(1469598103934665603);
+    size_t index;
+    for (index = 0U; index < count; ++index) {
+        hash ^= words[index];
+        hash *= UINT64_C(1099511628211);
+    }
+    return hash;
+}
+
 static void check_fixture(const char *name,
                           const unsigned char *bytes,
                           size_t size,
@@ -75,12 +85,12 @@ static void check_fixture(const char *name,
     CHECK(prefix.after_eob_point_bits == expected_after_point);
     CHECK(prefix.after_eob_extra_bit == expected_after_extra);
     CHECK(prefix.after_eob_bits == expected_after_eob);
-    CHECK(coeff_cdfs.txb_skip_txs1[2] ==
-          (expected_tx_context == 1U ? 1U : 0U));
-    CHECK(coeff_cdfs.txb_skip_txs3[2] ==
-          (expected_tx_context == 3U ? 1U : 0U));
-    CHECK(coeff_cdfs.txb_skip_txs4[2] ==
-          (expected_tx_context == 4U ? 1U : 0U));
+        CHECK(coeff_cdfs.full_luma_txb_skip[1U][0U][2U] ==
+            (expected_tx_context == 1U ? 1U : 0U));
+        CHECK(coeff_cdfs.full_luma_txb_skip[3U][0U][2U] ==
+            (expected_tx_context == 3U ? 1U : 0U));
+        CHECK(coeff_cdfs.full_luma_txb_skip[4U][0U][2U] ==
+            (expected_tx_context == 4U ? 1U : 0U));
         CHECK(coeff_cdfs.eob_pt_32[6] ==
             (expected_tx == AV2H_TX_8X4 ? 1U : 0U));
         CHECK(coeff_cdfs.eob_pt_64[7] ==
@@ -145,13 +155,21 @@ static void test_fixture_prefixes(void) {
 }
 
 static void test_arguments(void) {
+    static const uint16_t q_indices[] = { 64U, 128U, 160U, 224U };
+    static const uint64_t luma_skip_hashes[] = {
+        UINT64_C(0x5f868c814a42722a),
+        UINT64_C(0x202be84f59fe5d1a),
+        UINT64_C(0xc4aa34bfa6de2f61),
+        UINT64_C(0xfbf0380a09e6b3ef)
+    };
     Av2hRangeDecoder decoder;
     Av2hFirstCoeffCdfs cdfs;
     Av2hFrameState frame = { 0 };
     Av2hPartitionNode leaf = { 0U, 0U, AV2H_BLOCK_8X8 };
     Av2hFirstLeafMode mode = { 0 };
     Av2hFirstCoeffPrefix prefix;
-    CHECK(sizeof(Av2hFirstCoeffCdfs) == 872U);
+    size_t index;
+    CHECK(sizeof(Av2hFirstCoeffCdfs) == 1700U);
     CHECK(av2h_first_coeff_cdfs_init(0) == AV2H_INVALID_ARGUMENT);
     CHECK(av2h_first_coeff_cdfs_init_for_q(0, 64U) ==
           AV2H_INVALID_ARGUMENT);
@@ -182,6 +200,15 @@ static void test_arguments(void) {
     CHECK(cdfs.q_context == 1U);
     CHECK(cdfs.txb_skip_txs4[0] == 9706U);
     CHECK(cdfs.eob_pt_512[9] == 1U);
+    for (index = 0U; index < sizeof(q_indices) / sizeof(q_indices[0]);
+         ++index) {
+        CHECK(av2h_first_coeff_cdfs_init_for_q(
+                  &cdfs, q_indices[index]) == AV2H_OK);
+        CHECK(word_hash(&cdfs.full_luma_txb_skip[0U][0U][0U],
+                        sizeof(cdfs.full_luma_txb_skip) / sizeof(uint16_t)) ==
+              luma_skip_hashes[index]);
+    }
+    CHECK(av2h_first_coeff_cdfs_init(&cdfs) == AV2H_OK);
     CHECK(av2h_first_coeff_prefix_read(
               0, &cdfs, &frame, &leaf, &mode, &prefix) ==
           AV2H_INVALID_ARGUMENT);

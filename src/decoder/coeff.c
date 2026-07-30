@@ -1,6 +1,8 @@
 #include "coeff.h"
 #include "tx_geometry.h"
 
+#include "coeff_prefix_cdf_all.inc"
+
 uint32_t av2h_debug_chroma_skip_ranges[2U][2U];
 uint16_t av2h_debug_chroma_prefix_frame[3U];
 uint8_t av2h_debug_chroma_prefix_context;
@@ -177,6 +179,9 @@ Av2hStatus av2h_first_coeff_cdfs_init_for_q(
     if (cdfs == 0) return AV2H_INVALID_ARGUMENT;
     q_context = coefficient_q_context(base_q_index);
     cdfs->q_context = q_context;
+    av2h_memory_copy(cdfs->full_luma_txb_skip,
+                     av2h_luma_txb_skip[q_context],
+                     sizeof(cdfs->full_luma_txb_skip));
     status = av2h_binary_cdf_init(
         cdfs->txb_skip_txs0, txb_skip[q_context][0U]);
     if (status != AV2H_OK) return status;
@@ -397,84 +402,9 @@ static Av2hStatus derive_tx_size(Av2hBlockSize block_size,
     return AV2H_OK;
 }
 
-static int large_tx_prefix_profile_supported(
-    const Av2hFrameState *frame,
-    Av2hFirstTxSize tx_size) {
-    if (tx_size == AV2H_TX_32X16 ||
-        tx_size == AV2H_TX_16X64) {
-         return (frame->base_q_index == 208U &&
-                 ((frame->width == 192U && frame->height == 96U) ||
-                                    ((tx_size == AV2H_TX_32X16 ||
-                                        tx_size == AV2H_TX_16X64) &&
-                   frame->width == 417U && frame->height == 277U))) ||
-                (tx_size == AV2H_TX_16X64 &&
-                 frame->base_q_index == 224U &&
-                                 ((frame->width == 333U && frame->height == 333U) ||
-                                    (frame->width == 463U && frame->height == 342U))) ||
-                (tx_size == AV2H_TX_16X64 &&
-                 frame->base_q_index == 192U &&
-                 frame->width == 240U && frame->height == 287U) ||
-                (tx_size == AV2H_TX_32X16 &&
-                 frame->base_q_index == 192U &&
-                 frame->width == 240U && frame->height == 287U) ||
-                (tx_size == AV2H_TX_32X16 &&
-                 frame->base_q_index == 224U &&
-                                 ((frame->width == 333U && frame->height == 333U) ||
-                                    (frame->width == 463U && frame->height == 342U)));
-    }
-    if (tx_size == AV2H_TX_64X32) {
-        return (frame->base_q_index == 208U &&
-                ((frame->width == 192U && frame->height == 96U) ||
-                 (frame->width == 417U && frame->height == 277U))) ||
-               (frame->base_q_index == 224U &&
-                                ((frame->width == 333U && frame->height == 333U) ||
-                                 (frame->width == 463U && frame->height == 342U)));
-    }
-    if (tx_size == AV2H_TX_32X64) {
-        return (frame->base_q_index == 112U &&
-                frame->width == 128U && frame->height == 128U) ||
-               (frame->base_q_index == 176U &&
-                frame->width == 223U && frame->height == 149U) ||
-               (frame->base_q_index == 208U &&
-                frame->width == 192U && frame->height == 96U) ||
-               (frame->base_q_index == 208U &&
-                frame->width == 417U && frame->height == 277U) ||
-               (frame->base_q_index == 192U &&
-                frame->width == 240U && frame->height == 287U) ||
-               (frame->base_q_index == 224U &&
-                                ((frame->width == 333U && frame->height == 333U) ||
-                                 (frame->width == 463U && frame->height == 342U)));
-    }
-    if (tx_size == AV2H_TX_64X64) {
-        return (frame->base_q_index == 128U &&
-                frame->width == 480U && frame->height == 240U) ||
-               (frame->base_q_index == 176U &&
-                frame->width == 479U && frame->height == 383U) ||
-               (frame->base_q_index == 192U &&
-                frame->width == 448U && frame->height == 299U) ||
-                    (frame->base_q_index == 224U &&
-                ((frame->width == 333U && frame->height == 333U) ||
-                 (frame->width == 463U && frame->height == 342U))) ||
-               (frame->base_q_index == 208U &&
-                frame->width == 417U && frame->height == 277U) ||
-               (frame->base_q_index == 80U &&
-                ((frame->width == 384U && frame->height == 307U) ||
-                 (frame->width == 431U && frame->height == 287U)));
-    }
-    if (tx_size == AV2H_TX_64X16) {
-        return frame->base_q_index <= 90U ||
-               (frame->base_q_index == 144U &&
-                frame->width == 301U && frame->height == 222U) ||
-               (frame->base_q_index == 192U &&
-                frame->width == 240U && frame->height == 287U) ||
-               (frame->base_q_index == 224U &&
-                                ((frame->width == 333U && frame->height == 333U) ||
-                                 (frame->width == 463U && frame->height == 342U))) ||
-               (frame->base_q_index == 208U &&
-                ((frame->width == 417U && frame->height == 277U) ||
-                 (frame->width == 192U && frame->height == 96U)));
-    }
-    return 1;
+static int tx_prefix_geometry_supported(Av2hFirstTxSize tx_size) {
+    const Av2hTxDescriptor *descriptor;
+    return av2h_tx_descriptor_get(tx_size, &descriptor) == AV2H_OK;
 }
 
 static uint8_t *coefficient_plane(uint8_t *contexts, size_t count,
@@ -803,17 +733,17 @@ Av2hStatus av2h_coeff_prefix_read(
                      leaf->block_size != AV2H_BLOCK_8X16 &&
                      leaf->block_size != AV2H_BLOCK_16X4) ||
                     txb_skip_context != 9U) :
-         txb_skip_context != 0U) ||
+         txb_skip_context >= 10U) ||
         frame->tx_mode != 1U ||
         frame->disable_cdf_update) {
         return AV2H_UNSUPPORTED;
     }
     av2h_debug_luma_prefix_stage = 5U;
-    if (!large_tx_prefix_profile_supported(frame, prefix->tx_size)) {
+    if (!tx_prefix_geometry_supported(prefix->tx_size)) {
         return AV2H_UNSUPPORTED;
     }
     av2h_debug_luma_prefix_stage = 6U;
-    if (prefix->tx_size == AV2H_TX_16X16 && cdfs->q_context != 0U &&
+    if (prefix->tx_size == AV2H_TX_INVALID && cdfs->q_context != 0U &&
                 !((frame->base_q_index == 208U &&
                      frame->width == 192U && frame->height == 96U &&
                      (mode->mode == AV2H_INTRA_DC ||
@@ -1034,11 +964,8 @@ Av2hStatus av2h_coeff_prefix_read(
                 cdfs->txb_skip_fsc_txs1_ctx9 :
                 cdfs->txb_skip_fsc_txs2_ctx9;
     } else {
-        cdf = prefix->tx_size_context == 0U ? cdfs->txb_skip_txs0 :
-            prefix->tx_size_context == 1U ? cdfs->txb_skip_txs1 :
-            prefix->tx_size_context == 2U ? cdfs->txb_skip_txs2 :
-            prefix->tx_size_context == 3U ? cdfs->txb_skip_txs3 :
-                                            cdfs->txb_skip_txs4;
+        cdf = cdfs->full_luma_txb_skip[prefix->tx_size_context]
+                                          [txb_skip_context];
     }
     {
         size_t debug_index;

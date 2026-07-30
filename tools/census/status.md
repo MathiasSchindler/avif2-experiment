@@ -18,12 +18,11 @@ These groups come from the 2026-07-30 production decoder sweep. They name the su
 
 | Current stopping surface | Files |
 |---|---|
-| Luma coefficient prefix | `chalk-320x240-qp128.obu`, `chimp-240x287-qp192.obu`, `chinnathurai-128x128-qp112.obu`, `laarim-256x171-qp096.obu`, `pastell-512x341-qp160.obu`, `silene-479x383-qp176.obu` |
-| Luma prediction | `flycatcher-223x149-qp176.obu`, `flycatcher-397x265-qp048.obu`, `pastell-320x213-qp064.obu`, `schwaebisch-353x234-qp112.obu` |
+| Luma prediction | `chalk-320x240-qp128.obu`, `flycatcher-223x149-qp176.obu`, `flycatcher-397x265-qp048.obu`, `pastell-320x213-qp064.obu`, `schwaebisch-353x234-qp112.obu`, `silene-479x383-qp176.obu` |
 | Luma mode or palette | `chimp-93x111-qp064.obu`, `cuckoo-157x105-qp160.obu`, `louis-301x222-qp144.obu` |
-| Luma transform type | `silene-384x307-qp080.obu` |
-| Luma inverse transform | `louis-463x342-qp224.obu`, `schwaebisch-417x277-qp208.obu` |
-| Chroma coefficient prefix | `cuckoo-431x287-qp080.obu`, `laarim-448x299-qp192.obu` |
+| Luma transform type | `chinnathurai-128x128-qp112.obu`, `silene-384x307-qp080.obu` |
+| Luma inverse transform | `chimp-240x287-qp192.obu`, `louis-463x342-qp224.obu`, `pastell-512x341-qp160.obu`, `schwaebisch-417x277-qp208.obu` |
+| Chroma coefficient prefix | `cuckoo-431x287-qp080.obu`, `laarim-256x171-qp096.obu`, `laarim-448x299-qp192.obu` |
 | Chroma prediction | `emerald-480x240-qp128.obu` |
 
 ## Corpus summary

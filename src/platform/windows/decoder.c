@@ -186,6 +186,14 @@ static void write_decode_diagnostic(const Av2hFrameDecodeResult *result) {
     write_unsigned(result->enable_ibp);
     write_console(" tx-size=");
     write_unsigned(result->tx_size);
+    write_console(" prefix-stage=");
+    write_unsigned(result->prefix_stage);
+    write_console(" skip-ctx=");
+    write_unsigned(result->txb_skip_context);
+    write_console(" all-zero=");
+    write_unsigned(result->all_zero);
+    write_console(" eob-point=");
+    write_unsigned(result->eob_point);
     write_console(" tx-type=");
     write_unsigned(result->primary_type);
     write_console(" eob=");
@@ -196,6 +204,10 @@ static void write_decode_diagnostic(const Av2hFrameDecodeResult *result) {
     write_unsigned(result->coefficient_position);
     write_console(" coeff-ctx=");
     write_unsigned(result->coefficient_context);
+    write_console(" prefix-tells=");
+    write_unsigned(result->after_all_zero_tell);
+    write_console("/");
+    write_unsigned(result->after_eob_point_tell);
     write_console("\r\n");
 }
 

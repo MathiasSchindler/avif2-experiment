@@ -313,103 +313,15 @@ static Av2hStatus tile_initialize_all_zero_luma(
     uint16_t width;
     uint16_t height;
     size_t tell;
+    const Av2hTxDescriptor *descriptor;
     Av2hStatus status;
     if (decoder == 0 || leaf == 0 || transform == 0 || block == 0) {
         return AV2H_INVALID_ARGUMENT;
     }
-    if (decoder->frame->base_q_index <= 90U) {
-        const Av2hTxDescriptor *descriptor;
-        status = av2h_tx_descriptor_get(
-            leaf->prefix.tx_size, &descriptor);
-        if (status != AV2H_OK) return status;
-        width = descriptor->coefficient_width;
-        height = descriptor->coefficient_height;
-    } else if ((decoder->frame->base_q_index == 208U &&
-            ((decoder->frame->width == 192U &&
-             decoder->frame->height == 96U) ||
-            (decoder->frame->width == 417U &&
-             decoder->frame->height == 277U))) ||
-        (decoder->frame->base_q_index == 224U &&
-                 ((decoder->frame->width == 333U &&
-                     decoder->frame->height == 333U) ||
-                    (decoder->frame->width == 463U &&
-                     decoder->frame->height == 342U))) ||
-        (decoder->frame->base_q_index == 192U &&
-         decoder->frame->width == 240U && decoder->frame->height == 287U)) {
-        const Av2hTxDescriptor *descriptor;
-        status = av2h_tx_descriptor_get(
-            leaf->prefix.tx_size, &descriptor);
-        if (status != AV2H_OK) return status;
-        width = descriptor->coefficient_width;
-        height = descriptor->coefficient_height;
-    } else if (leaf->prefix.tx_size == AV2H_TX_8X4 &&
-        leaf->node.row == 8U && leaf->node.column == 12U &&
-        leaf->node.block_size == AV2H_BLOCK_8X4 &&
-        leaf->mode.mode == AV2H_INTRA_D45 &&
-        leaf->mode.angle_delta == 0 && leaf->mode.mrl_index == 0U) {
-        width = 8U;
-        height = 4U;
-    } else if (leaf->prefix.tx_size == AV2H_TX_8X16 &&
-               leaf->node.row == 10U && leaf->node.column == 12U &&
-               leaf->node.block_size == AV2H_BLOCK_8X16 &&
-               leaf->mode.mode == AV2H_INTRA_D203 &&
-               leaf->mode.angle_delta == 3 && leaf->mode.mrl_index == 1U &&
-               leaf->mode.multi_line_mrl == 0U) {
-        width = 8U;
-        height = 16U;
-    } else if (decoder->frame->base_q_index == 160U &&
-               decoder->frame->width == 157U &&
-               decoder->frame->height == 105U &&
-               leaf->prefix.tx_size == AV2H_TX_8X16 &&
-               leaf->node.row == 0U && leaf->node.column == 4U &&
-               leaf->node.block_size == AV2H_BLOCK_8X16 &&
-               leaf->mode.mode == AV2H_INTRA_SMOOTH &&
-               leaf->mode.angle_delta == 0 && leaf->mode.mrl_index == 0U) {
-        width = 8U;
-        height = 16U;
-    } else if (leaf->prefix.tx_size == AV2H_TX_32X64 &&
-               leaf->node.block_size == AV2H_BLOCK_32X64) {
-        width = 32U;
-        height = 32U;
-    } else if (leaf->prefix.tx_size == AV2H_TX_64X64 &&
-               leaf->node.block_size == AV2H_BLOCK_64X64) {
-        width = 32U;
-        height = 32U;
-    } else if (leaf->prefix.tx_size == AV2H_TX_64X16 &&
-               leaf->node.block_size == AV2H_BLOCK_64X16) {
-        width = 32U;
-        height = 16U;
-    } else if (leaf->prefix.tx_size == AV2H_TX_32X16 &&
-               leaf->node.block_size == AV2H_BLOCK_32X16) {
-        width = 32U;
-        height = 16U;
-    } else if (leaf->prefix.tx_size == AV2H_TX_32X8 &&
-               leaf->node.block_size == AV2H_BLOCK_32X8) {
-        width = 32U;
-        height = 8U;
-    } else if (leaf->prefix.tx_size == AV2H_TX_16X32 &&
-               leaf->node.block_size == AV2H_BLOCK_16X32) {
-        width = 16U;
-        height = 32U;
-    } else if (leaf->prefix.tx_size == AV2H_TX_16X64 &&
-               leaf->node.block_size == AV2H_BLOCK_16X64) {
-        width = 16U;
-        height = 32U;
-    } else if (leaf->prefix.tx_size == AV2H_TX_8X64 &&
-               leaf->node.block_size == AV2H_BLOCK_8X64) {
-        width = 8U;
-        height = 32U;
-    } else if (leaf->prefix.tx_size == AV2H_TX_16X16 &&
-               leaf->node.row == 10U && leaf->node.column == 0U &&
-               leaf->node.block_size == AV2H_BLOCK_16X16 &&
-               leaf->mode.mode == AV2H_INTRA_DC &&
-               leaf->mode.angle_delta == 0 &&
-               leaf->mode.mrl_index == 0U) {
-        width = 16U;
-        height = 16U;
-    } else {
-        return AV2H_UNSUPPORTED;
-    }
+    status = av2h_tx_descriptor_get(leaf->prefix.tx_size, &descriptor);
+    if (status != AV2H_OK) return status;
+    width = descriptor->coefficient_width;
+    height = descriptor->coefficient_height;
     if (!leaf->prefix.all_zero || leaf->prefix.eob != 0U ||
         leaf->mode.use_intrabc || leaf->mode.skip_transform) {
         return AV2H_UNSUPPORTED;
