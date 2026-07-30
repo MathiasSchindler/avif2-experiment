@@ -17,6 +17,10 @@ files that are byte-identical to their locked AVM references. The other 19
 files fail closed without output. `Tell` counts bits from the beginning of the
 tile entropy stream. Block positions are expressed in 4x4 units.
 
+The [decoder blocker map](blocker-map.md) complements the next-stop snapshot
+with complete-frame AVM accounting exposure for luma/chroma partition, mode,
+coefficient-prefix, coefficient-level, transform, and frame-filter surfaces.
+
 ## Current production blockers
 
 These groups name the surface where the production decoder currently stops;

@@ -58,8 +58,25 @@ typedef struct {
     int first_mi_column;
 } FeatureEntry;
 
+#if CONFIG_ACCOUNTING
+typedef struct {
+    AccountingSymbolInfo info;
+    uint64_t count;
+    uint64_t nonzero_count;
+    uint64_t tree_counts[3U];
+    int minimum_value;
+    int maximum_value;
+    AccountingSymbolContext first_context;
+    int has_first_context;
+} AccountingSummary;
+#endif
+
 typedef struct {
     insp_frame_data frame_data;
+#if CONFIG_ACCOUNTING
+    AccountingSummary accounting[MAX_SYMBOL_TYPES];
+    int accounting_count;
+#endif
     FeatureEntry *features;
     size_t feature_count;
     size_t feature_capacity;
@@ -168,6 +185,45 @@ static void inspect_frame(void *decoder, void *context) {
         census->failed = 1;
         return;
     }
+#if CONFIG_ACCOUNTING
+    if (census->frame_data.accounting != NULL) {
+        const Accounting *accounting = census->frame_data.accounting;
+        int dictionary_index;
+        int symbol_index;
+        census->accounting_count = accounting->syms.dictionary.num_strs;
+        for (dictionary_index = 0;
+             dictionary_index < census->accounting_count;
+             ++dictionary_index) {
+            census->accounting[dictionary_index].info =
+                accounting->syms.dictionary.acct_infos[dictionary_index];
+        }
+        for (symbol_index = 0; symbol_index < accounting->syms.num_syms;
+             ++symbol_index) {
+            const AccountingSymbol *symbol =
+                &accounting->syms.syms[symbol_index];
+            AccountingSummary *summary;
+            if (symbol->id >= (uint32_t)census->accounting_count) continue;
+            summary = &census->accounting[symbol->id];
+            if (!summary->has_first_context) {
+                summary->first_context = symbol->context;
+                summary->minimum_value = symbol->value;
+                summary->maximum_value = symbol->value;
+                summary->has_first_context = 1;
+            }
+            if (symbol->value != 0) ++summary->nonzero_count;
+            if (symbol->value < summary->minimum_value) {
+                summary->minimum_value = symbol->value;
+            }
+            if (symbol->value > summary->maximum_value) {
+                summary->maximum_value = symbol->value;
+            }
+            if ((unsigned int)symbol->context.tree_type < 3U) {
+                ++summary->tree_counts[symbol->context.tree_type];
+            }
+            ++summary->count;
+        }
+    }
+#endif
     census->width = census->frame_data.width;
     census->height = census->frame_data.height;
     census->bit_depth = census->frame_data.bit_depth;
@@ -421,6 +477,53 @@ static void write_feature(FILE *output, const FeatureEntry *entry) {
             key->palette_y, key->palette_uv);
 }
 
+#if CONFIG_ACCOUNTING
+static void write_accounting(FILE *output, const Census *census) {
+    int dictionary_index;
+    fputs(",\"accounting_symbols\":[", output);
+    for (dictionary_index = 0;
+         dictionary_index < census->accounting_count;
+         ++dictionary_index) {
+        const AccountingSummary *summary =
+            &census->accounting[dictionary_index];
+        const AccountingSymbolInfo *info = &summary->info;
+        int tag_index;
+        if (dictionary_index != 0) fputc(',', output);
+        fputs("{\"function\":", output);
+        json_string(output, info->c_func);
+        fputs(",\"file\":", output);
+        json_string(output, info->c_file);
+        fprintf(output, ",\"line\":%d,\"tags\":[", info->c_line);
+        for (tag_index = 0; tag_index < AVM_ACCOUNTING_MAX_TAGS &&
+                            info->tags[tag_index] != NULL;
+             ++tag_index) {
+            if (tag_index != 0) fputc(',', output);
+            json_string(output, info->tags[tag_index]);
+        }
+        fprintf(output,
+            "],\"count\":%llu,\"nonzero_count\":%llu,"
+                "\"tree_counts\":{\"shared\":%llu,\"luma\":%llu,"
+                "\"chroma\":%llu},\"minimum_value\":%d,"
+                "\"maximum_value\":%d",
+            (unsigned long long)summary->count,
+            (unsigned long long)summary->nonzero_count,
+                (unsigned long long)summary->tree_counts[0U],
+                (unsigned long long)summary->tree_counts[1U],
+                (unsigned long long)summary->tree_counts[2U],
+            summary->minimum_value, summary->maximum_value);
+        if (summary->has_first_context) {
+            fprintf(output,
+                    ",\"first\":{\"mi_row\":%d,\"mi_column\":%d,"
+                    "\"tree_type\":%d}",
+                summary->first_context.y, summary->first_context.x,
+                summary->first_context.tree_type);
+        }
+        fputc('}', output);
+    }
+    fputc(']', output);
+}
+#endif
+
 static void write_census(FILE *output, const char *path, size_t byte_count,
                          const Census *census) {
     size_t index;
@@ -446,7 +549,13 @@ static void write_census(FILE *output, const char *path, size_t byte_count,
         write_feature(output, &census->features[index]);
         fputs(index + 1U == census->feature_count ? "\n" : ",\n", output);
     }
-    fputs("    ]}", output);
+    fputs("    ]", output);
+#if CONFIG_ACCOUNTING
+    if (census->accounting_count != 0) {
+        write_accounting(output, census);
+    }
+#endif
+    fputc('}', output);
 }
 
 static void usage(const char *program) {

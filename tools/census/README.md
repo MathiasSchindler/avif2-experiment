@@ -83,3 +83,23 @@ The pinned AVM build currently has `CONFIG_ACCOUNTING=0`, so the census does
 not yet include entropy-symbol names, CDF contexts, EOB values, or coefficient
 levels. Those require rebuilding AVM with accounting enabled; they are not
 inferred from reconstructed pixels or transform metadata.
+
+## Downstream blocker map
+
+The decoder blocker map combines a separate accounting-enabled AVM census with
+the verified production-decoder sweep. Configure AVM in an isolated build
+directory with `CONFIG_ACCOUNTING=1` and `CONFIG_INSPECTION=1`, then configure
+this census with `AVM_BUILD_DIR` pointing at that build. Generate
+`build/census/all-artifacts-accounting.json` from all artifact OBUs and run:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File `
+  tools/census/generate_blocker_map.ps1
+```
+
+The generated [`images/artifacts/blocker-map.md`](../../images/artifacts/blocker-map.md)
+distinguishes the production decoder's confirmed current stop from syntax
+surfaces observed over the complete AVM-decoded frame. Accounting exposure is
+not labeled as a missing implementation: adaptive entropy and reconstructed
+reference dependencies prevent reliable ordering beyond the first unfixed
+frontier.
