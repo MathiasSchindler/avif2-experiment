@@ -342,8 +342,10 @@ static void test_palette_prediction(void) {
     mode.palette_height = 8U;
     mode.palette_colors[0] = 23U;
     mode.palette_colors[1] = 211U;
-    for (index = 0U; index < AV2H_PALETTE_MAP_CAPACITY; ++index) {
-        mode.palette_map[index] = (uint8_t)((index + index / 8U) & 1U);
+    for (index = 0U; index < 64U; ++index) {
+        CHECK(av2h_palette_map_set(
+                  &mode, index, (uint8_t)((index + index / 8U) & 1U)) ==
+              AV2H_OK);
     }
     prefix.tx_size = AV2H_TX_8X8;
     prefix.all_zero = 1U;
@@ -357,11 +359,15 @@ static void test_palette_prediction(void) {
               &leaf, &mode, &prefix, &transform, &block,
               &plane, &scratch) == AV2H_OK);
     for (index = 0U; index < AV2H_PALETTE_MAP_CAPACITY; ++index) {
-        uint8_t expected = mode.palette_colors[mode.palette_map[index]];
+        uint8_t expected = mode.palette_colors[
+            av2h_palette_map_get(&mode, index)];
         CHECK(scratch.predictor[index] == expected);
         CHECK(pixels[index] == expected);
     }
-    mode.palette_map[63U] = 2U;
+    mode.palette_size = 3U;
+    av2h_memory_fill(
+        mode.palette_map, 0U, AV2H_PALETTE_MAP_CAPACITY);
+    mode.palette_map[15U] = 3U << 6U;
     CHECK(av2h_luma_reconstruct_to_plane(
               &leaf, &mode, &prefix, &transform, &block,
               &plane, &scratch) == AV2H_INVALID_DATA);

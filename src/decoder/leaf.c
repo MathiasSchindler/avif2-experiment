@@ -17,6 +17,7 @@ uint32_t av2h_debug_ccso_range_after;
 uint32_t av2h_debug_ccso_context;
 uint8_t av2h_debug_luma_mode_neighbors[4U];
 uint8_t av2h_debug_luma_mode_stage;
+uint8_t av2h_debug_chroma_mode_stage;
 
 static const Av2hBinaryCdfSpec intrabc_defaults[] = {
     { 32085U, 5U, 0U }, { 15172U, 30U, 0U }, { 4503U, 0U, 0U }
@@ -399,6 +400,7 @@ Av2hStatus av2h_chroma_mode_read_with_delta_for_sdp(
     if (decoder == 0 || cdfs == 0 || sequence == 0 || mode == 0) {
         return AV2H_INVALID_ARGUMENT;
     }
+    av2h_debug_chroma_mode_stage = 1U;
     if (!sequence->enable_cfl_intra || cfl_context >= AV2H_CFL_CONTEXT_COUNT ||
         colocated_luma_mode > AV2H_INTRA_PAETH || cfl_allowed > 1U) {
         return AV2H_UNSUPPORTED;
@@ -407,6 +409,7 @@ Av2hStatus av2h_chroma_mode_read_with_delta_for_sdp(
     av2h_debug_chroma_mode_ranges[0] = decoder->range;
     value = 0U;
     if (cfl_allowed) {
+        av2h_debug_chroma_mode_stage = 2U;
         value = av2h_range_read_adaptive(
             decoder, cdfs->is_cfl[cfl_context], 2U);
         if (av2h_range_status(decoder) != AV2H_OK) {
@@ -442,6 +445,7 @@ Av2hStatus av2h_chroma_mode_read_with_delta_for_sdp(
         mode->mode_index = 13U;
         mode->before_cfl_switch_bits = mode->after_cfl_bits;
         if (sequence->enable_mhccp) {
+            av2h_debug_chroma_mode_stage = 3U;
             value = av2h_range_read_adaptive(
                 decoder, cdfs->cfl_mhccp_switch, 2U);
             if (av2h_range_status(decoder) != AV2H_OK) {
@@ -465,6 +469,7 @@ Av2hStatus av2h_chroma_mode_read_with_delta_for_sdp(
                 group = size_group[block_size];
                 mode->before_mhccp_direction_bits =
                     mode->after_cfl_switch_bits;
+                av2h_debug_chroma_mode_stage = 4U;
                 value = av2h_range_read_adaptive(
                     decoder, cdfs->mhccp_direction[group],
                     AV2H_MHCCP_DIRECTION_SYMBOLS);
@@ -481,6 +486,7 @@ Av2hStatus av2h_chroma_mode_read_with_delta_for_sdp(
         }
         mode->before_cfl_index_bits = mode->after_cfl_switch_bits;
         av2h_debug_chroma_mode_ranges[2] = decoder->range;
+        av2h_debug_chroma_mode_stage = 5U;
         value = av2h_range_read_adaptive(decoder, cdfs->cfl_index, 2U);
         if (av2h_range_status(decoder) != AV2H_OK) {
             return av2h_range_status(decoder);
@@ -499,6 +505,7 @@ Av2hStatus av2h_chroma_mode_read_with_delta_for_sdp(
             return AV2H_OK;
         }
         mode->cfl_kind = AV2H_CFL_EXPLICIT_ALPHA;
+        av2h_debug_chroma_mode_stage = 6U;
         value = av2h_range_read_adaptive(decoder, cdfs->cfl_sign, 8U);
         if (av2h_range_status(decoder) != AV2H_OK) {
             return av2h_range_status(decoder);
@@ -508,6 +515,7 @@ Av2hStatus av2h_chroma_mode_read_with_delta_for_sdp(
             uint8_t sign_u = (uint8_t)(((value + 1U) * 11U) >> 5U);
             uint8_t sign_v = (uint8_t)(value + 1U - 3U * sign_u);
             uint8_t alpha_idx = 0U;
+            av2h_debug_chroma_mode_stage = 7U;
             if (sign_u != 0U) {
                 uint8_t alpha_context = (uint8_t)(value + 1U - 3U);
                 alpha_idx = (uint8_t)(av2h_range_read_adaptive(
@@ -531,18 +539,21 @@ Av2hStatus av2h_chroma_mode_read_with_delta_for_sdp(
     }
     mode_context = (uint8_t)(colocated_luma_mode >= AV2H_INTRA_VERTICAL &&
         colocated_luma_mode <= AV2H_INTRA_D67);
+    av2h_debug_chroma_mode_stage = 8U;
     value = av2h_range_read_adaptive(
         decoder, cdfs->uv_mode[mode_context], AV2H_UV_MODE_SYMBOLS);
     if (av2h_range_status(decoder) != AV2H_OK) {
         return av2h_range_status(decoder);
     }
     if (value == AV2H_UV_MODE_SYMBOLS - 1U) {
+        av2h_debug_chroma_mode_stage = 9U;
         value += av2h_range_read_bypass(decoder, 3U);
         if (av2h_range_status(decoder) != AV2H_OK) {
             return av2h_range_status(decoder);
         }
     }
     mode->mode_index = (uint8_t)value;
+    av2h_debug_chroma_mode_stage = 10U;
     mode->after_mode_bits = av2h_range_tell(decoder);
     if (value > 12U) return AV2H_INVALID_DATA;
     if (mode_context) {
@@ -1411,9 +1422,73 @@ static void palette_promote_color(
     }
 }
 
+static unsigned int palette_map_bit_width(uint8_t palette_size) {
+    return palette_size <= 2U ? 1U : palette_size <= 4U ? 2U : 3U;
+}
+
+uint8_t av2h_palette_map_get(
+    const Av2hFirstLeafMode *mode, size_t index) {
+    unsigned int bits;
+    size_t bit_offset;
+    size_t byte_offset;
+    unsigned int shift;
+    uint16_t packed;
+    if (mode == 0 || mode->palette_size < 2U ||
+        mode->palette_size > AV2H_PALETTE_MAX_SIZE) {
+        return AV2H_PALETTE_MAX_SIZE;
+    }
+    bits = palette_map_bit_width(mode->palette_size);
+    bit_offset = index * bits;
+    if (bit_offset + bits > AV2H_PALETTE_MAP_CAPACITY * 8U) {
+        return AV2H_PALETTE_MAX_SIZE;
+    }
+    byte_offset = bit_offset >> 3U;
+    shift = (unsigned int)(bit_offset & 7U);
+    packed = mode->palette_map[byte_offset];
+    if (shift + bits > 8U) {
+        packed = (uint16_t)(packed |
+            ((uint16_t)mode->palette_map[byte_offset + 1U] << 8U));
+    }
+    return (uint8_t)((packed >> shift) & ((1U << bits) - 1U));
+}
+
+Av2hStatus av2h_palette_map_set(
+    Av2hFirstLeafMode *mode, size_t index, uint8_t color) {
+    unsigned int bits;
+    size_t bit_offset;
+    size_t byte_offset;
+    unsigned int shift;
+    uint16_t mask;
+    uint16_t packed;
+    if (mode == 0 || mode->palette_size < 2U ||
+        mode->palette_size > AV2H_PALETTE_MAX_SIZE ||
+        color >= mode->palette_size) {
+        return AV2H_INVALID_ARGUMENT;
+    }
+    bits = palette_map_bit_width(mode->palette_size);
+    bit_offset = index * bits;
+    if (bit_offset + bits > AV2H_PALETTE_MAP_CAPACITY * 8U) {
+        return AV2H_OUT_OF_MEMORY;
+    }
+    byte_offset = bit_offset >> 3U;
+    shift = (unsigned int)(bit_offset & 7U);
+    mask = (uint16_t)(((1U << bits) - 1U) << shift);
+    packed = mode->palette_map[byte_offset];
+    if (shift + bits > 8U) {
+        packed = (uint16_t)(packed |
+            ((uint16_t)mode->palette_map[byte_offset + 1U] << 8U));
+    }
+    packed = (uint16_t)((packed & ~mask) | ((uint16_t)color << shift));
+    mode->palette_map[byte_offset] = (uint8_t)packed;
+    if (shift + bits > 8U) {
+        mode->palette_map[byte_offset + 1U] = (uint8_t)(packed >> 8U);
+    }
+    return AV2H_OK;
+}
+
 static size_t palette_color_context(
-    const uint8_t *map,
-    size_t stride,
+    const Av2hFirstLeafMode *mode,
+    size_t width,
     size_t row,
     size_t column,
     uint8_t color_order[AV2H_PALETTE_MAX_SIZE]) {
@@ -1425,9 +1500,12 @@ static size_t palette_color_context(
         color_order[color] = (uint8_t)color;
     }
     if (row != 0U && column != 0U) {
-        uint8_t left = map[row * stride + column - 1U];
-        uint8_t above_left = map[(row - 1U) * stride + column - 1U];
-        uint8_t above = map[(row - 1U) * stride + column];
+        uint8_t left = av2h_palette_map_get(
+            mode, row * width + column - 1U);
+        uint8_t above_left = av2h_palette_map_get(
+            mode, (row - 1U) * width + column - 1U);
+        uint8_t above = av2h_palette_map_get(
+            mode, (row - 1U) * width + column);
         if (left == above_left && left == above) {
             palette_promote_color(color_order, seen, 0U, left, &seen_count);
             context = 4U;
@@ -1453,11 +1531,13 @@ static size_t palette_color_context(
         }
     } else if (row != 0U) {
         palette_promote_color(
-            color_order, seen, 0U, map[(row - 1U) * stride], &seen_count);
+            color_order, seen, 0U,
+            av2h_palette_map_get(mode, (row - 1U) * width), &seen_count);
         context = 0U;
     } else {
         palette_promote_color(
-            color_order, seen, 0U, map[column - 1U], &seen_count);
+            color_order, seen, 0U,
+            av2h_palette_map_get(mode, column - 1U), &seen_count);
         context = 0U;
     }
     for (color = 0U; color < AV2H_PALETTE_MAX_SIZE; ++color) {
@@ -1473,43 +1553,59 @@ Av2hStatus av2h_luma_palette_map_read(
     Av2hFirstLeafMode *mode) {
     uint32_t direction;
     uint32_t previous_identity = 0U;
+    size_t width_mi;
+    size_t height_mi;
+    size_t width;
+    size_t height;
     size_t axis2;
     if (decoder == 0 || cdfs == 0 || leaf == 0 || mode == 0) {
         return AV2H_INVALID_ARGUMENT;
     }
     if (mode->palette_size == 0U) return AV2H_OK;
-    if (leaf->block_size != AV2H_BLOCK_8X8 ||
-        (mode->palette_size != 2U && mode->palette_size != 6U)) {
+    if (!((leaf->block_size == AV2H_BLOCK_8X8 &&
+           (mode->palette_size == 2U || mode->palette_size == 6U)) ||
+          (leaf->block_size == AV2H_BLOCK_16X16 &&
+           mode->palette_size == 2U)) ||
+        av2h_block_dimensions_mi(
+            leaf->block_size, &width_mi, &height_mi) != AV2H_OK) {
         return AV2H_UNSUPPORTED;
     }
-    mode->palette_width = 8U;
-    mode->palette_height = 8U;
+    width = width_mi * 4U;
+    height = height_mi * 4U;
+    if (width * height * palette_map_bit_width(mode->palette_size) >
+        AV2H_PALETTE_MAP_CAPACITY * 8U) {
+        return AV2H_UNSUPPORTED;
+    }
+    mode->palette_width = (uint8_t)width;
+    mode->palette_height = (uint8_t)height;
     direction = av2h_range_read_bypass(decoder, 1U);
-    for (axis2 = 0U; axis2 < 8U; ++axis2) {
+    for (axis2 = 0U; axis2 < (direction ? width : height); ++axis2) {
         size_t identity_context = axis2 == 0U ? 3U : previous_identity;
         uint32_t identity = av2h_range_read_adaptive(
             decoder, cdfs->palette_y_identity[identity_context], 3U);
         size_t axis1;
         if (identity == 2U && axis2 == 0U) return AV2H_INVALID_DATA;
-        for (axis1 = 0U; axis1 < 8U; ++axis1) {
+        for (axis1 = 0U; axis1 < (direction ? height : width); ++axis1) {
             size_t row = direction ? axis1 : axis2;
             size_t column = direction ? axis2 : axis1;
-            size_t map_index = row * 8U + column;
+            size_t map_index = row * width + column;
+            Av2hStatus status;
             if (identity == 2U) {
-                mode->palette_map[map_index] = direction ?
-                    mode->palette_map[map_index - 1U] :
-                    mode->palette_map[map_index - 8U];
+                status = av2h_palette_map_set(mode, map_index,
+                    av2h_palette_map_get(mode, direction ?
+                        map_index - 1U : map_index - width));
             } else if (identity == 1U && axis1 != 0U) {
-                mode->palette_map[map_index] = direction ?
-                    mode->palette_map[map_index - 8U] :
-                    mode->palette_map[map_index - 1U];
+                status = av2h_palette_map_set(mode, map_index,
+                    av2h_palette_map_get(mode, direction ?
+                        map_index - width : map_index - 1U));
             } else if (axis2 == 0U && axis1 == 0U) {
-                mode->palette_map[0] = (uint8_t)palette_read_uniform(
-                    decoder, mode->palette_size);
+                status = av2h_palette_map_set(mode, 0U,
+                    (uint8_t)palette_read_uniform(
+                        decoder, mode->palette_size));
             } else {
                 uint8_t color_order[AV2H_PALETTE_MAX_SIZE];
                 size_t context = palette_color_context(
-                    mode->palette_map, 8U, row, column, color_order);
+                    mode, width, row, column, color_order);
                 uint16_t *cdf = mode->palette_size == 2U ?
                     cdfs->palette_y_color_index_2[context] :
                     cdfs->palette_y_color_index_6[context];
@@ -1518,8 +1614,10 @@ Av2hStatus av2h_luma_palette_map_read(
                 if (color_index >= mode->palette_size) {
                     return AV2H_INVALID_DATA;
                 }
-                mode->palette_map[map_index] = color_order[color_index];
+                status = av2h_palette_map_set(
+                    mode, map_index, color_order[color_index]);
             }
+            if (status != AV2H_OK) return status;
             if (av2h_range_status(decoder) != AV2H_OK) {
                 return av2h_range_status(decoder);
             }
@@ -2594,8 +2692,9 @@ static Av2hStatus luma_mode_read_internal(
                 return av2h_range_status(decoder);
             }
             mode->palette_size = (uint8_t)value;
-            if (leaf->block_size != AV2H_BLOCK_8X8 ||
-                (value != 2U && value != 6U)) {
+            if (!((leaf->block_size == AV2H_BLOCK_8X8 &&
+                   (value == 2U || value == 6U)) ||
+                  (leaf->block_size == AV2H_BLOCK_16X16 && value == 2U))) {
                 return AV2H_UNSUPPORTED;
             }
             status = palette_read_colors(decoder, mode);

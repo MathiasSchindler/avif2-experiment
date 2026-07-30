@@ -211,6 +211,8 @@ Av2hStatus av2h_chroma_tx_descriptor_get(
     if (width_mi > 32U || height_mi > 32U) return AV2H_UNSUPPORTED;
     width = (uint8_t)(width_mi * 2U);
     height = (uint8_t)(height_mi * 2U);
+        if (width < 4U) width = 4U;
+        if (height < 4U) height = 4U;
     for (index = 0U; index < AV2H_TX_SIZE_COUNT; ++index) {
         const Av2hTxDescriptor *candidate = &tx_descriptors[index];
         if (candidate->output_width == width &&

@@ -21,6 +21,7 @@ extern uint32_t av2h_debug_ccso_range_after;
 extern uint32_t av2h_debug_ccso_context;
 extern uint8_t av2h_debug_luma_mode_neighbors[4U];
 extern uint8_t av2h_debug_luma_mode_stage;
+extern uint8_t av2h_debug_chroma_mode_stage;
 
 #define AV2H_INTRABC_CONTEXT_COUNT 3U
 #define AV2H_CCSO_CONTEXT_COUNT 4U
@@ -176,6 +177,11 @@ typedef struct {
     size_t after_ccso_bits;
     uint8_t ccso_controls_read;
 } Av2hFirstLeafMode;
+
+uint8_t av2h_palette_map_get(
+    const Av2hFirstLeafMode *mode, size_t index);
+Av2hStatus av2h_palette_map_set(
+    Av2hFirstLeafMode *mode, size_t index, uint8_t color);
 
 typedef struct {
     uint8_t present[2];

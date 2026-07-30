@@ -2,6 +2,8 @@
 
 #include "gdf_data.inc"
 
+uint8_t av2h_debug_filter_reason;
+
 #define AV2H_CCSO_LEGACY_UNIT_SIZE 64U
 
 static uint16_t ccso_unit_size(const Av2hFrameState *frame) {
@@ -775,14 +777,11 @@ static void copy_filter_plane(Av2hFilterPlane *destination,
     }
 }
 
-Av2hStatus av2h_cdef_filter_frame(
+Av2hStatus av2h_cdef_filter_frame_with_controls(
     Av2hFilterPlanes *destination,
     const Av2hFilterPlanes *deblocked,
-    const Av2hFrameState *frame) {
-    uint8_t y_primary;
-    uint8_t y_secondary;
-    uint8_t uv_primary;
-    uint8_t uv_secondary;
+    const Av2hFrameState *frame,
+    const Av2hCdefControlMap *controls) {
     uint16_t y;
     unsigned int plane;
     if (destination == 0 || deblocked == 0 || frame == 0 ||
@@ -791,17 +790,28 @@ Av2hStatus av2h_cdef_filter_frame(
         !dimensions_valid(deblocked, frame)) {
         return AV2H_INVALID_ARGUMENT;
     }
-    if (frame->cdef_strength_count > 1U ||
-        (frame->cdef_strength_count != 0U &&
+    if (frame->cdef_strength_count != 0U &&
          (frame->cdef_on_skip_transform == 0U ||
-          frame->cdef_damping < 3U))) {
+          frame->cdef_damping < 3U)) {
         return AV2H_UNSUPPORTED;
     }
-    if (frame->cdef_strength_count != 0U &&
-        (frame->cdef_damping > 6U ||
-         frame->cdef_y_strength[0] > 63U ||
-         frame->cdef_uv_strength[0] > 63U)) {
-        return AV2H_INVALID_ARGUMENT;
+    if (frame->cdef_strength_count != 0U) {
+        size_t strength_index;
+        if (frame->cdef_damping > 6U) return AV2H_INVALID_ARGUMENT;
+        for (strength_index = 0U;
+             strength_index < frame->cdef_strength_count;
+             ++strength_index) {
+            if (frame->cdef_y_strength[strength_index] > 63U ||
+                frame->cdef_uv_strength[strength_index] > 63U) {
+                return AV2H_INVALID_ARGUMENT;
+            }
+        }
+    }
+    if (frame->cdef_strength_count > 1U &&
+        (controls == 0 || controls->strengths == 0 ||
+         controls->columns != ((size_t)frame->width + 63U) / 64U ||
+         controls->rows != ((size_t)frame->height + 63U) / 64U)) {
+        return AV2H_UNSUPPORTED;
     }
     for (plane = 0U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
         if (destination->plane[plane].data == deblocked->plane[plane].data) {
@@ -811,22 +821,35 @@ Av2hStatus av2h_cdef_filter_frame(
                           &deblocked->plane[plane]);
     }
     if (frame->cdef_strength_count == 0U) return AV2H_OK;
-    y_primary = frame->cdef_y_strength[0] / 4U;
-    y_secondary = frame->cdef_y_strength[0] % 4U;
-    if (y_secondary == 3U) ++y_secondary;
-    uv_primary = frame->cdef_uv_strength[0] / 4U;
-    uv_secondary = frame->cdef_uv_strength[0] % 4U;
-    if (uv_secondary == 3U) ++uv_secondary;
     for (y = 0U; y < deblocked->plane[0].height;
          y = (uint16_t)(y + 8U)) {
         uint16_t x;
         for (x = 0U; x < deblocked->plane[0].width;
              x = (uint16_t)(x + 8U)) {
+            size_t strength_index = 0U;
+            uint8_t y_primary;
+            uint8_t y_secondary;
+            uint8_t uv_primary;
+            uint8_t uv_secondary;
             uint16_t width = (uint16_t)(deblocked->plane[0].width - x);
             uint16_t height = (uint16_t)(deblocked->plane[0].height - y);
             uint8_t direction;
             uint32_t variance;
             Av2hStatus status;
+            if (frame->cdef_strength_count > 1U) {
+                strength_index = ((size_t)y / 64U) * controls->columns +
+                    (size_t)x / 64U;
+                strength_index = controls->strengths[strength_index];
+                if (strength_index >= frame->cdef_strength_count) {
+                    return AV2H_INVALID_DATA;
+                }
+            }
+            y_primary = frame->cdef_y_strength[strength_index] / 4U;
+            y_secondary = frame->cdef_y_strength[strength_index] % 4U;
+            if (y_secondary == 3U) ++y_secondary;
+            uv_primary = frame->cdef_uv_strength[strength_index] / 4U;
+            uv_secondary = frame->cdef_uv_strength[strength_index] % 4U;
+            if (uv_secondary == 3U) ++uv_secondary;
             if (width > 8U) width = 8U;
             if (height > 8U) height = 8U;
             if (width == 8U && height == 8U) {
@@ -859,6 +882,14 @@ Av2hStatus av2h_cdef_filter_frame(
         }
     }
     return AV2H_OK;
+}
+
+Av2hStatus av2h_cdef_filter_frame(
+    Av2hFilterPlanes *destination,
+    const Av2hFilterPlanes *deblocked,
+    const Av2hFrameState *frame) {
+    return av2h_cdef_filter_frame_with_controls(
+        destination, deblocked, frame, 0);
 }
 
 static uint8_t gdf_source_sample(const Av2hFilterPlane *cdef_luma,
@@ -1512,14 +1543,27 @@ Av2hStatus av2h_filter_frame(
     Av2hFilterWorkspace *workspace) {
     unsigned int plane;
     Av2hStatus status;
+    av2h_debug_filter_reason = 0U;
     if (sequence == 0 || frame == 0 || planes == 0 || workspace == 0) {
+        av2h_debug_filter_reason = 1U;
         return AV2H_INVALID_ARGUMENT;
     }
-    if (sequence->enable_restoration != 0U || frame->gdf_mode > 1U ||
-        frame->cdef_strength_count > 1U ||
-        (frame->cdef_strength_count != 0U &&
-         (frame->cdef_on_skip_transform == 0U ||
-          frame->cdef_damping < 3U))) {
+    if (sequence->enable_restoration != 0U) {
+        av2h_debug_filter_reason = 2U;
+        return AV2H_UNSUPPORTED;
+    }
+    if (frame->gdf_mode > 1U) {
+        av2h_debug_filter_reason = 3U;
+        return AV2H_UNSUPPORTED;
+    }
+    if (frame->cdef_strength_count != 0U &&
+        (frame->cdef_on_skip_transform == 0U ||
+         frame->cdef_damping < 3U)) {
+        av2h_debug_filter_reason = 5U;
+        return AV2H_UNSUPPORTED;
+    }
+    if (frame->cdef_strength_count > 1U) {
+        av2h_debug_filter_reason = 4U;
         return AV2H_UNSUPPORTED;
     }
     if ((frame->cdef_strength_count != 0U &&
@@ -1540,6 +1584,7 @@ Av2hStatus av2h_filter_frame(
         !deblock_map_valid(&workspace->deblocked,
                            &workspace->deblock_map) ||
         !controls_valid(frame, &workspace->ccso_controls)) {
+        av2h_debug_filter_reason = 6U;
         return AV2H_INVALID_ARGUMENT;
     }
     for (plane = 0U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
@@ -1548,6 +1593,7 @@ Av2hStatus av2h_filter_frame(
             planes->plane[plane].data == workspace->cdef.plane[plane].data ||
             workspace->deblocked.plane[plane].data ==
                 workspace->cdef.plane[plane].data) {
+            av2h_debug_filter_reason = 7U;
             return AV2H_INVALID_ARGUMENT;
         }
     }
@@ -1559,8 +1605,9 @@ Av2hStatus av2h_filter_frame(
         &workspace->deblocked, sequence, frame,
         &workspace->deblock_map);
     if (status != AV2H_OK) return status;
-    status = av2h_cdef_filter_frame(
-        &workspace->cdef, &workspace->deblocked, frame);
+    status = av2h_cdef_filter_frame_with_controls(
+        &workspace->cdef, &workspace->deblocked, frame,
+        &workspace->cdef_controls);
     if (status != AV2H_OK) return status;
     status = av2h_ccso_filter_frame(
         &workspace->cdef, workspace->deblocked.plane[0].data,

@@ -703,7 +703,9 @@ static void test_cdef_frame(void) {
     uint8_t destination_v[8U * 8U];
     Av2hFilterPlanes source;
     Av2hFilterPlanes destination;
+    Av2hCdefControlMap controls;
     Av2hFrameState frame;
+    uint8_t strength = 1U;
     size_t index;
     av2h_memory_fill(&frame, 0U, sizeof(frame));
     for (index = 0U; index < sizeof(source_y); ++index) {
@@ -739,6 +741,13 @@ static void test_cdef_frame(void) {
     CHECK(source_y[4U * 16U + 4U] == 108U);
     CHECK(av2h_cdef_filter_frame(&source, &source, &frame) ==
           AV2H_INVALID_ARGUMENT);
+    frame.cdef_strength_count = 2U;
+        frame.cdef_y_strength[1] = 0U;
+        frame.cdef_uv_strength[1] = 0U;
+    controls = (Av2hCdefControlMap){ &strength, 1U, 1U };
+    CHECK(av2h_cdef_filter_frame_with_controls(
+              &destination, &source, &frame, &controls) == AV2H_OK);
+        CHECK(destination_y[4U * 16U + 4U] == 108U);
 }
 
 static void test_gdf_frame(void) {
@@ -1081,6 +1090,7 @@ static void test_fail_closed(void) {
     uint8_t y[64];
     uint8_t u[16];
     uint8_t v[16];
+    uint8_t cdef_strength = 1U;
     uint8_t deblocked_y[64];
     uint8_t deblocked_u[16];
     uint8_t deblocked_v[16];
@@ -1150,6 +1160,11 @@ static void test_fail_closed(void) {
     sequence.enable_restoration = 0U;
     sequence.enable_cdef = 1U;
     frame.cdef_strength_count = 2U;
+    frame.cdef_on_skip_transform = 1U;
+    frame.cdef_damping = 5U;
+    workspace.cdef_controls.strengths = &cdef_strength;
+    workspace.cdef_controls.columns = 1U;
+    workspace.cdef_controls.rows = 1U;
     CHECK(av2h_filter_frame(&planes, &sequence, &frame, &workspace) ==
           AV2H_UNSUPPORTED);
     CHECK(y[0] == 91U);

@@ -6315,7 +6315,7 @@ Av2hStatus av2h_luma_reconstruct_to_plane(
         }
         for (index = 0U; index < (size_t)output_width * output_height;
              ++index) {
-            uint8_t color_index = mode->palette_map[index];
+            uint8_t color_index = av2h_palette_map_get(mode, index);
             if (color_index >= mode->palette_size) {
                 return AV2H_INVALID_DATA;
             }

@@ -22,6 +22,12 @@ typedef struct {
 } Av2hCcsoControlMap;
 
 typedef struct {
+    const uint8_t *strengths;
+    size_t columns;
+    size_t rows;
+} Av2hCdefControlMap;
+
+typedef struct {
     uint16_t block_column;
     uint16_t block_row;
     uint16_t transform_column;
@@ -44,6 +50,7 @@ typedef struct {
     Av2hFilterPlanes deblocked;
     Av2hFilterPlanes cdef;
     Av2hDeblockMap deblock_map;
+    Av2hCdefControlMap cdef_controls;
     Av2hCcsoControlMap ccso_controls;
 } Av2hFilterWorkspace;
 
@@ -114,6 +121,12 @@ Av2hStatus av2h_cdef_filter_frame(
     Av2hFilterPlanes *destination,
     const Av2hFilterPlanes *deblocked,
     const Av2hFrameState *frame);
+
+Av2hStatus av2h_cdef_filter_frame_with_controls(
+    Av2hFilterPlanes *destination,
+    const Av2hFilterPlanes *deblocked,
+    const Av2hFrameState *frame,
+    const Av2hCdefControlMap *controls);
 
 Av2hStatus av2h_gdf_filter_frame(
     Av2hFilterPlane *destination,

@@ -3,6 +3,7 @@
 #include "decoder/tx_geometry.h"
 
 extern uint8_t av2h_debug_mhccp_reason;
+extern uint8_t av2h_debug_filter_reason;
 
 typedef struct {
     size_t luma_mode_above;
@@ -583,6 +584,7 @@ Av2hStatus av2h_decode_frame_i420_private(
                 decoded.multi_line_mrl = leaf.mode.multi_line_mrl;
                 decoded.enable_ibp = leaf.mode.enable_ibp;
                 decoded.use_intrabc = leaf.mode.use_intrabc;
+                decoded.palette_size = leaf.mode.palette_size;
                 decoded.tx_size = (uint8_t)leaf.prefix.tx_size;
                 decoded.primary_type = (uint8_t)leaf.transform.primary_type;
                 decoded.primary_symbol = leaf.transform.primary_symbol;
@@ -676,6 +678,8 @@ Av2hStatus av2h_decode_frame_i420_private(
                     AV2H_INVALID_ARGUMENT : status;
                 decoded.mode = (uint8_t)leaf.mode.mode;
                 decoded.angle_delta = leaf.mode.angle_delta;
+                decoded.syntax_stage = av2h_debug_chroma_mode_stage;
+                decoded.chroma_mode_index = leaf.mode.mode_index;
                 decoded.tx_size =
                     (uint8_t)leaf.prefix[diagnostic_index].tx_size;
                 decoded.primary_type = (uint8_t)
@@ -703,10 +707,14 @@ Av2hStatus av2h_decode_frame_i420_private(
                     blocks[diagnostic_index].diagnostic_context;
                 decoded.coefficient_kind =
                     blocks[diagnostic_index].diagnostic_kind;
+                decoded.chroma_parse_reason =
+                    av2h_debug_chroma_parse_reason;
                 AV2H_DECODE_FAIL(
                     returned, status, AV2H_FRAME_DECODE_STAGE_CHROMA_PARSE,
                     av2h_debug_chroma_tile_stage >= 4U ? 2U : 1U,
-                    &leaf.node, av2h_debug_chroma_tile_stage);
+                    &leaf.node, av2h_debug_chroma_tile_stage != 0U ?
+                        av2h_debug_chroma_tile_stage :
+                        av2h_debug_chroma_mode_stage);
             }
             if (!has_leaf) continue;
             decoded.cctx_type = leaf.transform[0].cctx_type;
@@ -793,6 +801,12 @@ Av2hStatus av2h_decode_frame_i420_private(
             AV2H_FRAME_DECODE_STAGE_COMPLETENESS, 0U, 0, 0U);
     }
     decoded.entropy_tell = av2h_range_tell(&decoder.range);
+    workspace->filter_workspace->cdef_controls.strengths =
+        workspace->tile_context.cdef_unit_strengths;
+    workspace->filter_workspace->cdef_controls.columns =
+        ((size_t)frame->width + 63U) / 64U;
+    workspace->filter_workspace->cdef_controls.rows =
+        ((size_t)frame->height + 63U) / 64U;
     for (plane = 0U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
         if (workspace->tile_context.ccso_unit_controls[plane] != 0) {
             av2h_memory_copy(
@@ -812,6 +826,7 @@ Av2hStatus av2h_decode_frame_i420_private(
     if (status != AV2H_OK) {
         Av2hStatus returned = status == AV2H_UNSUPPORTED ?
             AV2H_OUT_OF_MEMORY : status;
+        decoded.filter_reason = av2h_debug_filter_reason;
         AV2H_DECODE_FAIL(
             returned, status, AV2H_FRAME_DECODE_STAGE_FILTER,
             0U, 0, 0U);

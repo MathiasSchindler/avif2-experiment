@@ -8,6 +8,7 @@ extern uint8_t av2h_debug_luma_tile_stage;
 extern uint8_t av2h_debug_chroma_colocated_mode;
 extern int8_t av2h_debug_chroma_colocated_delta;
 extern uint8_t av2h_debug_chroma_tile_stage;
+extern uint8_t av2h_debug_chroma_parse_reason;
 
 
 typedef struct {

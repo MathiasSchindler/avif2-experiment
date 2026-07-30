@@ -6,6 +6,7 @@ uint8_t av2h_debug_luma_tile_stage;
 uint8_t av2h_debug_chroma_colocated_mode;
 int8_t av2h_debug_chroma_colocated_delta;
 uint8_t av2h_debug_chroma_tile_stage;
+uint8_t av2h_debug_chroma_parse_reason;
 
 Av2hStatus av2h_tile_group_single_parse(Av2hSpan payload,
                                          size_t uncompressed_header_bits,
@@ -694,6 +695,7 @@ Av2hStatus av2h_tile_decoder_next_chroma(
         return tile_decoder_fail(decoder, AV2H_INVALID_ARGUMENT);
     }
     av2h_debug_chroma_tile_stage = 0U;
+    av2h_debug_chroma_parse_reason = 1U;
     if (decoder->chroma_root_forced_partition != AV2H_PARTITION_INVALID) {
         Av2hPartitionNode root = {
             decoder->sb_row, decoder->sb_column, decoder->root_block_size
@@ -757,15 +759,18 @@ Av2hStatus av2h_tile_decoder_next_chroma(
     if (!*has_leaf) {
         return av2h_tile_decoder_finish_root(decoder);
     }
+    av2h_debug_chroma_parse_reason = 2U;
     tile_capture_root_partition(
         decoder, &path, &decoder->chroma_root_partition);
     leaf->node = path.leaf;
     index = (size_t)leaf->node.row * decoder->mi_columns + leaf->node.column;
     if (index >= decoder->colocated_luma_count) {
+        av2h_debug_chroma_parse_reason = 3U;
         return tile_decoder_fail(decoder, AV2H_OVERFLOW);
     }
     colocated = &decoder->colocated_luma[index];
     if (!colocated->context.present) {
+        av2h_debug_chroma_parse_reason = 4U;
         return tile_decoder_fail(decoder, AV2H_INVALID_DATA);
     }
     av2h_debug_chroma_colocated_mode = colocated->mode;
@@ -782,12 +787,14 @@ Av2hStatus av2h_tile_decoder_next_chroma(
                 (size_t)leaf->node.row * decoder->mi_columns +
                 leaf->node.column - 1U].chroma_cfl);
     }
+    av2h_debug_chroma_parse_reason = 5U;
     status = av2h_chroma_mode_read_with_delta_for_sdp(
         &decoder->range, &decoder->leaf_cdfs, decoder->sequence,
         (Av2hFirstLeafIntraMode)colocated->mode, colocated->angle_delta,
         leaf->node.block_size, cfl_context,
         tile_cfl_allowed_for_sdp(decoder), &leaf->mode);
     if (status != AV2H_OK) return tile_decoder_fail(decoder, status);
+    av2h_debug_chroma_parse_reason = 0U;
     status = tile_store_chroma_mode(decoder, &leaf->node, &leaf->mode);
     if (status != AV2H_OK) return tile_decoder_fail(decoder, status);
     blocks[0] = u_block;

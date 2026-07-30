@@ -50,6 +50,7 @@ typedef struct {
     uint8_t multi_line_mrl;
     uint8_t enable_ibp;
     uint8_t use_intrabc;
+    uint8_t palette_size;
     uint8_t tx_size;
     uint8_t primary_type;
     uint8_t primary_symbol;
@@ -62,6 +63,9 @@ typedef struct {
     uint8_t mhccp_direction;
     uint8_t cfl_filter_index;
     uint8_t mhccp_reason;
+    uint8_t chroma_parse_reason;
+    uint8_t chroma_mode_index;
+    uint8_t filter_reason;
     uint16_t eob;
     uint16_t u_coefficient_count;
     uint16_t v_coefficient_count;

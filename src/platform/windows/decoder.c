@@ -190,6 +190,8 @@ static void write_decode_diagnostic(const Av2hFrameDecodeResult *result) {
     write_unsigned(result->enable_ibp);
     write_console(" intrabc=");
     write_unsigned(result->use_intrabc);
+    write_console(" palette-size=");
+    write_unsigned(result->palette_size);
     write_console(" tx-size=");
     write_unsigned(result->tx_size);
     write_console(" prefix-stage=");
@@ -224,6 +226,12 @@ static void write_decode_diagnostic(const Av2hFrameDecodeResult *result) {
     write_unsigned(result->cfl_filter_index);
     write_console(" mhccp-reason=");
     write_unsigned(result->mhccp_reason);
+    write_console(" chroma-parse-reason=");
+    write_unsigned(result->chroma_parse_reason);
+    write_console(" chroma-mode-index=");
+    write_unsigned(result->chroma_mode_index);
+    write_console(" filter-reason=");
+    write_unsigned(result->filter_reason);
     write_console(" eob=");
     write_unsigned(result->eob);
     write_console(" uv-coeff-counts=");
