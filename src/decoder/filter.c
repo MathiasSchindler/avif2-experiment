@@ -3,6 +3,30 @@
 #include "gdf_data.inc"
 
 uint8_t av2h_debug_filter_reason;
+uint64_t av2h_debug_filter_stage_hash[
+    AV2H_FILTER_STAGE_COUNT][AV2H_FRAME_PLANE_COUNT];
+
+static uint64_t filter_plane_hash(const Av2hFilterPlane *plane) {
+    uint64_t hash = 1469598103934665603ULL;
+    uint16_t y;
+    for (y = 0U; y < plane->height; ++y) {
+        uint16_t x;
+        for (x = 0U; x < plane->width; ++x) {
+            hash ^= plane->data[(size_t)y * plane->stride + x];
+            hash *= 1099511628211ULL;
+        }
+    }
+    return hash;
+}
+
+static void capture_filter_stage(size_t stage,
+                                 const Av2hFilterPlanes *planes) {
+    unsigned int plane;
+    for (plane = 0U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
+        av2h_debug_filter_stage_hash[stage][plane] =
+            filter_plane_hash(&planes->plane[plane]);
+    }
+}
 
 #define AV2H_CCSO_LEGACY_UNIT_SIZE 64U
 
@@ -1544,6 +1568,9 @@ Av2hStatus av2h_filter_frame(
     unsigned int plane;
     Av2hStatus status;
     av2h_debug_filter_reason = 0U;
+    av2h_memory_fill(
+        av2h_debug_filter_stage_hash, 0U,
+        sizeof(av2h_debug_filter_stage_hash));
     if (sequence == 0 || frame == 0 || planes == 0 || workspace == 0) {
         av2h_debug_filter_reason = 1U;
         return AV2H_INVALID_ARGUMENT;
@@ -1601,19 +1628,23 @@ Av2hStatus av2h_filter_frame(
         copy_filter_plane(&workspace->deblocked.plane[plane],
                           &planes->plane[plane]);
     }
+    capture_filter_stage(0U, planes);
     status = av2h_deblock_filter_frame(
         &workspace->deblocked, sequence, frame,
         &workspace->deblock_map);
     if (status != AV2H_OK) return status;
+    capture_filter_stage(1U, &workspace->deblocked);
     status = av2h_cdef_filter_frame_with_controls(
         &workspace->cdef, &workspace->deblocked, frame,
         &workspace->cdef_controls);
     if (status != AV2H_OK) return status;
+    capture_filter_stage(2U, &workspace->cdef);
     status = av2h_ccso_filter_frame(
         &workspace->cdef, workspace->deblocked.plane[0].data,
         workspace->deblocked.plane[0].stride, frame,
         &workspace->ccso_controls);
     if (status != AV2H_OK) return status;
+    capture_filter_stage(3U, &workspace->cdef);
     status = av2h_gdf_filter_frame(
         &planes->plane[0], &workspace->cdef.plane[0],
         &workspace->deblocked.plane[0], frame);
@@ -1622,5 +1653,6 @@ Av2hStatus av2h_filter_frame(
         copy_filter_plane(&planes->plane[plane],
                           &workspace->cdef.plane[plane]);
     }
+    capture_filter_stage(4U, planes);
     return AV2H_OK;
 }

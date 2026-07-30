@@ -7,6 +7,23 @@ uint8_t av2h_debug_chroma_colocated_mode;
 int8_t av2h_debug_chroma_colocated_delta;
 uint8_t av2h_debug_chroma_tile_stage;
 uint8_t av2h_debug_chroma_parse_reason;
+Av2hDebugLeafTraceEntry av2h_debug_luma_leaf_trace[
+    AV2H_DEBUG_LEAF_TRACE_CAPACITY];
+Av2hDebugLeafTraceEntry av2h_debug_chroma_leaf_trace[
+    AV2H_DEBUG_LEAF_TRACE_CAPACITY];
+size_t av2h_debug_luma_leaf_trace_count;
+size_t av2h_debug_chroma_leaf_trace_count;
+
+static void tile_debug_trace_leaf(Av2hDebugLeafTraceEntry *trace,
+                                  size_t *count,
+                                  Av2hPartitionNode node,
+                                  const Av2hRangeDecoder *decoder) {
+    Av2hDebugLeafTraceEntry *entry =
+        &trace[*count % AV2H_DEBUG_LEAF_TRACE_CAPACITY];
+    entry->node = node;
+    entry->after_bits = av2h_range_tell(decoder);
+    ++*count;
+}
 
 Av2hStatus av2h_tile_group_single_parse(Av2hSpan payload,
                                          size_t uncompressed_header_bits,
@@ -446,6 +463,9 @@ Av2hStatus av2h_tile_decoder_init(
         storage->colocated_luma == 0) {
         return AV2H_INVALID_ARGUMENT;
     }
+    av2h_debug_partition_trace_count = 0U;
+    av2h_debug_luma_leaf_trace_count = 0U;
+    av2h_debug_chroma_leaf_trace_count = 0U;
     decoder->mi_columns = ((size_t)frame->width + 3U) / 4U;
     decoder->mi_rows = ((size_t)frame->height + 3U) / 4U;
     if (decoder->mi_columns > storage->above_count ||
@@ -618,6 +638,10 @@ Av2hStatus av2h_tile_decoder_next_luma(
             return tile_decoder_fail(decoder, AV2H_INVALID_DATA);
         }
         if (status != AV2H_OK) return tile_decoder_fail(decoder, status);
+        tile_debug_trace_leaf(
+            av2h_debug_luma_leaf_trace,
+            &av2h_debug_luma_leaf_trace_count, leaf->node,
+            &decoder->range);
         decoder->event = AV2H_TILE_EVENT_LUMA_LEAF;
         return AV2H_OK;
     }
@@ -632,6 +656,10 @@ Av2hStatus av2h_tile_decoder_next_luma(
         status = tile_initialize_all_zero_luma(
             decoder, leaf, &leaf->transform, block);
         if (status != AV2H_OK) return tile_decoder_fail(decoder, status);
+        tile_debug_trace_leaf(
+            av2h_debug_luma_leaf_trace,
+            &av2h_debug_luma_leaf_trace_count, leaf->node,
+            &decoder->range);
         decoder->event = AV2H_TILE_EVENT_LUMA_LEAF;
         return AV2H_OK;
     }
@@ -648,6 +676,9 @@ Av2hStatus av2h_tile_decoder_next_luma(
         &leaf->transform, &decoder->coefficient_contexts, block);
     if (status != AV2H_OK) return tile_decoder_fail(decoder, status);
     av2h_debug_luma_stage_ranges[4] = decoder->range.range;
+    tile_debug_trace_leaf(
+        av2h_debug_luma_leaf_trace, &av2h_debug_luma_leaf_trace_count,
+        leaf->node, &decoder->range);
     decoder->event = AV2H_TILE_EVENT_LUMA_LEAF;
     return AV2H_OK;
 }
@@ -820,6 +851,9 @@ Av2hStatus av2h_tile_decoder_next_chroma(
             &decoder->coefficient_contexts, blocks[index]);
         if (status != AV2H_OK) return tile_decoder_fail(decoder, status);
     }
+    tile_debug_trace_leaf(
+        av2h_debug_chroma_leaf_trace, &av2h_debug_chroma_leaf_trace_count,
+        leaf->node, &decoder->range);
     decoder->event = AV2H_TILE_EVENT_CHROMA_LEAF;
     return AV2H_OK;
 }

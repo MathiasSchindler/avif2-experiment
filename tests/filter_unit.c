@@ -1184,6 +1184,11 @@ static void test_fail_closed(void) {
     CHECK(av2h_filter_frame(&planes, &sequence, &frame, &workspace) ==
           AV2H_OK);
     CHECK(y[0] == 100U);
+        CHECK(av2h_debug_filter_stage_hash[0U][0U] != 0U);
+        CHECK(av2h_debug_filter_stage_hash[3U][0U] !=
+            av2h_debug_filter_stage_hash[2U][0U]);
+        CHECK(av2h_debug_filter_stage_hash[4U][0U] ==
+            av2h_debug_filter_stage_hash[3U][0U]);
     y[0] = 91U;
     controls.columns = 2U;
     CHECK(av2h_ccso_filter_frame(&planes, y, 8U, &frame,

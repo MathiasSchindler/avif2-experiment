@@ -10,6 +10,19 @@ extern int8_t av2h_debug_chroma_colocated_delta;
 extern uint8_t av2h_debug_chroma_tile_stage;
 extern uint8_t av2h_debug_chroma_parse_reason;
 
+#define AV2H_DEBUG_LEAF_TRACE_CAPACITY 32U
+
+typedef struct {
+    Av2hPartitionNode node;
+    size_t after_bits;
+} Av2hDebugLeafTraceEntry;
+
+extern Av2hDebugLeafTraceEntry av2h_debug_luma_leaf_trace[
+    AV2H_DEBUG_LEAF_TRACE_CAPACITY];
+extern Av2hDebugLeafTraceEntry av2h_debug_chroma_leaf_trace[
+    AV2H_DEBUG_LEAF_TRACE_CAPACITY];
+extern size_t av2h_debug_luma_leaf_trace_count;
+extern size_t av2h_debug_chroma_leaf_trace_count;
 
 typedef struct {
     size_t header_bits;

@@ -1,5 +1,7 @@
 #include "base.h"
 #include "decoder/frame_output.h"
+#include "decoder/partition.h"
+#include "decoder/tile.h"
 #include "platform/windows/win32_min.h"
 
 #define AV2H_CLI_MAX_INPUT (256U * 1024U * 1024U)
@@ -142,6 +144,61 @@ static const char *block_size_name(uint8_t block_size) {
     return block_size < AV2H_BLOCK_SIZE_COUNT ? names[block_size] : "unknown";
 }
 
+static void write_partition_path(void) {
+    size_t count = av2h_debug_partition_trace_count;
+    size_t first = count > AV2H_DEBUG_PARTITION_TRACE_CAPACITY ?
+        count - AV2H_DEBUG_PARTITION_TRACE_CAPACITY : 0U;
+    size_t index;
+    if (count == 0U) return;
+    write_console("\r\n  recent partitions:");
+    for (index = first; index < count; ++index) {
+        const Av2hPartitionDecision *decision =
+            &av2h_debug_partition_trace[
+                index % AV2H_DEBUG_PARTITION_TRACE_CAPACITY];
+        write_console(" (");
+        write_unsigned(decision->node.row);
+        write_console(",");
+        write_unsigned(decision->node.column);
+        write_console(",");
+        write_console(block_size_name(decision->node.block_size));
+        write_console(")=");
+        write_unsigned(decision->partition);
+        write_console("@");
+        write_unsigned(decision->after_bits);
+        write_console("[");
+        write_unsigned(decision->split_context);
+        write_console("/");
+        write_unsigned(decision->rect_type_context);
+        write_console("/");
+        write_unsigned(decision->extension_context);
+        write_console("]");
+    }
+}
+
+static void write_leaf_trace(const char *name,
+                             const Av2hDebugLeafTraceEntry *trace,
+                             size_t count) {
+    size_t first = count > AV2H_DEBUG_LEAF_TRACE_CAPACITY ?
+        count - AV2H_DEBUG_LEAF_TRACE_CAPACITY : 0U;
+    size_t index;
+    if (count == 0U) return;
+    write_console("\r\n  recent ");
+    write_console(name);
+    write_console(" leaves:");
+    for (index = first; index < count; ++index) {
+        const Av2hDebugLeafTraceEntry *entry =
+            &trace[index % AV2H_DEBUG_LEAF_TRACE_CAPACITY];
+        write_console(" (");
+        write_unsigned(entry->node.row);
+        write_console(",");
+        write_unsigned(entry->node.column);
+        write_console(",");
+        write_console(block_size_name(entry->node.block_size));
+        write_console(")@");
+        write_unsigned(entry->after_bits);
+    }
+}
+
 static void write_decode_diagnostic(const Av2hFrameDecodeResult *result) {
     if (result->stage == AV2H_FRAME_DECODE_STAGE_NONE) return;
     write_console("  cause: ");
@@ -173,6 +230,13 @@ static void write_decode_diagnostic(const Av2hFrameDecodeResult *result) {
     write_unsigned(result->luma_leaf_count);
     write_console(" UV=");
     write_unsigned(result->chroma_leaf_count);
+    write_partition_path();
+    write_leaf_trace(
+        "Y", av2h_debug_luma_leaf_trace,
+        av2h_debug_luma_leaf_trace_count);
+    write_leaf_trace(
+        "UV", av2h_debug_chroma_leaf_trace,
+        av2h_debug_chroma_leaf_trace_count);
     write_console("\r\n  syntax: mode=");
     write_unsigned(result->mode);
     write_console(" angle=");

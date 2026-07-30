@@ -58,6 +58,18 @@ typedef struct {
     int first_mi_column;
 } FeatureEntry;
 
+typedef struct {
+    int mi_row;
+    int mi_column;
+    int chroma_mi_row;
+    int chroma_mi_column;
+    int luma_block_size;
+    int chroma_block_size;
+    int partition;
+    int tree_type;
+    int region_type;
+} BlockTraceEntry;
+
 #if CONFIG_ACCOUNTING
 typedef struct {
     AccountingSymbolInfo info;
@@ -69,6 +81,15 @@ typedef struct {
     AccountingSymbolContext first_context;
     int has_first_context;
 } AccountingSummary;
+
+typedef struct {
+    AccountingSymbolContext context;
+    uint32_t id;
+    uint64_t bits;
+    int value;
+    int coding_mode;
+    int coding_type;
+} AccountingTraceEntry;
 #endif
 
 typedef struct {
@@ -76,10 +97,18 @@ typedef struct {
 #if CONFIG_ACCOUNTING
     AccountingSummary accounting[MAX_SYMBOL_TYPES];
     int accounting_count;
+    AccountingTraceEntry *accounting_trace;
+    size_t accounting_trace_count;
+    size_t accounting_trace_capacity;
+    int trace_accounting;
 #endif
     FeatureEntry *features;
     size_t feature_count;
     size_t feature_capacity;
+    BlockTraceEntry *block_trace;
+    size_t block_trace_count;
+    size_t block_trace_capacity;
+    int trace_blocks;
     uint64_t block_count;
     uint64_t feature_occurrence_count;
     int frame_count;
@@ -90,6 +119,56 @@ typedef struct {
     int superblock_size;
     int failed;
 } Census;
+
+static int census_trace_block(Census *census, const MB_MODE_INFO *mode) {
+    BlockTraceEntry *entry;
+    if (!census->trace_blocks) return 1;
+    if (census->block_trace_count == census->block_trace_capacity) {
+        size_t capacity = census->block_trace_capacity == 0U ?
+            256U : census->block_trace_capacity * 2U;
+        BlockTraceEntry *grown = (BlockTraceEntry *)realloc(
+            census->block_trace, capacity * sizeof(*grown));
+        if (grown == NULL) return 0;
+        census->block_trace = grown;
+        census->block_trace_capacity = capacity;
+    }
+    entry = &census->block_trace[census->block_trace_count++];
+    entry->mi_row = mode->mi_row_start;
+    entry->mi_column = mode->mi_col_start;
+    entry->chroma_mi_row = mode->chroma_mi_row_start;
+    entry->chroma_mi_column = mode->chroma_mi_col_start;
+    entry->luma_block_size = mode->sb_type[PLANE_TYPE_Y];
+    entry->chroma_block_size = mode->sb_type[PLANE_TYPE_UV];
+    entry->partition = mode->partition;
+    entry->tree_type = mode->tree_type;
+    entry->region_type = mode->region_type;
+    return 1;
+}
+
+#if CONFIG_ACCOUNTING
+static int census_trace_accounting(Census *census,
+                                   const AccountingSymbol *symbol) {
+    AccountingTraceEntry *entry;
+    if (!census->trace_accounting) return 1;
+    if (census->accounting_trace_count == census->accounting_trace_capacity) {
+        size_t capacity = census->accounting_trace_capacity == 0U ?
+            1024U : census->accounting_trace_capacity * 2U;
+        AccountingTraceEntry *grown = (AccountingTraceEntry *)realloc(
+            census->accounting_trace, capacity * sizeof(*grown));
+        if (grown == NULL) return 0;
+        census->accounting_trace = grown;
+        census->accounting_trace_capacity = capacity;
+    }
+    entry = &census->accounting_trace[census->accounting_trace_count++];
+    entry->context = symbol->context;
+    entry->id = symbol->id;
+    entry->bits = symbol->bits;
+    entry->value = symbol->value;
+    entry->coding_mode = symbol->coding_mode;
+    entry->coding_type = symbol->coding_type;
+    return 1;
+}
+#endif
 
 static int feature_key_equal(const FeatureKey *left,
                              const FeatureKey *right) {
@@ -202,6 +281,10 @@ static void inspect_frame(void *decoder, void *context) {
             const AccountingSymbol *symbol =
                 &accounting->syms.syms[symbol_index];
             AccountingSummary *summary;
+            if (!census_trace_accounting(census, symbol)) {
+                census->failed = 1;
+                return;
+            }
             if (symbol->id >= (uint32_t)census->accounting_count) continue;
             summary = &census->accounting[symbol->id];
             if (!summary->has_first_context) {
@@ -242,6 +325,10 @@ static void inspect_frame(void *decoder, void *context) {
             if (mode == NULL || mode->mi_row_start != row ||
                 mode->mi_col_start != column) {
                 continue;
+            }
+            if (!census_trace_block(census, mode)) {
+                census->failed = 1;
+                return;
             }
             ++census->block_count;
             block_size = mode->sb_type[PLANE_TYPE_Y];
@@ -397,7 +484,15 @@ static int decode_file(const char *path, Census *census, size_t *byte_count) {
     unsigned char *bytes;
     size_t size = 0U;
     avm_codec_err_t status;
+    int trace_blocks = census->trace_blocks;
+#if CONFIG_ACCOUNTING
+    int trace_accounting = census->trace_accounting;
+#endif
     memset(census, 0, sizeof(*census));
+    census->trace_blocks = trace_blocks;
+#if CONFIG_ACCOUNTING
+    census->trace_accounting = trace_accounting;
+#endif
     memset(&codec, 0, sizeof(codec));
     bytes = read_entire_file(path, &size);
     if (bytes == NULL) {
@@ -425,6 +520,10 @@ static int decode_file(const char *path, Census *census, size_t *byte_count) {
         avm_codec_destroy(&codec);
         free(bytes);
         free(census->features);
+        free(census->block_trace);
+    #if CONFIG_ACCOUNTING
+        free(census->accounting_trace);
+    #endif
         memset(census, 0, sizeof(*census));
         return 0;
     }
@@ -477,6 +576,26 @@ static void write_feature(FILE *output, const FeatureEntry *entry) {
             key->palette_y, key->palette_uv);
 }
 
+static void write_block_trace(FILE *output, const Census *census) {
+    size_t index;
+    fputs(",\"block_trace\":[", output);
+    for (index = 0U; index < census->block_trace_count; ++index) {
+        const BlockTraceEntry *entry = &census->block_trace[index];
+        if (index != 0U) fputc(',', output);
+        fprintf(output,
+                "{\"mi_row\":%d,\"mi_column\":%d,"
+                "\"chroma_mi_row\":%d,\"chroma_mi_column\":%d,"
+                "\"luma_block_size\":%d,\"chroma_block_size\":%d,"
+                "\"partition\":%d,\"tree_type\":%d,"
+                "\"region_type\":%d}",
+                entry->mi_row, entry->mi_column,
+                entry->chroma_mi_row, entry->chroma_mi_column,
+                entry->luma_block_size, entry->chroma_block_size,
+                entry->partition, entry->tree_type, entry->region_type);
+    }
+    fputc(']', output);
+}
+
 #if CONFIG_ACCOUNTING
 static void write_accounting(FILE *output, const Census *census) {
     int dictionary_index;
@@ -522,6 +641,27 @@ static void write_accounting(FILE *output, const Census *census) {
     }
     fputc(']', output);
 }
+
+static void write_accounting_trace(FILE *output, const Census *census) {
+    size_t index;
+    fputs(",\"accounting_trace\":[", output);
+    for (index = 0U; index < census->accounting_trace_count; ++index) {
+        const AccountingTraceEntry *entry =
+            &census->accounting_trace[index];
+        if (index != 0U) fputc(',', output);
+        fprintf(output,
+                "{\"id\":%u,\"value\":%d,\"bits\":%llu,"
+                "\"mi_row\":%d,\"mi_column\":%d,"
+                "\"tree_type\":%d,\"coding_mode\":%d,"
+                "\"coding_type\":%d}",
+                entry->id, entry->value,
+                (unsigned long long)entry->bits,
+                entry->context.y, entry->context.x,
+                entry->context.tree_type, entry->coding_mode,
+                entry->coding_type);
+    }
+    fputc(']', output);
+}
 #endif
 
 static void write_census(FILE *output, const char *path, size_t byte_count,
@@ -554,13 +694,17 @@ static void write_census(FILE *output, const char *path, size_t byte_count,
     if (census->accounting_count != 0) {
         write_accounting(output, census);
     }
+    if (census->trace_accounting) write_accounting_trace(output, census);
 #endif
+    if (census->trace_blocks) write_block_trace(output, census);
     fputc('}', output);
 }
 
 static void usage(const char *program) {
-    fprintf(stderr, "Usage: %s [-o output.json] input.obu [input.obu ...]\n",
-            program);
+    fprintf(stderr,
+            "Usage: %s [--trace-accounting] [--trace-blocks] "
+            "[-o output.json] "
+            "input.obu [input.obu ...]\n", program);
 }
 
 int main(int argc, char **argv) {
@@ -568,6 +712,8 @@ int main(int argc, char **argv) {
     FILE *output = stdout;
     int first_input = 1;
     int input_count = 0;
+    int trace_blocks = 0;
+    int trace_accounting = 0;
     int index;
     for (index = 1; index < argc; ++index) {
         if (strcmp(argv[index], "-o") == 0) {
@@ -576,6 +722,10 @@ int main(int argc, char **argv) {
                 return EXIT_FAILURE;
             }
             output_path = argv[index];
+        } else if (strcmp(argv[index], "--trace-blocks") == 0) {
+            trace_blocks = 1;
+        } else if (strcmp(argv[index], "--trace-accounting") == 0) {
+            trace_accounting = 1;
         } else {
             ++input_count;
         }
@@ -602,6 +752,15 @@ int main(int argc, char **argv) {
             ++index;
             continue;
         }
+        if (strcmp(argv[index], "--trace-blocks") == 0) continue;
+        if (strcmp(argv[index], "--trace-accounting") == 0) continue;
+        memset(&census, 0, sizeof(census));
+        census.trace_blocks = trace_blocks;
+    #if CONFIG_ACCOUNTING
+        census.trace_accounting = trace_accounting;
+    #else
+        (void)trace_accounting;
+    #endif
         if (!decode_file(argv[index], &census, &byte_count)) {
             if (output != stdout) fclose(output);
             return EXIT_FAILURE;
@@ -610,6 +769,10 @@ int main(int argc, char **argv) {
         write_census(output, argv[index], byte_count, &census);
         first_input = 0;
         free(census.features);
+        free(census.block_trace);
+    #if CONFIG_ACCOUNTING
+        free(census.accounting_trace);
+    #endif
     }
     fputs("\n  ]\n}\n", output);
     if (output != stdout && fclose(output) != 0) {

@@ -139,16 +139,16 @@ if(WIN32 AND CMAKE_C_COMPILER_ID MATCHES "Clang")
             "-DINPUT=${CMAKE_CURRENT_SOURCE_DIR}/images/artifacts/cuckoo-431x287-qp080.obu"
             "-DOUTPUT=${CMAKE_CURRENT_BINARY_DIR}/diagnostic-cuckoo.i420"
             "-DEXPECTED_STAGE=stage: luma reconstruction / inverse transform"
-            "-DEXPECTED_LEAF=leaf: (0,76) block=16x64 plane=Y"
-            "-DEXPECTED_PROGRESS=entropy tell: 996; completed leaves: Y=19 UV=4"
+            "-DEXPECTED_LEAF=leaf: (0,40) block=32x16 plane=Y"
+            "-DEXPECTED_PROGRESS=entropy tell: 1908; completed leaves: Y=29 UV=3"
             -P "${CMAKE_CURRENT_SOURCE_DIR}/scripts/check-decoder-diagnostic.cmake")
     add_test(NAME windows-decoder-diagnostic-silene-luma-parse
         COMMAND "${CMAKE_COMMAND}"
             "-DDECODER=$<TARGET_FILE:av2heif-decoder>"
             "-DINPUT=${CMAKE_CURRENT_SOURCE_DIR}/images/artifacts/silene-384x307-qp080.obu"
             "-DOUTPUT=${CMAKE_CURRENT_BINARY_DIR}/diagnostic-silene.i420"
-            "-DEXPECTED_STAGE=stage: luma reconstruction / inverse transform"
-            "-DEXPECTED_LEAF=leaf: (30,72) block=32x8 plane=Y"
-            "-DEXPECTED_PROGRESS=entropy tell: 1266; completed leaves: Y=28 UV=10"
+            "-DEXPECTED_STAGE=stage: luma reconstruction / IntraBC reference availability"
+            "-DEXPECTED_LEAF=leaf: (4,24) block=32x16 plane=Y"
+            "-DEXPECTED_PROGRESS=entropy tell: 489; completed leaves: Y=7 UV=1"
             -P "${CMAKE_CURRENT_SOURCE_DIR}/scripts/check-decoder-diagnostic.cmake")
 endif()

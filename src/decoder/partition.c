@@ -12,6 +12,9 @@ uint32_t av2h_debug_partition_range_before;
 uint32_t av2h_debug_partition_value_before;
 int64_t av2h_debug_partition_available_before;
 Av2hFirstLeafPath av2h_debug_partition_path;
+Av2hPartitionDecision av2h_debug_partition_trace[
+    AV2H_DEBUG_PARTITION_TRACE_CAPACITY];
+size_t av2h_debug_partition_trace_count;
 
 typedef struct {
     uint8_t mi_width;
@@ -464,6 +467,9 @@ static Av2hStatus append_decision(Av2hFirstLeafPath *path,
                                   unsigned int forced,
                                   unsigned int axis_implied,
                                   unsigned int extension_implied,
+                                  size_t split_context,
+                                  size_t rect_type_context,
+                                  size_t extension_context,
                                   size_t after_bits) {
     Av2hPartitionDecision *decision;
     if (path->decision_count >= AV2H_MAX_FIRST_LEAF_PARTITIONS) {
@@ -475,7 +481,14 @@ static Av2hStatus append_decision(Av2hFirstLeafPath *path,
     decision->forced = (uint8_t)forced;
     decision->axis_implied = (uint8_t)axis_implied;
     decision->extension_implied = (uint8_t)extension_implied;
+    decision->split_context = split_context;
+    decision->rect_type_context = rect_type_context;
+    decision->extension_context = extension_context;
     decision->after_bits = after_bits;
+    av2h_debug_partition_trace[
+        av2h_debug_partition_trace_count %
+        AV2H_DEBUG_PARTITION_TRACE_CAPACITY] = *decision;
+    ++av2h_debug_partition_trace_count;
     return AV2H_OK;
 }
 
@@ -511,6 +524,7 @@ Av2hStatus av2h_partition_first_leaf_read(
         if (partition != AV2H_PARTITION_INVALID &&
             partition != AV2H_PARTITION_NONE) {
             status = append_decision(path, node, partition, 1U, 1U, 1U,
+                                     0U, 0U, 0U,
                                      av2h_range_tell(decoder));
             if (status != AV2H_OK) return status;
             child = ordinary_subsize(node.block_size, partition);
@@ -532,8 +546,10 @@ Av2hStatus av2h_partition_first_leaf_read(
             return av2h_range_status(decoder);
         }
         if (value == 0U) {
-            status = append_decision(path, node, AV2H_PARTITION_NONE, 0U,
-                                     1U, 1U, av2h_range_tell(decoder));
+            status = append_decision(
+                path, node, AV2H_PARTITION_NONE, 0U, 1U, 1U,
+                split_context, rect_context, extension_context,
+                av2h_range_tell(decoder));
             if (status != AV2H_OK) return status;
             path->leaf = node;
             return AV2H_OK;
@@ -562,8 +578,10 @@ Av2hStatus av2h_partition_first_leaf_read(
         }
         partition = axis == AV2H_PARTITION_HORIZONTAL
             ? AV2H_PARTITION_HORZ : AV2H_PARTITION_VERT;
-        status = append_decision(path, node, partition, 0U,
-                                 axis_was_implied, extension_was_implied,
+        status = append_decision(
+            path, node, partition, 0U, axis_was_implied,
+            extension_was_implied, split_context, rect_context,
+            extension_context,
                                  av2h_range_tell(decoder));
         if (status != AV2H_OK) return status;
         child = ordinary_subsize(node.block_size, partition);
@@ -640,6 +658,8 @@ Av2hStatus av2h_partition_node_read_for_structure(
     if (!is_partition_point(node.block_size)) return AV2H_UNSUPPORTED;
     decision->node = node;
     decision->forced = 0U;
+    decision->split_context = split_context;
+    decision->rect_type_context = rect_type_context;
     decision->extension_context = 0U;
     if (structure == 1U && node.block_size == AV2H_BLOCK_8X8) {
         decision->partition = AV2H_PARTITION_NONE;
@@ -749,6 +769,9 @@ Av2hStatus av2h_partition_node_read_with_state(
     }
     decision->node = node;
     decision->forced = 0U;
+    decision->split_context = 0U;
+    decision->rect_type_context = 0U;
+    decision->extension_context = 0U;
     if (structure == 1U && node.block_size == AV2H_BLOCK_8X8) {
         decision->partition = AV2H_PARTITION_NONE;
         decision->forced = 1U;
@@ -765,6 +788,8 @@ Av2hStatus av2h_partition_node_read_with_state(
             state, structure, node, axis, &split_context,
             &rect_type_context, &extension_context);
         if (status != AV2H_OK) return status;
+        decision->split_context = split_context;
+        decision->rect_type_context = rect_type_context;
         value = av2h_range_read_adaptive(
             decoder, cdfs->rect_type[structure][rect_type_context], 2U);
         if (av2h_range_status(decoder) != AV2H_OK) {
@@ -835,6 +860,8 @@ Av2hStatus av2h_partition_node_read_with_state(
         state, structure, node, AV2H_PARTITION_HORIZONTAL, &split_context,
         &rect_type_context, &extension_context);
     if (status != AV2H_OK) return status;
+    decision->split_context = split_context;
+    decision->rect_type_context = rect_type_context;
     if ((structure == 0U || structure == 1U) &&
         (node.block_size == AV2H_BLOCK_64X64 ||
          (node.row == 26U && node.column == 80U &&
@@ -1145,7 +1172,7 @@ Av2hStatus av2h_partition_traversal_next(
         if (forced != AV2H_PARTITION_INVALID &&
             forced != AV2H_PARTITION_NONE) {
             status = append_decision(
-                path, node, forced, 1U, 1U, 1U,
+                path, node, forced, 1U, 1U, 1U, 0U, 0U, 0U,
                 av2h_range_tell(decoder));
             if (status != AV2H_OK) return status;
             status = traversal_push_children(traversal, node, forced);
@@ -1174,6 +1201,8 @@ Av2hStatus av2h_partition_traversal_next(
         status = append_decision(
             path, decision.node, decision.partition, decision.forced,
             decision.axis_implied, decision.extension_implied,
+            decision.split_context, decision.rect_type_context,
+            decision.extension_context,
             decision.after_bits);
         if (status != AV2H_OK) return status;
         if (decision.partition == AV2H_PARTITION_NONE) {

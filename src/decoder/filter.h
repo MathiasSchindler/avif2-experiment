@@ -3,6 +3,11 @@
 
 #include "frame.h"
 
+#define AV2H_FILTER_STAGE_COUNT 5U
+
+extern uint64_t av2h_debug_filter_stage_hash[
+    AV2H_FILTER_STAGE_COUNT][AV2H_FRAME_PLANE_COUNT];
+
 typedef struct {
     uint8_t *data;
     size_t stride;
