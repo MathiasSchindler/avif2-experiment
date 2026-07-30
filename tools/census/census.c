@@ -68,6 +68,13 @@ typedef struct {
     int partition;
     int tree_type;
     int region_type;
+    int use_intrabc;
+    int intrabc_drl_index;
+    int mv_row;
+    int mv_column;
+    int reference_mv_row;
+    int reference_mv_column;
+    int mv_precision;
 } BlockTraceEntry;
 
 #if CONFIG_ACCOUNTING
@@ -142,6 +149,13 @@ static int census_trace_block(Census *census, const MB_MODE_INFO *mode) {
     entry->partition = mode->partition;
     entry->tree_type = mode->tree_type;
     entry->region_type = mode->region_type;
+    entry->use_intrabc = mode->use_intrabc[0];
+    entry->intrabc_drl_index = mode->intrabc_drl_idx;
+    entry->mv_row = mode->mv[0].as_mv.row;
+    entry->mv_column = mode->mv[0].as_mv.col;
+    entry->reference_mv_row = mode->ref_bv.as_mv.row;
+    entry->reference_mv_column = mode->ref_bv.as_mv.col;
+    entry->mv_precision = mode->pb_mv_precision;
     return 1;
 }
 
@@ -587,11 +601,19 @@ static void write_block_trace(FILE *output, const Census *census) {
                 "\"chroma_mi_row\":%d,\"chroma_mi_column\":%d,"
                 "\"luma_block_size\":%d,\"chroma_block_size\":%d,"
                 "\"partition\":%d,\"tree_type\":%d,"
-                "\"region_type\":%d}",
+                "\"region_type\":%d,\"use_intrabc\":%d,"
+                "\"intrabc_drl_index\":%d,"
+                "\"mv_row\":%d,\"mv_column\":%d,"
+                "\"reference_mv_row\":%d,\"reference_mv_column\":%d,"
+                "\"mv_precision\":%d}",
                 entry->mi_row, entry->mi_column,
                 entry->chroma_mi_row, entry->chroma_mi_column,
                 entry->luma_block_size, entry->chroma_block_size,
-                entry->partition, entry->tree_type, entry->region_type);
+                entry->partition, entry->tree_type, entry->region_type,
+                entry->use_intrabc, entry->intrabc_drl_index,
+                entry->mv_row, entry->mv_column,
+                entry->reference_mv_row, entry->reference_mv_column,
+                entry->mv_precision);
     }
     fputc(']', output);
 }

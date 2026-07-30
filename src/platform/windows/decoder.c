@@ -72,6 +72,15 @@ static void write_unsigned(size_t value) {
     write_console(buffer + index);
 }
 
+static void write_signed(int32_t value) {
+    if (value < 0) {
+        write_console("-");
+        write_unsigned((size_t)(-(int64_t)value));
+    } else {
+        write_unsigned((size_t)value);
+    }
+}
+
 static const char *decode_stage_name(Av2hFrameDecodeStage stage) {
     switch (stage) {
         case AV2H_FRAME_DECODE_STAGE_INITIALIZE: return "initialize";
@@ -200,6 +209,7 @@ static void write_leaf_trace(const char *name,
 }
 
 static void write_decode_diagnostic(const Av2hFrameDecodeResult *result) {
+    size_t index;
     if (result->stage == AV2H_FRAME_DECODE_STAGE_NONE) return;
     write_console("  cause: ");
     write_console(av2h_status_string(result->cause));
@@ -296,6 +306,21 @@ static void write_decode_diagnostic(const Av2hFrameDecodeResult *result) {
     write_unsigned(result->chroma_mode_index);
     write_console(" filter-reason=");
     write_unsigned(result->filter_reason);
+    write_console(" reconstruction-hashes=");
+    for (index = 0U; index < AV2H_FRAME_PLANE_COUNT; ++index) {
+        if (index != 0U) write_console("/");
+        write_unsigned((size_t)av2h_debug_filter_stage_hash[0][index]);
+    }
+    write_console(" intrabc-geometry=");
+    for (index = 0U; index < 10U; ++index) {
+        if (index != 0U) write_console("/");
+        write_signed(av2h_debug_intrabc_geometry[index]);
+    }
+    write_console(" intrabc-shell=");
+    for (index = 0U; index < 11U; ++index) {
+        if (index != 0U) write_console("/");
+        write_signed(av2h_debug_intrabc_shell[index]);
+    }
     write_console(" eob=");
     write_unsigned(result->eob);
     write_console(" uv-coeff-counts=");

@@ -7,6 +7,7 @@
 extern uint32_t av2h_debug_chroma_mode_ranges[4U];
 extern uint32_t av2h_debug_intrabc_ranges[3U];
 extern uint16_t av2h_debug_intrabc_mode_cdf[6U];
+extern int32_t av2h_debug_intrabc_shell[11U];
 extern uint32_t av2h_debug_use_intrabc[10U];
 extern uint32_t av2h_debug_mode_ranges[6U];
 extern uint32_t av2h_debug_mrl_state[10U];

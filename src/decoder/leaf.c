@@ -3,6 +3,7 @@
 uint32_t av2h_debug_chroma_mode_ranges[4U];
 uint32_t av2h_debug_intrabc_ranges[3U];
 uint16_t av2h_debug_intrabc_mode_cdf[6U];
+int32_t av2h_debug_intrabc_shell[11U];
 uint32_t av2h_debug_use_intrabc[10U];
 uint32_t av2h_debug_mode_ranges[6U];
 uint32_t av2h_debug_mrl_state[10U];
@@ -1905,6 +1906,9 @@ static Av2hStatus read_first_intrabc(
     if (mode->intrabc_drl_index >= candidate_count) return AV2H_INVALID_DATA;
     reference_x = candidates[mode->intrabc_drl_index].x;
     reference_y = candidates[mode->intrabc_drl_index].y;
+    av2h_debug_intrabc_shell[8] = mode->intrabc_drl_index;
+    av2h_debug_intrabc_shell[9] = reference_x;
+    av2h_debug_intrabc_shell[10] = reference_y;
     mode->mv_precision = 3U;
     if (mode->intrabc_mode == 0U && !frame->force_integer_mv) {
         value = av2h_range_read_adaptive(
@@ -1927,9 +1931,11 @@ static Av2hStatus read_first_intrabc(
             return AV2H_UNSUPPORTED;
         }
         av2h_debug_luma_mode_stage = 24U;
+        av2h_debug_intrabc_shell[0] = (int32_t)value;
         mode->after_mrl_bits = av2h_range_tell(decoder);
         if (value != 0U) {
-            shell_class = 8U + av2h_range_read_adaptive(
+            shell_class = (mode->mv_precision == 5U ? 8U : 7U) +
+                av2h_range_read_adaptive(
                 decoder,
                 mode->mv_precision == 5U ?
                     cdfs->intrabc_qtr_shell_class_set1 :
@@ -1983,6 +1989,9 @@ static Av2hStatus read_first_intrabc(
         }
         shell_index = (shell_class == 0U ? 0U : 1U << shell_class) +
                       shell_offset;
+        av2h_debug_intrabc_shell[1] = (int32_t)shell_class;
+        av2h_debug_intrabc_shell[2] = (int32_t)shell_offset;
+        av2h_debug_intrabc_shell[3] = (int32_t)shell_index;
         maximum_pair_index = shell_index >> 1U;
         for (index = 0U;
              index < maximum_pair_index &&
@@ -2037,6 +2046,10 @@ static Av2hStatus read_first_intrabc(
             difference_x = (int32_t)maximum_pair_index;
         }
         difference_y = (int32_t)shell_index - difference_x;
+        av2h_debug_intrabc_shell[4] = (int32_t)pair_index;
+        av2h_debug_intrabc_shell[5] = difference_x;
+        av2h_debug_intrabc_shell[6] = difference_y;
+        av2h_debug_intrabc_shell[7] = mode->mv_precision;
         difference_x <<= mode->mv_precision == 5U ? 1U : 3U;
         difference_y <<= mode->mv_precision == 5U ? 1U : 3U;
         if (difference_y != 0 && av2h_range_read_bypass(decoder, 1U)) {

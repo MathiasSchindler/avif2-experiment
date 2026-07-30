@@ -7,6 +7,8 @@
 #include "ist_set6_data.inc"
 #include "ist_set2_data.inc"
 
+int32_t av2h_debug_intrabc_geometry[10U];
+
 static const int8_t dct4[4U][4U] = {
     { 64, 64, 64, 64 },
     { 83, 35, -35, -83 },
@@ -1942,17 +1944,20 @@ Av2hStatus av2h_luma_predict(
                          (width == 32U && height == 16U) ||
                          (width == 32U && height == 64U))) ||
                      (mode->mode == AV2H_INTRA_D45 &&
-                        width == 16U && height == 32U) ||
+                        ((width == 16U && height == 32U) ||
+                         (width == 64U && height == 32U))) ||
                        (mode->mode == AV2H_INTRA_D113 &&
                         width == 4U && height == 16U) ||
                      (mode->mode == AV2H_INTRA_D135 &&
-                        ((width == 8U && height == 16U) ||
+                        ((width == 16U && height == 4U) ||
+                         (width == 8U && height == 16U) ||
                          (width == 32U && height == 64U))) ||
                      (mode->mode == AV2H_INTRA_D157 &&
                         ((width == 8U && height == 16U) ||
                          (width == 32U && height == 32U))) ||
            (mode->mode == AV2H_INTRA_D67 &&
                         ((width == 8U && height == 4U) ||
+                         (width == 16U && height == 32U) ||
                          (width == 64U && height == 64U))) ||
            (mode->mode == AV2H_INTRA_D203 &&
                         ((width == 8U && height == 4U) ||
@@ -3073,6 +3078,7 @@ Av2hStatus av2h_luma_predict(
          (width == 32U && height == 16U) ||
          (width == 32U && height == 32U) ||
          (width == 32U && height == 64U) ||
+         (width == 64U && height == 8U) ||
          (width == 64U && height == 16U) ||
          (width == 64U && height == 32U) ||
          (width == 64U && height == 64U))) {
@@ -6332,6 +6338,10 @@ Av2hStatus av2h_luma_reconstruct_to_plane(
         uint32_t fraction_x;
         uint32_t fraction_y;
         av2h_debug_luma_reconstruct_stage = 10U;
+        av2h_debug_intrabc_geometry[0] = block_x;
+        av2h_debug_intrabc_geometry[1] = block_y;
+        av2h_debug_intrabc_geometry[2] = mode->displacement_x;
+        av2h_debug_intrabc_geometry[3] = mode->displacement_y;
         if (mode->displacement_x < 0 && mode->displacement_x % 8 != 0) {
             --integer_x;
         }
@@ -6346,6 +6356,10 @@ Av2hStatus av2h_luma_reconstruct_to_plane(
         av2h_debug_luma_reconstruct_stage = 11U;
         source_x = (int32_t)block_x + integer_x;
         source_y = (int32_t)block_y + integer_y;
+        av2h_debug_intrabc_geometry[4] = source_x;
+        av2h_debug_intrabc_geometry[5] = source_y;
+        av2h_debug_intrabc_geometry[6] = (int32_t)fraction_x;
+        av2h_debug_intrabc_geometry[7] = (int32_t)fraction_y;
         if (source_x < 0 || source_y < 0 ||
             (uint32_t)source_x + output_width + (fraction_x != 0U) >
                 plane->width ||
@@ -6370,6 +6384,8 @@ Av2hStatus av2h_luma_reconstruct_to_plane(
                     (fraction_x != 0U && fraction_y != 0U &&
                      !plane_sample_reconstructed(
                          plane, sample_x + 1U, sample_y + 1U))) {
+                    av2h_debug_intrabc_geometry[8] = (int32_t)sample_x;
+                    av2h_debug_intrabc_geometry[9] = (int32_t)sample_y;
                     return AV2H_UNSUPPORTED;
                 }
                 prediction = plane->data[sample_y * plane->stride + sample_x] *

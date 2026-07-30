@@ -3,6 +3,8 @@
 
 #include "coeff_level.h"
 
+extern int32_t av2h_debug_intrabc_geometry[10U];
+
 /*
  * Predictor and reconstructed sample buffers must hold the full output
  * geometry of a luma transform block, which reaches 64x64 (4096 samples)
