@@ -412,6 +412,13 @@ static Av2hStatus inverse_secondary_transform(
         scan_map = av2h_ist_8x8_set6_type2_scan_map;
         output_positions = av2h_ist_8x16_set6_positions;
     } else if (mode->mode == AV2H_INTRA_DC &&
+               prefix->tx_size == AV2H_TX_8X16 &&
+               transform->secondary_symbol == 1U &&
+               transform->secondary_set == 6U) {
+        kernel = av2h_ist_8x8_set6_type1_kernel;
+        scan_map = av2h_ist_8x8_set6_type1_scan_map;
+        output_positions = av2h_ist_8x16_set6_positions;
+    } else if (mode->mode == AV2H_INTRA_DC &&
                prefix->tx_size == AV2H_TX_8X32 &&
                transform->secondary_symbol == 2U &&
                transform->secondary_set == 6U) {
@@ -6116,6 +6123,7 @@ Av2hStatus av2h_luma_reconstruct_to_plane(
         int32_t integer_y = mode->displacement_y / 8;
         uint32_t fraction_x;
         uint32_t fraction_y;
+        av2h_debug_luma_reconstruct_stage = 10U;
         if (mode->displacement_x < 0 && mode->displacement_x % 8 != 0) {
             --integer_x;
         }
@@ -6127,6 +6135,7 @@ Av2hStatus av2h_luma_reconstruct_to_plane(
         if ((fraction_x & 1U) != 0U || (fraction_y & 1U) != 0U) {
             return AV2H_UNSUPPORTED;
         }
+        av2h_debug_luma_reconstruct_stage = 11U;
         source_x = (int32_t)block_x + integer_x;
         source_y = (int32_t)block_y + integer_y;
         if (source_x < 0 || source_y < 0 ||
@@ -6136,6 +6145,7 @@ Av2hStatus av2h_luma_reconstruct_to_plane(
                 plane->height) {
             return AV2H_INVALID_DATA;
         }
+        av2h_debug_luma_reconstruct_stage = 12U;
         for (row = 0U; row < output_height; ++row) {
             for (column = 0U; column < output_width; ++column) {
                 size_t sample_x = (size_t)source_x + column;
@@ -6175,6 +6185,7 @@ Av2hStatus av2h_luma_reconstruct_to_plane(
                     (uint16_t)((prediction + 32U) >> 6U);
             }
         }
+        av2h_debug_luma_reconstruct_stage = 13U;
         status = av2h_luma_reconstruct(
             mode, prefix, transform, coefficients, scratch->predictor,
             output_width, scratch, &reconstruction);

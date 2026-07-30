@@ -4712,6 +4712,8 @@ static void test_luma_ist_frontier_matrix(void) {
                     32U, 32U, 32U, 32U, 3U, 6U },
                 { AV2H_INTRA_DC, AV2H_TX_32X8,
                     32U, 8U, 32U, 8U, 3U, 6U },
+                { AV2H_INTRA_DC, AV2H_TX_8X16,
+                    8U, 16U, 8U, 16U, 1U, 6U },
                 { AV2H_INTRA_D203, AV2H_TX_64X32,
                     64U, 32U, 32U, 32U, 3U, 5U },
                 { AV2H_INTRA_SMOOTH, AV2H_TX_16X32,

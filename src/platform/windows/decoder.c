@@ -123,6 +123,10 @@ static const char *reconstruction_stage_name(uint8_t stage) {
         case 1U: return "prediction";
         case 2U: return "inverse transform";
         case 3U: return "output geometry";
+        case 10U: return "IntraBC precision";
+        case 11U: return "IntraBC source bounds";
+        case 12U: return "IntraBC reference availability";
+        case 13U: return "IntraBC inverse transform";
         default: return "unknown";
     }
 }
@@ -228,8 +232,14 @@ static void write_decode_diagnostic(const Av2hFrameDecodeResult *result) {
     write_unsigned(result->after_eob_point_tell);
     write_console(" eob-range=");
     write_unsigned(result->eob_range);
+    write_console(" skip-range=");
+    write_unsigned(result->skip_range);
     write_console(" prefix-range=");
     write_unsigned(result->before_prefix_range);
+    write_console(" eob-tx/class=");
+    write_unsigned(result->eob_tx_size);
+    write_console("/");
+    write_unsigned(result->eob_class);
     write_console("\r\n");
 }
 

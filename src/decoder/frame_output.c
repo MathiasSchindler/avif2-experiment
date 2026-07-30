@@ -604,8 +604,11 @@ Av2hStatus av2h_decode_frame_i420_private(
                 decoded.after_eob_point_tell =
                     leaf.prefix.after_eob_point_bits;
                 decoded.eob_range = av2h_debug_eob_range;
+                decoded.skip_range = av2h_debug_skip_range;
                 decoded.before_prefix_range =
                     av2h_debug_luma_stage_ranges[1];
+                decoded.eob_tx_size = av2h_debug_eob_tx;
+                decoded.eob_class = av2h_debug_eob_class;
                 decoded.coefficient_position = block.diagnostic_position;
                 decoded.coefficient_context = block.diagnostic_context;
                 decoded.coefficient_kind = block.diagnostic_kind;

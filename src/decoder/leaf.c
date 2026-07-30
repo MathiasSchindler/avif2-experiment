@@ -46,7 +46,11 @@ static const Av2hBinaryCdfSpec intrabc_shell_offset_other_defaults[] = {
     { 17943U, 93U, 0U }, { 18934U, 93U, 0U },
     { 18928U, 93U, 0U }, { 18696U, 93U, 0U },
     { 19044U, 93U, 0U }, { 20362U, 93U, 0U },
-    { 20426U, 93U, 0U }
+    { 20426U, 93U, 0U }, { 22563U, 93U, 0U },
+    { 22190U, 93U, 0U }, { 23458U, 90U, 0U },
+    { 26227U, 2U, 0U }, { 30765U, 50U, 0U },
+    { 16384U, 0U, 0U }, { 16384U, 0U, 0U },
+    { 16384U, 0U, 0U }, { 16384U, 0U, 0U }
 };
 
 static const Av2hBinaryCdfSpec intrabc_col_greater_defaults[] = {
@@ -111,6 +115,12 @@ Av2hStatus av2h_leaf_cdfs_init(Av2hLeafCdfs *cdfs) {
     };
     static const uint16_t intrabc_qtr_shell_class[] = {
         7497U, 17301U, 23848U, 27438U, 29395U, 30879U, 32003U
+    };
+    static const uint16_t intrabc_shell_class_set1[] = {
+        19978U, 30160U, 32564U, 32732U, 32736U, 32740U
+    };
+    static const uint16_t intrabc_qtr_shell_class_set1[] = {
+        18469U, 27427U, 31562U, 32652U, 32724U, 32728U, 32732U
     };
     static const uint16_t mode_set[] = { 28863U, 31022U, 31724U };
     static const uint16_t mode_index[AV2H_Y_MODE_CONTEXT_COUNT][7] = {
@@ -213,6 +223,18 @@ Av2hStatus av2h_leaf_cdfs_init(Av2hLeafCdfs *cdfs) {
         cdfs->intrabc_shell_class,
         AV2H_INTRABC_SHELL_CLASS_SYMBOLS + 4U, intrabc_shell_class,
         AV2H_INTRABC_SHELL_CLASS_SYMBOLS, 5U, 0U);
+    if (status != AV2H_OK) return status;
+    status = av2h_cdf_init(
+        cdfs->intrabc_shell_class_set1,
+        AV2H_INTRABC_SHELL_CLASS_SET1_SYMBOLS + 4U,
+        intrabc_shell_class_set1,
+        AV2H_INTRABC_SHELL_CLASS_SET1_SYMBOLS, 1U, 0U);
+    if (status != AV2H_OK) return status;
+    status = av2h_cdf_init(
+        cdfs->intrabc_qtr_shell_class_set1,
+        AV2H_INTRABC_QTR_SHELL_CLASS_SET1_SYMBOLS + 4U,
+        intrabc_qtr_shell_class_set1,
+        AV2H_INTRABC_QTR_SHELL_CLASS_SET1_SYMBOLS, 31U, 0U);
     if (status != AV2H_OK) return status;
     status = initialize_binary_table(
         cdfs->intrabc_shell_offset, intrabc_shell_offset_defaults,
@@ -1806,19 +1828,26 @@ static Av2hStatus read_first_intrabc(
             av2h_debug_luma_mode_stage = value == 0U ? 231U : 233U;
             return AV2H_UNSUPPORTED;
         }
-        if (value != 0U) {
-            av2h_debug_luma_mode_stage = 232U;
-            return AV2H_UNSUPPORTED;
-        }
         av2h_debug_luma_mode_stage = 24U;
         mode->after_mrl_bits = av2h_range_tell(decoder);
-        shell_class = av2h_range_read_adaptive(
-            decoder,
-            mode->mv_precision == 5U ? cdfs->intrabc_qtr_shell_class :
-                                       cdfs->intrabc_shell_class,
-            mode->mv_precision == 5U ?
-                AV2H_INTRABC_QTR_SHELL_CLASS_SYMBOLS :
-                AV2H_INTRABC_SHELL_CLASS_SYMBOLS);
+        if (value != 0U) {
+            shell_class = 8U + av2h_range_read_adaptive(
+                decoder,
+                mode->mv_precision == 5U ?
+                    cdfs->intrabc_qtr_shell_class_set1 :
+                    cdfs->intrabc_shell_class_set1,
+                mode->mv_precision == 5U ?
+                    AV2H_INTRABC_QTR_SHELL_CLASS_SET1_SYMBOLS :
+                    AV2H_INTRABC_SHELL_CLASS_SET1_SYMBOLS);
+        } else {
+            shell_class = av2h_range_read_adaptive(
+                decoder,
+                mode->mv_precision == 5U ? cdfs->intrabc_qtr_shell_class :
+                                           cdfs->intrabc_shell_class,
+                mode->mv_precision == 5U ?
+                    AV2H_INTRABC_QTR_SHELL_CLASS_SYMBOLS :
+                    AV2H_INTRABC_SHELL_CLASS_SYMBOLS);
+        }
         if (av2h_range_status(decoder) != AV2H_OK) {
             return av2h_range_status(decoder);
         }

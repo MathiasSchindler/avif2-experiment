@@ -25,9 +25,8 @@ an earlier entropy divergence can still be the underlying cause.
 
 | Current stopping surface | Files |
 | --- | --- |
-| Luma parse | `chinnathurai-128x128-qp112.obu` |
 | Luma inverse transform | `chalk-320x240-qp128.obu`, `cuckoo-431x287-qp080.obu`, `flycatcher-223x149-qp176.obu`, `flycatcher-397x265-qp048.obu`, `laarim-448x299-qp192.obu`, `louis-301x222-qp144.obu`, `pastell-512x341-qp160.obu`, `schwaebisch-353x234-qp112.obu`, `schwaebisch-417x277-qp208.obu`, `silene-479x383-qp176.obu` |
-| Luma reconstruction setup or special predictor | `cuckoo-157x105-qp160.obu` |
+| Luma reconstruction setup or special predictor | `chinnathurai-128x128-qp112.obu`, `cuckoo-157x105-qp160.obu` |
 | Chroma prediction | `chimp-240x287-qp192.obu`, `chimp-93x111-qp064.obu`, `emerald-480x240-qp128.obu`, `laarim-256x171-qp096.obu`, `louis-463x342-qp224.obu`, `pastell-320x213-qp064.obu`, `silene-384x307-qp080.obu` |
 
 | File | Current endpoint | Blocker |
@@ -35,9 +34,9 @@ an earlier entropy divergence can still be the underlying cause.
 | `chalk-320x240-qp128.obu` | 15 luma and one chroma leaf committed; `(0,16)` 64x64 luma leaf reaches inverse transform at tell 554 | Later Q128 luma IST tuple |
 | `chimp-240x287-qp192.obu` | 58 luma and one chroma leaf committed; `(0,16)` 64x64 U leaf reaches prediction at tell 1537 | Q192 chroma prediction profile |
 | `chimp-93x111-qp064.obu` | 13 luma leaves committed; first 64x64 U block reaches chroma prediction at tell 173 | Q64 chroma prediction profile |
-| `chinnathurai-128x128-qp112.obu` | 13 luma leaves committed after the 16x4 Vertical predictor clears; `(8,12)` 16x8 reaches luma parsing at tell 588 | Later Q112 IntraBC parse profile |
+| `chinnathurai-128x128-qp112.obu` | 13 luma leaves committed; shell-set-1 IntraBC parsing advances `(8,12)` 16x8 from tell 588 to reference-availability validation at tell 630 | Earlier local syntax divergence produces an unavailable IntraBC reference; AVM has no IntraBC block at this local coordinate |
 | `chinnathurai-333x333-qp224.obu` | **Complete:** emitted 166,667-byte I420 is byte-identical to the AVM reference (SHA-256 `6f1868d8945e87350414baa1a49829b21dbcb8c4e0e44dee6633d844ef5d7182`) | None for the accepted profile |
-| `cuckoo-157x105-qp160.obu` | Two luma leaves committed; AVM's sole IntraBC vector `(-64,0)` passes source validation at `(0,6)`, then the 8x16 block reaches reconstruction setup at tell 106 | Q160 IntraBC secondary-transform/reconstruction tuple |
+| `cuckoo-157x105-qp160.obu` | Seven luma leaves committed after DC 8x16 secondary set 6/type 1 clears; local `(0,8)` 32x32 reaches IntraBC source-bounds validation at tell 284 | Earlier syntax divergence: AVM's sole IntraBC block is `(0,6)` with vector `(-64,0)` and completes at tell 62 |
 | `cuckoo-431x287-qp080.obu` | Three luma and two chroma leaves committed after the 64x64 D67 predictor clears; `(4,32)` 32x16 reaches inverse transform at tell 471 | Later Q80 luma IST tuple |
 | `emerald-192x96-qp208.obu` | **Complete:** 20 luma and 11 chroma leaves, tile done at tell 731, filtered I420 byte-identical to the AVM reference (SHA-256 `403c2e7245ec484984e60c1eaf8bd1b47487c0ba6b60afc916b9532025fc51ad`) | None for the accepted profile |
 | `emerald-480x240-qp128.obu` | First 64x64 luma predictor/output match AVM (`d4ea93e1129d09a3`/`2bc3d4c50c228831`); first 32x32 U/V blocks match through tell 197, range 53184, with prefilter hashes `57a7c38258f413ff`/`15846509fdb0b4f1` | Next luma/chroma traversal profile after the first exact leaf pair |
@@ -60,22 +59,22 @@ Summary:
   fail closed without output, 12 report `integer overflow`, six report
   `invalid data`, and one reports `invalid argument`. Those retained statuses
   are coarse compatibility buckets, not root-cause categories. Structured
-  diagnostics identify four luma-parse, nine luma-reconstruction, zero
-  chroma-parse, and six chroma-reconstruction stops. Every emitted I420
+  diagnostics identify zero luma-parse, 12 luma-reconstruction, zero
+  chroma-parse, and seven chroma-reconstruction stops. Every emitted I420
   matches its locked AVM reference;
 - normative FSC geometry now admits every 4--32 dimension in luma mode,
   transform derivation, and coefficient-prefix parsing. Chimp Q64 advances
   from its first 8x8 mode at tell 30 to chroma prediction at tell 173, and
   Louis Q144 advances from mode parsing at tell 76 to FSC coefficient levels
   at tell 81;
-- IntraBC mode parsing now supports quarter-pel shell-set-0 vectors with their
-  precision-specific class CDF and displacement scale. Its reconstruction
-  path applies the normative two-tap bilinear predictor. Chinnathurai Q112 and
-  Cuckoo Q160 both advance beyond their former mode stops;
-- all six former luma inverse-transform blockers now advance through seven
+- IntraBC mode parsing now supports both shell sets for integer and quarter-pel
+  vectors, with revision-matched class and full 16-bit offset CDF banks. Its
+  reconstruction path applies the normative two-tap bilinear predictor.
+  Chinnathurai Q112 advances beyond shell-set-1 parsing to reconstruction;
+- all six former luma inverse-transform blockers now advance through eight
   newly admitted live IST tuples: Horizontal 64x16 and 32x16 set 1/type 1,
   D157 16x16 set 4/type 3, Vertical 32x32 and DC 32x8 set 6/type 3,
-  D203 64x32 set 5/type 3, and Smooth 16x32 set 1/type 3. Structured
+  DC 8x16 set 6/type 1, D203 64x32 set 5/type 3, and Smooth 16x32 set 1/type 3. Structured
   diagnostics now report the secondary symbol and set. The chroma-prefix work
   exposes two later luma IST tuples that remain unsupported;
 - all six former luma-prediction blockers now advance. Zero-angle D45, D113,

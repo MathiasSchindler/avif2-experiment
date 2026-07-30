@@ -1676,7 +1676,7 @@ static void test_arguments(void) {
     };
     Av2hSpan span = { bytes, sizeof(bytes) };
     size_t tell;
-    CHECK(sizeof(Av2hLeafCdfs) == 1386U);
+    CHECK(sizeof(Av2hLeafCdfs) == 1540U);
     CHECK(av2h_leaf_cdfs_init(0) == AV2H_INVALID_ARGUMENT);
     CHECK(av2h_first_leaf_mode_read(
               0, &cdfs, &sequence, &frame, &leaf, &mode) ==
@@ -1770,6 +1770,11 @@ static void test_arguments(void) {
               &decoder, &cdfs, &sequence, &frame, &leaf, &mode) ==
           AV2H_UNSUPPORTED);
     CHECK(av2h_leaf_cdfs_init(&cdfs) == AV2H_OK);
+    CHECK(cdfs.intrabc_shell_class_set1[0] == 12790U);
+    CHECK(cdfs.intrabc_shell_class_set1[6] == 0U);
+    CHECK(cdfs.intrabc_qtr_shell_class_set1[0] == 14299U);
+    CHECK(cdfs.intrabc_shell_offset_other[7][0] == 10205U);
+    CHECK(cdfs.intrabc_shell_offset_other[15][0] == 16384U);
     CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
     sequence.enable_sdp = 1U;
     frame.disable_cdf_update = 0U;

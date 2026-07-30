@@ -63,7 +63,10 @@ typedef struct {
     size_t after_all_zero_tell;
     size_t after_eob_point_tell;
     uint32_t eob_range;
+    uint32_t skip_range;
     uint32_t before_prefix_range;
+    uint8_t eob_tx_size;
+    uint8_t eob_class;
     uint16_t coefficient_position;
     uint8_t coefficient_context;
     uint8_t coefficient_kind;

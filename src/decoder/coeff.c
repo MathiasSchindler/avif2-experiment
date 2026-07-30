@@ -1018,12 +1018,14 @@ Av2hStatus av2h_coeff_prefix_read(
         }
         av2h_debug_skip_range = decoder->range;
     }
+    av2h_debug_luma_prefix_stage = 7U;
     value = av2h_range_read_adaptive(decoder, cdf, 2U);
     if (av2h_range_status(decoder) != AV2H_OK) {
         return av2h_range_status(decoder);
     }
     prefix->all_zero = (uint8_t)value;
     prefix->after_all_zero_bits = av2h_range_tell(decoder);
+    av2h_debug_luma_prefix_stage = 8U;
     if (value != 0U) {
         prefix->eob_point = 0U;
         prefix->eob_offset_bits = 0U;
@@ -1039,10 +1041,12 @@ Av2hStatus av2h_coeff_prefix_read(
             5U, 6U, 7U, 8U, 8U, 8U, 8U
         };
         const Av2hTxDescriptor *descriptor;
+        av2h_debug_luma_prefix_stage = 9U;
         status = av2h_tx_descriptor_get(prefix->tx_size, &descriptor);
         if (status != AV2H_OK || descriptor->eob_class >= 7U) {
             return AV2H_UNSUPPORTED;
         }
+        av2h_debug_luma_prefix_stage = 10U;
         return decode_eob(decoder, cdfs,
             cdfs->inter_eob_pt[descriptor->eob_class],
             symbols[descriptor->eob_class], prefix);
