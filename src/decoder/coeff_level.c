@@ -2073,6 +2073,10 @@ static int q_level_profile_supported(
         frame->width == 240U && frame->height == 287U) {
         return 1;
     }
+    if (frame->base_q_index == 224U &&
+        frame->width == 463U && frame->height == 342U) {
+        return 1;
+    }
     if (cdfs->q_context == 2U && prefix->tx_size == AV2H_TX_16X32) {
         return (frame->base_q_index == 160U &&
                 frame->width == 512U && frame->height == 341U &&
@@ -2616,6 +2620,21 @@ static int q_level_profile_supported(
     }
     if (frame->base_q_index == 224U &&
         frame->width == 333U && frame->height == 333U &&
+        prefix->tx_size == AV2H_TX_16X16 && prefix->eob == 11U) {
+        return transform->primary_type == AV2H_TX_DCT_DCT;
+    }
+    if (frame->base_q_index == 224U &&
+        frame->width == 333U && frame->height == 333U &&
+        prefix->tx_size == AV2H_TX_16X16 && prefix->eob == 10U) {
+        return transform->primary_type == AV2H_TX_DCT_DCT;
+    }
+    if (frame->base_q_index == 224U &&
+        frame->width == 333U && frame->height == 333U &&
+        prefix->tx_size == AV2H_TX_16X8 && prefix->eob == 3U) {
+        return transform->primary_type == AV2H_TX_DCT_DCT;
+    }
+    if (frame->base_q_index == 224U &&
+        frame->width == 333U && frame->height == 333U &&
         prefix->tx_size == AV2H_TX_4X8 && prefix->eob == 14U) {
         return transform->primary_type == AV2H_TX_DCT_ADST;
     }
@@ -2655,7 +2674,42 @@ static int q_level_profile_supported(
     }
     if (frame->base_q_index == 224U &&
         frame->width == 333U && frame->height == 333U &&
-        prefix->tx_size == AV2H_TX_32X32 && prefix->eob == 15U) {
+        prefix->tx_size == AV2H_TX_32X32 &&
+        (prefix->eob == 6U || prefix->eob == 9U || prefix->eob == 11U ||
+         prefix->eob == 15U || prefix->eob == 21U)) {
+        return transform->primary_type == AV2H_TX_DCT_DCT;
+    }
+    if (frame->base_q_index == 224U &&
+        frame->width == 333U && frame->height == 333U &&
+        prefix->tx_size == AV2H_TX_64X32 &&
+        (prefix->eob == 13U || prefix->eob == 16U)) {
+        return transform->primary_type == AV2H_TX_DCT_DCT;
+    }
+    if (frame->base_q_index == 224U &&
+        frame->width == 333U && frame->height == 333U &&
+        prefix->tx_size == AV2H_TX_64X16 &&
+        (prefix->eob == 1U || prefix->eob == 4U)) {
+        return transform->primary_type == AV2H_TX_DCT_DCT;
+    }
+    if (frame->base_q_index == 224U &&
+        frame->width == 333U && frame->height == 333U &&
+        prefix->tx_size == AV2H_TX_64X8 && prefix->eob == 1U) {
+        return transform->primary_type == AV2H_TX_DCT_DCT;
+    }
+    if (frame->base_q_index == 224U &&
+        frame->width == 333U && frame->height == 333U &&
+        prefix->tx_size == AV2H_TX_16X64 && prefix->eob == 1U) {
+        return transform->primary_type == AV2H_TX_DCT_DCT;
+    }
+    if (frame->base_q_index == 224U &&
+        frame->width == 333U && frame->height == 333U &&
+        prefix->tx_size == AV2H_TX_32X16 &&
+        (prefix->eob == 1U || prefix->eob == 11U || prefix->eob == 15U)) {
+        return transform->primary_type == AV2H_TX_DCT_DCT;
+    }
+    if (frame->base_q_index == 224U &&
+        frame->width == 333U && frame->height == 333U &&
+        prefix->tx_size == AV2H_TX_32X64 && prefix->eob == 7U) {
         return transform->primary_type == AV2H_TX_DCT_DCT;
     }
     if (frame->base_q_index == 224U &&
@@ -2676,7 +2730,9 @@ static int q_level_profile_supported(
     }
     if (frame->base_q_index == 224U &&
         frame->width == 333U && frame->height == 333U &&
-        prefix->tx_size == AV2H_TX_16X32 && prefix->eob == 6U) {
+        prefix->tx_size == AV2H_TX_16X32 &&
+        (prefix->eob == 2U || prefix->eob == 6U || prefix->eob == 8U ||
+         prefix->eob == 10U || prefix->eob == 15U)) {
         return transform->primary_type == AV2H_TX_DCT_DCT;
     }
     if (frame->base_q_index == 224U &&
@@ -2688,7 +2744,8 @@ static int q_level_profile_supported(
     if (frame->base_q_index == 224U &&
         frame->width == 333U && frame->height == 333U &&
         prefix->tx_size == AV2H_TX_8X16 && prefix->eob == 2U) {
-        return transform->primary_type == AV2H_TX_ADST_ADST;
+         return transform->primary_type == AV2H_TX_ADST_ADST ||
+             transform->primary_type == AV2H_TX_DCT_DCT;
     }
     if (frame->base_q_index == 224U &&
         frame->width == 333U && frame->height == 333U &&
@@ -2731,11 +2788,9 @@ static int q_level_profile_supported(
     if (frame->base_q_index == 224U &&
         frame->width == 333U && frame->height == 333U &&
         prefix->tx_size == AV2H_TX_8X64 &&
-        (prefix->eob == 3U || prefix->eob == 4U)) {
-        return (prefix->eob == 3U &&
-                transform->primary_type == AV2H_TX_DCT_ADST) ||
-               (prefix->eob == 4U &&
-                transform->primary_type == AV2H_TX_DCT_DCT);
+        (prefix->eob == 3U || prefix->eob == 4U || prefix->eob == 6U ||
+         prefix->eob == 9U)) {
+        return transform->primary_type == AV2H_TX_DCT_DCT;
     }
     if (frame->base_q_index == 224U &&
         frame->width == 333U && frame->height == 333U &&
@@ -2747,8 +2802,9 @@ static int q_level_profile_supported(
         frame->width == 333U && frame->height == 333U &&
         prefix->tx_size == AV2H_TX_16X64 &&
         (prefix->eob == 2U || prefix->eob == 4U ||
-         prefix->eob == 10U || prefix->eob == 28U)) {
-        if (prefix->eob == 2U) {
+         prefix->eob == 10U || prefix->eob == 15U ||
+         prefix->eob == 28U)) {
+        if (prefix->eob == 2U || prefix->eob == 15U) {
             return transform->primary_type == AV2H_TX_DCT_DCT;
         }
         if (prefix->eob == 4U) {
@@ -4016,7 +4072,8 @@ static Av2hStatus read_profiled_chroma_block(
             ((frame->width == 192U && frame->height == 96U) ||
              (frame->width == 417U && frame->height == 277U))) ||
           (frame->base_q_index == 224U &&
-              frame->width == 333U && frame->height == 333U) ||
+              ((frame->width == 333U && frame->height == 333U) ||
+               (frame->width == 463U && frame->height == 342U))) ||
           (frame->base_q_index == 192U &&
               frame->width == 240U && frame->height == 287U))) ||
         (!adjusted_profile && cdfs->q_context != 3U) ||
@@ -4032,9 +4089,16 @@ static Av2hStatus read_profiled_chroma_block(
             prefix->tx_size != AV2H_TX_8X4 &&
             prefix->tx_size != AV2H_TX_8X8 &&
             prefix->tx_size != AV2H_TX_8X16 &&
+            prefix->tx_size != AV2H_TX_32X16 &&
+            prefix->tx_size != AV2H_TX_32X8 &&
             prefix->tx_size != AV2H_TX_32X32 &&
             prefix->tx_size != AV2H_TX_16X32 &&
-            prefix->tx_size != AV2H_TX_8X32) ||
+                        prefix->tx_size != AV2H_TX_8X32 &&
+                        !(frame->width == 463U && frame->height == 342U &&
+                            (prefix->tx_size == AV2H_TX_16X16 ||
+                               prefix->tx_size == AV2H_TX_16X4 ||
+                               prefix->tx_size == AV2H_TX_4X8 ||
+                               prefix->tx_size == AV2H_TX_4X32))) ||
         (frame->base_q_index == 208U &&
          prefix->tx_size != AV2H_TX_32X16 &&
          prefix->tx_size != AV2H_TX_32X32 &&

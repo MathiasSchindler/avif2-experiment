@@ -78,6 +78,7 @@ typedef struct {
     uint16_t eob_pt_512[8U + 4U];
     uint16_t eob_pt_1024[8U + 4U];
     uint16_t q3_chroma_eob_pt_128[8U + 4U];
+    uint16_t q3_chroma_eob_pt_256[8U + 4U];
     uint16_t q3_chroma_eob_pt_32[6U + 4U];
     uint16_t q3_chroma_eob_pt_64[7U + 4U];
     uint16_t q3_chroma_eob_pt_512[8U + 4U];

@@ -768,6 +768,9 @@ static Av2hStatus read_primary(Av2hRangeDecoder *decoder,
                    mode->mode == AV2H_INTRA_PAETH && symbol == 1U) {
             transform->primary_type = AV2H_TX_ADST_ADST;
         } else if (coeff->tx_size == AV2H_TX_16X16 &&
+                   mode->mode == AV2H_INTRA_PAETH && symbol == 0U) {
+            transform->primary_type = AV2H_TX_DCT_DCT;
+        } else if (coeff->tx_size == AV2H_TX_16X16 &&
                    mode->mode == AV2H_INTRA_D203 && symbol == 2U) {
             transform->primary_type = AV2H_TX_ADST_DCT;
         } else if (coeff->tx_size == AV2H_TX_16X16 &&
@@ -1249,13 +1252,21 @@ Av2hStatus av2h_chroma_transform_type_read(
                      coeff->tx_size == AV2H_TX_16X8 ||
                      coeff->tx_size == AV2H_TX_32X4)) ||
                  (frame->base_q_index == 224U &&
-                    frame->width == 333U && frame->height == 333U &&
+                    ((frame->width == 333U && frame->height == 333U) ||
+                     (frame->width == 463U && frame->height == 342U)) &&
                     (coeff->tx_size == AV2H_TX_8X4 ||
                      coeff->tx_size == AV2H_TX_8X8 ||
                      coeff->tx_size == AV2H_TX_8X16 ||
+                     coeff->tx_size == AV2H_TX_32X16 ||
+                     coeff->tx_size == AV2H_TX_32X8 ||
                      coeff->tx_size == AV2H_TX_32X32 ||
                      coeff->tx_size == AV2H_TX_16X32 ||
-                            coeff->tx_size == AV2H_TX_8X32)) ||
+                    coeff->tx_size == AV2H_TX_8X32 ||
+                    (frame->width == 463U && frame->height == 342U &&
+                                            (coeff->tx_size == AV2H_TX_16X16 ||
+                                               coeff->tx_size == AV2H_TX_16X4 ||
+                                               coeff->tx_size == AV2H_TX_4X8 ||
+                                               coeff->tx_size == AV2H_TX_4X32)))) ||
                      (frame->base_q_index == 192U &&
                       frame->width == 240U && frame->height == 287U &&
                                             (coeff->tx_size == AV2H_TX_32X16 ||

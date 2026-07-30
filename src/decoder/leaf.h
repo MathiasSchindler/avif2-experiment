@@ -14,6 +14,7 @@ extern uint32_t av2h_debug_y_mode_context;
 extern uint16_t av2h_debug_y_mode_set_cdf[8U];
 extern uint16_t av2h_debug_y_mode_index_cdf[12U];
 extern uint32_t av2h_debug_y_mode_range;
+extern uint32_t av2h_debug_y_mode_set_range;
 extern uint16_t av2h_debug_ccso_cdf[4U];
 extern uint32_t av2h_debug_ccso_range_before;
 extern uint32_t av2h_debug_ccso_range_after;
@@ -126,6 +127,8 @@ typedef struct {
     uint8_t multi_line_mrl;
     uint8_t palette_mode;
     uint8_t enable_ibp;
+    uint8_t above_smooth;
+    uint8_t left_smooth;
     Av2hFirstLeafIntraMode mode;
     size_t before_mode_bits;
     size_t after_mode_set_bits;
@@ -161,6 +164,7 @@ typedef struct {
     uint8_t spatial_fsc_mode[2];
     uint8_t spatial_mrl_index[2];
     uint8_t spatial_multi_line_mrl[2];
+    uint8_t edge_smooth[2];
 } Av2hLumaModeNeighbors;
 
 typedef struct {
@@ -249,6 +253,7 @@ typedef struct {
     uint8_t cfl_mhccp_switch;
     uint8_t mhccp_direction;
     uint8_t cfl_downsample_filter_index;
+    uint16_t superblock_size;
     uint8_t cfl_derived_alpha;
     uint8_t explicit_alpha_coded;
     uint8_t cfl_alpha_signs;

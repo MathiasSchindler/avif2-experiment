@@ -61,6 +61,12 @@ static int round_shift_signed(int value, unsigned int shift) {
     return -(int)(((unsigned int)(-adjusted) + ((1U << shift) - 1U)) >> shift);
 }
 
+static int round_shift_symmetric(int value, unsigned int shift) {
+    unsigned int half = 1U << (shift - 1U);
+    if (value >= 0) return (value + (int)half) >> shift;
+    return -(int)(((unsigned int)(-value) + half) >> shift);
+}
+
 static int floor_shift_signed(int value, unsigned int shift) {
     if (value >= 0) return value >> shift;
     return -(int)(((unsigned int)(-value) + ((1U << shift) - 1U)) >> shift);
@@ -83,6 +89,16 @@ static size_t gdf_weight_index(unsigned int qp_index,
 static size_t gdf_bias_index(unsigned int qp_index,
                              unsigned int output_index) {
     return (size_t)qp_index * 3U + output_index;
+}
+
+static unsigned int gdf_training_qp_index(const Av2hFrameState *frame) {
+    unsigned int base_index = 0U;
+    if (frame->base_q_index >= 197U) {
+        base_index = 2U;
+    } else if (frame->base_q_index >= 172U) {
+        base_index = 1U;
+    }
+    return base_index + frame->gdf_qp_index;
 }
 
 static int deblock_qlookup(int q_index) {
@@ -212,7 +228,7 @@ static unsigned int deblock_filter_choice(
     for (distance = 4U; distance <= AV2H_DEBLOCK_MAX_SAMPLES;
          distance += 2U) {
         unsigned int tested_distance = distance == 8U ? 7U : distance;
-        end_threshold = ((int)side_threshold * (int)tested_distance) >> 4;
+        end_threshold = ((int)side_threshold * (int)distance) >> 4;
         if (transition >
             (int)q_threshold * deblock_first_threshold[distance - 4U] ||
             (negative_max >= tested_distance &&
@@ -220,7 +236,7 @@ static unsigned int deblock_filter_choice(
                                      tested_distance, 1) > end_threshold) ||
             deblock_direction_error(sample, parallel_sample, step,
                                     tested_distance, 0) > end_threshold) {
-            return tested_distance == 4U ? 3U : tested_distance - 2U;
+            return distance == 4U ? 3U : distance - 2U;
         }
         if (positive_max <= tested_distance) {
             return (tested_distance >> 1U) << 1U;
@@ -233,7 +249,9 @@ static void deblock_filter_lane(uint8_t *sample,
                                 ptrdiff_t step,
                                 unsigned int negative_width,
                                 unsigned int positive_width,
-                                uint16_t q_threshold) {
+                                uint16_t q_threshold,
+                                uint8_t negative_lossless,
+                                uint8_t positive_lossless) {
     unsigned int width = negative_width > positive_width ?
                          negative_width : positive_width;
     int delta = (3 * (sample[0] - sample[-step]) -
@@ -241,25 +259,29 @@ static void deblock_filter_lane(uint8_t *sample,
     int limit = (int)q_threshold * deblock_q_multiplier[width - 1U];
     unsigned int index;
     delta = clamp_value(delta, -limit, limit);
-    for (index = 0U; index < negative_width; ++index) {
-        int adjustment = round_shift_signed(
-            delta * deblock_weight[negative_width - 1U] *
-                (int)(negative_width - index),
-            11U);
-        sample[-((ptrdiff_t)index + 1) * step] = clip_sample(
-            sample[-((ptrdiff_t)index + 1) * step] + adjustment);
+    if (negative_lossless == 0U) {
+        for (index = 0U; index < negative_width; ++index) {
+            int adjustment = round_shift_signed(
+                delta * deblock_weight[negative_width - 1U] *
+                    (int)(negative_width - index),
+                11U);
+            sample[-((ptrdiff_t)index + 1) * step] = clip_sample(
+                sample[-((ptrdiff_t)index + 1) * step] + adjustment);
+        }
     }
-    for (index = 0U; index < positive_width; ++index) {
-        int adjustment = round_shift_signed(
-            delta * deblock_weight[positive_width - 1U] *
-                (int)(positive_width - index),
-            11U);
-        sample[(ptrdiff_t)index * step] = clip_sample(
-            sample[(ptrdiff_t)index * step] - adjustment);
+    if (positive_lossless == 0U) {
+        for (index = 0U; index < positive_width; ++index) {
+            int adjustment = round_shift_signed(
+                delta * deblock_weight[positive_width - 1U] *
+                    (int)(positive_width - index),
+                11U);
+            sample[(ptrdiff_t)index * step] = clip_sample(
+                sample[(ptrdiff_t)index * step] - adjustment);
+        }
     }
 }
 
-Av2hStatus av2h_deblock_edge(
+static Av2hStatus deblock_edge(
     Av2hFilterPlane *plane,
     uint16_t x,
     uint16_t y,
@@ -267,7 +289,9 @@ Av2hStatus av2h_deblock_edge(
     uint8_t negative_length,
     uint8_t positive_length,
     uint16_t q_threshold,
-    uint16_t side_threshold) {
+    uint16_t side_threshold,
+    uint8_t negative_lossless,
+    uint8_t positive_lossless) {
     unsigned int negative_max;
     unsigned int positive_max;
     unsigned int negative_required;
@@ -307,9 +331,24 @@ Av2hStatus av2h_deblock_edge(
     if (negative_max > filter) negative_max = filter;
     for (lane = 0U; lane < 4U; ++lane) {
         deblock_filter_lane(sample + (ptrdiff_t)lane * lane_step, step,
-                            negative_max, filter, q_threshold);
+                            negative_max, filter, q_threshold,
+                            negative_lossless, positive_lossless);
     }
     return AV2H_OK;
+}
+
+Av2hStatus av2h_deblock_edge(
+    Av2hFilterPlane *plane,
+    uint16_t x,
+    uint16_t y,
+    uint8_t vertical,
+    uint8_t negative_length,
+    uint8_t positive_length,
+    uint16_t q_threshold,
+    uint16_t side_threshold) {
+    return deblock_edge(
+        plane, x, y, vertical, negative_length, positive_length,
+        q_threshold, side_threshold, 0U, 0U);
 }
 
 static int deblock_transform_dimension_valid(uint8_t value) {
@@ -383,7 +422,6 @@ static Av2hStatus deblock_frame_edge(
     if (transform_edge == 0U || (block_edge == 0U && cell->skip != 0U)) {
         return AV2H_OK;
     }
-    if (cell->lossless != 0U && previous->lossless != 0U) return AV2H_OK;
     deblock_thresholds(cell, sequence, frame, plane, pass,
                        &current_q, &current_side);
     deblock_thresholds(previous, sequence, frame, plane, pass,
@@ -424,12 +462,12 @@ static Av2hStatus deblock_frame_edge(
         unsigned int limit = plane == 0U ? 6U : 2U;
         if (maximum_negative > limit) maximum_negative = limit;
     }
-    return av2h_deblock_edge(
+    return deblock_edge(
         plane_data, (uint16_t)(column * 4U), (uint16_t)(row * 4U),
         (uint8_t)(pass == 0U),
         (uint8_t)((maximum_negative + 1U) * 2U),
         (uint8_t)((maximum_positive + 1U) * 2U),
-        q_threshold, side_threshold);
+        q_threshold, side_threshold, previous->lossless, cell->lossless);
 }
 
 Av2hStatus av2h_deblock_filter_frame(
@@ -515,7 +553,7 @@ Av2hStatus av2h_cdef_find_direction(
             partial[5][3U - row / 2U + column] += value;
             partial[6][column] += value;
             partial[7][row / 2U + column] += value;
-        }
+            }
     }
     for (index = 0U; index < 8U; ++index) {
         cost[2] += (int64_t)partial[2][index] * partial[2][index];
@@ -831,9 +869,7 @@ static uint8_t gdf_source_sample(const Av2hFilterPlane *cdef_luma,
                                  int stripe_end) {
     const Av2hFilterPlane *source = cdef_luma;
     if (x < 0) x = 0;
-    if (y < 0) y = 0;
     if (x >= (int)cdef_luma->width) x = (int)cdef_luma->width - 1;
-    if (y >= (int)cdef_luma->height) y = (int)cdef_luma->height - 1;
     if (y < stripe_start) {
         int minimum = stripe_start - 2;
         if (y < minimum) y = minimum;
@@ -843,6 +879,8 @@ static uint8_t gdf_source_sample(const Av2hFilterPlane *cdef_luma,
         if (y > maximum) y = maximum;
         source = deblocked_luma;
     }
+    if (y < 0) y = 0;
+    if (y >= (int)cdef_luma->height) y = (int)cdef_luma->height - 1;
     return source->data[(size_t)y * source->stride + (size_t)x];
 }
 
@@ -989,6 +1027,8 @@ static void gdf_filter_block(Av2hFilterPlane *destination,
                         (int)block_x + (int)column + dx,
                         (int)block_y + (int)row + dy,
                         stripe_start, stripe_end) - center;
+                    above *= 4;
+                    below *= 4;
                     above = clamp_value(above, -(int)alpha, (int)alpha);
                     below = clamp_value(below, -(int)alpha, (int)alpha);
                     combination = clamp_value(above + below, -512, 511);
@@ -1008,7 +1048,7 @@ static void gdf_filter_block(Av2hFilterPlane *destination,
             {
                 unsigned int position = 0U;
                 for (output_index = 0U; output_index < 3U; ++output_index) {
-                    int value = round_shift_signed(
+                    int value = round_shift_symmetric(
                         (accumulator[output_index] +
                          gdf_bias[gdf_bias_index(qp_index, output_index)]) *
                             8,
@@ -1018,7 +1058,7 @@ static void gdf_filter_block(Av2hFilterPlane *destination,
                 }
                 destination->data[destination_index] = clip_sample(
                     (int)destination->data[destination_index] +
-                    round_shift_signed(
+                    round_shift_symmetric(
                         (int)gdf_intra_error[qp_index * 4096U + position] *
                             (int)pixel_scale,
                         4U));
@@ -1033,6 +1073,7 @@ Av2hStatus av2h_gdf_filter_frame(
     const Av2hFilterPlane *deblocked_luma,
     const Av2hFrameState *frame) {
     uint16_t row;
+    unsigned int qp_index;
     if (destination == 0 || cdef_luma == 0 || deblocked_luma == 0 ||
         frame == 0 || destination->data == 0 || cdef_luma->data == 0 ||
         deblocked_luma->data == 0 || destination->stride < destination->width ||
@@ -1047,11 +1088,12 @@ Av2hStatus av2h_gdf_filter_frame(
         filter_planes_overlap(destination, deblocked_luma) ||
         filter_planes_overlap(cdef_luma, deblocked_luma) ||
         frame->gdf_mode > 1U ||
-        frame->gdf_qp_index >= 6U || frame->gdf_scale_index >= 4U ||
+        frame->gdf_qp_index >= 4U || frame->gdf_scale_index >= 4U ||
         (destination->width & 3U) != 0U ||
         (destination->height & 3U) != 0U) {
         return AV2H_INVALID_ARGUMENT;
     }
+    qp_index = gdf_training_qp_index(frame);
     for (row = 0U; row < destination->height; ++row) {
         uint16_t column;
         for (column = 0U; column < destination->width; ++column) {
@@ -1065,7 +1107,7 @@ Av2hStatus av2h_gdf_filter_frame(
         for (column = 0U; column < destination->width;
              column = (uint16_t)(column + 4U)) {
             gdf_filter_block(destination, cdef_luma, deblocked_luma,
-                             column, row, frame->gdf_qp_index,
+                             column, row, qp_index,
                              (unsigned int)frame->gdf_scale_index + 1U);
         }
     }

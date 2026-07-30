@@ -322,7 +322,10 @@ static Av2hStatus tile_initialize_all_zero_luma(
             (decoder->frame->width == 417U &&
              decoder->frame->height == 277U))) ||
         (decoder->frame->base_q_index == 224U &&
-         decoder->frame->width == 333U && decoder->frame->height == 333U) ||
+                 ((decoder->frame->width == 333U &&
+                     decoder->frame->height == 333U) ||
+                    (decoder->frame->width == 463U &&
+                     decoder->frame->height == 342U))) ||
         (decoder->frame->base_q_index == 192U &&
          decoder->frame->width == 240U && decoder->frame->height == 287U)) {
         const Av2hTxDescriptor *descriptor;

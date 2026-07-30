@@ -371,10 +371,15 @@ extern uint64_t av2h_debug_smooth_above_hash;
 extern uint64_t av2h_debug_smooth_left_hash;
 extern int32_t av2h_debug_mhccp_parameters[2U][3U];
 extern uint64_t av2h_debug_mhccp_predictor_hash[2U];
+extern uint8_t av2h_debug_directional_edges[18U];
+extern uint8_t av2h_debug_directional_raw[3U];
+extern uint8_t av2h_debug_directional_ibp[24U];
+extern uint8_t av2h_debug_directional_target[3U];
 extern uint64_t av2h_debug_mhccp_luma_hash[2U];
 extern uint64_t av2h_debug_mhccp_chroma_hash[2U];
 extern uint64_t av2h_debug_mhccp_chroma_top_hash[2U];
 extern uint64_t av2h_debug_mhccp_chroma_left_hash[2U];
+extern uint8_t av2h_debug_mhccp_reason;
 extern uint8_t av2h_debug_mhccp_count;
 extern uint32_t av2h_debug_chimp_base[64U][18U];
 extern uint8_t av2h_debug_chimp_base_count;
@@ -1787,6 +1792,210 @@ static void check_first_luma(const ArtifactExpectation *expected,
     if (expected->decoded != 0) {
         CHECK(status == AV2H_OK);
         check_decoded_block(expected->decoded, &leaf, &block);
+        if (expected->width == 463U && expected->height == 342U) {
+            static uint8_t louis_pixels[464U * 344U];
+            static uint8_t louis_reconstructed[116U * 86U];
+                        static uint8_t louis_chroma_pixels[2U][232U * 172U];
+                        static uint8_t louis_chroma_reconstructed[2U][58U * 43U];
+            static Av2hReconstructionScratch louis_scratch;
+            Av2hReconstructionPlane louis_plane = {
+                louis_pixels, 464U, 464U, 344U, 463U, 342U,
+                louis_reconstructed, 116U, sizeof(louis_reconstructed)
+            };
+                        Av2hReconstructionPlane louis_chroma_planes[2U] = {
+                                { louis_chroma_pixels[0], 232U, 232U, 172U, 232U, 171U,
+                                    louis_chroma_reconstructed[0], 58U,
+                                    sizeof(louis_chroma_reconstructed[0]) },
+                                { louis_chroma_pixels[1], 232U, 232U, 172U, 232U, 171U,
+                                    louis_chroma_reconstructed[1], 58U,
+                                    sizeof(louis_chroma_reconstructed[1]) }
+                        };
+            size_t louis_leaf_count = 0U;
+                        size_t louis_chroma_leaf_count = 0U;
+            Av2hStatus reconstruct_status = AV2H_OK;
+                        Av2hStatus chroma_reconstruct_status[2U] = {
+                                AV2H_OK, AV2H_OK
+                        };
+                        Av2hTileChromaLeaf chroma_leaf;
+                        Av2hFirstCoeffBlock chroma_blocks[2U];
+            av2h_memory_fill(louis_pixels, 0U, sizeof(louis_pixels));
+            av2h_memory_fill(
+                louis_reconstructed, 0U, sizeof(louis_reconstructed));
+            while (decoder.phase == AV2H_TILE_DECODE_LUMA &&
+                   louis_leaf_count < 16384U) {
+                reconstruct_status = AV2H_OK;
+                if (status == AV2H_OK && has_leaf != 0U) {
+                    reconstruct_status = av2h_luma_reconstruct_to_plane(
+                        &leaf.node, &leaf.mode, &leaf.prefix,
+                        &leaf.transform, &block, &louis_plane,
+                        &louis_scratch);
+                }
+                if (status != AV2H_OK || reconstruct_status != AV2H_OK) {
+                    break;
+                }
+                if (has_leaf == 0U) continue;
+                status = av2h_tile_decoder_commit_leaf(&decoder, leaf.node);
+                if (status != AV2H_OK) break;
+                ++louis_leaf_count;
+                av2h_memory_fill(&leaf, 0U, sizeof(leaf));
+                av2h_memory_fill(&block, 0U, sizeof(block));
+                status = av2h_tile_decoder_next_luma(
+                    &decoder, &leaf, &block, &has_leaf);
+            }
+            av2h_memory_fill(&chroma_leaf, 0U, sizeof(chroma_leaf));
+            av2h_memory_fill(chroma_blocks, 0U, sizeof(chroma_blocks));
+            while (status == AV2H_OK &&
+                   decoder.phase == AV2H_TILE_DECODE_CHROMA &&
+                   louis_chroma_leaf_count < 16384U) {
+                status = av2h_tile_decoder_next_chroma(
+                    &decoder, &chroma_leaf, &chroma_blocks[0],
+                    &chroma_blocks[1], &has_leaf);
+                if (status != AV2H_OK) break;
+                if (has_leaf == 0U) continue;
+                for (size_t plane_index = 0U;
+                     plane_index < 2U; ++plane_index) {
+                    chroma_reconstruct_status[plane_index] =
+                        av2h_chroma_reconstruct_to_plane_ex(
+                            &chroma_leaf.node, &chroma_leaf.mode,
+                            &chroma_leaf.prefix[plane_index],
+                            &chroma_leaf.transform[plane_index],
+                            &chroma_blocks[plane_index],
+                            &louis_chroma_planes[plane_index],
+                            &louis_plane, (uint8_t)(plane_index + 1U), 0,
+                            &louis_scratch);
+                    if (chroma_reconstruct_status[plane_index] != AV2H_OK) {
+                        break;
+                    }
+                }
+                if (chroma_reconstruct_status[0] != AV2H_OK ||
+                    chroma_reconstruct_status[1] != AV2H_OK) {
+                    break;
+                }
+                status = av2h_tile_decoder_commit_leaf(
+                    &decoder, chroma_leaf.node);
+                if (status != AV2H_OK) break;
+                ++louis_chroma_leaf_count;
+                av2h_memory_fill(&chroma_leaf, 0U, sizeof(chroma_leaf));
+                av2h_memory_fill(chroma_blocks, 0U, sizeof(chroma_blocks));
+            }
+            while (status == AV2H_OK &&
+                   decoder.phase != AV2H_TILE_DECODE_DONE &&
+                   louis_leaf_count + louis_chroma_leaf_count < 32768U) {
+                if (decoder.phase == AV2H_TILE_DECODE_LUMA) {
+                    av2h_memory_fill(&leaf, 0U, sizeof(leaf));
+                    av2h_memory_fill(&block, 0U, sizeof(block));
+                    status = av2h_tile_decoder_next_luma(
+                        &decoder, &leaf, &block, &has_leaf);
+                    if (status != AV2H_OK || has_leaf == 0U) continue;
+                    reconstruct_status = av2h_luma_reconstruct_to_plane(
+                        &leaf.node, &leaf.mode, &leaf.prefix,
+                        &leaf.transform, &block, &louis_plane,
+                        &louis_scratch);
+                    if (reconstruct_status != AV2H_OK) break;
+                    status = av2h_tile_decoder_commit_leaf(
+                        &decoder, leaf.node);
+                    if (status == AV2H_OK) ++louis_leaf_count;
+                } else {
+                    av2h_memory_fill(&chroma_leaf, 0U,
+                                     sizeof(chroma_leaf));
+                    av2h_memory_fill(chroma_blocks, 0U,
+                                     sizeof(chroma_blocks));
+                    status = av2h_tile_decoder_next_chroma(
+                        &decoder, &chroma_leaf, &chroma_blocks[0],
+                        &chroma_blocks[1], &has_leaf);
+                    if (status != AV2H_OK || has_leaf == 0U) continue;
+                    for (size_t plane_index = 0U;
+                         plane_index < 2U; ++plane_index) {
+                        chroma_reconstruct_status[plane_index] =
+                            av2h_chroma_reconstruct_to_plane_ex(
+                                &chroma_leaf.node, &chroma_leaf.mode,
+                                &chroma_leaf.prefix[plane_index],
+                                &chroma_leaf.transform[plane_index],
+                                &chroma_blocks[plane_index],
+                                &louis_chroma_planes[plane_index],
+                                &louis_plane,
+                                (uint8_t)(plane_index + 1U), 0,
+                                &louis_scratch);
+                        if (chroma_reconstruct_status[plane_index] !=
+                            AV2H_OK) {
+                            break;
+                        }
+                    }
+                    if (chroma_reconstruct_status[0] != AV2H_OK ||
+                        chroma_reconstruct_status[1] != AV2H_OK) {
+                        break;
+                    }
+                    status = av2h_tile_decoder_commit_leaf(
+                        &decoder, chroma_leaf.node);
+                    if (status == AV2H_OK) ++louis_chroma_leaf_count;
+                }
+            }
+            fprintf(stderr,
+                    "louis-chroma-frontier=%d/%d/%d/%lu/%lu/%u/%lu/%u/%u/%u/%u/%u/%u/%u/%u/%u/%u/%u/%u/%u/%u/%u/%d/%u/%u/%u/%u/%u/%u/%u/%u/%u/%u/%u/%lu/%lu/%lu\n",
+                    status, chroma_reconstruct_status[0],
+                    chroma_reconstruct_status[1],
+                    (unsigned long)louis_chroma_leaf_count,
+                    (unsigned long)av2h_range_tell(&decoder.range),
+                    decoder.phase, (unsigned long)decoder.sb_index,
+                    has_leaf, chroma_leaf.node.row,
+                    chroma_leaf.node.column, chroma_leaf.node.block_size,
+                    chroma_leaf.mode.mode,
+                    chroma_leaf.prefix[0].tx_size,
+                    chroma_leaf.prefix[0].eob,
+                    chroma_leaf.prefix[1].tx_size,
+                    chroma_leaf.prefix[1].eob,
+                    chroma_blocks[0].diagnostic_kind,
+                    chroma_blocks[0].diagnostic_context,
+                    chroma_blocks[1].diagnostic_kind,
+                    chroma_blocks[1].diagnostic_context,
+                    av2h_debug_chroma_reconstruct_stage,
+                    av2h_debug_chroma_colocated_mode,
+                    av2h_debug_chroma_colocated_delta,
+                    sequence->enable_cfl_intra,
+                    chroma_leaf.mode.cfl_kind,
+                    chroma_leaf.mode.cfl_downsample_filter_index,
+                    chroma_leaf.mode.cfl_alpha_signs,
+                    chroma_leaf.mode.cfl_alpha_idx,
+                    chroma_leaf.mode.cfl_index,
+                    chroma_leaf.mode.mhccp_direction,
+                    av2h_debug_mhccp_reason,
+                    av2h_debug_chroma_prefix_context,
+                    chroma_leaf.prefix[0].all_zero,
+                    chroma_leaf.prefix[1].all_zero,
+                    (unsigned long)chroma_leaf.prefix[0].before_all_zero_bits,
+                    (unsigned long)chroma_leaf.prefix[0].after_all_zero_bits,
+                    (unsigned long)chroma_leaf.prefix[0].after_eob_bits);
+            fprintf(stderr,
+                    "louis-frontier=%d/%d/%lu/%lu/%lu/%u/%u/%u/%u/%u/%u/%u/%u/%u/%u/%u/%u/%u/%u/%u/%u/%lu/%lu/%lu/%u/%u/%u/%lu/%d/%u/%u/%u/%u/%u/%u/%u/%u/%u\n",
+                    status, reconstruct_status,
+                    (unsigned long)louis_leaf_count,
+                    (unsigned long)av2h_range_tell(&decoder.range),
+                    (unsigned long)decoder.sb_index,
+                    has_leaf, leaf.node.row, leaf.node.column,
+                    leaf.node.block_size, leaf.mode.mode,
+                    leaf.mode.mode_set, leaf.mode.mode_index,
+                    leaf.mode.joint_mode, leaf.prefix.tx_size,
+                    leaf.prefix.eob, leaf.transform.primary_type,
+                    block.diagnostic_kind, block.diagnostic_context,
+                    block.diagnostic_position,
+                    av2h_debug_luma_tile_stage,
+                    av2h_debug_luma_prefix_stage,
+                    (unsigned long)leaf.prefix.before_all_zero_bits,
+                    (unsigned long)leaf.prefix.after_all_zero_bits,
+                    (unsigned long)leaf.prefix.after_eob_point_bits,
+                    leaf.prefix.eob_point,
+                    leaf.prefix.eob_offset_bits,
+                    leaf.prefix.eob_extra,
+                    (unsigned long)leaf.prefix.after_eob_bits,
+                    leaf.mode.angle_delta, leaf.mode.mrl_index,
+                    leaf.mode.enable_ibp,
+                    av2h_debug_luma_reconstruct_stage,
+                    leaf.mode.skip_transform, leaf.mode.fsc_mode,
+                    leaf.mode.use_intrabc,
+                    leaf.transform.secondary_symbol,
+                    leaf.transform.secondary_set,
+                    leaf.transform.primary_symbol);
+        }
         if (expected->base_q_index == 192U && expected->width == 240U) {
             static uint8_t chimp_probe_pixels[240U * 287U];
             static uint8_t chimp_probe_reconstructed[60U * 72U];
@@ -2731,6 +2940,284 @@ static void check_first_luma(const ArtifactExpectation *expected,
                                                     scratch.predictor,
                                                     64U, 64U, 64U),
                                             av2h_debug_luma_reconstruct_stage);
+                                    if (leaf.node.row == 48U &&
+                                        leaf.node.column == 55U) {
+                                        CHECK(status == AV2H_OK);
+                                    }
+                                    if (leaf.node.row == 64U &&
+                                        leaf.node.column == 0U) {
+                                        uint8_t target_predictor =
+                                            scratch.predictor[24U];
+                                        uint8_t target_pixel = plane.data[
+                                            (size_t)(leaf.node.row * 4U) *
+                                                plane.stride + 24U];
+                                        fprintf(stderr,
+                                                "chinnathurai-64x32-frontier=%u/%d/%u:%u,%u,%u\n",
+                                                target_predictor,
+                                                (int)target_pixel -
+                                                    target_predictor,
+                                                target_pixel,
+                                                av2h_debug_directional_target[0],
+                                                av2h_debug_directional_target[1],
+                                                av2h_debug_directional_target[2]);
+                                    }
+                                    if (leaf.node.row == 64U &&
+                                        leaf.node.column == 26U) {
+                                        uint8_t target_predictor =
+                                            scratch.predictor[6U];
+                                        uint8_t target_pixel = plane.data[
+                                            (size_t)(leaf.node.row * 4U) *
+                                                plane.stride +
+                                            leaf.node.column * 4U + 6U];
+                                        fprintf(stderr,
+                                            "chinnathurai-16x16-frontier=%u/%d/%u:%u,%u,%u:%u,%u,%u,%u\n",
+                                                target_predictor,
+                                                (int)target_pixel -
+                                                    target_predictor,
+                                                target_pixel,
+                                                av2h_debug_directional_target[0],
+                                                av2h_debug_directional_target[1],
+                                                av2h_debug_directional_target[2],
+                                                av2h_debug_directional_edges[0],
+                                                av2h_debug_directional_edges[1],
+                                                av2h_debug_directional_edges[2],
+                                                av2h_debug_directional_edges[3]);
+                                    }
+                                    if (leaf.node.row == 64U &&
+                                        leaf.node.column == 64U) {
+                                        uint8_t target_predictor =
+                                            scratch.predictor[31U * 8U + 7U];
+                                        uint8_t target_pixel = plane.data[
+                                            (size_t)(leaf.node.row * 4U + 31U) *
+                                                plane.stride +
+                                            leaf.node.column * 4U + 7U];
+                                        fprintf(stderr,
+                                            "chinnathurai-8x32-frontier=%u/%d/%u:%u,%u,%u:%u/%u:%u,%u,%u,%u\n",
+                                                target_predictor,
+                                                (int)target_pixel -
+                                                    target_predictor,
+                                                target_pixel,
+                                                av2h_debug_directional_target[0],
+                                                av2h_debug_directional_target[1],
+                                                av2h_debug_directional_target[2],
+                                                leaf.mode.above_smooth,
+                                                leaf.mode.left_smooth,
+                                                av2h_debug_directional_edges[0],
+                                                av2h_debug_directional_edges[1],
+                                                av2h_debug_directional_edges[2],
+                                                av2h_debug_directional_edges[3]);
+                                    }
+                                    if (leaf.node.row == 78U &&
+                                        leaf.node.column == 16U) {
+                                        uint8_t target_predictor =
+                                            scratch.predictor[63U];
+                                        uint8_t target_pixel = plane.data[
+                                            (size_t)(leaf.node.row * 4U) *
+                                                plane.stride +
+                                            leaf.node.column * 4U + 63U];
+                                        fprintf(stderr,
+                                                "chinnathurai-64x8-frontier=%u/%d/%u\n",
+                                                target_predictor,
+                                                (int)target_pixel -
+                                                    target_predictor,
+                                                target_pixel);
+                                    }
+                                    if (leaf.node.row == 48U &&
+                                        leaf.node.column == 24U) {
+                                        uint8_t frontier_predictor =
+                                            scratch.predictor[4U * 16U + 15U];
+                                        uint8_t frontier_pixel = plane.data[
+                                            (size_t)(leaf.node.row * 4U + 4U) *
+                                                plane.stride +
+                                            leaf.node.column * 4U + 15U];
+                                        fprintf(stderr,
+                                                "chinnathurai-frontier=%u/%d/%u:%u,%u,%u,%u/%u\n",
+                                                frontier_predictor,
+                                                (int)frontier_pixel -
+                                                    frontier_predictor,
+                                                frontier_pixel,
+                                                av2h_debug_directional_ibp[0],
+                                                av2h_debug_directional_ibp[1],
+                                                av2h_debug_directional_ibp[2],
+                                                av2h_debug_directional_ibp[3],
+                                                av2h_debug_directional_ibp[4]);
+                                    }
+                                    if (leaf.node.row == 48U &&
+                                        leaf.node.column == 56U) {
+                                        fprintf(stderr,
+                                                "chinnathurai-vertical-target-predictor=%llx\n",
+                                                (unsigned long long)
+                                                    block_pixel_hash(
+                                                        scratch.predictor,
+                                                        32U, 32U, 16U));
+                                    }
+                                    if (leaf.node.row == 52U &&
+                                        leaf.node.column == 56U) {
+                                        uint8_t target_predictor =
+                                            scratch.predictor[5U * 16U + 3U];
+                                        uint8_t target_pixel = plane.data[
+                                            (size_t)(leaf.node.row * 4U + 5U) *
+                                                plane.stride +
+                                            leaf.node.column * 4U + 3U];
+                                        fprintf(stderr,
+                                                "chinnathurai-vertical-frontier=%u/%d/%u:%u,%u,%u\n",
+                                                target_predictor,
+                                                (int)target_pixel -
+                                                    target_predictor,
+                                                target_pixel,
+                                                av2h_debug_directional_target[0],
+                                                av2h_debug_directional_target[1],
+                                                av2h_debug_directional_target[2]);
+                                        fprintf(stderr,
+                                                "chinnathurai-vertical-root-predictor=%llx\n",
+                                                (unsigned long long)
+                                                    block_pixel_hash(
+                                                        scratch.predictor,
+                                                        16U, 16U, 32U));
+                                        for (size_t row = 0U; row < 4U; ++row) {
+                                            fprintf(stderr,
+                                                    "chinnathurai-vertical-root-row-%lu=%u,%u,%u,%u,%u,%u,%u,%u\n",
+                                                    (unsigned long)row,
+                                                    scratch.predictor[row * 16U],
+                                                    scratch.predictor[row * 16U + 1U],
+                                                    scratch.predictor[row * 16U + 2U],
+                                                    scratch.predictor[row * 16U + 3U],
+                                                    scratch.predictor[row * 16U + 4U],
+                                                    scratch.predictor[row * 16U + 5U],
+                                                    scratch.predictor[row * 16U + 6U],
+                                                    scratch.predictor[row * 16U + 7U]);
+                                        }
+                                        fprintf(stderr,
+                                                "chinnathurai-vertical-ibp=%u,%u,%u,%u,%u,%u,%u,%u:%u,%u,%u,%u,%u,%u,%u,%u:%u,%u,%u,%u,%u,%u,%u,%u\n",
+                                                av2h_debug_directional_ibp[0],
+                                                av2h_debug_directional_ibp[1],
+                                                av2h_debug_directional_ibp[2],
+                                                av2h_debug_directional_ibp[3],
+                                                av2h_debug_directional_ibp[4],
+                                                av2h_debug_directional_ibp[5],
+                                                av2h_debug_directional_ibp[6],
+                                                av2h_debug_directional_ibp[7],
+                                                av2h_debug_directional_ibp[8],
+                                                av2h_debug_directional_ibp[9],
+                                                av2h_debug_directional_ibp[10],
+                                                av2h_debug_directional_ibp[11],
+                                                av2h_debug_directional_ibp[12],
+                                                av2h_debug_directional_ibp[13],
+                                                av2h_debug_directional_ibp[14],
+                                                av2h_debug_directional_ibp[15],
+                                                av2h_debug_directional_ibp[16],
+                                                av2h_debug_directional_ibp[17],
+                                                av2h_debug_directional_ibp[18],
+                                                av2h_debug_directional_ibp[19],
+                                                av2h_debug_directional_ibp[20],
+                                                av2h_debug_directional_ibp[21],
+                                                av2h_debug_directional_ibp[22],
+                                                av2h_debug_directional_ibp[23]);
+                                        fprintf(stderr,
+                                            "chinnathurai-vertical-16x32-edges=%u/%u/%u:%u,%u,%u,%u,%u,%u,%u,%u,%u:%u,%u,%u,%u,%u,%u,%u,%u,%u\n",
+                                            av2h_debug_directional_raw[0],
+                                            av2h_debug_directional_raw[1],
+                                            av2h_debug_directional_raw[2],
+                                                av2h_debug_directional_edges[0],
+                                                av2h_debug_directional_edges[1],
+                                                av2h_debug_directional_edges[2],
+                                                av2h_debug_directional_edges[3],
+                                                av2h_debug_directional_edges[4],
+                                                av2h_debug_directional_edges[5],
+                                                av2h_debug_directional_edges[6],
+                                                av2h_debug_directional_edges[7],
+                                                av2h_debug_directional_edges[8],
+                                                av2h_debug_directional_edges[9],
+                                                av2h_debug_directional_edges[10],
+                                                av2h_debug_directional_edges[11],
+                                                av2h_debug_directional_edges[12],
+                                                av2h_debug_directional_edges[13],
+                                                av2h_debug_directional_edges[14],
+                                                av2h_debug_directional_edges[15],
+                                                av2h_debug_directional_edges[16],
+                                                av2h_debug_directional_edges[17]);
+                                    }
+                                    if (leaf.node.row == 52U &&
+                                        leaf.node.column == 60U) {
+                                        fprintf(stderr,
+                                                "chinnathurai-vertical-transform-predictor=%llx\n",
+                                                (unsigned long long)
+                                                    block_pixel_hash(
+                                                        scratch.predictor,
+                                                        16U, 16U, 32U));
+                                    }
+                                    if (leaf.node.row == 48U &&
+                                        leaf.node.column == 64U) {
+                                        fprintf(stderr,
+                                                "chinnathurai-smooth-target-predictor=%llx\n",
+                                                (unsigned long long)
+                                                    block_pixel_hash(
+                                                        scratch.predictor,
+                                                        16U, 16U, 64U));
+                                    }
+                                    if (leaf.node.row == 48U &&
+                                        leaf.node.column == 68U) {
+                                        for (size_t row = 0U; row < 4U; ++row) {
+                                            fprintf(stderr,
+                                                "chinnathurai-d45-8x64-predictor-%lu=%u,%u,%u,%u,%u,%u,%u,%u\n",
+                                                (unsigned long)row,
+                                                scratch.predictor[row * 8U],
+                                                scratch.predictor[row * 8U + 1U],
+                                                scratch.predictor[row * 8U + 2U],
+                                                scratch.predictor[row * 8U + 3U],
+                                                scratch.predictor[row * 8U + 4U],
+                                                scratch.predictor[row * 8U + 5U],
+                                                scratch.predictor[row * 8U + 6U],
+                                                scratch.predictor[row * 8U + 7U]);
+                                        }
+                                        fprintf(stderr,
+                                                "chinnathurai-d45-ibp=%u,%u,%u,%u,%u,%u,%u,%u:%u,%u,%u,%u,%u,%u,%u,%u:%u,%u,%u,%u,%u,%u,%u,%u\n",
+                                                av2h_debug_directional_ibp[0],
+                                                av2h_debug_directional_ibp[1],
+                                                av2h_debug_directional_ibp[2],
+                                                av2h_debug_directional_ibp[3],
+                                                av2h_debug_directional_ibp[4],
+                                                av2h_debug_directional_ibp[5],
+                                                av2h_debug_directional_ibp[6],
+                                                av2h_debug_directional_ibp[7],
+                                                av2h_debug_directional_ibp[8],
+                                                av2h_debug_directional_ibp[9],
+                                                av2h_debug_directional_ibp[10],
+                                                av2h_debug_directional_ibp[11],
+                                                av2h_debug_directional_ibp[12],
+                                                av2h_debug_directional_ibp[13],
+                                                av2h_debug_directional_ibp[14],
+                                                av2h_debug_directional_ibp[15],
+                                                av2h_debug_directional_ibp[16],
+                                                av2h_debug_directional_ibp[17],
+                                                av2h_debug_directional_ibp[18],
+                                                av2h_debug_directional_ibp[19],
+                                                av2h_debug_directional_ibp[20],
+                                                av2h_debug_directional_ibp[21],
+                                                av2h_debug_directional_ibp[22],
+                                                av2h_debug_directional_ibp[23]);
+                                        fprintf(stderr,
+                                                "chinnathurai-d45-8x64-edges=%u,%u,%u,%u,%u,%u,%u,%u,%u:%u,%u,%u,%u,%u,%u,%u,%u,%u\n",
+                                                av2h_debug_directional_edges[0],
+                                                av2h_debug_directional_edges[1],
+                                                av2h_debug_directional_edges[2],
+                                                av2h_debug_directional_edges[3],
+                                                av2h_debug_directional_edges[4],
+                                                av2h_debug_directional_edges[5],
+                                                av2h_debug_directional_edges[6],
+                                                av2h_debug_directional_edges[7],
+                                                av2h_debug_directional_edges[8],
+                                                av2h_debug_directional_edges[9],
+                                                av2h_debug_directional_edges[10],
+                                                av2h_debug_directional_edges[11],
+                                                av2h_debug_directional_edges[12],
+                                                av2h_debug_directional_edges[13],
+                                                av2h_debug_directional_edges[14],
+                                                av2h_debug_directional_edges[15],
+                                                av2h_debug_directional_edges[16],
+                                                av2h_debug_directional_edges[17]);
+                                        CHECK(status == AV2H_OK);
+                                    }
                                     if (leaf.node.row == 32U &&
                                         leaf.node.column == 24U) {
                                         fprintf(stderr,
@@ -2829,6 +3316,20 @@ static void check_first_luma(const ArtifactExpectation *expected,
                                         if (status != AV2H_OK) {
                                             break;
                                         }
+                                        if (chroma_leaf.node.row == 64U &&
+                                            chroma_leaf.node.column == 64U) {
+                                            fprintf(stderr,
+                                                "chinnathurai-chroma-h2=%lu:%u,%u,%u,%u:%u,%u,%u,%u\n",
+                                                (unsigned long)av2h_debug_directional_target[0],
+                                                av2h_debug_directional_raw[0],
+                                                av2h_debug_directional_raw[1],
+                                                av2h_debug_directional_raw[2],
+                                                av2h_debug_directional_edges[0],
+                                                av2h_debug_directional_edges[1],
+                                                av2h_debug_directional_edges[2],
+                                                av2h_debug_directional_edges[3],
+                                                av2h_debug_directional_edges[4]);
+                                        }
                                     }
                                     fprintf(stderr,
                                             "chinnathurai q224 probe chroma-recon status=%d tell=%lu row=%u column=%u block=%u uhash=%llx vhash=%llx\n",
@@ -2889,6 +3390,50 @@ static void check_first_luma(const ArtifactExpectation *expected,
                                                     av2h_debug_mhccp_chroma_top_hash[1],
                                                 (unsigned long long)
                                                     av2h_debug_mhccp_chroma_left_hash[1]);
+                                    }
+                                    if (chroma_leaf.node.row == 64U &&
+                                        chroma_leaf.node.column == 16U) {
+                                        fprintf(stderr,
+                                                "chinnathurai-target-mhccp=%u/filter%u/%d/%d/%d/%llx/%llx/%llx/%llx/%llx/%d/%d/%d/%llx/%llx/%llx/%llx/%llx\n",
+                                                av2h_debug_mhccp_count,
+                                                decoder.sequence->
+                                                    cfl_downsample_filter_index,
+                                                av2h_debug_mhccp_parameters[0][0],
+                                                av2h_debug_mhccp_parameters[0][1],
+                                                av2h_debug_mhccp_parameters[0][2],
+                                                (unsigned long long)
+                                                    av2h_debug_mhccp_predictor_hash[0],
+                                                (unsigned long long)
+                                                    av2h_debug_mhccp_luma_hash[0],
+                                                (unsigned long long)
+                                                    av2h_debug_mhccp_chroma_hash[0],
+                                                (unsigned long long)
+                                                    av2h_debug_mhccp_chroma_top_hash[0],
+                                                (unsigned long long)
+                                                    av2h_debug_mhccp_chroma_left_hash[0],
+                                                av2h_debug_mhccp_parameters[1][0],
+                                                av2h_debug_mhccp_parameters[1][1],
+                                                av2h_debug_mhccp_parameters[1][2],
+                                                (unsigned long long)
+                                                    av2h_debug_mhccp_predictor_hash[1],
+                                                (unsigned long long)
+                                                    av2h_debug_mhccp_luma_hash[1],
+                                                (unsigned long long)
+                                                    av2h_debug_mhccp_chroma_hash[1],
+                                                (unsigned long long)
+                                                    av2h_debug_mhccp_chroma_top_hash[1],
+                                                (unsigned long long)
+                                                    av2h_debug_mhccp_chroma_left_hash[1]);
+                                    }
+                                    if (chroma_leaf.node.row == 48U &&
+                                        chroma_leaf.node.column == 32U) {
+                                        fprintf(stderr,
+                                            "chinnathurai-v-frontier=%d\n",
+                                            chroma_leaf.mode.angle_delta);
+                                    }
+                                    if (chroma_leaf.node.row == 48U &&
+                                        chroma_leaf.node.column == 48U) {
+                                        CHECK(status == AV2H_OK);
                                     }
                                     if (status != AV2H_OK) {
                                         break;
@@ -3003,8 +3548,49 @@ static void check_first_luma(const ArtifactExpectation *expected,
                                     &block, 0U, sizeof(block));
                                 status = av2h_tile_decoder_next_luma(
                                     &decoder, &leaf, &block, &has_leaf);
+                                if ((leaf.node.row == 32U &&
+                                     leaf.node.column == 58U) ||
+                                    (leaf.node.row == 48U &&
+                                                 (leaf.node.column == 16U ||
+                                                  leaf.node.column == 18U ||
+                                                  leaf.node.column == 22U ||
+                                                  leaf.node.column == 24U ||
+                                                  leaf.node.column == 32U ||
+                                                  leaf.node.column == 46U ||
+                                                  leaf.node.column == 53U ||
+                                                  leaf.node.column == 72U)) ||
+                                                (leaf.node.row == 52U &&
+                                                                         (leaf.node.column == 53U ||
+                                                                            leaf.node.column == 60U)) ||
+                                                (leaf.node.row == 56U &&
+                                                 (leaf.node.column == 24U ||
+                                                  leaf.node.column == 32U ||
+                                                                            leaf.node.column == 42U ||
+                                                                            leaf.node.column == 48U)) ||
+                                                (leaf.node.row == 60U &&
+                                                                         (leaf.node.column == 24U ||
+                                                                                                     leaf.node.column == 48U)) ||
+                                                                (leaf.node.row == 64U &&
+                                                                                                 (leaf.node.column == 0U ||
+                                                                                                    leaf.node.column == 26U ||
+                                                                                                    leaf.node.column == 50U ||
+                                                                                                    leaf.node.column == 72U ||
+                                                                                                    leaf.node.column == 80U)) ||
+                                                                (leaf.node.row == 72U &&
+                                                                                                 (leaf.node.column == 0U ||
+                                                                                                    leaf.node.column == 64U)) ||
+                                                                (leaf.node.row == 76U &&
+                                                                 leaf.node.column == 0U) ||
+                                                                (leaf.node.row == 74U &&
+                                                                 leaf.node.column == 24U) ||
+                                                                (leaf.node.row == 78U &&
+                                                                 leaf.node.column == 16U) ||
+                                                                (leaf.node.row == 70U &&
+                                                                 leaf.node.column == 68U)) {
+                                    CHECK(status == AV2H_OK);
+                                }
                                 fprintf(stderr,
-                                    "chinnathurai q224 probe luma status=%d tell=%lu leaf=%u sb=%lu row=%u column=%u block=%u mode=%u angle=%d mrl=%u/%u ibp=%u filterbits=%lu/%lu/%u/%lu/%lu/%u/%lu/%lu/%u modebits=%lu/%lu/%lu/%lu/%lu/%lu tx=%u zero=%u eob=%u transform=%u/%u/%u/%u primary=%u/%u/%lu/%lu diagnostic=%u/%u/%u\n",
+                                    "chinnathurai q224 probe luma status=%d tell=%lu leaf=%u sb=%lu row=%u column=%u block=%u mode=%u angle=%d mrl=%u/%u ibp=%u filterbits=%lu/%lu/%u/%lu/%lu/%u/%lu/%lu/%u modebits=%lu/%lu/%lu/%lu/%lu/%lu ranges=%u/%u/%u tx=%u zero=%u eob=%u transform=%u/%u/%u/%u primary=%u/%u/%lu/%lu skip=%u/%u/%u/%u/%u/%u/%u diagnostic=%u/%u/%u\n",
                                         status,
                                         (unsigned long)av2h_range_tell(
                                             &decoder.range),
@@ -3033,6 +3619,9 @@ static void check_first_luma(const ArtifactExpectation *expected,
                                         (unsigned long)leaf.mode.after_fsc_bits,
                                         (unsigned long)leaf.mode.after_mrl_bits,
                                         (unsigned long)leaf.mode.before_palette_bits,
+                                        av2h_debug_luma_stage_ranges[0],
+                                        av2h_debug_luma_stage_ranges[1],
+                                        av2h_debug_luma_stage_ranges[2],
                                         leaf.prefix.tx_size,
                                         leaf.prefix.all_zero,
                                         leaf.prefix.eob,
@@ -3044,9 +3633,65 @@ static void check_first_luma(const ArtifactExpectation *expected,
                                         leaf.transform.primary_symbol,
                                         (unsigned long)leaf.transform.before_primary_bits,
                                         (unsigned long)leaf.transform.after_primary_bits,
+                                        av2h_debug_skip_range,
+                                        av2h_debug_skip_cdf[0],
+                                        av2h_debug_skip_cdf[1],
+                                        av2h_debug_skip_cdf[2],
+                                        av2h_debug_skip_cdf[3],
+                                        av2h_debug_skip_cdf[4],
+                                        av2h_debug_skip_cdf[5],
                                         block.diagnostic_kind,
                                         block.diagnostic_context,
                                         block.diagnostic_position);
+                                    if (leaf.node.row == 64U &&
+                                        leaf.node.column == 0U) {
+                                        fprintf(stderr,
+                                            "chinnathurai q224 mode-cdf=%lu/%u/%u/%u/%u/%u/%u/%u/%u/%u/%u/%u/%u/%u/%u/%u/%u/%u/%u/%u/%u/%u\n",
+                                            (unsigned long)
+                                                av2h_debug_y_mode_context,
+                                            av2h_debug_y_mode_range,
+                                            av2h_debug_y_mode_set_range,
+                                            av2h_debug_y_mode_set_cdf[0],
+                                            av2h_debug_y_mode_set_cdf[1],
+                                            av2h_debug_y_mode_set_cdf[2],
+                                            av2h_debug_y_mode_set_cdf[3],
+                                            av2h_debug_y_mode_set_cdf[4],
+                                            av2h_debug_y_mode_set_cdf[5],
+                                            av2h_debug_y_mode_set_cdf[6],
+                                            av2h_debug_y_mode_set_cdf[7],
+                                            av2h_debug_y_mode_index_cdf[0],
+                                            av2h_debug_y_mode_index_cdf[1],
+                                            av2h_debug_y_mode_index_cdf[2],
+                                            av2h_debug_y_mode_index_cdf[3],
+                                            av2h_debug_y_mode_index_cdf[4],
+                                            av2h_debug_y_mode_index_cdf[5],
+                                            av2h_debug_y_mode_index_cdf[6],
+                                            av2h_debug_y_mode_index_cdf[7],
+                                            av2h_debug_mode_ranges[3],
+                                            av2h_debug_mode_ranges[4],
+                                            av2h_debug_mode_ranges[5]);
+                                        fprintf(stderr,
+                                            "chinnathurai q224 intrabc=%u/%u/%u/%u/%u/%u/%u/%u/%u/%u\n",
+                                            av2h_debug_use_intrabc[0],
+                                            av2h_debug_use_intrabc[1],
+                                            av2h_debug_use_intrabc[2],
+                                            av2h_debug_use_intrabc[3],
+                                            av2h_debug_use_intrabc[4],
+                                            av2h_debug_use_intrabc[5],
+                                            av2h_debug_use_intrabc[6],
+                                            av2h_debug_use_intrabc[7],
+                                            av2h_debug_use_intrabc[8],
+                                            av2h_debug_use_intrabc[9]);
+                                        fprintf(stderr,
+                                            "chinnathurai q224 ccso-v=%u/%u/%u/%u/%u/%u/%u\n",
+                                            av2h_debug_ccso_context,
+                                            av2h_debug_ccso_range_before,
+                                            av2h_debug_ccso_range_after,
+                                            av2h_debug_ccso_cdf[0],
+                                            av2h_debug_ccso_cdf[1],
+                                            av2h_debug_ccso_cdf[2],
+                                            av2h_debug_ccso_cdf[3]);
+                                    }
                                     if (status != AV2H_OK &&
                                         av2h_debug_partition_stage != 0U) {
                                         fprintf(stderr,
@@ -3077,7 +3722,7 @@ static void check_first_luma(const ArtifactExpectation *expected,
                                     &chroma_blocks[0],
                                     &chroma_blocks[1], &has_leaf);
                                 fprintf(stderr,
-                                        "chinnathurai q224 probe chroma status=%d tell=%lu leaf=%u sb=%lu row=%u column=%u block=%u mode=%u cfl=%u/%u/%u/%u mh=%u/%lu/%lu modebits=%lu/%lu/%lu/%lu/%lu u=%u/%u/%u v=%u/%u/%u diagnostic=%u/%u\n",
+                                        "chinnathurai q224 probe chroma status=%d tell=%lu leaf=%u sb=%lu row=%u column=%u block=%u mode=%u angle=%d cfl=%u/%u/%u/%u mh=%u/%lu/%lu modebits=%lu/%lu/%lu/%lu/%lu u=%u/%u/%u v=%u/%u/%u prefixctx=%u diagnostic=%u/%u\n",
                                         status,
                                         (unsigned long)av2h_range_tell(
                                             &decoder.range),
@@ -3087,6 +3732,7 @@ static void check_first_luma(const ArtifactExpectation *expected,
                                         chroma_leaf.node.column,
                                         chroma_leaf.node.block_size,
                                         chroma_leaf.mode.mode,
+                                        chroma_leaf.mode.angle_delta,
                                         chroma_leaf.mode.is_cfl,
                                         chroma_leaf.mode.cfl_kind,
                                         chroma_leaf.mode.cfl_index,
@@ -3105,6 +3751,7 @@ static void check_first_luma(const ArtifactExpectation *expected,
                                         chroma_leaf.prefix[1].tx_size,
                                         chroma_leaf.prefix[1].all_zero,
                                         chroma_leaf.prefix[1].eob,
+                                        av2h_debug_chroma_prefix_context,
                                         chroma_blocks[0].diagnostic_kind,
                                         chroma_blocks[1].diagnostic_kind);
                             }

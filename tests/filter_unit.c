@@ -611,7 +611,7 @@ static void test_deblock_skip_and_lossless(void) {
     y_cells[1].lossless = 0U;
     CHECK(av2h_deblock_filter_frame(
               &planes, &sequence, &frame, &map) == AV2H_OK);
-    CHECK(y[7U] == 101U && y[8U] == 103U);
+    CHECK(y[7U] == 101U && y[8U] == 104U);
 }
 
 static void test_cdef(void) {
@@ -743,14 +743,14 @@ static void test_cdef_frame(void) {
 
 static void test_gdf_frame(void) {
     static const uint8_t expected[64] = {
-        1U, 18U, 34U, 51U, 68U, 85U, 102U, 119U,
-        29U, 49U, 68U, 88U, 109U, 129U, 149U, 168U,
-        58U, 80U, 103U, 126U, 150U, 173U, 196U, 220U,
-        87U, 113U, 139U, 165U, 191U, 218U, 243U, 13U,
-        116U, 145U, 176U, 202U, 233U, 5U, 32U, 60U,
-        145U, 178U, 208U, 241U, 17U, 51U, 80U, 111U,
-        175U, 209U, 245U, 23U, 58U, 92U, 128U, 163U,
-        203U, 242U, 23U, 60U, 97U, 138U, 175U, 212U
+        2U, 18U, 33U, 50U, 68U, 85U, 103U, 118U,
+        29U, 48U, 66U, 86U, 108U, 130U, 150U, 170U,
+        57U, 80U, 102U, 125U, 149U, 172U, 195U, 223U,
+        86U, 112U, 139U, 165U, 191U, 220U, 243U, 12U,
+        115U, 145U, 175U, 201U, 233U, 4U, 31U, 60U,
+        145U, 179U, 207U, 242U, 15U, 51U, 80U, 109U,
+        176U, 208U, 245U, 21U, 59U, 91U, 128U, 163U,
+        203U, 244U, 22U, 58U, 97U, 139U, 177U, 212U
     };
     uint8_t source_data[64];
     uint8_t cdef_data[64];

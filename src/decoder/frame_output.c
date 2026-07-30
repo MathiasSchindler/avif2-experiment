@@ -616,6 +616,12 @@ Av2hStatus av2h_decode_frame_i420_private(
     if (!maps_and_readiness_complete(workspace)) return AV2H_INVALID_DATA;
     decoded.entropy_tell = av2h_range_tell(&decoder.range);
     for (plane = 0U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
+        if (workspace->tile_context.ccso_unit_controls[plane] != 0) {
+            av2h_memory_copy(
+                (void *)workspace->filter_workspace->ccso_controls.plane[plane],
+                workspace->tile_context.ccso_unit_controls[plane],
+                layout.ccso_control_count);
+        }
         final_planes.plane[plane] = (Av2hFilterPlane){
             workspace->coded[plane].data,
             workspace->coded[plane].stride,
