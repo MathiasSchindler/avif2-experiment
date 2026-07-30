@@ -3774,6 +3774,20 @@ static void test_requested_transform_geometry_matrix(void) {
     }
 }
 
+static void test_cctx_updates_nonzero_counts(void) {
+    Av2hFirstCoeffBlock u = { 0 };
+    Av2hFirstCoeffBlock v = { 0 };
+    u.coefficient_count = 2U;
+    v.coefficient_count = 2U;
+    u.nonzero_count = 1U;
+    u.dequantized[0] = 256;
+    CHECK(av2h_chroma_inverse_cross_transform(&u, &v, 5U) == AV2H_OK);
+    CHECK(u.dequantized[0] == 222);
+    CHECK(v.dequantized[0] == -128);
+    CHECK(u.nonzero_count == 1U);
+    CHECK(v.nonzero_count == 1U);
+}
+
 static void test_emerald_reconstruct_invalid_preserves_output(void) {
     Av2hFirstLeafMode mode = { 0 };
     Av2hFirstCoeffPrefix prefix = { 0 };
@@ -4773,6 +4787,7 @@ int main(void) {
     test_adst_dct_geometry_matrix();
     test_adst_flipadst_geometry_matrix();
     test_requested_transform_geometry_matrix();
+    test_cctx_updates_nonzero_counts();
     test_emerald_reconstruct_invalid_preserves_output();
     test_emerald_q208_chroma_leaves();
     test_emerald_q208_chroma_cfl();

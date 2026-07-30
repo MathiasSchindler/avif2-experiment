@@ -1,4 +1,6 @@
 #include "transform.h"
+
+uint8_t av2h_debug_transform_stage;
 #include "tx_geometry.h"
 
 Av2hStatus av2h_first_transform_cdfs_init(Av2hFirstTransformCdfs *cdfs) {
@@ -422,6 +424,7 @@ static Av2hStatus read_primary(Av2hRangeDecoder *decoder,
     transform->primary_symbol = 0U;
     transform->primary_long_side_symbol = 0U;
     transform->primary_type = AV2H_TX_DCT_DCT;
+    av2h_debug_transform_stage = 2U;
     status = av2h_tx_descriptor_get(coeff->tx_size, &descriptor);
     if (status != AV2H_OK) return status;
     if (descriptor->signaling_class == AV2H_TX_SIGNAL_DCT_ONLY) {
@@ -514,6 +517,7 @@ static Av2hStatus read_primary(Av2hRangeDecoder *decoder,
             coeff->tx_size, mode->mode, (uint8_t)long_side,
             (uint8_t)symbol, &transform->primary_type);
     }
+            av2h_debug_transform_stage = 3U;
             if ((coeff->tx_size == AV2H_TX_4X4 ||
                 coeff->tx_size == AV2H_TX_4X8 ||
                 coeff->tx_size == AV2H_TX_8X4 ||
@@ -521,10 +525,15 @@ static Av2hStatus read_primary(Av2hRangeDecoder *decoder,
                 coeff->tx_size == AV2H_TX_16X8 ||
                 coeff->tx_size == AV2H_TX_16X4) && mode->use_intrabc) {
         uint16_t last = (uint16_t)(coeff->eob - 1U);
-        uint8_t diagonal =
-            (uint8_t)((last >> 2U) + (last & 3U));
+        uint16_t diagonal =
+            (uint16_t)(last / descriptor->coefficient_width +
+                       last % descriptor->coefficient_width);
+        uint16_t max_diagonal =
+            (uint16_t)(descriptor->coefficient_width +
+                       descriptor->coefficient_height - 2U);
         uint8_t eob_context =
-            diagonal < 2U ? 1U : diagonal > 4U ? 2U : 0U;
+            diagonal < 2U ? 1U :
+            diagonal > max_diagonal - 2U ? 2U : 0U;
         uint16_t *set_cdf = eob_context == 1U ?
             cdfs->intrabc_type_set_eob_ctx1 :
             eob_context == 0U ? cdfs->intrabc_type_set : 0;
@@ -538,12 +547,18 @@ static Av2hStatus read_primary(Av2hRangeDecoder *decoder,
             decoder, index_cdf, AV2H_INTER_TX_TYPE_INDEX_SYMBOLS);
         transform->primary_long_side_symbol = (uint8_t)set;
         transform->primary_symbol = (uint8_t)symbol;
-        if (set == 0U && symbol == 0U) {
-            transform->primary_type = AV2H_TX_IDTX;
-        } else if (set == 0U && symbol == 5U) {
-            transform->primary_type = AV2H_TX_V_FLIPADST;
-        } else if (set == 0U && symbol == 6U) {
-            transform->primary_type = AV2H_TX_H_FLIPADST;
+        if (set == 0U && symbol < AV2H_INTER_TX_TYPE_INDEX_SYMBOLS) {
+            static const Av2hFirstTxType intrabc_types[] = {
+                AV2H_TX_IDTX,
+                AV2H_TX_V_DCT,
+                AV2H_TX_H_DCT,
+                AV2H_TX_V_ADST,
+                AV2H_TX_H_ADST,
+                AV2H_TX_V_FLIPADST,
+                AV2H_TX_H_FLIPADST,
+                AV2H_TX_DCT_DCT
+            };
+            transform->primary_type = intrabc_types[symbol];
         } else {
             return AV2H_UNSUPPORTED;
         }
@@ -1203,6 +1218,7 @@ Av2hStatus av2h_first_transform_type_read(
         mode == 0 || coeff == 0 || transform == 0) {
         return AV2H_INVALID_ARGUMENT;
     }
+    av2h_debug_transform_stage = 1U;
     if (frame->reduced_tx_set || coeff->all_zero || coeff->eob == 0U) {
         return AV2H_UNSUPPORTED;
     }
@@ -1244,6 +1260,7 @@ Av2hStatus av2h_first_transform_type_read(
     }
     status = read_primary(decoder, cdfs, mode, coeff, transform);
     if (status != AV2H_OK) return status;
+    av2h_debug_transform_stage = 4U;
     transform->after_primary_bits = av2h_range_tell(decoder);
     status = av2h_tx_descriptor_get(coeff->tx_size, &descriptor);
     if (status != AV2H_OK) return status;
@@ -1255,6 +1272,7 @@ Av2hStatus av2h_first_transform_type_read(
     status = av2h_secondary_tx_type_signal(
         sequence, mode, coeff, transform->primary_type, &secondary_signaled);
     if (status != AV2H_OK) return status;
+    av2h_debug_transform_stage = 5U;
     if (secondary_signaled) {
         symbol = av2h_range_read_adaptive(
             decoder,

@@ -580,10 +580,17 @@ Av2hStatus av2h_decode_frame_i420_private(
                 decoded.mrl_index = leaf.mode.mrl_index;
                 decoded.multi_line_mrl = leaf.mode.multi_line_mrl;
                 decoded.enable_ibp = leaf.mode.enable_ibp;
+                decoded.use_intrabc = leaf.mode.use_intrabc;
                 decoded.tx_size = (uint8_t)leaf.prefix.tx_size;
                 decoded.primary_type = (uint8_t)leaf.transform.primary_type;
+                decoded.primary_symbol = leaf.transform.primary_symbol;
+                decoded.primary_set_symbol =
+                    leaf.transform.primary_long_side_symbol;
                 decoded.secondary_symbol = leaf.transform.secondary_symbol;
                 decoded.secondary_set = leaf.transform.secondary_set;
+                if (av2h_debug_luma_tile_stage == 3U) {
+                    decoded.syntax_stage = av2h_debug_transform_stage;
+                }
                 decoded.eob = leaf.prefix.eob;
                 decoded.prefix_stage = av2h_debug_luma_prefix_stage;
                 decoded.txb_skip_context = leaf.prefix.txb_skip_context;
@@ -593,6 +600,9 @@ Av2hStatus av2h_decode_frame_i420_private(
                     leaf.prefix.after_all_zero_bits;
                 decoded.after_eob_point_tell =
                     leaf.prefix.after_eob_point_bits;
+                decoded.eob_range = av2h_debug_eob_range;
+                decoded.before_prefix_range =
+                    av2h_debug_luma_stage_ranges[1];
                 decoded.coefficient_position = block.diagnostic_position;
                 decoded.coefficient_context = block.diagnostic_context;
                 decoded.coefficient_kind = block.diagnostic_kind;
@@ -615,6 +625,7 @@ Av2hStatus av2h_decode_frame_i420_private(
                 decoded.enable_ibp = leaf.mode.enable_ibp;
                 decoded.tx_size = (uint8_t)leaf.prefix.tx_size;
                 decoded.primary_type = (uint8_t)leaf.transform.primary_type;
+                decoded.primary_symbol = leaf.transform.primary_symbol;
                 decoded.secondary_symbol = leaf.transform.secondary_symbol;
                 decoded.secondary_set = leaf.transform.secondary_set;
                 decoded.eob = leaf.prefix.eob;
@@ -660,6 +671,8 @@ Av2hStatus av2h_decode_frame_i420_private(
                     (uint8_t)leaf.prefix[diagnostic_index].tx_size;
                 decoded.primary_type = (uint8_t)
                     leaf.transform[diagnostic_index].primary_type;
+                decoded.primary_symbol =
+                    leaf.transform[diagnostic_index].primary_symbol;
                 decoded.secondary_symbol =
                     leaf.transform[diagnostic_index].secondary_symbol;
                 decoded.secondary_set =
@@ -687,6 +700,9 @@ Av2hStatus av2h_decode_frame_i420_private(
                     &leaf.node, av2h_debug_chroma_tile_stage);
             }
             if (!has_leaf) continue;
+            decoded.cctx_type = leaf.transform[0].cctx_type;
+            decoded.u_coefficient_count = blocks[0].coefficient_count;
+            decoded.v_coefficient_count = blocks[1].coefficient_count;
             status = av2h_chroma_inverse_cross_transform(
                 &blocks[0], &blocks[1], leaf.transform[0].cctx_type);
             if (status != AV2H_OK) {
@@ -711,6 +727,8 @@ Av2hStatus av2h_decode_frame_i420_private(
                     decoded.tx_size = (uint8_t)leaf.prefix[index].tx_size;
                     decoded.primary_type =
                         (uint8_t)leaf.transform[index].primary_type;
+                    decoded.primary_symbol =
+                        leaf.transform[index].primary_symbol;
                     decoded.secondary_symbol =
                         leaf.transform[index].secondary_symbol;
                     decoded.secondary_set =

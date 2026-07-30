@@ -64,6 +64,20 @@ static uint64_t complete_bank_hash(const Av2hFirstCoeffLevelCdfs *cdfs) {
                       sizeof(cdfs->full_br_lf) / sizeof(uint16_t));
 }
 
+static uint64_t uv_bank_hash(const Av2hFirstCoeffLevelCdfs *cdfs) {
+    uint64_t hash = UINT64_C(1469598103934665603);
+#define HASH_UV_FIELD(field)                                                  \
+    hash = hash_words(hash, &cdfs->field[0][0],                              \
+                      sizeof(cdfs->field) / sizeof(uint16_t))
+    HASH_UV_FIELD(full_uv_eob_base);
+    HASH_UV_FIELD(full_uv_eob_base_lf);
+    HASH_UV_FIELD(full_uv_base);
+    HASH_UV_FIELD(full_uv_base_lf);
+    HASH_UV_FIELD(full_uv_br);
+#undef HASH_UV_FIELD
+    return hash;
+}
+
 static void check_words(const uint16_t *actual,
                         const uint16_t *expected,
                         size_t count) {
@@ -85,6 +99,12 @@ static void test_q_context_cdfs(void) {
         UINT64_C(0x84b75b0d983a8dc3),
         UINT64_C(0xae7bb6b10aa8e7eb),
         UINT64_C(0x9551373a1d5217db)
+    };
+    static const uint64_t uv_hashes[] = {
+        UINT64_C(0x4dbf06299d7c65ac),
+        UINT64_C(0x25287573f266a67a),
+        UINT64_C(0x30e92f0c0684ae2d),
+        UINT64_C(0x4a25244a348191f7)
     };
     static const uint16_t q2_base_ctx0[] = {
         5584U, 96U, 20U, 0U, 0U, 3U, 4U, 4U
@@ -165,6 +185,7 @@ static void test_q_context_cdfs(void) {
         CHECK(av2h_first_coeff_level_cdfs_init_for_q(
                   &cdfs, q_indices[index]) == AV2H_OK);
         CHECK(complete_bank_hash(&cdfs) == complete_hashes[index]);
+        CHECK(uv_bank_hash(&cdfs) == uv_hashes[index]);
     }
 }
 
@@ -808,6 +829,39 @@ static void test_dequant_helper_edges(void) {
     CHECK(av2h_coeff_finalize_cul_level(18U, 0) == 7U);
 }
 
+static void test_chroma_all_zero_geometry(void) {
+    static const Av2hFirstTxSize sizes[] = {
+        AV2H_TX_4X4, AV2H_TX_32X32, AV2H_TX_64X32, AV2H_TX_32X64
+    };
+    static const uint16_t widths[] = { 4U, 32U, 32U, 32U };
+    static const uint16_t heights[] = { 4U, 32U, 32U, 32U };
+    static const uint16_t counts[] = { 16U, 1024U, 1024U, 1024U };
+    static const unsigned char bytes[] = { 0U, 0U, 0U, 0U };
+    Av2hSpan span = { bytes, sizeof(bytes) };
+    Av2hSequenceState sequence = { 0 };
+    Av2hFrameState frame = { 0 };
+    Av2hFirstCoeffLevelCdfs cdfs;
+    Av2hRangeDecoder decoder;
+    size_t index;
+    frame.base_q_index = 160U;
+    CHECK(av2h_first_coeff_level_cdfs_init_for_q(&cdfs, 160U) == AV2H_OK);
+    for (index = 0U; index < sizeof(sizes) / sizeof(sizes[0]); ++index) {
+        Av2hFirstCoeffPrefix prefix = { 0 };
+        Av2hFirstCoeffBlock block;
+        CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
+        prefix.tx_size = sizes[index];
+        prefix.all_zero = 1U;
+        CHECK(av2h_first_chroma_coeff_block_read(
+                  &decoder, &cdfs, &sequence, &frame, 1U, &prefix,
+                  &block) == AV2H_OK);
+        CHECK(block.width == widths[index]);
+        CHECK(block.height == heights[index]);
+        CHECK(block.coefficient_count == counts[index]);
+        CHECK(block.nonzero_count == 0U);
+        CHECK(block.before_levels_bits == block.after_coefficients_bits);
+    }
+}
+
 static void test_arguments(void) {
     Av2hFirstCoeffLevelCdfs cdfs;
     Av2hRangeDecoder decoder;
@@ -817,7 +871,7 @@ static void test_arguments(void) {
     Av2hFirstCoeffPrefix prefix = { 0 };
     Av2hFirstTransformType transform = { 0 };
     Av2hFirstCoeffBlock block;
-    CHECK(sizeof(Av2hFirstCoeffLevelCdfs) == 19840U);
+    CHECK(sizeof(Av2hFirstCoeffLevelCdfs) == 20464U);
     CHECK(av2h_first_coeff_level_cdfs_init(0) == AV2H_INVALID_ARGUMENT);
     CHECK(av2h_first_coeff_block_read(
               0, &cdfs, &sequence, &frame, &mode, &prefix, &transform,
@@ -842,6 +896,7 @@ static void test_arguments(void) {
 
 int main(void) {
     test_q_context_cdfs();
+    test_chroma_all_zero_geometry();
     test_fsc_cdf_banks();
     test_fsc_coefficient_matrix();
     test_adst_dct_coefficient_matrix();

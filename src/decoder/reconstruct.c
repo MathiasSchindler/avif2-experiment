@@ -4707,6 +4707,7 @@ static Av2hStatus reconstruct_transform_generic(
     uint16_t row;
     uint16_t column;
     size_t index;
+    av2h_debug_inverse_transform_stage = 1U;
     if (recon_geometry(prefix->tx_size, &output_width, &output_height,
                        &row_shift, &column_shift) != AV2H_OK) {
         return AV2H_UNSUPPORTED;
@@ -4743,6 +4744,7 @@ static Av2hStatus reconstruct_transform_generic(
         }
         return AV2H_OK;
     }
+    av2h_debug_inverse_transform_stage = 2U;
     if (recon_transform_kinds(transform->primary_type, &row_kind,
                               &column_kind) != AV2H_OK ||
         recon_kind_supported(row_kind, coeff_width) != AV2H_OK ||
@@ -4761,9 +4763,11 @@ static Av2hStatus reconstruct_transform_generic(
     for (index = 0U; index < coefficients->coefficient_count; ++index) {
         scratch->scaled[index] = coefficients->dequantized[index];
     }
+    av2h_debug_inverse_transform_stage = 3U;
     status = inverse_secondary_transform(
         mode, prefix, transform, coefficients, scratch->scaled);
     if (status != AV2H_OK) return status;
+    av2h_debug_inverse_transform_stage = 4U;
     for (row = 0U; row < coeff_height; ++row) {
         int32_t row_input[32U];
         int32_t row_output[32U];
@@ -7385,6 +7389,8 @@ Av2hStatus av2h_chroma_inverse_cross_transform(
         return AV2H_INVALID_ARGUMENT;
     }
     if (cctx_type == 0U) return AV2H_OK;
+    u_coefficients->nonzero_count = 0U;
+    v_coefficients->nonzero_count = 0U;
     for (index = 0U; index < u_coefficients->coefficient_count; ++index) {
         int32_t u = u_coefficients->dequantized[index];
         int32_t v = v_coefficients->dequantized[index];
@@ -7400,6 +7406,12 @@ Av2hStatus av2h_chroma_inverse_cross_transform(
             clamp(first, -32768, 32767);
         v_coefficients->dequantized[index] =
             clamp(second, -32768, 32767);
+        if (u_coefficients->dequantized[index] != 0) {
+            ++u_coefficients->nonzero_count;
+        }
+        if (v_coefficients->dequantized[index] != 0) {
+            ++v_coefficients->nonzero_count;
+        }
     }
     return AV2H_OK;
 }
@@ -7416,6 +7428,7 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_ex(
     Av2hReconstructionPlane *predictor_plane,
     Av2hReconstructionScratch *scratch) {
     Av2hFirstLeafMode luma_mode = { 0 };
+    Av2hFirstCoeffPrefix effective_prefix;
     Av2hFirstReconstruction reconstruction;
     Av2hLumaReferences references;
     uint16_t block_x;
@@ -7613,7 +7626,7 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_ex(
      * residual.  A stray coefficient on an all-zero block is rejected without
      * touching the plane.
      */
-    if (prefix->all_zero) {
+    if (prefix->all_zero && coefficients->nonzero_count == 0U) {
         for (index = 0U; index < coefficients->coefficient_count; ++index) {
             if (coefficients->quantized[index] != 0 ||
                 coefficients->dequantized[index] != 0) {
@@ -7633,10 +7646,19 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_ex(
         av2h_debug_chroma_reconstruct_stage = 3U;
         return AV2H_OK;
     }
+    effective_prefix = *prefix;
+    if (coefficients->nonzero_count != 0U) {
+        effective_prefix.all_zero = 0U;
+    }
     status = av2h_luma_reconstruct(
-        &luma_mode, prefix, transform, coefficients, scratch->predictor,
+        &luma_mode, &effective_prefix, transform, coefficients,
+        scratch->predictor,
         width, scratch, &reconstruction);
-    if (status != AV2H_OK) return status;
+    if (status != AV2H_OK) {
+        av2h_debug_chroma_reconstruct_stage =
+            (uint8_t)(10U + av2h_debug_inverse_transform_stage);
+        return status;
+    }
     for (index = 0U; index < visible_height; ++index) {
         size_t column;
         for (column = 0U; column < visible_width; ++column) {
@@ -7651,3 +7673,4 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_ex(
 }
 
 uint8_t av2h_debug_chroma_reconstruct_stage;
+uint8_t av2h_debug_inverse_transform_stage;

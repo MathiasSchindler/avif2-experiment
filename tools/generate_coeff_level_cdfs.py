@@ -78,6 +78,11 @@ tables = [
     ("av2h_coeff_base_lf", "default_coeff_base_lf_cdf.h", (4, 5, 33), 7, 6, True),
     ("av2h_coeff_br", "default_coeff_br_cdf.h", (4, 7), 5, 4, False),
     ("av2h_coeff_br_lf", "default_coeff_br_lf_cdf.h", (4, 14), 5, 4, False),
+    ("av2h_coeff_eob_base_uv", "default_coeff_base_eob_uv_cdf.h", (4, 4), 4, 3, False),
+    ("av2h_coeff_eob_base_lf_uv", "default_coeff_base_lf_eob_uv_cdf.h", (4, 4), 6, 5, False),
+    ("av2h_coeff_base_uv", "default_coeff_base_uv_cdf.h", (4, 12), 5, 4, False),
+    ("av2h_coeff_base_lf_uv", "default_coeff_base_lf_uv_cdf.h", (4, 12), 7, 6, False),
+    ("av2h_coeff_br_uv", "default_coeff_br_uv_cdf.h", (4, 4), 5, 4, False),
 ]
 
 output = ["/* Generated from docs/spec/av2-v1.0.0 coefficient CDF tables. */", ""]

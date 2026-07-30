@@ -184,10 +184,14 @@ static void write_decode_diagnostic(const Av2hFrameDecodeResult *result) {
     write_unsigned(result->multi_line_mrl);
     write_console(" ibp=");
     write_unsigned(result->enable_ibp);
+    write_console(" intrabc=");
+    write_unsigned(result->use_intrabc);
     write_console(" tx-size=");
     write_unsigned(result->tx_size);
     write_console(" prefix-stage=");
     write_unsigned(result->prefix_stage);
+    write_console(" syntax-stage=");
+    write_unsigned(result->syntax_stage);
     write_console(" skip-ctx=");
     write_unsigned(result->txb_skip_context);
     write_console(" all-zero=");
@@ -196,12 +200,22 @@ static void write_decode_diagnostic(const Av2hFrameDecodeResult *result) {
     write_unsigned(result->eob_point);
     write_console(" tx-type=");
     write_unsigned(result->primary_type);
+    write_console(" primary-symbol=");
+    write_unsigned(result->primary_symbol);
+    write_console(" primary-set-symbol=");
+    write_unsigned(result->primary_set_symbol);
     write_console(" secondary-symbol=");
     write_unsigned(result->secondary_symbol);
     write_console(" secondary-set=");
     write_unsigned(result->secondary_set);
+    write_console(" cctx-type=");
+    write_unsigned(result->cctx_type);
     write_console(" eob=");
     write_unsigned(result->eob);
+    write_console(" uv-coeff-counts=");
+    write_unsigned(result->u_coefficient_count);
+    write_console("/");
+    write_unsigned(result->v_coefficient_count);
     write_console(" coeff-kind=");
     write_unsigned(result->coefficient_kind);
     write_console(" coeff-pos=");
@@ -212,6 +226,10 @@ static void write_decode_diagnostic(const Av2hFrameDecodeResult *result) {
     write_unsigned(result->after_all_zero_tell);
     write_console("/");
     write_unsigned(result->after_eob_point_tell);
+    write_console(" eob-range=");
+    write_unsigned(result->eob_range);
+    write_console(" prefix-range=");
+    write_unsigned(result->before_prefix_range);
     write_console("\r\n");
 }
 

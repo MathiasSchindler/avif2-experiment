@@ -3,6 +3,8 @@
 
 #include "coeff.h"
 
+extern uint8_t av2h_debug_transform_stage;
+
 #define AV2H_PRIMARY_TX_TYPE_SYMBOLS 7U
 #define AV2H_SECONDARY_TX_TYPE_SYMBOLS 4U
 #define AV2H_SECONDARY_TX_SET_SYMBOLS 7U

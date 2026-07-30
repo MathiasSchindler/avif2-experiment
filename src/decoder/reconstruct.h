@@ -33,6 +33,7 @@ typedef struct {
 extern uint8_t av2h_debug_luma_reconstruct_stage;
 extern uint16_t av2h_debug_luma_dimensions[4U];
 extern uint8_t av2h_debug_chroma_reconstruct_stage;
+extern uint8_t av2h_debug_inverse_transform_stage;
 
 typedef struct {
     uint8_t *data;
