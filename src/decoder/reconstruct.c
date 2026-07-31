@@ -6,6 +6,7 @@
 #include "ist_type2_data.inc"
 #include "ist_set6_data.inc"
 #include "ist_set2_data.inc"
+#include "ist_adst_data.inc"
 
 int32_t av2h_debug_intrabc_geometry[10U];
 
@@ -389,6 +390,17 @@ static Av2hStatus inverse_secondary_transform(
                     transform->primary_type == AV2H_TX_ADST_ADST &&
                     transform->secondary_symbol == 2U &&
                     transform->secondary_set == 4U) &&
+                !(mode->mode == AV2H_INTRA_HORIZONTAL &&
+                    mode->angle_delta == 1 &&
+                    prefix->tx_size == AV2H_TX_16X16 &&
+                    transform->primary_type == AV2H_TX_ADST_ADST &&
+                    transform->secondary_symbol == 3U &&
+                    transform->secondary_set == 10U) &&
+                !(mode->mode == AV2H_INTRA_DC &&
+                    prefix->tx_size == AV2H_TX_16X16 &&
+                    transform->primary_type == AV2H_TX_ADST_ADST &&
+                    transform->secondary_symbol == 3U &&
+                    transform->secondary_set == 10U) &&
                 !(mode->mode == AV2H_INTRA_DC &&
                     prefix->tx_size == AV2H_TX_4X4 &&
                     transform->primary_type == AV2H_TX_ADST_ADST &&
@@ -445,6 +457,31 @@ static Av2hStatus inverse_secondary_transform(
             for (row = 0U; row < 8U; ++row) {
                 sum += (int64_t)small_input[row] *
                     av2h_ist_4x4_set12_type2_kernel[row][index];
+            }
+            dequantized[position] =
+                clamp(round_shift_signed(sum, 7U), -32768, 32767);
+        }
+        return AV2H_OK;
+    }
+    if (mode->mode == AV2H_INTRA_SMOOTH &&
+        prefix->tx_size == AV2H_TX_8X4 &&
+        transform->secondary_symbol == 1U &&
+        transform->secondary_set == 6U) {
+        int32_t small_input[8U];
+        for (index = 0U; index < 8U; ++index) {
+            uint16_t position = av2h_ist_4x4_tx8_input_scan[index];
+            small_input[index] = dequantized[position];
+        }
+        for (index = 0U; index < coefficients->coefficient_count; ++index) {
+            dequantized[index] = 0;
+        }
+        for (index = 0U; index < 16U; ++index) {
+            uint16_t row;
+            int64_t sum = 0;
+            uint16_t position = av2h_ist_4x4_tx8_output_scan[index];
+            for (row = 0U; row < 8U; ++row) {
+                sum += (int64_t)small_input[row] *
+                    av2h_ist_4x4_set6_type1_kernel[row][index];
             }
             dequantized[position] =
                 clamp(round_shift_signed(sum, 7U), -32768, 32767);
@@ -1267,6 +1304,12 @@ static Av2hStatus inverse_secondary_transform(
                transform->secondary_set == 1U) {
         kernel = av2h_ist_8x8_set1_type3_kernel;
         scan_map = av2h_ist_8x8_set1_type3_scan_map;
+    } else if (mode->mode == AV2H_INTRA_HORIZONTAL &&
+               prefix->tx_size == AV2H_TX_32X8 &&
+               transform->secondary_symbol == 1U &&
+               transform->secondary_set == 1U) {
+        kernel = av2h_ist_8x8_set1_type1_kernel;
+        scan_map = av2h_ist_8x8_set1_type1_scan_map;
     } else if (mode->mode == AV2H_INTRA_D113 &&
                prefix->tx_size == AV2H_TX_8X16 &&
                transform->secondary_symbol == 2U &&
@@ -1315,6 +1358,27 @@ static Av2hStatus inverse_secondary_transform(
                transform->secondary_set == 6U) {
         kernel = av2h_ist_8x8_set6_type2_kernel;
         scan_map = av2h_ist_8x8_set6_type2_scan_map;
+    } else if (mode->mode == AV2H_INTRA_SMOOTH &&
+               prefix->tx_size == AV2H_TX_32X16 &&
+               transform->secondary_symbol == 1U &&
+               transform->secondary_set == 0U) {
+        kernel = av2h_ist_8x8_set0_type1_kernel;
+        scan_map = av2h_ist_8x8_set0_type1_scan_map;
+    } else if (mode->mode == AV2H_INTRA_HORIZONTAL &&
+               mode->angle_delta == 1 &&
+               prefix->tx_size == AV2H_TX_16X16 &&
+               transform->primary_type == AV2H_TX_ADST_ADST &&
+               transform->secondary_symbol == 3U &&
+             transform->secondary_set == 10U) {
+         kernel = av2h_ist_8x8_set10_type3_kernel;
+         scan_map = av2h_ist_8x8_set10_type3_scan_map;
+    } else if (mode->mode == AV2H_INTRA_DC &&
+               prefix->tx_size == AV2H_TX_16X16 &&
+               transform->primary_type == AV2H_TX_ADST_ADST &&
+               transform->secondary_symbol == 3U &&
+               transform->secondary_set == 10U) {
+        kernel = av2h_ist_8x8_set10_type3_kernel;
+        scan_map = av2h_ist_8x8_set10_type3_scan_map;
     } else if (mode->mode == AV2H_INTRA_D113 &&
                prefix->tx_size == AV2H_TX_32X16 &&
                transform->secondary_symbol == 3U &&
@@ -5606,7 +5670,8 @@ static int reconstruct_generic_selected(
               tx_size == RECON_TX_8X4 || tx_size == RECON_TX_8X8 ||
               tx_size == RECON_TX_16X16 ||
               tx_size == RECON_TX_8X16 || tx_size == RECON_TX_16X8 ||
-              tx_size == RECON_TX_16X4 || tx_size == RECON_TX_32X8)) ||
+              tx_size == RECON_TX_16X4 || tx_size == RECON_TX_32X8 ||
+              tx_size == RECON_TX_16X32 || tx_size == RECON_TX_32X16)) ||
             mode->use_intrabc ||
             (!mode->fsc_mode && !mode->use_intrabc &&
              (tx_size == RECON_TX_4X32 || tx_size == RECON_TX_32X4 ||

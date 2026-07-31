@@ -50,8 +50,11 @@ typedef struct {
     uint8_t multi_line_mrl;
     uint8_t enable_ibp;
     uint8_t use_intrabc;
+    uint8_t fsc_mode;
+    uint8_t skip_transform;
     uint8_t palette_size;
     uint8_t tx_size;
+    uint8_t inverse_transform_stage;
     uint8_t primary_type;
     uint8_t primary_symbol;
     uint8_t primary_set_symbol;

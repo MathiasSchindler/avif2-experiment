@@ -8,6 +8,7 @@ extern uint8_t av2h_debug_transform_stage;
 #define AV2H_PRIMARY_TX_TYPE_SYMBOLS 7U
 #define AV2H_SECONDARY_TX_TYPE_SYMBOLS 4U
 #define AV2H_SECONDARY_TX_SET_SYMBOLS 7U
+#define AV2H_SECONDARY_ADST_TX_SET_SYMBOLS 4U
 #define AV2H_INTER_TX_TYPE_INDEX_SYMBOLS 8U
 
 typedef enum {
@@ -49,6 +50,7 @@ typedef struct {
     uint16_t secondary_32x32[AV2H_SECONDARY_TX_TYPE_SYMBOLS + 4U];
     uint16_t secondary_64x64[AV2H_SECONDARY_TX_TYPE_SYMBOLS + 4U];
     uint16_t secondary_set[AV2H_SECONDARY_TX_SET_SYMBOLS + 4U];
+    uint16_t secondary_adst_set[AV2H_SECONDARY_ADST_TX_SET_SYMBOLS + 4U];
     uint16_t chroma_cross_type[7U + 4U];
 } Av2hFirstTransformCdfs;
 

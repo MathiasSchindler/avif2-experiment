@@ -128,32 +128,32 @@ if(WIN32 AND CMAKE_C_COMPILER_ID MATCHES "Clang")
         COMMAND av2heif-decoder
             "${CMAKE_CURRENT_SOURCE_DIR}/images/artifacts/emerald-192x96-qp208.obu"
             -o "${CMAKE_CURRENT_BINARY_DIR}/emerald-decoder.bmp")
-    add_test(NAME windows-decoder-diagnostic-chalk-luma-prediction
+    add_test(NAME windows-decoder-diagnostic-chalk-luma-transform
         COMMAND "${CMAKE_COMMAND}"
             "-DDECODER=$<TARGET_FILE:av2heif-decoder>"
             "-DINPUT=${CMAKE_CURRENT_SOURCE_DIR}/images/artifacts/chalk-320x240-qp128.obu"
             "-DOUTPUT=${CMAKE_CURRENT_BINARY_DIR}/diagnostic-chalk.i420"
-            "-DEXPECTED_STAGE=stage: luma reconstruction / prediction"
-            "-DEXPECTED_LEAF=leaf: (2,4) block=4x8 plane=Y"
-            "-DEXPECTED_PROGRESS=entropy tell: 273; completed leaves: Y=9 UV=0"
+            "-DEXPECTED_STAGE=stage: luma reconstruction / inverse transform"
+            "-DEXPECTED_LEAF=leaf: (0,48) block=64x16 plane=Y"
+            "-DEXPECTED_PROGRESS=entropy tell: 4979; completed leaves: Y=119 UV=84"
             -P "${CMAKE_CURRENT_SOURCE_DIR}/scripts/check-decoder-diagnostic.cmake")
-    add_test(NAME windows-decoder-diagnostic-cuckoo-luma-transform
+    add_test(NAME windows-decoder-diagnostic-cuckoo-luma-prediction
         COMMAND "${CMAKE_COMMAND}"
             "-DDECODER=$<TARGET_FILE:av2heif-decoder>"
             "-DINPUT=${CMAKE_CURRENT_SOURCE_DIR}/images/artifacts/cuckoo-431x287-qp080.obu"
             "-DOUTPUT=${CMAKE_CURRENT_BINARY_DIR}/diagnostic-cuckoo.i420"
-            "-DEXPECTED_STAGE=stage: luma reconstruction / inverse transform"
-            "-DEXPECTED_LEAF=leaf: (2,18) block=4x8 plane=Y"
-            "-DEXPECTED_PROGRESS=entropy tell: 627; completed leaves: Y=8 UV=1"
+            "-DEXPECTED_STAGE=stage: luma reconstruction / prediction"
+            "-DEXPECTED_LEAF=leaf: (8,40) block=16x8 plane=Y"
+            "-DEXPECTED_PROGRESS=entropy tell: 2898; completed leaves: Y=58 UV=6"
             -P "${CMAKE_CURRENT_SOURCE_DIR}/scripts/check-decoder-diagnostic.cmake")
-    add_test(NAME windows-decoder-diagnostic-silene-luma-transform
+    add_test(NAME windows-decoder-diagnostic-silene-chroma-parse
         COMMAND "${CMAKE_COMMAND}"
             "-DDECODER=$<TARGET_FILE:av2heif-decoder>"
             "-DINPUT=${CMAKE_CURRENT_SOURCE_DIR}/images/artifacts/silene-384x307-qp080.obu"
             "-DOUTPUT=${CMAKE_CURRENT_BINARY_DIR}/diagnostic-silene.i420"
-            "-DEXPECTED_CAUSE=cause: unsupported feature"
-            "-DEXPECTED_STAGE=stage: luma reconstruction / inverse transform"
-            "-DEXPECTED_LEAF=leaf: (57,56) block=8x4 plane=Y"
-            "-DEXPECTED_PROGRESS=entropy tell: 99039; completed leaves: Y=1065 UV=385"
+            "-DEXPECTED_CAUSE=cause: invalid data"
+            "-DEXPECTED_STAGE=stage: chroma parse / unknown"
+            "-DEXPECTED_LEAF=leaf: (48,58) block=8x16 plane=U"
+            "-DEXPECTED_PROGRESS=entropy tell: 100811; completed leaves: Y=1086 UV=394"
             -P "${CMAKE_CURRENT_SOURCE_DIR}/scripts/check-decoder-diagnostic.cmake")
 endif()

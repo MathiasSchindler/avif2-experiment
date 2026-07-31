@@ -5,9 +5,10 @@ prediction, inverse-transform, Q-context-0 coefficient, primary-transform,
 cross-chroma-transform, and palette work. The production Windows decoder was
 rebuilt and run against all 21
 artifacts, with every emitted I420 compared by SHA-256 to its locked AVM
-reference. Native CTest passes all nine Windows tests, including structured
-diagnostic checks for luma inverse transform and luma parsing. The focused
-hosted reconstruction unit retains exactly 17 established baseline failures.
+reference. Native CTest passes nine of ten Windows tests, including all three
+structured diagnostic checks; the existing Chinnathurai exact-output comparison
+retains its chroma parity failure. The focused hosted reconstruction unit retains
+exactly 17 established baseline failures.
 The detailed incomplete-file endpoints below are therefore diagnostic
 frontiers, not a claim that every hosted fixture passes.
 
@@ -30,40 +31,41 @@ an earlier entropy divergence can still be the underlying cause.
 
 | Current stopping surface | Files |
 | --- | --- |
-| Luma coefficient prefix | None |
-| Luma prediction | `chalk-320x240-qp128.obu`, `laarim-256x171-qp096.obu` |
-| Luma IntraBC source bounds | `silene-384x307-qp080.obu` |
+| Luma coefficient prefix | `emerald-480x240-qp128.obu`, `pastell-320x213-qp064.obu` |
+| Luma prediction | `cuckoo-431x287-qp080.obu`, `flycatcher-223x149-qp176.obu`, `flycatcher-397x265-qp048.obu`, `laarim-448x299-qp192.obu`, `louis-301x222-qp144.obu`, `pastell-512x341-qp160.obu`, `silene-479x383-qp176.obu` |
+| Luma IntraBC source bounds | None |
 | Luma IntraBC reference availability | None |
 | Chroma IntraBC reference availability | None |
-| Luma inverse transform | `chimp-240x287-qp192.obu`, `chinnathurai-128x128-qp112.obu`, `cuckoo-157x105-qp160.obu`, `cuckoo-431x287-qp080.obu`, `emerald-480x240-qp128.obu`, `flycatcher-223x149-qp176.obu`, `flycatcher-397x265-qp048.obu`, `laarim-448x299-qp192.obu`, `louis-301x222-qp144.obu`, `pastell-320x213-qp064.obu`, `pastell-512x341-qp160.obu`, `schwaebisch-353x234-qp112.obu`, `silene-479x383-qp176.obu` |
-| Chroma parse | None |
+| Luma inverse transform | `chalk-320x240-qp128.obu`, `chimp-240x287-qp192.obu`, `chinnathurai-128x128-qp112.obu`, `laarim-256x171-qp096.obu`, `schwaebisch-353x234-qp112.obu` |
+| Chroma coefficient levels | `cuckoo-157x105-qp160.obu` |
+| Chroma parse | `silene-384x307-qp080.obu` |
 | Chroma deblock map | None |
 | Frame filter | None |
 | Output parity | `chimp-93x111-qp064.obu` |
 
 | File | Current endpoint | Blocker |
 | --- | --- | --- |
-| `chalk-320x240-qp128.obu` | Normative secondary-transform signaling restores exact AVM parity through `(1,4)` TX_8X4: transform endpoint tell/range `258/45952`, coefficient symbols `0,0,1`, and coefficient endpoint `262/40880`; `(2,4)` 4x8 Y then reaches prediction at tell 273 | Luma prediction profile |
-| `chimp-240x287-qp192.obu` | Chroma derived-transform legality advances past the former stage-12 diagnostic at tell 2695 before luma reconstruction reaches inverse-transform support at tell 3150 | Luma inverse-transform profile |
+| `chalk-320x240-qp128.obu` | 119 luma and 84 chroma leaves committed before `(0,48)` 64x16 Y reaches inverse transform at tell 4,979 | Luma inverse-transform profile |
+| `chimp-240x287-qp192.obu` | The reduced four-symbol ADST secondary-set CDF and pinned set10/type3 matrix advance the normative path to `(4,20)` 16x16 Y at tell 1,094 after 40 luma and one chroma leaf | ADST_ADST set8/type3 inverse transform |
 | `chimp-93x111-qp064.obu` | **Decode complete:** entropy, coefficients, and luma reconstruction match AVM. IntraBC reference-bank lifetime, chroma Smooth endpoints, wide-angle chroma transform derivation, and MHCCP coded-edge/reference geometry are aligned; all six U-plane MHCCP blocks are byte-exact. The remaining prefilter gap is 216 chroma samples, first at U `(35,43)`, in a D45 4x8 dependency whose bottom-left source is reconstructed earlier by AVM than locally | Chroma reconstruction scheduling/order parity |
-| `chinnathurai-128x128-qp112.obu` | 122 luma and 19 chroma leaves committed; normative secondary-transform signaling clears the former impossible EOB before `(22,12)` 16x8 Y reaches inverse transform at tell 5145 | Luma inverse-transform profile |
+| `chinnathurai-128x128-qp112.obu` | Five luma leaves committed before `(9,11)` 4x4 Y reaches ADST_ADST secondary reconstruction at tell 232 | 4x4 secondary set13/type2 inverse transform |
 | `chinnathurai-333x333-qp224.obu` | **Complete:** emitted 166,667-byte I420 is byte-identical to the AVM reference (SHA-256 `6f1868d8945e87350414baa1a49829b21dbcb8c4e0e44dee6633d844ef5d7182`) | None for the accepted profile |
-| `cuckoo-157x105-qp160.obu` | Chroma derived-transform legality advances past the former stage-12 diagnostic at tell 461 before luma reconstruction reaches inverse-transform support at tell 629 | Luma inverse-transform profile |
-| `cuckoo-431x287-qp080.obu` | Normative secondary-transform signaling advances the valid IST syntax; eight luma and one chroma leaf are committed before `(2,18)` 4x8 Y reaches inverse transform at tell 627 | Q80 luma inverse-transform profile |
+| `cuckoo-157x105-qp160.obu` | 97 luma and nine chroma leaves committed before `(26,16)` 32x8 V reaches coefficient levels at tell 2,281 | Chroma coefficient-level profile |
+| `cuckoo-431x287-qp080.obu` | 58 luma and six chroma leaves committed before `(8,40)` 16x8 Y reaches prediction at tell 2,898 | Luma prediction profile |
 | `emerald-192x96-qp208.obu` | **Complete:** 20 luma and 11 chroma leaves, tile done at tell 731, filtered I420 byte-identical to the AVM reference (SHA-256 `403c2e7245ec484984e60c1eaf8bd1b47487c0ba6b60afc916b9532025fc51ad`) | None for the accepted profile |
-| `emerald-480x240-qp128.obu` | 13 luma and nine chroma leaves committed; `(24,8)` 16x32 Y advances through prediction and reaches inverse transform at tell 1077 | Q128 luma inverse-transform profile |
-| `flycatcher-223x149-qp176.obu` | 65 luma and six chroma leaves committed; `(30,32)` 64x8 Y reaches inverse transform at tell 1947 | Q176 luma inverse-transform profile |
-| `flycatcher-397x265-qp048.obu` | 174 luma and 27 chroma leaves committed; `(32,4)` 16x64 Y reaches inverse transform at tell 8083 | Q48 luma inverse-transform profile |
-| `laarim-256x171-qp096.obu` | 42 luma and 14 chroma leaves committed; normative secondary-transform signaling clears the former impossible EOB before `(8,22)` 4x4 Y reaches prediction at tell 4519 | Luma prediction profile |
-| `laarim-448x299-qp192.obu` | 19 luma and eight chroma leaves committed; `(16,0)` 64x32 Y reaches inverse transform at tell 775 | Q192 luma inverse-transform profile |
-| `louis-301x222-qp144.obu` | 22 luma and eight chroma leaves committed; `(16,32)` 64x64 Y reaches inverse transform at tell 2309 | Q144 luma inverse-transform profile |
+| `emerald-480x240-qp128.obu` | FSC IDTX TX_16X32 clears `(24,8)`; 16 luma and nine chroma leaves are committed before `(25,14)` 4x4 Y reaches coefficient prefix at tell 1,181 | Luma coefficient-prefix profile |
+| `flycatcher-223x149-qp176.obu` | 142 luma and 44 chroma leaves committed before `(32,24)` 16x32 Y reaches prediction at tell 3,000 | Luma prediction profile |
+| `flycatcher-397x265-qp048.obu` | 198 luma and 17 chroma leaves committed before `(0,60)` 16x32 Y reaches prediction at tell 4,775 | Luma prediction profile |
+| `laarim-256x171-qp096.obu` | 16 luma and 14 chroma leaves committed before `(4,20)` 16x16 Y reaches inverse transform at tell 2,924 | Luma inverse-transform profile |
+| `laarim-448x299-qp192.obu` | 68 luma and 20 chroma leaves committed before `(20,60)` 8x32 Y reaches prediction at tell 1,966 | Luma prediction profile |
+| `louis-301x222-qp144.obu` | FSC IDTX TX_32X16 clears `(12,40)`; 187 luma and 18 chroma leaves are committed before `(0,68)` 32x32 Y reaches prediction at tell 5,657 | Luma prediction profile |
 | `louis-463x342-qp224.obu` | **Complete:** emitted 237,690-byte filtered I420 is byte-identical to the AVM reference (SHA-256 `cbc741b34cc55af162d99e44273a6bb01a2f6152cb10ee5884248ceef33d0427`) | None for the accepted profile |
-| `pastell-320x213-qp064.obu` | 60 luma and 23 chroma leaves committed; chroma 8x32 axis implication remains aligned before `(16,62)` 8x32 Y reaches inverse transform at tell 2841 | Q64 luma inverse-transform profile |
-| `pastell-512x341-qp160.obu` | 52 luma and 15 chroma leaves committed; `(16,48)` 64x32 Y reaches inverse transform at tell 1892 | Q160 luma inverse-transform profile |
-| `schwaebisch-353x234-qp112.obu` | 73 luma and 21 chroma leaves committed; chroma 8x32 axis implication advances past the former odd-origin deblock stop before `(4,80)` 16x16 Y reaches inverse transform at tell 2601 | Q112 luma inverse-transform profile |
+| `pastell-320x213-qp064.obu` | 148 luma and 48 chroma leaves committed before `(0,25)` 4x16 Y reaches coefficient prefix at tell 13,170 | Luma coefficient-prefix profile |
+| `pastell-512x341-qp160.obu` | 279 luma and 206 chroma leaves committed before `(20,47)` 4x16 Y reaches prediction at tell 7,876 | Luma prediction profile |
+| `schwaebisch-353x234-qp112.obu` | The reduced ADST CDF and shared set10/type3 matrix advance from tell 208 to `(4,4)` 16x8 Y at tell 565 after nine luma leaves | ADST_ADST set7/type3 inverse transform |
 | `schwaebisch-417x277-qp208.obu` | **Complete:** stale out-of-frame bottom-left mode context, partial-boundary extension signaling, cropped derived-CfL, and directional/Smooth edge profiles are fixed; local and AVM entropy match through the final logged luma endpoint at tell/range `4360/51200`, and the emitted 173,611-byte I420 is byte-identical to AVM (SHA-256 `6fbc5758a05d727ed05b04542de796cc72ca5dd9c402213c3e2d4ec72ae78428`) | None for the accepted profile |
-| `silene-384x307-qp080.obu` | 1,065 luma and 385 chroma leaves committed at tell 99,039. The Q0 EOB-64 adaptation parameter, IntraBC 4x16 IDTX/FSC path, D157 32x4 prediction, morph prediction, and three small IST tuples now match pinned AVM checkpoints | 8x4 secondary set 6/type 1 inverse transform |
-| `silene-479x383-qp176.obu` | 86 luma and 23 chroma leaves committed; `(16,16)` 16x64 Y reaches inverse transform at tell 3090 after clearing D135 8x8, D157 8x4, and D113 8x16 prediction | Q176 luma inverse-transform profile |
+| `silene-384x307-qp080.obu` | 1,086 luma and 394 chroma leaves committed at tell 100,811. The pinned 4x4-class set 6/type 1 kernel and TX_8X4 scan maps clear `(57,56)` at tell 99,039; local decoding later reaches escaped UV mode 14 at `(48,58)`, which pinned AVM never signals | Upstream entropy divergence before chroma mode parsing |
+| `silene-479x383-qp176.obu` | 77 luma and 38 chroma leaves committed before `(22,43)` 16x8 Y reaches prediction at tell 1,938 | Luma prediction profile |
 
 Summary:
 
@@ -71,10 +73,11 @@ Summary:
   byte-identical to AVM and Chimp Q64 retains one chroma reconstruction parity
   gap. The other 16 streams fail closed without output. The fresh production
   census identifies
-  zero luma coefficient-prefix stops, two luma-prediction stops, one IntraBC
-  source-bounds stop, zero IntraBC-reference stops, thirteen luma
-  inverse-transform stops, zero chroma-deblock-map stops, zero frame-filter
-  stops, and one output-parity mismatch;
+  two luma coefficient-prefix stops, seven luma-prediction stops, zero IntraBC
+  source-bounds stops, zero IntraBC-reference stops, five luma
+  inverse-transform stops, one chroma coefficient-level stop, one chroma-parse
+  stop, zero chroma-deblock-map stops, zero frame-filter stops, and one
+  output-parity mismatch;
 - normative FSC geometry now admits every 4--32 dimension in luma mode,
   transform derivation, and coefficient-prefix parsing. Chimp Q64 advances
   from its first 8x8 mode at tell 30 to chroma prediction at tell 173, and

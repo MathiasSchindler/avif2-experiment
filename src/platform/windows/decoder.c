@@ -281,10 +281,16 @@ static void write_decode_diagnostic(const Av2hFrameDecodeResult *result) {
     write_unsigned(result->enable_ibp);
     write_console(" intrabc=");
     write_unsigned(result->use_intrabc);
+    write_console(" fsc=");
+    write_unsigned(result->fsc_mode);
+    write_console(" skip-transform=");
+    write_unsigned(result->skip_transform);
     write_console(" palette-size=");
     write_unsigned(result->palette_size);
     write_console(" tx-size=");
     write_unsigned(result->tx_size);
+    write_console(" inverse-stage=");
+    write_unsigned(result->inverse_transform_stage);
     write_console(" prefix-stage=");
     write_unsigned(result->prefix_stage);
     write_console(" syntax-stage=");

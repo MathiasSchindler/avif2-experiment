@@ -584,8 +584,12 @@ Av2hStatus av2h_decode_frame_i420_private(
                 decoded.multi_line_mrl = leaf.mode.multi_line_mrl;
                 decoded.enable_ibp = leaf.mode.enable_ibp;
                 decoded.use_intrabc = leaf.mode.use_intrabc;
+                decoded.fsc_mode = leaf.mode.fsc_mode;
+                decoded.skip_transform = leaf.mode.skip_transform;
                 decoded.palette_size = leaf.mode.palette_size;
                 decoded.tx_size = (uint8_t)leaf.prefix.tx_size;
+                decoded.inverse_transform_stage =
+                    av2h_debug_inverse_transform_stage;
                 decoded.primary_type = (uint8_t)leaf.transform.primary_type;
                 decoded.primary_symbol = leaf.transform.primary_symbol;
                 decoded.primary_set_symbol =
@@ -634,7 +638,12 @@ Av2hStatus av2h_decode_frame_i420_private(
                 decoded.mrl_index = leaf.mode.mrl_index;
                 decoded.multi_line_mrl = leaf.mode.multi_line_mrl;
                 decoded.enable_ibp = leaf.mode.enable_ibp;
+                decoded.use_intrabc = leaf.mode.use_intrabc;
+                decoded.fsc_mode = leaf.mode.fsc_mode;
+                decoded.skip_transform = leaf.mode.skip_transform;
                 decoded.tx_size = (uint8_t)leaf.prefix.tx_size;
+                decoded.inverse_transform_stage =
+                    av2h_debug_inverse_transform_stage;
                 decoded.primary_type = (uint8_t)leaf.transform.primary_type;
                 decoded.primary_symbol = leaf.transform.primary_symbol;
                 decoded.secondary_symbol = leaf.transform.secondary_symbol;

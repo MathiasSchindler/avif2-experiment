@@ -145,6 +145,16 @@ Av2hStatus av2h_first_transform_cdfs_init(Av2hFirstTransformCdfs *cdfs) {
         cdfs->secondary_set, AV2H_SECONDARY_TX_SET_SYMBOLS + 4U,
         secondary_set, AV2H_SECONDARY_TX_SET_SYMBOLS, 55U, 0U);
     if (status != AV2H_OK) return status;
+    {
+        static const uint16_t secondary_adst_set[3U] = {
+            15897U, 26144U, 30010U
+        };
+        status = av2h_cdf_init(
+            cdfs->secondary_adst_set,
+            AV2H_SECONDARY_ADST_TX_SET_SYMBOLS + 4U,
+            secondary_adst_set, AV2H_SECONDARY_ADST_TX_SET_SYMBOLS, 0U, 0U);
+        if (status != AV2H_OK) return status;
+    }
     return av2h_cdf_init(cdfs->chroma_cross_type, 7U + 4U,
                          chroma_cross_type, 7U, 62U, 0U);
 }
@@ -167,6 +177,31 @@ static Av2hStatus secondary_tx_set_map(
     };
     if (set == 0) return AV2H_INVALID_ARGUMENT;
     if ((uint8_t)mode >= 12U || symbol >= AV2H_SECONDARY_TX_SET_SYMBOLS) {
+        return AV2H_UNSUPPORTED;
+    }
+    *set = inverse_mapping[(uint8_t)mode][symbol];
+    return AV2H_OK;
+}
+
+static Av2hStatus secondary_adst_tx_set_map(
+    Av2hFirstLeafIntraMode mode, uint8_t symbol, uint8_t *set) {
+    static const uint8_t inverse_mapping[12U][4U] = {
+        { 3U, 1U, 0U, 2U },
+        { 1U, 3U, 0U, 2U },
+        { 1U, 3U, 0U, 2U },
+        { 1U, 3U, 0U, 2U },
+        { 0U, 2U, 3U, 1U },
+        { 2U, 1U, 0U, 3U },
+        { 2U, 1U, 0U, 3U },
+        { 1U, 0U, 3U, 2U },
+        { 1U, 0U, 3U, 2U },
+        { 3U, 1U, 0U, 2U },
+        { 1U, 3U, 0U, 2U },
+        { 1U, 3U, 0U, 2U }
+    };
+    if (set == 0) return AV2H_INVALID_ARGUMENT;
+    if ((uint8_t)mode >= 12U ||
+        symbol >= AV2H_SECONDARY_ADST_TX_SET_SYMBOLS) {
         return AV2H_UNSUPPORTED;
     }
     *set = inverse_mapping[(uint8_t)mode][symbol];
@@ -1279,15 +1314,24 @@ Av2hStatus av2h_first_transform_type_read(
         transform->secondary_symbol = (uint8_t)symbol;
         transform->after_secondary_type_bits = av2h_range_tell(decoder);
         if (symbol != 0U) {
+            uint8_t reduced_adst_set = (uint8_t)(
+                transform->primary_type == AV2H_TX_ADST_ADST &&
+                descriptor->output_width >= 8U &&
+                descriptor->output_height >= 8U);
             symbol = av2h_range_read_adaptive(
-                decoder, cdfs->secondary_set,
-                AV2H_SECONDARY_TX_SET_SYMBOLS);
+                decoder,
+                reduced_adst_set ?
+                    cdfs->secondary_adst_set : cdfs->secondary_set,
+                reduced_adst_set ? AV2H_SECONDARY_ADST_TX_SET_SYMBOLS :
+                    AV2H_SECONDARY_TX_SET_SYMBOLS);
             if (av2h_range_status(decoder) != AV2H_OK) {
                 return av2h_range_status(decoder);
             }
             transform->secondary_set_symbol = (uint8_t)symbol;
-            status = secondary_tx_set_map(
-                mode->mode, (uint8_t)symbol, &transform->secondary_set);
+            status = reduced_adst_set ? secondary_adst_tx_set_map(
+                mode->mode, (uint8_t)symbol, &transform->secondary_set) :
+                secondary_tx_set_map(
+                    mode->mode, (uint8_t)symbol, &transform->secondary_set);
             if (status != AV2H_OK) return status;
             if (transform->primary_type == AV2H_TX_ADST_ADST) {
                 transform->secondary_set += 7U;
