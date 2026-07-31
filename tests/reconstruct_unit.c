@@ -4317,6 +4317,60 @@ static void test_cfl_filter1_explicit_alpha(void) {
     }
 }
 
+static void test_cfl_coded_bottom_edge(void) {
+    uint8_t luma_data[64U * 24U];
+    uint8_t luma_rec[16U * 6U];
+    uint8_t chroma_data[32U * 12U];
+    uint8_t chroma_rec[8U * 3U];
+    uint8_t pred_data[32U * 12U];
+    uint8_t pred_rec[8U * 3U];
+    Av2hReconstructionScratch scratch = { 0 };
+    Av2hPartitionNode leaf = { 4U, 0U, AV2H_BLOCK_64X8 };
+    Av2hFirstChromaMode mode = { 0 };
+    Av2hFirstCoeffPrefix prefix = { 0 };
+    Av2hFirstTransformType transform = { 0 };
+    Av2hFirstCoeffBlock block = { 0 };
+    Av2hReconstructionPlane luma = {
+        luma_data, 64U, 64U, 24U, 61U, 21U, luma_rec, 16U,
+        sizeof(luma_rec)
+    };
+    Av2hReconstructionPlane chroma = {
+        chroma_data, 32U, 32U, 12U, 31U, 11U, chroma_rec, 8U,
+        sizeof(chroma_rec)
+    };
+    Av2hReconstructionPlane predictor = {
+        pred_data, 32U, 32U, 12U, 31U, 11U, pred_rec, 8U,
+        sizeof(pred_rec)
+    };
+    size_t row;
+    size_t column;
+    av2h_memory_fill(luma_data, 96U, sizeof(luma_data));
+    av2h_memory_fill(luma_rec, 1U, sizeof(luma_rec));
+    av2h_memory_fill(chroma_data, 128U, sizeof(chroma_data));
+    av2h_memory_fill(chroma_rec, 1U, sizeof(chroma_rec));
+    av2h_memory_fill(pred_data, 0U, sizeof(pred_data));
+    av2h_memory_fill(pred_rec, 1U, sizeof(pred_rec));
+    mode.is_cfl = 1U;
+    mode.cfl_kind = AV2H_CFL_DERIVED_ALPHA;
+    mode.cfl_downsample_filter_index = 2U;
+    mode.mode = AV2H_INTRA_DC;
+    prefix.tx_size = AV2H_TX_32X4;
+    prefix.all_zero = 1U;
+    transform.primary_type = AV2H_TX_DCT_DCT;
+    block.width = 32U;
+    block.height = 4U;
+    block.coefficient_count = 128U;
+    CHECK(av2h_chroma_reconstruct_to_plane_ex(
+              &leaf, &mode, &prefix, &transform, &block, &chroma, &luma,
+              1U, &predictor, &scratch) == AV2H_OK);
+    for (row = 8U; row < 12U; ++row) {
+        for (column = 0U; column < 32U; ++column) {
+            CHECK(pred_data[row * 32U + column] == 128U);
+            CHECK(chroma_data[row * 32U + column] == 128U);
+        }
+    }
+}
+
 static void test_cfl_explicit_geometry_filter_matrix(void) {
     static const struct {
         Av2hFirstTxSize tx;
@@ -5019,6 +5073,7 @@ int main(void) {
     test_emerald_q208_chroma_leaves();
     test_emerald_q208_chroma_cfl();
     test_cfl_filter1_explicit_alpha();
+    test_cfl_coded_bottom_edge();
     test_cfl_explicit_geometry_filter_matrix();
     test_mhccp_geometry_direction_matrix();
     test_emerald_chroma_plane_ex_checks();

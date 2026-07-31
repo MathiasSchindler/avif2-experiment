@@ -2407,6 +2407,7 @@ static Av2hStatus luma_mode_read_internal(
     mode->enable_ibp = sequence->enable_ibp;
     mode->left_smooth = neighbors->edge_smooth[0];
     mode->above_smooth = neighbors->edge_smooth[1];
+    mode->superblock_size = sequence->superblock_size;
     has_spatial_neighbors = (uint8_t)(
         neighbors->spatial_present[0] || neighbors->spatial_present[1]);
     for (neighbor = 0U; neighbor < 2U; ++neighbor) {

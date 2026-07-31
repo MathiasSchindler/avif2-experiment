@@ -1385,8 +1385,10 @@ static Av2hStatus chroma_primary_type(
     *tx_type = mode_types[(uint8_t)mode->mode];
     if (reduced_tx_set ||
         descriptor->signaling_class == AV2H_TX_SIGNAL_DCT_ONLY ||
-        descriptor->signaling_class == AV2H_TX_SIGNAL_WIDE_32 ||
-        descriptor->signaling_class == AV2H_TX_SIGNAL_HIGH_32 ||
+        (descriptor->signaling_class == AV2H_TX_SIGNAL_WIDE_32 &&
+         *tx_type == AV2H_TX_DCT_ADST) ||
+        (descriptor->signaling_class == AV2H_TX_SIGNAL_HIGH_32 &&
+         *tx_type == AV2H_TX_ADST_DCT) ||
         (descriptor->signaling_class == AV2H_TX_SIGNAL_WIDE_64 &&
          *tx_type != AV2H_TX_ADST_DCT) ||
         (descriptor->signaling_class == AV2H_TX_SIGNAL_HIGH_64 &&

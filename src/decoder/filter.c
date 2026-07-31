@@ -925,6 +925,8 @@ static uint8_t gdf_source_sample(const Av2hFilterPlane *cdef_luma,
     const Av2hFilterPlane *source = cdef_luma;
     if (x < 0) x = 0;
     if (x >= (int)cdef_luma->width) x = (int)cdef_luma->width - 1;
+    if (y < 0) y = 0;
+    if (y >= (int)cdef_luma->height) y = (int)cdef_luma->height - 1;
     if (y < stripe_start) {
         int minimum = stripe_start - 2;
         if (y < minimum) y = minimum;
@@ -934,8 +936,6 @@ static uint8_t gdf_source_sample(const Av2hFilterPlane *cdef_luma,
         if (y > maximum) y = maximum;
         source = deblocked_luma;
     }
-    if (y < 0) y = 0;
-    if (y >= (int)cdef_luma->height) y = (int)cdef_luma->height - 1;
     return source->data[(size_t)y * source->stride + (size_t)x];
 }
 
@@ -1102,12 +1102,14 @@ static void gdf_filter_block(Av2hFilterPlane *destination,
             }
             {
                 unsigned int position = 0U;
+                int normalized[3] = { 0, 0, 0 };
                 for (output_index = 0U; output_index < 3U; ++output_index) {
                     int value = round_shift_symmetric(
                         (accumulator[output_index] +
                          gdf_bias[gdf_bias_index(qp_index, output_index)]) *
                             8,
                         15U);
+                    normalized[output_index] = value;
                     position = position * 16U + (unsigned int)
                         (clamp_value(value, -8, 7) + 8);
                 }

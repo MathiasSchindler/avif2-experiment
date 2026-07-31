@@ -157,6 +157,7 @@ typedef struct {
     uint8_t enable_ibp;
     uint8_t above_smooth;
     uint8_t left_smooth;
+    uint16_t superblock_size;
     Av2hFirstLeafIntraMode mode;
     size_t before_mode_bits;
     size_t after_mode_set_bits;

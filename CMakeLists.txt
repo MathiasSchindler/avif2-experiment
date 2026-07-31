@@ -124,14 +124,14 @@ if(WIN32 AND CMAKE_C_COMPILER_ID MATCHES "Clang")
         COMMAND av2heif-decoder
             "${CMAKE_CURRENT_SOURCE_DIR}/images/artifacts/emerald-192x96-qp208.obu"
             -o "${CMAKE_CURRENT_BINARY_DIR}/emerald-decoder.bmp")
-    add_test(NAME windows-decoder-diagnostic-chalk-luma-transform
+    add_test(NAME windows-decoder-diagnostic-chalk-luma-prefix
         COMMAND "${CMAKE_COMMAND}"
             "-DDECODER=$<TARGET_FILE:av2heif-decoder>"
             "-DINPUT=${CMAKE_CURRENT_SOURCE_DIR}/images/artifacts/chalk-320x240-qp128.obu"
             "-DOUTPUT=${CMAKE_CURRENT_BINARY_DIR}/diagnostic-chalk.i420"
-            "-DEXPECTED_STAGE=stage: luma reconstruction / inverse transform"
-            "-DEXPECTED_LEAF=leaf: (16,16) block=32x64 plane=Y"
-            "-DEXPECTED_PROGRESS=entropy tell: 875; completed leaves: Y=20 UV=6"
+            "-DEXPECTED_STAGE=stage: luma parse / coefficient prefix"
+            "-DEXPECTED_LEAF=leaf: (24,52) block=16x32 plane=Y"
+            "-DEXPECTED_PROGRESS=entropy tell: 1200; completed leaves: Y=26 UV=8"
             -P "${CMAKE_CURRENT_SOURCE_DIR}/scripts/check-decoder-diagnostic.cmake")
     add_test(NAME windows-decoder-diagnostic-cuckoo-luma-transform
         COMMAND "${CMAKE_COMMAND}"
