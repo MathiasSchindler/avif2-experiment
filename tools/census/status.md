@@ -14,15 +14,14 @@ Use `-UseExistingCensus` to rebuild only this Markdown file from `build/census/a
 
 ## Current production blockers
 
-These groups come from the 2026-07-30 production decoder sweep. They name the surface where local decoding stops, not necessarily the first entropy divergence. See `images/artifacts/status.md` for exact endpoints and AVM evidence.
+These groups reflect the 2026-07-31 production decoder snapshot. They name the surface where local decoding stops, not necessarily the first entropy divergence. See `images/artifacts/status.md` for exact endpoints and AVM evidence.
 
 | Current stopping surface | Files |
 |---|---|
-| Luma coefficient prefix | `flycatcher-397x265-qp048.obu` |
-| Luma parse | `silene-384x307-qp080.obu` |
-| Luma inverse transform | `chalk-320x240-qp128.obu`, `chimp-240x287-qp192.obu`, `cuckoo-157x105-qp160.obu`, `cuckoo-431x287-qp080.obu`, `emerald-480x240-qp128.obu`, `flycatcher-223x149-qp176.obu`, `laarim-256x171-qp096.obu`, `laarim-448x299-qp192.obu`, `louis-301x222-qp144.obu`, `pastell-320x213-qp064.obu`, `pastell-512x341-qp160.obu`, `schwaebisch-417x277-qp208.obu`, `silene-479x383-qp176.obu` |
-| Chroma parse | `louis-463x342-qp224.obu`, `schwaebisch-353x234-qp112.obu` |
-| Frame filter | `chimp-93x111-qp064.obu`, `chinnathurai-128x128-qp112.obu` |
+| Luma prediction | `chalk-320x240-qp128.obu`, `laarim-256x171-qp096.obu` |
+| Luma IntraBC source bounds | `silene-384x307-qp080.obu` |
+| Luma inverse transform | `chimp-240x287-qp192.obu`, `chinnathurai-128x128-qp112.obu`, `cuckoo-157x105-qp160.obu`, `cuckoo-431x287-qp080.obu`, `emerald-480x240-qp128.obu`, `flycatcher-223x149-qp176.obu`, `flycatcher-397x265-qp048.obu`, `laarim-448x299-qp192.obu`, `louis-301x222-qp144.obu`, `pastell-320x213-qp064.obu`, `pastell-512x341-qp160.obu`, `schwaebisch-353x234-qp112.obu`, `silene-479x383-qp176.obu` |
+| Output parity | `chimp-93x111-qp064.obu` |
 
 ## Corpus summary
 

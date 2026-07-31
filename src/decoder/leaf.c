@@ -2115,7 +2115,6 @@ static Av2hStatus read_first_intrabc(
             return av2h_range_status(decoder);
         }
         mode->morph_pred = (uint8_t)value;
-        if (mode->morph_pred != 0U) return AV2H_UNSUPPORTED;
     }
     mode->mode_set = 0U;
     mode->mode_index = 0U;

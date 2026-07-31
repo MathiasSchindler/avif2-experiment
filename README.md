@@ -35,8 +35,10 @@ separate reference experiment and is fetched into ignored `vendor/` and
 - Milestone 8 owns high-detail, CFL, intraBC, and remaining advanced transform
   coverage. Milestone 9 owns mandatory-filter integration and filtered parity.
   Milestone 10 alone owns workspace finalization and public decoder exposure.
-- The private pipeline completely decodes `emerald-192x96-qp208.obu` and
-  `chinnathurai-333x333-qp224.obu` to byte-exact I420 output.
+- The private pipeline completely decodes `emerald-192x96-qp208.obu`,
+  `chinnathurai-333x333-qp224.obu`, `louis-463x342-qp224.obu`, and
+  `schwaebisch-417x277-qp208.obu` to byte-exact I420 output. Chimp Q64 also
+  decodes completely and retains a chroma reconstruction parity gap.
 
 The public API is declared in `include/av2heif.h`. Milestone details and
 limitations are recorded in `docs/milestone-0.md` through
@@ -95,11 +97,12 @@ extension:
 ```
 
 BMP output currently applies deterministic limited-range BT.601 I420-to-BGR
-conversion. Emerald Q208 and Chinnathurai Q224 currently complete the full
-private decoder and match their locked AVM I420 references byte-for-byte;
-unsupported streams fail closed and do not create output. The CLI accepts raw
-OBU input only. HEIF item extraction and the stable public decode API remain
-Milestone 10 work.
+conversion. Emerald Q208, Chinnathurai Q224, Louis Q224, and Schwaebisch Q208
+complete the full private decoder and match their locked AVM I420 references
+byte-for-byte. Chimp Q64 emits output with a remaining chroma reconstruction
+parity gap; unsupported streams fail closed and do not create output. The CLI
+accepts raw OBU input only. HEIF item extraction and the stable public decode
+API remain Milestone 10 work.
 
 Failed frame decodes report the original cause separately from the retained
 coarse status, followed by the pipeline/syntax stage, plane, leaf position and

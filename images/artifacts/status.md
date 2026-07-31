@@ -11,12 +11,13 @@ hosted reconstruction unit retains exactly 17 established baseline failures.
 The detailed incomplete-file endpoints below are therefore diagnostic
 frontiers, not a claim that every hosted fixture passes.
 
-The public decoder completes 3 of the 21 `.obu` files in this directory.
-`emerald-192x96-qp208.obu`, `chinnathurai-333x333-qp224.obu`, and
-`louis-463x342-qp224.obu` decode to I420 files that are byte-identical to their
-locked AVM references. The other 18
-files fail closed without output. `Tell` counts bits from the beginning of the
-tile entropy stream. Block positions are expressed in 4x4 units.
+The public decoder emits I420 for 5 of the 21 `.obu` files in this directory.
+`emerald-192x96-qp208.obu`, `chinnathurai-333x333-qp224.obu`,
+`louis-463x342-qp224.obu`, and `schwaebisch-417x277-qp208.obu` are byte-identical
+to their locked AVM references. `chimp-93x111-qp064.obu` decodes completely but
+retains a chroma reconstruction parity gap. The other 16 files fail closed
+without output. `Tell` counts bits from the beginning of the tile entropy
+stream. Block positions are expressed in 4x4 units.
 
 The [decoder blocker map](blocker-map.md) complements the next-stop snapshot
 with complete-frame AVM accounting exposure for luma/chroma partition, mode,
@@ -38,13 +39,13 @@ an earlier entropy divergence can still be the underlying cause.
 | Chroma parse | None |
 | Chroma deblock map | None |
 | Frame filter | None |
-| Output parity | `chimp-93x111-qp064.obu`, `schwaebisch-417x277-qp208.obu` |
+| Output parity | `chimp-93x111-qp064.obu` |
 
 | File | Current endpoint | Blocker |
 | --- | --- | --- |
 | `chalk-320x240-qp128.obu` | Normative secondary-transform signaling restores exact AVM parity through `(1,4)` TX_8X4: transform endpoint tell/range `258/45952`, coefficient symbols `0,0,1`, and coefficient endpoint `262/40880`; `(2,4)` 4x8 Y then reaches prediction at tell 273 | Luma prediction profile |
 | `chimp-240x287-qp192.obu` | Chroma derived-transform legality advances past the former stage-12 diagnostic at tell 2695 before luma reconstruction reaches inverse-transform support at tell 3150 | Luma inverse-transform profile |
-| `chimp-93x111-qp064.obu` | Tile reconstruction and multi-strength CDEF filtering complete, but the 15,587-byte output differs from AVM because all three reconstructed-plane hashes already differ before filtering | Upstream reconstruction parity before frame filtering |
+| `chimp-93x111-qp064.obu` | **Decode complete:** entropy, coefficients, and luma reconstruction match AVM. IntraBC reference-bank lifetime, chroma Smooth endpoints, wide-angle chroma transform derivation, and MHCCP coded-edge/reference geometry are aligned; all six U-plane MHCCP blocks are byte-exact. The remaining prefilter gap is 216 chroma samples, first at U `(35,43)`, in a D45 4x8 dependency whose bottom-left source is reconstructed earlier by AVM than locally | Chroma reconstruction scheduling/order parity |
 | `chinnathurai-128x128-qp112.obu` | 122 luma and 19 chroma leaves committed; normative secondary-transform signaling clears the former impossible EOB before `(22,12)` 16x8 Y reaches inverse transform at tell 5145 | Luma inverse-transform profile |
 | `chinnathurai-333x333-qp224.obu` | **Complete:** emitted 166,667-byte I420 is byte-identical to the AVM reference (SHA-256 `6f1868d8945e87350414baa1a49829b21dbcb8c4e0e44dee6633d844ef5d7182`) | None for the accepted profile |
 | `cuckoo-157x105-qp160.obu` | Chroma derived-transform legality advances past the former stage-12 diagnostic at tell 461 before luma reconstruction reaches inverse-transform support at tell 629 | Luma inverse-transform profile |
@@ -60,18 +61,20 @@ an earlier entropy divergence can still be the underlying cause.
 | `pastell-320x213-qp064.obu` | 60 luma and 23 chroma leaves committed; chroma 8x32 axis implication remains aligned before `(16,62)` 8x32 Y reaches inverse transform at tell 2841 | Q64 luma inverse-transform profile |
 | `pastell-512x341-qp160.obu` | 52 luma and 15 chroma leaves committed; `(16,48)` 64x32 Y reaches inverse transform at tell 1892 | Q160 luma inverse-transform profile |
 | `schwaebisch-353x234-qp112.obu` | 73 luma and 21 chroma leaves committed; chroma 8x32 axis implication advances past the former odd-origin deblock stop before `(4,80)` 16x16 Y reaches inverse transform at tell 2601 | Q112 luma inverse-transform profile |
-| `schwaebisch-417x277-qp208.obu` | **Decode complete:** stale out-of-frame bottom-left mode context, partial-boundary extension signaling, cropped derived-CfL, and missing directional/Smooth edge profiles are fixed; local and AVM entropy match through the final logged luma endpoint at tell/range `4360/51200`, and the decoder emits a 173,611-byte I420 (SHA-256 `b670b62d3e28587fdc7184473794baea83ed0712b5b8aadcdad47976c28b4d12`) | Existing reconstruction parity gap: fresh raw AVM SHA-256 is `6fbc5758a05d727ed05b04542de796cc72ca5dd9c402213c3e2d4ec72ae78428`; first difference is Y `(297,56)`, before the repaired bottom-edge region |
-| `silene-384x307-qp080.obu` | 22 luma and one chroma leaf committed; the missing adaptive IntraBC morph-pred symbol restores exact AVM range/EOB parity through `(7,20)` before local `(8,21)` falsely decodes IntraBC and reaches source bounds at tell 739; AVM has no IntraBC block there | Upstream entropy divergence after the corrected `(7,20)` block |
+| `schwaebisch-417x277-qp208.obu` | **Complete:** stale out-of-frame bottom-left mode context, partial-boundary extension signaling, cropped derived-CfL, and directional/Smooth edge profiles are fixed; local and AVM entropy match through the final logged luma endpoint at tell/range `4360/51200`, and the emitted 173,611-byte I420 is byte-identical to AVM (SHA-256 `6fbc5758a05d727ed05b04542de796cc72ca5dd9c402213c3e2d4ec72ae78428`) | None for the accepted profile |
+| `silene-384x307-qp080.obu` | 1,065 luma and 385 chroma leaves committed at tell 99,039. The Q0 EOB-64 adaptation parameter, IntraBC 4x16 IDTX/FSC path, D157 32x4 prediction, morph prediction, and three small IST tuples now match pinned AVM checkpoints | 8x4 secondary set 6/type 1 inverse transform |
 | `silene-479x383-qp176.obu` | 86 luma and 23 chroma leaves committed; `(16,16)` 16x64 Y reaches inverse transform at tell 3090 after clearing D135 8x8, D157 8x4, and D113 8x16 prediction | Q176 luma inverse-transform profile |
 
 Summary:
 
-- the public Windows decoder emits output for 4/21 artifacts. The other 17
-  streams fail closed without output. The fresh production census identifies
+- the public Windows decoder emits output for 5/21 artifacts; four are
+  byte-identical to AVM and Chimp Q64 retains one chroma reconstruction parity
+  gap. The other 16 streams fail closed without output. The fresh production
+  census identifies
   zero luma coefficient-prefix stops, two luma-prediction stops, one IntraBC
   source-bounds stop, zero IntraBC-reference stops, thirteen luma
   inverse-transform stops, zero chroma-deblock-map stops, zero frame-filter
-  stops, and two output-parity mismatches;
+  stops, and one output-parity mismatch;
 - normative FSC geometry now admits every 4--32 dimension in luma mode,
   transform derivation, and coefficient-prefix parsing. Chimp Q64 advances
   from its first 8x8 mode at tell 30 to chroma prediction at tell 173, and
@@ -136,11 +139,9 @@ Summary:
   Silene advances from tell 553 with 14 luma leaves to tell 1266 with 28;
 - the CDEF kernel selects Y/UV strengths from the parsed per-64x64 unit map,
   and the focused filter unit covers selection of strength entry 1.
-  Production now executes multi-strength filtering. Chimp Q64 completes but
-  differs in 15,374 of 15,587 output bytes, and its local prefilter hashes
-  `850f522712b4b74c/42bbd333f17049bf/ae60306cfbedd72c` already differ from AVM
-  `16848db5a032b117/9bcde1179fd91d15/32cb3af20552bbfe` on Y/U/V. The first
-  parity break is therefore upstream of frame filtering;
+  Production now executes multi-strength filtering. Chimp Q64 completes, its
+  luma reconstruction is byte-exact, and its remaining 216-sample prefilter
+  gap is confined to chroma reconstruction before frame filtering;
 - IntraBC now consumes the adaptive morph-pred symbol after its displacement,
   using the normative three-context CDF and immediate above/left morph state.
   Silene Q80 matches pinned AVM through vector `(-256,-136)`, morph range
@@ -174,7 +175,7 @@ Summary:
 - the reviewed census now classifies every named feature value observed in all
   21 artifacts as supported. This is feature coverage, not end-to-end decode
   coverage: coefficient-profile, entropy-context, traversal, and reconstruction
-  frontiers still keep 18 files fail-closed;
+  frontiers still keep 16 files fail-closed;
 - MRL index 2 is admitted across every directional mode, luma angle delta,
   legal prediction geometry, multi-line state, and IBP state. Chinnathurai Q224
   pins a single-line 16x32 predictor/output pair, while Schwaebisch Q208 pins a
@@ -266,11 +267,11 @@ Summary:
   and 32x32 U/V reconstruction surfaces. Emerald reaches tell 197/range 53184;
   Silene reaches tell 71/range 53320 with exact plane-specific explicit-CfL
   predictors. Both still fail closed before completing their next profile;
-- Schwaebisch Q208 advances through superblock index 31 and tell 4236 after
-  correcting TX_8X16 entropy context, admitting three exact predictor
-  geometries, clipping coefficient contexts at frame edges, and admitting
-  MRL index 3 generically; its next gap is the `(66,48)` 32x8 D203/0
-  reconstruction admission;
+- Schwaebisch Q208 completes byte-identically after correcting TX_8X16 entropy
+  context, directional and Smooth prediction, frame-edge coefficient contexts,
+  partial-boundary partition signaling, MRL index 3, and cropped derived-CfL.
+  The final 173,611-byte I420 has SHA-256
+  `6fbc5758a05d727ed05b04542de796cc72ca5dd9c402213c3e2d4ec72ae78428`;
 - Chimp Q192 now matches the pinned AVM entropy path through superblocks 11,
   12, and 13 and advances deep into superblock 14. Its `(56,38)` 4x8
   Vertical/-3 leaf with MRL index 3, multi-line MRL, and IBP enabled has exact
@@ -288,11 +289,10 @@ Summary:
 - the remaining artifacts retain their earlier Q-profile, large-transform
   coefficient, prediction, or inverse-reconstruction blockers.
 
-The census now identifies Chinnathurai Q224, Emerald Q208, and Louis Q224 as
-feature-complete candidates at its named-feature granularity. All three
-complete end-to-end and are byte-identical to their pinned AVM outputs.
+Chinnathurai Q224, Emerald Q208, Louis Q224, and Schwaebisch Q208 complete
+end-to-end and are byte-identical to their pinned AVM outputs.
 
 The ordinary 22-leaf/tell-762 fixture is not part of this artifact directory.
 Frame-wide decode and filter integration is now demonstrated for Emerald,
-Chinnathurai, and Louis, but general artifact coverage remains Milestone 8/9
-work.
+Chinnathurai, Louis, and Schwaebisch, but general artifact coverage remains
+Milestone 8/9 work.

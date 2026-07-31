@@ -499,6 +499,7 @@ static Av2hStatus read_primary(Av2hRangeDecoder *decoder,
                 coeff->tx_size == AV2H_TX_8X8 ||
                 coeff->tx_size == AV2H_TX_8X16 ||
                 coeff->tx_size == AV2H_TX_16X8 ||
+                coeff->tx_size == AV2H_TX_4X16 ||
                 coeff->tx_size == AV2H_TX_16X4) && mode->use_intrabc) {
         uint16_t last = (uint16_t)(coeff->eob - 1U);
         uint16_t diagonal =
@@ -1288,6 +1289,9 @@ Av2hStatus av2h_first_transform_type_read(
             status = secondary_tx_set_map(
                 mode->mode, (uint8_t)symbol, &transform->secondary_set);
             if (status != AV2H_OK) return status;
+            if (transform->primary_type == AV2H_TX_ADST_ADST) {
+                transform->secondary_set += 7U;
+            }
         }
     }
     transform->after_secondary_bits = av2h_range_tell(decoder);

@@ -170,6 +170,9 @@ Av2hStatus av2h_first_coeff_cdfs_init_for_q(
         { 2024U, 3239U, 6969U, 13073U, 21617U, 27643U },
         { 3765U, 6333U, 13340U, 20831U, 28830U, 32289U }
     };
+    static const uint8_t eob_pt_64_parameter[4U] = {
+        32U, 31U, 31U, 31U
+    };
     static const uint16_t eob_pt_256[4U][7U] = {
         { 321U, 2376U, 5427U, 7836U, 12726U, 18552U, 21084U },
         { 790U, 1184U, 2218U, 5022U, 11432U, 20289U, 23689U },
@@ -316,7 +319,7 @@ Av2hStatus av2h_first_coeff_cdfs_init_for_q(
     if (status != AV2H_OK) return status;
     status = av2h_cdf_init(cdfs->eob_pt_64, 7U + 4U,
                            eob_pt_64[q_context],
-                           7U, 31U, 0U);
+                           7U, eob_pt_64_parameter[q_context], 0U);
     if (status != AV2H_OK) return status;
     status = av2h_cdf_init(
         cdfs->eob_pt_128, 8U + 4U, eob_pt_128[q_context],

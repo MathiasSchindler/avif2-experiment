@@ -384,12 +384,97 @@ static Av2hStatus inverse_secondary_transform(
                     transform->primary_type == AV2H_TX_ADST_ADST &&
                     transform->secondary_symbol == 1U &&
                     transform->secondary_set == 0U) &&
-        !(mode->mode == AV2H_INTRA_D157 &&
-          prefix->tx_size == AV2H_TX_16X16 &&
-          transform->primary_type == AV2H_TX_ADST_ADST &&
-          transform->secondary_symbol == 2U &&
-          transform->secondary_set == 4U)) {
+                !(mode->mode == AV2H_INTRA_D157 &&
+                    prefix->tx_size == AV2H_TX_16X16 &&
+                    transform->primary_type == AV2H_TX_ADST_ADST &&
+                    transform->secondary_symbol == 2U &&
+                    transform->secondary_set == 4U) &&
+                !(mode->mode == AV2H_INTRA_DC &&
+                    prefix->tx_size == AV2H_TX_4X4 &&
+                    transform->primary_type == AV2H_TX_ADST_ADST &&
+                    transform->secondary_symbol == 1U &&
+                    transform->secondary_set == 8U) &&
+                !(mode->mode == AV2H_INTRA_DC &&
+                    prefix->tx_size == AV2H_TX_8X4 &&
+                    transform->primary_type == AV2H_TX_ADST_ADST &&
+                    transform->secondary_symbol == 2U &&
+                    transform->secondary_set == 12U)) {
         return AV2H_UNSUPPORTED;
+    }
+    if (mode->mode == AV2H_INTRA_DC &&
+        prefix->tx_size == AV2H_TX_4X4 &&
+        transform->secondary_symbol == 1U &&
+        transform->secondary_set == 8U) {
+        int32_t small_input[8U];
+        for (index = 0U; index < 8U; ++index) {
+            uint16_t position = av2h_ist_4x4_tx4_input_scan[index];
+            small_input[index] = dequantized[position];
+        }
+        for (index = 0U; index < coefficients->coefficient_count; ++index) {
+            dequantized[index] = 0;
+        }
+        for (index = 0U; index < 16U; ++index) {
+            uint16_t row;
+            int64_t sum = 0;
+            uint16_t position = av2h_ist_4x4_tx4_output_scan[index];
+            for (row = 0U; row < 8U; ++row) {
+                sum += (int64_t)small_input[row] *
+                    av2h_ist_4x4_set8_type1_kernel[row][index];
+            }
+            dequantized[position] =
+                clamp(round_shift_signed(sum, 7U), -32768, 32767);
+        }
+        return AV2H_OK;
+    }
+    if (mode->mode == AV2H_INTRA_DC &&
+        prefix->tx_size == AV2H_TX_8X4 &&
+        transform->secondary_symbol == 2U &&
+        transform->secondary_set == 12U) {
+        int32_t small_input[8U];
+        for (index = 0U; index < 8U; ++index) {
+            uint16_t position = av2h_ist_4x4_tx8_input_scan[index];
+            small_input[index] = dequantized[position];
+        }
+        for (index = 0U; index < coefficients->coefficient_count; ++index) {
+            dequantized[index] = 0;
+        }
+        for (index = 0U; index < 16U; ++index) {
+            uint16_t row;
+            int64_t sum = 0;
+            uint16_t position = av2h_ist_4x4_tx8_output_scan[index];
+            for (row = 0U; row < 8U; ++row) {
+                sum += (int64_t)small_input[row] *
+                    av2h_ist_4x4_set12_type2_kernel[row][index];
+            }
+            dequantized[position] =
+                clamp(round_shift_signed(sum, 7U), -32768, 32767);
+        }
+        return AV2H_OK;
+    }
+    if (mode->mode == AV2H_INTRA_D135 &&
+        prefix->tx_size == AV2H_TX_4X8 &&
+        transform->secondary_symbol == 1U &&
+        transform->secondary_set == 3U) {
+        int32_t small_input[8U];
+        for (index = 0U; index < 8U; ++index) {
+            uint16_t position = av2h_ist_4x4_tx4_input_scan[index];
+            small_input[index] = dequantized[position];
+        }
+        for (index = 0U; index < coefficients->coefficient_count; ++index) {
+            dequantized[index] = 0;
+        }
+        for (index = 0U; index < 16U; ++index) {
+            uint16_t row;
+            int64_t sum = 0;
+            uint16_t position = av2h_ist_4x4_tx4_output_scan[index];
+            for (row = 0U; row < 8U; ++row) {
+                sum += (int64_t)small_input[row] *
+                    av2h_ist_4x4_set3_type1_kernel[row][index];
+            }
+            dequantized[position] =
+                clamp(round_shift_signed(sum, 7U), -32768, 32767);
+        }
+        return AV2H_OK;
     }
     transpose_output = (uint8_t)(
         mode->mode == AV2H_INTRA_HORIZONTAL ||
@@ -1271,6 +1356,13 @@ static Av2hStatus inverse_secondary_transform(
                transform->secondary_set == 0U) {
         kernel = av2h_ist_8x8_set0_type2_kernel;
         scan_map = av2h_ist_8x8_set0_type2_scan_map;
+    } else if (mode->mode == AV2H_INTRA_HORIZONTAL &&
+               mode->angle_delta == 1 &&
+               prefix->tx_size == AV2H_TX_32X16 &&
+               transform->secondary_symbol == 2U &&
+               transform->secondary_set == 0U) {
+        kernel = av2h_ist_8x8_set0_type2_kernel;
+        scan_map = av2h_ist_8x8_set0_type2_scan_map;
     } else if (mode->mode == AV2H_INTRA_D135 &&
                prefix->tx_size == AV2H_TX_64X8 &&
                transform->secondary_symbol == 3U &&
@@ -1547,6 +1639,15 @@ static void directional_filter_edge(uint8_t *edge, size_t count,
 }
 
 static uint16_t cfl_resolve_divisor_32(uint32_t d, int *shift);
+static Av2hStatus apply_intrabc_morph_prediction(
+    const Av2hReconstructionPlane *plane,
+    uint16_t block_x,
+    uint16_t block_y,
+    int32_t source_x,
+    int32_t source_y,
+    uint16_t width,
+    uint16_t height,
+    uint8_t *predictor);
 static uint8_t dc_predictor_average(unsigned int sum, unsigned int count,
                                     uint16_t width, uint16_t height,
                                     uint8_t have_top, uint8_t have_left);
@@ -2522,7 +2623,8 @@ Av2hStatus av2h_luma_predict(
         mode->mrl_index == 0U && mode->multi_line_mrl == 0U &&
         mode->enable_ibp == 1U &&
         ((width == 4U && height == 8U) ||
-         (width == 16U && height == 8U))) {
+         (width == 16U && height == 8U) ||
+         (width == 32U && height == 4U))) {
         return predict_directional_idif(
             mode, 157, width, height, references,
             predictor, predictor_stride);
@@ -2783,6 +2885,7 @@ Av2hStatus av2h_luma_predict(
     }
     if (mode->mode == AV2H_INTRA_D67 && mode->angle_delta == 0 &&
         ((width == 4U && height == 4U) ||
+         (width == 4U && height == 8U) ||
          (width == 8U && height == 16U) ||
          (width == 16U && height == 8U) ||
          (width == 4U && height == 32U) ||
@@ -3463,6 +3566,7 @@ Av2hStatus av2h_luma_predict(
          (width == 16U && height == 16U) ||
          (width == 16U && height == 32U) ||
          (width == 16U && height == 64U) ||
+         (width == 32U && height == 4U) ||
          (width == 32U && height == 8U) ||
          (width == 32U && height == 16U) ||
          (width == 32U && height == 32U) ||
@@ -6883,6 +6987,12 @@ Av2hStatus av2h_luma_reconstruct_to_plane(
                     (uint16_t)((prediction + 32U) >> 6U);
             }
         }
+        if (mode->morph_pred) {
+            status = apply_intrabc_morph_prediction(
+                plane, block_x, block_y, source_x, source_y,
+                output_width, output_height, scratch->predictor);
+            if (status != AV2H_OK) return status;
+        }
         av2h_debug_luma_reconstruct_stage = 13U;
         status = av2h_luma_reconstruct(
             mode, prefix, transform, coefficients, scratch->predictor,
@@ -7075,6 +7185,118 @@ static int32_t cfl_derive_alpha(int32_t sum_x, int32_t sum_y, int32_t sum_xx,
     nor = sum_xy - (int32_t)((int64_t)sum_x * sum_y / count);
     if (der == 0 || nor == 0) return 0;
     return cfl_resolve_divisor_cfl(nor, der, shift);
+}
+
+static uint8_t intrabc_morph_template_size(uint16_t size) {
+    if (size < 3U) return 0U;
+    if (size < 7U) return 4U;
+    if (size < 13U) return 8U;
+    return 16U;
+}
+
+static Av2hStatus apply_intrabc_morph_prediction(
+    const Av2hReconstructionPlane *plane,
+    uint16_t block_x,
+    uint16_t block_y,
+    int32_t source_x,
+    int32_t source_y,
+    uint16_t width,
+    uint16_t height,
+    uint8_t *predictor) {
+    uint8_t template_width = intrabc_morph_template_size(
+        width < 16U ? width : 16U);
+    uint8_t template_height = intrabc_morph_template_size(
+        height < 16U ? height : 16U);
+    uint8_t above_available = block_y != 0U;
+    uint8_t left_available = block_x != 0U;
+    uint8_t above_count = 0U;
+    uint8_t left_count = 0U;
+    int32_t sum_x = 0;
+    int32_t sum_y = 0;
+    int32_t sum_xy = 0;
+    int32_t sum_xx = 0;
+    int32_t alpha;
+    int32_t beta;
+    uint8_t index;
+    uint16_t row;
+    uint16_t column;
+    if (plane == 0 || predictor == 0 || source_x <= 0 || source_y <= 0) {
+        return AV2H_INVALID_DATA;
+    }
+    if (above_available && left_available) {
+        if (template_width == 16U && template_height == 16U) {
+            above_count = 16U;
+            left_count = 16U;
+        } else if (template_width > 4U && template_height > 4U) {
+            above_count = 8U;
+            left_count = 8U;
+        } else if (template_width < 16U && template_height < 16U) {
+            above_count = 4U;
+            left_count = 4U;
+        } else if (template_width == 16U) {
+            above_count = 16U;
+        } else {
+            left_count = 16U;
+        }
+    } else if (above_available) {
+        above_count = template_width;
+    } else if (left_available) {
+        left_count = template_height;
+    }
+    for (index = 0U; index < above_count; ++index) {
+        size_t offset = above_count == template_width ? index :
+            ((size_t)index * template_width) / above_count;
+        size_t current_x = (size_t)block_x + offset;
+        size_t reference_x = (size_t)source_x + offset;
+        uint8_t x;
+        uint8_t y;
+        if (current_x >= plane->width || reference_x >= plane->width ||
+            !plane_sample_reconstructed(plane, current_x, block_y - 1U) ||
+            !plane_sample_reconstructed(
+                plane, reference_x, (size_t)source_y - 1U)) {
+            return AV2H_UNSUPPORTED;
+        }
+        x = plane->data[((size_t)source_y - 1U) * plane->stride + reference_x];
+        y = plane->data[((size_t)block_y - 1U) * plane->stride + current_x];
+        sum_x += x;
+        sum_y += y;
+        sum_xy += x * y;
+        sum_xx += x * x;
+    }
+    for (index = 0U; index < left_count; ++index) {
+        size_t offset = left_count == template_height ? index :
+            ((size_t)index * template_height) / left_count;
+        size_t current_y = (size_t)block_y + offset;
+        size_t reference_y = (size_t)source_y + offset;
+        uint8_t x;
+        uint8_t y;
+        if (current_y >= plane->height || reference_y >= plane->height ||
+            !plane_sample_reconstructed(plane, block_x - 1U, current_y) ||
+            !plane_sample_reconstructed(
+                plane, (size_t)source_x - 1U, reference_y)) {
+            return AV2H_UNSUPPORTED;
+        }
+        x = plane->data[reference_y * plane->stride + (size_t)source_x - 1U];
+        y = plane->data[current_y * plane->stride + block_x - 1U];
+        sum_x += x;
+        sum_y += y;
+        sum_xy += x * y;
+        sum_xx += x * x;
+    }
+    alpha = cfl_derive_alpha(
+        sum_x, sum_y, sum_xx, sum_xy, above_count + left_count, 8);
+    if (alpha == 0) alpha = 256;
+    beta = ((sum_y << 8) - sum_x * alpha) /
+        (int32_t)(above_count + left_count);
+    for (row = 0U; row < height; ++row) {
+        for (column = 0U; column < width; ++column) {
+            int32_t value =
+                (predictor[(size_t)row * width + column] * alpha + beta) >> 8;
+            predictor[(size_t)row * width + column] =
+                (uint8_t)clamp(value, 0, 255);
+        }
+    }
+    return AV2H_OK;
 }
 
 /*

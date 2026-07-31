@@ -18,8 +18,10 @@ caller-owned API only after complete filtered sample parity.
 
 ## Exit gate
 
-The public decoder must reproduce pinned AVM's filtered planes for all four
-fixtures across allowed workspace alignments. Undersized workspace, stale
+The public decoder must reproduce pinned AVM's filtered planes for the four
+currently byte-exact artifact fixtures across allowed workspace alignments.
+Chimp Q64 remains outside this gate until its chroma reconstruction is exact.
+Undersized workspace, stale
 query state, malformed syntax, and every shorter input prefix must fail
 deterministically without allocation or unintended output mutation.
 

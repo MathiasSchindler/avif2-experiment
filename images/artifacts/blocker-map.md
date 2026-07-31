@@ -1,17 +1,17 @@
 # Decoder blocker map
 
-Generated from the pinned AVM accounting census at revision `966a7d7cd6fcf60360caf5dc413b2aeeb65e144d` and a live production decoder sweep. It describes the complete syntax surfaces each artifact will exercise, not a speculative sequence of future failures.
+Generated from the pinned AVM accounting census at revision `966a7d7cd6fcf60360caf5dc413b2aeeb65e144d` and the 2026-07-30 production decoder sweep. It describes the complete syntax surfaces each artifact will exercise, not a speculative sequence of future failures. The sweep columns are retained as historical reach evidence; [`status.md`](status.md) is the current production snapshot. Since this sweep, Louis Q224 and Schwaebisch Q208 became byte-exact, Chinnathurai Q112 advanced to luma inverse transform, and Chimp Q64 advanced to a chroma-only output-parity gap.
 
 ## Reading the map
 
-- **Current stop** is executable evidence from the production decoder.
+- **Sweep stop** is executable evidence from the historical production sweep.
 - Numeric cells are AVM entropy-event counts over the complete frame. They prove that the artifact exercises that surface beyond the current stop; they do not by themselves prove a missing implementation.
 - `-` means the accounting oracle observed no event in that surface.
 - Luma/chroma inverse prediction and transform reconstruction are not entropy events. A reconstruction gap is confirmed only when production or a pinned hosted walk reaches it.
 
 ## Per-file surface exposure
 
-| File | Current stop | Shared partition | Luma partition | Luma mode/parse | Luma prefix | Luma levels | Luma tx/IST syntax | Chroma partition | Chroma mode/parse | Chroma prefix | Chroma levels | Chroma CCTX | Filter controls |
+| File | Sweep stop | Shared partition | Luma partition | Luma mode/parse | Luma prefix | Luma levels | Luma tx/IST syntax | Chroma partition | Chroma mode/parse | Chroma prefix | Chroma levels | Chroma CCTX | Filter controls |
 |---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
 | `chalk-320x240-qp128.obu` | luma reconstruction / inverse transform | 16 | 3498 | 6233 | 2878 | 8340 | 758 | 1702 | 1624 | 4151 | 11791 | 331 | 39 |
 | `chimp-240x287-qp192.obu` | luma reconstruction / inverse transform | 14 | 2338 | 3323 | 1918 | 8937 | 537 | 294 | 77 | 83 | 75 | 5 | 6 |
@@ -35,7 +35,7 @@ Generated from the pinned AVM accounting census at revision `966a7d7cd6fcf60360c
 | `silene-384x307-qp080.obu` | luma parse / unknown | 1 | 3513 | 7616 | 4767 | 68324 | 965 | 1358 | 1098 | 3221 | 20607 | 366 | 49 |
 | `silene-479x383-qp176.obu` | luma reconstruction / inverse transform | 1 | 1703 | 2880 | 1156 | 3489 | 331 | 677 | 494 | 597 | 316 | 9 | 24 |
 
-## Confirmed current frontiers
+## Historical sweep frontiers
 
 | File | Stage | Leaf | Progress |
 |---|---|---|---|
@@ -66,7 +66,7 @@ Generated from the pinned AVM accounting census at revision `966a7d7cd6fcf60360c
 - **Secondary inverse transform:** syntax is visible here, but this AVM revision's accounting value does not expose the packed secondary set and type. Exact missing tuples remain reach-and-pin work.
 - **Luma prediction:** all current corpus prediction frontiers clear, but tuple admission is intentionally narrow; later oracle-observed geometries are exposure, not proof of support.
 - **Coefficient and parse stages:** complete-frame event counts show where each file will return after earlier fixes. Adaptive CDF state means a future failure cannot be ordered safely until preceding blocks decode sample- and range-exactly.
-- **Frame filtering:** controls show which tools are signaled. Only the two current frame-filter stops are confirmed missing production paths; a nonzero control count alone is not a blocker.
+- **Frame filtering:** controls show which tools are signaled. Current production completes frame filtering for every stream that reaches it; a nonzero control count alone is not a blocker.
 
 Regenerate after building the accounting census and production decoder:
 
