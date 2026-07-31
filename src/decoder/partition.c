@@ -95,7 +95,8 @@ static Av2hBlockSize block_size_from_dimensions(uint8_t width,
     return AV2H_BLOCK_INVALID;
 }
 
-static Av2hPartitionAxis implied_axis(Av2hBlockSize block_size) {
+static Av2hPartitionAxis implied_axis(Av2hBlockSize block_size,
+                                      size_t structure) {
     if (block_size == AV2H_BLOCK_128X256 ||
         block_size == AV2H_BLOCK_4X8 ||
         block_size == AV2H_BLOCK_64X128 ||
@@ -107,6 +108,16 @@ static Av2hPartitionAxis implied_axis(Av2hBlockSize block_size) {
         block_size == AV2H_BLOCK_128X64 ||
         block_size == AV2H_BLOCK_16X4) {
         return AV2H_PARTITION_VERTICAL;
+    }
+    if (structure == 1U) {
+        if (block_size == AV2H_BLOCK_8X16 ||
+            block_size == AV2H_BLOCK_8X32) {
+            return AV2H_PARTITION_HORIZONTAL;
+        }
+        if (block_size == AV2H_BLOCK_16X8 ||
+            block_size == AV2H_BLOCK_32X8) {
+            return AV2H_PARTITION_VERTICAL;
+        }
     }
     return (Av2hPartitionAxis)255;
 }
@@ -555,7 +566,7 @@ Av2hStatus av2h_partition_first_leaf_read(
             return AV2H_OK;
         }
 
-        axis = implied_axis(node.block_size);
+        axis = implied_axis(node.block_size, 0U);
         axis_was_implied = axis != (Av2hPartitionAxis)255;
         if (!axis_was_implied) {
             value = av2h_range_read_adaptive(
@@ -683,12 +694,7 @@ Av2hStatus av2h_partition_node_read_for_structure(
         *child = node;
         return AV2H_OK;
     }
-    axis = implied_axis(node.block_size);
-    if (structure == 1U && node.block_size == AV2H_BLOCK_16X8) {
-        axis = AV2H_PARTITION_VERTICAL;
-    } else if (structure == 1U && node.block_size == AV2H_BLOCK_8X16) {
-        axis = AV2H_PARTITION_HORIZONTAL;
-    }
+    axis = implied_axis(node.block_size, structure);
     decision->axis_implied = (uint8_t)(axis != (Av2hPartitionAxis)255);
     if (!decision->axis_implied) {
         value = av2h_range_read_adaptive(
@@ -752,7 +758,7 @@ Av2hStatus av2h_partition_node_read_with_state(
     unsigned int enable_uneven_4way_partitions,
     Av2hPartitionDecision *decision,
     Av2hPartitionNode *child) {
-    Av2hPartitionAxis axis = implied_axis(node.block_size);
+    Av2hPartitionAxis axis = implied_axis(node.block_size, structure);
     size_t split_context;
     size_t rect_type_context;
     size_t extension_context;
@@ -855,7 +861,7 @@ Av2hStatus av2h_partition_node_read_with_state(
         return child->block_size == AV2H_BLOCK_INVALID
             ? AV2H_UNSUPPORTED : AV2H_OK;
     }
-    axis = implied_axis(node.block_size);
+    axis = implied_axis(node.block_size, structure);
     status = av2h_partition_contexts_from_state(
         state, structure, node, AV2H_PARTITION_HORIZONTAL, &split_context,
         &rect_type_context, &extension_context);
@@ -895,11 +901,6 @@ Av2hStatus av2h_partition_node_read_with_state(
         decision->after_bits = av2h_range_tell(decoder);
         *child = node;
         return AV2H_OK;
-    }
-    if (structure == 1U && node.block_size == AV2H_BLOCK_16X8) {
-        axis = AV2H_PARTITION_VERTICAL;
-    } else if (structure == 1U && node.block_size == AV2H_BLOCK_8X16) {
-        axis = AV2H_PARTITION_HORIZONTAL;
     }
     decision->axis_implied = (uint8_t)(axis != (Av2hPartitionAxis)255);
     if (!decision->axis_implied) {

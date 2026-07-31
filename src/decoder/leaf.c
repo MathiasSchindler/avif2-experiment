@@ -146,6 +146,9 @@ Av2hStatus av2h_leaf_cdfs_init(Av2hLeafCdfs *cdfs) {
     static const Av2hBinaryCdfSpec mrl_secondary[] = {
         { 19678U, 6U, 0U }, { 12287U, 6U, 0U }, { 9574U, 6U, 0U }
     };
+    static const Av2hBinaryCdfSpec morph_pred[] = {
+        { 31715U, 55U, 0U }, { 19667U, 1U, 0U }, { 10555U, 91U, 0U }
+    };
     static const Av2hBinaryCdfSpec is_cfl[] = {
         { 20441U, 30U, 0U }, { 11610U, 6U, 0U }, { 4643U, 0U, 0U }
     };
@@ -217,6 +220,9 @@ Av2hStatus av2h_leaf_cdfs_init(Av2hLeafCdfs *cdfs) {
     if (status != AV2H_OK) return status;
     status = av2h_binary_cdf_init(cdfs->intrabc_precision,
                                   intrabc_precision_default);
+    if (status != AV2H_OK) return status;
+    status = initialize_binary_table(cdfs->morph_pred, morph_pred,
+                                     AV2H_MORPH_PRED_CONTEXT_COUNT);
     if (status != AV2H_OK) return status;
     status = av2h_binary_cdf_init(cdfs->intrabc_shell_set,
                                   intrabc_shell_set_default);
@@ -2064,6 +2070,34 @@ static Av2hStatus read_first_intrabc(
     }
     mode->displacement_x = (int16_t)(reference_x + difference_x);
     mode->displacement_y = (int16_t)(reference_y + difference_y);
+    mode->morph_pred = 0U;
+    if (sequence->enable_bawp && frame->allow_screen_content_tools) {
+        uint8_t morph_context = 0U;
+        const Av2hLumaModeContext *neighbor;
+        if (leaf->row > 0U) {
+            neighbor = intrabc_spatial_context(
+                state, leaf->row - 1U, leaf->column);
+            if (neighbor != 0 && neighbor->use_intrabc &&
+                neighbor->morph_pred) {
+                ++morph_context;
+            }
+        }
+        if (leaf->column > 0U) {
+            neighbor = intrabc_spatial_context(
+                state, leaf->row, leaf->column - 1U);
+            if (neighbor != 0 && neighbor->use_intrabc &&
+                neighbor->morph_pred) {
+                ++morph_context;
+            }
+        }
+        value = av2h_range_read_adaptive(
+            decoder, cdfs->morph_pred[morph_context], 2U);
+        if (av2h_range_status(decoder) != AV2H_OK) {
+            return av2h_range_status(decoder);
+        }
+        mode->morph_pred = (uint8_t)value;
+        if (mode->morph_pred != 0U) return AV2H_UNSUPPORTED;
+    }
     mode->mode_set = 0U;
     mode->mode_index = 0U;
     mode->joint_mode = 0U;
@@ -2177,6 +2211,8 @@ Av2hStatus av2h_luma_mode_neighbors_from_state(
         neighbors->mrl_index[index] = context != 0 ? context->mrl_index : 0U;
         neighbors->multi_line_mrl[index] =
             context != 0 ? context->multi_line_mrl : 0U;
+        neighbors->morph_pred[index] =
+            context != 0 ? context->morph_pred : 0U;
         neighbors->spatial_present[index] =
             (uint8_t)(spatial_context != 0 && spatial_context->present);
         neighbors->spatial_use_intrabc[index] =
@@ -2232,6 +2268,7 @@ Av2hStatus av2h_luma_mode_context_state_update(
     context.intrabc_mode = mode->intrabc_mode;
     context.intrabc_drl_index = mode->intrabc_drl_index;
     context.mv_precision = mode->mv_precision;
+    context.morph_pred = mode->morph_pred;
     context.displacement_x = mode->displacement_x;
     context.displacement_y = mode->displacement_y;
     context.skip_transform = mode->skip_transform;
@@ -2254,8 +2291,6 @@ Av2hStatus av2h_luma_mode_context_state_update(
         unit_count = (width / unit_mi > 0U ? width / unit_mi : 1U) *
                      (height / unit_mi > 0U ? height / unit_mi : 1U);
         if (row_in_superblock == 0U && column_in_superblock == 0U) {
-            state->intrabc_bank_count = 0U;
-            state->intrabc_bank_start = 0U;
             state->intrabc_bank_remaining_hits = (uint16_t)(
                 unit_count > 4U ? unit_count : 4U);
             state->intrabc_bank_unit_hits = 0U;

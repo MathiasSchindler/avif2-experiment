@@ -418,6 +418,38 @@ static void test_context_state(void) {
     CHECK(extension_context == 3U);
 }
 
+static void test_chroma_rect_axis_is_implied(void) {
+    static const unsigned char bytes[] = {
+        0xffU, 0xffU, 0xffU, 0xffU
+    };
+    static const Av2hBlockSize blocks[] = {
+        AV2H_BLOCK_8X32, AV2H_BLOCK_32X8
+    };
+    static const Av2hPartitionType partitions[] = {
+        AV2H_PARTITION_HORZ, AV2H_PARTITION_VERT
+    };
+    static const Av2hBlockSize children[] = {
+        AV2H_BLOCK_8X16, AV2H_BLOCK_16X8
+    };
+    size_t index;
+    for (index = 0U; index < 2U; ++index) {
+        Av2hSpan span = { bytes, sizeof(bytes) };
+        Av2hRangeDecoder decoder;
+        Av2hPartitionCdfs cdfs;
+        Av2hPartitionDecision decision;
+        Av2hPartitionNode child;
+        CHECK(av2h_partition_cdfs_init(&cdfs) == AV2H_OK);
+        CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
+        CHECK(av2h_partition_node_read_for_structure(
+                  &decoder, &cdfs, 1U,
+                  (Av2hPartitionNode){ 0U, 0U, blocks[index] },
+                  0U, 0U, 0U, 1U, &decision, &child) == AV2H_OK);
+        CHECK(decision.partition == partitions[index]);
+        CHECK(decision.axis_implied == 1U);
+        CHECK(child.block_size == children[index]);
+    }
+}
+
 static void test_traversal(void) {
     static const unsigned char bytes[] = { 0U, 0U, 0U, 0U };
     uint8_t luma_above[4U];
@@ -559,6 +591,7 @@ int main(void) {
     test_forced_geometry();
     test_first_leaf_paths();
     test_context_state();
+    test_chroma_rect_axis_is_implied();
     test_traversal();
     test_superblock_roots();
     test_arguments();

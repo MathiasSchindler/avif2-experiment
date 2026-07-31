@@ -513,6 +513,24 @@ static void test_chroma_derived_transform_types(void) {
         CHECK(transform.primary_type == AV2H_TX_DCT_DCT);
     }
 
+    mode.mode = AV2H_INTRA_SMOOTH;
+    {
+        static const Av2hFirstTxSize sizes[] = {
+            AV2H_TX_16X32, AV2H_TX_32X16
+        };
+        size_t size_index;
+        for (size_index = 0U; size_index < 2U; ++size_index) {
+            Av2hRangeDecoder decoder;
+            Av2hFirstTransformType transform;
+            prefix.tx_size = sizes[size_index];
+            CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
+            CHECK(av2h_chroma_transform_type_read(
+                      &decoder, &cdfs, &frame, &mode, 1U, &prefix,
+                      &transform) == AV2H_OK);
+            CHECK(transform.primary_type == AV2H_TX_DCT_DCT);
+        }
+    }
+
     prefix.tx_size = AV2H_TX_64X16;
     mode.mode = AV2H_INTRA_VERTICAL;
     {

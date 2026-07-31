@@ -2246,14 +2246,17 @@ Av2hStatus av2h_luma_predict(
                        (mode->mode == AV2H_INTRA_D113 &&
                                                 ((width == 4U && height == 8U) ||
                                                  (width == 4U && height == 16U) ||
+                                                 (width == 8U && height == 16U) ||
                                                  (width == 64U && height == 8U))) ||
                      (mode->mode == AV2H_INTRA_D135 &&
-                        ((width == 8U && height == 32U) ||
+                        ((width == 8U && height == 8U) ||
+                         (width == 8U && height == 32U) ||
                          (width == 16U && height == 4U) ||
                          (width == 8U && height == 16U) ||
                          (width == 32U && height == 64U))) ||
                      (mode->mode == AV2H_INTRA_D157 &&
-                        ((width == 16U && height == 4U) ||
+                        ((width == 8U && height == 4U) ||
+                         (width == 16U && height == 4U) ||
                          (width == 8U && height == 16U) ||
                          (width == 32U && height == 32U))) ||
            (mode->mode == AV2H_INTRA_D67 &&

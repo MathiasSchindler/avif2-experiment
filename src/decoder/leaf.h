@@ -58,11 +58,14 @@ extern uint8_t av2h_debug_chroma_mode_stage;
 #define AV2H_PALETTE_MAP_CAPACITY 64U
 #define AV2H_PALETTE_COLOR_CONTEXT_COUNT 5U
 #define AV2H_PALETTE_ROW_CONTEXT_COUNT 4U
+#define AV2H_MORPH_PRED_CONTEXT_COUNT 3U
 
 typedef struct {
     uint16_t intrabc[AV2H_INTRABC_CONTEXT_COUNT][AV2H_BINARY_CDF_SIZE];
     uint16_t intrabc_mode[AV2H_BINARY_CDF_SIZE];
     uint16_t intrabc_precision[AV2H_BINARY_CDF_SIZE];
+    uint16_t morph_pred[AV2H_MORPH_PRED_CONTEXT_COUNT]
+                       [AV2H_BINARY_CDF_SIZE];
     uint16_t intrabc_shell_set[AV2H_BINARY_CDF_SIZE];
     uint16_t intrabc_shell_class[AV2H_INTRABC_SHELL_CLASS_SYMBOLS + 4U];
     uint16_t intrabc_qtr_shell_class
@@ -135,6 +138,7 @@ typedef struct {
     uint8_t skip_transform;
     uint8_t intrabc_drl_index;
     uint8_t mv_precision;
+    uint8_t morph_pred;
     int16_t displacement_x;
     int16_t displacement_y;
     uint8_t ccso_present_mask;
@@ -193,6 +197,7 @@ typedef struct {
     uint8_t fsc_mode[2];
     uint8_t mrl_index[2];
     uint8_t multi_line_mrl[2];
+    uint8_t morph_pred[2];
     uint8_t spatial_present[2];
     uint8_t spatial_use_intrabc[2];
     uint8_t spatial_skip_transform[2];
@@ -209,6 +214,7 @@ typedef struct {
     uint8_t intrabc_mode;
     uint8_t intrabc_drl_index;
     uint8_t mv_precision;
+    uint8_t morph_pred;
     int16_t displacement_x;
     int16_t displacement_y;
     uint8_t skip_transform;

@@ -1591,11 +1591,6 @@ Av2hStatus av2h_filter_frame(
         av2h_debug_filter_reason = 5U;
         return AV2H_UNSUPPORTED;
     }
-    if (frame->cdef_strength_count > 1U) {
-        if (dimensions_valid(planes, frame)) capture_filter_stage(0U, planes);
-        av2h_debug_filter_reason = 4U;
-        return AV2H_UNSUPPORTED;
-    }
     if ((frame->cdef_strength_count != 0U &&
          sequence->enable_cdef == 0U) ||
         ((frame->ccso[0].enabled != 0U ||

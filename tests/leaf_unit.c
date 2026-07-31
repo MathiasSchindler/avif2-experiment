@@ -1923,6 +1923,38 @@ static void test_chroma_cfl_cdf_defaults(void) {
     CHECK(cdfs.is_cfl[2][0] == (uint16_t)(32768U - 4643U));
 }
 
+static void test_intrabc_bank_survives_superblock_boundary(void) {
+    Av2hLumaModeContextState state;
+    Av2hLumaModeContext above[32U];
+    Av2hLumaModeContext left[32U];
+    Av2hPartitionNode leaf = { 0U, 16U, AV2H_BLOCK_32X8 };
+    Av2hFirstLeafMode mode = { 0 };
+    CHECK(av2h_luma_mode_context_state_init(
+              &state, above, 32U, left, 32U) == AV2H_OK);
+    state.superblock_mi = 16U;
+    state.intrabc_bank_count = 1U;
+    state.intrabc_bank_start = 2U;
+    state.intrabc_bank_x[2U] = 0;
+    state.intrabc_bank_y[2U] = -32;
+    CHECK(av2h_luma_mode_context_state_update(
+              &state, &leaf, &mode) == AV2H_OK);
+    CHECK(state.intrabc_bank_count == 1U);
+    CHECK(state.intrabc_bank_start == 2U);
+    CHECK(state.intrabc_bank_x[2U] == 0);
+    CHECK(state.intrabc_bank_y[2U] == -32);
+    CHECK(state.intrabc_bank_remaining_hits == 4U);
+    CHECK(state.intrabc_bank_unit_hits == 0U);
+    CHECK(state.intrabc_bank_superblock_hits == 0U);
+}
+
+static void test_intrabc_morph_pred_cdf_defaults(void) {
+    Av2hLeafCdfs cdfs;
+    CHECK(av2h_leaf_cdfs_init(&cdfs) == AV2H_OK);
+    CHECK(cdfs.morph_pred[0][0] == (uint16_t)(32768U - 31715U));
+    CHECK(cdfs.morph_pred[1][0] == (uint16_t)(32768U - 19667U));
+    CHECK(cdfs.morph_pred[2][0] == (uint16_t)(32768U - 10555U));
+}
+
 int main(void) {
     test_larger_mode_ordering();
     test_fixture_modes();
@@ -1931,6 +1963,8 @@ int main(void) {
     test_gdf_after_intrabc();
     test_chroma_cfl_derived_alpha();
     test_chroma_cfl_cdf_defaults();
+    test_intrabc_bank_survives_superblock_boundary();
+    test_intrabc_morph_pred_cdf_defaults();
     if (failures != 0) {
         fprintf(stderr, "%d leaf checks failed\n", failures);
         return 1;

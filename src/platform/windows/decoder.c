@@ -142,6 +142,20 @@ static const char *reconstruction_stage_name(uint8_t stage) {
     }
 }
 
+static const char *chroma_reconstruction_stage_name(uint8_t stage) {
+    switch (stage) {
+        case 0U: return "setup";
+        case 1U: return "prediction";
+        case 2U: return "output";
+        case 3U: return "all-zero output";
+        case 11U: return "inverse transform geometry";
+        case 12U: return "inverse transform type";
+        case 13U: return "secondary inverse transform";
+        case 14U: return "primary inverse transform";
+        default: return "unknown";
+    }
+}
+
 static const char *block_size_name(uint8_t block_size) {
     static const char *const names[AV2H_BLOCK_SIZE_COUNT] = {
         "4x4", "4x8", "8x4", "8x8", "8x16", "16x8", "16x16",
@@ -224,7 +238,10 @@ static void write_decode_diagnostic(const Av2hFrameDecodeResult *result) {
     } else if (result->stage == AV2H_FRAME_DECODE_STAGE_LUMA_RECONSTRUCT ||
                result->stage == AV2H_FRAME_DECODE_STAGE_CHROMA_RECONSTRUCT) {
         write_console(" / ");
-        write_console(reconstruction_stage_name(result->syntax_stage));
+        write_console(result->stage ==
+            AV2H_FRAME_DECODE_STAGE_CHROMA_RECONSTRUCT ?
+            chroma_reconstruction_stage_name(result->syntax_stage) :
+            reconstruction_stage_name(result->syntax_stage));
     }
     write_console("\r\n  leaf: (");
     write_unsigned(result->row);

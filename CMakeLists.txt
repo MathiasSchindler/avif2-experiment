@@ -147,8 +147,9 @@ if(WIN32 AND CMAKE_C_COMPILER_ID MATCHES "Clang")
             "-DDECODER=$<TARGET_FILE:av2heif-decoder>"
             "-DINPUT=${CMAKE_CURRENT_SOURCE_DIR}/images/artifacts/silene-384x307-qp080.obu"
             "-DOUTPUT=${CMAKE_CURRENT_BINARY_DIR}/diagnostic-silene.i420"
-            "-DEXPECTED_STAGE=stage: luma reconstruction / IntraBC reference availability"
-            "-DEXPECTED_LEAF=leaf: (4,24) block=32x16 plane=Y"
-            "-DEXPECTED_PROGRESS=entropy tell: 489; completed leaves: Y=7 UV=1"
+            "-DEXPECTED_CAUSE=cause: invalid data"
+            "-DEXPECTED_STAGE=stage: luma reconstruction / IntraBC source bounds"
+            "-DEXPECTED_LEAF=leaf: (8,21) block=8x8 plane=Y"
+            "-DEXPECTED_PROGRESS=entropy tell: 739; completed leaves: Y=22 UV=1"
             -P "${CMAKE_CURRENT_SOURCE_DIR}/scripts/check-decoder-diagnostic.cmake")
 endif()

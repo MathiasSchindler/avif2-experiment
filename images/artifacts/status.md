@@ -29,24 +29,25 @@ an earlier entropy divergence can still be the underlying cause.
 
 | Current stopping surface | Files |
 | --- | --- |
-| Luma coefficient prefix | `chalk-320x240-qp128.obu`, `laarim-256x171-qp096.obu`, `schwaebisch-417x277-qp208.obu` |
-| Luma prediction | `silene-479x383-qp176.obu` |
-| Luma IntraBC source bounds | `chinnathurai-128x128-qp112.obu` |
-| Luma IntraBC reference availability | `silene-384x307-qp080.obu` |
-| Chroma IntraBC reference availability | `chimp-240x287-qp192.obu`, `cuckoo-157x105-qp160.obu` |
-| Luma inverse transform | `cuckoo-431x287-qp080.obu`, `emerald-480x240-qp128.obu`, `flycatcher-223x149-qp176.obu`, `flycatcher-397x265-qp048.obu`, `laarim-448x299-qp192.obu`, `louis-301x222-qp144.obu`, `pastell-512x341-qp160.obu` |
+| Luma coefficient prefix | `chalk-320x240-qp128.obu`, `chinnathurai-128x128-qp112.obu`, `laarim-256x171-qp096.obu`, `schwaebisch-417x277-qp208.obu` |
+| Luma prediction | None |
+| Luma IntraBC source bounds | `silene-384x307-qp080.obu` |
+| Luma IntraBC reference availability | None |
+| Chroma IntraBC reference availability | None |
+| Luma inverse transform | `chimp-240x287-qp192.obu`, `cuckoo-157x105-qp160.obu`, `cuckoo-431x287-qp080.obu`, `emerald-480x240-qp128.obu`, `flycatcher-223x149-qp176.obu`, `flycatcher-397x265-qp048.obu`, `laarim-448x299-qp192.obu`, `louis-301x222-qp144.obu`, `pastell-320x213-qp064.obu`, `pastell-512x341-qp160.obu`, `schwaebisch-353x234-qp112.obu`, `silene-479x383-qp176.obu` |
 | Chroma parse | None |
-| Chroma deblock map | `pastell-320x213-qp064.obu`, `schwaebisch-353x234-qp112.obu` |
-| Frame filter | `chimp-93x111-qp064.obu` |
+| Chroma deblock map | None |
+| Frame filter | None |
+| Output parity | `chimp-93x111-qp064.obu` |
 
 | File | Current endpoint | Blocker |
 | --- | --- | --- |
 | `chalk-320x240-qp128.obu` | 26 luma and eight chroma leaves committed; `(24,52)` 16x32 Y exhausts an impossible EOB 947 during coefficient-prefix parsing at tell 1200 | Upstream entropy divergence after the former `(16,16)` TX_32X64 IST blocker |
-| `chimp-240x287-qp192.obu` | 112 luma and four chroma leaves committed; `(16,0)` 32x64 U reaches IntraBC reference availability at tell 2695 | Upstream chroma mode/reference divergence |
-| `chimp-93x111-qp064.obu` | Tile reconstruction completes with 26 luma and nine chroma leaves at tell 950; decoding reaches the multi-strength CDEF gate, but all three reconstructed-plane hashes already differ from AVM prefilter hashes | Upstream reconstruction parity before frame filtering |
-| `chinnathurai-128x128-qp112.obu` | 41 luma and ten chroma leaves committed; `(2,16)` 16x8 Y reaches IntraBC source-bounds validation at tell 2124; local DRL 0 falls back to candidate `(0,-512)` and produces `(-160,-504)`, while AVM produces `(-160,-24)` | Upstream IntraBC candidate-stack/traversal divergence |
+| `chimp-240x287-qp192.obu` | Chroma derived-transform legality advances past the former stage-12 diagnostic at tell 2695 before luma reconstruction reaches inverse-transform support at tell 3150 | Luma inverse-transform profile |
+| `chimp-93x111-qp064.obu` | Tile reconstruction and multi-strength CDEF filtering complete, but the 15,587-byte output differs from AVM because all three reconstructed-plane hashes already differ before filtering | Upstream reconstruction parity before frame filtering |
+| `chinnathurai-128x128-qp112.obu` | 119 luma and 19 chroma leaves committed; the retained cross-superblock BVP bank reproduces AVM vector `(-160,-24)` at `(2,16)` before `(28,0)` 64x16 Y decodes impossible EOB 817 at tell 5510 | Upstream entropy divergence after the former IntraBC source-bounds blocker |
 | `chinnathurai-333x333-qp224.obu` | **Complete:** emitted 166,667-byte I420 is byte-identical to the AVM reference (SHA-256 `6f1868d8945e87350414baa1a49829b21dbcb8c4e0e44dee6633d844ef5d7182`) | None for the accepted profile |
-| `cuckoo-157x105-qp160.obu` | 20 luma and one chroma leaf committed; `(8,0)` 64x32 U reaches IntraBC reference availability at tell 461 | Upstream chroma mode/reference divergence |
+| `cuckoo-157x105-qp160.obu` | Chroma derived-transform legality advances past the former stage-12 diagnostic at tell 461 before luma reconstruction reaches inverse-transform support at tell 629 | Luma inverse-transform profile |
 | `cuckoo-431x287-qp080.obu` | 29 luma and three chroma leaves committed; `(0,40)` 32x16 Y leaf reaches inverse transform at tell 1908 | Q80 luma inverse-transform profile |
 | `emerald-192x96-qp208.obu` | **Complete:** 20 luma and 11 chroma leaves, tile done at tell 731, filtered I420 byte-identical to the AVM reference (SHA-256 `403c2e7245ec484984e60c1eaf8bd1b47487c0ba6b60afc916b9532025fc51ad`) | None for the accepted profile |
 | `emerald-480x240-qp128.obu` | 13 luma and nine chroma leaves committed; `(24,8)` 16x32 Y advances through prediction and reaches inverse transform at tell 1077 | Q128 luma inverse-transform profile |
@@ -56,22 +57,21 @@ an earlier entropy divergence can still be the underlying cause.
 | `laarim-448x299-qp192.obu` | 19 luma and eight chroma leaves committed; `(16,0)` 64x32 Y reaches inverse transform at tell 775 | Q192 luma inverse-transform profile |
 | `louis-301x222-qp144.obu` | 22 luma and eight chroma leaves committed; `(16,32)` 64x64 Y reaches inverse transform at tell 2309 | Q144 luma inverse-transform profile |
 | `louis-463x342-qp224.obu` | **Complete:** emitted 237,690-byte filtered I420 is byte-identical to the AVM reference (SHA-256 `cbc741b34cc55af162d99e44273a6bb01a2f6152cb10ee5884248ceef33d0427`) | None for the accepted profile |
-| `pastell-320x213-qp064.obu` | 80 luma and 84 chroma leaves committed; `(32,67)` 4x32 U reaches deblock-map commit at tell 3715 | Upstream chroma partition divergence produces a non-conformant odd chroma origin |
+| `pastell-320x213-qp064.obu` | 60 luma and 23 chroma leaves committed; chroma 8x32 axis implication remains aligned before `(16,62)` 8x32 Y reaches inverse transform at tell 2841 | Q64 luma inverse-transform profile |
 | `pastell-512x341-qp160.obu` | 52 luma and 15 chroma leaves committed; `(16,48)` 64x32 Y reaches inverse transform at tell 1892 | Q160 luma inverse-transform profile |
-| `schwaebisch-353x234-qp112.obu` | 72 luma and 21 chroma leaves committed; narrow chroma transform geometry advances past the `(8,72)` U prefix to `(8,73)` deblock-map commit at tell 2521 | Upstream chroma partition divergence: repeated vertical decisions at `(8,72)` produce a non-conformant 4x32 leaf with an odd chroma origin |
+| `schwaebisch-353x234-qp112.obu` | 73 luma and 21 chroma leaves committed; chroma 8x32 axis implication advances past the former odd-origin deblock stop before `(4,80)` 16x16 Y reaches inverse transform at tell 2601 | Q112 luma inverse-transform profile |
 | `schwaebisch-417x277-qp208.obu` | 240 luma and 46 chroma leaves committed; bottom-edge TX_32X4 derived-CfL reconstruction completes before `(64,96)` 32x32 Y exhausts the tile during its all-zero prefix read at tell 4370 | Upstream chroma partition/entropy divergence: local and AVM luma partition tells first separate after row-64/column-16 chroma syntax; AVM keeps one 64x32 chroma block there |
-| `silene-384x307-qp080.obu` | Seven luma and one chroma leaf committed; local `(4,24)` 32x16 Y decodes IntraBC and reaches reference validation at tell 489, but pinned AVM has no IntraBC block at that position | Upstream luma mode entropy/traversal divergence |
-| `silene-479x383-qp176.obu` | 67 luma and 13 chroma leaves committed; `(2,108)` 8x8 D135 Y reaches prediction at tell 2577 after clearing the former Smooth and IST chain | Q176 luma prediction profile |
+| `silene-384x307-qp080.obu` | 22 luma and one chroma leaf committed; the missing adaptive IntraBC morph-pred symbol restores exact AVM range/EOB parity through `(7,20)` before local `(8,21)` falsely decodes IntraBC and reaches source bounds at tell 739; AVM has no IntraBC block there | Upstream entropy divergence after the corrected `(7,20)` block |
+| `silene-479x383-qp176.obu` | 86 luma and 23 chroma leaves committed; `(16,16)` 16x64 Y reaches inverse transform at tell 3090 after clearing D135 8x8, D157 8x4, and D113 8x16 prediction | Q176 luma inverse-transform profile |
 
 Summary:
 
 - the public Windows decoder completes 3/21 artifacts. The other 18 streams
-  fail closed without output. The fresh production census identifies zero
-  three luma coefficient-prefix stops, one luma-prediction stop, one IntraBC
-  source-bounds stop, three IntraBC-reference stops, seven luma
-  inverse-transform stops, two chroma-deblock-map stops, and one frame-filter
-  stop. Every emitted I420 matches
-  its locked AVM reference;
+  fail closed without output. The fresh production census identifies four
+  luma coefficient-prefix stops, zero luma-prediction stops, one IntraBC
+  source-bounds stop, zero IntraBC-reference stops, twelve luma
+  inverse-transform stops, zero chroma-deblock-map stops, zero frame-filter
+  stops, and one output-parity mismatch;
 - normative FSC geometry now admits every 4--32 dimension in luma mode,
   transform derivation, and coefficient-prefix parsing. Chimp Q64 advances
   from its first 8x8 mode at tell 30 to chroma prediction at tell 173, and
@@ -134,26 +134,29 @@ Summary:
   tuple. Palette indices are bit-packed in the existing 64-byte bounded map,
   preserving freestanding linkage while supporting the 256-sample map.
   Silene advances from tell 553 with 14 luma leaves to tell 1266 with 28;
-- the CDEF kernel can select Y/UV strengths from the parsed per-64x64 unit
-  map, and the focused filter unit covers selection of strength entry 1.
-  Production still rejects multi-strength frames with filter reason 4.
-  Chimp Q64 is now the only stream reaching that gate; Chinnathurai Q112 stops
-  earlier at IntraBC source bounds. An ungated Chimp trial differed in 15,374
-  of 15,587 output bytes, and its local prefilter hashes
+- the CDEF kernel selects Y/UV strengths from the parsed per-64x64 unit map,
+  and the focused filter unit covers selection of strength entry 1.
+  Production now executes multi-strength filtering. Chimp Q64 completes but
+  differs in 15,374 of 15,587 output bytes, and its local prefilter hashes
   `850f522712b4b74c/42bbd333f17049bf/ae60306cfbedd72c` already differ from AVM
   `16848db5a032b117/9bcde1179fd91d15/32cb3af20552bbfe` on Y/U/V. The first
-  parity break is therefore upstream of frame filtering, so the gate remains;
+  parity break is therefore upstream of frame filtering;
+- IntraBC now consumes the adaptive morph-pred symbol after its displacement,
+  using the normative three-context CDF and immediate above/left morph state.
+  Silene Q80 matches pinned AVM through vector `(-256,-136)`, morph range
+  `45704`, EOB 30, and final EOB range `35952` at `(7,20)`, advancing from
+  seven to 22 committed luma leaves. The later false IntraBC at `(8,21)` is
+  downstream entropy divergence rather than reference-availability failure;
 - frame filtering now records deterministic per-plane hashes after
   reconstruction, deblocking, CDEF, CCSO, and final GDF/output. The hosted
   filter unit verifies that a known CCSO pixel change first alters the CCSO
   hash while the disabled-GDF final hash remains identical. Multi-strength
   failures also expose reconstruction-stage hashes before returning reason 4;
-- structured Windows failures now retain the latest 32 partition decisions
-  and Y/UV leaves with entropy tells. For Schwaebisch Q112 this proves that
-  the deblock-map stop is downstream of three vertical chroma decisions at
-  `(8,72)`, ending at tell 2519 and producing adjacent 4x32 leaves at columns
-  72 and 73. Pinned AVM geometry contains no corresponding invalid chroma
-  origin, so production remains fail-closed at the upstream traversal drift;
+- chroma partition axis signaling now matches AVM for 8x32 and 32x8 blocks.
+  Their only chroma-valid ordinary axes are implied, so production no longer
+  consumes an axis symbol or produces odd-origin 4x32/32x4 chroma leaves.
+  Pastell Q64 and Schwaebisch Q112 both advance from chroma deblock-map stops
+  to later luma inverse-transform frontiers;
 - Louis Q224 now completes byte-identically after admitting its observed D135
   8x32 predictor, existing IST kernels for its additional mode/geometry tuples,
   and secondary transform signaling for DCT_DCT 64x8 and smooth ADST_ADST
