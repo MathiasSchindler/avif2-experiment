@@ -451,6 +451,26 @@ static void test_emerald_secondary_signaling(void) {
         AV2H_TX_32X64, AV2H_INTRA_DC, 4U, AV2H_TX_DCT_DCT, 1U);
     check_secondary_signal(
         AV2H_TX_32X8, AV2H_INTRA_DC, 2U, AV2H_TX_ADST_DCT, 0U);
+    check_secondary_signal(
+        AV2H_TX_8X4, AV2H_INTRA_D113, 3U, AV2H_TX_DCT_DCT, 1U);
+    check_secondary_signal(
+        AV2H_TX_8X4, AV2H_INTRA_D113, 8U, AV2H_TX_DCT_DCT, 1U);
+    check_secondary_signal(
+        AV2H_TX_8X4, AV2H_INTRA_D113, 9U, AV2H_TX_DCT_DCT, 0U);
+    check_secondary_signal(
+        AV2H_TX_8X8, AV2H_INTRA_D113, 20U, AV2H_TX_DCT_DCT, 1U);
+    check_secondary_signal(
+        AV2H_TX_8X8, AV2H_INTRA_D113, 21U, AV2H_TX_DCT_DCT, 0U);
+    check_secondary_signal(
+        AV2H_TX_16X16, AV2H_INTRA_D113, 32U, AV2H_TX_DCT_DCT, 1U);
+    check_secondary_signal(
+        AV2H_TX_16X16, AV2H_INTRA_D113, 33U, AV2H_TX_DCT_DCT, 0U);
+    check_secondary_signal(
+        AV2H_TX_16X16, AV2H_INTRA_D113, 20U, AV2H_TX_ADST_ADST, 1U);
+    check_secondary_signal(
+        AV2H_TX_16X16, AV2H_INTRA_D113, 21U, AV2H_TX_ADST_ADST, 0U);
+    check_secondary_signal(
+        AV2H_TX_8X4, AV2H_INTRA_PAETH, 3U, AV2H_TX_DCT_DCT, 0U);
 
     CHECK(av2h_secondary_tx_type_signal(
               0, &mode, &coeff, AV2H_TX_DCT_DCT, &signaled) ==

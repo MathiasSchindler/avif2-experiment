@@ -19,6 +19,8 @@ typedef struct {
     Av2hFilterPlane plane[AV2H_FRAME_PLANE_COUNT];
 } Av2hFilterPlanes;
 
+extern Av2hFilterPlanes av2h_debug_filter_stage_planes[4U];
+
 typedef struct {
     const uint8_t *plane[AV2H_FRAME_PLANE_COUNT];
     size_t stride[AV2H_FRAME_PLANE_COUNT];

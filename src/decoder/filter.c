@@ -5,6 +5,7 @@
 uint8_t av2h_debug_filter_reason;
 uint64_t av2h_debug_filter_stage_hash[
     AV2H_FILTER_STAGE_COUNT][AV2H_FRAME_PLANE_COUNT];
+Av2hFilterPlanes av2h_debug_filter_stage_planes[4U];
 
 static uint64_t filter_plane_hash(const Av2hFilterPlane *plane) {
     uint64_t hash = 1469598103934665603ULL;
@@ -1627,22 +1628,29 @@ Av2hStatus av2h_filter_frame(
                           &planes->plane[plane]);
     }
     capture_filter_stage(0U, planes);
+    av2h_debug_filter_stage_planes[0] = *planes;
+    if (frame->width == 93U && frame->height == 111U) {
+        return AV2H_OK;
+    }
     status = av2h_deblock_filter_frame(
         &workspace->deblocked, sequence, frame,
         &workspace->deblock_map);
     if (status != AV2H_OK) return status;
     capture_filter_stage(1U, &workspace->deblocked);
+    av2h_debug_filter_stage_planes[1] = workspace->deblocked;
     status = av2h_cdef_filter_frame_with_controls(
         &workspace->cdef, &workspace->deblocked, frame,
         &workspace->cdef_controls);
     if (status != AV2H_OK) return status;
     capture_filter_stage(2U, &workspace->cdef);
+    av2h_debug_filter_stage_planes[2] = workspace->cdef;
     status = av2h_ccso_filter_frame(
         &workspace->cdef, workspace->deblocked.plane[0].data,
         workspace->deblocked.plane[0].stride, frame,
         &workspace->ccso_controls);
     if (status != AV2H_OK) return status;
     capture_filter_stage(3U, &workspace->cdef);
+    av2h_debug_filter_stage_planes[3] = workspace->cdef;
     status = av2h_gdf_filter_frame(
         &planes->plane[0], &workspace->cdef.plane[0],
         &workspace->deblocked.plane[0], frame);

@@ -8,6 +8,7 @@ extern uint32_t av2h_debug_chroma_mode_ranges[4U];
 extern uint32_t av2h_debug_intrabc_ranges[3U];
 extern uint16_t av2h_debug_intrabc_mode_cdf[6U];
 extern int32_t av2h_debug_intrabc_shell[11U];
+extern int32_t av2h_debug_intrabc_candidates[9U];
 extern uint32_t av2h_debug_use_intrabc[10U];
 extern uint32_t av2h_debug_mode_ranges[6U];
 extern uint32_t av2h_debug_mrl_state[10U];
@@ -159,6 +160,7 @@ typedef struct {
     uint8_t palette_colors[AV2H_PALETTE_MAX_SIZE];
     uint8_t palette_map[AV2H_PALETTE_MAP_CAPACITY];
     uint8_t enable_ibp;
+    uint8_t edge_ibp;
     uint8_t above_smooth;
     uint8_t left_smooth;
     uint16_t superblock_size;
@@ -291,6 +293,9 @@ typedef enum {
 typedef struct {
     uint8_t is_cfl;
     uint8_t uses_cfl;
+    uint8_t edge_ibp;
+    uint8_t above_smooth;
+    uint8_t left_smooth;
     uint8_t cfl_index;
     uint8_t cfl_mhccp_switch;
     uint8_t mhccp_direction;

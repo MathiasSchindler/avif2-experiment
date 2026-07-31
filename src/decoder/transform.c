@@ -355,86 +355,35 @@ Av2hStatus av2h_secondary_tx_type_signal(
     const Av2hFirstCoeffPrefix *coeff,
     Av2hFirstTxType primary_type,
     uint8_t *signaled) {
+    const Av2hTxDescriptor *descriptor;
+    uint8_t size_class;
+    uint16_t eob_limit;
+    Av2hStatus status;
     if (sequence == 0 || mode == 0 || coeff == 0 || signaled == 0) {
         return AV2H_INVALID_ARGUMENT;
     }
     *signaled = 0U;
     if (!sequence->enable_ist) return AV2H_OK;
-    if (primary_type == AV2H_TX_DCT_DCT &&
-        mode->mode < AV2H_INTRA_PAETH && coeff->eob <= 32U &&
-        ((coeff->tx_size == AV2H_TX_8X4 &&
-          mode->mode == AV2H_INTRA_D203 && coeff->eob == 3U) ||
-         (coeff->tx_size == AV2H_TX_8X8 &&
-          mode->mode == AV2H_INTRA_DC && coeff->eob == 2U) ||
-         (coeff->tx_size == AV2H_TX_8X8 &&
-          mode->mode == AV2H_INTRA_D45 &&
-          (coeff->eob == 3U || coeff->eob == 6U)) ||
-         (coeff->tx_size == AV2H_TX_16X4 &&
-          mode->mode == AV2H_INTRA_DC && coeff->eob == 2U) ||
-         (coeff->tx_size == AV2H_TX_16X8 &&
-          mode->mode == AV2H_INTRA_HORIZONTAL && coeff->eob == 10U) ||
-         (coeff->tx_size == AV2H_TX_16X8 &&
-          mode->mode == AV2H_INTRA_SMOOTH_VERTICAL && coeff->eob == 5U) ||
-         (coeff->tx_size == AV2H_TX_16X8 &&
-          mode->mode == AV2H_INTRA_SMOOTH && coeff->eob == 7U) ||
-         (coeff->tx_size == AV2H_TX_16X8 &&
-          mode->mode == AV2H_INTRA_D157 &&
-          (coeff->eob == 3U || coeff->eob == 6U)) ||
-         (coeff->tx_size == AV2H_TX_16X8 &&
-          mode->mode == AV2H_INTRA_SMOOTH_HORIZONTAL && coeff->eob == 3U) ||
-         (coeff->tx_size == AV2H_TX_16X8 &&
-          mode->mode == AV2H_INTRA_DC &&
-          (coeff->eob == 3U || coeff->eob == 26U)) ||
-         (coeff->tx_size == AV2H_TX_16X8 &&
-          mode->mode == AV2H_INTRA_DC && coeff->eob == 4U) ||
-         (coeff->tx_size == AV2H_TX_16X8 &&
-          mode->mode == AV2H_INTRA_DC && coeff->eob == 13U) ||
-         coeff->tx_size == AV2H_TX_8X16 ||
-         coeff->tx_size == AV2H_TX_8X32 ||
-         coeff->tx_size == AV2H_TX_16X16 ||
-         coeff->tx_size == AV2H_TX_16X32 ||
-         coeff->tx_size == AV2H_TX_32X16 ||
-         coeff->tx_size == AV2H_TX_32X8 ||
-         coeff->tx_size == AV2H_TX_32X32 ||
-         coeff->tx_size == AV2H_TX_32X64 ||
-         coeff->tx_size == AV2H_TX_64X32 ||
-         coeff->tx_size == AV2H_TX_64X64 ||
-         coeff->tx_size == AV2H_TX_16X64 ||
-         coeff->tx_size == AV2H_TX_8X64 ||
-         coeff->tx_size == AV2H_TX_64X8 ||
-         coeff->tx_size == AV2H_TX_64X16)) {
-        *signaled = 1U;
-    } else if (primary_type == AV2H_TX_ADST_ADST &&
-               ((coeff->tx_size == AV2H_TX_8X8 &&
-                 mode->mode == AV2H_INTRA_D203 && coeff->eob == 2U) ||
-                (coeff->tx_size == AV2H_TX_16X16 &&
-                 mode->mode == AV2H_INTRA_DC && coeff->eob == 6U) ||
-                (coeff->tx_size == AV2H_TX_16X8 &&
-                 mode->mode == AV2H_INTRA_HORIZONTAL && coeff->eob == 14U) ||
-                (coeff->tx_size == AV2H_TX_8X16 &&
-                 mode->mode == AV2H_INTRA_DC && coeff->eob == 2U) ||
-                (coeff->tx_size == AV2H_TX_16X8 &&
-                 mode->mode == AV2H_INTRA_DC && coeff->eob == 4U) ||
-                (coeff->tx_size == AV2H_TX_16X8 &&
-                 mode->mode == AV2H_INTRA_SMOOTH && coeff->eob == 3U) ||
-                (coeff->tx_size == AV2H_TX_16X16 &&
-                 mode->mode == AV2H_INTRA_D157 && coeff->eob == 5U) ||
-                (coeff->tx_size == AV2H_TX_16X16 &&
-                 mode->mode == AV2H_INTRA_D67 && coeff->eob == 6U) ||
-                (coeff->tx_size == AV2H_TX_16X16 &&
-                 mode->mode == AV2H_INTRA_D135 && coeff->eob == 11U) ||
-                (coeff->tx_size == AV2H_TX_8X8 &&
-                 mode->mode == AV2H_INTRA_SMOOTH &&
-                 (coeff->eob == 10U || coeff->eob == 12U)) ||
-                (coeff->tx_size == AV2H_TX_16X16 &&
-                 mode->mode == AV2H_INTRA_SMOOTH && coeff->eob == 12U) ||
-                (coeff->tx_size == AV2H_TX_16X16 &&
-                 mode->mode == AV2H_INTRA_SMOOTH &&
-                 (coeff->eob == 2U || coeff->eob == 3U ||
-                  coeff->eob == 4U || coeff->eob == 6U ||
-                  coeff->eob == 7U || coeff->eob == 9U)))) {
-        *signaled = 1U;
+    if (coeff->eob <= 1U || mode->mode >= AV2H_INTRA_PAETH ||
+        (primary_type != AV2H_TX_DCT_DCT &&
+         primary_type != AV2H_TX_ADST_ADST)) {
+        return AV2H_OK;
     }
+    status = av2h_tx_descriptor_get(coeff->tx_size, &descriptor);
+    if (status != AV2H_OK) return status;
+    if (descriptor->output_width == 8U &&
+        descriptor->output_height == 8U &&
+        primary_type == AV2H_TX_DCT_DCT) {
+        size_class = 1U;
+    } else if (descriptor->output_width >= 8U &&
+               descriptor->output_height >= 8U) {
+        size_class = primary_type == AV2H_TX_DCT_DCT ? 2U : 3U;
+    } else {
+        size_class = 0U;
+    }
+    eob_limit = size_class == 0U ? 8U :
+        size_class == 1U || size_class == 3U ? 20U : 32U;
+    *signaled = (uint8_t)(coeff->eob <= eob_limit);
     return AV2H_OK;
 }
 
@@ -1358,6 +1307,45 @@ Av2hStatus av2h_first_chroma_transform_type_read(
         decoder, cdfs, frame, &mode, plane, coeff, transform);
 }
 
+static Av2hFirstLeafIntraMode chroma_transform_mode(
+    const Av2hFirstChromaMode *mode,
+    const Av2hTxDescriptor *descriptor) {
+    int angle;
+    switch (mode->mode) {
+        case AV2H_INTRA_VERTICAL: angle = 90; break;
+        case AV2H_INTRA_HORIZONTAL: angle = 180; break;
+        case AV2H_INTRA_D45: angle = 45; break;
+        case AV2H_INTRA_D67: angle = 67; break;
+        case AV2H_INTRA_D113: angle = 113; break;
+        case AV2H_INTRA_D135: angle = 135; break;
+        case AV2H_INTRA_D157: angle = 157; break;
+        case AV2H_INTRA_D203: angle = 203; break;
+        default: return mode->mode;
+    }
+    angle += mode->angle_delta * 3;
+    if ((descriptor->output_height == 2U * descriptor->output_width &&
+         angle < 61) ||
+        (descriptor->output_height == 4U * descriptor->output_width &&
+         angle < 73) ||
+        (descriptor->output_height == 8U * descriptor->output_width &&
+         angle < 82) ||
+        (descriptor->output_height == 16U * descriptor->output_width &&
+         angle < 86)) {
+        return AV2H_INTRA_D203;
+    }
+    if ((descriptor->output_width == 2U * descriptor->output_height &&
+         angle > 209) ||
+        (descriptor->output_width == 4U * descriptor->output_height &&
+         angle > 197) ||
+        (descriptor->output_width == 8U * descriptor->output_height &&
+         angle > 188) ||
+        (descriptor->output_width == 16U * descriptor->output_height &&
+         angle > 184)) {
+        return AV2H_INTRA_D45;
+    }
+    return mode->mode;
+}
+
 static Av2hStatus chroma_primary_type(
     const Av2hFirstChromaMode *mode,
     const Av2hTxDescriptor *descriptor,
@@ -1382,7 +1370,7 @@ static Av2hStatus chroma_primary_type(
         (uint8_t)mode->mode >= 13U) {
         return AV2H_INVALID_ARGUMENT;
     }
-    *tx_type = mode_types[(uint8_t)mode->mode];
+    *tx_type = mode_types[(uint8_t)chroma_transform_mode(mode, descriptor)];
     if (reduced_tx_set ||
         descriptor->signaling_class == AV2H_TX_SIGNAL_DCT_ONLY ||
                 ((descriptor->signaling_class == AV2H_TX_SIGNAL_WIDE_32 ||

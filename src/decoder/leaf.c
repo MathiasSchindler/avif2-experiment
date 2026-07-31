@@ -4,6 +4,7 @@ uint32_t av2h_debug_chroma_mode_ranges[4U];
 uint32_t av2h_debug_intrabc_ranges[3U];
 uint16_t av2h_debug_intrabc_mode_cdf[6U];
 int32_t av2h_debug_intrabc_shell[11U];
+int32_t av2h_debug_intrabc_candidates[9U];
 uint32_t av2h_debug_use_intrabc[10U];
 uint32_t av2h_debug_mode_ranges[6U];
 uint32_t av2h_debug_mrl_state[10U];
@@ -427,6 +428,7 @@ Av2hStatus av2h_chroma_mode_read_with_delta_for_sdp(
     mode->after_cfl_bits = av2h_range_tell(decoder);
     av2h_debug_chroma_mode_ranges[1] = decoder->range;
     mode->uses_cfl = 0U;
+    mode->edge_ibp = sequence->enable_ibp;
     mode->cfl_index = 0U;
     mode->cfl_mhccp_switch = 0U;
     mode->mhccp_direction = 0U;
@@ -1909,12 +1911,23 @@ static Av2hStatus read_first_intrabc(
     build_intrabc_candidates(
         sequence, frame, leaf, width_mi, height_mi, state,
         candidates, &candidate_count);
+    if (leaf->row == 16U && leaf->column == 16U) {
+        av2h_debug_intrabc_candidates[0] = (int32_t)candidate_count;
+        for (index = 0U; index < candidate_count && index < 4U; ++index) {
+            av2h_debug_intrabc_candidates[1U + index * 2U] =
+                candidates[index].x;
+            av2h_debug_intrabc_candidates[2U + index * 2U] =
+                candidates[index].y;
+        }
+    }
     if (mode->intrabc_drl_index >= candidate_count) return AV2H_INVALID_DATA;
     reference_x = candidates[mode->intrabc_drl_index].x;
     reference_y = candidates[mode->intrabc_drl_index].y;
-    av2h_debug_intrabc_shell[8] = mode->intrabc_drl_index;
-    av2h_debug_intrabc_shell[9] = reference_x;
-    av2h_debug_intrabc_shell[10] = reference_y;
+    if (leaf->row == 16U && leaf->column == 16U) {
+        av2h_debug_intrabc_shell[8] = mode->intrabc_drl_index;
+        av2h_debug_intrabc_shell[9] = reference_x;
+        av2h_debug_intrabc_shell[10] = reference_y;
+    }
     mode->mv_precision = 3U;
     if (mode->intrabc_mode == 0U && !frame->force_integer_mv) {
         value = av2h_range_read_adaptive(
@@ -1937,7 +1950,9 @@ static Av2hStatus read_first_intrabc(
             return AV2H_UNSUPPORTED;
         }
         av2h_debug_luma_mode_stage = 24U;
-        av2h_debug_intrabc_shell[0] = (int32_t)value;
+        if (leaf->row == 16U && leaf->column == 16U) {
+            av2h_debug_intrabc_shell[0] = (int32_t)value;
+        }
         mode->after_mrl_bits = av2h_range_tell(decoder);
         if (value != 0U) {
             shell_class = (mode->mv_precision == 5U ? 8U : 7U) +
@@ -1995,9 +2010,11 @@ static Av2hStatus read_first_intrabc(
         }
         shell_index = (shell_class == 0U ? 0U : 1U << shell_class) +
                       shell_offset;
-        av2h_debug_intrabc_shell[1] = (int32_t)shell_class;
-        av2h_debug_intrabc_shell[2] = (int32_t)shell_offset;
-        av2h_debug_intrabc_shell[3] = (int32_t)shell_index;
+        if (leaf->row == 16U && leaf->column == 16U) {
+            av2h_debug_intrabc_shell[1] = (int32_t)shell_class;
+            av2h_debug_intrabc_shell[2] = (int32_t)shell_offset;
+            av2h_debug_intrabc_shell[3] = (int32_t)shell_index;
+        }
         maximum_pair_index = shell_index >> 1U;
         for (index = 0U;
              index < maximum_pair_index &&
@@ -2052,10 +2069,12 @@ static Av2hStatus read_first_intrabc(
             difference_x = (int32_t)maximum_pair_index;
         }
         difference_y = (int32_t)shell_index - difference_x;
-        av2h_debug_intrabc_shell[4] = (int32_t)pair_index;
-        av2h_debug_intrabc_shell[5] = difference_x;
-        av2h_debug_intrabc_shell[6] = difference_y;
-        av2h_debug_intrabc_shell[7] = mode->mv_precision;
+        if (leaf->row == 16U && leaf->column == 16U) {
+            av2h_debug_intrabc_shell[4] = (int32_t)pair_index;
+            av2h_debug_intrabc_shell[5] = difference_x;
+            av2h_debug_intrabc_shell[6] = difference_y;
+            av2h_debug_intrabc_shell[7] = mode->mv_precision;
+        }
         difference_x <<= mode->mv_precision == 5U ? 1U : 3U;
         difference_y <<= mode->mv_precision == 5U ? 1U : 3U;
         if (difference_y != 0 && av2h_range_read_bypass(decoder, 1U)) {
@@ -2173,13 +2192,17 @@ Av2hStatus av2h_luma_mode_neighbors_from_state(
         left_index >= state->left_count) {
         return AV2H_OVERFLOW;
     }
-    if (leaf->column != 0U) {
+    if (leaf->column != 0U &&
+        (state->spatial_rows == 0U ||
+         (size_t)leaf->row + height - 1U < state->spatial_rows)) {
         const Av2hLumaModeContext *bottom_left =
             &state->left[(leaf->row + height - 1U) % state->left_count];
         const Av2hLumaModeContext *left = &state->left[left_index];
         candidates[0] = bottom_left;
         candidates[2] = left;
         selected[0] = bottom_left;
+    } else if (leaf->column != 0U) {
+        candidates[2] = &state->left[left_index];
     }
     if (leaf->row != 0U &&
         (size_t)leaf->column + width - 1U < state->above_count) {
@@ -2291,6 +2314,10 @@ Av2hStatus av2h_luma_mode_context_state_update(
         unit_count = (width / unit_mi > 0U ? width / unit_mi : 1U) *
                      (height / unit_mi > 0U ? height / unit_mi : 1U);
         if (row_in_superblock == 0U && column_in_superblock == 0U) {
+            if (leaf->column == 0U) {
+                state->intrabc_bank_count = 0U;
+                state->intrabc_bank_start = 0U;
+            }
             state->intrabc_bank_remaining_hits = (uint16_t)(
                 unit_count > 4U ? unit_count : 4U);
             state->intrabc_bank_unit_hits = 0U;
@@ -2468,9 +2495,6 @@ static Av2hStatus luma_mode_read_internal(
         uint8_t use_intrabc = has_spatial_neighbors ?
             neighbors->spatial_use_intrabc[neighbor] :
             neighbors->use_intrabc[neighbor];
-        uint8_t spatial_fsc = has_spatial_neighbors ?
-            neighbors->spatial_fsc_mode[neighbor] :
-            neighbors->fsc_mode[neighbor];
         uint8_t spatial_mrl = has_spatial_neighbors ?
             neighbors->spatial_mrl_index[neighbor] :
             neighbors->mrl_index[neighbor];
@@ -2478,13 +2502,17 @@ static Av2hStatus luma_mode_read_internal(
             neighbors->spatial_multi_line_mrl[neighbor] :
             neighbors->multi_line_mrl[neighbor];
         if (!present) continue;
-        if (spatial_fsc > 1U ||
+           if ((has_spatial_neighbors &&
+               neighbors->spatial_fsc_mode[neighbor] > 1U) ||
             spatial_mrl >= AV2H_MRL_INDEX_SYMBOLS ||
             spatial_multi > 1U) {
             return AV2H_INVALID_ARGUMENT;
         }
         intrabc_context += use_intrabc;
-        fsc_context += spatial_fsc;
+        if (has_spatial_neighbors &&
+            neighbors->spatial_present[neighbor]) {
+            fsc_context += neighbors->spatial_fsc_mode[neighbor];
+        }
         mrl_context += spatial_mrl != 0U;
         secondary_context += spatial_multi;
     }
@@ -2514,7 +2542,9 @@ static Av2hStatus luma_mode_read_internal(
         mode->ccso_block_control[plane] = 0U;
     }
     if (frame->allow_intrabc && block_allows_intrabc(leaf->block_size)) {
-        if ((leaf->row == 64U && leaf->column == 0U) ||
+        if ((leaf->row == 0U && leaf->column == 16U) ||
+            (leaf->row == 18U && leaf->column == 17U) ||
+            (leaf->row == 64U && leaf->column == 0U) ||
             (leaf->row == 7U && leaf->column == 20U)) {
             size_t debug_index;
             av2h_debug_use_intrabc[0] = (uint32_t)intrabc_context;
@@ -2531,7 +2561,9 @@ static Av2hStatus luma_mode_read_internal(
         }
         mode->use_intrabc = (uint8_t)value;
         av2h_debug_luma_mode_stage = 2U;
-        if ((leaf->row == 64U && leaf->column == 0U) ||
+        if ((leaf->row == 0U && leaf->column == 16U) ||
+            (leaf->row == 18U && leaf->column == 17U) ||
+            (leaf->row == 64U && leaf->column == 0U) ||
             (leaf->row == 7U && leaf->column == 20U)) {
             av2h_debug_use_intrabc[8] = value;
             av2h_debug_use_intrabc[9] = decoder->range;

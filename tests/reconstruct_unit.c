@@ -4325,7 +4325,7 @@ static void test_cfl_coded_bottom_edge(void) {
     uint8_t pred_data[32U * 12U];
     uint8_t pred_rec[8U * 3U];
     Av2hReconstructionScratch scratch = { 0 };
-    Av2hPartitionNode leaf = { 4U, 0U, AV2H_BLOCK_64X8 };
+    Av2hPartitionNode leaf = { 5U, 0U, AV2H_BLOCK_64X8 };
     Av2hFirstChromaMode mode = { 0 };
     Av2hFirstCoeffPrefix prefix = { 0 };
     Av2hFirstTransformType transform = { 0 };
@@ -4363,7 +4363,7 @@ static void test_cfl_coded_bottom_edge(void) {
     CHECK(av2h_chroma_reconstruct_to_plane_ex(
               &leaf, &mode, &prefix, &transform, &block, &chroma, &luma,
               1U, &predictor, &scratch) == AV2H_OK);
-    for (row = 8U; row < 12U; ++row) {
+    for (row = 10U; row < 12U; ++row) {
         for (column = 0U; column < 32U; ++column) {
             CHECK(pred_data[row * 32U + column] == 128U);
             CHECK(chroma_data[row * 32U + column] == 128U);

@@ -586,6 +586,39 @@ static void test_arguments(void) {
                   &decoder, &cdfs, 4U, 0U, 4U, &prefix) == AV2H_TRUNCATED);
 }
 
+static void test_partial_boundary_implies_illegal_extension(void) {
+    static const unsigned char bytes[] = {
+        0xc7U, 0x43U, 0xf5U, 0xb7U, 0xcbU, 0xdeU, 0xd0U, 0x78U
+    };
+    Av2hSpan span = { bytes, sizeof(bytes) };
+    Av2hRangeDecoder decoder;
+    Av2hPartitionCdfs cdfs;
+    Av2hPartitionContextState contexts;
+    Av2hPartitionDecision decision;
+    Av2hPartitionNode child;
+    uint8_t luma_above[128U];
+    uint8_t luma_left[128U];
+    uint8_t chroma_above[128U];
+    uint8_t chroma_left[128U];
+    size_t context;
+    CHECK(av2h_partition_cdfs_init(&cdfs) == AV2H_OK);
+    for (context = 0U; context < AV2H_PARTITION_CONTEXT_COUNT; ++context) {
+        cdfs.rect_type[0][context][0] = 1U;
+    }
+    CHECK(av2h_partition_context_state_init(
+              &contexts, luma_above, luma_left, chroma_above, chroma_left,
+              128U, 128U) == AV2H_OK);
+    CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
+    CHECK(av2h_partition_node_read_with_state(
+              &decoder, &cdfs, &contexts, 0U,
+              (Av2hPartitionNode){ 68U, 64U, AV2H_BLOCK_64X16 },
+              70U, 105U, 1U, 1U, &decision, &child) == AV2H_OK);
+    CHECK(decision.partition == AV2H_PARTITION_HORZ);
+    CHECK(decision.axis_implied == 0U);
+    CHECK(decision.extension_implied == 1U);
+    CHECK(child.block_size == AV2H_BLOCK_64X8);
+}
+
 int main(void) {
     test_fixture_prefixes();
     test_forced_geometry();
@@ -595,6 +628,7 @@ int main(void) {
     test_traversal();
     test_superblock_roots();
     test_arguments();
+    test_partial_boundary_implies_illegal_extension();
     if (failures != 0) {
         fprintf(stderr, "%d partition checks failed\n", failures);
         return 1;

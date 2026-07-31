@@ -808,6 +808,19 @@ Av2hStatus av2h_partition_node_read_with_state(
             state, structure, node, axis, &split_context,
             &rect_type_context, &extension_context);
         if (status != AV2H_OK) return status;
+        decision->extension_context = extension_context;
+        decision->extension_implied = (uint8_t)(!enable_ext_partitions ||
+            !extension_is_allowed(node.block_size, axis, structure));
+        if (decision->extension_implied) {
+            decision->partition = axis == AV2H_PARTITION_HORIZONTAL
+                ? AV2H_PARTITION_HORZ : AV2H_PARTITION_VERT;
+            decision->after_bits = av2h_range_tell(decoder);
+            *child = node;
+            child->block_size = ordinary_subsize(
+                node.block_size, decision->partition);
+            return child->block_size == AV2H_BLOCK_INVALID
+                ? AV2H_UNSUPPORTED : AV2H_OK;
+        }
         value = av2h_range_read_adaptive(
             decoder,
             cdfs->do_ext_partition[structure][extension_context], 2U);

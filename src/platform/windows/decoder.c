@@ -323,10 +323,14 @@ static void write_decode_diagnostic(const Av2hFrameDecodeResult *result) {
     write_unsigned(result->chroma_mode_index);
     write_console(" filter-reason=");
     write_unsigned(result->filter_reason);
-    write_console(" reconstruction-hashes=");
-    for (index = 0U; index < AV2H_FRAME_PLANE_COUNT; ++index) {
-        if (index != 0U) write_console("/");
-        write_unsigned((size_t)av2h_debug_filter_stage_hash[0][index]);
+    write_console(" filter-stage-hashes=");
+    for (size_t stage = 0U; stage < AV2H_FILTER_STAGE_COUNT; ++stage) {
+        if (stage != 0U) write_console(":");
+        for (index = 0U; index < AV2H_FRAME_PLANE_COUNT; ++index) {
+            if (index != 0U) write_console("/");
+            write_unsigned(
+                (size_t)av2h_debug_filter_stage_hash[stage][index]);
+        }
     }
     write_console(" intrabc-geometry=");
     for (index = 0U; index < 10U; ++index) {
@@ -463,6 +467,32 @@ static int write_entire_file(const Av2hWinChar *path,
     result = write_all(file, data, size);
     if (!CloseHandle(file)) result = 0;
     return result;
+}
+
+static void write_debug_filter_stage(const Av2hWinChar *path,
+                                     const Av2hFilterPlanes *planes,
+                                     uint16_t width,
+                                     uint16_t height) {
+    Av2hWinHandle file = CreateFileW(
+        path, AV2H_WIN_GENERIC_WRITE, 0U, 0, AV2H_WIN_CREATE_ALWAYS,
+        AV2H_WIN_FILE_ATTRIBUTE_NORMAL, 0);
+    unsigned int plane;
+    if (file == AV2H_WIN_INVALID_HANDLE) return;
+    for (plane = 0U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
+        size_t plane_width = plane == 0U ? width : ((size_t)width + 1U) / 2U;
+        size_t plane_height = plane == 0U ? height :
+            ((size_t)height + 1U) / 2U;
+        size_t row;
+        for (row = 0U; row < plane_height; ++row) {
+            if (!write_all(file, planes->plane[plane].data +
+                           row * planes->plane[plane].stride,
+                           plane_width)) {
+                (void)CloseHandle(file);
+                return;
+            }
+        }
+    }
+    (void)CloseHandle(file);
 }
 
 static const Av2hObu *find_obu(const Av2hObuLedger *ledger, uint8_t type) {
@@ -648,6 +678,20 @@ static Av2hStatus decode_obu(Av2hSpan input,
         status = av2h_decode_frame_i420_private(
             group.entropy, &sequence, &frame, &workspace,
             output->memory, output->size, decode_result);
+        if (status == AV2H_OK && frame.width == 93U && frame.height == 111U) {
+            write_debug_filter_stage(
+                L"build/chimp-local-reconstruction.i420",
+                &av2h_debug_filter_stage_planes[0], frame.width, frame.height);
+            write_debug_filter_stage(
+                L"build/chimp-local-deblocked.i420",
+                &av2h_debug_filter_stage_planes[1], frame.width, frame.height);
+            write_debug_filter_stage(
+                L"build/chimp-local-cdef.i420",
+                &av2h_debug_filter_stage_planes[2], frame.width, frame.height);
+            write_debug_filter_stage(
+                L"build/chimp-local-ccso.i420",
+                &av2h_debug_filter_stage_planes[3], frame.width, frame.height);
+        }
     }
     release_memory(&workspace_memory);
     if (status != AV2H_OK) {
@@ -802,6 +846,79 @@ static unsigned int run_decoder(void) {
         release_memory(&command_line);
         return status == AV2H_UNSUPPORTED ? 3U : 1U;
     }
+    write_console("filter-stage-hashes=");
+    for (size_t stage = 0U; stage < AV2H_FILTER_STAGE_COUNT; ++stage) {
+        if (stage != 0U) write_console(":");
+        for (size_t plane = 0U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
+            if (plane != 0U) write_console("/");
+            write_unsigned(
+                (size_t)av2h_debug_filter_stage_hash[stage][plane]);
+        }
+    }
+    write_console("\r\n");
+    write_console("chimp-luma-target=");
+    for (size_t index = 0U; index < 56U; ++index) {
+        if (index != 0U) write_console("/");
+        write_signed(av2h_debug_chimp_luma_target[index]);
+    }
+    write_console("\r\n");
+    write_console("chimp-chroma-target=");
+    for (size_t index = 0U; index < 24U; ++index) {
+        if (index != 0U) write_console("/");
+        write_signed(av2h_debug_chimp_chroma_target[index]);
+    }
+    write_console("\r\n");
+    write_console("chimp-mhccp-trace=");
+    for (size_t entry = 0U; entry < av2h_debug_mhccp_trace_count; ++entry) {
+        if (entry != 0U) write_console(":");
+        for (size_t field = 0U; field < 10U; ++field) {
+            if (field != 0U) write_console("/");
+            write_signed(av2h_debug_mhccp_trace[entry][field]);
+        }
+    }
+    write_console("\r\n");
+    write_console("chimp-directional-edge=");
+    for (size_t index = 0U; index < 13U; ++index) {
+        if (index != 0U) write_console("/");
+        write_unsigned(av2h_debug_directional_edges[index]);
+    }
+    write_console("\r\n");
+    write_console("chimp-second-sb=");
+    for (size_t index = 0U; index < 40U; ++index) {
+        if (index != 0U) write_console("/");
+        write_signed(av2h_debug_chimp_second_sb[index]);
+    }
+    write_console("\r\n");
+    write_console("chimp-use-intrabc=");
+    for (size_t index = 0U; index < 10U; ++index) {
+        if (index != 0U) write_console("/");
+        write_unsigned(av2h_debug_use_intrabc[index]);
+    }
+    write_console("\r\n");
+    write_console("chimp-intrabc-shell=");
+    for (size_t index = 0U; index < 11U; ++index) {
+        if (index != 0U) write_console("/");
+        write_signed(av2h_debug_intrabc_shell[index]);
+    }
+    write_console("\r\n");
+    write_console("chimp-intrabc-candidates=");
+    for (size_t index = 0U; index < 9U; ++index) {
+        if (index != 0U) write_console("/");
+        write_signed(av2h_debug_intrabc_candidates[index]);
+    }
+    write_console("\r\n");
+    write_console("chimp-intrabc-owners=");
+    for (size_t index = 0U; index < 32U; ++index) {
+        if (index != 0U) write_console("/");
+        write_signed(av2h_debug_intrabc_owners[index]);
+    }
+    write_console("\r\n");
+    write_console("chimp-fsc-bob=");
+    for (size_t index = 0U; index < 12U; ++index) {
+        if (index != 0U) write_console("/");
+        write_unsigned(av2h_debug_fsc_bob[index]);
+    }
+    write_console("\r\n");
     if (wide_ends_with_ascii(arguments[3], ".bmp")) {
         written = write_bmp(arguments[3], output.memory, width, height);
     } else {

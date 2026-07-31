@@ -35,6 +35,11 @@ typedef struct {
 extern uint8_t av2h_debug_luma_reconstruct_stage;
 extern uint16_t av2h_debug_luma_dimensions[4U];
 extern uint8_t av2h_debug_chroma_reconstruct_stage;
+extern int32_t av2h_debug_chimp_luma_target[56U];
+extern int32_t av2h_debug_chimp_chroma_target[24U];
+extern int32_t av2h_debug_mhccp_trace[64U][10U];
+extern uint8_t av2h_debug_mhccp_trace_count;
+extern uint8_t av2h_debug_directional_edges[18U];
 extern uint8_t av2h_debug_inverse_transform_stage;
 
 typedef struct {

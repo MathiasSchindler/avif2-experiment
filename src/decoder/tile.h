@@ -23,6 +23,7 @@ extern Av2hDebugLeafTraceEntry av2h_debug_chroma_leaf_trace[
     AV2H_DEBUG_LEAF_TRACE_CAPACITY];
 extern size_t av2h_debug_luma_leaf_trace_count;
 extern size_t av2h_debug_chroma_leaf_trace_count;
+extern int32_t av2h_debug_intrabc_owners[32U];
 
 typedef struct {
     size_t header_bits;
@@ -35,6 +36,7 @@ typedef struct {
     uint8_t mode;
     int8_t angle_delta;
     uint8_t chroma_cfl;
+    uint8_t chroma_smooth;
 } Av2hTileLumaModeCell;
 
 typedef struct {
@@ -71,6 +73,8 @@ typedef struct {
     Av2hFirstCoeffPrefix prefix[2U];
     Av2hFirstTransformType transform[2U];
 } Av2hTileChromaLeaf;
+
+extern int32_t av2h_debug_chimp_second_sb[40U];
 
 typedef enum {
     AV2H_TILE_DECODE_LUMA = 0,

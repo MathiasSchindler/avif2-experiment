@@ -4429,6 +4429,22 @@ static void check_first_luma(const ArtifactExpectation *expected,
         }
     } else if (expected->base_q_index == 208U &&
                expected->first_block == AV2H_BLOCK_64X16) {
+        static uint8_t schwaebisch_avm_luma[417U * 277U];
+        static uint8_t schwaebisch_avm_chroma[2U][209U * 139U];
+        int schwaebisch_first_luma_reported = 0;
+        int schwaebisch_first_chroma_reported[2U] = { 0, 0 };
+        {
+            FILE *oracle = fopen(
+                "build/schwaebisch-avm-prefilter.i420", "rb");
+            REQUIRE(oracle != 0);
+            REQUIRE(fread(schwaebisch_avm_luma, 1U,
+                          sizeof(schwaebisch_avm_luma), oracle) ==
+                    sizeof(schwaebisch_avm_luma));
+            REQUIRE(fread(schwaebisch_avm_chroma, 1U,
+                      sizeof(schwaebisch_avm_chroma), oracle) ==
+                  sizeof(schwaebisch_avm_chroma));
+            fclose(oracle);
+        }
         fprintf(stderr,
             "schwaebisch filters restoration=%u gdf=%u cdef=%u/%u/%u ccso=%u/%u/%u tcq=%u parity=%u\n",
             sequence->enable_restoration, frame->gdf_mode,
@@ -4602,6 +4618,73 @@ static void check_first_luma(const ArtifactExpectation *expected,
                                 &scratch);
                         if (plane_status[plane_index] != AV2H_OK) break;
                     }
+                    for (plane_index = 0U; plane_index < 2U; ++plane_index) {
+                        size_t width_mi;
+                        size_t height_mi;
+                        size_t row;
+                        size_t column;
+                        if (schwaebisch_first_chroma_reported[plane_index] ||
+                            plane_status[plane_index] != AV2H_OK) {
+                            continue;
+                        }
+                        REQUIRE(av2h_block_dimensions_mi(
+                                    chroma_leaf.node.block_size, &width_mi,
+                                    &height_mi) == AV2H_OK);
+                        for (row = 0U; row < height_mi * 2U; ++row) {
+                            for (column = 0U; column < width_mi * 2U;
+                                 ++column) {
+                                size_t x = chroma_leaf.node.column * 2U +
+                                    column;
+                                size_t y = chroma_leaf.node.row * 2U + row;
+                                if (x < SCHWAEBISCH_UV_REFERENCE_WIDTH &&
+                                    y < SCHWAEBISCH_UV_REFERENCE_HEIGHT &&
+                                    chroma_planes[plane_index].data[
+                                        y * chroma_planes[plane_index].stride +
+                                        x] !=
+                                    schwaebisch_avm_chroma[plane_index][
+                                        y * SCHWAEBISCH_UV_REFERENCE_WIDTH +
+                                        x]) {
+                                    fprintf(stderr,
+                                            "schwaebisch-first-coded-chroma=%lu/%u/%u/%u/%u/%u local=%u avm=%u\n",
+                                            (unsigned long)plane_index,
+                                            chroma_leaf.node.row,
+                                            chroma_leaf.node.column,
+                                            chroma_leaf.node.block_size,
+                                            (unsigned int)x,
+                                            (unsigned int)y,
+                                            chroma_planes[plane_index].data[
+                                                y * chroma_planes[plane_index].stride +
+                                                x],
+                                            schwaebisch_avm_chroma[plane_index][
+                                                y * SCHWAEBISCH_UV_REFERENCE_WIDTH +
+                                                x]);
+                                    schwaebisch_first_chroma_reported[
+                                        plane_index] = 1;
+                                    break;
+                                }
+                            }
+                            if (schwaebisch_first_chroma_reported[plane_index]) {
+                                break;
+                            }
+                        }
+                    }
+                    if (chroma_leaf.node.row == 16U &&
+                        chroma_leaf.node.column == 96U) {
+                        fprintf(stderr,
+                                "schwaebisch-next-chroma-early=%016llx:%016llx sample=%u/%u\n",
+                                (unsigned long long)block_pixel_hash(
+                                    chroma_planes[0].data +
+                                        32U * chroma_planes[0].stride + 192U,
+                                    chroma_planes[0].stride, 32U, 32U),
+                                (unsigned long long)block_pixel_hash(
+                                    chroma_planes[1].data +
+                                        32U * chroma_planes[1].stride + 192U,
+                                    chroma_planes[1].stride, 32U, 32U),
+                                chroma_planes[0].data[
+                                    32U * chroma_planes[0].stride + 192U],
+                                chroma_planes[1].data[
+                                    32U * chroma_planes[1].stride + 192U]);
+                    }
                 }
                 fprintf(stderr,
                         "schwaebisch q208 chroma status=%d reconstruct=%d/%d tell=%lu leaf=%u sb=%lu row=%u column=%u block=%u mode=%u cfl=%u/%u/%u prefix=%u/%u/%u:%u/%u/%u transform=%u/%u diagnostic=%u/%u:%u/%u\n",
@@ -4668,6 +4751,143 @@ static void check_first_luma(const ArtifactExpectation *expected,
                         reconstruct_status = av2h_luma_reconstruct_to_plane(
                             &leaf.node, &leaf.mode, &leaf.prefix,
                             &leaf.transform, &block, &plane, &scratch);
+                        if (reconstruct_status == AV2H_OK &&
+                            !schwaebisch_first_luma_reported) {
+                            size_t width_mi;
+                            size_t height_mi;
+                            REQUIRE(av2h_block_dimensions_mi(
+                                        leaf.node.block_size, &width_mi,
+                                        &height_mi) == AV2H_OK);
+                            for (size_t row = 0U;
+                                 row < (size_t)height_mi * 4U; ++row) {
+                                for (size_t column = 0U;
+                                     column < (size_t)width_mi * 4U;
+                                     ++column) {
+                                    size_t x = (size_t)leaf.node.column * 4U +
+                                        column;
+                                    size_t y = (size_t)leaf.node.row * 4U + row;
+                                    if (x < expected->width &&
+                                        y < expected->height &&
+                                        plane.data[y * plane.stride + x] !=
+                                            schwaebisch_avm_luma[
+                                                y * expected->width + x]) {
+                                        fprintf(stderr,
+                                                "schwaebisch-first-coded-luma=%u/%u/%u/%u/%u local=%u avm=%u\n",
+                                                leaf.node.row,
+                                                leaf.node.column,
+                                                leaf.node.block_size,
+                                                (unsigned int)x,
+                                                (unsigned int)y,
+                                                plane.data[
+                                                    y * plane.stride + x],
+                                                schwaebisch_avm_luma[
+                                                    y * expected->width + x]);
+                                        schwaebisch_first_luma_reported = 1;
+                                        break;
+                                    }
+                                }
+                                if (schwaebisch_first_luma_reported) break;
+                            }
+                        }
+                        if (reconstruct_status == AV2H_OK &&
+                            leaf.node.row == 19U &&
+                            leaf.node.column == 0U) {
+                            fprintf(stderr,
+                                    "schwaebisch-root-luma=%016llx/%016llx dc=%d sample=%u/%u residual=%d\n",
+                                    (unsigned long long)block_pixel_hash(
+                                        scratch.predictor, 32U, 32U, 4U),
+                                    (unsigned long long)block_pixel_hash(
+                                        plane.data + 76U * plane.stride,
+                                        plane.stride, 32U, 4U),
+                                    block.dequantized[0],
+                                    scratch.predictor[0],
+                                    plane.data[76U * plane.stride],
+                                    (int)plane.data[76U * plane.stride] -
+                                        (int)scratch.predictor[0]);
+                        }
+                        if (reconstruct_status == AV2H_OK &&
+                            leaf.node.row == 44U &&
+                            leaf.node.column == 0U) {
+                            fprintf(stderr,
+                                    "schwaebisch-next-luma=%016llx/%016llx dc=%d sample=%u/%u\n",
+                                    (unsigned long long)block_pixel_hash(
+                                        scratch.predictor, 64U, 64U, 16U),
+                                    (unsigned long long)block_pixel_hash(
+                                        plane.data + 176U * plane.stride,
+                                        plane.stride, 64U, 16U),
+                                    block.dequantized[0],
+                                    scratch.predictor[0],
+                                    plane.data[176U * plane.stride]);
+                        }
+                        if (reconstruct_status == AV2H_OK &&
+                            leaf.node.row == 0U &&
+                            leaf.node.column == 72U) {
+                            size_t predictor_row;
+                            for (predictor_row = 0U;
+                                   predictor_row < 64U;
+                                 ++predictor_row) {
+                                fprintf(stderr,
+                                        "schwaebisch-target-predictor-%lu=%016llx\n",
+                                        (unsigned long)predictor_row,
+                                        (unsigned long long)block_pixel_hash(
+                                            scratch.predictor +
+                                                predictor_row * block.width,
+                                            block.width, block.width, 1U));
+                            }
+                        }
+                        if (reconstruct_status == AV2H_OK &&
+                            leaf.node.row == 16U &&
+                            leaf.node.column == 56U) {
+                            fprintf(stderr,
+                                    "schwaebisch-first-luma=%016llx/%016llx\n",
+                                    (unsigned long long)block_pixel_hash(
+                                        scratch.predictor, 16U, 16U, 16U),
+                                    (unsigned long long)block_pixel_hash(
+                                        plane.data + 64U * plane.stride + 224U,
+                                        plane.stride, 16U, 16U));
+                            fprintf(stderr, "schwaebisch-first-luma-row0=");
+                            for (size_t column = 0U; column < 16U; ++column) {
+                                fprintf(stderr, "%s%u", column == 0U ? "" : "/",
+                                        scratch.predictor[column]);
+                            }
+                                fprintf(stderr, " components=%u/%u/%u\n",
+                                    av2h_debug_directional_target[0],
+                                    av2h_debug_directional_target[1],
+                                    av2h_debug_directional_target[2]);
+                                    fprintf(stderr,
+                                        "schwaebisch-first-luma-left=%u/%u/%u/%u\n",
+                                        av2h_debug_directional_edges[0],
+                                        av2h_debug_directional_edges[1],
+                                        av2h_debug_directional_edges[2],
+                                        av2h_debug_directional_edges[3]);
+                                    fprintf(stderr,
+                                        "schwaebisch-first-luma-left-raw=%u/%u/%u/%u\n",
+                                        av2h_debug_directional_edges[4],
+                                        av2h_debug_directional_edges[5],
+                                        av2h_debug_directional_edges[6],
+                                        av2h_debug_directional_edges[7]);
+                        }
+                            if (reconstruct_status == AV2H_OK &&
+                                leaf.node.row == 20U &&
+                                leaf.node.column == 52U) {
+                                fprintf(stderr,
+                                        "schwaebisch-luma-source=%016llx row5=",
+                                        (unsigned long long)block_pixel_hash(
+                                            scratch.predictor, 16U, 16U, 32U));
+                                for (size_t column = 0U; column < 16U; ++column) {
+                                    fprintf(stderr, "%s%u", column == 0U ? "" : "/",
+                                            scratch.predictor[5U * 16U + column]);
+                                }
+                                fprintf(stderr, "\n");
+                                fprintf(stderr, "schwaebisch-luma-source-left=");
+                                for (size_t index = 0U; index < 10U; ++index) {
+                                    fprintf(stderr, "%s%u",
+                                            index == 0U ? "" : "/",
+                                            av2h_debug_directional_edges[
+                                                8U + index]);
+                                }
+                                fprintf(stderr, "\n");
+                            }
                         if (reconstruct_status == AV2H_OK &&
                             leaf.node.row == 20U &&
                             leaf.node.column == 12U) {
@@ -5111,6 +5331,58 @@ static void check_first_luma(const ArtifactExpectation *expected,
                                 chroma_blocks[plane_index].width,
                                 chroma_blocks[plane_index].height);
                         }
+                        for (plane_index = 0U; plane_index < 2U;
+                             ++plane_index) {
+                            size_t width_mi;
+                            size_t height_mi;
+                            size_t row;
+                            size_t column;
+                            if (schwaebisch_first_chroma_reported[plane_index] ||
+                                plane_status[plane_index] != AV2H_OK) {
+                                continue;
+                            }
+                            REQUIRE(av2h_block_dimensions_mi(
+                                        chroma_leaf.node.block_size, &width_mi,
+                                        &height_mi) == AV2H_OK);
+                            for (row = 0U; row < height_mi * 2U; ++row) {
+                                for (column = 0U; column < width_mi * 2U;
+                                     ++column) {
+                                    size_t x = chroma_leaf.node.column * 2U +
+                                        column;
+                                    size_t y = chroma_leaf.node.row * 2U + row;
+                                    if (x < SCHWAEBISCH_UV_REFERENCE_WIDTH &&
+                                        y < SCHWAEBISCH_UV_REFERENCE_HEIGHT &&
+                                        chroma_planes[plane_index].data[
+                                            y * chroma_planes[plane_index].stride +
+                                            x] !=
+                                        schwaebisch_avm_chroma[plane_index][
+                                            y * SCHWAEBISCH_UV_REFERENCE_WIDTH +
+                                            x]) {
+                                        fprintf(stderr,
+                                                "schwaebisch-first-coded-chroma=%lu/%u/%u/%u/%u/%u local=%u avm=%u\n",
+                                                (unsigned long)plane_index,
+                                                chroma_leaf.node.row,
+                                                chroma_leaf.node.column,
+                                                chroma_leaf.node.block_size,
+                                                (unsigned int)x,
+                                                (unsigned int)y,
+                                                chroma_planes[plane_index].data[
+                                                    y * chroma_planes[plane_index].stride +
+                                                    x],
+                                                schwaebisch_avm_chroma[plane_index][
+                                                    y * SCHWAEBISCH_UV_REFERENCE_WIDTH +
+                                                    x]);
+                                        schwaebisch_first_chroma_reported[
+                                            plane_index] = 1;
+                                        break;
+                                    }
+                                }
+                                if (schwaebisch_first_chroma_reported[
+                                        plane_index]) {
+                                    break;
+                                }
+                            }
+                        }
                     }
                     if (status == AV2H_OK && has_leaf != 0U &&
                         chroma_leaf.node.row == 24U &&
@@ -5136,6 +5408,34 @@ static void check_first_luma(const ArtifactExpectation *expected,
                             UINT64_C(0xfc417191e6d1c7b6));
                         CHECK(output_hashes[1] ==
                             UINT64_C(0x3cfa5b1dcb7cf69b));
+                    }
+                    if (status == AV2H_OK && has_leaf != 0U &&
+                        chroma_leaf.node.row == 24U &&
+                        chroma_leaf.node.column == 64U) {
+                        fprintf(stderr,
+                                "schwaebisch-root-chroma=%016llx/%016llx:%016llx/%016llx sample=%u/%u\n",
+                                (unsigned long long)predictor_hashes[0],
+                                (unsigned long long)output_hashes[0],
+                                (unsigned long long)predictor_hashes[1],
+                                (unsigned long long)output_hashes[1],
+                                chroma_planes[0].data[
+                                    48U * chroma_planes[0].stride + 131U],
+                                chroma_planes[1].data[
+                                    48U * chroma_planes[1].stride + 133U]);
+                    }
+                    if (status == AV2H_OK && has_leaf != 0U &&
+                        chroma_leaf.node.row == 16U &&
+                        chroma_leaf.node.column == 96U) {
+                        fprintf(stderr,
+                                "schwaebisch-next-chroma=%016llx/%016llx:%016llx/%016llx sample=%u/%u\n",
+                                (unsigned long long)predictor_hashes[0],
+                                (unsigned long long)output_hashes[0],
+                                (unsigned long long)predictor_hashes[1],
+                                (unsigned long long)output_hashes[1],
+                                chroma_planes[0].data[
+                                    32U * chroma_planes[0].stride + 192U],
+                                chroma_planes[1].data[
+                                    32U * chroma_planes[1].stride + 192U]);
                     }
                     fprintf(stderr,
                             "schwaebisch q208 continue-uv status=%d reconstruct=%d/%d stage=%u tell=%lu leaf=%u sb=%lu row=%u column=%u block=%u mode=%u angle=%d colocated=%u/%d cfl=%u/%u/%u cdf=%u/%u/%u ranges=%u/%u/%u/%u:%u/%u:%u/%u prefix=%u/%u/%u/%u:%u/%u/%u/%u transform=%u/%u/%u:%u/%u/%u coeff=%u/%u/%lu/%lu diagnostic=%u/%u:%u/%u\n",
@@ -5221,6 +5521,439 @@ static void check_first_luma(const ArtifactExpectation *expected,
                     if (status != AV2H_OK) break;
                 }
             }
+            {
+                FILE *prefilter = fopen(
+                    "build/schwaebisch-local-prefilter.i420", "wb");
+                REQUIRE(prefilter != 0);
+                for (size_t row = 0U; row < expected->height; ++row) {
+                    REQUIRE(fwrite(luma_pixels + row * plane.stride, 1U,
+                                   expected->width, prefilter) ==
+                            expected->width);
+                }
+                for (size_t plane_index = 0U; plane_index < 2U;
+                     ++plane_index) {
+                    for (size_t row = 0U;
+                         row < SCHWAEBISCH_UV_REFERENCE_HEIGHT; ++row) {
+                        REQUIRE(fwrite(
+                                    chroma_planes[plane_index].data +
+                                        row * chroma_planes[plane_index].stride,
+                                    1U, SCHWAEBISCH_UV_REFERENCE_WIDTH,
+                                    prefilter) ==
+                                SCHWAEBISCH_UV_REFERENCE_WIDTH);
+                    }
+                }
+                fclose(prefilter);
+            }
+        }
+    }
+    if (expected->base_q_index == 64U && expected->width == 93U) {
+        static uint8_t chimp_avm_luma[93U * 111U];
+        static uint8_t chimp_avm_chroma[2U][47U * 56U];
+        static uint8_t chimp_chroma_pixels[2U][48U * 56U];
+        static uint8_t chimp_chroma_reconstructed[2U][12U * 14U];
+        Av2hReconstructionPlane chimp_plane = {
+            luma_pixels, 96U, 96U, 112U, 93U, 111U,
+            luma_reconstructed, 24U, sizeof(luma_reconstructed)
+        };
+        Av2hReconstructionPlane chimp_chroma_planes[2U] = {
+            {
+                chimp_chroma_pixels[0], 48U, 48U, 56U, 47U, 56U,
+                chimp_chroma_reconstructed[0], 12U,
+                sizeof(chimp_chroma_reconstructed[0])
+            },
+            {
+                chimp_chroma_pixels[1], 48U, 48U, 56U, 47U, 56U,
+                chimp_chroma_reconstructed[1], 12U,
+                sizeof(chimp_chroma_reconstructed[1])
+            }
+        };
+        Av2hReconstructionScratch chimp_scratch;
+        int first_reported = 0;
+        FILE *oracle = fopen("build/chimp-avm-prefilter.i420", "rb");
+        REQUIRE(oracle != 0);
+        REQUIRE(fread(chimp_avm_luma, 1U, sizeof(chimp_avm_luma), oracle) ==
+                sizeof(chimp_avm_luma));
+        REQUIRE(fread(chimp_avm_chroma, 1U, sizeof(chimp_avm_chroma),
+                      oracle) == sizeof(chimp_avm_chroma));
+        fclose(oracle);
+        av2h_memory_fill(luma_pixels, 0U, sizeof(luma_pixels));
+        av2h_memory_fill(luma_reconstructed, 0U,
+                         sizeof(luma_reconstructed));
+        av2h_memory_fill(chimp_chroma_pixels, 0U,
+                         sizeof(chimp_chroma_pixels));
+        av2h_memory_fill(chimp_chroma_reconstructed, 0U,
+                         sizeof(chimp_chroma_reconstructed));
+    chimp_continue_luma:
+        for (size_t step = 0U; step < 1024U &&
+             decoder.phase == AV2H_TILE_DECODE_LUMA; ++step) {
+            if (leaf.node.row == 0U && leaf.node.column == 2U) {
+                size_t coeff_index;
+                fprintf(stderr,
+                        "local-chimp-coeff-stage=%lu/%lu/%lu/%lu/%lu/%u/%u/%u/%u/%u/%u\n",
+                        (unsigned long)leaf.prefix.after_eob_bits,
+                        (unsigned long)leaf.transform.after_primary_bits,
+                        (unsigned long)block.before_levels_bits,
+                        (unsigned long)block.after_levels_bits,
+                        (unsigned long)block.after_coefficients_bits,
+                        leaf.transform.primary_type,
+                        leaf.transform.primary_signaled,
+                        block.nonzero_count, block.cul_level,
+                        block.after_levels_range,
+                        decoder.range.range);
+                    for (coeff_index = 0U;
+                         coeff_index < av2h_debug_fsc_coeff_count;
+                         ++coeff_index) {
+                        uint32_t *debug = av2h_debug_fsc_coeff[coeff_index];
+                        fprintf(stderr,
+                            "local-chimp-fsc=%lu/%lu/%lu/%lu/%lu/%lu/%lu/%lu/%lu/%lu/%lu/%lu/%lu/%lu/%lu/%lu\n",
+                            (unsigned long)debug[0],
+                            (unsigned long)debug[1],
+                            (unsigned long)debug[2],
+                            (unsigned long)debug[3],
+                            (unsigned long)debug[4],
+                            (unsigned long)debug[5],
+                            (unsigned long)debug[6],
+                            (unsigned long)debug[7],
+                            (unsigned long)debug[8],
+                            (unsigned long)debug[9],
+                            (unsigned long)debug[10],
+                            (unsigned long)debug[11],
+                            (unsigned long)debug[12],
+                            (unsigned long)debug[13],
+                            (unsigned long)debug[14],
+                            (unsigned long)debug[15]);
+                    }
+            }
+            if (leaf.node.row <= 3U && leaf.prefix.tx_size_context == 1U &&
+                leaf.prefix.all_zero == 0U) {
+                fprintf(stderr,
+                        "local-chimp-eob32-read=%u/%u/%u/%u/%lu/%u\n",
+                        leaf.node.row, leaf.node.column,
+                        leaf.prefix.tx_size, leaf.prefix.eob,
+                        (unsigned long)leaf.prefix.after_all_zero_bits,
+                        av2h_debug_eob_cdf[6]);
+            }
+            if (leaf.node.row <= 3U && leaf.prefix.eob_offset_bits != 0U) {
+                fprintf(stderr,
+                        "local-chimp-eob-extra=%u/%u/%u/%u/%u/%u/%lu/%lu/%u/%u\n",
+                        leaf.node.row, leaf.node.column,
+                        leaf.prefix.tx_size, leaf.prefix.eob_point,
+                        leaf.prefix.eob_extra,
+                        leaf.prefix.eob,
+                        (unsigned long)leaf.prefix.after_eob_point_bits,
+                        (unsigned long)leaf.prefix.after_eob_extra_bit,
+                        decoder.coeff_cdfs.eob_extra[0],
+                        decoder.coeff_cdfs.eob_extra[2]);
+            }
+            if (leaf.node.row == 2U && leaf.node.column == 8U) {
+                size_t debug_index;
+                fprintf(stderr, "local-chimp-recon-input=");
+                for (debug_index = 0U; debug_index < 16U; ++debug_index) {
+                    size_t debug_row = debug_index / 4U;
+                    size_t debug_column = debug_index % 4U;
+                    fprintf(stderr, "%s%u:%ld",
+                            debug_index == 0U ? "" : "/",
+                            luma_pixels[(leaf.node.row * 4U + debug_row) *
+                                        96U + leaf.node.column * 4U +
+                                        debug_column],
+                            (long)block.dequantized[debug_index]);
+                }
+                fprintf(stderr, "\n");
+            }
+            REQUIRE(av2h_luma_reconstruct_to_plane(
+                        &leaf.node, &leaf.mode, &leaf.prefix,
+                        &leaf.transform, &block, &chimp_plane,
+                        &chimp_scratch) == AV2H_OK);
+            if (leaf.node.row == 8U && leaf.node.column == 12U) {
+                size_t target_index;
+                fprintf(stderr,
+                    "local-chimp-target=%u/%ld/%u/%u/%u/%u/%u/%ld/%ld/%ld/%ld/%ld/%ld/%ld/%ld/%ld\n",
+                        chimp_scratch.predictor[0],
+                        (long)block.dequantized[0],
+                        luma_pixels[32U * 96U + 48U],
+                        leaf.prefix.tx_size,
+                        leaf.transform.primary_type,
+                        leaf.transform.secondary_symbol,
+                        leaf.transform.secondary_set,
+                        (long)chimp_scratch.transposed[0],
+                        (long)chimp_scratch.transposed[1],
+                        (long)chimp_scratch.transposed[2],
+                        (long)chimp_scratch.transposed[3],
+                        (long)chimp_scratch.transposed[4],
+                        (long)chimp_scratch.transposed[5],
+                        (long)chimp_scratch.transposed[6],
+                        (long)chimp_scratch.transposed[7],
+                        (long)chimp_scratch.residual[0]);
+                    fprintf(stderr, "local-chimp-target-coeff=");
+                    for (target_index = 0U; target_index < 64U; ++target_index) {
+                        fprintf(stderr, "%s%ld", target_index == 0U ? "" : "/",
+                            (long)block.dequantized[target_index]);
+                    }
+                    fprintf(stderr, "\n");
+            }
+            if (leaf.node.row == 2U && leaf.node.column == 8U) {
+                size_t debug_index;
+                fprintf(stderr, "local-chimp-recon-output=");
+                for (debug_index = 0U; debug_index < 16U; ++debug_index) {
+                    size_t debug_row = debug_index / 4U;
+                    size_t debug_column = debug_index % 4U;
+                    fprintf(stderr, "%s%u",
+                            debug_index == 0U ? "" : "/",
+                            luma_pixels[(leaf.node.row * 4U + debug_row) *
+                                        96U + leaf.node.column * 4U +
+                                        debug_column]);
+                }
+                fprintf(stderr, "\n");
+                fprintf(stderr, "local-chimp-predictor=");
+                for (debug_index = 0U; debug_index < 16U; ++debug_index) {
+                    fprintf(stderr, "%s%u",
+                            debug_index == 0U ? "" : "/",
+                            chimp_scratch.predictor[debug_index]);
+                }
+                fprintf(stderr, "\n");
+                fprintf(stderr,
+                    "local-chimp-ibp=%u/%u/%u/%u:%u/%u/%u/%u:%u/%u/%u/%u\n",
+                    av2h_debug_directional_ibp[0],
+                    av2h_debug_directional_ibp[1],
+                    av2h_debug_directional_ibp[2],
+                    av2h_debug_directional_ibp[3],
+                    av2h_debug_directional_ibp[4],
+                    av2h_debug_directional_ibp[5],
+                    av2h_debug_directional_ibp[6],
+                    av2h_debug_directional_ibp[7],
+                    av2h_debug_directional_ibp[8],
+                    av2h_debug_directional_ibp[9],
+                    av2h_debug_directional_ibp[10],
+                    av2h_debug_directional_ibp[11]);
+            }
+            if (!first_reported) {
+                size_t width_mi;
+                size_t height_mi;
+                REQUIRE(av2h_block_dimensions_mi(
+                            leaf.node.block_size, &width_mi,
+                            &height_mi) == AV2H_OK);
+                for (size_t row = 0U; row < height_mi * 4U; ++row) {
+                    for (size_t column = 0U; column < width_mi * 4U;
+                         ++column) {
+                        size_t x = leaf.node.column * 4U + column;
+                        size_t y = leaf.node.row * 4U + row;
+                        if (x < 93U && y < 111U &&
+                            luma_pixels[y * 96U + x] !=
+                                chimp_avm_luma[y * 93U + x]) {
+                            fprintf(stderr,
+                                    "chimp-first-coded-luma=%u/%u/%u/%u/%u local=%u avm=%u mode=%u angle=%d mode-tell=%lu/%lu/%lu/%lu/%lu mode-cdf=%u/%u/%u/%u/%u/%u/%u/%u/%u tools=%u/%u/%u/%u tx=%u/%u context=%u zero=%u eob=%u/%u/%u tell=%lu/%lu/%lu/%lu/%lu cdf=%u/%u/%u/%u/%u/%u point-cdf=%u/%u/%u/%u/%u/%u/%u/%u extra-cdf=%u/%u/%u/%u/%u/%u range=%u/%u palette=%u/%u/%u skip=%u intrabc=%u\n",
+                                    leaf.node.row, leaf.node.column,
+                                    leaf.node.block_size, (unsigned int)x,
+                                    (unsigned int)y,
+                                    luma_pixels[y * 96U + x],
+                                    chimp_avm_luma[y * 93U + x],
+                                    leaf.mode.mode, leaf.mode.angle_delta,
+                                    (unsigned long)leaf.mode.before_mode_bits,
+                                    (unsigned long)leaf.mode.after_mode_set_bits,
+                                    (unsigned long)leaf.mode.after_mode_index_bits,
+                                    (unsigned long)leaf.mode.after_fsc_bits,
+                                    (unsigned long)leaf.mode.after_mrl_bits,
+                                    av2h_debug_y_mode_index_cdf[0],
+                                    av2h_debug_y_mode_index_cdf[1],
+                                    av2h_debug_y_mode_index_cdf[2],
+                                    av2h_debug_y_mode_index_cdf[3],
+                                    av2h_debug_y_mode_index_cdf[4],
+                                    av2h_debug_y_mode_index_cdf[5],
+                                    av2h_debug_y_mode_index_cdf[6],
+                                    av2h_debug_y_mode_index_cdf[7],
+                                    av2h_debug_y_mode_index_cdf[8],
+                                    leaf.mode.fsc_mode,
+                                    leaf.mode.mrl_index,
+                                    leaf.mode.enable_ibp,
+                                    leaf.mode.multi_line_mrl,
+                                    leaf.prefix.tx_size,
+                                    leaf.prefix.tx_size_context,
+                                    leaf.prefix.txb_skip_context,
+                                    leaf.prefix.all_zero, leaf.prefix.eob,
+                                    leaf.prefix.eob_point,
+                                    leaf.prefix.eob_extra,
+                                    (unsigned long)
+                                        leaf.prefix.before_all_zero_bits,
+                                    (unsigned long)
+                                        leaf.prefix.after_all_zero_bits,
+                                    (unsigned long)
+                                        leaf.prefix.after_eob_point_bits,
+                                    (unsigned long)
+                                        leaf.prefix.after_eob_extra_bit,
+                                    (unsigned long)
+                                        leaf.prefix.after_eob_bits,
+                                    av2h_debug_skip_cdf[0],
+                                    av2h_debug_skip_cdf[1],
+                                    av2h_debug_skip_cdf[2],
+                                    av2h_debug_skip_cdf[3],
+                                    av2h_debug_skip_cdf[4],
+                                    av2h_debug_skip_cdf[5],
+                                    av2h_debug_eob_cdf[0],
+                                    av2h_debug_eob_cdf[1],
+                                    av2h_debug_eob_cdf[2],
+                                    av2h_debug_eob_cdf[3],
+                                    av2h_debug_eob_cdf[4],
+                                    av2h_debug_eob_cdf[5],
+                                    av2h_debug_eob_cdf[6],
+                                    av2h_debug_eob_cdf[7],
+                                    decoder.coeff_cdfs.eob_extra[0],
+                                    decoder.coeff_cdfs.eob_extra[1],
+                                    decoder.coeff_cdfs.eob_extra[2],
+                                    decoder.coeff_cdfs.eob_extra[3],
+                                    decoder.coeff_cdfs.eob_extra[4],
+                                    decoder.coeff_cdfs.eob_extra[5],
+                                    av2h_debug_skip_range,
+                                    decoder.range.range,
+                                    leaf.mode.palette_size,
+                                    leaf.mode.palette_colors[0],
+                                    av2h_palette_map_get(&leaf.mode, 0U),
+                                    leaf.mode.skip_transform,
+                                    leaf.mode.use_intrabc);
+                            first_reported = 1;
+                            break;
+                        }
+                    }
+                    if (first_reported) break;
+                }
+            }
+            REQUIRE(av2h_tile_decoder_commit_leaf(
+                        &decoder, leaf.node) == AV2H_OK);
+            av2h_memory_fill(&leaf, 0U, sizeof(leaf));
+            av2h_memory_fill(&block, 0U, sizeof(block));
+            status = av2h_tile_decoder_next_luma(
+                &decoder, &leaf, &block, &has_leaf);
+            while (status == AV2H_OK && has_leaf == 0U &&
+                   decoder.phase == AV2H_TILE_DECODE_LUMA) {
+                status = av2h_tile_decoder_next_luma(
+                    &decoder, &leaf, &block, &has_leaf);
+            }
+            if (status != AV2H_OK || has_leaf == 0U) break;
+        }
+        for (size_t step = 0U; step < 1024U &&
+             decoder.phase == AV2H_TILE_DECODE_CHROMA; ++step) {
+            Av2hTileChromaLeaf chroma_leaf;
+            Av2hFirstCoeffBlock chroma_blocks[2U];
+            av2h_memory_fill(&chroma_leaf, 0U, sizeof(chroma_leaf));
+            av2h_memory_fill(chroma_blocks, 0U, sizeof(chroma_blocks));
+            status = av2h_tile_decoder_next_chroma(
+                &decoder, &chroma_leaf, &chroma_blocks[0],
+                &chroma_blocks[1], &has_leaf);
+            if (status != AV2H_OK || has_leaf == 0U) break;
+            for (size_t plane_index = 0U; plane_index < 2U;
+                 ++plane_index) {
+                REQUIRE(av2h_chroma_reconstruct_to_plane_ex(
+                            &chroma_leaf.node, &chroma_leaf.mode,
+                            &chroma_leaf.prefix[plane_index],
+                            &chroma_leaf.transform[plane_index],
+                            &chroma_blocks[plane_index],
+                            &chimp_chroma_planes[plane_index], &chimp_plane,
+                            (uint8_t)(plane_index + 1U), 0,
+                            &chimp_scratch) == AV2H_OK);
+                if (!first_reported) {
+                    size_t width_mi;
+                    size_t height_mi;
+                    REQUIRE(av2h_block_dimensions_mi(
+                                chroma_leaf.node.block_size, &width_mi,
+                                &height_mi) == AV2H_OK);
+                    for (size_t row = 0U; row < height_mi * 2U; ++row) {
+                        for (size_t column = 0U; column < width_mi * 2U;
+                             ++column) {
+                            size_t x = chroma_leaf.node.column * 2U + column;
+                            size_t y = chroma_leaf.node.row * 2U + row;
+                            if (x < 47U && y < 56U &&
+                                chimp_chroma_planes[plane_index].data[
+                                    y * 48U + x] !=
+                                chimp_avm_chroma[plane_index][y * 47U + x]) {
+                                fprintf(stderr,
+                                        "chimp-first-coded-chroma=%lu/%u/%u/%u/%lu/%lu local=%u avm=%u predictor=%u residual=%d mode=%u angle=%d smooth=%u/%u cfl=%u/%u/%u/%u tx=%u/%u eob=%u/%u coeff=%d/%d/%d/%d\n",
+                                        (unsigned long)plane_index,
+                                        chroma_leaf.node.row,
+                                        chroma_leaf.node.column,
+                                        chroma_leaf.node.block_size,
+                                        (unsigned long)x, (unsigned long)y,
+                                        chimp_chroma_planes[plane_index].data[
+                                            y * 48U + x],
+                                        chimp_avm_chroma[plane_index][
+                                            y * 47U + x],
+                                        chimp_scratch.predictor[
+                                            row * chroma_blocks[plane_index].width +
+                                            column],
+                                        (int)chimp_chroma_planes[plane_index].data[
+                                            y * 48U + x] -
+                                            (int)chimp_scratch.predictor[
+                                                row * chroma_blocks[plane_index].width +
+                                                column],
+                                        chroma_leaf.mode.mode,
+                                        chroma_leaf.mode.angle_delta,
+                                        chroma_leaf.mode.above_smooth,
+                                        chroma_leaf.mode.left_smooth,
+                                        chroma_leaf.mode.is_cfl,
+                                        chroma_leaf.mode.cfl_kind,
+                                        chroma_leaf.mode.cfl_downsample_filter_index,
+                                        chroma_leaf.mode.mhccp_direction,
+                                        chroma_leaf.transform[0].primary_type,
+                                        chroma_leaf.transform[1].primary_type,
+                                        chroma_leaf.prefix[0].eob,
+                                        chroma_leaf.prefix[1].eob,
+                                        chroma_blocks[plane_index].dequantized[0],
+                                        chroma_blocks[plane_index].dequantized[1],
+                                        chroma_blocks[plane_index].dequantized[2],
+                                        chroma_blocks[plane_index].dequantized[3]);
+                                    fprintf(stderr,
+                                        "chimp-first-chroma-predictor=");
+                                    for (size_t sample = 0U;
+                                         sample < chroma_blocks[plane_index].width;
+                                         ++sample) {
+                                        fprintf(stderr, "%s%u",
+                                            sample == 0U ? "" : "/",
+                                            chimp_scratch.predictor[sample]);
+                                    }
+                                    fprintf(stderr, " above=");
+                                    for (size_t sample = 0U;
+                                         sample < chroma_blocks[plane_index].width;
+                                         ++sample) {
+                                        fprintf(stderr, "%s%u",
+                                            sample == 0U ? "" : "/",
+                                            chimp_scratch.above[sample]);
+                                    }
+                                    fprintf(stderr, " left=");
+                                    for (size_t sample = 0U;
+                                         sample < chroma_blocks[plane_index].height;
+                                         ++sample) {
+                                        fprintf(stderr, "%s%u",
+                                            sample == 0U ? "" : "/",
+                                            chimp_scratch.left[sample]);
+                                    }
+                                    fprintf(stderr, "\n");
+                                first_reported = 1;
+                                break;
+                            }
+                        }
+                        if (first_reported) break;
+                    }
+                }
+            }
+            REQUIRE(av2h_tile_decoder_commit_leaf(
+                        &decoder, chroma_leaf.node) == AV2H_OK);
+        }
+        if (decoder.phase == AV2H_TILE_DECODE_LUMA) {
+            goto chimp_continue_luma;
+        }
+        {
+            FILE *prefilter = fopen("build/chimp-local-prefilter.i420", "wb");
+            REQUIRE(prefilter != 0);
+            for (size_t row = 0U; row < 111U; ++row) {
+                REQUIRE(fwrite(luma_pixels + row * 96U, 1U, 93U,
+                               prefilter) == 93U);
+            }
+            for (size_t plane_index = 0U; plane_index < 2U; ++plane_index) {
+                for (size_t row = 0U; row < 56U; ++row) {
+                    REQUIRE(fwrite(chimp_chroma_pixels[plane_index] +
+                                       row * 48U,
+                                   1U, 47U, prefilter) == 47U);
+                }
+            }
+            fclose(prefilter);
         }
     }
     if (expected->width == 192U && expected->height == 96U &&

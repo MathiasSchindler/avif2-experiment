@@ -213,7 +213,7 @@ static const uint16_t av2h_luma_txb_skip[4U][2U][5U][10U][6U] = {
                 { 29994U, 0U, 0U, 1U, 3U, 3U },
                 { 17913U, 0U, 0U, 1U, 3U, 3U },
                 { 7792U, 0U, 0U, 2U, 3U, 4U },
-                { 1030U, 0U, 0U, 3U, 3U, 4U }
+                { 903U, 0U, 0U, 3U, 3U, 4U }
             },
             {
                 { 353U, 0U, 0U, 0U, 1U, 2U },

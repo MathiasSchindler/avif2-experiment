@@ -155,8 +155,14 @@ Av2hStatus av2h_first_coeff_cdfs_init_for_q(
     static const uint16_t eob_pt_16_chroma[] = {
         8298U, 11869U, 17297U, 24569U
     };
-    static const uint16_t eob_pt_32[] = {
-        1143U, 1778U, 3854U, 8166U, 13337U
+    static const uint16_t eob_pt_32[4U][5U] = {
+        { 1203U, 1920U, 4502U, 10281U, 17078U },
+        { 1143U, 1778U, 3854U, 8166U, 13337U },
+        { 3277U, 4780U, 9255U, 16544U, 21853U },
+        { 7189U, 11732U, 21773U, 29775U, 32060U }
+    };
+    static const uint8_t eob_pt_32_parameter[4U] = {
+        6U, 31U, 31U, 31U
     };
     static const uint16_t eob_pt_64[4U][6U] = {
         { 1848U, 2357U, 4392U, 7629U, 13328U, 21530U },
@@ -304,8 +310,9 @@ Av2hStatus av2h_first_coeff_cdfs_init_for_q(
     status = av2h_cdf_init(cdfs->eob_pt_16_chroma, 5U + 4U,
                            eob_pt_16_chroma, 5U, 30U, 0U);
     if (status != AV2H_OK) return status;
-    status = av2h_cdf_init(cdfs->eob_pt_32, 6U + 4U, eob_pt_32,
-                           6U, 31U, 0U);
+    status = av2h_cdf_init(cdfs->eob_pt_32, 6U + 4U,
+                           eob_pt_32[q_context], 6U,
+                           eob_pt_32_parameter[q_context], 0U);
     if (status != AV2H_OK) return status;
     status = av2h_cdf_init(cdfs->eob_pt_64, 7U + 4U,
                            eob_pt_64[q_context],
@@ -1000,17 +1007,9 @@ Av2hStatus av2h_coeff_prefix_read(
         return AV2H_UNSUPPORTED;
     }
     prefix->before_all_zero_bits = av2h_range_tell(decoder);
-    if (mode->fsc_mode) {
-        cdf = prefix->tx_size_context == 0U ?
-            cdfs->txb_skip_fsc_txs0_ctx9 :
-            prefix->tx_size_context == 1U ?
-                cdfs->txb_skip_fsc_txs1_ctx9 :
-                cdfs->txb_skip_fsc_txs2_ctx9;
-    } else {
-        cdf = cdfs->full_luma_txb_skip[mode->use_intrabc]
-                                         [prefix->tx_size_context]
-                                         [txb_skip_context];
-    }
+    cdf = cdfs->full_luma_txb_skip[
+        mode->use_intrabc || mode->fsc_mode][prefix->tx_size_context]
+                                             [txb_skip_context];
     {
         size_t debug_index;
         for (debug_index = 0U; debug_index < 6U; ++debug_index) {

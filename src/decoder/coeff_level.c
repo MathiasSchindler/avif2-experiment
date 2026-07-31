@@ -7,6 +7,9 @@ uint8_t av2h_debug_target_base_count;
 uint32_t av2h_debug_target_eob[10U];
 uint32_t av2h_debug_target_sign[2U][7U];
 uint8_t av2h_debug_target_sign_count;
+uint32_t av2h_debug_fsc_coeff[64U][16U];
+uint8_t av2h_debug_fsc_coeff_count;
+uint32_t av2h_debug_fsc_bob[12U];
 uint32_t av2h_debug_chimp_base[64U][18U];
 uint8_t av2h_debug_chimp_base_count;
 uint32_t av2h_debug_chimp_eob[18U];
@@ -3723,6 +3726,7 @@ static Av2hStatus read_fsc_block(
     }
     block->nonzero_count = 0U;
     block->dc_value = 0;
+    av2h_debug_fsc_coeff_count = 0U;
     block->before_levels_bits = av2h_range_tell(decoder);
     bob = (uint16_t)(block->coefficient_count - prefix->eob);
     {
@@ -3732,11 +3736,27 @@ static Av2hStatus read_fsc_block(
             bob <= block->coefficient_count / 4U ? 1U : 2U;
         uint16_t *cdf = cdfs->fsc_bob_all[tx_context][context];
         uint32_t symbol;
+        uint8_t debug_bob = (uint8_t)(
+            frame->width == 93U && frame->height == 111U &&
+            av2h_range_tell(decoder) > 38000U &&
+            av2h_range_tell(decoder) < 38300U);
         block->diagnostic_position = position;
         block->diagnostic_context = context;
         block->diagnostic_kind = 13U;
         if (cdf == 0) return AV2H_UNSUPPORTED;
+        if (debug_bob) {
+            av2h_debug_fsc_bob[0] = (uint32_t)av2h_range_tell(decoder);
+            av2h_debug_fsc_bob[1] = decoder->range;
+            av2h_debug_fsc_bob[2] = context;
+            for (uint8_t debug_index = 0U; debug_index < 7U; ++debug_index) {
+                av2h_debug_fsc_bob[3U + debug_index] = cdf[debug_index];
+            }
+        }
         symbol = av2h_range_read_adaptive(decoder, cdf, 3U);
+        if (debug_bob) {
+            av2h_debug_fsc_bob[10] = symbol;
+            av2h_debug_fsc_bob[11] = decoder->range;
+        }
         if (av2h_range_status(decoder) != AV2H_OK) {
             return av2h_range_status(decoder);
         }
@@ -3794,6 +3814,13 @@ static Av2hStatus read_fsc_block(
         uint8_t sign;
         uint64_t dequantized_magnitude;
         if (final_level == 0U) continue;
+        uint32_t *debug = av2h_debug_fsc_coeff[
+            av2h_debug_fsc_coeff_count++];
+        debug[0] = scan_index;
+        debug[1] = position;
+        debug[2] = final_level;
+        debug[3] = (uint32_t)av2h_range_tell(decoder);
+        debug[4] = decoder->range;
         context = fsc_sign_context(block, position);
         block->diagnostic_position = position;
         block->diagnostic_context = context;
@@ -3803,6 +3830,10 @@ static Av2hStatus read_fsc_block(
         if (av2h_range_status(decoder) != AV2H_OK) {
             return av2h_range_status(decoder);
         }
+        debug[5] = context;
+        debug[6] = sign;
+        debug[7] = (uint32_t)av2h_range_tell(decoder);
+        debug[8] = decoder->range;
         if (final_level >= 6U) {
             uint32_t high;
             block->diagnostic_context = (uint8_t)high_average;
@@ -3812,9 +3843,11 @@ static Av2hStatus read_fsc_block(
             final_level += high;
             high_average = (high_average + high) >> 1U;
         }
+        debug[9] = decoder->range;
         if (final_level > 32767U) return AV2H_INVALID_DATA;
         block->quantized[position] = sign ? -(int32_t)final_level :
                                              (int32_t)final_level;
+        if (position == 0U) block->dc_value = block->quantized[position];
         dequantized_magnitude = av2h_coeff_dequant_step_8bit(
             frame->base_q_index,
             position == 0U ? frame->y_dc_delta_q +
@@ -3825,7 +3858,8 @@ static Av2hStatus read_fsc_block(
         ++block->nonzero_count;
         cul_level += final_level;
     }
-    block->cul_level = (uint8_t)minimum(cul_level, 7U);
+    block->cul_level =
+        av2h_coeff_finalize_cul_level(cul_level, block->dc_value);
     block->after_coefficients_bits = av2h_range_tell(decoder);
     return AV2H_OK;
 }
@@ -3858,9 +3892,7 @@ Av2hStatus av2h_coeff_block_read(
     if (cdfs->q_context != coefficient_q_context(frame->base_q_index)) {
         return AV2H_UNSUPPORTED;
     }
-    if (mode->fsc_mode ||
-        (mode->use_intrabc &&
-         transform->primary_type == AV2H_TX_IDTX)) {
+    if (mode->fsc_mode || transform->primary_type == AV2H_TX_IDTX) {
         return read_fsc_block(decoder, cdfs, sequence, frame, prefix,
                               transform, block);
     }
@@ -3876,6 +3908,7 @@ Av2hStatus av2h_coeff_block_read(
     block->width = geometry.width;
     block->height = geometry.height;
     tx_context = geometry.tx_context;
+    av2h_debug_fsc_coeff_count = 0U;
     debug_target_base_active = (uint8_t)(
         (cdfs->q_context == 0U && tx_context == 4U) ||
         (frame->base_q_index == 192U && frame->width == 240U &&
@@ -3898,7 +3931,8 @@ Av2hStatus av2h_coeff_block_read(
         tx_context = 2U;
     }
     vertical = (uint8_t)(transform->primary_type == AV2H_TX_V_DCT ||
-                         transform->primary_type == AV2H_TX_V_ADST);
+                         transform->primary_type == AV2H_TX_V_ADST ||
+                         transform->primary_type == AV2H_TX_V_FLIPADST);
     column_scan = (uint8_t)(transform->primary_type == AV2H_TX_H_DCT ||
                             transform->primary_type == AV2H_TX_H_ADST ||
                             transform->primary_type ==
@@ -4152,7 +4186,6 @@ Av2hStatus av2h_coeff_block_read(
                     return av2h_range_status(decoder);
                 }
                 level = (uint8_t)(level + symbol);
-                if (symbol == 3U) return AV2H_UNSUPPORTED;
             }
         }
         if (av2h_range_status(decoder) != AV2H_OK) {
@@ -4188,6 +4221,13 @@ Av2hStatus av2h_coeff_block_read(
                                  vertical, column_scan);
         level = block->base_levels[position];
         if (level == 0U) continue;
+        uint32_t *debug = av2h_debug_fsc_coeff[
+            av2h_debug_fsc_coeff_count++];
+        debug[0] = scan_index;
+        debug[1] = position;
+        debug[2] = level;
+        debug[3] = (uint32_t)av2h_range_tell(decoder);
+        debug[4] = decoder->range;
         uint8_t adaptive_sign = (uint8_t)(
             scan_index == 0U ||
             (vertical && position / block->width == 0U) ||
@@ -4216,6 +4256,17 @@ Av2hStatus av2h_coeff_block_read(
         if (av2h_range_status(decoder) != AV2H_OK) {
             return av2h_range_status(decoder);
         }
+        debug[5] = adaptive_sign ? sign_context : 255U;
+        if (adaptive_sign) {
+            size_t cdf_index;
+            for (cdf_index = 0U; cdf_index < 6U; ++cdf_index) {
+                debug[10U + cdf_index] =
+                    cdfs->dc_sign[sign_context][cdf_index];
+            }
+        }
+        debug[6] = sign;
+        debug[7] = (uint32_t)av2h_range_tell(decoder);
+        debug[8] = decoder->range;
         final_level = level;
         low = is_low_frequency(position, block->width, vertical, column_scan);
         if (final_level >= (low ? 8U : 6U)) {
@@ -4227,6 +4278,7 @@ Av2hStatus av2h_coeff_block_read(
             final_level += high;
             high_average = (high_average + high) >> 1U;
         }
+        debug[9] = decoder->range;
         if (final_level > 32767U) return AV2H_INVALID_DATA;
         block->quantized[position] = sign ? -(int32_t)final_level :
                                              (int32_t)final_level;
