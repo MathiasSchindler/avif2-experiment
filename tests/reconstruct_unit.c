@@ -1004,6 +1004,37 @@ static void test_tx16x4_fsc_reconstruction(void) {
     }
 }
 
+static void test_tx4x16_fsc_reconstruction(void) {
+    uint8_t predictor[64U];
+    Av2hFirstLeafMode mode = { 0 };
+    Av2hFirstCoeffPrefix prefix = { 0 };
+    Av2hFirstTransformType transform = { 0 };
+    Av2hFirstCoeffBlock block = { 0 };
+    Av2hReconstructionScratch scratch;
+    Av2hFirstReconstruction reconstruction;
+    size_t index;
+
+    av2h_memory_fill(predictor, 128U, sizeof(predictor));
+    mode.mode = AV2H_INTRA_DC;
+    mode.fsc_mode = 1U;
+    prefix.tx_size = AV2H_TX_4X16;
+    transform.primary_type = AV2H_TX_IDTX;
+    block.width = 4U;
+    block.height = 16U;
+    block.coefficient_count = 64U;
+    block.dequantized[63U] = -1960;
+
+    CHECK(av2h_luma_reconstruct(
+              &mode, &prefix, &transform, &block, predictor, 4U,
+              &scratch, &reconstruction) == AV2H_OK);
+    CHECK(reconstruction.width == 4U);
+    CHECK(reconstruction.height == 16U);
+    for (index = 0U; index < 64U; ++index) {
+        CHECK(reconstruction.residual[index] == (index == 63U ? -245 : 0));
+        CHECK(reconstruction.pixels[index] == (index == 63U ? 0U : 128U));
+    }
+}
+
 static void test_tx4x4_intrabc_idtx_reconstruction(void) {
     static const uint8_t predictor[16U] = {
         247U, 249U, 251U, 251U,
@@ -5048,6 +5079,7 @@ int main(void) {
     test_d45_32x32_no_neighbor_ibp_prediction();
     test_tx16x4_dct_reconstruction();
     test_tx16x4_fsc_reconstruction();
+    test_tx4x16_fsc_reconstruction();
     test_tx4x4_intrabc_idtx_reconstruction();
     test_primary_idtx_reconstruction_matrix();
     test_tx4x4_d203_fsc_reconstruction();
