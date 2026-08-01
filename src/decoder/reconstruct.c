@@ -2524,6 +2524,9 @@ Av2hStatus av2h_luma_predict(
           mode->multi_line_mrl == 0U &&
           ((mode->mode == AV2H_INTRA_VERTICAL &&
                         ((width == 16U && height == 4U) ||
+                         (width == 8U && height == 8U) ||
+                         (width == 4U && height == 16U) ||
+                         (width == 16U && height == 32U) ||
                          (width == 32U && height == 16U) ||
                                                  (width == 64U && height == 16U) ||
                                                  (width == 64U && height == 32U) ||
@@ -2537,16 +2540,21 @@ Av2hStatus av2h_luma_predict(
                        (mode->mode == AV2H_INTRA_D113 &&
                                                 ((width == 4U && height == 8U) ||
                                                  (width == 4U && height == 16U) ||
+                                                 (width == 8U && height == 32U) ||
                                                  (width == 8U && height == 16U) ||
                                                  (width == 64U && height == 8U))) ||
                      (mode->mode == AV2H_INTRA_D135 &&
                         ((width == 8U && height == 8U) ||
                          (width == 8U && height == 32U) ||
+                         (width == 16U && height == 8U) ||
+                         (width == 16U && height == 32U) ||
+                         (width == 32U && height == 32U) ||
                          (width == 16U && height == 4U) ||
                          (width == 8U && height == 16U) ||
                          (width == 32U && height == 64U))) ||
                      (mode->mode == AV2H_INTRA_D157 &&
                         ((width == 8U && height == 4U) ||
+                         (width == 4U && height == 16U) ||
                          (width == 16U && height == 4U) ||
                          (width == 8U && height == 16U) ||
                          (width == 32U && height == 32U))) ||

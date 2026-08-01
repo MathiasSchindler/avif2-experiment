@@ -120,9 +120,9 @@ static size_t gdf_bias_index(unsigned int qp_index,
 
 static unsigned int gdf_training_qp_index(const Av2hFrameState *frame) {
     unsigned int base_index = 0U;
-    if (frame->base_q_index >= 197U) {
+    if (frame->base_q_index >= 172U) {
         base_index = 2U;
-    } else if (frame->base_q_index >= 172U) {
+    } else if (frame->base_q_index >= 147U) {
         base_index = 1U;
     }
     return base_index + frame->gdf_qp_index;
@@ -1629,9 +1629,6 @@ Av2hStatus av2h_filter_frame(
     }
     capture_filter_stage(0U, planes);
     av2h_debug_filter_stage_planes[0] = *planes;
-    if (frame->width == 93U && frame->height == 111U) {
-        return AV2H_OK;
-    }
     status = av2h_deblock_filter_frame(
         &workspace->deblocked, sequence, frame,
         &workspace->deblock_map);
