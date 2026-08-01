@@ -538,12 +538,6 @@ Av2hStatus av2h_coeff_contexts_from_state(
     if (height > state->left_count - left_index) {
         height = state->left_count - left_index;
     }
-    if (width > state->mi_columns - leaf->column) {
-        width = state->mi_columns - leaf->column;
-    }
-    if (height > state->mi_rows - leaf->row) {
-        height = state->mi_rows - leaf->row;
-    }
     above = coefficient_plane(state->above, state->above_count, plane);
     left = coefficient_plane(state->left, state->left_count, plane);
     u_above = coefficient_plane(state->above, state->above_count, 1U);
@@ -607,12 +601,6 @@ Av2hStatus av2h_coeff_context_state_update(
     }
     if (height > state->left_count - left_index) {
         height = state->left_count - left_index;
-    }
-    if (width > state->mi_columns - leaf->column) {
-        width = state->mi_columns - leaf->column;
-    }
-    if (height > state->mi_rows - leaf->row) {
-        height = state->mi_rows - leaf->row;
     }
     above = coefficient_plane(state->above, state->above_count, plane);
     left = coefficient_plane(state->left, state->left_count, plane);

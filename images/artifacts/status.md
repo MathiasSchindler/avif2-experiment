@@ -1,23 +1,23 @@
 # Decoder status snapshot
 
-Runtime snapshot verified on 2026-07-31 at revision `03274c2` plus the current
+Runtime snapshot verified on 2026-08-01 at revision `03274c2` plus the current
 prediction, inverse-transform, Q-context-0 coefficient, primary-transform,
 cross-chroma-transform, and palette work. The production Windows decoder was
 rebuilt and run against all 21
 artifacts, with every emitted I420 compared by SHA-256 to its locked AVM
-reference. Native CTest passes nine of ten Windows tests, including all three
+reference. Native CTest passes ten of eleven Windows tests, including all four
 structured diagnostic checks; the existing Chinnathurai exact-output comparison
 retains its chroma parity failure. The focused hosted reconstruction unit retains
 exactly 17 established baseline failures.
 The detailed incomplete-file endpoints below are therefore diagnostic
 frontiers, not a claim that every hosted fixture passes.
 
-The public decoder emits I420 for 6 of the 21 `.obu` files in this directory.
+The public decoder emits I420 for 7 of the 21 `.obu` files in this directory.
 `emerald-192x96-qp208.obu`, `chinnathurai-333x333-qp224.obu`,
 `louis-463x342-qp224.obu`, and `schwaebisch-417x277-qp208.obu` are byte-identical
-to their locked AVM references. `chimp-93x111-qp064.obu` and
-`flycatcher-223x149-qp176.obu` decode completely but retain reconstruction
-parity gaps. The other 15 files fail closed
+to their locked AVM references. `chimp-93x111-qp064.obu`,
+`cuckoo-157x105-qp160.obu`, and `flycatcher-223x149-qp176.obu` decode completely
+but retain reconstruction parity gaps. The other 14 files fail closed
 without output. `Tell` counts bits from the beginning of the tile entropy
 stream. Block positions are expressed in 4x4 units.
 
@@ -33,26 +33,26 @@ an earlier entropy divergence can still be the underlying cause.
 | Current stopping surface | Files |
 | --- | --- |
 | Luma coefficient prefix | `emerald-480x240-qp128.obu`, `flycatcher-397x265-qp048.obu`, `pastell-320x213-qp064.obu`, `silene-479x383-qp176.obu` |
-| Luma prediction | `cuckoo-431x287-qp080.obu` |
+| Luma prediction | None |
 | Luma IntraBC source bounds | None |
 | Luma IntraBC reference availability | None |
 | Chroma IntraBC reference availability | None |
-| Luma inverse transform | `chimp-240x287-qp192.obu`, `chinnathurai-128x128-qp112.obu`, `laarim-256x171-qp096.obu`, `laarim-448x299-qp192.obu`, `pastell-512x341-qp160.obu`, `schwaebisch-353x234-qp112.obu` |
-| Chroma coefficient levels | `cuckoo-157x105-qp160.obu` |
-| Chroma parse | `chalk-320x240-qp128.obu`, `silene-384x307-qp080.obu` |
+| Luma inverse transform | `chalk-320x240-qp128.obu`, `chimp-240x287-qp192.obu`, `chinnathurai-128x128-qp112.obu`, `cuckoo-431x287-qp080.obu`, `laarim-256x171-qp096.obu`, `laarim-448x299-qp192.obu`, `pastell-512x341-qp160.obu`, `schwaebisch-353x234-qp112.obu` |
+| Chroma coefficient levels | None |
+| Chroma parse | `silene-384x307-qp080.obu` |
 | Chroma deblock map | None |
 | Frame filter | None |
-| Output parity | `chimp-93x111-qp064.obu`, `flycatcher-223x149-qp176.obu` |
+| Output parity | `chimp-93x111-qp064.obu`, `cuckoo-157x105-qp160.obu`, `flycatcher-223x149-qp176.obu` |
 
 | File | Current endpoint | Blocker |
 | --- | --- | --- |
-| `chalk-320x240-qp128.obu` | Horizontal 64x16 set1/type3 and D45 8x8 set2/type3 IST routes advance production to 160 luma and 102 chroma leaves at tell 6,179, where a later chroma block reaches escaped UV mode 14 | Upstream entropy divergence before chroma mode parsing |
+| `chalk-320x240-qp128.obu` | The former escaped UV mode 14 is cleared. Production now reaches `(44,36)` 4x16 Y at tell 28,508 after 862 luma and 511 chroma leaves | D157 4x16 set6/type2 inverse transform |
 | `chimp-240x287-qp192.obu` | The reduced four-symbol ADST secondary-set CDF and pinned set10/type3 matrix advance the normative path to `(4,20)` 16x16 Y at tell 1,094 after 40 luma and one chroma leaf | ADST_ADST set8/type3 inverse transform |
 | `chimp-93x111-qp064.obu` | **Decode complete:** entropy, coefficients, and luma reconstruction match AVM. IntraBC reference-bank lifetime, chroma Smooth endpoints, wide-angle chroma transform derivation, and MHCCP coded-edge/reference geometry are aligned; all six U-plane MHCCP blocks are byte-exact. The remaining prefilter gap is 216 chroma samples, first at U `(35,43)`, in a D45 4x8 dependency whose bottom-left source is reconstructed earlier by AVM than locally | Chroma reconstruction scheduling/order parity |
 | `chinnathurai-128x128-qp112.obu` | Five luma leaves committed before `(9,11)` 4x4 Y reaches ADST_ADST secondary reconstruction at tell 232 | 4x4 secondary set13/type2 inverse transform |
 | `chinnathurai-333x333-qp224.obu` | **Complete:** emitted 166,667-byte I420 is byte-identical to the AVM reference (SHA-256 `6f1868d8945e87350414baa1a49829b21dbcb8c4e0e44dee6633d844ef5d7182`) | None for the accepted profile |
-| `cuckoo-157x105-qp160.obu` | 97 luma and nine chroma leaves committed before `(26,16)` 32x8 V reaches coefficient levels at tell 2,281 | Chroma coefficient-level profile |
-| `cuckoo-431x287-qp080.obu` | FSC IDTX TX_4X16 and D67 TX_64X8 set5/type3 IST advance production to `(16,72)` 8x32 Y at tell 21,153 after 351 luma and 99 chroma leaves | D157 8x32 luma prediction profile |
+| `cuckoo-157x105-qp160.obu` | **Decode complete:** bottom-edge luma mode neighbors now fall back from an out-of-frame bottom-left sample to the ordinary left neighbor, and coefficient entropy contexts retain the full superblock-padded transform footprint. The emitted I420 has SHA-256 `16cfce09263acb854aaa8754269a346d0654bd20cae6b2fc02b5798e0dc05101`, differing from locked AVM SHA-256 `01fa3b4d41665f9297edc5ad116a65618dac3069adfb6a83f83f7e05aa5010a` | Reconstruction/output parity |
+| `cuckoo-431x287-qp080.obu` | Zero-angle D157 8x32 prediction advances production through the former `(16,72)` stop to `(30,64)` 8x4 Y at tell 21,572 after 359 luma and 99 chroma leaves | DC 8x4 set6/type1 inverse transform |
 | `emerald-192x96-qp208.obu` | **Complete:** 20 luma and 11 chroma leaves, tile done at tell 731, filtered I420 byte-identical to the AVM reference (SHA-256 `403c2e7245ec484984e60c1eaf8bd1b47487c0ba6b60afc916b9532025fc51ad`) | None for the accepted profile |
 | `emerald-480x240-qp128.obu` | FSC IDTX TX_16X32 clears `(24,8)`; 16 luma and nine chroma leaves are committed before `(25,14)` 4x4 Y reaches coefficient prefix at tell 1,181. Local mode is IntraBC, while pinned AVM reports FSC IDTX with no IntraBC at this coordinate | Upstream mode entropy divergence before coefficient prefix |
 | `flycatcher-223x149-qp176.obu` | **Decode complete:** zero-angle D135 16x32 prediction clears the former tell-3,000 stop. The 50,027-byte output has SHA-256 `4044e0062d4ad5c8d13fa708c63abf05a8efb31e1ba46f4421c2e252bb900c91`, differing from locked AVM SHA-256 `38abac499fc98cb79b4c1e6cf166be2c905fb549771d8b51b3161a926b53c3f2`; first mismatch is Y `(71,56)` at the first GDF stripe boundary | GDF stripe-boundary parity |
@@ -70,17 +70,17 @@ an earlier entropy divergence can still be the underlying cause.
 
 Summary:
 
-- the public Windows decoder emits output for 6/21 artifacts; four are
-  byte-identical to AVM, while Chimp Q64 and Flycatcher Q176 retain
-  reconstruction parity gaps. The other 15 streams fail closed without output.
+- the public Windows decoder emits output for 7/21 artifacts; four are
+  byte-identical to AVM, while Chimp Q64, Cuckoo Q160, and Flycatcher Q176
+  retain reconstruction parity gaps. The other 14 streams fail closed without output.
   The fresh production
   census identifies
-  four luma coefficient-prefix stops, one luma-prediction stop, zero IntraBC
-  source-bounds stops, zero IntraBC-reference stops, six luma
-  inverse-transform stops, one luma mode/palette stop, one chroma
-  coefficient-level stop, two chroma-parse
+  four luma coefficient-prefix stops, zero luma-prediction stops, zero IntraBC
+  source-bounds stops, zero IntraBC-reference stops, eight luma
+  inverse-transform stops, one luma mode/palette stop, zero chroma
+  coefficient-level stops, one chroma-parse
   stop, zero chroma-deblock-map stops, zero frame-filter stops, and one
-  output-parity mismatch category containing two files;
+  output-parity mismatch category containing three files;
 - normative FSC geometry now admits every 4--32 dimension in luma mode,
   transform derivation, and coefficient-prefix parsing. Chimp Q64 advances
   from its first 8x8 mode at tell 30 to chroma prediction at tell 173, and
@@ -133,8 +133,10 @@ Summary:
 - complete normative UV EOB/base/base-LF/BR coefficient-level CDF banks now
   cover Q contexts 0--3. Chroma blocks use descriptor geometry, including
   legal all-zero large transforms, instead of frame/Q/transform whitelists.
-  All six former chroma coefficient-level blockers advance, and no production
-  artifact currently stops in chroma coefficient levels;
+  All six former chroma coefficient-level profile gaps advance. Cuckoo Q160's
+  remaining apparent V-level stop is a phantom block after pinned AVM has
+  already completed, so it is tracked as upstream traversal divergence rather
+  than an unsupported coefficient profile;
 - Laarim Q96 no longer fails in first-block prediction. The existing 32x32
   D45/0 no-neighbor IBP fallback was shadowed by the generic directional
   branch; ordering it first advances production from tell 471 with zero leaves

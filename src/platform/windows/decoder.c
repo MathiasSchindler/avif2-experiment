@@ -522,6 +522,7 @@ static void *arena_array(Av2hArena *arena,
 }
 
 static Av2hStatus prepare_decode_workspace(
+    const Av2hSequenceState *sequence,
     const Av2hFrameState *frame,
     void *memory,
     size_t memory_size,
@@ -534,15 +535,25 @@ static Av2hStatus prepare_decode_workspace(
     void *filter_memory;
     size_t mi_columns;
     size_t mi_rows;
+    size_t context_columns;
+    size_t context_rows;
+    size_t superblock_mi;
     size_t mi_cells;
     size_t cdef_columns;
     size_t cdef_rows;
     size_t cdef_count;
     unsigned int plane;
-    Av2hStatus status = av2h_filter_workspace_query(frame, &layout);
+    Av2hStatus status;
+    if (sequence == 0) return AV2H_INVALID_ARGUMENT;
+    status = av2h_filter_workspace_query(frame, &layout);
     if (status != AV2H_OK) return status;
     mi_columns = ((size_t)frame->width + 3U) / 4U;
     mi_rows = ((size_t)frame->height + 3U) / 4U;
+    superblock_mi = sequence->superblock_size == 128U ? 32U : 16U;
+    context_columns = (mi_columns + superblock_mi - 1U) /
+        superblock_mi * superblock_mi;
+    context_rows = (mi_rows + superblock_mi - 1U) /
+        superblock_mi * superblock_mi;
     cdef_columns = ((size_t)frame->width + 63U) / 64U;
     cdef_rows = ((size_t)frame->height + 63U) / 64U;
     if (!av2h_size_multiply(mi_columns, mi_rows, &mi_cells) ||
@@ -584,16 +595,16 @@ static Av2hStatus prepare_decode_workspace(
             &arena, (count), sizeof(type), _Alignof(type));                    \
         if (memory != 0) workspace->tile_context.field = (type *)allocated;    \
     } while (0)
-    AV2H_BIND_FIELD(luma_partition_above, mi_columns, uint8_t);
-    AV2H_BIND_FIELD(luma_partition_left, mi_rows, uint8_t);
-    AV2H_BIND_FIELD(chroma_partition_above, mi_columns, uint8_t);
-    AV2H_BIND_FIELD(chroma_partition_left, mi_rows, uint8_t);
-    AV2H_BIND_FIELD(luma_mode_above, mi_columns, Av2hLumaModeContext);
-    AV2H_BIND_FIELD(luma_mode_left, mi_rows, Av2hLumaModeContext);
+    AV2H_BIND_FIELD(luma_partition_above, context_columns, uint8_t);
+    AV2H_BIND_FIELD(luma_partition_left, context_rows, uint8_t);
+    AV2H_BIND_FIELD(chroma_partition_above, context_columns, uint8_t);
+    AV2H_BIND_FIELD(chroma_partition_left, context_rows, uint8_t);
+    AV2H_BIND_FIELD(luma_mode_above, context_columns, Av2hLumaModeContext);
+    AV2H_BIND_FIELD(luma_mode_left, context_rows, Av2hLumaModeContext);
     AV2H_BIND_FIELD(coefficient_above,
-                    mi_columns * AV2H_FRAME_PLANE_COUNT, uint8_t);
+                    context_columns * AV2H_FRAME_PLANE_COUNT, uint8_t);
     AV2H_BIND_FIELD(coefficient_left,
-                    mi_rows * AV2H_FRAME_PLANE_COUNT, uint8_t);
+                    context_rows * AV2H_FRAME_PLANE_COUNT, uint8_t);
     AV2H_BIND_FIELD(colocated_luma, mi_cells, Av2hTileLumaModeCell);
     AV2H_BIND_FIELD(gdf_block_flags, frame->gdf_block_count, uint8_t);
     AV2H_BIND_FIELD(cdef_unit_strengths, cdef_count, uint8_t);
@@ -615,8 +626,8 @@ static Av2hStatus prepare_decode_workspace(
     if (arena.status != AV2H_OK) return arena.status;
     *required = av2h_arena_required(&arena);
     if (memory == 0) return AV2H_OK;
-    workspace->tile_context.above_count = mi_columns;
-    workspace->tile_context.left_count = mi_rows;
+    workspace->tile_context.above_count = context_columns;
+    workspace->tile_context.left_count = context_rows;
     workspace->tile_context.colocated_luma_count = mi_cells;
     workspace->tile_context.gdf_block_flag_capacity = frame->gdf_block_count;
     workspace->tile_context.cdef_unit_strength_capacity = cdef_count;
@@ -668,7 +679,7 @@ static Av2hStatus decode_obu(Av2hSpan input,
     status = av2h_i420_output_size(&frame, &output_size);
     if (status != AV2H_OK) return status;
     status = prepare_decode_workspace(
-        &frame, 0, 0U, &workspace, &filter_workspace, &filter_storage,
+        &sequence, &frame, 0, 0U, &workspace, &filter_workspace, &filter_storage,
         &workspace_size);
     if (status != AV2H_OK) return status;
     if (!allocate_memory(workspace_size, &workspace_memory) ||
@@ -678,7 +689,7 @@ static Av2hStatus decode_obu(Av2hSpan input,
         return AV2H_OUT_OF_MEMORY;
     }
     status = prepare_decode_workspace(
-        &frame, workspace_memory.memory, workspace_memory.size,
+        &sequence, &frame, workspace_memory.memory, workspace_memory.size,
         &workspace, &filter_workspace, &filter_storage, &workspace_size);
     if (status == AV2H_OK) {
         status = av2h_decode_frame_i420_private(

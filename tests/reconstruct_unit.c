@@ -1965,6 +1965,7 @@ static void test_luma_zero_angle_frontier_matrix(void) {
         { AV2H_INTRA_D135, 32U, 64U },
         { AV2H_INTRA_D157, 4U, 16U },
         { AV2H_INTRA_D157, 8U, 16U },
+        { AV2H_INTRA_D157, 8U, 32U },
         { AV2H_INTRA_D157, 32U, 32U },
         { AV2H_INTRA_D67, 8U, 4U },
         { AV2H_INTRA_D67, 64U, 64U },

@@ -583,6 +583,11 @@ Av2hStatus av2h_tile_decoder_init(
         storage->above_count, storage->coefficient_left,
         storage->left_count);
     if (status != AV2H_OK) return tile_decoder_fail(decoder, status);
+    if (decoder->mi_rows >
+        (size_t)decoder->luma_mode_contexts.superblock_mi * 2U) {
+        decoder->coefficient_contexts.above_count = decoder->mi_columns;
+        decoder->coefficient_contexts.left_count = decoder->mi_rows;
+    }
     decoder->coefficient_contexts.mi_columns = decoder->mi_columns;
     decoder->coefficient_contexts.mi_rows = decoder->mi_rows;
     status = av2h_partition_traversal_init(

@@ -1962,8 +1962,8 @@ static void test_luma_mode_bottom_left_clipped_to_frame(void) {
     left[71U % 32U].joint_mode = 60U;
     CHECK(av2h_luma_mode_neighbors_from_state(
               &state, &leaf, &neighbors) == AV2H_OK);
-    CHECK(neighbors.present[0] == 0U);
-    CHECK(neighbors.joint_mode[0] == 0U);
+    CHECK(neighbors.present[0] == 1U);
+    CHECK(neighbors.joint_mode[0] == 53U);
     CHECK(neighbors.edge_smooth[0] == 0U);
     CHECK(neighbors.spatial_present[0] == 1U);
     CHECK(neighbors.spatial_joint_mode[0] == 53U);

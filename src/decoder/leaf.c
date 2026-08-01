@@ -2191,26 +2191,31 @@ Av2hStatus av2h_luma_mode_neighbors_from_state(
         left_index >= state->left_count) {
         return AV2H_OVERFLOW;
     }
-    if (leaf->column != 0U &&
-        (state->spatial_rows == 0U ||
-         (size_t)leaf->row + height - 1U < state->spatial_rows)) {
-        const Av2hLumaModeContext *bottom_left =
-            &state->left[(leaf->row + height - 1U) % state->left_count];
+    if (leaf->column != 0U) {
         const Av2hLumaModeContext *left = &state->left[left_index];
-        candidates[0] = bottom_left;
         candidates[2] = left;
-        selected[0] = bottom_left;
-    } else if (leaf->column != 0U) {
-        candidates[2] = &state->left[left_index];
+        selected[0] = left;
+        if (state->spatial_rows == 0U ||
+            (size_t)leaf->row + height - 1U < state->spatial_rows) {
+            const Av2hLumaModeContext *bottom_left =
+                &state->left[(leaf->row + height - 1U) % state->left_count];
+            candidates[0] = bottom_left;
+            selected[0] = bottom_left;
+        }
     }
-    if (leaf->row != 0U &&
-        (size_t)leaf->column + width - 1U < state->above_count) {
-        const Av2hLumaModeContext *above_right =
-            &state->above[leaf->column + width - 1U];
+    if (leaf->row != 0U) {
         const Av2hLumaModeContext *above = &state->above[leaf->column];
-        candidates[1] = above_right;
         candidates[3] = above;
-        selected[1] = above_right;
+        if (state->superblock_mi != 0U &&
+            state->spatial_rows <= state->superblock_mi) {
+            selected[1] = above;
+        }
+        if ((size_t)leaf->column + width - 1U < state->above_count) {
+            const Av2hLumaModeContext *above_right =
+                &state->above[leaf->column + width - 1U];
+            candidates[1] = above_right;
+            selected[1] = above_right;
+        }
     }
     for (index = 0U; index < 4U && spatial_count < 2U; ++index) {
         if (!not_at_superblock_top && (index == 1U || index == 3U)) {

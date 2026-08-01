@@ -134,17 +134,21 @@ if(WIN32 AND CMAKE_C_COMPILER_ID MATCHES "Clang")
             "-DINPUT=${CMAKE_CURRENT_SOURCE_DIR}/images/artifacts/chalk-320x240-qp128.obu"
             "-DOUTPUT=${CMAKE_CURRENT_BINARY_DIR}/diagnostic-chalk.i420"
             "-DEXPECTED_STAGE=stage: luma reconstruction / inverse transform"
-            "-DEXPECTED_LEAF=leaf: (0,48) block=64x16 plane=Y"
-            "-DEXPECTED_PROGRESS=entropy tell: 4979; completed leaves: Y=119 UV=84"
+            "-DEXPECTED_LEAF=leaf: (44,36) block=4x16 plane=Y"
+            "-DEXPECTED_PROGRESS=entropy tell: 28508; completed leaves: Y=862 UV=511"
             -P "${CMAKE_CURRENT_SOURCE_DIR}/scripts/check-decoder-diagnostic.cmake")
+    add_test(NAME windows-decoder-cuckoo-q160-i420
+        COMMAND av2heif-decoder
+            "${CMAKE_CURRENT_SOURCE_DIR}/images/artifacts/cuckoo-157x105-qp160.obu"
+            -o "${CMAKE_CURRENT_BINARY_DIR}/cuckoo-q160-decoder.i420")
     add_test(NAME windows-decoder-diagnostic-cuckoo-luma-transform
         COMMAND "${CMAKE_COMMAND}"
             "-DDECODER=$<TARGET_FILE:av2heif-decoder>"
             "-DINPUT=${CMAKE_CURRENT_SOURCE_DIR}/images/artifacts/cuckoo-431x287-qp080.obu"
             "-DOUTPUT=${CMAKE_CURRENT_BINARY_DIR}/diagnostic-cuckoo.i420"
             "-DEXPECTED_STAGE=stage: luma reconstruction / inverse transform"
-            "-DEXPECTED_LEAF=leaf: (28,46) block=4x16 plane=Y"
-            "-DEXPECTED_PROGRESS=entropy tell: 12839; completed leaves: Y=265 UV=75"
+            "-DEXPECTED_LEAF=leaf: (30,64) block=8x4 plane=Y"
+            "-DEXPECTED_PROGRESS=entropy tell: 21572; completed leaves: Y=359 UV=99"
             -P "${CMAKE_CURRENT_SOURCE_DIR}/scripts/check-decoder-diagnostic.cmake")
     add_test(NAME windows-decoder-diagnostic-silene-chroma-parse
         COMMAND "${CMAKE_COMMAND}"

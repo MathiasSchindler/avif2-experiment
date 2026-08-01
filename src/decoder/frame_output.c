@@ -219,13 +219,17 @@ static int decode_planes_valid(
 }
 
 static int tile_context_valid(
+    const Av2hSequenceState *sequence,
     const Av2hFrameState *frame,
     const Av2hTileContextStorage *context,
     Av2hFrameContextSizes *sizes) {
     size_t mi_columns;
     size_t mi_rows;
+    size_t context_columns;
+    size_t context_rows;
+    size_t superblock_mi;
     size_t cell_count;
-    if (frame == 0 || context == 0 || sizes == 0 ||
+    if (sequence == 0 || frame == 0 || context == 0 || sizes == 0 ||
         context->luma_partition_above == 0 ||
         context->luma_partition_left == 0 ||
         context->chroma_partition_above == 0 ||
@@ -238,8 +242,13 @@ static int tile_context_valid(
     }
     mi_columns = ((size_t)frame->width + 3U) / 4U;
     mi_rows = ((size_t)frame->height + 3U) / 4U;
-    if (context->above_count < mi_columns ||
-        context->left_count < mi_rows ||
+    superblock_mi = sequence->superblock_size == 128U ? 32U : 16U;
+    context_columns = (mi_columns + superblock_mi - 1U) /
+        superblock_mi * superblock_mi;
+    context_rows = (mi_rows + superblock_mi - 1U) /
+        superblock_mi * superblock_mi;
+    if (context->above_count < context_columns ||
+        context->left_count < context_rows ||
         !av2h_size_multiply(mi_columns, mi_rows, &cell_count) ||
         context->colocated_luma_count < cell_count ||
         !av2h_size_multiply(
@@ -556,7 +565,7 @@ Av2hStatus av2h_decode_frame_i420_private(
     if (!filter_workspace_valid(&layout, workspace->filter_workspace) ||
         !decode_planes_valid(frame, &layout, workspace) ||
         !tile_context_valid(
-            frame, &workspace->tile_context, &context_sizes) ||
+            sequence, frame, &workspace->tile_context, &context_sizes) ||
         !output_is_disjoint(
             output, required_output, &layout, workspace,
             &context_sizes, result)) {
