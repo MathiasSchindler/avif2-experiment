@@ -39,11 +39,16 @@ typedef struct {
     uint16_t primary_long_side_32[AV2H_BINARY_CDF_SIZE];
     uint16_t primary_short_side_8[4U + 4U];
     uint16_t primary_short_side_16[4U + 4U];
+    uint16_t intrabc_short_side[3U][3U][4U + 4U];
     uint16_t intrabc_type_set[3U][2U][AV2H_BINARY_CDF_SIZE];
+    uint16_t intrabc_type_set2[3U][AV2H_BINARY_CDF_SIZE];
     uint16_t intrabc_type_index
+        [3U][AV2H_INTER_TX_TYPE_INDEX_SYMBOLS + 4U];
+    uint16_t intrabc_type_index2
         [3U][AV2H_INTER_TX_TYPE_INDEX_SYMBOLS + 4U];
     uint16_t intrabc_type_offset
         [3U][AV2H_INTER_TX_TYPE_INDEX_SYMBOLS + 4U];
+    uint16_t intrabc_type_offset2[3U][4U + 4U];
     uint16_t secondary_4x4[AV2H_SECONDARY_TX_TYPE_SYMBOLS + 4U];
     uint16_t secondary_8x8[AV2H_SECONDARY_TX_TYPE_SYMBOLS + 4U];
     uint16_t secondary_16x16[AV2H_SECONDARY_TX_TYPE_SYMBOLS + 4U];

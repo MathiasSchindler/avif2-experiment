@@ -2220,6 +2220,19 @@ Av2hStatus av2h_luma_mode_neighbors_from_state(
             spatial[spatial_count++] = candidates[index];
         }
     }
+    neighbors->line_valid = state->superblock_mi != 0U;
+    {
+        size_t line_count = 0U;
+        for (index = 0U; index < 4U && line_count < 2U; ++index) {
+            if (candidates[index] != 0 && candidates[index]->present) {
+                neighbors->line_present[line_count] = 1U;
+                neighbors->line_skip_transform[line_count] =
+                    candidates[index]->skip_transform;
+                ++line_count;
+            }
+        }
+    }
+    neighbors->spatial_valid = state->superblock_mi != 0U;
     for (index = 0U; index < 2U; ++index) {
         const Av2hLumaModeContext *context = selected[index];
         const Av2hLumaModeContext *spatial_context = spatial[index];
@@ -2469,11 +2482,10 @@ static Av2hStatus luma_mode_read_internal(
     mode->left_smooth = neighbors->edge_smooth[0];
     mode->above_smooth = neighbors->edge_smooth[1];
     mode->superblock_size = sequence->superblock_size;
-    has_spatial_neighbors = (uint8_t)(
-        neighbors->spatial_present[0] || neighbors->spatial_present[1]);
+    has_spatial_neighbors = neighbors->spatial_valid;
     for (neighbor = 0U; neighbor < 2U; ++neighbor) {
-        uint8_t skip_transform = has_spatial_neighbors ?
-            neighbors->spatial_skip_transform[neighbor] :
+        uint8_t skip_transform = neighbors->line_valid ?
+            neighbors->line_skip_transform[neighbor] :
             neighbors->skip_transform[neighbor];
         if (neighbors->present[neighbor]) {
             if (neighbors->joint_mode[neighbor] >= 61U) {
@@ -2482,9 +2494,9 @@ static Av2hStatus luma_mode_read_internal(
             mode_context += is_directional_joint_mode(
                 neighbors->joint_mode[neighbor]);
         }
-        if (has_spatial_neighbors && neighbors->spatial_present[neighbor]) {
+        if (neighbors->line_valid && neighbors->line_present[neighbor]) {
             skip_transform_context += skip_transform;
-        } else if (!has_spatial_neighbors) {
+        } else if (!neighbors->line_valid) {
             skip_transform_context += skip_transform;
         }
     }

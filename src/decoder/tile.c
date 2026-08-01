@@ -280,8 +280,7 @@ static Av2hStatus tile_initialize_skipped_intrabc(
         return AV2H_INVALID_ARGUMENT;
     }
     if (leaf->mode.use_intrabc != 1U ||
-        leaf->mode.skip_transform != 1U ||
-        leaf->mode.mv_precision != 3U) {
+        leaf->mode.skip_transform != 1U) {
         return AV2H_UNSUPPORTED;
     }
     status = av2h_luma_tx_descriptor_get(
@@ -973,13 +972,13 @@ Av2hStatus av2h_tile_decoder_reconstruct_next_chroma(
     status = av2h_chroma_inverse_cross_transform(
         &u_block, &v_block, leaf->transform[0].cctx_type);
     if (status != AV2H_OK) return tile_decoder_fail(decoder, status);
-    status = av2h_chroma_reconstruct_to_plane(
+    status = av2h_chroma_reconstruct_to_plane_ex(
         &leaf->node, &leaf->mode, &leaf->prefix[0], &leaf->transform[0],
-        &u_block, u_plane, scratch);
+        &u_block, u_plane, 0, 1U, 0, scratch);
     if (status != AV2H_OK) return tile_decoder_fail(decoder, status);
-    status = av2h_chroma_reconstruct_to_plane(
+    status = av2h_chroma_reconstruct_to_plane_ex(
         &leaf->node, &leaf->mode, &leaf->prefix[1], &leaf->transform[1],
-        &v_block, v_plane, scratch);
+        &v_block, v_plane, 0, 2U, 0, scratch);
     if (status != AV2H_OK) return tile_decoder_fail(decoder, status);
     return av2h_tile_decoder_commit_leaf(decoder, leaf->node);
 }

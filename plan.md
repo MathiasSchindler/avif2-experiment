@@ -349,13 +349,12 @@ fixture-supplied contexts or references.
 
 ## Milestone 7: ordinary fixture coverage
 
-**Status:** Ordinary luma is complete. All 22 leaves reconstruct
-sample-exactly against the pinned AVM prefilter through tell 762, including
-the reached AV2 smooth predictors, tuned 16-point ADST, D45 intra-bi-
-prediction, D203 MRL below-left references, and four final skipped intraBC
-copies. The decoder then enters ordinary chroma traversal, which remains the
-Milestone 7 frontier. See `docs/milestone-7.md` for the exact endpoints and
-handoff.
+**Status:** Complete. The ordinary 160x120 fixture traverses coded-size Y/U/V
+planes to `AV2H_TILE_DECODE_DONE` at tell 6498 with exact pinned-AVM prefilter
+and final crop parity. Prefilter FNV-1a hashes are Y `7945904097577017502`, U
+`4124092689509881817`, and V `6418349723304023184`; the final I420 SHA-256 is
+`def0ced80c4bc1866d0d865fb392c80020ac0a823f310b2f62999d10eede1af5`.
+See `docs/milestone-7.md` for the locked checkpoints.
 
 An audit of all 21 `images/artifacts/*.obu` streams found no artifact-relevant
 Milestone 7 gap. Every Frame Header now parses to the exact pinned-AVM bit
@@ -375,13 +374,9 @@ fail-closed at transform-size, EOB, coefficient, prediction, or reconstruction
 paths. The ordinary 4x4 intraBC leaf is implemented, but none of the artifact
 streams reaches it.
 
-Complete the ordinary fixture's remaining partition, mode, transform,
-coefficient, prediction, reconstruction, and chroma paths. Admit only locked
-normative CDF rows and transform constants reached by the fixture.
-
-Exit gate: the ordinary fixture reconstructs sample-exact unfiltered Y, U,
-and V planes and the full traversal terminates at the pinned AVM entropy
-endpoint without unsupported paths.
+Exit gate complete: the ordinary fixture reconstructs sample-exact unfiltered
+prefilter and final cropped Y, U, and V planes, and full traversal terminates
+at the pinned AVM entropy endpoint without unsupported paths.
 
 ## Milestone 8: high-detail and advanced prediction
 
@@ -542,22 +537,19 @@ Release validation additionally includes:
 
 ## Current work order
 
-1. Resume Milestone 7 at the ordinary chroma handoff after tell 762 and
-  complete chroma parity.
-2. Complete Milestone 8 high-detail, CFL, intraBC, coefficient-range, and
+1. Complete Milestone 8 high-detail, CFL, intraBC, coefficient-range, and
   advanced-transform coverage.
-3. Integrate and prove the mandatory filter pipeline in Milestone 9 after the
+2. Integrate and prove the mandatory filter pipeline in Milestone 9 after the
   unfiltered fixture dependencies are complete.
-4. Finalize workspace contracts and expose decoding only in Milestone 10.
+3. Finalize workspace contracts and expose decoding only in Milestone 10.
 
 Early work in a later milestone may be retained when it is already validated,
 but it does not waive an earlier exit gate. Each milestone must leave the
 decoder fail-closed at the first unsupported owner.
 
-The remaining-work audit is complete: Milestone 7 owns all unfinished ordinary
-unfiltered luma/chroma work; Milestone 8 owns the high-detail and advanced
+The remaining-work audit is complete: Milestone 7 ordinary unfiltered
+luma/chroma work is closed; Milestone 8 owns the high-detail and advanced
 prediction/transform profile; Milestone 9 owns metadata wiring and normative
-filtered parity; and Milestone 10 owns bounded workspace, public API, fuzz, and
-release finalization. Restoration remains outside the accepted profile and
-must continue to fail closed; adding it belongs to later profile expansion,
-not to an unassigned current milestone.
+filtered parity; and Milestone 10 owns bounded workspace, public API, fuzz,
+and release finalization. Restoration remains outside the accepted profile
+and must continue to fail closed.

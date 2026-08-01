@@ -200,6 +200,10 @@ typedef struct {
     uint8_t mrl_index[2];
     uint8_t multi_line_mrl[2];
     uint8_t morph_pred[2];
+    uint8_t line_valid;
+    uint8_t line_present[2];
+    uint8_t line_skip_transform[2];
+    uint8_t spatial_valid;
     uint8_t spatial_present[2];
     uint8_t spatial_use_intrabc[2];
     uint8_t spatial_skip_transform[2];

@@ -1105,12 +1105,6 @@ Av2hStatus av2h_chroma_coeff_prefix_read_with_state(
     av2h_debug_chroma_prefix_frame[1] = frame->width;
     av2h_debug_chroma_prefix_frame[2] = frame->height;
     av2h_debug_chroma_prefix_context = txb_skip_context;
-    if (frame != 0 && frame->base_q_index == 128U &&
-        (leaf->block_size == AV2H_BLOCK_8X8 ||
-         leaf->block_size == AV2H_BLOCK_8X16) &&
-        plane == 2U && txb_skip_context == 6U) {
-        txb_skip_context = 9U;
-    }
     return av2h_chroma_coeff_prefix_read(
         decoder, cdfs, frame, leaf, plane, txb_skip_context, prefix);
 }

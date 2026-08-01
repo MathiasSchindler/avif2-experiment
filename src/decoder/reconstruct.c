@@ -550,7 +550,7 @@ static Av2hStatus inverse_secondary_transform(
                transform->secondary_set == 0U) {
         kernel = av2h_ist_8x8_set0_type2_kernel;
         scan_map = av2h_ist_8x8_set0_type2_scan_map;
-    } else if (mode->mode == AV2H_INTRA_DC &&
+    } else if (mode->mode == AV2H_INTRA_HORIZONTAL &&
                prefix->tx_size == AV2H_TX_32X64 &&
                transform->secondary_symbol == 2U &&
                transform->secondary_set == 0U) {
@@ -2566,6 +2566,7 @@ Av2hStatus av2h_luma_predict(
                          (width == 4U && height == 16U) ||
                          (width == 16U && height == 32U) ||
                          (width == 32U && height == 16U) ||
+                         (width == 64U && height == 8U) ||
                                                  (width == 64U && height == 16U) ||
                                                  (width == 64U && height == 32U) ||
                          (width == 64U && height == 64U) ||
@@ -4764,6 +4765,10 @@ Av2hStatus av2h_chroma_predict(
             width, height);
         luma_mode.mode = mode->mode;
         luma_mode.angle_delta = mode->angle_delta;
+        luma_mode.edge_ibp = (uint8_t)(
+            (width != 4U || height != 4U) && mode->edge_ibp);
+        luma_mode.above_smooth = mode->above_smooth;
+        luma_mode.left_smooth = mode->left_smooth;
         return predict_directional(
             &luma_mode, angle,
             width, height, references, predictor, predictor_stride, 0U, 1U);
@@ -4779,6 +4784,10 @@ Av2hStatus av2h_chroma_predict(
             width, height);
         luma_mode.mode = mode->mode;
         luma_mode.angle_delta = mode->angle_delta;
+        luma_mode.edge_ibp = (uint8_t)(
+            (width != 4U || height != 4U) && mode->edge_ibp);
+        luma_mode.above_smooth = mode->above_smooth;
+        luma_mode.left_smooth = mode->left_smooth;
         return predict_directional(
             &luma_mode, angle,
             width, height, references, predictor, predictor_stride, 0U, 1U);
@@ -4801,7 +4810,8 @@ Av2hStatus av2h_chroma_predict(
         int angle = wide_angle_map(
             directional_base_angle(mode->mode), width, height);
         luma_mode.mode = mode->mode;
-        luma_mode.edge_ibp = mode->edge_ibp;
+        luma_mode.edge_ibp = (uint8_t)(
+            (width != 4U || height != 4U) && mode->edge_ibp);
         luma_mode.above_smooth = mode->above_smooth;
         luma_mode.left_smooth = mode->left_smooth;
         return predict_directional(
@@ -8720,8 +8730,9 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_ex(
             block_x >= plane->width ? 0U :
             (size_t)plane->width - block_x;
         size_t left_count = block_x == 0U ? 0U : height;
-        int angle = directional_base_angle(mode->mode) +
-            mode->angle_delta * 3;
+        int angle = wide_angle_map(
+            directional_base_angle(mode->mode) + mode->angle_delta * 3,
+            width, height);
         if (left_count != 0U &&
             (mode->mode == AV2H_INTRA_SMOOTH ||
              mode->mode == AV2H_INTRA_SMOOTH_VERTICAL)) {

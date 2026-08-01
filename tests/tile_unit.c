@@ -57,12 +57,10 @@ static void check_plane_crop(const char *name,
     }
 }
 
-static void check_plane_crop_hash(const char *name,
-                                  const uint8_t *actual,
-                                  size_t stride,
-                                  size_t width,
-                                  size_t height,
-                                  uint64_t expected) {
+static uint64_t plane_crop_hash(const uint8_t *actual,
+                                size_t stride,
+                                size_t width,
+                                size_t height) {
     uint64_t hash = UINT64_C(1469598103934665603);
     size_t row;
     size_t column;
@@ -72,6 +70,16 @@ static void check_plane_crop_hash(const char *name,
             hash *= UINT64_C(1099511628211);
         }
     }
+    return hash;
+}
+
+static void check_plane_crop_hash(const char *name,
+                                  const uint8_t *actual,
+                                  size_t stride,
+                                  size_t width,
+                                  size_t height,
+                                  uint64_t expected) {
+    uint64_t hash = plane_crop_hash(actual, stride, width, height);
     if (hash != expected) {
         fprintf(stderr, "%s hash mismatch: %llu != %llu\n", name,
                 (unsigned long long)hash,
@@ -638,85 +646,6 @@ static void test_odd_luma_reconstruction(void) {
 }
 
 static void test_ordinary_luma_frontier(void) {
-    static const uint64_t expected_luma_hashes[22U] = {
-        UINT64_C(0xb666ec5be3701956), UINT64_C(0xf66e6f01aeb5ad97),
-        UINT64_C(0x6fad48acc36f7004), UINT64_C(0x61c8894e341d8337),
-        UINT64_C(0x5d61449d8e885cd9), UINT64_C(0x140819bddcea93f3),
-        UINT64_C(0x51b354a4f9625d1e), UINT64_C(0x59159bdf1bd9aa0b),
-        UINT64_C(0x8568a78c3ee65230), UINT64_C(0xb1fb34b3b9f69fb4),
-        UINT64_C(0x91ee2824221046b5), UINT64_C(0xb7488e6860351153),
-        UINT64_C(0x588141fd272cbf13), UINT64_C(0x26c9219765e31c1a),
-        UINT64_C(0x58f086378f647f07), UINT64_C(0x0a4e3d2a018ac751),
-        UINT64_C(0x33ff0d2f73f81429), UINT64_C(0xb3c3bf66a43a1cc8),
-        UINT64_C(0x65af8b9f4fbe616a), UINT64_C(0x061edd5afd44c0c4),
-        UINT64_C(0x08618ffe09f8d977), UINT64_C(0x04918cb0bfb81c67)
-    };
-    static const uint8_t expected_sixth[64U] = {
-        216U, 218U, 220U, 222U, 224U, 226U, 228U, 230U,
-        232U, 233U, 235U, 237U, 239U, 241U, 243U, 245U,
-        219U, 221U, 223U, 225U, 227U, 229U, 231U, 232U,
-        233U, 236U, 238U, 240U, 242U, 244U, 246U, 249U,
-        221U, 223U, 225U, 227U, 229U, 231U, 232U, 234U,
-        236U, 238U, 240U, 242U, 244U, 246U, 249U, 250U,
-        223U, 225U, 227U, 229U, 231U, 233U, 234U, 236U,
-        238U, 240U, 242U, 244U, 247U, 249U, 250U, 253U
-    };
-    static const uint8_t expected_seventh[64U] = {
-        225U, 227U, 229U, 231U, 233U, 234U, 236U, 238U,
-        240U, 242U, 244U, 247U, 249U, 251U, 252U, 253U,
-        228U, 230U, 232U, 233U, 234U, 237U, 239U, 241U,
-        243U, 245U, 248U, 250U, 251U, 252U, 8U, 8U,
-        230U, 232U, 233U, 235U, 237U, 239U, 241U, 243U,
-        245U, 248U, 250U, 251U, 252U, 8U, 8U, 8U,
-        232U, 234U, 235U, 237U, 239U, 241U, 243U, 246U,
-        248U, 250U, 252U, 8U, 8U, 8U, 8U, 8U
-    };
-    static const uint8_t expected_eighth[16U] = {
-        247U, 249U, 250U, 253U,
-        249U, 251U, 252U, 253U,
-        251U, 252U, 253U, 8U,
-        252U, 8U, 8U, 8U
-    };
-    static const uint8_t expected_ninth[16U] = {
-        255U, 255U, 7U, 0U,
-        6U, 0U, 0U, 8U,
-        0U, 8U, 8U, 8U,
-        8U, 8U, 8U, 8U
-    };
-    static const uint8_t expected_tenth[32U] = {
-        74U, 19U, 5U, 4U, 8U, 10U, 12U, 13U,
-        14U, 3U, 5U, 9U, 11U, 13U, 15U, 16U,
-        5U, 10U, 11U, 13U, 16U, 18U, 20U, 21U,
-        12U, 13U, 15U, 17U, 19U, 21U, 23U, 24U
-    };
-    static const uint8_t expected_eleventh[64U] = {
-        1U, 7U, 8U, 8U, 10U, 12U, 15U, 18U,
-        8U, 8U, 9U, 12U, 13U, 16U, 20U, 22U,
-        9U, 12U, 14U, 16U, 19U, 22U, 23U, 23U,
-        13U, 16U, 19U, 23U, 25U, 25U, 26U, 26U,
-        17U, 22U, 25U, 27U, 28U, 29U, 29U, 30U,
-        22U, 27U, 29U, 30U, 32U, 33U, 34U, 34U,
-        25U, 28U, 31U, 33U, 35U, 37U, 38U, 38U,
-        25U, 29U, 32U, 34U, 37U, 39U, 40U, 41U
-    };
-    static const uint8_t expected_twelfth[128U] = {
-        239U, 241U, 243U, 245U, 247U, 249U, 250U, 253U,
-        255U, 255U, 7U, 0U, 1U, 7U, 8U, 8U,
-        242U, 244U, 246U, 249U, 249U, 251U, 252U, 253U,
-        6U, 0U, 0U, 8U, 8U, 8U, 9U, 12U,
-        244U, 246U, 249U, 250U, 251U, 252U, 253U, 8U,
-        0U, 8U, 8U, 8U, 9U, 12U, 14U, 16U,
-        247U, 249U, 250U, 253U, 252U, 8U, 8U, 8U,
-        8U, 8U, 8U, 8U, 13U, 16U, 19U, 23U,
-        249U, 251U, 252U, 253U, 74U, 19U, 5U, 4U,
-        8U, 10U, 12U, 13U, 17U, 22U, 25U, 27U,
-        251U, 252U, 8U, 8U, 14U, 3U, 5U, 9U,
-        11U, 13U, 15U, 16U, 22U, 27U, 29U, 30U,
-        252U, 8U, 8U, 8U, 5U, 10U, 11U, 13U,
-        16U, 18U, 20U, 21U, 25U, 28U, 31U, 33U,
-        8U, 8U, 8U, 8U, 12U, 13U, 15U, 17U,
-        19U, 21U, 23U, 24U, 25U, 29U, 32U, 34U
-    };
     static const uint8_t seventh_nonzero[10U] = {
         30U, 31U, 45U, 46U, 47U, 59U, 60U, 61U, 62U, 63U
     };
@@ -746,11 +675,23 @@ static void test_ordinary_luma_frontier(void) {
           ccso_unit_controls[2] },
         1U
     };
-    uint8_t luma_pixels[160U * 120U];
-    uint8_t luma_reconstructed[40U * 30U];
+    uint8_t luma_pixels[160U * 128U];
+    uint8_t luma_reconstructed[40U * 32U];
     Av2hReconstructionPlane luma_plane = {
-        luma_pixels, 160U, 160U, 120U, 160U, 120U,
+        luma_pixels, 160U, 160U, 128U, 160U, 120U,
         luma_reconstructed, 40U, sizeof(luma_reconstructed)
+    };
+    uint8_t u_pixels[80U * 64U];
+    uint8_t v_pixels[80U * 64U];
+    uint8_t u_reconstructed[20U * 16U];
+    uint8_t v_reconstructed[20U * 16U];
+    Av2hReconstructionPlane u_plane = {
+        u_pixels, 80U, 80U, 64U, 80U, 60U,
+        u_reconstructed, 20U, sizeof(u_reconstructed)
+    };
+    Av2hReconstructionPlane v_plane = {
+        v_pixels, 80U, 80U, 64U, 80U, 60U,
+        v_reconstructed, 20U, sizeof(v_reconstructed)
     };
     Av2hReconstructionScratch scratch;
     Av2hSequenceState sequence = { 0 };
@@ -1115,102 +1056,10 @@ static void test_ordinary_luma_frontier(void) {
             &leaf.node, &leaf.mode, &leaf.prefix, &leaf.transform,
             &block, &luma_plane, &scratch);
         if (reconstruction_status != AV2H_OK) break;
-        check_plane_crop_hash(
-            "ordinary luma",
-            luma_pixels + (size_t)leaf.node.row * 4U * 160U +
-                (size_t)leaf.node.column * 4U,
-            160U, block.width, block.height,
-            expected_luma_hashes[leaf_count]);
-        fprintf(stderr,
-            "ordinary luma leaf %zu at (%u,%u), block %u "
-                "mode %zu/%zu/%zu/%zu/%zu raw %u/%u/%u/%u tx %u/%u/%u "
-            "coeff %zu/%zu/%zu tell %zu\n",
-            leaf_count, leaf.node.row, leaf.node.column,
-            (unsigned int)leaf.node.block_size,
-            leaf.mode.before_mode_bits, leaf.mode.after_mode_set_bits,
-            leaf.mode.after_mode_index_bits, leaf.mode.after_fsc_bits,
-            leaf.mode.after_mrl_bits,
-            (unsigned int)leaf.mode.mode_set,
-            (unsigned int)leaf.mode.mode_index,
-            (unsigned int)leaf.mode.joint_mode,
-            (unsigned int)leaf.mode.fsc_mode,
-            (unsigned int)leaf.prefix.tx_size,
-            (unsigned int)leaf.transform.primary_type,
-            (unsigned int)leaf.prefix.eob,
-            block.before_levels_bits, block.after_levels_bits,
-            block.after_coefficients_bits,
-            av2h_range_tell(&decoder.range));
         CHECK(av2h_tile_decoder_commit_leaf(
                   &decoder, leaf.node) == AV2H_OK);
         ++leaf_count;
     }
-    fprintf(stderr,
-            "ordinary luma frontier after %zu leaves at (%u,%u), block %u "
-            "mode %u angle/fsc %d/%u intrabc %u/%u/%u/%u/%d,%d "
-            "mode-stages %zu/%zu/%zu/%zu/%zu "
-            "tx/eob %u/%u prefix %zu/%zu/%zu transform %u/%u/%u@%zu "
-            "coeff %zu/%zu/%zu "
-            "diag %u/%u/%u nz %u "
-            "tell %zu: %u/%u partition (%u,%u)/%u@%zu\n",
-            leaf_count, leaf.node.row, leaf.node.column,
-            (unsigned int)leaf.node.block_size,
-            (unsigned int)leaf.mode.mode,
-            (int)leaf.mode.angle_delta,
-            (unsigned int)leaf.mode.fsc_mode,
-            (unsigned int)leaf.mode.use_intrabc,
-            (unsigned int)leaf.mode.intrabc_mode,
-            (unsigned int)leaf.mode.intrabc_drl_index,
-            (unsigned int)leaf.mode.mv_precision,
-            (int)leaf.mode.displacement_x,
-            (int)leaf.mode.displacement_y,
-            leaf.mode.before_mode_bits,
-            leaf.mode.after_mode_set_bits,
-            leaf.mode.after_mode_index_bits,
-            leaf.mode.after_fsc_bits,
-            leaf.mode.after_mrl_bits,
-            (unsigned int)leaf.prefix.tx_size,
-            (unsigned int)leaf.prefix.eob,
-            leaf.prefix.after_all_zero_bits,
-            leaf.prefix.after_eob_point_bits,
-            leaf.prefix.after_eob_bits,
-            (unsigned int)leaf.transform.primary_type,
-            (unsigned int)leaf.transform.primary_long_side_symbol,
-            (unsigned int)leaf.transform.primary_symbol,
-            leaf.transform.after_primary_bits,
-            block.before_levels_bits,
-            block.after_levels_bits,
-            block.after_coefficients_bits,
-            (unsigned int)block.diagnostic_kind,
-            (unsigned int)block.diagnostic_position,
-            (unsigned int)block.diagnostic_context,
-            (unsigned int)block.nonzero_count,
-            av2h_range_tell(&decoder.range), (unsigned int)status,
-            (unsigned int)reconstruction_status,
-            decoder.luma_traversal.diagnostic_node.row,
-            decoder.luma_traversal.diagnostic_node.column,
-            (unsigned int)decoder.luma_traversal.diagnostic_node.block_size,
-            decoder.luma_traversal.diagnostic_before_bits);
-    check_plane_crop("ordinary sixth luma",
-                     luma_pixels + 40U * 160U, 160U,
-                     expected_sixth, 16U, 4U);
-    check_plane_crop("ordinary seventh luma",
-                     luma_pixels + 44U * 160U, 160U,
-                     expected_seventh, 16U, 4U);
-    check_plane_crop("ordinary eighth luma",
-                     luma_pixels + 40U * 160U + 16U, 160U,
-                     expected_eighth, 4U, 4U);
-    check_plane_crop("ordinary ninth luma",
-                     luma_pixels + 40U * 160U + 20U, 160U,
-                     expected_ninth, 4U, 4U);
-    check_plane_crop("ordinary tenth luma",
-                     luma_pixels + 44U * 160U + 16U, 160U,
-                     expected_tenth, 8U, 4U);
-    check_plane_crop("ordinary eleventh luma",
-                     luma_pixels + 40U * 160U + 24U, 160U,
-                     expected_eleventh, 8U, 8U);
-    check_plane_crop("ordinary twelfth luma",
-                     luma_pixels + 48U * 160U, 160U,
-                     expected_twelfth, 16U, 8U);
     CHECK(status == AV2H_OK);
     CHECK(reconstruction_status == AV2H_OK);
     CHECK(has_leaf == 0U);
@@ -1222,6 +1071,37 @@ static void test_ordinary_luma_frontier(void) {
           AV2H_BLOCK_16X8);
     CHECK(decoder.luma_traversal.diagnostic_before_bits == 744U);
     CHECK(av2h_range_tell(&decoder.range) == 762U);
+    {
+        Av2hTileChromaLeaf chroma_leaf;
+        uint8_t has_chroma_leaf = 0U;
+
+        av2h_memory_fill(u_pixels, 0U, sizeof(u_pixels));
+        av2h_memory_fill(v_pixels, 0U, sizeof(v_pixels));
+        av2h_memory_fill(u_reconstructed, 0U, sizeof(u_reconstructed));
+        av2h_memory_fill(v_reconstructed, 0U, sizeof(v_reconstructed));
+        while (status == AV2H_OK &&
+               decoder.phase != AV2H_TILE_DECODE_DONE) {
+            if (decoder.phase == AV2H_TILE_DECODE_LUMA) {
+                av2h_memory_fill(&leaf, 0U, sizeof(leaf));
+                status = av2h_tile_decoder_reconstruct_next_luma(
+                    &decoder, &luma_plane, &scratch, &leaf, &has_leaf);
+            } else {
+                av2h_memory_fill(&chroma_leaf, 0U, sizeof(chroma_leaf));
+                status = av2h_tile_decoder_reconstruct_next_chroma(
+                    &decoder, &u_plane, &v_plane, &scratch,
+                    &chroma_leaf, &has_chroma_leaf);
+            }
+        }
+        CHECK(status == AV2H_OK);
+        CHECK(decoder.phase == AV2H_TILE_DECODE_DONE);
+        CHECK(av2h_range_tell(&decoder.range) == 6498U);
+        check_plane_crop_hash("ordinary Y", luma_pixels, 160U, 160U, 120U,
+                              UINT64_C(7945904097577017502));
+        check_plane_crop_hash("ordinary U", u_pixels, 80U, 80U, 60U,
+                              UINT64_C(4124092689509881817));
+        check_plane_crop_hash("ordinary V", v_pixels, 80U, 80U, 60U,
+                              UINT64_C(6418349723304023184));
+    }
 }
 
 static void test_orchestrator_failures(void) {

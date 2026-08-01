@@ -22,10 +22,35 @@ Av2hStatus av2h_first_transform_cdfs_init(Av2hFirstTransformCdfs *cdfs) {
     static const uint16_t primary_short_side_16[] = {
         26915U, 32411U, 32748U
     };
+    static const uint16_t intrabc_short_side[3U][3U][3U] = {
+        {
+            { 8347U, 20254U, 24536U },
+            { 15994U, 26294U, 32748U },
+            { 21212U, 27810U, 32748U }
+        },
+        {
+            { 21815U, 25084U, 26230U },
+            { 29354U, 31747U, 32748U },
+            { 31614U, 32529U, 32748U }
+        },
+        {
+            { 10501U, 20590U, 24181U },
+            { 17596U, 26388U, 32748U },
+            { 15407U, 26475U, 32732U }
+        }
+    };
+    static const uint8_t intrabc_short_side_parameter[3U][3U] = {
+        { 31U, 1U, 1U },
+        { 62U, 37U, 36U },
+        { 31U, 37U, 60U }
+    };
     static const Av2hBinaryCdfSpec intrabc_type_set[3U][2U] = {
         { { 14122U, 25U, 0U }, { 8962U, 31U, 0U } },
         { { 16423U, 26U, 0U }, { 23446U, 0U, 0U } },
         { { 23352U, 25U, 0U }, { 17069U, 56U, 0U } }
+    };
+    static const Av2hBinaryCdfSpec intrabc_type_set2[3U] = {
+        { 20835U, 0U, 0U }, { 30720U, 3U, 0U }, { 28857U, 17U, 0U }
     };
     static const uint16_t intrabc_type_index[3U][7U] = {
         { 8914U, 10732U, 12270U, 14822U, 17128U, 19586U, 21964U },
@@ -35,6 +60,14 @@ Av2hStatus av2h_first_transform_cdfs_init(Av2hFirstTransformCdfs *cdfs) {
     static const uint8_t intrabc_type_index_parameter[3U] = {
         25U, 31U, 25U
     };
+    static const uint16_t intrabc_type_index2[3U][7U] = {
+        { 1140U, 1725U, 2324U, 14653U, 19072U, 23618U, 28109U },
+        { 58U, 261U, 587U, 32317U, 32556U, 32626U, 32708U },
+        { 17404U, 17669U, 18403U, 24052U, 26393U, 28506U, 30676U }
+    };
+    static const uint8_t intrabc_type_index2_parameter[3U] = {
+        31U, 2U, 57U
+    };
     static const uint16_t intrabc_type_offset[3U][7U] = {
         { 3121U, 6470U, 9191U, 12280U, 17811U, 22588U, 27697U },
         { 338U, 377U, 571U, 743U, 7932U, 11860U, 17524U },
@@ -42,6 +75,14 @@ Av2hStatus av2h_first_transform_cdfs_init(Av2hFirstTransformCdfs *cdfs) {
     };
     static const uint8_t intrabc_type_offset_parameter[3U] = {
         93U, 1U, 93U
+    };
+    static const uint16_t intrabc_type_offset2[3U][3U] = {
+        { 8669U, 16533U, 24855U },
+        { 9441U, 16413U, 25276U },
+        { 8767U, 17611U, 24876U }
+    };
+    static const uint8_t intrabc_type_offset2_parameter[3U] = {
+        93U, 90U, 10U
     };
     static const uint16_t secondary_32x32[] = {
         2472U, 8725U, 13853U
@@ -98,6 +139,22 @@ Av2hStatus av2h_first_transform_cdfs_init(Av2hFirstTransformCdfs *cdfs) {
         size_t eob_context;
         size_t square_context;
         for (eob_context = 0U; eob_context < 3U; ++eob_context) {
+            for (square_context = 0U; square_context < 3U;
+                 ++square_context) {
+                status = av2h_cdf_init(
+                    cdfs->intrabc_short_side[eob_context][square_context],
+                    4U + 4U,
+                    intrabc_short_side[eob_context][square_context], 4U,
+                    intrabc_short_side_parameter[eob_context][square_context],
+                    0U);
+                if (status != AV2H_OK) return status;
+            }
+        }
+    }
+    {
+        size_t eob_context;
+        size_t square_context;
+        for (eob_context = 0U; eob_context < 3U; ++eob_context) {
             for (square_context = 0U; square_context < 2U;
                  ++square_context) {
                 status = av2h_binary_cdf_init(
@@ -105,6 +162,10 @@ Av2hStatus av2h_first_transform_cdfs_init(Av2hFirstTransformCdfs *cdfs) {
                     intrabc_type_set[eob_context][square_context]);
                 if (status != AV2H_OK) return status;
             }
+            status = av2h_binary_cdf_init(
+                cdfs->intrabc_type_set2[eob_context],
+                intrabc_type_set2[eob_context]);
+            if (status != AV2H_OK) return status;
             status = av2h_cdf_init(
                 cdfs->intrabc_type_index[eob_context],
                 AV2H_INTER_TX_TYPE_INDEX_SYMBOLS + 4U,
@@ -113,11 +174,23 @@ Av2hStatus av2h_first_transform_cdfs_init(Av2hFirstTransformCdfs *cdfs) {
                 intrabc_type_index_parameter[eob_context], 0U);
             if (status != AV2H_OK) return status;
             status = av2h_cdf_init(
+                cdfs->intrabc_type_index2[eob_context],
+                AV2H_INTER_TX_TYPE_INDEX_SYMBOLS + 4U,
+                intrabc_type_index2[eob_context],
+                AV2H_INTER_TX_TYPE_INDEX_SYMBOLS,
+                intrabc_type_index2_parameter[eob_context], 0U);
+            if (status != AV2H_OK) return status;
+            status = av2h_cdf_init(
                 cdfs->intrabc_type_offset[eob_context],
                 AV2H_INTER_TX_TYPE_INDEX_SYMBOLS + 4U,
                 intrabc_type_offset[eob_context],
                 AV2H_INTER_TX_TYPE_INDEX_SYMBOLS,
                 intrabc_type_offset_parameter[eob_context], 0U);
+            if (status != AV2H_OK) return status;
+            status = av2h_cdf_init(
+                cdfs->intrabc_type_offset2[eob_context], 4U + 4U,
+                intrabc_type_offset2[eob_context], 4U,
+                intrabc_type_offset2_parameter[eob_context], 0U);
             if (status != AV2H_OK) return status;
         }
     }
@@ -507,16 +580,36 @@ static Av2hStatus read_primary(Av2hRangeDecoder *decoder,
         coeff->tx_size == AV2H_TX_16X32 ||
         coeff->tx_size == AV2H_TX_32X16 ||
         coeff->tx_size == AV2H_TX_32X8) {
+        uint16_t *short_side_cdf;
         uint32_t long_side = av2h_range_read_adaptive(
             decoder, cdfs->primary_long_side_32, 2U);
-        symbol = av2h_range_read_adaptive(
-            decoder, (coeff->tx_size == AV2H_TX_4X32 ||
-                      coeff->tx_size == AV2H_TX_32X4) ?
-                cdfs->primary_short_side_4 :
+        if (mode->use_intrabc) {
+            uint16_t last = (uint16_t)(coeff->eob - 1U);
+            uint16_t diagonal =
+                (uint16_t)(last / descriptor->coefficient_width +
+                           last % descriptor->coefficient_width);
+            uint16_t max_diagonal =
+                (uint16_t)(descriptor->coefficient_width +
+                           descriptor->coefficient_height - 2U);
+            size_t eob_context = diagonal < 2U ? 1U :
+                diagonal > max_diagonal - 2U ? 2U : 0U;
+            size_t square_context =
+                descriptor->square_class == AV2H_TX_SQUARE_4 ? 0U :
+                descriptor->square_class == AV2H_TX_SQUARE_8 ? 1U : 2U;
+            short_side_cdf =
+                cdfs->intrabc_short_side[eob_context][square_context];
+        } else {
+            short_side_cdf =
+                (coeff->tx_size == AV2H_TX_4X32 ||
+                 coeff->tx_size == AV2H_TX_32X4) ?
+                    cdfs->primary_short_side_4 :
                 (coeff->tx_size == AV2H_TX_8X32 ||
-                      coeff->tx_size == AV2H_TX_32X8) ?
-                cdfs->primary_short_side_8 : cdfs->primary_short_side_16,
-            4U);
+                 coeff->tx_size == AV2H_TX_32X8) ?
+                    cdfs->primary_short_side_8 :
+                    cdfs->primary_short_side_16;
+        }
+        symbol = av2h_range_read_adaptive(
+            decoder, short_side_cdf, 4U);
         if (av2h_range_status(decoder) != AV2H_OK) {
             return av2h_range_status(decoder);
         }
@@ -524,7 +617,9 @@ static Av2hStatus read_primary(Av2hRangeDecoder *decoder,
         transform->primary_long_side_symbol = (uint8_t)long_side;
         transform->primary_symbol = (uint8_t)symbol;
         return av2h_primary_tx_type_map(
-            coeff->tx_size, mode->mode, (uint8_t)long_side,
+            coeff->tx_size,
+            mode->use_intrabc ? AV2H_INTRA_DC : mode->mode,
+            (uint8_t)long_side,
             (uint8_t)symbol, &transform->primary_type);
     }
             av2h_debug_transform_stage = 3U;
@@ -535,7 +630,8 @@ static Av2hStatus read_primary(Av2hRangeDecoder *decoder,
                 coeff->tx_size == AV2H_TX_8X16 ||
                 coeff->tx_size == AV2H_TX_16X8 ||
                 coeff->tx_size == AV2H_TX_4X16 ||
-                coeff->tx_size == AV2H_TX_16X4) && mode->use_intrabc) {
+                coeff->tx_size == AV2H_TX_16X4 ||
+                coeff->tx_size == AV2H_TX_16X16) && mode->use_intrabc) {
         uint16_t last = (uint16_t)(coeff->eob - 1U);
         uint16_t diagonal =
             (uint16_t)(last / descriptor->coefficient_width +
@@ -550,6 +646,7 @@ static Av2hStatus read_primary(Av2hRangeDecoder *decoder,
             0U : descriptor->square_class == AV2H_TX_SQUARE_8 ? 1U : 2U;
         uint16_t *set_cdf;
         uint16_t *type_cdf;
+        uint8_t signaling_set2 = square_context == 2U;
         static const Av2hFirstTxType intrabc_types[] = {
             AV2H_TX_IDTX,
             AV2H_TX_V_DCT,
@@ -568,18 +665,33 @@ static Av2hStatus read_primary(Av2hRangeDecoder *decoder,
             AV2H_TX_ADST_FLIPADST,
             AV2H_TX_FLIPADST_ADST
         };
-        if (square_context >= 2U) return AV2H_UNSUPPORTED;
-        set_cdf = cdfs->intrabc_type_set[eob_context][square_context];
+        set_cdf = signaling_set2 ?
+            cdfs->intrabc_type_set2[eob_context] :
+            cdfs->intrabc_type_set[eob_context][square_context];
         uint32_t set = av2h_range_read_adaptive(
             decoder, set_cdf, 2U);
-        type_cdf = set == 0U ? cdfs->intrabc_type_index[eob_context] :
-                               cdfs->intrabc_type_offset[eob_context];
+        type_cdf = set == 0U ?
+            (signaling_set2 ? cdfs->intrabc_type_index2[eob_context] :
+                              cdfs->intrabc_type_index[eob_context]) :
+            (signaling_set2 ? cdfs->intrabc_type_offset2[eob_context] :
+                              cdfs->intrabc_type_offset[eob_context]);
         symbol = av2h_range_read_adaptive(
-            decoder, type_cdf, AV2H_INTER_TX_TYPE_INDEX_SYMBOLS);
+            decoder, type_cdf,
+            signaling_set2 && set != 0U ? 4U :
+                AV2H_INTER_TX_TYPE_INDEX_SYMBOLS);
         av2h_debug_transform_stage = 32U;
         transform->primary_long_side_symbol = (uint8_t)set;
         transform->primary_symbol = (uint8_t)symbol;
-        if (symbol < AV2H_INTER_TX_TYPE_INDEX_SYMBOLS) {
+        if (signaling_set2) {
+            static const Av2hFirstTxType set2_types[12U] = {
+                AV2H_TX_IDTX, AV2H_TX_V_DCT, AV2H_TX_H_DCT,
+                AV2H_TX_DCT_DCT, AV2H_TX_ADST_DCT, AV2H_TX_DCT_ADST,
+                AV2H_TX_FLIPADST_DCT, AV2H_TX_DCT_FLIPADST,
+                AV2H_TX_ADST_ADST, AV2H_TX_FLIPADST_FLIPADST,
+                AV2H_TX_ADST_FLIPADST, AV2H_TX_FLIPADST_ADST
+            };
+            transform->primary_type = set2_types[set * 8U + symbol];
+        } else if (symbol < AV2H_INTER_TX_TYPE_INDEX_SYMBOLS) {
             transform->primary_type = intrabc_types[set * 8U + symbol];
         } else {
             av2h_debug_transform_stage = 33U;
@@ -1266,8 +1378,7 @@ Av2hStatus av2h_first_transform_type_read(
         transform->after_secondary_bits = transform->before_primary_bits;
         return AV2H_OK;
     }
-    if (coeff->eob == 1U) {
-        if (mode->use_intrabc) return AV2H_UNSUPPORTED;
+    if (coeff->eob == 1U && !mode->use_intrabc) {
         transform->primary_type = AV2H_TX_DCT_DCT;
         transform->primary_signaled = 0U;
         transform->primary_symbol = 0U;

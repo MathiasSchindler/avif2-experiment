@@ -1,9 +1,12 @@
 # Milestone 7: ordinary fixture coverage
 
-Milestone 7 has complete ordinary-luma coverage but is not complete. The
-private decoder commits all 22 ordinary luma leaves sample-exactly through
-tell 762 and then enters chroma traversal. Ordinary chroma remains the next
-Milestone 7 owner.
+Milestone 7 is complete. The private decoder traverses the full coded-size
+ordinary fixture through `AV2H_TILE_DECODE_DONE` at tell 6498. Its unfiltered
+prefilter planes and final cropped output are sample-exact with pinned AVM.
+The prefilter crop FNV-1a hashes are Y `7945904097577017502`, U
+`4124092689509881817`, and V `6418349723304023184`. The final 28,800-byte
+I420 SHA-256 is
+`def0ced80c4bc1866d0d865fb392c80020ac0a823f310b2f62999d10eede1af5`.
 
 The locked input is `tests/fixtures/ordinary-160x120.obu`, 843 bytes, SHA-256
 `adbb88447dacbdf6895964df6a6fc1a1506cdf007d27044ea42171ccbb12810f`.
@@ -169,9 +172,8 @@ tables. All 22 leaf surfaces are locked by complete AVM-prefilter FNV hashes,
 including the earlier 8x32, 16x32, and 32x8 surfaces that previously lacked
 full-surface sample oracles.
 
-The current frontier is the ordinary chroma traversal immediately after tell
-762. No luma syntax or reconstruction path remains unfinished for this
-fixture.
+The ordinary fixture has no remaining syntax, traversal, prediction,
+reconstruction, or crop frontier in Milestone 7.
 
 ## JPEG artifact OBU audit
 
@@ -229,10 +231,9 @@ quantized/dequantized arrays. It is part of `make test-c`.
 
 ## Handoff
 
-Resume with the first ordinary chroma leaf after the luma-to-chroma handoff at
-tell 762. Pin its partition, mode, transform, coefficients, predictor,
-reconstruction, and exact endpoint against AVM before admitting only that
-reached path. Broad intraBC coverage remains Milestone 8 work.
+Milestone 8 owns broader artifact-profile coverage. The ordinary fixture is a
+closed regression oracle: retain coded-size planes, full traversal to DONE at
+tell 6498, and the exact Y/U/V crop hashes above.
 
 Run the current focused checkpoint with:
 
@@ -243,9 +244,9 @@ build/host/tile-unit
 
 ## Exit gate
 
-The complete ordinary fixture must match pinned AVM on unfiltered Y, U, and V
-planes, terminate at the authoritative entropy endpoint, and pass sanitizers
-and the strict freestanding gate. Sparse normative tables remain acceptable
-only while every omitted row fails closed before reconstruction.
+Complete: the ordinary fixture matches pinned AVM on unfiltered prefilter and
+final cropped Y, U, and V planes and terminates at authoritative tell 6498.
+Sparse normative tables remain acceptable only while every omitted row fails
+closed before reconstruction.
 
 Milestone 7 does not integrate frame filters or expose a public decoder.
