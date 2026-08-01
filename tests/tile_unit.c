@@ -73,6 +73,29 @@ static uint64_t plane_crop_hash(const uint8_t *actual,
     return hash;
 }
 
+static uint64_t ledger_hash_value(uint64_t hash, uint64_t value) {
+    size_t index;
+    for (index = 0U; index < 8U; ++index) {
+        hash ^= (uint8_t)value;
+        hash *= UINT64_C(1099511628211);
+        value >>= 8U;
+    }
+    return hash;
+}
+
+static void check_readiness_map(const char *name,
+                                const uint8_t *map,
+                                size_t size) {
+    size_t index;
+    for (index = 0U; index < size; ++index) {
+        if (map[index] != 1U) {
+            fprintf(stderr, "%s readiness missing at %zu\n", name, index);
+            ++failures;
+            return;
+        }
+    }
+}
+
 static void check_plane_crop_hash(const char *name,
                                   const uint8_t *actual,
                                   size_t stride,
@@ -1104,6 +1127,218 @@ static void test_ordinary_luma_frontier(void) {
     }
 }
 
+static void test_high_detail_frame(void) {
+    unsigned char stream[8192U];
+    size_t stream_size;
+    Av2hObu entries[3U];
+    Av2hObuLedger ledger = { entries, 3U, 0U };
+    Av2hError error;
+    Av2hSequenceState sequence = { 0 };
+    Av2hFrameState frame = { 0 };
+    Av2hTileGroup group;
+    uint8_t luma_partition_above[24U];
+    uint8_t luma_partition_left[20U];
+    uint8_t chroma_partition_above[24U];
+    uint8_t chroma_partition_left[20U];
+    Av2hLumaModeContext luma_mode_above[24U];
+    Av2hLumaModeContext luma_mode_left[20U];
+    uint8_t coefficient_above[AV2H_FRAME_PLANE_COUNT * 24U];
+    uint8_t coefficient_left[AV2H_FRAME_PLANE_COUNT * 20U];
+    Av2hTileLumaModeCell colocated_luma[24U * 20U];
+    uint8_t ccso_unit_controls[AV2H_FRAME_PLANE_COUNT][1U];
+    Av2hTileContextStorage storage = {
+        luma_partition_above, luma_partition_left,
+        chroma_partition_above, chroma_partition_left,
+        luma_mode_above, luma_mode_left,
+        coefficient_above, coefficient_left, colocated_luma,
+        24U, 20U, 24U * 20U, 0, 0U, 0, 0U,
+        { ccso_unit_controls[0], ccso_unit_controls[1],
+          ccso_unit_controls[2] },
+        1U
+    };
+    uint8_t luma_pixels[96U * 80U];
+    uint8_t u_pixels[48U * 40U];
+    uint8_t v_pixels[48U * 40U];
+    uint8_t luma_reconstructed[24U * 20U];
+    uint8_t u_reconstructed[12U * 10U];
+    uint8_t v_reconstructed[12U * 10U];
+    Av2hReconstructionPlane luma_plane = {
+        luma_pixels, 96U, 96U, 80U, 96U, 80U,
+        luma_reconstructed, 24U, sizeof(luma_reconstructed)
+    };
+    Av2hReconstructionPlane u_plane = {
+        u_pixels, 48U, 48U, 40U, 48U, 40U,
+        u_reconstructed, 12U, sizeof(u_reconstructed)
+    };
+    Av2hReconstructionPlane v_plane = {
+        v_pixels, 48U, 48U, 40U, 48U, 40U,
+        v_reconstructed, 12U, sizeof(v_reconstructed)
+    };
+    Av2hReconstructionScratch scratch;
+    Av2hTileDecoder decoder;
+    Av2hTileLumaLeaf luma_leaf;
+    Av2hTileChromaLeaf chroma_leaf;
+    Av2hFirstCoeffBlock chroma_blocks[2U];
+    Av2hStatus status = AV2H_OK;
+    uint8_t has_leaf = 0U;
+    size_t luma_count = 0U;
+    size_t chroma_count = 0U;
+    uint64_t luma_ledger_hash = UINT64_C(1469598103934665603);
+    uint64_t chroma_ledger_hash = UINT64_C(1469598103934665603);
+
+    stream_size = load_fixture(
+        "tests/fixtures/high-detail-96x80.obu", stream, sizeof(stream));
+    CHECK(stream_size != 0U);
+    CHECK(av2h_obu_parse((Av2hSpan){ stream, stream_size }, &ledger,
+                         &error) == AV2H_OK);
+    CHECK(ledger.count == 3U);
+    CHECK(av2h_sequence_state_parse(
+              (Av2hSpan){ stream, stream_size }, &entries[1],
+              &sequence, &error) == AV2H_OK);
+    CHECK(av2h_frame_header_closed_key_parse(
+              (Av2hSpan){ stream + entries[2].payload_offset,
+                           entries[2].payload_size },
+              &sequence, &frame) == AV2H_OK);
+    CHECK(frame.width == 96U && frame.height == 80U);
+    CHECK(av2h_tile_group_single_parse(
+              (Av2hSpan){ stream + entries[2].payload_offset,
+                           entries[2].payload_size },
+              frame.uncompressed_header_bits, &group) == AV2H_OK);
+    av2h_memory_fill(luma_pixels, 0U, sizeof(luma_pixels));
+    av2h_memory_fill(u_pixels, 0U, sizeof(u_pixels));
+    av2h_memory_fill(v_pixels, 0U, sizeof(v_pixels));
+    av2h_memory_fill(luma_reconstructed, 0U, sizeof(luma_reconstructed));
+    av2h_memory_fill(u_reconstructed, 0U, sizeof(u_reconstructed));
+    av2h_memory_fill(v_reconstructed, 0U, sizeof(v_reconstructed));
+    CHECK(av2h_tile_decoder_init(
+              &decoder, group.entropy, &sequence, &frame, &storage) ==
+          AV2H_OK);
+    while (status == AV2H_OK && decoder.phase != AV2H_TILE_DECODE_DONE) {
+        if (decoder.phase == AV2H_TILE_DECODE_LUMA) {
+            av2h_memory_fill(&luma_leaf, 0U, sizeof(luma_leaf));
+            status = av2h_tile_decoder_reconstruct_next_luma(
+                &decoder, &luma_plane, &scratch, &luma_leaf, &has_leaf);
+            if (status == AV2H_OK && has_leaf) {
+                ++luma_count;
+                luma_ledger_hash = ledger_hash_value(
+                    luma_ledger_hash, luma_leaf.node.row);
+                luma_ledger_hash = ledger_hash_value(
+                    luma_ledger_hash, luma_leaf.node.column);
+                luma_ledger_hash = ledger_hash_value(
+                    luma_ledger_hash, luma_leaf.node.block_size);
+                luma_ledger_hash = ledger_hash_value(
+                    luma_ledger_hash, luma_leaf.prefix.tx_size);
+                luma_ledger_hash = ledger_hash_value(
+                    luma_ledger_hash, av2h_range_tell(&decoder.range));
+            }
+        } else {
+            av2h_memory_fill(&chroma_leaf, 0U, sizeof(chroma_leaf));
+            av2h_memory_fill(chroma_blocks, 0U, sizeof(chroma_blocks));
+            status = av2h_tile_decoder_next_chroma(
+                &decoder, &chroma_leaf, &chroma_blocks[0],
+                &chroma_blocks[1], &has_leaf);
+            if (status == AV2H_OK && has_leaf) {
+                status = av2h_chroma_inverse_cross_transform(
+                    &chroma_blocks[0], &chroma_blocks[1],
+                    chroma_leaf.transform[0].cctx_type);
+            }
+            if (status == AV2H_OK && has_leaf) {
+                status = av2h_chroma_reconstruct_to_plane_ex(
+                    &chroma_leaf.node, &chroma_leaf.mode,
+                    &chroma_leaf.prefix[0], &chroma_leaf.transform[0],
+                    &chroma_blocks[0], &u_plane, &luma_plane, 1U, 0,
+                    &scratch);
+            }
+            if (status == AV2H_OK && has_leaf) {
+                status = av2h_chroma_reconstruct_to_plane_ex(
+                    &chroma_leaf.node, &chroma_leaf.mode,
+                    &chroma_leaf.prefix[1], &chroma_leaf.transform[1],
+                    &chroma_blocks[1], &v_plane, &luma_plane, 2U, 0,
+                    &scratch);
+            }
+            if (status == AV2H_OK && has_leaf) {
+                status = av2h_tile_decoder_commit_leaf(
+                    &decoder, chroma_leaf.node);
+                if (status == AV2H_OK) {
+                    ++chroma_count;
+                    chroma_ledger_hash = ledger_hash_value(
+                        chroma_ledger_hash, chroma_leaf.node.row);
+                    chroma_ledger_hash = ledger_hash_value(
+                        chroma_ledger_hash, chroma_leaf.node.column);
+                    chroma_ledger_hash = ledger_hash_value(
+                        chroma_ledger_hash, chroma_leaf.node.block_size);
+                    chroma_ledger_hash = ledger_hash_value(
+                        chroma_ledger_hash,
+                        chroma_leaf.prefix[0].tx_size);
+                    chroma_ledger_hash = ledger_hash_value(
+                        chroma_ledger_hash,
+                        chroma_leaf.prefix[1].tx_size);
+                    chroma_ledger_hash = ledger_hash_value(
+                        chroma_ledger_hash,
+                        av2h_range_tell(&decoder.range));
+                }
+            }
+        }
+    }
+    if (status != AV2H_OK) {
+        fprintf(stderr,
+                "high-detail failed: status=%u phase=%u stage=%u "
+                "Y=%zu UV=%zu tell=%zu leaf=(%u,%u) block=%u\n",
+                (unsigned int)status, (unsigned int)decoder.phase,
+                (unsigned int)av2h_debug_luma_tile_stage,
+                luma_count, chroma_count, av2h_range_tell(&decoder.range),
+                decoder.phase == AV2H_TILE_DECODE_LUMA ? luma_leaf.node.row :
+                    chroma_leaf.node.row,
+                decoder.phase == AV2H_TILE_DECODE_LUMA ?
+                    luma_leaf.node.column : chroma_leaf.node.column,
+                (unsigned int)(decoder.phase == AV2H_TILE_DECODE_LUMA ?
+                    luma_leaf.node.block_size : chroma_leaf.node.block_size));
+        if (decoder.phase == AV2H_TILE_DECODE_LUMA) {
+            fprintf(stderr,
+                    "high-detail syntax: mode=%u intrabc=%u "
+                    "mode-tells=%zu/%zu prefix=%u/%zu/%zu/%zu/%zu "
+                    "primary=%u/%u/%zu secondary=%u/%u/%zu\n",
+                    (unsigned int)luma_leaf.mode.mode,
+                    (unsigned int)luma_leaf.mode.use_intrabc,
+                    luma_leaf.mode.before_mode_bits,
+                    luma_leaf.mode.after_fsc_bits,
+                    (unsigned int)luma_leaf.prefix.eob,
+                    luma_leaf.prefix.before_all_zero_bits,
+                    luma_leaf.prefix.after_all_zero_bits,
+                    luma_leaf.prefix.after_eob_point_bits,
+                    luma_leaf.prefix.after_eob_bits,
+                    (unsigned int)luma_leaf.transform.primary_type,
+                    (unsigned int)luma_leaf.transform.primary_symbol,
+                    luma_leaf.transform.after_primary_bits,
+                    (unsigned int)luma_leaf.transform.secondary_set,
+                    (unsigned int)luma_leaf.transform.secondary_symbol,
+                    luma_leaf.transform.after_secondary_bits);
+        }
+    }
+    CHECK(status == AV2H_OK);
+    CHECK(decoder.phase == AV2H_TILE_DECODE_DONE);
+    CHECK(luma_count == 347U);
+    CHECK(chroma_count == 9U);
+    CHECK(av2h_range_tell(&decoder.range) == 36736U);
+    CHECK(luma_ledger_hash == UINT64_C(14031330387958256267));
+    CHECK(chroma_ledger_hash == UINT64_C(6087973010201194980));
+    check_readiness_map(
+        "high-detail Y", luma_reconstructed, sizeof(luma_reconstructed));
+    check_readiness_map(
+        "high-detail U", u_reconstructed, sizeof(u_reconstructed));
+    check_readiness_map(
+        "high-detail V", v_reconstructed, sizeof(v_reconstructed));
+    check_plane_crop_hash(
+        "high-detail Y", luma_pixels, 96U, 96U, 80U,
+        UINT64_C(10966831422412852226));
+    check_plane_crop_hash(
+        "high-detail U", u_pixels, 48U, 48U, 40U,
+        UINT64_C(4413999066018793313));
+    check_plane_crop_hash(
+        "high-detail V", v_pixels, 48U, 48U, 40U,
+        UINT64_C(14579798339307477700));
+}
+
 static void test_orchestrator_failures(void) {
     static const unsigned char entropy[] = { 0U, 0U, 0U, 0U };
     uint8_t luma_partition_above[4U];
@@ -1340,14 +1575,19 @@ static void test_scheduler_guards_and_root_size(void) {
 }
 
 int main(void) {
+#if defined(AV2H_HIGH_DETAIL_ONLY)
+    test_high_detail_frame();
+#else
     test_fixture_offsets();
     test_failures();
     test_bounded_orchestrator();
     test_odd_luma_reconstruction();
     test_ordinary_luma_frontier();
+    test_high_detail_frame();
     test_orchestrator_failures();
     test_sdp_superblock_scheduler();
     test_scheduler_guards_and_root_size();
+#endif
     if (failures != 0) {
         fprintf(stderr, "%d tile checks failed\n", failures);
         return 1;

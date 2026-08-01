@@ -380,71 +380,67 @@ at the pinned AVM entropy endpoint without unsupported paths.
 
 ## Milestone 8: high-detail and advanced prediction
 
-**Status:** In progress. Q-aware first-block coefficient parsing is pinned for
-four artifact streams.
+**Status:** In progress. The locked 96x80 high-detail fixture now has complete
+frame-wide traversal and unfiltered-plane parity coverage. Remaining work is
+the broader advanced-profile queue and the sanitizer/freestanding exit-gate
+validation.
 
-The decoder now derives the four coefficient Q contexts, initializes the exact
-Q2/Q3 prefix, level, and DC-sign CDF rows reached by the artifact matrix, and
-rejects every unpinned Q2/Q3 row before entropy consumption. Normative 8-bit
-QTX lookup, luma DC delta, large-transform scaling, and coefficient saturation
-are implemented. The reached 16x32 large-transform orientation and secondary
-CDF are also pinned. TX_32X64, TX_64X64, and TX_64X16 now derive their
-normative IDs, adjusted 32x32/32x16 coefficient geometries, EOB capacities,
-and entropy contexts. 32x64/64x64 use implicit DCT_DCT; 64x16 reads the
-normative short-side transform symbol with its 64-pixel side fixed to DCT.
-The normative two-bit extension for 512/1024-class EOB raw symbol 7 also
-advances cuckoo Q80 to exact EOB 87. Emerald Q128 and silene Q176 reach exact
-EOB endpoints before adjusted-size IST. Seven streams reach large-transform
-coefficient levels after exact transform syntax, and schwaebisch Q208
-completes a 64x16 all-zero block before its reconstruction and following
-32x16 profile frontier.
+### Implemented coverage
 
-First-block coefficient endpoints now match AVM for
-`cuckoo-157x105-qp160` (tell 35, DC -6),
-`emerald-192x96-qp208` (tell 27, DC -2),
-`louis-463x342-qp224` (tell 27, DC +6), and
-`pastell-512x341-qp160` (tell 65, DC -8). The artifact test compares the full
-quantized and dequantized arrays, not only endpoints. Six GDF-mode-2 streams
-now consume exact first-unit GDF, CDEF, and CCSO syntax before their next
-unsupported profile path; eleven other streams still stop at their first-luma
-Milestone 8 frontier.
+- all four coefficient Q contexts, complete ordinary luma and chroma
+  prefix/level/DC-sign banks reached by the corpus, normative EOB extensions,
+  dequantization, saturation, and descriptor-based coefficient geometry;
+- adjusted TX_32X64, TX_64X64, and TX_64X16 coefficient geometry, transform
+  syntax, large all-zero blocks, and the reached large-transform inverse paths;
+- ordinary and FSC transform selection, broad secondary-transform syntax and
+  a growing set of sample-locked inverse-secondary kernels;
+- directional, cardinal, Smooth, Paeth, IBP, MRL, multi-line MRL, palette,
+  CFL, CCTX, MHCCP, and coded-edge prediction paths reached by the corpus;
+- IntraBC shell/DRL/precision syntax, persistent reference-vector bank,
+  morph prediction, skipped copies, bilinear reconstruction, and readiness
+  checks over the reached legal geometries; and
+- complete chroma prefix, coefficient-level, primary-transform, CCTX, and
+  cross-chroma-transform paths reached by current production traversal; and
+- complete locked high-detail traversal with 347 luma and 9 chroma handoffs,
+  final entropy tell 36,736, full readiness maps, and AVM-matched unfiltered
+  Y/U/V hashes. Production I420 SHA-256 is
+  `4120930c9c9c49f73d4aa3e1d4c56cbb4b557679b42fe3b9de984bca1431745a`.
 
-Cuckoo Q160 and pastell Q160 now reconstruct and commit those first 16x32
-blocks sample-exactly, with pinned full-block hashes `fb97d9776de897f5` and
-`73f9aa733e29f1c7` plus first/last-row locks. Cuckoo next reaches `(0,4)`
-8x16 at tell 41 and fails before mode syntax on Q160 profile admission.
-Pastell next reaches `(0,4)` 16x32 Smooth, EOB 3, DCT_DCT, and secondary
-symbol 0 at tell 78, then fails before coefficient-level entropy.
+The production decoder currently emits 7 of the 21 research artifacts. Four
+are byte-identical to pinned AVM; three complete with known reconstruction or
+filter parity gaps. This corpus is broader than the Milestone 8 exit fixture,
+but its fail-closed frontiers identify the remaining advanced-profile work.
+See `images/artifacts/status.md` for exact tells and hashes.
 
-Laarim Q96 now applies the normative two-bypass-bit extension to TX_32X32 raw
-EOB point 7, reaching EOB point 8, EOB 126, and implicit DCT_DCT at tell 28.
-The sparse normative Q-context-1 TX-context-3 rows decode 126 levels through
-tell 314 and 82 coefficients through tell 471. Its D45 predictor and
-prefilter hashes are `75290844cee19be7` and `51b573f06c63948a`; traversal
-then reaches `(0,8)` 16x16 fail-closed at tell 476.
+### Remaining Milestone 8 work
 
-Emerald Q208 now continues through two adjacent 32x32 luma leaves, the
-following `(8,0)` 32x8 DC leaf, and both `(10,*)` 16x16 leaves. `(10,0)`
-completes all-zero at tell 52. `(10,4)` uses the normative
-`intra_ext_tx_cdf[1][2]` primary row, maps symbol 1 to ADST_ADST at tell 61,
-reads STX 0 through tell 65, and decodes coefficients
-`+2@0,+1@16,-1@32` through tell 72. Its constant-98 predictor plus real
-ADST_ADST inverse transform matches all pinned samples and trace hash
-`7959e335`; `(14,0)` 32x8 is the new tell-74 fail-closed frontier.
+1. Implement the nine currently reached inverse-transform gaps, primarily
+   missing secondary set/type kernels: Chalk Q128, Chimp Q192, Chinnathurai
+   Q112, Cuckoo Q80, Flycatcher Q48, both Laarim streams, Pastell Q160, and
+   Schwaebisch Q112.
+2. Repair the remaining upstream syntax/state divergences rather than
+   admitting their downstream impossible symbols: Emerald Q128 mode state,
+   Pastell Q64 IntraBC EOB state, Silene Q176 skipped-IntraBC state, Louis Q144
+   mode/palette state, and Silene Q80 luma coefficient levels at `(50,54)`.
+   Silene Q80's luma prefix and transform are already AVM-exact through tell
+   96,457; its later UV mode 14 is downstream evidence.
+3. Close prefilter reconstruction parity for completed artifacts where it is
+   still a Milestone 8 dependency, notably Chimp Q64 chroma scheduling and the
+   unresolved Cuckoo Q160 reconstruction gap. Flycatcher Q176's remaining GDF
+   stripe-boundary mismatch belongs to Milestone 9.
+4. Replace tuple-scoped admission with normative bounded dispatch where the
+   remaining reached transform set shows that sparse admission is fragile.
+   Keep impossible EOBs, UV mode 14, restoration, and unreached profiles
+   fail-closed.
 
-Schwaebisch Q208 reconstructs its first 64x16 all-zero DC block with adjusted
-32x16 coefficient geometry. Predictor and prefilter are constant 128 with
-hash `d495a039fba13383`; the block ends at tell 17 and `(4,0)` 32x16 remains
-the tell-19 frontier.
+### Exit gate
 
-Complete the high-detail fixture and the remaining reached high-energy,
-secondary-transform, CFL, intraBC, coefficient-range, and large-transform
-paths. Preserve bounded sparse tables where they remain sufficient; complete
-normative implementations where fixture reach makes sparse admission fragile.
-
-Exit gate: the high-detail fixture reconstructs sample-exact unfiltered Y, U,
-and V planes, including every reached CFL and intraBC block, under sanitizers
-and the freestanding gate.
+Milestone 8 is complete when the locked 96x80 high-detail fixture traverses to
+`AV2H_TILE_DECODE_DONE` and its complete unfiltered Y, U, and V planes are
+sample-exact against pinned AVM under hosted sanitizers and the strict
+freestanding dependency gate. Every reached CFL and IntraBC block must be
+covered without fixture-supplied contexts or references. Mandatory frame
+filters remain Milestone 9 work and the public decode API remains Milestone 10.
 
 ## Milestone 9: mandatory filters and filtered parity
 
@@ -537,10 +533,11 @@ Release validation additionally includes:
 
 ## Current work order
 
-1. Complete Milestone 8 high-detail, CFL, intraBC, coefficient-range, and
-  advanced-transform coverage.
+1. Add complete frame-wide parity for the locked 96x80 high-detail fixture,
+   then clear the reached Milestone 8 inverse-transform and upstream-state
+   blockers enumerated above.
 2. Integrate and prove the mandatory filter pipeline in Milestone 9 after the
-  unfiltered fixture dependencies are complete.
+   high-detail and remaining prefilter reconstruction dependencies are closed.
 3. Finalize workspace contracts and expose decoding only in Milestone 10.
 
 Early work in a later milestone may be retained when it is already validated,
@@ -548,8 +545,9 @@ but it does not waive an earlier exit gate. Each milestone must leave the
 decoder fail-closed at the first unsupported owner.
 
 The remaining-work audit is complete: Milestone 7 ordinary unfiltered
-luma/chroma work is closed; Milestone 8 owns the high-detail and advanced
-prediction/transform profile; Milestone 9 owns metadata wiring and normative
-filtered parity; and Milestone 10 owns bounded workspace, public API, fuzz,
-and release finalization. Restoration remains outside the accepted profile
-and must continue to fail closed.
+luma/chroma work is closed; Milestone 8 owns complete high-detail traversal,
+remaining advanced entropy/transform paths, and prefilter reconstruction
+parity; Milestone 9 owns filter metadata wiring and normative filtered parity;
+and Milestone 10 owns bounded workspace, public API, fuzz, and release
+finalization. Restoration remains outside the accepted profile and must
+continue to fail closed.

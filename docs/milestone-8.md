@@ -1,10 +1,46 @@
 # Milestone 8: high-detail and advanced prediction
 
-Milestone 8 is in progress. The first QP-dependent artifact coefficient paths
-are pinned to AVM, while complete high-detail traversal and reconstruction
-remain open.
+Milestone 8 is in progress. Most corpus-reached coefficient, prediction,
+IntraBC, chroma, and transform syntax is now implemented. The locked 96x80
+high-detail fixture now completes frame-wide traversal with sample-exact
+unfiltered Y/U/V reconstruction; sanitizer and strict freestanding validation
+remain part of the final exit gate.
 
-## Verified QP-dependent checkpoint
+## Current handoff
+
+The production decoder emits 7 of the 21 research artifacts: four are
+byte-identical to pinned AVM and three complete with known reconstruction or
+filter parity gaps. Current Milestone 8 implementation work is:
+
+1. implement the nine reached inverse-transform gaps listed in
+  `images/artifacts/status.md`, primarily missing secondary set/type kernels;
+2. repair five upstream state divergences: Emerald Q128 mode state, Pastell
+  Q64 IntraBC EOB state, Silene Q176 skipped-IntraBC state, Louis Q144
+  mode/palette state, and Silene Q80 luma coefficient levels at `(50,54)`;
+3. close prefilter reconstruction parity for Chimp Q64 and determine the
+  remaining Cuckoo Q160 reconstruction gap; and
+4. retain fail-closed behavior for impossible EOBs, UV mode 14, restoration,
+  and unreached profiles while replacing fragile tuple admissions only where
+  current reach justifies normative bounded dispatch.
+
+Silene Q80 is not a chroma-mode implementation gap. Local and AVM agree on
+chroma through tell 95,012 and on luma `(50,54)` through EOB 32 at tell 96,451
+and transform selection at tell 96,457. Its coefficient levels end at tell
+96,548 locally versus 96,580 in AVM; the later UV mode 14 is downstream.
+Flycatcher Q48's former prefix stop was an obsolete GDF-mode guard before the
+already-supported IntraBC parser. Removing it advances production to inverse
+transform at tell 62,908.
+
+Flycatcher Q176's remaining GDF stripe-boundary mismatch and mandatory filter
+parity belong to Milestone 9. Public workspace and decode API work belongs to
+Milestone 10.
+
+## Historical QP-dependent checkpoint
+
+The remainder of this section records the first-block checkpoint from the
+initial Milestone 8 implementation. Its listed "next" frontiers are retained
+as provenance and are superseded by the current handoff above and
+`images/artifacts/status.md`.
 
 Coefficient entropy now derives the four normative Q contexts from
 `base_q_index`: 0 through 90, 91 through 140, 141 through 190, and 191 through
@@ -153,9 +189,11 @@ coefficient-level profile for flycatcher, Q-context-0 8x8 coefficient-prefix
 geometry for pastell, the Q160 cuckoo 8x16 profile, the Q160 pastell 16x32
 EOB-3 coefficient profile, and the Q208 Schwaebisch 32x16 profile.
 
-## Scope
+## Current scope
 
-- complete the high-detail fixture's luma and chroma traversal;
+- retain the completed high-detail fixture as the canonical traversal gate:
+  347 luma and 9 chroma handoffs, tell 36,736, complete readiness maps, and
+  AVM-matched unfiltered Y/U/V hashes;
 - implement every reached large or secondary transform and coefficient-range
   path;
 - complete CFL and intraBC prediction, displacement, references, and sample
@@ -164,21 +202,19 @@ EOB-3 coefficient profile, and the Q208 Schwaebisch 32x16 profile.
   where the reached frequency set makes sparse handling fragile; and
 - retain deterministic failure for restoration and unreached profile features.
 
-The next artifact work is to admit only the newly reached Emerald 32x8,
-Laarim 16x16, and Schwaebisch 32x16 profiles with matching AVM evidence, or
-repair emerald/silene IST range-state parity, then continue the remaining
-large-transform coefficient paths.
 Traversal should continue beyond a block only where every newly reached CDF,
 transform, coefficient, prediction, and reconstruction path has matching AVM
-evidence. The ordinary Milestone 7 frontier remains ordinary chroma after the
-completed 22-leaf luma path through tell 762.
+evidence. The current implementation order is the five-item handoff above;
+the old first-block admissions named in the historical checkpoint are no
+longer the active queue.
 
 ## Exit gate
 
-The high-detail fixture must match pinned AVM on complete unfiltered Y, U, and
-V planes, including every reached CFL and intraBC block. The four-fixture set
-must then have complete unfiltered parity under sanitizers and the strict
-freestanding dependency gate.
+The locked 96x80 high-detail fixture must reach `AV2H_TILE_DECODE_DONE` and
+match pinned AVM on complete unfiltered Y, U, and V planes, including every
+reached CFL and IntraBC block, under sanitizers and the strict freestanding
+dependency gate. The test must use caller-owned references and readiness maps,
+not fixture-supplied contexts or pixels.
 
 Milestone 8 does not run mandatory frame filters and does not expose a public
 decoder.

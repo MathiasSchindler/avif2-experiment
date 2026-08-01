@@ -3979,6 +3979,8 @@ Av2hStatus av2h_coeff_block_read(
          prefix->tx_size != AV2H_TX_4X4 &&
          prefix->tx_size != AV2H_TX_4X8 &&
          prefix->tx_size != AV2H_TX_8X4 &&
+         prefix->tx_size != AV2H_TX_8X8 &&
+         prefix->tx_size != AV2H_TX_4X16 &&
          prefix->tx_size != AV2H_TX_16X4 &&
          prefix->tx_size != AV2H_TX_32X4) ||
         (transform->primary_type == AV2H_TX_V_FLIPADST &&

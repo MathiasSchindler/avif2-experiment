@@ -2610,7 +2610,6 @@ static Av2hStatus luma_mode_read_internal(
                     decoder, cdfs, sequence, frame, leaf, mode);
             }
             if (status != AV2H_OK) return status;
-            if (frame->gdf_mode >= 2U) return AV2H_UNSUPPORTED;
             av2h_debug_luma_mode_stage = 3U;
             return read_first_intrabc(
                 decoder, cdfs, sequence, frame, leaf, state, mode);

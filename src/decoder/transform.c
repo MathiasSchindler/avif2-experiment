@@ -471,14 +471,21 @@ Av2hStatus av2h_secondary_tx_type_signal(
         return AV2H_INVALID_ARGUMENT;
     }
     *signaled = 0U;
-    if (!sequence->enable_ist) return AV2H_OK;
-    if (coeff->eob <= 1U || mode->mode >= AV2H_INTRA_PAETH ||
-        (primary_type != AV2H_TX_DCT_DCT &&
-         primary_type != AV2H_TX_ADST_ADST)) {
-        return AV2H_OK;
-    }
     status = av2h_tx_descriptor_get(coeff->tx_size, &descriptor);
     if (status != AV2H_OK) return status;
+    if (mode->use_intrabc) {
+        if (!sequence->enable_inter_ist || coeff->eob <= 3U ||
+            primary_type != AV2H_TX_DCT_DCT ||
+            descriptor->output_width < 16U ||
+            descriptor->output_height < 16U) {
+            return AV2H_OK;
+        }
+    } else if (!sequence->enable_ist || coeff->eob <= 1U ||
+               mode->mode >= AV2H_INTRA_PAETH ||
+               (primary_type != AV2H_TX_DCT_DCT &&
+                primary_type != AV2H_TX_ADST_ADST)) {
+        return AV2H_OK;
+    }
     if (descriptor->output_width == 8U &&
         descriptor->output_height == 8U &&
         primary_type == AV2H_TX_DCT_DCT) {

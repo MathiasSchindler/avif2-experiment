@@ -150,14 +150,14 @@ if(WIN32 AND CMAKE_C_COMPILER_ID MATCHES "Clang")
             "-DEXPECTED_LEAF=leaf: (30,64) block=8x4 plane=Y"
             "-DEXPECTED_PROGRESS=entropy tell: 21572; completed leaves: Y=359 UV=99"
             -P "${CMAKE_CURRENT_SOURCE_DIR}/scripts/check-decoder-diagnostic.cmake")
-    add_test(NAME windows-decoder-diagnostic-silene-chroma-parse
+    add_test(NAME windows-decoder-diagnostic-silene-intrabc-reference
         COMMAND "${CMAKE_COMMAND}"
             "-DDECODER=$<TARGET_FILE:av2heif-decoder>"
             "-DINPUT=${CMAKE_CURRENT_SOURCE_DIR}/images/artifacts/silene-384x307-qp080.obu"
             "-DOUTPUT=${CMAKE_CURRENT_BINARY_DIR}/diagnostic-silene.i420"
-            "-DEXPECTED_CAUSE=cause: invalid data"
-            "-DEXPECTED_STAGE=stage: chroma parse / unknown"
-            "-DEXPECTED_LEAF=leaf: (48,58) block=8x16 plane=U"
-            "-DEXPECTED_PROGRESS=entropy tell: 100811; completed leaves: Y=1086 UV=394"
+            "-DEXPECTED_CAUSE=cause: unsupported feature"
+            "-DEXPECTED_STAGE=stage: luma reconstruction / IntraBC reference availability"
+            "-DEXPECTED_LEAF=leaf: (52,58) block=8x8 plane=Y"
+            "-DEXPECTED_PROGRESS=entropy tell: 99039; completed leaves: Y=1058 UV=385"
             -P "${CMAKE_CURRENT_SOURCE_DIR}/scripts/check-decoder-diagnostic.cmake")
 endif()

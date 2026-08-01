@@ -32,12 +32,12 @@ an earlier entropy divergence can still be the underlying cause.
 
 | Current stopping surface | Files |
 | --- | --- |
-| Luma coefficient prefix | `emerald-480x240-qp128.obu`, `flycatcher-397x265-qp048.obu`, `pastell-320x213-qp064.obu`, `silene-479x383-qp176.obu` |
+| Luma coefficient prefix | `emerald-480x240-qp128.obu`, `pastell-320x213-qp064.obu`, `silene-479x383-qp176.obu` |
 | Luma prediction | None |
 | Luma IntraBC source bounds | None |
 | Luma IntraBC reference availability | None |
 | Chroma IntraBC reference availability | None |
-| Luma inverse transform | `chalk-320x240-qp128.obu`, `chimp-240x287-qp192.obu`, `chinnathurai-128x128-qp112.obu`, `cuckoo-431x287-qp080.obu`, `laarim-256x171-qp096.obu`, `laarim-448x299-qp192.obu`, `pastell-512x341-qp160.obu`, `schwaebisch-353x234-qp112.obu` |
+| Luma inverse transform | `chalk-320x240-qp128.obu`, `chimp-240x287-qp192.obu`, `chinnathurai-128x128-qp112.obu`, `cuckoo-431x287-qp080.obu`, `flycatcher-397x265-qp048.obu`, `laarim-256x171-qp096.obu`, `laarim-448x299-qp192.obu`, `pastell-512x341-qp160.obu`, `schwaebisch-353x234-qp112.obu` |
 | Chroma coefficient levels | None |
 | Chroma parse | `silene-384x307-qp080.obu` |
 | Chroma deblock map | None |
@@ -56,7 +56,7 @@ an earlier entropy divergence can still be the underlying cause.
 | `emerald-192x96-qp208.obu` | **Complete:** 20 luma and 11 chroma leaves, tile done at tell 731, filtered I420 byte-identical to the AVM reference (SHA-256 `403c2e7245ec484984e60c1eaf8bd1b47487c0ba6b60afc916b9532025fc51ad`) | None for the accepted profile |
 | `emerald-480x240-qp128.obu` | FSC IDTX TX_16X32 clears `(24,8)`; 16 luma and nine chroma leaves are committed before `(25,14)` 4x4 Y reaches coefficient prefix at tell 1,181. Local mode is IntraBC, while pinned AVM reports FSC IDTX with no IntraBC at this coordinate | Upstream mode entropy divergence before coefficient prefix |
 | `flycatcher-223x149-qp176.obu` | **Decode complete:** zero-angle D135 16x32 prediction clears the former tell-3,000 stop. The 50,027-byte output has SHA-256 `4044e0062d4ad5c8d13fa708c63abf05a8efb31e1ba46f4421c2e252bb900c91`, differing from locked AVM SHA-256 `38abac499fc98cb79b4c1e6cf166be2c905fb549771d8b51b3161a926b53c3f2`; first mismatch is Y `(71,56)` at the first GDF stripe boundary | GDF stripe-boundary parity |
-| `flycatcher-397x265-qp048.obu` | Zero-angle Vertical 16x32 and top-edge 8x8 prediction advance production to `(16,46)` 8x8 Y coefficient prefix at tell 12,878 after 564 luma and 89 chroma leaves. Pinned AVM reaches the genuine IntraBC EOB at tell 12,882 and decodes valid point 7; local entropy has diverged before EOB and produces an over-capacity value | Upstream entropy divergence before IntraBC EOB |
+| `flycatcher-397x265-qp048.obu` | GDF mode 2 now continues through the already-supported IntraBC parameter parser instead of failing before its genuine EOB. Production advances from tell 12,878 to `(46,35)` 4x8 Y at tell 62,908 after 1,276 luma and 301 chroma leaves | Secondary set2/type2 inverse transform |
 | `laarim-256x171-qp096.obu` | 16 luma and 14 chroma leaves committed before `(4,20)` 16x16 Y reaches inverse transform at tell 2,924 | Luma inverse-transform profile |
 | `laarim-448x299-qp192.obu` | Horizontal 16x8 set1/type3, D135 16x64 set6/type3, Smooth ADST_ADST 16x8 set10/type3, and Smooth-Vertical 16x8 set1/type1 routes advance production to `(56,48)` 64x16 Y at tell 3,461 after 140 luma and 34 chroma leaves | DC 64x16 set1/type1 inverse transform |
 | `louis-301x222-qp144.obu` | Zero-angle D135 32x32 prediction advances production to `(19,20)` 8x4 Y mode parsing at tell 6,805 after 221 luma and 24 chroma leaves | Luma mode/palette profile |
@@ -65,7 +65,7 @@ an earlier entropy divergence can still be the underlying cause.
 | `pastell-512x341-qp160.obu` | Zero-angle Vertical 4x16 prediction advances production to `(36,12)` 16x8 Y inverse transform at tell 11,656 after 407 luma and 359 chroma leaves | Secondary set5/type3 inverse transform |
 | `schwaebisch-353x234-qp112.obu` | The reduced ADST CDF and shared set10/type3 matrix advance from tell 208 to `(4,4)` 16x8 Y at tell 565 after nine luma leaves | ADST_ADST set7/type3 inverse transform |
 | `schwaebisch-417x277-qp208.obu` | **Complete:** stale out-of-frame bottom-left mode context, partial-boundary extension signaling, cropped derived-CfL, and directional/Smooth edge profiles are fixed; local and AVM entropy match through the final logged luma endpoint at tell/range `4360/51200`, and the emitted 173,611-byte I420 is byte-identical to AVM (SHA-256 `6fbc5758a05d727ed05b04542de796cc72ca5dd9c402213c3e2d4ec72ae78428`) | None for the accepted profile |
-| `silene-384x307-qp080.obu` | 1,086 luma and 394 chroma leaves committed at tell 100,811. The pinned 4x4-class set 6/type 1 kernel and TX_8X4 scan maps clear `(57,56)` at tell 99,039; local decoding later reaches escaped UV mode 14 at `(48,58)`, which pinned AVM never signals | Upstream entropy divergence before chroma mode parsing |
+| `silene-384x307-qp080.obu` | Local and pinned AVM chroma endpoints remain exact through `(60,46)` at tell 95,012. Luma leaf `(50,54)` enters coefficients at tell 96,447 on both decoders, reads the same EOB 32 prefix through tell 96,451, and ends transform selection at tell 96,457; coefficient levels then end at tell 96,548 locally versus 96,580 in AVM. The later escaped UV mode 14 at `(48,58)` is downstream | Luma coefficient-level divergence before chroma mode parsing |
 | `silene-479x383-qp176.obu` | Zero-angle D135 16x8 prediction advances production to `(34,91)` 16x8 Y at tell 5,010 after 241 luma and 98 chroma leaves. Pinned AVM marks this IntraBC block transform-skipped and reads no EOB; local execution enters prefix decoding, so the apparent prefix stop is downstream state/control divergence | Upstream divergence before skipped-IntraBC handling |
 
 Summary:
@@ -75,8 +75,8 @@ Summary:
   retain reconstruction parity gaps. The other 14 streams fail closed without output.
   The fresh production
   census identifies
-  four luma coefficient-prefix stops, zero luma-prediction stops, zero IntraBC
-  source-bounds stops, zero IntraBC-reference stops, eight luma
+  three luma coefficient-prefix stops, zero luma-prediction stops, zero IntraBC
+  source-bounds stops, zero IntraBC-reference stops, nine luma
   inverse-transform stops, one luma mode/palette stop, zero chroma
   coefficient-level stops, one chroma-parse
   stop, zero chroma-deblock-map stops, zero frame-filter stops, and one
@@ -108,10 +108,10 @@ Summary:
   surfaces. Schwaebisch Q112 still surfaces there, but its range is already
   divergent before the prefix (`52000` local versus `60960` AVM);
 - the 2026-08-01 luma coefficient-prefix audit found no missing prefix syntax
-  or CDF family among the four current stopping surfaces. Emerald has already
-  diverged to a false IntraBC mode; Flycatcher Q48 and Pastell Q64 reach their
-  IntraBC EOB 4 and 7 tell bits earlier than AVM and decode impossible
-  over-capacity values where AVM reads point 7; Silene Q176 enters prefix
+  or CDF family among the three current stopping surfaces. Emerald has already
+  diverged to a false IntraBC mode; Pastell Q64 reaches its IntraBC EOB seven
+  tell bits earlier than AVM and decodes an impossible over-capacity value
+  where AVM reads point 7; Silene Q176 enters prefix
   decoding for an AVM transform-skipped IntraBC block. The decoder therefore
   continues to reject these values rather than admitting invalid EOBs;
 - chroma coefficient prefixes now use the complete mutable intra skip bank for
