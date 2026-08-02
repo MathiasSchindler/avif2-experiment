@@ -14,12 +14,17 @@ IST_4X4_HEIGHT = 8
 IST_4X4_WIDTH = 16
 SELECTED_KERNELS = ((0, 3), (1, 1), (1, 2), (1, 3), (3, 1), (3, 3), (4, 1), (4, 2), (4, 3), (5, 1), (5, 2), (5, 3), (6, 1), (6, 2))
 SELECTED_SCAN_MAPS = ((0, 1), (0, 2), (1, 1), (1, 2), (1, 3), (3, 1), (3, 3), (4, 1), (4, 3), (5, 1), (5, 2), (5, 3), (6, 1), (6, 2), (6, 3))
+SELECTED_4X4_KERNELS = ((6, 1), (12, 2), (3, 1), (8, 1))
+TX4_INPUT_SCAN = (0, 4, 1, 8, 5, 2, 12, 9)
+TX4_OUTPUT_SCAN = (0, 1, 4, 8, 5, 2, 3, 6, 9, 12, 13, 10, 7, 11, 14, 15)
+TX8_INPUT_SCAN = (0, 8, 1, 16, 9, 2, 24, 17)
+TX8_OUTPUT_SCAN = (0, 1, 8, 16, 9, 2, 3, 10, 17, 24, 25, 18, 11, 19, 26, 27)
 REACHED_4X4_KERNELS = (
     (0, 2), (1, 1), (2, 2), (6, 2), (7, 2), (7, 3), (13, 2),
-    (13, 3)
+    (13, 3), (9, 2), (10, 2), (11, 1), (11, 2)
 )
 REACHED_8X8_KERNELS = (
-    (2, 2), (7, 1), (7, 3), (8, 2), (8, 3), (9, 2), (9, 3),
+    (2, 2), (7, 1), (7, 2), (7, 3), (8, 1), (8, 2), (8, 3), (9, 2), (9, 3),
     (10, 1), (10, 2)
 )
 KERNEL_HASH = "65d17c0e9a34843da3f5fe48262c7170383b59c15e477ab55733796de871fcc4"
@@ -66,6 +71,10 @@ def main() -> int:
     scan_map = read_initializer(
         args.spec_dir / "stx_scan_map.h", SCAN_MAP_HASH,
         IST_SET_COUNT * IST_TYPE_COUNT * IST_WIDTH)
+    kernel_4x4 = read_initializer(
+        args.spec_dir / "ist_4x4_kernel.h", KERNEL_4X4_HASH,
+        IST_4X4_SET_COUNT * IST_TYPE_COUNT *
+        IST_4X4_HEIGHT * IST_4X4_WIDTH)
     kernels = {
         (selected_set, selected_type): selected_slice(
             kernel, selected_set, selected_type, IST_HEIGHT * IST_WIDTH)
@@ -86,6 +95,30 @@ def main() -> int:
     lines = [
         "/* Generated from hash-locked AV2 v1.0.0 normative attachments. */",
     ]
+    for selected_set, selected_type in SELECTED_4X4_KERNELS:
+        values = selected_slice(
+            kernel_4x4, selected_set, selected_type,
+            IST_4X4_HEIGHT * IST_4X4_WIDTH)
+        lines.append(
+            f"static const int16_t av2h_ist_4x4_set{selected_set}_type{selected_type}_kernel[8U][16U] = {{")
+        for row in range(IST_4X4_HEIGHT):
+            start = row * IST_4X4_WIDTH
+            row_values = ", ".join(
+                str(value) for value in values[start:start + IST_4X4_WIDTH])
+            lines.append(f"    {{ {row_values} }},")
+        lines.extend(("};", ""))
+    for name, values in (
+            ("tx4_input", TX4_INPUT_SCAN),
+            ("tx4_output", TX4_OUTPUT_SCAN),
+            ("tx8_input", TX8_INPUT_SCAN),
+            ("tx8_output", TX8_OUTPUT_SCAN)):
+        lines.append(
+            f"static const uint8_t av2h_ist_4x4_{name}_scan[{len(values)}U] = {{")
+        for start in range(0, len(values), 16):
+            row_values = ", ".join(
+                str(value) for value in values[start:start + 16])
+            lines.append(f"    {row_values},")
+        lines.extend(("};", ""))
     for (selected_set, selected_type), kernel_values in kernels.items():
         lines.append(
             f"static const int16_t av2h_ist_8x8_set{selected_set}_type{selected_type}_kernel[32U][48U] = {{")
@@ -106,10 +139,6 @@ def main() -> int:
         lines.extend(("};", ""))
     args.output.write_text("\n".join(lines), encoding="ascii")
     if args.reached_output is not None:
-        kernel_4x4 = read_initializer(
-            args.spec_dir / "ist_4x4_kernel.h", KERNEL_4X4_HASH,
-            IST_4X4_SET_COUNT * IST_TYPE_COUNT *
-            IST_4X4_HEIGHT * IST_4X4_WIDTH)
         reached_lines = [
             "/* Generated from hash-locked AV2 v1.0.0 normative attachments. */",
         ]

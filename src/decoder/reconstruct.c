@@ -407,6 +407,18 @@ static Av2hStatus inverse_secondary_transform_4x4(
     } else if (transform->secondary_set == 8U &&
                transform->secondary_symbol == 1U) {
         kernel = av2h_ist_4x4_set8_type1_kernel;
+    } else if (transform->secondary_set == 9U &&
+               transform->secondary_symbol == 2U) {
+        kernel = av2h_ist_4x4_set9_type2_kernel;
+    } else if (transform->secondary_set == 10U &&
+               transform->secondary_symbol == 2U) {
+        kernel = av2h_ist_4x4_set10_type2_kernel;
+    } else if (transform->secondary_set == 11U &&
+               transform->secondary_symbol == 1U) {
+        kernel = av2h_ist_4x4_set11_type1_kernel;
+    } else if (transform->secondary_set == 11U &&
+               transform->secondary_symbol == 2U) {
+        kernel = av2h_ist_4x4_set11_type2_kernel;
     } else if (transform->secondary_set == 12U &&
                transform->secondary_symbol == 2U) {
         kernel = av2h_ist_4x4_set12_type2_kernel;
@@ -578,6 +590,14 @@ static Av2hStatus inverse_secondary_transform(
     goto specialized_dispatch;
 generic_dispatch:
     if (transform->secondary_symbol == 1U &&
+        transform->secondary_set == 0U) {
+        kernel = av2h_ist_8x8_set0_type1_kernel;
+        scan_map = av2h_ist_8x8_set0_type1_scan_map;
+    } else if (transform->secondary_symbol == 2U &&
+               transform->secondary_set == 0U) {
+        kernel = av2h_ist_8x8_set0_type2_kernel;
+        scan_map = av2h_ist_8x8_set0_type2_scan_map;
+    } else if (transform->secondary_symbol == 1U &&
         transform->secondary_set == 1U) {
         kernel = av2h_ist_8x8_set1_type1_kernel;
         scan_map = av2h_ist_8x8_set1_type1_scan_map;
@@ -609,6 +629,10 @@ generic_dispatch:
         kernel = av2h_ist_8x8_set3_type3_kernel;
         scan_map = av2h_ist_8x8_set3_type3_scan_map;
     } else if (transform->secondary_symbol == 1U &&
+               transform->secondary_set == 3U) {
+        kernel = av2h_ist_8x8_set3_type1_kernel;
+        scan_map = av2h_ist_8x8_set3_type1_scan_map;
+    } else if (transform->secondary_symbol == 1U &&
                transform->secondary_set == 2U) {
         kernel = av2h_ist_8x8_set2_type1_kernel;
         scan_map = av2h_ist_8x8_set2_type1_scan_map;
@@ -616,6 +640,10 @@ generic_dispatch:
                transform->secondary_set == 2U) {
         kernel = av2h_ist_8x8_set2_type2_kernel;
         scan_map = av2h_ist_8x8_set2_type2_scan_map;
+    } else if (transform->secondary_symbol == 3U &&
+               transform->secondary_set == 2U) {
+        kernel = av2h_ist_8x8_set2_type3_kernel;
+        scan_map = av2h_ist_8x8_set2_type3_scan_map;
     } else if (transform->secondary_symbol == 1U &&
                transform->secondary_set == 5U) {
         kernel = av2h_ist_8x8_set5_type1_kernel;
@@ -649,6 +677,10 @@ generic_dispatch:
         kernel = av2h_ist_8x8_set7_type1_kernel;
         scan_map = av2h_ist_8x8_set7_type1_scan_map;
     } else if (transform->secondary_symbol == 2U &&
+               transform->secondary_set == 7U) {
+        kernel = av2h_ist_8x8_set7_type2_kernel;
+        scan_map = av2h_ist_8x8_set7_type2_scan_map;
+    } else if (transform->secondary_symbol == 2U &&
                transform->secondary_set == 8U) {
         kernel = av2h_ist_8x8_set8_type2_kernel;
         scan_map = av2h_ist_8x8_set8_type2_scan_map;
@@ -656,6 +688,10 @@ generic_dispatch:
                transform->secondary_set == 8U) {
         kernel = av2h_ist_8x8_set8_type3_kernel;
         scan_map = av2h_ist_8x8_set8_type3_scan_map;
+    } else if (transform->secondary_symbol == 1U &&
+               transform->secondary_set == 8U) {
+        kernel = av2h_ist_8x8_set8_type1_kernel;
+        scan_map = av2h_ist_8x8_set8_type1_scan_map;
     } else if (transform->secondary_symbol == 2U &&
                transform->secondary_set == 9U) {
         kernel = av2h_ist_8x8_set9_type2_kernel;
@@ -672,6 +708,10 @@ generic_dispatch:
                transform->secondary_set == 10U) {
         kernel = av2h_ist_8x8_set10_type1_kernel;
         scan_map = av2h_ist_8x8_set10_type1_scan_map;
+    } else if (transform->secondary_symbol == 3U &&
+               transform->secondary_set == 10U) {
+        kernel = av2h_ist_8x8_set10_type3_kernel;
+        scan_map = av2h_ist_8x8_set10_type3_scan_map;
     } else {
         return AV2H_UNSUPPORTED;
     }
@@ -2720,6 +2760,7 @@ Av2hStatus av2h_luma_predict(
                          (width == 8U && height == 8U) ||
                          (width == 4U && height == 16U) ||
                          (width == 16U && height == 32U) ||
+                         (width == 16U && height == 64U) ||
                          (width == 32U && height == 16U) ||
                          (width == 64U && height == 8U) ||
                                                  (width == 64U && height == 16U) ||
@@ -2727,7 +2768,8 @@ Av2hStatus av2h_luma_predict(
                          (width == 64U && height == 64U) ||
                          (width == 32U && height == 64U))) ||
                      (mode->mode == AV2H_INTRA_D45 &&
-                        ((width == 16U && height == 32U) ||
+                        ((width == 4U && height == 32U) ||
+                         (width == 16U && height == 32U) ||
                                                  (width == 16U && height == 64U) ||
                          (width == 64U && height == 8U) ||
                          (width == 64U && height == 32U))) ||
@@ -2738,7 +2780,8 @@ Av2hStatus av2h_luma_predict(
                                                  (width == 8U && height == 16U) ||
                                                  (width == 64U && height == 8U))) ||
                      (mode->mode == AV2H_INTRA_D135 &&
-                        ((width == 8U && height == 8U) ||
+                        ((width == 4U && height == 32U) ||
+                         (width == 8U && height == 8U) ||
                          (width == 8U && height == 32U) ||
                          (width == 16U && height == 8U) ||
                          (width == 16U && height == 32U) ||
@@ -2753,6 +2796,8 @@ Av2hStatus av2h_luma_predict(
                          (width == 8U && height == 16U) ||
                          (width == 8U && height == 32U) ||
                          (width == 32U && height == 32U))) ||
+           (mode->mode == AV2H_INTRA_VERTICAL &&
+                        width == 4U && height == 8U) ||
            (mode->mode == AV2H_INTRA_D67 &&
                         ((width == 8U && height == 4U) ||
                          (width == 8U && height == 32U) ||
@@ -2766,6 +2811,7 @@ Av2hStatus av2h_luma_predict(
                          (width == 16U && height == 32U) ||
                          (width == 32U && height == 8U) ||
                          (width == 32U && height == 32U) ||
+                         (width == 32U && height == 64U) ||
                          (width == 64U && height == 64U))) ||
            (mode->mode == AV2H_INTRA_D45 &&
             width == 4U && height == 16U)))) &&
@@ -3837,6 +3883,7 @@ Av2hStatus av2h_luma_predict(
          (width == 32U && height == 8U) ||
          (width == 32U && height == 16U) ||
          (width == 32U && height == 32U) ||
+         (width == 64U && height == 8U) ||
          (width == 64U && height == 16U) ||
          (width == 64U && height == 32U) ||
          (width == 64U && height == 64U))) {
@@ -3915,11 +3962,15 @@ Av2hStatus av2h_luma_predict(
             av2h_debug_smooth_above_hash = 1469598103934665603ULL;
             av2h_debug_smooth_left_hash = 1469598103934665603ULL;
             for (index = 0U; index < width; ++index) {
-                av2h_debug_smooth_above_hash ^= references->above[index];
+                av2h_debug_smooth_above_hash ^=
+                    extend_above ? references->left[0] :
+                                   references->above[index];
                 av2h_debug_smooth_above_hash *= 1099511628211ULL;
             }
             for (index = 0U; index < height; ++index) {
-                av2h_debug_smooth_left_hash ^= references->left[index];
+                av2h_debug_smooth_left_hash ^=
+                    extend_left ? references->above[0] :
+                                  references->left[index];
                 av2h_debug_smooth_left_hash *= 1099511628211ULL;
             }
         }

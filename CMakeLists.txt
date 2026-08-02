@@ -167,4 +167,18 @@ if(WIN32 AND CMAKE_C_COMPILER_ID MATCHES "Clang")
             "-DEXPECTED_LEAF=leaf: (52,58) block=8x8 plane=Y"
             "-DEXPECTED_PROGRESS=entropy tell: 99039; completed leaves: Y=1058 UV=385"
             -P "${CMAKE_CURRENT_SOURCE_DIR}/scripts/check-decoder-diagnostic.cmake")
+    add_test(NAME windows-decoder-chimp-q192-i420
+        COMMAND av2heif-decoder
+            "${CMAKE_CURRENT_SOURCE_DIR}/images/artifacts/chimp-240x287-qp192.obu"
+            -o "${CMAKE_CURRENT_BINARY_DIR}/chimp-q192-decoder.i420")
+    add_test(NAME windows-decoder-diagnostic-laarim-q096-prefix
+        COMMAND "${CMAKE_COMMAND}"
+            "-DDECODER=$<TARGET_FILE:av2heif-decoder>"
+            "-DINPUT=${CMAKE_CURRENT_SOURCE_DIR}/images/artifacts/laarim-256x171-qp096.obu"
+            "-DOUTPUT=${CMAKE_CURRENT_BINARY_DIR}/diagnostic-laarim-q096.i420"
+            "-DEXPECTED_CAUSE=cause: unsupported feature"
+            "-DEXPECTED_STAGE=stage: luma parse / coefficient prefix"
+            "-DEXPECTED_LEAF=leaf: (28,2) block=32x16 plane=Y"
+            "-DEXPECTED_PROGRESS=entropy tell: 9419; completed leaves: Y=109 UV=18"
+            -P "${CMAKE_CURRENT_SOURCE_DIR}/scripts/check-decoder-diagnostic.cmake")
 endif()

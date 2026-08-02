@@ -3814,8 +3814,10 @@ static Av2hStatus read_fsc_block(
         uint8_t sign;
         uint64_t dequantized_magnitude;
         if (final_level == 0U) continue;
-        uint32_t *debug = av2h_debug_fsc_coeff[
-            av2h_debug_fsc_coeff_count++];
+        uint32_t *debug = av2h_debug_fsc_coeff[63U];
+        if (av2h_debug_fsc_coeff_count < 64U) {
+            debug = av2h_debug_fsc_coeff[av2h_debug_fsc_coeff_count++];
+        }
         debug[0] = scan_index;
         debug[1] = position;
         debug[2] = final_level;
@@ -4223,8 +4225,10 @@ Av2hStatus av2h_coeff_block_read(
                                  vertical, column_scan);
         level = block->base_levels[position];
         if (level == 0U) continue;
-        uint32_t *debug = av2h_debug_fsc_coeff[
-            av2h_debug_fsc_coeff_count++];
+        uint32_t *debug = av2h_debug_fsc_coeff[63U];
+        if (av2h_debug_fsc_coeff_count < 64U) {
+            debug = av2h_debug_fsc_coeff[av2h_debug_fsc_coeff_count++];
+        }
         debug[0] = scan_index;
         debug[1] = position;
         debug[2] = level;
