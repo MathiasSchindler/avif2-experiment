@@ -901,7 +901,7 @@ Av2hStatus av2h_cdef_filter_frame_with_controls(
                     &destination->plane[plane], &deblocked->plane[plane],
                     chroma_x, chroma_y, chroma_width, chroma_height, plane,
                     uv_primary, uv_secondary, frame->cdef_damping,
-                    direction, variance);
+                    uv_primary != 0U ? direction : 0U, variance);
                 if (status != AV2H_OK) return status;
             }
         }

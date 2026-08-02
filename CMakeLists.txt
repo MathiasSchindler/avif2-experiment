@@ -147,6 +147,16 @@ if(WIN32 AND CMAKE_C_COMPILER_ID MATCHES "Clang")
             "${CMAKE_CURRENT_SOURCE_DIR}/images/artifacts/cuckoo-157x105-qp160-decoded.i420")
     set_tests_properties(windows-decoder-cuckoo-q160-i420-compare PROPERTIES
         DEPENDS windows-decoder-cuckoo-q160-i420)
+    add_test(NAME windows-decoder-chimp-q064-i420
+        COMMAND av2heif-decoder
+            "${CMAKE_CURRENT_SOURCE_DIR}/images/artifacts/chimp-93x111-qp064.obu"
+            -o "${CMAKE_CURRENT_BINARY_DIR}/chimp-q064-decoder.i420")
+    add_test(NAME windows-decoder-chimp-q064-i420-compare
+        COMMAND "${CMAKE_COMMAND}" -E compare_files
+            "${CMAKE_CURRENT_BINARY_DIR}/chimp-q064-decoder.i420"
+            "${CMAKE_CURRENT_SOURCE_DIR}/images/artifacts/chimp-93x111-qp064-decoded.i420")
+    set_tests_properties(windows-decoder-chimp-q064-i420-compare PROPERTIES
+        DEPENDS windows-decoder-chimp-q064-i420)
     add_test(NAME windows-decoder-diagnostic-cuckoo-chroma-parse
         COMMAND "${CMAKE_COMMAND}"
             "-DDECODER=$<TARGET_FILE:av2heif-decoder>"
