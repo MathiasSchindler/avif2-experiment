@@ -1948,6 +1948,7 @@ static void test_luma_zero_angle_frontier_matrix(void) {
         uint16_t width;
         uint16_t height;
     } cases[] = {
+        { AV2H_INTRA_VERTICAL, 8U, 4U },
         { AV2H_INTRA_VERTICAL, 16U, 4U },
         { AV2H_INTRA_VERTICAL, 8U, 8U },
         { AV2H_INTRA_VERTICAL, 4U, 16U },
@@ -1963,13 +1964,17 @@ static void test_luma_zero_angle_frontier_matrix(void) {
         { AV2H_INTRA_D135, 16U, 32U },
         { AV2H_INTRA_D135, 32U, 32U },
         { AV2H_INTRA_D135, 32U, 64U },
+        { AV2H_INTRA_D135, 64U, 16U },
         { AV2H_INTRA_D157, 4U, 16U },
         { AV2H_INTRA_D157, 8U, 16U },
         { AV2H_INTRA_D157, 8U, 32U },
         { AV2H_INTRA_D157, 32U, 32U },
         { AV2H_INTRA_D67, 8U, 4U },
         { AV2H_INTRA_D67, 64U, 64U },
+        { AV2H_INTRA_D203, 4U, 16U },
+        { AV2H_INTRA_D203, 4U, 32U },
         { AV2H_INTRA_D203, 8U, 4U },
+        { AV2H_INTRA_D203, 8U, 16U },
         { AV2H_INTRA_D203, 16U, 32U },
         { AV2H_INTRA_D203, 64U, 64U },
         { AV2H_INTRA_D45, 4U, 16U }
@@ -2003,6 +2008,24 @@ static void test_luma_zero_angle_frontier_matrix(void) {
                   &references, predictor, cases[case_index].width) == AV2H_OK);
         CHECK(storage[0U] == 0xa5U);
         CHECK(storage[sizeof(storage) - 1U] == 0xa5U);
+        if (mode.mode == AV2H_INTRA_D203 &&
+            ((cases[case_index].width == 4U &&
+              cases[case_index].height == 16U) ||
+             (cases[case_index].width == 8U &&
+              cases[case_index].height == 16U))) {
+            uint64_t ibp_hash = sample_hash(
+                predictor, (size_t)cases[case_index].width *
+                    cases[case_index].height);
+            mode.enable_ibp = 0U;
+            CHECK(av2h_luma_predict(
+                      &mode, cases[case_index].width,
+                      cases[case_index].height, &references, predictor,
+                      cases[case_index].width) == AV2H_OK);
+            CHECK(sample_hash(
+                      predictor, (size_t)cases[case_index].width *
+                          cases[case_index].height) != ibp_hash);
+            mode.enable_ibp = 1U;
+        }
     }
 }
 
@@ -4925,7 +4948,19 @@ static void test_luma_ist_frontier_matrix(void) {
                 { AV2H_INTRA_D113, AV2H_TX_32X32,
                     32U, 32U, 32U, 32U, 3U, 1U },
                 { AV2H_INTRA_SMOOTH, AV2H_TX_64X64,
-                    64U, 64U, 32U, 32U, 3U, 6U }
+                    64U, 64U, 32U, 32U, 3U, 6U },
+                { AV2H_INTRA_D203, AV2H_TX_4X4,
+                    4U, 4U, 4U, 4U, 1U, 7U },
+                { AV2H_INTRA_VERTICAL, AV2H_TX_4X8,
+                    4U, 8U, 4U, 8U, 2U, 8U },
+                { AV2H_INTRA_SMOOTH, AV2H_TX_8X4,
+                    8U, 4U, 8U, 4U, 1U, 0U },
+                { AV2H_INTRA_D203, AV2H_TX_16X4,
+                    16U, 4U, 16U, 4U, 1U, 12U },
+                { AV2H_INTRA_D113, AV2H_TX_8X4,
+                    8U, 4U, 8U, 4U, 1U, 4U },
+                { AV2H_INTRA_D113, AV2H_TX_16X4,
+                    16U, 4U, 16U, 4U, 2U, 1U }
         };
         static Av2hReconstructionScratch scratch;
         static Av2hFirstReconstruction reconstruction;

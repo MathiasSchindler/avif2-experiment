@@ -701,8 +701,10 @@ static void test_cdef_frame(void) {
     uint8_t destination_y[16U * 16U];
     uint8_t destination_u[8U * 8U];
     uint8_t destination_v[8U * 8U];
+    uint8_t expected_y[16U * 16U];
     Av2hFilterPlanes source;
     Av2hFilterPlanes destination;
+    Av2hFilterPlane expected;
     Av2hCdefControlMap controls;
     Av2hFrameState frame;
     uint8_t strength = 1U;
@@ -748,6 +750,25 @@ static void test_cdef_frame(void) {
     CHECK(av2h_cdef_filter_frame_with_controls(
               &destination, &source, &frame, &controls) == AV2H_OK);
         CHECK(destination_y[4U * 16U + 4U] == 108U);
+
+    for (index = 0U; index < sizeof(source_y); ++index) {
+        source_y[index] = (uint8_t)((index % 16U) * 16U);
+    }
+    av2h_memory_copy(expected_y, source_y, sizeof(expected_y));
+    expected = (Av2hFilterPlane){ expected_y, 16U, 16U, 16U };
+    frame.cdef_strength_count = 1U;
+    frame.cdef_y_strength[0] = 2U;
+    frame.cdef_uv_strength[0] = 0U;
+    for (index = 0U; index < 4U; ++index) {
+        uint16_t x = (uint16_t)((index % 2U) * 8U);
+        uint16_t y = (uint16_t)((index / 2U) * 8U);
+        CHECK(av2h_cdef_filter_block(
+                  &expected, &source.plane[0], x, y, 8U, 8U, 0U,
+                  0U, 2U, frame.cdef_damping, 0U, 0U) == AV2H_OK);
+    }
+    CHECK(av2h_cdef_filter_frame(&destination, &source, &frame) == AV2H_OK);
+    CHECK(av2h_memory_compare(
+              destination_y, expected_y, sizeof(expected_y)) == 0);
 }
 
 static void test_gdf_frame(void) {

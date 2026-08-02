@@ -650,6 +650,27 @@ static void test_luma_wide_angle_transform_mapping(void) {
         }
     }
     CHECK(found != 0U);
+
+    mode.mode = AV2H_INTRA_D45;
+    mode.angle_delta = 0;
+    mode.mrl_index = 1U;
+    prefix.tx_size = AV2H_TX_4X16;
+    found = 0U;
+    for (value = 0U; value < 256U && found == 0U; ++value) {
+        Av2hRangeDecoder decoder;
+        Av2hFirstTransformCdfs cdfs;
+        Av2hFirstTransformType transform;
+        bytes[0] = (unsigned char)value;
+        CHECK(av2h_first_transform_cdfs_init(&cdfs) == AV2H_OK);
+        CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
+        if (av2h_first_transform_type_read(
+                &decoder, &cdfs, &sequence, &frame, &mode, &prefix,
+                &transform) == AV2H_OK && transform.primary_symbol == 4U) {
+            CHECK(transform.primary_type == AV2H_TX_FLIPADST_DCT);
+            found = 1U;
+        }
+    }
+    CHECK(found != 0U);
 }
 
 int main(void) {

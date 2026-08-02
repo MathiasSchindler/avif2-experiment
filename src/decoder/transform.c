@@ -561,10 +561,8 @@ static Av2hStatus read_primary(Av2hRangeDecoder *decoder,
     status = av2h_tx_descriptor_get(coeff->tx_size, &descriptor);
     if (status != AV2H_OK) return status;
     mapped_mode = *mode;
-    if (mode->angle_delta != 0) {
-        mapped_mode.mode = transform_mode(
-            mode->mode, mode->angle_delta, mode->mrl_index, descriptor);
-    }
+    mapped_mode.mode = transform_mode(
+        mode->mode, mode->angle_delta, mode->mrl_index, descriptor);
     mode = &mapped_mode;
     if (descriptor->signaling_class == AV2H_TX_SIGNAL_DCT_ONLY) {
         return av2h_primary_tx_type_map(

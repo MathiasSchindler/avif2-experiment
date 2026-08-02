@@ -905,7 +905,8 @@ Av2hStatus av2h_cdef_filter_frame_with_controls(
             status = av2h_cdef_filter_block(
                 &destination->plane[0], &deblocked->plane[0], x, y,
                 width, height, 0U, y_primary, y_secondary,
-                frame->cdef_damping, direction, variance);
+                frame->cdef_damping,
+                y_primary != 0U ? direction : 0U, variance);
             if (status != AV2H_OK) return status;
             for (plane = 1U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
                 uint16_t chroma_x = x >> 1U;

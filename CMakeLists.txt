@@ -128,15 +128,10 @@ if(WIN32 AND CMAKE_C_COMPILER_ID MATCHES "Clang")
         COMMAND av2heif-decoder
             "${CMAKE_CURRENT_SOURCE_DIR}/images/artifacts/emerald-192x96-qp208.obu"
             -o "${CMAKE_CURRENT_BINARY_DIR}/emerald-decoder.bmp")
-    add_test(NAME windows-decoder-diagnostic-chalk-coeff-prefix
-        COMMAND "${CMAKE_COMMAND}"
-            "-DDECODER=$<TARGET_FILE:av2heif-decoder>"
-            "-DINPUT=${CMAKE_CURRENT_SOURCE_DIR}/images/artifacts/chalk-320x240-qp128.obu"
-            "-DOUTPUT=${CMAKE_CURRENT_BINARY_DIR}/diagnostic-chalk.i420"
-            "-DEXPECTED_STAGE=stage: luma parse / coefficient prefix"
-            "-DEXPECTED_LEAF=leaf: (40,52) block=32x16 plane=Y"
-            "-DEXPECTED_PROGRESS=entropy tell: 29650; completed leaves: Y=895 UV=529"
-            -P "${CMAKE_CURRENT_SOURCE_DIR}/scripts/check-decoder-diagnostic.cmake")
+    add_test(NAME windows-decoder-chalk-q128-i420
+        COMMAND av2heif-decoder
+            "${CMAKE_CURRENT_SOURCE_DIR}/images/artifacts/chalk-320x240-qp128.obu"
+            -o "${CMAKE_CURRENT_BINARY_DIR}/chalk-q128-decoder.i420")
     add_test(NAME windows-decoder-cuckoo-q160-i420
         COMMAND av2heif-decoder
             "${CMAKE_CURRENT_SOURCE_DIR}/images/artifacts/cuckoo-157x105-qp160.obu"
@@ -164,18 +159,18 @@ if(WIN32 AND CMAKE_C_COMPILER_ID MATCHES "Clang")
             "-DOUTPUT=${CMAKE_CURRENT_BINARY_DIR}/diagnostic-cuckoo.i420"
             "-DEXPECTED_CAUSE=cause: invalid data"
             "-DEXPECTED_STAGE=stage: chroma parse / unknown"
-            "-DEXPECTED_LEAF=leaf: (24,72) block=32x32 plane=U"
-            "-DEXPECTED_PROGRESS=entropy tell: 23132; completed leaves: Y=378 UV=109"
+            "-DEXPECTED_LEAF=leaf: (44,80) block=32x16 plane=U"
+            "-DEXPECTED_PROGRESS=entropy tell: 59536; completed leaves: Y=830 UV=289"
             -P "${CMAKE_CURRENT_SOURCE_DIR}/scripts/check-decoder-diagnostic.cmake")
-    add_test(NAME windows-decoder-diagnostic-silene-intrabc-reference
+    add_test(NAME windows-decoder-diagnostic-silene-chroma-mode
         COMMAND "${CMAKE_COMMAND}"
             "-DDECODER=$<TARGET_FILE:av2heif-decoder>"
             "-DINPUT=${CMAKE_CURRENT_SOURCE_DIR}/images/artifacts/silene-384x307-qp080.obu"
             "-DOUTPUT=${CMAKE_CURRENT_BINARY_DIR}/diagnostic-silene.i420"
-            "-DEXPECTED_CAUSE=cause: unsupported feature"
-            "-DEXPECTED_STAGE=stage: luma reconstruction / IntraBC reference availability"
-            "-DEXPECTED_LEAF=leaf: (52,58) block=8x8 plane=Y"
-            "-DEXPECTED_PROGRESS=entropy tell: 99039; completed leaves: Y=1058 UV=385"
+            "-DEXPECTED_CAUSE=cause: invalid data"
+            "-DEXPECTED_STAGE=stage: chroma parse / unknown"
+            "-DEXPECTED_LEAF=leaf: (72,24) block=32x8 plane=U"
+            "-DEXPECTED_PROGRESS=entropy tell: 113538; completed leaves: Y=1257 UV=501"
             -P "${CMAKE_CURRENT_SOURCE_DIR}/scripts/check-decoder-diagnostic.cmake")
     add_test(NAME windows-decoder-chimp-q192-i420
         COMMAND av2heif-decoder
@@ -193,9 +188,9 @@ if(WIN32 AND CMAKE_C_COMPILER_ID MATCHES "Clang")
             "-DDECODER=$<TARGET_FILE:av2heif-decoder>"
             "-DINPUT=${CMAKE_CURRENT_SOURCE_DIR}/images/artifacts/laarim-256x171-qp096.obu"
             "-DOUTPUT=${CMAKE_CURRENT_BINARY_DIR}/diagnostic-laarim-q096.i420"
-            "-DEXPECTED_CAUSE=cause: unsupported feature"
-            "-DEXPECTED_STAGE=stage: luma parse / coefficient prefix"
-            "-DEXPECTED_LEAF=leaf: (28,2) block=32x16 plane=Y"
-            "-DEXPECTED_PROGRESS=entropy tell: 9419; completed leaves: Y=109 UV=18"
+            "-DEXPECTED_CAUSE=cause: invalid argument"
+            "-DEXPECTED_STAGE=stage: luma reconstruction / prediction"
+            "-DEXPECTED_LEAF=leaf: (40,4) block=16x16 plane=Y"
+            "-DEXPECTED_PROGRESS=entropy tell: 35210; completed leaves: Y=453 UV=194"
             -P "${CMAKE_CURRENT_SOURCE_DIR}/scripts/check-decoder-diagnostic.cmake")
 endif()
