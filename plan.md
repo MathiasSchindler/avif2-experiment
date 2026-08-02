@@ -380,10 +380,9 @@ at the pinned AVM entropy endpoint without unsupported paths.
 
 ## Milestone 8: high-detail and advanced prediction
 
-**Status:** In progress. The locked 96x80 high-detail fixture now has complete
-frame-wide traversal and unfiltered-plane parity coverage. Remaining work is
-the broader advanced-profile queue and the sanitizer/freestanding exit-gate
-validation.
+**Status:** Complete. The locked 96x80 high-detail fixture has complete
+frame-wide traversal and unfiltered-plane parity coverage under the hosted
+sanitizer and strict freestanding dependency gates.
 
 ### Implemented coverage
 
@@ -406,27 +405,27 @@ validation.
   Y/U/V hashes. Production I420 SHA-256 is
   `4120930c9c9c49f73d4aa3e1d4c56cbb4b557679b42fe3b9de984bca1431745a`.
 
-The production decoder currently emits 7 of the 21 research artifacts. Four
-are byte-identical to pinned AVM; three complete with known reconstruction or
-filter parity gaps. This corpus is broader than the Milestone 8 exit fixture,
-but its fail-closed frontiers identify the remaining advanced-profile work.
+The production decoder currently emits 7 of the 21 research artifacts. Six
+are byte-identical to pinned AVM; Chimp Q192 completes with a known upstream
+entropy parity gap. This corpus is broader than the Milestone 8 exit fixture,
+but its fail-closed frontiers identify later advanced-profile work.
 See `images/artifacts/status.md` for exact tells and hashes.
 
-### Remaining Milestone 8 work
+### Completed Milestone 8 closure
 
-1. Close prefilter reconstruction parity for completed artifacts where it is
-   still a Milestone 8 dependency, notably Chimp Q64 chroma scheduling and the
-   unresolved Cuckoo Q160 reconstruction gap. Flycatcher Q176's remaining GDF
-   stripe-boundary mismatch belongs to Milestone 9.
-2. Replace tuple-scoped admission with normative bounded dispatch where the
-   remaining reached transform set shows that sparse admission is fragile.
-   Keep impossible EOBs, UV mode 14, restoration, and unreached profiles
-   fail-closed.
+1. Chimp Q64 and Cuckoo Q160 prefilter/final reconstruction are byte-identical
+  to pinned AVM. Chimp Q64 uses the normative zero-direction rule for chroma
+  CDEF with zero primary strength; Cuckoo Q160 extends filter-2 CfL references
+  over coded-plane padding.
+2. Ordinary 8x8-class inverse-secondary transforms use bounded set/type kernel
+  dispatch rather than mode/geometry tuple admission. Only transforms with
+  geometry-specific output-position maps retain explicit routing; absent
+  kernels remain fail-closed.
 
 The former nine-stream inverse-transform item is complete. Hash-locked
 normative small and large IST kernels now advance every named stream beyond
-its previous transform endpoint; Chimp Q192 and Laarim Q96 currently expose
-later access violations.
+its previous transform endpoint. Chimp Q192 now completes with an upstream
+entropy parity gap, while Laarim Q96 fails closed at a later profile frontier.
 
 The former five-stream upstream-divergence item is also complete. Resetting
 the IntraBC reference bank before each superblock row, while preserving it
@@ -437,7 +436,7 @@ fail-closed syntax checks.
 
 ### Exit gate
 
-Milestone 8 is complete when the locked 96x80 high-detail fixture traverses to
+Milestone 8 is complete: the locked 96x80 high-detail fixture traverses to
 `AV2H_TILE_DECODE_DONE` and its complete unfiltered Y, U, and V planes are
 sample-exact against pinned AVM under hosted sanitizers and the strict
 freestanding dependency gate. Every reached CFL and IntraBC block must be

@@ -4972,6 +4972,36 @@ static void test_luma_ist_frontier_matrix(void) {
                 }
                 CHECK(changed);
         }
+
+        {
+            Av2hFirstLeafMode mode = { 0 };
+            Av2hFirstCoeffPrefix prefix = { 0 };
+            Av2hFirstTransformType transform = { 0 };
+            uint8_t predictor[32U * 32U];
+            mode.mode = AV2H_INTRA_D203;
+            prefix.tx_size = AV2H_TX_32X32;
+            prefix.eob = 2U;
+            transform.primary_type = AV2H_TX_DCT_DCT;
+            transform.secondary_symbol = 2U;
+            transform.secondary_set = 5U;
+            av2h_memory_fill(&block, 0U, sizeof(block));
+            av2h_memory_fill(predictor, 100U, sizeof(predictor));
+            block.width = 32U;
+            block.height = 32U;
+            block.coefficient_count = 1024U;
+            block.nonzero_count = 1U;
+            block.dequantized[0] = 256;
+            CHECK(av2h_luma_reconstruct(
+                  &mode, &prefix, &transform, &block, predictor, 32U,
+                  &scratch, &reconstruction) == AV2H_OK);
+
+            mode.mode = AV2H_INTRA_D135;
+            transform.secondary_symbol = 2U;
+            transform.secondary_set = 3U;
+            CHECK(av2h_luma_reconstruct(
+                  &mode, &prefix, &transform, &block, predictor, 32U,
+                  &scratch, &reconstruction) == AV2H_UNSUPPORTED);
+        }
 }
 
 static void test_tx8x4_adst_adst_reconstruction(void) {

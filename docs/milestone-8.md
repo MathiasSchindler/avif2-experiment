@@ -1,28 +1,27 @@
 # Milestone 8: high-detail and advanced prediction
 
-Milestone 8 is in progress. Most corpus-reached coefficient, prediction,
-IntraBC, chroma, and transform syntax is now implemented. The locked 96x80
-high-detail fixture now completes frame-wide traversal with sample-exact
-unfiltered Y/U/V reconstruction; sanitizer and strict freestanding validation
-remain part of the final exit gate.
+Milestone 8 is complete. Corpus-reached coefficient, prediction, IntraBC,
+chroma, and transform syntax is implemented. The locked 96x80 high-detail
+fixture completes frame-wide traversal with sample-exact unfiltered Y/U/V
+reconstruction under sanitizer and strict freestanding validation.
 
 ## Current handoff
 
-The production decoder emits 7 of the 21 research artifacts: four are
-byte-identical to pinned AVM and three complete with known reconstruction or
-filter parity gaps. Current Milestone 8 implementation work is:
+The production decoder emits 7 of the 21 research artifacts: six are
+byte-identical to pinned AVM and Chimp Q192 completes with an upstream entropy
+parity gap. Milestone 8 closed the remaining work by:
 
-1. close prefilter reconstruction parity for Chimp Q64 and determine the
-  remaining Cuckoo Q160 reconstruction gap; and
-2. retain fail-closed behavior for impossible EOBs, UV mode 14, restoration,
-  and unreached profiles while replacing fragile tuple admissions only where
+1. making Chimp Q64 and Cuckoo Q160 byte-identical to pinned AVM; and
+2. retaining fail-closed behavior for impossible EOBs, UV mode 14,
+  restoration, and unreached profiles while replacing fragile tuple admission
+  with bounded inverse-secondary set/type dispatch where
   current reach justifies normative bounded dispatch.
 
 The nine previously reached inverse-transform gaps are implemented with
 hash-locked normative 4x4 and 8x8 IST kernels. All nine streams now pass their
-former transform frontier; Chimp Q192 and Laarim Q96 expose later production
-access violations, while the other streams complete or fail closed in later
-coefficient, chroma, or prediction stages.
+former transform frontier. Chimp Q192 now completes with an upstream entropy
+parity gap, while Laarim Q96 and the other incomplete streams fail closed at
+later coefficient, chroma, prediction, or reconstruction stages.
 
 The five upstream syntax/state divergences shared one IntraBC reference-bank
 lifecycle defect. The bank was cleared after the first leaf of each
@@ -202,8 +201,9 @@ EOB-3 coefficient profile, and the Q208 Schwaebisch 32x16 profile.
   path;
 - complete CFL and intraBC prediction, displacement, references, and sample
   reconstruction;
-- replace sparse transform or CDF admission with fuller normative machinery
-  where the reached frequency set makes sparse handling fragile; and
+- use bounded set/type dispatch for ordinary 8x8-class inverse-secondary
+  transforms, retaining explicit routing only for geometry-specific output
+  maps; and
 - retain deterministic failure for restoration and unreached profile features.
 
 Traversal should continue beyond a block only where every newly reached CDF,
@@ -214,11 +214,15 @@ longer the active queue.
 
 ## Exit gate
 
-The locked 96x80 high-detail fixture must reach `AV2H_TILE_DECODE_DONE` and
+The locked 96x80 high-detail fixture reaches `AV2H_TILE_DECODE_DONE` and
 match pinned AVM on complete unfiltered Y, U, and V planes, including every
 reached CFL and IntraBC block, under sanitizers and the strict freestanding
 dependency gate. The test must use caller-owned references and readiness maps,
 not fixture-supplied contexts or pixels.
+
+Run `make milestone-8` to execute the sanitizer-backed reconstruction matrix,
+the canonical high-detail traversal, and the zero-undefined-symbol
+freestanding gate.
 
 Milestone 8 does not run mandatory frame filters and does not expose a public
 decoder.

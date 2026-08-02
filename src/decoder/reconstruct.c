@@ -587,6 +587,28 @@ static Av2hStatus inverse_secondary_transform(
     input_count = (uint16_t)(
         prefix->tx_size == AV2H_TX_8X8 ||
         transform->primary_type == AV2H_TX_ADST_ADST ? 16U : 32U);
+    /* Only these geometries use output positions beyond the set/type map. */
+    if (!((mode->mode == AV2H_INTRA_SMOOTH_HORIZONTAL &&
+           prefix->tx_size == AV2H_TX_8X32 &&
+           transform->secondary_symbol == 2U &&
+           transform->secondary_set == 0U) ||
+          (mode->mode == AV2H_INTRA_HORIZONTAL &&
+           prefix->tx_size == AV2H_TX_32X64 &&
+           transform->secondary_symbol == 2U &&
+           transform->secondary_set == 0U) ||
+          (mode->mode == AV2H_INTRA_DC &&
+           prefix->tx_size == AV2H_TX_8X16 &&
+           transform->secondary_set == 6U) ||
+          (mode->mode == AV2H_INTRA_SMOOTH &&
+           prefix->tx_size == AV2H_TX_8X16 &&
+           transform->secondary_symbol == 3U &&
+           transform->secondary_set == 6U) ||
+          (mode->mode == AV2H_INTRA_SMOOTH_HORIZONTAL &&
+           prefix->tx_size == AV2H_TX_64X64 &&
+           transform->secondary_symbol == 1U &&
+           transform->secondary_set == 0U))) {
+        goto generic_dispatch;
+    }
     goto specialized_dispatch;
 generic_dispatch:
     if (transform->secondary_symbol == 1U &&

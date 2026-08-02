@@ -52,7 +52,7 @@ STRICT_CFLAGS := -std=c11 -Wall -Wextra -Wpedantic -Werror -O2 \
 	-Iinclude -Isrc -Isrc/shared
 
 .PHONY: test test-c test-freestanding reference-avm milestone-0 milestone-3 \
-	milestone-4 milestone-5-evidence
+	milestone-4 milestone-5-evidence milestone-8
 
 test: test-c test-freestanding $(HOST_ARTIFACT_TOOL)
 	$(PYTHON) -m unittest discover -s tests -p 'test_*.py'
@@ -171,3 +171,7 @@ milestone-5-evidence:
 	$(PYTHON) tools/check_m5_coeff_cdfs.py
 	$(PYTHON) tools/check_m5_transform_cdfs.py
 	$(PYTHON) tools/check_m5_prediction.py
+
+milestone-8: $(HOST_RECONSTRUCT_UNIT) $(HOST_TILE_UNIT) test-freestanding
+	$(HOST_RECONSTRUCT_UNIT)
+	$(HOST_TILE_UNIT)
