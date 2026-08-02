@@ -85,11 +85,11 @@ static void check_fixture(const char *name,
     CHECK(prefix.after_eob_point_bits == expected_after_point);
     CHECK(prefix.after_eob_extra_bit == expected_after_extra);
     CHECK(prefix.after_eob_bits == expected_after_eob);
-        CHECK(coeff_cdfs.full_luma_txb_skip[1U][0U][2U] ==
+        CHECK(coeff_cdfs.full_luma_txb_skip[0U][1U][0U][2U] ==
             (expected_tx_context == 1U ? 1U : 0U));
-        CHECK(coeff_cdfs.full_luma_txb_skip[3U][0U][2U] ==
+        CHECK(coeff_cdfs.full_luma_txb_skip[0U][3U][0U][2U] ==
             (expected_tx_context == 3U ? 1U : 0U));
-        CHECK(coeff_cdfs.full_luma_txb_skip[4U][0U][2U] ==
+        CHECK(coeff_cdfs.full_luma_txb_skip[0U][4U][0U][2U] ==
             (expected_tx_context == 4U ? 1U : 0U));
         CHECK(coeff_cdfs.eob_pt_32[6] ==
             (expected_tx == AV2H_TX_8X4 ? 1U : 0U));
@@ -157,10 +157,28 @@ static void test_fixture_prefixes(void) {
 static void test_arguments(void) {
     static const uint16_t q_indices[] = { 64U, 128U, 160U, 224U };
     static const uint64_t luma_skip_hashes[] = {
-        UINT64_C(0x5f868c814a42722a),
-        UINT64_C(0x202be84f59fe5d1a),
-        UINT64_C(0xc4aa34bfa6de2f61),
-        UINT64_C(0xfbf0380a09e6b3ef)
+        UINT64_C(4700160051091221629),
+        UINT64_C(17579857248642665340),
+        UINT64_C(4621959741216666331),
+        UINT64_C(11994629745148318563)
+    };
+    static const uint64_t v_skip_hashes[] = {
+        UINT64_C(8333790759260979761),
+        UINT64_C(5936883974869071903),
+        UINT64_C(3228527679981349319),
+        UINT64_C(4914780547244662656)
+    };
+    static const uint64_t chroma_eob_hashes[] = {
+        UINT64_C(14302808804745040998),
+        UINT64_C(11536577742561569287),
+        UINT64_C(498244255308862779),
+        UINT64_C(488010665738215776)
+    };
+    static const uint64_t eob_extra_hashes[] = {
+        UINT64_C(815450102337075331),
+        UINT64_C(1877423472105811164),
+        UINT64_C(6526772215835104301),
+        UINT64_C(11085992068949705981)
     };
     Av2hRangeDecoder decoder;
     Av2hFirstCoeffCdfs cdfs;
@@ -169,7 +187,7 @@ static void test_arguments(void) {
     Av2hFirstLeafMode mode = { 0 };
     Av2hFirstCoeffPrefix prefix;
     size_t index;
-    CHECK(sizeof(Av2hFirstCoeffCdfs) == 1700U);
+    CHECK(sizeof(Av2hFirstCoeffCdfs) == 2768U);
     CHECK(av2h_first_coeff_cdfs_init(0) == AV2H_INVALID_ARGUMENT);
     CHECK(av2h_first_coeff_cdfs_init_for_q(0, 64U) ==
           AV2H_INVALID_ARGUMENT);
@@ -204,9 +222,18 @@ static void test_arguments(void) {
          ++index) {
         CHECK(av2h_first_coeff_cdfs_init_for_q(
                   &cdfs, q_indices[index]) == AV2H_OK);
-        CHECK(word_hash(&cdfs.full_luma_txb_skip[0U][0U][0U],
+        CHECK(word_hash(&cdfs.full_luma_txb_skip[0U][0U][0U][0U],
                         sizeof(cdfs.full_luma_txb_skip) / sizeof(uint16_t)) ==
               luma_skip_hashes[index]);
+        CHECK(word_hash(&cdfs.full_v_txb_skip[0U][0U],
+                        sizeof(cdfs.full_v_txb_skip) / sizeof(uint16_t)) ==
+              v_skip_hashes[index]);
+        CHECK(word_hash(&cdfs.chroma_eob_pt[0U][0U],
+                        sizeof(cdfs.chroma_eob_pt) / sizeof(uint16_t)) ==
+              chroma_eob_hashes[index]);
+        CHECK(word_hash(&cdfs.eob_extra[0U],
+                        sizeof(cdfs.eob_extra) / sizeof(uint16_t)) ==
+              eob_extra_hashes[index]);
     }
     CHECK(av2h_first_coeff_cdfs_init(&cdfs) == AV2H_OK);
     CHECK(av2h_first_coeff_prefix_read(

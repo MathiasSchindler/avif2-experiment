@@ -150,6 +150,12 @@ static void test_q_context_cdfs(void) {
     static const uint16_t q3_dc_sign_ctx0[] = {
         12660U, 0U, 0U, 2U, 3U, 3U
     };
+    static const uint64_t dc_sign_hashes[] = {
+        UINT64_C(1958105366753601643),
+        UINT64_C(2014699524697737345),
+        UINT64_C(944512808802140200),
+        UINT64_C(2940253875236951700)
+    };
     Av2hFirstCoeffLevelCdfs cdfs;
     size_t index;
     CHECK(av2h_first_coeff_level_cdfs_init_for_q(0, 160U) ==
@@ -186,6 +192,10 @@ static void test_q_context_cdfs(void) {
                   &cdfs, q_indices[index]) == AV2H_OK);
         CHECK(complete_bank_hash(&cdfs) == complete_hashes[index]);
         CHECK(uv_bank_hash(&cdfs) == uv_hashes[index]);
+        CHECK(hash_words(UINT64_C(1469598103934665603),
+                         &cdfs.dc_sign[0][0],
+                         sizeof(cdfs.dc_sign) / sizeof(uint16_t)) ==
+              dc_sign_hashes[index]);
     }
 }
 

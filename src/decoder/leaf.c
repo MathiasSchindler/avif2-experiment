@@ -2193,12 +2193,24 @@ Av2hStatus av2h_luma_mode_neighbors_from_state(
     }
     if (leaf->column != 0U) {
         const Av2hLumaModeContext *left = &state->left[left_index];
+        size_t bottom_row = (size_t)leaf->row + height - 1U;
         candidates[2] = left;
         selected[0] = left;
-        if (state->spatial_rows == 0U ||
-            (size_t)leaf->row + height - 1U < state->spatial_rows) {
+        if (state->spatial != 0 && state->spatial_rows != 0U &&
+            bottom_row == state->spatial_rows) {
+            const Av2hLumaModeContext *bottom_left;
+            bottom_left = intrabc_spatial_context(
+                state, (int32_t)(bottom_row - 1U),
+                (int32_t)leaf->column - 1);
+            if (bottom_left != 0 && bottom_left->present &&
+                bottom_left->joint_mode != left->joint_mode) {
+                candidates[0] = bottom_left;
+                selected[0] = bottom_left;
+            }
+        } else if (state->spatial_rows == 0U ||
+                   bottom_row < state->spatial_rows) {
             const Av2hLumaModeContext *bottom_left =
-                &state->left[(leaf->row + height - 1U) % state->left_count];
+                &state->left[bottom_row % state->left_count];
             candidates[0] = bottom_left;
             selected[0] = bottom_left;
         }
@@ -2331,10 +2343,6 @@ Av2hStatus av2h_luma_mode_context_state_update(
         unit_count = (width / unit_mi > 0U ? width / unit_mi : 1U) *
                      (height / unit_mi > 0U ? height / unit_mi : 1U);
         if (row_in_superblock == 0U && column_in_superblock == 0U) {
-            if (leaf->column == 0U) {
-                state->intrabc_bank_count = 0U;
-                state->intrabc_bank_start = 0U;
-            }
             state->intrabc_bank_remaining_hits = (uint16_t)(
                 unit_count > 4U ? unit_count : 4U);
             state->intrabc_bank_unit_hits = 0U;

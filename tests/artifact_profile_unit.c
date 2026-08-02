@@ -5583,6 +5583,15 @@ static void check_first_luma(const ArtifactExpectation *expected,
                          sizeof(chimp_chroma_pixels));
         av2h_memory_fill(chimp_chroma_reconstructed, 0U,
                          sizeof(chimp_chroma_reconstructed));
+        REQUIRE(av2h_tile_decoder_init(
+                    &decoder, group.entropy, sequence, frame, &storage) ==
+                AV2H_OK);
+        av2h_memory_fill(&leaf, 0U, sizeof(leaf));
+        av2h_memory_fill(&block, 0U, sizeof(block));
+        status = av2h_tile_decoder_next_luma(
+            &decoder, &leaf, &block, &has_leaf);
+        REQUIRE(status == AV2H_OK);
+        REQUIRE(has_leaf == 1U);
     chimp_continue_luma:
         for (size_t step = 0U; step < 1024U &&
              decoder.phase == AV2H_TILE_DECODE_LUMA; ++step) {
@@ -5660,10 +5669,19 @@ static void check_first_luma(const ArtifactExpectation *expected,
                 }
                 fprintf(stderr, "\n");
             }
-            REQUIRE(av2h_luma_reconstruct_to_plane(
-                        &leaf.node, &leaf.mode, &leaf.prefix,
-                        &leaf.transform, &block, &chimp_plane,
-                        &chimp_scratch) == AV2H_OK);
+            status = av2h_luma_reconstruct_to_plane(
+                &leaf.node, &leaf.mode, &leaf.prefix, &leaf.transform,
+                &block, &chimp_plane, &chimp_scratch);
+            if (status != AV2H_OK) {
+                fprintf(stderr,
+                        "chimp-luma-reconstruct-stop=%u/%u/%u mode=%u/%d tx=%u/%u eob=%u status=%u stage=%u\n",
+                        leaf.node.row, leaf.node.column,
+                        leaf.node.block_size, leaf.mode.mode,
+                        leaf.mode.angle_delta, leaf.prefix.tx_size,
+                        leaf.transform.primary_type, leaf.prefix.eob,
+                        status, av2h_debug_luma_reconstruct_stage);
+            }
+            REQUIRE(status == AV2H_OK);
             if (leaf.node.row == 8U && leaf.node.column == 12U) {
                 size_t target_index;
                 fprintf(stderr,
@@ -5937,6 +5955,17 @@ static void check_first_luma(const ArtifactExpectation *expected,
                         &decoder, chroma_leaf.node) == AV2H_OK);
         }
         if (decoder.phase == AV2H_TILE_DECODE_LUMA) {
+            av2h_memory_fill(&leaf, 0U, sizeof(leaf));
+            av2h_memory_fill(&block, 0U, sizeof(block));
+            status = av2h_tile_decoder_next_luma(
+                &decoder, &leaf, &block, &has_leaf);
+            while (status == AV2H_OK && has_leaf == 0U &&
+                   decoder.phase == AV2H_TILE_DECODE_LUMA) {
+                status = av2h_tile_decoder_next_luma(
+                    &decoder, &leaf, &block, &has_leaf);
+            }
+            REQUIRE(status == AV2H_OK);
+            REQUIRE(has_leaf == 1U);
             goto chimp_continue_luma;
         }
         {
@@ -6740,7 +6769,15 @@ static const ArtifactDecodedExpectation chimp_q192_decoded = {
     sizeof(chimp_q192_coefficients) / sizeof(chimp_q192_coefficients[0])
 };
 
-static void test_artifact_profiles(void) {
+static int artifact_name_equals(const char *left, const char *right) {
+    while (*left != '\0' && *left == *right) {
+        ++left;
+        ++right;
+    }
+    return *left == *right;
+}
+
+static void test_artifact_profiles(const char *profile_name) {
     static const ArtifactExpectation expected[] = {
     { "chalk-320x240-qp128.obu", 320U, 240U, 128U, 1U, 1U, 1U, 1U,
           219U, 1U, 2U, 3U, AV2H_BLOCK_8X16, 32U,
@@ -6749,8 +6786,8 @@ static void test_artifact_profiles(void) {
                                         217U, 1U, 1U, 3U, AV2H_BLOCK_8X16, 37U,
                     AV2H_OK, &chimp_q192_decoded },
         { "chimp-93x111-qp064.obu", 93U, 111U, 64U, 1U, 0U, 1U, 1U,
-                    179U, 0U, 0U, 0U, AV2H_BLOCK_8X8, 30U,
-          AV2H_UNSUPPORTED, 0 },
+                                        179U, 0U, 0U, 0U, AV2H_BLOCK_8X8, 437U,
+                    AV2H_OK, 0 },
         { "chinnathurai-128x128-qp112.obu", 128U, 128U, 112U, 1U,
           1U, 1U, 1U, 134U, 1U, 2U, 0U, AV2H_BLOCK_32X64, 19U,
           AV2H_UNSUPPORTED, 0 },
@@ -6809,13 +6846,18 @@ static void test_artifact_profiles(void) {
     size_t index;
     CHECK(sizeof(expected) / sizeof(expected[0]) == 21U);
     for (index = 0U; index < sizeof(expected) / sizeof(expected[0]); ++index) {
+        if (profile_name != 0 &&
+            !artifact_name_equals(expected[index].name, profile_name)) {
+            continue;
+        }
         check_artifact(&expected[index]);
     }
 }
 
-int main(void) {
-    check_emerald_q208_vector_fixture();
-    test_artifact_profiles();
+int main(int argc, char **argv) {
+    const char *profile_name = argc > 1 ? argv[1] : 0;
+    if (profile_name == 0) check_emerald_q208_vector_fixture();
+    test_artifact_profiles(profile_name);
     if (failures != 0) {
         fprintf(stderr, "%d artifact profile checks failed\n", failures);
         return 1;

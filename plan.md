@@ -414,24 +414,26 @@ See `images/artifacts/status.md` for exact tells and hashes.
 
 ### Remaining Milestone 8 work
 
-1. Implement the nine currently reached inverse-transform gaps, primarily
-   missing secondary set/type kernels: Chalk Q128, Chimp Q192, Chinnathurai
-   Q112, Cuckoo Q80, Flycatcher Q48, both Laarim streams, Pastell Q160, and
-   Schwaebisch Q112.
-2. Repair the remaining upstream syntax/state divergences rather than
-   admitting their downstream impossible symbols: Emerald Q128 mode state,
-   Pastell Q64 IntraBC EOB state, Silene Q176 skipped-IntraBC state, Louis Q144
-   mode/palette state, and Silene Q80 luma coefficient levels at `(50,54)`.
-   Silene Q80's luma prefix and transform are already AVM-exact through tell
-   96,457; its later UV mode 14 is downstream evidence.
-3. Close prefilter reconstruction parity for completed artifacts where it is
+1. Close prefilter reconstruction parity for completed artifacts where it is
    still a Milestone 8 dependency, notably Chimp Q64 chroma scheduling and the
    unresolved Cuckoo Q160 reconstruction gap. Flycatcher Q176's remaining GDF
    stripe-boundary mismatch belongs to Milestone 9.
-4. Replace tuple-scoped admission with normative bounded dispatch where the
+2. Replace tuple-scoped admission with normative bounded dispatch where the
    remaining reached transform set shows that sparse admission is fragile.
    Keep impossible EOBs, UV mode 14, restoration, and unreached profiles
    fail-closed.
+
+The former nine-stream inverse-transform item is complete. Hash-locked
+normative small and large IST kernels now advance every named stream beyond
+its previous transform endpoint; Chimp Q192 and Laarim Q96 currently expose
+later access violations.
+
+The former five-stream upstream-divergence item is also complete. Resetting
+the IntraBC reference bank before each superblock row, while preserving it
+across superblocks within that row, matches AVM's lifecycle and advances
+Emerald Q128, Pastell Q64, Silene Q176, Louis Q144, and Silene Q80 beyond their
+mode, skip, EOB, palette, and coefficient-level checkpoints without weakening
+fail-closed syntax checks.
 
 ### Exit gate
 

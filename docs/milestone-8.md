@@ -12,21 +12,25 @@ The production decoder emits 7 of the 21 research artifacts: four are
 byte-identical to pinned AVM and three complete with known reconstruction or
 filter parity gaps. Current Milestone 8 implementation work is:
 
-1. implement the nine reached inverse-transform gaps listed in
-  `images/artifacts/status.md`, primarily missing secondary set/type kernels;
-2. repair five upstream state divergences: Emerald Q128 mode state, Pastell
-  Q64 IntraBC EOB state, Silene Q176 skipped-IntraBC state, Louis Q144
-  mode/palette state, and Silene Q80 luma coefficient levels at `(50,54)`;
-3. close prefilter reconstruction parity for Chimp Q64 and determine the
+1. close prefilter reconstruction parity for Chimp Q64 and determine the
   remaining Cuckoo Q160 reconstruction gap; and
-4. retain fail-closed behavior for impossible EOBs, UV mode 14, restoration,
+2. retain fail-closed behavior for impossible EOBs, UV mode 14, restoration,
   and unreached profiles while replacing fragile tuple admissions only where
   current reach justifies normative bounded dispatch.
 
-Silene Q80 is not a chroma-mode implementation gap. Local and AVM agree on
-chroma through tell 95,012 and on luma `(50,54)` through EOB 32 at tell 96,451
-and transform selection at tell 96,457. Its coefficient levels end at tell
-96,548 locally versus 96,580 in AVM; the later UV mode 14 is downstream.
+The nine previously reached inverse-transform gaps are implemented with
+hash-locked normative 4x4 and 8x8 IST kernels. All nine streams now pass their
+former transform frontier; Chimp Q192 and Laarim Q96 expose later production
+access violations, while the other streams complete or fail closed in later
+coefficient, chroma, or prediction stages.
+
+The five upstream syntax/state divergences shared one IntraBC reference-bank
+lifecycle defect. The bank was cleared after the first leaf of each
+superblock row instead of before that row. Matching AVM's pre-read reset and
+preserving the bank across superblocks within a row advances Emerald Q128,
+Pastell Q64, Silene Q176, Louis Q144, and Silene Q80 beyond all five former
+checkpoints without admitting their downstream impossible symbols. Their new
+fail-closed entropy frontiers are 3,896, 32,105, 8,501, 8,787, and 99,039.
 Flycatcher Q48's former prefix stop was an obsolete GDF-mode guard before the
 already-supported IntraBC parser. Removing it advances production to inverse
 transform at tell 62,908.

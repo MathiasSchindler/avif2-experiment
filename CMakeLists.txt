@@ -128,27 +128,34 @@ if(WIN32 AND CMAKE_C_COMPILER_ID MATCHES "Clang")
         COMMAND av2heif-decoder
             "${CMAKE_CURRENT_SOURCE_DIR}/images/artifacts/emerald-192x96-qp208.obu"
             -o "${CMAKE_CURRENT_BINARY_DIR}/emerald-decoder.bmp")
-    add_test(NAME windows-decoder-diagnostic-chalk-luma-transform
+    add_test(NAME windows-decoder-diagnostic-chalk-coeff-prefix
         COMMAND "${CMAKE_COMMAND}"
             "-DDECODER=$<TARGET_FILE:av2heif-decoder>"
             "-DINPUT=${CMAKE_CURRENT_SOURCE_DIR}/images/artifacts/chalk-320x240-qp128.obu"
             "-DOUTPUT=${CMAKE_CURRENT_BINARY_DIR}/diagnostic-chalk.i420"
-            "-DEXPECTED_STAGE=stage: luma reconstruction / inverse transform"
-            "-DEXPECTED_LEAF=leaf: (44,36) block=4x16 plane=Y"
-            "-DEXPECTED_PROGRESS=entropy tell: 28508; completed leaves: Y=862 UV=511"
+            "-DEXPECTED_STAGE=stage: luma parse / coefficient prefix"
+            "-DEXPECTED_LEAF=leaf: (40,52) block=32x16 plane=Y"
+            "-DEXPECTED_PROGRESS=entropy tell: 29650; completed leaves: Y=895 UV=529"
             -P "${CMAKE_CURRENT_SOURCE_DIR}/scripts/check-decoder-diagnostic.cmake")
     add_test(NAME windows-decoder-cuckoo-q160-i420
         COMMAND av2heif-decoder
             "${CMAKE_CURRENT_SOURCE_DIR}/images/artifacts/cuckoo-157x105-qp160.obu"
             -o "${CMAKE_CURRENT_BINARY_DIR}/cuckoo-q160-decoder.i420")
-    add_test(NAME windows-decoder-diagnostic-cuckoo-luma-transform
+    add_test(NAME windows-decoder-cuckoo-q160-i420-compare
+        COMMAND "${CMAKE_COMMAND}" -E compare_files
+            "${CMAKE_CURRENT_BINARY_DIR}/cuckoo-q160-decoder.i420"
+            "${CMAKE_CURRENT_SOURCE_DIR}/images/artifacts/cuckoo-157x105-qp160-decoded.i420")
+    set_tests_properties(windows-decoder-cuckoo-q160-i420-compare PROPERTIES
+        DEPENDS windows-decoder-cuckoo-q160-i420)
+    add_test(NAME windows-decoder-diagnostic-cuckoo-chroma-parse
         COMMAND "${CMAKE_COMMAND}"
             "-DDECODER=$<TARGET_FILE:av2heif-decoder>"
             "-DINPUT=${CMAKE_CURRENT_SOURCE_DIR}/images/artifacts/cuckoo-431x287-qp080.obu"
             "-DOUTPUT=${CMAKE_CURRENT_BINARY_DIR}/diagnostic-cuckoo.i420"
-            "-DEXPECTED_STAGE=stage: luma reconstruction / inverse transform"
-            "-DEXPECTED_LEAF=leaf: (30,64) block=8x4 plane=Y"
-            "-DEXPECTED_PROGRESS=entropy tell: 21572; completed leaves: Y=359 UV=99"
+            "-DEXPECTED_CAUSE=cause: invalid data"
+            "-DEXPECTED_STAGE=stage: chroma parse / unknown"
+            "-DEXPECTED_LEAF=leaf: (24,72) block=32x32 plane=U"
+            "-DEXPECTED_PROGRESS=entropy tell: 23132; completed leaves: Y=378 UV=109"
             -P "${CMAKE_CURRENT_SOURCE_DIR}/scripts/check-decoder-diagnostic.cmake")
     add_test(NAME windows-decoder-diagnostic-silene-intrabc-reference
         COMMAND "${CMAKE_COMMAND}"

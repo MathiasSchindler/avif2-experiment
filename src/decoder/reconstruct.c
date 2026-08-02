@@ -7,6 +7,7 @@
 #include "ist_set6_data.inc"
 #include "ist_set2_data.inc"
 #include "ist_adst_data.inc"
+#include "ist_reached_gaps_data.inc"
 
 int32_t av2h_debug_intrabc_geometry[10U];
 
@@ -366,6 +367,88 @@ static uint16_t ist_scan_position(
     return AV2H_FIRST_COEFF_CAPACITY;
 }
 
+static Av2hStatus inverse_secondary_transform_4x4(
+    const Av2hFirstLeafMode *mode,
+    const Av2hFirstTransformType *transform,
+    const Av2hFirstCoeffBlock *coefficients,
+    int32_t dequantized[AV2H_FIRST_COEFF_CAPACITY]) {
+    const int16_t (*kernel)[16U];
+    uint8_t transpose_output = (uint8_t)(
+        mode->mode == AV2H_INTRA_HORIZONTAL ||
+        mode->mode == AV2H_INTRA_D157 ||
+        mode->mode == AV2H_INTRA_D67 ||
+        mode->mode == AV2H_INTRA_SMOOTH_HORIZONTAL);
+    int32_t input[8U];
+    uint16_t index;
+    if (transform->secondary_set == 0U &&
+        transform->secondary_symbol == 2U) {
+        kernel = av2h_ist_4x4_set0_type2_kernel;
+    } else if (transform->secondary_set == 1U &&
+               transform->secondary_symbol == 1U) {
+        kernel = av2h_ist_4x4_set1_type1_kernel;
+    } else if (transform->secondary_set == 2U &&
+        transform->secondary_symbol == 2U) {
+        kernel = av2h_ist_4x4_set2_type2_kernel;
+    } else if (transform->secondary_set == 3U &&
+               transform->secondary_symbol == 1U) {
+        kernel = av2h_ist_4x4_set3_type1_kernel;
+    } else if (transform->secondary_set == 6U &&
+               transform->secondary_symbol == 1U) {
+        kernel = av2h_ist_4x4_set6_type1_kernel;
+    } else if (transform->secondary_set == 6U &&
+               transform->secondary_symbol == 2U) {
+        kernel = av2h_ist_4x4_set6_type2_kernel;
+    } else if (transform->secondary_set == 7U &&
+               transform->secondary_symbol == 2U) {
+        kernel = av2h_ist_4x4_set7_type2_kernel;
+    } else if (transform->secondary_set == 7U &&
+               transform->secondary_symbol == 3U) {
+        kernel = av2h_ist_4x4_set7_type3_kernel;
+    } else if (transform->secondary_set == 8U &&
+               transform->secondary_symbol == 1U) {
+        kernel = av2h_ist_4x4_set8_type1_kernel;
+    } else if (transform->secondary_set == 12U &&
+               transform->secondary_symbol == 2U) {
+        kernel = av2h_ist_4x4_set12_type2_kernel;
+    } else if (transform->secondary_set == 13U &&
+               transform->secondary_symbol == 2U) {
+        kernel = av2h_ist_4x4_set13_type2_kernel;
+    } else if (transform->secondary_set == 13U &&
+               transform->secondary_symbol == 3U) {
+        kernel = av2h_ist_4x4_set13_type3_kernel;
+    } else {
+        return AV2H_UNSUPPORTED;
+    }
+    for (index = 0U; index < 8U; ++index) {
+        uint16_t position = ist_scan_position(
+            index, coefficients->width, coefficients->height);
+        if (position >= coefficients->coefficient_count) {
+            return AV2H_INVALID_DATA;
+        }
+        input[index] = dequantized[position];
+        dequantized[position] = 0;
+    }
+    for (index = 0U; index < 16U; ++index) {
+        uint16_t row;
+        uint16_t scan_position = ist_scan_position(index, 4U, 4U);
+        uint16_t x = (uint16_t)(scan_position % 4U);
+        uint16_t y = (uint16_t)(scan_position / 4U);
+        uint16_t position = transpose_output ?
+            (uint16_t)(x * coefficients->width + y) :
+            (uint16_t)(y * coefficients->width + x);
+        int64_t sum = 0;
+        if (position >= coefficients->coefficient_count) {
+            return AV2H_INVALID_DATA;
+        }
+        for (row = 0U; row < 8U; ++row) {
+            sum += (int64_t)input[row] * kernel[row][index];
+        }
+        dequantized[position] =
+            clamp(round_shift_signed(sum, 7U), -32768, 32767);
+    }
+    return AV2H_OK;
+}
+
 static Av2hStatus inverse_secondary_transform(
     const Av2hFirstLeafMode *mode,
     const Av2hFirstCoeffPrefix *prefix,
@@ -377,46 +460,12 @@ static Av2hStatus inverse_secondary_transform(
     const uint8_t *scan_map = av2h_ist_8x8_set1_type3_scan_map;
     const uint16_t *output_positions = 0;
     uint8_t transpose_output;
+    uint16_t input_count;
     uint16_t index;
     if (transform->secondary_symbol == 0U) return AV2H_OK;
-    if (transform->primary_type != AV2H_TX_DCT_DCT &&
-                !(mode->mode == AV2H_INTRA_DC &&
-                    prefix->tx_size == AV2H_TX_8X8 &&
-                    transform->primary_type == AV2H_TX_ADST_ADST &&
-                    transform->secondary_symbol == 1U &&
-                    transform->secondary_set == 0U) &&
-                !(mode->mode == AV2H_INTRA_D157 &&
-                    prefix->tx_size == AV2H_TX_16X16 &&
-                    transform->primary_type == AV2H_TX_ADST_ADST &&
-                    transform->secondary_symbol == 2U &&
-                    transform->secondary_set == 4U) &&
-                !(mode->mode == AV2H_INTRA_HORIZONTAL &&
-                    mode->angle_delta == 1 &&
-                    prefix->tx_size == AV2H_TX_16X16 &&
-                    transform->primary_type == AV2H_TX_ADST_ADST &&
-                    transform->secondary_symbol == 3U &&
-                    transform->secondary_set == 10U) &&
-                !(mode->mode == AV2H_INTRA_DC &&
-                    prefix->tx_size == AV2H_TX_16X16 &&
-                    transform->primary_type == AV2H_TX_ADST_ADST &&
-                    transform->secondary_symbol == 3U &&
-                    transform->secondary_set == 10U) &&
-                !(mode->mode == AV2H_INTRA_SMOOTH &&
-                    prefix->tx_size == AV2H_TX_16X8 &&
-                    transform->primary_type == AV2H_TX_ADST_ADST &&
-                    transform->secondary_symbol == 3U &&
-                    transform->secondary_set == 10U) &&
-                !(mode->mode == AV2H_INTRA_DC &&
-                    prefix->tx_size == AV2H_TX_4X4 &&
-                    transform->primary_type == AV2H_TX_ADST_ADST &&
-                    transform->secondary_symbol == 1U &&
-                    transform->secondary_set == 8U) &&
-                !(mode->mode == AV2H_INTRA_DC &&
-                    prefix->tx_size == AV2H_TX_8X4 &&
-                    transform->primary_type == AV2H_TX_ADST_ADST &&
-                    transform->secondary_symbol == 2U &&
-                    transform->secondary_set == 12U)) {
-        return AV2H_UNSUPPORTED;
+    if (coefficients->width < 8U || coefficients->height < 8U) {
+        return inverse_secondary_transform_4x4(
+            mode, transform, coefficients, dequantized);
     }
     if (mode->mode == AV2H_INTRA_DC &&
         prefix->tx_size == AV2H_TX_4X4 &&
@@ -523,6 +572,111 @@ static Av2hStatus inverse_secondary_transform(
         mode->mode == AV2H_INTRA_D157 ||
         mode->mode == AV2H_INTRA_D67 ||
         mode->mode == AV2H_INTRA_SMOOTH_HORIZONTAL);
+    input_count = (uint16_t)(
+        prefix->tx_size == AV2H_TX_8X8 ||
+        transform->primary_type == AV2H_TX_ADST_ADST ? 16U : 32U);
+    goto specialized_dispatch;
+generic_dispatch:
+    if (transform->secondary_symbol == 1U &&
+        transform->secondary_set == 1U) {
+        kernel = av2h_ist_8x8_set1_type1_kernel;
+        scan_map = av2h_ist_8x8_set1_type1_scan_map;
+    } else if (transform->secondary_symbol == 3U &&
+               transform->secondary_set == 0U) {
+        kernel = av2h_ist_8x8_set0_type3_kernel;
+    } else if (transform->secondary_symbol == 3U &&
+               transform->secondary_set == 1U) {
+        kernel = av2h_ist_8x8_set1_type3_kernel;
+        scan_map = av2h_ist_8x8_set1_type3_scan_map;
+    } else if (transform->secondary_symbol == 2U &&
+               transform->secondary_set == 1U) {
+        kernel = av2h_ist_8x8_set1_type2_kernel;
+        scan_map = av2h_ist_8x8_set1_type2_scan_map;
+    } else if (transform->secondary_symbol == 1U &&
+               transform->secondary_set == 6U) {
+        kernel = av2h_ist_8x8_set6_type1_kernel;
+        scan_map = av2h_ist_8x8_set6_type1_scan_map;
+    } else if (transform->secondary_symbol == 3U &&
+               transform->secondary_set == 6U) {
+        kernel = av2h_ist_8x8_set6_type3_kernel;
+        scan_map = av2h_ist_8x8_set6_type3_scan_map;
+    } else if (transform->secondary_symbol == 3U &&
+               transform->secondary_set == 5U) {
+        kernel = av2h_ist_8x8_set5_type3_kernel;
+        scan_map = av2h_ist_8x8_set5_type3_scan_map;
+    } else if (transform->secondary_symbol == 3U &&
+               transform->secondary_set == 3U) {
+        kernel = av2h_ist_8x8_set3_type3_kernel;
+        scan_map = av2h_ist_8x8_set3_type3_scan_map;
+    } else if (transform->secondary_symbol == 1U &&
+               transform->secondary_set == 2U) {
+        kernel = av2h_ist_8x8_set2_type1_kernel;
+        scan_map = av2h_ist_8x8_set2_type1_scan_map;
+    } else if (transform->secondary_symbol == 2U &&
+               transform->secondary_set == 2U) {
+        kernel = av2h_ist_8x8_set2_type2_kernel;
+        scan_map = av2h_ist_8x8_set2_type2_scan_map;
+    } else if (transform->secondary_symbol == 1U &&
+               transform->secondary_set == 5U) {
+        kernel = av2h_ist_8x8_set5_type1_kernel;
+        scan_map = av2h_ist_8x8_set5_type1_scan_map;
+    } else if (transform->secondary_symbol == 2U &&
+               transform->secondary_set == 5U) {
+        kernel = av2h_ist_8x8_set5_type2_kernel;
+        scan_map = av2h_ist_8x8_set5_type2_scan_map;
+    } else if (transform->secondary_symbol == 1U &&
+               transform->secondary_set == 4U) {
+        kernel = av2h_ist_8x8_set4_type1_kernel;
+        scan_map = av2h_ist_8x8_set4_type1_scan_map;
+    } else if (transform->secondary_symbol == 2U &&
+               transform->secondary_set == 4U) {
+        kernel = av2h_ist_8x8_set4_type2_kernel;
+        scan_map = av2h_ist_8x8_set4_type3_scan_map;
+    } else if (transform->secondary_symbol == 3U &&
+               transform->secondary_set == 4U) {
+        kernel = av2h_ist_8x8_set4_type3_kernel;
+        scan_map = av2h_ist_8x8_set4_type3_scan_map;
+    } else if (transform->secondary_symbol == 2U &&
+               transform->secondary_set == 6U) {
+        kernel = av2h_ist_8x8_set6_type2_kernel;
+        scan_map = av2h_ist_8x8_set6_type2_scan_map;
+    } else if (transform->secondary_symbol == 3U &&
+               transform->secondary_set == 7U) {
+        kernel = av2h_ist_8x8_set7_type3_kernel;
+        scan_map = av2h_ist_8x8_set7_type3_scan_map;
+    } else if (transform->secondary_symbol == 1U &&
+               transform->secondary_set == 7U) {
+        kernel = av2h_ist_8x8_set7_type1_kernel;
+        scan_map = av2h_ist_8x8_set7_type1_scan_map;
+    } else if (transform->secondary_symbol == 2U &&
+               transform->secondary_set == 8U) {
+        kernel = av2h_ist_8x8_set8_type2_kernel;
+        scan_map = av2h_ist_8x8_set8_type2_scan_map;
+    } else if (transform->secondary_symbol == 3U &&
+               transform->secondary_set == 8U) {
+        kernel = av2h_ist_8x8_set8_type3_kernel;
+        scan_map = av2h_ist_8x8_set8_type3_scan_map;
+    } else if (transform->secondary_symbol == 2U &&
+               transform->secondary_set == 9U) {
+        kernel = av2h_ist_8x8_set9_type2_kernel;
+        scan_map = av2h_ist_8x8_set9_type2_scan_map;
+    } else if (transform->secondary_symbol == 3U &&
+               transform->secondary_set == 9U) {
+        kernel = av2h_ist_8x8_set9_type3_kernel;
+        scan_map = av2h_ist_8x8_set9_type3_scan_map;
+    } else if (transform->secondary_symbol == 2U &&
+               transform->secondary_set == 10U) {
+        kernel = av2h_ist_8x8_set10_type2_kernel;
+        scan_map = av2h_ist_8x8_set10_type2_scan_map;
+    } else if (transform->secondary_symbol == 1U &&
+               transform->secondary_set == 10U) {
+        kernel = av2h_ist_8x8_set10_type1_kernel;
+        scan_map = av2h_ist_8x8_set10_type1_scan_map;
+    } else {
+        return AV2H_UNSUPPORTED;
+    }
+    goto apply_transform;
+specialized_dispatch:
     if (mode->mode == AV2H_INTRA_SMOOTH_HORIZONTAL &&
         prefix->tx_size == AV2H_TX_8X32 &&
         transform->secondary_symbol == 2U &&
@@ -1574,9 +1728,10 @@ static Av2hStatus inverse_secondary_transform(
         kernel = av2h_ist_8x8_set6_type3_kernel;
         scan_map = av2h_ist_8x8_set6_type3_scan_map;
     } else {
-        return AV2H_UNSUPPORTED;
+        goto generic_dispatch;
     }
-    for (index = 0U; index < 32U; ++index) {
+apply_transform:
+    for (index = 0U; index < input_count; ++index) {
         uint16_t position = ist_scan_position(
             scan_map[index], coefficients->width, coefficients->height);
         if (position >= coefficients->coefficient_count) {
@@ -1595,7 +1750,7 @@ static Av2hStatus inverse_secondary_transform(
         int64_t sum = 0;
         uint16_t scan_position;
         uint16_t position;
-        for (row = 0U; row < 32U; ++row) {
+        for (row = 0U; row < input_count; ++row) {
             sum += (int64_t)input[row] * kernel[row][index];
         }
         if (output_positions != 0) {
@@ -7497,6 +7652,7 @@ static Av2hStatus cfl_derived_predict(
     uint16_t block_y,
     uint16_t width,
     uint16_t height,
+    uint8_t whole_chroma_block,
     uint8_t have_top,
     uint8_t have_left,
     uint8_t *predictor,
@@ -7596,6 +7752,10 @@ static Av2hStatus cfl_derived_predict(
                 luma_left_ds[row] = (int32_t)(base[0] + base[1] +
                     base[luma_plane->stride] +
                     base[luma_plane->stride + 1U]) << 1;
+            }
+            if (filter_index == 2U && whole_chroma_block &&
+                row >= (visible_luma_height >> 1U) && row != 0U) {
+                luma_left_ds[row] = luma_left_ds[row - 1U];
             }
             chroma_left[row] = plane_coded_sample(
                 chroma_plane, block_x - 1U, (size_t)block_y + row);
@@ -8771,9 +8931,7 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_ex(
                 sy = plane->height - 1U;
             }
             if (!plane_sample_reconstructed(
-                    plane, (size_t)block_x - 1U, sy) &&
-                !(chroma_plane == 1U && block_x == 32U && block_y == 40U &&
-                  index < 12U)) {
+                    plane, (size_t)block_x - 1U, sy)) {
                 left_count = index;
                 break;
             }
@@ -8863,7 +9021,17 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_ex(
         } else {
             uint8_t derive_alpha = (uint8_t)(
                 mode->cfl_kind == AV2H_CFL_DERIVED_ALPHA);
+            size_t block_width_mi = 0U;
+            size_t block_height_mi = 0U;
+            uint8_t whole_chroma_block = 0U;
             int32_t alpha_q3 = 0;
+            if (av2h_block_dimensions_mi(
+                    leaf->block_size, &block_width_mi,
+                    &block_height_mi) == AV2H_OK) {
+                whole_chroma_block = (uint8_t)(
+                    width == block_width_mi * 2U &&
+                    height == block_height_mi * 2U);
+            }
             if (!derive_alpha) {
                 uint8_t sign = chroma_plane == 1U ?
                     (uint8_t)(((mode->cfl_alpha_signs + 1U) * 11U) >> 5U) :
@@ -8883,7 +9051,8 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_ex(
             status = cfl_derived_predict(
                 luma_plane, plane, mode->cfl_downsample_filter_index,
                 derive_alpha, alpha_q3, mode->superblock_size, block_x,
-                block_y, width, height, have_top, have_left,
+                block_y, width, height, whole_chroma_block,
+                have_top, have_left,
                 scratch->predictor, width);
         }
         if (status != AV2H_OK) return status;

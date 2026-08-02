@@ -658,6 +658,15 @@ Av2hStatus av2h_tile_decoder_next_luma(
         !q_luma_geometry_supported(decoder->frame, &leaf->node)) {
         return tile_decoder_fail(decoder, AV2H_UNSUPPORTED);
     }
+    if (decoder->luma_mode_contexts.superblock_mi != 0U &&
+        leaf->node.row % decoder->luma_mode_contexts.superblock_mi == 0U &&
+        leaf->node.column == 0U) {
+        decoder->luma_mode_contexts.intrabc_bank_count = 0U;
+        decoder->luma_mode_contexts.intrabc_bank_start = 0U;
+        decoder->luma_mode_contexts.intrabc_bank_remaining_hits = 0U;
+        decoder->luma_mode_contexts.intrabc_bank_unit_hits = 0U;
+        decoder->luma_mode_contexts.intrabc_bank_superblock_hits = 0U;
+    }
     av2h_debug_luma_tile_stage = 1U;
     status = av2h_luma_mode_read_with_state_and_gdf(
         &decoder->range, &decoder->leaf_cdfs, decoder->sequence,

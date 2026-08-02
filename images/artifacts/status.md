@@ -108,12 +108,12 @@ Summary:
   surfaces. Schwaebisch Q112 still surfaces there, but its range is already
   divergent before the prefix (`52000` local versus `60960` AVM);
 - the 2026-08-01 luma coefficient-prefix audit found no missing prefix syntax
-  or CDF family among the three current stopping surfaces. Emerald has already
-  diverged to a false IntraBC mode; Pastell Q64 reaches its IntraBC EOB seven
-  tell bits earlier than AVM and decodes an impossible over-capacity value
-  where AVM reads point 7; Silene Q176 enters prefix
-  decoding for an AVM transform-skipped IntraBC block. The decoder therefore
-  continues to reject these values rather than admitting invalid EOBs;
+  or CDF family among the three stopping surfaces. Their shared cause was an
+  IntraBC reference-bank reset performed after the first leaf of a superblock
+  row instead of before it. Matching AVM's row lifecycle advances Emerald
+  Q128, Pastell Q64, Silene Q176, Louis Q144, and Silene Q80 beyond their
+  former mode, EOB, skip, palette, and coefficient-level divergences without
+  admitting invalid syntax;
 - chroma coefficient prefixes now use the complete mutable intra skip bank for
   U, the independent normative V skip bank, and independent plane-context-2
   EOB-point banks for all Q contexts and transform capacities. Descriptor
@@ -307,8 +307,17 @@ Summary:
   Pastell respectively;
 - Cuckoo Q160 and Pastell Q160 retain their locked sample-exact partial
   reconstructions, while Louis Q224 now produces a complete frame; and
+- the nine reached inverse-transform gaps for Chalk Q128, Chimp Q192,
+  Chinnathurai Q112, Cuckoo Q80, Flycatcher Q48, both Laarim streams, Pastell
+  Q160, and Schwaebisch Q112 are implemented with hash-locked normative 4x4
+  and 8x8 IST kernels. None now stops in inverse transform. Chimp Q192 and
+  Laarim Q96 expose later access violations; the other streams complete or
+  stop in coefficient-prefix, chroma-parse, or prediction paths; and
+- the five upstream state-divergence streams now fail closed at later
+  reconstruction surfaces: Emerald Q128 at tell 3,896, Pastell Q64 at 32,105,
+  Silene Q176 at 8,501, Louis Q144 at 8,787, and Silene Q80 at 99,039; and
 - the remaining artifacts retain their earlier Q-profile, large-transform
-  coefficient, prediction, or inverse-reconstruction blockers.
+  coefficient, prediction, or reconstruction blockers.
 
 Chinnathurai Q224, Emerald Q208, Louis Q224, and Schwaebisch Q208 complete
 end-to-end and are byte-identical to their pinned AVM outputs.

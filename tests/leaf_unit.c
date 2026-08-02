@@ -1949,24 +1949,29 @@ static void test_intrabc_bank_survives_superblock_boundary(void) {
 
 static void test_luma_mode_bottom_left_clipped_to_frame(void) {
     Av2hLumaModeContextState state;
-    Av2hLumaModeContext above[128U];
+    Av2hLumaModeContext above[40U];
     Av2hLumaModeContext left[32U];
-    Av2hPartitionNode leaf = { 64U, 16U, AV2H_BLOCK_32X8 };
+    Av2hLumaModeContext spatial[27U * 40U];
+    Av2hPartitionNode leaf = { 24U, 32U, AV2H_BLOCK_32X16 };
     Av2hLumaModeNeighbors neighbors = { 0 };
     CHECK(av2h_luma_mode_context_state_init(
-              &state, above, 128U, left, 32U) == AV2H_OK);
-    state.spatial_rows = 70U;
-    left[64U % 32U].present = 1U;
-    left[64U % 32U].joint_mode = 53U;
-    left[71U % 32U].present = 1U;
-    left[71U % 32U].joint_mode = 60U;
+              &state, above, 40U, left, 32U) == AV2H_OK);
+    memset(spatial, 0, sizeof(spatial));
+    state.spatial = (uint8_t *)spatial;
+    state.spatial_stride = sizeof(Av2hLumaModeContext);
+    state.spatial_columns = 40U;
+    state.spatial_rows = 27U;
+    left[24U].present = 1U;
+    left[24U].joint_mode = 1U;
+    spatial[26U * 40U + 31U].present = 1U;
+    spatial[26U * 40U + 31U].joint_mode = 7U;
     CHECK(av2h_luma_mode_neighbors_from_state(
               &state, &leaf, &neighbors) == AV2H_OK);
     CHECK(neighbors.present[0] == 1U);
-    CHECK(neighbors.joint_mode[0] == 53U);
-    CHECK(neighbors.edge_smooth[0] == 0U);
+    CHECK(neighbors.joint_mode[0] == 7U);
+    CHECK(neighbors.edge_smooth[0] == 1U);
     CHECK(neighbors.spatial_present[0] == 1U);
-    CHECK(neighbors.spatial_joint_mode[0] == 53U);
+    CHECK(neighbors.spatial_joint_mode[0] == 7U);
 }
 
 static void test_intrabc_morph_pred_cdf_defaults(void) {
