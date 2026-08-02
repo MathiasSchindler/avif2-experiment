@@ -502,12 +502,55 @@ Av2hStatus av2h_secondary_tx_type_signal(
     return AV2H_OK;
 }
 
+static Av2hFirstLeafIntraMode transform_mode(
+    Av2hFirstLeafIntraMode mode, int8_t angle_delta,
+    uint8_t mrl_index,
+    const Av2hTxDescriptor *descriptor) {
+    static const int mrl_delta[4U] = { 0, 1, -1, 0 };
+    int angle;
+    switch (mode) {
+        case AV2H_INTRA_VERTICAL: angle = 90; break;
+        case AV2H_INTRA_HORIZONTAL: angle = 180; break;
+        case AV2H_INTRA_D45: angle = 45; break;
+        case AV2H_INTRA_D67: angle = 67; break;
+        case AV2H_INTRA_D113: angle = 113; break;
+        case AV2H_INTRA_D135: angle = 135; break;
+        case AV2H_INTRA_D157: angle = 157; break;
+        case AV2H_INTRA_D203: angle = 203; break;
+        default: return mode;
+    }
+    angle += angle_delta * 3;
+    if (mrl_index < 4U) angle += mrl_delta[mrl_index];
+    if ((descriptor->output_height == 2U * descriptor->output_width &&
+         angle < 61) ||
+        (descriptor->output_height == 4U * descriptor->output_width &&
+         angle < 73) ||
+        (descriptor->output_height == 8U * descriptor->output_width &&
+         angle < 82) ||
+        (descriptor->output_height == 16U * descriptor->output_width &&
+         angle < 86)) {
+        return AV2H_INTRA_D203;
+    }
+    if ((descriptor->output_width == 2U * descriptor->output_height &&
+         angle > 209) ||
+        (descriptor->output_width == 4U * descriptor->output_height &&
+         angle > 197) ||
+        (descriptor->output_width == 8U * descriptor->output_height &&
+         angle > 188) ||
+        (descriptor->output_width == 16U * descriptor->output_height &&
+         angle > 184)) {
+        return AV2H_INTRA_D45;
+    }
+    return mode;
+}
+
 static Av2hStatus read_primary(Av2hRangeDecoder *decoder,
                                Av2hFirstTransformCdfs *cdfs,
                                const Av2hFirstLeafMode *mode,
                                const Av2hFirstCoeffPrefix *coeff,
                                Av2hFirstTransformType *transform) {
     const Av2hTxDescriptor *descriptor;
+    Av2hFirstLeafMode mapped_mode;
     uint32_t symbol;
     Av2hStatus status;
     transform->primary_signaled = 0U;
@@ -517,6 +560,12 @@ static Av2hStatus read_primary(Av2hRangeDecoder *decoder,
     av2h_debug_transform_stage = 2U;
     status = av2h_tx_descriptor_get(coeff->tx_size, &descriptor);
     if (status != AV2H_OK) return status;
+    mapped_mode = *mode;
+    if (mode->angle_delta != 0) {
+        mapped_mode.mode = transform_mode(
+            mode->mode, mode->angle_delta, mode->mrl_index, descriptor);
+    }
+    mode = &mapped_mode;
     if (descriptor->signaling_class == AV2H_TX_SIGNAL_DCT_ONLY) {
         return av2h_primary_tx_type_map(
             coeff->tx_size, mode->mode, 0U, 0U, &transform->primary_type);
@@ -1476,40 +1525,7 @@ Av2hStatus av2h_first_chroma_transform_type_read(
 static Av2hFirstLeafIntraMode chroma_transform_mode(
     const Av2hFirstChromaMode *mode,
     const Av2hTxDescriptor *descriptor) {
-    int angle;
-    switch (mode->mode) {
-        case AV2H_INTRA_VERTICAL: angle = 90; break;
-        case AV2H_INTRA_HORIZONTAL: angle = 180; break;
-        case AV2H_INTRA_D45: angle = 45; break;
-        case AV2H_INTRA_D67: angle = 67; break;
-        case AV2H_INTRA_D113: angle = 113; break;
-        case AV2H_INTRA_D135: angle = 135; break;
-        case AV2H_INTRA_D157: angle = 157; break;
-        case AV2H_INTRA_D203: angle = 203; break;
-        default: return mode->mode;
-    }
-    angle += mode->angle_delta * 3;
-    if ((descriptor->output_height == 2U * descriptor->output_width &&
-         angle < 61) ||
-        (descriptor->output_height == 4U * descriptor->output_width &&
-         angle < 73) ||
-        (descriptor->output_height == 8U * descriptor->output_width &&
-         angle < 82) ||
-        (descriptor->output_height == 16U * descriptor->output_width &&
-         angle < 86)) {
-        return AV2H_INTRA_D203;
-    }
-    if ((descriptor->output_width == 2U * descriptor->output_height &&
-         angle > 209) ||
-        (descriptor->output_width == 4U * descriptor->output_height &&
-         angle > 197) ||
-        (descriptor->output_width == 8U * descriptor->output_height &&
-         angle > 188) ||
-        (descriptor->output_width == 16U * descriptor->output_height &&
-         angle > 184)) {
-        return AV2H_INTRA_D45;
-    }
-    return mode->mode;
+    return transform_mode(mode->mode, mode->angle_delta, 0U, descriptor);
 }
 
 static Av2hStatus chroma_primary_type(

@@ -621,6 +621,37 @@ static void test_chroma_derived_transform_types(void) {
     }
 }
 
+static void test_luma_wide_angle_transform_mapping(void) {
+    unsigned char bytes[] = { 0U, 0U, 0U, 0U };
+    Av2hSpan span = { bytes, sizeof(bytes) };
+    Av2hSequenceState sequence = { 0 };
+    Av2hFrameState frame = { 0 };
+    Av2hFirstLeafMode mode = { 0 };
+    Av2hFirstCoeffPrefix prefix = { 0 };
+    uint8_t found = 0U;
+    unsigned int value;
+
+    mode.mode = AV2H_INTRA_D203;
+    mode.angle_delta = 3;
+    prefix.tx_size = AV2H_TX_8X4;
+    prefix.eob = 32U;
+    for (value = 0U; value < 256U && found == 0U; ++value) {
+        Av2hRangeDecoder decoder;
+        Av2hFirstTransformCdfs cdfs;
+        Av2hFirstTransformType transform;
+        bytes[0] = (unsigned char)value;
+        CHECK(av2h_first_transform_cdfs_init(&cdfs) == AV2H_OK);
+        CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
+        if (av2h_first_transform_type_read(
+                &decoder, &cdfs, &sequence, &frame, &mode, &prefix,
+                &transform) == AV2H_OK && transform.primary_symbol == 5U) {
+            CHECK(transform.primary_type == AV2H_TX_ADST_FLIPADST);
+            found = 1U;
+        }
+    }
+    CHECK(found != 0U);
+}
+
 int main(void) {
     test_fixture_transform_types();
     test_fsc_single_coefficient_uses_idtx();
@@ -632,6 +663,7 @@ int main(void) {
     test_idtx_primary_mappings();
     test_emerald_secondary_signaling();
     test_chroma_derived_transform_types();
+    test_luma_wide_angle_transform_mapping();
     test_arguments();
     if (failures != 0) {
         fprintf(stderr, "%d transform checks failed\n", failures);

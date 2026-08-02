@@ -95,8 +95,8 @@ static void test_workspace_model(void) {
     CHECK(layout.stage_plane_bytes[1] == 96U);
     CHECK(layout.stage_plane_bytes[2] == 96U);
     CHECK(layout.deblock_cell_count[0] == 24U);
-    CHECK(layout.deblock_cell_count[1] == 6U);
-    CHECK(layout.deblock_cell_count[2] == 6U);
+    CHECK(layout.deblock_cell_count[1] == 24U);
+    CHECK(layout.deblock_cell_count[2] == 24U);
     CHECK(layout.ccso_columns == 1U);
     CHECK(layout.ccso_rows == 1U);
     CHECK(layout.ccso_control_count == 1U);
@@ -125,8 +125,8 @@ static void test_workspace_model(void) {
     frame.height = 120U;
     CHECK(av2h_filter_workspace_query(&frame, &layout) == AV2H_OK);
     CHECK(layout.deblock_cell_count[0] == 1200U);
-    CHECK(layout.deblock_cell_count[1] == 300U);
-    CHECK(layout.deblock_cell_count[2] == 300U);
+    CHECK(layout.deblock_cell_count[1] == 1200U);
+    CHECK(layout.deblock_cell_count[2] == 1200U);
     CHECK(layout.ccso_columns == 3U);
     CHECK(layout.ccso_rows == 2U);
     CHECK(layout.ccso_control_count == 6U);
@@ -767,6 +767,7 @@ static void test_gdf_frame(void) {
     uint8_t overlap_data[65];
     uint8_t interleaved_data[32];
     uint8_t interleaved_destination_data[16];
+    uint8_t gdf_flag = 0U;
     Av2hFilterPlane source = { source_data, 8U, 8U, 8U };
     Av2hFilterPlane cdef = { cdef_data, 8U, 8U, 8U };
     Av2hFilterPlane destination = { destination_data, 8U, 8U, 8U };
@@ -784,6 +785,9 @@ static void test_gdf_frame(void) {
         interleaved_destination_data, 4U, 4U, 4U
     };
     Av2hFrameState frame;
+    Av2hGdfControlMap gdf_controls = {
+        &gdf_flag, 1U, 1U, 1U, 8U
+    };
     size_t row;
     size_t column;
     av2h_memory_fill(&frame, 0U, sizeof(frame));
@@ -827,10 +831,33 @@ static void test_gdf_frame(void) {
               &interleaved_deblocked, &frame) == AV2H_OK);
     CHECK(interleaved_destination_data[0] == 44U);
     frame.gdf_mode = 2U;
+    frame.width = 8U;
+    frame.height = 8U;
+    frame.gdf_block_size = 8U;
+    frame.gdf_block_columns = 1U;
+    frame.gdf_block_rows = 1U;
     destination_data[0] = 77U;
     CHECK(av2h_gdf_filter_frame(
               &destination, &source, &source, &frame) ==
           AV2H_INVALID_ARGUMENT);
+    CHECK(destination_data[0] == 77U);
+    cdef_data[0] = source_data[0];
+    CHECK(av2h_gdf_filter_frame_with_controls(
+              &destination, &cdef, &source, &frame,
+              &gdf_controls) == AV2H_OK);
+    CHECK(av2h_memory_compare(
+              destination_data, cdef_data, sizeof(cdef_data)) == 0);
+    gdf_flag = 1U;
+    CHECK(av2h_gdf_filter_frame_with_controls(
+              &destination, &cdef, &source, &frame,
+              &gdf_controls) == AV2H_OK);
+    CHECK(av2h_memory_compare(
+              destination_data, expected, sizeof(expected)) == 0);
+    gdf_flag = 2U;
+    destination_data[0] = 77U;
+    CHECK(av2h_gdf_filter_frame_with_controls(
+              &destination, &cdef, &source, &frame,
+              &gdf_controls) == AV2H_INVALID_ARGUMENT);
     CHECK(destination_data[0] == 77U);
 }
 

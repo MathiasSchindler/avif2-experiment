@@ -80,8 +80,11 @@ Av2hStatus av2h_deblock_map_commit_transform(
     uint8_t all_zero,
     uint8_t lossless) {
     const Av2hTxDescriptor *descriptor;
+    size_t grid_size;
     size_t block_column;
     size_t block_row;
+    size_t block_columns;
+    size_t block_rows;
     size_t transform_columns;
     size_t transform_rows;
     size_t row;
@@ -95,22 +98,20 @@ Av2hStatus av2h_deblock_map_commit_transform(
     }
     status = av2h_tx_descriptor_get(prefix->tx_size, &descriptor);
     if (status != AV2H_OK) return status;
+    status = av2h_block_dimensions_mi(
+        leaf->block_size, &block_columns, &block_rows);
+    if (status != AV2H_OK) return status;
     if ((descriptor->output_width & 3U) != 0U ||
         (descriptor->output_height & 3U) != 0U) {
         return AV2H_UNSUPPORTED;
     }
-    if (plane == 0U) {
-        block_column = leaf->column;
-        block_row = leaf->row;
-    } else {
-        if ((leaf->column & 1U) != 0U || (leaf->row & 1U) != 0U) {
-            return AV2H_UNSUPPORTED;
-        }
-        block_column = leaf->column >> 1U;
-        block_row = leaf->row >> 1U;
-    }
-    transform_columns = descriptor->output_width >> 2U;
-    transform_rows = descriptor->output_height >> 2U;
+    grid_size = plane == 0U ? 4U : 2U;
+    block_column = leaf->column;
+    block_row = leaf->row;
+    transform_columns = descriptor->output_width / grid_size;
+    transform_rows = descriptor->output_height / grid_size;
+    if (transform_columns > block_columns) transform_columns = block_columns;
+    if (transform_rows > block_rows) transform_rows = block_rows;
     if (block_column >= map->columns[plane] ||
         block_row >= map->rows[plane]) {
         return AV2H_INVALID_ARGUMENT;
@@ -451,13 +452,16 @@ static int maps_and_readiness_complete(
         size_t row;
         for (row = 0U; row < map->rows[plane]; ++row) {
             size_t column;
+            size_t ready_row = plane == 0U ? row : row / 2U;
             for (column = 0U; column < map->columns[plane]; ++column) {
                 const Av2hDeblockCell *cell =
                     &map->plane[plane][row * map->stride[plane] + column];
+                size_t ready_column = plane == 0U ? column : column / 2U;
                 if (cell->transform_width == 0U ||
                     cell->transform_height == 0U ||
                     coded->reconstructed[
-                        row * coded->reconstructed_stride + column] == 0U) {
+                        ready_row * coded->reconstructed_stride +
+                        ready_column] == 0U) {
                     return 0;
                 }
             }
@@ -825,6 +829,13 @@ Av2hStatus av2h_decode_frame_i420_private(
         ((size_t)frame->width + 63U) / 64U;
     workspace->filter_workspace->cdef_controls.rows =
         ((size_t)frame->height + 63U) / 64U;
+    workspace->filter_workspace->gdf_controls = (Av2hGdfControlMap){
+        workspace->tile_context.gdf_block_flags,
+        frame->gdf_block_columns,
+        frame->gdf_block_columns,
+        frame->gdf_block_rows,
+        frame->gdf_block_size
+    };
     for (plane = 0U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
         if (workspace->tile_context.ccso_unit_controls[plane] != 0) {
             av2h_memory_copy(

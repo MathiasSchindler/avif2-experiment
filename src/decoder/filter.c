@@ -388,9 +388,15 @@ static int deblock_map_valid(const Av2hFilterPlanes *planes,
     unsigned int plane;
     if (map == 0) return 0;
     for (plane = 0U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
-        size_t columns = planes->plane[plane].width / 4U;
-        size_t rows = planes->plane[plane].height / 4U;
+        size_t grid_size = plane == 0U ? 4U : 2U;
+        size_t columns = planes->plane[plane].width / grid_size;
+        size_t rows = planes->plane[plane].height / grid_size;
         size_t row;
+        if (plane != 0U && map->columns[plane] == columns / 2U &&
+            map->rows[plane] == rows / 2U) {
+            columns /= 2U;
+            rows /= 2U;
+        }
         if (map->plane[plane] == 0 || map->columns[plane] != columns ||
             map->rows[plane] != rows || map->stride[plane] < columns) {
             return 0;
@@ -446,7 +452,18 @@ static Av2hStatus deblock_frame_edge(
     uint16_t previous_side;
     uint16_t q_threshold;
     uint16_t side_threshold;
+    size_t grid_size = plane_data->width / map->columns[plane];
+    size_t x = column * grid_size;
+    size_t y = row * grid_size;
     if (transform_edge == 0U || (block_edge == 0U && cell->skip != 0U)) {
+        return AV2H_OK;
+    }
+    if ((pass == 0U &&
+         ((y & 3U) != 0U || x < 3U || plane_data->width - x <= 3U ||
+          y + 4U > plane_data->height)) ||
+        (pass != 0U &&
+         ((x & 3U) != 0U || y < 3U || plane_data->height - y <= 3U ||
+          x + 4U > plane_data->width))) {
         return AV2H_OK;
     }
     deblock_thresholds(cell, sequence, frame, plane, pass,
@@ -465,12 +482,12 @@ static Av2hStatus deblock_frame_edge(
         (cell->transform_height < previous->transform_height ?
          cell->transform_height : previous->transform_height);
     if (plane == 0U) {
-        if ((pass == 0U && column * 4U + 16U > plane_data->width) ||
-            (pass != 0U && row * 4U + 16U > plane_data->height)) {
+        if ((pass == 0U && column * grid_size + 16U > plane_data->width) ||
+            (pass != 0U && row * grid_size + 16U > plane_data->height)) {
             if (filter_size > 16U) filter_size = 16U;
         }
-    } else if ((pass == 0U && column * 4U + 8U > plane_data->width) ||
-               (pass != 0U && row * 4U + 8U > plane_data->height)) {
+    } else if ((pass == 0U && column * grid_size + 8U > plane_data->width) ||
+               (pass != 0U && row * grid_size + 8U > plane_data->height)) {
         if (filter_size > 8U) filter_size = 8U;
     }
     if (filter_size <= 4U) {
@@ -483,14 +500,14 @@ static Av2hStatus deblock_frame_edge(
         maximum_positive = plane == 0U ? 8U : 4U;
     }
     superblock_edge = pass != 0U &&
-        (row * 4U % (plane == 0U ? 64U : 32U)) == 0U;
+        (row * grid_size % (plane == 0U ? 64U : 32U)) == 0U;
     maximum_negative = maximum_positive;
     if (superblock_edge != 0U) {
         unsigned int limit = plane == 0U ? 6U : 2U;
         if (maximum_negative > limit) maximum_negative = limit;
     }
     return deblock_edge(
-        plane_data, (uint16_t)(column * 4U), (uint16_t)(row * 4U),
+        plane_data, (uint16_t)x, (uint16_t)y,
         (uint8_t)(pass == 0U),
         (uint8_t)((maximum_negative + 1U) * 2U),
         (uint8_t)((maximum_positive + 1U) * 2U),
@@ -1125,11 +1142,12 @@ static void gdf_filter_block(Av2hFilterPlane *destination,
     }
 }
 
-Av2hStatus av2h_gdf_filter_frame(
+Av2hStatus av2h_gdf_filter_frame_with_controls(
     Av2hFilterPlane *destination,
     const Av2hFilterPlane *cdef_luma,
     const Av2hFilterPlane *deblocked_luma,
-    const Av2hFrameState *frame) {
+    const Av2hFrameState *frame,
+    const Av2hGdfControlMap *controls) {
     uint16_t row;
     unsigned int qp_index;
     if (destination == 0 || cdef_luma == 0 || deblocked_luma == 0 ||
@@ -1145,11 +1163,35 @@ Av2hStatus av2h_gdf_filter_frame(
         filter_planes_overlap(destination, cdef_luma) ||
         filter_planes_overlap(destination, deblocked_luma) ||
         filter_planes_overlap(cdef_luma, deblocked_luma) ||
-        frame->gdf_mode > 1U ||
+        frame->gdf_mode > 2U ||
         frame->gdf_qp_index >= 4U || frame->gdf_scale_index >= 4U ||
         (destination->width & 3U) != 0U ||
         (destination->height & 3U) != 0U) {
         return AV2H_INVALID_ARGUMENT;
+    }
+    if (frame->gdf_mode == 2U) {
+        size_t index;
+        if (controls == 0 || controls->flags == 0 ||
+            controls->block_size != frame->gdf_block_size ||
+            controls->columns != frame->gdf_block_columns ||
+            controls->rows != frame->gdf_block_rows ||
+            controls->stride < controls->columns ||
+            controls->columns !=
+                ((size_t)frame->width + controls->block_size - 1U) /
+                    controls->block_size ||
+            controls->rows !=
+                ((size_t)frame->height + controls->block_size - 1U) /
+                    controls->block_size) {
+            return AV2H_INVALID_ARGUMENT;
+        }
+        for (index = 0U; index < controls->rows; ++index) {
+            size_t column;
+            for (column = 0U; column < controls->columns; ++column) {
+                if (controls->flags[index * controls->stride + column] > 1U) {
+                    return AV2H_INVALID_ARGUMENT;
+                }
+            }
+        }
     }
     qp_index = gdf_training_qp_index(frame);
     for (row = 0U; row < destination->height; ++row) {
@@ -1164,12 +1206,27 @@ Av2hStatus av2h_gdf_filter_frame(
         uint16_t column;
         for (column = 0U; column < destination->width;
              column = (uint16_t)(column + 4U)) {
+            if (frame->gdf_mode == 2U &&
+                controls->flags[
+                    ((size_t)row / controls->block_size) * controls->stride +
+                    (size_t)column / controls->block_size] == 0U) {
+                continue;
+            }
             gdf_filter_block(destination, cdef_luma, deblocked_luma,
                              column, row, qp_index,
                              (unsigned int)frame->gdf_scale_index + 1U);
         }
     }
     return AV2H_OK;
+}
+
+Av2hStatus av2h_gdf_filter_frame(
+    Av2hFilterPlane *destination,
+    const Av2hFilterPlane *cdef_luma,
+    const Av2hFilterPlane *deblocked_luma,
+    const Av2hFrameState *frame) {
+    return av2h_gdf_filter_frame_with_controls(
+        destination, cdef_luma, deblocked_luma, frame, 0);
 }
 
 static size_t coded_dimension(uint16_t value) {
@@ -1214,18 +1271,19 @@ Av2hStatus av2h_filter_workspace_query(
     for (plane = 0U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
         size_t width = coded_width >> (plane == 0U ? 0U : 1U);
         size_t height = coded_height >> (plane == 0U ? 0U : 1U);
+        size_t grid_size = plane == 0U ? 4U : 2U;
         if (width > UINT16_MAX || height > UINT16_MAX ||
             !av2h_size_multiply(
                 width, height, &layout->stage_plane_bytes[plane]) ||
             !av2h_size_multiply(
-                width / 4U, height / 4U,
+                width / grid_size, height / grid_size,
                 &layout->deblock_cell_count[plane])) {
             return AV2H_OVERFLOW;
         }
         layout->plane_width[plane] = (uint16_t)width;
         layout->plane_height[plane] = (uint16_t)height;
-        layout->deblock_columns[plane] = width / 4U;
-        layout->deblock_rows[plane] = height / 4U;
+        layout->deblock_columns[plane] = width / grid_size;
+        layout->deblock_rows[plane] = height / grid_size;
     }
     {
         uint16_t unit_size = ccso_unit_size(frame);
@@ -1582,10 +1640,6 @@ Av2hStatus av2h_filter_frame(
         av2h_debug_filter_reason = 2U;
         return AV2H_UNSUPPORTED;
     }
-    if (frame->gdf_mode > 1U) {
-        av2h_debug_filter_reason = 3U;
-        return AV2H_UNSUPPORTED;
-    }
     if (frame->cdef_strength_count != 0U &&
         (frame->cdef_on_skip_transform == 0U ||
          frame->cdef_damping < 3U)) {
@@ -1648,9 +1702,10 @@ Av2hStatus av2h_filter_frame(
     if (status != AV2H_OK) return status;
     capture_filter_stage(3U, &workspace->cdef);
     av2h_debug_filter_stage_planes[3] = workspace->cdef;
-    status = av2h_gdf_filter_frame(
+    status = av2h_gdf_filter_frame_with_controls(
         &planes->plane[0], &workspace->cdef.plane[0],
-        &workspace->deblocked.plane[0], frame);
+        &workspace->deblocked.plane[0], frame,
+        &workspace->gdf_controls);
     if (status != AV2H_OK) return status;
     for (plane = 1U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
         copy_filter_plane(&planes->plane[plane],
