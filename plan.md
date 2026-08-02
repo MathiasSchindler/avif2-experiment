@@ -441,12 +441,12 @@ Milestone 8 is complete: the locked 96x80 high-detail fixture traverses to
 sample-exact against pinned AVM under hosted sanitizers and the strict
 freestanding dependency gate. Every reached CFL and IntraBC block must be
 covered without fixture-supplied contexts or references. Mandatory frame
-filters remain Milestone 9 work and the public decode API remains Milestone 10.
+filters are completed in Milestone 9; the public decode API remains Milestone
+10 work.
 
 ## Milestone 9: mandatory filters and filtered parity
 
-**Status:** Planned; isolated filter hardening is implemented, while
-fixture-level metadata wiring and filtered parity remain open.
+**Status:** Complete.
 
 Completed preparation corrects normative CDEF signed rounding, validates
 CDEF/CCSO parser-produced state and Sequence Header consistency before
@@ -480,14 +480,19 @@ context 6 is an implicit-zero sentinel rather than a CDF row, and the reached
 screen-content path decodes Palette=0 with the pinned adaptive CDF while
 retaining fail-closed behavior for real palettes.
 
-Populate complete deblock and CCSO metadata from reconstructed leaves, execute
-deblock, CDEF, CCSO, and GDF in normative order over coded planes, crop to
-display dimensions, and compare each intermediate stage where the hosted
-oracle exposes it. Restoration remains outside the accepted profile and must
-fail before output mutation.
+The private frame-output owner populates complete deblock metadata from every
+committed transform, binds parsed CDEF and CCSO unit controls, executes
+deblock, CDEF, CCSO, and GDF in normative order over coded planes, and crops
+only after filtering. Restoration remains outside the accepted profile and
+fails before output mutation.
 
-Exit gate: all four locked fixtures match pinned AVM sample-exactly on final
-filtered Y, U, and V planes, with stage-local hashes identifying any failure.
+Exit gate complete: all four locked fixtures match pinned AVM sample-exactly
+on final filtered Y, U, and V planes. `tools/run_m9_final_parity.py` runs each
+locked OBU through the production decoder and pins final file and plane hashes;
+`tools/run_m9_filter_evidence.py` retains stage-local ownership for any future
+deblock, CDEF, CCSO, or GDF mismatch. `make milestone-9` runs fixture parity,
+focused filter and evidence tests, and the strict freestanding dependency
+gate.
 
 ## Milestone 10: bounded public decode surface
 

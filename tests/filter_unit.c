@@ -1166,8 +1166,9 @@ static void test_fail_closed(void) {
     workspace.cdef_controls.columns = 1U;
     workspace.cdef_controls.rows = 1U;
     CHECK(av2h_filter_frame(&planes, &sequence, &frame, &workspace) ==
-          AV2H_UNSUPPORTED);
-    CHECK(y[0] == 91U);
+            AV2H_OK);
+        CHECK(y[0] == 100U);
+        av2h_memory_fill(y, 91U, sizeof(y));
     sequence.enable_cdef = 0U;
     frame.cdef_strength_count = 1U;
     frame.cdef_on_skip_transform = 1U;

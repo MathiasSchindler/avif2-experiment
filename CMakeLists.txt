@@ -181,6 +181,13 @@ if(WIN32 AND CMAKE_C_COMPILER_ID MATCHES "Clang")
         COMMAND av2heif-decoder
             "${CMAKE_CURRENT_SOURCE_DIR}/images/artifacts/chimp-240x287-qp192.obu"
             -o "${CMAKE_CURRENT_BINARY_DIR}/chimp-q192-decoder.i420")
+    find_package(Python3 COMPONENTS Interpreter QUIET)
+    if(Python3_Interpreter_FOUND)
+        add_test(NAME windows-decoder-milestone-9-parity
+            COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/run_m9_final_parity.py"
+                --decoder "$<TARGET_FILE:av2heif-decoder>")
+    endif()
     add_test(NAME windows-decoder-diagnostic-laarim-q096-prefix
         COMMAND "${CMAKE_COMMAND}"
             "-DDECODER=$<TARGET_FILE:av2heif-decoder>"

@@ -23,6 +23,7 @@ HOST_UNITS := $(HOST_SUBSTRATE_UNIT) $(HOST_CONTAINER_UNIT) $(HOST_RANGE_UNIT) \
 	$(HOST_TRANSFORM_UNIT) $(HOST_COEFF_LEVEL_UNIT) $(HOST_RECONSTRUCT_UNIT) \
 	$(HOST_FILTER_UNIT) $(HOST_ARTIFACT_PROFILE_UNIT)
 HOST_ARTIFACT_TOOL := build/host/av2heif-artifact
+M9_DECODER ?= build/windows-x86_64/av2heif-decoder.exe
 CORE_SOURCES := src/base.c src/carriage.c src/bmff.c src/container.c src/query.c \
 	src/decoder/cdf.c src/decoder/coeff.c src/decoder/coeff_level.c \
 	src/decoder/filter.c src/decoder/frame.c src/decoder/leaf.c \
@@ -52,7 +53,7 @@ STRICT_CFLAGS := -std=c11 -Wall -Wextra -Wpedantic -Werror -O2 \
 	-Iinclude -Isrc -Isrc/shared
 
 .PHONY: test test-c test-freestanding reference-avm milestone-0 milestone-3 \
-	milestone-4 milestone-5-evidence milestone-8
+	milestone-4 milestone-5-evidence milestone-8 milestone-9
 
 test: test-c test-freestanding $(HOST_ARTIFACT_TOOL)
 	$(PYTHON) -m unittest discover -s tests -p 'test_*.py'
@@ -175,3 +176,8 @@ milestone-5-evidence:
 milestone-8: $(HOST_RECONSTRUCT_UNIT) $(HOST_TILE_UNIT) test-freestanding
 	$(HOST_RECONSTRUCT_UNIT)
 	$(HOST_TILE_UNIT)
+
+milestone-9: $(HOST_FILTER_UNIT) test-freestanding
+	$(HOST_FILTER_UNIT)
+	$(PYTHON) -m unittest discover -s tests -p 'test_m9_filter_evidence.py'
+	$(PYTHON) tools/run_m9_final_parity.py --decoder $(M9_DECODER)

@@ -1,7 +1,8 @@
 # Milestone 9: mandatory filters and filtered parity
 
-Milestone 9 is planned. Focused private deblock, CDEF, CCSO, and GDF kernels
-already pass sanitizer vectors, but no fixture-level filtered parity is claimed.
+Milestone 9 is complete. The private frame path and focused deblock, CDEF,
+CCSO, and GDF kernels pass the milestone gate, including fixture-level final
+filtered parity.
 
 ## Completed isolated preparation
 
@@ -151,35 +152,36 @@ differ.
 Restoration remains unsupported for the accepted profile and must reject before
 final-plane mutation.
 
-## Remaining integration work
+## Completed integration
 
-The following work still depends on complete Milestones 7 and 8 syntax,
-reconstruction, and traversal:
+`av2h_decode_frame_i420_private()` now owns the complete bounded handoff. It
+populates every luma and chroma deblock cell while committing leaves, uses the
+decoded frame-wide CDEF strength-index and CCSO unit-control maps, runs the
+four mandatory filters in normative order, and copies only the visible crop
+after final filtering. Multi-strength CDEF and frame-wide GDF/CCSO traversal
+are accepted by this path. Restoration rejects before filter or output
+mutation.
 
-- extend tile traversal beyond its current first 64x64 root so every GDF
-  mode-2 block flag and every enabled CCSO unit control is decoded at its
-  row-major entropy position;
-- connect the decoded per-64x64 CDEF strength-index map to frame filtering;
-  the current filter orchestrator still rejects multiple strengths;
-- populate deblock cells and CCSO control maps from every committed luma and
-  chroma leaf;
-- connect the prepared workspace binding to the post-Milestone-8 frame
-  orchestrator;
-- freeze pinned AVM hashes or samples for deblock, CDEF, CCSO, GDF, and final
-  output stages;
-- run the complete filter order over tiny, odd, ordinary, and high-detail
-  coded planes; and
-- crop only after final filtered parity has been established.
+The locked fixture final I420 hashes from pinned AVM v1.0.0 are:
 
-The current focused vectors prove kernel behavior and fail-closed validation;
-they do not claim fixture-level filter orchestration or filtered parity. A
-decoded-count guard prevents the current partial traversal from entering
-chroma while frame-wide GDF flags remain unread.
+| Fixture | Dimensions | SHA-256 |
+| --- | --- | --- |
+| tiny | 16x16 | `5c18646460bb9f13c53baa6e65861a5cc746706a173e9c4f9b1cdeda86fd7ab5` |
+| odd | 17x15 | `74b176943ef8760c8971600c4e6ec25d6e3b6a4b21ffc3a55df845a41bdef9af` |
+| ordinary | 160x120 | `def0ced80c4bc1866d0d865fb392c80020ac0a823f310b2f62999d10eede1af5` |
+| high-detail | 96x80 | `4120930c9c9c49f73d4aa3e1d4c56cbb4b557679b42fe3b9de984bca1431745a` |
+
+`tools/run_m9_final_parity.py` reruns all four locked OBUs through the
+production decoder and pins the final I420 plus each Y, U, and V plane
+independently. The hosted evidence tool and its Python tests retain ordered
+stage-local diagnosis. `make milestone-9` runs the fixture, filter, evidence,
+and strict freestanding gates; Windows CTest includes the same final parity
+runner when Python is available.
 
 ## Exit gate
 
-Tiny, odd, ordinary, and high-detail fixtures must match pinned AVM
-sample-exactly on final filtered Y, U, and V planes. Stage-local checks must
-identify deblock, CDEF, CCSO, or GDF as the owning layer for any mismatch.
+Tiny, odd, ordinary, and high-detail fixtures match pinned AVM sample-exactly
+on final filtered Y, U, and V planes. Stage-local checks identify deblock,
+CDEF, CCSO, or GDF as the owning layer for any mismatch.
 
 Milestone 9 does not expose a public decoder.
