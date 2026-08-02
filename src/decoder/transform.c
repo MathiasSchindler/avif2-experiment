@@ -595,7 +595,7 @@ static Av2hStatus read_primary(Av2hRangeDecoder *decoder,
             AV2H_TX_ADST_FLIPADST
         };
         symbol = av2h_range_read_adaptive(
-            decoder, cdfs->primary_size1, AV2H_PRIMARY_TX_TYPE_SYMBOLS);
+            decoder, cdfs->primary_size0, AV2H_PRIMARY_TX_TYPE_SYMBOLS);
         if (av2h_range_status(decoder) != AV2H_OK) {
             return av2h_range_status(decoder);
         }
