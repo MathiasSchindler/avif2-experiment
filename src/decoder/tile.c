@@ -18,11 +18,23 @@ int32_t av2h_debug_intrabc_owners[32U];
 static void tile_debug_trace_leaf(Av2hDebugLeafTraceEntry *trace,
                                   size_t *count,
                                   Av2hPartitionNode node,
+                                  uint8_t mode,
+                                  int8_t angle_delta,
+                                  uint8_t mode_set,
+                                  uint8_t mode_index,
+                                  size_t before_mode_bits,
+                                  size_t after_mode_index_bits,
                                   const Av2hRangeDecoder *decoder) {
     Av2hDebugLeafTraceEntry *entry =
         &trace[*count % AV2H_DEBUG_LEAF_TRACE_CAPACITY];
     entry->node = node;
     entry->after_bits = av2h_range_tell(decoder);
+    entry->mode = mode;
+    entry->angle_delta = angle_delta;
+    entry->mode_set = mode_set;
+    entry->mode_index = mode_index;
+    entry->before_mode_bits = before_mode_bits;
+    entry->after_mode_index_bits = after_mode_index_bits;
     ++*count;
 }
 
@@ -492,8 +504,8 @@ Av2hStatus av2h_tile_decoder_init(
     av2h_debug_partition_trace_count = 0U;
     av2h_debug_luma_leaf_trace_count = 0U;
     av2h_debug_chroma_leaf_trace_count = 0U;
-    decoder->mi_columns = ((size_t)frame->width + 3U) / 4U;
-    decoder->mi_rows = ((size_t)frame->height + 3U) / 4U;
+    decoder->mi_columns = av2h_frame_mi_dimension(frame->width);
+    decoder->mi_rows = av2h_frame_mi_dimension(frame->height);
     if (decoder->mi_columns > storage->above_count ||
         decoder->mi_rows > storage->left_count ||
         !av2h_size_multiply(decoder->mi_columns, decoder->mi_rows,
@@ -733,6 +745,9 @@ Av2hStatus av2h_tile_decoder_next_luma(
         tile_debug_trace_leaf(
             av2h_debug_luma_leaf_trace,
             &av2h_debug_luma_leaf_trace_count, leaf->node,
+            (uint8_t)leaf->mode.mode, leaf->mode.angle_delta,
+            leaf->mode.mode_set, leaf->mode.mode_index,
+            leaf->mode.before_mode_bits, leaf->mode.after_mode_index_bits,
             &decoder->range);
         decoder->event = AV2H_TILE_EVENT_LUMA_LEAF;
         return AV2H_OK;
@@ -757,6 +772,9 @@ Av2hStatus av2h_tile_decoder_next_luma(
         tile_debug_trace_leaf(
             av2h_debug_luma_leaf_trace,
             &av2h_debug_luma_leaf_trace_count, leaf->node,
+            (uint8_t)leaf->mode.mode, leaf->mode.angle_delta,
+            leaf->mode.mode_set, leaf->mode.mode_index,
+            leaf->mode.before_mode_bits, leaf->mode.after_mode_index_bits,
             &decoder->range);
         decoder->event = AV2H_TILE_EVENT_LUMA_LEAF;
         return AV2H_OK;
@@ -776,7 +794,10 @@ Av2hStatus av2h_tile_decoder_next_luma(
     av2h_debug_luma_stage_ranges[4] = decoder->range.range;
     tile_debug_trace_leaf(
         av2h_debug_luma_leaf_trace, &av2h_debug_luma_leaf_trace_count,
-        leaf->node, &decoder->range);
+        leaf->node, (uint8_t)leaf->mode.mode, leaf->mode.angle_delta,
+        leaf->mode.mode_set, leaf->mode.mode_index,
+        leaf->mode.before_mode_bits, leaf->mode.after_mode_index_bits,
+        &decoder->range);
     decoder->event = AV2H_TILE_EVENT_LUMA_LEAF;
     return AV2H_OK;
 }
@@ -961,7 +982,10 @@ Av2hStatus av2h_tile_decoder_next_chroma(
     }
     tile_debug_trace_leaf(
         av2h_debug_chroma_leaf_trace, &av2h_debug_chroma_leaf_trace_count,
-        leaf->node, &decoder->range);
+        leaf->node, (uint8_t)leaf->mode.mode, leaf->mode.angle_delta,
+        0U, leaf->mode.mode_index,
+        leaf->mode.before_cfl_bits, leaf->mode.after_mode_bits,
+        &decoder->range);
     decoder->event = AV2H_TILE_EVENT_CHROMA_LEAF;
     return AV2H_OK;
 }

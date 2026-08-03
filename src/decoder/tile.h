@@ -15,6 +15,12 @@ extern uint8_t av2h_debug_chroma_parse_reason;
 typedef struct {
     Av2hPartitionNode node;
     size_t after_bits;
+    uint8_t mode;
+    int8_t angle_delta;
+    uint8_t mode_set;
+    uint8_t mode_index;
+    size_t before_mode_bits;
+    size_t after_mode_index_bits;
 } Av2hDebugLeafTraceEntry;
 
 extern Av2hDebugLeafTraceEntry av2h_debug_luma_leaf_trace[

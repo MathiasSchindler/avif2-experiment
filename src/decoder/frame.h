@@ -61,6 +61,9 @@ typedef struct {
     uint8_t tx_mode;
     uint8_t reduced_tx_set;
 } Av2hFrameState;
+static inline size_t av2h_frame_mi_dimension(uint16_t pixels) {
+    return (((size_t)pixels + 7U) / 8U) * 2U;
+}
 
 Av2hStatus av2h_frame_header_closed_key_parse(
     Av2hSpan payload,

@@ -166,15 +166,15 @@ if(WIN32 AND CMAKE_C_COMPILER_ID MATCHES "Clang")
         COMMAND av2heif-decoder
             "${CMAKE_CURRENT_SOURCE_DIR}/images/artifacts/cuckoo-431x287-qp080.obu"
             -o "${CMAKE_CURRENT_BINARY_DIR}/cuckoo-q080-decoder.i420")
-    add_test(NAME windows-decoder-diagnostic-silene-chroma-mode
+    add_test(NAME windows-decoder-diagnostic-silene-intrabc-bounds
         COMMAND "${CMAKE_COMMAND}"
             "-DDECODER=$<TARGET_FILE:av2heif-decoder>"
             "-DINPUT=${CMAKE_CURRENT_SOURCE_DIR}/images/artifacts/silene-384x307-qp080.obu"
             "-DOUTPUT=${CMAKE_CURRENT_BINARY_DIR}/diagnostic-silene.i420"
             "-DEXPECTED_CAUSE=cause: invalid data"
-            "-DEXPECTED_STAGE=stage: chroma parse / unknown"
-            "-DEXPECTED_LEAF=leaf: (72,24) block=32x8 plane=U"
-            "-DEXPECTED_PROGRESS=entropy tell: 113538; completed leaves: Y=1257 UV=501"
+            "-DEXPECTED_STAGE=stage: luma reconstruction / IntraBC source bounds"
+            "-DEXPECTED_LEAF=leaf: (72,24) block=16x32 plane=Y"
+            "-DEXPECTED_PROGRESS=entropy tell: 112964; completed leaves: Y=1267 UV=482"
             -P "${CMAKE_CURRENT_SOURCE_DIR}/scripts/check-decoder-diagnostic.cmake")
     add_test(NAME windows-decoder-chimp-q192-i420
         COMMAND av2heif-decoder
@@ -187,14 +187,12 @@ if(WIN32 AND CMAKE_C_COMPILER_ID MATCHES "Clang")
                 "${CMAKE_CURRENT_SOURCE_DIR}/tools/run_m9_final_parity.py"
                 --decoder "$<TARGET_FILE:av2heif-decoder>")
     endif()
-    add_test(NAME windows-decoder-diagnostic-laarim-q096-prefix
-        COMMAND "${CMAKE_COMMAND}"
-            "-DDECODER=$<TARGET_FILE:av2heif-decoder>"
-            "-DINPUT=${CMAKE_CURRENT_SOURCE_DIR}/images/artifacts/laarim-256x171-qp096.obu"
-            "-DOUTPUT=${CMAKE_CURRENT_BINARY_DIR}/diagnostic-laarim-q096.i420"
-            "-DEXPECTED_CAUSE=cause: invalid data"
-            "-DEXPECTED_STAGE=stage: chroma parse / unknown"
-            "-DEXPECTED_LEAF=leaf: (32,16) block=32x16 plane=U"
-            "-DEXPECTED_PROGRESS=entropy tell: 37908; completed leaves: Y=498 UV=210"
-            -P "${CMAKE_CURRENT_SOURCE_DIR}/scripts/check-decoder-diagnostic.cmake")
+    add_test(NAME windows-decoder-laarim-q096
+        COMMAND av2heif-decoder
+            "${CMAKE_CURRENT_SOURCE_DIR}/images/artifacts/laarim-256x171-qp096.obu"
+            -o "${CMAKE_CURRENT_BINARY_DIR}/laarim-q096-decoder.i420")
+    add_test(NAME windows-decoder-flycatcher-q048
+        COMMAND av2heif-decoder
+            "${CMAKE_CURRENT_SOURCE_DIR}/images/artifacts/flycatcher-397x265-qp048.obu"
+            -o "${CMAKE_CURRENT_BINARY_DIR}/flycatcher-q048-decoder.i420")
 endif()

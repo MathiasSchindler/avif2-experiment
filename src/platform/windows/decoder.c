@@ -219,6 +219,19 @@ static void write_leaf_trace(const char *name,
         write_console(block_size_name(entry->node.block_size));
         write_console(")@");
         write_unsigned(entry->after_bits);
+        write_console("=");
+        write_unsigned(entry->mode);
+        write_console("/");
+        write_signed(entry->angle_delta);
+        write_console("[");
+        write_unsigned(entry->mode_set);
+        write_console("/");
+        write_unsigned(entry->mode_index);
+        write_console("@");
+        write_unsigned(entry->before_mode_bits);
+        write_console("-");
+        write_unsigned(entry->after_mode_index_bits);
+        write_console("]");
     }
 }
 
@@ -327,6 +340,11 @@ static void write_decode_diagnostic(const Av2hFrameDecodeResult *result) {
     write_unsigned(result->chroma_parse_reason);
     write_console(" chroma-mode-index=");
     write_unsigned(result->chroma_mode_index);
+    write_console(" uv-mode-state=");
+    for (index = 0U; index < 24U; ++index) {
+        if (index != 0U) write_console("/");
+        write_unsigned(av2h_debug_uv_mode_state[index]);
+    }
     write_console(" filter-reason=");
     write_unsigned(result->filter_reason);
     write_console(" filter-stage-hashes=");
@@ -547,8 +565,8 @@ static Av2hStatus prepare_decode_workspace(
     if (sequence == 0) return AV2H_INVALID_ARGUMENT;
     status = av2h_filter_workspace_query(frame, &layout);
     if (status != AV2H_OK) return status;
-    mi_columns = ((size_t)frame->width + 3U) / 4U;
-    mi_rows = ((size_t)frame->height + 3U) / 4U;
+    mi_columns = av2h_frame_mi_dimension(frame->width);
+    mi_rows = av2h_frame_mi_dimension(frame->height);
     superblock_mi = sequence->superblock_size == 128U ? 32U : 16U;
     context_columns = (mi_columns + superblock_mi - 1U) /
         superblock_mi * superblock_mi;

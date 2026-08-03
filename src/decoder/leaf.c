@@ -1,6 +1,7 @@
 #include "leaf.h"
 
 uint32_t av2h_debug_chroma_mode_ranges[4U];
+uint32_t av2h_debug_uv_mode_state[24U];
 uint32_t av2h_debug_intrabc_ranges[3U];
 uint16_t av2h_debug_intrabc_mode_cdf[6U];
 int32_t av2h_debug_intrabc_shell[11U];
@@ -549,8 +550,24 @@ Av2hStatus av2h_chroma_mode_read_with_delta_for_sdp(
     mode_context = (uint8_t)(colocated_luma_mode >= AV2H_INTRA_VERTICAL &&
         colocated_luma_mode <= AV2H_INTRA_D67);
     av2h_debug_chroma_mode_stage = 8U;
+    av2h_debug_uv_mode_state[0] = mode_context;
+    av2h_debug_uv_mode_state[1] = (uint32_t)av2h_range_tell(decoder);
+    av2h_debug_uv_mode_state[2] = decoder->range;
+    av2h_debug_uv_mode_state[3] = decoder->value;
+    av2h_debug_uv_mode_state[4] = (uint32_t)decoder->available_bits;
+    for (size_t index = 0U; index < 12U; ++index) {
+        av2h_debug_uv_mode_state[5U + index] =
+            cdfs->uv_mode[mode_context][index];
+    }
     value = av2h_range_read_adaptive(
         decoder, cdfs->uv_mode[mode_context], AV2H_UV_MODE_SYMBOLS);
+    av2h_debug_uv_mode_state[17] = value;
+    av2h_debug_uv_mode_state[18] = (uint32_t)av2h_range_tell(decoder);
+    av2h_debug_uv_mode_state[19] = decoder->range;
+    av2h_debug_uv_mode_state[20] = colocated_luma_mode;
+    av2h_debug_uv_mode_state[21] = (uint32_t)(int32_t)colocated_luma_delta;
+    av2h_debug_uv_mode_state[22] = cfl_context;
+    av2h_debug_uv_mode_state[23] = cfl_allowed;
     if (av2h_range_status(decoder) != AV2H_OK) {
         return av2h_range_status(decoder);
     }

@@ -241,8 +241,8 @@ static int tile_context_valid(
         context->colocated_luma == 0) {
         return 0;
     }
-    mi_columns = ((size_t)frame->width + 3U) / 4U;
-    mi_rows = ((size_t)frame->height + 3U) / 4U;
+    mi_columns = av2h_frame_mi_dimension(frame->width);
+    mi_rows = av2h_frame_mi_dimension(frame->height);
     superblock_mi = sequence->superblock_size == 128U ? 32U : 16U;
     context_columns = (mi_columns + superblock_mi - 1U) /
         superblock_mi * superblock_mi;

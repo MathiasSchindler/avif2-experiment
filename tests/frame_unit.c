@@ -14,6 +14,14 @@ static int failures;
         }                                                                      \
     } while (0)
 
+static void test_mi_dimension_alignment(void) {
+    CHECK(av2h_frame_mi_dimension(1U) == 2U);
+    CHECK(av2h_frame_mi_dimension(8U) == 2U);
+    CHECK(av2h_frame_mi_dimension(9U) == 4U);
+    CHECK(av2h_frame_mi_dimension(171U) == 44U);
+    CHECK(av2h_frame_mi_dimension(256U) == 64U);
+}
+
 typedef struct {
     uint16_t index;
     int8_t value;
@@ -283,6 +291,7 @@ static void test_emerald_q208_deblock_header(void) {
 }
 
 int main(void) {
+    test_mi_dimension_alignment();
     test_fixtures();
     test_failures();
     test_emerald_q208_deblock_header();
