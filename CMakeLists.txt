@@ -172,16 +172,39 @@ if(WIN32 AND CMAKE_C_COMPILER_ID MATCHES "Clang")
             "${CMAKE_CURRENT_SOURCE_DIR}/images/artifacts/cuckoo-431x287-qp080-decoded.i420")
     set_tests_properties(windows-decoder-cuckoo-q080-i420-compare PROPERTIES
         DEPENDS windows-decoder-cuckoo-q080-i420)
-    add_test(NAME windows-decoder-diagnostic-silene-intrabc-bounds
+    add_test(NAME windows-decoder-flycatcher-q176-i420
+        COMMAND av2heif-decoder
+            "${CMAKE_CURRENT_SOURCE_DIR}/images/artifacts/flycatcher-223x149-qp176.obu"
+            -o "${CMAKE_CURRENT_BINARY_DIR}/flycatcher-q176-decoder.i420")
+    add_test(NAME windows-decoder-flycatcher-q176-i420-hash
         COMMAND "${CMAKE_COMMAND}"
-            "-DDECODER=$<TARGET_FILE:av2heif-decoder>"
-            "-DINPUT=${CMAKE_CURRENT_SOURCE_DIR}/images/artifacts/silene-384x307-qp080.obu"
-            "-DOUTPUT=${CMAKE_CURRENT_BINARY_DIR}/diagnostic-silene.i420"
-            "-DEXPECTED_CAUSE=cause: invalid data"
-            "-DEXPECTED_STAGE=stage: luma reconstruction / IntraBC source bounds"
-            "-DEXPECTED_LEAF=leaf: (72,24) block=16x32 plane=Y"
-            "-DEXPECTED_PROGRESS=entropy tell: 112964; completed leaves: Y=1267 UV=482"
-            -P "${CMAKE_CURRENT_SOURCE_DIR}/scripts/check-decoder-diagnostic.cmake")
+            "-DINPUT=${CMAKE_CURRENT_BINARY_DIR}/flycatcher-q176-decoder.i420"
+            "-DEXPECTED_SHA256=38abac499fc98cb79b4c1e6cf166be2c905fb549771d8b51b3161a926b53c3f2"
+            -P "${CMAKE_CURRENT_SOURCE_DIR}/scripts/check-file-sha256.cmake")
+    set_tests_properties(windows-decoder-flycatcher-q176-i420-hash PROPERTIES
+        DEPENDS windows-decoder-flycatcher-q176-i420)
+    add_test(NAME windows-decoder-louis-q224-i420
+        COMMAND av2heif-decoder
+            "${CMAKE_CURRENT_SOURCE_DIR}/images/artifacts/louis-463x342-qp224.obu"
+            -o "${CMAKE_CURRENT_BINARY_DIR}/louis-q224-decoder.i420")
+    add_test(NAME windows-decoder-louis-q224-i420-hash
+        COMMAND "${CMAKE_COMMAND}"
+            "-DINPUT=${CMAKE_CURRENT_BINARY_DIR}/louis-q224-decoder.i420"
+            "-DEXPECTED_SHA256=cbc741b34cc55af162d99e44273a6bb01a2f6152cb10ee5884248ceef33d0427"
+            -P "${CMAKE_CURRENT_SOURCE_DIR}/scripts/check-file-sha256.cmake")
+    set_tests_properties(windows-decoder-louis-q224-i420-hash PROPERTIES
+        DEPENDS windows-decoder-louis-q224-i420)
+    add_test(NAME windows-decoder-silene-q080-i420
+        COMMAND av2heif-decoder
+            "${CMAKE_CURRENT_SOURCE_DIR}/images/artifacts/silene-384x307-qp080.obu"
+            -o "${CMAKE_CURRENT_BINARY_DIR}/silene-q080-decoder.i420")
+    add_test(NAME windows-decoder-silene-q080-i420-hash
+        COMMAND "${CMAKE_COMMAND}"
+            "-DINPUT=${CMAKE_CURRENT_BINARY_DIR}/silene-q080-decoder.i420"
+            "-DEXPECTED_SHA256=613afd94352e93f2d2a6a343bcb77c2231bb693e38995f3bfef1e7c9d7eb2b1d"
+            -P "${CMAKE_CURRENT_SOURCE_DIR}/scripts/check-file-sha256.cmake")
+    set_tests_properties(windows-decoder-silene-q080-i420-hash PROPERTIES
+        DEPENDS windows-decoder-silene-q080-i420)
     add_test(NAME windows-decoder-chimp-q192-i420
         COMMAND av2heif-decoder
             "${CMAKE_CURRENT_SOURCE_DIR}/images/artifacts/chimp-240x287-qp192.obu"

@@ -2214,16 +2214,8 @@ Av2hStatus av2h_luma_mode_neighbors_from_state(
         candidates[2] = left;
         selected[0] = left;
         if (state->spatial != 0 && state->spatial_rows != 0U &&
-            bottom_row == state->spatial_rows) {
-            const Av2hLumaModeContext *bottom_left;
-            bottom_left = intrabc_spatial_context(
-                state, (int32_t)(bottom_row - 1U),
-                (int32_t)leaf->column - 1);
-            if (bottom_left != 0 && bottom_left->present &&
-                bottom_left->joint_mode != left->joint_mode) {
-                candidates[0] = bottom_left;
-                selected[0] = bottom_left;
-            }
+            bottom_row >= state->spatial_rows) {
+            selected[0] = 0;
         } else if (state->spatial_rows == 0U ||
                    bottom_row < state->spatial_rows) {
             const Av2hLumaModeContext *bottom_left =

@@ -1,0 +1,9 @@
+if(NOT DEFINED INPUT OR NOT DEFINED EXPECTED_SHA256)
+    message(FATAL_ERROR "INPUT and EXPECTED_SHA256 are required")
+endif()
+
+file(SHA256 "${INPUT}" ACTUAL_SHA256)
+if(NOT ACTUAL_SHA256 STREQUAL EXPECTED_SHA256)
+    message(FATAL_ERROR
+        "SHA-256 mismatch for ${INPUT}: expected ${EXPECTED_SHA256}, got ${ACTUAL_SHA256}")
+endif()

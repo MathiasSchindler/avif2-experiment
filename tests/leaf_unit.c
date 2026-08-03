@@ -1,6 +1,7 @@
 #include "decoder/reconstruct.h"
 
 #include <stdio.h>
+#include <string.h>
 
 static int failures;
 
@@ -1967,11 +1968,19 @@ static void test_luma_mode_bottom_left_clipped_to_frame(void) {
     spatial[26U * 40U + 31U].joint_mode = 7U;
     CHECK(av2h_luma_mode_neighbors_from_state(
               &state, &leaf, &neighbors) == AV2H_OK);
-    CHECK(neighbors.present[0] == 1U);
-    CHECK(neighbors.joint_mode[0] == 7U);
+    CHECK(neighbors.present[0] == 0U);
+    CHECK(neighbors.joint_mode[0] == 0U);
     CHECK(neighbors.edge_smooth[0] == 1U);
     CHECK(neighbors.spatial_present[0] == 1U);
-    CHECK(neighbors.spatial_joint_mode[0] == 7U);
+    CHECK(neighbors.spatial_joint_mode[0] == 1U);
+
+    state.spatial_rows = 26U;
+    spatial[25U * 40U + 31U].present = 1U;
+    spatial[25U * 40U + 31U].joint_mode = 9U;
+    CHECK(av2h_luma_mode_neighbors_from_state(
+              &state, &leaf, &neighbors) == AV2H_OK);
+    CHECK(neighbors.present[0] == 0U);
+    CHECK(neighbors.joint_mode[0] == 0U);
 }
 
 static void test_intrabc_morph_pred_cdf_defaults(void) {
