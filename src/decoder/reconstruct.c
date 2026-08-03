@@ -386,18 +386,30 @@ static Av2hStatus inverse_secondary_transform_4x4(
     } else if (transform->secondary_set == 0U &&
         transform->secondary_symbol == 2U) {
         kernel = av2h_ist_4x4_set0_type2_kernel;
+    } else if (transform->secondary_set == 0U &&
+               transform->secondary_symbol == 3U) {
+        kernel = av2h_ist_4x4_set0_type3_kernel;
     } else if (transform->secondary_set == 1U &&
                transform->secondary_symbol == 1U) {
         kernel = av2h_ist_4x4_set1_type1_kernel;
     } else if (transform->secondary_set == 1U &&
                transform->secondary_symbol == 2U) {
         kernel = av2h_ist_4x4_set1_type2_kernel;
+    } else if (transform->secondary_set == 1U &&
+               transform->secondary_symbol == 3U) {
+        kernel = av2h_ist_4x4_set1_type3_kernel;
+    } else if (transform->secondary_set == 2U &&
+               transform->secondary_symbol == 1U) {
+        kernel = av2h_ist_4x4_set2_type1_kernel;
     } else if (transform->secondary_set == 2U &&
         transform->secondary_symbol == 2U) {
         kernel = av2h_ist_4x4_set2_type2_kernel;
     } else if (transform->secondary_set == 3U &&
                transform->secondary_symbol == 1U) {
         kernel = av2h_ist_4x4_set3_type1_kernel;
+    } else if (transform->secondary_set == 3U &&
+               transform->secondary_symbol == 2U) {
+        kernel = av2h_ist_4x4_set3_type2_kernel;
     } else if (transform->secondary_set == 4U &&
                transform->secondary_symbol == 1U) {
         kernel = av2h_ist_4x4_set4_type1_kernel;
@@ -407,6 +419,9 @@ static Av2hStatus inverse_secondary_transform_4x4(
     } else if (transform->secondary_set == 6U &&
                transform->secondary_symbol == 2U) {
         kernel = av2h_ist_4x4_set6_type2_kernel;
+    } else if (transform->secondary_set == 6U &&
+               transform->secondary_symbol == 3U) {
+        kernel = av2h_ist_4x4_set6_type3_kernel;
     } else if (transform->secondary_set == 7U &&
                transform->secondary_symbol == 1U) {
         kernel = av2h_ist_4x4_set7_type1_kernel;
@@ -2799,6 +2814,7 @@ Av2hStatus av2h_luma_predict(
                         ((width == 8U && height == 4U) ||
                          (width == 16U && height == 4U) ||
                          (width == 8U && height == 8U) ||
+                         (width == 32U && height == 4U) ||
                          (width == 4U && height == 16U) ||
                          (width == 16U && height == 32U) ||
                          (width == 16U && height == 64U) ||
@@ -2819,6 +2835,7 @@ Av2hStatus av2h_luma_predict(
                                                  (width == 4U && height == 16U) ||
                                                  (width == 8U && height == 32U) ||
                                                  (width == 8U && height == 16U) ||
+                                                 (width == 32U && height == 4U) ||
                                                  (width == 64U && height == 8U))) ||
                      (mode->mode == AV2H_INTRA_D135 &&
                         ((width == 4U && height == 32U) ||
@@ -7178,6 +7195,14 @@ Av2hStatus av2h_luma_reconstruct_to_plane(
         scratch->left[index] = plane->data[
             source_y * plane->stride + block_x - 1U -
             mode->mrl_index];
+    }
+    if (mode->mode == AV2H_INTRA_SMOOTH_VERTICAL &&
+        left_count != 0U && left_count < output_height) {
+        uint8_t edge = scratch->left[left_count - 1U];
+        for (index = left_count; index < output_height; ++index) {
+            scratch->left[index] = edge;
+        }
+        left_count = output_height;
     }
     if (mode->mrl_index != 0U && mode->multi_line_mrl != 0U) {
         if (block_y != 0U) {

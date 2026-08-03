@@ -943,6 +943,48 @@ static void test_gdf_stripe_boundary_sources(void) {
     CHECK(deblocked_difference != 0);
 }
 
+static void test_gdf_control_row_offset(void) {
+    uint8_t cdef_data[8U * 136U];
+    uint8_t deblocked_data[8U * 136U];
+    uint8_t always_data[8U * 136U];
+    uint8_t controlled_data[8U * 136U];
+    uint8_t flags[2U] = { 0U, 1U };
+    Av2hFilterPlane cdef = { cdef_data, 8U, 8U, 136U };
+    Av2hFilterPlane deblocked = { deblocked_data, 8U, 8U, 136U };
+    Av2hFilterPlane always = { always_data, 8U, 8U, 136U };
+    Av2hFilterPlane controlled = { controlled_data, 8U, 8U, 136U };
+    Av2hGdfControlMap controls = { flags, 1U, 1U, 2U, 128U };
+    Av2hFrameState frame;
+    size_t index;
+    int saw_filtered_sample = 0;
+    av2h_memory_fill(&frame, 0U, sizeof(frame));
+    for (index = 0U; index < sizeof(cdef_data); ++index) {
+        cdef_data[index] = (uint8_t)(index * 29U + index / 7U);
+        deblocked_data[index] = cdef_data[index];
+    }
+    frame.width = 8U;
+    frame.height = 136U;
+    frame.gdf_mode = 1U;
+    frame.gdf_qp_index = 3U;
+    frame.gdf_scale_index = 3U;
+    CHECK(av2h_gdf_filter_frame(
+              &always, &cdef, &deblocked, &frame) == AV2H_OK);
+    frame.gdf_mode = 2U;
+    frame.gdf_block_size = 128U;
+    frame.gdf_block_columns = 1U;
+    frame.gdf_block_rows = 2U;
+    CHECK(av2h_gdf_filter_frame_with_controls(
+              &controlled, &cdef, &deblocked, &frame, &controls) == AV2H_OK);
+    for (index = 0U; index < 8U * 120U; ++index) {
+        CHECK(controlled_data[index] == cdef_data[index]);
+    }
+    for (; index < sizeof(controlled_data); ++index) {
+        CHECK(controlled_data[index] == always_data[index]);
+        if (always_data[index] != cdef_data[index]) saw_filtered_sample = 1;
+    }
+    CHECK(saw_filtered_sample);
+}
+
 static void test_band_only_and_control(void) {
     uint8_t y[64];
     uint8_t reference[64];
@@ -1259,6 +1301,7 @@ int main(void) {
     test_cdef_frame();
     test_gdf_frame();
     test_gdf_stripe_boundary_sources();
+    test_gdf_control_row_offset();
     test_band_only_and_control();
     test_ccso_multi_unit_chroma();
     test_edge_classes();

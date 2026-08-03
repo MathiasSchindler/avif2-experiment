@@ -4960,7 +4960,17 @@ static void test_luma_ist_frontier_matrix(void) {
                 { AV2H_INTRA_D113, AV2H_TX_8X4,
                     8U, 4U, 8U, 4U, 1U, 4U },
                 { AV2H_INTRA_D113, AV2H_TX_16X4,
-                    16U, 4U, 16U, 4U, 2U, 1U }
+                    16U, 4U, 16U, 4U, 2U, 1U },
+                { AV2H_INTRA_D45, AV2H_TX_32X4,
+                    32U, 4U, 32U, 4U, 3U, 1U },
+                { AV2H_INTRA_D135, AV2H_TX_4X16,
+                    4U, 16U, 4U, 16U, 2U, 3U },
+                { AV2H_INTRA_D203, AV2H_TX_16X4,
+                    16U, 4U, 16U, 4U, 3U, 6U },
+                { AV2H_INTRA_D45, AV2H_TX_16X4,
+                    16U, 4U, 16U, 4U, 1U, 2U },
+                { AV2H_INTRA_SMOOTH, AV2H_TX_4X16,
+                    4U, 16U, 4U, 16U, 3U, 0U }
         };
         static Av2hReconstructionScratch scratch;
         static Av2hFirstReconstruction reconstruction;

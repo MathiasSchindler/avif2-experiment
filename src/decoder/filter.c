@@ -1207,11 +1207,17 @@ Av2hStatus av2h_gdf_filter_frame_with_controls(
         uint16_t column;
         for (column = 0U; column < destination->width;
              column = (uint16_t)(column + 4U)) {
-            if (frame->gdf_mode == 2U &&
-                controls->flags[
-                    ((size_t)row / controls->block_size) * controls->stride +
-                    (size_t)column / controls->block_size] == 0U) {
-                continue;
+            if (frame->gdf_mode == 2U) {
+                size_t control_row =
+                    ((size_t)row + 8U) / controls->block_size;
+                if (control_row >= controls->rows) {
+                    control_row = controls->rows - 1U;
+                }
+                if (controls->flags[
+                        control_row * controls->stride +
+                        (size_t)column / controls->block_size] == 0U) {
+                    continue;
+                }
             }
             gdf_filter_block(destination, cdef_luma, deblocked_luma,
                              column, row, qp_index,
