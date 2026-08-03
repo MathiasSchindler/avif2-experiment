@@ -110,6 +110,16 @@ if(WIN32 AND CMAKE_C_COMPILER_ID MATCHES "Clang")
             "${CMAKE_CURRENT_SOURCE_DIR}/images/artifacts/emerald-192x96-qp208-decoded.i420")
     set_tests_properties(windows-decoder-emerald-i420-compare PROPERTIES
         DEPENDS windows-decoder-emerald-i420)
+    add_test(NAME windows-decoder-emerald-q128-i420
+        COMMAND av2heif-decoder
+            "${CMAKE_CURRENT_SOURCE_DIR}/images/artifacts/emerald-480x240-qp128.obu"
+            -o "${CMAKE_CURRENT_BINARY_DIR}/emerald-q128-decoder.i420")
+    add_test(NAME windows-decoder-emerald-q128-i420-compare
+        COMMAND "${CMAKE_COMMAND}" -E compare_files
+            "${CMAKE_CURRENT_BINARY_DIR}/emerald-q128-decoder.i420"
+            "${CMAKE_CURRENT_SOURCE_DIR}/images/artifacts/emerald-480x240-qp128-decoded.i420")
+    set_tests_properties(windows-decoder-emerald-q128-i420-compare PROPERTIES
+        DEPENDS windows-decoder-emerald-q128-i420)
     add_test(NAME windows-decoder-chinnathurai-i420
         COMMAND av2heif-decoder
             "${CMAKE_CURRENT_SOURCE_DIR}/images/artifacts/chinnathurai-333x333-qp224.obu"
@@ -124,6 +134,16 @@ if(WIN32 AND CMAKE_C_COMPILER_ID MATCHES "Clang")
         COMMAND av2heif-decoder
             "${CMAKE_CURRENT_SOURCE_DIR}/images/artifacts/schwaebisch-417x277-qp208.obu"
             -o "${CMAKE_CURRENT_BINARY_DIR}/schwaebisch-decoder.i420")
+    add_test(NAME windows-decoder-schwaebisch-q112-i420
+        COMMAND av2heif-decoder
+            "${CMAKE_CURRENT_SOURCE_DIR}/images/artifacts/schwaebisch-353x234-qp112.obu"
+            -o "${CMAKE_CURRENT_BINARY_DIR}/schwaebisch-q112-decoder.i420")
+    add_test(NAME windows-decoder-schwaebisch-q112-i420-compare
+        COMMAND "${CMAKE_COMMAND}" -E compare_files
+            "${CMAKE_CURRENT_BINARY_DIR}/schwaebisch-q112-decoder.i420"
+            "${CMAKE_CURRENT_SOURCE_DIR}/images/artifacts/schwaebisch-353x234-qp112-decoded.i420")
+    set_tests_properties(windows-decoder-schwaebisch-q112-i420-compare PROPERTIES
+        DEPENDS windows-decoder-schwaebisch-q112-i420)
     add_test(NAME windows-decoder-emerald-bmp
         COMMAND av2heif-decoder
             "${CMAKE_CURRENT_SOURCE_DIR}/images/artifacts/emerald-192x96-qp208.obu"
@@ -257,6 +277,22 @@ if(WIN32 AND CMAKE_C_COMPILER_ID MATCHES "Clang")
         COMMAND av2heif-decoder
             "${CMAKE_CURRENT_SOURCE_DIR}/images/artifacts/laarim-256x171-qp096.obu"
             -o "${CMAKE_CURRENT_BINARY_DIR}/laarim-q096-decoder.i420")
+    add_test(NAME windows-decoder-laarim-q096-compare
+        COMMAND "${CMAKE_COMMAND}" -E compare_files
+            "${CMAKE_CURRENT_BINARY_DIR}/laarim-q096-decoder.i420"
+            "${CMAKE_CURRENT_SOURCE_DIR}/images/artifacts/laarim-256x171-qp096-decoded.i420")
+    set_tests_properties(windows-decoder-laarim-q096-compare PROPERTIES
+        DEPENDS windows-decoder-laarim-q096)
+    add_test(NAME windows-decoder-laarim-q192
+        COMMAND av2heif-decoder
+            "${CMAKE_CURRENT_SOURCE_DIR}/images/artifacts/laarim-448x299-qp192.obu"
+            -o "${CMAKE_CURRENT_BINARY_DIR}/laarim-q192-decoder.i420")
+    add_test(NAME windows-decoder-laarim-q192-compare
+        COMMAND "${CMAKE_COMMAND}" -E compare_files
+            "${CMAKE_CURRENT_BINARY_DIR}/laarim-q192-decoder.i420"
+            "${CMAKE_CURRENT_SOURCE_DIR}/images/artifacts/laarim-448x299-qp192-decoded.i420")
+    set_tests_properties(windows-decoder-laarim-q192-compare PROPERTIES
+        DEPENDS windows-decoder-laarim-q192)
     add_test(NAME windows-decoder-flycatcher-q048
         COMMAND av2heif-decoder
             "${CMAKE_CURRENT_SOURCE_DIR}/images/artifacts/flycatcher-397x265-qp048.obu"

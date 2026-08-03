@@ -1,10 +1,7 @@
 param(
     [string]$AccountingCensus = "",
     [string]$ArtifactsDirectory = "",
-    [string]$DecoderExecutable = "",
-    [string]$DiagnosticsDirectory = "",
-    [string]$OutputPath = "",
-    [switch]$RefreshCurrent
+    [string]$OutputPath = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -31,55 +28,6 @@ function Get-Count($Symbols, [string[]]$Functions) {
         Measure-Object count -Sum).Sum)
 }
 
-function Get-CurrentStop([string]$ArtifactPath, [string]$Name,
-                         [string]$Decoder, [string]$ScratchDirectory) {
-    $stderrPath = Join-Path $ScratchDirectory "$Name.stderr"
-    $outputPath = Join-Path $ScratchDirectory "$Name.i420"
-    Remove-Item -LiteralPath $stderrPath, $outputPath -Force `
-        -ErrorAction SilentlyContinue
-    $process = Start-Process -FilePath $Decoder `
-        -ArgumentList @($ArtifactPath, "-o", $outputPath) `
-        -WorkingDirectory $repositoryRoot -RedirectStandardError $stderrPath `
-        -NoNewWindow -Wait -PassThru
-    $lines = @(Get-Content -LiteralPath $stderrPath -ErrorAction SilentlyContinue)
-    $stage = (($lines | Where-Object { $_ -match '^  stage:' } |
-        Select-Object -First 1) -replace '^  stage: ', '')
-    $leaf = (($lines | Where-Object { $_ -match '^  leaf:' } |
-        Select-Object -First 1) -replace '^  leaf: ', '')
-    $progress = (($lines | Where-Object { $_ -match '^  entropy tell:' } |
-        Select-Object -First 1) -replace '^  entropy tell: ', '')
-    $emitted = Test-Path -LiteralPath $outputPath
-    Remove-Item -LiteralPath $outputPath -Force -ErrorAction SilentlyContinue
-    if ($process.ExitCode -eq 0) {
-        return [PSCustomObject]@{ Stage = "complete"; Leaf = ""; Progress = "" }
-    }
-    if ($emitted) {
-        throw "Failed decode emitted output for $Name"
-    }
-    if (-not $stage) {
-        throw "Decoder failed without a structured stage for $Name"
-    }
-    return [PSCustomObject]@{ Stage = $stage; Leaf = $leaf; Progress = $progress }
-}
-
-function Get-RecordedStop([string]$Name, [string]$Directory) {
-    $stderrPath = Join-Path $Directory "$Name-continued-final.stderr"
-    if (-not (Test-Path -LiteralPath $stderrPath -PathType Leaf)) {
-        throw "Verified diagnostic not found: $stderrPath"
-    }
-    $lines = @(Get-Content -LiteralPath $stderrPath)
-    $stage = (($lines | Where-Object { $_ -match '^  stage:' } |
-        Select-Object -First 1) -replace '^  stage: ', '')
-    $leaf = (($lines | Where-Object { $_ -match '^  leaf:' } |
-        Select-Object -First 1) -replace '^  leaf: ', '')
-    $progress = (($lines | Where-Object { $_ -match '^  entropy tell:' } |
-        Select-Object -First 1) -replace '^  entropy tell: ', '')
-    if (-not $stage) {
-        return [PSCustomObject]@{ Stage = "complete"; Leaf = ""; Progress = "" }
-    }
-    return [PSCustomObject]@{ Stage = $stage; Leaf = $leaf; Progress = $progress }
-}
-
 function Format-Exposure([long]$Count) {
     if ($Count -eq 0) { return "-" }
     return $Count.ToString([Globalization.CultureInfo]::InvariantCulture)
@@ -89,16 +37,11 @@ $AccountingCensus = Resolve-RepositoryPath $AccountingCensus `
     "build\census\all-artifacts-accounting.json"
 $ArtifactsDirectory = Resolve-RepositoryPath $ArtifactsDirectory `
     "images\artifacts"
-$DecoderExecutable = Resolve-RepositoryPath $DecoderExecutable `
-    "build\windows-x86_64\av2heif-decoder.exe"
-$DiagnosticsDirectory = Resolve-RepositoryPath $DiagnosticsDirectory "build"
 $OutputPath = Resolve-RepositoryPath $OutputPath `
     "images\artifacts\blocker-map.md"
 
-foreach ($required in @($AccountingCensus, $DecoderExecutable)) {
-    if (-not (Test-Path -LiteralPath $required -PathType Leaf)) {
-        throw "Required file not found: $required"
-    }
+if (-not (Test-Path -LiteralPath $AccountingCensus -PathType Leaf)) {
+    throw "Required file not found: $AccountingCensus"
 }
 if (-not (Test-Path -LiteralPath $ArtifactsDirectory -PathType Container)) {
     throw "Artifacts directory not found: $ArtifactsDirectory"
@@ -135,8 +78,6 @@ $chromaModeFunctions = @(
 $chromaTransformFunctions = @("av2_read_cctx_type")
 $filterFunctions = @("read_gdf", "read_cdef", "read_ccso")
 
-$scratchDirectory = Join-Path $repositoryRoot "build\blocker-map"
-[void][IO.Directory]::CreateDirectory($scratchDirectory)
 $rows = @()
 foreach ($file in $document.files) {
     $fileName = [IO.Path]::GetFileName($file.path)
@@ -149,14 +90,8 @@ foreach ($file in $document.files) {
     if ($symbols.Count -eq 0) {
         throw "Accounting data missing for $name"
     }
-    $current = if ($RefreshCurrent) {
-        Get-CurrentStop $artifactPath $name $DecoderExecutable $scratchDirectory
-    } else {
-        Get-RecordedStop $name $DiagnosticsDirectory
-    }
     $rows += [PSCustomObject]@{
         Name = $fileName
-        Current = $current
         SharedPartition = Get-TreeCount $symbols $partitionFunctions "shared"
         LumaPartition = Get-TreeCount $symbols $partitionFunctions "luma"
         LumaMode = Get-TreeCount $symbols $lumaModeFunctions "luma"
@@ -173,19 +108,20 @@ foreach ($file in $document.files) {
 }
 
 $lines = [Collections.Generic.List[string]]::new()
-$lines.Add("# Decoder blocker map")
+$lines.Add("# Artifact feature exposure map")
 $lines.Add("")
 $lines.Add("Generated from the pinned AVM accounting census at revision " +
-    "``966a7d7cd6fcf60360caf5dc413b2aeeb65e144d`` and a live production " +
-    "decoder sweep. It describes the complete syntax surfaces each artifact " +
-    "will exercise, not a speculative sequence of future failures.")
+    "``966a7d7cd6fcf60360caf5dc413b2aeeb65e144d``. It describes entropy " +
+    "surfaces observed over each complete AVM-decoded frame. It is useful " +
+    "for corpus selection and coverage planning; it is not a decoder status " +
+    "or missing-feature report. See [``status.md``](status.md) for current " +
+    "production results.")
 $lines.Add("")
 $lines.Add("## Reading the map")
 $lines.Add("")
-$lines.Add("- **Current stop** is executable evidence from the production decoder.")
 $lines.Add("- Numeric cells are AVM entropy-event counts over the complete frame. " +
-    "They prove that the artifact exercises that surface beyond the current " +
-    "stop; they do not by themselves prove a missing implementation.")
+    "They prove that the artifact exercises that surface; they do not by " +
+    "themselves prove production support or a missing implementation.")
 $lines.Add("- ``-`` means the accounting oracle observed no event in that surface.")
 $lines.Add("- Luma/chroma inverse prediction and transform reconstruction are not " +
     "entropy events. A reconstruction gap is confirmed only when production " +
@@ -193,13 +129,13 @@ $lines.Add("- Luma/chroma inverse prediction and transform reconstruction are no
 $lines.Add("")
 $lines.Add("## Per-file surface exposure")
 $lines.Add("")
-$lines.Add("| File | Current stop | Shared partition | Luma partition | " +
+$lines.Add("| File | Shared partition | Luma partition | " +
     "Luma mode/parse | Luma prefix | Luma levels | Luma tx/IST syntax | " +
     "Chroma partition | Chroma mode/parse | Chroma prefix | Chroma levels | " +
     "Chroma CCTX | Filter controls |")
-$lines.Add("|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|")
+$lines.Add("|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|")
 foreach ($row in $rows) {
-    $lines.Add("| ``$($row.Name)`` | $($row.Current.Stage) | " +
+    $lines.Add("| ``$($row.Name)`` | " +
         "$(Format-Exposure $row.SharedPartition) | " +
         "$(Format-Exposure $row.LumaPartition) | " +
         "$(Format-Exposure $row.LumaMode) | " +
@@ -214,41 +150,26 @@ foreach ($row in $rows) {
         "$(Format-Exposure $row.Filter) |")
 }
 $lines.Add("")
-$lines.Add("## Confirmed current frontiers")
-$lines.Add("")
-$lines.Add("| File | Stage | Leaf | Progress |")
-$lines.Add("|---|---|---|---|")
-foreach ($row in $rows) {
-    $leaf = if ($row.Current.Leaf) { $row.Current.Leaf } else { "-" }
-    $progress = if ($row.Current.Progress) { $row.Current.Progress } else { "-" }
-    $lines.Add("| ``$($row.Name)`` | $($row.Current.Stage) | $leaf | $progress |")
-}
-$lines.Add("")
-$lines.Add("## What is actually still uncertain")
+$lines.Add("## Interpretation limits")
 $lines.Add("")
 $lines.Add("- **Secondary inverse transform:** syntax is visible here, but this " +
     "AVM revision's accounting value does not expose the packed secondary set " +
-    "and type. Exact missing tuples remain reach-and-pin work.")
-$lines.Add("- **Luma prediction:** all current corpus prediction frontiers clear, " +
-    "but tuple admission is intentionally narrow; later oracle-observed " +
-    "geometries are exposure, not proof of support.")
-$lines.Add("- **Coefficient and parse stages:** complete-frame event counts show " +
-    "where each file will return after earlier fixes. Adaptive CDF state means " +
-    "a future failure cannot be ordered safely until preceding blocks decode " +
-    "sample- and range-exactly.")
-$lines.Add("- **Frame filtering:** controls show which tools are signaled. Only the " +
-    "two current frame-filter stops are confirmed missing production paths; a " +
-    "nonzero control count alone is not a blocker.")
+    "and type.")
+$lines.Add("- **Prediction and reconstruction:** inverse prediction and transform " +
+    "reconstruction are not entropy events, so their exact mode/geometry " +
+    "coverage needs separate sample-locked evidence.")
+$lines.Add("- **Adaptive syntax:** event counts measure demand, not independent " +
+    "reachability. CDF and reconstructed-reference dependencies still require " +
+    "ordered differential validation.")
+$lines.Add("- **Frame filtering:** control counts show signaled entropy syntax, " +
+    "not which pixels a filter changes or whether output is sample-exact.")
 $lines.Add("")
-$lines.Add("Regenerate after building the accounting census and production decoder:")
+$lines.Add("Regenerate after building the accounting census:")
 $lines.Add("")
 $lines.Add('```powershell')
 $lines.Add("powershell -NoProfile -ExecutionPolicy Bypass -File ``")
 $lines.Add("  tools/census/generate_blocker_map.ps1")
 $lines.Add('```')
-$lines.Add("")
-$lines.Add("Pass ``-RefreshCurrent`` to rerun the production decoder instead " +
-    "of consuming the verified ``build/*-continued-final.stderr`` sweep.")
 
 [IO.File]::WriteAllLines($OutputPath, $lines, [Text.UTF8Encoding]::new($false))
 Write-Output "Wrote $OutputPath"
