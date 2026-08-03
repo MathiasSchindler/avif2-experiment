@@ -4869,6 +4869,56 @@ static void test_mhccp_geometry_direction_matrix(void) {
                               &chroma, &luma, plane_index, &predictor,
                               &scratch) == AV2H_OK);
                 }
+                if (width == 32U && height == 32U && filter_index == 0U &&
+                    direction == 0U && plane_index == 1U) {
+                    uint8_t expected[32U * 32U];
+                    uint8_t first_left;
+                    leaf.row = 0U;
+                    leaf.column = 2U;
+                    av2h_memory_fill(pred_data, 0U, sizeof(pred_data));
+                    av2h_memory_fill(pred_rec, 0U, sizeof(pred_rec));
+                    CHECK(av2h_chroma_reconstruct_to_plane_ex(
+                              &leaf, &mode, &prefix, &transform, &block,
+                              &chroma, &luma, plane_index, &predictor,
+                              &scratch) == AV2H_OK);
+                    for (row = 0U; row < 32U; ++row) {
+                        for (column = 0U; column < 32U; ++column) {
+                            expected[row * 32U + column] =
+                                pred_data[row * 40U + column + 4U];
+                        }
+                    }
+                    first_left = chroma_data[3U];
+                    chroma_data[3U] ^= 0x7fU;
+                    av2h_memory_fill(pred_data, 0U, sizeof(pred_data));
+                    av2h_memory_fill(pred_rec, 0U, sizeof(pred_rec));
+                    CHECK(av2h_chroma_reconstruct_to_plane_ex(
+                              &leaf, &mode, &prefix, &transform, &block,
+                              &chroma, &luma, plane_index, &predictor,
+                              &scratch) == AV2H_OK);
+                    for (row = 0U; row < 32U; ++row) {
+                        for (column = 0U; column < 32U; ++column) {
+                            CHECK(pred_data[row * 40U + column + 4U] ==
+                                  expected[row * 32U + column]);
+                        }
+                    }
+                    chroma_data[3U] = first_left;
+                    chroma.reference_width = 27U;
+                    av2h_memory_fill(chroma_data, 17U, sizeof(chroma_data));
+                    av2h_memory_fill(chroma_rec, 1U, sizeof(chroma_rec));
+                    av2h_memory_fill(pred_data, 0U, sizeof(pred_data));
+                    av2h_memory_fill(pred_rec, 0U, sizeof(pred_rec));
+                    CHECK(av2h_chroma_reconstruct_to_plane_ex(
+                              &leaf, &mode, &prefix, &transform, &block,
+                              &chroma, &luma, plane_index, &predictor,
+                              &scratch) == AV2H_OK);
+                    for (row = 0U; row < 32U; ++row) {
+                        uint8_t edge = chroma_data[row * 40U + 26U];
+                        for (column = 27U; column < 40U; ++column) {
+                            CHECK(chroma_data[row * 40U + column] == edge);
+                        }
+                    }
+                    chroma.reference_width = 40U;
+                }
                                 }
             }
         }

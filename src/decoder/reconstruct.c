@@ -8376,6 +8376,24 @@ static uint16_t mhccp_luma_filter0_sb_top_q3(
         luma_plane->data[center_y * luma_plane->stride + right_x]));
 }
 
+static uint16_t mhccp_luma_sb_top_left_clamped_q3(
+    const Av2hReconstructionPlane *luma_plane,
+    uint8_t filter_index,
+    uint16_t chroma_x,
+    uint16_t block_y) {
+    size_t center_x = (size_t)chroma_x * 2U;
+    size_t center_y = (size_t)block_y * 2U - 1U;
+    size_t right_x = center_x + 1U < luma_plane->width ?
+        center_x + 1U : center_x;
+    uint16_t center = luma_plane->data[
+        center_y * luma_plane->stride + center_x];
+    uint16_t right = luma_plane->data[
+        center_y * luma_plane->stride + right_x];
+    if (filter_index == 0U) return (uint16_t)(4U * (center + right));
+    if (filter_index == 1U) return (uint16_t)(2U * (3U * center + right));
+    return (uint16_t)(7U * center + right);
+}
+
 static uint16_t mhccp_luma_sb_top_sample_q3(
     const Av2hReconstructionPlane *luma_plane,
     uint8_t filter_index,
@@ -8624,10 +8642,15 @@ static Av2hStatus mhccp_predict_direction01(
                             luma_plane, chroma_x,
                             (uint16_t)(chroma_y - 1U))) >> 3U)) :
                     (int32_t)((is_top_sb_boundary ?
-                        mhccp_luma_sb_top_sample_q3(
-                            luma_plane, filter_index,
-                            chroma_x == 0U ? 0U :
-                                (uint16_t)(chroma_x - 1U), block_y) :
+                        (sample == 0U && have_left ?
+                            mhccp_luma_sb_top_left_clamped_q3(
+                                luma_plane, filter_index,
+                                chroma_x == 0U ? 0U :
+                                    (uint16_t)(chroma_x - 1U), block_y) :
+                            mhccp_luma_sb_top_sample_q3(
+                                luma_plane, filter_index,
+                                chroma_x == 0U ? 0U :
+                                    (uint16_t)(chroma_x - 1U), block_y)) :
                         sample == 0U && have_left ?
                             mhccp_luma_left_clamped_q3(
                                 luma_plane, filter_index,
@@ -8682,8 +8705,7 @@ static Av2hStatus mhccp_predict_direction01(
         }
         ++count;
     }
-    for (sample = (uint16_t)(direction == 1U && !have_top ? 1U : 0U);
-         sample < left_count; ++sample) {
+    for (sample = have_top ? 0U : 1U; sample < left_count; ++sample) {
         uint16_t chroma_x = (uint16_t)(block_x - 1U);
         uint16_t chroma_y = (uint16_t)(block_y + sample);
         int32_t vector[3U];
@@ -9010,6 +9032,31 @@ Av2hStatus av2h_chroma_inverse_cross_transform(
     return AV2H_OK;
 }
 
+static void extend_chroma_reconstruction_right(
+    Av2hReconstructionPlane *plane,
+    uint16_t block_x,
+    uint16_t block_y,
+    uint16_t visible_width,
+    uint16_t visible_height) {
+    uint16_t row;
+    if (block_x >= plane->reference_width ||
+        (uint32_t)block_x + visible_width < plane->reference_width ||
+        plane->reference_width >= plane->width) {
+        return;
+    }
+    for (row = 0U; row < visible_height; ++row) {
+        uint16_t column;
+        uint8_t edge = plane->data[
+            ((size_t)block_y + row) * plane->stride +
+            plane->reference_width - 1U];
+        for (column = plane->reference_width; column < plane->width;
+             ++column) {
+            plane->data[((size_t)block_y + row) * plane->stride + column] =
+                edge;
+        }
+    }
+}
+
 Av2hStatus av2h_chroma_reconstruct_to_plane_ex(
     const Av2hPartitionNode *leaf,
     const Av2hFirstChromaMode *mode,
@@ -9311,6 +9358,10 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_ex(
                     scratch->predictor[index * width + column];
             }
         }
+        if (mode->is_cfl != 0U && mode->cfl_kind == AV2H_CFL_MULTI_PARAM) {
+            extend_chroma_reconstruction_right(
+                plane, block_x, block_y, visible_width, visible_height);
+        }
         plane_mark_reconstructed(
             plane, block_x, block_y, visible_width, visible_height);
         if (chroma_plane == 1U && block_x <= 35U && block_y <= 43U &&
@@ -9344,6 +9395,10 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_ex(
                         block_x + column] =
                 reconstruction.pixels[index * width + column];
         }
+    }
+    if (mode->is_cfl != 0U && mode->cfl_kind == AV2H_CFL_MULTI_PARAM) {
+        extend_chroma_reconstruction_right(
+            plane, block_x, block_y, visible_width, visible_height);
     }
     plane_mark_reconstructed(
         plane, block_x, block_y, visible_width, visible_height);

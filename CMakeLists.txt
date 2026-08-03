@@ -202,6 +202,16 @@ if(WIN32 AND CMAKE_C_COMPILER_ID MATCHES "Clang")
             "${CMAKE_CURRENT_SOURCE_DIR}/images/artifacts/silene-479x383-qp176-decoded.i420")
     set_tests_properties(windows-decoder-silene-q176-i420-compare PROPERTIES
         DEPENDS windows-decoder-silene-q176-i420)
+    add_test(NAME windows-decoder-louis-q144-i420
+        COMMAND av2heif-decoder
+            "${CMAKE_CURRENT_SOURCE_DIR}/images/artifacts/louis-301x222-qp144.obu"
+            -o "${CMAKE_CURRENT_BINARY_DIR}/louis-q144-decoder.i420")
+    add_test(NAME windows-decoder-louis-q144-i420-compare
+        COMMAND "${CMAKE_COMMAND}" -E compare_files
+            "${CMAKE_CURRENT_BINARY_DIR}/louis-q144-decoder.i420"
+            "${CMAKE_CURRENT_SOURCE_DIR}/images/artifacts/louis-301x222-qp144-decoded.i420")
+    set_tests_properties(windows-decoder-louis-q144-i420-compare PROPERTIES
+        DEPENDS windows-decoder-louis-q144-i420)
     find_package(Python3 COMPONENTS Interpreter QUIET)
     if(Python3_Interpreter_FOUND)
         add_test(NAME windows-decoder-milestone-9-parity

@@ -38,7 +38,7 @@ an earlier entropy divergence can still be the underlying cause.
 | Chroma deblock map | None |
 | Frame filter | None |
 | Completeness | `laarim-448x299-qp192.obu` |
-| Output parity | `laarim-256x171-qp096.obu`, `louis-301x222-qp144.obu` |
+| Output parity | `laarim-256x171-qp096.obu` |
 
 | File | Current endpoint | Blocker |
 | --- | --- | --- |
@@ -55,7 +55,7 @@ an earlier entropy divergence can still be the underlying cause.
 | `flycatcher-397x265-qp048.obu` | **Complete:** coded MI-grid alignment preserves the required edge leaves, and the emitted 158,139-byte I420 is byte-identical to AVM (SHA-256 `9250e697e5cd416444b0f58fd1563dd5ff987e0bba2e97c031d0cdc1c9c4198c`) | None for the accepted profile |
 | `laarim-256x171-qp096.obu` | **Decode complete but nonexact:** aligning the coded MI grid to 8 pixels preserves the bottom-edge `(43,0)` leaf and restores chroma entropy parity. Output differs from AVM in 12,730 Y samples and one U sample, with maximum absolute errors 48 and 2 respectively; SHA-256 is `7ce68c363a999a977f12b0d92322413a67922861e4a2d540030ac01a5d9863bc` | Luma output parity; chroma is exact except for one U sample |
 | `laarim-448x299-qp192.obu` | 4x4 IST set1/type3 and Smooth-Vertical edge extension consume the tile to tell 5,416 after 281 luma and 47 chroma leaves | Reconstruction/readiness maps remain incomplete at end of tile |
-| `louis-301x222-qp144.obu` | **Decode complete but nonexact:** output differs from AVM in 2,453 of 100,344 samples, with maximum absolute error 4; SHA-256 is `a82186c742715bfe673d14e68ad35aec8e7ca7049ca8f19d899e6ab3e7f5022e` | Localized output parity |
+| `louis-301x222-qp144.obu` | **Complete:** MHCCP fitting excludes the duplicated first left reference sample, and MHCCP right-edge chroma padding is extended before dependent blocks and filters consume it. The emitted 100,344-byte I420 is byte-identical to AVM (SHA-256 `ddefd8d1fe4fe69a6c70f05e45d73d65ab513a359cb8f90b4156120add57d00e`) | None for the accepted profile |
 | `louis-463x342-qp224.obu` | Production fails closed in luma partition/geometry at tell 2,570 after 188 luma and 49 chroma leaves | Upstream partition traversal divergence |
 | `pastell-320x213-qp064.obu` | **Complete:** GDF control rows now use the normative `-8` vertical block origin, so rows 120-127 select the second 128-pixel block flag. The emitted 102,400-byte I420 is byte-identical to AVM (SHA-256 `957eaf1ed0c372123eb1e98ac8d279d35834c6d09d48426acf48380d1a5333fb`) | None for the accepted profile |
 | `pastell-512x341-qp160.obu` | Production reaches escaped UV mode 14 at `(80,0)` 8x16 U, tell 26,514, after 967 luma and 1,087 chroma leaves | Upstream entropy divergence before chroma mode parsing |
