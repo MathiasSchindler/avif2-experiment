@@ -2452,15 +2452,6 @@ static Av2hStatus predict_directional(
             av2h_debug_directional_ibp[3] = above[16];
             av2h_debug_directional_ibp[4] = (uint8_t)dx;
         }
-        if ((references->above == 0 || references->above_count == 0U) &&
-            (references->left == 0 || references->left_count == 0U) &&
-            !(mode->mode == AV2H_INTRA_VERTICAL &&
-              mode->angle_delta == 2 && mode->mrl_index == 0U &&
-                            mode->enable_ibp == 1U &&
-                            ((width == 32U && height == 32U) ||
-                             (width == 64U && height == 64U)))) {
-            return AV2H_INVALID_ARGUMENT;
-        }
         for (row = 0U; row < height; ++row) {
             for (column = 0U; column < width; ++column) {
                 int x = ((int)column << 6) -
@@ -2499,11 +2490,6 @@ static Av2hStatus predict_directional(
             }
         }
         return AV2H_OK;
-    }
-    if ((references->left == 0 || references->left_count == 0U) &&
-        (references->above == 0 || references->above_count == 0U) &&
-        !missing_left_ibp) {
-        return AV2H_INVALID_ARGUMENT;
     }
     {
         int max_base = (int)width + height - 1 + 2 * mode->mrl_index;
@@ -2807,6 +2793,14 @@ Av2hStatus av2h_luma_predict(
         return predict_directional_idif(
             mode, 203, width, height, references,
             predictor, predictor_stride);
+    }
+    if (mode->angle_delta == 0 && mode->mrl_index == 0U &&
+        mode->multi_line_mrl == 0U &&
+        directional_base_angle(mode->mode) != 0 &&
+        luma_prediction_dimension_supported(width) &&
+        luma_prediction_dimension_supported(height)) {
+        return predict_luma_directional_feature(
+            mode, width, height, references, predictor, predictor_stride);
     }
     if (((mode->angle_delta == -3 || mode->angle_delta == -2 ||
             mode->angle_delta == -1 || mode->angle_delta == 1 ||
@@ -3906,20 +3900,23 @@ Av2hStatus av2h_luma_predict(
         luma_prediction_dimension_supported(height)) {
         uint8_t scale = smooth_scale(width, height);
         uint8_t bottom_left;
-        int extend_left = references->left_count == 0U &&
+        int have_above = references->above != 0 &&
             references->above_count != 0U;
-        if (!extend_left &&
-            (references->left == 0 || references->left_count < height)) {
+        int have_left = references->left != 0 &&
+            references->left_count != 0U;
+        if (have_left && references->left_count < height) {
             return AV2H_INVALID_ARGUMENT;
         }
-        bottom_left = extend_left ? references->above[0] :
+        bottom_left = !have_left ? have_above ? references->above[0] : 129U :
             references->left_count > height ?
             references->left[height] : references->left[height - 1U];
         for (row = 0U; row < height; ++row) {
             uint8_t blend = smooth_blend(row, scale);
             for (column = 0U; column < width; ++column) {
-                uint8_t top = references->above == 0 ? references->left[0] :
-                    references->above[column];
+                uint8_t top = have_above ? references->above[
+                    column < references->above_count ? column :
+                    references->above_count - 1U] :
+                    have_left ? references->left[0] : 127U;
                 int32_t value = bottom_left + round_shift(
                     ((int64_t)top - bottom_left) *
                         (height - 1U - row),
@@ -3934,44 +3931,24 @@ Av2hStatus av2h_luma_predict(
     }
     if (mode->mode == AV2H_INTRA_SMOOTH_HORIZONTAL &&
         mode->angle_delta == 0 &&
-        ((width == 4U && height == 4U) ||
-         (width == 4U && height == 8U) ||
-         (width == 4U && height == 16U) ||
-         (width == 4U && height == 32U) ||
-         (width == 8U && height == 4U) ||
-         (width == 8U && height == 8U) ||
-         (width == 8U && height == 16U) ||
-         (width == 8U && height == 32U) ||
-         (width == 8U && height == 64U) ||
-         (width == 16U && height == 4U) ||
-         (width == 16U && height == 8U) ||
-         (width == 16U && height == 16U) ||
-         (width == 16U && height == 32U) ||
-         (width == 16U && height == 64U) ||
-         (width == 32U && height == 4U) ||
-         (width == 32U && height == 8U) ||
-         (width == 32U && height == 16U) ||
-         (width == 32U && height == 32U) ||
-         (width == 64U && height == 8U) ||
-         (width == 64U && height == 16U) ||
-         (width == 64U && height == 32U) ||
-         (width == 64U && height == 64U))) {
+        luma_prediction_dimension_supported(width) &&
+        luma_prediction_dimension_supported(height)) {
         uint8_t scale = smooth_scale(width, height);
         uint8_t top_right;
-        int extend_above = references->above_count == 0U &&
+        int have_above = references->above != 0 &&
+            references->above_count != 0U;
+        int have_left = references->left != 0 &&
             references->left_count != 0U;
-        if (!extend_above &&
-            (references->above == 0 || references->above_count == 0U)) {
-            return AV2H_INVALID_ARGUMENT;
-        }
-        top_right = extend_above ? references->left[0] :
+        top_right = !have_above ? have_left ? references->left[0] : 127U :
             references->above_count > width ?
             references->above[width] :
             references->above[references->above_count - 1U];
         for (row = 0U; row < height; ++row) {
             for (column = 0U; column < width; ++column) {
-                uint8_t left = references->left == 0 ?
-                    references->above[0] : references->left[row];
+                uint8_t left = have_left ? references->left[
+                    row < references->left_count ? row :
+                    references->left_count - 1U] :
+                    have_above ? references->above[0] : 129U;
                 uint8_t blend = smooth_blend(column, scale);
                 int32_t value = top_right + round_shift(
                     ((int64_t)left - top_right) *
@@ -3986,45 +3963,23 @@ Av2hStatus av2h_luma_predict(
         return AV2H_OK;
     }
     if (mode->mode == AV2H_INTRA_SMOOTH && mode->angle_delta == 0 &&
-        ((width == 4U && height == 4U) ||
-         (width == 4U && height == 8U) ||
-         (width == 4U && height == 16U) ||
-         (width == 4U && height == 32U) ||
-         (width == 8U && height == 4U) ||
-         (width == 8U && height == 8U) ||
-         (width == 8U && height == 16U) ||
-         (width == 8U && height == 64U) ||
-         (width == 16U && height == 4U) ||
-         (width == 16U && height == 8U) ||
-         (width == 16U && height == 32U) ||
-         (width == 16U && height == 64U) ||
-         (width == 16U && height == 16U) ||
-         (width == 32U && height == 4U) ||
-         (width == 32U && height == 8U) ||
-         (width == 32U && height == 16U) ||
-         (width == 32U && height == 32U) ||
-         (width == 32U && height == 64U) ||
-         (width == 64U && height == 8U) ||
-         (width == 64U && height == 16U) ||
-         (width == 64U && height == 32U) ||
-         (width == 64U && height == 64U))) {
+        luma_prediction_dimension_supported(width) &&
+        luma_prediction_dimension_supported(height)) {
         uint8_t scale = smooth_scale(width, height);
         uint8_t bottom_left;
         uint8_t top_right;
-        int extend_above = references->above_count == 0U &&
-            references->left_count != 0U;
-        int extend_left = references->left_count == 0U &&
+        int have_above = references->above != 0 &&
             references->above_count != 0U;
-        if ((!extend_above &&
-             (references->above == 0 || references->above_count < width)) ||
-            (!extend_left &&
-             (references->left == 0 || references->left_count < height))) {
+        int have_left = references->left != 0 &&
+            references->left_count != 0U;
+        if ((have_above && references->above_count < width) ||
+            (have_left && references->left_count < height)) {
             return AV2H_INVALID_ARGUMENT;
         }
-        bottom_left = extend_left ? references->above[0] :
+        bottom_left = !have_left ? have_above ? references->above[0] : 129U :
             references->left_count > height ?
             references->left[height] : references->left[height - 1U];
-        top_right = extend_above ? references->left[0] :
+        top_right = !have_above ? have_left ? references->left[0] : 127U :
             references->above_count > width ?
             references->above[width] : references->above[width - 1U];
         if (width == 16U && height == 64U) {
@@ -4032,22 +3987,24 @@ Av2hStatus av2h_luma_predict(
             av2h_debug_smooth_left_hash = 1469598103934665603ULL;
             for (index = 0U; index < width; ++index) {
                 av2h_debug_smooth_above_hash ^=
-                    extend_above ? references->left[0] :
-                                   references->above[index];
+                    !have_above ? have_left ? references->left[0] : 127U :
+                                  references->above[index];
                 av2h_debug_smooth_above_hash *= 1099511628211ULL;
             }
             for (index = 0U; index < height; ++index) {
                 av2h_debug_smooth_left_hash ^=
-                    extend_left ? references->above[0] :
-                                  references->left[index];
+                    !have_left ? have_above ? references->above[0] : 129U :
+                                 references->left[index];
                 av2h_debug_smooth_left_hash *= 1099511628211ULL;
             }
         }
         for (row = 0U; row < height; ++row) {
             for (column = 0U; column < width; ++column) {
-                uint8_t top = extend_above ? references->left[0] :
+                uint8_t top = !have_above ?
+                    have_left ? references->left[0] : 127U :
                     references->above[column];
-                uint8_t left = extend_left ? references->above[0] :
+                uint8_t left = !have_left ?
+                    have_above ? references->above[0] : 129U :
                     references->left[row];
                 uint8_t top_blend = smooth_blend(row, scale);
                 uint8_t left_blend = smooth_blend(column, scale);
@@ -5037,10 +4994,11 @@ Av2hStatus av2h_chroma_predict(
         directional_base_angle(mode->mode) != 0 &&
         luma_prediction_dimension_supported(width) && width <= 32U &&
         luma_prediction_dimension_supported(height) && height <= 32U) {
-        Av2hFirstLeafMode luma_mode = { 0 };
+        Av2hFirstLeafMode luma_mode;
         int angle = wide_angle_map(
             directional_base_angle(mode->mode) + mode->angle_delta * 3,
             width, height);
+        av2h_memory_fill(&luma_mode, 0U, sizeof(luma_mode));
         luma_mode.mode = mode->mode;
         luma_mode.angle_delta = mode->angle_delta;
         luma_mode.edge_ibp = (uint8_t)(
@@ -5056,10 +5014,11 @@ Av2hStatus av2h_chroma_predict(
         directional_base_angle(mode->mode) != 0 &&
         luma_prediction_dimension_supported(width) && width <= 32U &&
         luma_prediction_dimension_supported(height) && height <= 32U) {
-        Av2hFirstLeafMode luma_mode = { 0 };
+        Av2hFirstLeafMode luma_mode;
         int angle = wide_angle_map(
             directional_base_angle(mode->mode) + mode->angle_delta * 3,
             width, height);
+        av2h_memory_fill(&luma_mode, 0U, sizeof(luma_mode));
         luma_mode.mode = mode->mode;
         luma_mode.angle_delta = mode->angle_delta;
         luma_mode.edge_ibp = (uint8_t)(
@@ -5073,7 +5032,8 @@ Av2hStatus av2h_chroma_predict(
     if (mode->mode == AV2H_INTRA_SMOOTH && mode->angle_delta == 0 &&
         luma_prediction_dimension_supported(width) && width <= 32U &&
         luma_prediction_dimension_supported(height) && height <= 32U) {
-        Av2hFirstLeafMode luma_mode = { 0 };
+        Av2hFirstLeafMode luma_mode;
+        av2h_memory_fill(&luma_mode, 0U, sizeof(luma_mode));
         luma_mode.mode = mode->mode;
         luma_mode.angle_delta = mode->angle_delta;
         return av2h_luma_predict(
@@ -5084,9 +5044,10 @@ Av2hStatus av2h_chroma_predict(
         directional_base_angle(mode->mode) != 0 &&
         luma_prediction_dimension_supported(width) && width <= 32U &&
         luma_prediction_dimension_supported(height) && height <= 32U) {
-        Av2hFirstLeafMode luma_mode = { 0 };
+        Av2hFirstLeafMode luma_mode;
         int angle = wide_angle_map(
             directional_base_angle(mode->mode), width, height);
+        av2h_memory_fill(&luma_mode, 0U, sizeof(luma_mode));
         luma_mode.mode = mode->mode;
         luma_mode.edge_ibp = (uint8_t)(
             (width != 4U || height != 4U) && mode->edge_ibp);
@@ -5100,7 +5061,8 @@ Av2hStatus av2h_chroma_predict(
         mode->angle_delta == 0 &&
         luma_prediction_dimension_supported(width) && width <= 32U &&
         luma_prediction_dimension_supported(height) && height <= 32U) {
-        Av2hFirstLeafMode luma_mode = { 0 };
+        Av2hFirstLeafMode luma_mode;
+        av2h_memory_fill(&luma_mode, 0U, sizeof(luma_mode));
         luma_mode.mode = mode->mode;
         return av2h_luma_predict(
             &luma_mode, width, height, references,
@@ -5109,7 +5071,8 @@ Av2hStatus av2h_chroma_predict(
     if (mode->mode == AV2H_INTRA_HORIZONTAL &&
         (mode->angle_delta == -3 || mode->angle_delta == -2) &&
         width == 32U && height == 32U) {
-        Av2hFirstLeafMode luma_mode = { 0 };
+        Av2hFirstLeafMode luma_mode;
+        av2h_memory_fill(&luma_mode, 0U, sizeof(luma_mode));
         luma_mode.mode = mode->mode;
         luma_mode.angle_delta = mode->angle_delta;
         luma_mode.enable_ibp = 1U;
@@ -5120,7 +5083,8 @@ Av2hStatus av2h_chroma_predict(
     if (mode->mode == AV2H_INTRA_HORIZONTAL &&
         (mode->angle_delta == -3 || mode->angle_delta == -2) &&
         width == 32U && height == 16U) {
-        Av2hFirstLeafMode luma_mode = { 0 };
+        Av2hFirstLeafMode luma_mode;
+        av2h_memory_fill(&luma_mode, 0U, sizeof(luma_mode));
         luma_mode.mode = mode->mode;
         luma_mode.angle_delta = mode->angle_delta;
         luma_mode.enable_ibp = 1U;
@@ -5131,7 +5095,8 @@ Av2hStatus av2h_chroma_predict(
     }
     if (mode->mode == AV2H_INTRA_HORIZONTAL && mode->angle_delta == 1 &&
         width == 16U && height == 32U) {
-        Av2hFirstLeafMode luma_mode = { 0 };
+        Av2hFirstLeafMode luma_mode;
+        av2h_memory_fill(&luma_mode, 0U, sizeof(luma_mode));
         luma_mode.mode = mode->mode;
         luma_mode.angle_delta = mode->angle_delta;
         luma_mode.enable_ibp = 1U;
@@ -5999,14 +5964,7 @@ static int reconstruct_generic_selected(
     int identity = transform->primary_type == AV2H_TX_IDTX;
     if (identity) {
         int legal_identity =
-            (mode->fsc_mode &&
-             (tx_size == RECON_TX_4X4 || tx_size == RECON_TX_4X8 ||
-              tx_size == RECON_TX_8X4 || tx_size == RECON_TX_8X8 ||
-              tx_size == RECON_TX_16X16 || tx_size == RECON_TX_32X32 ||
-              tx_size == RECON_TX_8X16 || tx_size == RECON_TX_16X8 ||
-              tx_size == RECON_TX_4X16 || tx_size == RECON_TX_16X4 ||
-              tx_size == RECON_TX_32X4 || tx_size == RECON_TX_32X8 ||
-              tx_size == RECON_TX_16X32 || tx_size == RECON_TX_32X16)) ||
+                        mode->fsc_mode ||
             mode->use_intrabc ||
             (!mode->fsc_mode && !mode->use_intrabc &&
              (tx_size == RECON_TX_4X32 || tx_size == RECON_TX_32X4 ||
@@ -8413,8 +8371,8 @@ static Av2hStatus mhccp_predict_direction01(
           av2h_debug_mhccp_reason = 6U;
         return AV2H_UNSUPPORTED;
     }
-    prediction_width = width < chroma_plane->reference_width - block_x ?
-        width : (uint16_t)(chroma_plane->reference_width - block_x);
+    prediction_width = width < chroma_plane->width - block_x ?
+        width : (uint16_t)(chroma_plane->width - block_x);
     prediction_height = height < chroma_plane->height - block_y ?
         height : (uint16_t)(chroma_plane->height - block_y);
     if (!have_top && !have_left) {
@@ -8881,7 +8839,7 @@ Av2hStatus av2h_first_chroma_reconstruct(
     const Av2hFirstCoeffBlock *coefficients,
     Av2hReconstructionScratch *scratch,
     Av2hFirstReconstruction *reconstruction) {
-    Av2hFirstLeafMode mode = { 0 };
+    Av2hFirstLeafMode mode;
     if (prefix == 0 || transform == 0 || coefficients == 0 || scratch == 0 ||
         reconstruction == 0) {
         return AV2H_INVALID_ARGUMENT;
@@ -8891,6 +8849,7 @@ Av2hStatus av2h_first_chroma_reconstruct(
         coefficients->width != 4U || coefficients->height != 4U) {
         return AV2H_UNSUPPORTED;
     }
+    av2h_memory_fill(&mode, 0U, sizeof(mode));
     mode.mode = AV2H_INTRA_DC;
     return av2h_luma_reconstruct(&mode, prefix, transform, coefficients,
                                  0, 0U, scratch, reconstruction);
@@ -8964,31 +8923,6 @@ Av2hStatus av2h_chroma_inverse_cross_transform(
     return AV2H_OK;
 }
 
-static void extend_chroma_reconstruction_right(
-    Av2hReconstructionPlane *plane,
-    uint16_t block_x,
-    uint16_t block_y,
-    uint16_t visible_width,
-    uint16_t visible_height) {
-    uint16_t row;
-    if (block_x >= plane->reference_width ||
-        (uint32_t)block_x + visible_width < plane->reference_width ||
-        plane->reference_width >= plane->width) {
-        return;
-    }
-    for (row = 0U; row < visible_height; ++row) {
-        uint16_t column;
-        uint8_t edge = plane->data[
-            ((size_t)block_y + row) * plane->stride +
-            plane->reference_width - 1U];
-        for (column = plane->reference_width; column < plane->width;
-             ++column) {
-            plane->data[((size_t)block_y + row) * plane->stride + column] =
-                edge;
-        }
-    }
-}
-
 Av2hStatus av2h_chroma_reconstruct_to_plane_ex(
     const Av2hPartitionNode *leaf,
     const Av2hFirstChromaMode *mode,
@@ -9000,7 +8934,7 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_ex(
     uint8_t chroma_plane,
     Av2hReconstructionPlane *predictor_plane,
     Av2hReconstructionScratch *scratch) {
-    Av2hFirstLeafMode luma_mode = { 0 };
+    Av2hFirstLeafMode luma_mode;
     Av2hFirstCoeffPrefix effective_prefix;
     Av2hFirstReconstruction reconstruction;
     Av2hLumaReferences references;
@@ -9027,6 +8961,7 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_ex(
             (((size_t)plane->height + 3U) / 4U)) {
         return AV2H_INVALID_ARGUMENT;
     }
+    av2h_memory_fill(&luma_mode, 0U, sizeof(luma_mode));
     av2h_debug_chroma_reconstruct_stage = 1U;
     width = coefficients->width;
     height = coefficients->height;
@@ -9290,10 +9225,6 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_ex(
                     scratch->predictor[index * width + column];
             }
         }
-        if (mode->is_cfl != 0U && mode->cfl_kind == AV2H_CFL_MULTI_PARAM) {
-            extend_chroma_reconstruction_right(
-                plane, block_x, block_y, visible_width, visible_height);
-        }
         plane_mark_reconstructed(
             plane, block_x, block_y, visible_width, visible_height);
         if (chroma_plane == 1U && block_x <= 35U && block_y <= 43U &&
@@ -9327,10 +9258,6 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_ex(
                         block_x + column] =
                 reconstruction.pixels[index * width + column];
         }
-    }
-    if (mode->is_cfl != 0U && mode->cfl_kind == AV2H_CFL_MULTI_PARAM) {
-        extend_chroma_reconstruction_right(
-            plane, block_x, block_y, visible_width, visible_height);
     }
     plane_mark_reconstructed(
         plane, block_x, block_y, visible_width, visible_height);

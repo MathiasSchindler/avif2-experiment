@@ -199,7 +199,7 @@ if(WIN32 AND CMAKE_C_COMPILER_ID MATCHES "Clang")
     add_test(NAME windows-decoder-flycatcher-q176-i420-hash
         COMMAND "${CMAKE_COMMAND}"
             "-DINPUT=${CMAKE_CURRENT_BINARY_DIR}/flycatcher-q176-decoder.i420"
-            "-DEXPECTED_SHA256=38abac499fc98cb79b4c1e6cf166be2c905fb549771d8b51b3161a926b53c3f2"
+            "-DEXPECTED_SHA256=797b6653768762b4c7c7cdc5c3732267e745ced793203d3d3097d6303f98f6b4"
             -P "${CMAKE_CURRENT_SOURCE_DIR}/scripts/check-file-sha256.cmake")
     set_tests_properties(windows-decoder-flycatcher-q176-i420-hash PROPERTIES
         DEPENDS windows-decoder-flycatcher-q176-i420)
@@ -221,7 +221,7 @@ if(WIN32 AND CMAKE_C_COMPILER_ID MATCHES "Clang")
     add_test(NAME windows-decoder-louis-q224-i420-hash
         COMMAND "${CMAKE_COMMAND}"
             "-DINPUT=${CMAKE_CURRENT_BINARY_DIR}/louis-q224-decoder.i420"
-            "-DEXPECTED_SHA256=cbc741b34cc55af162d99e44273a6bb01a2f6152cb10ee5884248ceef33d0427"
+            "-DEXPECTED_SHA256=81116e50289f0b793075c7a08de8a68db5a7a1fa43dadcdb2f6155ce5d166dd9"
             -P "${CMAKE_CURRENT_SOURCE_DIR}/scripts/check-file-sha256.cmake")
     set_tests_properties(windows-decoder-louis-q224-i420-hash PROPERTIES
         DEPENDS windows-decoder-louis-q224-i420)

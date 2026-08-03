@@ -397,7 +397,7 @@ static void test_palette_prediction(void) {
     CHECK(av2h_luma_reconstruct_to_plane(
               &leaf, &mode, &prefix, &transform, &block,
               &plane, &scratch) == AV2H_OK);
-    for (index = 0U; index < AV2H_PALETTE_MAP_CAPACITY; ++index) {
+    for (index = 0U; index < 64U; ++index) {
         uint8_t expected = mode.palette_colors[
             av2h_palette_map_get(&mode, index)];
         CHECK(scratch.predictor[index] == expected);
@@ -410,6 +410,40 @@ static void test_palette_prediction(void) {
     CHECK(av2h_luma_reconstruct_to_plane(
               &leaf, &mode, &prefix, &transform, &block,
               &plane, &scratch) == AV2H_INVALID_DATA);
+}
+
+static void test_complete_palette_tables_and_map(void) {
+    static const uint16_t first_thresholds[AV2H_PALETTE_SIZE_COUNT]
+        [AV2H_PALETTE_COLOR_CONTEXT_COUNT] = {
+        { 28140U, 16384U, 8582U, 27413U, 30429U },
+        { 25350U, 11363U, 6841U, 21350U, 30573U },
+        { 23706U, 9976U, 6691U, 18909U, 30308U },
+        { 24116U, 9568U, 5706U, 20105U, 30897U },
+        { 20824U, 8141U, 5252U, 19519U, 30383U },
+        { 21628U, 8028U, 6489U, 22048U, 30801U },
+        { 22471U, 7542U, 7582U, 22102U, 30524U }
+    };
+    Av2hLeafCdfs cdfs;
+    Av2hFirstLeafMode mode;
+    size_t palette_index;
+    size_t context;
+    av2h_memory_fill(&mode, 0U, sizeof(mode));
+    CHECK(av2h_leaf_cdfs_init(&cdfs) == AV2H_OK);
+    for (palette_index = 0U;
+         palette_index < AV2H_PALETTE_SIZE_COUNT; ++palette_index) {
+        size_t symbol_count = palette_index + 2U;
+        for (context = 0U;
+             context < AV2H_PALETTE_COLOR_CONTEXT_COUNT; ++context) {
+            CHECK(cdfs.palette_y_color_index[palette_index][context][0] ==
+                  32768U - first_thresholds[palette_index][context]);
+            CHECK(cdfs.palette_y_color_index[palette_index][context]
+                  [symbol_count - 1U] == 0U);
+        }
+    }
+    mode.palette_size = AV2H_PALETTE_MAX_SIZE;
+    CHECK(av2h_palette_map_set(&mode, 4095U, 7U) == AV2H_OK);
+    CHECK(av2h_palette_map_get(&mode, 4095U) == 7U);
+    CHECK(av2h_palette_map_set(&mode, 4096U, 0U) == AV2H_OUT_OF_MEMORY);
 }
 
 static void test_first_leaf_dc_without_references(void) {
@@ -5464,6 +5498,7 @@ int main(void) {
     test_16x8_intrabc_morph_centered_template();
     test_skipped_intrabc_geometry_matrix();
     test_palette_prediction();
+    test_complete_palette_tables_and_map();
     test_first_leaf_dc_without_references();
     test_all_zero_16x16_reconstruction();
     test_laarim_q96_32x32_reconstruction();

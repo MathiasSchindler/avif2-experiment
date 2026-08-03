@@ -57,7 +57,8 @@ extern uint8_t av2h_debug_chroma_mode_stage;
 #define AV2H_CCSO_UNTRANSMITTED 255U
 #define AV2H_CCSO_MAX_UNIT_SIZE 256U
 #define AV2H_PALETTE_MAX_SIZE 8U
-#define AV2H_PALETTE_MAP_CAPACITY 64U
+#define AV2H_PALETTE_SIZE_COUNT 7U
+#define AV2H_PALETTE_MAP_CAPACITY 1536U
 #define AV2H_PALETTE_COLOR_CONTEXT_COUNT 5U
 #define AV2H_PALETTE_ROW_CONTEXT_COUNT 4U
 #define AV2H_MORPH_PRED_CONTEXT_COUNT 3U
@@ -97,10 +98,9 @@ typedef struct {
     uint16_t palette_y_mode[AV2H_BINARY_CDF_SIZE];
     uint16_t palette_y_size[7U + 4U];
     uint16_t palette_y_identity[AV2H_PALETTE_ROW_CONTEXT_COUNT][3U + 4U];
-    uint16_t palette_y_color_index_2
-        [AV2H_PALETTE_COLOR_CONTEXT_COUNT][2U + 4U];
-    uint16_t palette_y_color_index_6
-        [AV2H_PALETTE_COLOR_CONTEXT_COUNT][6U + 4U];
+    uint16_t palette_y_color_index[AV2H_PALETTE_SIZE_COUNT]
+                                  [AV2H_PALETTE_COLOR_CONTEXT_COUNT]
+                                  [AV2H_PALETTE_MAX_SIZE + 4U];
     uint16_t fsc_mode[AV2H_FSC_MODE_CONTEXT_COUNT]
                      [AV2H_FSC_BLOCK_CONTEXT_COUNT]
                      [AV2H_BINARY_CDF_SIZE];
@@ -213,6 +213,8 @@ typedef struct {
     uint8_t spatial_mrl_index[2];
     uint8_t spatial_multi_line_mrl[2];
     uint8_t edge_smooth[2];
+    uint8_t palette_size[2];
+    uint8_t palette_colors[2][AV2H_PALETTE_MAX_SIZE];
 } Av2hLumaModeNeighbors;
 
 typedef struct {
@@ -229,6 +231,8 @@ typedef struct {
     uint8_t fsc_mode;
     uint8_t mrl_index;
     uint8_t multi_line_mrl;
+    uint8_t palette_size;
+    uint8_t palette_colors[AV2H_PALETTE_MAX_SIZE];
 } Av2hLumaModeContext;
 
 typedef struct {

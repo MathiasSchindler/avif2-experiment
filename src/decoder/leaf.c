@@ -189,22 +189,62 @@ Av2hStatus av2h_leaf_cdfs_init(Av2hLeafCdfs *cdfs) {
     };
     static const uint8_t palette_identity_parameter
         [AV2H_PALETTE_ROW_CONTEXT_COUNT] = { 25U, 31U, 33U, 56U };
-    static const uint16_t palette_index_2
+    static const uint16_t palette_index[AV2H_PALETTE_SIZE_COUNT]
+        [AV2H_PALETTE_COLOR_CONTEXT_COUNT][AV2H_PALETTE_MAX_SIZE - 1U] = {
+        {
+            { 28140U }, { 16384U }, { 8582U }, { 27413U }, { 30429U }
+        },
+        {
+            { 25350U, 29026U }, { 11363U, 25273U },
+            { 6841U, 28579U }, { 21350U, 26012U },
+            { 30573U, 31646U }
+        },
+        {
+            { 23706U, 26962U, 29060U },
+            { 9976U, 22516U, 27382U },
+            { 6691U, 25460U, 29234U },
+            { 18909U, 23925U, 28403U },
+            { 30308U, 31076U, 31818U }
+        },
+        {
+            { 24116U, 26957U, 28486U, 29941U },
+            { 9568U, 20472U, 24294U, 28942U },
+            { 5706U, 25243U, 28040U, 30406U },
+            { 20105U, 22982U, 27024U, 28911U },
+            { 30897U, 31342U, 31766U, 32199U }
+        },
+        {
+            { 20824U, 24227U, 25926U, 27459U, 29266U },
+            { 8141U, 18989U, 21599U, 26182U, 28576U },
+            { 5252U, 24340U, 26450U, 28438U, 30625U },
+            { 19519U, 22695U, 25587U, 26972U, 28423U },
+            { 30383U, 30890U, 31247U, 31653U, 32150U }
+        },
+        {
+            { 21628U, 24512U, 25873U, 27054U, 28131U, 29539U },
+            { 8028U, 18264U, 20613U, 25424U, 27112U, 28906U },
+            { 6489U, 22242U, 24461U, 26394U, 28350U, 30510U },
+            { 22048U, 24429U, 26990U, 27944U, 28417U, 29574U },
+            { 30801U, 31205U, 31472U, 31728U, 32005U, 32305U }
+        },
+        {
+            { 22471U, 25083U, 25984U, 26893U, 27654U, 28750U, 29903U },
+            { 7542U, 17057U, 19151U, 23550U, 25459U, 27066U, 28804U },
+            { 7582U, 20437U, 22728U, 24622U, 26515U, 28579U, 30632U },
+            { 22102U, 24144U, 26916U, 28151U, 28846U, 29212U, 30153U },
+            { 30524U, 30887U, 31156U, 31393U, 31626U, 31911U, 32281U }
+        }
+    };
+    static const uint8_t palette_index_parameter[AV2H_PALETTE_SIZE_COUNT]
         [AV2H_PALETTE_COLOR_CONTEXT_COUNT] = {
-        28140U, 16384U, 8582U, 27413U, 30429U
+        { 90U, 0U, 6U, 32U, 93U },
+        { 90U, 7U, 1U, 6U, 93U },
+        { 0U, 1U, 6U, 31U, 93U },
+        { 0U, 81U, 76U, 31U, 93U },
+        { 75U, 75U, 75U, 6U, 78U },
+        { 80U, 90U, 75U, 76U, 93U },
+        { 93U, 90U, 90U, 0U, 93U }
     };
-    static const uint8_t palette_index_2_parameter
-        [AV2H_PALETTE_COLOR_CONTEXT_COUNT] = { 90U, 0U, 6U, 32U, 93U };
-    static const uint16_t palette_index_6
-        [AV2H_PALETTE_COLOR_CONTEXT_COUNT][5U] = {
-        { 20824U, 24227U, 25926U, 27459U, 29266U },
-        { 8141U, 18989U, 21599U, 26182U, 28576U },
-        { 5252U, 24340U, 26450U, 28438U, 30625U },
-        { 19519U, 22695U, 25587U, 26972U, 28423U },
-        { 30383U, 30890U, 31247U, 31653U, 32150U }
-    };
-    static const uint8_t palette_index_6_parameter
-        [AV2H_PALETTE_COLOR_CONTEXT_COUNT] = { 75U, 75U, 75U, 6U, 78U };
     Av2hStatus status;
     size_t context;
     if (cdfs == 0) return AV2H_INVALID_ARGUMENT;
@@ -294,16 +334,18 @@ Av2hStatus av2h_leaf_cdfs_init(Av2hLeafCdfs *cdfs) {
     }
     for (context = 0U; context < AV2H_PALETTE_COLOR_CONTEXT_COUNT;
          ++context) {
-        status = av2h_cdf_init(
-            cdfs->palette_y_color_index_2[context], 6U,
-            &palette_index_2[context], 2U,
-            palette_index_2_parameter[context], 0U);
-        if (status != AV2H_OK) return status;
-        status = av2h_cdf_init(
-            cdfs->palette_y_color_index_6[context], 10U,
-            palette_index_6[context], 6U,
-            palette_index_6_parameter[context], 0U);
-        if (status != AV2H_OK) return status;
+        size_t palette_index_value;
+        for (palette_index_value = 0U;
+             palette_index_value < AV2H_PALETTE_SIZE_COUNT;
+             ++palette_index_value) {
+            size_t symbol_count = palette_index_value + 2U;
+            status = av2h_cdf_init(
+                cdfs->palette_y_color_index[palette_index_value][context],
+                AV2H_PALETTE_MAX_SIZE + 4U,
+                palette_index[palette_index_value][context], symbol_count,
+                palette_index_parameter[palette_index_value][context], 0U);
+            if (status != AV2H_OK) return status;
+        }
     }
     status = av2h_cdf_init(cdfs->y_mode_set,
                            AV2H_Y_MODE_SET_SYMBOLS + 4U, mode_set,
@@ -1386,22 +1428,56 @@ static uint32_t palette_read_uniform(
 
 static Av2hStatus palette_read_colors(
     Av2hRangeDecoder *decoder,
+    const Av2hLumaModeNeighbors *neighbors,
     Av2hFirstLeafMode *mode) {
+    uint8_t cache[2U * AV2H_PALETTE_MAX_SIZE];
+    size_t above_index = 0U;
+    size_t left_index = 0U;
+    size_t cache_count = 0U;
     uint32_t range;
     unsigned int bits;
-    size_t index;
+    size_t index = 0U;
     if (mode->palette_size < 2U ||
         mode->palette_size > AV2H_PALETTE_MAX_SIZE) {
         return AV2H_INVALID_DATA;
     }
-    mode->palette_colors[0] =
+    if (neighbors != 0) {
+        while (above_index < neighbors->palette_size[1] &&
+               left_index < neighbors->palette_size[0]) {
+            cache[cache_count++] =
+                neighbors->palette_colors[1][above_index++];
+            cache[cache_count++] =
+                neighbors->palette_colors[0][left_index++];
+        }
+        while (above_index < neighbors->palette_size[1]) {
+            cache[cache_count++] =
+                neighbors->palette_colors[1][above_index++];
+        }
+        while (left_index < neighbors->palette_size[0]) {
+            cache[cache_count++] =
+                neighbors->palette_colors[0][left_index++];
+        }
+    }
+    for (above_index = 0U;
+         above_index < cache_count && index < mode->palette_size;
+         ++above_index) {
+        if (av2h_range_read_bypass(decoder, 1U) != 0U) {
+            mode->palette_colors[index++] = cache[above_index];
+        }
+    }
+    if (av2h_range_status(decoder) != AV2H_OK) {
+        return av2h_range_status(decoder);
+    }
+    if (index == mode->palette_size) goto sort_colors;
+    mode->palette_colors[index++] =
         (uint8_t)av2h_range_read_bypass(decoder, 8U);
     if (av2h_range_status(decoder) != AV2H_OK) {
         return av2h_range_status(decoder);
     }
+    if (index == mode->palette_size) goto sort_colors;
     bits = 5U + av2h_range_read_bypass(decoder, 2U);
-    range = 255U - mode->palette_colors[0];
-    for (index = 1U; index < mode->palette_size; ++index) {
+    range = 255U - mode->palette_colors[index - 1U];
+    for (; index < mode->palette_size; ++index) {
         uint32_t previous = mode->palette_colors[index - 1U];
         uint32_t delta = av2h_range_read_bypass(decoder, bits) + 1U;
         uint32_t color = previous + delta;
@@ -1415,6 +1491,7 @@ static Av2hStatus palette_read_colors(
         next_bits = palette_ceil_log2(range);
         if (next_bits < bits) bits = next_bits;
     }
+sort_colors:
     for (index = 0U; index < mode->palette_size; ++index) {
         size_t next;
         for (next = 1U; next < mode->palette_size - index; ++next) {
@@ -1583,13 +1660,12 @@ Av2hStatus av2h_luma_palette_map_read(
         return AV2H_INVALID_ARGUMENT;
     }
     if (mode->palette_size == 0U) return AV2H_OK;
-    if (!((leaf->block_size == AV2H_BLOCK_8X8 &&
-           (mode->palette_size == 2U || mode->palette_size == 6U)) ||
-          (leaf->block_size == AV2H_BLOCK_16X16 &&
-           mode->palette_size == 2U)) ||
+    if (mode->palette_size < 2U ||
+        mode->palette_size > AV2H_PALETTE_MAX_SIZE ||
+        !block_allows_palette(leaf->block_size) ||
         av2h_block_dimensions_mi(
             leaf->block_size, &width_mi, &height_mi) != AV2H_OK) {
-        return AV2H_UNSUPPORTED;
+        return AV2H_INVALID_DATA;
     }
     width = width_mi * 4U;
     height = height_mi * 4U;
@@ -1599,7 +1675,8 @@ Av2hStatus av2h_luma_palette_map_read(
     }
     mode->palette_width = (uint8_t)width;
     mode->palette_height = (uint8_t)height;
-    direction = av2h_range_read_bypass(decoder, 1U);
+    direction = width < 64U && height < 64U ?
+        av2h_range_read_bypass(decoder, 1U) : 0U;
     for (axis2 = 0U; axis2 < (direction ? width : height); ++axis2) {
         size_t identity_context = axis2 == 0U ? 3U : previous_identity;
         uint32_t identity = av2h_range_read_adaptive(
@@ -1627,9 +1704,8 @@ Av2hStatus av2h_luma_palette_map_read(
                 uint8_t color_order[AV2H_PALETTE_MAX_SIZE];
                 size_t context = palette_color_context(
                     mode, width, row, column, color_order);
-                uint16_t *cdf = mode->palette_size == 2U ?
-                    cdfs->palette_y_color_index_2[context] :
-                    cdfs->palette_y_color_index_6[context];
+                uint16_t *cdf = cdfs->palette_y_color_index
+                    [mode->palette_size - 2U][context];
                 uint32_t color_index = av2h_range_read_adaptive(
                     decoder, cdf, mode->palette_size);
                 if (color_index >= mode->palette_size) {
@@ -2290,6 +2366,17 @@ Av2hStatus av2h_luma_mode_neighbors_from_state(
     neighbors->edge_smooth[1] = (uint8_t)(
         candidates[3] != 0 && candidates[3]->present &&
         candidates[3]->joint_mode >= 1U && candidates[3]->joint_mode <= 3U);
+    neighbors->palette_size[0] = candidates[2] != 0 ?
+        candidates[2]->palette_size : 0U;
+    neighbors->palette_size[1] =
+        candidates[3] != 0 && leaf->row % 16U != 0U ?
+            candidates[3]->palette_size : 0U;
+    for (index = 0U; index < AV2H_PALETTE_MAX_SIZE; ++index) {
+        neighbors->palette_colors[0][index] = candidates[2] != 0 ?
+            candidates[2]->palette_colors[index] : 0U;
+        neighbors->palette_colors[1][index] = candidates[3] != 0 ?
+            candidates[3]->palette_colors[index] : 0U;
+    }
     return AV2H_OK;
 }
 
@@ -2332,6 +2419,10 @@ Av2hStatus av2h_luma_mode_context_state_update(
     context.fsc_mode = mode->fsc_mode;
     context.mrl_index = mode->mrl_index;
     context.multi_line_mrl = mode->multi_line_mrl;
+    context.palette_size = mode->palette_size;
+    for (index = 0U; index < AV2H_PALETTE_MAX_SIZE; ++index) {
+        context.palette_colors[index] = mode->palette_colors[index];
+    }
     for (index = 0U; index < width; ++index) {
         state->above[leaf->column + index] = context;
     }
@@ -2800,12 +2891,7 @@ static Av2hStatus luma_mode_read_internal(
                 return av2h_range_status(decoder);
             }
             mode->palette_size = (uint8_t)value;
-            if (!((leaf->block_size == AV2H_BLOCK_8X8 &&
-                   (value == 2U || value == 6U)) ||
-                  (leaf->block_size == AV2H_BLOCK_16X16 && value == 2U))) {
-                return AV2H_UNSUPPORTED;
-            }
-            status = palette_read_colors(decoder, mode);
+            status = palette_read_colors(decoder, neighbors, mode);
             if (status != AV2H_OK) return status;
             mode->after_palette_colors_bits = av2h_range_tell(decoder);
         }
