@@ -166,6 +166,12 @@ if(WIN32 AND CMAKE_C_COMPILER_ID MATCHES "Clang")
         COMMAND av2heif-decoder
             "${CMAKE_CURRENT_SOURCE_DIR}/images/artifacts/cuckoo-431x287-qp080.obu"
             -o "${CMAKE_CURRENT_BINARY_DIR}/cuckoo-q080-decoder.i420")
+    add_test(NAME windows-decoder-cuckoo-q080-i420-compare
+        COMMAND "${CMAKE_COMMAND}" -E compare_files
+            "${CMAKE_CURRENT_BINARY_DIR}/cuckoo-q080-decoder.i420"
+            "${CMAKE_CURRENT_SOURCE_DIR}/images/artifacts/cuckoo-431x287-qp080-decoded.i420")
+    set_tests_properties(windows-decoder-cuckoo-q080-i420-compare PROPERTIES
+        DEPENDS windows-decoder-cuckoo-q080-i420)
     add_test(NAME windows-decoder-diagnostic-silene-intrabc-bounds
         COMMAND "${CMAKE_COMMAND}"
             "-DDECODER=$<TARGET_FILE:av2heif-decoder>"
@@ -180,6 +186,22 @@ if(WIN32 AND CMAKE_C_COMPILER_ID MATCHES "Clang")
         COMMAND av2heif-decoder
             "${CMAKE_CURRENT_SOURCE_DIR}/images/artifacts/chimp-240x287-qp192.obu"
             -o "${CMAKE_CURRENT_BINARY_DIR}/chimp-q192-decoder.i420")
+    add_test(NAME windows-decoder-chimp-q192-i420-compare
+        COMMAND "${CMAKE_COMMAND}" -E compare_files
+            "${CMAKE_CURRENT_BINARY_DIR}/chimp-q192-decoder.i420"
+            "${CMAKE_CURRENT_SOURCE_DIR}/images/artifacts/chimp-240x287-qp192-decoded.i420")
+    set_tests_properties(windows-decoder-chimp-q192-i420-compare PROPERTIES
+        DEPENDS windows-decoder-chimp-q192-i420)
+    add_test(NAME windows-decoder-silene-q176-i420
+        COMMAND av2heif-decoder
+            "${CMAKE_CURRENT_SOURCE_DIR}/images/artifacts/silene-479x383-qp176.obu"
+            -o "${CMAKE_CURRENT_BINARY_DIR}/silene-q176-decoder.i420")
+    add_test(NAME windows-decoder-silene-q176-i420-compare
+        COMMAND "${CMAKE_COMMAND}" -E compare_files
+            "${CMAKE_CURRENT_BINARY_DIR}/silene-q176-decoder.i420"
+            "${CMAKE_CURRENT_SOURCE_DIR}/images/artifacts/silene-479x383-qp176-decoded.i420")
+    set_tests_properties(windows-decoder-silene-q176-i420-compare PROPERTIES
+        DEPENDS windows-decoder-silene-q176-i420)
     find_package(Python3 COMPONENTS Interpreter QUIET)
     if(Python3_Interpreter_FOUND)
         add_test(NAME windows-decoder-milestone-9-parity

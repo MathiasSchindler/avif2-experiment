@@ -2837,6 +2837,7 @@ Av2hStatus av2h_luma_predict(
                          (width == 32U && height == 64U))) ||
                      (mode->mode == AV2H_INTRA_D45 &&
                         ((width == 4U && height == 32U) ||
+                         (width == 16U && height == 8U) ||
                          (width == 16U && height == 32U) ||
                                                  (width == 16U && height == 64U) ||
                          (width == 64U && height == 8U) ||
@@ -2877,6 +2878,7 @@ Av2hStatus av2h_luma_predict(
                         ((width == 4U && height == 32U) ||
                          (width == 16U && height == 4U) ||
                          (width == 16U && height == 8U) ||
+                         (width == 16U && height == 16U) ||
                          (width == 8U && height == 4U) ||
                          (width == 8U && height == 32U) ||
                          (width == 16U && height == 32U) ||
@@ -7656,8 +7658,9 @@ static Av2hStatus apply_intrabc_morph_prediction(
         left_count = template_height;
     }
     for (index = 0U; index < above_count; ++index) {
-        size_t offset = above_count == template_width ? index :
-            ((size_t)index * template_width) / above_count;
+        size_t step = template_width / above_count;
+        size_t offset = (step == 1U ? 0U : step >> 1U) +
+            (size_t)index * step;
         size_t current_x = (size_t)block_x + offset;
         size_t reference_x = (size_t)source_x + offset;
         uint8_t x;
@@ -7676,8 +7679,9 @@ static Av2hStatus apply_intrabc_morph_prediction(
         sum_xx += x * x;
     }
     for (index = 0U; index < left_count; ++index) {
-        size_t offset = left_count == template_height ? index :
-            ((size_t)index * template_height) / left_count;
+        size_t step = template_height / left_count;
+        size_t offset = (step == 1U ? 0U : step >> 1U) +
+            (size_t)index * step;
         size_t current_y = (size_t)block_y + offset;
         size_t reference_y = (size_t)source_y + offset;
         uint8_t x;
@@ -8312,6 +8316,38 @@ static uint16_t mhccp_luma_filter1_q3(
         luma_plane->data[bottom_y * luma_plane->stride + right_x]);
 }
 
+static uint16_t mhccp_luma_left_clamped_q3(
+    const Av2hReconstructionPlane *luma_plane,
+    uint8_t filter_index,
+    uint16_t chroma_x,
+    uint16_t chroma_y) {
+    size_t center_x = (size_t)chroma_x * 2U;
+    size_t center_y = (size_t)chroma_y * 2U;
+    size_t right_x = center_x + 1U < luma_plane->width ?
+        center_x + 1U : center_x;
+    size_t top_y = center_y == 0U ? center_y : center_y - 1U;
+    size_t bottom_y = center_y + 1U < luma_plane->height ?
+        center_y + 1U : center_y;
+    if (filter_index == 0U) {
+        return mhccp_luma_q3(luma_plane, chroma_x, chroma_y);
+    }
+    if (filter_index == 1U) {
+        return (uint16_t)(
+            3U * luma_plane->data[
+                center_y * luma_plane->stride + center_x] +
+            luma_plane->data[center_y * luma_plane->stride + right_x] +
+            3U * luma_plane->data[
+                bottom_y * luma_plane->stride + center_x] +
+            luma_plane->data[bottom_y * luma_plane->stride + right_x]);
+    }
+    return (uint16_t)(
+        5U * luma_plane->data[
+            center_y * luma_plane->stride + center_x] +
+        luma_plane->data[center_y * luma_plane->stride + right_x] +
+        luma_plane->data[top_y * luma_plane->stride + center_x] +
+        luma_plane->data[bottom_y * luma_plane->stride + center_x]);
+}
+
 static uint16_t mhccp_luma_filter1_sb_top_q3(
     const Av2hReconstructionPlane *luma_plane,
     uint16_t chroma_x,
@@ -8338,6 +8374,18 @@ static uint16_t mhccp_luma_filter0_sb_top_q3(
     return (uint16_t)(4U * (
         luma_plane->data[center_y * luma_plane->stride + center_x] +
         luma_plane->data[center_y * luma_plane->stride + right_x]));
+}
+
+static uint16_t mhccp_luma_sb_top_sample_q3(
+    const Av2hReconstructionPlane *luma_plane,
+    uint8_t filter_index,
+    uint16_t chroma_x,
+    uint16_t block_y) {
+    return filter_index == 0U ?
+        mhccp_luma_filter0_sb_top_q3(luma_plane, chroma_x, block_y) :
+        filter_index == 1U ?
+        mhccp_luma_filter1_sb_top_q3(luma_plane, chroma_x, block_y) :
+        mhccp_luma_filter2_sb_top_q3(luma_plane, chroma_x, block_y);
 }
 
 static uint16_t mhccp_luma_sample_q3(
@@ -8556,20 +8604,14 @@ static Av2hStatus mhccp_predict_direction01(
             chroma_x = (uint16_t)(chroma_plane->reference_width - 1U);
         }
         {
-            int32_t center = (int32_t)((direction == 0U &&
-                is_top_sb_boundary ?
-                    (filter_index == 0U ?
-                        mhccp_luma_filter0_sb_top_q3(
-                            luma_plane, chroma_x, block_y) :
-                     filter_index == 1U ?
-                        mhccp_luma_filter1_sb_top_q3(
-                            luma_plane, chroma_x, block_y) :
-                        mhccp_luma_filter2_sb_top_q3(
-                            luma_plane, chroma_x, block_y)) :
+            int32_t center = (int32_t)((is_top_sb_boundary ?
+                    mhccp_luma_sb_top_sample_q3(
+                        luma_plane, filter_index, chroma_x, block_y) :
                     mhccp_luma_sample_q3(
                         luma_plane, filter_index, chroma_x, chroma_y)) >> 3U);
             vector[0] = direction == 0U ? center :
                 direction == 1U ?
+                    (is_top_sb_boundary ? center :
                     (int32_t)((filter_index == 0U ?
                         mhccp_luma_q3(
                             luma_plane, chroma_x,
@@ -8580,12 +8622,21 @@ static Av2hStatus mhccp_predict_direction01(
                             (uint16_t)(chroma_y - 1U)) :
                         mhccp_luma_filter2_top_clamped_q3(
                             luma_plane, chroma_x,
-                            (uint16_t)(chroma_y - 1U))) >> 3U) :
-                    (int32_t)(mhccp_luma_sample_q3(
-                        luma_plane,
-                        filter_index,
-                        chroma_x == 0U ? 0U : (uint16_t)(chroma_x - 1U),
-                        chroma_y) >> 3U);
+                            (uint16_t)(chroma_y - 1U))) >> 3U)) :
+                    (int32_t)((is_top_sb_boundary ?
+                        mhccp_luma_sb_top_sample_q3(
+                            luma_plane, filter_index,
+                            chroma_x == 0U ? 0U :
+                                (uint16_t)(chroma_x - 1U), block_y) :
+                        sample == 0U && have_left ?
+                            mhccp_luma_left_clamped_q3(
+                                luma_plane, filter_index,
+                                (uint16_t)(chroma_x - 1U), chroma_y) :
+                            mhccp_luma_sample_q3(
+                                luma_plane, filter_index,
+                                chroma_x == 0U ? 0U :
+                                    (uint16_t)(chroma_x - 1U),
+                                chroma_y)) >> 3U);
             vector[1] = (center * center + 128) >> 8U;
         }
         vector[2] = 128;
@@ -8646,10 +8697,9 @@ static Av2hStatus mhccp_predict_direction01(
                     (int32_t)(mhccp_luma_sample_q3(
                         luma_plane, filter_index, chroma_x,
                         (uint16_t)(chroma_y - 1U)) >> 3U) :
-                    (int32_t)(mhccp_luma_sample_q3(
+                    (int32_t)(mhccp_luma_left_clamped_q3(
                         luma_plane, filter_index,
-                        (uint16_t)(chroma_x - 1U),
-                        chroma_y) >> 3U);
+                        (uint16_t)(chroma_x - 1U), chroma_y) >> 3U);
             vector[1] = (center * center + 128) >> 8U;
         }
         vector[2] = 128;
@@ -8736,13 +8786,16 @@ static Av2hStatus mhccp_predict_direction01(
             vector[0] = direction == 0U ? center :
                 direction == 1U ?
                     (row == 0U && !have_top ? center :
+                     row == 0U && is_top_sb_boundary ?
+                        (int32_t)(mhccp_luma_sb_top_sample_q3(
+                            luma_plane, filter_index,
+                            (uint16_t)(block_x + column), block_y) >> 3U) :
                         (int32_t)(mhccp_luma_sample_q3(
                             luma_plane, filter_index,
                             (uint16_t)(block_x + column),
                             (uint16_t)(block_y + row - 1U)) >> 3U)) :
                     (int32_t)(mhccp_luma_sample_q3(
-                        luma_plane,
-                        filter_index,
+                        luma_plane, filter_index,
                         column == 0U && !have_left ? block_x :
                             (uint16_t)(block_x + column - 1U),
                         (uint16_t)(block_y + row)) >> 3U);

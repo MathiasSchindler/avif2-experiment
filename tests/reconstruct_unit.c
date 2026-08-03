@@ -260,6 +260,45 @@ static void test_skipped_16x8_intrabc_reconstruction(void) {
               &scratch, &reconstruction) == AV2H_UNSUPPORTED);
 }
 
+static void test_16x8_intrabc_morph_centered_template(void) {
+    uint8_t pixels[64U * 64U];
+    uint8_t reconstructed[16U * 16U];
+    Av2hReconstructionPlane plane = {
+        pixels, 64U, 64U, 64U, 64U, 64U,
+        reconstructed, 16U, sizeof(reconstructed)
+    };
+    Av2hPartitionNode leaf = { 8U, 8U, AV2H_BLOCK_16X8 };
+    Av2hFirstLeafMode mode = { 0 };
+    Av2hFirstCoeffPrefix prefix = { 0 };
+    Av2hFirstTransformType transform = { 0 };
+    Av2hFirstCoeffBlock block = { 0 };
+    Av2hReconstructionScratch scratch;
+    size_t index;
+
+    for (index = 0U; index < sizeof(pixels); ++index) {
+        pixels[index] = (uint8_t)(index * 13U + index / 64U * 17U + 7U);
+    }
+    av2h_memory_fill(reconstructed, 0xffU, sizeof(reconstructed));
+    mode.mode = AV2H_INTRA_DC;
+    mode.use_intrabc = 1U;
+    mode.morph_pred = 1U;
+    mode.skip_transform = 1U;
+    mode.displacement_x = -192;
+    mode.displacement_y = -192;
+    prefix.tx_size = AV2H_TX_16X8;
+    prefix.all_zero = 1U;
+    transform.primary_type = AV2H_TX_DCT_DCT;
+    block.width = 16U;
+    block.height = 8U;
+    block.coefficient_count = 128U;
+
+    CHECK(av2h_luma_reconstruct_to_plane(
+              &leaf, &mode, &prefix, &transform, &block,
+              &plane, &scratch) == AV2H_OK);
+        CHECK(sample_hash(scratch.predictor, 128U) ==
+                    UINT64_C(0x4cf5b460451081a1));
+}
+
 static void test_skipped_intrabc_geometry_matrix(void) {
     static const Av2hBlockSize block_sizes[] = {
         AV2H_BLOCK_4X4, AV2H_BLOCK_4X8, AV2H_BLOCK_8X4,
@@ -883,6 +922,26 @@ static void test_d45_8x4_ibp_prediction(void) {
     references.above_count = 0U;
     CHECK(av2h_luma_predict(
               &mode, 8U, 4U, &references, predictor, 10U) == AV2H_OK);
+}
+
+static void test_d45_16x8_prediction(void) {
+    static const uint8_t above[24U] = {
+        223U, 226U, 228U, 230U, 232U, 233U, 235U, 237U,
+        239U, 241U, 244U, 246U, 247U, 249U, 250U, 252U,
+        253U, 254U, 255U, 255U, 255U, 255U, 255U, 255U
+    };
+    Av2hFirstLeafMode mode = { 0 };
+    Av2hLumaReferences references = { 0 };
+    uint8_t predictor[16U * 8U];
+
+    mode.mode = AV2H_INTRA_D45;
+    references.above = above;
+    references.above_count = sizeof(above);
+
+    CHECK(av2h_luma_predict(
+              &mode, 16U, 8U, &references, predictor, 16U) == AV2H_OK);
+    CHECK(predictor[0U] == 226U);
+    CHECK(predictor[127U] == 255U);
 }
 
 static void test_d45_32x32_no_neighbor_ibp_prediction(void) {
@@ -1725,6 +1784,39 @@ static void test_d113_16x64_prediction(void) {
     CHECK(storage[sizeof(storage) - 1U] == 0xa5U);
         CHECK(sample_hash(predictor, 16U * 64U) ==
                     UINT64_C(0x193cfb9fe374f405));
+}
+
+static void test_d203_16x16_ibp_prediction(void) {
+    static const uint8_t expected_first_row[16U] = {
+        142U, 139U, 136U, 133U, 129U, 125U, 120U, 117U,
+        114U, 113U, 113U, 112U, 112U, 111U, 111U, 110U
+    };
+    uint8_t above[32U] = {
+        133U, 131U, 129U, 127U, 126U, 124U, 122U, 120U,
+        108U, 105U, 102U, 102U, 102U, 102U, 102U, 102U
+    };
+    uint8_t left[32U] = {
+        147U, 148U, 150U, 153U, 156U, 158U, 161U, 163U,
+        166U, 168U, 171U, 173U, 175U, 177U, 178U, 178U
+    };
+    Av2hFirstLeafMode mode = { 0 };
+    Av2hLumaReferences references = { 0 };
+    uint8_t predictor[16U * 16U];
+
+    mode.mode = AV2H_INTRA_D203;
+    mode.enable_ibp = 1U;
+    references.above = above;
+    references.above_count = 16U;
+    references.left = left;
+    references.left_count = 16U;
+    references.above_left = 134U;
+    references.has_above_left = 1U;
+
+    CHECK(av2h_luma_predict(
+              &mode, 16U, 16U, &references, predictor, 16U) == AV2H_OK);
+    CHECK(av2h_memory_compare(
+              predictor, expected_first_row,
+              sizeof(expected_first_row)) == 0);
 }
 
 static void test_luma_directional_feature_matrix(void) {
@@ -5226,6 +5318,7 @@ int main(void) {
     test_fixture_reconstruction();
     test_d45_minus_one_16x4_prediction();
     test_d45_8x4_ibp_prediction();
+    test_d45_16x8_prediction();
     test_d45_32x32_no_neighbor_ibp_prediction();
     test_tx16x4_dct_reconstruction();
     test_tx16x4_fsc_reconstruction();
@@ -5235,7 +5328,9 @@ int main(void) {
     test_tx4x4_d203_fsc_reconstruction();
     test_tx8x4_d203_reconstruction();
     test_tx8x8_d203_mrl_reconstruction();
+    test_d203_16x16_ibp_prediction();
     test_skipped_16x8_intrabc_reconstruction();
+    test_16x8_intrabc_morph_centered_template();
     test_skipped_intrabc_geometry_matrix();
     test_palette_prediction();
     test_all_zero_16x16_reconstruction();

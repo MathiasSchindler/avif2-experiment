@@ -8,9 +8,9 @@ that every hosted fixture passes.
 
 The public decoder emits I420 for 12 of the 21 `.obu` files in this directory.
 Chalk Q128, Chimp Q64, both Chinnathurai artifacts, Cuckoo Q160, Emerald Q208,
-Pastell Q64, and Schwaebisch Q208 are byte-identical to their locked AVM
-references. Chimp Q192, Cuckoo Q80, Louis Q144, and Silene Q176 decode
-completely but remain nonexact. The other nine files fail closed without output,
+Pastell Q64, Schwaebisch Q208, Chimp Q192, Cuckoo Q80, and Silene Q176 are
+byte-identical to their locked AVM references. Louis Q144 decodes completely
+but remains nonexact. The other nine files fail closed without output,
 and no artifact crashes. `Tell` counts bits from the beginning of the tile entropy stream.
 Block positions are expressed in 4x4 units.
 
@@ -38,17 +38,17 @@ an earlier entropy divergence can still be the underlying cause.
 | Chroma deblock map | None |
 | Frame filter | None |
 | Completeness | `laarim-448x299-qp192.obu` |
-| Output parity | `chimp-240x287-qp192.obu`, `cuckoo-431x287-qp080.obu`, `laarim-256x171-qp096.obu`, `louis-301x222-qp144.obu`, `silene-479x383-qp176.obu` |
+| Output parity | `laarim-256x171-qp096.obu`, `louis-301x222-qp144.obu` |
 
 | File | Current endpoint | Blocker |
 | --- | --- | --- |
 | `chalk-320x240-qp128.obu` | **Complete:** zero-angle D203 8x16 IBP prediction now follows the mapped IDIF path. The emitted 115,200-byte I420 is byte-identical to AVM (SHA-256 `4ba52509cafcc1442db604efbbb30c98f6a79bb3441f6b2803559d0d1399cddf`) | None for the accepted profile |
-| `chimp-240x287-qp192.obu` | **Decode complete but nonexact:** the prefilter output already differs from AVM in 64,293 Y, 16,093 U, and 15,842 V samples. The first mismatch is Y `(80,0)`. At that leaf local mode decoding enters at tell 982 and selects mode index 0, while AVM finishes at tell 986 with mode index 1; the visible divergence is downstream of an earlier two-bit entropy drift. Final output has 64,743 Y, 16,215 U, and 15,995 V mismatches (SHA-256 `14a5cd416e973c32dcb9aa7ee330925ec9b613172b6618dd45b045027cd6627a`) | Upstream luma syntax/lifecycle parity before MI `(20,0)` mode decoding |
+| `chimp-240x287-qp192.obu` | **Complete:** zero-angle D203 16x16 and D45 16x8 prediction use the normative directional path. The emitted 103,440-byte I420 is byte-identical to AVM (SHA-256 `3d5963929ce8856eb8fb3f620fe7e9c8ab9aa7c7033c690696328825acd2868c`) | None for the accepted profile |
 | `chimp-93x111-qp064.obu` | **Complete:** chroma CDEF now forces direction zero when primary strength is zero, matching AVM. The emitted I420 is byte-identical to the locked reference (SHA-256 `033f9a28603d8e324c51fc7a6f0593876dde613759a7593ff3b4059a5d7ea936`) | None for the accepted profile |
 | `chinnathurai-128x128-qp112.obu` | **Complete:** emitted I420 is byte-identical to the AVM reference (SHA-256 `d1c394ab05667a33bd5974a22ceb3eb94267b36990fe64ee12ba2a3c7e51122a`) | None for the accepted profile |
 | `chinnathurai-333x333-qp224.obu` | **Complete:** emitted 166,667-byte I420 is byte-identical to the AVM reference (SHA-256 `6f1868d8945e87350414baa1a49829b21dbcb8c4e0e44dee6633d844ef5d7182`) | None for the accepted profile |
 | `cuckoo-157x105-qp160.obu` | **Complete:** emitted I420 is byte-identical to the AVM reference (SHA-256 `01fa3b4d41665f9297edc5ad116a65618dac3069adfb6a83f83f7e05aa5010a`) | None for the accepted profile |
-| `cuckoo-431x287-qp080.obu` | **Decode complete but nonexact:** the 32x4 Vertical prediction route completes the stream. Output differs from AVM in 1,790 of 185,905 samples, with maximum absolute error 5; SHA-256 is `adcda8afa85971eb49622c9b725eac4aa99e9d24278b9120ad56c208e443983c` | Localized output parity |
+| `cuckoo-431x287-qp080.obu` | **Complete:** zero-angle D45 16x8 and D203 16x16 prediction use the normative directional path. The emitted 185,905-byte I420 is byte-identical to AVM (SHA-256 `7318cb9e85ddca039f6ab09b0a96a69ee35fb2f41cc9797df4cf3c43f0d43227`) | None for the accepted profile |
 | `emerald-192x96-qp208.obu` | **Complete:** 20 luma and 11 chroma leaves, tile done at tell 731, filtered I420 byte-identical to the AVM reference (SHA-256 `403c2e7245ec484984e60c1eaf8bd1b47487c0ba6b60afc916b9532025fc51ad`) | None for the accepted profile |
 | `emerald-480x240-qp128.obu` | Production reaches `(34,112)` 32x4 Y IDTX inverse transform at tell 83,079 after 843 luma and 122 chroma leaves | Unsupported IDTX inverse-transform profile |
 | `flycatcher-223x149-qp176.obu` | Production enters an extra final luma subtree at `(36,32)` and reaches tell 3,083 after 145 luma and 45 chroma leaves. AVM's final luma block is at MI `(36,16)` and completes the 420-byte stream around tell 3,050 | Upstream final-superblock partition traversal divergence |
@@ -62,7 +62,7 @@ an earlier entropy divergence can still be the underlying cause.
 | `schwaebisch-353x234-qp112.obu` | Coded MI-grid alignment clears the escaped chroma mode. Production now reaches luma prediction at `(56,80)` 64x16 Y, tell 117,006, after 1,924 luma and 306 chroma leaves | Unsupported luma prediction profile |
 | `schwaebisch-417x277-qp208.obu` | **Complete:** stale out-of-frame bottom-left mode context, partial-boundary extension signaling, cropped derived-CfL, and directional/Smooth edge profiles are fixed; local and AVM entropy match through the final logged luma endpoint at tell/range `4360/51200`, and the emitted 173,611-byte I420 is byte-identical to AVM (SHA-256 `6fbc5758a05d727ed05b04542de796cc72ca5dd9c402213c3e2d4ec72ae78428`) | None for the accepted profile |
 | `silene-384x307-qp080.obu` | Coded MI-grid alignment clears the escaped chroma mode. Production now reaches luma IntraBC source bounds at `(72,24)` 16x32 Y, tell 112,964, after 1,267 luma and 482 chroma leaves | Luma IntraBC source bounds |
-| `silene-479x383-qp176.obu` | **Decode complete but nonexact:** prefilter divergence begins at Y `(448,131)` and is broad before filtering. Final output differs in 52,483 Y, 7,984 U, and 20,941 V samples; SHA-256 remains `9863268854dd0b81e5f3c286f197fb8995684645d67ef3c970a848cf9a0ec409` | Upstream luma syntax/reconstruction parity before `(448,131)` |
+| `silene-479x383-qp176.obu` | **Complete:** MHCCP uses AVM's padded top/left luma references, and 16x8 IntraBC morph prediction centers its decimated top template. The emitted 275,617-byte I420 is byte-identical to AVM (SHA-256 `1872688a3cc73f622d752d265724c8118b1d0b310934be39bbff7fcbc4cb66d1`) | None for the accepted profile |
 
 Summary and implementation history:
 
@@ -70,8 +70,8 @@ The first two bullets describe the current production snapshot. Later bullets
 preserve the checkpoint at which each feature was implemented and can mention
 frontiers that have since moved.
 
-- the public Windows decoder emits output for 12/21 artifacts; eight are
-  byte-identical to AVM and four retain output-parity gaps. The other nine
+- the public Windows decoder emits output for 12/21 artifacts; ten are
+  byte-identical to AVM and two retain output-parity gaps. The other nine
   streams fail closed without output, and none crashes. The fresh production
   census identifies two luma coefficient-prefix stops, two luma
   coefficient-level stops, two luma-prediction stops, one luma
