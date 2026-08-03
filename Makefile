@@ -40,7 +40,7 @@ CORE_HEADERS := include/av2heif.h src/base.h src/decoder/sequence.h \
 	src/decoder/partition_cdf_data.inc src/decoder/coeff_cdf_all.inc \
 	src/decoder/coeff_prefix_cdf_all.inc \
 	src/decoder/gdf_data.inc \
-	src/decoder/emerald_q208_reconstruction.inc src/decoder/ist_data.inc \
+	src/decoder/ist_data.inc \
 	src/decoder/range.h src/decoder/tile.h \
 	src/decoder/transform.h src/decoder/tx_geometry.h src/decoder/reconstruct.h
 STRICT_DIR := build/freestanding

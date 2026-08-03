@@ -1147,11 +1147,6 @@ static Av2hStatus read_ccso_entropy(
             (uint8_t)(leaf->row % (sequence->superblock_size / 4U) != 0U),
             &context);
         if (status != AV2H_OK) return status;
-        if (frame->base_q_index == 208U &&
-            frame->width == 417U && frame->height == 277U &&
-            leaf->row == 64U && leaf->column == 0U && plane == 0U) {
-            context = 0U;
-        }
         if (leaf->row == 64U && leaf->column == 0U && plane == 2U) {
             size_t debug_index;
             av2h_debug_ccso_context = (uint32_t)context;

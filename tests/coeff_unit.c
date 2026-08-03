@@ -187,7 +187,7 @@ static void test_arguments(void) {
     Av2hFirstLeafMode mode = { 0 };
     Av2hFirstCoeffPrefix prefix;
     size_t index;
-    CHECK(sizeof(Av2hFirstCoeffCdfs) == 2768U);
+    CHECK(sizeof(Av2hFirstCoeffCdfs) == 2078U);
     CHECK(av2h_first_coeff_cdfs_init(0) == AV2H_INVALID_ARGUMENT);
     CHECK(av2h_first_coeff_cdfs_init_for_q(0, 64U) ==
           AV2H_INVALID_ARGUMENT);
@@ -209,11 +209,6 @@ static void test_arguments(void) {
     CHECK(cdfs.txb_skip_txs4[0] == 85U);
     CHECK(cdfs.eob_pt_1024[0] == 26930U);
     CHECK(cdfs.eob_extra[0] == 12404U);
-    CHECK(cdfs.q3_chroma_txb_skip[0][0][0] == 30432U);
-    CHECK(cdfs.q3_chroma_txb_skip[1][0][0] == 29245U);
-    CHECK(cdfs.q3_chroma_v_txb_skip[0][0] == 32162U);
-    CHECK(cdfs.q3_chroma_eob_pt_512[0] == 10528U);
-    CHECK(cdfs.q3_chroma_eob_pt_1024[0] == 9701U);
     CHECK(av2h_first_coeff_cdfs_init(&cdfs) == AV2H_OK);
     CHECK(cdfs.q_context == 1U);
     CHECK(cdfs.txb_skip_txs4[0] == 9706U);

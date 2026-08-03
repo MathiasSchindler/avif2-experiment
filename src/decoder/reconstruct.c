@@ -1,6 +1,5 @@
 #include "reconstruct.h"
 #include "tx_geometry.h"
-#include "emerald_q208_reconstruction.inc"
 #include "ist_data.inc"
 #include "ist_type1_data.inc"
 #include "ist_type2_data.inc"
@@ -7021,57 +7020,6 @@ Av2hStatus av2h_luma_reconstruct_to_plane(
         output_width : (uint16_t)(plane->width - block_x);
     visible_height = output_height < plane->height - block_y ?
         output_height : (uint16_t)(plane->height - block_y);
-    if (plane->width == 192U && plane->height == 96U) {
-        const uint8_t *pinned_predictor = 0;
-        if (leaf->row == 0U && leaf->column == 36U &&
-            prefix->tx_size == AV2H_TX_16X64 &&
-            mode->mode == AV2H_INTRA_D135 && mode->angle_delta == 3) {
-            pinned_predictor = emerald_q208_luma_13_predictor;
-        } else if (leaf->row == 16U && leaf->column == 16U &&
-                   prefix->tx_size == AV2H_TX_64X32 &&
-                   mode->mode == AV2H_INTRA_D203 &&
-                   mode->angle_delta == 2) {
-            pinned_predictor = emerald_q208_luma_16_predictor;
-        } else if (leaf->row == 16U && leaf->column == 32U &&
-                   prefix->tx_size == AV2H_TX_32X16 &&
-                   mode->mode == AV2H_INTRA_D203 &&
-                   mode->angle_delta == 2) {
-            pinned_predictor = emerald_q208_luma_17_predictor;
-        } else if (leaf->row == 16U && leaf->column == 40U &&
-                   prefix->tx_size == AV2H_TX_32X16 &&
-                   mode->mode == AV2H_INTRA_D135 &&
-                   mode->angle_delta == 0) {
-            pinned_predictor = emerald_q208_luma_18_predictor;
-        } else if (leaf->row == 20U && leaf->column == 32U &&
-                   prefix->tx_size == AV2H_TX_64X16 &&
-                   mode->mode == AV2H_INTRA_SMOOTH_HORIZONTAL &&
-                   mode->angle_delta == 0) {
-            pinned_predictor = emerald_q208_luma_19_predictor;
-        }
-        if (pinned_predictor != 0) {
-            size_t output_count = (size_t)output_width * output_height;
-            for (index = 0U; index < output_count; ++index) {
-                scratch->predictor[index] = pinned_predictor[index];
-            }
-            status = av2h_luma_reconstruct(
-                mode, prefix, transform, coefficients, scratch->predictor,
-                output_width, scratch, &reconstruction);
-            if (status != AV2H_OK) return status;
-            if (reconstruction.width != output_width ||
-                reconstruction.height != output_height) {
-                return AV2H_UNSUPPORTED;
-            }
-            for (index = 0U; index < output_count; ++index) {
-                size_t row = index / output_width;
-                size_t column = index % output_width;
-                plane->data[((size_t)block_y + row) * plane->stride +
-                            block_x + column] = reconstruction.pixels[index];
-            }
-            plane_mark_reconstructed(
-                plane, block_x, block_y, output_width, output_height);
-            return AV2H_OK;
-        }
-    }
     if (leaf->row == 0U && leaf->column == 0U &&
         leaf->block_size == AV2H_BLOCK_64X16 &&
         mode->mode == AV2H_INTRA_DC && mode->angle_delta == 0 &&
