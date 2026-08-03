@@ -8,6 +8,9 @@ import re
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / "vendor" / "avm" / "av2" / "common" / "secondary_tx.h"
 OUTPUT = ROOT / "src" / "decoder" / "ist_set2_data.inc"
+SET9_TYPE1_OUTPUT = (
+    ROOT / "src" / "decoder" / "ist_set9_type1_data.inc"
+)
 
 
 def parse_initializer(source: str, declaration: str) -> list:
@@ -41,8 +44,17 @@ def format_array(name: str, rows: list[list[int]]) -> str:
     return "\n".join(lines)
 
 
+def format_4x4_array(name: str, rows: list[list[int]]) -> str:
+    lines = [f"static const int16_t {name}[8U][16U] = {{"]
+    for row in rows:
+        lines.append("    { " + ", ".join(map(str, row)) + " },")
+    lines.append("};")
+    return "\n".join(lines)
+
+
 def main() -> None:
     source = SOURCE.read_text(encoding="utf-8")
+    kernels_4x4 = parse_initializer(source, "ist_4x4_kernel")
     kernels = parse_initializer(source, "ist_8x8_kernel")
     mappings = parse_initializer(source, "coeff8x8_mapping")
     sections = ["/* Generated from pinned AVM v1.0.0 normative tables. */"]
@@ -67,6 +79,42 @@ def main() -> None:
         )
     content = "\n".join(sections) + "\n"
     OUTPUT.write_text(content, encoding="ascii", newline="\n")
+
+    set9_type1_kernel = kernels[9][0]
+    set9_type1_scan_map = mappings[9 * 3]
+    if (len(set9_type1_kernel) != 32 or
+            any(len(row) != 48 for row in set9_type1_kernel)):
+        raise ValueError("unexpected set-9/type-1 kernel dimensions")
+    if len(set9_type1_scan_map) != 48:
+        raise ValueError("unexpected set-9/type-1 scan-map dimensions")
+    set9_type1_content = (
+        "/* Generated from pinned AVM v1.0.0 normative tables. */\n"
+        + format_array(
+            "av2h_ist_8x8_set9_type1_kernel", set9_type1_kernel
+        )
+        + "\n\nstatic const uint8_t "
+        "av2h_ist_8x8_set9_type1_scan_map[48U] = {\n"
+        + "    "
+        + ", ".join(f"{value}U" for value in set9_type1_scan_map)
+        + "\n};\n\n"
+    )
+    set10_type1_kernel = kernels_4x4[10][0]
+    if (len(set10_type1_kernel) != 8 or
+            any(len(row) != 16 for row in set10_type1_kernel)):
+        raise ValueError("unexpected 4x4 set-10/type-1 kernel dimensions")
+    set9_type1_content += format_4x4_array(
+        "av2h_ist_4x4_set10_type1_kernel", set10_type1_kernel
+    ) + "\n\n"
+    set12_type3_kernel = kernels_4x4[12][2]
+    if (len(set12_type3_kernel) != 8 or
+            any(len(row) != 16 for row in set12_type3_kernel)):
+        raise ValueError("unexpected 4x4 set-12/type-3 kernel dimensions")
+    set9_type1_content += format_4x4_array(
+        "av2h_ist_4x4_set12_type3_kernel", set12_type3_kernel
+    ) + "\n"
+    SET9_TYPE1_OUTPUT.write_text(
+        set9_type1_content, encoding="ascii", newline="\n"
+    )
 
 
 if __name__ == "__main__":

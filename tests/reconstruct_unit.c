@@ -1186,9 +1186,11 @@ static void test_primary_idtx_reconstruction_matrix(void) {
         { AV2H_TX_8X4, 8U, 4U, 7U, 10U, 1U },
         { AV2H_TX_8X8, 8U, 8U, 7U, 11U, 0U },
         { AV2H_TX_16X16, 16U, 16U, 6U, 13U, 0U },
+        { AV2H_TX_32X32, 32U, 32U, 6U, 13U, 0U },
         { AV2H_TX_8X16, 8U, 16U, 7U, 11U, 1U },
         { AV2H_TX_16X8, 16U, 8U, 7U, 11U, 1U },
-        { AV2H_TX_16X4, 16U, 4U, 6U, 12U, 0U }
+        { AV2H_TX_16X4, 16U, 4U, 6U, 12U, 0U },
+        { AV2H_TX_32X4, 32U, 4U, 7U, 11U, 1U }
     };
     Av2hFirstLeafIntraMode mode;
     size_t geometry;
@@ -2065,6 +2067,72 @@ static void test_luma_smooth_vertical_geometry_matrix(void) {
                       predictor, width) == AV2H_OK);
             CHECK(storage[0U] == 0xa5U);
             CHECK(storage[sizeof(storage) - 1U] == 0xa5U);
+        }
+    }
+}
+
+static void test_luma_smooth_partial_left_extension(void) {
+    static const Av2hFirstLeafIntraMode modes[] = {
+        AV2H_INTRA_SMOOTH, AV2H_INTRA_PAETH
+    };
+    uint8_t pixels[32U * 32U];
+    uint8_t reconstructed[8U * 8U];
+    uint8_t expected[16U * 16U];
+    uint8_t above[16U];
+    uint8_t left[16U];
+    Av2hReconstructionPlane plane = {
+        pixels, 32U, 32U, 32U, 32U, 32U,
+        reconstructed, 8U, sizeof(reconstructed)
+    };
+    Av2hPartitionNode leaf = { 1U, 2U, AV2H_BLOCK_16X16 };
+    Av2hFirstLeafMode mode = { 0 };
+    Av2hFirstCoeffPrefix prefix = { 0 };
+    Av2hFirstTransformType transform = { 0 };
+    Av2hFirstCoeffBlock block = { 0 };
+    Av2hReconstructionScratch scratch;
+    Av2hLumaReferences references = { 0 };
+    size_t mode_index;
+    size_t index;
+
+    for (index = 0U; index < sizeof(pixels); ++index) {
+        pixels[index] = (uint8_t)(index * 29U + 17U);
+    }
+    av2h_memory_fill(reconstructed, 0U, sizeof(reconstructed));
+    for (index = 2U; index < 6U; ++index) reconstructed[index] = 1U;
+    reconstructed[1U * 8U + 1U] = 1U;
+    reconstructed[2U * 8U + 1U] = 1U;
+    for (index = 0U; index < 16U; ++index) {
+        above[index] = pixels[3U * 32U + 8U + index];
+        left[index] = pixels[(4U + (index < 8U ? index : 7U)) * 32U + 7U];
+    }
+    references.above = above;
+    references.above_count = sizeof(above);
+    references.left = left;
+    references.left_count = sizeof(left);
+    references.above_left = pixels[3U * 32U + 7U];
+    references.has_above_left = 1U;
+    mode.enable_ibp = 1U;
+    prefix.tx_size = AV2H_TX_16X16;
+    prefix.all_zero = 1U;
+    transform.primary_type = AV2H_TX_DCT_DCT;
+    block.width = 16U;
+    block.height = 16U;
+    block.coefficient_count = 256U;
+    for (mode_index = 0U;
+         mode_index < sizeof(modes) / sizeof(modes[0]); ++mode_index) {
+        mode.mode = modes[mode_index];
+        av2h_memory_fill(reconstructed, 0U, sizeof(reconstructed));
+        for (index = 2U; index < 6U; ++index) reconstructed[index] = 1U;
+        reconstructed[1U * 8U + 1U] = 1U;
+        reconstructed[2U * 8U + 1U] = 1U;
+        CHECK(av2h_luma_predict(
+                  &mode, 16U, 16U, &references,
+                  expected, 16U) == AV2H_OK);
+        CHECK(av2h_luma_reconstruct_to_plane(
+                  &leaf, &mode, &prefix, &transform, &block,
+                  &plane, &scratch) == AV2H_OK);
+        for (index = 0U; index < sizeof(expected); ++index) {
+            CHECK(scratch.predictor[index] == expected[index]);
         }
     }
 }
@@ -4970,7 +5038,13 @@ static void test_luma_ist_frontier_matrix(void) {
                 { AV2H_INTRA_D45, AV2H_TX_16X4,
                     16U, 4U, 16U, 4U, 1U, 2U },
                 { AV2H_INTRA_SMOOTH, AV2H_TX_4X16,
-                    4U, 16U, 4U, 16U, 3U, 0U }
+                    4U, 16U, 4U, 16U, 3U, 0U },
+                { AV2H_INTRA_DC, AV2H_TX_8X16,
+                    8U, 16U, 8U, 16U, 1U, 9U },
+                { AV2H_INTRA_D67, AV2H_TX_4X4,
+                    4U, 4U, 4U, 4U, 1U, 10U },
+                { AV2H_INTRA_D157, AV2H_TX_16X4,
+                    16U, 4U, 16U, 4U, 3U, 12U }
         };
         static Av2hReconstructionScratch scratch;
         static Av2hFirstReconstruction reconstruction;
@@ -5175,6 +5249,7 @@ int main(void) {
     test_luma_directional_feature_matrix();
     test_luma_zero_angle_frontier_matrix();
     test_luma_smooth_vertical_geometry_matrix();
+    test_luma_smooth_partial_left_extension();
     test_chroma_angle_delta_matrix();
     test_live_plane_reconstruction();
     test_arguments();

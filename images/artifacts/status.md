@@ -26,15 +26,15 @@ an earlier entropy divergence can still be the underlying cause.
 | Current stopping surface | Files |
 | --- | --- |
 | Luma coefficient prefix | None |
-| Luma coefficient levels | `flycatcher-223x149-qp176.obu` |
-| Luma prediction | `laarim-256x171-qp096.obu` |
-| Luma partition or geometry | `louis-463x342-qp224.obu` |
-| Luma IntraBC source bounds | `schwaebisch-353x234-qp112.obu` |
+| Luma coefficient levels | None |
+| Luma prediction | None |
+| Luma partition or geometry | `flycatcher-223x149-qp176.obu`, `louis-463x342-qp224.obu` |
+| Luma IntraBC source bounds | None |
 | Luma IntraBC reference availability | None |
 | Chroma IntraBC reference availability | None |
-| Luma inverse transform | `emerald-480x240-qp128.obu`, `schwaebisch-353x234-qp112.obu` |
+| Luma inverse transform | None |
 | Chroma coefficient levels | None |
-| Chroma parse | `flycatcher-397x265-qp048.obu`, `pastell-512x341-qp160.obu`, `silene-384x307-qp080.obu` |
+| Chroma parse | `flycatcher-397x265-qp048.obu`, `laarim-256x171-qp096.obu`, `pastell-512x341-qp160.obu`, `schwaebisch-353x234-qp112.obu`, `silene-384x307-qp080.obu` |
 | Chroma deblock map | None |
 | Frame filter | None |
 | Completeness | `laarim-448x299-qp192.obu` |
@@ -51,15 +51,15 @@ an earlier entropy divergence can still be the underlying cause.
 | `cuckoo-431x287-qp080.obu` | **Decode complete but nonexact:** the 32x4 Vertical prediction route completes the stream. Output differs from AVM in 1,790 of 185,905 samples, with maximum absolute error 5; SHA-256 is `adcda8afa85971eb49622c9b725eac4aa99e9d24278b9120ad56c208e443983c` | Localized output parity |
 | `emerald-192x96-qp208.obu` | **Complete:** 20 luma and 11 chroma leaves, tile done at tell 731, filtered I420 byte-identical to the AVM reference (SHA-256 `403c2e7245ec484984e60c1eaf8bd1b47487c0ba6b60afc916b9532025fc51ad`) | None for the accepted profile |
 | `emerald-480x240-qp128.obu` | Production reaches `(34,112)` 32x4 Y IDTX inverse transform at tell 83,079 after 843 luma and 122 chroma leaves | Unsupported IDTX inverse-transform profile |
-| `flycatcher-223x149-qp176.obu` | Production reaches `(36,32)` 16x8 Y coefficient levels at tell 3,083 after 145 luma and 45 chroma leaves | Luma coefficient-level divergence |
+| `flycatcher-223x149-qp176.obu` | Production enters an extra final luma subtree at `(36,32)` and reaches tell 3,083 after 145 luma and 45 chroma leaves. AVM's final luma block is at MI `(36,16)` and completes the 420-byte stream around tell 3,050 | Upstream final-superblock partition traversal divergence |
 | `flycatcher-397x265-qp048.obu` | 32x4 D113 prediction and 4x4 IST set3/type2 advance production to escaped UV mode 13 at `(64,36)` 16x8 U, tell 165,656, after 2,419 luma and 738 chroma leaves | Upstream entropy divergence before chroma mode parsing |
-| `laarim-256x171-qp096.obu` | MRL-aware zero-angle transform-mode mapping advances production to `(40,4)` 16x16 Smooth Y reconstruction at tell 35,210 after 453 luma and 194 chroma leaves | Unsupported secondary-transform profile at the advanced luma reconstruction frontier |
+| `laarim-256x171-qp096.obu` | Partial-left Smooth and Paeth prediction now extend the last reconstructed edge sample. Production advances to escaped UV mode 14 at `(32,16)`, tell 37,908, after 498 luma and 210 chroma leaves | Upstream entropy divergence before chroma mode parsing |
 | `laarim-448x299-qp192.obu` | 4x4 IST set1/type3 and Smooth-Vertical edge extension consume the tile to tell 5,416 after 281 luma and 47 chroma leaves | Reconstruction/readiness maps remain incomplete at end of tile |
 | `louis-301x222-qp144.obu` | **Decode complete but nonexact:** output differs from AVM in 2,453 of 100,344 samples, with maximum absolute error 4; SHA-256 is `a82186c742715bfe673d14e68ad35aec8e7ca7049ca8f19d899e6ab3e7f5022e` | Localized output parity |
 | `louis-463x342-qp224.obu` | Production fails closed in luma partition/geometry at tell 2,570 after 188 luma and 49 chroma leaves | Upstream partition traversal divergence |
 | `pastell-320x213-qp064.obu` | **Complete:** GDF control rows now use the normative `-8` vertical block origin, so rows 120-127 select the second 128-pixel block flag. The emitted 102,400-byte I420 is byte-identical to AVM (SHA-256 `957eaf1ed0c372123eb1e98ac8d279d35834c6d09d48426acf48380d1a5333fb`) | None for the accepted profile |
 | `pastell-512x341-qp160.obu` | Production reaches escaped UV mode 14 at `(80,0)` 8x16 U, tell 26,514, after 967 luma and 1,087 chroma leaves | Upstream entropy divergence before chroma mode parsing |
-| `schwaebisch-353x234-qp112.obu` | Additional 4x4 IST kernels advance production to `(20,46)` 8x16 Y inverse transform at tell 19,139 after 518 luma and 71 chroma leaves | Unsupported 8x8 IST set9/type1 profile |
+| `schwaebisch-353x234-qp112.obu` | Pinned 8x8 set9/type1 and 4x4 set10/type1 and set12/type3 IST kernels, FSC 32x32 IDTX, and 16x16 V_DCT coefficient parsing advance production to `(46,32)` 32x8 U at tell 29,785 after 778 luma and 104 chroma leaves | Escaped UV mode 13 remains fail-closed pending upstream entropy localization |
 | `schwaebisch-417x277-qp208.obu` | **Complete:** stale out-of-frame bottom-left mode context, partial-boundary extension signaling, cropped derived-CfL, and directional/Smooth edge profiles are fixed; local and AVM entropy match through the final logged luma endpoint at tell/range `4360/51200`, and the emitted 173,611-byte I420 is byte-identical to AVM (SHA-256 `6fbc5758a05d727ed05b04542de796cc72ca5dd9c402213c3e2d4ec72ae78428`) | None for the accepted profile |
 | `silene-384x307-qp080.obu` | Production reaches escaped UV mode 14 at `(72,24)` 32x8 U, tell 113,538, after 1,257 luma and 501 chroma leaves; the invalid mode remains downstream of earlier luma entropy divergence | Upstream entropy divergence before chroma mode parsing |
 | `silene-479x383-qp176.obu` | **Decode complete but nonexact:** prefilter divergence begins at Y `(448,131)` and is broad before filtering. Final output differs in 52,483 Y, 7,984 U, and 20,941 V samples; SHA-256 remains `9863268854dd0b81e5f3c286f197fb8995684645d67ef3c970a848cf9a0ec409` | Upstream luma syntax/reconstruction parity before `(448,131)` |

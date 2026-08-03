@@ -6,6 +6,7 @@
 #include "ist_type2_data.inc"
 #include "ist_set6_data.inc"
 #include "ist_set2_data.inc"
+#include "ist_set9_type1_data.inc"
 #include "ist_adst_data.inc"
 #include "ist_reached_gaps_data.inc"
 
@@ -441,6 +442,9 @@ static Av2hStatus inverse_secondary_transform_4x4(
                transform->secondary_symbol == 2U) {
         kernel = av2h_ist_4x4_set9_type2_kernel;
     } else if (transform->secondary_set == 10U &&
+               transform->secondary_symbol == 1U) {
+        kernel = av2h_ist_4x4_set10_type1_kernel;
+    } else if (transform->secondary_set == 10U &&
                transform->secondary_symbol == 2U) {
         kernel = av2h_ist_4x4_set10_type2_kernel;
     } else if (transform->secondary_set == 11U &&
@@ -455,6 +459,9 @@ static Av2hStatus inverse_secondary_transform_4x4(
     } else if (transform->secondary_set == 12U &&
                transform->secondary_symbol == 2U) {
         kernel = av2h_ist_4x4_set12_type2_kernel;
+    } else if (transform->secondary_set == 12U &&
+               transform->secondary_symbol == 3U) {
+        kernel = av2h_ist_4x4_set12_type3_kernel;
     } else if (transform->secondary_set == 13U &&
                transform->secondary_symbol == 2U) {
         kernel = av2h_ist_4x4_set13_type2_kernel;
@@ -747,6 +754,10 @@ generic_dispatch:
                transform->secondary_set == 8U) {
         kernel = av2h_ist_8x8_set8_type1_kernel;
         scan_map = av2h_ist_8x8_set8_type1_scan_map;
+    } else if (transform->secondary_symbol == 1U &&
+               transform->secondary_set == 9U) {
+        kernel = av2h_ist_8x8_set9_type1_kernel;
+        scan_map = av2h_ist_8x8_set9_type1_scan_map;
     } else if (transform->secondary_symbol == 2U &&
                transform->secondary_set == 9U) {
         kernel = av2h_ist_8x8_set9_type2_kernel;
@@ -5993,10 +6004,10 @@ static int reconstruct_generic_selected(
             (mode->fsc_mode &&
              (tx_size == RECON_TX_4X4 || tx_size == RECON_TX_4X8 ||
               tx_size == RECON_TX_8X4 || tx_size == RECON_TX_8X8 ||
-              tx_size == RECON_TX_16X16 ||
+              tx_size == RECON_TX_16X16 || tx_size == RECON_TX_32X32 ||
               tx_size == RECON_TX_8X16 || tx_size == RECON_TX_16X8 ||
               tx_size == RECON_TX_4X16 || tx_size == RECON_TX_16X4 ||
-              tx_size == RECON_TX_32X8 ||
+              tx_size == RECON_TX_32X4 || tx_size == RECON_TX_32X8 ||
               tx_size == RECON_TX_16X32 || tx_size == RECON_TX_32X16)) ||
             mode->use_intrabc ||
             (!mode->fsc_mode && !mode->use_intrabc &&
@@ -7196,7 +7207,9 @@ Av2hStatus av2h_luma_reconstruct_to_plane(
             source_y * plane->stride + block_x - 1U -
             mode->mrl_index];
     }
-    if (mode->mode == AV2H_INTRA_SMOOTH_VERTICAL &&
+    if ((mode->mode == AV2H_INTRA_SMOOTH ||
+            mode->mode == AV2H_INTRA_SMOOTH_VERTICAL ||
+            mode->mode == AV2H_INTRA_PAETH) &&
         left_count != 0U && left_count < output_height) {
         uint8_t edge = scratch->left[left_count - 1U];
         for (index = left_count; index < output_height; ++index) {

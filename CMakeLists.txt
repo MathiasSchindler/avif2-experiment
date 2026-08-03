@@ -192,9 +192,9 @@ if(WIN32 AND CMAKE_C_COMPILER_ID MATCHES "Clang")
             "-DDECODER=$<TARGET_FILE:av2heif-decoder>"
             "-DINPUT=${CMAKE_CURRENT_SOURCE_DIR}/images/artifacts/laarim-256x171-qp096.obu"
             "-DOUTPUT=${CMAKE_CURRENT_BINARY_DIR}/diagnostic-laarim-q096.i420"
-            "-DEXPECTED_CAUSE=cause: invalid argument"
-            "-DEXPECTED_STAGE=stage: luma reconstruction / prediction"
-            "-DEXPECTED_LEAF=leaf: (40,4) block=16x16 plane=Y"
-            "-DEXPECTED_PROGRESS=entropy tell: 35210; completed leaves: Y=453 UV=194"
+            "-DEXPECTED_CAUSE=cause: invalid data"
+            "-DEXPECTED_STAGE=stage: chroma parse / unknown"
+            "-DEXPECTED_LEAF=leaf: (32,16) block=32x16 plane=U"
+            "-DEXPECTED_PROGRESS=entropy tell: 37908; completed leaves: Y=498 UV=210"
             -P "${CMAKE_CURRENT_SOURCE_DIR}/scripts/check-decoder-diagnostic.cmake")
 endif()

@@ -3960,6 +3960,7 @@ Av2hStatus av2h_coeff_block_read(
          prefix->tx_size != AV2H_TX_4X8 &&
          prefix->tx_size != AV2H_TX_8X4 &&
          prefix->tx_size != AV2H_TX_8X8 &&
+         prefix->tx_size != AV2H_TX_16X16 &&
          prefix->tx_size != AV2H_TX_4X16 &&
          prefix->tx_size != AV2H_TX_8X16 &&
          prefix->tx_size != AV2H_TX_16X4 &&
