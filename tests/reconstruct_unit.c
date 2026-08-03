@@ -1006,26 +1006,44 @@ static void test_d45_16x8_prediction(void) {
     CHECK(predictor[127U] == 255U);
 }
 
-static void test_d45_32x32_no_neighbor_ibp_prediction(void) {
+static void test_d45_no_neighbor_ibp_prediction(void) {
+    static const uint16_t sizes[2U] = { 8U, 32U };
+    static const uint8_t expected_8x8[64U] = {
+        128U, 128U, 128U, 127U, 127U, 127U, 127U, 127U,
+        128U, 128U, 128U, 128U, 128U, 128U, 127U, 127U,
+        129U, 128U, 128U, 128U, 128U, 128U, 128U, 128U,
+        129U, 128U, 128U, 128U, 128U, 128U, 128U, 128U,
+        129U, 128U, 128U, 128U, 128U, 128U, 128U, 128U,
+        129U, 129U, 128U, 128U, 128U, 128U, 128U, 128U,
+        129U, 129U, 128U, 128U, 128U, 128U, 128U, 128U,
+        129U, 129U, 128U, 128U, 128U, 128U, 128U, 128U
+    };
     Av2hFirstLeafMode mode = { 0 };
     Av2hLumaReferences references = { 0 };
     uint8_t predictor[32U * 32U];
+    size_t size_index;
     size_t row;
     size_t column;
 
     mode.mode = AV2H_INTRA_D45;
     mode.enable_ibp = 1U;
-    CHECK(av2h_luma_predict(
-              &mode, 32U, 32U, &references, predictor, 32U) == AV2H_OK);
-    for (row = 0U; row < 32U; ++row) {
-        size_t count_129 = row < 4U ? 0U :
-            2U * (((row - 4U) / 6U) + 1U);
-        size_t count_not_127 = 6U * (row / 2U + 1U);
-        if (count_not_127 > 32U) count_not_127 = 32U;
-        for (column = 0U; column < 32U; ++column) {
-            uint8_t expected = column < count_129 ? 129U :
-                column < count_not_127 ? 128U : 127U;
-            CHECK(predictor[row * 32U + column] == expected);
+    for (size_index = 0U; size_index < 2U; ++size_index) {
+        size_t size = sizes[size_index];
+        CHECK(av2h_luma_predict(
+                  &mode, (uint16_t)size, (uint16_t)size, &references,
+                  predictor, size) == AV2H_OK);
+        for (row = 0U; row < size; ++row) {
+            size_t count_129 = row < 4U ? 0U :
+                2U * (((row - 4U) / 6U) + 1U);
+            size_t count_not_127 = 6U * (row / 2U + 1U);
+            if (count_not_127 > size) count_not_127 = size;
+            for (column = 0U; column < size; ++column) {
+                uint8_t expected = size == 8U ?
+                    expected_8x8[row * size + column] :
+                    column < count_129 ? 129U :
+                    column < count_not_127 ? 128U : 127U;
+                CHECK(predictor[row * size + column] == expected);
+            }
         }
     }
 }
@@ -5432,7 +5450,7 @@ int main(void) {
     test_d45_minus_one_16x4_prediction();
     test_d45_8x4_ibp_prediction();
     test_d45_16x8_prediction();
-    test_d45_32x32_no_neighbor_ibp_prediction();
+    test_d45_no_neighbor_ibp_prediction();
     test_tx16x4_dct_reconstruction();
     test_tx16x4_fsc_reconstruction();
     test_tx4x16_fsc_reconstruction();

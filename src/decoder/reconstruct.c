@@ -2336,10 +2336,6 @@ static Av2hStatus predict_directional(
         int max_base =
             (int)width + height - 1 + 2 * mode->mrl_index;
         int x = dx * (1 + mode->mrl_index);
-        if ((references->above == 0 || references->above_count == 0U) &&
-            (references->left == 0 || references->left_count == 0U)) {
-            return AV2H_INVALID_ARGUMENT;
-        }
         for (row = 0U; row < height; ++row, x += dx) {
             int base = x >> 6;
             int shift = (x & 0x3f) >> 1;
