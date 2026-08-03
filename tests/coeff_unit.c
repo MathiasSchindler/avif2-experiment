@@ -187,7 +187,7 @@ static void test_arguments(void) {
     Av2hFirstLeafMode mode = { 0 };
     Av2hFirstCoeffPrefix prefix;
     size_t index;
-    CHECK(sizeof(Av2hFirstCoeffCdfs) == 2078U);
+    CHECK(sizeof(Av2hFirstCoeffCdfs) == 1964U);
     CHECK(av2h_first_coeff_cdfs_init(0) == AV2H_INVALID_ARGUMENT);
     CHECK(av2h_first_coeff_cdfs_init_for_q(0, 64U) ==
           AV2H_INVALID_ARGUMENT);
@@ -372,6 +372,16 @@ static void test_context_state(void) {
 }
 
 static void test_tx_descriptors(void) {
+    static const Av2hFirstTxSize luma_tx_sizes[AV2H_BLOCK_SIZE_COUNT] = {
+        AV2H_TX_4X4, AV2H_TX_4X8, AV2H_TX_8X4, AV2H_TX_8X8,
+        AV2H_TX_8X16, AV2H_TX_16X8, AV2H_TX_16X16, AV2H_TX_16X32,
+        AV2H_TX_32X16, AV2H_TX_32X32, AV2H_TX_32X64, AV2H_TX_64X32,
+        AV2H_TX_64X64, AV2H_TX_INVALID, AV2H_TX_INVALID,
+        AV2H_TX_INVALID, AV2H_TX_INVALID, AV2H_TX_INVALID,
+        AV2H_TX_INVALID, AV2H_TX_4X16, AV2H_TX_16X4, AV2H_TX_8X32,
+        AV2H_TX_32X8, AV2H_TX_16X64, AV2H_TX_64X16, AV2H_TX_4X32,
+        AV2H_TX_32X4, AV2H_TX_8X64, AV2H_TX_64X8
+    };
     static const uint8_t widths[AV2H_TX_SIZE_COUNT] = {
         4U, 8U, 16U, 32U, 64U, 4U, 8U, 8U, 16U, 16U, 32U, 32U,
         64U, 4U, 16U, 8U, 32U, 16U, 64U, 4U, 32U, 8U, 64U, 4U, 64U
@@ -432,21 +442,35 @@ static void test_tx_descriptors(void) {
         CHECK((uint16_t)(16U << descriptor->eob_class) == capacity);
         CHECK(descriptor->signaling_class == signaling[index]);
     }
+    for (index = 0U; index < AV2H_BLOCK_SIZE_COUNT; ++index) {
+        Av2hStatus status = av2h_luma_tx_descriptor_get(
+            (Av2hBlockSize)index, &descriptor);
+        if (luma_tx_sizes[index] == AV2H_TX_INVALID) {
+            CHECK(status == AV2H_UNSUPPORTED);
+            CHECK(descriptor == 0);
+        } else {
+            CHECK(status == AV2H_OK);
+            CHECK(descriptor != 0);
+            CHECK(descriptor->tx_size == luma_tx_sizes[index]);
+        }
+    }
+    CHECK(av2h_luma_tx_descriptor_get(AV2H_BLOCK_INVALID, &descriptor) ==
+          AV2H_UNSUPPORTED);
+    CHECK(descriptor == 0);
     CHECK(av2h_tx_descriptor_get(AV2H_TX_INVALID, &descriptor) ==
           AV2H_UNSUPPORTED);
     CHECK(descriptor == 0);
     CHECK(av2h_tx_descriptor_get(AV2H_TX_32X16, 0) ==
           AV2H_INVALID_ARGUMENT);
 
-    CHECK(av2h_luma_tx_descriptor_get(
-              AV2H_BLOCK_64X32, &descriptor) == AV2H_OK);
-    CHECK(descriptor->tx_size == AV2H_TX_64X32);
-    CHECK(av2h_luma_tx_descriptor_get(
-              AV2H_BLOCK_16X64, &descriptor) == AV2H_OK);
-    CHECK(descriptor->tx_size == AV2H_TX_16X64);
-    CHECK(av2h_luma_tx_descriptor_get(
-              AV2H_BLOCK_32X16, &descriptor) == AV2H_OK);
-    CHECK(descriptor->tx_size == AV2H_TX_32X16);
+    CHECK(av2h_chroma_tx_descriptor_get(
+              AV2H_BLOCK_8X8, &descriptor) == AV2H_OK);
+    CHECK(descriptor->tx_size == AV2H_TX_4X4);
+    CHECK(descriptor->tx_size_context == 0U);
+    CHECK(av2h_chroma_tx_descriptor_get(
+              AV2H_BLOCK_8X16, &descriptor) == AV2H_OK);
+    CHECK(descriptor->tx_size == AV2H_TX_4X8);
+    CHECK(descriptor->tx_size_context == 1U);
 }
 
 int main(void) {

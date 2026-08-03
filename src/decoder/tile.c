@@ -229,53 +229,10 @@ static int ccso_entropy_complete(const Av2hCcsoEntropyState *state) {
     return 1;
 }
 
-static int q_luma_geometry_supported(const Av2hFrameState *frame,
-                                     const Av2hPartitionNode *leaf) {
-    if (frame->base_q_index == 128U) return 1;
-    if (frame->base_q_index == 208U &&
-        frame->width == 192U && frame->height == 96U) {
-        switch (leaf->block_size) {
-            case AV2H_BLOCK_16X16:
-            case AV2H_BLOCK_16X64:
-            case AV2H_BLOCK_32X8:
-            case AV2H_BLOCK_32X16:
-            case AV2H_BLOCK_32X32:
-            case AV2H_BLOCK_32X64:
-            case AV2H_BLOCK_64X16:
-            case AV2H_BLOCK_64X32:
-                return 1;
-            default:
-                return 0;
-        }
-    }
-    switch (leaf->block_size) {
-        case AV2H_BLOCK_4X4:
-        case AV2H_BLOCK_4X8:
-        case AV2H_BLOCK_8X4:
-        case AV2H_BLOCK_4X16:
-        case AV2H_BLOCK_8X8:
-        case AV2H_BLOCK_16X8:
-        case AV2H_BLOCK_16X4:
-        case AV2H_BLOCK_16X16:
-        case AV2H_BLOCK_32X4:
-        case AV2H_BLOCK_32X8:
-        case AV2H_BLOCK_32X16:
-        case AV2H_BLOCK_8X16:
-        case AV2H_BLOCK_8X32:
-        case AV2H_BLOCK_16X32:
-        case AV2H_BLOCK_32X32:
-        case AV2H_BLOCK_32X64:
-        case AV2H_BLOCK_16X64:
-        case AV2H_BLOCK_64X32:
-        case AV2H_BLOCK_64X64:
-        case AV2H_BLOCK_64X16:
-        case AV2H_BLOCK_64X8:
-        case AV2H_BLOCK_8X64:
-        case AV2H_BLOCK_4X32:
-            return 1;
-        default:
-            return 0;
-    }
+static int luma_geometry_supported(const Av2hPartitionNode *leaf) {
+    const Av2hTxDescriptor *descriptor;
+    return leaf != 0 && av2h_luma_tx_descriptor_get(
+        leaf->block_size, &descriptor) == AV2H_OK;
 }
 
 static Av2hStatus tile_initialize_skipped_intrabc(
@@ -666,8 +623,7 @@ Av2hStatus av2h_tile_decoder_next_luma(
         av2h_debug_chimp_second_sb[32] = last_decision->after_bits;
     }
     av2h_debug_luma_stage_ranges[0] = decoder->range.range;
-    if (decoder->frame->gdf_mode < 2U &&
-        !q_luma_geometry_supported(decoder->frame, &leaf->node)) {
+    if (!luma_geometry_supported(&leaf->node)) {
         return tile_decoder_fail(decoder, AV2H_UNSUPPORTED);
     }
     if (decoder->luma_mode_contexts.superblock_mi != 0U &&

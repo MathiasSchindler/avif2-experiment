@@ -84,9 +84,6 @@ Av2hStatus av2h_first_coeff_cdfs_init_for_q(
     static const uint16_t eob_pt_16_inter[] = {
         1354U, 1787U, 4813U, 9327U
     };
-    static const uint16_t eob_pt_16_chroma[] = {
-        8298U, 11869U, 17297U, 24569U
-    };
     static const uint16_t eob_pt_32[4U][5U] = {
         { 1203U, 1920U, 4502U, 10281U, 17078U },
         { 1143U, 1778U, 3854U, 8166U, 13337U },
@@ -129,38 +126,6 @@ Av2hStatus av2h_first_coeff_cdfs_init_for_q(
         cdfs->txb_skip_txs0, txb_skip[q_context][0U]);
     if (status != AV2H_OK) return status;
     status = av2h_binary_cdf_init(
-        cdfs->txb_skip_chroma_txs0_ctx6,
-        (Av2hBinaryCdfSpec){ 8778U, 31U, 0U });
-    if (status != AV2H_OK) return status;
-    status = av2h_binary_cdf_init(
-        cdfs->txb_skip_chroma_txs0_ctx7,
-        (Av2hBinaryCdfSpec){ 17506U, 0U, 0U });
-    if (status != AV2H_OK) return status;
-    status = av2h_binary_cdf_init(
-        cdfs->txb_skip_chroma_txs0_ctx8,
-        (Av2hBinaryCdfSpec){ 26467U, 0U, 0U });
-    if (status != AV2H_OK) return status;
-    status = av2h_binary_cdf_init(
-        cdfs->txb_skip_chroma_txs1_ctx7,
-        (Av2hBinaryCdfSpec){ 16054U, 31U, 0U });
-    if (status != AV2H_OK) return status;
-    status = av2h_binary_cdf_init(
-        cdfs->txb_skip_chroma_v_ctx1,
-        (Av2hBinaryCdfSpec){ 7768U, 75U, 0U });
-    if (status != AV2H_OK) return status;
-    status = av2h_binary_cdf_init(
-        cdfs->txb_skip_chroma_v_ctx7,
-        (Av2hBinaryCdfSpec){ 16919U, 0U, 0U });
-    if (status != AV2H_OK) return status;
-    status = av2h_binary_cdf_init(
-        cdfs->txb_skip_chroma_v_ctx8,
-        (Av2hBinaryCdfSpec){ 25248U, 0U, 0U });
-    if (status != AV2H_OK) return status;
-    status = av2h_binary_cdf_init(
-        cdfs->txb_skip_chroma_v_ctx9,
-        (Av2hBinaryCdfSpec){ 8448U, 50U, 0U });
-    if (status != AV2H_OK) return status;
-    status = av2h_binary_cdf_init(
         cdfs->txb_skip_fsc_txs0_ctx9,
         (Av2hBinaryCdfSpec){ 32128U, 78U, 0U });
     if (status != AV2H_OK) return status;
@@ -190,9 +155,6 @@ Av2hStatus av2h_first_coeff_cdfs_init_for_q(
     if (status != AV2H_OK) return status;
     status = av2h_cdf_init(cdfs->eob_pt_16_inter, 5U + 4U,
                            eob_pt_16_inter, 5U, 30U, 0U);
-    if (status != AV2H_OK) return status;
-    status = av2h_cdf_init(cdfs->eob_pt_16_chroma, 5U + 4U,
-                           eob_pt_16_chroma, 5U, 30U, 0U);
     if (status != AV2H_OK) return status;
     status = av2h_cdf_init(cdfs->eob_pt_32, 6U + 4U,
                            eob_pt_32[q_context], 6U,
@@ -784,40 +746,6 @@ Av2hStatus av2h_chroma_coeff_prefix_read(
             cdfs->full_v_txb_skip[txb_skip_context];
         eob_cdf = cdfs->chroma_eob_pt[descriptor->eob_class];
         eob_symbols = chroma_eob_symbols[descriptor->eob_class];
-    } else if (frame->base_q_index == 128U &&
-               (leaf->block_size == AV2H_BLOCK_8X8 ||
-                leaf->block_size == AV2H_BLOCK_8X16)) {
-        prefix->tx_size = leaf->block_size == AV2H_BLOCK_8X16 ?
-            AV2H_TX_4X8 : AV2H_TX_4X4;
-        prefix->tx_size_context =
-            leaf->block_size == AV2H_BLOCK_8X16 ? 1U : 0U;
-        if (prefix->tx_size == AV2H_TX_4X8 && plane == 1U &&
-            txb_skip_context == 7U) {
-            skip_cdf = cdfs->txb_skip_chroma_txs1_ctx7;
-        } else if (prefix->tx_size == AV2H_TX_4X8 && plane == 2U &&
-                   txb_skip_context == 1U) {
-            skip_cdf = cdfs->txb_skip_chroma_v_ctx1;
-        } else if (prefix->tx_size != AV2H_TX_4X4) {
-            return AV2H_UNSUPPORTED;
-        } else if (plane == 1U && txb_skip_context >= 6U &&
-                   txb_skip_context <= 8U) {
-            skip_cdf = txb_skip_context == 6U ?
-                cdfs->txb_skip_chroma_txs0_ctx6 :
-                txb_skip_context == 7U ?
-                    cdfs->txb_skip_chroma_txs0_ctx7 :
-                    cdfs->txb_skip_chroma_txs0_ctx8;
-        } else if (plane == 2U && txb_skip_context >= 7U &&
-                   txb_skip_context <= 9U) {
-            skip_cdf = txb_skip_context == 7U ?
-                cdfs->txb_skip_chroma_v_ctx7 :
-                txb_skip_context == 8U ?
-                    cdfs->txb_skip_chroma_v_ctx8 :
-                    cdfs->txb_skip_chroma_v_ctx9;
-        } else {
-            return AV2H_UNSUPPORTED;
-        }
-        eob_cdf = cdfs->eob_pt_16_chroma;
-        eob_symbols = 5U;
     } else {
         return AV2H_UNSUPPORTED;
     }

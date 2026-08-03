@@ -7020,43 +7020,6 @@ Av2hStatus av2h_luma_reconstruct_to_plane(
         output_width : (uint16_t)(plane->width - block_x);
     visible_height = output_height < plane->height - block_y ?
         output_height : (uint16_t)(plane->height - block_y);
-    if (leaf->row == 0U && leaf->column == 0U &&
-        leaf->block_size == AV2H_BLOCK_64X16 &&
-        mode->mode == AV2H_INTRA_DC && mode->angle_delta == 0 &&
-        mode->mrl_index == 0U && mode->enable_ibp == 1U &&
-        mode->use_intrabc == 0U && mode->skip_transform == 0U &&
-        mode->fsc_mode == 0U &&
-        prefix->tx_size == AV2H_TX_64X16 && prefix->all_zero &&
-        prefix->eob == 0U &&
-        transform->primary_type == AV2H_TX_DCT_DCT &&
-        coefficients->width == 32U && coefficients->height == 16U &&
-        coefficients->coefficient_count == 512U &&
-        coefficients->nonzero_count == 0U) {
-        Av2hLumaReferences empty_references = { 0 };
-        if ((uint32_t)block_x + 64U > plane->width ||
-            (uint32_t)block_y + 16U > plane->height) {
-            return AV2H_INVALID_ARGUMENT;
-        }
-        status = av2h_luma_predict(
-            mode, 64U, 16U, &empty_references, scratch->predictor, 64U);
-        if (status != AV2H_OK) return status;
-        status = av2h_luma_reconstruct(
-            mode, prefix, transform, coefficients, scratch->predictor, 64U,
-            scratch, &reconstruction);
-        if (status != AV2H_OK) return status;
-        if (reconstruction.width != 64U ||
-            reconstruction.height != 16U) {
-            return AV2H_UNSUPPORTED;
-        }
-        for (index = 0U; index < 1024U; ++index) {
-            size_t row = index >> 6U;
-            size_t column = index & 63U;
-            plane->data[((size_t)block_y + row) * plane->stride +
-                        block_x + column] = reconstruction.pixels[index];
-        }
-        plane_mark_reconstructed(plane, block_x, block_y, 64U, 16U);
-        return AV2H_OK;
-    }
     above_count = block_y <= mode->mrl_index ||
         block_x >= plane->width ? 0U :
         (size_t)plane->width - block_x;

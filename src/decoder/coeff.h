@@ -49,14 +49,6 @@ typedef struct {
     uint16_t full_luma_txb_skip[2U][5U][10U][AV2H_BINARY_CDF_SIZE];
     uint16_t full_v_txb_skip[12U][AV2H_BINARY_CDF_SIZE];
     uint16_t txb_skip_txs0[AV2H_BINARY_CDF_SIZE];
-    uint16_t txb_skip_chroma_txs0_ctx6[AV2H_BINARY_CDF_SIZE];
-    uint16_t txb_skip_chroma_txs0_ctx7[AV2H_BINARY_CDF_SIZE];
-    uint16_t txb_skip_chroma_txs0_ctx8[AV2H_BINARY_CDF_SIZE];
-    uint16_t txb_skip_chroma_txs1_ctx7[AV2H_BINARY_CDF_SIZE];
-    uint16_t txb_skip_chroma_v_ctx1[AV2H_BINARY_CDF_SIZE];
-    uint16_t txb_skip_chroma_v_ctx7[AV2H_BINARY_CDF_SIZE];
-    uint16_t txb_skip_chroma_v_ctx8[AV2H_BINARY_CDF_SIZE];
-    uint16_t txb_skip_chroma_v_ctx9[AV2H_BINARY_CDF_SIZE];
     uint16_t txb_skip_fsc_txs0_ctx9[AV2H_BINARY_CDF_SIZE];
     uint16_t txb_skip_fsc_txs1_ctx9[AV2H_BINARY_CDF_SIZE];
     uint16_t txb_skip_fsc_txs2_ctx9[AV2H_BINARY_CDF_SIZE];
@@ -66,7 +58,6 @@ typedef struct {
     uint16_t txb_skip_txs4[AV2H_BINARY_CDF_SIZE];
     uint16_t eob_pt_16[5U + 4U];
     uint16_t eob_pt_16_inter[5U + 4U];
-    uint16_t eob_pt_16_chroma[5U + 4U];
     uint16_t eob_pt_32[6U + 4U];
     uint16_t eob_pt_64[7U + 4U];
     uint16_t eob_pt_128[8U + 4U];

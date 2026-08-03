@@ -412,6 +412,68 @@ static void test_palette_prediction(void) {
               &plane, &scratch) == AV2H_INVALID_DATA);
 }
 
+static void test_first_leaf_dc_without_references(void) {
+    static const Av2hBlockSize block_sizes[] = {
+        AV2H_BLOCK_8X8, AV2H_BLOCK_64X16
+    };
+    uint8_t pixels[64U * 16U];
+    uint8_t reconstructed[16U * 4U];
+    Av2hReconstructionPlane plane = {
+        pixels, 64U, 64U, 16U, 64U, 16U,
+        reconstructed, 16U, sizeof(reconstructed)
+    };
+    Av2hFirstLeafMode mode = { 0 };
+    Av2hFirstTransformType transform = { 0 };
+    Av2hReconstructionScratch scratch;
+    size_t block_index;
+
+    mode.mode = AV2H_INTRA_DC;
+    mode.enable_ibp = 1U;
+    transform.primary_type = AV2H_TX_DCT_DCT;
+    for (block_index = 0U;
+         block_index < sizeof(block_sizes) / sizeof(block_sizes[0]);
+         ++block_index) {
+        const Av2hTxDescriptor *descriptor = 0;
+        Av2hPartitionNode leaf = { 0U, 0U, block_sizes[block_index] };
+        Av2hFirstCoeffPrefix prefix = { 0 };
+        Av2hFirstCoeffBlock block = { 0 };
+        size_t index;
+        size_t map_width;
+        size_t map_height;
+
+        CHECK(av2h_luma_tx_descriptor_get(
+                  block_sizes[block_index], &descriptor) == AV2H_OK);
+        if (descriptor == 0) continue;
+        prefix.tx_size = descriptor->tx_size;
+        prefix.all_zero = 1U;
+        block.width = descriptor->coefficient_width;
+        block.height = descriptor->coefficient_height;
+        block.coefficient_count = descriptor->eob_capacity;
+        av2h_memory_fill(pixels, 0U, sizeof(pixels));
+        av2h_memory_fill(reconstructed, 0U, sizeof(reconstructed));
+        CHECK(av2h_luma_reconstruct_to_plane(
+                  &leaf, &mode, &prefix, &transform, &block,
+                  &plane, &scratch) == AV2H_OK);
+        for (index = 0U;
+             index < (size_t)descriptor->output_width *
+                 descriptor->output_height;
+             ++index) {
+            size_t row = index / descriptor->output_width;
+            size_t column = index % descriptor->output_width;
+            CHECK(scratch.predictor[index] == 128U);
+            CHECK(pixels[row * plane.stride + column] == 128U);
+        }
+        map_width = (descriptor->output_width + 3U) / 4U;
+        map_height = (descriptor->output_height + 3U) / 4U;
+        for (index = 0U; index < map_width * map_height; ++index) {
+            size_t row = index / map_width;
+            size_t column = index % map_width;
+            CHECK(reconstructed[row * plane.reconstructed_stride + column] ==
+                  1U);
+        }
+    }
+}
+
 static void test_all_zero_16x16_reconstruction(void) {
     Av2hFirstLeafMode mode = { 0 };
     Av2hFirstCoeffPrefix prefix = { 0 };
@@ -5384,6 +5446,7 @@ int main(void) {
     test_16x8_intrabc_morph_centered_template();
     test_skipped_intrabc_geometry_matrix();
     test_palette_prediction();
+    test_first_leaf_dc_without_references();
     test_all_zero_16x16_reconstruction();
     test_laarim_q96_32x32_reconstruction();
     test_schwaebisch_q208_64x16_reconstruction();
