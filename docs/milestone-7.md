@@ -175,7 +175,11 @@ full-surface sample oracles.
 The ordinary fixture has no remaining syntax, traversal, prediction,
 reconstruction, or crop frontier in Milestone 7.
 
-## JPEG artifact OBU audit
+## Historical JPEG artifact OBU audit
+
+This section records the corpus frontier when Milestone 7 closed. Current
+end-to-end artifact results are maintained in
+[`images/artifacts/status.md`](../images/artifacts/status.md).
 
 The 20 generated streams listed by `images/artifacts/manifest.json` and the
 legacy `chalk-320x240-qp128.obu` have been checked against the current private
@@ -231,9 +235,9 @@ quantized/dequantized arrays. It is part of `make test-c`.
 
 ## Handoff
 
-Milestone 8 owns broader artifact-profile coverage. The ordinary fixture is a
-closed regression oracle: retain coded-size planes, full traversal to DONE at
-tell 6498, and the exact Y/U/V crop hashes above.
+At this handoff, Milestone 8 owned broader artifact-profile coverage. The
+ordinary fixture is a closed regression oracle: retain coded-size planes, full
+traversal to DONE at tell 6498, and the exact Y/U/V crop hashes above.
 
 Run the current focused checkpoint with:
 

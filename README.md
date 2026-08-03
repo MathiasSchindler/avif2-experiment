@@ -30,15 +30,16 @@ separate reference experiment and is fetched into ignored `vendor/` and
   visible reference bounds from padded storage, retain per-4x4 reconstruction
   readiness, and reconstruct all 12 odd luma and five odd chroma leaves
   sample-exactly through tell 696 before filtering.
-- Milestone 7 has complete ordinary luma coverage: all 22 leaves reconstruct
-  sample-exactly through tell 762. Ordinary chroma is the remaining frontier.
-- Milestone 8 owns high-detail, CFL, intraBC, and remaining advanced transform
-  coverage. Milestone 9 owns mandatory-filter integration and filtered parity.
-  Milestone 10 alone owns workspace finalization and public decoder exposure.
-- The private pipeline completely decodes `emerald-192x96-qp208.obu`,
-  `chinnathurai-333x333-qp224.obu`, `louis-463x342-qp224.obu`, and
-  `schwaebisch-417x277-qp208.obu` to byte-exact I420 output. Chimp Q64 also
-  decodes completely and retains a chroma reconstruction parity gap.
+- Milestone 7 completes the ordinary 160x120 fixture through all luma and
+  chroma leaves, final tile tell 6498, and sample-exact prefilter and cropped
+  output parity.
+- Milestone 8 completes the high-detail, CFL, IntraBC, coefficient, prediction,
+  and advanced-transform coverage reached by its locked fixture. Milestone 9
+  completes mandatory-filter integration and filtered parity. Milestone 10
+  remains planned for workspace finalization and the stable public decode API.
+- The private Windows decoder emits I420 for all 21 research artifacts. Seventeen
+  are byte-identical to pinned AVM; Emerald Q128, both Laarim streams, and
+  Schwaebisch Q112 complete with tracked output-parity gaps.
 
 The public API is declared in `include/av2heif.h`. Milestone details and
 limitations are recorded in `docs/milestone-0.md` through
@@ -97,12 +98,11 @@ extension:
 ```
 
 BMP output currently applies deterministic limited-range BT.601 I420-to-BGR
-conversion. Emerald Q208, Chinnathurai Q224, Louis Q224, and Schwaebisch Q208
-complete the full private decoder and match their locked AVM I420 references
-byte-for-byte. Chimp Q64 emits output with a remaining chroma reconstruction
-parity gap; unsupported streams fail closed and do not create output. The CLI
-accepts raw OBU input only. HEIF item extraction and the stable public decode
-API remain Milestone 10 work.
+conversion. All 21 research artifacts complete through the private decoder;
+17 match their locked AVM I420 references byte-for-byte and four retain the
+output-parity gaps listed in `images/artifacts/status.md`. The CLI accepts raw
+OBU input only. HEIF item extraction and the stable public decode API remain
+Milestone 10 work.
 
 Failed frame decodes report the original cause separately from the retained
 coarse status, followed by the pipeline/syntax stage, plane, leaf position and

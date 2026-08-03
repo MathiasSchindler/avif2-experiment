@@ -5,11 +5,14 @@ chroma, and transform syntax is implemented. The locked 96x80 high-detail
 fixture completes frame-wide traversal with sample-exact unfiltered Y/U/V
 reconstruction under sanitizer and strict freestanding validation.
 
-## Current handoff
+## Completion handoff
 
-The production decoder emits 7 of the 21 research artifacts: six are
-byte-identical to pinned AVM and Chimp Q192 completes with an upstream entropy
-parity gap. Milestone 8 closed the remaining work by:
+At Milestone 8 closure, the production decoder emitted 7 of the 21 research
+artifacts: six were byte-identical to pinned AVM and Chimp Q192 completed with
+an upstream entropy parity gap. This historical handoff records that closure;
+the current corpus snapshot is maintained in
+[`images/artifacts/status.md`](../images/artifacts/status.md). Milestone 8
+closed its remaining work by:
 
 1. making Chimp Q64 and Cuckoo Q160 byte-identical to pinned AVM; and
 2. retaining fail-closed behavior for impossible EOBs, UV mode 14,
@@ -192,7 +195,7 @@ coefficient-level profile for flycatcher, Q-context-0 8x8 coefficient-prefix
 geometry for pastell, the Q160 cuckoo 8x16 profile, the Q160 pastell 16x32
 EOB-3 coefficient profile, and the Q208 Schwaebisch 32x16 profile.
 
-## Current scope
+## Completed scope
 
 - retain the completed high-detail fixture as the canonical traversal gate:
   347 luma and 9 chroma handoffs, tell 36,736, complete readiness maps, and
@@ -206,11 +209,10 @@ EOB-3 coefficient profile, and the Q208 Schwaebisch 32x16 profile.
   maps; and
 - retain deterministic failure for restoration and unreached profile features.
 
-Traversal should continue beyond a block only where every newly reached CDF,
-transform, coefficient, prediction, and reconstruction path has matching AVM
-evidence. The current implementation order is the five-item handoff above;
-the old first-block admissions named in the historical checkpoint are no
-longer the active queue.
+Traversal continued beyond a block only where every newly reached CDF,
+transform, coefficient, prediction, and reconstruction path had matching AVM
+evidence. The old first-block admissions named in the historical checkpoint
+are no longer an active queue.
 
 ## Exit gate
 

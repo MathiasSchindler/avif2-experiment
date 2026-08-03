@@ -6,10 +6,10 @@ every emitted I420 was compared by SHA-256 to its locked AVM reference. The
 detailed incomplete-file endpoints below are diagnostic frontiers, not a claim
 that every hosted fixture passes.
 
-The public decoder emits I420 for 18 of the 21 `.obu` files in this directory;
-16 are byte-identical to their locked AVM references. Laarim Q96 and
-Schwaebisch Q112 decode completely but remain nonexact. The other three files
-fail closed without output, and no artifact crashes. `Tell` counts bits from
+The public decoder emits I420 for all 21 `.obu` files in this directory;
+17 are byte-identical to their locked AVM references. Emerald Q128, both
+Laarim streams, and Schwaebisch Q112 decode completely but remain nonexact.
+No artifact crashes. `Tell` counts bits from
 the beginning of the tile entropy stream.
 Block positions are expressed in 4x4 units.
 
@@ -33,11 +33,11 @@ an earlier entropy divergence can still be the underlying cause.
 | Chroma IntraBC reference availability | None |
 | Luma inverse transform | None |
 | Chroma coefficient levels | None |
-| Chroma parse | `pastell-512x341-qp160.obu` |
+| Chroma parse | None |
 | Chroma deblock map | None |
 | Frame filter | None |
-| Completeness | `laarim-448x299-qp192.obu` |
-| Output parity | `laarim-256x171-qp096.obu`, `schwaebisch-353x234-qp112.obu` |
+| Completeness | None |
+| Output parity | `emerald-480x240-qp128.obu`, `laarim-256x171-qp096.obu`, `laarim-448x299-qp192.obu`, `schwaebisch-353x234-qp112.obu` |
 
 | File | Current endpoint | Blocker |
 | --- | --- | --- |
@@ -49,31 +49,29 @@ an earlier entropy divergence can still be the underlying cause.
 | `cuckoo-157x105-qp160.obu` | **Complete:** emitted I420 is byte-identical to the AVM reference (SHA-256 `01fa3b4d41665f9297edc5ad116a65618dac3069adfb6a83f83f7e05aa5010a`) | None for the accepted profile |
 | `cuckoo-431x287-qp080.obu` | **Complete:** zero-angle D45 16x8 and D203 16x16 prediction use the normative directional path. The emitted 185,905-byte I420 is byte-identical to AVM (SHA-256 `7318cb9e85ddca039f6ab09b0a96a69ee35fb2f41cc9797df4cf3c43f0d43227`) | None for the accepted profile |
 | `emerald-192x96-qp208.obu` | **Complete:** 20 luma and 11 chroma leaves, tile done at tell 731, filtered I420 byte-identical to the AVM reference (SHA-256 `403c2e7245ec484984e60c1eaf8bd1b47487c0ba6b60afc916b9532025fc51ad`) | None for the accepted profile |
-| `emerald-480x240-qp128.obu` | Production reaches `(34,112)` 32x4 Y IDTX inverse transform at tell 83,079 after 843 luma and 122 chroma leaves | Unsupported IDTX inverse-transform profile |
+| `emerald-480x240-qp128.obu` | **Decode complete but nonexact:** luma is byte-exact. Against AVM, final U differs in 871 samples and V in 1,882 samples, confined to the bottom chroma band; local SHA-256 is `2d7c3726e4579d147b8e1c346ec117ed60d029104e0b66a8781ce6f61f82f5f1`, versus AVM `0fa9483b9e5472aeff5423fd7340da5ccf3606a14f991a7ed9836425fbc499e0` | Bottom-edge direction-1 MHCCP reference-window parity; prefilter first differs at U `(98,96)` and V `(96,96)` |
 | `flycatcher-223x149-qp176.obu` | **Complete:** out-of-frame bottom-left mode neighbors now use AVM's absent/default context instead of a stale directional line context. The emitted 50,027-byte I420 is byte-identical to AVM (SHA-256 `38abac499fc98cb79b4c1e6cf166be2c905fb549771d8b51b3161a926b53c3f2`) | None for the accepted profile |
 | `flycatcher-397x265-qp048.obu` | **Complete:** coded MI-grid alignment preserves the required edge leaves, and the emitted 158,139-byte I420 is byte-identical to AVM (SHA-256 `9250e697e5cd416444b0f58fd1563dd5ff987e0bba2e97c031d0cdc1c9c4198c`) | None for the accepted profile |
 | `laarim-256x171-qp096.obu` | **Decode complete but nonexact:** aligning the coded MI grid to 8 pixels preserves the bottom-edge `(43,0)` leaf and restores chroma entropy parity. Output differs from AVM in 12,730 Y samples and one U sample, with maximum absolute errors 48 and 2 respectively; SHA-256 is `7ce68c363a999a977f12b0d92322413a67922861e4a2d540030ac01a5d9863bc` | Luma output parity; chroma is exact except for one U sample |
-| `laarim-448x299-qp192.obu` | 4x4 IST set1/type3 and Smooth-Vertical edge extension consume the tile to tell 5,416 after 281 luma and 47 chroma leaves | Reconstruction/readiness maps remain incomplete at end of tile |
+| `laarim-448x299-qp192.obu` | **Decode complete but nonexact:** the emitted 201,152-byte I420 has exact luma. Against AVM, U differs in 2,982 samples and V in 2,251 samples, confined to the lower chroma region; local SHA-256 is `9a39b7a62e499e9192e08378ac90e84db33890c321f8dde249def6d06c70d408` | Bottom-edge chroma reconstruction parity |
 | `louis-301x222-qp144.obu` | **Complete:** MHCCP fitting excludes the duplicated first left reference sample, and MHCCP right-edge chroma padding is extended before dependent blocks and filters consume it. The emitted 100,344-byte I420 is byte-identical to AVM (SHA-256 `ddefd8d1fe4fe69a6c70f05e45d73d65ab513a359cb8f90b4156120add57d00e`) | None for the accepted profile |
 | `louis-463x342-qp224.obu` | **Complete:** out-of-frame bottom-left mode neighbors use AVM's absent/default context. The emitted 237,690-byte I420 is byte-identical to AVM (SHA-256 `cbc741b34cc55af162d99e44273a6bb01a2f6152cb10ee5884248ceef33d0427`) | None for the accepted profile |
 | `pastell-320x213-qp064.obu` | **Complete:** GDF control rows now use the normative `-8` vertical block origin, so rows 120-127 select the second 128-pixel block flag. The emitted 102,400-byte I420 is byte-identical to AVM (SHA-256 `957eaf1ed0c372123eb1e98ac8d279d35834c6d09d48426acf48380d1a5333fb`) | None for the accepted profile |
-| `pastell-512x341-qp160.obu` | Production reaches escaped UV mode 14 at `(80,0)` 8x16 U, tell 26,514, after 967 luma and 1,087 chroma leaves | Upstream entropy divergence before chroma mode parsing |
-| `schwaebisch-353x234-qp112.obu` | **Decode complete but nonexact:** zero-angle D203 64x16 prediction is admitted and emits a 124,020-byte I420. Local SHA-256 is `c2e2ae4b6b4f9777607496d990869695ba6478f89f2100f7172e06934f09cc56`; AVM SHA-256 is `3d99d715fc4c6540a8c53c6f5d8f8fd6cc03dc11f7b38d782a09a47e13a03038` | Output parity |
+| `pastell-512x341-qp160.obu` | **Complete:** MHCCP keeps the full top reference window for small superblock-boundary blocks and caps only at the 62-sample interior limit. The emitted 262,144-byte I420 is byte-identical to AVM (SHA-256 `7277ababbf237deffb0e28802bdf1148a8ab379d4c4bde31cecf3ac371a519a8`) | None for the accepted profile |
+| `schwaebisch-353x234-qp112.obu` | **Decode complete but nonexact:** left-edge MHCCP fitting excludes the two unavailable outer top samples when no left reference exists. Luma is exact; U differs in 2,287 samples and V in 7,472 samples. The emitted 124,020-byte I420 has local SHA-256 `9bd1da608420fee567d3758fb806f8c91fa6e1156255ca4e51a5dc9f91803407a`; AVM SHA-256 is `3d99d715fc4c6540a8c53c6f5d8f8fd6cc03dc11f7b38d782a09a47e13a03038` | Chroma reconstruction parity; the next decoded-order dependency feeds Smooth-Vertical prediction near chroma row 64 |
 | `schwaebisch-417x277-qp208.obu` | **Complete:** stale out-of-frame bottom-left mode context, partial-boundary extension signaling, cropped derived-CfL, and directional/Smooth edge profiles are fixed; local and AVM entropy match through the final logged luma endpoint at tell/range `4360/51200`, and the emitted 173,611-byte I420 is byte-identical to AVM (SHA-256 `6fbc5758a05d727ed05b04542de796cc72ca5dd9c402213c3e2d4ec72ae78428`) | None for the accepted profile |
 | `silene-384x307-qp080.obu` | **Complete:** the apparent IntraBC source-bounds failure was downstream of an out-of-frame bottom-left luma mode context. Using AVM's absent/default context restores the normative D113 mode and the emitted 177,024-byte I420 is byte-identical to AVM (SHA-256 `613afd94352e93f2d2a6a343bcb77c2231bb693e38995f3bfef1e7c9d7eb2b1d`) | None for the accepted profile |
 | `silene-479x383-qp176.obu` | **Complete:** MHCCP uses AVM's padded top/left luma references, and 16x8 IntraBC morph prediction centers its decimated top template. The emitted 275,617-byte I420 is byte-identical to AVM (SHA-256 `1872688a3cc73f622d752d265724c8118b1d0b310934be39bbff7fcbc4cb66d1`) | None for the accepted profile |
 
 Summary and implementation history:
 
-The first two bullets describe the current production snapshot. Later bullets
-preserve the checkpoint at which each feature was implemented and can mention
-frontiers that have since moved.
+The first bullet describes the current production snapshot. Every later bullet
+preserves the checkpoint at which a feature was implemented; present-tense
+wording inside those historical bullets is not a current blocker report.
 
-- the public Windows decoder emits output for 18/21 artifacts; 16 are
-  byte-identical to AVM and two retain output-parity gaps. The other three
-  streams fail closed without output, and none crashes. The fresh production
-  census identifies one luma inverse-transform stop, one chroma-parse stop,
-  one completeness stop, and two output-parity mismatches;
+- the public Windows decoder emits output for all 21 artifacts; 17 are
+  byte-identical to AVM and four retain output-parity gaps. No stream fails
+  closed and none crashes;
 - at an earlier checkpoint, the final luma inverse-transform stop was Cuckoo
   Q80's D203/+1 TX_4X4
   set7/type1 tuple. The pinned AVM 4x4 IST kernel advances production from
@@ -332,11 +330,8 @@ frontiers that have since moved.
 - the remaining artifacts retain their earlier Q-profile, large-transform
   coefficient, prediction, or reconstruction blockers.
 
-Chimp Q64, both Chinnathurai artifacts, Cuckoo Q160, Emerald Q208, and
-Schwaebisch Q208 currently complete end-to-end and are byte-identical to their
-pinned AVM outputs.
-
-The ordinary 22-leaf/tell-762 fixture is not part of this artifact directory.
-Frame-wide decode and filter integration is now demonstrated for Emerald,
-Chinnathurai, Louis, and Schwaebisch, but general artifact coverage remains
-Milestone 8/9 work.
+At that historical checkpoint, Chimp Q64, both Chinnathurai artifacts, Cuckoo
+Q160, Emerald Q208, and Schwaebisch Q208 completed end-to-end and were
+byte-identical to their pinned AVM outputs. The ordinary 22-leaf/tell-762
+fixture is not part of this artifact directory. Current corpus results are
+listed in the table above.

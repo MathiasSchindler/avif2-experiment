@@ -1,6 +1,6 @@
 # Decoder blocker map
 
-Generated from the pinned AVM accounting census at revision `966a7d7cd6fcf60360caf5dc413b2aeeb65e144d` and the 2026-07-30 production decoder sweep. It describes the complete syntax surfaces each artifact will exercise, not a speculative sequence of future failures. The sweep columns are retained as historical reach evidence; [`status.md`](status.md) is the current production snapshot. Since this sweep, Louis Q224 and Schwaebisch Q208 became byte-exact, Chinnathurai Q112 advanced to luma inverse transform, and Chimp Q64 advanced to a chroma-only output-parity gap.
+Generated from the pinned AVM accounting census at revision `966a7d7cd6fcf60360caf5dc413b2aeeb65e144d` and the 2026-07-30 production decoder sweep. It describes the complete syntax surfaces each artifact will exercise, not a speculative sequence of future failures. The sweep columns are retained solely as historical reach evidence and are not incrementally updated; [`status.md`](status.md) is the authoritative current production snapshot.
 
 ## Reading the map
 

@@ -183,6 +183,17 @@ if(WIN32 AND CMAKE_C_COMPILER_ID MATCHES "Clang")
             -P "${CMAKE_CURRENT_SOURCE_DIR}/scripts/check-file-sha256.cmake")
     set_tests_properties(windows-decoder-flycatcher-q176-i420-hash PROPERTIES
         DEPENDS windows-decoder-flycatcher-q176-i420)
+    add_test(NAME windows-decoder-pastell-q160-i420
+        COMMAND av2heif-decoder
+            "${CMAKE_CURRENT_SOURCE_DIR}/images/artifacts/pastell-512x341-qp160.obu"
+            -o "${CMAKE_CURRENT_BINARY_DIR}/pastell-q160-decoder.i420")
+    add_test(NAME windows-decoder-pastell-q160-i420-hash
+        COMMAND "${CMAKE_COMMAND}"
+            "-DINPUT=${CMAKE_CURRENT_BINARY_DIR}/pastell-q160-decoder.i420"
+            "-DEXPECTED_SHA256=7277ababbf237deffb0e28802bdf1148a8ab379d4c4bde31cecf3ac371a519a8"
+            -P "${CMAKE_CURRENT_SOURCE_DIR}/scripts/check-file-sha256.cmake")
+    set_tests_properties(windows-decoder-pastell-q160-i420-hash PROPERTIES
+        DEPENDS windows-decoder-pastell-q160-i420)
     add_test(NAME windows-decoder-louis-q224-i420
         COMMAND av2heif-decoder
             "${CMAKE_CURRENT_SOURCE_DIR}/images/artifacts/louis-463x342-qp224.obu"

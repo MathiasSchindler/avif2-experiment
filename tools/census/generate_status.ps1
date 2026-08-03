@@ -507,14 +507,14 @@ $lines.Add("")
 $lines.Add("Use ``-UseExistingCensus`` to rebuild only this Markdown file from " +
     "``build/census/all-artifacts-census.json``.")
 $lines.Add("")
-$lines.Add("## Current production blockers")
+$lines.Add("## Historical production sweep")
 $lines.Add("")
 $lines.Add("These groups come from the 2026-07-30 production decoder sweep. " +
     "They name the surface where local decoding stops, not necessarily the " +
     "first entropy divergence. See ``images/artifacts/status.md`` for exact " +
     "endpoints and AVM evidence.")
 $lines.Add("")
-$lines.Add("| Current stopping surface | Files |")
+$lines.Add("| Stopping surface at sweep | Files |")
 $lines.Add("|---|---|")
 $lines.Add("| Luma coefficient prefix | ``flycatcher-397x265-qp048.obu`` |")
 $lines.Add("| Luma parse | ``silene-384x307-qp080.obu`` |")

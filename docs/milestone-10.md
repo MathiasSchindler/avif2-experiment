@@ -19,9 +19,9 @@ caller-owned API only after complete filtered sample parity.
 ## Exit gate
 
 The public decoder must reproduce pinned AVM's filtered planes for the four
-currently byte-exact artifact fixtures across allowed workspace alignments.
-Chimp Q64 remains outside this gate until its chroma reconstruction is exact.
-Undersized workspace, stale
+canonical milestone fixtures across allowed workspace alignments. Corpus
+regression must also cover all 21 research artifacts, including the 17 current
+byte-exact outputs and the four explicitly tracked parity gaps. Undersized workspace, stale
 query state, malformed syntax, and every shorter input prefix must fail
 deterministically without allocation or unintended output mutation.
 

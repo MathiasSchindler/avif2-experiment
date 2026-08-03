@@ -8505,9 +8505,8 @@ static Av2hStatus mhccp_predict_direction01(
         return AV2H_OK;
     }
     top_count = have_top ? (uint16_t)(width * 2U) : 0U;
-    if (is_top_sb_boundary && top_count >= 2U) {
-        top_count = (uint16_t)(top_count - 2U);
-    }
+    if (!have_left && top_count >= 2U) top_count = (uint16_t)(top_count - 2U);
+    if (is_top_sb_boundary && top_count > 62U) top_count = 62U;
     left_count = have_left ? (uint16_t)(height * 2U - 1U) : 0U;
     if (left_count > chroma_plane->reference_height - block_y) {
         left_count = (uint16_t)(

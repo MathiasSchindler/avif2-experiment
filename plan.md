@@ -356,6 +356,10 @@ and final crop parity. Prefilter FNV-1a hashes are Y `7945904097577017502`, U
 `def0ced80c4bc1866d0d865fb392c80020ac0a823f310b2f62999d10eede1af5`.
 See `docs/milestone-7.md` for the locked checkpoints.
 
+The following artifact-reach audit records the Milestone 7 completion
+checkpoint. Its per-stream frontiers are historical; current end-to-end corpus
+results live in `images/artifacts/status.md`.
+
 An audit of all 21 `images/artifacts/*.obu` streams found no artifact-relevant
 Milestone 7 gap. Every Frame Header now parses to the exact pinned-AVM bit
 endpoint, including multi-block GDF mode and picture parameters. Six streams
@@ -405,11 +409,10 @@ sanitizer and strict freestanding dependency gates.
   Y/U/V hashes. Production I420 SHA-256 is
   `4120930c9c9c49f73d4aa3e1d4c56cbb4b557679b42fe3b9de984bca1431745a`.
 
-The production decoder currently emits 7 of the 21 research artifacts. Six
-are byte-identical to pinned AVM; Chimp Q192 completes with a known upstream
-entropy parity gap. This corpus is broader than the Milestone 8 exit fixture,
-but its fail-closed frontiers identify later advanced-profile work.
-See `images/artifacts/status.md` for exact tells and hashes.
+At Milestone 8 closure, the production decoder emitted 7 of the 21 research
+artifacts. This historical checkpoint is retained to explain the closure work;
+the current 21-artifact production snapshot is maintained in
+`images/artifacts/status.md`.
 
 ### Completed Milestone 8 closure
 
@@ -422,10 +425,10 @@ See `images/artifacts/status.md` for exact tells and hashes.
   geometry-specific output-position maps retain explicit routing; absent
   kernels remain fail-closed.
 
-The former nine-stream inverse-transform item is complete. Hash-locked
+The former nine-stream inverse-transform item was completed. Hash-locked
 normative small and large IST kernels now advance every named stream beyond
-its previous transform endpoint. Chimp Q192 now completes with an upstream
-entropy parity gap, while Laarim Q96 fails closed at a later profile frontier.
+its previous transform endpoint. At that checkpoint Chimp Q192 completed with
+an upstream entropy parity gap, while Laarim Q96 failed closed later.
 
 The former five-stream upstream-divergence item is also complete. Resetting
 the IntraBC reference bank before each superblock row, while preserving it
@@ -447,6 +450,10 @@ filters are completed in Milestone 9; the public decode API remains Milestone
 ## Milestone 9: mandatory filters and filtered parity
 
 **Status:** Complete.
+
+The implementation chronology below is retained as Milestone 9 evidence.
+Intermediate statements about blocked traversal describe the state before the
+completed integration and exit gate later in this section.
 
 Completed preparation corrects normative CDEF signed rounding, validates
 CDEF/CCSO parser-produced state and Sequence Header consistency before
@@ -539,21 +546,19 @@ Release validation additionally includes:
 
 ## Current work order
 
-1. Add complete frame-wide parity for the locked 96x80 high-detail fixture,
-   then clear the reached Milestone 8 inverse-transform and upstream-state
-   blockers enumerated above.
-2. Integrate and prove the mandatory filter pipeline in Milestone 9 after the
-   high-detail and remaining prefilter reconstruction dependencies are closed.
-3. Finalize workspace contracts and expose decoding only in Milestone 10.
+1. Resolve the four remaining corpus output-parity gaps: Emerald Q128, both
+  Laarim streams, and Schwaebisch Q112.
+2. Finalize exact workspace sizing, alignment, query binding, output-layout
+  validation, truncation behavior, and error ownership for Milestone 10.
+3. Expose the stable caller-owned decode API only after its nonmutation, fuzz,
+  freestanding, and release gates pass.
 
 Early work in a later milestone may be retained when it is already validated,
 but it does not waive an earlier exit gate. Each milestone must leave the
 decoder fail-closed at the first unsupported owner.
 
-The remaining-work audit is complete: Milestone 7 ordinary unfiltered
-luma/chroma work is closed; Milestone 8 owns complete high-detail traversal,
-remaining advanced entropy/transform paths, and prefilter reconstruction
-parity; Milestone 9 owns filter metadata wiring and normative filtered parity;
-and Milestone 10 owns bounded workspace, public API, fuzz, and release
-finalization. Restoration remains outside the accepted profile and must
-continue to fail closed.
+Milestones 7, 8, and 9 are complete. The private Windows decoder emits all 21
+research artifacts; 17 are byte-identical to pinned AVM and four have tracked
+parity gaps. Milestone 10 owns bounded workspace, the stable public API, fuzz
+coverage, and release finalization. Restoration remains outside the accepted
+profile and must continue to fail closed.
