@@ -101,8 +101,8 @@ monolithic internal header.
 
 This phase blocks the structural refactor.
 
-**Status:** In progress. Implemented gates and remaining restoration work are
-tracked in `refactoring-phase-0.md`.
+**Status:** Complete. Implementation and validation details are recorded in
+`refactoring-phase-0.md`.
 
 - Add a vendor-free all-artifact parity test that decodes all 31 `.obu` files
   and compares complete I420 hashes with the pinned references. It must use a

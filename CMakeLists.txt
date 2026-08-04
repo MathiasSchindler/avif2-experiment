@@ -6,8 +6,6 @@ include(CTest)
 
 option(AV2HEIF_BUILD_HOST_TESTS "Build hosted C unit tests" OFF)
 option(AV2HEIF_ENABLE_SANITIZERS "Enable sanitizers for hosted tests" OFF)
-option(AV2HEIF_ENABLE_LEGACY_HOST_TESTS
-    "Run hosted fixture tests that require expectation updates" OFF)
 option(AV2HEIF_ENABLE_PYTHON_TESTS "Enable Python development tests" OFF)
 option(AV2HEIF_BUILD_WINDOWS_TOOLS "Build freestanding Windows executables" ON)
 
@@ -132,14 +130,10 @@ if(AV2HEIF_BUILD_HOST_TESTS)
         av2heif_configure_host_target(${unit_target})
         target_include_directories(${unit_target} PRIVATE src)
         target_link_libraries(${unit_target} PRIVATE av2heif-host-core)
-        if(AV2HEIF_ENABLE_LEGACY_HOST_TESTS OR
-           NOT unit_name MATCHES
-               "^(tile|leaf|transform|reconstruct|artifact_profile)$")
-            add_test(NAME ${unit_target} COMMAND ${unit_target})
-            set_tests_properties(${unit_target} PROPERTIES
-                WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
-            )
-        endif()
+        add_test(NAME ${unit_target} COMMAND ${unit_target})
+        set_tests_properties(${unit_target} PROPERTIES
+            WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+        )
     endforeach()
 
     add_executable(av2heif-artifact tools/av2heif_artifact.c)

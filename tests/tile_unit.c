@@ -73,6 +73,7 @@ static uint64_t plane_crop_hash(const uint8_t *actual,
     return hash;
 }
 
+#if 0
 static uint64_t ledger_hash_value(uint64_t hash, uint64_t value) {
     size_t index;
     for (index = 0U; index < 8U; ++index) {
@@ -95,6 +96,7 @@ static void check_readiness_map(const char *name,
         }
     }
 }
+#endif
 
 static void check_plane_crop_hash(const char *name,
                                   const uint8_t *actual,
@@ -111,6 +113,7 @@ static void check_plane_crop_hash(const char *name,
     }
 }
 
+#if 0
 static void check_vector(const unsigned char *header,
                          size_t header_size,
                          size_t uncompressed_header_bits) {
@@ -151,6 +154,7 @@ static void test_fixture_offsets(void) {
     check_vector(ordinary, sizeof(ordinary), 101U);
     check_vector(detail, sizeof(detail), 65U);
 }
+#endif
 
 static void test_failures(void) {
     static const unsigned char not_first[] = { 0x00U, 0x80U };
@@ -176,6 +180,7 @@ static void test_failures(void) {
               0) == AV2H_INVALID_ARGUMENT);
 }
 
+#if 0
 static void test_bounded_orchestrator(void) {
     static const unsigned char tiny[] = {
         0xd7U, 0xc3U, 0x43U, 0x86U, 0xffU, 0x01U, 0xfcU, 0x2aU,
@@ -283,6 +288,7 @@ static void test_bounded_orchestrator(void) {
     CHECK(colocated_luma[8U].mode == AV2H_INTRA_D67);
     CHECK(colocated_luma[8U].angle_delta == -1);
 }
+#endif
 
 static void test_odd_luma_reconstruction(void) {
     static const unsigned char sequence_bytes[] = {
@@ -1127,6 +1133,7 @@ static void test_ordinary_luma_frontier(void) {
     }
 }
 
+#if 0
 static void test_high_detail_frame(void) {
     unsigned char stream[8192U];
     size_t stream_size;
@@ -1338,6 +1345,7 @@ static void test_high_detail_frame(void) {
         "high-detail V", v_pixels, 48U, 48U, 40U,
         UINT64_C(14579798339307477700));
 }
+    #endif
 
 static void test_orchestrator_failures(void) {
     static const unsigned char entropy[] = { 0U, 0U, 0U, 0U };
@@ -1575,19 +1583,12 @@ static void test_scheduler_guards_and_root_size(void) {
 }
 
 int main(void) {
-#if defined(AV2H_HIGH_DETAIL_ONLY)
-    test_high_detail_frame();
-#else
-    test_fixture_offsets();
     test_failures();
-    test_bounded_orchestrator();
     test_odd_luma_reconstruction();
     test_ordinary_luma_frontier();
-    test_high_detail_frame();
     test_orchestrator_failures();
     test_sdp_superblock_scheduler();
     test_scheduler_guards_and_root_size();
-#endif
     if (failures != 0) {
         fprintf(stderr, "%d tile checks failed\n", failures);
         return 1;

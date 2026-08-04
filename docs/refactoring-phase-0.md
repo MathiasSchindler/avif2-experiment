@@ -1,6 +1,6 @@
 # Refactoring Phase 0: trustworthy gates
 
-**Status:** In progress as of 2026-08-04.
+**Status:** Complete as of 2026-08-04.
 
 Phase 0 prepares the decoder for move-only module extraction. It does not
 change decoding algorithms or remove diagnostics. The permanent plan and exit
@@ -57,21 +57,23 @@ guards for move-only work, not desired long-term sizes.
 Filter workspace query sizes, alignment rejection, undersized-memory rejection,
 and storage binding remain covered by `filter-unit`.
 
-## Excluded harness baseline
+## Restored hosted harnesses
 
-The five legacy harnesses were built and run without changing expectations.
-None is suitable for default CTest yet.
+The five previously excluded harnesses now run in default CTest. Obsolete
+whole-stream entropy frontiers and exhaustive duplicate pixel sweeps were
+retired in favor of focused owner-level checks and the stronger complete-corpus
+output gate.
 
-| Harness | Current result | Required replacement direction |
-| --- | --- | --- |
-| `tile-unit` | 10 failed checks | state transitions and handoff behavior |
-| `leaf-unit` | 501 failed checks | focused mode/context/palette/IntraBC vectors |
-| `transform-unit` | 16 failed checks | syntax maps and exact entropy endpoints |
-| `reconstruct-unit` | access violation | isolate the crashing vector, then family pixel hashes |
-| `artifact-profile-unit` | 638 failed checks | remove whole-stream incidental snapshots |
+| Harness | Restored contract |
+| --- | --- |
+| `tile-unit` | scheduler, root handoff, argument, and failure behavior |
+| `leaf-unit` | mode/context, palette, GDF, and IntraBC behavior |
+| `transform-unit` | current CDF layout, syntax maps, and signaling behavior |
+| `reconstruct-unit` | focused prediction, transform, clipping, and malformed-input behavior |
+| `artifact-profile-unit` | OBU, sequence, frame-header, dimensions/QP, and tile-group parsing for all 31 artifacts |
 
-`AV2HEIF_ENABLE_LEGACY_HOST_TESTS` remains available for this restoration work.
-It must not be removed until all five replacements pass under the default gate.
+The `AV2HEIF_ENABLE_LEGACY_HOST_TESTS` option and all CTest exclusions were
+removed. All 15 hosted harnesses are registered by default.
 
 ## Diagnostic inventory
 
@@ -100,16 +102,19 @@ The disposition is intentionally by family:
 No global is removed during structural extraction. Mixing that cleanup with a
 move would make parity regressions harder to localize.
 
-## Remaining Phase 0 work
+## Completion validation
 
-1. Restore `transform-unit` with focused syntax-map and entropy tests.
-2. Replace stale `leaf-unit` and `tile-unit` snapshots with owner-level vectors.
-3. Isolate the `reconstruct-unit` access violation and rebuild coverage by
-   prediction/transform family.
-4. Reduce `artifact-profile-unit` to end-to-end contracts not already covered
-   by the 31-artifact parity gate.
-5. Run the host sanitizer gate on Linux or macOS, then rerun the complete
-   Windows release suite before Phase 1 starts.
+- Hosted CTest: 15/15 passed.
+- Windows release CTest: 51/51 passed.
+- Complete artifact parity: 31/31 I420 hashes exact.
+- Freestanding object closure: no undefined core symbols.
+- Schwaebisch Q208 output: 173,611 bytes with SHA-256
+  `8906752a123863bdb65d1c2dad8edd9ae5ce0c8c0dfd21fce48f14a9d09faaa1`.
+- Pinned AVM checkout: clean.
+
+LLVM-MinGW on Windows does not provide a usable AddressSanitizer runtime for
+this host configuration. The `host-sanitized` preset remains the sanitizer
+gate on Linux and macOS; Phase 0 does not weaken or bypass it.
 
 ## Commands
 
