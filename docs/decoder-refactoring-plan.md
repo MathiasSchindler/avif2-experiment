@@ -206,6 +206,9 @@ and all-artifact parity.
 
 ## Phase 5: split leaf syntax and context state
 
+**Status:** Complete. Ownership decisions and validation details are recorded
+in `refactoring-phase-5.md`.
+
 Before this phase, replace stale whole-stream leaf expectations with focused
 mode, state-transition, palette, IntraBC, and filter-control vectors.
 

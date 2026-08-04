@@ -25,11 +25,16 @@ set(AV2HEIF_CORE_SOURCES
     src/decoder/cdef.c
     src/decoder/deblock.c
     src/decoder/filter.c
+    src/decoder/filter_entropy.c
     src/decoder/filter_workspace.c
     src/decoder/frame.c
     src/decoder/frame_output.c
     src/decoder/gdf.c
+    src/decoder/intrabc.c
     src/decoder/leaf.c
+    src/decoder/leaf_context.c
+    src/decoder/leaf_cdf.c
+    src/decoder/palette.c
     src/decoder/partition.c
     src/decoder/partition_cdf.c
     src/decoder/range.c
