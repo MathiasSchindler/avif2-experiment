@@ -1955,6 +1955,7 @@ static Av2hStatus read_first_intrabc(
     const Av2hFrameState *frame,
     const Av2hPartitionNode *leaf,
     const Av2hLumaModeContextState *state,
+    const Av2hLumaModeNeighbors *neighbors,
     Av2hFirstLeafMode *mode) {
     size_t width_mi;
     size_t height_mi;
@@ -2192,20 +2193,10 @@ static Av2hStatus read_first_intrabc(
     mode->morph_pred = 0U;
     if (sequence->enable_bawp && frame->allow_screen_content_tools) {
         uint8_t morph_context = 0U;
-        const Av2hLumaModeContext *neighbor;
-        if (leaf->row > 0U) {
-            neighbor = intrabc_spatial_context(
-                state, leaf->row - 1U, leaf->column);
-            if (neighbor != 0 && neighbor->use_intrabc &&
-                neighbor->morph_pred) {
-                ++morph_context;
-            }
-        }
-        if (leaf->column > 0U) {
-            neighbor = intrabc_spatial_context(
-                state, leaf->row, leaf->column - 1U);
-            if (neighbor != 0 && neighbor->use_intrabc &&
-                neighbor->morph_pred) {
+        for (index = 0U; index < 2U; ++index) {
+            if (neighbors->spatial_present[index] &&
+                neighbors->spatial_use_intrabc[index] &&
+                neighbors->spatial_morph_pred[index]) {
                 ++morph_context;
             }
         }
@@ -2371,6 +2362,8 @@ Av2hStatus av2h_luma_mode_neighbors_from_state(
             spatial_context != 0 ? spatial_context->mrl_index : 0U;
         neighbors->spatial_multi_line_mrl[index] =
             spatial_context != 0 ? spatial_context->multi_line_mrl : 0U;
+        neighbors->spatial_morph_pred[index] =
+            spatial_context != 0 ? spatial_context->morph_pred : 0U;
     }
     neighbors->edge_smooth[0] = (uint8_t)(
         candidates[2] != 0 && candidates[2]->present &&
@@ -2726,8 +2719,9 @@ static Av2hStatus luma_mode_read_internal(
             }
             if (status != AV2H_OK) return status;
             av2h_debug_luma_mode_stage = 3U;
-            return read_first_intrabc(
-                decoder, cdfs, sequence, frame, leaf, state, mode);
+            status = read_first_intrabc(
+                decoder, cdfs, sequence, frame, leaf, state, neighbors, mode);
+            return status;
         }
     }
     {

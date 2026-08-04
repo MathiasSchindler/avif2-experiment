@@ -54,6 +54,7 @@ typedef struct {
     uint16_t secondary_16x16[AV2H_SECONDARY_TX_TYPE_SYMBOLS + 4U];
     uint16_t secondary_32x32[AV2H_SECONDARY_TX_TYPE_SYMBOLS + 4U];
     uint16_t secondary_64x64[AV2H_SECONDARY_TX_TYPE_SYMBOLS + 4U];
+    uint16_t intrabc_secondary[5U][AV2H_SECONDARY_TX_TYPE_SYMBOLS + 4U];
     uint16_t secondary_set[AV2H_SECONDARY_TX_SET_SYMBOLS + 4U];
     uint16_t secondary_adst_set[AV2H_SECONDARY_ADST_TX_SET_SYMBOLS + 4U];
     uint16_t chroma_cross_type[7U + 4U];

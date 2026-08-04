@@ -99,6 +99,16 @@ Av2hStatus av2h_first_transform_cdfs_init(Av2hFirstTransformCdfs *cdfs) {
     static const uint16_t secondary_4x4[] = {
         4486U, 15589U, 26440U
     };
+    static const uint16_t intrabc_secondary[5U][3U] = {
+        { 8192U, 16384U, 24576U },
+        { 8192U, 16384U, 24576U },
+        { 10490U, 15394U, 22206U },
+        { 13967U, 16953U, 23109U },
+        { 20191U, 21727U, 25818U }
+    };
+    static const uint8_t intrabc_secondary_parameter[5U] = {
+        0U, 0U, 31U, 31U, 32U
+    };
     static const uint16_t secondary_set[] = {
         20712U, 26263U, 30623U, 32732U, 32736U, 32740U
     };
@@ -214,6 +224,14 @@ Av2hStatus av2h_first_transform_cdfs_init(Av2hFirstTransformCdfs *cdfs) {
         cdfs->secondary_16x16, AV2H_SECONDARY_TX_TYPE_SYMBOLS + 4U,
         secondary_16x16, AV2H_SECONDARY_TX_TYPE_SYMBOLS, 0U, 0U);
     if (status != AV2H_OK) return status;
+    for (size_t index = 0U; index < 5U; ++index) {
+        status = av2h_cdf_init(
+            cdfs->intrabc_secondary[index],
+            AV2H_SECONDARY_TX_TYPE_SYMBOLS + 4U,
+            intrabc_secondary[index], AV2H_SECONDARY_TX_TYPE_SYMBOLS,
+            intrabc_secondary_parameter[index], 0U);
+        if (status != AV2H_OK) return status;
+    }
     status = av2h_cdf_init(
         cdfs->secondary_set, AV2H_SECONDARY_TX_SET_SYMBOLS + 4U,
         secondary_set, AV2H_SECONDARY_TX_SET_SYMBOLS, 55U, 0U);
@@ -1481,8 +1499,8 @@ Av2hStatus av2h_first_transform_type_read(
     if (status != AV2H_OK) return status;
     av2h_debug_transform_stage = 5U;
     if (secondary_signaled) {
-        symbol = av2h_range_read_adaptive(
-            decoder,
+        uint16_t *secondary_cdf = mode->use_intrabc ?
+            cdfs->intrabc_secondary[descriptor->square_class] :
             descriptor->square_class == AV2H_TX_SQUARE_4 ?
                 cdfs->secondary_4x4 :
             descriptor->square_class == AV2H_TX_SQUARE_8 ?
@@ -1490,7 +1508,9 @@ Av2hStatus av2h_first_transform_type_read(
             descriptor->square_class == AV2H_TX_SQUARE_16 ?
                 cdfs->secondary_16x16 :
             descriptor->square_class == AV2H_TX_SQUARE_32 ?
-                cdfs->secondary_32x32 : cdfs->secondary_64x64,
+                cdfs->secondary_32x32 : cdfs->secondary_64x64;
+        symbol = av2h_range_read_adaptive(
+            decoder, secondary_cdf,
             AV2H_SECONDARY_TX_TYPE_SYMBOLS);
         if (av2h_range_status(decoder) != AV2H_OK) {
             return av2h_range_status(decoder);
@@ -1498,7 +1518,7 @@ Av2hStatus av2h_first_transform_type_read(
         transform->secondary_signaled = 1U;
         transform->secondary_symbol = (uint8_t)symbol;
         transform->after_secondary_type_bits = av2h_range_tell(decoder);
-        if (symbol != 0U) {
+        if (symbol != 0U && !mode->use_intrabc) {
             uint8_t reduced_adst_set = (uint8_t)(
                 transform->primary_type == AV2H_TX_ADST_ADST &&
                 descriptor->output_width >= 8U &&

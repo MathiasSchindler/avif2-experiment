@@ -212,6 +212,7 @@ typedef struct {
     uint8_t spatial_fsc_mode[2];
     uint8_t spatial_mrl_index[2];
     uint8_t spatial_multi_line_mrl[2];
+    uint8_t spatial_morph_pred[2];
     uint8_t edge_smooth[2];
     uint8_t palette_size[2];
     uint8_t palette_colors[2][AV2H_PALETTE_MAX_SIZE];

@@ -135,6 +135,9 @@ static void test_arguments(void) {
         19009U, 6660U, 5080U, 2975U, 2503U, 1192U,
         0U, 0U, 2U, 2U, 5U
     };
+    static const uint16_t intrabc_secondary_16[] = {
+        22278U, 17374U, 10562U, 0U, 0U, 2U, 2U, 2U
+    };
     Av2hRangeDecoder decoder;
     Av2hFirstTransformCdfs cdfs;
     Av2hSequenceState sequence = { 0 };
@@ -142,12 +145,19 @@ static void test_arguments(void) {
     Av2hFirstLeafMode mode = { 0 };
     Av2hFirstCoeffPrefix prefix = { 0 };
     Av2hFirstTransformType transform;
-    CHECK(sizeof(Av2hFirstTransformCdfs) == 322U);
+    CHECK(sizeof(Av2hFirstTransformCdfs) == 402U);
     CHECK(av2h_first_transform_cdfs_init(0) == AV2H_INVALID_ARGUMENT);
     CHECK(av2h_first_transform_cdfs_init(&cdfs) == AV2H_OK);
     for (size_t index = 0U;
          index < sizeof(primary_size2) / sizeof(primary_size2[0]); ++index) {
         CHECK(cdfs.primary_size2[index] == primary_size2[index]);
+    }
+    for (size_t index = 0U;
+         index < sizeof(intrabc_secondary_16) /
+                     sizeof(intrabc_secondary_16[0]);
+         ++index) {
+        CHECK(cdfs.intrabc_secondary[AV2H_TX_SQUARE_16][index] ==
+              intrabc_secondary_16[index]);
     }
     CHECK(av2h_first_transform_type_read(
               0, &cdfs, &sequence, &frame, &mode, &prefix, &transform) ==

@@ -242,7 +242,7 @@ if(WIN32 AND CMAKE_C_COMPILER_ID MATCHES "Clang")
     add_test(NAME windows-decoder-pastell-q160-i420-hash
         COMMAND "${CMAKE_COMMAND}"
             "-DINPUT=${CMAKE_CURRENT_BINARY_DIR}/pastell-q160-decoder.i420"
-            "-DEXPECTED_SHA256=7277ababbf237deffb0e28802bdf1148a8ab379d4c4bde31cecf3ac371a519a8"
+            "-DEXPECTED_SHA256=b25f82b615a0b96580d0f664dce2bd81b178083f3bf246c4836e17e01c593ab9"
             -P "${CMAKE_CURRENT_SOURCE_DIR}/scripts/check-file-sha256.cmake")
     set_tests_properties(windows-decoder-pastell-q160-i420-hash PROPERTIES
         DEPENDS windows-decoder-pastell-q160-i420)
@@ -264,7 +264,7 @@ if(WIN32 AND CMAKE_C_COMPILER_ID MATCHES "Clang")
     add_test(NAME windows-decoder-silene-q080-i420-hash
         COMMAND "${CMAKE_COMMAND}"
             "-DINPUT=${CMAKE_CURRENT_BINARY_DIR}/silene-q080-decoder.i420"
-            "-DEXPECTED_SHA256=613afd94352e93f2d2a6a343bcb77c2231bb693e38995f3bfef1e7c9d7eb2b1d"
+            "-DEXPECTED_SHA256=1388a9512aa75578a0445d3ada7cdf4de1988e3c10e177bd0b71438606a96ef7"
             -P "${CMAKE_CURRENT_SOURCE_DIR}/scripts/check-file-sha256.cmake")
     set_tests_properties(windows-decoder-silene-q080-i420-hash PROPERTIES
         DEPENDS windows-decoder-silene-q080-i420)
