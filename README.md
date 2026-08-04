@@ -37,9 +37,8 @@ separate reference experiment and is fetched into ignored `vendor/` and
   and advanced-transform coverage reached by its locked fixture. Milestone 9
   completes mandatory-filter integration and filtered parity. Milestone 10
   remains planned for workspace finalization and the stable public decode API.
-- The private Windows decoder emits I420 for all 21 research artifacts. Seventeen
-  are byte-identical to pinned AVM; Emerald Q128, both Laarim streams, and
-  Schwaebisch Q112 complete with tracked output-parity gaps.
+- The private Windows decoder emits I420 byte-identical to pinned AVM output
+  for all 31 research artifacts.
 
 The public API is declared in `include/av2heif.h`. Milestone details and
 limitations are recorded in `docs/milestone-0.md` through
@@ -127,11 +126,9 @@ extension:
 ```
 
 BMP output currently applies deterministic limited-range BT.601 I420-to-BGR
-conversion. All 21 research artifacts complete through the private decoder;
-17 match their locked AVM I420 references byte-for-byte and four retain the
-output-parity gaps listed in `images/artifacts/status.md`. The CLI accepts raw
-OBU input only. HEIF item extraction and the stable public decode API remain
-Milestone 10 work.
+conversion. All 31 research artifacts match their locked AVM I420 references
+byte-for-byte. The CLI accepts raw OBU input only. HEIF item extraction and
+the stable public decode API remain Milestone 10 work.
 
 Failed frame decodes report the original cause separately from the retained
 coarse status, followed by the pipeline/syntax stage, plane, leaf position and
