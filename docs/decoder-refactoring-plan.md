@@ -141,6 +141,9 @@ change, and no output change.
 
 ## Phase 2: split frame filtering as the pilot
 
+**Status:** Complete. Ownership decisions and validation details are recorded
+in `refactoring-phase-2.md`.
+
 `filter.c` has good focused coverage and clear boundaries, making it the safest
 place to prove the extraction workflow.
 
