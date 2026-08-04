@@ -47,6 +47,41 @@ if(CMAKE_C_COMPILER_ID MATCHES "Clang|GNU")
         -fno-unwind-tables -fno-asynchronous-unwind-tables
         -ffunction-sections -fdata-sections -nostdinc
     )
+
+    add_library(av2heif-freestanding-objects OBJECT ${AV2HEIF_CORE_SOURCES})
+    target_compile_features(av2heif-freestanding-objects PRIVATE c_std_11)
+    target_include_directories(av2heif-freestanding-objects PRIVATE
+        include src src/shared
+    )
+    target_compile_options(av2heif-freestanding-objects PRIVATE
+        -Wall -Wextra -Wpedantic -Werror -O2
+        -ffreestanding -fno-builtin -fno-stack-protector
+        -fno-unwind-tables -fno-asynchronous-unwind-tables
+        -ffunction-sections -fdata-sections -nostdinc
+    )
+        set(AV2HEIF_FREESTANDING_STAMP
+        "${CMAKE_CURRENT_BINARY_DIR}/freestanding/symbols-checked")
+    add_custom_command(
+        OUTPUT "${AV2HEIF_FREESTANDING_STAMP}"
+        COMMAND "${CMAKE_COMMAND}" -E make_directory
+                "${CMAKE_CURRENT_BINARY_DIR}/freestanding"
+        COMMAND "${CMAKE_COMMAND}"
+                "-DNM=${CMAKE_NM}"
+            "-DOBJECTS=$<JOIN:$<TARGET_OBJECTS:av2heif-freestanding-objects>,|>"
+            "-DSTAMP=${AV2HEIF_FREESTANDING_STAMP}"
+                -P "${CMAKE_CURRENT_SOURCE_DIR}/scripts/check-undefined-symbols.cmake"
+        DEPENDS av2heif-freestanding-objects
+                "${CMAKE_CURRENT_SOURCE_DIR}/scripts/check-undefined-symbols.cmake"
+        COMMAND_EXPAND_LISTS
+        VERBATIM
+    )
+    add_custom_target(av2heif-freestanding-check ALL
+        DEPENDS "${AV2HEIF_FREESTANDING_STAMP}")
+endif()
+
+if(WIN32 AND TARGET av2heif-freestanding-objects)
+    target_compile_options(av2heif-freestanding-objects PRIVATE
+        -mno-stack-arg-probe)
 endif()
 
 if(AV2HEIF_BUILD_HOST_TESTS)
@@ -89,6 +124,7 @@ if(AV2HEIF_BUILD_HOST_TESTS)
         reconstruct
         filter
         artifact_profile
+        layout
     )
     foreach(unit_name IN LISTS AV2HEIF_HOST_UNIT_NAMES)
         string(REPLACE "_" "-" unit_target "${unit_name}-unit")
@@ -175,6 +211,14 @@ if(WIN32 AND AV2HEIF_BUILD_WINDOWS_TOOLS AND
 
     enable_testing()
     add_test(NAME windows-smoke COMMAND av2heif-windows-smoke)
+    add_test(NAME windows-decoder-artifact-parity
+        COMMAND "${CMAKE_COMMAND}"
+            "-DDECODER=$<TARGET_FILE:av2heif-decoder>"
+            "-DARTIFACT_DIR=${CMAKE_CURRENT_SOURCE_DIR}/images/artifacts"
+            "-DMANIFEST=${CMAKE_CURRENT_SOURCE_DIR}/tests/artifact-parity.sha256"
+            "-DOUTPUT_DIR=${CMAKE_CURRENT_BINARY_DIR}/Testing/Temporary/artifact-parity"
+            "-DEXPECTED_COUNT=31"
+            -P "${CMAKE_CURRENT_SOURCE_DIR}/scripts/check-artifact-parity.cmake")
     add_test(NAME windows-decoder-emerald-i420
         COMMAND av2heif-decoder
             "${CMAKE_CURRENT_SOURCE_DIR}/images/artifacts/emerald-192x96-qp208.obu"

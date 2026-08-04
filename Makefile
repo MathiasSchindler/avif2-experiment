@@ -1,6 +1,5 @@
 PYTHON ?= python3
 CC ?= cc
-NM ?= nm
 DECODER_PRESET ?= windows-x86_64
 
 .PHONY: all decoder clean
@@ -56,15 +55,6 @@ CORE_HEADERS := include/av2heif.h src/base.h src/decoder/sequence.h \
 	src/decoder/ist_data.inc \
 	src/decoder/range.h src/decoder/tile.h \
 	src/decoder/transform.h src/decoder/tx_geometry.h src/decoder/reconstruct.h
-STRICT_DIR := build/freestanding
-STRICT_OBJECTS := $(patsubst src/%.c,$(STRICT_DIR)/%.o,$(CORE_SOURCES))
-STRICT_CORE := $(STRICT_DIR)/av2heif-core.o
-STRICT_CFLAGS := -std=c11 -Wall -Wextra -Wpedantic -Werror -O2 \
-	-ffreestanding -fno-builtin -fno-stack-protector \
-	-fno-unwind-tables -fno-asynchronous-unwind-tables \
-	-ffunction-sections -fdata-sections -nostdinc \
-	-Iinclude -Isrc -Isrc/shared
-
 .PHONY: test test-c test-freestanding reference-avm milestone-0 milestone-3 \
 	milestone-4 milestone-5-evidence milestone-8 milestone-9
 
@@ -150,17 +140,9 @@ $(HOST_ARTIFACT_TOOL): tools/av2heif_artifact.c $(CORE_SOURCES) $(CORE_HEADERS)
 	@mkdir -p $(dir $@)
 	$(CC) $(HOST_CFLAGS) tools/av2heif_artifact.c $(CORE_SOURCES) -o $@
 
-test-freestanding: $(STRICT_CORE)
-	@$(NM) -u $(STRICT_CORE) > $(STRICT_DIR)/undefined-symbols.txt
-	@test ! -s $(STRICT_DIR)/undefined-symbols.txt
-
-$(STRICT_CORE): $(STRICT_OBJECTS)
-	$(CC) -nostdlib -Wl,-r $(STRICT_OBJECTS) -o $@
-
-$(STRICT_DIR)/%.o: src/%.c $(CORE_HEADERS) src/shared/limits.h \
-		src/shared/stddef.h src/shared/stdint.h
-	@mkdir -p $(dir $@)
-	$(CC) $(STRICT_CFLAGS) -c $< -o $@
+test-freestanding:
+	cmake --preset host
+	cmake --build --preset host --target av2heif-freestanding-check
 
 reference-avm:
 	sh scripts/setup-avm.sh

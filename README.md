@@ -71,12 +71,12 @@ AVM checkout in `vendor/`, all source files, fixtures, and tracked evidence.
 The rebuilt decoder is `build/windows-x86_64/av2heif-decoder.exe`.
 
 Use the `host` preset when sanitizer runtimes are unavailable, including with
-LLVM-MinGW on Windows. Both host presets compile all 14 C harnesses and the
-artifact tool. Nine current unit suites run by default. The tile, leaf,
+LLVM-MinGW on Windows. Both host presets compile all 15 C harnesses and the
+artifact tool. Ten current unit suites run by default. The tile, leaf,
 transform, reconstruct, and artifact-profile harnesses remain build-checked
 but are excluded from CTest because their entropy snapshots predate the latest
 decoder fixes. Set `AV2HEIF_ENABLE_LEGACY_HOST_TESTS=ON` while updating those
-fixtures.
+fixtures. The layout harness pins key 64-bit decoder state sizes and alignments.
 
 Python is not required to build the decoder or run the hosted C gate. It is an
 optional development dependency for table regeneration, historical milestone
@@ -84,9 +84,10 @@ evidence, and the Milestone 9 parity runner. The Windows product preset enables
 that parity test; other configurations can opt in with
 `AV2HEIF_ENABLE_PYTHON_TESTS=ON`.
 
-The Makefile remains for historical milestone workflows and the strict
-freestanding undefined-symbol check while those final targets are migrated to
-CMake. New build and test targets should be added to CMake only.
+The strict freestanding undefined-symbol check is owned by CMake and runs as
+part of normal builds through `av2heif-freestanding-check`. The Makefile keeps a
+compatibility entry point for historical milestone workflows. New build and
+test targets should be added to CMake only.
 
 On Windows x86-64, LLVM, CMake, and Ninja can build a native freestanding PE
 smoke executable without the Microsoft C runtime or Windows SDK headers:
@@ -96,6 +97,10 @@ cmake --preset windows-x86_64
 cmake --build --preset windows-x86_64
 ctest --preset windows-x86_64
 ```
+
+The Windows suite includes a vendor-free corpus gate that decodes all 31
+tracked OBUs, compares complete I420 hashes with the pinned AVM references, and
+removes its temporary outputs.
 
 The preset passes the x86-64 target to both Clang compilation and executable
 linking, including when `clang.exe` comes from an AArch64-host LLVM-MinGW

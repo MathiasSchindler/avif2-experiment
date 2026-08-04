@@ -505,6 +505,9 @@ gate.
 
 **Status:** Planned.
 
+Structural preparation for this milestone is tracked in
+`docs/decoder-refactoring-plan.md`.
+
 Finalize workspace size and alignment calculations, query-to-decode input
 binding, caller-owned output layouts, truncation behavior, error ownership,
 fuzz limits, release documentation, and the public decode API. Do not expose
