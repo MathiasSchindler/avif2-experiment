@@ -52,7 +52,7 @@ static int read_file(const char *path, OwnedBytes *owned) {
         fclose(file);
         return 0;
     }
-    if ((unsigned long)length > (size_t)-1) {
+    if ((long)(size_t)length != length) {
         fprintf(stderr, "error: %s is too large\n", path);
         fclose(file);
         return 0;

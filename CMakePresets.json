@@ -2,6 +2,28 @@
   "version": 3,
   "configurePresets": [
     {
+      "name": "host",
+      "displayName": "Host C tests",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/host-cmake",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_C_COMPILER": "clang",
+        "AV2HEIF_BUILD_HOST_TESTS": "ON",
+        "AV2HEIF_ENABLE_SANITIZERS": "OFF",
+        "AV2HEIF_BUILD_WINDOWS_TOOLS": "OFF"
+      }
+    },
+    {
+      "name": "host-sanitized",
+      "displayName": "Host C tests (ASan and UBSan)",
+      "inherits": "host",
+      "binaryDir": "${sourceDir}/build/host-sanitized",
+      "cacheVariables": {
+        "AV2HEIF_ENABLE_SANITIZERS": "ON"
+      }
+    },
+    {
       "name": "windows-x86_64",
       "displayName": "Windows x86-64 (freestanding LLVM)",
       "generator": "Ninja",
@@ -11,17 +33,40 @@
         "CMAKE_C_COMPILER": "clang",
         "CMAKE_C_COMPILER_TARGET": "x86_64-w64-windows-gnu",
         "CMAKE_EXE_LINKER_FLAGS": "--target=x86_64-w64-windows-gnu",
-        "CMAKE_TRY_COMPILE_TARGET_TYPE": "STATIC_LIBRARY"
+        "CMAKE_TRY_COMPILE_TARGET_TYPE": "STATIC_LIBRARY",
+        "AV2HEIF_ENABLE_PYTHON_TESTS": "ON"
       }
     }
   ],
   "buildPresets": [
+    {
+      "name": "host",
+      "configurePreset": "host"
+    },
+    {
+      "name": "host-sanitized",
+      "configurePreset": "host-sanitized"
+    },
     {
       "name": "windows-x86_64",
       "configurePreset": "windows-x86_64"
     }
   ],
   "testPresets": [
+    {
+      "name": "host",
+      "configurePreset": "host",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "host-sanitized",
+      "configurePreset": "host-sanitized",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
     {
       "name": "windows-x86_64",
       "configurePreset": "windows-x86_64",

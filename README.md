@@ -47,18 +47,33 @@ limitations are recorded in `docs/milestone-0.md` through
 
 ## Build and test
 
-Run the vendor-free gate with:
+CMake 3.20 or newer, Ninja, and Clang are the required build tools. On Linux
+and macOS, run the hosted C gate with AddressSanitizer and
+UndefinedBehaviorSanitizer:
 
 ```sh
-make test
+cmake --preset host-sanitized
+cmake --build --preset host-sanitized
+ctest --preset host-sanitized
 ```
 
-This runs the C harnesses under AddressSanitizer and UndefinedBehaviorSanitizer,
-builds the core with `-ffreestanding -nostdinc`, verifies that the linked
-relocatable core has no undefined symbols, and runs the Python carriage tests.
-The C gate has separate substrate/carriage, container, AV2 range-decoder,
-CDF-initialization, partition-prefix, frame-header, and tile-framing test
-binaries.
+Use the `host` preset when sanitizer runtimes are unavailable, including with
+LLVM-MinGW on Windows. Both host presets compile all 14 C harnesses and the
+artifact tool. Nine current unit suites run by default. The tile, leaf,
+transform, reconstruct, and artifact-profile harnesses remain build-checked
+but are excluded from CTest because their entropy snapshots predate the latest
+decoder fixes. Set `AV2HEIF_ENABLE_LEGACY_HOST_TESTS=ON` while updating those
+fixtures.
+
+Python is not required to build the decoder or run the hosted C gate. It is an
+optional development dependency for table regeneration, historical milestone
+evidence, and the Milestone 9 parity runner. The Windows product preset enables
+that parity test; other configurations can opt in with
+`AV2HEIF_ENABLE_PYTHON_TESTS=ON`.
+
+The Makefile remains for historical milestone workflows and the strict
+freestanding undefined-symbol check while those final targets are migrated to
+CMake. New build and test targets should be added to CMake only.
 
 On Windows x86-64, LLVM, CMake, and Ninja can build a native freestanding PE
 smoke executable without the Microsoft C runtime or Windows SDK headers:

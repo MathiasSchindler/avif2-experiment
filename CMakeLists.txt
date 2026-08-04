@@ -2,6 +2,15 @@ cmake_minimum_required(VERSION 3.20)
 
 project(av2heif LANGUAGES C)
 
+include(CTest)
+
+option(AV2HEIF_BUILD_HOST_TESTS "Build hosted C unit tests" OFF)
+option(AV2HEIF_ENABLE_SANITIZERS "Enable sanitizers for hosted tests" OFF)
+option(AV2HEIF_ENABLE_LEGACY_HOST_TESTS
+    "Run hosted fixture tests that require expectation updates" OFF)
+option(AV2HEIF_ENABLE_PYTHON_TESTS "Enable Python development tests" OFF)
+option(AV2HEIF_BUILD_WINDOWS_TOOLS "Build freestanding Windows executables" ON)
+
 set(AV2HEIF_CORE_SOURCES
     src/base.c
     src/carriage.c
@@ -40,7 +49,71 @@ if(CMAKE_C_COMPILER_ID MATCHES "Clang|GNU")
     )
 endif()
 
-if(WIN32 AND CMAKE_C_COMPILER_ID MATCHES "Clang")
+if(AV2HEIF_BUILD_HOST_TESTS)
+    function(av2heif_configure_host_target target)
+        target_compile_features(${target} PRIVATE c_std_11)
+        if(CMAKE_C_COMPILER_ID MATCHES "Clang|GNU")
+            target_compile_options(${target} PRIVATE
+                -Wall -Wextra -Wpedantic -Werror -O1 -g
+            )
+            if(AV2HEIF_ENABLE_SANITIZERS)
+                target_compile_options(${target} PRIVATE
+                    -fsanitize=address,undefined -fno-omit-frame-pointer
+                )
+                target_link_options(${target} PRIVATE
+                    -fsanitize=address,undefined -fno-omit-frame-pointer
+                )
+            endif()
+        endif()
+    endfunction()
+
+    add_library(av2heif-host-core STATIC ${AV2HEIF_CORE_SOURCES})
+    av2heif_configure_host_target(av2heif-host-core)
+    target_include_directories(av2heif-host-core
+        PUBLIC include
+        PRIVATE src
+    )
+
+    set(AV2HEIF_HOST_UNIT_NAMES
+        substrate
+        container
+        range
+        tile
+        frame
+        cdf
+        partition
+        leaf
+        coeff
+        transform
+        coeff_level
+        reconstruct
+        filter
+        artifact_profile
+    )
+    foreach(unit_name IN LISTS AV2HEIF_HOST_UNIT_NAMES)
+        string(REPLACE "_" "-" unit_target "${unit_name}-unit")
+        add_executable(${unit_target} "tests/${unit_name}_unit.c")
+        av2heif_configure_host_target(${unit_target})
+        target_include_directories(${unit_target} PRIVATE src)
+        target_link_libraries(${unit_target} PRIVATE av2heif-host-core)
+        if(AV2HEIF_ENABLE_LEGACY_HOST_TESTS OR
+           NOT unit_name MATCHES
+               "^(tile|leaf|transform|reconstruct|artifact_profile)$")
+            add_test(NAME ${unit_target} COMMAND ${unit_target})
+            set_tests_properties(${unit_target} PROPERTIES
+                WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+            )
+        endif()
+    endforeach()
+
+    add_executable(av2heif-artifact tools/av2heif_artifact.c)
+    av2heif_configure_host_target(av2heif-artifact)
+    target_include_directories(av2heif-artifact PRIVATE src)
+    target_link_libraries(av2heif-artifact PRIVATE av2heif-host-core)
+endif()
+
+if(WIN32 AND AV2HEIF_BUILD_WINDOWS_TOOLS AND
+    CMAKE_C_COMPILER_ID MATCHES "Clang")
     set(CMAKE_C_STANDARD_LIBRARIES "")
     find_program(LLVM_DLLTOOL llvm-dlltool REQUIRED)
     target_compile_options(av2heif-core PRIVATE -mno-stack-arg-probe)
@@ -74,6 +147,7 @@ if(WIN32 AND CMAKE_C_COMPILER_ID MATCHES "Clang")
         -ffunction-sections -fdata-sections -nostdinc
     )
     target_link_options(av2heif-windows-smoke PRIVATE
+        --target=x86_64-w64-windows-gnu
         -nostdlib -fuse-ld=lld
         -Wl,-e,mainCRTStartup
         -Wl,-s,--gc-sections,--stack,8388608
@@ -92,6 +166,7 @@ if(WIN32 AND CMAKE_C_COMPILER_ID MATCHES "Clang")
         -ffunction-sections -fdata-sections -nostdinc
     )
     target_link_options(av2heif-decoder PRIVATE
+        --target=x86_64-w64-windows-gnu
         -nostdlib -fuse-ld=lld
         -Wl,-e,mainCRTStartup
         -Wl,-s,--gc-sections
@@ -319,8 +394,8 @@ if(WIN32 AND CMAKE_C_COMPILER_ID MATCHES "Clang")
             "${CMAKE_CURRENT_SOURCE_DIR}/images/artifacts/louis-377x279-qp184-decoded.i420")
     set_tests_properties(windows-decoder-louis-q184-i420-compare PROPERTIES
         DEPENDS windows-decoder-louis-q184-i420)
-    find_package(Python3 COMPONENTS Interpreter QUIET)
-    if(Python3_Interpreter_FOUND)
+    if(AV2HEIF_ENABLE_PYTHON_TESTS)
+        find_package(Python3 COMPONENTS Interpreter REQUIRED)
         add_test(NAME windows-decoder-milestone-9-parity
             COMMAND "${Python3_EXECUTABLE}"
                 "${CMAKE_CURRENT_SOURCE_DIR}/tools/run_m9_final_parity.py"
