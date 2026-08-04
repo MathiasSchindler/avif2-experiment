@@ -36,6 +36,8 @@ set(AV2HEIF_CORE_SOURCES
     src/decoder/reconstruct.c
     src/decoder/tile.c
     src/decoder/transform.c
+    src/decoder/transform_cdf.c
+    src/decoder/transform_map.c
     src/decoder/tx_geometry.c
 )
 

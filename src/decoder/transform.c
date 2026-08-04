@@ -1,479 +1,8 @@
 #include "transform.h"
+#include "internal/transform_modules.h"
 
 uint8_t av2h_debug_transform_stage;
 #include "tx_geometry.h"
-
-Av2hStatus av2h_first_transform_cdfs_init(Av2hFirstTransformCdfs *cdfs) {
-    static const uint16_t primary_size0[] = {
-        5026U, 16816U, 19974U, 23404U, 26845U, 30499U
-    };
-    static const uint16_t primary_size1[] = {
-        14910U, 25257U, 26964U, 29323U, 30237U, 31535U
-    };
-    static const uint16_t primary_size2[] = {
-        13759U, 26108U, 27688U, 29793U, 30265U, 31576U
-    };
-    static const uint16_t primary_short_side_4[] = {
-        10692U, 26586U, 29231U
-    };
-    static const uint16_t primary_short_side_8[] = {
-        26700U, 32160U, 32748U
-    };
-    static const uint16_t primary_short_side_16[] = {
-        26915U, 32411U, 32748U
-    };
-    static const uint16_t intrabc_short_side[3U][3U][3U] = {
-        {
-            { 8347U, 20254U, 24536U },
-            { 15994U, 26294U, 32748U },
-            { 21212U, 27810U, 32748U }
-        },
-        {
-            { 21815U, 25084U, 26230U },
-            { 29354U, 31747U, 32748U },
-            { 31614U, 32529U, 32748U }
-        },
-        {
-            { 10501U, 20590U, 24181U },
-            { 17596U, 26388U, 32748U },
-            { 15407U, 26475U, 32732U }
-        }
-    };
-    static const uint8_t intrabc_short_side_parameter[3U][3U] = {
-        { 31U, 1U, 1U },
-        { 62U, 37U, 36U },
-        { 31U, 37U, 60U }
-    };
-    static const Av2hBinaryCdfSpec intrabc_type_set[3U][2U] = {
-        { { 14122U, 25U, 0U }, { 8962U, 31U, 0U } },
-        { { 16423U, 26U, 0U }, { 23446U, 0U, 0U } },
-        { { 23352U, 25U, 0U }, { 17069U, 56U, 0U } }
-    };
-    static const Av2hBinaryCdfSpec intrabc_type_set2[3U] = {
-        { 20835U, 0U, 0U }, { 30720U, 3U, 0U }, { 28857U, 17U, 0U }
-    };
-    static const uint16_t intrabc_type_index[3U][7U] = {
-        { 8914U, 10732U, 12270U, 14822U, 17128U, 19586U, 21964U },
-        { 1160U, 1555U, 1972U, 3414U, 3962U, 5151U, 5908U },
-        { 22819U, 24338U, 25592U, 27001U, 28395U, 29648U, 30990U }
-    };
-    static const uint8_t intrabc_type_index_parameter[3U] = {
-        25U, 31U, 25U
-    };
-    static const uint16_t intrabc_type_index2[3U][7U] = {
-        { 1140U, 1725U, 2324U, 14653U, 19072U, 23618U, 28109U },
-        { 58U, 261U, 587U, 32317U, 32556U, 32626U, 32708U },
-        { 17404U, 17669U, 18403U, 24052U, 26393U, 28506U, 30676U }
-    };
-    static const uint8_t intrabc_type_index2_parameter[3U] = {
-        31U, 2U, 57U
-    };
-    static const uint16_t intrabc_type_offset[3U][7U] = {
-        { 3121U, 6470U, 9191U, 12280U, 17811U, 22588U, 27697U },
-        { 338U, 377U, 571U, 743U, 7932U, 11860U, 17524U },
-        { 3314U, 7625U, 10639U, 14206U, 19363U, 23456U, 28033U }
-    };
-    static const uint8_t intrabc_type_offset_parameter[3U] = {
-        93U, 1U, 93U
-    };
-    static const uint16_t intrabc_type_offset2[3U][3U] = {
-        { 8669U, 16533U, 24855U },
-        { 9441U, 16413U, 25276U },
-        { 8767U, 17611U, 24876U }
-    };
-    static const uint8_t intrabc_type_offset2_parameter[3U] = {
-        93U, 90U, 10U
-    };
-    static const uint16_t secondary_32x32[] = {
-        2472U, 8725U, 13853U
-    };
-    static const uint16_t secondary_64x64[] = {
-        7523U, 11681U, 14783U
-    };
-    static const uint16_t secondary_8x8[] = {
-        2357U, 9504U, 16641U
-    };
-    static const uint16_t secondary_16x16[] = {
-        1364U, 8034U, 14431U
-    };
-    static const uint16_t secondary_4x4[] = {
-        4486U, 15589U, 26440U
-    };
-    static const uint16_t intrabc_secondary[5U][3U] = {
-        { 8192U, 16384U, 24576U },
-        { 8192U, 16384U, 24576U },
-        { 10490U, 15394U, 22206U },
-        { 13967U, 16953U, 23109U },
-        { 20191U, 21727U, 25818U }
-    };
-    static const uint8_t intrabc_secondary_parameter[5U] = {
-        0U, 0U, 31U, 31U, 32U
-    };
-    static const uint16_t secondary_set[] = {
-        20712U, 26263U, 30623U, 32732U, 32736U, 32740U
-    };
-    static const uint16_t chroma_cross_type[] = {
-        14350U, 14836U, 16054U, 17075U, 19408U, 28530U
-    };
-    Av2hStatus status;
-    if (cdfs == 0) return AV2H_INVALID_ARGUMENT;
-    status = av2h_cdf_init(
-        cdfs->primary_size0, AV2H_PRIMARY_TX_TYPE_SYMBOLS + 4U,
-        primary_size0, AV2H_PRIMARY_TX_TYPE_SYMBOLS, 8U, 0U);
-    if (status != AV2H_OK) return status;
-    status = av2h_cdf_init(
-        cdfs->primary_size1, AV2H_PRIMARY_TX_TYPE_SYMBOLS + 4U,
-        primary_size1, AV2H_PRIMARY_TX_TYPE_SYMBOLS, 0U, 0U);
-    if (status != AV2H_OK) return status;
-    status = av2h_cdf_init(
-        cdfs->primary_size2, AV2H_PRIMARY_TX_TYPE_SYMBOLS + 4U,
-        primary_size2, AV2H_PRIMARY_TX_TYPE_SYMBOLS, 35U, 0U);
-    if (status != AV2H_OK) return status;
-    status = av2h_binary_cdf_init(
-        cdfs->primary_long_side_32,
-        (Av2hBinaryCdfSpec){ 36U, 0U, 0U });
-    if (status != AV2H_OK) return status;
-    status = av2h_cdf_init(
-        cdfs->primary_short_side_4, 4U + 4U, primary_short_side_4,
-        4U, 31U, 0U);
-    if (status != AV2H_OK) return status;
-    status = av2h_cdf_init(
-        cdfs->primary_short_side_8, 4U + 4U, primary_short_side_8,
-        4U, 6U, 0U);
-    if (status != AV2H_OK) return status;
-    status = av2h_cdf_init(
-        cdfs->primary_short_side_16, 4U + 4U, primary_short_side_16,
-        4U, 6U, 0U);
-    if (status != AV2H_OK) return status;
-    {
-        size_t eob_context;
-        size_t square_context;
-        for (eob_context = 0U; eob_context < 3U; ++eob_context) {
-            for (square_context = 0U; square_context < 3U;
-                 ++square_context) {
-                status = av2h_cdf_init(
-                    cdfs->intrabc_short_side[eob_context][square_context],
-                    4U + 4U,
-                    intrabc_short_side[eob_context][square_context], 4U,
-                    intrabc_short_side_parameter[eob_context][square_context],
-                    0U);
-                if (status != AV2H_OK) return status;
-            }
-        }
-    }
-    {
-        size_t eob_context;
-        size_t square_context;
-        for (eob_context = 0U; eob_context < 3U; ++eob_context) {
-            for (square_context = 0U; square_context < 2U;
-                 ++square_context) {
-                status = av2h_binary_cdf_init(
-                    cdfs->intrabc_type_set[eob_context][square_context],
-                    intrabc_type_set[eob_context][square_context]);
-                if (status != AV2H_OK) return status;
-            }
-            status = av2h_binary_cdf_init(
-                cdfs->intrabc_type_set2[eob_context],
-                intrabc_type_set2[eob_context]);
-            if (status != AV2H_OK) return status;
-            status = av2h_cdf_init(
-                cdfs->intrabc_type_index[eob_context],
-                AV2H_INTER_TX_TYPE_INDEX_SYMBOLS + 4U,
-                intrabc_type_index[eob_context],
-                AV2H_INTER_TX_TYPE_INDEX_SYMBOLS,
-                intrabc_type_index_parameter[eob_context], 0U);
-            if (status != AV2H_OK) return status;
-            status = av2h_cdf_init(
-                cdfs->intrabc_type_index2[eob_context],
-                AV2H_INTER_TX_TYPE_INDEX_SYMBOLS + 4U,
-                intrabc_type_index2[eob_context],
-                AV2H_INTER_TX_TYPE_INDEX_SYMBOLS,
-                intrabc_type_index2_parameter[eob_context], 0U);
-            if (status != AV2H_OK) return status;
-            status = av2h_cdf_init(
-                cdfs->intrabc_type_offset[eob_context],
-                AV2H_INTER_TX_TYPE_INDEX_SYMBOLS + 4U,
-                intrabc_type_offset[eob_context],
-                AV2H_INTER_TX_TYPE_INDEX_SYMBOLS,
-                intrabc_type_offset_parameter[eob_context], 0U);
-            if (status != AV2H_OK) return status;
-            status = av2h_cdf_init(
-                cdfs->intrabc_type_offset2[eob_context], 4U + 4U,
-                intrabc_type_offset2[eob_context], 4U,
-                intrabc_type_offset2_parameter[eob_context], 0U);
-            if (status != AV2H_OK) return status;
-        }
-    }
-    status = av2h_cdf_init(
-        cdfs->secondary_4x4, AV2H_SECONDARY_TX_TYPE_SYMBOLS + 4U,
-        secondary_4x4, AV2H_SECONDARY_TX_TYPE_SYMBOLS, 75U, 0U);
-    if (status != AV2H_OK) return status;
-    status = av2h_cdf_init(
-        cdfs->secondary_32x32, AV2H_SECONDARY_TX_TYPE_SYMBOLS + 4U,
-        secondary_32x32, AV2H_SECONDARY_TX_TYPE_SYMBOLS, 76U, 0U);
-    if (status != AV2H_OK) return status;
-    status = av2h_cdf_init(
-        cdfs->secondary_64x64, AV2H_SECONDARY_TX_TYPE_SYMBOLS + 4U,
-        secondary_64x64, AV2H_SECONDARY_TX_TYPE_SYMBOLS, 1U, 0U);
-    if (status != AV2H_OK) return status;
-    status = av2h_cdf_init(
-        cdfs->secondary_8x8, AV2H_SECONDARY_TX_TYPE_SYMBOLS + 4U,
-        secondary_8x8, AV2H_SECONDARY_TX_TYPE_SYMBOLS, 5U, 0U);
-    if (status != AV2H_OK) return status;
-    status = av2h_cdf_init(
-        cdfs->secondary_16x16, AV2H_SECONDARY_TX_TYPE_SYMBOLS + 4U,
-        secondary_16x16, AV2H_SECONDARY_TX_TYPE_SYMBOLS, 0U, 0U);
-    if (status != AV2H_OK) return status;
-    for (size_t index = 0U; index < 5U; ++index) {
-        status = av2h_cdf_init(
-            cdfs->intrabc_secondary[index],
-            AV2H_SECONDARY_TX_TYPE_SYMBOLS + 4U,
-            intrabc_secondary[index], AV2H_SECONDARY_TX_TYPE_SYMBOLS,
-            intrabc_secondary_parameter[index], 0U);
-        if (status != AV2H_OK) return status;
-    }
-    status = av2h_cdf_init(
-        cdfs->secondary_set, AV2H_SECONDARY_TX_SET_SYMBOLS + 4U,
-        secondary_set, AV2H_SECONDARY_TX_SET_SYMBOLS, 55U, 0U);
-    if (status != AV2H_OK) return status;
-    {
-        static const uint16_t secondary_adst_set[3U] = {
-            15897U, 26144U, 30010U
-        };
-        status = av2h_cdf_init(
-            cdfs->secondary_adst_set,
-            AV2H_SECONDARY_ADST_TX_SET_SYMBOLS + 4U,
-            secondary_adst_set, AV2H_SECONDARY_ADST_TX_SET_SYMBOLS, 0U, 0U);
-        if (status != AV2H_OK) return status;
-    }
-    return av2h_cdf_init(cdfs->chroma_cross_type, 7U + 4U,
-                         chroma_cross_type, 7U, 62U, 0U);
-}
-
-static Av2hStatus secondary_tx_set_map(
-    Av2hFirstLeafIntraMode mode, uint8_t symbol, uint8_t *set) {
-    static const uint8_t inverse_mapping[12U][7U] = {
-        { 6U, 1U, 0U, 5U, 4U, 3U, 2U },
-        { 1U, 6U, 0U, 4U, 2U, 5U, 3U },
-        { 1U, 6U, 0U, 4U, 2U, 5U, 3U },
-        { 2U, 6U, 0U, 5U, 1U, 4U, 3U },
-        { 3U, 4U, 6U, 1U, 0U, 2U, 5U },
-        { 4U, 1U, 3U, 6U, 0U, 5U, 2U },
-        { 4U, 1U, 3U, 6U, 0U, 5U, 2U },
-        { 5U, 0U, 6U, 2U, 1U, 4U, 3U },
-        { 5U, 0U, 6U, 2U, 1U, 4U, 3U },
-        { 6U, 1U, 0U, 5U, 4U, 3U, 2U },
-        { 1U, 6U, 0U, 4U, 2U, 5U, 3U },
-        { 1U, 6U, 0U, 4U, 2U, 5U, 3U }
-    };
-    if (set == 0) return AV2H_INVALID_ARGUMENT;
-    if ((uint8_t)mode >= 12U || symbol >= AV2H_SECONDARY_TX_SET_SYMBOLS) {
-        return AV2H_UNSUPPORTED;
-    }
-    *set = inverse_mapping[(uint8_t)mode][symbol];
-    return AV2H_OK;
-}
-
-static Av2hStatus secondary_adst_tx_set_map(
-    Av2hFirstLeafIntraMode mode, uint8_t symbol, uint8_t *set) {
-    static const uint8_t inverse_mapping[12U][4U] = {
-        { 3U, 1U, 0U, 2U },
-        { 1U, 3U, 0U, 2U },
-        { 1U, 3U, 0U, 2U },
-        { 1U, 3U, 0U, 2U },
-        { 0U, 2U, 3U, 1U },
-        { 2U, 1U, 0U, 3U },
-        { 2U, 1U, 0U, 3U },
-        { 1U, 0U, 3U, 2U },
-        { 1U, 0U, 3U, 2U },
-        { 3U, 1U, 0U, 2U },
-        { 1U, 3U, 0U, 2U },
-        { 1U, 3U, 0U, 2U }
-    };
-    if (set == 0) return AV2H_INVALID_ARGUMENT;
-    if ((uint8_t)mode >= 12U ||
-        symbol >= AV2H_SECONDARY_ADST_TX_SET_SYMBOLS) {
-        return AV2H_UNSUPPORTED;
-    }
-    *set = inverse_mapping[(uint8_t)mode][symbol];
-    return AV2H_OK;
-}
-
-Av2hStatus av2h_primary_tx_type_map(
-    Av2hFirstTxSize tx_size,
-    Av2hFirstLeafIntraMode mode,
-    uint8_t long_side_symbol,
-    uint8_t primary_symbol,
-    Av2hFirstTxType *tx_type) {
-    static const uint8_t intra_types[3U][13U][7U] = {
-        {
-            { 0U, 3U, 1U, 2U, 7U, 8U, 13U },
-            { 0U, 3U, 1U, 2U, 7U, 10U, 12U },
-            { 0U, 3U, 1U, 2U, 8U, 11U, 13U },
-            { 0U, 3U, 1U, 2U, 6U, 7U, 8U },
-            { 0U, 3U, 1U, 2U, 7U, 8U, 13U },
-            { 0U, 3U, 1U, 2U, 7U, 12U, 14U },
-            { 0U, 3U, 1U, 2U, 7U, 8U, 13U },
-            { 0U, 3U, 1U, 2U, 8U, 11U, 13U },
-            { 0U, 3U, 1U, 2U, 7U, 10U, 12U },
-            { 0U, 3U, 1U, 2U, 6U, 7U, 8U },
-            { 0U, 3U, 1U, 2U, 7U, 8U, 12U },
-            { 0U, 3U, 1U, 2U, 7U, 8U, 13U },
-            { 0U, 3U, 2U, 10U, 11U, 12U, 13U }
-        },
-        {
-            { 0U, 3U, 1U, 2U, 4U, 7U, 8U },
-            { 0U, 3U, 1U, 2U, 7U, 6U, 8U },
-            { 0U, 3U, 1U, 2U, 8U, 4U, 7U },
-            { 0U, 3U, 1U, 2U, 6U, 7U, 8U },
-            { 0U, 3U, 1U, 2U, 5U, 7U, 8U },
-            { 0U, 3U, 1U, 2U, 5U, 7U, 8U },
-            { 0U, 3U, 1U, 2U, 4U, 7U, 8U },
-            { 0U, 3U, 1U, 2U, 4U, 8U, 7U },
-            { 0U, 3U, 1U, 2U, 5U, 6U, 7U },
-            { 0U, 3U, 1U, 2U, 6U, 7U, 8U },
-            { 0U, 3U, 1U, 2U, 4U, 7U, 8U },
-            { 0U, 3U, 1U, 2U, 5U, 7U, 8U },
-            { 0U, 3U, 1U, 2U, 10U, 11U, 13U }
-        },
-        {
-            { 0U, 3U, 1U, 2U, 4U, 7U, 8U },
-            { 0U, 3U, 1U, 2U, 5U, 7U, 8U },
-            { 0U, 3U, 1U, 2U, 4U, 8U, 7U },
-            { 0U, 3U, 1U, 2U, 4U, 7U, 8U },
-            { 0U, 3U, 1U, 2U, 4U, 7U, 8U },
-            { 0U, 3U, 1U, 2U, 5U, 7U, 8U },
-            { 0U, 3U, 1U, 2U, 4U, 7U, 8U },
-            { 0U, 3U, 1U, 2U, 4U, 6U, 8U },
-            { 0U, 3U, 1U, 2U, 5U, 7U, 8U },
-            { 0U, 3U, 1U, 2U, 4U, 7U, 8U },
-            { 0U, 3U, 1U, 2U, 4U, 7U, 8U },
-            { 0U, 3U, 1U, 2U, 5U, 7U, 8U },
-            { 0U, 3U, 1U, 2U, 10U, 11U, 12U }
-        }
-    };
-        static const uint8_t adst_flipadst_symbols[3][13] = {
-                { 4U, 4U, 0xffU, 5U, 4U, 4U, 4U,
-                    0xffU, 4U, 5U, 4U, 4U, 0xffU },
-                { 5U, 4U, 6U, 5U, 5U, 5U, 5U,
-                    4U, 6U, 5U, 5U, 5U, 0xffU },
-                { 5U, 5U, 6U, 5U, 5U, 5U, 5U,
-                    0xffU, 5U, 5U, 5U, 5U, 0xffU }
-        };
-    const Av2hTxDescriptor *descriptor;
-        uint8_t size_class;
-    Av2hStatus status;
-    if (tx_type == 0) return AV2H_INVALID_ARGUMENT;
-    *tx_type = AV2H_TX_TYPE_INVALID;
-    status = av2h_tx_descriptor_get(tx_size, &descriptor);
-    if (status != AV2H_OK) return status;
-    if (descriptor->signaling_class == AV2H_TX_SIGNAL_DCT_ONLY) {
-        if (long_side_symbol != 0U || primary_symbol != 0U) {
-            return AV2H_UNSUPPORTED;
-        }
-        *tx_type = AV2H_TX_DCT_DCT;
-        return AV2H_OK;
-    }
-    size_class =
-        tx_size == AV2H_TX_4X4 || tx_size == AV2H_TX_4X8 ||
-        tx_size == AV2H_TX_8X4 ? 0U :
-        tx_size == AV2H_TX_4X16 || tx_size == AV2H_TX_16X4 ||
-        tx_size == AV2H_TX_8X8 || tx_size == AV2H_TX_8X16 ||
-        tx_size == AV2H_TX_16X8 ? 1U :
-        tx_size == AV2H_TX_16X16 ? 2U : 0xffU;
-    if (size_class < 3U &&
-        (uint8_t)mode <= (uint8_t)AV2H_INTRA_PAETH &&
-        long_side_symbol == 0U &&
-        primary_symbol < AV2H_PRIMARY_TX_TYPE_SYMBOLS) {
-        *tx_type = (Av2hFirstTxType)
-            intra_types[size_class][(uint8_t)mode][primary_symbol];
-        return AV2H_OK;
-    }
-    if (size_class != 0xffU &&
-        (uint8_t)mode <= (uint8_t)AV2H_INTRA_PAETH &&
-        long_side_symbol == 0U &&
-        primary_symbol == 0U) {
-        *tx_type = AV2H_TX_DCT_DCT;
-        return AV2H_OK;
-    }
-    if (size_class != 0xffU &&
-        (uint8_t)mode <= (uint8_t)AV2H_INTRA_PAETH &&
-        long_side_symbol == 0U &&
-        primary_symbol == adst_flipadst_symbols[size_class][(uint8_t)mode]) {
-        *tx_type = AV2H_TX_ADST_FLIPADST;
-        return AV2H_OK;
-    }
-    if (size_class == 0U && mode == AV2H_INTRA_D113 &&
-        long_side_symbol == 0U && primary_symbol == 6U) {
-        *tx_type = AV2H_TX_V_FLIPADST;
-        return AV2H_OK;
-    }
-    if ((descriptor->signaling_class == AV2H_TX_SIGNAL_INTRA_4 ||
-         descriptor->signaling_class == AV2H_TX_SIGNAL_INTRA_8 ||
-         descriptor->signaling_class == AV2H_TX_SIGNAL_INTRA_16) &&
-        (uint8_t)mode <= (uint8_t)AV2H_INTRA_PAETH &&
-        long_side_symbol == 0U &&
-        primary_symbol == 2U &&
-        !(descriptor->square_class == AV2H_TX_SQUARE_4 &&
-          mode == AV2H_INTRA_PAETH)) {
-        *tx_type = AV2H_TX_ADST_DCT;
-        return AV2H_OK;
-        }
-        if ((descriptor->signaling_class == AV2H_TX_SIGNAL_INTRA_4 ||
-         descriptor->signaling_class == AV2H_TX_SIGNAL_INTRA_8 ||
-         descriptor->signaling_class == AV2H_TX_SIGNAL_INTRA_16) &&
-        (uint8_t)mode <= (uint8_t)AV2H_INTRA_PAETH &&
-        long_side_symbol == 0U &&
-        primary_symbol ==
-            (descriptor->square_class == AV2H_TX_SQUARE_4 &&
-             mode == AV2H_INTRA_PAETH ? 2U : 3U)) {
-        *tx_type = AV2H_TX_DCT_ADST;
-        return AV2H_OK;
-    }
-    if (tx_size == AV2H_TX_16X16 && mode == AV2H_INTRA_SMOOTH &&
-        long_side_symbol == 0U && primary_symbol == 1U) {
-        *tx_type = AV2H_TX_ADST_ADST;
-        return AV2H_OK;
-    }
-    if (descriptor->signaling_class == AV2H_TX_SIGNAL_WIDE_32 ||
-        descriptor->signaling_class == AV2H_TX_SIGNAL_HIGH_32 ||
-        descriptor->signaling_class == AV2H_TX_SIGNAL_WIDE_64 ||
-        descriptor->signaling_class == AV2H_TX_SIGNAL_HIGH_64) {
-        int wide =
-            descriptor->signaling_class == AV2H_TX_SIGNAL_WIDE_32 ||
-            descriptor->signaling_class == AV2H_TX_SIGNAL_WIDE_64;
-        if (long_side_symbol > 1U || primary_symbol > 3U) {
-            return AV2H_UNSUPPORTED;
-        }
-        if (long_side_symbol != 0U) {
-            if (wide) {
-                *tx_type = primary_symbol == 0U ? AV2H_TX_DCT_DCT :
-                    primary_symbol == 1U ? AV2H_TX_ADST_DCT :
-                    primary_symbol == 2U ? AV2H_TX_FLIPADST_DCT :
-                                           AV2H_TX_H_DCT;
-            } else {
-                *tx_type = primary_symbol == 0U ? AV2H_TX_DCT_DCT :
-                    primary_symbol == 1U ? AV2H_TX_DCT_ADST :
-                    primary_symbol == 2U ? AV2H_TX_DCT_FLIPADST :
-                                           AV2H_TX_V_DCT;
-            }
-            return AV2H_OK;
-        }
-        if (primary_symbol == 2U) return AV2H_UNSUPPORTED;
-        if (wide) {
-            *tx_type = primary_symbol == 0U ? AV2H_TX_V_DCT :
-                primary_symbol == 1U ? AV2H_TX_V_ADST : AV2H_TX_IDTX;
-        } else {
-            *tx_type = primary_symbol == 0U ? AV2H_TX_H_DCT :
-                primary_symbol == 1U ? AV2H_TX_H_ADST :
-                primary_symbol == 3U ? AV2H_TX_IDTX :
-                                       AV2H_TX_TYPE_INVALID;
-            if (*tx_type == AV2H_TX_TYPE_INVALID) return AV2H_UNSUPPORTED;
-        }
-        return AV2H_OK;
-    }
-    return AV2H_UNSUPPORTED;
-}
 
 Av2hStatus av2h_secondary_tx_type_signal(
     const Av2hSequenceState *sequence,
@@ -520,48 +49,6 @@ Av2hStatus av2h_secondary_tx_type_signal(
     return AV2H_OK;
 }
 
-static Av2hFirstLeafIntraMode transform_mode(
-    Av2hFirstLeafIntraMode mode, int8_t angle_delta,
-    uint8_t mrl_index,
-    const Av2hTxDescriptor *descriptor) {
-    static const int mrl_delta[4U] = { 0, 1, -1, 0 };
-    int angle;
-    switch (mode) {
-        case AV2H_INTRA_VERTICAL: angle = 90; break;
-        case AV2H_INTRA_HORIZONTAL: angle = 180; break;
-        case AV2H_INTRA_D45: angle = 45; break;
-        case AV2H_INTRA_D67: angle = 67; break;
-        case AV2H_INTRA_D113: angle = 113; break;
-        case AV2H_INTRA_D135: angle = 135; break;
-        case AV2H_INTRA_D157: angle = 157; break;
-        case AV2H_INTRA_D203: angle = 203; break;
-        default: return mode;
-    }
-    angle += angle_delta * 3;
-    if (mrl_index < 4U) angle += mrl_delta[mrl_index];
-    if ((descriptor->output_height == 2U * descriptor->output_width &&
-         angle < 61) ||
-        (descriptor->output_height == 4U * descriptor->output_width &&
-         angle < 73) ||
-        (descriptor->output_height == 8U * descriptor->output_width &&
-         angle < 82) ||
-        (descriptor->output_height == 16U * descriptor->output_width &&
-         angle < 86)) {
-        return AV2H_INTRA_D203;
-    }
-    if ((descriptor->output_width == 2U * descriptor->output_height &&
-         angle > 209) ||
-        (descriptor->output_width == 4U * descriptor->output_height &&
-         angle > 197) ||
-        (descriptor->output_width == 8U * descriptor->output_height &&
-         angle > 188) ||
-        (descriptor->output_width == 16U * descriptor->output_height &&
-         angle > 184)) {
-        return AV2H_INTRA_D45;
-    }
-    return mode;
-}
-
 static Av2hStatus read_primary(Av2hRangeDecoder *decoder,
                                Av2hFirstTransformCdfs *cdfs,
                                const Av2hFirstLeafMode *mode,
@@ -579,7 +66,7 @@ static Av2hStatus read_primary(Av2hRangeDecoder *decoder,
     status = av2h_tx_descriptor_get(coeff->tx_size, &descriptor);
     if (status != AV2H_OK) return status;
     mapped_mode = *mode;
-    mapped_mode.mode = transform_mode(
+    mapped_mode.mode = av2h_transform_mode(
         mode->mode, mode->angle_delta, mode->mrl_index, descriptor);
     mode = &mapped_mode;
     if (descriptor->signaling_class == AV2H_TX_SIGNAL_DCT_ONLY) {
@@ -1533,9 +1020,9 @@ Av2hStatus av2h_first_transform_type_read(
                 return av2h_range_status(decoder);
             }
             transform->secondary_set_symbol = (uint8_t)symbol;
-            status = reduced_adst_set ? secondary_adst_tx_set_map(
+            status = reduced_adst_set ? av2h_secondary_adst_tx_set_map(
                 mode->mode, (uint8_t)symbol, &transform->secondary_set) :
-                secondary_tx_set_map(
+                av2h_secondary_tx_set_map(
                     mode->mode, (uint8_t)symbol, &transform->secondary_set);
             if (status != AV2H_OK) return status;
             if (transform->primary_type == AV2H_TX_ADST_ADST) {
@@ -1563,52 +1050,8 @@ Av2hStatus av2h_first_chroma_transform_type_read(
 static Av2hFirstLeafIntraMode chroma_transform_mode(
     const Av2hFirstChromaMode *mode,
     const Av2hTxDescriptor *descriptor) {
-    return transform_mode(mode->mode, mode->angle_delta, 0U, descriptor);
-}
-
-static Av2hStatus chroma_primary_type(
-    const Av2hFirstChromaMode *mode,
-    const Av2hTxDescriptor *descriptor,
-    uint8_t reduced_tx_set,
-    Av2hFirstTxType *tx_type) {
-    static const Av2hFirstTxType mode_types[13U] = {
-        AV2H_TX_DCT_DCT,
-        AV2H_TX_ADST_DCT,
-        AV2H_TX_DCT_ADST,
-        AV2H_TX_DCT_DCT,
-        AV2H_TX_ADST_ADST,
-        AV2H_TX_ADST_DCT,
-        AV2H_TX_DCT_ADST,
-        AV2H_TX_DCT_ADST,
-        AV2H_TX_ADST_DCT,
-        AV2H_TX_ADST_ADST,
-        AV2H_TX_ADST_DCT,
-        AV2H_TX_DCT_ADST,
-        AV2H_TX_ADST_ADST
-    };
-    if (mode == 0 || descriptor == 0 || tx_type == 0 ||
-        (uint8_t)mode->mode >= 13U) {
-        return AV2H_INVALID_ARGUMENT;
-    }
-    *tx_type = mode_types[(uint8_t)chroma_transform_mode(mode, descriptor)];
-    if (reduced_tx_set ||
-        descriptor->signaling_class == AV2H_TX_SIGNAL_DCT_ONLY ||
-                ((descriptor->signaling_class == AV2H_TX_SIGNAL_WIDE_32 ||
-                    descriptor->signaling_class == AV2H_TX_SIGNAL_HIGH_32 ||
-                    descriptor->signaling_class == AV2H_TX_SIGNAL_WIDE_64 ||
-                    descriptor->signaling_class == AV2H_TX_SIGNAL_HIGH_64) &&
-                 *tx_type == AV2H_TX_ADST_ADST) ||
-        (descriptor->signaling_class == AV2H_TX_SIGNAL_WIDE_32 &&
-         *tx_type == AV2H_TX_DCT_ADST) ||
-        (descriptor->signaling_class == AV2H_TX_SIGNAL_HIGH_32 &&
-         *tx_type == AV2H_TX_ADST_DCT) ||
-        (descriptor->signaling_class == AV2H_TX_SIGNAL_WIDE_64 &&
-         *tx_type != AV2H_TX_ADST_DCT) ||
-        (descriptor->signaling_class == AV2H_TX_SIGNAL_HIGH_64 &&
-         *tx_type != AV2H_TX_DCT_ADST)) {
-        *tx_type = AV2H_TX_DCT_DCT;
-    }
-    return AV2H_OK;
+    return av2h_transform_mode(
+        mode->mode, mode->angle_delta, 0U, descriptor);
 }
 
 Av2hStatus av2h_chroma_transform_type_read(
@@ -1620,6 +1063,7 @@ Av2hStatus av2h_chroma_transform_type_read(
     const Av2hFirstCoeffPrefix *coeff,
     Av2hFirstTransformType *transform) {
     const Av2hTxDescriptor *descriptor;
+    Av2hFirstChromaMode mapped_mode;
     uint32_t symbol = 0U;
     Av2hStatus status;
     if (decoder == 0 || cdfs == 0 || frame == 0 || mode == 0 || coeff == 0 ||
@@ -1629,8 +1073,11 @@ Av2hStatus av2h_chroma_transform_type_read(
     status = av2h_tx_descriptor_get(coeff->tx_size, &descriptor);
     if ((plane == 1U || plane == 2U) && status == AV2H_OK) {
         transform->before_primary_bits = av2h_range_tell(decoder);
-        status = chroma_primary_type(
-            mode, descriptor, frame->reduced_tx_set,
+        mapped_mode = *mode;
+        mapped_mode.mode = chroma_transform_mode(mode, descriptor);
+        mapped_mode.angle_delta = 0;
+        status = av2h_chroma_primary_type_map(
+            &mapped_mode, descriptor, frame->reduced_tx_set,
             &transform->primary_type);
         if (status != AV2H_OK) return status;
         transform->primary_signaled = 0U;

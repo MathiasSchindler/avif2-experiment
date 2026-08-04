@@ -186,6 +186,9 @@ freestanding symbol check, then all-artifact parity.
 
 ## Phase 4: split transform syntax and table ownership
 
+**Status:** Complete. Ownership decisions and validation details are recorded
+in `refactoring-phase-4.md`.
+
 Before this phase, restore `transform-unit` to the default gate.
 
 Target layout:
