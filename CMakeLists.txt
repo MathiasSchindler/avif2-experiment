@@ -268,6 +268,17 @@ if(WIN32 AND CMAKE_C_COMPILER_ID MATCHES "Clang")
             -P "${CMAKE_CURRENT_SOURCE_DIR}/scripts/check-file-sha256.cmake")
     set_tests_properties(windows-decoder-silene-q080-i420-hash PROPERTIES
         DEPENDS windows-decoder-silene-q080-i420)
+    add_test(NAME windows-decoder-silene-q120-i420
+        COMMAND av2heif-decoder
+            "${CMAKE_CURRENT_SOURCE_DIR}/images/artifacts/silene-425x340-qp120.obu"
+            -o "${CMAKE_CURRENT_BINARY_DIR}/silene-q120-decoder.i420")
+    add_test(NAME windows-decoder-silene-q120-i420-hash
+        COMMAND "${CMAKE_COMMAND}"
+            "-DINPUT=${CMAKE_CURRENT_BINARY_DIR}/silene-q120-decoder.i420"
+            "-DEXPECTED_SHA256=1e08dd8c11593832d20175afa84b9c07f1dc3eb5355c73d4fdeca8b9a166ddf5"
+            -P "${CMAKE_CURRENT_SOURCE_DIR}/scripts/check-file-sha256.cmake")
+    set_tests_properties(windows-decoder-silene-q120-i420-hash PROPERTIES
+        DEPENDS windows-decoder-silene-q120-i420)
     add_test(NAME windows-decoder-chimp-q192-i420
         COMMAND av2heif-decoder
             "${CMAKE_CURRENT_SOURCE_DIR}/images/artifacts/chimp-240x287-qp192.obu"

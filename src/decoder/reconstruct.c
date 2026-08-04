@@ -8429,11 +8429,21 @@ static Av2hStatus mhccp_predict_direction01(
     top_luma_width = 0U;
     if (have_top) {
         uint16_t available_top = 0U;
-        top_chroma_width = (uint16_t)(
-            chroma_plane->reference_width - top_start_x);
+        uint16_t effective_chroma_width = (uint16_t)(
+            (chroma_plane->reference_width + 3U) & ~(size_t)3U);
+        uint16_t effective_luma_width = (uint16_t)(
+            (luma_plane->reference_width + 7U) & ~(size_t)7U);
+        if (effective_chroma_width > chroma_plane->width) {
+            effective_chroma_width = chroma_plane->width;
+        }
+        if (effective_luma_width > luma_plane->width) {
+            effective_luma_width = luma_plane->width;
+        }
+        top_chroma_width = effective_chroma_width > top_start_x + 1U ?
+            (uint16_t)(effective_chroma_width - top_start_x - 1U) : 0U;
         if (top_chroma_width > top_count) top_chroma_width = top_count;
-        top_luma_width = (uint16_t)(
-            luma_plane->reference_width - top_start_x * 2U);
+        top_luma_width = effective_luma_width > top_start_x * 2U ?
+            (uint16_t)(effective_luma_width - top_start_x * 2U) : 0U;
         if (top_luma_width > top_count * 2U) {
             top_luma_width = (uint16_t)(top_count * 2U);
         }
@@ -8513,53 +8523,52 @@ static Av2hStatus mhccp_predict_direction01(
             1469598103934665603ULL;
     }
     for (sample = 0U; sample < top_count; ++sample) {
-        uint16_t chroma_x = (uint16_t)(top_start_x + sample);
+        uint16_t luma_chroma_x = (uint16_t)(top_start_x + sample);
+        uint16_t chroma_x = luma_chroma_x;
         uint16_t chroma_y = (uint16_t)(block_y - 1U);
         int32_t vector[3U];
         int first;
         int second;
-        if (chroma_x >= chroma_plane->reference_width) {
-            chroma_x = (uint16_t)(chroma_plane->reference_width - 1U);
-        }
         {
             int32_t center = (int32_t)((is_top_sb_boundary ?
                     mhccp_luma_sb_top_sample_q3(
-                        luma_plane, filter_index, chroma_x, block_y) :
+                        luma_plane, filter_index, luma_chroma_x, block_y) :
                     mhccp_luma_sample_q3(
-                        luma_plane, filter_index, chroma_x, chroma_y)) >> 3U);
+                        luma_plane, filter_index, luma_chroma_x,
+                        chroma_y)) >> 3U);
             if (sample == 0U) top_left_center = center;
             vector[0] = direction == 0U ? center :
                 direction == 1U ?
                     (is_top_sb_boundary ? center :
                     (int32_t)((filter_index == 0U ?
                         mhccp_luma_q3(
-                            luma_plane, chroma_x,
+                            luma_plane, luma_chroma_x,
                             (uint16_t)(chroma_y - 1U)) :
                      filter_index == 1U ?
                         mhccp_luma_filter1_q3(
-                            luma_plane, chroma_x,
+                            luma_plane, luma_chroma_x,
                             (uint16_t)(chroma_y - 1U)) :
                         mhccp_luma_filter2_top_clamped_q3(
-                            luma_plane, chroma_x,
+                            luma_plane, luma_chroma_x,
                             (uint16_t)(chroma_y - 1U))) >> 3U)) :
                     (int32_t)((is_top_sb_boundary ?
                         (sample == 0U && have_left ?
                             mhccp_luma_sb_top_left_clamped_q3(
                                 luma_plane, filter_index,
-                                chroma_x == 0U ? 0U :
-                                    (uint16_t)(chroma_x - 1U), block_y) :
+                                luma_chroma_x == 0U ? 0U :
+                                    (uint16_t)(luma_chroma_x - 1U), block_y) :
                             mhccp_luma_sb_top_sample_q3(
                                 luma_plane, filter_index,
-                                chroma_x == 0U ? 0U :
-                                    (uint16_t)(chroma_x - 1U), block_y)) :
+                                luma_chroma_x == 0U ? 0U :
+                                    (uint16_t)(luma_chroma_x - 1U), block_y)) :
                         sample == 0U && have_left ?
                             mhccp_luma_left_clamped_q3(
                                 luma_plane, filter_index,
-                                (uint16_t)(chroma_x - 1U), chroma_y) :
+                                (uint16_t)(luma_chroma_x - 1U), chroma_y) :
                             mhccp_luma_sample_q3(
                                 luma_plane, filter_index,
-                                chroma_x == 0U ? 0U :
-                                    (uint16_t)(chroma_x - 1U),
+                                luma_chroma_x == 0U ? 0U :
+                                    (uint16_t)(luma_chroma_x - 1U),
                                 chroma_y)) >> 3U);
             vector[1] = (center * center + 128) >> 8U;
         }
