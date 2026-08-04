@@ -1,4 +1,5 @@
 #include "decoder/filter.h"
+#include "decoder/internal/sample_math.h"
 
 #include "gdf_data.inc"
 
@@ -66,20 +67,8 @@ static const int8_t gdf_coordinates[18][2] = {
 static int dimensions_valid(const Av2hFilterPlanes *planes,
                             const Av2hFrameState *frame);
 
-static uint8_t clip_sample(int value) {
-    if (value < 0) return 0U;
-    if (value > 255) return 255U;
-    return (uint8_t)value;
-}
-
 static int absolute_value(int value) {
     return value < 0 ? -value : value;
-}
-
-static int clamp_value(int value, int minimum, int maximum) {
-    if (value < minimum) return minimum;
-    if (value > maximum) return maximum;
-    return value;
 }
 
 static int round_shift_signed(int value, unsigned int shift) {
@@ -161,13 +150,14 @@ static void deblock_thresholds(const Av2hDeblockCell *cell,
     if (cell->q_index == 0U && delta <= 0) {
         q_index = 0;
     } else {
-        q_index = clamp_value((int)cell->q_index + delta, 1, 255);
+        q_index = av2h_sample_clamp((int)cell->q_index + delta, 1, 255);
     }
     level = q_index + 8 * frame->deblock_delta[delta_index];
     *q_threshold = (uint16_t)(((deblock_qlookup(level) + 4) >> 3) >> 6);
-    side_index = clamp_value(level, 0, 295);
+    side_index = av2h_sample_clamp(level, 0, 295);
     *side_threshold = (uint16_t)(
-        clamp_value(deblock_side_threshold[side_index] + 16, 0, 65535) >> 5);
+        av2h_sample_clamp(
+            deblock_side_threshold[side_index] + 16, 0, 65535) >> 5);
 }
 
 static int deblock_direction_error(const uint8_t *sample,
@@ -285,14 +275,14 @@ static void deblock_filter_lane(uint8_t *sample,
                  (sample[step] - sample[-2 * step])) * 4;
     int limit = (int)q_threshold * deblock_q_multiplier[width - 1U];
     unsigned int index;
-    delta = clamp_value(delta, -limit, limit);
+    delta = av2h_sample_clamp(delta, -limit, limit);
     if (negative_lossless == 0U) {
         for (index = 0U; index < negative_width; ++index) {
             int adjustment = round_shift_signed(
                 delta * deblock_weight[negative_width - 1U] *
                     (int)(negative_width - index),
                 11U);
-            sample[-((ptrdiff_t)index + 1) * step] = clip_sample(
+            sample[-((ptrdiff_t)index + 1) * step] = av2h_sample_clip(
                 sample[-((ptrdiff_t)index + 1) * step] + adjustment);
         }
     }
@@ -302,7 +292,7 @@ static void deblock_filter_lane(uint8_t *sample,
                 delta * deblock_weight[positive_width - 1U] *
                     (int)(positive_width - index),
                 11U);
-            sample[(ptrdiff_t)index * step] = clip_sample(
+            sample[(ptrdiff_t)index * step] = av2h_sample_clip(
                 sample[(ptrdiff_t)index * step] - adjustment);
         }
     }
@@ -652,7 +642,7 @@ static int cdef_constrain(int difference,
     adjustment = floor_log2(threshold);
     adjustment = damping > adjustment ? damping - adjustment : 0U;
     constrained = (int)threshold - (int)(magnitude >> adjustment);
-    constrained = clamp_value(constrained, 0, (int)magnitude);
+    constrained = av2h_sample_clamp(constrained, 0, (int)magnitude);
     return difference < 0 ? -constrained : constrained;
 }
 
@@ -776,10 +766,10 @@ Av2hStatus av2h_cdef_filter_block(
             }
             center += floor_shift_signed(8 + sum - (sum < 0), 4U);
             if (clipping_required) {
-                center = clamp_value(center, minimum, maximum);
+                center = av2h_sample_clamp(center, minimum, maximum);
             }
             destination->data[(size_t)sample_y * destination->stride +
-                              (size_t)sample_x] = clip_sample(center);
+                              (size_t)sample_x] = av2h_sample_clip(center);
         }
     }
     return AV2H_OK;
@@ -1103,9 +1093,12 @@ static void gdf_filter_block(Av2hFilterPlane *destination,
                         stripe_start, stripe_end) - center;
                     above *= 4;
                     below *= 4;
-                    above = clamp_value(above, -(int)alpha, (int)alpha);
-                    below = clamp_value(below, -(int)alpha, (int)alpha);
-                    combination = clamp_value(above + below, -512, 511);
+                    above = av2h_sample_clamp(
+                        above, -(int)alpha, (int)alpha);
+                    below = av2h_sample_clamp(
+                        below, -(int)alpha, (int)alpha);
+                    combination = av2h_sample_clamp(
+                        above + below, -512, 511);
                 } else {
                     unsigned int value = gdf_gradient_sum(
                         gradient, kernel_index - 18U,
@@ -1130,9 +1123,9 @@ static void gdf_filter_block(Av2hFilterPlane *destination,
                         15U);
                     normalized[output_index] = value;
                     position = position * 16U + (unsigned int)
-                        (clamp_value(value, -8, 7) + 8);
+                        (av2h_sample_clamp(value, -8, 7) + 8);
                 }
-                destination->data[destination_index] = clip_sample(
+                destination->data[destination_index] = av2h_sample_clip(
                     (int)destination->data[destination_index] +
                     round_shift_symmetric(
                         (int)gdf_intra_error[qp_index * 4096U + position] *
@@ -1595,7 +1588,7 @@ static void ccso_filter_plane(Av2hFilterPlane *destination,
             lut_index = ((size_t)band << 4U) +
                         ((size_t)first_class << 2U) + second_class;
             destination_index = (size_t)y * destination->stride + x;
-            destination->data[destination_index] = clip_sample(
+            destination->data[destination_index] = av2h_sample_clip(
                 (int)destination->data[destination_index] +
                 parameters->filter_offset[lut_index]);
         }

@@ -1,4 +1,5 @@
 #include "reconstruct.h"
+#include "internal/sample_math.h"
 #include "tx_geometry.h"
 #include "ist_data.inc"
 #include "ist_type1_data.inc"
@@ -330,9 +331,7 @@ static const int8_t dct32[32][32] = {
 };
 
 static int32_t clamp(int32_t value, int32_t minimum, int32_t maximum) {
-    if (value < minimum) return minimum;
-    if (value > maximum) return maximum;
-    return value;
+    return av2h_sample_clamp(value, minimum, maximum);
 }
 
 static int32_t round_shift(int64_t value, uint8_t shift) {

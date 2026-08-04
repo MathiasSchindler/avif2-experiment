@@ -124,6 +124,9 @@ symbol check passes.
 
 ## Phase 1: establish private module conventions
 
+**Status:** Complete. Conventions and validation details are recorded in
+`refactoring-phase-1.md`.
+
 Create `src/decoder/internal/` and use it only for interfaces between decoder
 implementation files. Publicly included private headers such as `reconstruct.h`
 keep their current declarations during this phase.

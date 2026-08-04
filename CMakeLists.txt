@@ -123,6 +123,7 @@ if(AV2HEIF_BUILD_HOST_TESTS)
         filter
         artifact_profile
         layout
+        sample_math
     )
     foreach(unit_name IN LISTS AV2HEIF_HOST_UNIT_NAMES)
         string(REPLACE "_" "-" unit_target "${unit_name}-unit")

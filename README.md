@@ -71,11 +71,12 @@ AVM checkout in `vendor/`, all source files, fixtures, and tracked evidence.
 The rebuilt decoder is `build/windows-x86_64/av2heif-decoder.exe`.
 
 Use the `host` preset when sanitizer runtimes are unavailable, including with
-LLVM-MinGW on Windows. Both host presets compile all 15 C harnesses and the
-artifact tool. All 15 unit suites run by default. The layout harness pins key
+LLVM-MinGW on Windows. Both host presets compile all 16 C harnesses and the
+artifact tool. All 16 unit suites run by default. The layout harness pins key
 64-bit decoder state sizes and alignments, while the artifact-profile harness
 checks the OBU, sequence, frame-header, and tile-group contracts for all 31
-tracked artifacts.
+tracked artifacts. The sample-math harness pins the first self-contained
+decoder-internal helper interface introduced by refactoring Phase 1.
 
 Python is not required to build the decoder or run the hosted C gate. It is an
 optional development dependency for table regeneration, historical milestone
