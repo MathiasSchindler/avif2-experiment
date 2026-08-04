@@ -1,4 +1,5 @@
 #include "coeff.h"
+#include "internal/coeff_modules.h"
 #include "tx_geometry.h"
 
 #include "coeff_prefix_cdf_all.inc"
@@ -13,12 +14,6 @@ uint8_t av2h_debug_eob_class;
 uint16_t av2h_debug_skip_cdf[6U];
 uint32_t av2h_debug_skip_range;
 uint8_t av2h_debug_luma_prefix_stage;
-
-static uint8_t coefficient_q_context(uint16_t base_q_index) {
-    return base_q_index <= 90U ? 0U :
-           base_q_index <= 140U ? 1U :
-           base_q_index <= 190U ? 2U : 3U;
-}
 
 Av2hStatus av2h_first_coeff_cdfs_init_for_q(
     Av2hFirstCoeffCdfs *cdfs,
@@ -114,7 +109,7 @@ Av2hStatus av2h_first_coeff_cdfs_init_for_q(
     uint8_t q_context;
     Av2hStatus status;
     if (cdfs == 0) return AV2H_INVALID_ARGUMENT;
-    q_context = coefficient_q_context(base_q_index);
+    q_context = av2h_coeff_q_context(base_q_index);
     cdfs->q_context = q_context;
     av2h_memory_copy(cdfs->full_luma_txb_skip,
                      av2h_luma_txb_skip[q_context],
@@ -580,7 +575,7 @@ Av2hStatus av2h_coeff_prefix_read(
         mode == 0 || prefix == 0) {
         return AV2H_INVALID_ARGUMENT;
     }
-    if (cdfs->q_context != coefficient_q_context(frame->base_q_index)) {
+    if (cdfs->q_context != av2h_coeff_q_context(frame->base_q_index)) {
         return AV2H_UNSUPPORTED;
     }
     av2h_debug_luma_prefix_stage = 3U;
@@ -727,7 +722,7 @@ Av2hStatus av2h_chroma_coeff_prefix_read(
     }
     if ((plane != 1U && plane != 2U) || frame->tx_mode != 1U ||
         frame->disable_cdf_update ||
-        cdfs->q_context != coefficient_q_context(frame->base_q_index)) {
+        cdfs->q_context != av2h_coeff_q_context(frame->base_q_index)) {
         return AV2H_UNSUPPORTED;
     }
     status = av2h_chroma_tx_descriptor_get(

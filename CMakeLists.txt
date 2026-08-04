@@ -17,7 +17,10 @@ set(AV2HEIF_CORE_SOURCES
     src/query.c
     src/decoder/cdf.c
     src/decoder/coeff.c
+    src/decoder/coeff_context.c
+    src/decoder/coeff_dequant.c
     src/decoder/coeff_level.c
+    src/decoder/coeff_level_cdf.c
     src/decoder/ccso.c
     src/decoder/cdef.c
     src/decoder/deblock.c

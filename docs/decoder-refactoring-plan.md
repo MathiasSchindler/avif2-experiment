@@ -165,6 +165,9 @@ then all-artifact parity after the phase.
 
 ## Phase 3: split coefficient-level ownership
 
+**Status:** Complete. Ownership decisions and validation details are recorded
+in `refactoring-phase-3.md`.
+
 Target layout:
 
 - `coeff_level_cdf.c`: CDF bank initialization and generated coefficient/FSC
