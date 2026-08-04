@@ -57,6 +57,20 @@ cmake --build --preset host-sanitized
 ctest --preset host-sanitized
 ```
 
+The short release workflow builds the current freestanding Windows decoder:
+
+```sh
+make clean
+make
+```
+
+On Windows with LLVM-MinGW, use `mingw32-make clean` followed by
+`mingw32-make`; it is the same Makefile workflow.
+
+`make clean` removes only the ignored `build/` tree. It preserves the pinned
+AVM checkout in `vendor/`, all source files, fixtures, and tracked evidence.
+The rebuilt decoder is `build/windows-x86_64/av2heif-decoder.exe`.
+
 Use the `host` preset when sanitizer runtimes are unavailable, including with
 LLVM-MinGW on Windows. Both host presets compile all 14 C harnesses and the
 artifact tool. Nine current unit suites run by default. The tile, leaf,

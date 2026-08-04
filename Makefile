@@ -1,6 +1,19 @@
 PYTHON ?= python3
 CC ?= cc
 NM ?= nm
+DECODER_PRESET ?= windows-x86_64
+
+.PHONY: all decoder clean
+
+all: decoder
+
+decoder:
+	cmake --preset $(DECODER_PRESET)
+	cmake --build --preset $(DECODER_PRESET) --target av2heif-decoder
+
+clean:
+	cmake -E rm -rf build
+
 HOST_CFLAGS := -std=c11 -Wall -Wextra -Wpedantic -Werror -O1 -g \
 	-fsanitize=address,undefined -fno-omit-frame-pointer -Iinclude -Isrc
 HOST_SUBSTRATE_UNIT := build/host/substrate-unit
