@@ -7656,7 +7656,6 @@ static Av2hStatus cfl_derived_predict(
     uint16_t block_y,
     uint16_t width,
     uint16_t height,
-    uint8_t whole_chroma_block,
     uint8_t have_top,
     uint8_t have_left,
     uint8_t *predictor,
@@ -7687,6 +7686,10 @@ static Av2hStatus cfl_derived_predict(
     int shift;
     uint16_t visible_luma_width;
     uint16_t visible_luma_height;
+    uint16_t effective_luma_width;
+    uint16_t effective_luma_height;
+    uint16_t effective_chroma_width;
+    uint16_t effective_chroma_height;
     if (luma_plane == 0 || luma_plane->data == 0 ||
         filter_index > 2U ||
         width > 32U ||
@@ -7698,20 +7701,32 @@ static Av2hStatus cfl_derived_predict(
         luma_plane->stride < luma_plane->width || luma_plane->reconstructed == 0) {
         return AV2H_UNSUPPORTED;
     }
-    visible_luma_width = luma_width < luma_plane->width - luma_x ?
-        luma_width : (uint16_t)(luma_plane->width - luma_x);
-    visible_luma_height = luma_height < luma_plane->height - luma_y ?
-        luma_height : (uint16_t)(luma_plane->height - luma_y);
-    if (whole_chroma_block && filter_index != 2U) {
-        if (visible_luma_width > luma_plane->reference_width - luma_x) {
-            visible_luma_width =
-                (uint16_t)(luma_plane->reference_width - luma_x);
-        }
-        if (visible_luma_height > luma_plane->reference_height - luma_y) {
-            visible_luma_height =
-                (uint16_t)(luma_plane->reference_height - luma_y);
-        }
+    effective_luma_width = (uint16_t)(
+        (luma_plane->reference_width + 7U) & ~(size_t)7U);
+    effective_luma_height = (uint16_t)(
+        (luma_plane->reference_height + 7U) & ~(size_t)7U);
+    effective_chroma_width = (uint16_t)(
+        (chroma_plane->reference_width + 3U) & ~(size_t)3U);
+    effective_chroma_height = (uint16_t)(
+        (chroma_plane->reference_height + 3U) & ~(size_t)3U);
+    if (effective_luma_width > luma_plane->width) {
+        effective_luma_width = luma_plane->width;
     }
+    if (effective_luma_height > luma_plane->height) {
+        effective_luma_height = luma_plane->height;
+    }
+    if (effective_chroma_width > chroma_plane->width) {
+        effective_chroma_width = chroma_plane->width;
+    }
+    if (effective_chroma_height > chroma_plane->height) {
+        effective_chroma_height = chroma_plane->height;
+    }
+    visible_luma_width = luma_x >= effective_luma_width ? 0U :
+        luma_width < effective_luma_width - luma_x ?
+            luma_width : (uint16_t)(effective_luma_width - luma_x);
+    visible_luma_height = luma_y >= effective_luma_height ? 0U :
+        luma_height < effective_luma_height - luma_y ?
+            luma_height : (uint16_t)(effective_luma_height - luma_y);
     if (!plane_region_reconstructed(luma_plane, luma_x, luma_y,
                                     visible_luma_width,
                                     visible_luma_height)) {
@@ -7733,18 +7748,16 @@ static Av2hStatus cfl_derived_predict(
                 size_t center_x = (size_t)luma_x - 2U;
                 size_t center_y = (size_t)luma_y + (size_t)row * 2U;
                 luma_left_ds[row] = (int32_t)(
-                    luma_plane->data[center_y * luma_plane->stride +
-                                     center_x - 1U] +
-                    2U * luma_plane->data[center_y * luma_plane->stride +
-                                          center_x] +
-                    luma_plane->data[center_y * luma_plane->stride +
-                                     center_x + 1U] +
-                    luma_plane->data[(center_y + 1U) *
-                                     luma_plane->stride + center_x - 1U] +
-                    2U * luma_plane->data[(center_y + 1U) *
-                                          luma_plane->stride + center_x] +
-                    luma_plane->data[(center_y + 1U) *
-                                     luma_plane->stride + center_x + 1U]);
+                    plane_coded_sample(luma_plane, center_x - 1U, center_y) +
+                    2U * plane_coded_sample(
+                        luma_plane, center_x, center_y) +
+                    plane_coded_sample(luma_plane, center_x + 1U, center_y) +
+                    plane_coded_sample(
+                        luma_plane, center_x - 1U, center_y + 1U) +
+                    2U * plane_coded_sample(
+                        luma_plane, center_x, center_y + 1U) +
+                    plane_coded_sample(
+                        luma_plane, center_x + 1U, center_y + 1U));
             } else if (filter_index == 2U) {
                 size_t center_x = (size_t)luma_x - 2U;
                 size_t center_y = (size_t)luma_y + (size_t)row * 2U;
@@ -7767,15 +7780,16 @@ static Av2hStatus cfl_derived_predict(
                     base[luma_plane->stride] +
                     base[luma_plane->stride + 1U]) << 1;
             }
-            if (whole_chroma_block &&
-                row >= (visible_luma_height >> 1U) && row != 0U) {
-                luma_left_ds[row] = luma_left_ds[row - 1U];
-            }
             chroma_left[row] = plane_coded_sample(
                 chroma_plane, block_x - 1U, (size_t)block_y + row);
-            if (whole_chroma_block && filter_index != 2U &&
-                row >= chroma_plane->reference_height - block_y &&
-                row != 0U) {
+            if (luma_y >= effective_luma_height) {
+                luma_left_ds[row] = 128 << 3;
+            } else if (row >= (visible_luma_height >> 1U) && row != 0U) {
+                luma_left_ds[row] = luma_left_ds[row - 1U];
+            }
+            if (block_y >= effective_chroma_height) {
+                chroma_left[row] = 128;
+            } else if (row >= effective_chroma_height - block_y && row != 0U) {
                 chroma_left[row] = chroma_left[row - 1U];
             }
         }
@@ -7840,15 +7854,18 @@ static Av2hStatus cfl_derived_predict(
                     plane_clamped_sample(
                         luma_plane, c0 + 1U, bottom_row)) << 1;
             }
-            if (column >= (visible_luma_width >> 1U) && column != 0U) {
-                luma_above_ds[column] = luma_above_ds[column - 1U];
-            }
             chroma_above[column] = plane_coded_sample(
                 chroma_plane, (size_t)block_x + column,
                 (size_t)block_y - 1U);
-            if (whole_chroma_block && filter_index != 2U &&
-                column >= chroma_plane->reference_width - block_x &&
-                column != 0U) {
+            if (luma_x >= effective_luma_width) {
+                luma_above_ds[column] = 128 << 3;
+            } else if (column >= (visible_luma_width >> 1U) && column != 0U) {
+                luma_above_ds[column] = luma_above_ds[column - 1U];
+            }
+            if (block_x >= effective_chroma_width) {
+                chroma_above[column] = 128;
+            } else if (column >= effective_chroma_width - block_x &&
+                       column != 0U) {
                 chroma_above[column] = chroma_above[column - 1U];
             }
         }
@@ -8352,11 +8369,6 @@ static Av2hStatus mhccp_predict_direction01(
     uint32_t count_ceiling;
     uint8_t debug_index = av2h_debug_mhccp_count;
     av2h_debug_mhccp_reason = 0U;
-    if (block_x == 32U && block_y == 128U &&
-        av2h_debug_mhccp_count == 2U) {
-        av2h_debug_mhccp_count = 0U;
-        debug_index = 0U;
-    }
     have_top = (uint8_t)(block_y >= 2U);
     have_left = (uint8_t)(block_x >= 2U);
     is_top_sb_boundary = (uint8_t)(superblock_size != 0U &&
@@ -9125,17 +9137,7 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_ex(
         } else {
             uint8_t derive_alpha = (uint8_t)(
                 mode->cfl_kind == AV2H_CFL_DERIVED_ALPHA);
-            size_t block_width_mi = 0U;
-            size_t block_height_mi = 0U;
-            uint8_t whole_chroma_block = 0U;
             int32_t alpha_q3 = 0;
-            if (av2h_block_dimensions_mi(
-                    leaf->block_size, &block_width_mi,
-                    &block_height_mi) == AV2H_OK) {
-                whole_chroma_block = (uint8_t)(
-                    width == block_width_mi * 2U &&
-                    height == block_height_mi * 2U);
-            }
             if (!derive_alpha) {
                 uint8_t sign = chroma_plane == 1U ?
                     (uint8_t)(((mode->cfl_alpha_signs + 1U) * 11U) >> 5U) :
@@ -9155,7 +9157,7 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_ex(
             status = cfl_derived_predict(
                 luma_plane, plane, mode->cfl_downsample_filter_index,
                 derive_alpha, alpha_q3, mode->superblock_size, block_x,
-                block_y, width, height, whole_chroma_block,
+                block_y, width, height,
                 have_top, have_left,
                 scratch->predictor, width);
         }
@@ -9169,11 +9171,11 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_ex(
         luma_mode.angle_delta = mode->angle_delta;
     }
     av2h_debug_chroma_reconstruct_stage = 2U;
-    if (chroma_plane == 1U && block_x <= 35U && block_y <= 43U &&
-        (uint32_t)block_x + visible_width > 35U &&
-        (uint32_t)block_y + visible_height > 43U) {
-        size_t target_index = (size_t)(43U - block_y) * width +
-            (35U - block_x);
+    if (chroma_plane == 1U && block_x <= 160U && block_y <= 4U &&
+        (uint32_t)block_x + visible_width > 160U &&
+        (uint32_t)block_y + visible_height > 4U) {
+        size_t target_index = (size_t)(4U - block_y) * width +
+            (160U - block_x);
         av2h_debug_chimp_chroma_target[0] = leaf->row;
         av2h_debug_chimp_chroma_target[1] = leaf->column;
         av2h_debug_chimp_chroma_target[2] = leaf->block_size;
@@ -9191,6 +9193,8 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_ex(
         av2h_debug_chimp_chroma_target[14] = coefficients->nonzero_count;
         av2h_debug_chimp_chroma_target[17] = mode->above_smooth;
         av2h_debug_chimp_chroma_target[18] = mode->left_smooth;
+        av2h_debug_chimp_chroma_target[19] = mode->cfl_alpha_signs;
+        av2h_debug_chimp_chroma_target[20] = mode->cfl_alpha_idx;
     }
     if (predictor_plane != 0) {
         size_t row;
@@ -9227,13 +9231,13 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_ex(
         }
         plane_mark_reconstructed(
             plane, block_x, block_y, visible_width, visible_height);
-        if (chroma_plane == 1U && block_x <= 35U && block_y <= 43U &&
-            (uint32_t)block_x + visible_width > 35U &&
-            (uint32_t)block_y + visible_height > 43U) {
+        if (chroma_plane == 1U && block_x <= 160U && block_y <= 4U &&
+            (uint32_t)block_x + visible_width > 160U &&
+            (uint32_t)block_y + visible_height > 4U) {
             av2h_debug_chimp_chroma_target[15] = 0;
             av2h_debug_chimp_chroma_target[16] =
-                scratch->predictor[(size_t)(43U - block_y) * width +
-                                   (35U - block_x)];
+                scratch->predictor[(size_t)(4U - block_y) * width +
+                                   (160U - block_x)];
         }
         av2h_debug_chroma_reconstruct_stage = 3U;
         return AV2H_OK;
@@ -9261,11 +9265,11 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_ex(
     }
     plane_mark_reconstructed(
         plane, block_x, block_y, visible_width, visible_height);
-    if (chroma_plane == 1U && block_x <= 35U && block_y <= 43U &&
-        (uint32_t)block_x + visible_width > 35U &&
-        (uint32_t)block_y + visible_height > 43U) {
-        size_t target_index = (size_t)(43U - block_y) * width +
-            (35U - block_x);
+    if (chroma_plane == 1U && block_x <= 160U && block_y <= 4U &&
+        (uint32_t)block_x + visible_width > 160U &&
+        (uint32_t)block_y + visible_height > 4U) {
+        size_t target_index = (size_t)(4U - block_y) * width +
+            (160U - block_x);
         av2h_debug_chimp_chroma_target[15] = scratch->residual[target_index];
         av2h_debug_chimp_chroma_target[16] =
             reconstruction.pixels[target_index];

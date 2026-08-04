@@ -727,6 +727,14 @@ static Av2hStatus decode_obu(Av2hSpan input,
                 L"build/chimp-local-ccso.i420",
                 &av2h_debug_filter_stage_planes[3], frame.width, frame.height);
         }
+        if (status == AV2H_OK && frame.width == 353U && frame.height == 234U) {
+            write_debug_filter_stage(
+                L"build/schwaebisch-q112-local-deblocked.i420",
+                &av2h_debug_filter_stage_planes[1], frame.width, frame.height);
+            write_debug_filter_stage(
+                L"build/schwaebisch-q112-local-ccso.i420",
+                &av2h_debug_filter_stage_planes[3], frame.width, frame.height);
+        }
     }
     release_memory(&workspace_memory);
     if (status != AV2H_OK) {

@@ -447,6 +447,7 @@ Av2hStatus av2h_chroma_mode_read_with_delta_for_sdp(
     uint8_t cfl_allowed,
     Av2hFirstChromaMode *mode) {
     uint8_t mode_context;
+    uint8_t mhccp_allowed = cfl_allowed;
     uint32_t value;
     if (decoder == 0 || cdfs == 0 || sequence == 0 || mode == 0) {
         return AV2H_INVALID_ARGUMENT;
@@ -455,6 +456,17 @@ Av2hStatus av2h_chroma_mode_read_with_delta_for_sdp(
     if (!sequence->enable_cfl_intra || cfl_context >= AV2H_CFL_CONTEXT_COUNT ||
         colocated_luma_mode > AV2H_INTRA_PAETH || cfl_allowed > 1U) {
         return AV2H_UNSUPPORTED;
+    }
+    if (block_size < AV2H_BLOCK_SIZE_COUNT) {
+        size_t block_width_mi;
+        size_t block_height_mi;
+        if (av2h_block_dimensions_mi(
+                block_size, &block_width_mi, &block_height_mi) != AV2H_OK) {
+            return AV2H_UNSUPPORTED;
+        }
+        mhccp_allowed = (uint8_t)(mhccp_allowed &&
+            !(block_width_mi <= 2U && block_height_mi <= 2U) &&
+            block_width_mi <= 16U && block_height_mi <= 16U);
     }
     mode->before_cfl_bits = av2h_range_tell(decoder);
     av2h_debug_chroma_mode_ranges[0] = decoder->range;
@@ -496,7 +508,7 @@ Av2hStatus av2h_chroma_mode_read_with_delta_for_sdp(
         mode->uv_mode = 13U;
         mode->mode_index = 13U;
         mode->before_cfl_switch_bits = mode->after_cfl_bits;
-        if (sequence->enable_mhccp) {
+        if (sequence->enable_mhccp && mhccp_allowed) {
             av2h_debug_chroma_mode_stage = 3U;
             value = av2h_range_read_adaptive(
                 decoder, cdfs->cfl_mhccp_switch, 2U);
