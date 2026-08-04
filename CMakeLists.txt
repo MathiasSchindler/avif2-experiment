@@ -40,11 +40,15 @@ set(AV2HEIF_CORE_SOURCES
     src/decoder/leaf_cdf.c
     src/decoder/palette.c
     src/decoder/partition.c
+    src/decoder/partition_context.c
     src/decoder/partition_cdf.c
     src/decoder/range.c
     src/decoder/reconstruct.c
     src/decoder/secondary_transform.c
     src/decoder/tile.c
+    src/decoder/tile_chroma.c
+    src/decoder/tile_filter_handoff.c
+    src/decoder/tile_luma.c
     src/decoder/transform.c
     src/decoder/transform_cdf.c
     src/decoder/transform_map.c

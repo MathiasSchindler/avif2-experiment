@@ -263,6 +263,8 @@ suite, and all 31 artifact hashes. Any parity change stops the phase.
 
 ## Phase 7: partition and tile orchestration
 
+**Status:** Complete as of 2026-08-04. See `refactoring-phase-7.md`.
+
 Once syntax and reconstruction dependencies point downward, separate:
 
 - partition context derivation from traversal/decision reading;

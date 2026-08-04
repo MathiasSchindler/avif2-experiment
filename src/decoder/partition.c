@@ -1,4 +1,4 @@
-#include "partition.h"
+#include "decoder/internal/partition_modules.h"
 
 uint8_t av2h_debug_partition_stage;
 Av2hPartitionNode av2h_debug_partition_node;
@@ -16,42 +16,6 @@ Av2hPartitionDecision av2h_debug_partition_trace[
     AV2H_DEBUG_PARTITION_TRACE_CAPACITY];
 size_t av2h_debug_partition_trace_count;
 
-typedef struct {
-    uint8_t mi_width;
-    uint8_t mi_height;
-    uint8_t split_size_adjust;
-    uint8_t rect_size_adjust;
-} Av2hBlockGeometry;
-
-static const Av2hBlockGeometry block_geometry[AV2H_BLOCK_SIZE_COUNT] = {
-    { 1U, 1U, 0U, 0U }, { 1U, 2U, 0U, 0U },
-    { 2U, 1U, 0U, 0U }, { 2U, 2U, 0U, 0U },
-    { 2U, 4U, 1U, 1U }, { 4U, 2U, 1U, 2U },
-    { 4U, 4U, 1U, 0U }, { 4U, 8U, 2U, 1U },
-    { 8U, 4U, 2U, 2U }, { 8U, 8U, 2U, 3U },
-    { 8U, 16U, 3U, 4U }, { 16U, 8U, 3U, 5U },
-    { 16U, 16U, 3U, 6U }, { 16U, 32U, 4U, 7U },
-    { 32U, 16U, 5U, 8U }, { 32U, 32U, 6U, 9U },
-    { 32U, 64U, 7U, 10U }, { 64U, 32U, 8U, 11U },
-    { 64U, 64U, 9U, 12U }, { 1U, 4U, 10U, 13U },
-    { 4U, 1U, 11U, 14U }, { 2U, 8U, 12U, 13U },
-    { 8U, 2U, 13U, 14U }, { 4U, 16U, 14U, 13U },
-    { 16U, 4U, 15U, 14U }, { 1U, 8U, 0U, 0U },
-    { 8U, 1U, 0U, 0U }, { 2U, 16U, 0U, 0U },
-    { 16U, 2U, 0U, 0U }
-};
-
-Av2hStatus av2h_block_dimensions_mi(Av2hBlockSize block_size,
-                                     size_t *width,
-                                     size_t *height) {
-    if (block_size >= AV2H_BLOCK_SIZE_COUNT || width == 0 || height == 0) {
-        return AV2H_INVALID_ARGUMENT;
-    }
-    *width = block_geometry[block_size].mi_width;
-    *height = block_geometry[block_size].mi_height;
-    return AV2H_OK;
-}
-
 static int is_partition_point(Av2hBlockSize block_size) {
     return block_size != AV2H_BLOCK_4X4 &&
            block_size <= AV2H_BLOCK_64X16;
@@ -63,8 +27,8 @@ static Av2hBlockSize ordinary_subsize(Av2hBlockSize block_size,
     uint8_t width;
     uint8_t height;
     if (block_size >= AV2H_BLOCK_SIZE_COUNT) return AV2H_BLOCK_INVALID;
-    width = block_geometry[block_size].mi_width;
-    height = block_geometry[block_size].mi_height;
+    width = av2h_block_geometry[block_size].mi_width;
+    height = av2h_block_geometry[block_size].mi_height;
     if (partition == AV2H_PARTITION_HORZ) {
         if (height < 2U) return AV2H_BLOCK_INVALID;
         height >>= 1U;
@@ -75,8 +39,8 @@ static Av2hBlockSize ordinary_subsize(Av2hBlockSize block_size,
         return AV2H_BLOCK_INVALID;
     }
     for (index = 0U; index < AV2H_BLOCK_SIZE_COUNT; ++index) {
-        if (block_geometry[index].mi_width == width &&
-            block_geometry[index].mi_height == height) {
+        if (av2h_block_geometry[index].mi_width == width &&
+            av2h_block_geometry[index].mi_height == height) {
             return (Av2hBlockSize)index;
         }
     }
@@ -87,8 +51,8 @@ static Av2hBlockSize block_size_from_dimensions(uint8_t width,
                                                 uint8_t height) {
     size_t index;
     for (index = 0U; index < AV2H_BLOCK_SIZE_COUNT; ++index) {
-        if (block_geometry[index].mi_width == width &&
-            block_geometry[index].mi_height == height) {
+        if (av2h_block_geometry[index].mi_width == width &&
+            av2h_block_geometry[index].mi_height == height) {
             return (Av2hBlockSize)index;
         }
     }
@@ -170,7 +134,7 @@ static int uneven_4way_is_allowed(Av2hBlockSize block_size,
         axis == AV2H_PARTITION_HORIZONTAL) {
         return 0;
     }
-    geometry = &block_geometry[block_size];
+    geometry = &av2h_block_geometry[block_size];
     if (block_size <= AV2H_BLOCK_64X64) {
         size_allowed = structure == 0U
             ? block_size >= AV2H_BLOCK_16X32
@@ -203,7 +167,7 @@ static Av2hPartitionType forced_at_boundary(uint16_t mi_rows,
         !is_partition_point(node.block_size)) {
         return AV2H_PARTITION_NONE;
     }
-    geometry = &block_geometry[node.block_size];
+    geometry = &av2h_block_geometry[node.block_size];
     has_rows = (size_t)node.row + geometry->mi_height / 2U < mi_rows;
     has_columns =
         (size_t)node.column + geometry->mi_width / 2U < mi_columns;
@@ -230,7 +194,8 @@ static Av2hPartitionType forced_at_boundary(uint16_t mi_rows,
 
 static Av2hPartitionAxis partial_boundary_axis(
     uint16_t mi_rows, uint16_t mi_columns, Av2hPartitionNode node) {
-    const Av2hBlockGeometry *geometry = &block_geometry[node.block_size];
+    const Av2hBlockGeometry *geometry =
+        &av2h_block_geometry[node.block_size];
     unsigned int has_rows =
         (size_t)node.row + geometry->mi_height / 2U < mi_rows;
     unsigned int has_columns =
@@ -277,169 +242,6 @@ Av2hStatus av2h_partition_forced_path(uint16_t mi_rows,
         if (child == AV2H_BLOCK_INVALID) return AV2H_UNSUPPORTED;
         node.block_size = child;
     }
-}
-
-Av2hStatus av2h_partition_contexts(Av2hBlockSize block_size,
-                                    unsigned int left_smaller,
-                                    unsigned int above_smaller,
-                                    unsigned int first_half_smaller,
-                                    unsigned int second_half_smaller,
-                                    size_t *split_context,
-                                    size_t *rect_type_context,
-                                    size_t *extension_context) {
-    const Av2hBlockGeometry *geometry;
-    if (block_size >= AV2H_BLOCK_SIZE_COUNT || split_context == 0 ||
-        rect_type_context == 0 || extension_context == 0 ||
-        left_smaller > 1U || above_smaller > 1U ||
-        first_half_smaller > 1U || second_half_smaller > 1U) {
-        return AV2H_INVALID_ARGUMENT;
-    }
-    geometry = &block_geometry[block_size];
-    *split_context = geometry->split_size_adjust * 4U +
-                     left_smaller * 2U + above_smaller;
-    *rect_type_context = geometry->rect_size_adjust * 4U +
-                         left_smaller * 2U + above_smaller;
-    *extension_context = geometry->split_size_adjust * 4U +
-                         first_half_smaller * 2U + second_half_smaller;
-    if (*split_context >= AV2H_PARTITION_CONTEXT_COUNT ||
-        *rect_type_context >= AV2H_PARTITION_CONTEXT_COUNT ||
-        *extension_context >= AV2H_PARTITION_CONTEXT_COUNT) {
-        return AV2H_INVALID_DATA;
-    }
-    return AV2H_OK;
-}
-
-static unsigned int context_bit(uint8_t context, uint8_t dimension,
-                                unsigned int extension) {
-    uint8_t shift = 0U;
-    while (dimension > 1U) {
-        dimension >>= 1U;
-        ++shift;
-    }
-    if (shift > extension) shift = (uint8_t)(shift - extension);
-    else shift = 0U;
-    return ((unsigned int)context >> shift) & 1U;
-}
-
-Av2hStatus av2h_partition_context_state_init(
-    Av2hPartitionContextState *state,
-    uint8_t *luma_above,
-    uint8_t *luma_left,
-    uint8_t *chroma_above,
-    uint8_t *chroma_left,
-    size_t above_count,
-    size_t left_count) {
-    size_t index;
-    if (state == 0 || luma_above == 0 || luma_left == 0 ||
-        chroma_above == 0 || chroma_left == 0 || above_count == 0U ||
-        left_count == 0U) {
-        return AV2H_INVALID_ARGUMENT;
-    }
-    state->above[0] = luma_above;
-    state->left[0] = luma_left;
-    state->above[1] = chroma_above;
-    state->left[1] = chroma_left;
-    state->above_count = above_count;
-    state->left_count = left_count;
-    for (index = 0U; index < above_count; ++index) {
-        luma_above[index] = 0U;
-        chroma_above[index] = 0U;
-    }
-    for (index = 0U; index < left_count; ++index) {
-        luma_left[index] = 0U;
-        chroma_left[index] = 0U;
-    }
-    return AV2H_OK;
-}
-
-Av2hStatus av2h_partition_contexts_from_state(
-    const Av2hPartitionContextState *state,
-    size_t structure,
-    Av2hPartitionNode node,
-    Av2hPartitionAxis axis,
-    size_t *split_context,
-    size_t *rect_type_context,
-    size_t *extension_context) {
-    const Av2hBlockGeometry *geometry;
-    size_t left_index;
-    size_t second_index;
-    unsigned int left_smaller;
-    unsigned int above_smaller;
-    unsigned int first_half_smaller;
-    unsigned int second_half_smaller;
-    if (state == 0 || structure >= AV2H_PARTITION_STRUCTURE_COUNT ||
-        node.block_size >= AV2H_BLOCK_SIZE_COUNT ||
-        axis > AV2H_PARTITION_VERTICAL || split_context == 0 ||
-        rect_type_context == 0 || extension_context == 0) {
-        return AV2H_INVALID_ARGUMENT;
-    }
-    geometry = &block_geometry[node.block_size];
-    left_index = node.row % state->left_count;
-    if (node.column >= state->above_count ||
-        left_index >= state->left_count) {
-        return AV2H_OVERFLOW;
-    }
-    left_smaller = context_bit(state->left[structure][left_index],
-                               geometry->mi_height, 1U);
-    above_smaller = context_bit(state->above[structure][node.column],
-                                geometry->mi_width, 1U);
-    if (axis == AV2H_PARTITION_HORIZONTAL) {
-        second_index = left_index + geometry->mi_height / 2U;
-        first_half_smaller = context_bit(
-            state->left[structure][left_index], geometry->mi_height, 2U);
-        second_half_smaller = second_index < state->left_count ?
-            context_bit(state->left[structure][second_index],
-                        geometry->mi_height, 2U) : 0U;
-    } else {
-        second_index = (size_t)node.column + geometry->mi_width / 2U;
-        first_half_smaller = context_bit(
-            state->above[structure][node.column], geometry->mi_width, 2U);
-        second_half_smaller = second_index < state->above_count ?
-            context_bit(state->above[structure][second_index],
-                        geometry->mi_width, 2U) : 0U;
-    }
-    return av2h_partition_contexts(
-        node.block_size, left_smaller, above_smaller, first_half_smaller,
-        second_half_smaller, split_context, rect_type_context,
-        extension_context);
-}
-
-Av2hStatus av2h_partition_context_state_update(
-    Av2hPartitionContextState *state,
-    size_t structure,
-    Av2hPartitionNode leaf) {
-    const Av2hBlockGeometry *geometry;
-    size_t width;
-    size_t height;
-    size_t index;
-    size_t left_index;
-    if (state == 0 || structure >= AV2H_PARTITION_STRUCTURE_COUNT ||
-        leaf.block_size >= AV2H_BLOCK_SIZE_COUNT) {
-        return AV2H_INVALID_ARGUMENT;
-    }
-    geometry = &block_geometry[leaf.block_size];
-    width = geometry->mi_width;
-    height = geometry->mi_height;
-    left_index = leaf.row % state->left_count;
-    if (leaf.column >= state->above_count ||
-        left_index >= state->left_count) {
-        return AV2H_OVERFLOW;
-    }
-    if (width > state->above_count - leaf.column) {
-        width = state->above_count - leaf.column;
-    }
-    if (height > state->left_count - left_index) {
-        height = state->left_count - left_index;
-    }
-    for (index = 0U; index < width; ++index) {
-        state->above[structure][leaf.column + index] =
-            (uint8_t)(64U - geometry->mi_width);
-    }
-    for (index = 0U; index < height; ++index) {
-        state->left[structure][left_index + index] =
-            (uint8_t)(64U - geometry->mi_height);
-    }
-    return AV2H_OK;
 }
 
 Av2hStatus av2h_partition_first_prefix_read(
@@ -1001,8 +803,8 @@ static Av2hStatus traversal_push_children(
         const uint8_t *partition_ratios = ratios[
             partition == AV2H_PARTITION_HORZ_4B ||
             partition == AV2H_PARTITION_VERT_4B ? 1U : 0U];
-        uint8_t mi_width = block_geometry[node.block_size].mi_width;
-        uint8_t mi_height = block_geometry[node.block_size].mi_height;
+        uint8_t mi_width = av2h_block_geometry[node.block_size].mi_width;
+        uint8_t mi_height = av2h_block_geometry[node.block_size].mi_height;
         uint16_t offset = 0U;
         size_t index;
         int horizontal = partition == AV2H_PARTITION_HORZ_4A ||
@@ -1042,8 +844,8 @@ static Av2hStatus traversal_push_children(
     if (partition == AV2H_PARTITION_HORZ_3 ||
         partition == AV2H_PARTITION_VERT_3) {
         Av2hPartitionNode children[4U];
-        uint8_t width = block_geometry[node.block_size].mi_width;
-        uint8_t height = block_geometry[node.block_size].mi_height;
+        uint8_t width = av2h_block_geometry[node.block_size].mi_width;
+        uint8_t height = av2h_block_geometry[node.block_size].mi_height;
         Av2hBlockSize outer;
         Av2hBlockSize middle;
         size_t index;

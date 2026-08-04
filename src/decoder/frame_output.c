@@ -1,5 +1,6 @@
 #include "decoder/frame_output.h"
 
+#include "decoder/internal/tile_modules.h"
 #include "decoder/tx_geometry.h"
 
 extern uint8_t av2h_debug_mhccp_reason;
@@ -532,6 +533,7 @@ Av2hStatus av2h_decode_frame_i420_private(
     Av2hFrameDecodeResult *result) {
     Av2hFilterWorkspaceLayout layout;
     Av2hTileDecoder decoder;
+    Av2hTileFilterControls filter_controls;
     Av2hFilterPlanes final_planes;
     Av2hFrameDecodeResult decoded = { 0 };
     Av2hFrameContextSizes context_sizes;
@@ -822,27 +824,24 @@ Av2hStatus av2h_decode_frame_i420_private(
             AV2H_INVALID_DATA, AV2H_INVALID_DATA,
             AV2H_FRAME_DECODE_STAGE_COMPLETENESS, 0U, 0, 0U);
     }
+    status = av2h_tile_filter_controls_handoff(&decoder, &filter_controls);
+    if (status != AV2H_OK) {
+        AV2H_DECODE_FAIL(
+            status, status, AV2H_FRAME_DECODE_STAGE_COMPLETENESS,
+            0U, 0, 0U);
+    }
     decoded.entropy_tell = av2h_range_tell(&decoder.range);
-    workspace->filter_workspace->cdef_controls.strengths =
-        workspace->tile_context.cdef_unit_strengths;
-    workspace->filter_workspace->cdef_controls.columns =
-        ((size_t)frame->width + 63U) / 64U;
-    workspace->filter_workspace->cdef_controls.rows =
-        ((size_t)frame->height + 63U) / 64U;
-    workspace->filter_workspace->gdf_controls = (Av2hGdfControlMap){
-        workspace->tile_context.gdf_block_flags,
-        frame->gdf_block_columns,
-        frame->gdf_block_columns,
-        frame->gdf_block_rows,
-        frame->gdf_block_size
-    };
+    workspace->filter_workspace->cdef_controls = filter_controls.cdef;
+    workspace->filter_workspace->gdf_controls = filter_controls.gdf;
     for (plane = 0U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
-        if (workspace->tile_context.ccso_unit_controls[plane] != 0) {
+        if (filter_controls.ccso.plane[plane] != 0) {
             av2h_memory_copy(
                 (void *)workspace->filter_workspace->ccso_controls.plane[plane],
-                workspace->tile_context.ccso_unit_controls[plane],
+                filter_controls.ccso.plane[plane],
                 layout.ccso_control_count);
         }
+        workspace->filter_workspace->ccso_controls.stride[plane] =
+            filter_controls.ccso.stride[plane];
         final_planes.plane[plane] = (Av2hFilterPlane){
             workspace->coded[plane].data,
             workspace->coded[plane].stride,
@@ -850,6 +849,10 @@ Av2hStatus av2h_decode_frame_i420_private(
             workspace->coded[plane].height
         };
     }
+    workspace->filter_workspace->ccso_controls.columns =
+        filter_controls.ccso.columns;
+    workspace->filter_workspace->ccso_controls.rows =
+        filter_controls.ccso.rows;
     status = av2h_filter_frame(
         &final_planes, sequence, frame, workspace->filter_workspace);
     if (status != AV2H_OK) {
