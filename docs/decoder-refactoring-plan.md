@@ -229,6 +229,8 @@ all-artifact parity.
 
 ## Phase 6: split reconstruction, highest risk
 
+**Status:** Complete as of 2026-08-04. See `refactoring-phase-6.md`.
+
 Apply this only after Phases 1-5 establish conventions and reliable focused
 coverage. Preserve `reconstruct.h` and its entry points throughout the moves.
 

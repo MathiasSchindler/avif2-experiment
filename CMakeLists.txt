@@ -16,6 +16,7 @@ set(AV2HEIF_CORE_SOURCES
     src/container.c
     src/query.c
     src/decoder/cdf.c
+    src/decoder/chroma_prediction.c
     src/decoder/coeff.c
     src/decoder/coeff_context.c
     src/decoder/coeff_dequant.c
@@ -31,6 +32,9 @@ set(AV2HEIF_CORE_SOURCES
     src/decoder/frame_output.c
     src/decoder/gdf.c
     src/decoder/intrabc.c
+    src/decoder/intrabc_prediction.c
+    src/decoder/intra_prediction.c
+    src/decoder/inverse_transform.c
     src/decoder/leaf.c
     src/decoder/leaf_context.c
     src/decoder/leaf_cdf.c
@@ -39,6 +43,7 @@ set(AV2HEIF_CORE_SOURCES
     src/decoder/partition_cdf.c
     src/decoder/range.c
     src/decoder/reconstruct.c
+    src/decoder/secondary_transform.c
     src/decoder/tile.c
     src/decoder/transform.c
     src/decoder/transform_cdf.c
