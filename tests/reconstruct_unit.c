@@ -2150,6 +2150,27 @@ static void test_luma_directional_feature_matrix(void) {
     }
 }
 
+static void test_cardinal_prediction_without_references(void) {
+    Av2hFirstLeafMode mode = { 0 };
+    Av2hLumaReferences references = { 0 };
+    uint8_t predictor[8U * 8U];
+    size_t index;
+
+    mode.mode = AV2H_INTRA_VERTICAL;
+    CHECK(av2h_luma_predict(
+              &mode, 8U, 8U, &references, predictor, 8U) == AV2H_OK);
+    for (index = 0U; index < sizeof(predictor); ++index) {
+        CHECK(predictor[index] == 127U);
+    }
+
+    mode.mode = AV2H_INTRA_HORIZONTAL;
+    CHECK(av2h_luma_predict(
+              &mode, 8U, 8U, &references, predictor, 8U) == AV2H_OK);
+    for (index = 0U; index < sizeof(predictor); ++index) {
+        CHECK(predictor[index] == 129U);
+    }
+}
+
 static void test_luma_zero_angle_frontier_matrix(void) {
     static const struct {
         Av2hFirstLeafIntraMode mode;
@@ -5508,6 +5529,7 @@ int main(void) {
     test_dc_16x32_prediction();
     test_dc_16x32_ibp_prediction();
     test_d113_16x64_prediction();
+    test_cardinal_prediction_without_references();
     test_luma_directional_feature_matrix();
     test_luma_zero_angle_frontier_matrix();
     test_luma_smooth_vertical_geometry_matrix();

@@ -203,6 +203,38 @@ if(WIN32 AND CMAKE_C_COMPILER_ID MATCHES "Clang")
             -P "${CMAKE_CURRENT_SOURCE_DIR}/scripts/check-file-sha256.cmake")
     set_tests_properties(windows-decoder-flycatcher-q176-i420-hash PROPERTIES
         DEPENDS windows-decoder-flycatcher-q176-i420)
+    add_test(NAME windows-decoder-flycatcher-q048-i420
+        COMMAND av2heif-decoder
+            "${CMAKE_CURRENT_SOURCE_DIR}/images/artifacts/flycatcher-397x265-qp048.obu"
+            -o "${CMAKE_CURRENT_BINARY_DIR}/flycatcher-q048-decoder.i420")
+    add_test(NAME windows-decoder-flycatcher-q048-i420-hash
+        COMMAND "${CMAKE_COMMAND}"
+            "-DINPUT=${CMAKE_CURRENT_BINARY_DIR}/flycatcher-q048-decoder.i420"
+            "-DEXPECTED_SHA256=a932aafe1788f5343d71d197d5186199ef1b8491920d4e52fc6ac8a81872ff5a"
+            -P "${CMAKE_CURRENT_SOURCE_DIR}/scripts/check-file-sha256.cmake")
+    set_tests_properties(windows-decoder-flycatcher-q048-i420-hash PROPERTIES
+        DEPENDS windows-decoder-flycatcher-q048-i420)
+    add_test(NAME windows-decoder-laarim-q024-i420
+        COMMAND av2heif-decoder
+            "${CMAKE_CURRENT_SOURCE_DIR}/images/artifacts/laarim-389x259-qp024.obu"
+            -o "${CMAKE_CURRENT_BINARY_DIR}/laarim-q024-decoder.i420")
+    add_test(NAME windows-decoder-laarim-q024-i420-hash
+        COMMAND "${CMAKE_COMMAND}"
+            "-DINPUT=${CMAKE_CURRENT_BINARY_DIR}/laarim-q024-decoder.i420"
+            "-DEXPECTED_SHA256=d5e97442c5d2b2a17a5ce2c56ae179183d5cfdfdbf99e0b1cff319889319d752"
+            -P "${CMAKE_CURRENT_SOURCE_DIR}/scripts/check-file-sha256.cmake")
+    set_tests_properties(windows-decoder-laarim-q024-i420-hash PROPERTIES
+        DEPENDS windows-decoder-laarim-q024-i420)
+    add_test(NAME windows-decoder-pastell-q232-i420
+        COMMAND av2heif-decoder
+            "${CMAKE_CURRENT_SOURCE_DIR}/images/artifacts/pastell-431x287-qp232.obu"
+            -o "${CMAKE_CURRENT_BINARY_DIR}/pastell-q232-decoder.i420")
+    add_test(NAME windows-decoder-pastell-q232-i420-compare
+        COMMAND "${CMAKE_COMMAND}" -E compare_files
+            "${CMAKE_CURRENT_BINARY_DIR}/pastell-q232-decoder.i420"
+            "${CMAKE_CURRENT_SOURCE_DIR}/images/artifacts/pastell-431x287-qp232-decoded.i420")
+    set_tests_properties(windows-decoder-pastell-q232-i420-compare PROPERTIES
+        DEPENDS windows-decoder-pastell-q232-i420)
     add_test(NAME windows-decoder-pastell-q160-i420
         COMMAND av2heif-decoder
             "${CMAKE_CURRENT_SOURCE_DIR}/images/artifacts/pastell-512x341-qp160.obu"

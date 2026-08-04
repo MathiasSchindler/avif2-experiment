@@ -610,14 +610,34 @@ static Av2hStatus read_primary(Av2hRangeDecoder *decoder,
         coeff->tx_size == AV2H_TX_64X8 ||
         coeff->tx_size == AV2H_TX_4X64 ||
         coeff->tx_size == AV2H_TX_64X4) {
-        symbol = av2h_range_read_adaptive(
-            decoder, (coeff->tx_size == AV2H_TX_4X64 ||
-                      coeff->tx_size == AV2H_TX_64X4) ?
-                cdfs->primary_short_side_4 :
+        uint16_t *short_side_cdf;
+        if (mode->use_intrabc) {
+            uint16_t last = (uint16_t)(coeff->eob - 1U);
+            uint16_t diagonal =
+                (uint16_t)(last / descriptor->coefficient_width +
+                           last % descriptor->coefficient_width);
+            uint16_t max_diagonal =
+                (uint16_t)(descriptor->coefficient_width +
+                           descriptor->coefficient_height - 2U);
+            size_t eob_context = diagonal < 2U ? 1U :
+                diagonal > max_diagonal - 2U ? 2U : 0U;
+            size_t square_context =
+                descriptor->square_class == AV2H_TX_SQUARE_4 ? 0U :
+                descriptor->square_class == AV2H_TX_SQUARE_8 ? 1U : 2U;
+            short_side_cdf =
+                cdfs->intrabc_short_side[eob_context][square_context];
+        } else {
+            short_side_cdf =
+                (coeff->tx_size == AV2H_TX_4X64 ||
+                 coeff->tx_size == AV2H_TX_64X4) ?
+                    cdfs->primary_short_side_4 :
                 (coeff->tx_size == AV2H_TX_8X64 ||
                  coeff->tx_size == AV2H_TX_64X8) ?
-                cdfs->primary_short_side_8 : cdfs->primary_short_side_16,
-            4U);
+                    cdfs->primary_short_side_8 :
+                    cdfs->primary_short_side_16;
+        }
+        symbol = av2h_range_read_adaptive(
+            decoder, short_side_cdf, 4U);
         if (av2h_range_status(decoder) != AV2H_OK) {
             return av2h_range_status(decoder);
         }

@@ -2081,9 +2081,9 @@ static Av2hStatus predict_directional(
             references->left_count;
         uint8_t fallback = angle == 90 ?
             (references->left != 0 && references->left_count != 0U ?
-                references->left[0] : 128U) :
+                references->left[0] : 127U) :
             (references->above != 0 && references->above_count != 0U ?
-                references->above[0] : 128U);
+                references->above[0] : 129U);
         for (row = 0U; row < height; ++row) {
             for (column = 0U; column < width; ++column) {
                 size_t edge_index = angle == 90 ? column : row;
