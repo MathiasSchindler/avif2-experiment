@@ -74,6 +74,15 @@ static void write_unsigned(size_t value) {
     write_console(buffer + index);
 }
 
+static void write_signed(int value) {
+    if (value < 0) {
+        write_console("-");
+        write_unsigned((size_t)(-(int64_t)value));
+    } else {
+        write_unsigned((size_t)value);
+    }
+}
+
 static const char *decode_stage_name(Av2hFrameDecodeStage stage) {
     switch (stage) {
         case AV2H_FRAME_DECODE_STAGE_INITIALIZE: return "initialize";
@@ -161,6 +170,12 @@ static const char *block_size_name(uint8_t block_size) {
 }
 
 static void write_decode_diagnostic(const Av2hFrameDecodeResult *result) {
+    const Av2hPartitionDecision *partition_trace;
+    const Av2hPartitionLeafDiagnostic *leaf_trace;
+    size_t partition_trace_count;
+    size_t partition_trace_index;
+    size_t leaf_trace_count;
+    size_t leaf_trace_index;
     if (result->stage == AV2H_FRAME_DECODE_STAGE_NONE) return;
     write_console("  cause: ");
     write_console(av2h_status_string(result->cause));
@@ -211,6 +226,12 @@ static void write_decode_diagnostic(const Av2hFrameDecodeResult *result) {
     write_unsigned(result->enable_ibp);
     write_console(" intrabc=");
     write_unsigned(result->use_intrabc);
+    write_console(" displacement=");
+    write_signed(result->displacement_x);
+    write_console("/");
+    write_signed(result->displacement_y);
+    write_console(" morph=");
+    write_unsigned(result->morph_pred);
     write_console(" fsc=");
     write_unsigned(result->fsc_mode);
     write_console(" skip-transform=");
@@ -285,6 +306,47 @@ static void write_decode_diagnostic(const Av2hFrameDecodeResult *result) {
     write_unsigned(result->eob_tx_size);
     write_console("/");
     write_unsigned(result->eob_class);
+    partition_trace = av2h_partition_diagnostic_trace(&partition_trace_count);
+    for (partition_trace_index = 0U;
+         partition_trace_index < partition_trace_count;
+         ++partition_trace_index) {
+        const Av2hPartitionDecision *decision =
+            &partition_trace[partition_trace_index];
+        write_console("\r\n  local-part: (");
+        write_unsigned(decision->node.row);
+        write_console(",");
+        write_unsigned(decision->node.column);
+        write_console(") bsize=");
+        write_unsigned(decision->node.block_size);
+        write_console(" partition=");
+        write_unsigned(decision->partition);
+        write_console(" contexts=");
+        write_unsigned(decision->split_context);
+        write_console("/");
+        write_unsigned(decision->rect_type_context);
+        write_console("/");
+        write_unsigned(decision->extension_context);
+        write_console(" tell=");
+        write_unsigned(decision->after_bits);
+    }
+    leaf_trace = av2h_partition_diagnostic_leaf_trace(&leaf_trace_count);
+    for (leaf_trace_index = 0U; leaf_trace_index < leaf_trace_count;
+         ++leaf_trace_index) {
+        write_console("\r\n  local-leaf: (");
+        write_unsigned(leaf_trace[leaf_trace_index].row);
+        write_console(",");
+        write_unsigned(leaf_trace[leaf_trace_index].column);
+        write_console(") bsize=");
+        write_unsigned(leaf_trace[leaf_trace_index].block_size);
+        write_console(" stage=");
+        write_unsigned(leaf_trace[leaf_trace_index].stage);
+        write_console(" mode=");
+        write_unsigned(leaf_trace[leaf_trace_index].mode);
+        write_console(" eob=");
+        write_unsigned(leaf_trace[leaf_trace_index].eob);
+        write_console(" tell=");
+        write_unsigned(leaf_trace[leaf_trace_index].tell);
+    }
     write_console("\r\n");
 }
 #endif

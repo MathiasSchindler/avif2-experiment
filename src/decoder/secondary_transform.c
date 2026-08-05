@@ -8,6 +8,7 @@
 #include "ist_set9_type1_data.inc"
 #include "ist_adst_data.inc"
 #include "ist_reached_gaps_data.inc"
+#include "ist_palace_data.inc"
 
 static int32_t clamp(int32_t value, int32_t minimum, int32_t maximum) {
     return av2h_sample_clamp(value, minimum, maximum);
@@ -85,6 +86,9 @@ static Av2hStatus inverse_secondary_transform_4x4(
     } else if (transform->secondary_set == 4U &&
                transform->secondary_symbol == 1U) {
         kernel = av2h_ist_4x4_set4_type1_kernel;
+    } else if (transform->secondary_set == 5U &&
+               transform->secondary_symbol == 2U) {
+        kernel = av2h_ist_4x4_set5_type2_kernel;
     } else if (transform->secondary_set == 6U &&
                transform->secondary_symbol == 1U) {
         kernel = av2h_ist_4x4_set6_type1_kernel;
@@ -109,21 +113,36 @@ static Av2hStatus inverse_secondary_transform_4x4(
     } else if (transform->secondary_set == 8U &&
                transform->secondary_symbol == 2U) {
         kernel = av2h_ist_4x4_set8_type2_kernel;
+    } else if (transform->secondary_set == 8U &&
+               transform->secondary_symbol == 3U) {
+        kernel = av2h_ist_4x4_set8_type3_kernel;
+    } else if (transform->secondary_set == 9U &&
+               transform->secondary_symbol == 1U) {
+        kernel = av2h_ist_4x4_set9_type1_kernel;
     } else if (transform->secondary_set == 9U &&
                transform->secondary_symbol == 2U) {
         kernel = av2h_ist_4x4_set9_type2_kernel;
+    } else if (transform->secondary_set == 9U &&
+               transform->secondary_symbol == 3U) {
+        kernel = av2h_ist_4x4_set9_type3_kernel;
     } else if (transform->secondary_set == 10U &&
                transform->secondary_symbol == 1U) {
         kernel = av2h_ist_4x4_set10_type1_kernel;
     } else if (transform->secondary_set == 10U &&
                transform->secondary_symbol == 2U) {
         kernel = av2h_ist_4x4_set10_type2_kernel;
+    } else if (transform->secondary_set == 10U &&
+               transform->secondary_symbol == 3U) {
+        kernel = av2h_ist_4x4_set10_type3_kernel;
     } else if (transform->secondary_set == 11U &&
                transform->secondary_symbol == 1U) {
         kernel = av2h_ist_4x4_set11_type1_kernel;
     } else if (transform->secondary_set == 11U &&
                transform->secondary_symbol == 2U) {
         kernel = av2h_ist_4x4_set11_type2_kernel;
+    } else if (transform->secondary_set == 11U &&
+               transform->secondary_symbol == 3U) {
+        kernel = av2h_ist_4x4_set11_type3_kernel;
     } else if (transform->secondary_set == 12U &&
                transform->secondary_symbol == 1U) {
         kernel = av2h_ist_4x4_set12_type1_kernel;
@@ -133,6 +152,9 @@ static Av2hStatus inverse_secondary_transform_4x4(
     } else if (transform->secondary_set == 12U &&
                transform->secondary_symbol == 3U) {
         kernel = av2h_ist_4x4_set12_type3_kernel;
+    } else if (transform->secondary_set == 13U &&
+               transform->secondary_symbol == 1U) {
+        kernel = av2h_ist_4x4_set13_type1_kernel;
     } else if (transform->secondary_set == 13U &&
                transform->secondary_symbol == 2U) {
         kernel = av2h_ist_4x4_set13_type2_kernel;
@@ -317,7 +339,11 @@ Av2hStatus av2h_inverse_secondary_transform(
           (mode->mode == AV2H_INTRA_SMOOTH_HORIZONTAL &&
            prefix->tx_size == AV2H_TX_64X64 &&
            transform->secondary_symbol == 1U &&
-           transform->secondary_set == 0U))) {
+           transform->secondary_set == 0U) ||
+          (mode->mode == AV2H_INTRA_D135 &&
+           prefix->tx_size == AV2H_TX_16X16 &&
+           transform->secondary_symbol == 2U &&
+           transform->secondary_set == 3U))) {
         goto generic_dispatch;
     }
     goto specialized_dispatch;
@@ -365,6 +391,10 @@ generic_dispatch:
                transform->secondary_set == 3U) {
         kernel = av2h_ist_8x8_set3_type1_kernel;
         scan_map = av2h_ist_8x8_set3_type1_scan_map;
+    } else if (transform->secondary_symbol == 2U &&
+             transform->secondary_set == 3U) {
+        kernel = av2h_ist_8x8_set3_type2_kernel;
+         scan_map = av2h_ist_8x8_set3_type2_scan_map;
     } else if (transform->secondary_symbol == 1U &&
                transform->secondary_set == 2U) {
         kernel = av2h_ist_8x8_set2_type1_kernel;
@@ -551,6 +581,12 @@ specialized_dispatch:
                transform->secondary_set == 3U) {
         kernel = av2h_ist_8x8_set3_type1_kernel;
         scan_map = av2h_ist_8x8_set3_type1_scan_map;
+    } else if (mode->mode == AV2H_INTRA_D135 &&
+               prefix->tx_size == AV2H_TX_16X16 &&
+               transform->secondary_symbol == 2U &&
+               transform->secondary_set == 3U) {
+        kernel = av2h_ist_8x8_set3_type2_kernel;
+        scan_map = av2h_ist_16x16_scan_map;
     } else if (mode->mode == AV2H_INTRA_HORIZONTAL &&
                prefix->tx_size == AV2H_TX_8X16 &&
                transform->secondary_symbol == 1U &&

@@ -50,6 +50,9 @@ typedef struct {
     uint8_t multi_line_mrl;
     uint8_t enable_ibp;
     uint8_t use_intrabc;
+    int16_t displacement_x;
+    int16_t displacement_y;
+    uint8_t morph_pred;
     uint8_t fsc_mode;
     uint8_t skip_transform;
     uint8_t palette_size;

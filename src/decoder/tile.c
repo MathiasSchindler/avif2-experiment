@@ -1,6 +1,7 @@
 #include "tile.h"
 #include "internal/decode_diagnostics.h"
 #include "internal/tile_modules.h"
+#include "tx_geometry.h"
 
 #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
 static Av2hTileDiagnostics tile_diagnostics;
@@ -117,8 +118,12 @@ static Av2hStatus tile_reset_traversal_roots(Av2hTileDecoder *decoder) {
     decoder->luma_root_partition = AV2H_PARTITION_INVALID;
     decoder->chroma_root_partition = AV2H_PARTITION_INVALID;
     decoder->chroma_root_forced_partition = AV2H_PARTITION_INVALID;
+    decoder->square_child_luma_partition = AV2H_PARTITION_INVALID;
     decoder->luma_root_child_count = 0U;
     decoder->luma_root_children_share = 1U;
+    decoder->square_child_luma_child_count = 0U;
+    decoder->square_child_luma_children_share = 1U;
+    decoder->square_root_child_index = 0U;
     status = av2h_partition_traversal_reset_root(
         &decoder->luma_traversal, root);
     if (status != AV2H_OK) return status;
@@ -132,13 +137,27 @@ void av2h_tile_capture_root_partition(
     Av2hTileDecoder *decoder,
     const Av2hFirstLeafPath *path,
     Av2hPartitionType *root_partition) {
+    uint16_t root_row = decoder->sb_row;
+    uint16_t root_column = decoder->sb_column;
+    Av2hBlockSize root_block_size = decoder->root_block_size;
     size_t index;
     if (*root_partition != AV2H_PARTITION_INVALID) return;
+    if (decoder->phase == AV2H_TILE_DECODE_CHROMA &&
+        decoder->sequence->enable_sdp &&
+        decoder->luma_root_partition == AV2H_PARTITION_SPLIT &&
+        decoder->root_block_size == AV2H_BLOCK_128X128 &&
+        decoder->square_root_child_index < 4U) {
+        root_row = (uint16_t)(root_row +
+            (decoder->square_root_child_index >= 2U ? 16U : 0U));
+        root_column = (uint16_t)(root_column +
+            ((decoder->square_root_child_index & 1U) != 0U ? 16U : 0U));
+        root_block_size = AV2H_BLOCK_64X64;
+    }
     for (index = 0U; index < path->decision_count; ++index) {
         const Av2hPartitionDecision *decision = &path->decisions[index];
-        if (decision->node.row == decoder->sb_row &&
-            decision->node.column == decoder->sb_column &&
-            decision->node.block_size == decoder->root_block_size) {
+        if (decision->node.row == root_row &&
+            decision->node.column == root_column &&
+            decision->node.block_size == root_block_size) {
             *root_partition = decision->partition;
             return;
         }
@@ -218,6 +237,8 @@ Av2hStatus av2h_tile_decoder_init(
     decoder->phase = AV2H_TILE_DECODE_LUMA;
     decoder->event = AV2H_TILE_EVENT_NONE;
     decoder->status = AV2H_OK;
+    decoder->luma_tx_index = 0U;
+    decoder->luma_tx_count = 0U;
     for (index = 0U; index < cell_count; ++index) {
         decoder->colocated_luma[index].context =
             (Av2hLumaModeContext){ 0 };
@@ -337,6 +358,30 @@ Av2hStatus av2h_tile_decoder_finish_root(Av2hTileDecoder *decoder) {
         decoder->event = AV2H_TILE_EVENT_ROOT_HANDOFF;
         return AV2H_OK;
     }
+    if (decoder->sequence->enable_sdp &&
+        decoder->luma_root_partition == AV2H_PARTITION_SPLIT &&
+        decoder->root_block_size == AV2H_BLOCK_128X128 &&
+        decoder->square_root_child_index < 4U) {
+        uint8_t next = (uint8_t)(decoder->square_root_child_index + 1U);
+        while (next < 4U) {
+            uint16_t row = (uint16_t)(decoder->sb_row +
+                (next >= 2U ? 16U : 0U));
+            uint16_t column = (uint16_t)(decoder->sb_column +
+                ((next & 1U) != 0U ? 16U : 0U));
+            if (row < decoder->mi_rows && column < decoder->mi_columns) {
+                break;
+            }
+            ++next;
+        }
+        if (next < 4U) {
+            decoder->square_root_child_index = next;
+            decoder->square_child_luma_partition = AV2H_PARTITION_INVALID;
+            decoder->phase = AV2H_TILE_DECODE_LUMA;
+            decoder->event = AV2H_TILE_EVENT_ROOT_HANDOFF;
+            return AV2H_OK;
+        }
+        decoder->square_root_child_index = 4U;
+    }
     if (decoder->sb_index + 1U < decoder->sb_count) {
         ++decoder->sb_index;
         if ((size_t)decoder->sb_column + decoder->superblock_mi <
@@ -368,6 +413,25 @@ Av2hStatus av2h_tile_decoder_commit_leaf(
     if (decoder == 0) return AV2H_INVALID_ARGUMENT;
     if (decoder->status != AV2H_OK) return decoder->status;
     if (decoder->phase == AV2H_TILE_DECODE_LUMA) {
+        if (decoder->luma_tx_count != 0U) {
+            Av2hPartitionNode expected;
+            status = av2h_luma_tx_node_get(
+                &decoder->luma_coding_node, decoder->luma_tx_index,
+                &expected);
+            if (status != AV2H_OK || expected.row != leaf.row ||
+                expected.column != leaf.column ||
+                expected.block_size != leaf.block_size) {
+                return av2h_tile_decoder_fail(
+                    decoder, AV2H_INVALID_ARGUMENT);
+            }
+            ++decoder->luma_tx_index;
+            if (decoder->luma_tx_index < decoder->luma_tx_count) {
+                return AV2H_OK;
+            }
+            leaf = decoder->luma_coding_node;
+            decoder->luma_tx_index = 0U;
+            decoder->luma_tx_count = 0U;
+        }
         status = av2h_partition_traversal_commit_leaf(
             &decoder->luma_traversal, &decoder->partition_contexts, leaf);
     } else if (decoder->phase == AV2H_TILE_DECODE_CHROMA) {

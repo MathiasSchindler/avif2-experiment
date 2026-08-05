@@ -85,6 +85,9 @@ Av2hStatus av2h_decode_frame_i420_private(
                 decoded.multi_line_mrl = leaf.mode.multi_line_mrl;
                 decoded.enable_ibp = leaf.mode.enable_ibp;
                 decoded.use_intrabc = leaf.mode.use_intrabc;
+                decoded.displacement_x = leaf.mode.displacement_x;
+                decoded.displacement_y = leaf.mode.displacement_y;
+                decoded.morph_pred = leaf.mode.morph_pred;
                 decoded.fsc_mode = leaf.mode.fsc_mode;
                 decoded.skip_transform = leaf.mode.skip_transform;
                 decoded.palette_size = leaf.mode.palette_size;
@@ -130,10 +133,17 @@ Av2hStatus av2h_decode_frame_i420_private(
                 decoded.coefficient_position = block.diagnostic_position;
                 decoded.coefficient_context = block.diagnostic_context;
                 decoded.coefficient_kind = block.diagnostic_kind;
-                AV2H_DECODE_FAIL(
-                    returned, status, AV2H_FRAME_DECODE_STAGE_LUMA_PARSE,
-                    0U, &leaf.node, decoded.syntax_stage != 0U ?
-                        decoded.syntax_stage : luma_tile_stage);
+                {
+                    const Av2hPartitionNode *failure_node =
+                        luma_tile_stage == 0U ?
+                            &decoder.luma_traversal.diagnostic_node :
+                            &leaf.node;
+                    AV2H_DECODE_FAIL(
+                        returned, status,
+                        AV2H_FRAME_DECODE_STAGE_LUMA_PARSE,
+                        0U, failure_node, decoded.syntax_stage != 0U ?
+                            decoded.syntax_stage : luma_tile_stage);
+                }
             }
             if (!has_leaf) continue;
             status = av2h_luma_reconstruct_to_plane(
@@ -151,6 +161,9 @@ Av2hStatus av2h_decode_frame_i420_private(
                 decoded.multi_line_mrl = leaf.mode.multi_line_mrl;
                 decoded.enable_ibp = leaf.mode.enable_ibp;
                 decoded.use_intrabc = leaf.mode.use_intrabc;
+                decoded.displacement_x = leaf.mode.displacement_x;
+                decoded.displacement_y = leaf.mode.displacement_y;
+                decoded.morph_pred = leaf.mode.morph_pred;
                 decoded.fsc_mode = leaf.mode.fsc_mode;
                 decoded.skip_transform = leaf.mode.skip_transform;
                 decoded.tx_size = (uint8_t)leaf.prefix.tx_size;

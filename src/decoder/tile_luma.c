@@ -6,43 +6,71 @@
 static void tile_capture_luma_root_child(
     Av2hTileDecoder *decoder, const Av2hFirstLeafPath *path) {
     Av2hBlockSize child_size;
+    uint16_t first_row = decoder->sb_row;
+    uint16_t first_column = decoder->sb_column;
     uint16_t second_row = decoder->sb_row;
     uint16_t second_column = decoder->sb_column;
+    Av2hPartitionType root_partition = decoder->luma_root_partition;
+    uint8_t *child_count = &decoder->luma_root_child_count;
+    uint8_t *children_share = &decoder->luma_root_children_share;
     size_t index;
-    if (decoder->luma_root_partition == AV2H_PARTITION_HORZ) {
+    if (decoder->luma_root_partition == AV2H_PARTITION_SPLIT &&
+        decoder->root_block_size == AV2H_BLOCK_128X128 &&
+        decoder->square_root_child_index < 4U) {
+        uint16_t root_row = (uint16_t)(decoder->sb_row +
+            (decoder->square_root_child_index >= 2U ? 16U : 0U));
+        uint16_t root_column = (uint16_t)(decoder->sb_column +
+            ((decoder->square_root_child_index & 1U) != 0U ? 16U : 0U));
+        for (index = 0U; index < path->decision_count; ++index) {
+            const Av2hPartitionDecision *decision = &path->decisions[index];
+            if (decision->node.row == root_row &&
+                decision->node.column == root_column &&
+                decision->node.block_size == AV2H_BLOCK_64X64) {
+                decoder->square_child_luma_partition = decision->partition;
+                break;
+            }
+        }
+        root_partition = decoder->square_child_luma_partition;
+        first_row = root_row;
+        first_column = root_column;
+        second_row = root_row;
+        second_column = root_column;
+        child_count = &decoder->square_child_luma_child_count;
+        children_share = &decoder->square_child_luma_children_share;
+    }
+    if (root_partition == AV2H_PARTITION_HORZ) {
         child_size = decoder->root_block_size == AV2H_BLOCK_64X64 ?
-            AV2H_BLOCK_64X32 :
+            AV2H_BLOCK_64X32 : root_partition == decoder->luma_root_partition ?
             decoder->root_block_size == AV2H_BLOCK_128X128 ?
-                AV2H_BLOCK_128X64 : AV2H_BLOCK_INVALID;
-        second_row = (uint16_t)(decoder->sb_row +
-            decoder->superblock_mi / 2U);
-    } else if (decoder->luma_root_partition == AV2H_PARTITION_VERT) {
+                AV2H_BLOCK_128X64 : AV2H_BLOCK_INVALID : AV2H_BLOCK_64X32;
+        second_row = (uint16_t)(second_row +
+            (child_size == AV2H_BLOCK_128X64 ? 32U : 8U));
+    } else if (root_partition == AV2H_PARTITION_VERT) {
         child_size = decoder->root_block_size == AV2H_BLOCK_64X64 ?
-            AV2H_BLOCK_32X64 :
+            AV2H_BLOCK_32X64 : root_partition == decoder->luma_root_partition ?
             decoder->root_block_size == AV2H_BLOCK_128X128 ?
-                AV2H_BLOCK_64X128 : AV2H_BLOCK_INVALID;
-        second_column = (uint16_t)(decoder->sb_column +
-            decoder->superblock_mi / 2U);
+                AV2H_BLOCK_64X128 : AV2H_BLOCK_INVALID : AV2H_BLOCK_32X64;
+        second_column = (uint16_t)(second_column +
+            (child_size == AV2H_BLOCK_64X128 ? 32U : 8U));
     } else {
         return;
     }
     if (child_size == AV2H_BLOCK_INVALID) return;
     for (index = 0U; index < path->decision_count; ++index) {
         const Av2hPartitionDecision *decision = &path->decisions[index];
-        int is_first = decision->node.row == decoder->sb_row &&
-            decision->node.column == decoder->sb_column;
+        int is_first = decision->node.row == first_row &&
+            decision->node.column == first_column;
         int is_second = decision->node.row == second_row &&
             decision->node.column == second_column;
         if (decision->node.block_size != child_size ||
             (!is_first && !is_second)) {
             continue;
         }
-        ++decoder->luma_root_child_count;
+        ++*child_count;
         if (decision->partition == AV2H_PARTITION_NONE ||
             av2h_tile_partition_direction(decision->partition) ==
-                av2h_tile_partition_direction(
-                    decoder->luma_root_partition)) {
-            decoder->luma_root_children_share = 0U;
+                av2h_tile_partition_direction(root_partition)) {
+            *children_share = 0U;
         }
     }
 }
@@ -51,6 +79,120 @@ static int luma_geometry_supported(const Av2hPartitionNode *leaf) {
     const Av2hTxDescriptor *descriptor;
     return leaf != 0 && av2h_luma_tx_descriptor_get(
         leaf->block_size, &descriptor) == AV2H_OK;
+}
+
+static Av2hStatus tile_handoff_square_child(Av2hTileDecoder *decoder,
+                                             uint8_t *has_leaf) {
+    Av2hPartitionNode chroma_root;
+    Av2hPartitionNode next_root;
+    uint8_t next = (uint8_t)(decoder->square_root_child_index + 1U);
+#if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
+    if ((decoder->sb_row == 0U && decoder->sb_column == 480U &&
+         decoder->square_root_child_index == 1U) ||
+        (decoder->sb_row == 64U && decoder->sb_column == 448U)) {
+        av2h_partition_diagnostic_leaf_stage(
+            (Av2hPartitionNode){ decoder->sb_row, decoder->sb_column,
+                                AV2H_BLOCK_64X64 }, 90U,
+            (uint8_t)decoder->luma_root_partition,
+            (uint16_t)((decoder->square_root_child_index << 8U) |
+                       decoder->luma_traversal.stack_count),
+            av2h_range_tell(&decoder->range));
+    }
+#endif
+    if (!decoder->sequence->enable_sdp ||
+        decoder->luma_root_partition != AV2H_PARTITION_SPLIT ||
+        decoder->root_block_size != AV2H_BLOCK_128X128 ||
+        decoder->square_root_child_index >= 4U) {
+        return AV2H_OK;
+    }
+    while (next < 4U) {
+        next_root.row = (uint16_t)(decoder->sb_row +
+            (next >= 2U ? 16U : 0U));
+        next_root.column = (uint16_t)(decoder->sb_column +
+            ((next & 1U) != 0U ? 16U : 0U));
+        next_root.block_size = AV2H_BLOCK_64X64;
+        if (next_root.row < decoder->mi_rows &&
+            next_root.column < decoder->mi_columns) {
+            break;
+        }
+        ++next;
+    }
+    if (next < 4U) {
+        const Av2hPartitionNode *pending = 0;
+        size_t pending_index = decoder->luma_traversal.stack_count;
+        while (pending_index != 0U) {
+            const Av2hPartitionNode *candidate =
+                &decoder->luma_traversal.stack[pending_index - 1U];
+            --pending_index;
+            if (candidate->row < decoder->mi_rows &&
+                candidate->column < decoder->mi_columns) {
+                pending = candidate;
+                break;
+            }
+        }
+        if (pending == 0) return AV2H_OK;
+#if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
+        if ((decoder->sb_row == 0U && decoder->sb_column == 480U &&
+             decoder->square_root_child_index == 1U) ||
+            (decoder->sb_row == 64U && decoder->sb_column == 448U)) {
+            av2h_partition_diagnostic_leaf_stage(
+                (Av2hPartitionNode){ decoder->sb_row, decoder->sb_column,
+                                    AV2H_BLOCK_64X64 }, 91U,
+                (uint8_t)pending->row, pending->column,
+                av2h_range_tell(&decoder->range));
+        }
+#endif
+        if (pending->row != next_root.row ||
+            pending->column != next_root.column ||
+            pending->block_size != next_root.block_size) {
+            return AV2H_OK;
+        }
+    } else {
+        size_t pending_index = decoder->luma_traversal.stack_count;
+        while (pending_index != 0U) {
+            const Av2hPartitionNode *pending =
+                &decoder->luma_traversal.stack[--pending_index];
+            if (pending->row < decoder->mi_rows &&
+                pending->column < decoder->mi_columns) {
+                return AV2H_OK;
+            }
+        }
+    }
+    chroma_root.row = (uint16_t)(decoder->sb_row +
+        (decoder->square_root_child_index >= 2U ? 16U : 0U));
+    chroma_root.column = (uint16_t)(decoder->sb_column +
+        ((decoder->square_root_child_index & 1U) != 0U ? 16U : 0U));
+    chroma_root.block_size = AV2H_BLOCK_64X64;
+#if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
+    if (chroma_root.row == 0U && chroma_root.column == 496U) {
+        av2h_partition_diagnostic_leaf_stage(
+            chroma_root, 100U,
+            (uint8_t)decoder->square_child_luma_partition,
+            decoder->square_child_luma_child_count,
+            av2h_range_tell(&decoder->range));
+    }
+#endif
+    if (av2h_partition_traversal_reset_root(
+            &decoder->chroma_traversal, chroma_root) != AV2H_OK) {
+        return AV2H_INVALID_DATA;
+    }
+    decoder->chroma_root_partition = AV2H_PARTITION_INVALID;
+    decoder->chroma_root_forced_partition = AV2H_PARTITION_INVALID;
+    if (decoder->square_child_luma_partition == AV2H_PARTITION_NONE) {
+        decoder->chroma_root_forced_partition = AV2H_PARTITION_NONE;
+    } else if (decoder->square_child_luma_child_count == 2U &&
+               decoder->square_child_luma_children_share &&
+               av2h_tile_partition_direction(
+                   decoder->square_child_luma_partition) != 0U) {
+        decoder->chroma_root_forced_partition =
+            decoder->square_child_luma_partition;
+    }
+    decoder->square_child_luma_child_count = 0U;
+    decoder->square_child_luma_children_share = 1U;
+    decoder->phase = AV2H_TILE_DECODE_CHROMA;
+    decoder->event = AV2H_TILE_EVENT_ROOT_HANDOFF;
+    *has_leaf = 0U;
+    return AV2H_OK;
 }
 
 static Av2hStatus tile_initialize_skipped_intrabc(
@@ -203,6 +345,7 @@ Av2hStatus av2h_tile_decoder_next_luma(
     uint8_t *has_leaf) {
     Av2hFirstLeafPath path;
     uint8_t dc_sign_context;
+    uint8_t tx_count;
     Av2hStatus status;
     if (decoder == 0 || leaf == 0 || block == 0 || has_leaf == 0) {
         return AV2H_INVALID_ARGUMENT;
@@ -211,7 +354,27 @@ Av2hStatus av2h_tile_decoder_next_luma(
     if (decoder->phase != AV2H_TILE_DECODE_LUMA) {
         return av2h_tile_decoder_fail(decoder, AV2H_INVALID_ARGUMENT);
     }
+    if (decoder->luma_tx_count != 0U) {
+        if (decoder->luma_tx_index >= decoder->luma_tx_count) {
+            return av2h_tile_decoder_fail(
+                decoder, AV2H_INVALID_ARGUMENT);
+        }
+        av2h_memory_copy(
+            &leaf->mode, &decoder->luma_coding_mode,
+            sizeof(leaf->mode));
+        status = av2h_luma_tx_node_get(
+            &decoder->luma_coding_node, decoder->luma_tx_index,
+            &leaf->node);
+        if (status != AV2H_OK) {
+            return av2h_tile_decoder_fail(decoder, status);
+        }
+        *has_leaf = 1U;
+        goto read_transform;
+    }
     av2h_tile_diagnostics_set_luma_stage(0U);
+    status = tile_handoff_square_child(decoder, has_leaf);
+    if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
+    if (decoder->phase == AV2H_TILE_DECODE_CHROMA) return AV2H_OK;
     status = av2h_partition_traversal_next(
         &decoder->luma_traversal, &decoder->range,
         &decoder->partition_cdfs, &decoder->partition_contexts, &path,
@@ -247,6 +410,11 @@ Av2hStatus av2h_tile_decoder_next_luma(
     status = av2h_luma_palette_map_read(
         &decoder->range, &decoder->leaf_cdfs, &leaf->node, &leaf->mode);
     if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
+#if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
+    av2h_partition_diagnostic_leaf_stage(
+        leaf->node, 1U, (uint8_t)leaf->mode.mode, 0U,
+        av2h_range_tell(&decoder->range));
+#endif
     av2h_tile_diagnostics_set_luma_range(1U, decoder->range.range);
     status = av2h_luma_mode_context_state_update(
         &decoder->luma_mode_contexts, &leaf->node, &leaf->mode);
@@ -255,6 +423,22 @@ Av2hStatus av2h_tile_decoder_next_luma(
     status = tile_store_luma_mode(decoder, &leaf->node, &leaf->mode);
     if (status == AV2H_UNSUPPORTED) return av2h_tile_decoder_fail(decoder, AV2H_OUT_OF_MEMORY);
     if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
+    status = av2h_luma_tx_node_count(leaf->node.block_size, &tx_count);
+    if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
+    if (tx_count > 1U) {
+        decoder->luma_coding_node = leaf->node;
+        av2h_memory_copy(
+            &decoder->luma_coding_mode, &leaf->mode,
+            sizeof(decoder->luma_coding_mode));
+        decoder->luma_tx_index = 0U;
+        decoder->luma_tx_count = tx_count;
+        status = av2h_luma_tx_node_get(
+            &decoder->luma_coding_node, 0U, &leaf->node);
+        if (status != AV2H_OK) {
+            return av2h_tile_decoder_fail(decoder, status);
+        }
+    }
+read_transform:
     if (leaf->mode.skip_transform != 0U) {
         status = tile_initialize_skipped_intrabc(
             decoder, leaf, &leaf->prefix, &leaf->transform, block);
@@ -271,6 +455,11 @@ Av2hStatus av2h_tile_decoder_next_luma(
         &leaf->mode, &decoder->coefficient_contexts, &leaf->prefix,
         &dc_sign_context);
     if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
+#if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
+    av2h_partition_diagnostic_leaf_stage(
+        leaf->node, 2U, (uint8_t)leaf->mode.mode, leaf->prefix.eob,
+        av2h_range_tell(&decoder->range));
+#endif
     av2h_tile_diagnostics_set_luma_range(2U, decoder->range.range);
     if (leaf->prefix.all_zero) {
         status = tile_initialize_all_zero_luma(
@@ -284,6 +473,11 @@ Av2hStatus av2h_tile_decoder_next_luma(
         &decoder->range, &decoder->transform_cdfs, decoder->sequence,
         decoder->frame, &leaf->mode, &leaf->prefix, &leaf->transform);
     if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
+#if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
+    av2h_partition_diagnostic_leaf_stage(
+        leaf->node, 3U, (uint8_t)leaf->mode.mode, leaf->prefix.eob,
+        av2h_range_tell(&decoder->range));
+#endif
     av2h_tile_diagnostics_set_luma_range(3U, decoder->range.range);
     av2h_tile_diagnostics_set_luma_stage(4U);
     status = av2h_coeff_block_read_with_state(
@@ -291,6 +485,11 @@ Av2hStatus av2h_tile_decoder_next_luma(
         decoder->frame, &leaf->node, &leaf->mode, &leaf->prefix,
         &leaf->transform, &decoder->coefficient_contexts, block);
     if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
+#if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
+    av2h_partition_diagnostic_leaf_stage(
+        leaf->node, 4U, (uint8_t)leaf->mode.mode, leaf->prefix.eob,
+        av2h_range_tell(&decoder->range));
+#endif
     av2h_tile_diagnostics_set_luma_range(4U, decoder->range.range);
     decoder->event = AV2H_TILE_EVENT_LUMA_LEAF;
     return AV2H_OK;

@@ -1,9 +1,61 @@
 #include "decoder/internal/partition_modules.h"
 
+#if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
+static Av2hPartitionDecision diagnostic_trace[32768U];
+static size_t diagnostic_trace_count;
+static Av2hPartitionLeafDiagnostic diagnostic_leaf_trace[128U];
+static size_t diagnostic_leaf_trace_count;
+
+static void record_diagnostic_decision(const Av2hPartitionDecision *decision) {
+    if (decision == 0 || diagnostic_trace_count >= 32768U) {
+        return;
+    }
+    diagnostic_trace[diagnostic_trace_count++] = *decision;
+}
+
+const Av2hPartitionDecision *av2h_partition_diagnostic_trace(size_t *count) {
+    if (count != 0) *count = diagnostic_trace_count;
+    return diagnostic_trace;
+}
+
+void av2h_partition_diagnostic_leaf_stage(
+    Av2hPartitionNode node, uint8_t stage, uint8_t mode, uint16_t eob,
+    size_t tell) {
+    Av2hPartitionLeafDiagnostic *diagnostic;
+    if (!((node.row == 12U && node.column == 14U &&
+           node.block_size == AV2H_BLOCK_8X16) ||
+          (node.row == 0U && node.column == 496U &&
+           node.block_size == AV2H_BLOCK_64X64) ||
+          (node.row < 16U && node.column < 16U && stage >= 10U) ||
+          (node.row >= 64U && node.row < 80U &&
+           node.column >= 448U && node.column < 464U && stage >= 10U)) ||
+        diagnostic_leaf_trace_count >= 128U) {
+        return;
+    }
+    diagnostic = &diagnostic_leaf_trace[diagnostic_leaf_trace_count++];
+    diagnostic->row = node.row;
+    diagnostic->column = node.column;
+    diagnostic->block_size = (uint8_t)node.block_size;
+    diagnostic->stage = stage;
+    diagnostic->mode = mode;
+    diagnostic->eob = eob;
+    diagnostic->tell = tell;
+}
+
+const Av2hPartitionLeafDiagnostic *av2h_partition_diagnostic_leaf_trace(
+    size_t *count) {
+    if (count != 0) *count = diagnostic_leaf_trace_count;
+    return diagnostic_leaf_trace;
+}
+#endif
+
 static int is_partition_point(Av2hBlockSize block_size) {
     return block_size != AV2H_BLOCK_4X4 &&
-           block_size <= AV2H_BLOCK_64X16;
+           block_size < AV2H_BLOCK_4X32;
 }
+
+static Av2hBlockSize block_size_from_dimensions(uint8_t width,
+                                                uint8_t height);
 
 static Av2hBlockSize ordinary_subsize(Av2hBlockSize block_size,
                                       Av2hPartitionType partition) {
@@ -29,6 +81,18 @@ static Av2hBlockSize ordinary_subsize(Av2hBlockSize block_size,
         }
     }
     return AV2H_BLOCK_INVALID;
+}
+
+static Av2hBlockSize square_subsize(Av2hBlockSize block_size) {
+    const Av2hBlockGeometry *geometry;
+    if (block_size != AV2H_BLOCK_128X128 &&
+        block_size != AV2H_BLOCK_256X256) {
+        return AV2H_BLOCK_INVALID;
+    }
+    geometry = &av2h_block_geometry[block_size];
+    return block_size_from_dimensions(
+        (uint8_t)(geometry->mi_width / 2U),
+        (uint8_t)(geometry->mi_height / 2U));
 }
 
 static Av2hBlockSize block_size_from_dimensions(uint8_t width,
@@ -348,6 +412,26 @@ Av2hStatus av2h_partition_first_leaf_read(
             return AV2H_OK;
         }
 
+        child = square_subsize(node.block_size);
+        if (child != AV2H_BLOCK_INVALID) {
+            size_t square_context = split_context % 4U +
+                (node.block_size == AV2H_BLOCK_256X256 ? 4U : 0U);
+            value = av2h_range_read_adaptive(
+                decoder, cdfs->do_square_split[0][square_context], 2U);
+            if (av2h_range_status(decoder) != AV2H_OK) {
+                return av2h_range_status(decoder);
+            }
+            if (value != 0U) {
+                status = append_decision(
+                    path, node, AV2H_PARTITION_SPLIT, 0U, 1U, 1U,
+                    split_context, rect_context, extension_context,
+                    av2h_range_tell(decoder));
+                if (status != AV2H_OK) return status;
+                node.block_size = child;
+                continue;
+            }
+        }
+
         axis = implied_axis(node.block_size, 0U);
         axis_was_implied = axis != (Av2hPartitionAxis)255;
         if (!axis_was_implied) {
@@ -476,6 +560,25 @@ Av2hStatus av2h_partition_node_read_for_structure(
         *child = node;
         return AV2H_OK;
     }
+    child->block_size = square_subsize(node.block_size);
+    if (child->block_size != AV2H_BLOCK_INVALID) {
+        size_t square_context = split_context % 4U +
+            (node.block_size == AV2H_BLOCK_256X256 ? 4U : 0U);
+        value = av2h_range_read_adaptive(
+            decoder, cdfs->do_square_split[structure][square_context], 2U);
+        if (av2h_range_status(decoder) != AV2H_OK) {
+            return av2h_range_status(decoder);
+        }
+        if (value != 0U) {
+            decision->partition = AV2H_PARTITION_SPLIT;
+            decision->axis_implied = 1U;
+            decision->extension_implied = 1U;
+            decision->after_bits = av2h_range_tell(decoder);
+            *child = node;
+            child->block_size = square_subsize(node.block_size);
+            return AV2H_OK;
+        }
+    }
     axis = implied_axis(node.block_size, structure);
     decision->axis_implied = (uint8_t)(axis != (Av2hPartitionAxis)255);
     if (!decision->axis_implied) {
@@ -539,6 +642,7 @@ Av2hStatus av2h_partition_node_read_with_state(
     Av2hPartitionDecision *decision,
     Av2hPartitionNode *child) {
     Av2hPartitionAxis axis = implied_axis(node.block_size, structure);
+    Av2hPartitionAxis boundary_axis;
     size_t split_context;
     size_t rect_type_context;
     size_t extension_context;
@@ -567,23 +671,24 @@ Av2hStatus av2h_partition_node_read_with_state(
         *child = node;
         return AV2H_OK;
     }
-    axis = partial_boundary_axis(
-        mi_rows, mi_columns, node);
-    if (axis != (Av2hPartitionAxis)255) {
+    boundary_axis = partial_boundary_axis(mi_rows, mi_columns, node);
+    if (boundary_axis != (Av2hPartitionAxis)255) {
         status = av2h_partition_contexts_from_state(
-            state, structure, node, axis, &split_context,
+            state, structure, node, boundary_axis, &split_context,
             &rect_type_context, &extension_context);
         if (status != AV2H_OK) return status;
         decision->split_context = split_context;
         decision->rect_type_context = rect_type_context;
-        value = av2h_range_read_adaptive(
-            decoder, cdfs->rect_type[structure][rect_type_context], 2U);
-        if (av2h_range_status(decoder) != AV2H_OK) {
-            return av2h_range_status(decoder);
+        decision->axis_implied = (uint8_t)(axis != (Av2hPartitionAxis)255);
+        if (!decision->axis_implied) {
+            value = av2h_range_read_adaptive(
+                decoder, cdfs->rect_type[structure][rect_type_context], 2U);
+            if (av2h_range_status(decoder) != AV2H_OK) {
+                return av2h_range_status(decoder);
+            }
+            axis = value == 0U ? AV2H_PARTITION_HORIZONTAL
+                               : AV2H_PARTITION_VERTICAL;
         }
-        axis = value == 0U ? AV2H_PARTITION_HORIZONTAL
-                           : AV2H_PARTITION_VERTICAL;
-        decision->axis_implied = 0U;
         status = av2h_partition_contexts_from_state(
             state, structure, node, axis, &split_context,
             &rect_type_context, &extension_context);
@@ -674,6 +779,25 @@ Av2hStatus av2h_partition_node_read_with_state(
         *child = node;
         return AV2H_OK;
     }
+    child->block_size = square_subsize(node.block_size);
+    if (child->block_size != AV2H_BLOCK_INVALID) {
+        size_t square_context = split_context % 4U +
+            (node.block_size == AV2H_BLOCK_256X256 ? 4U : 0U);
+        value = av2h_range_read_adaptive(
+            decoder, cdfs->do_square_split[structure][square_context], 2U);
+        if (av2h_range_status(decoder) != AV2H_OK) {
+            return av2h_range_status(decoder);
+        }
+        if (value != 0U) {
+            decision->partition = AV2H_PARTITION_SPLIT;
+            decision->axis_implied = 1U;
+            decision->extension_implied = 1U;
+            decision->after_bits = av2h_range_tell(decoder);
+            *child = node;
+            child->block_size = square_subsize(node.block_size);
+            return AV2H_OK;
+        }
+    }
     decision->axis_implied = (uint8_t)(axis != (Av2hPartitionAxis)255);
     if (!decision->axis_implied) {
         value = av2h_range_read_adaptive(
@@ -748,6 +872,32 @@ static Av2hStatus traversal_push_children(
     Av2hPartitionNode second = node;
     size_t width;
     size_t height;
+    if (partition == AV2H_PARTITION_SPLIT) {
+        Av2hBlockSize child_size = square_subsize(node.block_size);
+        Av2hPartitionNode children[4U];
+        size_t index;
+        if (child_size == AV2H_BLOCK_INVALID) return AV2H_UNSUPPORTED;
+        if (traversal->stack_count + 4U >
+            AV2H_MAX_PARTITION_TRAVERSAL_NODES) {
+            return AV2H_OVERFLOW;
+        }
+        if (av2h_block_dimensions_mi(child_size, &width, &height) !=
+            AV2H_OK) {
+            return AV2H_UNSUPPORTED;
+        }
+        for (index = 0U; index < 4U; ++index) {
+            children[index] = node;
+            children[index].block_size = child_size;
+        }
+        children[1].column = (uint16_t)(node.column + width);
+        children[2].row = (uint16_t)(node.row + height);
+        children[3].row = children[2].row;
+        children[3].column = children[1].column;
+        for (index = 4U; index != 0U; --index) {
+            traversal->stack[traversal->stack_count++] = children[index - 1U];
+        }
+        return AV2H_OK;
+    }
     if (partition == AV2H_PARTITION_HORZ_4A ||
         partition == AV2H_PARTITION_HORZ_4B ||
         partition == AV2H_PARTITION_VERT_4A ||
@@ -892,6 +1042,12 @@ Av2hStatus av2h_partition_traversal_init(
     traversal->has_pending_leaf = 0U;
     traversal->diagnostic_node = root;
     traversal->diagnostic_before_bits = 0U;
+#if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
+    if (structure == 0U) {
+        diagnostic_trace_count = 0U;
+        diagnostic_leaf_trace_count = 0U;
+    }
+#endif
     return AV2H_OK;
 }
 
@@ -948,6 +1104,10 @@ Av2hStatus av2h_partition_traversal_next(
                 path, node, forced, 1U, 1U, 1U, 0U, 0U, 0U,
                 av2h_range_tell(decoder));
             if (status != AV2H_OK) return status;
+#if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
+            record_diagnostic_decision(
+                &path->decisions[path->decision_count - 1U]);
+#endif
             status = traversal_push_children(traversal, node, forced);
             if (status != AV2H_OK) return status;
             continue;
@@ -974,6 +1134,9 @@ Av2hStatus av2h_partition_traversal_next(
             decision.extension_context,
             decision.after_bits);
         if (status != AV2H_OK) return status;
+    #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
+        record_diagnostic_decision(&decision);
+    #endif
         if (decision.partition == AV2H_PARTITION_NONE) {
             path->leaf = child;
             traversal->pending_leaf = child;

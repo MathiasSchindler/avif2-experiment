@@ -450,6 +450,46 @@ static void test_chroma_rect_axis_is_implied(void) {
     }
 }
 
+static void test_late_enum_blocks_are_terminal(void) {
+    static const unsigned char bytes[] = { 0xffU, 0xffU };
+    static const Av2hBlockSize blocks[] = {
+        AV2H_BLOCK_4X32, AV2H_BLOCK_32X4,
+        AV2H_BLOCK_8X64, AV2H_BLOCK_64X8
+    };
+    size_t index;
+    for (index = 0U; index < 4U; ++index) {
+        uint8_t luma_above[64U];
+        uint8_t luma_left[64U];
+        uint8_t chroma_above[64U];
+        uint8_t chroma_left[64U];
+        Av2hSpan span = { bytes, sizeof(bytes) };
+        Av2hRangeDecoder decoder;
+        Av2hPartitionCdfs cdfs;
+        Av2hPartitionContextState contexts;
+        Av2hPartitionTraversal traversal;
+        Av2hFirstLeafPath path;
+        uint8_t has_leaf;
+        size_t before_bits;
+        CHECK(av2h_partition_cdfs_init(&cdfs) == AV2H_OK);
+        CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
+        CHECK(av2h_partition_context_state_init(
+                  &contexts, luma_above, luma_left,
+                  chroma_above, chroma_left, 64U, 64U) == AV2H_OK);
+        CHECK(av2h_partition_traversal_init(
+                  &traversal, 64U, 64U,
+                  (Av2hPartitionNode){ 0U, 0U, blocks[index] },
+                  0U, 1U, 1U) == AV2H_OK);
+        before_bits = av2h_range_tell(&decoder);
+        CHECK(av2h_partition_traversal_next(
+                  &traversal, &decoder, &cdfs, &contexts, &path,
+                  &has_leaf) == AV2H_OK);
+        CHECK(has_leaf == 1U);
+        CHECK(path.decision_count == 0U);
+        CHECK(path.leaf.block_size == blocks[index]);
+        CHECK(av2h_range_tell(&decoder) == before_bits);
+    }
+}
+
 static void test_traversal(void) {
     static const unsigned char bytes[] = { 0U, 0U, 0U, 0U };
     uint8_t luma_above[4U];
@@ -500,6 +540,65 @@ static void test_traversal(void) {
               (Av2hPartitionNode){ 0U, 0U, AV2H_BLOCK_4X4 }, 0U, 1U, 0U) ==
           AV2H_INVALID_ARGUMENT);
 }
+
+    static void test_square_split_traversal(void) {
+        static const unsigned char bytes[] = {
+            0x80U, 0x00U, 0x00U, 0x00U, 0x00U, 0x00U, 0x00U, 0x00U
+        };
+        uint8_t luma_above[32U];
+        uint8_t luma_left[32U];
+        uint8_t chroma_above[32U];
+        uint8_t chroma_left[32U];
+        Av2hSpan span = { bytes, sizeof(bytes) };
+        Av2hRangeDecoder decoder;
+        Av2hPartitionCdfs cdfs;
+        Av2hPartitionContextState contexts;
+        Av2hPartitionTraversal traversal;
+        Av2hFirstLeafPath path;
+        size_t child_split_context;
+        size_t split_context;
+        size_t rect_context;
+        size_t extension_context;
+        uint8_t has_leaf;
+
+        CHECK(av2h_partition_cdfs_init(&cdfs) == AV2H_OK);
+        CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
+        CHECK(av2h_partition_context_state_init(
+              &contexts, luma_above, luma_left, chroma_above, chroma_left,
+              32U, 32U) == AV2H_OK);
+        CHECK(av2h_partition_contexts_from_state(
+              &contexts, 0U,
+              (Av2hPartitionNode){ 0U, 0U, AV2H_BLOCK_64X64 },
+              AV2H_PARTITION_HORIZONTAL, &child_split_context, &rect_context,
+              &extension_context) == AV2H_OK);
+    CHECK(av2h_partition_contexts_from_state(
+              &contexts, 0U,
+              (Av2hPartitionNode){ 0U, 0U, AV2H_BLOCK_128X128 },
+              AV2H_PARTITION_HORIZONTAL, &split_context, &rect_context,
+              &extension_context) == AV2H_OK);
+    cdfs.do_split[0][split_context][0] = 32768U;
+    cdfs.do_square_split[0][split_context % 4U][0] = 32768U;
+    cdfs.do_split[0][child_split_context][0] = 0U;
+        CHECK(av2h_partition_traversal_init(
+              &traversal, 32U, 32U,
+              (Av2hPartitionNode){ 0U, 0U, AV2H_BLOCK_128X128 },
+              0U, 1U, 0U) == AV2H_OK);
+        CHECK(av2h_partition_traversal_next(
+              &traversal, &decoder, &cdfs, &contexts, &path, &has_leaf) ==
+            AV2H_OK);
+        CHECK(has_leaf == 1U);
+        CHECK(path.decision_count == 2U);
+        CHECK(path.decisions[0].partition == AV2H_PARTITION_SPLIT);
+        CHECK(path.leaf.row == 0U && path.leaf.column == 0U);
+        CHECK(path.leaf.block_size == AV2H_BLOCK_64X64);
+        CHECK(traversal.stack_count == 3U);
+        CHECK(traversal.stack[0].row == 16U &&
+            traversal.stack[0].column == 16U);
+        CHECK(traversal.stack[1].row == 16U &&
+            traversal.stack[1].column == 0U);
+        CHECK(traversal.stack[2].row == 0U &&
+            traversal.stack[2].column == 16U);
+    }
 
 static void test_superblock_roots(void) {
     static const uint16_t rows[] = { 0U, 0U, 0U, 16U, 16U, 16U };
@@ -619,16 +718,51 @@ static void test_partial_boundary_implies_illegal_extension(void) {
     CHECK(child.block_size == AV2H_BLOCK_64X8);
 }
 
+static void test_partial_boundary_honors_implied_rect_axis(void) {
+    static const unsigned char bytes[] = {
+        0xc7U, 0x43U, 0xf5U, 0xb7U, 0xcbU, 0xdeU, 0xd0U, 0x78U
+    };
+    Av2hSpan span = { bytes, sizeof(bytes) };
+    Av2hRangeDecoder decoder;
+    Av2hPartitionCdfs cdfs;
+    Av2hPartitionContextState contexts;
+    Av2hPartitionDecision decision;
+    Av2hPartitionNode child;
+    uint8_t luma_above[256U];
+    uint8_t luma_left[256U];
+    uint8_t chroma_above[256U];
+    uint8_t chroma_left[256U];
+    size_t before_bits;
+    CHECK(av2h_partition_cdfs_init(&cdfs) == AV2H_OK);
+    CHECK(av2h_partition_context_state_init(
+              &contexts, luma_above, luma_left, chroma_above, chroma_left,
+              256U, 256U) == AV2H_OK);
+    CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
+    before_bits = av2h_range_tell(&decoder);
+    CHECK(av2h_partition_node_read_with_state(
+              &decoder, &cdfs, &contexts, 0U,
+              (Av2hPartitionNode){ 0U, 192U, AV2H_BLOCK_64X128 },
+              200U, 200U, 0U, 0U, &decision, &child) == AV2H_OK);
+    CHECK(decision.partition == AV2H_PARTITION_HORZ);
+    CHECK(decision.axis_implied == 1U);
+    CHECK(decision.extension_implied == 1U);
+    CHECK(child.block_size == AV2H_BLOCK_64X64);
+    CHECK(av2h_range_tell(&decoder) == before_bits);
+}
+
 int main(void) {
     test_fixture_prefixes();
     test_forced_geometry();
     test_first_leaf_paths();
     test_context_state();
     test_chroma_rect_axis_is_implied();
+    test_late_enum_blocks_are_terminal();
     test_traversal();
+    test_square_split_traversal();
     test_superblock_roots();
     test_arguments();
     test_partial_boundary_implies_illegal_extension();
+    test_partial_boundary_honors_implied_rect_axis();
     if (failures != 0) {
         fprintf(stderr, "%d partition checks failed\n", failures);
         return 1;

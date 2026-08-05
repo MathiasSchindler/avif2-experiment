@@ -376,9 +376,10 @@ static void test_tx_descriptors(void) {
         AV2H_TX_4X4, AV2H_TX_4X8, AV2H_TX_8X4, AV2H_TX_8X8,
         AV2H_TX_8X16, AV2H_TX_16X8, AV2H_TX_16X16, AV2H_TX_16X32,
         AV2H_TX_32X16, AV2H_TX_32X32, AV2H_TX_32X64, AV2H_TX_64X32,
+        AV2H_TX_64X64, AV2H_TX_64X64, AV2H_TX_64X64,
         AV2H_TX_64X64, AV2H_TX_INVALID, AV2H_TX_INVALID,
-        AV2H_TX_INVALID, AV2H_TX_INVALID, AV2H_TX_INVALID,
-        AV2H_TX_INVALID, AV2H_TX_4X16, AV2H_TX_16X4, AV2H_TX_8X32,
+        AV2H_TX_INVALID,
+        AV2H_TX_4X16, AV2H_TX_16X4, AV2H_TX_8X32,
         AV2H_TX_32X8, AV2H_TX_16X64, AV2H_TX_64X16, AV2H_TX_4X32,
         AV2H_TX_32X4, AV2H_TX_8X64, AV2H_TX_64X8
     };
@@ -457,6 +458,24 @@ static void test_tx_descriptors(void) {
     CHECK(av2h_luma_tx_descriptor_get(AV2H_BLOCK_INVALID, &descriptor) ==
           AV2H_UNSUPPORTED);
     CHECK(descriptor == 0);
+        {
+          Av2hPartitionNode coding = { 4U, 8U, AV2H_BLOCK_128X128 };
+          Av2hPartitionNode tx_node;
+          uint8_t count = 0U;
+          CHECK(av2h_luma_tx_node_count(coding.block_size, &count) == AV2H_OK);
+          CHECK(count == 4U);
+          CHECK(av2h_luma_tx_node_get(&coding, 0U, &tx_node) == AV2H_OK);
+          CHECK(tx_node.row == 4U && tx_node.column == 8U);
+          CHECK(tx_node.block_size == AV2H_BLOCK_64X64);
+          CHECK(av2h_luma_tx_node_get(&coding, 1U, &tx_node) == AV2H_OK);
+          CHECK(tx_node.row == 4U && tx_node.column == 24U);
+          CHECK(av2h_luma_tx_node_get(&coding, 2U, &tx_node) == AV2H_OK);
+          CHECK(tx_node.row == 20U && tx_node.column == 8U);
+          CHECK(av2h_luma_tx_node_get(&coding, 3U, &tx_node) == AV2H_OK);
+          CHECK(tx_node.row == 20U && tx_node.column == 24U);
+          CHECK(av2h_luma_tx_node_get(&coding, 4U, &tx_node) ==
+              AV2H_INVALID_ARGUMENT);
+        }
     CHECK(av2h_tx_descriptor_get(AV2H_TX_INVALID, &descriptor) ==
           AV2H_UNSUPPORTED);
     CHECK(descriptor == 0);

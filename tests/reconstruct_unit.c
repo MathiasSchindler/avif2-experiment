@@ -1,5 +1,6 @@
 #include "decoder/tile.h"
 #include "decoder/tx_geometry.h"
+#include "decoder/internal/reconstruct_modules.h"
 
 #include <stdio.h>
 
@@ -13,6 +14,149 @@ static int failures;
             ++failures;                                                        \
         }                                                                      \
     } while (0)
+
+static void test_chroma_geometry_through_64(void) {
+    Av2hFirstChromaMode mode = { 0 };
+    Av2hLumaReferences references = { 0 };
+    uint8_t predictor[64U * 64U];
+    uint8_t above[128U];
+    uint8_t left[128U];
+    size_t index;
+    CHECK(av2h_chroma_geometry_supported(32U, 64U));
+    CHECK(av2h_chroma_geometry_supported(64U, 32U));
+    CHECK(av2h_chroma_geometry_supported(64U, 64U));
+    CHECK(!av2h_chroma_geometry_supported(64U, 128U));
+    mode.mode = AV2H_INTRA_DC;
+    CHECK(av2h_chroma_predict(
+              &mode, 64U, 64U, &references, predictor, 64U) == AV2H_OK);
+    for (index = 0U; index < sizeof(predictor); ++index) {
+        CHECK(predictor[index] == 128U);
+    }
+    av2h_memory_fill(above, 127U, sizeof(above));
+    av2h_memory_fill(left, 129U, sizeof(left));
+    references.above = above;
+    references.above_count = sizeof(above);
+    references.left = left;
+    references.left_count = sizeof(left);
+    mode.mode = AV2H_INTRA_D67;
+    mode.angle_delta = -2;
+    CHECK(av2h_chroma_predict(
+              &mode, 64U, 64U, &references, predictor, 64U) == AV2H_OK);
+    mode.mode = AV2H_INTRA_SMOOTH_HORIZONTAL;
+    mode.angle_delta = 0;
+    CHECK(av2h_chroma_predict(
+              &mode, 64U, 64U, &references, predictor, 64U) == AV2H_OK);
+    for (index = 0U; index < 64U; ++index) {
+        CHECK(predictor[index * 64U] == 129U);
+        CHECK(predictor[index * 64U + 63U] == 127U);
+    }
+}
+
+static void test_ist_4x4_set11_type3(void) {
+    Av2hFirstLeafMode mode = { 0 };
+    Av2hFirstCoeffPrefix prefix = { 0 };
+    Av2hFirstTransformType transform = { 0 };
+    Av2hFirstCoeffBlock coefficients = { 0 };
+    int32_t dequantized[AV2H_FIRST_COEFF_CAPACITY] = { 0 };
+    mode.mode = AV2H_INTRA_D113;
+    prefix.tx_size = AV2H_TX_4X4;
+    transform.secondary_set = 11U;
+    transform.secondary_symbol = 3U;
+    coefficients.width = 4U;
+    coefficients.height = 4U;
+    coefficients.coefficient_count = 16U;
+    dequantized[0] = 128;
+    CHECK(av2h_inverse_secondary_transform(
+              &mode, &prefix, &transform, &coefficients, dequantized) ==
+          AV2H_OK);
+    CHECK(dequantized[0] == 113);
+    CHECK(dequantized[4] == -32);
+}
+
+static void test_palace_ist_gaps(void) {
+    Av2hFirstLeafMode mode = { 0 };
+    Av2hFirstCoeffPrefix prefix = { 0 };
+    Av2hFirstTransformType transform = { 0 };
+    Av2hFirstCoeffBlock coefficients = { 0 };
+    int32_t dequantized[AV2H_FIRST_COEFF_CAPACITY] = { 0 };
+
+    mode.mode = AV2H_INTRA_VERTICAL;
+    prefix.tx_size = AV2H_TX_8X4;
+    transform.secondary_set = 13U;
+    transform.secondary_symbol = 1U;
+    coefficients.width = 8U;
+    coefficients.height = 4U;
+    coefficients.coefficient_count = 32U;
+    dequantized[0] = 128;
+    CHECK(av2h_inverse_secondary_transform(
+              &mode, &prefix, &transform, &coefficients, dequantized) ==
+          AV2H_OK);
+    CHECK(dequantized[0] == 120);
+
+    av2h_memory_fill(dequantized, 0U, sizeof(dequantized));
+    mode.mode = AV2H_INTRA_D67;
+    transform.secondary_set = 5U;
+    transform.secondary_symbol = 2U;
+    dequantized[0] = 128;
+    CHECK(av2h_inverse_secondary_transform(
+              &mode, &prefix, &transform, &coefficients, dequantized) ==
+          AV2H_OK);
+    CHECK(dequantized[0] == 84);
+
+    av2h_memory_fill(dequantized, 0U, sizeof(dequantized));
+    mode.mode = AV2H_INTRA_SMOOTH_HORIZONTAL;
+    prefix.tx_size = AV2H_TX_4X8;
+    transform.secondary_set = 8U;
+    transform.secondary_symbol = 3U;
+    coefficients.width = 4U;
+    coefficients.height = 8U;
+    coefficients.coefficient_count = 32U;
+    dequantized[0] = 128;
+    CHECK(av2h_inverse_secondary_transform(
+              &mode, &prefix, &transform, &coefficients, dequantized) ==
+          AV2H_OK);
+    CHECK(dequantized[0] == 122);
+
+    av2h_memory_fill(dequantized, 0U, sizeof(dequantized));
+    mode.mode = AV2H_INTRA_D45;
+    prefix.tx_size = AV2H_TX_8X4;
+    transform.secondary_set = 9U;
+    transform.secondary_symbol = 1U;
+    coefficients.width = 8U;
+    coefficients.height = 4U;
+    coefficients.coefficient_count = 32U;
+    dequantized[0] = 128;
+    CHECK(av2h_inverse_secondary_transform(
+              &mode, &prefix, &transform, &coefficients, dequantized) ==
+          AV2H_OK);
+    CHECK(dequantized[0] == 119);
+
+    av2h_memory_fill(dequantized, 0U, sizeof(dequantized));
+    prefix.tx_size = AV2H_TX_4X8;
+    transform.secondary_set = 9U;
+    transform.secondary_symbol = 3U;
+    coefficients.width = 4U;
+    coefficients.height = 8U;
+    dequantized[0] = 128;
+    CHECK(av2h_inverse_secondary_transform(
+              &mode, &prefix, &transform, &coefficients, dequantized) ==
+          AV2H_OK);
+    CHECK(dequantized[0] == 119);
+
+    av2h_memory_fill(dequantized, 0U, sizeof(dequantized));
+    mode.mode = AV2H_INTRA_D135;
+    prefix.tx_size = AV2H_TX_16X16;
+    transform.secondary_set = 3U;
+    transform.secondary_symbol = 2U;
+    coefficients.width = 16U;
+    coefficients.height = 16U;
+    coefficients.coefficient_count = 256U;
+    dequantized[0] = 128;
+    CHECK(av2h_inverse_secondary_transform(
+              &mode, &prefix, &transform, &coefficients, dequantized) ==
+          AV2H_OK);
+    CHECK(dequantized[0] == -89);
+}
 
 static uint64_t pixel_hash(const Av2hFirstReconstruction *reconstruction) {
     uint64_t hash = UINT64_C(1469598103934665603);
@@ -5397,7 +5541,7 @@ static void test_luma_ist_frontier_matrix(void) {
             transform.secondary_set = 3U;
             CHECK(av2h_luma_reconstruct(
                   &mode, &prefix, &transform, &block, predictor, 32U,
-                  &scratch, &reconstruction) == AV2H_UNSUPPORTED);
+                &scratch, &reconstruction) == AV2H_OK);
         }
 }
 
@@ -5501,6 +5645,9 @@ static void test_emerald_chroma_dct_geometries(void) {
 
 
 int main(void) {
+    test_chroma_geometry_through_64();
+    test_ist_4x4_set11_type3();
+    test_palace_ist_gaps();
     if (0) test_d45_minus_one_16x4_prediction();
     if (0) test_d45_8x4_ibp_prediction();
     test_d45_16x8_prediction();

@@ -190,6 +190,23 @@ Av2hStatus av2h_partition_traversal_commit_leaf(
     Av2hPartitionTraversal *traversal,
     Av2hPartitionContextState *state,
     Av2hPartitionNode leaf);
+#if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
+typedef struct {
+    uint16_t row;
+    uint16_t column;
+    uint8_t block_size;
+    uint8_t stage;
+    uint8_t mode;
+    uint16_t eob;
+    size_t tell;
+} Av2hPartitionLeafDiagnostic;
+const Av2hPartitionDecision *av2h_partition_diagnostic_trace(size_t *count);
+void av2h_partition_diagnostic_leaf_stage(
+    Av2hPartitionNode node, uint8_t stage, uint8_t mode, uint16_t eob,
+    size_t tell);
+const Av2hPartitionLeafDiagnostic *av2h_partition_diagnostic_leaf_trace(
+    size_t *count);
+#endif
 Av2hStatus av2h_partition_first_prefix_read(
     Av2hRangeDecoder *decoder,
     Av2hPartitionCdfs *cdfs,

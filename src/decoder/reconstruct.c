@@ -1389,6 +1389,7 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_ex(
     Av2hFirstCoeffPrefix effective_prefix;
     Av2hFirstReconstruction reconstruction;
     Av2hLumaReferences references;
+    const Av2hTxDescriptor *descriptor;
     uint16_t block_x;
     uint16_t block_y;
     uint16_t width;
@@ -1414,8 +1415,12 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_ex(
     }
     av2h_memory_fill(&luma_mode, 0U, sizeof(luma_mode));
     av2h_reconstruction_diagnostics_set_chroma_stage(1U);
-    width = coefficients->width;
-    height = coefficients->height;
+    status = av2h_tx_descriptor_get(prefix->tx_size, &descriptor);
+    if (status != AV2H_OK) return status;
+    width = descriptor->output_width > 32U ?
+        descriptor->output_width : coefficients->width;
+    height = descriptor->output_height > 32U ?
+        descriptor->output_height : coefficients->height;
     block_x = (uint16_t)((uint32_t)leaf->column * 2U);
     block_y = (uint16_t)((uint32_t)leaf->row * 2U);
     if (block_x >= plane->width || block_y >= plane->height ||
@@ -1559,7 +1564,7 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_ex(
         }
         dc_value = av2h_chroma_dc_predictor_average(
             sum, count, width, height, have_top, have_left);
-        for (index = 0U; index < coefficients->coefficient_count; ++index) {
+        for (index = 0U; index < (size_t)width * height; ++index) {
             scratch->predictor[index] = dc_value;
         }
         if (mode->cfl_kind == AV2H_CFL_MULTI_PARAM) {

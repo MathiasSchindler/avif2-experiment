@@ -1555,7 +1555,13 @@ static void test_scheduler_guards_and_root_size(void) {
     CHECK(decoder.luma_traversal.stack[0].block_size ==
           AV2H_BLOCK_128X128);
 
+    decoder.luma_root_partition = AV2H_PARTITION_SPLIT;
     decoder.luma_traversal.stack_count = 0U;
+    CHECK(av2h_tile_decoder_finish_root(&decoder) == AV2H_OK);
+    CHECK(decoder.phase == AV2H_TILE_DECODE_CHROMA);
+    CHECK(decoder.chroma_root_forced_partition == AV2H_PARTITION_INVALID);
+
+    decoder.phase = AV2H_TILE_DECODE_LUMA;
     decoder.luma_traversal.has_pending_leaf = 1U;
     CHECK(av2h_tile_decoder_finish_root(&decoder) ==
           AV2H_INVALID_ARGUMENT);

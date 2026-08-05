@@ -98,8 +98,16 @@ typedef struct {
     Av2hPartitionType luma_root_partition;
     Av2hPartitionType chroma_root_partition;
     Av2hPartitionType chroma_root_forced_partition;
+    Av2hPartitionType square_child_luma_partition;
     uint8_t luma_root_child_count;
     uint8_t luma_root_children_share;
+    uint8_t square_child_luma_child_count;
+    uint8_t square_child_luma_children_share;
+    uint8_t square_root_child_index;
+    Av2hPartitionNode luma_coding_node;
+    Av2hFirstLeafMode luma_coding_mode;
+    uint8_t luma_tx_index;
+    uint8_t luma_tx_count;
     Av2hTileDecodePhase phase;
     Av2hTileDecodeEvent event;
     Av2hStatus status;

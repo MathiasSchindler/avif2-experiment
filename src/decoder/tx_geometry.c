@@ -177,6 +177,9 @@ Av2hStatus av2h_luma_tx_descriptor_get(
         case AV2H_BLOCK_32X64: tx_size = AV2H_TX_32X64; break;
         case AV2H_BLOCK_64X32: tx_size = AV2H_TX_64X32; break;
         case AV2H_BLOCK_64X64: tx_size = AV2H_TX_64X64; break;
+        case AV2H_BLOCK_64X128: tx_size = AV2H_TX_64X64; break;
+        case AV2H_BLOCK_128X64: tx_size = AV2H_TX_64X64; break;
+        case AV2H_BLOCK_128X128: tx_size = AV2H_TX_64X64; break;
         case AV2H_BLOCK_4X16: tx_size = AV2H_TX_4X16; break;
         case AV2H_BLOCK_16X4: tx_size = AV2H_TX_16X4; break;
         case AV2H_BLOCK_8X32: tx_size = AV2H_TX_8X32; break;
@@ -193,6 +196,46 @@ Av2hStatus av2h_luma_tx_descriptor_get(
                                      AV2H_UNSUPPORTED;
     }
     return av2h_tx_descriptor_get(tx_size, descriptor);
+}
+
+Av2hStatus av2h_luma_tx_node_count(
+        Av2hBlockSize block_size,
+        uint8_t *count) {
+        const Av2hTxDescriptor *descriptor;
+        Av2hStatus status;
+        if (count == 0) return AV2H_INVALID_ARGUMENT;
+        status = av2h_luma_tx_descriptor_get(block_size, &descriptor);
+        if (status != AV2H_OK) return status;
+        (void)descriptor;
+        *count = block_size == AV2H_BLOCK_128X128 ? 4U :
+                block_size == AV2H_BLOCK_64X128 ||
+                block_size == AV2H_BLOCK_128X64 ? 2U : 1U;
+        return AV2H_OK;
+}
+
+Av2hStatus av2h_luma_tx_node_get(
+        const Av2hPartitionNode *coding_node,
+        uint8_t index,
+        Av2hPartitionNode *tx_node) {
+        uint8_t count;
+        Av2hStatus status;
+        if (coding_node == 0 || tx_node == 0) return AV2H_INVALID_ARGUMENT;
+        status = av2h_luma_tx_node_count(coding_node->block_size, &count);
+        if (status != AV2H_OK) return status;
+        if (index >= count) return AV2H_INVALID_ARGUMENT;
+        *tx_node = *coding_node;
+        if (count == 1U) return AV2H_OK;
+        tx_node->block_size = AV2H_BLOCK_64X64;
+        if (coding_node->block_size == AV2H_BLOCK_64X128) {
+                tx_node->row = (uint16_t)(tx_node->row + index * 16U);
+        } else if (coding_node->block_size == AV2H_BLOCK_128X64) {
+                tx_node->column = (uint16_t)(tx_node->column + index * 16U);
+        } else {
+                tx_node->row = (uint16_t)(tx_node->row + (index / 2U) * 16U);
+                tx_node->column = (uint16_t)(
+                        tx_node->column + (index % 2U) * 16U);
+        }
+        return AV2H_OK;
 }
 
 Av2hStatus av2h_chroma_tx_descriptor_get(

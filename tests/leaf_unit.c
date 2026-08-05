@@ -1,4 +1,5 @@
 #include "decoder/reconstruct.h"
+#include "decoder/internal/leaf_modules.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -373,6 +374,37 @@ static void test_intrabc_morph_pred_cdf_defaults(void) {
     CHECK(cdfs.morph_pred[2][0] == (uint16_t)(32768U - 10555U));
 }
 
+static void test_large_luma_block_spans_cdef_strength(void) {
+    static const uint8_t bytes[8U] = { 0U };
+    Av2hSequenceState sequence = { 0 };
+    Av2hFrameState frame = { 0 };
+    Av2hCdefEntropyState state;
+    Av2hFirstLeafMode mode = { 0 };
+    Av2hPartitionNode leaf = { 0U, 0U, AV2H_BLOCK_64X128 };
+    Av2hSpan span = { bytes, sizeof(bytes) };
+    Av2hRangeDecoder decoder;
+    uint8_t strengths[4U];
+    size_t before;
+    sequence.enable_cdef = 1U;
+    sequence.superblock_size = 128U;
+    frame.width = 128U;
+    frame.height = 128U;
+    frame.cdef_strength_count = 2U;
+    frame.cdef_on_skip_transform = 1U;
+    CHECK(av2h_cdef_entropy_state_init(
+              &state, &sequence, &frame, strengths, 4U) == AV2H_OK);
+    CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
+    before = av2h_range_tell(&decoder);
+    CHECK(av2h_leaf_read_cdef_entropy(
+              &decoder, &frame, &leaf, &state, &mode) == AV2H_OK);
+    CHECK(mode.cdef_strengths_read == 1U);
+    CHECK(mode.after_cdef_bits > before);
+    CHECK(strengths[0U] == mode.cdef_strength_index);
+    CHECK(strengths[2U] == mode.cdef_strength_index);
+    CHECK(strengths[1U] == AV2H_CDEF_UNTRANSMITTED);
+    CHECK(strengths[3U] == AV2H_CDEF_UNTRANSMITTED);
+}
+
 int main(void) {
     test_larger_mode_ordering();
     test_arguments();
@@ -382,6 +414,7 @@ int main(void) {
     test_intrabc_bank_survives_superblock_boundary();
     test_luma_mode_bottom_left_clipped_to_frame();
     test_intrabc_morph_pred_cdf_defaults();
+    test_large_luma_block_spans_cdef_strength();
     if (failures != 0) {
         fprintf(stderr, "%d leaf checks failed\n", failures);
         return 1;
