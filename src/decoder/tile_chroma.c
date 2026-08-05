@@ -1,4 +1,5 @@
 #include "tile.h"
+#include "internal/decode_diagnostics.h"
 #include "internal/tile_modules.h"
 
 static uint8_t tile_cfl_allowed_for_sdp(const Av2hTileDecoder *decoder) {
@@ -73,8 +74,8 @@ Av2hStatus av2h_tile_decoder_next_chroma(
     if (decoder->phase != AV2H_TILE_DECODE_CHROMA) {
         return av2h_tile_decoder_fail(decoder, AV2H_INVALID_ARGUMENT);
     }
-    av2h_debug_chroma_tile_stage = 0U;
-    av2h_debug_chroma_parse_reason = 1U;
+    av2h_tile_diagnostics_set_chroma_stage(0U);
+    av2h_tile_diagnostics_set_chroma_reason(1U);
     if (decoder->chroma_root_forced_partition != AV2H_PARTITION_INVALID) {
         Av2hPartitionNode root = {
             decoder->sb_row, decoder->sb_column, decoder->root_block_size
@@ -138,22 +139,20 @@ Av2hStatus av2h_tile_decoder_next_chroma(
     if (!*has_leaf) {
         return av2h_tile_decoder_finish_root(decoder);
     }
-    av2h_debug_chroma_parse_reason = 2U;
+    av2h_tile_diagnostics_set_chroma_reason(2U);
     av2h_tile_capture_root_partition(
         decoder, &path, &decoder->chroma_root_partition);
     leaf->node = path.leaf;
     index = (size_t)leaf->node.row * decoder->mi_columns + leaf->node.column;
     if (index >= decoder->colocated_luma_count) {
-        av2h_debug_chroma_parse_reason = 3U;
+        av2h_tile_diagnostics_set_chroma_reason(3U);
         return av2h_tile_decoder_fail(decoder, AV2H_OVERFLOW);
     }
     colocated = &decoder->colocated_luma[index];
     if (!colocated->context.present) {
-        av2h_debug_chroma_parse_reason = 4U;
+        av2h_tile_diagnostics_set_chroma_reason(4U);
         return av2h_tile_decoder_fail(decoder, AV2H_INVALID_DATA);
     }
-    av2h_debug_chroma_colocated_mode = colocated->mode;
-    av2h_debug_chroma_colocated_delta = colocated->angle_delta;
     cfl_context = 0U;
     if (leaf->node.row != 0U) {
         cfl_context = decoder->colocated_luma[
@@ -166,7 +165,7 @@ Av2hStatus av2h_tile_decoder_next_chroma(
                 (size_t)leaf->node.row * decoder->mi_columns +
                 leaf->node.column - 1U].chroma_cfl);
     }
-    av2h_debug_chroma_parse_reason = 5U;
+    av2h_tile_diagnostics_set_chroma_reason(5U);
     status = av2h_chroma_mode_read_with_delta_for_sdp(
         &decoder->range, &decoder->leaf_cdfs, decoder->sequence,
         (Av2hFirstLeafIntraMode)colocated->mode, colocated->angle_delta,
@@ -181,38 +180,35 @@ Av2hStatus av2h_tile_decoder_next_chroma(
         decoder->colocated_luma[
             (size_t)leaf->node.row * decoder->mi_columns +
             leaf->node.column - 1U].chroma_smooth;
-    av2h_debug_chroma_parse_reason = 0U;
+    av2h_tile_diagnostics_set_chroma_reason(0U);
     status = tile_store_chroma_mode(decoder, &leaf->node, &leaf->mode);
     if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
     blocks[0] = u_block;
     blocks[1] = v_block;
     for (index = 0U; index < 2U; ++index) {
         uint8_t plane = (uint8_t)(index + 1U);
-        av2h_debug_chroma_tile_stage = (uint8_t)(1U + index * 3U);
+        av2h_tile_diagnostics_set_chroma_stage(
+            (uint8_t)(1U + index * 3U));
         status = av2h_chroma_coeff_prefix_read_with_state(
             &decoder->range, &decoder->coeff_cdfs, decoder->frame,
             &leaf->node, plane, &decoder->coefficient_contexts,
             &leaf->prefix[index]);
         if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
-        av2h_debug_chroma_tile_stage = (uint8_t)(2U + index * 3U);
+        av2h_tile_diagnostics_set_chroma_stage(
+            (uint8_t)(2U + index * 3U));
         status = av2h_chroma_transform_type_read(
             &decoder->range, &decoder->transform_cdfs, decoder->frame,
             &leaf->mode, plane, &leaf->prefix[index],
             &leaf->transform[index]);
         if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
-        av2h_debug_chroma_tile_stage = (uint8_t)(3U + index * 3U);
+        av2h_tile_diagnostics_set_chroma_stage(
+            (uint8_t)(3U + index * 3U));
         status = av2h_chroma_coeff_block_read_with_state(
             &decoder->range, &decoder->level_cdfs, decoder->sequence,
             decoder->frame, &leaf->node, plane, &leaf->prefix[index],
             &decoder->coefficient_contexts, blocks[index]);
         if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
     }
-    av2h_tile_debug_trace_leaf(
-        av2h_debug_chroma_leaf_trace, &av2h_debug_chroma_leaf_trace_count,
-        leaf->node, (uint8_t)leaf->mode.mode, leaf->mode.angle_delta,
-        0U, leaf->mode.mode_index,
-        leaf->mode.before_cfl_bits, leaf->mode.after_mode_bits,
-        &decoder->range);
     decoder->event = AV2H_TILE_EVENT_CHROMA_LEAF;
     return AV2H_OK;
 }

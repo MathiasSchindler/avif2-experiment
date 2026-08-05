@@ -4,28 +4,6 @@
 #include "frame.h"
 #include "partition.h"
 
-extern uint32_t av2h_debug_chroma_mode_ranges[4U];
-extern uint32_t av2h_debug_uv_mode_state[24U];
-extern uint32_t av2h_debug_intrabc_ranges[3U];
-extern uint16_t av2h_debug_intrabc_mode_cdf[6U];
-extern int32_t av2h_debug_intrabc_shell[11U];
-extern int32_t av2h_debug_intrabc_candidates[9U];
-extern uint32_t av2h_debug_use_intrabc[10U];
-extern uint32_t av2h_debug_mode_ranges[6U];
-extern uint32_t av2h_debug_mrl_state[10U];
-extern uint32_t av2h_debug_y_mode_context;
-extern uint16_t av2h_debug_y_mode_set_cdf[8U];
-extern uint16_t av2h_debug_y_mode_index_cdf[12U];
-extern uint32_t av2h_debug_y_mode_range;
-extern uint32_t av2h_debug_y_mode_set_range;
-extern uint16_t av2h_debug_ccso_cdf[4U];
-extern uint32_t av2h_debug_ccso_range_before;
-extern uint32_t av2h_debug_ccso_range_after;
-extern uint32_t av2h_debug_ccso_context;
-extern uint8_t av2h_debug_luma_mode_neighbors[4U];
-extern uint8_t av2h_debug_luma_mode_stage;
-extern uint8_t av2h_debug_chroma_mode_stage;
-
 #define AV2H_INTRABC_CONTEXT_COUNT 3U
 #define AV2H_CCSO_CONTEXT_COUNT 4U
 #define AV2H_Y_MODE_CONTEXT_COUNT 3U

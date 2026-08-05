@@ -1,41 +1,50 @@
 #include "tile.h"
+#include "internal/decode_diagnostics.h"
 #include "internal/tile_modules.h"
 
-uint32_t av2h_debug_luma_stage_ranges[5U];
-uint8_t av2h_debug_luma_tile_stage;
-uint8_t av2h_debug_chroma_colocated_mode;
-int8_t av2h_debug_chroma_colocated_delta;
-uint8_t av2h_debug_chroma_tile_stage;
-uint8_t av2h_debug_chroma_parse_reason;
-Av2hDebugLeafTraceEntry av2h_debug_luma_leaf_trace[
-    AV2H_DEBUG_LEAF_TRACE_CAPACITY];
-Av2hDebugLeafTraceEntry av2h_debug_chroma_leaf_trace[
-    AV2H_DEBUG_LEAF_TRACE_CAPACITY];
-size_t av2h_debug_luma_leaf_trace_count;
-size_t av2h_debug_chroma_leaf_trace_count;
-int32_t av2h_debug_intrabc_owners[32U];
+#if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
+static Av2hTileDiagnostics tile_diagnostics;
+#endif
 
-void av2h_tile_debug_trace_leaf(Av2hDebugLeafTraceEntry *trace,
-                                size_t *count,
-                                Av2hPartitionNode node,
-                                uint8_t mode,
-                                int8_t angle_delta,
-                                uint8_t mode_set,
-                                uint8_t mode_index,
-                                size_t before_mode_bits,
-                                size_t after_mode_index_bits,
-                                const Av2hRangeDecoder *decoder) {
-    Av2hDebugLeafTraceEntry *entry =
-        &trace[*count % AV2H_DEBUG_LEAF_TRACE_CAPACITY];
-    entry->node = node;
-    entry->after_bits = av2h_range_tell(decoder);
-    entry->mode = mode;
-    entry->angle_delta = angle_delta;
-    entry->mode_set = mode_set;
-    entry->mode_index = mode_index;
-    entry->before_mode_bits = before_mode_bits;
-    entry->after_mode_index_bits = after_mode_index_bits;
-    ++*count;
+const Av2hTileDiagnostics *av2h_tile_diagnostics_get(void) {
+#if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
+    return &tile_diagnostics;
+#else
+    return 0;
+#endif
+}
+
+void av2h_tile_diagnostics_set_luma_range(size_t index, uint32_t value) {
+#if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
+    if (index < 5U) tile_diagnostics.luma_stage_ranges[index] = value;
+#else
+    (void)index;
+    (void)value;
+#endif
+}
+
+void av2h_tile_diagnostics_set_luma_stage(uint8_t value) {
+#if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
+    tile_diagnostics.luma_tile_stage = value;
+#else
+    (void)value;
+#endif
+}
+
+void av2h_tile_diagnostics_set_chroma_stage(uint8_t value) {
+#if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
+    tile_diagnostics.chroma_tile_stage = value;
+#else
+    (void)value;
+#endif
+}
+
+void av2h_tile_diagnostics_set_chroma_reason(uint8_t value) {
+#if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
+    tile_diagnostics.chroma_parse_reason = value;
+#else
+    (void)value;
+#endif
 }
 
 Av2hStatus av2h_tile_group_single_parse(Av2hSpan payload,
@@ -175,9 +184,6 @@ Av2hStatus av2h_tile_decoder_init(
         storage->colocated_luma == 0) {
         return AV2H_INVALID_ARGUMENT;
     }
-    av2h_debug_partition_trace_count = 0U;
-    av2h_debug_luma_leaf_trace_count = 0U;
-    av2h_debug_chroma_leaf_trace_count = 0U;
     decoder->mi_columns = av2h_frame_mi_dimension(frame->width);
     decoder->mi_rows = av2h_frame_mi_dimension(frame->height);
     if (decoder->mi_columns > storage->above_count ||
@@ -297,8 +303,6 @@ Av2hStatus av2h_tile_decoder_init(
     return AV2H_OK;
 }
 
-int32_t av2h_debug_chimp_second_sb[40U];
-
 Av2hStatus av2h_tile_decoder_finish_root(Av2hTileDecoder *decoder) {
     Av2hPartitionTraversal *traversal;
     Av2hTileFilterControls controls;
@@ -318,10 +322,6 @@ Av2hStatus av2h_tile_decoder_finish_root(Av2hTileDecoder *decoder) {
         return av2h_tile_decoder_fail(decoder, AV2H_INVALID_ARGUMENT);
     }
     if (decoder->phase == AV2H_TILE_DECODE_LUMA) {
-        if (decoder->sb_index == 0U) {
-            av2h_debug_chimp_second_sb[32] = av2h_range_tell(&decoder->range);
-            av2h_debug_chimp_second_sb[33] = decoder->range.range;
-        }
         if (decoder->sequence->enable_sdp) {
             if (decoder->luma_root_partition == AV2H_PARTITION_NONE) {
                 decoder->chroma_root_forced_partition = AV2H_PARTITION_NONE;
@@ -338,10 +338,6 @@ Av2hStatus av2h_tile_decoder_finish_root(Av2hTileDecoder *decoder) {
         return AV2H_OK;
     }
     if (decoder->sb_index + 1U < decoder->sb_count) {
-        if (decoder->sb_index == 0U) {
-            av2h_debug_chimp_second_sb[34] = av2h_range_tell(&decoder->range);
-            av2h_debug_chimp_second_sb[35] = decoder->range.range;
-        }
         ++decoder->sb_index;
         if ((size_t)decoder->sb_column + decoder->superblock_mi <
             decoder->mi_columns) {

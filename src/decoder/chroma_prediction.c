@@ -21,7 +21,6 @@ static int wide_angle_map(int angle, uint16_t width, uint16_t height) {
     }
     return angle;
 }
-
 static const uint8_t ibp_weights[5U][16U] = {
     { 96U },
     { 86U, 107U },
@@ -34,7 +33,6 @@ static const uint8_t ibp_weights[5U][16U] = {
 static int32_t clamp(int32_t value, int32_t minimum, int32_t maximum) {
     return av2h_sample_clamp(value, minimum, maximum);
 }
-
 static int32_t round_shift(int64_t value, uint8_t shift) {
     int64_t adjusted = value + ((int64_t)1 << (shift - 1U));
     if (adjusted >= 0) return (int32_t)(adjusted >> shift);
@@ -1369,20 +1367,32 @@ static uint16_t mhccp_luma_sample_q3(
         mhccp_luma_filter2_q3(luma_plane, chroma_x, chroma_y);
 }
 
-int32_t av2h_debug_mhccp_parameters[2U][3U];
-uint64_t av2h_debug_mhccp_predictor_hash[2U];
-uint64_t av2h_debug_mhccp_luma_hash[2U];
-uint64_t av2h_debug_mhccp_chroma_hash[2U];
-uint64_t av2h_debug_mhccp_chroma_top_hash[2U];
-uint64_t av2h_debug_mhccp_chroma_left_hash[2U];
-uint8_t av2h_debug_mhccp_count;
-uint8_t av2h_debug_mhccp_reason;
+#include "internal/decode_diagnostics.h"
+
+#if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
+static Av2hPredictionDiagnostics prediction_diagnostics;
+#endif
+
+const Av2hPredictionDiagnostics *av2h_prediction_diagnostics_get(void) {
+#if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
+    return &prediction_diagnostics;
+#else
+    return 0;
+#endif
+}
+
+void av2h_prediction_diagnostics_set_mhccp_reason(uint8_t value) {
+#if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
+    prediction_diagnostics.mhccp_reason = value;
+#else
+    (void)value;
+#endif
+}
 int av2h_chroma_geometry_supported(uint16_t width, uint16_t height);
 
 static Av2hStatus mhccp_predict_direction01(
     const Av2hReconstructionPlane *luma_plane,
     const Av2hReconstructionPlane *chroma_plane,
-    uint8_t chroma_plane_index,
     uint8_t filter_index,
     uint8_t direction,
     uint16_t block_x,
@@ -1412,8 +1422,7 @@ static Av2hStatus mhccp_predict_direction01(
     uint8_t is_top_sb_boundary;
     int matrix_shift;
     uint32_t count_ceiling;
-    uint8_t debug_index = av2h_debug_mhccp_count;
-    av2h_debug_mhccp_reason = 0U;
+    av2h_prediction_diagnostics_set_mhccp_reason(0U);
     have_top = (uint8_t)(block_y >= 2U);
     have_left = (uint8_t)(block_x >= 2U);
     is_top_sb_boundary = (uint8_t)(superblock_size != 0U &&
@@ -1425,7 +1434,7 @@ static Av2hStatus mhccp_predict_direction01(
         (have_left &&
                  (block_x - 1U >= chroma_plane->reference_width ||
                     block_x * 2U - 2U >= luma_plane->reference_width))) {
-          av2h_debug_mhccp_reason = 6U;
+                av2h_prediction_diagnostics_set_mhccp_reason(6U);
         return AV2H_UNSUPPORTED;
     }
     prediction_width = width < chroma_plane->width - block_x ?
@@ -1519,26 +1528,26 @@ static Av2hStatus mhccp_predict_direction01(
          !plane_region_reconstructed(
              chroma_plane, top_start_x, (uint16_t)(block_y - 1U),
              top_chroma_width, 1U))) {
-        av2h_debug_mhccp_reason = 1U;
+        av2h_prediction_diagnostics_set_mhccp_reason(1U);
         return AV2H_UNSUPPORTED;
     }
     if (have_top && !plane_region_reconstructed(
             luma_plane, (uint16_t)(top_start_x * 2U),
             (uint16_t)(block_y * 2U - 2U), top_luma_width, 2U)) {
-        av2h_debug_mhccp_reason = 2U;
+        av2h_prediction_diagnostics_set_mhccp_reason(2U);
         return AV2H_UNSUPPORTED;
     }
     if (have_left && !plane_region_reconstructed(
             chroma_plane, (uint16_t)(block_x - 1U), block_y, 1U,
             left_count)) {
-        av2h_debug_mhccp_reason = 3U;
+        av2h_prediction_diagnostics_set_mhccp_reason(3U);
         return AV2H_UNSUPPORTED;
     }
     if (have_left && !plane_region_reconstructed(
             luma_plane, (uint16_t)(block_x * 2U - 2U),
             (uint16_t)(block_y * 2U), 2U,
             (uint16_t)(left_count * 2U))) {
-        av2h_debug_mhccp_reason = 4U;
+        av2h_prediction_diagnostics_set_mhccp_reason(4U);
         return AV2H_UNSUPPORTED;
     }
     if (!plane_region_reconstructed(
@@ -1546,7 +1555,7 @@ static Av2hStatus mhccp_predict_direction01(
             (uint16_t)(block_y * 2U),
             (uint16_t)(prediction_width * 2U),
             (uint16_t)(prediction_height * 2U))) {
-        av2h_debug_mhccp_reason = 5U;
+        av2h_prediction_diagnostics_set_mhccp_reason(5U);
         return AV2H_UNSUPPORTED;
     }
     if (direction == 1U && have_top &&
@@ -1554,18 +1563,8 @@ static Av2hStatus mhccp_predict_direction01(
             luma_plane, (uint16_t)(top_start_x * 2U),
             (uint16_t)(block_y * 2U - 4U),
             top_luma_width, 2U)) {
-        av2h_debug_mhccp_reason = 8U;
+        av2h_prediction_diagnostics_set_mhccp_reason(8U);
         return AV2H_UNSUPPORTED;
-    }
-    if (debug_index < 2U) {
-        av2h_debug_mhccp_luma_hash[debug_index] =
-            1469598103934665603ULL;
-        av2h_debug_mhccp_chroma_hash[debug_index] =
-            1469598103934665603ULL;
-        av2h_debug_mhccp_chroma_top_hash[debug_index] =
-            1469598103934665603ULL;
-        av2h_debug_mhccp_chroma_left_hash[debug_index] =
-            1469598103934665603ULL;
     }
     for (sample = 0U; sample < top_count; ++sample) {
         uint16_t luma_chroma_x = (uint16_t)(top_start_x + sample);
@@ -1618,39 +1617,6 @@ static Av2hStatus mhccp_predict_direction01(
             vector[1] = (center * center + 128) >> 8U;
         }
         vector[2] = 128;
-        if (chroma_plane_index == 1U && block_x == 4U && block_y == 40U &&
-            sample < 4U) {
-            size_t offset = 12U + (size_t)sample * 3U;
-            av2h_debug_chimp_chroma_target[offset] = vector[0];
-            av2h_debug_chimp_chroma_target[offset + 1U] = vector[1];
-            av2h_debug_chimp_chroma_target[offset + 2U] =
-                chroma_plane->data[(size_t)chroma_y * chroma_plane->stride +
-                                   chroma_x];
-        }
-        if (chroma_plane_index == 1U && block_x == 4U && block_y == 40U &&
-            sample + 1U == top_count) {
-            av2h_debug_chimp_chroma_target[19] = count;
-            av2h_debug_chimp_chroma_target[20] = vector[0];
-            av2h_debug_chimp_chroma_target[21] = vector[1];
-            av2h_debug_chimp_chroma_target[22] =
-                chroma_plane->data[(size_t)chroma_y * chroma_plane->stride +
-                                   chroma_x];
-        }
-        if (debug_index < 2U) {
-            av2h_debug_mhccp_luma_hash[debug_index] ^= (uint8_t)vector[0];
-            av2h_debug_mhccp_luma_hash[debug_index] *=
-                1099511628211ULL;
-            av2h_debug_mhccp_chroma_hash[debug_index] ^=
-                chroma_plane->data[(size_t)chroma_y * chroma_plane->stride +
-                                   chroma_x];
-            av2h_debug_mhccp_chroma_hash[debug_index] *=
-                1099511628211ULL;
-            av2h_debug_mhccp_chroma_top_hash[debug_index] ^=
-                chroma_plane->data[(size_t)chroma_y * chroma_plane->stride +
-                                   chroma_x];
-            av2h_debug_mhccp_chroma_top_hash[debug_index] *=
-                1099511628211ULL;
-        }
         for (first = 0; first < 3; ++first) {
             target[first] += vector[first] * chroma_plane->data[
                 (size_t)chroma_y * chroma_plane->stride + chroma_x];
@@ -1681,21 +1647,6 @@ static Av2hStatus mhccp_predict_direction01(
             vector[1] = (center * center + 128) >> 8U;
         }
         vector[2] = 128;
-        if (debug_index < 2U) {
-            av2h_debug_mhccp_luma_hash[debug_index] ^= (uint8_t)vector[0];
-            av2h_debug_mhccp_luma_hash[debug_index] *=
-                1099511628211ULL;
-            av2h_debug_mhccp_chroma_hash[debug_index] ^=
-                chroma_plane->data[(size_t)chroma_y * chroma_plane->stride +
-                                   chroma_x];
-            av2h_debug_mhccp_chroma_hash[debug_index] *=
-                1099511628211ULL;
-            av2h_debug_mhccp_chroma_left_hash[debug_index] ^=
-                chroma_plane->data[(size_t)chroma_y * chroma_plane->stride +
-                                   chroma_x];
-            av2h_debug_mhccp_chroma_left_hash[debug_index] *=
-                1099511628211ULL;
-        }
         for (first = 0; first < 3; ++first) {
             target[first] += vector[first] * chroma_plane->data[
                 (size_t)chroma_y * chroma_plane->stride + chroma_x];
@@ -1723,35 +1674,6 @@ static Av2hStatus mhccp_predict_direction01(
             target[row] >> -matrix_shift;
     }
     mhccp_solve(matrix, target, parameters);
-    if (chroma_plane_index == 1U && av2h_debug_mhccp_trace_count < 64U) {
-        int32_t *entry =
-            av2h_debug_mhccp_trace[av2h_debug_mhccp_trace_count++];
-        entry[0] = block_x;
-        entry[1] = block_y;
-        entry[2] = width;
-        entry[3] = height;
-        entry[4] = direction;
-        entry[5] = top_count;
-        entry[6] = left_count;
-        entry[7] = parameters[0];
-        entry[8] = parameters[1];
-        entry[9] = parameters[2];
-    }
-    if (chroma_plane_index == 1U && block_x == 4U && block_y == 40U) {
-        av2h_debug_chimp_chroma_target[19] = filter_index;
-        av2h_debug_chimp_chroma_target[20] = direction;
-        av2h_debug_chimp_chroma_target[21] = parameters[0];
-        av2h_debug_chimp_chroma_target[22] = parameters[1];
-        av2h_debug_chimp_chroma_target[23] = parameters[2];
-    }
-    if (debug_index < 2U) {
-        for (column = 0U; column < 3U; ++column) {
-            av2h_debug_mhccp_parameters[debug_index][column] =
-                parameters[column];
-        }
-        av2h_debug_mhccp_predictor_hash[debug_index] =
-            1469598103934665603ULL;
-    }
     for (row = 0U; row < prediction_height; ++row) {
         for (column = 0U; column < prediction_width; ++column) {
             int32_t center = (int32_t)(mhccp_luma_sample_q3(
@@ -1786,15 +1708,8 @@ static Av2hStatus mhccp_predict_direction01(
             }
             predictor[(size_t)row * predictor_stride + column] =
                 (uint8_t)clamp(sum, 0, 255);
-            if (debug_index < 2U) {
-                av2h_debug_mhccp_predictor_hash[debug_index] ^=
-                    predictor[(size_t)row * predictor_stride + column];
-                av2h_debug_mhccp_predictor_hash[debug_index] *=
-                    1099511628211ULL;
-            }
         }
     }
-    if (debug_index < 2U) ++av2h_debug_mhccp_count;
     return AV2H_OK;
 }
 
@@ -1802,7 +1717,6 @@ Av2hStatus av2h_mhccp_predict_observed(
     const Av2hFirstChromaMode *mode,
     const Av2hReconstructionPlane *luma_plane,
     const Av2hReconstructionPlane *chroma_plane,
-    uint8_t chroma_plane_index,
     uint16_t block_x,
     uint16_t block_y,
     uint16_t width,
@@ -1821,7 +1735,7 @@ Av2hStatus av2h_mhccp_predict_observed(
         luma_plane->reconstructed != 0 &&
         luma_plane->stride >= luma_plane->width) {
         return mhccp_predict_direction01(
-            luma_plane, chroma_plane, chroma_plane_index,
+            luma_plane, chroma_plane,
             mode->cfl_downsample_filter_index,
             mode->mhccp_direction, block_x, block_y,
             width, height, mode->superblock_size,
@@ -1911,6 +1825,3 @@ int av2h_chroma_geometry_supported(uint16_t width, uint16_t height) {
                      (width == 32U && (height == 4U || height == 8U ||
                                                          height == 16U || height == 32U));
 }
-
-int32_t av2h_debug_mhccp_trace[64U][10U];
-uint8_t av2h_debug_mhccp_trace_count;

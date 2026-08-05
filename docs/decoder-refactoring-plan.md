@@ -297,6 +297,8 @@ truncation, and nonmutation tests before exposing the API.
 
 ## Phase 9: diagnostics cleanup
 
+**Status:** Complete as of 2026-08-05. See `refactoring-phase-9.md`.
+
 Only after structural moves are complete:
 
 - Remove obsolete artifact-specific globals and unconditional diagnostic file

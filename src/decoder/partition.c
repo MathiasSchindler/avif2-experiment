@@ -1,21 +1,5 @@
 #include "decoder/internal/partition_modules.h"
 
-uint8_t av2h_debug_partition_stage;
-Av2hPartitionNode av2h_debug_partition_node;
-size_t av2h_debug_partition_split_context;
-size_t av2h_debug_partition_before_bits;
-size_t av2h_debug_partition_after_bits;
-uint16_t av2h_debug_partition_cdf_before;
-uint16_t av2h_debug_partition_cdf_after;
-uint32_t av2h_debug_partition_split_value;
-uint32_t av2h_debug_partition_range_before;
-uint32_t av2h_debug_partition_value_before;
-int64_t av2h_debug_partition_available_before;
-Av2hFirstLeafPath av2h_debug_partition_path;
-Av2hPartitionDecision av2h_debug_partition_trace[
-    AV2H_DEBUG_PARTITION_TRACE_CAPACITY];
-size_t av2h_debug_partition_trace_count;
-
 static int is_partition_point(Av2hBlockSize block_size) {
     return block_size != AV2H_BLOCK_4X4 &&
            block_size <= AV2H_BLOCK_64X16;
@@ -298,10 +282,6 @@ static Av2hStatus append_decision(Av2hFirstLeafPath *path,
     decision->rect_type_context = rect_type_context;
     decision->extension_context = extension_context;
     decision->after_bits = after_bits;
-    av2h_debug_partition_trace[
-        av2h_debug_partition_trace_count %
-        AV2H_DEBUG_PARTITION_TRACE_CAPACITY] = *decision;
-    ++av2h_debug_partition_trace_count;
     return AV2H_OK;
 }
 
@@ -518,8 +498,6 @@ Av2hStatus av2h_partition_node_read_for_structure(
             return av2h_range_status(decoder);
         }
         if (value != 0U) {
-            av2h_debug_partition_stage = 1U;
-            av2h_debug_partition_node = node;
             return AV2H_UNSUPPORTED;
         }
     }
@@ -683,29 +661,8 @@ Av2hStatus av2h_partition_node_read_with_state(
     if (status != AV2H_OK) return status;
     decision->split_context = split_context;
     decision->rect_type_context = rect_type_context;
-    if ((structure == 0U || structure == 1U) &&
-        (node.block_size == AV2H_BLOCK_64X64 ||
-         (node.row == 26U && node.column == 80U &&
-          node.block_size == AV2H_BLOCK_32X8))) {
-        av2h_debug_partition_split_context = split_context;
-        av2h_debug_partition_before_bits = av2h_range_tell(decoder);
-        av2h_debug_partition_cdf_before =
-            cdfs->do_split[structure][split_context][0];
-        av2h_debug_partition_range_before = decoder->range;
-        av2h_debug_partition_value_before = decoder->value;
-        av2h_debug_partition_available_before = decoder->available_bits;
-    }
     value = av2h_range_read_adaptive(
         decoder, cdfs->do_split[structure][split_context], 2U);
-    if ((structure == 0U || structure == 1U) &&
-        (node.block_size == AV2H_BLOCK_64X64 ||
-         (node.row == 26U && node.column == 80U &&
-          node.block_size == AV2H_BLOCK_32X8))) {
-        av2h_debug_partition_split_value = value;
-        av2h_debug_partition_after_bits = av2h_range_tell(decoder);
-        av2h_debug_partition_cdf_after =
-            cdfs->do_split[structure][split_context][0];
-    }
     if (av2h_range_status(decoder) != AV2H_OK) {
         return av2h_range_status(decoder);
     }
@@ -997,8 +954,6 @@ Av2hStatus av2h_partition_traversal_next(
         }
         if (!is_partition_point(node.block_size)) {
             path->leaf = node;
-            av2h_memory_copy(
-                &av2h_debug_partition_path, path, sizeof(*path));
             traversal->pending_leaf = node;
             traversal->has_pending_leaf = 1U;
             *has_leaf = 1U;
@@ -1010,8 +965,6 @@ Av2hStatus av2h_partition_traversal_next(
             traversal->enable_ext_partitions,
             traversal->enable_uneven_4way_partitions, &decision, &child);
         if (status != AV2H_OK) {
-            av2h_debug_partition_stage = 2U;
-            av2h_debug_partition_node = node;
             return status;
         }
         status = append_decision(
@@ -1023,8 +976,6 @@ Av2hStatus av2h_partition_traversal_next(
         if (status != AV2H_OK) return status;
         if (decision.partition == AV2H_PARTITION_NONE) {
             path->leaf = child;
-            av2h_memory_copy(
-                &av2h_debug_partition_path, path, sizeof(*path));
             traversal->pending_leaf = child;
             traversal->has_pending_leaf = 1U;
             *has_leaf = 1U;
@@ -1033,9 +984,6 @@ Av2hStatus av2h_partition_traversal_next(
         status = traversal_push_children(
             traversal, node, decision.partition);
         if (status != AV2H_OK) {
-            av2h_debug_partition_stage =
-                (uint8_t)(32U + decision.partition);
-            av2h_debug_partition_node = node;
             return status;
         }
     }

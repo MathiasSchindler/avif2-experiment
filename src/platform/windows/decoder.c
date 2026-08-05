@@ -62,6 +62,7 @@ static void write_status(const char *prefix, Av2hStatus status) {
     write_console("\r\n");
 }
 
+#if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
 static void write_unsigned(size_t value) {
     char buffer[3U * sizeof(size_t) + 1U];
     size_t index = sizeof(buffer);
@@ -71,15 +72,6 @@ static void write_unsigned(size_t value) {
         value /= 10U;
     } while (value != 0U);
     write_console(buffer + index);
-}
-
-static void write_signed(int32_t value) {
-    if (value < 0) {
-        write_console("-");
-        write_unsigned((size_t)(-(int64_t)value));
-    } else {
-        write_unsigned((size_t)value);
-    }
 }
 
 static const char *decode_stage_name(Av2hFrameDecodeStage stage) {
@@ -168,76 +160,7 @@ static const char *block_size_name(uint8_t block_size) {
     return block_size < AV2H_BLOCK_SIZE_COUNT ? names[block_size] : "unknown";
 }
 
-static void write_partition_path(void) {
-    size_t count = av2h_debug_partition_trace_count;
-    size_t first = count > AV2H_DEBUG_PARTITION_TRACE_CAPACITY ?
-        count - AV2H_DEBUG_PARTITION_TRACE_CAPACITY : 0U;
-    size_t index;
-    if (count == 0U) return;
-    write_console("\r\n  recent partitions:");
-    for (index = first; index < count; ++index) {
-        const Av2hPartitionDecision *decision =
-            &av2h_debug_partition_trace[
-                index % AV2H_DEBUG_PARTITION_TRACE_CAPACITY];
-        write_console(" (");
-        write_unsigned(decision->node.row);
-        write_console(",");
-        write_unsigned(decision->node.column);
-        write_console(",");
-        write_console(block_size_name(decision->node.block_size));
-        write_console(")=");
-        write_unsigned(decision->partition);
-        write_console("@");
-        write_unsigned(decision->after_bits);
-        write_console("[");
-        write_unsigned(decision->split_context);
-        write_console("/");
-        write_unsigned(decision->rect_type_context);
-        write_console("/");
-        write_unsigned(decision->extension_context);
-        write_console("]");
-    }
-}
-
-static void write_leaf_trace(const char *name,
-                             const Av2hDebugLeafTraceEntry *trace,
-                             size_t count) {
-    size_t first = count > AV2H_DEBUG_LEAF_TRACE_CAPACITY ?
-        count - AV2H_DEBUG_LEAF_TRACE_CAPACITY : 0U;
-    size_t index;
-    if (count == 0U) return;
-    write_console("\r\n  recent ");
-    write_console(name);
-    write_console(" leaves:");
-    for (index = first; index < count; ++index) {
-        const Av2hDebugLeafTraceEntry *entry =
-            &trace[index % AV2H_DEBUG_LEAF_TRACE_CAPACITY];
-        write_console(" (");
-        write_unsigned(entry->node.row);
-        write_console(",");
-        write_unsigned(entry->node.column);
-        write_console(",");
-        write_console(block_size_name(entry->node.block_size));
-        write_console(")@");
-        write_unsigned(entry->after_bits);
-        write_console("=");
-        write_unsigned(entry->mode);
-        write_console("/");
-        write_signed(entry->angle_delta);
-        write_console("[");
-        write_unsigned(entry->mode_set);
-        write_console("/");
-        write_unsigned(entry->mode_index);
-        write_console("@");
-        write_unsigned(entry->before_mode_bits);
-        write_console("-");
-        write_unsigned(entry->after_mode_index_bits);
-        write_console("]");
-    }
-}
-
 static void write_decode_diagnostic(const Av2hFrameDecodeResult *result) {
-    size_t index;
     if (result->stage == AV2H_FRAME_DECODE_STAGE_NONE) return;
     write_console("  cause: ");
     write_console(av2h_status_string(result->cause));
@@ -271,13 +194,6 @@ static void write_decode_diagnostic(const Av2hFrameDecodeResult *result) {
     write_unsigned(result->luma_leaf_count);
     write_console(" UV=");
     write_unsigned(result->chroma_leaf_count);
-    write_partition_path();
-    write_leaf_trace(
-        "Y", av2h_debug_luma_leaf_trace,
-        av2h_debug_luma_leaf_trace_count);
-    write_leaf_trace(
-        "UV", av2h_debug_chroma_leaf_trace,
-        av2h_debug_chroma_leaf_trace_count);
     write_console("\r\n  syntax: mode=");
     write_unsigned(result->mode);
     write_console(" angle=");
@@ -341,32 +257,8 @@ static void write_decode_diagnostic(const Av2hFrameDecodeResult *result) {
     write_unsigned(result->chroma_parse_reason);
     write_console(" chroma-mode-index=");
     write_unsigned(result->chroma_mode_index);
-    write_console(" uv-mode-state=");
-    for (index = 0U; index < 24U; ++index) {
-        if (index != 0U) write_console("/");
-        write_unsigned(av2h_debug_uv_mode_state[index]);
-    }
     write_console(" filter-reason=");
     write_unsigned(result->filter_reason);
-    write_console(" filter-stage-hashes=");
-    for (size_t stage = 0U; stage < AV2H_FILTER_STAGE_COUNT; ++stage) {
-        if (stage != 0U) write_console(":");
-        for (index = 0U; index < AV2H_FRAME_PLANE_COUNT; ++index) {
-            if (index != 0U) write_console("/");
-            write_unsigned(
-                (size_t)av2h_debug_filter_stage_hash[stage][index]);
-        }
-    }
-    write_console(" intrabc-geometry=");
-    for (index = 0U; index < 10U; ++index) {
-        if (index != 0U) write_console("/");
-        write_signed(av2h_debug_intrabc_geometry[index]);
-    }
-    write_console(" intrabc-shell=");
-    for (index = 0U; index < 11U; ++index) {
-        if (index != 0U) write_console("/");
-        write_signed(av2h_debug_intrabc_shell[index]);
-    }
     write_console(" eob=");
     write_unsigned(result->eob);
     write_console(" uv-coeff-counts=");
@@ -395,6 +287,7 @@ static void write_decode_diagnostic(const Av2hFrameDecodeResult *result) {
     write_unsigned(result->eob_class);
     write_console("\r\n");
 }
+#endif
 
 static int parse_arguments(Av2hWinChar *text,
                            Av2hWinChar **arguments,
@@ -494,32 +387,6 @@ static int write_entire_file(const Av2hWinChar *path,
     return result;
 }
 
-static void write_debug_filter_stage(const Av2hWinChar *path,
-                                     const Av2hFilterPlanes *planes,
-                                     uint16_t width,
-                                     uint16_t height) {
-    Av2hWinHandle file = CreateFileW(
-        path, AV2H_WIN_GENERIC_WRITE, 0U, 0, AV2H_WIN_CREATE_ALWAYS,
-        AV2H_WIN_FILE_ATTRIBUTE_NORMAL, 0);
-    unsigned int plane;
-    if (file == AV2H_WIN_INVALID_HANDLE) return;
-    for (plane = 0U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
-        size_t plane_width = plane == 0U ? width : ((size_t)width + 1U) / 2U;
-        size_t plane_height = plane == 0U ? height :
-            ((size_t)height + 1U) / 2U;
-        size_t row;
-        for (row = 0U; row < plane_height; ++row) {
-            if (!write_all(file, planes->plane[plane].data +
-                           row * planes->plane[plane].stride,
-                           plane_width)) {
-                (void)CloseHandle(file);
-                return;
-            }
-        }
-    }
-    (void)CloseHandle(file);
-}
-
 static const Av2hObu *find_obu(const Av2hObuLedger *ledger, uint8_t type) {
     size_t index;
     for (index = 0U; index < ledger->count; ++index) {
@@ -585,20 +452,6 @@ static Av2hStatus decode_obu(Av2hSpan input,
         status = av2h_decode_frame_i420_private(
             group.entropy, &sequence, &frame, &workspace,
             output->memory, output->size, decode_result);
-        if (status == AV2H_OK && frame.width == 93U && frame.height == 111U) {
-            write_debug_filter_stage(
-                L"build/chimp-local-reconstruction.i420",
-                &av2h_debug_filter_stage_planes[0], frame.width, frame.height);
-            write_debug_filter_stage(
-                L"build/chimp-local-deblocked.i420",
-                &av2h_debug_filter_stage_planes[1], frame.width, frame.height);
-            write_debug_filter_stage(
-                L"build/chimp-local-cdef.i420",
-                &av2h_debug_filter_stage_planes[2], frame.width, frame.height);
-            write_debug_filter_stage(
-                L"build/chimp-local-ccso.i420",
-                &av2h_debug_filter_stage_planes[3], frame.width, frame.height);
-        }
     }
     release_memory(&workspace_memory);
     if (status != AV2H_OK) {
@@ -747,85 +600,14 @@ static unsigned int run_decoder(void) {
         &decode_result);
     if (status != AV2H_OK) {
         write_status("error: decode failed: ", status);
+#if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
         write_decode_diagnostic(&decode_result);
+#endif
         release_memory(&output);
         release_memory(&input);
         release_memory(&command_line);
         return status == AV2H_UNSUPPORTED ? 3U : 1U;
     }
-    write_console("filter-stage-hashes=");
-    for (size_t stage = 0U; stage < AV2H_FILTER_STAGE_COUNT; ++stage) {
-        if (stage != 0U) write_console(":");
-        for (size_t plane = 0U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
-            if (plane != 0U) write_console("/");
-            write_unsigned(
-                (size_t)av2h_debug_filter_stage_hash[stage][plane]);
-        }
-    }
-    write_console("\r\n");
-    write_console("chimp-luma-target=");
-    for (size_t index = 0U; index < 56U; ++index) {
-        if (index != 0U) write_console("/");
-        write_signed(av2h_debug_chimp_luma_target[index]);
-    }
-    write_console("\r\n");
-    write_console("chimp-chroma-target=");
-    for (size_t index = 0U; index < 24U; ++index) {
-        if (index != 0U) write_console("/");
-        write_signed(av2h_debug_chimp_chroma_target[index]);
-    }
-    write_console("\r\n");
-    write_console("chimp-mhccp-trace=");
-    for (size_t entry = 0U; entry < av2h_debug_mhccp_trace_count; ++entry) {
-        if (entry != 0U) write_console(":");
-        for (size_t field = 0U; field < 10U; ++field) {
-            if (field != 0U) write_console("/");
-            write_signed(av2h_debug_mhccp_trace[entry][field]);
-        }
-    }
-    write_console("\r\n");
-    write_console("chimp-directional-edge=");
-    for (size_t index = 0U; index < 13U; ++index) {
-        if (index != 0U) write_console("/");
-        write_unsigned(av2h_debug_directional_edges[index]);
-    }
-    write_console("\r\n");
-    write_console("chimp-second-sb=");
-    for (size_t index = 0U; index < 40U; ++index) {
-        if (index != 0U) write_console("/");
-        write_signed(av2h_debug_chimp_second_sb[index]);
-    }
-    write_console("\r\n");
-    write_console("chimp-use-intrabc=");
-    for (size_t index = 0U; index < 10U; ++index) {
-        if (index != 0U) write_console("/");
-        write_unsigned(av2h_debug_use_intrabc[index]);
-    }
-    write_console("\r\n");
-    write_console("chimp-intrabc-shell=");
-    for (size_t index = 0U; index < 11U; ++index) {
-        if (index != 0U) write_console("/");
-        write_signed(av2h_debug_intrabc_shell[index]);
-    }
-    write_console("\r\n");
-    write_console("chimp-intrabc-candidates=");
-    for (size_t index = 0U; index < 9U; ++index) {
-        if (index != 0U) write_console("/");
-        write_signed(av2h_debug_intrabc_candidates[index]);
-    }
-    write_console("\r\n");
-    write_console("chimp-intrabc-owners=");
-    for (size_t index = 0U; index < 32U; ++index) {
-        if (index != 0U) write_console("/");
-        write_signed(av2h_debug_intrabc_owners[index]);
-    }
-    write_console("\r\n");
-    write_console("chimp-fsc-bob=");
-    for (size_t index = 0U; index < 12U; ++index) {
-        if (index != 0U) write_console("/");
-        write_unsigned(av2h_debug_fsc_bob[index]);
-    }
-    write_console("\r\n");
     if (wide_ends_with_ascii(arguments[3], ".bmp")) {
         written = write_bmp(arguments[3], output.memory, width, height);
     } else {

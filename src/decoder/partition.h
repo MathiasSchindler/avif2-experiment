@@ -66,7 +66,6 @@ typedef struct {
 #define AV2H_MAX_FORCED_PARTITION_ANCESTORS 8U
 #define AV2H_MAX_FIRST_LEAF_PARTITIONS 16U
 #define AV2H_MAX_PARTITION_TRAVERSAL_NODES 32U
-#define AV2H_DEBUG_PARTITION_TRACE_CAPACITY 32U
 
 typedef struct {
     Av2hPartitionNode node;
@@ -111,13 +110,6 @@ typedef struct {
     size_t decision_count;
     Av2hPartitionNode leaf;
 } Av2hFirstLeafPath;
-
-extern Av2hFirstLeafPath av2h_debug_partition_path;
-extern Av2hPartitionDecision av2h_debug_partition_trace[
-    AV2H_DEBUG_PARTITION_TRACE_CAPACITY];
-extern size_t av2h_debug_partition_trace_count;
-extern uint8_t av2h_debug_partition_stage;
-extern Av2hPartitionNode av2h_debug_partition_node;
 
 typedef struct {
     uint8_t *above[AV2H_PARTITION_STRUCTURE_COUNT];

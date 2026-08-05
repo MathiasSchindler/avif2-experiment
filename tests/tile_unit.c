@@ -1289,10 +1289,9 @@ static void test_high_detail_frame(void) {
     }
     if (status != AV2H_OK) {
         fprintf(stderr,
-                "high-detail failed: status=%u phase=%u stage=%u "
+            "high-detail failed: status=%u phase=%u "
                 "Y=%zu UV=%zu tell=%zu leaf=(%u,%u) block=%u\n",
                 (unsigned int)status, (unsigned int)decoder.phase,
-                (unsigned int)av2h_debug_luma_tile_stage,
                 luma_count, chroma_count, av2h_range_tell(&decoder.range),
                 decoder.phase == AV2H_TILE_DECODE_LUMA ? luma_leaf.node.row :
                     chroma_leaf.node.row,

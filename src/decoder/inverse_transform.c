@@ -1,16 +1,15 @@
 #include "internal/reconstruct_modules.h"
+#include "internal/decode_diagnostics.h"
 #include "internal/sample_math.h"
 
 static int32_t clamp(int32_t value, int32_t minimum, int32_t maximum) {
     return av2h_sample_clamp(value, minimum, maximum);
 }
-
 static int32_t round_shift(int64_t value, uint8_t shift) {
     int64_t adjusted = value + ((int64_t)1 << (shift - 1U));
     if (adjusted >= 0) return (int32_t)(adjusted >> shift);
     return (int32_t)-(((-adjusted) + (((int64_t)1 << shift) - 1)) >> shift);
 }
-
 static const int8_t dct4[4U][4U] = {
     { 64, 64, 64, 64 },
     { 83, 35, -35, -83 },
@@ -713,7 +712,7 @@ Av2hStatus av2h_reconstruct_transform_generic(
     uint16_t row;
     uint16_t column;
     size_t index;
-    av2h_debug_inverse_transform_stage = 1U;
+    av2h_reconstruction_diagnostics_set_inverse_transform_stage(1U);
     if (recon_geometry(prefix->tx_size, &output_width, &output_height,
                        &row_shift, &column_shift) != AV2H_OK) {
         return AV2H_UNSUPPORTED;
@@ -750,7 +749,7 @@ Av2hStatus av2h_reconstruct_transform_generic(
         }
         return AV2H_OK;
     }
-    av2h_debug_inverse_transform_stage = 2U;
+    av2h_reconstruction_diagnostics_set_inverse_transform_stage(2U);
     if (recon_transform_kinds(transform->primary_type, &row_kind,
                               &column_kind) != AV2H_OK ||
         recon_kind_supported(row_kind, coeff_width) != AV2H_OK ||
@@ -769,11 +768,11 @@ Av2hStatus av2h_reconstruct_transform_generic(
     for (index = 0U; index < coefficients->coefficient_count; ++index) {
         scratch->scaled[index] = coefficients->dequantized[index];
     }
-    av2h_debug_inverse_transform_stage = 3U;
+    av2h_reconstruction_diagnostics_set_inverse_transform_stage(3U);
     status = av2h_inverse_secondary_transform(
         mode, prefix, transform, coefficients, scratch->scaled);
     if (status != AV2H_OK) return status;
-    av2h_debug_inverse_transform_stage = 4U;
+    av2h_reconstruction_diagnostics_set_inverse_transform_stage(4U);
     for (row = 0U; row < coeff_height; ++row) {
         int32_t row_input[32U];
         int32_t row_output[32U];
@@ -894,5 +893,3 @@ int av2h_reconstruct_generic_selected(
     }
     return 1;
 }
-
-uint8_t av2h_debug_inverse_transform_stage;

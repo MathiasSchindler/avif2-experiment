@@ -1,9 +1,5 @@
 #include "leaf.h"
-
-uint32_t av2h_debug_intrabc_ranges[3U];
-uint16_t av2h_debug_intrabc_mode_cdf[6U];
-int32_t av2h_debug_intrabc_shell[11U];
-int32_t av2h_debug_intrabc_candidates[9U];
+#include "internal/decode_diagnostics.h"
 
 typedef struct {
     int16_t x;
@@ -243,26 +239,15 @@ Av2hStatus av2h_leaf_read_first_intrabc(
     Av2hStatus status = av2h_block_dimensions_mi(
         leaf->block_size, &width_mi, &height_mi);
     if (status != AV2H_OK) return status;
-    av2h_debug_luma_mode_stage = 20U;
+    av2h_leaf_diagnostics_set_luma_stage(20U);
     mode->before_mode_bits = av2h_range_tell(decoder);
-    if (leaf->row == 16U && leaf->column == 20U) {
-        size_t debug_index;
-        av2h_debug_intrabc_ranges[0] = decoder->range;
-        for (debug_index = 0U; debug_index < 6U; ++debug_index) {
-            av2h_debug_intrabc_mode_cdf[debug_index] =
-                cdfs->intrabc_mode[debug_index];
-        }
-    }
     mode->intrabc_mode = (uint8_t)av2h_range_read_adaptive(
         decoder, cdfs->intrabc_mode, 2U);
     if (av2h_range_status(decoder) != AV2H_OK) {
         return av2h_range_status(decoder);
     }
     mode->after_mode_set_bits = av2h_range_tell(decoder);
-    av2h_debug_luma_mode_stage = 21U;
-    if (leaf->row == 16U && leaf->column == 20U) {
-        av2h_debug_intrabc_ranges[1] = decoder->range;
-    }
+    av2h_leaf_diagnostics_set_luma_stage(21U);
     mode->intrabc_drl_index = 0U;
     for (index = 0U; index < frame->max_bvp_drl_bits; ++index) {
         value = av2h_range_read_bypass(decoder, 1U);
@@ -273,30 +258,13 @@ Av2hStatus av2h_leaf_read_first_intrabc(
         if (value == 0U) break;
     }
     mode->after_mode_index_bits = av2h_range_tell(decoder);
-    av2h_debug_luma_mode_stage = 22U;
-    if (leaf->row == 16U && leaf->column == 20U) {
-        av2h_debug_intrabc_ranges[2] = decoder->range;
-    }
+    av2h_leaf_diagnostics_set_luma_stage(22U);
     build_intrabc_candidates(
         sequence, frame, leaf, width_mi, height_mi, state,
         candidates, &candidate_count);
-    if (leaf->row == 16U && leaf->column == 16U) {
-        av2h_debug_intrabc_candidates[0] = (int32_t)candidate_count;
-        for (index = 0U; index < candidate_count && index < 4U; ++index) {
-            av2h_debug_intrabc_candidates[1U + index * 2U] =
-                candidates[index].x;
-            av2h_debug_intrabc_candidates[2U + index * 2U] =
-                candidates[index].y;
-        }
-    }
     if (mode->intrabc_drl_index >= candidate_count) return AV2H_INVALID_DATA;
     reference_x = candidates[mode->intrabc_drl_index].x;
     reference_y = candidates[mode->intrabc_drl_index].y;
-    if (leaf->row == 16U && leaf->column == 16U) {
-        av2h_debug_intrabc_shell[8] = mode->intrabc_drl_index;
-        av2h_debug_intrabc_shell[9] = reference_x;
-        av2h_debug_intrabc_shell[10] = reference_y;
-    }
     mode->mv_precision = 3U;
     if (mode->intrabc_mode == 0U && !frame->force_integer_mv) {
         value = av2h_range_read_adaptive(
@@ -307,7 +275,7 @@ Av2hStatus av2h_leaf_read_first_intrabc(
         mode->mv_precision = value == 0U ? 3U : 5U;
     }
     mode->after_fsc_bits = av2h_range_tell(decoder);
-    av2h_debug_luma_mode_stage = 23U;
+    av2h_leaf_diagnostics_set_luma_stage(23U);
     if (mode->intrabc_mode == 0U) {
         value = av2h_range_read_adaptive(
             decoder, cdfs->intrabc_shell_set, 2U);
@@ -315,13 +283,11 @@ Av2hStatus av2h_leaf_read_first_intrabc(
             return av2h_range_status(decoder);
         }
         if (mode->mv_precision != 3U && mode->mv_precision != 5U) {
-            av2h_debug_luma_mode_stage = value == 0U ? 231U : 233U;
+            av2h_leaf_diagnostics_set_luma_stage(
+                value == 0U ? 231U : 233U);
             return AV2H_UNSUPPORTED;
         }
-        av2h_debug_luma_mode_stage = 24U;
-        if (leaf->row == 16U && leaf->column == 16U) {
-            av2h_debug_intrabc_shell[0] = (int32_t)value;
-        }
+        av2h_leaf_diagnostics_set_luma_stage(24U);
         mode->after_mrl_bits = av2h_range_tell(decoder);
         if (value != 0U) {
             shell_class = (mode->mv_precision == 5U ? 8U : 7U) +
@@ -379,11 +345,6 @@ Av2hStatus av2h_leaf_read_first_intrabc(
         }
         shell_index = (shell_class == 0U ? 0U : 1U << shell_class) +
                       shell_offset;
-        if (leaf->row == 16U && leaf->column == 16U) {
-            av2h_debug_intrabc_shell[1] = (int32_t)shell_class;
-            av2h_debug_intrabc_shell[2] = (int32_t)shell_offset;
-            av2h_debug_intrabc_shell[3] = (int32_t)shell_index;
-        }
         maximum_pair_index = shell_index >> 1U;
         for (index = 0U;
              index < maximum_pair_index &&
@@ -438,12 +399,6 @@ Av2hStatus av2h_leaf_read_first_intrabc(
             difference_x = (int32_t)maximum_pair_index;
         }
         difference_y = (int32_t)shell_index - difference_x;
-        if (leaf->row == 16U && leaf->column == 16U) {
-            av2h_debug_intrabc_shell[4] = (int32_t)pair_index;
-            av2h_debug_intrabc_shell[5] = difference_x;
-            av2h_debug_intrabc_shell[6] = difference_y;
-            av2h_debug_intrabc_shell[7] = mode->mv_precision;
-        }
         difference_x <<= mode->mv_precision == 5U ? 1U : 3U;
         difference_y <<= mode->mv_precision == 5U ? 1U : 3U;
         if (difference_y != 0 && av2h_range_read_bypass(decoder, 1U)) {

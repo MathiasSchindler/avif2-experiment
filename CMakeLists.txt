@@ -8,6 +8,7 @@ option(AV2HEIF_BUILD_HOST_TESTS "Build hosted C unit tests" OFF)
 option(AV2HEIF_ENABLE_SANITIZERS "Enable sanitizers for hosted tests" OFF)
 option(AV2HEIF_ENABLE_PYTHON_TESTS "Enable Python development tests" OFF)
 option(AV2HEIF_BUILD_WINDOWS_TOOLS "Build freestanding Windows executables" ON)
+option(AV2HEIF_ENABLE_DIAGNOSTICS "Enable private decoder diagnostics" OFF)
 
 set(AV2HEIF_CORE_SOURCES
     src/base.c
@@ -61,6 +62,10 @@ target_include_directories(av2heif-core
     PUBLIC include
     PRIVATE src src/shared
 )
+if(AV2HEIF_ENABLE_DIAGNOSTICS)
+    target_compile_definitions(av2heif-core PRIVATE
+        AV2HEIF_ENABLE_DIAGNOSTICS=1)
+endif()
 
 if(CMAKE_C_COMPILER_ID MATCHES "Clang|GNU")
     target_compile_options(av2heif-core PRIVATE
@@ -75,6 +80,10 @@ if(CMAKE_C_COMPILER_ID MATCHES "Clang|GNU")
     target_include_directories(av2heif-freestanding-objects PRIVATE
         include src src/shared
     )
+    if(AV2HEIF_ENABLE_DIAGNOSTICS)
+        target_compile_definitions(av2heif-freestanding-objects PRIVATE
+            AV2HEIF_ENABLE_DIAGNOSTICS=1)
+    endif()
     target_compile_options(av2heif-freestanding-objects PRIVATE
         -Wall -Wextra -Wpedantic -Werror -O2
         -ffreestanding -fno-builtin -fno-stack-protector
@@ -130,6 +139,10 @@ if(AV2HEIF_BUILD_HOST_TESTS)
         PUBLIC include
         PRIVATE src
     )
+    if(AV2HEIF_ENABLE_DIAGNOSTICS)
+        target_compile_definitions(av2heif-host-core PRIVATE
+            AV2HEIF_ENABLE_DIAGNOSTICS=1)
+    endif()
 
     set(AV2HEIF_HOST_UNIT_NAMES
         substrate
@@ -213,6 +226,10 @@ if(WIN32 AND AV2HEIF_BUILD_WINDOWS_TOOLS AND
     target_include_directories(av2heif-decoder PRIVATE src src/shared)
     target_link_libraries(av2heif-decoder PRIVATE
         av2heif-core "${KERNEL32_IMPORT_LIBRARY}")
+    if(AV2HEIF_ENABLE_DIAGNOSTICS)
+        target_compile_definitions(av2heif-decoder PRIVATE
+            AV2HEIF_ENABLE_DIAGNOSTICS=1)
+    endif()
     target_compile_options(av2heif-decoder PRIVATE
         -Wall -Wextra -Wpedantic -Werror -Oz
         -ffreestanding -fno-builtin -fno-stack-protector

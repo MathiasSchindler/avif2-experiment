@@ -3,8 +3,6 @@
 
 #include "coeff_level.h"
 
-extern int32_t av2h_debug_intrabc_geometry[10U];
-
 /*
  * Predictor and reconstructed sample buffers must hold the full output
  * geometry of a luma transform block, which reaches 64x64 (4096 samples)
@@ -31,16 +29,6 @@ typedef struct {
     uint8_t secondary_above[128U];
     uint8_t secondary_left[128U];
 } Av2hReconstructionScratch;
-
-extern uint8_t av2h_debug_luma_reconstruct_stage;
-extern uint16_t av2h_debug_luma_dimensions[4U];
-extern uint8_t av2h_debug_chroma_reconstruct_stage;
-extern int32_t av2h_debug_chimp_luma_target[56U];
-extern int32_t av2h_debug_chimp_chroma_target[24U];
-extern int32_t av2h_debug_mhccp_trace[64U][10U];
-extern uint8_t av2h_debug_mhccp_trace_count;
-extern uint8_t av2h_debug_directional_edges[18U];
-extern uint8_t av2h_debug_inverse_transform_stage;
 
 typedef struct {
     uint8_t *data;

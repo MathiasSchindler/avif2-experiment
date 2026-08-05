@@ -1,4 +1,5 @@
 #include "tile.h"
+#include "internal/decode_diagnostics.h"
 #include "internal/tile_modules.h"
 #include "tx_geometry.h"
 
@@ -190,27 +191,6 @@ static Av2hStatus tile_store_luma_mode(Av2hTileDecoder *decoder,
             cell->context.multi_line_mrl = mode->multi_line_mrl;
             cell->mode = (uint8_t)mode->mode;
             cell->angle_delta = mode->angle_delta;
-            {
-                static const uint16_t debug_positions[8U][2U] = {
-                    { 19U, 16U }, { 17U, 17U }, { 18U, 16U }, { 20U, 16U },
-                    { 17U, 18U }, { 17U, 16U }, { 19U, 14U }, { 18U, 14U }
-                };
-                size_t debug_index;
-                for (debug_index = 0U; debug_index < 8U; ++debug_index) {
-                    if ((size_t)node->row + row ==
-                            debug_positions[debug_index][0] &&
-                        (size_t)node->column + column ==
-                            debug_positions[debug_index][1]) {
-                        av2h_debug_intrabc_owners[debug_index * 4U] = node->row;
-                        av2h_debug_intrabc_owners[debug_index * 4U + 1U] =
-                            node->column;
-                        av2h_debug_intrabc_owners[debug_index * 4U + 2U] =
-                            node->block_size;
-                        av2h_debug_intrabc_owners[debug_index * 4U + 3U] =
-                            mode->use_intrabc;
-                    }
-                }
-            }
         }
     }
     return AV2H_OK;
@@ -231,7 +211,7 @@ Av2hStatus av2h_tile_decoder_next_luma(
     if (decoder->phase != AV2H_TILE_DECODE_LUMA) {
         return av2h_tile_decoder_fail(decoder, AV2H_INVALID_ARGUMENT);
     }
-    av2h_debug_luma_tile_stage = 0U;
+    av2h_tile_diagnostics_set_luma_stage(0U);
     status = av2h_partition_traversal_next(
         &decoder->luma_traversal, &decoder->range,
         &decoder->partition_cdfs, &decoder->partition_contexts, &path,
@@ -244,21 +224,7 @@ Av2hStatus av2h_tile_decoder_next_luma(
         decoder, &path, &decoder->luma_root_partition);
     tile_capture_luma_root_child(decoder, &path);
     leaf->node = path.leaf;
-    if (av2h_debug_chimp_second_sb[0] == 0 && leaf->node.column >= 16U) {
-        const Av2hPartitionDecision *last_decision =
-            &path.decisions[path.decision_count - 1U];
-        av2h_debug_chimp_second_sb[0] = 1;
-        av2h_debug_chimp_second_sb[1] = leaf->node.row;
-        av2h_debug_chimp_second_sb[2] = leaf->node.column;
-        av2h_debug_chimp_second_sb[3] = leaf->node.block_size;
-        av2h_debug_chimp_second_sb[4] = av2h_range_tell(&decoder->range);
-        av2h_debug_chimp_second_sb[5] = decoder->range.range;
-        av2h_debug_chimp_second_sb[29] = path.decision_count;
-        av2h_debug_chimp_second_sb[30] = last_decision->partition;
-        av2h_debug_chimp_second_sb[31] = last_decision->forced;
-        av2h_debug_chimp_second_sb[32] = last_decision->after_bits;
-    }
-    av2h_debug_luma_stage_ranges[0] = decoder->range.range;
+    av2h_tile_diagnostics_set_luma_range(0U, decoder->range.range);
     if (!luma_geometry_supported(&leaf->node)) {
         return av2h_tile_decoder_fail(decoder, AV2H_UNSUPPORTED);
     }
@@ -271,62 +237,24 @@ Av2hStatus av2h_tile_decoder_next_luma(
         decoder->luma_mode_contexts.intrabc_bank_unit_hits = 0U;
         decoder->luma_mode_contexts.intrabc_bank_superblock_hits = 0U;
     }
-    av2h_debug_luma_tile_stage = 1U;
+    av2h_tile_diagnostics_set_luma_stage(1U);
     status = av2h_luma_mode_read_with_state_and_gdf(
         &decoder->range, &decoder->leaf_cdfs, decoder->sequence,
         decoder->frame, &leaf->node, &decoder->luma_mode_contexts,
         &decoder->gdf_entropy, &decoder->cdef_entropy,
         &decoder->ccso_entropy, &leaf->mode);
     if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
-    if (leaf->node.row == 16U && leaf->node.column == 0U) {
-        av2h_debug_chimp_second_sb[29] = leaf->mode.before_gdf_bits;
-        av2h_debug_chimp_second_sb[30] = leaf->mode.before_mode_bits;
-        av2h_debug_chimp_second_sb[31] = leaf->mode.after_mode_index_bits;
-        av2h_debug_chimp_second_sb[32] = leaf->mode.after_fsc_bits;
-        av2h_debug_chimp_second_sb[33] = leaf->mode.after_mrl_bits;
-        av2h_debug_chimp_second_sb[34] = av2h_range_tell(&decoder->range);
-        av2h_debug_chimp_second_sb[35] = leaf->mode.fsc_neighbor_context;
-    }
-    if (av2h_debug_chimp_second_sb[1] == leaf->node.row &&
-        av2h_debug_chimp_second_sb[2] == leaf->node.column) {
-        av2h_debug_chimp_second_sb[6] = av2h_range_tell(&decoder->range);
-        av2h_debug_chimp_second_sb[7] = decoder->range.range;
-        av2h_debug_chimp_second_sb[8] = leaf->mode.mode;
-        av2h_debug_chimp_second_sb[17] = leaf->mode.before_mode_bits;
-        av2h_debug_chimp_second_sb[18] = av2h_debug_y_mode_range;
-        for (size_t debug_index = 0U; debug_index < 9U; ++debug_index) {
-            av2h_debug_chimp_second_sb[20U + debug_index] =
-                av2h_debug_y_mode_index_cdf[debug_index];
-        }
-    }
     status = av2h_luma_palette_map_read(
         &decoder->range, &decoder->leaf_cdfs, &leaf->node, &leaf->mode);
     if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
-    if (av2h_debug_chimp_second_sb[1] == leaf->node.row &&
-        av2h_debug_chimp_second_sb[2] == leaf->node.column) {
-        av2h_debug_chimp_second_sb[9] = av2h_range_tell(&decoder->range);
-        av2h_debug_chimp_second_sb[10] = decoder->range.range;
-    }
-    av2h_debug_luma_stage_ranges[1] = decoder->range.range;
+    av2h_tile_diagnostics_set_luma_range(1U, decoder->range.range);
     status = av2h_luma_mode_context_state_update(
         &decoder->luma_mode_contexts, &leaf->node, &leaf->mode);
     if (status == AV2H_UNSUPPORTED) return av2h_tile_decoder_fail(decoder, AV2H_OVERFLOW);
     if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
-    if (av2h_debug_chimp_second_sb[1] == leaf->node.row &&
-        av2h_debug_chimp_second_sb[2] == leaf->node.column) {
-        av2h_debug_chimp_second_sb[11] = av2h_range_tell(&decoder->range);
-        av2h_debug_chimp_second_sb[12] = decoder->range.range;
-        av2h_debug_chimp_second_sb[13] = leaf->prefix.eob;
-    }
     status = tile_store_luma_mode(decoder, &leaf->node, &leaf->mode);
     if (status == AV2H_UNSUPPORTED) return av2h_tile_decoder_fail(decoder, AV2H_OUT_OF_MEMORY);
     if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
-    if (av2h_debug_chimp_second_sb[1] == leaf->node.row &&
-        av2h_debug_chimp_second_sb[2] == leaf->node.column) {
-        av2h_debug_chimp_second_sb[14] = av2h_range_tell(&decoder->range);
-        av2h_debug_chimp_second_sb[15] = decoder->range.range;
-        av2h_debug_chimp_second_sb[16] = leaf->transform.primary_type;
-    }
     if (leaf->mode.skip_transform != 0U) {
         status = tile_initialize_skipped_intrabc(
             decoder, leaf, &leaf->prefix, &leaf->transform, block);
@@ -334,62 +262,36 @@ Av2hStatus av2h_tile_decoder_next_luma(
             return av2h_tile_decoder_fail(decoder, AV2H_INVALID_DATA);
         }
         if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
-        av2h_tile_debug_trace_leaf(
-            av2h_debug_luma_leaf_trace,
-            &av2h_debug_luma_leaf_trace_count, leaf->node,
-            (uint8_t)leaf->mode.mode, leaf->mode.angle_delta,
-            leaf->mode.mode_set, leaf->mode.mode_index,
-            leaf->mode.before_mode_bits, leaf->mode.after_mode_index_bits,
-            &decoder->range);
         decoder->event = AV2H_TILE_EVENT_LUMA_LEAF;
         return AV2H_OK;
     }
-    av2h_debug_luma_tile_stage = 2U;
+    av2h_tile_diagnostics_set_luma_stage(2U);
     status = av2h_coeff_prefix_read_with_state(
         &decoder->range, &decoder->coeff_cdfs, decoder->frame, &leaf->node,
         &leaf->mode, &decoder->coefficient_contexts, &leaf->prefix,
         &dc_sign_context);
     if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
-    if (leaf->node.row == 16U && leaf->node.column == 0U) {
-        av2h_debug_chimp_second_sb[36] = leaf->prefix.before_all_zero_bits;
-        av2h_debug_chimp_second_sb[37] = leaf->prefix.after_all_zero_bits;
-        av2h_debug_chimp_second_sb[38] = leaf->prefix.after_eob_point_bits;
-        av2h_debug_chimp_second_sb[39] = leaf->prefix.after_eob_bits;
-    }
-    av2h_debug_luma_stage_ranges[2] = decoder->range.range;
+    av2h_tile_diagnostics_set_luma_range(2U, decoder->range.range);
     if (leaf->prefix.all_zero) {
         status = tile_initialize_all_zero_luma(
             decoder, leaf, &leaf->transform, block);
         if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
-        av2h_tile_debug_trace_leaf(
-            av2h_debug_luma_leaf_trace,
-            &av2h_debug_luma_leaf_trace_count, leaf->node,
-            (uint8_t)leaf->mode.mode, leaf->mode.angle_delta,
-            leaf->mode.mode_set, leaf->mode.mode_index,
-            leaf->mode.before_mode_bits, leaf->mode.after_mode_index_bits,
-            &decoder->range);
         decoder->event = AV2H_TILE_EVENT_LUMA_LEAF;
         return AV2H_OK;
     }
-    av2h_debug_luma_tile_stage = 3U;
+    av2h_tile_diagnostics_set_luma_stage(3U);
     status = av2h_first_transform_type_read(
         &decoder->range, &decoder->transform_cdfs, decoder->sequence,
         decoder->frame, &leaf->mode, &leaf->prefix, &leaf->transform);
     if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
-    av2h_debug_luma_stage_ranges[3] = decoder->range.range;
-    av2h_debug_luma_tile_stage = 4U;
+    av2h_tile_diagnostics_set_luma_range(3U, decoder->range.range);
+    av2h_tile_diagnostics_set_luma_stage(4U);
     status = av2h_coeff_block_read_with_state(
         &decoder->range, &decoder->level_cdfs, decoder->sequence,
         decoder->frame, &leaf->node, &leaf->mode, &leaf->prefix,
         &leaf->transform, &decoder->coefficient_contexts, block);
     if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
-    av2h_debug_luma_stage_ranges[4] = decoder->range.range;
-    av2h_tile_debug_trace_leaf(
-        av2h_debug_luma_leaf_trace, &av2h_debug_luma_leaf_trace_count,
-        leaf->node, (uint8_t)leaf->mode.mode, leaf->mode.angle_delta,
-        leaf->mode.mode_set, leaf->mode.mode_index,
-        leaf->mode.before_mode_bits, leaf->mode.after_mode_index_bits,
-        &decoder->range);
+    av2h_tile_diagnostics_set_luma_range(4U, decoder->range.range);
     decoder->event = AV2H_TILE_EVENT_LUMA_LEAF;
     return AV2H_OK;
 }

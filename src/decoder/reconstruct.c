@@ -1,4 +1,40 @@
 #include "reconstruct.h"
+#include "internal/decode_diagnostics.h"
+#if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
+static Av2hReconstructionDiagnostics reconstruction_diagnostics;
+#endif
+
+const Av2hReconstructionDiagnostics *av2h_reconstruction_diagnostics_get(
+    void) {
+#if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
+    return &reconstruction_diagnostics;
+#else
+    return 0;
+#endif
+}
+void av2h_reconstruction_diagnostics_set_luma_stage(uint8_t value) {
+#if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
+    reconstruction_diagnostics.luma_stage = value;
+#else
+    (void)value;
+#endif
+}
+void av2h_reconstruction_diagnostics_set_chroma_stage(uint8_t value) {
+#if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
+    reconstruction_diagnostics.chroma_stage = value;
+#else
+    (void)value;
+#endif
+}
+
+void av2h_reconstruction_diagnostics_set_inverse_transform_stage(
+    uint8_t value) {
+#if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
+    reconstruction_diagnostics.inverse_transform_stage = value;
+#else
+    (void)value;
+#endif
+}
 #include "internal/reconstruct_modules.h"
 #include "internal/sample_math.h"
 #include "tx_geometry.h"
@@ -976,7 +1012,7 @@ Av2hStatus av2h_luma_reconstruct_to_plane(
             (((size_t)plane->height + 3U) / 4U)) {
         return AV2H_INVALID_ARGUMENT;
     }
-    av2h_debug_luma_reconstruct_stage = 0U;
+    av2h_reconstruction_diagnostics_set_luma_stage(0U);
     block_x = (uint16_t)((uint32_t)leaf->column * 4U);
     block_y = (uint16_t)((uint32_t)leaf->row * 4U);
     status = av2h_tx_descriptor_get(prefix->tx_size, &descriptor);
@@ -1229,7 +1265,7 @@ Av2hStatus av2h_luma_reconstruct_to_plane(
             output_width,
             scratch, &reconstruction);
     } else {
-        av2h_debug_luma_reconstruct_stage = 1U;
+        av2h_reconstruction_diagnostics_set_luma_stage(1U);
         av2h_memory_copy(&effective_mode, mode, sizeof(effective_mode));
         if (prefix->tx_size == AV2H_TX_4X4) {
             effective_mode.enable_ibp = 0U;
@@ -1238,17 +1274,13 @@ Av2hStatus av2h_luma_reconstruct_to_plane(
             &effective_mode, output_width, output_height, &references,
             scratch->predictor, output_width);
         if (status != AV2H_OK) return status;
-        av2h_debug_luma_reconstruct_stage = 2U;
+        av2h_reconstruction_diagnostics_set_luma_stage(2U);
         status = av2h_luma_reconstruct(
             mode, prefix, transform, coefficients, scratch->predictor,
             output_width, scratch, &reconstruction);
     }
     if (status != AV2H_OK) return status;
-    av2h_debug_luma_reconstruct_stage = 3U;
-    av2h_debug_luma_dimensions[0] = output_width;
-    av2h_debug_luma_dimensions[1] = output_height;
-    av2h_debug_luma_dimensions[2] = reconstruction.width;
-    av2h_debug_luma_dimensions[3] = reconstruction.height;
+    av2h_reconstruction_diagnostics_set_luma_stage(3U);
     if (reconstruction.width != output_width ||
         reconstruction.height != output_height) {
         return AV2H_UNSUPPORTED;
@@ -1261,55 +1293,10 @@ Av2hStatus av2h_luma_reconstruct_to_plane(
                             index * output_width + column];
         }
     }
-    if (block_x <= 65U && block_y <= 64U &&
-        (uint32_t)block_x + visible_width > 65U &&
-        (uint32_t)block_y + visible_height > 64U) {
-        size_t target_index = (size_t)(64U - block_y) * output_width +
-            (65U - block_x);
-        av2h_debug_chimp_luma_target[0] = leaf->row;
-        av2h_debug_chimp_luma_target[1] = leaf->column;
-        av2h_debug_chimp_luma_target[2] = leaf->block_size;
-        av2h_debug_chimp_luma_target[3] = prefix->tx_size;
-        av2h_debug_chimp_luma_target[4] = mode->mode;
-        av2h_debug_chimp_luma_target[5] = mode->angle_delta;
-        av2h_debug_chimp_luma_target[6] = transform->primary_type;
-        av2h_debug_chimp_luma_target[7] = prefix->eob;
-        av2h_debug_chimp_luma_target[8] = output_width;
-        av2h_debug_chimp_luma_target[9] = output_height;
-        av2h_debug_chimp_luma_target[10] = scratch->predictor[target_index];
-        av2h_debug_chimp_luma_target[11] = scratch->residual[target_index];
-        av2h_debug_chimp_luma_target[12] = reconstruction.pixels[target_index];
-        av2h_debug_chimp_luma_target[13] = mode->use_intrabc;
-        av2h_debug_chimp_luma_target[14] = mode->displacement_x;
-        av2h_debug_chimp_luma_target[15] = mode->displacement_y;
-        for (size_t debug_index = 0U; debug_index < 8U; ++debug_index) {
-            av2h_debug_chimp_luma_target[16U + debug_index] =
-                scratch->transposed[debug_index];
-            av2h_debug_chimp_luma_target[24U + debug_index] =
-                scratch->residual[debug_index];
-        }
-            for (size_t debug_index = 0U; debug_index < 16U; ++debug_index) {
-                av2h_debug_chimp_luma_target[32U + debug_index] =
-                coefficients->dequantized[debug_index];
-            }
-            av2h_debug_chimp_luma_target[48] = coefficients->before_levels_bits;
-            av2h_debug_chimp_luma_target[49] = coefficients->after_levels_bits;
-            av2h_debug_chimp_luma_target[50] =
-                coefficients->after_coefficients_bits;
-            av2h_debug_chimp_luma_target[51] = 0;
-            av2h_debug_chimp_luma_target[52] = coefficients->after_levels_range;
-            av2h_debug_chimp_luma_target[53] = coefficients->diagnostic_context;
-            av2h_debug_chimp_luma_target[54] = coefficients->cul_level;
-            av2h_debug_chimp_luma_target[55] = coefficients->dc_value;
-    }
     plane_mark_reconstructed(
         plane, block_x, block_y, visible_width, visible_height);
     return AV2H_OK;
 }
-
-uint8_t av2h_debug_luma_reconstruct_stage;
-uint16_t av2h_debug_luma_dimensions[4U];
-
 Av2hStatus av2h_first_chroma_reconstruct(
     const Av2hFirstCoeffPrefix *prefix,
     const Av2hFirstTransformType *transform,
@@ -1412,7 +1399,7 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_ex(
     uint8_t have_left;
     size_t index;
     Av2hStatus status;
-    av2h_debug_chroma_reconstruct_stage = 0U;
+    av2h_reconstruction_diagnostics_set_chroma_stage(0U);
     if (leaf == 0 || mode == 0 || prefix == 0 || transform == 0 ||
         coefficients == 0 || plane == 0 || scratch == 0 || plane->data == 0 ||
         chroma_plane < 1U || chroma_plane > 2U ||
@@ -1426,7 +1413,7 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_ex(
         return AV2H_INVALID_ARGUMENT;
     }
     av2h_memory_fill(&luma_mode, 0U, sizeof(luma_mode));
-    av2h_debug_chroma_reconstruct_stage = 1U;
+    av2h_reconstruction_diagnostics_set_chroma_stage(1U);
     width = coefficients->width;
     height = coefficients->height;
     block_x = (uint16_t)((uint32_t)leaf->column * 2U);
@@ -1516,12 +1503,6 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_ex(
         references.left_count = left_count;
         references.above = above_count == 0U ? 0 : scratch->above;
         references.above_count = above_count;
-        if (chroma_plane == 1U && block_x == 32U && block_y == 40U) {
-            for (index = 0U; index < 13U; ++index) {
-                av2h_debug_directional_edges[index] =
-                    index < left_count ? scratch->left[index] : 0U;
-            }
-        }
         have_top = above_count >= width ? 1U : 0U;
         have_left = left_count >= height ? 1U : 0U;
     }
@@ -1583,7 +1564,7 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_ex(
         }
         if (mode->cfl_kind == AV2H_CFL_MULTI_PARAM) {
             status = av2h_mhccp_predict_observed(
-                mode, luma_plane, plane, chroma_plane, block_x, block_y,
+                mode, luma_plane, plane, block_x, block_y,
                 width, height,
                 scratch->predictor, width);
         } else {
@@ -1622,32 +1603,7 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_ex(
         luma_mode.mode = mode->mode;
         luma_mode.angle_delta = mode->angle_delta;
     }
-    av2h_debug_chroma_reconstruct_stage = 2U;
-    if (chroma_plane == 1U && block_x <= 160U && block_y <= 4U &&
-        (uint32_t)block_x + visible_width > 160U &&
-        (uint32_t)block_y + visible_height > 4U) {
-        size_t target_index = (size_t)(4U - block_y) * width +
-            (160U - block_x);
-        av2h_debug_chimp_chroma_target[0] = leaf->row;
-        av2h_debug_chimp_chroma_target[1] = leaf->column;
-        av2h_debug_chimp_chroma_target[2] = leaf->block_size;
-        av2h_debug_chimp_chroma_target[3] = prefix->tx_size;
-        av2h_debug_chimp_chroma_target[4] = mode->mode;
-        av2h_debug_chimp_chroma_target[5] = mode->angle_delta;
-        av2h_debug_chimp_chroma_target[6] = mode->is_cfl;
-        av2h_debug_chimp_chroma_target[7] = mode->cfl_kind;
-        av2h_debug_chimp_chroma_target[8] = transform->primary_type;
-        av2h_debug_chimp_chroma_target[9] = prefix->eob;
-        av2h_debug_chimp_chroma_target[10] = width;
-        av2h_debug_chimp_chroma_target[11] = height;
-        av2h_debug_chimp_chroma_target[12] = scratch->predictor[target_index];
-        av2h_debug_chimp_chroma_target[13] = prefix->all_zero;
-        av2h_debug_chimp_chroma_target[14] = coefficients->nonzero_count;
-        av2h_debug_chimp_chroma_target[17] = mode->above_smooth;
-        av2h_debug_chimp_chroma_target[18] = mode->left_smooth;
-        av2h_debug_chimp_chroma_target[19] = mode->cfl_alpha_signs;
-        av2h_debug_chimp_chroma_target[20] = mode->cfl_alpha_idx;
-    }
+    av2h_reconstruction_diagnostics_set_chroma_stage(2U);
     if (predictor_plane != 0) {
         size_t row;
         for (row = 0U; row < visible_height; ++row) {
@@ -1683,15 +1639,7 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_ex(
         }
         plane_mark_reconstructed(
             plane, block_x, block_y, visible_width, visible_height);
-        if (chroma_plane == 1U && block_x <= 160U && block_y <= 4U &&
-            (uint32_t)block_x + visible_width > 160U &&
-            (uint32_t)block_y + visible_height > 4U) {
-            av2h_debug_chimp_chroma_target[15] = 0;
-            av2h_debug_chimp_chroma_target[16] =
-                scratch->predictor[(size_t)(4U - block_y) * width +
-                                   (160U - block_x)];
-        }
-        av2h_debug_chroma_reconstruct_stage = 3U;
+        av2h_reconstruction_diagnostics_set_chroma_stage(3U);
         return AV2H_OK;
     }
     effective_prefix = *prefix;
@@ -1703,8 +1651,11 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_ex(
         scratch->predictor,
         width, scratch, &reconstruction);
     if (status != AV2H_OK) {
-        av2h_debug_chroma_reconstruct_stage =
-            (uint8_t)(10U + av2h_debug_inverse_transform_stage);
+        const Av2hReconstructionDiagnostics *diagnostics =
+            av2h_reconstruction_diagnostics_get();
+        av2h_reconstruction_diagnostics_set_chroma_stage((uint8_t)(
+            10U + (diagnostics != 0 ?
+                diagnostics->inverse_transform_stage : 0U)));
         return status;
     }
     for (index = 0U; index < visible_height; ++index) {
@@ -1717,18 +1668,5 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_ex(
     }
     plane_mark_reconstructed(
         plane, block_x, block_y, visible_width, visible_height);
-    if (chroma_plane == 1U && block_x <= 160U && block_y <= 4U &&
-        (uint32_t)block_x + visible_width > 160U &&
-        (uint32_t)block_y + visible_height > 4U) {
-        size_t target_index = (size_t)(4U - block_y) * width +
-            (160U - block_x);
-        av2h_debug_chimp_chroma_target[15] = scratch->residual[target_index];
-        av2h_debug_chimp_chroma_target[16] =
-            reconstruction.pixels[target_index];
-    }
     return AV2H_OK;
 }
-
-uint8_t av2h_debug_chroma_reconstruct_stage;
-int32_t av2h_debug_chimp_luma_target[56U];
-int32_t av2h_debug_chimp_chroma_target[24U];

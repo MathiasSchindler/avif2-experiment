@@ -196,13 +196,6 @@ static uint8_t dc_predictor_average(unsigned int sum, unsigned int count,
                                     uint16_t width, uint16_t height,
                                     uint8_t have_top, uint8_t have_left);
 
-uint64_t av2h_debug_smooth_above_hash;
-uint64_t av2h_debug_smooth_left_hash;
-uint8_t av2h_debug_directional_edges[18U];
-uint8_t av2h_debug_directional_raw[3U];
-uint8_t av2h_debug_directional_ibp[24U];
-uint8_t av2h_debug_directional_target[3U];
-
 static uint8_t directional_ibp_weight(unsigned int row,
                                       unsigned int column,
                                       int dy) {
@@ -355,47 +348,6 @@ static Av2hStatus predict_directional(
                                  left_source : left_available - 1U] :
                 left_fallback;
         }
-        if (mode->mode == AV2H_INTRA_HORIZONTAL &&
-            mode->angle_delta == 2 && mode->mrl_index == 3U &&
-            width == 16U && height == 32U) {
-            for (index = 0U; index < 10U; ++index) {
-                av2h_debug_directional_edges[8U + index] = left[index];
-            }
-        }
-            if (mode->mode == AV2H_INTRA_HORIZONTAL &&
-                mode->angle_delta == 2 && width == 32U && height == 16U) {
-                av2h_debug_directional_raw[0] = left[13];
-                av2h_debug_directional_raw[1] = left[14];
-                av2h_debug_directional_raw[2] = left[15];
-                av2h_debug_directional_edges[0] = left[16];
-                av2h_debug_directional_target[0] =
-                (uint8_t)references->left_count;
-            }
-        if (mode->mode == AV2H_INTRA_VERTICAL &&
-            mode->angle_delta == -2 &&
-            width == 16U && height == 32U) {
-            av2h_debug_directional_raw[0] = above[-1];
-            av2h_debug_directional_raw[1] = above[0];
-            av2h_debug_directional_raw[2] = left[0];
-        }
-        if (mode->mode == AV2H_INTRA_D67 && mode->angle_delta == -2 &&
-            width == 16U && height == 16U) {
-            av2h_debug_directional_edges[4] = left[19];
-            av2h_debug_directional_edges[5] = left[20];
-            av2h_debug_directional_edges[6] = left[21];
-            av2h_debug_directional_edges[7] = left[22];
-        }
-        if (mode->mode == AV2H_INTRA_D45 && mode->angle_delta == -1 &&
-            width == 4U && height == 8U && references->above != 0 &&
-            references->above[0] == 95U) {
-            for (index = 0U; index < 4U; ++index) {
-                av2h_debug_directional_edges[index] = above[index];
-            }
-            av2h_debug_directional_edges[4] = (uint8_t)
-                directional_filter_strength(
-                    width, height, angle - 90,
-                    (uint8_t)(mode->above_smooth || mode->left_smooth));
-        }
         if (filter_edges != 0U && mode->mrl_index == 0U &&
             references->above != 0 && references->above_count != 0U &&
             references->left != 0 && references->left_count != 0U &&
@@ -438,48 +390,6 @@ static Av2hStatus predict_directional(
                     edge_ibp ? mode->left_smooth :
                         (uint8_t)(mode->above_smooth || mode->left_smooth)));
         }
-        if (mode->mode == AV2H_INTRA_HORIZONTAL &&
-            mode->angle_delta == 2 && width == 32U && height == 16U) {
-            av2h_debug_directional_edges[1] = left[13];
-            av2h_debug_directional_edges[2] = left[14];
-            av2h_debug_directional_edges[3] = left[15];
-            av2h_debug_directional_edges[4] = left[16];
-        }
-        if (mode->mode == AV2H_INTRA_VERTICAL && mode->angle_delta == -2 &&
-            width == 16U && height == 16U) {
-            av2h_debug_directional_edges[0] = above[5];
-            av2h_debug_directional_edges[1] = above[6];
-            av2h_debug_directional_edges[2] = above[7];
-            av2h_debug_directional_edges[3] = above[8];
-        }
-        if (mode->mode == AV2H_INTRA_D67 && mode->angle_delta == -2 &&
-            width == 16U && height == 16U) {
-            av2h_debug_directional_edges[0] = left[19];
-            av2h_debug_directional_edges[1] = left[20];
-            av2h_debug_directional_edges[2] = left[21];
-            av2h_debug_directional_edges[3] = left[22];
-        }
-        if (mode->mode == AV2H_INTRA_D45 && mode->angle_delta == -1 &&
-            width == 4U && height == 8U && references->above != 0 &&
-            references->above[0] == 95U) {
-            for (index = 0U; index < 4U; ++index) {
-                av2h_debug_directional_edges[5U + index] = above[index];
-            }
-        }
-        if (mode->mode == AV2H_INTRA_HORIZONTAL && mode->angle_delta == 2 &&
-            width == 8U && height == 32U) {
-            av2h_debug_directional_edges[0] = left[30];
-            av2h_debug_directional_edges[1] = left[31];
-            av2h_debug_directional_edges[2] = left[32];
-            av2h_debug_directional_edges[3] = left[33];
-        }
-        if (mode->mode == AV2H_INTRA_D45 && mode->angle_delta == 0 &&
-            width == 4U && height == 8U && angle == 225 && left[0] == 104U &&
-            left[1] == 106U && left[2] == 104U && left[3] == 102U) {
-            for (index = 0U; index < 13U; ++index) {
-                av2h_debug_directional_edges[index] = left[index];
-            }
-        }
         if (angle > 90 && angle < 180 && mode->mrl_index == 0U) {
             above[width] = above[width - 1U];
             left[height] = left[height - 1U];
@@ -500,17 +410,6 @@ static Av2hStatus predict_directional(
             if (mode->mrl_index == 0U && mode->enable_ibp) {
                 above[max_base + 1U] = above[max_base];
                 above[max_base + 2U] = above[max_base];
-            }
-        }
-           if ((mode->mode == AV2H_INTRA_D45 &&
-               width == 8U && height == 64U) ||
-              (mode->mode == AV2H_INTRA_VERTICAL &&
-               mode->angle_delta == -2 &&
-               width == 16U && height == 32U)) {
-            for (index = 0U; index < 9U; ++index) {
-                int edge_index = (int)index - 1;
-                av2h_debug_directional_edges[index] = above[edge_index];
-                av2h_debug_directional_edges[index + 9U] = left[edge_index];
             }
         }
     }
@@ -563,77 +462,16 @@ static Av2hStatus predict_directional(
                     weight = directional_ibp_weight(
                         row >> row_shift, column >> column_shift,
                         weight_dy);
-                    if (mode->mode == AV2H_INTRA_D67 &&
-                        mode->angle_delta == -2 && width == 4U &&
-                        height == 4U && row == 0U) {
-                        av2h_debug_directional_ibp[column] = primary;
-                        av2h_debug_directional_ibp[column + 4U] = secondary;
-                        av2h_debug_directional_ibp[column + 8U] = weight;
-                    }
-                    if (mode->mode == AV2H_INTRA_VERTICAL &&
-                        mode->angle_delta == -2 && width == 16U &&
-                        height == 32U && row == 5U && column == 3U) {
-                        av2h_debug_directional_target[0] = primary;
-                        av2h_debug_directional_target[1] = secondary;
-                        av2h_debug_directional_target[2] = weight;
-                    }
-                    if (mode->mode == AV2H_INTRA_VERTICAL &&
-                        mode->angle_delta == -2 && width == 64U &&
-                        height == 32U && row == 0U && column == 24U) {
-                        av2h_debug_directional_target[0] = primary;
-                        av2h_debug_directional_target[1] = secondary;
-                        av2h_debug_directional_target[2] = weight;
-                    }
-                    if (mode->mode == AV2H_INTRA_VERTICAL &&
-                        mode->angle_delta == -2 && width == 16U &&
-                        height == 16U && row == 0U && column == 6U) {
-                        av2h_debug_directional_target[0] = primary;
-                        av2h_debug_directional_target[1] = secondary;
-                        av2h_debug_directional_target[2] = weight;
-                    }
-                    if (mode->mode == AV2H_INTRA_D67 &&
-                        mode->angle_delta == -2 && width == 16U &&
-                        height == 16U && row == 0U && column == 9U) {
-                        av2h_debug_directional_target[0] = primary;
-                        av2h_debug_directional_target[1] = secondary;
-                        av2h_debug_directional_target[2] = weight;
-                    }
-                                        if (((mode->mode == AV2H_INTRA_VERTICAL &&
-                                                    mode->angle_delta == -2 && width == 16U &&
-                                                    height == 32U) ||
-                                                 (mode->mode == AV2H_INTRA_D45 &&
-                                                    mode->angle_delta == 0 && width == 8U &&
-                                                    height == 64U)) &&
-                                                row == 0U && column < 8U) {
-                        av2h_debug_directional_ibp[column] = primary;
-                        av2h_debug_directional_ibp[column + 8U] = secondary;
-                        av2h_debug_directional_ibp[column + 16U] = weight;
-                    }
                     primary = (uint8_t)((primary * weight +
                         secondary * (128U - weight) + 64U) >> 7U);
                 }
                 predictor[(size_t)row * predictor_stride + column] = primary;
-                if (mode->mode == AV2H_INTRA_D45 &&
-                    mode->angle_delta == -1 && width == 4U && height == 8U &&
-                    references->above != 0 && references->above[0] == 95U &&
-                    row == 0U) {
-                    av2h_debug_directional_edges[9U + column] = primary;
-                }
             }
         }
         return AV2H_OK;
     }
     if (angle < 180) {
         const int min_base = -1 - mode->mrl_index;
-        if (mode->mode == AV2H_INTRA_VERTICAL && mode->angle_delta == 1 &&
-            width == 16U && height == 32U && references->above_count >= 16U &&
-            references->above[0] == 167U && references->above[15] == 166U) {
-            av2h_debug_directional_ibp[0] = above[13];
-            av2h_debug_directional_ibp[1] = above[14];
-            av2h_debug_directional_ibp[2] = above[15];
-            av2h_debug_directional_ibp[3] = above[16];
-            av2h_debug_directional_ibp[4] = (uint8_t)dx;
-        }
         for (row = 0U; row < height; ++row) {
             for (column = 0U; column < width; ++column) {
                 int x = ((int)column << 6) -
@@ -730,13 +568,6 @@ static Av2hStatus predict_directional(
                     weight = directional_ibp_weight(
                         column >> column_shift, row >> row_shift,
                         weight_dy);
-                    if (mode->mode == AV2H_INTRA_HORIZONTAL &&
-                        mode->angle_delta == 2 && width == 8U &&
-                        height == 32U && row == 31U && column == 7U) {
-                        av2h_debug_directional_target[0] = primary;
-                        av2h_debug_directional_target[1] = secondary;
-                        av2h_debug_directional_target[2] = weight;
-                    }
                     primary = (uint8_t)((primary * weight +
                         secondary * (128U - weight) + 64U) >> 7U);
                 }
@@ -2179,22 +2010,6 @@ Av2hStatus av2h_luma_predict(
         top_right = !have_above ? have_left ? references->left[0] : 127U :
             references->above_count > width ?
             references->above[width] : references->above[width - 1U];
-        if (width == 16U && height == 64U) {
-            av2h_debug_smooth_above_hash = 1469598103934665603ULL;
-            av2h_debug_smooth_left_hash = 1469598103934665603ULL;
-            for (index = 0U; index < width; ++index) {
-                av2h_debug_smooth_above_hash ^=
-                    !have_above ? have_left ? references->left[0] : 127U :
-                                  references->above[index];
-                av2h_debug_smooth_above_hash *= 1099511628211ULL;
-            }
-            for (index = 0U; index < height; ++index) {
-                av2h_debug_smooth_left_hash ^=
-                    !have_left ? have_above ? references->above[0] : 129U :
-                                 references->left[index];
-                av2h_debug_smooth_left_hash *= 1099511628211ULL;
-            }
-        }
         for (row = 0U; row < height; ++row) {
             for (column = 0U; column < width; ++column) {
                 uint8_t top = !have_above ?

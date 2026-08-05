@@ -1,11 +1,6 @@
 #include "leaf.h"
 #include "internal/leaf_modules.h"
 
-uint16_t av2h_debug_ccso_cdf[4U];
-uint32_t av2h_debug_ccso_range_before;
-uint32_t av2h_debug_ccso_range_after;
-uint32_t av2h_debug_ccso_context;
-
 Av2hStatus av2h_gdf_entropy_state_init(
     Av2hGdfEntropyState *state,
     const Av2hSequenceState *sequence,
@@ -532,15 +527,6 @@ Av2hStatus av2h_leaf_read_ccso_entropy(
             (uint8_t)(leaf->row % (sequence->superblock_size / 4U) != 0U),
             &context);
         if (status != AV2H_OK) return status;
-        if (leaf->row == 64U && leaf->column == 0U && plane == 2U) {
-            size_t debug_index;
-            av2h_debug_ccso_context = (uint32_t)context;
-            av2h_debug_ccso_range_before = decoder->range;
-            for (debug_index = 0U; debug_index < 4U; ++debug_index) {
-                av2h_debug_ccso_cdf[debug_index] =
-                    cdfs->ccso[plane][context][debug_index];
-            }
-        }
         value = av2h_range_read_adaptive(
             decoder, cdfs->ccso[plane][context], 2U);
         if (av2h_range_status(decoder) != AV2H_OK) {
@@ -550,9 +536,6 @@ Av2hStatus av2h_leaf_read_ccso_entropy(
         mode->ccso_present_mask |= (uint8_t)(1U << plane);
         mode->ccso_block_control[plane] = (uint8_t)value;
         ++mode->ccso_controls_read;
-        if (leaf->row == 64U && leaf->column == 0U && plane == 2U) {
-            av2h_debug_ccso_range_after = decoder->range;
-        }
     }
     mode->after_ccso_bits = av2h_range_tell(decoder);
     return AV2H_OK;

@@ -14,16 +14,6 @@ Av2hStatus av2h_tile_filter_controls_handoff(
     const Av2hTileDecoder *decoder,
     Av2hTileFilterControls *controls);
 
-void av2h_tile_debug_trace_leaf(Av2hDebugLeafTraceEntry *trace,
-                                size_t *count,
-                                Av2hPartitionNode node,
-                                uint8_t mode,
-                                int8_t angle_delta,
-                                uint8_t mode_set,
-                                uint8_t mode_index,
-                                size_t before_mode_bits,
-                                size_t after_mode_index_bits,
-                                const Av2hRangeDecoder *decoder);
 Av2hStatus av2h_tile_decoder_fail(Av2hTileDecoder *decoder,
                                   Av2hStatus status);
 void av2h_tile_capture_root_partition(

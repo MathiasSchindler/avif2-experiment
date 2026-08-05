@@ -1,6 +1,5 @@
 #include "internal/reconstruct_modules.h"
-
-int32_t av2h_debug_intrabc_geometry[10U];
+#include "internal/decode_diagnostics.h"
 
 static int32_t intrabc_clamp(int32_t value, int32_t minimum,
                              int32_t maximum) {
@@ -142,11 +141,7 @@ Av2hStatus av2h_intrabc_predict(
     uint32_t fraction_x;
     uint32_t fraction_y;
     Av2hStatus status;
-    av2h_debug_luma_reconstruct_stage = 10U;
-    av2h_debug_intrabc_geometry[0] = block_x;
-    av2h_debug_intrabc_geometry[1] = block_y;
-    av2h_debug_intrabc_geometry[2] = mode->displacement_x;
-    av2h_debug_intrabc_geometry[3] = mode->displacement_y;
+    av2h_reconstruction_diagnostics_set_luma_stage(10U);
     if (mode->displacement_x < 0 && mode->displacement_x % 8 != 0) {
         --integer_x;
     }
@@ -158,19 +153,15 @@ Av2hStatus av2h_intrabc_predict(
     if ((fraction_x & 1U) != 0U || (fraction_y & 1U) != 0U) {
         return AV2H_UNSUPPORTED;
     }
-    av2h_debug_luma_reconstruct_stage = 11U;
+    av2h_reconstruction_diagnostics_set_luma_stage(11U);
     source_x = (int32_t)block_x + integer_x;
     source_y = (int32_t)block_y + integer_y;
-    av2h_debug_intrabc_geometry[4] = source_x;
-    av2h_debug_intrabc_geometry[5] = source_y;
-    av2h_debug_intrabc_geometry[6] = (int32_t)fraction_x;
-    av2h_debug_intrabc_geometry[7] = (int32_t)fraction_y;
     if (source_x < 0 || source_y < 0 ||
         (uint32_t)source_x + width + (fraction_x != 0U) > plane->width ||
         (uint32_t)source_y + height + (fraction_y != 0U) > plane->height) {
         return AV2H_INVALID_DATA;
     }
-    av2h_debug_luma_reconstruct_stage = 12U;
+    av2h_reconstruction_diagnostics_set_luma_stage(12U);
     for (row = 0U; row < height; ++row) {
         for (column = 0U; column < width; ++column) {
             size_t sample_x = (size_t)source_x + column;
@@ -186,8 +177,6 @@ Av2hStatus av2h_intrabc_predict(
                 (fraction_x != 0U && fraction_y != 0U &&
                  !av2h_plane_sample_reconstructed(
                      plane, sample_x + 1U, sample_y + 1U))) {
-                av2h_debug_intrabc_geometry[8] = (int32_t)sample_x;
-                av2h_debug_intrabc_geometry[9] = (int32_t)sample_y;
                 return AV2H_UNSUPPORTED;
             }
             prediction = plane->data[sample_y * plane->stride + sample_x] *
@@ -217,6 +206,6 @@ Av2hStatus av2h_intrabc_predict(
             width, height, predictor);
         if (status != AV2H_OK) return status;
     }
-    av2h_debug_luma_reconstruct_stage = 13U;
+    av2h_reconstruction_diagnostics_set_luma_stage(13U);
     return AV2H_OK;
 }

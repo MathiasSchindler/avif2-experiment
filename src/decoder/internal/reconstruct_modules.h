@@ -111,7 +111,6 @@ Av2hStatus av2h_mhccp_predict_observed(
     const Av2hFirstChromaMode *mode,
     const Av2hReconstructionPlane *luma_plane,
     const Av2hReconstructionPlane *chroma_plane,
-    uint8_t chroma_plane_index,
     uint16_t block_x,
     uint16_t block_y,
     uint16_t width,
