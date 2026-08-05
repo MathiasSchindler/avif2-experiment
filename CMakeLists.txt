@@ -27,7 +27,7 @@ set(AV2HEIF_CORE_SOURCES
     src/decoder/deblock.c
     src/decoder/filter.c
     src/decoder/filter_entropy.c
-    src/decoder/filter_workspace.c
+    src/decoder/frame_workspace.c
     src/decoder/frame.c
     src/decoder/frame_output.c
     src/decoder/gdf.c

@@ -279,6 +279,8 @@ transition, output nonmutation on failure, and full parity.
 
 ## Phase 8: frame output and workspace ownership
 
+**Status:** Complete as of 2026-08-04. See `refactoring-phase-8.md`.
+
 Prepare Milestone 10 by making one owner responsible for:
 
 - coded/reference/visible plane dimensions;

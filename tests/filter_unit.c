@@ -1,5 +1,7 @@
 #include "decoder/frame_output.h"
+#include "decoder/internal/frame_workspace.h"
 
+#include <stddef.h>
 #include <stdio.h>
 
 static int failures;
@@ -142,6 +144,106 @@ static void test_workspace_model(void) {
     frame.width = 0U;
     CHECK(av2h_filter_workspace_query(&frame, &layout) ==
           AV2H_INVALID_ARGUMENT);
+}
+
+static void test_frame_decode_workspace_model(void) {
+    static _Alignas(max_align_t) uint8_t memory[4U * 1024U * 1024U];
+    Av2hSequenceState sequence;
+    Av2hFrameState frame;
+    Av2hFrameDecodeWorkspaceLayout layout;
+    Av2hFrameDecodeWorkspace workspace;
+    Av2hFilterWorkspace filter_workspace;
+    Av2hFilterWorkspaceStorage filter_storage;
+    av2h_memory_fill(&sequence, 0U, sizeof(sequence));
+    av2h_memory_fill(&frame, 0U, sizeof(frame));
+    sequence.superblock_size = 64U;
+    frame.width = 17U;
+    frame.height = 15U;
+    CHECK(av2h_frame_decode_workspace_query(
+              &sequence, &frame, &layout) == AV2H_OK);
+    CHECK(layout.size != 0U);
+    CHECK(layout.alignment != 0U);
+    CHECK(layout.size <= sizeof(memory));
+    CHECK(av2h_frame_decode_workspace_init(
+              &sequence, &frame, &layout, memory, layout.size,
+              &workspace, &filter_workspace, &filter_storage) == AV2H_OK);
+
+#define CHECK_FRAME_WORKSPACE_FAILURE(expected, pointer, size)                 \
+    do {                                                                       \
+        av2h_memory_fill(&workspace, 0xa5U, sizeof(workspace));                \
+        av2h_memory_fill(                                                       \
+            &filter_workspace, 0xa5U, sizeof(filter_workspace));              \
+        av2h_memory_fill(&filter_storage, 0xa5U, sizeof(filter_storage));      \
+        CHECK(av2h_frame_decode_workspace_init(                                \
+                  &sequence, &frame, &layout, (pointer), (size),              \
+                  &workspace, &filter_workspace, &filter_storage) ==          \
+              (expected));                                                     \
+        CHECK(buffer_is_value(                                                  \
+            (const uint8_t *)&workspace, sizeof(workspace), 0xa5U));          \
+        CHECK(buffer_is_value(                                                  \
+            (const uint8_t *)&filter_workspace,                               \
+            sizeof(filter_workspace), 0xa5U));                                \
+        CHECK(buffer_is_value(                                                  \
+            (const uint8_t *)&filter_storage,                                 \
+            sizeof(filter_storage), 0xa5U));                                  \
+    } while (0)
+    CHECK_FRAME_WORKSPACE_FAILURE(
+        AV2H_OUT_OF_MEMORY, memory, layout.size - 1U);
+    CHECK_FRAME_WORKSPACE_FAILURE(
+        AV2H_INVALID_ARGUMENT, memory + 1U, layout.size);
+    frame.width = 33U;
+    CHECK_FRAME_WORKSPACE_FAILURE(
+        AV2H_INVALID_ARGUMENT, memory, layout.size);
+#undef CHECK_FRAME_WORKSPACE_FAILURE
+}
+
+static void test_frame_workspace_prepare_rejection(void) {
+    static _Alignas(max_align_t) uint8_t memory[4U * 1024U * 1024U];
+    uint8_t output[512U];
+    Av2hSequenceState sequence;
+    Av2hFrameState frame;
+    Av2hFrameDecodeWorkspaceLayout decode_layout;
+    Av2hFilterWorkspaceLayout filter_layout;
+    Av2hFrameDecodeWorkspace workspace;
+    Av2hFilterWorkspace filter_workspace;
+    Av2hFilterWorkspaceStorage filter_storage;
+    Av2hFrameDecodeResult result;
+    size_t output_size = 0U;
+    av2h_memory_fill(&sequence, 0U, sizeof(sequence));
+    av2h_memory_fill(&frame, 0U, sizeof(frame));
+    av2h_memory_fill(&result, 0U, sizeof(result));
+    sequence.superblock_size = 64U;
+    frame.width = 17U;
+    frame.height = 15U;
+    CHECK(av2h_frame_decode_workspace_query(
+              &sequence, &frame, &decode_layout) == AV2H_OK);
+    CHECK(decode_layout.size <= sizeof(memory));
+    CHECK(av2h_frame_decode_workspace_init(
+              &sequence, &frame, &decode_layout, memory,
+              decode_layout.size, &workspace, &filter_workspace,
+              &filter_storage) == AV2H_OK);
+    CHECK(av2h_i420_output_size(&frame, &output_size) == AV2H_OK);
+    CHECK(output_size <= sizeof(output));
+
+#define CHECK_PREPARE_FAILURE(pointer, result_pointer)                        \
+    do {                                                                       \
+        av2h_memory_fill(memory, 0xa5U, decode_layout.size);                  \
+        CHECK(av2h_frame_workspace_prepare(                                   \
+              &sequence, &frame, &workspace, (uint8_t *)(pointer),        \
+              output_size,                                                \
+                  (result_pointer), &filter_layout) ==                        \
+              AV2H_INVALID_ARGUMENT);                                         \
+        CHECK(buffer_is_value(memory, decode_layout.size, 0xa5U));            \
+    } while (0)
+    CHECK_PREPARE_FAILURE(workspace.coded[0].data, &result);
+    CHECK_PREPARE_FAILURE(filter_workspace.cdef.plane[1].data, &result);
+    CHECK_PREPARE_FAILURE(workspace.tile_context.luma_mode_above, &result);
+    CHECK_PREPARE_FAILURE(
+        (uint8_t *)workspace.reconstruction_scratch, &result);
+    CHECK_PREPARE_FAILURE((uint8_t *)&result, &result);
+    frame.width = 33U;
+    CHECK_PREPARE_FAILURE(output, &result);
+#undef CHECK_PREPARE_FAILURE
 }
 
 static void test_filter_pipeline(void) {
@@ -1289,6 +1391,8 @@ static void test_fail_closed(void) {
 
 int main(void) {
     test_workspace_model();
+    test_frame_decode_workspace_model();
+    test_frame_workspace_prepare_rejection();
     test_filter_pipeline();
     test_disabled_filters_no_op();
     test_visible_i420_crop();
