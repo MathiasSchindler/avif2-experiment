@@ -12,3 +12,5 @@ __pycache__/
 !/images/artifacts/blocker-map.md
 /docs/spec/av2-v1.0.0/
 /.vscode/
+/experimental/*
+!/experimental/run_experiment.py
