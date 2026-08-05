@@ -192,9 +192,6 @@ Av2hStatus av2h_partition_traversal_commit_leaf(
     Av2hPartitionNode leaf);
 #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
 typedef struct {
-    uint16_t row;
-    uint16_t column;
-    uint8_t block_size;
     uint8_t stage;
     uint8_t mode;
     uint16_t eob;

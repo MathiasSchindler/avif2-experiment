@@ -25,17 +25,11 @@ void av2h_partition_diagnostic_leaf_stage(
     if (!((node.row == 12U && node.column == 14U &&
            node.block_size == AV2H_BLOCK_8X16) ||
           (node.row == 0U && node.column == 496U &&
-           node.block_size == AV2H_BLOCK_64X64) ||
-          (node.row < 16U && node.column < 16U && stage >= 10U) ||
-          (node.row >= 64U && node.row < 80U &&
-           node.column >= 448U && node.column < 464U && stage >= 10U)) ||
+            node.block_size == AV2H_BLOCK_64X64)) ||
         diagnostic_leaf_trace_count >= 128U) {
         return;
     }
     diagnostic = &diagnostic_leaf_trace[diagnostic_leaf_trace_count++];
-    diagnostic->row = node.row;
-    diagnostic->column = node.column;
-    diagnostic->block_size = (uint8_t)node.block_size;
     diagnostic->stage = stage;
     diagnostic->mode = mode;
     diagnostic->eob = eob;

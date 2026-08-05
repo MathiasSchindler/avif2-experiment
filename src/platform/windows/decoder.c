@@ -332,13 +332,7 @@ static void write_decode_diagnostic(const Av2hFrameDecodeResult *result) {
     leaf_trace = av2h_partition_diagnostic_leaf_trace(&leaf_trace_count);
     for (leaf_trace_index = 0U; leaf_trace_index < leaf_trace_count;
          ++leaf_trace_index) {
-        write_console("\r\n  local-leaf: (");
-        write_unsigned(leaf_trace[leaf_trace_index].row);
-        write_console(",");
-        write_unsigned(leaf_trace[leaf_trace_index].column);
-        write_console(") bsize=");
-        write_unsigned(leaf_trace[leaf_trace_index].block_size);
-        write_console(" stage=");
+        write_console("\r\n  local-leaf: stage=");
         write_unsigned(leaf_trace[leaf_trace_index].stage);
         write_console(" mode=");
         write_unsigned(leaf_trace[leaf_trace_index].mode);

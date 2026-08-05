@@ -144,7 +144,6 @@ void av2h_tile_capture_root_partition(
     if (*root_partition != AV2H_PARTITION_INVALID) return;
     if (decoder->phase == AV2H_TILE_DECODE_CHROMA &&
         decoder->sequence->enable_sdp &&
-        decoder->luma_root_partition == AV2H_PARTITION_SPLIT &&
         decoder->root_block_size == AV2H_BLOCK_128X128 &&
         decoder->square_root_child_index < 4U) {
         root_row = (uint16_t)(root_row +
@@ -359,22 +358,23 @@ Av2hStatus av2h_tile_decoder_finish_root(Av2hTileDecoder *decoder) {
         return AV2H_OK;
     }
     if (decoder->sequence->enable_sdp &&
-        decoder->luma_root_partition == AV2H_PARTITION_SPLIT &&
         decoder->root_block_size == AV2H_BLOCK_128X128 &&
         decoder->square_root_child_index < 4U) {
-        uint8_t next = (uint8_t)(decoder->square_root_child_index + 1U);
-        while (next < 4U) {
-            uint16_t row = (uint16_t)(decoder->sb_row +
-                (next >= 2U ? 16U : 0U));
-            uint16_t column = (uint16_t)(decoder->sb_column +
-                ((next & 1U) != 0U ? 16U : 0U));
-            if (row < decoder->mi_rows && column < decoder->mi_columns) {
+        const Av2hPartitionNode *pending = 0;
+        size_t pending_index = decoder->luma_traversal.stack_count;
+        while (pending_index != 0U) {
+            const Av2hPartitionNode *candidate =
+                &decoder->luma_traversal.stack[--pending_index];
+            if (candidate->row < decoder->mi_rows &&
+                candidate->column < decoder->mi_columns) {
+                pending = candidate;
                 break;
             }
-            ++next;
         }
-        if (next < 4U) {
-            decoder->square_root_child_index = next;
+        if (pending != 0) {
+            decoder->square_root_child_index = (uint8_t)(
+                (pending->row >= decoder->sb_row + 16U ? 2U : 0U) +
+                (pending->column >= decoder->sb_column + 16U ? 1U : 0U));
             decoder->square_child_luma_partition = AV2H_PARTITION_INVALID;
             decoder->phase = AV2H_TILE_DECODE_LUMA;
             decoder->event = AV2H_TILE_EVENT_ROOT_HANDOFF;

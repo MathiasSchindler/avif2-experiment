@@ -7,8 +7,7 @@ static uint8_t tile_cfl_allowed_for_sdp(const Av2hTileDecoder *decoder) {
     uint8_t luma_direction;
     uint8_t chroma_direction;
     if (!decoder->sequence->enable_sdp) return 1U;
-    if (decoder->luma_root_partition == AV2H_PARTITION_SPLIT &&
-        decoder->root_block_size == AV2H_BLOCK_128X128 &&
+    if (decoder->root_block_size == AV2H_BLOCK_128X128 &&
         decoder->square_root_child_index < 4U &&
         decoder->square_child_luma_partition != AV2H_PARTITION_INVALID) {
         luma_root_partition = decoder->square_child_luma_partition;
@@ -88,7 +87,6 @@ Av2hStatus av2h_tile_decoder_next_chroma(
             decoder->sb_row, decoder->sb_column, decoder->root_block_size
         };
         if (decoder->sequence->enable_sdp &&
-            decoder->luma_root_partition == AV2H_PARTITION_SPLIT &&
             decoder->root_block_size == AV2H_BLOCK_128X128 &&
             decoder->square_root_child_index < 4U) {
             root.row = (uint16_t)(root.row +
@@ -213,11 +211,6 @@ Av2hStatus av2h_tile_decoder_next_chroma(
         leaf->node.block_size, cfl_context,
         tile_cfl_allowed_for_sdp(decoder), &leaf->mode);
     if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
-#if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
-    av2h_partition_diagnostic_leaf_stage(
-        leaf->node, 10U, (uint8_t)leaf->mode.mode, 0U,
-        av2h_range_tell(&decoder->range));
-#endif
     leaf->mode.above_smooth = leaf->node.row == 0U ? 0U :
         decoder->colocated_luma[
             ((size_t)leaf->node.row - 1U) * decoder->mi_columns +
@@ -254,11 +247,6 @@ Av2hStatus av2h_tile_decoder_next_chroma(
             decoder->frame, &leaf->node, plane, &leaf->prefix[index],
             &decoder->coefficient_contexts, blocks[index]);
         if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
-#if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
-        av2h_partition_diagnostic_leaf_stage(
-            leaf->node, (uint8_t)(11U + index), (uint8_t)leaf->mode.mode,
-            leaf->prefix[index].eob, av2h_range_tell(&decoder->range));
-#endif
     }
     decoder->event = AV2H_TILE_EVENT_CHROMA_LEAF;
     return AV2H_OK;
