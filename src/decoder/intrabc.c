@@ -185,10 +185,21 @@ static void build_intrabc_candidates(
                 int16_t y = state->intrabc_bank_y[bank_index];
                 int32_t reference_x = (int32_t)leaf->column * 4 + x / 8;
                 int32_t reference_y = (int32_t)leaf->row * 4 + y / 8;
+                size_t coded_width = ((size_t)frame->width + 7U) & ~(size_t)7U;
+                size_t coded_height =
+                    ((size_t)frame->height + 7U) & ~(size_t)7U;
+                size_t block_right = (size_t)leaf->column * 4U +
+                    width_mi * 4U;
+                size_t block_bottom = (size_t)leaf->row * 4U +
+                    height_mi * 4U;
+                size_t candidate_width = block_right > frame->width ?
+                    coded_width : frame->width;
+                size_t candidate_height = block_bottom > frame->height ?
+                    coded_height : frame->height;
                 if (reference_x <= -(int32_t)(width_mi * 4U) ||
                     reference_y <= -(int32_t)(height_mi * 4U) ||
-                    reference_x >= frame->width ||
-                    reference_y >= frame->height) {
+                    reference_x >= (int32_t)candidate_width ||
+                    reference_y >= (int32_t)candidate_height) {
                     continue;
                 }
                 add_intrabc_vector(candidates, count, x, y, 0U);
