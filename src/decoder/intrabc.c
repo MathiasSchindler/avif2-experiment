@@ -89,7 +89,7 @@ static void build_intrabc_candidates(
                 int32_t aligned_column = (column >> 1) << 1;
                 above_right_column = aligned_column +
                     (width_mi >= 4U ? (int32_t)width_mi - 2 : 0);
-                above_column = -1;
+                above_column = width_mi >= 4U ? aligned_column : -1;
                 top_right_column = aligned_column +
                     (width_mi >= 4U ? (int32_t)width_mi : 2);
                 top_left_column = aligned_column - 2;

@@ -31,6 +31,9 @@ typedef struct {
     uint8_t luma_stage;
     uint8_t chroma_stage;
     uint8_t inverse_transform_stage;
+    uint16_t intrabc_source_x;
+    uint16_t intrabc_source_y;
+    size_t intrabc_map_index;
 } Av2hReconstructionDiagnostics;
 
 typedef struct {
@@ -62,6 +65,8 @@ void av2h_reconstruction_diagnostics_set_luma_stage(uint8_t value);
 void av2h_reconstruction_diagnostics_set_chroma_stage(uint8_t value);
 void av2h_reconstruction_diagnostics_set_inverse_transform_stage(
     uint8_t value);
+void av2h_reconstruction_diagnostics_set_intrabc_source(
+    uint16_t x, uint16_t y, size_t map_index);
 
 const Av2hPredictionDiagnostics *av2h_prediction_diagnostics_get(void);
 void av2h_prediction_diagnostics_set_mhccp_reason(uint8_t value);

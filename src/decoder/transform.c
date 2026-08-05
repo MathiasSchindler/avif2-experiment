@@ -88,7 +88,8 @@ static Av2hStatus read_primary(Av2hRangeDecoder *decoder,
     mapped_mode.mode = av2h_transform_mode(
         mode->mode, mode->angle_delta, mode->mrl_index, descriptor);
     mode = &mapped_mode;
-    if (descriptor->signaling_class == AV2H_TX_SIGNAL_DCT_ONLY) {
+    if (descriptor->signaling_class == AV2H_TX_SIGNAL_DCT_ONLY &&
+        !(mode->use_intrabc && coeff->tx_size == AV2H_TX_32X32)) {
         return av2h_primary_tx_type_map(
             coeff->tx_size, mode->mode, 0U, 0U, &transform->primary_type);
     }
@@ -221,6 +222,20 @@ static Av2hStatus read_primary(Av2hRangeDecoder *decoder,
             (uint8_t)symbol, &transform->primary_type);
     }
             av2h_transform_diagnostics_set_stage(3U);
+            if (coeff->tx_size == AV2H_TX_32X32 && mode->use_intrabc) {
+        static const Av2hFirstTxType intrabc_32x32_types[] = {
+            AV2H_TX_IDTX, AV2H_TX_DCT_DCT
+        };
+        symbol = av2h_range_read_adaptive(
+            decoder, cdfs->intrabc_32x32_type, 2U);
+        if (av2h_range_status(decoder) != AV2H_OK) {
+            return av2h_range_status(decoder);
+        }
+        transform->primary_signaled = 1U;
+        transform->primary_symbol = (uint8_t)symbol;
+        transform->primary_type = intrabc_32x32_types[symbol];
+        return AV2H_OK;
+    }
             if ((coeff->tx_size == AV2H_TX_4X4 ||
                 coeff->tx_size == AV2H_TX_4X8 ||
                 coeff->tx_size == AV2H_TX_8X4 ||

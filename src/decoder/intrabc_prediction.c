@@ -177,6 +177,10 @@ Av2hStatus av2h_intrabc_predict(
                 (fraction_x != 0U && fraction_y != 0U &&
                  !av2h_plane_sample_reconstructed(
                      plane, sample_x + 1U, sample_y + 1U))) {
+                av2h_reconstruction_diagnostics_set_intrabc_source(
+                    (uint16_t)sample_x, (uint16_t)sample_y,
+                    (sample_y / 4U) * plane->reconstructed_stride +
+                        sample_x / 4U);
                 return AV2H_UNSUPPORTED;
             }
             prediction = plane->data[sample_y * plane->stride + sample_x] *

@@ -58,6 +58,9 @@ typedef struct {
     uint8_t palette_size;
     uint8_t tx_size;
     uint8_t inverse_transform_stage;
+    uint16_t intrabc_source_x;
+    uint16_t intrabc_source_y;
+    size_t intrabc_map_index;
     uint8_t primary_type;
     uint8_t primary_symbol;
     uint8_t primary_set_symbol;

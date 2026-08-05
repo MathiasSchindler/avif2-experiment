@@ -47,6 +47,7 @@ typedef struct {
     uint16_t intrabc_type_offset
         [3U][AV2H_INTER_TX_TYPE_INDEX_SYMBOLS + 4U];
     uint16_t intrabc_type_offset2[3U][4U + 4U];
+    uint16_t intrabc_32x32_type[AV2H_BINARY_CDF_SIZE];
     uint16_t secondary_4x4[AV2H_SECONDARY_TX_TYPE_SYMBOLS + 4U];
     uint16_t secondary_8x8[AV2H_SECONDARY_TX_TYPE_SYMBOLS + 4U];
     uint16_t secondary_16x16[AV2H_SECONDARY_TX_TYPE_SYMBOLS + 4U];

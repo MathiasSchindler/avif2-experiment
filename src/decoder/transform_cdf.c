@@ -81,6 +81,9 @@ Av2hStatus av2h_first_transform_cdfs_init(Av2hFirstTransformCdfs *cdfs) {
     static const uint8_t intrabc_type_offset2_parameter[3U] = {
         93U, 90U, 10U
     };
+    static const Av2hBinaryCdfSpec intrabc_32x32_type = {
+        16384U, 0U, 0U
+    };
     static const uint16_t secondary_32x32[] = {
         2472U, 8725U, 13853U
     };
@@ -201,6 +204,9 @@ Av2hStatus av2h_first_transform_cdfs_init(Av2hFirstTransformCdfs *cdfs) {
             if (status != AV2H_OK) return status;
         }
     }
+    status = av2h_binary_cdf_init(
+        cdfs->intrabc_32x32_type, intrabc_32x32_type);
+    if (status != AV2H_OK) return status;
     status = av2h_cdf_init(
         cdfs->secondary_4x4, AV2H_SECONDARY_TX_TYPE_SYMBOLS + 4U,
         secondary_4x4, AV2H_SECONDARY_TX_TYPE_SYMBOLS, 75U, 0U);

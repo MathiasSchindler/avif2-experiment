@@ -96,6 +96,12 @@ Av2hStatus av2h_decode_frame_i420_private(
                     reconstruction_diagnostics != 0 ?
                         reconstruction_diagnostics->inverse_transform_stage :
                         0U;
+                decoded.intrabc_source_x = reconstruction_diagnostics != 0 ?
+                    reconstruction_diagnostics->intrabc_source_x : 0U;
+                decoded.intrabc_source_y = reconstruction_diagnostics != 0 ?
+                    reconstruction_diagnostics->intrabc_source_y : 0U;
+                decoded.intrabc_map_index = reconstruction_diagnostics != 0 ?
+                    reconstruction_diagnostics->intrabc_map_index : 0U;
                 decoded.primary_type = (uint8_t)leaf.transform.primary_type;
                 decoded.primary_symbol = leaf.transform.primary_symbol;
                 decoded.primary_set_symbol =
@@ -170,6 +176,12 @@ Av2hStatus av2h_decode_frame_i420_private(
                 decoded.inverse_transform_stage =
                     diagnostics != 0 ?
                         diagnostics->inverse_transform_stage : 0U;
+                decoded.intrabc_source_x = diagnostics != 0 ?
+                    diagnostics->intrabc_source_x : 0U;
+                decoded.intrabc_source_y = diagnostics != 0 ?
+                    diagnostics->intrabc_source_y : 0U;
+                decoded.intrabc_map_index = diagnostics != 0 ?
+                    diagnostics->intrabc_map_index : 0U;
                 decoded.primary_type = (uint8_t)leaf.transform.primary_type;
                 decoded.primary_symbol = leaf.transform.primary_symbol;
                 decoded.secondary_symbol = leaf.transform.secondary_symbol;
