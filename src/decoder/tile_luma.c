@@ -1,4 +1,5 @@
 #include "tile.h"
+#include "internal/coeff_modules.h"
 #include "internal/decode_diagnostics.h"
 #include "internal/tile_modules.h"
 #include "tx_geometry.h"
@@ -432,6 +433,12 @@ read_transform:
     if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
 #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
     av2h_partition_diagnostic_leaf_stage(
+        leaf->node, 21U, leaf->prefix.eob_point, leaf->prefix.eob_extra,
+        leaf->prefix.after_eob_point_bits);
+    av2h_partition_diagnostic_leaf_stage(
+        leaf->node, 22U, leaf->prefix.eob_offset_bits,
+        leaf->prefix.eob_extra, leaf->prefix.after_eob_extra_bit);
+    av2h_partition_diagnostic_leaf_stage(
         leaf->node, 2U, (uint8_t)leaf->mode.mode, leaf->prefix.eob,
         av2h_range_tell(&decoder->range));
 #endif
@@ -461,6 +468,22 @@ read_transform:
         &leaf->transform, &decoder->coefficient_contexts, block);
     if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
 #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
+    if (leaf->node.row == 184U && leaf->node.column == 280U &&
+        leaf->node.block_size == AV2H_BLOCK_32X32) {
+        uint16_t scan_index = leaf->prefix.eob;
+        while (scan_index != 0U) {
+            uint16_t position;
+            --scan_index;
+            position = av2h_coeff_scan_position(
+                scan_index, block->width, block->height, 0U, 0U);
+            av2h_partition_diagnostic_leaf_stage(
+                leaf->node, 40U, block->base_levels[position], position,
+                scan_index);
+        }
+    }
+    av2h_partition_diagnostic_leaf_stage(
+        leaf->node, 31U, (uint8_t)leaf->mode.mode, leaf->prefix.eob,
+        block->after_levels_bits);
     av2h_partition_diagnostic_leaf_stage(
         leaf->node, 4U, (uint8_t)leaf->mode.mode, leaf->prefix.eob,
         av2h_range_tell(&decoder->range));

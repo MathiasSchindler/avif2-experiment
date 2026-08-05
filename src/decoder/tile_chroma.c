@@ -103,6 +103,11 @@ Av2hStatus av2h_tile_decoder_next_chroma(
                 root.block_size) {
             return av2h_tile_decoder_fail(decoder, AV2H_INVALID_DATA);
         }
+#if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
+        av2h_partition_diagnostic_forced_decision(
+            root, decoder->chroma_root_forced_partition,
+            decoder->chroma_traversal.structure);
+#endif
         decoder->chroma_root_partition =
             decoder->chroma_root_forced_partition;
         if (decoder->chroma_root_forced_partition == AV2H_PARTITION_NONE) {

@@ -1,5 +1,6 @@
 #include "base.h"
 #include "decoder/frame_output.h"
+#include "decoder/internal/coeff_modules.h"
 #include "decoder/internal/frame_workspace.h"
 #include "decoder/partition.h"
 #include "decoder/tile.h"
@@ -170,7 +171,10 @@ static const char *block_size_name(uint8_t block_size) {
 }
 
 static void write_decode_diagnostic(const Av2hFrameDecodeResult *result) {
+    const uint16_t *coefficient_cdf;
+    const uint64_t *coefficient_range;
     const Av2hPartitionDecision *partition_trace;
+    const uint8_t *partition_trace_structure;
     const Av2hPartitionLeafDiagnostic *leaf_trace;
     size_t partition_trace_count;
     size_t partition_trace_index;
@@ -306,13 +310,33 @@ static void write_decode_diagnostic(const Av2hFrameDecodeResult *result) {
     write_unsigned(result->eob_tx_size);
     write_console("/");
     write_unsigned(result->eob_class);
+    coefficient_cdf = av2h_coeff_level_diagnostic_cdf();
+    write_console("\r\n  coeff-cdf=");
+    write_unsigned(coefficient_cdf[0]);
+    write_console("/");
+    write_unsigned(coefficient_cdf[1]);
+    write_console("/");
+    write_unsigned(coefficient_cdf[2]);
+    write_console("/");
+    write_unsigned(coefficient_cdf[3]);
+    coefficient_range = av2h_coeff_level_diagnostic_range();
+    write_console("\r\n  coeff-range=");
+    write_unsigned(coefficient_range[0]);
+    write_console("/");
+    write_unsigned(coefficient_range[1]);
+    write_console("/");
+    write_unsigned(coefficient_range[2]);
+    write_console("/");
+    write_unsigned(coefficient_range[3]);
     partition_trace = av2h_partition_diagnostic_trace(&partition_trace_count);
+    partition_trace_structure = av2h_partition_diagnostic_trace_structure();
     for (partition_trace_index = 0U;
          partition_trace_index < partition_trace_count;
          ++partition_trace_index) {
         const Av2hPartitionDecision *decision =
             &partition_trace[partition_trace_index];
-        write_console("\r\n  local-part: (");
+        write_console(partition_trace_structure[partition_trace_index] == 0U ?
+            "\r\n  local-part: (" : "\r\n  local-cpart: (");
         write_unsigned(decision->node.row);
         write_console(",");
         write_unsigned(decision->node.column);

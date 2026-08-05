@@ -198,6 +198,11 @@ typedef struct {
     size_t tell;
 } Av2hPartitionLeafDiagnostic;
 const Av2hPartitionDecision *av2h_partition_diagnostic_trace(size_t *count);
+const uint8_t *av2h_partition_diagnostic_trace_structure(void);
+void av2h_partition_diagnostic_forced_decision(
+    Av2hPartitionNode node,
+    Av2hPartitionType partition,
+    uint8_t structure);
 void av2h_partition_diagnostic_leaf_stage(
     Av2hPartitionNode node, uint8_t stage, uint8_t mode, uint16_t eob,
     size_t tell);

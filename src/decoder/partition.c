@@ -1,21 +1,44 @@
 #include "decoder/internal/partition_modules.h"
 
 #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
-static Av2hPartitionDecision diagnostic_trace[32768U];
+#define AV2H_PARTITION_DIAGNOSTIC_CAPACITY 131072U
+
+static Av2hPartitionDecision
+    diagnostic_trace[AV2H_PARTITION_DIAGNOSTIC_CAPACITY];
 static size_t diagnostic_trace_count;
-static Av2hPartitionLeafDiagnostic diagnostic_leaf_trace[128U];
+static Av2hPartitionLeafDiagnostic diagnostic_leaf_trace[512U];
 static size_t diagnostic_leaf_trace_count;
 
-static void record_diagnostic_decision(const Av2hPartitionDecision *decision) {
-    if (decision == 0 || diagnostic_trace_count >= 32768U) {
+static uint8_t
+    diagnostic_trace_structure[AV2H_PARTITION_DIAGNOSTIC_CAPACITY];
+static void record_diagnostic_decision(const Av2hPartitionDecision *decision,
+                                       uint8_t structure) {
+    if (decision == 0 ||
+        diagnostic_trace_count >= AV2H_PARTITION_DIAGNOSTIC_CAPACITY) {
         return;
     }
-    diagnostic_trace[diagnostic_trace_count++] = *decision;
+    diagnostic_trace[diagnostic_trace_count] = *decision;
+    diagnostic_trace_structure[diagnostic_trace_count++] = structure;
 }
 
 const Av2hPartitionDecision *av2h_partition_diagnostic_trace(size_t *count) {
     if (count != 0) *count = diagnostic_trace_count;
     return diagnostic_trace;
+}
+
+const uint8_t *av2h_partition_diagnostic_trace_structure(void) {
+    return diagnostic_trace_structure;
+}
+
+void av2h_partition_diagnostic_forced_decision(
+    Av2hPartitionNode node,
+    Av2hPartitionType partition,
+    uint8_t structure) {
+    Av2hPartitionDecision decision = {0};
+    decision.node = node;
+    decision.partition = partition;
+    decision.forced = 1U;
+    record_diagnostic_decision(&decision, structure);
 }
 
 void av2h_partition_diagnostic_leaf_stage(
@@ -25,8 +48,12 @@ void av2h_partition_diagnostic_leaf_stage(
     if (!((node.row == 12U && node.column == 14U &&
            node.block_size == AV2H_BLOCK_8X16) ||
           (node.row == 0U && node.column == 496U &&
-            node.block_size == AV2H_BLOCK_64X64)) ||
-        diagnostic_leaf_trace_count >= 128U) {
+           node.block_size == AV2H_BLOCK_64X64) ||
+          (node.row == 184U && node.column == 278U &&
+           node.block_size == AV2H_BLOCK_8X32) ||
+          (node.row == 184U && node.column == 280U &&
+           node.block_size == AV2H_BLOCK_32X32)) ||
+        diagnostic_leaf_trace_count >= 512U) {
         return;
     }
     diagnostic = &diagnostic_leaf_trace[diagnostic_leaf_trace_count++];
@@ -1100,7 +1127,8 @@ Av2hStatus av2h_partition_traversal_next(
             if (status != AV2H_OK) return status;
 #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
             record_diagnostic_decision(
-                &path->decisions[path->decision_count - 1U]);
+                &path->decisions[path->decision_count - 1U],
+                traversal->structure);
 #endif
             status = traversal_push_children(traversal, node, forced);
             if (status != AV2H_OK) return status;
@@ -1129,7 +1157,7 @@ Av2hStatus av2h_partition_traversal_next(
             decision.after_bits);
         if (status != AV2H_OK) return status;
     #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
-        record_diagnostic_decision(&decision);
+        record_diagnostic_decision(&decision, traversal->structure);
     #endif
         if (decision.partition == AV2H_PARTITION_NONE) {
             path->leaf = child;
