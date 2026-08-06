@@ -76,6 +76,36 @@ function renderI420(i420, width, height) {
   context.putImageData(image, 0, 0);
   elements.canvas.hidden = false;
   elements.emptyPreview.hidden = true;
+  return image;
+}
+
+function createBmp(image, width, height) {
+  const rowSize = Math.ceil((width * 3) / 4) * 4;
+  const pixelSize = rowSize * height;
+  const bytes = new Uint8Array(54 + pixelSize);
+  const header = new DataView(bytes.buffer);
+  header.setUint16(0, 0x4d42, true);
+  header.setUint32(2, bytes.byteLength, true);
+  header.setUint32(10, 54, true);
+  header.setUint32(14, 40, true);
+  header.setInt32(18, width, true);
+  header.setInt32(22, height, true);
+  header.setUint16(26, 1, true);
+  header.setUint16(28, 24, true);
+  header.setUint32(34, pixelSize, true);
+
+  for (let row = 0; row < height; row += 1) {
+    const sourceRow = height - row - 1;
+    const destinationRow = 54 + row * rowSize;
+    for (let column = 0; column < width; column += 1) {
+      const source = (sourceRow * width + column) * 4;
+      const destination = destinationRow + column * 3;
+      bytes[destination] = image.data[source + 2];
+      bytes[destination + 1] = image.data[source + 1];
+      bytes[destination + 2] = image.data[source];
+    }
+  }
+  return new Blob([bytes], { type: "image/bmp" });
 }
 
 async function decodeFile(file) {
@@ -114,12 +144,12 @@ async function decodeFile(file) {
 
     const i420 = new Uint8Array(outputSize);
     i420.set(new Uint8Array(wasm.memory.buffer, outputPointer, outputSize));
-    renderI420(i420, width, height);
+    const image = renderI420(i420, width, height);
     elements.frameSize.textContent = `${width} × ${height}`;
-    decodedBlob = new Blob([i420], { type: "application/octet-stream" });
-    decodedName = `${file.name.replace(/\.obu$/i, "")}-${width}x${height}.i420`;
+    decodedBlob = createBmp(image, width, height);
+    decodedName = `${file.name.replace(/\.obu$/i, "")}-${width}x${height}.bmp`;
     elements.downloadButton.disabled = false;
-    setMessage(`Decoded ${formatBytes(outputSize)} of planar I420 pixels.`, "success");
+    setMessage(`Decoded ${formatBytes(outputSize)} of planar pixels.`, "success");
   } catch (error) {
     elements.frameSize.textContent = "Failed";
     setMessage(error instanceof Error ? error.message : String(error), "error");

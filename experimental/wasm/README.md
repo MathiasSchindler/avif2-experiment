@@ -1,6 +1,6 @@
 # Browser WebAssembly decoder experiment
 
-This experiment compiles the freestanding AV2 decoder directly to WebAssembly and displays a dropped `.obu` frame in a browser canvas. Decoding and I420-to-RGB conversion remain local to the browser.
+This experiment compiles the freestanding AV2 decoder directly to WebAssembly and displays a dropped `.obu` frame in a browser canvas. Decoding, I420-to-RGB conversion, and 24-bit BMP export remain local to the browser.
 
 ## Build
 
