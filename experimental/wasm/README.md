@@ -1,0 +1,26 @@
+# Browser WebAssembly decoder experiment
+
+This experiment compiles the freestanding AV2 decoder directly to WebAssembly and displays a dropped `.obu` frame in a browser canvas. Decoding and I420-to-RGB conversion remain local to the browser.
+
+## Build
+
+From the repository root:
+
+```powershell
+Set-ExecutionPolicy -Scope Process Bypass
+.\experimental\wasm\build.ps1
+```
+
+The build requires an LLVM installation containing the WebAssembly backend and `wasm-ld`. It produces `decoder.wasm` beside the interface files.
+
+## Run
+
+The browser must load the module over HTTP rather than `file://`:
+
+```powershell
+python -m http.server 8080 --directory experimental\wasm
+```
+
+Open <http://localhost:8080>, then drop a single-frame closed-loop-key `.obu` file onto the page.
+
+The wrapper accepts inputs up to 64 MiB and allows WebAssembly memory to grow to 512 MiB. The current decoder supports the same bitstream surface as the native decoder.
