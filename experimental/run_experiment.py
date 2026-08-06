@@ -50,8 +50,9 @@ def parse_args() -> argparse.Namespace:
         type=int,
         help="Random seed. A system-random seed is generated when omitted.",
     )
-    parser.add_argument("--min-long-edge", type=int, default=128)
-    parser.add_argument("--max-long-edge", type=int, default=640)
+    parser.add_argument("--min-long-edge", type=int, default=640)
+    parser.add_argument("--max-long-edge", type=int, default=960)
+    parser.add_argument("--min-short-edge", type=int, default=400)
     parser.add_argument("--min-qp", type=int, default=0)
     parser.add_argument("--max-qp", type=int, default=255)
     parser.add_argument("--realistic-min-qp", type=int, default=80)
@@ -329,14 +330,23 @@ def choose_variant(
     original_height: int,
     minimum: int,
     maximum: int,
+    minimum_short_edge: int,
     min_qp: int,
     max_qp: int,
 ) -> tuple[int, int, int, int]:
     original_long_edge = max(original_width, original_height)
+    original_short_edge = min(original_width, original_height)
     upper = min(maximum, original_long_edge - 1)
-    lower = min(minimum, upper)
+    short_edge_lower = (
+        minimum_short_edge * original_long_edge + original_short_edge - 1
+    ) // original_short_edge
+    lower = min(max(minimum, short_edge_lower), upper)
     if upper < 1:
         raise RuntimeError("source image is too small to downscale")
+    if lower < short_edge_lower:
+        raise RuntimeError(
+            f"cannot keep the short edge at least {minimum_short_edge} pixels"
+        )
     long_edge = rng.randint(max(1, lower), upper)
     width, height = scaled_dimensions(
         original_width, original_height, long_edge
@@ -361,6 +371,7 @@ def generate_case(
         original_height,
         args.min_long_edge,
         args.max_long_edge,
+        args.min_short_edge,
         min_qp,
         max_qp,
     )
@@ -510,6 +521,8 @@ def main() -> int:
     args = parse_args()
     if args.min_long_edge < 1 or args.max_long_edge < args.min_long_edge:
         raise RuntimeError("invalid long-edge range")
+    if args.min_short_edge < 1:
+        raise RuntimeError("minimum short edge must be at least 1")
     if args.min_qp < 0 or args.max_qp > 255 or args.max_qp < args.min_qp:
         raise RuntimeError("QP range must be within 0..255")
     if (
