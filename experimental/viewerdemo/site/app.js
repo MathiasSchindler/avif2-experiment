@@ -107,6 +107,9 @@ function decodeVariant(scene, variant) {
     pixels.set(new Uint8Array(wasm.memory.buffer, outputPointer, outputSize));
     const decoded = { canvas: i420ToCanvas(pixels, width, height), elapsed };
     imageCache.set(key, decoded);
+    if (imageCache.size > 8) {
+      imageCache.delete(imageCache.keys().next().value);
+    }
     return decoded;
   };
   const queued = decodeQueue.then(operation, operation);
@@ -212,7 +215,12 @@ function installStageDragging() {
   const move = event => {
     if (!dragging) return;
     const bounds = elements.stage.getBoundingClientRect();
-    updateSplit(Math.max(5, Math.min(95, (event.clientX - bounds.left) / bounds.width * 100)));
+    const horizontal = Math.max(5, Math.min(95, (event.clientX - bounds.left) / bounds.width * 100));
+    const vertical = Math.max(5, Math.min(95, (event.clientY - bounds.top) / bounds.height * 100));
+    updateSplit(horizontal);
+    const origin = `${horizontal}% ${vertical}%`;
+    elements.leftCanvas.style.transformOrigin = origin;
+    elements.rightCanvas.style.transformOrigin = origin;
   };
   elements.stage.addEventListener("pointerdown", event => {
     dragging = true;
