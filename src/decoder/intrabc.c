@@ -115,7 +115,6 @@ static void build_intrabc_candidates(
         if (state->spatial != 0) {
             int32_t row = leaf->row;
             int32_t column = leaf->column;
-            const Av2hLumaModeContext *primary_above = 0;
             int32_t above_right_column;
             int32_t above_column;
             int32_t top_right_column;
@@ -142,7 +141,6 @@ static void build_intrabc_candidates(
             add_intrabc_candidate(candidates, count, context, 1U);
             context = intrabc_spatial_context(
                 state, row - 1, above_right_column);
-            primary_above = context;
             add_intrabc_candidate(
                 candidates, count, context,
                 above_right_column - column <= -1 ? 0U : 1U);
@@ -152,18 +150,15 @@ static void build_intrabc_candidates(
                 add_intrabc_candidate(candidates, count, context, 1U);
             }
             context = intrabc_spatial_context(state, row - 1, above_column);
-            add_intrabc_candidate(candidates, count, context, 1U);
+            add_intrabc_candidate(
+                candidates, count, context,
+                above_column - column <= -1 ? 0U : 1U);
             context = intrabc_spatial_context(
                 state, row + (int32_t)height_mi, column - 1);
             add_intrabc_candidate(candidates, count, context, 1U);
             context = intrabc_spatial_context(
                 state, row - 1, top_right_column);
-            if (context != 0 &&
-                (!at_superblock_boundary || primary_above == 0 ||
-                 context->owner_row != primary_above->owner_row ||
-                 context->owner_column != primary_above->owner_column)) {
-                add_intrabc_candidate(candidates, count, context, 1U);
-            }
+            add_intrabc_candidate(candidates, count, context, 1U);
             context = intrabc_spatial_context(
                 state, row - 1, top_left_column);
             add_intrabc_candidate(candidates, count, context, 0U);
