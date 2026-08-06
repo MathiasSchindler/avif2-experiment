@@ -60,7 +60,7 @@ static void test_arguments(void) {
     };
     Av2hSpan span = { bytes, sizeof(bytes) };
     size_t tell;
-    CHECK(sizeof(Av2hLeafCdfs) == 2498U);
+    CHECK(sizeof(Av2hLeafCdfs) == 2522U);
     CHECK(av2h_leaf_cdfs_init(0) == AV2H_INVALID_ARGUMENT);
     CHECK(av2h_first_leaf_mode_read(
               0, &cdfs, &sequence, &frame, &leaf, &mode) ==
@@ -331,6 +331,17 @@ static void test_intrabc_bank_survives_superblock_boundary(void) {
     CHECK(state.intrabc_bank_superblock_hits == 0U);
 }
 
+static void test_intrabc_bank_origin_uses_coded_frame_bounds(void) {
+    Av2hFrameState frame = { 0 };
+    Av2hPartitionNode leaf = { 70U, 83U, AV2H_BLOCK_8X8 };
+    frame.width = 488U;
+    frame.height = 324U;
+    CHECK(av2h_intrabc_bank_origin_valid(
+              &frame, &leaf, 2U, 2U, -520, 368) == 1U);
+    CHECK(av2h_intrabc_bank_origin_valid(
+              &frame, &leaf, 2U, 2U, -520, 384) == 0U);
+}
+
 static void test_luma_mode_bottom_left_clipped_to_frame(void) {
     Av2hLumaModeContextState state;
     Av2hLumaModeContext above[40U];
@@ -412,6 +423,7 @@ int main(void) {
     test_chroma_cfl_derived_alpha();
     test_chroma_cfl_cdf_defaults();
     test_intrabc_bank_survives_superblock_boundary();
+    test_intrabc_bank_origin_uses_coded_frame_bounds();
     test_luma_mode_bottom_left_clipped_to_frame();
     test_intrabc_morph_pred_cdf_defaults();
     test_large_luma_block_spans_cdef_strength();

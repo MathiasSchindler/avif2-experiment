@@ -4,9 +4,11 @@
 from __future__ import annotations
 
 import argparse
+import concurrent.futures
 import datetime as dt
 import hashlib
 import json
+import os
 import random
 import shutil
 import subprocess
@@ -51,6 +53,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--max-long-edge", type=int, default=512)
     parser.add_argument("--min-qp", type=int, default=0)
     parser.add_argument("--max-qp", type=int, default=255)
+    parser.add_argument(
+        "--jobs",
+        type=int,
+        default=min(4, os.cpu_count() or 1),
+        help="Number of image cases to process concurrently (default: %(default)s).",
+    )
     return parser.parse_args()
 
 
@@ -351,7 +359,6 @@ def generate_case(
         args.max_qp,
     )
     stem = f"{jpeg.stem}-{width}x{height}-qp{qp:03d}"
-    source_jpeg = output / f"{stem}-source.jpg"
     source_i420 = output / f"{stem}-source.i420"
     source_bmp = output / f"{stem}-source.bmp"
     obu = output / f"{stem}.obu"
@@ -359,7 +366,6 @@ def generate_case(
     avm_bmp = output / f"{stem}-avm.bmp"
     local_i420 = output / f"{stem}-local.i420"
     local_bmp = output / f"{stem}-local.bmp"
-    shutil.copy2(jpeg, source_jpeg)
 
     commands: dict[str, list[str]] = {}
     commands["source_i420"] = convert_to_i420(
@@ -401,7 +407,6 @@ def generate_case(
         else None
     )
     artifact_paths = [
-        source_jpeg,
         source_i420,
         source_bmp,
         obu,
@@ -495,6 +500,8 @@ def main() -> int:
         raise RuntimeError("invalid long-edge range")
     if args.min_qp < 0 or args.max_qp > 255 or args.max_qp < args.min_qp:
         raise RuntimeError("QP range must be within 0..255")
+    if args.jobs < 1:
+        raise RuntimeError("jobs must be at least 1")
     images = args.images.resolve()
     jpegs = sorted(images.glob("*.jpg"), key=lambda path: path.name.lower())
     if not jpegs:
@@ -511,24 +518,51 @@ def main() -> int:
         "avmdec": require_tool(args.avmdec.resolve()),
         "local_decoder": require_tool(args.local_decoder.resolve()),
     }
-    cases: list[dict[str, Any]] = []
+    cases: list[dict[str, Any] | None] = [None] * len(jpegs)
     print(f"Output: {output}")
     print(f"Seed: {seed}")
-    for index, jpeg in enumerate(jpegs, start=1):
-        print(f"[{index:02d}/{len(jpegs):02d}] {jpeg.name}", flush=True)
-        try:
-            case = generate_case(jpeg, output, rng, tools, args)
-        except Exception as error:
-            case = {
-                "name": jpeg.stem,
-                "status": "generation_failed",
-                "error": str(error),
-            }
-        cases.append(case)
-        print(f"  {case['status']}", flush=True)
-        write_reports(output, seed, tools, cases)
+    print(f"Jobs: {args.jobs}")
+    with concurrent.futures.ThreadPoolExecutor(max_workers=args.jobs) as executor:
+        futures = {
+            executor.submit(
+                generate_case,
+                jpeg,
+                output,
+                random.Random(rng.randrange(2**63)),
+                tools,
+                args,
+            ): (index, jpeg)
+            for index, jpeg in enumerate(jpegs)
+        }
+        for completed, future in enumerate(
+            concurrent.futures.as_completed(futures), start=1
+        ):
+            index, jpeg = futures[future]
+            try:
+                case = future.result()
+            except Exception as error:
+                case = {
+                    "name": jpeg.stem,
+                    "status": "generation_failed",
+                    "error": str(error),
+                }
+            cases[index] = case
+            print(
+                f"[{completed:02d}/{len(jpegs):02d}] {jpeg.name}: "
+                f"{case['status']}",
+                flush=True,
+            )
+            write_reports(
+                output,
+                seed,
+                tools,
+                [item for item in cases if item is not None],
+            )
+    completed_cases = [case for case in cases if case is not None]
     print((output / "summary.txt").read_text(encoding="utf-8"), end="")
-    return 0 if all(case["status"] != "generation_failed" for case in cases) else 1
+    return 0 if all(
+        case["status"] != "generation_failed" for case in completed_cases
+    ) else 1
 
 
 if __name__ == "__main__":

@@ -40,6 +40,7 @@
 #define AV2H_PALETTE_COLOR_CONTEXT_COUNT 5U
 #define AV2H_PALETTE_ROW_CONTEXT_COUNT 4U
 #define AV2H_MORPH_PRED_CONTEXT_COUNT 3U
+#define AV2H_DELTA_Q_SYMBOLS 8U
 
 typedef struct {
     uint16_t intrabc[AV2H_INTRABC_CONTEXT_COUNT][AV2H_BINARY_CDF_SIZE];
@@ -66,6 +67,7 @@ typedef struct {
                               [AV2H_BINARY_CDF_SIZE];
     uint16_t skip_transform[AV2H_SKIP_TRANSFORM_CONTEXT_COUNT]
                            [AV2H_BINARY_CDF_SIZE];
+    uint16_t delta_q[AV2H_DELTA_Q_SYMBOLS + 4U];
     uint16_t ccso[AV2H_FRAME_PLANE_COUNT][AV2H_CCSO_CONTEXT_COUNT]
                  [AV2H_BINARY_CDF_SIZE];
     uint16_t y_mode_set[AV2H_Y_MODE_SET_SYMBOLS + 4U];
@@ -378,6 +380,18 @@ Av2hStatus av2h_luma_mode_read_with_state_and_gdf(
     Av2hGdfEntropyState *gdf_state,
     Av2hCdefEntropyState *cdef_state,
     Av2hCcsoEntropyState *ccso_state,
+    Av2hFirstLeafMode *mode);
+Av2hStatus av2h_luma_mode_read_with_state_and_delta_q(
+    Av2hRangeDecoder *decoder,
+    Av2hLeafCdfs *cdfs,
+    const Av2hSequenceState *sequence,
+    const Av2hFrameState *frame,
+    const Av2hPartitionNode *leaf,
+    const Av2hLumaModeContextState *state,
+    Av2hGdfEntropyState *gdf_state,
+    Av2hCdefEntropyState *cdef_state,
+    Av2hCcsoEntropyState *ccso_state,
+    uint16_t *current_q_index,
     Av2hFirstLeafMode *mode);
 Av2hStatus av2h_luma_palette_map_read(
     Av2hRangeDecoder *decoder,

@@ -51,4 +51,12 @@ Av2hStatus av2h_leaf_read_first_intrabc(
     const Av2hLumaModeNeighbors *neighbors,
     Av2hFirstLeafMode *mode);
 
+uint8_t av2h_intrabc_bank_origin_valid(
+    const Av2hFrameState *frame,
+    const Av2hPartitionNode *leaf,
+    size_t width_mi,
+    size_t height_mi,
+    int16_t displacement_x,
+    int16_t displacement_y);
+
 #endif

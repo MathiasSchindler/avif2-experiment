@@ -325,9 +325,13 @@ Av2hStatus av2h_frame_header_closed_key_parse(
     if (frame->base_q_index != 0U) {
         frame->delta_q_present =
             (uint8_t)av2h_bit_reader_read(&reader, 1U);
+        if (frame->delta_q_present != 0U) {
+            frame->delta_q_res = (uint8_t)(
+                1U << av2h_bit_reader_read(&reader, 2U));
+        }
     }
     if (reader.status != AV2H_OK) return reader.status;
-    if (frame->base_q_index == 0U || frame->delta_q_present != 0U) {
+    if (frame->base_q_index == 0U) {
         return AV2H_UNSUPPORTED;
     }
     read_deblock(&reader, sequence, frame);

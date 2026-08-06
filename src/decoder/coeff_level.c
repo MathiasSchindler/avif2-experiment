@@ -579,7 +579,7 @@ static Av2hStatus read_fsc_block(
                                              (int32_t)final_level;
         if (position == 0U) block->dc_value = block->quantized[position];
         dequantized_magnitude = av2h_coeff_dequant_step_8bit(
-            frame->base_q_index,
+            prefix->q_index != 0U ? prefix->q_index : frame->base_q_index,
             position == 0U ? frame->y_dc_delta_q +
                 sequence->base_y_dc_delta_q : 0);
         block->dequantized[position] = av2h_coeff_dequantize_level(
@@ -885,7 +885,7 @@ Av2hStatus av2h_coeff_block_read(
         block->quantized[position] = sign ? -(int32_t)final_level :
                                              (int32_t)final_level;
         dequant = av2h_coeff_dequant_step_8bit(
-            frame->base_q_index,
+            prefix->q_index != 0U ? prefix->q_index : frame->base_q_index,
             scan_index == 0U ?
                 frame->y_dc_delta_q + sequence->base_y_dc_delta_q : 0);
         block->dequantized[position] = av2h_coeff_dequantize_level(
@@ -1061,10 +1061,10 @@ static Av2hStatus read_chroma_block(
     block->after_levels_range = decoder->range;
     block->after_levels_value = decoder->value;
     dc_step = av2h_coeff_dequant_step_8bit(
-        frame->base_q_index,
+        prefix->q_index != 0U ? prefix->q_index : frame->base_q_index,
         plane == 1U ? frame->u_dc_delta_q : frame->v_dc_delta_q);
     ac_step = av2h_coeff_dequant_step_8bit(
-        frame->base_q_index,
+        prefix->q_index != 0U ? prefix->q_index : frame->base_q_index,
         plane == 1U ? frame->u_ac_delta_q : frame->v_ac_delta_q);
     for (scan_index = prefix->eob; scan_index != 0U;) {
         uint16_t position;

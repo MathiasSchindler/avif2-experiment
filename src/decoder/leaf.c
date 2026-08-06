@@ -430,6 +430,7 @@ static Av2hStatus luma_mode_read_internal(
     Av2hGdfEntropyState *gdf_state,
     Av2hCdefEntropyState *cdef_state,
     Av2hCcsoEntropyState *ccso_state,
+    uint16_t *current_q_index,
     Av2hFirstLeafMode *mode);
 
 Av2hStatus av2h_luma_mode_read_with_state(
@@ -461,8 +462,77 @@ Av2hStatus av2h_luma_mode_read_with_state_and_gdf(
     if (status != AV2H_OK) return status;
     status = luma_mode_read_internal(
         decoder, cdfs, sequence, frame, leaf, &neighbors, state, gdf_state,
-        cdef_state, ccso_state, mode);
+        cdef_state, ccso_state, 0, mode);
     return status;
+}
+
+Av2hStatus av2h_luma_mode_read_with_state_and_delta_q(
+    Av2hRangeDecoder *decoder,
+    Av2hLeafCdfs *cdfs,
+    const Av2hSequenceState *sequence,
+    const Av2hFrameState *frame,
+    const Av2hPartitionNode *leaf,
+    const Av2hLumaModeContextState *state,
+    Av2hGdfEntropyState *gdf_state,
+    Av2hCdefEntropyState *cdef_state,
+    Av2hCcsoEntropyState *ccso_state,
+    uint16_t *current_q_index,
+    Av2hFirstLeafMode *mode) {
+    Av2hLumaModeNeighbors neighbors;
+    Av2hStatus status = av2h_luma_mode_neighbors_from_state(
+        state, leaf, &neighbors);
+    if (status != AV2H_OK) return status;
+    return luma_mode_read_internal(
+        decoder, cdfs, sequence, frame, leaf, &neighbors, state, gdf_state,
+        cdef_state, ccso_state, current_q_index, mode);
+}
+
+static Av2hStatus read_delta_q(
+    Av2hRangeDecoder *decoder,
+    Av2hLeafCdfs *cdfs,
+    const Av2hSequenceState *sequence,
+    const Av2hFrameState *frame,
+    const Av2hPartitionNode *leaf,
+    uint8_t skip_transform,
+    uint16_t *current_q_index) {
+    Av2hBlockSize superblock_size;
+    uint16_t superblock_mi;
+    uint32_t magnitude;
+    int q_index;
+    if (frame->delta_q_present == 0U) return AV2H_OK;
+    if (current_q_index == 0 || frame->delta_q_res == 0U) {
+        return AV2H_INVALID_ARGUMENT;
+    }
+    superblock_mi = (uint16_t)(sequence->superblock_size / 4U);
+    superblock_size = sequence->superblock_size == 128U ?
+        AV2H_BLOCK_128X128 : AV2H_BLOCK_64X64;
+    if (superblock_mi == 0U ||
+        leaf->row % superblock_mi != 0U ||
+        leaf->column % superblock_mi != 0U ||
+        (leaf->block_size == superblock_size && skip_transform != 0U)) {
+        return AV2H_OK;
+    }
+    magnitude = av2h_range_read_adaptive(
+        decoder, cdfs->delta_q, AV2H_DELTA_Q_SYMBOLS);
+    if (magnitude >= 7U) {
+        uint32_t remainder_bits =
+            av2h_range_read_bypass(decoder, 3U) + 1U;
+        magnitude = av2h_range_read_bypass(decoder, remainder_bits) +
+            ((uint32_t)1U << remainder_bits) + 5U;
+    }
+    if (av2h_range_status(decoder) != AV2H_OK) {
+        return av2h_range_status(decoder);
+    }
+    q_index = (int)*current_q_index;
+    if (magnitude != 0U && av2h_range_read_bypass(decoder, 1U) != 0U) {
+        q_index -= (int)magnitude * frame->delta_q_res;
+    } else {
+        q_index += (int)magnitude * frame->delta_q_res;
+    }
+    if (q_index < 1) q_index = 1;
+    if (q_index > 255) q_index = 255;
+    *current_q_index = (uint16_t)q_index;
+    return av2h_range_status(decoder);
 }
 
 static Av2hStatus luma_mode_read_internal(
@@ -476,6 +546,7 @@ static Av2hStatus luma_mode_read_internal(
     Av2hGdfEntropyState *gdf_state,
     Av2hCdefEntropyState *cdef_state,
     Av2hCcsoEntropyState *ccso_state,
+    uint16_t *current_q_index,
     Av2hFirstLeafMode *mode) {
     size_t plane;
     size_t neighbor;
@@ -493,7 +564,7 @@ static Av2hStatus luma_mode_read_internal(
     }
     if (leaf->block_size >= AV2H_BLOCK_SIZE_COUNT ||
         frame->disable_cdf_update || frame->segmentation_enabled ||
-        frame->delta_q_present || !sequence->enable_sdp ||
+        !sequence->enable_sdp ||
         sequence->enable_intra_dip ||
         (frame->gdf_mode >= 2U && gdf_state == 0) ||
         (frame->cdef_strength_count > 1U && cdef_state == 0)) {
@@ -607,6 +678,10 @@ static Av2hStatus luma_mode_read_internal(
                     decoder, cdfs, sequence, frame, leaf, mode);
             }
             if (status != AV2H_OK) return status;
+            status = read_delta_q(
+                decoder, cdfs, sequence, frame, leaf,
+                mode->skip_transform, current_q_index);
+            if (status != AV2H_OK) return status;
             av2h_leaf_diagnostics_set_luma_stage(3U);
             status = av2h_leaf_read_first_intrabc(
                 decoder, cdfs, sequence, frame, leaf, state, neighbors, mode);
@@ -630,6 +705,12 @@ static Av2hStatus luma_mode_read_internal(
     } else {
         Av2hStatus status = av2h_leaf_read_first_ccso_without_state(
             decoder, cdfs, sequence, frame, leaf, mode);
+        if (status != AV2H_OK) return status;
+    }
+    {
+        Av2hStatus status = read_delta_q(
+            decoder, cdfs, sequence, frame, leaf,
+            mode->skip_transform, current_q_index);
         if (status != AV2H_OK) return status;
     }
     mode->before_mode_bits = av2h_range_tell(decoder);
@@ -762,7 +843,8 @@ Av2hStatus av2h_luma_mode_read(
     const Av2hLumaModeNeighbors *neighbors,
     Av2hFirstLeafMode *mode) {
     return luma_mode_read_internal(
-        decoder, cdfs, sequence, frame, leaf, neighbors, 0, 0, 0, 0, mode);
+        decoder, cdfs, sequence, frame, leaf, neighbors, 0, 0, 0, 0, 0,
+        mode);
 }
 
 Av2hStatus av2h_first_leaf_mode_read(Av2hRangeDecoder *decoder,

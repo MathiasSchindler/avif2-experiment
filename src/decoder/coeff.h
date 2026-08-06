@@ -63,6 +63,7 @@ typedef struct {
     uint8_t tx_size_context;
     uint8_t txb_skip_context;
     uint8_t all_zero;
+    uint8_t q_index;
     uint8_t eob_point;
     uint8_t eob_offset_bits;
     uint16_t eob_extra;

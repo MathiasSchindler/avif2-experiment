@@ -43,6 +43,7 @@ typedef struct {
     uint8_t segmentation_enabled;
     uint8_t using_qmatrix;
     uint8_t delta_q_present;
+    uint8_t delta_q_res;
     uint8_t deblock_enabled[4];
     uint8_t gdf_mode;
     uint8_t gdf_qp_index;

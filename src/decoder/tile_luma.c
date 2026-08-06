@@ -395,11 +395,11 @@ Av2hStatus av2h_tile_decoder_next_luma(
         decoder->luma_mode_contexts.intrabc_bank_superblock_hits = 0U;
     }
     av2h_tile_diagnostics_set_luma_stage(1U);
-    status = av2h_luma_mode_read_with_state_and_gdf(
+    status = av2h_luma_mode_read_with_state_and_delta_q(
         &decoder->range, &decoder->leaf_cdfs, decoder->sequence,
         decoder->frame, &leaf->node, &decoder->luma_mode_contexts,
         &decoder->gdf_entropy, &decoder->cdef_entropy,
-        &decoder->ccso_entropy, &leaf->mode);
+        &decoder->ccso_entropy, &decoder->current_q_index, &leaf->mode);
     if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
     status = av2h_luma_palette_map_read(
         &decoder->range, &decoder->leaf_cdfs, &leaf->node, &leaf->mode);
@@ -463,6 +463,7 @@ read_transform:
             return av2h_tile_decoder_fail(decoder, AV2H_INVALID_DATA);
         }
         if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
+        leaf->prefix.q_index = (uint8_t)decoder->current_q_index;
         decoder->event = AV2H_TILE_EVENT_LUMA_LEAF;
         return AV2H_OK;
     }
@@ -485,6 +486,7 @@ read_transform:
             &leaf->prefix, &dc_sign_context);
     }
     if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
+    leaf->prefix.q_index = (uint8_t)decoder->current_q_index;
 #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
     av2h_partition_diagnostic_leaf_stage(
         leaf->node, 21U, leaf->prefix.eob_point, leaf->prefix.eob_extra,

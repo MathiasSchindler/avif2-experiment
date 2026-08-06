@@ -92,6 +92,9 @@ static Av2hStatus initialize_binary_table(
 }
 
 Av2hStatus av2h_leaf_cdfs_init(Av2hLeafCdfs *cdfs) {
+    static const uint16_t delta_q[] = {
+        16594U, 23325U, 26424U, 28225U, 29358U, 30099U, 30613U
+    };
     static const uint16_t intrabc_shell_class[] = {
         8680U, 13723U, 18208U, 22686U, 26722U, 30020U
     };
@@ -226,6 +229,10 @@ Av2hStatus av2h_leaf_cdfs_init(Av2hLeafCdfs *cdfs) {
     Av2hStatus status;
     size_t context;
     if (cdfs == 0) return AV2H_INVALID_ARGUMENT;
+    status = av2h_cdf_init(
+        cdfs->delta_q, AV2H_DELTA_Q_SYMBOLS + 4U,
+        delta_q, AV2H_DELTA_Q_SYMBOLS, 56U, 0U);
+    if (status != AV2H_OK) return status;
     status = initialize_binary_table(cdfs->intrabc, intrabc_defaults,
                                      AV2H_INTRABC_CONTEXT_COUNT);
     if (status != AV2H_OK) return status;

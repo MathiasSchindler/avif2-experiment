@@ -304,6 +304,8 @@ Av2hStatus av2h_tile_decoder_next_chroma(
             &leaf->node, plane, &decoder->coefficient_contexts,
             &leaf->prefix[index]);
         if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
+        leaf->prefix[index].q_index =
+            (uint8_t)decoder->current_q_index;
 #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
         av2h_partition_diagnostic_leaf_stage(
             leaf->node, (uint8_t)(51U + index * 3U),
