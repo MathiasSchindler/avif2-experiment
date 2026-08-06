@@ -16,4 +16,3 @@ __pycache__/
 !/experimental/run_experiment.py
 !/experimental/wasm/
 !/experimental/wasm/**
-/experimental/wasm/decoder.wasm

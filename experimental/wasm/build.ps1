@@ -1,9 +1,10 @@
 param(
     [string]$Clang = "",
-    [string]$OutputDirectory = $PSScriptRoot
+    [string]$OutputDirectory = (Join-Path $PSScriptRoot "..\..\docs")
 )
 
 $ErrorActionPreference = "Stop"
+$OutputDirectory = [System.IO.Path]::GetFullPath($OutputDirectory)
 if (-not $Clang) {
     $standardLlvm = "C:\Program Files\LLVM\bin\clang.exe"
     $Clang = if (Test-Path $standardLlvm) { $standardLlvm } else { "clang" }

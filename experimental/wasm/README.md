@@ -11,14 +11,14 @@ Set-ExecutionPolicy -Scope Process Bypass
 .\experimental\wasm\build.ps1
 ```
 
-The build requires an LLVM installation containing the WebAssembly backend and `wasm-ld`. It produces `decoder.wasm` beside the interface files.
+The build requires an LLVM installation containing the WebAssembly backend and `wasm-ld`. It produces `docs/decoder.wasm` for GitHub Pages. The C wrapper and build script remain in this directory.
 
 ## Run
 
 The browser must load the module over HTTP rather than `file://`:
 
 ```powershell
-python -m http.server 8080 --directory experimental\wasm
+python -m http.server 8080 --directory docs
 ```
 
 Open <http://localhost:8080>, then drop a single-frame closed-loop-key `.obu` file onto the page.
