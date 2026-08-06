@@ -1,0 +1,273 @@
+#!/usr/bin/env python3
+"""Generate the Palacio Pitti AV2 quality-comparison asset series."""
+
+from __future__ import annotations
+
+import argparse
+import concurrent.futures
+import hashlib
+import json
+import os
+import shutil
+import subprocess
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parents[2]
+DEMO = Path(__file__).resolve().parent
+DEFAULT_SOURCE = DEMO / "source" / "palacio-pitti-2000.jpg"
+DEFAULT_OUTPUT = DEMO / "site"
+DEFAULT_ENCODER = ROOT / "build" / "reference" / "avm" / "avmenc.exe"
+QP_VALUES = tuple(range(16, 241, 16))
+OUTPUT_SIZE = 960
+
+SCENES = (
+    {
+        "id": "overview",
+        "name": "Entire ceiling",
+        "description": "The complete ceiling scaled to 960 x 960 pixels.",
+        "filter": f"scale={OUTPUT_SIZE}:{OUTPUT_SIZE}:flags=lanczos,format=yuv420p",
+        "transformation": "Scaled from the complete source image.",
+    },
+    {
+        "id": "inscription",
+        "name": "Inscription detail",
+        "description": "A 50% linear crop with lettering, stucco, and fresco detail.",
+        "filter": (
+            "crop=1920:1920:0:920,transpose=2,"
+            f"scale={OUTPUT_SIZE}:{OUTPUT_SIZE}:flags=lanczos,format=yuv420p"
+        ),
+        "transformation": (
+            "Cropped to 1920 x 1920 pixels at source position (0, 920), "
+            "rotated 90 degrees counter-clockwise, and scaled to 960 x 960."
+        ),
+    },
+)
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--source", type=Path, default=DEFAULT_SOURCE)
+    parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
+    parser.add_argument("--encoder", type=Path, default=DEFAULT_ENCODER)
+    parser.add_argument(
+        "--jobs", type=int, default=min(4, os.cpu_count() or 1)
+    )
+    parser.add_argument(
+        "--resume", action="store_true",
+        help="Reuse nonempty OBU files already present in the output directory.",
+    )
+    return parser.parse_args()
+
+
+def require_tool(value: Path | str) -> str:
+    text = str(value)
+    resolved = str(Path(text).resolve()) if Path(text).is_file() else shutil.which(text)
+    if resolved is None:
+        raise RuntimeError(f"missing required tool: {text}")
+    return resolved
+
+
+def run(command: list[str]) -> None:
+    completed = subprocess.run(
+        command,
+        cwd=ROOT,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    if completed.returncode != 0:
+        raise RuntimeError(
+            f"command failed ({completed.returncode}): {' '.join(command)}\n"
+            f"{completed.stderr.strip()}"
+        )
+
+
+def sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as source:
+        for chunk in iter(lambda: source.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def dimensions(ffprobe: str, source: Path) -> tuple[int, int]:
+    completed = subprocess.run(
+        [
+            ffprobe, "-v", "error", "-select_streams", "v:0",
+            "-show_entries", "stream=width,height", "-of", "json",
+            str(source),
+        ],
+        cwd=ROOT,
+        check=True,
+        stdout=subprocess.PIPE,
+        text=True,
+    )
+    streams = json.loads(completed.stdout).get("streams", [])
+    if len(streams) != 1:
+        raise RuntimeError(f"expected one image stream in {source}")
+    return int(streams[0]["width"]), int(streams[0]["height"])
+
+
+def make_source(ffmpeg: str, source: Path, output: Path, filter_graph: str) -> None:
+    run(
+        [
+            ffmpeg,
+            "-nostdin",
+            "-hide_banner",
+            "-loglevel",
+            "error",
+            "-y",
+            "-i",
+            str(source),
+            "-vf",
+            filter_graph,
+            "-frames:v",
+            "1",
+            "-f",
+            "rawvideo",
+            str(output),
+        ]
+    )
+    expected = OUTPUT_SIZE * OUTPUT_SIZE * 3 // 2
+    if output.stat().st_size != expected:
+        raise RuntimeError(
+            f"unexpected I420 size for {output}: {output.stat().st_size}"
+        )
+
+
+def encode_variant(
+    encoder: str, source: Path, output: Path, qp: int, resume: bool
+) -> dict[str, object]:
+    if not (resume and output.is_file() and output.stat().st_size > 0):
+        run(
+            [
+            encoder,
+            "--debug",
+            "--codec=av2",
+            "--obu",
+            "--passes=1",
+            "--limit=1",
+            "--good",
+            "--cpu-used=9",
+            "--threads=1",
+            "--profile=0",
+            f"--width={OUTPUT_SIZE}",
+            f"--height={OUTPUT_SIZE}",
+            "--i420",
+            "--bit-depth=8",
+            "--input-bit-depth=8",
+            "--input-chroma-subsampling-x=1",
+            "--input-chroma-subsampling-y=1",
+            "--chroma-sample-position=unspecified",
+            "--force-video-mode=0",
+            "--film-grain-test=0",
+            "--enable-lcr=0",
+            "--enable-operating-point-sets=0",
+            "--enable-atlas=0",
+            "--end-usage=q",
+            f"--qp={qp}",
+            "--test-decode=fatal",
+            "--quiet",
+            "-o",
+            str(output),
+            str(source),
+            ]
+        )
+    return {
+        "qp": qp,
+        "file": output.name,
+        "bytes": output.stat().st_size,
+        "sha256": sha256(output),
+    }
+
+
+def main() -> None:
+    args = parse_args()
+    source = args.source.resolve()
+    output = args.output.resolve()
+    if not source.is_file():
+        raise RuntimeError(f"missing source image: {source}")
+    ffmpeg = require_tool("ffmpeg")
+    ffprobe = require_tool("ffprobe")
+    encoder = require_tool(args.encoder)
+    source_width, source_height = dimensions(ffprobe, source)
+    output.mkdir(parents=True, exist_ok=True)
+
+    scene_records = []
+    for scene in SCENES:
+        scene_id = str(scene["id"])
+        source_i420 = output / f"{scene_id}-source.i420"
+        make_source(ffmpeg, source, source_i420, str(scene["filter"]))
+        jobs = []
+        with concurrent.futures.ThreadPoolExecutor(max_workers=args.jobs) as pool:
+            for qp in QP_VALUES:
+                target = output / f"{scene_id}-q{qp:03d}.obu"
+                jobs.append(
+                    pool.submit(
+                        encode_variant, encoder, source_i420, target, qp,
+                        args.resume
+                    )
+                )
+            variants = [job.result() for job in jobs]
+        source_i420.unlink()
+        scene_records.append(
+            {
+                "id": scene_id,
+                "name": scene["name"],
+                "description": scene["description"],
+                "transformation": scene["transformation"],
+                "width": OUTPUT_SIZE,
+                "height": OUTPUT_SIZE,
+                "variants": sorted(variants, key=lambda item: int(item["qp"])),
+            }
+        )
+        print(f"Generated {len(variants)} variants for {scene_id}")
+
+    manifest = {
+        "schema": "av2h-quality-viewer-v1",
+        "title": "Palazzo Pitti ceiling",
+        "source": {
+            "description": (
+                "Ceiling of Sala della Stufa, Galleria Palatina, "
+                "Palazzo Pitti, Florence."
+            ),
+            "author": "Diego Delso",
+            "author_url": "http://delso.photo/",
+            "license": "CC BY-SA 4.0",
+            "license_url": "https://creativecommons.org/licenses/by-sa/4.0/legalcode",
+            "commons_url": (
+                "https://commons.wikimedia.org/wiki/File:Palacio_Pitti,_Florencia,_"
+                "Italia,_2022-09-18,_DD_163-165_HDR.jpg"
+            ),
+            "derivative_url": (
+                "https://commons.wikimedia.org/wiki/Special:Redirect/file/"
+                "Palacio_Pitti%2C_Florencia%2C_Italia%2C_2022-09-18%2C_"
+                "DD_163-165_HDR.jpg?width=2000"
+            ),
+            "downloaded_dimensions": {
+                "width": source_width,
+                "height": source_height,
+            },
+            "sha256": sha256(source),
+            "changes": "Scaled, cropped, rotated, converted to I420, and AV2-encoded.",
+        },
+        "encoder": {
+            "codec": "AV2",
+            "implementation": "AVM",
+            "cpu_used": 9,
+            "profile": 0,
+            "bit_depth": 8,
+            "pixel_format": "I420",
+            "qp_step": 16,
+        },
+        "scenes": scene_records,
+    }
+    (output / "manifest.json").write_text(
+        json.dumps(manifest, indent=2) + "\n", encoding="utf-8"
+    )
+    print(f"Wrote {output / 'manifest.json'}")
+
+
+if __name__ == "__main__":
+    main()

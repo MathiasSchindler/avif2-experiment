@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AV2 Quality Lab - Palazzo Pitti</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main>
+    <header class="masthead">
+      <div>
+        <p class="eyebrow">WebAssembly decoder experiment</p>
+        <h1>AV2 Quality Lab</h1>
+      </div>
+      <output id="runtime-status" class="runtime-status">Loading decoder</output>
+    </header>
+
+    <section class="toolbar" aria-label="Comparison controls">
+      <div class="scene-control">
+        <span class="control-label">View</span>
+        <div id="scene-buttons" class="segments" role="group" aria-label="Image view"></div>
+      </div>
+
+      <label class="qp-control qp-left">
+        <span><b>A</b> QP <output id="left-qp">64</output></span>
+        <input id="left-slider" type="range" min="0" max="14" value="3">
+      </label>
+      <label class="qp-control qp-right">
+        <span><b>B</b> QP <output id="right-qp">192</output></span>
+        <input id="right-slider" type="range" min="0" max="14" value="11">
+      </label>
+
+      <label class="compact-control">
+        <span class="control-label">Reveal</span>
+        <input id="split-slider" type="range" min="5" max="95" value="50">
+      </label>
+      <label class="compact-control">
+        <span class="control-label">Zoom <output id="zoom-value">100%</output></span>
+        <input id="zoom-slider" type="range" min="100" max="250" step="25" value="100">
+      </label>
+    </section>
+
+    <section class="viewer" aria-label="Decoded AV2 image comparison">
+      <div id="image-stage" class="image-stage">
+        <div class="image-layer"><canvas id="left-canvas" role="img" aria-label="Decoded image A"></canvas></div>
+        <div id="right-layer" class="image-layer right-layer"><canvas id="right-canvas" role="img" aria-label="Decoded image B"></canvas></div>
+        <div id="split-line" class="split-line" aria-hidden="true"><span></span></div>
+        <span class="image-tag tag-left">A</span>
+        <span class="image-tag tag-right">B</span>
+        <div id="loading" class="loading">Decoding AV2</div>
+      </div>
+
+      <div class="readout" aria-live="polite">
+        <div><span>A</span><strong id="left-size">-</strong><small id="left-time">-</small></div>
+        <div><span>B</span><strong id="right-size">-</strong><small id="right-time">-</small></div>
+        <div><span>Difference</span><strong id="size-difference">-</strong><small>encoded bytes</small></div>
+        <div><span>Frame</span><strong id="frame-size">960 x 960</strong><small>8-bit I420</small></div>
+      </div>
+    </section>
+
+    <section class="curve" aria-labelledby="curve-title">
+      <div class="curve-heading">
+        <div>
+          <p class="eyebrow">Current view</p>
+          <h2 id="curve-title">QP / file size</h2>
+        </div>
+        <p id="scene-description"></p>
+      </div>
+      <div id="size-chart" class="size-chart" aria-label="Encoded file sizes by QP"></div>
+    </section>
+
+    <footer class="attribution">
+      <p id="source-description"></p>
+      <p>
+        Image by <a href="http://delso.photo/">Diego Delso, delso.photo</a>,
+        License <a href="https://creativecommons.org/licenses/by-sa/4.0/legalcode">CC BY-SA 4.0</a>.
+        <a id="commons-link" href="https://commons.wikimedia.org/">Source on Wikimedia Commons</a>.
+        The demo crops, rotates, scales, converts, and AV2-encodes the source image.
+      </p>
+    </footer>
+  </main>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
