@@ -72,14 +72,16 @@ uint8_t av2h_chroma_dc_predictor_average(
     unsigned int sum, unsigned int count,
     uint16_t width, uint16_t height,
     uint8_t have_top, uint8_t have_left) {
+    int shift;
+    uint16_t scale;
+    (void)width;
+    (void)height;
+    (void)have_top;
+    (void)have_left;
     if (count == 0U) return 128U;
-    if (have_top && have_left && width != height) {
-        int shift;
-        uint16_t scale = av2h_cfl_resolve_divisor_32(count, &shift);
-        return (uint8_t)(((uint64_t)sum * scale +
-                          ((uint64_t)1U << (shift - 1))) >> shift);
-    }
-    return (uint8_t)((sum + count / 2U) / count);
+    scale = av2h_cfl_resolve_divisor_32(count, &shift);
+    return (uint8_t)(((uint64_t)sum * scale +
+                      ((uint64_t)1U << (shift - 1))) >> shift);
 }
 
 static void apply_ibp_dc(uint8_t *dst, size_t stride, uint16_t width,
@@ -646,13 +648,6 @@ static int plane_region_reconstructed(const Av2hReconstructionPlane *plane,
     return 1;
 }
 
-static uint8_t plane_clamped_sample(
-    const Av2hReconstructionPlane *plane, size_t x, size_t y) {
-    if (x >= plane->reference_width) x = plane->reference_width - 1U;
-    if (y >= plane->reference_height) y = plane->reference_height - 1U;
-    return plane->data[y * plane->stride + x];
-}
-
 static uint8_t plane_coded_sample(
     const Av2hReconstructionPlane *plane, size_t x, size_t y) {
     if (x >= plane->width) x = plane->width - 1U;
@@ -859,7 +854,7 @@ Av2hStatus av2h_cfl_derived_predict(
         for (column = 0U; column < width; ++column) {
             if (filter_index == 1U) {
                 size_t center_x = (size_t)luma_x + (size_t)column * 2U;
-                size_t left_x = (column & 31U) == 0U ?
+                size_t left_x = column == 0U ?
                     center_x : center_x - 1U;
                 size_t top_row = (size_t)luma_y - (size_t)top_offset;
                 size_t bottom_row = top_row + (size_t)bottom_offset;
@@ -878,7 +873,7 @@ Av2hStatus av2h_cfl_derived_predict(
                 size_t center_x = (size_t)luma_x + (size_t)column * 2U;
                 size_t center_y =
                     (size_t)luma_y - (size_t)top_offset;
-                size_t left_x = (column & 31U) == 0U ?
+                size_t left_x = column == 0U ?
                     center_x : center_x - 1U;
                 size_t top_y = is_top_sb_boundary ?
                     center_y : center_y - 1U;
@@ -897,10 +892,10 @@ Av2hStatus av2h_cfl_derived_predict(
                 size_t top_row = (size_t)luma_y - (size_t)top_offset;
                 size_t bottom_row = top_row + (size_t)bottom_offset;
                 luma_above_ds[column] = (int32_t)(
-                    plane_clamped_sample(luma_plane, c0, top_row) +
-                    plane_clamped_sample(luma_plane, c0 + 1U, top_row) +
-                    plane_clamped_sample(luma_plane, c0, bottom_row) +
-                    plane_clamped_sample(
+                    plane_coded_sample(luma_plane, c0, top_row) +
+                    plane_coded_sample(luma_plane, c0 + 1U, top_row) +
+                    plane_coded_sample(luma_plane, c0, bottom_row) +
+                    plane_coded_sample(
                         luma_plane, c0 + 1U, bottom_row)) << 1;
             }
             chroma_above[column] = plane_coded_sample(

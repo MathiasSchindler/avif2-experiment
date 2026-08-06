@@ -1568,12 +1568,14 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_ex(
         uint8_t dc_value;
         size_t i;
         if (have_top) {
-            for (i = 0U; i < width; ++i) sum += scratch->above[i];
-            count += width;
+            size_t step = width > 32U ? 2U : 1U;
+            for (i = 0U; i < width; i += step) sum += scratch->above[i];
+            count += (unsigned int)((width + step - 1U) / step);
         }
         if (have_left) {
-            for (i = 0U; i < height; ++i) sum += scratch->left[i];
-            count += height;
+            size_t step = height > 32U ? 2U : 1U;
+            for (i = 0U; i < height; i += step) sum += scratch->left[i];
+            count += (unsigned int)((height + step - 1U) / step);
         }
         dc_value = av2h_chroma_dc_predictor_average(
             sum, count, width, height, have_top, have_left);

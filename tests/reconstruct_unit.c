@@ -52,6 +52,13 @@ static void test_chroma_geometry_through_64(void) {
     }
 }
 
+static void test_cfl_dc_uses_avm_reciprocal_rounding(void) {
+    CHECK(av2h_chroma_dc_predictor_average(
+              12U, 24U, 16U, 16U, 1U, 1U) == 0U);
+    CHECK(av2h_chroma_dc_predictor_average(
+              0U, 0U, 16U, 16U, 0U, 0U) == 128U);
+}
+
 static void test_ist_4x4_set11_type3(void) {
     Av2hFirstLeafMode mode = { 0 };
     Av2hFirstCoeffPrefix prefix = { 0 };
@@ -5677,6 +5684,7 @@ static void test_emerald_chroma_dct_geometries(void) {
 
 int main(void) {
     test_chroma_geometry_through_64();
+    test_cfl_dc_uses_avm_reciprocal_rounding();
     test_ist_4x4_set11_type3();
     test_palace_ist_gaps();
     if (0) test_d45_minus_one_16x4_prediction();

@@ -143,7 +143,9 @@ static void build_intrabc_candidates(
             context = intrabc_spatial_context(
                 state, row - 1, above_right_column);
             primary_above = context;
-            add_intrabc_candidate(candidates, count, context, 1U);
+            add_intrabc_candidate(
+                candidates, count, context,
+                above_right_column - column <= -1 ? 0U : 1U);
             if (height_mi > 1U) {
                 context = intrabc_spatial_context(
                     state, row, column - 1);
