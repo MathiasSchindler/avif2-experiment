@@ -212,6 +212,8 @@ typedef struct {
     uint8_t morph_pred;
     int16_t displacement_x;
     int16_t displacement_y;
+    uint16_t owner_row;
+    uint16_t owner_column;
     uint8_t skip_transform;
     uint8_t joint_mode;
     uint8_t fsc_mode;

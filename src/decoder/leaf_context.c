@@ -201,6 +201,8 @@ Av2hStatus av2h_luma_mode_context_state_update(
     context.morph_pred = mode->morph_pred;
     context.displacement_x = mode->displacement_x;
     context.displacement_y = mode->displacement_y;
+    context.owner_row = leaf->row;
+    context.owner_column = leaf->column;
     context.skip_transform = mode->skip_transform;
     context.joint_mode = mode->joint_mode;
     context.fsc_mode = mode->fsc_mode;

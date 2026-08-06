@@ -320,6 +320,8 @@ static Av2hStatus tile_store_luma_mode(Av2hTileDecoder *decoder,
             cell->context.mv_precision = mode->mv_precision;
             cell->context.displacement_x = mode->displacement_x;
             cell->context.displacement_y = mode->displacement_y;
+            cell->context.owner_row = node->row;
+            cell->context.owner_column = node->column;
             cell->context.skip_transform = mode->skip_transform;
             cell->context.joint_mode = mode->joint_mode;
             cell->context.fsc_mode = mode->fsc_mode;

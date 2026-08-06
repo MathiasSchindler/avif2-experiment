@@ -22,6 +22,7 @@ const int16_t *av2h_intrabc_diagnostic_bank(size_t *count) {
     *count = intrabc_diagnostic_bank_count;
     return intrabc_diagnostic_bank;
 }
+
 #endif
 
 static void add_intrabc_candidate(
@@ -114,6 +115,7 @@ static void build_intrabc_candidates(
         if (state->spatial != 0) {
             int32_t row = leaf->row;
             int32_t column = leaf->column;
+            const Av2hLumaModeContext *primary_above = 0;
             int32_t above_right_column;
             int32_t above_column;
             int32_t top_right_column;
@@ -140,6 +142,7 @@ static void build_intrabc_candidates(
             add_intrabc_candidate(candidates, count, context, 1U);
             context = intrabc_spatial_context(
                 state, row - 1, above_right_column);
+            primary_above = context;
             add_intrabc_candidate(candidates, count, context, 1U);
             if (height_mi > 1U) {
                 context = intrabc_spatial_context(
@@ -153,7 +156,12 @@ static void build_intrabc_candidates(
             add_intrabc_candidate(candidates, count, context, 1U);
             context = intrabc_spatial_context(
                 state, row - 1, top_right_column);
-            add_intrabc_candidate(candidates, count, context, 1U);
+            if (context != 0 &&
+                (!at_superblock_boundary || primary_above == 0 ||
+                 context->owner_row != primary_above->owner_row ||
+                 context->owner_column != primary_above->owner_column)) {
+                add_intrabc_candidate(candidates, count, context, 1U);
+            }
             context = intrabc_spatial_context(
                 state, row - 1, top_left_column);
             add_intrabc_candidate(candidates, count, context, 0U);
