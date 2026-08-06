@@ -16,6 +16,7 @@ set(AV2HEIF_CORE_SOURCES
     src/bmff.c
     src/container.c
     src/query.c
+    src/decode.c
     src/decoder/cdf.c
     src/decoder/chroma_prediction.c
     src/decoder/coeff.c
@@ -161,6 +162,7 @@ if(AV2HEIF_BUILD_HOST_TESTS)
         artifact_profile
         layout
         sample_math
+        public_decode
     )
     foreach(unit_name IN LISTS AV2HEIF_HOST_UNIT_NAMES)
         string(REPLACE "_" "-" unit_target "${unit_name}-unit")

@@ -27,7 +27,14 @@ typedef enum {
     AV2H_CONTEXT_HEIF = 8,
     AV2H_CONTEXT_DIALECT = 9,
     AV2H_CONTEXT_LIMITS = 10,
-    AV2H_CONTEXT_QUERY = 11
+    AV2H_CONTEXT_QUERY = 11,
+    AV2H_CONTEXT_FRAME = 12,
+    AV2H_CONTEXT_WORKSPACE = 13,
+    AV2H_CONTEXT_OUTPUT = 14,
+    AV2H_CONTEXT_BINDING = 15,
+    AV2H_CONTEXT_DECODE = 16,
+    AV2H_CONTEXT_RECONSTRUCTION = 17,
+    AV2H_CONTEXT_FILTER = 18
 } Av2hErrorContext;
 
 typedef struct {
@@ -161,6 +168,7 @@ typedef struct {
     size_t max_item_payload_size;
     size_t max_pixels;
     size_t max_output_size;
+    size_t max_workspace_size;
     uint32_t max_width;
     uint32_t max_height;
     size_t max_obu_count;
@@ -251,5 +259,14 @@ Av2hStatus av2h_query(Av2hSpan input,
 Av2hStatus av2h_validate(Av2hSpan input,
                          const Av2hLimits *limits,
                          Av2hError *error);
+
+/* Decode canonical AV2-HEIF into the contiguous I420 layout from info. */
+Av2hStatus av2h_decode(Av2hSpan input,
+                       const Av2hInfo *info,
+                       void *workspace,
+                       size_t workspace_size,
+                       void *output,
+                       size_t output_size,
+                       Av2hError *error);
 
 #endif

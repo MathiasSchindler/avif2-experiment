@@ -1,4 +1,5 @@
 #include "base.h"
+#include "decode.h"
 
 static Av2hStatus query_fail(Av2hError *error,
                              Av2hStatus status,
@@ -75,6 +76,7 @@ void av2h_limits_default(Av2hLimits *limits) {
     limits->max_item_payload_size = 256U * 1024U * 1024U;
     limits->max_pixels = 268435456U;
     limits->max_output_size = 402653184U;
+    limits->max_workspace_size = 1073741824U;
     limits->max_width = 16384U;
     limits->max_height = 16384U;
     limits->max_obu_count = 2U;
@@ -160,6 +162,7 @@ Av2hStatus av2h_query(Av2hSpan input,
     Av2hStatus status;
     size_t pixels;
     size_t output_size;
+    Av2hDecodePreparation preparation;
     uint32_t chroma_width;
     uint32_t chroma_height;
     if (info == 0 || (input.data == 0 && input.size != 0U)) {
@@ -230,8 +233,24 @@ Av2hStatus av2h_query(Av2hSpan input,
                           AV2H_CONTEXT_LIMITS);
     }
     info->output_size = output_size;
-    info->workspace_size = 0U;
-    info->workspace_alignment = 1U;
+    status = av2h_decode_prepare(&info->image, &preparation, error);
+    if (status != AV2H_OK) return status;
+    if (preparation.output_size != output_size) {
+        return query_fail(error, AV2H_INVALID_DATA, 0U,
+                          AV2H_CONTEXT_OUTPUT);
+    }
+    info->workspace_size = preparation.workspace.size;
+    info->workspace_alignment = preparation.workspace.alignment;
+    if (info->workspace_alignment == 0U ||
+        (info->workspace_alignment &
+         (info->workspace_alignment - 1U)) != 0U) {
+        return query_fail(error, AV2H_INVALID_DATA, 0U,
+                          AV2H_CONTEXT_WORKSPACE);
+    }
+    if (info->workspace_size > active->max_workspace_size) {
+        return query_fail(error, AV2H_LIMIT_EXCEEDED, 0U,
+                          AV2H_CONTEXT_LIMITS);
+    }
     info->input_size = input.size;
     info->input_fingerprint = input_fingerprint(input);
     return AV2H_OK;

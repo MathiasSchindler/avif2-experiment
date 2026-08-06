@@ -503,7 +503,13 @@ gate.
 
 ## Milestone 10: bounded public decode surface
 
-**Status:** Planned.
+**Status:** Complete. The public query reports exact workspace size/alignment
+and contiguous I420 layouts; decode verifies immutable query binding, caller
+bounds, alignment, and disjoint ranges before entering the private pipeline.
+The four canonical fixtures pass complete output hashes through canonical HEIF,
+and the ordinary fixture covers stale state, overlap, undersized buffers, and
+every shorter input prefix without preflight output mutation. See
+`docs/dev/milestone-10.md`.
 
 Structural preparation for this milestone is tracked in
 `docs/decoder-refactoring-plan.md`.
@@ -549,19 +555,16 @@ Release validation additionally includes:
 
 ## Current work order
 
-1. Resolve the four remaining corpus output-parity gaps: Emerald Q128, both
-  Laarim streams, and Schwaebisch Q112.
-2. Finalize exact workspace sizing, alignment, query binding, output-layout
-  validation, truncation behavior, and error ownership for Milestone 10.
-3. Expose the stable caller-owned decode API only after its nonmutation, fuzz,
-  freestanding, and release gates pass.
+1. Add 8-bit monochrome as the first independently tested profile expansion.
+2. Generalize chroma geometry for 8-bit 4:4:4 without weakening 4:2:0 parity.
+3. Add 10-bit 4:2:0 only after sample storage, arithmetic bounds, workspace
+  sizing, and output layout are explicitly widened and differentially tested.
 
 Early work in a later milestone may be retained when it is already validated,
 but it does not waive an earlier exit gate. Each milestone must leave the
 decoder fail-closed at the first unsupported owner.
 
-Milestones 7, 8, and 9 are complete. The private Windows decoder emits all 21
-research artifacts; 17 are byte-identical to pinned AVM and four have tracked
-parity gaps. Milestone 10 owns bounded workspace, the stable public API, fuzz
-coverage, and release finalization. Restoration remains outside the accepted
-profile and must continue to fail closed.
+Milestones 7 through 10 are complete. The private Windows decoder and public
+canonical-HEIF path retain byte-identical pinned-AVM output for their locked
+corpora. Restoration remains outside the accepted profile and must continue to
+fail closed.

@@ -36,13 +36,14 @@ separate reference experiment and is fetched into ignored `vendor/` and
 - Milestone 8 completes the high-detail, CFL, IntraBC, coefficient, prediction,
   and advanced-transform coverage reached by its locked fixture. Milestone 9
   completes mandatory-filter integration and filtered parity. Milestone 10
-  remains planned for workspace finalization and the stable public decode API.
+  exposes exact workspace sizing, immutable query binding, contiguous
+  caller-owned I420 output, and the stable public decode API.
 - The private Windows decoder emits I420 byte-identical to pinned AVM output
   for all 31 research artifacts.
 
 The public API is declared in `include/av2heif.h`. Milestone details and
-limitations are recorded in `docs/milestone-0.md` through
-`docs/milestone-10.md`; the longer roadmap is in `plan.md`.
+limitations are recorded in `docs/dev/milestone-0.md` through
+`docs/dev/milestone-10.md`; the longer roadmap is in `plan.md`.
 
 ## Build and test
 

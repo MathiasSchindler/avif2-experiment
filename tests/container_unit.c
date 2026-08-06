@@ -409,7 +409,14 @@ static void test_query_and_limits(void) {
     Av2hInfo info;
     Av2hLimits limits;
     Av2hError error;
-    CHECK(av2h_query((Av2hSpan){ canonical, sizeof(canonical) }, 0,
+    Av2hHeifSource source = make_source();
+    unsigned char bytes[512];
+    size_t written = 0U;
+    source.item_payload.data = avm_item_payload;
+    source.item_payload.size = sizeof(avm_item_payload);
+    CHECK(av2h_heif_write(&source, bytes, sizeof(bytes),
+                           &written, &error) == AV2H_OK);
+    CHECK(av2h_query((Av2hSpan){ bytes, written }, 0,
                      &info, &error) == AV2H_OK);
     CHECK(info.dialect == AV2H_DIALECT_CANONICAL_V0);
     CHECK(info.image.width == 16U && info.image.height == 16U);
@@ -420,62 +427,67 @@ static void test_query_and_limits(void) {
     CHECK(info.planes[1].offset == 256U && info.planes[1].size == 64U);
     CHECK(info.planes[2].offset == 320U && info.planes[2].size == 64U);
     CHECK(info.output_size == 384U);
-    CHECK(info.workspace_size == 0U && info.workspace_alignment == 1U);
+    CHECK(info.workspace_size != 0U && info.workspace_alignment != 0U);
     CHECK(info.obu_count == 2U && info.property_count == 4U);
     CHECK(info.container_depth == 3U);
-    CHECK(info.input_size == sizeof(canonical));
+    CHECK(info.input_size == written);
     CHECK(info.input_fingerprint != 0U);
-    CHECK(av2h_validate((Av2hSpan){ canonical, sizeof(canonical) }, 0,
+    CHECK(av2h_validate((Av2hSpan){ bytes, written }, 0,
                         &error) == AV2H_OK);
 
     av2h_limits_default(&limits);
-    limits.max_input_size = sizeof(canonical) - 1U;
-    CHECK(av2h_query((Av2hSpan){ canonical, sizeof(canonical) }, &limits,
+    limits.max_input_size = written - 1U;
+    CHECK(av2h_query((Av2hSpan){ bytes, written }, &limits,
                      &info, &error) == AV2H_LIMIT_EXCEEDED);
     CHECK(error.context == AV2H_CONTEXT_LIMITS);
     av2h_limits_default(&limits);
     limits.max_config_obus_size = sizeof(config_obu) - 1U;
-    CHECK(av2h_query((Av2hSpan){ canonical, sizeof(canonical) }, &limits,
+    CHECK(av2h_query((Av2hSpan){ bytes, written }, &limits,
                      &info, &error) == AV2H_LIMIT_EXCEEDED);
     CHECK(error.context == AV2H_CONTEXT_LIMITS);
     av2h_limits_default(&limits);
-    limits.max_item_payload_size = sizeof(item_payload) - 1U;
-    CHECK(av2h_query((Av2hSpan){ canonical, sizeof(canonical) }, &limits,
+    limits.max_item_payload_size = sizeof(avm_item_payload) - 1U;
+    CHECK(av2h_query((Av2hSpan){ bytes, written }, &limits,
                      &info, &error) == AV2H_LIMIT_EXCEEDED);
     CHECK(error.context == AV2H_CONTEXT_LIMITS);
     av2h_limits_default(&limits);
     limits.max_width = 15U;
-    CHECK(av2h_query((Av2hSpan){ canonical, sizeof(canonical) }, &limits,
+    CHECK(av2h_query((Av2hSpan){ bytes, written }, &limits,
                      &info, &error) == AV2H_LIMIT_EXCEEDED);
     CHECK(error.context == AV2H_CONTEXT_LIMITS);
     av2h_limits_default(&limits);
     limits.max_height = 15U;
-    CHECK(av2h_query((Av2hSpan){ canonical, sizeof(canonical) }, &limits,
+    CHECK(av2h_query((Av2hSpan){ bytes, written }, &limits,
                      &info, &error) == AV2H_LIMIT_EXCEEDED);
     CHECK(error.context == AV2H_CONTEXT_LIMITS);
     av2h_limits_default(&limits);
     limits.max_pixels = 255U;
-    CHECK(av2h_query((Av2hSpan){ canonical, sizeof(canonical) }, &limits,
+    CHECK(av2h_query((Av2hSpan){ bytes, written }, &limits,
                      &info, &error) == AV2H_LIMIT_EXCEEDED);
     CHECK(error.context == AV2H_CONTEXT_LIMITS);
     av2h_limits_default(&limits);
     limits.max_obu_count = 1U;
-    CHECK(av2h_query((Av2hSpan){ canonical, sizeof(canonical) }, &limits,
+    CHECK(av2h_query((Av2hSpan){ bytes, written }, &limits,
                      &info, &error) == AV2H_LIMIT_EXCEEDED);
     CHECK(error.context == AV2H_CONTEXT_LIMITS);
     av2h_limits_default(&limits);
     limits.max_recursion_depth = 2U;
-    CHECK(av2h_query((Av2hSpan){ canonical, sizeof(canonical) }, &limits,
+    CHECK(av2h_query((Av2hSpan){ bytes, written }, &limits,
                      &info, &error) == AV2H_LIMIT_EXCEEDED);
     CHECK(error.context == AV2H_CONTEXT_LIMITS);
     av2h_limits_default(&limits);
     limits.max_output_size = 383U;
-    CHECK(av2h_query((Av2hSpan){ canonical, sizeof(canonical) }, &limits,
+    CHECK(av2h_query((Av2hSpan){ bytes, written }, &limits,
+                     &info, &error) == AV2H_LIMIT_EXCEEDED);
+    CHECK(error.context == AV2H_CONTEXT_LIMITS);
+    av2h_limits_default(&limits);
+    limits.max_workspace_size = 1U;
+    CHECK(av2h_query((Av2hSpan){ bytes, written }, &limits,
                      &info, &error) == AV2H_LIMIT_EXCEEDED);
     CHECK(error.context == AV2H_CONTEXT_LIMITS);
     av2h_limits_default(&limits);
     limits.max_property_count = 3U;
-    CHECK(av2h_query((Av2hSpan){ canonical, sizeof(canonical) }, &limits,
+    CHECK(av2h_query((Av2hSpan){ bytes, written }, &limits,
                      &info, &error) == AV2H_LIMIT_EXCEEDED);
     CHECK(error.context == AV2H_CONTEXT_LIMITS);
 }
