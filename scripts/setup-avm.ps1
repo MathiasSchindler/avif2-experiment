@@ -1,12 +1,28 @@
 param(
-    [string]$ToolchainRoot = ""
+    [string]$ToolchainRoot = "",
+    [ValidateSet("x64", "arm64")]
+    [string]$Architecture = "x64"
 )
 
 $ErrorActionPreference = "Stop"
 
 $root = Split-Path -Parent $PSScriptRoot
 $vendorDir = Join-Path $root "vendor\avm"
-$buildDir = Join-Path $root "build\reference\avm"
+$architectureConfig = @{
+    x64 = @{
+        BuildDirectory = "avm"
+        CompilerPrefix = "x86_64-w64-mingw32"
+        Toolchain = "x86_64-mingw-gcc.cmake"
+        TargetCpu = "generic"
+    }
+    arm64 = @{
+        BuildDirectory = "avm-arm64"
+        CompilerPrefix = "aarch64-w64-mingw32"
+        Toolchain = "arm64-mingw-gcc.cmake"
+        TargetCpu = "arm64"
+    }
+}[$Architecture]
+$buildDir = Join-Path $root "build\reference\$($architectureConfig.BuildDirectory)"
 $revision = "966a7d7cd6fcf60360caf5dc413b2aeeb65e144d"
 $sourceUrl = "https://github.com/AOMediaCodec/avm.git"
 
@@ -35,8 +51,8 @@ if (-not $ToolchainRoot) {
             Select-Object -First 1 -ExpandProperty FullName
     }
 }
-if (-not $ToolchainRoot -or
-    -not (Test-Path (Join-Path $ToolchainRoot "bin\x86_64-w64-mingw32-gcc.exe"))) {
+if (-not $ToolchainRoot -or -not (Test-Path (Join-Path $ToolchainRoot (
+        "bin\$($architectureConfig.CompilerPrefix)-gcc.exe")))) {
     throw "Could not find LLVM-MinGW UCRT; install MartinStorsjo.LLVM-MinGW.UCRT with winget"
 }
 
@@ -67,7 +83,8 @@ if (& $git -C $vendorDir status --short) {
 
 $toolchainBin = Join-Path $ToolchainRoot "bin"
 $env:PATH = "$toolchainBin;$perlDir;$env:PATH"
-$toolchainFile = Join-Path $vendorDir "cmake\toolchains\x86_64-mingw-gcc.cmake"
+$toolchainFile = Join-Path $vendorDir (
+    "cmake\toolchains\$($architectureConfig.Toolchain)")
 $configureArguments = @(
     "-S", $vendorDir,
     "-B", $buildDir,
@@ -76,7 +93,7 @@ $configureArguments = @(
     "-DCMAKE_TOOLCHAIN_FILE=$toolchainFile",
     "-DCMAKE_BUILD_TYPE=Release",
     "-DCMAKE_EXE_LINKER_FLAGS=-static",
-    "-DAVM_TARGET_CPU=generic",
+    "-DAVM_TARGET_CPU=$($architectureConfig.TargetCpu)",
     "-DENABLE_DOCS=OFF",
     "-DENABLE_EXAMPLES=ON",
     "-DENABLE_TESTS=OFF",
@@ -97,4 +114,4 @@ foreach ($name in "avmenc", "avmdec") {
     if ($LASTEXITCODE -ne 0) { throw "$name smoke test failed" }
 }
 
-Write-Output "AVM reference tools are ready in $buildDir"
+Write-Output "AVM $Architecture reference tools are ready in $buildDir"

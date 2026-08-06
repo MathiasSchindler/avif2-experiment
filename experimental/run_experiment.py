@@ -19,8 +19,12 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_IMAGES = ROOT / "images"
-DEFAULT_AVMENC = ROOT / "build" / "reference" / "avm" / "avmenc.exe"
-DEFAULT_AVMDEC = ROOT / "build" / "reference" / "avm" / "avmdec.exe"
+DEFAULT_AVMENC = (
+    ROOT / "build" / "reference" / "avm-arm64" / "avmenc.exe"
+)
+DEFAULT_AVMDEC = (
+    ROOT / "build" / "reference" / "avm-arm64" / "avmdec.exe"
+)
 DEFAULT_LOCAL_DECODER = (
     ROOT / "build" / "windows-x86_64" / "av2heif-decoder.exe"
 )
@@ -60,8 +64,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--jobs",
         type=int,
-        default=min(4, os.cpu_count() or 1),
+        default=min(8, os.cpu_count() or 1),
         help="Number of image cases to process concurrently (default: %(default)s).",
+    )
+    parser.add_argument(
+        "--skip-bmp",
+        action="store_true",
+        help="Skip preview BMP generation for faster parity-only runs.",
     )
     return parser.parse_args()
 
@@ -257,6 +266,9 @@ def decode_avm(
     avmdec: str, obu: Path, output: Path, width: int, height: int
 ) -> list[str]:
     pattern = output.with_name(output.stem + "-%wx%h-%1.i420")
+    output.unlink(missing_ok=True)
+    for stale in output.parent.glob(output.stem + "-*.i420"):
+        stale.unlink()
     command = [
         avmdec,
         "--codec=av2",
@@ -292,6 +304,20 @@ def compare_i420(
     chroma_height = (height + 1) // 2
     y_size = width * height
     uv_size = chroma_width * chroma_height
+    if local_bytes == reference_bytes:
+        return {
+            "size_match": True,
+            "planes": {
+                name: {
+                    "mismatches": 0,
+                    "first_plane_offset": -1,
+                    "max_difference": 0,
+                }
+                for name in ("Y", "U", "V")
+            },
+            "total_mismatches": 0,
+            "exact": True,
+        }
     planes = (
         ("Y", 0, y_size),
         ("U", y_size, uv_size),
@@ -356,6 +382,7 @@ def choose_variant(
 
 def generate_case(
     jpeg: Path,
+    original_dimensions: tuple[int, int],
     output: Path,
     rng: random.Random,
     tools: dict[str, str],
@@ -364,7 +391,7 @@ def generate_case(
     min_qp: int,
     max_qp: int,
 ) -> dict[str, Any]:
-    original_width, original_height = dimensions(tools["ffprobe"], jpeg)
+    original_width, original_height = original_dimensions
     long_edge, width, height, qp = choose_variant(
         rng,
         original_width,
@@ -388,35 +415,35 @@ def generate_case(
     commands["source_i420"] = convert_to_i420(
         tools["ffmpeg"], jpeg, source_i420, width, height
     )
-    commands["source_bmp"] = i420_to_bmp(
-        tools["ffmpeg"], source_i420, source_bmp, width, height
-    )
+    if not args.skip_bmp:
+        commands["source_bmp"] = i420_to_bmp(
+            tools["ffmpeg"], source_i420, source_bmp, width, height
+        )
     commands["encode"] = encode(
         tools["avmenc"], source_i420, obu, width, height, qp
     )
     commands["avm_decode"] = decode_avm(
         tools["avmdec"], obu, avm_i420, width, height
     )
-    commands["avm_bmp"] = i420_to_bmp(
-        tools["ffmpeg"], avm_i420, avm_bmp, width, height
-    )
+    if not args.skip_bmp:
+        commands["avm_bmp"] = i420_to_bmp(
+            tools["ffmpeg"], avm_i420, avm_bmp, width, height
+        )
 
     local_i420_command = [
         tools["local_decoder"], str(obu), "-o", str(local_i420)
     ]
     local_i420_result = run(local_i420_command, check=False)
     commands["local_i420"] = local_i420_command
-    local_bmp_command = [
-        tools["local_decoder"], str(obu), "-o", str(local_bmp)
-    ]
-    local_bmp_result = run(local_bmp_command, check=False)
-    commands["local_bmp"] = local_bmp_command
+    if local_i420_result.returncode == 0 and local_i420.is_file() and not args.skip_bmp:
+        commands["local_bmp"] = i420_to_bmp(
+            tools["ffmpeg"], local_i420, local_bmp, width, height
+        )
 
     local_success = (
         local_i420_result.returncode == 0
-        and local_bmp_result.returncode == 0
         and local_i420.is_file()
-        and local_bmp.is_file()
+        and (args.skip_bmp or local_bmp.is_file())
     )
     parity = (
         compare_i420(local_i420, avm_i420, width, height)
@@ -425,11 +452,11 @@ def generate_case(
     )
     artifact_paths = [
         source_i420,
-        source_bmp,
         obu,
         avm_i420,
-        avm_bmp,
     ]
+    if not args.skip_bmp:
+        artifact_paths.extend((source_bmp, avm_bmp))
     if local_i420.is_file():
         artifact_paths.append(local_i420)
     if local_bmp.is_file():
@@ -451,7 +478,7 @@ def generate_case(
         "local_decoder": {
             "success": local_success,
             "i420_exit_code": local_i420_result.returncode,
-            "bmp_exit_code": local_bmp_result.returncode,
+            "bmp_exit_code": 0 if local_bmp.is_file() else None,
             "stderr": local_i420_result.stderr.strip(),
         },
         "parity": parity,
@@ -464,6 +491,7 @@ def write_reports(
     output: Path,
     seed: int,
     tools: dict[str, str],
+    tool_sha256: dict[str, str],
     cases: list[dict[str, Any]],
 ) -> None:
     totals = {
@@ -487,6 +515,7 @@ def write_reports(
         "created": dt.datetime.now().astimezone().isoformat(),
         "seed": seed,
         "tools": tools,
+        "tool_sha256": tool_sha256,
         "totals": totals,
         "cases": cases,
     }
@@ -549,6 +578,7 @@ def main() -> int:
         "avmdec": require_tool(args.avmdec.resolve()),
         "local_decoder": require_tool(args.local_decoder.resolve()),
     }
+    tool_sha256 = {name: sha256(Path(path)) for name, path in tools.items()}
     profiles = (
         ("full", args.min_qp, args.max_qp),
         ("realistic", args.realistic_min_qp, args.realistic_max_qp),
@@ -557,11 +587,22 @@ def main() -> int:
     print(f"Output: {output}")
     print(f"Seed: {seed}")
     print(f"Jobs: {args.jobs}")
+    print(f"BMP previews: {'disabled' if args.skip_bmp else 'enabled'}")
+    with concurrent.futures.ThreadPoolExecutor(
+        max_workers=min(args.jobs, len(jpegs))
+    ) as executor:
+        source_dimensions = dict(zip(
+            jpegs,
+            executor.map(
+                lambda jpeg: dimensions(tools["ffprobe"], jpeg), jpegs
+            ),
+        ))
     with concurrent.futures.ThreadPoolExecutor(max_workers=args.jobs) as executor:
         futures = {
             executor.submit(
                 generate_case,
                 jpeg,
+                source_dimensions[jpeg],
                 output,
                 random.Random(rng.randrange(2**63)),
                 tools,
@@ -598,6 +639,7 @@ def main() -> int:
                 output,
                 seed,
                 tools,
+                tool_sha256,
                 [item for item in cases if item is not None],
             )
     completed_cases = [case for case in cases if case is not None]

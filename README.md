@@ -173,6 +173,23 @@ This produces `build/reference/avm/avmenc.exe` and `avmdec.exe`. The Windows
 configuration uses AVM's generic C path and disables the two encoder heuristics
 that otherwise require TensorFlow Lite.
 
+On Windows ARM64, build native reference tools side by side without changing
+the known x86-64 build:
+
+```powershell
+.\scripts\setup-avm.ps1 -Architecture arm64
+```
+
+This produces `build/reference/avm-arm64/avmenc.exe` and `avmdec.exe`. The
+experiment harness uses these native tools by default. The known x86-64 build
+remains available at `build/reference/avm`; select it explicitly when needed:
+
+```powershell
+python.exe .\experimental\run_experiment.py `
+  --avmenc .\build\reference\avm\avmenc.exe `
+  --avmdec .\build\reference\avm\avmdec.exe
+```
+
 After the pinned AVM build is available, run the complete artifact laboratory
 without network access with:
 
