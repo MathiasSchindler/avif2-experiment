@@ -100,6 +100,14 @@ Av2hStatus av2h_coeff_contexts_from_state(
     uint8_t fsc_mode,
     uint8_t *txb_skip_context,
     uint8_t *dc_sign_context);
+Av2hStatus av2h_coeff_contexts_from_state_for_coding_block(
+    const Av2hCoeffContextState *state,
+    uint8_t plane,
+    const Av2hPartitionNode *leaf,
+    Av2hBlockSize coding_block_size,
+    uint8_t fsc_mode,
+    uint8_t *txb_skip_context,
+    uint8_t *dc_sign_context);
 Av2hStatus av2h_coeff_context_state_update(
     Av2hCoeffContextState *state,
     uint8_t plane,

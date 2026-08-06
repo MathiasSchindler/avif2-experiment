@@ -181,7 +181,8 @@ static Av2hStatus read_primary(Av2hRangeDecoder *decoder,
         coeff->tx_size == AV2H_TX_32X8) {
         uint16_t *short_side_cdf;
         uint32_t long_side = av2h_range_read_adaptive(
-            decoder, cdfs->primary_long_side_32, 2U);
+            decoder, mode->use_intrabc ? cdfs->intrabc_long_side_32 :
+                                         cdfs->primary_long_side_32, 2U);
         if (mode->use_intrabc) {
             uint16_t last = (uint16_t)(coeff->eob - 1U);
             uint16_t diagonal =

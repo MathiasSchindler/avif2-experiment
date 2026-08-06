@@ -17,6 +17,24 @@ static void tile_capture_luma_root_child(
     uint8_t square_child = 0U;
     size_t index;
     if (decoder->root_block_size == AV2H_BLOCK_128X128 &&
+        av2h_tile_partition_direction(
+            decoder->luma_root_partition) != 0U) {
+        for (index = 0U; index < path->decision_count; ++index) {
+            const Av2hPartitionDecision *decision = &path->decisions[index];
+            if (decision->node.block_size == AV2H_BLOCK_64X64 &&
+                decision->node.row >= decoder->sb_row &&
+                decision->node.row < decoder->sb_row + 32U &&
+                decision->node.column >= decoder->sb_column &&
+                decision->node.column < decoder->sb_column + 32U) {
+                decoder->square_root_child_index = (uint8_t)(
+                    (decision->node.row >= decoder->sb_row + 16U ? 2U : 0U) +
+                    (decision->node.column >= decoder->sb_column + 16U ?
+                         1U : 0U));
+                break;
+            }
+        }
+    }
+    if (decoder->root_block_size == AV2H_BLOCK_128X128 &&
         decoder->square_root_child_index < 4U) {
         uint16_t root_row = (uint16_t)(decoder->sb_row +
             (decoder->square_root_child_index >= 2U ? 16U : 0U));
@@ -388,6 +406,18 @@ Av2hStatus av2h_tile_decoder_next_luma(
     if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
 #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
     av2h_partition_diagnostic_leaf_stage(
+        leaf->node, 60U, leaf->mode.gdf_flags_read,
+        leaf->mode.cdef_strengths_read, leaf->mode.after_gdf_bits);
+    av2h_partition_diagnostic_leaf_stage(
+        leaf->node, 61U, leaf->mode.ccso_controls_read,
+        leaf->mode.mode_index, leaf->mode.after_ccso_bits);
+    av2h_partition_diagnostic_leaf_stage(
+        leaf->node, 62U, leaf->mode.mode_set,
+        leaf->mode.mode_index, leaf->mode.after_mode_index_bits);
+    av2h_partition_diagnostic_leaf_stage(
+        leaf->node, 63U, leaf->mode.fsc_mode,
+        leaf->mode.mrl_index, leaf->mode.after_mrl_bits);
+    av2h_partition_diagnostic_leaf_stage(
         leaf->node, 1U, (uint8_t)leaf->mode.mode, 0U,
         av2h_range_tell(&decoder->range));
 #endif
@@ -399,6 +429,17 @@ Av2hStatus av2h_tile_decoder_next_luma(
     status = tile_store_luma_mode(decoder, &leaf->node, &leaf->mode);
     if (status == AV2H_UNSUPPORTED) return av2h_tile_decoder_fail(decoder, AV2H_OUT_OF_MEMORY);
     if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
+        if (decoder->sequence->enable_sdp &&
+                ((leaf->node.block_size == AV2H_BLOCK_128X128 &&
+                    decoder->luma_root_partition == AV2H_PARTITION_NONE) ||
+                 ((leaf->node.block_size == AV2H_BLOCK_64X128 ||
+                     leaf->node.block_size == AV2H_BLOCK_128X64) &&
+                    av2h_tile_partition_direction(
+                            decoder->luma_root_partition) != 0U))) {
+        status = av2h_tile_decoder_read_shared_chroma_mode(
+            decoder, &leaf->node);
+        if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
+    }
     status = av2h_luma_tx_node_count(leaf->node.block_size, &tx_count);
     if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
     if (tx_count > 1U) {
@@ -426,10 +467,23 @@ read_transform:
         return AV2H_OK;
     }
     av2h_tile_diagnostics_set_luma_stage(2U);
-    status = av2h_coeff_prefix_read_with_state(
-        &decoder->range, &decoder->coeff_cdfs, decoder->frame, &leaf->node,
-        &leaf->mode, &decoder->coefficient_contexts, &leaf->prefix,
-        &dc_sign_context);
+    if (decoder->luma_tx_count != 0U) {
+        uint8_t txb_skip_context;
+        status = av2h_coeff_contexts_from_state_for_coding_block(
+            &decoder->coefficient_contexts, 0U, &leaf->node,
+            decoder->luma_coding_node.block_size, leaf->mode.fsc_mode,
+            &txb_skip_context, &dc_sign_context);
+        if (status == AV2H_OK) {
+            status = av2h_coeff_prefix_read(
+                &decoder->range, &decoder->coeff_cdfs, decoder->frame,
+                &leaf->node, &leaf->mode, txb_skip_context, &leaf->prefix);
+        }
+    } else {
+        status = av2h_coeff_prefix_read_with_state(
+            &decoder->range, &decoder->coeff_cdfs, decoder->frame,
+            &leaf->node, &leaf->mode, &decoder->coefficient_contexts,
+            &leaf->prefix, &dc_sign_context);
+    }
     if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
 #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
     av2h_partition_diagnostic_leaf_stage(

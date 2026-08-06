@@ -133,6 +133,10 @@ Av2hStatus av2h_first_transform_cdfs_init(Av2hFirstTransformCdfs *cdfs) {
         cdfs->primary_long_side_32,
         (Av2hBinaryCdfSpec){ 36U, 0U, 0U });
     if (status != AV2H_OK) return status;
+    status = av2h_binary_cdf_init(
+        cdfs->intrabc_long_side_32,
+        (Av2hBinaryCdfSpec){ 128U, 31U, 0U });
+    if (status != AV2H_OK) return status;
     status = av2h_cdf_init(
         cdfs->primary_short_side_4, 4U + 4U, primary_short_side_4,
         4U, 31U, 0U);

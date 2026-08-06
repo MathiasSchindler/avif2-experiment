@@ -1,4 +1,5 @@
 #include "reconstruct.h"
+#include "internal/decode_diagnostics.h"
 #include "internal/reconstruct_modules.h"
 #include "internal/sample_math.h"
 
@@ -1365,8 +1366,6 @@ static uint16_t mhccp_luma_sample_q3(
         mhccp_luma_filter1_q3(luma_plane, chroma_x, chroma_y) :
         mhccp_luma_filter2_q3(luma_plane, chroma_x, chroma_y);
 }
-
-#include "internal/decode_diagnostics.h"
 
 #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
 static Av2hPredictionDiagnostics prediction_diagnostics;

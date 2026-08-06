@@ -238,6 +238,10 @@ Av2hStatus av2h_tile_decoder_init(
     decoder->status = AV2H_OK;
     decoder->luma_tx_index = 0U;
     decoder->luma_tx_count = 0U;
+    decoder->shared_chroma_resume_luma = 0U;
+    decoder->shared_chroma_complete = 0U;
+    decoder->shared_chroma_mode_pending = 0U;
+    decoder->shared_chroma_commit_luma = 0U;
     for (index = 0U; index < cell_count; ++index) {
         decoder->colocated_luma[index].context =
             (Av2hLumaModeContext){ 0 };
@@ -336,12 +340,36 @@ Av2hStatus av2h_tile_decoder_finish_root(Av2hTileDecoder *decoder) {
     } else {
         return av2h_tile_decoder_fail(decoder, AV2H_INVALID_ARGUMENT);
     }
+    if (decoder->phase == AV2H_TILE_DECODE_CHROMA &&
+        decoder->shared_chroma_resume_luma &&
+        decoder->chroma_traversal.stack_count == 0U &&
+        !decoder->chroma_traversal.has_pending_leaf) {
+        if (decoder->shared_chroma_commit_luma) {
+            status = av2h_partition_traversal_commit_leaf(
+                &decoder->luma_traversal, &decoder->partition_contexts,
+                decoder->shared_chroma_node);
+            if (status != AV2H_OK) {
+                return av2h_tile_decoder_fail(decoder, status);
+            }
+            decoder->shared_chroma_commit_luma = 0U;
+        }
+        decoder->shared_chroma_resume_luma = 0U;
+        decoder->shared_chroma_complete = 1U;
+        decoder->phase = AV2H_TILE_DECODE_LUMA;
+        decoder->event = AV2H_TILE_EVENT_ROOT_HANDOFF;
+        return AV2H_OK;
+    }
     if (traversal->stack_count != 0U ||
         decoder->luma_traversal.has_pending_leaf ||
         decoder->chroma_traversal.has_pending_leaf) {
         return av2h_tile_decoder_fail(decoder, AV2H_INVALID_ARGUMENT);
     }
     if (decoder->phase == AV2H_TILE_DECODE_LUMA) {
+        if (decoder->shared_chroma_complete) {
+            decoder->shared_chroma_complete = 0U;
+            decoder->phase = AV2H_TILE_DECODE_CHROMA;
+            return av2h_tile_decoder_finish_root(decoder);
+        }
         if (decoder->sequence->enable_sdp) {
             if (decoder->luma_root_partition == AV2H_PARTITION_NONE) {
                 decoder->chroma_root_forced_partition = AV2H_PARTITION_NONE;
@@ -426,11 +454,41 @@ Av2hStatus av2h_tile_decoder_commit_leaf(
             }
             ++decoder->luma_tx_index;
             if (decoder->luma_tx_index < decoder->luma_tx_count) {
+                if (decoder->sequence->enable_sdp &&
+                    decoder->luma_coding_node.block_size ==
+                        AV2H_BLOCK_128X128 &&
+                    decoder->luma_root_partition == AV2H_PARTITION_NONE &&
+                    decoder->luma_tx_index == 1U) {
+                    decoder->chroma_root_forced_partition =
+                        AV2H_PARTITION_NONE;
+                    decoder->square_root_child_index = 4U;
+                    decoder->shared_chroma_resume_luma = 1U;
+                    decoder->phase = AV2H_TILE_DECODE_CHROMA;
+                    decoder->event = AV2H_TILE_EVENT_ROOT_HANDOFF;
+                }
                 return AV2H_OK;
             }
             leaf = decoder->luma_coding_node;
             decoder->luma_tx_index = 0U;
             decoder->luma_tx_count = 0U;
+            if (decoder->sequence->enable_sdp &&
+                decoder->shared_chroma_mode_pending &&
+                (leaf.block_size == AV2H_BLOCK_64X128 ||
+                 leaf.block_size == AV2H_BLOCK_128X64)) {
+                status = av2h_partition_traversal_reset_root(
+                    &decoder->chroma_traversal,
+                    decoder->shared_chroma_node);
+                if (status != AV2H_OK) {
+                    return av2h_tile_decoder_fail(decoder, status);
+                }
+                decoder->chroma_root_forced_partition =
+                    AV2H_PARTITION_NONE;
+                decoder->shared_chroma_commit_luma = 1U;
+                decoder->shared_chroma_resume_luma = 1U;
+                decoder->phase = AV2H_TILE_DECODE_CHROMA;
+                decoder->event = AV2H_TILE_EVENT_ROOT_HANDOFF;
+                return AV2H_OK;
+            }
         }
         status = av2h_partition_traversal_commit_leaf(
             &decoder->luma_traversal, &decoder->partition_contexts, leaf);

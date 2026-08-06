@@ -326,8 +326,8 @@ static Av2hStatus deblock_frame_edge(
     size_t previous_column = column - (pass == 0U ? 1U : 0U);
     const Av2hDeblockCell *previous = &map->plane[plane][
         previous_row * map->stride[plane] + previous_column];
-    unsigned int transform_edge =
-        cell->transform_column != previous->transform_column ||
+    unsigned int transform_edge = pass == 0U ?
+        cell->transform_column != previous->transform_column :
         cell->transform_row != previous->transform_row;
     unsigned int block_edge = pass == 0U ?
         cell->block_column == column : cell->block_row == row;

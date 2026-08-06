@@ -108,6 +108,12 @@ typedef struct {
     Av2hFirstLeafMode luma_coding_mode;
     uint8_t luma_tx_index;
     uint8_t luma_tx_count;
+    uint8_t shared_chroma_resume_luma;
+    uint8_t shared_chroma_complete;
+    uint8_t shared_chroma_mode_pending;
+    uint8_t shared_chroma_commit_luma;
+    Av2hPartitionNode shared_chroma_node;
+    Av2hFirstChromaMode shared_chroma_mode;
     Av2hTileDecodePhase phase;
     Av2hTileDecodeEvent event;
     Av2hStatus status;
@@ -139,6 +145,9 @@ Av2hStatus av2h_tile_decoder_next_chroma(
     Av2hFirstCoeffBlock *u_block,
     Av2hFirstCoeffBlock *v_block,
     uint8_t *has_leaf);
+Av2hStatus av2h_tile_decoder_read_shared_chroma_mode(
+    Av2hTileDecoder *decoder,
+    const Av2hPartitionNode *node);
 Av2hStatus av2h_tile_decoder_reconstruct_next_chroma(
     Av2hTileDecoder *decoder,
     Av2hReconstructionPlane *u_plane,

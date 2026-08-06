@@ -60,6 +60,54 @@ static Av2hStatus tile_store_chroma_mode(
     return AV2H_OK;
 }
 
+Av2hStatus av2h_tile_decoder_read_shared_chroma_mode(
+    Av2hTileDecoder *decoder,
+    const Av2hPartitionNode *node) {
+    Av2hTileLumaModeCell *colocated;
+    uint8_t cfl_context = 0U;
+    size_t index;
+    Av2hStatus status;
+    if (decoder == 0 || node == 0 ||
+        (node->block_size != AV2H_BLOCK_128X128 &&
+         node->block_size != AV2H_BLOCK_64X128 &&
+         node->block_size != AV2H_BLOCK_128X64)) {
+        return AV2H_INVALID_ARGUMENT;
+    }
+    index = (size_t)node->row * decoder->mi_columns + node->column;
+    if (index >= decoder->colocated_luma_count) return AV2H_OVERFLOW;
+    colocated = &decoder->colocated_luma[index];
+    if (!colocated->context.present) return AV2H_INVALID_DATA;
+    if (node->row != 0U) {
+        cfl_context = decoder->colocated_luma[
+            ((size_t)node->row - 1U) * decoder->mi_columns +
+            node->column].chroma_cfl;
+    }
+    if (node->column != 0U) {
+        cfl_context = (uint8_t)(cfl_context + decoder->colocated_luma[
+            (size_t)node->row * decoder->mi_columns +
+            node->column - 1U].chroma_cfl);
+    }
+    status = av2h_chroma_mode_read_with_delta_for_sdp(
+        &decoder->range, &decoder->leaf_cdfs, decoder->sequence,
+        (Av2hFirstLeafIntraMode)colocated->mode, colocated->angle_delta,
+        node->block_size, cfl_context, 1U, &decoder->shared_chroma_mode);
+    if (status != AV2H_OK) return status;
+    decoder->shared_chroma_mode.above_smooth = node->row == 0U ? 0U :
+        decoder->colocated_luma[
+            ((size_t)node->row - 1U) * decoder->mi_columns +
+            node->column].chroma_smooth;
+    decoder->shared_chroma_mode.left_smooth = node->column == 0U ? 0U :
+        decoder->colocated_luma[
+            (size_t)node->row * decoder->mi_columns +
+            node->column - 1U].chroma_smooth;
+    status = tile_store_chroma_mode(
+        decoder, node, &decoder->shared_chroma_mode);
+    if (status != AV2H_OK) return status;
+    decoder->shared_chroma_mode_pending = 1U;
+    decoder->shared_chroma_node = *node;
+    return AV2H_OK;
+}
+
 Av2hStatus av2h_tile_decoder_next_chroma(
     Av2hTileDecoder *decoder,
     Av2hTileChromaLeaf *leaf,
@@ -86,7 +134,9 @@ Av2hStatus av2h_tile_decoder_next_chroma(
         Av2hPartitionNode root = {
             decoder->sb_row, decoder->sb_column, decoder->root_block_size
         };
-        if (decoder->sequence->enable_sdp &&
+        if (decoder->shared_chroma_commit_luma) {
+            root = decoder->shared_chroma_node;
+        } else if (decoder->sequence->enable_sdp &&
             decoder->root_block_size == AV2H_BLOCK_128X128 &&
             decoder->square_root_child_index < 4U) {
             root.row = (uint16_t)(root.row +
@@ -210,12 +260,26 @@ Av2hStatus av2h_tile_decoder_next_chroma(
                 leaf->node.column - 1U].chroma_cfl);
     }
     av2h_tile_diagnostics_set_chroma_reason(5U);
-    status = av2h_chroma_mode_read_with_delta_for_sdp(
-        &decoder->range, &decoder->leaf_cdfs, decoder->sequence,
-        (Av2hFirstLeafIntraMode)colocated->mode, colocated->angle_delta,
-        leaf->node.block_size, cfl_context,
-        tile_cfl_allowed_for_sdp(decoder), &leaf->mode);
-    if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
+    if (decoder->shared_chroma_mode_pending &&
+        leaf->node.row == decoder->shared_chroma_node.row &&
+        leaf->node.column == decoder->shared_chroma_node.column &&
+        leaf->node.block_size == decoder->shared_chroma_node.block_size) {
+        av2h_memory_copy(
+            &leaf->mode, &decoder->shared_chroma_mode, sizeof(leaf->mode));
+        decoder->shared_chroma_mode_pending = 0U;
+    } else {
+        status = av2h_chroma_mode_read_with_delta_for_sdp(
+            &decoder->range, &decoder->leaf_cdfs, decoder->sequence,
+            (Av2hFirstLeafIntraMode)colocated->mode, colocated->angle_delta,
+            leaf->node.block_size, cfl_context,
+            tile_cfl_allowed_for_sdp(decoder), &leaf->mode);
+        if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
+    }
+#if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
+    av2h_partition_diagnostic_leaf_stage(
+        leaf->node, 50U, leaf->mode.mode_index, leaf->mode.cfl_kind,
+        av2h_range_tell(&decoder->range));
+#endif
     leaf->mode.above_smooth = leaf->node.row == 0U ? 0U :
         decoder->colocated_luma[
             ((size_t)leaf->node.row - 1U) * decoder->mi_columns +
@@ -225,8 +289,10 @@ Av2hStatus av2h_tile_decoder_next_chroma(
             (size_t)leaf->node.row * decoder->mi_columns +
             leaf->node.column - 1U].chroma_smooth;
     av2h_tile_diagnostics_set_chroma_reason(0U);
-    status = tile_store_chroma_mode(decoder, &leaf->node, &leaf->mode);
-    if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
+    if (!decoder->shared_chroma_resume_luma) {
+        status = tile_store_chroma_mode(decoder, &leaf->node, &leaf->mode);
+        if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
+    }
     blocks[0] = u_block;
     blocks[1] = v_block;
     for (index = 0U; index < 2U; ++index) {
@@ -238,6 +304,12 @@ Av2hStatus av2h_tile_decoder_next_chroma(
             &leaf->node, plane, &decoder->coefficient_contexts,
             &leaf->prefix[index]);
         if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
+#if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
+        av2h_partition_diagnostic_leaf_stage(
+            leaf->node, (uint8_t)(51U + index * 3U),
+            leaf->prefix[index].all_zero, leaf->prefix[index].eob,
+            av2h_range_tell(&decoder->range));
+#endif
         av2h_tile_diagnostics_set_chroma_stage(
             (uint8_t)(2U + index * 3U));
         status = av2h_chroma_transform_type_read(
@@ -245,6 +317,13 @@ Av2hStatus av2h_tile_decoder_next_chroma(
             &leaf->mode, plane, &leaf->prefix[index],
             &leaf->transform[index]);
         if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
+    #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
+        av2h_partition_diagnostic_leaf_stage(
+            leaf->node, (uint8_t)(52U + index * 3U),
+            leaf->transform[index].primary_type,
+            leaf->transform[index].cctx_type,
+            av2h_range_tell(&decoder->range));
+    #endif
         av2h_tile_diagnostics_set_chroma_stage(
             (uint8_t)(3U + index * 3U));
         status = av2h_chroma_coeff_block_read_with_state(
@@ -252,6 +331,12 @@ Av2hStatus av2h_tile_decoder_next_chroma(
             decoder->frame, &leaf->node, plane, &leaf->prefix[index],
             &decoder->coefficient_contexts, blocks[index]);
         if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
+    #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
+        av2h_partition_diagnostic_leaf_stage(
+            leaf->node, (uint8_t)(53U + index * 3U),
+            blocks[index]->cul_level, blocks[index]->nonzero_count,
+            av2h_range_tell(&decoder->range));
+    #endif
     }
     decoder->event = AV2H_TILE_EVENT_CHROMA_LEAF;
     return AV2H_OK;
