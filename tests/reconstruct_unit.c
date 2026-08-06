@@ -4820,6 +4820,37 @@ static void test_cfl_filter1_explicit_alpha(void) {
     }
 }
 
+static void test_cfl_filter1_internal_boundary(void) {
+    uint8_t luma_data[128U * 8U];
+    uint8_t luma_rec[32U * 2U];
+    uint8_t chroma_data[64U * 4U];
+    uint8_t chroma_rec[16U];
+    uint8_t predictor[64U * 4U];
+    Av2hReconstructionPlane luma = {
+        luma_data, 128U, 128U, 8U, 128U, 8U, luma_rec, 32U,
+        sizeof(luma_rec)
+    };
+    Av2hReconstructionPlane chroma = {
+        chroma_data, 64U, 64U, 4U, 64U, 4U, chroma_rec, 16U,
+        sizeof(chroma_rec)
+    };
+    size_t row;
+    av2h_memory_fill(luma_data, 128U, sizeof(luma_data));
+    av2h_memory_fill(luma_rec, 1U, sizeof(luma_rec));
+    av2h_memory_fill(chroma_data, 128U, sizeof(chroma_data));
+    av2h_memory_fill(chroma_rec, 1U, sizeof(chroma_rec));
+    av2h_memory_fill(predictor, 128U, sizeof(predictor));
+    for (row = 0U; row < 8U; ++row) {
+        luma_data[row * 128U + 63U] = 0U;
+    }
+    CHECK(av2h_cfl_derived_predict(
+              &luma, &chroma, 1U, 0U, 1, 0U,
+              0U, 0U, 64U, 4U, 0U, 0U, predictor, 64U) == AV2H_OK);
+    for (row = 0U; row < 4U; ++row) {
+        CHECK(predictor[row * 64U + 32U] == 128U);
+    }
+}
+
 static void test_cfl_coded_bottom_edge(void) {
     uint8_t luma_data[64U * 24U];
     uint8_t luma_rec[16U * 6U];
@@ -5693,6 +5724,7 @@ int main(void) {
     test_emerald_q208_chroma_leaves();
     test_emerald_q208_chroma_cfl();
     test_cfl_filter1_explicit_alpha();
+    test_cfl_filter1_internal_boundary();
     test_cfl_coded_bottom_edge();
     test_cfl_explicit_geometry_filter_matrix();
     if (0) test_mhccp_geometry_direction_matrix();

@@ -456,10 +456,24 @@ Av2hStatus av2h_tile_decoder_commit_leaf(
             ++decoder->luma_tx_index;
             if (decoder->luma_tx_index < decoder->luma_tx_count) {
                 if (decoder->sequence->enable_sdp &&
-                    decoder->luma_coding_node.block_size ==
-                        AV2H_BLOCK_128X128 &&
-                    decoder->luma_root_partition == AV2H_PARTITION_NONE &&
-                    decoder->luma_tx_index == 1U) {
+                    decoder->luma_tx_index == 1U &&
+                    ((decoder->luma_coding_node.block_size ==
+                          AV2H_BLOCK_128X128 &&
+                      decoder->luma_root_partition == AV2H_PARTITION_NONE) ||
+                     ((decoder->luma_coding_node.block_size ==
+                           AV2H_BLOCK_64X128 ||
+                       decoder->luma_coding_node.block_size ==
+                           AV2H_BLOCK_128X64) &&
+                      decoder->shared_chroma_mode_pending))) {
+                    if (decoder->luma_coding_node.block_size !=
+                            AV2H_BLOCK_128X128) {
+                        status = av2h_partition_traversal_reset_root(
+                            &decoder->chroma_traversal,
+                            decoder->shared_chroma_node);
+                        if (status != AV2H_OK) {
+                            return av2h_tile_decoder_fail(decoder, status);
+                        }
+                    }
                     decoder->chroma_root_forced_partition =
                         AV2H_PARTITION_NONE;
                     decoder->square_root_child_index = 4U;
@@ -474,6 +488,7 @@ Av2hStatus av2h_tile_decoder_commit_leaf(
             decoder->luma_tx_count = 0U;
             if (decoder->sequence->enable_sdp &&
                 decoder->shared_chroma_mode_pending &&
+                !decoder->shared_chroma_complete &&
                 (leaf.block_size == AV2H_BLOCK_64X128 ||
                  leaf.block_size == AV2H_BLOCK_128X64)) {
                 status = av2h_partition_traversal_reset_root(

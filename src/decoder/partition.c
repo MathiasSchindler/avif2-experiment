@@ -47,6 +47,12 @@ void av2h_partition_diagnostic_leaf_stage(
     Av2hPartitionLeafDiagnostic *diagnostic;
     if (!((node.row == 12U && node.column == 14U &&
            node.block_size == AV2H_BLOCK_8X16) ||
+           (node.row == 0U && node.column == 128U &&
+           node.block_size == AV2H_BLOCK_128X64) ||
+          (node.row == 0U && node.column == 128U &&
+           node.block_size == AV2H_BLOCK_64X64) ||
+          (node.row == 0U && node.column == 144U &&
+           node.block_size == AV2H_BLOCK_64X64) ||
           (node.row == 0U && node.column == 496U &&
            node.block_size == AV2H_BLOCK_64X64) ||
           (node.row == 184U && node.column == 278U &&

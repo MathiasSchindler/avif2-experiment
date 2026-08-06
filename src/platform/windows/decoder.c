@@ -326,6 +326,27 @@ static void write_decode_diagnostic(const Av2hFrameDecodeResult *result) {
     write_console("/");
     write_unsigned(coefficient_cdf[3]);
     coefficient_range = av2h_coeff_level_diagnostic_range();
+    {
+        size_t candidate_count;
+        size_t candidate;
+        const int16_t *candidates =
+            av2h_intrabc_diagnostic_candidates(&candidate_count);
+        write_console("\r\n  intrabc-candidates=");
+        for (candidate = 0U; candidate < candidate_count; ++candidate) {
+            if (candidate != 0U) write_console(" ");
+            write_signed(candidates[candidate * 2U]);
+            write_console("/");
+            write_signed(candidates[candidate * 2U + 1U]);
+        }
+        candidates = av2h_intrabc_diagnostic_bank(&candidate_count);
+        write_console("\r\n  intrabc-bank=");
+        for (candidate = 0U; candidate < candidate_count; ++candidate) {
+            if (candidate != 0U) write_console(" ");
+            write_signed(candidates[candidate * 2U]);
+            write_console("/");
+            write_signed(candidates[candidate * 2U + 1U]);
+        }
+    }
     write_console("\r\n  coeff-range=");
     write_unsigned(coefficient_range[0]);
     write_console("/");

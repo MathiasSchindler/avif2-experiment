@@ -673,8 +673,10 @@ static uint16_t cfl_luma_filter2_current_q3(
     uint16_t block_y) {
     size_t center_x = (size_t)chroma_x * 2U;
     size_t center_y = (size_t)chroma_y * 2U;
-    size_t left_x = chroma_x == block_x ? center_x : center_x - 1U;
-    size_t top_y = chroma_y == block_y ? center_y : center_y - 1U;
+    size_t left_x = ((chroma_x - block_x) & 31U) == 0U ?
+        center_x : center_x - 1U;
+    size_t top_y = ((chroma_y - block_y) & 31U) == 0U ?
+        center_y : center_y - 1U;
     return (uint16_t)(
         plane_coded_sample(luma_plane, left_x, center_y) +
         4U * plane_coded_sample(luma_plane, center_x, center_y) +
@@ -857,7 +859,8 @@ Av2hStatus av2h_cfl_derived_predict(
         for (column = 0U; column < width; ++column) {
             if (filter_index == 1U) {
                 size_t center_x = (size_t)luma_x + (size_t)column * 2U;
-                size_t left_x = column == 0U ? center_x : center_x - 1U;
+                size_t left_x = (column & 31U) == 0U ?
+                    center_x : center_x - 1U;
                 size_t top_row = (size_t)luma_y - (size_t)top_offset;
                 size_t bottom_row = top_row + (size_t)bottom_offset;
                 luma_above_ds[column] = (int32_t)(
@@ -875,7 +878,8 @@ Av2hStatus av2h_cfl_derived_predict(
                 size_t center_x = (size_t)luma_x + (size_t)column * 2U;
                 size_t center_y =
                     (size_t)luma_y - (size_t)top_offset;
-                size_t left_x = column == 0U ? center_x : center_x - 1U;
+                size_t left_x = (column & 31U) == 0U ?
+                    center_x : center_x - 1U;
                 size_t top_y = is_top_sb_boundary ?
                     center_y : center_y - 1U;
                 size_t bottom_y = center_y + (size_t)bottom_offset;
@@ -1015,7 +1019,8 @@ Av2hStatus av2h_cfl_derived_predict(
                     (size_t)luma_x + (size_t)column * 2U;
                 size_t sample_y =
                     (size_t)luma_y + (size_t)row * 2U;
-                size_t left_x = column == 0U ? sample_x : sample_x - 1U;
+                size_t left_x = (column & 31U) == 0U ?
+                    sample_x : sample_x - 1U;
                 recon_q3 = (int32_t)(
                     plane_coded_sample(luma_plane, left_x, sample_y) +
                     2U * plane_coded_sample(

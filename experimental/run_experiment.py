@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate randomized JPEG-derived AV2 cases and test the local decoder."""
+"""Generate paired JPEG-derived AV2 cases and test the local decoder."""
 
 from __future__ import annotations
 
@@ -29,8 +29,9 @@ DEFAULT_LOCAL_DECODER = (
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
-            "Create one random lower-resolution AV2 case per images/*.jpg, "
-            "decode with AVM and the local decoder, and report parity."
+            "Create full-spectrum and realistic-QP AV2 cases per "
+            "images/*.jpg, decode with AVM and the local decoder, and "
+            "report parity."
         )
     )
     parser.add_argument("--images", type=Path, default=DEFAULT_IMAGES)
@@ -49,10 +50,12 @@ def parse_args() -> argparse.Namespace:
         type=int,
         help="Random seed. A system-random seed is generated when omitted.",
     )
-    parser.add_argument("--min-long-edge", type=int, default=64)
-    parser.add_argument("--max-long-edge", type=int, default=512)
+    parser.add_argument("--min-long-edge", type=int, default=128)
+    parser.add_argument("--max-long-edge", type=int, default=640)
     parser.add_argument("--min-qp", type=int, default=0)
     parser.add_argument("--max-qp", type=int, default=255)
+    parser.add_argument("--realistic-min-qp", type=int, default=80)
+    parser.add_argument("--realistic-max-qp", type=int, default=160)
     parser.add_argument(
         "--jobs",
         type=int,
@@ -347,6 +350,9 @@ def generate_case(
     rng: random.Random,
     tools: dict[str, str],
     args: argparse.Namespace,
+    qp_profile: str,
+    min_qp: int,
+    max_qp: int,
 ) -> dict[str, Any]:
     original_width, original_height = dimensions(tools["ffprobe"], jpeg)
     long_edge, width, height, qp = choose_variant(
@@ -355,10 +361,10 @@ def generate_case(
         original_height,
         args.min_long_edge,
         args.max_long_edge,
-        args.min_qp,
-        args.max_qp,
+        min_qp,
+        max_qp,
     )
-    stem = f"{jpeg.stem}-{width}x{height}-qp{qp:03d}"
+    stem = f"{jpeg.stem}-{qp_profile}-{width}x{height}-qp{qp:03d}"
     source_i420 = output / f"{stem}-source.i420"
     source_bmp = output / f"{stem}-source.bmp"
     obu = output / f"{stem}.obu"
@@ -418,7 +424,9 @@ def generate_case(
     if local_bmp.is_file():
         artifact_paths.append(local_bmp)
     return {
-        "name": jpeg.stem,
+        "name": f"{jpeg.stem}-{qp_profile}",
+        "source_name": jpeg.stem,
+        "qp_profile": qp_profile,
         "status": "exact" if parity and parity["exact"] else (
             "decoded_nonexact" if local_success else "decode_failed"
         ),
@@ -448,7 +456,10 @@ def write_reports(
     cases: list[dict[str, Any]],
 ) -> None:
     totals = {
-        "images": len(cases),
+        "images": len(
+            {case.get("source_name", case["name"]) for case in cases}
+        ),
+        "cases": len(cases),
         "exact": sum(case.get("status") == "exact" for case in cases),
         "decoded_nonexact": sum(
             case.get("status") == "decoded_nonexact" for case in cases
@@ -474,7 +485,8 @@ def write_reports(
     lines = [
         "Random JPEG-derived AV2 decoder experiment",
         f"Seed: {seed}",
-        f"Images: {totals['images']}",
+        f"Source images: {totals['images']}",
+        f"Cases: {totals['cases']}",
         f"Exact: {totals['exact']}",
         f"Decoded, nonexact: {totals['decoded_nonexact']}",
         f"Decode failed: {totals['decode_failed']}",
@@ -500,6 +512,12 @@ def main() -> int:
         raise RuntimeError("invalid long-edge range")
     if args.min_qp < 0 or args.max_qp > 255 or args.max_qp < args.min_qp:
         raise RuntimeError("QP range must be within 0..255")
+    if (
+        args.realistic_min_qp < 0
+        or args.realistic_max_qp > 255
+        or args.realistic_max_qp < args.realistic_min_qp
+    ):
+        raise RuntimeError("realistic QP range must be within 0..255")
     if args.jobs < 1:
         raise RuntimeError("jobs must be at least 1")
     images = args.images.resolve()
@@ -518,7 +536,11 @@ def main() -> int:
         "avmdec": require_tool(args.avmdec.resolve()),
         "local_decoder": require_tool(args.local_decoder.resolve()),
     }
-    cases: list[dict[str, Any] | None] = [None] * len(jpegs)
+    profiles = (
+        ("full", args.min_qp, args.max_qp),
+        ("realistic", args.realistic_min_qp, args.realistic_max_qp),
+    )
+    cases: list[dict[str, Any] | None] = [None] * (len(jpegs) * len(profiles))
     print(f"Output: {output}")
     print(f"Seed: {seed}")
     print(f"Jobs: {args.jobs}")
@@ -531,24 +553,31 @@ def main() -> int:
                 random.Random(rng.randrange(2**63)),
                 tools,
                 args,
-            ): (index, jpeg)
-            for index, jpeg in enumerate(jpegs)
+                profile,
+                min_qp,
+                max_qp,
+            ): (image_index * len(profiles) + profile_index, jpeg, profile)
+            for image_index, jpeg in enumerate(jpegs)
+            for profile_index, (profile, min_qp, max_qp) in enumerate(profiles)
         }
         for completed, future in enumerate(
             concurrent.futures.as_completed(futures), start=1
         ):
-            index, jpeg = futures[future]
+            index, jpeg, profile = futures[future]
             try:
                 case = future.result()
             except Exception as error:
                 case = {
-                    "name": jpeg.stem,
+                    "name": f"{jpeg.stem}-{profile}",
+                    "source_name": jpeg.stem,
+                    "qp_profile": profile,
                     "status": "generation_failed",
                     "error": str(error),
                 }
             cases[index] = case
             print(
-                f"[{completed:02d}/{len(jpegs):02d}] {jpeg.name}: "
+                f"[{completed:02d}/{len(cases):02d}] {jpeg.name} "
+                f"({profile}): "
                 f"{case['status']}",
                 flush=True,
             )

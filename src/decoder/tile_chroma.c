@@ -134,7 +134,9 @@ Av2hStatus av2h_tile_decoder_next_chroma(
         Av2hPartitionNode root = {
             decoder->sb_row, decoder->sb_column, decoder->root_block_size
         };
-        if (decoder->shared_chroma_commit_luma) {
+        if (decoder->shared_chroma_commit_luma ||
+            (decoder->shared_chroma_resume_luma &&
+             decoder->shared_chroma_mode_pending)) {
             root = decoder->shared_chroma_node;
         } else if (decoder->sequence->enable_sdp &&
             decoder->root_block_size == AV2H_BLOCK_128X128 &&

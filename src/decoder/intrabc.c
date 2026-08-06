@@ -7,6 +7,23 @@ typedef struct {
     uint8_t weight;
 } Av2hIntrabcCandidate;
 
+#if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
+static int16_t intrabc_diagnostic_candidates[8U];
+static size_t intrabc_diagnostic_candidate_count;
+static int16_t intrabc_diagnostic_bank[8U];
+static size_t intrabc_diagnostic_bank_count;
+
+const int16_t *av2h_intrabc_diagnostic_candidates(size_t *count) {
+    *count = intrabc_diagnostic_candidate_count;
+    return intrabc_diagnostic_candidates;
+}
+
+const int16_t *av2h_intrabc_diagnostic_bank(size_t *count) {
+    *count = intrabc_diagnostic_bank_count;
+    return intrabc_diagnostic_bank;
+}
+#endif
+
 static void add_intrabc_candidate(
     Av2hIntrabcCandidate candidates[4U],
     size_t *count,
@@ -277,6 +294,24 @@ Av2hStatus av2h_leaf_read_first_intrabc(
     build_intrabc_candidates(
         sequence, frame, leaf, width_mi, height_mi, state,
         candidates, &candidate_count);
+#if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
+    if (leaf->row == 64U && leaf->column == 104U) {
+        intrabc_diagnostic_candidate_count = candidate_count;
+        for (index = 0U; index < candidate_count; ++index) {
+            intrabc_diagnostic_candidates[index * 2U] = candidates[index].x;
+            intrabc_diagnostic_candidates[index * 2U + 1U] = candidates[index].y;
+        }
+        intrabc_diagnostic_bank_count = state->intrabc_bank_count;
+        for (index = 0U; index < state->intrabc_bank_count; ++index) {
+            size_t bank_index =
+                (state->intrabc_bank_start + index) % 4U;
+            intrabc_diagnostic_bank[index * 2U] =
+                state->intrabc_bank_x[bank_index];
+            intrabc_diagnostic_bank[index * 2U + 1U] =
+                state->intrabc_bank_y[bank_index];
+        }
+    }
+#endif
     if (mode->intrabc_drl_index >= candidate_count) return AV2H_INVALID_DATA;
     reference_x = candidates[mode->intrabc_drl_index].x;
     reference_y = candidates[mode->intrabc_drl_index].y;

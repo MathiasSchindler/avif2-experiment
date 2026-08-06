@@ -1108,13 +1108,17 @@ Av2hStatus av2h_chroma_transform_type_read(
     status = av2h_tx_descriptor_get(coeff->tx_size, &descriptor);
     if ((plane == 1U || plane == 2U) && status == AV2H_OK) {
         transform->before_primary_bits = av2h_range_tell(decoder);
-        mapped_mode = *mode;
-        mapped_mode.mode = chroma_transform_mode(mode, descriptor);
-        mapped_mode.angle_delta = 0;
-        status = av2h_chroma_primary_type_map(
-            &mapped_mode, descriptor, frame->reduced_tx_set,
-            &transform->primary_type);
-        if (status != AV2H_OK) return status;
+        if (coeff->all_zero) {
+            transform->primary_type = AV2H_TX_DCT_DCT;
+        } else {
+            mapped_mode = *mode;
+            mapped_mode.mode = chroma_transform_mode(mode, descriptor);
+            mapped_mode.angle_delta = 0;
+            status = av2h_chroma_primary_type_map(
+                &mapped_mode, descriptor, frame->reduced_tx_set,
+                &transform->primary_type);
+            if (status != AV2H_OK) return status;
+        }
         transform->primary_signaled = 0U;
         transform->primary_symbol = 0U;
         transform->secondary_signaled = 0U;
