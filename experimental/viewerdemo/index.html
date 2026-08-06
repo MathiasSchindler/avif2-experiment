@@ -16,36 +16,31 @@
       <output id="runtime-status" class="runtime-status">Loading decoder</output>
     </header>
 
-    <section class="toolbar" aria-label="Comparison controls">
-      <div class="scene-control">
-        <span class="control-label">View</span>
-        <div id="scene-buttons" class="segments" role="group" aria-label="Image view"></div>
-      </div>
-
-      <label class="qp-control qp-left">
-        <span><b>A</b> QP <output id="left-qp">64</output></span>
-        <input id="left-slider" type="range" min="0" max="14" value="3">
-      </label>
-      <label class="qp-control qp-right">
-        <span><b>B</b> QP <output id="right-qp">192</output></span>
-        <input id="right-slider" type="range" min="0" max="14" value="11">
-      </label>
-
-      <label class="compact-control">
-        <span class="control-label">Reveal</span>
-        <input id="split-slider" type="range" min="5" max="95" value="50">
-      </label>
-      <label class="compact-control">
-        <span class="control-label">Zoom <output id="zoom-value">100%</output></span>
-        <input id="zoom-slider" type="range" min="100" max="250" step="25" value="100">
-      </label>
-    </section>
-
     <section class="viewer" aria-label="Decoded AV2 image comparison">
       <div id="image-stage" class="image-stage">
         <div class="image-layer"><canvas id="left-canvas" role="img" aria-label="Decoded image A"></canvas></div>
         <div id="right-layer" class="image-layer right-layer"><canvas id="right-canvas" role="img" aria-label="Decoded image B"></canvas></div>
-        <div id="split-line" class="split-line" aria-hidden="true"><span></span></div>
+        <section class="toolbar" aria-label="Comparison controls">
+          <div class="scene-control">
+            <span class="control-label">View</span>
+            <div id="scene-buttons" class="segments" role="group" aria-label="Image view"></div>
+          </div>
+
+          <label class="qp-control qp-left">
+            <span><b>A</b> QP <output id="left-qp">64</output></span>
+            <input id="left-slider" type="range" min="0" max="14" value="3">
+          </label>
+          <label class="qp-control qp-right">
+            <span><b>B</b> QP <output id="right-qp">192</output></span>
+            <input id="right-slider" type="range" min="0" max="14" value="11">
+          </label>
+
+          <label class="compact-control">
+            <span class="control-label">Zoom <output id="zoom-value">100%</output></span>
+            <input id="zoom-slider" type="range" min="100" max="250" step="25" value="100">
+          </label>
+        </section>
+        <div id="split-line" class="split-line" role="slider" tabindex="0" aria-label="A and B image divider" aria-valuemin="5" aria-valuemax="95" aria-valuenow="50"><span></span></div>
         <span class="image-tag tag-left">A</span>
         <span class="image-tag tag-right">B</span>
         <div id="loading" class="loading">Decoding AV2</div>

@@ -5,7 +5,6 @@ const elements = {
   rightSlider: document.querySelector("#right-slider"),
   leftQp: document.querySelector("#left-qp"),
   rightQp: document.querySelector("#right-qp"),
-  splitSlider: document.querySelector("#split-slider"),
   zoomSlider: document.querySelector("#zoom-slider"),
   zoomValue: document.querySelector("#zoom-value"),
   stage: document.querySelector("#image-stage"),
@@ -199,7 +198,7 @@ function setScene(index) {
 function updateSplit(value) {
   elements.rightLayer.style.clipPath = `inset(0 0 0 ${value}%)`;
   elements.splitLine.style.left = `${value}%`;
-  elements.splitSlider.value = value;
+  elements.splitLine.setAttribute("aria-valuenow", value);
 }
 
 function updateZoom() {
@@ -223,6 +222,8 @@ function installStageDragging() {
     elements.rightCanvas.style.transformOrigin = origin;
   };
   elements.stage.addEventListener("pointerdown", event => {
+    if (event.target.closest(".toolbar")) return;
+    event.preventDefault();
     dragging = true;
     elements.stage.setPointerCapture(event.pointerId);
     move(event);
@@ -268,7 +269,13 @@ elements.leftSlider.addEventListener("input", updateLabels);
 elements.rightSlider.addEventListener("input", updateLabels);
 elements.leftSlider.addEventListener("change", updateImages);
 elements.rightSlider.addEventListener("change", updateImages);
-elements.splitSlider.addEventListener("input", event => updateSplit(event.target.value));
 elements.zoomSlider.addEventListener("input", updateZoom);
+elements.splitLine.addEventListener("keydown", event => {
+  if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+  event.preventDefault();
+  const direction = event.key === "ArrowLeft" ? -1 : 1;
+  const value = Number(elements.splitLine.getAttribute("aria-valuenow"));
+  updateSplit(Math.max(5, Math.min(95, value + direction * 5)));
+});
 installStageDragging();
 initialize();
