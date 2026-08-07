@@ -18,6 +18,7 @@ typedef struct {
     uint32_t status;
     uint32_t cause;
     uint32_t stage;
+    uint32_t channel_count;
 } Av2hWasmResult;
 
 static uintptr_t heap_position;
@@ -154,6 +155,7 @@ uint32_t av2h_wasm_decode(uint32_t input_pointer, uint32_t input_size) {
     wasm_result.output_size = (uint32_t)output_size;
     wasm_result.width = frame.width;
     wasm_result.height = frame.height;
+    wasm_result.channel_count = av2h_frame_plane_count(&frame);
 
 done:
     wasm_result.status = status;

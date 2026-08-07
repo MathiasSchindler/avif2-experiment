@@ -44,6 +44,32 @@ function clampByte(value) {
   return value < 0 ? 0 : value > 255 ? 255 : value;
 }
 
+function renderMonochrome(luma, width, height) {
+  const expectedSize = width * height;
+  if (luma.byteLength !== expectedSize) {
+    throw new Error(`Unexpected monochrome output size: ${luma.byteLength} bytes.`);
+  }
+  const context = elements.canvas.getContext("2d", { alpha: false });
+  const image = context.createImageData(width, height);
+  const rgba = image.data;
+
+  for (let index = 0; index < expectedSize; index += 1) {
+    const gray = clampByte((298 * (luma[index] - 16) + 128) >> 8);
+    const destination = index * 4;
+    rgba[destination] = gray;
+    rgba[destination + 1] = gray;
+    rgba[destination + 2] = gray;
+    rgba[destination + 3] = 255;
+  }
+
+  elements.canvas.width = width;
+  elements.canvas.height = height;
+  context.putImageData(image, 0, 0);
+  elements.canvas.hidden = false;
+  elements.emptyPreview.hidden = true;
+  return image;
+}
+
 function renderI420(i420, width, height) {
   const chromaWidth = Math.ceil(width / 2);
   const chromaHeight = Math.ceil(height / 2);
@@ -77,6 +103,12 @@ function renderI420(i420, width, height) {
   elements.canvas.hidden = false;
   elements.emptyPreview.hidden = true;
   return image;
+}
+
+function renderPlanar(output, width, height, channelCount) {
+  if (channelCount === 1) return renderMonochrome(output, width, height);
+  if (channelCount === 3) return renderI420(output, width, height);
+  throw new Error(`Unsupported decoded channel count: ${channelCount}.`);
 }
 
 function createBmp(image, width, height) {
@@ -132,8 +164,17 @@ async function decodeFile(file) {
     new Uint8Array(wasm.memory.buffer, inputPointer, input.byteLength).set(input);
     const status = wasm.av2h_decode(inputPointer, input.byteLength);
     const resultPointer = wasm.av2h_result_pointer();
-    const result = new Uint32Array(wasm.memory.buffer, resultPointer, 7);
-    const [outputPointer, outputSize, width, height, resultStatus, cause, stage] = result;
+    const result = new Uint32Array(wasm.memory.buffer, resultPointer, 8);
+    const [
+      outputPointer,
+      outputSize,
+      width,
+      height,
+      resultStatus,
+      cause,
+      stage,
+      channelCount,
+    ] = result;
     const elapsed = performance.now() - started;
     elements.decodeTime.textContent = `${elapsed.toFixed(1)} ms`;
 
@@ -142,10 +183,11 @@ async function decodeFile(file) {
       throw new Error(`Decode failed: ${name} (cause ${cause}, stage ${stage}).`);
     }
 
-    const i420 = new Uint8Array(outputSize);
-    i420.set(new Uint8Array(wasm.memory.buffer, outputPointer, outputSize));
-    const image = renderI420(i420, width, height);
-    elements.frameSize.textContent = `${width} × ${height}`;
+    const output = new Uint8Array(outputSize);
+    output.set(new Uint8Array(wasm.memory.buffer, outputPointer, outputSize));
+    const image = renderPlanar(output, width, height, channelCount);
+    const pixelFormat = channelCount === 1 ? "monochrome" : "I420";
+    elements.frameSize.textContent = `${width} × ${height} · ${pixelFormat}`;
     decodedBlob = createBmp(image, width, height);
     decodedName = `${file.name.replace(/\.obu$/i, "")}-${width}x${height}.bmp`;
     elements.downloadButton.disabled = false;
