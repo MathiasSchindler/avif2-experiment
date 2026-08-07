@@ -490,6 +490,38 @@ static void test_tx_descriptors(void) {
               AV2H_BLOCK_8X16, 0U, &descriptor) == AV2H_OK);
     CHECK(descriptor->tx_size == AV2H_TX_4X8);
     CHECK(descriptor->tx_size_context == 1U);
+    {
+        Av2hPartitionNode coding = { 4U, 8U, AV2H_BLOCK_128X128 };
+        Av2hPartitionNode tx_node;
+        uint8_t count = 0U;
+        CHECK(av2h_chroma_tx_node_count(
+                  AV2H_BLOCK_128X128, 2U, &count) == AV2H_OK);
+        CHECK(count == 4U);
+        CHECK(av2h_chroma_tx_node_get(
+                  &coding, 2U, 0U, &tx_node) == AV2H_OK);
+        CHECK(tx_node.row == 4U && tx_node.column == 8U);
+        CHECK(tx_node.block_size == AV2H_BLOCK_64X64);
+        CHECK(av2h_chroma_tx_node_get(
+                  &coding, 2U, 1U, &tx_node) == AV2H_OK);
+        CHECK(tx_node.row == 4U && tx_node.column == 24U);
+        CHECK(av2h_chroma_tx_node_get(
+                  &coding, 2U, 2U, &tx_node) == AV2H_OK);
+        CHECK(tx_node.row == 20U && tx_node.column == 8U);
+        CHECK(av2h_chroma_tx_node_get(
+                  &coding, 2U, 3U, &tx_node) == AV2H_OK);
+        CHECK(tx_node.row == 20U && tx_node.column == 24U);
+        coding.block_size = AV2H_BLOCK_64X128;
+        CHECK(av2h_chroma_tx_node_count(
+                  coding.block_size, 2U, &count) == AV2H_OK);
+        CHECK(count == 2U);
+        CHECK(av2h_chroma_tx_node_get(
+                  &coding, 2U, 1U, &tx_node) == AV2H_OK);
+        CHECK(tx_node.row == 20U && tx_node.column == 8U);
+        coding.block_size = AV2H_BLOCK_128X64;
+        CHECK(av2h_chroma_tx_node_get(
+                  &coding, 2U, 1U, &tx_node) == AV2H_OK);
+        CHECK(tx_node.row == 4U && tx_node.column == 24U);
+    }
 }
 
 int main(void) {

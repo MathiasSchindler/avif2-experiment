@@ -482,6 +482,10 @@ if(WIN32 AND AV2HEIF_BUILD_WINDOWS_TOOLS AND
             COMMAND "${Python3_EXECUTABLE}"
                 "${CMAKE_CURRENT_SOURCE_DIR}/tools/run_m9_final_parity.py"
                 --decoder "$<TARGET_FILE:av2heif-decoder>")
+        add_test(NAME windows-decoder-8bit-444-parity
+            COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/validate_8bit_444_corpus.py"
+                --decoder "$<TARGET_FILE:av2heif-decoder>")
     endif()
     add_test(NAME windows-decoder-laarim-q096
         COMMAND av2heif-decoder

@@ -18,9 +18,9 @@ Av2hStatus av2h_decode_frame_planar_private(
     Av2hTileFilterControls filter_controls;
     Av2hFilterPlanes final_planes;
     Av2hFrameDecodeResult decoded = { 0 };
-    Av2hTileChromaLeaf pending_chroma_leaf;
-    Av2hFirstCoeffBlock pending_chroma_blocks[2U];
-    uint8_t has_pending_chroma = 0U;
+    Av2hTileChromaLeaf pending_chroma_leaves[4U];
+    Av2hFirstCoeffBlock pending_chroma_blocks[4U][2U];
+    uint8_t pending_chroma_count = 0U;
     size_t required_output;
     Av2hStatus status;
     unsigned int plane;
@@ -60,41 +60,46 @@ Av2hStatus av2h_decode_frame_planar_private(
     while (decoder.phase != AV2H_TILE_DECODE_DONE) {
         uint8_t has_leaf = 0U;
         if (decoder.phase == AV2H_TILE_DECODE_LUMA &&
-            decoder.shared_chroma_complete && has_pending_chroma &&
+            decoder.shared_chroma_complete && pending_chroma_count != 0U &&
             decoder.luma_tx_count == 0U) {
-            for (plane = 1U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
-                unsigned int index = plane - 1U;
-                status = av2h_chroma_reconstruct_to_plane_format(
-                    &pending_chroma_leaf.node, &pending_chroma_leaf.mode,
-                    &pending_chroma_leaf.prefix[index],
-                    &pending_chroma_leaf.transform[index],
-                    &pending_chroma_blocks[index], &workspace->coded[plane],
-                    &workspace->coded[0], (uint8_t)plane, 0,
-                    frame->chroma_format_idc,
-                    workspace->reconstruction_scratch);
-                if (status != AV2H_OK) {
-                    AV2H_DECODE_FAIL(
-                        status, status,
-                        AV2H_FRAME_DECODE_STAGE_CHROMA_RECONSTRUCT,
-                        plane, &pending_chroma_leaf.node, 0U);
+            uint8_t pending_index;
+            for (pending_index = 0U; pending_index < pending_chroma_count;
+                 ++pending_index) {
+                Av2hTileChromaLeaf *pending_leaf =
+                    &pending_chroma_leaves[pending_index];
+                for (plane = 1U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
+                    unsigned int index = plane - 1U;
+                    status = av2h_chroma_reconstruct_to_plane_format(
+                        &pending_leaf->node, &pending_leaf->mode,
+                        &pending_leaf->prefix[index],
+                        &pending_leaf->transform[index],
+                        &pending_chroma_blocks[pending_index][index],
+                        &workspace->coded[plane], &workspace->coded[0],
+                        (uint8_t)plane, 0, frame->chroma_format_idc,
+                        workspace->reconstruction_scratch);
+                    if (status != AV2H_OK) {
+                        AV2H_DECODE_FAIL(
+                            status, status,
+                            AV2H_FRAME_DECODE_STAGE_CHROMA_RECONSTRUCT,
+                            plane, &pending_leaf->node, 0U);
+                    }
+                    status = av2h_deblock_map_commit_transform(
+                        &workspace->filter_workspace->deblock_map,
+                        frame->chroma_format_idc, plane, &pending_leaf->node,
+                        &pending_leaf->prefix[index],
+                        pending_leaf->prefix[index].q_index, 0U,
+                        pending_leaf->prefix[index].all_zero,
+                        (uint8_t)(frame->base_q_index == 0U));
+                    if (status != AV2H_OK) {
+                        AV2H_DECODE_FAIL(
+                            status, status,
+                            AV2H_FRAME_DECODE_STAGE_CHROMA_DEBLOCK,
+                            plane, &pending_leaf->node, 0U);
+                    }
                 }
-                status = av2h_deblock_map_commit_transform(
-                    &workspace->filter_workspace->deblock_map,
-                    frame->chroma_format_idc, plane,
-                    &pending_chroma_leaf.node,
-                    &pending_chroma_leaf.prefix[index],
-                    pending_chroma_leaf.prefix[index].q_index, 0U,
-                    pending_chroma_leaf.prefix[index].all_zero,
-                    (uint8_t)(frame->base_q_index == 0U));
-                if (status != AV2H_OK) {
-                    AV2H_DECODE_FAIL(
-                        status, status,
-                        AV2H_FRAME_DECODE_STAGE_CHROMA_DEBLOCK,
-                        plane, &pending_chroma_leaf.node, 0U);
-                }
+                ++decoded.chroma_leaf_count;
             }
-            has_pending_chroma = 0U;
-            ++decoded.chroma_leaf_count;
+            pending_chroma_count = 0U;
         }
         if (decoder.phase == AV2H_TILE_DECODE_LUMA) {
             Av2hTileLumaLeaf leaf;
@@ -325,15 +330,19 @@ Av2hStatus av2h_decode_frame_planar_private(
                     0U, &leaf.node, 0U);
             }
             if (decoder.shared_chroma_resume_luma) {
+                if (pending_chroma_count >= 4U) {
+                    AV2H_DECODE_FAIL(
+                        AV2H_OVERFLOW, AV2H_OVERFLOW,
+                        AV2H_FRAME_DECODE_STAGE_CHROMA_COMMIT,
+                        0U, &leaf.node, 0U);
+                }
                 av2h_memory_copy(
-                    &pending_chroma_leaf, &leaf, sizeof(pending_chroma_leaf));
+                    &pending_chroma_leaves[pending_chroma_count], &leaf,
+                    sizeof(pending_chroma_leaves[pending_chroma_count]));
                 av2h_memory_copy(
-                    &pending_chroma_blocks[0], &blocks[0],
-                    sizeof(pending_chroma_blocks[0]));
-                av2h_memory_copy(
-                    &pending_chroma_blocks[1], &blocks[1],
-                    sizeof(pending_chroma_blocks[1]));
-                has_pending_chroma = 1U;
+                    &pending_chroma_blocks[pending_chroma_count], blocks,
+                    sizeof(pending_chroma_blocks[pending_chroma_count]));
+                ++pending_chroma_count;
                 status = av2h_tile_decoder_commit_leaf(&decoder, leaf.node);
                 if (status != AV2H_OK) {
                     AV2H_DECODE_FAIL(

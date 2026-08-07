@@ -217,6 +217,8 @@ Av2hStatus av2h_tile_decoder_init(
     decoder->frame = frame;
     decoder->colocated_luma = storage->colocated_luma;
     decoder->colocated_luma_count = storage->colocated_luma_count;
+    decoder->chroma_tx_index = 0U;
+    decoder->chroma_tx_count = 0U;
     status = tile_superblock_geometry(
         sequence, &decoder->superblock_mi, &decoder->root_block_size);
     if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
@@ -519,6 +521,26 @@ Av2hStatus av2h_tile_decoder_commit_leaf(
         status = av2h_partition_traversal_commit_leaf(
             &decoder->luma_traversal, &decoder->partition_contexts, leaf);
     } else if (decoder->phase == AV2H_TILE_DECODE_CHROMA) {
+        if (decoder->chroma_tx_count != 0U) {
+            Av2hPartitionNode expected;
+            status = av2h_chroma_tx_node_get(
+                &decoder->chroma_coding_node,
+                decoder->frame->chroma_format_idc,
+                decoder->chroma_tx_index, &expected);
+            if (status != AV2H_OK || expected.row != leaf.row ||
+                expected.column != leaf.column ||
+                expected.block_size != leaf.block_size) {
+                return av2h_tile_decoder_fail(
+                    decoder, AV2H_INVALID_ARGUMENT);
+            }
+            ++decoder->chroma_tx_index;
+            if (decoder->chroma_tx_index < decoder->chroma_tx_count) {
+                return AV2H_OK;
+            }
+            leaf = decoder->chroma_coding_node;
+            decoder->chroma_tx_index = 0U;
+            decoder->chroma_tx_count = 0U;
+        }
         status = av2h_partition_traversal_commit_leaf(
             &decoder->chroma_traversal, &decoder->partition_contexts, leaf);
     } else {

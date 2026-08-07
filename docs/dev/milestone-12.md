@@ -1,6 +1,7 @@
 # Milestone 12: 8-bit 4:4:4
 
-Milestone 12 is complete. The public decoder accepts the AV2 8-bit 4:4:4
+Milestone 12's bounded fixture slice is complete. Production-scale artifact
+coverage remains in progress. The public decoder accepts the AV2 8-bit 4:4:4
 still-picture profile in addition to the existing 8-bit monochrome and 4:2:0
 profiles.
 
@@ -51,3 +52,18 @@ prediction, crop, workspace, and filter boundaries.
 4:2:2, 10-bit and 12-bit samples, RGB conversion in the production core,
 restoration, and newly enabled coding tools remain unsupported. Existing
 8-bit monochrome and 4:2:0 output layouts and decoded bytes are unchanged.
+
+## Production-scale progress
+
+Large 4:4:4 chroma coding leaves now emit capped 64x64 transform nodes in AVM
+raster order. Each node owns its U/V coefficient contexts, CCTX,
+reconstruction, and deblock metadata. Shared-chroma handoff retains up to four
+pending transform pairs instead of overwriting one slot.
+
+`tools/validate_8bit_444_corpus.py` is registered in the Python-enabled
+Windows CTest gate and checks all 12 original maximum-800-pixel artifacts
+against the pinned AVM SHA-256 values. The gate currently fails closed on
+chalk at MI `(40,192)`, 8x32 U chroma mode parsing, entropy tell 12890. This is
+the next frame-scale entropy/context parity blocker; Milestone 12 must remain
+in progress until the full public, Windows, and WebAssembly corpus gate is
+byte-exact.

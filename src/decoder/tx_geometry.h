@@ -63,5 +63,14 @@ Av2hStatus av2h_chroma_tx_descriptor_get(
     Av2hBlockSize block_size,
     uint8_t chroma_format_idc,
     const Av2hTxDescriptor **descriptor);
+Av2hStatus av2h_chroma_tx_node_count(
+    Av2hBlockSize block_size,
+    uint8_t chroma_format_idc,
+    uint8_t *count);
+Av2hStatus av2h_chroma_tx_node_get(
+    const Av2hPartitionNode *coding_node,
+    uint8_t chroma_format_idc,
+    uint8_t index,
+    Av2hPartitionNode *tx_node);
 
 #endif

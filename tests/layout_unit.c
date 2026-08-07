@@ -25,7 +25,7 @@ static void test_64_bit_decoder_layout(void) {
     CHECK(_Alignof(Av2hFirstCoeffLevelCdfs) == 2U);
     CHECK(sizeof(Av2hLeafCdfs) == 2522U);
     CHECK(_Alignof(Av2hLeafCdfs) == 2U);
-    CHECK(sizeof(Av2hTileDecoder) == 35344U);
+    CHECK(sizeof(Av2hTileDecoder) == 35464U);
     CHECK(_Alignof(Av2hTileDecoder) == 8U);
     CHECK(sizeof(Av2hReconstructionScratch) == 16896U);
     CHECK(_Alignof(Av2hReconstructionScratch) == 4U);

@@ -109,6 +109,10 @@ typedef struct {
     Av2hFirstLeafMode luma_coding_mode;
     uint8_t luma_tx_index;
     uint8_t luma_tx_count;
+    Av2hPartitionNode chroma_coding_node;
+    Av2hFirstChromaMode chroma_coding_mode;
+    uint8_t chroma_tx_index;
+    uint8_t chroma_tx_count;
     uint8_t shared_chroma_resume_luma;
     uint8_t shared_chroma_complete;
     uint8_t shared_chroma_mode_pending;
