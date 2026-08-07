@@ -46,27 +46,36 @@ typedef struct {
         uint32_t width;
         uint32_t height;
         uint8_t channel_count;
+        uint8_t chroma_format_idc;
         uint64_t output_hash;
         int check_boundaries;
 } PublicFixture;
 
 static const PublicFixture fixtures[] = {
-        { 0, tiny_obu, sizeof(tiny_obu), 16U, 16U, 3U,
+        { 0, tiny_obu, sizeof(tiny_obu), 16U, 16U, 3U, 0U,
             UINT64_C(0xb37800c03656c815), 0 },
-        { 0, odd_obu, sizeof(odd_obu), 17U, 15U, 3U,
+        { 0, odd_obu, sizeof(odd_obu), 17U, 15U, 3U, 0U,
             UINT64_C(0xcf92b88ddff4be85), 0 },
-        { "tests/fixtures/monochrome-tiny.obu", 0, 0U, 16U, 16U, 1U,
+        { "tests/fixtures/monochrome-tiny.obu", 0, 0U, 16U, 16U, 1U, 1U,
             UINT64_C(0xe5e202f90921b37a), 0 },
-        { "tests/fixtures/monochrome-odd.obu", 0, 0U, 17U, 15U, 1U,
+        { "tests/fixtures/monochrome-odd.obu", 0, 0U, 17U, 15U, 1U, 1U,
             UINT64_C(0x74b332bde19bea7d), 0 },
-        { "tests/fixtures/monochrome-ordinary.obu", 0, 0U, 160U, 120U, 1U,
+        { "tests/fixtures/monochrome-ordinary.obu", 0, 0U, 160U, 120U, 1U, 1U,
             UINT64_C(0xa6f20fd0e7434fce), 1 },
-        { "tests/fixtures/monochrome-high-detail.obu", 0, 0U, 96U, 80U, 1U,
+        { "tests/fixtures/monochrome-high-detail.obu", 0, 0U, 96U, 80U, 1U, 1U,
             UINT64_C(0x99ddbd2918f02c3f), 0 },
-        { "tests/fixtures/ordinary-160x120.obu", 0, 0U, 160U, 120U, 3U,
+        { "tests/fixtures/ordinary-160x120.obu", 0, 0U, 160U, 120U, 3U, 0U,
             UINT64_C(0xfd5a024e7532149d), 1 },
-        { "tests/fixtures/high-detail-96x80.obu", 0, 0U, 96U, 80U, 3U,
-            UINT64_C(0xdb8779d2f2c1afc6), 0 }
+        { "tests/fixtures/high-detail-96x80.obu", 0, 0U, 96U, 80U, 3U, 0U,
+            UINT64_C(0xdb8779d2f2c1afc6), 0 },
+        { "tests/fixtures/i444-tiny.obu", 0, 0U, 16U, 16U, 3U, 2U,
+            UINT64_C(0xad5202f55d8da388), 0 },
+        { "tests/fixtures/i444-odd.obu", 0, 0U, 17U, 15U, 3U, 2U,
+            UINT64_C(0xd4c6d7722282b1ad), 0 },
+        { "tests/fixtures/i444-ordinary.obu", 0, 0U, 160U, 120U, 3U, 2U,
+            UINT64_C(0x0501cc0d7e7a50f6), 1 },
+        { "tests/fixtures/i444-high-detail.obu", 0, 0U, 96U, 80U, 3U, 2U,
+            UINT64_C(0x2fe36a3632f85bb1), 0 }
 };
 
 #define CHECK(condition)                                                       \
@@ -126,6 +135,7 @@ static void test_public_decode(const PublicFixture *fixture) {
     unsigned char *allocation;
     unsigned char *workspace;
     unsigned char *output;
+    Av2hStatus decode_status;
     size_t stream_size = load_fixture(fixture, stream, sizeof(stream));
     size_t container_size = 0U;
     size_t sequence_size;
@@ -160,10 +170,15 @@ static void test_public_decode(const PublicFixture *fixture) {
     CHECK(info.image.width == fixture->width &&
           info.image.height == fixture->height);
     CHECK(info.image.channel_count == fixture->channel_count);
+    CHECK(info.image.sequence.chroma_format_idc == fixture->chroma_format_idc);
+    CHECK(info.image.sequence.seq_profile_idc ==
+          (fixture->chroma_format_idc == 2U ? 4U : 0U));
     expected_output = (size_t)fixture->width * fixture->height;
     if (fixture->channel_count != 1U) {
-        expected_output += 2U * (((size_t)fixture->width + 1U) / 2U) *
-            (((size_t)fixture->height + 1U) / 2U);
+        expected_output += fixture->chroma_format_idc == 2U ?
+            2U * expected_output :
+            2U * (((size_t)fixture->width + 1U) / 2U) *
+                (((size_t)fixture->height + 1U) / 2U);
     }
     CHECK(info.output_size == expected_output);
     if (fixture->channel_count == 1U) {
@@ -178,6 +193,23 @@ static void test_public_decode(const PublicFixture *fixture) {
         CHECK(info.planes[2].width == 0U && info.planes[2].height == 0U &&
               info.planes[2].row_bytes == 0U &&
               info.planes[2].offset == 0U && info.planes[2].size == 0U);
+        } else if (fixture->chroma_format_idc == 2U) {
+          size_t plane_size = (size_t)fixture->width * fixture->height;
+          CHECK(info.planes[0].width == fixture->width &&
+              info.planes[0].height == fixture->height &&
+              info.planes[0].row_bytes == fixture->width &&
+              info.planes[0].offset == 0U &&
+              info.planes[0].size == plane_size);
+          CHECK(info.planes[1].width == fixture->width &&
+              info.planes[1].height == fixture->height &&
+              info.planes[1].row_bytes == fixture->width &&
+              info.planes[1].offset == plane_size &&
+              info.planes[1].size == plane_size);
+          CHECK(info.planes[2].width == fixture->width &&
+              info.planes[2].height == fixture->height &&
+              info.planes[2].row_bytes == fixture->width &&
+              info.planes[2].offset == plane_size * 2U &&
+              info.planes[2].size == plane_size);
     }
     CHECK(info.workspace_size != 0U);
     CHECK(info.workspace_alignment != 0U &&
@@ -190,9 +222,21 @@ static void test_public_decode(const PublicFixture *fixture) {
         info.workspace_alignment - 1U) & ~(info.workspace_alignment - 1U));
     output = workspace + info.workspace_size;
     av2h_memory_fill(output, 0xa5U, info.output_size);
-    CHECK(av2h_decode((Av2hSpan){ container, container_size }, &info,
-                       workspace, info.workspace_size, output,
-                       info.output_size, &error) == AV2H_OK);
+    decode_status = av2h_decode(
+        (Av2hSpan){ container, container_size }, &info,
+        workspace, info.workspace_size, output, info.output_size, &error);
+    if (decode_status != AV2H_OK) {
+        fprintf(stderr, "%s: decode status=%d context=%u offset=%zu\n",
+                fixture->path != 0 ? fixture->path : "embedded",
+                (int)decode_status, error.context, error.offset);
+    }
+    CHECK(decode_status == AV2H_OK);
+    if (fnv1a64(output, info.output_size) != fixture->output_hash) {
+        fprintf(stderr, "%s: output hash=0x%016llx expected=0x%016llx\n",
+                fixture->path != 0 ? fixture->path : "embedded",
+                (unsigned long long)fnv1a64(output, info.output_size),
+                (unsigned long long)fixture->output_hash);
+    }
     CHECK(fnv1a64(output, info.output_size) == fixture->output_hash);
 
     if (!fixture->check_boundaries) {

@@ -137,7 +137,7 @@ Av2hStatus av2h_decode_prepare(const Av2hHeifImage *image,
     if (status != AV2H_OK) {
         return decode_fail(error, status, AV2H_CONTEXT_FRAME);
     }
-    status = av2h_i420_output_size(
+    status = av2h_planar_output_size(
         &preparation->frame, &preparation->output_size);
     if (status != AV2H_OK) {
         return decode_fail(error, status, AV2H_CONTEXT_OUTPUT);
@@ -218,7 +218,7 @@ Av2hStatus av2h_decode(Av2hSpan input,
         return decode_fail(error, status, AV2H_CONTEXT_WORKSPACE);
     }
     av2h_memory_fill(&result, 0U, sizeof(result));
-    status = av2h_decode_frame_i420_private(
+    status = av2h_decode_frame_planar_private(
         preparation.group.entropy, &preparation.sequence,
         &preparation.frame, &workspace, (uint8_t *)output_memory,
         output_size, &result);

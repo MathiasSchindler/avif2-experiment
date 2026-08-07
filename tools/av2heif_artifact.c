@@ -554,13 +554,15 @@ static int command_inspect(int argc, char **argv) {
             (unsigned int)image.sequence.still_picture);
     fprintf(output,
             "    \"effective\": {\"width\": %u, \"height\": %u, "
-            "\"pixel_format\": \"I420\", \"channels\": %u, "
+            "\"pixel_format\": \"%s\", \"channels\": %u, "
             "\"bits_per_channel\": %u, \"range\": \"%s\", "
             "\"cicp\": {\"color_primaries\": %u, "
             "\"transfer_characteristics\": %u, "
             "\"matrix_coefficients\": %u}}\n  }\n}\n",
             image.width,
             image.height,
+            image.sequence.chroma_format_idc == 1U ? "I400" :
+                (image.sequence.chroma_format_idc == 2U ? "I444" : "I420"),
             (unsigned int)image.channel_count,
             (unsigned int)image.bits_per_channel,
             image.source.color.full_range_flag ? "full" : "limited",

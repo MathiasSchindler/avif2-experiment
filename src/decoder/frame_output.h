@@ -90,12 +90,13 @@ typedef struct {
     uint8_t coefficient_kind;
 } Av2hFrameDecodeResult;
 
-Av2hStatus av2h_i420_output_size(
+Av2hStatus av2h_planar_output_size(
     const Av2hFrameState *frame,
     size_t *size);
 
 Av2hStatus av2h_deblock_map_commit_transform(
     Av2hDeblockMap *map,
+    uint8_t chroma_format_idc,
     unsigned int plane,
     const Av2hPartitionNode *leaf,
     const Av2hFirstCoeffPrefix *prefix,
@@ -104,14 +105,14 @@ Av2hStatus av2h_deblock_map_commit_transform(
     uint8_t all_zero,
     uint8_t lossless);
 
-Av2hStatus av2h_copy_visible_i420_private(
+Av2hStatus av2h_copy_visible_planar_private(
     const Av2hFrameState *frame,
     const Av2hFilterPlanes *coded,
     const size_t coded_data_size[AV2H_FRAME_PLANE_COUNT],
     uint8_t *output,
     size_t output_size);
 
-Av2hStatus av2h_decode_frame_i420_private(
+Av2hStatus av2h_decode_frame_planar_private(
     Av2hSpan entropy,
     const Av2hSequenceState *sequence,
     const Av2hFrameState *frame,

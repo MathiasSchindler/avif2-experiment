@@ -407,7 +407,9 @@ Av2hStatus av2h_sequence_state_parse(Av2hSpan input,
                         av2h_bit_reader_offset(&reader),
                         AV2H_CONTEXT_SEQUENCE_HEADER);
     }
-    if (sequence_id >= 16U || sequence->seq_profile_idc != 0U ||
+    if (sequence_id >= 16U ||
+        (sequence->seq_profile_idc != 0U &&
+         sequence->seq_profile_idc != 4U) ||
         av2h_bit_reader_read(&reader, 1U) != 1U) {
         if (reader.status != AV2H_OK) {
             return fail_obu(error, reader.status, obu,
@@ -432,7 +434,8 @@ Av2hStatus av2h_sequence_state_parse(Av2hSpan input,
                         av2h_bit_reader_offset(&reader),
                         AV2H_CONTEXT_SEQUENCE_HEADER);
     }
-    if (chroma > 1U || bit_depth != 1U) {
+    if (chroma > 2U || bit_depth != 1U ||
+        (sequence->seq_profile_idc == 4U) != (chroma == 2U)) {
         return fail_obu(error, AV2H_UNSUPPORTED, obu,
                         av2h_bit_reader_offset(&reader),
                         AV2H_CONTEXT_SEQUENCE_HEADER);

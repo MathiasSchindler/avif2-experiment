@@ -164,8 +164,7 @@ Av2hStatus av2h_cdef_filter_block(
          secondary_strength != 2U && secondary_strength != 4U) ||
         damping > 6U ||
         direction >= 8U || width == 0U || height == 0U ||
-        width > (plane_index == 0U ? 8U : 4U) ||
-        height > (plane_index == 0U ? 8U : 4U) ||
+        width > 8U || height > 8U ||
         destination->width != source->width ||
         destination->height != source->height ||
         (uint32_t)x + width > source->width ||
@@ -350,12 +349,16 @@ Av2hStatus av2h_cdef_filter_frame_with_controls(
                 y_primary != 0U ? direction : 0U, variance);
             if (status != AV2H_OK) return status;
             for (plane = 1U; plane < av2h_frame_plane_count(frame); ++plane) {
-                uint16_t chroma_x = x >> 1U;
-                uint16_t chroma_y = y >> 1U;
-                uint16_t chroma_width = width == 8U ? 4U :
-                    (uint16_t)(((uint32_t)width + 1U) >> 1U);
-                uint16_t chroma_height = height == 8U ? 4U :
-                    (uint16_t)(((uint32_t)height + 1U) >> 1U);
+                unsigned int shift = av2h_chroma_shift(
+                    frame->chroma_format_idc, plane);
+                uint16_t chroma_x = (uint16_t)(x >> shift);
+                uint16_t chroma_y = (uint16_t)(y >> shift);
+                uint16_t chroma_width = (uint16_t)(
+                    ((uint32_t)width + ((uint32_t)1U << shift) - 1U) >>
+                    shift);
+                uint16_t chroma_height = (uint16_t)(
+                    ((uint32_t)height + ((uint32_t)1U << shift) - 1U) >>
+                    shift);
                 status = av2h_cdef_filter_block(
                     &destination->plane[plane], &deblocked->plane[plane],
                     chroma_x, chroma_y, chroma_width, chroma_height, plane,

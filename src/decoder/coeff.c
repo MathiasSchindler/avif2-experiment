@@ -822,7 +822,7 @@ Av2hStatus av2h_chroma_coeff_prefix_read(
         return AV2H_UNSUPPORTED;
     }
     status = av2h_chroma_tx_descriptor_get(
-        leaf->block_size, &descriptor);
+        leaf->block_size, frame->chroma_format_idc, &descriptor);
     if (status == AV2H_OK && descriptor->tx_size_context < 5U &&
         ((plane == 1U && txb_skip_context < 10U) ||
          (plane == 2U && txb_skip_context < 12U))) {

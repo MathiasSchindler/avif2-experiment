@@ -70,9 +70,9 @@ function renderMonochrome(luma, width, height) {
   return image;
 }
 
-function renderI420(i420, width, height) {
-  const chromaWidth = Math.ceil(width / 2);
-  const chromaHeight = Math.ceil(height / 2);
+function renderColorPlanar(planar, width, height, chromaFormat) {
+  const chromaWidth = chromaFormat === 2 ? width : Math.ceil(width / 2);
+  const chromaHeight = chromaFormat === 2 ? height : Math.ceil(height / 2);
   const lumaSize = width * height;
   const chromaSize = chromaWidth * chromaHeight;
   const uOffset = lumaSize;
@@ -83,12 +83,12 @@ function renderI420(i420, width, height) {
 
   for (let row = 0; row < height; row += 1) {
     const yRow = row * width;
-    const uvRow = Math.floor(row / 2) * chromaWidth;
+    const uvRow = (chromaFormat === 2 ? row : Math.floor(row / 2)) * chromaWidth;
     for (let column = 0; column < width; column += 1) {
-      const y = i420[yRow + column] - 16;
-      const uvIndex = uvRow + Math.floor(column / 2);
-      const cb = i420[uOffset + uvIndex] - 128;
-      const cr = i420[vOffset + uvIndex] - 128;
+      const y = planar[yRow + column] - 16;
+      const uvIndex = uvRow + (chromaFormat === 2 ? column : Math.floor(column / 2));
+      const cb = planar[uOffset + uvIndex] - 128;
+      const cr = planar[vOffset + uvIndex] - 128;
       const destination = (yRow + column) * 4;
       rgba[destination] = clampByte((298 * y + 409 * cr + 128) >> 8);
       rgba[destination + 1] = clampByte((298 * y - 100 * cb - 208 * cr + 128) >> 8);
@@ -105,9 +105,11 @@ function renderI420(i420, width, height) {
   return image;
 }
 
-function renderPlanar(output, width, height, channelCount) {
+function renderPlanar(output, width, height, channelCount, chromaFormat) {
   if (channelCount === 1) return renderMonochrome(output, width, height);
-  if (channelCount === 3) return renderI420(output, width, height);
+  if (channelCount === 3) {
+    return renderColorPlanar(output, width, height, chromaFormat);
+  }
   throw new Error(`Unsupported decoded channel count: ${channelCount}.`);
 }
 
@@ -164,7 +166,7 @@ async function decodeFile(file) {
     new Uint8Array(wasm.memory.buffer, inputPointer, input.byteLength).set(input);
     const status = wasm.av2h_decode(inputPointer, input.byteLength);
     const resultPointer = wasm.av2h_result_pointer();
-    const result = new Uint32Array(wasm.memory.buffer, resultPointer, 8);
+    const result = new Uint32Array(wasm.memory.buffer, resultPointer, 9);
     const [
       outputPointer,
       outputSize,
@@ -174,6 +176,7 @@ async function decodeFile(file) {
       cause,
       stage,
       channelCount,
+      chromaFormat,
     ] = result;
     const elapsed = performance.now() - started;
     elements.decodeTime.textContent = `${elapsed.toFixed(1)} ms`;
@@ -185,8 +188,10 @@ async function decodeFile(file) {
 
     const output = new Uint8Array(outputSize);
     output.set(new Uint8Array(wasm.memory.buffer, outputPointer, outputSize));
-    const image = renderPlanar(output, width, height, channelCount);
-    const pixelFormat = channelCount === 1 ? "monochrome" : "I420";
+    const image = renderPlanar(
+      output, width, height, channelCount, chromaFormat);
+    const pixelFormat = channelCount === 1 ? "monochrome" :
+      chromaFormat === 2 ? "I444" : "I420";
     elements.frameSize.textContent = `${width} × ${height} · ${pixelFormat}`;
     decodedBlob = createBmp(image, width, height);
     decodedName = `${file.name.replace(/\.obu$/i, "")}-${width}x${height}.bmp`;

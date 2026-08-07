@@ -694,6 +694,7 @@ Av2hStatus av2h_cfl_derived_predict(
     uint8_t derive_alpha,
     int32_t supplied_alpha_q3,
     uint16_t superblock_size,
+    uint8_t chroma_format_idc,
     uint16_t block_x,
     uint16_t block_y,
     uint16_t width,
@@ -703,10 +704,12 @@ Av2hStatus av2h_cfl_derived_predict(
     uint8_t *predictor,
     size_t predictor_stride) {
     const int bit_depth = 8;
-    uint16_t luma_x = (uint16_t)((uint32_t)block_x * 2U);
-    uint16_t luma_y = (uint16_t)((uint32_t)block_y * 2U);
-    uint16_t luma_width = (uint16_t)((uint32_t)width * 2U);
-    uint16_t luma_height = (uint16_t)((uint32_t)height * 2U);
+    uint8_t full_resolution = (uint8_t)(chroma_format_idc == 2U);
+    unsigned int scale = full_resolution ? 1U : 2U;
+    uint16_t luma_x = (uint16_t)((uint32_t)block_x * scale);
+    uint16_t luma_y = (uint16_t)((uint32_t)block_y * scale);
+    uint16_t luma_width = (uint16_t)((uint32_t)width * scale);
+    uint16_t luma_height = (uint16_t)((uint32_t)height * scale);
     int32_t luma_left_ds[64];
     int32_t luma_above_ds[64];
     int32_t chroma_left[64];
@@ -733,6 +736,7 @@ Av2hStatus av2h_cfl_derived_predict(
     uint16_t effective_chroma_width;
     uint16_t effective_chroma_height;
     if (luma_plane == 0 || luma_plane->data == 0 ||
+        (chroma_format_idc != 0U && chroma_format_idc != 2U) ||
         filter_index > 2U ||
         width > 64U ||
         height > 64U || width == 0U || height == 0U) {
@@ -776,17 +780,22 @@ Av2hStatus av2h_cfl_derived_predict(
     }
     /* Left neighbour luma (box downsampled) and chroma. */
     if (have_left) {
-        uint16_t reference_x = filter_index == 0U ?
+        uint16_t reference_x = full_resolution ?
+            (uint16_t)(luma_x - 1U) : filter_index == 0U ?
             (uint16_t)(luma_x - 2U) : (uint16_t)(luma_x - 3U);
-        uint16_t reference_width = filter_index == 0U ? 2U : 3U;
-        if (luma_x < (filter_index == 0U ? 2U : 3U) ||
+        uint16_t reference_width = full_resolution ? 1U :
+            (filter_index == 0U ? 2U : 3U);
+        if (luma_x < reference_width ||
             !plane_region_reconstructed(luma_plane, reference_x, luma_y,
                                         reference_width,
                                         visible_luma_height)) {
             return AV2H_UNSUPPORTED;
         }
         for (row = 0U; row < height; ++row) {
-            if (filter_index == 1U) {
+            if (full_resolution) {
+                luma_left_ds[row] = (int32_t)plane_coded_sample(
+                    luma_plane, luma_x - 1U, (size_t)luma_y + row) << 3U;
+            } else if (filter_index == 1U) {
                 size_t center_x = (size_t)luma_x - 2U;
                 size_t center_y = (size_t)luma_y + (size_t)row * 2U;
                 luma_left_ds[row] = (int32_t)(
@@ -826,7 +835,7 @@ Av2hStatus av2h_cfl_derived_predict(
                 chroma_plane, block_x - 1U, (size_t)block_y + row);
             if (luma_y >= effective_luma_height) {
                 luma_left_ds[row] = 128 << 3;
-            } else if (row >= (visible_luma_height >> 1U) && row != 0U) {
+            } else if (row >= visible_luma_height / scale && row != 0U) {
                 luma_left_ds[row] = luma_left_ds[row - 1U];
             }
             if (block_y >= effective_chroma_height) {
@@ -840,19 +849,22 @@ Av2hStatus av2h_cfl_derived_predict(
     if (have_top) {
         is_top_sb_boundary = (uint8_t)(superblock_size != 0U &&
             (luma_y % superblock_size) == 0U);
-        top_offset = 2 - is_top_sb_boundary;
-        bottom_offset = 1 - is_top_sb_boundary;
+        top_offset = full_resolution ? 1 : 2 - is_top_sb_boundary;
+        bottom_offset = full_resolution ? 0 : 1 - is_top_sb_boundary;
         if (luma_y < (uint16_t)top_offset ||
             !plane_region_reconstructed(
                 luma_plane, luma_x, (uint16_t)(luma_y - top_offset),
                 luma_width < luma_plane->width - luma_x ?
                     luma_width :
                     (uint16_t)(luma_plane->width - luma_x),
-                4U)) {
+                full_resolution ? 1U : 4U)) {
             return AV2H_UNSUPPORTED;
         }
         for (column = 0U; column < width; ++column) {
-            if (filter_index == 1U) {
+            if (full_resolution) {
+                luma_above_ds[column] = (int32_t)plane_coded_sample(
+                    luma_plane, (size_t)luma_x + column, luma_y - 1U) << 3U;
+            } else if (filter_index == 1U) {
                 size_t center_x = (size_t)luma_x + (size_t)column * 2U;
                 size_t left_x = column == 0U ?
                     center_x : center_x - 1U;
@@ -903,7 +915,7 @@ Av2hStatus av2h_cfl_derived_predict(
                 (size_t)block_y - 1U);
             if (luma_x >= effective_luma_width) {
                 luma_above_ds[column] = 128 << 3;
-            } else if (column >= (visible_luma_width >> 1U) && column != 0U) {
+            } else if (column >= visible_luma_width / scale && column != 0U) {
                 luma_above_ds[column] = luma_above_ds[column - 1U];
             }
             if (block_x >= effective_chroma_width) {
@@ -1009,7 +1021,11 @@ Av2hStatus av2h_cfl_derived_predict(
     for (row = 0U; row < height; ++row) {
         for (column = 0U; column < width; ++column) {
             int32_t recon_q3;
-            if (filter_index == 1U) {
+            if (full_resolution) {
+                recon_q3 = (int32_t)plane_coded_sample(
+                    luma_plane, (size_t)luma_x + column,
+                    (size_t)luma_y + row) << 3U;
+            } else if (filter_index == 1U) {
                 size_t sample_x =
                     (size_t)luma_x + (size_t)column * 2U;
                 size_t sample_y =
@@ -1269,7 +1285,12 @@ static uint16_t mhccp_luma_left_clamped_q3(
     const Av2hReconstructionPlane *luma_plane,
     uint8_t filter_index,
     uint16_t chroma_x,
-    uint16_t chroma_y) {
+    uint16_t chroma_y,
+    uint8_t full_resolution) {
+    if (full_resolution) {
+        return (uint16_t)(luma_plane->data[
+            (size_t)chroma_y * luma_plane->stride + chroma_x] << 3U);
+    }
     size_t center_x = (size_t)chroma_x * 2U;
     size_t center_y = (size_t)chroma_y * 2U;
     size_t right_x = center_x + 1U < luma_plane->width ?
@@ -1329,7 +1350,12 @@ static uint16_t mhccp_luma_sb_top_left_clamped_q3(
     const Av2hReconstructionPlane *luma_plane,
     uint8_t filter_index,
     uint16_t chroma_x,
-    uint16_t block_y) {
+    uint16_t block_y,
+    uint8_t full_resolution) {
+    if (full_resolution) {
+        return (uint16_t)(luma_plane->data[
+            ((size_t)block_y - 1U) * luma_plane->stride + chroma_x] << 3U);
+    }
     size_t center_x = (size_t)chroma_x * 2U;
     size_t center_y = (size_t)block_y * 2U - 1U;
     size_t right_x = center_x + 1U < luma_plane->width ?
@@ -1347,7 +1373,12 @@ static uint16_t mhccp_luma_sb_top_sample_q3(
     const Av2hReconstructionPlane *luma_plane,
     uint8_t filter_index,
     uint16_t chroma_x,
-    uint16_t block_y) {
+    uint16_t block_y,
+    uint8_t full_resolution) {
+    if (full_resolution) {
+        return (uint16_t)(luma_plane->data[
+            ((size_t)block_y - 1U) * luma_plane->stride + chroma_x] << 3U);
+    }
     return filter_index == 0U ?
         mhccp_luma_filter0_sb_top_q3(luma_plane, chroma_x, block_y) :
         filter_index == 1U ?
@@ -1359,7 +1390,12 @@ static uint16_t mhccp_luma_sample_q3(
     const Av2hReconstructionPlane *luma_plane,
     uint8_t filter_index,
     uint16_t chroma_x,
-    uint16_t chroma_y) {
+    uint16_t chroma_y,
+    uint8_t full_resolution) {
+    if (full_resolution) {
+        return (uint16_t)(luma_plane->data[
+            (size_t)chroma_y * luma_plane->stride + chroma_x] << 3U);
+    }
     return filter_index == 0U ?
         mhccp_luma_q3(luma_plane, chroma_x, chroma_y) :
         filter_index == 1U ?
@@ -1398,6 +1434,7 @@ static Av2hStatus mhccp_predict_direction01(
     uint16_t width,
     uint16_t height,
     uint16_t superblock_size,
+    uint8_t full_resolution,
     uint8_t *predictor,
     size_t predictor_stride) {
     int32_t matrix[3U][3U] = { { 0 } };
@@ -1418,20 +1455,21 @@ static Av2hStatus mhccp_predict_direction01(
     uint8_t have_top;
     uint8_t have_left;
     uint8_t is_top_sb_boundary;
+    unsigned int scale = full_resolution ? 1U : 2U;
     int matrix_shift;
     uint32_t count_ceiling;
     av2h_prediction_diagnostics_set_mhccp_reason(0U);
-    have_top = (uint8_t)(block_y >= 2U);
-    have_left = (uint8_t)(block_x >= 2U);
+    have_top = (uint8_t)(block_y >= scale);
+    have_left = (uint8_t)(block_x >= scale);
     is_top_sb_boundary = (uint8_t)(superblock_size != 0U &&
-        ((uint32_t)block_y * 2U) % superblock_size == 0U);
+        ((uint32_t)block_y * scale) % superblock_size == 0U);
     if (filter_index > 2U || direction > 2U ||
         width == 0U || height == 0U ||
                 block_x >= chroma_plane->reference_width ||
                 block_y >= chroma_plane->height ||
         (have_left &&
                  (block_x - 1U >= chroma_plane->reference_width ||
-                    block_x * 2U - 2U >= luma_plane->reference_width))) {
+                    block_x * scale - scale >= luma_plane->reference_width))) {
                 av2h_prediction_diagnostics_set_mhccp_reason(6U);
         return AV2H_UNSUPPORTED;
     }
@@ -1495,14 +1533,15 @@ static Av2hStatus mhccp_predict_direction01(
         top_chroma_width = effective_chroma_width > top_start_x + 1U ?
             (uint16_t)(effective_chroma_width - top_start_x - 1U) : 0U;
         if (top_chroma_width > top_count) top_chroma_width = top_count;
-        top_luma_width = effective_luma_width > top_start_x * 2U ?
-            (uint16_t)(effective_luma_width - top_start_x * 2U) : 0U;
-        if (top_luma_width > top_count * 2U) {
-            top_luma_width = (uint16_t)(top_count * 2U);
+        top_luma_width = effective_luma_width > top_start_x * scale ?
+            (uint16_t)(effective_luma_width - top_start_x * scale) : 0U;
+        if (top_luma_width > top_count * scale) {
+            top_luma_width = (uint16_t)(top_count * scale);
         }
         if (top_count > top_chroma_width) top_count = top_chroma_width;
-        if (top_count > (top_luma_width + 1U) / 2U) {
-            top_count = (uint16_t)((top_luma_width + 1U) / 2U);
+        if (top_count > (top_luma_width + scale - 1U) / scale) {
+            top_count = (uint16_t)(
+                (top_luma_width + scale - 1U) / scale);
         }
          while (available_top < top_count &&
              av2h_plane_sample_reconstructed(
@@ -1519,7 +1558,7 @@ static Av2hStatus mhccp_predict_direction01(
         }
         top_count = available_top;
         top_chroma_width = available_top;
-        top_luma_width = (uint16_t)(available_top * 2U);
+        top_luma_width = (uint16_t)(available_top * scale);
         have_top = (uint8_t)(available_top != 0U);
     }
     if (have_top &&
@@ -1531,8 +1570,9 @@ static Av2hStatus mhccp_predict_direction01(
         return AV2H_UNSUPPORTED;
     }
     if (have_top && !plane_region_reconstructed(
-            luma_plane, (uint16_t)(top_start_x * 2U),
-            (uint16_t)(block_y * 2U - 2U), top_luma_width, 2U)) {
+            luma_plane, (uint16_t)(top_start_x * scale),
+            (uint16_t)(block_y * scale - scale), top_luma_width,
+            (uint16_t)scale)) {
         av2h_prediction_diagnostics_set_mhccp_reason(2U);
         return AV2H_UNSUPPORTED;
     }
@@ -1543,25 +1583,25 @@ static Av2hStatus mhccp_predict_direction01(
         return AV2H_UNSUPPORTED;
     }
     if (have_left && !plane_region_reconstructed(
-            luma_plane, (uint16_t)(block_x * 2U - 2U),
-            (uint16_t)(block_y * 2U), 2U,
-            (uint16_t)(left_count * 2U))) {
+            luma_plane, (uint16_t)(block_x * scale - scale),
+            (uint16_t)(block_y * scale), (uint16_t)scale,
+            (uint16_t)(left_count * scale))) {
         av2h_prediction_diagnostics_set_mhccp_reason(4U);
         return AV2H_UNSUPPORTED;
     }
     if (!plane_region_reconstructed(
-            luma_plane, (uint16_t)(block_x * 2U),
-            (uint16_t)(block_y * 2U),
-            (uint16_t)(prediction_width * 2U),
-            (uint16_t)(prediction_height * 2U))) {
+            luma_plane, (uint16_t)(block_x * scale),
+            (uint16_t)(block_y * scale),
+            (uint16_t)(prediction_width * scale),
+            (uint16_t)(prediction_height * scale))) {
         av2h_prediction_diagnostics_set_mhccp_reason(5U);
         return AV2H_UNSUPPORTED;
     }
     if (direction == 1U && have_top &&
         !plane_region_reconstructed(
-            luma_plane, (uint16_t)(top_start_x * 2U),
-            (uint16_t)(block_y * 2U - 4U),
-            top_luma_width, 2U)) {
+            luma_plane, (uint16_t)(top_start_x * scale),
+            (uint16_t)(block_y * scale - 2U * scale),
+            top_luma_width, (uint16_t)scale)) {
         av2h_prediction_diagnostics_set_mhccp_reason(8U);
         return AV2H_UNSUPPORTED;
     }
@@ -1575,15 +1615,20 @@ static Av2hStatus mhccp_predict_direction01(
         {
             int32_t center = (int32_t)((is_top_sb_boundary ?
                     mhccp_luma_sb_top_sample_q3(
-                        luma_plane, filter_index, luma_chroma_x, block_y) :
+                        luma_plane, filter_index, luma_chroma_x, block_y,
+                        full_resolution) :
                     mhccp_luma_sample_q3(
                         luma_plane, filter_index, luma_chroma_x,
-                        chroma_y)) >> 3U);
+                        chroma_y, full_resolution)) >> 3U);
             if (sample == 0U) top_left_center = center;
             vector[0] = direction == 0U ? center :
                 direction == 1U ?
                     (is_top_sb_boundary ? center :
-                    (int32_t)((filter_index == 0U ?
+                    (int32_t)((full_resolution ?
+                        mhccp_luma_sample_q3(
+                            luma_plane, filter_index, luma_chroma_x,
+                            (uint16_t)(chroma_y - 1U), full_resolution) :
+                     filter_index == 0U ?
                         mhccp_luma_q3(
                             luma_plane, luma_chroma_x,
                             (uint16_t)(chroma_y - 1U)) :
@@ -1599,20 +1644,23 @@ static Av2hStatus mhccp_predict_direction01(
                             mhccp_luma_sb_top_left_clamped_q3(
                                 luma_plane, filter_index,
                                 luma_chroma_x == 0U ? 0U :
-                                    (uint16_t)(luma_chroma_x - 1U), block_y) :
+                                    (uint16_t)(luma_chroma_x - 1U), block_y,
+                                full_resolution) :
                             mhccp_luma_sb_top_sample_q3(
                                 luma_plane, filter_index,
                                 luma_chroma_x == 0U ? 0U :
-                                    (uint16_t)(luma_chroma_x - 1U), block_y)) :
+                                    (uint16_t)(luma_chroma_x - 1U), block_y,
+                                full_resolution)) :
                         sample == 0U && have_left ?
                             mhccp_luma_left_clamped_q3(
                                 luma_plane, filter_index,
-                                (uint16_t)(luma_chroma_x - 1U), chroma_y) :
+                                (uint16_t)(luma_chroma_x - 1U), chroma_y,
+                                full_resolution) :
                             mhccp_luma_sample_q3(
                                 luma_plane, filter_index,
                                 luma_chroma_x == 0U ? 0U :
                                     (uint16_t)(luma_chroma_x - 1U),
-                                chroma_y)) >> 3U);
+                                chroma_y, full_resolution)) >> 3U);
             vector[1] = (center * center + 128) >> 8U;
         }
         vector[2] = 128;
@@ -1633,16 +1681,18 @@ static Av2hStatus mhccp_predict_direction01(
         int second;
         {
             int32_t center = (int32_t)(mhccp_luma_sample_q3(
-                luma_plane, filter_index, chroma_x, chroma_y) >> 3U);
+                luma_plane, filter_index, chroma_x, chroma_y,
+                full_resolution) >> 3U);
             vector[0] = direction == 0U ? center :
                 direction == 1U ?
                     (sample == 0U && have_top ? top_left_center :
                      (int32_t)(mhccp_luma_sample_q3(
                          luma_plane, filter_index, chroma_x,
-                         (uint16_t)(chroma_y - 1U)) >> 3U)) :
+                         (uint16_t)(chroma_y - 1U), full_resolution) >> 3U)) :
                     (int32_t)(mhccp_luma_left_clamped_q3(
                         luma_plane, filter_index,
-                        (uint16_t)(chroma_x - 1U), chroma_y) >> 3U);
+                        (uint16_t)(chroma_x - 1U), chroma_y,
+                        full_resolution) >> 3U);
             vector[1] = (center * center + 128) >> 8U;
         }
         vector[2] = 128;
@@ -1678,7 +1728,7 @@ static Av2hStatus mhccp_predict_direction01(
             int32_t center = (int32_t)(mhccp_luma_sample_q3(
                 luma_plane, filter_index,
                 (uint16_t)(block_x + column),
-                (uint16_t)(block_y + row)) >> 3U);
+                (uint16_t)(block_y + row), full_resolution) >> 3U);
             int32_t vector[3U];
             int32_t sum = 0;
             int parameter;
@@ -1688,16 +1738,18 @@ static Av2hStatus mhccp_predict_direction01(
                      row == 0U && is_top_sb_boundary ?
                         (int32_t)(mhccp_luma_sb_top_sample_q3(
                             luma_plane, filter_index,
-                            (uint16_t)(block_x + column), block_y) >> 3U) :
+                            (uint16_t)(block_x + column), block_y,
+                            full_resolution) >> 3U) :
                         (int32_t)(mhccp_luma_sample_q3(
                             luma_plane, filter_index,
                             (uint16_t)(block_x + column),
-                            (uint16_t)(block_y + row - 1U)) >> 3U)) :
+                            (uint16_t)(block_y + row - 1U),
+                            full_resolution) >> 3U)) :
                     (int32_t)(mhccp_luma_sample_q3(
                         luma_plane, filter_index,
                         column == 0U && !have_left ? block_x :
                             (uint16_t)(block_x + column - 1U),
-                        (uint16_t)(block_y + row)) >> 3U);
+                        (uint16_t)(block_y + row), full_resolution) >> 3U);
             vector[1] = (center * center + 128) >> 8U;
             vector[2] = 128;
             for (parameter = 0; parameter < 3; ++parameter) {
@@ -1738,6 +1790,7 @@ Av2hStatus av2h_mhccp_predict_observed(
             mode->cfl_downsample_filter_index,
             mode->mhccp_direction, block_x, block_y,
             width, height, mode->superblock_size,
+            (uint8_t)(mode->chroma_format_idc == 2U),
             predictor, predictor_stride);
     }
     if (mode->mhccp_direction != 2U || block_y != 0U || block_x < 2U ||

@@ -98,6 +98,7 @@ Av2hStatus av2h_cfl_derived_predict(
     uint8_t derive_alpha,
     int32_t supplied_alpha_q3,
     uint16_t superblock_size,
+    uint8_t chroma_format_idc,
     uint16_t block_x,
     uint16_t block_y,
     uint16_t width,

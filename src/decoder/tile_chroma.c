@@ -366,13 +366,15 @@ Av2hStatus av2h_tile_decoder_reconstruct_next_chroma(
     status = av2h_chroma_inverse_cross_transform(
         &u_block, &v_block, leaf->transform[0].cctx_type);
     if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
-    status = av2h_chroma_reconstruct_to_plane_ex(
+    status = av2h_chroma_reconstruct_to_plane_format(
         &leaf->node, &leaf->mode, &leaf->prefix[0], &leaf->transform[0],
-        &u_block, u_plane, 0, 1U, 0, scratch);
+        &u_block, u_plane, 0, 1U, 0,
+        decoder->sequence->info.chroma_format_idc, scratch);
     if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
-    status = av2h_chroma_reconstruct_to_plane_ex(
+    status = av2h_chroma_reconstruct_to_plane_format(
         &leaf->node, &leaf->mode, &leaf->prefix[1], &leaf->transform[1],
-        &v_block, v_plane, 0, 2U, 0, scratch);
+        &v_block, v_plane, 0, 2U, 0,
+        decoder->sequence->info.chroma_format_idc, scratch);
     if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
     return av2h_tile_decoder_commit_leaf(decoder, leaf->node);
 }

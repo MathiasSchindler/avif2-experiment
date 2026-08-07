@@ -4852,7 +4852,7 @@ static void test_cfl_filter1_internal_boundary(void) {
     }
     CHECK(av2h_cfl_derived_predict(
               &luma, &chroma, 1U, 0U, 1, 0U,
-              0U, 0U, 64U, 4U, 0U, 0U, predictor, 64U) == AV2H_OK);
+              0U, 0U, 0U, 64U, 4U, 0U, 0U, predictor, 64U) == AV2H_OK);
     for (row = 0U; row < 4U; ++row) {
         CHECK(predictor[row * 64U + 32U] == 128U);
     }

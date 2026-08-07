@@ -483,11 +483,11 @@ static void test_tx_descriptors(void) {
           AV2H_INVALID_ARGUMENT);
 
     CHECK(av2h_chroma_tx_descriptor_get(
-              AV2H_BLOCK_8X8, &descriptor) == AV2H_OK);
+              AV2H_BLOCK_8X8, 0U, &descriptor) == AV2H_OK);
     CHECK(descriptor->tx_size == AV2H_TX_4X4);
     CHECK(descriptor->tx_size_context == 0U);
     CHECK(av2h_chroma_tx_descriptor_get(
-              AV2H_BLOCK_8X16, &descriptor) == AV2H_OK);
+              AV2H_BLOCK_8X16, 0U, &descriptor) == AV2H_OK);
     CHECK(descriptor->tx_size == AV2H_TX_4X8);
     CHECK(descriptor->tx_size_context == 1U);
 }

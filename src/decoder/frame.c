@@ -273,13 +273,14 @@ Av2hStatus av2h_frame_header_closed_key_parse(
     }
     av2h_memory_fill(frame, 0U, sizeof(*frame));
     frame->plane_count = (uint8_t)av2h_sequence_plane_count(sequence);
+    frame->chroma_format_idc = sequence->info.chroma_format_idc;
     frame->ccso_unit_size =
         sequence->ccso_unit_matches_superblock_size ?
             sequence->superblock_size : 256U;
     if (payload.size == 0U) return AV2H_TRUNCATED;
     if (sequence->info.still_picture == 0U ||
         sequence->info.bit_depth_idc != 1U ||
-        sequence->info.chroma_format_idc > 1U ||
+        sequence->info.chroma_format_idc > 2U ||
         sequence->seq_seg_info_present_flag != 0U ||
         sequence->seq_tile_info_present_flag != 0U ||
         sequence->enable_restoration != 0U) {

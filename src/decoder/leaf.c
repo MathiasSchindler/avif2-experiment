@@ -107,6 +107,7 @@ Av2hStatus av2h_chroma_mode_read_with_delta_for_sdp(
     mode->mhccp_direction = 0U;
     mode->cfl_downsample_filter_index =
         sequence->cfl_downsample_filter_index;
+    mode->chroma_format_idc = sequence->info.chroma_format_idc;
     mode->superblock_size = sequence->superblock_size;
     mode->cfl_derived_alpha = 0U;
     mode->explicit_alpha_coded = 0U;

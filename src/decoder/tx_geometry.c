@@ -240,6 +240,7 @@ Av2hStatus av2h_luma_tx_node_get(
 
 Av2hStatus av2h_chroma_tx_descriptor_get(
     Av2hBlockSize block_size,
+        uint8_t chroma_format_idc,
     const Av2hTxDescriptor **descriptor) {
     size_t width_mi;
     size_t height_mi;
@@ -252,8 +253,11 @@ Av2hStatus av2h_chroma_tx_descriptor_get(
     status = av2h_block_dimensions_mi(block_size, &width_mi, &height_mi);
     if (status != AV2H_OK) return status;
     if (width_mi > 32U || height_mi > 32U) return AV2H_UNSUPPORTED;
-    width = (uint8_t)(width_mi * 2U);
-    height = (uint8_t)(height_mi * 2U);
+        if (chroma_format_idc != 0U && chroma_format_idc != 2U) {
+                return AV2H_UNSUPPORTED;
+        }
+        width = (uint8_t)(width_mi * (chroma_format_idc == 2U ? 4U : 2U));
+        height = (uint8_t)(height_mi * (chroma_format_idc == 2U ? 4U : 2U));
         if (width < 4U) width = 4U;
         if (height < 4U) height = 4U;
     for (index = 0U; index < AV2H_TX_SIZE_COUNT; ++index) {

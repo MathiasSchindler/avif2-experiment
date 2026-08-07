@@ -19,6 +19,7 @@ typedef struct {
     uint32_t cause;
     uint32_t stage;
     uint32_t channel_count;
+    uint32_t chroma_format_idc;
 } Av2hWasmResult;
 
 static uintptr_t heap_position;
@@ -126,7 +127,7 @@ uint32_t av2h_wasm_decode(uint32_t input_pointer, uint32_t input_size) {
                     frame_obu->payload_size },
         frame.uncompressed_header_bits, &group);
     if (status != AV2H_OK) goto done;
-    status = av2h_i420_output_size(&frame, &output_size);
+    status = av2h_planar_output_size(&frame, &output_size);
     if (status != AV2H_OK) goto done;
     if (output_size > UINT32_MAX) {
         status = AV2H_OVERFLOW;
@@ -147,7 +148,7 @@ uint32_t av2h_wasm_decode(uint32_t input_pointer, uint32_t input_size) {
         workspace_memory, workspace_layout.size,
         &workspace, &filter_workspace, &filter_storage);
     if (status != AV2H_OK) goto done;
-    status = av2h_decode_frame_i420_private(
+    status = av2h_decode_frame_planar_private(
         group.entropy, &sequence, &frame, &workspace,
         output, output_size, &decode_result);
     if (status != AV2H_OK) goto done;
@@ -156,6 +157,7 @@ uint32_t av2h_wasm_decode(uint32_t input_pointer, uint32_t input_size) {
     wasm_result.width = frame.width;
     wasm_result.height = frame.height;
     wasm_result.channel_count = av2h_frame_plane_count(&frame);
+    wasm_result.chroma_format_idc = frame.chroma_format_idc;
 
 done:
     wasm_result.status = status;

@@ -108,10 +108,10 @@ static void frame_decode_workspace_bind(
                 geometry->filter.plane_width[plane],
                 geometry->filter.plane_width[plane],
                 geometry->filter.plane_height[plane],
-                plane == 0U ? frame->width :
-                    (uint16_t)(((uint32_t)frame->width + 1U) / 2U),
-                plane == 0U ? frame->height :
-                    (uint16_t)(((uint32_t)frame->height + 1U) / 2U),
+                (uint16_t)av2h_frame_plane_dimension(
+                    frame, plane, frame->width),
+                (uint16_t)av2h_frame_plane_dimension(
+                    frame, plane, frame->height),
                 reconstructed,
                 geometry->filter.deblock_columns[plane],
                 geometry->filter.deblock_cell_count[plane]
@@ -292,7 +292,7 @@ static int sized_plane_bytes(size_t stride,
     return av2h_size_multiply(stride, height, bytes);
 }
 
-Av2hStatus av2h_i420_output_size(
+Av2hStatus av2h_planar_output_size(
     const Av2hFrameState *frame,
     size_t *size) {
     size_t luma;
@@ -311,8 +311,8 @@ Av2hStatus av2h_i420_output_size(
         *size = luma;
         return AV2H_OK;
     }
-    chroma_width = ((size_t)frame->width + 1U) >> 1U;
-    chroma_height = ((size_t)frame->height + 1U) >> 1U;
+    chroma_width = av2h_frame_plane_dimension(frame, 1U, frame->width);
+    chroma_height = av2h_frame_plane_dimension(frame, 1U, frame->height);
     if (
         !av2h_size_multiply(chroma_width, chroma_height, &chroma) ||
         !av2h_size_add(chroma, chroma, &total) ||
@@ -325,6 +325,7 @@ Av2hStatus av2h_i420_output_size(
 
 Av2hStatus av2h_deblock_map_commit_transform(
     Av2hDeblockMap *map,
+    uint8_t chroma_format_idc,
     unsigned int plane,
     const Av2hPartitionNode *leaf,
     const Av2hFirstCoeffPrefix *prefix,
@@ -358,7 +359,7 @@ Av2hStatus av2h_deblock_map_commit_transform(
         (descriptor->output_height & 3U) != 0U) {
         return AV2H_UNSUPPORTED;
     }
-    grid_size = plane == 0U ? 4U : 2U;
+    grid_size = 4U >> av2h_chroma_shift(chroma_format_idc, plane);
     block_column = leaf->column;
     block_row = leaf->row;
     transform_columns = descriptor->output_width / grid_size;
@@ -447,10 +448,10 @@ static int decode_planes_valid(
         const Av2hReconstructionPlane *coded = &workspace->coded[plane];
         size_t required_data;
         size_t required_ready;
-        size_t reference_width = plane == 0U ?
-            frame->width : ((size_t)frame->width + 1U) >> 1U;
-        size_t reference_height = plane == 0U ?
-            frame->height : ((size_t)frame->height + 1U) >> 1U;
+        size_t reference_width = av2h_frame_plane_dimension(
+            frame, plane, frame->width);
+        size_t reference_height = av2h_frame_plane_dimension(
+            frame, plane, frame->height);
         if (coded->data == 0 || coded->reconstructed == 0 ||
             coded->width != layout->plane_width[plane] ||
             coded->height != layout->plane_height[plane] ||
@@ -710,11 +711,13 @@ static int maps_and_readiness_complete(
         size_t row;
         for (row = 0U; row < map->rows[plane]; ++row) {
             size_t column;
-            size_t ready_row = plane == 0U ? row : row / 2U;
+            unsigned int shift = av2h_chroma_shift(
+                frame->chroma_format_idc, plane);
+            size_t ready_row = row >> shift;
             for (column = 0U; column < map->columns[plane]; ++column) {
                 const Av2hDeblockCell *cell =
                     &map->plane[plane][row * map->stride[plane] + column];
-                size_t ready_column = plane == 0U ? column : column / 2U;
+                size_t ready_column = column >> shift;
                 if (cell->transform_width == 0U ||
                     cell->transform_height == 0U ||
                     coded->reconstructed[
@@ -728,7 +731,7 @@ static int maps_and_readiness_complete(
     return 1;
 }
 
-Av2hStatus av2h_copy_visible_i420_private(
+Av2hStatus av2h_copy_visible_planar_private(
     const Av2hFrameState *frame,
     const Av2hFilterPlanes *coded,
     const size_t coded_data_size[AV2H_FRAME_PLANE_COUNT],
@@ -742,7 +745,7 @@ Av2hStatus av2h_copy_visible_i420_private(
     if (frame == 0 || coded == 0 || coded_data_size == 0 || output == 0) {
         return AV2H_INVALID_ARGUMENT;
     }
-    status = av2h_i420_output_size(frame, &required_output);
+    status = av2h_planar_output_size(frame, &required_output);
     if (status != AV2H_OK) return status;
     if (output_size < required_output) return AV2H_OUT_OF_MEMORY;
     status = av2h_filter_workspace_query(frame, &layout);
@@ -764,10 +767,10 @@ Av2hStatus av2h_copy_visible_i420_private(
     }
     for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
         const Av2hFilterPlane *source = &coded->plane[plane];
-        size_t width = plane == 0U ?
-            frame->width : ((size_t)frame->width + 1U) >> 1U;
-        size_t height = plane == 0U ?
-            frame->height : ((size_t)frame->height + 1U) >> 1U;
+        size_t width = av2h_frame_plane_dimension(
+            frame, plane, frame->width);
+        size_t height = av2h_frame_plane_dimension(
+            frame, plane, frame->height);
         size_t row;
         for (row = 0U; row < height; ++row) {
             av2h_memory_copy(
@@ -846,9 +849,11 @@ Av2hStatus av2h_filter_workspace_query(
     coded_height = av2h_filter_coded_dimension(frame->height);
     layout->alignment = _Alignof(Av2hDeblockCell);
     for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
-        size_t width = coded_width >> (plane == 0U ? 0U : 1U);
-        size_t height = coded_height >> (plane == 0U ? 0U : 1U);
-        size_t grid_size = plane == 0U ? 4U : 2U;
+        unsigned int shift = av2h_chroma_shift(
+            frame->chroma_format_idc, plane);
+        size_t width = coded_width >> shift;
+        size_t height = coded_height >> shift;
+        size_t grid_size = 4U >> shift;
         if (width > UINT16_MAX || height > UINT16_MAX ||
             !av2h_size_multiply(
                 width, height, &layout->stage_plane_bytes[plane]) ||

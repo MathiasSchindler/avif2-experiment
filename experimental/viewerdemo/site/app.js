@@ -50,26 +50,26 @@ function copyCanvas(source, destination) {
   destination.getContext("2d", { alpha: false }).drawImage(source, 0, 0);
 }
 
-function i420ToCanvas(i420, width, height) {
+function planarToCanvas(planar, width, height, channelCount, chromaFormat) {
   const canvas = document.createElement("canvas");
   canvas.width = width;
   canvas.height = height;
   const context = canvas.getContext("2d", { alpha: false });
   const image = context.createImageData(width, height);
   const rgba = image.data;
-  const chromaWidth = Math.ceil(width / 2);
-  const chromaHeight = Math.ceil(height / 2);
+  const chromaWidth = chromaFormat === 2 ? width : Math.ceil(width / 2);
+  const chromaHeight = chromaFormat === 2 ? height : Math.ceil(height / 2);
   const uOffset = width * height;
   const vOffset = uOffset + chromaWidth * chromaHeight;
 
   for (let row = 0; row < height; row += 1) {
     const yRow = row * width;
-    const uvRow = Math.floor(row / 2) * chromaWidth;
+    const uvRow = (chromaFormat === 2 ? row : Math.floor(row / 2)) * chromaWidth;
     for (let column = 0; column < width; column += 1) {
-      const y = i420[yRow + column] - 16;
-      const uvIndex = uvRow + Math.floor(column / 2);
-      const cb = i420[uOffset + uvIndex] - 128;
-      const cr = i420[vOffset + uvIndex] - 128;
+      const y = planar[yRow + column] - 16;
+      const uvIndex = uvRow + (chromaFormat === 2 ? column : Math.floor(column / 2));
+      const cb = channelCount === 1 ? 0 : planar[uOffset + uvIndex] - 128;
+      const cr = channelCount === 1 ? 0 : planar[vOffset + uvIndex] - 128;
       const target = (yRow + column) * 4;
       rgba[target] = Math.max(0, Math.min(255, (298 * y + 409 * cr + 128) >> 8));
       rgba[target + 1] = Math.max(0, Math.min(255, (298 * y - 100 * cb - 208 * cr + 128) >> 8));
@@ -95,8 +95,8 @@ function decodeVariant(scene, variant) {
     const started = performance.now();
     const status = wasm.av2h_decode(pointer, input.byteLength);
     const resultPointer = wasm.av2h_result_pointer();
-    const result = new Uint32Array(wasm.memory.buffer, resultPointer, 7);
-    const [outputPointer, outputSize, width, height, resultStatus, cause, stage] = result;
+    const result = new Uint32Array(wasm.memory.buffer, resultPointer, 9);
+    const [outputPointer, outputSize, width, height, resultStatus, cause, stage, channelCount, chromaFormat] = result;
     const elapsed = performance.now() - started;
     if (status !== 0 || resultStatus !== 0) {
       const name = statusNames[resultStatus] ?? `status ${resultStatus}`;
@@ -104,7 +104,10 @@ function decodeVariant(scene, variant) {
     }
     const pixels = new Uint8Array(outputSize);
     pixels.set(new Uint8Array(wasm.memory.buffer, outputPointer, outputSize));
-    const decoded = { canvas: i420ToCanvas(pixels, width, height), elapsed };
+    const decoded = {
+      canvas: planarToCanvas(pixels, width, height, channelCount, chromaFormat),
+      elapsed,
+    };
     imageCache.set(key, decoded);
     if (imageCache.size > 8) {
       imageCache.delete(imageCache.keys().next().value);

@@ -569,7 +569,7 @@ fixtures and their pinned AVM hashes are recorded in
 
 ## Milestone 12: 8-bit 4:4:4
 
-**Status:** Planned.
+**Status:** Implemented.
 
 Add three-plane 8-bit 4:4:4 after plane presence is explicit. Accept only the
 normative AV2 profile and chroma-format combinations required for this slice.
@@ -601,6 +601,12 @@ chroma blocks, CfL/MHCCP/CCTX, and each mandatory filter match pinned AVM on
 all three full-resolution planes; checked output/workspace calculations and
 geometry boundary tests pass; and both monochrome and 8-bit 4:2:0 corpora
 remain sample-exact.
+
+Implemented with shared checked plane geometry, exact profile-4/I444
+admission, full-resolution transform/reconstruction/filter traversal, and
+format-aware Windows and WebAssembly presentation. Tiny, odd, ordinary, and
+high-detail fixtures match pinned AVM on all three planes; see
+`docs/dev/milestone-12.md`.
 
 ## Milestone 13: 10-bit 4:2:0
 

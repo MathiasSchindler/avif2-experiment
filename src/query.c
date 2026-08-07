@@ -216,8 +216,10 @@ Av2hStatus av2h_query(Av2hSpan input,
     av2h_memory_fill(&info->planes[2], 0U, sizeof(info->planes[2]));
     output_size = info->planes[0].size;
     if (info->image.channel_count == 1U) goto output_layout_complete;
-    chroma_width = info->image.width / 2U + info->image.width % 2U;
-    chroma_height = info->image.height / 2U + info->image.height % 2U;
+    chroma_width = (uint32_t)av2h_plane_dimension(
+        info->image.width, info->image.sequence.chroma_format_idc, 1U);
+    chroma_height = (uint32_t)av2h_plane_dimension(
+        info->image.height, info->image.sequence.chroma_format_idc, 1U);
     status = plane_layout(chroma_width, chroma_height,
                           info->planes[0].size, &info->planes[1], error);
     if (status != AV2H_OK) return status;

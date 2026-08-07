@@ -222,7 +222,7 @@ static void test_frame_workspace_prepare_rejection(void) {
               &sequence, &frame, &decode_layout, memory,
               decode_layout.size, &workspace, &filter_workspace,
               &filter_storage) == AV2H_OK);
-    CHECK(av2h_i420_output_size(&frame, &output_size) == AV2H_OK);
+    CHECK(av2h_planar_output_size(&frame, &output_size) == AV2H_OK);
     CHECK(output_size <= sizeof(output));
 
 #define CHECK_PREPARE_FAILURE(pointer, result_pointer)                        \
@@ -456,14 +456,14 @@ static void test_visible_i420_crop(void) {
             v[row * 14U + column] = (uint8_t)(90U + row + column);
         }
     }
-    CHECK(av2h_i420_output_size(&frame, &expected_size) == AV2H_OK);
+    CHECK(av2h_planar_output_size(&frame, &expected_size) == AV2H_OK);
     CHECK(expected_size == 399U);
     av2h_memory_fill(output, 0xa5U, sizeof(output));
-    CHECK(av2h_copy_visible_i420_private(
+    CHECK(av2h_copy_visible_planar_private(
               &frame, &coded, capacities, output,
               expected_size - 1U) == AV2H_OUT_OF_MEMORY);
     CHECK(buffer_is_value(output, sizeof(output), 0xa5U));
-    CHECK(av2h_copy_visible_i420_private(
+    CHECK(av2h_copy_visible_planar_private(
               &frame, &coded, capacities, output,
               sizeof(output)) == AV2H_OK);
     offset = 0U;

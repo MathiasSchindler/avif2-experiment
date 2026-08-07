@@ -1345,6 +1345,22 @@ Av2hStatus av2h_chroma_reconstruct_to_plane(
         scratch);
 }
 
+Av2hStatus av2h_chroma_reconstruct_to_plane_ex(
+    const Av2hPartitionNode *leaf,
+    const Av2hFirstChromaMode *mode,
+    const Av2hFirstCoeffPrefix *prefix,
+    const Av2hFirstTransformType *transform,
+    const Av2hFirstCoeffBlock *coefficients,
+    Av2hReconstructionPlane *plane,
+    const Av2hReconstructionPlane *luma_plane,
+    uint8_t chroma_plane,
+    Av2hReconstructionPlane *predictor_plane,
+    Av2hReconstructionScratch *scratch) {
+    return av2h_chroma_reconstruct_to_plane_format(
+        leaf, mode, prefix, transform, coefficients, plane, luma_plane,
+        chroma_plane, predictor_plane, 0U, scratch);
+}
+
 Av2hStatus av2h_chroma_inverse_cross_transform(
     Av2hFirstCoeffBlock *u_coefficients,
     Av2hFirstCoeffBlock *v_coefficients,
@@ -1387,7 +1403,7 @@ Av2hStatus av2h_chroma_inverse_cross_transform(
     return AV2H_OK;
 }
 
-Av2hStatus av2h_chroma_reconstruct_to_plane_ex(
+Av2hStatus av2h_chroma_reconstruct_to_plane_format(
     const Av2hPartitionNode *leaf,
     const Av2hFirstChromaMode *mode,
     const Av2hFirstCoeffPrefix *prefix,
@@ -1397,6 +1413,7 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_ex(
     const Av2hReconstructionPlane *luma_plane,
     uint8_t chroma_plane,
     Av2hReconstructionPlane *predictor_plane,
+    uint8_t chroma_format_idc,
     Av2hReconstructionScratch *scratch) {
     Av2hFirstLeafMode luma_mode;
     Av2hFirstCoeffPrefix effective_prefix;
@@ -1417,6 +1434,7 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_ex(
     if (leaf == 0 || mode == 0 || prefix == 0 || transform == 0 ||
         coefficients == 0 || plane == 0 || scratch == 0 || plane->data == 0 ||
         chroma_plane < 1U || chroma_plane > 2U ||
+        (chroma_format_idc != 0U && chroma_format_idc != 2U) ||
         plane->stride < plane->width || plane->reference_width == 0U ||
         plane->reference_height == 0U || plane->reconstructed == 0 ||
         plane->reference_width > plane->width ||
@@ -1434,8 +1452,10 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_ex(
         descriptor->output_width : coefficients->width;
     height = descriptor->output_height > 32U ?
         descriptor->output_height : coefficients->height;
-    block_x = (uint16_t)((uint32_t)leaf->column * 2U);
-    block_y = (uint16_t)((uint32_t)leaf->row * 2U);
+    block_x = (uint16_t)((uint32_t)leaf->column *
+        (chroma_format_idc == 2U ? 4U : 2U));
+    block_y = (uint16_t)((uint32_t)leaf->row *
+        (chroma_format_idc == 2U ? 4U : 2U));
     if (block_x >= plane->width || block_y >= plane->height ||
         !av2h_chroma_geometry_supported(width, height)) {
         return AV2H_INVALID_ARGUMENT;
@@ -1609,7 +1629,8 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_ex(
             }
             status = av2h_cfl_derived_predict(
                 luma_plane, plane, mode->cfl_downsample_filter_index,
-                derive_alpha, alpha_q3, mode->superblock_size, block_x,
+                derive_alpha, alpha_q3, mode->superblock_size,
+                mode->chroma_format_idc, block_x,
                 block_y, width, height,
                 have_top, have_left,
                 scratch->predictor, width);

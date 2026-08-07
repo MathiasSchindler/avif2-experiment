@@ -138,8 +138,7 @@ static void ccso_filter_plane(Av2hFilterPlane *destination,
                               const uint8_t *controls,
                               size_t control_stride,
                               uint16_t luma_unit_size,
-                              unsigned int plane_index) {
-    unsigned int subsampling = plane_index == 0U ? 0U : 1U;
+                              unsigned int subsampling) {
     unsigned int unit_size = luma_unit_size >> subsampling;
     unsigned int shift = 8U - parameters->max_band_log2;
     uint16_t threshold = ccso_quant_size[parameters->scale_index]
@@ -215,7 +214,8 @@ Av2hStatus av2h_ccso_filter_frame(
                           pre_cdef_luma_stride, planes->plane[0].width,
                           planes->plane[0].height, &frame->ccso[plane],
                           controls->plane[plane], controls->stride[plane],
-                          av2h_filter_ccso_unit_size(frame), plane);
+                          av2h_filter_ccso_unit_size(frame),
+                          av2h_chroma_shift(frame->chroma_format_idc, plane));
     }
     return AV2H_OK;
 }

@@ -5,7 +5,7 @@
 #include "decoder/internal/frame_workspace.h"
 #include "decoder/internal/tile_modules.h"
 
-Av2hStatus av2h_decode_frame_i420_private(
+Av2hStatus av2h_decode_frame_planar_private(
     Av2hSpan entropy,
     const Av2hSequenceState *sequence,
     const Av2hFrameState *frame,
@@ -47,7 +47,7 @@ Av2hStatus av2h_decode_frame_i420_private(
         return AV2H_INVALID_ARGUMENT;
     }
     if (sequence->enable_restoration != 0U) return AV2H_UNSUPPORTED;
-    status = av2h_i420_output_size(frame, &required_output);
+    status = av2h_planar_output_size(frame, &required_output);
     if (status != AV2H_OK) return status;
     if (output_size < required_output) return AV2H_OUT_OF_MEMORY;
     status = av2h_frame_workspace_prepare(
@@ -64,12 +64,13 @@ Av2hStatus av2h_decode_frame_i420_private(
             decoder.luma_tx_count == 0U) {
             for (plane = 1U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
                 unsigned int index = plane - 1U;
-                status = av2h_chroma_reconstruct_to_plane_ex(
+                status = av2h_chroma_reconstruct_to_plane_format(
                     &pending_chroma_leaf.node, &pending_chroma_leaf.mode,
                     &pending_chroma_leaf.prefix[index],
                     &pending_chroma_leaf.transform[index],
                     &pending_chroma_blocks[index], &workspace->coded[plane],
                     &workspace->coded[0], (uint8_t)plane, 0,
+                    frame->chroma_format_idc,
                     workspace->reconstruction_scratch);
                 if (status != AV2H_OK) {
                     AV2H_DECODE_FAIL(
@@ -78,7 +79,8 @@ Av2hStatus av2h_decode_frame_i420_private(
                         plane, &pending_chroma_leaf.node, 0U);
                 }
                 status = av2h_deblock_map_commit_transform(
-                    &workspace->filter_workspace->deblock_map, plane,
+                    &workspace->filter_workspace->deblock_map,
+                    frame->chroma_format_idc, plane,
                     &pending_chroma_leaf.node,
                     &pending_chroma_leaf.prefix[index],
                     pending_chroma_leaf.prefix[index].q_index, 0U,
@@ -232,7 +234,8 @@ Av2hStatus av2h_decode_frame_i420_private(
                     diagnostics != 0 ? diagnostics->luma_stage : 0U);
             }
             status = av2h_deblock_map_commit_transform(
-                &workspace->filter_workspace->deblock_map, 0U,
+                &workspace->filter_workspace->deblock_map,
+                frame->chroma_format_idc, 0U,
                 &leaf.node, &leaf.prefix, leaf.prefix.q_index,
                 leaf.mode.skip_transform, leaf.prefix.all_zero,
                 (uint8_t)(frame->base_q_index == 0U));
@@ -341,11 +344,11 @@ Av2hStatus av2h_decode_frame_i420_private(
             }
             for (plane = 1U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
                 unsigned int index = plane - 1U;
-                status = av2h_chroma_reconstruct_to_plane_ex(
+                status = av2h_chroma_reconstruct_to_plane_format(
                     &leaf.node, &leaf.mode, &leaf.prefix[index],
                     &leaf.transform[index], &blocks[index],
                     &workspace->coded[plane], &workspace->coded[0],
-                    (uint8_t)plane, 0,
+                    (uint8_t)plane, 0, frame->chroma_format_idc,
                     workspace->reconstruction_scratch);
                 if (status != AV2H_OK) {
                     const Av2hPredictionDiagnostics *prediction_diagnostics =
@@ -385,7 +388,8 @@ Av2hStatus av2h_decode_frame_i420_private(
             for (plane = 1U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
                 unsigned int index = plane - 1U;
                 status = av2h_deblock_map_commit_transform(
-                    &workspace->filter_workspace->deblock_map, plane,
+                    &workspace->filter_workspace->deblock_map,
+                    frame->chroma_format_idc, plane,
                     &leaf.node, &leaf.prefix[index],
                     leaf.prefix[index].q_index, 0U,
                     leaf.prefix[index].all_zero,
@@ -460,7 +464,7 @@ Av2hStatus av2h_decode_frame_i420_private(
             returned, status, AV2H_FRAME_DECODE_STAGE_FILTER,
             0U, 0, 0U);
     }
-    status = av2h_copy_visible_i420_private(
+    status = av2h_copy_visible_planar_private(
         frame, &final_planes, workspace->coded_data_size,
         output, output_size);
     if (status != AV2H_OK) {

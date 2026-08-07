@@ -67,6 +67,20 @@ static inline unsigned int av2h_sequence_plane_count(
     return av2h_sequence_is_monochrome(sequence) ? 1U : 3U;
 }
 
+static inline unsigned int av2h_chroma_shift(
+    uint8_t chroma_format_idc,
+    unsigned int plane) {
+    return plane != 0U && chroma_format_idc != 2U ? 1U : 0U;
+}
+
+static inline size_t av2h_plane_dimension(
+    size_t luma_dimension,
+    uint8_t chroma_format_idc,
+    unsigned int plane) {
+    unsigned int shift = av2h_chroma_shift(chroma_format_idc, plane);
+    return (luma_dimension + ((size_t)1U << shift) - 1U) >> shift;
+}
+
 Av2hStatus av2h_sequence_state_parse(Av2hSpan input,
                                       const Av2hObu *obu,
                                       Av2hSequenceState *state,

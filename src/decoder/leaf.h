@@ -297,6 +297,7 @@ typedef struct {
     uint8_t cfl_mhccp_switch;
     uint8_t mhccp_direction;
     uint8_t cfl_downsample_filter_index;
+    uint8_t chroma_format_idc;
     uint16_t superblock_size;
     uint8_t cfl_derived_alpha;
     uint8_t explicit_alpha_coded;

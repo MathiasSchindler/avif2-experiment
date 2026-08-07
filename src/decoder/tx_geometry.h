@@ -61,6 +61,7 @@ Av2hStatus av2h_luma_tx_node_get(
     Av2hPartitionNode *tx_node);
 Av2hStatus av2h_chroma_tx_descriptor_get(
     Av2hBlockSize block_size,
+    uint8_t chroma_format_idc,
     const Av2hTxDescriptor **descriptor);
 
 #endif
