@@ -524,9 +524,146 @@ workspace alignments; undersized workspace, stale input, malformed syntax,
 and truncation fail deterministically; release artifacts remain CC0,
 freestanding, allocator-free, nolibc, and free of vendored dependencies.
 
+## Milestone 11: 8-bit monochrome
+
+**Status:** Planned.
+
+Add the AV2 4:0:0 pixel model while retaining the current 8-bit sample type.
+This is the smallest pixel-model expansion, but it is not only an output-loop
+change. The Sequence Header's monochrome value suppresses chroma-dependent
+syntax, including SDP, CfL downsample selection, chroma transform tools, and
+UV quantization fields. Parsing must therefore derive monochrome from the
+normative chroma-format value before reading those fields.
+
+Introduce explicit plane presence independently of the maximum three-plane
+storage used by internal arrays. Generalize canonical HEIF `pixi` validation,
+`Av2hInfo` plane layouts, output sizing, workspace allocation, tile traversal,
+reconstruction handoff, and filter iteration so an absent U or V plane is
+neither parsed nor allocated nor exposed as initialized output. Keep byte
+strides and all luma arithmetic unchanged. The public API must define unused
+plane layouts canonically rather than leaving caller-visible values
+indeterminate.
+
+Expected decoder impact: low to medium. The main owners are Sequence Header
+and frame parsing, container `pixi` validation/writing, query and workspace
+layout, fixed three-plane loops in tile/output/filter orchestration, and the
+Windows output adapter. Prediction, inverse transforms, and luma filter
+kernels should require little or no arithmetic change. This milestone should
+establish reusable plane-presence helpers, not replace every fixed-size
+three-element internal array.
+
+Non-goals: 4:2:2, 4:4:4, high-bit-depth samples, RGB conversion, and changes to
+the accepted still-picture or coding-tool profile.
+
+Exit gate: canonical monochrome HEIF items with tiny, odd, ordinary, and
+high-detail pictures decode sample-exactly against pinned AVM luma; `pixi`,
+query layouts, exact workspace bounds, truncation, and absent-plane behavior
+have focused tests; malformed chroma syntax fails before output mutation; and
+all existing 8-bit 4:2:0 artifacts retain byte-identical output.
+
+## Milestone 12: 8-bit 4:4:4
+
+**Status:** Planned.
+
+Add three-plane 8-bit 4:4:4 after plane presence is explicit. Accept only the
+normative AV2 profile and chroma-format combinations required for this slice.
+Replace implicit half-width/half-height chroma calculations with one shared,
+checked plane-geometry model used by parsing, block traversal, reconstruction,
+filters, query, workspace sizing, and output layout.
+
+Audit every luma-to-chroma coordinate conversion rather than treating larger
+output planes as sufficient. The affected normative paths include chroma
+partition and transform geometry, neighbor availability, directional
+prediction, CfL's full-resolution luma mapping, MHCCP, CCTX, deblock metadata,
+and CDEF, CCSO, and GDF plane traversal. Rename private I420-specific entry
+points where their contract becomes format-neutral. Canonical HEIF `pixi` and
+the public plane layouts must report three full-resolution byte planes.
+
+Expected decoder impact: medium to high. Storage remains `uint8_t`, so core
+sample arithmetic and most transform kernels can remain intact, but geometry
+is pervasive across frame workspace, tile/leaf/transform ownership, chroma
+prediction, reconstruction, and all filter stages. The platform viewer and
+development parity tools also need format-aware output handling. This
+milestone should centralize subsampling and coordinate helpers so no decoder
+owner independently re-derives 4:2:0 or 4:4:4 dimensions.
+
+Non-goals: 4:2:2, monochrome changes beyond Milestone 11, 10-bit storage,
+color conversion in the production core, and newly enabled coding tools.
+
+Exit gate: canonical 8-bit 4:4:4 fixtures covering odd dimensions, large
+chroma blocks, CfL/MHCCP/CCTX, and each mandatory filter match pinned AVM on
+all three full-resolution planes; checked output/workspace calculations and
+geometry boundary tests pass; and both monochrome and 8-bit 4:2:0 corpora
+remain sample-exact.
+
+## Milestone 13: 10-bit 4:2:0
+
+**Status:** Planned.
+
+Add 10-bit 4:2:0 as the sample-width milestone while retaining the established
+4:2:0 geometry. Use 16-bit containers for public and internal 10-bit samples,
+with byte-based strides, offsets, alignments, and sizes stated explicitly.
+Define the public byte order and packing contract; do not describe a 16-bit
+planar result as ordinary I420.
+
+Make bit depth an explicit input to prediction, inverse-transform,
+reconstruction, and filter arithmetic. Audit coefficient dequantization and
+clamps, intermediate widths, rounding, sample clipping, default predictors,
+CfL/MHCCP domains, deblock thresholds, and CDEF/CCSO/GDF calculations against
+the pinned AVM implementation. Widen predictor, reference, reconstruction,
+filter-plane, and frame-output storage deliberately; keep entropy and syntax
+state narrow where bit depth does not affect their numeric domain. Query and
+workspace calculations must multiply sample-backed regions by the checked
+bytes-per-sample value without inflating unrelated maps and coefficient state.
+
+Expected decoder impact: high and architectural. The principal owners are the
+public plane contract, query/workspace allocation, reconstruction structures,
+luma and chroma prediction, dequantization and inverse transforms, and every
+in-loop filter. This reaches more arithmetic code than 4:4:4 even though the
+existing chroma geometry is retained. Prefer typed 8-bit and 16-bit accessors
+or depth-specialized kernels over untyped `void *` sample access in normative
+inner loops.
+
+Non-goals: 12-bit, 4:2:2, 4:4:4, production color conversion, lossy
+downconversion in the decoder core, and changes to entropy coding unrelated
+to bit depth.
+
+Exit gate: canonical 10-bit 4:2:0 fixtures spanning quantizer and filter
+boundaries match pinned AVM sample-for-sample in 16-bit planar output; public
+layout, byte order, alignment, overflow, and exact workspace tests pass;
+sanitizer and fuzz coverage exercise both sample widths; and every 8-bit
+profile remains byte-identical.
+
+## Milestone 14: 10-bit 4:4:4
+
+**Status:** Planned.
+
+Combine the generalized 4:4:4 geometry from Milestone 12 with the 10-bit
+sample domain from Milestone 13. This is an independent integration milestone,
+not an inference that two separately tested axes compose correctly. Accept
+only the normative profile/signaling combination and preserve fail-closed
+behavior for 4:2:2, 12-bit, and unsupported tools.
+
+Expected decoder impact after Milestones 12 and 13: low to medium production
+code, concentrated where geometry and sample width meet. Re-audit chroma
+prediction references, CfL/MHCCP/CCTX intermediates, full-resolution filter
+grids, plane byte strides, maximum workspace calculations, and platform/tool
+output. Any substantial format-specific branch found here should be folded
+back into the shared geometry or sample-width abstraction rather than forming
+a fourth decoder path.
+
+Non-goals: new coding tools, 4:2:2, 12-bit, RGB output, metadata, alpha, and
+grid items.
+
+Exit gate: independent tiny, odd, ordinary, and high-detail 10-bit 4:4:4
+fixtures, including chroma-prediction and filter stress cases, match pinned
+AVM on all planes; maximum-size output/workspace arithmetic remains bounded;
+and the complete monochrome, 4:2:0, 4:4:4, 8-bit, and 10-bit regression matrix
+passes through both private fixture and public canonical-HEIF paths.
+
 ## Later work
 
-Add one independently testable slice at a time: monochrome, 4:4:4, 10-bit,
+After Milestone 14, add one independently testable slice at a time: 4:2:2,
 color conversion, streaming PNG, transformations, metadata, alpha auxiliary
 items, grids, and bounded parallelism. Each slice needs strict syntax tests,
 reference plane equality, workspace bounds, fuzz coverage, and updated support
@@ -555,16 +692,17 @@ Release validation additionally includes:
 
 ## Current work order
 
-1. Add 8-bit monochrome as the first independently tested profile expansion.
-2. Generalize chroma geometry for 8-bit 4:4:4 without weakening 4:2:0 parity.
-3. Add 10-bit 4:2:0 only after sample storage, arithmetic bounds, workspace
-  sizing, and output layout are explicitly widened and differentially tested.
+1. Milestone 11: add 8-bit monochrome and explicit plane presence.
+2. Milestone 12: generalize chroma geometry for 8-bit 4:4:4.
+3. Milestone 13: widen sample storage and arithmetic for 10-bit 4:2:0.
+4. Milestone 14: validate the combined 10-bit 4:4:4 model independently.
 
 Early work in a later milestone may be retained when it is already validated,
 but it does not waive an earlier exit gate. Each milestone must leave the
 decoder fail-closed at the first unsupported owner.
 
-Milestones 7 through 10 are complete. The private Windows decoder and public
+Milestones 7 through 10 are complete. Milestones 11 through 14 are planned as
+independent pixel-model expansions. The private Windows decoder and public
 canonical-HEIF path retain byte-identical pinned-AVM output for their locked
 corpora. Restoration remains outside the accepted profile and must continue to
 fail closed.
