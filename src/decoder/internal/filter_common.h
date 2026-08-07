@@ -31,7 +31,7 @@ static inline int floor_shift_signed(int value, unsigned int shift) {
 static inline int filter_dimensions_valid(
     const Av2hFilterPlanes *planes, const Av2hFrameState *frame) {
     unsigned int plane;
-    for (plane = 0U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
+    for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
         size_t width = av2h_filter_coded_dimension(frame->width) >>
             (plane == 0U ? 0U : 1U);
         size_t height = av2h_filter_coded_dimension(frame->height) >>

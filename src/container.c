@@ -890,7 +890,9 @@ Av2hStatus av2h_heif_parse(Av2hSpan input,
     if (status != AV2H_OK) return status;
     if (state.width != (uint32_t)sequence.max_frame_width_minus_1 + 1U ||
         state.height != (uint32_t)sequence.max_frame_height_minus_1 + 1U ||
-        state.channel_count != 3U || state.bits_per_channel != 8U) {
+        state.channel_count !=
+            (sequence.chroma_format_idc == 1U ? 1U : 3U) ||
+        state.bits_per_channel != 8U) {
         return heif_fail(error, AV2H_INVALID_DATA, meta.offset);
     }
     image->sequence = sequence;
@@ -912,12 +914,13 @@ Av2hStatus av2h_heif_write(const Av2hHeifSource *source,
     Av2hByteWriter writer;
     Av2hStatus status;
     size_t av2c_size;
-    size_t meta_size = 229U;
+    size_t meta_size;
     size_t payload_offset;
     size_t required = 20U;
     size_t nested_written;
     uint32_t width;
     uint32_t height;
+    uint8_t channel_count;
     if (source == 0 || written == 0 ||
         (output == 0 && output_size != 0U) ||
         (source != 0 && source->config_obus.data == 0 &&
@@ -935,6 +938,8 @@ Av2hStatus av2h_heif_write(const Av2hHeifSource *source,
                                     source->item_payload,
                                     &sequence, error);
     if (status != AV2H_OK) return status;
+    channel_count = sequence.chroma_format_idc == 1U ? 1U : 3U;
+    meta_size = 226U + channel_count;
     configuration.configuration_version = 1U;
     configuration.sequence = sequence;
     configuration.config_obus = source->config_obus;
@@ -1001,8 +1006,10 @@ Av2hStatus av2h_heif_write(const Av2hHeifSource *source,
     (void)av2h_byte_writer_u32be(&writer, ITEM_AV02);
     (void)av2h_byte_writer_write(&writer, "AV2", 4U);
 
-    write_box_header(&writer, (uint32_t)(102U + av2c_size), BOX_IPRP);
-    write_box_header(&writer, (uint32_t)(71U + av2c_size), BOX_IPCO);
+    write_box_header(&writer,
+                     (uint32_t)(99U + channel_count + av2c_size), BOX_IPRP);
+    write_box_header(&writer,
+                     (uint32_t)(68U + channel_count + av2c_size), BOX_IPCO);
     write_box_header(&writer, (uint32_t)(8U + av2c_size), BOX_AV2C);
     status = av2h_av2c_write(&configuration,
                              writer.data + writer.position,
@@ -1016,12 +1023,15 @@ Av2hStatus av2h_heif_write(const Av2hHeifSource *source,
     (void)av2h_byte_writer_u32be(&writer, width);
     (void)av2h_byte_writer_u32be(&writer, height);
 
-    write_box_header(&writer, 16U, BOX_PIXI);
+    write_box_header(&writer, (uint32_t)(13U + channel_count), BOX_PIXI);
     (void)av2h_byte_writer_u32be(&writer, 0U);
-    (void)av2h_byte_writer_u8(&writer, 3U);
-    (void)av2h_byte_writer_u8(&writer, 8U);
-    (void)av2h_byte_writer_u8(&writer, 8U);
-    (void)av2h_byte_writer_u8(&writer, 8U);
+    (void)av2h_byte_writer_u8(&writer, channel_count);
+    {
+        uint8_t channel;
+        for (channel = 0U; channel < channel_count; ++channel) {
+            (void)av2h_byte_writer_u8(&writer, 8U);
+        }
+    }
 
     write_box_header(&writer, 19U, BOX_COLR);
     (void)av2h_byte_writer_u32be(&writer, COLOR_NCLX);
@@ -1058,7 +1068,8 @@ Av2hStatus av2h_heif_write(const Av2hHeifSource *source,
             &parsed, error);
         if (status != AV2H_OK) return status;
         if (parsed.width != width || parsed.height != height ||
-            parsed.channel_count != 3U || parsed.bits_per_channel != 8U ||
+            parsed.channel_count != channel_count ||
+            parsed.bits_per_channel != 8U ||
             parsed.source.config_obus.size != source->config_obus.size ||
             parsed.source.item_payload.size != source->item_payload.size ||
             parsed.source.color.color_primaries !=

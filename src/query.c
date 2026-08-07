@@ -212,6 +212,10 @@ Av2hStatus av2h_query(Av2hSpan input,
     status = plane_layout(info->image.width, info->image.height, 0U,
                           &info->planes[0], error);
     if (status != AV2H_OK) return status;
+    av2h_memory_fill(&info->planes[1], 0U, sizeof(info->planes[1]));
+    av2h_memory_fill(&info->planes[2], 0U, sizeof(info->planes[2]));
+    output_size = info->planes[0].size;
+    if (info->image.channel_count == 1U) goto output_layout_complete;
     chroma_width = info->image.width / 2U + info->image.width % 2U;
     chroma_height = info->image.height / 2U + info->image.height % 2U;
     status = plane_layout(chroma_width, chroma_height,
@@ -228,6 +232,7 @@ Av2hStatus av2h_query(Av2hSpan input,
                        &output_size)) {
         return query_fail(error, AV2H_OVERFLOW, 0U, AV2H_CONTEXT_QUERY);
     }
+output_layout_complete:
     if (output_size > active->max_output_size) {
         return query_fail(error, AV2H_LIMIT_EXCEEDED, 0U,
                           AV2H_CONTEXT_LIMITS);

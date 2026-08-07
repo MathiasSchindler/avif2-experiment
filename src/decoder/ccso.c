@@ -24,7 +24,7 @@ int av2h_ccso_controls_valid(const Av2hFrameState *frame,
         (unit_size != 64U && unit_size != 128U && unit_size != 256U)) {
         return 0;
     }
-    for (plane = 0U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
+    for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
         if (frame->ccso[plane].enabled != 0U &&
             (controls->plane[plane] == 0 ||
              controls->stride[plane] < columns)) {
@@ -48,7 +48,7 @@ int av2h_ccso_controls_valid(const Av2hFrameState *frame,
 
 int av2h_ccso_parameters_valid(const Av2hFrameState *frame) {
     unsigned int plane;
-    for (plane = 0U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
+    for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
         const Av2hCcsoPlane *parameters = &frame->ccso[plane];
         unsigned int edge_intervals;
         uint16_t expected_offsets;
@@ -209,7 +209,7 @@ Av2hStatus av2h_ccso_filter_frame(
         !av2h_ccso_controls_valid(frame, controls)) {
         return AV2H_INVALID_ARGUMENT;
     }
-    for (plane = 0U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
+    for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
         if (frame->ccso[plane].enabled == 0U) continue;
         ccso_filter_plane(&planes->plane[plane], pre_cdef_luma,
                           pre_cdef_luma_stride, planes->plane[0].width,

@@ -296,7 +296,7 @@ Av2hStatus av2h_cdef_filter_frame_with_controls(
          controls->rows != ((size_t)frame->height + 63U) / 64U)) {
         return AV2H_UNSUPPORTED;
     }
-    for (plane = 0U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
+    for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
         if (destination->plane[plane].data == deblocked->plane[plane].data) {
             return AV2H_INVALID_ARGUMENT;
         }
@@ -349,7 +349,7 @@ Av2hStatus av2h_cdef_filter_frame_with_controls(
                 frame->cdef_damping,
                 y_primary != 0U ? direction : 0U, variance);
             if (status != AV2H_OK) return status;
-            for (plane = 1U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
+            for (plane = 1U; plane < av2h_frame_plane_count(frame); ++plane) {
                 uint16_t chroma_x = x >> 1U;
                 uint16_t chroma_y = y >> 1U;
                 uint16_t chroma_width = width == 8U ? 4U :

@@ -229,7 +229,9 @@ Av2hStatus av2h_tile_decoder_init(
     if (!av2h_size_multiply(sb_columns, sb_rows, &decoder->sb_count)) {
         return av2h_tile_decoder_fail(decoder, AV2H_OVERFLOW);
     }
-    if (!sequence->enable_sdp) decoder->sb_count = 1U;
+    if (!sequence->enable_sdp && !av2h_sequence_is_monochrome(sequence)) {
+        decoder->sb_count = 1U;
+    }
     decoder->sb_row = 0U;
     decoder->sb_column = 0U;
     decoder->current_q_index = frame->base_q_index;
@@ -328,9 +330,35 @@ Av2hStatus av2h_tile_decoder_init(
     return AV2H_OK;
 }
 
+static Av2hStatus tile_advance_root_or_finish(Av2hTileDecoder *decoder) {
+    Av2hTileFilterControls controls;
+    Av2hStatus status;
+    if (decoder->sb_index + 1U < decoder->sb_count) {
+        ++decoder->sb_index;
+        if ((size_t)decoder->sb_column + decoder->superblock_mi <
+            decoder->mi_columns) {
+            decoder->sb_column =
+                (uint16_t)(decoder->sb_column + decoder->superblock_mi);
+        } else {
+            decoder->sb_column = 0U;
+            decoder->sb_row =
+                (uint16_t)(decoder->sb_row + decoder->superblock_mi);
+        }
+        status = tile_reset_traversal_roots(decoder);
+        if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
+        decoder->phase = AV2H_TILE_DECODE_LUMA;
+        decoder->event = AV2H_TILE_EVENT_ROOT_HANDOFF;
+        return AV2H_OK;
+    }
+    status = av2h_tile_filter_controls_handoff(decoder, &controls);
+    if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
+    decoder->phase = AV2H_TILE_DECODE_DONE;
+    decoder->event = AV2H_TILE_EVENT_DONE;
+    return AV2H_OK;
+}
+
 Av2hStatus av2h_tile_decoder_finish_root(Av2hTileDecoder *decoder) {
     Av2hPartitionTraversal *traversal;
-    Av2hTileFilterControls controls;
     Av2hStatus status;
     if (decoder == 0) return AV2H_INVALID_ARGUMENT;
     if (decoder->status != AV2H_OK) return decoder->status;
@@ -366,6 +394,9 @@ Av2hStatus av2h_tile_decoder_finish_root(Av2hTileDecoder *decoder) {
         return av2h_tile_decoder_fail(decoder, AV2H_INVALID_ARGUMENT);
     }
     if (decoder->phase == AV2H_TILE_DECODE_LUMA) {
+        if (av2h_frame_plane_count(decoder->frame) == 1U) {
+            return tile_advance_root_or_finish(decoder);
+        }
         if (decoder->shared_chroma_complete) {
             decoder->shared_chroma_complete = 0U;
             decoder->phase = AV2H_TILE_DECODE_CHROMA;
@@ -411,28 +442,7 @@ Av2hStatus av2h_tile_decoder_finish_root(Av2hTileDecoder *decoder) {
         }
         decoder->square_root_child_index = 4U;
     }
-    if (decoder->sb_index + 1U < decoder->sb_count) {
-        ++decoder->sb_index;
-        if ((size_t)decoder->sb_column + decoder->superblock_mi <
-            decoder->mi_columns) {
-            decoder->sb_column =
-                (uint16_t)(decoder->sb_column + decoder->superblock_mi);
-        } else {
-            decoder->sb_column = 0U;
-            decoder->sb_row =
-                (uint16_t)(decoder->sb_row + decoder->superblock_mi);
-        }
-        status = tile_reset_traversal_roots(decoder);
-        if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
-        decoder->phase = AV2H_TILE_DECODE_LUMA;
-        decoder->event = AV2H_TILE_EVENT_ROOT_HANDOFF;
-        return AV2H_OK;
-    }
-    status = av2h_tile_filter_controls_handoff(decoder, &controls);
-    if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
-    decoder->phase = AV2H_TILE_DECODE_DONE;
-    decoder->event = AV2H_TILE_EVENT_DONE;
-    return AV2H_OK;
+    return tile_advance_root_or_finish(decoder);
 }
 
 Av2hStatus av2h_tile_decoder_commit_leaf(

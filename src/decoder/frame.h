@@ -24,6 +24,7 @@ typedef struct {
     size_t uncompressed_header_bits;
     uint16_t width;
     uint16_t height;
+    uint8_t plane_count;
     uint16_t base_q_index;
     int16_t y_dc_delta_q;
     int16_t u_dc_delta_q;
@@ -62,6 +63,13 @@ typedef struct {
     uint8_t tx_mode;
     uint8_t reduced_tx_set;
 } Av2hFrameState;
+
+static inline unsigned int av2h_frame_plane_count(
+    const Av2hFrameState *frame) {
+    return frame != 0 && frame->plane_count == 1U ?
+        1U : AV2H_FRAME_PLANE_COUNT;
+}
+
 static inline size_t av2h_frame_mi_dimension(uint16_t pixels) {
     return (((size_t)pixels + 7U) / 8U) * 2U;
 }

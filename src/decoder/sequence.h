@@ -57,6 +57,16 @@ typedef struct {
     uint8_t seq_tile_info_present_flag;
 } Av2hSequenceState;
 
+static inline int av2h_sequence_is_monochrome(
+    const Av2hSequenceState *sequence) {
+    return sequence != 0 && sequence->info.chroma_format_idc == 1U;
+}
+
+static inline unsigned int av2h_sequence_plane_count(
+    const Av2hSequenceState *sequence) {
+    return av2h_sequence_is_monochrome(sequence) ? 1U : 3U;
+}
+
 Av2hStatus av2h_sequence_state_parse(Av2hSpan input,
                                       const Av2hObu *obu,
                                       Av2hSequenceState *state,

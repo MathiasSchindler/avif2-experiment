@@ -49,6 +49,22 @@ static const unsigned char config_obu[] = {
 
 static const unsigned char item_payload[] = { 0x02U, 0x10U, 0xaaU };
 
+static const unsigned char monochrome_config_obu[] = {
+    0x0bU, 0x04U, 0x82U, 0x04U, 0x8cU, 0xffU,
+    0xc6U, 0x1fU, 0x9bU, 0xc4U, 0x84U, 0x40U
+};
+
+static const unsigned char monochrome_item_payload[] = {
+    0x39U, 0x10U, 0xe3U, 0x00U, 0x3fU, 0x68U, 0xd7U, 0xc3U,
+    0x43U, 0x86U, 0xffU, 0x01U, 0xfcU, 0x2aU, 0x52U, 0xaaU,
+    0x8fU, 0x5dU, 0x63U, 0xc5U, 0x9cU, 0x36U, 0x73U, 0x4cU,
+    0xe8U, 0x9eU, 0xe7U, 0x78U, 0x71U, 0x35U, 0x9cU, 0x23U,
+    0x32U, 0xb7U, 0xaaU, 0x18U, 0x5cU, 0x83U, 0x17U, 0x25U,
+    0x0fU, 0xfdU, 0xb5U, 0x2aU, 0x0fU, 0xdbU, 0x55U, 0xb9U,
+    0xd5U, 0xe7U, 0xc8U, 0x3eU, 0xebU, 0xf5U, 0x35U, 0x75U,
+    0xb2U, 0xd6U
+};
+
 static const unsigned char avm_item_payload[] = {
     0x63U, 0x10U, 0xe3U, 0x00U, 0x33U, 0xd0U, 0xb8U, 0x70U,
     0x00U, 0xd7U, 0xc3U, 0x43U, 0x86U, 0xffU, 0x01U, 0xfcU,
@@ -124,6 +140,72 @@ static void set_u32(unsigned char *bytes, size_t offset, uint32_t value) {
     bytes[offset + 1U] = (unsigned char)(value >> 16);
     bytes[offset + 2U] = (unsigned char)(value >> 8);
     bytes[offset + 3U] = (unsigned char)value;
+}
+
+static size_t find_box_type(const unsigned char *bytes,
+                            size_t size,
+                            uint32_t type) {
+    size_t offset;
+    for (offset = 4U; offset + 4U <= size; ++offset) {
+        if ((((uint32_t)bytes[offset] << 24U) |
+             ((uint32_t)bytes[offset + 1U] << 16U) |
+             ((uint32_t)bytes[offset + 2U] << 8U) |
+             bytes[offset + 3U]) == type) {
+            return offset - 4U;
+        }
+    }
+    return SIZE_MAX;
+}
+
+static void adjust_box_size(unsigned char *bytes,
+                            size_t size,
+                            uint32_t type,
+                            int delta) {
+    size_t offset = find_box_type(bytes, size, type);
+    uint32_t box_size;
+    CHECK(offset != SIZE_MAX);
+    if (offset == SIZE_MAX) return;
+    box_size = ((uint32_t)bytes[offset] << 24U) |
+               ((uint32_t)bytes[offset + 1U] << 16U) |
+               ((uint32_t)bytes[offset + 2U] << 8U) |
+               bytes[offset + 3U];
+    set_u32(bytes, offset, (uint32_t)((int)box_size + delta));
+}
+
+static size_t change_pixi_channels(unsigned char *bytes,
+                                   size_t size,
+                                   uint8_t channel_count) {
+    size_t pixi = find_box_type(bytes, size, 0x70697869U);
+    size_t box_size;
+    size_t box_end;
+    int delta = channel_count == 1U ? -2 : 2;
+    CHECK(pixi != SIZE_MAX);
+    if (pixi == SIZE_MAX) return size;
+    box_size = ((size_t)bytes[pixi] << 24U) |
+               ((size_t)bytes[pixi + 1U] << 16U) |
+               ((size_t)bytes[pixi + 2U] << 8U) |
+               bytes[pixi + 3U];
+    box_end = pixi + box_size;
+    if (delta > 0) {
+        av2h_memory_copy(bytes + box_end + 2U, bytes + box_end,
+                         size - box_end);
+        bytes[box_end] = 8U;
+        bytes[box_end + 1U] = 8U;
+    } else {
+        av2h_memory_copy(bytes + box_end - 2U, bytes + box_end,
+                         size - box_end);
+    }
+    bytes[pixi + 12U] = channel_count;
+    set_u32(bytes, pixi, (uint32_t)((int)box_size + delta));
+    adjust_box_size(bytes, size, 0x6d657461U, delta);
+    adjust_box_size(bytes, size, 0x69707270U, delta);
+    adjust_box_size(bytes, size, 0x6970636fU, delta);
+    set_u32(bytes, OFFSET_ILOC_EXTENT_OFFSET,
+            (((uint32_t)bytes[OFFSET_ILOC_EXTENT_OFFSET] << 24U) |
+             ((uint32_t)bytes[OFFSET_ILOC_EXTENT_OFFSET + 1U] << 16U) |
+             ((uint32_t)bytes[OFFSET_ILOC_EXTENT_OFFSET + 2U] << 8U) |
+             bytes[OFFSET_ILOC_EXTENT_OFFSET + 3U]) + delta);
+    return (size_t)((int)size + delta);
 }
 
 static size_t make_libavif_fixture(unsigned char *bytes) {
@@ -230,6 +312,33 @@ static void test_avm_payload_round_trip(void) {
     CHECK(image.source.item_payload.size == sizeof(avm_item_payload));
     CHECK(av2h_memory_compare(image.source.item_payload.data, avm_item_payload,
                               sizeof(avm_item_payload)) == 0);
+}
+
+static void test_monochrome_pixi(void) {
+    Av2hHeifSource source = make_source();
+    Av2hHeifImage image;
+    Av2hError error;
+    unsigned char bytes[512];
+    size_t written = 0U;
+    source.config_obus = (Av2hSpan){ monochrome_config_obu,
+                                     sizeof(monochrome_config_obu) };
+    source.item_payload = (Av2hSpan){ monochrome_item_payload,
+                                     sizeof(monochrome_item_payload) };
+    CHECK(av2h_heif_write(&source, bytes, sizeof(bytes),
+                           &written, &error) == AV2H_OK);
+    CHECK(av2h_heif_parse((Av2hSpan){ bytes, written },
+                           &image, &error) == AV2H_OK);
+    CHECK(image.channel_count == 1U && image.bits_per_channel == 8U);
+    written = change_pixi_channels(bytes, written, 3U);
+    check_heif_status(av2h_heif_parse((Av2hSpan){ bytes, written },
+                                      &image, &error),
+                      AV2H_INVALID_DATA, &error);
+
+    av2h_memory_copy(bytes, canonical, sizeof(canonical));
+    written = change_pixi_channels(bytes, sizeof(canonical), 1U);
+    check_heif_status(av2h_heif_parse((Av2hSpan){ bytes, written },
+                                      &image, &error),
+                      AV2H_INVALID_DATA, &error);
 }
 
 static void test_top_level_and_item_mutations(void) {
@@ -532,6 +641,7 @@ int main(void) {
     test_golden_and_round_trip();
     test_writer_errors();
     test_avm_payload_round_trip();
+    test_monochrome_pixi();
     test_top_level_and_item_mutations();
     test_property_mutations();
     test_mdat_before_meta();

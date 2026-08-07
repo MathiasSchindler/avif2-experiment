@@ -526,7 +526,7 @@ freestanding, allocator-free, nolibc, and free of vendored dependencies.
 
 ## Milestone 11: 8-bit monochrome
 
-**Status:** Planned.
+**Status:** Complete.
 
 Add the AV2 4:0:0 pixel model while retaining the current 8-bit sample type.
 This is the smallest pixel-model expansion, but it is not only an output-loop
@@ -560,6 +560,12 @@ high-detail pictures decode sample-exactly against pinned AVM luma; `pixi`,
 query layouts, exact workspace bounds, truncation, and absent-plane behavior
 have focused tests; malformed chroma syntax fails before output mutation; and
 all existing 8-bit 4:2:0 artifacts retain byte-identical output.
+
+Implemented in the public decoder with one active Y plane, canonical zero U/V
+layouts, one-channel 8-bit `pixi`, active-plane workspace/filter ownership,
+and luma-only tile traversal across multiple superblocks. The four generated
+fixtures and their pinned AVM hashes are recorded in
+`tests/fixtures/monochrome-manifest.json`; see `docs/dev/milestone-11.md`.
 
 ## Milestone 12: 8-bit 4:4:4
 

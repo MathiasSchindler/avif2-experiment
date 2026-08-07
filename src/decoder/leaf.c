@@ -564,7 +564,7 @@ static Av2hStatus luma_mode_read_internal(
     }
     if (leaf->block_size >= AV2H_BLOCK_SIZE_COUNT ||
         frame->disable_cdf_update || frame->segmentation_enabled ||
-        !sequence->enable_sdp ||
+        (!sequence->enable_sdp && !av2h_sequence_is_monochrome(sequence)) ||
         sequence->enable_intra_dip ||
         (frame->gdf_mode >= 2U && gdf_state == 0) ||
         (frame->cdef_strength_count > 1U && cdef_state == 0)) {

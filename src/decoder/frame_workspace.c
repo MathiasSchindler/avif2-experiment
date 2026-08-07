@@ -70,10 +70,10 @@ static Av2hStatus frame_decode_workspace_geometry(
         !av2h_size_multiply(
             mi_columns, mi_rows, &geometry->mi_cells) ||
         !av2h_size_multiply(
-            geometry->context_columns, AV2H_FRAME_PLANE_COUNT,
+            geometry->context_columns, av2h_frame_plane_count(frame),
             &geometry->coefficient_above) ||
         !av2h_size_multiply(
-            geometry->context_rows, AV2H_FRAME_PLANE_COUNT,
+            geometry->context_rows, av2h_frame_plane_count(frame),
             &geometry->coefficient_left)) {
         return AV2H_OVERFLOW;
     }
@@ -95,7 +95,7 @@ static void frame_decode_workspace_bind(
     unsigned int plane;
     *filter_memory = av2h_arena_allocate(
         arena, geometry->filter.size, geometry->filter.alignment);
-    for (plane = 0U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
+    for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
         uint8_t *data = workspace_arena_array(
             arena, geometry->filter.stage_plane_bytes[plane],
             sizeof(uint8_t), _Alignof(uint8_t));
@@ -151,7 +151,7 @@ static void frame_decode_workspace_bind(
     AV2H_BIND_WORKSPACE_FIELD(
         cdef_unit_strengths, geometry->cdef_count, uint8_t);
 #undef AV2H_BIND_WORKSPACE_FIELD
-    for (plane = 0U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
+    for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
         uint8_t *controls = workspace_arena_array(
             arena, geometry->filter.ccso_control_count,
             sizeof(uint8_t), _Alignof(uint8_t));
@@ -304,9 +304,16 @@ Av2hStatus av2h_i420_output_size(
         frame->height == 0U) {
         return AV2H_INVALID_ARGUMENT;
     }
+    if (!av2h_size_multiply(frame->width, frame->height, &luma)) {
+        return AV2H_OVERFLOW;
+    }
+    if (av2h_frame_plane_count(frame) == 1U) {
+        *size = luma;
+        return AV2H_OK;
+    }
     chroma_width = ((size_t)frame->width + 1U) >> 1U;
     chroma_height = ((size_t)frame->height + 1U) >> 1U;
-    if (!av2h_size_multiply(frame->width, frame->height, &luma) ||
+    if (
         !av2h_size_multiply(chroma_width, chroma_height, &chroma) ||
         !av2h_size_add(chroma, chroma, &total) ||
         !av2h_size_add(luma, total, &total)) {
@@ -395,6 +402,7 @@ Av2hStatus av2h_deblock_map_commit_transform(
 }
 
 static int filter_workspace_valid(
+    const Av2hFrameState *frame,
     const Av2hFilterWorkspaceLayout *layout,
     const Av2hFilterWorkspace *workspace) {
     unsigned int plane;
@@ -403,7 +411,7 @@ static int filter_workspace_valid(
         workspace->ccso_controls.rows != layout->ccso_rows) {
         return 0;
     }
-    for (plane = 0U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
+    for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
         const Av2hFilterPlane *deblocked =
             &workspace->deblocked.plane[plane];
         const Av2hFilterPlane *cdef = &workspace->cdef.plane[plane];
@@ -435,7 +443,7 @@ static int decode_planes_valid(
     const Av2hFilterWorkspaceLayout *layout,
     const Av2hFrameDecodeWorkspace *workspace) {
     unsigned int plane;
-    for (plane = 0U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
+    for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
         const Av2hReconstructionPlane *coded = &workspace->coded[plane];
         size_t required_data;
         size_t required_ready;
@@ -505,10 +513,10 @@ static int tile_context_valid(
             context->left_count, sizeof(*context->luma_mode_left),
             &sizes->luma_mode_left) ||
         !av2h_size_multiply(
-            context->above_count, AV2H_FRAME_PLANE_COUNT,
+            context->above_count, av2h_frame_plane_count(frame),
             &sizes->coefficient_above) ||
         !av2h_size_multiply(
-            context->left_count, AV2H_FRAME_PLANE_COUNT,
+            context->left_count, av2h_frame_plane_count(frame),
             &sizes->coefficient_left) ||
         !av2h_size_multiply(
             context->colocated_luma_count,
@@ -526,13 +534,14 @@ static int tile_context_valid(
 static int output_is_disjoint(
     uint8_t *output,
     size_t output_size,
+    const Av2hFrameState *frame,
     const Av2hFilterWorkspaceLayout *layout,
     const Av2hFrameDecodeWorkspace *workspace,
     const Av2hFrameContextSizes *context_sizes,
     const Av2hFrameDecodeResult *result) {
     const Av2hTileContextStorage *context = &workspace->tile_context;
     unsigned int plane;
-    for (plane = 0U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
+    for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
         const Av2hReconstructionPlane *coded = &workspace->coded[plane];
         const Av2hFilterPlane *deblocked =
             &workspace->filter_workspace->deblocked.plane[plane];
@@ -614,7 +623,7 @@ static int output_is_disjoint(
          output_overlaps(output, output_size, result, sizeof(*result)))) {
         return 0;
     }
-    for (plane = 0U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
+    for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
         if (output_overlaps(
                 output, output_size, context->ccso_unit_controls[plane],
                 context->ccso_unit_control_capacity)) {
@@ -625,6 +634,7 @@ static int output_is_disjoint(
 }
 
 static void clear_decode_storage(
+    const Av2hFrameState *frame,
     const Av2hFilterWorkspaceLayout *layout,
     Av2hFrameDecodeWorkspace *workspace,
     const Av2hFrameContextSizes *context_sizes) {
@@ -660,7 +670,7 @@ static void clear_decode_storage(
             context->cdef_unit_strengths, 0U,
             context->cdef_unit_strength_capacity);
     }
-    for (plane = 0U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
+    for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
         Av2hReconstructionPlane *coded = &workspace->coded[plane];
         size_t data_size = coded->stride * coded->height;
         size_t ready_size = coded->reconstructed_stride *
@@ -689,9 +699,11 @@ static void clear_decode_storage(
 }
 
 static int maps_and_readiness_complete(
+    const Av2hFrameState *frame,
     const Av2hFrameDecodeWorkspace *workspace) {
     unsigned int plane;
-    for (plane = 0U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
+    if (frame == 0) return 0;
+    for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
         const Av2hDeblockMap *map =
             &workspace->filter_workspace->deblock_map;
         const Av2hReconstructionPlane *coded = &workspace->coded[plane];
@@ -735,7 +747,7 @@ Av2hStatus av2h_copy_visible_i420_private(
     if (output_size < required_output) return AV2H_OUT_OF_MEMORY;
     status = av2h_filter_workspace_query(frame, &layout);
     if (status != AV2H_OK) return status;
-    for (plane = 0U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
+    for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
         const Av2hFilterPlane *source = &coded->plane[plane];
         size_t source_size;
         if (source->data == 0 ||
@@ -750,7 +762,7 @@ Av2hStatus av2h_copy_visible_i420_private(
             return AV2H_INVALID_ARGUMENT;
         }
     }
-    for (plane = 0U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
+    for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
         const Av2hFilterPlane *source = &coded->plane[plane];
         size_t width = plane == 0U ?
             frame->width : ((size_t)frame->width + 1U) >> 1U;
@@ -779,22 +791,23 @@ Av2hStatus av2h_frame_workspace_prepare(
     Av2hFrameContextSizes context_sizes;
     Av2hStatus status = av2h_filter_workspace_query(frame, layout);
     if (status != AV2H_OK) return status;
-    if (!filter_workspace_valid(layout, workspace->filter_workspace) ||
+    if (!filter_workspace_valid(frame, layout, workspace->filter_workspace) ||
         !decode_planes_valid(frame, layout, workspace) ||
         !tile_context_valid(
             sequence, frame, &workspace->tile_context, &context_sizes) ||
         !output_is_disjoint(
-            output, required_output, layout, workspace,
+            output, required_output, frame, layout, workspace,
             &context_sizes, result)) {
         return AV2H_INVALID_ARGUMENT;
     }
-    clear_decode_storage(layout, workspace, &context_sizes);
+    clear_decode_storage(frame, layout, workspace, &context_sizes);
     return AV2H_OK;
 }
 
 int av2h_frame_workspace_complete(
+    const Av2hFrameState *frame,
     const Av2hFrameDecodeWorkspace *workspace) {
-    return maps_and_readiness_complete(workspace);
+    return maps_and_readiness_complete(frame, workspace);
 }
 
 static int workspace_reserve(size_t *size,
@@ -832,7 +845,7 @@ Av2hStatus av2h_filter_workspace_query(
     coded_width = av2h_filter_coded_dimension(frame->width);
     coded_height = av2h_filter_coded_dimension(frame->height);
     layout->alignment = _Alignof(Av2hDeblockCell);
-    for (plane = 0U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
+    for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
         size_t width = coded_width >> (plane == 0U ? 0U : 1U);
         size_t height = coded_height >> (plane == 0U ? 0U : 1U);
         size_t grid_size = plane == 0U ? 4U : 2U;
@@ -862,7 +875,7 @@ Av2hStatus av2h_filter_workspace_query(
         return AV2H_OVERFLOW;
     }
     for (stage = 0U; stage < 2U; ++stage) {
-        for (plane = 0U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
+        for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
             if (!workspace_reserve(
                     &size, layout->stage_plane_bytes[plane],
                     sizeof(uint8_t), _Alignof(uint8_t))) {
@@ -870,14 +883,14 @@ Av2hStatus av2h_filter_workspace_query(
             }
         }
     }
-    for (plane = 0U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
+    for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
         if (!workspace_reserve(
                 &size, layout->deblock_cell_count[plane],
                 sizeof(Av2hDeblockCell), _Alignof(Av2hDeblockCell))) {
             return AV2H_OVERFLOW;
         }
     }
-    for (plane = 0U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
+    for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
         if (!workspace_reserve(
                 &size, layout->ccso_control_count,
                 sizeof(uint8_t), _Alignof(uint8_t))) {
@@ -910,7 +923,7 @@ Av2hStatus av2h_filter_workspace_init(
     av2h_memory_fill(storage, 0U, sizeof(*storage));
     av2h_memory_fill(memory, 0U, layout.size);
     av2h_arena_init(&arena, memory, layout.size);
-    for (plane = 0U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
+    for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
         workspace->deblocked.plane[plane] = (Av2hFilterPlane){
             av2h_arena_allocate(
                 &arena, layout.stage_plane_bytes[plane],
@@ -920,7 +933,7 @@ Av2hStatus av2h_filter_workspace_init(
             layout.plane_height[plane]
         };
     }
-    for (plane = 0U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
+    for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
         workspace->cdef.plane[plane] = (Av2hFilterPlane){
             av2h_arena_allocate(
                 &arena, layout.stage_plane_bytes[plane],
@@ -930,7 +943,7 @@ Av2hStatus av2h_filter_workspace_init(
             layout.plane_height[plane]
         };
     }
-    for (plane = 0U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
+    for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
         storage->deblock_cells[plane] = av2h_arena_allocate(
             &arena,
             layout.deblock_cell_count[plane] * sizeof(Av2hDeblockCell),
@@ -942,7 +955,7 @@ Av2hStatus av2h_filter_workspace_init(
     }
     workspace->ccso_controls.columns = layout.ccso_columns;
     workspace->ccso_controls.rows = layout.ccso_rows;
-    for (plane = 0U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
+    for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
         storage->ccso_controls[plane] = av2h_arena_allocate(
             &arena, layout.ccso_control_count, _Alignof(uint8_t));
         workspace->ccso_controls.plane[plane] = storage->ccso_controls[plane];

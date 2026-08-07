@@ -33,6 +33,7 @@ Av2hStatus av2h_frame_workspace_prepare(
     Av2hFilterWorkspaceLayout *layout);
 
 int av2h_frame_workspace_complete(
+    const Av2hFrameState *frame,
     const Av2hFrameDecodeWorkspace *workspace);
 
 #endif

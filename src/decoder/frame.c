@@ -93,8 +93,9 @@ static void read_quantization(Av2hBitReader *reader,
     if (sequence->y_dc_delta_q_enabled != 0U) {
         frame->y_dc_delta_q = read_delta_q(reader);
     }
-    if (sequence->uv_dc_delta_q_enabled != 0U ||
-        sequence->uv_ac_delta_q_enabled != 0U) {
+    if (!av2h_sequence_is_monochrome(sequence) &&
+        (sequence->uv_dc_delta_q_enabled != 0U ||
+         sequence->uv_ac_delta_q_enabled != 0U)) {
         if (sequence->separate_uv_delta_q != 0U) {
             different_uv = (uint8_t)av2h_bit_reader_read(reader, 1U);
         }
@@ -137,14 +138,17 @@ static void read_deblock(Av2hBitReader *reader,
         (uint8_t)av2h_bit_reader_read(reader, 1U);
     frame->deblock_enabled[1] =
         (uint8_t)av2h_bit_reader_read(reader, 1U);
-    if (frame->deblock_enabled[0] != 0U ||
-        frame->deblock_enabled[1] != 0U) {
+    if (av2h_frame_plane_count(frame) > 1U &&
+        (frame->deblock_enabled[0] != 0U ||
+         frame->deblock_enabled[1] != 0U)) {
         frame->deblock_enabled[2] =
             (uint8_t)av2h_bit_reader_read(reader, 1U);
         frame->deblock_enabled[3] =
             (uint8_t)av2h_bit_reader_read(reader, 1U);
     }
-    for (index = 0U; index < 4U; ++index) {
+        for (index = 0U;
+            index < (av2h_frame_plane_count(frame) == 1U ? 2U : 4U);
+            ++index) {
         if (frame->deblock_enabled[index] != 0U) {
             if (av2h_bit_reader_read(reader, 1U) != 0U) {
                 frame->deblock_delta[index] =
@@ -175,7 +179,9 @@ static void read_cdef(Av2hBitReader *reader, Av2hFrameState *frame) {
         (uint8_t)av2h_bit_reader_read(reader, 1U);
     for (index = 0U; index < frame->cdef_strength_count; ++index) {
         read_cdef_strength(reader, &frame->cdef_y_strength[index]);
-        read_cdef_strength(reader, &frame->cdef_uv_strength[index]);
+        if (av2h_frame_plane_count(frame) > 1U) {
+            read_cdef_strength(reader, &frame->cdef_uv_strength[index]);
+        }
     }
 }
 
@@ -212,7 +218,7 @@ static uint16_t read_ccso_offsets(Av2hBitReader *reader,
 
 static void read_ccso(Av2hBitReader *reader, Av2hFrameState *frame) {
     unsigned int plane_index;
-    for (plane_index = 0U; plane_index < AV2H_FRAME_PLANE_COUNT;
+    for (plane_index = 0U; plane_index < frame->plane_count;
          ++plane_index) {
         Av2hCcsoPlane *plane = &frame->ccso[plane_index];
         uint32_t edge_intervals;
@@ -266,13 +272,14 @@ Av2hStatus av2h_frame_header_closed_key_parse(
         return AV2H_INVALID_ARGUMENT;
     }
     av2h_memory_fill(frame, 0U, sizeof(*frame));
+    frame->plane_count = (uint8_t)av2h_sequence_plane_count(sequence);
     frame->ccso_unit_size =
         sequence->ccso_unit_matches_superblock_size ?
             sequence->superblock_size : 256U;
     if (payload.size == 0U) return AV2H_TRUNCATED;
     if (sequence->info.still_picture == 0U ||
         sequence->info.bit_depth_idc != 1U ||
-        sequence->info.chroma_format_idc != 0U ||
+        sequence->info.chroma_format_idc > 1U ||
         sequence->seq_seg_info_present_flag != 0U ||
         sequence->seq_tile_info_present_flag != 0U ||
         sequence->enable_restoration != 0U) {

@@ -74,7 +74,7 @@ Av2hStatus av2h_filter_frame(
         set_filter_reason(6U);
         return AV2H_INVALID_ARGUMENT;
     }
-    for (plane = 0U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
+    for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
         if (planes->plane[plane].data ==
                 workspace->deblocked.plane[plane].data ||
             planes->plane[plane].data == workspace->cdef.plane[plane].data ||
@@ -84,7 +84,7 @@ Av2hStatus av2h_filter_frame(
             return AV2H_INVALID_ARGUMENT;
         }
     }
-    for (plane = 0U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
+    for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
         filter_copy_plane(&workspace->deblocked.plane[plane],
                           &planes->plane[plane]);
     }
@@ -106,7 +106,7 @@ Av2hStatus av2h_filter_frame(
         &workspace->deblocked.plane[0], frame,
         &workspace->gdf_controls);
     if (status != AV2H_OK) return status;
-    for (plane = 1U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
+    for (plane = 1U; plane < av2h_frame_plane_count(frame); ++plane) {
         filter_copy_plane(&planes->plane[plane],
                           &workspace->cdef.plane[plane]);
     }

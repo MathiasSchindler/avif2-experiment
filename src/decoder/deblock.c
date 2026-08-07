@@ -276,7 +276,9 @@ int av2h_deblock_map_valid(const Av2hFilterPlanes *planes,
                              const Av2hDeblockMap *map) {
     unsigned int plane;
     if (map == 0) return 0;
-    for (plane = 0U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
+    for (plane = 0U;
+         plane < AV2H_FRAME_PLANE_COUNT && planes->plane[plane].data != 0;
+         ++plane) {
         size_t grid_size = plane == 0U ? 4U : 2U;
         size_t columns = planes->plane[plane].width / grid_size;
         size_t rows = planes->plane[plane].height / grid_size;
@@ -414,7 +416,7 @@ Av2hStatus av2h_deblock_filter_frame(
         !av2h_deblock_map_valid(planes, map)) {
         return AV2H_INVALID_ARGUMENT;
     }
-    for (plane = 0U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
+    for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
         unsigned int pass;
         for (pass = 0U; pass < 2U; ++pass) {
             unsigned int enable_index = plane == 0U ? pass : plane + 1U;

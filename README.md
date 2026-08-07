@@ -37,13 +37,15 @@ separate reference experiment and is fetched into ignored `vendor/` and
   and advanced-transform coverage reached by its locked fixture. Milestone 9
   completes mandatory-filter integration and filtered parity. Milestone 10
   exposes exact workspace sizing, immutable query binding, contiguous
-  caller-owned I420 output, and the stable public decode API.
+  caller-owned I420 output, and the stable public decode API. Milestone 11
+  adds 8-bit monochrome 4:0:0 with one-plane output, canonical absent U/V
+  layouts, and sample-exact AVM parity across four independent fixtures.
 - The private Windows decoder emits I420 byte-identical to pinned AVM output
   for all 31 research artifacts.
 
 The public API is declared in `include/av2heif.h`. Milestone details and
 limitations are recorded in `docs/dev/milestone-0.md` through
-`docs/dev/milestone-10.md`; the longer roadmap is in `plan.md`.
+`docs/dev/milestone-11.md`; the longer roadmap is in `plan.md`.
 
 ## Build and test
 

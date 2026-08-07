@@ -45,18 +45,27 @@ typedef struct {
         size_t size;
         uint32_t width;
         uint32_t height;
+        uint8_t channel_count;
         uint64_t output_hash;
         int check_boundaries;
 } PublicFixture;
 
 static const PublicFixture fixtures[] = {
-        { 0, tiny_obu, sizeof(tiny_obu), 16U, 16U,
+        { 0, tiny_obu, sizeof(tiny_obu), 16U, 16U, 3U,
             UINT64_C(0xb37800c03656c815), 0 },
-        { 0, odd_obu, sizeof(odd_obu), 17U, 15U,
+        { 0, odd_obu, sizeof(odd_obu), 17U, 15U, 3U,
             UINT64_C(0xcf92b88ddff4be85), 0 },
-        { "tests/fixtures/ordinary-160x120.obu", 0, 0U, 160U, 120U,
+        { "tests/fixtures/monochrome-tiny.obu", 0, 0U, 16U, 16U, 1U,
+            UINT64_C(0xe5e202f90921b37a), 0 },
+        { "tests/fixtures/monochrome-odd.obu", 0, 0U, 17U, 15U, 1U,
+            UINT64_C(0x74b332bde19bea7d), 0 },
+        { "tests/fixtures/monochrome-ordinary.obu", 0, 0U, 160U, 120U, 1U,
+            UINT64_C(0xa6f20fd0e7434fce), 1 },
+        { "tests/fixtures/monochrome-high-detail.obu", 0, 0U, 96U, 80U, 1U,
+            UINT64_C(0x99ddbd2918f02c3f), 0 },
+        { "tests/fixtures/ordinary-160x120.obu", 0, 0U, 160U, 120U, 3U,
             UINT64_C(0xfd5a024e7532149d), 1 },
-        { "tests/fixtures/high-detail-96x80.obu", 0, 0U, 96U, 80U,
+        { "tests/fixtures/high-detail-96x80.obu", 0, 0U, 96U, 80U, 3U,
             UINT64_C(0xdb8779d2f2c1afc6), 0 }
 };
 
@@ -122,6 +131,7 @@ static void test_public_decode(const PublicFixture *fixture) {
     size_t sequence_size;
     size_t frame_size;
     size_t allocation_size;
+    size_t expected_output;
     size_t index;
     size_t prefix;
     CHECK(stream_size != 0U);
@@ -147,8 +157,28 @@ static void test_public_decode(const PublicFixture *fixture) {
                            &container_size, &error) == AV2H_OK);
     CHECK(av2h_query((Av2hSpan){ container, container_size }, 0,
                      &info, &error) == AV2H_OK);
-        CHECK(info.image.width == fixture->width &&
-            info.image.height == fixture->height);
+    CHECK(info.image.width == fixture->width &&
+          info.image.height == fixture->height);
+    CHECK(info.image.channel_count == fixture->channel_count);
+    expected_output = (size_t)fixture->width * fixture->height;
+    if (fixture->channel_count != 1U) {
+        expected_output += 2U * (((size_t)fixture->width + 1U) / 2U) *
+            (((size_t)fixture->height + 1U) / 2U);
+    }
+    CHECK(info.output_size == expected_output);
+    if (fixture->channel_count == 1U) {
+        CHECK(info.planes[0].width == fixture->width &&
+              info.planes[0].height == fixture->height &&
+              info.planes[0].row_bytes == fixture->width &&
+              info.planes[0].offset == 0U &&
+              info.planes[0].size == info.output_size);
+        CHECK(info.planes[1].width == 0U && info.planes[1].height == 0U &&
+              info.planes[1].row_bytes == 0U &&
+              info.planes[1].offset == 0U && info.planes[1].size == 0U);
+        CHECK(info.planes[2].width == 0U && info.planes[2].height == 0U &&
+              info.planes[2].row_bytes == 0U &&
+              info.planes[2].offset == 0U && info.planes[2].size == 0U);
+    }
     CHECK(info.workspace_size != 0U);
     CHECK(info.workspace_alignment != 0U &&
           (info.workspace_alignment & (info.workspace_alignment - 1U)) == 0U);
@@ -163,12 +193,12 @@ static void test_public_decode(const PublicFixture *fixture) {
     CHECK(av2h_decode((Av2hSpan){ container, container_size }, &info,
                        workspace, info.workspace_size, output,
                        info.output_size, &error) == AV2H_OK);
-        CHECK(fnv1a64(output, info.output_size) == fixture->output_hash);
+    CHECK(fnv1a64(output, info.output_size) == fixture->output_hash);
 
-        if (!fixture->check_boundaries) {
-            free(allocation);
-            return;
-        }
+    if (!fixture->check_boundaries) {
+        free(allocation);
+        return;
+    }
     av2h_memory_fill(output, 0xa5U, info.output_size);
     CHECK(av2h_decode((Av2hSpan){ container, container_size }, &info,
                        workspace, info.workspace_size - 1U, output,

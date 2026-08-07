@@ -413,7 +413,7 @@ Av2hStatus av2h_decode_frame_i420_private(
                 0U, 0, 0U);
         }
     }
-    if (!av2h_frame_workspace_complete(workspace)) {
+    if (!av2h_frame_workspace_complete(frame, workspace)) {
         AV2H_DECODE_FAIL(
             AV2H_INVALID_DATA, AV2H_INVALID_DATA,
             AV2H_FRAME_DECODE_STAGE_COMPLETENESS, 0U, 0, 0U);
@@ -427,7 +427,7 @@ Av2hStatus av2h_decode_frame_i420_private(
     decoded.entropy_tell = av2h_range_tell(&decoder.range);
     workspace->filter_workspace->cdef_controls = filter_controls.cdef;
     workspace->filter_workspace->gdf_controls = filter_controls.gdf;
-    for (plane = 0U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
+    for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
         if (filter_controls.ccso.plane[plane] != 0) {
             av2h_memory_copy(
                 (void *)workspace->filter_workspace->ccso_controls.plane[plane],

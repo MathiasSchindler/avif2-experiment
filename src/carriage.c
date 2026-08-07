@@ -432,7 +432,7 @@ Av2hStatus av2h_sequence_state_parse(Av2hSpan input,
                         av2h_bit_reader_offset(&reader),
                         AV2H_CONTEXT_SEQUENCE_HEADER);
     }
-    if (chroma != 0U || bit_depth != 1U) {
+    if (chroma > 1U || bit_depth != 1U) {
         return fail_obu(error, AV2H_UNSUPPORTED, obu,
                         av2h_bit_reader_offset(&reader),
                         AV2H_CONTEXT_SEQUENCE_HEADER);
@@ -466,7 +466,7 @@ Av2hStatus av2h_sequence_state_parse(Av2hSpan input,
                         av2h_bit_reader_offset(&reader),
                         AV2H_CONTEXT_SEQUENCE_HEADER);
     }
-    if (!read_sequence_tools(&reader, 0U, 1U, state)) {
+    if (!read_sequence_tools(&reader, (uint8_t)(chroma == 1U), 1U, state)) {
         return fail_obu(error,
                         reader.status == AV2H_OK ? AV2H_UNSUPPORTED
                                                  : reader.status,
