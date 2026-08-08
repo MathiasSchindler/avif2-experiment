@@ -107,8 +107,12 @@ The deployed page is
 manifest-backed AV2 quality comparison, bitrate-matched JPEG, WebP, and AVIF
 reference series, and local OBU decoding through the same WebAssembly module.
 A logarithmic bits-per-pixel control selects the nearest available AV2 and
-reference encodes. The reference formats use their own non-equivalent quality
-scales and are decoded by the browser.
+reference encodes. AV2 uses QP steps of 8 through the main range and steps of
+4 at both edges. JPEG and WebP use every quality from 1 through 10, steps of 5
+through 95, and every quality from 95 through 98. AVIF keeps only distinct,
+monotonic points where ImageMagick otherwise emits duplicate files. The
+reference formats use their own non-equivalent quality scales and are decoded
+by the browser.
 
 Use the `host` preset when sanitizer runtimes are unavailable, including with
 LLVM-MinGW on Windows. Both host presets compile all 17 C test programs and the

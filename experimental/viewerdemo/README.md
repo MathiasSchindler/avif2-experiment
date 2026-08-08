@@ -3,11 +3,13 @@
 The GitHub Pages application in `docs/` compares AV2 encodes of the same
 Palazzo Pitti ceiling image and decodes local OBU files. AV2 frames are decoded
 locally by the project WebAssembly decoder. Each scene also has browser-decoded
-JPEG, WebP, and AVIF reference series at quality 10 through 90 in steps of 10,
-plus quality 95. A logarithmic bits-per-pixel control selects the nearest
+JPEG and WebP reference series at every quality from 1 through 10, steps of 5
+through 95, and every quality from 95 through 98. AVIF uses Q5, Q6, Q8, Q10,
+steps of 5 through Q95, Q96, and Q98; duplicate or non-monotonic ImageMagick
+outputs are omitted. A logarithmic bits-per-pixel control selects the nearest
 available AV2 and reference file. These formats use different quality scales;
-matching bitrate does not imply matching visual quality. The two generated AV2
-image sets cover QP 16 through QP 240 in steps of 16:
+matching bitrate does not imply matching visual quality. The AV2 sets use QP
+steps of 8 through the main range and steps of 4 at both edges:
 
 - the complete ceiling scaled to 960 x 960 pixels;
 - a 1920 x 1920 source crop, rotated and scaled to 960 x 960 pixels for close
@@ -40,7 +42,7 @@ The same commands work on macOS, Linux, and Windows. Use `--clang` or
 `--encoder` to select tools outside `PATH` and the default
 `build/reference/avm/` directory.
 
-The build finishes by checking all 30 OBUs and 60 reference images under
+The build finishes by checking all 76 OBUs and 166 reference images under
 `docs/assets/`, including sizes, hashes, format metadata, the current
 WebAssembly module, strictly increasing quality-series sizes, and the absence
 of intermediate I420 files.

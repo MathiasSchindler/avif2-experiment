@@ -9,17 +9,18 @@ import json
 from pathlib import Path
 
 
-EXPECTED_QPS = list(range(16, 241, 16))
-EXPECTED_QUALITIES = [*range(10, 100, 10), 95]
+EXPECTED_QPS = [0, 4, *range(8, 217, 8), *range(220, 253, 4)]
+EXPECTED_QUALITIES = [*range(1, 11), *range(15, 100, 5), 96, 97, 98]
+EXPECTED_AVIF_QUALITIES = [5, 6, 8, 10, *range(15, 100, 5), 96, 98]
 EXPECTED_FORMATS = {
-    "jpeg": ("JPEG", "4:2:0", ".jpg"),
-    "webp": ("WebP", "method 6", ".webp"),
-    "avif": ("AVIF", "speed 6", ".avif"),
+    "jpeg": ("JPEG", "4:2:0", ".jpg", EXPECTED_QUALITIES),
+    "webp": ("WebP", "method 6", ".webp", EXPECTED_QUALITIES),
+    "avif": ("AVIF", "speed 6", ".avif", EXPECTED_AVIF_QUALITIES),
 }
 EXPECTED_BASELINE_IDS = [
     f"{format_id}-q{quality:02d}"
-    for format_id in EXPECTED_FORMATS
-    for quality in EXPECTED_QUALITIES
+    for format_id, (*_, qualities) in EXPECTED_FORMATS.items()
+    for quality in qualities
 ]
 
 
@@ -58,13 +59,18 @@ def main() -> None:
     manifest = json.loads(
         (assets / "manifest.json").read_text(encoding="utf-8")
     )
-    if manifest.get("schema") != "av2h-quality-viewer-v3":
+    if manifest.get("schema") != "av2h-quality-viewer-v5":
         raise RuntimeError("unexpected manifest schema")
+    if manifest.get("encoder", {}).get("qp_values") != EXPECTED_QPS:
+        raise RuntimeError("unexpected AV2 QP metadata")
     baseline_encoder = manifest.get("baseline_encoder", {})
     if (
         baseline_encoder.get("implementation") != "ImageMagick"
-        or baseline_encoder.get("qualities") != EXPECTED_QUALITIES
-        or "not matched-quality" not in baseline_encoder.get("note", "")
+        or baseline_encoder.get("qualities") != {
+            format_id: qualities
+            for format_id, (*_, qualities) in EXPECTED_FORMATS.items()
+        }
+        or "does not imply equal visual quality" not in baseline_encoder.get("note", "")
     ):
         raise RuntimeError("unexpected baseline encoder metadata")
     scenes = manifest.get("scenes", [])
@@ -89,11 +95,11 @@ def main() -> None:
             raise RuntimeError(f"incomplete baselines for {scene.get('id')}")
         for baseline in baselines:
             format_id = baseline["id"].split("-", 1)[0]
-            format_name, setting_suffix, suffix = EXPECTED_FORMATS[format_id]
+            format_name, setting_suffix, suffix, qualities = EXPECTED_FORMATS[format_id]
             quality = baseline["quality"]
             if (
                 baseline.get("format") != format_name
-                or quality not in EXPECTED_QUALITIES
+                or quality not in qualities
                 or baseline.get("setting") != f"quality {quality} / {setting_suffix}"
                 or Path(baseline["file"]).suffix != suffix
             ):
@@ -123,6 +129,17 @@ def main() -> None:
     intermediates = list(assets.glob("*.i420"))
     if intermediates:
         raise RuntimeError(f"intermediate I420 files remain: {intermediates}")
+    expected_assets = {"manifest.json"}
+    for scene in scenes:
+        expected_assets.update(variant["file"] for variant in scene["variants"])
+        expected_assets.update(baseline["file"] for baseline in scene["baselines"])
+    encoded_assets = {
+        path.name for pattern in ("*.obu", "*.jpg", "*.webp", "*.avif")
+        for path in assets.glob(pattern)
+    }
+    unexpected_assets = sorted(encoded_assets - expected_assets)
+    if unexpected_assets:
+        raise RuntimeError(f"unexpected encoded assets: {unexpected_assets}")
     print(
         f"Validated {len(scenes)} scenes, "
         f"{len(EXPECTED_QPS) * len(scenes)} OBUs, and "

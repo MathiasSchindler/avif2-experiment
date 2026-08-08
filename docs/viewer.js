@@ -9,6 +9,8 @@ const elements = {
   leftQp: document.querySelector("#left-qp"),
   rightQp: document.querySelector("#right-qp"),
   rightMode: document.querySelector("#right-mode"),
+  manualLeftQp: document.querySelector("#manual-left-qp"),
+  manualRightQp: document.querySelector("#manual-right-qp"),
   zoomSlider: document.querySelector("#zoom-slider"),
   zoomValue: document.querySelector("#zoom-value"),
   stage: document.querySelector("#image-stage"),
@@ -24,14 +26,13 @@ const elements = {
   sizeDifference: document.querySelector("#size-difference"),
   frameSize: document.querySelector("#frame-size"),
   pixelFormat: document.querySelector("#pixel-format"),
-  sizeChart: document.querySelector("#size-chart"),
   baselineOptions: document.querySelector("#baseline-options"),
   baselineNote: document.querySelector("#baseline-note"),
   bppSlider: document.querySelector("#bpp-slider"),
   bppValue: document.querySelector("#bpp-value"),
   bppMin: document.querySelector("#bpp-min"),
   bppMax: document.querySelector("#bpp-max"),
-  sceneDescription: document.querySelector("#scene-description"),
+  manualControls: document.querySelector(".manual-controls"),
   sourceDescription: document.querySelector("#source-description"),
   commonsLink: document.querySelector("#commons-link"),
 };
@@ -210,6 +211,7 @@ function syncBppMatch(fromSlider = false) {
   );
   elements.leftSlider.value = scene.variants.indexOf(av2);
   rightBaselineId = baseline.id;
+  if (fromSlider) elements.manualControls.open = false;
   updateBppControls(scene);
 }
 
@@ -304,11 +306,13 @@ function selectedSources() {
 function updateLabels() {
   const { left, right } = selectedSources();
   elements.leftQp.textContent = left.qp ?? "Local";
+  elements.manualLeftQp.textContent = left.qp ?? "Local";
   elements.leftQp.setAttribute("aria-label", left.qp ? `A QP ${left.qp}` : "A local file");
-  elements.rightMode.textContent = right.kind === "image" ? "Ref" : right.qp ? "QP" : "";
+  elements.rightMode.textContent = right.kind === "image" ? "" : right.qp ? "AV2 QP" : "";
   elements.rightQp.textContent = right.qp ?? (
     right.kind === "image" ? `${right.format} Q${right.quality}` : "Local"
   );
+  elements.manualRightQp.textContent = right.qp ?? "-";
   elements.rightQp.setAttribute(
     "aria-label",
     right.kind === "image" ? `B reference ${right.format} quality ${right.quality}`
@@ -322,11 +326,6 @@ function updateLabels() {
   elements.rightSize.textContent = formatBytes(right.bytes);
   const difference = right.bytes - left.bytes;
   elements.sizeDifference.textContent = formatSignedBytes(difference);
-  for (const button of elements.sizeChart.children) {
-    const qp = Number(button.dataset.qp);
-    button.classList.toggle("selected-a", !localSource && qp === left.qp);
-    button.classList.toggle("selected-b", !localSource && qp === right.qp);
-  }
   if (!localSource) updateBppControls(manifest.scenes[sceneIndex]);
 }
 
@@ -363,30 +362,8 @@ async function updateImages() {
   }
 }
 
-function renderChart() {
+function renderControls() {
   const scene = manifest.scenes[sceneIndex];
-  const maximum = Math.max(...scene.variants.map(variant => variant.bytes));
-  elements.sizeChart.replaceChildren();
-  elements.sizeChart.style.setProperty("--variant-count", scene.variants.length);
-  for (const [index, variant] of scene.variants.entries()) {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.dataset.qp = variant.qp;
-    button.title = `QP ${variant.qp}: ${formatBytes(variant.bytes)}. Set B to this value.`;
-    button.style.setProperty("--bar-height", `${Math.max(4, Math.sqrt(variant.bytes / maximum) * 116)}px`);
-    const label = document.createElement("span");
-    label.textContent = variant.qp;
-    button.append(label);
-    button.addEventListener("click", () => {
-      localSource = undefined;
-      bppMatching = false;
-      rightBaselineId = undefined;
-      elements.rightSlider.value = index;
-      updateImages();
-    });
-    elements.sizeChart.append(button);
-  }
-  elements.sceneDescription.textContent = `${scene.description} ${scene.transformation}`;
   renderBaselines();
   if (bppMatching) syncBppMatch();
   updateLabels();
@@ -412,6 +389,7 @@ function renderBaselines() {
       localSource = undefined;
       bppMatching = true;
       selectedBaselineFormat = formatId;
+      elements.manualControls.open = false;
       syncBppMatch();
       updateImages();
     });
@@ -426,7 +404,7 @@ function setScene(index) {
   for (const [buttonIndex, button] of [...elements.sceneButtons.children].entries()) {
     button.setAttribute("aria-pressed", String(buttonIndex === index));
   }
-  renderChart();
+  renderControls();
   updateImages();
 }
 
@@ -536,7 +514,7 @@ async function initialize() {
     elements.commonsLink.href = manifest.source.commons_url;
     elements.runtimeStatus.textContent = "Decoder ready";
     elements.runtimeStatus.className = "runtime-status ready";
-    renderChart();
+    renderControls();
     await updateImages();
   } catch (error) {
     elements.loading.textContent = "Demo unavailable";
@@ -546,13 +524,8 @@ async function initialize() {
 }
 
 elements.leftSlider.addEventListener("input", () => {
-  if (bppMatching && !localSource) {
-    const scene = manifest.scenes[sceneIndex];
-    targetBpp = bitsPerPixel(
-      scene.variants[Number(elements.leftSlider.value)], scene
-    );
-    syncBppMatch();
-  }
+  bppMatching = false;
+  rightBaselineId = undefined;
   updateLabels();
 });
 elements.rightSlider.addEventListener("input", () => {

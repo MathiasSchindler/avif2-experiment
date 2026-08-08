@@ -41,15 +41,6 @@
             <div id="scene-buttons" class="segments" role="group" aria-label="Image view"></div>
           </div>
 
-          <label class="qp-control qp-left">
-            <span><b>A</b> QP <output id="left-qp">64</output></span>
-            <input id="left-slider" type="range" min="0" max="14" value="3" aria-label="A AV2 QP">
-          </label>
-          <label class="qp-control qp-right">
-            <span><b>B</b> <span id="right-mode" class="inline-label">QP</span> <output id="right-qp">192</output></span>
-            <input id="right-slider" type="range" min="0" max="14" value="11" aria-label="B AV2 QP">
-          </label>
-
           <label class="compact-control">
             <span class="control-label">Zoom <output id="zoom-value">100%</output></span>
             <input id="zoom-slider" type="range" min="100" max="250" step="25" value="100">
@@ -66,12 +57,12 @@
 
       <div class="readout" aria-live="polite">
         <div>
-          <span>A</span>
+          <span>A · AV2 QP <output id="left-qp">64</output></span>
           <strong id="left-size">-</strong>
           <small id="left-time">-</small>
         </div>
         <div>
-          <span>B</span>
+          <span>B · <span id="right-mode">QP</span> <output id="right-qp">192</output></span>
           <strong id="right-size">-</strong>
           <small id="right-time">-</small>
         </div>
@@ -88,21 +79,13 @@
       </div>
     </section>
 
-    <section class="curve" aria-labelledby="curve-title">
-      <div class="curve-heading">
+    <section class="comparison" aria-labelledby="comparison-title">
+      <div class="comparison-heading">
         <div>
-          <p class="eyebrow">Current view</p>
-          <h2 id="curve-title">QP / file size</h2>
+          <p class="eyebrow">Direct comparison</p>
+          <h2 id="comparison-title">Match by bitrate</h2>
         </div>
-        <p id="scene-description"></p>
-      </div>
-      <div id="size-chart" class="size-chart" aria-label="Encoded file sizes by QP"></div>
-      <div class="baseline-heading">
-        <div>
-          <p class="eyebrow">JPEG / WebP / AVIF</p>
-          <h3>Match by bits per pixel</h3>
-        </div>
-        <p id="baseline-note"></p>
+        <p>Choose the reference format, then set a target bits per pixel.</p>
       </div>
       <div id="baseline-options" class="baseline-options" aria-label="Reference image formats"></div>
       <div class="bpp-control">
@@ -117,6 +100,20 @@
           <span id="bpp-max">6.00</span>
         </div>
       </div>
+      <p id="baseline-note" class="control-note"></p>
+      <details class="manual-controls">
+        <summary>Manual AV2 comparison</summary>
+        <div class="manual-control-grid">
+          <label class="qp-control qp-left">
+            <span><b>A</b> AV2 QP <output id="manual-left-qp">64</output></span>
+            <input id="left-slider" type="range" min="0" max="30" value="7" aria-label="A AV2 QP">
+          </label>
+          <label class="qp-control qp-right">
+            <span><b>B</b> AV2 QP <output id="manual-right-qp">192</output></span>
+            <input id="right-slider" type="range" min="0" max="30" value="23" aria-label="B AV2 QP">
+          </label>
+        </div>
+      </details>
     </section>
 
     <footer class="attribution">

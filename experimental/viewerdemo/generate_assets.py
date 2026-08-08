@@ -18,18 +18,20 @@ ROOT = Path(__file__).resolve().parents[2]
 DEMO = Path(__file__).resolve().parent
 DEFAULT_SOURCE = DEMO / "source" / "palacio-pitti-2000.jpg"
 DEFAULT_OUTPUT = ROOT / "docs" / "assets"
-QP_VALUES = tuple(range(16, 241, 16))
+QP_VALUES = (0, 4, *range(8, 217, 8), *range(220, 253, 4))
 OUTPUT_SIZE = 960
 ACTIVE_PROCESSES: set[subprocess.Popen[str]] = set()
 ACTIVE_PROCESSES_LOCK = threading.Lock()
 
-BASELINE_QUALITIES = (*range(10, 100, 10), 95)
+BASELINE_QUALITIES = (*range(1, 11), *range(15, 100, 5), 96, 97, 98)
+AVIF_QUALITIES = (5, 6, 8, 10, *range(15, 100, 5), 96, 98)
 BASELINE_FORMATS = (
     {
         "id": "jpeg",
         "format": "JPEG",
         "setting_suffix": "4:2:0",
         "extension": "jpg",
+        "qualities": BASELINE_QUALITIES,
         "arguments_before": ("-sampling-factor", "4:2:0"),
         "arguments_after": (),
     },
@@ -38,6 +40,7 @@ BASELINE_FORMATS = (
         "format": "WebP",
         "setting_suffix": "method 6",
         "extension": "webp",
+        "qualities": BASELINE_QUALITIES,
         "arguments_before": (),
         "arguments_after": ("-define", "webp:method=6"),
     },
@@ -46,6 +49,7 @@ BASELINE_FORMATS = (
         "format": "AVIF",
         "setting_suffix": "speed 6",
         "extension": "avif",
+        "qualities": AVIF_QUALITIES,
         "arguments_before": (),
         "arguments_after": ("-define", "heic:speed=6"),
     },
@@ -367,7 +371,7 @@ def main() -> None:
             make_reference_source(ffmpeg, source_i420, source_png)
             baselines = []
             for baseline_format in BASELINE_FORMATS:
-                for quality in BASELINE_QUALITIES:
+                for quality in baseline_format["qualities"]:
                     baseline = {
                         **baseline_format,
                         "id": f"{baseline_format['id']}-q{quality:02d}",
@@ -404,7 +408,7 @@ def main() -> None:
         print(f"Generated {len(variants)} variants for {scene_id}")
 
     manifest = {
-        "schema": "av2h-quality-viewer-v3",
+        "schema": "av2h-quality-viewer-v5",
         "title": "Palazzo Pitti ceiling",
         "source": {
             "description": (
@@ -441,14 +445,17 @@ def main() -> None:
             "profile": 0,
             "bit_depth": 8,
             "pixel_format": "I420",
-            "qp_step": 16,
+            "qp_values": list(QP_VALUES),
         },
         "baseline_encoder": {
             "implementation": "ImageMagick",
-            "qualities": list(BASELINE_QUALITIES),
+            "qualities": {
+                baseline_format["id"]: list(baseline_format["qualities"])
+                for baseline_format in BASELINE_FORMATS
+            },
             "note": (
-                "Quality scales are format-specific; reference encodes are "
-                "not matched-quality points."
+                "Bitrate matching does not imply equal visual quality; "
+                "quality scales are format-specific."
             ),
         },
         "scenes": scene_records,
