@@ -7,6 +7,11 @@
 **Intended destination:** a new sibling repository, provisionally named
 `avif-2`, next to `avif-decoder`
 
+For current implementation status, supported formats, and build instructions,
+see the [README](README.md). The [active milestone roadmap](plan.md) tracks
+current and planned work. The text below preserves the dated design and
+research record.
+
 **Scope of this file:** preserve the evidence, assumptions, decisions, wire
 format, architecture, and validation plan needed to start that repository
 without silently turning guesses into format requirements

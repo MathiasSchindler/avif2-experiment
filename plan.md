@@ -173,7 +173,7 @@ URL, license identifier, retrieval method, and artifact or checkout hash.
 ## Milestone 0: prove the carriage assumption
 
 **Status:** Implemented. The four-fixture differential gate passes; see
-`docs/milestone-0.md` for reproducible commands, hashes, scope, and limitations.
+`docs/dev/milestone-0.md` for reproducible commands, hashes, scope, and limitations.
 
 The first executable result must test assumption A2: moving the Sequence Header
 OBU from AVM's elementary stream into `av2C.configOBUs` must preserve decode
@@ -204,7 +204,7 @@ image-item rules.
 ## Milestone 1: freestanding substrate and carriage core
 
 **Status:** Implemented. The vendor-free sanitizer, strict freestanding, and
-undefined-symbol gates pass; see `docs/milestone-1.md` for the supported
+undefined-symbol gates pass; see `docs/dev/milestone-1.md` for the supported
 profile, API surface, negative coverage, and limitations.
 
 Extract only reusable generic pieces from `avif-decoder`:
@@ -237,7 +237,7 @@ rejected deterministically.
 ## Milestone 2: deterministic AV2-HEIF v0
 
 **Status:** Implemented. The byte-exact writer, strict typed parser, sanitizer,
-freestanding, and undefined-symbol gates pass; see `docs/milestone-2.md` for
+freestanding, and undefined-symbol gates pass; see `docs/dev/milestone-2.md` for
 the canonical graph, API contract, mutation coverage, and limitations.
 
 Implement a strict typed parser and deterministic writer for one primary image
@@ -264,7 +264,7 @@ the expected layer without AVM or other hosted dependencies.
 ## Milestone 3: artifact laboratory
 
 **Status:** Implemented. The four-fixture offline generate, normalize, mux,
-inspect, extract, decode, and compare gate passes; see `docs/milestone-3.md` for
+inspect, extract, decode, and compare gate passes; see `docs/dev/milestone-3.md` for
 the artifact schemas, comparison semantics, reproducible command, and limits.
 
 Create a common hosted artifact description containing:
@@ -298,7 +298,7 @@ Normal comparison runs must not require network access.
 
 **Status:** Implemented. Bounded validation, structural dialect detection,
 metadata query, exact I420 plane sizing, input binding, and the strict
-freestanding dependency gate pass; see `docs/milestone-4.md` for the public
+freestanding dependency gate pass; see `docs/dev/milestone-4.md` for the public
 contract, defaults, diagnostics, fixture parity, and limitations.
 
 Add the public API for caller limits, structured errors, container validation,
@@ -324,7 +324,7 @@ neighbor contexts, luma/chroma mode syntax, sparse coefficient decoding,
 prediction, inverse transforms, and live-plane writes. All eleven tiny luma
 leaves and four tiny chroma leaves reconstruct sample-exactly through tell 725.
 Focused private kernels cover deblock, CDEF, CCSO, and accepted-profile GDF;
-restoration remains unsupported and fail-closed. See `docs/milestone-5.md`.
+restoration remains unsupported and fail-closed. See `docs/dev/milestone-5.md`.
 
 Exit gate: the tiny fixture reconstructs sample-exactly on every unfiltered
 plane through a caller-owned tile orchestrator under hosted sanitizers and the
@@ -354,7 +354,7 @@ planes to `AV2H_TILE_DECODE_DONE` at tell 6498 with exact pinned-AVM prefilter
 and final crop parity. Prefilter FNV-1a hashes are Y `7945904097577017502`, U
 `4124092689509881817`, and V `6418349723304023184`; the final I420 SHA-256 is
 `def0ced80c4bc1866d0d865fb392c80020ac0a823f310b2f62999d10eede1af5`.
-See `docs/milestone-7.md` for the locked checkpoints.
+See `docs/dev/milestone-7.md` for the locked checkpoints.
 
 The following artifact-reach audit records the Milestone 7 completion
 checkpoint. Its per-stream frontiers are historical; current end-to-end corpus

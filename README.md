@@ -1,51 +1,61 @@
 # AV2-HEIF experiment
 
-This repository explores a project-defined AV2 still-image carriage in HEIF.
-It does not define or claim a standardized AVIF successor.
+This repository explores storing and decoding AV2 still images in HEIF files.
+The file format is project-defined and experimental; it is not a standardized
+successor to AVIF.
 
-The implemented core is CC0, freestanding C11, allocation-free, and does not
-depend on libc or vendored codecs. Hosted AVM tooling is used only for the
-separate reference experiment and is fetched into ignored `vendor/` and
-`build/` paths.
+The decoder core is CC0, freestanding C11, and allocation-free. It uses memory
+provided by its caller and does not depend on the C standard library or a
+vendored codec. Pinned AVM tools are used separately to generate reference
+files and verify decoded pixels; they are not part of the decoder.
+
+> [!WARNING]
+> This is research software and has not received a production security review.
+> Do not use it in production to process untrusted files. Read the
+> [security policy](SECURITY.md) for risks and reporting instructions.
 
 ## Current status
 
-- Milestone 0 proves sample-exact Sequence Header normalization with four AVM
-  v1.0.0 fixtures.
-- Milestone 1 provides checked readers, writers, arenas, AV2 OBU framing,
-  Sequence Header and Content Interpretation parsing, nine-byte `av2C`, strict
-  v0 carriage validation, and checked BMFF box headers.
-- Milestone 2 provides a strict zero-copy typed parser and deterministic writer
-  for one primary `av02` item, with byte-exact output and mutation coverage.
-- Milestone 3 provides an offline hosted artifact laboratory that generates,
-  muxes, inspects, extracts, decodes, and compares the four-fixture matrix.
-- Milestone 4 provides bounded freestanding validation, structural dialect
-  detection, metadata query, exact I420 output sizing, and input binding.
-- Milestone 5 is implemented: the private freestanding decoder reconstructs all
-  eleven tiny luma and four tiny chroma leaves sample-exactly through tell 725
-  with caller-owned traversal, context, scratch, and live-plane state. Focused
-  deblock, CDEF, CCSO, and GDF kernels pass; restoration remains unsupported
-  and fail-closed.
-- Milestone 6 is implemented: caller-owned coded Y/U/V planes distinguish
-  visible reference bounds from padded storage, retain per-4x4 reconstruction
-  readiness, and reconstruct all 12 odd luma and five odd chroma leaves
-  sample-exactly through tell 696 before filtering.
-- Milestone 7 completes the ordinary 160x120 fixture through all luma and
-  chroma leaves, final tile tell 6498, and sample-exact prefilter and cropped
-  output parity.
-- Milestone 8 completes the high-detail, CFL, IntraBC, coefficient, prediction,
-  and advanced-transform coverage reached by its locked fixture. Milestone 9
-  completes mandatory-filter integration and filtered parity. Milestone 10
-  exposes exact workspace sizing, immutable query binding, contiguous
-  caller-owned I420 output, and the stable public decode API. Milestone 11
-  adds 8-bit monochrome 4:0:0 with one-plane output, canonical absent U/V
-  layouts, and sample-exact AVM parity across four independent fixtures.
-- The private Windows decoder emits I420 byte-identical to pinned AVM output
-  for all 31 research artifacts.
+The public decoder accepts this project's canonical HEIF layout and produces
+tightly packed 8-bit planar output in three formats:
 
-The public API is declared in `include/av2heif.h`. Milestone details and
-limitations are recorded in `docs/dev/milestone-0.md` through
-`docs/dev/milestone-11.md`; the longer roadmap is in `plan.md`.
+- **I400:** monochrome, with one full-resolution Y plane;
+- **I420:** color, with one full-resolution Y plane and half-resolution U and
+  V planes in both directions; and
+- **I444:** color, with full-resolution Y, U, and V planes.
+
+The decoder reports the exact output and working-memory sizes before decoding.
+The caller owns every buffer. Unsupported profiles, 4:2:2 chroma, sample depths
+other than 8-bit, restoration, malformed input, and inconsistent HEIF metadata
+are rejected instead of being decoded partially.
+
+Milestones 0 through 12 are complete. Current validation includes:
+
+- exact I420 output for all 31 tracked research artifacts;
+- exact I400 and I444 output for the original 12-image corpus at dimensions up
+  to 800 pixels, including the 800 x 800 Palace image; and
+- the same 12-image I444 results through the public HEIF API, native Windows
+  executable, and browser WebAssembly module.
+
+"Exact" means every decoded Y, U, and V sample matches pinned AVM v1.0.0
+output. It is evidence for the tested files, not a claim that every valid AV2
+file is supported or that the decoder is secure.
+
+The public API is declared in `include/av2heif.h`. Detailed scope and evidence
+are recorded in `docs/dev/milestone-0.md` through
+`docs/dev/milestone-12.md`; the longer roadmap is in `plan.md`.
+
+## Security
+
+This project parses complex binary input but has not received a production
+security review. Its fixed limits, caller-owned memory, strict compiler
+settings, and checks that reject unsupported input reduce some risks; they do
+not prove memory safety or make untrusted files safe to open.
+
+See [SECURITY.md](SECURITY.md) before embedding the decoder or testing files
+from outside this repository. It describes known risk areas, safer testing
+practices, the project's support expectations, and how to report a
+vulnerability.
 
 ## Build and test
 
@@ -74,8 +84,8 @@ AVM checkout in `vendor/`, all source files, fixtures, and tracked evidence.
 The rebuilt decoder is `build/windows-x86_64/av2heif-decoder.exe`.
 
 Use the `host` preset when sanitizer runtimes are unavailable, including with
-LLVM-MinGW on Windows. Both host presets compile all 16 C harnesses and the
-artifact tool. All 16 unit suites run by default. The layout harness pins key
+LLVM-MinGW on Windows. Both host presets compile all 17 C test programs and the
+artifact tool. All 17 unit suites run by default. The layout harness pins key
 64-bit decoder state sizes and alignments, while the artifact-profile harness
 checks the OBU, sequence, frame-header, and tile-group contracts for all 31
 tracked artifacts. The sample-math harness pins the first self-contained
@@ -83,8 +93,8 @@ decoder-internal helper interface introduced by refactoring Phase 1.
 
 Python is not required to build the decoder or run the hosted C gate. It is an
 optional development dependency for table regeneration, historical milestone
-evidence, and the Milestone 9 parity runner. The Windows product preset enables
-that parity test; other configurations can opt in with
+evidence, and corpus comparison tests. The Windows product preset enables
+those comparison tests; other configurations can opt in with
 `AV2HEIF_ENABLE_PYTHON_TESTS=ON`.
 
 The strict freestanding undefined-symbol check is owned by CMake and runs as
@@ -101,9 +111,10 @@ cmake --build --preset windows-x86_64
 ctest --preset windows-x86_64
 ```
 
-The Windows suite includes a vendor-free corpus gate that decodes all 31
-tracked OBUs, compares complete I420 hashes with the pinned AVM references, and
-removes its temporary outputs.
+The Windows suite includes vendor-free corpus gates for all 31 tracked I420
+files and the maximum-size I400 and I444 corpora. They compare complete output
+hashes with pinned AVM references and remove their temporary outputs. The
+hosted Python gate also checks I444 through the public canonical-HEIF API.
 
 The preset passes the x86-64 target to both Clang compilation and executable
 linking, including when `clang.exe` comes from an AArch64-host LLVM-MinGW
@@ -120,8 +131,8 @@ project-owned, statically linked PE with no standard C library, compiler
 runtime, vendored codec, or AVM dependency. Its only imported DLL is
 `KERNEL32.dll`, used for file I/O, virtual memory, and process startup.
 
-Decode a raw AV2 OBU stream to I420 or 24-bit BMP by selecting the output
-extension:
+Decode a raw AV2 OBU stream by choosing the extension that matches its decoded
+format: `.i400`, `.i420`, or `.i444`. Use `.bmp` for a viewable 24-bit image:
 
 ```powershell
 .\build\windows-x86_64\av2heif-decoder.exe `
@@ -133,10 +144,10 @@ extension:
   -o .\build\emerald.bmp
 ```
 
-BMP output currently applies deterministic limited-range BT.601 I420-to-BGR
-conversion. All 31 research artifacts match their locked AVM I420 references
-byte-for-byte. The CLI accepts raw OBU input only. HEIF item extraction and
-the stable public decode API remain Milestone 10 work.
+BMP output applies deterministic limited-range BT.601 conversion from I400,
+I420, or I444 to BGR pixels. The CLI accepts raw OBU input only; applications
+that read the project-defined HEIF files use the public API in
+`include/av2heif.h`.
 
 Failed frame decodes report the original cause separately from the retained
 coarse status, followed by the pipeline/syntax stage, plane, leaf position and
