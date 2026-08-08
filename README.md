@@ -69,19 +69,24 @@ cmake --build --preset host-sanitized
 ctest --preset host-sanitized
 ```
 
-The short release workflow builds the current freestanding Windows decoder:
+The short release workflow builds the decoder for the current host and native
+architecture:
 
 ```sh
 make clean
 make
 ```
 
-On Windows with LLVM-MinGW, use `mingw32-make clean` followed by
-`mingw32-make`; it is the same Makefile workflow.
+On macOS this produces `build/native/av2heif-decoder`, a native Mach-O
+executable. On Windows with LLVM-MinGW, use `mingw32-make clean` followed by
+`mingw32-make`; it produces an x86-64 or ARM64 PE executable under
+`build/windows-x86_64/` or `build/windows-arm64/` according to the host
+architecture.
 
-`make clean` removes only the ignored `build/` tree. It preserves the pinned
-AVM checkout in `vendor/`, all source files, fixtures, and tracked evidence.
-The rebuilt decoder is `build/windows-x86_64/av2heif-decoder.exe`.
+`make clean` removes only the selected decoder build directory. It preserves
+other builds, the pinned AVM checkout in `vendor/`, all source files, fixtures,
+and tracked evidence. Override `DECODER_PRESET` and `DECODER_BUILD_DIR`
+together to select a non-native product explicitly.
 
 Use the `host` preset when sanitizer runtimes are unavailable, including with
 LLVM-MinGW on Windows. Both host presets compile all 17 C test programs and the
@@ -102,8 +107,9 @@ part of normal builds through `av2heif-freestanding-check`. The Makefile keeps a
 compatibility entry point for historical milestone workflows. New build and
 test targets should be added to CMake only.
 
-On Windows x86-64, LLVM, CMake, and Ninja can build a native freestanding PE
-smoke executable without the Microsoft C runtime or Windows SDK headers:
+On Windows x86-64, or when cross-compiling to it, LLVM, CMake, and Ninja can
+build a freestanding PE executable without the Microsoft C runtime or Windows
+SDK headers:
 
 ```powershell
 cmake --preset windows-x86_64
@@ -120,8 +126,17 @@ The preset passes the x86-64 target to both Clang compilation and executable
 linking, including when `clang.exe` comes from an AArch64-host LLVM-MinGW
 package.
 
-The portable decoder remains in `src/`; only PE startup and Windows imports
-live under `src/platform/windows/`. Architecture-specific code belongs under
+The equivalent ARM64 workflow is:
+
+```powershell
+cmake --preset windows-arm64
+cmake --build --preset windows-arm64
+ctest --preset windows-arm64
+```
+
+The portable decoder remains in `src/`; hosted POSIX file I/O lives under
+`src/platform/posix/`, while only PE startup and Windows imports live under
+`src/platform/windows/`. Architecture-specific codec code belongs under
 `src/arch/` when an optimized or ABI-specific implementation is introduced.
 
 ### Experimental Windows OBU decoder

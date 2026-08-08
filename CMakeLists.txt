@@ -8,6 +8,7 @@ option(AV2HEIF_BUILD_HOST_TESTS "Build hosted C unit tests" OFF)
 option(AV2HEIF_ENABLE_SANITIZERS "Enable sanitizers for hosted tests" OFF)
 option(AV2HEIF_ENABLE_PYTHON_TESTS "Enable Python development tests" OFF)
 option(AV2HEIF_BUILD_WINDOWS_TOOLS "Build freestanding Windows executables" ON)
+option(AV2HEIF_BUILD_NATIVE_CLI "Build the native hosted decoder executable" ON)
 option(AV2HEIF_ENABLE_DIAGNOSTICS "Enable private decoder diagnostics" OFF)
 
 set(AV2HEIF_CORE_SOURCES
@@ -189,11 +190,30 @@ if(AV2HEIF_BUILD_HOST_TESTS)
     endif()
 endif()
 
+if(AV2HEIF_BUILD_NATIVE_CLI AND UNIX AND NOT WIN32)
+    add_executable(av2heif-decoder src/platform/posix/decoder.c)
+    target_compile_features(av2heif-decoder PRIVATE c_std_11)
+    target_include_directories(av2heif-decoder PRIVATE src)
+    target_link_libraries(av2heif-decoder PRIVATE av2heif-core)
+    if(CMAKE_C_COMPILER_ID MATCHES "Clang|GNU")
+        target_compile_options(av2heif-decoder PRIVATE
+            -Wall -Wextra -Wpedantic -Werror -O2)
+    endif()
+endif()
+
 if(WIN32 AND AV2HEIF_BUILD_WINDOWS_TOOLS AND
     CMAKE_C_COMPILER_ID MATCHES "Clang")
     set(CMAKE_C_STANDARD_LIBRARIES "")
     find_program(LLVM_DLLTOOL llvm-dlltool REQUIRED)
     target_compile_options(av2heif-core PRIVATE -mno-stack-arg-probe)
+
+    if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(ARM64|arm64|aarch64)$")
+        set(AV2HEIF_WINDOWS_DLLTOOL_MACHINE arm64)
+        set(AV2HEIF_WINDOWS_TARGET aarch64-w64-windows-gnu)
+    else()
+        set(AV2HEIF_WINDOWS_DLLTOOL_MACHINE i386:x86-64)
+        set(AV2HEIF_WINDOWS_TARGET x86_64-w64-windows-gnu)
+    endif()
 
     set(KERNEL32_IMPORT_LIBRARY
         "${CMAKE_CURRENT_BINARY_DIR}/platform/windows/kernel32.lib")
@@ -202,7 +222,7 @@ if(WIN32 AND AV2HEIF_BUILD_WINDOWS_TOOLS AND
         COMMAND "${CMAKE_COMMAND}" -E make_directory
                 "${CMAKE_CURRENT_BINARY_DIR}/platform/windows"
         COMMAND "${LLVM_DLLTOOL}"
-                -m i386:x86-64
+            -m "${AV2HEIF_WINDOWS_DLLTOOL_MACHINE}"
                 -d "${CMAKE_CURRENT_SOURCE_DIR}/src/platform/windows/kernel32.def"
                 -l "${KERNEL32_IMPORT_LIBRARY}"
         DEPENDS src/platform/windows/kernel32.def
@@ -224,7 +244,7 @@ if(WIN32 AND AV2HEIF_BUILD_WINDOWS_TOOLS AND
         -ffunction-sections -fdata-sections -nostdinc
     )
     target_link_options(av2heif-windows-smoke PRIVATE
-        --target=x86_64-w64-windows-gnu
+        "--target=${AV2HEIF_WINDOWS_TARGET}"
         -nostdlib -fuse-ld=lld
         -Wl,-e,mainCRTStartup
         -Wl,-s,--gc-sections,--stack,8388608
@@ -247,7 +267,7 @@ if(WIN32 AND AV2HEIF_BUILD_WINDOWS_TOOLS AND
         -ffunction-sections -fdata-sections -nostdinc
     )
     target_link_options(av2heif-decoder PRIVATE
-        --target=x86_64-w64-windows-gnu
+        "--target=${AV2HEIF_WINDOWS_TARGET}"
         -nostdlib -fuse-ld=lld
         -Wl,-e,mainCRTStartup
         -Wl,-s,--gc-sections

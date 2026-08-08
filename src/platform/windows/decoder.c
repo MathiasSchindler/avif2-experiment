@@ -686,9 +686,10 @@ static unsigned int run_decoder(void) {
     uint16_t width = 0U;
     uint16_t height = 0U;
     uint8_t chroma_format_idc = 0U;
-    Av2hFrameDecodeResult decode_result = { 0 };
+    Av2hFrameDecodeResult decode_result;
     Av2hStatus status;
     int written;
+    av2h_memory_fill(&decode_result, 0U, sizeof(decode_result));
     if (!allocate_memory(
             command_line_units * sizeof(Av2hWinChar), &command_line)) {
         write_console("error: cannot allocate command line\r\n");
