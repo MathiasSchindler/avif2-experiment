@@ -30,7 +30,6 @@ clean:
 
 wasm:
 	$(PYTHON) experimental/viewerdemo/build.py $(VIEWER_BUILD_ARGS)
-	cmake -E copy experimental/viewerdemo/site/decoder.wasm docs/decoder.wasm
 
 HOST_CFLAGS := -std=c11 -Wall -Wextra -Wpedantic -Werror -O1 -g \
 	-fsanitize=address,undefined -fno-omit-frame-pointer -Iinclude -Isrc

@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import concurrent.futures
 import json
+import os
 import shutil
 import subprocess
 from pathlib import Path
@@ -13,15 +14,20 @@ from typing import Any
 
 
 ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_SITE = Path(__file__).resolve().parent / "site"
-DEFAULT_LOCAL = ROOT / "build" / "windows-x86_64" / "av2heif-decoder.exe"
-DEFAULT_AVM = ROOT / "build" / "reference" / "avm" / "avmdec.exe"
+DEFAULT_ASSETS = ROOT / "docs" / "assets"
+DEFAULT_LOCAL = ROOT / "build" / (
+    "windows-x86_64/av2heif-decoder.exe"
+    if os.name == "nt" else "native/av2heif-decoder"
+)
+DEFAULT_AVM = ROOT / "build" / "reference" / "avm" / (
+    "avmdec.exe" if os.name == "nt" else "avmdec"
+)
 DEFAULT_OUTPUT = ROOT / "build" / "viewerdemo-parity"
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--site", type=Path, default=DEFAULT_SITE)
+    parser.add_argument("--assets", type=Path, default=DEFAULT_ASSETS)
     parser.add_argument("--local-decoder", type=Path, default=DEFAULT_LOCAL)
     parser.add_argument("--avmdec", type=Path, default=DEFAULT_AVM)
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
@@ -80,7 +86,7 @@ def compare_planes(local: bytes, avm: bytes, width: int, height: int) -> dict[st
 def process_variant(
     scene: dict[str, Any],
     variant: dict[str, Any],
-    site: Path,
+    assets: Path,
     output: Path,
     local_decoder: Path,
     avmdec: Path,
@@ -88,7 +94,7 @@ def process_variant(
     width = int(scene["width"])
     height = int(scene["height"])
     expected_size = width * height + 2 * ((width + 1) // 2) * ((height + 1) // 2)
-    obu = site / variant["file"]
+    obu = assets / variant["file"]
     stem = obu.stem
     local_output = output / f"{stem}-local.i420"
     avm_output = output / f"{stem}-avm.i420"
@@ -146,14 +152,16 @@ def process_variant(
 
 def main() -> None:
     args = parse_args()
-    site = args.site.resolve()
+    assets = args.assets.resolve()
     output = args.output.resolve()
     local_decoder = args.local_decoder.resolve()
     avmdec = args.avmdec.resolve()
     for tool in (local_decoder, avmdec):
         if not tool.is_file():
             raise RuntimeError(f"missing decoder: {tool}")
-    manifest = json.loads((site / "manifest.json").read_text(encoding="utf-8"))
+    manifest = json.loads(
+        (assets / "manifest.json").read_text(encoding="utf-8")
+    )
     if output.exists():
         shutil.rmtree(output)
     output.mkdir(parents=True)
@@ -167,7 +175,7 @@ def main() -> None:
     with concurrent.futures.ThreadPoolExecutor(max_workers=args.jobs) as pool:
         futures = {
             pool.submit(
-                process_variant, scene, variant, site, output,
+                process_variant, scene, variant, assets, output,
                 local_decoder, avmdec,
             ): (scene["id"], variant["qp"])
             for scene, variant in work

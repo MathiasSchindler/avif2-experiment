@@ -9,6 +9,6 @@
 - Retrieved through Wikimedia Commons' file redirect service on 2026-08-06
 - Stored dimensions: 3840 x 3840 pixels
 
-The generated demo assets crop, rotate, scale, convert, and AV2-encode this
-image. Those image derivatives are distributed under the same CC BY-SA 4.0
-license.
+The generated demo assets crop, rotate, scale, convert, and encode this image
+as AV2, JPEG, WebP, and AVIF. Those image derivatives are distributed under
+the same CC BY-SA 4.0 license.

@@ -17,11 +17,39 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 DEMO = Path(__file__).resolve().parent
 DEFAULT_SOURCE = DEMO / "source" / "palacio-pitti-2000.jpg"
-DEFAULT_OUTPUT = DEMO / "site"
+DEFAULT_OUTPUT = ROOT / "docs" / "assets"
 QP_VALUES = tuple(range(16, 241, 16))
 OUTPUT_SIZE = 960
 ACTIVE_PROCESSES: set[subprocess.Popen[str]] = set()
 ACTIVE_PROCESSES_LOCK = threading.Lock()
+
+BASELINE_QUALITIES = (*range(10, 100, 10), 95)
+BASELINE_FORMATS = (
+    {
+        "id": "jpeg",
+        "format": "JPEG",
+        "setting_suffix": "4:2:0",
+        "extension": "jpg",
+        "arguments_before": ("-sampling-factor", "4:2:0"),
+        "arguments_after": (),
+    },
+    {
+        "id": "webp",
+        "format": "WebP",
+        "setting_suffix": "method 6",
+        "extension": "webp",
+        "arguments_before": (),
+        "arguments_after": ("-define", "webp:method=6"),
+    },
+    {
+        "id": "avif",
+        "format": "AVIF",
+        "setting_suffix": "speed 6",
+        "extension": "avif",
+        "arguments_before": (),
+        "arguments_after": ("-define", "heic:speed=6"),
+    },
+)
 
 SCENES = (
     {
@@ -71,7 +99,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--resume", action="store_true",
-        help="Reuse nonempty OBU files already present in the output directory.",
+        help="Reuse nonempty encoded files already present in the output directory.",
     )
     return parser.parse_args()
 
@@ -173,6 +201,73 @@ def make_source(ffmpeg: str, source: Path, output: Path, filter_graph: str) -> N
         )
 
 
+def make_reference_source(ffmpeg: str, source: Path, output: Path) -> None:
+    run(
+        [
+            ffmpeg,
+            "-nostdin",
+            "-hide_banner",
+            "-loglevel",
+            "error",
+            "-y",
+            "-f",
+            "rawvideo",
+            "-pixel_format",
+            "yuv420p",
+            "-video_size",
+            f"{OUTPUT_SIZE}x{OUTPUT_SIZE}",
+            "-i",
+            str(source),
+            "-frames:v",
+            "1",
+            str(output),
+        ]
+    )
+
+
+def encode_baseline(
+    magick: str,
+    source: Path,
+    output: Path,
+    baseline: dict[str, object],
+    resume: bool,
+) -> dict[str, object]:
+    if resume and output.is_file() and output.stat().st_size > 0:
+        print(f"Reusing {output.name}", flush=True)
+    else:
+        temporary = output.with_name(
+            f".{output.stem}.tmp{output.suffix}"
+        )
+        temporary.unlink(missing_ok=True)
+        print(f"Encoding {output.name} ({baseline['setting']})", flush=True)
+        try:
+            run(
+                [
+                    magick,
+                    str(source),
+                    "-strip",
+                    *baseline["arguments_before"],
+                    "-quality",
+                    str(baseline["quality"]),
+                    *baseline["arguments_after"],
+                    str(temporary),
+                ]
+            )
+            temporary.replace(output)
+        finally:
+            temporary.unlink(missing_ok=True)
+        print(f"Encoded {output.name} ({output.stat().st_size} bytes)", flush=True)
+    return {
+        "id": baseline["id"],
+        "format": baseline["format"],
+        "quality": baseline["quality"],
+        "setting": baseline["setting"],
+        "file": output.name,
+        "bytes": output.stat().st_size,
+        "sha256": sha256(output),
+    }
+
+
 def encode_variant(
     encoder: str, source: Path, output: Path, qp: int, resume: bool
 ) -> dict[str, object]:
@@ -237,6 +332,7 @@ def main() -> None:
         raise RuntimeError(f"missing source image: {source}")
     ffmpeg = require_tool("ffmpeg")
     ffprobe = require_tool("ffprobe")
+    magick = require_tool("magick")
     encoder = require_tool(args.encoder)
     source_width, source_height = dimensions(ffprobe, source)
     output.mkdir(parents=True, exist_ok=True)
@@ -245,6 +341,7 @@ def main() -> None:
     for scene in SCENES:
         scene_id = str(scene["id"])
         source_i420 = output / f"{scene_id}-source.i420"
+        source_png = output / f"{scene_id}-source.png"
         print(f"Preparing {scene['name']}", flush=True)
         make_source(ffmpeg, source, source_i420, str(scene["filter"]))
         try:
@@ -267,8 +364,31 @@ def main() -> None:
                         job.cancel()
                     terminate_active_processes()
                     raise
+            make_reference_source(ffmpeg, source_i420, source_png)
+            baselines = []
+            for baseline_format in BASELINE_FORMATS:
+                for quality in BASELINE_QUALITIES:
+                    baseline = {
+                        **baseline_format,
+                        "id": f"{baseline_format['id']}-q{quality:02d}",
+                        "quality": quality,
+                        "setting": (
+                            f"quality {quality} / "
+                            f"{baseline_format['setting_suffix']}"
+                        ),
+                    }
+                    target = output / (
+                        f"{scene_id}-{baseline['id']}."
+                        f"{baseline['extension']}"
+                    )
+                    baselines.append(
+                        encode_baseline(
+                            magick, source_png, target, baseline, args.resume
+                        )
+                    )
         finally:
             source_i420.unlink(missing_ok=True)
+            source_png.unlink(missing_ok=True)
         scene_records.append(
             {
                 "id": scene_id,
@@ -278,12 +398,13 @@ def main() -> None:
                 "width": OUTPUT_SIZE,
                 "height": OUTPUT_SIZE,
                 "variants": sorted(variants, key=lambda item: int(item["qp"])),
+                "baselines": baselines,
             }
         )
         print(f"Generated {len(variants)} variants for {scene_id}")
 
     manifest = {
-        "schema": "av2h-quality-viewer-v1",
+        "schema": "av2h-quality-viewer-v3",
         "title": "Palazzo Pitti ceiling",
         "source": {
             "description": (
@@ -308,7 +429,10 @@ def main() -> None:
                 "height": source_height,
             },
             "sha256": sha256(source),
-            "changes": "Scaled, cropped, rotated, converted to I420, and AV2-encoded.",
+            "changes": (
+                "Scaled, cropped, rotated, converted to I420, and encoded "
+                "as AV2, JPEG, WebP, and AVIF."
+            ),
         },
         "encoder": {
             "codec": "AV2",
@@ -318,6 +442,14 @@ def main() -> None:
             "bit_depth": 8,
             "pixel_format": "I420",
             "qp_step": 16,
+        },
+        "baseline_encoder": {
+            "implementation": "ImageMagick",
+            "qualities": list(BASELINE_QUALITIES),
+            "note": (
+                "Quality scales are format-specific; reference encodes are "
+                "not matched-quality points."
+            ),
         },
         "scenes": scene_records,
     }

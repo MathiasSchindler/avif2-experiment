@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import argparse
 import os
-import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -13,7 +12,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 DEMO = Path(__file__).resolve().parent
-DEFAULT_SITE = DEMO / "site"
+DEFAULT_SITE = ROOT / "docs"
 
 
 def default_encoder() -> Path:
@@ -59,16 +58,16 @@ def run(command: list[str]) -> None:
 def main() -> None:
     args = parse_args()
     site = args.site_directory.resolve()
+    assets = site / "assets"
     site.mkdir(parents=True, exist_ok=True)
-    for name in ("index.html", "styles.css", "app.js"):
-        shutil.copy2(DEMO / name, site / name)
+    assets.mkdir(parents=True, exist_ok=True)
 
     if not args.skip_assets:
         command = [
             sys.executable,
             str(DEMO / "generate_assets.py"),
             "--output",
-            str(site),
+            str(assets),
             "--encoder",
             str(args.encoder),
             "--jobs",
@@ -92,6 +91,7 @@ def main() -> None:
     for path in sorted(site.iterdir()):
         if path.is_file():
             print(f"{path.name}\t{path.stat().st_size}")
+    print(f"assets\t{sum(1 for path in assets.iterdir() if path.is_file())} files")
 
 
 if __name__ == "__main__":

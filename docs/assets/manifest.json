@@ -1,0 +1,790 @@
+{
+  "schema": "av2h-quality-viewer-v3",
+  "title": "Palazzo Pitti ceiling",
+  "source": {
+    "description": "Ceiling of Sala della Stufa, Galleria Palatina, Palazzo Pitti, Florence.",
+    "author": "Diego Delso",
+    "author_url": "http://delso.photo/",
+    "license": "CC BY-SA 4.0",
+    "license_url": "https://creativecommons.org/licenses/by-sa/4.0/legalcode",
+    "commons_url": "https://commons.wikimedia.org/wiki/File:Palacio_Pitti,_Florencia,_Italia,_2022-09-18,_DD_163-165_HDR.jpg",
+    "derivative_url": "https://commons.wikimedia.org/wiki/Special:Redirect/file/Palacio_Pitti%2C_Florencia%2C_Italia%2C_2022-09-18%2C_DD_163-165_HDR.jpg?width=2000",
+    "downloaded_dimensions": {
+      "width": 3840,
+      "height": 3840
+    },
+    "sha256": "559af2faae41a9720fa881fdc02d3a766ae05790f2a6761461579f6e1ac1880c",
+    "changes": "Scaled, cropped, rotated, converted to I420, and encoded as AV2, JPEG, WebP, and AVIF."
+  },
+  "encoder": {
+    "codec": "AV2",
+    "implementation": "AVM",
+    "cpu_used": 9,
+    "profile": 0,
+    "bit_depth": 8,
+    "pixel_format": "I420",
+    "qp_step": 16
+  },
+  "baseline_encoder": {
+    "implementation": "ImageMagick",
+    "qualities": [
+      10,
+      20,
+      30,
+      40,
+      50,
+      60,
+      70,
+      80,
+      90,
+      95
+    ],
+    "note": "Quality scales are format-specific; reference encodes are not matched-quality points."
+  },
+  "scenes": [
+    {
+      "id": "overview",
+      "name": "Entire ceiling",
+      "description": "The complete ceiling scaled to 960 x 960 pixels.",
+      "transformation": "Scaled from the complete source image.",
+      "width": 960,
+      "height": 960,
+      "variants": [
+        {
+          "qp": 16,
+          "file": "overview-q016.obu",
+          "bytes": 912562,
+          "sha256": "7ba54e5d19c5f1524e44bdda09812cb93714291d947400993ee42cee82e0f3d5"
+        },
+        {
+          "qp": 32,
+          "file": "overview-q032.obu",
+          "bytes": 777940,
+          "sha256": "f087768b3d20ff4b5bd4e750e70433a80f50c6e60d85ab2df4460d7e34ece311"
+        },
+        {
+          "qp": 48,
+          "file": "overview-q048.obu",
+          "bytes": 629075,
+          "sha256": "f5437e1692c5de053d999a361fb4544c3b00fabb2d4d88868f8beaf3272d1607"
+        },
+        {
+          "qp": 64,
+          "file": "overview-q064.obu",
+          "bytes": 508142,
+          "sha256": "9931839c4e4a3034064d8e33400e874b68b729ef79c4653fc294a47c05029c6c"
+        },
+        {
+          "qp": 80,
+          "file": "overview-q080.obu",
+          "bytes": 396546,
+          "sha256": "92fdaa2565e90241dfd37b62556dca5a0afa27c588b0623d991deaf80ee3727b"
+        },
+        {
+          "qp": 96,
+          "file": "overview-q096.obu",
+          "bytes": 297016,
+          "sha256": "669e81c01fd86fe99a7e1f438a73a6d1c7bfae48acb42c052d5203a3b7f59c45"
+        },
+        {
+          "qp": 112,
+          "file": "overview-q112.obu",
+          "bytes": 213277,
+          "sha256": "bc6a360eca8ec7daf58b5e67bab75ac90b2cec81331349801dd0134c45ff3550"
+        },
+        {
+          "qp": 128,
+          "file": "overview-q128.obu",
+          "bytes": 144893,
+          "sha256": "fadf9bccc7aa0496da671dc075ee26a6a389127ca238d3e02554e664debdffe5"
+        },
+        {
+          "qp": 144,
+          "file": "overview-q144.obu",
+          "bytes": 90143,
+          "sha256": "7bd560a61d4b83b97d00f4f29442c15a66ae75777554dec79a6c11251e06f0f4"
+        },
+        {
+          "qp": 160,
+          "file": "overview-q160.obu",
+          "bytes": 49525,
+          "sha256": "5347b6c771c0e174841572e9707d5b6ae9142d508d40198d51839e4b2fe5c6d7"
+        },
+        {
+          "qp": 176,
+          "file": "overview-q176.obu",
+          "bytes": 24085,
+          "sha256": "411771593b6efd4968d533f824a0b2869850f54a18f9fd36c714ffa7bf619b81"
+        },
+        {
+          "qp": 192,
+          "file": "overview-q192.obu",
+          "bytes": 10750,
+          "sha256": "392ea61213203f8ca7850022fd2e6bdc0148485e9b26f76774ee68ae1efebfe1"
+        },
+        {
+          "qp": 208,
+          "file": "overview-q208.obu",
+          "bytes": 4651,
+          "sha256": "fab7276bc5d7ec1e36d0d23c5a2038865a79511d42780b8d1adf33c06beb7dfa"
+        },
+        {
+          "qp": 224,
+          "file": "overview-q224.obu",
+          "bytes": 1949,
+          "sha256": "9a2f092adb95e7c422903512b0e6dcf2847c185db405a0148c1937cabea1c506"
+        },
+        {
+          "qp": 240,
+          "file": "overview-q240.obu",
+          "bytes": 739,
+          "sha256": "c0f54f422aaff6b163d4b40388a487dbab6415b667657bb20894ef0a008ff29b"
+        }
+      ],
+      "baselines": [
+        {
+          "id": "jpeg-q10",
+          "format": "JPEG",
+          "quality": 10,
+          "setting": "quality 10 / 4:2:0",
+          "file": "overview-jpeg-q10.jpg",
+          "bytes": 57564,
+          "sha256": "579fe113ec130fdcbfa9988514bc0826b10a0bc3e8bb05a14cb73f6994efb057"
+        },
+        {
+          "id": "jpeg-q20",
+          "format": "JPEG",
+          "quality": 20,
+          "setting": "quality 20 / 4:2:0",
+          "file": "overview-jpeg-q20.jpg",
+          "bytes": 100972,
+          "sha256": "6aa130e2e9841fbf69b63922ba024d02dfeccc2139f5990c4b1dd22467260754"
+        },
+        {
+          "id": "jpeg-q30",
+          "format": "JPEG",
+          "quality": 30,
+          "setting": "quality 30 / 4:2:0",
+          "file": "overview-jpeg-q30.jpg",
+          "bytes": 136438,
+          "sha256": "32ec2ea4447e05b77f9467e17b852eb0e999e5d5a0fa472882d2b9cd8daf4bdb"
+        },
+        {
+          "id": "jpeg-q40",
+          "format": "JPEG",
+          "quality": 40,
+          "setting": "quality 40 / 4:2:0",
+          "file": "overview-jpeg-q40.jpg",
+          "bytes": 165391,
+          "sha256": "04b35db6a1a2c1ef4736ebbdee2b266cb0e9736cf5d218609b7553e003a49e0e"
+        },
+        {
+          "id": "jpeg-q50",
+          "format": "JPEG",
+          "quality": 50,
+          "setting": "quality 50 / 4:2:0",
+          "file": "overview-jpeg-q50.jpg",
+          "bytes": 193193,
+          "sha256": "35c81e8fa2a90ef534279b4d0e68bcdf402e4a17a86d67f296ea74fd0c97b89f"
+        },
+        {
+          "id": "jpeg-q60",
+          "format": "JPEG",
+          "quality": 60,
+          "setting": "quality 60 / 4:2:0",
+          "file": "overview-jpeg-q60.jpg",
+          "bytes": 222550,
+          "sha256": "86b7676ae36fe20347ca8c10ac0498ba0eebf14d5f35e69b71647c759f4e7e7a"
+        },
+        {
+          "id": "jpeg-q70",
+          "format": "JPEG",
+          "quality": 70,
+          "setting": "quality 70 / 4:2:0",
+          "file": "overview-jpeg-q70.jpg",
+          "bytes": 265850,
+          "sha256": "4cfa7897d59f3fc7fa99a4ccedd90335578fbedb12f488970fcc2c587c983c09"
+        },
+        {
+          "id": "jpeg-q80",
+          "format": "JPEG",
+          "quality": 80,
+          "setting": "quality 80 / 4:2:0",
+          "file": "overview-jpeg-q80.jpg",
+          "bytes": 333498,
+          "sha256": "d9d449102135f25d4959e26ad378ced858f2a97b82fba9a357aa3a309a5e12cc"
+        },
+        {
+          "id": "jpeg-q90",
+          "format": "JPEG",
+          "quality": 90,
+          "setting": "quality 90 / 4:2:0",
+          "file": "overview-jpeg-q90.jpg",
+          "bytes": 473182,
+          "sha256": "3d4ab73b3119b258eb3f8e3b32ecbed191ab417f807643d81b1b43684306270d"
+        },
+        {
+          "id": "jpeg-q95",
+          "format": "JPEG",
+          "quality": 95,
+          "setting": "quality 95 / 4:2:0",
+          "file": "overview-jpeg-q95.jpg",
+          "bytes": 635857,
+          "sha256": "407de95aa98a8025572ad8972007129f39a2518719cbbeef983994c8443fa939"
+        },
+        {
+          "id": "webp-q10",
+          "format": "WebP",
+          "quality": 10,
+          "setting": "quality 10 / method 6",
+          "file": "overview-webp-q10.webp",
+          "bytes": 84550,
+          "sha256": "81c9195a61fda018713f52b41be643d866c9b698ef5dd81a6a72f8ddd7116c5d"
+        },
+        {
+          "id": "webp-q20",
+          "format": "WebP",
+          "quality": 20,
+          "setting": "quality 20 / method 6",
+          "file": "overview-webp-q20.webp",
+          "bytes": 115490,
+          "sha256": "23cf496f5d745ed5cc3f8ade88ff9a85c9a6dc1a3c52a05804b594c1f580ccd3"
+        },
+        {
+          "id": "webp-q30",
+          "format": "WebP",
+          "quality": 30,
+          "setting": "quality 30 / method 6",
+          "file": "overview-webp-q30.webp",
+          "bytes": 144902,
+          "sha256": "b216e020345d2742138d77bec23079e811a37418087a45adffd21ecceab802ca"
+        },
+        {
+          "id": "webp-q40",
+          "format": "WebP",
+          "quality": 40,
+          "setting": "quality 40 / method 6",
+          "file": "overview-webp-q40.webp",
+          "bytes": 175064,
+          "sha256": "ad3d765e0f83bf49d288c75617f30c0fa9d7fd7fe0a296b63cecd9d4deb933c0"
+        },
+        {
+          "id": "webp-q50",
+          "format": "WebP",
+          "quality": 50,
+          "setting": "quality 50 / method 6",
+          "file": "overview-webp-q50.webp",
+          "bytes": 199682,
+          "sha256": "129561a048e5bcd8adc9a84cb5acc5a64530772f6e6af12f72ec4d7e316d26ca"
+        },
+        {
+          "id": "webp-q60",
+          "format": "WebP",
+          "quality": 60,
+          "setting": "quality 60 / method 6",
+          "file": "overview-webp-q60.webp",
+          "bytes": 225232,
+          "sha256": "bb200bc34b59b156b2416e69f61033a4551b02f1ded7978ea62787de79ed2fcd"
+        },
+        {
+          "id": "webp-q70",
+          "format": "WebP",
+          "quality": 70,
+          "setting": "quality 70 / method 6",
+          "file": "overview-webp-q70.webp",
+          "bytes": 251272,
+          "sha256": "855c9a374feb8101a57ed14a8a9d84fc252a866ee16f28e78a82375a83206428"
+        },
+        {
+          "id": "webp-q80",
+          "format": "WebP",
+          "quality": 80,
+          "setting": "quality 80 / method 6",
+          "file": "overview-webp-q80.webp",
+          "bytes": 308816,
+          "sha256": "f302691e8176092295dddf251231f94a5144eea75b872215d10db836b11971a2"
+        },
+        {
+          "id": "webp-q90",
+          "format": "WebP",
+          "quality": 90,
+          "setting": "quality 90 / method 6",
+          "file": "overview-webp-q90.webp",
+          "bytes": 447336,
+          "sha256": "43af1f94768fadef1fa573fa0521afa195391c24d8694bd578662a496db124e4"
+        },
+        {
+          "id": "webp-q95",
+          "format": "WebP",
+          "quality": 95,
+          "setting": "quality 95 / method 6",
+          "file": "overview-webp-q95.webp",
+          "bytes": 553512,
+          "sha256": "5c3fa34f06b8b6e478b2cb5d424ac51e016cb0bb72496bdb4e67993756d5475b"
+        },
+        {
+          "id": "avif-q10",
+          "format": "AVIF",
+          "quality": 10,
+          "setting": "quality 10 / speed 6",
+          "file": "overview-avif-q10.avif",
+          "bytes": 20313,
+          "sha256": "6315f71f3944f4d2bd1dbc41a7aeffb19f91350b5b20bbbdaa215f12a9542fd5"
+        },
+        {
+          "id": "avif-q20",
+          "format": "AVIF",
+          "quality": 20,
+          "setting": "quality 20 / speed 6",
+          "file": "overview-avif-q20.avif",
+          "bytes": 34103,
+          "sha256": "9d6add6370a36b3cc26775d02bbe4105c612dc4fdb60558a339b77d22bd76b9a"
+        },
+        {
+          "id": "avif-q30",
+          "format": "AVIF",
+          "quality": 30,
+          "setting": "quality 30 / speed 6",
+          "file": "overview-avif-q30.avif",
+          "bytes": 53137,
+          "sha256": "643cfee9f86aec3b8b50342e7d3ac8b9944580f554ed5982e9ee5c9d6b57ceac"
+        },
+        {
+          "id": "avif-q40",
+          "format": "AVIF",
+          "quality": 40,
+          "setting": "quality 40 / speed 6",
+          "file": "overview-avif-q40.avif",
+          "bytes": 82042,
+          "sha256": "d61530052d4f5267d81047649d980e9b8bb9dc052cee89bcedc1a1727271bc54"
+        },
+        {
+          "id": "avif-q50",
+          "format": "AVIF",
+          "quality": 50,
+          "setting": "quality 50 / speed 6",
+          "file": "overview-avif-q50.avif",
+          "bytes": 130270,
+          "sha256": "819e2c093c941e6870d47cfd4a8b83626495a6a853dada2c48db55bcde45a597"
+        },
+        {
+          "id": "avif-q60",
+          "format": "AVIF",
+          "quality": 60,
+          "setting": "quality 60 / speed 6",
+          "file": "overview-avif-q60.avif",
+          "bytes": 191855,
+          "sha256": "3b3ec8ae9f4ebd43cf30c6fceac9c998763bb72bb881a0d582ff9568ff084440"
+        },
+        {
+          "id": "avif-q70",
+          "format": "AVIF",
+          "quality": 70,
+          "setting": "quality 70 / speed 6",
+          "file": "overview-avif-q70.avif",
+          "bytes": 273088,
+          "sha256": "6fd675e5c224eb99920f02a954a11ca179a92f1494ee30c9a3da20c5a57eabbc"
+        },
+        {
+          "id": "avif-q80",
+          "format": "AVIF",
+          "quality": 80,
+          "setting": "quality 80 / speed 6",
+          "file": "overview-avif-q80.avif",
+          "bytes": 352165,
+          "sha256": "3d040f3f6763b363d25e97243ee8d26a5c5da7a0333b8cde5f9ca65a9b9e4ae3"
+        },
+        {
+          "id": "avif-q90",
+          "format": "AVIF",
+          "quality": 90,
+          "setting": "quality 90 / speed 6",
+          "file": "overview-avif-q90.avif",
+          "bytes": 476961,
+          "sha256": "8c6850f2f16914fd1c5ba65db29a65847404bd07b6385cd49b55d522dbf7b8bf"
+        },
+        {
+          "id": "avif-q95",
+          "format": "AVIF",
+          "quality": 95,
+          "setting": "quality 95 / speed 6",
+          "file": "overview-avif-q95.avif",
+          "bytes": 603741,
+          "sha256": "85e1bcc3b4e8700fc5b9c3ec2b18800d5e0a72524456d4cd46565cd385be4098"
+        }
+      ]
+    },
+    {
+      "id": "inscription",
+      "name": "Inscription detail",
+      "description": "A 50% linear crop with lettering, stucco, and fresco detail.",
+      "transformation": "Cropped to 1920 x 1920 pixels at source position (0, 920), rotated 90 degrees counter-clockwise, and scaled to 960 x 960.",
+      "width": 960,
+      "height": 960,
+      "variants": [
+        {
+          "qp": 16,
+          "file": "inscription-q016.obu",
+          "bytes": 944206,
+          "sha256": "54c27223299983b2812e8ffa10b3566f8675ae626cf1a5b664a37565614e0b68"
+        },
+        {
+          "qp": 32,
+          "file": "inscription-q032.obu",
+          "bytes": 813057,
+          "sha256": "84001b825a36812d2212a7ab14bb968f7b3f56f2199ea2d571ed5c1d57eecc65"
+        },
+        {
+          "qp": 48,
+          "file": "inscription-q048.obu",
+          "bytes": 668677,
+          "sha256": "0aeff959998b8cf7722f88bfefca07486ec1eeec177c1c3f1a0e0ccc4e2edb5a"
+        },
+        {
+          "qp": 64,
+          "file": "inscription-q064.obu",
+          "bytes": 549353,
+          "sha256": "eac2687ab90496cbe0baf56efe1c28ff4f331a50f153a01d1d92398884bbd5bb"
+        },
+        {
+          "qp": 80,
+          "file": "inscription-q080.obu",
+          "bytes": 434507,
+          "sha256": "2f9d71a9f1b6fa8cf0bd6362dd7e9959cafcdf1f71bae048516e564f8aa2a07d"
+        },
+        {
+          "qp": 96,
+          "file": "inscription-q096.obu",
+          "bytes": 326347,
+          "sha256": "007828b26c16b21212e4d27721cd3c98c86b144798a60e855915d02adf77e542"
+        },
+        {
+          "qp": 112,
+          "file": "inscription-q112.obu",
+          "bytes": 236057,
+          "sha256": "649e27f3176824f16dd3392e1ae80a18ac8bf25f7b965dc93007ca7ea5934fa1"
+        },
+        {
+          "qp": 128,
+          "file": "inscription-q128.obu",
+          "bytes": 163668,
+          "sha256": "64ab389088d506d617736a6b71df390b9fabec8991b168c4ac17c9cbdf17a487"
+        },
+        {
+          "qp": 144,
+          "file": "inscription-q144.obu",
+          "bytes": 105377,
+          "sha256": "4fc926451bb1408016f26c08336387d13c0842192ce327267ca82e7ab50d83f6"
+        },
+        {
+          "qp": 160,
+          "file": "inscription-q160.obu",
+          "bytes": 60940,
+          "sha256": "784eb704fb0a83971ce5c37dd943d3f3f912192d5e6713aed704314f0531fa6e"
+        },
+        {
+          "qp": 176,
+          "file": "inscription-q176.obu",
+          "bytes": 30677,
+          "sha256": "47a2a1c791fc548857594235c8a13534cffd29cedcb5f4ae02b6afc1a79ac278"
+        },
+        {
+          "qp": 192,
+          "file": "inscription-q192.obu",
+          "bytes": 12823,
+          "sha256": "591768f43c00e9ac5b33511bad778ade79e08b684faa9a0bef3c174839bb11d6"
+        },
+        {
+          "qp": 208,
+          "file": "inscription-q208.obu",
+          "bytes": 5239,
+          "sha256": "d02279e8f52d78935bd33d516f3e28e7e9a701eeae22479015b2379dc826e603"
+        },
+        {
+          "qp": 224,
+          "file": "inscription-q224.obu",
+          "bytes": 2303,
+          "sha256": "2f99910cb9a7f7d7093afeb7c8e685a718b7c8e4da91fc744c33fe8fcbe94e2d"
+        },
+        {
+          "qp": 240,
+          "file": "inscription-q240.obu",
+          "bytes": 934,
+          "sha256": "ae5d2ee8f134f3de6d4c46e8d0b6b89029dc2118b3871e32f56dd9ae6f2ea357"
+        }
+      ],
+      "baselines": [
+        {
+          "id": "jpeg-q10",
+          "format": "JPEG",
+          "quality": 10,
+          "setting": "quality 10 / 4:2:0",
+          "file": "inscription-jpeg-q10.jpg",
+          "bytes": 62779,
+          "sha256": "17320082fa719c3d4a1c020d54a0c78ca2d8080253010747383a905168222782"
+        },
+        {
+          "id": "jpeg-q20",
+          "format": "JPEG",
+          "quality": 20,
+          "setting": "quality 20 / 4:2:0",
+          "file": "inscription-jpeg-q20.jpg",
+          "bytes": 109074,
+          "sha256": "d86ad4bddf49a10561a4c72b31f0ae6d2893fe476d08e072d653469ff33bc2a5"
+        },
+        {
+          "id": "jpeg-q30",
+          "format": "JPEG",
+          "quality": 30,
+          "setting": "quality 30 / 4:2:0",
+          "file": "inscription-jpeg-q30.jpg",
+          "bytes": 147239,
+          "sha256": "0caeb292bf48db415bc8572f799dd3f09a08e7dbcc56b52d4a24db6134807034"
+        },
+        {
+          "id": "jpeg-q40",
+          "format": "JPEG",
+          "quality": 40,
+          "setting": "quality 40 / 4:2:0",
+          "file": "inscription-jpeg-q40.jpg",
+          "bytes": 178406,
+          "sha256": "c4083a182e435fc9097282ad55b72c6c502c9a12bb65a1b5f5a96af96b5491c0"
+        },
+        {
+          "id": "jpeg-q50",
+          "format": "JPEG",
+          "quality": 50,
+          "setting": "quality 50 / 4:2:0",
+          "file": "inscription-jpeg-q50.jpg",
+          "bytes": 207339,
+          "sha256": "cedb834ad5c7c77abf18a5d0f8d97526a8a058160aeed6fa90e6f08d10c192c0"
+        },
+        {
+          "id": "jpeg-q60",
+          "format": "JPEG",
+          "quality": 60,
+          "setting": "quality 60 / 4:2:0",
+          "file": "inscription-jpeg-q60.jpg",
+          "bytes": 238451,
+          "sha256": "5287d3616831b1c9023f0bee26bb0624da6dc9159c6d6cf9f9c43a37d4dbd543"
+        },
+        {
+          "id": "jpeg-q70",
+          "format": "JPEG",
+          "quality": 70,
+          "setting": "quality 70 / 4:2:0",
+          "file": "inscription-jpeg-q70.jpg",
+          "bytes": 284217,
+          "sha256": "1c6fbd06ed79d1989cb12da0343ee0c062eaf90ed23ef5165c0461f1864dc58a"
+        },
+        {
+          "id": "jpeg-q80",
+          "format": "JPEG",
+          "quality": 80,
+          "setting": "quality 80 / 4:2:0",
+          "file": "inscription-jpeg-q80.jpg",
+          "bytes": 354981,
+          "sha256": "c0c947ba4af2b17124613063bd11863f765334aedf078083da722ee6f571fb37"
+        },
+        {
+          "id": "jpeg-q90",
+          "format": "JPEG",
+          "quality": 90,
+          "setting": "quality 90 / 4:2:0",
+          "file": "inscription-jpeg-q90.jpg",
+          "bytes": 500198,
+          "sha256": "34682bb01ad8a3abcfba4af9b60acf0a950ab1af364721bc86ede4e0b57ae8f1"
+        },
+        {
+          "id": "jpeg-q95",
+          "format": "JPEG",
+          "quality": 95,
+          "setting": "quality 95 / 4:2:0",
+          "file": "inscription-jpeg-q95.jpg",
+          "bytes": 666593,
+          "sha256": "c22611ebc762ec1089c2f05ba3fa2e8cb3cd80d635ea8fbcb6bed74dde002357"
+        },
+        {
+          "id": "webp-q10",
+          "format": "WebP",
+          "quality": 10,
+          "setting": "quality 10 / method 6",
+          "file": "inscription-webp-q10.webp",
+          "bytes": 102268,
+          "sha256": "98468841351eb0089ff59981e702338922da7f37c90149295d9c26c0fba98d2b"
+        },
+        {
+          "id": "webp-q20",
+          "format": "WebP",
+          "quality": 20,
+          "setting": "quality 20 / method 6",
+          "file": "inscription-webp-q20.webp",
+          "bytes": 137024,
+          "sha256": "894b1820dc5b33f633b2d194384c58791ecd67603a6924114e6abb9d13f327b2"
+        },
+        {
+          "id": "webp-q30",
+          "format": "WebP",
+          "quality": 30,
+          "setting": "quality 30 / method 6",
+          "file": "inscription-webp-q30.webp",
+          "bytes": 171608,
+          "sha256": "f9de3a6a18687504b3b6d84d8f7a9d6baffd3317e773fcf7bb7e518ec6382480"
+        },
+        {
+          "id": "webp-q40",
+          "format": "WebP",
+          "quality": 40,
+          "setting": "quality 40 / method 6",
+          "file": "inscription-webp-q40.webp",
+          "bytes": 204568,
+          "sha256": "1a056186c1e9e6a5f26209ff9dd782a432b7ab5532a71d9025106d209a08b281"
+        },
+        {
+          "id": "webp-q50",
+          "format": "WebP",
+          "quality": 50,
+          "setting": "quality 50 / method 6",
+          "file": "inscription-webp-q50.webp",
+          "bytes": 228034,
+          "sha256": "8e0ee5bceac9f2d06b02a0bf0e247fcad91539cf2efeb3c1e68206a2bc05abed"
+        },
+        {
+          "id": "webp-q60",
+          "format": "WebP",
+          "quality": 60,
+          "setting": "quality 60 / method 6",
+          "file": "inscription-webp-q60.webp",
+          "bytes": 253826,
+          "sha256": "0d5aec80d907d9dfa40ae9da54f91f6389fa43bb3fd5d959f1cd15c3d423a54c"
+        },
+        {
+          "id": "webp-q70",
+          "format": "WebP",
+          "quality": 70,
+          "setting": "quality 70 / method 6",
+          "file": "inscription-webp-q70.webp",
+          "bytes": 278602,
+          "sha256": "f70f6a754c6b2b7107c3c33370a765f2d334528087b526f28d168ac66fd08b93"
+        },
+        {
+          "id": "webp-q80",
+          "format": "WebP",
+          "quality": 80,
+          "setting": "quality 80 / method 6",
+          "file": "inscription-webp-q80.webp",
+          "bytes": 343026,
+          "sha256": "5d1af35544e35b580e4306887281cf5a0d5ee5309d2b62826fc5d182486dc6b2"
+        },
+        {
+          "id": "webp-q90",
+          "format": "WebP",
+          "quality": 90,
+          "setting": "quality 90 / method 6",
+          "file": "inscription-webp-q90.webp",
+          "bytes": 487172,
+          "sha256": "78e317905795183214b078b88ea0611da74c40a88284393d25de967dfca39ce0"
+        },
+        {
+          "id": "webp-q95",
+          "format": "WebP",
+          "quality": 95,
+          "setting": "quality 95 / method 6",
+          "file": "inscription-webp-q95.webp",
+          "bytes": 596830,
+          "sha256": "a3a51b45f389d85d02b69e79c863ee435debf371301622d2c33a0c8ff48263da"
+        },
+        {
+          "id": "avif-q10",
+          "format": "AVIF",
+          "quality": 10,
+          "setting": "quality 10 / speed 6",
+          "file": "inscription-avif-q10.avif",
+          "bytes": 22123,
+          "sha256": "3ad2a300eb3dfc114ae1ae30e73bff898b24c29c96566468ce73fd42bf46c9d2"
+        },
+        {
+          "id": "avif-q20",
+          "format": "AVIF",
+          "quality": 20,
+          "setting": "quality 20 / speed 6",
+          "file": "inscription-avif-q20.avif",
+          "bytes": 38195,
+          "sha256": "3beeba714f413c6455165f53984fa36b6a344c3fc28b364cc3077cd3a069e176"
+        },
+        {
+          "id": "avif-q30",
+          "format": "AVIF",
+          "quality": 30,
+          "setting": "quality 30 / speed 6",
+          "file": "inscription-avif-q30.avif",
+          "bytes": 61004,
+          "sha256": "2b4aa190687df9a9fb71b711c11a4053de1ffb85112c8dc48c5d07dfb7cc9cae"
+        },
+        {
+          "id": "avif-q40",
+          "format": "AVIF",
+          "quality": 40,
+          "setting": "quality 40 / speed 6",
+          "file": "inscription-avif-q40.avif",
+          "bytes": 93440,
+          "sha256": "b9f913cb2f279ebf36e180a0889ad561b2e0ce4caf65024fefd5ecd93d5d27bb"
+        },
+        {
+          "id": "avif-q50",
+          "format": "AVIF",
+          "quality": 50,
+          "setting": "quality 50 / speed 6",
+          "file": "inscription-avif-q50.avif",
+          "bytes": 145274,
+          "sha256": "25ee08de35b5d9b578e2f3d0632c4cd35ca1d3ea83070872a510faef201cbb6b"
+        },
+        {
+          "id": "avif-q60",
+          "format": "AVIF",
+          "quality": 60,
+          "setting": "quality 60 / speed 6",
+          "file": "inscription-avif-q60.avif",
+          "bytes": 210161,
+          "sha256": "aa4314559c7a8fcbd9094142734ebcf345eaa0dba6527d9a36203b5b0051e8d1"
+        },
+        {
+          "id": "avif-q70",
+          "format": "AVIF",
+          "quality": 70,
+          "setting": "quality 70 / speed 6",
+          "file": "inscription-avif-q70.avif",
+          "bytes": 295990,
+          "sha256": "e0641a61339677c64d2cd2f83c3eafb76bfadef78be8e8c48aa688df14e823cf"
+        },
+        {
+          "id": "avif-q80",
+          "format": "AVIF",
+          "quality": 80,
+          "setting": "quality 80 / speed 6",
+          "file": "inscription-avif-q80.avif",
+          "bytes": 379071,
+          "sha256": "85f3277dc8e23603103530f76a2cb6c90011c9d3657b55e4479abe1a39c4a206"
+        },
+        {
+          "id": "avif-q90",
+          "format": "AVIF",
+          "quality": 90,
+          "setting": "quality 90 / speed 6",
+          "file": "inscription-avif-q90.avif",
+          "bytes": 510568,
+          "sha256": "b8e0168a2d4e2e136075a4a62eac205ed6520c3dbc99e3e466841ff670496c1d"
+        },
+        {
+          "id": "avif-q95",
+          "format": "AVIF",
+          "quality": 95,
+          "setting": "quality 95 / speed 6",
+          "file": "inscription-avif-q95.avif",
+          "bytes": 643497,
+          "sha256": "9dfc7c3c0858d785ece21fe22fb14db43575d35bcbfb30c578c35a7922b1e90a"
+        }
+      ]
+    }
+  ]
+}

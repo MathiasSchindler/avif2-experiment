@@ -88,6 +88,28 @@ other builds, the pinned AVM checkout in `vendor/`, all source files, fixtures,
 and tracked evidence. Override `DECODER_PRESET` and `DECODER_BUILD_DIR`
 together to select a non-native product explicitly.
 
+### WebAssembly demo
+
+Build the browser decoder and validate the complete GitHub Pages tree with:
+
+```sh
+make wasm
+```
+
+Serve `docs/` over HTTP for local testing:
+
+```sh
+python3 -m http.server 8080 --directory docs
+```
+
+The deployed page is
+<https://mathiasschindler.github.io/avif2-experiment/>. It provides the
+manifest-backed AV2 quality comparison, bitrate-matched JPEG, WebP, and AVIF
+reference series, and local OBU decoding through the same WebAssembly module.
+A logarithmic bits-per-pixel control selects the nearest available AV2 and
+reference encodes. The reference formats use their own non-equivalent quality
+scales and are decoded by the browser.
+
 Use the `host` preset when sanitizer runtimes are unavailable, including with
 LLVM-MinGW on Windows. Both host presets compile all 17 C test programs and the
 artifact tool. All 17 unit suites run by default. The layout harness pins key
