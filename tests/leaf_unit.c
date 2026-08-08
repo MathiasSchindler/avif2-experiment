@@ -289,6 +289,40 @@ static void test_chroma_cfl_derived_alpha(void) {
     CHECK(mode.uv_mode == 0U);
     CHECK(mode.mode == AV2H_INTRA_DC);
     CHECK(mode.after_cfl_index_bits == mode.after_cfl_bits);
+
+    sequence.enable_mhccp = 1U;
+    span = (Av2hSpan){ derived, sizeof(derived) };
+    CHECK(av2h_leaf_cdfs_init(&cdfs) == AV2H_OK);
+    CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
+    CHECK(av2h_chroma_mode_read_with_delta(
+              &decoder, &cdfs, &sequence, AV2H_INTRA_DC, 0,
+              AV2H_BLOCK_8X8, 0U, &mode) == AV2H_OK);
+    CHECK(cdfs.cfl_mhccp_switch[2] == 1U);
+
+    span = (Av2hSpan){ derived, sizeof(derived) };
+    CHECK(av2h_leaf_cdfs_init(&cdfs) == AV2H_OK);
+    CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
+    CHECK(av2h_chroma_mode_read_with_delta(
+              &decoder, &cdfs, &sequence, AV2H_INTRA_DC, 0,
+              AV2H_BLOCK_4X4, 0U, &mode) == AV2H_OK);
+    CHECK(cdfs.cfl_mhccp_switch[2] == 0U);
+
+    sequence.info.chroma_format_idc = 2U;
+    span = (Av2hSpan){ derived, sizeof(derived) };
+    CHECK(av2h_leaf_cdfs_init(&cdfs) == AV2H_OK);
+    CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
+    CHECK(av2h_chroma_mode_read_with_delta(
+              &decoder, &cdfs, &sequence, AV2H_INTRA_DC, 0,
+              AV2H_BLOCK_32X32, 0U, &mode) == AV2H_OK);
+    CHECK(cdfs.cfl_mhccp_switch[2] == 1U);
+
+    span = (Av2hSpan){ derived, sizeof(derived) };
+    CHECK(av2h_leaf_cdfs_init(&cdfs) == AV2H_OK);
+    CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
+    CHECK(av2h_chroma_mode_read_with_delta(
+              &decoder, &cdfs, &sequence, AV2H_INTRA_DC, 0,
+              AV2H_BLOCK_16X64, 0U, &mode) == AV2H_OK);
+    CHECK(cdfs.cfl_mhccp_switch[2] == 0U);
 }
 
 static void test_chroma_cfl_cdf_defaults(void) {

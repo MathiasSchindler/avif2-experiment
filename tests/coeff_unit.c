@@ -332,8 +332,23 @@ static void test_context_state(void) {
     CHECK(skip_context == 7U);
     CHECK(dc_sign_context == 1U);
 
+    leaf.row = 0U;
+    leaf.column = 0U;
+    leaf.block_size = AV2H_BLOCK_64X64;
+    left[2U * state.left_count] = 0U;
+    CHECK(av2h_coeff_contexts_from_state_for_coding_block(
+              &state, 2U, &leaf, AV2H_BLOCK_64X128, 0U,
+              &skip_context, &dc_sign_context) == AV2H_OK);
+    CHECK(skip_context == 4U);
+    CHECK(av2h_coeff_contexts_from_state_for_coding_block(
+              &state, 2U, &leaf, AV2H_BLOCK_64X64, 0U,
+              &skip_context, &dc_sign_context) == AV2H_OK);
+    CHECK(skip_context == 1U);
+    left[2U * state.left_count] = 11U;
+
     leaf.row = 1U;
     leaf.column = 0U;
+    leaf.block_size = AV2H_BLOCK_4X4;
     CHECK(av2h_coeff_context_state_update(
               &state, 1U, &leaf, 5U) == AV2H_OK);
     leaf.column = 1U;

@@ -530,7 +530,7 @@ static void test_chroma_derived_transform_types(void) {
         mode.mode = (Av2hFirstLeafIntraMode)mode_index;
         CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
         CHECK(av2h_chroma_transform_type_read(
-                  &decoder, &cdfs, &frame, &mode, 1U, &prefix,
+                  &decoder, &cdfs, &frame, &mode, 1U, 1U, &prefix,
                   &transform) == AV2H_OK);
         CHECK(transform.primary_type == mode_types[mode_index]);
         CHECK(transform.primary_signaled == 0U);
@@ -545,7 +545,7 @@ static void test_chroma_derived_transform_types(void) {
         Av2hFirstTransformType transform;
         CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
         CHECK(av2h_chroma_transform_type_read(
-                  &decoder, &cdfs, &frame, &mode, 1U, &prefix,
+                  &decoder, &cdfs, &frame, &mode, 1U, 1U, &prefix,
                   &transform) == AV2H_OK);
         CHECK(transform.primary_type == AV2H_TX_DCT_DCT);
     }
@@ -562,7 +562,7 @@ static void test_chroma_derived_transform_types(void) {
             prefix.tx_size = sizes[size_index];
             CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
             CHECK(av2h_chroma_transform_type_read(
-                      &decoder, &cdfs, &frame, &mode, 1U, &prefix,
+                      &decoder, &cdfs, &frame, &mode, 1U, 1U, &prefix,
                       &transform) == AV2H_OK);
             CHECK(transform.primary_type == AV2H_TX_DCT_DCT);
         }
@@ -575,7 +575,7 @@ static void test_chroma_derived_transform_types(void) {
         Av2hFirstTransformType transform;
         CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
         CHECK(av2h_chroma_transform_type_read(
-                  &decoder, &cdfs, &frame, &mode, 1U, &prefix,
+                  &decoder, &cdfs, &frame, &mode, 1U, 1U, &prefix,
                   &transform) == AV2H_OK);
         CHECK(transform.primary_type == AV2H_TX_ADST_DCT);
     }
@@ -586,7 +586,7 @@ static void test_chroma_derived_transform_types(void) {
         Av2hFirstTransformType transform;
         CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
         CHECK(av2h_chroma_transform_type_read(
-                  &decoder, &cdfs, &frame, &mode, 1U, &prefix,
+                  &decoder, &cdfs, &frame, &mode, 1U, 1U, &prefix,
                   &transform) == AV2H_OK);
         CHECK(transform.primary_type == AV2H_TX_DCT_ADST);
     }
@@ -598,7 +598,7 @@ static void test_chroma_derived_transform_types(void) {
         Av2hFirstTransformType transform;
         CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
         CHECK(av2h_chroma_transform_type_read(
-                  &decoder, &cdfs, &frame, &mode, 1U, &prefix,
+                  &decoder, &cdfs, &frame, &mode, 1U, 1U, &prefix,
                   &transform) == AV2H_OK);
         CHECK(transform.primary_type == AV2H_TX_DCT_DCT);
     }
@@ -611,7 +611,7 @@ static void test_chroma_derived_transform_types(void) {
         Av2hFirstTransformType transform;
         CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
         CHECK(av2h_chroma_transform_type_read(
-                  &decoder, &cdfs, &frame, &mode, 1U, &prefix,
+                  &decoder, &cdfs, &frame, &mode, 1U, 1U, &prefix,
                   &transform) == AV2H_OK);
         CHECK(transform.after_primary_bits == transform.before_primary_bits);
     }
@@ -625,13 +625,19 @@ static void test_chroma_derived_transform_types(void) {
         CHECK(av2h_first_transform_cdfs_init(&cdfs) == AV2H_OK);
         CHECK(av2h_range_init(&u_decoder, &span, 1U) == AV2H_OK);
         CHECK(av2h_chroma_transform_type_read(
-                  &u_decoder, &cdfs, &frame, &mode, 1U, &prefix,
+                  &u_decoder, &cdfs, &frame, &mode, 1U, 1U, &prefix,
                   &transform) == AV2H_OK);
         CHECK(transform.after_primary_bits > transform.before_primary_bits);
         CHECK(cdfs.chroma_cross_type[7U] == 1U);
         CHECK(av2h_range_init(&v_decoder, &span, 1U) == AV2H_OK);
         CHECK(av2h_chroma_transform_type_read(
-                  &v_decoder, &cdfs, &frame, &mode, 2U, &prefix,
+                  &v_decoder, &cdfs, &frame, &mode, 2U, 1U, &prefix,
+                  &transform) == AV2H_OK);
+        CHECK(transform.after_primary_bits == transform.before_primary_bits);
+        CHECK(cdfs.chroma_cross_type[7U] == 1U);
+        CHECK(av2h_range_init(&u_decoder, &span, 1U) == AV2H_OK);
+        CHECK(av2h_chroma_transform_type_read(
+                  &u_decoder, &cdfs, &frame, &mode, 1U, 0U, &prefix,
                   &transform) == AV2H_OK);
         CHECK(transform.after_primary_bits == transform.before_primary_bits);
         CHECK(cdfs.chroma_cross_type[7U] == 1U);

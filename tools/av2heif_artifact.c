@@ -30,8 +30,9 @@ static void usage(const char *program) {
             "usage:\n"
             "  %s pack CONFIG PAYLOAD OUTPUT CP TC MC limited|full\n"
             "  %s inspect INPUT OUTPUT_JSON\n"
-            "  %s extract INPUT CONFIG PAYLOAD RECONSTRUCTED\n",
-            program, program, program);
+            "  %s extract INPUT CONFIG PAYLOAD RECONSTRUCTED\n"
+            "  %s decode INPUT OUTPUT_PLANAR\n",
+            program, program, program, program);
 }
 
 static int read_file(const char *path, OwnedBytes *owned) {
@@ -449,6 +450,60 @@ done:
     return result;
 }
 
+static int command_decode(int argc, char **argv) {
+    OwnedBytes input;
+    unsigned char *workspace_allocation = NULL;
+    unsigned char *output = NULL;
+    void *workspace;
+    uintptr_t workspace_address;
+    Av2hInfo info;
+    Av2hError error;
+    Av2hStatus status;
+    size_t workspace_allocation_size;
+    int result = 1;
+    if (argc != 4) return -1;
+    if (!read_file(argv[2], &input)) return 1;
+    status = av2h_query((Av2hSpan){ input.data, input.size }, 0, &info, &error);
+    if (status != AV2H_OK) {
+        report_status("decode query", status, &error);
+        goto done;
+    }
+    if (info.workspace_alignment == 0U ||
+        (info.workspace_alignment & (info.workspace_alignment - 1U)) != 0U ||
+        info.workspace_size > (size_t)-1 - info.workspace_alignment + 1U) {
+        fprintf(stderr, "error: invalid workspace layout\n");
+        goto done;
+    }
+    workspace_allocation_size =
+        info.workspace_size + info.workspace_alignment - 1U;
+    workspace_allocation = (unsigned char *)malloc(
+        workspace_allocation_size == 0U ? 1U : workspace_allocation_size);
+    output = (unsigned char *)malloc(
+        info.output_size == 0U ? 1U : info.output_size);
+    if (workspace_allocation == NULL || output == NULL) {
+        fprintf(stderr, "error: cannot allocate decode buffers\n");
+        goto done;
+    }
+    workspace_address = (uintptr_t)workspace_allocation;
+    workspace_address = (workspace_address + info.workspace_alignment - 1U) &
+                        ~(uintptr_t)(info.workspace_alignment - 1U);
+    workspace = (void *)workspace_address;
+    status = av2h_decode(
+        (Av2hSpan){ input.data, input.size }, &info,
+        workspace, info.workspace_size, output, info.output_size, &error);
+    if (status != AV2H_OK) {
+        report_status("decode", status, &error);
+        goto done;
+    }
+    if (!write_file(argv[3], output, info.output_size)) goto done;
+    result = 0;
+done:
+    free(output);
+    free(workspace_allocation);
+    free(input.data);
+    return result;
+}
+
 static int command_inspect(int argc, char **argv) {
     OwnedBytes input;
     Av2hInfo info;
@@ -594,6 +649,8 @@ int main(int argc, char **argv) {
         result = command_inspect(argc, argv);
     } else if (strcmp(argv[1], "extract") == 0) {
         result = command_extract(argc, argv);
+    } else if (strcmp(argv[1], "decode") == 0) {
+        result = command_decode(argc, argv);
     } else {
         usage(argv[0]);
         return 2;

@@ -45,21 +45,8 @@ void av2h_partition_diagnostic_leaf_stage(
     Av2hPartitionNode node, uint8_t stage, uint8_t mode, uint16_t eob,
     size_t tell) {
     Av2hPartitionLeafDiagnostic *diagnostic;
-    if (!((node.row == 12U && node.column == 14U &&
-           node.block_size == AV2H_BLOCK_8X16) ||
-           (node.row == 0U && node.column == 128U &&
-           node.block_size == AV2H_BLOCK_128X64) ||
-          (node.row == 0U && node.column == 128U &&
-           node.block_size == AV2H_BLOCK_64X64) ||
-          (node.row == 0U && node.column == 144U &&
-           node.block_size == AV2H_BLOCK_64X64) ||
-          (node.row == 0U && node.column == 496U &&
-           node.block_size == AV2H_BLOCK_64X64) ||
-          (node.row == 184U && node.column == 278U &&
-           node.block_size == AV2H_BLOCK_8X32) ||
-          (node.row == 184U && node.column == 280U &&
-           node.block_size == AV2H_BLOCK_32X32)) ||
-        diagnostic_leaf_trace_count >= 512U) {
+    (void)node;
+    if (diagnostic_leaf_trace_count >= 512U) {
         return;
     }
     diagnostic = &diagnostic_leaf_trace[diagnostic_leaf_trace_count++];

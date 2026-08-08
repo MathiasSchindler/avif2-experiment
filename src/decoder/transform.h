@@ -110,6 +110,7 @@ Av2hStatus av2h_chroma_transform_type_read(
     const Av2hFrameState *frame,
     const Av2hFirstChromaMode *mode,
     uint8_t plane,
+    uint8_t cctx_allowed,
     const Av2hFirstCoeffPrefix *coeff,
     Av2hFirstTransformType *transform);
 

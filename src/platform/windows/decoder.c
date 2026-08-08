@@ -180,7 +180,6 @@ static void write_decode_diagnostic(const Av2hFrameDecodeResult *result) {
     size_t partition_trace_index;
     size_t leaf_trace_count;
     size_t leaf_trace_index;
-    if (result->stage == AV2H_FRAME_DECODE_STAGE_NONE) return;
     write_console("  cause: ");
     write_console(av2h_status_string(result->cause));
     write_console("\r\n  stage: ");
@@ -728,6 +727,9 @@ static unsigned int run_decoder(void) {
         release_memory(&command_line);
         return status == AV2H_UNSUPPORTED ? 3U : 1U;
     }
+#if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
+    write_decode_diagnostic(&decode_result);
+#endif
     if (!wide_ends_with_ascii(arguments[3], ".bmp") &&
         ((chroma_format_idc == 1U &&
           !wide_ends_with_ascii(arguments[3], ".i400")) ||

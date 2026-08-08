@@ -1,7 +1,6 @@
 # Milestone 12: 8-bit 4:4:4
 
-Milestone 12's bounded fixture slice is complete. Production-scale artifact
-coverage remains in progress. The public decoder accepts the AV2 8-bit 4:4:4
+Milestone 12 is complete. The public decoder accepts the AV2 8-bit 4:4:4
 still-picture profile in addition to the existing 8-bit monochrome and 4:2:0
 profiles.
 
@@ -53,17 +52,32 @@ prediction, crop, workspace, and filter boundaries.
 restoration, and newly enabled coding tools remain unsupported. Existing
 8-bit monochrome and 4:2:0 output layouts and decoded bytes are unchanged.
 
-## Production-scale progress
+## Production-scale validation
 
 Large 4:4:4 chroma coding leaves now emit capped 64x64 transform nodes in AVM
 raster order. Each node owns its U/V coefficient contexts, CCTX,
 reconstruction, and deblock metadata. Shared-chroma handoff retains up to four
 pending transform pairs instead of overwriting one slot.
 
-`tools/validate_8bit_444_corpus.py` is registered in the Python-enabled
-Windows CTest gate and checks all 12 original maximum-800-pixel artifacts
-against the pinned AVM SHA-256 values. The gate currently fails closed on
-chalk at MI `(40,192)`, 8x32 U chroma mode parsing, entropy tell 12890. This is
-the next frame-scale entropy/context parity blocker; Milestone 12 must remain
-in progress until the full public, Windows, and WebAssembly corpus gate is
-byte-exact.
+The original 12-artifact maximum-800-pixel corpus, including Palace 800x800,
+matches pinned AVM byte-for-byte on Y, U, and V through all three supported
+entry points:
+
+- `tools/validate_8bit_444_corpus.py` covers the freestanding Windows decoder;
+- `tools/validate_8bit_444_public.py` packs canonical HEIF and covers
+  `av2h_query` plus `av2h_decode`; and
+- `tools/validate_8bit_444_wasm.py` executes the browser WebAssembly ABI.
+
+The Windows CTest gate also runs the maximum-size monochrome corpus and the
+Milestone 9 I420 parity matrix. The focused coefficient and reconstruction
+units pin cropped-edge V contexts and AVM's 64-sample chroma directional
+reference limits.
+
+Build and validate the browser module with:
+
+```powershell
+Set-ExecutionPolicy -Scope Process Bypass
+.\experimental\wasm\build.ps1 -OutputDirectory .\build\wasm-validation
+python -m pip install wasmtime
+python .\tools\validate_8bit_444_wasm.py --wasm .\build\wasm-validation\decoder.wasm
+```

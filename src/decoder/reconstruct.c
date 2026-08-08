@@ -1487,12 +1487,14 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_format(
         int angle = wide_angle_map(
             directional_base_angle(mode->mode) + mode->angle_delta * 3,
             width, height);
+        if (width > 32U && above_count > width) above_count = width;
         if (left_count != 0U &&
             (mode->mode == AV2H_INTRA_SMOOTH ||
              mode->mode == AV2H_INTRA_SMOOTH_VERTICAL)) {
             ++left_count;
         }
-        if (left_count != 0U && angle > 180 && angle < 270) {
+        if (left_count != 0U && height <= 32U &&
+            angle > 180 && angle < 270) {
             left_count += height;
         }
         if (above_count > sizeof(scratch->above)) {
@@ -1523,7 +1525,7 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_format(
             if (sy >= plane->height) {
                 sy = plane->height - 1U;
             }
-                if (!av2h_plane_sample_reconstructed(
+            if (!av2h_plane_sample_reconstructed(
                     plane, (size_t)block_x - 1U, sy)) {
                 left_count = index;
                 break;

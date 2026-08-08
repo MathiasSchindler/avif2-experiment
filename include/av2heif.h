@@ -260,7 +260,7 @@ Av2hStatus av2h_validate(Av2hSpan input,
                          const Av2hLimits *limits,
                          Av2hError *error);
 
-/* Decode canonical AV2-HEIF into the contiguous I420 layout from info. */
+/* Decode canonical AV2-HEIF into the contiguous planar layout from info. */
 Av2hStatus av2h_decode(Av2hSpan input,
                        const Av2hInfo *info,
                        void *workspace,

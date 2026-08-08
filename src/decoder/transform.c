@@ -1079,7 +1079,7 @@ Av2hStatus av2h_first_chroma_transform_type_read(
     Av2hFirstChromaMode mode = { 0 };
     mode.mode = AV2H_INTRA_DC;
     return av2h_chroma_transform_type_read(
-        decoder, cdfs, frame, &mode, plane, coeff, transform);
+        decoder, cdfs, frame, &mode, plane, 1U, coeff, transform);
 }
 
 static Av2hFirstLeafIntraMode chroma_transform_mode(
@@ -1095,6 +1095,7 @@ Av2hStatus av2h_chroma_transform_type_read(
     const Av2hFrameState *frame,
     const Av2hFirstChromaMode *mode,
     uint8_t plane,
+    uint8_t cctx_allowed,
     const Av2hFirstCoeffPrefix *coeff,
     Av2hFirstTransformType *transform) {
     const Av2hTxDescriptor *descriptor;
@@ -1132,7 +1133,7 @@ Av2hStatus av2h_chroma_transform_type_read(
             if (coeff->eob == 0U || coeff->eob > descriptor->eob_capacity) {
                 return AV2H_UNSUPPORTED;
             }
-            if (plane == 1U && coeff->eob != 1U) {
+            if (plane == 1U && cctx_allowed && coeff->eob != 1U) {
                 symbol = av2h_range_read_adaptive(
                     decoder, cdfs->chroma_cross_type, 7U);
                 if (av2h_range_status(decoder) != AV2H_OK) {

@@ -287,6 +287,11 @@ Av2hStatus av2h_tile_decoder_next_chroma(
             leaf->node.block_size, cfl_context,
             tile_cfl_allowed_for_sdp(decoder), &leaf->mode);
         if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
+#if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
+        av2h_partition_diagnostic_leaf_stage(
+            leaf->node, 71U, leaf->mode.mode_index, leaf->mode.cfl_kind,
+            av2h_range_tell(&decoder->range));
+#endif
     }
 #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
     av2h_partition_diagnostic_leaf_stage(
@@ -337,12 +342,26 @@ Av2hStatus av2h_tile_decoder_next_chroma(
     blocks[0] = u_block;
     blocks[1] = v_block;
     for (index = 0U; index < 2U; ++index) {
+        Av2hBlockSize coding_block_size = decoder->chroma_tx_count != 0U ?
+            decoder->chroma_coding_node.block_size : leaf->node.block_size;
         uint8_t plane = (uint8_t)(index + 1U);
+        size_t block_width_mi;
+        size_t block_height_mi;
+        uint8_t cctx_allowed;
+        status = av2h_block_dimensions_mi(
+            coding_block_size, &block_width_mi, &block_height_mi);
+        if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
+        cctx_allowed = (uint8_t)(
+                        decoder->sequence->enable_cctx && decoder->current_q_index != 0U &&
+                        !(decoder->frame->chroma_format_idc == 2U &&
+                            block_width_mi >= 8U && block_height_mi >= 8U));
         av2h_tile_diagnostics_set_chroma_stage(
             (uint8_t)(1U + index * 3U));
         status = av2h_chroma_coeff_prefix_read_with_state(
             &decoder->range, &decoder->coeff_cdfs, decoder->frame,
-            &leaf->node, plane, &decoder->coefficient_contexts,
+            &leaf->node, coding_block_size,
+            plane, index != 0U ? leaf->prefix[0].eob : 0U,
+            &decoder->coefficient_contexts,
             &leaf->prefix[index]);
         if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
         leaf->prefix[index].q_index =
@@ -357,7 +376,7 @@ Av2hStatus av2h_tile_decoder_next_chroma(
             (uint8_t)(2U + index * 3U));
         status = av2h_chroma_transform_type_read(
             &decoder->range, &decoder->transform_cdfs, decoder->frame,
-            &leaf->mode, plane, &leaf->prefix[index],
+            &leaf->mode, plane, cctx_allowed, &leaf->prefix[index],
             &leaf->transform[index]);
         if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
     #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)

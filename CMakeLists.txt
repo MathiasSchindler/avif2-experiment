@@ -180,6 +180,13 @@ if(AV2HEIF_BUILD_HOST_TESTS)
     av2heif_configure_host_target(av2heif-artifact)
     target_include_directories(av2heif-artifact PRIVATE src)
     target_link_libraries(av2heif-artifact PRIVATE av2heif-host-core)
+    if(AV2HEIF_ENABLE_PYTHON_TESTS)
+        find_package(Python3 COMPONENTS Interpreter REQUIRED)
+        add_test(NAME public-decoder-8bit-444-parity
+            COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/validate_8bit_444_public.py"
+                --artifact-tool "$<TARGET_FILE:av2heif-artifact>")
+    endif()
 endif()
 
 if(WIN32 AND AV2HEIF_BUILD_WINDOWS_TOOLS AND
@@ -485,6 +492,10 @@ if(WIN32 AND AV2HEIF_BUILD_WINDOWS_TOOLS AND
         add_test(NAME windows-decoder-8bit-444-parity
             COMMAND "${Python3_EXECUTABLE}"
                 "${CMAKE_CURRENT_SOURCE_DIR}/tools/validate_8bit_444_corpus.py"
+                --decoder "$<TARGET_FILE:av2heif-decoder>")
+        add_test(NAME windows-decoder-8bit-mono-parity
+            COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/validate_8bit_mono_corpus.py"
                 --decoder "$<TARGET_FILE:av2heif-decoder>")
     endif()
     add_test(NAME windows-decoder-laarim-q096

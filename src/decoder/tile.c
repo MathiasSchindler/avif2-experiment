@@ -467,6 +467,19 @@ Av2hStatus av2h_tile_decoder_commit_leaf(
             }
             ++decoder->luma_tx_index;
             if (decoder->luma_tx_index < decoder->luma_tx_count) {
+                if (decoder->frame->chroma_format_idc == 2U &&
+                    decoder->shared_chroma_resume_luma &&
+                    decoder->chroma_tx_count != 0U &&
+                    decoder->luma_coding_node.row ==
+                        decoder->chroma_coding_node.row &&
+                    decoder->luma_coding_node.column ==
+                        decoder->chroma_coding_node.column &&
+                    decoder->luma_coding_node.block_size ==
+                        decoder->chroma_coding_node.block_size) {
+                    decoder->phase = AV2H_TILE_DECODE_CHROMA;
+                    decoder->event = AV2H_TILE_EVENT_ROOT_HANDOFF;
+                    return AV2H_OK;
+                }
                 if (decoder->sequence->enable_sdp &&
                     decoder->luma_tx_index == 1U &&
                     ((decoder->luma_coding_node.block_size ==
@@ -498,6 +511,20 @@ Av2hStatus av2h_tile_decoder_commit_leaf(
             leaf = decoder->luma_coding_node;
             decoder->luma_tx_index = 0U;
             decoder->luma_tx_count = 0U;
+            if (decoder->frame->chroma_format_idc == 2U &&
+                decoder->shared_chroma_resume_luma &&
+                decoder->chroma_tx_count != 0U &&
+                decoder->luma_coding_node.row ==
+                    decoder->chroma_coding_node.row &&
+                decoder->luma_coding_node.column ==
+                    decoder->chroma_coding_node.column &&
+                decoder->luma_coding_node.block_size ==
+                    decoder->chroma_coding_node.block_size) {
+                decoder->shared_chroma_commit_luma = 1U;
+                decoder->phase = AV2H_TILE_DECODE_CHROMA;
+                decoder->event = AV2H_TILE_EVENT_ROOT_HANDOFF;
+                return AV2H_OK;
+            }
             if (decoder->sequence->enable_sdp &&
                 decoder->shared_chroma_mode_pending &&
                 !decoder->shared_chroma_complete &&
@@ -535,6 +562,19 @@ Av2hStatus av2h_tile_decoder_commit_leaf(
             }
             ++decoder->chroma_tx_index;
             if (decoder->chroma_tx_index < decoder->chroma_tx_count) {
+                if (decoder->frame->chroma_format_idc == 2U &&
+                    decoder->shared_chroma_resume_luma &&
+                    decoder->luma_tx_count != 0U &&
+                    decoder->luma_tx_index < decoder->luma_tx_count &&
+                    decoder->luma_coding_node.row ==
+                        decoder->chroma_coding_node.row &&
+                    decoder->luma_coding_node.column ==
+                        decoder->chroma_coding_node.column &&
+                    decoder->luma_coding_node.block_size ==
+                        decoder->chroma_coding_node.block_size) {
+                    decoder->phase = AV2H_TILE_DECODE_LUMA;
+                    decoder->event = AV2H_TILE_EVENT_ROOT_HANDOFF;
+                }
                 return AV2H_OK;
             }
             leaf = decoder->chroma_coding_node;

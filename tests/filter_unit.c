@@ -716,6 +716,95 @@ static void test_deblock_skip_and_lossless(void) {
     CHECK(y[7U] == 101U && y[8U] == 104U);
 }
 
+static void filter_chroma_horizontal_edge(uint8_t chroma_format_idc,
+                                          uint8_t output[4U * 64U]) {
+    uint8_t y[8U * 128U];
+    uint8_t u[8U * 64U];
+    uint8_t v[8U * 64U];
+    Av2hDeblockCell y_cells[2U * 32U];
+    Av2hDeblockCell u_cells[4U * 32U];
+    Av2hDeblockCell v_cells[4U * 32U];
+    Av2hFilterPlanes planes;
+    Av2hDeblockMap map;
+    Av2hSequenceState sequence;
+    Av2hFrameState frame;
+    size_t y_columns = 2U;
+    size_t y_rows = chroma_format_idc == 2U ? 16U : 32U;
+    size_t chroma_columns = chroma_format_idc == 2U ? 4U : 2U;
+    size_t chroma_width = chroma_format_idc == 2U ? 8U : 4U;
+    size_t row;
+    size_t column;
+    av2h_memory_fill(&sequence, 0U, sizeof(sequence));
+    av2h_memory_fill(&frame, 0U, sizeof(frame));
+    av2h_memory_fill(&map, 0U, sizeof(map));
+    av2h_memory_fill(y, 100U, sizeof(y));
+    for (row = 0U; row < 64U; ++row) {
+        for (column = 0U; column < chroma_width; ++column) {
+            u[row * chroma_width + column] = row < 32U ? 100U : 104U;
+            v[row * chroma_width + column] = 80U;
+        }
+    }
+    planes.plane[0] = (Av2hFilterPlane){
+        y, 8U, 8U,
+        (uint16_t)(chroma_format_idc == 2U ? 64U : 128U)
+    };
+    planes.plane[1] = (Av2hFilterPlane){
+        u, (uint16_t)chroma_width, (uint16_t)chroma_width, 64U
+    };
+    planes.plane[2] = (Av2hFilterPlane){
+        v, (uint16_t)chroma_width, (uint16_t)chroma_width, 64U
+    };
+    for (row = 0U; row < y_rows; ++row) {
+        for (column = 0U; column < y_columns; ++column) {
+            y_cells[row * y_columns + column] = (Av2hDeblockCell){
+                (uint16_t)column, (uint16_t)row,
+                0U, 0U, 4U, 16U, 128U, 0U, 0U
+            };
+        }
+    }
+    for (row = 0U; row < 32U; ++row) {
+        for (column = 0U; column < chroma_columns; ++column) {
+            u_cells[row * chroma_columns + column] = (Av2hDeblockCell){
+                (uint16_t)column, (uint16_t)row,
+                0U, (uint16_t)(row < 16U ? 0U : 16U),
+                4U, 16U, 128U, 0U, 0U
+            };
+            v_cells[row * chroma_columns + column] =
+                u_cells[row * chroma_columns + column];
+        }
+    }
+    map.plane[0] = y_cells;
+    map.plane[1] = u_cells;
+    map.plane[2] = v_cells;
+    map.stride[0] = y_columns;
+    map.stride[1] = chroma_columns;
+    map.stride[2] = chroma_columns;
+    map.columns[0] = y_columns;
+    map.columns[1] = chroma_columns;
+    map.columns[2] = chroma_columns;
+    map.rows[0] = y_rows;
+    map.rows[1] = 32U;
+    map.rows[2] = 32U;
+    frame.width = planes.plane[0].width;
+    frame.height = planes.plane[0].height;
+    frame.chroma_format_idc = chroma_format_idc;
+    frame.deblock_enabled[2] = 1U;
+    CHECK(av2h_deblock_filter_frame(
+              &planes, &sequence, &frame, &map) == AV2H_OK);
+    for (row = 0U; row < 64U; ++row) {
+        av2h_memory_copy(output + row * 4U,
+                         u + row * chroma_width, 4U);
+    }
+}
+
+static void test_i444_deblock_superblock_cadence(void) {
+    uint8_t i420[4U * 64U];
+    uint8_t i444[4U * 64U];
+    filter_chroma_horizontal_edge(1U, i420);
+    filter_chroma_horizontal_edge(2U, i444);
+    CHECK(av2h_memory_compare(i420, i444, sizeof(i420)) != 0);
+}
+
 static void test_cdef(void) {
     uint8_t source_data[16U * 16U];
     uint8_t destination_data[16U * 16U];
@@ -1395,6 +1484,7 @@ int main(void) {
     test_deblock_asymmetric_lengths();
     test_deblock_frame();
     test_deblock_skip_and_lossless();
+    test_i444_deblock_superblock_cadence();
     test_cdef();
     test_cdef_rounding_and_parameters();
     test_cdef_frame();

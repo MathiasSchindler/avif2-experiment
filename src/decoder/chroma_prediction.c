@@ -752,9 +752,11 @@ Av2hStatus av2h_cfl_derived_predict(
     effective_luma_height = (uint16_t)(
         (luma_plane->reference_height + 7U) & ~(size_t)7U);
     effective_chroma_width = (uint16_t)(
-        (chroma_plane->reference_width + 3U) & ~(size_t)3U);
+        (chroma_plane->reference_width + (full_resolution ? 7U : 3U)) &
+        ~(size_t)(full_resolution ? 7U : 3U));
     effective_chroma_height = (uint16_t)(
-        (chroma_plane->reference_height + 3U) & ~(size_t)3U);
+        (chroma_plane->reference_height + (full_resolution ? 7U : 3U)) &
+        ~(size_t)(full_resolution ? 7U : 3U));
     if (effective_luma_width > luma_plane->width) {
         effective_luma_width = luma_plane->width;
     }
@@ -1494,9 +1496,13 @@ static Av2hStatus mhccp_predict_direction01(
     }
     top_count = have_top ? (uint16_t)(width * 2U) : 0U;
     if (!have_left && top_count >= 2U) top_count = (uint16_t)(top_count - 2U);
-    if (top_count > 62U) top_count = 62U;
+    if (top_count > (full_resolution ? 126U : 62U)) {
+        top_count = full_resolution ? 126U : 62U;
+    }
     left_count = have_left ? (uint16_t)(height * 2U - 1U) : 0U;
-    if (have_top && left_count > 61U) left_count = 61U;
+    if (have_top && left_count > (full_resolution ? 63U : 61U)) {
+        left_count = full_resolution ? 63U : 61U;
+    }
     if (left_count >= chroma_plane->height - block_y) {
         left_count = (uint16_t)(chroma_plane->height - block_y - 1U);
     }
@@ -1521,7 +1527,8 @@ static Av2hStatus mhccp_predict_direction01(
     if (have_top) {
         uint16_t available_top = 0U;
         uint16_t effective_chroma_width = (uint16_t)(
-            (chroma_plane->reference_width + 3U) & ~(size_t)3U);
+            (chroma_plane->reference_width + (full_resolution ? 7U : 3U)) &
+            ~(size_t)(full_resolution ? 7U : 3U));
         uint16_t effective_luma_width = (uint16_t)(
             (luma_plane->reference_width + 7U) & ~(size_t)7U);
         if (effective_chroma_width > chroma_plane->width) {

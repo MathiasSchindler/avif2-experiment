@@ -441,6 +441,12 @@ Av2hStatus av2h_tile_decoder_next_luma(
         status = av2h_tile_decoder_read_shared_chroma_mode(
             decoder, &leaf->node);
         if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
+#if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
+        av2h_partition_diagnostic_leaf_stage(
+            leaf->node, 70U, decoder->shared_chroma_mode.mode_index,
+            decoder->shared_chroma_mode.cfl_kind,
+            av2h_range_tell(&decoder->range));
+#endif
     }
     status = av2h_luma_tx_node_count(leaf->node.block_size, &tx_count);
     if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
@@ -517,6 +523,11 @@ read_transform:
     av2h_partition_diagnostic_leaf_stage(
         leaf->node, 3U, (uint8_t)leaf->mode.mode, leaf->prefix.eob,
         av2h_range_tell(&decoder->range));
+    if (leaf->node.row == 0U && leaf->node.column == 0U) {
+        av2h_partition_diagnostic_leaf_stage(
+            leaf->node, 89U, leaf->transform.primary_type,
+            leaf->transform.secondary_symbol, leaf->prefix.tx_size);
+    }
 #endif
     av2h_tile_diagnostics_set_luma_range(3U, decoder->range.range);
     av2h_tile_diagnostics_set_luma_stage(4U);
@@ -526,6 +537,17 @@ read_transform:
         &leaf->transform, &decoder->coefficient_contexts, block);
     if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
 #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
+    if (leaf->node.row == 0U && leaf->node.column == 0U) {
+        size_t coefficient_index;
+        for (coefficient_index = 0U; coefficient_index < 8U;
+             ++coefficient_index) {
+            av2h_partition_diagnostic_leaf_stage(
+                leaf->node, (uint8_t)(80U + coefficient_index),
+                (uint8_t)block->quantized[coefficient_index],
+                (uint16_t)block->dequantized[coefficient_index],
+                coefficient_index);
+        }
+    }
     if (leaf->node.row == 184U && leaf->node.column == 280U &&
         leaf->node.block_size == AV2H_BLOCK_32X32) {
         uint16_t scan_index = leaf->prefix.eob;
@@ -570,5 +592,15 @@ Av2hStatus av2h_tile_decoder_reconstruct_next_luma(
         &leaf->node, &leaf->mode, &leaf->prefix, &leaf->transform,
         &block, plane, scratch);
     if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
+#if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
+    if (leaf->node.row == 0U && leaf->node.column == 0U) {
+        size_t residual_index;
+        for (residual_index = 0U; residual_index < 8U; ++residual_index) {
+            av2h_partition_diagnostic_leaf_stage(
+                leaf->node, (uint8_t)(90U + residual_index), 0U,
+                (uint16_t)scratch->residual[residual_index], residual_index);
+        }
+    }
+#endif
     return av2h_tile_decoder_commit_leaf(decoder, leaf->node);
 }

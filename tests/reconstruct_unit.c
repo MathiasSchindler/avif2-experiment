@@ -4912,6 +4912,52 @@ static void test_cfl_coded_bottom_edge(void) {
     }
 }
 
+static void test_i444_cfl_coded_right_edge(void) {
+    static uint8_t luma_data[672U * 16U];
+    static uint8_t luma_rec[168U * 4U];
+    static uint8_t chroma_data[672U * 16U];
+    static uint8_t chroma_rec[168U * 4U];
+    static uint8_t predictor[16U * 8U];
+    static uint8_t expected[16U * 8U];
+    Av2hReconstructionPlane luma = {
+        luma_data, 672U, 672U, 16U, 668U, 16U, luma_rec, 168U,
+        sizeof(luma_rec)
+    };
+    Av2hReconstructionPlane chroma = {
+        chroma_data, 672U, 672U, 16U, 668U, 16U, chroma_rec, 168U,
+        sizeof(chroma_rec)
+    };
+    size_t row;
+    size_t column;
+    uint8_t changed = 0U;
+    for (row = 0U; row < 16U; ++row) {
+        for (column = 0U; column < 672U; ++column) {
+            luma_data[row * 672U + column] =
+                (uint8_t)(32U + (row * 11U + column * 7U) % 192U);
+            chroma_data[row * 672U + column] =
+                (uint8_t)(24U + (row * 5U + column * 13U) % 208U);
+        }
+    }
+    av2h_memory_fill(luma_rec, 1U, sizeof(luma_rec));
+    av2h_memory_fill(chroma_rec, 1U, sizeof(chroma_rec));
+    av2h_memory_fill(predictor, 128U, sizeof(predictor));
+    CHECK(av2h_cfl_derived_predict(
+              &luma, &chroma, 0U, 1U, 0, 128U, 2U,
+              656U, 8U, 16U, 8U, 1U, 1U,
+              predictor, 16U) == AV2H_OK);
+    av2h_memory_copy(expected, predictor, sizeof(expected));
+    chroma_data[7U * 672U + 670U] ^= 0xffU;
+    av2h_memory_fill(predictor, 128U, sizeof(predictor));
+    CHECK(av2h_cfl_derived_predict(
+              &luma, &chroma, 0U, 1U, 0, 128U, 2U,
+              656U, 8U, 16U, 8U, 1U, 1U,
+              predictor, 16U) == AV2H_OK);
+    for (row = 0U; row < sizeof(expected); ++row) {
+        changed |= (uint8_t)(expected[row] != predictor[row]);
+    }
+    CHECK(changed != 0U);
+}
+
 static void test_cfl_explicit_geometry_filter_matrix(void) {
     static const struct {
         Av2hFirstTxSize tx;
@@ -5241,6 +5287,290 @@ static void test_mhccp_geometry_direction_matrix(void) {
             }
         }
     }
+}
+
+static void test_i444_mhccp_long_left_reference(void) {
+    static uint8_t luma_data[80U * 80U];
+    static uint8_t luma_rec[20U * 20U];
+    static uint8_t chroma_data[80U * 80U];
+    static uint8_t chroma_rec[20U * 20U];
+    static uint8_t pred_data[80U * 80U];
+    static uint8_t pred_rec[20U * 20U];
+    static uint8_t expected[8U * 32U];
+    static Av2hReconstructionScratch scratch;
+    Av2hReconstructionPlane luma = {
+        luma_data, 80U, 80U, 80U, 80U, 80U, luma_rec, 20U,
+        sizeof(luma_rec)
+    };
+    Av2hReconstructionPlane chroma = {
+        chroma_data, 80U, 80U, 80U, 80U, 80U, chroma_rec, 20U,
+        sizeof(chroma_rec)
+    };
+    Av2hReconstructionPlane predictor = {
+        pred_data, 80U, 80U, 80U, 80U, 80U, pred_rec, 20U,
+        sizeof(pred_rec)
+    };
+    Av2hFirstChromaMode mode = { 0 };
+    Av2hFirstCoeffPrefix prefix = { 0 };
+    Av2hFirstTransformType transform = { 0 };
+    Av2hFirstCoeffBlock block = { 0 };
+    Av2hPartitionNode leaf = { 1U, 2U, AV2H_BLOCK_8X32 };
+    size_t row;
+    size_t column;
+    uint8_t changed = 0U;
+    for (row = 0U; row < 80U; ++row) {
+        for (column = 0U; column < 80U; ++column) {
+            luma_data[row * 80U + column] =
+                (uint8_t)(32U + (row * 11U + column * 7U) % 192U);
+            chroma_data[row * 80U + column] =
+                (uint8_t)(24U + (row * 5U + column * 13U) % 208U);
+        }
+    }
+    av2h_memory_fill(luma_rec, 1U, sizeof(luma_rec));
+    av2h_memory_fill(chroma_rec, 1U, sizeof(chroma_rec));
+    mode.is_cfl = 1U;
+    mode.cfl_kind = AV2H_CFL_MULTI_PARAM;
+    mode.mhccp_direction = 0U;
+    mode.chroma_format_idc = 2U;
+    mode.superblock_size = 128U;
+    prefix.tx_size = AV2H_TX_8X32;
+    prefix.all_zero = 1U;
+    transform.primary_type = AV2H_TX_DCT_DCT;
+    block.width = 8U;
+    block.height = 32U;
+    block.coefficient_count = 256U;
+    CHECK(av2h_chroma_reconstruct_to_plane_format(
+              &leaf, &mode, &prefix, &transform, &block, &chroma, &luma, 1U,
+              &predictor, 2U, &scratch) == AV2H_OK);
+    for (row = 0U; row < 32U; ++row) {
+        for (column = 0U; column < 8U; ++column) {
+            expected[row * 8U + column] =
+                pred_data[(row + 4U) * 80U + column + 8U];
+        }
+    }
+    chroma_data[65U * 80U + 7U] = 0U;
+    chroma_data[66U * 80U + 7U] = 255U;
+    av2h_memory_fill(pred_data, 0U, sizeof(pred_data));
+    av2h_memory_fill(pred_rec, 0U, sizeof(pred_rec));
+    CHECK(av2h_chroma_reconstruct_to_plane_format(
+              &leaf, &mode, &prefix, &transform, &block, &chroma, &luma, 1U,
+              &predictor, 2U, &scratch) == AV2H_OK);
+    for (row = 0U; row < 32U; ++row) {
+        for (column = 0U; column < 8U; ++column) {
+            changed |= (uint8_t)(expected[row * 8U + column] !=
+                pred_data[(row + 4U) * 80U + column + 8U]);
+        }
+    }
+    CHECK(changed != 0U);
+}
+
+static void test_i444_64x64_directional_bottom_left_limit(void) {
+    static uint8_t chroma_data[200U * 200U];
+    static uint8_t chroma_rec[50U * 50U];
+    static uint8_t pred_data[200U * 200U];
+    static uint8_t pred_rec[50U * 50U];
+    static uint8_t expected[64U * 64U];
+    static Av2hReconstructionScratch scratch;
+    static Av2hFirstCoeffBlock block;
+    Av2hReconstructionPlane chroma = {
+        chroma_data, 200U, 200U, 200U, 200U, 200U, chroma_rec, 50U,
+        sizeof(chroma_rec)
+    };
+    Av2hReconstructionPlane predictor = {
+        pred_data, 200U, 200U, 200U, 200U, 200U, pred_rec, 50U,
+        sizeof(pred_rec)
+    };
+    Av2hFirstChromaMode mode = { 0 };
+    Av2hFirstCoeffPrefix prefix = { 0 };
+    Av2hFirstTransformType transform = { 0 };
+    Av2hPartitionNode leaf = { 16U, 16U, AV2H_BLOCK_64X64 };
+    size_t row;
+    size_t column;
+    for (row = 0U; row < 200U; ++row) {
+        for (column = 0U; column < 200U; ++column) {
+            chroma_data[row * 200U + column] =
+                (uint8_t)(32U + (row * 5U + column * 3U) % 192U);
+        }
+    }
+    av2h_memory_fill(chroma_rec, 1U, sizeof(chroma_rec));
+    av2h_memory_fill(pred_data, 0U, sizeof(pred_data));
+    av2h_memory_fill(pred_rec, 0U, sizeof(pred_rec));
+    av2h_memory_fill(&block, 0U, sizeof(block));
+    mode.mode = AV2H_INTRA_HORIZONTAL;
+    mode.angle_delta = 1;
+    mode.edge_ibp = 1U;
+    mode.chroma_format_idc = 2U;
+    prefix.tx_size = AV2H_TX_64X64;
+    prefix.all_zero = 1U;
+    transform.primary_type = AV2H_TX_DCT_DCT;
+    block.width = 32U;
+    block.height = 32U;
+    block.coefficient_count = 32U * 32U;
+    CHECK(av2h_chroma_reconstruct_to_plane_format(
+              &leaf, &mode, &prefix, &transform, &block, &chroma, &chroma,
+              2U, &predictor, 2U, &scratch) == AV2H_OK);
+    for (row = 0U; row < 64U; ++row) {
+        for (column = 0U; column < 64U; ++column) {
+            expected[row * 64U + column] =
+                pred_data[(row + 64U) * 200U + column + 64U];
+        }
+    }
+    for (row = 128U; row < 192U; ++row) {
+        chroma_data[row * 200U + 63U] ^= 0xffU;
+    }
+    av2h_memory_fill(pred_data, 0U, sizeof(pred_data));
+    av2h_memory_fill(pred_rec, 0U, sizeof(pred_rec));
+    CHECK(av2h_chroma_reconstruct_to_plane_format(
+              &leaf, &mode, &prefix, &transform, &block, &chroma, &chroma,
+              2U, &predictor, 2U, &scratch) == AV2H_OK);
+    for (row = 0U; row < 64U; ++row) {
+        for (column = 0U; column < 64U; ++column) {
+            CHECK(pred_data[(row + 64U) * 200U + column + 64U] ==
+                  expected[row * 64U + column]);
+        }
+    }
+}
+
+static void test_i444_64x16_directional_top_right_limit(void) {
+    static uint8_t chroma_data[200U * 200U];
+    static uint8_t chroma_rec[50U * 50U];
+    static uint8_t pred_data[200U * 200U];
+    static uint8_t pred_rec[50U * 50U];
+    static uint8_t expected[64U * 16U];
+    static Av2hReconstructionScratch scratch;
+    static Av2hFirstCoeffBlock block;
+    Av2hReconstructionPlane chroma = {
+        chroma_data, 200U, 200U, 200U, 200U, 200U, chroma_rec, 50U,
+        sizeof(chroma_rec)
+    };
+    Av2hReconstructionPlane predictor = {
+        pred_data, 200U, 200U, 200U, 200U, 200U, pred_rec, 50U,
+        sizeof(pred_rec)
+    };
+    Av2hFirstChromaMode mode = { 0 };
+    Av2hFirstCoeffPrefix prefix = { 0 };
+    Av2hFirstTransformType transform = { 0 };
+    Av2hPartitionNode leaf = { 16U, 16U, AV2H_BLOCK_64X16 };
+    size_t row;
+    size_t column;
+    for (row = 0U; row < 200U; ++row) {
+        for (column = 0U; column < 200U; ++column) {
+            chroma_data[row * 200U + column] =
+                (uint8_t)(32U + (row * 5U + column * 3U) % 192U);
+        }
+    }
+    av2h_memory_fill(chroma_rec, 1U, sizeof(chroma_rec));
+    av2h_memory_fill(pred_data, 0U, sizeof(pred_data));
+    av2h_memory_fill(pred_rec, 0U, sizeof(pred_rec));
+    av2h_memory_fill(&block, 0U, sizeof(block));
+    mode.mode = AV2H_INTRA_VERTICAL;
+    mode.angle_delta = -2;
+    mode.edge_ibp = 1U;
+    mode.chroma_format_idc = 2U;
+    prefix.tx_size = AV2H_TX_64X16;
+    prefix.all_zero = 1U;
+    transform.primary_type = AV2H_TX_DCT_DCT;
+    block.width = 32U;
+    block.height = 16U;
+    block.coefficient_count = 32U * 16U;
+    CHECK(av2h_chroma_reconstruct_to_plane_format(
+              &leaf, &mode, &prefix, &transform, &block, &chroma, &chroma,
+              1U, &predictor, 2U, &scratch) == AV2H_OK);
+    for (row = 0U; row < 16U; ++row) {
+        for (column = 0U; column < 64U; ++column) {
+            expected[row * 64U + column] =
+                pred_data[(row + 64U) * 200U + column + 64U];
+        }
+    }
+    for (column = 128U; column < 192U; ++column) {
+        chroma_data[63U * 200U + column] ^= 0xffU;
+    }
+    av2h_memory_fill(pred_data, 0U, sizeof(pred_data));
+    av2h_memory_fill(pred_rec, 0U, sizeof(pred_rec));
+    CHECK(av2h_chroma_reconstruct_to_plane_format(
+              &leaf, &mode, &prefix, &transform, &block, &chroma, &chroma,
+              1U, &predictor, 2U, &scratch) == AV2H_OK);
+    for (row = 0U; row < 16U; ++row) {
+        for (column = 0U; column < 64U; ++column) {
+            CHECK(pred_data[(row + 64U) * 200U + column + 64U] ==
+                  expected[row * 64U + column]);
+        }
+    }
+}
+
+static void test_i444_mhccp_long_top_reference(void) {
+    static uint8_t luma_data[80U * 80U];
+    static uint8_t luma_rec[20U * 20U];
+    static uint8_t chroma_data[80U * 80U];
+    static uint8_t chroma_rec[20U * 20U];
+    static uint8_t pred_data[80U * 80U];
+    static uint8_t pred_rec[20U * 20U];
+    static uint8_t expected[32U * 8U];
+    static Av2hReconstructionScratch scratch;
+    Av2hReconstructionPlane luma = {
+        luma_data, 80U, 80U, 80U, 80U, 80U, luma_rec, 20U,
+        sizeof(luma_rec)
+    };
+    Av2hReconstructionPlane chroma = {
+        chroma_data, 80U, 80U, 80U, 80U, 80U, chroma_rec, 20U,
+        sizeof(chroma_rec)
+    };
+    Av2hReconstructionPlane predictor = {
+        pred_data, 80U, 80U, 80U, 80U, 80U, pred_rec, 20U,
+        sizeof(pred_rec)
+    };
+    Av2hFirstChromaMode mode = { 0 };
+    Av2hFirstCoeffPrefix prefix = { 0 };
+    Av2hFirstTransformType transform = { 0 };
+    Av2hFirstCoeffBlock block = { 0 };
+    Av2hPartitionNode leaf = { 2U, 1U, AV2H_BLOCK_32X8 };
+    size_t row;
+    size_t column;
+    uint8_t changed = 0U;
+    for (row = 0U; row < 80U; ++row) {
+        for (column = 0U; column < 80U; ++column) {
+            luma_data[row * 80U + column] =
+                (uint8_t)(32U + (row * 11U + column * 7U) % 192U);
+            chroma_data[row * 80U + column] =
+                (uint8_t)(24U + (row * 5U + column * 13U) % 208U);
+        }
+    }
+    av2h_memory_fill(luma_rec, 1U, sizeof(luma_rec));
+    av2h_memory_fill(chroma_rec, 1U, sizeof(chroma_rec));
+    mode.is_cfl = 1U;
+    mode.cfl_kind = AV2H_CFL_MULTI_PARAM;
+    mode.mhccp_direction = 0U;
+    mode.chroma_format_idc = 2U;
+    mode.superblock_size = 128U;
+    prefix.tx_size = AV2H_TX_32X8;
+    prefix.all_zero = 1U;
+    transform.primary_type = AV2H_TX_DCT_DCT;
+    block.width = 32U;
+    block.height = 8U;
+    block.coefficient_count = 256U;
+    CHECK(av2h_chroma_reconstruct_to_plane_format(
+              &leaf, &mode, &prefix, &transform, &block, &chroma, &luma, 1U,
+              &predictor, 2U, &scratch) == AV2H_OK);
+    for (row = 0U; row < 8U; ++row) {
+        for (column = 0U; column < 32U; ++column) {
+            expected[row * 32U + column] =
+                pred_data[(row + 8U) * 80U + column + 4U];
+        }
+    }
+    chroma_data[7U * 80U + 65U] = 0U;
+    chroma_data[7U * 80U + 66U] = 255U;
+    av2h_memory_fill(pred_data, 0U, sizeof(pred_data));
+    av2h_memory_fill(pred_rec, 0U, sizeof(pred_rec));
+    CHECK(av2h_chroma_reconstruct_to_plane_format(
+              &leaf, &mode, &prefix, &transform, &block, &chroma, &luma, 1U,
+              &predictor, 2U, &scratch) == AV2H_OK);
+    for (row = 0U; row < 8U; ++row) {
+        for (column = 0U; column < 32U; ++column) {
+            changed |= (uint8_t)(expected[row * 32U + column] !=
+                pred_data[(row + 8U) * 80U + column + 4U]);
+        }
+    }
+    CHECK(changed != 0U);
 }
 
 static void test_emerald_chroma_plane_ex_checks(void) {
@@ -5734,8 +6064,13 @@ int main(void) {
     test_cfl_filter1_explicit_alpha();
     test_cfl_filter1_internal_boundary();
     test_cfl_coded_bottom_edge();
+    test_i444_cfl_coded_right_edge();
     test_cfl_explicit_geometry_filter_matrix();
     if (0) test_mhccp_geometry_direction_matrix();
+    test_i444_mhccp_long_left_reference();
+    test_i444_64x64_directional_bottom_left_limit();
+    test_i444_64x16_directional_top_right_limit();
+    test_i444_mhccp_long_top_reference();
     test_emerald_chroma_plane_ex_checks();
     test_luma_ist_frontier_matrix();
     test_tx8x4_adst_adst_reconstruction();
