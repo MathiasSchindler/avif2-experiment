@@ -10,6 +10,7 @@ import json
 import os
 import shutil
 import subprocess
+import threading
 from pathlib import Path
 
 
@@ -17,9 +18,10 @@ ROOT = Path(__file__).resolve().parents[2]
 DEMO = Path(__file__).resolve().parent
 DEFAULT_SOURCE = DEMO / "source" / "palacio-pitti-2000.jpg"
 DEFAULT_OUTPUT = DEMO / "site"
-DEFAULT_ENCODER = ROOT / "build" / "reference" / "avm" / "avmenc.exe"
 QP_VALUES = tuple(range(16, 241, 16))
 OUTPUT_SIZE = 960
+ACTIVE_PROCESSES: set[subprocess.Popen[str]] = set()
+ACTIVE_PROCESSES_LOCK = threading.Lock()
 
 SCENES = (
     {
@@ -45,11 +47,25 @@ SCENES = (
 )
 
 
+def default_encoder() -> Path:
+    directory = ROOT / "build" / "reference" / "avm"
+    names = (
+        ("avmenc.exe", "avmenc")
+        if os.name == "nt"
+        else ("avmenc", "avmenc.exe")
+    )
+    for name in names:
+        candidate = directory / name
+        if candidate.is_file():
+            return candidate
+    return directory / names[0]
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source", type=Path, default=DEFAULT_SOURCE)
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
-    parser.add_argument("--encoder", type=Path, default=DEFAULT_ENCODER)
+    parser.add_argument("--encoder", type=Path, default=default_encoder())
     parser.add_argument(
         "--jobs", type=int, default=min(4, os.cpu_count() or 1)
     )
@@ -69,18 +85,39 @@ def require_tool(value: Path | str) -> str:
 
 
 def run(command: list[str]) -> None:
-    completed = subprocess.run(
+    process = subprocess.Popen(
         command,
         cwd=ROOT,
         stdout=subprocess.DEVNULL,
         stderr=subprocess.PIPE,
         text=True,
     )
-    if completed.returncode != 0:
+    with ACTIVE_PROCESSES_LOCK:
+        ACTIVE_PROCESSES.add(process)
+    try:
+        _, stderr = process.communicate()
+    finally:
+        with ACTIVE_PROCESSES_LOCK:
+            ACTIVE_PROCESSES.discard(process)
+    if process.returncode != 0:
         raise RuntimeError(
-            f"command failed ({completed.returncode}): {' '.join(command)}\n"
-            f"{completed.stderr.strip()}"
+            f"command failed ({process.returncode}): {' '.join(command)}\n"
+            f"{stderr.strip()}"
         )
+
+
+def terminate_active_processes() -> None:
+    with ACTIVE_PROCESSES_LOCK:
+        processes = list(ACTIVE_PROCESSES)
+    for process in processes:
+        if process.poll() is None:
+            process.terminate()
+    for process in processes:
+        try:
+            process.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            process.kill()
+            process.wait()
 
 
 def sha256(path: Path) -> str:
@@ -139,41 +176,51 @@ def make_source(ffmpeg: str, source: Path, output: Path, filter_graph: str) -> N
 def encode_variant(
     encoder: str, source: Path, output: Path, qp: int, resume: bool
 ) -> dict[str, object]:
-    if not (resume and output.is_file() and output.stat().st_size > 0):
-        run(
-            [
-            encoder,
-            "--debug",
-            "--codec=av2",
-            "--obu",
-            "--passes=1",
-            "--limit=1",
-            "--good",
-            "--cpu-used=9",
-            "--threads=1",
-            "--profile=0",
-            f"--width={OUTPUT_SIZE}",
-            f"--height={OUTPUT_SIZE}",
-            "--i420",
-            "--bit-depth=8",
-            "--input-bit-depth=8",
-            "--input-chroma-subsampling-x=1",
-            "--input-chroma-subsampling-y=1",
-            "--chroma-sample-position=unspecified",
-            "--force-video-mode=0",
-            "--film-grain-test=0",
-            "--enable-lcr=0",
-            "--enable-operating-point-sets=0",
-            "--enable-atlas=0",
-            "--end-usage=q",
-            f"--qp={qp}",
-            "--test-decode=fatal",
-            "--quiet",
-            "-o",
-            str(output),
-            str(source),
-            ]
-        )
+    if resume and output.is_file() and output.stat().st_size > 0:
+        print(f"Reusing {output.name}", flush=True)
+    else:
+        temporary = output.with_name(f".{output.name}.tmp")
+        temporary.unlink(missing_ok=True)
+        print(f"Encoding {output.name} (QP {qp})", flush=True)
+        try:
+            run(
+                [
+                    encoder,
+                    "--debug",
+                    "--codec=av2",
+                    "--obu",
+                    "--passes=1",
+                    "--limit=1",
+                    "--good",
+                    "--cpu-used=9",
+                    "--threads=1",
+                    "--profile=0",
+                    f"--width={OUTPUT_SIZE}",
+                    f"--height={OUTPUT_SIZE}",
+                    "--i420",
+                    "--bit-depth=8",
+                    "--input-bit-depth=8",
+                    "--input-chroma-subsampling-x=1",
+                    "--input-chroma-subsampling-y=1",
+                    "--chroma-sample-position=unspecified",
+                    "--force-video-mode=0",
+                    "--film-grain-test=0",
+                    "--enable-lcr=0",
+                    "--enable-operating-point-sets=0",
+                    "--enable-atlas=0",
+                    "--end-usage=q",
+                    f"--qp={qp}",
+                    "--test-decode=fatal",
+                    "--quiet",
+                    "-o",
+                    str(temporary),
+                    str(source),
+                ]
+            )
+            temporary.replace(output)
+        finally:
+            temporary.unlink(missing_ok=True)
+        print(f"Encoded {output.name} ({output.stat().st_size} bytes)", flush=True)
     return {
         "qp": qp,
         "file": output.name,
@@ -198,19 +245,30 @@ def main() -> None:
     for scene in SCENES:
         scene_id = str(scene["id"])
         source_i420 = output / f"{scene_id}-source.i420"
+        print(f"Preparing {scene['name']}", flush=True)
         make_source(ffmpeg, source, source_i420, str(scene["filter"]))
-        jobs = []
-        with concurrent.futures.ThreadPoolExecutor(max_workers=args.jobs) as pool:
-            for qp in QP_VALUES:
-                target = output / f"{scene_id}-q{qp:03d}.obu"
-                jobs.append(
-                    pool.submit(
-                        encode_variant, encoder, source_i420, target, qp,
-                        args.resume
+        try:
+            jobs = []
+            with concurrent.futures.ThreadPoolExecutor(
+                max_workers=args.jobs
+            ) as pool:
+                for qp in QP_VALUES:
+                    target = output / f"{scene_id}-q{qp:03d}.obu"
+                    jobs.append(
+                        pool.submit(
+                            encode_variant, encoder, source_i420, target, qp,
+                            args.resume
+                        )
                     )
-                )
-            variants = [job.result() for job in jobs]
-        source_i420.unlink()
+                try:
+                    variants = [job.result() for job in jobs]
+                except BaseException:
+                    for job in jobs:
+                        job.cancel()
+                    terminate_active_processes()
+                    raise
+        finally:
+            source_i420.unlink(missing_ok=True)
         scene_records.append(
             {
                 "id": scene_id,

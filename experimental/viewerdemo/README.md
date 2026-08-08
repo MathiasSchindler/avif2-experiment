@@ -13,28 +13,33 @@ sets cover QP 16 through QP 240 in steps of 16:
 The source derivative is stored at `source/palacio-pitti-2000.jpg`. Generate the
 OBU series, site manifest, and current decoder WebAssembly module with:
 
-```powershell
-.\experimental\viewerdemo\build.ps1
+```sh
+make wasm
 ```
 
-After the first asset build, rebuild only the interface and decoder with:
+This rebuilds the interface and decoder, then validates the existing OBU
+assets. Regenerate the complete asset series explicitly with:
 
-```powershell
-.\experimental\viewerdemo\build.ps1 -SkipAssets
+```sh
+make wasm VIEWER_BUILD_ARGS=
 ```
 
 Resume an interrupted asset build without re-encoding completed OBU files:
 
-```powershell
-.\experimental\viewerdemo\build.ps1 -ResumeAssets
+```sh
+make wasm VIEWER_BUILD_ARGS=--resume-assets
 ```
+
+The same commands work on macOS, Linux, and Windows. Use `--clang` or
+`--encoder` to select tools outside `PATH` and the default
+`build/reference/avm/` directory.
 
 The build finishes by checking all 30 manifest entries, OBU sizes and hashes,
 the current WebAssembly module, and the absence of intermediate I420 files.
 
 Serve the result over HTTP:
 
-```powershell
+```sh
 python -m http.server 8081 --directory experimental/viewerdemo/site
 ```
 

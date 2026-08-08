@@ -77,7 +77,7 @@ Build and validate the browser module with:
 
 ```powershell
 Set-ExecutionPolicy -Scope Process Bypass
-.\experimental\wasm\build.ps1 -OutputDirectory .\build\wasm-validation
+python3 experimental/wasm/build.py --output-directory build/wasm-validation
 python -m pip install wasmtime
 python .\tools\validate_8bit_444_wasm.py --wasm .\build\wasm-validation\decoder.wasm
 ```

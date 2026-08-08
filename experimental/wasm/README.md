@@ -9,18 +9,28 @@ the browser.
 
 From the repository root:
 
-```powershell
-Set-ExecutionPolicy -Scope Process Bypass
-.\experimental\wasm\build.ps1
+```sh
+make wasm
 ```
 
-The build requires an LLVM installation containing the WebAssembly backend and `wasm-ld`. It produces `docs/decoder.wasm` for GitHub Pages. The C wrapper and build script remain in this directory.
+The build requires Python and an LLVM installation containing the WebAssembly
+backend and `wasm-ld`. It rebuilds the quality viewer around the existing OBU
+assets, validates the result, then copies the shared module to
+`docs/decoder.wasm` for GitHub Pages. The C wrapper and portable Python build
+script remain in this directory. To build only the module or select a different
+compiler or output directory, invoke the script directly:
+
+```sh
+python3 experimental/wasm/build.py \
+	--clang /path/to/clang \
+	--output-directory build/wasm-validation
+```
 
 ## Run
 
 The browser must load the module over HTTP rather than `file://`:
 
-```powershell
+```sh
 python -m http.server 8080 --directory docs
 ```
 

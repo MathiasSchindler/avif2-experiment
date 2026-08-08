@@ -1,7 +1,7 @@
-PYTHON ?= python3
 CC ?= cc
 
 ifeq ($(OS),Windows_NT)
+PYTHON ?= python
 ifneq ($(filter ARM64,$(PROCESSOR_ARCHITECTURE) $(PROCESSOR_ARCHITEW6432)),)
 DECODER_PRESET ?= windows-arm64
 DECODER_BUILD_DIR ?= build/windows-arm64
@@ -10,11 +10,14 @@ DECODER_PRESET ?= windows-x86_64
 DECODER_BUILD_DIR ?= build/windows-x86_64
 endif
 else
+PYTHON ?= python3
 DECODER_PRESET ?= native
 DECODER_BUILD_DIR ?= build/native
 endif
 
-.PHONY: all decoder clean
+VIEWER_BUILD_ARGS ?= --skip-assets
+
+.PHONY: all decoder clean wasm
 
 all: decoder
 
@@ -24,6 +27,10 @@ decoder:
 
 clean:
 	cmake -E rm -rf $(DECODER_BUILD_DIR)
+
+wasm:
+	$(PYTHON) experimental/viewerdemo/build.py $(VIEWER_BUILD_ARGS)
+	cmake -E copy experimental/viewerdemo/site/decoder.wasm docs/decoder.wasm
 
 HOST_CFLAGS := -std=c11 -Wall -Wextra -Wpedantic -Werror -O1 -g \
 	-fsanitize=address,undefined -fno-omit-frame-pointer -Iinclude -Isrc
