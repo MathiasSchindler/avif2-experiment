@@ -181,6 +181,10 @@ reference data rather than decoder behavior.
 
 ### WP0: Lock the preparation baseline
 
+**Status:** Implemented on 2026-08-10. Exact ledgers, queried layout/workspace
+values, AVM profile and corpus evidence, census results, and platform gate
+status are recorded in `docs/dev/10bit-prep-wp0.md`.
+
 **Objective:** Establish a trustworthy before/after gate and ensure the 10-bit
 reference streams do not accidentally require unrelated unsupported tools.
 

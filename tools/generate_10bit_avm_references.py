@@ -22,6 +22,29 @@ DEFAULT_OUTPUT_DIR = DEFAULT_SOURCE_DIR / "avm-reference"
 DEFAULT_ENCODER = ROOT / "build" / "reference" / "avm" / "avmenc"
 DEFAULT_DECODER = ROOT / "build" / "reference" / "avm" / "avmdec"
 DEFAULT_QPS = (96, 128, 160)
+COMMON_DISABLED_CODING_TOOLS = (
+    "film_grain",
+    "lcr",
+    "operating_point_sets",
+    "atlas",
+    "restoration",
+)
+FORMAT_DISABLED_CODING_TOOLS = {
+    "yuv420p10le": (),
+    "yuv444p10le": ("intrabc",),
+}
+
+
+def coding_tool_profile() -> dict[str, object]:
+    return {
+        "enabled": [],
+        "disabled_for_all_formats": list(COMMON_DISABLED_CODING_TOOLS),
+        "disabled_by_format": {
+            pixel_format: list(tools)
+            for pixel_format, tools in FORMAT_DISABLED_CODING_TOOLS.items()
+        },
+        "unlisted_tools": "pinned AVM defaults",
+    }
 
 
 def sha256_file(path: Path) -> str:
@@ -168,6 +191,8 @@ def encode_command(
     qp: int,
 ) -> list[str]:
     is_444 = pixel_format == "yuv444p10le"
+    if pixel_format not in FORMAT_DISABLED_CODING_TOOLS:
+        raise RuntimeError(f"unsupported source format: {pixel_format}")
     command = [
         str(encoder),
         "--debug",
@@ -193,13 +218,20 @@ def encode_command(
         [
             "--force-video-mode=0",
             "--film-grain-test=0",
-            "--enable-lcr=0",
-            "--enable-operating-point-sets=0",
-            "--enable-atlas=0",
         ]
     )
-    if is_444:
-        command.extend(["--enable-intrabc=0", "--enable-restoration=0"])
+    tool_flags = {
+        "lcr": "--enable-lcr=0",
+        "operating_point_sets": "--enable-operating-point-sets=0",
+        "atlas": "--enable-atlas=0",
+        "restoration": "--enable-restoration=0",
+        "intrabc": "--enable-intrabc=0",
+    }
+    for tool in COMMON_DISABLED_CODING_TOOLS:
+        if tool != "film_grain":
+            command.append(tool_flags[tool])
+    for tool in FORMAT_DISABLED_CODING_TOOLS[pixel_format]:
+        command.append(tool_flags[tool])
     command.extend(
         [
             "--end-usage=q",
@@ -363,13 +395,14 @@ def main() -> int:
 
     revision = run(["git", "-C", str(ROOT / "vendor" / "avm"), "rev-parse", "HEAD"])
     manifest = {
-        "schema": 1,
+        "schema": 2,
         "description": "Pinned AVM 10-bit still-image encode/decode references",
         "source_manifest": {
             "file": str((source_directory / "manifest.json").relative_to(ROOT)),
             "sha256": source_manifest_hash,
         },
         "qps": qps,
+        "coding_tool_profile": coding_tool_profile(),
         "output_contract": {
             "storage": "headerless planar unsigned 16-bit little-endian words",
             "significant_bits": 10,
