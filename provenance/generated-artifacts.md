@@ -18,3 +18,12 @@ Generated encoded bytes are test evidence, not normative format definitions or
 embedded production fixtures. Reproducing them on another host may produce
 different hosted binary hashes; the manifest records the exact tool identities
 for that reason.
+
+The 10-bit source corpus under `images/artifacts/10bit/` is derived from three
+project-author-owned Google Pixel 8 Pro DNGs captured with the main and
+ultrawide camera modules. The untracked source paths, source SHA-256 hashes,
+raw metadata, development settings, color contract, plane layouts, tool
+versions, and generated hashes are recorded in that directory's README and
+manifest. `tools/generate_10bit_sources.py` reproduces the corpus using
+ImageMagick's RAW decoder and FFmpeg; neither hosted tool is linked into the
+freestanding product.

@@ -652,6 +652,14 @@ existing chroma geometry is retained. Prefer typed 8-bit and 16-bit accessors
 or depth-specialized kernels over untyped `void *` sample access in normative
 inner loops.
 
+The native high-bit-depth source corpus for this milestone lives in
+`images/artifacts/10bit/`. Three project-author-owned Pixel 8 Pro DNGs provide
+main-camera and ultrawide portrait/landscape photographs at 600- and
+1200-pixel widths. Their `yuv420p10le` inputs are derived through reproducible
+16-bit RGB masters, not from upsampled 8-bit images. The directory manifest
+pins source hashes, raw metadata, conversion contracts, plane layouts, and
+output hashes.
+
 Non-goals: 12-bit, 4:2:2, 4:4:4, production color conversion, lossy
 downconversion in the decoder core, and changes to entropy coding unrelated
 to bit depth.
@@ -679,6 +687,11 @@ grids, plane byte strides, maximum workspace calculations, and platform/tool
 output. Any substantial format-specific branch found here should be folded
 back into the shared geometry or sample-width abstraction rather than forming
 a fourth decoder path.
+
+Use the matching `yuv444p10le` files in `images/artifacts/10bit/` as the
+photographic corpus basis. The 16-bit PNG masters remain the common visual
+source for both chroma formats so differences between 4:2:0 and 4:4:4 evidence
+come from the documented chroma conversion rather than separate source images.
 
 Non-goals: new coding tools, 4:2:2, 12-bit, RGB output, metadata, alpha, and
 grid items.
