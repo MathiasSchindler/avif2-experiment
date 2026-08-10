@@ -182,7 +182,8 @@ static void ccso_filter_plane(Av2hFilterPlane *destination,
                                 luma_x + second_x, luma_y + second_y),
                     center, threshold, parameters->edge_classifier);
             }
-            band = parameters->max_band_log2 == 0U ? 0U : center >> shift;
+            band = parameters->max_band_log2 == 0U ?
+                0U : (unsigned int)center >> shift;
             lut_index = ((size_t)band << 4U) +
                         ((size_t)first_class << 2U) + second_class;
             destination_index = (size_t)y * destination->stride + x;

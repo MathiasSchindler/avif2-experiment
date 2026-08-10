@@ -285,7 +285,7 @@ Av2hStatus av2h_chroma_predict(
         for (row = 0U; row < height; ++row) {
             for (column = 0U; column < width; ++column) {
                 predictor[(size_t)row * predictor_stride + column] =
-                    references->above != 0U &&
+                    references->above != 0 &&
                     references->above_count != 0U ?
                         references->above[
                             column < references->above_count ? column :

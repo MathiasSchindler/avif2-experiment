@@ -83,12 +83,26 @@ On Linux x86-64 or AArch64, build the static no-libc decoder with:
 make nolibc
 ```
 
-This produces `build/linux-nolibc/av2heif-decoder-nolibc`. The executable uses
-the Linux kernel ABI directly and has no libc, POSIX userspace runtime, ELF
-interpreter, or dynamic dependency. Its minimal startup and syscall substrate
-is adapted from the CC0 `newos` project; LLVM `lld` performs the final link.
-The build rejects unsupported architectures and the test gate verifies both
-the static ELF contract and exact I444 output against pinned AVM evidence.
+The preset defaults to Clang. GCC is also supported; select it when configuring
+and use the resulting build directory directly:
+
+```sh
+cmake --preset linux-nolibc \
+  -B build/linux-nolibc-gcc16 \
+  -DCMAKE_C_COMPILER=gcc-16
+cmake --build build/linux-nolibc-gcc16
+ctest --test-dir build/linux-nolibc-gcc16 --output-on-failure
+```
+
+GCC compiles and drives the link while LLVM `lld` remains the final linker.
+The default build produces `build/linux-nolibc/av2heif-decoder-nolibc`; the GCC
+command above produces the equivalent binary under `build/linux-nolibc-gcc16`.
+The executable uses the Linux kernel ABI directly and has no libc, POSIX
+userspace runtime, ELF interpreter, or dynamic dependency. Its minimal startup
+and syscall substrate is adapted from the CC0 `newos` project; LLVM `lld`
+performs the final link. The build rejects unsupported architectures and the
+test gate verifies both the static ELF contract and exact I444 output against
+pinned AVM evidence.
 
 The no-libc CLI has the same raw OBU command line and deterministic BMP output
 as the other native decoders:

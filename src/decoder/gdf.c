@@ -234,14 +234,12 @@ static void gdf_filter_block(Av2hFilterPlane *destination,
             }
             {
                 unsigned int position = 0U;
-                int normalized[3] = { 0, 0, 0 };
                 for (output_index = 0U; output_index < 3U; ++output_index) {
                     int value = round_shift_symmetric(
                         (accumulator[output_index] +
                          gdf_bias[gdf_bias_index(qp_index, output_index)]) *
                             8,
                         15U);
-                    normalized[output_index] = value;
                     position = position * 16U + (unsigned int)
                         (av2h_sample_clamp(value, -8, 7) + 8);
                 }

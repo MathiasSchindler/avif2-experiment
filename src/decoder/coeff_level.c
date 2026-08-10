@@ -424,7 +424,7 @@ static Av2hStatus read_unary(Av2hRangeDecoder *decoder, uint8_t maximum,
 static Av2hStatus read_high_range(Av2hRangeDecoder *decoder,
                                   uint32_t context, uint32_t *value) {
     uint8_t rice = 1U;
-    uint8_t quotient;
+    uint8_t quotient = 0U;
     uint8_t maximum;
     uint32_t remainder;
     Av2hStatus status;
@@ -433,7 +433,7 @@ static Av2hStatus read_high_range(Av2hRangeDecoder *decoder,
     status = read_unary(decoder, maximum, &quotient);
     if (status != AV2H_OK) return status;
     if (quotient == maximum) {
-        uint8_t length;
+        uint8_t length = 0U;
         status = read_unary(decoder, 21U, &length);
         if (status != AV2H_OK || length > 20U) return AV2H_INVALID_DATA;
         length = (uint8_t)(length + rice + 1U);
@@ -824,7 +824,7 @@ Av2hStatus av2h_coeff_block_read(
     while (scan_index != 0U) {
         uint16_t position;
         uint8_t low;
-        uint8_t level;
+        uint8_t level = 0U;
         --scan_index;
         position = av2h_coeff_scan_position(
             scan_index, block->width, block->height,

@@ -56,7 +56,7 @@ uint8_t av2h_coeff_finalize_cul_level(
 
 static uint8_t coeff_dim_log2(uint16_t dimension) {
     uint8_t log2 = 0U;
-    while ((dimension >> log2) > 1U) ++log2;
+    while ((dimension >> log2) > 1) ++log2;
     return log2;
 }
 
