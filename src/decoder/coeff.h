@@ -159,7 +159,7 @@ Av2hStatus av2h_chroma_coeff_prefix_read_with_state(
     const Av2hPartitionNode *leaf,
     Av2hBlockSize coding_block_size,
     uint8_t plane,
-    uint8_t u_eob,
+    uint16_t u_eob,
     const Av2hCoeffContextState *state,
     Av2hFirstCoeffPrefix *prefix);
 
