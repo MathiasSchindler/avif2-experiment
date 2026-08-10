@@ -45,6 +45,13 @@ The public API is declared in `include/av2heif.h`. Detailed scope and evidence
 are recorded in `docs/dev/milestone-0.md` through
 `docs/dev/milestone-12.md`; the longer roadmap is in `plan.md`.
 
+The next planned decoder profiles are 10-bit 4:2:0 and 10-bit 4:4:4. Broader
+AV2 features such as restoration, film grain, segmentation, quantization
+matrices, and multi-frame or multi-tile forms remain outside the accepted
+profile. Container transforms, metadata, auxiliary alpha, and grids are also
+future work. The roadmap records the complete implementation boundary and
+current coding-tool coverage gaps.
+
 ## Security
 
 This project parses complex binary input but has not received a production
@@ -59,9 +66,10 @@ vulnerability.
 
 ## Build and test
 
-CMake 3.20 or newer, Ninja, and Clang are the required build tools. On Linux
-and macOS, run the hosted C gate with AddressSanitizer and
-UndefinedBehaviorSanitizer:
+CMake 3.20 or newer and Ninja are required. Clang is the default compiler and
+is used by the sanitizer and cross-platform presets; the native Linux no-libc
+target also supports GCC. On Linux and macOS, run the hosted C gate with
+AddressSanitizer and UndefinedBehaviorSanitizer:
 
 ```sh
 cmake --preset host-sanitized

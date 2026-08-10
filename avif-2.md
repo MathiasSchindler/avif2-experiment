@@ -485,13 +485,13 @@ The first complete encode/mux/decode fixture profile is intentionally small:
 This profile is a project implementation boundary, not an assertion that AV2
 or HEIF cannot represent the omitted features.
 
-The next planned profiles are, in order:
+The first profile extensions, 8-bit monochrome and 8-bit 4:4:4, are
+implemented and validated. The remaining planned profiles are, in order:
 
-1. 8-bit monochrome and 8-bit 4:4:4.
-2. 10-bit 4:2:0 and 4:4:4.
-3. Container transforms and metadata preservation.
-4. Auxiliary alpha as a separate monochrome coded item.
-5. HEIF grid derived images.
+1. 10-bit 4:2:0 and 4:4:4.
+2. Container transforms and metadata preservation.
+3. Auxiliary alpha as a separate monochrome coded item.
+4. HEIF grid derived images.
 
 12-bit, multiple AV2 layers, progressive decoding, film grain, image
 sequences, and gain maps are deferred until reference encoders, normative

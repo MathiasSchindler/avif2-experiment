@@ -702,6 +702,38 @@ reproducibility are stable. They must pin encoder configurations, distinguish
 codec payload from total container size, publish machine-readable results, and
 state which AV2 video features are irrelevant to still images.
 
+## Current implementation boundary
+
+Milestones 0 through 12 are complete. The public decoder supports the
+project-defined canonical HEIF profile for one 8-bit still picture with I400,
+I420, or I444 planar output. The locked I420, monochrome, and I444 corpora are
+sample-exact against pinned AVM v1.0.0. This evidence covers the tested profile;
+it is not a claim that every legal AV2 coding combination is implemented.
+
+The following decoder features remain outside the accepted profile and fail
+closed: 10-bit and 12-bit samples, 4:2:2 chroma, restoration, film grain,
+sequence segmentation and tile signaling, frame segmentation, quantization
+matrices, lossless base-Q-zero frames, and multi-frame or non-initial tile-group
+forms. Milestones 13 and 14 own 10-bit 4:2:0 and 4:4:4 respectively. The other
+codec features need separate milestones and independent reference evidence.
+
+Within the existing 8-bit coding-tool surface, the reviewed census still marks
+three coverage questions: exhaustive zero-angle luma directional geometry and
+secondary-transform tuples are partial, while chroma FSC has not been audited
+independently. `tools/census/status.md` is the authority for these reviewed
+feature-coverage labels.
+
+The canonical allocation-free HEIF parser and writer are implemented as public
+APIs. Standalone inspect, pack, and libavif-dialect import tools are not. The
+current container profile also excludes transformations, metadata items,
+auxiliary alpha, grids, multiple extents, sequences, and animation. These are
+future profile additions rather than defects in canonical v0.
+
+Release validation has strict freestanding, sanitizer, deterministic corpus,
+AVM differential, Windows, WebAssembly, and Linux no-libc gates. Coverage-guided
+fuzzing, automated multi-platform CI, and comparison through an independent AV2
+decoder remain open infrastructure work.
+
 ## Required validation
 
 Every production change should run the narrowest relevant self-contained test.
@@ -720,17 +752,20 @@ Release validation additionally includes:
 
 ## Current work order
 
-1. Milestone 11: add 8-bit monochrome and explicit plane presence.
-2. Milestone 12: generalize chroma geometry for 8-bit 4:4:4.
+1. Audit and close the existing 8-bit chroma-FSC, zero-angle luma, and
+  secondary-transform coverage gaps.
+2. Add a coverage-guided fuzz target for the public query/decode boundary.
 3. Milestone 13: widen sample storage and arithmetic for 10-bit 4:2:0.
 4. Milestone 14: validate the combined 10-bit 4:4:4 model independently.
+5. Add later container and presentation features one independently tested
+  slice at a time.
 
 Early work in a later milestone may be retained when it is already validated,
 but it does not waive an earlier exit gate. Each milestone must leave the
 decoder fail-closed at the first unsupported owner.
 
-Milestones 7 through 10 are complete. Milestones 11 through 14 are planned as
-independent pixel-model expansions. The private Windows decoder and public
+Milestones 0 through 12 are complete. Milestones 13 and 14 remain planned as
+independent sample-width expansions. The private platform decoders and public
 canonical-HEIF path retain byte-identical pinned-AVM output for their locked
 corpora. Restoration remains outside the accepted profile and must continue to
 fail closed.
