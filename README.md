@@ -77,6 +77,48 @@ make clean
 make
 ```
 
+On Linux x86-64 or AArch64, build the static no-libc decoder with:
+
+```sh
+make nolibc
+```
+
+This produces `build/linux-nolibc/av2heif-decoder-nolibc`. The executable uses
+the Linux kernel ABI directly and has no libc, POSIX userspace runtime, ELF
+interpreter, or dynamic dependency. Its minimal startup and syscall substrate
+is adapted from the CC0 `newos` project; LLVM `lld` performs the final link.
+The build rejects unsupported architectures and the test gate verifies both
+the static ELF contract and exact I444 output against pinned AVM evidence.
+
+The no-libc CLI has the same raw OBU command line and deterministic BMP output
+as the other native decoders:
+
+```sh
+build/linux-nolibc/av2heif-decoder-nolibc \
+  tests/fixtures/i444-high-detail.obu \
+  -o build/i444-high-detail.bmp
+```
+
+Architecture-specific presets are also available for reproducible cross
+builds with Clang and `lld`:
+
+```sh
+cmake --preset linux-nolibc-x86_64
+cmake --build --preset linux-nolibc-x86_64
+ctest --preset linux-nolibc-x86_64
+
+cmake --preset linux-nolibc-aarch64
+cmake --build --preset linux-nolibc-aarch64
+ctest --preset linux-nolibc-aarch64
+```
+
+Cross-build tests inspect the resulting ELF without executing it. A native
+build additionally runs the exact I444 parity test.
+
+The hosted POSIX decoder remains the development and sanitizer target. Here,
+"POSIX-free" means that the product executable has no POSIX/libc userspace
+dependency; it still intentionally depends on the Linux syscall ABI.
+
 On macOS this produces `build/native/av2heif-decoder`, a native Mach-O
 executable. On Windows with LLVM-MinGW, use `mingw32-make clean` followed by
 `mingw32-make`; it produces an x86-64 or ARM64 PE executable under

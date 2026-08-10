@@ -17,13 +17,18 @@ endif
 
 VIEWER_BUILD_ARGS ?= --skip-assets
 
-.PHONY: all decoder clean wasm
+.PHONY: all decoder nolibc clean wasm
 
 all: decoder
 
 decoder:
 	cmake --preset $(DECODER_PRESET)
 	cmake --build --preset $(DECODER_PRESET) --target av2heif-decoder av2heif-freestanding-check
+
+nolibc:
+	cmake --preset linux-nolibc
+	cmake --build --preset linux-nolibc --target av2heif-decoder-nolibc av2heif-freestanding-check
+	ctest --preset linux-nolibc
 
 clean:
 	cmake -E rm -rf $(DECODER_BUILD_DIR)

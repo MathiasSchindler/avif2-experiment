@@ -9,6 +9,7 @@ option(AV2HEIF_ENABLE_SANITIZERS "Enable sanitizers for hosted tests" OFF)
 option(AV2HEIF_ENABLE_PYTHON_TESTS "Enable Python development tests" OFF)
 option(AV2HEIF_BUILD_WINDOWS_TOOLS "Build freestanding Windows executables" ON)
 option(AV2HEIF_BUILD_NATIVE_CLI "Build the native hosted decoder executable" ON)
+option(AV2HEIF_BUILD_LINUX_NOLIBC "Build the static Linux no-libc decoder" OFF)
 option(AV2HEIF_ENABLE_DIAGNOSTICS "Enable private decoder diagnostics" OFF)
 
 set(AV2HEIF_CORE_SOURCES
@@ -198,6 +199,65 @@ if(AV2HEIF_BUILD_NATIVE_CLI AND UNIX AND NOT WIN32)
     if(CMAKE_C_COMPILER_ID MATCHES "Clang|GNU")
         target_compile_options(av2heif-decoder PRIVATE
             -Wall -Wextra -Wpedantic -Werror -O2)
+    endif()
+endif()
+
+if(AV2HEIF_BUILD_LINUX_NOLIBC)
+    if(NOT CMAKE_SYSTEM_NAME STREQUAL "Linux")
+        message(FATAL_ERROR "The Linux no-libc decoder requires a Linux target")
+    endif()
+    if(NOT CMAKE_C_COMPILER_ID MATCHES "Clang")
+        message(FATAL_ERROR "The Linux no-libc decoder requires Clang")
+    endif()
+
+    enable_language(ASM)
+    if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|amd64|AMD64)$")
+        set(AV2HEIF_LINUX_RUNTIME
+            src/arch/x86_64/linux/runtime.S)
+    elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "^(aarch64|arm64|ARM64)$")
+        set(AV2HEIF_LINUX_RUNTIME
+            src/arch/aarch64/linux/runtime.S)
+    else()
+        message(FATAL_ERROR
+            "The Linux no-libc decoder supports only x86-64 and AArch64")
+    endif()
+
+    add_executable(av2heif-decoder-nolibc
+        src/platform/linux/decoder.c
+        src/platform/linux/runtime.c
+        ${AV2HEIF_LINUX_RUNTIME}
+    )
+    target_include_directories(av2heif-decoder-nolibc PRIVATE src src/shared)
+    target_link_libraries(av2heif-decoder-nolibc PRIVATE av2heif-core)
+    target_compile_options(av2heif-decoder-nolibc PRIVATE
+        -Wall -Wextra -Wpedantic -Werror -Oz
+        -ffreestanding -fno-builtin -fno-stack-protector
+        -fno-unwind-tables -fno-asynchronous-unwind-tables
+        -ffunction-sections -fdata-sections -fno-pic -fno-pie
+        -nostdinc
+    )
+    target_link_options(av2heif-decoder-nolibc PRIVATE
+        -nostdlib -static -fuse-ld=lld
+        -Wl,-e,_start
+        -Wl,--gc-sections,--build-id=none
+    )
+
+    if(BUILD_TESTING)
+        add_test(NAME linux-nolibc-static-elf
+            COMMAND "${CMAKE_COMMAND}"
+                "-DINPUT=$<TARGET_FILE:av2heif-decoder-nolibc>"
+                "-DREADELF=${CMAKE_READELF}"
+                "-DNM=${CMAKE_NM}"
+                -P "${CMAKE_CURRENT_SOURCE_DIR}/scripts/check-static-elf.cmake")
+    endif()
+    if(BUILD_TESTING AND NOT CMAKE_CROSSCOMPILING)
+        add_test(NAME linux-nolibc-i444-parity
+            COMMAND "${CMAKE_COMMAND}"
+                "-DDECODER=$<TARGET_FILE:av2heif-decoder-nolibc>"
+                "-DINPUT=${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/i444-high-detail.obu"
+                "-DOUTPUT=${CMAKE_CURRENT_BINARY_DIR}/Testing/Temporary/i444-high-detail.i444"
+                "-DEXPECTED_SHA256=6b8d9d464291a6cea30d9798a3fc593b020456e46c21f15372a39883277f1654"
+                -P "${CMAKE_CURRENT_SOURCE_DIR}/scripts/check-decoder-parity.cmake")
     endif()
 endif()
 

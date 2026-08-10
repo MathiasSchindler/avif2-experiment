@@ -37,6 +37,46 @@
       }
     },
     {
+      "name": "linux-nolibc",
+      "displayName": "Linux native static no-libc decoder",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/linux-nolibc",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_C_COMPILER": "clang",
+        "AV2HEIF_BUILD_HOST_TESTS": "OFF",
+        "AV2HEIF_BUILD_WINDOWS_TOOLS": "OFF",
+        "AV2HEIF_BUILD_NATIVE_CLI": "OFF",
+        "AV2HEIF_BUILD_LINUX_NOLIBC": "ON"
+      }
+    },
+    {
+      "name": "linux-nolibc-x86_64",
+      "displayName": "Linux x86-64 static no-libc decoder",
+      "inherits": "linux-nolibc",
+      "binaryDir": "${sourceDir}/build/linux-nolibc-x86_64",
+      "cacheVariables": {
+        "CMAKE_SYSTEM_NAME": "Linux",
+        "CMAKE_SYSTEM_PROCESSOR": "x86_64",
+        "CMAKE_C_COMPILER_TARGET": "x86_64-linux-gnu",
+        "CMAKE_ASM_COMPILER_TARGET": "x86_64-linux-gnu",
+        "CMAKE_TRY_COMPILE_TARGET_TYPE": "STATIC_LIBRARY"
+      }
+    },
+    {
+      "name": "linux-nolibc-aarch64",
+      "displayName": "Linux AArch64 static no-libc decoder",
+      "inherits": "linux-nolibc",
+      "binaryDir": "${sourceDir}/build/linux-nolibc-aarch64",
+      "cacheVariables": {
+        "CMAKE_SYSTEM_NAME": "Linux",
+        "CMAKE_SYSTEM_PROCESSOR": "aarch64",
+        "CMAKE_C_COMPILER_TARGET": "aarch64-linux-gnu",
+        "CMAKE_ASM_COMPILER_TARGET": "aarch64-linux-gnu",
+        "CMAKE_TRY_COMPILE_TARGET_TYPE": "STATIC_LIBRARY"
+      }
+    },
+    {
       "name": "windows-x86_64",
       "displayName": "Windows x86-64 (freestanding LLVM)",
       "generator": "Ninja",
@@ -85,6 +125,18 @@
       "configurePreset": "host-sanitized"
     },
     {
+      "name": "linux-nolibc",
+      "configurePreset": "linux-nolibc"
+    },
+    {
+      "name": "linux-nolibc-x86_64",
+      "configurePreset": "linux-nolibc-x86_64"
+    },
+    {
+      "name": "linux-nolibc-aarch64",
+      "configurePreset": "linux-nolibc-aarch64"
+    },
+    {
       "name": "windows-x86_64",
       "configurePreset": "windows-x86_64"
     },
@@ -104,6 +156,27 @@
     {
       "name": "host-sanitized",
       "configurePreset": "host-sanitized",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "linux-nolibc",
+      "configurePreset": "linux-nolibc",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "linux-nolibc-x86_64",
+      "configurePreset": "linux-nolibc-x86_64",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "linux-nolibc-aarch64",
+      "configurePreset": "linux-nolibc-aarch64",
       "output": {
         "outputOnFailure": true
       }
