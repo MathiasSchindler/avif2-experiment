@@ -47,8 +47,8 @@ HOST_FILTER_UNIT := $(HOST_BUILD_DIR)/filter-unit
 HOST_ARTIFACT_TOOL := $(HOST_BUILD_DIR)/av2heif-artifact
 M9_DECODER ?= build/windows-x86_64/av2heif-decoder.exe
 .PHONY: test test-c test-freestanding reference-avm generate-10bit-sources \
-	milestone-0 milestone-3 milestone-4 milestone-5-evidence milestone-8 \
-	milestone-9
+	generate-10bit-avm-references milestone-0 milestone-3 milestone-4 \
+	milestone-5-evidence milestone-8 milestone-9
 
 test: test-c test-freestanding
 	$(PYTHON) -m unittest discover -s tests -p 'test_*.py'
@@ -67,6 +67,9 @@ reference-avm:
 
 generate-10bit-sources:
 	$(PYTHON) tools/generate_10bit_sources.py
+
+generate-10bit-avm-references:
+	$(PYTHON) tools/generate_10bit_avm_references.py
 
 milestone-0: reference-avm test
 	$(PYTHON) tools/run_m0_matrix.py
