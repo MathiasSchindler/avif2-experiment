@@ -422,6 +422,15 @@ static void test_odd_luma_reconstruction(void) {
         CHECK(av2h_tile_decoder_init(
                   &decoder, group.entropy, &sequence, &frame, &storage) ==
               AV2H_OK);
+    decoder.current_q_index = 400U;
+    CHECK(av2h_tile_decoder_next_luma(
+              &decoder, &leaf, &block, &has_leaf) == AV2H_OK);
+    CHECK(has_leaf != 0U);
+    CHECK(leaf.prefix.q_index == 400U);
+    CHECK(av2h_tile_decoder_init(
+              &decoder, group.entropy, &sequence, &frame, &storage) ==
+          AV2H_OK);
+    has_leaf = 0U;
     do {
         if (leaf_count == 10U) {
             fprintf(stderr,

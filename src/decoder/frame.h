@@ -8,6 +8,8 @@
 #define AV2H_CCSO_BAND_COUNT 64U
 #define AV2H_CCSO_LUT_SIZE (AV2H_CCSO_BAND_COUNT * 16U)
 
+typedef uint16_t Av2hQIndex;
+
 typedef struct {
     uint8_t enabled;
     uint8_t band_only;
@@ -26,7 +28,7 @@ typedef struct {
     uint16_t height;
     uint8_t plane_count;
     uint8_t chroma_format_idc;
-    uint16_t base_q_index;
+    Av2hQIndex base_q_index;
     int16_t y_dc_delta_q;
     int16_t u_dc_delta_q;
     int16_t u_ac_delta_q;

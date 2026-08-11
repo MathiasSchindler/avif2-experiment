@@ -32,6 +32,9 @@ static void test_64_bit_decoder_layout(void) {
     CHECK(_Alignof(Av2hSequenceState) == 2U);
     CHECK(sizeof(Av2hFrameState) == 3192U);
     CHECK(_Alignof(Av2hFrameState) == 8U);
+    CHECK(sizeof(Av2hQIndex) == 2U);
+    CHECK(sizeof(Av2hFirstCoeffPrefix) == 56U);
+    CHECK(_Alignof(Av2hFirstCoeffPrefix) == 8U);
     CHECK(sizeof(Av2hFirstCoeffLevelCdfs) == 20464U);
     CHECK(_Alignof(Av2hFirstCoeffLevelCdfs) == 2U);
     CHECK(sizeof(Av2hLeafCdfs) == 2522U);
@@ -44,6 +47,8 @@ static void test_64_bit_decoder_layout(void) {
     CHECK(_Alignof(Av2hReconstructionPlane) == 8U);
     CHECK(sizeof(Av2hFilterPlane) == 24U);
     CHECK(_Alignof(Av2hFilterPlane) == 8U);
+    CHECK(sizeof(Av2hDeblockCell) == 14U);
+    CHECK(_Alignof(Av2hDeblockCell) == 2U);
     CHECK(sizeof(Av2hCcsoControlMap) == 64U);
     CHECK(_Alignof(Av2hCcsoControlMap) == 8U);
     CHECK(sizeof(Av2hGdfControlMap) == 40U);

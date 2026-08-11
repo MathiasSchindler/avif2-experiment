@@ -1,6 +1,6 @@
 #include "internal/coeff_modules.h"
 
-uint8_t av2h_coeff_q_context(uint16_t base_q_index) {
+uint8_t av2h_coeff_q_context(Av2hQIndex base_q_index) {
     return base_q_index <= 90U ? 0U :
            base_q_index <= 140U ? 1U :
            base_q_index <= 190U ? 2U : 3U;
@@ -15,7 +15,7 @@ int32_t av2h_coeff_clamp_dequantized_8bit(
     return magnitude > 32767U ? 32767 : (int32_t)magnitude;
 }
 
-uint32_t av2h_coeff_dequant_step_8bit(uint16_t base_q_index, int delta) {
+uint32_t av2h_coeff_dequant_step_8bit(Av2hQIndex base_q_index, int delta) {
     static const uint16_t lookup[25U] = {
         64U, 40U, 41U, 43U, 44U, 45U, 47U, 48U, 49U, 51U, 52U, 54U,
         55U, 57U, 59U, 60U, 62U, 64U, 66U, 68U, 70U, 72U, 74U, 76U,

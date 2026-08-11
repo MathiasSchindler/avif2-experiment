@@ -258,7 +258,7 @@ Av2hStatus av2h_coeff_tx_geometry_from_dims(
 Av2hStatus av2h_coeff_tx_geometry(
     Av2hFirstTxSize tx_size,
     Av2hCoeffTxGeometry *geometry);
-uint32_t av2h_coeff_dequant_step_8bit(uint16_t base_q_index, int delta);
+uint32_t av2h_coeff_dequant_step_8bit(Av2hQIndex base_q_index, int delta);
 int32_t av2h_coeff_dequantize_level(
     uint32_t level,
     uint8_t sign,
@@ -270,7 +270,7 @@ uint8_t av2h_coeff_finalize_cul_level(
 Av2hStatus av2h_first_coeff_level_cdfs_init(Av2hFirstCoeffLevelCdfs *cdfs);
 Av2hStatus av2h_first_coeff_level_cdfs_init_for_q(
     Av2hFirstCoeffLevelCdfs *cdfs,
-    uint16_t base_q_index);
+    Av2hQIndex base_q_index);
 Av2hStatus av2h_coeff_block_read(
     Av2hRangeDecoder *decoder,
     Av2hFirstCoeffLevelCdfs *cdfs,

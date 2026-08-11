@@ -87,7 +87,7 @@ Av2hStatus av2h_decode_frame_planar_private(
                         &workspace->filter_workspace->deblock_map,
                         frame->chroma_format_idc, plane, &pending_leaf->node,
                         &pending_leaf->prefix[index],
-                        pending_leaf->prefix[index].q_index, 0U,
+                        0U,
                         pending_leaf->prefix[index].all_zero,
                         (uint8_t)(frame->base_q_index == 0U));
                     if (status != AV2H_OK) {
@@ -241,7 +241,7 @@ Av2hStatus av2h_decode_frame_planar_private(
             status = av2h_deblock_map_commit_transform(
                 &workspace->filter_workspace->deblock_map,
                 frame->chroma_format_idc, 0U,
-                &leaf.node, &leaf.prefix, leaf.prefix.q_index,
+                &leaf.node, &leaf.prefix,
                 leaf.mode.skip_transform, leaf.prefix.all_zero,
                 (uint8_t)(frame->base_q_index == 0U));
             if (status != AV2H_OK) {
@@ -400,7 +400,7 @@ Av2hStatus av2h_decode_frame_planar_private(
                     &workspace->filter_workspace->deblock_map,
                     frame->chroma_format_idc, plane,
                     &leaf.node, &leaf.prefix[index],
-                    leaf.prefix[index].q_index, 0U,
+                    0U,
                     leaf.prefix[index].all_zero,
                     (uint8_t)(frame->base_q_index == 0U));
                 if (status != AV2H_OK) {

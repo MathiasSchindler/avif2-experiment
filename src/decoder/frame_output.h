@@ -104,7 +104,6 @@ Av2hStatus av2h_deblock_map_commit_transform(
     unsigned int plane,
     const Av2hPartitionNode *leaf,
     const Av2hFirstCoeffPrefix *prefix,
-    uint8_t q_index,
     uint8_t skip,
     uint8_t all_zero,
     uint8_t lossless);

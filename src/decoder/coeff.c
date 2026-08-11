@@ -48,7 +48,7 @@ void av2h_coefficient_diagnostics_set_luma_prefix_stage(uint8_t value) {
 
 Av2hStatus av2h_first_coeff_cdfs_init_for_q(
     Av2hFirstCoeffCdfs *cdfs,
-    uint16_t base_q_index) {
+    Av2hQIndex base_q_index) {
     static const Av2hBinaryCdfSpec txb_skip[4U][5U] = {
         {
             { 25759U, 31U, 0U }, { 24799U, 56U, 0U },

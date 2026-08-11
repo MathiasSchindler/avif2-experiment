@@ -42,7 +42,7 @@ typedef struct {
     uint16_t transform_row;
     uint8_t transform_width;
     uint8_t transform_height;
-    uint8_t q_index;
+    Av2hQIndex q_index;
     uint8_t skip;
     uint8_t lossless;
 } Av2hDeblockCell;

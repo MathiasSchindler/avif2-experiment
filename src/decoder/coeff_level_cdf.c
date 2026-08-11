@@ -593,7 +593,7 @@ static Av2hStatus initialize_level_row(
 
 Av2hStatus av2h_first_coeff_level_cdfs_init_for_q(
     Av2hFirstCoeffLevelCdfs *cdfs,
-    uint16_t base_q_index) {
+    Av2hQIndex base_q_index) {
     static const uint16_t q1_eob_base_txs4_ctx1[] = {
         32710U, 32756U
     };

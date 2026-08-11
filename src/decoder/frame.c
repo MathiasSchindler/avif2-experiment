@@ -89,7 +89,7 @@ static void read_quantization(Av2hBitReader *reader,
                               const Av2hSequenceState *sequence,
                               Av2hFrameState *frame) {
     uint8_t different_uv = 0U;
-    frame->base_q_index = (uint16_t)av2h_bit_reader_read(reader, 8U);
+    frame->base_q_index = (Av2hQIndex)av2h_bit_reader_read(reader, 8U);
     if (sequence->y_dc_delta_q_enabled != 0U) {
         frame->y_dc_delta_q = read_delta_q(reader);
     }

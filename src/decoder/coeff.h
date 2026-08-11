@@ -63,7 +63,7 @@ typedef struct {
     uint8_t tx_size_context;
     uint8_t txb_skip_context;
     uint8_t all_zero;
-    uint8_t q_index;
+    Av2hQIndex q_index;
     uint8_t eob_point;
     uint8_t eob_offset_bits;
     uint16_t eob_extra;
@@ -87,7 +87,7 @@ typedef struct {
 Av2hStatus av2h_first_coeff_cdfs_init(Av2hFirstCoeffCdfs *cdfs);
 Av2hStatus av2h_first_coeff_cdfs_init_for_q(
     Av2hFirstCoeffCdfs *cdfs,
-    uint16_t base_q_index);
+    Av2hQIndex base_q_index);
 Av2hStatus av2h_coeff_context_state_init(
     Av2hCoeffContextState *state,
     uint8_t *above,

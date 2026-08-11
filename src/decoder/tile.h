@@ -92,7 +92,7 @@ typedef struct {
     uint16_t superblock_mi;
     uint16_t sb_row;
     uint16_t sb_column;
-    uint16_t current_q_index;
+    Av2hQIndex current_q_index;
     size_t sb_index;
     size_t sb_count;
     Av2hBlockSize root_block_size;

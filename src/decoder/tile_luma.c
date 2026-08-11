@@ -471,7 +471,7 @@ read_transform:
             return av2h_tile_decoder_fail(decoder, AV2H_INVALID_DATA);
         }
         if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
-        leaf->prefix.q_index = (uint8_t)decoder->current_q_index;
+        leaf->prefix.q_index = decoder->current_q_index;
         decoder->event = AV2H_TILE_EVENT_LUMA_LEAF;
         return AV2H_OK;
     }
@@ -494,7 +494,7 @@ read_transform:
             &leaf->prefix, &dc_sign_context);
     }
     if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
-    leaf->prefix.q_index = (uint8_t)decoder->current_q_index;
+    leaf->prefix.q_index = decoder->current_q_index;
 #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
     av2h_partition_diagnostic_leaf_stage(
         leaf->node, 21U, leaf->prefix.eob_point, leaf->prefix.eob_extra,

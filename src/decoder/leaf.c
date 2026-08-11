@@ -440,7 +440,7 @@ static Av2hStatus luma_mode_read_internal(
     Av2hGdfEntropyState *gdf_state,
     Av2hCdefEntropyState *cdef_state,
     Av2hCcsoEntropyState *ccso_state,
-    uint16_t *current_q_index,
+    Av2hQIndex *current_q_index,
     Av2hFirstLeafMode *mode);
 
 Av2hStatus av2h_luma_mode_read_with_state(
@@ -486,7 +486,7 @@ Av2hStatus av2h_luma_mode_read_with_state_and_delta_q(
     Av2hGdfEntropyState *gdf_state,
     Av2hCdefEntropyState *cdef_state,
     Av2hCcsoEntropyState *ccso_state,
-    uint16_t *current_q_index,
+    Av2hQIndex *current_q_index,
     Av2hFirstLeafMode *mode) {
     Av2hLumaModeNeighbors neighbors;
     Av2hStatus status = av2h_luma_mode_neighbors_from_state(
@@ -504,7 +504,7 @@ static Av2hStatus read_delta_q(
     const Av2hFrameState *frame,
     const Av2hPartitionNode *leaf,
     uint8_t skip_transform,
-    uint16_t *current_q_index) {
+    Av2hQIndex *current_q_index) {
     Av2hBlockSize superblock_size;
     uint16_t superblock_mi;
     uint32_t magnitude;
@@ -541,7 +541,7 @@ static Av2hStatus read_delta_q(
     }
     if (q_index < 1) q_index = 1;
     if (q_index > 255) q_index = 255;
-    *current_q_index = (uint16_t)q_index;
+    *current_q_index = (Av2hQIndex)q_index;
     return av2h_range_status(decoder);
 }
 
@@ -556,7 +556,7 @@ static Av2hStatus luma_mode_read_internal(
     Av2hGdfEntropyState *gdf_state,
     Av2hCdefEntropyState *cdef_state,
     Av2hCcsoEntropyState *ccso_state,
-    uint16_t *current_q_index,
+    Av2hQIndex *current_q_index,
     Av2hFirstLeafMode *mode) {
     size_t plane;
     size_t neighbor;

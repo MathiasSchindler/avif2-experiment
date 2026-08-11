@@ -382,6 +382,10 @@ introduced.
 
 ### WP5: Widen Q-index representation without changing 8-bit syntax
 
+**Status:** Implemented on 2026-08-11. The Q-index representation inventory,
+preserved 8-bit boundaries, private layout review, and platform evidence are
+recorded in `docs/dev/10bit-prep-wp5.md`.
+
 **Objective:** Remove narrowing points before high-bit-depth AV2 introduces the
 9-bit Q-index domain.
 

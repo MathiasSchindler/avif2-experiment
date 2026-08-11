@@ -399,7 +399,7 @@ Av2hStatus av2h_luma_mode_read_with_state_and_delta_q(
     Av2hGdfEntropyState *gdf_state,
     Av2hCdefEntropyState *cdef_state,
     Av2hCcsoEntropyState *ccso_state,
-    uint16_t *current_q_index,
+    Av2hQIndex *current_q_index,
     Av2hFirstLeafMode *mode);
 Av2hStatus av2h_luma_palette_map_read(
     Av2hRangeDecoder *decoder,

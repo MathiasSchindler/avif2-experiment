@@ -37,7 +37,7 @@ static void initialize_planes(Av2hFilterPlanes *planes,
 static void populate_workspace_maps(
     const Av2hFilterWorkspaceLayout *layout,
     Av2hFilterWorkspaceStorage *storage,
-    uint8_t q_index) {
+    Av2hQIndex q_index) {
     unsigned int plane;
     for (plane = 0U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
         size_t row;
@@ -61,6 +61,27 @@ static void populate_workspace_maps(
             }
         }
     }
+}
+
+static void test_wide_q_index_handoff(void) {
+    Av2hDeblockCell cell;
+    Av2hDeblockMap map;
+    Av2hPartitionNode leaf = { 0U, 0U, AV2H_BLOCK_4X4 };
+    Av2hFirstCoeffPrefix prefix;
+    av2h_memory_fill(&cell, 0U, sizeof(cell));
+    av2h_memory_fill(&map, 0U, sizeof(map));
+    av2h_memory_fill(&prefix, 0U, sizeof(prefix));
+    map.plane[0] = &cell;
+    map.stride_cells[0] = 1U;
+    map.columns[0] = 1U;
+    map.rows[0] = 1U;
+    prefix.tx_size = AV2H_TX_4X4;
+    prefix.q_index = 400U;
+    CHECK(sizeof(Av2hQIndex) == 2U);
+    CHECK(prefix.q_index == 400U);
+    CHECK(av2h_deblock_map_commit_transform(
+              &map, 0U, 0U, &leaf, &prefix, 0U, 0U, 0U) == AV2H_OK);
+    CHECK(cell.q_index == 400U);
 }
 
 static void copy_test_planes(Av2hFilterPlanes *destination,
@@ -1475,6 +1496,7 @@ static void test_fail_closed(void) {
 
 int main(void) {
     test_workspace_model();
+    test_wide_q_index_handoff();
     test_frame_decode_workspace_model();
     test_frame_workspace_prepare_rejection();
     test_filter_pipeline();
