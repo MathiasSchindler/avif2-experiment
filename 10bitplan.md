@@ -154,6 +154,11 @@ remains explicitly unsupported and nonmutating at workspace binding.
 
 ## 10B-WP2: Bind two-byte sample storage
 
+**Status:** Implemented on 2026-08-11. Typed U16 reconstruction, filter,
+scratch, and output owners; byte-aware initialization; alignment and extent
+validation; sample operations; and the deliberate reconstruction rejection are
+recorded in `docs/dev/10bit-wp2.md`.
+
 **Objective:** Convert prepared two-byte size accounting into typed, bounded
 workspace and output bindings.
 
@@ -173,7 +178,7 @@ workspace and output bindings.
 - Add one-byte/two-byte workspace canaries, exact-size success, one-byte-short
   failure, alignment failure, overlap failure, and arithmetic-overflow tests.
 
-**Exit gate:** Query and initialization agree exactly for both sample widths;
+**Exit gate:** Complete. Query and initialization agree exactly for both sample widths;
 all sample-backed regions are two-byte sized and aligned in the 10-bit case;
 unrelated maps retain their previous sizes; and every 8-bit workspace size is
 unchanged.

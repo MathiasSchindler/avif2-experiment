@@ -31,6 +31,17 @@ typedef struct {
 } Av2hReconstructionScratch;
 
 typedef struct {
+    int32_t scaled[AV2H_FIRST_COEFF_CAPACITY];
+    int32_t transposed[AV2H_FIRST_COEFF_CAPACITY];
+    int32_t residual[AV2H_FIRST_COEFF_CAPACITY];
+    uint16_t predictor[AV2H_RECON_SAMPLE_CAPACITY];
+    uint16_t above[128U];
+    uint16_t left[128U];
+    uint16_t secondary_above[128U];
+    uint16_t secondary_left[128U];
+} Av2hReconstructionScratchU16;
+
+typedef struct {
     uint8_t *data;
     size_t stride_samples;
     uint16_t width;
@@ -41,6 +52,18 @@ typedef struct {
     size_t reconstructed_stride_cells;
     size_t reconstructed_count_cells;
 } Av2hReconstructionPlane;
+
+typedef struct {
+    uint16_t *data;
+    size_t stride_samples;
+    uint16_t width;
+    uint16_t height;
+    uint16_t reference_width;
+    uint16_t reference_height;
+    uint8_t *reconstructed;
+    size_t reconstructed_stride_cells;
+    size_t reconstructed_count_cells;
+} Av2hReconstructionPlaneU16;
 
 typedef struct {
     const uint8_t *left;

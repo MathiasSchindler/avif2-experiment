@@ -5,11 +5,19 @@
 #include "tile.h"
 
 typedef struct {
+    Av2hFilterPlaneU16 plane[AV2H_FRAME_PLANE_COUNT];
+} Av2hPlanarOutputU16;
+
+typedef struct {
     Av2hReconstructionPlane coded[AV2H_FRAME_PLANE_COUNT];
+    Av2hReconstructionPlaneU16 coded_u16[AV2H_FRAME_PLANE_COUNT];
     size_t coded_data_size_bytes[AV2H_FRAME_PLANE_COUNT];
     Av2hTileContextStorage tile_context;
     Av2hReconstructionScratch *reconstruction_scratch;
+    Av2hReconstructionScratchU16 *reconstruction_scratch_u16;
     Av2hFilterWorkspace *filter_workspace;
+    Av2hPlanarOutputU16 output_u16;
+    uint8_t bytes_per_sample;
 } Av2hFrameDecodeWorkspace;
 
 typedef enum {

@@ -60,13 +60,15 @@ owner. The generated negative corpus covers valid unsupported 10-bit 4:2:2 and
 
 `av2h_query` succeeds for a canonical HEIF containing the locked stream and
 returns the exact U16 little-endian descriptor, plane layout, output size, and
-two-byte workspace size. `av2h_decode` then returns `AV2H_UNSUPPORTED` with
-`AV2H_CONTEXT_WORKSPACE` before changing any output byte.
+two-byte workspace size. At WP1 completion, `av2h_decode` then returned
+`AV2H_UNSUPPORTED` with `AV2H_CONTEXT_WORKSPACE` before changing any output
+byte.
 
-The boundary is owned by `av2h_frame_decode_workspace_init`, which still binds
-only one-byte sample planes. This explicit gate replaces the previous accidental
-layout mismatch and is the boundary 10B-WP2 will remove when it adds a
-byte-width-aware initializer.
+That boundary was owned by `av2h_frame_decode_workspace_init`, which then bound
+only one-byte sample planes. 10B-WP2 has since added byte-width-aware typed
+workspace and output binding. The current public path reaches reconstruction,
+returns `AV2H_UNSUPPORTED` with `AV2H_CONTEXT_DECODE`, and still leaves output
+unchanged.
 
 The raw decoder tool likewise exits 3 with `unsupported feature` and leaves a
 pre-existing output file unchanged. It does not advertise a 10-bit raw output

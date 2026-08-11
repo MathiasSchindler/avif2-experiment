@@ -309,9 +309,9 @@ static void test_public_decode(const PublicFixture *fixture) {
     free(allocation);
 }
 
-static void test_10bit_wp1_query(void) {
+static void test_10bit_wp2_binding(void) {
     const PublicFixture fixture = {
-        "10bit-wp1",
+        "10bit-wp2",
         "tests/fixtures/10bit/avm-reference/"
         "tiny-constrained-16x16-yuv420p10le-qp208.obu",
         0, 0U, 16U, 16U, 3U, 0U, 0U, 0U, 0
@@ -325,6 +325,7 @@ static void test_10bit_wp1_query(void) {
     Av2hHeifSource source;
     Av2hInfo info;
     Av2hError error;
+    Av2hStatus decode_status;
     unsigned char *allocation;
     unsigned char *workspace;
     unsigned char *output;
@@ -378,21 +379,31 @@ static void test_10bit_wp1_query(void) {
     CHECK(info.workspace_size != 0U && info.workspace_alignment == 4U);
 
     allocation_size = info.workspace_size + info.workspace_alignment - 1U +
-                      info.output_size;
+                      _Alignof(uint16_t) - 1U + info.output_size;
     allocation = (unsigned char *)malloc(allocation_size);
     CHECK(allocation != 0);
     workspace = (unsigned char *)(((uintptr_t)allocation +
         info.workspace_alignment - 1U) & ~(info.workspace_alignment - 1U));
-    output = workspace + info.workspace_size;
+    output = (unsigned char *)(((uintptr_t)(workspace + info.workspace_size) +
+        _Alignof(uint16_t) - 1U) & ~(_Alignof(uint16_t) - 1U));
     av2h_memory_fill(output, 0xa5U, info.output_size);
-    CHECK(av2h_decode(
-              (Av2hSpan){ container, container_size }, &info,
-              workspace, info.workspace_size, output, info.output_size,
-              &error) == AV2H_UNSUPPORTED);
-    CHECK(error.context == AV2H_CONTEXT_WORKSPACE);
+    decode_status = av2h_decode(
+        (Av2hSpan){ container, container_size }, &info,
+        workspace, info.workspace_size, output, info.output_size, &error);
+    if (decode_status != AV2H_UNSUPPORTED) {
+        fprintf(stderr, "10bit-wp2: decode status=%d context=%u offset=%zu\n",
+                (int)decode_status, error.context, error.offset);
+    }
+    CHECK(decode_status == AV2H_UNSUPPORTED);
+    CHECK(error.context == AV2H_CONTEXT_DECODE);
     for (index = 0U; index < info.output_size; ++index) {
         CHECK(output[index] == 0xa5U);
     }
+    CHECK(av2h_decode(
+              (Av2hSpan){ container, container_size }, &info,
+              workspace, info.workspace_size, workspace, info.output_size,
+              &error) == AV2H_INVALID_ARGUMENT);
+    CHECK(error.context == AV2H_CONTEXT_OUTPUT);
     free(allocation);
 }
 
@@ -401,7 +412,7 @@ int main(void) {
     for (index = 0U; index < sizeof(fixtures) / sizeof(fixtures[0]); ++index) {
         test_public_decode(&fixtures[index]);
     }
-    test_10bit_wp1_query();
+    test_10bit_wp2_binding();
     if (failures != 0) return 1;
     printf("public decode unit: pass\n");
     return 0;

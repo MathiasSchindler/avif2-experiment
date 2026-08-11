@@ -26,6 +26,19 @@ static int row_padding_is(
     return 1;
 }
 
+static int row_padding_is_u16(
+    const uint16_t *plane, size_t stride_samples,
+    size_t width, size_t height, uint16_t value) {
+    size_t row;
+    for (row = 0U; row < height; ++row) {
+        size_t column;
+        for (column = width; column < stride_samples; ++column) {
+            if (plane[row * stride_samples + column] != value) return 0;
+        }
+    }
+    return 1;
+}
+
 static void test_fill_copy_and_crop(void) {
     uint8_t source[3U * 6U];
     uint8_t copy[3U * 7U];
@@ -83,9 +96,54 @@ static void test_load_commit_and_store(void) {
     CHECK(av2h_sample_load_u8(destination, 6U, 2U, 1U) == 73U);
 }
 
+static void test_u16_operations(void) {
+    const Av2hSampleDomain domain = { 10U, 2U, 512U, 1023U };
+    uint16_t source[3U * 6U];
+    uint16_t copy[3U * 7U];
+    uint16_t crop[3U * 4U + 2U];
+    size_t row;
+    size_t column;
+    for (row = 0U; row < sizeof(source) / sizeof(source[0]); ++row) {
+        source[row] = 0xa5a5U;
+    }
+    for (row = 0U; row < sizeof(copy) / sizeof(copy[0]); ++row) {
+        copy[row] = 0x5a5aU;
+    }
+    for (row = 0U; row < sizeof(crop) / sizeof(crop[0]); ++row) {
+        crop[row] = 0xccccU;
+    }
+    av2h_plane_fill_u16(source, 6U, 4U, 3U, 700U);
+    for (row = 0U; row < 3U; ++row) {
+        for (column = 0U; column < 4U; ++column) {
+            CHECK(source[row * 6U + column] == 700U);
+        }
+    }
+    CHECK(row_padding_is_u16(source, 6U, 4U, 3U, 0xa5a5U));
+    av2h_plane_copy_u16(copy, 7U, source, 6U, 4U, 3U);
+    CHECK(row_padding_is_u16(copy, 7U, 4U, 3U, 0x5a5aU));
+    av2h_visible_crop_u16(&crop[1U], source, 6U, 4U, 3U);
+    CHECK(crop[0U] == 0xccccU);
+    CHECK(crop[sizeof(crop) / sizeof(crop[0]) - 1U] == 0xccccU);
+    for (row = 0U; row < 12U; ++row) CHECK(crop[row + 1U] == 700U);
+
+    CHECK(av2h_sample_load_u16(source, 6U, 2U, 1U) == 700U);
+    CHECK(av2h_reconstructed_sample_load_u16(source, 6U, 3U, 2U) == 700U);
+    CHECK(av2h_reference_load_u16(source, 6U, 4U, 3U, 99U, 0U) == 700U);
+    CHECK(av2h_reference_load_u16(source, 6U, 4U, 3U, 0U, 99U) == 700U);
+    av2h_predictor_commit_u16(copy, 7U, source, 6U, 4U, 3U);
+    av2h_sample_clip_store_u16(copy, 7U, 0U, 1U, -1, &domain);
+    av2h_sample_clip_store_u16(copy, 7U, 1U, 1U, 2048, &domain);
+    av2h_sample_store_u16(copy, 7U, 2U, 1U, 512U);
+    CHECK(av2h_sample_load_u16(copy, 7U, 0U, 1U) == 0U);
+    CHECK(av2h_sample_load_u16(copy, 7U, 1U, 1U) == 1023U);
+    CHECK(av2h_sample_load_u16(copy, 7U, 2U, 1U) == 512U);
+    CHECK(row_padding_is_u16(copy, 7U, 4U, 3U, 0x5a5aU));
+}
+
 int main(void) {
     test_fill_copy_and_crop();
     test_load_commit_and_store();
+    test_u16_operations();
     if (failures != 0) return 1;
     puts("sample ops unit: pass");
     return 0;

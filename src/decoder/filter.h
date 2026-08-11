@@ -15,6 +15,17 @@ typedef struct {
 } Av2hFilterPlanes;
 
 typedef struct {
+    uint16_t *data;
+    size_t stride_samples;
+    uint16_t width;
+    uint16_t height;
+} Av2hFilterPlaneU16;
+
+typedef struct {
+    Av2hFilterPlaneU16 plane[AV2H_FRAME_PLANE_COUNT];
+} Av2hFilterPlanesU16;
+
+typedef struct {
     const uint8_t *plane[AV2H_FRAME_PLANE_COUNT];
     size_t stride_units[AV2H_FRAME_PLANE_COUNT];
     size_t columns;
@@ -57,6 +68,8 @@ typedef struct {
 typedef struct {
     Av2hFilterPlanes deblocked;
     Av2hFilterPlanes cdef;
+    Av2hFilterPlanesU16 deblocked_u16;
+    Av2hFilterPlanesU16 cdef_u16;
     Av2hDeblockMap deblock_map;
     Av2hCdefControlMap cdef_controls;
     Av2hCcsoControlMap ccso_controls;
@@ -91,6 +104,13 @@ Av2hStatus av2h_filter_workspace_query_bytes(
     Av2hFilterWorkspaceLayout *layout);
 Av2hStatus av2h_filter_workspace_init(
     const Av2hFrameState *frame,
+    void *memory,
+    size_t memory_size_bytes,
+    Av2hFilterWorkspace *workspace,
+    Av2hFilterWorkspaceStorage *storage);
+Av2hStatus av2h_filter_workspace_init_bytes(
+    const Av2hFrameState *frame,
+    size_t bytes_per_sample,
     void *memory,
     size_t memory_size_bytes,
     Av2hFilterWorkspace *workspace,

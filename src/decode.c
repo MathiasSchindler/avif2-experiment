@@ -214,12 +214,21 @@ Av2hStatus av2h_decode(Av2hSpan input,
     }
     status = av2h_decode_prepare(&fresh.image, &preparation, error);
     if (status != AV2H_OK) return status;
-    status = av2h_frame_decode_workspace_init(
+    status = av2h_frame_decode_workspace_init_bytes(
         &preparation.sequence, &preparation.frame,
+        fresh.image.pixel_format.bytes_per_sample,
         &preparation.workspace, workspace_memory, workspace_size,
         &workspace, &filter_workspace, &filter_storage);
     if (status != AV2H_OK) {
         return decode_fail(error, status, AV2H_CONTEXT_WORKSPACE);
+    }
+    if (fresh.image.pixel_format.bytes_per_sample == 2U) {
+        status = av2h_planar_output_bind_u16(
+            &preparation.frame, output_memory, output_size,
+            &workspace.output_u16);
+        if (status != AV2H_OK) {
+            return decode_fail(error, status, AV2H_CONTEXT_OUTPUT);
+        }
     }
     av2h_memory_fill(&result, 0U, sizeof(result));
     status = av2h_decode_frame_planar_private(

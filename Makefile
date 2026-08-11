@@ -56,7 +56,7 @@ OBJDUMP ?= objdump
 	reference-avm-negatives generate-10bit-sources \
 	generate-10bit-avm-references generate-10bit-synthetic \
 	generate-10bit-synthetic-references generate-10bit-negatives \
-	10bit-wp0 10bit-wp0-reference 10bit-wp1 10bit-wp10 10bit-wp12 \
+	10bit-wp0 10bit-wp0-reference 10bit-wp1 10bit-wp2 10bit-wp10 10bit-wp12 \
 	test-carriage-reference test-artifact-lab \
 	test-decoder-evidence test-reconstruction test-filter-parity
 
@@ -128,6 +128,12 @@ generate-10bit-negatives: reference-avm-negatives
 	ctest --preset $(HOST_PRESET) $(CTEST_ARGS) $(CTEST_PARALLEL_ARGS) \
 		-R '^(container-unit|frame-unit|output-layout-unit|pixel-format-unit|public-decode-unit|workspace-accounting-unit)$$'
 	$(PYTHON) -m unittest tests.test_10bit_negative_fixtures
+	$(PYTHON) tools/check_10bit_wp0_oracle.py verify \
+		--decoder "$(HOST_BUILD_DIR)/av2heif-decoder"
+
+10bit-wp2: test-host-build
+	ctest --preset $(HOST_PRESET) $(CTEST_ARGS) $(CTEST_PARALLEL_ARGS) \
+		-R '^(layout-unit|public-decode-unit|sample-ops-unit|workspace-accounting-unit)$$'
 	$(PYTHON) tools/check_10bit_wp0_oracle.py verify \
 		--decoder "$(HOST_BUILD_DIR)/av2heif-decoder"
 

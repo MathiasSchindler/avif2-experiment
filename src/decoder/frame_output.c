@@ -41,11 +41,12 @@ Av2hStatus av2h_decode_frame_planar_private(
         if (result != 0) *result = decoded;                                    \
         return (returned_status);                                              \
     } while (0)
-    if (sequence == 0 || frame == 0 || workspace == 0 || output == 0 ||
-        workspace->reconstruction_scratch == 0 ||
-        workspace->filter_workspace == 0) {
+    if (sequence == 0 || frame == 0 || workspace == 0 || output == 0) {
         return AV2H_INVALID_ARGUMENT;
     }
+    if (workspace->bytes_per_sample != 1U) return AV2H_UNSUPPORTED;
+    if (workspace->reconstruction_scratch == 0 ||
+        workspace->filter_workspace == 0) return AV2H_INVALID_ARGUMENT;
     if (sequence->enable_restoration != 0U) return AV2H_UNSUPPORTED;
     status = av2h_planar_output_size(frame, &required_output_bytes);
     if (status != AV2H_OK) return status;

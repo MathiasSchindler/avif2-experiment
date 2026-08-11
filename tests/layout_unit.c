@@ -43,10 +43,18 @@ static void test_64_bit_decoder_layout(void) {
     CHECK(_Alignof(Av2hTileDecoder) == 8U);
     CHECK(sizeof(Av2hReconstructionScratch) == 16896U);
     CHECK(_Alignof(Av2hReconstructionScratch) == 4U);
+    CHECK(sizeof(Av2hReconstructionScratchU16) == 21504U);
+    CHECK(_Alignof(Av2hReconstructionScratchU16) == 4U);
     CHECK(sizeof(Av2hReconstructionPlane) == 48U);
     CHECK(_Alignof(Av2hReconstructionPlane) == 8U);
+    CHECK(sizeof(Av2hReconstructionPlaneU16) == 48U);
+    CHECK(_Alignof(Av2hReconstructionPlaneU16) == 8U);
     CHECK(sizeof(Av2hFilterPlane) == 24U);
     CHECK(_Alignof(Av2hFilterPlane) == 8U);
+    CHECK(sizeof(Av2hFilterPlaneU16) == 24U);
+    CHECK(_Alignof(Av2hFilterPlaneU16) == 8U);
+    CHECK(sizeof(Av2hFilterPlanesU16) == 72U);
+    CHECK(_Alignof(Av2hFilterPlanesU16) == 8U);
     CHECK(sizeof(Av2hDeblockCell) == 14U);
     CHECK(_Alignof(Av2hDeblockCell) == 2U);
     CHECK(sizeof(Av2hCcsoControlMap) == 64U);
@@ -55,7 +63,7 @@ static void test_64_bit_decoder_layout(void) {
     CHECK(_Alignof(Av2hGdfControlMap) == 8U);
     CHECK(sizeof(Av2hDeblockMap) == 96U);
     CHECK(_Alignof(Av2hDeblockMap) == 8U);
-    CHECK(sizeof(Av2hFilterWorkspace) == 368U);
+    CHECK(sizeof(Av2hFilterWorkspace) == 512U);
     CHECK(_Alignof(Av2hFilterWorkspace) == 8U);
     CHECK(sizeof(Av2hFilterWorkspaceLayout) == 152U);
     CHECK(_Alignof(Av2hFilterWorkspaceLayout) == 8U);

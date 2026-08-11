@@ -89,5 +89,6 @@ sample index, x/y coordinate, expected value, and actual value.
 WP0 changed no production decoder admission or arithmetic. At WP0 completion,
 ten-bit input failed at the explicit frame support gate before output mutation.
 10B-WP1 subsequently admitted the constrained syntax and moved the deliberate
-unsupported boundary to two-byte workspace binding; later packages own the
-remaining normative implementation.
+unsupported boundary to two-byte workspace binding. 10B-WP2 subsequently
+bound typed two-byte storage and moved that boundary to reconstruction; later
+packages own the remaining normative implementation.

@@ -24,6 +24,7 @@ static void initialize(Av2hSequenceState *sequence,
     sequence->superblock_size = 64U;
     frame->width = width;
     frame->height = height;
+    frame->plane_count = chroma_format_idc == 1U ? 1U : 3U;
     frame->chroma_format_idc = chroma_format_idc;
 }
 
@@ -33,7 +34,8 @@ static size_t stage_sample_count(const Av2hFilterWorkspaceLayout *layout) {
 }
 
 static void test_storage_width_accounting(uint8_t chroma_format_idc) {
-    static _Alignas(max_align_t) uint8_t memory[128U * 1024U];
+    static _Alignas(max_align_t) uint8_t storage_memory[
+        128U * 1024U + 2U * _Alignof(max_align_t)];
     Av2hSequenceState sequence;
     Av2hFrameState frame;
     Av2hFilterWorkspaceLayout filter_u8;
@@ -43,8 +45,13 @@ static void test_storage_width_accounting(uint8_t chroma_format_idc) {
     Av2hFrameDecodeWorkspace workspace;
     Av2hFilterWorkspace filter_workspace;
     Av2hFilterWorkspaceStorage filter_storage;
+    Av2hPlanarOutputU16 output_planes;
+    static _Alignas(uint16_t) uint8_t output_memory[2048U];
+    size_t output_size;
     size_t sample_count;
     size_t coded_plane_alignment_padding;
+    uint8_t *memory = storage_memory + _Alignof(max_align_t);
+    unsigned int plane;
     initialize(&sequence, &frame, 17U, 15U, chroma_format_idc);
     CHECK(av2h_filter_workspace_query_bytes(
               &frame, 1U, &filter_u8) == AV2H_OK);
@@ -73,10 +80,15 @@ static void test_storage_width_accounting(uint8_t chroma_format_idc) {
           coded_plane_alignment_padding);
     CHECK(workspace_u16.alignment == workspace_u8.alignment);
     CHECK(workspace_u8.size_bytes != 0U);
-        CHECK(workspace_u16.size_bytes <= sizeof(memory));
+          CHECK(workspace_u16.size_bytes <=
+              sizeof(storage_memory) - 2U * _Alignof(max_align_t));
         CHECK(av2h_frame_decode_workspace_init(
-              &sequence, &frame, &workspace_u8, memory, sizeof(memory),
+              &sequence, &frame, &workspace_u8, memory,
+              workspace_u8.size_bytes,
               &workspace, &filter_workspace, &filter_storage) == AV2H_OK);
+          CHECK(workspace.bytes_per_sample == 1U);
+          CHECK(workspace.reconstruction_scratch != 0);
+          CHECK(workspace.reconstruction_scratch_u16 == 0);
         CHECK(workspace.coded[0].reconstructed_stride_cells >=
             ((size_t)workspace.coded[0].width + 3U) / 4U);
             CHECK(workspace.coded[0].reconstructed_count_cells >=
@@ -86,20 +98,108 @@ static void test_storage_width_accounting(uint8_t chroma_format_idc) {
         av2h_memory_fill(&filter_workspace, 0xa5U, sizeof(filter_workspace));
         av2h_memory_fill(&filter_storage, 0xa5U, sizeof(filter_storage));
         CHECK(av2h_frame_decode_workspace_init(
-              &sequence, &frame, &workspace_u16, memory, sizeof(memory),
+              &sequence, &frame, &workspace_u16, memory,
+              workspace_u16.size_bytes,
               &workspace, &filter_workspace, &filter_storage) ==
             AV2H_INVALID_ARGUMENT);
         CHECK(((const uint8_t *)&workspace)[0] == 0xa5U);
         CHECK(((const uint8_t *)&filter_workspace)[0] == 0xa5U);
         CHECK(((const uint8_t *)&filter_storage)[0] == 0xa5U);
         sequence.info.bit_depth_idc = 0U;
-        CHECK(av2h_frame_decode_workspace_init(
-              &sequence, &frame, &workspace_u16, memory, sizeof(memory),
+        av2h_memory_fill(storage_memory, 0xa5U, sizeof(storage_memory));
+        CHECK(av2h_frame_decode_workspace_init_bytes(
+              &sequence, &frame, 2U, &workspace_u16, memory,
+              workspace_u16.size_bytes,
               &workspace, &filter_workspace, &filter_storage) ==
-            AV2H_UNSUPPORTED);
-        CHECK(((const uint8_t *)&workspace)[0] == 0xa5U);
-        CHECK(((const uint8_t *)&filter_workspace)[0] == 0xa5U);
-        CHECK(((const uint8_t *)&filter_storage)[0] == 0xa5U);
+            AV2H_OK);
+        CHECK(storage_memory[_Alignof(max_align_t) - 1U] == 0xa5U);
+        CHECK(memory[workspace_u16.size_bytes] == 0xa5U);
+        CHECK(workspace.bytes_per_sample == 2U);
+        CHECK(workspace.reconstruction_scratch == 0);
+        CHECK(workspace.reconstruction_scratch_u16 != 0);
+        CHECK(((uintptr_t)workspace.reconstruction_scratch_u16 & 1U) == 0U);
+        for (plane = 0U; plane < av2h_frame_plane_count(&frame); ++plane) {
+            CHECK(workspace.coded[plane].data == 0);
+            CHECK(workspace.coded_u16[plane].data != 0);
+            CHECK(((uintptr_t)workspace.coded_u16[plane].data & 1U) == 0U);
+            CHECK(workspace.coded_u16[plane].stride_samples ==
+                  filter_u16.plane_width[plane]);
+            CHECK(workspace.coded_u16[plane].reconstructed != 0);
+            CHECK(sizeof(*workspace.coded_u16[plane].reconstructed) == 1U);
+            CHECK(filter_workspace.deblocked.plane[plane].data == 0);
+            CHECK(filter_workspace.cdef.plane[plane].data == 0);
+            CHECK(filter_workspace.deblocked_u16.plane[plane].data != 0);
+            CHECK(filter_workspace.cdef_u16.plane[plane].data != 0);
+            CHECK(((uintptr_t)
+                  filter_workspace.deblocked_u16.plane[plane].data & 1U) ==
+                  0U);
+            CHECK(((uintptr_t)
+                  filter_workspace.cdef_u16.plane[plane].data & 1U) == 0U);
+            CHECK(filter_storage.deblock_cells[plane] != 0);
+            CHECK(filter_storage.ccso_controls[plane] != 0);
+            CHECK(sizeof(*filter_storage.ccso_controls[plane]) == 1U);
+        }
+        CHECK(av2h_planar_output_size_bytes(
+                  &frame, 2U, &output_size) == AV2H_OK);
+        CHECK(output_size + 2U <= sizeof(output_memory));
+        av2h_memory_fill(output_memory, 0xa5U, sizeof(output_memory));
+        CHECK(av2h_planar_output_bind_u16(
+                  &frame, output_memory, output_size,
+                  &output_planes) == AV2H_OK);
+        CHECK(output_planes.plane[0].data == (uint16_t *)output_memory);
+        CHECK(output_planes.plane[0].stride_samples == frame.width);
+        CHECK(output_planes.plane[0].width == frame.width);
+        CHECK(output_planes.plane[0].height == frame.height);
+        if (chroma_format_idc == 1U) {
+            CHECK(output_planes.plane[1].data == 0);
+            CHECK(output_planes.plane[2].data == 0);
+        } else {
+            size_t chroma_width = av2h_frame_plane_dimension(
+                &frame, 1U, frame.width);
+            size_t chroma_height = av2h_frame_plane_dimension(
+                &frame, 1U, frame.height);
+            CHECK((uint8_t *)output_planes.plane[1].data ==
+                  output_memory + (size_t)frame.width * frame.height * 2U);
+            CHECK(output_planes.plane[1].stride_samples == chroma_width);
+            CHECK(output_planes.plane[1].width == chroma_width);
+            CHECK(output_planes.plane[1].height == chroma_height);
+            CHECK((uint8_t *)output_planes.plane[2].data ==
+                  (uint8_t *)output_planes.plane[1].data +
+                  chroma_width * chroma_height * 2U);
+        }
+        av2h_memory_fill(&output_planes, 0xa5U, sizeof(output_planes));
+        CHECK(av2h_planar_output_bind_u16(
+                  &frame, output_memory, output_size - 1U,
+                  &output_planes) == AV2H_OUT_OF_MEMORY);
+        CHECK(((const uint8_t *)&output_planes)[0] == 0xa5U);
+        CHECK(av2h_planar_output_bind_u16(
+                  &frame, output_memory + 1U, output_size,
+                  &output_planes) == AV2H_INVALID_ARGUMENT);
+        CHECK(((const uint8_t *)&output_planes)[0] == 0xa5U);
+
+#define CHECK_U16_INIT_FAILURE(expected, pointer, size, candidate_layout)     \
+    do {                                                                       \
+        av2h_memory_fill(&workspace, 0xa5U, sizeof(workspace));                \
+        av2h_memory_fill(                                                       \
+            &filter_workspace, 0xa5U, sizeof(filter_workspace));              \
+        av2h_memory_fill(&filter_storage, 0xa5U, sizeof(filter_storage));      \
+        CHECK(av2h_frame_decode_workspace_init_bytes(                          \
+              &sequence, &frame, 2U, (candidate_layout), (pointer), (size),   \
+              &workspace, &filter_workspace, &filter_storage) == (expected)); \
+        CHECK(((const uint8_t *)&workspace)[0] == 0xa5U);                     \
+        CHECK(((const uint8_t *)&filter_workspace)[0] == 0xa5U);              \
+        CHECK(((const uint8_t *)&filter_storage)[0] == 0xa5U);                \
+    } while (0)
+        CHECK_U16_INIT_FAILURE(
+            AV2H_OUT_OF_MEMORY, memory, workspace_u16.size_bytes - 1U,
+            &workspace_u16);
+        CHECK_U16_INIT_FAILURE(
+            AV2H_INVALID_ARGUMENT, memory + 1U, workspace_u16.size_bytes,
+            &workspace_u16);
+        CHECK_U16_INIT_FAILURE(
+            AV2H_INVALID_ARGUMENT, memory, workspace_u16.size_bytes,
+            &workspace_u8);
+#undef CHECK_U16_INIT_FAILURE
 }
 
 static void test_maximum_workspace(void) {
