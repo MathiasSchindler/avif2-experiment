@@ -112,3 +112,35 @@ Av2hStatus av2h_filter_frame(
     }
     return AV2H_OK;
 }
+
+Av2hStatus av2h_filter_stage_u16(
+    const Av2hFilterPlanesU16 *reconstructed,
+    const Av2hSequenceState *sequence,
+    const Av2hFrameState *frame,
+    Av2hFilterWorkspace *workspace) {
+    Av2hStatus status;
+    if (reconstructed == 0 || sequence == 0 || frame == 0 || workspace == 0 ||
+        sequence->info.bit_depth_idc != 0U ||
+        (frame->cdef_strength_count != 0U && sequence->enable_cdef == 0U) ||
+        ((frame->ccso[0].enabled != 0U ||
+          frame->ccso[1].enabled != 0U ||
+          frame->ccso[2].enabled != 0U) && sequence->enable_ccso == 0U) ||
+        !filter_dimensions_valid_u16(reconstructed, frame) ||
+        !filter_dimensions_valid_u16(&workspace->deblocked_u16, frame) ||
+        !filter_dimensions_valid_u16(&workspace->cdef_u16, frame) ||
+        !av2h_ccso_parameters_valid(frame) ||
+        !av2h_ccso_controls_valid(frame, &workspace->ccso_controls)) {
+        return AV2H_INVALID_ARGUMENT;
+    }
+    status = av2h_deblock_stage_u16(
+        reconstructed, sequence, frame, workspace);
+    if (status != AV2H_OK) return status;
+    status = av2h_cdef_filter_frame_u16_with_controls(
+        &workspace->cdef_u16, &workspace->deblocked_u16, frame,
+        &workspace->cdef_controls);
+    if (status != AV2H_OK) return status;
+    return av2h_ccso_filter_frame_u16(
+        &workspace->cdef_u16, workspace->deblocked_u16.plane[0].data,
+        workspace->deblocked_u16.plane[0].stride_samples, frame,
+        &workspace->ccso_controls);
+}

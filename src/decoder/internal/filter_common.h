@@ -73,4 +73,12 @@ static inline void filter_copy_plane(
         source->width, source->height);
 }
 
+static inline void filter_copy_plane_u16(
+    Av2hFilterPlaneU16 *destination, const Av2hFilterPlaneU16 *source) {
+    av2h_plane_copy_u16(
+        destination->data, destination->stride_samples,
+        source->data, source->stride_samples,
+        source->width, source->height);
+}
+
 #endif

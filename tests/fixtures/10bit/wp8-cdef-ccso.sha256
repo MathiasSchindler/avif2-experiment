@@ -1,0 +1,10 @@
+90bb614f75e7d1d743bcc39c5ec7ffac898d37805a63fec7ddbdc78e97c2e979  tests/fixtures/10bit/avm-reference/tiny-precision-16x16-yuv420p10le-qp093-decoded.yuv
+5e66ed8eb5b5fd1f0e8b395ae0916d60a3f29855a3070a4c5e405a12b06aa595  tests/fixtures/10bit/avm-reference/tiny-precision-16x16-yuv420p10le-qp094-decoded.yuv
+d1b189f6132a9c3c42968d7d960579e6ad61b72048a1e0c6e50d5e8804af2b2a  tests/fixtures/10bit/avm-reference/tiny-precision-16x16-yuv420p10le-qp096-decoded.yuv
+f0828aa5aebd33451b174a81cc495a307505360bd74ba819dbb58d6d4f4e22c7  tests/fixtures/10bit/avm-reference/tiny-precision-16x16-yuv420p10le-qp104-decoded.yuv
+26efe407efc86e2cc69d24d43958ad4fe6bf65af64ad05135f983d0324536312  tests/fixtures/10bit/avm-reference/tiny-precision-16x16-yuv420p10le-qp121-decoded.yuv
+cd20cc2301c1219b2f46403a25207833acef18ca9f3aaff4cc1a25fe802cb9d8  tests/fixtures/10bit/avm-reference/tiny-precision-16x16-yuv420p10le-qp122-decoded.yuv
+adfe05ade96c15a3fab4e8d405a4a31edfe6a850f93e9a0b9e738a7ff3644a27  tests/fixtures/10bit/avm-reference/tiny-precision-16x16-yuv420p10le-qp124-decoded.yuv
+a5e915387512f991c3edec041e91aed7ad544da7a864afedd62c8cb1a86befa1  tests/fixtures/10bit/avm-reference/tiny-precision-16x16-yuv420p10le-qp125-decoded.yuv
+24da13ddbe5c1141ceac72ff447f99fe43763d9e580e02353ccf73694a6329ee  tests/fixtures/10bit/avm-reference/tiny-precision-16x16-yuv420p10le-qp128-decoded.yuv
+7a13a54317246f234000edaeb7b5a30c6271dce0a19396253e3fb3e664e55e3d  tests/fixtures/10bit/avm-reference/tiny-precision-16x16-yuv420p10le-qp131-decoded.yuv

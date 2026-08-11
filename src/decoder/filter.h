@@ -156,9 +156,28 @@ Av2hStatus av2h_cdef_find_direction(
     uint16_t y,
     uint8_t *direction,
     uint32_t *variance);
+Av2hStatus av2h_cdef_find_direction_u16(
+    const Av2hFilterPlaneU16 *luma,
+    uint16_t x,
+    uint16_t y,
+    uint8_t *direction,
+    uint32_t *variance);
 Av2hStatus av2h_cdef_filter_block(
     Av2hFilterPlane *destination,
     const Av2hFilterPlane *source,
+    uint16_t x,
+    uint16_t y,
+    uint16_t width,
+    uint16_t height,
+    unsigned int plane_index,
+    uint8_t primary_strength,
+    uint8_t secondary_strength,
+    uint8_t damping,
+    uint8_t direction,
+    uint32_t variance);
+Av2hStatus av2h_cdef_filter_block_u16(
+    Av2hFilterPlaneU16 *destination,
+    const Av2hFilterPlaneU16 *source,
     uint16_t x,
     uint16_t y,
     uint16_t width,
@@ -177,6 +196,15 @@ Av2hStatus av2h_cdef_filter_frame(
 Av2hStatus av2h_cdef_filter_frame_with_controls(
     Av2hFilterPlanes *destination,
     const Av2hFilterPlanes *deblocked,
+    const Av2hFrameState *frame,
+    const Av2hCdefControlMap *controls);
+Av2hStatus av2h_cdef_filter_frame_u16(
+    Av2hFilterPlanesU16 *destination,
+    const Av2hFilterPlanesU16 *deblocked,
+    const Av2hFrameState *frame);
+Av2hStatus av2h_cdef_filter_frame_u16_with_controls(
+    Av2hFilterPlanesU16 *destination,
+    const Av2hFilterPlanesU16 *deblocked,
     const Av2hFrameState *frame,
     const Av2hCdefControlMap *controls);
 
@@ -198,6 +226,17 @@ Av2hStatus av2h_ccso_filter_frame(
     size_t pre_cdef_luma_stride_samples,
     const Av2hFrameState *frame,
     const Av2hCcsoControlMap *controls);
+Av2hStatus av2h_ccso_filter_frame_u16(
+    Av2hFilterPlanesU16 *planes,
+    const uint16_t *pre_cdef_luma,
+    size_t pre_cdef_luma_stride_samples,
+    const Av2hFrameState *frame,
+    const Av2hCcsoControlMap *controls);
+Av2hStatus av2h_filter_stage_u16(
+    const Av2hFilterPlanesU16 *reconstructed,
+    const Av2hSequenceState *sequence,
+    const Av2hFrameState *frame,
+    Av2hFilterWorkspace *workspace);
 
 Av2hStatus av2h_filter_frame(
     Av2hFilterPlanes *planes,

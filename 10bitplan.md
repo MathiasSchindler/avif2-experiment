@@ -313,6 +313,12 @@ plane matches AVM exactly at both sample widths.
 
 ## 10B-WP8: Implement 10-bit CDEF and CCSO
 
+**Status:** Implemented. Typed U16 CDEF direction/filter arithmetic, typed
+CCSO classification and stores, bounded deblock-to-CCSO dispatch, odd-geometry
+vectors, and exact retained AVM stage parity are recorded in
+`docs/dev/10bit-wp8.md`. Public 10-bit decode remains at the nonmutating filter
+boundary until WP9 completes GDF and final output.
+
 **Objective:** Port the mandatory directional and cross-component filter
 arithmetic to the 10-bit sample domain.
 
@@ -326,8 +332,10 @@ arithmetic to the 10-bit sample domain.
   geometry.
 - Add isolated boundary vectors and stage-local full-frame comparisons.
 
-**Exit gate:** CDEF and CCSO stage outputs match pinned AVM independently for
-filter-bearing tiny, boundary-extreme, and odd-geometry 4:2:0 fixtures.
+**Exit gate:** Complete. Seven CDEF-only, one CCSO-only, and two combined
+filter-bearing tiny 4:2:0 outputs match pinned AVM exactly. Focused vectors
+retain boundary-extreme arithmetic, controls, clipping, and odd visible/coded
+geometry.
 
 ## 10B-WP9: Implement 10-bit GDF and final private output
 

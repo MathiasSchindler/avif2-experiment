@@ -129,6 +129,29 @@ static unsigned int ccso_class(uint8_t neighbor,
     return difference > (int)threshold ? 2U : 1U;
 }
 
+static uint16_t luma_sample_u16(const uint16_t *luma,
+                                size_t stride_samples,
+                                uint16_t width,
+                                uint16_t height,
+                                int x,
+                                int y) {
+    if (x < 0) x = 0;
+    if (y < 0) y = 0;
+    if (x >= (int)width) x = (int)width - 1;
+    if (y >= (int)height) y = (int)height - 1;
+    return luma[(size_t)y * stride_samples + (size_t)x];
+}
+
+static unsigned int ccso_class_u16(uint16_t neighbor,
+                                   uint16_t center,
+                                   uint16_t threshold,
+                                   uint8_t edge_classifier) {
+    int difference = (int)neighbor - (int)center;
+    if (difference < -(int)threshold) return 0U;
+    if (edge_classifier != 0U) return 1U;
+    return difference > (int)threshold ? 2U : 1U;
+}
+
 static void ccso_filter_plane(Av2hFilterPlane *destination,
                               const uint8_t *luma,
                               size_t luma_stride_samples,
@@ -195,6 +218,77 @@ static void ccso_filter_plane(Av2hFilterPlane *destination,
     }
 }
 
+static void ccso_filter_plane_u16(Av2hFilterPlaneU16 *destination,
+                                  const uint16_t *luma,
+                                  size_t luma_stride_samples,
+                                  uint16_t luma_width,
+                                  uint16_t luma_height,
+                                  const Av2hCcsoPlane *parameters,
+                                  const uint8_t *controls,
+                                  size_t control_stride_units,
+                                  uint16_t luma_unit_size,
+                                  unsigned int subsampling) {
+    unsigned int unit_size = luma_unit_size >> subsampling;
+    unsigned int shift = 10U - parameters->max_band_log2;
+    uint16_t threshold = ccso_quant_size[parameters->scale_index]
+                                        [parameters->quant_index];
+    int first_x = 0;
+    int first_y = 0;
+    int second_x = 0;
+    int second_y = 0;
+    uint16_t y;
+    if (parameters->band_only == 0U) {
+        ccso_sample_offsets(parameters->extended_filter_support,
+                            &first_x, &first_y, &second_x, &second_y);
+    }
+    for (y = 0U; y < destination->height; ++y) {
+        uint16_t x;
+        for (x = 0U; x < destination->width; ++x) {
+            size_t control_row = y / unit_size;
+            size_t control_column = x / unit_size;
+            int luma_x;
+            int luma_y;
+            uint16_t center;
+            unsigned int first_class = 0U;
+            unsigned int second_class = 0U;
+            unsigned int band;
+            size_t lut_index;
+            size_t destination_index;
+            if (controls[control_row * control_stride_units + control_column] ==
+                0U) {
+                continue;
+            }
+            luma_x = (int)((uint32_t)x << subsampling);
+            luma_y = (int)((uint32_t)y << subsampling);
+            center = luma_sample_u16(
+                luma, luma_stride_samples, luma_width, luma_height,
+                luma_x, luma_y);
+            if (parameters->band_only == 0U) {
+                first_class = ccso_class_u16(
+                    luma_sample_u16(
+                        luma, luma_stride_samples, luma_width, luma_height,
+                        luma_x + first_x, luma_y + first_y),
+                    center, threshold, parameters->edge_classifier);
+                second_class = ccso_class_u16(
+                    luma_sample_u16(
+                        luma, luma_stride_samples, luma_width, luma_height,
+                        luma_x + second_x, luma_y + second_y),
+                    center, threshold, parameters->edge_classifier);
+            }
+            band = parameters->max_band_log2 == 0U ?
+                0U : (unsigned int)center >> shift;
+            lut_index = ((size_t)band << 4U) +
+                        ((size_t)first_class << 2U) + second_class;
+            destination_index = (size_t)y * destination->stride_samples + x;
+            av2h_sample_clip_store_u16(
+                destination->data, destination->stride_samples, x, y,
+                (int)destination->data[destination_index] +
+                    parameters->filter_offset[lut_index],
+                &av2h_sample_domain_10bit);
+        }
+    }
+}
+
 Av2hStatus av2h_ccso_filter_frame(
     Av2hFilterPlanes *planes,
     const uint8_t *pre_cdef_luma,
@@ -218,6 +312,35 @@ Av2hStatus av2h_ccso_filter_frame(
                           controls->plane[plane], controls->stride_units[plane],
                           av2h_filter_ccso_unit_size(frame),
                           av2h_chroma_shift(frame->chroma_format_idc, plane));
+    }
+    return AV2H_OK;
+}
+
+Av2hStatus av2h_ccso_filter_frame_u16(
+    Av2hFilterPlanesU16 *planes,
+    const uint16_t *pre_cdef_luma,
+    size_t pre_cdef_luma_stride_samples,
+    const Av2hFrameState *frame,
+    const Av2hCcsoControlMap *controls) {
+    unsigned int plane;
+    if (planes == 0 || pre_cdef_luma == 0 || frame == 0 ||
+        frame->width == 0U || frame->height == 0U ||
+        pre_cdef_luma_stride_samples <
+            av2h_filter_coded_dimension(frame->width) ||
+        !filter_dimensions_valid_u16(planes, frame) ||
+        !av2h_ccso_parameters_valid(frame) ||
+        !av2h_ccso_controls_valid(frame, controls)) {
+        return AV2H_INVALID_ARGUMENT;
+    }
+    for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
+        if (frame->ccso[plane].enabled == 0U) continue;
+        ccso_filter_plane_u16(
+            &planes->plane[plane], pre_cdef_luma,
+            pre_cdef_luma_stride_samples, planes->plane[0].width,
+            planes->plane[0].height, &frame->ccso[plane],
+            controls->plane[plane], controls->stride_units[plane],
+            av2h_filter_ccso_unit_size(frame),
+            av2h_chroma_shift(frame->chroma_format_idc, plane));
     }
     return AV2H_OK;
 }

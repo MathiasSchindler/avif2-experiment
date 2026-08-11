@@ -1135,6 +1135,94 @@ static void test_cdef(void) {
           AV2H_INVALID_ARGUMENT);
 }
 
+static void test_cdef_u16(void) {
+    uint16_t source_data[16U * 16U];
+    uint16_t destination_data[16U * 16U];
+    Av2hFilterPlaneU16 source = { source_data, 16U, 16U, 16U };
+    Av2hFilterPlaneU16 destination = {
+        destination_data, 16U, 16U, 16U
+    };
+    uint8_t direction;
+    uint32_t variance;
+    size_t row;
+    size_t column;
+    for (row = 0U; row < 16U; ++row) {
+        for (column = 0U; column < 16U; ++column) {
+            source_data[row * 16U + column] = 512U;
+            destination_data[row * 16U + column] = 512U;
+        }
+    }
+    CHECK(av2h_cdef_find_direction_u16(
+              &source, 0U, 0U, &direction, &variance) == AV2H_OK);
+    CHECK(direction == 0U && variance == 0U);
+    for (row = 0U; row < 8U; ++row) {
+        for (column = 0U; column < 8U; ++column) {
+            source_data[row * 16U + column] = (uint16_t)(column * 64U);
+        }
+    }
+    CHECK(av2h_cdef_find_direction_u16(
+              &source, 0U, 0U, &direction, &variance) == AV2H_OK);
+    CHECK(direction == 6U && variance != 0U);
+    for (row = 0U; row < 16U; ++row) {
+        for (column = 0U; column < 16U; ++column) {
+            source_data[row * 16U + column] = 400U;
+            destination_data[row * 16U + column] = 400U;
+        }
+    }
+    source_data[8U * 16U + 8U] = 560U;
+    destination_data[8U * 16U + 8U] = 560U;
+    CHECK(av2h_cdef_filter_block_u16(
+              &destination, &source, 8U, 8U, 8U, 8U, 0U,
+              14U, 0U, 5U, 2U, 262144U) == AV2H_OK);
+    CHECK(destination_data[8U * 16U + 8U] == 548U);
+    CHECK(source_data[8U * 16U + 8U] == 560U);
+}
+
+static void test_cdef_u16_odd_geometry(void) {
+    uint16_t source_y[24U * 16U];
+    uint16_t source_u[12U * 8U];
+    uint16_t source_v[12U * 8U];
+    uint16_t destination_y[24U * 16U];
+    uint16_t destination_u[12U * 8U];
+    uint16_t destination_v[12U * 8U];
+    Av2hFilterPlanesU16 source;
+    Av2hFilterPlanesU16 destination;
+    Av2hFrameState frame;
+    size_t index;
+    av2h_memory_fill(&frame, 0U, sizeof(frame));
+    for (index = 0U; index < 24U * 16U; ++index) {
+        source_y[index] = 400U;
+        destination_y[index] = 0U;
+    }
+    for (index = 0U; index < 12U * 8U; ++index) {
+        source_u[index] = 400U;
+        source_v[index] = 400U;
+        destination_u[index] = 0U;
+        destination_v[index] = 0U;
+    }
+    source_u[7U * 12U + 10U] = 456U;
+    source.plane[0] = (Av2hFilterPlaneU16){ source_y, 24U, 24U, 16U };
+    source.plane[1] = (Av2hFilterPlaneU16){ source_u, 12U, 12U, 8U };
+    source.plane[2] = (Av2hFilterPlaneU16){ source_v, 12U, 12U, 8U };
+    destination.plane[0] =
+        (Av2hFilterPlaneU16){ destination_y, 24U, 24U, 16U };
+    destination.plane[1] =
+        (Av2hFilterPlaneU16){ destination_u, 12U, 12U, 8U };
+    destination.plane[2] =
+        (Av2hFilterPlaneU16){ destination_v, 12U, 12U, 8U };
+    frame.width = 17U;
+    frame.height = 15U;
+    frame.cdef_strength_count = 1U;
+    frame.cdef_on_skip_transform = 1U;
+    frame.cdef_damping = 5U;
+    frame.cdef_uv_strength[0] = 56U;
+    CHECK(av2h_cdef_filter_frame_u16(
+              &destination, &source, &frame) == AV2H_OK);
+    CHECK(destination_y[15U * 24U + 23U] == 400U);
+    CHECK(destination_u[7U * 12U + 10U] < 456U);
+    CHECK(source_u[7U * 12U + 10U] == 456U);
+}
+
 static void test_cdef_rounding_and_parameters(void) {
     uint8_t source_data[8U * 8U];
     uint8_t destination_data[8U * 8U];
@@ -1504,6 +1592,61 @@ static void test_band_only_and_control(void) {
     CHECK(u[1] == 103U);
 }
 
+static void test_ccso_u16(void) {
+    uint16_t y[64];
+    uint16_t reference[64];
+    uint16_t u[16];
+    uint16_t v[16];
+    uint8_t control = 1U;
+    Av2hFilterPlanesU16 planes;
+    Av2hFrameState frame;
+    Av2hCcsoControlMap controls;
+    size_t index;
+    av2h_memory_fill(&frame, 0U, sizeof(frame));
+    av2h_memory_fill(&controls, 0U, sizeof(controls));
+    for (index = 0U; index < 64U; ++index) {
+        y[index] = 1000U;
+        reference[index] = index == 1U ? 900U : 700U;
+    }
+    for (index = 0U; index < 16U; ++index) {
+        u[index] = index == 0U ? 1022U : 400U;
+        v[index] = 300U;
+    }
+    planes.plane[0] = (Av2hFilterPlaneU16){ y, 8U, 8U, 8U };
+    planes.plane[1] = (Av2hFilterPlaneU16){ u, 4U, 4U, 4U };
+    planes.plane[2] = (Av2hFilterPlaneU16){ v, 4U, 4U, 4U };
+    frame.width = 8U;
+    frame.height = 8U;
+    frame.ccso[1].enabled = 1U;
+    frame.ccso[1].band_only = 1U;
+    frame.ccso[1].max_band_log2 = 1U;
+    frame.ccso[1].offset_count = 2U;
+    frame.ccso[1].filter_offset[16] = 3;
+    controls.plane[1] = &control;
+    controls.stride_units[1] = 1U;
+    controls.columns = 1U;
+    controls.rows = 1U;
+    CHECK(av2h_ccso_filter_frame_u16(
+              &planes, reference, 8U, &frame, &controls) == AV2H_OK);
+    CHECK(u[0] == 1023U);
+    CHECK(u[1] == 403U);
+
+    frame.ccso[1].band_only = 0U;
+    frame.ccso[1].extended_filter_support = 1U;
+    frame.ccso[1].max_band_log2 = 0U;
+    frame.ccso[1].offset_count = 9U;
+    frame.ccso[1].filter_offset[6] = -5;
+    frame.ccso[1].filter_offset[9] = 7;
+    u[0] = 3U;
+    u[1] = 400U;
+    reference[0] = 700U;
+    reference[1] = 900U;
+    CHECK(av2h_ccso_filter_frame_u16(
+              &planes, reference, 8U, &frame, &controls) == AV2H_OK);
+    CHECK(u[0] == 0U);
+    CHECK(u[1] == 407U);
+}
+
 static void test_ccso_multi_unit_chroma(void) {
     uint8_t y[128U * 64U];
     uint8_t reference[128U * 64U];
@@ -1776,12 +1919,15 @@ int main(void) {
     test_deblock_skip_and_lossless();
     test_i444_deblock_superblock_cadence();
     test_cdef();
+    test_cdef_u16();
+    test_cdef_u16_odd_geometry();
     test_cdef_rounding_and_parameters();
     test_cdef_frame();
     test_gdf_frame();
     test_gdf_stripe_boundary_sources();
     test_gdf_control_row_offset();
     test_band_only_and_control();
+    test_ccso_u16();
     test_ccso_multi_unit_chroma();
     test_edge_classes();
     test_ccso_validation();

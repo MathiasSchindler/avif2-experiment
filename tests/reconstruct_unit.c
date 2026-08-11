@@ -6585,6 +6585,95 @@ static void test_10bit_wp6_tiny_matrix(void) {
                       expected);
             }
         }
+        if (status == AV2H_OK &&
+            (fixture_index == 4U || fixture_index == 5U ||
+             fixture_index == 10U || fixture_index == 11U ||
+             fixture_index == 13U || fixture_index == 14U ||
+             fixture_index == 15U)) {
+            uint8_t cdef_reference[768U];
+            unsigned int plane;
+            CHECK(snprintf(path, sizeof(path),
+                  "tests/fixtures/10bit/avm-reference/%s-decoded.yuv",
+                  stems[fixture_index]) > 0);
+            source = fopen(path, "rb");
+            CHECK(source != 0);
+            if (source != 0) {
+                CHECK(fread(cdef_reference, 1U, sizeof(cdef_reference), source) ==
+                      sizeof(cdef_reference));
+                CHECK(fclose(source) == 0);
+            }
+            for (plane = 0U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
+                reconstructed.plane[plane] = (Av2hFilterPlaneU16){
+                    workspace.coded_u16[plane].data,
+                    workspace.coded_u16[plane].stride_samples,
+                    workspace.coded_u16[plane].width,
+                    workspace.coded_u16[plane].height
+                };
+            }
+            CHECK(av2h_deblock_stage_u16(
+                      &reconstructed, &sequence, &frame,
+                      &filter_workspace) == AV2H_OK);
+            CHECK(av2h_cdef_filter_frame_u16(
+                      &filter_workspace.cdef_u16,
+                      &filter_workspace.deblocked_u16, &frame) == AV2H_OK);
+            for (index = 0U; index < 384U; ++index) {
+                size_t plane_index = index < 256U ? 0U :
+                    index < 320U ? 1U : 2U;
+                size_t sample_index = plane_index == 0U ? index :
+                    index - (plane_index == 1U ? 256U : 320U);
+                size_t width = plane_index == 0U ? 16U : 8U;
+                size_t row = sample_index / width;
+                size_t column = sample_index % width;
+                uint16_t expected = (uint16_t)(cdef_reference[index * 2U] |
+                    ((uint16_t)cdef_reference[index * 2U + 1U] << 8U));
+                CHECK(filter_workspace.cdef_u16.plane[plane_index].data[
+                          row * filter_workspace.cdef_u16.
+                              plane[plane_index].stride_samples + column] ==
+                      expected);
+            }
+        }
+        if (status == AV2H_OK &&
+            (fixture_index == 3U || fixture_index == 7U ||
+             fixture_index == 12U)) {
+            uint8_t wp8_reference[768U];
+            unsigned int plane;
+            CHECK(snprintf(path, sizeof(path),
+                  "tests/fixtures/10bit/avm-reference/%s-decoded.yuv",
+                  stems[fixture_index]) > 0);
+            source = fopen(path, "rb");
+            CHECK(source != 0);
+            if (source != 0) {
+                CHECK(fread(wp8_reference, 1U, sizeof(wp8_reference), source) ==
+                      sizeof(wp8_reference));
+                CHECK(fclose(source) == 0);
+            }
+            for (plane = 0U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
+                reconstructed.plane[plane] = (Av2hFilterPlaneU16){
+                    workspace.coded_u16[plane].data,
+                    workspace.coded_u16[plane].stride_samples,
+                    workspace.coded_u16[plane].width,
+                    workspace.coded_u16[plane].height
+                };
+            }
+            CHECK(av2h_filter_stage_u16(
+                      &reconstructed, &sequence, &frame,
+                      &filter_workspace) == AV2H_OK);
+            for (index = 0U; index < 384U; ++index) {
+                size_t plane_index = index < 256U ? 0U :
+                    index < 320U ? 1U : 2U;
+                size_t sample_index = plane_index == 0U ? index :
+                    index - (plane_index == 1U ? 256U : 320U);
+                size_t width = plane_index == 0U ? 16U : 8U;
+                size_t row = sample_index / width;
+                size_t column = sample_index % width;
+                uint16_t expected = (uint16_t)(wp8_reference[index * 2U] |
+                    ((uint16_t)wp8_reference[index * 2U + 1U] << 8U));
+                CHECK(filter_workspace.cdef_u16.plane[plane_index].data[
+                          row * filter_workspace.cdef_u16.
+                              plane[plane_index].stride_samples + column] ==
+                      expected);
+            }
+        }
         free(allocation);
     }
 }
