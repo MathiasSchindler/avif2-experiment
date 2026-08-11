@@ -90,7 +90,8 @@ Av2hStatus av2h_decode_frame_planar_private(
                         &pending_leaf->prefix[index],
                         0U,
                         pending_leaf->prefix[index].all_zero,
-                        (uint8_t)(frame->base_q_index == 0U));
+                        (uint8_t)av2h_quantizer_is_lossless(
+                            sequence, frame, frame->base_q_index));
                     if (status != AV2H_OK) {
                         AV2H_DECODE_FAIL(
                             status, status,
@@ -244,7 +245,8 @@ Av2hStatus av2h_decode_frame_planar_private(
                 frame->chroma_format_idc, 0U,
                 &leaf.node, &leaf.prefix,
                 leaf.mode.skip_transform, leaf.prefix.all_zero,
-                (uint8_t)(frame->base_q_index == 0U));
+                (uint8_t)av2h_quantizer_is_lossless(
+                    sequence, frame, frame->base_q_index));
             if (status != AV2H_OK) {
                 Av2hStatus returned = status == AV2H_UNSUPPORTED ?
                     AV2H_OVERFLOW : status;
@@ -403,7 +405,8 @@ Av2hStatus av2h_decode_frame_planar_private(
                     &leaf.node, &leaf.prefix[index],
                     0U,
                     leaf.prefix[index].all_zero,
-                    (uint8_t)(frame->base_q_index == 0U));
+                    (uint8_t)av2h_quantizer_is_lossless(
+                        sequence, frame, frame->base_q_index));
                 if (status != AV2H_OK) {
                     Av2hStatus returned = status == AV2H_UNSUPPORTED ?
                         AV2H_OUT_OF_MEMORY : status;

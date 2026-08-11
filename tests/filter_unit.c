@@ -1,4 +1,5 @@
 #include "decoder/frame_output.h"
+#include "decoder/internal/filter_modules.h"
 #include "decoder/internal/frame_workspace.h"
 
 #include <stddef.h>
@@ -82,6 +83,40 @@ static void test_wide_q_index_handoff(void) {
     CHECK(av2h_deblock_map_commit_transform(
               &map, 0U, 0U, &leaf, &prefix, 0U, 0U, 0U) == AV2H_OK);
     CHECK(cell.q_index == 400U);
+}
+
+static void test_quantizer_threshold_domains(void) {
+    Av2hDeblockCell cell = { 0 };
+    Av2hSequenceState sequence = { 0 };
+    Av2hFrameState frame = { 0 };
+    uint16_t q_threshold = 0U;
+    uint16_t side_threshold = 0U;
+    sequence.info.bit_depth_idc = 1U;
+    cell.q_index = 255U;
+    CHECK(av2h_deblock_quantizer_thresholds(
+              &cell, &sequence, &frame, 0U, 0U,
+              &q_threshold, &side_threshold) == AV2H_OK);
+    CHECK(q_threshold == 120U && side_threshold == 40U);
+    sequence.info.bit_depth_idc = 0U;
+    cell.q_index = 256U;
+    CHECK(av2h_deblock_quantizer_thresholds(
+              &cell, &sequence, &frame, 0U, 0U,
+              &q_threshold, &side_threshold) == AV2H_OK);
+    CHECK(q_threshold == 124U && side_threshold == 102U);
+    cell.q_index = 511U;
+    CHECK(av2h_deblock_quantizer_thresholds(
+              &cell, &sequence, &frame, 0U, 0U,
+              &q_threshold, &side_threshold) == AV2H_OK);
+    CHECK(q_threshold == 480U && side_threshold == 160U);
+    cell.q_index = 1U;
+    frame.deblock_delta[0] = -1;
+    CHECK(av2h_deblock_quantizer_thresholds(
+              &cell, &sequence, &frame, 0U, 0U,
+              &q_threshold, &side_threshold) == AV2H_OK);
+    CHECK(q_threshold == 0U && side_threshold == 0U);
+    CHECK(av2h_deblock_quantizer_thresholds(
+              0, &sequence, &frame, 0U, 0U,
+              &q_threshold, &side_threshold) == AV2H_INVALID_ARGUMENT);
 }
 
 static void copy_test_planes(Av2hFilterPlanes *destination,
@@ -1499,6 +1534,7 @@ static void test_fail_closed(void) {
 int main(void) {
     test_workspace_model();
     test_wide_q_index_handoff();
+    test_quantizer_threshold_domains();
     test_frame_decode_workspace_model();
     test_frame_workspace_prepare_rejection();
     test_filter_pipeline();

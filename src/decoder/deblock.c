@@ -1,4 +1,5 @@
 #include "decoder/filter.h"
+#include "decoder/coeff_level.h"
 #include "decoder/internal/filter_common.h"
 #include "decoder/internal/filter_modules.h"
 
@@ -16,31 +17,31 @@ static const uint8_t deblock_first_threshold[5] = {
     45U, 43U, 40U, 35U, 32U
 };
 
-static int deblock_qlookup(int q_index) {
-    static const uint8_t ac_qlookup[25] = {
-        64U, 40U, 41U, 43U, 44U, 45U, 47U, 48U, 49U, 51U,
-        52U, 54U, 55U, 57U, 59U, 60U, 62U, 64U, 66U, 68U,
-        70U, 72U, 74U, 76U, 78U
-    };
-    if (q_index <= 0) return ac_qlookup[0];
-    if (q_index > 255) q_index = 255;
-    if (q_index < 25) return ac_qlookup[q_index];
-    return (int)ac_qlookup[((q_index - 1) % 24) + 1] <<
-           ((q_index - 1) / 24);
-}
-
-static void deblock_thresholds(const Av2hDeblockCell *cell,
-                               const Av2hSequenceState *sequence,
-                               const Av2hFrameState *frame,
-                               unsigned int plane,
-                               unsigned int pass,
-                               uint16_t *q_threshold,
-                               uint16_t *side_threshold) {
+Av2hStatus av2h_deblock_quantizer_thresholds(
+    const Av2hDeblockCell *cell,
+    const Av2hSequenceState *sequence,
+    const Av2hFrameState *frame,
+    unsigned int plane,
+    unsigned int pass,
+    uint16_t *q_threshold,
+    uint16_t *side_threshold) {
     int delta = 0;
     int level;
     int q_index;
     int side_index;
+    int side_bias;
+    unsigned int side_shift;
+    uint32_t q_step;
+    Av2hQIndex q_step_index;
     unsigned int delta_index = plane == 0U ? pass : plane + 1U;
+    if (cell == 0 || sequence == 0 || frame == 0 || q_threshold == 0 ||
+        side_threshold == 0 || plane >= AV2H_FRAME_PLANE_COUNT || pass > 1U) {
+        return AV2H_INVALID_ARGUMENT;
+    }
+    if (sequence->info.bit_depth_idc != 0U &&
+        sequence->info.bit_depth_idc != 1U) {
+        return AV2H_UNSUPPORTED;
+    }
     if (plane == 1U) {
         delta = frame->u_ac_delta_q + sequence->base_uv_ac_delta_q;
     } else if (plane == 2U) {
@@ -49,14 +50,31 @@ static void deblock_thresholds(const Av2hDeblockCell *cell,
     if (cell->q_index == 0U && delta <= 0) {
         q_index = 0;
     } else {
-        q_index = av2h_sample_clamp((int)cell->q_index + delta, 1, 255);
+        q_index = av2h_sequence_clamp_delta_q_index(
+            sequence, (int)cell->q_index + delta);
     }
     level = q_index + 8 * frame->deblock_delta[delta_index];
-    *q_threshold = (uint16_t)(((deblock_qlookup(level) + 4) >> 3) >> 6);
-    side_index = av2h_sample_clamp(level, 0, 295);
+    q_step_index = level < 1 ? (Av2hQIndex)(level == 0 ? 0U : 1U) :
+        (Av2hQIndex)av2h_sample_clamp(
+            level, 1, (int)av2h_sequence_max_q_index(sequence));
+    q_step = sequence->info.bit_depth_idc == 0U ?
+        av2h_coeff_dequant_step_10bit(q_step_index, 0) :
+        av2h_coeff_dequant_step_8bit(q_step_index, 0);
+    *q_threshold = (uint16_t)(((q_step + 4U) >> 3U) >> 6U);
+    if (sequence->info.bit_depth_idc == 0U) {
+        side_index = av2h_sample_clamp(level - 48, 0, 295);
+        side_bias = 4;
+        side_shift = 3U;
+    } else {
+        side_index = av2h_sample_clamp(level, 0, 295);
+        side_bias = 16;
+        side_shift = 5U;
+    }
     *side_threshold = (uint16_t)(
         av2h_sample_clamp(
-            av2h_deblock_side_threshold(side_index) + 16, 0, 65535) >> 5);
+            av2h_deblock_side_threshold(side_index) + side_bias,
+            0, 65535) >> side_shift);
+    return AV2H_OK;
 }
 
 static int deblock_direction_error(const uint8_t *sample,
@@ -357,10 +375,14 @@ static Av2hStatus deblock_frame_edge(
           x + 4U > plane_data->width))) {
         return AV2H_OK;
     }
-    deblock_thresholds(cell, sequence, frame, plane, pass,
-                       &current_q, &current_side);
-    deblock_thresholds(previous, sequence, frame, plane, pass,
-                       &previous_q, &previous_side);
+    if (av2h_deblock_quantizer_thresholds(
+            cell, sequence, frame, plane, pass,
+            &current_q, &current_side) != AV2H_OK ||
+        av2h_deblock_quantizer_thresholds(
+            previous, sequence, frame, plane, pass,
+            &previous_q, &previous_side) != AV2H_OK) {
+        return AV2H_INVALID_DATA;
+    }
     q_threshold = current_q != 0U && previous_q != 0U ?
         (uint16_t)((current_q + previous_q + 1U) >> 1U) :
         (current_q > previous_q ? current_q : previous_q);

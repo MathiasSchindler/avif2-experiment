@@ -539,9 +539,8 @@ static Av2hStatus read_delta_q(
     } else {
         q_index += (int)magnitude * frame->delta_q_res;
     }
-    if (q_index < 1) q_index = 1;
-    if (q_index > 255) q_index = 255;
-    *current_q_index = (Av2hQIndex)q_index;
+    *current_q_index = (Av2hQIndex)av2h_sequence_clamp_delta_q_index(
+        sequence, q_index);
     return av2h_range_status(decoder);
 }
 

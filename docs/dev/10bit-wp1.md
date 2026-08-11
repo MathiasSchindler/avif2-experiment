@@ -49,7 +49,7 @@ parses with:
 coefficient prefixes, and deblock cells. The WP1 fixture test proves the value
 256 reaches tile CDF initialization intact. Existing wide-domain tests also
 carry Q-index 400 through coefficient and deblock state. Ten-bit dequantization
-arithmetic itself remains owned by 10B-WP3.
+arithmetic was subsequently implemented by 10B-WP3.
 
 Every byte prefix shorter than the locked four-byte tile header fails frame
 parsing. Direct mutations prove qmatrix and base-Q-zero rejection at the frame

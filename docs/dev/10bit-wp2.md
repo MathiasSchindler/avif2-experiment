@@ -49,7 +49,7 @@ Typed U16 operations now exist beside the U8 operations for plane fill/copy,
 visible crop, clamped reference load, reconstructed load, predictor commit,
 direct load/store, and domain-aware clip/store. Focused vectors cover row
 padding and crop guards as well as values 0, 512, 700, and 1023. Production
-selection of the normative 10-bit sample domain remains 10B-WP3 work.
+selection of the normative 10-bit sample domain was completed by 10B-WP3.
 
 ## Deliberate decode boundary
 

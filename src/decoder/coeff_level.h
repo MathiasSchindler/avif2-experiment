@@ -5,6 +5,14 @@
 
 #define AV2H_FIRST_COEFF_CAPACITY 1024U
 
+typedef int32_t Av2hDequantizedCoefficient;
+typedef int64_t Av2hDequantProduct;
+
+typedef struct {
+    uint32_t dc;
+    uint32_t ac;
+} Av2hCoeffDequantSteps;
+
 typedef struct {
     uint16_t full_eob_base[5U][4U][3U + 4U];
     uint16_t full_eob_base_lf[5U][4U][5U + 4U];
@@ -202,7 +210,7 @@ typedef struct {
 typedef struct {
     uint8_t base_levels[AV2H_FIRST_COEFF_CAPACITY];
     int32_t quantized[AV2H_FIRST_COEFF_CAPACITY];
-    int32_t dequantized[AV2H_FIRST_COEFF_CAPACITY];
+    Av2hDequantizedCoefficient dequantized[AV2H_FIRST_COEFF_CAPACITY];
     uint16_t width;
     uint16_t height;
     uint16_t coefficient_count;
@@ -251,6 +259,9 @@ typedef struct {
 int32_t av2h_coeff_clamp_dequantized_8bit(
     uint64_t magnitude,
     uint8_t sign);
+Av2hDequantizedCoefficient av2h_coeff_clamp_dequantized_10bit(
+    uint64_t magnitude,
+    uint8_t sign);
 Av2hStatus av2h_coeff_tx_geometry_from_dims(
     uint16_t tx_width,
     uint16_t tx_height,
@@ -259,11 +270,33 @@ Av2hStatus av2h_coeff_tx_geometry(
     Av2hFirstTxSize tx_size,
     Av2hCoeffTxGeometry *geometry);
 uint32_t av2h_coeff_dequant_step_8bit(Av2hQIndex base_q_index, int delta);
+uint32_t av2h_coeff_dequant_step_10bit(Av2hQIndex base_q_index, int delta);
 int32_t av2h_coeff_dequantize_level(
     uint32_t level,
     uint8_t sign,
     uint32_t dequant_step,
     uint8_t shift);
+Av2hDequantizedCoefficient av2h_coeff_dequantize_level_10bit(
+    uint32_t level,
+    uint8_t sign,
+    uint32_t dequant_step,
+    uint8_t shift);
+Av2hStatus av2h_coeff_dequant_steps(
+    const Av2hSequenceState *sequence,
+    const Av2hFrameState *frame,
+    Av2hQIndex q_index,
+    uint8_t plane,
+    Av2hCoeffDequantSteps *steps);
+Av2hDequantizedCoefficient av2h_coeff_dequantize_level_for_sequence(
+    const Av2hSequenceState *sequence,
+    uint32_t level,
+    uint8_t sign,
+    uint32_t dequant_step,
+    uint8_t shift);
+int av2h_quantizer_is_lossless(
+    const Av2hSequenceState *sequence,
+    const Av2hFrameState *frame,
+    Av2hQIndex q_index);
 uint8_t av2h_coeff_finalize_cul_level(
     uint32_t summed_level,
     int32_t dc_value);

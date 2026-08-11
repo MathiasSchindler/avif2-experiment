@@ -15,19 +15,66 @@ int32_t av2h_coeff_clamp_dequantized_8bit(
     return magnitude > 32767U ? 32767 : (int32_t)magnitude;
 }
 
-uint32_t av2h_coeff_dequant_step_8bit(Av2hQIndex base_q_index, int delta) {
+Av2hDequantizedCoefficient av2h_coeff_clamp_dequantized_10bit(
+    uint64_t magnitude,
+    uint8_t sign) {
+    if (sign) {
+        return magnitude > 131072U ? -131072 : -(int32_t)magnitude;
+    }
+    return magnitude > 131071U ? 131071 : (int32_t)magnitude;
+}
+
+static uint32_t coeff_dequant_step(
+    Av2hQIndex base_q_index,
+    int delta,
+    int64_t maximum_q_index) {
     static const uint16_t lookup[25U] = {
         64U, 40U, 41U, 43U, 44U, 45U, 47U, 48U, 49U, 51U, 52U, 54U,
         55U, 57U, 59U, 60U, 62U, 64U, 66U, 68U, 70U, 72U, 74U, 76U,
         78U
     };
-    int q_index = (int)base_q_index + delta;
+    int64_t q_index = (int64_t)base_q_index + delta;
     if (base_q_index == 0U && delta <= 0) return lookup[0];
     if (q_index < 1) q_index = 1;
-    if (q_index > 255) q_index = 255;
-    if (q_index < 25) return lookup[q_index];
-    return (uint32_t)lookup[((q_index - 1) % 24) + 1] <<
-           ((q_index - 1) / 24);
+    if (q_index > maximum_q_index) q_index = maximum_q_index;
+    if (q_index < 25) return lookup[(size_t)q_index];
+    return (uint32_t)lookup[(size_t)((q_index - 1) % 24) + 1U] <<
+           (unsigned int)((q_index - 1) / 24);
+}
+
+uint32_t av2h_coeff_dequant_step_8bit(Av2hQIndex base_q_index, int delta) {
+    return coeff_dequant_step(base_q_index, delta, 255);
+}
+
+uint32_t av2h_coeff_dequant_step_10bit(Av2hQIndex base_q_index, int delta) {
+    return coeff_dequant_step(base_q_index, delta, 303);
+}
+
+static Av2hDequantizedCoefficient coeff_dequantize_level(
+    uint32_t level,
+    uint8_t sign,
+    uint32_t dequant_step,
+    uint8_t shift,
+    uint64_t maximum_magnitude) {
+    const uint64_t maximum_product = ((uint64_t)-1) >> 1U;
+    Av2hDequantProduct product;
+    if (dequant_step != 0U &&
+        (uint64_t)level > maximum_product / dequant_step) {
+        product = (Av2hDequantProduct)maximum_product;
+    } else {
+        product = (Av2hDequantProduct)level *
+                  (Av2hDequantProduct)dequant_step;
+    }
+    uint64_t magnitude =
+        ((uint64_t)product & (uint64_t)0xffffffU) + 4U;
+    magnitude >>= 3U;
+    magnitude >>= shift;
+    if (sign) {
+        return magnitude > maximum_magnitude ?
+            -(int32_t)maximum_magnitude : -(int32_t)magnitude;
+    }
+    return magnitude >= maximum_magnitude ?
+        (int32_t)(maximum_magnitude - 1U) : (int32_t)magnitude;
 }
 
 int32_t av2h_coeff_dequantize_level(
@@ -35,11 +82,81 @@ int32_t av2h_coeff_dequantize_level(
     uint8_t sign,
     uint32_t dequant_step,
     uint8_t shift) {
-    uint64_t high_precision =
-        ((uint64_t)level * dequant_step) & (uint64_t)0xffffffU;
-    uint64_t magnitude = (high_precision + 4U) >> 3U;
-    magnitude >>= shift;
-    return av2h_coeff_clamp_dequantized_8bit(magnitude, sign);
+    return coeff_dequantize_level(
+        level, sign, dequant_step, shift, 32768U);
+}
+
+Av2hDequantizedCoefficient av2h_coeff_dequantize_level_10bit(
+    uint32_t level,
+    uint8_t sign,
+    uint32_t dequant_step,
+    uint8_t shift) {
+    return coeff_dequantize_level(
+        level, sign, dequant_step, shift, 131072U);
+}
+
+Av2hStatus av2h_coeff_dequant_steps(
+    const Av2hSequenceState *sequence,
+    const Av2hFrameState *frame,
+    Av2hQIndex q_index,
+    uint8_t plane,
+    Av2hCoeffDequantSteps *steps) {
+    int dc_delta;
+    int ac_delta;
+    if (sequence == 0 || frame == 0 || steps == 0 || plane >= 3U) {
+        return AV2H_INVALID_ARGUMENT;
+    }
+    if (sequence->info.bit_depth_idc != 0U &&
+        sequence->info.bit_depth_idc != 1U) {
+        return AV2H_UNSUPPORTED;
+    }
+    if (plane == 0U) {
+        dc_delta = frame->y_dc_delta_q + sequence->base_y_dc_delta_q;
+        ac_delta = 0;
+    } else if (plane == 1U) {
+        dc_delta = frame->u_dc_delta_q + sequence->base_uv_dc_delta_q;
+        ac_delta = frame->u_ac_delta_q + sequence->base_uv_ac_delta_q;
+    } else {
+        dc_delta = frame->v_dc_delta_q + sequence->base_uv_dc_delta_q;
+        ac_delta = frame->v_ac_delta_q + sequence->base_uv_ac_delta_q;
+    }
+    if (sequence->info.bit_depth_idc == 0U) {
+        steps->dc = av2h_coeff_dequant_step_10bit(q_index, dc_delta);
+        steps->ac = av2h_coeff_dequant_step_10bit(q_index, ac_delta);
+    } else {
+        steps->dc = av2h_coeff_dequant_step_8bit(q_index, dc_delta);
+        steps->ac = av2h_coeff_dequant_step_8bit(q_index, ac_delta);
+    }
+    return AV2H_OK;
+}
+
+Av2hDequantizedCoefficient av2h_coeff_dequantize_level_for_sequence(
+    const Av2hSequenceState *sequence,
+    uint32_t level,
+    uint8_t sign,
+    uint32_t dequant_step,
+    uint8_t shift) {
+    if (sequence != 0 && sequence->info.bit_depth_idc == 0U) {
+        return av2h_coeff_dequantize_level_10bit(
+            level, sign, dequant_step, shift);
+    }
+    return av2h_coeff_dequantize_level(
+        level, sign, dequant_step, shift);
+}
+
+int av2h_quantizer_is_lossless(
+    const Av2hSequenceState *sequence,
+    const Av2hFrameState *frame,
+    Av2hQIndex q_index) {
+    if (sequence == 0 || frame == 0 || q_index != 0U ||
+        frame->delta_q_present != 0U) {
+        return 0;
+    }
+    return frame->y_dc_delta_q + sequence->base_y_dc_delta_q <= 0 &&
+           frame->u_dc_delta_q + sequence->base_uv_dc_delta_q <= 0 &&
+           frame->v_dc_delta_q + sequence->base_uv_dc_delta_q <= 0 &&
+           frame->u_ac_delta_q + sequence->base_uv_ac_delta_q <= 0 &&
+           frame->v_ac_delta_q + sequence->base_uv_ac_delta_q <= 0;
 }
 
 uint8_t av2h_coeff_finalize_cul_level(

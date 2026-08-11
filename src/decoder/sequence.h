@@ -67,6 +67,20 @@ static inline unsigned int av2h_sequence_plane_count(
     return av2h_sequence_is_monochrome(sequence) ? 1U : 3U;
 }
 
+static inline uint16_t av2h_sequence_max_q_index(
+    const Av2hSequenceState *sequence) {
+    return sequence != 0 && sequence->info.bit_depth_idc == 0U ? 303U : 255U;
+}
+
+static inline uint16_t av2h_sequence_clamp_delta_q_index(
+    const Av2hSequenceState *sequence,
+    int q_index) {
+    int maximum = (int)av2h_sequence_max_q_index(sequence);
+    if (q_index < 1) return 1U;
+    if (q_index > maximum) return (uint16_t)maximum;
+    return (uint16_t)q_index;
+}
+
 static inline unsigned int av2h_chroma_shift(
     uint8_t chroma_format_idc,
     unsigned int plane) {

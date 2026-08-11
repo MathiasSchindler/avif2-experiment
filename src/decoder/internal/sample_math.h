@@ -14,6 +14,10 @@ static const Av2hSampleDomain av2h_sample_domain_8bit = {
     8U, 1U, 128U, 255U
 };
 
+static const Av2hSampleDomain av2h_sample_domain_10bit = {
+    10U, 2U, 512U, 1023U
+};
+
 static inline int32_t av2h_sample_clamp(
     int32_t value, int32_t minimum, int32_t maximum) {
     if (value < minimum) return minimum;
@@ -46,6 +50,26 @@ static inline uint8_t av2h_sample_maximum_8bit(void) {
 static inline uint8_t av2h_sample_clip(int32_t value) {
     return (uint8_t)av2h_sample_clip_to_domain(
         value, &av2h_sample_domain_8bit);
+}
+
+static inline uint16_t av2h_sample_midpoint_10bit(void) {
+    return av2h_sample_domain_10bit.midpoint;
+}
+
+static inline uint16_t av2h_sample_below_midpoint_10bit(void) {
+    return (uint16_t)(av2h_sample_domain_10bit.midpoint - 1U);
+}
+
+static inline uint16_t av2h_sample_above_midpoint_10bit(void) {
+    return (uint16_t)(av2h_sample_domain_10bit.midpoint + 1U);
+}
+
+static inline uint16_t av2h_sample_maximum_10bit(void) {
+    return av2h_sample_domain_10bit.maximum;
+}
+
+static inline uint16_t av2h_sample_clip_10bit(int32_t value) {
+    return av2h_sample_clip_to_domain(value, &av2h_sample_domain_10bit);
 }
 
 #endif

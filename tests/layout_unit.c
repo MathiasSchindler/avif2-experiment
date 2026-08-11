@@ -33,6 +33,12 @@ static void test_64_bit_decoder_layout(void) {
     CHECK(sizeof(Av2hFrameState) == 3192U);
     CHECK(_Alignof(Av2hFrameState) == 8U);
     CHECK(sizeof(Av2hQIndex) == 2U);
+    CHECK(sizeof(Av2hDequantizedCoefficient) == 4U);
+    CHECK(sizeof(Av2hDequantProduct) == 8U);
+    CHECK(sizeof(Av2hTransformIntermediate) == 4U);
+    CHECK(sizeof(Av2hTransformSum) == 8U);
+    CHECK(sizeof(Av2hPredictionSum) == 8U);
+    CHECK(sizeof(Av2hReconstructionSum) == 8U);
     CHECK(sizeof(Av2hFirstCoeffPrefix) == 56U);
     CHECK(_Alignof(Av2hFirstCoeffPrefix) == 8U);
     CHECK(sizeof(Av2hFirstCoeffLevelCdfs) == 20464U);

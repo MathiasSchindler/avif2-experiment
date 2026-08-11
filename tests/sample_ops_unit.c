@@ -97,7 +97,6 @@ static void test_load_commit_and_store(void) {
 }
 
 static void test_u16_operations(void) {
-    const Av2hSampleDomain domain = { 10U, 2U, 512U, 1023U };
     uint16_t source[3U * 6U];
     uint16_t copy[3U * 7U];
     uint16_t crop[3U * 4U + 2U];
@@ -131,8 +130,10 @@ static void test_u16_operations(void) {
     CHECK(av2h_reference_load_u16(source, 6U, 4U, 3U, 99U, 0U) == 700U);
     CHECK(av2h_reference_load_u16(source, 6U, 4U, 3U, 0U, 99U) == 700U);
     av2h_predictor_commit_u16(copy, 7U, source, 6U, 4U, 3U);
-    av2h_sample_clip_store_u16(copy, 7U, 0U, 1U, -1, &domain);
-    av2h_sample_clip_store_u16(copy, 7U, 1U, 1U, 2048, &domain);
+    av2h_sample_clip_store_u16(
+        copy, 7U, 0U, 1U, -1, &av2h_sample_domain_10bit);
+    av2h_sample_clip_store_u16(
+        copy, 7U, 1U, 1U, 2048, &av2h_sample_domain_10bit);
     av2h_sample_store_u16(copy, 7U, 2U, 1U, 512U);
     CHECK(av2h_sample_load_u16(copy, 7U, 0U, 1U) == 0U);
     CHECK(av2h_sample_load_u16(copy, 7U, 1U, 1U) == 1023U);

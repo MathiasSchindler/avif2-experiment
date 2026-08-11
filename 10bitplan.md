@@ -185,6 +185,12 @@ unchanged.
 
 ## 10B-WP3: Implement the 10-bit sample and quantizer domain
 
+**Status:** Implemented on 2026-08-11. The production 10-bit sample domain,
+depth-aware Q-index and dequantizer rules, DC/AC delta composition, coefficient
+saturation, lossless predicate, deblock quantizer inputs, signed intermediate
+contracts, and exact boundary vectors are recorded in
+`docs/dev/10bit-wp3.md`.
+
 **Objective:** Establish normative constants, quantization behavior, clipping,
 and intermediate ranges before broad reconstruction work.
 
@@ -201,7 +207,7 @@ and intermediate ranges before broad reconstruction work.
   511/512, and 1022/1023.
 - Keep the established 8-bit quantizer functions and results byte-identical.
 
-**Exit gate:** Focused vectors match specification-derived and pinned-AVM
+**Exit gate:** Complete. Focused vectors match specification-derived and pinned-AVM
 values across the retained 10-bit Q-index range, sanitizers report no overflow
 or invalid shift, and the 8-bit quantizer suite remains exact.
 

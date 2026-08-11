@@ -567,6 +567,11 @@ static void test_dequantized_clamp(void) {
     CHECK(av2h_coeff_clamp_dequantized_8bit(32767U, 1U) == -32767);
     CHECK(av2h_coeff_clamp_dequantized_8bit(32768U, 1U) == -32768);
     CHECK(av2h_coeff_clamp_dequantized_8bit(UINT64_MAX, 1U) == -32768);
+    CHECK(av2h_coeff_clamp_dequantized_10bit(131070U, 0U) == 131070);
+    CHECK(av2h_coeff_clamp_dequantized_10bit(131072U, 0U) == 131071);
+    CHECK(av2h_coeff_clamp_dequantized_10bit(131071U, 1U) == -131071);
+    CHECK(av2h_coeff_clamp_dequantized_10bit(131072U, 1U) == -131072);
+    CHECK(av2h_coeff_clamp_dequantized_10bit(UINT64_MAX, 1U) == -131072);
 }
 
 static void check_fixture(const char *name,
@@ -864,6 +869,9 @@ static void test_tx_geometry_helpers(void) {
 }
 
 static void test_dequant_helper_edges(void) {
+    Av2hSequenceState sequence = { 0 };
+    Av2hFrameState frame = { 0 };
+    Av2hCoeffDequantSteps steps;
     /* Exact 24-bit working range and rounding of the shared dequant helper. */
     CHECK(av2h_coeff_dequantize_level(4U, 0U, 15872U, 0U) == 7936);
     CHECK(av2h_coeff_dequantize_level(1U, 1U, 15872U, 2U) == -496);
@@ -871,6 +879,67 @@ static void test_dequant_helper_edges(void) {
     /* Signed clamp at the 8-bit dequantized limits. */
     CHECK(av2h_coeff_dequantize_level(32768U, 0U, 8U, 0U) == 32767);
     CHECK(av2h_coeff_dequantize_level(32768U, 1U, 8U, 0U) == -32768);
+    CHECK(av2h_coeff_dequant_step_8bit(255U, 0) == 61440U);
+    CHECK(av2h_coeff_dequant_step_8bit(256U, 0) == 61440U);
+    CHECK(av2h_coeff_dequant_step_10bit(252U, 0) == 56320U);
+    CHECK(av2h_coeff_dequant_step_10bit(255U, 0) == 61440U);
+    CHECK(av2h_coeff_dequant_step_10bit(256U, 0) == 63488U);
+    CHECK(av2h_coeff_dequant_step_10bit(303U, 0) == 245760U);
+    CHECK(av2h_coeff_dequant_step_10bit(304U, 0) == 245760U);
+    CHECK(av2h_coeff_dequant_step_10bit(400U, 0) == 245760U);
+    CHECK(av2h_coeff_dequant_step_10bit(511U, 0) == 245760U);
+    CHECK(av2h_coeff_dequant_step_10bit(256U, -1) == 61440U);
+    CHECK(av2h_coeff_dequant_step_10bit(255U, 1) == 63488U);
+    CHECK(av2h_coeff_dequant_step_10bit(0U, -1) == 64U);
+    CHECK(av2h_coeff_dequantize_level_10bit(
+              131072U, 0U, 8U, 0U) == 131071);
+    CHECK(av2h_coeff_dequantize_level_10bit(
+              131072U, 1U, 8U, 0U) == -131072);
+    CHECK(av2h_coeff_dequantize_level_10bit(
+              UINT32_MAX, 0U, UINT32_MAX, 0U) <= 131071);
+    CHECK(av2h_coeff_dequantize_level_10bit(
+              1U, 0U, 56320U, 0U) == 7040);
+    sequence.info.bit_depth_idc = 0U;
+    sequence.base_y_dc_delta_q = -1;
+    sequence.base_uv_dc_delta_q = -2;
+    sequence.base_uv_ac_delta_q = 2;
+    frame.y_dc_delta_q = 0;
+    frame.u_dc_delta_q = 1;
+    frame.u_ac_delta_q = 1;
+    frame.v_dc_delta_q = -1;
+    frame.v_ac_delta_q = -1;
+    CHECK(av2h_coeff_dequant_steps(
+              &sequence, &frame, 256U, 0U, &steps) == AV2H_OK);
+    CHECK(steps.dc == 61440U && steps.ac == 63488U);
+    CHECK(av2h_coeff_dequant_steps(
+              &sequence, &frame, 256U, 1U, &steps) == AV2H_OK);
+    CHECK(steps.dc == 61440U && steps.ac == 69632U);
+    CHECK(av2h_coeff_dequant_steps(
+              &sequence, &frame, 256U, 2U, &steps) == AV2H_OK);
+    CHECK(steps.dc == 58368U && steps.ac == 65536U);
+    CHECK(av2h_sequence_clamp_delta_q_index(&sequence, -20) == 1U);
+    CHECK(av2h_sequence_clamp_delta_q_index(&sequence, 255) == 255U);
+    CHECK(av2h_sequence_clamp_delta_q_index(&sequence, 256) == 256U);
+    CHECK(av2h_sequence_clamp_delta_q_index(&sequence, 400) == 303U);
+    sequence.info.bit_depth_idc = 1U;
+    CHECK(av2h_sequence_clamp_delta_q_index(&sequence, 256) == 255U);
+    CHECK(av2h_coeff_dequant_steps(
+              &sequence, &frame, 256U, 3U, &steps) == AV2H_INVALID_ARGUMENT);
+    sequence.info.bit_depth_idc = 2U;
+    CHECK(av2h_coeff_dequant_steps(
+              &sequence, &frame, 256U, 0U, &steps) == AV2H_UNSUPPORTED);
+    CHECK(av2h_coeff_dequant_steps(
+              0, &frame, 256U, 0U, &steps) == AV2H_INVALID_ARGUMENT);
+    av2h_memory_fill(&sequence, 0U, sizeof(sequence));
+    av2h_memory_fill(&frame, 0U, sizeof(frame));
+    CHECK(av2h_quantizer_is_lossless(&sequence, &frame, 0U));
+    frame.delta_q_present = 1U;
+    CHECK(!av2h_quantizer_is_lossless(&sequence, &frame, 0U));
+    frame.delta_q_present = 0U;
+    frame.u_ac_delta_q = 1;
+    CHECK(!av2h_quantizer_is_lossless(&sequence, &frame, 0U));
+    frame.u_ac_delta_q = 0;
+    CHECK(!av2h_quantizer_is_lossless(&sequence, &frame, 1U));
     /* cul_level DC-sign flags mirror set_dc_sign(). */
     CHECK(av2h_coeff_finalize_cul_level(3U, 5) == 3U + 16U);
     CHECK(av2h_coeff_finalize_cul_level(3U, -5) == (3U | 8U));

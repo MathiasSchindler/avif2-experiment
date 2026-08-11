@@ -462,6 +462,7 @@ static Av2hStatus read_fsc_block(
     uint32_t cul_level = 0U;
     uint8_t tx_context;
     Av2hCoeffTxGeometry geometry;
+    Av2hCoeffDequantSteps dequant_steps;
     Av2hStatus status;
     if (sequence->enable_tcq || sequence->enable_parity_hiding ||
         frame->using_qmatrix ||
@@ -473,6 +474,11 @@ static Av2hStatus read_fsc_block(
     if (av2h_coeff_tx_geometry(prefix->tx_size, &geometry) != AV2H_OK) {
         return AV2H_UNSUPPORTED;
     }
+    status = av2h_coeff_dequant_steps(
+        sequence, frame,
+        prefix->q_index != 0U ? prefix->q_index : frame->base_q_index,
+        0U, &dequant_steps);
+    if (status != AV2H_OK) return status;
     tx_context = geometry.tx_context > 2U ? 2U : geometry.tx_context;
     block->width = geometry.width;
     block->height = geometry.height;
@@ -578,13 +584,12 @@ static Av2hStatus read_fsc_block(
         block->quantized[position] = sign ? -(int32_t)final_level :
                                              (int32_t)final_level;
         if (position == 0U) block->dc_value = block->quantized[position];
-        dequantized_magnitude = av2h_coeff_dequant_step_8bit(
-            prefix->q_index != 0U ? prefix->q_index : frame->base_q_index,
-            position == 0U ? frame->y_dc_delta_q +
-                sequence->base_y_dc_delta_q : 0);
-        block->dequantized[position] = av2h_coeff_dequantize_level(
-            final_level, sign, (uint32_t)dequantized_magnitude,
-            geometry.dequant_shift);
+        dequantized_magnitude =
+            position == 0U ? dequant_steps.dc : dequant_steps.ac;
+        block->dequantized[position] =
+            av2h_coeff_dequantize_level_for_sequence(
+                sequence, final_level, sign,
+                (uint32_t)dequantized_magnitude, geometry.dequant_shift);
         ++block->nonzero_count;
         cul_level += final_level;
     }
@@ -614,6 +619,7 @@ Av2hStatus av2h_coeff_block_read(
     uint32_t high_average = 0U;
     uint32_t cul_level = 0U;
     Av2hCoeffTxGeometry geometry;
+    Av2hCoeffDequantSteps dequant_steps;
     Av2hStatus status;
     if (decoder == 0 || cdfs == 0 || sequence == 0 || frame == 0 ||
         mode == 0 || prefix == 0 || transform == 0 || block == 0) {
@@ -635,6 +641,11 @@ Av2hStatus av2h_coeff_block_read(
     if (av2h_coeff_tx_geometry(prefix->tx_size, &geometry) != AV2H_OK) {
         return AV2H_UNSUPPORTED;
     }
+    status = av2h_coeff_dequant_steps(
+        sequence, frame,
+        prefix->q_index != 0U ? prefix->q_index : frame->base_q_index,
+        0U, &dequant_steps);
+    if (status != AV2H_OK) return status;
     block->width = geometry.width;
     block->height = geometry.height;
     tx_context = geometry.tx_context;
@@ -884,12 +895,11 @@ Av2hStatus av2h_coeff_block_read(
         if (final_level > 32767U) return AV2H_INVALID_DATA;
         block->quantized[position] = sign ? -(int32_t)final_level :
                                              (int32_t)final_level;
-        dequant = av2h_coeff_dequant_step_8bit(
-            prefix->q_index != 0U ? prefix->q_index : frame->base_q_index,
-            scan_index == 0U ?
-                frame->y_dc_delta_q + sequence->base_y_dc_delta_q : 0);
-        block->dequantized[position] = av2h_coeff_dequantize_level(
-            final_level, sign, dequant, geometry.dequant_shift);
+        dequant = scan_index == 0U ? dequant_steps.dc : dequant_steps.ac;
+        block->dequantized[position] =
+            av2h_coeff_dequantize_level_for_sequence(
+                sequence, final_level, sign, dequant,
+                geometry.dequant_shift);
         ++block->nonzero_count;
         cul_level += final_level;
         if (scan_index == 0U) {
@@ -957,14 +967,13 @@ static Av2hStatus read_chroma_block(
     uint32_t cul_level = 0U;
     uint32_t dc_step;
     uint32_t ac_step;
+    Av2hCoeffDequantSteps dequant_steps;
     Av2hStatus status;
     if (cdfs->q_context != av2h_coeff_q_context(frame->base_q_index)) {
         return AV2H_UNSUPPORTED;
     }
     if (sequence->enable_tcq || sequence->enable_parity_hiding ||
-        frame->using_qmatrix || frame->u_dc_delta_q != 0 ||
-        frame->u_ac_delta_q != 0 || frame->v_dc_delta_q != 0 ||
-        frame->v_ac_delta_q != 0) {
+        frame->using_qmatrix) {
         return AV2H_UNSUPPORTED;
     }
     status = av2h_coeff_tx_geometry(prefix->tx_size, &geometry);
@@ -1060,12 +1069,13 @@ static Av2hStatus read_chroma_block(
     block->after_levels_bits = av2h_range_tell(decoder);
     block->after_levels_range = decoder->range;
     block->after_levels_value = decoder->value;
-    dc_step = av2h_coeff_dequant_step_8bit(
+    status = av2h_coeff_dequant_steps(
+        sequence, frame,
         prefix->q_index != 0U ? prefix->q_index : frame->base_q_index,
-        plane == 1U ? frame->u_dc_delta_q : frame->v_dc_delta_q);
-    ac_step = av2h_coeff_dequant_step_8bit(
-        prefix->q_index != 0U ? prefix->q_index : frame->base_q_index,
-        plane == 1U ? frame->u_ac_delta_q : frame->v_ac_delta_q);
+        plane, &dequant_steps);
+    if (status != AV2H_OK) return status;
+    dc_step = dequant_steps.dc;
+    ac_step = dequant_steps.ac;
     for (scan_index = prefix->eob; scan_index != 0U;) {
         uint16_t position;
         uint32_t final_level;
@@ -1091,8 +1101,10 @@ static Av2hStatus read_chroma_block(
         block->quantized[position] =
             sign ? -(int32_t)final_level : (int32_t)final_level;
         step = position == 0U ? dc_step : ac_step;
-        block->dequantized[position] = av2h_coeff_dequantize_level(
-            final_level, sign, step, geometry.dequant_shift);
+        block->dequantized[position] =
+            av2h_coeff_dequantize_level_for_sequence(
+                sequence, final_level, sign, step,
+                geometry.dequant_shift);
         ++block->nonzero_count;
         cul_level += final_level;
         if (position == 0U) block->dc_value = block->quantized[position];
@@ -1119,10 +1131,7 @@ Av2hStatus av2h_first_chroma_coeff_block_read(
         return AV2H_INVALID_ARGUMENT;
     }
     if ((plane != 1U && plane != 2U) || sequence->enable_tcq ||
-        sequence->enable_parity_hiding ||
-        frame->using_qmatrix || frame->u_dc_delta_q != 0 ||
-        frame->u_ac_delta_q != 0 || frame->v_dc_delta_q != 0 ||
-        frame->v_ac_delta_q != 0) {
+        sequence->enable_parity_hiding || frame->using_qmatrix) {
         return AV2H_UNSUPPORTED;
     }
     status = av2h_coeff_tx_geometry(prefix->tx_size, &geometry);

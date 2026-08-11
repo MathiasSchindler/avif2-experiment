@@ -12,6 +12,11 @@
  */
 #define AV2H_RECON_SAMPLE_CAPACITY 4096U
 
+typedef int32_t Av2hTransformIntermediate;
+typedef int64_t Av2hTransformSum;
+typedef int64_t Av2hPredictionSum;
+typedef int64_t Av2hReconstructionSum;
+
 typedef struct {
     int16_t residual[AV2H_RECON_SAMPLE_CAPACITY];
     uint8_t pixels[AV2H_RECON_SAMPLE_CAPACITY];
@@ -20,9 +25,9 @@ typedef struct {
 } Av2hFirstReconstruction;
 
 typedef struct {
-    int32_t scaled[AV2H_FIRST_COEFF_CAPACITY];
-    int32_t transposed[AV2H_FIRST_COEFF_CAPACITY];
-    int32_t residual[AV2H_FIRST_COEFF_CAPACITY];
+    Av2hTransformIntermediate scaled[AV2H_FIRST_COEFF_CAPACITY];
+    Av2hTransformIntermediate transposed[AV2H_FIRST_COEFF_CAPACITY];
+    Av2hTransformIntermediate residual[AV2H_FIRST_COEFF_CAPACITY];
     uint8_t predictor[AV2H_RECON_SAMPLE_CAPACITY];
     uint8_t above[128U];
     uint8_t left[128U];
@@ -31,9 +36,9 @@ typedef struct {
 } Av2hReconstructionScratch;
 
 typedef struct {
-    int32_t scaled[AV2H_FIRST_COEFF_CAPACITY];
-    int32_t transposed[AV2H_FIRST_COEFF_CAPACITY];
-    int32_t residual[AV2H_FIRST_COEFF_CAPACITY];
+    Av2hTransformIntermediate scaled[AV2H_FIRST_COEFF_CAPACITY];
+    Av2hTransformIntermediate transposed[AV2H_FIRST_COEFF_CAPACITY];
+    Av2hTransformIntermediate residual[AV2H_FIRST_COEFF_CAPACITY];
     uint16_t predictor[AV2H_RECON_SAMPLE_CAPACITY];
     uint16_t above[128U];
     uint16_t left[128U];
