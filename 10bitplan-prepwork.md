@@ -709,6 +709,11 @@ cross-platform validation are recorded in `docs/dev/10bit-prep-wp11.md`.
 
 ### WP12: Preparation release gate
 
+**Status:** Implemented on 2026-08-11. The aggregate release command, exact
+8-bit parity, ABI/workspace comparison, cross-platform gates, reproducible
+10-bit corpus, and remaining Windows runtime limitation are recorded in
+`docs/dev/10bit-prep-wp12.md`.
+
 **Objective:** Prove that preparation changed structure and contracts without
 changing current decoder behavior.
 

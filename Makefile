@@ -46,11 +46,16 @@ HOST_TILE_UNIT := $(HOST_BUILD_DIR)/tile-unit
 HOST_FILTER_UNIT := $(HOST_BUILD_DIR)/filter-unit
 HOST_ARTIFACT_TOOL := $(HOST_BUILD_DIR)/av2heif-artifact
 M9_DECODER ?= build/windows-x86_64/av2heif-decoder.exe
+WP12_DECODER ?= $(HOST_BUILD_DIR)/av2heif-decoder
+WP12_WASM ?= docs/decoder.wasm
+WP12_WINDOWS_PRESET ?= windows-x86_64
+WP12_WINDOWS_BUILD_DIR ?= build/windows-x86_64
+OBJDUMP ?= objdump
 .PHONY: test test-c test-freestanding reference-avm reference-avm-accounting \
 	reference-avm-negatives generate-10bit-sources \
 	generate-10bit-avm-references generate-10bit-synthetic \
 	generate-10bit-synthetic-references generate-10bit-negatives \
-	10bit-wp10 milestone-0 milestone-3 milestone-4 \
+	10bit-wp10 10bit-wp12 milestone-0 milestone-3 milestone-4 \
 	milestone-5-evidence milestone-8 milestone-9
 
 test: test-c test-freestanding
@@ -93,6 +98,31 @@ generate-10bit-negatives: reference-avm-negatives
 10bit-wp10: generate-10bit-synthetic-references generate-10bit-negatives
 	$(PYTHON) -m unittest tests.test_10bit_synthetic \
 		tests.test_10bit_avm_references tests.test_10bit_negative_fixtures
+
+10bit-wp12: test
+	cmake -DDECODER="$(abspath $(WP12_DECODER))" \
+		-DARTIFACT_DIR="$(abspath images/artifacts)" \
+		-DMANIFEST="$(abspath tests/artifact-parity.sha256)" \
+		-DOUTPUT_DIR="$(abspath build/wp12/i420-parity)" \
+		-DEXPECTED_COUNT=31 \
+		-P scripts/check-artifact-parity.cmake
+	$(PYTHON) tools/validate_8bit_mono_corpus.py \
+		--decoder "$(WP12_DECODER)"
+	$(PYTHON) tools/validate_8bit_444_corpus.py \
+		--decoder "$(WP12_DECODER)"
+	$(PYTHON) tools/validate_8bit_444_public.py \
+		--artifact-tool "$(HOST_ARTIFACT_TOOL)"
+	cmake --preset linux-nolibc
+	cmake --build --preset linux-nolibc
+	ctest --preset linux-nolibc $(CTEST_ARGS)
+	$(MAKE) wasm
+	$(PYTHON) tools/validate_8bit_444_wasm.py --wasm "$(WP12_WASM)"
+	cmake --preset $(WP12_WINDOWS_PRESET)
+	cmake --build --preset $(WP12_WINDOWS_PRESET)
+	$(PYTHON) tools/check_windows_imports.py --objdump "$(OBJDUMP)" \
+		--decoder "$(WP12_WINDOWS_BUILD_DIR)/av2heif-decoder.exe" \
+		--smoke "$(WP12_WINDOWS_BUILD_DIR)/av2heif-windows-smoke.exe"
+	$(PYTHON) tools/check_10bit_reproducibility.py
 
 milestone-0: reference-avm test
 	$(PYTHON) tools/run_m0_matrix.py

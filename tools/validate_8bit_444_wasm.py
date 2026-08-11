@@ -6,32 +6,43 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import subprocess
 import struct
 from pathlib import Path
 
 try:
     import wasmtime
-except ImportError as error:
-    raise SystemExit("install the development dependency with: python -m pip install wasmtime") from error
+except ImportError:
+    wasmtime = None
 
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_MANIFEST = ROOT / "images" / "artifacts-8bit-444" / "manifest.json"
+NODE_VALIDATOR = ROOT / "tools" / "validate_8bit_444_wasm_node.js"
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--wasm", type=Path, required=True)
     parser.add_argument("--manifest", type=Path, default=DEFAULT_MANIFEST)
+    parser.add_argument("--node", default="node")
     args = parser.parse_args()
 
     manifest_path = args.manifest.resolve()
+    wasm_path = args.wasm.resolve()
+    if wasmtime is None:
+        subprocess.run(
+            [args.node, str(NODE_VALIDATOR), str(wasm_path), str(manifest_path)],
+            cwd=ROOT,
+            check=True,
+        )
+        return 0
     records = json.loads(manifest_path.read_text(encoding="utf-8")).get("artifacts", [])
     if len(records) != 12:
         raise RuntimeError(f"expected 12 artifacts, found {len(records)}")
 
     engine = wasmtime.Engine()
-    module = wasmtime.Module.from_file(engine, str(args.wasm.resolve()))
+    module = wasmtime.Module.from_file(engine, str(wasm_path))
     store = wasmtime.Store(engine)
     instance = wasmtime.Instance(store, module, [])
     exports = instance.exports(store)
