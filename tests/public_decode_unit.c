@@ -124,6 +124,21 @@ static uint64_t fnv1a64(const unsigned char *bytes, size_t size) {
     return value;
 }
 
+static size_t find_fourcc(const unsigned char *bytes,
+                          size_t size,
+                          const char fourcc[4U]) {
+    size_t index;
+    for (index = 0U; index + 4U <= size; ++index) {
+        if (bytes[index] == (unsigned char)fourcc[0] &&
+            bytes[index + 1U] == (unsigned char)fourcc[1] &&
+            bytes[index + 2U] == (unsigned char)fourcc[2] &&
+            bytes[index + 3U] == (unsigned char)fourcc[3]) {
+            return index;
+        }
+    }
+    return SIZE_MAX;
+}
+
 static void test_public_decode(const PublicFixture *fixture) {
     unsigned char stream[STREAM_CAPACITY];
     unsigned char container[CONTAINER_CAPACITY];
@@ -309,7 +324,7 @@ static void test_public_decode(const PublicFixture *fixture) {
     free(allocation);
 }
 
-static void test_10bit_wp5_filter_boundary(void) {
+static void test_10bit_wp10_public_decode(void) {
     const PublicFixture fixture = {
         "10bit-wp2",
         "tests/fixtures/10bit/avm-reference/"
@@ -318,21 +333,25 @@ static void test_10bit_wp5_filter_boundary(void) {
     };
     unsigned char stream[64U];
     unsigned char container[CONTAINER_CAPACITY];
+    unsigned char reference[768U];
     Av2hObu entries[3U];
     Av2hObuLedger ledger = { entries, 3U, 0U };
     const Av2hObu *sequence_obu = 0;
     const Av2hObu *frame_obu = 0;
     Av2hHeifSource source;
     Av2hInfo info;
+    Av2hInfo stale;
     Av2hError error;
     Av2hStatus decode_status;
     unsigned char *allocation;
     unsigned char *workspace;
     unsigned char *output;
+    FILE *reference_file;
     size_t stream_size = load_fixture(&fixture, stream, sizeof(stream));
     size_t container_size = 0U;
     size_t allocation_size;
     size_t index;
+    size_t prefix;
     CHECK(stream_size == 45U);
     CHECK(av2h_obu_parse(
               (Av2hSpan){ stream, stream_size }, &ledger, &error) == AV2H_OK);
@@ -355,6 +374,19 @@ static void test_10bit_wp5_filter_boundary(void) {
     av2h_color_info_default(&source.color);
     CHECK(av2h_heif_write(&source, container, sizeof(container),
                            &container_size, &error) == AV2H_OK);
+    {
+        size_t pixi_type = find_fourcc(
+            container, container_size, "pixi");
+        unsigned char depth;
+        CHECK(pixi_type != SIZE_MAX && pixi_type + 9U < container_size);
+        depth = container[pixi_type + 9U];
+        container[pixi_type + 9U] = 8U;
+        CHECK(av2h_query(
+                  (Av2hSpan){ container, container_size }, 0,
+                  &info, &error) == AV2H_INVALID_DATA);
+        CHECK(error.context == AV2H_CONTEXT_HEIF);
+        container[pixi_type + 9U] = depth;
+    }
     CHECK(av2h_query((Av2hSpan){ container, container_size }, 0,
                      &info, &error) == AV2H_OK);
     CHECK(info.image.width == 16U && info.image.height == 16U);
@@ -376,10 +408,18 @@ static void test_10bit_wp5_filter_boundary(void) {
     CHECK(info.planes[2].row_bytes == 16U && info.planes[2].offset == 640U);
     CHECK(info.planes[2].size == 128U);
     CHECK(info.output_size == 768U);
-    CHECK(info.workspace_size != 0U && info.workspace_alignment == 4U);
+    CHECK(info.workspace_size == 26497U && info.workspace_alignment == 4U);
+
+    reference_file = fopen(
+        "tests/fixtures/10bit/avm-reference/"
+        "tiny-constrained-16x16-yuv420p10le-qp208-decoded.yuv", "rb");
+    CHECK(reference_file != 0);
+    CHECK(fread(reference, 1U, sizeof(reference), reference_file) ==
+          sizeof(reference));
+    CHECK(fclose(reference_file) == 0);
 
     allocation_size = info.workspace_size + info.workspace_alignment - 1U +
-                      _Alignof(uint16_t) - 1U + info.output_size;
+                      _Alignof(uint16_t) + info.output_size;
     allocation = (unsigned char *)malloc(allocation_size);
     CHECK(allocation != 0);
     workspace = (unsigned char *)(((uintptr_t)allocation +
@@ -390,20 +430,87 @@ static void test_10bit_wp5_filter_boundary(void) {
     decode_status = av2h_decode(
         (Av2hSpan){ container, container_size }, &info,
         workspace, info.workspace_size, output, info.output_size, &error);
-    if (decode_status != AV2H_UNSUPPORTED) {
-        fprintf(stderr, "10bit-wp2: decode status=%d context=%u offset=%zu\n",
+    if (decode_status != AV2H_OK) {
+        fprintf(stderr, "10bit-wp10: decode status=%d context=%u offset=%zu\n",
                 (int)decode_status, error.context, error.offset);
     }
-    CHECK(decode_status == AV2H_UNSUPPORTED);
-    CHECK(error.context == AV2H_CONTEXT_FILTER);
+    CHECK(decode_status == AV2H_OK);
+    CHECK(fnv1a64(output, info.output_size) ==
+          UINT64_C(0x61dd9ffdb54a4439));
     for (index = 0U; index < info.output_size; ++index) {
-        CHECK(output[index] == 0xa5U);
+        CHECK(output[index] == reference[index]);
     }
+
+    av2h_memory_fill(output, 0xa5U, info.output_size + 1U);
+    CHECK(av2h_decode(
+              (Av2hSpan){ container, container_size }, &info,
+              workspace, info.workspace_size - 1U,
+              output, info.output_size, &error) == AV2H_OUT_OF_MEMORY);
+    CHECK(error.context == AV2H_CONTEXT_WORKSPACE && output[0] == 0xa5U);
+    CHECK(av2h_decode(
+              (Av2hSpan){ container, container_size }, &info,
+              workspace + 1U, info.workspace_size,
+              output, info.output_size, &error) == AV2H_INVALID_ARGUMENT);
+    CHECK(error.context == AV2H_CONTEXT_WORKSPACE && output[0] == 0xa5U);
+    CHECK(av2h_decode(
+              (Av2hSpan){ container, container_size }, &info,
+              workspace, info.workspace_size,
+              output, info.output_size - 1U, &error) == AV2H_OUT_OF_MEMORY);
+    CHECK(error.context == AV2H_CONTEXT_OUTPUT && output[0] == 0xa5U);
+    CHECK(av2h_decode(
+              (Av2hSpan){ container, container_size }, &info,
+              workspace, info.workspace_size,
+              output + 1U, info.output_size, &error) ==
+          AV2H_INVALID_ARGUMENT);
+    CHECK(error.context == AV2H_CONTEXT_OUTPUT && output[1] == 0xa5U);
+
+    stale = info;
+    ++stale.input_fingerprint;
+    CHECK(av2h_decode(
+              (Av2hSpan){ container, container_size }, &stale,
+              workspace, info.workspace_size,
+              output, info.output_size, &error) == AV2H_INVALID_DATA);
+    CHECK(error.context == AV2H_CONTEXT_BINDING && output[0] == 0xa5U);
+    stale = info;
+    ++stale.planes[1].offset;
+    CHECK(av2h_decode(
+              (Av2hSpan){ container, container_size }, &stale,
+              workspace, info.workspace_size,
+              output, info.output_size, &error) == AV2H_INVALID_DATA);
+    CHECK(error.context == AV2H_CONTEXT_BINDING && output[0] == 0xa5U);
+    stale = info;
+    stale.image.pixel_format.byte_order = AV2H_BYTE_ORDER_NOT_APPLICABLE;
+    CHECK(av2h_decode(
+              (Av2hSpan){ container, container_size }, &stale,
+              workspace, info.workspace_size,
+              output, info.output_size, &error) == AV2H_INVALID_DATA);
+    CHECK(error.context == AV2H_CONTEXT_BINDING && output[0] == 0xa5U);
     CHECK(av2h_decode(
               (Av2hSpan){ container, container_size }, &info,
               workspace, info.workspace_size, workspace, info.output_size,
               &error) == AV2H_INVALID_ARGUMENT);
     CHECK(error.context == AV2H_CONTEXT_OUTPUT);
+    av2h_memory_copy(workspace, &info, sizeof(info));
+    CHECK(av2h_decode(
+              (Av2hSpan){ container, container_size },
+              (const Av2hInfo *)workspace,
+              workspace, info.workspace_size,
+              output, info.output_size, &error) == AV2H_INVALID_ARGUMENT);
+    CHECK(error.context == AV2H_CONTEXT_OUTPUT && output[0] == 0xa5U);
+    CHECK(av2h_decode(
+              (Av2hSpan){ container, container_size }, &info,
+              workspace, info.workspace_size,
+              output, info.output_size,
+              (Av2hError *)output) == AV2H_INVALID_ARGUMENT);
+    CHECK(output[0] == 0xa5U);
+    for (prefix = 0U; prefix < container_size; ++prefix) {
+        output[0] = 0xa5U;
+        CHECK(av2h_decode(
+                  (Av2hSpan){ container, prefix }, &info,
+                  workspace, info.workspace_size,
+                  output, info.output_size, &error) != AV2H_OK);
+        CHECK(output[0] == 0xa5U);
+    }
     free(allocation);
 }
 
@@ -412,7 +519,7 @@ int main(void) {
     for (index = 0U; index < sizeof(fixtures) / sizeof(fixtures[0]); ++index) {
         test_public_decode(&fixtures[index]);
     }
-    test_10bit_wp5_filter_boundary();
+    test_10bit_wp10_public_decode();
     if (failures != 0) return 1;
     printf("public decode unit: pass\n");
     return 0;

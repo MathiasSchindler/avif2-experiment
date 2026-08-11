@@ -382,9 +382,12 @@ and decode contracts.
 - Update hosted tools and platform adapters to identify and preserve 16-bit
   little-endian planar output without implicit downconversion.
 
-**Exit gate:** Canonical tiny 10-bit 4:2:0 HEIF decodes sample-exactly through
-the public API; malformed, stale, overlapping, truncated, and undersized cases
-fail deterministically; and all public 8-bit contracts remain unchanged.
+**Exit gate:** Complete. Canonical tiny 10-bit 4:2:0 HEIF decodes
+sample-exactly through the public API; malformed, stale, overlapping,
+truncated, and undersized cases fail deterministically; all public 8-bit
+contracts remain unchanged; and hosted, no-libc, Windows, and WebAssembly
+adapters preserve and identify two-byte little-endian planar output. Evidence
+and the focused gate are documented in `docs/dev/10bit-wp10.md`.
 
 ## 10B-WP11: Complete 10-bit 4:2:0 corpus coverage
 

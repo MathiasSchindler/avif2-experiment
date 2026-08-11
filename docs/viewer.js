@@ -89,7 +89,9 @@ function copyCanvas(source, destination) {
   destination.getContext("2d", { alpha: false }).drawImage(source, 0, 0);
 }
 
-function planarToCanvas(planar, width, height, channelCount, chromaFormat) {
+function planarToCanvas(
+  planar, width, height, channelCount, chromaFormat, bitDepth = 8
+) {
   const canvas = document.createElement("canvas");
   canvas.width = width;
   canvas.height = height;
@@ -100,15 +102,17 @@ function planarToCanvas(planar, width, height, channelCount, chromaFormat) {
   const chromaHeight = chromaFormat === 2 ? height : Math.ceil(height / 2);
   const uOffset = width * height;
   const vOffset = uOffset + chromaWidth * chromaHeight;
+  const sampleShift = bitDepth - 8;
+  const sample = (index) => planar[index] >> sampleShift;
 
   for (let row = 0; row < height; row += 1) {
     const yRow = row * width;
     const uvRow = (chromaFormat === 2 ? row : Math.floor(row / 2)) * chromaWidth;
     for (let column = 0; column < width; column += 1) {
-      const y = planar[yRow + column] - 16;
+      const y = sample(yRow + column) - 16;
       const uvIndex = uvRow + (chromaFormat === 2 ? column : Math.floor(column / 2));
-      const cb = channelCount === 1 ? 0 : planar[uOffset + uvIndex] - 128;
-      const cr = channelCount === 1 ? 0 : planar[vOffset + uvIndex] - 128;
+      const cb = channelCount === 1 ? 0 : sample(uOffset + uvIndex) - 128;
+      const cr = channelCount === 1 ? 0 : sample(vOffset + uvIndex) - 128;
       const target = (yRow + column) * 4;
       rgba[target] = Math.max(0, Math.min(255, (298 * y + 409 * cr + 128) >> 8));
       rgba[target + 1] = Math.max(0, Math.min(255, (298 * y - 100 * cb - 208 * cr + 128) >> 8));
@@ -224,10 +228,10 @@ async function decodeAv2Source(source) {
   const started = performance.now();
   const status = wasm.av2h_decode(pointer, input.byteLength);
   const resultPointer = wasm.av2h_result_pointer();
-  const result = new Uint32Array(wasm.memory.buffer, resultPointer, 9);
+  const result = new Uint32Array(wasm.memory.buffer, resultPointer, 12);
   const [
     outputPointer, outputSize, width, height, resultStatus, cause, stage,
-    channelCount, chromaFormat,
+    channelCount, chromaFormat, bitDepth, bytesPerSample, byteOrder,
   ] = result;
   const elapsed = performance.now() - started;
   if (status !== 0 || resultStatus !== 0) {
@@ -236,14 +240,20 @@ async function decodeAv2Source(source) {
   }
   const pixels = new Uint8Array(outputSize);
   pixels.set(new Uint8Array(wasm.memory.buffer, outputPointer, outputSize));
+  const samples = bytesPerSample === 2
+    ? new Uint16Array(pixels.buffer) : pixels;
   return {
-    canvas: planarToCanvas(pixels, width, height, channelCount, chromaFormat),
+    canvas: planarToCanvas(
+      samples, width, height, channelCount, chromaFormat, bitDepth
+    ),
     width,
     height,
     channelCount,
     chromaFormat,
-    pixelFormat: channelCount === 1
-      ? "8-bit I400" : chromaFormat === 2 ? "8-bit I444" : "8-bit I420",
+    pixelFormat: bytesPerSample === 2 && byteOrder === 1
+      ? "10-bit yuv420p10le"
+      : channelCount === 1
+        ? "8-bit I400" : chromaFormat === 2 ? "8-bit I444" : "8-bit I420",
     elapsed,
     source,
   };

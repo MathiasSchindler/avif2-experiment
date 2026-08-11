@@ -229,7 +229,6 @@ Av2hStatus av2h_decode(Av2hSpan input,
         if (status != AV2H_OK) {
             return decode_fail(error, status, AV2H_CONTEXT_OUTPUT);
         }
-        return decode_fail(error, AV2H_UNSUPPORTED, AV2H_CONTEXT_FILTER);
     }
     av2h_memory_fill(&result, 0U, sizeof(result));
     status = av2h_decode_frame_planar_private(

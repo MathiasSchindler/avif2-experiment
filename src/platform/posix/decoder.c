@@ -308,7 +308,8 @@ static int write_png(const char *path,
 static void usage(const char *program) {
     fprintf(stderr,
             "usage: %s INPUT.obu -o "
-            "OUTPUT.i400|OUTPUT.i420|OUTPUT.i444|OUTPUT.bmp|OUTPUT.png\n",
+            "OUTPUT.i400|OUTPUT.i420|OUTPUT.i444|"
+            "OUTPUT.yuv420p10le|OUTPUT.bmp|OUTPUT.png\n",
             program);
 }
 
@@ -341,8 +342,7 @@ int main(int argc, char **argv) {
         release_memory(&input);
         return status == AV2H_UNSUPPORTED ? 3 : 1;
     }
-    raw_extension = output_format.bytes_per_sample == 2U ?
-        ".i420" : av2h_raw_output_extension(&output_format);
+    raw_extension = av2h_raw_output_extension(&output_format);
     if (!ends_with(argv[3], ".bmp") && !ends_with(argv[3], ".png") &&
         (raw_extension == 0 || !ends_with(argv[3], raw_extension))) {
         fprintf(stderr,

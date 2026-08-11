@@ -142,7 +142,7 @@
   },
   "current_decoder": {
     "exit_code": 0,
-    "output_extension": ".i420",
+    "output_extension": ".yuv420p10le",
     "output_sha256": "ca9ec6d9f6a901431de7364968b9b84ebf8ed34a832b167b66661add370f302b"
   }
 }

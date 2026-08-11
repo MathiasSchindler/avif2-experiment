@@ -30,21 +30,26 @@ const char *av2h_raw_output_format_name(const Av2hPixelFormat *format) {
 }
 
 const char *av2h_raw_output_extension(const Av2hPixelFormat *format) {
-    if (!format_is_u8(format)) return 0;
-    if (format->chroma_format_idc == 1U) return ".i400";
-    if (format->chroma_format_idc == 0U) return ".i420";
-    if (format->chroma_format_idc == 2U) return ".i444";
+    if (format_is_u8(format)) {
+        if (format->chroma_format_idc == 1U) return ".i400";
+        if (format->chroma_format_idc == 0U) return ".i420";
+        if (format->chroma_format_idc == 2U) return ".i444";
+    }
+    if (format_is_10bit_le(format) && format->chroma_format_idc == 0U) {
+        return ".yuv420p10le";
+    }
     return 0;
 }
 
 size_t av2h_raw_output_extension_count(void) {
-    return 3U;
+    return 4U;
 }
 
 const char *av2h_raw_output_extension_at(size_t index) {
     if (index == 0U) return ".i400";
     if (index == 1U) return ".i420";
     if (index == 2U) return ".i444";
+    if (index == 3U) return ".yuv420p10le";
     return 0;
 }
 

@@ -20,6 +20,9 @@ typedef struct {
     uint32_t stage;
     uint32_t channel_count;
     uint32_t chroma_format_idc;
+    uint32_t bit_depth;
+    uint32_t bytes_per_sample;
+    uint32_t byte_order;
 } Av2hWasmResult;
 
 static uintptr_t heap_position;
@@ -97,6 +100,7 @@ uint32_t av2h_wasm_decode(uint32_t input_pointer, uint32_t input_size) {
     uint8_t *workspace_memory;
     uint8_t *output;
     size_t output_size;
+    size_t bytes_per_sample;
     Av2hSpan input;
     Av2hStatus status;
 
@@ -117,6 +121,7 @@ uint32_t av2h_wasm_decode(uint32_t input_pointer, uint32_t input_size) {
     }
     status = av2h_sequence_state_parse(input, sequence_obu, &sequence, &error);
     if (status != AV2H_OK) goto done;
+    bytes_per_sample = sequence.info.bit_depth_idc == 0U ? 2U : 1U;
     status = av2h_frame_header_closed_key_parse(
         (Av2hSpan){ input.data + frame_obu->payload_offset,
                     frame_obu->payload_size },
@@ -127,14 +132,15 @@ uint32_t av2h_wasm_decode(uint32_t input_pointer, uint32_t input_size) {
                     frame_obu->payload_size },
         frame.uncompressed_header_bits, &group);
     if (status != AV2H_OK) goto done;
-    status = av2h_planar_output_size(&frame, &output_size);
+    status = av2h_planar_output_size_bytes(
+        &frame, bytes_per_sample, &output_size);
     if (status != AV2H_OK) goto done;
     if (output_size > UINT32_MAX) {
         status = AV2H_OVERFLOW;
         goto done;
     }
-    status = av2h_frame_decode_workspace_query(
-        &sequence, &frame, &workspace_layout);
+    status = av2h_frame_decode_workspace_query_bytes(
+        &sequence, &frame, bytes_per_sample, &workspace_layout);
     if (status != AV2H_OK) goto done;
     workspace_memory = allocate_bytes(
         workspace_layout.size_bytes, workspace_layout.alignment);
@@ -143,8 +149,8 @@ uint32_t av2h_wasm_decode(uint32_t input_pointer, uint32_t input_size) {
         status = AV2H_OUT_OF_MEMORY;
         goto done;
     }
-    status = av2h_frame_decode_workspace_init(
-        &sequence, &frame, &workspace_layout,
+    status = av2h_frame_decode_workspace_init_bytes(
+        &sequence, &frame, bytes_per_sample, &workspace_layout,
         workspace_memory, workspace_layout.size_bytes,
         &workspace, &filter_workspace, &filter_storage);
     if (status != AV2H_OK) goto done;
@@ -158,6 +164,10 @@ uint32_t av2h_wasm_decode(uint32_t input_pointer, uint32_t input_size) {
     wasm_result.height = frame.height;
     wasm_result.channel_count = av2h_frame_plane_count(&frame);
     wasm_result.chroma_format_idc = frame.chroma_format_idc;
+    wasm_result.bit_depth = bytes_per_sample == 2U ? 10U : 8U;
+    wasm_result.bytes_per_sample = (uint32_t)bytes_per_sample;
+    wasm_result.byte_order = bytes_per_sample == 2U ?
+        AV2H_BYTE_ORDER_LITTLE_ENDIAN : AV2H_BYTE_ORDER_NOT_APPLICABLE;
 
 done:
     wasm_result.status = status;

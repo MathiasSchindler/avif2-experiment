@@ -48,6 +48,7 @@ HOST_ARTIFACT_TOOL := $(HOST_BUILD_DIR)/av2heif-artifact
 FILTER_PARITY_DECODER ?= $(HOST_BUILD_DIR)/av2heif-decoder
 WP12_DECODER ?= $(HOST_BUILD_DIR)/av2heif-decoder
 WP12_WASM ?= docs/decoder.wasm
+WP10_WASM ?= build/wasm-wp10/decoder.wasm
 WP12_WINDOWS_PRESET ?= windows-x86_64
 WP12_WINDOWS_BUILD_DIR ?= build/windows-x86_64
 OBJDUMP ?= objdump
@@ -192,9 +193,18 @@ generate-10bit-negatives: reference-avm-negatives
 	$(PYTHON) tools/check_10bit_wp0_oracle.py verify \
 		--decoder "$(HOST_BUILD_DIR)/av2heif-decoder"
 
-10bit-wp10: generate-10bit-synthetic-references generate-10bit-negatives
-	$(PYTHON) -m unittest tests.test_10bit_synthetic \
-		tests.test_10bit_avm_references tests.test_10bit_negative_fixtures
+10bit-wp10: test-host-build
+	ctest --preset $(HOST_PRESET) $(CTEST_ARGS) $(CTEST_PARALLEL_ARGS) \
+		-R '^(container-unit|output-layout-unit|pixel-format-unit|preview-unit|public-decode-unit|workspace-accounting-unit)$$'
+	cmake --build --preset $(HOST_PRESET) $(CMAKE_BUILD_ARGS) \
+		--target av2heif-freestanding-check
+	$(PYTHON) -m unittest tests.test_10bit_negative_fixtures \
+		tests.test_10bit_wp0_oracle
+	$(PYTHON) tools/check_10bit_wp0_oracle.py verify \
+		--decoder "$(HOST_BUILD_DIR)/av2heif-decoder"
+	$(PYTHON) experimental/wasm/build.py \
+		--output-directory "$(dir $(WP10_WASM))"
+	node tools/validate_10bit_wasm.js "$(WP10_WASM)"
 
 10bit-wp12: test
 	cmake -DDECODER="$(abspath $(WP12_DECODER))" \
