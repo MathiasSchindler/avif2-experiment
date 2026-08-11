@@ -544,7 +544,7 @@ static Av2hStatus decode_obu(Av2hSpan input,
     status = av2h_frame_decode_workspace_query(
         &sequence, &frame, &workspace_layout);
     if (status != AV2H_OK) return status;
-    workspace_size = workspace_layout.size;
+    workspace_size = workspace_layout.size_bytes;
     if (!allocate_memory(workspace_size, &workspace_memory) ||
         !allocate_memory(output_size, output)) {
         release_memory(&workspace_memory);

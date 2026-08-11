@@ -403,7 +403,7 @@ static void test_luma_mode_bottom_left_clipped_to_frame(void) {
               &state, above, 40U, left, 32U) == AV2H_OK);
     memset(spatial, 0, sizeof(spatial));
     state.spatial = (uint8_t *)spatial;
-    state.spatial_stride = sizeof(Av2hLumaModeContext);
+    state.spatial_stride_bytes = sizeof(Av2hLumaModeContext);
     state.spatial_columns = 40U;
     state.spatial_rows = 27U;
     left[24U].present = 1U;

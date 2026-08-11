@@ -5,7 +5,7 @@
 
 typedef struct {
     uint8_t *data;
-    size_t stride;
+    size_t stride_samples;
     uint16_t width;
     uint16_t height;
 } Av2hFilterPlane;
@@ -16,7 +16,7 @@ typedef struct {
 
 typedef struct {
     const uint8_t *plane[AV2H_FRAME_PLANE_COUNT];
-    size_t stride[AV2H_FRAME_PLANE_COUNT];
+    size_t stride_units[AV2H_FRAME_PLANE_COUNT];
     size_t columns;
     size_t rows;
 } Av2hCcsoControlMap;
@@ -29,7 +29,7 @@ typedef struct {
 
 typedef struct {
     const uint8_t *flags;
-    size_t stride;
+    size_t stride_blocks;
     size_t columns;
     size_t rows;
     uint16_t block_size;
@@ -49,7 +49,7 @@ typedef struct {
 
 typedef struct {
     const Av2hDeblockCell *plane[AV2H_FRAME_PLANE_COUNT];
-    size_t stride[AV2H_FRAME_PLANE_COUNT];
+    size_t stride_cells[AV2H_FRAME_PLANE_COUNT];
     size_t columns[AV2H_FRAME_PLANE_COUNT];
     size_t rows[AV2H_FRAME_PLANE_COUNT];
 } Av2hDeblockMap;
@@ -73,7 +73,7 @@ typedef struct {
     size_t ccso_columns;
     size_t ccso_rows;
     size_t ccso_control_count;
-    size_t size;
+    size_t size_bytes;
     size_t alignment;
 } Av2hFilterWorkspaceLayout;
 
@@ -92,7 +92,7 @@ Av2hStatus av2h_filter_workspace_query_bytes(
 Av2hStatus av2h_filter_workspace_init(
     const Av2hFrameState *frame,
     void *memory,
-    size_t memory_size,
+    size_t memory_size_bytes,
     Av2hFilterWorkspace *workspace,
     Av2hFilterWorkspaceStorage *storage);
 
@@ -156,7 +156,7 @@ Av2hStatus av2h_gdf_filter_frame_with_controls(
 Av2hStatus av2h_ccso_filter_frame(
     Av2hFilterPlanes *planes,
     const uint8_t *pre_cdef_luma,
-    size_t pre_cdef_luma_stride,
+    size_t pre_cdef_luma_stride_samples,
     const Av2hFrameState *frame,
     const Av2hCcsoControlMap *controls);
 

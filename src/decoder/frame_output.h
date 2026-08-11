@@ -6,7 +6,7 @@
 
 typedef struct {
     Av2hReconstructionPlane coded[AV2H_FRAME_PLANE_COUNT];
-    size_t coded_data_size[AV2H_FRAME_PLANE_COUNT];
+    size_t coded_data_size_bytes[AV2H_FRAME_PLANE_COUNT];
     Av2hTileContextStorage tile_context;
     Av2hReconstructionScratch *reconstruction_scratch;
     Av2hFilterWorkspace *filter_workspace;
@@ -92,11 +92,11 @@ typedef struct {
 
 Av2hStatus av2h_planar_output_size(
     const Av2hFrameState *frame,
-    size_t *size);
+    size_t *size_bytes);
 Av2hStatus av2h_planar_output_size_bytes(
     const Av2hFrameState *frame,
     size_t bytes_per_sample,
-    size_t *size);
+    size_t *size_bytes);
 
 Av2hStatus av2h_deblock_map_commit_transform(
     Av2hDeblockMap *map,
@@ -112,9 +112,9 @@ Av2hStatus av2h_deblock_map_commit_transform(
 Av2hStatus av2h_copy_visible_planar_private(
     const Av2hFrameState *frame,
     const Av2hFilterPlanes *coded,
-    const size_t coded_data_size[AV2H_FRAME_PLANE_COUNT],
+    const size_t coded_data_size_bytes[AV2H_FRAME_PLANE_COUNT],
     uint8_t *output,
-    size_t output_size);
+    size_t output_size_bytes);
 
 Av2hStatus av2h_decode_frame_planar_private(
     Av2hSpan entropy,
@@ -122,7 +122,7 @@ Av2hStatus av2h_decode_frame_planar_private(
     const Av2hFrameState *frame,
     Av2hFrameDecodeWorkspace *workspace,
     uint8_t *output,
-    size_t output_size,
+    size_t output_size_bytes,
     Av2hFrameDecodeResult *result);
 
 #endif

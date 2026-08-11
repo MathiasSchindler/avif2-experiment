@@ -137,7 +137,7 @@ uint32_t av2h_wasm_decode(uint32_t input_pointer, uint32_t input_size) {
         &sequence, &frame, &workspace_layout);
     if (status != AV2H_OK) goto done;
     workspace_memory = allocate_bytes(
-        workspace_layout.size, workspace_layout.alignment);
+        workspace_layout.size_bytes, workspace_layout.alignment);
     output = allocate_bytes(output_size, 16U);
     if (workspace_memory == 0 || output == 0) {
         status = AV2H_OUT_OF_MEMORY;
@@ -145,7 +145,7 @@ uint32_t av2h_wasm_decode(uint32_t input_pointer, uint32_t input_size) {
     }
     status = av2h_frame_decode_workspace_init(
         &sequence, &frame, &workspace_layout,
-        workspace_memory, workspace_layout.size,
+        workspace_memory, workspace_layout.size_bytes,
         &workspace, &filter_workspace, &filter_storage);
     if (status != AV2H_OK) goto done;
     status = av2h_decode_frame_planar_private(

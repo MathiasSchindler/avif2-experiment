@@ -39,7 +39,7 @@ static inline int filter_dimensions_valid(
         if (planes->plane[plane].data == 0 ||
             planes->plane[plane].width != width ||
             planes->plane[plane].height != height ||
-            planes->plane[plane].stride < width) {
+            planes->plane[plane].stride_samples < width) {
             return 0;
         }
     }
@@ -52,8 +52,8 @@ static inline void filter_copy_plane(
     for (row = 0U; row < source->height; ++row) {
         uint16_t column;
         for (column = 0U; column < source->width; ++column) {
-            destination->data[(size_t)row * destination->stride + column] =
-                source->data[(size_t)row * source->stride + column];
+            destination->data[(size_t)row * destination->stride_samples + column] =
+                source->data[(size_t)row * source->stride_samples + column];
         }
     }
 }

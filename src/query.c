@@ -214,7 +214,7 @@ Av2hStatus av2h_query(Av2hSpan input,
         return query_fail(error, AV2H_INVALID_DATA, 0U,
                           AV2H_CONTEXT_OUTPUT);
     }
-    info->workspace_size = preparation.workspace.size;
+    info->workspace_size = preparation.workspace.size_bytes;
     info->workspace_alignment = preparation.workspace.alignment;
     if (info->workspace_alignment == 0U ||
         (info->workspace_alignment &

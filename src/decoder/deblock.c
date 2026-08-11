@@ -217,7 +217,7 @@ static Av2hStatus deblock_edge(
     uint8_t *sample;
     unsigned int filter;
     unsigned int lane;
-    if (plane == 0 || plane->data == 0 || plane->stride < plane->width ||
+    if (plane == 0 || plane->data == 0 || plane->stride_samples < plane->width ||
         vertical > 1U || negative_length < 4U ||
         (negative_length & 1U) != 0U || positive_length < negative_length ||
         positive_length > 18U || (positive_length & 1U) != 0U) {
@@ -237,9 +237,9 @@ static Av2hStatus deblock_edge(
           (unsigned int)x + 4U > plane->width))) {
         return AV2H_INVALID_ARGUMENT;
     }
-    step = vertical != 0U ? 1 : (ptrdiff_t)plane->stride;
-    lane_step = vertical != 0U ? (ptrdiff_t)plane->stride : 1;
-    sample = plane->data + (size_t)y * plane->stride + x;
+    step = vertical != 0U ? 1 : (ptrdiff_t)plane->stride_samples;
+    lane_step = vertical != 0U ? (ptrdiff_t)plane->stride_samples : 1;
+    sample = plane->data + (size_t)y * plane->stride_samples + x;
     filter = deblock_filter_choice(
         sample, step, negative_length, positive_length,
         q_threshold, side_threshold, sample + 3 * lane_step);
@@ -289,14 +289,14 @@ int av2h_deblock_map_valid(const Av2hFilterPlanes *planes,
             rows /= 2U;
         }
         if (map->plane[plane] == 0 || map->columns[plane] != columns ||
-            map->rows[plane] != rows || map->stride[plane] < columns) {
+            map->rows[plane] != rows || map->stride_cells[plane] < columns) {
             return 0;
         }
         for (row = 0U; row < rows; ++row) {
             size_t column;
             for (column = 0U; column < columns; ++column) {
                 const Av2hDeblockCell *cell =
-                    &map->plane[plane][row * map->stride[plane] + column];
+                    &map->plane[plane][row * map->stride_cells[plane] + column];
                 if (!deblock_transform_dimension_valid(
                         cell->transform_width) ||
                     !deblock_transform_dimension_valid(
@@ -323,11 +323,11 @@ static Av2hStatus deblock_frame_edge(
     size_t row,
     size_t column) {
     const Av2hDeblockCell *cell =
-        &map->plane[plane][row * map->stride[plane] + column];
+        &map->plane[plane][row * map->stride_cells[plane] + column];
     size_t previous_row = row - (pass != 0U ? 1U : 0U);
     size_t previous_column = column - (pass == 0U ? 1U : 0U);
     const Av2hDeblockCell *previous = &map->plane[plane][
-        previous_row * map->stride[plane] + previous_column];
+        previous_row * map->stride_cells[plane] + previous_column];
     unsigned int transform_edge = pass == 0U ?
         cell->transform_column != previous->transform_column :
         cell->transform_row != previous->transform_row;

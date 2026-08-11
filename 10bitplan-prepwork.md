@@ -350,6 +350,10 @@ width while keeping syntax and control maps narrow.
 
 ### WP4: Make stride units explicit
 
+**Status:** Implemented on 2026-08-11. The unit-bearing rename inventory,
+private layout review, build-tree cleanup, and platform evidence are recorded
+in `docs/dev/10bit-prep-wp4.md`.
+
 **Objective:** Prevent byte/sample unit errors when typed 16-bit samples are
 introduced.
 

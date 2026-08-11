@@ -51,7 +51,8 @@ static void test_storage_width_accounting(uint8_t chroma_format_idc) {
               &frame, 2U, &filter_u16) == AV2H_OK);
     sample_count = stage_sample_count(&filter_u8);
     CHECK(stage_sample_count(&filter_u16) == 2U * sample_count);
-    CHECK(filter_u16.size == filter_u8.size + 2U * sample_count);
+        CHECK(filter_u16.size_bytes ==
+            filter_u8.size_bytes + 2U * sample_count);
     CHECK(filter_u16.alignment == filter_u8.alignment);
     CHECK(filter_u16.deblock_cell_count[0] ==
           filter_u8.deblock_cell_count[0]);
@@ -66,19 +67,19 @@ static void test_storage_width_accounting(uint8_t chroma_format_idc) {
     CHECK(av2h_frame_decode_workspace_query_bytes(
               &sequence, &frame, 2U, &workspace_u16) == AV2H_OK);
     coded_plane_alignment_padding = av2h_frame_plane_count(&frame);
-    CHECK(workspace_u16.size == workspace_u8.size +
+    CHECK(workspace_u16.size_bytes == workspace_u8.size_bytes +
           3U * sample_count + AV2H_RECON_SAMPLE_CAPACITY + 4U * 128U +
           coded_plane_alignment_padding);
     CHECK(workspace_u16.alignment == workspace_u8.alignment);
-    CHECK(workspace_u8.size != 0U);
-        CHECK(workspace_u16.size <= sizeof(memory));
+    CHECK(workspace_u8.size_bytes != 0U);
+        CHECK(workspace_u16.size_bytes <= sizeof(memory));
         CHECK(av2h_frame_decode_workspace_init(
               &sequence, &frame, &workspace_u8, memory, sizeof(memory),
               &workspace, &filter_workspace, &filter_storage) == AV2H_OK);
-        CHECK(workspace.coded[0].reconstructed_stride >=
+        CHECK(workspace.coded[0].reconstructed_stride_cells >=
             ((size_t)workspace.coded[0].width + 3U) / 4U);
-        CHECK(workspace.coded[0].reconstructed_count >=
-            workspace.coded[0].reconstructed_stride *
+            CHECK(workspace.coded[0].reconstructed_count_cells >=
+                workspace.coded[0].reconstructed_stride_cells *
             (((size_t)workspace.coded[0].height + 3U) / 4U));
         av2h_memory_fill(&workspace, 0xa5U, sizeof(workspace));
         av2h_memory_fill(&filter_workspace, 0xa5U, sizeof(filter_workspace));
@@ -107,8 +108,8 @@ static void test_maximum_workspace(void) {
                   &sequence, &frame, 1U, &layout_u8) == AV2H_OK);
         CHECK(av2h_frame_decode_workspace_query_bytes(
                   &sequence, &frame, 2U, &layout_u16) == AV2H_OK);
-        CHECK(layout_u16.size > layout_u8.size);
-        CHECK(layout_u16.size > limits.max_workspace_size);
+        CHECK(layout_u16.size_bytes > layout_u8.size_bytes);
+        CHECK(layout_u16.size_bytes > limits.max_workspace_size);
         CHECK(layout_u16.alignment == layout_u8.alignment);
     }
 }

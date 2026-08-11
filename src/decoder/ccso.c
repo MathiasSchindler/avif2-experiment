@@ -27,7 +27,7 @@ int av2h_ccso_controls_valid(const Av2hFrameState *frame,
     for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
         if (frame->ccso[plane].enabled != 0U &&
             (controls->plane[plane] == 0 ||
-             controls->stride[plane] < columns)) {
+             controls->stride_units[plane] < columns)) {
             return 0;
         }
         if (frame->ccso[plane].enabled != 0U) {
@@ -36,7 +36,7 @@ int av2h_ccso_controls_valid(const Av2hFrameState *frame,
                 size_t column;
                 for (column = 0U; column < columns; ++column) {
                     if (controls->plane[plane][
-                            row * controls->stride[plane] + column] > 1U) {
+                            row * controls->stride_units[plane] + column] > 1U) {
                         return 0;
                     }
                 }
@@ -107,7 +107,7 @@ static void ccso_sample_offsets(uint8_t support,
 }
 
 static uint8_t luma_sample(const uint8_t *luma,
-                           size_t stride,
+                           size_t stride_samples,
                            uint16_t width,
                            uint16_t height,
                            int x,
@@ -116,7 +116,7 @@ static uint8_t luma_sample(const uint8_t *luma,
     if (y < 0) y = 0;
     if (x >= (int)width) x = (int)width - 1;
     if (y >= (int)height) y = (int)height - 1;
-    return luma[(size_t)y * stride + (size_t)x];
+    return luma[(size_t)y * stride_samples + (size_t)x];
 }
 
 static unsigned int ccso_class(uint8_t neighbor,
@@ -131,12 +131,12 @@ static unsigned int ccso_class(uint8_t neighbor,
 
 static void ccso_filter_plane(Av2hFilterPlane *destination,
                               const uint8_t *luma,
-                              size_t luma_stride,
+                              size_t luma_stride_samples,
                               uint16_t luma_width,
                               uint16_t luma_height,
                               const Av2hCcsoPlane *parameters,
                               const uint8_t *controls,
-                              size_t control_stride,
+                              size_t control_stride_units,
                               uint16_t luma_unit_size,
                               unsigned int subsampling) {
     unsigned int unit_size = luma_unit_size >> subsampling;
@@ -165,20 +165,20 @@ static void ccso_filter_plane(Av2hFilterPlane *destination,
             unsigned int band;
             size_t lut_index;
             size_t destination_index;
-            if (controls[control_row * control_stride + control_column] == 0U) {
+            if (controls[control_row * control_stride_units + control_column] == 0U) {
                 continue;
             }
             luma_x = (int)((uint32_t)x << subsampling);
             luma_y = (int)((uint32_t)y << subsampling);
-            center = luma_sample(luma, luma_stride, luma_width,
+            center = luma_sample(luma, luma_stride_samples, luma_width,
                                  luma_height, luma_x, luma_y);
             if (parameters->band_only == 0U) {
                 first_class = ccso_class(
-                    luma_sample(luma, luma_stride, luma_width, luma_height,
+                    luma_sample(luma, luma_stride_samples, luma_width, luma_height,
                                 luma_x + first_x, luma_y + first_y),
                     center, threshold, parameters->edge_classifier);
                 second_class = ccso_class(
-                    luma_sample(luma, luma_stride, luma_width, luma_height,
+                    luma_sample(luma, luma_stride_samples, luma_width, luma_height,
                                 luma_x + second_x, luma_y + second_y),
                     center, threshold, parameters->edge_classifier);
             }
@@ -186,7 +186,7 @@ static void ccso_filter_plane(Av2hFilterPlane *destination,
                 0U : (unsigned int)center >> shift;
             lut_index = ((size_t)band << 4U) +
                         ((size_t)first_class << 2U) + second_class;
-            destination_index = (size_t)y * destination->stride + x;
+            destination_index = (size_t)y * destination->stride_samples + x;
             destination->data[destination_index] = av2h_sample_clip(
                 (int)destination->data[destination_index] +
                 parameters->filter_offset[lut_index]);
@@ -197,13 +197,13 @@ static void ccso_filter_plane(Av2hFilterPlane *destination,
 Av2hStatus av2h_ccso_filter_frame(
     Av2hFilterPlanes *planes,
     const uint8_t *pre_cdef_luma,
-    size_t pre_cdef_luma_stride,
+    size_t pre_cdef_luma_stride_samples,
     const Av2hFrameState *frame,
     const Av2hCcsoControlMap *controls) {
     unsigned int plane;
     if (planes == 0 || pre_cdef_luma == 0 || frame == 0 ||
         frame->width == 0U || frame->height == 0U ||
-        pre_cdef_luma_stride < av2h_filter_coded_dimension(frame->width) ||
+        pre_cdef_luma_stride_samples < av2h_filter_coded_dimension(frame->width) ||
         !filter_dimensions_valid(planes, frame) ||
         !av2h_ccso_parameters_valid(frame) ||
         !av2h_ccso_controls_valid(frame, controls)) {
@@ -212,9 +212,9 @@ Av2hStatus av2h_ccso_filter_frame(
     for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
         if (frame->ccso[plane].enabled == 0U) continue;
         ccso_filter_plane(&planes->plane[plane], pre_cdef_luma,
-                          pre_cdef_luma_stride, planes->plane[0].width,
+                          pre_cdef_luma_stride_samples, planes->plane[0].width,
                           planes->plane[0].height, &frame->ccso[plane],
-                          controls->plane[plane], controls->stride[plane],
+                          controls->plane[plane], controls->stride_units[plane],
                           av2h_filter_ccso_unit_size(frame),
                           av2h_chroma_shift(frame->chroma_format_idc, plane));
     }

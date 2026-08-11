@@ -4,7 +4,7 @@
 #include "decoder/frame_output.h"
 
 typedef struct {
-    size_t size;
+    size_t size_bytes;
     size_t alignment;
 } Av2hFrameDecodeWorkspaceLayout;
 
@@ -23,7 +23,7 @@ Av2hStatus av2h_frame_decode_workspace_init(
     const Av2hFrameState *frame,
     const Av2hFrameDecodeWorkspaceLayout *layout,
     void *memory,
-    size_t memory_size,
+    size_t memory_size_bytes,
     Av2hFrameDecodeWorkspace *workspace,
     Av2hFilterWorkspace *filter_workspace,
     Av2hFilterWorkspaceStorage *filter_storage);
@@ -33,7 +33,7 @@ Av2hStatus av2h_frame_workspace_prepare(
     const Av2hFrameState *frame,
     Av2hFrameDecodeWorkspace *workspace,
     uint8_t *output,
-    size_t required_output,
+    size_t required_output_bytes,
     const Av2hFrameDecodeResult *result,
     Av2hFilterWorkspaceLayout *layout);
 

@@ -79,8 +79,8 @@ static Av2hStatus apply_intrabc_morph_prediction(
                 plane, reference_x, (size_t)source_y - 1U)) {
             return AV2H_UNSUPPORTED;
         }
-        x = plane->data[((size_t)source_y - 1U) * plane->stride + reference_x];
-        y = plane->data[((size_t)block_y - 1U) * plane->stride + current_x];
+        x = plane->data[((size_t)source_y - 1U) * plane->stride_samples + reference_x];
+        y = plane->data[((size_t)block_y - 1U) * plane->stride_samples + current_x];
         sum_x += x;
         sum_y += y;
         sum_xy += x * y;
@@ -101,8 +101,8 @@ static Av2hStatus apply_intrabc_morph_prediction(
                 plane, (size_t)source_x - 1U, reference_y)) {
             return AV2H_UNSUPPORTED;
         }
-        x = plane->data[reference_y * plane->stride + (size_t)source_x - 1U];
-        y = plane->data[current_y * plane->stride + block_x - 1U];
+        x = plane->data[reference_y * plane->stride_samples + (size_t)source_x - 1U];
+        y = plane->data[current_y * plane->stride_samples + block_x - 1U];
         sum_x += x;
         sum_y += y;
         sum_xy += x * y;
@@ -179,25 +179,25 @@ Av2hStatus av2h_intrabc_predict(
                      plane, sample_x + 1U, sample_y + 1U))) {
                 av2h_reconstruction_diagnostics_set_intrabc_source(
                     (uint16_t)sample_x, (uint16_t)sample_y,
-                    (sample_y / 4U) * plane->reconstructed_stride +
+                    (sample_y / 4U) * plane->reconstructed_stride_cells +
                         sample_x / 4U);
                 return AV2H_UNSUPPORTED;
             }
-            prediction = plane->data[sample_y * plane->stride + sample_x] *
+            prediction = plane->data[sample_y * plane->stride_samples + sample_x] *
                 left_weight * top_weight;
             if (fraction_x != 0U) {
                 prediction += plane->data[
-                    sample_y * plane->stride + sample_x + 1U] *
+                    sample_y * plane->stride_samples + sample_x + 1U] *
                     fraction_x * top_weight;
             }
             if (fraction_y != 0U) {
                 prediction += plane->data[
-                    (sample_y + 1U) * plane->stride + sample_x] *
+                    (sample_y + 1U) * plane->stride_samples + sample_x] *
                     left_weight * fraction_y;
             }
             if (fraction_x != 0U && fraction_y != 0U) {
                 prediction += plane->data[
-                    (sample_y + 1U) * plane->stride + sample_x + 1U] *
+                    (sample_y + 1U) * plane->stride_samples + sample_x + 1U] *
                     fraction_x * fraction_y;
             }
             predictor[row * width + column] =

@@ -648,14 +648,14 @@ static void test_first_leaf_dc_without_references(void) {
             size_t row = index / descriptor->output_width;
             size_t column = index % descriptor->output_width;
             CHECK(scratch.predictor[index] == 128U);
-            CHECK(pixels[row * plane.stride + column] == 128U);
+            CHECK(pixels[row * plane.stride_samples + column] == 128U);
         }
         map_width = (descriptor->output_width + 3U) / 4U;
         map_height = (descriptor->output_height + 3U) / 4U;
         for (index = 0U; index < map_width * map_height; ++index) {
             size_t row = index / map_width;
             size_t column = index % map_width;
-            CHECK(reconstructed[row * plane.reconstructed_stride + column] ==
+            CHECK(reconstructed[row * plane.reconstructed_stride_cells + column] ==
                   1U);
         }
     }

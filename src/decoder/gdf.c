@@ -65,7 +65,7 @@ static uint8_t gdf_source_sample(const Av2hFilterPlane *cdef_luma,
         if (y > maximum) y = maximum;
         source = deblocked_luma;
     }
-    return source->data[(size_t)y * source->stride + (size_t)x];
+    return source->data[(size_t)y * source->stride_samples + (size_t)x];
 }
 
 static int filter_planes_overlap(const Av2hFilterPlane *left,
@@ -80,8 +80,8 @@ static int filter_planes_overlap(const Av2hFilterPlane *left,
         uintptr_t left_end;
         uintptr_t right_start;
         uintptr_t right_end;
-        if (!av2h_size_multiply(left_row, left->stride, &left_offset) ||
-            !av2h_size_multiply(right_row, right->stride, &right_offset) ||
+        if (!av2h_size_multiply(left_row, left->stride_samples, &left_offset) ||
+            !av2h_size_multiply(right_row, right->stride_samples, &right_offset) ||
             left_offset > (size_t)pointer_max ||
             right_offset > (size_t)pointer_max ||
             (uintptr_t)left->data > pointer_max - (uintptr_t)left_offset ||
@@ -188,7 +188,7 @@ static void gdf_filter_block(Av2hFilterPlane *destination,
             unsigned int kernel_index;
             unsigned int output_index;
             size_t destination_index =
-                ((size_t)block_y + row) * destination->stride +
+                ((size_t)block_y + row) * destination->stride_samples +
                 block_x + column;
             int center = gdf_source_sample(
                 cdef_luma, deblocked_luma,
@@ -264,9 +264,9 @@ Av2hStatus av2h_gdf_filter_frame_with_controls(
     unsigned int qp_index;
     if (destination == 0 || cdef_luma == 0 || deblocked_luma == 0 ||
         frame == 0 || destination->data == 0 || cdef_luma->data == 0 ||
-        deblocked_luma->data == 0 || destination->stride < destination->width ||
-        cdef_luma->stride < cdef_luma->width ||
-        deblocked_luma->stride < deblocked_luma->width ||
+        deblocked_luma->data == 0 || destination->stride_samples < destination->width ||
+        cdef_luma->stride_samples < cdef_luma->width ||
+        deblocked_luma->stride_samples < deblocked_luma->width ||
         destination->width == 0U || destination->height == 0U ||
         destination->width != cdef_luma->width ||
         destination->height != cdef_luma->height ||
@@ -287,7 +287,7 @@ Av2hStatus av2h_gdf_filter_frame_with_controls(
             controls->block_size != frame->gdf_block_size ||
             controls->columns != frame->gdf_block_columns ||
             controls->rows != frame->gdf_block_rows ||
-            controls->stride < controls->columns ||
+            controls->stride_blocks < controls->columns ||
             controls->columns !=
                 ((size_t)frame->width + controls->block_size - 1U) /
                     controls->block_size ||
@@ -299,7 +299,7 @@ Av2hStatus av2h_gdf_filter_frame_with_controls(
         for (index = 0U; index < controls->rows; ++index) {
             size_t column;
             for (column = 0U; column < controls->columns; ++column) {
-                if (controls->flags[index * controls->stride + column] > 1U) {
+                if (controls->flags[index * controls->stride_blocks + column] > 1U) {
                     return AV2H_INVALID_ARGUMENT;
                 }
             }
@@ -309,8 +309,8 @@ Av2hStatus av2h_gdf_filter_frame_with_controls(
     for (row = 0U; row < destination->height; ++row) {
         uint16_t column;
         for (column = 0U; column < destination->width; ++column) {
-            destination->data[(size_t)row * destination->stride + column] =
-                cdef_luma->data[(size_t)row * cdef_luma->stride + column];
+            destination->data[(size_t)row * destination->stride_samples + column] =
+                cdef_luma->data[(size_t)row * cdef_luma->stride_samples + column];
         }
     }
     if (frame->gdf_mode == 0U) return AV2H_OK;
@@ -325,7 +325,7 @@ Av2hStatus av2h_gdf_filter_frame_with_controls(
                     control_row = controls->rows - 1U;
                 }
                 if (controls->flags[
-                        control_row * controls->stride +
+                        control_row * controls->stride_blocks +
                         (size_t)column / controls->block_size] == 0U) {
                     continue;
                 }

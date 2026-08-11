@@ -71,9 +71,9 @@ static void copy_test_planes(Av2hFilterPlanes *destination,
         for (row = 0U; row < source->plane[plane].height; ++row) {
             av2h_memory_copy(
                 destination->plane[plane].data +
-                    (size_t)row * destination->plane[plane].stride,
+                    (size_t)row * destination->plane[plane].stride_samples,
                 source->plane[plane].data +
-                    (size_t)row * source->plane[plane].stride,
+                    (size_t)row * source->plane[plane].stride_samples,
                 source->plane[plane].width);
         }
     }
@@ -103,12 +103,12 @@ static void test_workspace_model(void) {
     CHECK(layout.ccso_rows == 1U);
     CHECK(layout.ccso_control_count == 1U);
     CHECK(layout.alignment == _Alignof(Av2hDeblockCell));
-    CHECK(layout.size <= sizeof(memory));
+    CHECK(layout.size_bytes <= sizeof(memory));
     CHECK(av2h_filter_workspace_init(
               &frame, memory + 1U, sizeof(memory) - 1U,
               &workspace, &storage) == AV2H_INVALID_ARGUMENT);
     CHECK(av2h_filter_workspace_init(
-              &frame, memory, layout.size - 1U,
+              &frame, memory, layout.size_bytes - 1U,
               &workspace, &storage) == AV2H_OUT_OF_MEMORY);
     CHECK(av2h_filter_workspace_init(
               &frame, memory, sizeof(memory),
@@ -161,11 +161,11 @@ static void test_frame_decode_workspace_model(void) {
     frame.height = 15U;
     CHECK(av2h_frame_decode_workspace_query(
               &sequence, &frame, &layout) == AV2H_OK);
-    CHECK(layout.size != 0U);
+    CHECK(layout.size_bytes != 0U);
     CHECK(layout.alignment != 0U);
-    CHECK(layout.size <= sizeof(memory));
+    CHECK(layout.size_bytes <= sizeof(memory));
     CHECK(av2h_frame_decode_workspace_init(
-              &sequence, &frame, &layout, memory, layout.size,
+              &sequence, &frame, &layout, memory, layout.size_bytes,
               &workspace, &filter_workspace, &filter_storage) == AV2H_OK);
 
 #define CHECK_FRAME_WORKSPACE_FAILURE(expected, pointer, size)                 \
@@ -188,12 +188,12 @@ static void test_frame_decode_workspace_model(void) {
             sizeof(filter_storage), 0xa5U));                                  \
     } while (0)
     CHECK_FRAME_WORKSPACE_FAILURE(
-        AV2H_OUT_OF_MEMORY, memory, layout.size - 1U);
+        AV2H_OUT_OF_MEMORY, memory, layout.size_bytes - 1U);
     CHECK_FRAME_WORKSPACE_FAILURE(
-        AV2H_INVALID_ARGUMENT, memory + 1U, layout.size);
+        AV2H_INVALID_ARGUMENT, memory + 1U, layout.size_bytes);
     frame.width = 33U;
     CHECK_FRAME_WORKSPACE_FAILURE(
-        AV2H_INVALID_ARGUMENT, memory, layout.size);
+        AV2H_INVALID_ARGUMENT, memory, layout.size_bytes);
 #undef CHECK_FRAME_WORKSPACE_FAILURE
 }
 
@@ -217,23 +217,23 @@ static void test_frame_workspace_prepare_rejection(void) {
     frame.height = 15U;
     CHECK(av2h_frame_decode_workspace_query(
               &sequence, &frame, &decode_layout) == AV2H_OK);
-    CHECK(decode_layout.size <= sizeof(memory));
+    CHECK(decode_layout.size_bytes <= sizeof(memory));
     CHECK(av2h_frame_decode_workspace_init(
               &sequence, &frame, &decode_layout, memory,
-              decode_layout.size, &workspace, &filter_workspace,
+              decode_layout.size_bytes, &workspace, &filter_workspace,
               &filter_storage) == AV2H_OK);
     CHECK(av2h_planar_output_size(&frame, &output_size) == AV2H_OK);
     CHECK(output_size <= sizeof(output));
 
 #define CHECK_PREPARE_FAILURE(pointer, result_pointer)                        \
     do {                                                                       \
-        av2h_memory_fill(memory, 0xa5U, decode_layout.size);                  \
+        av2h_memory_fill(memory, 0xa5U, decode_layout.size_bytes);                  \
         CHECK(av2h_frame_workspace_prepare(                                   \
               &sequence, &frame, &workspace, (uint8_t *)(pointer),        \
               output_size,                                                \
                   (result_pointer), &filter_layout) ==                        \
               AV2H_INVALID_ARGUMENT);                                         \
-        CHECK(buffer_is_value(memory, decode_layout.size, 0xa5U));            \
+        CHECK(buffer_is_value(memory, decode_layout.size_bytes, 0xa5U));            \
     } while (0)
     CHECK_PREPARE_FAILURE(workspace.coded[0].data, &result);
     CHECK_PREPARE_FAILURE(filter_workspace.cdef.plane[1].data, &result);
@@ -333,7 +333,7 @@ static void test_filter_pipeline(void) {
     CHECK(av2h_ccso_filter_frame(
               &expected_workspace.cdef,
               expected_workspace.deblocked.plane[0].data,
-              expected_workspace.deblocked.plane[0].stride,
+              expected_workspace.deblocked.plane[0].stride_samples,
               &frame, &expected_workspace.ccso_controls) == AV2H_OK);
     CHECK(av2h_memory_compare(
               cdef_y, expected_workspace.cdef.plane[0].data,
@@ -596,9 +596,9 @@ static void test_deblock_frame(void) {
     map.plane[0] = y_cells;
     map.plane[1] = u_cells;
     map.plane[2] = v_cells;
-    map.stride[0] = 4U;
-    map.stride[1] = 2U;
-    map.stride[2] = 2U;
+    map.stride_cells[0] = 4U;
+    map.stride_cells[1] = 2U;
+    map.stride_cells[2] = 2U;
     map.columns[0] = 4U;
     map.columns[1] = 2U;
     map.columns[2] = 2U;
@@ -666,9 +666,9 @@ static void test_deblock_skip_and_lossless(void) {
     map.plane[0] = y_cells;
     map.plane[1] = u_cells;
     map.plane[2] = v_cells;
-    map.stride[0] = 4U;
-    map.stride[1] = 2U;
-    map.stride[2] = 2U;
+    map.stride_cells[0] = 4U;
+    map.stride_cells[1] = 2U;
+    map.stride_cells[2] = 2U;
     map.columns[0] = 4U;
     map.columns[1] = 2U;
     map.columns[2] = 2U;
@@ -776,9 +776,9 @@ static void filter_chroma_horizontal_edge(uint8_t chroma_format_idc,
     map.plane[0] = y_cells;
     map.plane[1] = u_cells;
     map.plane[2] = v_cells;
-    map.stride[0] = y_columns;
-    map.stride[1] = chroma_columns;
-    map.stride[2] = chroma_columns;
+    map.stride_cells[0] = y_columns;
+    map.stride_cells[1] = chroma_columns;
+    map.stride_cells[2] = chroma_columns;
     map.columns[0] = y_columns;
     map.columns[1] = chroma_columns;
     map.columns[2] = chroma_columns;
@@ -1204,7 +1204,7 @@ static void test_band_only_and_control(void) {
     frame.ccso[1].offset_count = 1U;
     frame.ccso[1].filter_offset[0] = 3;
     controls.plane[1] = &control;
-    controls.stride[1] = 1U;
+    controls.stride_units[1] = 1U;
     controls.columns = 1U;
     controls.rows = 1U;
     CHECK(av2h_ccso_filter_frame(&planes, reference, 8U, &frame,
@@ -1253,7 +1253,7 @@ static void test_ccso_multi_unit_chroma(void) {
     frame.ccso[1].filter_offset[0] = 3;
     frame.ccso[1].filter_offset[16] = -4;
     controls.plane[1] = control;
-    controls.stride[1] = 2U;
+    controls.stride_units[1] = 2U;
     controls.columns = 2U;
     controls.rows = 1U;
     CHECK(av2h_ccso_filter_frame(
@@ -1306,7 +1306,7 @@ static void test_edge_classes(void) {
     frame.ccso[0].filter_offset[1] = -7;
     frame.ccso[0].filter_offset[6] = 5;
     controls.plane[0] = &control;
-    controls.stride[0] = 1U;
+    controls.stride_units[0] = 1U;
     controls.columns = 1U;
     controls.rows = 1U;
     CHECK(av2h_ccso_filter_frame(&planes, reference, 8U, &frame,
@@ -1338,7 +1338,7 @@ static void test_ccso_validation(void) {
     frame.ccso[0].band_only = 1U;
     frame.ccso[0].filter_offset[0] = 3;
     controls.plane[0] = &control;
-    controls.stride[0] = 1U;
+    controls.stride_units[0] = 1U;
     controls.columns = 1U;
     controls.rows = 1U;
 
@@ -1412,9 +1412,9 @@ static void test_fail_closed(void) {
     workspace.deblock_map.plane[0] = y_cells;
     workspace.deblock_map.plane[1] = &u_cell;
     workspace.deblock_map.plane[2] = &v_cell;
-    workspace.deblock_map.stride[0] = 2U;
-    workspace.deblock_map.stride[1] = 1U;
-    workspace.deblock_map.stride[2] = 1U;
+    workspace.deblock_map.stride_cells[0] = 2U;
+    workspace.deblock_map.stride_cells[1] = 1U;
+    workspace.deblock_map.stride_cells[2] = 1U;
     workspace.deblock_map.columns[0] = 2U;
     workspace.deblock_map.columns[1] = 1U;
     workspace.deblock_map.columns[2] = 1U;
@@ -1428,7 +1428,7 @@ static void test_fail_closed(void) {
     frame.ccso[0].offset_count = 1U;
     frame.ccso[0].filter_offset[0] = 9;
     controls.plane[0] = &control;
-    controls.stride[0] = 1U;
+    controls.stride_units[0] = 1U;
     controls.columns = 1U;
     controls.rows = 1U;
     workspace.ccso_controls = controls;

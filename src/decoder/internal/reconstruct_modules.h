@@ -36,7 +36,7 @@ Av2hStatus av2h_reconstruct_transform_generic(
     const Av2hFirstTransformType *transform,
     const Av2hFirstCoeffBlock *coefficients,
     const uint8_t *predictor,
-    size_t predictor_stride,
+    size_t predictor_stride_samples,
     Av2hReconstructionScratch *scratch,
     Av2hFirstReconstruction *reconstruction);
 
@@ -64,7 +64,7 @@ Av2hStatus av2h_predict_directional(
     uint16_t height,
     const Av2hLumaReferences *references,
     uint8_t *predictor,
-    size_t predictor_stride,
+    size_t predictor_stride_samples,
     uint8_t use_idif,
     uint8_t filter_edges);
 
@@ -106,7 +106,7 @@ Av2hStatus av2h_cfl_derived_predict(
     uint8_t have_top,
     uint8_t have_left,
     uint8_t *predictor,
-    size_t predictor_stride);
+    size_t predictor_stride_samples);
 
 Av2hStatus av2h_mhccp_predict_observed(
     const Av2hFirstChromaMode *mode,
@@ -117,7 +117,7 @@ Av2hStatus av2h_mhccp_predict_observed(
     uint16_t width,
     uint16_t height,
     uint8_t *predictor,
-    size_t predictor_stride);
+    size_t predictor_stride_samples);
 
 int av2h_reconstruct_generic_selected(
     const Av2hFirstLeafMode *mode,

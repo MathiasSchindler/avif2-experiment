@@ -27,7 +27,7 @@ Av2hStatus av2h_cdef_find_direction(
     unsigned int row;
     unsigned int column;
     unsigned int index;
-    if (luma == 0 || luma->data == 0 || luma->stride < luma->width ||
+    if (luma == 0 || luma->data == 0 || luma->stride_samples < luma->width ||
         direction == 0 || variance == 0 ||
         (uint32_t)x + 8U > luma->width ||
         (uint32_t)y + 8U > luma->height) {
@@ -41,7 +41,7 @@ Av2hStatus av2h_cdef_find_direction(
     for (row = 0U; row < 8U; ++row) {
         for (column = 0U; column < 8U; ++column) {
             int value = (int)luma->data[
-                ((size_t)y + row) * luma->stride + x + column] - 128;
+                ((size_t)y + row) * luma->stride_samples + x + column] - 128;
             partial[0][row + column] += value;
             partial[1][row + column / 2U] += value;
             partial[2][row] += value;
@@ -124,7 +124,7 @@ static int cdef_tap(const Av2hFilterPlane *source,
         y >= (int)source->height) {
         return 0;
     }
-    sample = source->data[(size_t)y * source->stride + (size_t)x];
+    sample = source->data[(size_t)y * source->stride_samples + (size_t)x];
     if (clipping_required) {
         if (sample < *minimum) *minimum = sample;
         if (sample > *maximum) *maximum = sample;
@@ -157,8 +157,8 @@ Av2hStatus av2h_cdef_filter_block(
     int clipping_required;
     uint16_t row;
     if (destination == 0 || source == 0 || destination->data == 0 ||
-        source->data == 0 || destination->stride < destination->width ||
-        source->stride < source->width || plane_index >= 3U ||
+        source->data == 0 || destination->stride_samples < destination->width ||
+        source->stride_samples < source->width || plane_index >= 3U ||
         primary_strength > 15U ||
         (secondary_strength != 0U && secondary_strength != 1U &&
          secondary_strength != 2U && secondary_strength != 4U) ||
@@ -192,7 +192,7 @@ Av2hStatus av2h_cdef_filter_block(
         for (column = 0U; column < width; ++column) {
             int sample_x = (int)x + column;
             int sample_y = (int)y + row;
-            int center = source->data[(size_t)sample_y * source->stride +
+            int center = source->data[(size_t)sample_y * source->stride_samples +
                                       (size_t)sample_x];
             int minimum = center;
             int maximum = center;
@@ -230,7 +230,7 @@ Av2hStatus av2h_cdef_filter_block(
             if (clipping_required) {
                 center = av2h_sample_clamp(center, minimum, maximum);
             }
-            destination->data[(size_t)sample_y * destination->stride +
+            destination->data[(size_t)sample_y * destination->stride_samples +
                               (size_t)sample_x] = av2h_sample_clip(center);
         }
     }
@@ -253,7 +253,7 @@ static Av2hStatus cdef_partial_direction(const Av2hFilterPlane *luma,
             uint16_t source_x = (uint16_t)(x + column);
             if (source_x >= luma->width) source_x = luma->width - 1U;
             samples[row * 8U + column] =
-                luma->data[(size_t)source_y * luma->stride + source_x];
+                luma->data[(size_t)source_y * luma->stride_samples + source_x];
         }
     }
     return av2h_cdef_find_direction(&block, 0U, 0U, direction, variance);

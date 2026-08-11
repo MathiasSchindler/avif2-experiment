@@ -696,7 +696,7 @@ Av2hStatus av2h_reconstruct_transform_generic(
     const Av2hFirstTransformType *transform,
     const Av2hFirstCoeffBlock *coefficients,
     const uint8_t *predictor,
-    size_t predictor_stride,
+    size_t predictor_stride_samples,
     Av2hReconstructionScratch *scratch,
     Av2hFirstReconstruction *reconstruction) {
     uint16_t output_width;
@@ -725,7 +725,7 @@ Av2hStatus av2h_reconstruct_transform_generic(
             (uint32_t)coeff_width * coeff_height) {
         return AV2H_UNSUPPORTED;
     }
-    if (predictor != 0 && predictor_stride < output_width) {
+    if (predictor != 0 && predictor_stride_samples < output_width) {
         return AV2H_INVALID_ARGUMENT;
     }
     if (prefix->all_zero && prefix->eob == 0U &&
@@ -742,7 +742,7 @@ Av2hStatus av2h_reconstruct_transform_generic(
             for (column = 0U; column < output_width; ++column) {
                 size_t out_index = (size_t)row * output_width + column;
                 int32_t sample = predictor == 0 ? 128 :
-                    predictor[(size_t)row * predictor_stride + column];
+                    predictor[(size_t)row * predictor_stride_samples + column];
                 reconstruction->residual[out_index] = 0;
                 reconstruction->pixels[out_index] = (uint8_t)sample;
             }
@@ -813,7 +813,7 @@ Av2hStatus av2h_reconstruct_transform_generic(
                 (size_t)source_row * coeff_width + source_column];
             size_t out_index = (size_t)row * output_width + column;
             int32_t sample = predictor == 0 ? 128 :
-                predictor[(size_t)row * predictor_stride + column];
+                predictor[(size_t)row * predictor_stride_samples + column];
             reconstruction->residual[out_index] = (int16_t)residual;
             reconstruction->pixels[out_index] =
                 (uint8_t)clamp(sample + residual, 0, 255);

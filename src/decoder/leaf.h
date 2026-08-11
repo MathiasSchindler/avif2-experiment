@@ -229,7 +229,7 @@ typedef struct {
     const uint8_t *spatial;
     size_t above_count;
     size_t left_count;
-    size_t spatial_stride;
+    size_t spatial_stride_bytes;
     size_t spatial_columns;
     size_t spatial_rows;
     int16_t intrabc_bank_x[4U];

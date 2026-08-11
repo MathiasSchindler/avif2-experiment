@@ -16,7 +16,7 @@ Av2hStatus av2h_luma_mode_context_state_init(
     state->spatial = 0;
     state->above_count = above_count;
     state->left_count = left_count;
-    state->spatial_stride = 0U;
+    state->spatial_stride_bytes = 0U;
     state->spatial_columns = 0U;
     state->spatial_rows = 0U;
     state->intrabc_bank_remaining_hits = 0U;

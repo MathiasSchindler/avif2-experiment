@@ -295,7 +295,7 @@ Av2hStatus av2h_tile_decoder_init(
         (uint16_t)(sequence->superblock_size / 4U);
     decoder->luma_mode_contexts.spatial =
         (const uint8_t *)decoder->colocated_luma;
-    decoder->luma_mode_contexts.spatial_stride =
+    decoder->luma_mode_contexts.spatial_stride_bytes =
         sizeof(*decoder->colocated_luma);
     decoder->luma_mode_contexts.spatial_columns = decoder->mi_columns;
     decoder->luma_mode_contexts.spatial_rows = decoder->mi_rows;

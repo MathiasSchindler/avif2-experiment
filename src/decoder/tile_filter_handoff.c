@@ -39,7 +39,7 @@ Av2hStatus av2h_tile_filter_controls_handoff(
     controls->cdef.columns = decoder->cdef_entropy.unit_columns;
     controls->cdef.rows = decoder->cdef_entropy.unit_rows;
     controls->gdf.flags = decoder->gdf_entropy.block_flags;
-    controls->gdf.stride = decoder->gdf_entropy.block_columns;
+    controls->gdf.stride_blocks = decoder->gdf_entropy.block_columns;
     controls->gdf.columns = decoder->gdf_entropy.block_columns;
     controls->gdf.rows = decoder->gdf_entropy.block_rows;
     controls->gdf.block_size = decoder->gdf_entropy.block_size;
@@ -53,7 +53,7 @@ Av2hStatus av2h_tile_filter_controls_handoff(
     for (plane = 0U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
         controls->ccso.plane[plane] =
             decoder->ccso_entropy.unit_controls[plane];
-        controls->ccso.stride[plane] = controls->ccso.columns;
+        controls->ccso.stride_units[plane] = controls->ccso.columns;
     }
     return AV2H_OK;
 }

@@ -32,14 +32,14 @@ typedef struct {
 
 typedef struct {
     uint8_t *data;
-    size_t stride;
+    size_t stride_samples;
     uint16_t width;
     uint16_t height;
     uint16_t reference_width;
     uint16_t reference_height;
     uint8_t *reconstructed;
-    size_t reconstructed_stride;
-    size_t reconstructed_count;
+    size_t reconstructed_stride_cells;
+    size_t reconstructed_count_cells;
 } Av2hReconstructionPlane;
 
 typedef struct {
@@ -66,14 +66,14 @@ Av2hStatus av2h_luma_predict(
     uint16_t height,
     const Av2hLumaReferences *references,
     uint8_t *predictor,
-    size_t predictor_stride);
+    size_t predictor_stride_samples);
 Av2hStatus av2h_chroma_predict(
     const Av2hFirstChromaMode *mode,
     uint16_t width,
     uint16_t height,
     const Av2hLumaReferences *references,
     uint8_t *predictor,
-    size_t predictor_stride);
+    size_t predictor_stride_samples);
 
 Av2hStatus av2h_first_luma_reconstruct(
     const Av2hFirstLeafMode *mode,
@@ -88,7 +88,7 @@ Av2hStatus av2h_luma_reconstruct(
     const Av2hFirstTransformType *transform,
     const Av2hFirstCoeffBlock *coefficients,
     const uint8_t *predictor,
-    size_t predictor_stride,
+    size_t predictor_stride_samples,
     Av2hReconstructionScratch *scratch,
     Av2hFirstReconstruction *reconstruction);
 Av2hStatus av2h_luma_reconstruct_to_plane(

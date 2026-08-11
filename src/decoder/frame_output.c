@@ -11,7 +11,7 @@ Av2hStatus av2h_decode_frame_planar_private(
     const Av2hFrameState *frame,
     Av2hFrameDecodeWorkspace *workspace,
     uint8_t *output,
-    size_t output_size,
+    size_t output_size_bytes,
     Av2hFrameDecodeResult *result) {
     Av2hFilterWorkspaceLayout layout;
     Av2hTileDecoder decoder;
@@ -21,7 +21,7 @@ Av2hStatus av2h_decode_frame_planar_private(
     Av2hTileChromaLeaf pending_chroma_leaves[4U];
     Av2hFirstCoeffBlock pending_chroma_blocks[4U][2U];
     uint8_t pending_chroma_count = 0U;
-    size_t required_output;
+    size_t required_output_bytes;
     Av2hStatus status;
     unsigned int plane;
 #define AV2H_DECODE_FAIL(returned_status, original_cause, failure_stage,       \
@@ -47,11 +47,11 @@ Av2hStatus av2h_decode_frame_planar_private(
         return AV2H_INVALID_ARGUMENT;
     }
     if (sequence->enable_restoration != 0U) return AV2H_UNSUPPORTED;
-    status = av2h_planar_output_size(frame, &required_output);
+    status = av2h_planar_output_size(frame, &required_output_bytes);
     if (status != AV2H_OK) return status;
-    if (output_size < required_output) return AV2H_OUT_OF_MEMORY;
+    if (output_size_bytes < required_output_bytes) return AV2H_OUT_OF_MEMORY;
     status = av2h_frame_workspace_prepare(
-        sequence, frame, workspace, output, required_output, result,
+        sequence, frame, workspace, output, required_output_bytes, result,
         &layout);
     if (status != AV2H_OK) return status;
     status = av2h_tile_decoder_init(
@@ -447,11 +447,11 @@ Av2hStatus av2h_decode_frame_planar_private(
                 filter_controls.ccso.plane[plane],
                 layout.ccso_control_count);
         }
-        workspace->filter_workspace->ccso_controls.stride[plane] =
-            filter_controls.ccso.stride[plane];
+        workspace->filter_workspace->ccso_controls.stride_units[plane] =
+            filter_controls.ccso.stride_units[plane];
         final_planes.plane[plane] = (Av2hFilterPlane){
             workspace->coded[plane].data,
-            workspace->coded[plane].stride,
+            workspace->coded[plane].stride_samples,
             workspace->coded[plane].width,
             workspace->coded[plane].height
         };
@@ -474,8 +474,8 @@ Av2hStatus av2h_decode_frame_planar_private(
             0U, 0, 0U);
     }
     status = av2h_copy_visible_planar_private(
-        frame, &final_planes, workspace->coded_data_size,
-        output, output_size);
+        frame, &final_planes, workspace->coded_data_size_bytes,
+        output, output_size_bytes);
     if (status != AV2H_OK) {
         AV2H_DECODE_FAIL(
             status, status, AV2H_FRAME_DECODE_STAGE_OUTPUT,

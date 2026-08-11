@@ -1,4 +1,5 @@
 #include "decoder/filter.h"
+#include "decoder/internal/frame_workspace.h"
 #include "decoder/tile.h"
 
 #include <stdio.h>
@@ -39,10 +40,22 @@ static void test_64_bit_decoder_layout(void) {
     CHECK(_Alignof(Av2hTileDecoder) == 8U);
     CHECK(sizeof(Av2hReconstructionScratch) == 16896U);
     CHECK(_Alignof(Av2hReconstructionScratch) == 4U);
+    CHECK(sizeof(Av2hReconstructionPlane) == 48U);
+    CHECK(_Alignof(Av2hReconstructionPlane) == 8U);
+    CHECK(sizeof(Av2hFilterPlane) == 24U);
+    CHECK(_Alignof(Av2hFilterPlane) == 8U);
+    CHECK(sizeof(Av2hCcsoControlMap) == 64U);
+    CHECK(_Alignof(Av2hCcsoControlMap) == 8U);
+    CHECK(sizeof(Av2hGdfControlMap) == 40U);
+    CHECK(_Alignof(Av2hGdfControlMap) == 8U);
+    CHECK(sizeof(Av2hDeblockMap) == 96U);
+    CHECK(_Alignof(Av2hDeblockMap) == 8U);
     CHECK(sizeof(Av2hFilterWorkspace) == 368U);
     CHECK(_Alignof(Av2hFilterWorkspace) == 8U);
     CHECK(sizeof(Av2hFilterWorkspaceLayout) == 152U);
     CHECK(_Alignof(Av2hFilterWorkspaceLayout) == 8U);
+    CHECK(sizeof(Av2hFrameDecodeWorkspaceLayout) == 16U);
+    CHECK(_Alignof(Av2hFrameDecodeWorkspaceLayout) == 8U);
 }
 
 int main(void) {

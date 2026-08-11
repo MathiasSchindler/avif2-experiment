@@ -98,7 +98,7 @@ Av2hStatus av2h_filter_frame(
     if (status != AV2H_OK) return status;
     status = av2h_ccso_filter_frame(
         &workspace->cdef, workspace->deblocked.plane[0].data,
-        workspace->deblocked.plane[0].stride, frame,
+        workspace->deblocked.plane[0].stride_samples, frame,
         &workspace->ccso_controls);
     if (status != AV2H_OK) return status;
     status = av2h_gdf_filter_frame_with_controls(

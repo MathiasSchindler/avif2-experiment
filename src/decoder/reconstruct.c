@@ -75,8 +75,8 @@ static int32_t round_shift_signed(int64_t value, uint8_t shift) {
 
 uint8_t av2h_plane_sample_reconstructed(
     const Av2hReconstructionPlane *plane, size_t x, size_t y) {
-    size_t index = (y / 4U) * plane->reconstructed_stride + x / 4U;
-    return index < plane->reconstructed_count && plane->reconstructed[index];
+    size_t index = (y / 4U) * plane->reconstructed_stride_cells + x / 4U;
+    return index < plane->reconstructed_count_cells && plane->reconstructed[index];
 }
 
 static void plane_mark_reconstructed(Av2hReconstructionPlane *plane,
@@ -90,7 +90,7 @@ static void plane_mark_reconstructed(Av2hReconstructionPlane *plane,
     size_t column;
     for (row = first_row; row <= last_row; ++row) {
         for (column = first_column; column <= last_column; ++column) {
-            plane->reconstructed[row * plane->reconstructed_stride + column] =
+            plane->reconstructed[row * plane->reconstructed_stride_cells + column] =
                 1U;
         }
     }
@@ -102,7 +102,7 @@ Av2hStatus av2h_luma_reconstruct(
     const Av2hFirstTransformType *transform,
     const Av2hFirstCoeffBlock *coefficients,
     const uint8_t *predictor,
-    size_t predictor_stride,
+    size_t predictor_stride_samples,
     Av2hReconstructionScratch *scratch,
     Av2hFirstReconstruction *reconstruction) {
     size_t index;
@@ -132,7 +132,7 @@ Av2hStatus av2h_luma_reconstruct(
         descriptor_status = av2h_tx_descriptor_get(
             prefix->tx_size, &descriptor);
         if (descriptor_status != AV2H_OK) return descriptor_status;
-        if (predictor_stride < descriptor->output_width ||
+        if (predictor_stride_samples < descriptor->output_width ||
             coefficients->coefficient_count !=
                 coefficients->width * coefficients->height) {
             return AV2H_UNSUPPORTED;
@@ -155,13 +155,13 @@ Av2hStatus av2h_luma_reconstruct(
             size_t column = index % descriptor->output_width;
             reconstruction->residual[index] = 0;
             reconstruction->pixels[index] =
-                predictor[row * predictor_stride + column];
+                predictor[row * predictor_stride_samples + column];
         }
         return AV2H_OK;
     }
     if (av2h_reconstruct_generic_selected(mode, transform, prefix->tx_size)) {
         return av2h_reconstruct_transform_generic(
-            mode, prefix, transform, coefficients, predictor, predictor_stride,
+            mode, prefix, transform, coefficients, predictor, predictor_stride_samples,
             scratch, reconstruction);
     }
         if ((mode->mode != AV2H_INTRA_DC &&
@@ -193,7 +193,7 @@ Av2hStatus av2h_luma_reconstruct(
             coefficients->height != descriptor->coefficient_height ||
             coefficients->coefficient_count != descriptor->eob_capacity ||
             coefficients->nonzero_count != 0U || predictor == 0 ||
-            predictor_stride < descriptor->output_width) {
+            predictor_stride_samples < descriptor->output_width) {
             return AV2H_UNSUPPORTED;
         }
         output_count = (size_t)descriptor->output_width *
@@ -211,7 +211,7 @@ Av2hStatus av2h_luma_reconstruct(
             size_t column = index % descriptor->output_width;
             reconstruction->residual[index] = 0;
             reconstruction->pixels[index] =
-                predictor[row * predictor_stride + column];
+                predictor[row * predictor_stride_samples + column];
         }
         return AV2H_OK;
     }
@@ -225,7 +225,7 @@ Av2hStatus av2h_luma_reconstruct(
         coefficients->width == 16U && coefficients->height == 16U &&
         coefficients->coefficient_count == 256U &&
         coefficients->nonzero_count == 0U && predictor != 0 &&
-        predictor_stride >= 16U) {
+        predictor_stride_samples >= 16U) {
         reconstruction->width = 16U;
         reconstruction->height = 16U;
         for (index = 0U; index < 256U; ++index) {
@@ -237,7 +237,7 @@ Av2hStatus av2h_luma_reconstruct(
             }
             reconstruction->residual[index] = 0;
             reconstruction->pixels[index] =
-                predictor[row * predictor_stride + column];
+                predictor[row * predictor_stride_samples + column];
         }
         return AV2H_OK;
     }
@@ -251,7 +251,7 @@ Av2hStatus av2h_luma_reconstruct(
         coefficients->width == 32U && coefficients->height == 16U &&
         coefficients->coefficient_count == 512U &&
         coefficients->nonzero_count == 0U && predictor != 0 &&
-        predictor_stride >= 64U) {
+        predictor_stride_samples >= 64U) {
         reconstruction->width = 64U;
         reconstruction->height = 16U;
         for (index = 0U; index < 512U; ++index) {
@@ -265,7 +265,7 @@ Av2hStatus av2h_luma_reconstruct(
             size_t column = index & 63U;
             reconstruction->residual[index] = 0;
             reconstruction->pixels[index] =
-                predictor[row * predictor_stride + column];
+                predictor[row * predictor_stride_samples + column];
         }
         return AV2H_OK;
     }
@@ -968,7 +968,7 @@ Av2hStatus av2h_luma_reconstruct(
     if (status != AV2H_OK) return status;
     for (index = 0U; index < count; ++index) {
         int32_t predicted = predictor == 0 ? 128 :
-            predictor[(index / coefficients->width) * predictor_stride +
+            predictor[(index / coefficients->width) * predictor_stride_samples +
                       index % coefficients->width];
         int32_t pixel = clamp(predicted + scratch->residual[index], 0, 255);
         reconstruction->residual[index] = (int16_t)scratch->residual[index];
@@ -1016,12 +1016,12 @@ Av2hStatus av2h_luma_reconstruct_to_plane(
     Av2hFirstLeafMode effective_mode;
     if (leaf == 0 || mode == 0 || prefix == 0 || transform == 0 ||
         coefficients == 0 || plane == 0 || scratch == 0 || plane->data == 0 ||
-        plane->stride < plane->width || plane->reference_width == 0U ||
+        plane->stride_samples < plane->width || plane->reference_width == 0U ||
         plane->reference_height == 0U || plane->reconstructed == 0 ||
         plane->reference_width > plane->width ||
         plane->reference_height > plane->height ||
-        plane->reconstructed_stride < ((size_t)plane->width + 3U) / 4U ||
-        plane->reconstructed_count < plane->reconstructed_stride *
+        plane->reconstructed_stride_cells < ((size_t)plane->width + 3U) / 4U ||
+        plane->reconstructed_count_cells < plane->reconstructed_stride_cells *
             (((size_t)plane->height + 3U) / 4U)) {
         return AV2H_INVALID_ARGUMENT;
     }
@@ -1072,7 +1072,7 @@ Av2hStatus av2h_luma_reconstruct_to_plane(
             source_x = plane->width - 1U;
         }
         scratch->above[index] = plane->data[
-            above_reference_y * plane->stride + source_x];
+            above_reference_y * plane->stride_samples + source_x];
     }
     if ((mode->mode == AV2H_INTRA_SMOOTH ||
          mode->mode == AV2H_INTRA_DC) &&
@@ -1143,7 +1143,7 @@ Av2hStatus av2h_luma_reconstruct_to_plane(
             source_y = plane->height - 1U;
         }
         scratch->left[index] = plane->data[
-            source_y * plane->stride + block_x - 1U -
+            source_y * plane->stride_samples + block_x - 1U -
             mode->mrl_index];
     }
     if ((mode->mode == AV2H_INTRA_SMOOTH ||
@@ -1170,7 +1170,7 @@ Av2hStatus av2h_luma_reconstruct_to_plane(
                     break;
                 }
                 scratch->secondary_above[index] = plane->data[
-                    ((size_t)block_y - 1U) * plane->stride + block_x + index];
+                    ((size_t)block_y - 1U) * plane->stride_samples + block_x + index];
             }
         }
         if (block_x != 0U) {
@@ -1201,7 +1201,7 @@ Av2hStatus av2h_luma_reconstruct_to_plane(
                     break;
                 }
                 scratch->secondary_left[index] =
-                    plane->data[source_y * plane->stride + block_x - 1U];
+                    plane->data[source_y * plane->stride_samples + block_x - 1U];
             }
         }
     }
@@ -1219,12 +1219,12 @@ Av2hStatus av2h_luma_reconstruct_to_plane(
         secondary_above_count != 0U && secondary_left_count != 0U;
     references.secondary_above_left =
         references.has_secondary_above_left ?
-            plane->data[((size_t)block_y - 1U) * plane->stride +
+            plane->data[((size_t)block_y - 1U) * plane->stride_samples +
                         block_x - 1U] : 0U;
     references.has_above_left = block_x > mode->mrl_index &&
         block_y > mode->mrl_index;
     references.above_left = references.has_above_left ?
-        plane->data[((size_t)block_y - 1U - mode->mrl_index) * plane->stride +
+        plane->data[((size_t)block_y - 1U - mode->mrl_index) * plane->stride_samples +
                     block_x - 1U - mode->mrl_index] :
         0U;
     references.negative_count = 0U;
@@ -1235,10 +1235,10 @@ Av2hStatus av2h_luma_reconstruct_to_plane(
              negative_index <= references.negative_count;
              ++negative_index) {
             references.above_negative[negative_index] = plane->data[
-                above_reference_y * plane->stride + block_x - negative_index];
+                above_reference_y * plane->stride_samples + block_x - negative_index];
             references.left_negative[negative_index] = plane->data[
                 ((size_t)block_y - (is_top_superblock_boundary ? 1U :
-                    negative_index)) * plane->stride +
+                    negative_index)) * plane->stride_samples +
                 block_x - 1U - mode->mrl_index];
         }
     }
@@ -1301,7 +1301,7 @@ Av2hStatus av2h_luma_reconstruct_to_plane(
     for (index = 0U; index < visible_height; ++index) {
         size_t column;
         for (column = 0U; column < visible_width; ++column) {
-            plane->data[((size_t)block_y + index) * plane->stride +
+            plane->data[((size_t)block_y + index) * plane->stride_samples +
                         block_x + column] = reconstruction.pixels[
                             index * output_width + column];
         }
@@ -1435,12 +1435,12 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_format(
         coefficients == 0 || plane == 0 || scratch == 0 || plane->data == 0 ||
         chroma_plane < 1U || chroma_plane > 2U ||
         (chroma_format_idc != 0U && chroma_format_idc != 2U) ||
-        plane->stride < plane->width || plane->reference_width == 0U ||
+        plane->stride_samples < plane->width || plane->reference_width == 0U ||
         plane->reference_height == 0U || plane->reconstructed == 0 ||
         plane->reference_width > plane->width ||
         plane->reference_height > plane->height ||
-        plane->reconstructed_stride < ((size_t)plane->width + 3U) / 4U ||
-        plane->reconstructed_count < plane->reconstructed_stride *
+        plane->reconstructed_stride_cells < ((size_t)plane->width + 3U) / 4U ||
+        plane->reconstructed_count_cells < plane->reconstructed_stride_cells *
             (((size_t)plane->height + 3U) / 4U)) {
         return AV2H_INVALID_ARGUMENT;
     }
@@ -1466,7 +1466,7 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_format(
         height : (uint16_t)(plane->height - block_y);
     if (predictor_plane != 0 &&
         (predictor_plane->data == 0 ||
-         predictor_plane->stride < predictor_plane->width ||
+         predictor_plane->stride_samples < predictor_plane->width ||
          block_x >= predictor_plane->width ||
          block_y >= predictor_plane->height ||
          visible_width > predictor_plane->width - block_x ||
@@ -1512,7 +1512,7 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_format(
         }
         for (index = 0U; index < above_count; ++index) {
             scratch->above[index] = plane->data[
-                ((size_t)block_y - 1U) * plane->stride + block_x + index];
+                ((size_t)block_y - 1U) * plane->stride_samples + block_x + index];
         }
         if (above_count != 0U && above_count < width) {
             uint8_t edge = scratch->above[above_count - 1U];
@@ -1537,7 +1537,7 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_format(
                 sy = plane->height - 1U;
             }
             scratch->left[index] = plane->data[
-                sy * plane->stride + block_x - 1U];
+                sy * plane->stride_samples + block_x - 1U];
         }
         references.left = left_count == 0U ? 0 : scratch->left;
         references.left_count = left_count;
@@ -1552,7 +1552,7 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_format(
         av2h_plane_sample_reconstructed(
             plane, (size_t)block_x - 1U, (size_t)block_y - 1U)) {
         references.above_left = plane->data[
-            ((size_t)block_y - 1U) * plane->stride + block_x - 1U];
+            ((size_t)block_y - 1U) * plane->stride_samples + block_x - 1U];
         references.has_above_left = 1U;
     }
     if (!mode->is_cfl && mode->mode != AV2H_INTRA_DC &&
@@ -1653,7 +1653,7 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_format(
             size_t column;
             for (column = 0U; column < visible_width; ++column) {
                 predictor_plane->data[((size_t)block_y + row) *
-                    predictor_plane->stride + block_x + column] =
+                    predictor_plane->stride_samples + block_x + column] =
                     scratch->predictor[row * width + column];
             }
         }
@@ -1675,7 +1675,7 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_format(
         for (index = 0U; index < visible_height; ++index) {
             size_t column;
             for (column = 0U; column < visible_width; ++column) {
-                plane->data[((size_t)block_y + index) * plane->stride +
+                plane->data[((size_t)block_y + index) * plane->stride_samples +
                             block_x + column] =
                     scratch->predictor[index * width + column];
             }
@@ -1704,7 +1704,7 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_format(
     for (index = 0U; index < visible_height; ++index) {
         size_t column;
         for (column = 0U; column < visible_width; ++column) {
-            plane->data[((size_t)block_y + index) * plane->stride +
+            plane->data[((size_t)block_y + index) * plane->stride_samples +
                         block_x + column] =
                 reconstruction.pixels[index * width + column];
         }

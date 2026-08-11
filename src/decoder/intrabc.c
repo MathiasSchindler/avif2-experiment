@@ -73,7 +73,7 @@ static const Av2hLumaModeContext *intrabc_spatial_context(
     }
     index = (size_t)row * state->spatial_columns + (size_t)column;
     return (const Av2hLumaModeContext *)(
-        state->spatial + index * state->spatial_stride);
+        state->spatial + index * state->spatial_stride_bytes);
 }
 
 uint8_t av2h_intrabc_bank_origin_valid(
