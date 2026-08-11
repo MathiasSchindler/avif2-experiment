@@ -33,19 +33,31 @@ static uint32_t palette_read_uniform(
 
 Av2hStatus av2h_leaf_palette_read_colors(
     Av2hRangeDecoder *decoder,
+    const Av2hSequenceState *sequence,
     const Av2hLumaModeNeighbors *neighbors,
     Av2hFirstLeafMode *mode) {
-    uint8_t cache[2U * AV2H_PALETTE_MAX_SIZE];
+    uint16_t cache[2U * AV2H_PALETTE_MAX_SIZE];
     size_t above_index = 0U;
     size_t left_index = 0U;
     size_t cache_count = 0U;
     uint32_t range;
+    uint32_t maximum;
     unsigned int bits;
+    unsigned int color_bits;
     size_t index = 0U;
+    if (decoder == 0 || sequence == 0 || mode == 0) {
+        return AV2H_INVALID_ARGUMENT;
+    }
+    if (sequence->info.bit_depth_idc != 0U &&
+        sequence->info.bit_depth_idc != 1U) {
+        return AV2H_UNSUPPORTED;
+    }
     if (mode->palette_size < 2U ||
         mode->palette_size > AV2H_PALETTE_MAX_SIZE) {
         return AV2H_INVALID_DATA;
     }
+    color_bits = sequence->info.bit_depth_idc == 0U ? 10U : 8U;
+    maximum = (1U << color_bits) - 1U;
     if (neighbors != 0) {
         while (above_index < neighbors->palette_size[1] &&
                left_index < neighbors->palette_size[0]) {
@@ -74,15 +86,14 @@ Av2hStatus av2h_leaf_palette_read_colors(
         return av2h_range_status(decoder);
     }
     if (index == mode->palette_size) goto sort_colors;
-    mode->palette_colors[index++] =
-        (uint8_t)av2h_range_read_bypass(decoder, 8U);
+    mode->palette_colors[index++] = (uint16_t)av2h_range_read_bypass(
+        decoder, color_bits);
     if (av2h_range_status(decoder) != AV2H_OK) {
         return av2h_range_status(decoder);
     }
     if (index == mode->palette_size) goto sort_colors;
-    bits = 5U + av2h_range_read_bypass(decoder, 2U);
-    range = av2h_sample_maximum_8bit() -
-        mode->palette_colors[index - 1U];
+    bits = color_bits - 3U + av2h_range_read_bypass(decoder, 2U);
+    range = maximum - mode->palette_colors[index - 1U];
     for (; index < mode->palette_size; ++index) {
         uint32_t previous = mode->palette_colors[index - 1U];
         uint32_t delta = av2h_range_read_bypass(decoder, bits) + 1U;
@@ -91,10 +102,10 @@ Av2hStatus av2h_leaf_palette_read_colors(
         if (av2h_range_status(decoder) != AV2H_OK) {
             return av2h_range_status(decoder);
         }
-        if (color > av2h_sample_maximum_8bit()) {
-            color = av2h_sample_maximum_8bit();
+        if (color > maximum) {
+            color = maximum;
         }
-        mode->palette_colors[index] = (uint8_t)color;
+        mode->palette_colors[index] = (uint16_t)color;
         range -= color - previous;
         next_bits = palette_ceil_log2(range);
         if (next_bits < bits) bits = next_bits;
@@ -105,7 +116,7 @@ sort_colors:
         for (next = 1U; next < mode->palette_size - index; ++next) {
             if (mode->palette_colors[next - 1U] >
                 mode->palette_colors[next]) {
-                uint8_t temporary = mode->palette_colors[next - 1U];
+                uint16_t temporary = mode->palette_colors[next - 1U];
                 mode->palette_colors[next - 1U] =
                     mode->palette_colors[next];
                 mode->palette_colors[next] = temporary;

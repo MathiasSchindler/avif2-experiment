@@ -40,6 +40,16 @@ Av2hStatus av2h_reconstruct_transform_generic(
     Av2hReconstructionScratch *scratch,
     Av2hFirstReconstruction *reconstruction);
 
+Av2hStatus av2h_reconstruct_transform_generic_u16(
+    const Av2hFirstLeafMode *mode,
+    const Av2hFirstCoeffPrefix *prefix,
+    const Av2hFirstTransformType *transform,
+    const Av2hFirstCoeffBlock *coefficients,
+    const uint16_t *predictor,
+    size_t predictor_stride_samples,
+    Av2hReconstructionScratchU16 *scratch,
+    Av2hFirstReconstructionU16 *reconstruction);
+
 Av2hStatus av2h_reconstruct_transform_8x16_u16(
     const Av2hFirstLeafMode *mode,
     const Av2hFirstCoeffPrefix *prefix,
@@ -59,6 +69,19 @@ Av2hStatus av2h_reconstruct_transform_8x4_u16(
     size_t predictor_stride_samples,
     Av2hReconstructionScratchU16 *scratch,
     Av2hFirstReconstructionU16 *reconstruction);
+
+Av2hStatus av2h_luma_predict_u16(
+    const Av2hFirstLeafMode *mode,
+    uint16_t width,
+    uint16_t height,
+    const uint16_t *above,
+    size_t above_count,
+    const uint16_t *left,
+    size_t left_count,
+    uint16_t above_left,
+    uint8_t has_above_left,
+    uint16_t *predictor,
+    size_t predictor_stride_samples);
 
 Av2hStatus av2h_intrabc_predict(
     const Av2hFirstLeafMode *mode,
@@ -137,6 +160,17 @@ Av2hStatus av2h_mhccp_predict_observed(
     uint16_t width,
     uint16_t height,
     uint8_t *predictor,
+    size_t predictor_stride_samples);
+
+Av2hStatus av2h_mhccp_predict_observed_u16(
+    const Av2hFirstChromaMode *mode,
+    const Av2hReconstructionPlaneU16 *luma_plane,
+    const Av2hReconstructionPlaneU16 *chroma_plane,
+    uint16_t block_x,
+    uint16_t block_y,
+    uint16_t width,
+    uint16_t height,
+    uint16_t *predictor,
     size_t predictor_stride_samples);
 
 int av2h_reconstruct_generic_selected(

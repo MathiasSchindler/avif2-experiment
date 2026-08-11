@@ -188,6 +188,32 @@ static void directional_filter_edge(uint8_t *edge, size_t count,
     }
 }
 
+static void directional_filter_edge_u16(uint16_t *edge, size_t count,
+                                        int strength) {
+    static const uint8_t kernels[3U][5U] = {
+        { 0U, 4U, 8U, 4U, 0U },
+        { 0U, 5U, 6U, 5U, 0U },
+        { 2U, 4U, 4U, 4U, 2U }
+    };
+    uint16_t source[132U];
+    size_t index;
+    if (strength == 0 || count > 132U) return;
+    for (index = 0U; index < count; ++index) source[index] = edge[index];
+    for (index = 1U; index < count; ++index) {
+        uint32_t sum = 0U;
+        size_t tap;
+        for (tap = 0U; tap < 5U; ++tap) {
+            int source_index = (int)index - 2 + (int)tap;
+            if (source_index < 0) source_index = 0;
+            if ((size_t)source_index >= count) {
+                source_index = (int)count - 1;
+            }
+            sum += source[source_index] * kernels[strength - 1][tap];
+        }
+        edge[index] = (uint16_t)((sum + 8U) >> 4U);
+    }
+}
+
 static uint8_t dc_predictor_average(unsigned int sum, unsigned int count,
                                     uint16_t width, uint16_t height,
                                     uint8_t have_top, uint8_t have_left);
@@ -776,6 +802,341 @@ static Av2hStatus predict_luma_directional_feature(
         }
     }
     return AV2H_OK;
+}
+
+Av2hStatus av2h_luma_predict_u16(
+    const Av2hFirstLeafMode *mode,
+    uint16_t width,
+    uint16_t height,
+    const uint16_t *above,
+    size_t above_count,
+    const uint16_t *left,
+    size_t left_count,
+    uint16_t above_left,
+    uint8_t has_above_left,
+    uint16_t *predictor,
+    size_t predictor_stride_samples) {
+    uint16_t row;
+    uint16_t column;
+    int have_above;
+    int have_left;
+    if (mode == 0 || predictor == 0 || predictor_stride_samples < width ||
+        !luma_prediction_dimension_supported(width) ||
+        !luma_prediction_dimension_supported(height) ||
+        (mode->angle_delta != 0 &&
+         directional_base_angle(mode->mode) == 0) ||
+        mode->mrl_index > 2U || mode->multi_line_mrl != 0U) {
+        return AV2H_INVALID_ARGUMENT;
+    }
+    have_above = above != 0 && above_count != 0U;
+    have_left = left != 0 && left_count != 0U;
+    if (directional_base_angle(mode->mode) + mode->angle_delta * 3 > 90 &&
+        directional_base_angle(mode->mode) + mode->angle_delta * 3 < 180 &&
+        mode->mrl_index == 0U && mode->multi_line_mrl == 0U) {
+        uint16_t above_storage[141U];
+        uint16_t left_storage[141U];
+        uint16_t *above_edge = &above_storage[5U];
+        uint16_t *left_edge = &left_storage[5U];
+        const int angle = directional_base_angle(mode->mode) +
+            mode->angle_delta * 3;
+        const int dx = directional_derivative[180 - angle];
+        const int dy = directional_derivative[angle - 90];
+        size_t edge_count = (size_t)width + height + 2U;
+        size_t index;
+        uint16_t fallback = have_above ? above[0] :
+            have_left ? left[0] : 512U;
+        uint16_t corner = has_above_left ? above_left : fallback;
+        if (edge_count > 136U) return AV2H_UNSUPPORTED;
+        above_edge[-4] = above_edge[-3] = above_edge[-2] =
+            above_edge[-1] = corner;
+        left_edge[-4] = left_edge[-3] = left_edge[-2] =
+            left_edge[-1] = corner;
+        for (index = 0U; index < edge_count; ++index) {
+            above_edge[index] = have_above ? above[
+                index < above_count && index < width ? index :
+                (above_count < width ? above_count : width) - 1U] :
+                have_left ? left[0] : 511U;
+            left_edge[index] = have_left ? left[
+                index < left_count && index < height ? index :
+                (left_count < height ? left_count : height) - 1U] :
+                have_above ? above[0] : 513U;
+        }
+        if (have_above) {
+            directional_filter_edge_u16(
+                above_edge - 1, (size_t)width + 1U,
+                directional_filter_strength(
+                    width, height, angle - 90,
+                    (uint8_t)(mode->above_smooth || mode->left_smooth)));
+        }
+        if (have_left) {
+            directional_filter_edge_u16(
+                left_edge - 1, (size_t)height + 1U,
+                directional_filter_strength(
+                    height, width, angle - 180,
+                    (uint8_t)(mode->above_smooth || mode->left_smooth)));
+        }
+        above_edge[width] = above_edge[width - 1U];
+        left_edge[height] = left_edge[height - 1U];
+        for (row = 0U; row < height; ++row) {
+            for (column = 0U; column < width; ++column) {
+                int position = ((int)column << 6) -
+                    ((int)row + 1) * dx;
+                int base = position >> 6;
+                int shift = (position & 0x3f) >> 1;
+                const uint16_t *reference = above_edge;
+                int32_t sum = 0;
+                size_t tap;
+                if (base < -1) {
+                    position = ((int)row << 6) -
+                        ((int)column + 1) * dy;
+                    base = position >> 6;
+                    shift = (position & 0x3f) >> 1;
+                    reference = left_edge;
+                }
+                if (mode->edge_ibp != 0U) {
+                    sum = reference[base] * (32 - shift) +
+                        reference[base + 1] * shift;
+                } else {
+                    for (tap = 0U; tap < 4U; ++tap) {
+                        int reference_index = base + (int)tap - 1;
+                        uint16_t sample = reference_index < 0 ?
+                            reference[-1] :
+                            (size_t)reference_index >= edge_count ?
+                                reference[edge_count - 1U] :
+                                reference[reference_index];
+                        sum += dr_interp_filter[shift][tap] * sample;
+                    }
+                }
+                predictor[(size_t)row * predictor_stride_samples + column] =
+                    av2h_sample_clip_10bit(mode->edge_ibp != 0U ?
+                        (sum + 16) >> 5U : (sum + 64) >> 7U);
+            }
+        }
+        return AV2H_OK;
+    }
+    if (directional_base_angle(mode->mode) + mode->angle_delta * 3 > 0 &&
+        directional_base_angle(mode->mode) + mode->angle_delta * 3 < 90 &&
+        mode->multi_line_mrl == 0U &&
+        mode->enable_ibp <= 1U &&
+        (mode->mrl_index == 0U ||
+         (width == 4U && height == 4U && mode->mrl_index <= 2U))) {
+        uint16_t above_storage[141U];
+        uint16_t left_storage[141U];
+        uint16_t *above_edge = &above_storage[5U];
+        uint16_t *left_edge = &left_storage[5U];
+        int angle = directional_base_angle(mode->mode) +
+            mode->angle_delta * 3 +
+            (mode->mrl_index == 1U ? 1 :
+             mode->mrl_index == 2U ? -1 : 0);
+        int dx = directional_derivative[angle];
+        int max_base = (int)width + height - 1 +
+            2 * mode->mrl_index;
+        size_t edge_count = (size_t)width + height + 2U +
+            2U * mode->mrl_index;
+        size_t index;
+        uint16_t fallback = have_above ? above[0] :
+            have_left ? left[0] : 512U;
+        uint16_t above_fallback = !have_above && !have_left ?
+            511U : fallback;
+        uint16_t left_fallback = !have_above && !have_left ?
+            513U : fallback;
+        uint16_t corner = has_above_left ? above_left : fallback;
+        int x = dx * (1 + mode->mrl_index);
+        if (edge_count > 136U) return AV2H_UNSUPPORTED;
+        above_edge[-4] = above_edge[-3] = above_edge[-2] =
+            above_edge[-1] = corner;
+        left_edge[-4] = left_edge[-3] = left_edge[-2] =
+            left_edge[-1] = corner;
+        for (index = 0U; index < edge_count; ++index) {
+            size_t above_available = above_count > 2U * width ?
+                2U * width : above_count;
+            size_t left_available = left_count > 2U * height ?
+                2U * height : left_count;
+            above_edge[index] = have_above ? above[
+                index < above_available ? index : above_available - 1U] :
+                above_fallback;
+            left_edge[index] = have_left ? left[
+                index < left_available ? index : left_available - 1U] :
+                left_fallback;
+        }
+        if (have_above && mode->mrl_index == 0U) {
+            directional_filter_edge_u16(
+                above_edge - 1, (size_t)width + height + 1U,
+                directional_filter_strength(
+                    width, height, angle - 90,
+                    (uint8_t)(mode->above_smooth || mode->left_smooth)));
+        }
+        if (have_left && mode->mrl_index == 0U) {
+            directional_filter_edge_u16(
+                left_edge - 1,
+                (size_t)height + 1U +
+                    (mode->enable_ibp ? width : 0U),
+                directional_filter_strength(
+                    height, width, angle,
+                    mode->enable_ibp ? mode->left_smooth :
+                        (uint8_t)(mode->above_smooth || mode->left_smooth)));
+        }
+        above_edge[max_base + 1] = above_edge[max_base];
+        above_edge[max_base + 2] = above_edge[max_base];
+        if (mode->enable_ibp) {
+            left_edge[max_base + 1] = left_edge[max_base];
+            left_edge[max_base + 2] = left_edge[max_base];
+        }
+        for (row = 0U; row < height; ++row, x += dx) {
+            int base = x >> 6;
+            int shift = (x & 0x3f) >> 1;
+            for (column = 0U; column < width; ++column, ++base) {
+                int32_t sum = 0;
+                uint16_t primary;
+                size_t tap;
+                if (base > max_base) {
+                    primary = above_edge[max_base];
+                } else {
+                    for (tap = 0U; tap < 4U; ++tap) {
+                        sum += dr_interp_filter[shift][tap] *
+                            above_edge[base + (int)tap - 1];
+                    }
+                    primary = av2h_sample_clip_10bit((sum + 64) >> 7U);
+                }
+                if (mode->enable_ibp && mode->angle_delta % 2 == 0) {
+                    int secondary_dy = directional_derivative[90 - angle];
+                    int weight_dy =
+                        directional_ibp_canonical_derivative(angle);
+                    int secondary_y =
+                        secondary_dy * ((int)column + 1);
+                    int secondary_base = (secondary_y >> 6) + row;
+                    int secondary_shift = (secondary_y & 0x3f) >> 1;
+                    uint16_t secondary;
+                    uint8_t weight;
+                    if (secondary_base > max_base) {
+                        secondary = left_edge[max_base];
+                    } else {
+                        sum = 0;
+                        for (tap = 0U; tap < 4U; ++tap) {
+                            sum += dr_interp_filter[secondary_shift][tap] *
+                                left_edge[secondary_base + (int)tap - 1];
+                        }
+                        secondary = av2h_sample_clip_10bit(
+                            (sum + 64) >> 7U);
+                    }
+                    weight = directional_ibp_weight(
+                        row >> (height >> 5U),
+                        column >> (width >> 5U), weight_dy);
+                    primary = (uint16_t)(
+                        (primary * weight +
+                         secondary * (128U - weight) + 64U) >> 7U);
+                }
+                predictor[(size_t)row * predictor_stride_samples + column] =
+                    primary;
+            }
+        }
+        return AV2H_OK;
+    }
+    if (mode->mode == AV2H_INTRA_VERTICAL ||
+        mode->mode == AV2H_INTRA_HORIZONTAL) {
+        for (row = 0U; row < height; ++row) {
+            for (column = 0U; column < width; ++column) {
+                predictor[(size_t)row * predictor_stride_samples + column] =
+                    mode->mode == AV2H_INTRA_VERTICAL ?
+                        have_above ? above[column < above_count ?
+                            column : above_count - 1U] :
+                            have_left ? left[0] : 511U :
+                        have_left ? left[row < left_count ?
+                            row : left_count - 1U] :
+                            have_above ? above[0] : 513U;
+            }
+        }
+        return AV2H_OK;
+    }
+    if (mode->mode == AV2H_INTRA_SMOOTH_VERTICAL ||
+        mode->mode == AV2H_INTRA_SMOOTH_HORIZONTAL ||
+        mode->mode == AV2H_INTRA_SMOOTH) {
+        uint8_t scale = smooth_scale(width, height);
+        uint16_t bottom_left = !have_left ? have_above ? above[0] : 513U :
+            left_count > height ? left[height] : left[left_count - 1U];
+        uint16_t top_right = !have_above ? have_left ? left[0] : 511U :
+            above_count > width ? above[width] : above[above_count - 1U];
+        if ((have_above && above_count < width) ||
+            (have_left && left_count < height)) {
+            return AV2H_INVALID_ARGUMENT;
+        }
+        for (row = 0U; row < height; ++row) {
+            for (column = 0U; column < width; ++column) {
+                uint16_t top = have_above ? above[column] :
+                    have_left ? left[0] : 511U;
+                uint16_t side = have_left ? left[row] :
+                    have_above ? above[0] : 513U;
+                int32_t vertical = bottom_left + round_shift(
+                    ((int64_t)top - bottom_left) *
+                        (height - 1U - row),
+                    block_log2(height));
+                int32_t horizontal = top_right + round_shift(
+                    ((int64_t)side - top_right) *
+                        (width - 1U - column),
+                    block_log2(width));
+                vertical += round_shift(
+                    ((int64_t)top - vertical) * smooth_blend(row, scale),
+                    7U);
+                horizontal += round_shift(
+                    ((int64_t)side - horizontal) *
+                        smooth_blend(column, scale),
+                    7U);
+                predictor[(size_t)row * predictor_stride_samples + column] =
+                    mode->mode == AV2H_INTRA_SMOOTH_VERTICAL ?
+                        (uint16_t)vertical :
+                    mode->mode == AV2H_INTRA_SMOOTH_HORIZONTAL ?
+                        (uint16_t)horizontal :
+                        (uint16_t)round_shift(vertical + horizontal, 1U);
+            }
+        }
+        return AV2H_OK;
+    }
+    if (mode->mode == AV2H_INTRA_PAETH) {
+        if (!have_above && !have_left) {
+            for (row = 0U; row < height; ++row) {
+                for (column = 0U; column < width; ++column) {
+                    predictor[(size_t)row * predictor_stride_samples +
+                              column] = 512U;
+                }
+            }
+            return AV2H_OK;
+        }
+        if (!have_left || !have_above) {
+            for (row = 0U; row < height; ++row) {
+                for (column = 0U; column < width; ++column) {
+                    predictor[(size_t)row * predictor_stride_samples +
+                              column] = have_above ?
+                        above[column < above_count ? column :
+                              above_count - 1U] :
+                        left[row < left_count ? row : left_count - 1U];
+                }
+            }
+            return AV2H_OK;
+        }
+        if (above_count < width || left_count < height ||
+            has_above_left == 0U) {
+            return AV2H_INVALID_ARGUMENT;
+        }
+        for (row = 0U; row < height; ++row) {
+            for (column = 0U; column < width; ++column) {
+                int32_t top = above[column];
+                int32_t side = left[row];
+                int32_t corner = above_left;
+                int32_t base = top + side - corner;
+                int32_t side_distance = base > side ?
+                    base - side : side - base;
+                int32_t top_distance = base > top ? base - top : top - base;
+                int32_t corner_distance = base > corner ?
+                    base - corner : corner - base;
+                predictor[(size_t)row * predictor_stride_samples + column] =
+                    (uint16_t)(side_distance <= top_distance &&
+                        side_distance <= corner_distance ? side :
+                        top_distance <= corner_distance ? top : corner);
+            }
+        }
+        return AV2H_OK;
+    }
+    return AV2H_UNSUPPORTED;
 }
 
 Av2hStatus av2h_luma_predict(

@@ -280,6 +280,39 @@ Av2hStatus av2h_tile_decoder_next_chroma(
         av2h_memory_copy(
             &leaf->mode, &decoder->shared_chroma_mode, sizeof(leaf->mode));
         decoder->shared_chroma_mode_pending = 0U;
+    } else if (decoder->frame->base_q_index == 0U) {
+        av2h_memory_fill(&leaf->mode, 0U, sizeof(leaf->mode));
+        leaf->mode.use_dpcm_uv = (uint8_t)av2h_range_read_adaptive(
+            &decoder->range, decoder->leaf_cdfs.dpcm_uv, 2U);
+        if (av2h_range_status(&decoder->range) != AV2H_OK) {
+            return av2h_tile_decoder_fail(
+                decoder, av2h_range_status(&decoder->range));
+        }
+        if (leaf->mode.use_dpcm_uv != 0U) {
+            leaf->mode.dpcm_mode_uv = (uint8_t)av2h_range_read_adaptive(
+                &decoder->range,
+                decoder->leaf_cdfs.dpcm_uv_vert_horz, 2U);
+            if (av2h_range_status(&decoder->range) != AV2H_OK) {
+                return av2h_tile_decoder_fail(
+                    decoder, av2h_range_status(&decoder->range));
+            }
+            leaf->mode.mode = leaf->mode.dpcm_mode_uv != 0U ?
+                AV2H_INTRA_HORIZONTAL : AV2H_INTRA_VERTICAL;
+            leaf->mode.uv_mode = leaf->mode.dpcm_mode_uv != 0U ? 2U : 1U;
+            leaf->mode.mode_index = leaf->mode.uv_mode;
+            leaf->mode.chroma_format_idc =
+                decoder->sequence->info.chroma_format_idc;
+            leaf->mode.superblock_size = decoder->sequence->superblock_size;
+            leaf->mode.edge_ibp = decoder->sequence->enable_ibp;
+            status = AV2H_OK;
+        } else {
+            status = av2h_chroma_mode_read_with_delta_for_sdp(
+                &decoder->range, &decoder->leaf_cdfs, decoder->sequence,
+                (Av2hFirstLeafIntraMode)colocated->mode,
+                colocated->angle_delta, leaf->node.block_size, cfl_context,
+                tile_cfl_allowed_for_sdp(decoder), &leaf->mode);
+        }
+        if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
     } else {
         status = av2h_chroma_mode_read_with_delta_for_sdp(
             &decoder->range, &decoder->leaf_cdfs, decoder->sequence,
@@ -315,9 +348,13 @@ Av2hStatus av2h_tile_decoder_next_chroma(
     }
     if (decoder->chroma_tx_count == 0U) {
         uint8_t tx_count;
-        status = av2h_chroma_tx_node_count(
-            leaf->node.block_size, decoder->frame->chroma_format_idc,
-            &tx_count);
+        status = decoder->frame->base_q_index == 0U ?
+            av2h_chroma_lossless_tx_node_count(
+                leaf->node.block_size, decoder->frame->chroma_format_idc,
+                &tx_count) :
+            av2h_chroma_tx_node_count(
+                leaf->node.block_size, decoder->frame->chroma_format_idc,
+                &tx_count);
         if (status != AV2H_OK) {
             return av2h_tile_decoder_fail(decoder, status);
         }
@@ -331,10 +368,15 @@ Av2hStatus av2h_tile_decoder_next_chroma(
         }
     }
     if (decoder->chroma_tx_count != 0U) {
-        status = av2h_chroma_tx_node_get(
-            &decoder->chroma_coding_node,
-            decoder->frame->chroma_format_idc,
-            decoder->chroma_tx_index, &leaf->node);
+        status = decoder->frame->base_q_index == 0U ?
+            av2h_chroma_lossless_tx_node_get(
+                &decoder->chroma_coding_node,
+                decoder->frame->chroma_format_idc,
+                decoder->chroma_tx_index, &leaf->node) :
+            av2h_chroma_tx_node_get(
+                &decoder->chroma_coding_node,
+                decoder->frame->chroma_format_idc,
+                decoder->chroma_tx_index, &leaf->node);
         if (status != AV2H_OK) {
             return av2h_tile_decoder_fail(decoder, status);
         }
@@ -373,10 +415,23 @@ Av2hStatus av2h_tile_decoder_next_chroma(
 #endif
         av2h_tile_diagnostics_set_chroma_stage(
             (uint8_t)(2U + index * 3U));
-        status = av2h_chroma_transform_type_read(
-            &decoder->range, &decoder->transform_cdfs, decoder->frame,
-            &leaf->mode, plane, cctx_allowed, &leaf->prefix[index],
-            &leaf->transform[index]);
+        if (decoder->current_q_index == 0U) {
+            size_t tell = av2h_range_tell(&decoder->range);
+            av2h_memory_fill(
+                &leaf->transform[index], 0U,
+                sizeof(leaf->transform[index]));
+            leaf->transform[index].primary_type = AV2H_TX_DCT_DCT;
+            leaf->transform[index].before_primary_bits = tell;
+            leaf->transform[index].after_primary_bits = tell;
+            leaf->transform[index].after_secondary_type_bits = tell;
+            leaf->transform[index].after_secondary_bits = tell;
+            status = AV2H_OK;
+        } else {
+            status = av2h_chroma_transform_type_read(
+                &decoder->range, &decoder->transform_cdfs, decoder->frame,
+                &leaf->mode, plane, cctx_allowed, &leaf->prefix[index],
+                &leaf->transform[index]);
+        }
         if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
     #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
         av2h_partition_diagnostic_leaf_stage(

@@ -27,3 +27,12 @@ versions, and generated hashes are recorded in that directory's README and
 manifest. `tools/generate_10bit_sources.py` reproduces the corpus using
 ImageMagick's RAW decoder and FFmpeg; neither hosted tool is linked into the
 freestanding product.
+
+The retained 10B-WP6 pre-filter oracles under
+`tests/fixtures/10bit/avm-reference/` were captured from AVM's
+`prefiltered_frame_buffer` at pinned revision
+`966a7d7cd6fcf60360caf5dc413b2aeeb65e144d`. They are complete little-endian
+10-bit Y/U/V planes before deblock or any later filter and are intentionally
+separate from the generated `*-decoded.yuv` outputs. Their exact hashes are
+recorded in `tests/fixtures/10bit/wp6-unfiltered.sha256`; production code does
+not consume these test fixtures.

@@ -2,32 +2,18 @@
 #include "internal/decode_diagnostics.h"
 #include "internal/leaf_modules.h"
 
-#if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
 static Av2hLeafDiagnostics leaf_diagnostics;
-#endif
 
 const Av2hLeafDiagnostics *av2h_leaf_diagnostics_get(void) {
-#if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
     return &leaf_diagnostics;
-#else
-    return 0;
-#endif
 }
 
 void av2h_leaf_diagnostics_set_luma_stage(uint8_t value) {
-#if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
     leaf_diagnostics.luma_mode_stage = value;
-#else
-    (void)value;
-#endif
 }
 
 void av2h_leaf_diagnostics_set_chroma_stage(uint8_t value) {
-#if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
     leaf_diagnostics.chroma_mode_stage = value;
-#else
-    (void)value;
-#endif
 }
 
 Av2hStatus av2h_chroma_mode_read(
@@ -631,6 +617,9 @@ static Av2hStatus luma_mode_read_internal(
     }
     av2h_leaf_diagnostics_set_luma_stage(1U);
     mode->use_intrabc = 0U;
+    mode->use_dpcm_y = 0U;
+    mode->dpcm_mode_y = 0U;
+    mode->lossless_tx_size_large = 0U;
     mode->intrabc_mode = 0U;
     mode->skip_transform = 0U;
     mode->intrabc_drl_index = 0U;
@@ -724,48 +713,71 @@ static Av2hStatus luma_mode_read_internal(
         if (status != AV2H_OK) return status;
     }
     mode->before_mode_bits = av2h_range_tell(decoder);
-    value = av2h_range_read_adaptive(
-        decoder, cdfs->y_mode_set, AV2H_Y_MODE_SET_SYMBOLS);
-    if (av2h_range_status(decoder) != AV2H_OK) {
-        return av2h_range_status(decoder);
-    }
-    mode->mode_set = (uint8_t)value;
-    mode->after_mode_set_bits = av2h_range_tell(decoder);
-    if (value == 0U) {
-        value = av2h_range_read_adaptive(
-            decoder, cdfs->y_mode_index[mode_context],
-            AV2H_Y_MODE_INDEX_SYMBOLS);
+    if (frame->base_q_index == 0U) {
+        mode->use_dpcm_y = (uint8_t)av2h_range_read_adaptive(
+            decoder, cdfs->dpcm, 2U);
         if (av2h_range_status(decoder) != AV2H_OK) {
             return av2h_range_status(decoder);
         }
-        mode->mode_index = (uint8_t)value;
-        if (value == AV2H_Y_MODE_INDEX_SYMBOLS - 1U) {
-            value += av2h_range_read_adaptive(
-                decoder, cdfs->y_mode_offset[mode_context],
-                AV2H_Y_MODE_OFFSET_SYMBOLS);
+    }
+    if (mode->use_dpcm_y != 0U) {
+        mode->dpcm_mode_y = (uint8_t)av2h_range_read_adaptive(
+            decoder, cdfs->dpcm_vert_horz, 2U);
+        if (av2h_range_status(decoder) != AV2H_OK) {
+            return av2h_range_status(decoder);
+        }
+        mode->mode_set = 0U;
+        mode->mode_index = mode->dpcm_mode_y != 0U ? 6U : 1U;
+        mode->joint_mode = mode->dpcm_mode_y != 0U ? 50U : 22U;
+        mode->mode = mode->dpcm_mode_y != 0U ?
+            AV2H_INTRA_HORIZONTAL : AV2H_INTRA_VERTICAL;
+        mode->angle_delta = 0;
+        mode->after_mode_set_bits = av2h_range_tell(decoder);
+        mode->after_mode_index_bits = mode->after_mode_set_bits;
+    } else {
+        value = av2h_range_read_adaptive(
+            decoder, cdfs->y_mode_set, AV2H_Y_MODE_SET_SYMBOLS);
+        if (av2h_range_status(decoder) != AV2H_OK) {
+            return av2h_range_status(decoder);
+        }
+        mode->mode_set = (uint8_t)value;
+        mode->after_mode_set_bits = av2h_range_tell(decoder);
+        if (value == 0U) {
+            value = av2h_range_read_adaptive(
+                decoder, cdfs->y_mode_index[mode_context],
+                AV2H_Y_MODE_INDEX_SYMBOLS);
             if (av2h_range_status(decoder) != AV2H_OK) {
                 return av2h_range_status(decoder);
             }
             mode->mode_index = (uint8_t)value;
+            if (value == AV2H_Y_MODE_INDEX_SYMBOLS - 1U) {
+                value += av2h_range_read_adaptive(
+                    decoder, cdfs->y_mode_offset[mode_context],
+                    AV2H_Y_MODE_OFFSET_SYMBOLS);
+                if (av2h_range_status(decoder) != AV2H_OK) {
+                    return av2h_range_status(decoder);
+                }
+                mode->mode_index = (uint8_t)value;
+            }
+        } else {
+            mode->mode_index = (uint8_t)(13U + (value - 1U) * 16U +
+                av2h_range_read_bypass(decoder, 4U));
+            if (av2h_range_status(decoder) != AV2H_OK) {
+                return av2h_range_status(decoder);
+            }
         }
-    } else {
-        mode->mode_index = (uint8_t)(13U + (value - 1U) * 16U +
-            av2h_range_read_bypass(decoder, 4U));
-        if (av2h_range_status(decoder) != AV2H_OK) {
-            return av2h_range_status(decoder);
+        mode->after_mode_index_bits = av2h_range_tell(decoder);
+        av2h_leaf_diagnostics_set_luma_stage(4U);
+        {
+            Av2hStatus status = av2h_luma_joint_mode_from_index(
+                mode->mode_index, leaf->block_size, neighbors,
+                &mode->joint_mode);
+            if (status != AV2H_OK) return status;
         }
-    }
-    mode->after_mode_index_bits = av2h_range_tell(decoder);
-    av2h_leaf_diagnostics_set_luma_stage(4U);
-    {
-        Av2hStatus status = av2h_luma_joint_mode_from_index(
-            mode->mode_index, leaf->block_size, neighbors,
-            &mode->joint_mode);
-        if (status != AV2H_OK) return status;
-    }
-    if (map_joint_mode(mode->joint_mode, &mode->mode,
-                       &mode->angle_delta) != AV2H_OK) {
-        return AV2H_INVALID_DATA;
+        if (map_joint_mode(mode->joint_mode, &mode->mode,
+                           &mode->angle_delta) != AV2H_OK) {
+            return AV2H_INVALID_DATA;
+        }
     }
     mode->fsc_mode = 0U;
     mode->fsc_neighbor_context = (uint8_t)fsc_context;
@@ -792,7 +804,8 @@ static Av2hStatus luma_mode_read_internal(
     av2h_leaf_diagnostics_set_luma_stage(5U);
     mode->mrl_index = 0U;
     mode->multi_line_mrl = 0U;
-    if (sequence->enable_mrls && is_directional_joint_mode(mode->joint_mode)) {
+    if (mode->use_dpcm_y == 0U && sequence->enable_mrls &&
+        is_directional_joint_mode(mode->joint_mode)) {
         value = av2h_range_read_adaptive(
             decoder, cdfs->mrl_index[mrl_context], AV2H_MRL_INDEX_SYMBOLS);
         if (av2h_range_status(decoder) != AV2H_OK) {
@@ -836,7 +849,7 @@ static Av2hStatus luma_mode_read_internal(
             }
             mode->palette_size = (uint8_t)value;
             status = av2h_leaf_palette_read_colors(
-                decoder, neighbors, mode);
+                decoder, sequence, neighbors, mode);
             if (status != AV2H_OK) return status;
             mode->after_palette_colors_bits = av2h_range_tell(decoder);
         }

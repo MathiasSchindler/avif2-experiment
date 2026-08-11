@@ -336,6 +336,30 @@ Av2hStatus av2h_leaf_cdfs_init(Av2hLeafCdfs *cdfs) {
                            AV2H_Y_MODE_SET_SYMBOLS + 4U, mode_set,
                            AV2H_Y_MODE_SET_SYMBOLS, 93U, 0U);
     if (status != AV2H_OK) return status;
+    status = av2h_binary_cdf_init(
+        cdfs->dpcm, (Av2hBinaryCdfSpec){ 16384U, 0U, 0U });
+    if (status != AV2H_OK) return status;
+    status = av2h_binary_cdf_init(
+        cdfs->dpcm_vert_horz,
+        (Av2hBinaryCdfSpec){ 16384U, 0U, 0U });
+    if (status != AV2H_OK) return status;
+    status = av2h_binary_cdf_init(
+        cdfs->dpcm_uv, (Av2hBinaryCdfSpec){ 16384U, 0U, 0U });
+    if (status != AV2H_OK) return status;
+    status = av2h_binary_cdf_init(
+        cdfs->dpcm_uv_vert_horz,
+        (Av2hBinaryCdfSpec){ 16384U, 0U, 0U });
+    if (status != AV2H_OK) return status;
+    status = av2h_binary_cdf_init(
+        cdfs->lossless_tx_size[0],
+        (Av2hBinaryCdfSpec){ 16384U, 68U, 0U });
+    if (status != AV2H_OK) return status;
+    for (context = 1U; context < 4U; ++context) {
+        status = av2h_binary_cdf_init(
+            cdfs->lossless_tx_size[context],
+            (Av2hBinaryCdfSpec){ 16384U, 94U, 0U });
+        if (status != AV2H_OK) return status;
+    }
     for (context = 0U; context < AV2H_Y_MODE_CONTEXT_COUNT; ++context) {
         status = av2h_cdf_init(
             cdfs->y_mode_index[context], AV2H_Y_MODE_INDEX_SYMBOLS + 4U,

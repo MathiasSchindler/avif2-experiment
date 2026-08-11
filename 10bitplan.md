@@ -262,6 +262,11 @@ its complete unfiltered Y, U, and V planes and tightly packed private
 
 ## 10B-WP6: Expand prediction and transform coverage
 
+**Status:** Implemented. The retained 22-fixture tiny matrix, exact
+pre-filter Y/U/V parity, coded-lossless DPCM/FSC and reversible transform
+paths, bounded U16 prediction dispatch, and unchanged public filter boundary
+are recorded in `docs/dev/10bit-wp6.md`.
+
 **Objective:** Cover the retained 4:2:0 prediction and transform matrix before
 filter integration obscures reconstruction failures.
 
@@ -277,9 +282,11 @@ filter integration obscures reconstruction failures.
   lacks a locked 10-bit vector.
 - Add tiny quantizer/transform variants before odd or photographic fixtures.
 
-**Exit gate:** All retained tiny 10-bit 4:2:0 fixtures match pinned AVM on
-complete unfiltered planes, including at least one reached vector for each
-prediction and transform family required by the release corpus.
+**Exit gate:** Complete. All 22 retained tiny 10-bit 4:2:0 fixtures match
+pinned AVM on complete unfiltered planes. The matrix reaches seven transform
+geometries and nine primary transform types; focused unit vectors retain the
+specialized prediction, secondary-transform, CfL, CCTX, FSC, palette, and
+IntraBC arithmetic needed by the current release corpus.
 
 ## 10B-WP7: Implement 10-bit deblock
 

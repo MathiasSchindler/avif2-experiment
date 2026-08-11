@@ -351,7 +351,7 @@ static void test_10bit_wp0_header(void) {
     mutated[0] &= 0xfeU;
     CHECK(av2h_frame_header_closed_key_parse(
               (Av2hSpan){ mutated, frame_obu->payload_size },
-              &sequence, &frame) == AV2H_UNSUPPORTED);
+              &sequence, &frame) == AV2H_OK);
 }
 
 static void test_emerald_q208_deblock_header(void) {

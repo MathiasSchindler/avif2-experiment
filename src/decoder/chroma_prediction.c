@@ -1874,6 +1874,229 @@ Av2hStatus av2h_mhccp_predict_observed(
     return AV2H_OK;
 }
 
+static int plane_sample_reconstructed_u16(
+    const Av2hReconstructionPlaneU16 *plane, size_t x, size_t y) {
+    size_t cell_x;
+    size_t cell_y;
+    size_t index;
+    if (plane == 0 || x >= plane->width || y >= plane->height ||
+        plane->reconstructed == 0) {
+        return 0;
+    }
+    cell_x = x / 4U;
+    cell_y = y / 4U;
+    index = cell_y * plane->reconstructed_stride_cells + cell_x;
+    return index < plane->reconstructed_count_cells &&
+        plane->reconstructed[index] != 0U;
+}
+
+static int plane_region_reconstructed_u16(
+    const Av2hReconstructionPlaneU16 *plane,
+    uint16_t x, uint16_t y, uint16_t width, uint16_t height) {
+    uint16_t row;
+    uint16_t column;
+    for (row = 0U; row < height; row += 4U) {
+        for (column = 0U; column < width; column += 4U) {
+            if (!plane_sample_reconstructed_u16(
+                    plane, (size_t)x + column, (size_t)y + row)) {
+                return 0;
+            }
+        }
+    }
+    return 1;
+}
+
+static uint16_t mhccp_luma_q3_u16(
+    const Av2hReconstructionPlaneU16 *luma_plane,
+    uint16_t chroma_x, uint16_t chroma_y) {
+    size_t x0 = (size_t)chroma_x * 2U;
+    size_t y0 = (size_t)chroma_y * 2U;
+    size_t x1 = x0 + 1U < luma_plane->width ? x0 + 1U : x0;
+    size_t y1 = y0 + 1U < luma_plane->height ? y0 + 1U : y0;
+    return (uint16_t)((
+        luma_plane->data[y0 * luma_plane->stride_samples + x0] +
+        luma_plane->data[y0 * luma_plane->stride_samples + x1] +
+        luma_plane->data[y1 * luma_plane->stride_samples + x0] +
+        luma_plane->data[y1 * luma_plane->stride_samples + x1]) << 1U);
+}
+
+Av2hStatus av2h_mhccp_predict_observed_u16(
+    const Av2hFirstChromaMode *mode,
+    const Av2hReconstructionPlaneU16 *luma_plane,
+    const Av2hReconstructionPlaneU16 *chroma_plane,
+    uint16_t block_x,
+    uint16_t block_y,
+    uint16_t width,
+    uint16_t height,
+    uint16_t *predictor,
+    size_t predictor_stride_samples) {
+    int32_t matrix[3U][3U] = { { 0 } };
+    int32_t target[3U] = { 0 };
+    int32_t parameters[3U];
+    uint16_t prediction_width;
+    uint16_t prediction_height;
+    uint16_t top_count;
+    uint16_t left_count;
+    uint16_t top_start_x;
+    uint16_t sample;
+    uint16_t count = 0U;
+    uint16_t row;
+    uint16_t column;
+    uint8_t have_top;
+    uint8_t have_left;
+    int matrix_shift;
+    uint32_t count_ceiling;
+    if (mode == 0 || luma_plane == 0 || chroma_plane == 0 ||
+        predictor == 0 || luma_plane->data == 0 ||
+        chroma_plane->data == 0 || mode->cfl_kind != AV2H_CFL_MULTI_PARAM ||
+        mode->mhccp_direction != 2U ||
+        mode->cfl_downsample_filter_index != 0U ||
+        mode->chroma_format_idc != 0U || width != 4U || height != 8U ||
+        predictor_stride_samples < width ||
+        block_x >= chroma_plane->width || block_y >= chroma_plane->height) {
+        return AV2H_UNSUPPORTED;
+    }
+    prediction_width = width < chroma_plane->width - block_x ?
+        width : (uint16_t)(chroma_plane->width - block_x);
+    prediction_height = height < chroma_plane->height - block_y ?
+        height : (uint16_t)(chroma_plane->height - block_y);
+    if (!plane_region_reconstructed_u16(
+            luma_plane, (uint16_t)(block_x * 2U),
+            (uint16_t)(block_y * 2U),
+            (uint16_t)(prediction_width * 2U),
+            (uint16_t)(prediction_height * 2U))) {
+        return AV2H_UNSUPPORTED;
+    }
+    have_top = (uint8_t)(block_y >= 2U);
+    have_left = (uint8_t)(block_x >= 2U);
+    if (!have_top && !have_left) {
+        for (row = 0U; row < prediction_height; ++row) {
+            for (column = 0U; column < prediction_width; ++column) {
+                predictor[(size_t)row * predictor_stride_samples + column] =
+                    av2h_sample_midpoint_10bit();
+            }
+        }
+        return AV2H_OK;
+    }
+    top_count = have_top ? (uint16_t)(width * 2U) : 0U;
+    if (!have_left && top_count >= 2U) top_count = (uint16_t)(top_count - 2U);
+    left_count = have_left ? (uint16_t)(height * 2U - 1U) : 0U;
+    if (left_count >= chroma_plane->height - block_y) {
+        left_count = (uint16_t)(chroma_plane->height - block_y - 1U);
+    }
+    while (left_count != 0U &&
+           !plane_sample_reconstructed_u16(
+               chroma_plane, block_x - 1U,
+               (size_t)block_y + left_count - 1U)) {
+        --left_count;
+    }
+    have_left = (uint8_t)(left_count != 0U);
+    top_start_x = (uint16_t)(have_left ? block_x - 1U : block_x + 1U);
+    if (have_top) {
+        uint16_t available = 0U;
+        uint16_t limit = chroma_plane->reference_width > top_start_x + 1U ?
+            (uint16_t)(chroma_plane->reference_width - top_start_x - 1U) :
+            0U;
+        if (top_count > limit) top_count = limit;
+        while (available < top_count &&
+               plane_sample_reconstructed_u16(
+                   chroma_plane, (size_t)top_start_x + available,
+                   block_y - 1U)) {
+            ++available;
+        }
+        if (!have_left && available != 0U && available <= width) --available;
+        top_count = available;
+        have_top = (uint8_t)(top_count != 0U);
+    }
+    for (sample = 0U; sample < top_count; ++sample) {
+        uint16_t chroma_x = (uint16_t)(top_start_x + sample);
+        uint16_t chroma_y = (uint16_t)(block_y - 1U);
+        int32_t center = (int32_t)(
+            mhccp_luma_q3_u16(luma_plane, chroma_x, chroma_y) >> 3U);
+        int32_t vector[3U];
+        int first;
+        int second;
+        vector[0] = (int32_t)(mhccp_luma_q3_u16(
+            luma_plane, chroma_x == 0U ? 0U : (uint16_t)(chroma_x - 1U),
+            chroma_y) >> 3U);
+        vector[1] = (center * center + 512) >> 10U;
+        vector[2] = 512;
+        for (first = 0; first < 3; ++first) {
+            target[first] += vector[first] * chroma_plane->data[
+                (size_t)chroma_y * chroma_plane->stride_samples + chroma_x];
+            for (second = first; second < 3; ++second) {
+                matrix[first][second] += vector[first] * vector[second];
+            }
+        }
+        ++count;
+    }
+    for (sample = have_top ? 0U : 1U; sample < left_count; ++sample) {
+        uint16_t chroma_x = (uint16_t)(block_x - 1U);
+        uint16_t chroma_y = (uint16_t)(block_y + sample);
+        int32_t center = (int32_t)(
+            mhccp_luma_q3_u16(luma_plane, chroma_x, chroma_y) >> 3U);
+        int32_t vector[3U];
+        int first;
+        int second;
+        vector[0] = (int32_t)(mhccp_luma_q3_u16(
+            luma_plane, chroma_x == 0U ? 0U : (uint16_t)(chroma_x - 1U),
+            chroma_y) >> 3U);
+        vector[1] = (center * center + 512) >> 10U;
+        vector[2] = 512;
+        for (first = 0; first < 3; ++first) {
+            target[first] += vector[first] * chroma_plane->data[
+                (size_t)chroma_y * chroma_plane->stride_samples + chroma_x];
+            for (second = first; second < 3; ++second) {
+                matrix[first][second] += vector[first] * vector[second];
+            }
+        }
+        ++count;
+    }
+    if (count == 0U) return AV2H_UNSUPPORTED;
+    count_ceiling = count - 1U;
+    matrix_shift = 0;
+    while (count_ceiling != 0U) {
+        ++matrix_shift;
+        count_ceiling >>= 1U;
+    }
+    matrix_shift = 6 - matrix_shift;
+    for (row = 0U; row < 3U; ++row) {
+        for (column = row; column < 3U; ++column) {
+            matrix[row][column] = matrix_shift > 0 ?
+                matrix[row][column] << matrix_shift :
+                matrix[row][column] >> -matrix_shift;
+        }
+        target[row] = matrix_shift > 0 ?
+            target[row] << matrix_shift : target[row] >> -matrix_shift;
+    }
+    mhccp_solve(matrix, target, parameters);
+    for (row = 0U; row < prediction_height; ++row) {
+        for (column = 0U; column < prediction_width; ++column) {
+            int32_t center = (int32_t)(mhccp_luma_q3_u16(
+                luma_plane, (uint16_t)(block_x + column),
+                (uint16_t)(block_y + row)) >> 3U);
+            int32_t vector[3U];
+            int32_t sum = 0;
+            int parameter;
+            vector[0] = (int32_t)(mhccp_luma_q3_u16(
+                luma_plane,
+                column == 0U && !have_left ? block_x :
+                    (uint16_t)(block_x + column - 1U),
+                (uint16_t)(block_y + row)) >> 3U);
+            vector[1] = (center * center + 512) >> 10U;
+            vector[2] = 512;
+            for (parameter = 0; parameter < 3; ++parameter) {
+                sum += mhccp_mul_fixed(
+                    parameters[parameter], vector[parameter],
+                    AV2H_MHCCP_DECIM_BITS);
+            }
+            predictor[(size_t)row * predictor_stride_samples + column] =
+                av2h_sample_clip_10bit(sum);
+        }
+    }
+    return AV2H_OK;
+}
+
 int av2h_chroma_geometry_supported(uint16_t width, uint16_t height) {
     return (width == 4U && (height == 4U || height == 8U ||
              height == 16U || height == 32U || height == 64U)) ||

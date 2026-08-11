@@ -7,6 +7,7 @@ uint8_t av2h_leaf_block_allows_palette(Av2hBlockSize block_size);
 
 Av2hStatus av2h_leaf_palette_read_colors(
     Av2hRangeDecoder *decoder,
+    const Av2hSequenceState *sequence,
     const Av2hLumaModeNeighbors *neighbors,
     Av2hFirstLeafMode *mode);
 

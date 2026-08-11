@@ -82,6 +82,7 @@ Av2hStatus av2h_decode_frame_planar_private(
                             &pending_leaf->transform[index],
                             &pending_chroma_blocks[pending_index][index],
                             &workspace->coded_u16[plane],
+                            &workspace->coded_u16[0],
                             frame->chroma_format_idc,
                             workspace->reconstruction_scratch_u16);
                         if (status != AV2H_OK) {
@@ -266,6 +267,7 @@ Av2hStatus av2h_decode_frame_planar_private(
                 decoded.morph_pred = leaf.mode.morph_pred;
                 decoded.fsc_mode = leaf.mode.fsc_mode;
                 decoded.skip_transform = leaf.mode.skip_transform;
+                decoded.palette_size = leaf.mode.palette_size;
                 decoded.tx_size = (uint8_t)leaf.prefix.tx_size;
                 decoded.inverse_transform_stage =
                     diagnostics != 0 ?
@@ -478,13 +480,35 @@ Av2hStatus av2h_decode_frame_planar_private(
                         &leaf.node, &leaf.mode, &leaf.prefix[index],
                         &leaf.transform[index], &blocks[index],
                         &workspace->coded_u16[plane],
+                        &workspace->coded_u16[0],
                         frame->chroma_format_idc,
                         workspace->reconstruction_scratch_u16);
                     if (status != AV2H_OK) {
+                        const Av2hReconstructionDiagnostics *diagnostics =
+                            av2h_reconstruction_diagnostics_get();
+                        decoded.mode = (uint8_t)leaf.mode.mode;
+                        decoded.angle_delta = leaf.mode.angle_delta;
+                        decoded.chroma_mode_index = leaf.mode.mode_index;
+                        decoded.tx_size = (uint8_t)leaf.prefix[index].tx_size;
+                        decoded.primary_type =
+                            (uint8_t)leaf.transform[index].primary_type;
+                        decoded.primary_symbol =
+                            leaf.transform[index].primary_symbol;
+                        decoded.secondary_symbol =
+                            leaf.transform[index].secondary_symbol;
+                        decoded.secondary_set =
+                            leaf.transform[index].secondary_set;
+                        decoded.is_cfl = leaf.mode.is_cfl;
+                        decoded.cfl_kind = (uint8_t)leaf.mode.cfl_kind;
+                        decoded.mhccp_direction =
+                            leaf.mode.mhccp_direction;
+                        decoded.eob = leaf.prefix[index].eob;
                         AV2H_DECODE_FAIL(
                             status, status,
                             AV2H_FRAME_DECODE_STAGE_CHROMA_RECONSTRUCT,
-                            plane, &leaf.node, 0U);
+                            plane, &leaf.node,
+                            diagnostics != 0 ?
+                                diagnostics->chroma_stage : 0U);
                     }
                     status = av2h_deblock_map_commit_transform(
                         &workspace->filter_workspace->deblock_map,

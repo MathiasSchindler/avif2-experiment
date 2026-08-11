@@ -3,49 +3,26 @@
 #include "internal/tile_modules.h"
 #include "tx_geometry.h"
 
-#if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
 static Av2hTileDiagnostics tile_diagnostics;
-#endif
 
 const Av2hTileDiagnostics *av2h_tile_diagnostics_get(void) {
-#if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
     return &tile_diagnostics;
-#else
-    return 0;
-#endif
 }
 
 void av2h_tile_diagnostics_set_luma_range(size_t index, uint32_t value) {
-#if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
     if (index < 5U) tile_diagnostics.luma_stage_ranges[index] = value;
-#else
-    (void)index;
-    (void)value;
-#endif
 }
 
 void av2h_tile_diagnostics_set_luma_stage(uint8_t value) {
-#if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
     tile_diagnostics.luma_tile_stage = value;
-#else
-    (void)value;
-#endif
 }
 
 void av2h_tile_diagnostics_set_chroma_stage(uint8_t value) {
-#if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
     tile_diagnostics.chroma_tile_stage = value;
-#else
-    (void)value;
-#endif
 }
 
 void av2h_tile_diagnostics_set_chroma_reason(uint8_t value) {
-#if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
     tile_diagnostics.chroma_parse_reason = value;
-#else
-    (void)value;
-#endif
 }
 
 Av2hStatus av2h_tile_group_single_parse(Av2hSpan payload,
@@ -456,9 +433,14 @@ Av2hStatus av2h_tile_decoder_commit_leaf(
     if (decoder->phase == AV2H_TILE_DECODE_LUMA) {
         if (decoder->luma_tx_count != 0U) {
             Av2hPartitionNode expected;
-            status = av2h_luma_tx_node_get(
-                &decoder->luma_coding_node, decoder->luma_tx_index,
-                &expected);
+            status = decoder->frame->base_q_index == 0U &&
+                    decoder->luma_coding_mode.fsc_mode == 0U ?
+                av2h_luma_lossless_tx_node_get(
+                    &decoder->luma_coding_node, decoder->luma_tx_index,
+                    &expected) :
+                av2h_luma_tx_node_get(
+                    &decoder->luma_coding_node, decoder->luma_tx_index,
+                    &expected);
             if (status != AV2H_OK || expected.row != leaf.row ||
                 expected.column != leaf.column ||
                 expected.block_size != leaf.block_size) {
@@ -550,10 +532,15 @@ Av2hStatus av2h_tile_decoder_commit_leaf(
     } else if (decoder->phase == AV2H_TILE_DECODE_CHROMA) {
         if (decoder->chroma_tx_count != 0U) {
             Av2hPartitionNode expected;
-            status = av2h_chroma_tx_node_get(
-                &decoder->chroma_coding_node,
-                decoder->frame->chroma_format_idc,
-                decoder->chroma_tx_index, &expected);
+            status = decoder->frame->base_q_index == 0U ?
+                av2h_chroma_lossless_tx_node_get(
+                    &decoder->chroma_coding_node,
+                    decoder->frame->chroma_format_idc,
+                    decoder->chroma_tx_index, &expected) :
+                av2h_chroma_tx_node_get(
+                    &decoder->chroma_coding_node,
+                    decoder->frame->chroma_format_idc,
+                    decoder->chroma_tx_index, &expected);
             if (status != AV2H_OK || expected.row != leaf.row ||
                 expected.column != leaf.column ||
                 expected.block_size != leaf.block_size) {

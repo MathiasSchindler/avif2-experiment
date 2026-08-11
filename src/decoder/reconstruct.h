@@ -190,6 +190,7 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_u16(
     const Av2hFirstTransformType *transform,
     const Av2hFirstCoeffBlock *coefficients,
     Av2hReconstructionPlaneU16 *plane,
+    const Av2hReconstructionPlaneU16 *luma_plane,
     uint8_t chroma_format_idc,
     Av2hReconstructionScratchU16 *scratch);
 Av2hStatus av2h_chroma_inverse_cross_transform(

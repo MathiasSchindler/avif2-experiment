@@ -55,30 +55,30 @@ typedef struct {
 
 static const PublicFixture fixtures[] = {
         { "i420-tiny", 0, tiny_obu, sizeof(tiny_obu), 16U, 16U, 3U, 0U,
-            UINT64_C(0xb37800c03656c815), 20350U, 0 },
+            UINT64_C(0xb37800c03656c815), 20734U, 0 },
         { "i420-odd", 0, odd_obu, sizeof(odd_obu), 17U, 15U, 3U, 0U,
-            UINT64_C(0xcf92b88ddff4be85), 21543U, 0 },
+            UINT64_C(0xcf92b88ddff4be85), 21991U, 0 },
         { "i400-tiny", "tests/fixtures/monochrome-tiny.obu", 0, 0U,
-            16U, 16U, 1U, 1U, UINT64_C(0xe5e202f90921b37a), 19419U, 0 },
+            16U, 16U, 1U, 1U, UINT64_C(0xe5e202f90921b37a), 19803U, 0 },
         { "i400-odd", "tests/fixtures/monochrome-odd.obu", 0, 0U,
-            17U, 15U, 1U, 1U, UINT64_C(0x74b332bde19bea7d), 20179U, 0 },
+            17U, 15U, 1U, 1U, UINT64_C(0x74b332bde19bea7d), 20627U, 0 },
         { "i400-ordinary", "tests/fixtures/monochrome-ordinary.obu", 0, 0U,
-            160U, 120U, 1U, 1U, UINT64_C(0xa6f20fd0e7434fce), 133391U, 1 },
+            160U, 120U, 1U, 1U, UINT64_C(0xa6f20fd0e7434fce), 143631U, 1 },
         { "i400-high-detail", "tests/fixtures/monochrome-high-detail.obu",
             0, 0U, 96U, 80U, 1U, 1U, UINT64_C(0x99ddbd2918f02c3f),
-            64493U, 0 },
+            68845U, 0 },
         { "i420-ordinary", "tests/fixtures/ordinary-160x120.obu", 0, 0U,
-            160U, 120U, 3U, 0U, UINT64_C(0xfd5a024e7532149d), 198355U, 1 },
+            160U, 120U, 3U, 0U, UINT64_C(0xfd5a024e7532149d), 208595U, 1 },
         { "i420-high-detail", "tests/fixtures/high-detail-96x80.obu", 0, 0U,
-            96U, 80U, 3U, 0U, UINT64_C(0xdb8779d2f2c1afc6), 90545U, 0 },
+            96U, 80U, 3U, 0U, UINT64_C(0xdb8779d2f2c1afc6), 94897U, 0 },
         { "i444-tiny", "tests/fixtures/i444-tiny.obu", 0, 0U,
-            16U, 16U, 3U, 2U, UINT64_C(0xad5202f55d8da388), 21502U, 0 },
+            16U, 16U, 3U, 2U, UINT64_C(0xad5202f55d8da388), 21886U, 0 },
         { "i444-odd", "tests/fixtures/i444-odd.obu", 0, 0U,
-            17U, 15U, 3U, 2U, UINT64_C(0xd4c6d7722282b1ad), 23271U, 0 },
+            17U, 15U, 3U, 2U, UINT64_C(0xd4c6d7722282b1ad), 23719U, 0 },
         { "i444-ordinary", "tests/fixtures/i444-ordinary.obu", 0, 0U,
-            160U, 120U, 3U, 2U, UINT64_C(0x0501cc0d7e7a50f6), 284757U, 1 },
+            160U, 120U, 3U, 2U, UINT64_C(0x0501cc0d7e7a50f6), 294997U, 1 },
         { "i444-high-detail", "tests/fixtures/i444-high-detail.obu", 0, 0U,
-            96U, 80U, 3U, 2U, UINT64_C(0x2fe36a3632f85bb1), 125105U, 0 }
+            96U, 80U, 3U, 2U, UINT64_C(0x2fe36a3632f85bb1), 129457U, 0 }
 };
 
 #define CHECK(condition)                                                       \

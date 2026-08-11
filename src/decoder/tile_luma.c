@@ -358,9 +358,14 @@ Av2hStatus av2h_tile_decoder_next_luma(
         av2h_memory_copy(
             &leaf->mode, &decoder->luma_coding_mode,
             sizeof(leaf->mode));
-        status = av2h_luma_tx_node_get(
-            &decoder->luma_coding_node, decoder->luma_tx_index,
-            &leaf->node);
+        status = decoder->frame->base_q_index == 0U &&
+                decoder->luma_coding_mode.fsc_mode == 0U ?
+            av2h_luma_lossless_tx_node_get(
+                &decoder->luma_coding_node, decoder->luma_tx_index,
+                &leaf->node) :
+            av2h_luma_tx_node_get(
+                &decoder->luma_coding_node, decoder->luma_tx_index,
+                &leaf->node);
         if (status != AV2H_OK) {
             return av2h_tile_decoder_fail(decoder, status);
         }
@@ -406,6 +411,26 @@ Av2hStatus av2h_tile_decoder_next_luma(
     status = av2h_luma_palette_map_read(
         &decoder->range, &decoder->leaf_cdfs, &leaf->node, &leaf->mode);
     if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
+    if (decoder->frame->base_q_index == 0U && leaf->mode.fsc_mode != 0U &&
+        leaf->node.block_size != AV2H_BLOCK_4X4) {
+        static const uint8_t size_group[AV2H_BLOCK_SIZE_COUNT] = {
+            0U, 0U, 0U, 1U, 1U, 1U, 2U, 2U, 2U, 3U,
+            3U, 3U, 3U, 3U, 3U, 3U, 3U, 3U, 3U, 0U,
+            0U, 1U, 1U, 2U, 2U, 1U, 1U, 2U, 2U
+        };
+        uint8_t group = size_group[leaf->node.block_size];
+        leaf->mode.lossless_tx_size_large = (uint8_t)
+            av2h_range_read_adaptive(
+                &decoder->range,
+                decoder->leaf_cdfs.lossless_tx_size[group], 2U);
+        if (av2h_range_status(&decoder->range) != AV2H_OK) {
+            return av2h_tile_decoder_fail(
+                decoder, av2h_range_status(&decoder->range));
+        }
+        if (leaf->mode.lossless_tx_size_large == 0U) {
+            return av2h_tile_decoder_fail(decoder, AV2H_UNSUPPORTED);
+        }
+    }
 #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
     av2h_partition_diagnostic_leaf_stage(
         leaf->node, 60U, leaf->mode.gdf_flags_read,
@@ -448,7 +473,11 @@ Av2hStatus av2h_tile_decoder_next_luma(
             av2h_range_tell(&decoder->range));
 #endif
     }
-    status = av2h_luma_tx_node_count(leaf->node.block_size, &tx_count);
+    status = decoder->frame->base_q_index == 0U &&
+            leaf->mode.fsc_mode == 0U ?
+        av2h_luma_lossless_tx_node_count(
+            leaf->node.block_size, &tx_count) :
+        av2h_luma_tx_node_count(leaf->node.block_size, &tx_count);
     if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
     if (tx_count > 1U) {
         decoder->luma_coding_node = leaf->node;
@@ -457,8 +486,12 @@ Av2hStatus av2h_tile_decoder_next_luma(
             sizeof(decoder->luma_coding_mode));
         decoder->luma_tx_index = 0U;
         decoder->luma_tx_count = tx_count;
-        status = av2h_luma_tx_node_get(
-            &decoder->luma_coding_node, 0U, &leaf->node);
+        status = decoder->frame->base_q_index == 0U &&
+                decoder->luma_coding_mode.fsc_mode == 0U ?
+            av2h_luma_lossless_tx_node_get(
+                &decoder->luma_coding_node, 0U, &leaf->node) :
+            av2h_luma_tx_node_get(
+                &decoder->luma_coding_node, 0U, &leaf->node);
         if (status != AV2H_OK) {
             return av2h_tile_decoder_fail(decoder, status);
         }
@@ -515,9 +548,20 @@ read_transform:
         return AV2H_OK;
     }
     av2h_tile_diagnostics_set_luma_stage(3U);
-    status = av2h_first_transform_type_read(
-        &decoder->range, &decoder->transform_cdfs, decoder->sequence,
-        decoder->frame, &leaf->mode, &leaf->prefix, &leaf->transform);
+    if (decoder->current_q_index == 0U && leaf->mode.fsc_mode == 0U) {
+        size_t tell = av2h_range_tell(&decoder->range);
+        av2h_memory_fill(&leaf->transform, 0U, sizeof(leaf->transform));
+        leaf->transform.primary_type = AV2H_TX_DCT_DCT;
+        leaf->transform.before_primary_bits = tell;
+        leaf->transform.after_primary_bits = tell;
+        leaf->transform.after_secondary_type_bits = tell;
+        leaf->transform.after_secondary_bits = tell;
+        status = AV2H_OK;
+    } else {
+        status = av2h_first_transform_type_read(
+            &decoder->range, &decoder->transform_cdfs, decoder->sequence,
+            decoder->frame, &leaf->mode, &leaf->prefix, &leaf->transform);
+    }
     if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
 #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
     av2h_partition_diagnostic_leaf_stage(

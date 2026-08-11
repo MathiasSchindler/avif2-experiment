@@ -346,7 +346,12 @@ Av2hStatus av2h_frame_header_closed_key_parse(
     }
     if (reader.status != AV2H_OK) return reader.status;
     if (frame->base_q_index == 0U) {
-        return AV2H_UNSUPPORTED;
+        frame->tx_mode = 1U;
+        frame->reduced_tx_set =
+            (uint8_t)av2h_bit_reader_read(&reader, 2U);
+        if (reader.status != AV2H_OK) return reader.status;
+        frame->uncompressed_header_bits = reader.bit_position - 1U;
+        return AV2H_OK;
     }
     read_deblock(&reader, sequence, frame);
     if (sequence->enable_gdf != 0U) {

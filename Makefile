@@ -57,7 +57,7 @@ OBJDUMP ?= objdump
 	generate-10bit-avm-references generate-10bit-synthetic \
 	generate-10bit-synthetic-references generate-10bit-negatives \
 	10bit-wp0 10bit-wp0-reference 10bit-wp1 10bit-wp2 10bit-wp3 10bit-wp4 \
-	10bit-wp5 \
+	10bit-wp5 10bit-wp6 \
 	10bit-wp10 10bit-wp12 \
 	test-carriage-reference test-artifact-lab \
 	test-decoder-evidence test-reconstruction test-filter-parity
@@ -154,6 +154,13 @@ generate-10bit-negatives: reference-avm-negatives
 10bit-wp5: test-host-build
 	ctest --preset $(HOST_PRESET) $(CTEST_ARGS) $(CTEST_PARALLEL_ARGS) \
 		-R '^(frame-unit|leaf-unit|public-decode-unit|reconstruct-unit|tile-unit|workspace-accounting-unit)$$'
+	$(PYTHON) tools/check_10bit_wp0_oracle.py verify \
+		--decoder "$(HOST_BUILD_DIR)/av2heif-decoder"
+
+10bit-wp6: test-host-build
+	ctest --preset $(HOST_PRESET) $(CTEST_ARGS) $(CTEST_PARALLEL_ARGS) \
+		-R '^(coeff-level-unit|frame-unit|leaf-unit|public-decode-unit|reconstruct-unit|tile-unit|workspace-accounting-unit)$$'
+	sha256sum --check tests/fixtures/10bit/wp6-unfiltered.sha256
 	$(PYTHON) tools/check_10bit_wp0_oracle.py verify \
 		--decoder "$(HOST_BUILD_DIR)/av2heif-decoder"
 

@@ -6216,7 +6216,8 @@ static void test_10bit_wp5_frame_fixture(void) {
                 CHECK(av2h_chroma_reconstruct_to_plane_u16(
                           &leaf.node, &leaf.mode, &leaf.prefix[index],
                           &leaf.transform[index], &blocks[index],
-                          &chroma_planes[index], frame.chroma_format_idc,
+                          &chroma_planes[index], &plane,
+                          frame.chroma_format_idc,
                           &scratch) == AV2H_OK);
                  if (chroma_count == 0U) {
                     expected_predictor = 512U;
@@ -6344,6 +6345,201 @@ static void test_10bit_wp5_frame_fixture(void) {
     }
 }
 
+static void test_10bit_wp6_tiny_matrix(void) {
+    static const char *const stems[] = {
+        "tiny-precision-16x16-yuv420p10le-qp090",
+        "tiny-precision-16x16-yuv420p10le-qp091",
+        "tiny-precision-16x16-yuv420p10le-qp092",
+        "tiny-precision-16x16-yuv420p10le-qp093",
+        "tiny-precision-16x16-yuv420p10le-qp094",
+        "tiny-precision-16x16-yuv420p10le-qp096",
+        "tiny-precision-16x16-yuv420p10le-qp099",
+        "tiny-precision-16x16-yuv420p10le-qp104",
+        "tiny-precision-16x16-yuv420p10le-qp105",
+        "tiny-precision-16x16-yuv420p10le-qp112",
+        "tiny-precision-16x16-yuv420p10le-qp121",
+        "tiny-precision-16x16-yuv420p10le-qp122",
+        "tiny-precision-16x16-yuv420p10le-qp124",
+        "tiny-precision-16x16-yuv420p10le-qp125",
+        "tiny-precision-16x16-yuv420p10le-qp128",
+        "tiny-precision-16x16-yuv420p10le-qp131",
+        "tiny-precision-16x16-yuv420p10le-qp134",
+        "tiny-precision-16x16-yuv420p10le-qp139",
+        "tiny-precision-16x16-yuv420p10le-qp144",
+        "tiny-precision-16x16-yuv420p10le-qp148",
+        "tiny-precision-16x16-yuv420p10le-qp160",
+        "tiny-precision-16x16-yuv420p10le-lossless"
+    };
+    size_t fixture_index;
+    for (fixture_index = 0U;
+         fixture_index < sizeof(stems) / sizeof(stems[0]);
+         ++fixture_index) {
+        char path[256U];
+        uint8_t input[4096U];
+        uint8_t reference[768U];
+        uint8_t output[768U];
+        Av2hObu entries[4U];
+        Av2hObuLedger ledger = { entries, 4U, 0U };
+        Av2hError error;
+        Av2hSequenceState sequence;
+        Av2hFrameState frame;
+        Av2hTileGroup group;
+        Av2hFrameDecodeWorkspaceLayout layout;
+        Av2hFrameDecodeWorkspace workspace;
+        Av2hFilterWorkspace filter_workspace;
+        Av2hFilterWorkspaceStorage filter_storage;
+        Av2hFrameDecodeResult result;
+        const Av2hObu *sequence_obu = 0;
+        const Av2hObu *frame_obu = 0;
+        uint8_t *allocation;
+        void *workspace_memory;
+        FILE *source;
+        size_t input_size;
+        size_t index;
+        Av2hStatus status;
+        CHECK(snprintf(path, sizeof(path),
+              "tests/fixtures/10bit/avm-reference/%s.obu",
+              stems[fixture_index]) > 0);
+        source = fopen(path, "rb");
+        CHECK(source != 0);
+        if (source == 0) continue;
+        input_size = fread(input, 1U, sizeof(input), source);
+        CHECK(!ferror(source));
+        CHECK(feof(source));
+        CHECK(fclose(source) == 0);
+        CHECK(snprintf(path, sizeof(path),
+              "tests/fixtures/10bit/avm-reference/%s-unfiltered.yuv",
+              stems[fixture_index]) > 0);
+        source = fopen(path, "rb");
+        CHECK(source != 0);
+        if (source == 0) continue;
+        CHECK(fread(reference, 1U, sizeof(reference), source) ==
+              sizeof(reference));
+        CHECK(fclose(source) == 0);
+        CHECK(av2h_obu_parse(
+                  (Av2hSpan){ input, input_size }, &ledger, &error) ==
+              AV2H_OK);
+        for (index = 0U; index < ledger.count; ++index) {
+            if (entries[index].type == AV2H_OBU_SEQUENCE_HEADER) {
+                sequence_obu = &entries[index];
+            } else if (entries[index].type == AV2H_OBU_CLOSED_LOOP_KEY) {
+                frame_obu = &entries[index];
+            }
+        }
+        CHECK(sequence_obu != 0);
+        CHECK(frame_obu != 0);
+        if (sequence_obu == 0 || frame_obu == 0) continue;
+        status = av2h_sequence_state_parse(
+            (Av2hSpan){ input, input_size }, sequence_obu,
+            &sequence, &error);
+        CHECK(status == AV2H_OK);
+        if (status != AV2H_OK) continue;
+        status = av2h_frame_header_closed_key_parse(
+            (Av2hSpan){ input + frame_obu->payload_offset,
+                         frame_obu->payload_size },
+            &sequence, &frame);
+        CHECK(status == AV2H_OK);
+        if (status != AV2H_OK) continue;
+        status = av2h_tile_group_single_parse(
+            (Av2hSpan){ input + frame_obu->payload_offset,
+                         frame_obu->payload_size },
+            frame.uncompressed_header_bits, &group);
+        CHECK(status == AV2H_OK);
+        if (status != AV2H_OK) continue;
+        status = av2h_frame_decode_workspace_query_bytes(
+            &sequence, &frame, 2U, &layout);
+        CHECK(status == AV2H_OK);
+        if (status != AV2H_OK) continue;
+        allocation = (uint8_t *)malloc(
+            layout.size_bytes + layout.alignment - 1U);
+        CHECK(allocation != 0);
+        if (allocation == 0) continue;
+        workspace_memory = (void *)(((uintptr_t)allocation +
+            layout.alignment - 1U) & ~(uintptr_t)(layout.alignment - 1U));
+        status = av2h_frame_decode_workspace_init_bytes(
+            &sequence, &frame, 2U, &layout,
+            workspace_memory, layout.size_bytes, &workspace,
+            &filter_workspace, &filter_storage);
+        CHECK(status == AV2H_OK);
+        if (status != AV2H_OK) {
+            free(allocation);
+            continue;
+        }
+        av2h_memory_fill(output, 0xa5U, sizeof(output));
+        av2h_memory_fill(&result, 0U, sizeof(result));
+        status = av2h_decode_frame_planar_private(
+            group.entropy, &sequence, &frame, &workspace,
+            output, sizeof(output), &result);
+        if (status != AV2H_OK) {
+            fprintf(stderr,
+                    "%s: status=%u cause=%u stage=%u plane=%u "
+                    "leaf=%u,%u/%u mode=%u angle=%d tx=%u type=%u inv=%u "
+                    "fsc=%u skip=%u ibp=%u mrl=%u/%u intrabc=%u pal=%u "
+                    "mv=%d,%d morph=%u sec=%u/%u "
+                    "detail=%u reason=%u tell=%zu\n",
+                    stems[fixture_index], (unsigned int)status,
+                    (unsigned int)result.cause, (unsigned int)result.stage,
+                    (unsigned int)result.plane, (unsigned int)result.row,
+                    (unsigned int)result.column,
+                    (unsigned int)result.block_size,
+                    (unsigned int)result.mode, (int)result.angle_delta,
+                    (unsigned int)result.tx_size,
+                    (unsigned int)result.primary_type,
+                    (unsigned int)result.inverse_transform_stage,
+                    (unsigned int)result.fsc_mode,
+                    (unsigned int)result.skip_transform,
+                    (unsigned int)result.enable_ibp,
+                    (unsigned int)result.mrl_index,
+                    (unsigned int)result.multi_line_mrl,
+                    (unsigned int)result.use_intrabc,
+                    (unsigned int)result.palette_size,
+                    (int)result.displacement_x,
+                    (int)result.displacement_y,
+                    (unsigned int)result.morph_pred,
+                    (unsigned int)result.secondary_symbol,
+                    (unsigned int)result.secondary_set,
+                    (unsigned int)result.syntax_stage,
+                    (unsigned int)result.chroma_parse_reason,
+                    result.entropy_tell);
+        }
+        CHECK(status == AV2H_OK);
+        if (status == AV2H_OK) {
+            if (av2h_memory_compare(output, reference, sizeof(output)) != 0) {
+                size_t mismatch_count = 0U;
+                size_t plane_mismatch_count[3U] = { 0U, 0U, 0U };
+                size_t first_mismatch = 0U;
+                unsigned int maximum_delta = 0U;
+                for (index = 0U; index < sizeof(output) / 2U; ++index) {
+                    uint16_t actual = (uint16_t)(output[index * 2U] |
+                        ((uint16_t)output[index * 2U + 1U] << 8U));
+                    uint16_t expected = (uint16_t)(reference[index * 2U] |
+                        ((uint16_t)reference[index * 2U + 1U] << 8U));
+                    unsigned int delta = actual > expected ?
+                        actual - expected : expected - actual;
+                    if (delta != 0U) {
+                        size_t plane_index = index < 256U ? 0U :
+                            index < 320U ? 1U : 2U;
+                        if (mismatch_count == 0U) first_mismatch = index;
+                        ++mismatch_count;
+                        ++plane_mismatch_count[plane_index];
+                        if (delta > maximum_delta) maximum_delta = delta;
+                    }
+                }
+                fprintf(stderr,
+                        "%s: first sample mismatch=%zu, count=%zu "
+                        "(Y=%zu U=%zu V=%zu), max=%u\n",
+                        stems[fixture_index], first_mismatch,
+                        mismatch_count, plane_mismatch_count[0],
+                        plane_mismatch_count[1], plane_mismatch_count[2],
+                        maximum_delta);
+            }
+            CHECK(av2h_memory_compare(
+                      output, reference, sizeof(output)) == 0);
+        }
+        free(allocation);
+    }
+}
+
 
 int main(void) {
     test_chroma_geometry_through_64();
@@ -6409,6 +6605,7 @@ int main(void) {
     test_tx8x4_adst_adst_reconstruction();
     test_emerald_chroma_dct_geometries();
     test_10bit_wp5_frame_fixture();
+    test_10bit_wp6_tiny_matrix();
     if (failures != 0) {
         fprintf(stderr, "%d reconstruction checks failed\n", failures);
         return 1;

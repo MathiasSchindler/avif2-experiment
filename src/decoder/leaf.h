@@ -76,6 +76,11 @@ typedef struct {
     uint16_t ccso[AV2H_FRAME_PLANE_COUNT][AV2H_CCSO_CONTEXT_COUNT]
                  [AV2H_BINARY_CDF_SIZE];
     uint16_t y_mode_set[AV2H_Y_MODE_SET_SYMBOLS + 4U];
+    uint16_t dpcm[AV2H_BINARY_CDF_SIZE];
+    uint16_t dpcm_vert_horz[AV2H_BINARY_CDF_SIZE];
+    uint16_t dpcm_uv[AV2H_BINARY_CDF_SIZE];
+    uint16_t dpcm_uv_vert_horz[AV2H_BINARY_CDF_SIZE];
+    uint16_t lossless_tx_size[4U][AV2H_BINARY_CDF_SIZE];
     uint16_t y_mode_index[AV2H_Y_MODE_CONTEXT_COUNT]
                          [AV2H_Y_MODE_INDEX_SYMBOLS + 4U];
     uint16_t y_mode_offset[AV2H_Y_MODE_CONTEXT_COUNT]
@@ -121,6 +126,9 @@ typedef enum {
 
 typedef struct {
     uint8_t use_intrabc;
+    uint8_t use_dpcm_y;
+    uint8_t dpcm_mode_y;
+    uint8_t lossless_tx_size_large;
     uint8_t intrabc_mode;
     uint8_t skip_transform;
     uint8_t intrabc_drl_index;
@@ -143,7 +151,7 @@ typedef struct {
     uint8_t palette_size;
     uint8_t palette_width;
     uint8_t palette_height;
-    uint8_t palette_colors[AV2H_PALETTE_MAX_SIZE];
+    uint16_t palette_colors[AV2H_PALETTE_MAX_SIZE];
     uint8_t palette_map[AV2H_PALETTE_MAP_CAPACITY];
     uint8_t enable_ibp;
     uint8_t edge_ibp;
@@ -200,7 +208,7 @@ typedef struct {
     uint8_t spatial_morph_pred[2];
     uint8_t edge_smooth[2];
     uint8_t palette_size[2];
-    uint8_t palette_colors[2][AV2H_PALETTE_MAX_SIZE];
+    uint16_t palette_colors[2][AV2H_PALETTE_MAX_SIZE];
 } Av2hLumaModeNeighbors;
 
 typedef struct {
@@ -220,7 +228,7 @@ typedef struct {
     uint8_t mrl_index;
     uint8_t multi_line_mrl;
     uint8_t palette_size;
-    uint8_t palette_colors[AV2H_PALETTE_MAX_SIZE];
+    uint16_t palette_colors[AV2H_PALETTE_MAX_SIZE];
 } Av2hLumaModeContext;
 
 typedef struct {
@@ -289,6 +297,8 @@ typedef enum {
 
 typedef struct {
     uint8_t is_cfl;
+    uint8_t use_dpcm_uv;
+    uint8_t dpcm_mode_uv;
     uint8_t uses_cfl;
     uint8_t edge_ibp;
     uint8_t above_smooth;

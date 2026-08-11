@@ -722,6 +722,7 @@ Av2hStatus av2h_reconstruct_transform_generic(
     }
     coeff_width = output_width > 32U ? 32U : output_width;
     coeff_height = output_height > 32U ? 32U : output_height;
+    av2h_reconstruction_diagnostics_set_inverse_transform_stage(2U);
     if (coefficients->width != coeff_width ||
         coefficients->height != coeff_height ||
         coefficients->coefficient_count !=
@@ -753,7 +754,7 @@ Av2hStatus av2h_reconstruct_transform_generic(
         }
         return AV2H_OK;
     }
-    av2h_reconstruction_diagnostics_set_inverse_transform_stage(2U);
+    av2h_reconstruction_diagnostics_set_inverse_transform_stage(3U);
     if (recon_transform_kinds(transform->primary_type, &row_kind,
                               &column_kind) != AV2H_OK ||
         recon_kind_supported(row_kind, coeff_width) != AV2H_OK ||
@@ -772,11 +773,11 @@ Av2hStatus av2h_reconstruct_transform_generic(
     for (index = 0U; index < coefficients->coefficient_count; ++index) {
         scratch->scaled[index] = coefficients->dequantized[index];
     }
-    av2h_reconstruction_diagnostics_set_inverse_transform_stage(3U);
+    av2h_reconstruction_diagnostics_set_inverse_transform_stage(4U);
     status = av2h_inverse_secondary_transform(
         mode, prefix, transform, coefficients, scratch->scaled);
     if (status != AV2H_OK) return status;
-    av2h_reconstruction_diagnostics_set_inverse_transform_stage(4U);
+    av2h_reconstruction_diagnostics_set_inverse_transform_stage(5U);
     for (row = 0U; row < coeff_height; ++row) {
         int32_t row_input[32U];
         int32_t row_output[32U];
@@ -822,6 +823,136 @@ Av2hStatus av2h_reconstruct_transform_generic(
             reconstruction->residual[out_index] = (int16_t)residual;
             reconstruction->pixels[out_index] =
                 av2h_sample_clip(sample + residual);
+        }
+    }
+    return AV2H_OK;
+}
+
+Av2hStatus av2h_reconstruct_transform_generic_u16(
+    const Av2hFirstLeafMode *mode,
+    const Av2hFirstCoeffPrefix *prefix,
+    const Av2hFirstTransformType *transform,
+    const Av2hFirstCoeffBlock *coefficients,
+    const uint16_t *predictor,
+    size_t predictor_stride_samples,
+    Av2hReconstructionScratchU16 *scratch,
+    Av2hFirstReconstructionU16 *reconstruction) {
+    uint16_t output_width;
+    uint16_t output_height;
+    uint8_t row_shift;
+    uint8_t column_shift;
+    uint16_t coeff_width;
+    uint16_t coeff_height;
+    uint8_t rectangular;
+    Av2hRecon1dKind row_kind;
+    Av2hRecon1dKind column_kind;
+    Av2hStatus status;
+    uint16_t row;
+    uint16_t column;
+    size_t index;
+    av2h_reconstruction_diagnostics_set_inverse_transform_stage(1U);
+    if (mode == 0 || prefix == 0 || transform == 0 || coefficients == 0 ||
+        predictor == 0 || scratch == 0 || reconstruction == 0 ||
+        recon_geometry(prefix->tx_size, &output_width, &output_height,
+                       &row_shift, &column_shift) != AV2H_OK) {
+        return AV2H_INVALID_ARGUMENT;
+    }
+    coeff_width = output_width > 32U ? 32U : output_width;
+    coeff_height = output_height > 32U ? 32U : output_height;
+    if (coefficients->width != coeff_width ||
+        coefficients->height != coeff_height ||
+        coefficients->coefficient_count !=
+            (uint32_t)coeff_width * coeff_height ||
+        predictor_stride_samples < output_width ||
+        (size_t)output_width * output_height > AV2H_RECON_SAMPLE_CAPACITY ||
+        (mode->fsc_mode != 0U &&
+         transform->primary_type != AV2H_TX_IDTX) ||
+                (mode->skip_transform != 0U &&
+                 !(prefix->all_zero && prefix->eob == 0U &&
+                     coefficients->nonzero_count == 0U))) {
+        return AV2H_UNSUPPORTED;
+    }
+    reconstruction->width = output_width;
+    reconstruction->height = output_height;
+    if (prefix->all_zero && prefix->eob == 0U &&
+        coefficients->nonzero_count == 0U) {
+        for (index = 0U; index < coefficients->coefficient_count; ++index) {
+            if (coefficients->quantized[index] != 0 ||
+                coefficients->dequantized[index] != 0) {
+                return AV2H_INVALID_DATA;
+            }
+        }
+        for (row = 0U; row < output_height; ++row) {
+            for (column = 0U; column < output_width; ++column) {
+                index = (size_t)row * output_width + column;
+                reconstruction->residual[index] = 0;
+                reconstruction->pixels[index] = predictor[
+                    (size_t)row * predictor_stride_samples + column];
+            }
+        }
+        return AV2H_OK;
+    }
+    av2h_reconstruction_diagnostics_set_inverse_transform_stage(2U);
+    if (recon_transform_kinds(transform->primary_type, &row_kind,
+                              &column_kind) != AV2H_OK ||
+        recon_kind_supported(row_kind, coeff_width) != AV2H_OK ||
+        recon_kind_supported(column_kind, coeff_height) != AV2H_OK) {
+        return AV2H_UNSUPPORTED;
+    }
+    rectangular = (uint8_t)((recon_size_log2(output_width) ^
+                             recon_size_log2(output_height)) & 1U);
+    for (index = 0U; index < coefficients->coefficient_count; ++index) {
+        scratch->scaled[index] = coefficients->dequantized[index];
+    }
+    av2h_reconstruction_diagnostics_set_inverse_transform_stage(3U);
+    status = av2h_inverse_secondary_transform(
+        mode, prefix, transform, coefficients, scratch->scaled);
+    if (status != AV2H_OK) return status;
+    av2h_reconstruction_diagnostics_set_inverse_transform_stage(4U);
+    for (row = 0U; row < coeff_height; ++row) {
+        int32_t row_input[32U];
+        int32_t row_output[32U];
+        for (column = 0U; column < coeff_width; ++column) {
+            int32_t value =
+                scratch->scaled[(size_t)row * coeff_width + column];
+            row_input[column] = rectangular ?
+                round_shift((int64_t)value * 2896, 12U) : value;
+        }
+        recon_transform_1d(row_input, row_output, row_kind, coeff_width,
+                           row_shift, 0U, 10U);
+        for (column = 0U; column < coeff_width; ++column) {
+            scratch->transposed[(size_t)row * coeff_width + column] =
+                row_output[column];
+        }
+    }
+    for (column = 0U; column < coeff_width; ++column) {
+        int32_t column_input[32U];
+        int32_t column_output[32U];
+        for (row = 0U; row < coeff_height; ++row) {
+            column_input[row] =
+                scratch->transposed[(size_t)row * coeff_width + column];
+        }
+        recon_transform_1d(column_input, column_output, column_kind,
+                           coeff_height, column_shift, 1U, 10U);
+        for (row = 0U; row < coeff_height; ++row) {
+            scratch->residual[(size_t)row * coeff_width + column] =
+                column_output[row];
+        }
+    }
+    for (row = 0U; row < output_height; ++row) {
+        uint16_t source_row =
+            coeff_height != output_height ? (uint16_t)(row >> 1U) : row;
+        for (column = 0U; column < output_width; ++column) {
+            uint16_t source_column = coeff_width != output_width ?
+                (uint16_t)(column >> 1U) : column;
+            int32_t residual = scratch->residual[
+                (size_t)source_row * coeff_width + source_column];
+            index = (size_t)row * output_width + column;
+            reconstruction->residual[index] = residual;
+            reconstruction->pixels[index] = av2h_sample_clip_10bit(
+                (int32_t)predictor[
+                    (size_t)row * predictor_stride_samples + column] +
+                residual);
         }
     }
     return AV2H_OK;
