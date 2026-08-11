@@ -187,9 +187,10 @@ static void ccso_filter_plane(Av2hFilterPlane *destination,
             lut_index = ((size_t)band << 4U) +
                         ((size_t)first_class << 2U) + second_class;
             destination_index = (size_t)y * destination->stride_samples + x;
-            destination->data[destination_index] = av2h_sample_clip(
+            av2h_sample_clip_store_u8(
+                destination->data, destination->stride_samples, x, y,
                 (int)destination->data[destination_index] +
-                parameters->filter_offset[lut_index]);
+                    parameters->filter_offset[lut_index]);
         }
     }
 }

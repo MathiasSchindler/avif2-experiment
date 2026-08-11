@@ -50,6 +50,7 @@ void av2h_reconstruction_diagnostics_set_inverse_transform_stage(
 }
 #include "internal/reconstruct_modules.h"
 #include "internal/sample_math.h"
+#include "internal/sample_ops.h"
 #include "tx_geometry.h"
 
 #define directional_base_angle av2h_directional_base_angle
@@ -1073,8 +1074,8 @@ Av2hStatus av2h_luma_reconstruct_to_plane(
         if (source_x >= plane->width) {
             source_x = plane->width - 1U;
         }
-        scratch->above[index] = plane->data[
-            above_reference_y * plane->stride_samples + source_x];
+        scratch->above[index] = av2h_reconstructed_sample_load_u8(
+            plane->data, plane->stride_samples, source_x, above_reference_y);
     }
     if ((mode->mode == AV2H_INTRA_SMOOTH ||
          mode->mode == AV2H_INTRA_DC) &&
@@ -1144,9 +1145,9 @@ Av2hStatus av2h_luma_reconstruct_to_plane(
         if (source_y >= plane->height) {
             source_y = plane->height - 1U;
         }
-        scratch->left[index] = plane->data[
-            source_y * plane->stride_samples + block_x - 1U -
-            mode->mrl_index];
+        scratch->left[index] = av2h_reconstructed_sample_load_u8(
+            plane->data, plane->stride_samples,
+            block_x - 1U - mode->mrl_index, source_y);
     }
     if ((mode->mode == AV2H_INTRA_SMOOTH ||
             mode->mode == AV2H_INTRA_SMOOTH_VERTICAL ||
@@ -1171,8 +1172,10 @@ Av2hStatus av2h_luma_reconstruct_to_plane(
                     secondary_above_count = index;
                     break;
                 }
-                scratch->secondary_above[index] = plane->data[
-                    ((size_t)block_y - 1U) * plane->stride_samples + block_x + index];
+                scratch->secondary_above[index] =
+                    av2h_reconstructed_sample_load_u8(
+                        plane->data, plane->stride_samples,
+                        block_x + index, (size_t)block_y - 1U);
             }
         }
         if (block_x != 0U) {
@@ -1203,7 +1206,9 @@ Av2hStatus av2h_luma_reconstruct_to_plane(
                     break;
                 }
                 scratch->secondary_left[index] =
-                    plane->data[source_y * plane->stride_samples + block_x - 1U];
+                    av2h_reconstructed_sample_load_u8(
+                        plane->data, plane->stride_samples,
+                        block_x - 1U, source_y);
             }
         }
     }
@@ -1300,14 +1305,10 @@ Av2hStatus av2h_luma_reconstruct_to_plane(
         reconstruction.height != output_height) {
         return AV2H_UNSUPPORTED;
     }
-    for (index = 0U; index < visible_height; ++index) {
-        size_t column;
-        for (column = 0U; column < visible_width; ++column) {
-            plane->data[((size_t)block_y + index) * plane->stride_samples +
-                        block_x + column] = reconstruction.pixels[
-                            index * output_width + column];
-        }
-    }
+    av2h_predictor_commit_u8(
+        plane->data + (size_t)block_y * plane->stride_samples + block_x,
+        plane->stride_samples, reconstruction.pixels, output_width,
+        visible_width, visible_height);
     plane_mark_reconstructed(
         plane, block_x, block_y, visible_width, visible_height);
     return AV2H_OK;
@@ -1513,8 +1514,9 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_format(
             }
         }
         for (index = 0U; index < above_count; ++index) {
-            scratch->above[index] = plane->data[
-                ((size_t)block_y - 1U) * plane->stride_samples + block_x + index];
+            scratch->above[index] = av2h_reconstructed_sample_load_u8(
+                plane->data, plane->stride_samples,
+                block_x + index, (size_t)block_y - 1U);
         }
         if (above_count != 0U && above_count < width) {
             uint8_t edge = scratch->above[above_count - 1U];
@@ -1538,8 +1540,8 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_format(
             if (sy >= plane->height) {
                 sy = plane->height - 1U;
             }
-            scratch->left[index] = plane->data[
-                sy * plane->stride_samples + block_x - 1U];
+            scratch->left[index] = av2h_reconstructed_sample_load_u8(
+                plane->data, plane->stride_samples, block_x - 1U, sy);
         }
         references.left = left_count == 0U ? 0 : scratch->left;
         references.left_count = left_count;
@@ -1652,15 +1654,11 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_format(
     }
     av2h_reconstruction_diagnostics_set_chroma_stage(2U);
     if (predictor_plane != 0) {
-        size_t row;
-        for (row = 0U; row < visible_height; ++row) {
-            size_t column;
-            for (column = 0U; column < visible_width; ++column) {
-                predictor_plane->data[((size_t)block_y + row) *
-                    predictor_plane->stride_samples + block_x + column] =
-                    scratch->predictor[row * width + column];
-            }
-        }
+        av2h_predictor_commit_u8(
+            predictor_plane->data +
+                (size_t)block_y * predictor_plane->stride_samples + block_x,
+            predictor_plane->stride_samples,
+            scratch->predictor, width, visible_width, visible_height);
     }
     /*
      * Predictor-only path: every all-zero chroma transform block (any
@@ -1676,14 +1674,10 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_format(
                 return AV2H_UNSUPPORTED;
             }
         }
-        for (index = 0U; index < visible_height; ++index) {
-            size_t column;
-            for (column = 0U; column < visible_width; ++column) {
-                plane->data[((size_t)block_y + index) * plane->stride_samples +
-                            block_x + column] =
-                    scratch->predictor[index * width + column];
-            }
-        }
+        av2h_predictor_commit_u8(
+            plane->data + (size_t)block_y * plane->stride_samples + block_x,
+            plane->stride_samples, scratch->predictor, width,
+            visible_width, visible_height);
         plane_mark_reconstructed(
             plane, block_x, block_y, visible_width, visible_height);
         av2h_reconstruction_diagnostics_set_chroma_stage(3U);
@@ -1705,14 +1699,10 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_format(
                 diagnostics->inverse_transform_stage : 0U)));
         return status;
     }
-    for (index = 0U; index < visible_height; ++index) {
-        size_t column;
-        for (column = 0U; column < visible_width; ++column) {
-            plane->data[((size_t)block_y + index) * plane->stride_samples +
-                        block_x + column] =
-                reconstruction.pixels[index * width + column];
-        }
-    }
+    av2h_predictor_commit_u8(
+        plane->data + (size_t)block_y * plane->stride_samples + block_x,
+        plane->stride_samples, reconstruction.pixels, width,
+        visible_width, visible_height);
     plane_mark_reconstructed(
         plane, block_x, block_y, visible_width, visible_height);
     return AV2H_OK;

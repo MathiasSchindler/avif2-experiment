@@ -231,8 +231,9 @@ Av2hStatus av2h_cdef_filter_block(
             if (clipping_required) {
                 center = av2h_sample_clamp(center, minimum, maximum);
             }
-            destination->data[(size_t)sample_y * destination->stride_samples +
-                              (size_t)sample_x] = av2h_sample_clip(center);
+            av2h_sample_clip_store_u8(
+                destination->data, destination->stride_samples,
+                (size_t)sample_x, (size_t)sample_y, center);
         }
     }
     return AV2H_OK;

@@ -4,6 +4,7 @@
 #include "decoder/filter.h"
 #include "decoder/internal/filter_geometry.h"
 #include "decoder/internal/sample_math.h"
+#include "decoder/internal/sample_ops.h"
 
 static inline int absolute_value(int value) {
     return value < 0 ? -value : value;
@@ -48,14 +49,10 @@ static inline int filter_dimensions_valid(
 
 static inline void filter_copy_plane(
     Av2hFilterPlane *destination, const Av2hFilterPlane *source) {
-    uint16_t row;
-    for (row = 0U; row < source->height; ++row) {
-        uint16_t column;
-        for (column = 0U; column < source->width; ++column) {
-            destination->data[(size_t)row * destination->stride_samples + column] =
-                source->data[(size_t)row * source->stride_samples + column];
-        }
-    }
+    av2h_plane_copy_u8(
+        destination->data, destination->stride_samples,
+        source->data, source->stride_samples,
+        source->width, source->height);
 }
 
 #endif

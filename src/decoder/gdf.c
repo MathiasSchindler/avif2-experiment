@@ -243,12 +243,15 @@ static void gdf_filter_block(Av2hFilterPlane *destination,
                     position = position * 16U + (unsigned int)
                         (av2h_sample_clamp(value, -8, 7) + 8);
                 }
-                destination->data[destination_index] = av2h_sample_clip(
+                av2h_sample_clip_store_u8(
+                    destination->data, destination->stride_samples,
+                    (size_t)block_x + column, (size_t)block_y + row,
                     (int)destination->data[destination_index] +
-                    round_shift_symmetric(
-                        (int)gdf_intra_error[qp_index * 4096U + position] *
-                            (int)pixel_scale,
-                        4U));
+                        round_shift_symmetric(
+                            (int)gdf_intra_error[
+                                qp_index * 4096U + position] *
+                                (int)pixel_scale,
+                            4U));
             }
         }
     }
@@ -306,13 +309,10 @@ Av2hStatus av2h_gdf_filter_frame_with_controls(
         }
     }
     qp_index = gdf_training_qp_index(frame);
-    for (row = 0U; row < destination->height; ++row) {
-        uint16_t column;
-        for (column = 0U; column < destination->width; ++column) {
-            destination->data[(size_t)row * destination->stride_samples + column] =
-                cdef_luma->data[(size_t)row * cdef_luma->stride_samples + column];
-        }
-    }
+    av2h_plane_copy_u8(
+        destination->data, destination->stride_samples,
+        cdef_luma->data, cdef_luma->stride_samples,
+        destination->width, destination->height);
     if (frame->gdf_mode == 0U) return AV2H_OK;
     for (row = 0U; row < destination->height; row = (uint16_t)(row + 4U)) {
         uint16_t column;

@@ -2,6 +2,7 @@
 #include "internal/decode_diagnostics.h"
 #include "internal/reconstruct_modules.h"
 #include "internal/sample_math.h"
+#include "internal/sample_ops.h"
 
 #define directional_base_angle av2h_directional_base_angle
 #define luma_prediction_dimension_supported \
@@ -648,9 +649,9 @@ static int plane_region_reconstructed(const Av2hReconstructionPlane *plane,
 
 static uint8_t plane_coded_sample(
     const Av2hReconstructionPlane *plane, size_t x, size_t y) {
-    if (x >= plane->width) x = plane->width - 1U;
-    if (y >= plane->height) y = plane->height - 1U;
-    return plane->data[y * plane->stride_samples + x];
+    return av2h_reference_load_u8(
+        plane->data, plane->stride_samples,
+        plane->width, plane->height, x, y);
 }
 
 static uint16_t mhccp_luma_filter2_q3(

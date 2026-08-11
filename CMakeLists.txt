@@ -168,6 +168,7 @@ if(AV2HEIF_BUILD_HOST_TESTS)
         output_layout
         pixel_format
         sample_math
+        sample_ops
         workspace_accounting
         public_decode
     )

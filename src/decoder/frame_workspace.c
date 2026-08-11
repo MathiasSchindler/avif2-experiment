@@ -2,6 +2,7 @@
 #include "decoder/frame_output.h"
 #include "decoder/internal/filter_geometry.h"
 #include "decoder/internal/frame_workspace.h"
+#include "decoder/internal/sample_ops.h"
 
 #include "output_layout.h"
 #include "decoder/tx_geometry.h"
@@ -698,7 +699,6 @@ static void clear_decode_storage(
     }
     for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
         Av2hReconstructionPlane *coded = &workspace->coded[plane];
-        size_t data_size_bytes = coded->stride_samples * coded->height;
         size_t ready_size_bytes = coded->reconstructed_stride_cells *
             (((size_t)coded->height + 3U) / 4U);
         size_t map_size_bytes =
@@ -708,7 +708,9 @@ static void clear_decode_storage(
         size_t control_size_bytes =
             workspace->filter_workspace->ccso_controls.stride_units[plane] *
             layout->ccso_rows;
-        av2h_memory_fill(coded->data, 0U, data_size_bytes);
+        av2h_plane_fill_u8(
+            coded->data, coded->stride_samples,
+            coded->stride_samples, coded->height, 0U);
         av2h_memory_fill(coded->reconstructed, 0U, ready_size_bytes);
         av2h_memory_fill(
             (void *)workspace->filter_workspace->deblock_map.plane[plane],
@@ -796,14 +798,10 @@ Av2hStatus av2h_copy_visible_planar_private(
             frame, plane, frame->width);
         size_t height = av2h_frame_plane_dimension(
             frame, plane, frame->height);
-        size_t row;
-        for (row = 0U; row < height; ++row) {
-            av2h_memory_copy(
-                output + offset,
-                source->data + row * source->stride_samples,
-                width);
-            offset += width;
-        }
+        av2h_visible_crop_u8(
+            output + offset, source->data,
+            source->stride_samples, width, height);
+        offset += width * height;
     }
     return AV2H_OK;
 }

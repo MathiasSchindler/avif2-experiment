@@ -464,6 +464,10 @@ coefficients before introducing 10-bit values.
 
 ### WP7: Establish typed sample-operation boundaries
 
+**Status:** Implemented on 2026-08-11. The typed-operation inventory,
+depth-specialization decision, caller contracts, focused vectors, and platform
+evidence are recorded in `docs/dev/10bit-prep-wp7.md`.
+
 **Objective:** Prepare kernels for 8-bit and 16-bit implementations without
 introducing untyped inner-loop access or duplicating the whole decoder early.
 
