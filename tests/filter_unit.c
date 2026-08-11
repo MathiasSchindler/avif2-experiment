@@ -177,6 +177,7 @@ static void test_frame_decode_workspace_model(void) {
     Av2hFilterWorkspaceStorage filter_storage;
     av2h_memory_fill(&sequence, 0U, sizeof(sequence));
     av2h_memory_fill(&frame, 0U, sizeof(frame));
+    sequence.info.bit_depth_idc = 1U;
     sequence.superblock_size = 64U;
     frame.width = 17U;
     frame.height = 15U;
@@ -233,6 +234,7 @@ static void test_frame_workspace_prepare_rejection(void) {
     av2h_memory_fill(&sequence, 0U, sizeof(sequence));
     av2h_memory_fill(&frame, 0U, sizeof(frame));
     av2h_memory_fill(&result, 0U, sizeof(result));
+    sequence.info.bit_depth_idc = 1U;
     sequence.superblock_size = 64U;
     frame.width = 17U;
     frame.height = 15U;

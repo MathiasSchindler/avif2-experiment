@@ -12,12 +12,32 @@ int av2h_pixel_format_init_8bit(uint8_t chroma_format_idc,
     return 1;
 }
 
+int av2h_pixel_format_init_10bit_420(Av2hPixelFormat *format) {
+    if (format == 0) return 0;
+    format->chroma_format_idc = 0U;
+    format->bit_depth = 10U;
+    format->bytes_per_sample = 2U;
+    format->sample_storage = (uint8_t)AV2H_SAMPLE_STORAGE_U16;
+    format->byte_order = (uint8_t)AV2H_BYTE_ORDER_LITTLE_ENDIAN;
+    format->plane_order = (uint8_t)AV2H_PLANE_ORDER_YUV;
+    return 1;
+}
+
 int av2h_pixel_format_is_valid(const Av2hPixelFormat *format) {
-    return format != 0 && format->chroma_format_idc <= 2U &&
-           format->bit_depth == 8U && format->bytes_per_sample == 1U &&
-           format->sample_storage == (uint8_t)AV2H_SAMPLE_STORAGE_U8 &&
-           format->byte_order == (uint8_t)AV2H_BYTE_ORDER_NOT_APPLICABLE &&
-           format->plane_order == (uint8_t)AV2H_PLANE_ORDER_YUV;
+    int is_8bit;
+    int is_10bit_420;
+    if (format == 0 || format->plane_order != (uint8_t)AV2H_PLANE_ORDER_YUV) {
+        return 0;
+    }
+    is_8bit = format->chroma_format_idc <= 2U &&
+        format->bit_depth == 8U && format->bytes_per_sample == 1U &&
+        format->sample_storage == (uint8_t)AV2H_SAMPLE_STORAGE_U8 &&
+        format->byte_order == (uint8_t)AV2H_BYTE_ORDER_NOT_APPLICABLE;
+    is_10bit_420 = format->chroma_format_idc == 0U &&
+        format->bit_depth == 10U && format->bytes_per_sample == 2U &&
+        format->sample_storage == (uint8_t)AV2H_SAMPLE_STORAGE_U16 &&
+        format->byte_order == (uint8_t)AV2H_BYTE_ORDER_LITTLE_ENDIAN;
+    return is_8bit || is_10bit_420;
 }
 
 int av2h_pixel_format_equal(const Av2hPixelFormat *left,

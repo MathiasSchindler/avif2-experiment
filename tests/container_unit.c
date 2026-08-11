@@ -387,11 +387,16 @@ static void test_ten_bit_pixi(void) {
     CHECK(bytes[OFFSET_PIXI_FIRST_DEPTH] == 10U);
     CHECK(bytes[OFFSET_PIXI_SECOND_DEPTH] == 10U);
     CHECK(bytes[OFFSET_PIXI_THIRD_DEPTH] == 10U);
-    check_heif_status(av2h_heif_parse((Av2hSpan){ bytes, written },
-                                      &image, &error),
-                      AV2H_UNSUPPORTED, &error);
+    CHECK(av2h_heif_parse((Av2hSpan){ bytes, written },
+                           &image, &error) == AV2H_OK);
     CHECK(image.sequence.bit_depth_idc == 0U);
     CHECK(image.channel_count == 3U && image.bits_per_channel == 10U);
+    CHECK(image.pixel_format.chroma_format_idc == 0U);
+    CHECK(image.pixel_format.bit_depth == 10U);
+    CHECK(image.pixel_format.bytes_per_sample == 2U);
+    CHECK(image.pixel_format.sample_storage == AV2H_SAMPLE_STORAGE_U16);
+    CHECK(image.pixel_format.byte_order == AV2H_BYTE_ORDER_LITTLE_ENDIAN);
+    CHECK(image.pixel_format.plane_order == AV2H_PLANE_ORDER_YUV);
 
     bytes[OFFSET_PIXI_FIRST_DEPTH] = 8U;
     bytes[OFFSET_PIXI_SECOND_DEPTH] = 8U;

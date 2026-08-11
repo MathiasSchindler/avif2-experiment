@@ -250,10 +250,11 @@ Av2hStatus av2h_frame_decode_workspace_init(
     Av2hArena arena;
     void *filter_memory;
     Av2hStatus status;
-    if (layout == 0 || workspace == 0 || filter_workspace == 0 ||
-        filter_storage == 0) {
+    if (sequence == 0 || frame == 0 || layout == 0 || workspace == 0 ||
+        filter_workspace == 0 || filter_storage == 0) {
         return AV2H_INVALID_ARGUMENT;
     }
+    if (sequence->info.bit_depth_idc != 1U) return AV2H_UNSUPPORTED;
     status = av2h_frame_decode_workspace_query(
         sequence, frame, &fresh_layout);
     if (status != AV2H_OK) return status;

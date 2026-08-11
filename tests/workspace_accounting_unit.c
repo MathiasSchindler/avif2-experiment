@@ -20,6 +20,7 @@ static void initialize(Av2hSequenceState *sequence,
                        uint8_t chroma_format_idc) {
     av2h_memory_fill(sequence, 0U, sizeof(*sequence));
     av2h_memory_fill(frame, 0U, sizeof(*frame));
+    sequence->info.bit_depth_idc = 1U;
     sequence->superblock_size = 64U;
     frame->width = width;
     frame->height = height;
@@ -88,6 +89,14 @@ static void test_storage_width_accounting(uint8_t chroma_format_idc) {
               &sequence, &frame, &workspace_u16, memory, sizeof(memory),
               &workspace, &filter_workspace, &filter_storage) ==
             AV2H_INVALID_ARGUMENT);
+        CHECK(((const uint8_t *)&workspace)[0] == 0xa5U);
+        CHECK(((const uint8_t *)&filter_workspace)[0] == 0xa5U);
+        CHECK(((const uint8_t *)&filter_storage)[0] == 0xa5U);
+        sequence.info.bit_depth_idc = 0U;
+        CHECK(av2h_frame_decode_workspace_init(
+              &sequence, &frame, &workspace_u16, memory, sizeof(memory),
+              &workspace, &filter_workspace, &filter_storage) ==
+            AV2H_UNSUPPORTED);
         CHECK(((const uint8_t *)&workspace)[0] == 0xa5U);
         CHECK(((const uint8_t *)&filter_workspace)[0] == 0xa5U);
         CHECK(((const uint8_t *)&filter_storage)[0] == 0xa5U);

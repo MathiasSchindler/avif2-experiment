@@ -86,7 +86,8 @@ sample index, x/y coordinate, expected value, and actual value.
 
 ## Boundary
 
-WP0 changes no production decoder admission or arithmetic. Ten-bit input still
-fails at the explicit frame support gate before output mutation. Frame
-admission, the 9-bit base-Q-index read, and subsequent normative implementation
-remain owned by 10B-WP1 and later packages.
+WP0 changed no production decoder admission or arithmetic. At WP0 completion,
+ten-bit input failed at the explicit frame support gate before output mutation.
+10B-WP1 subsequently admitted the constrained syntax and moved the deliberate
+unsupported boundary to two-byte workspace binding; later packages own the
+remaining normative implementation.

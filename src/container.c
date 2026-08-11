@@ -134,9 +134,18 @@ static Av2hStatus validate_pixel_metadata(
         bits_per_channel != expected.bits_per_channel) {
         return AV2H_INVALID_DATA;
     }
-    if (expected.bits_per_channel != 8U ||
-        !av2h_pixel_format_init_8bit(sequence->chroma_format_idc,
-                                     decoded_format)) {
+    if (expected.bits_per_channel == 8U) {
+        if (!av2h_pixel_format_init_8bit(sequence->chroma_format_idc,
+                                         decoded_format)) {
+            return AV2H_UNSUPPORTED;
+        }
+    } else if (expected.bits_per_channel == 10U &&
+               sequence->seq_profile_idc == 0U &&
+               sequence->chroma_format_idc == 0U) {
+        if (!av2h_pixel_format_init_10bit_420(decoded_format)) {
+            return AV2H_UNSUPPORTED;
+        }
+    } else {
         return AV2H_UNSUPPORTED;
     }
     if (decoded_format->bit_depth != expected.bits_per_channel) {

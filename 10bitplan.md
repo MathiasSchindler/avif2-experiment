@@ -127,6 +127,11 @@ assumption needed for the first slice is explicit.
 
 ## 10B-WP1: Admit 10-bit 4:2:0 syntax and format metadata
 
+**Status:** Implemented on 2026-08-11. The profile-0 10-bit 4:2:0
+descriptor, 9-bit Q-index parsing, exact frame/tile endpoints, negative syntax
+controls, public query contract, and deliberate workspace rejection are
+recorded in `docs/dev/10bit-wp1.md`.
+
 **Objective:** Parse the constrained stream without syntax desynchronization
 while keeping reconstruction and public decode deliberately unavailable.
 
@@ -142,9 +147,10 @@ while keeping reconstruction and public decode deliberately unavailable.
 - Retain explicit rejection for 12-bit, 4:2:2, unsupported profile/depth/chroma
   combinations, quantization matrices, and lossless base-Q-zero frames.
 
-**Exit gate:** The first stream reaches the exact frame and tile payload
-boundaries with base Q-index 256, malformed/truncated variants fail at the
-owning parser, and no public 10-bit decode is advertised yet.
+**Exit gate:** Complete. The first stream reaches the exact frame and tile
+payload boundaries with base Q-index 256, malformed/truncated variants fail at
+the owning parser, and public query exposes its format metadata while decode
+remains explicitly unsupported and nonmutating at workspace binding.
 
 ## 10B-WP2: Bind two-byte sample storage
 

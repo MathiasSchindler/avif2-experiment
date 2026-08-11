@@ -309,11 +309,99 @@ static void test_public_decode(const PublicFixture *fixture) {
     free(allocation);
 }
 
+static void test_10bit_wp1_query(void) {
+    const PublicFixture fixture = {
+        "10bit-wp1",
+        "tests/fixtures/10bit/avm-reference/"
+        "tiny-constrained-16x16-yuv420p10le-qp208.obu",
+        0, 0U, 16U, 16U, 3U, 0U, 0U, 0U, 0
+    };
+    unsigned char stream[64U];
+    unsigned char container[CONTAINER_CAPACITY];
+    Av2hObu entries[3U];
+    Av2hObuLedger ledger = { entries, 3U, 0U };
+    const Av2hObu *sequence_obu = 0;
+    const Av2hObu *frame_obu = 0;
+    Av2hHeifSource source;
+    Av2hInfo info;
+    Av2hError error;
+    unsigned char *allocation;
+    unsigned char *workspace;
+    unsigned char *output;
+    size_t stream_size = load_fixture(&fixture, stream, sizeof(stream));
+    size_t container_size = 0U;
+    size_t allocation_size;
+    size_t index;
+    CHECK(stream_size == 45U);
+    CHECK(av2h_obu_parse(
+              (Av2hSpan){ stream, stream_size }, &ledger, &error) == AV2H_OK);
+    for (index = 0U; index < ledger.count; ++index) {
+        if (entries[index].type == AV2H_OBU_SEQUENCE_HEADER) {
+            sequence_obu = &entries[index];
+        } else if (entries[index].type == AV2H_OBU_CLOSED_LOOP_KEY) {
+            frame_obu = &entries[index];
+        }
+    }
+    CHECK(sequence_obu != 0 && frame_obu != 0);
+    source.config_obus = (Av2hSpan){
+        stream + sequence_obu->offset,
+        sequence_obu->length_field_size + sequence_obu->obu_size
+    };
+    source.item_payload = (Av2hSpan){
+        stream + frame_obu->offset,
+        frame_obu->length_field_size + frame_obu->obu_size
+    };
+    av2h_color_info_default(&source.color);
+    CHECK(av2h_heif_write(&source, container, sizeof(container),
+                           &container_size, &error) == AV2H_OK);
+    CHECK(av2h_query((Av2hSpan){ container, container_size }, 0,
+                     &info, &error) == AV2H_OK);
+    CHECK(info.image.width == 16U && info.image.height == 16U);
+    CHECK(info.image.channel_count == 3U);
+    CHECK(info.image.bits_per_channel == 10U);
+    CHECK(info.image.pixel_format.chroma_format_idc == 0U);
+    CHECK(info.image.pixel_format.bit_depth == 10U);
+    CHECK(info.image.pixel_format.bytes_per_sample == 2U);
+    CHECK(info.image.pixel_format.sample_storage == AV2H_SAMPLE_STORAGE_U16);
+    CHECK(info.image.pixel_format.byte_order == AV2H_BYTE_ORDER_LITTLE_ENDIAN);
+    CHECK(info.image.pixel_format.plane_order == AV2H_PLANE_ORDER_YUV);
+    CHECK(info.planes[0].width == 16U && info.planes[0].height == 16U);
+    CHECK(info.planes[0].row_bytes == 32U && info.planes[0].offset == 0U);
+    CHECK(info.planes[0].size == 512U);
+    CHECK(info.planes[1].width == 8U && info.planes[1].height == 8U);
+    CHECK(info.planes[1].row_bytes == 16U && info.planes[1].offset == 512U);
+    CHECK(info.planes[1].size == 128U);
+    CHECK(info.planes[2].width == 8U && info.planes[2].height == 8U);
+    CHECK(info.planes[2].row_bytes == 16U && info.planes[2].offset == 640U);
+    CHECK(info.planes[2].size == 128U);
+    CHECK(info.output_size == 768U);
+    CHECK(info.workspace_size != 0U && info.workspace_alignment == 4U);
+
+    allocation_size = info.workspace_size + info.workspace_alignment - 1U +
+                      info.output_size;
+    allocation = (unsigned char *)malloc(allocation_size);
+    CHECK(allocation != 0);
+    workspace = (unsigned char *)(((uintptr_t)allocation +
+        info.workspace_alignment - 1U) & ~(info.workspace_alignment - 1U));
+    output = workspace + info.workspace_size;
+    av2h_memory_fill(output, 0xa5U, info.output_size);
+    CHECK(av2h_decode(
+              (Av2hSpan){ container, container_size }, &info,
+              workspace, info.workspace_size, output, info.output_size,
+              &error) == AV2H_UNSUPPORTED);
+    CHECK(error.context == AV2H_CONTEXT_WORKSPACE);
+    for (index = 0U; index < info.output_size; ++index) {
+        CHECK(output[index] == 0xa5U);
+    }
+    free(allocation);
+}
+
 int main(void) {
     size_t index;
     for (index = 0U; index < sizeof(fixtures) / sizeof(fixtures[0]); ++index) {
         test_public_decode(&fixtures[index]);
     }
+    test_10bit_wp1_query();
     if (failures != 0) return 1;
     printf("public decode unit: pass\n");
     return 0;

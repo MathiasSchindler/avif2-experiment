@@ -230,6 +230,130 @@ static void test_failures(void) {
               &frame) == AV2H_INVALID_ARGUMENT);
 }
 
+static void test_10bit_wp0_header(void) {
+    unsigned char input[64U];
+    unsigned char mutated[64U];
+    uint8_t luma_partition_above[4U];
+    uint8_t luma_partition_left[4U];
+    uint8_t chroma_partition_above[4U];
+    uint8_t chroma_partition_left[4U];
+    Av2hLumaModeContext luma_mode_above[4U];
+    Av2hLumaModeContext luma_mode_left[4U];
+    uint8_t coefficient_above[AV2H_FRAME_PLANE_COUNT * 4U];
+    uint8_t coefficient_left[AV2H_FRAME_PLANE_COUNT * 4U];
+    Av2hTileLumaModeCell colocated_luma[16U];
+    Av2hTileContextStorage storage = {
+        luma_partition_above, luma_partition_left,
+        chroma_partition_above, chroma_partition_left,
+        luma_mode_above, luma_mode_left,
+        coefficient_above, coefficient_left, colocated_luma,
+        4U, 4U, 16U, 0, 0U, 0, 0U, { 0, 0, 0 }, 0U
+    };
+    Av2hObu entries[3U];
+    Av2hObuLedger ledger = { entries, 3U, 0U };
+    Av2hError error;
+    Av2hSequenceState sequence;
+    Av2hSequenceState changed_sequence;
+    Av2hFrameState frame;
+    Av2hTileGroup group;
+    Av2hTileDecoder decoder;
+    const Av2hObu *sequence_obu = 0;
+    const Av2hObu *frame_obu = 0;
+    FILE *source = fopen(
+        "tests/fixtures/10bit/avm-reference/"
+        "tiny-constrained-16x16-yuv420p10le-qp208.obu", "rb");
+    size_t size;
+    size_t index;
+    CHECK(source != 0);
+    if (source == 0) return;
+    size = fread(input, 1U, sizeof(input), source);
+    CHECK(!ferror(source));
+    CHECK(feof(source));
+    fclose(source);
+    CHECK(size == 45U);
+    CHECK(av2h_obu_parse(
+              (Av2hSpan){ input, size }, &ledger, &error) == AV2H_OK);
+    for (index = 0U; index < ledger.count; ++index) {
+        if (ledger.entries[index].type == AV2H_OBU_SEQUENCE_HEADER) {
+            sequence_obu = &ledger.entries[index];
+        } else if (ledger.entries[index].type == AV2H_OBU_CLOSED_LOOP_KEY) {
+            frame_obu = &ledger.entries[index];
+        }
+    }
+    CHECK(sequence_obu != 0);
+    CHECK(frame_obu != 0);
+    if (sequence_obu == 0 || frame_obu == 0) return;
+    CHECK(av2h_sequence_state_parse(
+              (Av2hSpan){ input, size }, sequence_obu,
+              &sequence, &error) == AV2H_OK);
+    CHECK(sequence.info.seq_profile_idc == 0U);
+    CHECK(sequence.info.bit_depth_idc == 0U);
+    CHECK(sequence.info.chroma_format_idc == 0U);
+    CHECK(av2h_frame_header_closed_key_parse(
+              (Av2hSpan){ input + frame_obu->payload_offset,
+                           frame_obu->payload_size },
+              &sequence, &frame) == AV2H_OK);
+    CHECK(frame.width == 16U);
+    CHECK(frame.height == 16U);
+    CHECK(frame.base_q_index == 256U);
+    CHECK(frame.uncompressed_header_bits == 25U);
+    CHECK(frame.deblock_enabled[0] == 0U);
+    CHECK(frame.deblock_enabled[1] == 0U);
+    CHECK(frame.deblock_enabled[2] == 0U);
+    CHECK(frame.deblock_enabled[3] == 0U);
+    CHECK(frame.cdef_strength_count == 0U);
+    CHECK(frame.gdf_mode == 0U);
+    CHECK(av2h_tile_group_single_parse(
+              (Av2hSpan){ input + frame_obu->payload_offset,
+                           frame_obu->payload_size },
+              frame.uncompressed_header_bits, &group) == AV2H_OK);
+    CHECK(group.header_size == 4U);
+    CHECK(av2h_tile_decoder_init(
+              &decoder, group.entropy, &sequence, &frame,
+              &storage) == AV2H_OK);
+    CHECK(decoder.current_q_index == 256U);
+    CHECK(decoder.coeff_cdfs.q_context == 3U);
+    CHECK(decoder.level_cdfs.q_context == 3U);
+    for (index = 0U; index < group.header_size; ++index) {
+        CHECK(av2h_frame_header_closed_key_parse(
+                  (Av2hSpan){ input + frame_obu->payload_offset, index },
+                  &sequence, &frame) != AV2H_OK);
+    }
+
+    changed_sequence = sequence;
+    changed_sequence.info.bit_depth_idc = 2U;
+    CHECK(av2h_frame_header_closed_key_parse(
+              (Av2hSpan){ input + frame_obu->payload_offset,
+                           frame_obu->payload_size },
+              &changed_sequence, &frame) == AV2H_UNSUPPORTED);
+    changed_sequence = sequence;
+    changed_sequence.info.chroma_format_idc = 1U;
+    CHECK(av2h_frame_header_closed_key_parse(
+              (Av2hSpan){ input + frame_obu->payload_offset,
+                           frame_obu->payload_size },
+              &changed_sequence, &frame) == AV2H_UNSUPPORTED);
+    changed_sequence = sequence;
+    changed_sequence.info.seq_profile_idc = 4U;
+    changed_sequence.info.chroma_format_idc = 2U;
+    CHECK(av2h_frame_header_closed_key_parse(
+              (Av2hSpan){ input + frame_obu->payload_offset,
+                           frame_obu->payload_size },
+              &changed_sequence, &frame) == AV2H_UNSUPPORTED);
+
+    av2h_memory_copy(
+        mutated, input + frame_obu->payload_offset, frame_obu->payload_size);
+    mutated[2] |= 0x40U;
+    CHECK(av2h_frame_header_closed_key_parse(
+              (Av2hSpan){ mutated, frame_obu->payload_size },
+              &sequence, &frame) == AV2H_UNSUPPORTED);
+    av2h_memory_copy(
+        mutated, input + frame_obu->payload_offset, frame_obu->payload_size);
+    mutated[0] &= 0xfeU;
+    CHECK(av2h_frame_header_closed_key_parse(
+              (Av2hSpan){ mutated, frame_obu->payload_size },
+              &sequence, &frame) == AV2H_UNSUPPORTED);
+}
+
 static void test_emerald_q208_deblock_header(void) {
     unsigned char input[256U];
     Av2hObu entries[4U];
@@ -294,6 +418,7 @@ int main(void) {
     test_mi_dimension_alignment();
     test_fixtures();
     test_failures();
+    test_10bit_wp0_header();
     test_emerald_q208_deblock_header();
     if (failures != 0) {
         fprintf(stderr, "%d frame checks failed\n", failures);

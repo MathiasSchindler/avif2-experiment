@@ -89,7 +89,10 @@ static void read_quantization(Av2hBitReader *reader,
                               const Av2hSequenceState *sequence,
                               Av2hFrameState *frame) {
     uint8_t different_uv = 0U;
-    frame->base_q_index = (Av2hQIndex)av2h_bit_reader_read(reader, 8U);
+    unsigned int q_index_bits =
+        sequence->info.bit_depth_idc == 1U ? 8U : 9U;
+    frame->base_q_index =
+        (Av2hQIndex)av2h_bit_reader_read(reader, q_index_bits);
     if (sequence->y_dc_delta_q_enabled != 0U) {
         frame->y_dc_delta_q = read_delta_q(reader);
     }
@@ -279,7 +282,10 @@ Av2hStatus av2h_frame_header_closed_key_parse(
             sequence->superblock_size : 256U;
     if (payload.size == 0U) return AV2H_TRUNCATED;
     if (sequence->info.still_picture == 0U ||
-        sequence->info.bit_depth_idc != 1U ||
+        (sequence->info.bit_depth_idc != 1U &&
+         (sequence->info.bit_depth_idc != 0U ||
+          sequence->info.seq_profile_idc != 0U ||
+          sequence->info.chroma_format_idc != 0U)) ||
         sequence->info.chroma_format_idc > 2U ||
         sequence->seq_seg_info_present_flag != 0U ||
         sequence->seq_tile_info_present_flag != 0U ||
