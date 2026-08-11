@@ -14,6 +14,8 @@ Av2hStatus av2h_deblock_quantizer_thresholds(
     uint16_t *side_threshold);
 int av2h_deblock_map_valid(
     const Av2hFilterPlanes *planes, const Av2hDeblockMap *map);
+int av2h_deblock_map_valid_u16(
+    const Av2hFilterPlanesU16 *planes, const Av2hDeblockMap *map);
 int av2h_ccso_parameters_valid(const Av2hFrameState *frame);
 int av2h_ccso_controls_valid(
     const Av2hFrameState *frame, const Av2hCcsoControlMap *controls);

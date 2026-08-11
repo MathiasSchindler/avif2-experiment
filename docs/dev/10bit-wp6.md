@@ -8,7 +8,7 @@ matrix includes 21 lossy quantizer variants and one coded-lossless stream.
 
 This package does not implement filters. Public 10-bit decode still returns
 `AV2H_UNSUPPORTED` with `AV2H_CONTEXT_FILTER` before mutating caller output.
-Deblock remains owned by 10B-WP7.
+Deblock is implemented by 10B-WP7 without changing this public boundary.
 
 ## Retained matrix
 

@@ -290,6 +290,11 @@ IntraBC arithmetic needed by the current release corpus.
 
 ## 10B-WP7: Implement 10-bit deblock
 
+**Status:** Implemented. Typed U16 edge arithmetic, shared deblock metadata,
+odd-geometry and boundary vectors, and exact retained AVM stage parity are
+recorded in `docs/dev/10bit-wp7.md`. Public 10-bit decode remains at the
+nonmutating filter boundary until the later mandatory stages are complete.
+
 **Objective:** Make the first mandatory filter stage sample-exact without
 changing syntax/control storage.
 

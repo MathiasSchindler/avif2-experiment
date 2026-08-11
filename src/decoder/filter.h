@@ -125,11 +125,30 @@ Av2hStatus av2h_deblock_edge(
     uint8_t positive_length,
     uint16_t q_threshold,
     uint16_t side_threshold);
+Av2hStatus av2h_deblock_edge_u16(
+    Av2hFilterPlaneU16 *plane,
+    uint16_t x,
+    uint16_t y,
+    uint8_t vertical,
+    uint8_t negative_length,
+    uint8_t positive_length,
+    uint16_t q_threshold,
+    uint16_t side_threshold);
 Av2hStatus av2h_deblock_filter_frame(
     Av2hFilterPlanes *planes,
     const Av2hSequenceState *sequence,
     const Av2hFrameState *frame,
     const Av2hDeblockMap *map);
+Av2hStatus av2h_deblock_filter_frame_u16(
+    Av2hFilterPlanesU16 *planes,
+    const Av2hSequenceState *sequence,
+    const Av2hFrameState *frame,
+    const Av2hDeblockMap *map);
+Av2hStatus av2h_deblock_stage_u16(
+    const Av2hFilterPlanesU16 *reconstructed,
+    const Av2hSequenceState *sequence,
+    const Av2hFrameState *frame,
+    Av2hFilterWorkspace *workspace);
 
 Av2hStatus av2h_cdef_find_direction(
     const Av2hFilterPlane *luma,

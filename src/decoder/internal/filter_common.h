@@ -47,6 +47,24 @@ static inline int filter_dimensions_valid(
     return 1;
 }
 
+static inline int filter_dimensions_valid_u16(
+    const Av2hFilterPlanesU16 *planes, const Av2hFrameState *frame) {
+    unsigned int plane;
+    for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
+        size_t width = av2h_frame_plane_dimension(
+            frame, plane, av2h_filter_coded_dimension(frame->width));
+        size_t height = av2h_frame_plane_dimension(
+            frame, plane, av2h_filter_coded_dimension(frame->height));
+        if (planes->plane[plane].data == 0 ||
+            planes->plane[plane].width != width ||
+            planes->plane[plane].height != height ||
+            planes->plane[plane].stride_samples < width) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
 static inline void filter_copy_plane(
     Av2hFilterPlane *destination, const Av2hFilterPlane *source) {
     av2h_plane_copy_u8(

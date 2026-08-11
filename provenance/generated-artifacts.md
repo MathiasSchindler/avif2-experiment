@@ -36,3 +36,11 @@ The retained 10B-WP6 pre-filter oracles under
 separate from the generated `*-decoded.yuv` outputs. Their exact hashes are
 recorded in `tests/fixtures/10bit/wp6-unfiltered.sha256`; production code does
 not consume these test fixtures.
+
+The retained 10B-WP7 deblock oracles reuse normal AVM `*-decoded.yuv` outputs
+only for streams whose pinned accounting census proves that CDEF, CCSO, and GDF
+are disabled. They therefore represent the complete deblocked stage for the
+same streams as the paired WP6 pre-filter captures. Seven active outputs, one
+enabled no-op, and three disabled no-op controls are pinned in
+`tests/fixtures/10bit/wp7-deblocked.sha256`; production code does not consume
+these test fixtures.

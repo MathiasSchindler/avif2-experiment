@@ -6388,6 +6388,7 @@ static void test_10bit_wp6_tiny_matrix(void) {
         Av2hFrameDecodeWorkspace workspace;
         Av2hFilterWorkspace filter_workspace;
         Av2hFilterWorkspaceStorage filter_storage;
+        Av2hFilterPlanesU16 reconstructed;
         Av2hFrameDecodeResult result;
         const Av2hObu *sequence_obu = 0;
         const Av2hObu *frame_obu = 0;
@@ -6535,6 +6536,54 @@ static void test_10bit_wp6_tiny_matrix(void) {
             }
             CHECK(av2h_memory_compare(
                       output, reference, sizeof(output)) == 0);
+        }
+        if (status == AV2H_OK &&
+            (fixture_index == 0U || fixture_index == 1U ||
+             fixture_index == 2U || fixture_index == 6U ||
+             fixture_index == 8U || fixture_index == 9U ||
+             fixture_index == 16U || fixture_index == 17U ||
+             fixture_index == 18U || fixture_index == 19U ||
+             fixture_index == 20U)) {
+            uint8_t deblocked_reference[768U];
+            unsigned int plane;
+            CHECK(snprintf(path, sizeof(path),
+                  "tests/fixtures/10bit/avm-reference/%s-decoded.yuv",
+                  stems[fixture_index]) > 0);
+            source = fopen(path, "rb");
+            CHECK(source != 0);
+            if (source != 0) {
+                CHECK(fread(deblocked_reference, 1U,
+                            sizeof(deblocked_reference), source) ==
+                      sizeof(deblocked_reference));
+                CHECK(fclose(source) == 0);
+            }
+            for (plane = 0U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
+                reconstructed.plane[plane] = (Av2hFilterPlaneU16){
+                    workspace.coded_u16[plane].data,
+                    workspace.coded_u16[plane].stride_samples,
+                    workspace.coded_u16[plane].width,
+                    workspace.coded_u16[plane].height
+                };
+            }
+            CHECK(av2h_deblock_stage_u16(
+                      &reconstructed, &sequence, &frame,
+                      &filter_workspace) == AV2H_OK);
+            for (index = 0U; index < 384U; ++index) {
+                size_t plane_index = index < 256U ? 0U :
+                    index < 320U ? 1U : 2U;
+                size_t sample_index = plane_index == 0U ? index :
+                    index - (plane_index == 1U ? 256U : 320U);
+                size_t width = plane_index == 0U ? 16U : 8U;
+                size_t row = sample_index / width;
+                size_t column = sample_index % width;
+                uint16_t expected = (uint16_t)(
+                    deblocked_reference[index * 2U] |
+                    ((uint16_t)deblocked_reference[index * 2U + 1U] << 8U));
+                CHECK(filter_workspace.deblocked_u16.plane[plane_index].data[
+                          row * filter_workspace.deblocked_u16.
+                              plane[plane_index].stride_samples + column] ==
+                      expected);
+            }
         }
         free(allocation);
     }

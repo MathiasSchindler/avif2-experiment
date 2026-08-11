@@ -575,6 +575,69 @@ static void test_deblock_edge(void) {
         AV2H_INVALID_ARGUMENT);
 }
 
+static void test_deblock_edge_u16(void) {
+    uint16_t pixels[16U * 12U];
+    Av2hFilterPlaneU16 plane = { pixels, 16U, 16U, 12U };
+    size_t row;
+    size_t column;
+    for (row = 0U; row < 12U; ++row) {
+        for (column = 0U; column < 16U; ++column) {
+            pixels[row * 16U + column] = column < 8U ? 400U : 416U;
+        }
+    }
+    CHECK(av2h_deblock_edge_u16(
+              &plane, 8U, 2U, 1U, 4U, 4U, 12U, 12U) == AV2H_OK);
+    for (row = 2U; row < 6U; ++row) {
+        CHECK(pixels[row * 16U + 7U] == 405U);
+        CHECK(pixels[row * 16U + 8U] == 411U);
+    }
+    CHECK(pixels[1U * 16U + 7U] == 400U);
+    CHECK(pixels[6U * 16U + 8U] == 416U);
+
+    for (row = 0U; row < 12U; ++row) {
+        for (column = 0U; column < 16U; ++column) {
+            pixels[row * 16U + column] = row < 8U ? 400U : 416U;
+        }
+    }
+    CHECK(av2h_deblock_edge_u16(
+              &plane, 2U, 8U, 0U, 4U, 4U, 12U, 12U) == AV2H_OK);
+    for (column = 2U; column < 6U; ++column) {
+        CHECK(pixels[7U * 16U + column] == 405U);
+        CHECK(pixels[8U * 16U + column] == 411U);
+    }
+    CHECK(pixels[7U * 16U + 1U] == 400U);
+    CHECK(pixels[8U * 16U + 6U] == 416U);
+
+    for (row = 0U; row < 12U; ++row) {
+        for (column = 0U; column < 16U; ++column) {
+            pixels[row * 16U + column] = column < 8U ? 400U : 416U;
+        }
+    }
+    CHECK(av2h_deblock_edge_u16(
+              &plane, 8U, 2U, 1U, 4U, 4U, 0U, 12U) == AV2H_OK);
+    CHECK(pixels[2U * 16U + 7U] == 400U);
+    CHECK(pixels[2U * 16U + 8U] == 416U);
+
+    for (row = 0U; row < 12U; ++row) {
+        for (column = 0U; column < 16U; ++column) {
+            pixels[row * 16U + column] = 0U;
+        }
+    }
+    CHECK(av2h_deblock_edge_u16(
+              &plane, 8U, 2U, 1U, 4U, 4U, 12U, 12U) == AV2H_OK);
+    CHECK(pixels[2U * 16U + 7U] == 0U);
+    CHECK(pixels[2U * 16U + 8U] == 0U);
+    for (row = 0U; row < 12U; ++row) {
+        for (column = 0U; column < 16U; ++column) {
+            pixels[row * 16U + column] = 1023U;
+        }
+    }
+    CHECK(av2h_deblock_edge_u16(
+              &plane, 8U, 2U, 1U, 4U, 4U, 12U, 12U) == AV2H_OK);
+    CHECK(pixels[2U * 16U + 7U] == 1023U);
+    CHECK(pixels[2U * 16U + 8U] == 1023U);
+}
+
 static void test_deblock_asymmetric_lengths(void) {
     static const uint8_t expected_full[16] = {
         101U, 102U, 104U, 105U, 106U, 107U, 108U, 109U,
@@ -677,6 +740,170 @@ static void test_deblock_frame(void) {
     CHECK(av2h_deblock_filter_frame(
               &planes, &sequence, &frame, &map) == AV2H_INVALID_ARGUMENT);
     CHECK(y[0] == 77U);
+}
+
+static void test_deblock_frame_u16(void) {
+    uint16_t y[16U * 8U];
+    uint16_t u[8U * 4U];
+    uint16_t v[8U * 4U];
+    Av2hDeblockCell y_cells[4U * 2U];
+    Av2hDeblockCell u_cells[2U];
+    Av2hDeblockCell v_cells[2U];
+    Av2hFilterPlanesU16 planes;
+    Av2hDeblockMap map;
+    Av2hSequenceState sequence;
+    Av2hFrameState frame;
+    size_t row;
+    size_t column;
+    av2h_memory_fill(&sequence, 0U, sizeof(sequence));
+    av2h_memory_fill(&frame, 0U, sizeof(frame));
+    av2h_memory_fill(&map, 0U, sizeof(map));
+    for (row = 0U; row < 8U; ++row) {
+        for (column = 0U; column < 16U; ++column) {
+            y[row * 16U + column] = column < 8U ? 400U : 416U;
+        }
+    }
+    for (row = 0U; row < 4U; ++row) {
+        for (column = 0U; column < 8U; ++column) {
+            u[row * 8U + column] = 360U;
+            v[row * 8U + column] = 320U;
+        }
+    }
+    planes.plane[0] = (Av2hFilterPlaneU16){ y, 16U, 16U, 8U };
+    planes.plane[1] = (Av2hFilterPlaneU16){ u, 8U, 8U, 4U };
+    planes.plane[2] = (Av2hFilterPlaneU16){ v, 8U, 8U, 4U };
+    for (row = 0U; row < 2U; ++row) {
+        for (column = 0U; column < 4U; ++column) {
+            y_cells[row * 4U + column] = (Av2hDeblockCell){
+                (uint16_t)column, (uint16_t)row,
+                (uint16_t)column, (uint16_t)row,
+                4U, 4U, 128U, 0U, 0U
+            };
+        }
+    }
+    for (column = 0U; column < 2U; ++column) {
+        u_cells[column] = (Av2hDeblockCell){
+            (uint16_t)column, 0U, (uint16_t)column, 0U,
+            4U, 4U, 128U, 0U, 0U
+        };
+        v_cells[column] = u_cells[column];
+    }
+    map.plane[0] = y_cells;
+    map.plane[1] = u_cells;
+    map.plane[2] = v_cells;
+    map.stride_cells[0] = 4U;
+    map.stride_cells[1] = 2U;
+    map.stride_cells[2] = 2U;
+    map.columns[0] = 4U;
+    map.columns[1] = 2U;
+    map.columns[2] = 2U;
+    map.rows[0] = 2U;
+    map.rows[1] = 1U;
+    map.rows[2] = 1U;
+    frame.width = 16U;
+    frame.height = 8U;
+    frame.deblock_enabled[0] = 1U;
+    CHECK(av2h_deblock_filter_frame_u16(
+              &planes, &sequence, &frame, &map) == AV2H_OK);
+    for (row = 0U; row < 8U; ++row) {
+        CHECK(y[row * 16U + 7U] == 404U);
+        CHECK(y[row * 16U + 8U] == 412U);
+    }
+
+    for (row = 0U; row < 8U; ++row) {
+        for (column = 0U; column < 16U; ++column) {
+            y[row * 16U + column] = column < 8U ? 400U : 416U;
+        }
+    }
+    y_cells[1].lossless = 1U;
+    CHECK(av2h_deblock_filter_frame_u16(
+              &planes, &sequence, &frame, &map) == AV2H_OK);
+    CHECK(y[7U] == 400U && y[8U] == 412U);
+    for (row = 0U; row < 8U; ++row) {
+        for (column = 0U; column < 16U; ++column) {
+            y[row * 16U + column] = column < 8U ? 400U : 416U;
+        }
+    }
+    y_cells[2].lossless = 1U;
+    CHECK(av2h_deblock_filter_frame_u16(
+              &planes, &sequence, &frame, &map) == AV2H_OK);
+    CHECK(y[7U] == 400U && y[8U] == 416U);
+    map.columns[0] = 3U;
+    y[0] = 77U;
+    CHECK(av2h_deblock_filter_frame_u16(
+              &planes, &sequence, &frame, &map) == AV2H_INVALID_ARGUMENT);
+    CHECK(y[0] == 77U);
+}
+
+static void test_deblock_stage_u16_odd_noop(void) {
+    uint16_t source_y[24U * 16U];
+    uint16_t source_u[12U * 8U];
+    uint16_t source_v[12U * 8U];
+    uint16_t destination_y[24U * 16U];
+    uint16_t destination_u[12U * 8U];
+    uint16_t destination_v[12U * 8U];
+    Av2hDeblockCell y_cells[6U * 4U];
+    Av2hDeblockCell u_cells[3U * 2U];
+    Av2hDeblockCell v_cells[3U * 2U];
+    Av2hFilterPlanesU16 reconstructed = { 0 };
+    Av2hFilterWorkspace workspace = { 0 };
+    Av2hSequenceState sequence = { 0 };
+    Av2hFrameState frame = { 0 };
+    size_t plane;
+    size_t index;
+    uint16_t *sources[3U] = { source_y, source_u, source_v };
+    uint16_t *destinations[3U] = {
+        destination_y, destination_u, destination_v
+    };
+    Av2hDeblockCell *cells[3U] = { y_cells, u_cells, v_cells };
+    const size_t widths[3U] = { 24U, 12U, 12U };
+    const size_t heights[3U] = { 16U, 8U, 8U };
+    const size_t columns[3U] = { 6U, 3U, 3U };
+    const size_t rows[3U] = { 4U, 2U, 2U };
+    frame.width = 17U;
+    frame.height = 15U;
+    for (plane = 0U; plane < 3U; ++plane) {
+        for (index = 0U; index < widths[plane] * heights[plane]; ++index) {
+            sources[plane][index] = index == 0U ? 0U :
+                index + 1U == widths[plane] * heights[plane] ? 1023U :
+                (uint16_t)((index * 37U + plane * 101U) & 1023U);
+            destinations[plane][index] = 0xa5U;
+        }
+        reconstructed.plane[plane] = (Av2hFilterPlaneU16){
+            sources[plane], widths[plane],
+            (uint16_t)widths[plane], (uint16_t)heights[plane]
+        };
+        workspace.deblocked_u16.plane[plane] = (Av2hFilterPlaneU16){
+            destinations[plane], widths[plane],
+            (uint16_t)widths[plane], (uint16_t)heights[plane]
+        };
+        workspace.deblock_map.plane[plane] = cells[plane];
+        workspace.deblock_map.stride_cells[plane] = columns[plane];
+        workspace.deblock_map.columns[plane] = columns[plane];
+        workspace.deblock_map.rows[plane] = rows[plane];
+        for (index = 0U; index < columns[plane] * rows[plane]; ++index) {
+            size_t column = index % columns[plane];
+            size_t row = index / columns[plane];
+            cells[plane][index] = (Av2hDeblockCell){
+                (uint16_t)column, (uint16_t)row,
+                (uint16_t)column, (uint16_t)row,
+                4U, 4U, 128U, 0U, 0U
+            };
+        }
+    }
+    CHECK(av2h_deblock_stage_u16(
+              &reconstructed, &sequence, &frame, &workspace) == AV2H_OK);
+    for (plane = 0U; plane < 3U; ++plane) {
+        CHECK(av2h_memory_compare(
+                  sources[plane], destinations[plane],
+                  widths[plane] * heights[plane] * sizeof(uint16_t)) == 0);
+    }
+    sequence.info.bit_depth_idc = 1U;
+    destination_y[0] = 0xa5U;
+    CHECK(av2h_deblock_stage_u16(
+              &reconstructed, &sequence, &frame, &workspace) ==
+          AV2H_INVALID_ARGUMENT);
+    CHECK(destination_y[0] == 0xa5U);
 }
 
 static void test_deblock_skip_and_lossless(void) {
@@ -1541,8 +1768,11 @@ int main(void) {
     test_disabled_filters_no_op();
     test_visible_i420_crop();
     test_deblock_edge();
+    test_deblock_edge_u16();
     test_deblock_asymmetric_lengths();
     test_deblock_frame();
+    test_deblock_frame_u16();
+    test_deblock_stage_u16_odd_noop();
     test_deblock_skip_and_lossless();
     test_i444_deblock_superblock_cadence();
     test_cdef();
