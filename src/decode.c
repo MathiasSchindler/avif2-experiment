@@ -146,9 +146,9 @@ Av2hStatus av2h_decode_prepare(const Av2hHeifImage *image,
     if (status != AV2H_OK) {
         return decode_fail(error, status, AV2H_CONTEXT_OUTPUT);
     }
-    status = av2h_frame_decode_workspace_query(
+    status = av2h_frame_decode_workspace_query_bytes(
         &preparation->sequence, &preparation->frame,
-        &preparation->workspace);
+        image->pixel_format.bytes_per_sample, &preparation->workspace);
     if (status != AV2H_OK) {
         return decode_fail(error, status, AV2H_CONTEXT_WORKSPACE);
     }

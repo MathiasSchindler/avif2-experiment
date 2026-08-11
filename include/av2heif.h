@@ -218,7 +218,7 @@ typedef struct {
     Av2hPlaneLayout planes[3];
     /* Total byte count required for the tightly packed decoded planes. */
     size_t output_size;
-    /* Query and validation need no caller workspace before decode exists. */
+    /* Caller workspace requirement in bytes and its power-of-two alignment. */
     size_t workspace_size;
     size_t workspace_alignment;
     size_t obu_count;

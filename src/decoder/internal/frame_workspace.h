@@ -12,6 +12,11 @@ Av2hStatus av2h_frame_decode_workspace_query(
     const Av2hSequenceState *sequence,
     const Av2hFrameState *frame,
     Av2hFrameDecodeWorkspaceLayout *layout);
+Av2hStatus av2h_frame_decode_workspace_query_bytes(
+    const Av2hSequenceState *sequence,
+    const Av2hFrameState *frame,
+    size_t bytes_per_sample,
+    Av2hFrameDecodeWorkspaceLayout *layout);
 
 Av2hStatus av2h_frame_decode_workspace_init(
     const Av2hSequenceState *sequence,

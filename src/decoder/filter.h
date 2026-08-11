@@ -85,6 +85,10 @@ typedef struct {
 Av2hStatus av2h_filter_workspace_query(
     const Av2hFrameState *frame,
     Av2hFilterWorkspaceLayout *layout);
+Av2hStatus av2h_filter_workspace_query_bytes(
+    const Av2hFrameState *frame,
+    size_t bytes_per_sample,
+    Av2hFilterWorkspaceLayout *layout);
 Av2hStatus av2h_filter_workspace_init(
     const Av2hFrameState *frame,
     void *memory,

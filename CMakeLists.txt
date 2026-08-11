@@ -168,6 +168,7 @@ if(AV2HEIF_BUILD_HOST_TESTS)
         output_layout
         pixel_format
         sample_math
+        workspace_accounting
         public_decode
     )
     foreach(unit_name IN LISTS AV2HEIF_HOST_UNIT_NAMES)

@@ -311,6 +311,10 @@ from public output-size and plane-layout calculations.
 
 ### WP3: Make workspace accounting sample-width-aware
 
+**Status:** Implemented on 2026-08-11. The workspace-region classification,
+two-byte accounting model, query/bind boundary, and platform evidence are
+recorded in `docs/dev/10bit-prep-wp3.md`.
+
 **Objective:** Parameterize only sample-backed workspace regions by storage
 width while keeping syntax and control maps narrow.
 
