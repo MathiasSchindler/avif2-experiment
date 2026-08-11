@@ -13,9 +13,10 @@ allocator-free, libc-free, and free of external runtime dependencies.
 
 ## Relationship to the roadmap
 
-`plan.md` defines the next implementation phases as 10-bit 4:2:0 and 10-bit
-4:4:4. This document covers only preparation that can land before either phase
-starts changing normative decoded samples.
+`plan.md` identifies 10-bit images as the next decoder phase, and
+`10bitplan.md` defines the normative 10-bit 4:2:0 and 4:4:4 implementation.
+This document covers only preparation that can land before those phases start
+changing normative decoded samples.
 
 The preparation phase should leave the codebase in a state where the first
 10-bit implementation change is a deliberate vertical slice rather than a
@@ -745,10 +746,10 @@ changing current decoder behavior.
 
 **Estimated effort:** 1 to 2 days after the preceding packages.
 
-## Work deliberately deferred to 10-bit 4:2:0 implementation
+## Work handed to the 10-bit image implementation plan
 
-The following are actual 10-bit implementation and must not be hidden inside
-preparation changes:
+The following is actual 10-bit implementation work owned by `10bitplan.md` and
+must not be hidden inside preparation changes:
 
 - admitting the parsed 10-bit sequence depth to frame decode and output;
 - reading the 9-bit high-bit-depth base Q-index;

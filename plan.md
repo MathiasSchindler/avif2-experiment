@@ -624,84 +624,18 @@ pinned AVM byte-for-byte on Y, U, and V. The maximum-size monochrome corpus and
 filter parity I420 matrix remain exact. Reproducible commands and focused edge
 regressions are documented in `docs/dev/chroma-444.md`.
 
-## 10-bit 4:2:0 implementation
+## 10-bit image implementation
 
 **Status:** Planned.
 
-Add 10-bit 4:2:0 as the sample-width expansion while retaining the established
-4:2:0 geometry. Use 16-bit containers for public and internal 10-bit samples,
-with byte-based strides, offsets, alignments, and sizes stated explicitly.
-Define the public byte order and packing contract; do not describe a 16-bit
-planar result as ordinary I420.
+The detailed 10-bit implementation work has moved to `10bitplan.md`. That plan
+starts at the completed `10bitplan-prepwork.md` handoff, implements 10-bit
+4:2:0 to an independent release gate, and then integrates 10-bit 4:4:4 as a
+separate geometry/sample-width composition gate.
 
-Make bit depth an explicit input to prediction, inverse-transform,
-reconstruction, and filter arithmetic. Audit coefficient dequantization and
-clamps, intermediate widths, rounding, sample clipping, default predictors,
-CfL/MHCCP domains, deblock thresholds, and CDEF/CCSO/GDF calculations against
-the pinned AVM implementation. Widen predictor, reference, reconstruction,
-filter-plane, and frame-output storage deliberately; keep entropy and syntax
-state narrow where bit depth does not affect their numeric domain. Query and
-workspace calculations must multiply sample-backed regions by the checked
-bytes-per-sample value without inflating unrelated maps and coefficient state.
-
-Expected decoder impact: high and architectural. The principal owners are the
-public plane contract, query/workspace allocation, reconstruction structures,
-luma and chroma prediction, dequantization and inverse transforms, and every
-in-loop filter. This reaches more arithmetic code than 4:4:4 even though the
-existing chroma geometry is retained. Prefer typed 8-bit and 16-bit accessors
-or depth-specialized kernels over untyped `void *` sample access in normative
-inner loops.
-
-The native high-bit-depth source corpus for this work lives in
-`images/artifacts/10bit/`. Three project-author-owned Pixel 8 Pro DNGs provide
-main-camera and ultrawide portrait/landscape photographs at 600- and
-1200-pixel widths. Their `yuv420p10le` inputs are derived through reproducible
-16-bit RGB masters, not from upsampled 8-bit images. The directory manifest
-pins source hashes, raw metadata, conversion contracts, plane layouts, and
-output hashes.
-
-Non-goals: 12-bit, 4:2:2, 4:4:4, production color conversion, lossy
-downconversion in the decoder core, and changes to entropy coding unrelated
-to bit depth.
-
-Exit gate: canonical 10-bit 4:2:0 fixtures spanning quantizer and filter
-boundaries match pinned AVM sample-for-sample in 16-bit planar output; public
-layout, byte order, alignment, overflow, and exact workspace tests pass;
-sanitizer and fuzz coverage exercise both sample widths; and every 8-bit
-profile remains byte-identical.
-
-## 10-bit 4:4:4 implementation
-
-**Status:** Planned.
-
-Combine the generalized 4:4:4 geometry from 8-bit 4:4:4 support with the 10-bit
-sample domain from 10-bit 4:2:0 implementation. This is an independent
-integration test, not an inference that two separately tested axes compose
-correctly. Accept
-only the normative profile/signaling combination and preserve fail-closed
-behavior for 4:2:2, 12-bit, and unsupported tools.
-
-Expected decoder impact after 8-bit 4:4:4 and 10-bit 4:2:0: low to medium production
-code, concentrated where geometry and sample width meet. Re-audit chroma
-prediction references, CfL/MHCCP/CCTX intermediates, full-resolution filter
-grids, plane byte strides, maximum workspace calculations, and platform/tool
-output. Any substantial format-specific branch found here should be folded
-back into the shared geometry or sample-width abstraction rather than forming
-a fourth decoder path.
-
-Use the matching `yuv444p10le` files in `images/artifacts/10bit/` as the
-photographic corpus basis. The 16-bit PNG masters remain the common visual
-source for both chroma formats so differences between 4:2:0 and 4:4:4 evidence
-come from the documented chroma conversion rather than separate source images.
-
-Non-goals: new coding tools, 4:2:2, 12-bit, RGB output, metadata, alpha, and
-grid items.
-
-Exit gate: independent tiny, odd, ordinary, and high-detail 10-bit 4:4:4
-fixtures, including chroma-prediction and filter stress cases, match pinned
-AVM on all planes; maximum-size output/workspace arithmetic remains bounded;
-and the complete monochrome, 4:2:0, 4:4:4, 8-bit, and 10-bit regression matrix
-passes through both private fixture and public canonical-HEIF paths.
+The roadmap boundary remains unchanged: 12-bit, 4:2:2, lossless base-Q-zero,
+restoration, production color conversion, and unrelated coding-tool expansion
+are outside the 10-bit image plan.
 
 ## Later work
 
@@ -730,6 +664,8 @@ sequence segmentation and tile signaling, frame segmentation, quantization
 matrices, lossless base-Q-zero frames, and multi-frame or non-initial tile-group
 forms. The next decoder work covers 10-bit 4:2:0 and 4:4:4 respectively. Other
 codec features need separate testable changes and independent reference evidence.
+The package sequence and exit gates for both 10-bit formats are defined in
+`10bitplan.md`.
 
 Within the existing 8-bit coding-tool surface, the reviewed census still marks
 three coverage questions: exhaustive zero-angle luma directional geometry and
@@ -769,8 +705,9 @@ Release validation additionally includes:
 1. Audit and close the existing 8-bit chroma-FSC, zero-angle luma, and
   secondary-transform coverage gaps.
 2. Add a coverage-guided fuzz target for the public query/decode boundary.
-3. 10-bit 4:2:0 implementation: widen sample storage and arithmetic for 10-bit 4:2:0.
-4. 10-bit 4:4:4 implementation: validate the combined 10-bit 4:4:4 model independently.
+3. Execute `10bitplan.md` through the 10-bit 4:2:0 release gate at 10B-WP11.
+4. Execute its independent 10-bit 4:4:4 integration and release gate through
+   10B-WP14.
 5. Add later container and presentation features one independently tested
   slice at a time.
 
