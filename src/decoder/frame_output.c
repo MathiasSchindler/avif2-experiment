@@ -17,6 +17,7 @@ Av2hStatus av2h_decode_frame_planar_private(
     Av2hTileDecoder decoder;
     Av2hTileFilterControls filter_controls;
     Av2hFilterPlanes final_planes;
+    Av2hFilterPlanesU16 final_planes_u16;
     Av2hFrameDecodeResult decoded = { 0 };
     Av2hTileChromaLeaf pending_chroma_leaves[4U];
     Av2hFirstCoeffBlock pending_chroma_blocks[4U][2U];
@@ -568,6 +569,22 @@ Av2hStatus av2h_decode_frame_planar_private(
     workspace->filter_workspace->ccso_controls.rows =
         filter_controls.ccso.rows;
     if (workspace->bytes_per_sample == 2U) {
+        for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
+            final_planes_u16.plane[plane] = (Av2hFilterPlaneU16){
+                workspace->coded_u16[plane].data,
+                workspace->coded_u16[plane].stride_samples,
+                workspace->coded_u16[plane].width,
+                workspace->coded_u16[plane].height
+            };
+        }
+        status = av2h_filter_stage_u16(
+            &final_planes_u16, sequence, frame,
+            workspace->filter_workspace);
+        if (status != AV2H_OK) {
+            AV2H_DECODE_FAIL(
+                status, status, AV2H_FRAME_DECODE_STAGE_FILTER,
+                0U, 0, 0U);
+        }
         status = av2h_copy_visible_planar_u16_private(
             frame, workspace->coded_u16, workspace->coded_data_size_bytes,
             output, output_size_bytes);

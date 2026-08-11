@@ -200,10 +200,12 @@ def validate_oracle(oracle: dict[str, Any], fixture_root: Path) -> None:
         raise ValueError("WP0 block order changed")
 
     current_decoder = oracle.get("current_decoder")
-    if not isinstance(current_decoder, dict) or sha256(
-        str(current_decoder.get("output_sentinel")).encode("ascii")
-    ) != current_decoder.get("output_sentinel_sha256"):
-        raise ValueError("WP0 output sentinel SHA-256 mismatch")
+    if (
+        not isinstance(current_decoder, dict)
+        or current_decoder.get("exit_code") != 0
+        or current_decoder.get("output_sha256") != decoded_record.get("sha256")
+    ):
+        raise ValueError("WP0 current decoder contract mismatch")
 
 
 def first_mismatch(
@@ -246,14 +248,14 @@ def first_mismatch(
 def check_current_decoder(
     oracle: dict[str, Any], decoder: Path, fixture_root: Path
 ) -> None:
-    expected = oracle["current_decoder"]
-    sentinel = str(expected["output_sentinel"]).encode("ascii")
+    decoder_contract = oracle["current_decoder"]
+    expected = (fixture_root / oracle["decoded"]["file"]).read_bytes()
     environment = os.environ.copy()
     environment["ASAN_OPTIONS"] = "detect_leaks=1:halt_on_error=1"
     environment["UBSAN_OPTIONS"] = "halt_on_error=1"
     with tempfile.TemporaryDirectory(prefix="av2h-10bit-wp0-") as temporary:
-        output = Path(temporary) / f"output{expected['output_extension']}"
-        output.write_bytes(sentinel)
+        output = Path(temporary) / f"output{decoder_contract['output_extension']}"
+        output.write_bytes(b"sentinel")
         completed = subprocess.run(
             [
                 str(decoder),
@@ -268,15 +270,18 @@ def check_current_decoder(
             text=True,
             check=False,
         )
-        if completed.returncode != expected["exit_code"]:
+        if completed.returncode != decoder_contract["exit_code"]:
             raise ValueError(
-                f"current decoder exit code: expected {expected['exit_code']}, "
+                "current decoder exit code: expected "
+                f"{decoder_contract['exit_code']}, "
                 f"got {completed.returncode}"
             )
-        if expected["stderr_contains"] not in completed.stderr:
-            raise ValueError("current decoder diagnostic changed")
-        if output.read_bytes() != sentinel:
-            raise ValueError("current decoder mutated output at the 10-bit gate")
+        mismatch = first_mismatch(oracle, expected, output.read_bytes())
+        if mismatch is not None:
+            raise ValueError(
+                "current decoder output mismatch: " +
+                json.dumps(mismatch, sort_keys=True)
+            )
 
 
 def command_verify(arguments: argparse.Namespace) -> int:

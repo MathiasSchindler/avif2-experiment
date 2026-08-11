@@ -339,6 +339,12 @@ geometry.
 
 ## 10B-WP9: Implement 10-bit GDF and final private output
 
+**Status:** Implemented. Typed U16 GDF arithmetic, bounded mode controls,
+disjoint caller-owned stage buffers, normative full-filter dispatch, delayed
+visible crop, exact private raw output, and retained AVM evidence are recorded
+in `docs/dev/10bit-wp9.md`. Public HEIF admission remains at the nonmutating
+filter boundary for WP10.
+
 **Objective:** Complete the accepted-profile filter pipeline and visible crop.
 
 **Work:**
@@ -353,8 +359,10 @@ geometry.
   into exact little-endian output.
 - Keep restoration unsupported and reject it before output mutation.
 
-**Exit gate:** Selected filter-bearing 10-bit 4:2:0 fixtures match AVM at every
-stage and on final private output; failure paths leave caller output unchanged.
+**Exit gate:** Complete. All 22 supported tiny 10-bit 4:2:0 streams match AVM
+on final private output; retained active-GDF stage evidence and direct scalar
+oracles lock GDF behavior; restoration and undersized-output failures preserve
+caller output.
 
 ## 10B-WP10: Enable canonical public 10-bit 4:2:0 decode
 

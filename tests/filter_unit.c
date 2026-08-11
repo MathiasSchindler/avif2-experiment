@@ -1446,6 +1446,51 @@ static void test_gdf_frame(void) {
     CHECK(destination_data[0] == 77U);
 }
 
+static void test_gdf_frame_u16(void) {
+    static const uint16_t expected[64] = {
+        9U, 70U, 132U, 202U, 272U, 341U, 410U, 473U,
+        116U, 193U, 266U, 345U, 433U, 520U, 600U, 678U,
+        227U, 319U, 410U, 501U, 596U, 687U, 782U, 891U,
+        344U, 449U, 556U, 660U, 764U, 879U, 973U, 48U,
+        462U, 579U, 700U, 804U, 933U, 16U, 126U, 242U,
+        581U, 714U, 828U, 968U, 62U, 205U, 322U, 435U,
+        704U, 832U, 980U, 86U, 237U, 364U, 512U, 653U,
+        813U, 974U, 88U, 234U, 387U, 555U, 706U, 850U
+    };
+    uint16_t source_data[64];
+    uint16_t cdef_data[64];
+    uint16_t destination_data[64];
+    Av2hFilterPlaneU16 source = { source_data, 8U, 8U, 8U };
+    Av2hFilterPlaneU16 cdef = { cdef_data, 8U, 8U, 8U };
+    Av2hFilterPlaneU16 destination = {
+        destination_data, 8U, 8U, 8U
+    };
+    Av2hFrameState frame;
+    size_t row;
+    size_t column;
+    av2h_memory_fill(&frame, 0U, sizeof(frame));
+    for (row = 0U; row < 8U; ++row) {
+        for (column = 0U; column < 8U; ++column) {
+            uint8_t source_8bit = (uint8_t)(
+                column * 17U + row * 29U + column * row * 3U);
+            source_data[row * 8U + column] = (uint16_t)source_8bit * 4U;
+            cdef_data[row * 8U + column] =
+                source_data[row * 8U + column];
+            destination_data[row * 8U + column] = 0U;
+        }
+    }
+    frame.gdf_mode = 1U;
+    frame.gdf_qp_index = 3U;
+    frame.gdf_scale_index = 3U;
+    CHECK(av2h_gdf_filter_frame_u16(
+              &destination, &cdef, &source, &frame) == AV2H_OK);
+    for (row = 0U; row < 64U; ++row) {
+        CHECK(destination_data[row] == expected[row]);
+    }
+    CHECK(av2h_gdf_filter_frame_u16(&source, &source, &source, &frame) ==
+          AV2H_INVALID_ARGUMENT);
+}
+
 static void test_gdf_stripe_boundary_sources(void) {
     uint8_t cdef_data[8U * 128U];
     uint8_t cdef_changed[8U * 128U];
@@ -1924,6 +1969,7 @@ int main(void) {
     test_cdef_rounding_and_parameters();
     test_cdef_frame();
     test_gdf_frame();
+    test_gdf_frame_u16();
     test_gdf_stripe_boundary_sources();
     test_gdf_control_row_offset();
     test_band_only_and_control();

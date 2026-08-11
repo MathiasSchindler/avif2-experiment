@@ -114,33 +114,65 @@ Av2hStatus av2h_filter_frame(
 }
 
 Av2hStatus av2h_filter_stage_u16(
-    const Av2hFilterPlanesU16 *reconstructed,
+    Av2hFilterPlanesU16 *planes,
     const Av2hSequenceState *sequence,
     const Av2hFrameState *frame,
     Av2hFilterWorkspace *workspace) {
     Av2hStatus status;
-    if (reconstructed == 0 || sequence == 0 || frame == 0 || workspace == 0 ||
+    const Av2hFilterPlaneU16 *stage_planes[AV2H_FRAME_PLANE_COUNT * 3U];
+    size_t stage_plane_count = 0U;
+    size_t left;
+    unsigned int plane;
+    if (planes == 0 || sequence == 0 || frame == 0 || workspace == 0 ||
         sequence->info.bit_depth_idc != 0U ||
         (frame->cdef_strength_count != 0U && sequence->enable_cdef == 0U) ||
         ((frame->ccso[0].enabled != 0U ||
           frame->ccso[1].enabled != 0U ||
           frame->ccso[2].enabled != 0U) && sequence->enable_ccso == 0U) ||
-        !filter_dimensions_valid_u16(reconstructed, frame) ||
+            (frame->gdf_mode != 0U && sequence->enable_gdf == 0U) ||
+            !filter_dimensions_valid_u16(planes, frame) ||
         !filter_dimensions_valid_u16(&workspace->deblocked_u16, frame) ||
         !filter_dimensions_valid_u16(&workspace->cdef_u16, frame) ||
         !av2h_ccso_parameters_valid(frame) ||
         !av2h_ccso_controls_valid(frame, &workspace->ccso_controls)) {
         return AV2H_INVALID_ARGUMENT;
     }
+    if (sequence->enable_restoration != 0U) return AV2H_UNSUPPORTED;
+    for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
+        stage_planes[stage_plane_count++] = &planes->plane[plane];
+        stage_planes[stage_plane_count++] =
+            &workspace->deblocked_u16.plane[plane];
+        stage_planes[stage_plane_count++] = &workspace->cdef_u16.plane[plane];
+    }
+    for (left = 0U; left < stage_plane_count; ++left) {
+        size_t right;
+        for (right = left + 1U; right < stage_plane_count; ++right) {
+            if (filter_plane_rows_overlap_u16(
+                    stage_planes[left], stage_planes[right])) {
+                return AV2H_INVALID_ARGUMENT;
+            }
+        }
+    }
     status = av2h_deblock_stage_u16(
-        reconstructed, sequence, frame, workspace);
+        planes, sequence, frame, workspace);
     if (status != AV2H_OK) return status;
     status = av2h_cdef_filter_frame_u16_with_controls(
         &workspace->cdef_u16, &workspace->deblocked_u16, frame,
         &workspace->cdef_controls);
     if (status != AV2H_OK) return status;
-    return av2h_ccso_filter_frame_u16(
+    status = av2h_ccso_filter_frame_u16(
         &workspace->cdef_u16, workspace->deblocked_u16.plane[0].data,
         workspace->deblocked_u16.plane[0].stride_samples, frame,
         &workspace->ccso_controls);
+    if (status != AV2H_OK) return status;
+    status = av2h_gdf_filter_frame_u16_with_controls(
+        &planes->plane[0], &workspace->cdef_u16.plane[0],
+        &workspace->deblocked_u16.plane[0], frame,
+        &workspace->gdf_controls);
+    if (status != AV2H_OK) return status;
+    for (plane = 1U; plane < av2h_frame_plane_count(frame); ++plane) {
+        filter_copy_plane_u16(
+            &planes->plane[plane], &workspace->cdef_u16.plane[plane]);
+    }
+    return AV2H_OK;
 }

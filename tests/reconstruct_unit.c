@@ -6296,7 +6296,9 @@ static void test_10bit_wp5_frame_fixture(void) {
         Av2hFilterWorkspace filter_workspace;
         Av2hFilterWorkspaceStorage filter_storage;
         Av2hFrameDecodeResult result;
+        Av2hSequenceState restoration_sequence;
         uint16_t output[384U];
+        uint16_t *deblocked_luma;
         uint8_t *allocation;
         void *workspace_memory;
         Av2hStatus status;
@@ -6312,6 +6314,34 @@ static void test_10bit_wp5_frame_fixture(void) {
                   &sequence, &frame, 2U, &layout,
                   workspace_memory, layout.size_bytes, &workspace,
                   &filter_workspace, &filter_storage) == AV2H_OK);
+        restoration_sequence = sequence;
+        restoration_sequence.enable_restoration = 1U;
+        av2h_memory_fill(output, 0xa5U, sizeof(output));
+        status = av2h_decode_frame_planar_private(
+            group.entropy, &restoration_sequence, &frame, &workspace,
+            (uint8_t *)output, sizeof(output), &result);
+        CHECK(status == AV2H_UNSUPPORTED);
+        for (index = 0U; index < sizeof(output); ++index) {
+            CHECK(((uint8_t *)output)[index] == 0xa5U);
+        }
+        status = av2h_decode_frame_planar_private(
+            group.entropy, &sequence, &frame, &workspace,
+            (uint8_t *)output, sizeof(output) - 1U, &result);
+        CHECK(status == AV2H_OUT_OF_MEMORY);
+        for (index = 0U; index < sizeof(output); ++index) {
+            CHECK(((uint8_t *)output)[index] == 0xa5U);
+        }
+        deblocked_luma = filter_workspace.deblocked_u16.plane[0].data;
+        filter_workspace.deblocked_u16.plane[0].data =
+            workspace.coded_u16[1].data;
+        status = av2h_decode_frame_planar_private(
+            group.entropy, &sequence, &frame, &workspace,
+            (uint8_t *)output, sizeof(output), &result);
+        CHECK(status == AV2H_INVALID_ARGUMENT);
+        for (index = 0U; index < sizeof(output); ++index) {
+            CHECK(((uint8_t *)output)[index] == 0xa5U);
+        }
+        filter_workspace.deblocked_u16.plane[0].data = deblocked_luma;
         av2h_memory_fill(output, 0xa5U, sizeof(output));
         av2h_memory_fill(&result, 0U, sizeof(result));
         status = av2h_decode_frame_planar_private(
@@ -6342,6 +6372,99 @@ static void test_10bit_wp5_frame_fixture(void) {
                   expected);
         }
         free(allocation);
+    }
+}
+
+static void test_10bit_wp9_gdf_stage(void) {
+    static uint8_t pre_gdf_bytes[72U * 64U * 2U];
+    static uint8_t post_gdf_bytes[72U * 64U * 2U];
+    static uint8_t decoded_bytes[12414U];
+    uint8_t input[256U];
+    Av2hObu entries[4U];
+    Av2hObuLedger ledger = { entries, 4U, 0U };
+    Av2hError error;
+    Av2hSequenceState sequence;
+    Av2hFrameState frame;
+    const Av2hObu *sequence_obu = 0;
+    const Av2hObu *frame_obu = 0;
+    FILE *source;
+    size_t input_size;
+    size_t index;
+    source = fopen(
+        "tests/fixtures/10bit/avm-reference/"
+        "boundary-extremes-65x63-yuv420p10le-qp128.obu", "rb");
+    CHECK(source != 0);
+    if (source == 0) return;
+    input_size = fread(input, 1U, sizeof(input), source);
+    CHECK(!ferror(source));
+    CHECK(feof(source));
+    CHECK(fclose(source) == 0);
+    source = fopen(
+        "tests/fixtures/10bit/avm-reference/"
+        "boundary-extremes-65x63-yuv420p10le-qp128-pregdf-y.yuv", "rb");
+    CHECK(source != 0);
+    if (source == 0) return;
+    CHECK(fread(pre_gdf_bytes, 1U, sizeof(pre_gdf_bytes), source) ==
+          sizeof(pre_gdf_bytes));
+    CHECK(fclose(source) == 0);
+    source = fopen(
+        "tests/fixtures/10bit/avm-reference/"
+        "boundary-extremes-65x63-yuv420p10le-qp128-postgdf-y.yuv", "rb");
+    CHECK(source != 0);
+    if (source == 0) return;
+    CHECK(fread(post_gdf_bytes, 1U, sizeof(post_gdf_bytes), source) ==
+          sizeof(post_gdf_bytes));
+    CHECK(fclose(source) == 0);
+        source = fopen(
+          "tests/fixtures/10bit/avm-reference/"
+          "boundary-extremes-65x63-yuv420p10le-qp128-decoded.yuv", "rb");
+        CHECK(source != 0);
+        if (source == 0) return;
+        CHECK(fread(decoded_bytes, 1U, sizeof(decoded_bytes), source) ==
+            sizeof(decoded_bytes));
+        CHECK(fclose(source) == 0);
+    CHECK(av2h_obu_parse(
+              (Av2hSpan){ input, input_size }, &ledger, &error) == AV2H_OK);
+    for (index = 0U; index < ledger.count; ++index) {
+        if (entries[index].type == AV2H_OBU_SEQUENCE_HEADER) {
+            sequence_obu = &entries[index];
+        } else if (entries[index].type == AV2H_OBU_CLOSED_LOOP_KEY) {
+            frame_obu = &entries[index];
+        }
+    }
+    CHECK(sequence_obu != 0);
+    CHECK(frame_obu != 0);
+    if (sequence_obu == 0 || frame_obu == 0) return;
+    CHECK(av2h_sequence_state_parse(
+              (Av2hSpan){ input, input_size }, sequence_obu,
+              &sequence, &error) == AV2H_OK);
+    CHECK(av2h_frame_header_closed_key_parse(
+              (Av2hSpan){ input + frame_obu->payload_offset,
+                           frame_obu->payload_size },
+              &sequence, &frame) == AV2H_OK);
+    CHECK(frame.width == 65U && frame.height == 63U);
+    CHECK(frame.gdf_mode == 1U);
+    {
+        size_t changed_samples = 0U;
+    size_t row;
+        for (row = 0U; row < 63U; ++row) {
+            size_t column;
+            for (column = 0U; column < 65U; ++column) {
+                size_t coded_offset = (row * 72U + column) * 2U;
+                size_t visible_offset = (row * 65U + column) * 2U;
+                if (pre_gdf_bytes[coded_offset] !=
+                        post_gdf_bytes[coded_offset] ||
+                    pre_gdf_bytes[coded_offset + 1U] !=
+                        post_gdf_bytes[coded_offset + 1U]) {
+                    ++changed_samples;
+                }
+                CHECK(post_gdf_bytes[coded_offset] ==
+                      decoded_bytes[visible_offset]);
+                CHECK(post_gdf_bytes[coded_offset + 1U] ==
+                      decoded_bytes[visible_offset + 1U]);
+            }
+        }
+        CHECK(changed_samples != 0U);
     }
 }
 
@@ -6377,6 +6500,7 @@ static void test_10bit_wp6_tiny_matrix(void) {
         char path[256U];
         uint8_t input[4096U];
         uint8_t reference[768U];
+        uint8_t decoded_reference[768U];
         uint8_t output[768U];
         Av2hObu entries[4U];
         Av2hObuLedger ledger = { entries, 4U, 0U };
@@ -6388,7 +6512,6 @@ static void test_10bit_wp6_tiny_matrix(void) {
         Av2hFrameDecodeWorkspace workspace;
         Av2hFilterWorkspace filter_workspace;
         Av2hFilterWorkspaceStorage filter_storage;
-        Av2hFilterPlanesU16 reconstructed;
         Av2hFrameDecodeResult result;
         const Av2hObu *sequence_obu = 0;
         const Av2hObu *frame_obu = 0;
@@ -6417,6 +6540,15 @@ static void test_10bit_wp6_tiny_matrix(void) {
         CHECK(fread(reference, 1U, sizeof(reference), source) ==
               sizeof(reference));
         CHECK(fclose(source) == 0);
+          CHECK(snprintf(path, sizeof(path),
+              "tests/fixtures/10bit/avm-reference/%s-decoded.yuv",
+              stems[fixture_index]) > 0);
+          source = fopen(path, "rb");
+          CHECK(source != 0);
+          if (source == 0) continue;
+          CHECK(fread(decoded_reference, 1U, sizeof(decoded_reference), source) ==
+              sizeof(decoded_reference));
+          CHECK(fclose(source) == 0);
         CHECK(av2h_obu_parse(
                   (Av2hSpan){ input, input_size }, &ledger, &error) ==
               AV2H_OK);
@@ -6505,7 +6637,8 @@ static void test_10bit_wp6_tiny_matrix(void) {
         }
         CHECK(status == AV2H_OK);
         if (status == AV2H_OK) {
-            if (av2h_memory_compare(output, reference, sizeof(output)) != 0) {
+            if (av2h_memory_compare(
+                    output, decoded_reference, sizeof(output)) != 0) {
                 size_t mismatch_count = 0U;
                 size_t plane_mismatch_count[3U] = { 0U, 0U, 0U };
                 size_t first_mismatch = 0U;
@@ -6513,8 +6646,9 @@ static void test_10bit_wp6_tiny_matrix(void) {
                 for (index = 0U; index < sizeof(output) / 2U; ++index) {
                     uint16_t actual = (uint16_t)(output[index * 2U] |
                         ((uint16_t)output[index * 2U + 1U] << 8U));
-                    uint16_t expected = (uint16_t)(reference[index * 2U] |
-                        ((uint16_t)reference[index * 2U + 1U] << 8U));
+                    uint16_t expected = (uint16_t)(
+                        decoded_reference[index * 2U] |
+                        ((uint16_t)decoded_reference[index * 2U + 1U] << 8U));
                     unsigned int delta = actual > expected ?
                         actual - expected : expected - actual;
                     if (delta != 0U) {
@@ -6535,7 +6669,7 @@ static void test_10bit_wp6_tiny_matrix(void) {
                         maximum_delta);
             }
             CHECK(av2h_memory_compare(
-                      output, reference, sizeof(output)) == 0);
+                      output, decoded_reference, sizeof(output)) == 0);
         }
         if (status == AV2H_OK &&
             (fixture_index == 0U || fixture_index == 1U ||
@@ -6545,7 +6679,6 @@ static void test_10bit_wp6_tiny_matrix(void) {
              fixture_index == 18U || fixture_index == 19U ||
              fixture_index == 20U)) {
             uint8_t deblocked_reference[768U];
-            unsigned int plane;
             CHECK(snprintf(path, sizeof(path),
                   "tests/fixtures/10bit/avm-reference/%s-decoded.yuv",
                   stems[fixture_index]) > 0);
@@ -6557,17 +6690,6 @@ static void test_10bit_wp6_tiny_matrix(void) {
                       sizeof(deblocked_reference));
                 CHECK(fclose(source) == 0);
             }
-            for (plane = 0U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
-                reconstructed.plane[plane] = (Av2hFilterPlaneU16){
-                    workspace.coded_u16[plane].data,
-                    workspace.coded_u16[plane].stride_samples,
-                    workspace.coded_u16[plane].width,
-                    workspace.coded_u16[plane].height
-                };
-            }
-            CHECK(av2h_deblock_stage_u16(
-                      &reconstructed, &sequence, &frame,
-                      &filter_workspace) == AV2H_OK);
             for (index = 0U; index < 384U; ++index) {
                 size_t plane_index = index < 256U ? 0U :
                     index < 320U ? 1U : 2U;
@@ -6591,7 +6713,6 @@ static void test_10bit_wp6_tiny_matrix(void) {
              fixture_index == 13U || fixture_index == 14U ||
              fixture_index == 15U)) {
             uint8_t cdef_reference[768U];
-            unsigned int plane;
             CHECK(snprintf(path, sizeof(path),
                   "tests/fixtures/10bit/avm-reference/%s-decoded.yuv",
                   stems[fixture_index]) > 0);
@@ -6602,20 +6723,6 @@ static void test_10bit_wp6_tiny_matrix(void) {
                       sizeof(cdef_reference));
                 CHECK(fclose(source) == 0);
             }
-            for (plane = 0U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
-                reconstructed.plane[plane] = (Av2hFilterPlaneU16){
-                    workspace.coded_u16[plane].data,
-                    workspace.coded_u16[plane].stride_samples,
-                    workspace.coded_u16[plane].width,
-                    workspace.coded_u16[plane].height
-                };
-            }
-            CHECK(av2h_deblock_stage_u16(
-                      &reconstructed, &sequence, &frame,
-                      &filter_workspace) == AV2H_OK);
-            CHECK(av2h_cdef_filter_frame_u16(
-                      &filter_workspace.cdef_u16,
-                      &filter_workspace.deblocked_u16, &frame) == AV2H_OK);
             for (index = 0U; index < 384U; ++index) {
                 size_t plane_index = index < 256U ? 0U :
                     index < 320U ? 1U : 2U;
@@ -6636,7 +6743,6 @@ static void test_10bit_wp6_tiny_matrix(void) {
             (fixture_index == 3U || fixture_index == 7U ||
              fixture_index == 12U)) {
             uint8_t wp8_reference[768U];
-            unsigned int plane;
             CHECK(snprintf(path, sizeof(path),
                   "tests/fixtures/10bit/avm-reference/%s-decoded.yuv",
                   stems[fixture_index]) > 0);
@@ -6647,17 +6753,6 @@ static void test_10bit_wp6_tiny_matrix(void) {
                       sizeof(wp8_reference));
                 CHECK(fclose(source) == 0);
             }
-            for (plane = 0U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
-                reconstructed.plane[plane] = (Av2hFilterPlaneU16){
-                    workspace.coded_u16[plane].data,
-                    workspace.coded_u16[plane].stride_samples,
-                    workspace.coded_u16[plane].width,
-                    workspace.coded_u16[plane].height
-                };
-            }
-            CHECK(av2h_filter_stage_u16(
-                      &reconstructed, &sequence, &frame,
-                      &filter_workspace) == AV2H_OK);
             for (index = 0U; index < 384U; ++index) {
                 size_t plane_index = index < 256U ? 0U :
                     index < 320U ? 1U : 2U;
@@ -6743,6 +6838,7 @@ int main(void) {
     test_tx8x4_adst_adst_reconstruction();
     test_emerald_chroma_dct_geometries();
     test_10bit_wp5_frame_fixture();
+    test_10bit_wp9_gdf_stage();
     test_10bit_wp6_tiny_matrix();
     if (failures != 0) {
         fprintf(stderr, "%d reconstruction checks failed\n", failures);

@@ -106,7 +106,8 @@ static Av2hStatus decode_obu(Av2hSpan input,
                             Av2hOwnedMemory *output,
                             uint16_t *width,
                             uint16_t *height,
-                            uint8_t *chroma_format_idc) {
+                            uint8_t *chroma_format_idc,
+                            Av2hPixelFormat *output_format) {
     Av2hObu entries[4U];
     Av2hObuLedger ledger = { entries, 4U, 0U };
     Av2hError error;
@@ -122,6 +123,7 @@ static Av2hStatus decode_obu(Av2hSpan input,
     Av2hFrameDecodeWorkspaceLayout workspace_layout;
     Av2hFrameDecodeResult decode_result = { 0 };
     size_t output_size = 0U;
+    size_t bytes_per_sample;
     Av2hStatus status = av2h_obu_parse(input, &ledger, &error);
     if (status != AV2H_OK) return status;
     sequence_obu = find_obu(&ledger, AV2H_OBU_SEQUENCE_HEADER);
@@ -139,10 +141,19 @@ static Av2hStatus decode_obu(Av2hSpan input,
                     frame_obu->payload_size },
         frame.uncompressed_header_bits, &group);
     if (status != AV2H_OK) return status;
-    status = av2h_planar_output_size(&frame, &output_size);
+    bytes_per_sample = sequence.info.bit_depth_idc == 0U ? 2U : 1U;
+    if ((bytes_per_sample == 2U &&
+         !av2h_pixel_format_init_10bit_420(output_format)) ||
+        (bytes_per_sample == 1U &&
+         !av2h_pixel_format_init_8bit(
+             sequence.info.chroma_format_idc, output_format))) {
+        return AV2H_UNSUPPORTED;
+    }
+    status = av2h_planar_output_size_bytes(
+        &frame, bytes_per_sample, &output_size);
     if (status != AV2H_OK) return status;
-    status = av2h_frame_decode_workspace_query(
-        &sequence, &frame, &workspace_layout);
+    status = av2h_frame_decode_workspace_query_bytes(
+        &sequence, &frame, bytes_per_sample, &workspace_layout);
     if (status != AV2H_OK) return status;
     if (!allocate_memory(
             workspace_layout.size_bytes, workspace_layout.alignment,
@@ -152,8 +163,8 @@ static Av2hStatus decode_obu(Av2hSpan input,
         release_memory(output);
         return AV2H_OUT_OF_MEMORY;
     }
-    status = av2h_frame_decode_workspace_init(
-        &sequence, &frame, &workspace_layout,
+    status = av2h_frame_decode_workspace_init_bytes(
+        &sequence, &frame, bytes_per_sample, &workspace_layout,
         workspace_memory.memory, workspace_memory.size,
         &workspace, &filter_workspace, &filter_storage);
     if (status == AV2H_OK) {
@@ -323,20 +334,15 @@ int main(int argc, char **argv) {
     }
     status = decode_obu(
         (Av2hSpan){ input.memory, input.size }, &output,
-        &width, &height, &chroma_format_idc);
+        &width, &height, &chroma_format_idc, &output_format);
     if (status != AV2H_OK) {
         fprintf(stderr, "error: decode failed: %s\n",
                 av2h_status_string(status));
         release_memory(&input);
         return status == AV2H_UNSUPPORTED ? 3 : 1;
     }
-    if (!av2h_pixel_format_init_8bit(
-            chroma_format_idc, &output_format)) {
-        release_memory(&output);
-        release_memory(&input);
-        return 1;
-    }
-    raw_extension = av2h_raw_output_extension(&output_format);
+    raw_extension = output_format.bytes_per_sample == 2U ?
+        ".i420" : av2h_raw_output_extension(&output_format);
     if (!ends_with(argv[3], ".bmp") && !ends_with(argv[3], ".png") &&
         (raw_extension == 0 || !ends_with(argv[3], raw_extension))) {
         fprintf(stderr,
@@ -345,7 +351,11 @@ int main(int argc, char **argv) {
         release_memory(&input);
         return 2;
     }
-    if (ends_with(argv[3], ".bmp")) {
+    if ((ends_with(argv[3], ".bmp") || ends_with(argv[3], ".png")) &&
+        output_format.bytes_per_sample != 1U) {
+        fprintf(stderr, "error: preview output requires 8-bit input\n");
+        written = 0;
+    } else if (ends_with(argv[3], ".bmp")) {
         written = write_bmp(
             argv[3], output.memory, width, height, chroma_format_idc);
     } else if (ends_with(argv[3], ".png")) {
