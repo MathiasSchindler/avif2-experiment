@@ -2,6 +2,8 @@
 #include "decoder/frame_output.h"
 #include "decoder/internal/filter_geometry.h"
 #include "decoder/internal/frame_workspace.h"
+
+#include "output_layout.h"
 #include "decoder/tx_geometry.h"
 
 typedef struct {
@@ -295,32 +297,21 @@ static int sized_plane_bytes(size_t stride,
 Av2hStatus av2h_planar_output_size(
     const Av2hFrameState *frame,
     size_t *size) {
-    size_t luma;
-    size_t chroma;
-    size_t total;
-    size_t chroma_width;
-    size_t chroma_height;
+    return av2h_planar_output_size_bytes(frame, 1U, size);
+}
+
+Av2hStatus av2h_planar_output_size_bytes(
+    const Av2hFrameState *frame,
+    size_t bytes_per_sample,
+    size_t *size) {
+    Av2hPlaneLayout planes[3];
     if (frame == 0 || size == 0 || frame->width == 0U ||
         frame->height == 0U) {
         return AV2H_INVALID_ARGUMENT;
     }
-    if (!av2h_size_multiply(frame->width, frame->height, &luma)) {
-        return AV2H_OVERFLOW;
-    }
-    if (av2h_frame_plane_count(frame) == 1U) {
-        *size = luma;
-        return AV2H_OK;
-    }
-    chroma_width = av2h_frame_plane_dimension(frame, 1U, frame->width);
-    chroma_height = av2h_frame_plane_dimension(frame, 1U, frame->height);
-    if (
-        !av2h_size_multiply(chroma_width, chroma_height, &chroma) ||
-        !av2h_size_add(chroma, chroma, &total) ||
-        !av2h_size_add(luma, total, &total)) {
-        return AV2H_OVERFLOW;
-    }
-    *size = total;
-    return AV2H_OK;
+    return av2h_output_layout_calculate(
+        frame->width, frame->height, frame->chroma_format_idc,
+        bytes_per_sample, planes, size, 0);
 }
 
 Av2hStatus av2h_deblock_map_commit_transform(

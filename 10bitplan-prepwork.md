@@ -276,6 +276,10 @@ is that sample precision and storage width are separate facts.
 
 ### WP2: Make public plane layouts byte-correct
 
+**Status:** Implemented on 2026-08-11. Checked byte arithmetic, two-byte layout
+vectors, public unit documentation, and platform validation are recorded in
+`docs/dev/10bit-prep-wp2.md`.
+
 **Objective:** Remove the assumption that one sample always occupies one byte
 from public output-size and plane-layout calculations.
 

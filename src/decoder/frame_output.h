@@ -93,6 +93,10 @@ typedef struct {
 Av2hStatus av2h_planar_output_size(
     const Av2hFrameState *frame,
     size_t *size);
+Av2hStatus av2h_planar_output_size_bytes(
+    const Av2hFrameState *frame,
+    size_t bytes_per_sample,
+    size_t *size);
 
 Av2hStatus av2h_deblock_map_commit_transform(
     Av2hDeblockMap *map,

@@ -140,8 +140,9 @@ Av2hStatus av2h_decode_prepare(const Av2hHeifImage *image,
     if (status != AV2H_OK) {
         return decode_fail(error, status, AV2H_CONTEXT_FRAME);
     }
-    status = av2h_planar_output_size(
-        &preparation->frame, &preparation->output_size);
+    status = av2h_planar_output_size_bytes(
+        &preparation->frame, image->pixel_format.bytes_per_sample,
+        &preparation->output_size);
     if (status != AV2H_OK) {
         return decode_fail(error, status, AV2H_CONTEXT_OUTPUT);
     }

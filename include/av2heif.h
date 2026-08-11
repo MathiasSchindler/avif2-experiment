@@ -204,6 +204,7 @@ typedef struct {
 } Av2hLimits;
 
 typedef struct {
+    /* Width and height are samples; all remaining fields are byte counts. */
     uint32_t width;
     uint32_t height;
     size_t row_bytes;
@@ -215,6 +216,7 @@ typedef struct {
     Av2hDialect dialect;
     Av2hHeifImage image;
     Av2hPlaneLayout planes[3];
+    /* Total byte count required for the tightly packed decoded planes. */
     size_t output_size;
     /* Query and validation need no caller workspace before decode exists. */
     size_t workspace_size;

@@ -1,5 +1,6 @@
 #include "base.h"
 #include "decode.h"
+#include "output_layout.h"
 #include "pixel_format.h"
 
 static Av2hStatus query_fail(Av2hError *error,
@@ -50,23 +51,6 @@ static Av2hStatus span_has_sequence_header(Av2hSpan span,
             break;
         }
     }
-    return AV2H_OK;
-}
-
-static Av2hStatus plane_layout(uint32_t width,
-                               uint32_t height,
-                               size_t offset,
-                               Av2hPlaneLayout *plane,
-                               Av2hError *error) {
-    size_t size;
-    if (!av2h_size_multiply((size_t)width, (size_t)height, &size)) {
-        return query_fail(error, AV2H_OVERFLOW, 0U, AV2H_CONTEXT_QUERY);
-    }
-    plane->width = width;
-    plane->height = height;
-    plane->row_bytes = width;
-    plane->offset = offset;
-    plane->size = size;
     return AV2H_OK;
 }
 
@@ -165,8 +149,6 @@ Av2hStatus av2h_query(Av2hSpan input,
     size_t output_size;
     Av2hDecodePreparation preparation;
     unsigned int plane_count;
-    uint32_t chroma_width;
-    uint32_t chroma_height;
     if (info == 0 || (input.data == 0 && input.size != 0U)) {
         return query_fail(error, AV2H_INVALID_ARGUMENT, 0U,
                           AV2H_CONTEXT_QUERY);
@@ -211,36 +193,16 @@ Av2hStatus av2h_query(Av2hSpan input,
         return query_fail(error, AV2H_LIMIT_EXCEEDED, 0U,
                           AV2H_CONTEXT_LIMITS);
     }
-    status = plane_layout(info->image.width, info->image.height, 0U,
-                          &info->planes[0], error);
-    if (status != AV2H_OK) return status;
-    av2h_memory_fill(&info->planes[1], 0U, sizeof(info->planes[1]));
-    av2h_memory_fill(&info->planes[2], 0U, sizeof(info->planes[2]));
-    output_size = info->planes[0].size;
     plane_count = av2h_pixel_format_plane_count(&info->image.pixel_format);
     if (plane_count == 0U || plane_count != info->image.channel_count) {
         return query_fail(error, AV2H_INVALID_DATA, 0U, AV2H_CONTEXT_QUERY);
     }
-    if (plane_count == 1U) goto output_layout_complete;
-    chroma_width = (uint32_t)av2h_pixel_format_plane_dimension(
-        &info->image.pixel_format, info->image.width, 1U);
-    chroma_height = (uint32_t)av2h_pixel_format_plane_dimension(
-        &info->image.pixel_format, info->image.height, 1U);
-    status = plane_layout(chroma_width, chroma_height,
-                          info->planes[0].size, &info->planes[1], error);
+    status = av2h_output_layout_calculate(
+        info->image.width, info->image.height,
+        info->image.pixel_format.chroma_format_idc,
+        info->image.pixel_format.bytes_per_sample,
+        info->planes, &output_size, error);
     if (status != AV2H_OK) return status;
-    if (!av2h_size_add(info->planes[1].offset, info->planes[1].size,
-                       &output_size)) {
-        return query_fail(error, AV2H_OVERFLOW, 0U, AV2H_CONTEXT_QUERY);
-    }
-    status = plane_layout(chroma_width, chroma_height, output_size,
-                          &info->planes[2], error);
-    if (status != AV2H_OK) return status;
-    if (!av2h_size_add(info->planes[2].offset, info->planes[2].size,
-                       &output_size)) {
-        return query_fail(error, AV2H_OVERFLOW, 0U, AV2H_CONTEXT_QUERY);
-    }
-output_layout_complete:
     if (output_size > active->max_output_size) {
         return query_fail(error, AV2H_LIMIT_EXCEEDED, 0U,
                           AV2H_CONTEXT_LIMITS);

@@ -19,6 +19,7 @@ set(AV2HEIF_CORE_SOURCES
     src/container.c
     src/query.c
     src/decode.c
+    src/output_layout.c
     src/pixel_format.c
     src/decoder/cdf.c
     src/decoder/chroma_prediction.c
@@ -164,6 +165,7 @@ if(AV2HEIF_BUILD_HOST_TESTS)
         filter
         artifact_profile
         layout
+        output_layout
         pixel_format
         sample_math
         public_decode

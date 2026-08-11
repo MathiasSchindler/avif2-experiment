@@ -34,6 +34,8 @@ conventions. It reports chroma format, significant bit depth, bytes per sample,
 integer storage, byte order, and Y/U/V plane order. The current descriptors are
 I400, I420, and I444 with unsigned one-byte samples; callers should use this
 descriptor rather than infer sample storage from chroma or bit depth alone.
+`Av2hPlaneLayout.row_bytes`, `offset`, and `size`, and `Av2hInfo.output_size`
+are byte counts; plane width and height remain sample counts.
 
 Milestones 0 through 12 are complete. Current validation includes:
 
