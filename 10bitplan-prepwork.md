@@ -549,6 +549,10 @@ conversion depth-aware without duplicating codec layout assumptions.
 
 ### WP9: Add dependency-free PNG preview output
 
+**Status:** Implemented on 2026-08-11. The CC0 audit, streaming PNG contract,
+8-bit CLI integration, 16-bit writer boundary, deterministic hashes, and
+platform evidence are recorded in `docs/dev/10bit-prep-wp9.md`.
+
 **Objective:** Let a regular user open decoded output in standard desktop image
 viewers while keeping exact planar YUV as the normative comparison result.
 

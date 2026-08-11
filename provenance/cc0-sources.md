@@ -103,3 +103,25 @@ decoding processes. GDF's trained alpha, weight, bias, intra-error, and
 inter-error tables and the deblock side-threshold table are generated from
 hash-locked normative specification attachments. No AVM filter source, table,
 header, or object is included or linked into production.
+
+The streaming PNG writer in `src/shared/png_writer.c` was implemented after
+auditing the sibling `newos` checkout at commit
+`f4391afd003cd629166d3626a9261360b85115fb`, whose root `LICENSE` declares
+CC0-1.0. The reviewed source paths were:
+
+- `src/shared/compression/crc32.h` and `crc32.c`;
+- `src/shared/compression/zlib.h` and `zlib.c`; and
+- `src/shared/image/png.c`.
+
+The 16-entry CRC-32 update table and nibble-at-a-time update structure were
+adapted from `crc32.c`. The incremental Adler-32 arithmetic and stored-DEFLATE
+header rules were adapted from the corresponding small portions of `zlib.c`.
+They were renamed to the local `av2h` ownership boundary, made incremental,
+and integrated into a checked callback writer that emits PNG signature, IHDR,
+one streamed IDAT, and IEND without complete-image allocation. The local code
+adds deterministic filter-0 scanlines, row callbacks, 8/16-bit truecolor
+support, checked PNG chunk sizing, and platform-independent output callbacks.
+
+The newos PNG parser, zlib inflate paths, Huffman encoders, LZ77 tables, runtime
+layer, and public compression interfaces were not copied. The sibling checkout
+is audit evidence only and is not a build input.

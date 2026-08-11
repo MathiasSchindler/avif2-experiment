@@ -73,6 +73,9 @@ static void test_i420_and_i444_rows(void) {
     static const uint8_t i420_expected[] = {
         0U, 0U, 179U, 0U, 0U, 255U, 255U, 121U, 121U
     };
+    static const uint8_t i420_rgb_expected[] = {
+        179U, 0U, 0U, 255U, 0U, 0U, 121U, 121U, 255U
+    };
     static const uint8_t i444[] = {
         81U, 145U, 235U, 90U, 128U, 240U, 240U, 128U, 110U
     };
@@ -87,6 +90,9 @@ static void test_i420_and_i444_rows(void) {
     CHECK(av2h_planar_to_bgr8_row(
         &preview, 0U, row, sizeof(row)) == AV2H_OK);
     CHECK(av2h_memory_compare(row, i420_expected, sizeof(row)) == 0);
+    CHECK(av2h_planar_to_rgb8_row(
+        &preview, 0U, row, sizeof(row)) == AV2H_OK);
+    CHECK(av2h_memory_compare(row, i420_rgb_expected, sizeof(row)) == 0);
     CHECK(av2h_planar_preview_init_tight_8bit(
         i444, 3U, 1U, 2U, AV2H_COLOR_RANGE_LIMITED, 6U,
         &preview) == AV2H_OK);

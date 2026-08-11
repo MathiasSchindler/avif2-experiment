@@ -245,7 +245,8 @@ runtime, vendored codec, or AVM dependency. Its only imported DLL is
 `KERNEL32.dll`, used for file I/O, virtual memory, and process startup.
 
 Decode a raw AV2 OBU stream by choosing the extension that matches its decoded
-format: `.i400`, `.i420`, or `.i444`. Use `.bmp` for a viewable 24-bit image:
+format: `.i400`, `.i420`, or `.i444`. Use `.bmp` or `.png` for a viewable
+24-bit image:
 
 ```powershell
 .\build\windows-x86_64\av2heif-decoder.exe `
@@ -254,13 +255,14 @@ format: `.i400`, `.i420`, or `.i444`. Use `.bmp` for a viewable 24-bit image:
 
 .\build\windows-x86_64\av2heif-decoder.exe `
   .\images\artifacts\emerald-192x96-qp208.obu `
-  -o .\build\emerald.bmp
+  -o .\build\emerald.png
 ```
 
-BMP output applies deterministic limited-range BT.601 conversion from I400,
-I420, or I444 to BGR pixels. The CLI accepts raw OBU input only; applications
-that read the project-defined HEIF files use the public API in
-`include/av2heif.h`.
+BMP and PNG output apply deterministic limited-range BT.601 conversion from
+I400, I420, or I444. PNG output is dependency-free RGB8 with filter type 0 and
+stored DEFLATE blocks; it contains no inferred color-space metadata. The CLI
+accepts raw OBU input only; applications that read the project-defined HEIF
+files use the public API in `include/av2heif.h`.
 
 The `.i400`, `.i420`, and `.i444` suffixes are strict names for the current
 8-bit planar layouts. The decoder does not accept generic `.yuv`, because that
@@ -268,6 +270,10 @@ suffix does not identify chroma layout, sample depth, storage width, or byte
 order. Future 10-bit planar output will use explicit format names such as
 `yuv420p10le` and `yuv444p10le`. BMP remains a viewable preview; a future
 10-bit BMP path will explicitly downconvert and will not be a reference output.
+PNG likewise remains a preview. Its shared writer already accepts 16-bit
+big-endian RGB rows for a future precision-preserving conversion, but the
+current decoder emits 8-bit PNG only. Planar YUV hashes remain the reference
+result.
 
 Failed frame decodes report the original cause separately from the retained
 coarse status, followed by the pipeline/syntax stage, plane, leaf position and

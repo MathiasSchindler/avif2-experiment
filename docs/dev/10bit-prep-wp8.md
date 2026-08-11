@@ -40,8 +40,8 @@ geometry.
 `av2h_planar_to_bgr8_row` converts one caller-selected source row into exactly
 `width * 3` BGR bytes. It allocates no memory and has no file, platform, or
 whole-image dependency. BMP writers retain their local header, row allocation,
-padding, bottom-up row order, and write calls. A PNG writer can later consume
-the same source-row interface in top-down order.
+padding, bottom-up row order, and write calls. WP9's PNG writer consumes the
+matching shared RGB row interface in top-down order.
 
 The currently supported conversion domain is deliberately narrow:
 

@@ -38,4 +38,10 @@ Av2hStatus av2h_planar_to_bgr8_row(
     uint8_t *destination,
     size_t destination_size_bytes);
 
+Av2hStatus av2h_planar_to_rgb8_row(
+    const Av2hPlanarPreview *preview,
+    uint32_t row,
+    uint8_t *destination,
+    size_t destination_size_bytes);
+
 #endif

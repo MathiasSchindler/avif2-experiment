@@ -26,6 +26,37 @@ function(check_bmp fixture name expected_sha256)
     endif()
 endfunction()
 
+function(check_png fixture name expected_sha256)
+    set(output "${OUTPUT_DIRECTORY}/${name}.png")
+    set(repeat "${OUTPUT_DIRECTORY}/${name}-repeat.png")
+    file(REMOVE "${output}" "${repeat}")
+    foreach(destination "${output}" "${repeat}")
+        execute_process(
+            COMMAND "${DECODER}" "${FIXTURE_DIRECTORY}/${fixture}"
+                -o "${destination}"
+            RESULT_VARIABLE result
+            ERROR_VARIABLE standard_error
+        )
+        if(NOT result EQUAL 0)
+            message(FATAL_ERROR
+                "${name} PNG decode exited ${result}: ${standard_error}")
+        endif()
+    endforeach()
+    execute_process(
+        COMMAND "${CMAKE_COMMAND}" -E compare_files "${output}" "${repeat}"
+        RESULT_VARIABLE compare_result
+    )
+    if(NOT compare_result EQUAL 0)
+        message(FATAL_ERROR "${name} PNG output is not deterministic")
+    endif()
+    file(SHA256 "${output}" actual_sha256)
+    file(REMOVE "${output}" "${repeat}")
+    if(NOT actual_sha256 STREQUAL expected_sha256)
+        message(FATAL_ERROR
+            "${name} PNG expected ${expected_sha256}, got ${actual_sha256}")
+    endif()
+endfunction()
+
 function(check_rejected fixture name extension)
     set(output "${OUTPUT_DIRECTORY}/${name}.${extension}")
     file(REMOVE "${output}")
@@ -52,7 +83,18 @@ check_bmp(
     i444-odd.obu i444
     782695dcf08bce63864ea9187d3e0fd472a9681547671805c299eb474b2f6469)
 
+check_png(
+    monochrome-odd.obu i400
+    2faa3ad4be68c069360745d3b402c359d0224e8c6ccd20cf15341099ddd92f7b)
+check_png(
+    ordinary-160x120.obu i420
+    53350b01df7bd559645fb3edd0d36727b47bbc3f55095108591478343b94bacd)
+check_png(
+    i444-odd.obu i444
+    2064d1563ff1e65ea31ee631a3608a9e72606573e6ca4cca2cf42e1c3c32276b)
+
 check_rejected(ordinary-160x120.obu generic yuv)
 check_rejected(ordinary-160x120.obu mismatched i444)
 
-message(STATUS "BMP hashes and strict raw-output suffix policy match")
+message(STATUS
+    "BMP/PNG hashes, PNG determinism, and strict raw-output policy match")

@@ -102,11 +102,12 @@ static uint8_t scale_sample(int value) {
     return (uint8_t)value;
 }
 
-Av2hStatus av2h_planar_to_bgr8_row(
+static Av2hStatus planar_to_color8_row(
     const Av2hPlanarPreview *preview,
     uint32_t row,
     uint8_t *destination,
-    size_t destination_size_bytes) {
+    size_t destination_size_bytes,
+    int blue_first) {
     const uint8_t *luma;
     const uint8_t *chroma_blue = 0;
     const uint8_t *chroma_red = 0;
@@ -151,13 +152,33 @@ Av2hStatus av2h_planar_to_bgr8_row(
         int c = y - 16;
         int d = cb - 128;
         int e = cr - 128;
+        uint8_t blue;
+        uint8_t red;
         if (c < 0) c = 0;
-        destination[(size_t)column * 3U] =
-            scale_sample(298 * c + 516 * d + 128);
+        blue = scale_sample(298 * c + 516 * d + 128);
+        red = scale_sample(298 * c + 409 * e + 128);
+        destination[(size_t)column * 3U] = blue_first ? blue : red;
         destination[(size_t)column * 3U + 1U] =
             scale_sample(298 * c - 100 * d - 208 * e + 128);
-        destination[(size_t)column * 3U + 2U] =
-            scale_sample(298 * c + 409 * e + 128);
+        destination[(size_t)column * 3U + 2U] = blue_first ? red : blue;
     }
     return AV2H_OK;
+}
+
+Av2hStatus av2h_planar_to_bgr8_row(
+    const Av2hPlanarPreview *preview,
+    uint32_t row,
+    uint8_t *destination,
+    size_t destination_size_bytes) {
+    return planar_to_color8_row(
+        preview, row, destination, destination_size_bytes, 1);
+}
+
+Av2hStatus av2h_planar_to_rgb8_row(
+    const Av2hPlanarPreview *preview,
+    uint32_t row,
+    uint8_t *destination,
+    size_t destination_size_bytes) {
+    return planar_to_color8_row(
+        preview, row, destination, destination_size_bytes, 0);
 }

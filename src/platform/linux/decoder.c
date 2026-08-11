@@ -5,6 +5,7 @@
 #include "decoder/tile.h"
 #include "platform/linux/linux_abi.h"
 #include "preview.h"
+#include "shared/png_writer.h"
 
 #define AV2H_CLI_MAX_INPUT (256U * 1024U * 1024U)
 #define AV2H_BMP_HEADER_SIZE 54U
@@ -321,11 +322,66 @@ done:
     return result;
 }
 
+static Av2hStatus png_write_file(
+    void *context,
+    const uint8_t *data,
+    size_t size) {
+    int descriptor = *(const int *)context;
+    return write_all(descriptor, data, size) ?
+        AV2H_OK : AV2H_INVALID_DATA;
+}
+
+static Av2hStatus png_preview_row(
+    void *context,
+    uint32_t row,
+    uint8_t *destination,
+    size_t destination_size_bytes) {
+    return av2h_planar_to_rgb8_row(
+        (const Av2hPlanarPreview *)context, row,
+        destination, destination_size_bytes);
+}
+
+static int write_png(const char *path,
+                     const uint8_t *planar,
+                     uint16_t width,
+                     uint16_t height,
+                     uint8_t chroma_format_idc) {
+    Av2hPlanarPreview preview;
+    Av2hPngRgbImage image;
+    Av2hOwnedMemory row_memory = { NULL, 0U };
+    size_t row_size;
+    int descriptor;
+    int result;
+    if (!av2h_size_multiply(width, 3U, &row_size) ||
+        av2h_planar_preview_init_tight_8bit(
+            planar, width, height, chroma_format_idc,
+            AV2H_COLOR_RANGE_LIMITED, 6U, &preview) != AV2H_OK ||
+        !allocate_memory(row_size, sizeof(void *), &row_memory)) {
+        return 0;
+    }
+    image.width = width;
+    image.height = height;
+    image.bit_depth = 8U;
+    image.row_callback = png_preview_row;
+    image.row_context = &preview;
+    descriptor = open_write(path);
+    if (descriptor < 0) {
+        release_memory(&row_memory);
+        return 0;
+    }
+    result = av2h_png_write_rgb(
+        &image, row_memory.memory, row_size,
+        png_write_file, &descriptor) == AV2H_OK;
+    if (!close_file(descriptor)) result = 0;
+    release_memory(&row_memory);
+    return result;
+}
+
 static void usage(const char *program) {
     write_console("usage: ");
     write_console(program);
     write_console(" INPUT.obu -o "
-                  "OUTPUT.i400|OUTPUT.i420|OUTPUT.i444|OUTPUT.bmp\n");
+                  "OUTPUT.i400|OUTPUT.i420|OUTPUT.i444|OUTPUT.bmp|OUTPUT.png\n");
 }
 
 int main(int argc, char **argv) {
@@ -339,7 +395,8 @@ int main(int argc, char **argv) {
     Av2hStatus status;
     int written;
     if (argc != 4 || !text_equal(argv[2], "-o") ||
-        !(is_raw_output_path(argv[3]) || ends_with(argv[3], ".bmp"))) {
+        !(is_raw_output_path(argv[3]) || ends_with(argv[3], ".bmp") ||
+          ends_with(argv[3], ".png"))) {
         usage(argv[0]);
         return 2;
     }
@@ -364,7 +421,7 @@ int main(int argc, char **argv) {
         return 1;
     }
     raw_extension = av2h_raw_output_extension(&output_format);
-    if (!ends_with(argv[3], ".bmp") &&
+    if (!ends_with(argv[3], ".bmp") && !ends_with(argv[3], ".png") &&
         (raw_extension == 0 || !ends_with(argv[3], raw_extension))) {
         write_console(
             "error: raw output extension does not match decoded format\n");
@@ -372,9 +429,15 @@ int main(int argc, char **argv) {
         release_memory(&input);
         return 2;
     }
-    written = ends_with(argv[3], ".bmp") ?
-        write_bmp(argv[3], output.memory, width, height, chroma_format_idc) :
-        write_entire_file(argv[3], output.memory, output.size);
+    if (ends_with(argv[3], ".bmp")) {
+        written = write_bmp(
+            argv[3], output.memory, width, height, chroma_format_idc);
+    } else if (ends_with(argv[3], ".png")) {
+        written = write_png(
+            argv[3], output.memory, width, height, chroma_format_idc);
+    } else {
+        written = write_entire_file(argv[3], output.memory, output.size);
+    }
     if (!written) write_console("error: cannot write output\n");
     release_memory(&output);
     release_memory(&input);

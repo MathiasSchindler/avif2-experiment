@@ -6,6 +6,7 @@
 #include "decoder/tile.h"
 #include "platform/windows/win32_min.h"
 #include "preview.h"
+#include "shared/png_writer.h"
 
 #define AV2H_CLI_MAX_INPUT (256U * 1024U * 1024U)
 #define AV2H_CLI_ARGUMENT_CAPACITY 4
@@ -653,6 +654,62 @@ done:
     return result;
 }
 
+static Av2hStatus png_write_file(
+    void *context,
+    const uint8_t *data,
+    size_t size) {
+    Av2hWinHandle file = *(const Av2hWinHandle *)context;
+    return write_all(file, data, size) ? AV2H_OK : AV2H_INVALID_DATA;
+}
+
+static Av2hStatus png_preview_row(
+    void *context,
+    uint32_t row,
+    uint8_t *destination,
+    size_t destination_size_bytes) {
+    return av2h_planar_to_rgb8_row(
+        (const Av2hPlanarPreview *)context, row,
+        destination, destination_size_bytes);
+}
+
+static int write_png(const Av2hWinChar *path,
+                     const uint8_t *planar,
+                     uint16_t width,
+                     uint16_t height,
+                     uint8_t chroma_format_idc) {
+    Av2hPlanarPreview preview;
+    Av2hPngRgbImage image;
+    Av2hOwnedMemory row_memory = { 0, 0U };
+    size_t row_size;
+    Av2hWinHandle file;
+    int result;
+    if (!av2h_size_multiply(width, 3U, &row_size) ||
+        av2h_planar_preview_init_tight_8bit(
+            planar, width, height, chroma_format_idc,
+            AV2H_COLOR_RANGE_LIMITED, 6U, &preview) != AV2H_OK ||
+        !allocate_memory(row_size, &row_memory)) {
+        return 0;
+    }
+    image.width = width;
+    image.height = height;
+    image.bit_depth = 8U;
+    image.row_callback = png_preview_row;
+    image.row_context = &preview;
+    file = CreateFileW(
+        path, AV2H_WIN_GENERIC_WRITE, 0U, 0, AV2H_WIN_CREATE_ALWAYS,
+        AV2H_WIN_FILE_ATTRIBUTE_NORMAL, 0);
+    if (file == AV2H_WIN_INVALID_HANDLE) {
+        release_memory(&row_memory);
+        return 0;
+    }
+    result = av2h_png_write_rgb(
+        &image, row_memory.memory, row_size,
+        png_write_file, &file) == AV2H_OK;
+    if (!CloseHandle(file)) result = 0;
+    release_memory(&row_memory);
+    return result;
+}
+
 static unsigned int run_decoder(void) {
     const Av2hWinChar *system_command_line = GetCommandLineW();
     size_t command_line_units = wide_length(system_command_line) + 1U;
@@ -682,9 +739,10 @@ static unsigned int run_decoder(void) {
         command_line.memory, arguments, AV2H_CLI_ARGUMENT_CAPACITY);
     if (argument_count != 4 || !ascii_equal(arguments[2], "-o") ||
         !(is_raw_output_path(arguments[3]) ||
-          wide_ends_with_ascii(arguments[3], ".bmp"))) {
+                    wide_ends_with_ascii(arguments[3], ".bmp") ||
+                    wide_ends_with_ascii(arguments[3], ".png"))) {
         write_console(
-                        "usage: av2heif-decoder.exe INPUT.obu -o OUTPUT.i400|OUTPUT.i420|OUTPUT.i444|OUTPUT.bmp\r\n");
+                        "usage: av2heif-decoder.exe INPUT.obu -o OUTPUT.i400|OUTPUT.i420|OUTPUT.i444|OUTPUT.bmp|OUTPUT.png\r\n");
         release_memory(&command_line);
         return 2U;
     }
@@ -718,6 +776,7 @@ static unsigned int run_decoder(void) {
     }
     raw_extension = av2h_raw_output_extension(&output_format);
     if (!wide_ends_with_ascii(arguments[3], ".bmp") &&
+        !wide_ends_with_ascii(arguments[3], ".png") &&
         (raw_extension == 0 ||
          !wide_ends_with_ascii(arguments[3], raw_extension))) {
         write_console("error: raw output extension does not match decoded format\r\n");
@@ -728,6 +787,9 @@ static unsigned int run_decoder(void) {
     }
     if (wide_ends_with_ascii(arguments[3], ".bmp")) {
         written = write_bmp(
+            arguments[3], output.memory, width, height, chroma_format_idc);
+    } else if (wide_ends_with_ascii(arguments[3], ".png")) {
+        written = write_png(
             arguments[3], output.memory, width, height, chroma_format_idc);
     } else {
         written = write_entire_file(arguments[3], output.memory, output.size);
