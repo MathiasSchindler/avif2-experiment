@@ -670,6 +670,10 @@ negative contracts are recorded in `docs/dev/10bit-prep-wp10.md`.
 
 ### WP11: Prepare canonical HEIF metadata and container ownership
 
+**Status:** Implemented on 2026-08-11. Sequence-to-`pixi` precision ownership,
+the explicit 8-bit decoded-format gate, metadata mismatch precedence, and
+cross-platform validation are recorded in `docs/dev/10bit-prep-wp11.md`.
+
 **Objective:** Remove hard-coded 8-bit container assumptions without admitting
 10-bit public decode prematurely.
 

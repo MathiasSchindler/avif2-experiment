@@ -69,6 +69,11 @@ typedef struct {
     uint8_t association_essential[5];
 } ContainerState;
 
+typedef struct {
+    uint8_t channel_count;
+    uint8_t bits_per_channel;
+} ContainerPixelMetadata;
+
 static Av2hStatus heif_fail(Av2hError *error,
                             Av2hStatus status,
                             size_t offset) {
@@ -93,6 +98,50 @@ static Av2hStatus add_size(size_t *value, size_t amount) {
     size_t result;
     if (!av2h_size_add(*value, amount, &result)) return AV2H_OVERFLOW;
     *value = result;
+    return AV2H_OK;
+}
+
+static Av2hStatus sequence_pixel_metadata(
+    const Av2hSequenceInfo *sequence,
+    ContainerPixelMetadata *metadata) {
+    if (sequence == 0 || metadata == 0 ||
+        sequence->chroma_format_idc > 2U) {
+        return AV2H_INVALID_ARGUMENT;
+    }
+    metadata->channel_count =
+        sequence->chroma_format_idc == 1U ? 1U : 3U;
+    if (sequence->bit_depth_idc == 0U) {
+        metadata->bits_per_channel = 10U;
+    } else if (sequence->bit_depth_idc == 1U) {
+        metadata->bits_per_channel = 8U;
+    } else if (sequence->bit_depth_idc == 2U) {
+        metadata->bits_per_channel = 12U;
+    } else {
+        return AV2H_UNSUPPORTED;
+    }
+    return AV2H_OK;
+}
+
+static Av2hStatus validate_pixel_metadata(
+    const Av2hSequenceInfo *sequence,
+    uint8_t channel_count,
+    uint8_t bits_per_channel,
+    Av2hPixelFormat *decoded_format) {
+    ContainerPixelMetadata expected;
+    Av2hStatus status = sequence_pixel_metadata(sequence, &expected);
+    if (status != AV2H_OK) return status;
+    if (channel_count != expected.channel_count ||
+        bits_per_channel != expected.bits_per_channel) {
+        return AV2H_INVALID_DATA;
+    }
+    if (expected.bits_per_channel != 8U ||
+        !av2h_pixel_format_init_8bit(sequence->chroma_format_idc,
+                                     decoded_format)) {
+        return AV2H_UNSUPPORTED;
+    }
+    if (decoded_format->bit_depth != expected.bits_per_channel) {
+        return AV2H_INVALID_DATA;
+    }
     return AV2H_OK;
 }
 
@@ -890,10 +939,7 @@ Av2hStatus av2h_heif_parse(Av2hSpan input,
                                     &sequence, error);
     if (status != AV2H_OK) return status;
     if (state.width != (uint32_t)sequence.max_frame_width_minus_1 + 1U ||
-        state.height != (uint32_t)sequence.max_frame_height_minus_1 + 1U ||
-        state.channel_count !=
-            (sequence.chroma_format_idc == 1U ? 1U : 3U) ||
-        state.bits_per_channel != 8U) {
+        state.height != (uint32_t)sequence.max_frame_height_minus_1 + 1U) {
         return heif_fail(error, AV2H_INVALID_DATA, meta.offset);
     }
     image->sequence = sequence;
@@ -901,10 +947,10 @@ Av2hStatus av2h_heif_parse(Av2hSpan input,
     image->height = state.height;
     image->channel_count = state.channel_count;
     image->bits_per_channel = state.bits_per_channel;
-    if (!av2h_pixel_format_init_8bit(sequence.chroma_format_idc,
-                                     &image->pixel_format)) {
-        return heif_fail(error, AV2H_UNSUPPORTED, meta.offset);
-    }
+    status = validate_pixel_metadata(&sequence, state.channel_count,
+                                     state.bits_per_channel,
+                                     &image->pixel_format);
+    if (status != AV2H_OK) return heif_fail(error, status, meta.offset);
     image->property_count = state.property_count;
     return AV2H_OK;
 }
@@ -925,7 +971,7 @@ Av2hStatus av2h_heif_write(const Av2hHeifSource *source,
     size_t nested_written;
     uint32_t width;
     uint32_t height;
-    uint8_t channel_count;
+    ContainerPixelMetadata pixel_metadata;
     if (source == 0 || written == 0 ||
         (output == 0 && output_size != 0U) ||
         (source != 0 && source->config_obus.data == 0 &&
@@ -943,8 +989,9 @@ Av2hStatus av2h_heif_write(const Av2hHeifSource *source,
                                     source->item_payload,
                                     &sequence, error);
     if (status != AV2H_OK) return status;
-    channel_count = sequence.chroma_format_idc == 1U ? 1U : 3U;
-    meta_size = 226U + channel_count;
+    status = sequence_pixel_metadata(&sequence, &pixel_metadata);
+    if (status != AV2H_OK) return heif_fail(error, status, 0U);
+    meta_size = 226U + pixel_metadata.channel_count;
     configuration.configuration_version = 1U;
     configuration.sequence = sequence;
     configuration.config_obus = source->config_obus;
@@ -1012,9 +1059,11 @@ Av2hStatus av2h_heif_write(const Av2hHeifSource *source,
     (void)av2h_byte_writer_write(&writer, "AV2", 4U);
 
     write_box_header(&writer,
-                     (uint32_t)(99U + channel_count + av2c_size), BOX_IPRP);
+                     (uint32_t)(99U + pixel_metadata.channel_count + av2c_size),
+                     BOX_IPRP);
     write_box_header(&writer,
-                     (uint32_t)(68U + channel_count + av2c_size), BOX_IPCO);
+                     (uint32_t)(68U + pixel_metadata.channel_count + av2c_size),
+                     BOX_IPCO);
     write_box_header(&writer, (uint32_t)(8U + av2c_size), BOX_AV2C);
     status = av2h_av2c_write(&configuration,
                              writer.data + writer.position,
@@ -1028,13 +1077,15 @@ Av2hStatus av2h_heif_write(const Av2hHeifSource *source,
     (void)av2h_byte_writer_u32be(&writer, width);
     (void)av2h_byte_writer_u32be(&writer, height);
 
-    write_box_header(&writer, (uint32_t)(13U + channel_count), BOX_PIXI);
+    write_box_header(&writer,
+                     (uint32_t)(13U + pixel_metadata.channel_count), BOX_PIXI);
     (void)av2h_byte_writer_u32be(&writer, 0U);
-    (void)av2h_byte_writer_u8(&writer, channel_count);
+    (void)av2h_byte_writer_u8(&writer, pixel_metadata.channel_count);
     {
         uint8_t channel;
-        for (channel = 0U; channel < channel_count; ++channel) {
-            (void)av2h_byte_writer_u8(&writer, 8U);
+        for (channel = 0U; channel < pixel_metadata.channel_count; ++channel) {
+            (void)av2h_byte_writer_u8(&writer,
+                                      pixel_metadata.bits_per_channel);
         }
     }
 
@@ -1071,10 +1122,14 @@ Av2hStatus av2h_heif_write(const Av2hHeifSource *source,
         status = av2h_heif_parse(
             (Av2hSpan){ (const unsigned char *)output, required },
             &parsed, error);
-        if (status != AV2H_OK) return status;
+        if (status != AV2H_OK &&
+            !(status == AV2H_UNSUPPORTED &&
+              pixel_metadata.bits_per_channel != 8U)) {
+            return status;
+        }
         if (parsed.width != width || parsed.height != height ||
-            parsed.channel_count != channel_count ||
-            parsed.bits_per_channel != 8U ||
+            parsed.channel_count != pixel_metadata.channel_count ||
+            parsed.bits_per_channel != pixel_metadata.bits_per_channel ||
             parsed.source.config_obus.size != source->config_obus.size ||
             parsed.source.item_payload.size != source->item_payload.size ||
             parsed.source.color.color_primaries !=

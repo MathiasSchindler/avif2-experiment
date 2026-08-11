@@ -49,6 +49,22 @@ static const unsigned char config_obu[] = {
 
 static const unsigned char item_payload[] = { 0x02U, 0x10U, 0xaaU };
 
+static const unsigned char ten_bit_config_obu[] = {
+    0x0cU, 0x04U, 0x82U, 0x0cU, 0xcfU, 0xfcU, 0x70U,
+    0xe7U, 0x37U, 0x91U, 0xb8U, 0x08U, 0x80U
+};
+
+static const unsigned char ten_bit_item_payload[] = {
+    0x3eU, 0x10U, 0xf7U, 0x5aU, 0x03U, 0x40U, 0xd8U, 0x68U,
+    0xefU, 0xdeU, 0x32U, 0x70U, 0xa1U, 0xf0U, 0x1eU, 0xcaU,
+    0x53U, 0x61U, 0xe9U, 0x05U, 0x83U, 0x14U, 0x54U, 0x8fU,
+    0x42U, 0xbeU, 0x68U, 0x8aU, 0x00U, 0xa9U, 0xeeU, 0x65U,
+    0xc1U, 0x5bU, 0x53U, 0x5fU, 0x9bU, 0xcaU, 0xa8U, 0xffU,
+    0x43U, 0xa2U, 0xabU, 0x95U, 0xe2U, 0x36U, 0xd3U, 0x2cU,
+    0x24U, 0xf5U, 0xe7U, 0x19U, 0xb4U, 0xdfU, 0xe5U, 0x2bU,
+    0x18U, 0x55U, 0x95U, 0x2cU, 0x06U, 0x6fU, 0x80U
+};
+
 static const unsigned char monochrome_config_obu[] = {
     0x0bU, 0x04U, 0x82U, 0x04U, 0x8cU, 0xffU,
     0xc6U, 0x1fU, 0x9bU, 0xc4U, 0x84U, 0x40U
@@ -353,6 +369,38 @@ static void test_monochrome_pixi(void) {
                       AV2H_INVALID_DATA, &error);
 }
 
+static void test_ten_bit_pixi(void) {
+    Av2hHeifSource source = make_source();
+    Av2hHeifImage image;
+    Av2hError error;
+    unsigned char bytes[512];
+    size_t written = 0U;
+    source.config_obus = (Av2hSpan){ ten_bit_config_obu,
+                                     sizeof(ten_bit_config_obu) };
+    source.item_payload = (Av2hSpan){ ten_bit_item_payload,
+                                     sizeof(ten_bit_item_payload) };
+    CHECK(av2h_heif_write(&source, 0, 0U, &written, &error) == AV2H_OK);
+    CHECK(written == sizeof(canonical) - sizeof(item_payload) +
+                         sizeof(ten_bit_item_payload));
+    CHECK(av2h_heif_write(&source, bytes, sizeof(bytes),
+                           &written, &error) == AV2H_OK);
+    CHECK(bytes[OFFSET_PIXI_FIRST_DEPTH] == 10U);
+    CHECK(bytes[OFFSET_PIXI_SECOND_DEPTH] == 10U);
+    CHECK(bytes[OFFSET_PIXI_THIRD_DEPTH] == 10U);
+    check_heif_status(av2h_heif_parse((Av2hSpan){ bytes, written },
+                                      &image, &error),
+                      AV2H_UNSUPPORTED, &error);
+    CHECK(image.sequence.bit_depth_idc == 0U);
+    CHECK(image.channel_count == 3U && image.bits_per_channel == 10U);
+
+    bytes[OFFSET_PIXI_FIRST_DEPTH] = 8U;
+    bytes[OFFSET_PIXI_SECOND_DEPTH] = 8U;
+    bytes[OFFSET_PIXI_THIRD_DEPTH] = 8U;
+    check_heif_status(av2h_heif_parse((Av2hSpan){ bytes, written },
+                                      &image, &error),
+                      AV2H_INVALID_DATA, &error);
+}
+
 static void test_top_level_and_item_mutations(void) {
     unsigned char bytes[sizeof(canonical)];
     Av2hHeifImage image;
@@ -473,6 +521,9 @@ static void test_property_mutations(void) {
     check_heif_status(av2h_heif_parse((Av2hSpan){ bytes, sizeof(bytes) },
                                       &image, &error),
                       AV2H_UNSUPPORTED, &error);
+
+    check_heif_status(parse_changed(OFFSET_PIXI_FIRST_DEPTH, 10U, &error),
+                      AV2H_INVALID_DATA, &error);
 
     av2h_memory_copy(bytes, canonical, sizeof(bytes));
     bytes[OFFSET_PIXI_FIRST_DEPTH] = 10U;
@@ -654,6 +705,7 @@ int main(void) {
     test_writer_errors();
     test_avm_payload_round_trip();
     test_monochrome_pixi();
+    test_ten_bit_pixi();
     test_top_level_and_item_mutations();
     test_property_mutations();
     test_mdat_before_meta();
