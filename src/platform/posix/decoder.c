@@ -5,6 +5,7 @@
 #include "decoder/internal/frame_workspace.h"
 #include "decoder/partition.h"
 #include "decoder/tile.h"
+#include "preview.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -82,6 +83,14 @@ static int ends_with(const char *text, const char *suffix) {
         if (left != right) return 0;
     }
     return 1;
+}
+
+static int is_raw_output_path(const char *path) {
+    size_t index;
+    for (index = 0U; index < av2h_raw_output_extension_count(); ++index) {
+        if (ends_with(path, av2h_raw_output_extension_at(index))) return 1;
+    }
+    return 0;
 }
 
 static const Av2hObu *find_obu(const Av2hObuLedger *ledger, uint8_t type) {
@@ -174,49 +183,32 @@ static void store_u32le(uint8_t *bytes, uint32_t value) {
     bytes[3] = (uint8_t)(value >> 24U);
 }
 
-static uint8_t scale_sample(int value) {
-    if (value <= 0) return 0U;
-    value /= 256;
-    if (value > 255) return 255U;
-    return (uint8_t)value;
-}
-
 static int write_bmp(const char *path,
                      const uint8_t *planar,
                      uint16_t width,
                      uint16_t height,
                      uint8_t chroma_format_idc) {
-    size_t luma_size;
-    size_t chroma_width = chroma_format_idc == 2U ? width :
-        ((size_t)width + 1U) / 2U;
-    size_t chroma_height = chroma_format_idc == 2U ? height :
-        ((size_t)height + 1U) / 2U;
-    size_t chroma_size;
     size_t row_bytes;
     size_t pixel_bytes;
     size_t file_size;
     uint8_t *row_data;
     uint8_t header[AV2H_BMP_HEADER_SIZE];
-    const uint8_t *u = NULL;
-    const uint8_t *v = NULL;
+    Av2hPlanarPreview preview;
     FILE *file;
     size_t row;
     int result = 0;
-    if (!av2h_size_multiply(width, height, &luma_size) ||
-        !av2h_size_multiply(chroma_width, chroma_height, &chroma_size) ||
-        !av2h_size_multiply(width, 3U, &row_bytes) ||
+    if (!av2h_size_multiply(width, 3U, &row_bytes) ||
         !av2h_size_align(row_bytes, 4U, &row_bytes) ||
         !av2h_size_multiply(row_bytes, height, &pixel_bytes) ||
         !av2h_size_add(AV2H_BMP_HEADER_SIZE, pixel_bytes, &file_size) ||
-        file_size > UINT32_MAX) {
+        file_size > UINT32_MAX ||
+        av2h_planar_preview_init_tight_8bit(
+            planar, width, height, chroma_format_idc,
+            AV2H_COLOR_RANGE_LIMITED, 6U, &preview) != AV2H_OK) {
         return 0;
     }
     row_data = (uint8_t *)malloc(row_bytes);
     if (row_data == NULL) return 0;
-    if (chroma_format_idc != 1U) {
-        u = planar + luma_size;
-        v = u + chroma_size;
-    }
     av2h_memory_fill(header, 0U, sizeof(header));
     header[0] = 'B';
     header[1] = 'M';
@@ -233,28 +225,10 @@ static int write_bmp(const char *path,
     if (fwrite(header, 1U, sizeof(header), file) != sizeof(header)) goto close;
     for (row = height; row != 0U; --row) {
         size_t y_row = row - 1U;
-        size_t column;
         av2h_memory_fill(row_data, 0U, row_bytes);
-        for (column = 0U; column < width; ++column) {
-            size_t chroma_row = chroma_format_idc == 2U ? y_row : y_row / 2U;
-            size_t chroma_column =
-                chroma_format_idc == 2U ? column : column / 2U;
-            int y = planar[y_row * width + column];
-            int cb = chroma_format_idc == 1U ? 128 :
-                u[chroma_row * chroma_width + chroma_column];
-            int cr = chroma_format_idc == 1U ? 128 :
-                v[chroma_row * chroma_width + chroma_column];
-            int c = y - 16;
-            int d = cb - 128;
-            int e = cr - 128;
-            if (c < 0) c = 0;
-            row_data[column * 3U] =
-                scale_sample(298 * c + 516 * d + 128);
-            row_data[column * 3U + 1U] =
-                scale_sample(298 * c - 100 * d - 208 * e + 128);
-            row_data[column * 3U + 2U] =
-                scale_sample(298 * c + 409 * e + 128);
-        }
+        if (av2h_planar_to_bgr8_row(
+                &preview, (uint32_t)y_row,
+                row_data, row_bytes) != AV2H_OK) goto close;
         if (fwrite(row_data, 1U, row_bytes, file) != row_bytes) goto close;
     }
     result = 1;
@@ -278,11 +252,12 @@ int main(int argc, char **argv) {
     uint16_t width = 0U;
     uint16_t height = 0U;
     uint8_t chroma_format_idc = 0U;
+    Av2hPixelFormat output_format;
+    const char *raw_extension;
     Av2hStatus status;
     int written;
     if (argc != 4 || strcmp(argv[2], "-o") != 0 ||
-        !(ends_with(argv[3], ".i400") || ends_with(argv[3], ".i420") ||
-          ends_with(argv[3], ".i444") || ends_with(argv[3], ".bmp"))) {
+        !(is_raw_output_path(argv[3]) || ends_with(argv[3], ".bmp"))) {
         usage(argv[0]);
         return 2;
     }
@@ -299,10 +274,15 @@ int main(int argc, char **argv) {
         release_memory(&input);
         return status == AV2H_UNSUPPORTED ? 3 : 1;
     }
+    if (!av2h_pixel_format_init_8bit(
+            chroma_format_idc, &output_format)) {
+        release_memory(&output);
+        release_memory(&input);
+        return 1;
+    }
+    raw_extension = av2h_raw_output_extension(&output_format);
     if (!ends_with(argv[3], ".bmp") &&
-        ((chroma_format_idc == 1U && !ends_with(argv[3], ".i400")) ||
-         (chroma_format_idc == 0U && !ends_with(argv[3], ".i420")) ||
-         (chroma_format_idc == 2U && !ends_with(argv[3], ".i444")))) {
+        (raw_extension == 0 || !ends_with(argv[3], raw_extension))) {
         fprintf(stderr,
                 "error: raw output extension does not match decoded format\n");
         release_memory(&output);

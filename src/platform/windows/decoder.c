@@ -5,6 +5,7 @@
 #include "decoder/partition.h"
 #include "decoder/tile.h"
 #include "platform/windows/win32_min.h"
+#include "preview.h"
 
 #define AV2H_CLI_MAX_INPUT (256U * 1024U * 1024U)
 #define AV2H_CLI_ARGUMENT_CAPACITY 4
@@ -44,6 +45,15 @@ static int wide_ends_with_ascii(const Av2hWinChar *wide, const char *ascii) {
         if (left != right) return 0;
     }
     return 1;
+}
+
+static int is_raw_output_path(const Av2hWinChar *path) {
+    size_t index;
+    for (index = 0U; index < av2h_raw_output_extension_count(); ++index) {
+        if (wide_ends_with_ascii(
+                path, av2h_raw_output_extension_at(index))) return 1;
+    }
+    return 0;
 }
 
 static void write_console(const char *text) {
@@ -583,45 +593,31 @@ static void store_u32le(uint8_t *bytes, uint32_t value) {
     bytes[3] = (uint8_t)(value >> 24U);
 }
 
-static uint8_t scale_sample(int value) {
-    if (value <= 0) return 0U;
-    value /= 256;
-    if (value > 255) return 255U;
-    return (uint8_t)value;
-}
-
 static int write_bmp(const Av2hWinChar *path,
                      const uint8_t *planar,
                      uint16_t width,
                      uint16_t height,
                      uint8_t chroma_format_idc) {
-    size_t luma_size;
-    size_t chroma_width = chroma_format_idc == 2U ? width :
-        ((size_t)width + 1U) / 2U;
-    size_t chroma_height = chroma_format_idc == 2U ? height :
-        ((size_t)height + 1U) / 2U;
-    size_t chroma_size;
     size_t row_bytes;
     size_t pixel_bytes;
     size_t file_size;
     Av2hOwnedMemory row_memory = { 0, 0U };
     uint8_t header[AV2H_BMP_HEADER_SIZE];
-    const uint8_t *u;
-    const uint8_t *v;
+    Av2hPlanarPreview preview;
     Av2hWinHandle file;
     size_t row;
     int result = 0;
-    if (!av2h_size_multiply(width, height, &luma_size) ||
-        !av2h_size_multiply(chroma_width, chroma_height, &chroma_size) ||
-        !av2h_size_multiply(width, 3U, &row_bytes) ||
+    if (!av2h_size_multiply(width, 3U, &row_bytes) ||
         !av2h_size_align(row_bytes, 4U, &row_bytes) ||
         !av2h_size_multiply(row_bytes, height, &pixel_bytes) ||
         !av2h_size_add(AV2H_BMP_HEADER_SIZE, pixel_bytes, &file_size) ||
-        file_size > UINT32_MAX || !allocate_memory(row_bytes, &row_memory)) {
+        file_size > UINT32_MAX ||
+        av2h_planar_preview_init_tight_8bit(
+            planar, width, height, chroma_format_idc,
+            AV2H_COLOR_RANGE_LIMITED, 6U, &preview) != AV2H_OK ||
+        !allocate_memory(row_bytes, &row_memory)) {
         return 0;
     }
-    u = planar + luma_size;
-    v = u + chroma_size;
     av2h_memory_fill(header, 0U, sizeof(header));
     header[0] = 'B';
     header[1] = 'M';
@@ -643,29 +639,11 @@ static int write_bmp(const Av2hWinChar *path,
     if (!write_all(file, header, sizeof(header))) goto done;
     for (row = height; row != 0U; --row) {
         size_t y_row = row - 1U;
-        size_t column;
         uint8_t *destination = row_memory.memory;
         av2h_memory_fill(destination, 0U, row_bytes);
-        for (column = 0U; column < width; ++column) {
-            size_t chroma_row = chroma_format_idc == 2U ? y_row : y_row / 2U;
-            size_t chroma_column =
-                chroma_format_idc == 2U ? column : column / 2U;
-            int y = planar[y_row * width + column];
-            int cb = chroma_format_idc == 1U ? 128 :
-                u[chroma_row * chroma_width + chroma_column];
-            int cr = chroma_format_idc == 1U ? 128 :
-                v[chroma_row * chroma_width + chroma_column];
-            int c = y - 16;
-            int d = cb - 128;
-            int e = cr - 128;
-            if (c < 0) c = 0;
-            destination[column * 3U] =
-                scale_sample(298 * c + 516 * d + 128);
-            destination[column * 3U + 1U] =
-                scale_sample(298 * c - 100 * d - 208 * e + 128);
-            destination[column * 3U + 2U] =
-                scale_sample(298 * c + 409 * e + 128);
-        }
+        if (av2h_planar_to_bgr8_row(
+                &preview, (uint32_t)y_row,
+                destination, row_bytes) != AV2H_OK) goto done;
         if (!write_all(file, destination, row_bytes)) goto done;
     }
     result = 1;
@@ -686,6 +664,8 @@ static unsigned int run_decoder(void) {
     uint16_t width = 0U;
     uint16_t height = 0U;
     uint8_t chroma_format_idc = 0U;
+    Av2hPixelFormat output_format;
+    const char *raw_extension;
     Av2hFrameDecodeResult decode_result;
     Av2hStatus status;
     int written;
@@ -701,9 +681,7 @@ static unsigned int run_decoder(void) {
     argument_count = parse_arguments(
         command_line.memory, arguments, AV2H_CLI_ARGUMENT_CAPACITY);
     if (argument_count != 4 || !ascii_equal(arguments[2], "-o") ||
-                !(wide_ends_with_ascii(arguments[3], ".i400") ||
-                    wide_ends_with_ascii(arguments[3], ".i420") ||
-                    wide_ends_with_ascii(arguments[3], ".i444") ||
+        !(is_raw_output_path(arguments[3]) ||
           wide_ends_with_ascii(arguments[3], ".bmp"))) {
         write_console(
                         "usage: av2heif-decoder.exe INPUT.obu -o OUTPUT.i400|OUTPUT.i420|OUTPUT.i444|OUTPUT.bmp\r\n");
@@ -731,13 +709,17 @@ static unsigned int run_decoder(void) {
 #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
     write_decode_diagnostic(&decode_result);
 #endif
+    if (!av2h_pixel_format_init_8bit(
+            chroma_format_idc, &output_format)) {
+        release_memory(&output);
+        release_memory(&input);
+        release_memory(&command_line);
+        return 1U;
+    }
+    raw_extension = av2h_raw_output_extension(&output_format);
     if (!wide_ends_with_ascii(arguments[3], ".bmp") &&
-        ((chroma_format_idc == 1U &&
-          !wide_ends_with_ascii(arguments[3], ".i400")) ||
-         (chroma_format_idc == 0U &&
-          !wide_ends_with_ascii(arguments[3], ".i420")) ||
-         (chroma_format_idc == 2U &&
-          !wide_ends_with_ascii(arguments[3], ".i444")))) {
+        (raw_extension == 0 ||
+         !wide_ends_with_ascii(arguments[3], raw_extension))) {
         write_console("error: raw output extension does not match decoded format\r\n");
         release_memory(&output);
         release_memory(&input);

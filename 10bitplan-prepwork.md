@@ -507,6 +507,10 @@ introducing untyped inner-loop access or duplicating the whole decoder early.
 
 ### WP8: Separate raw output from preview rendering
 
+**Status:** Implemented on 2026-08-11. The raw naming policy, shared preview
+contract, exact BMP evidence, unsupported-combination behavior, and platform
+validation are recorded in `docs/dev/10bit-prep-wp8.md`.
+
 **Objective:** Keep exact planar output authoritative and make platform preview
 conversion depth-aware without duplicating codec layout assumptions.
 

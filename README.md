@@ -262,6 +262,13 @@ I420, or I444 to BGR pixels. The CLI accepts raw OBU input only; applications
 that read the project-defined HEIF files use the public API in
 `include/av2heif.h`.
 
+The `.i400`, `.i420`, and `.i444` suffixes are strict names for the current
+8-bit planar layouts. The decoder does not accept generic `.yuv`, because that
+suffix does not identify chroma layout, sample depth, storage width, or byte
+order. Future 10-bit planar output will use explicit format names such as
+`yuv420p10le` and `yuv444p10le`. BMP remains a viewable preview; a future
+10-bit BMP path will explicitly downconvert and will not be a reference output.
+
 Failed frame decodes report the original cause separately from the retained
 coarse status, followed by the pipeline/syntax stage, plane, leaf position and
 geometry, entropy tell, and completed leaf counts. For example:

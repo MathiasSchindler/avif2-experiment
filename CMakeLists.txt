@@ -21,6 +21,7 @@ set(AV2HEIF_CORE_SOURCES
     src/decode.c
     src/output_layout.c
     src/pixel_format.c
+    src/preview.c
     src/decoder/cdf.c
     src/decoder/chroma_prediction.c
     src/decoder/coeff.c
@@ -167,6 +168,7 @@ if(AV2HEIF_BUILD_HOST_TESTS)
         layout
         output_layout
         pixel_format
+        preview
         sample_math
         sample_ops
         workspace_accounting
@@ -205,6 +207,14 @@ if(AV2HEIF_BUILD_NATIVE_CLI AND UNIX AND NOT WIN32)
     if(CMAKE_C_COMPILER_ID MATCHES "Clang|GNU")
         target_compile_options(av2heif-decoder PRIVATE
             -Wall -Wextra -Wpedantic -Werror -O2)
+    endif()
+    if(BUILD_TESTING)
+        add_test(NAME decoder-output-policy
+            COMMAND "${CMAKE_COMMAND}"
+                "-DDECODER=$<TARGET_FILE:av2heif-decoder>"
+                "-DFIXTURE_DIRECTORY=${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures"
+                "-DOUTPUT_DIRECTORY=${CMAKE_CURRENT_BINARY_DIR}/Testing/Temporary/wp8-output"
+                -P "${CMAKE_CURRENT_SOURCE_DIR}/scripts/check-decoder-output-policy.cmake")
     endif()
 endif()
 
