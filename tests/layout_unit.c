@@ -17,10 +17,14 @@ static int failures;
 static void test_64_bit_decoder_layout(void) {
     if (sizeof(void *) != 8U || sizeof(size_t) != 8U) return;
 
+    CHECK(sizeof(Av2hPixelFormat) == 6U);
+    CHECK(_Alignof(Av2hPixelFormat) == 1U);
     CHECK(sizeof(Av2hPlaneLayout) == 32U);
     CHECK(_Alignof(Av2hPlaneLayout) == 8U);
     CHECK(sizeof(Av2hHeifImage) == 80U);
     CHECK(_Alignof(Av2hHeifImage) == 8U);
+    CHECK(offsetof(Av2hHeifImage, pixel_format) == 66U);
+    CHECK(offsetof(Av2hHeifImage, property_count) == 72U);
     CHECK(sizeof(Av2hInfo) == 248U);
     CHECK(_Alignof(Av2hInfo) == 8U);
     CHECK(sizeof(Av2hSequenceState) == 66U);

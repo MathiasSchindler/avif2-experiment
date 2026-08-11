@@ -174,6 +174,14 @@ static void test_public_decode(const PublicFixture *fixture) {
           info.image.height == fixture->height);
     CHECK(info.image.channel_count == fixture->channel_count);
     CHECK(info.image.sequence.chroma_format_idc == fixture->chroma_format_idc);
+        CHECK(info.image.pixel_format.chroma_format_idc ==
+            fixture->chroma_format_idc);
+        CHECK(info.image.pixel_format.bit_depth == 8U);
+        CHECK(info.image.pixel_format.bytes_per_sample == 1U);
+        CHECK(info.image.pixel_format.sample_storage == AV2H_SAMPLE_STORAGE_U8);
+        CHECK(info.image.pixel_format.byte_order ==
+            AV2H_BYTE_ORDER_NOT_APPLICABLE);
+        CHECK(info.image.pixel_format.plane_order == AV2H_PLANE_ORDER_YUV);
     CHECK(info.image.sequence.seq_profile_idc ==
           (fixture->chroma_format_idc == 2U ? 4U : 0U));
     expected_output = (size_t)fixture->width * fixture->height;
@@ -266,6 +274,12 @@ static void test_public_decode(const PublicFixture *fixture) {
     CHECK(error.context == AV2H_CONTEXT_BINDING && output[0] == 0xa5U);
     stale = info;
     ++stale.planes[1].offset;
+    CHECK(av2h_decode((Av2hSpan){ container, container_size }, &stale,
+                       workspace, info.workspace_size, output,
+                       info.output_size, &error) == AV2H_INVALID_DATA);
+    CHECK(error.context == AV2H_CONTEXT_BINDING && output[0] == 0xa5U);
+    stale = info;
+    ++stale.image.pixel_format.bytes_per_sample;
     CHECK(av2h_decode((Av2hSpan){ container, container_size }, &stale,
                        workspace, info.workspace_size, output,
                        info.output_size, &error) == AV2H_INVALID_DATA);

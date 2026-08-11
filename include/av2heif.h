@@ -145,6 +145,32 @@ typedef struct {
     Av2hColorInfo color;
 } Av2hHeifSource;
 
+typedef enum {
+    AV2H_SAMPLE_STORAGE_UNKNOWN = 0,
+    AV2H_SAMPLE_STORAGE_U8,
+    AV2H_SAMPLE_STORAGE_U16
+} Av2hSampleStorage;
+
+typedef enum {
+    AV2H_BYTE_ORDER_NOT_APPLICABLE = 0,
+    AV2H_BYTE_ORDER_LITTLE_ENDIAN,
+    AV2H_BYTE_ORDER_BIG_ENDIAN
+} Av2hByteOrder;
+
+typedef enum {
+    AV2H_PLANE_ORDER_UNKNOWN = 0,
+    AV2H_PLANE_ORDER_YUV
+} Av2hPlaneOrder;
+
+typedef struct {
+    uint8_t chroma_format_idc;
+    uint8_t bit_depth;
+    uint8_t bytes_per_sample;
+    uint8_t sample_storage;
+    uint8_t byte_order;
+    uint8_t plane_order;
+} Av2hPixelFormat;
+
 typedef struct {
     Av2hHeifSource source;
     Av2hSequenceInfo sequence;
@@ -152,6 +178,7 @@ typedef struct {
     uint32_t height;
     uint8_t channel_count;
     uint8_t bits_per_channel;
+    Av2hPixelFormat pixel_format;
     size_t property_count;
 } Av2hHeifImage;
 

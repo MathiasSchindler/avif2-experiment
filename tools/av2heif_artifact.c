@@ -610,16 +610,27 @@ static int command_inspect(int argc, char **argv) {
     fprintf(output,
             "    \"effective\": {\"width\": %u, \"height\": %u, "
             "\"pixel_format\": \"%s\", \"channels\": %u, "
-            "\"bits_per_channel\": %u, \"range\": \"%s\", "
+            "\"bits_per_channel\": %u, \"bytes_per_sample\": %u, "
+            "\"sample_storage\": \"%s\", \"byte_order\": \"%s\", "
+            "\"plane_order\": \"%s\", \"range\": \"%s\", "
             "\"cicp\": {\"color_primaries\": %u, "
             "\"transfer_characteristics\": %u, "
             "\"matrix_coefficients\": %u}}\n  }\n}\n",
             image.width,
             image.height,
-            image.sequence.chroma_format_idc == 1U ? "I400" :
-                (image.sequence.chroma_format_idc == 2U ? "I444" : "I420"),
+            image.pixel_format.chroma_format_idc == 1U ? "I400" :
+                (image.pixel_format.chroma_format_idc == 2U ?
+                    "I444" : "I420"),
             (unsigned int)image.channel_count,
-            (unsigned int)image.bits_per_channel,
+            (unsigned int)image.pixel_format.bit_depth,
+            (unsigned int)image.pixel_format.bytes_per_sample,
+            image.pixel_format.sample_storage == AV2H_SAMPLE_STORAGE_U8 ?
+                "u8" : "unknown",
+            image.pixel_format.byte_order ==
+                    AV2H_BYTE_ORDER_NOT_APPLICABLE ?
+                "not-applicable" : "unknown",
+            image.pixel_format.plane_order == AV2H_PLANE_ORDER_YUV ?
+                "YUV" : "unknown",
             image.source.color.full_range_flag ? "full" : "limited",
             (unsigned int)image.source.color.color_primaries,
             (unsigned int)image.source.color.transfer_characteristics,

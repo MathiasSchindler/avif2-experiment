@@ -7,31 +7,30 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-TOOL = ROOT / "build" / "host" / "av2heif-artifact"
+TOOL_CANDIDATES = (
+    ROOT / "build" / "host" / "av2heif-artifact",
+    ROOT / "build" / "host-sanitized" / "av2heif-artifact",
+)
+TOOL = next((candidate for candidate in TOOL_CANDIDATES if candidate.is_file()),
+            TOOL_CANDIDATES[0])
 sys.path.insert(0, str(ROOT / "tools"))
 
 from run_m3_lab import (  # noqa: E402
     encoded_byte_comparison,
     interpreted_metadata_comparison,
 )
-CONFIG_OBU = bytes(
-    [
-        0x0C,
-        0x04,
-        0x82,
-        0x0A,
-        0x33,
-        0xFF,
-        0x1C,
-        0x39,
-        0xCD,
-        0xE4,
-        0x6E,
-        0x42,
-        0x20,
-    ]
+from m0_carriage import parse_obus  # noqa: E402
+
+
+FIXTURE_OBUS = parse_obus(
+    (ROOT / "tests" / "fixtures" / "i444-tiny.obu").read_bytes()
 )
-ITEM_PAYLOAD = bytes([0x02, 0x10, 0xAA])
+CONFIG_OBU = next(
+    entry.encoded for entry in FIXTURE_OBUS if entry.name == "sequence_header"
+)
+ITEM_PAYLOAD = next(
+    entry.encoded for entry in FIXTURE_OBUS if entry.name == "closed_loop_key"
+)
 
 
 class ArtifactToolTests(unittest.TestCase):
@@ -46,7 +45,7 @@ class ArtifactToolTests(unittest.TestCase):
 
     def test_pack_inspect_extract_round_trip(self) -> None:
         if not TOOL.is_file():
-            self.skipTest("build/host/av2heif-artifact has not been built")
+            self.skipTest("av2heif-artifact has not been built")
         with tempfile.TemporaryDirectory() as directory_name:
             directory = Path(directory_name)
             config = directory / "config.obu"
@@ -74,8 +73,8 @@ class ArtifactToolTests(unittest.TestCase):
             document = json.loads(inspection.read_text(encoding="ascii"))
             self.assertEqual(document["schema"], "av2heif-artifact-inspection-v2")
             self.assertEqual(document["query"]["dialect"], "canonical-v0")
-            self.assertEqual(document["query"]["output_bytes"], 384)
-            self.assertEqual(document["query"]["workspace_bytes"], 0)
+            self.assertEqual(document["query"]["output_bytes"], 768)
+            self.assertGreater(document["query"]["workspace_bytes"], 0)
             self.assertEqual(
                 [box["type"] for box in document["container"]["box_tree"]],
                 ["ftyp", "meta", "mdat"],
@@ -97,9 +96,13 @@ class ArtifactToolTests(unittest.TestCase):
                 {
                     "width": 16,
                     "height": 16,
-                    "pixel_format": "I420",
+                    "pixel_format": "I444",
                     "channels": 3,
                     "bits_per_channel": 8,
+                    "bytes_per_sample": 1,
+                    "sample_storage": "u8",
+                    "byte_order": "not-applicable",
+                    "plane_order": "YUV",
                     "range": "limited",
                     "cicp": {
                         "color_primaries": 2,

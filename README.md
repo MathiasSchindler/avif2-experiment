@@ -29,6 +29,12 @@ The caller owns every buffer. Unsupported profiles, 4:2:2 chroma, sample depths
 other than 8-bit, restoration, malformed input, and inconsistent HEIF metadata
 are rejected instead of being decoded partially.
 
+`Av2hHeifImage.pixel_format` describes decoded memory independently of filename
+conventions. It reports chroma format, significant bit depth, bytes per sample,
+integer storage, byte order, and Y/U/V plane order. The current descriptors are
+I400, I420, and I444 with unsigned one-byte samples; callers should use this
+descriptor rather than infer sample storage from chroma or bit depth alone.
+
 Milestones 0 through 12 are complete. Current validation includes:
 
 - exact I420 output for all 31 tracked research artifacts;

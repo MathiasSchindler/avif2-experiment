@@ -1,5 +1,6 @@
 #include "base.h"
 #include "decode.h"
+#include "pixel_format.h"
 
 static Av2hStatus query_fail(Av2hError *error,
                              Av2hStatus status,
@@ -163,6 +164,7 @@ Av2hStatus av2h_query(Av2hSpan input,
     size_t pixels;
     size_t output_size;
     Av2hDecodePreparation preparation;
+    unsigned int plane_count;
     uint32_t chroma_width;
     uint32_t chroma_height;
     if (info == 0 || (input.data == 0 && input.size != 0U)) {
@@ -215,11 +217,15 @@ Av2hStatus av2h_query(Av2hSpan input,
     av2h_memory_fill(&info->planes[1], 0U, sizeof(info->planes[1]));
     av2h_memory_fill(&info->planes[2], 0U, sizeof(info->planes[2]));
     output_size = info->planes[0].size;
-    if (info->image.channel_count == 1U) goto output_layout_complete;
-    chroma_width = (uint32_t)av2h_plane_dimension(
-        info->image.width, info->image.sequence.chroma_format_idc, 1U);
-    chroma_height = (uint32_t)av2h_plane_dimension(
-        info->image.height, info->image.sequence.chroma_format_idc, 1U);
+    plane_count = av2h_pixel_format_plane_count(&info->image.pixel_format);
+    if (plane_count == 0U || plane_count != info->image.channel_count) {
+        return query_fail(error, AV2H_INVALID_DATA, 0U, AV2H_CONTEXT_QUERY);
+    }
+    if (plane_count == 1U) goto output_layout_complete;
+    chroma_width = (uint32_t)av2h_pixel_format_plane_dimension(
+        &info->image.pixel_format, info->image.width, 1U);
+    chroma_height = (uint32_t)av2h_pixel_format_plane_dimension(
+        &info->image.pixel_format, info->image.height, 1U);
     status = plane_layout(chroma_width, chroma_height,
                           info->planes[0].size, &info->planes[1], error);
     if (status != AV2H_OK) return status;

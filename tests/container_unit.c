@@ -266,6 +266,12 @@ static void test_golden_and_round_trip(void) {
                            &image, &error) == AV2H_OK);
     CHECK(image.width == 16U && image.height == 16U);
     CHECK(image.channel_count == 3U && image.bits_per_channel == 8U);
+    CHECK(image.pixel_format.chroma_format_idc == 0U);
+    CHECK(image.pixel_format.bit_depth == 8U);
+    CHECK(image.pixel_format.bytes_per_sample == 1U);
+    CHECK(image.pixel_format.sample_storage == AV2H_SAMPLE_STORAGE_U8);
+    CHECK(image.pixel_format.byte_order == AV2H_BYTE_ORDER_NOT_APPLICABLE);
+    CHECK(image.pixel_format.plane_order == AV2H_PLANE_ORDER_YUV);
     CHECK(image.source.config_obus.size == sizeof(config_obu));
     CHECK(image.source.item_payload.size == sizeof(item_payload));
     CHECK(av2h_memory_compare(image.source.config_obus.data, config_obu,
@@ -329,6 +335,12 @@ static void test_monochrome_pixi(void) {
     CHECK(av2h_heif_parse((Av2hSpan){ bytes, written },
                            &image, &error) == AV2H_OK);
     CHECK(image.channel_count == 1U && image.bits_per_channel == 8U);
+    CHECK(image.pixel_format.chroma_format_idc == 1U);
+    CHECK(image.pixel_format.bit_depth == 8U);
+    CHECK(image.pixel_format.bytes_per_sample == 1U);
+    CHECK(image.pixel_format.sample_storage == AV2H_SAMPLE_STORAGE_U8);
+    CHECK(image.pixel_format.byte_order == AV2H_BYTE_ORDER_NOT_APPLICABLE);
+    CHECK(image.pixel_format.plane_order == AV2H_PLANE_ORDER_YUV);
     written = change_pixi_channels(bytes, written, 3U);
     check_heif_status(av2h_heif_parse((Av2hSpan){ bytes, written },
                                       &image, &error),

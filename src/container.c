@@ -1,4 +1,5 @@
 #include "base.h"
+#include "pixel_format.h"
 
 #define AV2H_FOURCC(a, b, c, d) \
     (((uint32_t)(a) << 24) | ((uint32_t)(b) << 16) | \
@@ -900,6 +901,10 @@ Av2hStatus av2h_heif_parse(Av2hSpan input,
     image->height = state.height;
     image->channel_count = state.channel_count;
     image->bits_per_channel = state.bits_per_channel;
+    if (!av2h_pixel_format_init_8bit(sequence.chroma_format_idc,
+                                     &image->pixel_format)) {
+        return heif_fail(error, AV2H_UNSUPPORTED, meta.offset);
+    }
     image->property_count = state.property_count;
     return AV2H_OK;
 }

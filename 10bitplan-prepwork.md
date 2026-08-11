@@ -221,6 +221,10 @@ reference streams do not accidentally require unrelated unsupported tools.
 
 ### WP1: Define an explicit decoded pixel-format descriptor
 
+**Status:** Implemented on 2026-08-10. Descriptor semantics, public ABI review,
+inspection integration, and platform validation are recorded in
+`docs/dev/10bit-prep-wp1.md`.
+
 **Objective:** Describe decoded memory independently of filename conventions.
 
 **Work:**

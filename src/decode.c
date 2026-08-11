@@ -1,4 +1,5 @@
 #include "decode.h"
+#include "pixel_format.h"
 
 static Av2hStatus decode_fail(Av2hError *error,
                               Av2hStatus status,
@@ -54,6 +55,8 @@ static int info_matches(const Av2hInfo *left, const Av2hInfo *right) {
             right->image.source.item_payload.size ||
         left->image.width != right->image.width ||
         left->image.height != right->image.height ||
+        !av2h_pixel_format_equal(&left->image.pixel_format,
+                     &right->image.pixel_format) ||
         left->output_size != right->output_size ||
         left->workspace_size != right->workspace_size ||
         left->workspace_alignment != right->workspace_alignment ||
