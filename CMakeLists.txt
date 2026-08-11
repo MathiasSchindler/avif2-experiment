@@ -583,9 +583,9 @@ if(WIN32 AND AV2HEIF_BUILD_WINDOWS_TOOLS AND
         DEPENDS windows-decoder-louis-q184-i420)
     if(AV2HEIF_ENABLE_PYTHON_TESTS)
         find_package(Python3 COMPONENTS Interpreter REQUIRED)
-        add_test(NAME windows-decoder-milestone-9-parity
+        add_test(NAME windows-decoder-filter-parity
             COMMAND "${Python3_EXECUTABLE}"
-                "${CMAKE_CURRENT_SOURCE_DIR}/tools/run_m9_final_parity.py"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/run_filter_parity.py"
                 --decoder "$<TARGET_FILE:av2heif-decoder>")
         add_test(NAME windows-decoder-8bit-444-parity
             COMMAND "${Python3_EXECUTABLE}"

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate deterministic one-frame 8-bit I420 Milestone 0 sources."""
+"""Generate deterministic one-frame 8-bit I420 carriage experiment sources."""
 
 from __future__ import annotations
 

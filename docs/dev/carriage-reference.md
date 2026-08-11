@@ -1,6 +1,6 @@
-# Milestone 0 evidence
+# Carriage reference evidence
 
-Milestone 0 tests assumption A2: moving the Sequence Header OBU from AVM's raw
+The carriage experiment tests assumption A2: moving the Sequence Header OBU from AVM's raw
 elementary stream into a separate `configOBUs` span preserves decode semantics
 when configuration and item payload are presented as one reconstructed logical
 AV2 stream.
@@ -10,17 +10,17 @@ AV2 stream.
 Run:
 
 ```sh
-make milestone-0
+make test-carriage-reference
 ```
 
 This verifies or builds pinned AVM v1.0.0, runs the project-owned unit tests,
 generates four deterministic 8-bit 4:2:0 sources, encodes one frame per source,
 normalizes each OBU stream, decodes both forms, and requires byte-identical I420
 output. The complete machine-readable record is generated at
-`build/m0/matrix/manifest.json`.
+`build/carriage-reference/matrix/manifest.json`.
 
 The authoritative encoder and decoder argument arrays are recorded by
-`tools/run_m0_matrix.py`, including explicit AV2, raw OBU, single-frame,
+`tools/run_carriage_reference.py`, including explicit AV2, raw OBU, single-frame,
 still-picture, 8-bit 4:2:0, quality, speed, and thread settings. The runner
 rejects any AVM checkout other than commit
 `966a7d7cd6fcf60360caf5dc413b2aeeb65e144d` or a dirty checkout.
@@ -63,5 +63,5 @@ The result supports A2 for the selected single-layer, one-frame v0 profile. It
 does not establish a standardized AV2 HEIF image-item binding or validate other
 profiles and metadata OBUs. Explicit BT.709 encoder signaling produced a
 Content Interpretation OBU; because initial v0 does not yet define that OBU's
-configuration or container mapping, the canonical Milestone 0 matrix leaves
+configuration or container mapping, the canonical carriage experiment matrix leaves
 color interpretation unspecified rather than silently discarding metadata.

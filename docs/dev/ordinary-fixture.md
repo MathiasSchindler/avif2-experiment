@@ -1,6 +1,6 @@
-# Milestone 7: ordinary fixture coverage
+# Ordinary fixture coverage
 
-Milestone 7 is complete. The private decoder traverses the full coded-size
+Ordinary-fixture coverage is complete. The private decoder traverses the full coded-size
 ordinary fixture through `AV2H_TILE_DECODE_DONE` at tell 6498. Its unfiltered
 prefilter planes and final cropped output are sample-exact with pinned AVM.
 The prefilter crop FNV-1a hashes are Y `7945904097577017502`, U
@@ -173,19 +173,19 @@ including the earlier 8x32, 16x32, and 32x8 surfaces that previously lacked
 full-surface sample oracles.
 
 The ordinary fixture has no remaining syntax, traversal, prediction,
-reconstruction, or crop frontier in Milestone 7.
+reconstruction, or crop frontier in ordinary-fixture coverage.
 
 ## Historical JPEG artifact OBU audit
 
-This section records the corpus frontier when Milestone 7 closed. Current
+This section records the corpus frontier when ordinary-fixture coverage closed. Current
 end-to-end artifact results are maintained in
 [`images/artifacts/status.md`](../images/artifacts/status.md).
 
 The 20 generated streams listed by `images/artifacts/manifest.json` and the
 legacy `chalk-320x240-qp128.obu` have been checked against the current private
 decoder. All 21 Sequence Headers and Frame Headers parse, but none of the
-streams reaches the ordinary-fixture Milestone 7 frontier or another missing
-Milestone 7 path.
+streams reaches the ordinary-fixture frontier or another missing
+ordinary-fixture coverage path.
 
 - Every `uncompressed_header_bits` endpoint matches the pinned AVM inspector.
   GDF mode, picture QP index, and scale index are retained for all streams.
@@ -205,7 +205,7 @@ Milestone 7 path.
   `cuckoo-157x105-qp160` at tell 35, `emerald-192x96-qp208` at tell 27,
   `louis-463x342-qp224` at tell 27, and `pastell-512x341-qp160` at tell 65.
   The remaining eleven stop fail-closed at an earlier first-luma syntax
-  frontier. This remains Milestone 8 work.
+  frontier. This remains part of advanced-prediction coverage.
 - The generated QP-128 stream `emerald-480x240-qp128.obu` is one of the six
   GDF-mode-2 streams. The legacy QP-128 `chalk-320x240-qp128.obu` reaches its first
   8x16 luma leaf.
@@ -219,7 +219,7 @@ initialization and dequantization rather than permissive parsing.
 Sequence Header filter flags, exact Frame Header endpoint, GDF parameters,
 the first mode-2 GDF flag, the first CDEF strength index, the first enabled
 Y/U/V CCSO controls and their caller-backed map values, and the first
-block/tell for all streams. For the four completed Milestone 8 first blocks it
+block/tell for all streams. For the four completed advanced-prediction coverage first blocks it
 additionally locks mode, prefix, transform, level, coefficient, and complete
 quantized/dequantized arrays. It is part of `make test-c`.
 
@@ -235,7 +235,7 @@ quantized/dequantized arrays. It is part of `make test-c`.
 
 ## Handoff
 
-At this handoff, Milestone 8 owned broader artifact-profile coverage. The
+At this handoff, advanced-prediction coverage owned broader artifact-profile coverage. The
 ordinary fixture is a closed regression oracle: retain coded-size planes, full
 traversal to DONE at tell 6498, and the exact Y/U/V crop hashes above.
 
@@ -253,4 +253,4 @@ final cropped Y, U, and V planes and terminates at authoritative tell 6498.
 Sparse normative tables remain acceptable only while every omitted row fails
 closed before reconstruction.
 
-Milestone 7 does not integrate frame filters or expose a public decoder.
+ordinary-fixture coverage does not integrate frame filters or expose a public decoder.

@@ -15,11 +15,11 @@ TOOL = next((candidate for candidate in TOOL_CANDIDATES if candidate.is_file()),
             TOOL_CANDIDATES[0])
 sys.path.insert(0, str(ROOT / "tools"))
 
-from run_m3_lab import (  # noqa: E402
+from run_artifact_lab import (  # noqa: E402
     encoded_byte_comparison,
     interpreted_metadata_comparison,
 )
-from m0_carriage import parse_obus  # noqa: E402
+from obu_carriage import parse_obus  # noqa: E402
 
 
 FIXTURE_OBUS = parse_obus(

@@ -24,7 +24,7 @@ from generate_10bit_avm_references import (
     sha256_file,
     tool_banner,
 )
-from m0_carriage import parse_obus
+from obu_carriage import parse_obus
 
 
 ROOT = Path(__file__).resolve().parents[1]

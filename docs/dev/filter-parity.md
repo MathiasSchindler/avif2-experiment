@@ -1,13 +1,13 @@
-# Milestone 9: mandatory filters and filtered parity
+# Mandatory filters and filtered parity
 
-Milestone 9 is complete. The private frame path and focused deblock, CDEF,
-CCSO, and GDF kernels pass the milestone gate, including fixture-level final
+Filter parity is complete. The private frame path and focused deblock, CDEF,
+CCSO, and GDF kernels pass the regression gate, including fixture-level final
 filtered parity.
 
 ## Completed isolated preparation
 
 The private filter surface has received an isolated hardening pass that does
-not depend on Milestone 7 traversal work:
+not depend on ordinary-fixture coverage traversal work:
 
 - CDEF now applies the normative signed update
   `(8 + sum - (sum < 0)) >> 4` without relying on implementation-defined
@@ -89,7 +89,7 @@ not depend on Milestone 7 traversal work:
   edges, one-sided lossless filtering, the asymmetric deblock length used at
   horizontal superblock boundaries, CCSO across multiple 64x64 units with
   chroma subsampling, and immutable GDF stripe-boundary sources.
-- `tools/run_m9_filter_evidence.py` records externally produced I420 stage
+- `tools/run_filter_evidence.py` records externally produced I420 stage
   dumps with per-file and per-plane hashes, validates manifest shape and
   geometry fail-closed, and reports the first mismatching filter stage. It
   consumes dumps only and does not invoke or modify AVM.
@@ -99,14 +99,14 @@ CDEF strengths, malformed CCSO parameter and control state, Sequence
 Header/frame inconsistencies, GDF aliasing, and output preservation on each
 new failure path. It also covers the private workspace model, complete
 synthetic pipeline order, deblock scheduling, multi-unit CCSO, and GDF stripe
-boundaries. `tests/test_m9_filter_evidence.py` covers stage-local comparison,
+boundaries. `tests/test_filter_evidence.py` covers stage-local comparison,
 first-mismatch ownership, source-stream binding, and malformed-manifest
 rejection. The focused hosted sanitizer binary and strict freestanding
 zero-undefined-symbol core pass.
 
 The isolated filter-kernel preparation is limited to `src/decoder/filter.c`,
 `src/decoder/filter.h`, `tests/filter_unit.c`,
-`tools/run_m9_filter_evidence.py`, `tests/test_m9_filter_evidence.py`,
+`tools/run_filter_evidence.py`, `tests/test_filter_evidence.py`,
 `plan.md`, and this document. The later GDF entropy checkpoint separately
 extends frame, leaf, and tile state plus their focused and artifact tests; it
 does not modify coefficient, transform, or reconstruction behavior.
@@ -116,23 +116,23 @@ does not modify coefficient, transform, or reconstruction behavior.
 Record any subset of ordered stages with explicit coded or visible geometry:
 
 ```sh
-python3 tools/run_m9_filter_evidence.py record \
+python3 tools/run_filter_evidence.py record \
   --fixture odd \
   --producer "pinned AVM v1.0.0" \
-  --source-obu build/m0/matrix/odd/original.obu \
-  --stage reconstructed build/m9/odd/reconstructed.i420 24 16 \
-  --stage deblocked build/m9/odd/deblocked.i420 24 16 \
-  --stage filtered build/m9/odd/filtered.i420 17 15 \
-  --output build/m9/odd/reference.json
+  --source-obu build/carriage-reference/matrix/odd/original.obu \
+  --stage reconstructed build/filter-evidence/odd/reconstructed.i420 24 16 \
+  --stage deblocked build/filter-evidence/odd/deblocked.i420 24 16 \
+  --stage filtered build/filter-evidence/odd/filtered.i420 17 15 \
+  --output build/filter-evidence/odd/reference.json
 ```
 
 Compare a production manifest with the reference:
 
 ```sh
-python3 tools/run_m9_filter_evidence.py compare \
-  build/m9/odd/reference.json \
-  build/m9/odd/production.json \
-  --output build/m9/odd/comparison.json
+python3 tools/run_filter_evidence.py compare \
+  build/filter-evidence/odd/reference.json \
+  build/filter-evidence/odd/production.json \
+  --output build/filter-evidence/odd/comparison.json
 ```
 
 Comparison requires the same fixture, the same source OBU when one is
@@ -171,12 +171,12 @@ The locked fixture final I420 hashes from pinned AVM v1.0.0 are:
 | ordinary | 160x120 | `def0ced80c4bc1866d0d865fb392c80020ac0a823f310b2f62999d10eede1af5` |
 | high-detail | 96x80 | `4120930c9c9c49f73d4aa3e1d4c56cbb4b557679b42fe3b9de984bca1431745a` |
 
-`tools/run_m9_final_parity.py` reruns all four locked OBUs through the
+`tools/run_filter_parity.py` reruns all four locked OBUs through the
 production decoder and pins the final I420 plus each Y, U, and V plane
 independently. The hosted evidence tool and its Python tests retain ordered
-stage-local diagnosis. `make milestone-9` runs the fixture, filter, evidence,
-and strict freestanding gates; Windows CTest includes the same final parity
-runner when Python is available.
+stage-local diagnosis. `make test-filter-parity` runs the fixture, filter,
+evidence, and strict freestanding gates; Windows CTest includes the same final
+parity runner when Python is available.
 
 ## Exit gate
 
@@ -184,4 +184,4 @@ Tiny, odd, ordinary, and high-detail fixtures match pinned AVM sample-exactly
 on final filtered Y, U, and V planes. Stage-local checks identify deblock,
 CDEF, CCSO, or GDF as the owning layer for any mismatch.
 
-Milestone 9 does not expose a public decoder.
+filter parity does not expose a public decoder.

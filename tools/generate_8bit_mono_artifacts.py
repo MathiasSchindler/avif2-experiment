@@ -11,7 +11,7 @@ import subprocess
 import tempfile
 from pathlib import Path
 
-from m0_carriage import parse_obus
+from obu_carriage import parse_obus
 
 
 ROOT = Path(__file__).resolve().parents[1]

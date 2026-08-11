@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate and validate deterministic 8-bit monochrome AV2 fixtures."""
+"""Generate and validate deterministic 8-bit 4:4:4 AV2 fixtures."""
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ import subprocess
 import tempfile
 from pathlib import Path
 
-from generate_m0_fixtures import FIXTURES, pixel
+from generate_i420_fixtures import FIXTURES, pixel
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -45,22 +45,26 @@ def main() -> int:
     args.output_dir.mkdir(parents=True, exist_ok=True)
     manifest = []
 
-    with tempfile.TemporaryDirectory(prefix="av2heif-m11-") as temporary:
+    with tempfile.TemporaryDirectory(prefix="av2heif-m12-") as temporary:
         temporary_dir = Path(temporary)
         for fixture in FIXTURES:
-            y_plane = bytes(
-                pixel(fixture.pattern, 0, x, y, fixture.width, fixture.height)
+            source = bytes(
+                pixel(
+                    fixture.pattern,
+                    plane,
+                    x,
+                    y,
+                    fixture.width,
+                    fixture.height,
+                )
+                for plane in range(3)
                 for y in range(fixture.height)
                 for x in range(fixture.width)
             )
-            y4m = temporary_dir / f"{fixture.name}.y4m"
-            decoded = temporary_dir / f"{fixture.name}.i420"
-            output = args.output_dir / f"monochrome-{fixture.name}.obu"
-            header = (
-                f"YUV4MPEG2 W{fixture.width} H{fixture.height} "
-                "F1:1 Ip A0:0 Cmono\nFRAME\n"
-            ).encode("ascii")
-            y4m.write_bytes(header + y_plane)
+            raw = temporary_dir / f"{fixture.name}.i444"
+            decoded = temporary_dir / f"{fixture.name}-decoded.i444"
+            output = args.output_dir / f"i444-{fixture.name}.obu"
+            raw.write_bytes(source)
             encode_command = [
                 str(args.encoder),
                 "--debug",
@@ -71,60 +75,69 @@ def main() -> int:
                 "--good",
                 "--cpu-used=9",
                 "--threads=1",
-                "--profile=0",
+                "--profile=1",
+                f"--width={fixture.width}",
+                f"--height={fixture.height}",
+                "--i444",
                 "--bit-depth=8",
                 "--input-bit-depth=8",
-                "--monochrome",
+                "--input-chroma-subsampling-x=0",
+                "--input-chroma-subsampling-y=0",
                 "--force-video-mode=0",
                 "--film-grain-test=0",
                 "--enable-lcr=0",
                 "--enable-operating-point-sets=0",
                 "--enable-atlas=0",
+                "--enable-intrabc=0",
+                "--enable-restoration=0",
                 "--end-usage=q",
                 "--qp=128",
                 "--test-decode=fatal",
                 "--quiet",
                 "-o",
                 str(output),
-                str(y4m),
+                str(raw),
             ]
             run(encode_command)
             decode_command = [
                 str(args.decoder),
                 "--codec=av2",
-                "--i420",
+                "--rawvideo",
+                "--output-bit-depth=8",
                 "--limit=1",
                 "-o",
                 str(decoded),
                 str(output),
             ]
             run(decode_command)
-            decoded_y = decoded.read_bytes()[: len(y_plane)]
-            if len(decoded_y) != len(y_plane):
-                raise RuntimeError(f"short AVM decode for {fixture.name}")
+            reconstructed = decoded.read_bytes()
+            expected_size = fixture.width * fixture.height * 3
+            if len(reconstructed) != expected_size:
+                raise RuntimeError(f"unexpected AVM output for {fixture.name}")
             obu = output.read_bytes()
             manifest.append(
                 {
                     "name": fixture.name,
                     "width": fixture.width,
                     "height": fixture.height,
-                    "chroma_format": "4:0:0",
+                    "chroma_format": "4:4:4",
+                    "sequence_profile_idc": 4,
                     "bit_depth": 8,
                     "pattern": fixture.pattern,
                     "file": output.name,
-                    "source_y_sha256": sha256(y_plane),
+                    "source_sha256": sha256(source),
                     "obu_bytes": len(obu),
                     "obu_sha256": sha256(obu),
-                    "decoded_y_sha256": sha256(decoded_y),
-                    "decoded_y_fnv1a64": f"0x{fnv1a64(decoded_y):016x}",
+                    "decoded_sha256": sha256(reconstructed),
+                    "decoded_fnv1a64": f"0x{fnv1a64(reconstructed):016x}",
                     "encode_arguments": encode_command[1:-3]
-                    + ["-o", output.name, f"{fixture.name}.y4m"],
+                    + ["-o", output.name, raw.name],
                     "decode_arguments": decode_command[1:-3]
-                    + ["-o", f"{fixture.name}.i420", output.name],
+                    + ["-o", decoded.name, output.name],
                 }
             )
 
-    (args.output_dir / "monochrome-manifest.json").write_text(
+    (args.output_dir / "i444-manifest.json").write_text(
         json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="ascii"
     )
     return 0

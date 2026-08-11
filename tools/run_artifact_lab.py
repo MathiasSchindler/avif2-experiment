@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Run the Milestone 3 AV2-HEIF artifact laboratory offline."""
+"""Run the AV2-HEIF artifact laboratory offline."""
 
 from __future__ import annotations
 
 import argparse
+import concurrent.futures
 import json
 import os
 import platform
@@ -13,9 +14,9 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from generate_m0_fixtures import FIXTURES, Fixture
-from m0_carriage import hash_i420, parse_obus
-from run_m0_matrix import artifact, decoded_output, reference_binary, verify_reference
+from generate_i420_fixtures import FIXTURES, Fixture
+from obu_carriage import hash_i420, parse_obus
+from run_carriage_reference import artifact, decoded_output, reference_binary, verify_reference
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -184,7 +185,7 @@ def run_fixture(
     run(
         [
             sys.executable,
-            str(ROOT / "tools" / "m0_carriage.py"),
+            str(ROOT / "tools" / "obu_carriage.py"),
             "split",
             str(original_obu),
             "--config",
@@ -383,7 +384,10 @@ def main() -> int:
     parser.add_argument(
         "--fixture", choices=[fixture.name for fixture in FIXTURES], action="append"
     )
+    parser.add_argument("--jobs", type=int, default=os.cpu_count() or 1)
     args = parser.parse_args()
+    if args.jobs < 1:
+        parser.error("--jobs must be at least 1")
     build_dir = args.build_dir.resolve()
     artifact_tool = args.artifact_tool.resolve()
     output_dir = args.output_dir.resolve()
@@ -402,7 +406,7 @@ def main() -> int:
     ]
     generation_command = [
         sys.executable,
-        str(ROOT / "tools" / "generate_m0_fixtures.py"),
+        str(ROOT / "tools" / "generate_i420_fixtures.py"),
         "--output-dir",
         str(source_dir),
     ]
@@ -411,13 +415,16 @@ def main() -> int:
     source_commands: list[dict[str, object]] = []
     run(generation_command, source_commands)
 
-    results = [
-        run_fixture(
-            fixture, source_dir, output_dir, encoder, decoder, artifact_tool
-        )
-        for fixture in selected
-    ]
-    compiler = os.environ.get("M3_ARTIFACT_COMPILER", os.environ.get("CC", "cc"))
+    with concurrent.futures.ThreadPoolExecutor(
+        max_workers=min(args.jobs, len(selected))
+    ) as executor:
+        results = list(executor.map(
+            lambda fixture: run_fixture(
+                fixture, source_dir, output_dir, encoder, decoder, artifact_tool
+            ),
+            selected,
+        ))
+    compiler = os.environ.get("ARTIFACT_LAB_COMPILER", os.environ.get("CC", "cc"))
     compiler_argv = shlex.split(compiler)
     if not compiler_argv:
         raise SystemExit("error: empty artifact compiler command")
@@ -435,8 +442,8 @@ def main() -> int:
                 ).splitlines()[0],
             },
             "build_options": os.environ.get(
-                "M3_ARTIFACT_BUILD_OPTIONS",
-                "unknown (run through `make milestone-3` to record exact flags)",
+                "ARTIFACT_LAB_BUILD_OPTIONS",
+                "unknown (run through `make test-artifact-lab` to record exact flags)",
             ),
             "sources": {
                 path: artifact(ROOT / path, ROOT)
@@ -453,7 +460,7 @@ def main() -> int:
     )
     manifest = {
         "schema": "av2heif-artifact-laboratory-v1",
-        "experiment": "AV2-HEIF experimental v0 Milestone 3",
+        "experiment": "AV2-HEIF experimental v0 artifact laboratory",
         "status": "pass",
         "host": {
             "platform": platform.platform(),
@@ -474,7 +481,7 @@ def main() -> int:
     manifest_path.write_text(
         json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="ascii"
     )
-    print(f"Milestone 3: {len(results)} fixtures passed")
+    print(f"artifact laboratory: {len(results)} fixtures passed")
     print(f"Manifest: {manifest_path}")
     return 0
 

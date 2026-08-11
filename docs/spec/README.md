@@ -16,5 +16,5 @@ by Git so the specification and generated attachment links remain local and
 are not published with this repository.
 
 Open `docs/spec/av2-v1.0.0/index.html` in a browser or search the downloaded
-headers directly. The Milestone 5 checking and table-generation tools use this
+headers directly. The decoder foundation checking and table-generation tools use this
 directory by default.

@@ -170,10 +170,10 @@ Pins for libavif, AV2 Tools, rav1e, dav1d, and libaom should be added only when
 their adapters are introduced. A lock entry must include the revision, source
 URL, license identifier, retrieval method, and artifact or checkout hash.
 
-## Milestone 0: prove the carriage assumption
+## Prove the carriage assumption
 
 **Status:** Implemented. The four-fixture differential gate passes; see
-`docs/dev/milestone-0.md` for reproducible commands, hashes, scope, and limitations.
+`docs/dev/carriage-reference.md` for reproducible commands, hashes, scope, and limitations.
 
 The first executable result must test assumption A2: moving the Sequence Header
 OBU from AVM's elementary stream into `av2C.configOBUs` must preserve decode
@@ -201,10 +201,10 @@ normalization. If they do not, stop canonical HEIF implementation and either
 define a clearly project-private payload revision or wait for clarified
 image-item rules.
 
-## Milestone 1: freestanding substrate and carriage core
+## Freestanding substrate and carriage core
 
 **Status:** Implemented. The vendor-free sanitizer, strict freestanding, and
-undefined-symbol gates pass; see `docs/dev/milestone-1.md` for the supported
+undefined-symbol gates pass; see `docs/dev/freestanding-substrate.md` for the supported
 profile, API surface, negative coverage, and limitations.
 
 Extract only reusable generic pieces from `avif-decoder`:
@@ -234,10 +234,10 @@ Exit gate: strict and hosted sanitizer tests pass without any vendored software
 present, and malformed lengths, headers, ordering, and field mismatches are
 rejected deterministically.
 
-## Milestone 2: deterministic AV2-HEIF v0
+## Deterministic AV2-HEIF v0 container
 
 **Status:** Implemented. The byte-exact writer, strict typed parser, sanitizer,
-freestanding, and undefined-symbol gates pass; see `docs/dev/milestone-2.md` for
+freestanding, and undefined-symbol gates pass; see `docs/dev/deterministic-container.md` for
 the canonical graph, API contract, mutation coverage, and limitations.
 
 Implement a strict typed parser and deterministic writer for one primary image
@@ -261,10 +261,10 @@ Exit gate: canonical output reparses into the expected typed model, remuxing an
 already normalized model is byte-identical, and all named mutations fail at
 the expected layer without AVM or other hosted dependencies.
 
-## Milestone 3: artifact laboratory
+## Artifact laboratory
 
 **Status:** Implemented. The four-fixture offline generate, normalize, mux,
-inspect, extract, decode, and compare gate passes; see `docs/dev/milestone-3.md` for
+inspect, extract, decode, and compare gate passes; see `docs/dev/artifact-laboratory.md` for
 the artifact schemas, comparison semantics, reproducible command, and limits.
 
 Create a common hosted artifact description containing:
@@ -294,11 +294,11 @@ Exit gate: one command can generate, normalize, mux, inspect, extract, decode,
 and compare the initial fixture matrix using pinned local reference builds.
 Normal comparison runs must not require network access.
 
-## Milestone 4: freestanding query surface
+## Freestanding query surface
 
 **Status:** Implemented. Bounded validation, structural dialect detection,
 metadata query, exact I420 plane sizing, input binding, and the strict
-freestanding dependency gate pass; see `docs/dev/milestone-4.md` for the public
+freestanding dependency gate pass; see `docs/dev/query-surface.md` for the public
 contract, defaults, diagnostics, fixture parity, and limitations.
 
 Add the public API for caller limits, structured errors, container validation,
@@ -316,7 +316,7 @@ proof burden rather than projected line count: private foundation, frame-wide
 wiring, ordinary coverage, advanced coverage, filter parity, and public API
 hardening each receive an independent exit gate.
 
-## Milestone 5: private decoder foundation and tiny fixture
+## Private decoder foundation and tiny fixture
 
 **Status:** Implemented. The private, allocation-free decoder foundation owns
 frame and tile syntax, adaptive entropy state, bounded partition traversal,
@@ -324,14 +324,14 @@ neighbor contexts, luma/chroma mode syntax, sparse coefficient decoding,
 prediction, inverse transforms, and live-plane writes. All eleven tiny luma
 leaves and four tiny chroma leaves reconstruct sample-exactly through tell 725.
 Focused private kernels cover deblock, CDEF, CCSO, and accepted-profile GDF;
-restoration remains unsupported and fail-closed. See `docs/dev/milestone-5.md`.
+restoration remains unsupported and fail-closed. See `docs/dev/decoder-foundation.md`.
 
 Exit gate: the tiny fixture reconstructs sample-exactly on every unfiltered
 plane through a caller-owned tile orchestrator under hosted sanitizers and the
 strict freestanding dependency gate. Every unimplemented syntax or
 reconstruction path fails before leaf commit or final-plane mutation.
 
-## Milestone 6: frame-wide wiring and odd fixture
+## Frame-wide wiring and odd fixture
 
 **Status:** Implemented. Caller-owned coded Y, U, and V planes now retain
 visible reference bounds separately from padded storage and use per-4x4
@@ -347,21 +347,21 @@ Exit gate: the odd fixture reconstructs sample-exact unfiltered Y, U, and V
 planes with exact entropy endpoints, coded-plane bounds, and no
 fixture-supplied contexts or references.
 
-## Milestone 7: ordinary fixture coverage
+## Ordinary fixture coverage
 
 **Status:** Complete. The ordinary 160x120 fixture traverses coded-size Y/U/V
 planes to `AV2H_TILE_DECODE_DONE` at tell 6498 with exact pinned-AVM prefilter
 and final crop parity. Prefilter FNV-1a hashes are Y `7945904097577017502`, U
 `4124092689509881817`, and V `6418349723304023184`; the final I420 SHA-256 is
 `def0ced80c4bc1866d0d865fb392c80020ac0a823f310b2f62999d10eede1af5`.
-See `docs/dev/milestone-7.md` for the locked checkpoints.
+See `docs/dev/ordinary-fixture.md` for the locked checkpoints.
 
-The following artifact-reach audit records the Milestone 7 completion
+The following artifact-reach audit records the ordinary-fixture coverage completion
 checkpoint. Its per-stream frontiers are historical; current end-to-end corpus
 results live in `images/artifacts/status.md`.
 
 An audit of all 21 `images/artifacts/*.obu` streams found no artifact-relevant
-Milestone 7 gap. Every Frame Header now parses to the exact pinned-AVM bit
+ordinary-fixture coverage gap. Every Frame Header now parses to the exact pinned-AVM bit
 endpoint, including multi-block GDF mode and picture parameters. Six streams
 select GDF mode 2; they now initialize the tile decoder and decode their first
 block flag at the exact pinned-AVM endpoint. The first five now also decode and
@@ -373,7 +373,7 @@ Large-block FSC context 6 is treated normatively as implicit zero, and
 silene's reached palette flag is decoded as zero. Non-mode-2 multi-strength
 CDEF and CCSO are also decoded for chalk, chinnathurai, cuckoo, louis, and the
 smaller silene stream. Of the other streams, four complete their exact first
-coefficient block through Milestone 8 and the remaining frontiers are
+coefficient block through advanced-prediction coverage and the remaining frontiers are
 fail-closed at transform-size, EOB, coefficient, prediction, or reconstruction
 paths. The ordinary 4x4 intraBC leaf is implemented, but none of the artifact
 streams reaches it.
@@ -382,7 +382,7 @@ Exit gate complete: the ordinary fixture reconstructs sample-exact unfiltered
 prefilter and final cropped Y, U, and V planes, and full traversal terminates
 at the pinned AVM entropy endpoint without unsupported paths.
 
-## Milestone 8: high-detail and advanced prediction
+## High-detail and advanced prediction coverage
 
 **Status:** Complete. The locked 96x80 high-detail fixture has complete
 frame-wide traversal and unfiltered-plane parity coverage under the hosted
@@ -409,12 +409,12 @@ sanitizer and strict freestanding dependency gates.
   Y/U/V hashes. Production I420 SHA-256 is
   `4120930c9c9c49f73d4aa3e1d4c56cbb4b557679b42fe3b9de984bca1431745a`.
 
-At Milestone 8 closure, the production decoder emitted 7 of the 21 research
+At advanced-prediction coverage closure, the production decoder emitted 7 of the 21 research
 artifacts. This historical checkpoint is retained to explain the closure work;
 the current 21-artifact production snapshot is maintained in
 `images/artifacts/status.md`.
 
-### Completed Milestone 8 closure
+### Completed advanced-prediction coverage closure
 
 1. Chimp Q64 and Cuckoo Q160 prefilter/final reconstruction are byte-identical
   to pinned AVM. Chimp Q64 uses the normative zero-direction rule for chroma
@@ -439,19 +439,19 @@ fail-closed syntax checks.
 
 ### Exit gate
 
-Milestone 8 is complete: the locked 96x80 high-detail fixture traverses to
+advanced-prediction coverage is complete: the locked 96x80 high-detail fixture traverses to
 `AV2H_TILE_DECODE_DONE` and its complete unfiltered Y, U, and V planes are
 sample-exact against pinned AVM under hosted sanitizers and the strict
 freestanding dependency gate. Every reached CFL and IntraBC block must be
 covered without fixture-supplied contexts or references. Mandatory frame
-filters are completed in Milestone 9; the public decode API remains Milestone
-10 work.
+filters are completed by the filter-parity work; the public decode API remains
+separate work.
 
-## Milestone 9: mandatory filters and filtered parity
+## Mandatory filters and filtered parity
 
 **Status:** Complete.
 
-The implementation chronology below is retained as Milestone 9 evidence.
+The implementation chronology below is retained as filter parity evidence.
 Intermediate statements about blocked traversal describe the state before the
 completed integration and exit gate later in this section.
 
@@ -463,8 +463,8 @@ synthetic complete filter-pipeline vector, deblock/CCSO/GDF boundary vectors,
 and hosted stage-evidence recorder/comparator are also implemented. That
 isolated filter preparation is confined to the filter implementation/header,
 focused C/Python tests,
-`tools/run_m9_filter_evidence.py`, and Milestone 9 documentation; see the
-milestone document for the exact handoff and remaining dependencies.
+`tools/run_filter_evidence.py`, and filter-parity documentation; see the
+development report for the exact handoff and remaining dependencies.
 Frame-header GDF signaling is also complete for the artifact profile: the
 parser derives the normative 64/128-pixel GDF block count, conditionally reads
 the mode-2 bit, and matches all 21 AVM header endpoints. Mode-2 tile entropy
@@ -494,14 +494,14 @@ only after filtering. Restoration remains outside the accepted profile and
 fails before output mutation.
 
 Exit gate complete: all four locked fixtures match pinned AVM sample-exactly
-on final filtered Y, U, and V planes. `tools/run_m9_final_parity.py` runs each
+on final filtered Y, U, and V planes. `tools/run_filter_parity.py` runs each
 locked OBU through the production decoder and pins final file and plane hashes;
-`tools/run_m9_filter_evidence.py` retains stage-local ownership for any future
-deblock, CDEF, CCSO, or GDF mismatch. `make milestone-9` runs fixture parity,
+`tools/run_filter_evidence.py` retains stage-local ownership for any future
+deblock, CDEF, CCSO, or GDF mismatch. `make test-filter-parity` runs fixture parity,
 focused filter and evidence tests, and the strict freestanding dependency
 gate.
 
-## Milestone 10: bounded public decode surface
+## Bounded public decode surface
 
 **Status:** Complete. The public query reports exact workspace size/alignment
 and contiguous I420 layouts; decode verifies immutable query binding, caller
@@ -509,22 +509,22 @@ bounds, alignment, and disjoint ranges before entering the private pipeline.
 The four canonical fixtures pass complete output hashes through canonical HEIF,
 and the ordinary fixture covers stale state, overlap, undersized buffers, and
 every shorter input prefix without preflight output mutation. See
-`docs/dev/milestone-10.md`.
+`docs/dev/public-decode.md`.
 
-Structural preparation for this milestone is tracked in
+Structural preparation for this API is tracked in
 `docs/decoder-refactoring-plan.md`.
 
 Finalize workspace size and alignment calculations, query-to-decode input
 binding, caller-owned output layouts, truncation behavior, error ownership,
 fuzz limits, release documentation, and the public decode API. Do not expose
-the API before Milestone 9 parity is complete.
+the API before filter parity parity is complete.
 
 Exit gate: public decoding of all four fixtures is sample-exact across allowed
 workspace alignments; undersized workspace, stale input, malformed syntax,
 and truncation fail deterministically; release artifacts remain CC0,
 freestanding, allocator-free, nolibc, and free of vendored dependencies.
 
-## Milestone 11: 8-bit monochrome
+## 8-bit monochrome support
 
 **Status:** Complete.
 
@@ -548,7 +548,7 @@ Expected decoder impact: low to medium. The main owners are Sequence Header
 and frame parsing, container `pixi` validation/writing, query and workspace
 layout, fixed three-plane loops in tile/output/filter orchestration, and the
 Windows output adapter. Prediction, inverse transforms, and luma filter
-kernels should require little or no arithmetic change. This milestone should
+kernels should require little or no arithmetic change. This work should
 establish reusable plane-presence helpers, not replace every fixed-size
 three-element internal array.
 
@@ -565,9 +565,9 @@ Implemented in the public decoder with one active Y plane, canonical zero U/V
 layouts, one-channel 8-bit `pixi`, active-plane workspace/filter ownership,
 and luma-only tile traversal across multiple superblocks. The four generated
 fixtures and their pinned AVM hashes are recorded in
-`tests/fixtures/monochrome-manifest.json`; see `docs/dev/milestone-11.md`.
+`tests/fixtures/monochrome-manifest.json`; see `docs/dev/monochrome.md`.
 
-## Milestone 12: 8-bit 4:4:4
+## 8-bit 4:4:4 support
 
 **Status:** Complete.
 
@@ -590,10 +590,10 @@ sample arithmetic and most transform kernels can remain intact, but geometry
 is pervasive across frame workspace, tile/leaf/transform ownership, chroma
 prediction, reconstruction, and all filter stages. The platform viewer and
 development parity tools also need format-aware output handling. This
-milestone should centralize subsampling and coordinate helpers so no decoder
+This work should centralize subsampling and coordinate helpers so no decoder
 owner independently re-derives 4:2:0 or 4:4:4 dimensions.
 
-Non-goals: 4:2:2, monochrome changes beyond Milestone 11, 10-bit storage,
+Non-goals: 4:2:2, monochrome changes beyond monochrome support, 10-bit storage,
 color conversion in the production core, and newly enabled coding tools.
 
 Exit gate: canonical 8-bit 4:4:4 fixtures covering odd dimensions, large
@@ -606,7 +606,7 @@ Implemented with shared checked plane geometry, exact profile-4/I444
 admission, full-resolution transform/reconstruction/filter traversal, and
 format-aware Windows and WebAssembly presentation. Tiny, odd, ordinary, and
 high-detail fixtures match pinned AVM on all three planes; see
-`docs/dev/milestone-12.md`.
+`docs/dev/chroma-444.md`.
 
 ### Production-scale 4:4:4 artifact coverage
 
@@ -621,14 +621,14 @@ Every OBU generated by `tools/generate_8bit_444_artifacts.py` at its original
 maximum dimension of 800 pixels, including Palace 800x800, decodes through the
 public canonical-HEIF, freestanding Windows, and WebAssembly paths and matches
 pinned AVM byte-for-byte on Y, U, and V. The maximum-size monochrome corpus and
-Milestone 9 I420 matrix remain exact. Reproducible commands and focused edge
-regressions are documented in `docs/dev/milestone-12.md`.
+filter parity I420 matrix remain exact. Reproducible commands and focused edge
+regressions are documented in `docs/dev/chroma-444.md`.
 
-## Milestone 13: 10-bit 4:2:0
+## 10-bit 4:2:0 implementation
 
 **Status:** Planned.
 
-Add 10-bit 4:2:0 as the sample-width milestone while retaining the established
+Add 10-bit 4:2:0 as the sample-width expansion while retaining the established
 4:2:0 geometry. Use 16-bit containers for public and internal 10-bit samples,
 with byte-based strides, offsets, alignments, and sizes stated explicitly.
 Define the public byte order and packing contract; do not describe a 16-bit
@@ -652,7 +652,7 @@ existing chroma geometry is retained. Prefer typed 8-bit and 16-bit accessors
 or depth-specialized kernels over untyped `void *` sample access in normative
 inner loops.
 
-The native high-bit-depth source corpus for this milestone lives in
+The native high-bit-depth source corpus for this work lives in
 `images/artifacts/10bit/`. Three project-author-owned Pixel 8 Pro DNGs provide
 main-camera and ultrawide portrait/landscape photographs at 600- and
 1200-pixel widths. Their `yuv420p10le` inputs are derived through reproducible
@@ -670,17 +670,18 @@ layout, byte order, alignment, overflow, and exact workspace tests pass;
 sanitizer and fuzz coverage exercise both sample widths; and every 8-bit
 profile remains byte-identical.
 
-## Milestone 14: 10-bit 4:4:4
+## 10-bit 4:4:4 implementation
 
 **Status:** Planned.
 
-Combine the generalized 4:4:4 geometry from Milestone 12 with the 10-bit
-sample domain from Milestone 13. This is an independent integration milestone,
-not an inference that two separately tested axes compose correctly. Accept
+Combine the generalized 4:4:4 geometry from 8-bit 4:4:4 support with the 10-bit
+sample domain from 10-bit 4:2:0 implementation. This is an independent
+integration test, not an inference that two separately tested axes compose
+correctly. Accept
 only the normative profile/signaling combination and preserve fail-closed
 behavior for 4:2:2, 12-bit, and unsupported tools.
 
-Expected decoder impact after Milestones 12 and 13: low to medium production
+Expected decoder impact after 8-bit 4:4:4 and 10-bit 4:2:0: low to medium production
 code, concentrated where geometry and sample width meet. Re-audit chroma
 prediction references, CfL/MHCCP/CCTX intermediates, full-resolution filter
 grids, plane byte strides, maximum workspace calculations, and platform/tool
@@ -704,7 +705,7 @@ passes through both private fixture and public canonical-HEIF paths.
 
 ## Later work
 
-After Milestone 14, add one independently testable slice at a time: 4:2:2,
+After 10-bit 4:4:4 implementation, add one independently testable slice at a time: 4:2:2,
 color conversion, streaming PNG, transformations, metadata, alpha auxiliary
 items, grids, and bounded parallelism. Each slice needs strict syntax tests,
 reference plane equality, workspace bounds, fuzz coverage, and updated support
@@ -717,7 +718,7 @@ state which AV2 video features are irrelevant to still images.
 
 ## Current implementation boundary
 
-Milestones 0 through 12 are complete. The public decoder supports the
+The original 8-bit decoder program is complete. The public decoder supports the
 project-defined canonical HEIF profile for one 8-bit still picture with I400,
 I420, or I444 planar output. The locked I420, monochrome, and I444 corpora are
 sample-exact against pinned AVM v1.0.0. This evidence covers the tested profile;
@@ -727,8 +728,8 @@ The following decoder features remain outside the accepted profile and fail
 closed: 10-bit and 12-bit samples, 4:2:2 chroma, restoration, film grain,
 sequence segmentation and tile signaling, frame segmentation, quantization
 matrices, lossless base-Q-zero frames, and multi-frame or non-initial tile-group
-forms. Milestones 13 and 14 own 10-bit 4:2:0 and 4:4:4 respectively. The other
-codec features need separate milestones and independent reference evidence.
+forms. The next decoder work covers 10-bit 4:2:0 and 4:4:4 respectively. Other
+codec features need separate testable changes and independent reference evidence.
 
 Within the existing 8-bit coding-tool surface, the reviewed census still marks
 three coverage questions: exhaustive zero-angle luma directional geometry and
@@ -768,17 +769,17 @@ Release validation additionally includes:
 1. Audit and close the existing 8-bit chroma-FSC, zero-angle luma, and
   secondary-transform coverage gaps.
 2. Add a coverage-guided fuzz target for the public query/decode boundary.
-3. Milestone 13: widen sample storage and arithmetic for 10-bit 4:2:0.
-4. Milestone 14: validate the combined 10-bit 4:4:4 model independently.
+3. 10-bit 4:2:0 implementation: widen sample storage and arithmetic for 10-bit 4:2:0.
+4. 10-bit 4:4:4 implementation: validate the combined 10-bit 4:4:4 model independently.
 5. Add later container and presentation features one independently tested
   slice at a time.
 
-Early work in a later milestone may be retained when it is already validated,
-but it does not waive an earlier exit gate. Each milestone must leave the
-decoder fail-closed at the first unsupported owner.
+Early work on a later feature may be retained when it is already validated,
+but it does not waive an earlier exit gate. Each independently tested change
+must leave the decoder fail-closed at the first unsupported owner.
 
-Milestones 0 through 12 are complete. Milestones 13 and 14 remain planned as
-independent sample-width expansions. The private platform decoders and public
+The 8-bit implementation is complete. The 10-bit 4:2:0 and 4:4:4 expansions
+remain planned and independently testable. The private platform decoders and public
 canonical-HEIF path retain byte-identical pinned-AVM output for their locked
 corpora. Restoration remains outside the accepted profile and must continue to
 fail closed.

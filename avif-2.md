@@ -8,7 +8,7 @@
 `avif-2`, next to `avif-decoder`
 
 For current implementation status, supported formats, and build instructions,
-see the [README](README.md). The [active milestone roadmap](plan.md) tracks
+see the [README](README.md). The [active roadmap](plan.md) tracks
 current and planned work. The text below preserves the dated design and
 research record.
 
@@ -52,7 +52,7 @@ The words below have deliberately different meanings:
 - **Decision** means the proposed sibling project will follow this rule until a
   recorded design change supersedes it.
 - **Assumption** means work may proceed on this basis, but a test or normative
-  reading must confirm it before the affected milestone is complete.
+  reading must confirm it before the affected feature is complete.
 - **Open question** means implementation must not invent an answer. The project
   must resolve it, constrain it out of scope, or preserve it as unsupported.
 
@@ -414,8 +414,8 @@ For v0:
 
 **Decision D9:** The v0 writer emits only the Sequence Header OBU in
 `configOBUs`. Layer configuration, static metadata, content interpretation,
-film grain, and other high-level syntax remain unsupported until added by a
-separate milestone.
+film grain, and other high-level syntax remain unsupported until added as
+separately tested features.
 
 ### Item payload format
 
@@ -1089,7 +1089,7 @@ Release validation includes:
 
 ## Compression experiment design
 
-The first project milestone is interoperability, not a claim that AV2 is a
+The project's first goal is interoperability, not a claim that AV2 is a
 better still-image codec. Once decoding is correct, compression evaluation can
 ask whether AV2's intra tools improve still images.
 

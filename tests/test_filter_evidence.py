@@ -8,7 +8,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "tools"))
 
-from run_m9_filter_evidence import (  # noqa: E402
+from run_filter_evidence import (  # noqa: E402
     compare_manifests,
     record_manifest,
 )

@@ -1,6 +1,6 @@
-# Milestone 12: 8-bit 4:4:4
+# 8-bit 4:4:4 support
 
-Milestone 12 is complete. The public decoder accepts the AV2 8-bit 4:4:4
+8-bit 4:4:4 support is complete. The public decoder accepts the AV2 8-bit 4:4:4
 still-picture profile in addition to the existing 8-bit monochrome and 4:2:0
 profiles.
 
@@ -33,11 +33,11 @@ that cannot be represented without mutating caller output.
 
 ## Evidence
 
-`tools/generate_m12_fixtures.py` reproducibly encodes and independently
+`tools/generate_8bit_444_fixtures.py` reproducibly encodes and independently
 decodes tiny 16x16, odd 17x15, ordinary 160x120, and high-detail 96x80 I444
 streams with pinned AVM v1.0.0 tools. The commands and source, OBU, and decoded
 hashes are recorded in `tests/fixtures/i444-manifest.json`. IntraBC and
-restoration are disabled to keep the corpus bounded to the milestone's coding
+restoration are disabled to keep the corpus bounded to the supported coding
 tool surface.
 
 `public-decode-unit` muxes all four streams into canonical HEIF and pins their
@@ -69,7 +69,7 @@ entry points:
 - `tools/validate_8bit_444_wasm.py` executes the browser WebAssembly ABI.
 
 The Windows CTest gate also runs the maximum-size monochrome corpus and the
-Milestone 9 I420 parity matrix. The focused coefficient and reconstruction
+filter parity I420 parity matrix. The focused coefficient and reconstruction
 units pin cropped-edge V contexts and AVM's 64-sample chroma directional
 reference limits.
 

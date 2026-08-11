@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Restructure the private decoder so that Milestone 10 and later feature work can
+Restructure the private decoder so that public decode and later feature work can
 continue without changing decoded output, the freestanding dependency boundary,
 or the current memory model.
 
@@ -42,7 +42,7 @@ currently match pinned AVM I420 output byte-for-byte.
   phases.
 - Replace test access to global implementation details with focused behavioral
   probes over time.
-- Make Milestone 10 workspace/API ownership straightforward.
+- Make public decode workspace/API ownership straightforward.
 - Keep generated normative tables generated and reviewable as data.
 
 ## Non-goals
@@ -53,7 +53,7 @@ currently match pinned AVM I420 output byte-for-byte.
   framework.
 - No attempt to make every file the same size. Cohesion is more important than
   a fixed line limit; roughly 500-2,000 lines is a useful signal, not a rule.
-- No public API expansion before the Milestone 10 design is ready.
+- No public API expansion before the public decode design is ready.
 
 ## Intended dependency direction
 
@@ -281,7 +281,7 @@ transition, output nonmutation on failure, and full parity.
 
 **Status:** Complete as of 2026-08-04. See `refactoring-phase-8.md`.
 
-Prepare Milestone 10 by making one owner responsible for:
+Prepare public decode by making one owner responsible for:
 
 - coded/reference/visible plane dimensions;
 - deblock/filter metadata storage;
@@ -349,5 +349,5 @@ The refactor is complete when:
 - dependency direction matches this plan without cycles;
 - all 14 hosted C harnesses are trustworthy and enabled by default;
 - release builds contain no unconditional debug traces or stage files;
-- workspace ownership is ready for the Milestone 10 public API;
+- workspace ownership is ready for the public decode public API;
 - all 31 tracked artifacts remain byte-identical to pinned AVM output.

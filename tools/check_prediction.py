@@ -62,7 +62,7 @@ def main() -> int:
         default=Path("vendor/avm/avm_dsp/intrapred.c"))
     parser.add_argument(
         "--production", type=Path,
-        default=Path("src/decoder/reconstruct.c"))
+        default=Path("src/decoder/intra_prediction.c"))
     args = parser.parse_args()
 
     digest = hashlib.sha256(args.spec_derivative.read_bytes()).hexdigest()

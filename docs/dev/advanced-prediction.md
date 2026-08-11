@@ -1,17 +1,17 @@
-# Milestone 8: high-detail and advanced prediction
+# High-detail and advanced prediction coverage
 
-Milestone 8 is complete. Corpus-reached coefficient, prediction, IntraBC,
+Advanced-prediction coverage is complete. Corpus-reached coefficient, prediction, IntraBC,
 chroma, and transform syntax is implemented. The locked 96x80 high-detail
 fixture completes frame-wide traversal with sample-exact unfiltered Y/U/V
 reconstruction under sanitizer and strict freestanding validation.
 
 ## Completion handoff
 
-At Milestone 8 closure, the production decoder emitted 7 of the 21 research
+At advanced-prediction coverage closure, the production decoder emitted 7 of the 21 research
 artifacts: six were byte-identical to pinned AVM and Chimp Q192 completed with
 an upstream entropy parity gap. This historical handoff records that closure;
 the current corpus snapshot is maintained in
-[`images/artifacts/status.md`](../images/artifacts/status.md). Milestone 8
+[`images/artifacts/status.md`](../images/artifacts/status.md). advanced-prediction coverage
 closed its remaining work by:
 
 1. making Chimp Q64 and Cuckoo Q160 byte-identical to pinned AVM; and
@@ -38,13 +38,13 @@ already-supported IntraBC parser. Removing it advances production to inverse
 transform at tell 62,908.
 
 Flycatcher Q176's remaining GDF stripe-boundary mismatch and mandatory filter
-parity belong to Milestone 9. Public workspace and decode API work belongs to
-Milestone 10.
+parity belong to filter parity. Public workspace and decode API work belongs to
+public decode.
 
 ## Historical QP-dependent checkpoint
 
 The remainder of this section records the first-block checkpoint from the
-initial Milestone 8 implementation. Its listed "next" frontiers are retained
+initial advanced-prediction coverage implementation. Its listed "next" frontiers are retained
 as provenance and are superseded by the current handoff above and
 `images/artifacts/status.md`.
 
@@ -222,9 +222,10 @@ reached CFL and IntraBC block, under sanitizers and the strict freestanding
 dependency gate. The test must use caller-owned references and readiness maps,
 not fixture-supplied contexts or pixels.
 
-Run `make milestone-8` to execute the sanitizer-backed reconstruction matrix,
+Run `make test-reconstruction` to execute the sanitizer-backed reconstruction
+matrix,
 the canonical high-detail traversal, and the zero-undefined-symbol
 freestanding gate.
 
-Milestone 8 does not run mandatory frame filters and does not expose a public
+advanced-prediction coverage does not run mandatory frame filters and does not expose a public
 decoder.

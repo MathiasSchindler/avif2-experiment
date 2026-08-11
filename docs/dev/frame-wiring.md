@@ -1,6 +1,6 @@
-# Milestone 6: frame-wide wiring and odd fixture
+# Frame-wide wiring and odd fixture
 
-Milestone 6 is implemented. It turns the private leaf-at-a-time machinery into
+Frame-wide wiring is implemented. It turns the private leaf-at-a-time machinery into
 a complete coded-frame reconstruction path and proves that path on the 17x15
 odd fixture.
 
@@ -25,7 +25,7 @@ samples and exact entropy endpoints under ASan, UBSan, and the strict
 freestanding dependency gate. No fixture-supplied contexts, references, or
 leaf ordering may enter production decoding.
 
-Milestone 6 does not expose a public decoder and does not claim filtered output
+frame wiring does not expose a public decoder and does not claim filtered output
 parity.
 
 ## Evidence
@@ -39,4 +39,4 @@ parity.
   separate caller-owned state, so future and padded samples cannot become
   prediction references; and
 - the hosted ASan/UBSan units and strict freestanding zero-undefined-symbol
-  link pass. Complete deblock and CCSO map population remains Milestone 9 work.
+  link pass. Complete deblock and CCSO map population remains filter parity work.

@@ -1,6 +1,6 @@
-# Milestone 10: bounded public decode surface
+# Bounded public decode surface
 
-Milestone 10 is complete. It exposes the proven private pipeline through a
+Public decode is complete. It exposes the proven private pipeline through a
 bounded caller-owned API after complete filtered sample parity.
 
 ## Scope

@@ -5,7 +5,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
 
-from m0_carriage import (  # noqa: E402
+from obu_carriage import (  # noqa: E402
     CarriageError,
     encode_uleb128,
     hash_i420,

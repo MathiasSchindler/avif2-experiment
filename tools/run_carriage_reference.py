@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Run the AVM differential carriage experiment for all Milestone 0 fixtures."""
+"""Run the AVM differential carriage experiment for all carriage experiment fixtures."""
 
 from __future__ import annotations
 
 import argparse
+import concurrent.futures
 import hashlib
 import json
 import os
@@ -15,7 +16,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from generate_m0_fixtures import FIXTURES, Fixture
+from generate_i420_fixtures import FIXTURES, Fixture
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -264,7 +265,7 @@ def run_fixture(
 
     split_command = [
         sys.executable,
-        str(ROOT / "tools" / "m0_carriage.py"),
+        str(ROOT / "tools" / "obu_carriage.py"),
         "split",
         str(original_obu),
         "--config",
@@ -324,7 +325,7 @@ def run_fixture(
 
     decoded_hash_command = [
         sys.executable,
-        str(ROOT / "tools" / "m0_carriage.py"),
+        str(ROOT / "tools" / "obu_carriage.py"),
         "hash-i420",
         str(original_decode),
         f"--width={fixture.width}",
@@ -379,7 +380,10 @@ def main() -> int:
     parser.add_argument(
         "--fixture", choices=[fixture.name for fixture in FIXTURES], action="append"
     )
+    parser.add_argument("--jobs", type=int, default=os.cpu_count() or 1)
     args = parser.parse_args()
+    if args.jobs < 1:
+        parser.error("--jobs must be at least 1")
     build_dir = args.build_dir.resolve()
     output_dir = args.output_dir.resolve()
     source_dir = output_dir / "sources"
@@ -397,7 +401,7 @@ def main() -> int:
     ]
     generation_command = [
         sys.executable,
-        str(ROOT / "tools" / "generate_m0_fixtures.py"),
+        str(ROOT / "tools" / "generate_i420_fixtures.py"),
         "--output-dir",
         str(source_dir),
     ]
@@ -406,12 +410,17 @@ def main() -> int:
     generation_commands: list[list[str]] = []
     run(generation_command, generation_commands)
 
-    results = [
-        run_fixture(fixture, source_dir, output_dir, encoder, decoder)
-        for fixture in selected
-    ]
+    with concurrent.futures.ThreadPoolExecutor(
+        max_workers=min(args.jobs, len(selected))
+    ) as executor:
+        results = list(executor.map(
+            lambda fixture: run_fixture(
+                fixture, source_dir, output_dir, encoder, decoder
+            ),
+            selected,
+        ))
     manifest = {
-        "experiment": "AV2-HEIF experimental v0 Milestone 0",
+        "experiment": "AV2-HEIF experimental v0 carriage experiment",
         "assumption": "A2",
         "status": "pass",
         "host": {
@@ -427,7 +436,7 @@ def main() -> int:
     manifest_path.write_text(
         json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="ascii"
     )
-    print(f"Milestone 0: {len(results)} fixtures passed")
+    print(f"carriage experiment: {len(results)} fixtures passed")
     print(f"Manifest: {manifest_path}")
     return 0
 

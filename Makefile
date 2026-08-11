@@ -1,4 +1,7 @@
 CC ?= cc
+JOBS ?= $(or $(NUMBER_OF_PROCESSORS),$(shell getconf _NPROCESSORS_ONLN 2>/dev/null),$(shell sysctl -n hw.ncpu 2>/dev/null),1)
+CMAKE_BUILD_ARGS ?= --parallel $(JOBS)
+CTEST_PARALLEL_ARGS ?= --parallel $(JOBS)
 
 ifeq ($(OS),Windows_NT)
 PYTHON ?= python
@@ -15,7 +18,7 @@ DECODER_PRESET ?= native
 DECODER_BUILD_DIR ?= build/native
 endif
 
-VIEWER_BUILD_ARGS ?= --skip-assets
+VIEWER_BUILD_ARGS ?= --skip-assets --jobs $(JOBS)
 
 .PHONY: all decoder nolibc clean wasm
 
@@ -23,12 +26,12 @@ all: decoder
 
 decoder:
 	cmake --preset $(DECODER_PRESET)
-	cmake --build --preset $(DECODER_PRESET) --target av2heif-decoder av2heif-freestanding-check
+	cmake --build --preset $(DECODER_PRESET) $(CMAKE_BUILD_ARGS) --target av2heif-decoder av2heif-freestanding-check
 
 nolibc:
 	cmake --preset linux-nolibc
-	cmake --build --preset linux-nolibc --target av2heif-decoder-nolibc av2heif-freestanding-check
-	ctest --preset linux-nolibc
+	cmake --build --preset linux-nolibc $(CMAKE_BUILD_ARGS) --target av2heif-decoder-nolibc av2heif-freestanding-check
+	ctest --preset linux-nolibc $(CTEST_PARALLEL_ARGS)
 
 clean:
 	cmake -E rm -rf $(DECODER_BUILD_DIR)
@@ -41,34 +44,51 @@ HOST_CFLAGS := -std=c11 -Wall -Wextra -Wpedantic -Werror -O1 -g \
 HOST_PRESET ?= host-sanitized
 HOST_BUILD_DIR ?= build/host-sanitized
 CTEST_ARGS ?= --output-on-failure
-HOST_RECONSTRUCT_UNIT := $(HOST_BUILD_DIR)/reconstruct-unit
-HOST_TILE_UNIT := $(HOST_BUILD_DIR)/tile-unit
-HOST_FILTER_UNIT := $(HOST_BUILD_DIR)/filter-unit
 HOST_ARTIFACT_TOOL := $(HOST_BUILD_DIR)/av2heif-artifact
-M9_DECODER ?= build/windows-x86_64/av2heif-decoder.exe
+FILTER_PARITY_DECODER ?= $(HOST_BUILD_DIR)/av2heif-decoder
 WP12_DECODER ?= $(HOST_BUILD_DIR)/av2heif-decoder
 WP12_WASM ?= docs/decoder.wasm
 WP12_WINDOWS_PRESET ?= windows-x86_64
 WP12_WINDOWS_BUILD_DIR ?= build/windows-x86_64
 OBJDUMP ?= objdump
-.PHONY: test test-c test-freestanding reference-avm reference-avm-accounting \
+.PHONY: test test-host-build test-c test-corpus test-freestanding test-extended \
+	reference-avm reference-avm-accounting \
 	reference-avm-negatives generate-10bit-sources \
 	generate-10bit-avm-references generate-10bit-synthetic \
 	generate-10bit-synthetic-references generate-10bit-negatives \
-	10bit-wp10 10bit-wp12 milestone-0 milestone-3 milestone-4 \
-	milestone-5-evidence milestone-8 milestone-9
+	10bit-wp10 10bit-wp12 test-carriage-reference test-artifact-lab \
+	test-decoder-evidence test-reconstruction test-filter-parity
 
-test: test-c test-freestanding
+test: test-c test-corpus test-freestanding
 	$(PYTHON) -m unittest discover -s tests -p 'test_*.py'
 
-test-c:
+test-host-build:
 	cmake --preset $(HOST_PRESET)
-	cmake --build --preset $(HOST_PRESET)
-	ctest --preset $(HOST_PRESET) $(CTEST_ARGS)
+	cmake --build --preset $(HOST_PRESET) $(CMAKE_BUILD_ARGS)
 
-test-freestanding:
-	cmake --preset $(HOST_PRESET)
-	cmake --build --preset $(HOST_PRESET) --target av2heif-freestanding-check
+test-c: test-host-build
+	ctest --preset $(HOST_PRESET) $(CTEST_ARGS) $(CTEST_PARALLEL_ARGS)
+
+test-corpus: test-host-build
+	cmake -DDECODER="$(abspath $(FILTER_PARITY_DECODER))" \
+		-DARTIFACT_DIR="$(abspath images/artifacts)" \
+		-DMANIFEST="$(abspath tests/artifact-parity.sha256)" \
+		-DOUTPUT_DIR="$(abspath build/test/i420-parity)" \
+		-DEXPECTED_COUNT=31 \
+		-P scripts/check-artifact-parity.cmake
+	$(PYTHON) tools/run_filter_parity.py \
+		--decoder "$(FILTER_PARITY_DECODER)" --jobs "$(JOBS)"
+	$(PYTHON) tools/validate_8bit_mono_corpus.py \
+		--decoder "$(FILTER_PARITY_DECODER)" --jobs "$(JOBS)"
+	$(PYTHON) tools/validate_8bit_444_corpus.py \
+		--decoder "$(FILTER_PARITY_DECODER)" --jobs "$(JOBS)"
+	$(PYTHON) tools/validate_8bit_444_public.py \
+		--artifact-tool "$(HOST_ARTIFACT_TOOL)" --jobs "$(JOBS)"
+
+test-freestanding: test-host-build
+	cmake --build --preset $(HOST_PRESET) $(CMAKE_BUILD_ARGS) --target av2heif-freestanding-check
+
+test-extended: test test-decoder-evidence test-carriage-reference test-artifact-lab
 
 reference-avm:
 	sh scripts/setup-avm.sh
@@ -113,43 +133,44 @@ generate-10bit-negatives: reference-avm-negatives
 	$(PYTHON) tools/validate_8bit_444_public.py \
 		--artifact-tool "$(HOST_ARTIFACT_TOOL)"
 	cmake --preset linux-nolibc
-	cmake --build --preset linux-nolibc
-	ctest --preset linux-nolibc $(CTEST_ARGS)
+	cmake --build --preset linux-nolibc $(CMAKE_BUILD_ARGS)
+	ctest --preset linux-nolibc $(CTEST_ARGS) $(CTEST_PARALLEL_ARGS)
 	$(MAKE) wasm
 	$(PYTHON) tools/validate_8bit_444_wasm.py --wasm "$(WP12_WASM)"
 	cmake --preset $(WP12_WINDOWS_PRESET)
-	cmake --build --preset $(WP12_WINDOWS_PRESET)
+	cmake --build --preset $(WP12_WINDOWS_PRESET) $(CMAKE_BUILD_ARGS)
 	$(PYTHON) tools/check_windows_imports.py --objdump "$(OBJDUMP)" \
 		--decoder "$(WP12_WINDOWS_BUILD_DIR)/av2heif-decoder.exe" \
 		--smoke "$(WP12_WINDOWS_BUILD_DIR)/av2heif-windows-smoke.exe"
 	$(PYTHON) tools/check_10bit_reproducibility.py
 
-milestone-0: reference-avm test
-	$(PYTHON) tools/run_m0_matrix.py
+test-carriage-reference: reference-avm test
+	$(PYTHON) tools/run_carriage_reference.py \
+		--output-dir build/carriage-reference/matrix --jobs "$(JOBS)"
 
-milestone-3: test
-	M3_ARTIFACT_COMPILER="$(CC)" \
-	M3_ARTIFACT_BUILD_OPTIONS='$(HOST_CFLAGS)' \
-	$(PYTHON) tools/run_m3_lab.py
+test-artifact-lab: test
+	ARTIFACT_LAB_COMPILER="$(CC)" \
+	ARTIFACT_LAB_BUILD_OPTIONS='$(HOST_CFLAGS)' \
+	$(PYTHON) tools/run_artifact_lab.py \
+		--artifact-tool "$(HOST_ARTIFACT_TOOL)" \
+		--output-dir build/artifact-lab --jobs "$(JOBS)"
 
-milestone-4: milestone-3
+test-decoder-evidence:
+	@mkdir -p build/decoder-evidence/evidence
+	$(PYTHON) tools/generate_gdf_tables.py \
+		--output build/decoder-evidence/evidence/gdf_data.inc
+	@cmp src/decoder/gdf_data.inc build/decoder-evidence/evidence/gdf_data.inc
+	$(PYTHON) tools/check_partition_cdfs.py
+	$(PYTHON) tools/check_leaf_cdfs.py
+	$(PYTHON) tools/check_coeff_cdfs.py
+	$(PYTHON) tools/check_transform_cdfs.py
+	$(PYTHON) tools/check_prediction.py
 
-milestone-5-evidence:
-	@mkdir -p build/m5/evidence
-	$(PYTHON) tools/generate_m5_gdf_tables.py \
-		--output build/m5/evidence/gdf_data.inc
-	@cmp src/decoder/gdf_data.inc build/m5/evidence/gdf_data.inc
-	$(PYTHON) tools/check_m5_partition_cdfs.py
-	$(PYTHON) tools/check_m5_leaf_cdfs.py
-	$(PYTHON) tools/check_m5_coeff_cdfs.py
-	$(PYTHON) tools/check_m5_transform_cdfs.py
-	$(PYTHON) tools/check_m5_prediction.py
+test-reconstruction: test-host-build
+	ctest --preset $(HOST_PRESET) $(CTEST_ARGS) $(CTEST_PARALLEL_ARGS) \
+		-R '^(reconstruct-unit|tile-unit)$$'
 
-milestone-8: test-c test-freestanding
-	$(HOST_RECONSTRUCT_UNIT)
-	$(HOST_TILE_UNIT)
-
-milestone-9: test-c test-freestanding
-	$(HOST_FILTER_UNIT)
-	$(PYTHON) -m unittest discover -s tests -p 'test_m9_filter_evidence.py'
-	$(PYTHON) tools/run_m9_final_parity.py --decoder $(M9_DECODER)
+test-filter-parity: test-host-build
+	$(PYTHON) -m unittest discover -s tests -p 'test_filter_evidence.py'
+	$(PYTHON) tools/run_filter_parity.py \
+		--decoder "$(FILTER_PARITY_DECODER)" --jobs "$(JOBS)"

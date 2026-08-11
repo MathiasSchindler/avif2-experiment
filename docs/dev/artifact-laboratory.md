@@ -1,6 +1,6 @@
-# Milestone 3: artifact laboratory
+# Artifact laboratory
 
-Milestone 3 implements a hosted, machine-readable laboratory around the
+artifact laboratory implements a hosted, machine-readable laboratory around the
 freestanding AV2-HEIF v0 core. One command generates, normalizes, muxes,
 inspects, extracts, decodes, and compares the initial four-fixture matrix using
 the pinned local AVM v1.0.0 build.
@@ -22,18 +22,18 @@ revision. Normal laboratory runs use only the verified local checkout and
 binaries:
 
 ```sh
-make milestone-3
+make test-artifact-lab
 ```
 
 The command first runs the complete vendor-free test gate, then processes all
-four fixtures. Results are written below `build/m3/laboratory/`; the common
-manifest is `build/m3/laboratory/manifest.json`. The target deliberately does
+four fixtures. Results are written below `build/artifact-lab/`; the common
+manifest is `build/artifact-lab/manifest.json`. The target deliberately does
 not depend on `reference-avm`, so a missing local build fails instead of
 silently downloading software.
 
 ## Pipeline
 
-For each deterministic 8-bit I420 source, `tools/run_m3_lab.py` performs:
+For each deterministic 8-bit I420 source, `tools/run_artifact_lab.py` performs:
 
 1. Generate the source and encode one AV2 frame with pinned `avmenc`.
 2. Normalize the elementary stream into one Sequence Header configuration OBU
@@ -75,7 +75,7 @@ The top-level `av2heif-artifact-laboratory-v1` manifest records:
 
 Every fixture also has a standalone `result.json`, and every canonical
 container has an `inspection.json` using schema
-`av2heif-artifact-inspection-v2`. Version 2 adds the Milestone 4 query result,
+`av2heif-artifact-inspection-v2`. Version 2 adds the query surface query result,
 including input binding, structural counts, plane layouts, output sizing, and
 pre-decode workspace sizing.
 
@@ -97,7 +97,7 @@ The result intentionally distinguishes different forms of equivalence:
   complete CICP triplet against the inspected container values.
 - `decoded_planes` requires byte-identical I420 files and records per-plane
   hashes; all fixtures are sample-exact.
-- `lossy_quality` is explicitly `not-measured` because this milestone compares
+- `lossy_quality` is explicitly `not-measured` because this laboratory compares
   carriage, not encoder quality.
 
 AVM's raw I420 decoder output reports dimensions and samples but does not report

@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
-"""Verify final filtered output for the four locked Milestone 9 fixtures."""
+"""Verify final filtered output for the four locked filter parity fixtures."""
 
 from __future__ import annotations
 
 import argparse
 import base64
+import concurrent.futures
 import hashlib
+import os
 import subprocess
 import tempfile
 from dataclasses import dataclass
@@ -122,15 +124,24 @@ def verify_fixture(decoder: Path, fixture: Fixture, directory: Path) -> None:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--decoder", type=Path, required=True)
+    parser.add_argument("--jobs", type=int, default=os.cpu_count() or 1)
     args = parser.parse_args()
+    if args.jobs < 1:
+        parser.error("--jobs must be at least 1")
     decoder = args.decoder.resolve()
     if not decoder.is_file():
         raise RuntimeError(f"missing decoder: {decoder}")
     with tempfile.TemporaryDirectory(prefix="av2h-m9-") as temporary:
         directory = Path(temporary)
-        for fixture in FIXTURES:
-            verify_fixture(decoder, fixture, directory)
-            print(f"{fixture.name}: final Y/U/V exact")
+        with concurrent.futures.ThreadPoolExecutor(
+            max_workers=min(args.jobs, len(FIXTURES))
+        ) as executor:
+            results = executor.map(
+                lambda fixture: verify_fixture(decoder, fixture, directory),
+                FIXTURES,
+            )
+            for fixture, _ in zip(FIXTURES, results):
+                print(f"{fixture.name}: final Y/U/V exact")
     return 0
 
 

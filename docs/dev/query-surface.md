@@ -1,12 +1,12 @@
-# Milestone 4: freestanding query surface
+# Freestanding query surface
 
-Milestone 4 adds a bounded, allocation-free query and validation API above the
+The query surface adds a bounded, allocation-free query and validation API above the
 strict AV2-HEIF experimental v0 parser. It identifies the container dialect,
 returns effective metadata and immutable source spans, computes exact planar
 I420 output layout, reports current pre-decode workspace needs, and binds the
 result to the queried bytes.
 
-No AV2 pixel decoder is implemented in this milestone.
+No AV2 pixel decoder is implemented in this layer.
 
 ## Public API
 
@@ -76,7 +76,7 @@ three levels in its deepest supported box path. Later profiles must revise
 their defaults deliberately rather than silently widening these values.
 
 Query and validation currently need no caller workspace, so they report zero
-bytes with alignment one. This is explicitly pre-decode sizing. Milestone 5
+bytes with alignment one. This is explicitly pre-decode sizing. decoder foundation
 must add conservative decoder workspace sizing before exposing reconstruction.
 
 ## Dialect detection
@@ -122,7 +122,8 @@ This includes the odd 17x15 fixture, whose planes are 17x15, 9x8, and 9x8 for
 
 ## Validation
 
-`make milestone-4` runs the vendor-free sanitizer and freestanding gates, then
+`make test-artifact-lab` runs the vendor-free sanitizer and freestanding gates,
+then
 the complete offline four-fixture laboratory. Coverage includes:
 
 - canonical query, explicit validation, immutable span metadata, input
@@ -143,5 +144,5 @@ public query supports one canonical v0 primary image only. Output sizing is for
 the current 8-bit I420 profile and does not account for caller-selected strides,
 RGB conversion, presentation transforms, or decoded workspace. The input
 fingerprint is intentionally noncryptographic. Decoder state, output buffers,
-workspace consumption, and query-to-decode binding checks belong to Milestone
-5.
+workspace consumption, and query-to-decode binding checks belong to the
+decoder foundation.

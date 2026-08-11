@@ -34,7 +34,7 @@ The AV2 arithmetic-decoder ownership and checked-span structure in
 scaling, exact bypass decoding, adaptive CDF state, tell semantics, and
 validation were independently implemented for this project. Deterministic
 bytes and state transitions are compared with a separately built pinned AVM
-oracle through `tools/m5_entropy_oracle.c`; no AVM source or object is included
+oracle through `tools/entropy_oracle.c`; no AVM source or object is included
 in the CC0 production core.
 
 The raw UVLC, signed-literal, quasi-uniform, and alignment behavior and the AV2
@@ -90,7 +90,7 @@ v1.0.0 integer transform matrices, rectangular scaling rule, transform-type
 mapping, shift table, directional derivative attachment, interpolation phases,
 and clipping process. This includes the first tiny chroma leaf's DC-128 U/V
 prediction and 4x4 `DCT_DCT` reconstruction. Attachment hashes are locked in
-`spec/cdf-attachments.lock`, and `tools/check_m5_prediction.py` verifies the
+`spec/cdf-attachments.lock`, and `tools/check_prediction.py` verifies the
 selected production constants against the normative derivative and pinned AVM
 tables. A separately licensed AVM
 inspection build supplies only hosted reconstructed-pixel correspondence

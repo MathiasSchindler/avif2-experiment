@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Strict AV2 length-delimited OBU utilities for the Milestone 0 experiment."""
+"""Strict AV2 length-delimited OBU utilities for carriage experiments."""
 
 from __future__ import annotations
 

@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Prepare the decoder for Milestones 13 and 14 without implementing normative
+Prepare the decoder for 10-bit 4:2:0 and 4:4:4 without implementing normative
 10-bit reconstruction yet. The work is intended to remove accidental 8-bit
 assumptions from interfaces, storage calculations, and test infrastructure
 while preserving the current byte-exact 8-bit output.
@@ -13,9 +13,9 @@ allocator-free, libc-free, and free of external runtime dependencies.
 
 ## Relationship to the roadmap
 
-`plan.md` defines Milestone 13 as 10-bit 4:2:0 and Milestone 14 as 10-bit
-4:4:4. This document covers only preparation that can land before either
-milestone starts changing normative decoded samples.
+`plan.md` defines the next implementation phases as 10-bit 4:2:0 and 10-bit
+4:4:4. This document covers only preparation that can land before either phase
+starts changing normative decoded samples.
 
 The preparation phase should leave the codebase in a state where the first
 10-bit implementation change is a deliberate vertical slice rather than a
@@ -198,7 +198,7 @@ reference streams do not accidentally require unrelated unsupported tools.
 - Regenerate 10-bit 4:2:0 and 4:4:4 reference streams with an explicit supported
   tool profile.
 - Explicitly set `--enable-restoration=0` for 4:2:0 as well as 4:4:4 unless
-  restoration is deliberately moved into the milestone scope.
+  restoration is deliberately moved into the implementation scope.
 - Keep the photographic QP 96/128/160 matrix, but treat it as an acceptance
   corpus rather than the only correctness corpus.
 
@@ -595,7 +595,7 @@ viewers while keeping exact planar YUV as the normative comparison result.
 - Dependency-free streaming PNG writer and supporting shared primitives under
   `src/shared/`.
 - 8-bit PNG output for all current I400/I420/I444 decoded formats.
-- Writer-level 16-bit RGB vectors ready for Milestone 13.
+- Writer-level 16-bit RGB vectors ready for 10-bit implementation.
 - Consistent `.png` behavior across all native platform CLIs.
 - CLI and README documentation covering preview versus reference output.
 
@@ -685,8 +685,8 @@ cross-platform validation are recorded in `docs/dev/10bit-prep-wp11.md`.
   the validated sequence rather than hard-coded to 8.
 - Refactor parser consistency checks to compare `pixi`, sequence bit depth, and
   decoded format through one helper.
-- Keep the supported-format admission gate at 8-bit until Milestone 13 enables
-  10-bit intentionally.
+- Keep the supported-format admission gate at 8-bit until 10-bit decode is
+  enabled intentionally.
 - Add parser/writer unit vectors for consistent and inconsistent synthetic
   metadata without invoking 10-bit pixel reconstruction.
 - Preserve canonical dialect checks, property ordering, and error precedence.
@@ -702,7 +702,7 @@ cross-platform validation are recorded in `docs/dev/10bit-prep-wp11.md`.
 - Existing canonical HEIF files remain byte-identical when rewritten.
 - Existing 8-bit parser behavior remains exact.
 - Inconsistent `pixi`/sequence combinations fail closed.
-- Ten-bit metadata still returns unsupported until the implementation milestone
+- Ten-bit metadata still returns unsupported until 10-bit frame decoding
   deliberately changes the gate.
 
 **Estimated effort:** 2 to 3 days.
@@ -745,12 +745,12 @@ changing current decoder behavior.
 
 **Estimated effort:** 1 to 2 days after the preceding packages.
 
-## Work deliberately deferred to Milestone 13
+## Work deliberately deferred to 10-bit 4:2:0 implementation
 
 The following are actual 10-bit implementation and must not be hidden inside
 preparation changes:
 
-- admitting the 10-bit sequence bit-depth value;
+- admitting the parsed 10-bit sequence depth to frame decode and output;
 - reading the 9-bit high-bit-depth base Q-index;
 - high-bit-depth quantizer and dequantizer tables;
 - 16-bit predictor, reference, reconstructed-plane, and filter-plane storage;
@@ -760,12 +760,12 @@ preparation changes:
 - exact `yuv420p10le` public/private output; and
 - enabling canonical 10-bit HEIF decode.
 
-The first Milestone 13 slice should use one tiny 4:2:0 fixture with unrelated
-coding tools constrained. It should pass sequence/frame parsing, workspace
-query, reconstruction, visible output, and exact AVM comparison before the
-implementation expands to the photographic matrix.
+The first 10-bit implementation slice should use one tiny 4:2:0 fixture with
+unrelated coding tools constrained. It should pass sequence/frame parsing,
+workspace query, reconstruction, visible output, and exact AVM comparison
+before the implementation expands to the photographic matrix.
 
-## Work deliberately deferred beyond Milestone 14
+## Work deliberately deferred beyond 10-bit 4:4:4
 
 - 12-bit samples.
 - 4:2:2 chroma.
@@ -786,7 +786,7 @@ to five weeks.
 
 The preparation phase is not expected to reduce the total work by the same
 number of days. Its purpose is to reduce regression risk, make reviews smaller,
-and ensure that failures during Milestone 13 identify normative 10-bit
+and ensure that failures during 10-bit implementation identify normative 10-bit
 arithmetic rather than storage-unit or fixture-infrastructure defects.
 
 ## Recommended merge sequence

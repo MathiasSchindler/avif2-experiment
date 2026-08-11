@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Record and compare stage-local Milestone 9 filter evidence."""
+"""Record and compare stage-local filter evidence."""
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from m0_carriage import CarriageError, hash_i420
+from obu_carriage import CarriageError, hash_i420
 
 
 ROOT = Path(__file__).resolve().parents[1]

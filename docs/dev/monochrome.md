@@ -1,6 +1,6 @@
-# Milestone 11: 8-bit monochrome
+# 8-bit monochrome support
 
-Milestone 11 is complete. The public decoder accepts the AV2 8-bit 4:0:0
+Monochrome support is complete. The public decoder accepts the AV2 8-bit 4:0:0
 still-picture profile in addition to the existing 8-bit 4:2:0 profile.
 
 ## Scope
@@ -26,7 +26,7 @@ size. Altering any queried layout field invalidates the query binding.
 
 ## Evidence
 
-`tools/generate_m11_fixtures.py` reproducibly encodes and independently
+`tools/generate_monochrome_fixtures.py` reproducibly encodes and independently
 decodes tiny 16x16, odd 17x15, ordinary 160x120, and high-detail 96x80
 monochrome streams with pinned AVM v1.0.0 tools. OBU and decoded-Y hashes are
 recorded in `tests/fixtures/monochrome-manifest.json`.

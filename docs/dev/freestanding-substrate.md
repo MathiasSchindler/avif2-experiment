@@ -1,12 +1,12 @@
-# Milestone 1: freestanding substrate and carriage core
+# Freestanding substrate and carriage core
 
-Milestone 1 implements the vendor-free byte-carriage layer for the
+The freestanding substrate implements the vendor-free byte-carriage layer for the
 AV2-HEIF experimental v0 profile. It does not parse HEIF item structures or
 decode AV2 picture syntax.
 
 ## Implemented core
 
-The Milestone 1 core contains:
+The freestanding substrate core contains:
 
 - checked size arithmetic, byte and bit readers and writers, memory primitives,
   and a caller-backed arena;
@@ -58,7 +58,7 @@ OBUs are rejected as data errors before the optional output-capacity result.
 - OBU truncation, extension headers, zero sizes, layer rules, global-layer
   semantics, empty coded payloads, forbidden order, duplicates, and precise
   extra-OBU diagnostics;
-- all four corrected Milestone 0 Sequence Headers, Sequence Header truncation,
+- all four corrected carriage experiment Sequence Headers, Sequence Header truncation,
   and film-grain rejection;
 - Content Interpretation parsing, reserved color-description defaults, and
   truncation;
@@ -78,4 +78,4 @@ single-picture 8-bit 4:2:0 v0 subset and rejects unsupported branches. A
 nonempty Closed Loop Key payload is a carriage check, not a proof that its full
 picture syntax is decodable or self-sufficient; that proof remains part of
 later decoder work. Full HEIF boxes, item/property associations, deterministic
-muxing, fuzzing, and cross-compiler build coverage are also future milestones.
+muxing, fuzzing, and cross-compiler build coverage are also future work.

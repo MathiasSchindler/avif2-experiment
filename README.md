@@ -37,7 +37,7 @@ descriptor rather than infer sample storage from chroma or bit depth alone.
 `Av2hPlaneLayout.row_bytes`, `offset`, and `size`, and `Av2hInfo.output_size`
 are byte counts; plane width and height remain sample counts.
 
-Milestones 0 through 12 are complete. Current validation includes:
+The original 8-bit decoder program is complete. Current validation includes:
 
 - exact I420 output for all 31 tracked research artifacts;
 - exact I400 and I444 output for the original 12-image corpus at dimensions up
@@ -50,8 +50,8 @@ output. It is evidence for the tested files, not a claim that every valid AV2
 file is supported or that the decoder is secure.
 
 The public API is declared in `include/av2heif.h`. Detailed scope and evidence
-are recorded in `docs/dev/milestone-0.md` through
-`docs/dev/milestone-12.md`; the longer roadmap is in `plan.md`.
+are recorded in `docs/dev/carriage-reference.md` through
+`docs/dev/chroma-444.md`; the longer roadmap is in `plan.md`.
 
 The next planned decoder profiles are 10-bit 4:2:0 and 10-bit 4:4:4. Broader
 AV2 features such as restoration, film grain, segmentation, quantization
@@ -189,24 +189,51 @@ monotonic points where ImageMagick otherwise emits duplicate files. The
 reference formats use their own non-equivalent quality scales and are decoded
 by the browser.
 
+### Tests
+
+Run the complete fast, vendor-free regression gate with:
+
+```sh
+make test
+```
+
+The target builds once, runs 24 hosted C tests in parallel, checks the strict
+freestanding link, runs all Python unit tests, and verifies exact output for 31
+I420 artifacts, 12 monochrome artifacts, 12 native I444 artifacts, 12 I444
+artifacts through the public HEIF API, and the four locked filter fixtures. The
+corpus processes run concurrently and the target is designed to remain well
+below ten seconds during normal incremental development.
+
+Use `make test-corpus` for only the production corpus matrix. Checks requiring
+the ignored local specification mirror or pinned AVM checkout remain outside
+the default gate; run all of them with:
+
+```sh
+make test-extended
+```
+
+CMake builds, CTest, corpus validators, reference experiments, and the
+WebAssembly build use the machine's available cores. Override the detected
+count when needed, for example with `make test JOBS=4`.
+
 Use the `host` preset when sanitizer runtimes are unavailable, including with
-LLVM-MinGW on Windows. Both host presets compile all 17 C test programs and the
-artifact tool. All 17 unit suites run by default. The layout harness pins key
+LLVM-MinGW on Windows. Both host presets compile all 23 C test programs and the
+artifact tool. All 23 unit suites run by default. The layout harness pins key
 64-bit decoder state sizes and alignments, while the artifact-profile harness
 checks the OBU, sequence, frame-header, and tile-group contracts for all 31
 tracked artifacts. The sample-math harness pins the first self-contained
 decoder-internal helper interface introduced by refactoring Phase 1.
 
 Python is not required to build the decoder or run the hosted C gate. It is an
-optional development dependency for table regeneration, historical milestone
-evidence, and corpus comparison tests. The Windows product preset enables
+optional development dependency for table regeneration, historical evidence,
+and corpus comparison tests. The Windows product preset enables
 those comparison tests; other configurations can opt in with
 `AV2HEIF_ENABLE_PYTHON_TESTS=ON`.
 
 The strict freestanding undefined-symbol check is owned by CMake and runs as
-part of normal builds through `av2heif-freestanding-check`. The Makefile keeps a
-compatibility entry point for historical milestone workflows. New build and
-test targets should be added to CMake only.
+part of normal builds through `av2heif-freestanding-check`. CMake owns compiled
+test registration; the Makefile composes fast, corpus, extended, and release
+workflows.
 
 On Windows x86-64, or when cross-compiling to it, LLVM, CMake, and Ninja can
 build a freestanding PE executable without the Microsoft C runtime or Windows
@@ -290,16 +317,16 @@ error: decode failed: invalid argument
   entropy tell: 1567; completed leaves: Y=26 UV=1
 ```
 
-Run the hosted Milestone 5 normative and pinned-AVM correspondence checks with:
+Run the hosted normative-table and pinned-AVM correspondence checks with:
 
 ```sh
-make milestone-5-evidence
+make test-decoder-evidence
 ```
 
 Run the hosted AVM differential experiment with:
 
 ```sh
-make milestone-0
+make test-carriage-reference
 ```
 
 That target downloads or verifies the pinned AVM checkout and is intentionally
@@ -337,13 +364,13 @@ After the pinned AVM build is available, run the complete artifact laboratory
 without network access with:
 
 ```sh
-make milestone-3
+make test-artifact-lab
 ```
 
-The machine-readable result is `build/m3/laboratory/manifest.json`.
+The machine-readable result is `build/artifact-lab/manifest.json`.
 
-Run the Milestone 4 query and fixture-parity gate with:
+Run the query and fixture-parity gate with:
 
 ```sh
-make milestone-4
+make test-artifact-lab
 ```

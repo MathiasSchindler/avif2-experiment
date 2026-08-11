@@ -1,6 +1,6 @@
-# Milestone 2: deterministic AV2-HEIF v0
+# Deterministic AV2-HEIF v0 container
 
-Milestone 2 implements a strict typed parser and deterministic writer for the
+The deterministic container implements a strict typed parser and writer for the
 project-defined AV2-HEIF experimental v0 still-image profile. It does not claim
 standardized AVIF or AV2 image-item conformance and does not decode AV2 picture
 syntax.
@@ -70,7 +70,7 @@ that defines effective AV2 color semantics and their cross-checks.
 
 ## Validation
 
-`make test` runs without AVM or any other vendored software. Milestone 2 adds a
+`make test` runs without AVM or any other vendored software. deterministic container adds a
 separate C sanitizer binary covering:
 
 - byte-exact output against a complete 282-byte golden;
