@@ -25,6 +25,13 @@ typedef struct {
 } Av2hFirstReconstruction;
 
 typedef struct {
+    Av2hTransformIntermediate residual[AV2H_RECON_SAMPLE_CAPACITY];
+    uint16_t pixels[AV2H_RECON_SAMPLE_CAPACITY];
+    uint16_t width;
+    uint16_t height;
+} Av2hFirstReconstructionU16;
+
+typedef struct {
     Av2hTransformIntermediate scaled[AV2H_FIRST_COEFF_CAPACITY];
     Av2hTransformIntermediate transposed[AV2H_FIRST_COEFF_CAPACITY];
     Av2hTransformIntermediate residual[AV2H_FIRST_COEFF_CAPACITY];
@@ -127,6 +134,14 @@ Av2hStatus av2h_luma_reconstruct_to_plane(
     const Av2hFirstCoeffBlock *coefficients,
     Av2hReconstructionPlane *plane,
     Av2hReconstructionScratch *scratch);
+Av2hStatus av2h_luma_reconstruct_to_plane_u16(
+    const Av2hPartitionNode *leaf,
+    const Av2hFirstLeafMode *mode,
+    const Av2hFirstCoeffPrefix *prefix,
+    const Av2hFirstTransformType *transform,
+    const Av2hFirstCoeffBlock *coefficients,
+    Av2hReconstructionPlaneU16 *plane,
+    Av2hReconstructionScratchU16 *scratch);
 Av2hStatus av2h_chroma_reconstruct_to_plane(
     const Av2hPartitionNode *leaf,
     const Av2hFirstChromaMode *mode,

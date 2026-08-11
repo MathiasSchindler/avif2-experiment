@@ -213,6 +213,10 @@ or invalid shift, and the 8-bit quantizer suite remains exact.
 
 ## 10B-WP4: Reconstruct the first 10-bit luma plane
 
+**Status:** Implemented. The constrained U16 luma owner, depth-aware reached
+inverse transform, exact block checkpoints, integrated private-frame boundary,
+and validation evidence are recorded in `docs/dev/10bit-wp4.md`.
+
 **Objective:** Produce sample-exact unfiltered Y for the constrained fixture.
 
 **Work:**
@@ -226,9 +230,10 @@ or invalid shift, and the 8-bit quantizer suite remains exact.
 - Record block-local predictor, residual, and reconstructed hashes or sample
   checkpoints to localize parity failures.
 
-**Exit gate:** Every reached luma block and the complete visible unfiltered Y
-plane match pinned AVM sample-for-sample, with exact entropy endpoints and no
-fixture-supplied predictor or reference samples.
+**Exit gate:** Complete. Every reached luma block and the complete visible
+unfiltered Y plane match pinned AVM sample-for-sample, tile entropy ends at
+tell 192, and prediction uses only reconstructed neighbors or the normative
+10-bit midpoint.
 
 ## 10B-WP5: Reconstruct the first 10-bit 4:2:0 frame
 

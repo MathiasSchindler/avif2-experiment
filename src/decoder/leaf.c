@@ -73,10 +73,11 @@ Av2hStatus av2h_chroma_mode_read_with_delta_for_sdp(
         return AV2H_INVALID_ARGUMENT;
     }
     av2h_leaf_diagnostics_set_chroma_stage(1U);
-    if (!sequence->enable_cfl_intra || cfl_context >= AV2H_CFL_CONTEXT_COUNT ||
+    if (cfl_context >= AV2H_CFL_CONTEXT_COUNT ||
         colocated_luma_mode > AV2H_INTRA_PAETH || cfl_allowed > 1U) {
         return AV2H_UNSUPPORTED;
     }
+    cfl_allowed = (uint8_t)(cfl_allowed && sequence->enable_cfl_intra);
     if (block_size < AV2H_BLOCK_SIZE_COUNT) {
         size_t block_width_mi;
         size_t block_height_mi;

@@ -395,7 +395,7 @@ static void test_10bit_wp2_binding(void) {
                 (int)decode_status, error.context, error.offset);
     }
     CHECK(decode_status == AV2H_UNSUPPORTED);
-    CHECK(error.context == AV2H_CONTEXT_DECODE);
+    CHECK(error.context == AV2H_CONTEXT_RECONSTRUCTION);
     for (index = 0U; index < info.output_size; ++index) {
         CHECK(output[index] == 0xa5U);
     }

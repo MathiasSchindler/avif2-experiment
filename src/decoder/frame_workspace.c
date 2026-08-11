@@ -376,6 +376,14 @@ static int sized_u8_plane_bytes(size_t stride_samples,
     return av2h_size_multiply(stride_samples, height, size_bytes);
 }
 
+static int sized_u16_plane_bytes(size_t stride_samples,
+                                 size_t height,
+                                 size_t *size_bytes) {
+    size_t sample_count;
+    return av2h_size_multiply(stride_samples, height, &sample_count) &&
+        av2h_size_multiply(sample_count, sizeof(uint16_t), size_bytes);
+}
+
 Av2hStatus av2h_planar_output_size(
     const Av2hFrameState *frame,
     size_t *size_bytes) {
@@ -509,7 +517,8 @@ Av2hStatus av2h_deblock_map_commit_transform(
 static int filter_workspace_valid(
     const Av2hFrameState *frame,
     const Av2hFilterWorkspaceLayout *layout,
-    const Av2hFilterWorkspace *workspace) {
+    const Av2hFilterWorkspace *workspace,
+    size_t bytes_per_sample) {
     unsigned int plane;
     if (layout == 0 || workspace == 0 ||
         workspace->ccso_controls.columns != layout->ccso_columns ||
@@ -517,16 +526,28 @@ static int filter_workspace_valid(
         return 0;
     }
     for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
-        const Av2hFilterPlane *deblocked =
-            &workspace->deblocked.plane[plane];
+        const Av2hFilterPlane *deblocked = &workspace->deblocked.plane[plane];
         const Av2hFilterPlane *cdef = &workspace->cdef.plane[plane];
-        if (deblocked->data == 0 || cdef->data == 0 ||
-            deblocked->width != layout->plane_width[plane] ||
-            deblocked->height != layout->plane_height[plane] ||
-            cdef->width != layout->plane_width[plane] ||
-            cdef->height != layout->plane_height[plane] ||
-            deblocked->stride_samples < deblocked->width ||
-            cdef->stride_samples < cdef->width ||
+        const Av2hFilterPlaneU16 *deblocked_u16 =
+            &workspace->deblocked_u16.plane[plane];
+        const Av2hFilterPlaneU16 *cdef_u16 =
+            &workspace->cdef_u16.plane[plane];
+        if ((bytes_per_sample == 1U &&
+             (deblocked->data == 0 || cdef->data == 0 ||
+              deblocked->width != layout->plane_width[plane] ||
+              deblocked->height != layout->plane_height[plane] ||
+              cdef->width != layout->plane_width[plane] ||
+              cdef->height != layout->plane_height[plane] ||
+              deblocked->stride_samples < deblocked->width ||
+              cdef->stride_samples < cdef->width)) ||
+            (bytes_per_sample == 2U &&
+             (deblocked_u16->data == 0 || cdef_u16->data == 0 ||
+              deblocked_u16->width != layout->plane_width[plane] ||
+              deblocked_u16->height != layout->plane_height[plane] ||
+              cdef_u16->width != layout->plane_width[plane] ||
+              cdef_u16->height != layout->plane_height[plane] ||
+              deblocked_u16->stride_samples < deblocked_u16->width ||
+              cdef_u16->stride_samples < cdef_u16->width)) ||
             workspace->deblock_map.plane[plane] == 0 ||
             workspace->deblock_map.columns[plane] !=
                 layout->deblock_columns[plane] ||
@@ -549,30 +570,53 @@ static int decode_planes_valid(
     const Av2hFrameDecodeWorkspace *workspace) {
     unsigned int plane;
     for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
-        const Av2hReconstructionPlane *coded = &workspace->coded[plane];
         size_t required_data;
         size_t required_ready;
         size_t reference_width = av2h_frame_plane_dimension(
             frame, plane, frame->width);
         size_t reference_height = av2h_frame_plane_dimension(
             frame, plane, frame->height);
-        if (coded->data == 0 || coded->reconstructed == 0 ||
-            coded->width != layout->plane_width[plane] ||
-            coded->height != layout->plane_height[plane] ||
-            coded->stride_samples < coded->width ||
-            coded->reference_width != reference_width ||
-            coded->reference_height != reference_height ||
-            coded->reconstructed_stride_cells <
-                ((size_t)coded->width + 3U) / 4U ||
-            !sized_u8_plane_bytes(coded->stride_samples, coded->height,
-                               &required_data) ||
-            required_data > workspace->coded_data_size_bytes[plane] ||
-            !av2h_size_multiply(
-                coded->reconstructed_stride_cells,
-                ((size_t)coded->height + 3U) / 4U,
-                &required_ready) ||
-            required_ready > coded->reconstructed_count_cells) {
-            return 0;
+        if (workspace->bytes_per_sample == 1U) {
+            const Av2hReconstructionPlane *coded = &workspace->coded[plane];
+            if (coded->data == 0 || coded->reconstructed == 0 ||
+                coded->width != layout->plane_width[plane] ||
+                coded->height != layout->plane_height[plane] ||
+                coded->stride_samples < coded->width ||
+                coded->reference_width != reference_width ||
+                coded->reference_height != reference_height ||
+                coded->reconstructed_stride_cells <
+                    ((size_t)coded->width + 3U) / 4U ||
+                !sized_u8_plane_bytes(coded->stride_samples, coded->height,
+                                      &required_data) ||
+                required_data > workspace->coded_data_size_bytes[plane] ||
+                !av2h_size_multiply(
+                    coded->reconstructed_stride_cells,
+                    ((size_t)coded->height + 3U) / 4U,
+                    &required_ready) ||
+                required_ready > coded->reconstructed_count_cells) {
+                return 0;
+            }
+        } else {
+            const Av2hReconstructionPlaneU16 *coded =
+                &workspace->coded_u16[plane];
+            if (coded->data == 0 || coded->reconstructed == 0 ||
+                coded->width != layout->plane_width[plane] ||
+                coded->height != layout->plane_height[plane] ||
+                coded->stride_samples < coded->width ||
+                coded->reference_width != reference_width ||
+                coded->reference_height != reference_height ||
+                coded->reconstructed_stride_cells <
+                    ((size_t)coded->width + 3U) / 4U ||
+                !sized_u16_plane_bytes(coded->stride_samples, coded->height,
+                                       &required_data) ||
+                required_data > workspace->coded_data_size_bytes[plane] ||
+                !av2h_size_multiply(
+                    coded->reconstructed_stride_cells,
+                    ((size_t)coded->height + 3U) / 4U,
+                    &required_ready) ||
+                required_ready > coded->reconstructed_count_cells) {
+                return 0;
+            }
         }
     }
     return 1;
@@ -647,20 +691,73 @@ static int output_is_disjoint(
     const Av2hTileContextStorage *context = &workspace->tile_context;
     unsigned int plane;
     for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
-        const Av2hReconstructionPlane *coded = &workspace->coded[plane];
-        const Av2hFilterPlane *deblocked =
-            &workspace->filter_workspace->deblocked.plane[plane];
-        const Av2hFilterPlane *cdef =
-            &workspace->filter_workspace->cdef.plane[plane];
+        const void *coded_data;
+        const void *deblocked_data;
+        const void *cdef_data;
+        size_t coded_stride;
+        size_t coded_height;
+        size_t deblocked_stride;
+        size_t deblocked_height;
+        size_t cdef_stride;
+        size_t cdef_height;
+        const uint8_t *reconstructed;
+        size_t reconstructed_count;
         size_t coded_size_bytes;
         size_t deblocked_size_bytes;
         size_t cdef_size_bytes;
         size_t map_size_bytes;
         size_t control_size_bytes;
-        if (!sized_u8_plane_bytes(coded->stride_samples, coded->height, &coded_size_bytes) ||
-            !sized_u8_plane_bytes(
-                deblocked->stride_samples, deblocked->height, &deblocked_size_bytes) ||
-            !sized_u8_plane_bytes(cdef->stride_samples, cdef->height, &cdef_size_bytes) ||
+        if (workspace->bytes_per_sample == 1U) {
+            const Av2hReconstructionPlane *coded = &workspace->coded[plane];
+            const Av2hFilterPlane *deblocked =
+                &workspace->filter_workspace->deblocked.plane[plane];
+            const Av2hFilterPlane *cdef =
+                &workspace->filter_workspace->cdef.plane[plane];
+            coded_data = coded->data;
+            coded_stride = coded->stride_samples;
+            coded_height = coded->height;
+            reconstructed = coded->reconstructed;
+            reconstructed_count = coded->reconstructed_count_cells;
+            deblocked_data = deblocked->data;
+            deblocked_stride = deblocked->stride_samples;
+            deblocked_height = deblocked->height;
+            cdef_data = cdef->data;
+            cdef_stride = cdef->stride_samples;
+            cdef_height = cdef->height;
+        } else {
+            const Av2hReconstructionPlaneU16 *coded =
+                &workspace->coded_u16[plane];
+            const Av2hFilterPlaneU16 *deblocked =
+                &workspace->filter_workspace->deblocked_u16.plane[plane];
+            const Av2hFilterPlaneU16 *cdef =
+                &workspace->filter_workspace->cdef_u16.plane[plane];
+            coded_data = coded->data;
+            coded_stride = coded->stride_samples;
+            coded_height = coded->height;
+            reconstructed = coded->reconstructed;
+            reconstructed_count = coded->reconstructed_count_cells;
+            deblocked_data = deblocked->data;
+            deblocked_stride = deblocked->stride_samples;
+            deblocked_height = deblocked->height;
+            cdef_data = cdef->data;
+            cdef_stride = cdef->stride_samples;
+            cdef_height = cdef->height;
+        }
+        if (!av2h_size_multiply(
+                coded_stride, coded_height, &coded_size_bytes) ||
+            !av2h_size_multiply(
+                coded_size_bytes, workspace->bytes_per_sample,
+                &coded_size_bytes) ||
+            !av2h_size_multiply(
+                deblocked_stride, deblocked_height, &deblocked_size_bytes) ||
+            !av2h_size_multiply(
+                deblocked_size_bytes, workspace->bytes_per_sample,
+                &deblocked_size_bytes) ||
+            !av2h_size_multiply(
+                cdef_stride, cdef_height, &cdef_size_bytes) ||
+            !av2h_size_multiply(
+                cdef_size_bytes, workspace->bytes_per_sample,
+                &cdef_size_bytes) ||
             !av2h_size_multiply(
                 workspace->filter_workspace->deblock_map.stride_cells[plane],
                 workspace->filter_workspace->deblock_map.rows[plane],
@@ -670,13 +767,13 @@ static int output_is_disjoint(
             !av2h_size_multiply(
                 workspace->filter_workspace->ccso_controls.stride_units[plane],
                 layout->ccso_rows, &control_size_bytes) ||
-            output_overlaps(output, output_size_bytes, coded->data, coded_size_bytes) ||
+            output_overlaps(output, output_size_bytes, coded_data, coded_size_bytes) ||
             output_overlaps(
-                output, output_size_bytes, coded->reconstructed,
-                coded->reconstructed_count_cells) ||
+                output, output_size_bytes, reconstructed,
+                reconstructed_count) ||
             output_overlaps(
-                output, output_size_bytes, deblocked->data, deblocked_size_bytes) ||
-            output_overlaps(output, output_size_bytes, cdef->data, cdef_size_bytes) ||
+                output, output_size_bytes, deblocked_data, deblocked_size_bytes) ||
+            output_overlaps(output, output_size_bytes, cdef_data, cdef_size_bytes) ||
             output_overlaps(
                 output, output_size_bytes,
                 workspace->filter_workspace->deblock_map.plane[plane],
@@ -722,8 +819,13 @@ static int output_is_disjoint(
             output, output_size_bytes, context->cdef_unit_strengths,
             context->cdef_unit_strength_capacity) ||
         output_overlaps(
-            output, output_size_bytes, workspace->reconstruction_scratch,
-            sizeof(*workspace->reconstruction_scratch)) ||
+            output, output_size_bytes,
+            workspace->bytes_per_sample == 1U ?
+                (const void *)workspace->reconstruction_scratch :
+                (const void *)workspace->reconstruction_scratch_u16,
+            workspace->bytes_per_sample == 1U ?
+                sizeof(*workspace->reconstruction_scratch) :
+                sizeof(*workspace->reconstruction_scratch_u16)) ||
         (result != 0 &&
          output_overlaps(output, output_size_bytes, result, sizeof(*result)))) {
         return 0;
@@ -776,9 +878,7 @@ static void clear_decode_storage(
             context->cdef_unit_strength_capacity);
     }
     for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
-        Av2hReconstructionPlane *coded = &workspace->coded[plane];
-        size_t ready_size_bytes = coded->reconstructed_stride_cells *
-            (((size_t)coded->height + 3U) / 4U);
+        size_t ready_size_bytes;
         size_t map_size_bytes =
             workspace->filter_workspace->deblock_map.stride_cells[plane] *
             workspace->filter_workspace->deblock_map.rows[plane] *
@@ -786,10 +886,23 @@ static void clear_decode_storage(
         size_t control_size_bytes =
             workspace->filter_workspace->ccso_controls.stride_units[plane] *
             layout->ccso_rows;
-        av2h_plane_fill_u8(
-            coded->data, coded->stride_samples,
-            coded->stride_samples, coded->height, 0U);
-        av2h_memory_fill(coded->reconstructed, 0U, ready_size_bytes);
+        if (workspace->bytes_per_sample == 1U) {
+            Av2hReconstructionPlane *coded = &workspace->coded[plane];
+            ready_size_bytes = coded->reconstructed_stride_cells *
+                (((size_t)coded->height + 3U) / 4U);
+            av2h_plane_fill_u8(
+                coded->data, coded->stride_samples,
+                coded->stride_samples, coded->height, 0U);
+            av2h_memory_fill(coded->reconstructed, 0U, ready_size_bytes);
+        } else {
+            Av2hReconstructionPlaneU16 *coded = &workspace->coded_u16[plane];
+            ready_size_bytes = coded->reconstructed_stride_cells *
+                (((size_t)coded->height + 3U) / 4U);
+            av2h_plane_fill_u16(
+                coded->data, coded->stride_samples,
+                coded->stride_samples, coded->height, 0U);
+            av2h_memory_fill(coded->reconstructed, 0U, ready_size_bytes);
+        }
         av2h_memory_fill(
             (void *)workspace->filter_workspace->deblock_map.plane[plane],
             0U, map_size_bytes);
@@ -893,9 +1006,12 @@ Av2hStatus av2h_frame_workspace_prepare(
     const Av2hFrameDecodeResult *result,
     Av2hFilterWorkspaceLayout *layout) {
     Av2hFrameContextSizes context_sizes;
-    Av2hStatus status = av2h_filter_workspace_query(frame, layout);
+    Av2hStatus status = av2h_filter_workspace_query_bytes(
+        frame, workspace != 0 ? workspace->bytes_per_sample : 0U, layout);
     if (status != AV2H_OK) return status;
-    if (!filter_workspace_valid(frame, layout, workspace->filter_workspace) ||
+    if (!filter_workspace_valid(
+            frame, layout, workspace->filter_workspace,
+            workspace->bytes_per_sample) ||
         !decode_planes_valid(frame, layout, workspace) ||
         !tile_context_valid(
             sequence, frame, &workspace->tile_context, &context_sizes) ||

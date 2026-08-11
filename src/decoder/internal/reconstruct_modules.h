@@ -40,6 +40,16 @@ Av2hStatus av2h_reconstruct_transform_generic(
     Av2hReconstructionScratch *scratch,
     Av2hFirstReconstruction *reconstruction);
 
+Av2hStatus av2h_reconstruct_transform_8x16_u16(
+    const Av2hFirstLeafMode *mode,
+    const Av2hFirstCoeffPrefix *prefix,
+    const Av2hFirstTransformType *transform,
+    const Av2hFirstCoeffBlock *coefficients,
+    const uint16_t *predictor,
+    size_t predictor_stride_samples,
+    Av2hReconstructionScratchU16 *scratch,
+    Av2hFirstReconstructionU16 *reconstruction);
+
 Av2hStatus av2h_intrabc_predict(
     const Av2hFirstLeafMode *mode,
     const Av2hReconstructionPlane *plane,

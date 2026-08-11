@@ -1,8 +1,10 @@
 #include "decoder/tile.h"
 #include "decoder/tx_geometry.h"
+#include "decoder/internal/frame_workspace.h"
 #include "decoder/internal/reconstruct_modules.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 
 static int failures;
 
@@ -191,6 +193,33 @@ static uint64_t sample_hash(const uint8_t *samples, size_t count) {
     for (index = 0U; index < count; ++index) {
         hash ^= samples[index];
         hash *= UINT64_C(1099511628211);
+    }
+    return hash;
+}
+
+static uint64_t sample_hash_u16(const uint16_t *samples, size_t count) {
+    uint64_t hash = UINT64_C(1469598103934665603);
+    size_t index;
+    for (index = 0U; index < count; ++index) {
+        uint16_t value = samples[index];
+        hash ^= (uint8_t)value;
+        hash *= UINT64_C(1099511628211);
+        hash ^= (uint8_t)(value >> 8U);
+        hash *= UINT64_C(1099511628211);
+    }
+    return hash;
+}
+
+static uint64_t sample_hash_i32(const int32_t *samples, size_t count) {
+    uint64_t hash = UINT64_C(1469598103934665603);
+    size_t index;
+    for (index = 0U; index < count; ++index) {
+        uint32_t value = (uint32_t)samples[index];
+        unsigned int byte;
+        for (byte = 0U; byte < 4U; ++byte) {
+            hash ^= (uint8_t)(value >> (byte * 8U));
+            hash *= UINT64_C(1099511628211);
+        }
     }
     return hash;
 }
@@ -6011,6 +6040,232 @@ static void test_emerald_chroma_dct_geometries(void) {
     }
 }
 
+static void test_10bit_wp4_luma_fixture(void) {
+    uint8_t input[64U];
+    uint8_t reference_bytes[512U];
+    uint8_t luma_partition_above[4U] = { 0 };
+    uint8_t luma_partition_left[4U] = { 0 };
+    uint8_t chroma_partition_above[4U] = { 0 };
+    uint8_t chroma_partition_left[4U] = { 0 };
+    Av2hLumaModeContext luma_mode_above[4U] = { 0 };
+    Av2hLumaModeContext luma_mode_left[4U] = { 0 };
+    uint8_t coefficient_above[AV2H_FRAME_PLANE_COUNT * 4U] = { 0 };
+    uint8_t coefficient_left[AV2H_FRAME_PLANE_COUNT * 4U] = { 0 };
+    Av2hTileLumaModeCell colocated_luma[16U] = { 0 };
+    Av2hTileContextStorage storage = {
+        luma_partition_above, luma_partition_left,
+        chroma_partition_above, chroma_partition_left,
+        luma_mode_above, luma_mode_left,
+        coefficient_above, coefficient_left, colocated_luma,
+        4U, 4U, 16U, 0, 0U, 0, 0U, { 0, 0, 0 }, 0U
+    };
+    uint16_t pixels[16U * 16U] = { 0 };
+    uint8_t reconstructed[16U] = { 0 };
+    Av2hReconstructionPlaneU16 plane = {
+        pixels, 16U, 16U, 16U, 16U, 16U,
+        reconstructed, 4U, sizeof(reconstructed)
+    };
+    Av2hReconstructionScratchU16 scratch;
+    Av2hObu entries[3U];
+    Av2hObuLedger ledger = { entries, 3U, 0U };
+    Av2hError error;
+    Av2hSequenceState sequence;
+    Av2hFrameState frame;
+    Av2hTileGroup group;
+    Av2hTileDecoder decoder;
+    const Av2hObu *sequence_obu = 0;
+    const Av2hObu *frame_obu = 0;
+    FILE *source;
+    size_t input_size;
+    size_t index;
+    size_t luma_count = 0U;
+
+    source = fopen(
+        "tests/fixtures/10bit/avm-reference/"
+        "tiny-constrained-16x16-yuv420p10le-qp208.obu", "rb");
+    CHECK(source != 0);
+    if (source == 0) return;
+    input_size = fread(input, 1U, sizeof(input), source);
+    CHECK(!ferror(source));
+    CHECK(feof(source));
+    CHECK(fclose(source) == 0);
+    CHECK(input_size == 45U);
+    if (input_size != 45U) return;
+
+    source = fopen(
+        "tests/fixtures/10bit/avm-reference/"
+        "tiny-constrained-16x16-yuv420p10le-qp208-decoded.yuv", "rb");
+    CHECK(source != 0);
+    if (source == 0) return;
+    CHECK(fread(reference_bytes, 1U, sizeof(reference_bytes), source) ==
+          sizeof(reference_bytes));
+    CHECK(fclose(source) == 0);
+
+    CHECK(av2h_obu_parse(
+              (Av2hSpan){ input, input_size }, &ledger, &error) == AV2H_OK);
+    for (index = 0U; index < ledger.count; ++index) {
+        if (entries[index].type == AV2H_OBU_SEQUENCE_HEADER) {
+            sequence_obu = &entries[index];
+        } else if (entries[index].type == AV2H_OBU_CLOSED_LOOP_KEY) {
+            frame_obu = &entries[index];
+        }
+    }
+    CHECK(sequence_obu != 0);
+    CHECK(frame_obu != 0);
+    if (sequence_obu == 0 || frame_obu == 0) return;
+    CHECK(av2h_sequence_state_parse(
+              (Av2hSpan){ input, input_size }, sequence_obu,
+              &sequence, &error) == AV2H_OK);
+    CHECK(av2h_frame_header_closed_key_parse(
+              (Av2hSpan){ input + frame_obu->payload_offset,
+                           frame_obu->payload_size },
+              &sequence, &frame) == AV2H_OK);
+    CHECK(av2h_tile_group_single_parse(
+              (Av2hSpan){ input + frame_obu->payload_offset,
+                           frame_obu->payload_size },
+              frame.uncompressed_header_bits, &group) == AV2H_OK);
+    CHECK(av2h_tile_decoder_init(
+              &decoder, group.entropy, &sequence, &frame, &storage) ==
+          AV2H_OK);
+
+    while (decoder.phase != AV2H_TILE_DECODE_DONE) {
+        uint8_t has_leaf = 0U;
+        Av2hStatus status;
+        if (decoder.phase == AV2H_TILE_DECODE_LUMA) {
+            Av2hTileLumaLeaf leaf;
+            Av2hFirstCoeffBlock block;
+            av2h_memory_fill(&leaf, 0U, sizeof(leaf));
+            av2h_memory_fill(&block, 0U, sizeof(block));
+            status = av2h_tile_decoder_next_luma(
+                &decoder, &leaf, &block, &has_leaf);
+            CHECK(status == AV2H_OK);
+            if (status != AV2H_OK) return;
+            if (!has_leaf) continue;
+            CHECK(leaf.node.row == 0U);
+            CHECK(leaf.node.column == luma_count * 2U);
+            CHECK(leaf.mode.mode == AV2H_INTRA_DC);
+            CHECK(leaf.mode.enable_ibp == 0U);
+            CHECK(leaf.prefix.tx_size == AV2H_TX_8X16);
+            CHECK(leaf.transform.primary_type == AV2H_TX_DCT_DCT);
+            CHECK(av2h_luma_reconstruct_to_plane_u16(
+                      &leaf.node, &leaf.mode, &leaf.prefix, &leaf.transform,
+                      &block, &plane, &scratch) == AV2H_OK);
+            for (index = 0U; index < 128U; ++index) {
+                uint16_t expected_predictor;
+                if (luma_count == 0U) {
+                    expected_predictor = 512U;
+                } else {
+                    size_t row;
+                    uint32_t sum = 0U;
+                    for (row = 0U; row < 16U; ++row) {
+                        size_t offset = (row * 16U + 7U) * 2U;
+                        sum += (uint16_t)(reference_bytes[offset] |
+                            ((uint16_t)reference_bytes[offset + 1U] << 8U));
+                    }
+                    expected_predictor = (uint16_t)((sum + 8U) / 16U);
+                }
+                CHECK(scratch.predictor[index] == expected_predictor);
+            }
+            CHECK(sample_hash_u16(scratch.predictor, 128U) ==
+                  (luma_count == 0U ? UINT64_C(0x991b202dc315ab83) :
+                                      UINT64_C(0x580cec945426b383)));
+            CHECK(sample_hash_i32(scratch.residual, 128U) ==
+                  (luma_count == 0U ? UINT64_C(0x6cad529a8d799783) :
+                                      UINT64_C(0xef5edb1a2c5b3783)));
+            {
+                uint16_t block_samples[128U];
+                size_t sample_index;
+                for (sample_index = 0U; sample_index < 128U; ++sample_index) {
+                    size_t row = sample_index / 8U;
+                    size_t column = sample_index % 8U;
+                    block_samples[sample_index] =
+                        pixels[row * 16U + luma_count * 8U + column];
+                }
+                CHECK(sample_hash_u16(block_samples, 128U) ==
+                      (luma_count == 0U ? UINT64_C(0x71b06bc83fc42a83) :
+                                          UINT64_C(0x636ef00a26871383)));
+            }
+            CHECK(av2h_tile_decoder_commit_leaf(&decoder, leaf.node) ==
+                  AV2H_OK);
+            ++luma_count;
+        } else if (decoder.phase == AV2H_TILE_DECODE_CHROMA) {
+            Av2hTileChromaLeaf leaf;
+            Av2hFirstCoeffBlock blocks[2U];
+            av2h_memory_fill(&leaf, 0U, sizeof(leaf));
+            av2h_memory_fill(blocks, 0U, sizeof(blocks));
+            status = av2h_tile_decoder_next_chroma(
+                &decoder, &leaf, &blocks[0], &blocks[1], &has_leaf);
+            CHECK(status == AV2H_OK);
+            if (status != AV2H_OK) return;
+            if (!has_leaf) continue;
+            CHECK(av2h_chroma_inverse_cross_transform(
+                      &blocks[0], &blocks[1], leaf.transform[0].cctx_type) ==
+                  AV2H_OK);
+            CHECK(av2h_tile_decoder_commit_leaf(&decoder, leaf.node) ==
+                  AV2H_OK);
+        } else {
+            CHECK(0);
+            return;
+        }
+    }
+    CHECK(luma_count == 2U);
+    CHECK(av2h_range_tell(&decoder.range) == 192U);
+    for (index = 0U; index < 256U; ++index) {
+        uint16_t expected = (uint16_t)(reference_bytes[index * 2U] |
+            ((uint16_t)reference_bytes[index * 2U + 1U] << 8U));
+        CHECK(pixels[index] == expected);
+    }
+    for (index = 0U; index < sizeof(reconstructed); ++index) {
+        CHECK(reconstructed[index] == 1U);
+    }
+    {
+        Av2hFrameDecodeWorkspaceLayout layout;
+        Av2hFrameDecodeWorkspace workspace;
+        Av2hFilterWorkspace filter_workspace;
+        Av2hFilterWorkspaceStorage filter_storage;
+        Av2hFrameDecodeResult result;
+        uint16_t output[384U];
+        uint8_t *allocation;
+        void *workspace_memory;
+        Av2hStatus status;
+        CHECK(av2h_frame_decode_workspace_query_bytes(
+                  &sequence, &frame, 2U, &layout) == AV2H_OK);
+        allocation = (uint8_t *)malloc(
+            layout.size_bytes + layout.alignment - 1U);
+        CHECK(allocation != 0);
+        if (allocation == 0) return;
+        workspace_memory = (void *)(((uintptr_t)allocation +
+            layout.alignment - 1U) & ~(uintptr_t)(layout.alignment - 1U));
+        CHECK(av2h_frame_decode_workspace_init_bytes(
+                  &sequence, &frame, 2U, &layout,
+                  workspace_memory, layout.size_bytes, &workspace,
+                  &filter_workspace, &filter_storage) == AV2H_OK);
+        av2h_memory_fill(output, 0xa5U, sizeof(output));
+        av2h_memory_fill(&result, 0U, sizeof(result));
+        status = av2h_decode_frame_planar_private(
+            group.entropy, &sequence, &frame, &workspace,
+            (uint8_t *)output, sizeof(output), &result);
+        CHECK(status == AV2H_UNSUPPORTED);
+        CHECK(result.cause == AV2H_UNSUPPORTED);
+        CHECK(result.stage == AV2H_FRAME_DECODE_STAGE_CHROMA_RECONSTRUCT);
+        CHECK(result.entropy_tell == 192U);
+        CHECK(result.luma_leaf_count == 2U);
+        for (index = 0U; index < sizeof(output) / sizeof(output[0]); ++index) {
+            CHECK(output[index] == 0xa5a5U);
+        }
+        for (index = 0U; index < 256U; ++index) {
+            size_t row = index / 16U;
+            size_t column = index % 16U;
+            uint16_t expected = (uint16_t)(reference_bytes[index * 2U] |
+                ((uint16_t)reference_bytes[index * 2U + 1U] << 8U));
+            CHECK(workspace.coded_u16[0].data[
+                      row * workspace.coded_u16[0].stride_samples + column] ==
+                  expected);
+        }
+        free(allocation);
+    }
+}
+
 
 int main(void) {
     test_chroma_geometry_through_64();
@@ -6075,6 +6330,7 @@ int main(void) {
     test_luma_ist_frontier_matrix();
     test_tx8x4_adst_adst_reconstruction();
     test_emerald_chroma_dct_geometries();
+    test_10bit_wp4_luma_fixture();
     if (failures != 0) {
         fprintf(stderr, "%d reconstruction checks failed\n", failures);
         return 1;
