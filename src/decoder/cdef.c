@@ -41,7 +41,8 @@ Av2hStatus av2h_cdef_find_direction(
     for (row = 0U; row < 8U; ++row) {
         for (column = 0U; column < 8U; ++column) {
             int value = (int)luma->data[
-                ((size_t)y + row) * luma->stride_samples + x + column] - 128;
+                ((size_t)y + row) * luma->stride_samples + x + column] -
+                av2h_sample_midpoint_8bit();
             partial[0][row + column] += value;
             partial[1][row + column / 2U] += value;
             partial[2][row] += value;

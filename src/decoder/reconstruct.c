@@ -967,10 +967,12 @@ Av2hStatus av2h_luma_reconstruct(
                              flip_adst_columns);
     if (status != AV2H_OK) return status;
     for (index = 0U; index < count; ++index) {
-        int32_t predicted = predictor == 0 ? 128 :
+        int32_t predicted = predictor == 0 ?
+            av2h_sample_midpoint_8bit() :
             predictor[(index / coefficients->width) * predictor_stride_samples +
                       index % coefficients->width];
-        int32_t pixel = clamp(predicted + scratch->residual[index], 0, 255);
+        int32_t pixel = av2h_sample_clip(
+            predicted + scratch->residual[index]);
         reconstruction->residual[index] = (int16_t)scratch->residual[index];
         reconstruction->pixels[index] = (uint8_t)pixel;
     }
@@ -1271,7 +1273,7 @@ Av2hStatus av2h_luma_reconstruct_to_plane(
                left_count == 0U) {
         for (index = 0U; index < (size_t)output_width * output_height;
              ++index) {
-            scratch->predictor[index] = 128U;
+            scratch->predictor[index] = av2h_sample_midpoint_8bit();
         }
         status = av2h_luma_reconstruct(
             mode, prefix, transform, coefficients, scratch->predictor,
@@ -1561,8 +1563,10 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_format(
         size_t left_count = (size_t)height + width;
         uint8_t had_above = references.above_count != 0U;
         uint8_t had_left = references.left_count != 0U;
-        uint8_t above_value = had_left ? references.left[0] : 127U;
-        uint8_t left_value = had_above ? references.above[0] : 129U;
+        uint8_t above_value = had_left ? references.left[0] :
+            av2h_sample_below_midpoint_8bit();
+        uint8_t left_value = had_above ? references.above[0] :
+            av2h_sample_above_midpoint_8bit();
         if (above_count > sizeof(scratch->above)) {
             above_count = sizeof(scratch->above);
         }
@@ -1580,7 +1584,7 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_format(
             references.left_count = left_count;
         }
         references.above_left = had_above ? left_value :
-            had_left ? above_value : 128U;
+            had_left ? above_value : av2h_sample_midpoint_8bit();
         references.has_above_left = 1U;
     }
     if (mode->is_cfl) {

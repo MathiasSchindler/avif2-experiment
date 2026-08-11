@@ -741,7 +741,8 @@ Av2hStatus av2h_reconstruct_transform_generic(
         for (row = 0U; row < output_height; ++row) {
             for (column = 0U; column < output_width; ++column) {
                 size_t out_index = (size_t)row * output_width + column;
-                int32_t sample = predictor == 0 ? 128 :
+                int32_t sample = predictor == 0 ?
+                    av2h_sample_midpoint_8bit() :
                     predictor[(size_t)row * predictor_stride_samples + column];
                 reconstruction->residual[out_index] = 0;
                 reconstruction->pixels[out_index] = (uint8_t)sample;
@@ -812,11 +813,12 @@ Av2hStatus av2h_reconstruct_transform_generic(
             int32_t residual = scratch->residual[
                 (size_t)source_row * coeff_width + source_column];
             size_t out_index = (size_t)row * output_width + column;
-            int32_t sample = predictor == 0 ? 128 :
+            int32_t sample = predictor == 0 ?
+                av2h_sample_midpoint_8bit() :
                 predictor[(size_t)row * predictor_stride_samples + column];
             reconstruction->residual[out_index] = (int16_t)residual;
             reconstruction->pixels[out_index] =
-                (uint8_t)clamp(sample + residual, 0, 255);
+                av2h_sample_clip(sample + residual);
         }
     }
     return AV2H_OK;

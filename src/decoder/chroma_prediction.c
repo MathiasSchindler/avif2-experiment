@@ -31,9 +31,6 @@ static const uint8_t ibp_weights[5U][16U] = {
       98U, 102U, 106U, 109U, 113U, 117U, 121U, 124U }
 };
 
-static int32_t clamp(int32_t value, int32_t minimum, int32_t maximum) {
-    return av2h_sample_clamp(value, minimum, maximum);
-}
 static int32_t round_shift(int64_t value, uint8_t shift) {
     int64_t adjusted = value + ((int64_t)1 << (shift - 1U));
     if (adjusted >= 0) return (int32_t)(adjusted >> shift);
@@ -78,7 +75,7 @@ uint8_t av2h_chroma_dc_predictor_average(
     (void)height;
     (void)have_top;
     (void)have_left;
-    if (count == 0U) return 128U;
+    if (count == 0U) return av2h_sample_midpoint_8bit();
     scale = av2h_cfl_resolve_divisor_32(count, &shift);
     return (uint8_t)(((uint64_t)sum * scale +
                       ((uint64_t)1U << (shift - 1))) >> shift);
@@ -289,7 +286,8 @@ Av2hStatus av2h_chroma_predict(
                     references->above_count != 0U ?
                         references->above[
                             column < references->above_count ? column :
-                            references->above_count - 1U] : 127U;
+                            references->above_count - 1U] :
+                            av2h_sample_below_midpoint_8bit();
             }
         }
         return AV2H_OK;
@@ -335,7 +333,7 @@ Av2hStatus av2h_chroma_predict(
         /* No left neighbour: AV2 fills the left edge with the first above
          * sample when the block has an above neighbour, else the mid value. */
         fallback = (references->above != 0 && references->above_count != 0U) ?
-            references->above[0] : 128U;
+            references->above[0] : av2h_sample_midpoint_8bit();
         for (row = 0U; row < height; ++row) {
             for (column = 0U; column < width; ++column) {
                 predictor[(size_t)row * predictor_stride_samples + column] = fallback;
@@ -703,7 +701,7 @@ Av2hStatus av2h_cfl_derived_predict(
     uint8_t have_left,
     uint8_t *predictor,
     size_t predictor_stride_samples) {
-    const int bit_depth = 8;
+    const int bit_depth = av2h_sample_domain_8bit.bit_depth;
     uint8_t full_resolution = (uint8_t)(chroma_format_idc == 2U);
     unsigned int scale = full_resolution ? 1U : 2U;
     uint16_t luma_x = (uint16_t)((uint32_t)block_x * scale);
@@ -836,12 +834,13 @@ Av2hStatus av2h_cfl_derived_predict(
             chroma_left[row] = plane_coded_sample(
                 chroma_plane, block_x - 1U, (size_t)block_y + row);
             if (luma_y >= effective_luma_height) {
-                luma_left_ds[row] = 128 << 3;
+                luma_left_ds[row] =
+                    (int32_t)av2h_sample_domain_8bit.midpoint << 3;
             } else if (row >= visible_luma_height / scale && row != 0U) {
                 luma_left_ds[row] = luma_left_ds[row - 1U];
             }
             if (block_y >= effective_chroma_height) {
-                chroma_left[row] = 128;
+                chroma_left[row] = av2h_sample_midpoint_8bit();
             } else if (row >= effective_chroma_height - block_y && row != 0U) {
                 chroma_left[row] = chroma_left[row - 1U];
             }
@@ -916,12 +915,13 @@ Av2hStatus av2h_cfl_derived_predict(
                 chroma_plane, (size_t)block_x + column,
                 (size_t)block_y - 1U);
             if (luma_x >= effective_luma_width) {
-                luma_above_ds[column] = 128 << 3;
+                luma_above_ds[column] =
+                    (int32_t)av2h_sample_domain_8bit.midpoint << 3;
             } else if (column >= visible_luma_width / scale && column != 0U) {
                 luma_above_ds[column] = luma_above_ds[column - 1U];
             }
             if (block_x >= effective_chroma_width) {
-                chroma_above[column] = 128;
+                chroma_above[column] = av2h_sample_midpoint_8bit();
             } else if (column >= effective_chroma_width - block_x &&
                        column != 0U) {
                 chroma_above[column] = chroma_above[column - 1U];
@@ -956,7 +956,7 @@ Av2hStatus av2h_cfl_derived_predict(
             int32_t max_v = (1 << (bit_depth + 3)) - 1;
             avg_l = val > max_v ? max_v : val;
         } else {
-            avg_l = 8 << (bit_depth - 1);
+            avg_l = (int32_t)av2h_sample_domain_8bit.midpoint << 3;
         }
     }
     /* Distribute reference samples between the available sides. */
@@ -1069,7 +1069,7 @@ Av2hStatus av2h_cfl_derived_predict(
                 (int64_t)alpha * ac, 6 + AV2H_CFL_ADD_BITS_ALPHA);
             int32_t base_dc = predictor[(size_t)row * predictor_stride_samples + column];
             predictor[(size_t)row * predictor_stride_samples + column] =
-                (uint8_t)clamp(scaled + base_dc, 0, 255);
+                av2h_sample_clip(scaled + base_dc);
         }
     }
     return AV2H_OK;
@@ -1489,7 +1489,8 @@ static Av2hStatus mhccp_predict_direction01(
         }
         for (row = 0U; row < prediction_height; ++row) {
             for (column = 0U; column < prediction_width; ++column) {
-                predictor[(size_t)row * predictor_stride_samples + column] = 128U;
+                predictor[(size_t)row * predictor_stride_samples + column] =
+                    av2h_sample_midpoint_8bit();
             }
         }
         return AV2H_OK;
@@ -1765,7 +1766,7 @@ static Av2hStatus mhccp_predict_direction01(
                     AV2H_MHCCP_DECIM_BITS);
             }
             predictor[(size_t)row * predictor_stride_samples + column] =
-                (uint8_t)clamp(sum, 0, 255);
+                av2h_sample_clip(sum);
         }
     }
     return AV2H_OK;
@@ -1866,7 +1867,7 @@ Av2hStatus av2h_mhccp_predict_observed(
                     AV2H_MHCCP_DECIM_BITS);
             }
             predictor[(size_t)row * predictor_stride_samples + column] =
-                (uint8_t)clamp(sum, 0, 255);
+                av2h_sample_clip(sum);
         }
     }
     return AV2H_OK;

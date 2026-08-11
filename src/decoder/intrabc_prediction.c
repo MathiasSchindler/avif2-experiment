@@ -1,12 +1,6 @@
 #include "internal/reconstruct_modules.h"
 #include "internal/decode_diagnostics.h"
-
-static int32_t intrabc_clamp(int32_t value, int32_t minimum,
-                             int32_t maximum) {
-    if (value < minimum) return minimum;
-    if (value > maximum) return maximum;
-    return value;
-}
+#include "internal/sample_math.h"
 
 static uint8_t intrabc_morph_template_size(uint16_t size) {
     if (size < 3U) return 0U;
@@ -118,7 +112,7 @@ static Av2hStatus apply_intrabc_morph_prediction(
             int32_t value =
                 (predictor[(size_t)row * width + column] * alpha + beta) >> 8;
             predictor[(size_t)row * width + column] =
-                (uint8_t)intrabc_clamp(value, 0, 255);
+                av2h_sample_clip(value);
         }
     }
     return AV2H_OK;

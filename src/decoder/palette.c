@@ -1,4 +1,5 @@
 #include "internal/leaf_modules.h"
+#include "internal/sample_math.h"
 
 uint8_t av2h_leaf_block_allows_palette(Av2hBlockSize block_size) {
     size_t width;
@@ -80,7 +81,8 @@ Av2hStatus av2h_leaf_palette_read_colors(
     }
     if (index == mode->palette_size) goto sort_colors;
     bits = 5U + av2h_range_read_bypass(decoder, 2U);
-    range = 255U - mode->palette_colors[index - 1U];
+    range = av2h_sample_maximum_8bit() -
+        mode->palette_colors[index - 1U];
     for (; index < mode->palette_size; ++index) {
         uint32_t previous = mode->palette_colors[index - 1U];
         uint32_t delta = av2h_range_read_bypass(decoder, bits) + 1U;
@@ -89,7 +91,9 @@ Av2hStatus av2h_leaf_palette_read_colors(
         if (av2h_range_status(decoder) != AV2H_OK) {
             return av2h_range_status(decoder);
         }
-        if (color > 255U) color = 255U;
+        if (color > av2h_sample_maximum_8bit()) {
+            color = av2h_sample_maximum_8bit();
+        }
         mode->palette_colors[index] = (uint8_t)color;
         range -= color - previous;
         next_bits = palette_ceil_log2(range);

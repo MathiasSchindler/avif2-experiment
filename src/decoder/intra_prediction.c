@@ -81,10 +81,6 @@ static const uint8_t ibp_weights[5U][16U] = {
       98U, 102U, 106U, 109U, 113U, 117U, 121U, 124U }
 };
 
-static int32_t clamp(int32_t value, int32_t minimum, int32_t maximum) {
-    return av2h_sample_clamp(value, minimum, maximum);
-}
-
 static int32_t round_shift(int64_t value, uint8_t shift) {
     int64_t adjusted = value + ((int64_t)1 << (shift - 1U));
     if (adjusted >= 0) return (int32_t)(adjusted >> shift);
@@ -256,9 +252,9 @@ static Av2hStatus predict_directional(
             references->left_count;
         uint8_t fallback = angle == 90 ?
             (references->left != 0 && references->left_count != 0U ?
-                references->left[0] : 127U) :
+                references->left[0] : av2h_sample_below_midpoint_8bit()) :
             (references->above != 0 && references->above_count != 0U ?
-                references->above[0] : 129U);
+                references->above[0] : av2h_sample_above_midpoint_8bit());
         for (row = 0U; row < height; ++row) {
             for (column = 0U; column < width; ++column) {
                 size_t edge_index = angle == 90 ? column : row;
@@ -291,9 +287,11 @@ static Av2hStatus predict_directional(
         uint8_t fallback = references->above != 0 &&
             references->above_count != 0U ? references->above[0] :
             references->left != 0 && references->left_count != 0U ?
-                references->left[0] : 128U;
-        uint8_t above_fallback = no_references ? 127U : fallback;
-        uint8_t left_fallback = no_references ? 129U : fallback;
+                references->left[0] : av2h_sample_midpoint_8bit();
+        uint8_t above_fallback = no_references ?
+            av2h_sample_below_midpoint_8bit() : fallback;
+        uint8_t left_fallback = no_references ?
+            av2h_sample_above_midpoint_8bit() : fallback;
         uint8_t corner = references->has_above_left ?
             references->above_left : fallback;
         above[-4] = above[-3] = above[-2] = above[-1] = corner;
@@ -434,7 +432,7 @@ static Av2hStatus predict_directional(
                         sum += dr_interp_filter[shift][tap] *
                             above[base + (int)tap - 1];
                     }
-                    primary = (uint8_t)clamp((sum + 64) >> 7U, 0, 255);
+                    primary = av2h_sample_clip((sum + 64) >> 7U);
                 }
                 if (mode->mrl_index == 0U && mode->enable_ibp &&
                     mode->angle_delta % 2 == 0) {
@@ -456,8 +454,7 @@ static Av2hStatus predict_directional(
                             sum += dr_interp_filter[secondary_shift][tap] *
                                 left[secondary_base + (int)tap - 1];
                         }
-                        secondary = (uint8_t)clamp(
-                            (sum + 64) >> 7U, 0, 255);
+                        secondary = av2h_sample_clip((sum + 64) >> 7U);
                     }
                     weight = directional_ibp_weight(
                         row >> row_shift, column >> column_shift,
@@ -505,8 +502,8 @@ static Av2hStatus predict_directional(
                     }
                 }
                 predictor[(size_t)row * predictor_stride_samples + column] =
-                    (uint8_t)clamp(use_idif ? (sum + 64) >> 7U :
-                        (sum + 16) >> 5U, 0, 255);
+                    av2h_sample_clip(use_idif ? (sum + 64) >> 7U :
+                        (sum + 16) >> 5U);
             }
         }
         return AV2H_OK;
@@ -535,9 +532,8 @@ static Av2hStatus predict_directional(
                 }
             }
             {
-                uint8_t primary =
-                    (uint8_t)clamp(use_idif ? (sum + 64) >> 7U :
-                        (sum + 16) >> 5U, 0, 255);
+                uint8_t primary = av2h_sample_clip(
+                    use_idif ? (sum + 64) >> 7U : (sum + 16) >> 5U);
                 if (mode->mrl_index == 0U && mode->enable_ibp &&
                     mode->angle_delta % 2 == 0) {
                     int secondary_dx = directional_derivative[angle - 180];
@@ -562,8 +558,8 @@ static Av2hStatus predict_directional(
                                     above, edge_count, above[-1],
                                     secondary_base + (int)tap - 1);
                         }
-                        secondary = (uint8_t)clamp(
-                            (secondary_sum + 64) >> 7U, 0, 255);
+                        secondary = av2h_sample_clip(
+                            (secondary_sum + 64) >> 7U);
                     }
                     weight = directional_ibp_weight(
                         column >> column_shift, row >> row_shift,
@@ -638,7 +634,8 @@ static Av2hStatus predict_d45_8x4_ibp(
     uint16_t row;
     uint16_t column;
     base = references->above_count != 0U ? references->above[0] :
-        references->left_count != 0U ? references->left[0] : 128U;
+        references->left_count != 0U ? references->left[0] :
+        av2h_sample_midpoint_8bit();
     above_edge[0] = references->has_above_left ?
         references->above_left : base;
     left_edge[0] = above_edge[0];
@@ -1935,7 +1932,8 @@ Av2hStatus av2h_luma_predict(
         if (have_left && references->left_count < height) {
             return AV2H_INVALID_ARGUMENT;
         }
-        bottom_left = !have_left ? have_above ? references->above[0] : 129U :
+        bottom_left = !have_left ? have_above ? references->above[0] :
+            av2h_sample_above_midpoint_8bit() :
             references->left_count > height ?
             references->left[height] : references->left[height - 1U];
         for (row = 0U; row < height; ++row) {
@@ -1944,7 +1942,8 @@ Av2hStatus av2h_luma_predict(
                 uint8_t top = have_above ? references->above[
                     column < references->above_count ? column :
                     references->above_count - 1U] :
-                    have_left ? references->left[0] : 127U;
+                    have_left ? references->left[0] :
+                    av2h_sample_below_midpoint_8bit();
                 int32_t value = bottom_left + round_shift(
                     ((int64_t)top - bottom_left) *
                         (height - 1U - row),
@@ -1967,7 +1966,8 @@ Av2hStatus av2h_luma_predict(
             references->above_count != 0U;
         int have_left = references->left != 0 &&
             references->left_count != 0U;
-        top_right = !have_above ? have_left ? references->left[0] : 127U :
+        top_right = !have_above ? have_left ? references->left[0] :
+            av2h_sample_below_midpoint_8bit() :
             references->above_count > width ?
             references->above[width] :
             references->above[references->above_count - 1U];
@@ -1976,7 +1976,8 @@ Av2hStatus av2h_luma_predict(
                 uint8_t left = have_left ? references->left[
                     row < references->left_count ? row :
                     references->left_count - 1U] :
-                    have_above ? references->above[0] : 129U;
+                    have_above ? references->above[0] :
+                    av2h_sample_above_midpoint_8bit();
                 uint8_t blend = smooth_blend(column, scale);
                 int32_t value = top_right + round_shift(
                     ((int64_t)left - top_right) *
@@ -2004,19 +2005,23 @@ Av2hStatus av2h_luma_predict(
             (have_left && references->left_count < height)) {
             return AV2H_INVALID_ARGUMENT;
         }
-        bottom_left = !have_left ? have_above ? references->above[0] : 129U :
+        bottom_left = !have_left ? have_above ? references->above[0] :
+            av2h_sample_above_midpoint_8bit() :
             references->left_count > height ?
             references->left[height] : references->left[height - 1U];
-        top_right = !have_above ? have_left ? references->left[0] : 127U :
+        top_right = !have_above ? have_left ? references->left[0] :
+            av2h_sample_below_midpoint_8bit() :
             references->above_count > width ?
             references->above[width] : references->above[width - 1U];
         for (row = 0U; row < height; ++row) {
             for (column = 0U; column < width; ++column) {
                 uint8_t top = !have_above ?
-                    have_left ? references->left[0] : 127U :
+                    have_left ? references->left[0] :
+                    av2h_sample_below_midpoint_8bit() :
                     references->above[column];
                 uint8_t left = !have_left ?
-                    have_above ? references->above[0] : 129U :
+                    have_above ? references->above[0] :
+                    av2h_sample_above_midpoint_8bit() :
                     references->left[row];
                 uint8_t top_blend = smooth_blend(row, scale);
                 uint8_t left_blend = smooth_blend(column, scale);
@@ -2142,7 +2147,8 @@ Av2hStatus av2h_luma_predict(
             (references->left == 0 || references->left_count == 0U)) {
             for (row = 0U; row < height; ++row) {
                 for (column = 0U; column < width; ++column) {
-                    predictor[(size_t)row * predictor_stride_samples + column] = 128U;
+                    predictor[(size_t)row * predictor_stride_samples + column] =
+                        av2h_sample_midpoint_8bit();
                 }
             }
             return AV2H_OK;
@@ -2180,7 +2186,8 @@ Av2hStatus av2h_luma_predict(
                                  row : references->left_count - 1U] :
                 references->above != 0 &&
                     references->above_count != 0U ?
-                    references->above[0] : 129U;
+                    references->above[0] :
+                    av2h_sample_above_midpoint_8bit();
             for (column = 0U; column < width; ++column) {
                 predictor[(size_t)row * predictor_stride_samples + column] =
                     value;
@@ -2199,8 +2206,11 @@ Av2hStatus av2h_luma_predict(
             if (count_not_127 > 32U) count_not_127 = 32U;
             for (column = 0U; column < 32U; ++column) {
                 predictor[(size_t)row * predictor_stride_samples + column] =
-                    column < count_129 ? 129U :
-                    column < count_not_127 ? 128U : 127U;
+                    column < count_129 ?
+                        av2h_sample_above_midpoint_8bit() :
+                    column < count_not_127 ?
+                        av2h_sample_midpoint_8bit() :
+                        av2h_sample_below_midpoint_8bit();
             }
         }
         return AV2H_OK;
@@ -2431,7 +2441,7 @@ Av2hStatus av2h_luma_predict(
                       dr_interp_filter[shift][2U] * edge[base + 1] +
                       dr_interp_filter[shift][3U] * edge[base + 2];
                 predictor[(size_t)row * predictor_stride_samples + column] =
-                    (uint8_t)clamp((sum + 64) >> 7U, 0, 255);
+                    av2h_sample_clip((sum + 64) >> 7U);
             }
         }
         return AV2H_OK;
@@ -2490,7 +2500,7 @@ Av2hStatus av2h_luma_predict(
                       dr_interp_filter[shift][2U] * edge[base + 1] +
                       dr_interp_filter[shift][3U] * edge[base + 2];
                 predictor[(size_t)row * predictor_stride_samples + column] =
-                    (uint8_t)clamp((sum + 64) >> 7U, 0, 255);
+                    av2h_sample_clip((sum + 64) >> 7U);
             }
         }
         return AV2H_OK;
@@ -2540,7 +2550,7 @@ Av2hStatus av2h_luma_predict(
                            edge[(int32_t)base + (int32_t)tap - 1];
                 }
                 predictor[(size_t)row * predictor_stride_samples + column] =
-                    (uint8_t)clamp((sum + 64) >> 7U, 0, 255);
+                    av2h_sample_clip((sum + 64) >> 7U);
             }
         }
         return AV2H_OK;
@@ -2569,7 +2579,7 @@ Av2hStatus av2h_luma_predict(
                            edge[(int32_t)base + (int32_t)tap - 1];
                 }
                 predictor[(size_t)row * predictor_stride_samples + column] =
-                    (uint8_t)clamp((sum + 64) >> 7U, 0, 255);
+                    av2h_sample_clip((sum + 64) >> 7U);
             }
         }
         return AV2H_OK;
@@ -2598,7 +2608,7 @@ Av2hStatus av2h_luma_predict(
                            edge[(int32_t)base + (int32_t)tap - 1];
                 }
                 predictor[(size_t)row * predictor_stride_samples + column] =
-                    (uint8_t)clamp((sum + 64) >> 7U, 0, 255);
+                    av2h_sample_clip((sum + 64) >> 7U);
             }
         }
         return AV2H_OK;
@@ -2624,7 +2634,7 @@ Av2hStatus av2h_luma_predict(
                            edge[base + tap - 1U];
                 }
                 predictor[(size_t)row * predictor_stride_samples + column] =
-                    (uint8_t)clamp((sum + 64) >> 7U, 0, 255);
+                    av2h_sample_clip((sum + 64) >> 7U);
             }
         }
         return AV2H_OK;
@@ -2684,7 +2694,7 @@ Av2hStatus av2h_luma_predict(
                            edge[(int32_t)base + (int32_t)tap - 1];
                 }
                 predictor[(size_t)row * predictor_stride_samples + column] =
-                    (uint8_t)clamp((sum + 64) >> 7U, 0, 255);
+                    av2h_sample_clip((sum + 64) >> 7U);
             }
         }
         return AV2H_OK;
@@ -2718,7 +2728,7 @@ Av2hStatus av2h_luma_predict(
                     value = above[11];
                 }
                 predictor[(size_t)row * predictor_stride_samples + column] =
-                    (uint8_t)clamp(value, 0, 255);
+                    av2h_sample_clip(value);
             }
         }
         return AV2H_OK;
@@ -2746,7 +2756,7 @@ Av2hStatus av2h_luma_predict(
                            references->left[source];
                 }
                 predictor[(size_t)row * predictor_stride_samples + column] =
-                    (uint8_t)clamp((sum + 64) >> 7U, 0, 255);
+                    av2h_sample_clip((sum + 64) >> 7U);
             }
         }
         return AV2H_OK;
@@ -2781,7 +2791,7 @@ Av2hStatus av2h_luma_predict(
                            left[(int32_t)base + (int32_t)tap - 1];
                 }
                 predictor[(size_t)row * predictor_stride_samples + column] =
-                    (uint8_t)clamp((sum + 64) >> 7U, 0, 255);
+                    av2h_sample_clip((sum + 64) >> 7U);
             }
         }
         return AV2H_OK;
@@ -2831,7 +2841,7 @@ Av2hStatus av2h_luma_predict(
                            above[(int32_t)base + (int32_t)tap - 1];
                 }
                 predictor[(size_t)row * predictor_stride_samples + column] =
-                    (uint8_t)clamp((sum + 64) >> 7U, 0, 255);
+                    av2h_sample_clip((sum + 64) >> 7U);
             }
         }
         return AV2H_OK;
@@ -2903,7 +2913,7 @@ Av2hStatus av2h_luma_predict(
                 value = left[width + height - 1U];
             }
             predictor[(size_t)row * predictor_stride_samples + column] =
-                (uint8_t)clamp(value, 0, 255);
+                av2h_sample_clip(value);
         }
     }
     return AV2H_OK;
@@ -2912,7 +2922,7 @@ Av2hStatus av2h_luma_predict(
 static uint8_t dc_predictor_average(unsigned int sum, unsigned int count,
                                     uint16_t width, uint16_t height,
                                     uint8_t have_top, uint8_t have_left) {
-    if (count == 0U) return 128U;
+    if (count == 0U) return av2h_sample_midpoint_8bit();
     if (have_top && have_left && width != height) {
         int shift;
         uint16_t scale = cfl_resolve_divisor_32(count, &shift);

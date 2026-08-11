@@ -423,6 +423,10 @@ produces base Q-index 176, but the legal high-bit-depth domain extends beyond
 
 ### WP6: Centralize sample-domain semantics
 
+**Status:** Implemented on 2026-08-11. The centralized domain contract,
+semantic-literal inventory, preserved algorithm constants, and platform
+evidence are recorded in `docs/dev/10bit-prep-wp6.md`.
+
 **Objective:** Distinguish semantic sample constants from fixed algorithm
 coefficients before introducing 10-bit values.
 
