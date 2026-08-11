@@ -75,16 +75,12 @@ I444 without also identifying its 10-bit little-endian storage.
 ## Evidence strategy
 
 The compact matrix under `tests/fixtures/10bit/avm-reference/` is the primary
-implementation corpus. The first stream is
-`tiny-precision-16x16-yuv420p10le-qp144`: it has three observed coding blocks,
-DC luma and chroma prediction, DCT_DCT transforms, base Q-index 192, no observed
-CfL, and no recorded filter-control feature. Its pinned decoded output is 768
-bytes.
-
-Before using that stream to waive any filter or coding-tool implementation,
-record exact AVM stage evidence proving which deblock, CDEF, CCSO, and GDF
-operations are active. An empty census category is not by itself proof that a
-stage is an identity operation.
+implementation corpus. The first stream is the separately constrained
+`tiny-constrained-16x16-yuv420p10le-qp208`: it has two observed coding blocks,
+DC luma and chroma prediction, DCT_DCT transforms, base Q-index 256, and all
+unrelated sample tools and filters explicitly disabled. Its pinned decoded
+output is 768 bytes. `docs/dev/10bit-wp0.md` records the complete contract and
+explains why the earlier QP 144 candidate was rejected.
 
 Expansion should use the retained synthetic matrix in increasing ownership
 order:
@@ -103,6 +99,11 @@ gate but insufficient for diagnosing the first arithmetic divergence.
 
 ## 10B-WP0: Lock the first vertical-slice oracle
 
+**Status:** Implemented on 2026-08-11. The constrained fixture, exact planar
+oracle, block/syntax/filter trace, first-mismatch comparator, regeneration
+command, and current unsupported/nonmutation check are recorded in
+`docs/dev/10bit-wp0.md`.
+
 **Objective:** Turn one constrained 10-bit 4:2:0 stream into a precise failing
 test before production admission changes.
 
@@ -120,9 +121,9 @@ test before production admission changes.
 - Document which coding tools are absent or identity operations in this stream;
   do not infer absence only from a census omission.
 
-**Exit gate:** The test fails solely at the documented 10-bit support boundary,
-the AVM oracle is reproducible, and every syntax and filter assumption needed
-for the first slice is explicit.
+**Exit gate:** Complete. The test fails solely at the documented 10-bit support
+boundary, the AVM oracle is reproducible, and every syntax and filter
+assumption needed for the first slice is explicit.
 
 ## 10B-WP1: Admit 10-bit 4:2:0 syntax and format metadata
 
@@ -142,7 +143,7 @@ while keeping reconstruction and public decode deliberately unavailable.
   combinations, quantization matrices, and lossless base-Q-zero frames.
 
 **Exit gate:** The first stream reaches the exact frame and tile payload
-boundaries with base Q-index 192, malformed/truncated variants fail at the
+boundaries with base Q-index 256, malformed/truncated variants fail at the
 owning parser, and no public 10-bit decode is advertised yet.
 
 ## 10B-WP2: Bind two-byte sample storage

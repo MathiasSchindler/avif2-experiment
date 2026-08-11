@@ -56,7 +56,8 @@ OBJDUMP ?= objdump
 	reference-avm-negatives generate-10bit-sources \
 	generate-10bit-avm-references generate-10bit-synthetic \
 	generate-10bit-synthetic-references generate-10bit-negatives \
-	10bit-wp10 10bit-wp12 test-carriage-reference test-artifact-lab \
+	10bit-wp0 10bit-wp0-reference 10bit-wp10 10bit-wp12 \
+	test-carriage-reference test-artifact-lab \
 	test-decoder-evidence test-reconstruction test-filter-parity
 
 test: test-c test-corpus test-freestanding
@@ -114,6 +115,14 @@ generate-10bit-synthetic-references: generate-10bit-synthetic reference-avm \
 
 generate-10bit-negatives: reference-avm-negatives
 	$(PYTHON) tools/generate_10bit_negative_fixtures.py
+
+10bit-wp0: test-host-build
+	$(PYTHON) -m unittest tests.test_10bit_wp0_oracle
+	$(PYTHON) tools/check_10bit_wp0_oracle.py verify \
+		--decoder "$(HOST_BUILD_DIR)/av2heif-decoder"
+
+10bit-wp0-reference: reference-avm reference-avm-accounting
+	$(PYTHON) tools/generate_10bit_wp0_oracle.py
 
 10bit-wp10: generate-10bit-synthetic-references generate-10bit-negatives
 	$(PYTHON) -m unittest tests.test_10bit_synthetic \

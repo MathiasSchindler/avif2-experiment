@@ -124,6 +124,16 @@ typedef struct {
     int bit_depth;
     int base_qindex;
     int superblock_size;
+    uint32_t frame_header_bits;
+    uint32_t tile_entropy_tell;
+    int deblock_enabled[4];
+    int cdef_enabled;
+    int cdef_strength_count;
+    int cdef_y_strength;
+    int cdef_uv_strength;
+    int ccso_frame_enabled;
+    int ccso_enabled[MAX_MB_PLANE];
+    int gdf_mode;
     int failed;
 } Census;
 
@@ -326,6 +336,26 @@ static void inspect_frame(void *decoder, void *context) {
     census->bit_depth = census->frame_data.bit_depth;
     census->base_qindex = census->frame_data.base_qindex;
     census->superblock_size = census->frame_data.superblock_size;
+    census->frame_header_bits = pbi->uncomp_hdr_size_in_bits;
+    if (pbi->tile_data != NULL) {
+        census->tile_entropy_tell =
+            avm_reader_tell(&pbi->tile_data[0].bit_reader);
+    }
+    census->deblock_enabled[0] = common->lf.apply_deblocking_filter[0];
+    census->deblock_enabled[1] = common->lf.apply_deblocking_filter[1];
+    census->deblock_enabled[2] = common->lf.apply_deblocking_filter_u;
+    census->deblock_enabled[3] = common->lf.apply_deblocking_filter_v;
+    census->cdef_enabled = common->cdef_info.cdef_frame_enable;
+    census->cdef_strength_count = common->cdef_info.nb_cdef_strengths;
+    if (census->cdef_strength_count > 0) {
+        census->cdef_y_strength = common->cdef_info.cdef_strengths[0];
+        census->cdef_uv_strength = common->cdef_info.cdef_uv_strengths[0];
+    }
+    census->ccso_frame_enabled = common->ccso_info.ccso_frame_flag;
+    for (int plane = 0; plane < MAX_MB_PLANE; ++plane) {
+        census->ccso_enabled[plane] = common->ccso_info.ccso_enable[plane];
+    }
+    census->gdf_mode = common->gdf_info.gdf_mode;
     ++census->frame_count;
     for (row = 0; row < mi_params->mi_rows; ++row) {
         for (column = 0; column < mi_params->mi_cols; ++column) {
@@ -694,10 +724,24 @@ static void write_census(FILE *output, const char *path, size_t byte_count,
     fprintf(output,
             ",\"bytes\":%llu,\"frames\":%d,\"width\":%d,"
             "\"height\":%d,\"bit_depth\":%d,\"base_qindex\":%d,"
+            "\"frame_header_bits\":%u,\"tile_entropy_tell\":%u,"
+            "\"filters\":{\"deblock_enabled\":[%d,%d,%d,%d],"
+            "\"cdef\":{\"enabled\":%d,\"strength_count\":%d,"
+            "\"y_strength_0\":%d,\"uv_strength_0\":%d},"
+            "\"ccso\":{\"frame_enabled\":%d,"
+            "\"plane_enabled\":[%d,%d,%d]},\"gdf_mode\":%d},"
             "\"superblock_size\":{\"id\":%d,\"name\":",
             (unsigned long long)byte_count, census->frame_count,
             census->width, census->height, census->bit_depth,
-            census->base_qindex, census->superblock_size);
+            census->base_qindex, census->frame_header_bits,
+            census->tile_entropy_tell,
+            census->deblock_enabled[0], census->deblock_enabled[1],
+            census->deblock_enabled[2], census->deblock_enabled[3],
+            census->cdef_enabled, census->cdef_strength_count,
+            census->cdef_y_strength, census->cdef_uv_strength,
+            census->ccso_frame_enabled, census->ccso_enabled[0],
+            census->ccso_enabled[1], census->ccso_enabled[2],
+            census->gdf_mode, census->superblock_size);
     json_string(output, block_size_name(census->superblock_size));
     fprintf(output,
             "},\"coding_block_count\":%llu,"

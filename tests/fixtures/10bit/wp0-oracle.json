@@ -1,0 +1,150 @@
+{
+  "schema": "av2h-10bit-wp0-oracle-v1",
+  "fixture": "tiny-constrained-16x16-yuv420p10le-qp208",
+  "generation": {
+    "avm_revision": "966a7d7cd6fcf60360caf5dc413b2aeeb65e144d",
+    "encoder_qp": 208,
+    "generator": "tools/generate_10bit_wp0_oracle.py",
+    "source_file": "tiny-precision-16x16-yuv420p10le.yuv",
+    "source_sha256": "1812389b0f37c974352265ffbfb7ac679a0bcfed56d0a5ff24ab890451dca487"
+  },
+  "format": {
+    "bit_depth": 10,
+    "byte_order": "little-endian",
+    "bytes_per_sample": 2,
+    "chroma_format": "4:2:0",
+    "name": "yuv420p10le",
+    "plane_order": ["Y", "U", "V"],
+    "sample_maximum": 1023
+  },
+  "geometry": {"height": 16, "width": 16},
+  "obu": {
+    "file": "avm-reference/tiny-constrained-16x16-yuv420p10le-qp208.obu",
+    "sha256": "0a6489e29e1e72845924c27d81e1d9ea83c582336f9744fcfec4770e03733f30",
+    "size_bytes": 45,
+    "units": [
+      {
+        "offset": 0,
+        "payload_offset": 2,
+        "payload_size": 0,
+        "sha256": "9e6282e4f25e370ce617e21d6fe265e88b9e7b8682cf00059b9d128d9381f09d",
+        "type": "temporal_delimiter"
+      },
+      {
+        "offset": 2,
+        "payload_offset": 4,
+        "payload_size": 11,
+        "sha256": "4f1c6796358003156077b4e5bd2c243a1bbac709c2b48742e6ad0c446d7af04d",
+        "type": "sequence_header"
+      },
+      {
+        "offset": 15,
+        "payload_offset": 17,
+        "payload_size": 28,
+        "sha256": "23b4e3fd5a59044eb97f10816c5ac997253e1b347110ceaede43fc6c8055d8e1",
+        "type": "closed_loop_key"
+      }
+    ]
+  },
+  "decoded": {
+    "file": "avm-reference/tiny-constrained-16x16-yuv420p10le-qp208-decoded.yuv",
+    "planes": [
+      {
+        "height": 16,
+        "name": "Y",
+        "offset_bytes": 0,
+        "sha256": "98d9e42de8a9aef3a649194227d876f1775c97a82272260c7e4cf051247ec219",
+        "size_bytes": 512,
+        "stride_bytes": 32,
+        "width": 16
+      },
+      {
+        "height": 8,
+        "name": "U",
+        "offset_bytes": 512,
+        "sha256": "410fe42ed07908d04009787be600b1fc30013afc32812225d4a95c26d4491840",
+        "size_bytes": 128,
+        "stride_bytes": 16,
+        "width": 8
+      },
+      {
+        "height": 8,
+        "name": "V",
+        "offset_bytes": 640,
+        "sha256": "8145a7b1d1b1b248005d5228c068a4b62c532e1bc0f7e920258d752e9a6290c8",
+        "size_bytes": 128,
+        "stride_bytes": 16,
+        "width": 8
+      }
+    ],
+    "sha256": "ca9ec6d9f6a901431de7364968b9b84ebf8ed34a832b167b66661add370f302b",
+    "size_bytes": 768
+  },
+  "census": {
+    "accounting_events": 166,
+    "base_qindex": 256,
+    "coding_blocks": 2,
+    "prediction_modes": ["DC"],
+    "qindices": [252],
+    "transform_sizes": ["8x16"],
+    "transforms": ["DCT_DCT"],
+    "unique_features": 2,
+    "uv_prediction_modes": ["DC"]
+  },
+  "trace_evidence": {
+    "avm_revision": "966a7d7cd6fcf60360caf5dc413b2aeeb65e144d",
+    "block_order": [
+      {
+        "chroma_block_size_id": 5,
+        "chroma_mi_column": 0,
+        "chroma_mi_row": 0,
+        "luma_block_size_id": 4,
+        "mi_column": 0,
+        "mi_row": 0,
+        "tree_type": 2
+      },
+      {
+        "chroma_block_size_id": 5,
+        "chroma_mi_column": 0,
+        "chroma_mi_row": 0,
+        "luma_block_size_id": 4,
+        "mi_column": 2,
+        "mi_row": 0,
+        "tree_type": 1
+      }
+    ],
+    "disabled_sample_tools": {
+      "cctx": true,
+      "cfl": true,
+      "fsc": true,
+      "ibp": true,
+      "intrabc": true,
+      "ist": true,
+      "mhccp": true,
+      "mrl": true,
+      "paeth": true,
+      "palette": true,
+      "smooth": true
+    },
+    "filters": {
+      "ccso": {"frame_enabled": 0, "plane_enabled": [0, 0, 0]},
+      "cdef": {
+        "enabled": 0,
+        "strength_count": 0,
+        "uv_strength_0": 0,
+        "y_strength_0": 0
+      },
+      "deblock_enabled": [0, 0, 0, 0],
+      "gdf_mode": 0
+    },
+    "frame_header_bits": 25,
+    "tile_entropy_tell": 192
+  },
+  "current_decoder": {
+    "exit_code": 3,
+    "output_extension": ".i420",
+    "output_sentinel": "sentinel",
+    "output_sentinel_sha256": "2b7847b7b705781d7cf21a05e9c1bb37cbf078aea103bc3edcc6aca52ab65453",
+    "stderr_contains": "unsupported feature"
+  }
+}
