@@ -1,0 +1,930 @@
+{
+  "artifacts": [
+    {
+      "bit_depth": 10,
+      "bytes_per_sample": 2,
+      "file": "tiny-precision-16x16-yuv420p10le.yuv",
+      "format": "yuv420p10le",
+      "height": 16,
+      "name": "tiny-precision",
+      "patterns": [
+        "flat fields",
+        "horizontal ramp",
+        "vertical ramp"
+      ],
+      "planes": [
+        {
+          "distinct_values": 68,
+          "height": 16,
+          "low_two_bits": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "maximum": 1023,
+          "minimum": 0,
+          "name": "Y",
+          "offset_bytes": 0,
+          "sentinels": [
+            0,
+            1,
+            2,
+            3,
+            255,
+            256,
+            511,
+            512,
+            1020,
+            1021,
+            1022,
+            1023
+          ],
+          "sha256": "5d161bcb6fc2c107f0546ef2beb603c0dae026a0673eb2a042c36923fd509afb",
+          "size_bytes": 512,
+          "width": 16
+        },
+        {
+          "distinct_values": 19,
+          "height": 8,
+          "low_two_bits": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "maximum": 1023,
+          "minimum": 0,
+          "name": "U",
+          "offset_bytes": 512,
+          "sentinels": [
+            0,
+            1,
+            2,
+            3,
+            255,
+            256,
+            511,
+            512,
+            1020,
+            1021,
+            1022,
+            1023
+          ],
+          "sha256": "af42088164d5a0a0777ced87e61f2ac21a6331b67ea6928cbe6d1ae83f436d7f",
+          "size_bytes": 128,
+          "width": 8
+        },
+        {
+          "distinct_values": 14,
+          "height": 8,
+          "low_two_bits": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "maximum": 1023,
+          "minimum": 0,
+          "name": "V",
+          "offset_bytes": 640,
+          "sentinels": [
+            0,
+            1,
+            2,
+            3,
+            255,
+            256,
+            511,
+            512,
+            1020,
+            1021,
+            1022,
+            1023
+          ],
+          "sha256": "10c96237cefbf01884258a8583f3041aba4c91020d8c30bbe52066061a5d7393",
+          "size_bytes": 128,
+          "width": 8
+        }
+      ],
+      "sha256": "1812389b0f37c974352265ffbfb7ac679a0bcfed56d0a5ff24ab890451dca487",
+      "size_bytes": 768,
+      "width": 16
+    },
+    {
+      "bit_depth": 10,
+      "bytes_per_sample": 2,
+      "file": "tiny-precision-16x16-yuv444p10le.yuv",
+      "format": "yuv444p10le",
+      "height": 16,
+      "name": "tiny-precision",
+      "patterns": [
+        "flat fields",
+        "horizontal ramp",
+        "vertical ramp"
+      ],
+      "planes": [
+        {
+          "distinct_values": 68,
+          "height": 16,
+          "low_two_bits": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "maximum": 1023,
+          "minimum": 0,
+          "name": "Y",
+          "offset_bytes": 0,
+          "sentinels": [
+            0,
+            1,
+            2,
+            3,
+            255,
+            256,
+            511,
+            512,
+            1020,
+            1021,
+            1022,
+            1023
+          ],
+          "sha256": "5d161bcb6fc2c107f0546ef2beb603c0dae026a0673eb2a042c36923fd509afb",
+          "size_bytes": 512,
+          "width": 16
+        },
+        {
+          "distinct_values": 28,
+          "height": 16,
+          "low_two_bits": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "maximum": 1023,
+          "minimum": 0,
+          "name": "U",
+          "offset_bytes": 512,
+          "sentinels": [
+            0,
+            1,
+            2,
+            3,
+            255,
+            256,
+            511,
+            512,
+            1020,
+            1021,
+            1022,
+            1023
+          ],
+          "sha256": "fe03a4c3768a36d694e10aae50adcc94e89edc11d0b640ef6836e0763526192b",
+          "size_bytes": 512,
+          "width": 16
+        },
+        {
+          "distinct_values": 14,
+          "height": 16,
+          "low_two_bits": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "maximum": 1023,
+          "minimum": 0,
+          "name": "V",
+          "offset_bytes": 1024,
+          "sentinels": [
+            0,
+            1,
+            2,
+            3,
+            255,
+            256,
+            511,
+            512,
+            1020,
+            1021,
+            1022,
+            1023
+          ],
+          "sha256": "83bf0717a769b5b54e8706d84e38a4bcb445541bbacb51354fd2bedb491ec273",
+          "size_bytes": 512,
+          "width": 16
+        }
+      ],
+      "sha256": "a4821fac87165c48fa54e9364b19bed3cff1c8d15eca24f623c99c4f9a243441",
+      "size_bytes": 1536,
+      "width": 16
+    },
+    {
+      "bit_depth": 10,
+      "bytes_per_sample": 2,
+      "file": "odd-geometry-17x15-yuv420p10le.yuv",
+      "format": "yuv420p10le",
+      "height": 15,
+      "name": "odd-geometry",
+      "patterns": [
+        "horizontal ramp",
+        "vertical ramp",
+        "checkerboard"
+      ],
+      "planes": [
+        {
+          "distinct_values": 25,
+          "height": 15,
+          "low_two_bits": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "maximum": 1023,
+          "minimum": 0,
+          "name": "Y",
+          "offset_bytes": 0,
+          "sentinels": [
+            0,
+            1,
+            2,
+            3,
+            255,
+            256,
+            511,
+            512,
+            1020,
+            1021,
+            1022,
+            1023
+          ],
+          "sha256": "27dec7669b8c6cb5308df98a585f309a46e923802a06c00fdb437935a4813e23",
+          "size_bytes": 510,
+          "width": 17
+        },
+        {
+          "distinct_values": 18,
+          "height": 8,
+          "low_two_bits": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "maximum": 1023,
+          "minimum": 0,
+          "name": "U",
+          "offset_bytes": 510,
+          "sentinels": [
+            0,
+            1,
+            2,
+            3,
+            255,
+            256,
+            511,
+            512,
+            1020,
+            1021,
+            1022,
+            1023
+          ],
+          "sha256": "b34f2f46f0c9d72ea2f85a3a0556f5536ac0d9e92dde76f193bc92d0bcbe7825",
+          "size_bytes": 144,
+          "width": 9
+        },
+        {
+          "distinct_values": 16,
+          "height": 8,
+          "low_two_bits": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "maximum": 1023,
+          "minimum": 0,
+          "name": "V",
+          "offset_bytes": 654,
+          "sentinels": [
+            0,
+            1,
+            2,
+            3,
+            255,
+            256,
+            511,
+            512,
+            1020,
+            1021,
+            1022,
+            1023
+          ],
+          "sha256": "85f68aee7c757d49e6d9796983abdc5e9c5a3b4468ffdbd801209f1f42af929b",
+          "size_bytes": 144,
+          "width": 9
+        }
+      ],
+      "sha256": "6fe85b6f45c8faaec8e1654fd8478f7d10bb373a0295dbd1e062380bf21793fc",
+      "size_bytes": 798,
+      "width": 17
+    },
+    {
+      "bit_depth": 10,
+      "bytes_per_sample": 2,
+      "file": "odd-geometry-17x15-yuv444p10le.yuv",
+      "format": "yuv444p10le",
+      "height": 15,
+      "name": "odd-geometry",
+      "patterns": [
+        "horizontal ramp",
+        "vertical ramp",
+        "checkerboard"
+      ],
+      "planes": [
+        {
+          "distinct_values": 25,
+          "height": 15,
+          "low_two_bits": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "maximum": 1023,
+          "minimum": 0,
+          "name": "Y",
+          "offset_bytes": 0,
+          "sentinels": [
+            0,
+            1,
+            2,
+            3,
+            255,
+            256,
+            511,
+            512,
+            1020,
+            1021,
+            1022,
+            1023
+          ],
+          "sha256": "27dec7669b8c6cb5308df98a585f309a46e923802a06c00fdb437935a4813e23",
+          "size_bytes": 510,
+          "width": 17
+        },
+        {
+          "distinct_values": 24,
+          "height": 15,
+          "low_two_bits": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "maximum": 1023,
+          "minimum": 0,
+          "name": "U",
+          "offset_bytes": 510,
+          "sentinels": [
+            0,
+            1,
+            2,
+            3,
+            255,
+            256,
+            511,
+            512,
+            1020,
+            1021,
+            1022,
+            1023
+          ],
+          "sha256": "bab91409b44ae72a7698d12803ddc06d870d1b6fcadef1a43fa58ae274739257",
+          "size_bytes": 510,
+          "width": 17
+        },
+        {
+          "distinct_values": 16,
+          "height": 15,
+          "low_two_bits": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "maximum": 1023,
+          "minimum": 0,
+          "name": "V",
+          "offset_bytes": 1020,
+          "sentinels": [
+            0,
+            1,
+            2,
+            3,
+            255,
+            256,
+            511,
+            512,
+            1020,
+            1021,
+            1022,
+            1023
+          ],
+          "sha256": "b6ffbf0c3d58e9313651dc569227a0e1d2d7b008a309631de080a62f11a05525",
+          "size_bytes": 510,
+          "width": 17
+        }
+      ],
+      "sha256": "fb1abb63e3311f791c124401f243ab148335bca9aa0d4203575bea0628c6b337",
+      "size_bytes": 1530,
+      "width": 17
+    },
+    {
+      "bit_depth": 10,
+      "bytes_per_sample": 2,
+      "file": "boundary-extremes-65x63-yuv420p10le.yuv",
+      "format": "yuv420p10le",
+      "height": 63,
+      "name": "boundary-extremes",
+      "patterns": [
+        "hard edges",
+        "impulses",
+        "clipping extremes"
+      ],
+      "planes": [
+        {
+          "distinct_values": 12,
+          "height": 63,
+          "low_two_bits": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "maximum": 1023,
+          "minimum": 0,
+          "name": "Y",
+          "offset_bytes": 0,
+          "sentinels": [
+            0,
+            1,
+            2,
+            3,
+            255,
+            256,
+            511,
+            512,
+            1020,
+            1021,
+            1022,
+            1023
+          ],
+          "sha256": "73eb08aceb40cca3f65e7931f3b41231a1bd3b556f58db4d2fea9a3e9a0e8364",
+          "size_bytes": 8190,
+          "width": 65
+        },
+        {
+          "distinct_values": 12,
+          "height": 32,
+          "low_two_bits": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "maximum": 1023,
+          "minimum": 0,
+          "name": "U",
+          "offset_bytes": 8190,
+          "sentinels": [
+            0,
+            1,
+            2,
+            3,
+            255,
+            256,
+            511,
+            512,
+            1020,
+            1021,
+            1022,
+            1023
+          ],
+          "sha256": "0b9f6e4fba749afd8d7dedb67cfd11162ad5cce369fabd497feb51c303e878bb",
+          "size_bytes": 2112,
+          "width": 33
+        },
+        {
+          "distinct_values": 12,
+          "height": 32,
+          "low_two_bits": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "maximum": 1023,
+          "minimum": 0,
+          "name": "V",
+          "offset_bytes": 10302,
+          "sentinels": [
+            0,
+            1,
+            2,
+            3,
+            255,
+            256,
+            511,
+            512,
+            1020,
+            1021,
+            1022,
+            1023
+          ],
+          "sha256": "5723d9811ced651632e9f60d51fc3bb807afca918dee924bc94563ac6787cb07",
+          "size_bytes": 2112,
+          "width": 33
+        }
+      ],
+      "sha256": "8182b1e2b0b7d2ded38ad4f7353ed8707c74a514300a16bd2fbf7d9b7247f9f2",
+      "size_bytes": 12414,
+      "width": 65
+    },
+    {
+      "bit_depth": 10,
+      "bytes_per_sample": 2,
+      "file": "boundary-extremes-65x63-yuv444p10le.yuv",
+      "format": "yuv444p10le",
+      "height": 63,
+      "name": "boundary-extremes",
+      "patterns": [
+        "hard edges",
+        "impulses",
+        "clipping extremes"
+      ],
+      "planes": [
+        {
+          "distinct_values": 12,
+          "height": 63,
+          "low_two_bits": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "maximum": 1023,
+          "minimum": 0,
+          "name": "Y",
+          "offset_bytes": 0,
+          "sentinels": [
+            0,
+            1,
+            2,
+            3,
+            255,
+            256,
+            511,
+            512,
+            1020,
+            1021,
+            1022,
+            1023
+          ],
+          "sha256": "73eb08aceb40cca3f65e7931f3b41231a1bd3b556f58db4d2fea9a3e9a0e8364",
+          "size_bytes": 8190,
+          "width": 65
+        },
+        {
+          "distinct_values": 12,
+          "height": 63,
+          "low_two_bits": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "maximum": 1023,
+          "minimum": 0,
+          "name": "U",
+          "offset_bytes": 8190,
+          "sentinels": [
+            0,
+            1,
+            2,
+            3,
+            255,
+            256,
+            511,
+            512,
+            1020,
+            1021,
+            1022,
+            1023
+          ],
+          "sha256": "6bb8ddbbdac26d7ef4a3392e7d18ebe5cc51f919d5e4729ed2e6c2d7f9e3a7ab",
+          "size_bytes": 8190,
+          "width": 65
+        },
+        {
+          "distinct_values": 12,
+          "height": 63,
+          "low_two_bits": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "maximum": 1023,
+          "minimum": 0,
+          "name": "V",
+          "offset_bytes": 16380,
+          "sentinels": [
+            0,
+            1,
+            2,
+            3,
+            255,
+            256,
+            511,
+            512,
+            1020,
+            1021,
+            1022,
+            1023
+          ],
+          "sha256": "264840fcdfa6c1471786d8f05c29cd8f8e48c33c7d1a0d4d59f3be1895eccb7f",
+          "size_bytes": 8190,
+          "width": 65
+        }
+      ],
+      "sha256": "3b879a4b2d74fc81304418253c7ca5469a29ef25b679318d8321039658ca5453",
+      "size_bytes": 24570,
+      "width": 65
+    },
+    {
+      "bit_depth": 10,
+      "bytes_per_sample": 2,
+      "file": "high-detail-96x80-yuv420p10le.yuv",
+      "format": "yuv420p10le",
+      "height": 80,
+      "name": "high-detail",
+      "patterns": [
+        "checkerboards",
+        "impulses",
+        "high-frequency detail"
+      ],
+      "planes": [
+        {
+          "distinct_values": 1024,
+          "height": 80,
+          "low_two_bits": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "maximum": 1023,
+          "minimum": 0,
+          "name": "Y",
+          "offset_bytes": 0,
+          "sentinels": [
+            0,
+            1,
+            2,
+            3,
+            255,
+            256,
+            511,
+            512,
+            1020,
+            1021,
+            1022,
+            1023
+          ],
+          "sha256": "ba9d270702495cbfdf661b09df3e4de4611292def7f6562f5a180307451e7815",
+          "size_bytes": 15360,
+          "width": 96
+        },
+        {
+          "distinct_values": 842,
+          "height": 40,
+          "low_two_bits": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "maximum": 1023,
+          "minimum": 0,
+          "name": "U",
+          "offset_bytes": 15360,
+          "sentinels": [
+            0,
+            1,
+            2,
+            3,
+            255,
+            256,
+            511,
+            512,
+            1020,
+            1021,
+            1022,
+            1023
+          ],
+          "sha256": "d38c4fc7cceb0b74696bce066f81992efc046604feed41e5841104f7c0a93a95",
+          "size_bytes": 3840,
+          "width": 48
+        },
+        {
+          "distinct_values": 866,
+          "height": 40,
+          "low_two_bits": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "maximum": 1023,
+          "minimum": 0,
+          "name": "V",
+          "offset_bytes": 19200,
+          "sentinels": [
+            0,
+            1,
+            2,
+            3,
+            255,
+            256,
+            511,
+            512,
+            1020,
+            1021,
+            1022,
+            1023
+          ],
+          "sha256": "3d4f685b596593b94f2d9aba01d6a42dd463e3090558320ec513e941ff50e640",
+          "size_bytes": 3840,
+          "width": 48
+        }
+      ],
+      "sha256": "6fab6c02aa5ccc973e0a1dbb85e62f5b3845e10a1cff454f2d1c2988303e331e",
+      "size_bytes": 23040,
+      "width": 96
+    },
+    {
+      "bit_depth": 10,
+      "bytes_per_sample": 2,
+      "file": "high-detail-96x80-yuv444p10le.yuv",
+      "format": "yuv444p10le",
+      "height": 80,
+      "name": "high-detail",
+      "patterns": [
+        "checkerboards",
+        "impulses",
+        "high-frequency detail"
+      ],
+      "planes": [
+        {
+          "distinct_values": 1024,
+          "height": 80,
+          "low_two_bits": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "maximum": 1023,
+          "minimum": 0,
+          "name": "Y",
+          "offset_bytes": 0,
+          "sentinels": [
+            0,
+            1,
+            2,
+            3,
+            255,
+            256,
+            511,
+            512,
+            1020,
+            1021,
+            1022,
+            1023
+          ],
+          "sha256": "ba9d270702495cbfdf661b09df3e4de4611292def7f6562f5a180307451e7815",
+          "size_bytes": 15360,
+          "width": 96
+        },
+        {
+          "distinct_values": 1021,
+          "height": 80,
+          "low_two_bits": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "maximum": 1023,
+          "minimum": 0,
+          "name": "U",
+          "offset_bytes": 15360,
+          "sentinels": [
+            0,
+            1,
+            2,
+            3,
+            255,
+            256,
+            511,
+            512,
+            1020,
+            1021,
+            1022,
+            1023
+          ],
+          "sha256": "d24f2ce1cc774c3b1cd43d6b7c89087688edf2813ef3dd39c1b9321f25a49111",
+          "size_bytes": 15360,
+          "width": 96
+        },
+        {
+          "distinct_values": 1023,
+          "height": 80,
+          "low_two_bits": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "maximum": 1023,
+          "minimum": 0,
+          "name": "V",
+          "offset_bytes": 30720,
+          "sentinels": [
+            0,
+            1,
+            2,
+            3,
+            255,
+            256,
+            511,
+            512,
+            1020,
+            1021,
+            1022,
+            1023
+          ],
+          "sha256": "4f26043818baf5d348f1c55b7fd28b8181b0857ffd6c3b0441e4513d3e04087a",
+          "size_bytes": 15360,
+          "width": 96
+        }
+      ],
+      "sha256": "d3ab42f6f309924dbd8b083948afd962aa74e89174814f6370ebd238fad6da26",
+      "size_bytes": 46080,
+      "width": 96
+    }
+  ],
+  "description": "Deterministic synthetic 10-bit AV2 source matrix",
+  "generator": {
+    "command": [
+      "python3",
+      "tools/generate_10bit_synthetic.py"
+    ],
+    "file": "tools/generate_10bit_synthetic.py",
+    "sha256": "41542d85d341e94c00f8f6f6dcabf5b2789aa582fb752fa5ce662707b24b9b69"
+  },
+  "schema": 1,
+  "source_contract": {
+    "plane_order": [
+      "Y",
+      "U",
+      "V"
+    ],
+    "required_sentinels": [
+      0,
+      1,
+      2,
+      3,
+      255,
+      256,
+      511,
+      512,
+      1020,
+      1021,
+      1022,
+      1023
+    ],
+    "row_padding_bytes": 0,
+    "sample_range": [
+      0,
+      1023
+    ],
+    "significant_bits": 10,
+    "storage": "headerless planar unsigned 16-bit little-endian words"
+  }
+}

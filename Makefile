@@ -46,8 +46,11 @@ HOST_TILE_UNIT := $(HOST_BUILD_DIR)/tile-unit
 HOST_FILTER_UNIT := $(HOST_BUILD_DIR)/filter-unit
 HOST_ARTIFACT_TOOL := $(HOST_BUILD_DIR)/av2heif-artifact
 M9_DECODER ?= build/windows-x86_64/av2heif-decoder.exe
-.PHONY: test test-c test-freestanding reference-avm generate-10bit-sources \
-	generate-10bit-avm-references milestone-0 milestone-3 milestone-4 \
+.PHONY: test test-c test-freestanding reference-avm reference-avm-accounting \
+	reference-avm-negatives generate-10bit-sources \
+	generate-10bit-avm-references generate-10bit-synthetic \
+	generate-10bit-synthetic-references generate-10bit-negatives \
+	10bit-wp10 milestone-0 milestone-3 milestone-4 \
 	milestone-5-evidence milestone-8 milestone-9
 
 test: test-c test-freestanding
@@ -65,11 +68,31 @@ test-freestanding:
 reference-avm:
 	sh scripts/setup-avm.sh
 
+reference-avm-accounting:
+	sh scripts/setup-avm-accounting.sh
+
+reference-avm-negatives:
+	sh scripts/setup-avm-negatives.sh
+
 generate-10bit-sources:
 	$(PYTHON) tools/generate_10bit_sources.py
 
 generate-10bit-avm-references:
 	$(PYTHON) tools/generate_10bit_avm_references.py
+
+generate-10bit-synthetic:
+	$(PYTHON) tools/generate_10bit_synthetic.py
+
+generate-10bit-synthetic-references: generate-10bit-synthetic reference-avm \
+	reference-avm-accounting
+	$(PYTHON) tools/generate_10bit_synthetic_references.py
+
+generate-10bit-negatives: reference-avm-negatives
+	$(PYTHON) tools/generate_10bit_negative_fixtures.py
+
+10bit-wp10: generate-10bit-synthetic-references generate-10bit-negatives
+	$(PYTHON) -m unittest tests.test_10bit_synthetic \
+		tests.test_10bit_avm_references tests.test_10bit_negative_fixtures
 
 milestone-0: reference-avm test
 	$(PYTHON) tools/run_m0_matrix.py

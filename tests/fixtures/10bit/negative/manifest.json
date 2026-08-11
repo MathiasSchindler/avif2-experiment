@@ -1,0 +1,152 @@
+{
+  "artifacts": [
+    {
+      "avmdec_output_sha256": "1b09d401639ec4c7d01284ab6dd600f1dcf75936ec29d528030262df22d4191d",
+      "avmdec_valid": true,
+      "encode_command": [
+        "build/reference/avm-negative/avmenc",
+        "--debug",
+        "--codec=av2",
+        "--obu",
+        "--passes=1",
+        "--limit=1",
+        "--good",
+        "--cpu-used=9",
+        "--threads=1",
+        "--profile=2",
+        "--width=16",
+        "--height=16",
+        "--i422",
+        "--bit-depth=10",
+        "--input-bit-depth=10",
+        "--input-chroma-subsampling-x=1",
+        "--input-chroma-subsampling-y=0",
+        "--chroma-sample-position=unspecified",
+        "--force-video-mode=0",
+        "--film-grain-test=0",
+        "--enable-lcr=0",
+        "--enable-operating-point-sets=0",
+        "--enable-atlas=0",
+        "--enable-restoration=0",
+        "--end-usage=q",
+        "--qp=128",
+        "--test-decode=fatal",
+        "--quiet",
+        "-o",
+        "tests/fixtures/10bit/negative/unsupported-10bit-422.obu",
+        "build/reference/wp10-negative-sources/10bit-422.yuv"
+      ],
+      "expected_project_decoder": {
+        "exit_code": 3,
+        "stderr_contains": "unsupported feature"
+      },
+      "file": "unsupported-10bit-422.obu",
+      "kind": "valid unsupported format",
+      "name": "10bit-422",
+      "sha256": "2a04a2a6afe90b7a0d9d5949df6cf2a585cea8810b2c6baeb3c7df13f24aa6bb",
+      "size_bytes": 155,
+      "source": {
+        "generation": "deterministic in-memory planar pattern",
+        "sha256": "7aeb150b65b9a0ca7c1b404415c372cf0bba04593187583191be2bcb475f9569",
+        "size_bytes": 1024
+      }
+    },
+    {
+      "avmdec_output_sha256": "01899a7141b55d99b69a71a90ed6e80b60c0d44f4cbe7a6e2d95cc5ae3b01730",
+      "avmdec_valid": true,
+      "encode_command": [
+        "build/reference/avm-negative/avmenc",
+        "--debug",
+        "--codec=av2",
+        "--obu",
+        "--passes=1",
+        "--limit=1",
+        "--good",
+        "--cpu-used=9",
+        "--threads=1",
+        "--profile=2",
+        "--width=16",
+        "--height=16",
+        "--i420",
+        "--bit-depth=12",
+        "--input-bit-depth=12",
+        "--input-chroma-subsampling-x=1",
+        "--input-chroma-subsampling-y=1",
+        "--chroma-sample-position=unspecified",
+        "--force-video-mode=0",
+        "--film-grain-test=0",
+        "--enable-lcr=0",
+        "--enable-operating-point-sets=0",
+        "--enable-atlas=0",
+        "--enable-restoration=0",
+        "--end-usage=q",
+        "--qp=128",
+        "--test-decode=fatal",
+        "--quiet",
+        "-o",
+        "tests/fixtures/10bit/negative/unsupported-12bit-420.obu",
+        "build/reference/wp10-negative-sources/12bit-420.yuv"
+      ],
+      "expected_project_decoder": {
+        "exit_code": 3,
+        "stderr_contains": "unsupported feature"
+      },
+      "file": "unsupported-12bit-420.obu",
+      "kind": "valid unsupported format",
+      "name": "12bit-420",
+      "sha256": "ae287636f4c4f9ee798afd0a47c78047214d37abe574efe11f25825a9c14f373",
+      "size_bytes": 116,
+      "source": {
+        "generation": "deterministic in-memory planar pattern",
+        "sha256": "a1de6d605346bba6fda814759c02b47c3053e5a5e80ff22a4fabaa803a9abe72",
+        "size_bytes": 768
+      }
+    },
+    {
+      "avmdec_valid": false,
+      "derived_from": "unsupported-12bit-420.obu",
+      "expected_project_decoder": {
+        "exit_code": 3,
+        "stderr_contains": "unsupported feature"
+      },
+      "file": "malformed-profile-chroma.obu",
+      "kind": "malformed",
+      "name": "malformed-profile-chroma",
+      "sha256": "65e0fbdbffcca934fe22fb31100988dcddb55e3023a2f26d0c22b46da33ec38d",
+      "size_bytes": 116
+    },
+    {
+      "avmdec_valid": false,
+      "derived_from": "unsupported-12bit-420.obu",
+      "expected_project_decoder": {
+        "exit_code": 1,
+        "stderr_contains": "truncated input"
+      },
+      "file": "truncated-frame.obu",
+      "kind": "malformed",
+      "name": "truncated-frame",
+      "sha256": "845a6de651ace53e6823b915ea0e94dd5afef876881011e46d7f49c9b82ec6f1",
+      "size_bytes": 115
+    }
+  ],
+  "description": "WP10 unsupported-format and malformed AV2 fixtures",
+  "generator": {
+    "command": [
+      "python3",
+      "tools/generate_10bit_negative_fixtures.py"
+    ],
+    "file": "tools/generate_10bit_negative_fixtures.py",
+    "sha256": "9ceb73d38415f6eb5986b5de059fea904f6bb800e5a1d49acd5f6c24310a1f07"
+  },
+  "schema": 1,
+  "tools": {
+    "avm_configuration": {
+      "CONFIG_TESTONLY_12BIT_SUPPORT": 1
+    },
+    "avm_revision": "966a7d7cd6fcf60360caf5dc413b2aeeb65e144d",
+    "avmdec": "av2    - AOMedia Project AV2 Decoder 1.0.0",
+    "avmdec_sha256": "97a8ec4b46682c0966631a8c819a56bf2c473a6b4102cece604dd10ee358f8cc",
+    "avmenc": "av2    - AOMedia Project AV2 Encoder 1.0.0 (default)",
+    "avmenc_sha256": "30d223128ff50b0c05923e79d6401a2830a19c7732166fa83c3e32f965e8c7c4"
+  }
+}

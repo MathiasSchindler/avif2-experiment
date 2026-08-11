@@ -618,6 +618,10 @@ viewers while keeping exact planar YUV as the normative comparison result.
 
 ### WP10: Add a compact synthetic 10-bit reference matrix
 
+**Status:** Implemented on 2026-08-11. Deterministic sources, selected AVM
+references, accounting census evidence, lossless fixtures, and sanitizer-backed
+negative contracts are recorded in `docs/dev/10bit-prep-wp10.md`.
+
 **Objective:** Create deterministic, localizable fixtures before normative
 10-bit implementation starts.
 

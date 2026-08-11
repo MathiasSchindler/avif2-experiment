@@ -58,7 +58,10 @@ AV2 features such as restoration, film grain, segmentation, quantization
 matrices, and multi-frame or multi-tile forms remain outside the accepted
 profile. Container transforms, metadata, auxiliary alpha, and grids are also
 future work. The roadmap records the complete implementation boundary and
-current coding-tool coverage gaps.
+current coding-tool coverage gaps. The deterministic synthetic 10-bit source,
+AVM reference, census, and negative-fixture contracts are recorded in
+`docs/dev/10bit-prep-wp10.md`; they are preparation evidence, not accepted
+10-bit decoder support.
 
 ## Security
 
