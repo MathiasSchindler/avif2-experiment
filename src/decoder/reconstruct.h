@@ -183,6 +183,15 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_format(
     Av2hReconstructionPlane *predictor_plane,
     uint8_t chroma_format_idc,
     Av2hReconstructionScratch *scratch);
+Av2hStatus av2h_chroma_reconstruct_to_plane_u16(
+    const Av2hPartitionNode *leaf,
+    const Av2hFirstChromaMode *mode,
+    const Av2hFirstCoeffPrefix *prefix,
+    const Av2hFirstTransformType *transform,
+    const Av2hFirstCoeffBlock *coefficients,
+    Av2hReconstructionPlaneU16 *plane,
+    uint8_t chroma_format_idc,
+    Av2hReconstructionScratchU16 *scratch);
 Av2hStatus av2h_chroma_inverse_cross_transform(
     Av2hFirstCoeffBlock *u_coefficients,
     Av2hFirstCoeffBlock *v_coefficients,

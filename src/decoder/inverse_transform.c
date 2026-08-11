@@ -916,6 +916,77 @@ Av2hStatus av2h_reconstruct_transform_8x16_u16(
     return AV2H_OK;
 }
 
+Av2hStatus av2h_reconstruct_transform_8x4_u16(
+    const Av2hFirstLeafMode *mode,
+    const Av2hFirstCoeffPrefix *prefix,
+    const Av2hFirstTransformType *transform,
+    const Av2hFirstCoeffBlock *coefficients,
+    const uint16_t *predictor,
+    size_t predictor_stride_samples,
+    Av2hReconstructionScratchU16 *scratch,
+    Av2hFirstReconstructionU16 *reconstruction) {
+    uint16_t row;
+    uint16_t column;
+    size_t index;
+    Av2hStatus status;
+    if (mode == 0 || prefix == 0 || transform == 0 || coefficients == 0 ||
+        predictor == 0 || scratch == 0 || reconstruction == 0) {
+        return AV2H_INVALID_ARGUMENT;
+    }
+    if (mode->mode != AV2H_INTRA_DC || mode->angle_delta != 0 ||
+        mode->enable_ibp != 0U || prefix->tx_size != RECON_TX_8X4 ||
+        transform->primary_type != AV2H_TX_DCT_DCT ||
+        transform->secondary_signaled != 0U || coefficients->width != 8U ||
+        coefficients->height != 4U || coefficients->coefficient_count != 32U ||
+        predictor_stride_samples < 8U) {
+        return AV2H_UNSUPPORTED;
+    }
+    reconstruction->width = 8U;
+    reconstruction->height = 4U;
+    for (index = 0U; index < 32U; ++index) {
+        scratch->scaled[index] = clamp(round_shift(
+            (int64_t)coefficients->dequantized[index] * 2896, 12U),
+            -131072, 131071);
+    }
+    status = av2h_inverse_secondary_transform(
+        mode, prefix, transform, coefficients, scratch->scaled);
+    if (status != AV2H_OK) return status;
+    for (row = 0U; row < 4U; ++row) {
+        int32_t row_output[8U];
+        recon_transform_1d(
+            scratch->scaled + (size_t)row * 8U, row_output,
+            RECON_1D_DCT, 8U, 7U, 0U, 10U);
+        for (column = 0U; column < 8U; ++column) {
+            scratch->transposed[(size_t)row * 8U + column] =
+                row_output[column];
+        }
+    }
+    for (column = 0U; column < 8U; ++column) {
+        int32_t column_input[4U];
+        int32_t column_output[4U];
+        for (row = 0U; row < 4U; ++row) {
+            column_input[row] =
+                scratch->transposed[(size_t)row * 8U + column];
+        }
+        recon_transform_1d(
+            column_input, column_output, RECON_1D_DCT,
+            4U, 10U, 1U, 10U);
+        for (row = 0U; row < 4U; ++row) {
+            scratch->residual[(size_t)row * 8U + column] =
+                column_output[row];
+        }
+    }
+    for (index = 0U; index < 32U; ++index) {
+        int32_t residual = scratch->residual[index];
+        int32_t predicted = predictor[
+            (index / 8U) * predictor_stride_samples + index % 8U];
+        reconstruction->residual[index] = residual;
+        reconstruction->pixels[index] =
+            av2h_sample_clip_10bit(predicted + residual);
+    }
+    return AV2H_OK;
+}
+
 int av2h_reconstruct_generic_selected(
     const Av2hFirstLeafMode *mode,
     const Av2hFirstTransformType *transform,

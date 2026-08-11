@@ -237,6 +237,11 @@ tell 192, and prediction uses only reconstructed neighbors or the normative
 
 ## 10B-WP5: Reconstruct the first 10-bit 4:2:0 frame
 
+**Status:** Implemented. Typed U16 chroma references, the reached 8x4
+DC/DCT_DCT path, exact unfiltered U/V parity, tightly packed private output,
+and the retained public filter boundary are recorded in
+`docs/dev/10bit-wp5.md`.
+
 **Objective:** Extend the constrained slice through U and V while preserving
 the existing 4:2:0 geometry model.
 
@@ -251,8 +256,9 @@ the existing 4:2:0 geometry model.
   and little-endian sample representation.
 - Compare each unfiltered plane and its visible crop independently.
 
-**Exit gate:** The selected fixture reaches tile-decode completion and its
-complete unfiltered Y, U, and V planes match pinned AVM exactly.
+**Exit gate:** Complete. The selected fixture reaches tile-decode completion;
+its complete unfiltered Y, U, and V planes and tightly packed private
+`yuv420p10le` output match pinned AVM exactly.
 
 ## 10B-WP6: Expand prediction and transform coverage
 

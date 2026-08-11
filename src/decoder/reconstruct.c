@@ -1806,3 +1806,79 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_format(
         plane, block_x, block_y, visible_width, visible_height);
     return AV2H_OK;
 }
+
+Av2hStatus av2h_chroma_reconstruct_to_plane_u16(
+    const Av2hPartitionNode *leaf,
+    const Av2hFirstChromaMode *mode,
+    const Av2hFirstCoeffPrefix *prefix,
+    const Av2hFirstTransformType *transform,
+    const Av2hFirstCoeffBlock *coefficients,
+    Av2hReconstructionPlaneU16 *plane,
+    uint8_t chroma_format_idc,
+    Av2hReconstructionScratchU16 *scratch) {
+    Av2hFirstLeafMode luma_mode;
+    Av2hFirstReconstructionU16 reconstruction;
+    uint16_t block_x;
+    uint16_t block_y;
+    uint16_t visible_width;
+    uint16_t visible_height;
+    uint16_t dc_value;
+    uint32_t sum = 0U;
+    size_t index;
+    Av2hStatus status;
+    av2h_reconstruction_diagnostics_set_chroma_stage(0U);
+    if (leaf == 0 || mode == 0 || prefix == 0 || transform == 0 ||
+        coefficients == 0 || plane == 0 || scratch == 0 || plane->data == 0 ||
+        plane->reconstructed == 0 || chroma_format_idc != 0U ||
+        plane->stride_samples < plane->width || plane->reference_width == 0U ||
+        plane->reference_height == 0U ||
+        plane->reference_width > plane->width ||
+        plane->reference_height > plane->height) {
+        return AV2H_INVALID_ARGUMENT;
+    }
+    block_x = (uint16_t)((uint32_t)leaf->column * 2U);
+    block_y = (uint16_t)((uint32_t)leaf->row * 2U);
+    if (mode->is_cfl != 0U || mode->mode != AV2H_INTRA_DC ||
+        prefix->tx_size != AV2H_TX_8X4 || block_x != 0U ||
+        (block_y != 0U && block_y != 4U) || block_x >= plane->width ||
+        block_y >= plane->height) {
+        return AV2H_UNSUPPORTED;
+    }
+    visible_width = 8U < plane->width - block_x ?
+        8U : (uint16_t)(plane->width - block_x);
+    visible_height = 4U < plane->height - block_y ?
+        4U : (uint16_t)(plane->height - block_y);
+    if (block_y == 0U) {
+        dc_value = av2h_sample_midpoint_10bit();
+    } else {
+        for (index = 0U; index < 8U; ++index) {
+            if (!plane_sample_reconstructed_u16(
+                    plane, block_x + index, block_y - 1U)) {
+                return AV2H_INVALID_DATA;
+            }
+            scratch->above[index] = av2h_reconstructed_sample_load_u16(
+                plane->data, plane->stride_samples,
+                block_x + index, block_y - 1U);
+            sum += scratch->above[index];
+        }
+        dc_value = (uint16_t)((sum + 4U) / 8U);
+    }
+    for (index = 0U; index < 32U; ++index) {
+        scratch->predictor[index] = dc_value;
+    }
+    av2h_memory_fill(&luma_mode, 0U, sizeof(luma_mode));
+    luma_mode.mode = AV2H_INTRA_DC;
+    av2h_reconstruction_diagnostics_set_chroma_stage(2U);
+    status = av2h_reconstruct_transform_8x4_u16(
+        &luma_mode, prefix, transform, coefficients,
+        scratch->predictor, 8U, scratch, &reconstruction);
+    if (status != AV2H_OK) return status;
+    av2h_predictor_commit_u16(
+        plane->data + (size_t)block_y * plane->stride_samples + block_x,
+        plane->stride_samples, reconstruction.pixels, 8U,
+        visible_width, visible_height);
+    plane_mark_reconstructed_u16(
+        plane, block_x, block_y, visible_width, visible_height);
+    av2h_reconstruction_diagnostics_set_chroma_stage(3U);
+    return AV2H_OK;
+}

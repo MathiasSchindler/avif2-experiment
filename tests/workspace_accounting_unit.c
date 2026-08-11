@@ -223,6 +223,79 @@ static void test_maximum_workspace(void) {
     }
 }
 
+static void test_odd_u16_visible_crop(void) {
+    uint16_t y[26U * 16U];
+    uint16_t u[14U * 8U];
+    uint16_t v[14U * 8U];
+    uint8_t output[802U];
+    size_t capacities[AV2H_FRAME_PLANE_COUNT] = {
+        sizeof(y), sizeof(u), sizeof(v)
+    };
+    Av2hReconstructionPlaneU16 coded[AV2H_FRAME_PLANE_COUNT] = {
+        { y, 26U, 24U, 16U, 24U, 16U, 0, 0U, 0U },
+        { u, 14U, 12U, 8U, 12U, 8U, 0, 0U, 0U },
+        { v, 14U, 12U, 8U, 12U, 8U, 0, 0U, 0U }
+    };
+    Av2hSequenceState sequence;
+    Av2hFrameState frame;
+    size_t expected_size;
+    size_t offset;
+    size_t row;
+    initialize(&sequence, &frame, 17U, 15U, 0U);
+    (void)sequence;
+    av2h_memory_fill(y, 0xeeU, sizeof(y));
+    av2h_memory_fill(u, 0xeeU, sizeof(u));
+    av2h_memory_fill(v, 0xeeU, sizeof(v));
+    for (row = 0U; row < 15U; ++row) {
+        size_t column;
+        for (column = 0U; column < 17U; ++column) {
+            y[row * 26U + column] = (uint16_t)(256U + row * 17U + column);
+        }
+    }
+    for (row = 0U; row < 8U; ++row) {
+        size_t column;
+        for (column = 0U; column < 9U; ++column) {
+            u[row * 14U + column] = (uint16_t)(600U + row * 9U + column);
+            v[row * 14U + column] = (uint16_t)(800U + row * 9U + column);
+        }
+    }
+    CHECK(av2h_planar_output_size_bytes(
+              &frame, 2U, &expected_size) == AV2H_OK);
+    CHECK(expected_size == 798U);
+    av2h_memory_fill(output, 0xa5U, sizeof(output));
+    CHECK(av2h_copy_visible_planar_u16_private(
+              &frame, coded, capacities, output,
+              expected_size - 1U) == AV2H_OUT_OF_MEMORY);
+    for (offset = 0U; offset < sizeof(output); ++offset) {
+        CHECK(output[offset] == 0xa5U);
+    }
+    CHECK(av2h_copy_visible_planar_u16_private(
+              &frame, coded, capacities, output,
+              sizeof(output)) == AV2H_OK);
+    offset = 0U;
+#define CHECK_PLANE_BYTES(samples, stride, width, height)                     \
+    do {                                                                       \
+        size_t crop_row;                                                       \
+        for (crop_row = 0U; crop_row < (height); ++crop_row) {                \
+            size_t crop_column;                                                \
+            for (crop_column = 0U; crop_column < (width); ++crop_column) {    \
+                uint16_t sample = (samples)[                                  \
+                    crop_row * (stride) + crop_column];                       \
+                CHECK(output[offset++] == (uint8_t)sample);                   \
+                CHECK(output[offset++] == (uint8_t)(sample >> 8U));           \
+            }                                                                  \
+        }                                                                      \
+    } while (0)
+    CHECK_PLANE_BYTES(y, 26U, 17U, 15U);
+    CHECK(offset == 510U);
+    CHECK_PLANE_BYTES(u, 14U, 9U, 8U);
+    CHECK(offset == 654U);
+    CHECK_PLANE_BYTES(v, 14U, 9U, 8U);
+#undef CHECK_PLANE_BYTES
+    CHECK(offset == expected_size);
+    while (offset < sizeof(output)) CHECK(output[offset++] == 0xa5U);
+}
+
 static void test_invalid_and_overflow(void) {
     Av2hSequenceState sequence;
     Av2hFrameState frame;
@@ -248,6 +321,7 @@ int main(void) {
     test_storage_width_accounting(0U);
     test_storage_width_accounting(1U);
     test_storage_width_accounting(2U);
+    test_odd_u16_visible_crop();
     test_maximum_workspace();
     test_invalid_and_overflow();
     if (failures != 0) return 1;

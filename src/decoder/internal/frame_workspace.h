@@ -44,6 +44,13 @@ Av2hStatus av2h_planar_output_bind_u16(
     size_t output_size_bytes,
     Av2hPlanarOutputU16 *planes);
 
+Av2hStatus av2h_copy_visible_planar_u16_private(
+    const Av2hFrameState *frame,
+    const Av2hReconstructionPlaneU16 coded[AV2H_FRAME_PLANE_COUNT],
+    const size_t coded_data_size_bytes[AV2H_FRAME_PLANE_COUNT],
+    uint8_t *output,
+    size_t output_size_bytes);
+
 Av2hStatus av2h_frame_workspace_prepare(
     const Av2hSequenceState *sequence,
     const Av2hFrameState *frame,

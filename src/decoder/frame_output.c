@@ -74,6 +74,37 @@ Av2hStatus av2h_decode_frame_planar_private(
                 Av2hTileChromaLeaf *pending_leaf =
                     &pending_chroma_leaves[pending_index];
                 if (workspace->bytes_per_sample == 2U) {
+                    for (plane = 1U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
+                        unsigned int index = plane - 1U;
+                        status = av2h_chroma_reconstruct_to_plane_u16(
+                            &pending_leaf->node, &pending_leaf->mode,
+                            &pending_leaf->prefix[index],
+                            &pending_leaf->transform[index],
+                            &pending_chroma_blocks[pending_index][index],
+                            &workspace->coded_u16[plane],
+                            frame->chroma_format_idc,
+                            workspace->reconstruction_scratch_u16);
+                        if (status != AV2H_OK) {
+                            AV2H_DECODE_FAIL(
+                                status, status,
+                                AV2H_FRAME_DECODE_STAGE_CHROMA_RECONSTRUCT,
+                                plane, &pending_leaf->node, 0U);
+                        }
+                        status = av2h_deblock_map_commit_transform(
+                            &workspace->filter_workspace->deblock_map,
+                            frame->chroma_format_idc, plane,
+                            &pending_leaf->node,
+                            &pending_leaf->prefix[index], 0U,
+                            pending_leaf->prefix[index].all_zero,
+                            (uint8_t)av2h_quantizer_is_lossless(
+                                sequence, frame, frame->base_q_index));
+                        if (status != AV2H_OK) {
+                            AV2H_DECODE_FAIL(
+                                status, status,
+                                AV2H_FRAME_DECODE_STAGE_CHROMA_DEBLOCK,
+                                plane, &pending_leaf->node, 0U);
+                        }
+                    }
                     ++decoded.chroma_leaf_count;
                     continue;
                 }
@@ -340,6 +371,13 @@ Av2hStatus av2h_decode_frame_planar_private(
             decoded.cctx_type = leaf.transform[0].cctx_type;
             decoded.u_coefficient_count = blocks[0].coefficient_count;
             decoded.v_coefficient_count = blocks[1].coefficient_count;
+            if (workspace->bytes_per_sample == 2U &&
+                leaf.transform[0].cctx_type != 0U) {
+                AV2H_DECODE_FAIL(
+                    AV2H_UNSUPPORTED, AV2H_UNSUPPORTED,
+                    AV2H_FRAME_DECODE_STAGE_CHROMA_CROSS_TRANSFORM,
+                    0U, &leaf.node, 0U);
+            }
             status = av2h_chroma_inverse_cross_transform(
                 &blocks[0], &blocks[1], leaf.transform[0].cctx_type);
             if (status != AV2H_OK) {
@@ -433,6 +471,35 @@ Av2hStatus av2h_decode_frame_planar_private(
                             plane, &leaf.node, 0U);
                     }
                 }
+            } else {
+                for (plane = 1U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
+                    unsigned int index = plane - 1U;
+                    status = av2h_chroma_reconstruct_to_plane_u16(
+                        &leaf.node, &leaf.mode, &leaf.prefix[index],
+                        &leaf.transform[index], &blocks[index],
+                        &workspace->coded_u16[plane],
+                        frame->chroma_format_idc,
+                        workspace->reconstruction_scratch_u16);
+                    if (status != AV2H_OK) {
+                        AV2H_DECODE_FAIL(
+                            status, status,
+                            AV2H_FRAME_DECODE_STAGE_CHROMA_RECONSTRUCT,
+                            plane, &leaf.node, 0U);
+                    }
+                    status = av2h_deblock_map_commit_transform(
+                        &workspace->filter_workspace->deblock_map,
+                        frame->chroma_format_idc, plane,
+                        &leaf.node, &leaf.prefix[index], 0U,
+                        leaf.prefix[index].all_zero,
+                        (uint8_t)av2h_quantizer_is_lossless(
+                            sequence, frame, frame->base_q_index));
+                    if (status != AV2H_OK) {
+                        AV2H_DECODE_FAIL(
+                            status, status,
+                            AV2H_FRAME_DECODE_STAGE_CHROMA_DEBLOCK,
+                            plane, &leaf.node, 0U);
+                    }
+                }
             }
             status = av2h_tile_decoder_commit_leaf(&decoder, leaf.node);
             if (status != AV2H_OK) {
@@ -448,12 +515,6 @@ Av2hStatus av2h_decode_frame_planar_private(
                 0U, 0, 0U);
         }
     }
-    if (workspace->bytes_per_sample == 2U) {
-        AV2H_DECODE_FAIL(
-            AV2H_UNSUPPORTED, AV2H_UNSUPPORTED,
-            AV2H_FRAME_DECODE_STAGE_CHROMA_RECONSTRUCT,
-            1U, 0, 0U);
-    }
     if (!av2h_frame_workspace_complete(frame, workspace)) {
         AV2H_DECODE_FAIL(
             AV2H_INVALID_DATA, AV2H_INVALID_DATA,
@@ -466,6 +527,18 @@ Av2hStatus av2h_decode_frame_planar_private(
             0U, 0, 0U);
     }
     decoded.entropy_tell = av2h_range_tell(&decoder.range);
+    if (workspace->bytes_per_sample == 2U) {
+        status = av2h_copy_visible_planar_u16_private(
+            frame, workspace->coded_u16, workspace->coded_data_size_bytes,
+            output, output_size_bytes);
+        if (status != AV2H_OK) {
+            AV2H_DECODE_FAIL(
+                status, status, AV2H_FRAME_DECODE_STAGE_OUTPUT,
+                0U, 0, 0U);
+        }
+        if (result != 0) *result = decoded;
+        return AV2H_OK;
+    }
     workspace->filter_workspace->cdef_controls = filter_controls.cdef;
     workspace->filter_workspace->gdf_controls = filter_controls.gdf;
     for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {

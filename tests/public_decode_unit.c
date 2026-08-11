@@ -309,7 +309,7 @@ static void test_public_decode(const PublicFixture *fixture) {
     free(allocation);
 }
 
-static void test_10bit_wp2_binding(void) {
+static void test_10bit_wp5_filter_boundary(void) {
     const PublicFixture fixture = {
         "10bit-wp2",
         "tests/fixtures/10bit/avm-reference/"
@@ -395,7 +395,7 @@ static void test_10bit_wp2_binding(void) {
                 (int)decode_status, error.context, error.offset);
     }
     CHECK(decode_status == AV2H_UNSUPPORTED);
-    CHECK(error.context == AV2H_CONTEXT_RECONSTRUCTION);
+    CHECK(error.context == AV2H_CONTEXT_FILTER);
     for (index = 0U; index < info.output_size; ++index) {
         CHECK(output[index] == 0xa5U);
     }
@@ -412,7 +412,7 @@ int main(void) {
     for (index = 0U; index < sizeof(fixtures) / sizeof(fixtures[0]); ++index) {
         test_public_decode(&fixtures[index]);
     }
-    test_10bit_wp2_binding();
+    test_10bit_wp5_filter_boundary();
     if (failures != 0) return 1;
     printf("public decode unit: pass\n");
     return 0;

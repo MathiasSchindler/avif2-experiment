@@ -925,8 +925,18 @@ static int maps_and_readiness_complete(
     for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
         const Av2hDeblockMap *map =
             &workspace->filter_workspace->deblock_map;
-        const Av2hReconstructionPlane *coded = &workspace->coded[plane];
+        const uint8_t *reconstructed;
+        size_t reconstructed_stride_cells;
         size_t row;
+        if (workspace->bytes_per_sample == 1U) {
+            reconstructed = workspace->coded[plane].reconstructed;
+            reconstructed_stride_cells =
+                workspace->coded[plane].reconstructed_stride_cells;
+        } else {
+            reconstructed = workspace->coded_u16[plane].reconstructed;
+            reconstructed_stride_cells =
+                workspace->coded_u16[plane].reconstructed_stride_cells;
+        }
         for (row = 0U; row < map->rows[plane]; ++row) {
             size_t column;
             unsigned int shift = av2h_chroma_shift(
@@ -938,8 +948,8 @@ static int maps_and_readiness_complete(
                 size_t ready_column = column >> shift;
                 if (cell->transform_width == 0U ||
                     cell->transform_height == 0U ||
-                    coded->reconstructed[
-                        ready_row * coded->reconstructed_stride_cells +
+                    reconstructed[
+                        ready_row * reconstructed_stride_cells +
                         ready_column] == 0U) {
                     return 0;
                 }
@@ -993,6 +1003,63 @@ Av2hStatus av2h_copy_visible_planar_private(
             output + offset, source->data,
             source->stride_samples, width, height);
         offset += width * height;
+    }
+    return AV2H_OK;
+}
+
+Av2hStatus av2h_copy_visible_planar_u16_private(
+    const Av2hFrameState *frame,
+    const Av2hReconstructionPlaneU16 coded[AV2H_FRAME_PLANE_COUNT],
+    const size_t coded_data_size_bytes[AV2H_FRAME_PLANE_COUNT],
+    uint8_t *output,
+    size_t output_size_bytes) {
+    Av2hFilterWorkspaceLayout layout;
+    size_t required_output_bytes;
+    size_t offset = 0U;
+    unsigned int plane;
+    Av2hStatus status;
+    if (frame == 0 || coded == 0 || coded_data_size_bytes == 0 || output == 0) {
+        return AV2H_INVALID_ARGUMENT;
+    }
+    status = av2h_planar_output_size_bytes(
+        frame, sizeof(uint16_t), &required_output_bytes);
+    if (status != AV2H_OK) return status;
+    if (output_size_bytes < required_output_bytes) return AV2H_OUT_OF_MEMORY;
+    status = av2h_filter_workspace_query_bytes(
+        frame, sizeof(uint16_t), &layout);
+    if (status != AV2H_OK) return status;
+    for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
+        const Av2hReconstructionPlaneU16 *source = &coded[plane];
+        size_t source_size_bytes;
+        if (source->data == 0 ||
+            source->width != layout.plane_width[plane] ||
+            source->height != layout.plane_height[plane] ||
+            source->stride_samples < source->width ||
+            !sized_u16_plane_bytes(
+                source->stride_samples, source->height, &source_size_bytes) ||
+            source_size_bytes > coded_data_size_bytes[plane] ||
+            output_overlaps(
+                output, required_output_bytes, source->data,
+                source_size_bytes)) {
+            return AV2H_INVALID_ARGUMENT;
+        }
+    }
+    for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
+        const Av2hReconstructionPlaneU16 *source = &coded[plane];
+        size_t width = av2h_frame_plane_dimension(
+            frame, plane, frame->width);
+        size_t height = av2h_frame_plane_dimension(
+            frame, plane, frame->height);
+        size_t row;
+        size_t column;
+        for (row = 0U; row < height; ++row) {
+            for (column = 0U; column < width; ++column) {
+                uint16_t sample = source->data[
+                    row * source->stride_samples + column];
+                output[offset++] = (uint8_t)sample;
+                output[offset++] = (uint8_t)(sample >> 8U);
+            }
+        }
     }
     return AV2H_OK;
 }
