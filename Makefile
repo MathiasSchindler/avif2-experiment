@@ -232,6 +232,11 @@ generate-10bit-negatives: reference-avm-negatives
 	$(PYTHON) tools/check_10bit_reproducibility.py
 
 10bit-wp12: test
+	$(PYTHON) tools/validate_10bit_444_wp12.py \
+		--decoder "$(WP12_DECODER)"
+	$(PYTHON) tools/validate_10bit_420_corpus.py \
+		--decoder "$(WP12_DECODER)" \
+		--artifact-tool "$(HOST_ARTIFACT_TOOL)" --jobs "$(JOBS)"
 	cmake -DDECODER="$(abspath $(WP12_DECODER))" \
 		-DARTIFACT_DIR="$(abspath images/artifacts)" \
 		-DMANIFEST="$(abspath tests/artifact-parity.sha256)" \
@@ -247,6 +252,11 @@ generate-10bit-negatives: reference-avm-negatives
 	cmake --preset linux-nolibc
 	cmake --build --preset linux-nolibc $(CMAKE_BUILD_ARGS)
 	ctest --preset linux-nolibc $(CTEST_ARGS) $(CTEST_PARALLEL_ARGS)
+	$(PYTHON) tools/validate_10bit_420_corpus.py \
+		--decoder build/linux-nolibc/av2heif-decoder-nolibc \
+		--native-only --jobs "$(JOBS)"
+	$(PYTHON) tools/validate_10bit_444_wp12.py \
+		--decoder build/linux-nolibc/av2heif-decoder-nolibc
 	$(MAKE) wasm
 	$(PYTHON) tools/validate_8bit_444_wasm.py --wasm "$(WP12_WASM)"
 	cmake --preset $(WP12_WINDOWS_PRESET)

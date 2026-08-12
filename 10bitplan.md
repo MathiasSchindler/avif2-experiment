@@ -422,6 +422,11 @@ artifacts retain their freestanding dependency contract.
 
 ## 10B-WP12: Integrate the 10-bit 4:4:4 sample model
 
+**Status:** Implemented on 2026-08-12. Exact unfiltered native parity for the
+constrained tiny and odd profile-4 records, 4:2:0 and 8-bit regression
+evidence, and freestanding/platform gates are recorded in
+`docs/dev/10bit-wp12.md`.
+
 **Objective:** Combine the proven 10-bit sample domain with the proven 4:4:4
 geometry as an independently validated format.
 
@@ -438,9 +443,9 @@ geometry as an independently validated format.
 - Fold substantial format-specific branches back into the established geometry
   or typed sample-owner abstractions instead of creating a fourth decoder path.
 
-**Exit gate:** Constrained tiny and odd 10-bit 4:4:4 fixtures match AVM on
-unfiltered Y, U, and V while 4:2:0, monochrome, and every 8-bit format remain
-exact.
+**Exit gate:** Complete. Constrained tiny and odd 10-bit 4:4:4 fixtures match
+AVM on unfiltered Y, U, and V while all 43 retained 10-bit 4:2:0 records,
+monochrome, and every 8-bit format remain exact.
 
 ## 10B-WP13: Complete 10-bit 4:4:4 filters and public output
 

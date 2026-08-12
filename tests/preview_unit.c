@@ -15,7 +15,7 @@ static int failures;
 
 static void test_format_names(void) {
     Av2hPixelFormat format;
-    CHECK(av2h_raw_output_extension_count() == 4U);
+    CHECK(av2h_raw_output_extension_count() == 5U);
     CHECK(av2h_memory_compare(
         av2h_raw_output_extension_at(0U), ".i400", 6U) == 0);
     CHECK(av2h_memory_compare(
@@ -24,7 +24,9 @@ static void test_format_names(void) {
         av2h_raw_output_extension_at(2U), ".i444", 6U) == 0);
     CHECK(av2h_memory_compare(
         av2h_raw_output_extension_at(3U), ".yuv420p10le", 13U) == 0);
-    CHECK(av2h_raw_output_extension_at(4U) == 0);
+    CHECK(av2h_memory_compare(
+        av2h_raw_output_extension_at(4U), ".yuv444p10le", 13U) == 0);
+    CHECK(av2h_raw_output_extension_at(5U) == 0);
     CHECK(av2h_pixel_format_init_8bit(1U, &format));
     CHECK(av2h_memory_compare(
         av2h_raw_output_format_name(&format), "gray8", 6U) == 0);
@@ -44,7 +46,8 @@ static void test_format_names(void) {
     format.byte_order = (uint8_t)AV2H_BYTE_ORDER_LITTLE_ENDIAN;
     CHECK(av2h_memory_compare(
         av2h_raw_output_format_name(&format), "yuv444p10le", 12U) == 0);
-    CHECK(av2h_raw_output_extension(&format) == 0);
+    CHECK(av2h_memory_compare(
+        av2h_raw_output_extension(&format), ".yuv444p10le", 13U) == 0);
     format.chroma_format_idc = 0U;
     CHECK(av2h_memory_compare(
         av2h_raw_output_format_name(&format), "yuv420p10le", 12U) == 0);

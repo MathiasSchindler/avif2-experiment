@@ -205,6 +205,10 @@ if(AV2HEIF_BUILD_HOST_TESTS)
                 --artifact-tool "$<TARGET_FILE:av2heif-artifact>"
                 --jobs 2)
         set_tests_properties(decoder-10bit-420-parity PROPERTIES TIMEOUT 900)
+        add_test(NAME decoder-10bit-444-wp12-parity
+            COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/validate_10bit_444_wp12.py"
+                --decoder "$<TARGET_FILE:av2heif-decoder>")
     endif()
 endif()
 
@@ -609,6 +613,10 @@ if(WIN32 AND AV2HEIF_BUILD_WINDOWS_TOOLS AND
                 --native-only --jobs 1)
         set_tests_properties(windows-decoder-10bit-420-parity PROPERTIES
             TIMEOUT 900)
+        add_test(NAME windows-decoder-10bit-444-wp12-parity
+            COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/validate_10bit_444_wp12.py"
+                --decoder "$<TARGET_FILE:av2heif-decoder>")
     endif()
     add_test(NAME windows-decoder-laarim-q096
         COMMAND av2heif-decoder

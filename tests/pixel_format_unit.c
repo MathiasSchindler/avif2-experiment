@@ -56,6 +56,19 @@ static void test_supported_formats(void) {
     CHECK(av2h_pixel_format_plane_dimension(&format, 17U, 0U) == 17U);
     CHECK(av2h_pixel_format_plane_dimension(&format, 17U, 1U) == 9U);
     CHECK(av2h_pixel_format_plane_dimension(&format, 15U, 2U) == 8U);
+
+    CHECK(av2h_pixel_format_init_10bit_444(&format));
+    CHECK(av2h_pixel_format_is_valid(&format));
+    CHECK(format.chroma_format_idc == 2U);
+    CHECK(format.bit_depth == 10U);
+    CHECK(format.bytes_per_sample == 2U);
+    CHECK(format.sample_storage == (uint8_t)AV2H_SAMPLE_STORAGE_U16);
+    CHECK(format.byte_order == (uint8_t)AV2H_BYTE_ORDER_LITTLE_ENDIAN);
+    CHECK(format.plane_order == (uint8_t)AV2H_PLANE_ORDER_YUV);
+    CHECK(av2h_pixel_format_plane_count(&format) == 3U);
+    CHECK(av2h_pixel_format_plane_dimension(&format, 17U, 0U) == 17U);
+    CHECK(av2h_pixel_format_plane_dimension(&format, 17U, 1U) == 17U);
+    CHECK(av2h_pixel_format_plane_dimension(&format, 15U, 2U) == 15U);
 }
 
 static void test_invalid_formats(void) {
@@ -64,6 +77,7 @@ static void test_invalid_formats(void) {
     CHECK(!av2h_pixel_format_init_8bit(3U, &changed));
     CHECK(!av2h_pixel_format_init_8bit(0U, 0));
     CHECK(!av2h_pixel_format_init_10bit_420(0));
+    CHECK(!av2h_pixel_format_init_10bit_444(0));
     CHECK(!av2h_pixel_format_is_valid(0));
     CHECK(av2h_pixel_format_plane_count(0) == 0U);
     CHECK(av2h_pixel_format_plane_dimension(0, 17U, 0U) == 0U);

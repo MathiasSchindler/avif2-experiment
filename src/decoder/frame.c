@@ -284,8 +284,10 @@ Av2hStatus av2h_frame_header_closed_key_parse(
     if (sequence->info.still_picture == 0U ||
         (sequence->info.bit_depth_idc != 1U &&
          (sequence->info.bit_depth_idc != 0U ||
-          sequence->info.seq_profile_idc != 0U ||
-          sequence->info.chroma_format_idc != 0U)) ||
+          !((sequence->info.seq_profile_idc == 0U &&
+             sequence->info.chroma_format_idc == 0U) ||
+            (sequence->info.seq_profile_idc == 4U &&
+             sequence->info.chroma_format_idc == 2U)))) ||
         sequence->info.chroma_format_idc > 2U ||
         sequence->seq_seg_info_present_flag != 0U ||
         sequence->seq_tile_info_present_flag != 0U ||

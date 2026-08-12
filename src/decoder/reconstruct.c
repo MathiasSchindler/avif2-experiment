@@ -2543,7 +2543,8 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_u16(
     av2h_reconstruction_diagnostics_set_chroma_stage(0U);
     if (leaf == 0 || mode == 0 || prefix == 0 || transform == 0 ||
         coefficients == 0 || plane == 0 || scratch == 0 || plane->data == 0 ||
-        plane->reconstructed == 0 || chroma_format_idc != 0U ||
+        plane->reconstructed == 0 ||
+        (chroma_format_idc != 0U && chroma_format_idc != 2U) ||
         chroma_plane < 1U || chroma_plane > 2U ||
         plane->stride_samples < plane->width || plane->reference_width == 0U ||
         plane->reference_height == 0U ||
@@ -2555,9 +2556,12 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_u16(
     if (status != AV2H_OK) return status;
     width = descriptor->output_width;
     height = descriptor->output_height;
-    block_x = (uint16_t)((uint32_t)leaf->column * 2U);
-    block_y = (uint16_t)((uint32_t)leaf->row * 2U);
-            if ((mode->is_cfl != 0U &&
+    block_x = (uint16_t)((uint32_t)leaf->column *
+        (chroma_format_idc == 2U ? 4U : 2U));
+    block_y = (uint16_t)((uint32_t)leaf->row *
+        (chroma_format_idc == 2U ? 4U : 2U));
+    if ((chroma_format_idc == 2U && mode->is_cfl != 0U) ||
+        (mode->is_cfl != 0U &&
                 mode->cfl_kind != AV2H_CFL_MULTI_PARAM &&
                 mode->cfl_kind != AV2H_CFL_EXPLICIT_ALPHA &&
                 mode->cfl_kind != AV2H_CFL_DERIVED_ALPHA) ||

@@ -544,7 +544,10 @@ static Av2hStatus decode_obu(Av2hSpan input,
     if (status != AV2H_OK) return status;
     bytes_per_sample = sequence.info.bit_depth_idc == 0U ? 2U : 1U;
     if ((bytes_per_sample == 2U &&
-         !av2h_pixel_format_init_10bit_420(output_format)) ||
+         !(sequence.info.chroma_format_idc == 0U ?
+             av2h_pixel_format_init_10bit_420(output_format) :
+             sequence.info.chroma_format_idc == 2U ?
+             av2h_pixel_format_init_10bit_444(output_format) : 0)) ||
         (bytes_per_sample == 1U &&
          !av2h_pixel_format_init_8bit(
              sequence.info.chroma_format_idc, output_format))) {
@@ -753,7 +756,7 @@ static unsigned int run_decoder(void) {
                     wide_ends_with_ascii(arguments[3], ".bmp") ||
                     wide_ends_with_ascii(arguments[3], ".png"))) {
         write_console(
-                        "usage: av2heif-decoder.exe INPUT.obu -o OUTPUT.i400|OUTPUT.i420|OUTPUT.i444|OUTPUT.yuv420p10le|OUTPUT.bmp|OUTPUT.png\r\n");
+                        "usage: av2heif-decoder.exe INPUT.obu -o OUTPUT.i400|OUTPUT.i420|OUTPUT.i444|OUTPUT.yuv420p10le|OUTPUT.yuv444p10le|OUTPUT.bmp|OUTPUT.png\r\n");
         release_memory(&command_line);
         return 2U;
     }

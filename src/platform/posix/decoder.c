@@ -143,7 +143,10 @@ static Av2hStatus decode_obu(Av2hSpan input,
     if (status != AV2H_OK) return status;
     bytes_per_sample = sequence.info.bit_depth_idc == 0U ? 2U : 1U;
     if ((bytes_per_sample == 2U &&
-         !av2h_pixel_format_init_10bit_420(output_format)) ||
+         !(sequence.info.chroma_format_idc == 0U ?
+             av2h_pixel_format_init_10bit_420(output_format) :
+             sequence.info.chroma_format_idc == 2U ?
+             av2h_pixel_format_init_10bit_444(output_format) : 0)) ||
         (bytes_per_sample == 1U &&
          !av2h_pixel_format_init_8bit(
              sequence.info.chroma_format_idc, output_format))) {
@@ -309,7 +312,7 @@ static void usage(const char *program) {
     fprintf(stderr,
             "usage: %s INPUT.obu -o "
             "OUTPUT.i400|OUTPUT.i420|OUTPUT.i444|"
-            "OUTPUT.yuv420p10le|OUTPUT.bmp|OUTPUT.png\n",
+            "OUTPUT.yuv420p10le|OUTPUT.yuv444p10le|OUTPUT.bmp|OUTPUT.png\n",
             program);
 }
 

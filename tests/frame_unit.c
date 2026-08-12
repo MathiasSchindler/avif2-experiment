@@ -338,6 +338,17 @@ static void test_10bit_wp0_header(void) {
     CHECK(av2h_frame_header_closed_key_parse(
               (Av2hSpan){ input + frame_obu->payload_offset,
                            frame_obu->payload_size },
+              &changed_sequence, &frame) == AV2H_OK);
+    changed_sequence.info.seq_profile_idc = 0U;
+    CHECK(av2h_frame_header_closed_key_parse(
+              (Av2hSpan){ input + frame_obu->payload_offset,
+                           frame_obu->payload_size },
+              &changed_sequence, &frame) == AV2H_UNSUPPORTED);
+    changed_sequence.info.seq_profile_idc = 4U;
+    changed_sequence.info.chroma_format_idc = 0U;
+    CHECK(av2h_frame_header_closed_key_parse(
+              (Av2hSpan){ input + frame_obu->payload_offset,
+                           frame_obu->payload_size },
               &changed_sequence, &frame) == AV2H_UNSUPPORTED);
 
     av2h_memory_copy(
