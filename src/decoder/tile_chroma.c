@@ -15,6 +15,11 @@ static uint8_t tile_cfl_allowed_for_sdp(
         return 0U;
     }
     if (!decoder->sequence->enable_sdp) return 1U;
+    if (block_size == AV2H_BLOCK_128X128 ||
+        block_size == AV2H_BLOCK_64X128 ||
+        block_size == AV2H_BLOCK_128X64) {
+        return 1U;
+    }
     if (decoder->root_block_size == AV2H_BLOCK_128X128 &&
         decoder->square_root_child_index < 4U &&
         decoder->square_child_luma_partition != AV2H_PARTITION_INVALID) {

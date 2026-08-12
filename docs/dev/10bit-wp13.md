@@ -53,6 +53,13 @@ The completion run established:
 - Windows x86-64 executables cross-built with exact import contracts.
 
 Windows runtime parity remains environment-dependent because this Linux host
-has no configured PE runtime. A separate inherited profile-0 large-photo path
-first diverges in partition/mode entropy after tell 263; it predates WP13 and
-is not part of the profile-4 completion claim.
+has no configured PE runtime.
+
+A follow-up resolved the inherited profile-0 large-photo divergence. For large
+SDP leaves, local CfL eligibility consulted `chroma_root_partition` before the
+chroma traversal had populated it. The resulting `PARTITION_INVALID` sentinel
+incorrectly disabled CfL/MHCCP, skipped `UV_CFL_PRED` and the CfL/MHCCP switch
+at tell 273, and desynchronized the remaining entropy syntax. Large 128 x 128,
+64 x 128, and 128 x 64 SDP leaves now follow AVM's `PARTITION_NONE` allowance.
+All 43 retained 10-bit 4:2:0 records are byte-exact through hosted ASan/UBSan
+native and public decode.
