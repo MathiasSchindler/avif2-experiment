@@ -8574,7 +8574,7 @@
       "tools/generate_10bit_synthetic_references.py"
     ],
     "file": "tools/generate_10bit_synthetic_references.py",
-    "sha256": "a60ec790e049ec13f999f69da31c0194b1ae2d21ba313b5c6c402a9ca607aea6"
+    "sha256": "ac9367ffa3c21c0307a89a08c129d94ff67f1e147280b12194e5e5eb79cda3c1"
   },
   "output_contract": {
     "plane_order": [
@@ -8595,7 +8595,7 @@
     "sha256": "b2169098abd40a80397f624edc28f4d8840f54fd9a5615c8e21bc0f9cc55b6c7"
   },
   "tools": {
-    "av2_census_sha256": "6c8f32fb0b2804f86981bfc7a18f1e18d9cae39f448920c822f66c1a8e7b4ed4",
+    "av2_census_sha256": "aaacdcf4e2394f2e84d2206a1a65941aa8d413d20b7f575aaf03ef9cd8110cc7",
     "avm_revision": "966a7d7cd6fcf60360caf5dc413b2aeeb65e144d",
     "avmdec": "av2    - AOMedia Project AV2 Decoder 1.0.0",
     "avmdec_sha256": "afbec9f120cfdf61f84e656eb08db9b5ae62ceee29dd0ee3600b85c548d8d1a9",

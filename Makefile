@@ -58,6 +58,10 @@ WP12_WINDOWS_PRESET ?= windows-x86_64
 WP12_WINDOWS_BUILD_DIR ?= build/windows-x86_64
 WP13_WINDOWS_PRESET ?= windows-x86_64
 WP13_WINDOWS_BUILD_DIR ?= build/windows-x86_64
+WP14_WASM ?= build/wasm-wp14/decoder.wasm
+WP14_WINDOWS_PRESET ?= windows-x86_64
+WP14_WINDOWS_BUILD_DIR ?= build/windows-x86_64
+WP14_WINDOWS_EMULATOR ?=
 OBJDUMP ?= objdump
 .PHONY: test test-host-build test-c test-corpus test-freestanding test-extended \
 	reference-avm reference-avm-accounting \
@@ -66,7 +70,8 @@ OBJDUMP ?= objdump
 	generate-10bit-synthetic-references generate-10bit-negatives \
 	10bit-wp0 10bit-wp0-reference 10bit-wp1 10bit-wp2 10bit-wp3 10bit-wp4 \
 	10bit-wp5 10bit-wp6 10bit-wp7 10bit-wp8 10bit-wp9 \
-	10bit-wp10 10bit-wp11 10bit-wp12 10bit-wp13 \
+	10bit-wp10 10bit-wp11 10bit-wp12 10bit-wp13 10bit-wp14 \
+	10bit-wp14-fuzz \
 	test-carriage-reference test-artifact-lab \
 	test-decoder-evidence test-reconstruction test-filter-parity
 
@@ -288,6 +293,43 @@ generate-10bit-negatives: reference-avm-negatives
 	$(PYTHON) tools/check_windows_imports.py --objdump "$(OBJDUMP)" \
 		--decoder "$(WP13_WINDOWS_BUILD_DIR)/av2heif-decoder.exe" \
 		--smoke "$(WP13_WINDOWS_BUILD_DIR)/av2heif-windows-smoke.exe"
+
+10bit-wp14-fuzz: test-host-build
+	ctest --preset $(HOST_PRESET) $(CTEST_ARGS) \
+		-R '^public-decode-fuzz-smoke$$'
+
+10bit-wp14: test
+	$(PYTHON) tools/validate_10bit_420_corpus.py \
+		--decoder "$(WP13_DECODER)" \
+		--artifact-tool "$(HOST_ARTIFACT_TOOL)" --jobs "$(JOBS)"
+	$(PYTHON) tools/validate_10bit_444_corpus.py \
+		--decoder "$(WP13_DECODER)" \
+		--artifact-tool "$(HOST_ARTIFACT_TOOL)" --jobs "$(JOBS)"
+	cmake --preset linux-nolibc
+	cmake --build --preset linux-nolibc $(CMAKE_BUILD_ARGS)
+	ctest --preset linux-nolibc $(CTEST_ARGS) $(CTEST_PARALLEL_ARGS)
+	$(PYTHON) tools/validate_10bit_420_corpus.py \
+		--decoder build/linux-nolibc/av2heif-decoder-nolibc \
+		--native-only --jobs "$(JOBS)"
+	$(PYTHON) tools/validate_10bit_444_corpus.py \
+		--decoder build/linux-nolibc/av2heif-decoder-nolibc \
+		--native-only --jobs "$(JOBS)"
+	$(PYTHON) experimental/wasm/build.py \
+		--output-directory "$(dir $(WP14_WASM))"
+	node tools/validate_10bit_wasm.js "$(WP14_WASM)"
+	node tools/validate_10bit_wasm.js "$(WP14_WASM)" yuv444p10le
+	cmake --preset $(WP14_WINDOWS_PRESET) $(if $(WP14_WINDOWS_EMULATOR),-DCMAKE_CROSSCOMPILING_EMULATOR="$(WP14_WINDOWS_EMULATOR)")
+	cmake --build --preset $(WP14_WINDOWS_PRESET) $(CMAKE_BUILD_ARGS)
+	$(PYTHON) tools/check_windows_imports.py --objdump "$(OBJDUMP)" \
+		--decoder "$(WP14_WINDOWS_BUILD_DIR)/av2heif-decoder.exe" \
+		--smoke "$(WP14_WINDOWS_BUILD_DIR)/av2heif-windows-smoke.exe"
+	@if test -n "$(WP14_WINDOWS_EMULATOR)"; then \
+		ctest --test-dir "$(WP14_WINDOWS_BUILD_DIR)" $(CTEST_ARGS) \
+			$(CTEST_PARALLEL_ARGS); \
+	else \
+		printf '%s\n' 'Windows runtime skipped: set WP14_WINDOWS_EMULATOR'; \
+	fi
+	$(PYTHON) tools/check_10bit_reproducibility.py
 
 test-carriage-reference: reference-avm test
 	$(PYTHON) tools/run_carriage_reference.py \

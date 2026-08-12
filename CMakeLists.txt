@@ -188,6 +188,20 @@ if(AV2HEIF_BUILD_HOST_TESTS)
         )
     endforeach()
 
+    add_executable(public-decode-fuzz tests/public_decode_fuzz.c)
+    av2heif_configure_host_target(public-decode-fuzz)
+    target_compile_definitions(public-decode-fuzz PRIVATE
+        AV2H_FUZZ_STANDALONE=1)
+    target_link_libraries(public-decode-fuzz PRIVATE av2heif-host-core)
+    add_test(NAME public-decode-fuzz-smoke
+        COMMAND public-decode-fuzz
+            tests/fixtures/i444-tiny.obu
+            tests/fixtures/10bit/avm-reference/tiny-constrained-16x16-yuv420p10le-qp208.obu
+            tests/fixtures/10bit/avm-reference/tiny-precision-16x16-yuv444p10le-qp128.obu)
+    set_tests_properties(public-decode-fuzz-smoke PROPERTIES
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+        TIMEOUT 120)
+
     add_executable(av2heif-artifact tools/av2heif_artifact.c)
     av2heif_configure_host_target(av2heif-artifact)
     target_include_directories(av2heif-artifact PRIVATE src)

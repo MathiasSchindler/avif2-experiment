@@ -626,12 +626,12 @@ regressions are documented in `docs/dev/chroma-444.md`.
 
 ## 10-bit image implementation
 
-**Status:** Planned.
+**Status:** Complete as of 10B-WP14 on 2026-08-13.
 
 The detailed 10-bit implementation work has moved to `10bitplan.md`. That plan
-starts at the completed `10bitplan-prepwork.md` handoff, implements 10-bit
-4:2:0 to an independent release gate, and then integrates 10-bit 4:4:4 as a
-separate geometry/sample-width composition gate.
+starts at the completed `10bitplan-prepwork.md` handoff, releases 10-bit 4:2:0
+at 10B-WP11, and releases 10-bit 4:4:4 at 10B-WP14. Final profile, packing,
+fuzz, platform, and corpus evidence is recorded in `docs/dev/10bit-wp14.md`.
 
 The roadmap boundary remains unchanged: 12-bit, 4:2:2, lossless base-Q-zero,
 restoration, production color conversion, and unrelated coding-tool expansion
@@ -652,20 +652,19 @@ state which AV2 video features are irrelevant to still images.
 
 ## Current implementation boundary
 
-The original 8-bit decoder program is complete. The public decoder supports the
-project-defined canonical HEIF profile for one 8-bit still picture with I400,
-I420, or I444 planar output. The locked I420, monochrome, and I444 corpora are
-sample-exact against pinned AVM v1.0.0. This evidence covers the tested profile;
-it is not a claim that every legal AV2 coding combination is implemented.
+The 8-bit and 10-bit image decoder program is complete. The public decoder
+supports the project-defined canonical HEIF profile for one still picture with
+I400, I420, I444, `yuv420p10le`, or `yuv444p10le` planar output. The locked
+corpora are sample-exact against pinned AVM v1.0.0. This evidence covers the
+tested profile; it is not a claim that every legal AV2 coding combination is
+implemented.
 
 The following decoder features remain outside the accepted profile and fail
-closed: 10-bit and 12-bit samples, 4:2:2 chroma, restoration, film grain,
-sequence segmentation and tile signaling, frame segmentation, quantization
-matrices, lossless base-Q-zero frames, and multi-frame or non-initial tile-group
-forms. The next decoder work covers 10-bit 4:2:0 and 4:4:4 respectively. Other
-codec features need separate testable changes and independent reference evidence.
-The package sequence and exit gates for both 10-bit formats are defined in
-`10bitplan.md`.
+closed: 10-bit monochrome, 12-bit samples, 4:2:2 chroma, restoration, film
+grain, unsupported segmentation and tile signaling, quantization matrices,
+unconstrained base-Q-zero streams, and multi-frame or non-initial tile-group
+forms. Other codec features need separate testable changes and independent
+reference evidence.
 
 Within the existing 8-bit coding-tool surface, the reviewed census still marks
 three coverage questions: exhaustive zero-angle luma directional geometry and
@@ -679,10 +678,11 @@ current container profile also excludes transformations, metadata items,
 auxiliary alpha, grids, multiple extents, sequences, and animation. These are
 future profile additions rather than defects in canonical v0.
 
-Release validation has strict freestanding, sanitizer, deterministic corpus,
-AVM differential, Windows, WebAssembly, and Linux no-libc gates. Coverage-guided
-fuzzing, automated multi-platform CI, and comparison through an independent AV2
-decoder remain open infrastructure work.
+Release validation has strict freestanding, sanitizer, bounded deterministic
+public-boundary fuzz, reproducible corpus, AVM differential, Windows,
+WebAssembly, and Linux no-libc gates. Long-running coverage-guided campaigns,
+automated multi-platform CI, and comparison through an independent AV2 decoder
+remain open infrastructure work.
 
 ## Required validation
 
@@ -704,19 +704,17 @@ Release validation additionally includes:
 
 1. Audit and close the existing 8-bit chroma-FSC, zero-angle luma, and
   secondary-transform coverage gaps.
-2. Add a coverage-guided fuzz target for the public query/decode boundary.
-3. Execute `10bitplan.md` through the 10-bit 4:2:0 release gate at 10B-WP11.
-4. Execute its independent 10-bit 4:4:4 integration and release gate through
-   10B-WP14.
-5. Add later container and presentation features one independently tested
+2. Continue coverage-guided campaigns through the public query/decode fuzz
+  entry point and retain minimized regressions.
+3. Add later container and presentation features one independently tested
   slice at a time.
 
 Early work on a later feature may be retained when it is already validated,
 but it does not waive an earlier exit gate. Each independently tested change
 must leave the decoder fail-closed at the first unsupported owner.
 
-The 8-bit implementation is complete. The 10-bit 4:2:0 and 4:4:4 expansions
-remain planned and independently testable. The private platform decoders and public
+The 8-bit implementation and the independently gated 10-bit 4:2:0 and 4:4:4
+expansions are complete. The private platform decoders and public
 canonical-HEIF path retain byte-identical pinned-AVM output for their locked
-corpora. Restoration remains outside the accepted profile and must continue to
-fail closed.
+corpora. Restoration remains outside the accepted profile and must continue
+to fail closed.
