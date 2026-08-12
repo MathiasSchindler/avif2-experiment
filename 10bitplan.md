@@ -366,6 +366,10 @@ caller output.
 
 ## 10B-WP10: Enable canonical public 10-bit 4:2:0 decode
 
+**Status:** Implemented. Canonical HEIF query/decode, exact public layout and
+workspace contracts, fail-closed negative cases, and platform adapter evidence
+are recorded in `docs/dev/10bit-wp10.md`.
+
 **Objective:** Expose the completed private path through canonical HEIF query
 and decode contracts.
 
@@ -391,6 +395,11 @@ and the focused gate are documented in `docs/dev/10bit-wp10.md`.
 
 ## 10B-WP11: Complete 10-bit 4:2:0 corpus coverage
 
+**Status:** Implemented on 2026-08-12. Exact native/public parity for the 25
+synthetic and 18 photographic records, 8-bit regression evidence, and the
+freestanding, no-libc, WebAssembly, and Windows cross-build gates are recorded
+in `docs/dev/10bit-wp11.md`.
+
 **Objective:** Expand from the vertical slice to the synthetic and photographic
 4:2:0 release matrix.
 
@@ -407,7 +416,7 @@ and the focused gate are documented in `docs/dev/10bit-wp10.md`.
 - Add public-boundary fuzz seeds for both sample widths and the new metadata
   combinations.
 
-**Exit gate:** The complete supported 10-bit 4:2:0 matrix matches pinned AVM
+**Exit gate:** Complete. The supported 10-bit 4:2:0 matrix matches pinned AVM
 sample-for-sample; all 8-bit I400/I420/I444 bytes remain unchanged; and release
 artifacts retain their freestanding dependency contract.
 
