@@ -40,6 +40,14 @@ Av2hStatus av2h_reconstruct_transform_generic(
     Av2hReconstructionScratch *scratch,
     Av2hFirstReconstruction *reconstruction);
 
+Av2hStatus av2h_reconstruct_lossless_4x4(
+    const Av2hFirstLeafMode *mode,
+    const Av2hFirstTransformType *transform,
+    const Av2hFirstCoeffBlock *coefficients,
+    const uint8_t *predictor,
+    size_t predictor_stride_samples,
+    Av2hFirstReconstruction *reconstruction);
+
 Av2hStatus av2h_reconstruct_transform_generic_u16(
     const Av2hFirstLeafMode *mode,
     const Av2hFirstCoeffPrefix *prefix,

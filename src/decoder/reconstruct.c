@@ -416,6 +416,13 @@ Av2hStatus av2h_luma_reconstruct(
         scratch == 0 || reconstruction == 0) {
         return AV2H_INVALID_ARGUMENT;
     }
+    if (prefix->q_index == 0U && prefix->tx_size == AV2H_TX_4X4 &&
+        (transform->primary_type == AV2H_TX_DCT_DCT ||
+         transform->primary_type == AV2H_TX_IDTX)) {
+        return av2h_reconstruct_lossless_4x4(
+            mode, transform, coefficients, predictor,
+            predictor_stride_samples, reconstruction);
+    }
     if (prefix->all_zero) {
         const Av2hTxDescriptor *descriptor;
         size_t output_count;
@@ -451,6 +458,64 @@ Av2hStatus av2h_luma_reconstruct(
             reconstruction->residual[index] = 0;
             reconstruction->pixels[index] =
                 predictor[row * predictor_stride_samples + column];
+        }
+        return AV2H_OK;
+    }
+    if (prefix->q_index == 0U &&
+        transform->primary_type == AV2H_TX_IDTX &&
+        mode->use_dpcm_y != 0U) {
+        const Av2hTxDescriptor *descriptor;
+        size_t width;
+        size_t height;
+        unsigned int scale_bits;
+        size_t row;
+        size_t column;
+        if (av2h_tx_descriptor_get(prefix->tx_size, &descriptor) != AV2H_OK) {
+            return AV2H_UNSUPPORTED;
+        }
+        width = descriptor->output_width;
+        height = descriptor->output_height;
+        if (coefficients->width != width || coefficients->height != height ||
+            coefficients->coefficient_count != width * height ||
+            predictor == 0 || predictor_stride_samples < width) {
+            return AV2H_UNSUPPORTED;
+        }
+        scale_bits = 3U - (coefficients->coefficient_count > 256U ? 1U : 0U) -
+            (coefficients->coefficient_count > 1024U ? 1U : 0U);
+        reconstruction->width = (uint16_t)width;
+        reconstruction->height = (uint16_t)height;
+        if (mode->dpcm_mode_y == 0U) {
+            for (column = 0U; column < width; ++column) {
+                int32_t delay = 0;
+                for (row = 0U; row < height; ++row) {
+                    size_t sample = row * width + column;
+                    int32_t current =
+                        coefficients->dequantized[sample] >> scale_bits;
+                    int32_t residual = current + delay;
+                    reconstruction->residual[sample] = (int16_t)residual;
+                    reconstruction->pixels[sample] = av2h_sample_clip(
+                        (int32_t)predictor[
+                            row * predictor_stride_samples + column] +
+                        residual);
+                    delay += current;
+                }
+            }
+        } else {
+            for (row = 0U; row < height; ++row) {
+                int32_t delay = 0;
+                for (column = 0U; column < width; ++column) {
+                    size_t sample = row * width + column;
+                    int32_t current =
+                        coefficients->dequantized[sample] >> scale_bits;
+                    int32_t residual = current + delay;
+                    reconstruction->residual[sample] = (int16_t)residual;
+                    reconstruction->pixels[sample] = av2h_sample_clip(
+                        (int32_t)predictor[
+                            row * predictor_stride_samples + column] +
+                        residual);
+                    delay += current;
+                }
+            }
         }
         return AV2H_OK;
     }
@@ -2464,6 +2529,9 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_format(
         luma_mode.mode = mode->mode;
         luma_mode.angle_delta = mode->angle_delta;
     }
+    luma_mode.use_dpcm_y = mode->use_dpcm_uv;
+    luma_mode.dpcm_mode_y = mode->dpcm_mode_uv;
+    luma_mode.fsc_mode = transform->primary_type == AV2H_TX_IDTX ? 1U : 0U;
     av2h_reconstruction_diagnostics_set_chroma_stage(2U);
     if (predictor_plane != 0) {
         av2h_predictor_commit_u8(

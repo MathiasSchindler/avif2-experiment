@@ -782,15 +782,11 @@ Av2hStatus av2h_chroma_coeff_prefix_read_with_state(
     Av2hFirstCoeffPrefix *prefix) {
     uint8_t txb_skip_context;
     uint8_t dc_sign_context;
-    Av2hStatus status = frame->chroma_format_idc == 2U ?
-        av2h_coeff_contexts_from_state_for_coding_block(
-            state, plane, leaf, coding_block_size, 0U,
-            &txb_skip_context, &dc_sign_context) :
-        av2h_coeff_contexts_from_state(
-            state, plane, leaf, 0U,
-            &txb_skip_context, &dc_sign_context);
+    Av2hStatus status = av2h_coeff_contexts_from_state_for_coding_block(
+        state, plane, leaf, coding_block_size, 0U,
+        &txb_skip_context, &dc_sign_context);
     if (status != AV2H_OK) return status;
-    if (frame->chroma_format_idc == 2U && plane == 2U && u_eob != 0U) {
+    if (plane == 2U && u_eob != 0U) {
         txb_skip_context = (uint8_t)(txb_skip_context + 6U);
     }
     return av2h_chroma_coeff_prefix_read(

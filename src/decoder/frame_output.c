@@ -375,19 +375,22 @@ Av2hStatus av2h_decode_frame_planar_private(
             if (leaf.decoded_plane != 0U) {
                 unsigned int index = leaf.decoded_plane - 1U;
                 plane = leaf.decoded_plane;
-                if (workspace->bytes_per_sample != 2U) {
-                    AV2H_DECODE_FAIL(
-                        AV2H_UNSUPPORTED, AV2H_UNSUPPORTED,
-                        AV2H_FRAME_DECODE_STAGE_CHROMA_RECONSTRUCT,
-                        plane, &leaf.node, 0U);
+                if (workspace->bytes_per_sample == 1U) {
+                    status = av2h_chroma_reconstruct_to_plane_format(
+                        &leaf.node, &leaf.mode, &leaf.prefix[index],
+                        &leaf.transform[index], &blocks[index],
+                        &workspace->coded[plane], &workspace->coded[0],
+                        (uint8_t)plane, 0, frame->chroma_format_idc,
+                        workspace->reconstruction_scratch);
+                } else {
+                    status = av2h_chroma_reconstruct_to_plane_u16(
+                        &leaf.node, &leaf.mode, &leaf.prefix[index],
+                        &leaf.transform[index], &blocks[index],
+                        &workspace->coded_u16[plane],
+                        &workspace->coded_u16[0], (uint8_t)plane,
+                        frame->chroma_format_idc,
+                        workspace->reconstruction_scratch_u16);
                 }
-                status = av2h_chroma_reconstruct_to_plane_u16(
-                    &leaf.node, &leaf.mode, &leaf.prefix[index],
-                    &leaf.transform[index], &blocks[index],
-                    &workspace->coded_u16[plane],
-                    &workspace->coded_u16[0], (uint8_t)plane,
-                    frame->chroma_format_idc,
-                    workspace->reconstruction_scratch_u16);
                 if (status != AV2H_OK) {
                     AV2H_DECODE_FAIL(
                         status, status,
@@ -427,7 +430,9 @@ Av2hStatus av2h_decode_frame_planar_private(
                     AV2H_FRAME_DECODE_STAGE_CHROMA_CROSS_TRANSFORM,
                     0U, &leaf.node, 0U);
             }
-            if (decoder.shared_chroma_resume_luma) {
+                        if (decoder.shared_chroma_resume_luma &&
+                                !(frame->base_q_index == 0U &&
+                                    decoder.luma_coding_mode.lossless_tx_size_large == 0U)) {
                 if (pending_chroma_count >= 4U) {
                     AV2H_DECODE_FAIL(
                         AV2H_OVERFLOW, AV2H_OVERFLOW,

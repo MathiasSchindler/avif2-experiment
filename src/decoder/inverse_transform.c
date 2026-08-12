@@ -693,6 +693,93 @@ static void recon_transform_1d(const int32_t *input, int32_t *output,
     }
 }
 
+static int32_t lossless_half(int32_t value) {
+    return value >= 0 ? value / 2 : -(((-value) + 1) / 2);
+}
+
+static void lossless_iwht4(int32_t *values) {
+    int32_t first = values[0] + values[1];
+    int32_t fourth = values[2] - values[3];
+    int32_t half = lossless_half(first - fourth);
+    int32_t second = half - values[3];
+    int32_t third = half - values[1];
+    values[0] = first - second;
+    values[1] = second;
+    values[2] = third;
+    values[3] = fourth + third;
+}
+
+Av2hStatus av2h_reconstruct_lossless_4x4(
+    const Av2hFirstLeafMode *mode,
+    const Av2hFirstTransformType *transform,
+    const Av2hFirstCoeffBlock *coefficients,
+    const uint8_t *predictor,
+    size_t predictor_stride_samples,
+    Av2hFirstReconstruction *reconstruction) {
+    int32_t residual[16U];
+    size_t row;
+    size_t column;
+    if (coefficients->width != 4U || coefficients->height != 4U ||
+        coefficients->coefficient_count != 16U ||
+        (transform->primary_type != AV2H_TX_DCT_DCT &&
+         transform->primary_type != AV2H_TX_IDTX) ||
+        (predictor != 0 && predictor_stride_samples < 4U)) {
+        return AV2H_UNSUPPORTED;
+    }
+    for (row = 0U; row < 4U; ++row) {
+        for (column = 0U; column < 4U; ++column) {
+            residual[row * 4U + column] =
+                coefficients->dequantized[row * 4U + column] / 8;
+        }
+        if (transform->primary_type == AV2H_TX_DCT_DCT) {
+            lossless_iwht4(&residual[row * 4U]);
+        }
+    }
+    if (transform->primary_type == AV2H_TX_DCT_DCT) {
+        for (column = 0U; column < 4U; ++column) {
+            int32_t values[4U];
+            for (row = 0U; row < 4U; ++row) {
+                values[row] = residual[row * 4U + column];
+            }
+            lossless_iwht4(values);
+            for (row = 0U; row < 4U; ++row) {
+                residual[row * 4U + column] = values[row];
+            }
+        }
+    }
+    if (mode->use_dpcm_y != 0U) {
+        if (mode->dpcm_mode_y == 0U) {
+            for (column = 0U; column < 4U; ++column) {
+                for (row = 1U; row < 4U; ++row) {
+                    residual[row * 4U + column] +=
+                        residual[(row - 1U) * 4U + column];
+                }
+            }
+        } else {
+            for (row = 0U; row < 4U; ++row) {
+                for (column = 1U; column < 4U; ++column) {
+                    residual[row * 4U + column] +=
+                        residual[row * 4U + column - 1U];
+                }
+            }
+        }
+    }
+    reconstruction->width = 4U;
+    reconstruction->height = 4U;
+    for (row = 0U; row < 4U; ++row) {
+        for (column = 0U; column < 4U; ++column) {
+            size_t index = row * 4U + column;
+            int32_t predicted = predictor == 0 ?
+                av2h_sample_midpoint_8bit() :
+                predictor[row * predictor_stride_samples + column];
+            reconstruction->residual[index] = (int16_t)residual[index];
+            reconstruction->pixels[index] =
+                av2h_sample_clip(predicted + residual[index]);
+        }
+    }
+    return AV2H_OK;
+}
+
 Av2hStatus av2h_reconstruct_transform_generic(
     const Av2hFirstLeafMode *mode,
     const Av2hFirstCoeffPrefix *prefix,
@@ -731,6 +818,13 @@ Av2hStatus av2h_reconstruct_transform_generic(
     }
     if (predictor != 0 && predictor_stride_samples < output_width) {
         return AV2H_INVALID_ARGUMENT;
+    }
+    if (prefix->q_index == 0U && prefix->tx_size == AV2H_TX_4X4 &&
+        (transform->primary_type == AV2H_TX_DCT_DCT ||
+         transform->primary_type == AV2H_TX_IDTX)) {
+        return av2h_reconstruct_lossless_4x4(
+            mode, transform, coefficients, predictor,
+            predictor_stride_samples, reconstruction);
     }
     if (prefix->all_zero && prefix->eob == 0U &&
         coefficients->nonzero_count == 0U) {

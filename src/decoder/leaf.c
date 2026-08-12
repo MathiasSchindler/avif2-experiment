@@ -39,7 +39,7 @@ Av2hStatus av2h_chroma_mode_read_with_delta(
     Av2hFirstChromaMode *mode) {
     return av2h_chroma_mode_read_with_delta_for_sdp(
         decoder, cdfs, sequence, colocated_luma_mode,
-        colocated_luma_delta, block_size, cfl_context, 1U, mode);
+        colocated_luma_delta, block_size, cfl_context, 1U, 0U, mode);
 }
 
 Av2hStatus av2h_chroma_mode_read_with_delta_for_sdp(
@@ -51,6 +51,7 @@ Av2hStatus av2h_chroma_mode_read_with_delta_for_sdp(
     Av2hBlockSize block_size,
     uint8_t cfl_context,
     uint8_t cfl_allowed,
+    uint8_t lossless,
     Av2hFirstChromaMode *mode) {
     uint8_t mode_context;
     uint8_t mhccp_allowed = cfl_allowed;
@@ -71,15 +72,23 @@ Av2hStatus av2h_chroma_mode_read_with_delta_for_sdp(
             sequence->info.chroma_format_idc == 2U ? 8U : 16U;
         size_t max_cfl_dimension_mi =
             sequence->info.chroma_format_idc == 2U ? 16U : 32U;
+        size_t lossless_dimension_mi =
+            sequence->info.chroma_format_idc == 2U ? 1U : 2U;
+        uint8_t lossless_chroma_4x4;
         uint8_t mhccp_too_small;
         if (av2h_block_dimensions_mi(
                 block_size, &block_width_mi, &block_height_mi) != AV2H_OK) {
             return AV2H_UNSUPPORTED;
         }
-        mhccp_too_small = sequence->info.chroma_format_idc == 2U ?
-            (uint8_t)(block_width_mi == 1U && block_height_mi == 1U) :
-            (uint8_t)(block_width_mi <= 2U && block_height_mi <= 2U);
+        lossless_chroma_4x4 = (uint8_t)(
+            block_width_mi == lossless_dimension_mi &&
+            block_height_mi == lossless_dimension_mi);
+        mhccp_too_small = lossless ? (uint8_t)!lossless_chroma_4x4 :
+            sequence->info.chroma_format_idc == 2U ?
+                (uint8_t)(block_width_mi == 1U && block_height_mi == 1U) :
+                (uint8_t)(block_width_mi <= 2U && block_height_mi <= 2U);
         cfl_allowed = (uint8_t)(cfl_allowed &&
+            (!lossless || lossless_chroma_4x4) &&
             block_width_mi <= max_cfl_dimension_mi &&
             block_height_mi <= max_cfl_dimension_mi);
         mhccp_allowed = (uint8_t)(mhccp_allowed &&

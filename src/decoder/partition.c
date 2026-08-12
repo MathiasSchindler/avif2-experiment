@@ -1028,6 +1028,28 @@ static Av2hStatus traversal_push_children(
     return AV2H_OK;
 }
 
+Av2hStatus av2h_partition_child_nodes(
+    Av2hPartitionNode node,
+    Av2hPartitionType partition,
+    Av2hPartitionNode children[4U],
+    size_t *child_count) {
+    Av2hPartitionTraversal traversal = {0};
+    Av2hStatus status;
+    size_t index;
+    if (children == 0 || child_count == 0 ||
+        partition == AV2H_PARTITION_NONE ||
+        partition >= AV2H_PARTITION_INVALID) {
+        return AV2H_INVALID_ARGUMENT;
+    }
+    status = traversal_push_children(&traversal, node, partition);
+    if (status != AV2H_OK) return status;
+    *child_count = traversal.stack_count;
+    for (index = 0U; index < *child_count; ++index) {
+        children[index] = traversal.stack[*child_count - index - 1U];
+    }
+    return AV2H_OK;
+}
+
 Av2hStatus av2h_partition_traversal_init(
     Av2hPartitionTraversal *traversal,
     uint16_t mi_rows,
@@ -1082,6 +1104,33 @@ Av2hStatus av2h_partition_traversal_reset_root(
     traversal->diagnostic_node = root;
     traversal->diagnostic_before_bits = 0U;
     return AV2H_OK;
+}
+
+Av2hStatus av2h_partition_traversal_force(
+    Av2hPartitionTraversal *traversal,
+    Av2hPartitionType partition,
+    uint8_t *has_leaf) {
+    Av2hPartitionNode node;
+    Av2hStatus status;
+    if (traversal == 0 || has_leaf == 0 || traversal->has_pending_leaf ||
+        traversal->stack_count == 0U ||
+        partition >= AV2H_PARTITION_INVALID) {
+        return AV2H_INVALID_ARGUMENT;
+    }
+    node = traversal->stack[--traversal->stack_count];
+    *has_leaf = 0U;
+#if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
+    av2h_partition_diagnostic_forced_decision(
+        node, partition, traversal->structure);
+#endif
+    if (partition == AV2H_PARTITION_NONE) {
+        traversal->pending_leaf = node;
+        traversal->has_pending_leaf = 1U;
+        *has_leaf = 1U;
+        return AV2H_OK;
+    }
+    status = traversal_push_children(traversal, node, partition);
+    return status;
 }
 
 Av2hStatus av2h_partition_traversal_next(

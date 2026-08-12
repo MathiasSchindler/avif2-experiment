@@ -200,7 +200,7 @@ Av2hStatus av2h_luma_tx_descriptor_get(
 
 Av2hStatus av2h_luma_tx_node_count(
         Av2hBlockSize block_size,
-        uint8_t *count) {
+        uint16_t *count) {
         const Av2hTxDescriptor *descriptor;
         Av2hStatus status;
         if (count == 0) return AV2H_INVALID_ARGUMENT;
@@ -214,9 +214,9 @@ Av2hStatus av2h_luma_tx_node_count(
 }
 Av2hStatus av2h_luma_tx_node_get(
         const Av2hPartitionNode *coding_node,
-        uint8_t index,
+        uint16_t index,
         Av2hPartitionNode *tx_node) {
-        uint8_t count;
+        uint16_t count;
         Av2hStatus status;
         if (coding_node == 0 || tx_node == 0) return AV2H_INVALID_ARGUMENT;
         status = av2h_luma_tx_node_count(coding_node->block_size, &count);
@@ -238,45 +238,82 @@ Av2hStatus av2h_luma_tx_node_get(
 }
 
 Av2hStatus av2h_luma_lossless_tx_node_count(
-        Av2hBlockSize block_size,
-        uint8_t *count) {
+        const Av2hPartitionNode *coding_node,
+        uint16_t mi_columns,
+        uint16_t mi_rows,
+        uint16_t *count) {
         size_t width_mi;
         size_t height_mi;
         Av2hStatus status;
-        if (count == 0) return AV2H_INVALID_ARGUMENT;
+        if (coding_node == 0 || count == 0 ||
+                coding_node->column >= mi_columns ||
+                coding_node->row >= mi_rows) return AV2H_INVALID_ARGUMENT;
         status = av2h_block_dimensions_mi(
-                block_size, &width_mi, &height_mi);
+                coding_node->block_size, &width_mi, &height_mi);
         if (status != AV2H_OK) return status;
+        if (width_mi > (size_t)mi_columns - coding_node->column) {
+                width_mi = (size_t)mi_columns - coding_node->column;
+        }
+        if (height_mi > (size_t)mi_rows - coding_node->row) {
+                height_mi = (size_t)mi_rows - coding_node->row;
+        }
         if (width_mi == 0U || height_mi == 0U ||
-                width_mi * height_mi > 255U) {
+                width_mi * height_mi > UINT16_MAX) {
                 return AV2H_UNSUPPORTED;
         }
-        *count = (uint8_t)(width_mi * height_mi);
+        *count = (uint16_t)(width_mi * height_mi);
         return AV2H_OK;
 }
 
 Av2hStatus av2h_luma_lossless_tx_node_get(
         const Av2hPartitionNode *coding_node,
-        uint8_t index,
+        uint16_t mi_columns,
+        uint16_t mi_rows,
+        uint16_t index,
         Av2hPartitionNode *tx_node) {
         size_t width_mi;
         size_t height_mi;
-        uint8_t count;
+        size_t unit_row;
+        size_t unit_column;
+        size_t node_index;
+        uint16_t count;
         Av2hStatus status;
         if (coding_node == 0 || tx_node == 0) return AV2H_INVALID_ARGUMENT;
         status = av2h_luma_lossless_tx_node_count(
-                coding_node->block_size, &count);
+                coding_node, mi_columns, mi_rows, &count);
         if (status != AV2H_OK) return status;
         if (index >= count) return AV2H_INVALID_ARGUMENT;
         status = av2h_block_dimensions_mi(
                 coding_node->block_size, &width_mi, &height_mi);
         if (status != AV2H_OK) return status;
-        (void)height_mi;
-        *tx_node = *coding_node;
-        tx_node->block_size = AV2H_BLOCK_4X4;
-        tx_node->row = (uint16_t)(tx_node->row + index / width_mi);
-        tx_node->column = (uint16_t)(tx_node->column + index % width_mi);
-        return AV2H_OK;
+        if (width_mi > (size_t)mi_columns - coding_node->column) {
+                width_mi = (size_t)mi_columns - coding_node->column;
+        }
+        if (height_mi > (size_t)mi_rows - coding_node->row) {
+                height_mi = (size_t)mi_rows - coding_node->row;
+        }
+        node_index = index;
+        for (unit_row = 0U; unit_row < height_mi; unit_row += 16U) {
+                size_t unit_height = height_mi - unit_row < 16U ?
+                        height_mi - unit_row : 16U;
+                for (unit_column = 0U; unit_column < width_mi;
+                     unit_column += 16U) {
+                        size_t unit_width = width_mi - unit_column < 16U ?
+                                width_mi - unit_column : 16U;
+                        size_t unit_count = unit_width * unit_height;
+                        if (node_index < unit_count) {
+                                *tx_node = *coding_node;
+                                tx_node->block_size = AV2H_BLOCK_4X4;
+                                tx_node->row = (uint16_t)(tx_node->row +
+                                        unit_row + node_index / unit_width);
+                                tx_node->column = (uint16_t)(tx_node->column +
+                                        unit_column + node_index % unit_width);
+                                return AV2H_OK;
+                        }
+                        node_index -= unit_count;
+                }
+        }
+        return AV2H_INVALID_ARGUMENT;
 }
 
 Av2hStatus av2h_chroma_tx_descriptor_get(
@@ -316,7 +353,7 @@ Av2hStatus av2h_chroma_tx_descriptor_get(
 Av2hStatus av2h_chroma_tx_node_count(
         Av2hBlockSize block_size,
         uint8_t chroma_format_idc,
-        uint8_t *count) {
+        uint16_t *count) {
         size_t width_mi;
         size_t height_mi;
         size_t width_pixels;
@@ -339,20 +376,20 @@ Av2hStatus av2h_chroma_tx_node_count(
         if (columns == 0U || rows == 0U || columns * rows > 4U) {
                 return AV2H_UNSUPPORTED;
         }
-        *count = (uint8_t)(columns * rows);
+        *count = (uint16_t)(columns * rows);
         return AV2H_OK;
 }
 
 Av2hStatus av2h_chroma_tx_node_get(
         const Av2hPartitionNode *coding_node,
         uint8_t chroma_format_idc,
-        uint8_t index,
+        uint16_t index,
         Av2hPartitionNode *tx_node) {
         size_t width_mi;
         size_t height_mi;
         size_t width_pixels;
         size_t columns;
-        uint8_t count;
+        uint16_t count;
         Av2hStatus status;
         if (coding_node == 0 || tx_node == 0) return AV2H_INVALID_ARGUMENT;
         status = av2h_chroma_tx_node_count(
@@ -375,58 +412,104 @@ Av2hStatus av2h_chroma_tx_node_get(
 }
 
 Av2hStatus av2h_chroma_lossless_tx_node_count(
-        Av2hBlockSize block_size,
+        const Av2hPartitionNode *coding_node,
+        uint16_t mi_columns,
+        uint16_t mi_rows,
         uint8_t chroma_format_idc,
-        uint8_t *count) {
+        uint16_t *count) {
         size_t width_mi;
         size_t height_mi;
         size_t columns;
         size_t rows;
         Av2hStatus status;
-        if (count == 0) return AV2H_INVALID_ARGUMENT;
+        if (coding_node == 0 || count == 0 ||
+                coding_node->column >= mi_columns ||
+                coding_node->row >= mi_rows) return AV2H_INVALID_ARGUMENT;
         if (chroma_format_idc != 0U && chroma_format_idc != 2U) {
                 return AV2H_UNSUPPORTED;
         }
         status = av2h_block_dimensions_mi(
-                block_size, &width_mi, &height_mi);
+                coding_node->block_size, &width_mi, &height_mi);
         if (status != AV2H_OK) return status;
+        if (width_mi > (size_t)mi_columns - coding_node->column) {
+                width_mi = (size_t)mi_columns - coding_node->column;
+        }
+        if (height_mi > (size_t)mi_rows - coding_node->row) {
+                height_mi = (size_t)mi_rows - coding_node->row;
+        }
         columns = chroma_format_idc == 2U ? width_mi : (width_mi + 1U) / 2U;
         rows = chroma_format_idc == 2U ? height_mi : (height_mi + 1U) / 2U;
-        if (columns == 0U || rows == 0U || columns * rows > 255U) {
+        if (columns == 0U || rows == 0U || columns * rows > UINT16_MAX) {
                 return AV2H_UNSUPPORTED;
         }
-        *count = (uint8_t)(columns * rows);
+        *count = (uint16_t)(columns * rows);
         return AV2H_OK;
 }
 
 Av2hStatus av2h_chroma_lossless_tx_node_get(
         const Av2hPartitionNode *coding_node,
+        uint16_t mi_columns,
+        uint16_t mi_rows,
         uint8_t chroma_format_idc,
-        uint8_t index,
+        uint16_t index,
         Av2hPartitionNode *tx_node) {
         size_t width_mi;
         size_t height_mi;
         size_t columns;
-        uint8_t count;
+        size_t rows;
+        size_t maximum_unit_columns;
+        size_t maximum_unit_rows;
+        size_t unit_row;
+        size_t unit_column;
+        size_t node_index;
+        size_t step_mi;
+        uint16_t count;
         Av2hStatus status;
         if (coding_node == 0 || tx_node == 0) return AV2H_INVALID_ARGUMENT;
         status = av2h_chroma_lossless_tx_node_count(
-                coding_node->block_size, chroma_format_idc, &count);
+                coding_node, mi_columns, mi_rows, chroma_format_idc, &count);
         if (status != AV2H_OK) return status;
         if (index >= count) return AV2H_INVALID_ARGUMENT;
         status = av2h_block_dimensions_mi(
                 coding_node->block_size, &width_mi, &height_mi);
         if (status != AV2H_OK) return status;
-        (void)height_mi;
+        if (width_mi > (size_t)mi_columns - coding_node->column) {
+                width_mi = (size_t)mi_columns - coding_node->column;
+        }
+        if (height_mi > (size_t)mi_rows - coding_node->row) {
+                height_mi = (size_t)mi_rows - coding_node->row;
+        }
         columns = chroma_format_idc == 2U ? width_mi : (width_mi + 1U) / 2U;
-        *tx_node = *coding_node;
-        tx_node->block_size = chroma_format_idc == 2U ?
-                AV2H_BLOCK_4X4 : AV2H_BLOCK_8X8;
-        tx_node->row = (uint16_t)(
-                tx_node->row + (index / columns) *
-                    (chroma_format_idc == 2U ? 1U : 2U));
-        tx_node->column = (uint16_t)(
-                tx_node->column + (index % columns) *
-                    (chroma_format_idc == 2U ? 1U : 2U));
-        return AV2H_OK;
+        rows = chroma_format_idc == 2U ? height_mi : (height_mi + 1U) / 2U;
+        maximum_unit_columns = chroma_format_idc == 2U ? 16U : 8U;
+        maximum_unit_rows = chroma_format_idc == 2U ? 16U : 8U;
+        step_mi = chroma_format_idc == 2U ? 1U : 2U;
+        node_index = index;
+        for (unit_row = 0U; unit_row < rows;
+             unit_row += maximum_unit_rows) {
+                size_t unit_height = rows - unit_row < maximum_unit_rows ?
+                        rows - unit_row : maximum_unit_rows;
+                for (unit_column = 0U; unit_column < columns;
+                     unit_column += maximum_unit_columns) {
+                        size_t unit_width =
+                                columns - unit_column < maximum_unit_columns ?
+                                columns - unit_column : maximum_unit_columns;
+                        size_t unit_count = unit_width * unit_height;
+                        if (node_index < unit_count) {
+                                *tx_node = *coding_node;
+                                tx_node->block_size =
+                                        chroma_format_idc == 2U ?
+                                        AV2H_BLOCK_4X4 : AV2H_BLOCK_8X8;
+                                tx_node->row = (uint16_t)(tx_node->row +
+                                        (unit_row + node_index / unit_width) *
+                                        step_mi);
+                                tx_node->column = (uint16_t)(tx_node->column +
+                                        (unit_column +
+                                         node_index % unit_width) * step_mi);
+                                return AV2H_OK;
+                        }
+                        node_index -= unit_count;
+                }
+        }
+        return AV2H_INVALID_ARGUMENT;
 }

@@ -3,6 +3,9 @@
 
 #include "reconstruct.h"
 
+#define AV2H_MAX_LOSSLESS_CHROMA_TX_NODES 1024U
+#define AV2H_MAX_LUMA_PARTITION_NODES 2048U
+
 typedef struct {
     size_t header_bits;
     size_t header_size;
@@ -16,6 +19,11 @@ typedef struct {
     uint8_t chroma_cfl;
     uint8_t chroma_smooth;
 } Av2hTileLumaModeCell;
+
+typedef struct {
+    Av2hPartitionNode node;
+    uint8_t partition;
+} Av2hTileLumaPartitionNode;
 
 typedef struct {
     uint8_t *luma_partition_above;
@@ -86,6 +94,9 @@ typedef struct {
     Av2hCcsoEntropyState ccso_entropy;
     Av2hPartitionTraversal luma_traversal;
     Av2hPartitionTraversal chroma_traversal;
+    Av2hTileLumaPartitionNode
+        luma_partition_nodes[AV2H_MAX_LUMA_PARTITION_NODES];
+    size_t luma_partition_node_count;
     Av2hTileLumaModeCell *colocated_luma;
     size_t colocated_luma_count;
     size_t mi_columns;
@@ -108,14 +119,16 @@ typedef struct {
     uint8_t square_root_child_index;
     Av2hPartitionNode luma_coding_node;
     Av2hFirstLeafMode luma_coding_mode;
-    uint8_t luma_tx_index;
-    uint8_t luma_tx_count;
+    uint16_t luma_tx_index;
+    uint16_t luma_tx_count;
     Av2hPartitionNode chroma_coding_node;
     Av2hFirstChromaMode chroma_coding_mode;
-    uint8_t chroma_tx_index;
-    uint8_t chroma_tx_count;
+    uint16_t chroma_tx_index;
+    uint16_t chroma_tx_count;
+    uint16_t chroma_tx_unit_start;
     uint8_t chroma_tx_plane;
     uint16_t chroma_u_eob;
+    uint16_t chroma_u_eobs[AV2H_MAX_LOSSLESS_CHROMA_TX_NODES];
     uint8_t shared_chroma_resume_luma;
     uint8_t shared_chroma_complete;
     uint8_t shared_chroma_mode_pending;

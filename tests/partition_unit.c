@@ -750,6 +750,41 @@ static void test_partial_boundary_honors_implied_rect_axis(void) {
     CHECK(av2h_range_tell(&decoder) == before_bits);
 }
 
+    static void test_forced_horz_3_traversal(void) {
+        Av2hPartitionNode root = { 32U, 16U, AV2H_BLOCK_64X64 };
+        Av2hPartitionNode children[4U];
+        Av2hPartitionTraversal traversal;
+        size_t child_count = 0U;
+        uint8_t has_leaf = 0U;
+        CHECK(av2h_partition_child_nodes(
+              root, AV2H_PARTITION_HORZ_3, children, &child_count) ==
+            AV2H_OK);
+        CHECK(child_count == 4U);
+        CHECK(children[0].row == 32U && children[0].column == 16U &&
+            children[0].block_size == AV2H_BLOCK_64X16);
+        CHECK(children[1].row == 36U && children[1].column == 16U &&
+            children[1].block_size == AV2H_BLOCK_32X32);
+        CHECK(children[2].row == 36U && children[2].column == 24U &&
+            children[2].block_size == AV2H_BLOCK_32X32);
+        CHECK(children[3].row == 44U && children[3].column == 16U &&
+            children[3].block_size == AV2H_BLOCK_64X16);
+        CHECK(av2h_partition_traversal_init(
+              &traversal, 180U, 360U, root, 1U, 1U, 1U) == AV2H_OK);
+        CHECK(av2h_partition_traversal_force(
+              &traversal, AV2H_PARTITION_HORZ_3, &has_leaf) == AV2H_OK);
+        CHECK(has_leaf == 0U);
+        CHECK(traversal.stack_count == 4U);
+        CHECK(traversal.stack[3].row == children[0].row &&
+            traversal.stack[3].column == children[0].column &&
+            traversal.stack[3].block_size == children[0].block_size);
+        CHECK(av2h_partition_traversal_force(
+              &traversal, AV2H_PARTITION_NONE, &has_leaf) == AV2H_OK);
+        CHECK(has_leaf == 1U);
+        CHECK(traversal.pending_leaf.row == children[0].row &&
+            traversal.pending_leaf.column == children[0].column &&
+            traversal.pending_leaf.block_size == children[0].block_size);
+    }
+
 int main(void) {
     test_fixture_prefixes();
     test_forced_geometry();
@@ -763,6 +798,7 @@ int main(void) {
     test_arguments();
     test_partial_boundary_implies_illegal_extension();
     test_partial_boundary_honors_implied_rect_axis();
+    test_forced_horz_3_traversal();
     if (failures != 0) {
         fprintf(stderr, "%d partition checks failed\n", failures);
         return 1;

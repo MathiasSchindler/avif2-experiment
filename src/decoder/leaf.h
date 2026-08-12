@@ -441,6 +441,7 @@ Av2hStatus av2h_chroma_mode_read_with_delta_for_sdp(
     Av2hBlockSize block_size,
     uint8_t cfl_context,
     uint8_t cfl_allowed,
+    uint8_t lossless,
     Av2hFirstChromaMode *mode);
 
 #endif

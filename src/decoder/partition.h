@@ -179,6 +179,15 @@ Av2hStatus av2h_partition_traversal_init(
 Av2hStatus av2h_partition_traversal_reset_root(
     Av2hPartitionTraversal *traversal,
     Av2hPartitionNode root);
+Av2hStatus av2h_partition_child_nodes(
+    Av2hPartitionNode node,
+    Av2hPartitionType partition,
+    Av2hPartitionNode children[4U],
+    size_t *child_count);
+Av2hStatus av2h_partition_traversal_force(
+    Av2hPartitionTraversal *traversal,
+    Av2hPartitionType partition,
+    uint8_t *has_leaf);
 Av2hStatus av2h_partition_traversal_next(
     Av2hPartitionTraversal *traversal,
     Av2hRangeDecoder *decoder,

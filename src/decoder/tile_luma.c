@@ -100,6 +100,24 @@ static void tile_capture_luma_root_child(
     }
 }
 
+static Av2hStatus tile_store_luma_partition_path(
+    Av2hTileDecoder *decoder, const Av2hFirstLeafPath *path) {
+    size_t index;
+    if (decoder == 0 || path == 0) return AV2H_INVALID_ARGUMENT;
+    if (path->decision_count > AV2H_MAX_LUMA_PARTITION_NODES -
+            decoder->luma_partition_node_count) {
+        return AV2H_OVERFLOW;
+    }
+    for (index = 0U; index < path->decision_count; ++index) {
+        Av2hTileLumaPartitionNode *stored =
+            &decoder->luma_partition_nodes[
+                decoder->luma_partition_node_count++];
+        stored->node = path->decisions[index].node;
+        stored->partition = (uint8_t)path->decisions[index].partition;
+    }
+    return AV2H_OK;
+}
+
 static int luma_geometry_supported(const Av2hPartitionNode *leaf) {
     const Av2hTxDescriptor *descriptor;
     return leaf != 0 && av2h_luma_tx_descriptor_get(
@@ -344,7 +362,7 @@ Av2hStatus av2h_tile_decoder_next_luma(
     uint8_t *has_leaf) {
     Av2hFirstLeafPath path;
     uint8_t dc_sign_context;
-    uint8_t tx_count;
+    uint16_t tx_count;
     Av2hStatus status;
     if (decoder == 0 || leaf == 0 || block == 0 || has_leaf == 0) {
         return AV2H_INVALID_ARGUMENT;
@@ -362,10 +380,10 @@ Av2hStatus av2h_tile_decoder_next_luma(
             &leaf->mode, &decoder->luma_coding_mode,
             sizeof(leaf->mode));
         status = decoder->frame->base_q_index == 0U &&
-                decoder->luma_coding_mode.fsc_mode == 0U ?
+            decoder->luma_coding_mode.lossless_tx_size_large == 0U ?
             av2h_luma_lossless_tx_node_get(
-                &decoder->luma_coding_node, decoder->luma_tx_index,
-                &leaf->node) :
+                    &decoder->luma_coding_node, decoder->mi_columns,
+                    decoder->mi_rows, decoder->luma_tx_index, &leaf->node) :
             av2h_luma_tx_node_get(
                 &decoder->luma_coding_node, decoder->luma_tx_index,
                 &leaf->node);
@@ -383,6 +401,8 @@ Av2hStatus av2h_tile_decoder_next_luma(
         &decoder->luma_traversal, &decoder->range,
         &decoder->partition_cdfs, &decoder->partition_contexts, &path,
         has_leaf);
+    if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
+    status = tile_store_luma_partition_path(decoder, &path);
     if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
     if (!*has_leaf) {
         return av2h_tile_decoder_finish_root(decoder);
@@ -430,9 +450,6 @@ Av2hStatus av2h_tile_decoder_next_luma(
             return av2h_tile_decoder_fail(
                 decoder, av2h_range_status(&decoder->range));
         }
-        if (leaf->mode.lossless_tx_size_large == 0U) {
-            return av2h_tile_decoder_fail(decoder, AV2H_UNSUPPORTED);
-        }
     }
 #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
     av2h_partition_diagnostic_leaf_stage(
@@ -477,9 +494,9 @@ Av2hStatus av2h_tile_decoder_next_luma(
 #endif
     }
     status = decoder->frame->base_q_index == 0U &&
-            leaf->mode.fsc_mode == 0U ?
+            leaf->mode.lossless_tx_size_large == 0U ?
         av2h_luma_lossless_tx_node_count(
-            leaf->node.block_size, &tx_count) :
+            &leaf->node, decoder->mi_columns, decoder->mi_rows, &tx_count) :
         av2h_luma_tx_node_count(leaf->node.block_size, &tx_count);
     if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
     if (tx_count > 1U) {
@@ -490,9 +507,10 @@ Av2hStatus av2h_tile_decoder_next_luma(
         decoder->luma_tx_index = 0U;
         decoder->luma_tx_count = tx_count;
         status = decoder->frame->base_q_index == 0U &&
-                decoder->luma_coding_mode.fsc_mode == 0U ?
+            decoder->luma_coding_mode.lossless_tx_size_large == 0U ?
             av2h_luma_lossless_tx_node_get(
-                &decoder->luma_coding_node, 0U, &leaf->node) :
+                &decoder->luma_coding_node, decoder->mi_columns,
+                decoder->mi_rows, 0U, &leaf->node) :
             av2h_luma_tx_node_get(
                 &decoder->luma_coding_node, 0U, &leaf->node);
         if (status != AV2H_OK) {
