@@ -251,7 +251,7 @@ async function decodeAv2Source(source) {
     channelCount,
     chromaFormat,
     pixelFormat: bytesPerSample === 2 && byteOrder === 1
-      ? "10-bit yuv420p10le"
+      ? chromaFormat === 2 ? "10-bit yuv444p10le" : "10-bit yuv420p10le"
       : channelCount === 1
         ? "8-bit I400" : chromaFormat === 2 ? "8-bit I444" : "8-bit I420",
     elapsed,

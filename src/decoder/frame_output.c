@@ -372,18 +372,55 @@ Av2hStatus av2h_decode_frame_planar_private(
                         chroma_tile_stage : decoded.syntax_stage);
             }
             if (!has_leaf) continue;
+            if (leaf.decoded_plane != 0U) {
+                unsigned int index = leaf.decoded_plane - 1U;
+                plane = leaf.decoded_plane;
+                if (workspace->bytes_per_sample != 2U) {
+                    AV2H_DECODE_FAIL(
+                        AV2H_UNSUPPORTED, AV2H_UNSUPPORTED,
+                        AV2H_FRAME_DECODE_STAGE_CHROMA_RECONSTRUCT,
+                        plane, &leaf.node, 0U);
+                }
+                status = av2h_chroma_reconstruct_to_plane_u16(
+                    &leaf.node, &leaf.mode, &leaf.prefix[index],
+                    &leaf.transform[index], &blocks[index],
+                    &workspace->coded_u16[plane],
+                    &workspace->coded_u16[0], (uint8_t)plane,
+                    frame->chroma_format_idc,
+                    workspace->reconstruction_scratch_u16);
+                if (status != AV2H_OK) {
+                    AV2H_DECODE_FAIL(
+                        status, status,
+                        AV2H_FRAME_DECODE_STAGE_CHROMA_RECONSTRUCT,
+                        plane, &leaf.node, 0U);
+                }
+                status = av2h_deblock_map_commit_transform(
+                    &workspace->filter_workspace->deblock_map,
+                    frame->chroma_format_idc, plane,
+                    &leaf.node, &leaf.prefix[index], 0U,
+                    leaf.prefix[index].all_zero, 1U);
+                if (status != AV2H_OK) {
+                    AV2H_DECODE_FAIL(
+                        status, status,
+                        AV2H_FRAME_DECODE_STAGE_CHROMA_DEBLOCK,
+                        plane, &leaf.node, 0U);
+                }
+                status = av2h_tile_decoder_commit_leaf(&decoder, leaf.node);
+                if (status != AV2H_OK) {
+                    AV2H_DECODE_FAIL(
+                        status, status,
+                        AV2H_FRAME_DECODE_STAGE_CHROMA_COMMIT,
+                        plane, &leaf.node, 0U);
+                }
+                if (plane == 2U) ++decoded.chroma_leaf_count;
+                continue;
+            }
             decoded.cctx_type = leaf.transform[0].cctx_type;
             decoded.u_coefficient_count = blocks[0].coefficient_count;
             decoded.v_coefficient_count = blocks[1].coefficient_count;
-            if (workspace->bytes_per_sample == 2U &&
-                leaf.transform[0].cctx_type != 0U) {
-                AV2H_DECODE_FAIL(
-                    AV2H_UNSUPPORTED, AV2H_UNSUPPORTED,
-                    AV2H_FRAME_DECODE_STAGE_CHROMA_CROSS_TRANSFORM,
-                    0U, &leaf.node, 0U);
-            }
             status = av2h_chroma_inverse_cross_transform(
-                &blocks[0], &blocks[1], leaf.transform[0].cctx_type);
+                &blocks[0], &blocks[1], leaf.transform[0].cctx_type,
+                workspace->bytes_per_sample == 2U ? 10U : 8U);
             if (status != AV2H_OK) {
                 AV2H_DECODE_FAIL(
                     status, status,

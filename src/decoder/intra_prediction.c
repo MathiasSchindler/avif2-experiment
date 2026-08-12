@@ -812,7 +812,8 @@ static Av2hStatus luma_predict_u16_adjusted(
     uint16_t *predictor,
     size_t predictor_stride_samples,
     int angle_adjust,
-    uint8_t disable_edge_filter) {
+    uint8_t disable_edge_filter,
+    uint8_t use_idif) {
     const uint16_t *above;
     const uint16_t *left;
     size_t above_count;
@@ -854,7 +855,7 @@ static Av2hStatus luma_predict_u16_adjusted(
         secondary_mode.enable_ibp = 0U;
         status = luma_predict_u16_adjusted(
             &primary_mode, width, height, references,
-            predictor, predictor_stride_samples, 0, 1U);
+            predictor, predictor_stride_samples, 0, 1U, use_idif);
         if (status != AV2H_OK) return status;
         if (width == 4U && height == 4U) return AV2H_OK;
         secondary_references.above = references->secondary_above;
@@ -871,7 +872,7 @@ static Av2hStatus luma_predict_u16_adjusted(
             &secondary_mode, width, height, &secondary_references,
             secondary_predictor, width,
             mode->mrl_index == 1U ? 1 :
-            mode->mrl_index == 2U ? -1 : 0, 1U);
+            mode->mrl_index == 2U ? -1 : 0, 1U, use_idif);
         if (status != AV2H_OK) return status;
         for (row = 0U; row < height; ++row) {
             for (column = 0U; column < width; ++column) {
@@ -961,8 +962,10 @@ static Av2hStatus luma_predict_u16_adjusted(
         }
         if (disable_edge_filter == 0U && have_above &&
             mode->mrl_index == 0U) {
+            size_t filter_count = above_count < width ?
+                above_count + 1U : (size_t)width + 1U;
             directional_filter_edge_u16(
-                above_edge - 1, (size_t)width + 1U,
+                above_edge - 1, filter_count,
                 directional_filter_strength(
                     width, height, angle - 90,
                     (mode->enable_ibp ||
@@ -972,8 +975,10 @@ static Av2hStatus luma_predict_u16_adjusted(
         }
         if (disable_edge_filter == 0U && have_left &&
             mode->mrl_index == 0U) {
+            size_t filter_count = left_count < height ?
+                left_count + 1U : (size_t)height + 1U;
             directional_filter_edge_u16(
-                left_edge - 1, (size_t)height + 1U,
+                left_edge - 1, filter_count,
                 directional_filter_strength(
                     height, width, angle - 180,
                     (mode->enable_ibp ||
@@ -999,7 +1004,7 @@ static Av2hStatus luma_predict_u16_adjusted(
                     shift = (position & 0x3f) >> 1;
                     reference = left_edge;
                 }
-                if (mode->edge_ibp != 0U) {
+                if (mode->edge_ibp != 0U || use_idif == 0U) {
                     sum = reference[base] * (32 - shift) +
                         reference[base + 1] * shift;
                 } else {
@@ -1015,7 +1020,8 @@ static Av2hStatus luma_predict_u16_adjusted(
                     }
                 }
                 predictor[(size_t)row * predictor_stride_samples + column] =
-                    av2h_sample_clip_10bit(mode->edge_ibp != 0U ?
+                    av2h_sample_clip_10bit(
+                        mode->edge_ibp != 0U || use_idif == 0U ?
                         (sum + 16) >> 5U : (sum + 64) >> 7U);
             }
         }
@@ -1122,7 +1128,7 @@ static Av2hStatus luma_predict_u16_adjusted(
                 if (base > max_base ||
                     (mode->edge_ibp != 0U && base == max_base)) {
                     primary = above_edge[max_base];
-                } else if (mode->edge_ibp != 0U) {
+                } else if (mode->edge_ibp != 0U || use_idif == 0U) {
                     primary = av2h_sample_clip_10bit((
                         above_edge[base] * (32 - shift) +
                         above_edge[base + 1] * shift + 16) >> 5U);
@@ -1146,6 +1152,12 @@ static Av2hStatus luma_predict_u16_adjusted(
                     uint8_t weight;
                     if (secondary_base > max_base) {
                         secondary = left_edge[max_base];
+                    } else if (use_idif == 0U) {
+                        secondary = av2h_sample_clip_10bit((
+                            left_edge[secondary_base] *
+                                (32 - secondary_shift) +
+                            left_edge[secondary_base + 1] * secondary_shift +
+                            16) >> 5U);
                     } else {
                         sum = 0;
                         for (tap = 0U; tap < 4U; ++tap) {
@@ -1267,7 +1279,7 @@ static Av2hStatus luma_predict_u16_adjusted(
                 if (base > max_base ||
                     (mode->edge_ibp != 0U && base == max_base)) {
                     primary = left_edge[max_base];
-                } else if (mode->edge_ibp != 0U) {
+                } else if (mode->edge_ibp != 0U || use_idif == 0U) {
                     primary = av2h_sample_clip_10bit((
                         left_edge[base] * (32 - shift) +
                         left_edge[base + 1] * shift + 16) >> 5U);
@@ -1298,6 +1310,12 @@ static Av2hStatus luma_predict_u16_adjusted(
                     uint8_t weight;
                     if (secondary_base > max_base) {
                         secondary = above_edge[max_base];
+                    } else if (use_idif == 0U) {
+                        secondary = av2h_sample_clip_10bit((
+                            above_edge[secondary_base] *
+                                (32 - secondary_shift) +
+                            above_edge[secondary_base + 1] * secondary_shift +
+                            16) >> 5U);
                     } else {
                         for (tap = 0U; tap < 4U; ++tap) {
                             int reference_index =
@@ -1442,7 +1460,19 @@ Av2hStatus av2h_luma_predict_u16(
     size_t predictor_stride_samples) {
     return luma_predict_u16_adjusted(
         mode, width, height, references, predictor,
-        predictor_stride_samples, 0, 0U);
+        predictor_stride_samples, 0, 0U, 1U);
+}
+
+Av2hStatus av2h_chroma_predict_u16(
+    const Av2hFirstLeafMode *mode,
+    uint16_t width,
+    uint16_t height,
+    const Av2hLumaReferencesU16 *references,
+    uint16_t *predictor,
+    size_t predictor_stride_samples) {
+    return luma_predict_u16_adjusted(
+        mode, width, height, references, predictor,
+        predictor_stride_samples, 0, 0U, 0U);
 }
 
 Av2hStatus av2h_luma_predict(

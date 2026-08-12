@@ -2,9 +2,10 @@
 
 This experiment compiles the freestanding AV2 decoder directly to WebAssembly
 and displays a dropped `.obu` frame in a browser canvas. Decoding and explicit
-display conversion from 8-bit I400/I420/I444 or 10-bit `yuv420p10le` planar
-output to canvas pixels remain local to the browser. The exported result keeps
-the native planar bytes and reports bit depth, bytes per sample, and byte order.
+display conversion from 8-bit I400/I420/I444 or 10-bit `yuv420p10le` and
+`yuv444p10le` planar output to canvas pixels remain local to the browser. The
+exported result keeps the native planar bytes and reports bit depth, bytes per
+sample, and byte order.
 
 ## Build
 

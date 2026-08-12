@@ -549,7 +549,8 @@ Av2hStatus av2h_tile_decoder_commit_leaf(
             }
             ++decoder->chroma_tx_index;
             if (decoder->chroma_tx_index < decoder->chroma_tx_count) {
-                if (decoder->frame->chroma_format_idc == 2U &&
+                if (decoder->chroma_tx_plane == 0U &&
+                    decoder->frame->chroma_format_idc == 2U &&
                     decoder->shared_chroma_resume_luma &&
                     decoder->luma_tx_count != 0U &&
                     decoder->luma_tx_index < decoder->luma_tx_count &&
@@ -564,9 +565,15 @@ Av2hStatus av2h_tile_decoder_commit_leaf(
                 }
                 return AV2H_OK;
             }
+            if (decoder->chroma_tx_plane == 1U) {
+                decoder->chroma_tx_plane = 2U;
+                decoder->chroma_tx_index = 0U;
+                return AV2H_OK;
+            }
             leaf = decoder->chroma_coding_node;
             decoder->chroma_tx_index = 0U;
             decoder->chroma_tx_count = 0U;
+            decoder->chroma_tx_plane = 0U;
         }
         status = av2h_partition_traversal_commit_leaf(
             &decoder->chroma_traversal, &decoder->partition_contexts, leaf);

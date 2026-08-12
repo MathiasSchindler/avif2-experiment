@@ -140,9 +140,14 @@ static Av2hStatus validate_pixel_metadata(
             return AV2H_UNSUPPORTED;
         }
     } else if (expected.bits_per_channel == 10U &&
-               sequence->seq_profile_idc == 0U &&
-               sequence->chroma_format_idc == 0U) {
-        if (!av2h_pixel_format_init_10bit_420(decoded_format)) {
+               ((sequence->seq_profile_idc == 0U &&
+                 sequence->chroma_format_idc == 0U) ||
+                (sequence->seq_profile_idc == 4U &&
+                 sequence->chroma_format_idc == 2U))) {
+        int initialized = sequence->chroma_format_idc == 2U ?
+            av2h_pixel_format_init_10bit_444(decoded_format) :
+            av2h_pixel_format_init_10bit_420(decoded_format);
+        if (!initialized) {
             return AV2H_UNSUPPORTED;
         }
     } else {

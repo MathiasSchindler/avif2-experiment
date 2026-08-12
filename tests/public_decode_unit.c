@@ -324,16 +324,28 @@ static void test_public_decode(const PublicFixture *fixture) {
     free(allocation);
 }
 
-static void test_10bit_wp10_public_decode(void) {
-    const PublicFixture fixture = {
-        "10bit-wp2",
-        "tests/fixtures/10bit/avm-reference/"
-        "tiny-constrained-16x16-yuv420p10le-qp208.obu",
-        0, 0U, 16U, 16U, 3U, 0U, 0U, 0U, 0
+typedef struct {
+    const char *name;
+    const char *obu_path;
+    const char *reference_path;
+    size_t stream_size;
+    uint32_t width;
+    uint32_t height;
+    uint8_t chroma_format_idc;
+    size_t output_size;
+    size_t workspace_size;
+    uint64_t output_hash;
+} TenBitPublicFixture;
+
+static void test_10bit_public_decode(const TenBitPublicFixture *fixture) {
+    PublicFixture loader = {
+        fixture->name, fixture->obu_path, 0, 0U,
+        fixture->width, fixture->height, 3U, fixture->chroma_format_idc,
+        0U, 0U, 0
     };
-    unsigned char stream[64U];
+    unsigned char stream[STREAM_CAPACITY];
     unsigned char container[CONTAINER_CAPACITY];
-    unsigned char reference[768U];
+    unsigned char reference[1536U];
     Av2hObu entries[3U];
     Av2hObuLedger ledger = { entries, 3U, 0U };
     const Av2hObu *sequence_obu = 0;
@@ -347,12 +359,16 @@ static void test_10bit_wp10_public_decode(void) {
     unsigned char *workspace;
     unsigned char *output;
     FILE *reference_file;
-    size_t stream_size = load_fixture(&fixture, stream, sizeof(stream));
+    size_t stream_size = load_fixture(&loader, stream, sizeof(stream));
     size_t container_size = 0U;
     size_t allocation_size;
+    size_t chroma_height;
+    size_t chroma_width;
+    size_t chroma_plane_size;
+    size_t luma_plane_size;
     size_t index;
     size_t prefix;
-    CHECK(stream_size == 45U);
+    CHECK(stream_size == fixture->stream_size);
     CHECK(av2h_obu_parse(
               (Av2hSpan){ stream, stream_size }, &ledger, &error) == AV2H_OK);
     for (index = 0U; index < ledger.count; ++index) {
@@ -389,33 +405,50 @@ static void test_10bit_wp10_public_decode(void) {
     }
     CHECK(av2h_query((Av2hSpan){ container, container_size }, 0,
                      &info, &error) == AV2H_OK);
-    CHECK(info.image.width == 16U && info.image.height == 16U);
+        CHECK(info.image.width == fixture->width &&
+            info.image.height == fixture->height);
     CHECK(info.image.channel_count == 3U);
     CHECK(info.image.bits_per_channel == 10U);
-    CHECK(info.image.pixel_format.chroma_format_idc == 0U);
+        CHECK(info.image.sequence.seq_profile_idc ==
+            (fixture->chroma_format_idc == 2U ? 4U : 0U));
+        CHECK(info.image.sequence.chroma_format_idc ==
+            fixture->chroma_format_idc);
+        CHECK(info.image.pixel_format.chroma_format_idc ==
+            fixture->chroma_format_idc);
     CHECK(info.image.pixel_format.bit_depth == 10U);
     CHECK(info.image.pixel_format.bytes_per_sample == 2U);
     CHECK(info.image.pixel_format.sample_storage == AV2H_SAMPLE_STORAGE_U16);
     CHECK(info.image.pixel_format.byte_order == AV2H_BYTE_ORDER_LITTLE_ENDIAN);
     CHECK(info.image.pixel_format.plane_order == AV2H_PLANE_ORDER_YUV);
-    CHECK(info.planes[0].width == 16U && info.planes[0].height == 16U);
-    CHECK(info.planes[0].row_bytes == 32U && info.planes[0].offset == 0U);
-    CHECK(info.planes[0].size == 512U);
-    CHECK(info.planes[1].width == 8U && info.planes[1].height == 8U);
-    CHECK(info.planes[1].row_bytes == 16U && info.planes[1].offset == 512U);
-    CHECK(info.planes[1].size == 128U);
-    CHECK(info.planes[2].width == 8U && info.planes[2].height == 8U);
-    CHECK(info.planes[2].row_bytes == 16U && info.planes[2].offset == 640U);
-    CHECK(info.planes[2].size == 128U);
-    CHECK(info.output_size == 768U);
-    CHECK(info.workspace_size == 26497U && info.workspace_alignment == 4U);
+        luma_plane_size = (size_t)fixture->width * fixture->height * 2U;
+        chroma_width = fixture->chroma_format_idc == 2U ?
+          fixture->width : (fixture->width + 1U) / 2U;
+        chroma_height = fixture->chroma_format_idc == 2U ?
+          fixture->height : (fixture->height + 1U) / 2U;
+        chroma_plane_size = chroma_width * chroma_height * 2U;
+        CHECK(info.planes[0].width == fixture->width &&
+            info.planes[0].height == fixture->height);
+        CHECK(info.planes[0].row_bytes == fixture->width * 2U &&
+            info.planes[0].offset == 0U);
+        CHECK(info.planes[0].size == luma_plane_size);
+        CHECK(info.planes[1].width == chroma_width &&
+            info.planes[1].height == chroma_height);
+        CHECK(info.planes[1].row_bytes == chroma_width * 2U &&
+            info.planes[1].offset == luma_plane_size);
+        CHECK(info.planes[1].size == chroma_plane_size);
+        CHECK(info.planes[2].width == chroma_width &&
+            info.planes[2].height == chroma_height);
+        CHECK(info.planes[2].row_bytes == chroma_width * 2U &&
+            info.planes[2].offset == luma_plane_size + chroma_plane_size);
+        CHECK(info.planes[2].size == chroma_plane_size);
+        CHECK(info.output_size == fixture->output_size);
+        CHECK(info.workspace_size == fixture->workspace_size &&
+            info.workspace_alignment == 4U);
 
-    reference_file = fopen(
-        "tests/fixtures/10bit/avm-reference/"
-        "tiny-constrained-16x16-yuv420p10le-qp208-decoded.yuv", "rb");
+        reference_file = fopen(fixture->reference_path, "rb");
     CHECK(reference_file != 0);
-    CHECK(fread(reference, 1U, sizeof(reference), reference_file) ==
-          sizeof(reference));
+        CHECK(fread(reference, 1U, fixture->output_size, reference_file) ==
+            fixture->output_size);
     CHECK(fclose(reference_file) == 0);
 
     allocation_size = info.workspace_size + info.workspace_alignment - 1U +
@@ -431,12 +464,11 @@ static void test_10bit_wp10_public_decode(void) {
         (Av2hSpan){ container, container_size }, &info,
         workspace, info.workspace_size, output, info.output_size, &error);
     if (decode_status != AV2H_OK) {
-        fprintf(stderr, "10bit-wp10: decode status=%d context=%u offset=%zu\n",
-                (int)decode_status, error.context, error.offset);
+        fprintf(stderr, "%s: decode status=%d context=%u offset=%zu\n",
+                fixture->name, (int)decode_status, error.context, error.offset);
     }
     CHECK(decode_status == AV2H_OK);
-    CHECK(fnv1a64(output, info.output_size) ==
-          UINT64_C(0x61dd9ffdb54a4439));
+    CHECK(fnv1a64(output, info.output_size) == fixture->output_hash);
     for (index = 0U; index < info.output_size; ++index) {
         CHECK(output[index] == reference[index]);
     }
@@ -515,11 +547,35 @@ static void test_10bit_wp10_public_decode(void) {
 }
 
 int main(void) {
+    static const TenBitPublicFixture ten_bit_fixtures[] = {
+        {
+            "10bit-420",
+            "tests/fixtures/10bit/avm-reference/"
+            "tiny-constrained-16x16-yuv420p10le-qp208.obu",
+            "tests/fixtures/10bit/avm-reference/"
+            "tiny-constrained-16x16-yuv420p10le-qp208-decoded.yuv",
+            45U, 16U, 16U, 0U, 768U, 26497U,
+            UINT64_C(0x61dd9ffdb54a4439)
+        },
+        {
+            "10bit-444",
+            "tests/fixtures/10bit/avm-reference/"
+            "tiny-precision-16x16-yuv444p10le-qp128.obu",
+            "tests/fixtures/10bit/avm-reference/"
+            "tiny-precision-16x16-yuv444p10le-qp128-decoded.yuv",
+            218U, 16U, 16U, 2U, 1536U, 28801U,
+            UINT64_C(0x1ed1553728d318a0)
+        }
+    };
     size_t index;
     for (index = 0U; index < sizeof(fixtures) / sizeof(fixtures[0]); ++index) {
         test_public_decode(&fixtures[index]);
     }
-    test_10bit_wp10_public_decode();
+    for (index = 0U;
+         index < sizeof(ten_bit_fixtures) / sizeof(ten_bit_fixtures[0]);
+         ++index) {
+        test_10bit_public_decode(&ten_bit_fixtures[index]);
+    }
     if (failures != 0) return 1;
     printf("public decode unit: pass\n");
     return 0;

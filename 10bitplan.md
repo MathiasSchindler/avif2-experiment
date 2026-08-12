@@ -463,8 +463,10 @@ full-resolution 10-bit chroma.
   conversion or lossy downconversion.
 - Run tiny, odd, boundary, high-detail, and photographic 4:4:4 parity.
 
-**Exit gate:** Canonical 10-bit 4:4:4 fixtures match pinned AVM after every
-filter and through the public API, including the maximum retained dimensions.
+**Exit gate:** Complete. All 21 synthetic and 18 photographic canonical
+10-bit 4:4:4 fixtures match pinned AVM after every enabled filter and through
+the public API, Linux no-libc, and WebAssembly, including the maximum retained
+1200 x 1596 dimensions.
 
 ## 10B-WP14: 10-bit image release gate
 

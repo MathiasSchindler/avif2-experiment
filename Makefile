@@ -48,12 +48,16 @@ HOST_ARTIFACT_TOOL := $(HOST_BUILD_DIR)/av2heif-artifact
 FILTER_PARITY_DECODER ?= $(HOST_BUILD_DIR)/av2heif-decoder
 WP12_DECODER ?= $(HOST_BUILD_DIR)/av2heif-decoder
 WP12_WASM ?= docs/decoder.wasm
+WP13_DECODER ?= $(HOST_BUILD_DIR)/av2heif-decoder
+WP13_WASM ?= build/wasm-wp13/decoder.wasm
 WP10_WASM ?= build/wasm-wp10/decoder.wasm
 WP11_WASM ?= build/wasm-wp11/decoder.wasm
 WP11_WINDOWS_PRESET ?= windows-x86_64
 WP11_WINDOWS_BUILD_DIR ?= build/windows-x86_64
 WP12_WINDOWS_PRESET ?= windows-x86_64
 WP12_WINDOWS_BUILD_DIR ?= build/windows-x86_64
+WP13_WINDOWS_PRESET ?= windows-x86_64
+WP13_WINDOWS_BUILD_DIR ?= build/windows-x86_64
 OBJDUMP ?= objdump
 .PHONY: test test-host-build test-c test-corpus test-freestanding test-extended \
 	reference-avm reference-avm-accounting \
@@ -62,7 +66,7 @@ OBJDUMP ?= objdump
 	generate-10bit-synthetic-references generate-10bit-negatives \
 	10bit-wp0 10bit-wp0-reference 10bit-wp1 10bit-wp2 10bit-wp3 10bit-wp4 \
 	10bit-wp5 10bit-wp6 10bit-wp7 10bit-wp8 10bit-wp9 \
-	10bit-wp10 10bit-wp11 10bit-wp12 \
+	10bit-wp10 10bit-wp11 10bit-wp12 10bit-wp13 \
 	test-carriage-reference test-artifact-lab \
 	test-decoder-evidence test-reconstruction test-filter-parity
 
@@ -265,6 +269,25 @@ generate-10bit-negatives: reference-avm-negatives
 		--decoder "$(WP12_WINDOWS_BUILD_DIR)/av2heif-decoder.exe" \
 		--smoke "$(WP12_WINDOWS_BUILD_DIR)/av2heif-windows-smoke.exe"
 	$(PYTHON) tools/check_10bit_reproducibility.py
+
+10bit-wp13: test
+	$(PYTHON) tools/validate_10bit_444_corpus.py \
+		--decoder "$(WP13_DECODER)" \
+		--artifact-tool "$(HOST_ARTIFACT_TOOL)" --jobs "$(JOBS)"
+	cmake --preset linux-nolibc
+	cmake --build --preset linux-nolibc $(CMAKE_BUILD_ARGS)
+	ctest --preset linux-nolibc $(CTEST_ARGS) $(CTEST_PARALLEL_ARGS)
+	$(PYTHON) tools/validate_10bit_444_corpus.py \
+		--decoder build/linux-nolibc/av2heif-decoder-nolibc \
+		--native-only --jobs "$(JOBS)"
+	$(PYTHON) experimental/wasm/build.py \
+		--output-directory "$(dir $(WP13_WASM))"
+	node tools/validate_10bit_wasm.js "$(WP13_WASM)" yuv444p10le
+	cmake --preset $(WP13_WINDOWS_PRESET)
+	cmake --build --preset $(WP13_WINDOWS_PRESET) $(CMAKE_BUILD_ARGS)
+	$(PYTHON) tools/check_windows_imports.py --objdump "$(OBJDUMP)" \
+		--decoder "$(WP13_WINDOWS_BUILD_DIR)/av2heif-decoder.exe" \
+		--smoke "$(WP13_WINDOWS_BUILD_DIR)/av2heif-windows-smoke.exe"
 
 test-carriage-reference: reference-avm test
 	$(PYTHON) tools/run_carriage_reference.py \

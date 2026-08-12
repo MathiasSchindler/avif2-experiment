@@ -1256,7 +1256,7 @@ static void test_high_detail_frame(void) {
             if (status == AV2H_OK && has_leaf) {
                 status = av2h_chroma_inverse_cross_transform(
                     &chroma_blocks[0], &chroma_blocks[1],
-                    chroma_leaf.transform[0].cctx_type);
+                    chroma_leaf.transform[0].cctx_type, 8U);
             }
             if (status == AV2H_OK && has_leaf) {
                 status = av2h_chroma_reconstruct_to_plane_ex(

@@ -50,6 +50,7 @@ typedef struct {
     Av2hFirstChromaMode mode;
     Av2hFirstCoeffPrefix prefix[2U];
     Av2hFirstTransformType transform[2U];
+    uint8_t decoded_plane;
 } Av2hTileChromaLeaf;
 
 typedef enum {
@@ -113,6 +114,8 @@ typedef struct {
     Av2hFirstChromaMode chroma_coding_mode;
     uint8_t chroma_tx_index;
     uint8_t chroma_tx_count;
+    uint8_t chroma_tx_plane;
+    uint16_t chroma_u_eob;
     uint8_t shared_chroma_resume_luma;
     uint8_t shared_chroma_complete;
     uint8_t shared_chroma_mode_pending;

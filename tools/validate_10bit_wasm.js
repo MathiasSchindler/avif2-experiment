@@ -11,18 +11,31 @@ const manifests = [
     path.join(root, "tests/fixtures/10bit/avm-reference/manifest.json"),
     path.join(root, "images/artifacts/10bit/avm-reference/manifest.json"),
 ];
-const expectedCounts = [25, 18];
+const formats = {
+    yuv420p10le: {
+        chromaFormatIdc: 0,
+        expectedCounts: [25, 18],
+        label: "4:2:0",
+    },
+    yuv444p10le: {
+        chromaFormatIdc: 2,
+        expectedCounts: [21, 18],
+        label: "4:4:4",
+    },
+};
 
-function loadRecords() {
+function loadRecords(pixelFormat) {
+    const format = formats[pixelFormat];
     return manifests.flatMap((manifestPath, index) => {
         const document = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
         const records = document.artifacts.filter(
-            (record) => record.pixel_format === "yuv420p10le"
+            (record) => record.pixel_format === pixelFormat
         );
-        if (records.length !== expectedCounts[index]) {
+        if (records.length !== format.expectedCounts[index]) {
             fail(
                 `${path.relative(root, manifestPath)}: expected ` +
-                    `${expectedCounts[index]} records, found ${records.length}`
+                    `${format.expectedCounts[index]} records, ` +
+                    `found ${records.length}`
             );
         }
         return records.map((record) => ({
@@ -32,7 +45,10 @@ function loadRecords() {
     });
 }
 
-function expectedSize(record) {
+function expectedSize(record, chromaFormatIdc) {
+    if (chromaFormatIdc === 2) {
+        return 6 * record.width * record.height;
+    }
     const chromaWidth = Math.floor((record.width + 1) / 2);
     const chromaHeight = Math.floor((record.height + 1) / 2);
     return 2 * (
@@ -44,7 +60,7 @@ function sha256(bytes) {
     return crypto.createHash("sha256").update(bytes).digest("hex");
 }
 
-function decodeRecord(exports, record) {
+function decodeRecord(exports, record, format) {
     const inputPath = path.join(record.directory, record.obu.file);
     const encoded = fs.readFileSync(inputPath);
     if (
@@ -87,12 +103,12 @@ function decodeRecord(exports, record) {
                 `cause=${cause} stage=${stage}`
         );
     }
-    const manifestSize = expectedSize(record);
+    const manifestSize = expectedSize(record, format.chromaFormatIdc);
     if (
         width !== record.width ||
         height !== record.height ||
         channelCount !== 3 ||
-        chromaFormatIdc !== 0 ||
+        chromaFormatIdc !== format.chromaFormatIdc ||
         bitDepth !== 10 ||
         bytesPerSample !== 2 ||
         byteOrder !== 1 ||
@@ -125,11 +141,16 @@ function fail(message) {
 }
 
 async function main() {
-    if (process.argv.length > 3) {
-        fail("usage: validate_10bit_wasm.js [WASM]");
+    if (process.argv.length > 4) {
+        fail("usage: validate_10bit_wasm.js [WASM] [PIXEL_FORMAT]");
     }
     const wasmPath = path.resolve(process.argv[2] || defaultWasm);
-    const records = loadRecords();
+    const pixelFormat = process.argv[3] || "yuv420p10le";
+    const format = formats[pixelFormat];
+    if (format === undefined) {
+        fail(`unsupported pixel format: ${pixelFormat}`);
+    }
+    const records = loadRecords(pixelFormat);
     const { instance } = await WebAssembly.instantiate(
         fs.readFileSync(wasmPath), {}
     );
@@ -143,9 +164,9 @@ async function main() {
     ]) {
         if (!(name in exports)) fail(`missing WebAssembly export: ${name}`);
     }
-    for (const record of records) decodeRecord(exports, record);
+    for (const record of records) decodeRecord(exports, record, format);
     console.log(
-        `10-bit 4:2:0 WASM corpus: ${records.length} records exact`
+        `10-bit ${format.label} WASM corpus: ${records.length} records exact`
     );
 }
 

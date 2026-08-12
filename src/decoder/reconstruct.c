@@ -61,6 +61,7 @@ static Av2hStatus reconstruct_lossless_4x4_u16(
     const uint16_t *predictor,
     uint8_t use_dpcm,
     uint8_t dpcm_horizontal,
+    uint8_t identity_transform,
     Av2hFirstReconstructionU16 *reconstruction) {
     int32_t intermediate[16U];
     int32_t residual[16U];
@@ -69,21 +70,21 @@ static Av2hStatus reconstruct_lossless_4x4_u16(
     if (coefficients == 0 || predictor == 0 || reconstruction == 0 ||
         coefficients->width != 4U || coefficients->height != 4U ||
         coefficients->coefficient_count != 16U || use_dpcm > 1U ||
-        dpcm_horizontal > 1U) {
+        dpcm_horizontal > 1U || identity_transform > 1U) {
         return AV2H_INVALID_ARGUMENT;
     }
-    if (use_dpcm != 0U) {
+    if (use_dpcm != 0U || identity_transform != 0U) {
         for (row = 0U; row < 16U; ++row) {
             residual[row] = coefficients->dequantized[row] / 8;
         }
-        if (dpcm_horizontal != 0U) {
+        if (use_dpcm != 0U && dpcm_horizontal != 0U) {
             for (row = 0U; row < 4U; ++row) {
                 for (column = 1U; column < 4U; ++column) {
                     residual[row * 4U + column] +=
                         residual[row * 4U + column - 1U];
                 }
             }
-        } else {
+        } else if (use_dpcm != 0U) {
             for (column = 0U; column < 4U; ++column) {
                 for (row = 1U; row < 4U; ++row) {
                     residual[row * 4U + column] +=
@@ -1753,7 +1754,10 @@ Av2hStatus av2h_luma_reconstruct_to_plane_u16(
     if (block_y != 0U) {
         for (index = 0U; index < above_target; ++index) {
             size_t sample_x = block_x + index;
-            if (sample_x >= plane->width) sample_x = plane->width - 1U;
+            if (sample_x >= plane->width) {
+                if (av2h_directional_base_angle(mode->mode) != 0) break;
+                sample_x = plane->width - 1U;
+            }
             if (!plane_sample_reconstructed_u16(
                     plane, sample_x, above_reference_y)) {
                 break;
@@ -1801,7 +1805,10 @@ Av2hStatus av2h_luma_reconstruct_to_plane_u16(
     if (block_x > mode->mrl_index) {
         for (index = 0U; index < left_target; ++index) {
             size_t sample_y = block_y + index;
-            if (sample_y >= plane->height) sample_y = plane->height - 1U;
+            if (sample_y >= plane->height) {
+                if (av2h_directional_base_angle(mode->mode) != 0) break;
+                sample_y = plane->height - 1U;
+            }
             if (!plane_sample_reconstructed_u16(
                     plane, block_x - 1U - mode->mrl_index, sample_y)) {
                 break;
@@ -1861,9 +1868,7 @@ Av2hStatus av2h_luma_reconstruct_to_plane_u16(
             }
             for (index = 0U; index < secondary_left_count; ++index) {
                 size_t sample_y = block_y + index;
-                if (sample_y >= plane->height) {
-                    sample_y = plane->height - 1U;
-                }
+                if (sample_y >= plane->height) break;
                 if (!plane_sample_reconstructed_u16(
                         plane, block_x - 1U, sample_y)) {
                     secondary_left_count = index;
@@ -2052,7 +2057,7 @@ Av2hStatus av2h_luma_reconstruct_to_plane_u16(
         mode->fsc_mode == 0U) {
         status = reconstruct_lossless_4x4_u16(
             coefficients, scratch->predictor, mode->use_dpcm_y,
-            mode->dpcm_mode_y, &reconstruction);
+            mode->dpcm_mode_y, 0U, &reconstruction);
     } else if (mode->use_dpcm_y != 0U && mode->fsc_mode != 0U) {
         uint16_t row;
         uint16_t column;
@@ -2170,18 +2175,22 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_ex(
 Av2hStatus av2h_chroma_inverse_cross_transform(
     Av2hFirstCoeffBlock *u_coefficients,
     Av2hFirstCoeffBlock *v_coefficients,
-    uint8_t cctx_type) {
+    uint8_t cctx_type,
+    uint8_t bit_depth) {
     static const int32_t matrix[6U][2U] = {
         { 181, 181 }, { 222, 128 }, { 128, 222 },
         { 181, -181 }, { 222, -128 }, { 128, -222 }
     };
     size_t index;
+    int32_t coefficient_limit;
     if (u_coefficients == 0 || v_coefficients == 0 || cctx_type > 6U ||
+        (bit_depth != 8U && bit_depth != 10U) ||
         u_coefficients->coefficient_count !=
             v_coefficients->coefficient_count) {
         return AV2H_INVALID_ARGUMENT;
     }
     if (cctx_type == 0U) return AV2H_OK;
+    coefficient_limit = 1 << (7U + bit_depth);
     u_coefficients->nonzero_count = 0U;
     v_coefficients->nonzero_count = 0U;
     for (index = 0U; index < u_coefficients->coefficient_count; ++index) {
@@ -2196,9 +2205,9 @@ Av2hStatus av2h_chroma_inverse_cross_transform(
                 (int64_t)matrix[cctx_type - 1U][0U] * v,
             8U);
         u_coefficients->dequantized[index] =
-            clamp(first, -32768, 32767);
+            clamp(first, -coefficient_limit, coefficient_limit - 1);
         v_coefficients->dequantized[index] =
-            clamp(second, -32768, 32767);
+            clamp(second, -coefficient_limit, coefficient_limit - 1);
         if (u_coefficients->dequantized[index] != 0) {
             ++u_coefficients->nonzero_count;
         }
@@ -2560,7 +2569,10 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_u16(
         (chroma_format_idc == 2U ? 4U : 2U));
     block_y = (uint16_t)((uint32_t)leaf->row *
         (chroma_format_idc == 2U ? 4U : 2U));
-    if ((chroma_format_idc == 2U && mode->is_cfl != 0U) ||
+            if ((chroma_format_idc == 2U && mode->is_cfl != 0U &&
+                mode->cfl_kind != AV2H_CFL_EXPLICIT_ALPHA &&
+                mode->cfl_kind != AV2H_CFL_DERIVED_ALPHA &&
+                mode->cfl_kind != AV2H_CFL_MULTI_PARAM) ||
         (mode->is_cfl != 0U &&
                 mode->cfl_kind != AV2H_CFL_MULTI_PARAM &&
                 mode->cfl_kind != AV2H_CFL_EXPLICIT_ALPHA &&
@@ -2599,9 +2611,10 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_u16(
         block_x + above_target < plane->width) {
         ++above_target;
     }
-    if ((prediction_angle > 0 && prediction_angle < 90) ||
+    if (width <= 32U &&
+        ((prediction_angle > 0 && prediction_angle < 90) ||
         (apply_edge_ibp != 0U &&
-         prediction_angle > 180 && prediction_angle < 270)) {
+         prediction_angle > 180 && prediction_angle < 270))) {
         above_target += height;
         if (above_target > sizeof(scratch->above) /
                                sizeof(scratch->above[0])) {
@@ -2629,9 +2642,10 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_u16(
         block_y + left_target < plane->height) {
         ++left_target;
     }
-    if ((prediction_angle > 180 && prediction_angle < 270) ||
+    if (height <= 32U &&
+        ((prediction_angle > 180 && prediction_angle < 270) ||
         (apply_edge_ibp != 0U &&
-         prediction_angle > 0 && prediction_angle < 90)) {
+         prediction_angle > 0 && prediction_angle < 90))) {
         left_target += width;
         if (left_target > sizeof(scratch->left) /
                               sizeof(scratch->left[0])) {
@@ -2691,11 +2705,14 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_u16(
                 mode, luma_plane, plane, block_x, block_y, width, height,
                 scratch->predictor, width);
         } else if (mode->cfl_kind == AV2H_CFL_DERIVED_ALPHA) {
-            status = av2h_cfl_derived_predict_u16(
-                luma_plane, plane, mode->cfl_downsample_filter_index,
-                mode->superblock_size, block_x, block_y, width, height,
-                have_top, have_left,
-                scratch->predictor, width);
+            status = chroma_format_idc == 2U ?
+                av2h_cfl_derived_predict_u16_444(
+                    luma_plane, plane, block_x, block_y, width, height,
+                    have_top, have_left, scratch->predictor, width) :
+                av2h_cfl_derived_predict_u16(
+                    luma_plane, plane, mode->cfl_downsample_filter_index,
+                    mode->superblock_size, block_x, block_y, width, height,
+                    have_top, have_left, scratch->predictor, width);
         } else {
             uint8_t sign = chroma_plane == 1U ?
                 (uint8_t)(((mode->cfl_alpha_signs + 1U) * 11U) >> 5U) :
@@ -2711,12 +2728,16 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_u16(
             alpha_q3 = sign == 0U ? 0 :
                 sign == 2U ? (int32_t)magnitude + 1 :
                 -(int32_t)magnitude - 1;
-            status = av2h_cfl_explicit_predict_u16(
-                luma_plane, mode->cfl_downsample_filter_index,
-                alpha_q3, mode->superblock_size,
-                block_x, block_y, width, height,
-                have_top, have_left,
-                scratch->predictor, width);
+            status = chroma_format_idc == 2U ?
+                av2h_cfl_explicit_predict_u16_444(
+                    luma_plane, alpha_q3, block_x, block_y, width, height,
+                    have_top, have_left, scratch->predictor, width) :
+                av2h_cfl_explicit_predict_u16(
+                    luma_plane, mode->cfl_downsample_filter_index,
+                    alpha_q3, mode->superblock_size,
+                    block_x, block_y, width, height,
+                    have_top, have_left,
+                    scratch->predictor, width);
         }
         if (status != AV2H_OK) return status;
     } else if (mode->mode == AV2H_INTRA_DC) {
@@ -2803,7 +2824,7 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_u16(
         references.above_count = above_count;
         references.left = left_count == 0U ? 0 : scratch->left;
         references.left_count = left_count;
-        status = av2h_luma_predict_u16(
+        status = av2h_chroma_predict_u16(
             &luma_mode, width, height, &references,
             scratch->predictor, width);
         if (status != AV2H_OK) return status;
@@ -2812,7 +2833,9 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_u16(
     if (prefix->q_index == 0U && prefix->tx_size == AV2H_TX_4X4) {
         status = reconstruct_lossless_4x4_u16(
             coefficients, scratch->predictor, mode->use_dpcm_uv,
-            mode->dpcm_mode_uv, &reconstruction);
+            mode->dpcm_mode_uv,
+            (uint8_t)(transform->primary_type == AV2H_TX_IDTX),
+            &reconstruction);
     } else {
         status = av2h_reconstruct_transform_generic_u16(
             &luma_mode, prefix, transform, coefficients,

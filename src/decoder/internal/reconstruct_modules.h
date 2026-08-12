@@ -78,6 +78,14 @@ Av2hStatus av2h_luma_predict_u16(
     uint16_t *predictor,
     size_t predictor_stride_samples);
 
+Av2hStatus av2h_chroma_predict_u16(
+    const Av2hFirstLeafMode *mode,
+    uint16_t width,
+    uint16_t height,
+    const Av2hLumaReferencesU16 *references,
+    uint16_t *predictor,
+    size_t predictor_stride_samples);
+
 Av2hStatus av2h_intrabc_predict(
     const Av2hFirstLeafMode *mode,
     const Av2hReconstructionPlane *plane,
@@ -165,6 +173,30 @@ Av2hStatus av2h_cfl_derived_predict_u16(
     const Av2hReconstructionPlaneU16 *chroma_plane,
     uint8_t filter_index,
     uint16_t superblock_size,
+    uint16_t block_x,
+    uint16_t block_y,
+    uint16_t width,
+    uint16_t height,
+    uint8_t have_top,
+    uint8_t have_left,
+    uint16_t *predictor,
+    size_t predictor_stride_samples);
+
+Av2hStatus av2h_cfl_derived_predict_u16_444(
+    const Av2hReconstructionPlaneU16 *luma_plane,
+    const Av2hReconstructionPlaneU16 *chroma_plane,
+    uint16_t block_x,
+    uint16_t block_y,
+    uint16_t width,
+    uint16_t height,
+    uint8_t have_top,
+    uint8_t have_left,
+    uint16_t *predictor,
+    size_t predictor_stride_samples);
+
+Av2hStatus av2h_cfl_explicit_predict_u16_444(
+    const Av2hReconstructionPlaneU16 *luma_plane,
+    int32_t alpha_q3,
     uint16_t block_x,
     uint16_t block_y,
     uint16_t width,

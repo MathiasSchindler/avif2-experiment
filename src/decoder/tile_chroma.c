@@ -3,10 +3,17 @@
 #include "internal/tile_modules.h"
 #include "tx_geometry.h"
 
-static uint8_t tile_cfl_allowed_for_sdp(const Av2hTileDecoder *decoder) {
+static uint8_t tile_cfl_allowed_for_sdp(
+    const Av2hTileDecoder *decoder,
+    Av2hBlockSize block_size) {
     Av2hPartitionType luma_root_partition = decoder->luma_root_partition;
     uint8_t luma_direction;
     uint8_t chroma_direction;
+    if (decoder->frame->base_q_index == 0U &&
+        decoder->frame->chroma_format_idc == 2U &&
+        block_size != AV2H_BLOCK_4X4) {
+        return 0U;
+    }
     if (!decoder->sequence->enable_sdp) return 1U;
     if (decoder->root_block_size == AV2H_BLOCK_128X128 &&
         decoder->square_root_child_index < 4U &&
@@ -91,7 +98,9 @@ Av2hStatus av2h_tile_decoder_read_shared_chroma_mode(
     status = av2h_chroma_mode_read_with_delta_for_sdp(
         &decoder->range, &decoder->leaf_cdfs, decoder->sequence,
         (Av2hFirstLeafIntraMode)colocated->mode, colocated->angle_delta,
-        node->block_size, cfl_context, 1U, &decoder->shared_chroma_mode);
+        node->block_size, cfl_context,
+        tile_cfl_allowed_for_sdp(decoder, node->block_size),
+        &decoder->shared_chroma_mode);
     if (status != AV2H_OK) return status;
     decoder->shared_chroma_mode.above_smooth = node->row == 0U ? 0U :
         decoder->colocated_luma[
@@ -310,7 +319,8 @@ Av2hStatus av2h_tile_decoder_next_chroma(
                 &decoder->range, &decoder->leaf_cdfs, decoder->sequence,
                 (Av2hFirstLeafIntraMode)colocated->mode,
                 colocated->angle_delta, leaf->node.block_size, cfl_context,
-                tile_cfl_allowed_for_sdp(decoder), &leaf->mode);
+                tile_cfl_allowed_for_sdp(
+                    decoder, leaf->node.block_size), &leaf->mode);
         }
         if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
     } else {
@@ -318,7 +328,8 @@ Av2hStatus av2h_tile_decoder_next_chroma(
             &decoder->range, &decoder->leaf_cdfs, decoder->sequence,
             (Av2hFirstLeafIntraMode)colocated->mode, colocated->angle_delta,
             leaf->node.block_size, cfl_context,
-            tile_cfl_allowed_for_sdp(decoder), &leaf->mode);
+            tile_cfl_allowed_for_sdp(
+                decoder, leaf->node.block_size), &leaf->mode);
         if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
 #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
         av2h_partition_diagnostic_leaf_stage(
@@ -383,10 +394,24 @@ Av2hStatus av2h_tile_decoder_next_chroma(
     }
     blocks[0] = u_block;
     blocks[1] = v_block;
-    for (index = 0U; index < 2U; ++index) {
+    leaf->decoded_plane = 0U;
+    if (decoder->frame->base_q_index == 0U &&
+        decoder->frame->chroma_format_idc == 2U &&
+        decoder->chroma_tx_count > 1U) {
+        if (decoder->chroma_tx_plane == 0U) {
+            decoder->chroma_tx_plane = 1U;
+        }
+        leaf->decoded_plane = decoder->chroma_tx_plane;
+        index = (size_t)decoder->chroma_tx_plane - 1U;
+    } else {
+        index = 0U;
+    }
+    for (; index < (leaf->decoded_plane == 0U ? 2U :
+                    (size_t)leaf->decoded_plane); ++index) {
         Av2hBlockSize coding_block_size = decoder->chroma_tx_count != 0U ?
             decoder->chroma_coding_node.block_size : leaf->node.block_size;
         uint8_t plane = (uint8_t)(index + 1U);
+        uint16_t u_eob = index != 0U ? leaf->prefix[0].eob : 0U;
         size_t block_width_mi;
         size_t block_height_mi;
         uint8_t cctx_allowed;
@@ -399,14 +424,20 @@ Av2hStatus av2h_tile_decoder_next_chroma(
                             block_width_mi >= 8U && block_height_mi >= 8U));
         av2h_tile_diagnostics_set_chroma_stage(
             (uint8_t)(1U + index * 3U));
+        if (leaf->decoded_plane == 2U) {
+            u_eob = decoder->chroma_u_eob;
+        }
         status = av2h_chroma_coeff_prefix_read_with_state(
             &decoder->range, &decoder->coeff_cdfs, decoder->frame,
             &leaf->node, coding_block_size,
-            plane, index != 0U ? leaf->prefix[0].eob : 0U,
+            plane, u_eob,
             &decoder->coefficient_contexts,
             &leaf->prefix[index]);
         if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
         leaf->prefix[index].q_index = decoder->current_q_index;
+        if (leaf->decoded_plane == 1U) {
+            decoder->chroma_u_eob = leaf->prefix[index].eob;
+        }
 #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
         av2h_partition_diagnostic_leaf_stage(
             leaf->node, (uint8_t)(51U + index * 3U),
@@ -420,7 +451,9 @@ Av2hStatus av2h_tile_decoder_next_chroma(
             av2h_memory_fill(
                 &leaf->transform[index], 0U,
                 sizeof(leaf->transform[index]));
-            leaf->transform[index].primary_type = AV2H_TX_DCT_DCT;
+            leaf->transform[index].primary_type =
+                colocated->context.fsc_mode != 0U ?
+                    AV2H_TX_IDTX : AV2H_TX_DCT_DCT;
             leaf->transform[index].before_primary_bits = tell;
             leaf->transform[index].after_primary_bits = tell;
             leaf->transform[index].after_secondary_type_bits = tell;
@@ -476,7 +509,8 @@ Av2hStatus av2h_tile_decoder_reconstruct_next_chroma(
         decoder, leaf, &u_block, &v_block, has_leaf);
     if (status != AV2H_OK || !*has_leaf) return status;
     status = av2h_chroma_inverse_cross_transform(
-        &u_block, &v_block, leaf->transform[0].cctx_type);
+        &u_block, &v_block, leaf->transform[0].cctx_type,
+        decoder->sequence->info.bit_depth_idc == 0U ? 10U : 8U);
     if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
     status = av2h_chroma_reconstruct_to_plane_format(
         &leaf->node, &leaf->mode, &leaf->prefix[0], &leaf->transform[0],

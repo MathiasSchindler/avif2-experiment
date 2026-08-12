@@ -4422,7 +4422,7 @@ static void test_cctx_updates_nonzero_counts(void) {
     v.coefficient_count = 2U;
     u.nonzero_count = 1U;
     u.dequantized[0] = 256;
-    CHECK(av2h_chroma_inverse_cross_transform(&u, &v, 5U) == AV2H_OK);
+    CHECK(av2h_chroma_inverse_cross_transform(&u, &v, 5U, 8U) == AV2H_OK);
     CHECK(u.dequantized[0] == 222);
     CHECK(v.dequantized[0] == -128);
     CHECK(u.nonzero_count == 1U);
@@ -6208,8 +6208,8 @@ static void test_10bit_wp5_frame_fixture(void) {
             if (status != AV2H_OK) return;
             if (!has_leaf) continue;
             CHECK(av2h_chroma_inverse_cross_transform(
-                      &blocks[0], &blocks[1], leaf.transform[0].cctx_type) ==
-                  AV2H_OK);
+                      &blocks[0], &blocks[1], leaf.transform[0].cctx_type,
+                      10U) == AV2H_OK);
             for (index = 0U; index < 2U; ++index) {
                 uint16_t expected_predictor;
                 size_t sample_index;

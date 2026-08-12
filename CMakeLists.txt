@@ -209,6 +209,14 @@ if(AV2HEIF_BUILD_HOST_TESTS)
             COMMAND "${Python3_EXECUTABLE}"
                 "${CMAKE_CURRENT_SOURCE_DIR}/tools/validate_10bit_444_wp12.py"
                 --decoder "$<TARGET_FILE:av2heif-decoder>")
+        add_test(NAME decoder-10bit-444-wp13-parity
+            COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/validate_10bit_444_corpus.py"
+                --decoder "$<TARGET_FILE:av2heif-decoder>"
+                --artifact-tool "$<TARGET_FILE:av2heif-artifact>"
+                --jobs 2)
+        set_tests_properties(decoder-10bit-444-wp13-parity PROPERTIES
+            TIMEOUT 900)
     endif()
 endif()
 
@@ -617,6 +625,13 @@ if(WIN32 AND AV2HEIF_BUILD_WINDOWS_TOOLS AND
             COMMAND "${Python3_EXECUTABLE}"
                 "${CMAKE_CURRENT_SOURCE_DIR}/tools/validate_10bit_444_wp12.py"
                 --decoder "$<TARGET_FILE:av2heif-decoder>")
+        add_test(NAME windows-decoder-10bit-444-wp13-parity
+            COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/validate_10bit_444_corpus.py"
+                --decoder "$<TARGET_FILE:av2heif-decoder>"
+                --native-only --jobs 1)
+        set_tests_properties(windows-decoder-10bit-444-wp13-parity PROPERTIES
+            TIMEOUT 900)
     endif()
     add_test(NAME windows-decoder-laarim-q096
         COMMAND av2heif-decoder

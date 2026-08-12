@@ -215,7 +215,8 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_u16(
 Av2hStatus av2h_chroma_inverse_cross_transform(
     Av2hFirstCoeffBlock *u_coefficients,
     Av2hFirstCoeffBlock *v_coefficients,
-    uint8_t cctx_type);
+    uint8_t cctx_type,
+    uint8_t bit_depth);
 Av2hStatus av2h_first_chroma_reconstruct(
     const Av2hFirstCoeffPrefix *prefix,
     const Av2hFirstTransformType *transform,
