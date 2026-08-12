@@ -1,5 +1,8 @@
 # 8-bit 4:4:4 support
 
+> This is the historical 8-bit 4:4:4 completion report. The current combined
+> 8-bit and 10-bit release boundary is documented in `docs/dev/10bit-wp14.md`.
+
 8-bit 4:4:4 support is complete. The public decoder accepts the AV2 8-bit 4:4:4
 still-picture profile in addition to the existing 8-bit monochrome and 4:2:0
 profiles.
@@ -48,9 +51,10 @@ prediction, crop, workspace, and filter boundaries.
 
 ## Exclusions
 
-4:2:2, 10-bit and 12-bit samples, RGB conversion in the production core,
-restoration, and newly enabled coding tools remain unsupported. Existing
-8-bit monochrome and 4:2:0 output layouts and decoded bytes are unchanged.
+This work package excluded 4:2:2, 10-bit and 12-bit samples, RGB conversion in
+the production core, restoration, and newly enabled coding tools. WP14 later
+added the accepted 10-bit 4:2:0 and 4:4:4 profiles. Existing 8-bit monochrome,
+4:2:0, and 4:4:4 output layouts and decoded bytes remain unchanged.
 
 ## Production-scale validation
 

@@ -17,23 +17,28 @@ files and verify decoded pixels; they are not part of the decoder.
 ## Current status
 
 The public decoder accepts this project's canonical HEIF layout and produces
-tightly packed 8-bit planar output in three formats:
+tightly packed planar output in five formats:
 
-- **I400:** monochrome, with one full-resolution Y plane;
-- **I420:** color, with one full-resolution Y plane and half-resolution U and
-  V planes in both directions; and
-- **I444:** color, with full-resolution Y, U, and V planes.
+- **I400:** 8-bit monochrome, with one full-resolution Y plane;
+- **I420:** 8-bit color, with one full-resolution Y plane and half-resolution
+  U and V planes in both directions;
+- **I444:** 8-bit color, with full-resolution Y, U, and V planes;
+- **`yuv420p10le`:** profile-0 10-bit color in little-endian 16-bit storage,
+  with 4:2:0 plane geometry; and
+- **`yuv444p10le`:** profile-4 10-bit color in little-endian 16-bit storage,
+  with three full-resolution planes.
 
 The decoder reports the exact output and working-memory sizes before decoding.
-The caller owns every buffer. Unsupported profiles, 4:2:2 chroma, sample depths
-other than 8-bit, restoration, malformed input, and inconsistent HEIF metadata
-are rejected instead of being decoded partially.
+The caller owns every buffer. Unsupported profile/chroma pairs, 10-bit
+monochrome, 4:2:2 chroma, 12-bit samples, restoration, malformed input, and
+inconsistent HEIF metadata are rejected instead of being decoded partially.
 
 `Av2hHeifImage.pixel_format` describes decoded memory independently of filename
 conventions. It reports chroma format, significant bit depth, bytes per sample,
-integer storage, byte order, and Y/U/V plane order. The current descriptors are
-I400, I420, and I444 with unsigned one-byte samples; callers should use this
-descriptor rather than infer sample storage from chroma or bit depth alone.
+integer storage, byte order, and Y/U/V plane order. I400, I420, and I444 use
+unsigned one-byte samples. The two 10-bit formats use unsigned two-byte
+little-endian samples; callers should use the descriptor rather than infer
+sample storage from chroma or bit depth alone.
 `Av2hPlaneLayout.row_bytes`, `offset`, and `size`, and `Av2hInfo.output_size`
 are byte counts; plane width and height remain sample counts.
 
@@ -42,12 +47,12 @@ The supported decoder profiles are 8-bit I400/I420/I444, profile-0 10-bit
 
 - exact I420 output for all 31 tracked research artifacts;
 - exact I400 and I444 output for the original 12-image corpus at dimensions up
-  to 800 pixels, including the 800 x 800 Palace image; and
+  to 800 pixels, including the 800 x 800 Palace image;
 - the same 12-image I444 results through the public HEIF API, native Windows
-  executable, and browser WebAssembly module; and
+  executable, and browser WebAssembly module;
 - exact packed little-endian `yuv420p10le` output for 25 synthetic and 18
   photographic records through native and public decode, with the same planar
-  corpus exercised by Linux no-libc and WebAssembly gates; and
+  corpus exercised by Linux no-libc and WebAssembly gates;
 - exact packed little-endian `yuv444p10le` output for 21 synthetic and 18
   photographic records through native and public decode, Linux no-libc, and
   WebAssembly, including retained dimensions up to 1200 x 1596.
@@ -56,20 +61,20 @@ The supported decoder profiles are 8-bit I400/I420/I444, profile-0 10-bit
 output. It is evidence for the tested files, not a claim that every valid AV2
 file is supported or that the decoder is secure.
 
-The public API is declared in `include/av2heif.h`. Detailed scope and evidence
-are recorded in `docs/dev/carriage-reference.md` through
-`docs/dev/chroma-444.md`; the longer roadmap is in `plan.md`.
+The public API is declared in `include/av2heif.h`. The final 10-bit profile,
+packing, fuzz, platform, and corpus evidence is recorded in
+`docs/dev/10bit-wp14.md`; the longer roadmap is in `plan.md`.
 
-The next planned milestone is the combined 10-bit image release gate. Broader
-AV2 features such as film grain, segmentation, quantization
-matrices, and multi-frame or multi-tile forms remain outside the accepted
-profile. Container transforms, metadata, auxiliary alpha, and grids are also
-future work. The roadmap records the complete implementation boundary and
-current coding-tool coverage gaps. The deterministic synthetic 10-bit source,
-AVM reference, census, and negative-fixture contracts are recorded in
-`docs/dev/10bit-prep-wp10.md`. The accepted 10-bit 4:2:0 surface and release
-evidence are recorded in `docs/dev/10bit-wp11.md`; profile-4 10-bit 4:4:4
-evidence is recorded in `docs/dev/10bit-wp13.md`.
+The combined 10-bit image release gate, 10B-WP14, is complete. Broader AV2
+features such as film grain, segmentation, quantization matrices, and
+multi-frame or unsupported tile forms remain outside the accepted profile.
+Container transforms, metadata, auxiliary alpha, and grids are also future
+work. The roadmap records the complete implementation boundary and current
+coding-tool coverage gaps. The deterministic synthetic 10-bit source, AVM
+reference, census, and negative-fixture contracts are recorded in
+`docs/dev/10bit-prep-wp10.md`; the format-specific release evidence is in
+`docs/dev/10bit-wp11.md`, `docs/dev/10bit-wp13.md`, and
+`docs/dev/10bit-wp14.md`.
 
 ## Security
 
@@ -205,12 +210,13 @@ Run the complete fast, vendor-free regression gate with:
 make test
 ```
 
-The target builds once, runs 24 hosted C tests in parallel, checks the strict
-freestanding link, runs all Python unit tests, and verifies exact output for 31
-I420 artifacts, 12 monochrome artifacts, 12 native I444 artifacts, 12 I444
-artifacts through the public HEIF API, and the four locked filter fixtures. The
-corpus processes run concurrently and the target is designed to remain well
-below ten seconds during normal incremental development.
+The target builds once, runs 25 hosted CTest entries in parallel, including
+the bounded public decode fuzz smoke test, checks the strict freestanding link,
+runs all Python unit tests, and verifies exact output for 31 I420 artifacts, 12
+monochrome artifacts, 12 native I444 artifacts, 12 I444 artifacts through the
+public HEIF API, and the four locked filter fixtures. The corpus processes run
+concurrently and the target is designed to remain well below ten seconds
+during normal incremental development.
 
 Use `make test-corpus` for only the production corpus matrix. Checks requiring
 the ignored local specification mirror or pinned AVM checkout remain outside
@@ -224,13 +230,31 @@ CMake builds, CTest, corpus validators, reference experiments, and the
 WebAssembly build use the machine's available cores. Override the detected
 count when needed, for example with `make test JOBS=4`.
 
+Run the complete 8-bit and 10-bit release gate, including pinned-AVM corpus
+regeneration and platform validation, with:
+
+```sh
+make reference-avm
+make reference-avm-accounting
+make 10bit-wp14
+```
+
+The setup step requires network access the first time. The complete gate also
+expects Node.js for WebAssembly validation and the LLVM-MinGW x86-64 target for
+the Windows cross-build. Set `WP14_WINDOWS_EMULATOR` to execute the Windows
+CTest matrix when a compatible PE runtime is available; otherwise the gate
+still verifies the PE build and exact import contract and reports the runtime
+skip explicitly.
+
 Use the `host` preset when sanitizer runtimes are unavailable, including with
-LLVM-MinGW on Windows. Both host presets compile all 23 C test programs and the
-artifact tool. All 23 unit suites run by default. The layout harness pins key
-64-bit decoder state sizes and alignments, while the artifact-profile harness
-checks the OBU, sequence, frame-header, and tile-group contracts for all 31
-tracked artifacts. The sample-math harness pins the first self-contained
-decoder-internal helper interface introduced by refactoring Phase 1.
+LLVM-MinGW on Windows. Both host presets compile all 23 C unit programs, the
+standalone public decode fuzz driver, and the artifact tool. All 23 unit suites,
+the fuzz smoke test, and the decoder output-policy test run by default. The
+layout harness pins key 64-bit decoder state sizes and alignments, while the
+artifact-profile harness checks the OBU, sequence, frame-header, and tile-group
+contracts for all 31 tracked artifacts. The sample-math harness pins the first
+self-contained decoder-internal helper interface introduced by refactoring
+Phase 1.
 
 Python is not required to build the decoder or run the hosted C gate. It is an
 optional development dependency for table regeneration, historical evidence,
@@ -283,8 +307,8 @@ runtime, vendored codec, or AVM dependency. Its only imported DLL is
 `KERNEL32.dll`, used for file I/O, virtual memory, and process startup.
 
 Decode a raw AV2 OBU stream by choosing the extension that matches its decoded
-format: `.i400`, `.i420`, or `.i444`. Use `.bmp` or `.png` for a viewable
-24-bit image:
+format: `.i400`, `.i420`, `.i444`, `.yuv420p10le`, or `.yuv444p10le`. Use
+`.bmp` or `.png` for a viewable 24-bit image from an 8-bit stream:
 
 ```powershell
 .\build\windows-x86_64\av2heif-decoder.exe `

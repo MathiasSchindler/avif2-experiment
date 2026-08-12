@@ -626,7 +626,7 @@ regressions are documented in `docs/dev/chroma-444.md`.
 
 ## 10-bit image implementation
 
-**Status:** Complete as of 10B-WP14 on 2026-08-13.
+**Status:** Complete as of 10B-WP14 on 2026-08-12.
 
 The detailed 10-bit implementation work has moved to `10bitplan.md`. That plan
 starts at the completed `10bitplan-prepwork.md` handoff, releases 10-bit 4:2:0

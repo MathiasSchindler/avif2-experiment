@@ -449,7 +449,7 @@ monochrome, and every 8-bit format remain exact.
 
 ## 10B-WP13: Complete 10-bit 4:4:4 filters and public output
 
-**Status:** Implemented on 2026-08-13. All 21 synthetic and 18 photographic
+**Status:** Implemented on 2026-08-12. All 21 synthetic and 18 photographic
 profile-4 records are exact through native, public, Linux no-libc, and
 WebAssembly decode. The inherited profile-0 large-photo divergence was also
 resolved, restoring exact native/public parity for all 43 retained 10-bit
@@ -476,7 +476,7 @@ the public API, Linux no-libc, and WebAssembly, including the maximum retained
 
 ## 10B-WP14: 10-bit image release gate
 
-**Status:** Implemented on 2026-08-13. Both 10-bit formats pass the complete
+**Status:** Implemented on 2026-08-12. Both 10-bit formats pass the complete
 hosted, fuzz, freestanding, Linux no-libc, WebAssembly, Windows cross-build,
 and reproducibility gates. Windows runtime remains conditional on an available
 PE host or configured emulator. Evidence is recorded in

@@ -1,5 +1,9 @@
 # Bounded public decode surface
 
+> This is the historical report for the initial 8-bit I420 public decode
+> milestone. The current multi-format contract and release evidence are in
+> `docs/dev/10bit-wp14.md`.
+
 Public decode is complete. It exposes the proven private pipeline through a
 bounded caller-owned API after complete filtered sample parity.
 

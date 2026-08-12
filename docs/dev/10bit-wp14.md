@@ -12,8 +12,15 @@ and WebAssembly.
 The complete release gate is:
 
 ```sh
+make reference-avm
+make reference-avm-accounting
 make 10bit-wp14
 ```
+
+The setup targets prepare the pinned AVM encoder/decoder and accounting census
+used by isolated corpus regeneration. The release target also requires Node.js
+and the LLVM-MinGW x86-64 cross compiler. Windows runtime tests run only when
+`WP14_WINDOWS_EMULATOR` names a compatible PE runtime.
 
 `make 10bit-wp14-fuzz` runs the bounded public-boundary mutation gate alone.
 

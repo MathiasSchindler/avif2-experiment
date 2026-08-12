@@ -68,8 +68,9 @@ The completion run established:
 - the 139-file retained 10-bit corpus reproduced byte-for-byte.
 
 Windows runtime execution remains environment-dependent; the CMake gate is
-registered for a configured emulator or Windows host. The repository currently
-has no standalone fuzz harness; public-boundary mutation coverage remains in
-the public decode, negative-fixture, truncation, overlap, and nonmutation tests.
-The profile does not admit 10-bit 4:4:4, 4:2:2, 12-bit, restoration, film grain,
-segmentation, multiframe, or multitile streams.
+registered for a configured emulator or Windows host. At WP11 completion the
+repository had no standalone fuzz harness; WP14 added the bounded public
+query/decode harness and deterministic sanitizer gate documented in
+`docs/dev/10bit-wp14.md`. The WP11 profile did not admit 10-bit 4:4:4, 4:2:2,
+12-bit, restoration, film grain, segmentation, multiframe, or multitile
+streams.
