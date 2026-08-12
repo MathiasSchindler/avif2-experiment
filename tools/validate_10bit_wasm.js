@@ -7,41 +7,56 @@ const path = require("node:path");
 
 const root = path.resolve(__dirname, "..");
 const defaultWasm = path.join(root, "build/wasm-wp10/decoder.wasm");
-const inputPath = path.join(
-    root,
-    "tests/fixtures/10bit/avm-reference/" +
-        "tiny-constrained-16x16-yuv420p10le-qp208.obu"
-);
-const expectedSha256 =
-    "ca9ec6d9f6a901431de7364968b9b84ebf8ed34a832b167b66661add370f302b";
+const manifests = [
+    path.join(root, "tests/fixtures/10bit/avm-reference/manifest.json"),
+    path.join(root, "images/artifacts/10bit/avm-reference/manifest.json"),
+];
+const expectedCounts = [25, 18];
 
-function fail(message) {
-    throw new Error(message);
+function loadRecords() {
+    return manifests.flatMap((manifestPath, index) => {
+        const document = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+        const records = document.artifacts.filter(
+            (record) => record.pixel_format === "yuv420p10le"
+        );
+        if (records.length !== expectedCounts[index]) {
+            fail(
+                `${path.relative(root, manifestPath)}: expected ` +
+                    `${expectedCounts[index]} records, found ${records.length}`
+            );
+        }
+        return records.map((record) => ({
+            ...record,
+            directory: path.dirname(manifestPath),
+        }));
+    });
 }
 
-async function main() {
-    if (process.argv.length > 3) {
-        fail("usage: validate_10bit_wasm.js [WASM]");
-    }
-    const wasmPath = path.resolve(process.argv[2] || defaultWasm);
-    const encoded = fs.readFileSync(inputPath);
-    const { instance } = await WebAssembly.instantiate(
-        fs.readFileSync(wasmPath), {}
+function expectedSize(record) {
+    const chromaWidth = Math.floor((record.width + 1) / 2);
+    const chromaHeight = Math.floor((record.height + 1) / 2);
+    return 2 * (
+        record.width * record.height + 2 * chromaWidth * chromaHeight
     );
-    const exports = instance.exports;
-    for (const name of [
-        "memory",
-        "av2h_reset",
-        "av2h_alloc",
-        "av2h_decode",
-        "av2h_result_pointer",
-    ]) {
-        if (!(name in exports)) fail(`missing WebAssembly export: ${name}`);
+}
+
+function sha256(bytes) {
+    return crypto.createHash("sha256").update(bytes).digest("hex");
+}
+
+function decodeRecord(exports, record) {
+    const inputPath = path.join(record.directory, record.obu.file);
+    const encoded = fs.readFileSync(inputPath);
+    if (
+        encoded.length !== record.obu.size_bytes ||
+        sha256(encoded) !== record.obu.sha256
+    ) {
+        fail(`${record.name}: retained OBU differs from manifest`);
     }
 
     exports.av2h_reset();
     const inputPointer = exports.av2h_alloc(encoded.length);
-    if (inputPointer === 0) fail("WebAssembly input allocation failed");
+    if (inputPointer === 0) fail(`${record.name}: input allocation failed`);
     new Uint8Array(exports.memory.buffer, inputPointer, encoded.length).set(
         encoded
     );
@@ -68,24 +83,27 @@ async function main() {
     ] = values;
     if (status !== 0 || resultStatus !== 0) {
         fail(
-            `status=${status}/${resultStatus} cause=${cause} stage=${stage}`
+            `${record.name}: status=${status}/${resultStatus} ` +
+                `cause=${cause} stage=${stage}`
         );
     }
+    const manifestSize = expectedSize(record);
     if (
-        width !== 16 ||
-        height !== 16 ||
+        width !== record.width ||
+        height !== record.height ||
         channelCount !== 3 ||
         chromaFormatIdc !== 0 ||
         bitDepth !== 10 ||
         bytesPerSample !== 2 ||
         byteOrder !== 1 ||
-        outputSize !== 768
+        outputSize !== manifestSize ||
+        outputSize !== record.decoded.size_bytes
     ) {
         fail(
-            `result ${width}x${height}, channels=${channelCount}, ` +
-                `chroma=${chromaFormatIdc}, depth=${bitDepth}, ` +
-                `sample-bytes=${bytesPerSample}, byte-order=${byteOrder}, ` +
-                `output-bytes=${outputSize}`
+            `${record.name}: result ${width}x${height}, ` +
+                `channels=${channelCount}, chroma=${chromaFormatIdc}, ` +
+                `depth=${bitDepth}, sample-bytes=${bytesPerSample}, ` +
+                `byte-order=${byteOrder}, output-bytes=${outputSize}`
         );
     }
     const decoded = new Uint8Array(
@@ -93,11 +111,42 @@ async function main() {
         outputPointer,
         outputSize
     );
-    const digest = crypto.createHash("sha256").update(decoded).digest("hex");
-    if (digest !== expectedSha256) {
-        fail(`SHA-256 ${digest}, expected ${expectedSha256}`);
+    const digest = sha256(decoded);
+    if (digest !== record.decoded.sha256) {
+        fail(
+            `${record.name}: SHA-256 ${digest}, ` +
+                `expected ${record.decoded.sha256}`
+        );
     }
-    console.log("10-bit WASM: 768 bytes and metadata exact");
+}
+
+function fail(message) {
+    throw new Error(message);
+}
+
+async function main() {
+    if (process.argv.length > 3) {
+        fail("usage: validate_10bit_wasm.js [WASM]");
+    }
+    const wasmPath = path.resolve(process.argv[2] || defaultWasm);
+    const records = loadRecords();
+    const { instance } = await WebAssembly.instantiate(
+        fs.readFileSync(wasmPath), {}
+    );
+    const exports = instance.exports;
+    for (const name of [
+        "memory",
+        "av2h_reset",
+        "av2h_alloc",
+        "av2h_decode",
+        "av2h_result_pointer",
+    ]) {
+        if (!(name in exports)) fail(`missing WebAssembly export: ${name}`);
+    }
+    for (const record of records) decodeRecord(exports, record);
+    console.log(
+        `10-bit 4:2:0 WASM corpus: ${records.length} records exact`
+    );
 }
 
 main().catch((error) => {

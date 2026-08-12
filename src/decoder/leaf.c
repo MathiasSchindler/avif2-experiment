@@ -69,6 +69,8 @@ Av2hStatus av2h_chroma_mode_read_with_delta_for_sdp(
         size_t block_height_mi;
         size_t max_dimension_mi =
             sequence->info.chroma_format_idc == 2U ? 8U : 16U;
+        size_t max_cfl_dimension_mi =
+            sequence->info.chroma_format_idc == 2U ? 16U : 32U;
         uint8_t mhccp_too_small;
         if (av2h_block_dimensions_mi(
                 block_size, &block_width_mi, &block_height_mi) != AV2H_OK) {
@@ -78,7 +80,8 @@ Av2hStatus av2h_chroma_mode_read_with_delta_for_sdp(
             (uint8_t)(block_width_mi == 1U && block_height_mi == 1U) :
             (uint8_t)(block_width_mi <= 2U && block_height_mi <= 2U);
         cfl_allowed = (uint8_t)(cfl_allowed &&
-            block_width_mi <= 16U && block_height_mi <= 16U);
+            block_width_mi <= max_cfl_dimension_mi &&
+            block_height_mi <= max_cfl_dimension_mi);
         mhccp_allowed = (uint8_t)(mhccp_allowed &&
             !mhccp_too_small &&
             block_width_mi <= max_dimension_mi &&

@@ -1154,7 +1154,7 @@ static void mhccp_division_scale(uint32_t denominator, int32_t *scale,
 }
 
 static void mhccp_solve(int32_t matrix[3U][3U], int32_t target[3U],
-                         int32_t result[3U]) {
+                        int32_t result[3U], uint8_t bit_depth) {
     int32_t work[3U][4U] = { { 0 } };
     int row;
     for (row = 0; row < 3; ++row) {
@@ -1163,7 +1163,7 @@ static void mhccp_solve(int32_t matrix[3U][3U], int32_t target[3U],
             work[row][column] = column >= row ?
                 matrix[row][column] : matrix[column][row];
         }
-        work[row][row] += 2;
+        work[row][row] += 2 << (bit_depth - 8U);
         work[row][3] = target[row];
     }
     for (row = 0; row < 3; ++row) {
@@ -1731,7 +1731,7 @@ static Av2hStatus mhccp_predict_direction01(
             target[row] << matrix_shift :
             target[row] >> -matrix_shift;
     }
-    mhccp_solve(matrix, target, parameters);
+    mhccp_solve(matrix, target, parameters, 8U);
     for (row = 0U; row < prediction_height; ++row) {
         for (column = 0U; column < prediction_width; ++column) {
             int32_t center = (int32_t)(mhccp_luma_sample_q3(
@@ -1849,7 +1849,7 @@ Av2hStatus av2h_mhccp_predict_observed(
             matrix[row][column] <<= 1U;
         }
     }
-    mhccp_solve(matrix, target, parameters);
+    mhccp_solve(matrix, target, parameters, 8U);
     for (row = 0U; row < prediction_height; ++row) {
         uint16_t column;
         for (column = 0U; column < prediction_width; ++column) {
@@ -1906,6 +1906,306 @@ static int plane_region_reconstructed_u16(
     return 1;
 }
 
+static uint16_t plane_coded_sample_u16(
+    const Av2hReconstructionPlaneU16 *plane, size_t x, size_t y) {
+    return av2h_reference_load_u16(
+        plane->data, plane->stride_samples,
+        plane->width, plane->height, x, y);
+}
+
+static Av2hStatus cfl_predict_u16_scaled(
+    const Av2hReconstructionPlaneU16 *luma_plane,
+    uint8_t filter_index,
+    int32_t alpha,
+    uint8_t alpha_extra_bits,
+    uint16_t superblock_size,
+    uint16_t block_x,
+    uint16_t block_y,
+    uint16_t width,
+    uint16_t height,
+    uint8_t have_top,
+    uint8_t have_left,
+    uint16_t *predictor,
+    size_t predictor_stride_samples) {
+    uint16_t luma_x = (uint16_t)((uint32_t)block_x * 2U);
+    uint16_t luma_y = (uint16_t)((uint32_t)block_y * 2U);
+    uint16_t luma_width = (uint16_t)((uint32_t)width * 2U);
+    uint16_t luma_height = (uint16_t)((uint32_t)height * 2U);
+    uint16_t effective_luma_width;
+    uint16_t effective_luma_height;
+    uint16_t visible_luma_width;
+    uint16_t visible_luma_height;
+    int32_t luma_left_q3[64U];
+    int32_t luma_above_q3[64U];
+    int32_t avg_l;
+    uint16_t row;
+    uint16_t column;
+    uint8_t is_top_sb_boundary;
+    int top_offset;
+    int bottom_offset;
+    if (luma_plane == 0 || luma_plane->data == 0 ||
+        luma_plane->reconstructed == 0 || predictor == 0 ||
+        filter_index > 2U || width == 0U || height == 0U ||
+        width > 64U || height > 64U ||
+        predictor_stride_samples < width ||
+        luma_x >= luma_plane->width || luma_y >= luma_plane->height ||
+        luma_plane->stride_samples < luma_plane->width) {
+        return AV2H_UNSUPPORTED;
+    }
+    effective_luma_width = (uint16_t)(
+        (luma_plane->reference_width + 7U) & ~(size_t)7U);
+    effective_luma_height = (uint16_t)(
+        (luma_plane->reference_height + 7U) & ~(size_t)7U);
+    if (effective_luma_width > luma_plane->width) {
+        effective_luma_width = luma_plane->width;
+    }
+    if (effective_luma_height > luma_plane->height) {
+        effective_luma_height = luma_plane->height;
+    }
+    visible_luma_width = luma_width < effective_luma_width - luma_x ?
+        luma_width : (uint16_t)(effective_luma_width - luma_x);
+    visible_luma_height = luma_height < effective_luma_height - luma_y ?
+        luma_height : (uint16_t)(effective_luma_height - luma_y);
+    if (!plane_region_reconstructed_u16(
+            luma_plane, luma_x, luma_y,
+            visible_luma_width, visible_luma_height)) {
+        return AV2H_UNSUPPORTED;
+    }
+    if (have_left != 0U) {
+        uint16_t reference_width = filter_index == 0U ? 2U : 3U;
+        uint16_t reference_x = filter_index == 0U ?
+            (uint16_t)(luma_x - 2U) : (uint16_t)(luma_x - 3U);
+        if (luma_x < reference_width ||
+            !plane_region_reconstructed_u16(
+                luma_plane, reference_x, luma_y,
+                reference_width, visible_luma_height)) {
+            return AV2H_UNSUPPORTED;
+        }
+        for (row = 0U; row < height; ++row) {
+            size_t center_x = (size_t)luma_x - 2U;
+            size_t center_y = (size_t)luma_y + (size_t)row * 2U;
+            if (filter_index == 1U) {
+                luma_left_q3[row] = (int32_t)(
+                    plane_coded_sample_u16(
+                        luma_plane, center_x - 1U, center_y) +
+                    2U * plane_coded_sample_u16(
+                        luma_plane, center_x, center_y) +
+                    plane_coded_sample_u16(
+                        luma_plane, center_x + 1U, center_y) +
+                    plane_coded_sample_u16(
+                        luma_plane, center_x - 1U, center_y + 1U) +
+                    2U * plane_coded_sample_u16(
+                        luma_plane, center_x, center_y + 1U) +
+                    plane_coded_sample_u16(
+                        luma_plane, center_x + 1U, center_y + 1U));
+            } else if (filter_index == 2U) {
+                size_t top_y = row == 0U ? center_y : center_y - 1U;
+                luma_left_q3[row] = (int32_t)(
+                    plane_coded_sample_u16(
+                        luma_plane, center_x - 1U, center_y) +
+                    4U * plane_coded_sample_u16(
+                        luma_plane, center_x, center_y) +
+                    plane_coded_sample_u16(
+                        luma_plane, center_x + 1U, center_y) +
+                    plane_coded_sample_u16(
+                        luma_plane, center_x, top_y) +
+                    plane_coded_sample_u16(
+                        luma_plane, center_x, center_y + 1U));
+            } else {
+                luma_left_q3[row] = (int32_t)(
+                    plane_coded_sample_u16(
+                        luma_plane, center_x, center_y) +
+                    plane_coded_sample_u16(
+                        luma_plane, center_x + 1U, center_y) +
+                    plane_coded_sample_u16(
+                        luma_plane, center_x, center_y + 1U) +
+                    plane_coded_sample_u16(
+                        luma_plane, center_x + 1U, center_y + 1U)) << 1U;
+            }
+            if (row >= visible_luma_height / 2U && row != 0U) {
+                luma_left_q3[row] = luma_left_q3[row - 1U];
+            }
+        }
+    }
+    if (have_top != 0U) {
+        is_top_sb_boundary = (uint8_t)(superblock_size != 0U &&
+            luma_y % superblock_size == 0U);
+        top_offset = 2 - is_top_sb_boundary;
+        bottom_offset = 1 - is_top_sb_boundary;
+        if (luma_y < (uint16_t)top_offset ||
+            !plane_region_reconstructed_u16(
+                luma_plane, luma_x, (uint16_t)(luma_y - top_offset),
+                luma_width < luma_plane->width - luma_x ?
+                    luma_width :
+                    (uint16_t)(luma_plane->width - luma_x),
+                4U)) {
+            return AV2H_UNSUPPORTED;
+        }
+        for (column = 0U; column < width; ++column) {
+            size_t center_x = (size_t)luma_x + (size_t)column * 2U;
+            size_t center_y = (size_t)luma_y - (size_t)top_offset;
+            size_t left_x = column == 0U ? center_x : center_x - 1U;
+            size_t bottom_y = center_y + (size_t)bottom_offset;
+            if (filter_index == 1U) {
+                luma_above_q3[column] = (int32_t)(
+                    plane_coded_sample_u16(
+                        luma_plane, left_x, center_y) +
+                    2U * plane_coded_sample_u16(
+                        luma_plane, center_x, center_y) +
+                    plane_coded_sample_u16(
+                        luma_plane, center_x + 1U, center_y) +
+                    plane_coded_sample_u16(
+                        luma_plane, left_x, bottom_y) +
+                    2U * plane_coded_sample_u16(
+                        luma_plane, center_x, bottom_y) +
+                    plane_coded_sample_u16(
+                        luma_plane, center_x + 1U, bottom_y));
+            } else if (filter_index == 2U) {
+                size_t top_y = is_top_sb_boundary ?
+                    center_y : center_y - 1U;
+                luma_above_q3[column] = (int32_t)(
+                    plane_coded_sample_u16(
+                        luma_plane, left_x, center_y) +
+                    4U * plane_coded_sample_u16(
+                        luma_plane, center_x, center_y) +
+                    plane_coded_sample_u16(
+                        luma_plane, center_x + 1U, center_y) +
+                    plane_coded_sample_u16(
+                        luma_plane, center_x, top_y) +
+                    plane_coded_sample_u16(
+                        luma_plane, center_x, bottom_y));
+            } else {
+                luma_above_q3[column] = (int32_t)(
+                    plane_coded_sample_u16(
+                        luma_plane, center_x, center_y) +
+                    plane_coded_sample_u16(
+                        luma_plane, center_x + 1U, center_y) +
+                    plane_coded_sample_u16(
+                        luma_plane, center_x, bottom_y) +
+                    plane_coded_sample_u16(
+                        luma_plane, center_x + 1U, bottom_y)) << 1U;
+            }
+            if (column >= visible_luma_width / 2U && column != 0U) {
+                luma_above_q3[column] = luma_above_q3[column - 1U];
+            }
+        }
+    }
+    {
+        int32_t sum = 0;
+        int count = 0;
+        int horizontal_step = width > 32U ? 2 : 1;
+        int vertical_step = height > 32U ? 2 : 1;
+        if (have_top != 0U) {
+            for (column = 0U; column < width;
+                 column += (uint16_t)horizontal_step) {
+                sum += luma_above_q3[column];
+                ++count;
+            }
+        }
+        if (have_left != 0U) {
+            for (row = 0U; row < height;
+                 row += (uint16_t)vertical_step) {
+                sum += luma_left_q3[row];
+                ++count;
+            }
+        }
+        if (count != 0) {
+            int divisor_shift = 0;
+            uint16_t divisor = av2h_cfl_resolve_divisor_32(
+                (uint32_t)count, &divisor_shift);
+            int32_t rounding = (1 << divisor_shift) >> 1;
+            int32_t value = (int32_t)(
+                ((int64_t)sum * divisor + rounding) >> divisor_shift);
+            int32_t maximum = (1 << 13) - 1;
+            avg_l = value > maximum ? maximum : value;
+        } else {
+            avg_l = (int32_t)av2h_sample_midpoint_10bit() << 3U;
+        }
+    }
+    for (row = 0U; row < height; ++row) {
+        for (column = 0U; column < width; ++column) {
+            size_t sample_x =
+                (size_t)luma_x + (size_t)column * 2U;
+            size_t sample_y =
+                (size_t)luma_y + (size_t)row * 2U;
+            int32_t recon_q3;
+            if (filter_index == 1U) {
+                size_t left_x = (column & 31U) == 0U ?
+                    sample_x : sample_x - 1U;
+                recon_q3 = (int32_t)(
+                    plane_coded_sample_u16(
+                        luma_plane, left_x, sample_y) +
+                    2U * plane_coded_sample_u16(
+                        luma_plane, sample_x, sample_y) +
+                    plane_coded_sample_u16(
+                        luma_plane, sample_x + 1U, sample_y) +
+                    plane_coded_sample_u16(
+                        luma_plane, left_x, sample_y + 1U) +
+                    2U * plane_coded_sample_u16(
+                        luma_plane, sample_x, sample_y + 1U) +
+                    plane_coded_sample_u16(
+                        luma_plane, sample_x + 1U, sample_y + 1U));
+            } else if (filter_index == 2U) {
+                size_t left_x = (column & 31U) == 0U ?
+                    sample_x : sample_x - 1U;
+                size_t top_y = (row & 31U) == 0U ?
+                    sample_y : sample_y - 1U;
+                recon_q3 = (int32_t)(
+                    plane_coded_sample_u16(
+                        luma_plane, left_x, sample_y) +
+                    4U * plane_coded_sample_u16(
+                        luma_plane, sample_x, sample_y) +
+                    plane_coded_sample_u16(
+                        luma_plane, sample_x + 1U, sample_y) +
+                    plane_coded_sample_u16(
+                        luma_plane, sample_x, top_y) +
+                    plane_coded_sample_u16(
+                        luma_plane, sample_x, sample_y + 1U));
+            } else {
+                recon_q3 = (int32_t)(
+                    plane_coded_sample_u16(
+                        luma_plane, sample_x, sample_y) +
+                    plane_coded_sample_u16(
+                        luma_plane, sample_x + 1U, sample_y) +
+                    plane_coded_sample_u16(
+                        luma_plane, sample_x, sample_y + 1U) +
+                    plane_coded_sample_u16(
+                        luma_plane, sample_x + 1U, sample_y + 1U)) << 1U;
+            }
+            {
+                int32_t ac = recon_q3 - avg_l;
+                int32_t scaled = cfl_round_pow2_signed(
+                    (int64_t)alpha * ac,
+                    (uint8_t)(6U + alpha_extra_bits));
+                size_t output =
+                    (size_t)row * predictor_stride_samples + column;
+                predictor[output] = av2h_sample_clip_10bit(
+                    (int32_t)predictor[output] + scaled);
+            }
+        }
+    }
+    return AV2H_OK;
+}
+
+Av2hStatus av2h_cfl_explicit_predict_u16(
+    const Av2hReconstructionPlaneU16 *luma_plane,
+    uint8_t filter_index,
+    int32_t alpha_q3,
+    uint16_t superblock_size,
+    uint16_t block_x,
+    uint16_t block_y,
+    uint16_t width,
+    uint16_t height,
+    uint8_t have_top,
+    uint8_t have_left,
+    uint16_t *predictor,
+    size_t predictor_stride_samples) {
+    return cfl_predict_u16_scaled(
+        luma_plane, filter_index, alpha_q3, 0U, superblock_size,
+        block_x, block_y, width, height, have_top, have_left,
+        predictor, predictor_stride_samples);
+}
+
 static uint16_t mhccp_luma_q3_u16(
     const Av2hReconstructionPlaneU16 *luma_plane,
     uint16_t chroma_x, uint16_t chroma_y) {
@@ -1918,6 +2218,298 @@ static uint16_t mhccp_luma_q3_u16(
         luma_plane->data[y0 * luma_plane->stride_samples + x1] +
         luma_plane->data[y1 * luma_plane->stride_samples + x0] +
         luma_plane->data[y1 * luma_plane->stride_samples + x1]) << 1U);
+}
+
+static uint16_t mhccp_luma_filter2_q3_u16(
+    const Av2hReconstructionPlaneU16 *luma_plane,
+    uint16_t chroma_x,
+    uint16_t chroma_y) {
+    size_t center_x = (size_t)chroma_x * 2U;
+    size_t center_y = (size_t)chroma_y * 2U;
+    size_t left_x = center_x == 0U ? center_x : center_x - 1U;
+    size_t right_x = center_x + 1U < luma_plane->width ?
+        center_x + 1U : center_x;
+    size_t top_y = center_y == 0U ? center_y : center_y - 1U;
+    size_t bottom_y = center_y + 1U < luma_plane->height ?
+        center_y + 1U : center_y;
+    return (uint16_t)(
+        luma_plane->data[center_y * luma_plane->stride_samples + left_x] +
+        4U * luma_plane->data[
+            center_y * luma_plane->stride_samples + center_x] +
+        luma_plane->data[center_y * luma_plane->stride_samples + right_x] +
+        luma_plane->data[top_y * luma_plane->stride_samples + center_x] +
+        luma_plane->data[bottom_y * luma_plane->stride_samples + center_x]);
+}
+
+static uint16_t mhccp_luma_filter2_top_clamped_q3_u16(
+    const Av2hReconstructionPlaneU16 *luma_plane,
+    uint16_t chroma_x,
+    uint16_t chroma_y) {
+    size_t center_x = (size_t)chroma_x * 2U;
+    size_t center_y = (size_t)chroma_y * 2U;
+    size_t left_x = center_x == 0U ? center_x : center_x - 1U;
+    size_t right_x = center_x + 1U < luma_plane->width ?
+        center_x + 1U : center_x;
+    size_t bottom_y = center_y + 1U < luma_plane->height ?
+        center_y + 1U : center_y;
+    return (uint16_t)(
+        luma_plane->data[center_y * luma_plane->stride_samples + left_x] +
+        5U * luma_plane->data[
+            center_y * luma_plane->stride_samples + center_x] +
+        luma_plane->data[center_y * luma_plane->stride_samples + right_x] +
+        luma_plane->data[bottom_y * luma_plane->stride_samples + center_x]);
+}
+
+static uint16_t mhccp_luma_filter1_q3_u16(
+    const Av2hReconstructionPlaneU16 *luma_plane,
+    uint16_t chroma_x,
+    uint16_t chroma_y) {
+    size_t center_x = (size_t)chroma_x * 2U;
+    size_t center_y = (size_t)chroma_y * 2U;
+    size_t left_x = center_x == 0U ? center_x : center_x - 1U;
+    size_t right_x = center_x + 1U < luma_plane->width ?
+        center_x + 1U : center_x;
+    size_t bottom_y = center_y + 1U < luma_plane->height ?
+        center_y + 1U : center_y;
+    return (uint16_t)(
+        luma_plane->data[center_y * luma_plane->stride_samples + left_x] +
+        2U * luma_plane->data[
+            center_y * luma_plane->stride_samples + center_x] +
+        luma_plane->data[center_y * luma_plane->stride_samples + right_x] +
+        luma_plane->data[bottom_y * luma_plane->stride_samples + left_x] +
+        2U * luma_plane->data[
+            bottom_y * luma_plane->stride_samples + center_x] +
+        luma_plane->data[bottom_y * luma_plane->stride_samples + right_x]);
+}
+
+static uint16_t mhccp_luma_sb_top_q3_u16(
+    const Av2hReconstructionPlaneU16 *luma_plane,
+    uint16_t chroma_x, uint16_t block_y) {
+    size_t luma_x = (size_t)chroma_x * 2U;
+    size_t luma_y = (size_t)block_y * 2U - 1U;
+    size_t right_x = luma_x + 1U < luma_plane->width ? luma_x + 1U : luma_x;
+    return (uint16_t)(4U * (
+        luma_plane->data[luma_y * luma_plane->stride_samples + luma_x] +
+        luma_plane->data[luma_y * luma_plane->stride_samples + right_x]));
+}
+
+static uint16_t mhccp_luma_filter1_sb_top_q3_u16(
+    const Av2hReconstructionPlaneU16 *luma_plane,
+    uint16_t chroma_x,
+    uint16_t block_y) {
+    size_t center_x = (size_t)chroma_x * 2U;
+    size_t center_y = (size_t)block_y * 2U - 1U;
+    size_t left_x = center_x == 0U ? center_x : center_x - 1U;
+    size_t right_x = center_x + 1U < luma_plane->width ?
+        center_x + 1U : center_x;
+    return (uint16_t)(2U * (
+        luma_plane->data[center_y * luma_plane->stride_samples + left_x] +
+        2U * luma_plane->data[
+            center_y * luma_plane->stride_samples + center_x] +
+        luma_plane->data[center_y * luma_plane->stride_samples + right_x]));
+}
+
+static uint16_t mhccp_luma_filter2_sb_top_q3_u16(
+    const Av2hReconstructionPlaneU16 *luma_plane,
+    uint16_t chroma_x,
+    uint16_t block_y) {
+    size_t center_x = (size_t)chroma_x * 2U;
+    size_t center_y = (size_t)block_y * 2U - 1U;
+    size_t left_x = center_x == 0U ? center_x : center_x - 1U;
+    size_t right_x = center_x + 1U < luma_plane->width ?
+        center_x + 1U : center_x;
+    return (uint16_t)(
+        luma_plane->data[center_y * luma_plane->stride_samples + left_x] +
+        6U * luma_plane->data[
+            center_y * luma_plane->stride_samples + center_x] +
+        luma_plane->data[center_y * luma_plane->stride_samples + right_x]);
+}
+
+static uint16_t mhccp_luma_sample_q3_u16(
+    const Av2hReconstructionPlaneU16 *luma_plane,
+    uint8_t filter_index,
+    uint16_t chroma_x,
+    uint16_t chroma_y) {
+    return filter_index == 0U ?
+        mhccp_luma_q3_u16(luma_plane, chroma_x, chroma_y) :
+        filter_index == 1U ?
+        mhccp_luma_filter1_q3_u16(luma_plane, chroma_x, chroma_y) :
+        mhccp_luma_filter2_q3_u16(luma_plane, chroma_x, chroma_y);
+}
+
+static uint16_t mhccp_luma_sb_top_sample_q3_u16(
+    const Av2hReconstructionPlaneU16 *luma_plane,
+    uint8_t filter_index,
+    uint16_t chroma_x,
+    uint16_t block_y) {
+    return filter_index == 0U ?
+        mhccp_luma_sb_top_q3_u16(luma_plane, chroma_x, block_y) :
+        filter_index == 1U ?
+        mhccp_luma_filter1_sb_top_q3_u16(
+            luma_plane, chroma_x, block_y) :
+        mhccp_luma_filter2_sb_top_q3_u16(
+            luma_plane, chroma_x, block_y);
+}
+
+static uint16_t mhccp_luma_left_clamped_q3_u16(
+    const Av2hReconstructionPlaneU16 *luma_plane,
+    uint8_t filter_index,
+    uint16_t chroma_x,
+    uint16_t chroma_y) {
+    size_t center_x = (size_t)chroma_x * 2U;
+    size_t center_y = (size_t)chroma_y * 2U;
+    size_t right_x = center_x + 1U < luma_plane->width ?
+        center_x + 1U : center_x;
+    size_t top_y = center_y == 0U ? center_y : center_y - 1U;
+    size_t bottom_y = center_y + 1U < luma_plane->height ?
+        center_y + 1U : center_y;
+    if (filter_index == 0U) {
+        return mhccp_luma_q3_u16(luma_plane, chroma_x, chroma_y);
+    }
+    if (filter_index == 1U) {
+        return (uint16_t)(
+            3U * luma_plane->data[
+                center_y * luma_plane->stride_samples + center_x] +
+            luma_plane->data[center_y * luma_plane->stride_samples + right_x] +
+            3U * luma_plane->data[
+                bottom_y * luma_plane->stride_samples + center_x] +
+            luma_plane->data[bottom_y * luma_plane->stride_samples + right_x]);
+    }
+    return (uint16_t)(
+        5U * luma_plane->data[
+            center_y * luma_plane->stride_samples + center_x] +
+        luma_plane->data[center_y * luma_plane->stride_samples + right_x] +
+        luma_plane->data[top_y * luma_plane->stride_samples + center_x] +
+        luma_plane->data[bottom_y * luma_plane->stride_samples + center_x]);
+}
+
+static uint16_t mhccp_luma_sb_top_left_clamped_q3_u16(
+    const Av2hReconstructionPlaneU16 *luma_plane,
+    uint8_t filter_index,
+    uint16_t chroma_x,
+    uint16_t block_y) {
+    size_t center_x = (size_t)chroma_x * 2U;
+    size_t center_y = (size_t)block_y * 2U - 1U;
+    size_t right_x = center_x + 1U < luma_plane->width ?
+        center_x + 1U : center_x;
+    uint16_t center = luma_plane->data[
+        center_y * luma_plane->stride_samples + center_x];
+    uint16_t right = luma_plane->data[
+        center_y * luma_plane->stride_samples + right_x];
+    if (filter_index == 0U) return (uint16_t)(4U * (center + right));
+    if (filter_index == 1U) return (uint16_t)(2U * (3U * center + right));
+    return (uint16_t)(7U * center + right);
+}
+
+Av2hStatus av2h_cfl_derived_predict_u16(
+    const Av2hReconstructionPlaneU16 *luma_plane,
+    const Av2hReconstructionPlaneU16 *chroma_plane,
+    uint8_t filter_index,
+    uint16_t superblock_size,
+    uint16_t block_x,
+    uint16_t block_y,
+    uint16_t width,
+    uint16_t height,
+    uint8_t have_top,
+    uint8_t have_left,
+    uint16_t *predictor,
+    size_t predictor_stride_samples) {
+    int numb_up = 0;
+    int numb_left = 0;
+    int count = 0;
+    int32_t sum_x = 0;
+    int32_t sum_y = 0;
+    int32_t sum_xx = 0;
+    int32_t sum_xy = 0;
+    int32_t alpha;
+    uint8_t is_top_sb_boundary;
+    if (luma_plane == 0 || chroma_plane == 0 || predictor == 0 ||
+        luma_plane->data == 0 || chroma_plane->data == 0 ||
+        luma_plane->reconstructed == 0 || filter_index > 2U ||
+        width == 0U || height == 0U || width > 64U || height > 64U ||
+        predictor_stride_samples < width ||
+        (have_top && block_y == 0U) || (have_left && block_x == 0U)) {
+        return AV2H_UNSUPPORTED;
+    }
+    if (have_top && have_left) {
+        if (width > (uint16_t)(height * 2U)) {
+            numb_up = AV2H_CFL_NUM_REF_SAM;
+        } else if (height > (uint16_t)(width * 2U)) {
+            numb_left = AV2H_CFL_NUM_REF_SAM;
+        } else {
+            numb_up = AV2H_CFL_NUM_REF_SAM >> 1;
+            numb_left = AV2H_CFL_NUM_REF_SAM >> 1;
+        }
+    } else {
+        numb_up = have_top ? AV2H_CFL_NUM_REF_SAM : 0;
+        numb_left = have_left ? AV2H_CFL_NUM_REF_SAM : 0;
+    }
+    if (numb_up > width) numb_up = width;
+    if (numb_left > height) numb_left = height;
+    is_top_sb_boundary = (uint8_t)(superblock_size != 0U &&
+        ((uint32_t)block_y * 2U) % superblock_size == 0U);
+    if (numb_up != 0) {
+        int step = (int)width / numb_up;
+        int sample = step == 1 ? 0 : step >> 1;
+        if (step < 1) step = 1;
+        for (; sample < (int)width; sample += step) {
+            uint16_t chroma_x = (uint16_t)(block_x + sample);
+            int32_t luma;
+            int32_t chroma;
+            if (chroma_x >= chroma_plane->width) {
+                chroma_x = (uint16_t)(chroma_plane->width - 1U);
+            }
+            if (is_top_sb_boundary) {
+                luma = (int32_t)((sample == 0 ?
+                    mhccp_luma_sb_top_left_clamped_q3_u16(
+                        luma_plane, filter_index, chroma_x, block_y) :
+                    mhccp_luma_sb_top_sample_q3_u16(
+                        luma_plane, filter_index, chroma_x, block_y)) >> 3U);
+            } else {
+                luma = (int32_t)((sample == 0 ?
+                    mhccp_luma_left_clamped_q3_u16(
+                        luma_plane, filter_index, chroma_x,
+                        (uint16_t)(block_y - 1U)) :
+                    mhccp_luma_sample_q3_u16(
+                        luma_plane, filter_index, chroma_x,
+                        (uint16_t)(block_y - 1U))) >> 3U);
+            }
+            chroma = chroma_plane->data[
+                ((size_t)block_y - 1U) * chroma_plane->stride_samples +
+                chroma_x];
+            sum_x += luma;
+            sum_y += chroma;
+            sum_xx += luma * luma;
+            sum_xy += luma * chroma;
+            ++count;
+        }
+    }
+    if (numb_left != 0) {
+        int step = (int)height / numb_left;
+        int sample = step == 1 ? 0 : step >> 1;
+        if (step < 1) step = 1;
+        for (; sample < (int)height; sample += step) {
+            uint16_t chroma_y = (uint16_t)(block_y + sample);
+            int32_t luma = (int32_t)(mhccp_luma_sample_q3_u16(
+                luma_plane, filter_index,
+                (uint16_t)(block_x - 1U), chroma_y) >> 3U);
+            int32_t chroma = chroma_plane->data[
+                (size_t)chroma_y * chroma_plane->stride_samples +
+                block_x - 1U];
+            sum_x += luma;
+            sum_y += chroma;
+            sum_xx += luma * luma;
+            sum_xy += luma * chroma;
+            ++count;
+        }
+    }
+    alpha = av2h_cfl_derive_alpha(
+        sum_x, sum_y, sum_xx, sum_xy, count,
+        3 + AV2H_CFL_ADD_BITS_ALPHA);
+    return cfl_predict_u16_scaled(
+        luma_plane, filter_index, alpha, AV2H_CFL_ADD_BITS_ALPHA,
+        superblock_size, block_x, block_y, width, height,
+        have_top, have_left, predictor, predictor_stride_samples);
 }
 
 Av2hStatus av2h_mhccp_predict_observed_u16(
@@ -1944,14 +2536,17 @@ Av2hStatus av2h_mhccp_predict_observed_u16(
     uint16_t column;
     uint8_t have_top;
     uint8_t have_left;
+    uint8_t is_top_sb_boundary;
+    int32_t top_left_center = 0;
     int matrix_shift;
     uint32_t count_ceiling;
     if (mode == 0 || luma_plane == 0 || chroma_plane == 0 ||
         predictor == 0 || luma_plane->data == 0 ||
         chroma_plane->data == 0 || mode->cfl_kind != AV2H_CFL_MULTI_PARAM ||
-        mode->mhccp_direction != 2U ||
-        mode->cfl_downsample_filter_index != 0U ||
-        mode->chroma_format_idc != 0U || width != 4U || height != 8U ||
+        mode->mhccp_direction > 2U ||
+        mode->cfl_downsample_filter_index > 2U ||
+        mode->chroma_format_idc != 0U ||
+        !av2h_chroma_geometry_supported(width, height) ||
         predictor_stride_samples < width ||
         block_x >= chroma_plane->width || block_y >= chroma_plane->height) {
         return AV2H_UNSUPPORTED;
@@ -1969,6 +2564,8 @@ Av2hStatus av2h_mhccp_predict_observed_u16(
     }
     have_top = (uint8_t)(block_y >= 2U);
     have_left = (uint8_t)(block_x >= 2U);
+    is_top_sb_boundary = (uint8_t)(mode->superblock_size != 0U &&
+        ((uint32_t)block_y * 2U) % mode->superblock_size == 0U);
     if (!have_top && !have_left) {
         for (row = 0U; row < prediction_height; ++row) {
             for (column = 0U; column < prediction_width; ++column) {
@@ -1980,15 +2577,25 @@ Av2hStatus av2h_mhccp_predict_observed_u16(
     }
     top_count = have_top ? (uint16_t)(width * 2U) : 0U;
     if (!have_left && top_count >= 2U) top_count = (uint16_t)(top_count - 2U);
+    if (top_count > 62U) top_count = 62U;
     left_count = have_left ? (uint16_t)(height * 2U - 1U) : 0U;
+    if (have_top && left_count > 61U) left_count = 61U;
     if (left_count >= chroma_plane->height - block_y) {
         left_count = (uint16_t)(chroma_plane->height - block_y - 1U);
     }
-    while (left_count != 0U &&
-           !plane_sample_reconstructed_u16(
-               chroma_plane, block_x - 1U,
-               (size_t)block_y + left_count - 1U)) {
-        --left_count;
+    if (have_left) {
+        uint16_t available_left = 0U;
+        while (available_left < left_count &&
+               plane_sample_reconstructed_u16(
+                   chroma_plane, block_x - 1U,
+                   (size_t)block_y + available_left)) {
+            ++available_left;
+        }
+        if (available_left > height - 1U) {
+            available_left = (uint16_t)(height - 1U +
+                ((available_left - (height - 1U)) & ~1U));
+        }
+        left_count = available_left;
     }
     have_left = (uint8_t)(left_count != 0U);
     top_start_x = (uint16_t)(have_left ? block_x - 1U : block_x + 1U);
@@ -2005,20 +2612,55 @@ Av2hStatus av2h_mhccp_predict_observed_u16(
             ++available;
         }
         if (!have_left && available != 0U && available <= width) --available;
+        if (available > width) {
+            available = (uint16_t)(width +
+                ((available - width) & ~1U));
+        }
         top_count = available;
         have_top = (uint8_t)(top_count != 0U);
     }
     for (sample = 0U; sample < top_count; ++sample) {
         uint16_t chroma_x = (uint16_t)(top_start_x + sample);
         uint16_t chroma_y = (uint16_t)(block_y - 1U);
-        int32_t center = (int32_t)(
-            mhccp_luma_q3_u16(luma_plane, chroma_x, chroma_y) >> 3U);
+        int32_t center = (int32_t)((is_top_sb_boundary ?
+            mhccp_luma_sb_top_sample_q3_u16(
+                luma_plane, mode->cfl_downsample_filter_index,
+                chroma_x, block_y) :
+            mhccp_luma_sample_q3_u16(
+                luma_plane, mode->cfl_downsample_filter_index,
+                chroma_x, chroma_y)) >> 3U);
         int32_t vector[3U];
         int first;
         int second;
-        vector[0] = (int32_t)(mhccp_luma_q3_u16(
-            luma_plane, chroma_x == 0U ? 0U : (uint16_t)(chroma_x - 1U),
-            chroma_y) >> 3U);
+        if (sample == 0U) top_left_center = center;
+        vector[0] = mode->mhccp_direction == 0U ? center :
+            mode->mhccp_direction == 1U ?
+            (is_top_sb_boundary ? center :
+             (int32_t)((mode->cfl_downsample_filter_index == 2U ?
+                 mhccp_luma_filter2_top_clamped_q3_u16(
+                     luma_plane, chroma_x,
+                     (uint16_t)(chroma_y - 1U)) :
+                 mhccp_luma_sample_q3_u16(
+                     luma_plane, mode->cfl_downsample_filter_index,
+                     chroma_x, (uint16_t)(chroma_y - 1U))) >> 3U)) :
+            (int32_t)((is_top_sb_boundary ?
+                (sample == 0U && have_left ?
+                    mhccp_luma_sb_top_left_clamped_q3_u16(
+                        luma_plane, mode->cfl_downsample_filter_index,
+                        chroma_x == 0U ? 0U :
+                            (uint16_t)(chroma_x - 1U), block_y) :
+                    mhccp_luma_sb_top_sample_q3_u16(
+                        luma_plane, mode->cfl_downsample_filter_index,
+                        chroma_x == 0U ? 0U :
+                            (uint16_t)(chroma_x - 1U), block_y)) :
+                (sample == 0U && have_left ?
+                    mhccp_luma_left_clamped_q3_u16(
+                        luma_plane, mode->cfl_downsample_filter_index,
+                        (uint16_t)(chroma_x - 1U), chroma_y) :
+                    mhccp_luma_sample_q3_u16(
+                        luma_plane, mode->cfl_downsample_filter_index,
+                        chroma_x == 0U ? 0U :
+                            (uint16_t)(chroma_x - 1U), chroma_y))) >> 3U);
         vector[1] = (center * center + 512) >> 10U;
         vector[2] = 512;
         for (first = 0; first < 3; ++first) {
@@ -2034,13 +2676,22 @@ Av2hStatus av2h_mhccp_predict_observed_u16(
         uint16_t chroma_x = (uint16_t)(block_x - 1U);
         uint16_t chroma_y = (uint16_t)(block_y + sample);
         int32_t center = (int32_t)(
-            mhccp_luma_q3_u16(luma_plane, chroma_x, chroma_y) >> 3U);
+            mhccp_luma_sample_q3_u16(
+                luma_plane, mode->cfl_downsample_filter_index,
+                chroma_x, chroma_y) >> 3U);
         int32_t vector[3U];
         int first;
         int second;
-        vector[0] = (int32_t)(mhccp_luma_q3_u16(
-            luma_plane, chroma_x == 0U ? 0U : (uint16_t)(chroma_x - 1U),
-            chroma_y) >> 3U);
+        vector[0] = mode->mhccp_direction == 0U ? center :
+            mode->mhccp_direction == 1U ?
+            (sample == 0U && have_top ? top_left_center :
+             (int32_t)(mhccp_luma_sample_q3_u16(
+                 luma_plane, mode->cfl_downsample_filter_index,
+                 chroma_x, (uint16_t)(chroma_y - 1U)) >> 3U)) :
+            (int32_t)(mhccp_luma_left_clamped_q3_u16(
+                luma_plane, mode->cfl_downsample_filter_index,
+                chroma_x == 0U ? 0U : (uint16_t)(chroma_x - 1U),
+                chroma_y) >> 3U);
         vector[1] = (center * center + 512) >> 10U;
         vector[2] = 512;
         for (first = 0; first < 3; ++first) {
@@ -2059,7 +2710,7 @@ Av2hStatus av2h_mhccp_predict_observed_u16(
         ++matrix_shift;
         count_ceiling >>= 1U;
     }
-    matrix_shift = 6 - matrix_shift;
+    matrix_shift = 2 - matrix_shift;
     for (row = 0U; row < 3U; ++row) {
         for (column = row; column < 3U; ++column) {
             matrix[row][column] = matrix_shift > 0 ?
@@ -2069,20 +2720,32 @@ Av2hStatus av2h_mhccp_predict_observed_u16(
         target[row] = matrix_shift > 0 ?
             target[row] << matrix_shift : target[row] >> -matrix_shift;
     }
-    mhccp_solve(matrix, target, parameters);
+    mhccp_solve(matrix, target, parameters, 10U);
     for (row = 0U; row < prediction_height; ++row) {
         for (column = 0U; column < prediction_width; ++column) {
-            int32_t center = (int32_t)(mhccp_luma_q3_u16(
-                luma_plane, (uint16_t)(block_x + column),
+            int32_t center = (int32_t)(mhccp_luma_sample_q3_u16(
+                luma_plane, mode->cfl_downsample_filter_index,
+                (uint16_t)(block_x + column),
                 (uint16_t)(block_y + row)) >> 3U);
             int32_t vector[3U];
             int32_t sum = 0;
             int parameter;
-            vector[0] = (int32_t)(mhccp_luma_q3_u16(
-                luma_plane,
-                column == 0U && !have_left ? block_x :
-                    (uint16_t)(block_x + column - 1U),
-                (uint16_t)(block_y + row)) >> 3U);
+            vector[0] = mode->mhccp_direction == 0U ? center :
+                mode->mhccp_direction == 1U ?
+                (row == 0U && !have_top ? center :
+                 row == 0U && is_top_sb_boundary ?
+                    (int32_t)(mhccp_luma_sb_top_sample_q3_u16(
+                        luma_plane, mode->cfl_downsample_filter_index,
+                        (uint16_t)(block_x + column), block_y) >> 3U) :
+                    (int32_t)(mhccp_luma_sample_q3_u16(
+                        luma_plane, mode->cfl_downsample_filter_index,
+                        (uint16_t)(block_x + column),
+                        (uint16_t)(block_y + row - 1U)) >> 3U)) :
+                (int32_t)(mhccp_luma_sample_q3_u16(
+                    luma_plane, mode->cfl_downsample_filter_index,
+                    column == 0U && !have_left ? block_x :
+                        (uint16_t)(block_x + column - 1U),
+                    (uint16_t)(block_y + row)) >> 3U);
             vector[1] = (center * center + 512) >> 10U;
             vector[2] = 512;
             for (parameter = 0; parameter < 3; ++parameter) {

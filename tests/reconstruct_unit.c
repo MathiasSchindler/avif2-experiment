@@ -6217,6 +6217,7 @@ static void test_10bit_wp5_frame_fixture(void) {
                           &leaf.node, &leaf.mode, &leaf.prefix[index],
                           &leaf.transform[index], &blocks[index],
                           &chroma_planes[index], &plane,
+                          (uint8_t)(index + 1U),
                           frame.chroma_format_idc,
                           &scratch) == AV2H_OK);
                  if (chroma_count == 0U) {

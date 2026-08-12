@@ -84,6 +84,7 @@ Av2hStatus av2h_decode_frame_planar_private(
                             &pending_chroma_blocks[pending_index][index],
                             &workspace->coded_u16[plane],
                             &workspace->coded_u16[0],
+                            (uint8_t)plane,
                             frame->chroma_format_idc,
                             workspace->reconstruction_scratch_u16);
                         if (status != AV2H_OK) {
@@ -482,6 +483,7 @@ Av2hStatus av2h_decode_frame_planar_private(
                         &leaf.transform[index], &blocks[index],
                         &workspace->coded_u16[plane],
                         &workspace->coded_u16[0],
+                        (uint8_t)plane,
                         frame->chroma_format_idc,
                         workspace->reconstruction_scratch_u16);
                     if (status != AV2H_OK) {

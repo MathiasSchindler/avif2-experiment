@@ -49,14 +49,17 @@ static void tile_capture_luma_root_child(
                 break;
             }
         }
-        root_partition = decoder->square_child_luma_partition;
-        first_row = root_row;
-        first_column = root_column;
-        second_row = root_row;
-        second_column = root_column;
-        child_count = &decoder->square_child_luma_child_count;
-        children_share = &decoder->square_child_luma_children_share;
-        square_child = 1U;
+        if (decoder->square_child_luma_partition !=
+                AV2H_PARTITION_INVALID) {
+            root_partition = decoder->square_child_luma_partition;
+            first_row = root_row;
+            first_column = root_column;
+            second_row = root_row;
+            second_column = root_column;
+            child_count = &decoder->square_child_luma_child_count;
+            children_share = &decoder->square_child_luma_children_share;
+            square_child = 1U;
+        }
     }
     if (root_partition == AV2H_PARTITION_HORZ) {
         child_size = square_child ? AV2H_BLOCK_64X32 :
@@ -65,7 +68,7 @@ static void tile_capture_luma_root_child(
             decoder->root_block_size == AV2H_BLOCK_128X128 ?
                 AV2H_BLOCK_128X64 : AV2H_BLOCK_INVALID;
         second_row = (uint16_t)(second_row +
-            (child_size == AV2H_BLOCK_128X64 ? 32U : 8U));
+            (child_size == AV2H_BLOCK_128X64 ? 16U : 8U));
     } else if (root_partition == AV2H_PARTITION_VERT) {
         child_size = square_child ? AV2H_BLOCK_32X64 :
             decoder->root_block_size == AV2H_BLOCK_64X64 ?
@@ -73,7 +76,7 @@ static void tile_capture_luma_root_child(
             decoder->root_block_size == AV2H_BLOCK_128X128 ?
                 AV2H_BLOCK_64X128 : AV2H_BLOCK_INVALID;
         second_column = (uint16_t)(second_column +
-            (child_size == AV2H_BLOCK_64X128 ? 32U : 8U));
+            (child_size == AV2H_BLOCK_64X128 ? 16U : 8U));
     } else {
         return;
     }

@@ -37,13 +37,17 @@ descriptor rather than infer sample storage from chroma or bit depth alone.
 `Av2hPlaneLayout.row_bytes`, `offset`, and `size`, and `Av2hInfo.output_size`
 are byte counts; plane width and height remain sample counts.
 
-The original 8-bit decoder program is complete. Current validation includes:
+The supported decoder profiles are 8-bit I400/I420/I444 and profile-0 10-bit
+4:2:0. Current validation includes:
 
 - exact I420 output for all 31 tracked research artifacts;
 - exact I400 and I444 output for the original 12-image corpus at dimensions up
   to 800 pixels, including the 800 x 800 Palace image; and
 - the same 12-image I444 results through the public HEIF API, native Windows
-  executable, and browser WebAssembly module.
+  executable, and browser WebAssembly module; and
+- exact packed little-endian `yuv420p10le` output for 25 synthetic and 18
+  photographic records through native and public decode, with the same planar
+  corpus exercised by Linux no-libc and WebAssembly gates.
 
 "Exact" means every decoded Y, U, and V sample matches pinned AVM v1.0.0
 output. It is evidence for the tested files, not a claim that every valid AV2
@@ -53,15 +57,15 @@ The public API is declared in `include/av2heif.h`. Detailed scope and evidence
 are recorded in `docs/dev/carriage-reference.md` through
 `docs/dev/chroma-444.md`; the longer roadmap is in `plan.md`.
 
-The next planned decoder profiles are 10-bit 4:2:0 and 10-bit 4:4:4. Broader
+The next planned decoder profile is 10-bit 4:4:4. Broader
 AV2 features such as restoration, film grain, segmentation, quantization
 matrices, and multi-frame or multi-tile forms remain outside the accepted
 profile. Container transforms, metadata, auxiliary alpha, and grids are also
 future work. The roadmap records the complete implementation boundary and
 current coding-tool coverage gaps. The deterministic synthetic 10-bit source,
 AVM reference, census, and negative-fixture contracts are recorded in
-`docs/dev/10bit-prep-wp10.md`; they are preparation evidence, not accepted
-10-bit decoder support.
+`docs/dev/10bit-prep-wp10.md`. The accepted 10-bit 4:2:0 surface and release
+evidence are recorded in `docs/dev/10bit-wp11.md`.
 
 ## Security
 
@@ -294,11 +298,12 @@ stored DEFLATE blocks; it contains no inferred color-space metadata. The CLI
 accepts raw OBU input only; applications that read the project-defined HEIF
 files use the public API in `include/av2heif.h`.
 
-The `.i400`, `.i420`, and `.i444` suffixes are strict names for the current
-8-bit planar layouts. The decoder does not accept generic `.yuv`, because that
+The `.i400`, `.i420`, and `.i444` suffixes are strict names for the 8-bit
+planar layouts. The decoder does not accept generic `.yuv`, because that
 suffix does not identify chroma layout, sample depth, storage width, or byte
-order. Future 10-bit planar output will use explicit format names such as
-`yuv420p10le` and `yuv444p10le`. BMP remains a viewable preview; a future
+order. Profile-0 10-bit 4:2:0 uses the explicit `yuv420p10le` format and raw
+suffix; future 10-bit 4:4:4 output will use `yuv444p10le`. BMP remains a
+viewable preview; a future
 10-bit BMP path will explicitly downconvert and will not be a reference output.
 PNG likewise remains a preview. Its shared writer already accepts 16-bit
 big-endian RGB rows for a future precision-preserving conversion, but the

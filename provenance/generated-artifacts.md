@@ -44,3 +44,10 @@ same streams as the paired WP6 pre-filter captures. Seven active outputs, one
 enabled no-op, and three disabled no-op controls are pinned in
 `tests/fixtures/10bit/wp7-deblocked.sha256`; production code does not consume
 these test fixtures.
+
+The 10B-WP11 release matrix combines 25 synthetic records under
+`tests/fixtures/10bit/avm-reference/` with 18 photographic records under
+`images/artifacts/10bit/avm-reference/`. Each manifest pins the OBU and packed
+little-endian `yuv420p10le` output size and SHA-256. The outputs were decoded
+by the same pinned AVM revision and are consumed only by native, public,
+no-libc, Windows, and WebAssembly parity tests.

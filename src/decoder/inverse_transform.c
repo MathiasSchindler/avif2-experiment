@@ -859,19 +859,25 @@ Av2hStatus av2h_reconstruct_transform_generic_u16(
     }
     coeff_width = output_width > 32U ? 32U : output_width;
     coeff_height = output_height > 32U ? 32U : output_height;
+    av2h_reconstruction_diagnostics_set_inverse_transform_stage(10U);
     if (coefficients->width != coeff_width ||
         coefficients->height != coeff_height ||
         coefficients->coefficient_count !=
-            (uint32_t)coeff_width * coeff_height ||
-        predictor_stride_samples < output_width ||
-        (size_t)output_width * output_height > AV2H_RECON_SAMPLE_CAPACITY ||
-        (mode->fsc_mode != 0U &&
-         transform->primary_type != AV2H_TX_IDTX) ||
-                (mode->skip_transform != 0U &&
-                 !(prefix->all_zero && prefix->eob == 0U &&
-                     coefficients->nonzero_count == 0U))) {
+            (uint32_t)coeff_width * coeff_height) {
         return AV2H_UNSUPPORTED;
     }
+    av2h_reconstruction_diagnostics_set_inverse_transform_stage(11U);
+    if (predictor_stride_samples < output_width ||
+        (size_t)output_width * output_height > AV2H_RECON_SAMPLE_CAPACITY) {
+        return AV2H_UNSUPPORTED;
+    }
+    av2h_reconstruction_diagnostics_set_inverse_transform_stage(12U);
+    if (mode->skip_transform != 0U &&
+        !(prefix->all_zero && prefix->eob == 0U &&
+          coefficients->nonzero_count == 0U)) {
+        return AV2H_UNSUPPORTED;
+    }
+        av2h_reconstruction_diagnostics_set_inverse_transform_stage(13U);
     reconstruction->width = output_width;
     reconstruction->height = output_height;
     if (prefix->all_zero && prefix->eob == 0U &&

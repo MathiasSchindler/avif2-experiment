@@ -74,12 +74,7 @@ Av2hStatus av2h_luma_predict_u16(
     const Av2hFirstLeafMode *mode,
     uint16_t width,
     uint16_t height,
-    const uint16_t *above,
-    size_t above_count,
-    const uint16_t *left,
-    size_t left_count,
-    uint16_t above_left,
-    uint8_t has_above_left,
+    const Av2hLumaReferencesU16 *references,
     uint16_t *predictor,
     size_t predictor_stride_samples);
 
@@ -149,6 +144,34 @@ Av2hStatus av2h_cfl_derived_predict(
     uint8_t have_top,
     uint8_t have_left,
     uint8_t *predictor,
+    size_t predictor_stride_samples);
+
+Av2hStatus av2h_cfl_explicit_predict_u16(
+    const Av2hReconstructionPlaneU16 *luma_plane,
+    uint8_t filter_index,
+    int32_t alpha_q3,
+    uint16_t superblock_size,
+    uint16_t block_x,
+    uint16_t block_y,
+    uint16_t width,
+    uint16_t height,
+    uint8_t have_top,
+    uint8_t have_left,
+    uint16_t *predictor,
+    size_t predictor_stride_samples);
+
+Av2hStatus av2h_cfl_derived_predict_u16(
+    const Av2hReconstructionPlaneU16 *luma_plane,
+    const Av2hReconstructionPlaneU16 *chroma_plane,
+    uint8_t filter_index,
+    uint16_t superblock_size,
+    uint16_t block_x,
+    uint16_t block_y,
+    uint16_t width,
+    uint16_t height,
+    uint8_t have_top,
+    uint8_t have_left,
+    uint16_t *predictor,
     size_t predictor_stride_samples);
 
 Av2hStatus av2h_mhccp_predict_observed(

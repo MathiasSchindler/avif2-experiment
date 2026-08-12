@@ -107,7 +107,8 @@ static Av2hStatus decode_obu(Av2hSpan input,
                             uint16_t *width,
                             uint16_t *height,
                             uint8_t *chroma_format_idc,
-                            Av2hPixelFormat *output_format) {
+                            Av2hPixelFormat *output_format,
+                            Av2hFrameDecodeResult *decode_result) {
     Av2hObu entries[4U];
     Av2hObuLedger ledger = { entries, 4U, 0U };
     Av2hError error;
@@ -121,7 +122,6 @@ static Av2hStatus decode_obu(Av2hSpan input,
     Av2hFilterWorkspace filter_workspace;
     Av2hFilterWorkspaceStorage filter_storage;
     Av2hFrameDecodeWorkspaceLayout workspace_layout;
-    Av2hFrameDecodeResult decode_result = { 0 };
     size_t output_size = 0U;
     size_t bytes_per_sample;
     Av2hStatus status = av2h_obu_parse(input, &ledger, &error);
@@ -170,7 +170,7 @@ static Av2hStatus decode_obu(Av2hSpan input,
     if (status == AV2H_OK) {
         status = av2h_decode_frame_planar_private(
             group.entropy, &sequence, &frame, &workspace,
-            output->memory, output->size, &decode_result);
+            output->memory, output->size, decode_result);
     }
     release_memory(&workspace_memory);
     if (status != AV2H_OK) {
@@ -320,6 +320,7 @@ int main(int argc, char **argv) {
     uint16_t height = 0U;
     uint8_t chroma_format_idc = 0U;
     Av2hPixelFormat output_format;
+    Av2hFrameDecodeResult decode_result = { 0 };
     const char *raw_extension;
     Av2hStatus status;
     int written;
@@ -335,10 +336,23 @@ int main(int argc, char **argv) {
     }
     status = decode_obu(
         (Av2hSpan){ input.memory, input.size }, &output,
-        &width, &height, &chroma_format_idc, &output_format);
+        &width, &height, &chroma_format_idc, &output_format, &decode_result);
     if (status != AV2H_OK) {
-        fprintf(stderr, "error: decode failed: %s\n",
-                av2h_status_string(status));
+        fprintf(stderr, "error: decode failed: %s (cause %u, stage %u)\n",
+                av2h_status_string(status), decode_result.cause,
+                decode_result.stage);
+        fprintf(stderr,
+                "  leaf=(%u,%u) block=%u plane=%u syntax=%u mode=%u "
+                "mrl=%u/%u tx=%u primary=%u fsc=%u skip=%u zero=%u "
+                "eob=%u inverse=%u\n",
+            decode_result.row, decode_result.column,
+            decode_result.block_size, decode_result.plane,
+                decode_result.syntax_stage, decode_result.mode,
+                decode_result.mrl_index, decode_result.multi_line_mrl,
+                decode_result.tx_size, decode_result.primary_type,
+                decode_result.fsc_mode, decode_result.skip_transform,
+                decode_result.all_zero, decode_result.eob,
+                decode_result.inverse_transform_stage);
         release_memory(&input);
         return status == AV2H_UNSUPPORTED ? 3 : 1;
     }

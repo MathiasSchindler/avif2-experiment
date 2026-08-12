@@ -31,11 +31,13 @@ static size_t gdf_bias_index(unsigned int qp_index,
     return (size_t)qp_index * 3U + output_index;
 }
 
-static unsigned int gdf_training_qp_index(const Av2hFrameState *frame) {
+static unsigned int gdf_training_qp_index(const Av2hFrameState *frame,
+                                          unsigned int bit_depth) {
     unsigned int base_index = 0U;
-    if (frame->base_q_index >= 172U) {
+    unsigned int qp_offset = 24U * (bit_depth - 8U);
+    if (frame->base_q_index >= 172U + qp_offset) {
         base_index = 2U;
-    } else if (frame->base_q_index >= 147U) {
+    } else if (frame->base_q_index >= 147U + qp_offset) {
         base_index = 1U;
     }
     return base_index + frame->gdf_qp_index;
@@ -468,7 +470,7 @@ Av2hStatus av2h_gdf_filter_frame_with_controls(
             }
         }
     }
-    qp_index = gdf_training_qp_index(frame);
+    qp_index = gdf_training_qp_index(frame, 8U);
     av2h_plane_copy_u8(
         destination->data, destination->stride_samples,
         cdef_luma->data, cdef_luma->stride_samples,
@@ -560,7 +562,7 @@ Av2hStatus av2h_gdf_filter_frame_u16_with_controls(
             }
         }
     }
-    qp_index = gdf_training_qp_index(frame);
+    qp_index = gdf_training_qp_index(frame, 10U);
     av2h_plane_copy_u16(
         destination->data, destination->stride_samples,
         cdef_luma->data, cdef_luma->stride_samples,
