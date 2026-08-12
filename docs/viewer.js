@@ -13,6 +13,9 @@ const elements = {
   manualRightQp: document.querySelector("#manual-right-qp"),
   zoomSlider: document.querySelector("#zoom-slider"),
   zoomValue: document.querySelector("#zoom-value"),
+  viewer: document.querySelector(".viewer"),
+  comparison: document.querySelector(".comparison"),
+  toolbar: document.querySelector(".toolbar"),
   stage: document.querySelector("#image-stage"),
   dropTarget: document.querySelector("#drop-target"),
   leftCanvas: document.querySelector("#left-canvas"),
@@ -327,6 +330,15 @@ function selectedSources() {
 
 function updateLabels() {
   const { left, right } = selectedSources();
+  const localMode = Boolean(localSource);
+  elements.viewer.classList.toggle("local-mode", localMode);
+  elements.viewer.setAttribute(
+    "aria-label", localMode ? "Decoded AV2 image" : "Decoded AV2 image comparison"
+  );
+  elements.toolbar.setAttribute(
+    "aria-label", localMode ? "Image controls" : "Comparison controls"
+  );
+  elements.comparison.hidden = localMode;
   elements.leftQp.textContent = left.qp ?? "Local";
   elements.manualLeftQp.textContent = left.qp ?? "Local";
   elements.leftQp.setAttribute("aria-label", left.qp ? `A QP ${left.qp}` : "A local file");
@@ -362,7 +374,7 @@ async function updateImages() {
       : await Promise.all([decodeSource(left), decodeSource(right)]);
     if (token !== updateToken) return;
     copyCanvas(leftDecoded.canvas, elements.leftCanvas);
-    copyCanvas(rightDecoded.canvas, elements.rightCanvas);
+    if (!localSource) copyCanvas(rightDecoded.canvas, elements.rightCanvas);
     renderedLeft = leftDecoded;
     elements.downloadButton.disabled = false;
     const leftBpp = left.bytes * 8 / (leftDecoded.width * leftDecoded.height);

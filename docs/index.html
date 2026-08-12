@@ -6,7 +6,7 @@
   <meta name="description" content="Compare AV2 encodes or decode a local OBU frame with the av2heif WebAssembly decoder.">
   <title>AV2 Quality Lab</title>
   <link rel="icon" href="data:,">
-  <link rel="stylesheet" href="viewer.css?v=20260812-wp14">
+  <link rel="stylesheet" href="viewer.css?v=20260812-single">
 </head>
 <body>
   <main>
@@ -61,7 +61,8 @@
 
       <div class="readout" aria-live="polite">
         <div>
-          <span>A · AV2 QP <output id="left-qp">64</output></span>
+          <span class="sample-only">A · AV2 QP <output id="left-qp">64</output></span>
+          <span class="local-only">Local OBU</span>
           <strong id="left-size">-</strong>
           <small id="left-time">-</small>
         </div>
@@ -131,6 +132,6 @@
     </footer>
   </main>
 
-  <script type="module" src="viewer.js?v=20260812-sdp"></script>
+  <script type="module" src="viewer.js?v=20260812-single"></script>
 </body>
 </html>

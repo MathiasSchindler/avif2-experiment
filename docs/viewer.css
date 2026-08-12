@@ -126,6 +126,17 @@ input[type="range"]:disabled { cursor: not-allowed; opacity: .45; }
 .drop-target strong { font: 500 18px/1.2 "IBM Plex Mono", monospace; text-transform: uppercase; }
 .drop-target span { color: #d7ddd8; font-size: 12px; }
 .image-stage.dragging .drop-target { display: grid; }
+.local-only { display: none !important; }
+.viewer.local-mode .scene-control,
+.viewer.local-mode .right-layer,
+.viewer.local-mode .split-line,
+.viewer.local-mode .image-tag,
+.viewer.local-mode .sample-only,
+.viewer.local-mode .readout > div:nth-child(2),
+.viewer.local-mode .readout > div:nth-child(3) { display: none; }
+.viewer.local-mode .local-only { display: block !important; }
+.viewer.local-mode .toolbar { justify-content: end; width: min(130px, calc(100% - 32px)); }
+.viewer.local-mode .readout { grid-template-columns: 1fr 1fr; }
 .readout { display: grid; grid-template-columns: repeat(4, 1fr); color: white; border-top: 1px solid #454d48; }
 .readout div { min-width: 0; padding: 15px 18px; border-right: 1px solid #454d48; }
 .readout div:last-child { border-right: 0; }

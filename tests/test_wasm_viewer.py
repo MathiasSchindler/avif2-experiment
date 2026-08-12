@@ -99,6 +99,12 @@ class WasmViewerTests(unittest.TestCase):
             r'<script type="module" src="viewer\.js\?v=[^"]+">',
         )
 
+    def test_local_file_uses_single_image_mode(self) -> None:
+        self.assertIn('class="local-only">Local OBU</span>', self.html)
+        self.assertIn('classList.toggle("local-mode", localMode)', self.javascript)
+        self.assertIn('elements.comparison.hidden = localMode', self.javascript)
+        self.assertIn('if (!localSource) copyCanvas(', self.javascript)
+
 
 if __name__ == "__main__":
     unittest.main()
