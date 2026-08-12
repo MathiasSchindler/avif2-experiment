@@ -469,7 +469,7 @@ function installStageDragging() {
     elements.rightCanvas.style.transformOrigin = origin;
   };
   elements.stage.addEventListener("pointerdown", event => {
-    if (event.target.closest(".toolbar")) return;
+    if (localSource || event.target.closest(".toolbar")) return;
     event.preventDefault();
     dragging = true;
     elements.stage.setPointerCapture(event.pointerId);
