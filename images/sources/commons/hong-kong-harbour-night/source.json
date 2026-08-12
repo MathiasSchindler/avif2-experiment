@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "id": "hong-kong-harbour-night",
+  "title": "Hong Kong Harbour Night 2019-06-11",
+  "source_class": "commons",
+  "creator": {
+    "name": "Benh LIEU SONG",
+    "url": "https://commons.wikimedia.org/wiki/User:Benh"
+  },
+  "commons": {
+    "page_id": 82284212,
+    "file_page_url": "https://commons.wikimedia.org/wiki/File:Hong_Kong_Harbour_Night_2019-06-11.jpg",
+    "reviewed_revision": 1234814215,
+    "reviewed_revision_url": "https://commons.wikimedia.org/w/index.php?oldid=1234814215",
+    "media_revision_timestamp": "2020-03-22T18:14:56Z",
+    "retrieved_on": "2026-08-12"
+  },
+  "license": {
+    "name": "Creative Commons Attribution-ShareAlike 4.0 International",
+    "spdx": "CC-BY-SA-4.0",
+    "url": "https://creativecommons.org/licenses/by-sa/4.0/legalcode",
+    "local_file": "../../../licenses/CC-BY-SA-4.0-International.txt"
+  },
+  "attribution": {
+    "credit_line": "Benh LIEU SONG",
+    "copyright_notice": null
+  },
+  "original": {
+    "filename": "Hong Kong Harbour Night 2019-06-11.jpg",
+    "mime_type": "image/jpeg",
+    "width": 10439,
+    "height": 4936,
+    "byte_size": 12162479,
+    "sha1": "1f8ffde38294596e7e85a992e7dc8c5cd42b24d7",
+    "sha256": "0bbcc45370d2e639cc38f8d0d38d5385f1630a441e709cd6aa59e4196086e03d",
+    "media_url": "https://upload.wikimedia.org/wikipedia/commons/a/a4/Hong_Kong_Harbour_Night_2019-06-11.jpg",
+    "download_url": "https://upload.wikimedia.org/wikipedia/commons/a/a4/Hong_Kong_Harbour_Night_2019-06-11.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original"
+  },
+  "review": {
+    "status": "reviewed-and-acquired",
+    "reviewed_on": "2026-08-12",
+    "notes": [
+      "Stitched panorama made with Hugin; a later media revision changed color temperature and curves.",
+      "The Flickr source was reviewed under CC BY-SA 2.0; the creator's current Commons page offers this edited media revision under CC BY-SA 4.0, which is the license selected here."
+    ]
+  }
+}

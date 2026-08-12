@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "id": "finland-warbirds",
+  "title": "Finnish Air Force Hawker Hurricane warbird and US Navy T-6 Texan warbird in flight over Finland",
+  "source_class": "commons",
+  "creator": {
+    "name": "Peng Chen",
+    "url": "https://www.flickr.com/photos/pengch/15628815553/"
+  },
+  "commons": {
+    "page_id": 37877284,
+    "file_page_url": "https://commons.wikimedia.org/wiki/File:Finnish_Air_Force_Hawker_Hurricane_warbird_and_US_Navy_T-6_Texan_warbird_in_flight_over_Finland.jpg",
+    "reviewed_revision": 1259495366,
+    "reviewed_revision_url": "https://commons.wikimedia.org/w/index.php?oldid=1259495366",
+    "media_revision_timestamp": "2015-06-09T05:52:01Z",
+    "retrieved_on": "2026-08-12"
+  },
+  "license": {
+    "name": "Creative Commons Attribution-ShareAlike 2.0 Generic",
+    "spdx": "CC-BY-SA-2.0",
+    "url": "https://creativecommons.org/licenses/by-sa/2.0/legalcode.en",
+    "local_file": "../../../licenses/CC-BY-SA-2.0-Generic.html"
+  },
+  "attribution": {
+    "credit_line": "Peng Chen",
+    "copyright_notice": null
+  },
+  "original": {
+    "filename": "Finnish Air Force Hawker Hurricane warbird and US Navy T-6 Texan warbird in flight over Finland.jpg",
+    "mime_type": "image/jpeg",
+    "width": 2560,
+    "height": 1440,
+    "byte_size": 1328325,
+    "sha1": "02581a40dbf47c8a33e99d24f9f5415cb58f4a47",
+    "sha256": "58c047b5f1a30298344b0b7c73200dc08490c70a96c4d26242b2bc51feb2ab51",
+    "media_url": "https://upload.wikimedia.org/wikipedia/commons/7/79/Finnish_Air_Force_Hawker_Hurricane_warbird_and_US_Navy_T-6_Texan_warbird_in_flight_over_Finland.jpg",
+    "download_url": "https://upload.wikimedia.org/wikipedia/commons/7/79/Finnish_Air_Force_Hawker_Hurricane_warbird_and_US_Navy_T-6_Texan_warbird_in_flight_over_Finland.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original"
+  },
+  "review": {
+    "status": "reviewed-and-acquired",
+    "reviewed_on": "2026-08-12",
+    "notes": [
+      "The Flickr source was verified as CC BY-SA 2.0 by Commons in 2015; the live Flickr license later changed, but the earlier grant is irrevocable.",
+      "The current Commons media revision has a watermark removed."
+    ]
+  }
+}

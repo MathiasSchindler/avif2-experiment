@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "id": "succisa-flower-bud",
+  "title": "Bloemknop van een blauwe knoop (Succisa pratensis). 29-08-2023. (d.j.b)",
+  "source_class": "commons",
+  "creator": {
+    "name": "Dominicus Johannes Bergsma",
+    "url": "https://commons.wikimedia.org/wiki/File:Bloemknop_van_een_blauwe_knoop_(Succisa_pratensis)._29-08-2023._(d.j.b).jpg"
+  },
+  "commons": {
+    "page_id": 136831193,
+    "file_page_url": "https://commons.wikimedia.org/wiki/File:Bloemknop_van_een_blauwe_knoop_(Succisa_pratensis)._29-08-2023._(d.j.b).jpg",
+    "reviewed_revision": 1252796453,
+    "reviewed_revision_url": "https://commons.wikimedia.org/w/index.php?oldid=1252796453",
+    "media_revision_timestamp": "2023-12-27T16:31:43Z",
+    "retrieved_on": "2026-08-12"
+  },
+  "license": {
+    "name": "Creative Commons Attribution-ShareAlike 4.0 International",
+    "spdx": "CC-BY-SA-4.0",
+    "url": "https://creativecommons.org/licenses/by-sa/4.0/legalcode",
+    "local_file": "../../../licenses/CC-BY-SA-4.0-International.txt"
+  },
+  "attribution": {
+    "credit_line": "Dominicus Johannes Bergsma",
+    "copyright_notice": null
+  },
+  "original": {
+    "filename": "Bloemknop van een blauwe knoop (Succisa pratensis). 29-08-2023. (d.j.b).jpg",
+    "mime_type": "image/jpeg",
+    "width": 3456,
+    "height": 3456,
+    "byte_size": 8129395,
+    "sha1": "94d5147482b14e04d9c68d4b315d395a90a31ed9",
+    "sha256": "a2ac520c92e3425f8c5c472869286722841dc7509700fcc131816e37d1400b81",
+    "media_url": "https://upload.wikimedia.org/wikipedia/commons/4/4a/Bloemknop_van_een_blauwe_knoop_%28Succisa_pratensis%29._29-08-2023._%28d.j.b%29.jpg",
+    "download_url": "https://upload.wikimedia.org/wikipedia/commons/4/4a/Bloemknop_van_een_blauwe_knoop_%28Succisa_pratensis%29._29-08-2023._%28d.j.b%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original"
+  },
+  "review": {
+    "status": "reviewed-and-acquired",
+    "reviewed_on": "2026-08-12",
+    "notes": [
+      "Focus stack assembled from 36 photographs."
+    ]
+  }
+}

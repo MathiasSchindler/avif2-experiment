@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "id": "jinan-grand-theater",
+  "title": "Jinan Grand Theater-20150520-RM-170343",
+  "source_class": "commons",
+  "creator": {
+    "name": "Reinhold Möller",
+    "url": "https://commons.wikimedia.org/wiki/User:Ermell"
+  },
+  "commons": {
+    "page_id": 106054366,
+    "file_page_url": "https://commons.wikimedia.org/wiki/File:Jinan_Grand_Theater-20150520-RM-170343.jpg",
+    "reviewed_revision": 1255022112,
+    "reviewed_revision_url": "https://commons.wikimedia.org/w/index.php?oldid=1255022112",
+    "media_revision_timestamp": "2021-05-28T08:47:11Z",
+    "retrieved_on": "2026-08-12"
+  },
+  "license": {
+    "name": "Creative Commons Attribution-ShareAlike 4.0 International",
+    "spdx": "CC-BY-SA-4.0",
+    "url": "https://creativecommons.org/licenses/by-sa/4.0/legalcode",
+    "local_file": "../../../licenses/CC-BY-SA-4.0-International.txt"
+  },
+  "attribution": {
+    "credit_line": "Reinhold Möller",
+    "copyright_notice": null
+  },
+  "original": {
+    "filename": "Jinan Grand Theater-20150520-RM-170343.jpg",
+    "mime_type": "image/jpeg",
+    "width": 4418,
+    "height": 3314,
+    "byte_size": 7438268,
+    "sha1": "6bed06cffb388e62084f1706e78c532583519e5e",
+    "sha256": "d602a3dfada4320c31f7bdac83c9e352fd9ce682b368fd2b516abc531bec12d4",
+    "media_url": "https://upload.wikimedia.org/wikipedia/commons/1/17/Jinan_Grand_Theater-20150520-RM-170343.jpg",
+    "download_url": "https://upload.wikimedia.org/wikipedia/commons/1/17/Jinan_Grand_Theater-20150520-RM-170343.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original"
+  },
+  "review": {
+    "status": "reviewed-and-acquired-with-caveat",
+    "reviewed_on": "2026-08-12",
+    "notes": [
+      "Retain the Commons page's social-media compatibility warning.",
+      "Review any applicable interior-design rights before public redistribution."
+    ]
+  }
+}

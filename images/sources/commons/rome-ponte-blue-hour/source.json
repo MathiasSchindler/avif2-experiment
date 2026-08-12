@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "id": "rome-ponte-blue-hour",
+  "title": "Rom (IT), Brücke ‘Ponte Vittorio Emanuele II’ -- 2024 -- 0732",
+  "source_class": "commons",
+  "creator": {
+    "name": "Anil Öztas",
+    "url": "https://anil-oeztas.de/"
+  },
+  "commons": {
+    "page_id": 151974955,
+    "file_page_url": "https://commons.wikimedia.org/wiki/File:Rom_(IT),_Br%C3%BCcke_%E2%80%9EPonte_Vittorio_Emanuele_II%E2%80%9C_--_2024_--_0732.jpg",
+    "reviewed_revision": 1256318675,
+    "reviewed_revision_url": "https://commons.wikimedia.org/w/index.php?oldid=1256318675",
+    "media_revision_timestamp": "2024-10-18T16:08:58Z",
+    "retrieved_on": "2026-08-12"
+  },
+  "license": {
+    "name": "Creative Commons Attribution 4.0 International",
+    "spdx": "CC-BY-4.0",
+    "url": "https://creativecommons.org/licenses/by/4.0/legalcode",
+    "local_file": "../../../licenses/CC-BY-4.0-International.txt"
+  },
+  "attribution": {
+    "credit_line": "© Anil Öztas",
+    "copyright_notice": "© Anil Öztas"
+  },
+  "original": {
+    "filename": "Rom (IT), Brücke „Ponte Vittorio Emanuele II“ -- 2024 -- 0732.jpg",
+    "mime_type": "image/jpeg",
+    "width": 5888,
+    "height": 3926,
+    "byte_size": 19872949,
+    "sha1": "2169782c2babb32b3cb2ae0299552a183c65b074",
+    "sha256": "ac909e6b3bb33643e04ae3fa3014642c0e5800f03685fc3184fc57fcebbd6502",
+    "media_url": "https://upload.wikimedia.org/wikipedia/commons/2/27/Rom_%28IT%29%2C_Br%C3%BCcke_%E2%80%9EPonte_Vittorio_Emanuele_II%E2%80%9C_--_2024_--_0732.jpg",
+    "download_url": "https://upload.wikimedia.org/wikipedia/commons/2/27/Rom_%28IT%29%2C_Br%C3%BCcke_%E2%80%9EPonte_Vittorio_Emanuele_II%E2%80%9C_--_2024_--_0732.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original"
+  },
+  "review": {
+    "status": "reviewed-and-acquired",
+    "reviewed_on": "2026-08-12",
+    "notes": [
+      "Commons records VRT permission ticket 2024112110010768."
+    ]
+  }
+}

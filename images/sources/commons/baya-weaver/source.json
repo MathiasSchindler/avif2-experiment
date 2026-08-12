@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "id": "baya-weaver",
+  "title": "Baya Weaver in Bhigwan August 2025 by Tisha Mukherjee 04",
+  "source_class": "commons",
+  "creator": {
+    "name": "Tisha Mukherjee",
+    "url": "https://commons.wikimedia.org/wiki/User:Tisha_Mukherjee"
+  },
+  "commons": {
+    "page_id": 173073047,
+    "file_page_url": "https://commons.wikimedia.org/wiki/File:Baya_Weaver_in_Bhigwan_August_2025_by_Tisha_Mukherjee_04.jpg",
+    "reviewed_revision": 1260205636,
+    "reviewed_revision_url": "https://commons.wikimedia.org/w/index.php?oldid=1260205636",
+    "observed_current_revision": 1260219325,
+    "media_revision_timestamp": "2025-08-19T17:15:10Z",
+    "retrieved_on": "2026-08-12"
+  },
+  "license": {
+    "name": "Creative Commons Attribution-ShareAlike 4.0 International",
+    "spdx": "CC-BY-SA-4.0",
+    "url": "https://creativecommons.org/licenses/by-sa/4.0/legalcode",
+    "local_file": "../../../licenses/CC-BY-SA-4.0-International.txt"
+  },
+  "attribution": {
+    "credit_line": "Tisha Mukherjee",
+    "copyright_notice": null
+  },
+  "original": {
+    "filename": "Baya Weaver in Bhigwan August 2025 by Tisha Mukherjee 04.jpg",
+    "mime_type": "image/jpeg",
+    "width": 3162,
+    "height": 2108,
+    "byte_size": 2909038,
+    "sha1": "ee07e380de16f0d7cf12a8251671014946937a44",
+    "sha256": "376aaf85243f1e8186e82203440f6c18a96213138bf949d381daef5a4effe6d1",
+    "media_url": "https://upload.wikimedia.org/wikipedia/commons/e/ee/Baya_Weaver_in_Bhigwan_August_2025_by_Tisha_Mukherjee_04.jpg",
+    "download_url": "https://upload.wikimedia.org/wikipedia/commons/e/ee/Baya_Weaver_in_Bhigwan_August_2025_by_Tisha_Mukherjee_04.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original"
+  },
+  "review": {
+    "status": "reviewed-and-acquired",
+    "reviewed_on": "2026-08-12",
+    "notes": [
+      "After review, anonymous revision 1260219325 inserted unrelated text into the permission field and renamed a linked derivative. The media bytes did not change; retain reviewed revision 1260205636 until the page is repaired and reviewed again."
+    ]
+  }
+}

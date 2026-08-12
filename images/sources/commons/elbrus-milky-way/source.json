@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "id": "elbrus-milky-way",
+  "title": "Milky way in Elbrus",
+  "source_class": "commons",
+  "creator": {
+    "name": "oliwok",
+    "url": "https://commons.wikimedia.org/wiki/User:Oliwok"
+  },
+  "commons": {
+    "page_id": 132162731,
+    "file_page_url": "https://commons.wikimedia.org/wiki/File:Milky_way_in_Elbrus.jpg",
+    "reviewed_revision": 1259339443,
+    "reviewed_revision_url": "https://commons.wikimedia.org/w/index.php?oldid=1259339443",
+    "media_revision_timestamp": "2023-05-21T06:33:18Z",
+    "retrieved_on": "2026-08-12"
+  },
+  "license": {
+    "name": "Creative Commons Attribution 4.0 International",
+    "spdx": "CC-BY-4.0",
+    "url": "https://creativecommons.org/licenses/by/4.0/legalcode",
+    "local_file": "../../../licenses/CC-BY-4.0-International.txt"
+  },
+  "attribution": {
+    "credit_line": "oliwok",
+    "copyright_notice": null
+  },
+  "original": {
+    "filename": "Milky way in Elbrus.jpg",
+    "mime_type": "image/jpeg",
+    "width": 3648,
+    "height": 5472,
+    "byte_size": 27322996,
+    "sha1": "93dad04e4acbcb43f43070aaf7900fd4df9c58de",
+    "sha256": "d63c51651ff220983db323a0a65fb5e8c983c80c3b229d07f59f72d19d997457",
+    "media_url": "https://upload.wikimedia.org/wikipedia/commons/5/55/Milky_way_in_Elbrus.jpg",
+    "download_url": "https://upload.wikimedia.org/wikipedia/commons/5/55/Milky_way_in_Elbrus.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original"
+  },
+  "review": {
+    "status": "reviewed-and-acquired",
+    "reviewed_on": "2026-08-12",
+    "notes": [
+      "High-ISO long exposure."
+    ]
+  }
+}

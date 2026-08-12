@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "id": "pitti-ceiling",
+  "title": "Palacio Pitti, Florencia, Italia, 2022-09-18, DD 163-165 HDR",
+  "source_class": "commons",
+  "creator": {
+    "name": "Diego Delso",
+    "url": "https://www.delso.photo/"
+  },
+  "commons": {
+    "page_id": 125639199,
+    "file_page_url": "https://commons.wikimedia.org/wiki/File:Palacio_Pitti,_Florencia,_Italia,_2022-09-18,_DD_163-165_HDR.jpg",
+    "reviewed_revision": 1227113384,
+    "reviewed_revision_url": "https://commons.wikimedia.org/w/index.php?oldid=1227113384",
+    "media_revision_timestamp": "2023-04-04T06:02:09Z",
+    "retrieved_on": "2026-08-12"
+  },
+  "license": {
+    "name": "Creative Commons Attribution-ShareAlike 4.0 International",
+    "spdx": "CC-BY-SA-4.0",
+    "url": "https://creativecommons.org/licenses/by-sa/4.0/legalcode",
+    "local_file": "../../../licenses/CC-BY-SA-4.0-International.txt"
+  },
+  "attribution": {
+    "credit_line": "Diego Delso, delso.photo, License CC BY-SA",
+    "copyright_notice": null
+  },
+  "original": {
+    "filename": "Palacio Pitti, Florencia, Italia, 2022-09-18, DD 163-165 HDR.jpg",
+    "mime_type": "image/jpeg",
+    "width": 5515,
+    "height": 5515,
+    "byte_size": 10837769,
+    "sha1": "ba731df0fa7091edf8793113b715f2dc7b49a1fd",
+    "sha256": "7e2ae23c457635e4c324c49fa37219dfa8e6c1913a320fb9c81a25b2c2ebbedd",
+    "media_url": "https://upload.wikimedia.org/wikipedia/commons/4/4e/Palacio_Pitti%2C_Florencia%2C_Italia%2C_2022-09-18%2C_DD_163-165_HDR.jpg",
+    "download_url": "https://upload.wikimedia.org/wikipedia/commons/4/4e/Palacio_Pitti%2C_Florencia%2C_Italia%2C_2022-09-18%2C_DD_163-165_HDR.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original"
+  },
+  "review": {
+    "status": "reviewed-and-acquired",
+    "reviewed_on": "2026-08-12",
+    "notes": [
+      "Tone-mapped HDR assembled from multiple exposures.",
+      "Identify prepared and encoded outputs as modifications."
+    ]
+  }
+}

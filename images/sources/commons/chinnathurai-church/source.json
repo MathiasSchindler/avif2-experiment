@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "id": "chinnathurai-church",
+  "title": "Front Judes Church Chinnathurai Tamil Nadu crop Mar24 A7C 10007",
+  "source_class": "commons",
+  "creator": {
+    "name": "Timothy A. Gonsalves",
+    "url": "https://commons.wikimedia.org/wiki/User:TAGooty"
+  },
+  "commons": {
+    "page_id": 175108402,
+    "file_page_url": "https://commons.wikimedia.org/wiki/File:Front_Judes_Church_Chinnathurai_Tamil_Nadu_crop_Mar24_A7C_10007.jpg",
+    "reviewed_revision": 1246934269,
+    "reviewed_revision_url": "https://commons.wikimedia.org/w/index.php?oldid=1246934269",
+    "media_revision_timestamp": "2025-09-17T03:27:53Z",
+    "retrieved_on": "2026-08-12"
+  },
+  "license": {
+    "name": "Creative Commons Attribution-ShareAlike 4.0 International",
+    "spdx": "CC-BY-SA-4.0",
+    "url": "https://creativecommons.org/licenses/by-sa/4.0/legalcode",
+    "local_file": "../../../licenses/CC-BY-SA-4.0-International.txt"
+  },
+  "attribution": {
+    "credit_line": "Timothy A. Gonsalves",
+    "copyright_notice": null
+  },
+  "original": {
+    "filename": "Front Judes Church Chinnathurai Tamil Nadu crop Mar24 A7C 10007.jpg",
+    "mime_type": "image/jpeg",
+    "width": 3629,
+    "height": 3629,
+    "byte_size": 8666685,
+    "sha1": "32f7b708c73f700010f5e61176008a1774f10166",
+    "sha256": "d0362ecda7af79ccac66754ff94cd3c41c77192fa84583a68e77ea21c2a56323",
+    "media_url": "https://upload.wikimedia.org/wikipedia/commons/6/67/Front_Judes_Church_Chinnathurai_Tamil_Nadu_crop_Mar24_A7C_10007.jpg",
+    "download_url": "https://upload.wikimedia.org/wikipedia/commons/6/67/Front_Judes_Church_Chinnathurai_Tamil_Nadu_crop_Mar24_A7C_10007.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original"
+  },
+  "review": {
+    "status": "reviewed-and-acquired",
+    "reviewed_on": "2026-08-12",
+    "notes": [
+      "Extracted and cropped from another photograph.",
+      "The current media includes AI-assisted distraction removal and a previously cloned-out bird.",
+      "The creator's request for contact before commercial use is non-binding and does not narrow CC BY-SA 4.0."
+    ]
+  }
+}

@@ -402,6 +402,16 @@ make test-artifact-lab
 
 The machine-readable result is `build/artifact-lab/manifest.json`.
 
+## Licensing
+
+The decoder source and other material covered by the repository root
+[`LICENSE`](LICENSE) are released under CC0 1.0. The photographs under
+[`images/`](images/README.md), their prepared forms, encoded derivatives,
+previews, and decoded reference outputs are separately licensed works and are
+not covered by that CC0 dedication. See
+[`images/ATTRIBUTION.md`](images/ATTRIBUTION.md) and the per-source records for
+the applicable attribution and license terms.
+
 Run the query and fixture-parity gate with:
 
 ```sh
