@@ -1,4 +1,58 @@
 {
   "schema_version": 1,
-  "encodings": []
+  "avm_revision": "966a7d7cd6fcf60360caf5dc413b2aeeb65e144d",
+  "suites": [
+    {
+      "id": "photographic-8bit",
+      "preparation_ids": [
+        "le896",
+        "le1440"
+      ],
+      "baseline_pixel_format": "i420",
+      "baseline_qps": [
+        96,
+        152
+      ],
+      "format_coverage": {
+        "preparation_id": "le896",
+        "pixel_formats": [
+          "i400",
+          "i444"
+        ],
+        "qps": [
+          152
+        ]
+      },
+      "spectrum": {
+        "source_id": "pastel-chalks",
+        "preparation_id": "le896",
+        "pixel_format": "i420",
+        "additional_qps": [
+          0,
+          48,
+          208,
+          255
+        ]
+      },
+      "supplemental_outputs": {
+        "decoded_yuv_alias": true,
+        "decoded_png": true
+      },
+      "encoder": {
+        "codec": "av2",
+        "container": "obu",
+        "frames": 1,
+        "passes": 1,
+        "deadline": "good",
+        "cpu_used": 9,
+        "thread_policy": "all detected logical cores",
+        "parallel_jobs": 8,
+        "row_mt": true,
+        "bit_depth": 8,
+        "input_bit_depth": 8,
+        "rate_control": "q",
+        "test_decode": "fatal"
+      }
+    }
+  ]
 }

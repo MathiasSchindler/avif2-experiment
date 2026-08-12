@@ -20,11 +20,12 @@ large media during configuration, build, or test.
 - `licenses/` contains exact copies of the three Creative Commons legal-code
   editions selected for this batch.
 - `recipes/` contains the versioned preparation, encoding, and suite
-  contracts plus the tracked prepared-output lock.
+  contracts plus the tracked prepared-output and reference locks.
 - `prepared/` contains generated RGB masters, planar encoder inputs, and
   per-preparation manifests. It is ignored by Git and can be regenerated.
-- `reference/` and `reports/` are working/output areas for later stages. Bulk
-  files in those directories remain ignored.
+- `reference/` contains pinned-AVM encoded OBUs, decoded planes, and case
+  manifests. Its bulk files remain ignored. `reports/` is reserved for later
+  analysis.
 - `old/` preserves the previous layout during migration and must not be used as
   a provenance source for new releases.
 - `plan.md` defines the full preparation, AVM reference, validation, and
@@ -120,6 +121,56 @@ The current files were generated with ImageMagick 7.1.2-18 Q16 and FFmpeg
 environment. Cross-platform byte identity has not yet been established, so
 these outputs are the current locked preparation set rather than proof that
 arbitrary ImageMagick/FFmpeg builds reproduce it exactly.
+
+## AVM references
+
+The implemented `photographic-8bit` suite contains 88 one-frame cases tied to
+AVM revision `966a7d7cd6fcf60360caf5dc413b2aeeb65e144d`:
+
+- I420 at QP 96 and 152 for all 28 prepared images (56 cases);
+- I400 and I444 at QP 152 for all 14 `le896` preparations (28 cases);
+- I420 at QP 0, 48, 208, and 255 for `pastel-chalks/le896` (4 cases).
+
+QP 96 provides the higher-quality baseline requested around 90. QP 152 is the
+main compressed reference around 140-160 and also anchors format comparisons.
+The Pastel spectrum exercises the lossless endpoint, an intermediate point,
+strong compression, and the maximum QP without multiplying every image by six
+settings.
+
+Each case lives under
+`reference/avm-<revision>/photographic-8bit/<case-id>/` and contains
+`encoded.obu`, a normative `decoded.i400`, `decoded.i420`, or `decoded.i444`,
+plus a byte-identical `decoded.yuv` alias, an 8-bit RGB `decoded.png` preview,
+and `manifest.json`. The extension-specific planar file remains normative;
+`.yuv` is a convenience alias because that extension does not identify a pixel
+layout. Both supplemental files are generated and locked for every case.
+
+Generate the complete matrix and refresh `recipes/reference-lock.json` with:
+
+```sh
+python3 tools/generate_image_references.py --threads 24 --jobs 8
+```
+
+Every `avmenc` invocation receives all 24 detected logical cores and row
+multithreading. Eight independent still-image cases run concurrently because a
+single encode does not saturate this host. Filters `--source`, `--preparation`,
+`--pixel-format`, and `--qp` are available for probes; a filtered run does not
+rewrite the complete lock. `--resume` reuses existing case manifests during a
+full interrupted run.
+
+Verify the tracked lock alone, or require and hash every ignored local file:
+
+```sh
+python3 tools/verify_image_references.py
+python3 tools/verify_image_references.py --require-files
+```
+
+The lock pins the AVM source revision plus SHA-256 identities of `avmenc` and
+`avmdec`. Each manifest records normalized commands, the exact prepared input,
+the parsed OBU ledger, and all output hashes. The current payload is
+318,088,662 bytes (313 MiB on disk). Regenerating the representative Pitti case
+was byte-identical for its OBU, decoded files, PNG, and manifest on this Linux
+host. This is measured local reproducibility, not yet a cross-platform claim.
 
 ## Licensing
 

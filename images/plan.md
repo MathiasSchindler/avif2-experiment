@@ -6,11 +6,11 @@ This document describes the replacement for the organically grown image and
 artifact layout now preserved under `images/old/`. The source layer is
 implemented: the initial Commons originals, reviewed source records, exact
 license texts, attribution, and directory skeleton are in place. The initial
-896- and 1440-long-edge preparation profiles, outputs, per-output manifests,
-and tracked lock are also implemented. Cross-platform preparation parity and
-reference generation remain planned work. The old files should remain
-available until every active test, generator, report, and viewer asset has been
-migrated.
+896- and 1440-long-edge preparations and the 88-case pinned-AVM reference set,
+including per-output manifests and tracked locks, are also implemented.
+Cross-platform parity and local-decoder comparison remain planned work. The old
+files should remain available until every active test, generator, report, and
+viewer asset has been migrated.
 
 The replacement corpus has four goals:
 
@@ -116,6 +116,8 @@ images/
         <case-id>/
           encoded.obu
           decoded.<pixel-format>
+          decoded.yuv       # byte-identical convenience alias
+          decoded.png       # RGB8 visual preview
           manifest.json
 
   reports/
@@ -270,10 +272,20 @@ than host-specific absolute paths. Generation should occur in a temporary
 directory, validate all outputs, and publish only a complete successful run.
 It must not delete supplemental evidence owned by another stage.
 
-Encoding should use one frame and one thread and should run twice to detect
-nondeterminism. OBU byte reproducibility and decoded-pixel reproducibility are
-separate claims: both should be measured, and neither should be assumed merely
-because the AVM revision is pinned.
+The implemented `photographic-8bit` matrix uses one frame per stream. I420 QP
+96 and 152 cover all 28 preparations; I400 and I444 QP 152 cover every `le896`
+preparation; and Pastel I420 at 896 adds QP 0, 48, 208, and 255. This yields 88
+cases without a full image/size/format/QP Cartesian product. QP 96 is the
+higher-quality anchor, QP 152 is the main compressed and format-comparison
+anchor, and the four Pastel points extend coverage through the maximum QP.
+
+Generation uses `--threads=24 --row-mt=1` for each AVM invocation and runs
+eight independent cases concurrently on the current 24-core host. The complete
+run took 8 minutes 16 seconds and approximately 147 CPU-minutes. The
+representative Pitti I420 QP 152 case reproduced byte for byte across two local
+runs, including the OBU and decoded output. OBU byte reproducibility and
+decoded-pixel reproducibility remain separate claims, and cross-platform
+identity must not be inferred merely because the AVM revision is pinned.
 
 ## Corpus composition
 
@@ -359,8 +371,10 @@ Suggested suites are:
 - `geometry`: intentional odd and boundary dimensions;
 - `viewer`: modest assets intended for browser distribution.
 
-Do not retain BMP previews unless BMP itself is under test. PNG previews can be
-generated on demand and avoid much of the current duplication.
+Do not retain BMP previews unless BMP itself is under test. Every implemented
+AVM reference retains an RGB8 PNG preview for direct inspection and a
+byte-identical `.yuv` alias for tools that expect the generic extension. The
+format-specific decoded plane remains the normative output.
 
 ## Tracking and validation policy
 
