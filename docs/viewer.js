@@ -14,6 +14,7 @@ const elements = {
   zoomSlider: document.querySelector("#zoom-slider"),
   zoomValue: document.querySelector("#zoom-value"),
   stage: document.querySelector("#image-stage"),
+  dropTarget: document.querySelector("#drop-target"),
   leftCanvas: document.querySelector("#left-canvas"),
   rightCanvas: document.querySelector("#right-canvas"),
   rightLayer: document.querySelector("#right-layer"),
@@ -39,8 +40,15 @@ const elements = {
 
 const statusNames = [
   "OK", "invalid argument", "truncated input", "invalid data",
-  "unsupported feature", "integer overflow", "out of memory",
-  "not found", "limit exceeded",
+  "integer overflow", "limit exceeded", "out of memory",
+  "unsupported feature",
+];
+
+const decodeStageNames = [
+  "none", "initialization", "luma parsing", "luma reconstruction",
+  "luma deblock", "luma commit", "chroma parsing",
+  "chroma cross-transform", "chroma reconstruction", "chroma deblock",
+  "chroma commit", "completeness check", "filtering", "output",
 ];
 
 let wasm;
@@ -236,7 +244,11 @@ async function decodeAv2Source(source) {
   const elapsed = performance.now() - started;
   if (status !== 0 || resultStatus !== 0) {
     const name = statusNames[resultStatus] ?? `status ${resultStatus}`;
-    throw new Error(`${source.name}: ${name} (cause ${cause}, stage ${stage}).`);
+    const causeName = statusNames[cause] ?? `cause ${cause}`;
+    const stageName = decodeStageNames[stage] ?? `stage ${stage}`;
+    throw new Error(
+      `${source.name}: ${name} (cause: ${causeName}; stage: ${stageName}).`
+    );
   }
   const pixels = new Uint8Array(outputSize);
   pixels.set(new Uint8Array(wasm.memory.buffer, outputPointer, outputSize));
@@ -488,6 +500,11 @@ function createBmp(canvas) {
 
 async function openLocalFile(file) {
   if (!file || !wasm) return;
+  if (!file.name.toLowerCase().endsWith(".obu")) {
+    elements.runtimeStatus.textContent = `${file.name}: choose an .obu file.`;
+    elements.runtimeStatus.className = "runtime-status error";
+    return;
+  }
   localSource = {
     kind: "av2",
     key: `local:${++localSequence}`,
@@ -504,7 +521,8 @@ async function openLocalFile(file) {
 async function initialize() {
   try {
     const [manifestResponse, wasmResponse] = await Promise.all([
-      fetch("assets/manifest.json"), fetch("decoder.wasm"),
+      fetch("assets/manifest.json", { cache: "no-cache" }),
+      fetch("decoder.wasm?v=20260812-wp14", { cache: "no-cache" }),
     ]);
     if (!manifestResponse.ok || !wasmResponse.ok) throw new Error("Demo assets are unavailable.");
     manifest = await manifestResponse.json();
@@ -573,18 +591,32 @@ elements.splitLine.addEventListener("keydown", event => {
   const value = Number(elements.splitLine.getAttribute("aria-valuenow"));
   updateSplit(Math.max(5, Math.min(95, value + direction * 5)));
 });
-for (const eventName of ["dragenter", "dragover"]) {
-  elements.stage.addEventListener(eventName, event => {
-    event.preventDefault();
-    elements.stage.classList.add("dragging");
-  });
+let fileDragDepth = 0;
+function hasDraggedFiles(event) {
+  return [...(event.dataTransfer?.types ?? [])].includes("Files");
 }
-for (const eventName of ["dragleave", "drop"]) {
-  elements.stage.addEventListener(eventName, event => {
-    event.preventDefault();
-    elements.stage.classList.remove("dragging");
-  });
-}
-elements.stage.addEventListener("drop", event => openLocalFile(event.dataTransfer?.files[0]));
+window.addEventListener("dragenter", event => {
+  if (!hasDraggedFiles(event)) return;
+  event.preventDefault();
+  fileDragDepth += 1;
+  elements.stage.classList.add("dragging");
+});
+window.addEventListener("dragover", event => {
+  if (!hasDraggedFiles(event)) return;
+  event.preventDefault();
+  if (event.dataTransfer) event.dataTransfer.dropEffect = "copy";
+});
+window.addEventListener("dragleave", event => {
+  if (!hasDraggedFiles(event)) return;
+  fileDragDepth = Math.max(0, fileDragDepth - 1);
+  if (fileDragDepth === 0) elements.stage.classList.remove("dragging");
+});
+window.addEventListener("drop", event => {
+  if (!hasDraggedFiles(event)) return;
+  event.preventDefault();
+  fileDragDepth = 0;
+  elements.stage.classList.remove("dragging");
+  openLocalFile(event.dataTransfer?.files[0]);
+});
 installStageDragging();
 initialize();

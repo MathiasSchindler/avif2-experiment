@@ -110,6 +110,22 @@ input[type="range"]:disabled { cursor: not-allowed; opacity: .45; }
 .tag-left { left: 14px; background: var(--a); }
 .tag-right { right: 14px; background: var(--b); }
 .loading { position: absolute; z-index: 6; inset: 0; display: grid; place-items: center; background: rgba(20, 24, 21, .8); color: white; font: 500 12px/1 "IBM Plex Mono", monospace; text-transform: uppercase; }
+.drop-target {
+  position: absolute;
+  z-index: 7;
+  inset: 12px;
+  display: none;
+  place-content: center;
+  gap: 7px;
+  border: 2px dashed rgba(255, 255, 255, .85);
+  background: rgba(21, 25, 23, .9);
+  color: white;
+  text-align: center;
+  pointer-events: none;
+}
+.drop-target strong { font: 500 18px/1.2 "IBM Plex Mono", monospace; text-transform: uppercase; }
+.drop-target span { color: #d7ddd8; font-size: 12px; }
+.image-stage.dragging .drop-target { display: grid; }
 .readout { display: grid; grid-template-columns: repeat(4, 1fr); color: white; border-top: 1px solid #454d48; }
 .readout div { min-width: 0; padding: 15px 18px; border-right: 1px solid #454d48; }
 .readout div:last-child { border-right: 0; }
