@@ -522,7 +522,7 @@ async function initialize() {
   try {
     const [manifestResponse, wasmResponse] = await Promise.all([
       fetch("assets/manifest.json", { cache: "no-cache" }),
-      fetch("decoder.wasm?v=20260812-wp14", { cache: "no-cache" }),
+      fetch("decoder.wasm?v=20260812-sdp", { cache: "no-cache" }),
     ]);
     if (!manifestResponse.ok || !wasmResponse.ok) throw new Error("Demo assets are unavailable.");
     manifest = await manifestResponse.json();
