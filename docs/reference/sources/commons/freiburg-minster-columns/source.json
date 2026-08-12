@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "id": "freiburg-minster-columns",
+  "title": "Freiburg im Breisgau, Münster, Vorhalle -- 2025 -- 7903 (kreativ 1)",
+  "source_class": "commons",
+  "creator": {
+    "name": "Dietmar Rabich",
+    "url": "https://commons.wikimedia.org/wiki/User:XRay"
+  },
+  "commons": {
+    "page_id": 168592330,
+    "file_page_url": "https://commons.wikimedia.org/wiki/File:Freiburg_im_Breisgau,_M%C3%BCnster,_Vorhalle_--_2025_--_7903_(kreativ_1).jpg",
+    "reviewed_revision": 1250960945,
+    "reviewed_revision_url": "https://commons.wikimedia.org/w/index.php?oldid=1250960945",
+    "media_revision_timestamp": "2025-06-26T19:20:45Z",
+    "retrieved_on": "2026-08-12"
+  },
+  "license": {
+    "name": "Creative Commons Attribution-ShareAlike 4.0 International",
+    "spdx": "CC-BY-SA-4.0",
+    "url": "https://creativecommons.org/licenses/by-sa/4.0/legalcode",
+    "local_file": "../../../licenses/CC-BY-SA-4.0-International.txt"
+  },
+  "attribution": {
+    "credit_line": "Dietmar Rabich / Wikimedia Commons / “Freiburg im Breisgau, Münster, Vorhalle -- 2025 -- 7903 (kreativ 1)” / CC BY-SA 4.0",
+    "copyright_notice": null
+  },
+  "original": {
+    "filename": "Freiburg im Breisgau, Münster, Vorhalle -- 2025 -- 7903 (kreativ 1).jpg",
+    "mime_type": "image/jpeg",
+    "width": 4480,
+    "height": 6720,
+    "byte_size": 14864515,
+    "sha1": "acff94db9947871ce5e1ab8af13ec63ca83771bb",
+    "sha256": "b9ecf811f5da13fc3f9cd4061f0ba838f233569b434a258ffed0a4f7f8ec0305",
+    "media_url": "https://upload.wikimedia.org/wikipedia/commons/8/8d/Freiburg_im_Breisgau%2C_M%C3%BCnster%2C_Vorhalle_--_2025_--_7903_%28kreativ_1%29.jpg",
+    "download_url": "https://upload.wikimedia.org/wikipedia/commons/8/8d/Freiburg_im_Breisgau%2C_M%C3%BCnster%2C_Vorhalle_--_2025_--_7903_%28kreativ_1%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original"
+  },
+  "courtesy": {
+    "notice_url": "https://commons.wikimedia.org/wiki/User_talk:XRay#c-Mathias_Schindler-20260812144900-Bildkompressionsverfahren",
+    "notified_on": "2026-08-12",
+    "permission_required": false,
+    "silence_is_approval": false,
+    "withdraw_on_objection": true
+  },
+  "review": {
+    "status": "reviewed-and-acquired",
+    "reviewed_on": "2026-08-12",
+    "notes": [
+      "Intentional camera movement; mirrored, combined, and rotated in post-processing.",
+      "Retain the original unchanged; preserve title, author, source, license, and relevant embedded metadata in dataset records when a derivative format cannot carry the JPEG metadata structure.",
+      "Identify prepared and encoded outputs as modifications."
+    ]
+  }
+}

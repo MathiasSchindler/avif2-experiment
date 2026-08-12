@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "id": "toco-toucan",
+  "title": "006 Toco toucan in Encontro das Águas State Park Photo by Giles Laurent",
+  "source_class": "commons",
+  "creator": {
+    "name": "Giles Laurent",
+    "url": "https://gileslaurent.com/"
+  },
+  "commons": {
+    "page_id": 169905497,
+    "file_page_url": "https://commons.wikimedia.org/wiki/File:006_Toco_toucan_in_Encontro_das_%C3%81guas_State_Park_Photo_by_Giles_Laurent.jpg",
+    "reviewed_revision": 1255977494,
+    "reviewed_revision_url": "https://commons.wikimedia.org/w/index.php?oldid=1255977494",
+    "media_revision_timestamp": "2025-07-13T21:37:21Z",
+    "retrieved_on": "2026-08-12"
+  },
+  "license": {
+    "name": "Creative Commons Attribution-ShareAlike 4.0 International",
+    "spdx": "CC-BY-SA-4.0",
+    "url": "https://creativecommons.org/licenses/by-sa/4.0/legalcode",
+    "local_file": "../../../licenses/CC-BY-SA-4.0-International.txt"
+  },
+  "attribution": {
+    "credit_line": "© Giles Laurent, gileslaurent.com, License CC BY-SA",
+    "copyright_notice": "© Giles Laurent"
+  },
+  "original": {
+    "filename": "006 Toco toucan in Encontro das Águas State Park Photo by Giles Laurent.jpg",
+    "mime_type": "image/jpeg",
+    "width": 6914,
+    "height": 4609,
+    "byte_size": 15023557,
+    "sha1": "0f1b04de5157237de377d0dab4c69f4f157ddff6",
+    "sha256": "db109e821238d333e40028a651bb78f857b55e40ef03bbec2913e52d367cbdef",
+    "media_url": "https://upload.wikimedia.org/wikipedia/commons/b/b0/006_Toco_toucan_in_Encontro_das_%C3%81guas_State_Park_Photo_by_Giles_Laurent.jpg",
+    "download_url": "https://upload.wikimedia.org/wikipedia/commons/b/b0/006_Toco_toucan_in_Encontro_das_%C3%81guas_State_Park_Photo_by_Giles_Laurent.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original"
+  },
+  "review": {
+    "status": "reviewed-and-acquired",
+    "reviewed_on": "2026-08-12",
+    "notes": []
+  }
+}

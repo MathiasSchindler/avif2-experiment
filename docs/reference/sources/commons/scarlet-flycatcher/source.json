@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "id": "scarlet-flycatcher",
+  "title": "095 Scarlet Flycatcher in Encontro das Águas State Park Photo by Giles Laurent",
+  "source_class": "commons",
+  "creator": {
+    "name": "Giles Laurent",
+    "url": "https://gileslaurent.com/"
+  },
+  "commons": {
+    "page_id": 170082395,
+    "file_page_url": "https://commons.wikimedia.org/wiki/File:095_Scarlet_Flycatcher_in_Encontro_das_%C3%81guas_State_Park_Photo_by_Giles_Laurent.jpg",
+    "reviewed_revision": 1246417320,
+    "reviewed_revision_url": "https://commons.wikimedia.org/w/index.php?oldid=1246417320",
+    "media_revision_timestamp": "2025-09-25T20:55:07Z",
+    "retrieved_on": "2026-08-12"
+  },
+  "license": {
+    "name": "Creative Commons Attribution-ShareAlike 4.0 International",
+    "spdx": "CC-BY-SA-4.0",
+    "url": "https://creativecommons.org/licenses/by-sa/4.0/legalcode",
+    "local_file": "../../../licenses/CC-BY-SA-4.0-International.txt"
+  },
+  "attribution": {
+    "credit_line": "© Giles Laurent, gileslaurent.com, License CC BY-SA",
+    "copyright_notice": "© Giles Laurent"
+  },
+  "original": {
+    "filename": "095 Scarlet Flycatcher in Encontro das Águas State Park Photo by Giles Laurent.jpg",
+    "mime_type": "image/jpeg",
+    "width": 2848,
+    "height": 1899,
+    "byte_size": 3289321,
+    "sha1": "965fcaaab391a3fc1d4bdfcd0bd530524b711c58",
+    "sha256": "725bb593d0e0ad20018f8cca1b770450432148b0d90f72633a4f55f9302a8a10",
+    "media_url": "https://upload.wikimedia.org/wikipedia/commons/6/64/095_Scarlet_Flycatcher_in_Encontro_das_%C3%81guas_State_Park_Photo_by_Giles_Laurent.jpg",
+    "download_url": "https://upload.wikimedia.org/wikipedia/commons/6/64/095_Scarlet_Flycatcher_in_Encontro_das_%C3%81guas_State_Park_Photo_by_Giles_Laurent.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original"
+  },
+  "review": {
+    "status": "reviewed-and-acquired",
+    "reviewed_on": "2026-08-12",
+    "notes": [
+      "Current media is a reworked, slightly cropped revision with shadow edits."
+    ]
+  }
+}

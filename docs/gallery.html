@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Explore the AV2 photographic reference corpus in a WebAssembly-decoded gallery.">
+  <title>AV2 Reference Gallery</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="gallery.css?v=20260812-gallery1">
+</head>
+<body>
+  <main>
+    <header class="masthead">
+      <div>
+        <p class="eyebrow">av2heif / Reference corpus</p>
+        <h1>AV2 Reference Gallery</h1>
+      </div>
+      <nav aria-label="Demo pages">
+        <a class="command" href="index.html">Quality Lab</a>
+        <output id="runtime-status" class="runtime-status">Loading decoder</output>
+      </nav>
+    </header>
+
+    <section class="gallery-controls" aria-labelledby="gallery-controls-title">
+      <div>
+        <p class="eyebrow">88 encoded variants</p>
+        <h2 id="gallery-controls-title">One corpus, six standard views</h2>
+      </div>
+      <label>
+        <span>Gallery preset</span>
+        <select id="preset-select">
+          <option value="le896|i420|96">896 edge · I420 · QP 96</option>
+          <option value="le896|i420|152" selected>896 edge · I420 · QP 152</option>
+          <option value="le1440|i420|96">1440 edge · I420 · QP 96</option>
+          <option value="le1440|i420|152">1440 edge · I420 · QP 152</option>
+          <option value="le896|i400|152">896 edge · monochrome · QP 152</option>
+          <option value="le896|i444|152">896 edge · I444 · QP 152</option>
+        </select>
+      </label>
+    </section>
+
+    <section id="gallery" class="gallery" aria-label="Photographic reference images"></section>
+
+    <footer>
+      <p>Images decode locally from the retained AV2 OBU streams. Each item links to its reviewed source record, creator, source page, and license.</p>
+      <p id="revision"></p>
+    </footer>
+  </main>
+
+  <dialog id="detail-dialog" class="detail-dialog">
+    <div class="detail-heading">
+      <div>
+        <p id="detail-credit" class="eyebrow"></p>
+        <h2 id="detail-title"></h2>
+      </div>
+      <button id="detail-close" class="icon-button" type="button" aria-label="Close detail view" title="Close">×</button>
+    </div>
+    <div class="detail-toolbar">
+      <label>
+        <span>Variant</span>
+        <select id="detail-variant"></select>
+      </label>
+      <label>
+        <span>Zoom <output id="detail-zoom-value">100%</output></span>
+        <input id="detail-zoom" type="range" min="100" max="400" step="25" value="100">
+      </label>
+    </div>
+    <div id="detail-stage" class="detail-stage">
+      <canvas id="detail-canvas" role="img"></canvas>
+      <div id="detail-loading" class="loading">Decoding AV2</div>
+    </div>
+    <div class="detail-meta">
+      <span id="detail-spec"></span>
+      <span id="detail-size"></span>
+      <span id="detail-time"></span>
+    </div>
+  </dialog>
+
+  <script type="module" src="gallery.js?v=20260812-gallery1"></script>
+</body>
+</html>

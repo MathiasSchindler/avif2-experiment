@@ -172,6 +172,21 @@ the parsed OBU ledger, and all output hashes. The current payload is
 was byte-identical for its OBU, decoded files, PNG, and manifest on this Linux
 host. This is measured local reproducibility, not yet a cross-platform claim.
 
+### Browser gallery
+
+Publish the reference gallery bundle after generating or updating the local
+reference corpus with:
+
+```sh
+make reference-gallery
+```
+
+This verifies and copies all 88 encoded OBUs, the 14 reviewed `source.json`
+records, and their three legal-code files into `docs/reference/`, then writes
+the aggregate manifest consumed by `docs/gallery.html`. The published OBU
+payload is 4.91 MiB; decoded planes and PNG previews are not duplicated because
+the gallery renders the streams through `docs/decoder.wasm`.
+
 ## Licensing
 
 The repository root CC0 dedication does not apply to these photographs or to

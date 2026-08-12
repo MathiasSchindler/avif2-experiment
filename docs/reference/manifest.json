@@ -1,0 +1,1474 @@
+{
+  "schema": "av2h-reference-gallery-v1",
+  "avm_revision": "966a7d7cd6fcf60360caf5dc413b2aeeb65e144d",
+  "source_count": 14,
+  "variant_count": 88,
+  "sources": [
+    {
+      "id": "baya-weaver",
+      "name": "Baya Weaver",
+      "title": "Baya Weaver in Bhigwan August 2025 by Tisha Mukherjee 04",
+      "creator": {
+        "name": "Tisha Mukherjee",
+        "url": "https://commons.wikimedia.org/wiki/User:Tisha_Mukherjee"
+      },
+      "attribution": {
+        "credit_line": "Tisha Mukherjee",
+        "copyright_notice": null
+      },
+      "commons_url": "https://commons.wikimedia.org/wiki/File:Baya_Weaver_in_Bhigwan_August_2025_by_Tisha_Mukherjee_04.jpg",
+      "license": {
+        "name": "Creative Commons Attribution-ShareAlike 4.0 International",
+        "spdx": "CC-BY-SA-4.0",
+        "url": "https://creativecommons.org/licenses/by-sa/4.0/legalcode",
+        "local_file": "licenses/CC-BY-SA-4.0-International.txt"
+      },
+      "metadata": "sources/commons/baya-weaver/source.json",
+      "variants": [
+        {
+          "id": "baya-weaver-le1440-i420-qp096",
+          "file": "streams/baya-weaver-le1440-i420-qp096.obu",
+          "preparation": "le1440",
+          "pixel_format": "i420",
+          "qp": 96,
+          "width": 1440,
+          "height": 960,
+          "bytes": 63699,
+          "sha256": "6cda9e993c2302a3f1a84c2edfbb9c42d3f1e4905e245dbec6977afc4a795a85",
+          "decoded_bytes": 2073600,
+          "decoded_sha256": "4d82a5bd2c99f8a3816501851b7c67676059b96e1722438abdb61d92681ca290"
+        },
+        {
+          "id": "baya-weaver-le1440-i420-qp152",
+          "file": "streams/baya-weaver-le1440-i420-qp152.obu",
+          "preparation": "le1440",
+          "pixel_format": "i420",
+          "qp": 152,
+          "width": 1440,
+          "height": 960,
+          "bytes": 12118,
+          "sha256": "35526375afc8c9c7e8b014895b256f2d3464b68d107457ada30c9a5912653053",
+          "decoded_bytes": 2073600,
+          "decoded_sha256": "4b59e358eea45da0941a04b88d210c468d20c0a1fc56a100d2c27e20b720b83d"
+        },
+        {
+          "id": "baya-weaver-le896-i400-qp152",
+          "file": "streams/baya-weaver-le896-i400-qp152.obu",
+          "preparation": "le896",
+          "pixel_format": "i400",
+          "qp": 152,
+          "width": 896,
+          "height": 598,
+          "bytes": 4857,
+          "sha256": "0fe9bda978b5658e60e64b9371cb1cd5fff8dd20dbafa4b62a3997db2866995e",
+          "decoded_bytes": 535808,
+          "decoded_sha256": "3baa650985799411ce91f9f6d465845eff130ef806984ee9419986ec90ec5cd8"
+        },
+        {
+          "id": "baya-weaver-le896-i420-qp096",
+          "file": "streams/baya-weaver-le896-i420-qp096.obu",
+          "preparation": "le896",
+          "pixel_format": "i420",
+          "qp": 96,
+          "width": 896,
+          "height": 598,
+          "bytes": 27884,
+          "sha256": "3fe7dec887b8ab0a868cc5bce6dfd64fc1cb8583f4376b135a6a943a95bc08dc",
+          "decoded_bytes": 803712,
+          "decoded_sha256": "aa896423b225d1112bbec97531ee70ace7d61141f9e60eae8bc4b870e6160542"
+        },
+        {
+          "id": "baya-weaver-le896-i420-qp152",
+          "file": "streams/baya-weaver-le896-i420-qp152.obu",
+          "preparation": "le896",
+          "pixel_format": "i420",
+          "qp": 152,
+          "width": 896,
+          "height": 598,
+          "bytes": 5454,
+          "sha256": "8c8cfc9297a60d643e6f6503c8e9fb3bdf39a0820202a3326888c164b2d81ed0",
+          "decoded_bytes": 803712,
+          "decoded_sha256": "5b89b2b6a57c90ebe39f4c09d56f819a6bd33374ddfff8f83acada77f27af968"
+        },
+        {
+          "id": "baya-weaver-le896-i444-qp152",
+          "file": "streams/baya-weaver-le896-i444-qp152.obu",
+          "preparation": "le896",
+          "pixel_format": "i444",
+          "qp": 152,
+          "width": 896,
+          "height": 598,
+          "bytes": 6043,
+          "sha256": "920c138df682a64767c8333f102af680de53086a72065c5ceaf73499b5ac7023",
+          "decoded_bytes": 1607424,
+          "decoded_sha256": "858c749fcf62b88c2aaa18e59fbc8ed5a654fb7c9254f866617e15af3a7746f6"
+        }
+      ]
+    },
+    {
+      "id": "chinnathurai-church",
+      "name": "Chinnathurai Church",
+      "title": "Front Judes Church Chinnathurai Tamil Nadu crop Mar24 A7C 10007",
+      "creator": {
+        "name": "Timothy A. Gonsalves",
+        "url": "https://commons.wikimedia.org/wiki/User:TAGooty"
+      },
+      "attribution": {
+        "credit_line": "Timothy A. Gonsalves",
+        "copyright_notice": null
+      },
+      "commons_url": "https://commons.wikimedia.org/wiki/File:Front_Judes_Church_Chinnathurai_Tamil_Nadu_crop_Mar24_A7C_10007.jpg",
+      "license": {
+        "name": "Creative Commons Attribution-ShareAlike 4.0 International",
+        "spdx": "CC-BY-SA-4.0",
+        "url": "https://creativecommons.org/licenses/by-sa/4.0/legalcode",
+        "local_file": "licenses/CC-BY-SA-4.0-International.txt"
+      },
+      "metadata": "sources/commons/chinnathurai-church/source.json",
+      "variants": [
+        {
+          "id": "chinnathurai-church-le1440-i420-qp096",
+          "file": "streams/chinnathurai-church-le1440-i420-qp096.obu",
+          "preparation": "le1440",
+          "pixel_format": "i420",
+          "qp": 96,
+          "width": 1440,
+          "height": 1440,
+          "bytes": 190608,
+          "sha256": "e8a2499375f871b1b20a62752b0521a4f987ff6db729fedfc16330edb682e0c0",
+          "decoded_bytes": 3110400,
+          "decoded_sha256": "a5eec3a14a5ac7e08ddca7b5a3f5bc55a6747c1903a0b54bb90bf4205d067c4e"
+        },
+        {
+          "id": "chinnathurai-church-le1440-i420-qp152",
+          "file": "streams/chinnathurai-church-le1440-i420-qp152.obu",
+          "preparation": "le1440",
+          "pixel_format": "i420",
+          "qp": 152,
+          "width": 1440,
+          "height": 1440,
+          "bytes": 35740,
+          "sha256": "33636d54d6a82745ea83cf8cb37da4cc17f82ab0d2ce8c0fe49abee6c66cd304",
+          "decoded_bytes": 3110400,
+          "decoded_sha256": "25bcbd6004a6464d5c5f0e26facd68da99d8afd49c7d126b2cbc83dd2eb67ef1"
+        },
+        {
+          "id": "chinnathurai-church-le896-i400-qp152",
+          "file": "streams/chinnathurai-church-le896-i400-qp152.obu",
+          "preparation": "le896",
+          "pixel_format": "i400",
+          "qp": 152,
+          "width": 896,
+          "height": 896,
+          "bytes": 13951,
+          "sha256": "5dfb4034806669a00715b0b1532fe1c513a8c4631bf4a55a2f1eae19c2b7d2a8",
+          "decoded_bytes": 802816,
+          "decoded_sha256": "11cc533324a344db6ea3b58f101a13a077197b7039bea86822ba0fabc358c769"
+        },
+        {
+          "id": "chinnathurai-church-le896-i420-qp096",
+          "file": "streams/chinnathurai-church-le896-i420-qp096.obu",
+          "preparation": "le896",
+          "pixel_format": "i420",
+          "qp": 96,
+          "width": 896,
+          "height": 896,
+          "bytes": 74834,
+          "sha256": "4b39c70b14e1dc12f8651a8c352dc1df9ae0c4dc2300cd9e164226d4b761f564",
+          "decoded_bytes": 1204224,
+          "decoded_sha256": "e68df5801f38ca5923b9b92e5d000d62d1d5ac1b10e1de4ea819dd095cec846e"
+        },
+        {
+          "id": "chinnathurai-church-le896-i420-qp152",
+          "file": "streams/chinnathurai-church-le896-i420-qp152.obu",
+          "preparation": "le896",
+          "pixel_format": "i420",
+          "qp": 152,
+          "width": 896,
+          "height": 896,
+          "bytes": 15019,
+          "sha256": "2e0e47321490a62a93f00ae42437c56db3d1bab584d8a614c6d48c0a8763c0b8",
+          "decoded_bytes": 1204224,
+          "decoded_sha256": "51f521f6846d965bb0ecb1abbb56f6d97f7de1a50c088660ae6b42d86dc9bc9f"
+        },
+        {
+          "id": "chinnathurai-church-le896-i444-qp152",
+          "file": "streams/chinnathurai-church-le896-i444-qp152.obu",
+          "preparation": "le896",
+          "pixel_format": "i444",
+          "qp": 152,
+          "width": 896,
+          "height": 896,
+          "bytes": 16344,
+          "sha256": "9d1562e4729f9bb3a5422523c071862b9cc95fabd8c2ab0d79d94fc93dde7818",
+          "decoded_bytes": 2408448,
+          "decoded_sha256": "d189d3f3e180877937075d8d56e0695950a95469488040cdd4749a12f708cd56"
+        }
+      ]
+    },
+    {
+      "id": "elbrus-milky-way",
+      "name": "Elbrus Milky Way",
+      "title": "Milky way in Elbrus",
+      "creator": {
+        "name": "oliwok",
+        "url": "https://commons.wikimedia.org/wiki/User:Oliwok"
+      },
+      "attribution": {
+        "credit_line": "oliwok",
+        "copyright_notice": null
+      },
+      "commons_url": "https://commons.wikimedia.org/wiki/File:Milky_way_in_Elbrus.jpg",
+      "license": {
+        "name": "Creative Commons Attribution 4.0 International",
+        "spdx": "CC-BY-4.0",
+        "url": "https://creativecommons.org/licenses/by/4.0/legalcode",
+        "local_file": "licenses/CC-BY-4.0-International.txt"
+      },
+      "metadata": "sources/commons/elbrus-milky-way/source.json",
+      "variants": [
+        {
+          "id": "elbrus-milky-way-le1440-i420-qp096",
+          "file": "streams/elbrus-milky-way-le1440-i420-qp096.obu",
+          "preparation": "le1440",
+          "pixel_format": "i420",
+          "qp": 96,
+          "width": 960,
+          "height": 1440,
+          "bytes": 289432,
+          "sha256": "b24753bbe27e05db6ac7fbdfc6650623ccf57fe86fc3bf135f13c5241ac62332",
+          "decoded_bytes": 2073600,
+          "decoded_sha256": "f10edf3f90da2e21c78472855573d3af79b7750122b181ea45600fdd62d9e390"
+        },
+        {
+          "id": "elbrus-milky-way-le1440-i420-qp152",
+          "file": "streams/elbrus-milky-way-le1440-i420-qp152.obu",
+          "preparation": "le1440",
+          "pixel_format": "i420",
+          "qp": 152,
+          "width": 960,
+          "height": 1440,
+          "bytes": 27499,
+          "sha256": "cbabc9040af97cc55b16d7f122a74f39c35bedd8a771df643bf725ce4dd070ef",
+          "decoded_bytes": 2073600,
+          "decoded_sha256": "5bbe75490c33445c9f649c79c4f20911703adc98440d9372a2af0eac358908e7"
+        },
+        {
+          "id": "elbrus-milky-way-le896-i400-qp152",
+          "file": "streams/elbrus-milky-way-le896-i400-qp152.obu",
+          "preparation": "le896",
+          "pixel_format": "i400",
+          "qp": 152,
+          "width": 598,
+          "height": 896,
+          "bytes": 9044,
+          "sha256": "8f6c896b59c63efeabaee94b0d9e5fed043c70fb4427d87458f953c16c4b4c01",
+          "decoded_bytes": 535808,
+          "decoded_sha256": "17a7b56c218e13464ed4f0dc38459e4501e08ed2f8f7039c401025561d918eb4"
+        },
+        {
+          "id": "elbrus-milky-way-le896-i420-qp096",
+          "file": "streams/elbrus-milky-way-le896-i420-qp096.obu",
+          "preparation": "le896",
+          "pixel_format": "i420",
+          "qp": 96,
+          "width": 598,
+          "height": 896,
+          "bytes": 97215,
+          "sha256": "d4de7160b7220a2dd024bbcf13bf2002440b00bd1e8816ee81e254c94d38c3ac",
+          "decoded_bytes": 803712,
+          "decoded_sha256": "ec2e9a8beb3d67d8304a7eba57f2b695becc1b638fabede7048987252c2e3ca8"
+        },
+        {
+          "id": "elbrus-milky-way-le896-i420-qp152",
+          "file": "streams/elbrus-milky-way-le896-i420-qp152.obu",
+          "preparation": "le896",
+          "pixel_format": "i420",
+          "qp": 152,
+          "width": 598,
+          "height": 896,
+          "bytes": 9259,
+          "sha256": "15e6a269a7fdf6d12cdaba3163e24df465dcc7fbf46035145a5fd509a458f8f9",
+          "decoded_bytes": 803712,
+          "decoded_sha256": "0f7bc0f50575113ed8c3ecdf8b9d74e2acb55e1fcf15b56d7f2e62c38a1b2389"
+        },
+        {
+          "id": "elbrus-milky-way-le896-i444-qp152",
+          "file": "streams/elbrus-milky-way-le896-i444-qp152.obu",
+          "preparation": "le896",
+          "pixel_format": "i444",
+          "qp": 152,
+          "width": 598,
+          "height": 896,
+          "bytes": 9489,
+          "sha256": "3f7d3ab8623e551c2dd2f0aa615b632cc90e02443c6473bf75e68567346515e1",
+          "decoded_bytes": 1607424,
+          "decoded_sha256": "d498c578e7cfba7d73f1eb424ec65396b8b48d6ae7cbf86f95a4771cc76aaac0"
+        }
+      ]
+    },
+    {
+      "id": "emerald-swift",
+      "name": "Emerald Swift",
+      "title": "Emerald swift (Sceloporus malachiticus) Finca El Pilar",
+      "creator": {
+        "name": "Charles J. Sharp",
+        "url": "https://www.sharpphotography.co.uk/"
+      },
+      "attribution": {
+        "credit_line": "Charles J. Sharp",
+        "copyright_notice": null
+      },
+      "commons_url": "https://commons.wikimedia.org/wiki/File:Emerald_swift_(Sceloporus_malachiticus)_Finca_El_Pilar.jpg",
+      "license": {
+        "name": "Creative Commons Attribution-ShareAlike 4.0 International",
+        "spdx": "CC-BY-SA-4.0",
+        "url": "https://creativecommons.org/licenses/by-sa/4.0/legalcode",
+        "local_file": "licenses/CC-BY-SA-4.0-International.txt"
+      },
+      "metadata": "sources/commons/emerald-swift/source.json",
+      "variants": [
+        {
+          "id": "emerald-swift-le1440-i420-qp096",
+          "file": "streams/emerald-swift-le1440-i420-qp096.obu",
+          "preparation": "le1440",
+          "pixel_format": "i420",
+          "qp": 96,
+          "width": 1440,
+          "height": 720,
+          "bytes": 250316,
+          "sha256": "dae35798774cd73859b68a9dc4db33ae3abf957cfe020f50e8573350aa60d582",
+          "decoded_bytes": 1555200,
+          "decoded_sha256": "f5e568f69be70b5452e9ed5fc6ad9c2cd3bd320acd3a67c41150268d7cb84329"
+        },
+        {
+          "id": "emerald-swift-le1440-i420-qp152",
+          "file": "streams/emerald-swift-le1440-i420-qp152.obu",
+          "preparation": "le1440",
+          "pixel_format": "i420",
+          "qp": 152,
+          "width": 1440,
+          "height": 720,
+          "bytes": 82758,
+          "sha256": "9cd885f14d5704a25e6ac82f8dac3b4eeca32c04ededa174499c996318e51867",
+          "decoded_bytes": 1555200,
+          "decoded_sha256": "225ba5e4bc508c2cfff29aae4ca13eaa2bc174fd4765cfd8f9f1ec73abe8d479"
+        },
+        {
+          "id": "emerald-swift-le896-i400-qp152",
+          "file": "streams/emerald-swift-le896-i400-qp152.obu",
+          "preparation": "le896",
+          "pixel_format": "i400",
+          "qp": 152,
+          "width": 896,
+          "height": 448,
+          "bytes": 32168,
+          "sha256": "ee019306bf480b33c45fb7f33b5fbb485797c89b6f32edfafac874a0c030f1c2",
+          "decoded_bytes": 401408,
+          "decoded_sha256": "64ec43f8bb7ba5db1d0418dd9e03897198592b2cf6209e3d6fa6b4b24fdc85db"
+        },
+        {
+          "id": "emerald-swift-le896-i420-qp096",
+          "file": "streams/emerald-swift-le896-i420-qp096.obu",
+          "preparation": "le896",
+          "pixel_format": "i420",
+          "qp": 96,
+          "width": 896,
+          "height": 448,
+          "bytes": 101908,
+          "sha256": "f705bd3f8c5f83153ee5ae006366314abae06beb49fe72a46d37a6696fb046f9",
+          "decoded_bytes": 602112,
+          "decoded_sha256": "63001fe548db122f517777bca69c2ab6d36e55cd9eb60e4ef7ceeb3644bca031"
+        },
+        {
+          "id": "emerald-swift-le896-i420-qp152",
+          "file": "streams/emerald-swift-le896-i420-qp152.obu",
+          "preparation": "le896",
+          "pixel_format": "i420",
+          "qp": 152,
+          "width": 896,
+          "height": 448,
+          "bytes": 32814,
+          "sha256": "72219c08c38db8d9b37333a1d31c442c9549504184a9e8b635cfefe4006bb3d1",
+          "decoded_bytes": 602112,
+          "decoded_sha256": "66d3bc528092b520433d50636c0782cebb1c6da8b8f4aa7287bc1c434c87b77d"
+        },
+        {
+          "id": "emerald-swift-le896-i444-qp152",
+          "file": "streams/emerald-swift-le896-i444-qp152.obu",
+          "preparation": "le896",
+          "pixel_format": "i444",
+          "qp": 152,
+          "width": 896,
+          "height": 448,
+          "bytes": 34013,
+          "sha256": "f180acf7dfd21ee31135a028fb17218f97570036430a6313b2aebbcd62370fbc",
+          "decoded_bytes": 1204224,
+          "decoded_sha256": "99063994c32050d71668566905d155bf245f5867f804d0d87843b946d0f417d7"
+        }
+      ]
+    },
+    {
+      "id": "finland-warbirds",
+      "name": "Finland Warbirds",
+      "title": "Finnish Air Force Hawker Hurricane warbird and US Navy T-6 Texan warbird in flight over Finland",
+      "creator": {
+        "name": "Peng Chen",
+        "url": "https://www.flickr.com/photos/pengch/15628815553/"
+      },
+      "attribution": {
+        "credit_line": "Peng Chen",
+        "copyright_notice": null
+      },
+      "commons_url": "https://commons.wikimedia.org/wiki/File:Finnish_Air_Force_Hawker_Hurricane_warbird_and_US_Navy_T-6_Texan_warbird_in_flight_over_Finland.jpg",
+      "license": {
+        "name": "Creative Commons Attribution-ShareAlike 2.0 Generic",
+        "spdx": "CC-BY-SA-2.0",
+        "url": "https://creativecommons.org/licenses/by-sa/2.0/legalcode.en",
+        "local_file": "licenses/CC-BY-SA-2.0-Generic.html"
+      },
+      "metadata": "sources/commons/finland-warbirds/source.json",
+      "variants": [
+        {
+          "id": "finland-warbirds-le1440-i420-qp096",
+          "file": "streams/finland-warbirds-le1440-i420-qp096.obu",
+          "preparation": "le1440",
+          "pixel_format": "i420",
+          "qp": 96,
+          "width": 1440,
+          "height": 810,
+          "bytes": 69060,
+          "sha256": "7134a6829749ed24ea42726165d2f51a363898da7734616d04818fbea5cb84fc",
+          "decoded_bytes": 1749600,
+          "decoded_sha256": "786afad82e7dbf64010cc8bbdd7a021cf2c777d907a9cc6834953b4e3c943f64"
+        },
+        {
+          "id": "finland-warbirds-le1440-i420-qp152",
+          "file": "streams/finland-warbirds-le1440-i420-qp152.obu",
+          "preparation": "le1440",
+          "pixel_format": "i420",
+          "qp": 152,
+          "width": 1440,
+          "height": 810,
+          "bytes": 13621,
+          "sha256": "ad8f61c7efdaf442d5ad93d59b41d2927ffdf9e299e12affd448cdb15561f1b5",
+          "decoded_bytes": 1749600,
+          "decoded_sha256": "f559fa85a2324ee21714e7d9ad867a6dad1c50f779535f0b0cb949c891c848c5"
+        },
+        {
+          "id": "finland-warbirds-le896-i400-qp152",
+          "file": "streams/finland-warbirds-le896-i400-qp152.obu",
+          "preparation": "le896",
+          "pixel_format": "i400",
+          "qp": 152,
+          "width": 896,
+          "height": 504,
+          "bytes": 6996,
+          "sha256": "5bf696ea567180dbcd3b772ba38eaf4b93a87e39ff6bf0db0cafa0bb9e68cd1d",
+          "decoded_bytes": 451584,
+          "decoded_sha256": "f6c047ea6b65e7d295615007ac1e6e9c8045212a86ee07c79744526533525e6a"
+        },
+        {
+          "id": "finland-warbirds-le896-i420-qp096",
+          "file": "streams/finland-warbirds-le896-i420-qp096.obu",
+          "preparation": "le896",
+          "pixel_format": "i420",
+          "qp": 96,
+          "width": 896,
+          "height": 504,
+          "bytes": 35413,
+          "sha256": "aae331790fc42fec7e6bf61a3a24fb133a95518d6a18afe4f375f5b099abf939",
+          "decoded_bytes": 677376,
+          "decoded_sha256": "6c4b8e97dc14cf5aa115a26c076cdca6f705ac23537be25e52acc86e378b778e"
+        },
+        {
+          "id": "finland-warbirds-le896-i420-qp152",
+          "file": "streams/finland-warbirds-le896-i420-qp152.obu",
+          "preparation": "le896",
+          "pixel_format": "i420",
+          "qp": 152,
+          "width": 896,
+          "height": 504,
+          "bytes": 7824,
+          "sha256": "252691b0c97cb4a6ae066c9835fe050a8868c66ccf567cc0b612fed535a8cf2c",
+          "decoded_bytes": 677376,
+          "decoded_sha256": "f60bd143a967c3f56bd6fd8cd1533431ead4a100b84584388ef4256c39a088fa"
+        },
+        {
+          "id": "finland-warbirds-le896-i444-qp152",
+          "file": "streams/finland-warbirds-le896-i444-qp152.obu",
+          "preparation": "le896",
+          "pixel_format": "i444",
+          "qp": 152,
+          "width": 896,
+          "height": 504,
+          "bytes": 9089,
+          "sha256": "b0a1156fdddfc22e29f8893c786dc2af11f7146600e4a4593d552f144ba6134a",
+          "decoded_bytes": 1354752,
+          "decoded_sha256": "57697e060421d4538e0faa900fdddf52f34d7e84b24af24b683ff19902c84cd6"
+        }
+      ]
+    },
+    {
+      "id": "freiburg-minster-columns",
+      "name": "Freiburg Minster Columns",
+      "title": "Freiburg im Breisgau, Münster, Vorhalle -- 2025 -- 7903 (kreativ 1)",
+      "creator": {
+        "name": "Dietmar Rabich",
+        "url": "https://commons.wikimedia.org/wiki/User:XRay"
+      },
+      "attribution": {
+        "credit_line": "Dietmar Rabich / Wikimedia Commons / “Freiburg im Breisgau, Münster, Vorhalle -- 2025 -- 7903 (kreativ 1)” / CC BY-SA 4.0",
+        "copyright_notice": null
+      },
+      "commons_url": "https://commons.wikimedia.org/wiki/File:Freiburg_im_Breisgau,_M%C3%BCnster,_Vorhalle_--_2025_--_7903_(kreativ_1).jpg",
+      "license": {
+        "name": "Creative Commons Attribution-ShareAlike 4.0 International",
+        "spdx": "CC-BY-SA-4.0",
+        "url": "https://creativecommons.org/licenses/by-sa/4.0/legalcode",
+        "local_file": "licenses/CC-BY-SA-4.0-International.txt"
+      },
+      "metadata": "sources/commons/freiburg-minster-columns/source.json",
+      "variants": [
+        {
+          "id": "freiburg-minster-columns-le1440-i420-qp096",
+          "file": "streams/freiburg-minster-columns-le1440-i420-qp096.obu",
+          "preparation": "le1440",
+          "pixel_format": "i420",
+          "qp": 96,
+          "width": 960,
+          "height": 1440,
+          "bytes": 94421,
+          "sha256": "aba11515f0acb542d476b369c0825b58677945b3128ebe4f1b5c9de43c6b191b",
+          "decoded_bytes": 2073600,
+          "decoded_sha256": "bd23382661b8e159c1e5443ab0cb8e4d7be542136395baf9333955b89b2ab5f3"
+        },
+        {
+          "id": "freiburg-minster-columns-le1440-i420-qp152",
+          "file": "streams/freiburg-minster-columns-le1440-i420-qp152.obu",
+          "preparation": "le1440",
+          "pixel_format": "i420",
+          "qp": 152,
+          "width": 960,
+          "height": 1440,
+          "bytes": 22810,
+          "sha256": "6213ca8609241e16a7da812a7315cc7bc6fa6e88f8b9f52626c9f49f84eaeb09",
+          "decoded_bytes": 2073600,
+          "decoded_sha256": "bc098cddeb3ecb3e4567b42c8ed83978c9cdd4d63691eed3edd36d6dc95d5004"
+        },
+        {
+          "id": "freiburg-minster-columns-le896-i400-qp152",
+          "file": "streams/freiburg-minster-columns-le896-i400-qp152.obu",
+          "preparation": "le896",
+          "pixel_format": "i400",
+          "qp": 152,
+          "width": 598,
+          "height": 896,
+          "bytes": 9873,
+          "sha256": "ebf229509424455302f0f6f61121d8ae35e17e1d4a13decc8440ba0a6d65c48f",
+          "decoded_bytes": 535808,
+          "decoded_sha256": "4bedbe0b2b47c4f9e3c09d08f8a91e1219eb37135a0268806f1896181b9a77a8"
+        },
+        {
+          "id": "freiburg-minster-columns-le896-i420-qp096",
+          "file": "streams/freiburg-minster-columns-le896-i420-qp096.obu",
+          "preparation": "le896",
+          "pixel_format": "i420",
+          "qp": 96,
+          "width": 598,
+          "height": 896,
+          "bytes": 55790,
+          "sha256": "287b8cedc03b664e580af84b0147caf0af454bd35ea1b7e829e87587fb951519",
+          "decoded_bytes": 803712,
+          "decoded_sha256": "67b4b5a99636f2dfe78e429673a300094e31462e000f4eaa9b83f0852ea9e695"
+        },
+        {
+          "id": "freiburg-minster-columns-le896-i420-qp152",
+          "file": "streams/freiburg-minster-columns-le896-i420-qp152.obu",
+          "preparation": "le896",
+          "pixel_format": "i420",
+          "qp": 152,
+          "width": 598,
+          "height": 896,
+          "bytes": 14822,
+          "sha256": "1b6d1b2ad0eef400ad2b9cf4661bf6b5cd5e4e7f3015566516ca265abf0f1331",
+          "decoded_bytes": 803712,
+          "decoded_sha256": "fc5b5ad857b83d216b38f15f6bca7043efc5fad3b395ea7c59ad3b535cce3b0c"
+        },
+        {
+          "id": "freiburg-minster-columns-le896-i444-qp152",
+          "file": "streams/freiburg-minster-columns-le896-i444-qp152.obu",
+          "preparation": "le896",
+          "pixel_format": "i444",
+          "qp": 152,
+          "width": 598,
+          "height": 896,
+          "bytes": 20068,
+          "sha256": "d971cacab072dc81c3436d7c59d320149e28cd07377385a5ba397e8727e96030",
+          "decoded_bytes": 1607424,
+          "decoded_sha256": "af1f8d9594a6a69b10563d9ef8e825819b8e8899dae5c0869e6c0fb345748c98"
+        }
+      ]
+    },
+    {
+      "id": "hong-kong-harbour-night",
+      "name": "Hong Kong Harbour Night",
+      "title": "Hong Kong Harbour Night 2019-06-11",
+      "creator": {
+        "name": "Benh LIEU SONG",
+        "url": "https://commons.wikimedia.org/wiki/User:Benh"
+      },
+      "attribution": {
+        "credit_line": "Benh LIEU SONG",
+        "copyright_notice": null
+      },
+      "commons_url": "https://commons.wikimedia.org/wiki/File:Hong_Kong_Harbour_Night_2019-06-11.jpg",
+      "license": {
+        "name": "Creative Commons Attribution-ShareAlike 4.0 International",
+        "spdx": "CC-BY-SA-4.0",
+        "url": "https://creativecommons.org/licenses/by-sa/4.0/legalcode",
+        "local_file": "licenses/CC-BY-SA-4.0-International.txt"
+      },
+      "metadata": "sources/commons/hong-kong-harbour-night/source.json",
+      "variants": [
+        {
+          "id": "hong-kong-harbour-night-le1440-i420-qp096",
+          "file": "streams/hong-kong-harbour-night-le1440-i420-qp096.obu",
+          "preparation": "le1440",
+          "pixel_format": "i420",
+          "qp": 96,
+          "width": 1440,
+          "height": 680,
+          "bytes": 244039,
+          "sha256": "f3c4115d8d84664f4c70f6e45d404be0751c0dc6c744e14042862a4fc3cf7bdb",
+          "decoded_bytes": 1468800,
+          "decoded_sha256": "6e8616d7a7c89029f280de389bf47a42c52e922a51b124deb5ac8ce7afbe03cd"
+        },
+        {
+          "id": "hong-kong-harbour-night-le1440-i420-qp152",
+          "file": "streams/hong-kong-harbour-night-le1440-i420-qp152.obu",
+          "preparation": "le1440",
+          "pixel_format": "i420",
+          "qp": 152,
+          "width": 1440,
+          "height": 680,
+          "bytes": 56338,
+          "sha256": "4fbe8792240c871599962ea556495bbd1210b245b415bdc0fd84fed8515f8a34",
+          "decoded_bytes": 1468800,
+          "decoded_sha256": "ed2282c14c0b477c488cdc8076f19a88c9dcd3fe501c01687356053a6302c8c3"
+        },
+        {
+          "id": "hong-kong-harbour-night-le896-i400-qp152",
+          "file": "streams/hong-kong-harbour-night-le896-i400-qp152.obu",
+          "preparation": "le896",
+          "pixel_format": "i400",
+          "qp": 152,
+          "width": 896,
+          "height": 424,
+          "bytes": 22698,
+          "sha256": "e6047ececaca2fa9d084011434b3a4549529580f5cb46cc19636d419610e8e9b",
+          "decoded_bytes": 379904,
+          "decoded_sha256": "c634218edf826b18b7c658a6449bdb14883e31627493b901ec4674998d1889a2"
+        },
+        {
+          "id": "hong-kong-harbour-night-le896-i420-qp096",
+          "file": "streams/hong-kong-harbour-night-le896-i420-qp096.obu",
+          "preparation": "le896",
+          "pixel_format": "i420",
+          "qp": 96,
+          "width": 896,
+          "height": 424,
+          "bytes": 107968,
+          "sha256": "d7cac85266fcfd42c4ade1bdb1971b2eca5750b07f8aa89bc904ab423c2e50c8",
+          "decoded_bytes": 569856,
+          "decoded_sha256": "a355c322192d30a156d89a0bdfb500ca9f38efdcac314f9aa233d9cf91e9f463"
+        },
+        {
+          "id": "hong-kong-harbour-night-le896-i420-qp152",
+          "file": "streams/hong-kong-harbour-night-le896-i420-qp152.obu",
+          "preparation": "le896",
+          "pixel_format": "i420",
+          "qp": 152,
+          "width": 896,
+          "height": 424,
+          "bytes": 24179,
+          "sha256": "8bb2c913451c31b5e0058bd83cfdd391a22d3b11bcb64092c4cf6da33b31a942",
+          "decoded_bytes": 569856,
+          "decoded_sha256": "705a4260cf3a3cb54432ae30bdabdcc3454988c90e777cbba9206fb5e7f35e64"
+        },
+        {
+          "id": "hong-kong-harbour-night-le896-i444-qp152",
+          "file": "streams/hong-kong-harbour-night-le896-i444-qp152.obu",
+          "preparation": "le896",
+          "pixel_format": "i444",
+          "qp": 152,
+          "width": 896,
+          "height": 424,
+          "bytes": 27463,
+          "sha256": "a1ca3718ce5e6bf08d5d57718d2b8b7503dd52a039264386060b47a56d15e60d",
+          "decoded_bytes": 1139712,
+          "decoded_sha256": "31bb904e999adab31a017891f7c493bff2c19363ce02269d54d1221196f0c8f9"
+        }
+      ]
+    },
+    {
+      "id": "jinan-grand-theater",
+      "name": "Jinan Grand Theater",
+      "title": "Jinan Grand Theater-20150520-RM-170343",
+      "creator": {
+        "name": "Reinhold Möller",
+        "url": "https://commons.wikimedia.org/wiki/User:Ermell"
+      },
+      "attribution": {
+        "credit_line": "Reinhold Möller",
+        "copyright_notice": null
+      },
+      "commons_url": "https://commons.wikimedia.org/wiki/File:Jinan_Grand_Theater-20150520-RM-170343.jpg",
+      "license": {
+        "name": "Creative Commons Attribution-ShareAlike 4.0 International",
+        "spdx": "CC-BY-SA-4.0",
+        "url": "https://creativecommons.org/licenses/by-sa/4.0/legalcode",
+        "local_file": "licenses/CC-BY-SA-4.0-International.txt"
+      },
+      "metadata": "sources/commons/jinan-grand-theater/source.json",
+      "variants": [
+        {
+          "id": "jinan-grand-theater-le1440-i420-qp096",
+          "file": "streams/jinan-grand-theater-le1440-i420-qp096.obu",
+          "preparation": "le1440",
+          "pixel_format": "i420",
+          "qp": 96,
+          "width": 1440,
+          "height": 1080,
+          "bytes": 196400,
+          "sha256": "159dab0e18193584005217b5e5fb1f322dafb127fe27c2fbd3a109ff07aa3e10",
+          "decoded_bytes": 2332800,
+          "decoded_sha256": "b70f2284f25cdcc2006959b16c1366f3b14e009bb7bb6b8f6b948dcc30ba0e38"
+        },
+        {
+          "id": "jinan-grand-theater-le1440-i420-qp152",
+          "file": "streams/jinan-grand-theater-le1440-i420-qp152.obu",
+          "preparation": "le1440",
+          "pixel_format": "i420",
+          "qp": 152,
+          "width": 1440,
+          "height": 1080,
+          "bytes": 41222,
+          "sha256": "1624ca3c6dd24f90978fc70e6ea6c583ab21d03d676f2dc14fe3b878ae05e552",
+          "decoded_bytes": 2332800,
+          "decoded_sha256": "64cad6d4b7337b2f8ba300ea9a5c53c6240a359bedef0a33f846efe0c1772c77"
+        },
+        {
+          "id": "jinan-grand-theater-le896-i400-qp152",
+          "file": "streams/jinan-grand-theater-le896-i400-qp152.obu",
+          "preparation": "le896",
+          "pixel_format": "i400",
+          "qp": 152,
+          "width": 896,
+          "height": 672,
+          "bytes": 19185,
+          "sha256": "9c7587004c6d1767f484fdfb226a8125fbf564af6c643c355b7bd75c7eb5e988",
+          "decoded_bytes": 602112,
+          "decoded_sha256": "bf27dedb1d9706500a715fe9f4ce5f12576f72d3d6c275ae2f42952b852f9ecc"
+        },
+        {
+          "id": "jinan-grand-theater-le896-i420-qp096",
+          "file": "streams/jinan-grand-theater-le896-i420-qp096.obu",
+          "preparation": "le896",
+          "pixel_format": "i420",
+          "qp": 96,
+          "width": 896,
+          "height": 672,
+          "bytes": 86837,
+          "sha256": "c3121fe42ef78f962f1617fe75e8322e85f2718995578b46fb3b00aaff522003",
+          "decoded_bytes": 903168,
+          "decoded_sha256": "ef343162f77e9d2efd8214311ae72a6ae0a4a29cf8fd1b079c985401fd9a2b8d"
+        },
+        {
+          "id": "jinan-grand-theater-le896-i420-qp152",
+          "file": "streams/jinan-grand-theater-le896-i420-qp152.obu",
+          "preparation": "le896",
+          "pixel_format": "i420",
+          "qp": 152,
+          "width": 896,
+          "height": 672,
+          "bytes": 19590,
+          "sha256": "6b01ae2a0c4f3e4ff8ef8c41ad88315bd210289a27dbea33d0dc0c0bc2e6795b",
+          "decoded_bytes": 903168,
+          "decoded_sha256": "a75e5c8e05a25c7e746d5cbf09ff286bb7aea6364951859780b1fcab1f350272"
+        },
+        {
+          "id": "jinan-grand-theater-le896-i444-qp152",
+          "file": "streams/jinan-grand-theater-le896-i444-qp152.obu",
+          "preparation": "le896",
+          "pixel_format": "i444",
+          "qp": 152,
+          "width": 896,
+          "height": 672,
+          "bytes": 20461,
+          "sha256": "88d8a94232a3af7c7c1ff13bfc5ae5f3d8e8e7962b3708c9677414c996e368a2",
+          "decoded_bytes": 1806336,
+          "decoded_sha256": "fd2c08f3f4ece8e0c915d23dccae3f53bbcfcbb27c66d4495eea9a2ff6ff6aa5"
+        }
+      ]
+    },
+    {
+      "id": "pastel-chalks",
+      "name": "Pastel Chalks",
+      "title": "Pastellkreide -- 2025 -- 8665",
+      "creator": {
+        "name": "Dietmar Rabich",
+        "url": "https://commons.wikimedia.org/wiki/User:XRay"
+      },
+      "attribution": {
+        "credit_line": "Dietmar Rabich / Wikimedia Commons / “Pastellkreide -- 2025 -- 8665” / CC BY-SA 4.0",
+        "copyright_notice": null
+      },
+      "commons_url": "https://commons.wikimedia.org/wiki/File:Pastellkreide_--_2025_--_8665.jpg",
+      "license": {
+        "name": "Creative Commons Attribution-ShareAlike 4.0 International",
+        "spdx": "CC-BY-SA-4.0",
+        "url": "https://creativecommons.org/licenses/by-sa/4.0/legalcode",
+        "local_file": "licenses/CC-BY-SA-4.0-International.txt"
+      },
+      "metadata": "sources/commons/pastel-chalks/source.json",
+      "variants": [
+        {
+          "id": "pastel-chalks-le1440-i420-qp096",
+          "file": "streams/pastel-chalks-le1440-i420-qp096.obu",
+          "preparation": "le1440",
+          "pixel_format": "i420",
+          "qp": 96,
+          "width": 1440,
+          "height": 960,
+          "bytes": 61357,
+          "sha256": "b2f45c4bba75aba31de8e816d9b480c237102e296fee088c4854816ada1d566d",
+          "decoded_bytes": 2073600,
+          "decoded_sha256": "73d83ec05d8ea77a2f96a3c566e452b38d248229e79692e19fa84bb3b88269cf"
+        },
+        {
+          "id": "pastel-chalks-le1440-i420-qp152",
+          "file": "streams/pastel-chalks-le1440-i420-qp152.obu",
+          "preparation": "le1440",
+          "pixel_format": "i420",
+          "qp": 152,
+          "width": 1440,
+          "height": 960,
+          "bytes": 12154,
+          "sha256": "958f5c11055456e49a9ede035717479318df4836937c3301f79d2992afc61156",
+          "decoded_bytes": 2073600,
+          "decoded_sha256": "d30c30b4b92f297e62f7ad98e98f5a042f815b651be15eba6cdc4b00d7009915"
+        },
+        {
+          "id": "pastel-chalks-le896-i400-qp152",
+          "file": "streams/pastel-chalks-le896-i400-qp152.obu",
+          "preparation": "le896",
+          "pixel_format": "i400",
+          "qp": 152,
+          "width": 896,
+          "height": 598,
+          "bytes": 4049,
+          "sha256": "525df9b1ed6e5f4e8f9b2dc0dca9fdde2063139c552cf8f1500485688d1bd11b",
+          "decoded_bytes": 535808,
+          "decoded_sha256": "5582989d05fabc7d3314c6f60ed4490d373dc835a7bb957ac759cd02e47e5238"
+        },
+        {
+          "id": "pastel-chalks-le896-i420-qp000",
+          "file": "streams/pastel-chalks-le896-i420-qp000.obu",
+          "preparation": "le896",
+          "pixel_format": "i420",
+          "qp": 0,
+          "width": 896,
+          "height": 598,
+          "bytes": 290150,
+          "sha256": "c814a7853651f512469882d492049c8bd40618d5a5c550969fdd9851f49d0ed5",
+          "decoded_bytes": 803712,
+          "decoded_sha256": "0eaffab5a62adfb211e7fb8d68bccd5ed3c5ff818225f73093224e4506929869"
+        },
+        {
+          "id": "pastel-chalks-le896-i420-qp048",
+          "file": "streams/pastel-chalks-le896-i420-qp048.obu",
+          "preparation": "le896",
+          "pixel_format": "i420",
+          "qp": 48,
+          "width": 896,
+          "height": 598,
+          "bytes": 141939,
+          "sha256": "24093b8e48f9a18aaa290925c32cec04c06364df19c86d7cd812dd0c0a35f1be",
+          "decoded_bytes": 803712,
+          "decoded_sha256": "12b738192fc91954131617b600d921eebf24d8a4aa790051bf2e386bcc2bc457"
+        },
+        {
+          "id": "pastel-chalks-le896-i420-qp096",
+          "file": "streams/pastel-chalks-le896-i420-qp096.obu",
+          "preparation": "le896",
+          "pixel_format": "i420",
+          "qp": 96,
+          "width": 896,
+          "height": 598,
+          "bytes": 34368,
+          "sha256": "1a7a4694b35dff2fe125228ea30b82f24a01129b321c68ca1f63a6a3767fa7c3",
+          "decoded_bytes": 803712,
+          "decoded_sha256": "f39323d7be205098ff0813b009d7f1b59ed0d86f7eb5d70a634782cd60442515"
+        },
+        {
+          "id": "pastel-chalks-le896-i420-qp152",
+          "file": "streams/pastel-chalks-le896-i420-qp152.obu",
+          "preparation": "le896",
+          "pixel_format": "i420",
+          "qp": 152,
+          "width": 896,
+          "height": 598,
+          "bytes": 7657,
+          "sha256": "c9ba2b49d7711a76db8b45fa6a124e6eb9b7edfb35b17d704c64393d0b1cc75b",
+          "decoded_bytes": 803712,
+          "decoded_sha256": "b016722061a91eff8310519db55663b169e091d4e8486de1f69dc4625367e52f"
+        },
+        {
+          "id": "pastel-chalks-le896-i420-qp208",
+          "file": "streams/pastel-chalks-le896-i420-qp208.obu",
+          "preparation": "le896",
+          "pixel_format": "i420",
+          "qp": 208,
+          "width": 896,
+          "height": 598,
+          "bytes": 1770,
+          "sha256": "67e09f618d91558b28f1a07e2be4669801e312b9f7b37a3c520683fd0be13e23",
+          "decoded_bytes": 803712,
+          "decoded_sha256": "49054c36acec25c8bfaedac331506db41b0db28404fe9ab7cfd80051a968f51c"
+        },
+        {
+          "id": "pastel-chalks-le896-i420-qp255",
+          "file": "streams/pastel-chalks-le896-i420-qp255.obu",
+          "preparation": "le896",
+          "pixel_format": "i420",
+          "qp": 255,
+          "width": 896,
+          "height": 598,
+          "bytes": 459,
+          "sha256": "01612cc960c8555285f2b762c7283ffa007bad6c9cb18dfc0752c4a322a5c8e0",
+          "decoded_bytes": 803712,
+          "decoded_sha256": "63c06a3b7542eb1d8c5a80a27ea2fd999648b748eef9eae1ab433c4b1fe06130"
+        },
+        {
+          "id": "pastel-chalks-le896-i444-qp152",
+          "file": "streams/pastel-chalks-le896-i444-qp152.obu",
+          "preparation": "le896",
+          "pixel_format": "i444",
+          "qp": 152,
+          "width": 896,
+          "height": 598,
+          "bytes": 11701,
+          "sha256": "a8a3a16c9add4afd4cddbeff61592b1b9a1dc290e6e11af8379e77d3f130b38d",
+          "decoded_bytes": 1607424,
+          "decoded_sha256": "db5cc166548dad8f04f3f4980613a551f652a88591c108a9297379686eae7c8d"
+        }
+      ]
+    },
+    {
+      "id": "pitti-ceiling",
+      "name": "Pitti Ceiling",
+      "title": "Palacio Pitti, Florencia, Italia, 2022-09-18, DD 163-165 HDR",
+      "creator": {
+        "name": "Diego Delso",
+        "url": "https://www.delso.photo/"
+      },
+      "attribution": {
+        "credit_line": "Diego Delso, delso.photo, License CC BY-SA",
+        "copyright_notice": null
+      },
+      "commons_url": "https://commons.wikimedia.org/wiki/File:Palacio_Pitti,_Florencia,_Italia,_2022-09-18,_DD_163-165_HDR.jpg",
+      "license": {
+        "name": "Creative Commons Attribution-ShareAlike 4.0 International",
+        "spdx": "CC-BY-SA-4.0",
+        "url": "https://creativecommons.org/licenses/by-sa/4.0/legalcode",
+        "local_file": "licenses/CC-BY-SA-4.0-International.txt"
+      },
+      "metadata": "sources/commons/pitti-ceiling/source.json",
+      "variants": [
+        {
+          "id": "pitti-ceiling-le1440-i420-qp096",
+          "file": "streams/pitti-ceiling-le1440-i420-qp096.obu",
+          "preparation": "le1440",
+          "pixel_format": "i420",
+          "qp": 96,
+          "width": 1440,
+          "height": 1440,
+          "bytes": 580667,
+          "sha256": "32bade5e00341a63c816cf30c2c954bdaddd6b0bd83be1c6e663f237325eb514",
+          "decoded_bytes": 3110400,
+          "decoded_sha256": "9b05911a2a90a8e5654896cfac875a9f2651f27d6f0d3203606d513e83da30d6"
+        },
+        {
+          "id": "pitti-ceiling-le1440-i420-qp152",
+          "file": "streams/pitti-ceiling-le1440-i420-qp152.obu",
+          "preparation": "le1440",
+          "pixel_format": "i420",
+          "qp": 152,
+          "width": 1440,
+          "height": 1440,
+          "bytes": 124427,
+          "sha256": "e6d4ef8fff820a1baf83d1e3599c1fd6fe3cad0aa9c5842453f68f8331549076",
+          "decoded_bytes": 3110400,
+          "decoded_sha256": "a6da2a11a10b60f58f3835fd8b890e2ca12122a724003c5a8765be82f9b5589b"
+        },
+        {
+          "id": "pitti-ceiling-le896-i400-qp152",
+          "file": "streams/pitti-ceiling-le896-i400-qp152.obu",
+          "preparation": "le896",
+          "pixel_format": "i400",
+          "qp": 152,
+          "width": 896,
+          "height": 896,
+          "bytes": 51256,
+          "sha256": "45ba23c265c73040b791cb7cde49b20f3af5e2175e81641e312388e62694e12e",
+          "decoded_bytes": 802816,
+          "decoded_sha256": "0fbe21d6d5c7429f88aced2a5c1db7c18b6c82428738f0ee727a44f266cf6aec"
+        },
+        {
+          "id": "pitti-ceiling-le896-i420-qp096",
+          "file": "streams/pitti-ceiling-le896-i420-qp096.obu",
+          "preparation": "le896",
+          "pixel_format": "i420",
+          "qp": 96,
+          "width": 896,
+          "height": 896,
+          "bytes": 245119,
+          "sha256": "7fc99972785d4f94d8775bac015a12adfdea990ef3c620163e890bd343fc8c3d",
+          "decoded_bytes": 1204224,
+          "decoded_sha256": "1a6cc952e1d91037651324cf26f87a1dfc4cca6188ff30c712800be36c0a551c"
+        },
+        {
+          "id": "pitti-ceiling-le896-i420-qp152",
+          "file": "streams/pitti-ceiling-le896-i420-qp152.obu",
+          "preparation": "le896",
+          "pixel_format": "i420",
+          "qp": 152,
+          "width": 896,
+          "height": 896,
+          "bytes": 55021,
+          "sha256": "2afe214ff11f5cc806106608a07407e9e6e8319b56c7abe64707f859184eba8c",
+          "decoded_bytes": 1204224,
+          "decoded_sha256": "898a12cfdafeabdf7d06930be7ba91effefcca822e8057c035aa001f05aa74e4"
+        },
+        {
+          "id": "pitti-ceiling-le896-i444-qp152",
+          "file": "streams/pitti-ceiling-le896-i444-qp152.obu",
+          "preparation": "le896",
+          "pixel_format": "i444",
+          "qp": 152,
+          "width": 896,
+          "height": 896,
+          "bytes": 60313,
+          "sha256": "9fe21586fc9b6814490e55d2bdf488f56cabe8010c47ce37617d8600363b871d",
+          "decoded_bytes": 2408448,
+          "decoded_sha256": "5d58edf02a7fda03f538e05b8c8ba0818f4ce0c97717b45126c3fd5bdbf943a4"
+        }
+      ]
+    },
+    {
+      "id": "rome-ponte-blue-hour",
+      "name": "Rome Ponte Blue Hour",
+      "title": "Rom (IT), Brücke ‘Ponte Vittorio Emanuele II’ -- 2024 -- 0732",
+      "creator": {
+        "name": "Anil Öztas",
+        "url": "https://anil-oeztas.de/"
+      },
+      "attribution": {
+        "credit_line": "© Anil Öztas",
+        "copyright_notice": "© Anil Öztas"
+      },
+      "commons_url": "https://commons.wikimedia.org/wiki/File:Rom_(IT),_Br%C3%BCcke_%E2%80%9EPonte_Vittorio_Emanuele_II%E2%80%9C_--_2024_--_0732.jpg",
+      "license": {
+        "name": "Creative Commons Attribution 4.0 International",
+        "spdx": "CC-BY-4.0",
+        "url": "https://creativecommons.org/licenses/by/4.0/legalcode",
+        "local_file": "licenses/CC-BY-4.0-International.txt"
+      },
+      "metadata": "sources/commons/rome-ponte-blue-hour/source.json",
+      "variants": [
+        {
+          "id": "rome-ponte-blue-hour-le1440-i420-qp096",
+          "file": "streams/rome-ponte-blue-hour-le1440-i420-qp096.obu",
+          "preparation": "le1440",
+          "pixel_format": "i420",
+          "qp": 96,
+          "width": 1440,
+          "height": 960,
+          "bytes": 113631,
+          "sha256": "8dec9f2c8459935af9768375f202705c448a902471043cf874b36f9f514df5f5",
+          "decoded_bytes": 2073600,
+          "decoded_sha256": "d43f6b6f18624a4260e25f518b304082c0adb6bbdfd8336b0b8024168b3c3160"
+        },
+        {
+          "id": "rome-ponte-blue-hour-le1440-i420-qp152",
+          "file": "streams/rome-ponte-blue-hour-le1440-i420-qp152.obu",
+          "preparation": "le1440",
+          "pixel_format": "i420",
+          "qp": 152,
+          "width": 1440,
+          "height": 960,
+          "bytes": 21934,
+          "sha256": "9be127285c5cd17afa4a580921309c0d98c3714ae5a2aa37be141c234246dbdb",
+          "decoded_bytes": 2073600,
+          "decoded_sha256": "cb869fdfd32b9f3c167c32d149f4251633670d9091f04d08850b26d03074a81b"
+        },
+        {
+          "id": "rome-ponte-blue-hour-le896-i400-qp152",
+          "file": "streams/rome-ponte-blue-hour-le896-i400-qp152.obu",
+          "preparation": "le896",
+          "pixel_format": "i400",
+          "qp": 152,
+          "width": 896,
+          "height": 598,
+          "bytes": 9545,
+          "sha256": "6a2a3c518fb88174a65998c41c045be860c8b3cae171c2f699982d1f4948eea8",
+          "decoded_bytes": 535808,
+          "decoded_sha256": "5a878ce9116389cd5767e70038788076310973e1033ddde46c23a3d56a18ed95"
+        },
+        {
+          "id": "rome-ponte-blue-hour-le896-i420-qp096",
+          "file": "streams/rome-ponte-blue-hour-le896-i420-qp096.obu",
+          "preparation": "le896",
+          "pixel_format": "i420",
+          "qp": 96,
+          "width": 896,
+          "height": 598,
+          "bytes": 50966,
+          "sha256": "4eef9ea345ad1273a628f41661d26c573bfabb9f6ae4e88071d7a94b714e814b",
+          "decoded_bytes": 803712,
+          "decoded_sha256": "397f7d4d664d85868232930fde3c9f50c83ef720bd1c061289f4d22948387f59"
+        },
+        {
+          "id": "rome-ponte-blue-hour-le896-i420-qp152",
+          "file": "streams/rome-ponte-blue-hour-le896-i420-qp152.obu",
+          "preparation": "le896",
+          "pixel_format": "i420",
+          "qp": 152,
+          "width": 896,
+          "height": 598,
+          "bytes": 10325,
+          "sha256": "1cba5e294dd047a2e7538b3b3a0538f07878506eb275dcb6361db0b225c8b164",
+          "decoded_bytes": 803712,
+          "decoded_sha256": "e2f667b65ea602dc85d27800241fded1e050f003fce12b3f7c4a8418b65f2bdc"
+        },
+        {
+          "id": "rome-ponte-blue-hour-le896-i444-qp152",
+          "file": "streams/rome-ponte-blue-hour-le896-i444-qp152.obu",
+          "preparation": "le896",
+          "pixel_format": "i444",
+          "qp": 152,
+          "width": 896,
+          "height": 598,
+          "bytes": 11614,
+          "sha256": "19c4991e53bb521331f607d8270a2d6b7e0b000a98cd0f8dffeaeade605d1a67",
+          "decoded_bytes": 1607424,
+          "decoded_sha256": "88b3bc1ac9b0d66230f7d3b259139bfdf6abcb6f63425d4a5b32378ebb6c9f3a"
+        }
+      ]
+    },
+    {
+      "id": "scarlet-flycatcher",
+      "name": "Scarlet Flycatcher",
+      "title": "095 Scarlet Flycatcher in Encontro das Águas State Park Photo by Giles Laurent",
+      "creator": {
+        "name": "Giles Laurent",
+        "url": "https://gileslaurent.com/"
+      },
+      "attribution": {
+        "credit_line": "© Giles Laurent, gileslaurent.com, License CC BY-SA",
+        "copyright_notice": "© Giles Laurent"
+      },
+      "commons_url": "https://commons.wikimedia.org/wiki/File:095_Scarlet_Flycatcher_in_Encontro_das_%C3%81guas_State_Park_Photo_by_Giles_Laurent.jpg",
+      "license": {
+        "name": "Creative Commons Attribution-ShareAlike 4.0 International",
+        "spdx": "CC-BY-SA-4.0",
+        "url": "https://creativecommons.org/licenses/by-sa/4.0/legalcode",
+        "local_file": "licenses/CC-BY-SA-4.0-International.txt"
+      },
+      "metadata": "sources/commons/scarlet-flycatcher/source.json",
+      "variants": [
+        {
+          "id": "scarlet-flycatcher-le1440-i420-qp096",
+          "file": "streams/scarlet-flycatcher-le1440-i420-qp096.obu",
+          "preparation": "le1440",
+          "pixel_format": "i420",
+          "qp": 96,
+          "width": 1440,
+          "height": 960,
+          "bytes": 75578,
+          "sha256": "a4e6efaf3671746d5c429952902669fea1291940688a0faa686a278d893c533d",
+          "decoded_bytes": 2073600,
+          "decoded_sha256": "45997aef758da76b87bed1266fc4628797c0617a9c71f09b0c29d88d1250b3a5"
+        },
+        {
+          "id": "scarlet-flycatcher-le1440-i420-qp152",
+          "file": "streams/scarlet-flycatcher-le1440-i420-qp152.obu",
+          "preparation": "le1440",
+          "pixel_format": "i420",
+          "qp": 152,
+          "width": 1440,
+          "height": 960,
+          "bytes": 15791,
+          "sha256": "278ec7a5e583a66bfe9585bdbd77484d905929ac3d89b1ff4dc96471ae464077",
+          "decoded_bytes": 2073600,
+          "decoded_sha256": "e72c6c46ff341680f944fe4089859f9a96a2c72447ebccab86405103c9816a6a"
+        },
+        {
+          "id": "scarlet-flycatcher-le896-i400-qp152",
+          "file": "streams/scarlet-flycatcher-le896-i400-qp152.obu",
+          "preparation": "le896",
+          "pixel_format": "i400",
+          "qp": 152,
+          "width": 896,
+          "height": 598,
+          "bytes": 5810,
+          "sha256": "dcfe8ef92c9e092066ab6be64500fd37f3f5b59f55121195b5876a2ed3e48e45",
+          "decoded_bytes": 535808,
+          "decoded_sha256": "13479bd1bb7a643af3a118554604eb22ae7ee7344529513f7a06b422128dce19"
+        },
+        {
+          "id": "scarlet-flycatcher-le896-i420-qp096",
+          "file": "streams/scarlet-flycatcher-le896-i420-qp096.obu",
+          "preparation": "le896",
+          "pixel_format": "i420",
+          "qp": 96,
+          "width": 896,
+          "height": 598,
+          "bytes": 33271,
+          "sha256": "12eb6a641000b18f241d41b809a1760061e4fe78ec7e2c9f2c8b5312328311d5",
+          "decoded_bytes": 803712,
+          "decoded_sha256": "938bc8618cd4ccf6245685849d4a60aabcf56e53693694590a8050a9f635b951"
+        },
+        {
+          "id": "scarlet-flycatcher-le896-i420-qp152",
+          "file": "streams/scarlet-flycatcher-le896-i420-qp152.obu",
+          "preparation": "le896",
+          "pixel_format": "i420",
+          "qp": 152,
+          "width": 896,
+          "height": 598,
+          "bytes": 6799,
+          "sha256": "003d555ed32a37479958ec62dc8a6a2012b82df29c78aa9602059934cecf2a3d",
+          "decoded_bytes": 803712,
+          "decoded_sha256": "9d51236cf0a09d57541f581671a7a2d33c4bb9164cb75c9b96476ec312749ef0"
+        },
+        {
+          "id": "scarlet-flycatcher-le896-i444-qp152",
+          "file": "streams/scarlet-flycatcher-le896-i444-qp152.obu",
+          "preparation": "le896",
+          "pixel_format": "i444",
+          "qp": 152,
+          "width": 896,
+          "height": 598,
+          "bytes": 7859,
+          "sha256": "2e317a5f73fc6776ea28fb3262f33bf42d36dced2918ffcc104aba9b5072f8fc",
+          "decoded_bytes": 1607424,
+          "decoded_sha256": "06191e71f780521c1d86d1da56eeb7fb9135861e95abc1e8e05056289bd370c1"
+        }
+      ]
+    },
+    {
+      "id": "succisa-flower-bud",
+      "name": "Succisa Flower Bud",
+      "title": "Bloemknop van een blauwe knoop (Succisa pratensis). 29-08-2023. (d.j.b)",
+      "creator": {
+        "name": "Dominicus Johannes Bergsma",
+        "url": "https://commons.wikimedia.org/wiki/File:Bloemknop_van_een_blauwe_knoop_(Succisa_pratensis)._29-08-2023._(d.j.b).jpg"
+      },
+      "attribution": {
+        "credit_line": "Dominicus Johannes Bergsma",
+        "copyright_notice": null
+      },
+      "commons_url": "https://commons.wikimedia.org/wiki/File:Bloemknop_van_een_blauwe_knoop_(Succisa_pratensis)._29-08-2023._(d.j.b).jpg",
+      "license": {
+        "name": "Creative Commons Attribution-ShareAlike 4.0 International",
+        "spdx": "CC-BY-SA-4.0",
+        "url": "https://creativecommons.org/licenses/by-sa/4.0/legalcode",
+        "local_file": "licenses/CC-BY-SA-4.0-International.txt"
+      },
+      "metadata": "sources/commons/succisa-flower-bud/source.json",
+      "variants": [
+        {
+          "id": "succisa-flower-bud-le1440-i420-qp096",
+          "file": "streams/succisa-flower-bud-le1440-i420-qp096.obu",
+          "preparation": "le1440",
+          "pixel_format": "i420",
+          "qp": 96,
+          "width": 1440,
+          "height": 1440,
+          "bytes": 139426,
+          "sha256": "a6ef723d408c93e634df8adb21555e993e86ec892ae3548b3b0d190412b89687",
+          "decoded_bytes": 3110400,
+          "decoded_sha256": "fc918ccdafad5a57e582fd80e9d281ab12a0456e2aaa951e0506e5ec5b001926"
+        },
+        {
+          "id": "succisa-flower-bud-le1440-i420-qp152",
+          "file": "streams/succisa-flower-bud-le1440-i420-qp152.obu",
+          "preparation": "le1440",
+          "pixel_format": "i420",
+          "qp": 152,
+          "width": 1440,
+          "height": 1440,
+          "bytes": 26798,
+          "sha256": "f418323371696cc2f192d13433e252889bf1f64bd3518d53ee980b40365098f8",
+          "decoded_bytes": 3110400,
+          "decoded_sha256": "80d3a8a4b65e74c6b54b349e1d68352906dd7434c92ea60620b9687843984664"
+        },
+        {
+          "id": "succisa-flower-bud-le896-i400-qp152",
+          "file": "streams/succisa-flower-bud-le896-i400-qp152.obu",
+          "preparation": "le896",
+          "pixel_format": "i400",
+          "qp": 152,
+          "width": 896,
+          "height": 896,
+          "bytes": 8813,
+          "sha256": "ab1d170931d59f17aa23660b04189a67bd7e5a0355d99b77f0449bcf2c291f87",
+          "decoded_bytes": 802816,
+          "decoded_sha256": "3d309911d21c290edb0f08ec00edaf73c3cb3bf0d563b9631475947f079107d2"
+        },
+        {
+          "id": "succisa-flower-bud-le896-i420-qp096",
+          "file": "streams/succisa-flower-bud-le896-i420-qp096.obu",
+          "preparation": "le896",
+          "pixel_format": "i420",
+          "qp": 96,
+          "width": 896,
+          "height": 896,
+          "bytes": 56962,
+          "sha256": "cd748fc3265becd695b969680c8043c21a3b58f4741229fdc2bfafa6b9732bdf",
+          "decoded_bytes": 1204224,
+          "decoded_sha256": "fad0e8df6b8a87b2f3ff2ec1524c023f679fc2b70abe22ed7403b7761321dd09"
+        },
+        {
+          "id": "succisa-flower-bud-le896-i420-qp152",
+          "file": "streams/succisa-flower-bud-le896-i420-qp152.obu",
+          "preparation": "le896",
+          "pixel_format": "i420",
+          "qp": 152,
+          "width": 896,
+          "height": 896,
+          "bytes": 10406,
+          "sha256": "5db9af456474b41fcc970f2a56150af5a761c3063f9a9dcea7e9a5a29cfd043b",
+          "decoded_bytes": 1204224,
+          "decoded_sha256": "63a8f776305011457b318492938106f3037dcd18fbd7d78ca5f8cb87205fa55b"
+        },
+        {
+          "id": "succisa-flower-bud-le896-i444-qp152",
+          "file": "streams/succisa-flower-bud-le896-i444-qp152.obu",
+          "preparation": "le896",
+          "pixel_format": "i444",
+          "qp": 152,
+          "width": 896,
+          "height": 896,
+          "bytes": 12158,
+          "sha256": "251d137065240c427ebae05cbab1e06b0e59bcd29f3c299bf4892215e8c86103",
+          "decoded_bytes": 2408448,
+          "decoded_sha256": "2033faae4e67e4a024f5650f08e25f758c70088478994ac6e7a9a25666747913"
+        }
+      ]
+    },
+    {
+      "id": "toco-toucan",
+      "name": "Toco Toucan",
+      "title": "006 Toco toucan in Encontro das Águas State Park Photo by Giles Laurent",
+      "creator": {
+        "name": "Giles Laurent",
+        "url": "https://gileslaurent.com/"
+      },
+      "attribution": {
+        "credit_line": "© Giles Laurent, gileslaurent.com, License CC BY-SA",
+        "copyright_notice": "© Giles Laurent"
+      },
+      "commons_url": "https://commons.wikimedia.org/wiki/File:006_Toco_toucan_in_Encontro_das_%C3%81guas_State_Park_Photo_by_Giles_Laurent.jpg",
+      "license": {
+        "name": "Creative Commons Attribution-ShareAlike 4.0 International",
+        "spdx": "CC-BY-SA-4.0",
+        "url": "https://creativecommons.org/licenses/by-sa/4.0/legalcode",
+        "local_file": "licenses/CC-BY-SA-4.0-International.txt"
+      },
+      "metadata": "sources/commons/toco-toucan/source.json",
+      "variants": [
+        {
+          "id": "toco-toucan-le1440-i420-qp096",
+          "file": "streams/toco-toucan-le1440-i420-qp096.obu",
+          "preparation": "le1440",
+          "pixel_format": "i420",
+          "qp": 96,
+          "width": 1440,
+          "height": 960,
+          "bytes": 90027,
+          "sha256": "09d68630b70fcd55ecf2b2be15a61b337e1e8fe3fedc439a17a691e98d3fadf7",
+          "decoded_bytes": 2073600,
+          "decoded_sha256": "7f57253d40f5d0dec56773268bf06740091643ca33d32da6eaf813183b80027b"
+        },
+        {
+          "id": "toco-toucan-le1440-i420-qp152",
+          "file": "streams/toco-toucan-le1440-i420-qp152.obu",
+          "preparation": "le1440",
+          "pixel_format": "i420",
+          "qp": 152,
+          "width": 1440,
+          "height": 960,
+          "bytes": 16303,
+          "sha256": "34c00601a727eb2173a499144018e69bb112126df165d297a8ea70f53b3c7fcf",
+          "decoded_bytes": 2073600,
+          "decoded_sha256": "74da76f8af0ada6dcafa3d139f13f0d5080d06ea99c57950b321ea7fedd36221"
+        },
+        {
+          "id": "toco-toucan-le896-i400-qp152",
+          "file": "streams/toco-toucan-le896-i400-qp152.obu",
+          "preparation": "le896",
+          "pixel_format": "i400",
+          "qp": 152,
+          "width": 896,
+          "height": 598,
+          "bytes": 7546,
+          "sha256": "b8522c1889026f9fef40f639690e544bb844ba6812a86f064a83ab6d197b00c6",
+          "decoded_bytes": 535808,
+          "decoded_sha256": "ab7424c146986c908f7d797589522bf3f4e0a3414337da12545100daad811b94"
+        },
+        {
+          "id": "toco-toucan-le896-i420-qp096",
+          "file": "streams/toco-toucan-le896-i420-qp096.obu",
+          "preparation": "le896",
+          "pixel_format": "i420",
+          "qp": 96,
+          "width": 896,
+          "height": 598,
+          "bytes": 41946,
+          "sha256": "9d8fd95da27b2106ff43a1ae8cafd15caeb33886f90e38a7b835747da89da288",
+          "decoded_bytes": 803712,
+          "decoded_sha256": "b70f62e78aca876477532e953e099c66bf3f58c6bb08804eda6993a08dc9759b"
+        },
+        {
+          "id": "toco-toucan-le896-i420-qp152",
+          "file": "streams/toco-toucan-le896-i420-qp152.obu",
+          "preparation": "le896",
+          "pixel_format": "i420",
+          "qp": 152,
+          "width": 896,
+          "height": 598,
+          "bytes": 8828,
+          "sha256": "4fec2fcd0b39071f02ed9350ffc2e9c73d9fa44325ed074cf4944de8c161f1e0",
+          "decoded_bytes": 803712,
+          "decoded_sha256": "d414211009d9eae5f365528c027ee50bbd3a3234f173550f66f189073387f2bd"
+        },
+        {
+          "id": "toco-toucan-le896-i444-qp152",
+          "file": "streams/toco-toucan-le896-i444-qp152.obu",
+          "preparation": "le896",
+          "pixel_format": "i444",
+          "qp": 152,
+          "width": 896,
+          "height": 598,
+          "bytes": 10084,
+          "sha256": "25a3413a1d89343ba6330ee61787dbaba5764a9d1e255e28258057906ff5b988",
+          "decoded_bytes": 1607424,
+          "decoded_sha256": "5a28aaeb427bef0affc8a1c16f9a4d3c6cb0b21ec11983124cb5095a6ac84a9c"
+        }
+      ]
+    }
+  ]
+}

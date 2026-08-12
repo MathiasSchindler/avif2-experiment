@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "id": "emerald-swift",
+  "title": "Emerald swift (Sceloporus malachiticus) Finca El Pilar",
+  "source_class": "commons",
+  "creator": {
+    "name": "Charles J. Sharp",
+    "url": "https://www.sharpphotography.co.uk/"
+  },
+  "commons": {
+    "page_id": 131524427,
+    "file_page_url": "https://commons.wikimedia.org/wiki/File:Emerald_swift_(Sceloporus_malachiticus)_Finca_El_Pilar.jpg",
+    "reviewed_revision": 1248410468,
+    "reviewed_revision_url": "https://commons.wikimedia.org/w/index.php?oldid=1248410468",
+    "media_revision_timestamp": "2023-05-04T15:49:17Z",
+    "retrieved_on": "2026-08-12"
+  },
+  "license": {
+    "name": "Creative Commons Attribution-ShareAlike 4.0 International",
+    "spdx": "CC-BY-SA-4.0",
+    "url": "https://creativecommons.org/licenses/by-sa/4.0/legalcode",
+    "local_file": "../../../licenses/CC-BY-SA-4.0-International.txt"
+  },
+  "attribution": {
+    "credit_line": "Charles J. Sharp",
+    "copyright_notice": null
+  },
+  "original": {
+    "filename": "Emerald swift (Sceloporus malachiticus) Finca El Pilar.jpg",
+    "mime_type": "image/jpeg",
+    "width": 4095,
+    "height": 2048,
+    "byte_size": 7210585,
+    "sha1": "9d1215588db447ff07d528055b464c672302f5a6",
+    "sha256": "c60389f6f700f75374dae791c5c76318fc54f020619d2859eda881ac09a3dba6",
+    "media_url": "https://upload.wikimedia.org/wikipedia/commons/9/91/Emerald_swift_%28Sceloporus_malachiticus%29_Finca_El_Pilar.jpg",
+    "download_url": "https://upload.wikimedia.org/wikipedia/commons/9/91/Emerald_swift_%28Sceloporus_malachiticus%29_Finca_El_Pilar.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original"
+  },
+  "review": {
+    "status": "reviewed-and-acquired",
+    "reviewed_on": "2026-08-12",
+    "notes": [
+      "Focus-bracketed stack merged with Helicon Focus 8."
+    ]
+  }
+}

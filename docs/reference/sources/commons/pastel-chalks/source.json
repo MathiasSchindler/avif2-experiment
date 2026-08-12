@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "id": "pastel-chalks",
+  "title": "Pastellkreide -- 2025 -- 8665",
+  "source_class": "commons",
+  "creator": {
+    "name": "Dietmar Rabich",
+    "url": "https://commons.wikimedia.org/wiki/User:XRay"
+  },
+  "commons": {
+    "page_id": 171553392,
+    "file_page_url": "https://commons.wikimedia.org/wiki/File:Pastellkreide_--_2025_--_8665.jpg",
+    "reviewed_revision": 1249763715,
+    "reviewed_revision_url": "https://commons.wikimedia.org/w/index.php?oldid=1249763715",
+    "media_revision_timestamp": "2025-08-04T11:23:56Z",
+    "retrieved_on": "2026-08-12"
+  },
+  "license": {
+    "name": "Creative Commons Attribution-ShareAlike 4.0 International",
+    "spdx": "CC-BY-SA-4.0",
+    "url": "https://creativecommons.org/licenses/by-sa/4.0/legalcode",
+    "local_file": "../../../licenses/CC-BY-SA-4.0-International.txt"
+  },
+  "attribution": {
+    "credit_line": "Dietmar Rabich / Wikimedia Commons / “Pastellkreide -- 2025 -- 8665” / CC BY-SA 4.0",
+    "copyright_notice": null
+  },
+  "original": {
+    "filename": "Pastellkreide -- 2025 -- 8665.jpg",
+    "mime_type": "image/jpeg",
+    "width": 6720,
+    "height": 4480,
+    "byte_size": 25106351,
+    "sha1": "eb0e31acd0defc078126d573046dca7acf037d2d",
+    "sha256": "211b591090fb58c7db51547d6e89c461db52c51574f14a8f20269f5555dea999",
+    "media_url": "https://upload.wikimedia.org/wikipedia/commons/9/92/Pastellkreide_--_2025_--_8665.jpg",
+    "download_url": "https://upload.wikimedia.org/wikipedia/commons/9/92/Pastellkreide_--_2025_--_8665.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original"
+  },
+  "courtesy": {
+    "notice_url": "https://commons.wikimedia.org/wiki/User_talk:XRay#c-Mathias_Schindler-20260812144900-Bildkompressionsverfahren",
+    "notified_on": "2026-08-12",
+    "permission_required": false,
+    "silence_is_approval": false,
+    "withdraw_on_objection": true
+  },
+  "review": {
+    "status": "reviewed-and-acquired",
+    "reviewed_on": "2026-08-12",
+    "notes": [
+      "Intentional camera movement and multiple exposure.",
+      "Retain the original unchanged; preserve title, author, source, license, and relevant embedded metadata in dataset records when a derivative format cannot carry the JPEG metadata structure.",
+      "Identify prepared and encoded outputs as modifications."
+    ]
+  }
+}

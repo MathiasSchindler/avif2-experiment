@@ -20,7 +20,7 @@ endif
 
 VIEWER_BUILD_ARGS ?= --skip-assets --jobs $(JOBS)
 
-.PHONY: all decoder nolibc clean wasm
+.PHONY: all decoder nolibc clean wasm reference-gallery
 
 all: decoder
 
@@ -38,6 +38,10 @@ clean:
 
 wasm:
 	$(PYTHON) experimental/viewerdemo/build.py $(VIEWER_BUILD_ARGS)
+
+reference-gallery:
+	$(PYTHON) tools/publish_reference_gallery.py
+
 
 HOST_CFLAGS := -std=c11 -Wall -Wextra -Wpedantic -Werror -O1 -g \
 	-fsanitize=address,undefined -fno-omit-frame-pointer -Iinclude -Isrc
