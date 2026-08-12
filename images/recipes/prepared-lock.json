@@ -1,0 +1,1126 @@
+{
+  "schema_version": 1,
+  "generated_by": "tools/prepare_image_corpus.py",
+  "preparations": [
+    {
+      "manifest": "prepared/le1440/baya-weaver/manifest.json",
+      "manifest_sha256": "d226783fd694f95d4a2cee653d47a37211dd52c4ea81ad49867bb8fb05bdd490",
+      "preparation_id": "le1440",
+      "profile_id": "commons-8bit-le1440-v1",
+      "source_id": "baya-weaver",
+      "source_sha256": "376aaf85243f1e8186e82203440f6c18a96213138bf949d381daef5a4effe6d1",
+      "source_dimensions": [
+        3162,
+        2108
+      ],
+      "dimensions": [
+        1440,
+        960
+      ],
+      "linear_scale": 0.45540796963946867,
+      "pixel_area_scale": 0.20739641881114323,
+      "outputs": {
+        "master": {
+          "filename": "master.png",
+          "byte_size": 1407115,
+          "sha256": "5113f0f47e63b94e8cef2b8c69d37b7dd623390a2378ae79f20a1e36e5705525"
+        },
+        "gray8": {
+          "filename": "source-1440x960-gray8.i400",
+          "byte_size": 1382400,
+          "sha256": "e83bb7ed1fef36481d39f196ccc60d3ea658a598a237e818b92866758913bf5e"
+        },
+        "yuv420p8": {
+          "filename": "source-1440x960-yuv420p8.i420",
+          "byte_size": 2073600,
+          "sha256": "f5a538f7ce0c6791381f5d27ae71e1bce0850c20f41c9ec5e8515921c2e4a238"
+        },
+        "yuv444p8": {
+          "filename": "source-1440x960-yuv444p8.i444",
+          "byte_size": 4147200,
+          "sha256": "b69bde49364dc29e1eeab29af51feb7776b51eb5f930267dff7e2e83fd70e8ad"
+        }
+      }
+    },
+    {
+      "manifest": "prepared/le1440/chinnathurai-church/manifest.json",
+      "manifest_sha256": "e084ae9c2c300d0a71d2f82f4bd2a99aceab8a6eac79251a5c9997aa682e4508",
+      "preparation_id": "le1440",
+      "profile_id": "commons-8bit-le1440-v1",
+      "source_id": "chinnathurai-church",
+      "source_sha256": "d0362ecda7af79ccac66754ff94cd3c41c77192fa84583a68e77ea21c2a56323",
+      "source_dimensions": [
+        3629,
+        3629
+      ],
+      "dimensions": [
+        1440,
+        1440
+      ],
+      "linear_scale": 0.3968035271424635,
+      "pixel_area_scale": 0.15745303915269976,
+      "outputs": {
+        "master": {
+          "filename": "master.png",
+          "byte_size": 2933199,
+          "sha256": "341b0bc9d65bc25db8e384ba0bbffacb503883bb1ce1bab58513abc5fe086be6"
+        },
+        "gray8": {
+          "filename": "source-1440x1440-gray8.i400",
+          "byte_size": 2073600,
+          "sha256": "8a496499e9880379991be2d622b216b39339baf7ce0649f52a2de308ca490f92"
+        },
+        "yuv420p8": {
+          "filename": "source-1440x1440-yuv420p8.i420",
+          "byte_size": 3110400,
+          "sha256": "7f857ba0e8eba9f9fffea4a1dd61b3e9abcb18526f77346c016e7694d5f072c1"
+        },
+        "yuv444p8": {
+          "filename": "source-1440x1440-yuv444p8.i444",
+          "byte_size": 6220800,
+          "sha256": "8abc219f3b7ae6c944558c55ccf0cffb934a8aed9f4b0bfd83ba5eac9082c067"
+        }
+      }
+    },
+    {
+      "manifest": "prepared/le1440/elbrus-milky-way/manifest.json",
+      "manifest_sha256": "130aa1fa8195187a8a5ce566cb6ad534d1e054d4d746bded37faedc9032978eb",
+      "preparation_id": "le1440",
+      "profile_id": "commons-8bit-le1440-v1",
+      "source_id": "elbrus-milky-way",
+      "source_sha256": "d63c51651ff220983db323a0a65fb5e8c983c80c3b229d07f59f72d19d997457",
+      "source_dimensions": [
+        3648,
+        5472
+      ],
+      "dimensions": [
+        960,
+        1440
+      ],
+      "linear_scale": 0.2631578947368421,
+      "pixel_area_scale": 0.06925207756232687,
+      "outputs": {
+        "master": {
+          "filename": "master.png",
+          "byte_size": 2857220,
+          "sha256": "900339ad2b40535e523a28d8ce781772038d4e7ecc0d54d25b91659f326fea53"
+        },
+        "gray8": {
+          "filename": "source-960x1440-gray8.i400",
+          "byte_size": 1382400,
+          "sha256": "a6e8c7cc2c1300d3460ed55f477826f7ffd154e7dfc8322a12911b56786bda73"
+        },
+        "yuv420p8": {
+          "filename": "source-960x1440-yuv420p8.i420",
+          "byte_size": 2073600,
+          "sha256": "a208b7fe85b73fcd9d450b9d2f621393739f5c07522ea1674329520749658726"
+        },
+        "yuv444p8": {
+          "filename": "source-960x1440-yuv444p8.i444",
+          "byte_size": 4147200,
+          "sha256": "608f7fc5dfc968ddae1978938dff46d0da68307fd1a740a46a8555332ff4c6fe"
+        }
+      }
+    },
+    {
+      "manifest": "prepared/le1440/emerald-swift/manifest.json",
+      "manifest_sha256": "ba2ed1070f5bc953a3283c83369a34827bbec4d86b925fb940eb68bfde0b5668",
+      "preparation_id": "le1440",
+      "profile_id": "commons-8bit-le1440-v1",
+      "source_id": "emerald-swift",
+      "source_sha256": "c60389f6f700f75374dae791c5c76318fc54f020619d2859eda881ac09a3dba6",
+      "source_dimensions": [
+        4095,
+        2048
+      ],
+      "dimensions": [
+        1440,
+        720
+      ],
+      "linear_scale": 0.3516483516483517,
+      "pixel_area_scale": 0.12362637362637363,
+      "outputs": {
+        "master": {
+          "filename": "master.png",
+          "byte_size": 1732032,
+          "sha256": "b56cca61278519a0343d1d47fcaa6997aacb9f6a2c88a03438a98ed844312f49"
+        },
+        "gray8": {
+          "filename": "source-1440x720-gray8.i400",
+          "byte_size": 1036800,
+          "sha256": "9f602acb6304711f3633676127ef20193cbe29edb0670b6f8ea7fb7e05726d48"
+        },
+        "yuv420p8": {
+          "filename": "source-1440x720-yuv420p8.i420",
+          "byte_size": 1555200,
+          "sha256": "2de5504792d53be14af65c5abaf2f795b08cfb0568a51714609d2b2cf5caa91c"
+        },
+        "yuv444p8": {
+          "filename": "source-1440x720-yuv444p8.i444",
+          "byte_size": 3110400,
+          "sha256": "6b528998e12d569537942ef4d1063048235b24ed837d4bcec38c744ec3ec5dba"
+        }
+      }
+    },
+    {
+      "manifest": "prepared/le1440/finland-warbirds/manifest.json",
+      "manifest_sha256": "a944566fdfdfae0c41e28f955ceacae45e386c9bfde66cde9aa55ed57291814a",
+      "preparation_id": "le1440",
+      "profile_id": "commons-8bit-le1440-v1",
+      "source_id": "finland-warbirds",
+      "source_sha256": "58c047b5f1a30298344b0b7c73200dc08490c70a96c4d26242b2bc51feb2ab51",
+      "source_dimensions": [
+        2560,
+        1440
+      ],
+      "dimensions": [
+        1440,
+        810
+      ],
+      "linear_scale": 0.5625,
+      "pixel_area_scale": 0.31640625,
+      "outputs": {
+        "master": {
+          "filename": "master.png",
+          "byte_size": 1571518,
+          "sha256": "af75dc0d032ebd3445c1c787a2aa225c5a9e08a8028e22f29e55aba378ec6af1"
+        },
+        "gray8": {
+          "filename": "source-1440x810-gray8.i400",
+          "byte_size": 1166400,
+          "sha256": "711e308a4a906a0da7ab429807f70d95f672fc1975d7015e6ff8a196d5b8b0f8"
+        },
+        "yuv420p8": {
+          "filename": "source-1440x810-yuv420p8.i420",
+          "byte_size": 1749600,
+          "sha256": "bf555eb0ae85e1d94635ae0a7b5018d600200cbe777ae217aeeaecaaf4c46d08"
+        },
+        "yuv444p8": {
+          "filename": "source-1440x810-yuv444p8.i444",
+          "byte_size": 3499200,
+          "sha256": "cfcb75bd9eb0b5e0307782312611d182645146bff9887a3685a5f25a693f4771"
+        }
+      }
+    },
+    {
+      "manifest": "prepared/le1440/freiburg-minster-columns/manifest.json",
+      "manifest_sha256": "77ac0b2176aaea2910b5c05a48e720a3799fccc1d41193ffdb4dd9c165f74905",
+      "preparation_id": "le1440",
+      "profile_id": "commons-8bit-le1440-v1",
+      "source_id": "freiburg-minster-columns",
+      "source_sha256": "b9ecf811f5da13fc3f9cd4061f0ba838f233569b434a258ffed0a4f7f8ec0305",
+      "source_dimensions": [
+        4480,
+        6720
+      ],
+      "dimensions": [
+        960,
+        1440
+      ],
+      "linear_scale": 0.21428571428571427,
+      "pixel_area_scale": 0.04591836734693878,
+      "outputs": {
+        "master": {
+          "filename": "master.png",
+          "byte_size": 1879685,
+          "sha256": "3a1c416a2b9c0051eea9e9e9b7608b9f85e2f21035fd9f9a2769504d16b289c2"
+        },
+        "gray8": {
+          "filename": "source-960x1440-gray8.i400",
+          "byte_size": 1382400,
+          "sha256": "334286be6f0db467a304b98b3fbe4fa3879510e6dac6d33d33c6ecf926571636"
+        },
+        "yuv420p8": {
+          "filename": "source-960x1440-yuv420p8.i420",
+          "byte_size": 2073600,
+          "sha256": "f3fc69cb24b653b0a9217e167f2f7668bf051b7cb8823b9018f4bcb584d66d04"
+        },
+        "yuv444p8": {
+          "filename": "source-960x1440-yuv444p8.i444",
+          "byte_size": 4147200,
+          "sha256": "83316337b5ea119010c2174958b2e624cc91474af753ee88fc284d9fd74282f8"
+        }
+      }
+    },
+    {
+      "manifest": "prepared/le1440/hong-kong-harbour-night/manifest.json",
+      "manifest_sha256": "2687baf4aa6d5201bc330e94df3e5e8f811c2f3594c1906aa0d09969ef7e7ba5",
+      "preparation_id": "le1440",
+      "profile_id": "commons-8bit-le1440-v1",
+      "source_id": "hong-kong-harbour-night",
+      "source_sha256": "0bbcc45370d2e639cc38f8d0d38d5385f1630a441e709cd6aa59e4196086e03d",
+      "source_dimensions": [
+        10439,
+        4936
+      ],
+      "dimensions": [
+        1440,
+        680
+      ],
+      "linear_scale": 0.13794424753328863,
+      "pixel_area_scale": 0.01900366457103652,
+      "outputs": {
+        "master": {
+          "filename": "master.png",
+          "byte_size": 1784098,
+          "sha256": "fec4f83d578ad7289601640cf0cc2a9a6b074757ff13be5c04ee79f92c3a79db"
+        },
+        "gray8": {
+          "filename": "source-1440x680-gray8.i400",
+          "byte_size": 979200,
+          "sha256": "703ed583be75cb9c998893f9ecaa0a2cc7bfb36492c02fefec8b508508aed2cb"
+        },
+        "yuv420p8": {
+          "filename": "source-1440x680-yuv420p8.i420",
+          "byte_size": 1468800,
+          "sha256": "84577224db884f1a6eef16b1a2d3e0efe722fb9a36a70b45ae53376ccf3ce1a2"
+        },
+        "yuv444p8": {
+          "filename": "source-1440x680-yuv444p8.i444",
+          "byte_size": 2937600,
+          "sha256": "95ca5bad2bf98dbc8d633315899b32ff0ad1c076a1e8687de87c841b413274aa"
+        }
+      }
+    },
+    {
+      "manifest": "prepared/le1440/jinan-grand-theater/manifest.json",
+      "manifest_sha256": "bade6f81bd0b2744cd26bb0e0d8fa4752cdd1a1bf439d88e54bbdd411fffe601",
+      "preparation_id": "le1440",
+      "profile_id": "commons-8bit-le1440-v1",
+      "source_id": "jinan-grand-theater",
+      "source_sha256": "d602a3dfada4320c31f7bdac83c9e352fd9ce682b368fd2b516abc531bec12d4",
+      "source_dimensions": [
+        4418,
+        3314
+      ],
+      "dimensions": [
+        1440,
+        1080
+      ],
+      "linear_scale": 0.3259393390674513,
+      "pixel_area_scale": 0.10622042431890387,
+      "outputs": {
+        "master": {
+          "filename": "master.png",
+          "byte_size": 2743237,
+          "sha256": "a195139521428d59c78f9e269abff9ff67600039f7f07fbe8c6f52bd89a79ecc"
+        },
+        "gray8": {
+          "filename": "source-1440x1080-gray8.i400",
+          "byte_size": 1555200,
+          "sha256": "cbbe53af8b57793dca37537d3e2ee927fc442a78aca1b6243a89249d95bf28fe"
+        },
+        "yuv420p8": {
+          "filename": "source-1440x1080-yuv420p8.i420",
+          "byte_size": 2332800,
+          "sha256": "5a79e2bbdadd9d8e825cebd78bc1a88704cdf0381771e1425b11ebbf87a46928"
+        },
+        "yuv444p8": {
+          "filename": "source-1440x1080-yuv444p8.i444",
+          "byte_size": 4665600,
+          "sha256": "78d57d21b87b70bd02cca78b22e3dc6b3a9cd3df24f57af9ad37bc3cef820af5"
+        }
+      }
+    },
+    {
+      "manifest": "prepared/le1440/pastel-chalks/manifest.json",
+      "manifest_sha256": "b50c7b486379648b74d75478ecaa0df4503fbd7748fdcae5a643c39efbe38bb5",
+      "preparation_id": "le1440",
+      "profile_id": "commons-8bit-le1440-v1",
+      "source_id": "pastel-chalks",
+      "source_sha256": "211b591090fb58c7db51547d6e89c461db52c51574f14a8f20269f5555dea999",
+      "source_dimensions": [
+        6720,
+        4480
+      ],
+      "dimensions": [
+        1440,
+        960
+      ],
+      "linear_scale": 0.21428571428571427,
+      "pixel_area_scale": 0.04591836734693878,
+      "outputs": {
+        "master": {
+          "filename": "master.png",
+          "byte_size": 1975021,
+          "sha256": "a925912a2b82d12f94adbb3d11ddccac142c9b2f80ce57cdd5eb8c005e029174"
+        },
+        "gray8": {
+          "filename": "source-1440x960-gray8.i400",
+          "byte_size": 1382400,
+          "sha256": "95990ae2d840eceb18904f1158f2ab2e60d951c5719e771d7b9e9ea6a76d964e"
+        },
+        "yuv420p8": {
+          "filename": "source-1440x960-yuv420p8.i420",
+          "byte_size": 2073600,
+          "sha256": "8ebdfcc10810ff63da46b73109fb456029f5e6accae5f667e88a82c29786bfbf"
+        },
+        "yuv444p8": {
+          "filename": "source-1440x960-yuv444p8.i444",
+          "byte_size": 4147200,
+          "sha256": "6244d9de4b60f52999be5b1034e1e92386467bf152d52577969ac6e1cdbb7cfc"
+        }
+      }
+    },
+    {
+      "manifest": "prepared/le1440/pitti-ceiling/manifest.json",
+      "manifest_sha256": "7d6df98b76fd1fc8ad9cb8094fde695496c6cd3b14faaac43760b289fb097dda",
+      "preparation_id": "le1440",
+      "profile_id": "commons-8bit-le1440-v1",
+      "source_id": "pitti-ceiling",
+      "source_sha256": "7e2ae23c457635e4c324c49fa37219dfa8e6c1913a320fb9c81a25b2c2ebbedd",
+      "source_dimensions": [
+        5515,
+        5515
+      ],
+      "dimensions": [
+        1440,
+        1440
+      ],
+      "linear_scale": 0.2611060743427017,
+      "pixel_area_scale": 0.06817638205865648,
+      "outputs": {
+        "master": {
+          "filename": "master.png",
+          "byte_size": 4504472,
+          "sha256": "f82019a655236b54cbc9362464238d321ed2d6b6a462d0505156925c704aab4d"
+        },
+        "gray8": {
+          "filename": "source-1440x1440-gray8.i400",
+          "byte_size": 2073600,
+          "sha256": "3f7446165875b8801ad0e4d54e598400bb12ff2cceef7cdf9d8f15268f7694ce"
+        },
+        "yuv420p8": {
+          "filename": "source-1440x1440-yuv420p8.i420",
+          "byte_size": 3110400,
+          "sha256": "7b195e24ff1d4d265fa3b8bed96a9ec3488d9502f068e95afd2129499915af6b"
+        },
+        "yuv444p8": {
+          "filename": "source-1440x1440-yuv444p8.i444",
+          "byte_size": 6220800,
+          "sha256": "fb66451cc5d7ffda0a2a36c82797a5ab4b1378efe8f9a97ce0e4b7745baf686e"
+        }
+      }
+    },
+    {
+      "manifest": "prepared/le1440/rome-ponte-blue-hour/manifest.json",
+      "manifest_sha256": "339d90bef2feeb8f51b0a683b340e685951d1f8817eb34a3d95b9b5a037f2531",
+      "preparation_id": "le1440",
+      "profile_id": "commons-8bit-le1440-v1",
+      "source_id": "rome-ponte-blue-hour",
+      "source_sha256": "ac909e6b3bb33643e04ae3fa3014642c0e5800f03685fc3184fc57fcebbd6502",
+      "source_dimensions": [
+        5888,
+        3926
+      ],
+      "dimensions": [
+        1440,
+        960
+      ],
+      "linear_scale": 0.24456521739130435,
+      "pixel_area_scale": 0.05980198896985537,
+      "outputs": {
+        "master": {
+          "filename": "master.png",
+          "byte_size": 1778176,
+          "sha256": "81982d66d64513e79345e5b381edcc540674ba0e1c8ce2be712c1103b6129343"
+        },
+        "gray8": {
+          "filename": "source-1440x960-gray8.i400",
+          "byte_size": 1382400,
+          "sha256": "1aaa45e5458138f262872b68f2d7f4b47a3b73aead7fc97cf61b46c101fd9db7"
+        },
+        "yuv420p8": {
+          "filename": "source-1440x960-yuv420p8.i420",
+          "byte_size": 2073600,
+          "sha256": "ffdcfcd8d132e7103e2166a8b2ead8d91e5a910b78afad94d5e2fdd1e3a40b19"
+        },
+        "yuv444p8": {
+          "filename": "source-1440x960-yuv444p8.i444",
+          "byte_size": 4147200,
+          "sha256": "52164aeb4655c4a69b2a3cc3e5543358aa6edd14351f80f3494cd704ac2b5912"
+        }
+      }
+    },
+    {
+      "manifest": "prepared/le1440/scarlet-flycatcher/manifest.json",
+      "manifest_sha256": "ff9f638a298805a651697fd4da96e37f99b668700bc8796f263b7763053c9ab0",
+      "preparation_id": "le1440",
+      "profile_id": "commons-8bit-le1440-v1",
+      "source_id": "scarlet-flycatcher",
+      "source_sha256": "725bb593d0e0ad20018f8cca1b770450432148b0d90f72633a4f55f9302a8a10",
+      "source_dimensions": [
+        2848,
+        1899
+      ],
+      "dimensions": [
+        1440,
+        960
+      ],
+      "linear_scale": 0.5056179775280899,
+      "pixel_area_scale": 0.25560466478513233,
+      "outputs": {
+        "master": {
+          "filename": "master.png",
+          "byte_size": 1747878,
+          "sha256": "12961474e98a22c4db4fbba880ea85c9aaa1043ee9ca4fcf732a1e9617311376"
+        },
+        "gray8": {
+          "filename": "source-1440x960-gray8.i400",
+          "byte_size": 1382400,
+          "sha256": "1453631f8a02d436cdf7bb183a37bc91e78fb786a9e5f998edb25059df908331"
+        },
+        "yuv420p8": {
+          "filename": "source-1440x960-yuv420p8.i420",
+          "byte_size": 2073600,
+          "sha256": "7a487d2fa9a6056d51fde3154fa4fc5a8a7419b21a31a4b167dc2ca01946ed91"
+        },
+        "yuv444p8": {
+          "filename": "source-1440x960-yuv444p8.i444",
+          "byte_size": 4147200,
+          "sha256": "8dd662b2b99ffa8cdba1ac3f61a3e879346f6dcfe2c6b4f84f20463022463b8a"
+        }
+      }
+    },
+    {
+      "manifest": "prepared/le1440/succisa-flower-bud/manifest.json",
+      "manifest_sha256": "c2446da1007a1e69c590d931643ab0079c3dcc88d3a89ab7c0bb63fe6f7ea908",
+      "preparation_id": "le1440",
+      "profile_id": "commons-8bit-le1440-v1",
+      "source_id": "succisa-flower-bud",
+      "source_sha256": "a2ac520c92e3425f8c5c472869286722841dc7509700fcc131816e37d1400b81",
+      "source_dimensions": [
+        3456,
+        3456
+      ],
+      "dimensions": [
+        1440,
+        1440
+      ],
+      "linear_scale": 0.4166666666666667,
+      "pixel_area_scale": 0.1736111111111111,
+      "outputs": {
+        "master": {
+          "filename": "master.png",
+          "byte_size": 2740280,
+          "sha256": "7dcd631f49fc1e293a556fbf21e904bf148b91d239c0707b0d50dcce4b79f6b7"
+        },
+        "gray8": {
+          "filename": "source-1440x1440-gray8.i400",
+          "byte_size": 2073600,
+          "sha256": "a26c487b4483b793ae594c6e45ce447bb31935826ed582ddf806922e6e42e42a"
+        },
+        "yuv420p8": {
+          "filename": "source-1440x1440-yuv420p8.i420",
+          "byte_size": 3110400,
+          "sha256": "17a731db59f36a6a3a737aa86153da30f0cdd0601aa167b8cb1d2fb521fed6f2"
+        },
+        "yuv444p8": {
+          "filename": "source-1440x1440-yuv444p8.i444",
+          "byte_size": 6220800,
+          "sha256": "41fa70fd0f84b917d535ee7f7bc722df8caa9c93cae42a7fe25e70767ac946f1"
+        }
+      }
+    },
+    {
+      "manifest": "prepared/le1440/toco-toucan/manifest.json",
+      "manifest_sha256": "db7abe101b3ae29ee4147c08a2eae5c68de7bb6e4f4c7851616b14723ae601ce",
+      "preparation_id": "le1440",
+      "profile_id": "commons-8bit-le1440-v1",
+      "source_id": "toco-toucan",
+      "source_sha256": "db109e821238d333e40028a651bb78f857b55e40ef03bbec2913e52d367cbdef",
+      "source_dimensions": [
+        6914,
+        4609
+      ],
+      "dimensions": [
+        1440,
+        960
+      ],
+      "linear_scale": 0.20827306913508822,
+      "pixel_area_scale": 0.04338080849852131,
+      "outputs": {
+        "master": {
+          "filename": "master.png",
+          "byte_size": 1736419,
+          "sha256": "f5b76ca2c20d2944119a8ec4873c29183e2ecd5ae09a18542e0f1e95e4f9d6f2"
+        },
+        "gray8": {
+          "filename": "source-1440x960-gray8.i400",
+          "byte_size": 1382400,
+          "sha256": "8577504953e4c9aa0dc8c80fa079de547410c0d0c712a1927e025e8e7a32377b"
+        },
+        "yuv420p8": {
+          "filename": "source-1440x960-yuv420p8.i420",
+          "byte_size": 2073600,
+          "sha256": "1f47d243a7590bf5ec12ebd7acaa78be6e907f02c8ddf08d962f02b02ff8c95b"
+        },
+        "yuv444p8": {
+          "filename": "source-1440x960-yuv444p8.i444",
+          "byte_size": 4147200,
+          "sha256": "f22aa606d25b7f501c65348a653104552c8b25befa3095325d5d7ae924229588"
+        }
+      }
+    },
+    {
+      "manifest": "prepared/le896/baya-weaver/manifest.json",
+      "manifest_sha256": "35d83e38d57eaa731fcc3418f17409e8759774a73952edf5a6ae3d64149e018f",
+      "preparation_id": "le896",
+      "profile_id": "commons-8bit-le896-v1",
+      "source_id": "baya-weaver",
+      "source_sha256": "376aaf85243f1e8186e82203440f6c18a96213138bf949d381daef5a4effe6d1",
+      "source_dimensions": [
+        3162,
+        2108
+      ],
+      "dimensions": [
+        896,
+        598
+      ],
+      "linear_scale": 0.28336495888678054,
+      "pixel_area_scale": 0.08038531566143015,
+      "outputs": {
+        "master": {
+          "filename": "master.png",
+          "byte_size": 538336,
+          "sha256": "1774f57555ec4c3ee6f1cfe4ad6a64ed4dcfee7f0905dcb474a928e1bb14e9f5"
+        },
+        "gray8": {
+          "filename": "source-896x598-gray8.i400",
+          "byte_size": 535808,
+          "sha256": "b91d856ba048095fbb066934a967531a82a8813f66acd18b3a1d4522edfc3c20"
+        },
+        "yuv420p8": {
+          "filename": "source-896x598-yuv420p8.i420",
+          "byte_size": 803712,
+          "sha256": "801cc5086305a87968e9e9822d34a62b654abef46846c1ba4c53cc6e9045c667"
+        },
+        "yuv444p8": {
+          "filename": "source-896x598-yuv444p8.i444",
+          "byte_size": 1607424,
+          "sha256": "3f649f75186e1491ca1a9003a89b1934a023621d711b0a58b493ae791b0441e4"
+        }
+      }
+    },
+    {
+      "manifest": "prepared/le896/chinnathurai-church/manifest.json",
+      "manifest_sha256": "96a9fea7f80196c27d0d5f7f0ef725c7b5274b49a257004f7a273d55c8714d42",
+      "preparation_id": "le896",
+      "profile_id": "commons-8bit-le896-v1",
+      "source_id": "chinnathurai-church",
+      "source_sha256": "d0362ecda7af79ccac66754ff94cd3c41c77192fa84583a68e77ea21c2a56323",
+      "source_dimensions": [
+        3629,
+        3629
+      ],
+      "dimensions": [
+        896,
+        896
+      ],
+      "linear_scale": 0.2468999724441995,
+      "pixel_area_scale": 0.06095959639294647,
+      "outputs": {
+        "master": {
+          "filename": "master.png",
+          "byte_size": 1080476,
+          "sha256": "0c26ded47d06830640fb9597d54eddaaa8863fef1a45af4473f56657159c3be8"
+        },
+        "gray8": {
+          "filename": "source-896x896-gray8.i400",
+          "byte_size": 802816,
+          "sha256": "b2cda7cf91f932933c3fe022e1628acb21c2f7fe50ac4dc6dc07478dcded6220"
+        },
+        "yuv420p8": {
+          "filename": "source-896x896-yuv420p8.i420",
+          "byte_size": 1204224,
+          "sha256": "44b794261a50593e64014772a07ff6d0fd4d8e567ffb93c9572e95d27f3d7f23"
+        },
+        "yuv444p8": {
+          "filename": "source-896x896-yuv444p8.i444",
+          "byte_size": 2408448,
+          "sha256": "fcdd3a2636c77952884729eb31d5982bb0b4f3072c6768a20138d33ecf32507e"
+        }
+      }
+    },
+    {
+      "manifest": "prepared/le896/elbrus-milky-way/manifest.json",
+      "manifest_sha256": "1e51d7ed0bc94765aba71afb31e4881c4c768a4f0fe6f49d6dccdea5d78e8acf",
+      "preparation_id": "le896",
+      "profile_id": "commons-8bit-le896-v1",
+      "source_id": "elbrus-milky-way",
+      "source_sha256": "d63c51651ff220983db323a0a65fb5e8c983c80c3b229d07f59f72d19d997457",
+      "source_dimensions": [
+        3648,
+        5472
+      ],
+      "dimensions": [
+        598,
+        896
+      ],
+      "linear_scale": 0.16374269005847952,
+      "pixel_area_scale": 0.026841592284805583,
+      "outputs": {
+        "master": {
+          "filename": "master.png",
+          "byte_size": 1070763,
+          "sha256": "a68b8c10d072001a478b4b876792031c91bba76f08e3f5fe494999d07bcb620d"
+        },
+        "gray8": {
+          "filename": "source-598x896-gray8.i400",
+          "byte_size": 535808,
+          "sha256": "517e9b5a796b6836d670a0e28a2a4e8517b47bfe496da8f47131be82a9364418"
+        },
+        "yuv420p8": {
+          "filename": "source-598x896-yuv420p8.i420",
+          "byte_size": 803712,
+          "sha256": "7409d91a961f881a0e6660fe198137d2514966fd8212c41b0be6ea3bbb22da8a"
+        },
+        "yuv444p8": {
+          "filename": "source-598x896-yuv444p8.i444",
+          "byte_size": 1607424,
+          "sha256": "0eb6d4f4e7506cb006f1231216e88caa640e98d52091a90ab0575c0bf395e02d"
+        }
+      }
+    },
+    {
+      "manifest": "prepared/le896/emerald-swift/manifest.json",
+      "manifest_sha256": "e243dcb4e6e79c39ff99d1364912b6d06b7cc7f68b1297bd3f018a0e5ec4b98b",
+      "preparation_id": "le896",
+      "profile_id": "commons-8bit-le896-v1",
+      "source_id": "emerald-swift",
+      "source_sha256": "c60389f6f700f75374dae791c5c76318fc54f020619d2859eda881ac09a3dba6",
+      "source_dimensions": [
+        4095,
+        2048
+      ],
+      "dimensions": [
+        896,
+        448
+      ],
+      "linear_scale": 0.2188034188034188,
+      "pixel_area_scale": 0.04786324786324787,
+      "outputs": {
+        "master": {
+          "filename": "master.png",
+          "byte_size": 667105,
+          "sha256": "f40b1232d6c02532a55ca24d2bff109d0482773bddb7b38572f1cdda74b73dac"
+        },
+        "gray8": {
+          "filename": "source-896x448-gray8.i400",
+          "byte_size": 401408,
+          "sha256": "1b9db5bbf1a3e6faca7acb717a1a7f2f65a691d3323dcb857048e032773eb18a"
+        },
+        "yuv420p8": {
+          "filename": "source-896x448-yuv420p8.i420",
+          "byte_size": 602112,
+          "sha256": "d25d3c8f9603274a7a4ec1f3fa15a8e93995412cf5d5d758fd968bb5bcb27e35"
+        },
+        "yuv444p8": {
+          "filename": "source-896x448-yuv444p8.i444",
+          "byte_size": 1204224,
+          "sha256": "b8d52f6d97ee09de07a3b6327438326f0ce219340e777edb7b21a16ea1c55b7f"
+        }
+      }
+    },
+    {
+      "manifest": "prepared/le896/finland-warbirds/manifest.json",
+      "manifest_sha256": "e175e74e53aebbc965f009d831f204cf454fa330b7b45056c4a16f528f69bc93",
+      "preparation_id": "le896",
+      "profile_id": "commons-8bit-le896-v1",
+      "source_id": "finland-warbirds",
+      "source_sha256": "58c047b5f1a30298344b0b7c73200dc08490c70a96c4d26242b2bc51feb2ab51",
+      "source_dimensions": [
+        2560,
+        1440
+      ],
+      "dimensions": [
+        896,
+        504
+      ],
+      "linear_scale": 0.35,
+      "pixel_area_scale": 0.1225,
+      "outputs": {
+        "master": {
+          "filename": "master.png",
+          "byte_size": 618306,
+          "sha256": "092494385bb2996d4edbe8b76fff84a2807a8c120ba40044bd51c5344b176274"
+        },
+        "gray8": {
+          "filename": "source-896x504-gray8.i400",
+          "byte_size": 451584,
+          "sha256": "72176a06e2254e0200262943ae9d0a91282278d4f3d6d984f75bf22dffb2824b"
+        },
+        "yuv420p8": {
+          "filename": "source-896x504-yuv420p8.i420",
+          "byte_size": 677376,
+          "sha256": "fef5aa3b321d80a64a96a51813de75e415b2123ebca0c7ec94947ba5242238e5"
+        },
+        "yuv444p8": {
+          "filename": "source-896x504-yuv444p8.i444",
+          "byte_size": 1354752,
+          "sha256": "27a71fbf42aadd41e8b8a57a42baf6b2f010c719736590b1fbc3404ef75f9637"
+        }
+      }
+    },
+    {
+      "manifest": "prepared/le896/freiburg-minster-columns/manifest.json",
+      "manifest_sha256": "1d9ff3ab2061f291d8d0ce5605e1d727eee94cdb0adc3975455054dcc0c22414",
+      "preparation_id": "le896",
+      "profile_id": "commons-8bit-le896-v1",
+      "source_id": "freiburg-minster-columns",
+      "source_sha256": "b9ecf811f5da13fc3f9cd4061f0ba838f233569b434a258ffed0a4f7f8ec0305",
+      "source_dimensions": [
+        4480,
+        6720
+      ],
+      "dimensions": [
+        598,
+        896
+      ],
+      "linear_scale": 0.13333333333333333,
+      "pixel_area_scale": 0.017797619047619048,
+      "outputs": {
+        "master": {
+          "filename": "master.png",
+          "byte_size": 818257,
+          "sha256": "01b79746d422e6e660eac83266ec346239ce9e5d6d438548a1622c0028d29582"
+        },
+        "gray8": {
+          "filename": "source-598x896-gray8.i400",
+          "byte_size": 535808,
+          "sha256": "ff1644889a619eb7aff3e7c6ce2bc91f79ba56b5ef964756425f3ca0931fd19f"
+        },
+        "yuv420p8": {
+          "filename": "source-598x896-yuv420p8.i420",
+          "byte_size": 803712,
+          "sha256": "b44bc7c38e6ee9ea42a647778483f6c52146e70eec3c72e26e527c657b17558d"
+        },
+        "yuv444p8": {
+          "filename": "source-598x896-yuv444p8.i444",
+          "byte_size": 1607424,
+          "sha256": "9424f4dd7474f2ebf17ad572843b32ec3a957e93bd7be1d578e29d52afc522ca"
+        }
+      }
+    },
+    {
+      "manifest": "prepared/le896/hong-kong-harbour-night/manifest.json",
+      "manifest_sha256": "893e2837e61f7a21ad8b7486d8b5a777e90f230ab11b0c2442ba5e01eeceb412",
+      "preparation_id": "le896",
+      "profile_id": "commons-8bit-le896-v1",
+      "source_id": "hong-kong-harbour-night",
+      "source_sha256": "0bbcc45370d2e639cc38f8d0d38d5385f1630a441e709cd6aa59e4196086e03d",
+      "source_dimensions": [
+        10439,
+        4936
+      ],
+      "dimensions": [
+        896,
+        424
+      ],
+      "linear_scale": 0.08583197624293515,
+      "pixel_area_scale": 0.007372925025730248,
+      "outputs": {
+        "master": {
+          "filename": "master.png",
+          "byte_size": 730268,
+          "sha256": "288f070aebe05ec6a226af7b334ebdf9462d2de857b872ed6af6b59c6ba1a17c"
+        },
+        "gray8": {
+          "filename": "source-896x424-gray8.i400",
+          "byte_size": 379904,
+          "sha256": "3c4e46488f0be934a67e3339183d33ab37094c3ec1b6237beeaa14d865b0ae2b"
+        },
+        "yuv420p8": {
+          "filename": "source-896x424-yuv420p8.i420",
+          "byte_size": 569856,
+          "sha256": "faf3624f99a46d56aeca4669e8da2da8ab476aae7777b639850c244f91d0adb6"
+        },
+        "yuv444p8": {
+          "filename": "source-896x424-yuv444p8.i444",
+          "byte_size": 1139712,
+          "sha256": "e67a1406283ee0fe0af5d84b610e202b4e7102d50842ff55ff0d4caa7dca8e79"
+        }
+      }
+    },
+    {
+      "manifest": "prepared/le896/jinan-grand-theater/manifest.json",
+      "manifest_sha256": "684d589e43c39ed907738a30c78ee23d941e597a99b254d9b061a603fe1c9f9c",
+      "preparation_id": "le896",
+      "profile_id": "commons-8bit-le896-v1",
+      "source_id": "jinan-grand-theater",
+      "source_sha256": "d602a3dfada4320c31f7bdac83c9e352fd9ce682b368fd2b516abc531bec12d4",
+      "source_dimensions": [
+        4418,
+        3314
+      ],
+      "dimensions": [
+        896,
+        672
+      ],
+      "linear_scale": 0.20280669986419195,
+      "pixel_area_scale": 0.04112435193383735,
+      "outputs": {
+        "master": {
+          "filename": "master.png",
+          "byte_size": 1080535,
+          "sha256": "4594e32ff9e765ff543325c9cd484699c1e546b016b8ae62abfe8421d4271907"
+        },
+        "gray8": {
+          "filename": "source-896x672-gray8.i400",
+          "byte_size": 602112,
+          "sha256": "8e32e842cb1449641f60996d2fa5e2fc3337dabb41832b593ef79619f3a74faa"
+        },
+        "yuv420p8": {
+          "filename": "source-896x672-yuv420p8.i420",
+          "byte_size": 903168,
+          "sha256": "f5ee6172572dd771a0dd5797bcf2f8d30536542d159d4678da3d6f58787c728d"
+        },
+        "yuv444p8": {
+          "filename": "source-896x672-yuv444p8.i444",
+          "byte_size": 1806336,
+          "sha256": "8e1cdfcf2c49db9974baee79a31ef839844312db18b7bd842f4a267f1d511805"
+        }
+      }
+    },
+    {
+      "manifest": "prepared/le896/pastel-chalks/manifest.json",
+      "manifest_sha256": "4b9b0a6de7c6e3f8a73c995d81ad73815c63009752a57e4a83febdedbb43ceeb",
+      "preparation_id": "le896",
+      "profile_id": "commons-8bit-le896-v1",
+      "source_id": "pastel-chalks",
+      "source_sha256": "211b591090fb58c7db51547d6e89c461db52c51574f14a8f20269f5555dea999",
+      "source_dimensions": [
+        6720,
+        4480
+      ],
+      "dimensions": [
+        896,
+        598
+      ],
+      "linear_scale": 0.13333333333333333,
+      "pixel_area_scale": 0.017797619047619048,
+      "outputs": {
+        "master": {
+          "filename": "master.png",
+          "byte_size": 787760,
+          "sha256": "60d077d87b60bde9cc8c749bba98f10c6df95965f5d3cd10a53c5f2214e91818"
+        },
+        "gray8": {
+          "filename": "source-896x598-gray8.i400",
+          "byte_size": 535808,
+          "sha256": "b529c7705e11b3c313f95130f2e0e648155fcb87fdf33c7bf87f7cbfa9335d8e"
+        },
+        "yuv420p8": {
+          "filename": "source-896x598-yuv420p8.i420",
+          "byte_size": 803712,
+          "sha256": "0eaffab5a62adfb211e7fb8d68bccd5ed3c5ff818225f73093224e4506929869"
+        },
+        "yuv444p8": {
+          "filename": "source-896x598-yuv444p8.i444",
+          "byte_size": 1607424,
+          "sha256": "def0bfc144452d811d76c4a2217b6d2e89d5485eff580a8b166ffbd22358e27b"
+        }
+      }
+    },
+    {
+      "manifest": "prepared/le896/pitti-ceiling/manifest.json",
+      "manifest_sha256": "2487eb26b5dcdec224f4c3586a86b631e5a2bc1258dd9533db5b24ce1860ac7b",
+      "preparation_id": "le896",
+      "profile_id": "commons-8bit-le896-v1",
+      "source_id": "pitti-ceiling",
+      "source_sha256": "7e2ae23c457635e4c324c49fa37219dfa8e6c1913a320fb9c81a25b2c2ebbedd",
+      "source_dimensions": [
+        5515,
+        5515
+      ],
+      "dimensions": [
+        896,
+        896
+      ],
+      "linear_scale": 0.16246600181323662,
+      "pixel_area_scale": 0.026395201745178606,
+      "outputs": {
+        "master": {
+          "filename": "master.png",
+          "byte_size": 1794287,
+          "sha256": "9520017bdfdfa2385a1ce6a054c84db97437326be9080220eade9a354a5becf5"
+        },
+        "gray8": {
+          "filename": "source-896x896-gray8.i400",
+          "byte_size": 802816,
+          "sha256": "93a053a6bfd2db1a21a948cb5901b5ef2c69e4962cf25e1385482f47a22c97cd"
+        },
+        "yuv420p8": {
+          "filename": "source-896x896-yuv420p8.i420",
+          "byte_size": 1204224,
+          "sha256": "cb2279bb9801d0193b7ae628620be541004e5ff5abab2b9890b9b5ad09a67cf8"
+        },
+        "yuv444p8": {
+          "filename": "source-896x896-yuv444p8.i444",
+          "byte_size": 2408448,
+          "sha256": "8557dbad21902377f956e7a9e84250476dc6d2d497722963cb3e474e266db7d0"
+        }
+      }
+    },
+    {
+      "manifest": "prepared/le896/rome-ponte-blue-hour/manifest.json",
+      "manifest_sha256": "5446fd8fb935fabbb5ad885e66c47b2ad3dcdefa1b16b62fd67bb01df7aa4ae0",
+      "preparation_id": "le896",
+      "profile_id": "commons-8bit-le896-v1",
+      "source_id": "rome-ponte-blue-hour",
+      "source_sha256": "ac909e6b3bb33643e04ae3fa3014642c0e5800f03685fc3184fc57fcebbd6502",
+      "source_dimensions": [
+        5888,
+        3926
+      ],
+      "dimensions": [
+        896,
+        598
+      ],
+      "linear_scale": 0.15217391304347827,
+      "pixel_area_scale": 0.023178807947019868,
+      "outputs": {
+        "master": {
+          "filename": "master.png",
+          "byte_size": 689280,
+          "sha256": "f14857f49f759f0639482164348b3b1ed96be5412837c08fdcf9ddca072afab0"
+        },
+        "gray8": {
+          "filename": "source-896x598-gray8.i400",
+          "byte_size": 535808,
+          "sha256": "b2465c2a01f1be28f7ddbbbaa6352e8d16bd74277d185ba11963c29746de2fbd"
+        },
+        "yuv420p8": {
+          "filename": "source-896x598-yuv420p8.i420",
+          "byte_size": 803712,
+          "sha256": "6d317c5db8427fcca631db9a5e30c994326f88a32a99bfe8c6121f44c31fddff"
+        },
+        "yuv444p8": {
+          "filename": "source-896x598-yuv444p8.i444",
+          "byte_size": 1607424,
+          "sha256": "95421cecc1e307b9e4f6efe422ba48ec909a90adfa10cdacd68c1fe0f87a2fec"
+        }
+      }
+    },
+    {
+      "manifest": "prepared/le896/scarlet-flycatcher/manifest.json",
+      "manifest_sha256": "a4a8be770d07b8815c95f95cb64e923d4e6d53fc7ae0ed1c488abb2511c0739f",
+      "preparation_id": "le896",
+      "profile_id": "commons-8bit-le896-v1",
+      "source_id": "scarlet-flycatcher",
+      "source_sha256": "725bb593d0e0ad20018f8cca1b770450432148b0d90f72633a4f55f9302a8a10",
+      "source_dimensions": [
+        2848,
+        1899
+      ],
+      "dimensions": [
+        896,
+        598
+      ],
+      "linear_scale": 0.3146067415730337,
+      "pixel_area_scale": 0.09907047470283,
+      "outputs": {
+        "master": {
+          "filename": "master.png",
+          "byte_size": 645595,
+          "sha256": "dda081b4eff65d3bfa7254b3d259f92e7383f33edcdf21abc759526d1597c394"
+        },
+        "gray8": {
+          "filename": "source-896x598-gray8.i400",
+          "byte_size": 535808,
+          "sha256": "c4e75dfe5126e60e463a26e7826dfec9b13458264e08cff33035b0b806d6eb43"
+        },
+        "yuv420p8": {
+          "filename": "source-896x598-yuv420p8.i420",
+          "byte_size": 803712,
+          "sha256": "6ca6fb6be475d3e19cbe2afb8f8d7c8882af2ef540ae8211c5fcc2f128a773c3"
+        },
+        "yuv444p8": {
+          "filename": "source-896x598-yuv444p8.i444",
+          "byte_size": 1607424,
+          "sha256": "a1b1c682e229a8f4c6bf99ff5df43f4d5f29d57323be106a3d2fdd2258866e06"
+        }
+      }
+    },
+    {
+      "manifest": "prepared/le896/succisa-flower-bud/manifest.json",
+      "manifest_sha256": "b17e6bc83a718635ac8803db967bbdcd83a0abf492830f20c212515daaf367ff",
+      "preparation_id": "le896",
+      "profile_id": "commons-8bit-le896-v1",
+      "source_id": "succisa-flower-bud",
+      "source_sha256": "a2ac520c92e3425f8c5c472869286722841dc7509700fcc131816e37d1400b81",
+      "source_dimensions": [
+        3456,
+        3456
+      ],
+      "dimensions": [
+        896,
+        896
+      ],
+      "linear_scale": 0.25925925925925924,
+      "pixel_area_scale": 0.06721536351165981,
+      "outputs": {
+        "master": {
+          "filename": "master.png",
+          "byte_size": 970947,
+          "sha256": "0991380a6211dbed79ea5da1b69c1774a334fe282ff406dcf1da7b065adb5a56"
+        },
+        "gray8": {
+          "filename": "source-896x896-gray8.i400",
+          "byte_size": 802816,
+          "sha256": "975711bc5410322fe0dc3bb2be3920758c6f4cdb522836465e160d67b850e25b"
+        },
+        "yuv420p8": {
+          "filename": "source-896x896-yuv420p8.i420",
+          "byte_size": 1204224,
+          "sha256": "f69e5d8582ac560fce043d31a8b027739bffeff9324941732b7e0740dbfc1019"
+        },
+        "yuv444p8": {
+          "filename": "source-896x896-yuv444p8.i444",
+          "byte_size": 2408448,
+          "sha256": "3cbd9dc725a00024c14cbc337174c78a5a5aa5366c959b200013bba62ef80fb3"
+        }
+      }
+    },
+    {
+      "manifest": "prepared/le896/toco-toucan/manifest.json",
+      "manifest_sha256": "c869a0a0174d4a5618b85d858fcf84df5e7a6f4e154cf6ac82332d511c44df45",
+      "preparation_id": "le896",
+      "profile_id": "commons-8bit-le896-v1",
+      "source_id": "toco-toucan",
+      "source_sha256": "db109e821238d333e40028a651bb78f857b55e40ef03bbec2913e52d367cbdef",
+      "source_dimensions": [
+        6914,
+        4609
+      ],
+      "dimensions": [
+        896,
+        598
+      ],
+      "linear_scale": 0.1295921319062771,
+      "pixel_area_scale": 0.016814080034704647,
+      "outputs": {
+        "master": {
+          "filename": "master.png",
+          "byte_size": 692164,
+          "sha256": "bbba2ee0a2517c1df2171d47c40c3291136b42a56715d10f314d8cbb9f4a07b6"
+        },
+        "gray8": {
+          "filename": "source-896x598-gray8.i400",
+          "byte_size": 535808,
+          "sha256": "f07f0f044d927c6f4b0c65e0185251742afb5cb1a439260ee268f2938421dfef"
+        },
+        "yuv420p8": {
+          "filename": "source-896x598-yuv420p8.i420",
+          "byte_size": 803712,
+          "sha256": "4a0cef06d571d8c205e0ce19783441439119f57dbfedeb0244b00096a7dcc199"
+        },
+        "yuv444p8": {
+          "filename": "source-896x598-yuv444p8.i444",
+          "byte_size": 1607424,
+          "sha256": "a8aa58f1cf227b9081a07c21435be18ce03326d7b8f671f925e773b1a904df39"
+        }
+      }
+    }
+  ]
+}

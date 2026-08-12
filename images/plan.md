@@ -5,10 +5,12 @@
 This document describes the replacement for the organically grown image and
 artifact layout now preserved under `images/old/`. The source layer is
 implemented: the initial Commons originals, reviewed source records, exact
-license texts, attribution, directory skeleton, and empty recipe contracts are
-in place. Preparation and reference generation remain planned work. The old
-files should remain available until every active test, generator, report, and
-viewer asset has been migrated.
+license texts, attribution, and directory skeleton are in place. The initial
+896- and 1440-long-edge preparation profiles, outputs, per-output manifests,
+and tracked lock are also implemented. Cross-platform preparation parity and
+reference generation remain planned work. The old files should remain
+available until every active test, generator, report, and viewer asset has been
+migrated.
 
 The replacement corpus has four goals:
 
@@ -183,6 +185,15 @@ and [API etiquette](https://www.mediawiki.org/wiki/API:Etiquette), which favor
 identifiable clients, serial requests, caching, and considerate retries.
 
 ## Canonical prepared inputs
+
+The initial implemented profiles are `commons-8bit-le896-v1` and
+`commons-8bit-le1440-v1`. They use an exact 896- or 1440-pixel long edge and
+round the short edge to the nearest even value. They never upscale. Each
+preparation contains an 8-bit sRGB PNG master and full-range BT.709 I400, I420,
+and I444 planes. All 28 current preparations use less than half of the source
+pixel area. The 1440-pixel aircraft and Scarlet Flycatcher variants are the
+only cases at or above half of the source's linear dimensions, at 56.25% and
+50.56% respectively.
 
 The generated raw planes should be called canonical prepared inputs rather
 than lossless source images. Their stored bytes are lossless, but JPEG decode,

@@ -1,4 +1,53 @@
 {
   "schema_version": 1,
-  "preparations": []
+  "profiles": [
+    {
+      "id": "commons-8bit-le896-v1",
+      "source_class": "commons",
+      "target_long_edge": 896,
+      "allow_upscale": false,
+      "dimensions": "preserve orientation; exact long edge; nearest even short edge",
+      "master": {
+        "format": "PNG",
+        "color_space": "sRGB",
+        "bit_depth": 8,
+        "alpha": false,
+        "orientation": "auto-orient",
+        "filter": "Lanczos",
+        "metadata": "stripped after source metadata is preserved in source.json"
+      },
+      "planes": [
+        "gray8",
+        "yuv420p8",
+        "yuv444p8"
+      ],
+      "range": "full",
+      "matrix": "BT.709",
+      "chroma_siting": "unspecified"
+    },
+    {
+      "id": "commons-8bit-le1440-v1",
+      "source_class": "commons",
+      "target_long_edge": 1440,
+      "allow_upscale": false,
+      "dimensions": "preserve orientation; exact long edge; nearest even short edge",
+      "master": {
+        "format": "PNG",
+        "color_space": "sRGB",
+        "bit_depth": 8,
+        "alpha": false,
+        "orientation": "auto-orient",
+        "filter": "Lanczos",
+        "metadata": "stripped after source metadata is preserved in source.json"
+      },
+      "planes": [
+        "gray8",
+        "yuv420p8",
+        "yuv444p8"
+      ],
+      "range": "full",
+      "matrix": "BT.709",
+      "chroma_siting": "unspecified"
+    }
+  ]
 }
