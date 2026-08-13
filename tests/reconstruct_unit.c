@@ -1388,6 +1388,84 @@ static void test_tx4x16_fsc_reconstruction(void) {
     }
 }
 
+static void test_fsc_generic_selection_requires_identity(void) {
+    Av2hFirstLeafMode mode = { 0 };
+    Av2hFirstTransformType transform = { 0 };
+
+    mode.fsc_mode = 1U;
+    transform.primary_type = AV2H_TX_DCT_DCT;
+    CHECK(!av2h_reconstruct_generic_selected(
+              &mode, &transform, AV2H_TX_8X16));
+
+    transform.primary_type = AV2H_TX_IDTX;
+    CHECK(av2h_reconstruct_generic_selected(
+              &mode, &transform, AV2H_TX_8X16));
+}
+
+static void test_lossless_negative_coefficient_floor_shift(void) {
+    Av2hFirstLeafMode mode = { 0 };
+    Av2hFirstTransformType transform = { 0 };
+    Av2hFirstCoeffBlock coefficients = { 0 };
+    Av2hFirstReconstruction reconstruction;
+    uint8_t predictor[16U];
+    size_t index;
+
+    av2h_memory_fill(predictor, 128U, sizeof(predictor));
+    transform.primary_type = AV2H_TX_IDTX;
+    coefficients.width = 4U;
+    coefficients.height = 4U;
+    coefficients.coefficient_count = 16U;
+    coefficients.dequantized[0] = -1;
+    CHECK(av2h_reconstruct_lossless_4x4(
+              &mode, &transform, &coefficients, predictor, 4U,
+              &reconstruction) == AV2H_OK);
+    CHECK(reconstruction.residual[0] == -1);
+    CHECK(reconstruction.pixels[0] == 127U);
+    for (index = 1U; index < 16U; ++index) {
+        CHECK(reconstruction.residual[index] == 0);
+        CHECK(reconstruction.pixels[index] == 128U);
+    }
+}
+
+static void test_lossless_vertical_dpcm_bypasses_wht(void) {
+    static const int32_t dequantized[16U] = {
+        88, 112, 104, 32,
+        8, 0, -8, -24,
+        -8, -8, 8, -16,
+        0, 0, -8, 8
+    };
+    static const int16_t expected[16U] = {
+        11, 14, 13, 4,
+        12, 14, 12, 1,
+        11, 13, 13, -1,
+        11, 13, 12, 0
+    };
+    Av2hFirstLeafMode mode = { 0 };
+    Av2hFirstTransformType transform = { 0 };
+    Av2hFirstCoeffBlock coefficients = { 0 };
+    Av2hFirstReconstruction reconstruction;
+    uint8_t predictor[16U];
+    size_t index;
+
+    av2h_memory_fill(predictor, 35U, sizeof(predictor));
+    mode.use_dpcm_y = 1U;
+    mode.fsc_mode = 1U;
+    transform.primary_type = AV2H_TX_IDTX;
+    coefficients.width = 4U;
+    coefficients.height = 4U;
+    coefficients.coefficient_count = 16U;
+    for (index = 0U; index < 16U; ++index) {
+        coefficients.dequantized[index] = dequantized[index];
+    }
+    CHECK(av2h_reconstruct_lossless_4x4(
+              &mode, &transform, &coefficients, predictor, 4U,
+              &reconstruction) == AV2H_OK);
+    for (index = 0U; index < 16U; ++index) {
+        CHECK(reconstruction.residual[index] == expected[index]);
+        CHECK(reconstruction.pixels[index] == 35U + expected[index]);
+    }
+}
+
 static void test_tx4x4_intrabc_idtx_reconstruction(void) {
     static const uint8_t predictor[16U] = {
         247U, 249U, 251U, 251U,
@@ -6787,6 +6865,9 @@ int main(void) {
     test_tx16x4_dct_reconstruction();
     test_tx16x4_fsc_reconstruction();
     test_tx4x16_fsc_reconstruction();
+    test_fsc_generic_selection_requires_identity();
+    test_lossless_negative_coefficient_floor_shift();
+    test_lossless_vertical_dpcm_bypasses_wht();
     test_tx4x4_intrabc_idtx_reconstruction();
     test_primary_idtx_reconstruction_matrix();
     test_tx4x4_d203_fsc_reconstruction();

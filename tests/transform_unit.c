@@ -247,9 +247,8 @@ static void test_emerald_primary_mappings(void) {
     CHECK(av2h_primary_tx_type_map(
               AV2H_TX_64X32, AV2H_INTRA_DC, 1U, 0U, &tx_type) ==
           AV2H_UNSUPPORTED);
-    CHECK(av2h_primary_tx_type_map(
-              AV2H_TX_32X8, AV2H_INTRA_DC, 0U, 2U, &tx_type) ==
-          AV2H_UNSUPPORTED);
+    check_primary_map(AV2H_TX_32X8, AV2H_INTRA_DC, 0U, 2U,
+                      AV2H_TX_V_FLIPADST);
     CHECK(av2h_primary_tx_type_map(
               AV2H_TX_32X8, AV2H_INTRA_DC, 1U, 1U, 0) ==
           AV2H_INVALID_ARGUMENT);
@@ -262,6 +261,10 @@ static void test_v_flipadst_primary_mappings(void) {
                       AV2H_TX_V_FLIPADST);
     check_primary_map(AV2H_TX_8X4, AV2H_INTRA_D113, 0U, 6U,
                       AV2H_TX_V_FLIPADST);
+    check_primary_map(AV2H_TX_32X4, AV2H_INTRA_DC, 0U, 2U,
+                      AV2H_TX_V_FLIPADST);
+    check_primary_map(AV2H_TX_4X32, AV2H_INTRA_DC, 0U, 2U,
+                      AV2H_TX_H_FLIPADST);
 }
 
 #if 0

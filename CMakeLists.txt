@@ -208,6 +208,9 @@ if(AV2HEIF_BUILD_HOST_TESTS)
     target_link_libraries(av2heif-artifact PRIVATE av2heif-host-core)
     if(AV2HEIF_ENABLE_PYTHON_TESTS)
         find_package(Python3 COMPONENTS Interpreter REQUIRED)
+        add_test(NAME intrabc-admission-unit
+            COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_intrabc_admission.py")
         add_test(NAME public-decoder-8bit-444-parity
             COMMAND "${Python3_EXECUTABLE}"
                 "${CMAKE_CURRENT_SOURCE_DIR}/tools/validate_8bit_444_public.py"
@@ -251,6 +254,19 @@ if(AV2HEIF_BUILD_NATIVE_CLI AND UNIX AND NOT WIN32)
                 "-DOUTPUT_DIRECTORY=${CMAKE_CURRENT_BINARY_DIR}/Testing/Temporary/decoder-output"
                 -P "${CMAKE_CURRENT_SOURCE_DIR}/scripts/check-decoder-output-policy.cmake")
     endif()
+endif()
+
+if(AV2HEIF_BUILD_HOST_TESTS AND AV2HEIF_ENABLE_PYTHON_TESTS AND
+   TARGET av2heif-decoder AND TARGET av2heif-artifact)
+    add_custom_target(intrabc-admission
+        COMMAND "${Python3_EXECUTABLE}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/scripts/intrabc_admission.py"
+            --host-build "${CMAKE_CURRENT_BINARY_DIR}"
+            --jobs 4
+        DEPENDS av2heif-decoder av2heif-artifact
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+        USES_TERMINAL
+    )
 endif()
 
 if(AV2HEIF_BUILD_LINUX_NOLIBC)

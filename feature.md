@@ -178,16 +178,53 @@ most natural photographs after signaling and search costs. It should use a
 separate screen-content preset rather than become an unconditional photographic
 default.
 
+An initial controlled photographic probe encoded all 14 `le896` I420 inputs at
+QP 96 and 152 with the current pinned AVM binary and identical commands except
+for `--enable-intrabc=0` versus
+`--enable-intrabc=1 --enable-intrabc-ext=1`. TCQ, parity hiding, restoration,
+quantization matrices, AQ, and delta-Q were explicitly disabled in both arms.
+IntraBC reduced aggregate OBU bytes by 0.722% at QP 96 and 1.241% at QP 152.
+Mean PSNR changed by +0.000944 dB and -0.005529 dB respectively; mean SSIM
+changed by -0.00004014 and +0.00019393. The census observed 6,931 IntraBC blocks
+at QP 96 and 2,398 at QP 152, including both IntraBC modes, skipped and residual
+blocks, and broad transform/geometry coverage. These fixed-QP results are
+promising but are not a BD-rate result and do not include a perceptual metric.
+
+The project decoder initially matched pinned `avmdec` on 27 of the 28 streams.
+The remaining stream exposed an ordinary long-transform mapping reached because
+IntraBC changed surrounding encoder decisions: `(long_side=0,
+primary_symbol=2)` for 4x32/32x4 was rejected instead of mapping to
+H_FLIPADST/V_FLIPADST. After adding the normative symmetric mappings, all 28
+streams decode byte-identically. No IntraBC prediction or reconstruction
+algorithm change was required.
+
+The completed admission gate extends that probe to 32 locked source/QP cases
+and 64 IntraBC-off/on arms. All arms encode deterministically and match pinned
+AVM byte-for-byte through native raw OBU decode and the public canonical-HEIF
+path. The census records 19,567 IntraBC blocks: all 32 disabled arms contain
+zero, 31 enabled arms contain positive evidence, and the Pastel QP 255 enabled
+arm is an explicit zero-occurrence boundary control because pinned AVM does not
+select IntraBC there. Aggregate normalized OBU size falls from 3,402,416 bytes
+with IntraBC disabled to 3,374,124 bytes with it enabled, a reduction of 28,292
+bytes (approximately 0.8315%). This is fixed-QP admission evidence, not a
+BD-rate result.
+
 Decoder implementation steps:
 
 1. No new IntraBC core algorithm is currently required; spatial/reference-bank
    prediction, DRL selection, both observed modes, transform skip, and observed
-   palette paths already have focused evidence.
-2. Add a representative screen-content corpus with repeated regions, text,
+   palette paths already have focused evidence. Keep the new long-transform
+   mappings covered by focused tests and whole-image parity.
+2. Keep the deterministic 32-case admission matrix as the minimum I420 gate.
+   Require zero occurrence in every disabled arm, positive occurrence in the
+   31 designated enabled arms, and retain Pastel QP 255 as the explicit enabled
+   zero-occurrence boundary control. I400 and I444 still require separate
+   evidence before enabling IntraBC in those generators.
+3. Add a representative screen-content corpus with repeated regions, text,
    sharp edges, and palettes larger than the two currently observed examples.
-3. Exercise local and global IntraBC search ranges, bank rollover, block edges,
+4. Exercise local and global IntraBC search ranges, bank rollover, block edges,
    chroma interaction, residual and skipped blocks, and all legal geometries.
-4. Require exact AVM parity through raw OBU, public HEIF, no-libc, Windows, and
+5. Require exact AVM parity through raw OBU, public HEIF, no-libc, Windows, and
    WebAssembly gates before enabling it in a production recipe.
 
 ## Decoder features

@@ -285,7 +285,7 @@ static Av2hStatus tile_initialize_all_zero_luma(
     width = descriptor->coefficient_width;
     height = descriptor->coefficient_height;
     if (!leaf->prefix.all_zero || leaf->prefix.eob != 0U ||
-        leaf->mode.use_intrabc || leaf->mode.skip_transform) {
+        leaf->mode.skip_transform) {
         return AV2H_UNSUPPORTED;
     }
     tell = av2h_range_tell(&decoder->range);
@@ -434,7 +434,9 @@ Av2hStatus av2h_tile_decoder_next_luma(
     status = av2h_luma_palette_map_read(
         &decoder->range, &decoder->leaf_cdfs, &leaf->node, &leaf->mode);
     if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
-    if (decoder->frame->base_q_index == 0U && leaf->mode.fsc_mode != 0U &&
+    if (decoder->frame->base_q_index == 0U &&
+        leaf->mode.skip_transform == 0U &&
+        (leaf->mode.fsc_mode != 0U || leaf->mode.use_intrabc != 0U) &&
         leaf->node.block_size != AV2H_BLOCK_4X4) {
         static const uint8_t size_group[AV2H_BLOCK_SIZE_COUNT] = {
             0U, 0U, 0U, 1U, 1U, 1U, 2U, 2U, 2U, 3U,
@@ -445,7 +447,8 @@ Av2hStatus av2h_tile_decoder_next_luma(
         leaf->mode.lossless_tx_size_large = (uint8_t)
             av2h_range_read_adaptive(
                 &decoder->range,
-                decoder->leaf_cdfs.lossless_tx_size[group], 2U);
+                decoder->leaf_cdfs.lossless_tx_size[group]
+                    [leaf->mode.use_intrabc != 0U], 2U);
         if (av2h_range_status(&decoder->range) != AV2H_OK) {
             return av2h_tile_decoder_fail(
                 decoder, av2h_range_status(&decoder->range));
@@ -569,11 +572,28 @@ read_transform:
         return AV2H_OK;
     }
     av2h_tile_diagnostics_set_luma_stage(3U);
-    if (decoder->current_q_index == 0U && leaf->mode.fsc_mode == 0U) {
+    if (decoder->current_q_index == 0U) {
         size_t tell = av2h_range_tell(&decoder->range);
+        size_t before_primary = tell;
+        uint8_t lossless_inter_tx_type = 0U;
+        if (leaf->mode.use_intrabc != 0U &&
+            leaf->prefix.tx_size == AV2H_TX_4X4) {
+            lossless_inter_tx_type = (uint8_t)av2h_range_read_adaptive(
+                &decoder->range,
+                decoder->leaf_cdfs.lossless_inter_tx_type, 2U);
+            if (av2h_range_status(&decoder->range) != AV2H_OK) {
+                return av2h_tile_decoder_fail(
+                    decoder, av2h_range_status(&decoder->range));
+            }
+            tell = av2h_range_tell(&decoder->range);
+        }
         av2h_memory_fill(&leaf->transform, 0U, sizeof(leaf->transform));
-        leaf->transform.primary_type = AV2H_TX_DCT_DCT;
-        leaf->transform.before_primary_bits = tell;
+        leaf->transform.primary_type = leaf->mode.fsc_mode != 0U ||
+            (leaf->mode.use_intrabc != 0U &&
+             (lossless_inter_tx_type != 0U ||
+              leaf->prefix.tx_size != AV2H_TX_4X4)) ?
+                AV2H_TX_IDTX : AV2H_TX_DCT_DCT;
+        leaf->transform.before_primary_bits = before_primary;
         leaf->transform.after_primary_bits = tell;
         leaf->transform.after_secondary_type_bits = tell;
         leaf->transform.after_secondary_bits = tell;

@@ -145,6 +145,40 @@ build/linux-nolibc/av2heif-decoder-nolibc \
   -o build/i444-high-detail.bmp
 ```
 
+### IntraBC admission matrix
+
+The optional 8-bit I420 IntraBC gate compares 32 locked source/QP cases with
+IntraBC disabled and enabled, for 64 total arms. Each arm requires a
+deterministic normalized encode, AVM census evidence, byte-identical AVM and
+native raw output, and byte-identical public canonical-HEIF output. IntraBC-off
+arms must contain no IntraBC blocks. The 31 enabled positive-evidence arms must
+contain at least one; the locked Pastel QP 255 arm is retained as an explicit
+enabled zero-occurrence control because pinned AVM does not select IntraBC at
+that boundary QP.
+
+After building pinned AVM, the accounting census, and the hosted decoder tools,
+run the resumable four-worker gate with:
+
+```sh
+python3 scripts/intrabc_admission.py --jobs 4
+```
+
+Per-arm manifests and the aggregate report are written under
+`build/intrabc-admission/`. Existing canonical encodes are reused only when
+their recorded hashes match; incomplete arms rerun deterministic encoding,
+census, and all decoder parity checks.
+
+The negative-reference setup exports the pinned AVM revision into an isolated
+build-tree source directory. Local inspection changes in `vendor/avm` are
+neither included nor modified:
+
+```sh
+scripts/setup-avm-negatives.sh
+```
+
+On Windows, run `scripts/setup-avm-negatives.ps1` from a compiler-enabled
+PowerShell environment.
+
 Architecture-specific presets are also available for reproducible cross
 builds with Clang and `lld`:
 

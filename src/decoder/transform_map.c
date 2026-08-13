@@ -298,13 +298,14 @@ Av2hStatus av2h_primary_tx_type_map(
             }
             return AV2H_OK;
         }
-        if (primary_symbol == 2U) return AV2H_UNSUPPORTED;
         if (wide) {
             *tx_type = primary_symbol == 0U ? AV2H_TX_V_DCT :
-                primary_symbol == 1U ? AV2H_TX_V_ADST : AV2H_TX_IDTX;
+                primary_symbol == 1U ? AV2H_TX_V_ADST :
+                primary_symbol == 2U ? AV2H_TX_V_FLIPADST : AV2H_TX_IDTX;
         } else {
             *tx_type = primary_symbol == 0U ? AV2H_TX_H_DCT :
                 primary_symbol == 1U ? AV2H_TX_H_ADST :
+                primary_symbol == 2U ? AV2H_TX_H_FLIPADST :
                 primary_symbol == 3U ? AV2H_TX_IDTX :
                                        AV2H_TX_TYPE_INVALID;
             if (*tx_type == AV2H_TX_TYPE_INVALID) return AV2H_UNSUPPORTED;

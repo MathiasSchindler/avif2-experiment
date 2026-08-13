@@ -60,7 +60,7 @@ static void test_arguments(void) {
     };
     Av2hSpan span = { bytes, sizeof(bytes) };
     size_t tell;
-    CHECK(sizeof(Av2hLeafCdfs) == 2618U);
+    CHECK(sizeof(Av2hLeafCdfs) == 2678U);
     CHECK(av2h_leaf_cdfs_init(0) == AV2H_INVALID_ARGUMENT);
     CHECK(av2h_first_leaf_mode_read(
               0, &cdfs, &sequence, &frame, &leaf, &mode) ==
@@ -154,6 +154,12 @@ static void test_arguments(void) {
               &decoder, &cdfs, &sequence, &frame, &leaf, &mode) ==
           AV2H_UNSUPPORTED);
     CHECK(av2h_leaf_cdfs_init(&cdfs) == AV2H_OK);
+    CHECK(cdfs.lossless_tx_size[0][0][0] == 16384U);
+    CHECK(cdfs.lossless_tx_size[0][1][0] == 16384U);
+    CHECK(cdfs.lossless_tx_size[0][0][5] == 3U);
+    CHECK(cdfs.lossless_tx_size[0][1][5] == 3U);
+    CHECK(cdfs.lossless_inter_tx_type[0] == 16384U);
+    CHECK(cdfs.lossless_inter_tx_type[5] == 4U);
     CHECK(cdfs.intrabc_shell_class_set1[0] == 12790U);
     CHECK(cdfs.intrabc_shell_class_set1[6] == 0U);
     CHECK(cdfs.intrabc_qtr_shell_class_set1[0] == 14299U);

@@ -693,8 +693,14 @@ static void recon_transform_1d(const int32_t *input, int32_t *output,
     }
 }
 
+static int32_t lossless_floor_shift(int32_t value, uint8_t shift) {
+    if (value >= 0) return value >> shift;
+    return -(int32_t)(((uint32_t)(-value) +
+        (((uint32_t)1U << shift) - 1U)) >> shift);
+}
+
 static int32_t lossless_half(int32_t value) {
-    return value >= 0 ? value / 2 : -(((-value) + 1) / 2);
+    return lossless_floor_shift(value, 1U);
 }
 
 static void lossless_iwht4(int32_t *values) {
@@ -729,13 +735,16 @@ Av2hStatus av2h_reconstruct_lossless_4x4(
     for (row = 0U; row < 4U; ++row) {
         for (column = 0U; column < 4U; ++column) {
             residual[row * 4U + column] =
-                coefficients->dequantized[row * 4U + column] / 8;
+                lossless_floor_shift(
+                    coefficients->dequantized[row * 4U + column], 3U);
         }
-        if (transform->primary_type == AV2H_TX_DCT_DCT) {
+        if (transform->primary_type == AV2H_TX_DCT_DCT &&
+            !(mode->use_dpcm_y != 0U && mode->fsc_mode != 0U)) {
             lossless_iwht4(&residual[row * 4U]);
         }
     }
-    if (transform->primary_type == AV2H_TX_DCT_DCT) {
+    if (transform->primary_type == AV2H_TX_DCT_DCT &&
+        !(mode->use_dpcm_y != 0U && mode->fsc_mode != 0U)) {
         for (column = 0U; column < 4U; ++column) {
             int32_t values[4U];
             for (row = 0U; row < 4U; ++row) {

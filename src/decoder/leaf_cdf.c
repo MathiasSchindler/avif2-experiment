@@ -350,16 +350,21 @@ Av2hStatus av2h_leaf_cdfs_init(Av2hLeafCdfs *cdfs) {
         cdfs->dpcm_uv_vert_horz,
         (Av2hBinaryCdfSpec){ 16384U, 0U, 0U });
     if (status != AV2H_OK) return status;
-    status = av2h_binary_cdf_init(
-        cdfs->lossless_tx_size[0],
-        (Av2hBinaryCdfSpec){ 16384U, 1U, 0U });
-    if (status != AV2H_OK) return status;
-    for (context = 1U; context < 4U; ++context) {
-        status = av2h_binary_cdf_init(
-            cdfs->lossless_tx_size[context],
-            (Av2hBinaryCdfSpec){ 16384U, 75U, 0U });
-        if (status != AV2H_OK) return status;
+    for (context = 0U; context < 4U; ++context) {
+        size_t inter;
+        for (inter = 0U; inter < 2U; ++inter) {
+            status = av2h_binary_cdf_init(
+                cdfs->lossless_tx_size[context][inter],
+                (Av2hBinaryCdfSpec){
+                    16384U, context == 0U ? 1U : 75U, 0U
+                });
+            if (status != AV2H_OK) return status;
+        }
     }
+    status = av2h_binary_cdf_init(
+        cdfs->lossless_inter_tx_type,
+        (Av2hBinaryCdfSpec){ 16384U, 0U, 0U });
+    if (status != AV2H_OK) return status;
     for (context = 0U; context < AV2H_Y_MODE_CONTEXT_COUNT; ++context) {
         status = av2h_cdf_init(
             cdfs->y_mode_index[context], AV2H_Y_MODE_INDEX_SYMBOLS + 4U,

@@ -467,7 +467,9 @@ static Av2hStatus read_fsc_block(
     if (sequence->enable_tcq || sequence->enable_parity_hiding ||
         frame->using_qmatrix ||
         prefix->all_zero ||
-        transform->primary_type != AV2H_TX_IDTX ||
+                (transform->primary_type != AV2H_TX_IDTX &&
+                 !(prefix->q_index == 0U &&
+                     transform->primary_type == AV2H_TX_DCT_DCT)) ||
         transform->secondary_symbol != 0U) {
         return AV2H_UNSUPPORTED;
     }

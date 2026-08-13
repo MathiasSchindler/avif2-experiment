@@ -62,6 +62,7 @@ static Av2hStatus reconstruct_lossless_4x4_u16(
     uint8_t use_dpcm,
     uint8_t dpcm_horizontal,
     uint8_t identity_transform,
+    uint8_t direct_dpcm,
     Av2hFirstReconstructionU16 *reconstruction) {
     int32_t intermediate[16U];
     int32_t residual[16U];
@@ -70,12 +71,14 @@ static Av2hStatus reconstruct_lossless_4x4_u16(
     if (coefficients == 0 || predictor == 0 || reconstruction == 0 ||
         coefficients->width != 4U || coefficients->height != 4U ||
         coefficients->coefficient_count != 16U || use_dpcm > 1U ||
-        dpcm_horizontal > 1U || identity_transform > 1U) {
+        dpcm_horizontal > 1U || identity_transform > 1U ||
+        direct_dpcm > 1U) {
         return AV2H_INVALID_ARGUMENT;
     }
-    if (use_dpcm != 0U || identity_transform != 0U) {
+    if (identity_transform != 0U || direct_dpcm != 0U) {
         for (row = 0U; row < 16U; ++row) {
-            residual[row] = coefficients->dequantized[row] / 8;
+            residual[row] = floor_shift_i32(
+                coefficients->dequantized[row], 3U);
         }
         if (use_dpcm != 0U && dpcm_horizontal != 0U) {
             for (row = 0U; row < 4U; ++row) {
@@ -102,10 +105,14 @@ static Av2hStatus reconstruct_lossless_4x4_u16(
         return AV2H_OK;
     }
     for (row = 0U; row < 4U; ++row) {
-        int32_t a = coefficients->dequantized[row * 4U] / 8;
-        int32_t c = coefficients->dequantized[row * 4U + 1U] / 8;
-        int32_t d = coefficients->dequantized[row * 4U + 2U] / 8;
-        int32_t b = coefficients->dequantized[row * 4U + 3U] / 8;
+        int32_t a = floor_shift_i32(
+            coefficients->dequantized[row * 4U], 3U);
+        int32_t c = floor_shift_i32(
+            coefficients->dequantized[row * 4U + 1U], 3U);
+        int32_t d = floor_shift_i32(
+            coefficients->dequantized[row * 4U + 2U], 3U);
+        int32_t b = floor_shift_i32(
+            coefficients->dequantized[row * 4U + 3U], 3U);
         int32_t e;
         a += c;
         d -= b;
@@ -136,6 +143,21 @@ static Av2hStatus reconstruct_lossless_4x4_u16(
         residual[4U + column] = b;
         residual[8U + column] = c;
         residual[12U + column] = d;
+    }
+    if (use_dpcm != 0U && dpcm_horizontal != 0U) {
+        for (row = 0U; row < 4U; ++row) {
+            for (column = 1U; column < 4U; ++column) {
+                residual[row * 4U + column] +=
+                    residual[row * 4U + column - 1U];
+            }
+        }
+    } else if (use_dpcm != 0U) {
+        for (column = 0U; column < 4U; ++column) {
+            for (row = 1U; row < 4U; ++row) {
+                residual[row * 4U + column] +=
+                    residual[(row - 1U) * 4U + column];
+            }
+        }
     }
     reconstruction->width = 4U;
     reconstruction->height = 4U;
@@ -2122,7 +2144,7 @@ Av2hStatus av2h_luma_reconstruct_to_plane_u16(
         mode->fsc_mode == 0U) {
         status = reconstruct_lossless_4x4_u16(
             coefficients, scratch->predictor, mode->use_dpcm_y,
-            mode->dpcm_mode_y, 0U, &reconstruction);
+            mode->dpcm_mode_y, 0U, 0U, &reconstruction);
     } else if (mode->use_dpcm_y != 0U && mode->fsc_mode != 0U) {
         uint16_t row;
         uint16_t column;
@@ -2903,6 +2925,7 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_u16(
             coefficients, scratch->predictor, mode->use_dpcm_uv,
             mode->dpcm_mode_uv,
             (uint8_t)(transform->primary_type == AV2H_TX_IDTX),
+            mode->use_dpcm_uv,
             &reconstruction);
     } else {
         status = av2h_reconstruct_transform_generic_u16(

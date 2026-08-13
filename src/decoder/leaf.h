@@ -80,7 +80,8 @@ typedef struct {
     uint16_t dpcm_vert_horz[AV2H_BINARY_CDF_SIZE];
     uint16_t dpcm_uv[AV2H_BINARY_CDF_SIZE];
     uint16_t dpcm_uv_vert_horz[AV2H_BINARY_CDF_SIZE];
-    uint16_t lossless_tx_size[4U][AV2H_BINARY_CDF_SIZE];
+    uint16_t lossless_tx_size[4U][2U][AV2H_BINARY_CDF_SIZE];
+    uint16_t lossless_inter_tx_type[AV2H_BINARY_CDF_SIZE];
     uint16_t y_mode_index[AV2H_Y_MODE_CONTEXT_COUNT]
                          [AV2H_Y_MODE_INDEX_SYMBOLS + 4U];
     uint16_t y_mode_offset[AV2H_Y_MODE_CONTEXT_COUNT]
