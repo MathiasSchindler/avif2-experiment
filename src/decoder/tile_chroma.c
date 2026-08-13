@@ -601,6 +601,9 @@ Av2hStatus av2h_tile_decoder_next_chroma(
             av2h_range_tell(&decoder->range));
     #endif
     }
+    if (leaf->transform[0].cctx_type != 0U && leaf->prefix[1].all_zero) {
+        leaf->transform[1].primary_type = leaf->transform[0].primary_type;
+    }
     decoder->event = AV2H_TILE_EVENT_CHROMA_LEAF;
     return AV2H_OK;
 }

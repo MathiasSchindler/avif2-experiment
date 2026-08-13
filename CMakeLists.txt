@@ -211,6 +211,9 @@ if(AV2HEIF_BUILD_HOST_TESTS)
         add_test(NAME intrabc-admission-unit
             COMMAND "${Python3_EXECUTABLE}"
                 "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_intrabc_admission.py")
+        add_test(NAME tcq-experiment-unit
+            COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_tcq_experiment.py")
         add_test(NAME public-decoder-8bit-444-parity
             COMMAND "${Python3_EXECUTABLE}"
                 "${CMAKE_CURRENT_SOURCE_DIR}/tools/validate_8bit_444_public.py"
@@ -263,6 +266,14 @@ if(AV2HEIF_BUILD_HOST_TESTS AND AV2HEIF_ENABLE_PYTHON_TESTS AND
             "${CMAKE_CURRENT_SOURCE_DIR}/scripts/intrabc_admission.py"
             --host-build "${CMAKE_CURRENT_BINARY_DIR}"
             --jobs 4
+        DEPENDS av2heif-decoder av2heif-artifact
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+        USES_TERMINAL
+    )
+    add_custom_target(tcq-pilot
+        COMMAND "${Python3_EXECUTABLE}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/scripts/tcq_experiment.py"
+            --host-build "${CMAKE_CURRENT_BINARY_DIR}"
         DEPENDS av2heif-decoder av2heif-artifact
         WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
         USES_TERMINAL

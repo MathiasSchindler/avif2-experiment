@@ -168,6 +168,34 @@ Per-arm manifests and the aggregate report are written under
 their recorded hashes match; incomplete arms rerun deterministic encoding,
 census, and all decoder parity checks.
 
+### TCQ pilot
+
+The high-effort TCQ experiment starts with the locked 896 x 598 Pastel I420
+source at QP 152, `cpu-used=1`, and one arm at a time. The initial TCQ-off arm
+requires deterministic encoding, census output, and exact AVM/native/public
+decode parity. Intra-DIP and transform partitioning are explicitly disabled so
+the pilot isolates TCQ from separate unsupported decoder features selected by
+AVM's deeper search:
+
+```sh
+python3 scripts/tcq_experiment.py
+```
+
+The equivalent CMake target is `tcq-pilot`. Until the project decoder supports
+TCQ, generate a TCQ-on reference arm explicitly without claiming project
+decoder parity:
+
+```sh
+python3 scripts/tcq_experiment.py --tcq on --reference-only
+```
+
+Outputs and atomic phase manifests are retained under `build/tcq-experiment/`.
+The first normalized OBU is reusable after interruption; deterministic replay,
+census, or parity can resume without repeating that encode. Source, encoder,
+configuration, tool, and artifact hashes control reuse. Additional QPs use
+repeated `--qp` options, while `--source-id` and `--preparation-id` define
+independent jobs suitable for overnight or future distributed execution.
+
 The negative-reference setup exports the pinned AVM revision into an isolated
 build-tree source directory. Local inspection changes in `vendor/avm` are
 neither included nor modified:

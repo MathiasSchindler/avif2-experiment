@@ -14,6 +14,7 @@ const uint16_t *av2h_coeff_level_diagnostic_cdf(void) {
 const uint64_t *av2h_coeff_level_diagnostic_range(void) {
     return diagnostic_range;
 }
+
 #endif
 
 static int q_level_profile_supported(

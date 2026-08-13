@@ -250,7 +250,7 @@ Av2hStatus av2h_first_transform_cdfs_init(Av2hFirstTransformCdfs *cdfs) {
         status = av2h_cdf_init(
             cdfs->secondary_adst_set,
             AV2H_SECONDARY_ADST_TX_SET_SYMBOLS + 4U,
-            secondary_adst_set, AV2H_SECONDARY_ADST_TX_SET_SYMBOLS, 0U, 0U);
+            secondary_adst_set, AV2H_SECONDARY_ADST_TX_SET_SYMBOLS, 5U, 0U);
         if (status != AV2H_OK) return status;
     }
     return av2h_cdf_init(cdfs->chroma_cross_type, 7U + 4U,

@@ -117,9 +117,21 @@ exists. AVM exposing a switch proves availability, not a gain for this corpus.
 The existing `--cpu-used=9` setting is AVM's fastest good-quality mode. Lower
 settings search more partition, prediction, transform, and coefficient choices.
 This can produce a better rate-distortion result without intentionally adding
-a new bitstream tool, at the cost of substantially longer encoding.
+a new bitstream tool, at the cost of substantially longer encoding. TCQ
+requires `--cpu-used=1` or lower in pinned AVM, so `cpu-used=1` is the target
+for a future high-effort still-image profile; it is not yet the production
+setting.
 
-Start with `--cpu-used=5` and `--cpu-used=2`. Keep the accepted profile explicit:
+A local two-run wall-clock probe used the 896 x 598 Pastel I420 source at QP
+152, 16 threads, and the otherwise pinned TCQ-off recipe. Median encode times
+were 19.86 seconds at `cpu-used=9`, 20.44 seconds at 5, 90.99 seconds at 2,
+and 158.08 seconds at 1. Thus the TCQ-capable setting was approximately 7.96
+times slower than the current setting for this image. Encoding is normally an
+offline, one-time cost, so this does not rule out the profile, but it makes
+artifact reuse and resumability requirements rather than conveniences.
+
+Keep unsupported syntax explicit in the accepted profile and in every slower
+search experiment:
 
 ```text
 --enable-tcq=0
@@ -240,6 +252,17 @@ it.
 
 Estimated effect: small to medium compression improvement at equal objective
 quality. The result should be verified at several QPs and transform sizes.
+
+Adoption should start with one locked I420 source. First encode it at
+`cpu-used=1` with TCQ explicitly disabled and require census and decoder parity;
+this separates syntax selected by the deeper ordinary search from TCQ itself.
+Pin Intra-DIP and transform partitioning off in this initial profile because
+both are separate decoder features that pinned AVM may select at this speed.
+Then encode the same source and QPs with TCQ enabled for AVM-only measurement
+and fixture extraction. TCQ-on output must not enter the production profile
+until the project decoder passes it exactly. Promotion must also measure native
+and WebAssembly decode throughput for TCQ-on files and verify that TCQ-off
+files do not regress when the new state-machine path is dormant.
 
 Decoder implementation steps:
 
@@ -390,6 +413,8 @@ than comparing a single nominal QP. Record:
 
 - encoded OBU and canonical HEIF byte sizes;
 - encode wall time and peak memory;
+- native and WebAssembly decode wall time, including a TCQ-off regression
+   baseline;
 - AVM and project-decoder output hashes;
 - PSNR and SSIM per plane;
 - at least one declared perceptual metric;
@@ -400,16 +425,37 @@ Compare rate-distortion curves with BD-rate or an equivalent curve integral.
 Do not infer a compression gain from a smaller file at the same QP unless the
 decoded-quality difference is also accounted for.
 
+Slow reference encodes should be persistent, content-addressed work products.
+Each arm should record the source hash, pinned AVM revision and encoder hash,
+complete normalized argument vector, output hash, byte size, elapsed time, and
+census/output hashes in an atomically written manifest. A completed arm may be
+reused only when all inputs and recorded artifacts still match. Begin with one
+source and a small QP ladder; after it passes, run additional cases overnight
+or as independently shardable jobs. Future distributed workers should write
+only per-arm artifacts and manifests, allowing a coordinator to validate and
+merge results without rerunning successful encodes or permitting concurrent
+writes to one aggregate report.
+
 ## Recommended order
 
-1. Measure `cpu-used` 9, 5, and 2 with the current accepted syntax pinned.
-2. Measure ordinary trellis modes with TCQ disabled.
-3. Add a separate IntraBC/screen-content encoder preset and broader evidence.
-4. Prototype TCQ because it directly targets coefficient coding efficiency.
-5. Prototype restoration because it can improve the filtered reconstruction
+1. Keep the current production recipe at `cpu-used=9` with TCQ explicitly
+   disabled until the replacement profile passes its gates.
+2. Run one locked source at `cpu-used=1` with TCQ disabled; census it and require
+   exact AVM/project-decoder parity before broadening the ordinary-search test.
+3. Compare TCQ off/on at `cpu-used=1` on that source over a small QP ladder,
+   retaining resumable artifacts and measuring rate-distortion and encode time.
+4. Implement the always-on single-picture TCQ decoder subset from focused
+   vectors, then require exact parity on the locked pilot before expanding the
+   corpus.
+5. Expand as overnight or independently shardable jobs, and promote a separate
+   high-effort encoder profile only after the complete corpus and platform
+   gates pass.
+6. Measure ordinary trellis modes with TCQ disabled.
+7. Keep the separate IntraBC/screen-content profile and broaden its evidence.
+8. Prototype restoration because it can improve the filtered reconstruction
    across ordinary photographic content.
-6. Evaluate quantization matrices and spatial AQ using perceptual metrics.
-7. Treat film grain as a separate noisy-image profile with explicit output
+9. Evaluate quantization matrices and spatial AQ using perceptual metrics.
+10. Treat film grain as a separate noisy-image profile with explicit output
    semantics, not as a transparent extension of sample-exact decode.
 
 ## Source pointers

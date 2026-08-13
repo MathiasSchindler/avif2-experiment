@@ -14,6 +14,15 @@ static int failures;
         }                                                                      \
     } while (0)
 
+static void test_secondary_adst_set_adaptation_metadata(void) {
+    Av2hFirstTransformCdfs cdfs;
+    CHECK(av2h_first_transform_cdfs_init(&cdfs) == AV2H_OK);
+    CHECK(cdfs.secondary_adst_set[4U] == 0U);
+    CHECK(cdfs.secondary_adst_set[5U] == 3U);
+    CHECK(cdfs.secondary_adst_set[6U] == 3U);
+    CHECK(cdfs.secondary_adst_set[7U] == 5U);
+}
+
 #if 0
 static void check_fixture(const char *name,
                           const unsigned char *bytes,
@@ -725,6 +734,7 @@ static void test_16x4_d203_uses_size0_cdf(void) {
 }
 
 int main(void) {
+    test_secondary_adst_set_adaptation_metadata();
     test_fsc_single_coefficient_uses_idtx();
     test_emerald_primary_mappings();
     test_v_flipadst_primary_mappings();

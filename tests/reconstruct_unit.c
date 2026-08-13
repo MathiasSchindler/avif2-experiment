@@ -79,7 +79,57 @@ static void test_ist_4x4_set11_type3(void) {
               &mode, &prefix, &transform, &coefficients, dequantized) ==
           AV2H_OK);
     CHECK(dequantized[0] == 113);
-    CHECK(dequantized[4] == -32);
+    CHECK(dequantized[1] == -32);
+    CHECK(dequantized[4] == -35);
+}
+
+static void test_ist_8x32_uses_primary_scan_inputs(void) {
+    Av2hFirstLeafMode mode = { 0 };
+    Av2hFirstCoeffPrefix prefix = { 0 };
+    Av2hFirstTransformType transform = { 0 };
+    Av2hFirstCoeffBlock coefficients = { 0 };
+    int32_t dequantized[AV2H_FIRST_COEFF_CAPACITY] = { 0 };
+    mode.mode = AV2H_INTRA_D67;
+    prefix.tx_size = AV2H_TX_8X32;
+    transform.primary_type = AV2H_TX_DCT_DCT;
+    transform.secondary_set = 5U;
+    transform.secondary_symbol = 1U;
+    coefficients.width = 8U;
+    coefficients.height = 32U;
+    coefficients.coefficient_count = 256U;
+    dequantized[6] = 128;
+    CHECK(av2h_inverse_secondary_transform(
+              &mode, &prefix, &transform, &coefficients, dequantized) ==
+          AV2H_OK);
+    CHECK(dequantized[0] == -1);
+    CHECK(dequantized[1] == -3);
+    CHECK(dequantized[8] == 2);
+}
+
+static void test_ist_adst_uses_twenty_inputs(void) {
+    Av2hFirstLeafMode mode = { 0 };
+    Av2hFirstCoeffPrefix prefix = { 0 };
+    Av2hFirstTransformType transform = { 0 };
+    Av2hFirstCoeffBlock coefficients = { 0 };
+    int32_t dequantized[AV2H_FIRST_COEFF_CAPACITY] = { 0 };
+
+    mode.mode = AV2H_INTRA_D113;
+    mode.angle_delta = -1;
+    prefix.tx_size = AV2H_TX_16X16;
+    transform.primary_type = AV2H_TX_ADST_ADST;
+    transform.secondary_set = 10U;
+    transform.secondary_symbol = 2U;
+    coefficients.width = 16U;
+    coefficients.height = 16U;
+    coefficients.coefficient_count = 256U;
+    dequantized[50U] = -392;
+    CHECK(av2h_inverse_secondary_transform(
+              &mode, &prefix, &transform, &coefficients, dequantized) ==
+          AV2H_OK);
+    CHECK(dequantized[0U] == -6);
+    CHECK(dequantized[1U] == 37);
+    CHECK(dequantized[2U] == -119);
+    CHECK(dequantized[17U] == -21);
 }
 
 static void test_palace_ist_gaps(void) {
@@ -111,6 +161,30 @@ static void test_palace_ist_gaps(void) {
               &mode, &prefix, &transform, &coefficients, dequantized) ==
           AV2H_OK);
     CHECK(dequantized[0] == 84);
+
+    av2h_memory_fill(dequantized, 0U, sizeof(dequantized));
+    mode.mode = AV2H_INTRA_DC;
+    prefix.tx_size = AV2H_TX_4X16;
+    transform.secondary_set = 5U;
+    transform.secondary_symbol = 1U;
+    coefficients.width = 4U;
+    coefficients.height = 16U;
+    coefficients.coefficient_count = 64U;
+    dequantized[0] = 128;
+    CHECK(av2h_inverse_secondary_transform(
+              &mode, &prefix, &transform, &coefficients, dequantized) ==
+          AV2H_OK);
+    CHECK(dequantized[0] == -94);
+
+    av2h_memory_fill(dequantized, 0U, sizeof(dequantized));
+    mode.mode = AV2H_INTRA_SMOOTH_HORIZONTAL;
+    transform.secondary_set = 4U;
+    transform.secondary_symbol = 3U;
+    dequantized[0] = 128;
+    CHECK(av2h_inverse_secondary_transform(
+              &mode, &prefix, &transform, &coefficients, dequantized) ==
+          AV2H_OK);
+    CHECK(dequantized[0] == 104);
 
     av2h_memory_fill(dequantized, 0U, sizeof(dequantized));
     mode.mode = AV2H_INTRA_SMOOTH_HORIZONTAL;
@@ -165,6 +239,8 @@ static void test_palace_ist_gaps(void) {
               &mode, &prefix, &transform, &coefficients, dequantized) ==
           AV2H_OK);
     CHECK(dequantized[0] == -89);
+    CHECK(dequantized[55] == 1);
+    CHECK(dequantized[86] == -2);
 }
 
 static uint64_t pixel_hash(const Av2hFirstReconstruction *reconstruction) {
@@ -1400,6 +1476,55 @@ static void test_fsc_generic_selection_requires_identity(void) {
     transform.primary_type = AV2H_TX_IDTX;
     CHECK(av2h_reconstruct_generic_selected(
               &mode, &transform, AV2H_TX_8X16));
+}
+
+static void test_4x4_secondary_transform_precedes_primary_transform(void) {
+    static const int16_t expected[16U] = {
+        -8, -5, -4, -3,
+        -1, -12, -7, -4,
+        50, -8, -12, -5,
+        99, 34, -15, -5
+    };
+    static const uint8_t expected_pixels[16U] = {
+        0, 1, 2, 3,
+        5, 0, 0, 2,
+        56, 0, 0, 1,
+        105, 40, 0, 1
+    };
+    uint8_t predictor[16U];
+    Av2hFirstLeafMode mode = { 0 };
+    Av2hFirstCoeffPrefix prefix = { 0 };
+    Av2hFirstTransformType transform = { 0 };
+    Av2hFirstCoeffBlock block = { 0 };
+    Av2hReconstructionScratch scratch;
+    Av2hFirstReconstruction reconstruction;
+    size_t index;
+
+    av2h_memory_fill(predictor, 6U, sizeof(predictor));
+    mode.mode = AV2H_INTRA_DC;
+    prefix.tx_size = AV2H_TX_4X4;
+    prefix.q_index = 152U;
+    prefix.eob = 3U;
+    transform.primary_type = AV2H_TX_DCT_DCT;
+    transform.secondary_symbol = 1U;
+    transform.secondary_set = 1U;
+    block.width = 4U;
+    block.height = 4U;
+    block.coefficient_count = 16U;
+    block.nonzero_count = 3U;
+    block.dequantized[0U] = 784;
+    block.dequantized[1U] = -392;
+    block.dequantized[4U] = 392;
+
+    CHECK(av2h_luma_reconstruct(
+              &mode, &prefix, &transform, &block, predictor, 4U,
+              &scratch, &reconstruction) == AV2H_OK);
+    CHECK(reconstruction.width == 4U);
+    CHECK(reconstruction.height == 4U);
+    for (index = 0U; index < 16U; ++index) {
+        CHECK(reconstruction.residual[index] == expected[index]);
+        CHECK(reconstruction.pixels[index] == expected_pixels[index]);
+    }
 }
 
 static void test_lossless_negative_coefficient_floor_shift(void) {
@@ -6857,6 +6982,8 @@ int main(void) {
     test_chroma_geometry_through_64();
     test_cfl_dc_uses_avm_reciprocal_rounding();
     test_ist_4x4_set11_type3();
+    test_ist_8x32_uses_primary_scan_inputs();
+    test_ist_adst_uses_twenty_inputs();
     test_palace_ist_gaps();
     if (0) test_d45_minus_one_16x4_prediction();
     if (0) test_d45_8x4_ibp_prediction();
@@ -6866,6 +6993,7 @@ int main(void) {
     test_tx16x4_fsc_reconstruction();
     test_tx4x16_fsc_reconstruction();
     test_fsc_generic_selection_requires_identity();
+    test_4x4_secondary_transform_precedes_primary_transform();
     test_lossless_negative_coefficient_floor_shift();
     test_lossless_vertical_dpcm_bypasses_wht();
     test_tx4x4_intrabc_idtx_reconstruction();

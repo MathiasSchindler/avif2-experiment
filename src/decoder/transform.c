@@ -1045,6 +1045,8 @@ Av2hStatus av2h_first_transform_type_read(
                 transform->primary_type == AV2H_TX_ADST_ADST &&
                 descriptor->output_width >= 8U &&
                 descriptor->output_height >= 8U);
+            Av2hFirstLeafIntraMode secondary_mode = av2h_transform_mode(
+                mode->mode, mode->angle_delta, mode->mrl_index, descriptor);
             symbol = av2h_range_read_adaptive(
                 decoder,
                 reduced_adst_set ?
@@ -1056,9 +1058,10 @@ Av2hStatus av2h_first_transform_type_read(
             }
             transform->secondary_set_symbol = (uint8_t)symbol;
             status = reduced_adst_set ? av2h_secondary_adst_tx_set_map(
-                mode->mode, (uint8_t)symbol, &transform->secondary_set) :
+                secondary_mode, (uint8_t)symbol, &transform->secondary_set) :
                 av2h_secondary_tx_set_map(
-                    mode->mode, (uint8_t)symbol, &transform->secondary_set);
+                    secondary_mode, (uint8_t)symbol,
+                    &transform->secondary_set);
             if (status != AV2H_OK) return status;
             if (transform->primary_type == AV2H_TX_ADST_ADST) {
                 transform->secondary_set += 7U;

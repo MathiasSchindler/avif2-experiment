@@ -11,6 +11,12 @@ OUTPUT = ROOT / "src" / "decoder" / "ist_set2_data.inc"
 SET9_TYPE1_OUTPUT = (
     ROOT / "src" / "decoder" / "ist_set9_type1_data.inc"
 )
+SET5_TYPE1_OUTPUT = (
+    ROOT / "src" / "decoder" / "ist_set5_type1_data.inc"
+)
+SET4_TYPE3_OUTPUT = (
+    ROOT / "src" / "decoder" / "ist_set4_type3_data.inc"
+)
 
 
 def parse_initializer(source: str, declaration: str) -> list:
@@ -114,6 +120,34 @@ def main() -> None:
     ) + "\n"
     SET9_TYPE1_OUTPUT.write_text(
         set9_type1_content, encoding="ascii", newline="\n"
+    )
+
+    set5_type1_kernel = kernels_4x4[5][0]
+    if (len(set5_type1_kernel) != 8 or
+            any(len(row) != 16 for row in set5_type1_kernel)):
+        raise ValueError("unexpected 4x4 set-5/type-1 kernel dimensions")
+    SET5_TYPE1_OUTPUT.write_text(
+        "/* Generated from pinned AVM v1.0.0 normative tables. */\n"
+        + format_4x4_array(
+            "av2h_ist_4x4_set5_type1_kernel", set5_type1_kernel
+        )
+        + "\n",
+        encoding="ascii",
+        newline="\n",
+    )
+
+    set4_type3_kernel = kernels_4x4[4][2]
+    if (len(set4_type3_kernel) != 8 or
+            any(len(row) != 16 for row in set4_type3_kernel)):
+        raise ValueError("unexpected 4x4 set-4/type-3 kernel dimensions")
+    SET4_TYPE3_OUTPUT.write_text(
+        "/* Generated from pinned AVM v1.0.0 normative tables. */\n"
+        + format_4x4_array(
+            "av2h_ist_4x4_set4_type3_kernel", set4_type3_kernel
+        )
+        + "\n",
+        encoding="ascii",
+        newline="\n",
     )
 
 

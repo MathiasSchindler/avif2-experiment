@@ -1332,11 +1332,28 @@ Av2hStatus av2h_luma_reconstruct(
     reconstruction->width = coefficients->width;
     reconstruction->height = coefficients->height;
     count = coefficients->coefficient_count;
-    for (index = 0U; index < count; ++index) {
-        scratch->scaled[index] = rectangular ?
-            round_shift((int64_t)coefficients->dequantized[index] * 2896, 12U) :
-            coefficients->dequantized[index];
-        scratch->scaled[index] = clamp(scratch->scaled[index], -32768, 32767);
+    if (transform->secondary_symbol != 0U) {
+        for (index = 0U; index < count; ++index) {
+            scratch->scaled[index] = coefficients->dequantized[index];
+        }
+        status = av2h_inverse_secondary_transform(
+            mode, prefix, transform, coefficients, scratch->scaled);
+        if (status != AV2H_OK) return status;
+        if (rectangular) {
+            for (index = 0U; index < count; ++index) {
+                scratch->scaled[index] = clamp(round_shift(
+                    (int64_t)scratch->scaled[index] * 2896, 12U),
+                    -32768, 32767);
+            }
+        }
+    } else {
+        for (index = 0U; index < count; ++index) {
+            scratch->scaled[index] = rectangular ? round_shift(
+                (int64_t)coefficients->dequantized[index] * 2896, 12U) :
+                coefficients->dequantized[index];
+            scratch->scaled[index] =
+                clamp(scratch->scaled[index], -32768, 32767);
+        }
     }
     status = av2h_inverse_rows(scratch->scaled, scratch->transposed,
                           coefficients->width, coefficients->height,
