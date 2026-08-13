@@ -119,6 +119,9 @@ static Av2hStatus inverse_secondary_transform_4x4(
                transform->secondary_symbol == 1U) {
         kernel = av2h_ist_4x4_set4_type1_kernel;
     } else if (transform->secondary_set == 4U &&
+               transform->secondary_symbol == 2U) {
+        kernel = av2h_ist_4x4_set4_type2_kernel;
+    } else if (transform->secondary_set == 4U &&
                transform->secondary_symbol == 3U) {
         kernel = av2h_ist_4x4_set4_type3_kernel;
     } else if (transform->secondary_set == 5U &&

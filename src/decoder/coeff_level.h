@@ -16,8 +16,8 @@ typedef struct {
 typedef struct {
     uint16_t full_eob_base[5U][4U][3U + 4U];
     uint16_t full_eob_base_lf[5U][4U][5U + 4U];
-    uint16_t full_base[5U][20U][4U + 4U];
-    uint16_t full_base_lf[5U][33U][6U + 4U];
+    uint16_t full_base[5U][20U][2U][4U + 4U];
+    uint16_t full_base_lf[5U][33U][2U][6U + 4U];
     uint16_t full_br[7U][4U + 4U];
     uint16_t full_br_lf[14U][4U + 4U];
     uint16_t full_uv_eob_base[4U][3U + 4U];
@@ -300,6 +300,8 @@ int av2h_quantizer_is_lossless(
 uint8_t av2h_coeff_finalize_cul_level(
     uint32_t summed_level,
     int32_t dc_value);
+uint8_t av2h_tcq_quantizer(uint8_t state);
+uint8_t av2h_tcq_next_state(uint8_t state, uint32_t absolute_level);
 Av2hStatus av2h_first_coeff_level_cdfs_init(Av2hFirstCoeffLevelCdfs *cdfs);
 Av2hStatus av2h_first_coeff_level_cdfs_init_for_q(
     Av2hFirstCoeffLevelCdfs *cdfs,

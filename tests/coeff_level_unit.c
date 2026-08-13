@@ -50,14 +50,27 @@ static uint64_t hash_words(uint64_t hash,
 
 static uint64_t complete_bank_hash(const Av2hFirstCoeffLevelCdfs *cdfs) {
     uint64_t hash = UINT64_C(1469598103934665603);
+    size_t context;
+    size_t tx_context;
 #define HASH_FIELD(field)                                                     \
     hash = hash_words(hash, &cdfs->field[0][0][0],                            \
                       sizeof(cdfs->field) / sizeof(uint16_t))
     HASH_FIELD(full_eob_base);
     HASH_FIELD(full_eob_base_lf);
-    HASH_FIELD(full_base);
-    HASH_FIELD(full_base_lf);
 #undef HASH_FIELD
+    for (tx_context = 0U; tx_context < 5U; ++tx_context) {
+        for (context = 0U; context < 20U; ++context) {
+            hash = hash_words(hash,
+                              cdfs->full_base[tx_context][context][0U], 8U);
+        }
+    }
+    for (tx_context = 0U; tx_context < 5U; ++tx_context) {
+        for (context = 0U; context < 33U; ++context) {
+            hash = hash_words(hash,
+                              cdfs->full_base_lf[tx_context][context][0U],
+                              10U);
+        }
+    }
     hash = hash_words(hash, &cdfs->full_br[0][0],
                       sizeof(cdfs->full_br) / sizeof(uint16_t));
     return hash_words(hash, &cdfs->full_br_lf[0][0],
@@ -184,7 +197,7 @@ static void test_q_context_cdfs(void) {
     CHECK(cdfs.q_context == 1U);
     check_words(cdfs.base[28], q1_base_txs3_ctx10, 8U);
     check_words(cdfs.base_lf[49], q1_base_lf_txs3_ctx20, 10U);
-    check_words(cdfs.full_base_lf[0U][11U],
+    check_words(cdfs.full_base_lf[0U][11U][0U],
                 q1_base_lf_txs0_ctx11, 10U);
     for (index = 0U; index < sizeof(q_indices) / sizeof(q_indices[0]);
          ++index) {
@@ -988,7 +1001,7 @@ static void test_arguments(void) {
     Av2hFirstCoeffPrefix prefix = { 0 };
     Av2hFirstTransformType transform = { 0 };
     Av2hFirstCoeffBlock block;
-    CHECK(sizeof(Av2hFirstCoeffLevelCdfs) == 20464U);
+    CHECK(sizeof(Av2hFirstCoeffLevelCdfs) == 25364U);
     CHECK(av2h_first_coeff_level_cdfs_init(0) == AV2H_INVALID_ARGUMENT);
     CHECK(av2h_first_coeff_block_read(
               0, &cdfs, &sequence, &frame, &mode, &prefix, &transform,
@@ -1002,13 +1015,29 @@ static void test_arguments(void) {
     CHECK(av2h_first_coeff_block_read(
               &decoder, &cdfs, &sequence, &frame, &mode, &prefix,
               &transform, &block) == AV2H_UNSUPPORTED);
-    mode.fsc_mode = 0U;
-    sequence.enable_tcq = 1U;
-    frame.base_q_index = 128U;
-    prefix.eob = 1U;
-    CHECK(av2h_first_coeff_block_read(
-              &decoder, &cdfs, &sequence, &frame, &mode, &prefix, &transform,
-              &block) == AV2H_UNSUPPORTED);
+}
+
+static void test_tcq_state_and_cdfs(void) {
+    static const uint8_t expected_even[] = {
+        0U, 4U, 1U, 5U, 6U, 2U, 7U, 3U
+    };
+    static const uint8_t expected_odd[] = {
+        4U, 0U, 5U, 1U, 2U, 6U, 3U, 7U
+    };
+    static const uint16_t q0_txs0_ctx0_q1[] = {
+        24178U, 7415U, 1873U, 0U, 0U, 3U, 3U, 4U
+    };
+    Av2hFirstCoeffLevelCdfs cdfs;
+    uint8_t state;
+    for (state = 0U; state < 8U; ++state) {
+        CHECK(av2h_tcq_quantizer(state) ==
+              (uint8_t)((state & 2U) != 0U));
+        CHECK(av2h_tcq_next_state(state, 2U) == expected_even[state]);
+        CHECK(av2h_tcq_next_state(state, 3U) == expected_odd[state]);
+    }
+    CHECK(av2h_tcq_next_state(8U, 1U) == 4U);
+    CHECK(av2h_first_coeff_level_cdfs_init_for_q(&cdfs, 64U) == AV2H_OK);
+    check_words(cdfs.full_base[0U][0U][1U], q0_txs0_ctx0_q1, 8U);
 }
 
 int main(void) {
@@ -1026,6 +1055,7 @@ int main(void) {
     test_emerald_remaining_luma_blocks();
     test_fixture_coefficients();
     test_arguments();
+    test_tcq_state_and_cdfs();
     if (failures != 0) {
         fprintf(stderr, "%d coefficient level checks failed\n", failures);
         return 1;

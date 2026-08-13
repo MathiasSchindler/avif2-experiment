@@ -34,7 +34,7 @@ def rows(source, dimensions, input_words, symbols, tcq=False):
     if len(source) != expected:
         raise ValueError(f"expected {expected} values, found {len(source)}")
     output = []
-    step = input_words * (2 if tcq else 1)
+    step = input_words
     for offset in range(0, len(source), step):
         output.append(initialized(source[offset : offset + input_words], symbols))
     return output
@@ -87,7 +87,7 @@ tables = [
 
 output = ["/* Generated from docs/spec/av2-v1.0.0 coefficient CDF tables. */", ""]
 for table, filename, dimensions, input_words, symbols, tcq in tables:
-    output.extend(emit(table, dimensions, rows(
+    output.extend(emit(table, dimensions + ((2,) if tcq else ()), rows(
         values(filename), dimensions, input_words, symbols, tcq)))
     output.append("")
 OUTPUT.write_text("\n".join(output), encoding="ascii", newline="\n")

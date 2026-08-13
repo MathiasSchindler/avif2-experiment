@@ -17,6 +17,19 @@ const uint64_t *av2h_coeff_level_diagnostic_range(void) {
 
 #endif
 
+uint8_t av2h_tcq_quantizer(uint8_t state) {
+    return (uint8_t)((state & 2U) != 0U);
+}
+
+uint8_t av2h_tcq_next_state(uint8_t state, uint32_t absolute_level) {
+    static const uint8_t next_state[8U][2U] = {
+        { 0U, 4U }, { 4U, 0U }, { 1U, 5U }, { 5U, 1U },
+        { 6U, 2U }, { 2U, 6U }, { 7U, 3U }, { 3U, 7U }
+    };
+    if (state >= 8U) state = 0U;
+    return next_state[state][absolute_level & 1U];
+}
+
 static int q_level_profile_supported(
     const Av2hFirstCoeffLevelCdfs *cdfs,
     const Av2hFrameState *frame,
@@ -206,7 +219,7 @@ static Av2hStatus read_base_level(Av2hRangeDecoder *decoder,
                                   Av2hFirstCoeffBlock *block,
                                   uint8_t tx_context, uint16_t position,
                                   uint8_t vertical, uint8_t low,
-                                  uint8_t transpose,
+                                  uint8_t transpose, uint8_t tcq_quantizer,
                                   uint8_t *level) {
     uint8_t context = low ?
         av2h_coeff_lf_context(block, position, vertical, transpose) :
@@ -219,11 +232,11 @@ static Av2hStatus read_base_level(Av2hRangeDecoder *decoder,
     if (!q_base_context_supported(cdfs, tx_context, context, low)) {
         return AV2H_UNSUPPORTED;
     }
-    if (cdfs->q_context == 0U) {
+    if (cdfs->q_context == 0U && tcq_quantizer == 0U) {
         cdf = q0_base_cdf(cdfs, tx_context, context, low);
     } else if (cdfs->q_context < 4U) {
-        cdf = low ? cdfs->full_base_lf[tx_context][context] :
-                    cdfs->full_base[tx_context][context];
+        cdf = low ? cdfs->full_base_lf[tx_context][context][tcq_quantizer] :
+                    cdfs->full_base[tx_context][context][tcq_quantizer];
     } else if (low && cdfs->q_context == 2U && tx_context == 4U &&
         (context == 1U || context == 9U)) {
         cdf = context == 1U ? cdfs->q2_base_lf_txs4_ctx1 :
@@ -465,8 +478,7 @@ static Av2hStatus read_fsc_block(
     Av2hCoeffTxGeometry geometry;
     Av2hCoeffDequantSteps dequant_steps;
     Av2hStatus status;
-    if (sequence->enable_tcq || sequence->enable_parity_hiding ||
-        frame->using_qmatrix ||
+    if (sequence->enable_parity_hiding || frame->using_qmatrix ||
         prefix->all_zero ||
                 (transform->primary_type != AV2H_TX_IDTX &&
                  !(prefix->q_index == 0U &&
@@ -621,6 +633,9 @@ Av2hStatus av2h_coeff_block_read(
     uint32_t symbol;
     uint32_t high_average = 0U;
     uint32_t cul_level = 0U;
+    uint8_t tcq_mode;
+    uint8_t tcq_state = 0U;
+    uint8_t dequant_state = 0U;
     Av2hCoeffTxGeometry geometry;
     Av2hCoeffDequantSteps dequant_steps;
     Av2hStatus status;
@@ -635,8 +650,8 @@ Av2hStatus av2h_coeff_block_read(
         return read_fsc_block(decoder, cdfs, sequence, frame, prefix,
                               transform, block);
     }
-    if (sequence->enable_tcq || sequence->enable_parity_hiding ||
-        frame->using_qmatrix || mode->fsc_mode ||
+    if (sequence->enable_parity_hiding || frame->using_qmatrix ||
+        mode->fsc_mode ||
         prefix->all_zero || prefix->eob == 0U || dc_sign_context >= 3U ||
         !q_level_profile_supported(cdfs, frame, prefix, transform)) {
         return AV2H_UNSUPPORTED;
@@ -666,6 +681,11 @@ Av2hStatus av2h_coeff_block_read(
     if (transform->primary_type > AV2H_TX_H_FLIPADST) {
         return AV2H_UNSUPPORTED;
     }
+    tcq_mode = (uint8_t)(sequence->enable_tcq != 0U &&
+        transform->primary_type <= AV2H_TX_FLIPADST_ADST &&
+        !av2h_quantizer_is_lossless(
+            sequence, frame,
+            prefix->q_index != 0U ? prefix->q_index : frame->base_q_index));
     block->coefficient_count = (uint16_t)(block->width * block->height);
     if (prefix->eob > block->coefficient_count) return AV2H_INVALID_DATA;
     for (scan_index = 0U; scan_index < AV2H_FIRST_COEFF_CAPACITY;
@@ -834,6 +854,7 @@ Av2hStatus av2h_coeff_block_read(
             return av2h_range_status(decoder);
         }
         block->base_levels[position] = level;
+        if (tcq_mode) tcq_state = av2h_tcq_next_state(tcq_state, level);
     }
     while (scan_index != 0U) {
         uint16_t position;
@@ -846,9 +867,12 @@ Av2hStatus av2h_coeff_block_read(
         low = av2h_coeff_is_low_frequency(
             position, block->width, vertical, column_scan);
         status = read_base_level(decoder, cdfs, block, tx_context, position,
-                     vertical, low, column_scan, &level);
+                     vertical, low, column_scan,
+                     tcq_mode ? av2h_tcq_quantizer(tcq_state) : 0U,
+                     &level);
         if (status != AV2H_OK) return status;
         block->base_levels[position] = level;
+        if (tcq_mode) tcq_state = av2h_tcq_next_state(tcq_state, level);
     }
     block->after_levels_bits = av2h_range_tell(decoder);
     block->after_levels_range = decoder->range;
@@ -859,13 +883,22 @@ Av2hStatus av2h_coeff_block_read(
         uint8_t low;
         uint8_t sign;
         uint32_t final_level;
+        uint32_t dequant_level;
         uint32_t dequant;
+        uint8_t dequant_shift = geometry.dequant_shift;
+        uint8_t tcq_quantizer = tcq_mode ?
+            av2h_tcq_quantizer(dequant_state) : 0U;
         --scan_index;
         position = av2h_coeff_scan_position(
             scan_index, block->width, block->height,
                                  vertical, column_scan);
         level = block->base_levels[position];
-        if (level == 0U) continue;
+        if (level == 0U) {
+            if (tcq_mode) {
+                dequant_state = av2h_tcq_next_state(dequant_state, 0U);
+            }
+            continue;
+        }
         uint8_t adaptive_sign = (uint8_t)(
             scan_index == 0U ||
             (vertical && position / block->width == 0U) ||
@@ -886,27 +919,44 @@ Av2hStatus av2h_coeff_block_read(
         final_level = level;
         low = av2h_coeff_is_low_frequency(
             position, block->width, vertical, column_scan);
-        if (final_level >= (low ? 8U : 6U)) {
+        if (final_level >= (low ? (tcq_mode ? 7U : 8U) :
+                                      (tcq_mode ? 5U : 6U))) {
             uint32_t high;
+            uint32_t high_multiplier = tcq_mode ? 2U : 1U;
             block->diagnostic_context = (uint8_t)high_average;
             block->diagnostic_kind = 6U;
             status = read_high_range(decoder, high_average, &high);
             if (status != AV2H_OK) return status;
-            final_level += high;
+            if (high > (32767U - final_level) / high_multiplier) {
+                return AV2H_INVALID_DATA;
+            }
+            final_level += high * high_multiplier;
             high_average = (high_average + high) >> 1U;
         }
         if (final_level > 32767U) return AV2H_INVALID_DATA;
         block->quantized[position] = sign ? -(int32_t)final_level :
                                              (int32_t)final_level;
         dequant = scan_index == 0U ? dequant_steps.dc : dequant_steps.ac;
+        dequant_level = final_level;
+        if (tcq_mode) {
+            dequant_level = final_level << 1U;
+            if (dequant_level >= tcq_quantizer) {
+                dequant_level -= tcq_quantizer;
+            } else {
+                dequant_level = 0U;
+            }
+            ++dequant_shift;
+        }
         block->dequantized[position] =
             av2h_coeff_dequantize_level_for_sequence(
-                sequence, final_level, sign, dequant,
-                geometry.dequant_shift);
+                sequence, dequant_level, sign, dequant, dequant_shift);
         ++block->nonzero_count;
         cul_level += final_level;
         if (scan_index == 0U) {
             block->dc_value = block->quantized[position];
+        }
+        if (tcq_mode) {
+            dequant_state = av2h_tcq_next_state(dequant_state, final_level);
         }
     }
     block->cul_level =
@@ -975,8 +1025,7 @@ static Av2hStatus read_chroma_block(
     if (cdfs->q_context != av2h_coeff_q_context(frame->base_q_index)) {
         return AV2H_UNSUPPORTED;
     }
-    if (sequence->enable_tcq || sequence->enable_parity_hiding ||
-        frame->using_qmatrix) {
+    if (sequence->enable_parity_hiding || frame->using_qmatrix) {
         return AV2H_UNSUPPORTED;
     }
     status = av2h_coeff_tx_geometry(prefix->tx_size, &geometry);
@@ -1133,8 +1182,8 @@ Av2hStatus av2h_first_chroma_coeff_block_read(
         prefix == 0 || block == 0) {
         return AV2H_INVALID_ARGUMENT;
     }
-    if ((plane != 1U && plane != 2U) || sequence->enable_tcq ||
-        sequence->enable_parity_hiding || frame->using_qmatrix) {
+    if ((plane != 1U && plane != 2U) || sequence->enable_parity_hiding ||
+        frame->using_qmatrix) {
         return AV2H_UNSUPPORTED;
     }
     status = av2h_coeff_tx_geometry(prefix->tx_size, &geometry);

@@ -187,6 +187,22 @@ static void test_palace_ist_gaps(void) {
     CHECK(dequantized[0] == 104);
 
     av2h_memory_fill(dequantized, 0U, sizeof(dequantized));
+    mode.mode = AV2H_INTRA_D113;
+    prefix.tx_size = AV2H_TX_4X32;
+    transform.secondary_set = 4U;
+    transform.secondary_symbol = 2U;
+    coefficients.width = 4U;
+    coefficients.height = 32U;
+    coefficients.coefficient_count = 128U;
+    dequantized[0] = 128;
+    CHECK(av2h_inverse_secondary_transform(
+              &mode, &prefix, &transform, &coefficients, dequantized) ==
+          AV2H_OK);
+    CHECK(dequantized[0] == -88);
+    CHECK(dequantized[1] == 68);
+    CHECK(dequantized[4] == 2);
+
+    av2h_memory_fill(dequantized, 0U, sizeof(dequantized));
     mode.mode = AV2H_INTRA_SMOOTH_HORIZONTAL;
     prefix.tx_size = AV2H_TX_4X8;
     transform.secondary_set = 8U;

@@ -346,13 +346,14 @@ int main(int argc, char **argv) {
                 decode_result.stage);
         fprintf(stderr,
                 "  leaf=(%u,%u) block=%u plane=%u syntax=%u mode=%u "
-                "mrl=%u/%u tx=%u primary=%u fsc=%u skip=%u zero=%u "
-                "eob=%u inverse=%u\n",
+                "mrl=%u/%u tx=%u primary=%u secondary=%u/%u fsc=%u "
+                "skip=%u zero=%u eob=%u inverse=%u\n",
             decode_result.row, decode_result.column,
             decode_result.block_size, decode_result.plane,
                 decode_result.syntax_stage, decode_result.mode,
                 decode_result.mrl_index, decode_result.multi_line_mrl,
                 decode_result.tx_size, decode_result.primary_type,
+                decode_result.secondary_symbol, decode_result.secondary_set,
                 decode_result.fsc_mode, decode_result.skip_transform,
                 decode_result.all_zero, decode_result.eob,
                 decode_result.inverse_transform_stage);

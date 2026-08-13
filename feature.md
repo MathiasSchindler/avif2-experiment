@@ -253,6 +253,13 @@ it.
 Estimated effect: small to medium compression improvement at equal objective
 quality. The result should be verified at several QPs and transform sizes.
 
+The decoder now implements pinned AVM's always-on TCQ mode for single-picture
+files, including state-dependent luma CDFs, high-range levels, dequantization,
+and the ordinary FSC/chroma exclusions. The locked I420 pilot passes exact
+native and WebAssembly parity in both TCQ-off and TCQ-on arms. Promotion still
+requires the broader Q-context, transform, bit-depth, and malformed-input
+fixture matrix below; frame-adaptive video mode remains deferred.
+
 Adoption should start with one locked I420 source. First encode it at
 `cpu-used=1` with TCQ explicitly disabled and require census and decoder parity;
 this separates syntax selected by the deeper ordinary search from TCQ itself.
