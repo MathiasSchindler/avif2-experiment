@@ -1033,7 +1033,7 @@ Av2hStatus av2h_partition_child_nodes(
     Av2hPartitionType partition,
     Av2hPartitionNode children[4U],
     size_t *child_count) {
-    Av2hPartitionTraversal traversal = {0};
+    Av2hPartitionTraversal traversal;
     Av2hStatus status;
     size_t index;
     if (children == 0 || child_count == 0 ||
@@ -1041,6 +1041,7 @@ Av2hStatus av2h_partition_child_nodes(
         partition >= AV2H_PARTITION_INVALID) {
         return AV2H_INVALID_ARGUMENT;
     }
+    traversal.stack_count = 0U;
     status = traversal_push_children(&traversal, node, partition);
     if (status != AV2H_OK) return status;
     *child_count = traversal.stack_count;

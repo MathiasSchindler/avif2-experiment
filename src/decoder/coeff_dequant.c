@@ -1,5 +1,7 @@
 #include "internal/coeff_modules.h"
 
+#include "predefined_qmatrix.inc"
+
 uint8_t av2h_coeff_q_context(Av2hQIndex base_q_index) {
     return base_q_index <= 90U ? 0U :
            base_q_index <= 140U ? 1U :
@@ -157,6 +159,65 @@ int av2h_quantizer_is_lossless(
            frame->v_dc_delta_q + sequence->base_uv_dc_delta_q <= 0 &&
            frame->u_ac_delta_q + sequence->base_uv_ac_delta_q <= 0 &&
            frame->v_ac_delta_q + sequence->base_uv_ac_delta_q <= 0;
+}
+
+static size_t qmatrix_offset(uint16_t width, uint16_t height) {
+    if (width == 4U && height == 4U) return 0U;
+    if (width == 8U && height == 8U) return 16U;
+    if (width == 16U && height == 16U) return 80U;
+    if (width == 32U && height == 32U) return 336U;
+    if (width == 4U && height == 8U) return 1360U;
+    if (width == 8U && height == 4U) return 1392U;
+    if (width == 8U && height == 16U) return 1424U;
+    if (width == 16U && height == 8U) return 1552U;
+    if (width == 16U && height == 32U) return 1680U;
+    if (width == 32U && height == 16U) return 2192U;
+    if (width == 4U && height == 16U) return 2704U;
+    if (width == 16U && height == 4U) return 2768U;
+    if (width == 8U && height == 32U) return 2832U;
+    if (width == 32U && height == 8U) return 3088U;
+    if (width == 4U && height == 32U) return 3344U;
+    if (width == 32U && height == 4U) return 3472U;
+    return SIZE_MAX;
+}
+
+Av2hStatus av2h_coeff_qmatrix_dequant_step(
+    const Av2hSequenceState *sequence,
+    const Av2hFrameState *frame,
+    Av2hQIndex q_index,
+    uint8_t plane,
+    uint16_t tx_width,
+    uint16_t tx_height,
+    uint8_t primary_type,
+    uint16_t position,
+    uint32_t dequant_step,
+    uint32_t *weighted_step) {
+    uint8_t level;
+    size_t offset;
+    uint64_t product;
+    if (sequence == 0 || frame == 0 || weighted_step == 0 || plane >= 3U) {
+        return AV2H_INVALID_ARGUMENT;
+    }
+    *weighted_step = dequant_step;
+    if (frame->using_qmatrix == 0U || primary_type >= AV2H_TX_IDTX ||
+        av2h_quantizer_is_lossless(sequence, frame, q_index)) {
+        return AV2H_OK;
+    }
+    level = plane == 0U ? frame->qm_y :
+            plane == 1U ? frame->qm_u : frame->qm_v;
+    if (level == 15U) return AV2H_OK;
+    offset = qmatrix_offset(tx_width, tx_height);
+    if (offset == SIZE_MAX ||
+        position >= (uint32_t)tx_width * tx_height ||
+        offset + position >= 3600U) {
+        return AV2H_UNSUPPORTED;
+    }
+    product = (uint64_t)dequant_step *
+              av2h_predefined_iqmatrix[level][plane != 0U][offset + position];
+    product = (product + 16U) >> 5U;
+    if (product > UINT32_MAX) return AV2H_OVERFLOW;
+    *weighted_step = (uint32_t)product;
+    return AV2H_OK;
 }
 
 uint8_t av2h_coeff_finalize_cul_level(

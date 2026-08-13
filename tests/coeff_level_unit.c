@@ -1040,6 +1040,42 @@ static void test_tcq_state_and_cdfs(void) {
     check_words(cdfs.full_base[0U][0U][1U], q0_txs0_ctx0_q1, 8U);
 }
 
+static void test_predefined_qmatrix_steps(void) {
+    Av2hSequenceState sequence = { 0 };
+    Av2hFrameState frame = { 0 };
+    uint32_t step = 0U;
+    sequence.info.bit_depth_idc = 1U;
+    frame.using_qmatrix = 1U;
+    frame.qm_y = 7U;
+    frame.qm_u = 7U;
+    frame.qm_v = 7U;
+    CHECK(av2h_coeff_qmatrix_dequant_step(
+              &sequence, &frame, 128U, 0U, 4U, 4U,
+              AV2H_TX_DCT_DCT, 0U, 100U, &step) == AV2H_OK);
+    CHECK(step == 100U);
+    CHECK(av2h_coeff_qmatrix_dequant_step(
+              &sequence, &frame, 128U, 0U, 4U, 4U,
+              AV2H_TX_DCT_DCT, 2U, 100U, &step) == AV2H_OK);
+    CHECK(step == 131U);
+    CHECK(av2h_coeff_qmatrix_dequant_step(
+              &sequence, &frame, 128U, 0U, 4U, 4U,
+              AV2H_TX_IDTX, 2U, 100U, &step) == AV2H_OK);
+    CHECK(step == 100U);
+    frame.qm_y = 15U;
+    CHECK(av2h_coeff_qmatrix_dequant_step(
+              &sequence, &frame, 128U, 0U, 4U, 4U,
+              AV2H_TX_DCT_DCT, 2U, 100U, &step) == AV2H_OK);
+    CHECK(step == 100U);
+    frame.qm_y = 7U;
+    CHECK(av2h_coeff_qmatrix_dequant_step(
+              &sequence, &frame, 0U, 0U, 4U, 4U,
+              AV2H_TX_DCT_DCT, 2U, 100U, &step) == AV2H_OK);
+    CHECK(step == 100U);
+    CHECK(av2h_coeff_qmatrix_dequant_step(
+              &sequence, &frame, 128U, 0U, 8U, 2U,
+              AV2H_TX_DCT_DCT, 0U, 100U, &step) == AV2H_UNSUPPORTED);
+}
+
 int main(void) {
     test_q_context_cdfs();
     test_chroma_all_zero_geometry();
@@ -1056,6 +1092,7 @@ int main(void) {
     test_fixture_coefficients();
     test_arguments();
     test_tcq_state_and_cdfs();
+    test_predefined_qmatrix_steps();
     if (failures != 0) {
         fprintf(stderr, "%d coefficient level checks failed\n", failures);
         return 1;

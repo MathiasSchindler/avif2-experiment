@@ -76,19 +76,21 @@ experiments must pin those syntax choices instead of relying on AVM defaults or
 speed policy. That production profile still excludes TCQ, parity hiding,
 quantization matrices, segmentation, film grain, and restoration. This is an
 encoder-admission policy, not a complete statement of decoder capability: the
-decoder now supports admitted subsets of TCQ and restoration in addition to
-IntraBC.
+decoder now supports admitted subsets of TCQ, predefined quantization matrices,
+and restoration in addition to IntraBC.
 
 For the currently validated AVM-generated corpus tuples, the decoder supports
 non-DCT transforms, directional prediction, MRL, CfL/MHCCP, luma FSC, IntraBC,
 transform skip, palette prediction, always-on single-picture TCQ, deblock,
-CDEF, CCSO, 8-bit luma PC-Wiener restoration, and GDF. This is not a claim of
-exhaustive feature-family support: luma directional prediction and secondary
-transforms remain partial, chroma FSC remains unaudited, palette evidence covers
-the two observed luma cases, frame-adaptive video TCQ remains deferred, and
-restoration is limited to 8-bit luma PC-Wiener. Support for a feature path does
-not imply support for every combination of geometry, coefficient profile,
-transform, and surrounding syntax.
+CDEF, CCSO, predefined non-segmented quantization matrices, 8-bit luma
+PC-Wiener restoration, and GDF. This is not a claim of exhaustive feature-family
+support: luma directional prediction and secondary transforms remain partial,
+chroma FSC remains unaudited, palette evidence covers the two observed luma
+cases, frame-adaptive video TCQ remains deferred, custom matrix OBUs and
+segmented multi-matrix selection remain unsupported, and restoration is limited
+to 8-bit luma PC-Wiener. Support for a feature path does not imply support for
+every combination of geometry, coefficient profile, transform, and surrounding
+syntax.
 
 ## Effect scale
 
@@ -111,7 +113,7 @@ exists. AVM exposing a switch proves availability, not a gain for this corpus.
 | IntraBC and screen-content tuning | Medium to large for text, diagrams, and repeated screen regions; usually small for photographs | IntraBC, transform skip, and observed palette paths are supported | No new core feature; broaden end-to-end evidence |
 | Trellis-coded quantization (TCQ) | Small to medium compression improvement | Supported for pinned AVM's always-on single-picture subset | Broaden Q-context, transform, bit-depth, malformed-input, and durable platform evidence; defer frame-adaptive video mode |
 | Loop restoration | Small to medium quality or compression improvement, especially near visible artifacts | Supported for 8-bit luma PC-Wiener; chroma, other restoration modes, and 10-bit remain fail-closed | Measure corpus impact and add modes or formats only from observed demand |
-| Quantization matrices | Small to medium perceptual-quality improvement; metric-dependent | Unsupported | Matrix OBU/state, frame selection, matrix-aware quantization steps, and validation |
+| Quantization matrices | Small to medium perceptual-quality improvement; metric-dependent | Predefined matrices are supported for non-segmented pictures; custom QM OBUs remain fail-closed | Broaden levels, formats, transforms, malformed-input, and platform evidence; add custom OBU state only from observed demand |
 | Adaptive quantization, delta-Q, and segmentation | Medium perceptual-quality improvement on spatially varied images | Delta-Q is partial; segmentation is unsupported | Complete frame/leaf syntax, segment state, per-block Q propagation, and filter interaction |
 | Film-grain synthesis | Large compression opportunity for genuinely noisy or grainy images; neutral or harmful for clean images | Unsupported and not sample-preserving | Grain metadata parsing, deterministic synthesis, output semantics, workspace, and conformance vectors |
 
@@ -348,22 +350,34 @@ important structure while spending fewer bits on less visible coefficients.
 Estimated effect: small to medium perceptual improvement. PSNR may stay flat or
 decline while subjective quality improves, so metric choice is important.
 
-Decoder implementation steps:
+The decoder now implements pinned AVM's predefined matrix path for the existing
+non-segmented still-picture profile. Frame parsing retains the selected Y, U,
+and V IDs; IDs 0 through 14 use the complete predefined inverse-weight tables,
+and ID 15 is the normative flat matrix. Matrix lookup follows AVM's adjusted
+transform geometry, uses raster coefficient positions, and remains flat for
+lossless, identity, and one-dimensional transforms. Dequantization uses checked
+wide products and AVM's exact five-bit rounding.
 
-1. Implement bounded parsing and validation of the AV2 quantization-matrix OBU
-   and its matrix-set lifetime within the one-image profile.
-2. Extend frame quantization parsing to retain matrix enablement and selected
-   levels for Y, U, and V instead of rejecting `using_qmatrix`.
-3. Add normative default/custom matrix lookup by plane, transform size, and
-   coefficient position with strict index and dimension validation.
-4. Apply inverse-matrix scaling in dequantization with checked intermediate
-   widths, exact rounding, clipping, and 8/10-bit coverage.
-5. Define container placement and normalization rules for matrix OBUs before
-   admitting them to canonical HEIF.
-6. Add unit vectors for matrix expansion and dequantization, negative OBU cases,
-   and AVM parity fixtures across matrix levels, planes, and transform sizes.
-7. Remove the frame and coefficient rejection gates only after malformed matrix
-   data cannot mutate caller output.
+`tests/fixtures/predefined-qmatrix.obu` is a pinned 8-bit I420 level-7 stream
+generated with `--enable-qm=1`. The `decoder-predefined-qmatrix-parity` CTest
+locks its complete decoded output to pinned AVM, while coefficient units cover
+matrix weighting, flat-transform and lossless bypasses, and invalid geometry.
+Pinned AVM emits no Quantization Matrix OBU for this predefined path.
+
+Current capability and remaining work:
+
+1. Keep segmentation disabled, which limits the admitted profile to one
+   picture-level Y/U/V matrix selection and avoids per-block matrix indices.
+2. Keep type-22 Quantization Matrix OBUs fail-closed. User-defined fundamental
+   matrices, their scan-coded deltas, expansion, lifetime, and container
+   placement are not implemented.
+3. Add AVM parity fixtures across predefined levels, monochrome and I444,
+   10-bit, transform geometries and classes, per-plane IDs, and Q contexts.
+4. Add malformed and truncation tests that preserve caller output, then require
+   public HEIF, WebAssembly, no-libc, and Windows parity before production
+   profile admission.
+5. Measure rate-distortion, encode cost, and native/WebAssembly decode cost
+   before enabling matrices in the production generator.
 
 ### Adaptive quantization, delta-Q, and segmentation
 

@@ -297,6 +297,17 @@ int av2h_quantizer_is_lossless(
     const Av2hSequenceState *sequence,
     const Av2hFrameState *frame,
     Av2hQIndex q_index);
+Av2hStatus av2h_coeff_qmatrix_dequant_step(
+    const Av2hSequenceState *sequence,
+    const Av2hFrameState *frame,
+    Av2hQIndex q_index,
+    uint8_t plane,
+    uint16_t tx_width,
+    uint16_t tx_height,
+    uint8_t primary_type,
+    uint16_t position,
+    uint32_t dequant_step,
+    uint32_t *weighted_step);
 uint8_t av2h_coeff_finalize_cul_level(
     uint32_t summed_level,
     int32_t dc_value);
@@ -352,6 +363,7 @@ Av2hStatus av2h_chroma_coeff_block_read_with_state(
     const Av2hPartitionNode *leaf,
     uint8_t plane,
     const Av2hFirstCoeffPrefix *prefix,
+    const Av2hFirstTransformType *transform,
     Av2hCoeffContextState *state,
     Av2hFirstCoeffBlock *block);
 

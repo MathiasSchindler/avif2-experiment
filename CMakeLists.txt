@@ -273,6 +273,13 @@ if(AV2HEIF_BUILD_NATIVE_CLI AND UNIX AND NOT WIN32)
                 "-DOUTPUT=${CMAKE_CURRENT_BINARY_DIR}/Testing/Temporary/pc-wiener-restoration.i420"
                 "-DEXPECTED_SHA256=facb6781bb64f8066feae441fcd8305022f3db4c3fd2ff70c22d2729c5042a0c"
                 -P "${CMAKE_CURRENT_SOURCE_DIR}/scripts/check-decoder-parity.cmake")
+        add_test(NAME decoder-predefined-qmatrix-parity
+            COMMAND "${CMAKE_COMMAND}"
+                "-DDECODER=$<TARGET_FILE:av2heif-decoder>"
+                "-DINPUT=${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/predefined-qmatrix.obu"
+                "-DOUTPUT=${CMAKE_CURRENT_BINARY_DIR}/Testing/Temporary/predefined-qmatrix.i420"
+                "-DEXPECTED_SHA256=6ef34c24eaa892cff0eff2ee75306e85c3432327b53863ac8b06d6d541864b08"
+                -P "${CMAKE_CURRENT_SOURCE_DIR}/scripts/check-decoder-parity.cmake")
     endif()
 endif()
 

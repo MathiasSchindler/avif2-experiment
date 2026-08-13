@@ -592,6 +592,7 @@ Av2hStatus av2h_tile_decoder_next_chroma(
         status = av2h_chroma_coeff_block_read_with_state(
             &decoder->range, &decoder->level_cdfs, decoder->sequence,
             decoder->frame, &leaf->node, plane, &leaf->prefix[index],
+            &leaf->transform[index],
             &decoder->coefficient_contexts, blocks[index]);
         if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
     #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)

@@ -126,6 +126,9 @@ static Av2hStatus decode_obu(Av2hSpan input,
     size_t bytes_per_sample;
     Av2hStatus status = av2h_obu_parse(input, &ledger, &error);
     if (status != AV2H_OK) return status;
+    if (find_obu(&ledger, AV2H_OBU_QUANTIZATION_MATRIX) != NULL) {
+        return AV2H_UNSUPPORTED;
+    }
     sequence_obu = find_obu(&ledger, AV2H_OBU_SEQUENCE_HEADER);
     frame_obu = find_obu(&ledger, AV2H_OBU_CLOSED_LOOP_KEY);
     if (sequence_obu == NULL || frame_obu == NULL) return AV2H_INVALID_DATA;

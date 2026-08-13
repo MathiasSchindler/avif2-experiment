@@ -414,7 +414,21 @@ Av2hStatus av2h_frame_header_closed_key_parse(
     if (frame->segmentation_enabled != 0U) return AV2H_UNSUPPORTED;
     frame->using_qmatrix =
         (uint8_t)av2h_bit_reader_read(&reader, 1U);
-    if (frame->using_qmatrix != 0U) return AV2H_UNSUPPORTED;
+    if (frame->using_qmatrix != 0U) {
+        frame->qm_y = (uint8_t)av2h_bit_reader_read(&reader, 4U);
+        if (frame->plane_count > 1U) {
+            uint8_t qm_uv_same_as_y =
+                (uint8_t)av2h_bit_reader_read(&reader, 1U);
+            if (qm_uv_same_as_y != 0U) {
+                frame->qm_u = frame->qm_y;
+                frame->qm_v = frame->qm_y;
+            } else {
+                frame->qm_u = (uint8_t)av2h_bit_reader_read(&reader, 4U);
+                frame->qm_v = sequence->separate_uv_delta_q != 0U ?
+                    (uint8_t)av2h_bit_reader_read(&reader, 4U) : frame->qm_u;
+            }
+        }
+    }
     if (frame->base_q_index != 0U) {
         frame->delta_q_present =
             (uint8_t)av2h_bit_reader_read(&reader, 1U);

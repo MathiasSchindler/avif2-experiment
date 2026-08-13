@@ -53,6 +53,9 @@ typedef struct {
     uint8_t uniform_tile_spacing;
     uint8_t segmentation_enabled;
     uint8_t using_qmatrix;
+    uint8_t qm_y;
+    uint8_t qm_u;
+    uint8_t qm_v;
     uint8_t delta_q_present;
     uint8_t delta_q_res;
     uint8_t deblock_enabled[4];

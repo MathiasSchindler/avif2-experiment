@@ -356,7 +356,9 @@ static void test_10bit_wp0_header(void) {
     mutated[2] |= 0x40U;
     CHECK(av2h_frame_header_closed_key_parse(
               (Av2hSpan){ mutated, frame_obu->payload_size },
-              &sequence, &frame) == AV2H_UNSUPPORTED);
+              &sequence, &frame) == AV2H_OK);
+    CHECK(frame.using_qmatrix == 1U);
+    CHECK(frame.qm_u == frame.qm_v);
     av2h_memory_copy(
         mutated, input + frame_obu->payload_offset, frame_obu->payload_size);
     mutated[0] &= 0xfeU;
