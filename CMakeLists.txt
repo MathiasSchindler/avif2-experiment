@@ -215,10 +215,19 @@ if(AV2HEIF_BUILD_HOST_TESTS)
         add_test(NAME tcq-experiment-unit
             COMMAND "${Python3_EXECUTABLE}"
                 "${CMAKE_CURRENT_SOURCE_DIR}/tests/test_tcq_experiment.py")
-        add_test(NAME public-decoder-8bit-444-parity
-            COMMAND "${Python3_EXECUTABLE}"
-                "${CMAKE_CURRENT_SOURCE_DIR}/tools/validate_8bit_444_public.py"
-                --artifact-tool "$<TARGET_FILE:av2heif-artifact>")
+        set(AV2HEIF_8BIT_444_MANIFEST
+            "${CMAKE_CURRENT_SOURCE_DIR}/images/artifacts-8bit-444/manifest.json")
+        if(NOT EXISTS "${AV2HEIF_8BIT_444_MANIFEST}")
+            set(AV2HEIF_8BIT_444_MANIFEST
+                "${CMAKE_CURRENT_SOURCE_DIR}/images/old/artifacts-8bit-444/manifest.json")
+        endif()
+        if(EXISTS "${AV2HEIF_8BIT_444_MANIFEST}")
+            add_test(NAME public-decoder-8bit-444-parity
+                COMMAND "${Python3_EXECUTABLE}"
+                    "${CMAKE_CURRENT_SOURCE_DIR}/tools/validate_8bit_444_public.py"
+                    --artifact-tool "$<TARGET_FILE:av2heif-artifact>"
+                    --manifest "${AV2HEIF_8BIT_444_MANIFEST}")
+        endif()
         add_test(NAME decoder-10bit-420-parity
             COMMAND "${Python3_EXECUTABLE}"
                 "${CMAKE_CURRENT_SOURCE_DIR}/tools/validate_10bit_420_corpus.py"

@@ -16,7 +16,9 @@ from obu_carriage import parse_obus
 
 
 ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_MANIFEST = ROOT / "images" / "artifacts-8bit-444" / "manifest.json"
+DEFAULT_MANIFEST = (
+    ROOT / "images" / "artifacts-8bit-444" / "manifest.json"
+)
 
 
 def run(command: list[str]) -> None:

@@ -285,6 +285,9 @@ Av2hStatus av2h_tile_decoder_init(
     status = tile_superblock_geometry(
         sequence, &decoder->superblock_mi, &decoder->root_block_size);
     if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
+    if (storage->left_count < decoder->superblock_mi) {
+        return av2h_tile_decoder_fail(decoder, AV2H_OUT_OF_MEMORY);
+    }
     sb_columns =
         (decoder->mi_columns + decoder->superblock_mi - 1U) /
         decoder->superblock_mi;

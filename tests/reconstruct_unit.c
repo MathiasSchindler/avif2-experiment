@@ -6263,20 +6263,20 @@ static void test_10bit_wp5_frame_fixture(void) {
     uint8_t input[64U];
     uint8_t reference_bytes[768U];
     uint8_t luma_partition_above[4U] = { 0 };
-    uint8_t luma_partition_left[4U] = { 0 };
+    uint8_t luma_partition_left[16U] = { 0 };
     uint8_t chroma_partition_above[4U] = { 0 };
-    uint8_t chroma_partition_left[4U] = { 0 };
+    uint8_t chroma_partition_left[16U] = { 0 };
     Av2hLumaModeContext luma_mode_above[4U] = { 0 };
-    Av2hLumaModeContext luma_mode_left[4U] = { 0 };
+    Av2hLumaModeContext luma_mode_left[16U] = { 0 };
     uint8_t coefficient_above[AV2H_FRAME_PLANE_COUNT * 4U] = { 0 };
-    uint8_t coefficient_left[AV2H_FRAME_PLANE_COUNT * 4U] = { 0 };
+    uint8_t coefficient_left[AV2H_FRAME_PLANE_COUNT * 16U] = { 0 };
     Av2hTileLumaModeCell colocated_luma[16U] = { 0 };
     Av2hTileContextStorage storage = {
         luma_partition_above, luma_partition_left,
         chroma_partition_above, chroma_partition_left,
         luma_mode_above, luma_mode_left,
         coefficient_above, coefficient_left, colocated_luma,
-        4U, 4U, 16U, 0, 0U, 0, 0U, { 0, 0, 0 }, 0U, 0, 0U
+        4U, 16U, 16U, 0, 0U, 0, 0U, { 0, 0, 0 }, 0U, 0, 0U
     };
     uint16_t pixels[16U * 16U] = { 0 };
     uint16_t chroma_pixels[2U][8U * 8U] = { { 0 } };

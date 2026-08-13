@@ -476,7 +476,7 @@ static void test_tx_descriptors(void) {
         {
           Av2hPartitionNode coding = { 4U, 8U, AV2H_BLOCK_128X128 };
           Av2hPartitionNode tx_node;
-          uint8_t count = 0U;
+                    uint16_t count = 0U;
           CHECK(av2h_luma_tx_node_count(coding.block_size, &count) == AV2H_OK);
           CHECK(count == 4U);
           CHECK(av2h_luma_tx_node_get(&coding, 0U, &tx_node) == AV2H_OK);
@@ -508,7 +508,7 @@ static void test_tx_descriptors(void) {
     {
         Av2hPartitionNode coding = { 4U, 8U, AV2H_BLOCK_128X128 };
         Av2hPartitionNode tx_node;
-        uint8_t count = 0U;
+        uint16_t count = 0U;
         CHECK(av2h_chroma_tx_node_count(
                   AV2H_BLOCK_128X128, 2U, &count) == AV2H_OK);
         CHECK(count == 4U);

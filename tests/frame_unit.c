@@ -234,20 +234,20 @@ static void test_10bit_wp0_header(void) {
     unsigned char input[64U];
     unsigned char mutated[64U];
     uint8_t luma_partition_above[4U];
-    uint8_t luma_partition_left[4U];
+    uint8_t luma_partition_left[16U];
     uint8_t chroma_partition_above[4U];
-    uint8_t chroma_partition_left[4U];
+    uint8_t chroma_partition_left[16U];
     Av2hLumaModeContext luma_mode_above[4U];
-    Av2hLumaModeContext luma_mode_left[4U];
+    Av2hLumaModeContext luma_mode_left[16U];
     uint8_t coefficient_above[AV2H_FRAME_PLANE_COUNT * 4U];
-    uint8_t coefficient_left[AV2H_FRAME_PLANE_COUNT * 4U];
+    uint8_t coefficient_left[AV2H_FRAME_PLANE_COUNT * 16U];
     Av2hTileLumaModeCell colocated_luma[16U];
     Av2hTileContextStorage storage = {
         luma_partition_above, luma_partition_left,
         chroma_partition_above, chroma_partition_left,
         luma_mode_above, luma_mode_left,
         coefficient_above, coefficient_left, colocated_luma,
-        4U, 4U, 16U, 0, 0U, 0, 0U, { 0, 0, 0 }, 0U, 0, 0U
+        4U, 16U, 16U, 0, 0U, 0, 0U, { 0, 0, 0 }, 0U, 0, 0U
     };
     Av2hObu entries[3U];
     Av2hObuLedger ledger = { entries, 3U, 0U };
@@ -375,7 +375,7 @@ static void test_emerald_q208_deblock_header(void) {
     const Av2hObu *sequence_obu = 0;
     const Av2hObu *frame_obu = 0;
     FILE *source = fopen(
-        "images/artifacts/emerald-192x96-qp208.obu", "rb");
+        "tests/fixtures/emerald-192x96-qp208.obu", "rb");
     size_t size;
     size_t index;
     CHECK(source != 0);

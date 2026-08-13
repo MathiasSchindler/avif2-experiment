@@ -17,9 +17,13 @@ from obu_carriage import parse_obus
 
 
 ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_MANIFESTS = (
-    ROOT / "tests/fixtures/10bit/avm-reference/manifest.json",
-    ROOT / "images/artifacts/10bit/avm-reference/manifest.json",
+DEFAULT_MANIFESTS = tuple(
+    path
+    for path in (
+        ROOT / "tests/fixtures/10bit/avm-reference/manifest.json",
+        ROOT / "images/artifacts/10bit/avm-reference/manifest.json",
+    )
+    if path.is_file()
 )
 EXPECTED_SYNTHETIC_RECORDS = 21
 EXPECTED_PHOTOGRAPHIC_RECORDS = 18

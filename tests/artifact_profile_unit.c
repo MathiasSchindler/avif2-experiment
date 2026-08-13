@@ -67,7 +67,8 @@ static size_t load_artifact(const char *name) {
     long file_size;
     size_t stream_size;
 
-    if (snprintf(path, sizeof(path), "images/artifacts/%s.obu", name) < 0) {
+    if (snprintf(path, sizeof(path),
+                 "tests/fixtures/artifact-profile/%s.obu", name) < 0) {
         return 0U;
     }
     source = fopen(path, "rb");

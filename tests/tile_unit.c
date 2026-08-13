@@ -349,13 +349,13 @@ static void test_odd_luma_reconstruction(void) {
         220,234,255,4,29,34,40,45,45
     };
     uint8_t luma_partition_above[6U];
-    uint8_t luma_partition_left[4U];
+    uint8_t luma_partition_left[16U];
     uint8_t chroma_partition_above[6U];
-    uint8_t chroma_partition_left[4U];
+    uint8_t chroma_partition_left[16U];
     Av2hLumaModeContext luma_mode_above[6U];
-    Av2hLumaModeContext luma_mode_left[4U];
+    Av2hLumaModeContext luma_mode_left[16U];
     uint8_t coefficient_above[AV2H_FRAME_PLANE_COUNT * 6U];
-    uint8_t coefficient_left[AV2H_FRAME_PLANE_COUNT * 4U];
+    uint8_t coefficient_left[AV2H_FRAME_PLANE_COUNT * 16U];
     Av2hTileLumaModeCell colocated_luma[24U];
     uint8_t ccso_unit_controls[AV2H_FRAME_PLANE_COUNT][1U];
     Av2hTileContextStorage storage = {
@@ -363,7 +363,7 @@ static void test_odd_luma_reconstruction(void) {
         chroma_partition_above, chroma_partition_left,
         luma_mode_above, luma_mode_left,
         coefficient_above, coefficient_left, colocated_luma,
-        6U, 4U, 24U, 0, 0U, 0, 0U,
+        6U, 16U, 24U, 0, 0U, 0, 0U,
         { ccso_unit_controls[0], ccso_unit_controls[1],
           ccso_unit_controls[2] },
                 1U, 0, 0U
@@ -1358,13 +1358,13 @@ static void test_high_detail_frame(void) {
 static void test_orchestrator_failures(void) {
     static const unsigned char entropy[] = { 0U, 0U, 0U, 0U };
     uint8_t luma_partition_above[4U];
-    uint8_t luma_partition_left[4U];
+    uint8_t luma_partition_left[16U];
     uint8_t chroma_partition_above[4U];
-    uint8_t chroma_partition_left[4U];
+    uint8_t chroma_partition_left[16U];
     Av2hLumaModeContext luma_mode_above[4U];
-    Av2hLumaModeContext luma_mode_left[4U];
+    Av2hLumaModeContext luma_mode_left[16U];
     uint8_t coefficient_above[AV2H_FRAME_PLANE_COUNT * 4U];
-    uint8_t coefficient_left[AV2H_FRAME_PLANE_COUNT * 4U];
+    uint8_t coefficient_left[AV2H_FRAME_PLANE_COUNT * 16U];
     Av2hTileLumaModeCell colocated_luma[4U];
     uint8_t ccso_unit_controls[AV2H_FRAME_PLANE_COUNT][1U];
     Av2hTileContextStorage storage = {
@@ -1372,7 +1372,7 @@ static void test_orchestrator_failures(void) {
         chroma_partition_above, chroma_partition_left,
         luma_mode_above, luma_mode_left,
         coefficient_above, coefficient_left, colocated_luma,
-        4U, 4U, 4U, 0, 0U, 0, 0U,
+        4U, 16U, 4U, 0, 0U, 0, 0U,
         { ccso_unit_controls[0], ccso_unit_controls[1],
           ccso_unit_controls[2] },
                 1U, 0, 0U
@@ -1397,6 +1397,11 @@ static void test_orchestrator_failures(void) {
 
     frame.width = 4U;
     frame.height = 4U;
+    storage.left_count = 4U;
+    CHECK(av2h_tile_decoder_init(
+              &decoder, (Av2hSpan){ entropy, sizeof(entropy) }, &sequence,
+              &frame, &storage) == AV2H_OUT_OF_MEMORY);
+    storage.left_count = 16U;
     sequence.enable_ext_partitions = 1U;
     frame.gdf_mode = 2U;
     CHECK(av2h_tile_decoder_init(
@@ -1516,7 +1521,7 @@ static void test_sdp_superblock_scheduler(void) {
         CHECK(decoder.range.value == value);
         CHECK(decoder.partition_cdfs.do_split[0][0][0] == 1234U);
         CHECK(luma_partition_above[0] == 37U);
-        CHECK(chroma_partition_left[0] == 41U);
+        CHECK(chroma_partition_left[0] == (index < 2U ? 41U : 0U));
         CHECK(luma_mode_above[0].joint_mode == 53U);
         CHECK(coefficient_above[0] == 43U);
         CHECK(decoder.colocated_luma[0].context.present == 1U);
