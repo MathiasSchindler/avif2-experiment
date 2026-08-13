@@ -158,6 +158,43 @@ static Av2hStatus tile_reset_traversal_roots(Av2hTileDecoder *decoder) {
     return AV2H_OK;
 }
 
+static Av2hStatus tile_restoration_entropy_init(
+    Av2hRestorationEntropyState *state,
+    const Av2hSequenceState *sequence,
+    const Av2hFrameState *frame,
+    const Av2hTileContextStorage *storage) {
+    size_t index;
+    if (state == 0 || sequence == 0 || frame == 0 || storage == 0) {
+        return AV2H_INVALID_ARGUMENT;
+    }
+    av2h_memory_fill(state, 0U, sizeof(*state));
+    if (sequence->enable_restoration == 0U ||
+        frame->restoration_type[0] == AV2H_RESTORE_NONE) {
+        return AV2H_OK;
+    }
+    if (frame->restoration_type[0] != AV2H_RESTORE_PC_WIENER ||
+        frame->restoration_type[1] != AV2H_RESTORE_NONE ||
+        frame->restoration_type[2] != AV2H_RESTORE_NONE ||
+        frame->restoration_unit_count[0] == 0U ||
+        storage->restoration_unit_flags == 0 ||
+        storage->restoration_unit_flag_capacity <
+            frame->restoration_unit_count[0]) {
+        return AV2H_UNSUPPORTED;
+    }
+    state->unit_flags = storage->restoration_unit_flags;
+    state->unit_capacity = storage->restoration_unit_flag_capacity;
+    state->unit_columns = frame->restoration_unit_columns[0];
+    state->unit_rows = frame->restoration_unit_rows[0];
+    state->unit_size = frame->restoration_unit_size[0];
+    state->superblock_mi = (uint16_t)(sequence->superblock_size / 4U);
+    state->active = 1U;
+    for (index = 0U; index < frame->restoration_unit_count[0]; ++index) {
+        state->unit_flags[index] = 0U;
+    }
+    return av2h_binary_cdf_init(
+        state->cdf, (Av2hBinaryCdfSpec){ 12799U, 25U, 0U });
+}
+
 void av2h_tile_capture_root_partition(
     Av2hTileDecoder *decoder,
     const Av2hFirstLeafPath *path,
@@ -297,6 +334,9 @@ Av2hStatus av2h_tile_decoder_init(
         &decoder->ccso_entropy, sequence, frame,
         storage->ccso_unit_controls,
         storage->ccso_unit_control_capacity);
+    if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
+    status = tile_restoration_entropy_init(
+        &decoder->restoration_entropy, sequence, frame, storage);
     if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
     status = av2h_first_coeff_cdfs_init_for_q(
         &decoder->coeff_cdfs, frame->base_q_index);

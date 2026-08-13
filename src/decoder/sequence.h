@@ -51,6 +51,7 @@ typedef struct {
     uint8_t enable_gdf;
     uint8_t gdf_unit_matches_superblock_size;
     uint8_t enable_restoration;
+    uint8_t lr_tools_disable_mask[2];
     uint8_t enable_ccso;
     uint8_t ccso_unit_matches_superblock_size;
     uint8_t deblock_parameter_bits_minus_2;

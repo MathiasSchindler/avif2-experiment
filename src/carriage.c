@@ -348,9 +348,19 @@ static int read_sequence_tools(Av2hBitReader *reader,
     state->enable_restoration =
         (uint8_t)av2h_bit_reader_read(reader, 1U);
     if (state->enable_restoration != 0U) {
-        (void)av2h_bit_reader_read(reader, 2U);
+        unsigned int restoration_type;
+        for (restoration_type = 1U; restoration_type < 3U;
+             ++restoration_type) {
+            state->lr_tools_disable_mask[0] |= (uint8_t)(
+                av2h_bit_reader_read(reader, 1U) << restoration_type);
+        }
         if (av2h_bit_reader_read(reader, 1U) != 0U) {
-            (void)av2h_bit_reader_read(reader, 1U);
+            state->lr_tools_disable_mask[1] = 1U << 1U;
+            state->lr_tools_disable_mask[1] |= (uint8_t)(
+                av2h_bit_reader_read(reader, 1U) << 2U);
+        } else {
+            state->lr_tools_disable_mask[1] =
+                (uint8_t)(state->lr_tools_disable_mask[0] | (1U << 1U));
         }
     }
     state->enable_ccso = (uint8_t)av2h_bit_reader_read(reader, 1U);

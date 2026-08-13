@@ -118,6 +118,57 @@ static Av2hStatus tile_store_luma_partition_path(
     return AV2H_OK;
 }
 
+static Av2hStatus tile_read_restoration_units(Av2hTileDecoder *decoder) {
+    Av2hRestorationEntropyState *state = &decoder->restoration_entropy;
+    size_t pixel_row;
+    size_t pixel_column;
+    size_t unit_row_start;
+    size_t unit_row_end;
+    size_t unit_column_start;
+    size_t unit_column_end;
+    size_t unit_row;
+    if (state->active == 0U) return AV2H_OK;
+    if (state->superblock_mi == 0U || state->unit_size == 0U ||
+        state->unit_columns == 0U || state->unit_rows == 0U) {
+        return AV2H_INVALID_DATA;
+    }
+    pixel_row = (size_t)decoder->sb_row * 4U;
+    pixel_column = (size_t)decoder->sb_column * 4U;
+    unit_row_start =
+        (pixel_row + state->unit_size - 1U) / state->unit_size;
+    unit_row_end = (pixel_row + (size_t)state->superblock_mi * 4U +
+                    state->unit_size - 1U) / state->unit_size;
+    unit_column_start =
+        (pixel_column + state->unit_size - 1U) / state->unit_size;
+    unit_column_end = (pixel_column + (size_t)state->superblock_mi * 4U +
+                       state->unit_size - 1U) / state->unit_size;
+    if (unit_row_end > state->unit_rows) unit_row_end = state->unit_rows;
+    if (unit_column_end > state->unit_columns) {
+        unit_column_end = state->unit_columns;
+    }
+    for (unit_row = unit_row_start; unit_row < unit_row_end; ++unit_row) {
+        size_t unit_column;
+        for (unit_column = unit_column_start;
+             unit_column < unit_column_end; ++unit_column) {
+            size_t unit_index = unit_row * state->unit_columns + unit_column;
+            uint32_t value;
+            if (unit_index >= state->unit_capacity ||
+                unit_index != state->decoded_count) {
+                return AV2H_INVALID_DATA;
+            }
+            value = av2h_range_read_adaptive(
+                &decoder->range, state->cdf, 2U);
+            if (av2h_range_status(&decoder->range) != AV2H_OK) {
+                return av2h_range_status(&decoder->range);
+            }
+            if (value > 1U) return AV2H_INVALID_DATA;
+            state->unit_flags[unit_index] = (uint8_t)value;
+            ++state->decoded_count;
+        }
+    }
+    return AV2H_OK;
+}
+
 static int luma_geometry_supported(const Av2hPartitionNode *leaf) {
     const Av2hTxDescriptor *descriptor;
     return leaf != 0 && av2h_luma_tx_descriptor_get(
@@ -397,6 +448,10 @@ Av2hStatus av2h_tile_decoder_next_luma(
     status = tile_handoff_square_child(decoder, has_leaf);
     if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
     if (decoder->phase == AV2H_TILE_DECODE_CHROMA) return AV2H_OK;
+    if (decoder->luma_partition_node_count == 0U) {
+        status = tile_read_restoration_units(decoder);
+        if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
+    }
     status = av2h_partition_traversal_next(
         &decoder->luma_traversal, &decoder->range,
         &decoder->partition_cdfs, &decoder->partition_contexts, &path,

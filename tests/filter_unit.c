@@ -1909,8 +1909,9 @@ static void test_fail_closed(void) {
 
     sequence.enable_restoration = 1U;
     CHECK(av2h_filter_frame(&planes, &sequence, &frame, &workspace) ==
-          AV2H_UNSUPPORTED);
-    CHECK(y[0] == 91U);
+            AV2H_OK);
+        CHECK(y[0] == 100U);
+        av2h_memory_fill(y, 91U, sizeof(y));
     sequence.enable_restoration = 0U;
     sequence.enable_cdef = 1U;
     frame.cdef_strength_count = 2U;

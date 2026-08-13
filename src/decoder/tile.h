@@ -44,7 +44,21 @@ typedef struct {
     size_t cdef_unit_strength_capacity;
     uint8_t *ccso_unit_controls[AV2H_FRAME_PLANE_COUNT];
     size_t ccso_unit_control_capacity;
+    uint8_t *restoration_unit_flags;
+    size_t restoration_unit_flag_capacity;
 } Av2hTileContextStorage;
+
+typedef struct {
+    uint16_t cdf[AV2H_BINARY_CDF_SIZE];
+    uint8_t *unit_flags;
+    size_t unit_capacity;
+    size_t decoded_count;
+    uint16_t unit_columns;
+    uint16_t unit_rows;
+    uint16_t unit_size;
+    uint16_t superblock_mi;
+    uint8_t active;
+} Av2hRestorationEntropyState;
 
 typedef struct {
     Av2hPartitionNode node;
@@ -92,6 +106,7 @@ typedef struct {
     Av2hGdfEntropyState gdf_entropy;
     Av2hCdefEntropyState cdef_entropy;
     Av2hCcsoEntropyState ccso_entropy;
+    Av2hRestorationEntropyState restoration_entropy;
     Av2hPartitionTraversal luma_traversal;
     Av2hPartitionTraversal chroma_traversal;
     Av2hTileLumaPartitionNode

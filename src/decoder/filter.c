@@ -38,12 +38,24 @@ Av2hStatus av2h_filter_frame(
     Av2hFilterWorkspace *workspace) {
     unsigned int plane;
     Av2hStatus status;
+    const Av2hFilterPlane *gdf_baseline;
     reset_filter_diagnostics();
     if (sequence == 0 || frame == 0 || planes == 0 || workspace == 0) {
         set_filter_reason(1U);
         return AV2H_INVALID_ARGUMENT;
     }
-    if (sequence->enable_restoration != 0U) {
+    if (sequence->enable_restoration == 0U &&
+        (frame->restoration_type[0] != AV2H_RESTORE_NONE ||
+         frame->restoration_type[1] != AV2H_RESTORE_NONE ||
+         frame->restoration_type[2] != AV2H_RESTORE_NONE)) {
+        set_filter_reason(2U);
+        return AV2H_UNSUPPORTED;
+    }
+    if (sequence->enable_restoration != 0U &&
+                ((frame->restoration_type[0] != AV2H_RESTORE_NONE &&
+                    frame->restoration_type[0] != AV2H_RESTORE_PC_WIENER) ||
+         frame->restoration_type[1] != AV2H_RESTORE_NONE ||
+         frame->restoration_type[2] != AV2H_RESTORE_NONE)) {
         set_filter_reason(2U);
         return AV2H_UNSUPPORTED;
     }
@@ -74,6 +86,23 @@ Av2hStatus av2h_filter_frame(
         set_filter_reason(6U);
         return AV2H_INVALID_ARGUMENT;
     }
+    if (frame->restoration_type[0] == AV2H_RESTORE_PC_WIENER &&
+        (workspace->restoration.data == 0 ||
+         workspace->restoration_controls.unit_flags == 0 ||
+         workspace->restoration_controls.tx_skip == 0 ||
+         workspace->restoration_controls.unit_columns !=
+             frame->restoration_unit_columns[0] ||
+         workspace->restoration_controls.unit_rows !=
+             frame->restoration_unit_rows[0] ||
+         workspace->restoration_controls.unit_size !=
+             frame->restoration_unit_size[0] ||
+         planes->plane[0].data == workspace->restoration.data ||
+         workspace->deblocked.plane[0].data ==
+             workspace->restoration.data ||
+         workspace->cdef.plane[0].data == workspace->restoration.data)) {
+        set_filter_reason(6U);
+        return AV2H_INVALID_ARGUMENT;
+    }
     for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
         if (planes->plane[plane].data ==
                 workspace->deblocked.plane[plane].data ||
@@ -101,8 +130,17 @@ Av2hStatus av2h_filter_frame(
         workspace->deblocked.plane[0].stride_samples, frame,
         &workspace->ccso_controls);
     if (status != AV2H_OK) return status;
-    status = av2h_gdf_filter_frame_with_controls(
-        &planes->plane[0], &workspace->cdef.plane[0],
+    if (frame->restoration_type[0] == AV2H_RESTORE_PC_WIENER) {
+        status = av2h_pc_wiener_filter_luma(
+            &workspace->restoration, &workspace->cdef.plane[0],
+            &workspace->deblocked.plane[0], frame,
+            &workspace->restoration_controls);
+        if (status != AV2H_OK) return status;
+    }
+    gdf_baseline = frame->restoration_type[0] == AV2H_RESTORE_PC_WIENER ?
+        &workspace->restoration : &workspace->cdef.plane[0];
+    status = av2h_gdf_filter_frame_with_baseline(
+        &planes->plane[0], gdf_baseline, &workspace->cdef.plane[0],
         &workspace->deblocked.plane[0], frame,
         &workspace->gdf_controls);
     if (status != AV2H_OK) return status;

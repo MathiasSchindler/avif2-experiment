@@ -52,6 +52,7 @@ set(AV2HEIF_CORE_SOURCES
     src/decoder/partition_cdf.c
     src/decoder/range.c
     src/decoder/reconstruct.c
+    src/decoder/restoration.c
     src/decoder/secondary_transform.c
     src/decoder/tile.c
     src/decoder/tile_chroma.c
@@ -256,6 +257,13 @@ if(AV2HEIF_BUILD_NATIVE_CLI AND UNIX AND NOT WIN32)
                 "-DFIXTURE_DIRECTORY=${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures"
                 "-DOUTPUT_DIRECTORY=${CMAKE_CURRENT_BINARY_DIR}/Testing/Temporary/decoder-output"
                 -P "${CMAKE_CURRENT_SOURCE_DIR}/scripts/check-decoder-output-policy.cmake")
+        add_test(NAME decoder-pc-wiener-restoration-parity
+            COMMAND "${CMAKE_COMMAND}"
+                "-DDECODER=$<TARGET_FILE:av2heif-decoder>"
+                "-DINPUT=${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/pc-wiener-restoration.obu"
+                "-DOUTPUT=${CMAKE_CURRENT_BINARY_DIR}/Testing/Temporary/pc-wiener-restoration.i420"
+                "-DEXPECTED_SHA256=facb6781bb64f8066feae441fcd8305022f3db4c3fd2ff70c22d2729c5042a0c"
+                -P "${CMAKE_CURRENT_SOURCE_DIR}/scripts/check-decoder-parity.cmake")
     endif()
 endif()
 

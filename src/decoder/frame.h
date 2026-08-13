@@ -8,6 +8,13 @@
 #define AV2H_CCSO_BAND_COUNT 64U
 #define AV2H_CCSO_LUT_SIZE (AV2H_CCSO_BAND_COUNT * 16U)
 
+typedef enum {
+    AV2H_RESTORE_NONE = 0,
+    AV2H_RESTORE_PC_WIENER = 1,
+    AV2H_RESTORE_WIENER_NONSEP = 2,
+    AV2H_RESTORE_SWITCHABLE = 3
+} Av2hRestorationType;
+
 typedef uint16_t Av2hQIndex;
 
 typedef struct {
@@ -61,6 +68,11 @@ typedef struct {
     uint8_t cdef_on_skip_transform;
     uint8_t cdef_y_strength[AV2H_CDEF_MAX_STRENGTHS];
     uint8_t cdef_uv_strength[AV2H_CDEF_MAX_STRENGTHS];
+    uint8_t restoration_type[AV2H_FRAME_PLANE_COUNT];
+    uint16_t restoration_unit_size[AV2H_FRAME_PLANE_COUNT];
+    uint16_t restoration_unit_columns[AV2H_FRAME_PLANE_COUNT];
+    uint16_t restoration_unit_rows[AV2H_FRAME_PLANE_COUNT];
+    uint32_t restoration_unit_count[AV2H_FRAME_PLANE_COUNT];
     uint16_t ccso_unit_size;
     Av2hCcsoPlane ccso[AV2H_FRAME_PLANE_COUNT];
     uint8_t tx_mode;

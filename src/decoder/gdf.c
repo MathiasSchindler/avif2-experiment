@@ -419,26 +419,35 @@ static void gdf_filter_block_u16(Av2hFilterPlaneU16 *destination,
     }
 }
 
-Av2hStatus av2h_gdf_filter_frame_with_controls(
+Av2hStatus av2h_gdf_filter_frame_with_baseline(
     Av2hFilterPlane *destination,
+    const Av2hFilterPlane *baseline_luma,
     const Av2hFilterPlane *cdef_luma,
     const Av2hFilterPlane *deblocked_luma,
     const Av2hFrameState *frame,
     const Av2hGdfControlMap *controls) {
     uint16_t row;
     unsigned int qp_index;
-    if (destination == 0 || cdef_luma == 0 || deblocked_luma == 0 ||
-        frame == 0 || destination->data == 0 || cdef_luma->data == 0 ||
+    if (destination == 0 || baseline_luma == 0 || cdef_luma == 0 ||
+        deblocked_luma == 0 || frame == 0 || destination->data == 0 ||
+        baseline_luma->data == 0 || cdef_luma->data == 0 ||
         deblocked_luma->data == 0 || destination->stride_samples < destination->width ||
+        baseline_luma->stride_samples < baseline_luma->width ||
         cdef_luma->stride_samples < cdef_luma->width ||
         deblocked_luma->stride_samples < deblocked_luma->width ||
         destination->width == 0U || destination->height == 0U ||
+        destination->width != baseline_luma->width ||
+        destination->height != baseline_luma->height ||
         destination->width != cdef_luma->width ||
         destination->height != cdef_luma->height ||
         destination->width != deblocked_luma->width ||
         destination->height != deblocked_luma->height ||
+        filter_planes_overlap(destination, baseline_luma) ||
         filter_planes_overlap(destination, cdef_luma) ||
         filter_planes_overlap(destination, deblocked_luma) ||
+        (baseline_luma->data != cdef_luma->data &&
+         filter_planes_overlap(baseline_luma, cdef_luma)) ||
+        filter_planes_overlap(baseline_luma, deblocked_luma) ||
         filter_planes_overlap(cdef_luma, deblocked_luma) ||
         frame->gdf_mode > 2U ||
         frame->gdf_qp_index >= 4U || frame->gdf_scale_index >= 4U ||
@@ -473,7 +482,7 @@ Av2hStatus av2h_gdf_filter_frame_with_controls(
     qp_index = gdf_training_qp_index(frame, 8U);
     av2h_plane_copy_u8(
         destination->data, destination->stride_samples,
-        cdef_luma->data, cdef_luma->stride_samples,
+        baseline_luma->data, baseline_luma->stride_samples,
         destination->width, destination->height);
     if (frame->gdf_mode == 0U) return AV2H_OK;
     for (row = 0U; row < destination->height; row = (uint16_t)(row + 4U)) {
@@ -498,6 +507,17 @@ Av2hStatus av2h_gdf_filter_frame_with_controls(
         }
     }
     return AV2H_OK;
+}
+
+Av2hStatus av2h_gdf_filter_frame_with_controls(
+    Av2hFilterPlane *destination,
+    const Av2hFilterPlane *cdef_luma,
+    const Av2hFilterPlane *deblocked_luma,
+    const Av2hFrameState *frame,
+    const Av2hGdfControlMap *controls) {
+    return av2h_gdf_filter_frame_with_baseline(
+        destination, cdef_luma, cdef_luma, deblocked_luma,
+        frame, controls);
 }
 
 Av2hStatus av2h_gdf_filter_frame(

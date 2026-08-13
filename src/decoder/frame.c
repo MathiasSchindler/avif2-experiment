@@ -188,6 +188,84 @@ static void read_cdef(Av2hBitReader *reader, Av2hFrameState *frame) {
     }
 }
 
+static uint16_t restoration_unit_count(uint16_t dimension,
+                                       uint16_t unit_size) {
+    uint32_t count = ((uint32_t)dimension + unit_size / 2U) / unit_size;
+    return (uint16_t)(count != 0U ? count : 1U);
+}
+
+static void read_restoration(Av2hBitReader *reader,
+                             const Av2hSequenceState *sequence,
+                             Av2hFrameState *frame) {
+    unsigned int plane;
+    uint8_t uses_luma = 0U;
+    uint8_t uses_chroma = 0U;
+    for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
+        uint8_t index_to_tool[4] = { AV2H_RESTORE_NONE, 0U, 0U, 0U };
+        uint8_t mask = sequence->lr_tools_disable_mask[plane != 0U];
+        uint32_t tool_count = 1U;
+        uint32_t tool_index;
+        unsigned int tool;
+        for (tool = AV2H_RESTORE_PC_WIENER;
+             tool < AV2H_RESTORE_SWITCHABLE; ++tool) {
+            if ((mask & (1U << tool)) == 0U) {
+                index_to_tool[tool_count++] = (uint8_t)tool;
+            }
+        }
+        if (tool_count > 2U) {
+            index_to_tool[tool_count++] = AV2H_RESTORE_SWITCHABLE;
+        }
+        tool_index = av2h_bit_reader_quasi_uniform(reader, tool_count);
+        if (reader->status != AV2H_OK || tool_index >= tool_count) return;
+        frame->restoration_type[plane] = index_to_tool[tool_index];
+        if (frame->restoration_type[plane] != AV2H_RESTORE_NONE) {
+            if (plane == 0U) uses_luma = 1U;
+            else uses_chroma = 1U;
+        }
+        if (frame->restoration_type[plane] != AV2H_RESTORE_NONE &&
+            (plane != 0U || frame->restoration_type[plane] !=
+                 AV2H_RESTORE_PC_WIENER)) {
+            frame_fail(reader, AV2H_UNSUPPORTED);
+            return;
+        }
+    }
+    frame->restoration_unit_size[0] = 64U;
+    frame->restoration_unit_size[1] = 32U;
+    frame->restoration_unit_size[2] = 32U;
+    if (uses_luma != 0U) {
+        unsigned int shift;
+        if (av2h_bit_reader_read(reader, 1U) != 0U) {
+            shift = 1U;
+        } else if (sequence->superblock_size == 256U) {
+            shift = 0U;
+        } else if (av2h_bit_reader_read(reader, 1U) != 0U) {
+            shift = 0U;
+        } else if (sequence->superblock_size == 128U) {
+            shift = 2U;
+        } else {
+            shift = av2h_bit_reader_read(reader, 1U) != 0U ? 2U : 3U;
+        }
+        frame->restoration_unit_size[0] = (uint16_t)(512U >> shift);
+    }
+    if (uses_chroma != 0U) {
+        frame_fail(reader, AV2H_UNSUPPORTED);
+        return;
+    }
+    for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
+        uint16_t width = (uint16_t)av2h_frame_plane_dimension(
+            frame, plane, frame->width);
+        uint16_t height = (uint16_t)av2h_frame_plane_dimension(
+            frame, plane, frame->height);
+        frame->restoration_unit_columns[plane] = restoration_unit_count(
+            width, frame->restoration_unit_size[plane]);
+        frame->restoration_unit_rows[plane] = restoration_unit_count(
+            height, frame->restoration_unit_size[plane]);
+        frame->restoration_unit_count[plane] =
+            (uint32_t)frame->restoration_unit_columns[plane] *
+            frame->restoration_unit_rows[plane];
+    }
+}
+
 static int8_t ccso_offset_from_index(unsigned int index,
                                      unsigned int scale_index) {
     static const int8_t values[8] = { 0, 1, -1, 3, -3, 7, -7, -10 };
@@ -290,8 +368,7 @@ Av2hStatus av2h_frame_header_closed_key_parse(
              sequence->info.chroma_format_idc == 2U)))) ||
         sequence->info.chroma_format_idc > 2U ||
         sequence->seq_seg_info_present_flag != 0U ||
-        sequence->seq_tile_info_present_flag != 0U ||
-        sequence->enable_restoration != 0U) {
+        sequence->seq_tile_info_present_flag != 0U) {
         return AV2H_UNSUPPORTED;
     }
     av2h_bit_reader_init(&reader, payload.data, payload.size, 0U);
@@ -369,6 +446,9 @@ Av2hStatus av2h_frame_header_closed_key_parse(
             (uint8_t)av2h_bit_reader_read(&reader, 2U);
     }
     if (sequence->enable_cdef != 0U) read_cdef(&reader, frame);
+    if (sequence->enable_restoration != 0U) {
+        read_restoration(&reader, sequence, frame);
+    }
     if (sequence->enable_ccso != 0U) read_ccso(&reader, frame);
     frame->tx_mode = av2h_bit_reader_read(&reader, 1U) != 0U ? 2U : 1U;
     frame->reduced_tx_set =

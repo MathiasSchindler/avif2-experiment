@@ -47,6 +47,15 @@ typedef struct {
 } Av2hGdfControlMap;
 
 typedef struct {
+    const uint8_t *unit_flags;
+    const uint8_t *tx_skip;
+    size_t tx_skip_stride;
+    size_t unit_columns;
+    size_t unit_rows;
+    uint16_t unit_size;
+} Av2hRestorationControlMap;
+
+typedef struct {
     uint16_t block_column;
     uint16_t block_row;
     uint16_t transform_column;
@@ -68,12 +77,15 @@ typedef struct {
 typedef struct {
     Av2hFilterPlanes deblocked;
     Av2hFilterPlanes cdef;
+    Av2hFilterPlane restoration;
     Av2hFilterPlanesU16 deblocked_u16;
     Av2hFilterPlanesU16 cdef_u16;
     Av2hDeblockMap deblock_map;
     Av2hCdefControlMap cdef_controls;
     Av2hCcsoControlMap ccso_controls;
     Av2hGdfControlMap gdf_controls;
+    Av2hRestorationControlMap restoration_controls;
+    uint8_t *restoration_tx_skip;
 } Av2hFilterWorkspace;
 
 typedef struct {
@@ -86,6 +98,8 @@ typedef struct {
     size_t ccso_columns;
     size_t ccso_rows;
     size_t ccso_control_count;
+    size_t restoration_plane_bytes;
+    size_t restoration_tx_skip_count;
     size_t size_bytes;
     size_t alignment;
 } Av2hFilterWorkspaceLayout;
@@ -93,7 +107,15 @@ typedef struct {
 typedef struct {
     Av2hDeblockCell *deblock_cells[AV2H_FRAME_PLANE_COUNT];
     uint8_t *ccso_controls[AV2H_FRAME_PLANE_COUNT];
+    uint8_t *restoration_tx_skip;
 } Av2hFilterWorkspaceStorage;
+
+Av2hStatus av2h_pc_wiener_filter_luma(
+    Av2hFilterPlane *destination,
+    const Av2hFilterPlane *source,
+    const Av2hFilterPlane *deblocked,
+    const Av2hFrameState *frame,
+    const Av2hRestorationControlMap *controls);
 
 Av2hStatus av2h_filter_workspace_query(
     const Av2hFrameState *frame,
@@ -215,6 +237,13 @@ Av2hStatus av2h_gdf_filter_frame(
     const Av2hFrameState *frame);
 Av2hStatus av2h_gdf_filter_frame_with_controls(
     Av2hFilterPlane *destination,
+    const Av2hFilterPlane *cdef_luma,
+    const Av2hFilterPlane *deblocked_luma,
+    const Av2hFrameState *frame,
+    const Av2hGdfControlMap *controls);
+Av2hStatus av2h_gdf_filter_frame_with_baseline(
+    Av2hFilterPlane *destination,
+    const Av2hFilterPlane *baseline_luma,
     const Av2hFilterPlane *cdef_luma,
     const Av2hFilterPlane *deblocked_luma,
     const Av2hFrameState *frame,

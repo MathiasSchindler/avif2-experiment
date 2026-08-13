@@ -4,6 +4,48 @@
 #include "decoder/internal/filter_diagnostics.h"
 #include "decoder/internal/frame_workspace.h"
 #include "decoder/internal/tile_modules.h"
+#include "decoder/tx_geometry.h"
+
+static Av2hStatus restoration_tx_skip_commit(
+    Av2hFilterWorkspace *workspace,
+    const Av2hPartitionNode *leaf,
+    const Av2hFirstCoeffPrefix *prefix) {
+    const Av2hTxDescriptor *descriptor;
+    size_t columns;
+    size_t rows;
+    size_t row;
+    Av2hStatus status;
+    if (workspace == 0 || leaf == 0 || prefix == 0 ||
+        workspace->restoration_tx_skip == 0 ||
+        workspace->restoration_controls.tx_skip_stride == 0U) {
+        return AV2H_INVALID_ARGUMENT;
+    }
+    status = av2h_tx_descriptor_get(prefix->tx_size, &descriptor);
+    if (status != AV2H_OK) return status;
+    columns = descriptor->output_width / 4U;
+    rows = descriptor->output_height / 4U;
+    if (leaf->column >= workspace->deblock_map.columns[0] ||
+        leaf->row >= workspace->deblock_map.rows[0]) {
+        return AV2H_INVALID_ARGUMENT;
+    }
+    if (columns > workspace->deblock_map.columns[0] - leaf->column) {
+        columns = workspace->deblock_map.columns[0] - leaf->column;
+    }
+    if (rows > workspace->deblock_map.rows[0] - leaf->row) {
+        rows = workspace->deblock_map.rows[0] - leaf->row;
+    }
+    for (row = 0U; row < rows; ++row) {
+        size_t column;
+        uint8_t *destination = workspace->restoration_tx_skip +
+            (leaf->row + row) *
+                workspace->restoration_controls.tx_skip_stride +
+            leaf->column;
+        for (column = 0U; column < columns; ++column) {
+            destination[column] = prefix->all_zero;
+        }
+    }
+    return AV2H_OK;
+}
 
 Av2hStatus av2h_decode_frame_planar_private(
     Av2hSpan entropy,
@@ -52,7 +94,6 @@ Av2hStatus av2h_decode_frame_planar_private(
         (workspace->bytes_per_sample == 2U &&
          workspace->reconstruction_scratch_u16 == 0) ||
         workspace->filter_workspace == 0) return AV2H_INVALID_ARGUMENT;
-    if (sequence->enable_restoration != 0U) return AV2H_UNSUPPORTED;
     status = av2h_planar_output_size_bytes(
         frame, workspace->bytes_per_sample, &required_output_bytes);
     if (status != AV2H_OK) return status;
@@ -304,6 +345,15 @@ Av2hStatus av2h_decode_frame_planar_private(
                 AV2H_DECODE_FAIL(
                     returned, status, AV2H_FRAME_DECODE_STAGE_LUMA_DEBLOCK,
                     0U, &leaf.node, 0U);
+            }
+            if (frame->restoration_type[0] == AV2H_RESTORE_PC_WIENER) {
+                status = restoration_tx_skip_commit(
+                    workspace->filter_workspace, &leaf.node, &leaf.prefix);
+                if (status != AV2H_OK) {
+                    AV2H_DECODE_FAIL(
+                        status, status, AV2H_FRAME_DECODE_STAGE_LUMA_DEBLOCK,
+                        0U, &leaf.node, 0U);
+                }
             }
             status = av2h_tile_decoder_commit_leaf(&decoder, leaf.node);
             if (status != AV2H_OK) {
@@ -589,6 +639,13 @@ Av2hStatus av2h_decode_frame_planar_private(
             AV2H_INVALID_DATA, AV2H_INVALID_DATA,
             AV2H_FRAME_DECODE_STAGE_COMPLETENESS, 0U, 0, 0U);
     }
+    if (decoder.restoration_entropy.active != 0U &&
+        decoder.restoration_entropy.decoded_count !=
+            frame->restoration_unit_count[0]) {
+        AV2H_DECODE_FAIL(
+            AV2H_INVALID_DATA, AV2H_INVALID_DATA,
+            AV2H_FRAME_DECODE_STAGE_COMPLETENESS, 0U, 0, 0U);
+    }
     status = av2h_tile_filter_controls_handoff(&decoder, &filter_controls);
     if (status != AV2H_OK) {
         AV2H_DECODE_FAIL(
@@ -598,6 +655,14 @@ Av2hStatus av2h_decode_frame_planar_private(
     decoded.entropy_tell = av2h_range_tell(&decoder.range);
     workspace->filter_workspace->cdef_controls = filter_controls.cdef;
     workspace->filter_workspace->gdf_controls = filter_controls.gdf;
+    workspace->filter_workspace->restoration_controls.unit_flags =
+        decoder.restoration_entropy.unit_flags;
+    workspace->filter_workspace->restoration_controls.unit_columns =
+        decoder.restoration_entropy.unit_columns;
+    workspace->filter_workspace->restoration_controls.unit_rows =
+        decoder.restoration_entropy.unit_rows;
+    workspace->filter_workspace->restoration_controls.unit_size =
+        decoder.restoration_entropy.unit_size;
     for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
         if (filter_controls.ccso.plane[plane] != 0) {
             av2h_memory_copy(

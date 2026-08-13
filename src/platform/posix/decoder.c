@@ -341,9 +341,10 @@ int main(int argc, char **argv) {
         (Av2hSpan){ input.memory, input.size }, &output,
         &width, &height, &chroma_format_idc, &output_format, &decode_result);
     if (status != AV2H_OK) {
-        fprintf(stderr, "error: decode failed: %s (cause %u, stage %u)\n",
+        fprintf(stderr,
+            "error: decode failed: %s (cause %u, stage %u, tell %zu)\n",
                 av2h_status_string(status), decode_result.cause,
-                decode_result.stage);
+            decode_result.stage, decode_result.entropy_tell);
         fprintf(stderr,
                 "  leaf=(%u,%u) block=%u plane=%u syntax=%u mode=%u "
                 "mrl=%u/%u tx=%u primary=%u secondary=%u/%u fsc=%u "
