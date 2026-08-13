@@ -14,16 +14,76 @@ another, so PSNR, SSIM, and at least one perceptual metric should be reported.
 
 ## Current baseline
 
-The photographic reference generator currently uses pinned AVM v1.0.0 with
-`--good --cpu-used=9 --passes=1 --limit=1`. It explicitly disables IntraBC and
-restoration. The accepted decoder profile also excludes TCQ, quantization
+The photographic reference generator uses pinned AVM v1.0.0 with the following
+common arguments, in addition to the input and output paths:
+
+```text
+--debug
+--codec=av2
+--obu
+--passes=1
+--limit=1
+--good
+--cpu-used=9
+--threads=<detected-logical-cores>
+--row-mt=1
+--profile=<0-for-I400/I420-or-1-for-I444>
+--bit-depth=8
+--input-bit-depth=8
+--force-video-mode=0
+--film-grain-test=0
+--enable-lcr=0
+--enable-operating-point-sets=0
+--enable-atlas=0
+--enable-intrabc=0
+--enable-restoration=0
+--end-usage=q
+--qp=<case-QP>
+--test-decode=fatal
+--quiet
+```
+
+I400 adds `--monochrome`. I420 adds:
+
+```text
+--width=<width>
+--height=<height>
+--i420
+--input-chroma-subsampling-x=1
+--input-chroma-subsampling-y=1
+--chroma-sample-position=unspecified
+```
+
+I444 adds:
+
+```text
+--width=<width>
+--height=<height>
+--i444
+--input-chroma-subsampling-x=0
+--input-chroma-subsampling-y=0
+```
+
+After encoding, the generator removes any content-interpretation OBU and
+requires the normalized ledger to contain exactly a temporal delimiter,
+Sequence Header, and closed-loop key-frame OBU.
+
+The generator explicitly disables IntraBC and restoration, and prevents the
+film-grain test-vector mode. It does not currently pass explicit TCQ,
+parity-hiding, quantization-matrix, AQ, or delta-Q switches. The current
+`cpu-used=9` output stays inside the accepted decoder profile, but future
+experiments must pin those syntax choices instead of relying on AVM defaults or
+speed policy. The accepted profile excludes TCQ, parity hiding, quantization
 matrices, segmentation, film grain, and restoration.
 
-The decoder already supports the AVM-generated corpus paths for non-DCT
-transforms, directional prediction, MRL, CfL/MHCCP, luma FSC, IntraBC,
-transform skip, palette prediction, deblock, CDEF, CCSO, and GDF. Support for a
-feature path does not imply support for every combination of geometry,
-coefficient profile, transform, and surrounding syntax.
+For the currently validated AVM-generated corpus tuples, the decoder supports
+non-DCT transforms, directional prediction, MRL, CfL/MHCCP, luma FSC, IntraBC,
+transform skip, palette prediction, deblock, CDEF, CCSO, and GDF. This is not a
+claim of exhaustive feature-family support: luma directional prediction and
+secondary transforms remain partial, chroma FSC remains unaudited, and palette
+evidence covers the two observed luma cases. Support for a feature path does not
+imply support for every combination of geometry, coefficient profile,
+transform, and surrounding syntax.
 
 ## Effect scale
 
@@ -63,14 +123,18 @@ Start with `--cpu-used=5` and `--cpu-used=2`. Keep the accepted profile explicit
 
 ```text
 --enable-tcq=0
+--enable-parity-hiding=0
 --enable-restoration=0
 --enable-qm=0
 --aq-mode=0
 --deltaq-mode=0
+--enable-intrabc=0
 ```
 
 AVM disables TCQ automatically at `cpu-used >= 2`, but the explicit option
-protects the experiment against changed defaults. Other unsupported features
+protects the experiment against changed defaults. Disabling TCQ exposes the
+separate parity-hiding Sequence Header flag, which must also be disabled because
+the decoder does not support its coefficient syntax. Other unsupported features
 should likewise be pinned rather than inferred from current defaults.
 
 Decoder implementation steps:
@@ -131,19 +195,22 @@ Decoder implementation steps:
 ### Trellis-coded quantization
 
 AVM exposes `--enable-tcq=0|1|2`. TCQ changes coefficient-level entropy and
-state transitions; it is not merely a slower encoder search. AVM currently
-disables it at `cpu-used >= 2`, which is why the `cpu-used=9` corpus does not
-exercise it.
+state transitions; it is not merely a slower encoder search. Mode 2 permits
+frame-adaptive use in video, but AVM coerces either nonzero mode to always-on
+mode 1 for the single-picture header used by this project. AVM also disables
+TCQ at `cpu-used >= 2`, which is why the `cpu-used=9` corpus does not exercise
+it.
 
 Estimated effect: small to medium compression improvement at equal objective
 quality. The result should be verified at several QPs and transform sizes.
 
 Decoder implementation steps:
 
-1. Extend Sequence Header parsing to preserve every TCQ mode and its interaction
-   with parity hiding instead of treating TCQ as a boolean exclusion.
-2. Extend frame state for frame-adaptive TCQ selection where the sequence mode
-   permits it.
+1. Retain the existing single-picture Sequence Header TCQ flag and its
+   interaction with parity hiding; do not widen it into video-only modes yet.
+2. Implement the always-on mode emitted by pinned AVM for one-frame still
+   pictures. Defer frame-adaptive TCQ selection until multi-frame video syntax
+   enters the accepted profile.
 3. Implement the normative TCQ state machine, coefficient contexts, low- and
    high-range level decoding, parity/state transitions, and scan interaction.
 4. Integrate TCQ levels with dequantization, clipping, inverse transforms, FSC,
@@ -244,7 +311,8 @@ Decoder implementation steps:
 
 ### Film-grain synthesis
 
-AVM accepts a film-grain table and emits film-grain parameters. The useful
+AVM accepts a film-grain table and emits the model in a Film Grain Model OBU,
+with Sequence Header enablement and frame-level model selection. The useful
 compression workflow is to encode a denoised base image and synthesize a model
 of the removed grain at decode time. Merely adding grain metadata to an
 unchanged source does not guarantee a gain.
@@ -259,8 +327,10 @@ Decoder implementation steps:
 1. Define whether the public API returns the normative grain-applied image, the
    clean base image, or offers an explicit choice; include that choice in query
    binding and pixel-output semantics.
-2. Parse and validate film-grain sequence/frame metadata, points, scaling data,
-   AR coefficients, chroma coupling, seed, overlap, clipping, and update rules.
+2. Parse and validate Sequence Header enablement, Film Grain Model OBU IDs,
+   updates and availability, and frame-level model selection before admitting
+   the model's points, scaling data, AR coefficients, chroma coupling, seed,
+   overlap, and clipping parameters.
 3. Implement the normative deterministic pseudo-random generator, grain-block
    construction, autoregressive filtering, scaling lookup, overlap, chroma
    handling, restricted-range clipping, and odd-edge behavior.
@@ -271,8 +341,9 @@ Decoder implementation steps:
 6. Add bit-exact AVM vectors for random sequences and kernels, then whole-image
    fixtures covering monochrome/4:2:0 policy, overlap, chroma-from-luma,
    restricted range, edges, seeds, and malformed tables.
-7. Extend container metadata and normalization policy if film-grain information
-   is carried outside the current canonical Sequence Header/item payload shape.
+7. Define container carriage and normalization policy for Film Grain Model OBUs,
+   including model lifetime and availability within the one-image profile,
+   before admitting film grain to canonical HEIF.
 
 ## Measurement plan
 
