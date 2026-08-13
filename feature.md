@@ -71,18 +71,23 @@ Sequence Header, and closed-loop key-frame OBU.
 The generator explicitly disables IntraBC and restoration, and prevents the
 film-grain test-vector mode. It does not currently pass explicit TCQ,
 parity-hiding, quantization-matrix, AQ, or delta-Q switches. The current
-`cpu-used=9` output stays inside the accepted decoder profile, but future
+`cpu-used=9` output stays inside the production encoding profile, but future
 experiments must pin those syntax choices instead of relying on AVM defaults or
-speed policy. The accepted profile excludes TCQ, parity hiding, quantization
-matrices, segmentation, film grain, and restoration.
+speed policy. That production profile still excludes TCQ, parity hiding,
+quantization matrices, segmentation, film grain, and restoration. This is an
+encoder-admission policy, not a complete statement of decoder capability: the
+decoder now supports admitted subsets of TCQ and restoration in addition to
+IntraBC.
 
 For the currently validated AVM-generated corpus tuples, the decoder supports
 non-DCT transforms, directional prediction, MRL, CfL/MHCCP, luma FSC, IntraBC,
-transform skip, palette prediction, deblock, CDEF, CCSO, and GDF. This is not a
-claim of exhaustive feature-family support: luma directional prediction and
-secondary transforms remain partial, chroma FSC remains unaudited, and palette
-evidence covers the two observed luma cases. Support for a feature path does not
-imply support for every combination of geometry, coefficient profile,
+transform skip, palette prediction, always-on single-picture TCQ, deblock,
+CDEF, CCSO, 8-bit luma PC-Wiener restoration, and GDF. This is not a claim of
+exhaustive feature-family support: luma directional prediction and secondary
+transforms remain partial, chroma FSC remains unaudited, palette evidence covers
+the two observed luma cases, frame-adaptive video TCQ remains deferred, and
+restoration is limited to 8-bit luma PC-Wiener. Support for a feature path does
+not imply support for every combination of geometry, coefficient profile,
 transform, and surrounding syntax.
 
 ## Effect scale
@@ -104,8 +109,8 @@ exists. AVM exposing a switch proves availability, not a gain for this corpus.
 | Slower AVM search | Small to medium compression improvement at equal quality; much slower encoding | Expected to remain compatible when excluded syntax is explicitly disabled | None; validate emitted streams |
 | Stronger ordinary trellis optimization | Small compression or quality improvement | Expected to use existing coefficient syntax | None; validate emitted streams |
 | IntraBC and screen-content tuning | Medium to large for text, diagrams, and repeated screen regions; usually small for photographs | IntraBC, transform skip, and observed palette paths are supported | No new core feature; broaden end-to-end evidence |
-| Trellis-coded quantization (TCQ) | Small to medium compression improvement | Unsupported | Sequence/frame signaling, coefficient entropy, dequantization, and reconstruction work |
-| Loop restoration | Small to medium quality or compression improvement, especially near visible artifacts | Unsupported | Header/control parsing, restoration kernels, workspace, and filter-pipeline integration |
+| Trellis-coded quantization (TCQ) | Small to medium compression improvement | Supported for pinned AVM's always-on single-picture subset | Broaden Q-context, transform, bit-depth, malformed-input, and durable platform evidence; defer frame-adaptive video mode |
+| Loop restoration | Small to medium quality or compression improvement, especially near visible artifacts | Supported for 8-bit luma PC-Wiener; chroma, other restoration modes, and 10-bit remain fail-closed | Measure corpus impact and add modes or formats only from observed demand |
 | Quantization matrices | Small to medium perceptual-quality improvement; metric-dependent | Unsupported | Matrix OBU/state, frame selection, matrix-aware quantization steps, and validation |
 | Adaptive quantization, delta-Q, and segmentation | Medium perceptual-quality improvement on spatially varied images | Delta-Q is partial; segmentation is unsupported | Complete frame/leaf syntax, segment state, per-block Q propagation, and filter interaction |
 | Film-grain synthesis | Large compression opportunity for genuinely noisy or grainy images; neutral or harmful for clean images | Unsupported and not sample-preserving | Grain metadata parsing, deterministic synthesis, output semantics, workspace, and conformance vectors |
@@ -130,7 +135,7 @@ times slower than the current setting for this image. Encoding is normally an
 offline, one-time cost, so this does not rule out the profile, but it makes
 artifact reuse and resumability requirements rather than conveniences.
 
-Keep unsupported syntax explicit in the accepted profile and in every slower
+Keep non-baseline syntax explicit in the production profile and in every slower
 search experiment:
 
 ```text
@@ -144,10 +149,13 @@ search experiment:
 ```
 
 AVM disables TCQ automatically at `cpu-used >= 2`, but the explicit option
-protects the experiment against changed defaults. Disabling TCQ exposes the
-separate parity-hiding Sequence Header flag, which must also be disabled because
-the decoder does not support its coefficient syntax. Other unsupported features
-should likewise be pinned rather than inferred from current defaults.
+protects the experiment against changed defaults. TCQ and restoration remain
+disabled in this experiment to isolate ordinary search and keep its output in
+the production encoding profile, not because their admitted decoder subsets are
+absent. Disabling TCQ exposes the separate parity-hiding Sequence Header flag,
+which must also be disabled because the decoder does not support its coefficient
+syntax. Other unsupported features should likewise be pinned rather than
+inferred from current defaults.
 
 Decoder implementation steps:
 
@@ -190,6 +198,13 @@ most natural photographs after signaling and search costs. It should use a
 separate screen-content preset rather than become an unconditional photographic
 default.
 
+IntraBC was outside the accepted profile when this opportunity was first
+recorded. The decoder already contained the core prediction path, and the work
+below established the missing transform mapping and end-to-end evidence needed
+to admit the observed 8-bit I420 subset. The production photographic generator
+still disables IntraBC by policy; that does not make the decoder path
+unsupported.
+
 An initial controlled photographic probe encoded all 14 `le896` I420 inputs at
 QP 96 and 152 with the current pinned AVM binary and identical commands except
 for `--enable-intrabc=0` versus
@@ -221,7 +236,7 @@ with IntraBC disabled to 3,374,124 bytes with it enabled, a reduction of 28,292
 bytes (approximately 0.8315%). This is fixed-QP admission evidence, not a
 BD-rate result.
 
-Decoder implementation steps:
+Current capability and remaining work:
 
 1. No new IntraBC core algorithm is currently required; spatial/reference-bank
    prediction, DRL selection, both observed modes, transform skip, and observed
@@ -253,12 +268,14 @@ it.
 Estimated effect: small to medium compression improvement at equal objective
 quality. The result should be verified at several QPs and transform sizes.
 
-The decoder now implements pinned AVM's always-on TCQ mode for single-picture
-files, including state-dependent luma CDFs, high-range levels, dequantization,
-and the ordinary FSC/chroma exclusions. The locked I420 pilot passes exact
-native and WebAssembly parity in both TCQ-off and TCQ-on arms. Promotion still
-requires the broader Q-context, transform, bit-depth, and malformed-input
-fixture matrix below; frame-adaptive video mode remains deferred.
+TCQ was unsupported when this opportunity was first recorded. The decoder now
+implements pinned AVM's always-on TCQ mode for single-picture files, including
+state-dependent luma CDFs, high-range levels, dequantization, and the ordinary
+FSC/chroma exclusions. The locked I420 development pilot reached exact native
+and WebAssembly parity in both TCQ-off and TCQ-on arms. Production-profile
+admission still requires broader Q-context, transform, bit-depth,
+malformed-input, and durable platform evidence; frame-adaptive video mode
+remains deferred.
 
 Adoption should start with one locked I420 source. First encode it at
 `cpu-used=1` with TCQ explicitly disabled and require census and decoder parity;
@@ -266,57 +283,61 @@ this separates syntax selected by the deeper ordinary search from TCQ itself.
 Pin Intra-DIP and transform partitioning off in this initial profile because
 both are separate decoder features that pinned AVM may select at this speed.
 Then encode the same source and QPs with TCQ enabled for AVM-only measurement
-and fixture extraction. TCQ-on output must not enter the production profile
-until the project decoder passes it exactly. Promotion must also measure native
-and WebAssembly decode throughput for TCQ-on files and verify that TCQ-off
-files do not regress when the new state-machine path is dormant.
+and fixture extraction. The locked pilot has passed the initial exactness gate,
+but TCQ-on output must not enter the production profile until the broader
+matrix passes. Promotion must also measure native and WebAssembly decode
+throughput for TCQ-on files and verify that TCQ-off files do not regress when
+the new state-machine path is dormant.
 
-Decoder implementation steps:
+Current implementation and remaining work:
 
-1. Retain the existing single-picture Sequence Header TCQ flag and its
-   interaction with parity hiding; do not widen it into video-only modes yet.
-2. Implement the always-on mode emitted by pinned AVM for one-frame still
-   pictures. Defer frame-adaptive TCQ selection until multi-frame video syntax
-   enters the accepted profile.
-3. Implement the normative TCQ state machine, coefficient contexts, low- and
-   high-range level decoding, parity/state transitions, and scan interaction.
-4. Integrate TCQ levels with dequantization, clipping, inverse transforms, FSC,
-   chroma, and all supported bit depths without weakening non-TCQ behavior.
-5. Account for any additional CDF or scratch state in caller-owned workspace.
-6. Add frozen AVM vectors for individual state transitions and coefficient
-   blocks, then positive OBU fixtures across Q contexts, transform sizes, planes,
-   EOB classes, and truncation points.
-7. Remove the TCQ rejection gates in `coeff_level.c` only after focused vectors
-   pass, then require full output parity and output nonmutation on malformed
-   inputs.
+1. The single-picture Sequence Header TCQ flag and its interaction with parity
+   hiding are retained; frame-adaptive video-only modes remain outside scope.
+2. The normative state machine, state-dependent coefficient contexts, low- and
+   high-range levels, scan interaction, dequantization, clipping, and inverse
+   transform handoff are implemented for the admitted subset.
+3. TCQ state and CDF transitions have focused unit coverage, and the locked
+   I420 pilot supplied whole-image development parity.
+4. Keep TCQ dormant without changing non-TCQ behavior, ordinary FSC, or chroma
+   coefficient paths.
+5. Add durable positive OBU fixtures across Q contexts, transform sizes,
+   planes, EOB classes, bit depths, and truncation points.
+6. Require native, public HEIF, WebAssembly, no-libc, and Windows parity plus
+   output nonmutation on malformed inputs before production-profile admission.
 
 ### Loop restoration
 
 AVM enables restoration by default and exposes `--enable-restoration`. The
-current generators disable it, and the decoder rejects the Sequence Header flag
-before frame decode and again at the filter boundary.
+current generators still disable it. Restoration was unsupported when this
+opportunity was first recorded; the decoder now supports the exact subset
+observed in the locked fixture: 8-bit luma-only `RESTORE_PC_WIENER`. Chroma
+restoration, Wiener-nonsep, switchable restoration, and all 10-bit restoration
+remain fail-closed.
 
 Estimated effect: small to medium. Restoration can reduce ringing, blur, and
 other reconstruction artifacts, allowing a better quality/size tradeoff. Its
 benefit and cost depend on image texture and QP.
 
-Decoder implementation steps:
+Current implementation and remaining work:
 
-1. Parse and retain restoration capabilities and per-frame/per-unit controls,
-   rejecting reserved combinations and malformed unit layouts.
-2. Determine the exact AV2 v1.0.0 restoration modes emitted by pinned AVM and
-   stage implementation one mode at a time.
-3. Implement sample-exact 8-bit kernels with normative rounding, clipping,
-   boundary extension, unit geometry, and chroma subsampling behavior.
-4. Add restoration source/destination planes and line or unit scratch to the
-   checked workspace layout; preserve the allocation-free API contract.
-5. Derive restoration's exact normative position and source planes from the
-   pinned specification and AVM, then integrate it with the existing
-   deblock/CDEF/CCSO/GDF pipeline while preserving required references.
-6. Add kernel vectors, edge/odd-dimension matrices, malformed controls,
-   truncation tests, and AVM-generated whole-image parity fixtures.
-7. Lift the fail-closed checks in `frame.c`, `filter.c`, and `frame_output.c`
-   only after both 8-bit and retained 10-bit filter paths have explicit policy.
+1. Sequence capabilities, per-frame mode and unit geometry, per-unit entropy
+   flags, and the exact luma transform-skip map are parsed and retained with
+   bounded validation.
+2. The scalar 8-bit PC-Wiener classifier and filter implement pinned AVM's
+   rounding, clipping, stripe boundaries, unit geometry, and edge extension.
+3. Checked caller-owned workspace now includes the restoration destination,
+   unit flags, and transform-skip map while preserving allocation-free decode.
+4. The filter order is `deblock -> CDEF -> CCSO -> restoration -> GDF`; GDF
+   adds its correction to the restored baseline while sampling the earlier
+   required filter signals.
+5. `tests/fixtures/pc-wiener-restoration.obu` and the
+   `decoder-pc-wiener-restoration-parity` CTest provide exact pinned-AVM
+   whole-image evidence for the admitted subset.
+6. Add focused kernel, malformed-control, truncation, edge, odd-dimension, and
+   multi-unit fixtures to broaden evidence for the existing subset.
+7. Measure rate-distortion and decode cost across the photographic corpus before
+   admitting restoration to the production generator. Add chroma, other modes,
+   or 10-bit support only with separate observed demand and exact parity gates.
 
 ### Quantization matrices
 
@@ -445,22 +466,21 @@ writes to one aggregate report.
 
 ## Recommended order
 
-1. Keep the current production recipe at `cpu-used=9` with TCQ explicitly
-   disabled until the replacement profile passes its gates.
-2. Run one locked source at `cpu-used=1` with TCQ disabled; census it and require
-   exact AVM/project-decoder parity before broadening the ordinary-search test.
-3. Compare TCQ off/on at `cpu-used=1` on that source over a small QP ladder,
-   retaining resumable artifacts and measuring rate-distortion and encode time.
-4. Implement the always-on single-picture TCQ decoder subset from focused
-   vectors, then require exact parity on the locked pilot before expanding the
-   corpus.
-5. Expand as overnight or independently shardable jobs, and promote a separate
-   high-effort encoder profile only after the complete corpus and platform
-   gates pass.
-6. Measure ordinary trellis modes with TCQ disabled.
-7. Keep the separate IntraBC/screen-content profile and broaden its evidence.
-8. Prototype restoration because it can improve the filtered reconstruction
-   across ordinary photographic content.
+1. Keep the current production recipe at `cpu-used=9` with TCQ and restoration
+   explicitly disabled until replacement profiles pass their broader gates.
+2. Preserve the locked TCQ pilot, then expand TCQ off/on coverage across Q
+   contexts, transforms, bit depths, malformed inputs, and platform targets.
+3. Measure TCQ rate-distortion and native/WebAssembly decode cost over a small
+   QP ladder before expanding as overnight or independently shardable jobs.
+4. Promote a separate high-effort encoder profile only after the complete
+   corpus and platform gates pass.
+5. Measure ordinary trellis modes with TCQ disabled.
+6. Keep the separate IntraBC/screen-content profile and broaden its I400, I444,
+   palette, search-range, rollover, and geometry evidence.
+7. Measure PC-Wiener restoration off/on across representative photographic
+   QPs, including encode cost, decode cost, and perceptual metrics.
+8. Broaden restoration modes or formats only after the existing luma PC-Wiener
+   subset has stronger focused evidence and observed corpus demand.
 9. Evaluate quantization matrices and spatial AQ using perceptual metrics.
 10. Treat film grain as a separate noisy-image profile with explicit output
    semantics, not as a transparent extension of sample-exact decode.
@@ -475,4 +495,6 @@ writes to one aggregate report.
 - `docs/dev/10bit-wp14.md`: current accepted formats and unsupported boundary.
 - `src/decoder/frame.c`: segmentation, matrix, restoration, and tile gates.
 - `src/decoder/coeff_level.c`: TCQ, parity-hiding, and matrix gates.
-- `src/decoder/filter.c`: restoration filter gate and current filter order.
+- `src/decoder/restoration.c`: 8-bit luma PC-Wiener classifier and kernel.
+- `src/decoder/filter.c`: restoration validation, orchestration, and current
+   filter order.
