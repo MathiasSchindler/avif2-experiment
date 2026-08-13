@@ -543,6 +543,103 @@ static Av2hStatus read_delta_q(
     return av2h_range_status(decoder);
 }
 
+static const Av2hLumaModeContext *segment_spatial_context(
+    const Av2hLumaModeContextState *state,
+    int32_t row,
+    int32_t column) {
+    size_t index;
+    if (state == 0 || state->spatial == 0 || row < 0 || column < 0 ||
+        (size_t)row >= state->spatial_rows ||
+        (size_t)column >= state->spatial_columns) {
+        return 0;
+    }
+    index = (size_t)row * state->spatial_columns + (size_t)column;
+    return (const Av2hLumaModeContext *)(
+        state->spatial + index * state->spatial_stride_bytes);
+}
+
+static uint8_t negative_deinterleave(
+    uint8_t difference, uint8_t reference, uint8_t maximum) {
+    if (reference == 0U) return difference;
+    if (reference >= maximum - 1U) {
+        return (uint8_t)(maximum - difference - 1U);
+    }
+    if ((uint16_t)2U * reference < maximum) {
+        if (difference <= (uint16_t)2U * reference) {
+            return (uint8_t)((difference & 1U) != 0U ?
+                reference + ((difference + 1U) >> 1U) :
+                reference - (difference >> 1U));
+        }
+        return difference;
+    }
+    if (difference <= (uint16_t)2U * (maximum - reference - 1U)) {
+        return (uint8_t)((difference & 1U) != 0U ?
+            reference + ((difference + 1U) >> 1U) :
+            reference - (difference >> 1U));
+    }
+    return (uint8_t)(maximum - difference - 1U);
+}
+
+static Av2hStatus read_segment_id(
+    Av2hRangeDecoder *decoder,
+    Av2hLeafCdfs *cdfs,
+    const Av2hFrameState *frame,
+    const Av2hPartitionNode *leaf,
+    const Av2hLumaModeContextState *state,
+    Av2hFirstLeafMode *mode) {
+    const Av2hLumaModeContext *upper_left = segment_spatial_context(
+        state, (int32_t)leaf->row - 1, (int32_t)leaf->column - 1);
+    const Av2hLumaModeContext *above = segment_spatial_context(
+        state, (int32_t)leaf->row - 1, leaf->column);
+    const Av2hLumaModeContext *left = segment_spatial_context(
+        state, leaf->row, (int32_t)leaf->column - 1);
+    int upper_left_id = upper_left != 0 && upper_left->present ?
+        upper_left->segment_id : -1;
+    int above_id = above != 0 && above->present ? above->segment_id : -1;
+    int left_id = left != 0 && left->present ? left->segment_id : -1;
+    uint8_t context;
+    uint8_t predictor;
+    uint8_t coded_id;
+    uint8_t maximum = (uint8_t)(frame->seg_last_active_id + 1U);
+    if (frame->segmentation_enabled == 0U) {
+        mode->segment_id = 0U;
+        return AV2H_OK;
+    }
+    context = upper_left_id < 0 ? 0U :
+        upper_left_id == above_id && upper_left_id == left_id ? 2U :
+        upper_left_id == above_id || upper_left_id == left_id ||
+            above_id == left_id ? 1U : 0U;
+    predictor = above_id < 0 ? (uint8_t)(left_id < 0 ? 0 : left_id) :
+        left_id < 0 ? (uint8_t)above_id :
+        upper_left_id == above_id ? (uint8_t)above_id : (uint8_t)left_id;
+    coded_id = (uint8_t)av2h_range_read_adaptive(
+        decoder, cdfs->segment_id[context], AV2H_SEGMENT_COUNT);
+    if (av2h_range_status(decoder) != AV2H_OK) {
+        return av2h_range_status(decoder);
+    }
+    mode->segment_id = negative_deinterleave(coded_id, predictor, maximum);
+    return mode->segment_id <= frame->seg_last_active_id ?
+        AV2H_OK : AV2H_INVALID_DATA;
+}
+
+static Av2hQIndex segment_q_index(
+    const Av2hSequenceState *sequence,
+    const Av2hFrameState *frame,
+    Av2hQIndex base_q_index,
+    uint8_t segment_id) {
+    int q_index;
+    int maximum;
+    if (frame->segmentation_enabled == 0U ||
+        (frame->seg_feature_mask[segment_id] & 1U) == 0U) {
+        return base_q_index;
+    }
+    q_index = (int)base_q_index + frame->seg_alt_q[segment_id];
+    maximum = (int)av2h_sequence_max_q_index(sequence);
+    if (q_index < 0) return 0U;
+    if (q_index > maximum) return (Av2hQIndex)maximum;
+    return (Av2hQIndex)q_index;
+}
+
 static Av2hStatus luma_mode_read_internal(
     Av2hRangeDecoder *decoder,
     Av2hLeafCdfs *cdfs,
@@ -571,7 +668,7 @@ static Av2hStatus luma_mode_read_internal(
         return AV2H_INVALID_ARGUMENT;
     }
     if (leaf->block_size >= AV2H_BLOCK_SIZE_COUNT ||
-        frame->disable_cdf_update || frame->segmentation_enabled ||
+        frame->disable_cdf_update ||
         (!sequence->enable_sdp && !av2h_sequence_is_monochrome(sequence)) ||
         sequence->enable_intra_dip ||
         (frame->gdf_mode >= 2U && gdf_state == 0) ||
@@ -629,6 +726,8 @@ static Av2hStatus luma_mode_read_internal(
     }
     av2h_leaf_diagnostics_set_luma_stage(1U);
     mode->use_intrabc = 0U;
+    mode->segment_id = 0U;
+    mode->q_index = frame->base_q_index;
     mode->use_dpcm_y = 0U;
     mode->dpcm_mode_y = 0U;
     mode->lossless_tx_size_large = 0U;
@@ -674,6 +773,9 @@ static Av2hStatus luma_mode_read_internal(
             if (av2h_range_status(decoder) != AV2H_OK) {
                 return av2h_range_status(decoder);
             }
+            status = read_segment_id(
+                decoder, cdfs, frame, leaf, state, mode);
+            if (status != AV2H_OK) return status;
             status = av2h_leaf_read_gdf_entropy(
                 decoder, frame, leaf, gdf_state, mode);
             if (status != AV2H_OK) return status;
@@ -693,11 +795,23 @@ static Av2hStatus luma_mode_read_internal(
                 decoder, cdfs, sequence, frame, leaf,
                 mode->skip_transform, current_q_index);
             if (status != AV2H_OK) return status;
+            mode->q_index = segment_q_index(
+                sequence, frame,
+                current_q_index != 0 ? *current_q_index : frame->base_q_index,
+                mode->segment_id);
+            if (frame->segmentation_enabled != 0U && mode->q_index == 0U) {
+                return AV2H_UNSUPPORTED;
+            }
             av2h_leaf_diagnostics_set_luma_stage(3U);
             status = av2h_leaf_read_first_intrabc(
                 decoder, cdfs, sequence, frame, leaf, state, neighbors, mode);
             return status;
         }
+    }
+    {
+        Av2hStatus status = read_segment_id(
+            decoder, cdfs, frame, leaf, state, mode);
+        if (status != AV2H_OK) return status;
     }
     {
         Av2hStatus status = av2h_leaf_read_gdf_entropy(
@@ -723,6 +837,13 @@ static Av2hStatus luma_mode_read_internal(
             decoder, cdfs, sequence, frame, leaf,
             mode->skip_transform, current_q_index);
         if (status != AV2H_OK) return status;
+    }
+    mode->q_index = segment_q_index(
+        sequence, frame,
+        current_q_index != 0 ? *current_q_index : frame->base_q_index,
+        mode->segment_id);
+    if (frame->segmentation_enabled != 0U && mode->q_index == 0U) {
+        return AV2H_UNSUPPORTED;
     }
     mode->before_mode_bits = av2h_range_tell(decoder);
     if (frame->base_q_index == 0U) {

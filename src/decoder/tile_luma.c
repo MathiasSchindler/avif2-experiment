@@ -386,6 +386,8 @@ static Av2hStatus tile_store_luma_mode(Av2hTileDecoder *decoder,
                            (size_t)node->column + column;
             Av2hTileLumaModeCell *cell = &decoder->colocated_luma[index];
             cell->context.present = 1U;
+            cell->context.segment_id = mode->segment_id;
+            cell->context.q_index = mode->q_index;
             cell->context.use_intrabc = mode->use_intrabc;
             cell->context.intrabc_mode = mode->intrabc_mode;
             cell->context.intrabc_drl_index = mode->intrabc_drl_index;
@@ -486,6 +488,7 @@ Av2hStatus av2h_tile_decoder_next_luma(
         &decoder->gdf_entropy, &decoder->cdef_entropy,
         &decoder->ccso_entropy, &decoder->current_q_index, &leaf->mode);
     if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
+    decoder->current_block_q_index = leaf->mode.q_index;
     status = av2h_luma_palette_map_read(
         &decoder->range, &decoder->leaf_cdfs, &leaf->node, &leaf->mode);
     if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
@@ -583,7 +586,7 @@ read_transform:
             return av2h_tile_decoder_fail(decoder, AV2H_INVALID_DATA);
         }
         if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
-        leaf->prefix.q_index = decoder->current_q_index;
+        leaf->prefix.q_index = decoder->current_block_q_index;
         decoder->event = AV2H_TILE_EVENT_LUMA_LEAF;
         return AV2H_OK;
     }
@@ -606,7 +609,7 @@ read_transform:
             &leaf->prefix, &dc_sign_context);
     }
     if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
-    leaf->prefix.q_index = decoder->current_q_index;
+    leaf->prefix.q_index = decoder->current_block_q_index;
 #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
     av2h_partition_diagnostic_leaf_stage(
         leaf->node, 21U, leaf->prefix.eob_point, leaf->prefix.eob_extra,
@@ -627,7 +630,7 @@ read_transform:
         return AV2H_OK;
     }
     av2h_tile_diagnostics_set_luma_stage(3U);
-    if (decoder->current_q_index == 0U) {
+    if (decoder->current_block_q_index == 0U) {
         size_t tell = av2h_range_tell(&decoder->range);
         size_t before_primary = tell;
         uint8_t lossless_inter_tx_type = 0U;

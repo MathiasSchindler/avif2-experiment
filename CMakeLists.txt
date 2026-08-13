@@ -280,6 +280,27 @@ if(AV2HEIF_BUILD_NATIVE_CLI AND UNIX AND NOT WIN32)
                 "-DOUTPUT=${CMAKE_CURRENT_BINARY_DIR}/Testing/Temporary/predefined-qmatrix.i420"
                 "-DEXPECTED_SHA256=6ef34c24eaa892cff0eff2ee75306e85c3432327b53863ac8b06d6d541864b08"
                 -P "${CMAKE_CURRENT_SOURCE_DIR}/scripts/check-decoder-parity.cmake")
+        add_test(NAME decoder-aq-segmentation-parity
+            COMMAND "${CMAKE_COMMAND}"
+                "-DDECODER=$<TARGET_FILE:av2heif-decoder>"
+                "-DINPUT=${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/aq-segmentation.obu"
+                "-DOUTPUT=${CMAKE_CURRENT_BINARY_DIR}/Testing/Temporary/aq-segmentation.i420"
+                "-DEXPECTED_SHA256=230e95f06ee03d1b204bb1b913bc926238b0449e665ca1db898d05b4033d5341"
+                -P "${CMAKE_CURRENT_SOURCE_DIR}/scripts/check-decoder-parity.cmake")
+        add_test(NAME decoder-delta-q-objective-parity
+            COMMAND "${CMAKE_COMMAND}"
+                "-DDECODER=$<TARGET_FILE:av2heif-decoder>"
+                "-DINPUT=${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/delta-q-objective.obu"
+                "-DOUTPUT=${CMAKE_CURRENT_BINARY_DIR}/Testing/Temporary/delta-q-objective.i420"
+                "-DEXPECTED_SHA256=54902a83f640d0e24a3a9cc7cee3fbb230f51268226e4ee32394efe2a22a7169"
+                -P "${CMAKE_CURRENT_SOURCE_DIR}/scripts/check-decoder-parity.cmake")
+        add_test(NAME decoder-delta-q-perceptual-parity
+            COMMAND "${CMAKE_COMMAND}"
+                "-DDECODER=$<TARGET_FILE:av2heif-decoder>"
+                "-DINPUT=${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/delta-q-perceptual.obu"
+                "-DOUTPUT=${CMAKE_CURRENT_BINARY_DIR}/Testing/Temporary/delta-q-perceptual.i420"
+                "-DEXPECTED_SHA256=0f186b8193016e587779e588e56aa731feef0b86387b9a388da6cda187607456"
+                -P "${CMAKE_CURRENT_SOURCE_DIR}/scripts/check-decoder-parity.cmake")
     endif()
 endif()
 
@@ -359,6 +380,13 @@ if(AV2HEIF_BUILD_LINUX_NOLIBC)
                 "-DINPUT=${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/i444-high-detail.obu"
                 "-DOUTPUT=${CMAKE_CURRENT_BINARY_DIR}/Testing/Temporary/i444-high-detail.i444"
                 "-DEXPECTED_SHA256=6b8d9d464291a6cea30d9798a3fc593b020456e46c21f15372a39883277f1654"
+                -P "${CMAKE_CURRENT_SOURCE_DIR}/scripts/check-decoder-parity.cmake")
+        add_test(NAME linux-nolibc-aq-segmentation-parity
+            COMMAND "${CMAKE_COMMAND}"
+                "-DDECODER=$<TARGET_FILE:av2heif-decoder-nolibc>"
+                "-DINPUT=${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/aq-segmentation.obu"
+                "-DOUTPUT=${CMAKE_CURRENT_BINARY_DIR}/Testing/Temporary/aq-segmentation-nolibc.i420"
+                "-DEXPECTED_SHA256=230e95f06ee03d1b204bb1b913bc926238b0449e665ca1db898d05b4033d5341"
                 -P "${CMAKE_CURRENT_SOURCE_DIR}/scripts/check-decoder-parity.cmake")
     endif()
 endif()

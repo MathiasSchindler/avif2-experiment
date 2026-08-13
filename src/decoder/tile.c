@@ -303,6 +303,7 @@ Av2hStatus av2h_tile_decoder_init(
     decoder->sb_row = 0U;
     decoder->sb_column = 0U;
     decoder->current_q_index = frame->base_q_index;
+    decoder->current_block_q_index = frame->base_q_index;
     decoder->sb_index = 0U;
     decoder->phase = AV2H_TILE_DECODE_LUMA;
     decoder->event = AV2H_TILE_EVENT_NONE;

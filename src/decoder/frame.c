@@ -23,6 +23,29 @@ static int16_t read_delta_q(Av2hBitReader *reader) {
     return (int16_t)av2h_bit_reader_inverse_signed(reader, 6U);
 }
 
+static int read_segmentation_features(
+    Av2hBitReader *reader,
+    uint8_t feature_mask[AV2H_SEGMENT_COUNT],
+    int16_t alt_q[AV2H_SEGMENT_COUNT],
+    uint8_t *last_active_id) {
+    size_t segment;
+    for (segment = 0U; segment < AV2H_SEGMENT_COUNT; ++segment) {
+        unsigned int feature;
+        for (feature = 0U; feature < 3U; ++feature) {
+            uint8_t enabled =
+                (uint8_t)av2h_bit_reader_read(reader, 1U);
+            if (enabled == 0U) continue;
+            if (feature != 0U) return 0;
+            feature_mask[segment] |= 1U;
+            alt_q[segment] = (int16_t)
+                av2h_bit_reader_inverse_signed(reader, 9U);
+            if (alt_q[segment] < -351 || alt_q[segment] > 351) return 0;
+            *last_active_id = (uint8_t)segment;
+        }
+    }
+    return reader->status == AV2H_OK;
+}
+
 static unsigned int ceil_log2_u32(uint32_t value) {
     unsigned int bits = 0U;
     uint32_t probe = value > 0U ? value - 1U : 0U;
@@ -411,7 +434,27 @@ Av2hStatus av2h_frame_header_closed_key_parse(
     read_quantization(&reader, sequence, frame);
     frame->segmentation_enabled =
         (uint8_t)av2h_bit_reader_read(&reader, 1U);
-    if (frame->segmentation_enabled != 0U) return AV2H_UNSUPPORTED;
+    if (frame->segmentation_enabled != 0U) {
+        uint8_t reuse = 0U;
+        if (sequence->seq_seg_info_present_flag != 0U) {
+            reuse = sequence->seg_allow_info_change != 0U ?
+                (uint8_t)av2h_bit_reader_read(&reader, 1U) : 1U;
+        }
+        if (reuse != 0U) {
+            size_t segment;
+            for (segment = 0U; segment < AV2H_SEGMENT_COUNT; ++segment) {
+                frame->seg_feature_mask[segment] =
+                    sequence->seg_feature_mask[segment];
+                frame->seg_alt_q[segment] = sequence->seg_alt_q[segment];
+            }
+            frame->seg_last_active_id = sequence->seg_last_active_id;
+        } else if (!read_segmentation_features(
+                       &reader, frame->seg_feature_mask,
+                       frame->seg_alt_q, &frame->seg_last_active_id)) {
+            return reader.status != AV2H_OK ? reader.status : AV2H_UNSUPPORTED;
+        }
+        if (frame->base_q_index == 0U) return AV2H_UNSUPPORTED;
+    }
     frame->using_qmatrix =
         (uint8_t)av2h_bit_reader_read(&reader, 1U);
     if (frame->using_qmatrix != 0U) {

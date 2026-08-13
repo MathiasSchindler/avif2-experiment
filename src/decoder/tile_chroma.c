@@ -178,7 +178,7 @@ Av2hStatus av2h_tile_decoder_read_shared_chroma_mode(
         (Av2hFirstLeafIntraMode)colocated->mode, colocated->angle_delta,
         node->block_size, cfl_context,
         tile_cfl_allowed_for_sdp(decoder, node->block_size),
-        (uint8_t)(decoder->current_q_index == 0U),
+        (uint8_t)(colocated->context.q_index == 0U),
         &decoder->shared_chroma_mode);
     if (status != AV2H_OK) return status;
     decoder->shared_chroma_mode.above_smooth = node->row == 0U ? 0U :
@@ -371,6 +371,9 @@ Av2hStatus av2h_tile_decoder_next_chroma(
         av2h_tile_diagnostics_set_chroma_reason(4U);
         return av2h_tile_decoder_fail(decoder, AV2H_INVALID_DATA);
     }
+    if (!continuing_transform) {
+        decoder->current_block_q_index = colocated->context.q_index;
+    }
     cfl_context = 0U;
     if (leaf->node.row != 0U) {
         cfl_context = decoder->colocated_luma[
@@ -527,7 +530,7 @@ Av2hStatus av2h_tile_decoder_next_chroma(
             coding_block_size, &block_width_mi, &block_height_mi);
         if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
         cctx_allowed = (uint8_t)(
-                        decoder->sequence->enable_cctx && decoder->current_q_index != 0U &&
+                        decoder->sequence->enable_cctx && decoder->current_block_q_index != 0U &&
                         !(decoder->frame->chroma_format_idc == 2U &&
                             block_width_mi >= 8U && block_height_mi >= 8U));
         av2h_tile_diagnostics_set_chroma_stage(
@@ -542,7 +545,7 @@ Av2hStatus av2h_tile_decoder_next_chroma(
             &decoder->coefficient_contexts,
             &leaf->prefix[index]);
         if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
-        leaf->prefix[index].q_index = decoder->current_q_index;
+        leaf->prefix[index].q_index = decoder->current_block_q_index;
         if (leaf->decoded_plane == 1U) {
             decoder->chroma_u_eob = leaf->prefix[index].eob;
             if (decoder->chroma_tx_index >=
@@ -560,7 +563,7 @@ Av2hStatus av2h_tile_decoder_next_chroma(
 #endif
         av2h_tile_diagnostics_set_chroma_stage(
             (uint8_t)(2U + index * 3U));
-        if (decoder->current_q_index == 0U) {
+        if (decoder->current_block_q_index == 0U) {
             size_t tell = av2h_range_tell(&decoder->range);
             av2h_memory_fill(
                 &leaf->transform[index], 0U,

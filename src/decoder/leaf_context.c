@@ -194,6 +194,8 @@ Av2hStatus av2h_luma_mode_context_state_update(
         height = state->left_count - left_index;
     }
     context.present = 1U;
+    context.segment_id = mode->segment_id;
+    context.q_index = mode->q_index;
     context.use_intrabc = mode->use_intrabc;
     context.intrabc_mode = mode->intrabc_mode;
     context.intrabc_drl_index = mode->intrabc_drl_index;

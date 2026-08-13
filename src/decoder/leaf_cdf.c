@@ -95,6 +95,11 @@ Av2hStatus av2h_leaf_cdfs_init(Av2hLeafCdfs *cdfs) {
     static const uint16_t delta_q[] = {
         16594U, 23325U, 26424U, 28225U, 29358U, 30099U, 30613U
     };
+    static const uint16_t segment_id[AV2H_SEGMENT_ID_CONTEXTS][7U] = {
+        { 5622U, 7893U, 16093U, 18233U, 27809U, 28373U, 32533U },
+        { 14274U, 18230U, 22557U, 24935U, 29980U, 30851U, 32344U },
+        { 27527U, 28487U, 28723U, 28890U, 32397U, 32647U, 32679U }
+    };
     static const uint16_t intrabc_shell_class[] = {
         8680U, 13723U, 18208U, 22686U, 26722U, 30020U
     };
@@ -233,6 +238,12 @@ Av2hStatus av2h_leaf_cdfs_init(Av2hLeafCdfs *cdfs) {
         cdfs->delta_q, AV2H_DELTA_Q_SYMBOLS + 4U,
         delta_q, AV2H_DELTA_Q_SYMBOLS, 56U, 0U);
     if (status != AV2H_OK) return status;
+    for (context = 0U; context < AV2H_SEGMENT_ID_CONTEXTS; ++context) {
+        status = av2h_cdf_init(
+            cdfs->segment_id[context], AV2H_SEGMENT_COUNT + 4U,
+            segment_id[context], AV2H_SEGMENT_COUNT, 0U, 0U);
+        if (status != AV2H_OK) return status;
+    }
     status = initialize_binary_table(cdfs->intrabc, intrabc_defaults,
                                      AV2H_INTRABC_CONTEXT_COUNT);
     if (status != AV2H_OK) return status;

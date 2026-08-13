@@ -3,6 +3,8 @@
 
 #include "base.h"
 
+#define AV2H_SEGMENT_COUNT 8U
+
 typedef struct {
     Av2hSequenceInfo info;
     uint8_t sequence_header_id;
@@ -17,6 +19,10 @@ typedef struct {
     uint8_t max_pb_aspect_ratio_log2_minus_1;
     uint8_t enable_ext_seg;
     uint8_t seq_seg_info_present_flag;
+    uint8_t seg_allow_info_change;
+    uint8_t seg_feature_mask[AV2H_SEGMENT_COUNT];
+    int16_t seg_alt_q[AV2H_SEGMENT_COUNT];
+    uint8_t seg_last_active_id;
     uint8_t enable_intra_dip;
     uint8_t enable_intra_edge_filter;
     uint8_t enable_mrls;

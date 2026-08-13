@@ -267,7 +267,29 @@ static int read_sequence_tools(Av2hBitReader *reader,
     state->enable_ext_seg = (uint8_t)av2h_bit_reader_read(reader, 1U);
     state->seq_seg_info_present_flag =
         (uint8_t)av2h_bit_reader_read(reader, 1U);
-    if (state->seq_seg_info_present_flag != 0U) return 0;
+    if (state->enable_ext_seg != 0U) return 0;
+    if (state->seq_seg_info_present_flag != 0U) {
+        size_t segment;
+        state->seg_allow_info_change =
+            (uint8_t)av2h_bit_reader_read(reader, 1U);
+        for (segment = 0U; segment < AV2H_SEGMENT_COUNT; ++segment) {
+            unsigned int feature;
+            for (feature = 0U; feature < 3U; ++feature) {
+                uint8_t enabled =
+                    (uint8_t)av2h_bit_reader_read(reader, 1U);
+                if (enabled == 0U) continue;
+                if (feature != 0U) return 0;
+                state->seg_feature_mask[segment] |= 1U;
+                state->seg_alt_q[segment] = (int16_t)
+                    av2h_bit_reader_inverse_signed(reader, 9U);
+                if (state->seg_alt_q[segment] < -351 ||
+                    state->seg_alt_q[segment] > 351) {
+                    return 0;
+                }
+                state->seg_last_active_id = (uint8_t)segment;
+            }
+        }
+    }
 
     state->enable_intra_dip = (uint8_t)av2h_bit_reader_read(reader, 1U);
     state->enable_intra_edge_filter =

@@ -52,6 +52,9 @@ typedef struct {
     uint8_t disable_cdf_update;
     uint8_t uniform_tile_spacing;
     uint8_t segmentation_enabled;
+    uint8_t seg_feature_mask[AV2H_SEGMENT_COUNT];
+    int16_t seg_alt_q[AV2H_SEGMENT_COUNT];
+    uint8_t seg_last_active_id;
     uint8_t using_qmatrix;
     uint8_t qm_y;
     uint8_t qm_u;

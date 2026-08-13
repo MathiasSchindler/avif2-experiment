@@ -77,7 +77,7 @@ speed policy. That production profile still excludes TCQ, parity hiding,
 quantization matrices, segmentation, film grain, and restoration. This is an
 encoder-admission policy, not a complete statement of decoder capability: the
 decoder now supports admitted subsets of TCQ, predefined quantization matrices,
-and restoration in addition to IntraBC.
+ALT_Q segmentation with delta-Q, and restoration in addition to IntraBC.
 
 For the currently validated AVM-generated corpus tuples, the decoder supports
 non-DCT transforms, directional prediction, MRL, CfL/MHCCP, luma FSC, IntraBC,
@@ -114,7 +114,7 @@ exists. AVM exposing a switch proves availability, not a gain for this corpus.
 | Trellis-coded quantization (TCQ) | Small to medium compression improvement | Supported for pinned AVM's always-on single-picture subset | Broaden Q-context, transform, bit-depth, malformed-input, and durable platform evidence; defer frame-adaptive video mode |
 | Loop restoration | Small to medium quality or compression improvement, especially near visible artifacts | Supported for 8-bit luma PC-Wiener; chroma, other restoration modes, and 10-bit remain fail-closed | Measure corpus impact and add modes or formats only from observed demand |
 | Quantization matrices | Small to medium perceptual-quality improvement; metric-dependent | Predefined matrices are supported for non-segmented pictures; custom QM OBUs remain fail-closed | Broaden levels, formats, transforms, malformed-input, and platform evidence; add custom OBU state only from observed demand |
-| Adaptive quantization, delta-Q, and segmentation | Medium perceptual-quality improvement on spatially varied images | Delta-Q is partial; segmentation is unsupported | Complete frame/leaf syntax, segment state, per-block Q propagation, and filter interaction |
+| Adaptive quantization, delta-Q, and segmentation | Medium perceptual-quality improvement on spatially varied images | Pinned AVM `aq-mode=1` ALT_Q segmentation and `deltaq-mode=1`/`2` are supported for closed-loop key pictures | Broaden bit depths, QPs, malformed-input vectors, and platform evidence; retain fail-closed extended and non-ALT_Q features |
 | Film-grain synthesis | Large compression opportunity for genuinely noisy or grainy images; neutral or harmful for clean images | Unsupported and not sample-preserving | Grain metadata parsing, deterministic synthesis, output semantics, workspace, and conformance vectors |
 
 ## Encoder-only opportunities
@@ -390,26 +390,25 @@ Estimated effect: medium perceptual improvement on spatially varied images.
 File size at a fixed nominal QP is not guaranteed to decrease because the tool
 changes spatial allocation rather than simply reducing rate.
 
-The decoder already has partial delta-Q infrastructure: frame flags and
-resolution, tile CDFs, current-Q state, coefficient dequantization, and deblock
-Q propagation. Frame-level segmentation remains an explicit rejection.
+The decoder admits the non-extended, eight-segment ALT_Q subset used by pinned
+AVM `--aq-mode=1` on a closed-loop key picture. Segment feature data may be
+signaled in the sequence header and reused by the frame, or signaled directly
+in the frame header. Spatial segment IDs use the normative top, left, and
+upper-left predictor, three adaptive CDF contexts, and negative deinterleave.
+The full caller-owned luma mode map retains the ID at 4x4 resolution.
 
-Decoder implementation steps:
+Segment ALT_Q is applied after the current superblock delta-Q base and clamped
+to the bit-depth Q domain. The resulting per-block Q index drives luma and
+chroma coefficient dequantization and the existing deblock cell map without
+feeding the segment offset back into later delta-Q accumulation. Pinned AVM
+whole-image parity is exact for `aq-mode=1`, `deltaq-mode=1`, and
+`deltaq-mode=2` probes.
 
-1. Define the accepted still-image subset of sequence and frame segmentation;
-   begin with the exact modes emitted by AVM `--aq-mode=1` and `2`.
-2. Parse segment maps, feature enable/data arrays, inheritance/update flags, and
-   every segment feature that can affect a key still frame.
-3. Store segment IDs in bounded caller-owned tile maps and propagate the active
-   segment through partition, prediction, coefficient, and filter stages.
-4. Combine segment Q offsets, frame delta-Q, plane deltas, and sequence deltas
-   in the normative order with the existing wide Q-index domain and clamps.
-5. Complete delta-Q reset/update behavior for every superblock and CDF-update
-   mode, including skipped, palette, FSC, and IntraBC blocks.
-6. Apply segment effects to loop filters and reject segment features outside
-   the first accepted subset before output mutation.
-7. Add focused syntax/state vectors, segment-boundary images, negative feature
-   combinations, and AVM whole-image parity at several AQ modes and QPs.
+Extended 16-segment syntax, SKIP and GLOBALMV segment features, lossless
+segments, temporal map reuse, cyclic refresh, and arbitrary multi-frame update
+behavior remain fail-closed. The next useful work is broader bit-depth/QP
+coverage, malformed segment-map vectors, and additional freestanding platform
+evidence.
 
 ### Film-grain synthesis
 

@@ -46,6 +46,7 @@ const int16_t *av2h_intrabc_diagnostic_bank(size_t *count);
 #define AV2H_PALETTE_ROW_CONTEXT_COUNT 4U
 #define AV2H_MORPH_PRED_CONTEXT_COUNT 3U
 #define AV2H_DELTA_Q_SYMBOLS 8U
+#define AV2H_SEGMENT_ID_CONTEXTS 3U
 
 typedef struct {
     uint16_t intrabc[AV2H_INTRABC_CONTEXT_COUNT][AV2H_BINARY_CDF_SIZE];
@@ -73,6 +74,8 @@ typedef struct {
     uint16_t skip_transform[AV2H_SKIP_TRANSFORM_CONTEXT_COUNT]
                            [AV2H_BINARY_CDF_SIZE];
     uint16_t delta_q[AV2H_DELTA_Q_SYMBOLS + 4U];
+    uint16_t segment_id[AV2H_SEGMENT_ID_CONTEXTS]
+                       [AV2H_SEGMENT_COUNT + 4U];
     uint16_t ccso[AV2H_FRAME_PLANE_COUNT][AV2H_CCSO_CONTEXT_COUNT]
                  [AV2H_BINARY_CDF_SIZE];
     uint16_t y_mode_set[AV2H_Y_MODE_SET_SYMBOLS + 4U];
@@ -127,6 +130,8 @@ typedef enum {
 
 typedef struct {
     uint8_t use_intrabc;
+    uint8_t segment_id;
+    Av2hQIndex q_index;
     uint8_t use_dpcm_y;
     uint8_t dpcm_mode_y;
     uint8_t lossless_tx_size_large;
@@ -214,6 +219,8 @@ typedef struct {
 
 typedef struct {
     uint8_t present;
+    uint8_t segment_id;
+    Av2hQIndex q_index;
     uint8_t use_intrabc;
     uint8_t intrabc_mode;
     uint8_t intrabc_drl_index;
