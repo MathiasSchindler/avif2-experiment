@@ -820,6 +820,46 @@ static void test_first_leaf_dc_without_references(void) {
     }
 }
 
+static void test_first_leaf_intra_dip_without_references(void) {
+    uint8_t pixels[8U * 8U];
+    uint8_t reconstructed[2U * 2U];
+    uint8_t expected[8U * 8U];
+    Av2hReconstructionPlane plane = {
+        pixels, 8U, 8U, 8U, 8U, 8U,
+        reconstructed, 2U, sizeof(reconstructed)
+    };
+    Av2hPartitionNode leaf = { 0U, 0U, AV2H_BLOCK_8X8 };
+    Av2hFirstLeafMode mode = { 0 };
+    Av2hFirstCoeffPrefix prefix = { 0 };
+    Av2hFirstTransformType transform = { 0 };
+    Av2hFirstCoeffBlock block = { 0 };
+    Av2hLumaReferences references = { 0 };
+    Av2hReconstructionScratch scratch;
+    size_t index;
+
+    mode.mode = AV2H_INTRA_DC;
+    mode.use_intra_dip = 1U;
+    prefix.tx_size = AV2H_TX_8X8;
+    prefix.all_zero = 1U;
+    transform.primary_type = AV2H_TX_DCT_DCT;
+    block.width = 8U;
+    block.height = 8U;
+    block.coefficient_count = 64U;
+    CHECK(av2h_luma_predict(
+              &mode, 8U, 8U, &references, expected, 8U) == AV2H_OK);
+    CHECK(sample_hash(expected, sizeof(expected)) ==
+          UINT64_C(0x6ff77c8972b84653));
+    av2h_memory_fill(pixels, 0U, sizeof(pixels));
+    av2h_memory_fill(reconstructed, 0U, sizeof(reconstructed));
+    CHECK(av2h_luma_reconstruct_to_plane(
+              &leaf, &mode, &prefix, &transform, &block,
+              &plane, &scratch) == AV2H_OK);
+    for (index = 0U; index < sizeof(expected); ++index) {
+        CHECK(scratch.predictor[index] == expected[index]);
+        CHECK(pixels[index] == expected[index]);
+    }
+}
+
 static void test_all_zero_16x16_reconstruction(void) {
     Av2hFirstLeafMode mode = { 0 };
     Av2hFirstCoeffPrefix prefix = { 0 };
@@ -7063,6 +7103,7 @@ int main(void) {
     test_palette_prediction();
     test_complete_palette_tables_and_map();
     test_first_leaf_dc_without_references();
+    test_first_leaf_intra_dip_without_references();
     test_all_zero_16x16_reconstruction();
     test_laarim_q96_32x32_reconstruction();
     test_tx16x32_dc_dct_reconstruction();

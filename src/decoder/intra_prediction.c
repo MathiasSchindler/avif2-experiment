@@ -149,6 +149,9 @@ static Av2hStatus predict_intra_dip(
     unsigned int feature = 0U;
     unsigned int side;
     uint8_t fallback;
+    uint8_t side_fallback[2U];
+    uint8_t above_fallback;
+    uint8_t left_fallback;
     unsigned int up_x_log2;
     unsigned int up_y_log2;
     unsigned int down_x_log2 = 0U;
@@ -184,6 +187,25 @@ static Av2hStatus predict_intra_dip(
         references->above_count != 0U ? references->above[0] :
         references->left_count != 0U ? references->left[0] :
         av2h_sample_midpoint_8bit();
+    /* The above-left corner sample (feature 0) and the per-edge samples
+     * (features 1..10) use different fallbacks when a neighbor is fully
+     * unavailable. Per AV2's reference-sample construction (matching
+     * predict_directional's angle==90/180 fallback rule elsewhere in this
+     * file), an absent above row defaults to the below-midpoint value and
+     * an absent left column defaults to the above-midpoint value for the
+     * edge samples themselves; only the corner uses the plain bit-depth
+     * midpoint when neither neighbor is available at all (e.g. the very
+     * first block of a frame). */
+    {
+        above_fallback = references->above_count != 0U ?
+            references->above[0] : references->left_count != 0U ?
+                references->left[0] : av2h_sample_below_midpoint_8bit();
+        left_fallback = references->left_count != 0U ?
+            references->left[0] : references->above_count != 0U ?
+                references->above[0] : av2h_sample_above_midpoint_8bit();
+        side_fallback[0] = transpose != 0U ? left_fallback : above_fallback;
+        side_fallback[1] = transpose != 0U ? above_fallback : left_fallback;
+    }
     input[feature++] = references->has_above_left ?
         references->above_left : fallback;
     for (side = 0U; side < 2U; ++side) {
@@ -196,7 +218,8 @@ static Av2hStatus predict_intra_dip(
             unsigned int sum = 0U;
             for (sample = 0U; sample < down; ++sample) {
                 sum += intra_dip_edge_sample(
-                    edge[side], edge_count[side], edge_index++, fallback);
+                    edge[side], edge_count[side], edge_index++,
+                    side_fallback[side]);
             }
             input[feature++] = (uint16_t)(
                 (sum + rounding) >> down_log2[side]);
@@ -209,7 +232,8 @@ static Av2hStatus predict_intra_dip(
         unsigned int sum = 0U;
         for (sample = 0U; sample < down; ++sample) {
             sum += intra_dip_edge_sample(
-                edge[side], edge_count[side], edge_index++, fallback);
+                edge[side], edge_count[side], edge_index++,
+                side_fallback[side]);
         }
         input[feature++] = (uint16_t)(
             (sum + (down >> 1U)) >> down_log2[side]);
@@ -242,7 +266,8 @@ static Av2hStatus predict_intra_dip(
     for (row = 0U; row < 8U / divisor_y; ++row) {
         unsigned int output_row = row * multiplier_y + multiplier_y - 1U;
         unsigned int previous = intra_dip_edge_sample(
-            references->left, references->left_count, output_row, fallback);
+            references->left, references->left_count, output_row,
+            left_fallback);
         for (column = 0U; column < 8U / divisor_x; ++column) {
             unsigned int output_column = column * multiplier_x;
             unsigned int next = predictor[
@@ -261,7 +286,8 @@ static Av2hStatus predict_intra_dip(
     }
     for (column = 0U; column < width; ++column) {
         unsigned int previous = intra_dip_edge_sample(
-            references->above, references->above_count, column, fallback);
+            references->above, references->above_count, column,
+            above_fallback);
         for (row = 0U; row < 8U / divisor_y; ++row) {
             unsigned int output_row = row * multiplier_y;
             unsigned int next = predictor[

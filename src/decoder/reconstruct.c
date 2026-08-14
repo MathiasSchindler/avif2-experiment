@@ -1638,7 +1638,7 @@ Av2hStatus av2h_luma_reconstruct_to_plane(
             mode, prefix, transform, coefficients, scratch->predictor,
             output_width, scratch, &reconstruction);
     } else if (mode->mode == AV2H_INTRA_DC && above_count == 0U &&
-               left_count == 0U) {
+               left_count == 0U && mode->use_intra_dip == 0U) {
         for (index = 0U; index < (size_t)output_width * output_height;
              ++index) {
             scratch->predictor[index] = av2h_sample_midpoint_8bit();
