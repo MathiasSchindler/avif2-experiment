@@ -143,7 +143,9 @@ Av2hStatus av2h_filter_frame(
             &workspace->restoration_controls);
         if (status != AV2H_OK) return status;
     }
-    if (frame->restoration_type[0] == AV2H_RESTORE_WIENER_NONSEP) {
+    if (frame->restoration_type[0] == AV2H_RESTORE_WIENER_NONSEP ||
+        frame->restoration_type[1] == AV2H_RESTORE_WIENER_NONSEP ||
+        frame->restoration_type[2] == AV2H_RESTORE_WIENER_NONSEP) {
         restoration_planes.plane[0] = workspace->restoration;
         restoration_planes.plane[1] = planes->plane[1];
         restoration_planes.plane[2] = planes->plane[2];

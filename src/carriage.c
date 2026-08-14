@@ -250,7 +250,11 @@ static int read_sequence_tools(Av2hBitReader *reader,
     } else {
         state->superblock_size = 64U;
     }
-    state->enable_sdp = monochrome
+    /* Intra frames downsize a 256x256 sequence superblock to 128x128; only
+       intra frames are decoded, so the frame size is stored directly. */
+    if (state->superblock_size == 256U) {
+        state->superblock_size = 128U;
+    }    state->enable_sdp = monochrome
         ? 0U : (uint8_t)av2h_bit_reader_read(reader, 1U);
     state->enable_ext_partitions =
         (uint8_t)av2h_bit_reader_read(reader, 1U);

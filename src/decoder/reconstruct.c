@@ -238,177 +238,51 @@ static Av2hStatus intrabc_predict_u16(
     uint16_t width,
     uint16_t height,
     uint16_t *predictor) {
-    int32_t integer_x = mode->displacement_x / 8;
-    int32_t integer_y = mode->displacement_y / 8;
-    int32_t source_x;
-    int32_t source_y;
-    uint32_t fraction_x;
-    uint32_t fraction_y;
+    int32_t position_x = av2h_intrabc_plane_position(
+        block_x, mode->displacement_x, 0U);
+    int32_t position_y = av2h_intrabc_plane_position(
+        block_y, mode->displacement_y, 0U);
+    int32_t source_x = av2h_intrabc_integer_position(position_x);
+    int32_t source_y = av2h_intrabc_integer_position(position_y);
+    uint32_t subpel_x =
+        (uint32_t)(position_x - source_x * (1 << AV2H_SUBPEL_BITS));
+    uint32_t subpel_y =
+        (uint32_t)(position_y - source_y * (1 << AV2H_SUBPEL_BITS));
+    Av2hStatus status;
     uint16_t row;
     uint16_t column;
-    if (mode->displacement_x < 0 && mode->displacement_x % 8 != 0) {
-        --integer_x;
-    }
-    if (mode->displacement_y < 0 && mode->displacement_y % 8 != 0) {
-        --integer_y;
-    }
-    fraction_x = (uint32_t)(mode->displacement_x - integer_x * 8);
-    fraction_y = (uint32_t)(mode->displacement_y - integer_y * 8);
-    if ((fraction_x & 1U) != 0U || (fraction_y & 1U) != 0U) {
-        return AV2H_UNSUPPORTED;
-    }
-    source_x = (int32_t)block_x + integer_x;
-    source_y = (int32_t)block_y + integer_y;
     if (source_x < 0 || source_y < 0 ||
-        (uint32_t)source_x + width + (fraction_x != 0U) > plane->width ||
-        (uint32_t)source_y + height + (fraction_y != 0U) > plane->height) {
+        (uint32_t)source_x + width + (subpel_x != 0U) > plane->width ||
+        (uint32_t)source_y + height + (subpel_y != 0U) > plane->height) {
         return AV2H_INVALID_DATA;
     }
-    for (row = 0U; row < height; ++row) {
-        for (column = 0U; column < width; ++column) {
+    for (row = 0U; row < height + (subpel_y != 0U); ++row) {
+        for (column = 0U; column < width + (subpel_x != 0U); ++column) {
             size_t sample_x = (size_t)source_x + column;
             size_t sample_y = (size_t)source_y + row;
-            uint32_t left_weight = 8U - fraction_x;
-            uint32_t top_weight = 8U - fraction_y;
-            uint32_t prediction;
-            if (!plane_sample_reconstructed_u16(plane, sample_x, sample_y) ||
-                (fraction_x != 0U && !plane_sample_reconstructed_u16(
-                    plane, sample_x + 1U, sample_y)) ||
-                (fraction_y != 0U && !plane_sample_reconstructed_u16(
-                    plane, sample_x, sample_y + 1U)) ||
-                (fraction_x != 0U && fraction_y != 0U &&
-                 !plane_sample_reconstructed_u16(
-                     plane, sample_x + 1U, sample_y + 1U))) {
+            if (!plane_sample_reconstructed_u16(plane, sample_x, sample_y)) {
                 av2h_reconstruction_diagnostics_set_intrabc_source(
                     (uint16_t)sample_x, (uint16_t)sample_y,
                     (sample_y / 4U) * plane->reconstructed_stride_cells +
                         sample_x / 4U);
                 return AV2H_UNSUPPORTED;
             }
-            prediction = plane->data[
-                sample_y * plane->stride_samples + sample_x] *
-                left_weight * top_weight;
-            if (fraction_x != 0U) {
-                prediction += plane->data[
-                    sample_y * plane->stride_samples + sample_x + 1U] *
-                    fraction_x * top_weight;
-            }
-            if (fraction_y != 0U) {
-                prediction += plane->data[
-                    (sample_y + 1U) * plane->stride_samples + sample_x] *
-                    left_weight * fraction_y;
-            }
-            if (fraction_x != 0U && fraction_y != 0U) {
-                prediction += plane->data[
-                    (sample_y + 1U) * plane->stride_samples +
-                    sample_x + 1U] * fraction_x * fraction_y;
-            }
-            predictor[(size_t)row * width + column] =
-                (uint16_t)((prediction + 32U) >> 6U);
         }
     }
+    status = av2h_intrabc_convolve(
+        0, plane->data, plane->stride_samples, source_x, source_y,
+        subpel_x, subpel_y, width, height, 10U, 0, predictor);
+    if (status != AV2H_OK) return status;
     if (mode->morph_pred != 0U) {
-        uint8_t template_width = width < 3U ? 0U :
-            width < 7U ? 4U : width < 13U ? 8U : 16U;
-        uint8_t template_height = height < 3U ? 0U :
-            height < 7U ? 4U : height < 13U ? 8U : 16U;
-        uint8_t above_available = block_y != 0U;
-        uint8_t left_available = block_x != 0U;
-        uint8_t above_sample_count = 0U;
-        uint8_t left_sample_count = 0U;
-        int32_t sum_x = 0;
-        int32_t sum_y = 0;
-        int32_t sum_xy = 0;
-        int32_t sum_xx = 0;
-        int32_t alpha;
-        int32_t beta;
-        uint8_t sample_index;
-        if (source_x <= 0 || source_y <= 0) return AV2H_INVALID_DATA;
-        if (above_available && left_available) {
-            if (template_width == 16U && template_height == 16U) {
-                above_sample_count = 16U;
-                left_sample_count = 16U;
-            } else if (template_width > 4U && template_height > 4U) {
-                above_sample_count = 8U;
-                left_sample_count = 8U;
-            } else if (template_width < 16U && template_height < 16U) {
-                above_sample_count = 4U;
-                left_sample_count = 4U;
-            } else if (template_width == 16U) {
-                above_sample_count = 16U;
-            } else {
-                left_sample_count = 16U;
-            }
-        } else if (above_available) {
-            above_sample_count = template_width;
-        } else if (left_available) {
-            left_sample_count = template_height;
-        }
-        for (sample_index = 0U;
-             sample_index < above_sample_count; ++sample_index) {
-            size_t step = template_width / above_sample_count;
-            size_t offset = (step == 1U ? 0U : step >> 1U) +
-                (size_t)sample_index * step;
-            size_t current_x = (size_t)block_x + offset;
-            size_t reference_x = (size_t)source_x + offset;
-            int32_t x;
-            int32_t y;
-            if (current_x >= plane->width || reference_x >= plane->width ||
-                !plane_sample_reconstructed_u16(
-                    plane, current_x, block_y - 1U) ||
-                !plane_sample_reconstructed_u16(
-                    plane, reference_x, (size_t)source_y - 1U)) {
-                return AV2H_UNSUPPORTED;
-            }
-            x = plane->data[((size_t)source_y - 1U) *
-                plane->stride_samples + reference_x];
-            y = plane->data[((size_t)block_y - 1U) *
-                plane->stride_samples + current_x];
-            sum_x += x;
-            sum_y += y;
-            sum_xy += x * y;
-            sum_xx += x * x;
-        }
-        for (sample_index = 0U;
-             sample_index < left_sample_count; ++sample_index) {
-            size_t step = template_height / left_sample_count;
-            size_t offset = (step == 1U ? 0U : step >> 1U) +
-                (size_t)sample_index * step;
-            size_t current_y = (size_t)block_y + offset;
-            size_t reference_y = (size_t)source_y + offset;
-            int32_t x;
-            int32_t y;
-            if (current_y >= plane->height || reference_y >= plane->height ||
-                !plane_sample_reconstructed_u16(
-                    plane, block_x - 1U, current_y) ||
-                !plane_sample_reconstructed_u16(
-                    plane, (size_t)source_x - 1U, reference_y)) {
-                return AV2H_UNSUPPORTED;
-            }
-            x = plane->data[reference_y * plane->stride_samples +
-                (size_t)source_x - 1U];
-            y = plane->data[current_y * plane->stride_samples +
-                block_x - 1U];
-            sum_x += x;
-            sum_y += y;
-            sum_xy += x * y;
-            sum_xx += x * x;
-        }
-        alpha = av2h_cfl_derive_alpha(
-            sum_x, sum_y, sum_xx, sum_xy,
-            above_sample_count + left_sample_count, 8);
-        if (alpha == 0) alpha = 256;
-        beta = ((sum_y << 8) - sum_x * alpha) /
-            (int32_t)(above_sample_count + left_sample_count);
-        for (row = 0U; row < height; ++row) {
-            for (column = 0U; column < width; ++column) {
-                int32_t value =
-                    (predictor[(size_t)row * width + column] * alpha +
-                     beta) >> 8;
-                predictor[(size_t)row * width + column] =
-                    av2h_sample_clip_10bit(value);
-            }
-        }
+        uint16_t coding_x = (uint16_t)(mode->block_origin_column * 4U);
+        uint16_t coding_y = (uint16_t)(mode->block_origin_row * 4U);
+        status = av2h_intrabc_morph_u16(
+            plane->data, plane->stride_samples, plane->width, plane->height,
+            coding_x, coding_y, mode->block_width, mode->block_height,
+            (int32_t)coding_x + av2h_intrabc_full_pel(mode->displacement_x),
+            (int32_t)coding_y + av2h_intrabc_full_pel(mode->displacement_y),
+            width, height, 10U, predictor);
+        if (status != AV2H_OK) return status;
     }
     return AV2H_OK;
 }
@@ -1389,6 +1263,85 @@ Av2hStatus av2h_first_luma_reconstruct(
                                  0, 0U, scratch, reconstruction);
 }
 
+static Av2hStatus palette_map_origin(
+    const Av2hFirstLeafMode *mode,
+    uint16_t block_x,
+    uint16_t block_y,
+    uint16_t output_width,
+    uint16_t output_height,
+    size_t *offset_x,
+    size_t *offset_y) {
+    size_t origin_x = (size_t)mode->palette_origin_column * 4U;
+    size_t origin_y = (size_t)mode->palette_origin_row * 4U;
+    if (mode->palette_size > AV2H_PALETTE_MAX_SIZE ||
+        (size_t)block_x < origin_x || (size_t)block_y < origin_y) {
+        return AV2H_UNSUPPORTED;
+    }
+    *offset_x = (size_t)block_x - origin_x;
+    *offset_y = (size_t)block_y - origin_y;
+    if (*offset_x + output_width > mode->palette_width ||
+        *offset_y + output_height > mode->palette_height) {
+        return AV2H_UNSUPPORTED;
+    }
+    return AV2H_OK;
+}
+
+static Av2hStatus palette_fill_predictor(
+    const Av2hFirstLeafMode *mode,
+    uint16_t block_x,
+    uint16_t block_y,
+    uint16_t output_width,
+    uint16_t output_height,
+    uint8_t *predictor) {
+    size_t offset_x;
+    size_t offset_y;
+    size_t row;
+    size_t column;
+    Av2hStatus status = palette_map_origin(
+        mode, block_x, block_y, output_width, output_height, &offset_x,
+        &offset_y);
+    if (status != AV2H_OK) return status;
+    for (row = 0U; row < output_height; ++row) {
+        for (column = 0U; column < output_width; ++column) {
+            uint8_t color_index = av2h_palette_map_get(
+                mode,
+                (offset_y + row) * mode->palette_width + offset_x + column);
+            if (color_index >= mode->palette_size) return AV2H_INVALID_DATA;
+            predictor[row * (size_t)output_width + column] =
+                (uint8_t)mode->palette_colors[color_index];
+        }
+    }
+    return AV2H_OK;
+}
+
+static Av2hStatus palette_fill_predictor_u16(
+    const Av2hFirstLeafMode *mode,
+    uint16_t block_x,
+    uint16_t block_y,
+    uint16_t output_width,
+    uint16_t output_height,
+    uint16_t *predictor) {
+    size_t offset_x;
+    size_t offset_y;
+    size_t row;
+    size_t column;
+    Av2hStatus status = palette_map_origin(
+        mode, block_x, block_y, output_width, output_height, &offset_x,
+        &offset_y);
+    if (status != AV2H_OK) return status;
+    for (row = 0U; row < output_height; ++row) {
+        for (column = 0U; column < output_width; ++column) {
+            uint8_t color_index = av2h_palette_map_get(
+                mode,
+                (offset_y + row) * mode->palette_width + offset_x + column);
+            if (color_index >= mode->palette_size) return AV2H_INVALID_DATA;
+            predictor[row * (size_t)output_width + column] =
+                mode->palette_colors[color_index];
+        }
+    }
+    return AV2H_OK;
+}
+
 Av2hStatus av2h_luma_reconstruct_to_plane(
     const Av2hPartitionNode *leaf,
     const Av2hFirstLeafMode *mode,
@@ -1516,6 +1469,7 @@ Av2hStatus av2h_luma_reconstruct_to_plane(
             }
         }
     } else if (left_count != 0U && mode->mrl_index != 0U &&
+               mode->tx_extended_edges_unavailable == 0U &&
                directional_base_angle(mode->mode) != 0 &&
                (luma_wide_angle(
                    directional_base_angle(mode->mode) +
@@ -1668,19 +1622,10 @@ Av2hStatus av2h_luma_reconstruct_to_plane(
         }
     }
     if (mode->palette_size != 0U) {
-        if (mode->palette_width != output_width ||
-            mode->palette_height != output_height ||
-            mode->palette_size > AV2H_PALETTE_MAX_SIZE) {
-            return AV2H_UNSUPPORTED;
-        }
-        for (index = 0U; index < (size_t)output_width * output_height;
-             ++index) {
-            uint8_t color_index = av2h_palette_map_get(mode, index);
-            if (color_index >= mode->palette_size) {
-                return AV2H_INVALID_DATA;
-            }
-            scratch->predictor[index] = mode->palette_colors[color_index];
-        }
+        status = palette_fill_predictor(
+            mode, block_x, block_y, output_width, output_height,
+            scratch->predictor);
+        if (status != AV2H_OK) return status;
         status = av2h_luma_reconstruct(
             mode, prefix, transform, coefficients, scratch->predictor,
             output_width, scratch, &reconstruction);
@@ -2131,21 +2076,12 @@ Av2hStatus av2h_luma_reconstruct_to_plane_u16(
             return status;
         }
     } else if (mode->palette_size != 0U) {
-        if (mode->palette_width != descriptor->output_width ||
-            mode->palette_height != descriptor->output_height ||
-            mode->palette_size > AV2H_PALETTE_MAX_SIZE) {
+        status = palette_fill_predictor_u16(
+            mode, block_x, block_y, descriptor->output_width,
+            descriptor->output_height, scratch->predictor);
+        if (status != AV2H_OK) {
             av2h_reconstruction_diagnostics_set_luma_stage(25U);
-            return AV2H_UNSUPPORTED;
-        }
-        for (index = 0U;
-             index < (size_t)descriptor->output_width *
-                         descriptor->output_height;
-             ++index) {
-            uint8_t color_index = av2h_palette_map_get(mode, index);
-            if (color_index >= mode->palette_size) {
-                return AV2H_INVALID_DATA;
-            }
-            scratch->predictor[index] = mode->palette_colors[color_index];
+            return status;
         }
     } else if (top_vertical_multi_line_mrl != 0U) {
         uint16_t row;

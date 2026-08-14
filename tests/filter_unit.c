@@ -1,5 +1,6 @@
 #include "decoder/frame_output.h"
 #include "decoder/internal/filter_modules.h"
+#include "decoder/internal/wiener_nonsep.h"
 #include "decoder/internal/frame_workspace.h"
 
 #include <stddef.h>
@@ -1947,6 +1948,166 @@ static void test_fail_closed(void) {
     CHECK(y[0] == 91U);
 }
 
+/* Wiener nonseparable parameter tables: coefficient counts, subset masks and
+   the symmetric-pair split must match the normative luma/chroma filter
+   configurations. */
+static void test_wienerns_parameters(void) {
+    const Av2hWienerNonsepParameters *luma = av2h_wienerns_parameters(0U);
+    const Av2hWienerNonsepParameters *chroma = av2h_wienerns_parameters(1U);
+    unsigned int index;
+
+    CHECK(luma != 0);
+    CHECK(chroma != 0);
+    CHECK(luma->coefficient_count == AV2H_WIENER_NONSEP_LUMA_TAPS);
+    CHECK(chroma->coefficient_count == AV2H_WIENER_NONSEP_CHROMA_TAPS);
+    CHECK(luma->subset_count == 4U);
+    CHECK(chroma->subset_count == 3U);
+    /* Luma has no cross component taps, so every coefficient participates in
+       the symmetric pairing. Chroma pairs only the first six. */
+    CHECK(luma->symmetric_first == AV2H_WIENER_NONSEP_LUMA_TAPS);
+    CHECK(chroma->symmetric_first == 6U);
+    /* Signalled subsets, mirroring wienerns_subsetcfg_large_y and
+       wienerns_subsetcfg_uv. They are not nested, and the final subset of
+       each plane covers every coefficient. */
+    CHECK(luma->subset_mask[0U] == 0x0000003fU);
+    CHECK(luma->subset_mask[1U] == 0x00000fc3U);
+    CHECK(luma->subset_mask[2U] == 0x00000fffU);
+    CHECK(luma->subset_mask[3U] == 0x0000ffffU);
+    CHECK(chroma->subset_mask[0U] == 0x0000003fU);
+    CHECK(chroma->subset_mask[1U] == 0x000003ffU);
+    CHECK(chroma->subset_mask[2U] == 0x0003ffffU);
+    CHECK(luma->subset_mask[luma->subset_count - 1U] ==
+          (uint32_t)((1U << AV2H_WIENER_NONSEP_LUMA_TAPS) - 1U));
+    CHECK(chroma->subset_mask[chroma->subset_count - 1U] ==
+          (uint32_t)((1U << AV2H_WIENER_NONSEP_CHROMA_TAPS) - 1U));
+    /* Every signalled coefficient must have a decodable range. */
+    for (index = 0U; index < luma->coefficient_count; ++index) {
+        CHECK(luma->bits[index] > 0U);
+        CHECK(luma->minimum[index] < 0);
+    }
+    for (index = 0U; index < chroma->coefficient_count; ++index) {
+        CHECK(chroma->bits[index] > 0U);
+        CHECK(chroma->minimum[index] < 0);
+    }
+}
+
+/* Frame filter match indices select a predictor: slot zero is the all zero
+   filter, slots below the class count refer to previously decoded classes of
+   the same plane, and higher slots pick a shuffled pre-computed Wiener
+   filter (luma only). */
+static void test_wienerns_frame_predictor(void) {
+    int16_t decoded[AV2H_WIENER_NONSEP_MAX_CLASSES]
+                   [AV2H_WIENER_NONSEP_MAX_TAPS];
+    int16_t taps[AV2H_WIENER_NONSEP_MAX_TAPS];
+    unsigned int index;
+
+    for (index = 0U; index < AV2H_WIENER_NONSEP_MAX_CLASSES; ++index) {
+        unsigned int tap;
+        for (tap = 0U; tap < AV2H_WIENER_NONSEP_MAX_TAPS; ++tap) {
+            decoded[index][tap] = (int16_t)((int)index + 1);
+        }
+    }
+
+    /* Match index zero yields the zero filter. */
+    CHECK(av2h_wienerns_frame_predictor(0U, 0U, 1U, 2U, decoded, taps) ==
+          AV2H_OK);
+    for (index = 0U; index < AV2H_WIENER_NONSEP_MAX_TAPS; ++index) {
+        CHECK(taps[index] == 0);
+    }
+
+    /* Match index one on class one copies class zero. */
+    CHECK(av2h_wienerns_frame_predictor(0U, 1U, 1U, 2U, decoded, taps) ==
+          AV2H_OK);
+    for (index = 0U; index < AV2H_WIENER_NONSEP_MAX_TAPS; ++index) {
+        CHECK(taps[index] == 1);
+    }
+
+    /* Referring to a class that has not been decoded yet is invalid. */
+    CHECK(av2h_wienerns_frame_predictor(0U, 1U, 0U, 2U, decoded, taps) ==
+          AV2H_INVALID_DATA);
+
+    /* Chroma has no pre-computed filter bank. */
+    CHECK(av2h_wienerns_frame_predictor(1U, 1U, 0U, 1U, decoded, taps) ==
+          AV2H_INVALID_DATA);
+
+    /* Luma pre-computed slots decode and stay inside the signalled range. */
+    CHECK(av2h_wienerns_frame_predictor(0U, 5U, 0U, 1U, decoded, taps) ==
+          AV2H_OK);
+    {
+        const Av2hWienerNonsepParameters *luma = av2h_wienerns_parameters(0U);
+        for (index = 0U; index < luma->coefficient_count; ++index) {
+            int maximum = luma->minimum[index] + (1 << luma->bits[index]) - 1;
+            CHECK(taps[index] >= luma->minimum[index]);
+            CHECK(taps[index] <= maximum);
+        }
+    }
+
+    /* Out of range match indices and arguments fail closed. */
+    CHECK(av2h_wienerns_frame_predictor(0U, 64U, 0U, 1U, decoded, taps) ==
+          AV2H_INVALID_DATA);
+    CHECK(av2h_wienerns_frame_predictor(0U, 0U, 0U, 0U, decoded, taps) ==
+          AV2H_INVALID_ARGUMENT);
+    CHECK(av2h_wienerns_frame_predictor(0U, 0U, 2U, 2U, decoded, 0) ==
+          AV2H_INVALID_ARGUMENT);
+}
+
+/* The multi class map folds the 25 pre-computed Wiener classifier buckets
+   onto the signalled class count. */
+static void test_wienerns_class_map(void) {
+    static const unsigned int counts[] = { 1U, 2U, 3U, 4U, 6U, 8U, 12U, 16U };
+    unsigned int count_index;
+    unsigned int set_index;
+
+    for (set_index = 0U; set_index < 4U; ++set_index) {
+        for (count_index = 0U;
+             count_index < sizeof(counts) / sizeof(counts[0]);
+             ++count_index) {
+            unsigned int count = counts[count_index];
+            const uint8_t *map = av2h_wienerns_class_map(count, set_index);
+            unsigned int index;
+            unsigned int seen = 0U;
+            CHECK(map != 0);
+            if (map == 0) continue;
+            for (index = 0U; index < 256U; ++index) {
+                CHECK(map[index] < count);
+                if (map[index] < count) seen |= 1U << map[index];
+            }
+            CHECK(seen == (unsigned int)((1U << count) - 1U));
+        }
+    }
+    /* Unsupported counts fall back to the single class map. */
+    CHECK(av2h_wienerns_class_map(5U, 0U) ==
+          av2h_wienerns_class_map(1U, 0U));
+}
+
+/* Multi class luma Wiener nonseparable restoration needs the transform skip
+   map for classification, single class does not. Neither does the separable
+   Wiener path. */
+static void test_restoration_tx_skip_requirement(void) {
+    Av2hFrameState frame = { 0 };
+
+    CHECK(av2h_frame_restoration_needs_tx_skip(0) == 0);
+
+    frame.restoration_type[0] = AV2H_RESTORE_NONE;
+    CHECK(av2h_frame_restoration_needs_tx_skip(&frame) == 0);
+
+    frame.restoration_type[0] = AV2H_RESTORE_PC_WIENER;
+    CHECK(av2h_frame_restoration_needs_tx_skip(&frame) == 1);
+
+    frame.restoration_type[0] = AV2H_RESTORE_WIENER_NONSEP;
+    frame.restoration_num_filter_classes[0] = 1U;
+    CHECK(av2h_frame_restoration_needs_tx_skip(&frame) == 0);
+
+    frame.restoration_num_filter_classes[0] = 2U;
+    CHECK(av2h_frame_restoration_needs_tx_skip(&frame) == 1);
+
+    /* A chroma-only Wiener nonseparable plane never pulls in the map. */
+    frame.restoration_type[0] = AV2H_RESTORE_NONE;
+    frame.restoration_type[1] = AV2H_RESTORE_WIENER_NONSEP;
+    frame.restoration_num_filter_classes[1] = 16U;
+    CHECK(av2h_frame_restoration_needs_tx_skip(&frame) == 0);
+}
+
 int main(void) {
     test_workspace_model();
     test_wide_q_index_handoff();
@@ -1979,6 +2140,10 @@ int main(void) {
     test_edge_classes();
     test_ccso_validation();
     test_fail_closed();
+    test_wienerns_parameters();
+    test_wienerns_frame_predictor();
+    test_wienerns_class_map();
+    test_restoration_tx_skip_requirement();
     if (failures != 0) {
         fprintf(stderr, "%d filter checks failed\n", failures);
         return 1;

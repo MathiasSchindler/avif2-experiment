@@ -264,60 +264,186 @@ static uint32_t read_ref_subexp(Av2hBitReader *reader,
         count, reference, read_subexp(reader, count, parameter));
 }
 
-static void read_luma_wienerns_frame_filter(Av2hBitReader *reader,
-                                            const Av2hSequenceState *sequence,
-                                            Av2hFrameState *frame) {
-    static const int8_t coefficient_min[16] = {
-        -24, -24, -14, -14, -16, -16, -8, -8,
-        -8, -8, -8, -8, -8, -8, -8, -8
-    };
-    static const uint8_t coefficient_bits[16] = {
-        6U, 6U, 5U, 5U, 5U, 5U, 4U, 4U,
-        4U, 4U, 4U, 4U, 4U, 4U, 4U, 4U
-    };
-    static const uint16_t subset_mask[4] = {
-        0x003fU, 0x0fc3U, 0x0fffU, 0xffffU
-    };
-    int16_t predictor[AV2H_WIENER_NONSEP_MAX_TAPS];
-    uint32_t group;
-    uint32_t match_index;
-    unsigned int subset = 0U;
+static unsigned int wienerns_most_probable_group(
+    unsigned int class_index, const uint32_t *group_counts) {
+    uint32_t first = class_index + 1U;
+    if (first > 2U || group_counts[1] > 2U) {
+        return first > group_counts[1] ? 0U : 1U;
+    }
+    if (first >= group_counts[1] && first >= group_counts[2]) return 0U;
+    if (group_counts[1] >= group_counts[2]) return 1U;
+    return 2U;
+}
+
+static unsigned int wienerns_index_to_group(uint32_t match_index,
+                                            const uint32_t *group_counts) {
+    if (match_index < group_counts[0]) return 0U;
+    if (match_index < group_counts[0] + group_counts[1]) return 1U;
+    return 2U;
+}
+
+static unsigned int wienerns_predict_group(unsigned int class_index,
+                                           const uint32_t *match_indices,
+                                           const uint32_t *group_counts,
+                                           unsigned int *only) {
+    unsigned int prediction;
+    if (class_index == 0U) {
+        prediction = wienerns_most_probable_group(0U, group_counts);
+    } else {
+        uint32_t running[3] = { 0U, 0U, 0U };
+        unsigned int index;
+        for (index = 0U; index < class_index; ++index) {
+            ++running[wienerns_index_to_group(
+                match_indices[index], group_counts)];
+        }
+        if (running[0] >= running[1] && running[0] >= running[2]) {
+            prediction = 0U;
+        } else if (running[1] >= running[2]) {
+            prediction = 1U;
+        } else {
+            prediction = 2U;
+        }
+    }
+    *only = group_counts[(prediction + 1U) % 3U] == 0U &&
+        group_counts[(prediction + 2U) % 3U] == 0U;
+    return prediction;
+}
+
+static uint32_t wienerns_group_base(unsigned int group,
+                                    const uint32_t *group_counts) {
+    uint32_t base = 0U;
     unsigned int index;
-    Av2hStatus status;
-    if (sequence->lr_tools_disable_mask[0] &
-        (1U << AV2H_RESTORE_PC_WIENER)) {
-        frame_fail(reader, AV2H_UNSUPPORTED);
-        return;
-    }
-    group = av2h_bit_reader_read(reader, 1U) == 0U ? 2U : 0U;
-    match_index = group == 2U ?
-        1U + read_ref_subexp(reader, 63U, 4U, 31U) : 0U;
-    if (reader->status != AV2H_OK || match_index > 63U) return;
-    status = av2h_wienerns_luma_frame_predictor(
-        (uint8_t)match_index, predictor);
-    if (status != AV2H_OK) {
-        frame_fail(reader, status);
-        return;
-    }
-    if (av2h_bit_reader_read(reader, 1U) != 0U) {
-        av2h_memory_copy(frame->restoration_frame_filter[0], predictor,
-                         sizeof(predictor));
-        return;
-    }
-    while (subset < 3U && av2h_bit_reader_read(reader, 1U) != 0U) {
-        ++subset;
-    }
-    for (index = 0U; index < 16U; ++index) {
+    for (index = 0U; index < group; ++index) base += group_counts[index];
+    return base;
+}
+
+static void read_wienerns_match_indices(Av2hBitReader *reader,
+                                        unsigned int class_count,
+                                        const uint32_t *group_counts,
+                                        uint32_t *match_indices) {
+    static const unsigned int convert_larger[3] = { 2U, 2U, 1U };
+    static const unsigned int convert_smaller[3] = { 1U, 0U, 0U };
+    unsigned int class_index;
+    for (class_index = 0U; class_index < class_count; ++class_index) {
+        unsigned int only;
+        unsigned int prediction = wienerns_predict_group(
+            class_index, match_indices, group_counts, &only);
+        unsigned int group = prediction;
+        uint32_t base;
         uint32_t count;
-        uint32_t reference;
-        if ((subset_mask[subset] & (uint16_t)(1U << index)) == 0U) continue;
-        count = 1U << coefficient_bits[index];
-        reference = (uint32_t)(predictor[index] - coefficient_min[index]);
-        frame->restoration_frame_filter[0][index] = (int16_t)(
-            (int32_t)read_ref_subexp(reader, count,
-                coefficient_bits[index] - 3U, reference) +
-            coefficient_min[index]);
+        if (only == 0U && av2h_bit_reader_read(reader, 1U) != 0U) {
+            unsigned int index;
+            unsigned int zero_group = 3U;
+            for (index = 0U; index < 3U; ++index) {
+                if (index == prediction) continue;
+                if (group_counts[index] == 0U) {
+                    zero_group = index;
+                    break;
+                }
+            }
+            if (zero_group != 3U) {
+                group = 3U - (prediction + zero_group);
+            } else {
+                group = av2h_bit_reader_read(reader, 1U) != 0U ?
+                    convert_larger[prediction] : convert_smaller[prediction];
+            }
+        }
+        base = wienerns_group_base(group, group_counts);
+        count = group == 0U ? class_index + 1U : group_counts[group];
+        match_indices[class_index] = base;
+        if (count > 1U) {
+            match_indices[class_index] += read_ref_subexp(
+                reader, count, 4U, count / 2U);
+        }
         if (reader->status != AV2H_OK) return;
+    }
+}
+
+
+static void read_wienerns_frame_filter(Av2hBitReader *reader,
+                                       const Av2hSequenceState *sequence,
+                                       Av2hFrameState *frame,
+                                       unsigned int plane) {
+    const Av2hWienerNonsepParameters *parameters =
+        av2h_wienerns_parameters(plane);
+    unsigned int class_count =
+        frame->restoration_num_filter_classes[plane];
+    unsigned int no_pc_wiener =
+        (sequence->lr_tools_disable_mask[0] >>
+         AV2H_RESTORE_PC_WIENER) & 1U;
+    uint32_t group_counts[3];
+    uint32_t match_indices[AV2H_WIENER_NONSEP_MAX_CLASSES];
+    uint8_t exact_match[AV2H_WIENER_NONSEP_MAX_CLASSES];
+    unsigned int class_index;
+    if (class_count == 0U ||
+        class_count > AV2H_WIENER_NONSEP_MAX_CLASSES ||
+        (plane != 0U && class_count != 1U)) {
+        frame_fail(reader, AV2H_INVALID_DATA);
+        return;
+    }
+    group_counts[0] = class_count;
+    group_counts[1] = 0U;
+    group_counts[2] = plane == 0U && no_pc_wiener == 0U ?
+        64U - class_count : 0U;
+    read_wienerns_match_indices(
+        reader, class_count, group_counts, match_indices);
+    if (reader->status != AV2H_OK) return;
+    for (class_index = 0U; class_index < class_count; ++class_index) {
+        exact_match[class_index] =
+            (uint8_t)av2h_bit_reader_read(reader, 1U);
+    }
+    if (reader->status != AV2H_OK) return;
+    for (class_index = 0U; class_index < class_count; ++class_index) {
+        int16_t predictor[AV2H_WIENER_NONSEP_MAX_TAPS];
+        int16_t *taps = frame->restoration_frame_filter[plane][class_index];
+        unsigned int subset = 0U;
+        unsigned int symmetric = 1U;
+        unsigned int index;
+        Av2hStatus status = av2h_wienerns_frame_predictor(
+            plane, match_indices[class_index], class_index, class_count,
+            (const int16_t (*)[AV2H_WIENER_NONSEP_MAX_TAPS])
+                frame->restoration_frame_filter[plane],
+            predictor);
+        if (status != AV2H_OK) {
+            frame_fail(reader, status);
+            return;
+        }
+        if (exact_match[class_index] != 0U) {
+            av2h_memory_copy(taps, predictor, sizeof(predictor));
+            continue;
+        }
+        av2h_memory_fill(taps, 0U,
+                         AV2H_WIENER_NONSEP_MAX_TAPS * sizeof(taps[0]));
+        while (subset + 1U < parameters->subset_count &&
+               av2h_bit_reader_read(reader, 1U) != 0U) {
+            ++subset;
+        }
+        if (parameters->symmetric_first < parameters->coefficient_count &&
+            (parameters->subset_mask[subset] >>
+             parameters->symmetric_first) != 0U) {
+            symmetric = av2h_bit_reader_read(reader, 1U);
+        }
+        for (index = 0U; index < parameters->coefficient_count; ++index) {
+            uint32_t count;
+            uint32_t reference;
+            if ((parameters->subset_mask[subset] & (1U << index)) == 0U) {
+                continue;
+            }
+            count = 1U << parameters->bits[index];
+            reference = (uint32_t)(
+                predictor[index] - parameters->minimum[index]);
+            taps[index] = (int16_t)(
+                (int32_t)read_ref_subexp(reader, count,
+                    parameters->bits[index] - 3U, reference) +
+                parameters->minimum[index]);
+            if (reader->status != AV2H_OK) return;
+            if (symmetric != 0U &&
+                index >= parameters->symmetric_first &&
+                index + 1U < parameters->coefficient_count) {
+                taps[index + 1U] = taps[index];
+                ++index;
+            }
+        }
     }
 }
 
@@ -418,11 +544,7 @@ static void read_restoration(Av2hBitReader *reader,
     }
     for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
         if (frame->restoration_frame_filters_on[plane] == 0U) continue;
-        if (plane != 0U || frame->restoration_num_filter_classes[plane] != 1U) {
-            frame_fail(reader, AV2H_UNSUPPORTED);
-            return;
-        }
-        read_luma_wienerns_frame_filter(reader, sequence, frame);
+        read_wienerns_frame_filter(reader, sequence, frame, plane);
         if (reader->status != AV2H_OK) return;
     }
 }

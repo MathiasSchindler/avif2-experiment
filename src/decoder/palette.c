@@ -294,6 +294,8 @@ Av2hStatus av2h_luma_palette_map_read(
     }
     mode->palette_width = (uint8_t)width;
     mode->palette_height = (uint8_t)height;
+    mode->palette_origin_row = leaf->row;
+    mode->palette_origin_column = leaf->column;
     direction = width < 64U && height < 64U ?
         av2h_range_read_bypass(decoder, 1U) : 0U;
     for (axis2 = 0U; axis2 < (direction ? width : height); ++axis2) {

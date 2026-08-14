@@ -161,6 +161,12 @@ typedef struct {
     uint8_t palette_size;
     uint8_t palette_width;
     uint8_t palette_height;
+    uint16_t palette_origin_row;
+    uint16_t palette_origin_column;
+    uint16_t block_origin_row;
+    uint16_t block_origin_column;
+    uint16_t block_width;
+    uint16_t block_height;
     uint16_t palette_colors[AV2H_PALETTE_MAX_SIZE];
     uint8_t palette_map[AV2H_PALETTE_MAP_CAPACITY];
     uint8_t use_intra_dip;
@@ -428,6 +434,15 @@ Av2hStatus av2h_luma_mode_read_with_state_and_delta_q(
     Av2hCdefEntropyState *cdef_state,
     Av2hCcsoEntropyState *ccso_state,
     Av2hQIndex *current_q_index,
+    uint8_t defer_palette_and_dip,
+    Av2hFirstLeafMode *mode);
+Av2hStatus av2h_luma_mode_read_palette_and_dip(
+    Av2hRangeDecoder *decoder,
+    Av2hLeafCdfs *cdfs,
+    const Av2hSequenceState *sequence,
+    const Av2hFrameState *frame,
+    const Av2hPartitionNode *leaf,
+    const Av2hLumaModeNeighbors *neighbors,
     Av2hFirstLeafMode *mode);
 Av2hStatus av2h_luma_palette_map_read(
     Av2hRangeDecoder *decoder,

@@ -83,15 +83,16 @@ For the currently validated AVM-generated corpus tuples, the decoder supports
 non-DCT transforms, directional prediction, MRL, CfL/MHCCP, luma FSC, IntraBC,
 transform skip, palette prediction, always-on single-picture TCQ, deblock,
 CDEF, CCSO, predefined non-segmented quantization matrices, 8-bit luma
-PC-Wiener restoration, the target baseline's 8-bit single-class Wiener-nonsep
-profile on all three I420 planes, and GDF. The target baseline also has exact
+PC-Wiener restoration, 8-bit `RESTORE_WIENER_NONSEP` on any I420 plane with
+either frame-level or per-unit filters and one or more luma filter classes,
+and GDF. The target baseline also has exact
 pinned-AVM parity through transform partitioning, Intra-DIP, directional IBP,
 MRL, secondary transforms, and the complete filter pipeline. This is not a
 claim of exhaustive feature-family support: chroma FSC remains unaudited,
 palette evidence covers the two observed luma cases, frame-adaptive video TCQ
 remains deferred, custom matrix OBUs and segmented multi-matrix selection remain
-unsupported, and other Wiener-nonsep class profiles, formats, and bit depths
-remain fail-closed. Support for a feature path does not imply support for every
+unsupported, and switchable restoration, other chroma formats, and all 10-bit
+restoration remain fail-closed. Support for a feature path does not imply support for every
 combination of geometry, coefficient profile, transform, and surrounding
 syntax.
 
@@ -115,7 +116,7 @@ exists. AVM exposing a switch proves availability, not a gain for this corpus.
 | Stronger ordinary trellis optimization | Small compression or quality improvement | Expected to use existing coefficient syntax | None; validate emitted streams |
 | IntraBC and screen-content tuning | Medium to large for text, diagrams, and repeated screen regions; usually small for photographs | IntraBC, transform skip, and observed palette paths are supported | No new core feature; broaden end-to-end evidence |
 | Trellis-coded quantization (TCQ) | Small to medium compression improvement | Supported for pinned AVM's always-on single-picture subset | Broaden Q-context, transform, bit-depth, malformed-input, and durable platform evidence; defer frame-adaptive video mode |
-| Loop restoration | Small to medium quality or compression improvement, especially near visible artifacts | Supported for 8-bit luma PC-Wiener and the target baseline's single-class Wiener-nonsep profile on all I420 planes; other profiles and 10-bit remain fail-closed | Add durable Wiener-nonsep fixtures, measure corpus impact, and broaden modes or formats only from observed demand |
+| Loop restoration | Small to medium quality or compression improvement, especially near visible artifacts | Supported for 8-bit luma PC-Wiener and 8-bit Wiener-nonsep on any I420 plane, with frame-level or per-unit filters and multi-class luma; switchable restoration and 10-bit remain fail-closed | Add durable Wiener-nonsep fixtures, measure corpus impact, and broaden modes or formats only from observed demand |
 | Quantization matrices | Small to medium perceptual-quality improvement; metric-dependent | Predefined matrices are supported for non-segmented pictures; custom QM OBUs remain fail-closed | Broaden levels, formats, transforms, malformed-input, and platform evidence; add custom OBU state only from observed demand |
 | Adaptive quantization, delta-Q, and segmentation | Medium perceptual-quality improvement on spatially varied images | Pinned AVM `aq-mode=1` ALT_Q segmentation and `deltaq-mode=1`/`2` are supported for closed-loop key pictures | Broaden bit depths, QPs, malformed-input vectors, and platform evidence; retain fail-closed extended and non-ALT_Q features |
 | Film-grain synthesis | Large compression opportunity for genuinely noisy or grainy images; neutral or harmful for clean images | Unsupported and not sample-preserving | Grain metadata parsing, deterministic synthesis, output semantics, workspace, and conformance vectors |
@@ -316,10 +317,12 @@ AVM enables restoration by default and exposes `--enable-restoration`. The
 current generators still disable it. Restoration was unsupported when this
 opportunity was first recorded; the decoder now supports the exact subset
 observed in the locked fixture: 8-bit luma-only `RESTORE_PC_WIENER`. It also
-supports the target baseline's scalar 8-bit `RESTORE_WIENER_NONSEP` profile:
-one filter class on each I420 plane, including cross-component chroma filtering.
-Other Wiener-nonsep class profiles, switchable restoration, other chroma
-formats, and all 10-bit restoration remain fail-closed.
+supports scalar 8-bit `RESTORE_WIENER_NONSEP` on any subset of the I420 planes,
+including cross-component chroma filtering, with either per-unit filters carried
+in the tile data or a frame-level filter carried in the frame header, and with
+one or more luma filter classes selected by the PC-Wiener classifier. Switchable
+restoration, other chroma formats, and all 10-bit restoration remain
+fail-closed.
 
 Estimated effect: small to medium. Restoration can reduce ringing, blur, and
 other reconstruction artifacts, allowing a better quality/size tradeoff. Its
@@ -332,9 +335,16 @@ Current implementation and remaining work:
    bounded validation.
 2. The scalar 8-bit PC-Wiener classifier and filter implement pinned AVM's
    rounding, clipping, stripe boundaries, unit geometry, and edge extension.
-3. Scalar single-class Wiener-nonsep implements luma and cross-component chroma
-   taps, pinned-AVM rounding, processing stripes, and downsampled-luma boundary
-   extension for the target I420 profile.
+3. Scalar Wiener-nonsep implements luma and cross-component chroma taps,
+   pinned-AVM rounding, processing stripes, and downsampled-luma boundary
+   extension for the target I420 profile. Per-unit filters are decoded from the
+   filter bank with the normative subset, symmetry, and four-part tap coding;
+   frame-level filters are decoded from the frame header with match-index group
+   coding against previously decoded classes and the translated pre-computed
+   Wiener bank. Multi-class luma filtering derives a 4x4 class from the
+   PC-Wiener classifier and folds it onto the signalled class count, which is
+   why the transform-skip map is retained whenever it is needed.
+   `av2h_frame_restoration_needs_tx_skip()` is the single predicate for that.
 4. Checked caller-owned workspace now includes the restoration destination,
    per-plane unit flags and taps, and transform-skip map while preserving
    allocation-free decode.
@@ -346,10 +356,14 @@ Current implementation and remaining work:
    whole-image evidence for the admitted subset.
 7. The 896x598 target baseline probe is byte-exact against pinned AVM through
    reconstruction, every filter checkpoint, and final planar output.
-8. Add a retained Wiener-nonsep fixture plus focused malformed-control,
-   truncation, edge, odd-dimension, and multi-unit cases to make that evidence
+8. `tests/filter_unit.c` covers the Wiener-nonsep coefficient tables and
+   signalled subsets, the frame-filter match-index predictor including its
+   fail-closed paths, the multi-class classifier folding for every supported
+   class count and set index, and the transform-skip requirement predicate.
+9. Add a retained Wiener-nonsep fixture plus focused malformed-control,
+   truncation, edge, and odd-dimension cases to make the whole-image evidence
    durable.
-9. Measure rate-distortion and decode cost across the photographic corpus before
+10. Measure rate-distortion and decode cost across the photographic corpus before
    admitting restoration to the production generator. Add chroma, other modes,
    or 10-bit support only with separate observed demand and exact parity gates.
 

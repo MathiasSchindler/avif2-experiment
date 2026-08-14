@@ -245,7 +245,7 @@ static Av2hStatus tile_restoration_entropy_init(
             state->four_part_cdf, 8U, thresholds, 4U, 6U, 0U);
     }
     if (status != AV2H_OK) return status;
-    for (plane = 1U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
+    for (plane = 0U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
         unsigned int slot;
         for (slot = 0U; slot < 4U; ++slot) {
             state->bank[plane][slot][0] = 8;
@@ -278,7 +278,7 @@ static Av2hStatus tile_tx_partition_cdfs_init(Av2hTxPartitionCdfs *cdfs) {
         },
         {
             {
-                { 29308U, 0U, 0U }, { 32550U, 93U, 1U },
+                { 29308U, 0U, 0U }, { 32550U, 93U, 0U },
                 { 27963U, 1U, 0U }, { 27618U, 31U, 0U },
                 { 22367U, 7U, 0U }, { 23478U, 35U, 0U },
                 { 16384U, 0U, 0U }, { 16384U, 0U, 0U },
@@ -293,31 +293,101 @@ static Av2hStatus tile_tx_partition_cdfs_init(Av2hTxPartitionCdfs *cdfs) {
             }
         }
     };
-    static const Av2hBinaryCdfSpec two_or_three_way[2U][2U] = {
-        { { 25131U, 30U, 0U }, { 24514U, 30U, 0U } },
-        { { 19534U, 6U, 0U }, { 18637U, 0U, 0U } }
+    static const Av2hBinaryCdfSpec two_or_three_way[2U][2U][2U] = {
+        {
+            { { 25131U, 30U, 0U }, { 24514U, 30U, 0U } },
+            { { 19534U, 6U, 0U }, { 18637U, 0U, 0U } }
+        },
+        {
+            { { 30226U, 50U, 0U }, { 30703U, 33U, 0U } },
+            { { 16384U, 0U, 0U }, { 16384U, 0U, 0U } }
+        }
     };
-    static const uint16_t partition_type[
+    static const uint16_t partition_type[2U][2U][
         AV2H_TX_PARTITION_TYPE_GROUPS][6U] = {
-        { 32744U, 32748U, 32752U, 32756U, 32760U, 32764U },
-        { 3006U, 22888U, 27132U, 29972U, 29976U, 32724U },
-        { 3673U, 8849U, 27652U, 27656U, 29944U, 29948U },
-        { 5219U, 19419U, 28052U, 28836U, 29528U, 31296U },
-        { 3055U, 19649U, 22157U, 27038U, 27466U, 31646U },
-        { 6044U, 11255U, 26170U, 26493U, 28585U, 29584U },
-        { 5896U, 20361U, 25685U, 27552U, 28695U, 31097U },
-        { 2355U, 17601U, 21703U, 26050U, 27881U, 31397U },
-        { 4701U, 13502U, 24958U, 26413U, 28166U, 30129U },
-        { 3319U, 16449U, 21641U, 27154U, 29260U, 31512U },
-        { 2526U, 17088U, 19643U, 29378U, 29382U, 32724U },
-        { 2298U, 4406U, 23886U, 23890U, 30148U, 30152U },
-        { 1553U, 16160U, 18679U, 27983U, 29592U, 32139U },
-        { 2316U, 4714U, 22731U, 23797U, 29514U, 30077U }
+        {
+            {
+                { 32744U, 32748U, 32752U, 32756U, 32760U, 32764U },
+                { 3006U, 22888U, 27132U, 29972U, 29976U, 32724U },
+                { 3673U, 8849U, 27652U, 27656U, 29944U, 29948U },
+                { 5219U, 19419U, 28052U, 28836U, 29528U, 31296U },
+                { 3055U, 19649U, 22157U, 27038U, 27466U, 31646U },
+                { 6044U, 11255U, 26170U, 26493U, 28585U, 29584U },
+                { 5896U, 20361U, 25685U, 27552U, 28695U, 31097U },
+                { 2355U, 17601U, 21703U, 26050U, 27881U, 31397U },
+                { 4701U, 13502U, 24958U, 26413U, 28166U, 30129U },
+                { 3319U, 16449U, 21641U, 27154U, 29260U, 31512U },
+                { 2526U, 17088U, 19643U, 29378U, 29382U, 32724U },
+                { 2298U, 4406U, 23886U, 23890U, 30148U, 30152U },
+                { 1553U, 16160U, 18679U, 27983U, 29592U, 32139U },
+                { 2316U, 4714U, 22731U, 23797U, 29514U, 30077U },
+            },
+            {
+                { 10790U, 22602U, 32736U, 32740U, 32744U, 32748U },
+                { 14384U, 19116U, 26545U, 28687U, 28691U, 32724U },
+                { 13910U, 21690U, 26343U, 26347U, 28432U, 28436U },
+                { 15891U, 21712U, 28890U, 29571U, 30307U, 31363U },
+                { 15946U, 19447U, 20270U, 23423U, 23858U, 31148U },
+                { 16053U, 16957U, 20312U, 20924U, 24770U, 25959U },
+                { 18479U, 23053U, 26582U, 26966U, 27567U, 29836U },
+                { 9312U, 11882U, 14354U, 17792U, 19827U, 29477U },
+                { 8490U, 10668U, 13295U, 15353U, 19952U, 22575U },
+                { 6404U, 12066U, 16173U, 20041U, 24512U, 28421U },
+                { 10019U, 14455U, 17658U, 27012U, 27016U, 32724U },
+                { 9479U, 14904U, 19374U, 19378U, 28027U, 28031U },
+                { 3717U, 7198U, 8103U, 20546U, 23558U, 31447U },
+                { 4058U, 5429U, 8987U, 13978U, 25126U, 26655U },
+            },
+        },
+        {
+            {
+                { 32434U, 32490U, 32545U, 32601U, 32657U, 32712U },
+                { 1491U, 14241U, 29930U, 32517U, 32524U, 32724U },
+                { 1719U, 16525U, 31000U, 31004U, 32575U, 32579U },
+                { 1645U, 16749U, 29324U, 30425U, 32016U, 32485U },
+                { 2908U, 15802U, 24689U, 28470U, 32122U, 32542U },
+                { 3470U, 17931U, 25841U, 29589U, 31907U, 32465U },
+                { 5638U, 19594U, 28693U, 29977U, 30703U, 32154U },
+                { 4681U, 9362U, 14043U, 18725U, 23406U, 28087U },
+                { 4681U, 9362U, 14043U, 18725U, 23406U, 28087U },
+                { 4681U, 9362U, 14043U, 18725U, 23406U, 28087U },
+                { 2734U, 12129U, 30342U, 31805U, 31844U, 32724U },
+                { 3849U, 21783U, 31043U, 31056U, 32181U, 32193U },
+                { 4681U, 9362U, 14043U, 18725U, 23406U, 28087U },
+                { 4681U, 9362U, 14043U, 18725U, 23406U, 28087U },
+            },
+            {
+                { 4681U, 9362U, 14043U, 18725U, 23406U, 28087U },
+                { 4681U, 9362U, 14043U, 18725U, 23406U, 28087U },
+                { 4681U, 9362U, 14043U, 18725U, 23406U, 28087U },
+                { 4681U, 9362U, 14043U, 18725U, 23406U, 28087U },
+                { 4681U, 9362U, 14043U, 18725U, 23406U, 28087U },
+                { 4681U, 9362U, 14043U, 18725U, 23406U, 28087U },
+                { 4681U, 9362U, 14043U, 18725U, 23406U, 28087U },
+                { 4681U, 9362U, 14043U, 18725U, 23406U, 28087U },
+                { 4681U, 9362U, 14043U, 18725U, 23406U, 28087U },
+                { 4681U, 9362U, 14043U, 18725U, 23406U, 28087U },
+                { 4681U, 9362U, 14043U, 18725U, 23406U, 28087U },
+                { 4681U, 9362U, 14043U, 18725U, 23406U, 28087U },
+                { 4681U, 9362U, 14043U, 18725U, 23406U, 28087U },
+                { 4681U, 9362U, 14043U, 18725U, 23406U, 28087U },
+            },
+        },
     };
-    static const uint8_t partition_parameter[
+    static const uint8_t partition_parameter[2U][2U][
         AV2H_TX_PARTITION_TYPE_GROUPS] = {
-        60U, 31U, 31U, 31U, 31U, 31U, 31U,
-        32U, 32U, 32U, 31U, 31U, 32U, 37U
+        {
+            { 60U, 31U, 31U, 31U, 31U, 31U, 31U,
+              32U, 32U, 32U, 31U, 31U, 32U, 37U },
+            { 32U, 31U, 31U, 32U, 32U, 32U, 62U,
+              62U, 62U, 62U, 37U, 37U, 62U, 62U },
+        },
+        {
+            { 50U, 57U, 30U, 62U, 25U, 43U, 50U,
+              0U, 0U, 0U, 50U, 65U, 0U, 0U },
+            { 0U, 0U, 0U, 0U, 0U, 0U, 0U,
+              0U, 0U, 0U, 0U, 0U, 0U, 0U },
+        },
     };
     size_t index;
     Av2hStatus status;
@@ -332,19 +402,26 @@ static Av2hStatus tile_tx_partition_cdfs_init(Av2hTxPartitionCdfs *cdfs) {
             do_partition[fsc][is_inter][group]);
         if (status != AV2H_OK) return status;
     }
-    for (index = 0U; index < 4U; ++index) {
-        size_t direction = index / 2U;
+    for (index = 0U; index < 8U; ++index) {
+        size_t fsc = index / 4U;
+        size_t direction = (index / 2U) % 2U;
         size_t context = index % 2U;
         status = av2h_binary_cdf_init(
-            cdfs->two_or_three_way[direction][context],
-            two_or_three_way[direction][context]);
+            cdfs->two_or_three_way[fsc][direction][context],
+            two_or_three_way[fsc][direction][context]);
         if (status != AV2H_OK) return status;
     }
-    for (index = 0U; index < AV2H_TX_PARTITION_TYPE_GROUPS; ++index) {
+    for (index = 0U; index < 4U * AV2H_TX_PARTITION_TYPE_GROUPS; ++index) {
+        size_t fsc = index / (2U * AV2H_TX_PARTITION_TYPE_GROUPS);
+        size_t direction =
+            (index / AV2H_TX_PARTITION_TYPE_GROUPS) % 2U;
+        size_t group = index % AV2H_TX_PARTITION_TYPE_GROUPS;
         status = av2h_cdf_init(
-            cdfs->partition_type[index],
-            AV2H_TX_PARTITION_TYPE_SYMBOLS + 4U, partition_type[index],
-            AV2H_TX_PARTITION_TYPE_SYMBOLS, partition_parameter[index], 0U);
+            cdfs->partition_type[fsc][direction][group],
+            AV2H_TX_PARTITION_TYPE_SYMBOLS + 4U,
+            partition_type[fsc][direction][group],
+            AV2H_TX_PARTITION_TYPE_SYMBOLS,
+            partition_parameter[fsc][direction][group], 0U);
         if (status != AV2H_OK) return status;
     }
     return AV2H_OK;

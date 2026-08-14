@@ -593,7 +593,7 @@ static int filter_workspace_valid(
          workspace->restoration.height != layout->plane_height[0] ||
          workspace->restoration.stride_samples <
              workspace->restoration.width ||
-         (frame->restoration_type[0] == AV2H_RESTORE_PC_WIENER &&
+         (av2h_frame_restoration_needs_tx_skip(frame) &&
           (workspace->restoration_tx_skip == 0 ||
            workspace->restoration_controls.tx_skip !=
                workspace->restoration_tx_skip ||
@@ -1251,7 +1251,7 @@ Av2hStatus av2h_filter_workspace_query_bytes(
                 sizeof(uint8_t), _Alignof(uint8_t))) {
             return AV2H_OVERFLOW;
         }
-        if (frame->restoration_type[0] == AV2H_RESTORE_PC_WIENER) {
+        if (av2h_frame_restoration_needs_tx_skip(frame)) {
             layout->restoration_tx_skip_count =
                 layout->deblock_cell_count[0];
             if (!workspace_reserve(

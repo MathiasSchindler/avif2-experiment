@@ -249,6 +249,22 @@ static void build_intrabc_candidates(
     }
 }
 
+/* Reference block vectors are rounded to the precision of the coded
+   difference before the difference is applied. */
+static int32_t intrabc_lower_precision(int32_t value, uint8_t precision) {
+    int32_t radix;
+    int32_t remainder;
+    if (precision >= 4U) return value;
+    radix = (int32_t)1 << (6U - precision);
+    remainder = value % radix;
+    if (remainder == 0) return value;
+    value -= remainder;
+    if ((remainder < 0 ? -remainder : remainder) > (radix >> 1)) {
+        value += remainder > 0 ? radix : -radix;
+    }
+    return value;
+}
+
 Av2hStatus av2h_leaf_read_first_intrabc(
     Av2hRangeDecoder *decoder,
     Av2hLeafCdfs *cdfs,
@@ -465,6 +481,10 @@ Av2hStatus av2h_leaf_read_first_intrabc(
         if (av2h_range_status(decoder) != AV2H_OK) {
             return av2h_range_status(decoder);
         }
+        reference_x = intrabc_lower_precision(reference_x,
+                                              mode->mv_precision);
+        reference_y = intrabc_lower_precision(reference_y,
+                                              mode->mv_precision);
     }
     mode->displacement_x = (int16_t)(reference_x + difference_x);
     mode->displacement_y = (int16_t)(reference_y + difference_y);

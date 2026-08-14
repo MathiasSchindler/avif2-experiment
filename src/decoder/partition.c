@@ -263,11 +263,11 @@ static Av2hPartitionAxis partial_boundary_axis(
     unsigned int has_columns =
         (size_t)node.column + geometry->mi_width / 2U < mi_columns;
     if (geometry->mi_height > geometry->mi_width &&
-        geometry->mi_width >= 4U && has_rows && !has_columns) {
+        has_rows && !has_columns) {
         return AV2H_PARTITION_VERTICAL;
     }
     if (geometry->mi_width > geometry->mi_height &&
-        geometry->mi_height >= 4U && !has_rows && has_columns) {
+        !has_rows && has_columns) {
         return AV2H_PARTITION_HORIZONTAL;
     }
     return (Av2hPartitionAxis)255;

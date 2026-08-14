@@ -1085,13 +1085,6 @@ Av2hStatus av2h_first_chroma_transform_type_read(
         decoder, cdfs, frame, &mode, plane, 1U, coeff, transform);
 }
 
-static Av2hFirstLeafIntraMode chroma_transform_mode(
-    const Av2hFirstChromaMode *mode,
-    const Av2hTxDescriptor *descriptor) {
-    return av2h_transform_mode(
-        mode->mode, mode->angle_delta, 0U, descriptor);
-}
-
 Av2hStatus av2h_chroma_transform_type_read(
     Av2hRangeDecoder *decoder,
     Av2hFirstTransformCdfs *cdfs,
@@ -1102,7 +1095,6 @@ Av2hStatus av2h_chroma_transform_type_read(
     const Av2hFirstCoeffPrefix *coeff,
     Av2hFirstTransformType *transform) {
     const Av2hTxDescriptor *descriptor;
-    Av2hFirstChromaMode mapped_mode;
     uint32_t symbol = 0U;
     Av2hStatus status;
     if (decoder == 0 || cdfs == 0 || frame == 0 || mode == 0 || coeff == 0 ||
@@ -1115,11 +1107,8 @@ Av2hStatus av2h_chroma_transform_type_read(
         if (coeff->all_zero) {
             transform->primary_type = AV2H_TX_DCT_DCT;
         } else {
-            mapped_mode = *mode;
-            mapped_mode.mode = chroma_transform_mode(mode, descriptor);
-            mapped_mode.angle_delta = 0;
             status = av2h_chroma_primary_type_map(
-                &mapped_mode, descriptor, frame->reduced_tx_set,
+                mode, descriptor, frame->reduced_tx_set,
                 &transform->primary_type);
             if (status != AV2H_OK) return status;
         }

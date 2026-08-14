@@ -566,11 +566,49 @@ static void test_16x8_intrabc_morph_centered_template(void) {
     block.height = 8U;
     block.coefficient_count = 128U;
 
+    /* The displacement is a whole number of pixels, so the subpel phase is
+       zero and the IntraBC predictor must reproduce the reference block
+       verbatim before the morph parameters are applied. */
+    mode.morph_pred = 0U;
     CHECK(av2h_luma_reconstruct_to_plane(
               &leaf, &mode, &prefix, &transform, &block,
               &plane, &scratch) == AV2H_OK);
-        CHECK(sample_hash(scratch.predictor, 128U) ==
-                    UINT64_C(0x4cf5b460451081a1));
+    for (index = 0U; index < 128U; ++index) {
+        size_t row = index / 16U;
+        size_t column = index % 16U;
+        size_t source_row = 8U * 4U + row - 24U;
+        size_t source_column = 8U * 4U + column - 24U;
+        CHECK(scratch.predictor[index] ==
+              pixels[source_row * 64U + source_column]);
+    }
+
+    /* With morph prediction the samples are rescaled by the least squares
+       parameters derived from the neighbouring template, so they no longer
+       match the reference block but stay inside the 8 bit range. */
+    mode.morph_pred = 1U;
+    CHECK(av2h_luma_reconstruct_to_plane(
+              &leaf, &mode, &prefix, &transform, &block,
+              &plane, &scratch) == AV2H_OK);
+    CHECK(sample_hash(scratch.predictor, 128U) ==
+          UINT64_C(0xd7a7828f06706523));
+    for (index = 0U; index < 128U; ++index) {
+        CHECK(scratch.predictor[index] <= 255U);
+    }
+}
+
+static void test_intrabc_morph_reference_edge(void) {
+    uint16_t plane[8U * 8U];
+    uint16_t predictor[4U] = { 10U, 20U, 30U, 40U };
+    size_t index;
+    for (index = 0U; index < 8U * 8U; ++index) {
+        plane[index] = (uint16_t)index;
+    }
+    CHECK(av2h_intrabc_morph_u16(
+              plane, 8U, 8U, 8U, 1U, 1U, 4U, 4U,
+              7, 7, 2U, 2U, 10U, predictor) == AV2H_INVALID_DATA);
+    CHECK(av2h_intrabc_morph_u16(
+              plane, 8U, 8U, 8U, 1U, 1U, 4U, 4U,
+              8, 7, 2U, 2U, 10U, predictor) == AV2H_INVALID_DATA);
 }
 
 static void test_skipped_intrabc_geometry_matrix(void) {
@@ -7020,6 +7058,7 @@ int main(void) {
     test_d203_16x16_ibp_prediction();
     test_skipped_16x8_intrabc_reconstruction();
     test_16x8_intrabc_morph_centered_template();
+    test_intrabc_morph_reference_edge();
     test_skipped_intrabc_geometry_matrix();
     test_palette_prediction();
     test_complete_palette_tables_and_map();

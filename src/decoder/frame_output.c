@@ -346,7 +346,7 @@ Av2hStatus av2h_decode_frame_planar_private(
                     returned, status, AV2H_FRAME_DECODE_STAGE_LUMA_DEBLOCK,
                     0U, &leaf.node, 0U);
             }
-            if (frame->restoration_type[0] == AV2H_RESTORE_PC_WIENER) {
+            if (av2h_frame_restoration_needs_tx_skip(frame)) {
                 status = restoration_tx_skip_commit(
                     workspace->filter_workspace, &leaf.node, &leaf.prefix);
                 if (status != AV2H_OK) {

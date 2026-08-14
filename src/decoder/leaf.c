@@ -440,6 +440,7 @@ static Av2hStatus luma_mode_read_internal(
     Av2hCdefEntropyState *cdef_state,
     Av2hCcsoEntropyState *ccso_state,
     Av2hQIndex *current_q_index,
+    uint8_t defer_palette_and_dip,
     Av2hFirstLeafMode *mode);
 
 Av2hStatus av2h_luma_mode_read_with_state(
@@ -471,7 +472,7 @@ Av2hStatus av2h_luma_mode_read_with_state_and_gdf(
     if (status != AV2H_OK) return status;
     status = luma_mode_read_internal(
         decoder, cdfs, sequence, frame, leaf, &neighbors, state, gdf_state,
-        cdef_state, ccso_state, 0, mode);
+        cdef_state, ccso_state, 0, 0U, mode);
     return status;
 }
 
@@ -486,6 +487,7 @@ Av2hStatus av2h_luma_mode_read_with_state_and_delta_q(
     Av2hCdefEntropyState *cdef_state,
     Av2hCcsoEntropyState *ccso_state,
     Av2hQIndex *current_q_index,
+    uint8_t defer_palette_and_dip,
     Av2hFirstLeafMode *mode) {
     Av2hLumaModeNeighbors neighbors;
     Av2hStatus status = av2h_luma_mode_neighbors_from_state(
@@ -493,7 +495,8 @@ Av2hStatus av2h_luma_mode_read_with_state_and_delta_q(
     if (status != AV2H_OK) return status;
     return luma_mode_read_internal(
         decoder, cdfs, sequence, frame, leaf, &neighbors, state, gdf_state,
-        cdef_state, ccso_state, current_q_index, mode);
+        cdef_state, ccso_state, current_q_index, defer_palette_and_dip,
+        mode);
 }
 
 static Av2hStatus read_delta_q(
@@ -652,6 +655,7 @@ static Av2hStatus luma_mode_read_internal(
     Av2hCdefEntropyState *cdef_state,
     Av2hCcsoEntropyState *ccso_state,
     Av2hQIndex *current_q_index,
+    uint8_t defer_palette_and_dip,
     Av2hFirstLeafMode *mode) {
     size_t plane;
     size_t neighbor;
@@ -765,6 +769,17 @@ static Av2hStatus luma_mode_read_internal(
         av2h_leaf_diagnostics_set_luma_stage(2U);
         if (value != 0U) {
             Av2hStatus status;
+            size_t block_width_mi;
+            size_t block_height_mi;
+            if (av2h_block_dimensions_mi(
+                    leaf->block_size, &block_width_mi,
+                    &block_height_mi) != AV2H_OK) {
+                return AV2H_UNSUPPORTED;
+            }
+            mode->block_origin_row = leaf->row;
+            mode->block_origin_column = leaf->column;
+            mode->block_width = (uint16_t)(block_width_mi * 4U);
+            mode->block_height = (uint16_t)(block_height_mi * 4U);
             if (skip_transform_context >=
                 AV2H_SKIP_TRANSFORM_CONTEXT_COUNT) {
                 return AV2H_INVALID_DATA;
@@ -957,6 +972,36 @@ static Av2hStatus luma_mode_read_internal(
     }
     mode->after_mrl_bits = av2h_range_tell(decoder);
     av2h_leaf_diagnostics_set_luma_stage(6U);
+    if (defer_palette_and_dip) {
+        mode->palette_mode = 0U;
+        mode->palette_size = 0U;
+        mode->before_palette_bits = mode->after_mrl_bits;
+        mode->after_palette_bits = mode->before_palette_bits;
+        mode->after_palette_colors_bits = mode->before_palette_bits;
+        mode->after_palette_map_bits = mode->before_palette_bits;
+        return AV2H_OK;
+    }
+    return av2h_luma_mode_read_palette_and_dip(
+        decoder, cdfs, sequence, frame, leaf, neighbors, mode);
+    return AV2H_OK;
+}
+
+Av2hStatus av2h_luma_mode_read_palette_and_dip(
+    Av2hRangeDecoder *decoder,
+    Av2hLeafCdfs *cdfs,
+    const Av2hSequenceState *sequence,
+    const Av2hFrameState *frame,
+    const Av2hPartitionNode *leaf,
+    const Av2hLumaModeNeighbors *neighbors,
+    Av2hFirstLeafMode *mode) {
+    uint32_t value;
+    size_t neighbor;
+    uint8_t has_spatial_neighbors;
+    if (decoder == 0 || cdfs == 0 || sequence == 0 || frame == 0 ||
+        leaf == 0 || neighbors == 0 || mode == 0) {
+        return AV2H_INVALID_ARGUMENT;
+    }
+    has_spatial_neighbors = neighbors->spatial_valid;
     mode->palette_mode = 0U;
     mode->palette_size = 0U;
     mode->before_palette_bits = mode->after_mrl_bits;
@@ -1043,7 +1088,7 @@ Av2hStatus av2h_luma_mode_read(
     const Av2hLumaModeNeighbors *neighbors,
     Av2hFirstLeafMode *mode) {
     return luma_mode_read_internal(
-        decoder, cdfs, sequence, frame, leaf, neighbors, 0, 0, 0, 0, 0,
+        decoder, cdfs, sequence, frame, leaf, neighbors, 0, 0, 0, 0, 0, 0U,
         mode);
 }
 

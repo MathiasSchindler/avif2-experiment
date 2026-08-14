@@ -78,8 +78,8 @@ typedef struct {
 typedef struct {
     uint16_t do_partition[2U][2U][AV2H_TX_PARTITION_GROUPS]
                           [AV2H_BINARY_CDF_SIZE];
-    uint16_t two_or_three_way[2U][2U][AV2H_BINARY_CDF_SIZE];
-    uint16_t partition_type[AV2H_TX_PARTITION_TYPE_GROUPS]
+    uint16_t two_or_three_way[2U][2U][2U][AV2H_BINARY_CDF_SIZE];
+    uint16_t partition_type[2U][2U][AV2H_TX_PARTITION_TYPE_GROUPS]
                             [AV2H_TX_PARTITION_TYPE_SYMBOLS + 4U];
 } Av2hTxPartitionCdfs;
 

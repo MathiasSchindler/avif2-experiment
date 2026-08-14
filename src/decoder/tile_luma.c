@@ -2,6 +2,7 @@
 #include "internal/coeff_modules.h"
 #include "internal/decode_diagnostics.h"
 #include "internal/tile_modules.h"
+#include "internal/wiener_nonsep.h"
 #include "tx_geometry.h"
 
 static void tile_capture_luma_root_child(
@@ -208,25 +209,19 @@ static void restoration_bank_add(Av2hRestorationEntropyState *state,
 
 static Av2hStatus tile_read_wiener_unit_filter(
     Av2hTileDecoder *decoder, unsigned int plane, int16_t *taps) {
-    static const uint8_t coefficient_bits[AV2H_WIENER_NONSEP_MAX_TAPS] = {
-        6U, 6U, 5U, 5U, 5U, 5U, 5U, 5U, 5U,
-        5U, 4U, 4U, 4U, 4U, 4U, 4U, 4U, 4U
-    };
-    static const int16_t coefficient_minimums[
-        AV2H_WIENER_NONSEP_MAX_TAPS] = {
-        -24, -24, -14, -14, -16, -16, -16, -16, -16,
-        -16, -8, -8, -8, -8, -8, -8, -8, -8
-    };
+    const Av2hWienerNonsepParameters *parameters =
+        av2h_wienerns_parameters(plane);
     Av2hRestorationEntropyState *state = &decoder->restoration_entropy;
     const int16_t *reference_taps;
     uint32_t exact_match;
     uint8_t reference = 0U;
-    uint8_t subset = 0U;
-    uint8_t subset_taps;
-    uint8_t symmetric = 1U;
+    unsigned int subset = 0U;
+    unsigned int symmetric = 1U;
     size_t index;
     Av2hStatus status;
-    if (plane == 0U || taps == 0) return AV2H_INVALID_ARGUMENT;
+    if (plane >= AV2H_FRAME_PLANE_COUNT || taps == 0) {
+        return AV2H_INVALID_ARGUMENT;
+    }
     exact_match = av2h_range_read_bypass(&decoder->range, 1U);
     if (av2h_range_status(&decoder->range) != AV2H_OK) {
         return av2h_range_status(&decoder->range);
@@ -250,35 +245,39 @@ static Av2hStatus tile_read_wiener_unit_filter(
     }
     av2h_memory_fill(taps, 0U,
                      AV2H_WIENER_NONSEP_MAX_TAPS * sizeof(taps[0]));
-    while (subset < 2U) {
+    while (subset + 1U < parameters->subset_count) {
         uint32_t longer = av2h_range_read_adaptive(
-            &decoder->range, state->length_cdf[1U], 2U);
+            &decoder->range, state->length_cdf[plane != 0U], 2U);
         if (av2h_range_status(&decoder->range) != AV2H_OK) {
             return av2h_range_status(&decoder->range);
         }
         if (longer == 0U) break;
         ++subset;
     }
-    subset_taps = subset == 0U ? 6U :
-                  subset == 1U ? 10U : AV2H_WIENER_NONSEP_MAX_TAPS;
-    if (subset != 0U) {
-        symmetric = (uint8_t)av2h_range_read_adaptive(
+    if (parameters->symmetric_first < parameters->coefficient_count &&
+        (parameters->subset_mask[subset] >>
+         parameters->symmetric_first) != 0U) {
+        symmetric = av2h_range_read_adaptive(
             &decoder->range, state->uv_sym_cdf, 2U);
         if (av2h_range_status(&decoder->range) != AV2H_OK) {
             return av2h_range_status(&decoder->range);
         }
     }
-    for (index = 0U; index < subset_taps; ++index) {
+    for (index = 0U; index < parameters->coefficient_count; ++index) {
         uint16_t decoded;
-        uint16_t centered_reference = (uint16_t)(
-            reference_taps[index] - coefficient_minimums[index]);
+        uint16_t centered_reference;
+        if ((parameters->subset_mask[subset] & (1U << index)) == 0U) {
+            continue;
+        }
+        centered_reference = (uint16_t)(
+            reference_taps[index] - parameters->minimum[index]);
         status = restoration_read_four_part(
             &decoder->range, state->four_part_cdf,
-            coefficient_bits[index], centered_reference, &decoded);
+            parameters->bits[index], centered_reference, &decoded);
         if (status != AV2H_OK) return status;
-        taps[index] = (int16_t)(decoded + coefficient_minimums[index]);
-        if (symmetric != 0U && index >= 6U) {
-            if (index + 1U >= subset_taps) return AV2H_INVALID_DATA;
+        taps[index] = (int16_t)(decoded + parameters->minimum[index]);
+        if (symmetric != 0U && index >= parameters->symmetric_first &&
+            index + 1U < parameters->coefficient_count) {
             taps[index + 1U] = taps[index];
             ++index;
         }
@@ -332,50 +331,51 @@ static Av2hStatus tile_read_restoration_units(Av2hTileDecoder *decoder) {
             size_t unit_column;
             for (unit_column = unit_column_start;
                  unit_column < unit_column_end; ++unit_column) {
-            size_t unit_index = unit_row * state->unit_columns[plane] +
-                unit_column;
-            uint32_t value;
-            int16_t *taps;
-            Av2hStatus status;
-            if (unit_index >= state->unit_capacity[plane] ||
-                unit_index != state->decoded_count[plane]) {
-                return AV2H_INVALID_DATA;
-            }
-            value = av2h_range_read_adaptive(
-                &decoder->range,
-                decoder->frame->restoration_type[plane] ==
-                        AV2H_RESTORE_PC_WIENER ?
-                    state->pc_wiener_restore_cdf : state->restore_cdf,
-                2U);
-            if (av2h_range_status(&decoder->range) != AV2H_OK) {
-                return av2h_range_status(&decoder->range);
-            }
-            if (value > 1U) return AV2H_INVALID_DATA;
-            state->unit_flags[plane][unit_index] = (uint8_t)value;
-            taps = state->unit_taps[plane] +
-                unit_index * AV2H_WIENER_NONSEP_MAX_TAPS;
-            if (value != 0U) {
-                if (decoder->frame->restoration_type[plane] ==
-                    AV2H_RESTORE_PC_WIENER) {
+                size_t unit_index = unit_row * state->unit_columns[plane] +
+                    unit_column;
+                uint32_t value;
+                int16_t *taps;
+                Av2hStatus status;
+                if (unit_index >= state->unit_capacity[plane] ||
+                    unit_index != state->decoded_count[plane]) {
+                    return AV2H_INVALID_DATA;
+                }
+                value = av2h_range_read_adaptive(
+                    &decoder->range,
+                    decoder->frame->restoration_type[plane] ==
+                            AV2H_RESTORE_PC_WIENER ?
+                        state->pc_wiener_restore_cdf : state->restore_cdf,
+                    2U);
+                if (av2h_range_status(&decoder->range) != AV2H_OK) {
+                    return av2h_range_status(&decoder->range);
+                }
+                if (value > 1U) return AV2H_INVALID_DATA;
+                state->unit_flags[plane][unit_index] = (uint8_t)value;
+                taps = state->unit_taps[plane] +
+                    unit_index * AV2H_WIENER_NONSEP_MAX_TAPS;
+                if (value != 0U) {
+                    if (decoder->frame->restoration_type[plane] ==
+                        AV2H_RESTORE_PC_WIENER) {
+                        av2h_memory_fill(
+                            taps, 0U,
+                            AV2H_WIENER_NONSEP_MAX_TAPS * sizeof(taps[0]));
+                    } else if (
+                        decoder->frame->restoration_frame_filters_on[plane]) {
+                        av2h_memory_copy(
+                            taps,
+                            decoder->frame->restoration_frame_filter[plane][0],
+                            AV2H_WIENER_NONSEP_MAX_TAPS * sizeof(taps[0]));
+                    } else {
+                        status = tile_read_wiener_unit_filter(
+                            decoder, plane, taps);
+                        if (status != AV2H_OK) return status;
+                    }
+                } else {
                     av2h_memory_fill(
                         taps, 0U,
                         AV2H_WIENER_NONSEP_MAX_TAPS * sizeof(taps[0]));
-                } else if (
-                    decoder->frame->restoration_frame_filters_on[plane]) {
-                    av2h_memory_copy(
-                        taps, decoder->frame->restoration_frame_filter[plane],
-                        AV2H_WIENER_NONSEP_MAX_TAPS * sizeof(taps[0]));
-                } else {
-                    status = tile_read_wiener_unit_filter(
-                        decoder, plane, taps);
-                    if (status != AV2H_OK) return status;
                 }
-            } else {
-                av2h_memory_fill(
-                    taps, 0U,
-                    AV2H_WIENER_NONSEP_MAX_TAPS * sizeof(taps[0]));
-            }
-            ++state->decoded_count[plane];
+                ++state->decoded_count[plane];
             }
         }
     }
@@ -504,7 +504,6 @@ static Av2hStatus tile_read_luma_tx_partition(
         return av2h_range_status(&decoder->range);
     }
     if (symbol == 0U) return AV2H_OK;
-    if (mode->fsc_mode != 0U) return AV2H_UNSUPPORTED;
     if (allow_horizontal && allow_vertical) {
         uint8_t group = both_group[coding_node->block_size];
         if (group >= AV2H_TX_PARTITION_TYPE_GROUPS ||
@@ -513,7 +512,8 @@ static Av2hStatus tile_read_luma_tx_partition(
         }
         symbol = av2h_range_read_adaptive(
             &decoder->range,
-            decoder->tx_partition_cdfs.partition_type[group],
+            decoder->tx_partition_cdfs.partition_type[
+                mode->fsc_mode != 0U][mode->use_intrabc != 0U][group],
             AV2H_TX_PARTITION_TYPE_SYMBOLS);
         if (av2h_range_status(&decoder->range) != AV2H_OK) {
             return av2h_range_status(&decoder->range);
@@ -532,7 +532,7 @@ static Av2hStatus tile_read_luma_tx_partition(
             symbol = av2h_range_read_adaptive(
                 &decoder->range,
                 decoder->tx_partition_cdfs.two_or_three_way[
-                    mode->use_intrabc != 0U][context],
+                    mode->fsc_mode != 0U][mode->use_intrabc != 0U][context],
                 2U);
         }
         if (av2h_range_status(&decoder->range) != AV2H_OK) {
@@ -821,6 +821,7 @@ Av2hStatus av2h_tile_decoder_next_luma(
     uint8_t *has_leaf) {
     Av2hFirstLeafPath path;
     uint8_t dc_sign_context;
+    uint8_t shared_chroma_tree;
     uint16_t tx_count;
     Av2hStatus status;
     if (decoder == 0 || leaf == 0 || block == 0 || has_leaf == 0) {
@@ -891,13 +892,43 @@ Av2hStatus av2h_tile_decoder_next_luma(
         decoder->luma_mode_contexts.intrabc_bank_superblock_hits = 0U;
     }
     av2h_tile_diagnostics_set_luma_stage(1U);
+    shared_chroma_tree = (uint8_t)(decoder->sequence->enable_sdp &&
+        ((leaf->node.block_size == AV2H_BLOCK_128X128 &&
+            decoder->luma_root_partition == AV2H_PARTITION_NONE) ||
+         ((leaf->node.block_size == AV2H_BLOCK_64X128 ||
+             leaf->node.block_size == AV2H_BLOCK_128X64) &&
+            av2h_tile_partition_direction(
+                decoder->luma_root_partition) != 0U)));
     status = av2h_luma_mode_read_with_state_and_delta_q(
         &decoder->range, &decoder->leaf_cdfs, decoder->sequence,
         decoder->frame, &leaf->node, &decoder->luma_mode_contexts,
         &decoder->gdf_entropy, &decoder->cdef_entropy,
-        &decoder->ccso_entropy, &decoder->current_q_index, &leaf->mode);
+        &decoder->ccso_entropy, &decoder->current_q_index,
+        shared_chroma_tree, &leaf->mode);
     if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
     decoder->current_block_q_index = leaf->mode.q_index;
+    if (shared_chroma_tree) {
+        status = tile_store_luma_mode(decoder, &leaf->node, &leaf->mode);
+        if (status == AV2H_UNSUPPORTED) {
+            return av2h_tile_decoder_fail(decoder, AV2H_OUT_OF_MEMORY);
+        }
+        if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
+        status = av2h_tile_decoder_read_shared_chroma_mode(
+            decoder, &leaf->node);
+        if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
+        {
+            Av2hLumaModeNeighbors neighbors;
+            status = av2h_luma_mode_neighbors_from_state(
+                &decoder->luma_mode_contexts, &leaf->node, &neighbors);
+            if (status != AV2H_OK) {
+                return av2h_tile_decoder_fail(decoder, status);
+            }
+            status = av2h_luma_mode_read_palette_and_dip(
+                &decoder->range, &decoder->leaf_cdfs, decoder->sequence,
+                decoder->frame, &leaf->node, &neighbors, &leaf->mode);
+        }
+        if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
+    }
     status = av2h_luma_palette_map_read(
         &decoder->range, &decoder->leaf_cdfs, &leaf->node, &leaf->mode);
     if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
@@ -946,23 +977,14 @@ Av2hStatus av2h_tile_decoder_next_luma(
     status = tile_store_luma_mode(decoder, &leaf->node, &leaf->mode);
     if (status == AV2H_UNSUPPORTED) return av2h_tile_decoder_fail(decoder, AV2H_OUT_OF_MEMORY);
     if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
-        if (decoder->sequence->enable_sdp &&
-                ((leaf->node.block_size == AV2H_BLOCK_128X128 &&
-                    decoder->luma_root_partition == AV2H_PARTITION_NONE) ||
-                 ((leaf->node.block_size == AV2H_BLOCK_64X128 ||
-                     leaf->node.block_size == AV2H_BLOCK_128X64) &&
-                    av2h_tile_partition_direction(
-                            decoder->luma_root_partition) != 0U))) {
-        status = av2h_tile_decoder_read_shared_chroma_mode(
-            decoder, &leaf->node);
-        if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
 #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
+    if (shared_chroma_tree) {
         av2h_partition_diagnostic_leaf_stage(
             leaf->node, 70U, decoder->shared_chroma_mode.mode_index,
             decoder->shared_chroma_mode.cfl_kind,
             av2h_range_tell(&decoder->range));
-#endif
     }
+#endif
     status = tile_read_luma_tx_partition(decoder, &leaf->node, &leaf->mode);
     if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
     status = decoder->luma_selected_tx_count != 0U ?

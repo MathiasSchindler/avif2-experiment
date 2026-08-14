@@ -733,6 +733,57 @@ static void test_16x4_d203_uses_size0_cdf(void) {
     CHECK(cdfs.primary_size1[AV2H_PRIMARY_TX_TYPE_SYMBOLS] == 0U);
 }
 
+/* The chroma transform type is derived by applying the wide-angle
+   intra-prediction mapping exactly once, using the signalled angle delta.
+   A 4x16 chroma block with D67 and a positive angle delta stays at 76
+   degrees, which is above the 4:1 wide-angle threshold, so the mapping must
+   not fire and the derived type must remain ADST_DCT. */
+static void test_chroma_wide_angle_uses_angle_delta(void) {
+    static const unsigned char bytes[] = { 0U, 0U, 0U, 0U };
+    Av2hSpan span = { bytes, sizeof(bytes) };
+    Av2hFirstTransformCdfs cdfs;
+    Av2hFrameState frame = { 0 };
+    Av2hFirstChromaMode mode = { 0 };
+    Av2hFirstCoeffPrefix prefix = { 0 };
+    Av2hRangeDecoder decoder;
+    Av2hFirstTransformType transform;
+
+    CHECK(av2h_first_transform_cdfs_init(&cdfs) == AV2H_OK);
+    prefix.tx_size = AV2H_TX_4X16;
+    prefix.eob = 1U;
+    mode.mode = AV2H_INTRA_D67;
+
+    mode.angle_delta = 3;
+    CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
+    CHECK(av2h_chroma_transform_type_read(
+              &decoder, &cdfs, &frame, &mode, 1U, 1U, &prefix,
+              &transform) == AV2H_OK);
+    CHECK(transform.primary_type == AV2H_TX_ADST_DCT);
+
+    /* An angle delta of one leaves the angle at 70, below the 4:1 threshold,
+       so the mapping fires and the derived type becomes DCT_ADST. */
+    mode.angle_delta = 1;
+    CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
+    CHECK(av2h_chroma_transform_type_read(
+              &decoder, &cdfs, &frame, &mode, 1U, 1U, &prefix,
+              &transform) == AV2H_OK);
+    CHECK(transform.primary_type == AV2H_TX_DCT_ADST);
+
+    mode.angle_delta = 0;
+    CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
+    CHECK(av2h_chroma_transform_type_read(
+              &decoder, &cdfs, &frame, &mode, 1U, 1U, &prefix,
+              &transform) == AV2H_OK);
+    CHECK(transform.primary_type == AV2H_TX_DCT_ADST);
+
+    mode.angle_delta = -3;
+    CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
+    CHECK(av2h_chroma_transform_type_read(
+              &decoder, &cdfs, &frame, &mode, 1U, 1U, &prefix,
+              &transform) == AV2H_OK);
+    CHECK(transform.primary_type == AV2H_TX_DCT_ADST);
+}
+
 int main(void) {
     test_secondary_adst_set_adaptation_metadata();
     test_fsc_single_coefficient_uses_idtx();
@@ -742,6 +793,7 @@ int main(void) {
     test_idtx_primary_mappings();
     test_emerald_secondary_signaling();
     test_chroma_derived_transform_types();
+    test_chroma_wide_angle_uses_angle_delta();
     test_luma_wide_angle_transform_mapping();
     test_16x4_d203_uses_size0_cdf();
     test_arguments();

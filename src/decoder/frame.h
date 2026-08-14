@@ -8,6 +8,7 @@
 #define AV2H_CCSO_BAND_COUNT 64U
 #define AV2H_CCSO_LUT_SIZE (AV2H_CCSO_BAND_COUNT * 16U)
 #define AV2H_WIENER_NONSEP_MAX_TAPS 18U
+#define AV2H_WIENER_NONSEP_MAX_CLASSES 16U
 
 typedef enum {
     AV2H_RESTORE_NONE = 0,
@@ -79,6 +80,7 @@ typedef struct {
     uint8_t restoration_frame_filters_on[AV2H_FRAME_PLANE_COUNT];
     uint8_t restoration_num_filter_classes[AV2H_FRAME_PLANE_COUNT];
     int16_t restoration_frame_filter[AV2H_FRAME_PLANE_COUNT]
+                                    [AV2H_WIENER_NONSEP_MAX_CLASSES]
                                     [AV2H_WIENER_NONSEP_MAX_TAPS];
     uint16_t restoration_unit_size[AV2H_FRAME_PLANE_COUNT];
     uint16_t restoration_unit_columns[AV2H_FRAME_PLANE_COUNT];
@@ -106,6 +108,14 @@ static inline size_t av2h_frame_plane_dimension(
 
 static inline size_t av2h_frame_mi_dimension(uint16_t pixels) {
     return (((size_t)pixels + 7U) / 8U) * 2U;
+}
+
+static inline int av2h_frame_restoration_needs_tx_skip(
+    const Av2hFrameState *frame) {
+    if (frame == 0) return 0;
+    if (frame->restoration_type[0] == AV2H_RESTORE_PC_WIENER) return 1;
+    return frame->restoration_type[0] == AV2H_RESTORE_WIENER_NONSEP &&
+        frame->restoration_num_filter_classes[0] > 1U;
 }
 
 Av2hStatus av2h_frame_header_closed_key_parse(
