@@ -124,8 +124,9 @@ arbitrary ImageMagick/FFmpeg builds reproduce it exactly.
 
 ## AVM references
 
-The implemented `photographic-8bit` suite contains 88 one-frame cases tied to
-AVM revision `966a7d7cd6fcf60360caf5dc413b2aeeb65e144d`:
+Both reference suites are tied to AVM revision
+`966a7d7cd6fcf60360caf5dc413b2aeeb65e144d`. The original
+`photographic-8bit` suite contains 88 one-frame cases:
 
 - I420 at QP 96 and 152 for all 28 prepared images (56 cases);
 - I400 and I444 at QP 152 for all 14 `le896` preparations (28 cases);
@@ -164,6 +165,38 @@ Verify the tracked lock alone, or require and hash every ignored local file:
 python3 tools/verify_image_references.py
 python3 tools/verify_image_references.py --require-files
 ```
+
+The separate `target-baseline-8bit` suite contains one `le896` I420 case at QP
+152 for each of the 14 photographs. It uses the high-effort target profile
+proven by `pastel-chalks`: `cpu-used=1`, 16 encoder threads, Intra-DIP,
+IntraBC, TCQ, trellis quantization, full restoration search, and perceptual
+delta-Q mode 2. Parity hiding, quantization matrices, variance AQ, and extended
+segmentation are explicitly disabled. AQ, delta-Q, and quantization matrices
+remain competing profile choices rather than being stacked.
+
+Each target case lives under
+`reference/avm-<revision>/target-baseline-8bit/<case-id>/` and contains
+`encoded.obu`, the pinned-AVM `decoded.i420`, and `manifest.json`. It does not
+duplicate the `.yuv` alias or PNG preview from the broad legacy suite. Generate
+or resume the target matrix and refresh its independent lock with:
+
+```sh
+python3 tools/generate_image_references.py --suite target-baseline-8bit --resume
+```
+
+The target suite defaults to two concurrent cases and 16 threads per encoder;
+these values can still be overridden for an explicit experiment. Verify its
+tracked lock alone, or require every local payload, with:
+
+```sh
+python3 tools/verify_image_references.py --suite target-baseline-8bit
+python3 tools/verify_image_references.py --suite target-baseline-8bit --require-files
+```
+
+The two suites have separate lock files, so generating or filtering the target
+suite cannot overwrite the original `reference-lock.json`. `--suite` is also
+accepted together with the existing source, preparation, pixel-format, and QP
+filters; filtered runs do not rewrite either complete lock.
 
 The lock pins the AVM source revision plus SHA-256 identities of `avmenc` and
 `avmdec`. Each manifest records normalized commands, the exact prepared input,

@@ -22,7 +22,6 @@ PREPARED_ROOT = IMAGES_ROOT / "prepared"
 REFERENCE_ROOT = IMAGES_ROOT / "reference"
 PREPARED_LOCK_PATH = IMAGES_ROOT / "recipes" / "prepared-lock.json"
 ENCODINGS_PATH = IMAGES_ROOT / "recipes" / "encodings.json"
-REFERENCE_LOCK_PATH = IMAGES_ROOT / "recipes" / "reference-lock.json"
 AVM_ROOT = REPOSITORY_ROOT / "vendor" / "avm"
 AVM_BUILD_ROOT = REPOSITORY_ROOT / "build" / "reference" / "avm"
 EXPECTED_ENCODER_SHA256 = (
@@ -139,6 +138,7 @@ def write_monochrome_y4m(source: Path, destination: Path, width: int, height: in
 
 def encode_command(
     encoder: Path,
+    suite: dict[str, object],
     source: Path,
     output: Path,
     pixel_format: str,
@@ -147,6 +147,7 @@ def encode_command(
     qp: int,
     threads: int,
 ) -> list[str]:
+    encoder_config = suite["encoder"]
     profile = "1" if pixel_format == "i444" else "0"
     format_arguments = {
         "i400": ["--monochrome"],
@@ -174,7 +175,7 @@ def encode_command(
         "--passes=1",
         "--limit=1",
         "--good",
-        "--cpu-used=9",
+        f"--cpu-used={encoder_config['cpu_used']}",
         f"--threads={threads}",
         "--row-mt=1",
         f"--profile={profile}",
@@ -186,8 +187,7 @@ def encode_command(
         "--enable-lcr=0",
         "--enable-operating-point-sets=0",
         "--enable-atlas=0",
-        "--enable-intrabc=0",
-        "--enable-restoration=0",
+        *encoder_config["profile_arguments"],
         "--end-usage=q",
         f"--qp={qp}",
         "--test-decode=fatal",
@@ -258,37 +258,39 @@ def build_cases(
                     "qp": qp,
                 }
             )
-    coverage = suite["format_coverage"]
-    coverage_preparations = [
-        preparation
-        for preparation in prepared_lock["preparations"]
-        if preparation["preparation_id"] == coverage["preparation_id"]
-    ]
-    for preparation in coverage_preparations:
-        for pixel_format in coverage["pixel_formats"]:
-            for qp in coverage["qps"]:
-                cases.append(
-                    {
-                        "preparation": preparation,
-                        "pixel_format": pixel_format,
-                        "qp": qp,
-                    }
-                )
-    spectrum = suite["spectrum"]
-    preparation = next(
-        record
-        for record in prepared_lock["preparations"]
-        if record["source_id"] == spectrum["source_id"]
-        and record["preparation_id"] == spectrum["preparation_id"]
-    )
-    for qp in spectrum["additional_qps"]:
-        cases.append(
-            {
-                "preparation": preparation,
-                "pixel_format": spectrum["pixel_format"],
-                "qp": qp,
-            }
+    coverage = suite.get("format_coverage")
+    if coverage is not None:
+        coverage_preparations = [
+            preparation
+            for preparation in prepared_lock["preparations"]
+            if preparation["preparation_id"] == coverage["preparation_id"]
+        ]
+        for preparation in coverage_preparations:
+            for pixel_format in coverage["pixel_formats"]:
+                for qp in coverage["qps"]:
+                    cases.append(
+                        {
+                            "preparation": preparation,
+                            "pixel_format": pixel_format,
+                            "qp": qp,
+                        }
+                    )
+    spectrum = suite.get("spectrum")
+    if spectrum is not None:
+        preparation = next(
+            record
+            for record in prepared_lock["preparations"]
+            if record["source_id"] == spectrum["source_id"]
+            and record["preparation_id"] == spectrum["preparation_id"]
         )
+        for qp in spectrum["additional_qps"]:
+            cases.append(
+                {
+                    "preparation": preparation,
+                    "pixel_format": spectrum["pixel_format"],
+                    "qp": qp,
+                }
+            )
     return sorted(
         cases,
         key=lambda case: (
@@ -350,6 +352,7 @@ def generate_case(
         decoded = scratch / f"decoded.{pixel_format}"
         encode = encode_command(
             encoder,
+            suite,
             encoder_source,
             obu,
             pixel_format,
@@ -426,7 +429,11 @@ def generate_case(
 
 
 def write_lock(
-    destinations: list[Path], tools: dict[str, object], threads: int, jobs: int
+    destinations: list[Path],
+    tools: dict[str, object],
+    threads: int,
+    jobs: int,
+    lock_path: Path,
 ) -> None:
     records = []
     for destination in sorted(destinations):
@@ -454,7 +461,7 @@ def write_lock(
         "generation_jobs": jobs,
         "references": records,
     }
-    REFERENCE_LOCK_PATH.write_text(
+    lock_path.write_text(
         json.dumps(lock, indent=2, ensure_ascii=False) + "\n",
         encoding="utf-8",
     )
@@ -462,28 +469,36 @@ def write_lock(
 
 def main() -> None:
     parser = argparse.ArgumentParser()
+    parser.add_argument("--suite", help="encoding suite ID (defaults to the first suite)")
     parser.add_argument("--source", action="append", help="generate only this source ID")
     parser.add_argument("--preparation", action="append", help="generate only this preparation ID")
     parser.add_argument("--pixel-format", action="append", choices=("i400", "i420", "i444"))
     parser.add_argument("--qp", action="append", type=int, help="generate only this QP")
-    parser.add_argument("--threads", type=int, default=os.cpu_count() or 1)
+    parser.add_argument("--threads", type=int)
     parser.add_argument(
         "--jobs",
         type=int,
-        default=8,
-        help="number of independent AVM cases to encode concurrently",
+        help="number of independent AVM cases to encode concurrently (suite default if omitted)",
     )
     parser.add_argument("--resume", action="store_true")
     arguments = parser.parse_args()
+    encodings = json.loads(ENCODINGS_PATH.read_text(encoding="utf-8"))
+    suite_id = arguments.suite or encodings["suites"][0]["id"]
+    try:
+        suite = next(suite for suite in encodings["suites"] if suite["id"] == suite_id)
+    except StopIteration as error:
+        raise SystemExit(f"unknown encoding suite: {suite_id}") from error
+    lock_path = IMAGES_ROOT / "recipes" / suite["lock_file"]
+    if arguments.threads is None:
+        arguments.threads = suite["encoder"].get("threads", os.cpu_count() or 1)
+    if arguments.jobs is None:
+        arguments.jobs = suite["encoder"]["parallel_jobs"]
     if arguments.threads < 1:
         raise SystemExit("--threads must be positive")
     if arguments.jobs < 1:
         raise SystemExit("--jobs must be positive")
     if arguments.qp and any(qp < 0 or qp > 255 for qp in arguments.qp):
         raise SystemExit("--qp values must be in the range 0..255")
-
-    encodings = json.loads(ENCODINGS_PATH.read_text(encoding="utf-8"))
-    suite = encodings["suites"][0]
     prepared_lock = json.loads(PREPARED_LOCK_PATH.read_text(encoding="utf-8"))
     cases = build_cases(suite, prepared_lock)
     filters = {
@@ -538,8 +553,8 @@ def main() -> None:
             destinations.append(future.result())
             print(f"[{index:03d}/{len(cases):03d}] {label}", flush=True)
     if not any((arguments.source, arguments.preparation, arguments.pixel_format, arguments.qp)):
-        write_lock(destinations, tools, arguments.threads, arguments.jobs)
-        print(REFERENCE_LOCK_PATH.relative_to(REPOSITORY_ROOT), flush=True)
+        write_lock(destinations, tools, arguments.threads, arguments.jobs, lock_path)
+        print(lock_path.relative_to(REPOSITORY_ROOT), flush=True)
     print(
         f"generated {len(destinations)} reference cases with "
         f"{arguments.jobs} jobs and {arguments.threads} threads per AVM invocation"

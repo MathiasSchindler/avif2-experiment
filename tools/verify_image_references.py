@@ -16,7 +16,6 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 IMAGES_ROOT = REPOSITORY_ROOT / "images"
 ENCODINGS_PATH = IMAGES_ROOT / "recipes" / "encodings.json"
 PREPARED_LOCK_PATH = IMAGES_ROOT / "recipes" / "prepared-lock.json"
-REFERENCE_LOCK_PATH = IMAGES_ROOT / "recipes" / "reference-lock.json"
 
 
 def sha256(path: Path) -> str:
@@ -61,30 +60,32 @@ def expected_keys(
                 keys.add(
                     (source_id, preparation_id, suite["baseline_pixel_format"], qp)
                 )
-    coverage = suite["format_coverage"]
-    for preparation in preparations:
-        if preparation["preparation_id"] != coverage["preparation_id"]:
-            continue
-        for pixel_format in coverage["pixel_formats"]:
-            for qp in coverage["qps"]:
-                keys.add(
-                    (
-                        preparation["source_id"],
-                        preparation["preparation_id"],
-                        pixel_format,
-                        qp,
+    coverage = suite.get("format_coverage")
+    if coverage is not None:
+        for preparation in preparations:
+            if preparation["preparation_id"] != coverage["preparation_id"]:
+                continue
+            for pixel_format in coverage["pixel_formats"]:
+                for qp in coverage["qps"]:
+                    keys.add(
+                        (
+                            preparation["source_id"],
+                            preparation["preparation_id"],
+                            pixel_format,
+                            qp,
+                        )
                     )
+    spectrum = suite.get("spectrum")
+    if spectrum is not None:
+        for qp in spectrum["additional_qps"]:
+            keys.add(
+                (
+                    spectrum["source_id"],
+                    spectrum["preparation_id"],
+                    spectrum["pixel_format"],
+                    qp,
                 )
-    spectrum = suite["spectrum"]
-    for qp in spectrum["additional_qps"]:
-        keys.add(
-            (
-                spectrum["source_id"],
-                spectrum["preparation_id"],
-                spectrum["pixel_format"],
-                qp,
             )
-        )
     return keys
 
 
@@ -137,6 +138,11 @@ def verify_files(
         raise ValueError(f"{manifest_path}: encoder thread count is not recorded")
     if f"--qp={record['qp']}" not in manifest["commands"]["encode"]:
         raise ValueError(f"{manifest_path}: encoder QP is not recorded")
+    if f"--cpu-used={suite['encoder']['cpu_used']}" not in manifest["commands"]["encode"]:
+        raise ValueError(f"{manifest_path}: encoder CPU setting is not recorded")
+    for argument in suite["encoder"]["profile_arguments"]:
+        if argument not in manifest["commands"]["encode"]:
+            raise ValueError(f"{manifest_path}: missing profile argument {argument}")
     if pixel_format == "i420" and "--chroma-sample-position=unspecified" not in manifest[
         "commands"
     ]["encode"]:
@@ -184,6 +190,7 @@ def verify_files(
 
 def main() -> None:
     parser = argparse.ArgumentParser()
+    parser.add_argument("--suite", help="encoding suite ID (defaults to the first suite)")
     parser.add_argument(
         "--require-files",
         action="store_true",
@@ -192,18 +199,26 @@ def main() -> None:
     arguments = parser.parse_args()
 
     encodings = json.loads(ENCODINGS_PATH.read_text(encoding="utf-8"))
-    suite = encodings["suites"][0]
+    suite_id = arguments.suite or encodings["suites"][0]["id"]
+    try:
+        suite = next(suite for suite in encodings["suites"] if suite["id"] == suite_id)
+    except StopIteration as error:
+        raise SystemExit(f"unknown encoding suite: {suite_id}") from error
+    lock_path = IMAGES_ROOT / "recipes" / suite["lock_file"]
     prepared_lock = json.loads(PREPARED_LOCK_PATH.read_text(encoding="utf-8"))
     preparations = prepared_lock["preparations"]
     prepared = {
         (record["source_id"], record["preparation_id"]): record
         for record in preparations
     }
-    lock = json.loads(REFERENCE_LOCK_PATH.read_text(encoding="utf-8"))
+    lock = json.loads(lock_path.read_text(encoding="utf-8"))
     if lock["avm"]["revision"] != encodings["avm_revision"]:
         raise ValueError("reference lock AVM revision differs from encoding recipe")
     if lock["encoder_threads"] < 1 or lock["generation_jobs"] < 1:
         raise ValueError("invalid generation concurrency in reference lock")
+    expected_threads = suite["encoder"].get("threads")
+    if expected_threads is not None and lock["encoder_threads"] != expected_threads:
+        raise ValueError("reference lock differs from the suite encoder thread count")
     records = lock["references"]
     actual_keys = {
         (
