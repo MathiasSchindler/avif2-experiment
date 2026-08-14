@@ -311,9 +311,9 @@ static void test_10bit_wp0_header(void) {
     CHECK(av2h_tile_decoder_init(
               &decoder, group.entropy, &sequence, &frame,
               &storage) == AV2H_OK);
-    CHECK(decoder.current_q_index == 256U);
-    CHECK(decoder.coeff_cdfs.q_context == 3U);
-    CHECK(decoder.level_cdfs.q_context == 3U);
+    CHECK(decoder.superblock.current_q_index == 256U);
+    CHECK(decoder.entropy_state.coeff_cdfs.q_context == 3U);
+    CHECK(decoder.entropy_state.level_cdfs.q_context == 3U);
     for (index = 0U; index < group.header_size; ++index) {
         CHECK(av2h_frame_header_closed_key_parse(
                   (Av2hSpan){ input + frame_obu->payload_offset, index },

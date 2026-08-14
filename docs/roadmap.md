@@ -13,12 +13,6 @@ Completed implementation plans and release evidence are indexed in
    caller-owned per-decode state so concurrent decodes do not race.
 3. Preserve internal failure provenance instead of translating unsupported
    state or capacity conditions into misleading public statuses.
-4. Group `Av2hTileDecoder` fields by entropy, traversal, luma resume, chroma
-   resume, and filter handoff ownership while preserving APIs and validated
-   workspace/layout contracts.
-5. Continue small owner-based prediction and reconstruction extractions where
-   they improve reviewability. Do not split normative data or duplicate
-   bit-depth kernels merely to reduce file size.
 
 Every decoder maintenance change must run its focused tests and the complete
 native reference parity gate. Release changes also require WebAssembly,

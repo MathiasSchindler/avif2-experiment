@@ -131,6 +131,9 @@ typedef struct {
     Av2hCcsoEntropyState ccso_entropy;
     Av2hRestorationEntropyState restoration_entropy;
     Av2hTxPartitionCdfs tx_partition_cdfs;
+} Av2hTileEntropyState;
+
+typedef struct {
     Av2hPartitionTraversal luma_traversal;
     Av2hPartitionTraversal chroma_traversal;
     Av2hTileLumaPartitionNode
@@ -140,6 +143,9 @@ typedef struct {
     size_t colocated_luma_count;
     size_t mi_columns;
     size_t mi_rows;
+} Av2hTileTraversalState;
+
+typedef struct {
     uint16_t superblock_mi;
     uint16_t sb_row;
     uint16_t sb_column;
@@ -147,6 +153,9 @@ typedef struct {
     Av2hQIndex current_block_q_index;
     size_t sb_index;
     size_t sb_count;
+} Av2hTileSuperblockState;
+
+typedef struct {
     Av2hBlockSize root_block_size;
     Av2hPartitionType luma_root_partition;
     Av2hPartitionType chroma_root_partition;
@@ -157,30 +166,53 @@ typedef struct {
     uint8_t square_child_luma_child_count;
     uint8_t square_child_luma_children_share;
     uint8_t square_root_child_index;
-    Av2hPartitionNode luma_coding_node;
-    Av2hFirstLeafMode luma_coding_mode;
-    uint16_t luma_tx_index;
-    uint16_t luma_tx_count;
-    uint8_t luma_tx_partition;
-    Av2hPartitionNode luma_tx_nodes[AV2H_MAX_TX_PARTITION_NODES];
-    uint8_t luma_selected_tx_count;
-    Av2hPartitionNode chroma_coding_node;
-    Av2hFirstChromaMode chroma_coding_mode;
-    uint16_t chroma_tx_index;
-    uint16_t chroma_tx_count;
-    uint16_t chroma_tx_unit_start;
-    uint8_t chroma_tx_plane;
-    uint16_t chroma_u_eob;
-    uint16_t chroma_u_eobs[AV2H_MAX_LOSSLESS_CHROMA_TX_NODES];
-    uint8_t shared_chroma_resume_luma;
-    uint8_t shared_chroma_complete;
-    uint8_t shared_chroma_mode_pending;
-    uint8_t shared_chroma_commit_luma;
-    Av2hPartitionNode shared_chroma_node;
-    Av2hFirstChromaMode shared_chroma_mode;
+} Av2hTileRootState;
+
+typedef struct {
+    Av2hPartitionNode coding_node;
+    Av2hFirstLeafMode coding_mode;
+    uint16_t tx_index;
+    uint16_t tx_count;
+    uint8_t tx_partition;
+    Av2hPartitionNode tx_nodes[AV2H_MAX_TX_PARTITION_NODES];
+    uint8_t selected_tx_count;
+} Av2hTileLumaState;
+
+typedef struct {
+    Av2hPartitionNode coding_node;
+    Av2hFirstChromaMode coding_mode;
+    uint16_t tx_index;
+    uint16_t tx_count;
+    uint16_t tx_unit_start;
+    uint8_t tx_plane;
+    uint16_t u_eob;
+    uint16_t u_eobs[AV2H_MAX_LOSSLESS_CHROMA_TX_NODES];
+    uint8_t shared_resume_luma;
+    uint8_t shared_complete;
+    uint8_t shared_mode_pending;
+    uint8_t shared_commit_luma;
+} Av2hTileChromaState;
+
+typedef struct {
+    Av2hPartitionNode node;
+    Av2hFirstChromaMode mode;
+} Av2hTileSharedChromaState;
+
+typedef struct {
     Av2hTileDecodePhase phase;
     Av2hTileDecodeEvent event;
     Av2hStatus status;
+} Av2hTileControlState;
+
+typedef struct {
+    Av2hTileEntropyState entropy_state;
+    Av2hTileTraversalState traversal;
+    Av2hTileSuperblockState superblock;
+    Av2hTileRootState root;
+    Av2hTileLumaState luma;
+    Av2hTileChromaState chroma;
+    Av2hTileSharedChromaState shared_chroma;
+    Av2hTileControlState control;
 } Av2hTileDecoder;
 
 Av2hStatus av2h_tile_luma_tx_node_get(

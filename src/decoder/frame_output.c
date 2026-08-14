@@ -71,7 +71,7 @@ Av2hStatus av2h_decode_frame_planar_private(
                          failure_plane, failure_leaf, failure_syntax_stage)   \
     do {                                                                       \
     const Av2hPartitionNode *diagnostic_leaf = (failure_leaf);             \
-        decoded.entropy_tell = av2h_range_tell(&decoder.range);               \
+        decoded.entropy_tell = av2h_range_tell(&decoder.entropy_state.range);               \
         decoded.cause = (original_cause);                                      \
         decoded.stage = (failure_stage);                                       \
         decoded.plane = (uint8_t)(failure_plane);                              \
@@ -105,11 +105,11 @@ Av2hStatus av2h_decode_frame_planar_private(
     status = av2h_tile_decoder_init(
         &decoder, entropy, sequence, frame, &workspace->tile_context);
     if (status != AV2H_OK) return status;
-    while (decoder.phase != AV2H_TILE_DECODE_DONE) {
+    while (decoder.control.phase != AV2H_TILE_DECODE_DONE) {
         uint8_t has_leaf = 0U;
-        if (decoder.phase == AV2H_TILE_DECODE_LUMA &&
-            decoder.shared_chroma_complete && pending_chroma_count != 0U &&
-            decoder.luma_tx_count == 0U) {
+        if (decoder.control.phase == AV2H_TILE_DECODE_LUMA &&
+            decoder.chroma.shared_complete && pending_chroma_count != 0U &&
+            decoder.luma.tx_count == 0U) {
             uint8_t pending_index;
             for (pending_index = 0U; pending_index < pending_chroma_count;
                  ++pending_index) {
@@ -187,7 +187,7 @@ Av2hStatus av2h_decode_frame_planar_private(
             }
             pending_chroma_count = 0U;
         }
-        if (decoder.phase == AV2H_TILE_DECODE_LUMA) {
+        if (decoder.control.phase == AV2H_TILE_DECODE_LUMA) {
             Av2hTileLumaLeaf leaf;
             Av2hFirstCoeffBlock block;
             av2h_memory_fill(&leaf, 0U, sizeof(leaf));
@@ -273,7 +273,7 @@ Av2hStatus av2h_decode_frame_planar_private(
                 {
                     const Av2hPartitionNode *failure_node =
                         luma_tile_stage == 0U ?
-                            &decoder.luma_traversal.diagnostic_node :
+                            &decoder.traversal.luma_traversal.diagnostic_node :
                             &leaf.node;
                     AV2H_DECODE_FAIL(
                         returned, status,
@@ -362,7 +362,7 @@ Av2hStatus av2h_decode_frame_planar_private(
                     0U, &leaf.node, 0U);
             }
             ++decoded.luma_leaf_count;
-        } else if (decoder.phase == AV2H_TILE_DECODE_CHROMA) {
+        } else if (decoder.control.phase == AV2H_TILE_DECODE_CHROMA) {
             Av2hTileChromaLeaf leaf;
             Av2hFirstCoeffBlock blocks[2U];
             av2h_memory_fill(&leaf, 0U, sizeof(leaf));
@@ -480,9 +480,9 @@ Av2hStatus av2h_decode_frame_planar_private(
                     AV2H_FRAME_DECODE_STAGE_CHROMA_CROSS_TRANSFORM,
                     0U, &leaf.node, 0U);
             }
-                        if (decoder.shared_chroma_resume_luma &&
+                        if (decoder.chroma.shared_resume_luma &&
                                 !(frame->base_q_index == 0U &&
-                                    decoder.luma_coding_mode.lossless_tx_size_large == 0U)) {
+                                    decoder.luma.coding_mode.lossless_tx_size_large == 0U)) {
                 if (pending_chroma_count >= 4U) {
                     AV2H_DECODE_FAIL(
                         AV2H_OVERFLOW, AV2H_OVERFLOW,
@@ -639,11 +639,11 @@ Av2hStatus av2h_decode_frame_planar_private(
             AV2H_INVALID_DATA, AV2H_INVALID_DATA,
             AV2H_FRAME_DECODE_STAGE_COMPLETENESS, 0U, 0, 0U);
     }
-    if (decoder.restoration_entropy.active_mask != 0U) {
+    if (decoder.entropy_state.restoration_entropy.active_mask != 0U) {
         for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
-            if ((decoder.restoration_entropy.active_mask &
+            if ((decoder.entropy_state.restoration_entropy.active_mask &
                     (1U << plane)) != 0U &&
-                decoder.restoration_entropy.decoded_count[plane] !=
+                decoder.entropy_state.restoration_entropy.decoded_count[plane] !=
                     frame->restoration_unit_count[plane]) {
                 AV2H_DECODE_FAIL(
                     AV2H_INVALID_DATA, AV2H_INVALID_DATA,
@@ -658,21 +658,21 @@ Av2hStatus av2h_decode_frame_planar_private(
             status, status, AV2H_FRAME_DECODE_STAGE_COMPLETENESS,
             0U, 0, 0U);
     }
-    decoded.entropy_tell = av2h_range_tell(&decoder.range);
+    decoded.entropy_tell = av2h_range_tell(&decoder.entropy_state.range);
     workspace->filter_workspace->cdef_controls = filter_controls.cdef;
     workspace->filter_workspace->gdf_controls = filter_controls.gdf;
     for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
         workspace->filter_workspace->restoration_controls.unit_flags[plane] =
-            decoder.restoration_entropy.unit_flags[plane];
+            decoder.entropy_state.restoration_entropy.unit_flags[plane];
         workspace->filter_workspace->restoration_controls.unit_taps[plane] =
-            decoder.restoration_entropy.unit_taps[plane];
+            decoder.entropy_state.restoration_entropy.unit_taps[plane];
         workspace->filter_workspace->restoration_controls
             .unit_columns[plane] =
-                decoder.restoration_entropy.unit_columns[plane];
+                decoder.entropy_state.restoration_entropy.unit_columns[plane];
         workspace->filter_workspace->restoration_controls.unit_rows[plane] =
-            decoder.restoration_entropy.unit_rows[plane];
+            decoder.entropy_state.restoration_entropy.unit_rows[plane];
         workspace->filter_workspace->restoration_controls.unit_size[plane] =
-            decoder.restoration_entropy.unit_size[plane];
+            decoder.entropy_state.restoration_entropy.unit_size[plane];
     }
     for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
         if (filter_controls.ccso.plane[plane] != 0) {

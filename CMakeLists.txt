@@ -25,6 +25,9 @@ set(AV2HEIF_CORE_SOURCES
     src/shared/png_writer.c
     src/decoder/cdf.c
     src/decoder/chroma_prediction.c
+    src/decoder/chroma_prediction_cfl.c
+    src/decoder/chroma_prediction_common.c
+    src/decoder/chroma_prediction_mhccp.c
     src/decoder/coeff.c
     src/decoder/coeff_context.c
     src/decoder/coeff_dequant.c

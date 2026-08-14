@@ -17,9 +17,13 @@ or decoded bytes. `reconstruct.h` and caller-owned
   edge preparation, and prediction diagnostics.
 - `intrabc_prediction.c`: displacement validation, reconstructed-source
   checks, fractional copy prediction, and morph fitting.
-- `chroma_prediction.c`: basic chroma prediction, explicit and derived CfL,
-  MHCCP sampling and fitting, fixed-point division tables, and MHCCP
-  diagnostics.
+- `chroma_prediction.c`: basic chroma DC, directional, and IBP prediction.
+- `chroma_prediction_cfl.c`: explicit and derived CfL prediction, luma
+  downsampling, and fixed-point alpha derivation.
+- `chroma_prediction_mhccp.c`: MHCCP sampling, shared 10-bit luma-sampling
+  kernels, fixed-point fitting, 8/10-bit prediction, and MHCCP diagnostics.
+- `chroma_prediction_common.c`: shared plane-readiness, coded-sample, and
+  chroma-geometry helpers.
 - `reconstruct.c`: residual composition, cross-component transform,
   reconstructed-plane readiness, public wrappers, and plane commit.
 
@@ -29,8 +33,9 @@ All eight generated `ist_*.inc` files have one owner in
 
 ## Internal boundary
 
-`internal/reconstruct_modules.h` contains sibling-only transform, prediction,
-readiness-query, and fixed-point helper declarations. The public/private
+`internal/reconstruct_modules.h` contains sibling-only transform and prediction
+entry points. `internal/chroma_prediction.h` contains only shared plane and
+luma-sampling helpers used by the CfL and MHCCP owners. The public/private
 declarations and layouts in `reconstruct.h` remain stable.
 
 Prediction branches were moved without deduplicating their similar DC and IBP

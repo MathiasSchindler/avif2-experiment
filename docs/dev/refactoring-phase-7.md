@@ -33,8 +33,10 @@ bytes.
 `internal/partition_modules.h` shares the immutable block-geometry table
 between context and traversal owners. `internal/tile_modules.h` contains only
 sibling state-machine services and the private filter-control handoff record.
-`partition.h`, `tile.h`, `Av2hPartitionTraversal`, and `Av2hTileDecoder` remain
-unchanged.
+`Av2hTileDecoder` groups its unchanged storage into entropy, traversal,
+superblock, root, luma, chroma, shared-chroma, and control ownership records.
+The aggregate remains 69,792 bytes, preserving the validated workspace
+contract. `partition.h` and `Av2hPartitionTraversal` remain unchanged.
 
 Frame output now receives completed filter controls through
 `av2h_tile_filter_controls_handoff()` instead of rebinding them directly from
@@ -62,6 +64,11 @@ the complete Windows suite then passed.
 - Freestanding object closure: no undefined core symbols.
 - Decoder ABI layout: unchanged from the Phase 0 baseline.
 - Pinned AVM checkout: clean.
+
+The follow-up tile-state decomposition and prediction-owner split passed the
+36-test hosted suite, the 30-test ASan/UBSan suite, diagnostics-enabled parity,
+freestanding closure, and exact native and WebAssembly parity for all 102 local
+reference records.
 
 LLVM-MinGW on Windows still lacks a usable AddressSanitizer runtime. The
 `host-sanitized` preset remains the Linux/macOS sanitizer gate.

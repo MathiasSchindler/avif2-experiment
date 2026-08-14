@@ -266,9 +266,9 @@ static void test_bounded_orchestrator(void) {
         ++luma_count;
     }
     CHECK(luma_count == 11U);
-    CHECK(av2h_range_tell(&decoder.range) == 415U);
-    CHECK(decoder.phase == AV2H_TILE_DECODE_CHROMA);
-    CHECK(decoder.event == AV2H_TILE_EVENT_ROOT_HANDOFF);
+    CHECK(av2h_range_tell(&decoder.entropy_state.range) == 415U);
+    CHECK(decoder.control.phase == AV2H_TILE_DECODE_CHROMA);
+    CHECK(decoder.control.event == AV2H_TILE_EVENT_ROOT_HANDOFF);
     for (;;) {
         status = av2h_tile_decoder_next_chroma(
             &decoder, &chroma_leaf, &u_block, &v_block, &has_leaf);
@@ -280,9 +280,9 @@ static void test_bounded_orchestrator(void) {
                   &decoder, chroma_leaf.node) == AV2H_OK);
     }
     CHECK(chroma_count == 4U);
-    CHECK(av2h_range_tell(&decoder.range) == 725U);
-    CHECK(decoder.phase == AV2H_TILE_DECODE_DONE);
-    CHECK(decoder.event == AV2H_TILE_EVENT_DONE);
+    CHECK(av2h_range_tell(&decoder.entropy_state.range) == 725U);
+    CHECK(decoder.control.phase == AV2H_TILE_DECODE_DONE);
+    CHECK(decoder.control.event == AV2H_TILE_EVENT_DONE);
     CHECK(colocated_luma[0U].mode == AV2H_INTRA_DC);
     CHECK(colocated_luma[2U].mode == AV2H_INTRA_D203);
     CHECK(colocated_luma[8U].mode == AV2H_INTRA_D67);
@@ -422,7 +422,7 @@ static void test_odd_luma_reconstruction(void) {
         CHECK(av2h_tile_decoder_init(
                   &decoder, group.entropy, &sequence, &frame, &storage) ==
               AV2H_OK);
-    decoder.current_q_index = 400U;
+    decoder.superblock.current_q_index = 400U;
     CHECK(av2h_tile_decoder_next_luma(
               &decoder, &leaf, &block, &has_leaf) == AV2H_OK);
     CHECK(has_leaf != 0U);
@@ -436,18 +436,18 @@ static void test_odd_luma_reconstruction(void) {
             fprintf(stderr,
                     "odd ymode cdf set=%u,%u,%u idx=%u,%u,%u,%u,%u "
                     "range=%u value=%u available=%lld tell=%zu\n",
-                    (unsigned int)decoder.leaf_cdfs.y_mode_set[0],
-                    (unsigned int)decoder.leaf_cdfs.y_mode_set[1],
-                    (unsigned int)decoder.leaf_cdfs.y_mode_set[2],
-                    (unsigned int)decoder.leaf_cdfs.y_mode_index[1][0],
-                    (unsigned int)decoder.leaf_cdfs.y_mode_index[1][1],
-                    (unsigned int)decoder.leaf_cdfs.y_mode_index[1][2],
-                    (unsigned int)decoder.leaf_cdfs.y_mode_index[1][3],
-                    (unsigned int)decoder.leaf_cdfs.y_mode_index[1][4],
-                    (unsigned int)decoder.range.range,
-                    (unsigned int)decoder.range.value,
-                    (long long)decoder.range.available_bits,
-                    av2h_range_tell(&decoder.range));
+                    (unsigned int)decoder.entropy_state.leaf_cdfs.y_mode_set[0],
+                    (unsigned int)decoder.entropy_state.leaf_cdfs.y_mode_set[1],
+                    (unsigned int)decoder.entropy_state.leaf_cdfs.y_mode_set[2],
+                    (unsigned int)decoder.entropy_state.leaf_cdfs.y_mode_index[1][0],
+                    (unsigned int)decoder.entropy_state.leaf_cdfs.y_mode_index[1][1],
+                    (unsigned int)decoder.entropy_state.leaf_cdfs.y_mode_index[1][2],
+                    (unsigned int)decoder.entropy_state.leaf_cdfs.y_mode_index[1][3],
+                    (unsigned int)decoder.entropy_state.leaf_cdfs.y_mode_index[1][4],
+                    (unsigned int)decoder.entropy_state.range.range,
+                    (unsigned int)decoder.entropy_state.range.value,
+                    (long long)decoder.entropy_state.range.available_bits,
+                    av2h_range_tell(&decoder.entropy_state.range));
         }
         status = av2h_tile_decoder_next_luma(
             &decoder, &leaf, &block, &has_leaf);
@@ -500,7 +500,7 @@ static void test_odd_luma_reconstruction(void) {
                     (unsigned int)block.diagnostic_kind,
                     (unsigned int)leaf.prefix.eob_point,
                     (unsigned int)leaf.prefix.eob_extra,
-                    av2h_range_tell(&decoder.range), (unsigned int)status);
+                    av2h_range_tell(&decoder.entropy_state.range), (unsigned int)status);
             break;
         }
         if (has_leaf) {
@@ -524,11 +524,11 @@ static void test_odd_luma_reconstruction(void) {
                     leaf.mode.after_mode_set_bits,
                     leaf.mode.after_mode_index_bits,
                     leaf.mode.after_fsc_bits,
-                    (unsigned int)decoder.range.range,
-                    (unsigned int)decoder.range.value,
-                    (long long)decoder.range.available_bits,
-                    decoder.range.bit_position,
-                    av2h_range_tell(&decoder.range));
+                    (unsigned int)decoder.entropy_state.range.range,
+                    (unsigned int)decoder.entropy_state.range.value,
+                    (long long)decoder.entropy_state.range.available_bits,
+                    decoder.entropy_state.range.bit_position,
+                    av2h_range_tell(&decoder.entropy_state.range));
             if (leaf.node.row == 3U && leaf.node.column == 2U) {
                 fprintf(stderr,
                         "odd levels range=%u value=%u tell=%zu\n",
@@ -565,10 +565,10 @@ static void test_odd_luma_reconstruction(void) {
     CHECK(has_leaf == 0U);
     CHECK(leaf_count == 12U);
     CHECK(leaf.mode.use_intrabc == 0U);
-    CHECK(decoder.phase == AV2H_TILE_DECODE_CHROMA);
+    CHECK(decoder.control.phase == AV2H_TILE_DECODE_CHROMA);
     {
-        Av2hRangeDecoder range_probe = decoder.range;
-        Av2hPartitionCdfs cdf_probe = decoder.partition_cdfs;
+        Av2hRangeDecoder range_probe = decoder.entropy_state.range;
+        Av2hPartitionCdfs cdf_probe = decoder.entropy_state.partition_cdfs;
         uint32_t symbol;
         symbol = av2h_range_read_adaptive(
             &range_probe, cdf_probe.do_split[1][8], 2U);
@@ -616,8 +616,9 @@ static void test_odd_luma_reconstruction(void) {
         Av2hFirstLeafPath path;
         size_t decision_index;
         CHECK(av2h_partition_traversal_next(
-                  &probe.chroma_traversal, &probe.range,
-                  &probe.partition_cdfs, &probe.partition_contexts,
+                  &probe.traversal.chroma_traversal, &probe.entropy_state.range,
+                  &probe.entropy_state.partition_cdfs,
+                  &probe.entropy_state.partition_contexts,
                   &path, &has_leaf) == AV2H_OK);
         for (decision_index = 0U; decision_index < path.decision_count;
              ++decision_index) {
@@ -654,7 +655,7 @@ static void test_odd_luma_reconstruction(void) {
                     (unsigned int)chroma_leaf.prefix[1].tx_size,
                     (unsigned int)chroma_leaf.transform[1].primary_type,
                     (unsigned int)chroma_leaf.prefix[1].eob,
-                    av2h_range_tell(&decoder.range), (unsigned int)status);
+                    av2h_range_tell(&decoder.entropy_state.range), (unsigned int)status);
             break;
         }
         if (!has_leaf) break;
@@ -670,14 +671,14 @@ static void test_odd_luma_reconstruction(void) {
                 (unsigned int)chroma_leaf.prefix[1].tx_size,
                 (unsigned int)chroma_leaf.transform[1].primary_type,
                 (unsigned int)chroma_leaf.prefix[1].eob,
-                av2h_range_tell(&decoder.range));
+                av2h_range_tell(&decoder.entropy_state.range));
         ++chroma_count;
     }
     CHECK(status == AV2H_OK);
     CHECK(has_leaf == 0U);
     CHECK(chroma_count == 5U);
-    CHECK(av2h_range_tell(&decoder.range) == 696U);
-    CHECK(decoder.phase == AV2H_TILE_DECODE_DONE);
+    CHECK(av2h_range_tell(&decoder.entropy_state.range) == 696U);
+    CHECK(decoder.control.phase == AV2H_TILE_DECODE_DONE);
     check_plane_crop("odd Y", luma_pixels, 24U, expected_y, 17U, 15U);
     check_plane_crop("odd U", u_pixels, 12U, expected_u, 9U, 8U);
     check_plane_crop("odd V", v_pixels, 12U, expected_v, 9U, 8U);
@@ -784,7 +785,7 @@ static void test_ordinary_luma_frontier(void) {
             CHECK(leaf.prefix.after_eob_bits == 256U);
             CHECK(block.after_levels_bits == 265U);
             CHECK(block.after_coefficients_bits == 276U);
-            CHECK(av2h_range_tell(&decoder.range) == 276U);
+            CHECK(av2h_range_tell(&decoder.entropy_state.range) == 276U);
         } else if (leaf_count == 6U) {
             size_t coefficient_index;
             size_t nonzero_index = 0U;
@@ -805,7 +806,7 @@ static void test_ordinary_luma_frontier(void) {
             CHECK(block.before_levels_bits == 291U);
             CHECK(block.after_levels_bits == 322U);
             CHECK(block.after_coefficients_bits == 365U);
-            CHECK(av2h_range_tell(&decoder.range) == 365U);
+            CHECK(av2h_range_tell(&decoder.entropy_state.range) == 365U);
             for (coefficient_index = 0U; coefficient_index < 64U;
                  ++coefficient_index) {
                 if (nonzero_index < sizeof(seventh_nonzero) &&
@@ -986,7 +987,7 @@ static void test_ordinary_luma_frontier(void) {
             CHECK(block.before_levels_bits == 529U);
             CHECK(block.after_levels_bits == 529U);
             CHECK(block.after_coefficients_bits == 529U);
-            CHECK(av2h_range_tell(&decoder.range) == 529U);
+            CHECK(av2h_range_tell(&decoder.entropy_state.range) == 529U);
             for (coefficient_index = 0U;
                  coefficient_index < block.coefficient_count;
                  ++coefficient_index) {
@@ -1102,13 +1103,13 @@ static void test_ordinary_luma_frontier(void) {
     CHECK(reconstruction_status == AV2H_OK);
     CHECK(has_leaf == 0U);
     CHECK(leaf_count == 22U);
-    CHECK(decoder.phase == AV2H_TILE_DECODE_CHROMA);
-    CHECK(decoder.luma_traversal.diagnostic_node.row == 14U);
-    CHECK(decoder.luma_traversal.diagnostic_node.column == 12U);
-    CHECK(decoder.luma_traversal.diagnostic_node.block_size ==
+    CHECK(decoder.control.phase == AV2H_TILE_DECODE_CHROMA);
+    CHECK(decoder.traversal.luma_traversal.diagnostic_node.row == 14U);
+    CHECK(decoder.traversal.luma_traversal.diagnostic_node.column == 12U);
+    CHECK(decoder.traversal.luma_traversal.diagnostic_node.block_size ==
           AV2H_BLOCK_16X8);
-    CHECK(decoder.luma_traversal.diagnostic_before_bits == 744U);
-    CHECK(av2h_range_tell(&decoder.range) == 762U);
+    CHECK(decoder.traversal.luma_traversal.diagnostic_before_bits == 744U);
+    CHECK(av2h_range_tell(&decoder.entropy_state.range) == 762U);
     {
         Av2hTileChromaLeaf chroma_leaf;
         uint8_t has_chroma_leaf = 0U;
@@ -1118,8 +1119,8 @@ static void test_ordinary_luma_frontier(void) {
         av2h_memory_fill(u_reconstructed, 0U, sizeof(u_reconstructed));
         av2h_memory_fill(v_reconstructed, 0U, sizeof(v_reconstructed));
         while (status == AV2H_OK &&
-               decoder.phase != AV2H_TILE_DECODE_DONE) {
-            if (decoder.phase == AV2H_TILE_DECODE_LUMA) {
+               decoder.control.phase != AV2H_TILE_DECODE_DONE) {
+            if (decoder.control.phase == AV2H_TILE_DECODE_LUMA) {
                 av2h_memory_fill(&leaf, 0U, sizeof(leaf));
                 status = av2h_tile_decoder_reconstruct_next_luma(
                     &decoder, &luma_plane, &scratch, &leaf, &has_leaf);
@@ -1131,8 +1132,8 @@ static void test_ordinary_luma_frontier(void) {
             }
         }
         CHECK(status == AV2H_OK);
-        CHECK(decoder.phase == AV2H_TILE_DECODE_DONE);
-        CHECK(av2h_range_tell(&decoder.range) == 6498U);
+        CHECK(decoder.control.phase == AV2H_TILE_DECODE_DONE);
+        CHECK(av2h_range_tell(&decoder.entropy_state.range) == 6498U);
         check_plane_crop_hash("ordinary Y", luma_pixels, 160U, 160U, 120U,
                               UINT64_C(7945904097577017502));
         check_plane_crop_hash("ordinary U", u_pixels, 80U, 80U, 60U,
@@ -1229,8 +1230,8 @@ static void test_high_detail_frame(void) {
     CHECK(av2h_tile_decoder_init(
               &decoder, group.entropy, &sequence, &frame, &storage) ==
           AV2H_OK);
-    while (status == AV2H_OK && decoder.phase != AV2H_TILE_DECODE_DONE) {
-        if (decoder.phase == AV2H_TILE_DECODE_LUMA) {
+    while (status == AV2H_OK && decoder.control.phase != AV2H_TILE_DECODE_DONE) {
+        if (decoder.control.phase == AV2H_TILE_DECODE_LUMA) {
             av2h_memory_fill(&luma_leaf, 0U, sizeof(luma_leaf));
             status = av2h_tile_decoder_reconstruct_next_luma(
                 &decoder, &luma_plane, &scratch, &luma_leaf, &has_leaf);
@@ -1245,7 +1246,7 @@ static void test_high_detail_frame(void) {
                 luma_ledger_hash = ledger_hash_value(
                     luma_ledger_hash, luma_leaf.prefix.tx_size);
                 luma_ledger_hash = ledger_hash_value(
-                    luma_ledger_hash, av2h_range_tell(&decoder.range));
+                    luma_ledger_hash, av2h_range_tell(&decoder.entropy_state.range));
             }
         } else {
             av2h_memory_fill(&chroma_leaf, 0U, sizeof(chroma_leaf));
@@ -1291,7 +1292,7 @@ static void test_high_detail_frame(void) {
                         chroma_leaf.prefix[1].tx_size);
                     chroma_ledger_hash = ledger_hash_value(
                         chroma_ledger_hash,
-                        av2h_range_tell(&decoder.range));
+                        av2h_range_tell(&decoder.entropy_state.range));
                 }
             }
         }
@@ -1300,15 +1301,15 @@ static void test_high_detail_frame(void) {
         fprintf(stderr,
             "high-detail failed: status=%u phase=%u "
                 "Y=%zu UV=%zu tell=%zu leaf=(%u,%u) block=%u\n",
-                (unsigned int)status, (unsigned int)decoder.phase,
-                luma_count, chroma_count, av2h_range_tell(&decoder.range),
-                decoder.phase == AV2H_TILE_DECODE_LUMA ? luma_leaf.node.row :
+                (unsigned int)status, (unsigned int)decoder.control.phase,
+                luma_count, chroma_count, av2h_range_tell(&decoder.entropy_state.range),
+                decoder.control.phase == AV2H_TILE_DECODE_LUMA ? luma_leaf.node.row :
                     chroma_leaf.node.row,
-                decoder.phase == AV2H_TILE_DECODE_LUMA ?
+                decoder.control.phase == AV2H_TILE_DECODE_LUMA ?
                     luma_leaf.node.column : chroma_leaf.node.column,
-                (unsigned int)(decoder.phase == AV2H_TILE_DECODE_LUMA ?
+                (unsigned int)(decoder.control.phase == AV2H_TILE_DECODE_LUMA ?
                     luma_leaf.node.block_size : chroma_leaf.node.block_size));
-        if (decoder.phase == AV2H_TILE_DECODE_LUMA) {
+        if (decoder.control.phase == AV2H_TILE_DECODE_LUMA) {
             fprintf(stderr,
                     "high-detail syntax: mode=%u intrabc=%u "
                     "mode-tells=%zu/%zu prefix=%u/%zu/%zu/%zu/%zu "
@@ -1331,10 +1332,10 @@ static void test_high_detail_frame(void) {
         }
     }
     CHECK(status == AV2H_OK);
-    CHECK(decoder.phase == AV2H_TILE_DECODE_DONE);
+    CHECK(decoder.control.phase == AV2H_TILE_DECODE_DONE);
     CHECK(luma_count == 347U);
     CHECK(chroma_count == 9U);
-    CHECK(av2h_range_tell(&decoder.range) == 36736U);
+    CHECK(av2h_range_tell(&decoder.entropy_state.range) == 36736U);
     CHECK(luma_ledger_hash == UINT64_C(14031330387958256267));
     CHECK(chroma_ledger_hash == UINT64_C(6087973010201194980));
     check_readiness_map(
@@ -1413,7 +1414,7 @@ static void test_orchestrator_failures(void) {
               &frame, &storage) == AV2H_OK);
     CHECK(av2h_tile_decoder_next_luma(
               &decoder, &leaf, &block, &has_leaf) == AV2H_UNSUPPORTED);
-    CHECK(decoder.status == AV2H_UNSUPPORTED);
+    CHECK(decoder.control.status == AV2H_UNSUPPORTED);
     CHECK(av2h_tile_decoder_commit_leaf(
               &decoder, (Av2hPartitionNode){ 0U, 0U, AV2H_BLOCK_4X4 }) ==
           AV2H_UNSUPPORTED);
@@ -1472,61 +1473,61 @@ static void test_sdp_superblock_scheduler(void) {
     frame.height = 96U;
     frame.base_q_index = 128U;
     initialize_scheduler_decoder(&decoder, &sequence, &frame, &storage);
-    CHECK(decoder.superblock_mi == 16U);
-    CHECK(decoder.root_block_size == AV2H_BLOCK_64X64);
-    CHECK(decoder.sb_count == 6U);
-    range = decoder.range.range;
-    value = decoder.range.value;
-    decoder.partition_cdfs.do_split[0][0][0] = 1234U;
+    CHECK(decoder.superblock.superblock_mi == 16U);
+    CHECK(decoder.root.root_block_size == AV2H_BLOCK_64X64);
+    CHECK(decoder.superblock.sb_count == 6U);
+    range = decoder.entropy_state.range.range;
+    value = decoder.entropy_state.range.value;
+    decoder.entropy_state.partition_cdfs.do_split[0][0][0] = 1234U;
     luma_partition_above[0] = 37U;
     chroma_partition_left[0] = 41U;
     luma_mode_above[0].joint_mode = 53U;
     coefficient_above[0] = 43U;
-    decoder.colocated_luma[0].context.present = 1U;
-    decoder.gdf_entropy.decoded_count = 7U;
-    decoder.cdef_entropy.index0_cdf[0][0] = 901U;
+    decoder.traversal.colocated_luma[0].context.present = 1U;
+    decoder.entropy_state.gdf_entropy.decoded_count = 7U;
+    decoder.entropy_state.cdef_entropy.index0_cdf[0][0] = 901U;
     ccso_unit_controls[0][0] = 47U;
 
     for (index = 0U; index < 6U; ++index) {
-        CHECK(decoder.phase == AV2H_TILE_DECODE_LUMA);
-        CHECK(decoder.sb_index == index);
-        CHECK(decoder.sb_row == rows[index]);
-        CHECK(decoder.sb_column == columns[index]);
-        decoder.luma_traversal.stack_count = 0U;
+        CHECK(decoder.control.phase == AV2H_TILE_DECODE_LUMA);
+        CHECK(decoder.superblock.sb_index == index);
+        CHECK(decoder.superblock.sb_row == rows[index]);
+        CHECK(decoder.superblock.sb_column == columns[index]);
+        decoder.traversal.luma_traversal.stack_count = 0U;
         CHECK(av2h_tile_decoder_finish_root(&decoder) == AV2H_OK);
-        CHECK(decoder.phase == AV2H_TILE_DECODE_CHROMA);
-        CHECK(decoder.event == AV2H_TILE_EVENT_ROOT_HANDOFF);
-        CHECK(decoder.sb_row == rows[index]);
-        CHECK(decoder.sb_column == columns[index]);
+        CHECK(decoder.control.phase == AV2H_TILE_DECODE_CHROMA);
+        CHECK(decoder.control.event == AV2H_TILE_EVENT_ROOT_HANDOFF);
+        CHECK(decoder.superblock.sb_row == rows[index]);
+        CHECK(decoder.superblock.sb_column == columns[index]);
 
-        decoder.chroma_traversal.stack_count = 0U;
+        decoder.traversal.chroma_traversal.stack_count = 0U;
         CHECK(av2h_tile_decoder_finish_root(&decoder) == AV2H_OK);
         if (index + 1U < 6U) {
-            CHECK(decoder.phase == AV2H_TILE_DECODE_LUMA);
-            CHECK(decoder.event == AV2H_TILE_EVENT_ROOT_HANDOFF);
-            CHECK(decoder.luma_traversal.stack[0].row == rows[index + 1U]);
-            CHECK(decoder.luma_traversal.stack[0].column ==
+            CHECK(decoder.control.phase == AV2H_TILE_DECODE_LUMA);
+            CHECK(decoder.control.event == AV2H_TILE_EVENT_ROOT_HANDOFF);
+            CHECK(decoder.traversal.luma_traversal.stack[0].row == rows[index + 1U]);
+            CHECK(decoder.traversal.luma_traversal.stack[0].column ==
                   columns[index + 1U]);
-            CHECK(decoder.chroma_traversal.stack[0].row ==
+            CHECK(decoder.traversal.chroma_traversal.stack[0].row ==
                   rows[index + 1U]);
-            CHECK(decoder.chroma_traversal.stack[0].column ==
+            CHECK(decoder.traversal.chroma_traversal.stack[0].column ==
                   columns[index + 1U]);
-            CHECK(decoder.luma_traversal.diagnostic_before_bits == 0U);
-            CHECK(decoder.chroma_traversal.diagnostic_before_bits == 0U);
+            CHECK(decoder.traversal.luma_traversal.diagnostic_before_bits == 0U);
+            CHECK(decoder.traversal.chroma_traversal.diagnostic_before_bits == 0U);
         } else {
-            CHECK(decoder.phase == AV2H_TILE_DECODE_DONE);
-            CHECK(decoder.event == AV2H_TILE_EVENT_DONE);
+            CHECK(decoder.control.phase == AV2H_TILE_DECODE_DONE);
+            CHECK(decoder.control.event == AV2H_TILE_EVENT_DONE);
         }
-        CHECK(decoder.range.range == range);
-        CHECK(decoder.range.value == value);
-        CHECK(decoder.partition_cdfs.do_split[0][0][0] == 1234U);
+        CHECK(decoder.entropy_state.range.range == range);
+        CHECK(decoder.entropy_state.range.value == value);
+        CHECK(decoder.entropy_state.partition_cdfs.do_split[0][0][0] == 1234U);
         CHECK(luma_partition_above[0] == 37U);
         CHECK(chroma_partition_left[0] == (index < 2U ? 41U : 0U));
         CHECK(luma_mode_above[0].joint_mode == 53U);
         CHECK(coefficient_above[0] == 43U);
-        CHECK(decoder.colocated_luma[0].context.present == 1U);
-        CHECK(decoder.gdf_entropy.decoded_count == 7U);
-        CHECK(decoder.cdef_entropy.index0_cdf[0][0] == 901U);
+        CHECK(decoder.traversal.colocated_luma[0].context.present == 1U);
+        CHECK(decoder.entropy_state.gdf_entropy.decoded_count == 7U);
+        CHECK(decoder.entropy_state.cdef_entropy.index0_cdf[0][0] == 901U);
         CHECK(ccso_unit_controls[0][0] == 47U);
     }
 }
@@ -1563,23 +1564,23 @@ static void test_scheduler_guards_and_root_size(void) {
     frame.height = 96U;
     frame.base_q_index = 128U;
     initialize_scheduler_decoder(&decoder, &sequence, &frame, &storage);
-    CHECK(decoder.superblock_mi == 32U);
-    CHECK(decoder.root_block_size == AV2H_BLOCK_128X128);
-    CHECK(decoder.sb_count == 2U);
-    CHECK(decoder.luma_traversal.stack[0].block_size ==
+    CHECK(decoder.superblock.superblock_mi == 32U);
+    CHECK(decoder.root.root_block_size == AV2H_BLOCK_128X128);
+    CHECK(decoder.superblock.sb_count == 2U);
+    CHECK(decoder.traversal.luma_traversal.stack[0].block_size ==
           AV2H_BLOCK_128X128);
 
-    decoder.luma_root_partition = AV2H_PARTITION_SPLIT;
-    decoder.luma_traversal.stack_count = 0U;
+    decoder.root.luma_root_partition = AV2H_PARTITION_SPLIT;
+    decoder.traversal.luma_traversal.stack_count = 0U;
     CHECK(av2h_tile_decoder_finish_root(&decoder) == AV2H_OK);
-    CHECK(decoder.phase == AV2H_TILE_DECODE_CHROMA);
-    CHECK(decoder.chroma_root_forced_partition == AV2H_PARTITION_INVALID);
+    CHECK(decoder.control.phase == AV2H_TILE_DECODE_CHROMA);
+    CHECK(decoder.root.chroma_root_forced_partition == AV2H_PARTITION_INVALID);
 
-    decoder.phase = AV2H_TILE_DECODE_LUMA;
-    decoder.luma_traversal.has_pending_leaf = 1U;
+    decoder.control.phase = AV2H_TILE_DECODE_LUMA;
+    decoder.traversal.luma_traversal.has_pending_leaf = 1U;
     CHECK(av2h_tile_decoder_finish_root(&decoder) ==
           AV2H_INVALID_ARGUMENT);
-    CHECK(decoder.phase == AV2H_TILE_DECODE_LUMA);
+    CHECK(decoder.control.phase == AV2H_TILE_DECODE_LUMA);
 
     sequence.superblock_size = 64U;
     frame.width = 64U;
@@ -1587,12 +1588,12 @@ static void test_scheduler_guards_and_root_size(void) {
     initialize_scheduler_decoder(&decoder, &sequence, &frame, &storage);
     frame.gdf_mode = 2U;
     frame.gdf_block_count = 1U;
-    decoder.luma_traversal.stack_count = 0U;
+    decoder.traversal.luma_traversal.stack_count = 0U;
     CHECK(av2h_tile_decoder_finish_root(&decoder) == AV2H_OK);
-    CHECK(decoder.phase == AV2H_TILE_DECODE_CHROMA);
-    decoder.chroma_traversal.stack_count = 0U;
+    CHECK(decoder.control.phase == AV2H_TILE_DECODE_CHROMA);
+    decoder.traversal.chroma_traversal.stack_count = 0U;
     CHECK(av2h_tile_decoder_finish_root(&decoder) == AV2H_UNSUPPORTED);
-    CHECK(decoder.phase == AV2H_TILE_DECODE_CHROMA);
+    CHECK(decoder.control.phase == AV2H_TILE_DECODE_CHROMA);
 
     sequence.superblock_size = 256U;
     frame.gdf_mode = 0U;

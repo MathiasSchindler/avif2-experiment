@@ -1222,7 +1222,7 @@ static void test_schwaebisch_q208_64x16_reconstruction(void) {
     CHECK(block.before_levels_bits == 17U);
     CHECK(block.after_levels_bits == 17U);
     CHECK(block.after_coefficients_bits == 17U);
-    CHECK(av2h_range_tell(&decoder.range) == 17U);
+    CHECK(av2h_range_tell(&decoder.entropy_state.range) == 17U);
     for (index = 0U; index < 512U; ++index) {
         CHECK(block.quantized[index] == 0);
         CHECK(block.dequantized[index] == 0);
@@ -1231,7 +1231,7 @@ static void test_schwaebisch_q208_64x16_reconstruction(void) {
     CHECK(av2h_luma_reconstruct_to_plane(
               &leaf.node, &leaf.mode, &leaf.prefix, &leaf.transform,
               &block, &plane, &scratch) == AV2H_OK);
-    CHECK(av2h_range_tell(&decoder.range) == 17U);
+    CHECK(av2h_range_tell(&decoder.entropy_state.range) == 17U);
     for (index = 0U; index < 1024U; ++index) {
         size_t row = index >> 6U;
         size_t column = index & 63U;
@@ -1253,7 +1253,7 @@ static void test_schwaebisch_q208_64x16_reconstruction(void) {
           AV2H_UNSUPPORTED);
     block.quantized[511U] = 0;
     CHECK(av2h_tile_decoder_commit_leaf(&decoder, leaf.node) == AV2H_OK);
-    CHECK(av2h_range_tell(&decoder.range) == 17U);
+    CHECK(av2h_range_tell(&decoder.entropy_state.range) == 17U);
 
     av2h_memory_fill(&leaf, 0U, sizeof(leaf));
     av2h_memory_fill(&block, 0U, sizeof(block));
@@ -1275,7 +1275,7 @@ static void test_schwaebisch_q208_64x16_reconstruction(void) {
     CHECK(block.before_levels_bits == 30U);
     CHECK(block.after_levels_bits == 42U);
     CHECK(block.after_coefficients_bits == 43U);
-    CHECK(av2h_range_tell(&decoder.range) == 43U);
+    CHECK(av2h_range_tell(&decoder.entropy_state.range) == 43U);
 }
 #endif
 
@@ -6434,10 +6434,10 @@ static void test_10bit_wp5_frame_fixture(void) {
               &decoder, group.entropy, &sequence, &frame, &storage) ==
           AV2H_OK);
 
-    while (decoder.phase != AV2H_TILE_DECODE_DONE) {
+    while (decoder.control.phase != AV2H_TILE_DECODE_DONE) {
         uint8_t has_leaf = 0U;
         Av2hStatus status;
-        if (decoder.phase == AV2H_TILE_DECODE_LUMA) {
+        if (decoder.control.phase == AV2H_TILE_DECODE_LUMA) {
             Av2hTileLumaLeaf leaf;
             Av2hFirstCoeffBlock block;
             av2h_memory_fill(&leaf, 0U, sizeof(leaf));
@@ -6494,7 +6494,7 @@ static void test_10bit_wp5_frame_fixture(void) {
             CHECK(av2h_tile_decoder_commit_leaf(&decoder, leaf.node) ==
                   AV2H_OK);
             ++luma_count;
-        } else if (decoder.phase == AV2H_TILE_DECODE_CHROMA) {
+        } else if (decoder.control.phase == AV2H_TILE_DECODE_CHROMA) {
             Av2hTileChromaLeaf leaf;
             Av2hFirstCoeffBlock blocks[2U];
             av2h_memory_fill(&leaf, 0U, sizeof(leaf));
@@ -6568,7 +6568,7 @@ static void test_10bit_wp5_frame_fixture(void) {
     }
     CHECK(luma_count == 2U);
     CHECK(chroma_count == 2U);
-    CHECK(av2h_range_tell(&decoder.range) == 192U);
+    CHECK(av2h_range_tell(&decoder.entropy_state.range) == 192U);
     for (index = 0U; index < 256U; ++index) {
         uint16_t expected = (uint16_t)(reference_bytes[index * 2U] |
             ((uint16_t)reference_bytes[index * 2U + 1U] << 8U));
