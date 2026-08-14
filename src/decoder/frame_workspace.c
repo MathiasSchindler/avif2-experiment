@@ -24,6 +24,7 @@ typedef struct {
     size_t coefficient_left;
     size_t cdef_count;
     size_t restoration_count;
+    size_t restoration_tap_count;
 } Av2hFrameDecodeWorkspaceGeometry;
 
 static void *workspace_arena_array(Av2hArena *arena,
@@ -72,6 +73,7 @@ static Av2hStatus frame_decode_workspace_geometry(
     size_t rounded;
     size_t cdef_columns;
     size_t cdef_rows;
+    unsigned int plane;
     Av2hStatus status;
     if (sequence == 0 || frame == 0 || geometry == 0 ||
         (sequence->superblock_size != 64U &&
@@ -108,9 +110,20 @@ static Av2hStatus frame_decode_workspace_geometry(
             cdef_columns, cdef_rows, &geometry->cdef_count)) {
         return AV2H_OVERFLOW;
     }
-    geometry->restoration_count =
-        frame->restoration_type[0] == AV2H_RESTORE_PC_WIENER ?
-            frame->restoration_unit_count[0] : 0U;
+    geometry->restoration_count = 0U;
+    for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
+        if (frame->restoration_type[plane] != AV2H_RESTORE_NONE &&
+            !av2h_size_add(geometry->restoration_count,
+                           frame->restoration_unit_count[plane],
+                           &geometry->restoration_count)) {
+            return AV2H_OVERFLOW;
+        }
+    }
+    if (!av2h_size_multiply(
+            geometry->restoration_count, AV2H_WIENER_NONSEP_MAX_TAPS,
+            &geometry->restoration_tap_count)) {
+        return AV2H_OVERFLOW;
+    }
     return AV2H_OK;
 }
 
@@ -197,6 +210,8 @@ static void frame_decode_workspace_bind(
         cdef_unit_strengths, geometry->cdef_count, uint8_t);
     AV2H_BIND_WORKSPACE_FIELD(
         restoration_unit_flags, geometry->restoration_count, uint8_t);
+    AV2H_BIND_WORKSPACE_FIELD(
+        restoration_unit_taps, geometry->restoration_tap_count, int16_t);
 #undef AV2H_BIND_WORKSPACE_FIELD
     for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
         uint8_t *controls = workspace_arena_array(
@@ -336,6 +351,8 @@ Av2hStatus av2h_frame_decode_workspace_init_bytes(
         geometry.filter.ccso_control_count;
     local_workspace.tile_context.restoration_unit_flag_capacity =
         geometry.restoration_count;
+    local_workspace.tile_context.restoration_unit_tap_capacity =
+        geometry.restoration_tap_count;
     status = av2h_filter_workspace_init_bytes(
         frame, bytes_per_sample, filter_memory, geometry.filter.size_bytes,
         &local_filter_workspace, &local_filter_storage);
@@ -570,17 +587,18 @@ static int filter_workspace_valid(
         }
     }
     if (bytes_per_sample == 1U &&
-        frame->restoration_type[0] == AV2H_RESTORE_PC_WIENER &&
+        frame->restoration_type[0] != AV2H_RESTORE_NONE &&
         (workspace->restoration.data == 0 ||
          workspace->restoration.width != layout->plane_width[0] ||
          workspace->restoration.height != layout->plane_height[0] ||
          workspace->restoration.stride_samples <
              workspace->restoration.width ||
-         workspace->restoration_tx_skip == 0 ||
-         workspace->restoration_controls.tx_skip !=
-             workspace->restoration_tx_skip ||
-         workspace->restoration_controls.tx_skip_stride !=
-             layout->deblock_columns[0])) {
+         (frame->restoration_type[0] == AV2H_RESTORE_PC_WIENER &&
+          (workspace->restoration_tx_skip == 0 ||
+           workspace->restoration_controls.tx_skip !=
+               workspace->restoration_tx_skip ||
+           workspace->restoration_controls.tx_skip_stride !=
+               layout->deblock_columns[0])))) {
         return 0;
     }
     return 1;
@@ -1226,17 +1244,21 @@ Av2hStatus av2h_filter_workspace_query_bytes(
         }
     }
     if (bytes_per_sample == 1U &&
-        frame->restoration_type[0] == AV2H_RESTORE_PC_WIENER) {
+        frame->restoration_type[0] != AV2H_RESTORE_NONE) {
         layout->restoration_plane_bytes = layout->stage_plane_bytes[0];
-        layout->restoration_tx_skip_count =
-            layout->deblock_cell_count[0];
         if (!workspace_reserve(
                 &size_bytes, layout->restoration_plane_bytes,
-                sizeof(uint8_t), _Alignof(uint8_t)) ||
-            !workspace_reserve(
-                &size_bytes, layout->restoration_tx_skip_count,
                 sizeof(uint8_t), _Alignof(uint8_t))) {
             return AV2H_OVERFLOW;
+        }
+        if (frame->restoration_type[0] == AV2H_RESTORE_PC_WIENER) {
+            layout->restoration_tx_skip_count =
+                layout->deblock_cell_count[0];
+            if (!workspace_reserve(
+                    &size_bytes, layout->restoration_tx_skip_count,
+                    sizeof(uint8_t), _Alignof(uint8_t))) {
+                return AV2H_OVERFLOW;
+            }
         }
     }
     for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
@@ -1313,13 +1335,16 @@ Av2hStatus av2h_filter_workspace_init_bytes(
             samples, layout.plane_width[0],
             layout.plane_width[0], layout.plane_height[0]
         };
-        storage->restoration_tx_skip = av2h_arena_allocate(
-            &arena, layout.restoration_tx_skip_count, _Alignof(uint8_t));
-        workspace->restoration_tx_skip = storage->restoration_tx_skip;
-        workspace->restoration_controls.tx_skip =
-            storage->restoration_tx_skip;
-        workspace->restoration_controls.tx_skip_stride =
-            layout.deblock_columns[0];
+        if (layout.restoration_tx_skip_count != 0U) {
+            storage->restoration_tx_skip = av2h_arena_allocate(
+                &arena, layout.restoration_tx_skip_count,
+                _Alignof(uint8_t));
+            workspace->restoration_tx_skip = storage->restoration_tx_skip;
+            workspace->restoration_controls.tx_skip =
+                storage->restoration_tx_skip;
+            workspace->restoration_controls.tx_skip_stride =
+                layout.deblock_columns[0];
+        }
     }
     for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
         void *samples = av2h_arena_allocate(

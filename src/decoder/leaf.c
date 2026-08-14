@@ -670,7 +670,6 @@ static Av2hStatus luma_mode_read_internal(
     if (leaf->block_size >= AV2H_BLOCK_SIZE_COUNT ||
         frame->disable_cdf_update ||
         (!sequence->enable_sdp && !av2h_sequence_is_monochrome(sequence)) ||
-        sequence->enable_intra_dip ||
         (frame->gdf_mode >= 2U && gdf_state == 0) ||
         (frame->cdef_strength_count > 1U && cdef_state == 0)) {
         return AV2H_UNSUPPORTED;
@@ -749,6 +748,8 @@ static Av2hStatus luma_mode_read_internal(
     mode->after_ccso_bits = mode->before_gdf_bits;
     mode->ccso_controls_read = 0U;
     mode->palette_mode = 0U;
+    mode->use_intra_dip = 0U;
+    mode->intra_dip_mode = 0U;
     mode->before_palette_bits = mode->before_gdf_bits;
     mode->after_palette_bits = mode->before_gdf_bits;
     for (plane = 0U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
@@ -985,6 +986,49 @@ static Av2hStatus luma_mode_read_internal(
                 decoder, sequence, neighbors, mode);
             if (status != AV2H_OK) return status;
             mode->after_palette_colors_bits = av2h_range_tell(decoder);
+        }
+    }
+    if (sequence->enable_intra_dip != 0U &&
+        mode->mode == AV2H_INTRA_DC && mode->mrl_index == 0U &&
+        mode->palette_size == 0U) {
+        size_t width_mi;
+        size_t height_mi;
+        Av2hStatus status = av2h_block_dimensions_mi(
+            leaf->block_size, &width_mi, &height_mi);
+        if (status != AV2H_OK) return status;
+        if (width_mi > 1U && height_mi > 1U &&
+            width_mi * height_mi >= 8U) {
+            size_t context = 0U;
+            for (neighbor = 0U; neighbor < 2U; ++neighbor) {
+                uint8_t present = has_spatial_neighbors ?
+                    neighbors->spatial_present[neighbor] :
+                    neighbors->present[neighbor];
+                uint8_t use_intra_dip = has_spatial_neighbors ?
+                    neighbors->spatial_use_intra_dip[neighbor] :
+                    neighbors->use_intra_dip[neighbor];
+                if (present != 0U) {
+                    context += use_intra_dip != 0U;
+                }
+            }
+            if (context >= AV2H_INTRA_DIP_CONTEXTS) {
+                return AV2H_INVALID_DATA;
+            }
+            mode->use_intra_dip = (uint8_t)av2h_range_read_adaptive(
+                decoder, cdfs->intra_dip[context], 2U);
+            if (av2h_range_status(decoder) != AV2H_OK) {
+                return av2h_range_status(decoder);
+            }
+            if (mode->use_intra_dip != 0U) {
+                mode->intra_dip_mode = (uint8_t)(
+                    av2h_range_read_bypass(decoder, 1U) << 4U);
+                mode->intra_dip_mode = (uint8_t)(
+                    mode->intra_dip_mode + av2h_range_read_adaptive(
+                        decoder, cdfs->intra_dip_mode,
+                        AV2H_INTRA_DIP_MODES));
+                if (av2h_range_status(decoder) != AV2H_OK) {
+                    return av2h_range_status(decoder);
+                }
+            }
         }
     }
     return AV2H_OK;

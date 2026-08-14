@@ -1,5 +1,6 @@
 #include "decoder/filter.h"
 #include "decoder/internal/filter_common.h"
+#include "decoder/internal/wiener_nonsep.h"
 
 #define RESTORATION_PROC_UNIT_SIZE 64
 #define NUM_PC_WIENER_TAPS_LUMA 13
@@ -9,6 +10,41 @@
 #include "../../vendor/avm/av2/common/pc_wiener_filters.h"
 #undef assert
 #undef AVM_INLINE
+
+Av2hStatus av2h_wienerns_luma_frame_predictor(
+    uint8_t match_index,
+    int16_t taps[AV2H_WIENER_NONSEP_MAX_TAPS]) {
+    static const uint8_t shuffled_index[63] = {
+        16U, 7U, 58U, 21U, 12U, 61U, 26U, 38U, 18U, 30U, 50U,
+        45U, 23U, 49U, 43U, 62U, 42U, 54U, 27U, 36U, 17U, 44U,
+        32U, 34U, 4U, 24U, 52U, 31U, 37U, 11U, 33U, 19U, 35U,
+        6U, 22U, 53U, 63U, 25U, 41U, 47U, 1U, 59U, 0U, 28U,
+        40U, 55U, 48U, 8U, 5U, 51U, 9U, 46U, 56U, 60U, 15U,
+        2U, 13U, 14U, 57U, 29U, 3U, 20U, 39U
+    };
+    static const int8_t minimum[12] = {
+        -24, -24, -14, -14, -16, -16, -8, -8, -8, -8, -8, -8
+    };
+    static const uint8_t range[12] = {
+        64U, 64U, 32U, 32U, 32U, 32U,
+        16U, 16U, 16U, 16U, 16U, 16U
+    };
+    const int16_t *source;
+    unsigned int index;
+    if (taps == 0 || match_index > 63U) return AV2H_INVALID_ARGUMENT;
+    av2h_memory_fill(taps, 0U,
+                     AV2H_WIENER_NONSEP_MAX_TAPS * sizeof(*taps));
+    if (match_index == 0U) return AV2H_OK;
+    source = get_filter_set(0)[shuffled_index[match_index - 1U]];
+    for (index = 0U; index < 12U; ++index) {
+        int value = source[index];
+        int maximum = minimum[index] + range[index] - 1;
+        if (value < minimum[index]) value = minimum[index];
+        if (value > maximum) value = maximum;
+        taps[index] = (int16_t)value;
+    }
+    return AV2H_OK;
+}
 
 #define AV2H_PC_WIENER_BLOCK_SIZE 4
 #define AV2H_PC_WIENER_FEATURE_LEAD 1
@@ -198,7 +234,8 @@ static void pc_wiener_filter_block(
 static int pc_wiener_unit_row_start(
     const Av2hRestorationControlMap *controls, size_t row) {
     if (row == 0U) return 0;
-    return (int)(row * controls->unit_size) - AV2H_PC_WIENER_UNIT_OFFSET;
+    return (int)(row * controls->unit_size[0]) -
+        AV2H_PC_WIENER_UNIT_OFFSET;
 }
 
 Av2hStatus av2h_pc_wiener_filter_luma(
@@ -212,9 +249,9 @@ Av2hStatus av2h_pc_wiener_filter_luma(
     const uint8_t *selector;
     if (destination == 0 || source == 0 || deblocked == 0 || frame == 0 ||
         controls == 0 || destination->data == 0 || source->data == 0 ||
-        deblocked->data == 0 || controls->unit_flags == 0 ||
-        controls->tx_skip == 0 || controls->unit_size == 0U ||
-        controls->unit_columns == 0U || controls->unit_rows == 0U ||
+        deblocked->data == 0 || controls->unit_flags[0] == 0 ||
+        controls->tx_skip == 0 || controls->unit_size[0] == 0U ||
+        controls->unit_columns[0] == 0U || controls->unit_rows[0] == 0U ||
         controls->tx_skip_stride < ((size_t)source->width + 3U) / 4U ||
         destination->width != source->width ||
         destination->height != source->height ||
@@ -230,19 +267,19 @@ Av2hStatus av2h_pc_wiener_filter_luma(
     selector = get_filter_selector(
         get_filter_set_index(frame->base_q_index, 0));
     filter_copy_plane(destination, source);
-    for (unit_row = 0U; unit_row < controls->unit_rows; ++unit_row) {
+    for (unit_row = 0U; unit_row < controls->unit_rows[0]; ++unit_row) {
         int unit_y0 = pc_wiener_unit_row_start(controls, unit_row);
-        int unit_y1 = unit_row + 1U == controls->unit_rows ?
+        int unit_y1 = unit_row + 1U == controls->unit_rows[0] ?
             source->height : pc_wiener_unit_row_start(controls, unit_row + 1U);
         size_t unit_column;
-        for (unit_column = 0U; unit_column < controls->unit_columns;
+        for (unit_column = 0U; unit_column < controls->unit_columns[0];
              ++unit_column) {
-            int unit_x0 = (int)(unit_column * controls->unit_size);
-            int unit_x1 = unit_column + 1U == controls->unit_columns ?
-                source->width : unit_x0 + controls->unit_size;
+            int unit_x0 = (int)(unit_column * controls->unit_size[0]);
+            int unit_x1 = unit_column + 1U == controls->unit_columns[0] ?
+                source->width : unit_x0 + controls->unit_size[0];
             int stripe_start;
-            if (controls->unit_flags[
-                    unit_row * controls->unit_columns + unit_column] == 0U) {
+            if (controls->unit_flags[0][
+                    unit_row * controls->unit_columns[0] + unit_column] == 0U) {
                 continue;
             }
             for (stripe_start = unit_y0; stripe_start < unit_y1;) {
@@ -296,6 +333,202 @@ Av2hStatus av2h_pc_wiener_filter_luma(
                     }
                 }
                 stripe_start += stripe_height;
+            }
+        }
+    }
+    return AV2H_OK;
+}
+
+static uint8_t wiener_nonsep_luma_sample(
+    const Av2hPcWienerSource *luma, uint8_t filter_index,
+    int row, int column) {
+    int chroma_height = (luma->source->height + 1) >> 1;
+    int chroma_width = (luma->source->width + 1) >> 1;
+    row = clamp_coordinate(row, chroma_height);
+    column = clamp_coordinate(column, chroma_width);
+    if (filter_index == 1U) {
+        return (uint8_t)(((unsigned int)pc_wiener_source_sample(
+                              luma, row * 2, column * 2) +
+                          pc_wiener_source_sample(
+                              luma, row * 2 + 1, column * 2)) >> 1U);
+    }
+    if (filter_index == 2U) {
+        return pc_wiener_source_sample(luma, row * 2, column * 2);
+    }
+    return (uint8_t)(((unsigned int)pc_wiener_source_sample(
+                          luma, row * 2, column * 2) +
+                      pc_wiener_source_sample(
+                          luma, row * 2, column * 2 + 1) +
+                      pc_wiener_source_sample(
+                          luma, row * 2 + 1, column * 2) +
+                      pc_wiener_source_sample(
+                          luma, row * 2 + 1, column * 2 + 1)) >> 2U);
+}
+
+static void wiener_nonsep_filter_luma_region(
+    Av2hFilterPlane *destination, const Av2hPcWienerSource *source,
+    int y0, int y1, int x0, int x1, const int16_t *taps) {
+    static const int8_t tap_row[16] = {
+        1, 0, 2, 0, 1, -1, 2, 2, 1, 1, 3, 0, 4, 0, 3, 3
+    };
+    static const int8_t tap_column[16] = {
+        0, 1, 0, 2, 1, 1, 1, -1, 2, -2, 0, 3, 0, 4, 3, -3
+    };
+    int row;
+    for (row = y0; row < y1; ++row) {
+        int column;
+        for (column = x0; column < x1; ++column) {
+            int center = pc_wiener_source_sample(source, row, column);
+            int32_t value = center << 7U;
+            unsigned int tap;
+            for (tap = 0U; tap < 16U; ++tap) {
+                value += taps[tap] * (
+                    (int)pc_wiener_source_sample(
+                        source, row + tap_row[tap],
+                        column + tap_column[tap]) +
+                    pc_wiener_source_sample(
+                        source, row - tap_row[tap],
+                        column - tap_column[tap]) - 2 * center);
+            }
+            destination->data[(size_t)row * destination->stride_samples +
+                              (size_t)column] =
+                av2h_sample_clip(round_shift_symmetric(value, 7U));
+        }
+    }
+}
+
+static void wiener_nonsep_filter_chroma_region(
+    Av2hFilterPlane *destination, const Av2hPcWienerSource *source,
+    const Av2hPcWienerSource *luma, uint8_t luma_filter_index,
+    int y0, int y1, int x0, int x1, const int16_t *taps) {
+    static const int8_t uv_row[6] = { 1, 0, 1, -1, 2, 0 };
+    static const int8_t uv_column[6] = { 0, 1, 1, 1, 0, 2 };
+    static const int8_t luma_row[12] = {
+        1, -1, 0, 0, 1, -1, -1, 1, 2, -2, 0, 0
+    };
+    static const int8_t luma_column[12] = {
+        0, 0, 1, -1, 1, -1, 1, -1, 0, 0, 2, -2
+    };
+    int row;
+    for (row = y0; row < y1; ++row) {
+        int column;
+        for (column = x0; column < x1; ++column) {
+            int center = pc_wiener_source_sample(source, row, column);
+            int luma_center = wiener_nonsep_luma_sample(
+                luma, luma_filter_index, row, column);
+            int32_t value = center << 7U;
+            unsigned int tap;
+            for (tap = 0U; tap < 6U; ++tap) {
+                value += taps[tap] * (
+                    (int)pc_wiener_source_sample(
+                        source, row + uv_row[tap],
+                        column + uv_column[tap]) +
+                    pc_wiener_source_sample(
+                        source, row - uv_row[tap],
+                        column - uv_column[tap]) - 2 * center);
+            }
+            for (tap = 0U; tap < 12U; ++tap) {
+                value += taps[tap + 6U] * (
+                    (int)wiener_nonsep_luma_sample(
+                        luma, luma_filter_index, row + luma_row[tap],
+                        column + luma_column[tap]) - luma_center);
+            }
+            destination->data[(size_t)row * destination->stride_samples +
+                              (size_t)column] =
+                av2h_sample_clip(round_shift_symmetric(value, 7U));
+        }
+    }
+}
+
+Av2hStatus av2h_wiener_nonsep_filter_frame(
+    Av2hFilterPlanes *destination, const Av2hFilterPlanes *source,
+    const Av2hFilterPlanes *deblocked, const Av2hSequenceState *sequence,
+    const Av2hFrameState *frame,
+    const Av2hRestorationControlMap *controls) {
+    unsigned int plane;
+    if (destination == 0 || source == 0 || deblocked == 0 || sequence == 0 ||
+        frame == 0 || controls == 0 || frame->chroma_format_idc != 0U) {
+        return AV2H_INVALID_ARGUMENT;
+    }
+    for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
+        const Av2hFilterPlane *input = &source->plane[plane];
+        const Av2hFilterPlane *deblocked_plane = &deblocked->plane[plane];
+        Av2hFilterPlane *output = &destination->plane[plane];
+        size_t unit_row;
+        unsigned int shift = av2h_chroma_shift(
+            frame->chroma_format_idc, plane);
+        int stripe_size = RESTORATION_PROC_UNIT_SIZE >> shift;
+        int unit_offset = AV2H_PC_WIENER_UNIT_OFFSET >> shift;
+        if (frame->restoration_type[plane] != AV2H_RESTORE_WIENER_NONSEP ||
+            frame->restoration_num_filter_classes[plane] != 1U ||
+            input->data == 0 || deblocked_plane->data == 0 ||
+            output->data == 0 || controls->unit_flags[plane] == 0 ||
+            controls->unit_taps[plane] == 0 ||
+            controls->unit_columns[plane] == 0U ||
+            controls->unit_rows[plane] == 0U ||
+            controls->unit_size[plane] == 0U ||
+            input->width != output->width ||
+            input->height != output->height ||
+            input->width != deblocked_plane->width ||
+            input->height != deblocked_plane->height) {
+            return AV2H_UNSUPPORTED;
+        }
+        filter_copy_plane(output, input);
+        for (unit_row = 0U; unit_row < controls->unit_rows[plane];
+             ++unit_row) {
+            int unit_y0 = unit_row == 0U ? 0 :
+                (int)(unit_row * controls->unit_size[plane]) - unit_offset;
+            int unit_y1 = unit_row + 1U == controls->unit_rows[plane] ?
+                input->height :
+                (int)((unit_row + 1U) * controls->unit_size[plane]) -
+                    unit_offset;
+            size_t unit_column;
+            for (unit_column = 0U;
+                 unit_column < controls->unit_columns[plane];
+                 ++unit_column) {
+                size_t unit_index =
+                    unit_row * controls->unit_columns[plane] + unit_column;
+                int unit_x0 = (int)(
+                    unit_column * controls->unit_size[plane]);
+                int unit_x1 =
+                    unit_column + 1U == controls->unit_columns[plane] ?
+                    input->width : unit_x0 + controls->unit_size[plane];
+                int stripe_start;
+                const int16_t *taps = controls->unit_taps[plane] +
+                    unit_index * AV2H_WIENER_NONSEP_MAX_TAPS;
+                if (controls->unit_flags[plane][unit_index] == 0U) continue;
+                for (stripe_start = unit_y0; stripe_start < unit_y1;) {
+                    int relative_stripe =
+                        (stripe_start + unit_offset) / stripe_size;
+                    int stripe_height = stripe_size -
+                        (relative_stripe == 0 ? unit_offset : 0);
+                    Av2hPcWienerSource context;
+                    if (stripe_height > unit_y1 - stripe_start) {
+                        stripe_height = unit_y1 - stripe_start;
+                    }
+                    context = (Av2hPcWienerSource){
+                        input, deblocked_plane, stripe_start,
+                        stripe_start + stripe_height
+                    };
+                    if (plane == 0U) {
+                        wiener_nonsep_filter_luma_region(
+                            output, &context, stripe_start,
+                            stripe_start + stripe_height, unit_x0, unit_x1,
+                            taps);
+                    } else {
+                        Av2hPcWienerSource luma = {
+                            &source->plane[0], &deblocked->plane[0],
+                            stripe_start << 1U,
+                            (stripe_start + stripe_height) << 1U
+                        };
+                        wiener_nonsep_filter_chroma_region(
+                            output, &context, &luma,
+                            sequence->cfl_downsample_filter_index,
+                            stripe_start, stripe_start + stripe_height,
+                            unit_x0, unit_x1, taps);
+                    }
+                    stripe_start += stripe_height;
+                }
             }
         }
     }

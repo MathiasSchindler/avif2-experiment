@@ -5,6 +5,20 @@
 
 static Av2hTileDiagnostics tile_diagnostics;
 
+Av2hStatus av2h_tile_luma_tx_node_get(
+    const Av2hTileDecoder *decoder, uint16_t index,
+    Av2hPartitionNode *node) {
+    if (decoder == 0 || node == 0) return AV2H_INVALID_ARGUMENT;
+    if (decoder->luma_selected_tx_count != 0U) {
+        if (index >= decoder->luma_selected_tx_count) {
+            return AV2H_INVALID_ARGUMENT;
+        }
+        *node = decoder->luma_tx_nodes[index];
+        return AV2H_OK;
+    }
+    return av2h_luma_tx_node_get(&decoder->luma_coding_node, index, node);
+}
+
 static void tile_reset_left_partition_contexts(Av2hTileDecoder *decoder) {
     size_t structure;
     size_t index;
@@ -163,36 +177,177 @@ static Av2hStatus tile_restoration_entropy_init(
     const Av2hSequenceState *sequence,
     const Av2hFrameState *frame,
     const Av2hTileContextStorage *storage) {
-    size_t index;
+    size_t flag_offset = 0U;
+    size_t tap_offset = 0U;
+    unsigned int plane;
+    Av2hStatus status;
     if (state == 0 || sequence == 0 || frame == 0 || storage == 0) {
         return AV2H_INVALID_ARGUMENT;
     }
     av2h_memory_fill(state, 0U, sizeof(*state));
-    if (sequence->enable_restoration == 0U ||
-        frame->restoration_type[0] == AV2H_RESTORE_NONE) {
+    if (sequence->enable_restoration == 0U) {
         return AV2H_OK;
     }
-    if (frame->restoration_type[0] != AV2H_RESTORE_PC_WIENER ||
-        frame->restoration_type[1] != AV2H_RESTORE_NONE ||
-        frame->restoration_type[2] != AV2H_RESTORE_NONE ||
-        frame->restoration_unit_count[0] == 0U ||
-        storage->restoration_unit_flags == 0 ||
-        storage->restoration_unit_flag_capacity <
-            frame->restoration_unit_count[0]) {
-        return AV2H_UNSUPPORTED;
-    }
-    state->unit_flags = storage->restoration_unit_flags;
-    state->unit_capacity = storage->restoration_unit_flag_capacity;
-    state->unit_columns = frame->restoration_unit_columns[0];
-    state->unit_rows = frame->restoration_unit_rows[0];
-    state->unit_size = frame->restoration_unit_size[0];
     state->superblock_mi = (uint16_t)(sequence->superblock_size / 4U);
-    state->active = 1U;
-    for (index = 0U; index < frame->restoration_unit_count[0]; ++index) {
-        state->unit_flags[index] = 0U;
+    for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
+        size_t count = frame->restoration_unit_count[plane];
+        size_t plane_taps;
+        size_t index;
+        if (frame->restoration_type[plane] == AV2H_RESTORE_NONE) continue;
+        if ((frame->restoration_type[plane] != AV2H_RESTORE_PC_WIENER &&
+             frame->restoration_type[plane] != AV2H_RESTORE_WIENER_NONSEP) ||
+            count == 0U ||
+            !av2h_size_multiply(
+                count, AV2H_WIENER_NONSEP_MAX_TAPS, &plane_taps) ||
+            storage->restoration_unit_flags == 0 ||
+            storage->restoration_unit_taps == 0 ||
+            flag_offset > storage->restoration_unit_flag_capacity ||
+            count > storage->restoration_unit_flag_capacity - flag_offset ||
+            tap_offset > storage->restoration_unit_tap_capacity ||
+            plane_taps > storage->restoration_unit_tap_capacity - tap_offset) {
+            return AV2H_UNSUPPORTED;
+        }
+        state->unit_flags[plane] =
+            storage->restoration_unit_flags + flag_offset;
+        state->unit_taps[plane] = storage->restoration_unit_taps + tap_offset;
+        state->unit_capacity[plane] = count;
+        state->unit_columns[plane] = frame->restoration_unit_columns[plane];
+        state->unit_rows[plane] = frame->restoration_unit_rows[plane];
+        state->unit_size[plane] = frame->restoration_unit_size[plane];
+        state->active_mask |= (uint8_t)(1U << plane);
+        for (index = 0U; index < count; ++index) {
+            state->unit_flags[plane][index] = 0U;
+        }
+        flag_offset += count;
+        tap_offset += plane_taps;
     }
-    return av2h_binary_cdf_init(
-        state->cdf, (Av2hBinaryCdfSpec){ 12799U, 25U, 0U });
+    status = av2h_binary_cdf_init(
+        state->restore_cdf, (Av2hBinaryCdfSpec){ 9051U, 32U, 0U });
+    if (status != AV2H_OK) return status;
+    status = av2h_binary_cdf_init(
+        state->pc_wiener_restore_cdf,
+        (Av2hBinaryCdfSpec){ 12799U, 25U, 0U });
+    if (status != AV2H_OK) return status;
+    status = av2h_binary_cdf_init(
+        state->length_cdf[0], (Av2hBinaryCdfSpec){ 4898U, 56U, 0U });
+    if (status != AV2H_OK) return status;
+    status = av2h_binary_cdf_init(
+        state->length_cdf[1], (Av2hBinaryCdfSpec){ 6088U, 26U, 0U });
+    if (status != AV2H_OK) return status;
+    status = av2h_binary_cdf_init(
+        state->uv_sym_cdf, (Av2hBinaryCdfSpec){ 29286U, 65U, 0U });
+    if (status != AV2H_OK) return status;
+    {
+        static const uint16_t thresholds[3] = {
+            16557U, 24352U, 29677U
+        };
+        status = av2h_cdf_init(
+            state->four_part_cdf, 8U, thresholds, 4U, 6U, 0U);
+    }
+    if (status != AV2H_OK) return status;
+    for (plane = 1U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
+        unsigned int slot;
+        for (slot = 0U; slot < 4U; ++slot) {
+            state->bank[plane][slot][0] = 8;
+            state->bank[plane][slot][1] = 8;
+            state->bank[plane][slot][2] = 2;
+            state->bank[plane][slot][3] = 2;
+        }
+    }
+    return AV2H_OK;
+}
+
+static Av2hStatus tile_tx_partition_cdfs_init(Av2hTxPartitionCdfs *cdfs) {
+    static const Av2hBinaryCdfSpec do_partition[
+        2U][2U][AV2H_TX_PARTITION_GROUPS] = {
+        {
+            {
+                { 26330U, 30U, 0U }, { 29620U, 0U, 0U },
+                { 20420U, 30U, 0U }, { 21694U, 31U, 0U },
+                { 13317U, 31U, 0U }, { 15391U, 31U, 0U },
+                { 15952U, 31U, 0U }, { 14736U, 31U, 0U },
+                { 13810U, 5U, 0U }
+            },
+            {
+                { 31646U, 55U, 0U }, { 32393U, 25U, 0U },
+                { 30802U, 26U, 0U }, { 30485U, 31U, 0U },
+                { 20759U, 32U, 0U }, { 22159U, 1U, 0U },
+                { 26832U, 31U, 0U }, { 27351U, 1U, 0U },
+                { 24696U, 1U, 0U }
+            }
+        },
+        {
+            {
+                { 29308U, 0U, 0U }, { 32550U, 93U, 1U },
+                { 27963U, 1U, 0U }, { 27618U, 31U, 0U },
+                { 22367U, 7U, 0U }, { 23478U, 35U, 0U },
+                { 16384U, 0U, 0U }, { 16384U, 0U, 0U },
+                { 27990U, 0U, 0U }
+            },
+            {
+                { 16384U, 0U, 0U }, { 16384U, 0U, 0U },
+                { 16384U, 0U, 0U }, { 16384U, 0U, 0U },
+                { 16384U, 0U, 0U }, { 16384U, 0U, 0U },
+                { 16384U, 0U, 0U }, { 16384U, 0U, 0U },
+                { 16384U, 0U, 0U }
+            }
+        }
+    };
+    static const Av2hBinaryCdfSpec two_or_three_way[2U][2U] = {
+        { { 25131U, 30U, 0U }, { 24514U, 30U, 0U } },
+        { { 19534U, 6U, 0U }, { 18637U, 0U, 0U } }
+    };
+    static const uint16_t partition_type[
+        AV2H_TX_PARTITION_TYPE_GROUPS][6U] = {
+        { 32744U, 32748U, 32752U, 32756U, 32760U, 32764U },
+        { 3006U, 22888U, 27132U, 29972U, 29976U, 32724U },
+        { 3673U, 8849U, 27652U, 27656U, 29944U, 29948U },
+        { 5219U, 19419U, 28052U, 28836U, 29528U, 31296U },
+        { 3055U, 19649U, 22157U, 27038U, 27466U, 31646U },
+        { 6044U, 11255U, 26170U, 26493U, 28585U, 29584U },
+        { 5896U, 20361U, 25685U, 27552U, 28695U, 31097U },
+        { 2355U, 17601U, 21703U, 26050U, 27881U, 31397U },
+        { 4701U, 13502U, 24958U, 26413U, 28166U, 30129U },
+        { 3319U, 16449U, 21641U, 27154U, 29260U, 31512U },
+        { 2526U, 17088U, 19643U, 29378U, 29382U, 32724U },
+        { 2298U, 4406U, 23886U, 23890U, 30148U, 30152U },
+        { 1553U, 16160U, 18679U, 27983U, 29592U, 32139U },
+        { 2316U, 4714U, 22731U, 23797U, 29514U, 30077U }
+    };
+    static const uint8_t partition_parameter[
+        AV2H_TX_PARTITION_TYPE_GROUPS] = {
+        60U, 31U, 31U, 31U, 31U, 31U, 31U,
+        32U, 32U, 32U, 31U, 31U, 32U, 37U
+    };
+    size_t index;
+    Av2hStatus status;
+    if (cdfs == 0) return AV2H_INVALID_ARGUMENT;
+    for (index = 0U; index < 4U * AV2H_TX_PARTITION_GROUPS; ++index) {
+        size_t fsc = index / (2U * AV2H_TX_PARTITION_GROUPS);
+        size_t is_inter =
+            (index / AV2H_TX_PARTITION_GROUPS) % 2U;
+        size_t group = index % AV2H_TX_PARTITION_GROUPS;
+        status = av2h_binary_cdf_init(
+            cdfs->do_partition[fsc][is_inter][group],
+            do_partition[fsc][is_inter][group]);
+        if (status != AV2H_OK) return status;
+    }
+    for (index = 0U; index < 4U; ++index) {
+        size_t direction = index / 2U;
+        size_t context = index % 2U;
+        status = av2h_binary_cdf_init(
+            cdfs->two_or_three_way[direction][context],
+            two_or_three_way[direction][context]);
+        if (status != AV2H_OK) return status;
+    }
+    for (index = 0U; index < AV2H_TX_PARTITION_TYPE_GROUPS; ++index) {
+        status = av2h_cdf_init(
+            cdfs->partition_type[index],
+            AV2H_TX_PARTITION_TYPE_SYMBOLS + 4U, partition_type[index],
+            AV2H_TX_PARTITION_TYPE_SYMBOLS, partition_parameter[index], 0U);
+        if (status != AV2H_OK) return status;
+    }
+    return AV2H_OK;
 }
 
 void av2h_tile_capture_root_partition(
@@ -342,6 +497,8 @@ Av2hStatus av2h_tile_decoder_init(
     status = tile_restoration_entropy_init(
         &decoder->restoration_entropy, sequence, frame, storage);
     if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
+    status = tile_tx_partition_cdfs_init(&decoder->tx_partition_cdfs);
+    if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
     status = av2h_first_coeff_cdfs_init_for_q(
         &decoder->coeff_cdfs, frame->base_q_index);
     if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
@@ -405,6 +562,7 @@ Av2hStatus av2h_tile_decoder_init(
 static Av2hStatus tile_advance_root_or_finish(Av2hTileDecoder *decoder) {
     Av2hTileFilterControls controls;
     Av2hStatus status;
+    decoder->luma_partition_node_count = 0U;
     if (decoder->sb_index + 1U < decoder->sb_count) {
         ++decoder->sb_index;
         if ((size_t)decoder->sb_column + decoder->superblock_mi <
@@ -532,9 +690,8 @@ Av2hStatus av2h_tile_decoder_commit_leaf(
                 av2h_luma_lossless_tx_node_get(
                     &decoder->luma_coding_node, decoder->mi_columns,
                     decoder->mi_rows, decoder->luma_tx_index, &expected) :
-                av2h_luma_tx_node_get(
-                    &decoder->luma_coding_node, decoder->luma_tx_index,
-                    &expected);
+                av2h_tile_luma_tx_node_get(
+                    decoder, decoder->luma_tx_index, &expected);
             if (status != AV2H_OK || expected.row != leaf.row ||
                 expected.column != leaf.column ||
                 expected.block_size != leaf.block_size) {
@@ -593,6 +750,7 @@ Av2hStatus av2h_tile_decoder_commit_leaf(
             leaf = decoder->luma_coding_node;
             decoder->luma_tx_index = 0U;
             decoder->luma_tx_count = 0U;
+            decoder->luma_selected_tx_count = 0U;
             if (decoder->shared_chroma_resume_luma &&
                 decoder->chroma_tx_count != 0U &&
                 decoder->luma_coding_node.row ==

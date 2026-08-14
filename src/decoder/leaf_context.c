@@ -128,6 +128,8 @@ Av2hStatus av2h_luma_mode_neighbors_from_state(
         neighbors->mrl_index[index] = context != 0 ? context->mrl_index : 0U;
         neighbors->multi_line_mrl[index] =
             context != 0 ? context->multi_line_mrl : 0U;
+        neighbors->use_intra_dip[index] =
+            context != 0 ? context->use_intra_dip : 0U;
         neighbors->morph_pred[index] =
             context != 0 ? context->morph_pred : 0U;
         neighbors->spatial_present[index] =
@@ -146,6 +148,8 @@ Av2hStatus av2h_luma_mode_neighbors_from_state(
             spatial_context != 0 ? spatial_context->multi_line_mrl : 0U;
         neighbors->spatial_morph_pred[index] =
             spatial_context != 0 ? spatial_context->morph_pred : 0U;
+        neighbors->spatial_use_intra_dip[index] = spatial_context != 0 ?
+            spatial_context->use_intra_dip : 0U;
     }
     neighbors->edge_smooth[0] = (uint8_t)(
         candidates[2] != 0 && candidates[2]->present &&
@@ -211,6 +215,7 @@ Av2hStatus av2h_luma_mode_context_state_update(
     context.mrl_index = mode->mrl_index;
     context.multi_line_mrl = mode->multi_line_mrl;
     context.palette_size = mode->palette_size;
+    context.use_intra_dip = mode->use_intra_dip;
     for (index = 0U; index < AV2H_PALETTE_MAX_SIZE; ++index) {
         context.palette_colors[index] = mode->palette_colors[index];
     }

@@ -351,7 +351,7 @@ int main(int argc, char **argv) {
         fprintf(stderr,
                 "  leaf=(%u,%u) block=%u plane=%u syntax=%u mode=%u "
                 "mrl=%u/%u tx=%u primary=%u secondary=%u/%u fsc=%u "
-                "skip=%u zero=%u eob=%u inverse=%u\n",
+                "skip=%u zero=%u eob=%u coeff=%u/%u/%u inverse=%u\n",
             decode_result.row, decode_result.column,
             decode_result.block_size, decode_result.plane,
                 decode_result.syntax_stage, decode_result.mode,
@@ -360,6 +360,9 @@ int main(int argc, char **argv) {
                 decode_result.secondary_symbol, decode_result.secondary_set,
                 decode_result.fsc_mode, decode_result.skip_transform,
                 decode_result.all_zero, decode_result.eob,
+                decode_result.coefficient_position,
+                decode_result.coefficient_context,
+                decode_result.coefficient_kind,
                 decode_result.inverse_transform_stage);
         release_memory(&input);
         return status == AV2H_UNSUPPORTED ? 3 : 1;

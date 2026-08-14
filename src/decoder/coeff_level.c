@@ -1029,15 +1029,22 @@ static Av2hStatus read_chroma_block(
     uint32_t ac_step;
     Av2hCoeffDequantSteps dequant_steps;
     Av2hStatus status;
+    block->diagnostic_kind = 100U;
     if (cdfs->q_context != av2h_coeff_q_context(frame->base_q_index)) {
+        block->diagnostic_kind = 101U;
         return AV2H_UNSUPPORTED;
     }
     if (sequence->enable_parity_hiding) {
+        block->diagnostic_kind = 102U;
         return AV2H_UNSUPPORTED;
     }
     status = av2h_coeff_tx_geometry(prefix->tx_size, &geometry);
-    if (status != AV2H_OK) return status;
+    if (status != AV2H_OK) {
+        block->diagnostic_kind = 103U;
+        return status;
+    }
     if (geometry.coefficient_count > AV2H_FIRST_COEFF_CAPACITY) {
+        block->diagnostic_kind = 104U;
         return AV2H_OVERFLOW;
     }
     block->width = geometry.width;
@@ -1063,6 +1070,7 @@ static Av2hStatus read_chroma_block(
     if (prefix->all_zero && prefix->eob == 0U) return AV2H_OK;
     if (prefix->all_zero || prefix->eob == 0U ||
         prefix->eob > geometry.coefficient_count) {
+        block->diagnostic_kind = 105U;
         return AV2H_UNSUPPORTED;
     }
     {

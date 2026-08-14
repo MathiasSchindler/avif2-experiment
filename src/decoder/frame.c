@@ -1,4 +1,5 @@
 #include "frame.h"
+#include "internal/wiener_nonsep.h"
 
 static void frame_fail(Av2hBitReader *reader, Av2hStatus status) {
     if (reader->status == AV2H_OK) reader->status = status;
@@ -217,6 +218,109 @@ static uint16_t restoration_unit_count(uint16_t dimension,
     return (uint16_t)(count != 0U ? count : 1U);
 }
 
+static uint32_t inverse_recenter_nonnegative(uint32_t reference,
+                                             uint32_t value) {
+    if (value > 2U * reference) return value;
+    if ((value & 1U) == 0U) return reference + value / 2U;
+    return reference - (value + 1U) / 2U;
+}
+
+static uint32_t inverse_recenter_finite(uint32_t count,
+                                        uint32_t reference,
+                                        uint32_t value) {
+    if (2U * reference <= count) {
+        return inverse_recenter_nonnegative(reference, value);
+    }
+    return count - 1U - inverse_recenter_nonnegative(
+        count - 1U - reference, value);
+}
+
+static uint32_t read_subexp(Av2hBitReader *reader,
+                            uint32_t count,
+                            unsigned int parameter) {
+    unsigned int iteration = 0U;
+    uint32_t consumed = 0U;
+    for (;;) {
+        unsigned int bits = iteration != 0U ?
+            parameter + iteration - 1U : parameter;
+        uint32_t group_size = 1U << bits;
+        if (count <= consumed + 3U * group_size) {
+            return consumed + av2h_bit_reader_quasi_uniform(
+                reader, count - consumed);
+        }
+        if (av2h_bit_reader_read(reader, 1U) == 0U) {
+            return consumed + av2h_bit_reader_read(reader, bits);
+        }
+        ++iteration;
+        consumed += group_size;
+    }
+}
+
+static uint32_t read_ref_subexp(Av2hBitReader *reader,
+                                uint32_t count,
+                                unsigned int parameter,
+                                uint32_t reference) {
+    return inverse_recenter_finite(
+        count, reference, read_subexp(reader, count, parameter));
+}
+
+static void read_luma_wienerns_frame_filter(Av2hBitReader *reader,
+                                            const Av2hSequenceState *sequence,
+                                            Av2hFrameState *frame) {
+    static const int8_t coefficient_min[16] = {
+        -24, -24, -14, -14, -16, -16, -8, -8,
+        -8, -8, -8, -8, -8, -8, -8, -8
+    };
+    static const uint8_t coefficient_bits[16] = {
+        6U, 6U, 5U, 5U, 5U, 5U, 4U, 4U,
+        4U, 4U, 4U, 4U, 4U, 4U, 4U, 4U
+    };
+    static const uint16_t subset_mask[4] = {
+        0x003fU, 0x0fc3U, 0x0fffU, 0xffffU
+    };
+    int16_t predictor[AV2H_WIENER_NONSEP_MAX_TAPS];
+    uint32_t group;
+    uint32_t match_index;
+    unsigned int subset = 0U;
+    unsigned int index;
+    Av2hStatus status;
+    if (sequence->lr_tools_disable_mask[0] &
+        (1U << AV2H_RESTORE_PC_WIENER)) {
+        frame_fail(reader, AV2H_UNSUPPORTED);
+        return;
+    }
+    group = av2h_bit_reader_read(reader, 1U) == 0U ? 2U : 0U;
+    match_index = group == 2U ?
+        1U + read_ref_subexp(reader, 63U, 4U, 31U) : 0U;
+    if (reader->status != AV2H_OK || match_index > 63U) return;
+    status = av2h_wienerns_luma_frame_predictor(
+        (uint8_t)match_index, predictor);
+    if (status != AV2H_OK) {
+        frame_fail(reader, status);
+        return;
+    }
+    if (av2h_bit_reader_read(reader, 1U) != 0U) {
+        av2h_memory_copy(frame->restoration_frame_filter[0], predictor,
+                         sizeof(predictor));
+        return;
+    }
+    while (subset < 3U && av2h_bit_reader_read(reader, 1U) != 0U) {
+        ++subset;
+    }
+    for (index = 0U; index < 16U; ++index) {
+        uint32_t count;
+        uint32_t reference;
+        if ((subset_mask[subset] & (uint16_t)(1U << index)) == 0U) continue;
+        count = 1U << coefficient_bits[index];
+        reference = (uint32_t)(predictor[index] - coefficient_min[index]);
+        frame->restoration_frame_filter[0][index] = (int16_t)(
+            (int32_t)read_ref_subexp(reader, count,
+                coefficient_bits[index] - 3U, reference) +
+            coefficient_min[index]);
+        if (reader->status != AV2H_OK) return;
+    }
+}
+
 static void read_restoration(Av2hBitReader *reader,
                              const Av2hSequenceState *sequence,
                              Av2hFrameState *frame) {
@@ -241,13 +345,25 @@ static void read_restoration(Av2hBitReader *reader,
         tool_index = av2h_bit_reader_quasi_uniform(reader, tool_count);
         if (reader->status != AV2H_OK || tool_index >= tool_count) return;
         frame->restoration_type[plane] = index_to_tool[tool_index];
+        if (frame->restoration_type[plane] ==
+            AV2H_RESTORE_WIENER_NONSEP) {
+            frame->restoration_frame_filters_on[plane] =
+                (uint8_t)av2h_bit_reader_read(reader, 1U);
+            frame->restoration_num_filter_classes[plane] =
+                frame->restoration_frame_filters_on[plane] != 0U &&
+                plane == 0U ?
+                    (uint8_t[]){ 1U, 2U, 3U, 4U, 6U, 8U, 12U, 16U }
+                        [av2h_bit_reader_read(reader, 3U)] : 1U;
+        }
         if (frame->restoration_type[plane] != AV2H_RESTORE_NONE) {
             if (plane == 0U) uses_luma = 1U;
             else uses_chroma = 1U;
         }
         if (frame->restoration_type[plane] != AV2H_RESTORE_NONE &&
             (plane != 0U || frame->restoration_type[plane] !=
-                 AV2H_RESTORE_PC_WIENER)) {
+                  AV2H_RESTORE_PC_WIENER) &&
+              frame->restoration_type[plane] !=
+                  AV2H_RESTORE_WIENER_NONSEP) {
             frame_fail(reader, AV2H_UNSUPPORTED);
             return;
         }
@@ -271,8 +387,21 @@ static void read_restoration(Av2hBitReader *reader,
         frame->restoration_unit_size[0] = (uint16_t)(512U >> shift);
     }
     if (uses_chroma != 0U) {
-        frame_fail(reader, AV2H_UNSUPPORTED);
-        return;
+        unsigned int shift;
+        if (av2h_bit_reader_read(reader, 1U) != 0U) {
+            shift = 1U;
+        } else if (sequence->superblock_size == 256U) {
+            shift = 0U;
+        } else if (av2h_bit_reader_read(reader, 1U) != 0U) {
+            shift = 0U;
+        } else if (sequence->superblock_size == 128U) {
+            shift = 2U;
+        } else {
+            shift = av2h_bit_reader_read(reader, 1U) != 0U ? 2U : 3U;
+        }
+        frame->restoration_unit_size[1] = (uint16_t)(
+            (frame->chroma_format_idc == 2U ? 512U : 256U) >> shift);
+        frame->restoration_unit_size[2] = frame->restoration_unit_size[1];
     }
     for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
         uint16_t width = (uint16_t)av2h_frame_plane_dimension(
@@ -286,6 +415,15 @@ static void read_restoration(Av2hBitReader *reader,
         frame->restoration_unit_count[plane] =
             (uint32_t)frame->restoration_unit_columns[plane] *
             frame->restoration_unit_rows[plane];
+    }
+    for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
+        if (frame->restoration_frame_filters_on[plane] == 0U) continue;
+        if (plane != 0U || frame->restoration_num_filter_classes[plane] != 1U) {
+            frame_fail(reader, AV2H_UNSUPPORTED);
+            return;
+        }
+        read_luma_wienerns_frame_filter(reader, sequence, frame);
+        if (reader->status != AV2H_OK) return;
     }
 }
 

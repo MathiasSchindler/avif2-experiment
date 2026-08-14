@@ -15,7 +15,8 @@ const Av2hBlockGeometry av2h_block_geometry[AV2H_BLOCK_SIZE_COUNT] = {
     { 8U, 2U, 13U, 14U }, { 4U, 16U, 14U, 13U },
     { 16U, 4U, 15U, 14U }, { 1U, 8U, 0U, 0U },
     { 8U, 1U, 0U, 0U }, { 2U, 16U, 0U, 0U },
-    { 16U, 2U, 0U, 0U }
+    { 16U, 2U, 0U, 0U }, { 1U, 16U, 0U, 0U },
+    { 16U, 1U, 0U, 0U }
 };
 
 Av2hStatus av2h_block_dimensions_mi(Av2hBlockSize block_size,

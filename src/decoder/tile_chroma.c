@@ -592,6 +592,7 @@ Av2hStatus av2h_tile_decoder_next_chroma(
     #endif
         av2h_tile_diagnostics_set_chroma_stage(
             (uint8_t)(3U + index * 3U));
+        blocks[index]->diagnostic_kind = 90U;
         status = av2h_chroma_coeff_block_read_with_state(
             &decoder->range, &decoder->level_cdfs, decoder->sequence,
             decoder->frame, &leaf->node, plane, &leaf->prefix[index],

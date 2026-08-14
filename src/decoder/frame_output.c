@@ -639,12 +639,18 @@ Av2hStatus av2h_decode_frame_planar_private(
             AV2H_INVALID_DATA, AV2H_INVALID_DATA,
             AV2H_FRAME_DECODE_STAGE_COMPLETENESS, 0U, 0, 0U);
     }
-    if (decoder.restoration_entropy.active != 0U &&
-        decoder.restoration_entropy.decoded_count !=
-            frame->restoration_unit_count[0]) {
-        AV2H_DECODE_FAIL(
-            AV2H_INVALID_DATA, AV2H_INVALID_DATA,
-            AV2H_FRAME_DECODE_STAGE_COMPLETENESS, 0U, 0, 0U);
+    if (decoder.restoration_entropy.active_mask != 0U) {
+        for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
+            if ((decoder.restoration_entropy.active_mask &
+                    (1U << plane)) != 0U &&
+                decoder.restoration_entropy.decoded_count[plane] !=
+                    frame->restoration_unit_count[plane]) {
+                AV2H_DECODE_FAIL(
+                    AV2H_INVALID_DATA, AV2H_INVALID_DATA,
+                    AV2H_FRAME_DECODE_STAGE_COMPLETENESS,
+                    plane, 0, 0U);
+            }
+        }
     }
     status = av2h_tile_filter_controls_handoff(&decoder, &filter_controls);
     if (status != AV2H_OK) {
@@ -655,14 +661,19 @@ Av2hStatus av2h_decode_frame_planar_private(
     decoded.entropy_tell = av2h_range_tell(&decoder.range);
     workspace->filter_workspace->cdef_controls = filter_controls.cdef;
     workspace->filter_workspace->gdf_controls = filter_controls.gdf;
-    workspace->filter_workspace->restoration_controls.unit_flags =
-        decoder.restoration_entropy.unit_flags;
-    workspace->filter_workspace->restoration_controls.unit_columns =
-        decoder.restoration_entropy.unit_columns;
-    workspace->filter_workspace->restoration_controls.unit_rows =
-        decoder.restoration_entropy.unit_rows;
-    workspace->filter_workspace->restoration_controls.unit_size =
-        decoder.restoration_entropy.unit_size;
+    for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
+        workspace->filter_workspace->restoration_controls.unit_flags[plane] =
+            decoder.restoration_entropy.unit_flags[plane];
+        workspace->filter_workspace->restoration_controls.unit_taps[plane] =
+            decoder.restoration_entropy.unit_taps[plane];
+        workspace->filter_workspace->restoration_controls
+            .unit_columns[plane] =
+                decoder.restoration_entropy.unit_columns[plane];
+        workspace->filter_workspace->restoration_controls.unit_rows[plane] =
+            decoder.restoration_entropy.unit_rows[plane];
+        workspace->filter_workspace->restoration_controls.unit_size[plane] =
+            decoder.restoration_entropy.unit_size[plane];
+    }
     for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
         if (filter_controls.ccso.plane[plane] != 0) {
             av2h_memory_copy(

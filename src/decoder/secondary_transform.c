@@ -109,12 +109,18 @@ static Av2hStatus inverse_secondary_transform_4x4(
     } else if (transform->secondary_set == 2U &&
         transform->secondary_symbol == 2U) {
         kernel = av2h_ist_4x4_set2_type2_kernel;
+    } else if (transform->secondary_set == 2U &&
+               transform->secondary_symbol == 3U) {
+        kernel = av2h_ist_4x4_set2_type3_kernel;
     } else if (transform->secondary_set == 3U &&
                transform->secondary_symbol == 1U) {
         kernel = av2h_ist_4x4_set3_type1_kernel;
     } else if (transform->secondary_set == 3U &&
                transform->secondary_symbol == 2U) {
         kernel = av2h_ist_4x4_set3_type2_kernel;
+    } else if (transform->secondary_set == 3U &&
+               transform->secondary_symbol == 3U) {
+        kernel = av2h_ist_4x4_set3_type3_kernel;
     } else if (transform->secondary_set == 4U &&
                transform->secondary_symbol == 1U) {
         kernel = av2h_ist_4x4_set4_type1_kernel;
@@ -130,6 +136,9 @@ static Av2hStatus inverse_secondary_transform_4x4(
     } else if (transform->secondary_set == 5U &&
                transform->secondary_symbol == 2U) {
         kernel = av2h_ist_4x4_set5_type2_kernel;
+    } else if (transform->secondary_set == 5U &&
+               transform->secondary_symbol == 3U) {
+        kernel = av2h_ist_4x4_set5_type3_kernel;
     } else if (transform->secondary_set == 6U &&
                transform->secondary_symbol == 1U) {
         kernel = av2h_ist_4x4_set6_type1_kernel;

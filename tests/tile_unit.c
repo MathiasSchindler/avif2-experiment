@@ -214,7 +214,7 @@ static void test_bounded_orchestrator(void) {
         16U, 16U, 16U, 0, 0U, 0, 0U,
         { ccso_unit_controls[0], ccso_unit_controls[1],
           ccso_unit_controls[2] },
-                1U, 0, 0U
+                1U, 0, 0U, 0, 0U
     };
     Av2hSequenceState sequence = { 0 };
     Av2hFrameState frame = { 0 };
@@ -366,7 +366,7 @@ static void test_odd_luma_reconstruction(void) {
         6U, 16U, 24U, 0, 0U, 0, 0U,
         { ccso_unit_controls[0], ccso_unit_controls[1],
           ccso_unit_controls[2] },
-                1U, 0, 0U
+                1U, 0, 0U, 0, 0U
     };
     uint8_t luma_pixels[24U * 16U];
     uint8_t u_pixels[12U * 8U];
@@ -711,7 +711,7 @@ static void test_ordinary_luma_frontier(void) {
         40U, 30U, 40U * 30U, 0, 0U, 0, 0U,
         { ccso_unit_controls[0], ccso_unit_controls[1],
           ccso_unit_controls[2] },
-                1U, 0, 0U
+                1U, 0, 0U, 0, 0U
     };
     uint8_t luma_pixels[160U * 128U];
     uint8_t luma_reconstructed[40U * 32U];
@@ -1170,7 +1170,7 @@ static void test_high_detail_frame(void) {
         24U, 20U, 24U * 20U, 0, 0U, 0, 0U,
         { ccso_unit_controls[0], ccso_unit_controls[1],
           ccso_unit_controls[2] },
-                1U, 0, 0U
+                1U, 0, 0U, 0, 0U
     };
     uint8_t luma_pixels[96U * 80U];
     uint8_t u_pixels[48U * 40U];
@@ -1375,7 +1375,7 @@ static void test_orchestrator_failures(void) {
         4U, 16U, 4U, 0, 0U, 0, 0U,
         { ccso_unit_controls[0], ccso_unit_controls[1],
           ccso_unit_controls[2] },
-                1U, 0, 0U
+                1U, 0, 0U, 0, 0U
     };
     Av2hSequenceState sequence = { 0 };
     Av2hFrameState frame = { 0 };
@@ -1457,7 +1457,7 @@ static void test_sdp_superblock_scheduler(void) {
         48U, 24U, 48U * 24U, 0, 0U, 0, 0U,
         { ccso_unit_controls[0], ccso_unit_controls[1],
           ccso_unit_controls[2] },
-                1U, 0, 0U
+                1U, 0, 0U, 0, 0U
     };
     Av2hSequenceState sequence = { 0 };
     Av2hFrameState frame = { 0 };
@@ -1551,7 +1551,7 @@ static void test_scheduler_guards_and_root_size(void) {
         48U, 32U, 48U * 32U, 0, 0U, 0, 0U,
         { ccso_unit_controls[0], ccso_unit_controls[1],
           ccso_unit_controls[2] },
-                1U, 0, 0U
+                1U, 0, 0U, 0, 0U
     };
     Av2hSequenceState sequence = { 0 };
     Av2hFrameState frame = { 0 };

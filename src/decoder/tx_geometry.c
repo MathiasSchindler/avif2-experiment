@@ -190,6 +190,8 @@ Av2hStatus av2h_luma_tx_descriptor_get(
         case AV2H_BLOCK_32X4: tx_size = AV2H_TX_32X4; break;
         case AV2H_BLOCK_8X64: tx_size = AV2H_TX_8X64; break;
         case AV2H_BLOCK_64X8: tx_size = AV2H_TX_64X8; break;
+        case AV2H_BLOCK_4X64: tx_size = AV2H_TX_4X64; break;
+        case AV2H_BLOCK_64X4: tx_size = AV2H_TX_64X4; break;
         default:
             if (descriptor != 0) *descriptor = 0;
             return descriptor == 0 ? AV2H_INVALID_ARGUMENT :

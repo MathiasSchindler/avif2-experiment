@@ -1449,6 +1449,13 @@ Av2hStatus av2h_luma_reconstruct_to_plane(
     above_count = block_y <= mode->mrl_index ||
         block_x >= plane->width ? 0U :
         (size_t)plane->width - block_x;
+    if (mode->tx_extended_edges_unavailable != 0U &&
+        above_count > output_width) {
+        above_count = output_width;
+    }
+    if (above_count > 2U * output_width) {
+        above_count = 2U * output_width;
+    }
     if (mode->mode == AV2H_INTRA_PAETH && above_count != 0U &&
         above_count < output_width) {
         above_count = output_width;
@@ -1486,7 +1493,11 @@ Av2hStatus av2h_luma_reconstruct_to_plane(
         above_count = output_width;
     }
     left_count = block_x <= mode->mrl_index ? 0U : output_height;
-    if (left_count != 0U &&
+    if (left_count != 0U && mode->use_intra_dip != 0U &&
+        mode->tx_extended_edges_unavailable == 0U) {
+        left_count += output_height >> 2U;
+    } else if (left_count != 0U &&
+        mode->tx_extended_edges_unavailable == 0U &&
         (mode->mode == AV2H_INTRA_SMOOTH ||
          mode->mode == AV2H_INTRA_SMOOTH_VERTICAL) &&
         block_y + left_count < plane->height) {
@@ -1496,8 +1507,9 @@ Av2hStatus av2h_luma_reconstruct_to_plane(
         int angle = luma_wide_angle(
             directional_base_angle(mode->mode) + mode->angle_delta * 3,
             output_width, output_height);
-        if (angle > 180 ||
-            (mode->enable_ibp != 0U && angle > 0 && angle < 90)) {
+        if (mode->tx_extended_edges_unavailable == 0U &&
+            (angle > 180 ||
+             (mode->enable_ibp != 0U && angle > 0 && angle < 90))) {
             left_count += output_width;
             if (left_count > 2U * output_height) {
                 left_count = 2U * output_height;
@@ -1561,6 +1573,13 @@ Av2hStatus av2h_luma_reconstruct_to_plane(
         if (block_y != 0U) {
             secondary_above_count =
                 (size_t)plane->width - block_x;
+            if (mode->tx_extended_edges_unavailable != 0U &&
+                secondary_above_count > output_width) {
+                secondary_above_count = output_width;
+            }
+            if (secondary_above_count > 2U * output_width) {
+                secondary_above_count = 2U * output_width;
+            }
             if (secondary_above_count > sizeof(scratch->secondary_above)) {
                 secondary_above_count = sizeof(scratch->secondary_above);
             }
@@ -1578,7 +1597,8 @@ Av2hStatus av2h_luma_reconstruct_to_plane(
         }
         if (block_x != 0U) {
             secondary_left_count = output_height;
-            if (directional_base_angle(mode->mode) != 0 &&
+            if (mode->tx_extended_edges_unavailable == 0U &&
+                directional_base_angle(mode->mode) != 0 &&
                 luma_wide_angle(
                     directional_base_angle(mode->mode) +
                         mode->angle_delta * 3 +

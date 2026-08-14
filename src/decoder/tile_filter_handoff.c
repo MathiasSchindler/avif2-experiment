@@ -32,8 +32,8 @@ Av2hStatus av2h_tile_filter_controls_handoff(
             decoder->frame->gdf_block_count) {
         return AV2H_UNSUPPORTED;
     }
-    if (decoder->restoration_entropy.active != 0U &&
-        decoder->restoration_entropy.decoded_count !=
+    if (decoder->restoration_entropy.active_mask != 0U &&
+        decoder->restoration_entropy.decoded_count[0] !=
             decoder->frame->restoration_unit_count[0]) {
         return AV2H_UNSUPPORTED;
     }

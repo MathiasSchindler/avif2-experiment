@@ -231,6 +231,12 @@ Av2hStatus av2h_leaf_cdfs_init(Av2hLeafCdfs *cdfs) {
         { 80U, 90U, 75U, 76U, 93U },
         { 93U, 90U, 90U, 0U, 93U }
     };
+    static const Av2hBinaryCdfSpec intra_dip[AV2H_INTRA_DIP_CONTEXTS] = {
+        { 11914U, 31U, 0U }, { 5128U, 31U, 0U }, { 3555U, 31U, 0U }
+    };
+    static const uint16_t intra_dip_mode[AV2H_INTRA_DIP_MODES - 1U] = {
+        5753U, 15408U, 19070U, 22631U, 27578U
+    };
     Av2hStatus status;
     size_t context;
     if (cdfs == 0) return AV2H_INVALID_ARGUMENT;
@@ -246,6 +252,13 @@ Av2hStatus av2h_leaf_cdfs_init(Av2hLeafCdfs *cdfs) {
     }
     status = initialize_binary_table(cdfs->intrabc, intrabc_defaults,
                                      AV2H_INTRABC_CONTEXT_COUNT);
+    if (status != AV2H_OK) return status;
+    status = initialize_binary_table(
+        cdfs->intra_dip, intra_dip, AV2H_INTRA_DIP_CONTEXTS);
+    if (status != AV2H_OK) return status;
+    status = av2h_cdf_init(
+        cdfs->intra_dip_mode, AV2H_INTRA_DIP_MODES + 4U,
+        intra_dip_mode, AV2H_INTRA_DIP_MODES, 0U, 0U);
     if (status != AV2H_OK) return status;
     status = av2h_cdf_init(
         cdfs->intrabc_qtr_shell_class,

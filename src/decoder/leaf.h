@@ -47,6 +47,8 @@ const int16_t *av2h_intrabc_diagnostic_bank(size_t *count);
 #define AV2H_MORPH_PRED_CONTEXT_COUNT 3U
 #define AV2H_DELTA_Q_SYMBOLS 8U
 #define AV2H_SEGMENT_ID_CONTEXTS 3U
+#define AV2H_INTRA_DIP_CONTEXTS 3U
+#define AV2H_INTRA_DIP_MODES 6U
 
 typedef struct {
     uint16_t intrabc[AV2H_INTRABC_CONTEXT_COUNT][AV2H_BINARY_CDF_SIZE];
@@ -95,6 +97,8 @@ typedef struct {
     uint16_t palette_y_color_index[AV2H_PALETTE_SIZE_COUNT]
                                   [AV2H_PALETTE_COLOR_CONTEXT_COUNT]
                                   [AV2H_PALETTE_MAX_SIZE + 4U];
+    uint16_t intra_dip[AV2H_INTRA_DIP_CONTEXTS][AV2H_BINARY_CDF_SIZE];
+    uint16_t intra_dip_mode[AV2H_INTRA_DIP_MODES + 4U];
     uint16_t fsc_mode[AV2H_FSC_MODE_CONTEXT_COUNT]
                      [AV2H_FSC_BLOCK_CONTEXT_COUNT]
                      [AV2H_BINARY_CDF_SIZE];
@@ -159,7 +163,10 @@ typedef struct {
     uint8_t palette_height;
     uint16_t palette_colors[AV2H_PALETTE_MAX_SIZE];
     uint8_t palette_map[AV2H_PALETTE_MAP_CAPACITY];
+    uint8_t use_intra_dip;
+    uint8_t intra_dip_mode;
     uint8_t enable_ibp;
+    uint8_t tx_extended_edges_unavailable;
     uint8_t edge_ibp;
     uint8_t above_smooth;
     uint8_t left_smooth;
@@ -212,8 +219,10 @@ typedef struct {
     uint8_t spatial_mrl_index[2];
     uint8_t spatial_multi_line_mrl[2];
     uint8_t spatial_morph_pred[2];
+    uint8_t spatial_use_intra_dip[2];
     uint8_t edge_smooth[2];
     uint8_t palette_size[2];
+    uint8_t use_intra_dip[2];
     uint16_t palette_colors[2][AV2H_PALETTE_MAX_SIZE];
 } Av2hLumaModeNeighbors;
 
@@ -236,6 +245,7 @@ typedef struct {
     uint8_t mrl_index;
     uint8_t multi_line_mrl;
     uint8_t palette_size;
+    uint8_t use_intra_dip;
     uint16_t palette_colors[AV2H_PALETTE_MAX_SIZE];
 } Av2hLumaModeContext;
 

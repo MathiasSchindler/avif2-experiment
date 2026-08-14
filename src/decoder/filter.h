@@ -47,12 +47,13 @@ typedef struct {
 } Av2hGdfControlMap;
 
 typedef struct {
-    const uint8_t *unit_flags;
+    const uint8_t *unit_flags[AV2H_FRAME_PLANE_COUNT];
+    const int16_t *unit_taps[AV2H_FRAME_PLANE_COUNT];
     const uint8_t *tx_skip;
     size_t tx_skip_stride;
-    size_t unit_columns;
-    size_t unit_rows;
-    uint16_t unit_size;
+    size_t unit_columns[AV2H_FRAME_PLANE_COUNT];
+    size_t unit_rows[AV2H_FRAME_PLANE_COUNT];
+    uint16_t unit_size[AV2H_FRAME_PLANE_COUNT];
 } Av2hRestorationControlMap;
 
 typedef struct {
@@ -114,6 +115,13 @@ Av2hStatus av2h_pc_wiener_filter_luma(
     Av2hFilterPlane *destination,
     const Av2hFilterPlane *source,
     const Av2hFilterPlane *deblocked,
+    const Av2hFrameState *frame,
+    const Av2hRestorationControlMap *controls);
+Av2hStatus av2h_wiener_nonsep_filter_frame(
+    Av2hFilterPlanes *destination,
+    const Av2hFilterPlanes *source,
+    const Av2hFilterPlanes *deblocked,
+    const Av2hSequenceState *sequence,
     const Av2hFrameState *frame,
     const Av2hRestorationControlMap *controls);
 

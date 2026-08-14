@@ -5,6 +5,10 @@
 
 #define AV2H_MAX_LOSSLESS_CHROMA_TX_NODES 1024U
 #define AV2H_MAX_LUMA_PARTITION_NODES 2048U
+#define AV2H_MAX_TX_PARTITION_NODES 5U
+#define AV2H_TX_PARTITION_GROUPS 9U
+#define AV2H_TX_PARTITION_TYPE_GROUPS 14U
+#define AV2H_TX_PARTITION_TYPE_SYMBOLS 7U
 
 typedef struct {
     size_t header_bits;
@@ -46,19 +50,38 @@ typedef struct {
     size_t ccso_unit_control_capacity;
     uint8_t *restoration_unit_flags;
     size_t restoration_unit_flag_capacity;
+    int16_t *restoration_unit_taps;
+    size_t restoration_unit_tap_capacity;
 } Av2hTileContextStorage;
 
 typedef struct {
-    uint16_t cdf[AV2H_BINARY_CDF_SIZE];
-    uint8_t *unit_flags;
-    size_t unit_capacity;
-    size_t decoded_count;
-    uint16_t unit_columns;
-    uint16_t unit_rows;
-    uint16_t unit_size;
+    uint16_t restore_cdf[AV2H_BINARY_CDF_SIZE];
+    uint16_t pc_wiener_restore_cdf[AV2H_BINARY_CDF_SIZE];
+    uint16_t length_cdf[2U][AV2H_BINARY_CDF_SIZE];
+    uint16_t uv_sym_cdf[AV2H_BINARY_CDF_SIZE];
+    uint16_t four_part_cdf[8U];
+    uint8_t *unit_flags[AV2H_FRAME_PLANE_COUNT];
+    int16_t *unit_taps[AV2H_FRAME_PLANE_COUNT];
+    size_t unit_capacity[AV2H_FRAME_PLANE_COUNT];
+    size_t decoded_count[AV2H_FRAME_PLANE_COUNT];
+    uint16_t unit_columns[AV2H_FRAME_PLANE_COUNT];
+    uint16_t unit_rows[AV2H_FRAME_PLANE_COUNT];
+    uint16_t unit_size[AV2H_FRAME_PLANE_COUNT];
+    int16_t bank[AV2H_FRAME_PLANE_COUNT][4U]
+                [AV2H_WIENER_NONSEP_MAX_TAPS];
+    uint8_t bank_size[AV2H_FRAME_PLANE_COUNT];
+    uint8_t bank_pointer[AV2H_FRAME_PLANE_COUNT];
     uint16_t superblock_mi;
-    uint8_t active;
+    uint8_t active_mask;
 } Av2hRestorationEntropyState;
+
+typedef struct {
+    uint16_t do_partition[2U][2U][AV2H_TX_PARTITION_GROUPS]
+                          [AV2H_BINARY_CDF_SIZE];
+    uint16_t two_or_three_way[2U][2U][AV2H_BINARY_CDF_SIZE];
+    uint16_t partition_type[AV2H_TX_PARTITION_TYPE_GROUPS]
+                            [AV2H_TX_PARTITION_TYPE_SYMBOLS + 4U];
+} Av2hTxPartitionCdfs;
 
 typedef struct {
     Av2hPartitionNode node;
@@ -107,6 +130,7 @@ typedef struct {
     Av2hCdefEntropyState cdef_entropy;
     Av2hCcsoEntropyState ccso_entropy;
     Av2hRestorationEntropyState restoration_entropy;
+    Av2hTxPartitionCdfs tx_partition_cdfs;
     Av2hPartitionTraversal luma_traversal;
     Av2hPartitionTraversal chroma_traversal;
     Av2hTileLumaPartitionNode
@@ -137,6 +161,9 @@ typedef struct {
     Av2hFirstLeafMode luma_coding_mode;
     uint16_t luma_tx_index;
     uint16_t luma_tx_count;
+    uint8_t luma_tx_partition;
+    Av2hPartitionNode luma_tx_nodes[AV2H_MAX_TX_PARTITION_NODES];
+    uint8_t luma_selected_tx_count;
     Av2hPartitionNode chroma_coding_node;
     Av2hFirstChromaMode chroma_coding_mode;
     uint16_t chroma_tx_index;
@@ -155,6 +182,10 @@ typedef struct {
     Av2hTileDecodeEvent event;
     Av2hStatus status;
 } Av2hTileDecoder;
+
+Av2hStatus av2h_tile_luma_tx_node_get(
+    const Av2hTileDecoder *decoder, uint16_t index,
+    Av2hPartitionNode *node);
 
 Av2hStatus av2h_tile_group_single_parse(Av2hSpan payload,
                                          size_t uncompressed_header_bits,

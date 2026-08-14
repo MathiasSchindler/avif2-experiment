@@ -6276,7 +6276,7 @@ static void test_10bit_wp5_frame_fixture(void) {
         chroma_partition_above, chroma_partition_left,
         luma_mode_above, luma_mode_left,
         coefficient_above, coefficient_left, colocated_luma,
-        4U, 16U, 16U, 0, 0U, 0, 0U, { 0, 0, 0 }, 0U, 0, 0U
+        4U, 16U, 16U, 0, 0U, 0, 0U, { 0, 0, 0 }, 0U, 0, 0U, 0, 0U
     };
     uint16_t pixels[16U * 16U] = { 0 };
     uint16_t chroma_pixels[2U][8U * 8U] = { { 0 } };

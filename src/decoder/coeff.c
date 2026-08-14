@@ -299,6 +299,8 @@ static Av2hStatus derive_tx_size(Av2hBlockSize block_size,
         case AV2H_TX_32X4:
         case AV2H_TX_8X64:
         case AV2H_TX_64X8:
+        case AV2H_TX_4X64:
+        case AV2H_TX_64X4:
             break;
         default:
             return AV2H_UNSUPPORTED;
@@ -691,7 +693,7 @@ Av2hStatus av2h_coeff_prefix_read(
     prefix->txb_skip_context = txb_skip_context;
     if ((mode->fsc_mode ? txb_skip_context != 9U :
          txb_skip_context >= 10U) ||
-        frame->tx_mode != 1U ||
+        (frame->tx_mode != 1U && frame->tx_mode != 2U) ||
         frame->disable_cdf_update) {
         return AV2H_UNSUPPORTED;
     }
@@ -821,7 +823,8 @@ Av2hStatus av2h_chroma_coeff_prefix_read(
     if (decoder == 0 || cdfs == 0 || frame == 0 || leaf == 0 || prefix == 0) {
         return AV2H_INVALID_ARGUMENT;
     }
-    if ((plane != 1U && plane != 2U) || frame->tx_mode != 1U ||
+    if ((plane != 1U && plane != 2U) ||
+        (frame->tx_mode != 1U && frame->tx_mode != 2U) ||
         frame->disable_cdf_update ||
         cdfs->q_context != av2h_coeff_q_context(frame->base_q_index)) {
         return AV2H_UNSUPPORTED;

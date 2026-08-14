@@ -243,7 +243,7 @@ static void test_arguments(void) {
     frame.tx_mode = 2U;
     CHECK(av2h_first_coeff_prefix_read(
               &decoder, &cdfs, &frame, &leaf, &mode, &prefix) ==
-          AV2H_UNSUPPORTED);
+          AV2H_INVALID_DATA);
 }
 
 static void test_tx_32x32_eob_point_extension(void) {
@@ -396,7 +396,8 @@ static void test_tx_descriptors(void) {
         AV2H_TX_INVALID,
         AV2H_TX_4X16, AV2H_TX_16X4, AV2H_TX_8X32,
         AV2H_TX_32X8, AV2H_TX_16X64, AV2H_TX_64X16, AV2H_TX_4X32,
-        AV2H_TX_32X4, AV2H_TX_8X64, AV2H_TX_64X8
+        AV2H_TX_32X4, AV2H_TX_8X64, AV2H_TX_64X8, AV2H_TX_4X64,
+        AV2H_TX_64X4
     };
     static const uint8_t widths[AV2H_TX_SIZE_COUNT] = {
         4U, 8U, 16U, 32U, 64U, 4U, 8U, 8U, 16U, 16U, 32U, 32U,

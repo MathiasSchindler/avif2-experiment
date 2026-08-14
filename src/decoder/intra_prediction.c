@@ -2,6 +2,36 @@
 #include "internal/reconstruct_modules.h"
 #include "internal/sample_math.h"
 
+static uint16_t intra_dip_clip(int value, int bit_depth) {
+    int maximum = (1 << bit_depth) - 1;
+    if (value < 0) return 0U;
+    if (value > maximum) return (uint16_t)maximum;
+    return (uint16_t)value;
+}
+
+#define AVM_AVM_DSP_AVM_DSP_COMMON_H_
+#define AVM_AV2_COMMON_INTRA_DIP_H_
+#define AVM_AV2_COMMON_INTRA_MATRIX_H_
+#define INTRA_DIP_MODE_CNT 6
+#define DIP_ROWS 64
+#define DIP_COLS 16
+#define DIP_BITS 12
+#define DIP_OFFSET (1 << 11)
+#define DIP_SCALE 4
+#define DIP_FEATURES 11
+#define clip_pixel_highbd intra_dip_clip
+#define av2_dip_matrix_multiplication av2_dip_matrix_multiplication_c
+#include "../../vendor/avm/av2/common/intra_matrix.c"
+#undef av2_dip_matrix_multiplication
+#undef clip_pixel_highbd
+#undef DIP_FEATURES
+#undef DIP_SCALE
+#undef DIP_OFFSET
+#undef DIP_BITS
+#undef DIP_COLS
+#undef DIP_ROWS
+#undef INTRA_DIP_MODE_CNT
+
 #define directional_base_angle av2h_directional_base_angle
 #define luma_wide_angle av2h_luma_wide_angle
 #define luma_prediction_dimension_supported \
@@ -90,6 +120,165 @@ static int32_t round_shift(int64_t value, uint8_t shift) {
 static uint8_t block_log2(uint16_t size) {
     return size == 4U ? 2U : size == 8U ? 3U :
         size == 16U ? 4U : size == 32U ? 5U : 6U;
+}
+
+static uint8_t intra_dip_edge_sample(const uint8_t *edge,
+                                     size_t count,
+                                     size_t index,
+                                     uint8_t fallback) {
+    if (edge == 0 || count == 0U) return fallback;
+    return edge[index < count ? index : count - 1U];
+}
+
+static Av2hStatus predict_intra_dip(
+    const Av2hFirstLeafMode *mode,
+    uint16_t width,
+    uint16_t height,
+    const Av2hLumaReferences *references,
+    uint8_t *predictor,
+    size_t predictor_stride_samples) {
+    uint16_t input[11U];
+    uint16_t output[64U];
+    const uint8_t *edge[2U];
+    size_t edge_count[2U];
+    unsigned int width_log2;
+    unsigned int height_log2;
+    unsigned int transpose;
+    unsigned int mode_index;
+    unsigned int down_log2[2U];
+    unsigned int feature = 0U;
+    unsigned int side;
+    uint8_t fallback;
+    unsigned int up_x_log2;
+    unsigned int up_y_log2;
+    unsigned int down_x_log2 = 0U;
+    unsigned int down_y_log2 = 0U;
+    unsigned int multiplier_x;
+    unsigned int multiplier_y;
+    unsigned int divisor_x;
+    unsigned int divisor_y;
+    unsigned int row;
+    unsigned int column;
+    if (mode == 0 || references == 0 || predictor == 0 ||
+        predictor_stride_samples < width ||
+        !av2h_luma_prediction_dimension_supported(width) ||
+        !av2h_luma_prediction_dimension_supported(height)) {
+        return AV2H_INVALID_ARGUMENT;
+    }
+    transpose = mode->intra_dip_mode >> 4U;
+    mode_index = mode->intra_dip_mode & 15U;
+    if (transpose > 1U || mode_index >= AV2H_INTRA_DIP_MODES) {
+        return AV2H_INVALID_DATA;
+    }
+    width_log2 = block_log2(width);
+    height_log2 = block_log2(height);
+    down_log2[0] = (transpose != 0U ? height_log2 : width_log2) - 2U;
+    down_log2[1] = (transpose != 0U ? width_log2 : height_log2) - 2U;
+    edge[0] = transpose != 0U ? references->left : references->above;
+    edge[1] = transpose != 0U ? references->above : references->left;
+    edge_count[0] = transpose != 0U ?
+        references->left_count : references->above_count;
+    edge_count[1] = transpose != 0U ?
+        references->above_count : references->left_count;
+    fallback = references->has_above_left ? references->above_left :
+        references->above_count != 0U ? references->above[0] :
+        references->left_count != 0U ? references->left[0] :
+        av2h_sample_midpoint_8bit();
+    input[feature++] = references->has_above_left ?
+        references->above_left : fallback;
+    for (side = 0U; side < 2U; ++side) {
+        unsigned int group;
+        size_t edge_index = 0U;
+        unsigned int down = 1U << down_log2[side];
+        unsigned int rounding = down >> 1U;
+        for (group = 0U; group < 4U; ++group) {
+            unsigned int sample;
+            unsigned int sum = 0U;
+            for (sample = 0U; sample < down; ++sample) {
+                sum += intra_dip_edge_sample(
+                    edge[side], edge_count[side], edge_index++, fallback);
+            }
+            input[feature++] = (uint16_t)(
+                (sum + rounding) >> down_log2[side]);
+        }
+    }
+    for (side = 0U; side < 2U; ++side) {
+        size_t edge_index = (size_t)4U << down_log2[side];
+        unsigned int down = 1U << down_log2[side];
+        unsigned int sample;
+        unsigned int sum = 0U;
+        for (sample = 0U; sample < down; ++sample) {
+            sum += intra_dip_edge_sample(
+                edge[side], edge_count[side], edge_index++, fallback);
+        }
+        input[feature++] = (uint16_t)(
+            (sum + (down >> 1U)) >> down_log2[side]);
+    }
+    av2_intra_matrix_pred(input, (int)mode_index, output, 8);
+    up_x_log2 = width_log2 > 3U ? width_log2 - 3U : 0U;
+    up_y_log2 = height_log2 > 3U ? height_log2 - 3U : 0U;
+    if (width_log2 < 3U) down_x_log2 = 3U - width_log2;
+    if (height_log2 < 3U) down_y_log2 = 3U - height_log2;
+    multiplier_x = 1U << up_x_log2;
+    multiplier_y = 1U << up_y_log2;
+    divisor_x = 1U << down_x_log2;
+    divisor_y = 1U << down_y_log2;
+    for (row = 0U; row < 8U / divisor_y; ++row) {
+        for (column = 0U; column < 8U / divisor_x; ++column) {
+            unsigned int source_row = row * divisor_y;
+            unsigned int source_column = column * divisor_x;
+            unsigned int output_row = row * multiplier_y + multiplier_y - 1U;
+            unsigned int output_column =
+                column * multiplier_x + multiplier_x - 1U;
+            unsigned int matrix_row = transpose != 0U ?
+                source_column : source_row;
+            unsigned int matrix_column = transpose != 0U ?
+                source_row : source_column;
+            predictor[(size_t)output_row * predictor_stride_samples +
+                      output_column] =
+                (uint8_t)output[matrix_row * 8U + matrix_column];
+        }
+    }
+    for (row = 0U; row < 8U / divisor_y; ++row) {
+        unsigned int output_row = row * multiplier_y + multiplier_y - 1U;
+        unsigned int previous = intra_dip_edge_sample(
+            references->left, references->left_count, output_row, fallback);
+        for (column = 0U; column < 8U / divisor_x; ++column) {
+            unsigned int output_column = column * multiplier_x;
+            unsigned int next = predictor[
+                (size_t)output_row * predictor_stride_samples +
+                output_column + multiplier_x - 1U];
+            unsigned int offset;
+            for (offset = 0U; offset + 1U < multiplier_x; ++offset) {
+                unsigned int position = offset + 1U;
+                predictor[(size_t)output_row * predictor_stride_samples +
+                          output_column + offset] = (uint8_t)(
+                    (previous * (multiplier_x - position) +
+                     next * position) >> up_x_log2);
+            }
+            previous = next;
+        }
+    }
+    for (column = 0U; column < width; ++column) {
+        unsigned int previous = intra_dip_edge_sample(
+            references->above, references->above_count, column, fallback);
+        for (row = 0U; row < 8U / divisor_y; ++row) {
+            unsigned int output_row = row * multiplier_y;
+            unsigned int next = predictor[
+                (size_t)(output_row + multiplier_y - 1U) *
+                    predictor_stride_samples + column];
+            unsigned int offset;
+            for (offset = 0U; offset + 1U < multiplier_y; ++offset) {
+                unsigned int position = offset + 1U;
+                predictor[(size_t)(output_row + offset) *
+                          predictor_stride_samples + column] = (uint8_t)(
+                    (previous * (multiplier_y - position) +
+                     next * position) >> up_y_log2);
+            }
+            previous = next;
+        }
+    }
+    return AV2H_OK;
 }
 
 static uint8_t smooth_scale(uint16_t width, uint16_t height) {
@@ -1492,6 +1681,11 @@ Av2hStatus av2h_luma_predict(
     if (mode == 0 || references == 0 || predictor == 0 ||
         predictor_stride_samples < width) {
         return AV2H_INVALID_ARGUMENT;
+    }
+    if (mode->use_intra_dip != 0U) {
+        return predict_intra_dip(
+            mode, width, height, references,
+            predictor, predictor_stride_samples);
     }
     if (mode->mode == AV2H_INTRA_VERTICAL && mode->angle_delta == 0 &&
         mode->mrl_index == 0U && mode->multi_line_mrl == 0U &&
