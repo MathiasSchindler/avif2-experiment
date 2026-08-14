@@ -63,11 +63,13 @@ WP12_WINDOWS_BUILD_DIR ?= build/windows-x86_64
 WP13_WINDOWS_PRESET ?= windows-x86_64
 WP13_WINDOWS_BUILD_DIR ?= build/windows-x86_64
 WP14_WASM ?= build/wasm-wp14/decoder.wasm
+REFERENCE_WASM ?= docs/decoder.wasm
 WP14_WINDOWS_PRESET ?= windows-x86_64
 WP14_WINDOWS_BUILD_DIR ?= build/windows-x86_64
 WP14_WINDOWS_EMULATOR ?=
 OBJDUMP ?= objdump
 .PHONY: test test-host-build test-c test-corpus test-freestanding test-extended \
+	test-reference-locks test-reference-images test-reference-images-wasm \
 	reference-avm reference-avm-accounting \
 	reference-avm-negatives generate-10bit-sources \
 	generate-10bit-avm-references generate-10bit-synthetic \
@@ -79,7 +81,7 @@ OBJDUMP ?= objdump
 	test-carriage-reference test-artifact-lab \
 	test-decoder-evidence test-reconstruction test-filter-parity
 
-test: test-c test-corpus test-freestanding
+test: test-c test-corpus test-reference-locks test-freestanding
 	$(PYTHON) -m unittest discover -s tests -p 'test_*.py'
 
 test-host-build:
@@ -105,10 +107,22 @@ test-corpus: test-host-build
 	$(PYTHON) tools/validate_8bit_444_public.py \
 		--artifact-tool "$(HOST_ARTIFACT_TOOL)" --jobs "$(JOBS)"
 
+test-reference-locks:
+	$(PYTHON) tools/verify_image_references.py --all-suites
+
+test-reference-images: test-host-build
+	$(PYTHON) tools/verify_image_references.py --all-suites --require-files \
+		--decoder "$(FILTER_PARITY_DECODER)" --jobs "$(JOBS)"
+
+test-reference-images-wasm:
+	node tools/validate_image_references_wasm.js "$(REFERENCE_WASM)"
+
 test-freestanding: test-host-build
 	cmake --build --preset $(HOST_PRESET) $(CMAKE_BUILD_ARGS) --target av2heif-freestanding-check
 
-test-extended: test test-decoder-evidence test-carriage-reference test-artifact-lab
+test-extended: test test-reference-images test-reference-images-wasm \
+	test-decoder-evidence \
+	test-carriage-reference test-artifact-lab
 
 reference-avm:
 	sh scripts/setup-avm.sh

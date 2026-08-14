@@ -28,7 +28,7 @@ large media during configuration, build, or test.
   analysis.
 - `old/` preserves the previous layout during migration and must not be used as
   a provenance source for new releases.
-- `plan.md` defines the full preparation, AVM reference, validation, and
+- [plan.md](plan.md) defines the full preparation, AVM reference, validation, and
   migration contracts.
 
 ## Integrity
@@ -159,7 +159,8 @@ single encode does not saturate this host. Filters `--source`, `--preparation`,
 rewrite the complete lock. `--resume` reuses existing case manifests during a
 full interrupted run.
 
-Verify the tracked lock alone, or require and hash every ignored local file:
+Verify the legacy suite's tracked lock alone, or require and hash every ignored
+local file:
 
 ```sh
 python3 tools/verify_image_references.py
@@ -197,6 +198,23 @@ The two suites have separate lock files, so generating or filtering the target
 suite cannot overwrite the original `reference-lock.json`. `--suite` is also
 accepted together with the existing source, preparation, pixel-format, and QP
 filters; filtered runs do not rewrite either complete lock.
+
+The permanent repository gates cover both suites. Lock validation does not
+require ignored payloads; native and WebAssembly parity do:
+
+```sh
+make test-reference-locks
+make test-reference-images
+make test-reference-images-wasm
+```
+
+The equivalent direct native command accepts an alternate decoder and job
+count:
+
+```sh
+python3 tools/verify_image_references.py --all-suites --require-files \
+  --decoder build/host-sanitized/av2heif-decoder --jobs 8
+```
 
 The lock pins the AVM source revision plus SHA-256 identities of `avmenc` and
 `avmdec`. Each manifest records normalized commands, the exact prepared input,

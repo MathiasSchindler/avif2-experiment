@@ -11,7 +11,7 @@ At Milestone 8 closure, the production decoder emitted 7 of the 21 research
 artifacts: six were byte-identical to pinned AVM and Chimp Q192 completed with
 an upstream entropy parity gap. This historical handoff records that closure;
 the current corpus snapshot is maintained in
-[`images/artifacts/status.md`](../images/artifacts/status.md). Milestone 8
+[`images/artifacts/status.md`](../../images/artifacts/status.md). Milestone 8
 closed its remaining work by:
 
 1. making Chimp Q64 and Cuckoo Q160 byte-identical to pinned AVM; and

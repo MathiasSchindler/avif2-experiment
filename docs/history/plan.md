@@ -1,5 +1,11 @@
 # AV2-HEIF experimental implementation plan
 
+> [!NOTE]
+> **Status: completed implementation history.** This file preserves the
+> original roadmap and decisions; it is not the current capability boundary or
+> active plan. See [decoder capabilities](../capabilities.md) and the
+> [active roadmap](../roadmap.md).
+
 ## Objective
 
 Build a sibling project for experimenting with AV2 still images carried in
@@ -512,7 +518,7 @@ every shorter input prefix without preflight output mutation. See
 `docs/dev/public-decode.md`.
 
 Structural preparation for this API is tracked in
-`docs/decoder-refactoring-plan.md`.
+`docs/dev/decoder-refactoring-plan.md`.
 
 Finalize workspace size and alignment calculations, query-to-decode input
 binding, caller-owned output layouts, truncation behavior, error ownership,
@@ -628,8 +634,9 @@ regressions are documented in `docs/dev/chroma-444.md`.
 
 **Status:** Complete as of 10B-WP14 on 2026-08-12.
 
-The detailed 10-bit implementation work has moved to `10bitplan.md`. That plan
-starts at the completed `10bitplan-prepwork.md` handoff, releases 10-bit 4:2:0
+The detailed 10-bit implementation work has moved to
+`docs/history/10bitplan.md`. That plan starts at the completed
+`docs/history/10bitplan-prepwork.md` handoff, releases 10-bit 4:2:0
 at 10B-WP11, and releases 10-bit 4:4:4 at 10B-WP14. Final profile, packing,
 fuzz, platform, and corpus evidence is recorded in `docs/dev/10bit-wp14.md`.
 

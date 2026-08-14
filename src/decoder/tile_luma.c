@@ -264,7 +264,7 @@ static Av2hStatus tile_read_wiener_unit_filter(
         }
     }
     for (index = 0U; index < parameters->coefficient_count; ++index) {
-        uint16_t decoded;
+        uint16_t decoded = 0U;
         uint16_t centered_reference;
         if ((parameters->subset_mask[subset] & (1U << index)) == 0U) {
             continue;
@@ -972,10 +972,8 @@ Av2hStatus av2h_tile_decoder_next_luma(
     av2h_tile_diagnostics_set_luma_range(1U, decoder->range.range);
     status = av2h_luma_mode_context_state_update(
         &decoder->luma_mode_contexts, &leaf->node, &leaf->mode);
-    if (status == AV2H_UNSUPPORTED) return av2h_tile_decoder_fail(decoder, AV2H_OVERFLOW);
     if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
     status = tile_store_luma_mode(decoder, &leaf->node, &leaf->mode);
-    if (status == AV2H_UNSUPPORTED) return av2h_tile_decoder_fail(decoder, AV2H_OUT_OF_MEMORY);
     if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
 #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
     if (shared_chroma_tree) {

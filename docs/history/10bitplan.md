@@ -1,9 +1,15 @@
 # 10-bit image implementation plan
 
+> [!NOTE]
+> **Status: completed through 10B-WP14.** This file is retained as implementation
+> history and output-contract evidence. See
+> [decoder capabilities](../capabilities.md) for current admission and the
+> [10-bit release gate](../dev/10bit-wp14.md) for release evidence.
+
 ## Purpose
 
 Implement sample-exact 10-bit 4:2:0 and 4:4:4 decoding after the structural
-preparation in `10bitplan-prepwork.md`. This plan owns normative high-bit-depth
+preparation in `docs/history/10bitplan-prepwork.md`. This plan owns normative high-bit-depth
 syntax, sample storage, reconstruction arithmetic, filters, public output, and
 release evidence. It does not repeat preparation work that has already landed.
 

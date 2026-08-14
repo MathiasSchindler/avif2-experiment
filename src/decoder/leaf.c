@@ -2,18 +2,32 @@
 #include "internal/decode_diagnostics.h"
 #include "internal/leaf_modules.h"
 
+#if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
 static Av2hLeafDiagnostics leaf_diagnostics;
+#endif
 
 const Av2hLeafDiagnostics *av2h_leaf_diagnostics_get(void) {
+#if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
     return &leaf_diagnostics;
+#else
+    return 0;
+#endif
 }
 
 void av2h_leaf_diagnostics_set_luma_stage(uint8_t value) {
+#if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
     leaf_diagnostics.luma_mode_stage = value;
+#else
+    (void)value;
+#endif
 }
 
 void av2h_leaf_diagnostics_set_chroma_stage(uint8_t value) {
+#if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
     leaf_diagnostics.chroma_mode_stage = value;
+#else
+    (void)value;
+#endif
 }
 
 Av2hStatus av2h_chroma_mode_read(
@@ -569,16 +583,19 @@ static uint8_t negative_deinterleave(
     }
     if ((uint16_t)2U * reference < maximum) {
         if (difference <= (uint16_t)2U * reference) {
-            return (uint8_t)((difference & 1U) != 0U ?
-                reference + ((difference + 1U) >> 1U) :
-                reference - (difference >> 1U));
+            if ((difference & 1U) != 0U) {
+                return (uint8_t)(
+                    reference + ((difference + 1U) >> 1U));
+            }
+            return (uint8_t)(reference - (difference >> 1U));
         }
         return difference;
     }
     if (difference <= (uint16_t)2U * (maximum - reference - 1U)) {
-        return (uint8_t)((difference & 1U) != 0U ?
-            reference + ((difference + 1U) >> 1U) :
-            reference - (difference >> 1U));
+        if ((difference & 1U) != 0U) {
+            return (uint8_t)(reference + ((difference + 1U) >> 1U));
+        }
+        return (uint8_t)(reference - (difference >> 1U));
     }
     return (uint8_t)(maximum - difference - 1U);
 }

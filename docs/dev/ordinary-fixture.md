@@ -179,7 +179,7 @@ reconstruction, or crop frontier in ordinary-fixture coverage.
 
 This section records the corpus frontier when ordinary-fixture coverage closed. Current
 end-to-end artifact results are maintained in
-[`images/artifacts/status.md`](../images/artifacts/status.md).
+[`images/artifacts/status.md`](../../images/artifacts/status.md).
 
 The 20 generated streams listed by `images/artifacts/manifest.json` and the
 legacy `chalk-320x240-qp128.obu` have been checked against the current private

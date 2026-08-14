@@ -1,5 +1,10 @@
 # 10-bit decoder preparation work
 
+> [!NOTE]
+> **Status: completed through preparation WP12.** This file is retained as
+> implementation history, not as an active plan. Current work is tracked in
+> the [active roadmap](../roadmap.md).
+
 ## Purpose
 
 Prepare the decoder for 10-bit 4:2:0 and 4:4:4 without implementing normative
@@ -13,8 +18,8 @@ allocator-free, libc-free, and free of external runtime dependencies.
 
 ## Relationship to the roadmap
 
-`plan.md` identifies 10-bit images as the next decoder phase, and
-`10bitplan.md` defines the normative 10-bit 4:2:0 and 4:4:4 implementation.
+`docs/history/plan.md` identifies 10-bit images as the next decoder phase, and
+`docs/history/10bitplan.md` defines the normative 10-bit 4:2:0 and 4:4:4 implementation.
 This document covers only preparation that can land before those phases start
 changing normative decoded samples.
 
@@ -748,7 +753,8 @@ changing current decoder behavior.
 
 ## Work handed to the 10-bit image implementation plan
 
-The following is actual 10-bit implementation work owned by `10bitplan.md` and
+The following is actual 10-bit implementation work owned by
+`docs/history/10bitplan.md` and
 must not be hidden inside preparation changes:
 
 - admitting the parsed 10-bit sequence depth to frame decode and output;

@@ -1,28 +1,52 @@
 #include "reconstruct.h"
 #include "internal/decode_diagnostics.h"
+#if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
 static Av2hReconstructionDiagnostics reconstruction_diagnostics;
+#endif
 
 const Av2hReconstructionDiagnostics *av2h_reconstruction_diagnostics_get(
     void) {
+#if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
     return &reconstruction_diagnostics;
+#else
+    return 0;
+#endif
 }
 void av2h_reconstruction_diagnostics_set_luma_stage(uint8_t value) {
+#if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
     reconstruction_diagnostics.luma_stage = value;
+#else
+    (void)value;
+#endif
 }
 
 void av2h_reconstruction_diagnostics_set_intrabc_source(
     uint16_t x, uint16_t y, size_t map_index) {
+#if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
     reconstruction_diagnostics.intrabc_source_x = x;
     reconstruction_diagnostics.intrabc_source_y = y;
     reconstruction_diagnostics.intrabc_map_index = map_index;
+#else
+    (void)x;
+    (void)y;
+    (void)map_index;
+#endif
 }
 void av2h_reconstruction_diagnostics_set_chroma_stage(uint8_t value) {
+#if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
     reconstruction_diagnostics.chroma_stage = value;
+#else
+    (void)value;
+#endif
 }
 
 void av2h_reconstruction_diagnostics_set_inverse_transform_stage(
     uint8_t value) {
+#if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
     reconstruction_diagnostics.inverse_transform_stage = value;
+#else
+    (void)value;
+#endif
 }
 #include "internal/reconstruct_modules.h"
 #include "internal/sample_math.h"

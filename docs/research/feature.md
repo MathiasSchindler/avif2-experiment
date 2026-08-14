@@ -1,5 +1,10 @@
 # AV2 8-bit 4:2:0 coding opportunities
 
+> [!NOTE]
+> **Status: active encoder research record.** Decoder admission is authoritative
+> in the [capability matrix](../capabilities.md); this file records experiments,
+> measured opportunities, and proposed evidence expansion.
+
 ## Purpose
 
 This document records AV2 and pinned-AVM options that may improve compression

@@ -4,9 +4,13 @@
 from __future__ import annotations
 
 import argparse
+import concurrent.futures
 import hashlib
 import json
+import os
+import subprocess
 import struct
+import tempfile
 from pathlib import Path
 
 from obu_carriage import parse_obus
@@ -188,29 +192,52 @@ def verify_files(
     return True
 
 
-def main() -> None:
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--suite", help="encoding suite ID (defaults to the first suite)")
-    parser.add_argument(
-        "--require-files",
-        action="store_true",
-        help="fail if the ignored reference files are absent",
+def verify_decode(
+    decoder: Path,
+    record: dict[str, object],
+    output_root: Path,
+) -> str:
+    manifest_path = IMAGES_ROOT / record["manifest"]
+    encoded = record["outputs"]["encoded_obu"]
+    expected = record["outputs"]["decoded"]
+    source = manifest_path.parent / encoded["filename"]
+    output = output_root / f"{record['case_id']}.{record['pixel_format']}"
+    completed = subprocess.run(
+        [str(decoder), str(source), "-o", str(output)],
+        cwd=REPOSITORY_ROOT,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
     )
-    arguments = parser.parse_args()
+    if completed.returncode != 0:
+        raise RuntimeError(
+            f"{record['case_id']}: decoder exit {completed.returncode}\n"
+            f"{completed.stderr.strip()}"
+        )
+    if output.stat().st_size != expected["byte_size"]:
+        raise RuntimeError(
+            f"{record['case_id']}: decoded size {output.stat().st_size}, "
+            f"expected {expected['byte_size']}"
+        )
+    digest = sha256(output)
+    if digest != expected["sha256"]:
+        raise RuntimeError(
+            f"{record['case_id']}: decoded SHA-256 {digest}, "
+            f"expected {expected['sha256']}"
+        )
+    return str(record["case_id"])
 
-    encodings = json.loads(ENCODINGS_PATH.read_text(encoding="utf-8"))
-    suite_id = arguments.suite or encodings["suites"][0]["id"]
-    try:
-        suite = next(suite for suite in encodings["suites"] if suite["id"] == suite_id)
-    except StopIteration as error:
-        raise SystemExit(f"unknown encoding suite: {suite_id}") from error
+
+def verify_suite(
+    suite: dict[str, object],
+    encodings: dict[str, object],
+    preparations: list[dict[str, object]],
+    prepared: dict[tuple[str, str], dict[str, object]],
+    require_files: bool,
+    decoder: Path | None,
+    jobs: int,
+) -> tuple[int, int]:
     lock_path = IMAGES_ROOT / "recipes" / suite["lock_file"]
-    prepared_lock = json.loads(PREPARED_LOCK_PATH.read_text(encoding="utf-8"))
-    preparations = prepared_lock["preparations"]
-    prepared = {
-        (record["source_id"], record["preparation_id"]): record
-        for record in preparations
-    }
     lock = json.loads(lock_path.read_text(encoding="utf-8"))
     if lock["avm"]["revision"] != encodings["avm_revision"]:
         raise ValueError("reference lock AVM revision differs from encoding recipe")
@@ -234,7 +261,7 @@ def main() -> None:
         raise ValueError("reference lock does not cover the recipe matrix exactly once")
 
     present = sum(
-        verify_files(record, suite, prepared, lock, arguments.require_files)
+        verify_files(record, suite, prepared, lock, require_files)
         for record in records
     )
     reference_root = (
@@ -248,11 +275,91 @@ def main() -> None:
         expected_cases = {record["case_id"] for record in records}
         if local_cases != expected_cases:
             raise ValueError("local reference directories differ from the locked cases")
+    if decoder is not None:
+        if present != len(records):
+            raise ValueError(f"{suite['id']}: decoder parity requires local references")
+        with tempfile.TemporaryDirectory(
+            prefix=f"av2heif-{suite['id']}-"
+        ) as scratch:
+            output_root = Path(scratch)
+            with concurrent.futures.ThreadPoolExecutor(
+                max_workers=min(jobs, len(records))
+            ) as executor:
+                tuple(
+                    executor.map(
+                        lambda record: verify_decode(
+                            decoder, record, output_root
+                        ),
+                        records,
+                    )
+                )
+    suffix = "; decoder output exact" if decoder is not None else ""
     print(
-        f"verified {len(records)} reference records; "
+        f"{suite['id']}: verified {len(records)} reference records; "
         f"local references present: {present}/{len(records)}; "
-        f"AVM {lock['avm']['revision'][:12]}"
+        f"AVM {lock['avm']['revision'][:12]}{suffix}"
     )
+    return len(records), present
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    selection = parser.add_mutually_exclusive_group()
+    selection.add_argument(
+        "--suite", help="encoding suite ID (defaults to the first suite)"
+    )
+    selection.add_argument(
+        "--all-suites", action="store_true", help="verify every configured suite"
+    )
+    parser.add_argument(
+        "--require-files",
+        action="store_true",
+        help="fail if the ignored reference files are absent",
+    )
+    parser.add_argument(
+        "--decoder",
+        type=Path,
+        help="also decode every local OBU and compare exact output",
+    )
+    parser.add_argument("--jobs", type=int, default=os.cpu_count() or 1)
+    arguments = parser.parse_args()
+    if arguments.jobs < 1:
+        parser.error("--jobs must be at least 1")
+    decoder = arguments.decoder.resolve() if arguments.decoder is not None else None
+    if decoder is not None and not decoder.is_file():
+        parser.error(f"decoder does not exist: {decoder}")
+
+    encodings = json.loads(ENCODINGS_PATH.read_text(encoding="utf-8"))
+    prepared_lock = json.loads(PREPARED_LOCK_PATH.read_text(encoding="utf-8"))
+    preparations = prepared_lock["preparations"]
+    prepared = {
+        (record["source_id"], record["preparation_id"]): record
+        for record in preparations
+    }
+    suites = encodings["suites"]
+    if not arguments.all_suites:
+        suite_id = arguments.suite or suites[0]["id"]
+        suites = [suite for suite in suites if suite["id"] == suite_id]
+        if not suites:
+            raise SystemExit(f"unknown encoding suite: {suite_id}")
+    totals = [
+        verify_suite(
+            suite,
+            encodings,
+            preparations,
+            prepared,
+            arguments.require_files,
+            decoder,
+            arguments.jobs,
+        )
+        for suite in suites
+    ]
+    if len(totals) > 1:
+        print(
+            f"all suites: verified {sum(total for total, _ in totals)} records; "
+            f"local references present: {sum(present for _, present in totals)}/"
+            f"{sum(total for total, _ in totals)}"
+        )
 
 
 if __name__ == "__main__":

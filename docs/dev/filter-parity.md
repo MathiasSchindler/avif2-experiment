@@ -107,7 +107,7 @@ zero-undefined-symbol core pass.
 The isolated filter-kernel preparation is limited to `src/decoder/filter.c`,
 `src/decoder/filter.h`, `tests/filter_unit.c`,
 `tools/run_filter_evidence.py`, `tests/test_filter_evidence.py`,
-`plan.md`, and this document. The later GDF entropy checkpoint separately
+`docs/history/plan.md`, and this document. The later GDF entropy checkpoint separately
 extends frame, leaf, and tile state plus their focused and artifact tests; it
 does not modify coefficient, transform, or reconstruction behavior.
 
