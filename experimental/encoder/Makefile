@@ -10,7 +10,9 @@ RANGE_TEST := $(BUILD)/range-writer-test
 M2_MATRIX_DRIVER := $(BUILD)/m2-transcript-driver
 M1_TEST := $(BUILD)/m1-test
 M3_TEST := $(BUILD)/m3-test
+M3_BOUNDARY_DRIVER := $(BUILD)/m3-boundary-partition-driver
 M4_TEST := $(BUILD)/m4-test
+PLATFORM_MEMORY_TEST := $(BUILD)/platform-memory-test
 
 CPPFLAGS := -Iinclude
 COMMON_CFLAGS := -std=c11 -Wall -Wextra -Wpedantic -Werror -O2 \
@@ -72,10 +74,21 @@ $(M3_TEST): tests/m3_test.c $(CORE_SOURCES)
 	$(CC) $(CPPFLAGS) -std=c11 -Wall -Wextra -Wpedantic -Werror \
 		-O2 -fno-builtin -o $@ tests/m3_test.c $(CORE_SOURCES)
 
+$(M3_BOUNDARY_DRIVER): tests/m3_boundary_partition_driver.c $(CORE_SOURCES)
+	@mkdir -p $(dir $@)
+	$(CC) $(CPPFLAGS) -std=c11 -Wall -Wextra -Wpedantic -Werror \
+		-O2 -fno-builtin -o $@ tests/m3_boundary_partition_driver.c \
+		$(CORE_SOURCES)
+
 $(M4_TEST): tests/m4_test.c $(CORE_SOURCES)
 	@mkdir -p $(dir $@)
 	$(CC) $(CPPFLAGS) -std=c11 -Wall -Wextra -Wpedantic -Werror \
 		-O2 -fno-builtin -o $@ tests/m4_test.c $(CORE_SOURCES)
+
+$(PLATFORM_MEMORY_TEST): tests/platform_memory_test.c platform/linux.c
+	@mkdir -p $(dir $@)
+	$(CC) $(CPPFLAGS) -std=c11 -Wall -Wextra -Wpedantic -Werror \
+		-O2 -fno-builtin -o $@ tests/platform_memory_test.c platform/linux.c
 
 audit-dependencies:
 	tests/dependency_audit.sh
@@ -104,6 +117,7 @@ define run-tests
 	./$(M1_TEST)
 	./$(M3_TEST)
 	./$(M4_TEST)
+	./$(PLATFORM_MEMORY_TEST)
 	tests/smoke.sh "$(TARGET)" "$(BUILD)"
 	tests/input_errors.sh "$(TARGET)" "$(BUILD)"
 	tests/atomic_output.sh "$(TARGET)" "$(BUILD)"
@@ -114,17 +128,24 @@ define run-tests
 		tests/test_m2_full_stream_matrix.py \
 		tests/test_cdf_subset.py tests/test_m3_dc_model.py \
 		tests/test_m3_encoder.py tests/test_m3_benchmark.py \
+		tests/test_m3_prepared_corpus.py \
 		tests/test_m3_odd_model.py \
+		tests/test_m3_large_partition_model.py \
+		tests/test_m3_multisuperblock_model.py \
+		tests/test_m3_boundary_partition_transcript.py \
+		tests/test_m3_multileaf_cdf_model.py \
+		tests/test_m3_edge_coeff_model.py \
 		tests/test_m4_ac_model.py tests/test_m4_encoder.py
 endef
 
 test: check-validators check-generated $(BIT_TEST) $(RANGE_TEST) \
 	$(M2_MATRIX_DRIVER) $(M1_TEST) \
-	$(M3_TEST) $(M4_TEST) audit
+	$(M3_TEST) $(M3_BOUNDARY_DRIVER) $(M4_TEST) $(PLATFORM_MEMORY_TEST) audit
 	$(call run-tests,)
 
 test-unit: check-generated $(BIT_TEST) $(RANGE_TEST) $(M2_MATRIX_DRIVER) \
-	$(M1_TEST) $(M3_TEST) $(M4_TEST) audit
+	$(M1_TEST) $(M3_TEST) $(M3_BOUNDARY_DRIVER) $(M4_TEST) \
+	$(PLATFORM_MEMORY_TEST) audit
 	$(call run-tests,ENCODER_TEST_UNIT_ONLY=1)
 
 clean:

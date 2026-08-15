@@ -338,7 +338,7 @@ def run_fixture(
             record["local_parity"] = {
                 "obu_bytes": local["obu_bytes"] == obu_bytes,
                 "sse": local["sse"] == record["source_vs_decode"]["sse"],
-                "workspace_bytes": local["workspace_bytes"] == pixels,
+                "workspace_bytes_reported": local["workspace_bytes"] > 0,
             }
             if not all(record["local_parity"].values()):
                 raise BenchmarkError("encoder local metrics disagree with decoded output")
@@ -430,7 +430,9 @@ def main(argv: Sequence[str] | None = None) -> int:
             }
             append_record(args.output, record)
             print(f"{record['fixture']}: {record['status']}")
-            failed |= record["status"] in ("error", "mismatch", "blocked")
+            failed |= record["status"] in (
+                "error", "mismatch", "blocked", "unsupported"
+            )
     return 1 if failed else 0
 
 

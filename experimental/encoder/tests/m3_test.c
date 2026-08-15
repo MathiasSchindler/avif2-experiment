@@ -101,8 +101,213 @@ static int test_stride_determinism_and_bounds(void) {
         enc_m3_dc_i400(
             input, 17U, 8U, 17U, second, sizeof(second),
             reconstruction, sizeof(reconstruction), &second_result) !=
-            ENC_INVALID_ARGUMENT) {
+            ENC_UNSUPPORTED) {
         return 4;
+    }
+    return 0;
+}
+
+static int test_workspace_layout_and_capacity(void) {
+    EncM3WorkspaceLayout layout;
+    uint16_t workspace[ENC_M3_LEGACY_WORKSPACE_SIZE / 2U];
+    uint8_t input[64U];
+    uint8_t stream[ENC_M3_MAX_STREAM_SIZE];
+    uint8_t reconstruction[64U];
+    EncM3Result result;
+    size_t index;
+    if (enc_m3_query_workspace(17U, 15U, &layout) != ENC_OK ||
+        layout.padded_width != 24U || layout.padded_height != 16U ||
+        layout.padded_pixel_count != 384U || layout.pixel_count != 255U ||
+        layout.block_count != 6U || layout.stream_capacity != 640U ||
+        layout.size != 2572U ||
+        layout.alignment != ENC_M3_WORKSPACE_ALIGNMENT) {
+        return 1;
+    }
+    if (enc_m3_query_workspace(16384U, 16384U, &layout) != ENC_OK ||
+        layout.pixel_count != 268435456U ||
+        layout.padded_pixel_count != 268435456U ||
+        layout.block_count != 4194304U ||
+        layout.stream_capacity != 268435712U ||
+        layout.size != 1350566656U) {
+        return 2;
+    }
+    if (enc_m3_query_workspace(64U, 64U, &layout) != ENC_OK ||
+        layout.pixel_count != ENC_M3_MAX_PIXELS ||
+        layout.padded_pixel_count != ENC_M3_MAX_PIXELS ||
+        layout.block_count != ENC_M3_MAX_BLOCKS ||
+        layout.stream_capacity != ENC_M3_MAX_STREAM_SIZE ||
+        layout.size != ENC_M3_MAX_WORKSPACE_SIZE) {
+        return 17;
+    }
+    if (enc_m3_query_workspace(65U, 1U, &layout) != ENC_OK ||
+        layout.padded_width != 72U || layout.padded_height != 8U ||
+        layout.pixel_count != 65U || layout.padded_pixel_count != 576U ||
+        layout.block_count != 9U || layout.stream_capacity != 832U ||
+        layout.size != 3156U ||
+        enc_m3_query_workspace(896U, 424U, &layout) != ENC_OK ||
+        layout.padded_width != 896U || layout.padded_height != 424U ||
+        layout.pixel_count != 379904U ||
+        layout.padded_pixel_count != 379904U ||
+        layout.block_count != 5936U ||
+        layout.stream_capacity != 380160U ||
+        layout.size != 1912160U) {
+        return 18;
+    }
+
+    if (enc_m3_query_workspace(SIZE_MAX, 1U, &layout) != ENC_OVERFLOW ||
+        enc_m3_query_workspace(SIZE_MAX / 2U, 3U, &layout) != ENC_OVERFLOW ||
+        enc_m3_query_workspace(0U, 1U, &layout) != ENC_INVALID_ARGUMENT) {
+        return 3;
+    }
+    if (enc_m3_query_workspace(8U, 8U, &layout) != ENC_OK ||
+        layout.size > sizeof(workspace)) {
+        return 4;
+    }
+    fill(input, sizeof(input), 81U);
+    fill(stream, sizeof(stream), 0xa5U);
+    fill(reconstruction, sizeof(reconstruction), 0x5aU);
+    if (enc_m3_dc_i400_workspace(
+            input, 8U, 8U, 8U, workspace, layout.size - 1U,
+            stream, sizeof(stream), reconstruction, sizeof(reconstruction),
+            &result) != ENC_OUT_OF_SPACE) {
+        return 5;
+    }
+    for (index = 0U; index < sizeof(stream); ++index) {
+        if (stream[index] != 0xa5U) return 6;
+    }
+    for (index = 0U; index < sizeof(reconstruction); ++index) {
+        if (reconstruction[index] != 0x5aU) return 7;
+    }
+    if (enc_m3_dc_i400_workspace(
+            input, 8U, 8U, 8U, (uint8_t *)workspace + 1U, layout.size,
+            stream, sizeof(stream), reconstruction, sizeof(reconstruction),
+            &result) != ENC_INVALID_ARGUMENT) {
+        return 8;
+    }
+    if (enc_m3_dc_i400_workspace(
+            input, 8U, 8U, 8U, workspace, layout.size,
+            workspace, sizeof(stream), reconstruction, sizeof(reconstruction),
+            &result) != ENC_INVALID_ARGUMENT) {
+        return 9;
+    }
+    if (enc_m3_dc_i400_workspace(
+            input, 8U, 8U, 8U, workspace, layout.size,
+            stream, sizeof(stream), reconstruction, sizeof(reconstruction),
+            &result) != ENC_OK ||
+        result.workspace_size != layout.size) {
+        return 10;
+    }
+    fill(stream, sizeof(stream), 0xa5U);
+    fill(reconstruction, sizeof(reconstruction), 0x5aU);
+    if (enc_m3_dc_i400_workspace(
+            input, 8U, 8U, 8U, workspace, layout.size,
+            stream, result.stream_size - 1U,
+            reconstruction, sizeof(reconstruction), &result) !=
+            ENC_OUT_OF_SPACE) {
+        return 11;
+    }
+    for (index = 0U; index < sizeof(stream); ++index) {
+        if (stream[index] != 0xa5U) return 12;
+    }
+    for (index = 0U; index < sizeof(reconstruction); ++index) {
+        if (reconstruction[index] != 0x5aU) return 13;
+    }
+    if (enc_m3_dc_i400_workspace(
+            input, 8U, 8U, 8U, workspace, layout.size,
+            stream, sizeof(stream), reconstruction, 63U, &result) !=
+            ENC_OUT_OF_SPACE) {
+        return 14;
+    }
+    for (index = 0U; index < sizeof(stream); ++index) {
+        if (stream[index] != 0xa5U) return 15;
+    }
+    for (index = 0U; index < sizeof(reconstruction); ++index) {
+        if (reconstruction[index] != 0x5aU) return 16;
+    }
+    return 0;
+}
+
+static int test_maximum_capacity_stride_and_atomicity(void) {
+    uint8_t input[64U * 67U];
+    uint16_t workspace[ENC_M3_MAX_WORKSPACE_SIZE / 2U];
+    uint8_t first[ENC_M3_MAX_STREAM_SIZE];
+    uint8_t second[ENC_M3_MAX_STREAM_SIZE];
+    uint8_t first_reconstruction[ENC_M3_MAX_PIXELS];
+    uint8_t second_reconstruction[ENC_M3_MAX_PIXELS];
+    EncM3WorkspaceLayout layout;
+    EncM3Result first_result;
+    EncM3Result second_result;
+    size_t y;
+    size_t x;
+    size_t index;
+    for (y = 0U; y < 64U; ++y) {
+        for (x = 0U; x < 67U; ++x) {
+            input[y * 67U + x] = x < 64U
+                ? (uint8_t)(x * 17U + y * 31U + x * y * 3U)
+                : 0xa5U;
+        }
+    }
+    if (enc_m3_query_workspace(64U, 64U, &layout) != ENC_OK ||
+        enc_m3_dc_i400_q_workspace(
+            input, 64U, 64U, 67U, 191U,
+            workspace, sizeof(workspace),
+            first, sizeof(first),
+            first_reconstruction, sizeof(first_reconstruction),
+            &first_result) != ENC_OK ||
+        first_result.block_count != ENC_M3_MAX_BLOCKS ||
+        first_result.pixel_count != ENC_M3_MAX_PIXELS ||
+        first_result.workspace_size != ENC_M3_MAX_WORKSPACE_SIZE ||
+        enc_m3_dc_i400_q(
+            input, 64U, 64U, 67U, 191U,
+            second, sizeof(second),
+            second_reconstruction, sizeof(second_reconstruction),
+            &second_result) != ENC_OK ||
+        first_result.stream_size != second_result.stream_size ||
+        first_result.squared_error != second_result.squared_error ||
+        !bytes_equal(first, second, first_result.stream_size) ||
+        !bytes_equal(
+            first_reconstruction, second_reconstruction,
+            sizeof(first_reconstruction))) {
+        return 1;
+    }
+    fill(second, sizeof(second), 0xa5U);
+    fill(second_reconstruction, sizeof(second_reconstruction), 0x5aU);
+    if (enc_m3_dc_i400_q_workspace(
+            input, 64U, 64U, 67U, 191U,
+            workspace, sizeof(workspace),
+            second, first_result.stream_size - 1U,
+            second_reconstruction, sizeof(second_reconstruction),
+            &second_result) != ENC_OUT_OF_SPACE ||
+        second_result.stream_size != 0U) {
+        return 2;
+    }
+    for (index = 0U; index < sizeof(second); ++index) {
+        if (second[index] != 0xa5U) return 3;
+    }
+    for (index = 0U; index < sizeof(second_reconstruction); ++index) {
+        if (second_reconstruction[index] != 0x5aU) return 4;
+    }
+    if (enc_m3_dc_i400_q_workspace(
+            input, 64U, 64U, 67U, 191U,
+            workspace, sizeof(workspace),
+            second, sizeof(second),
+            second_reconstruction, ENC_M3_MAX_PIXELS - 1U,
+            &second_result) != ENC_OUT_OF_SPACE) {
+        return 5;
+    }
+    for (index = 0U; index < sizeof(second); ++index) {
+        if (second[index] != 0xa5U) return 6;
+    }
+    for (index = 0U; index < sizeof(second_reconstruction); ++index) {
+        if (second_reconstruction[index] != 0x5aU) return 7;
+    }
+    if (enc_m3_dc_i400_q_workspace(
+            input, 64U, 64U, SIZE_MAX, 191U,
+            workspace, sizeof(workspace),
+            second, sizeof(second),
+            second_reconstruction, sizeof(second_reconstruction),
+            &second_result) != ENC_OVERFLOW) {
+        return 8;
     }
     return 0;
 }
@@ -301,11 +506,15 @@ int main(void) {
     if (result != 0) return 60 + result;
     result = test_failure_atomicity();
     if (result != 0) return 70 + result;
+    result = test_workspace_layout_and_capacity();
+    if (result != 0) return 80 + result;
+    result = test_maximum_capacity_stride_and_atomicity();
+    if (result != 0) return 110 + result;
     if (enc_m3_dc_prediction(0, 0, 8U) != 128U ||
         enc_m3_dc_prediction(above, 0, 4U) != 20U ||
         enc_m3_dc_prediction(0, left, 4U) != 52U ||
         enc_m3_dc_prediction(above, left, 4U) != 36U) {
-        return 80;
+        return 100;
     }
     return 0;
 }

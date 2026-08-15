@@ -8,6 +8,8 @@
 #define ENC_M4_MAX_LEVEL_MAGNITUDE 4U
 
 #define ENC_DO_SPLIT_ROWS 128U
+#define ENC_RECT_TYPE_ROWS 128U
+#define ENC_DO_EXT_PARTITION_ROWS 128U
 #define ENC_DELTA_Q_ROWS 1U
 #define ENC_Y_MODE_SET_ROWS 1U
 #define ENC_Y_MODE_INDEX_ROWS 3U
@@ -28,6 +30,8 @@
 
 typedef struct {
     uint16_t do_split[ENC_DO_SPLIT_ROWS][6U];
+    uint16_t rect_type[ENC_RECT_TYPE_ROWS][6U];
+    uint16_t do_ext_partition[ENC_DO_EXT_PARTITION_ROWS][6U];
     uint16_t delta_q[ENC_DELTA_Q_ROWS][12U];
     uint16_t y_mode_set[ENC_Y_MODE_SET_ROWS][8U];
     uint16_t y_mode_index[ENC_Y_MODE_INDEX_ROWS][12U];
@@ -68,6 +72,10 @@ EncStatus enc_range_writer_coeff_value(
 
 EncStatus enc_syntax_cdfs_init(EncSyntaxCdfs *cdfs);
 uint16_t *enc_syntax_do_split_cdf(
+    EncSyntaxCdfs *cdfs, size_t partition_structure, size_t context);
+uint16_t *enc_syntax_rect_type_cdf(
+    EncSyntaxCdfs *cdfs, size_t partition_structure, size_t context);
+uint16_t *enc_syntax_do_ext_partition_cdf(
     EncSyntaxCdfs *cdfs, size_t partition_structure, size_t context);
 uint16_t *enc_syntax_delta_q_cdf(EncSyntaxCdfs *cdfs);
 uint16_t *enc_syntax_y_mode_set_cdf(EncSyntaxCdfs *cdfs);
@@ -114,6 +122,9 @@ EncStatus enc_m4_sequence_header(void *data, size_t capacity, size_t *size);
 EncStatus enc_m3_frame_header(void *data, size_t capacity, size_t *size);
 EncStatus enc_m3_frame_header_q(void *data, size_t capacity, size_t *size,
                                 unsigned int qindex);
+EncStatus enc_m3_frame_header_q_for_size(
+    void *data, size_t capacity, size_t *size,
+    size_t width, size_t height, unsigned int qindex);
 EncStatus enc_m4_frame_header(void *data, size_t capacity, size_t *size);
 EncStatus enc_m4_ac_tile(void *data, size_t capacity, size_t *size,
                          int16_t dc_level, int16_t ac_level);

@@ -233,7 +233,7 @@ streams, rather than raw transcripts, decode exactly in the hash-pinned AVM
 v1.0.0 and project validators. Exact commands, hashes, capacities, and post-M2
 limits are recorded in `log.md` and `spec-notes/m2-validator-matrix.md`.
 
-### [~] M3 — Real prepared-image DC encoder
+### [x] M3 — Real prepared-image DC encoder
 
 Accept arbitrary bounded prepared I400 dimensions and strides. Partition into
 a fixed legal block grid, form a DC prediction from reconstructed neighbors,
@@ -244,27 +244,44 @@ quantize/reconstruct locally, and extend edges. No input pixels may be ignored.
 the encoder's reconstruction hash exactly equals each validator's decoded
 hash; quality changes monotonically in aggregate over a locked Q sweep.
 
-**Completed bounded submilestone (not full M3):** arbitrary-pixel dimensions
+**Completed:** arbitrary-pixel dimensions
 1 through 16 use legal edge-extended 8×8 transform grids. Qindex 1 through 255
 is configurable, with default 100 compatibility. A locked generated/prepared
 crop sweep proves exact local/AVM/project parity and aggregate SSE
 non-increasing as qindex decreases (quality increases).
 The complete 256-pair dimension matrix is exercised with an odd-sensitive
 pattern through local reconstruction and both decoders.
+The complete prepared-image inventory and full-image gate are locked
+in `metrics/m3-prepared-corpus.json`: all 28 preparations are cataloged and
+the smallest full I400 plane per source is selected deterministically. All 14
+selected images encode deterministically and have exact pinned-AVM/project
+reconstruction parity.
 Caller-owned stream and compact active reconstruction spans are capacity
 checked; the core stages both and commits neither on output or reconstruction
-exhaustion. The CLI retains atomic `.obu` replacement and reports exact bytes,
-active-pixel SSE/PSNR, reconstruction bytes, and qindex.
+exhaustion. Geometry-dependent padded reconstruction, compact reconstruction,
+level, and stream staging now use an explicitly queried caller workspace.
+Checked workspace geometry scales through the prepared-input limits without
+fixed 16×16 core arrays; the Linux CLI owns anonymous page mappings and
+releases them deterministically. The codec core remains allocation-free.
+Dimensions through 896 on either axis use the derived legal rectangle-only
+partition syntax across row-major 64x64 superblocks. The CLI retains atomic
+`.obu` replacement and reports exact
+bytes, active-pixel SSE/PSNR, workspace bytes, and qindex.
 Boundary-implied
 rectangular prediction blocks split horizontally or vertically into two 8×8
 transforms; 16×16 splits four ways. Raster reconstruction, coefficient
 contexts, base/BR/remainder syntax, exact dequantization, inverse-DC
 reconstruction, and clipping are decoder-exact. The gate remains active
 because broader dimensions, general partition/mode search, filters, and rate
-control are not implemented. A shared-tree 32×32
-four-16×16-prediction-block attempt exists, but its current stream is rejected
-at tile data by pinned `avmdec`; it is not supported or part of this completed
-submilestone.
+control are not implemented. The rejected 32×32 attempt is now resolved as an
+invalid coded square split: AV2 v1.0 permits square split only at 128×128 and
+256×256. `spec-notes/m3-large-partitions.md` and its executable model derive a
+rectangle-only 17..64 traversal. Production now exhaustively covers all 2,304
+dimension pairs with an odd-sensitive non-flat pattern and exact local,
+pinned-AVM, and project-decoder reconstruction parity. Flat, ramp, impulse,
+representative qindices in all four q-contexts, maximum workspace/capacity,
+stride overflow, and atomic failure are also covered. The separate legacy
+branch preserves bit-identical 1..16 streams and qindex behavior.
 
 ### [~] M4 — Forward transforms, quantization, and AC coefficients
 
@@ -384,3 +401,19 @@ container output, image loader, network access, runtime CPU dispatcher,
 assembly-only algorithm, hidden heap, external metric library, or unpinned
 oracle is part of this experiment. Promotion outside this directory requires a
 separate reviewed project after the experimental gates pass.
+### Full-image continuation boundary
+
+The prepared-corpus, partition, adaptive-CDF, coefficient-context, scalable
+storage, and multi-superblock traversal gates are complete. Public workspace
+encoding supports 1..896 on either axis. All 14 selected full prepared images,
+at 896x424 (1), 896x448 (1), 896x504 (1), 896x598 (5), 598x896 (2),
+896x672 (1), and 896x896 (3), are deterministic and match both decoders.
+This is the current 8-bit I400 896-per-axis bound; arbitrary dimensions and
+chroma remain future milestones.
+
+The boundary partition blocker is resolved. The private path used split
+context 4 instead of 0 for terminal 8x8 boundary leaves; the corrected path
+passes both decoders for flat and non-flat 24/32/40/48/56/64 classes.
+The frozen 17x17 flat/non-flat qindex matrix now also has 14/14 exact local,
+pinned-AVM, and project-decoder parity. Its former 11 mismatches were entirely
+partition-range effects; no genuine edge coefficient-context error remains.

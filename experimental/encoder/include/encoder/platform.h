@@ -12,6 +12,11 @@ typedef struct {
     size_t size;
 } EncReadMapping;
 
+typedef struct {
+    void *data;
+    size_t size;
+} EncMemoryMapping;
+
 EncStatus enc_file_open_read(const char *path, EncFile *file);
 EncStatus enc_file_read(EncFile *file, void *buffer, size_t capacity,
                         size_t *bytes_read);
@@ -22,6 +27,8 @@ EncStatus enc_file_write_atomic(const char *path, const void *buffer,
 EncStatus enc_file_map_readonly_exact(const char *path, size_t expected_size,
                                       EncReadMapping *mapping);
 EncStatus enc_file_unmap(EncReadMapping *mapping);
+EncStatus enc_page_allocate(size_t size, EncMemoryMapping *mapping);
+EncStatus enc_page_free(EncMemoryMapping *mapping);
 EncStatus enc_standard_error_write(const char *message, size_t size);
 void enc_process_exit(int status);
 

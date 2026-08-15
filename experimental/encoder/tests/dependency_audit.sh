@@ -41,6 +41,18 @@ if grep -nE \
     fail "implementation include path escapes experimental/encoder"
 fi
 
+core_files=$(find "$encoder_directory/src" -type f -name '*.c' -print)
+if grep -nE \
+    '(^|[^[:alnum:]_])(mmap|munmap|malloc|calloc|realloc|free)[[:space:]]*\(' \
+    $core_files; then
+    fail "codec core contains allocation or mapping calls"
+fi
+if grep -nE \
+    '\[(ENC_M3_MAX_PIXELS|ENC_M3_MAX_BLOCKS)\]' \
+    "$encoder_directory/src/m3.c" "$encoder_directory/src/main.c"; then
+    fail "M3 geometry storage regressed to fixed stack arrays"
+fi
+
 for build_file in "$repository_root/Makefile" "$repository_root/CMakeLists.txt"; do
     if grep -nEi 'experimental/encoder|encoder[-_]experiment|av2[-_]?encoder' \
         "$build_file"; then

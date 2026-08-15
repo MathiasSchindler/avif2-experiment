@@ -25,7 +25,9 @@
 #define ENC_SYS_RENAMEAT 264
 
 #define ENC_PROT_READ 1
+#define ENC_PROT_WRITE 2
 #define ENC_MAP_PRIVATE 2
+#define ENC_MAP_ANONYMOUS 32
 
 typedef struct {
     unsigned long device;
@@ -325,6 +327,42 @@ EncStatus enc_file_unmap(EncReadMapping *mapping) {
     }
     result = enc_syscall2(ENC_SYS_MUNMAP, (long)mapping->data,
                           (long)mapping->size);
+    mapping->data = 0;
+    mapping->size = 0U;
+    return result < 0 ? ENC_IO_ERROR : ENC_OK;
+}
+
+EncStatus enc_page_allocate(size_t size, EncMemoryMapping *mapping) {
+    long result;
+    if (mapping == 0) {
+        return ENC_INVALID_ARGUMENT;
+    }
+    mapping->data = 0;
+    mapping->size = 0U;
+    if (size == 0U) {
+        return ENC_INVALID_ARGUMENT;
+    }
+    if (size > SIZE_MAX / 2U) {
+        return ENC_OVERFLOW;
+    }
+    result = enc_syscall6(
+        ENC_SYS_MMAP, 0, (long)size, ENC_PROT_READ | ENC_PROT_WRITE,
+        ENC_MAP_PRIVATE | ENC_MAP_ANONYMOUS, -1, 0);
+    if (result < 0) {
+        return ENC_OUT_OF_SPACE;
+    }
+    mapping->data = (void *)result;
+    mapping->size = size;
+    return ENC_OK;
+}
+
+EncStatus enc_page_free(EncMemoryMapping *mapping) {
+    long result;
+    if (mapping == 0 || mapping->data == 0 || mapping->size == 0U) {
+        return ENC_INVALID_ARGUMENT;
+    }
+    result = enc_syscall2(
+        ENC_SYS_MUNMAP, (long)mapping->data, (long)mapping->size);
     mapping->data = 0;
     mapping->size = 0U;
     return result < 0 ? ENC_IO_ERROR : ENC_OK;

@@ -1,0 +1,71 @@
+{
+  "all_avm_pass": true,
+  "avm_revision": "966a7d7cd6fcf60360caf5dc413b2aeeb65e144d",
+  "avmdec_sha256": "c247cbb4e71e48bdec89f3c8b2b8efdce17f673aeaa39e3c116a276d16286aa0",
+  "avmenc_sha256": "830c5f7a82e071560501183fb85ea9e2632ce7665c9033232ac64b546efb7e64",
+  "cases": [
+    {
+      "avmdec_returncode": 0,
+      "encoder_returncode": 0,
+      "name": "17x17",
+      "obu_bytes": 46,
+      "obu_sha256": "1e7a982839999a379ae9688fd8cdd687c1e5a1381bdd6fbaafc99ecc9cde8a0f",
+      "output_sha256": "94f2c65a1e0959306f3d8b79d0c61c4681d76ea1fa903c231134ee2526d92980",
+      "project_decoder_returncode": 1,
+      "validators_exact_equal": false
+    },
+    {
+      "avmdec_returncode": 0,
+      "encoder_returncode": 0,
+      "name": "17x32",
+      "obu_bytes": 54,
+      "obu_sha256": "2fe48bc6b5f0243490be66268b0dc3e721b3872e7bff5fffd9b6802947548110",
+      "output_sha256": "4a906b9227117c0e7f1b6b816d3b2d4aac6d68d112d622b69b9432903f0fb51d",
+      "project_decoder_returncode": 1,
+      "validators_exact_equal": false
+    },
+    {
+      "avmdec_returncode": 0,
+      "encoder_returncode": 0,
+      "name": "32x17",
+      "obu_bytes": 52,
+      "obu_sha256": "a57a7b2530315e53a7467986443be64e204bf392a343922e60e0a5857e7e44d5",
+      "output_sha256": "a6c724cad035123a4553df14d47192a4965229c399389139e3b5677492ecd19c",
+      "project_decoder_returncode": 1,
+      "validators_exact_equal": false
+    },
+    {
+      "avmdec_returncode": 0,
+      "encoder_returncode": 0,
+      "name": "32x32",
+      "obu_bytes": 62,
+      "obu_sha256": "a95c537f56b88ae3baacb63cdf6c34f81f8f5fcd184fccf606a31745a3d84fd0",
+      "output_sha256": "abf93309a03d1585b1e4b9d53d979e0b74f3beee50297896f542c1e7cb4d29e8",
+      "project_decoder_returncode": 1,
+      "validators_exact_equal": false
+    },
+    {
+      "avmdec_returncode": 0,
+      "encoder_returncode": 0,
+      "name": "48x64",
+      "obu_bytes": 123,
+      "obu_sha256": "a2982a9cd7e163e490c53eb507dabdaf38ec00389e7c0b80ca4069084a6711f4",
+      "output_sha256": "4b87cd959e61303ab420a6c46f84ed1a4d0be60f0a19c50300791aa24c9fd759",
+      "project_decoder_returncode": 1,
+      "validators_exact_equal": false
+    },
+    {
+      "avmdec_returncode": 0,
+      "encoder_returncode": 0,
+      "name": "64x64",
+      "obu_bytes": 152,
+      "obu_sha256": "77480171f106531dee302e00bd054537b3e9bdd85fcdd2527d16583adca94f4b",
+      "output_sha256": "81cf42e753ae3e23705d9bf958b7f1ea3acde3f9402a4e82ff5a128fc4174b76",
+      "project_decoder_returncode": 1,
+      "validators_exact_equal": false
+    }
+  ],
+  "project_decoder_all_pass": false,
+  "project_decoder_sha256": "c0c6329cc85de13c92d04a00deff8124c9b45dbe74da8a86ddc60d9d7b4de9df",
+  "schema": "av2-m3-multileaf-avm-probes-v1"
+}

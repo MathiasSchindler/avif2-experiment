@@ -5,6 +5,7 @@ import shutil
 import sys
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -115,6 +116,29 @@ class M3BenchmarkTests(unittest.TestCase):
         self.assertEqual(record["reason"],
                          "avmdec rejected the supported encoded fixture")
         self.assertNotEqual(record["avmdec_returncode"], 0)
+        shutil.rmtree(work)
+
+    def test_supported_fixture_fails_when_encoder_reports_unsupported(self) -> None:
+        work = ROOT / "experimental/encoder/build/m3-unsupported-test"
+        shutil.rmtree(work, ignore_errors=True)
+        output = work / "metrics.jsonl"
+        unsupported = {
+            "fixture": "ramp-x-16x8",
+            "status": "unsupported",
+            "reason": "encoder rejected a supported fixture",
+        }
+        with patch("m3_benchmark.run_fixture", return_value=unsupported):
+            result = main([
+                "--fixture=ramp-x-16x8",
+                "--encoder=/bin/true",
+                "--avmdec=/bin/true",
+                "--project-decoder=/bin/true",
+                f"--work-dir={work / 'work'}",
+                f"--output={output}",
+            ])
+        self.assertEqual(result, 1)
+        record = json.loads(output.read_text(encoding="utf-8"))
+        self.assertEqual(record["status"], "unsupported")
         shutil.rmtree(work)
 
     def test_suite_locks_bounded_prepared_crops_and_q_sweep(self) -> None:

@@ -1,0 +1,8350 @@
+{
+  "case_count": 14,
+  "cases": [
+    {
+      "edge_event_count": 10,
+      "edge_leaf_count": 3,
+      "edge_transform_count": 5,
+      "events": [
+        {
+          "cdf_after": [
+            30067,
+            0,
+            5,
+            3,
+            3,
+            4
+          ],
+          "cdf_before": [
+            29980,
+            0,
+            4,
+            3,
+            3,
+            4
+          ],
+          "context": 1,
+          "leaf_index": 1,
+          "name": "txb_skip",
+          "row": 11,
+          "row_key": "txb_skip[11]",
+          "symbol": 1,
+          "tx_index": 0,
+          "x": 16,
+          "y": 0
+        },
+        {
+          "adaptive": false,
+          "detail": "all-zero transform: DCT_DCT and coefficient suffix omitted",
+          "leaf_index": 1,
+          "name": "primary_tx_type",
+          "tx_index": 0,
+          "x": 16,
+          "y": 0
+        },
+        {
+          "cdf_after": [
+            30151,
+            0,
+            6,
+            3,
+            3,
+            4
+          ],
+          "cdf_before": [
+            30067,
+            0,
+            5,
+            3,
+            3,
+            4
+          ],
+          "context": 1,
+          "leaf_index": 1,
+          "name": "txb_skip",
+          "row": 11,
+          "row_key": "txb_skip[11]",
+          "symbol": 1,
+          "tx_index": 1,
+          "x": 16,
+          "y": 8
+        },
+        {
+          "adaptive": false,
+          "detail": "all-zero transform: DCT_DCT and coefficient suffix omitted",
+          "leaf_index": 1,
+          "name": "primary_tx_type",
+          "tx_index": 1,
+          "x": 16,
+          "y": 8
+        },
+        {
+          "cdf_after": [
+            30232,
+            0,
+            7,
+            3,
+            3,
+            4
+          ],
+          "cdf_before": [
+            30151,
+            0,
+            6,
+            3,
+            3,
+            4
+          ],
+          "context": 1,
+          "leaf_index": 2,
+          "name": "txb_skip",
+          "row": 11,
+          "row_key": "txb_skip[11]",
+          "symbol": 1,
+          "tx_index": 0,
+          "x": 0,
+          "y": 16
+        },
+        {
+          "adaptive": false,
+          "detail": "all-zero transform: DCT_DCT and coefficient suffix omitted",
+          "leaf_index": 2,
+          "name": "primary_tx_type",
+          "tx_index": 0,
+          "x": 0,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            30311,
+            0,
+            8,
+            3,
+            3,
+            4
+          ],
+          "cdf_before": [
+            30232,
+            0,
+            7,
+            3,
+            3,
+            4
+          ],
+          "context": 1,
+          "leaf_index": 2,
+          "name": "txb_skip",
+          "row": 11,
+          "row_key": "txb_skip[11]",
+          "symbol": 1,
+          "tx_index": 1,
+          "x": 8,
+          "y": 16
+        },
+        {
+          "adaptive": false,
+          "detail": "all-zero transform: DCT_DCT and coefficient suffix omitted",
+          "leaf_index": 2,
+          "name": "primary_tx_type",
+          "tx_index": 1,
+          "x": 8,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            14168,
+            0,
+            1,
+            0,
+            2,
+            3
+          ],
+          "cdf_before": [
+            7969,
+            0,
+            0,
+            0,
+            2,
+            3
+          ],
+          "context": 0,
+          "leaf_index": 3,
+          "name": "txb_skip",
+          "row": 10,
+          "row_key": "txb_skip[10]",
+          "symbol": 1,
+          "tx_index": 0,
+          "x": 16,
+          "y": 16
+        },
+        {
+          "adaptive": false,
+          "detail": "all-zero transform: DCT_DCT and coefficient suffix omitted",
+          "leaf_index": 3,
+          "name": "primary_tx_type",
+          "tx_index": 0,
+          "x": 16,
+          "y": 16
+        }
+      ],
+      "leaves": [
+        {
+          "height": 16,
+          "leaf_index": 1,
+          "width": 8,
+          "x": 16,
+          "y": 0
+        },
+        {
+          "height": 8,
+          "leaf_index": 2,
+          "width": 16,
+          "x": 0,
+          "y": 16
+        },
+        {
+          "height": 8,
+          "leaf_index": 3,
+          "width": 8,
+          "x": 16,
+          "y": 16
+        }
+      ],
+      "profile": "flat128",
+      "q_context": 0,
+      "qindex": 1,
+      "reconstruction_sha256": "1c7f1156eaaa2fbe418f6322b129d0cb73bc1750cdc326fa8dee82a2e94228e7",
+      "source_sha256": "1c7f1156eaaa2fbe418f6322b129d0cb73bc1750cdc326fa8dee82a2e94228e7",
+      "transforms": [
+        {
+          "cul_level": 0,
+          "dc_sign_context": 0,
+          "leaf_index": 1,
+          "level": 0,
+          "prediction": 128,
+          "prediction_block_height": 16,
+          "prediction_block_width": 8,
+          "reconstruction": 128,
+          "tx_index": 0,
+          "txb_skip_context": 1,
+          "x": 16,
+          "y": 0
+        },
+        {
+          "cul_level": 0,
+          "dc_sign_context": 0,
+          "leaf_index": 1,
+          "level": 0,
+          "prediction": 128,
+          "prediction_block_height": 16,
+          "prediction_block_width": 8,
+          "reconstruction": 128,
+          "tx_index": 1,
+          "txb_skip_context": 1,
+          "x": 16,
+          "y": 8
+        },
+        {
+          "cul_level": 0,
+          "dc_sign_context": 0,
+          "leaf_index": 2,
+          "level": 0,
+          "prediction": 128,
+          "prediction_block_height": 8,
+          "prediction_block_width": 16,
+          "reconstruction": 128,
+          "tx_index": 0,
+          "txb_skip_context": 1,
+          "x": 0,
+          "y": 16
+        },
+        {
+          "cul_level": 0,
+          "dc_sign_context": 0,
+          "leaf_index": 2,
+          "level": 0,
+          "prediction": 128,
+          "prediction_block_height": 8,
+          "prediction_block_width": 16,
+          "reconstruction": 128,
+          "tx_index": 1,
+          "txb_skip_context": 1,
+          "x": 8,
+          "y": 16
+        },
+        {
+          "cul_level": 0,
+          "dc_sign_context": 0,
+          "leaf_index": 3,
+          "level": 0,
+          "prediction": 128,
+          "prediction_block_height": 8,
+          "prediction_block_width": 8,
+          "reconstruction": 128,
+          "tx_index": 0,
+          "txb_skip_context": 0,
+          "x": 16,
+          "y": 16
+        }
+      ]
+    },
+    {
+      "edge_event_count": 10,
+      "edge_leaf_count": 3,
+      "edge_transform_count": 5,
+      "events": [
+        {
+          "cdf_after": [
+            30067,
+            0,
+            5,
+            3,
+            3,
+            4
+          ],
+          "cdf_before": [
+            29980,
+            0,
+            4,
+            3,
+            3,
+            4
+          ],
+          "context": 1,
+          "leaf_index": 1,
+          "name": "txb_skip",
+          "row": 11,
+          "row_key": "txb_skip[11]",
+          "symbol": 1,
+          "tx_index": 0,
+          "x": 16,
+          "y": 0
+        },
+        {
+          "adaptive": false,
+          "detail": "all-zero transform: DCT_DCT and coefficient suffix omitted",
+          "leaf_index": 1,
+          "name": "primary_tx_type",
+          "tx_index": 0,
+          "x": 16,
+          "y": 0
+        },
+        {
+          "cdf_after": [
+            30151,
+            0,
+            6,
+            3,
+            3,
+            4
+          ],
+          "cdf_before": [
+            30067,
+            0,
+            5,
+            3,
+            3,
+            4
+          ],
+          "context": 1,
+          "leaf_index": 1,
+          "name": "txb_skip",
+          "row": 11,
+          "row_key": "txb_skip[11]",
+          "symbol": 1,
+          "tx_index": 1,
+          "x": 16,
+          "y": 8
+        },
+        {
+          "adaptive": false,
+          "detail": "all-zero transform: DCT_DCT and coefficient suffix omitted",
+          "leaf_index": 1,
+          "name": "primary_tx_type",
+          "tx_index": 1,
+          "x": 16,
+          "y": 8
+        },
+        {
+          "cdf_after": [
+            30232,
+            0,
+            7,
+            3,
+            3,
+            4
+          ],
+          "cdf_before": [
+            30151,
+            0,
+            6,
+            3,
+            3,
+            4
+          ],
+          "context": 1,
+          "leaf_index": 2,
+          "name": "txb_skip",
+          "row": 11,
+          "row_key": "txb_skip[11]",
+          "symbol": 1,
+          "tx_index": 0,
+          "x": 0,
+          "y": 16
+        },
+        {
+          "adaptive": false,
+          "detail": "all-zero transform: DCT_DCT and coefficient suffix omitted",
+          "leaf_index": 2,
+          "name": "primary_tx_type",
+          "tx_index": 0,
+          "x": 0,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            30311,
+            0,
+            8,
+            3,
+            3,
+            4
+          ],
+          "cdf_before": [
+            30232,
+            0,
+            7,
+            3,
+            3,
+            4
+          ],
+          "context": 1,
+          "leaf_index": 2,
+          "name": "txb_skip",
+          "row": 11,
+          "row_key": "txb_skip[11]",
+          "symbol": 1,
+          "tx_index": 1,
+          "x": 8,
+          "y": 16
+        },
+        {
+          "adaptive": false,
+          "detail": "all-zero transform: DCT_DCT and coefficient suffix omitted",
+          "leaf_index": 2,
+          "name": "primary_tx_type",
+          "tx_index": 1,
+          "x": 8,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            14168,
+            0,
+            1,
+            0,
+            2,
+            3
+          ],
+          "cdf_before": [
+            7969,
+            0,
+            0,
+            0,
+            2,
+            3
+          ],
+          "context": 0,
+          "leaf_index": 3,
+          "name": "txb_skip",
+          "row": 10,
+          "row_key": "txb_skip[10]",
+          "symbol": 1,
+          "tx_index": 0,
+          "x": 16,
+          "y": 16
+        },
+        {
+          "adaptive": false,
+          "detail": "all-zero transform: DCT_DCT and coefficient suffix omitted",
+          "leaf_index": 3,
+          "name": "primary_tx_type",
+          "tx_index": 0,
+          "x": 16,
+          "y": 16
+        }
+      ],
+      "leaves": [
+        {
+          "height": 16,
+          "leaf_index": 1,
+          "width": 8,
+          "x": 16,
+          "y": 0
+        },
+        {
+          "height": 8,
+          "leaf_index": 2,
+          "width": 16,
+          "x": 0,
+          "y": 16
+        },
+        {
+          "height": 8,
+          "leaf_index": 3,
+          "width": 8,
+          "x": 16,
+          "y": 16
+        }
+      ],
+      "profile": "flat128",
+      "q_context": 0,
+      "qindex": 90,
+      "reconstruction_sha256": "1c7f1156eaaa2fbe418f6322b129d0cb73bc1750cdc326fa8dee82a2e94228e7",
+      "source_sha256": "1c7f1156eaaa2fbe418f6322b129d0cb73bc1750cdc326fa8dee82a2e94228e7",
+      "transforms": [
+        {
+          "cul_level": 0,
+          "dc_sign_context": 0,
+          "leaf_index": 1,
+          "level": 0,
+          "prediction": 128,
+          "prediction_block_height": 16,
+          "prediction_block_width": 8,
+          "reconstruction": 128,
+          "tx_index": 0,
+          "txb_skip_context": 1,
+          "x": 16,
+          "y": 0
+        },
+        {
+          "cul_level": 0,
+          "dc_sign_context": 0,
+          "leaf_index": 1,
+          "level": 0,
+          "prediction": 128,
+          "prediction_block_height": 16,
+          "prediction_block_width": 8,
+          "reconstruction": 128,
+          "tx_index": 1,
+          "txb_skip_context": 1,
+          "x": 16,
+          "y": 8
+        },
+        {
+          "cul_level": 0,
+          "dc_sign_context": 0,
+          "leaf_index": 2,
+          "level": 0,
+          "prediction": 128,
+          "prediction_block_height": 8,
+          "prediction_block_width": 16,
+          "reconstruction": 128,
+          "tx_index": 0,
+          "txb_skip_context": 1,
+          "x": 0,
+          "y": 16
+        },
+        {
+          "cul_level": 0,
+          "dc_sign_context": 0,
+          "leaf_index": 2,
+          "level": 0,
+          "prediction": 128,
+          "prediction_block_height": 8,
+          "prediction_block_width": 16,
+          "reconstruction": 128,
+          "tx_index": 1,
+          "txb_skip_context": 1,
+          "x": 8,
+          "y": 16
+        },
+        {
+          "cul_level": 0,
+          "dc_sign_context": 0,
+          "leaf_index": 3,
+          "level": 0,
+          "prediction": 128,
+          "prediction_block_height": 8,
+          "prediction_block_width": 8,
+          "reconstruction": 128,
+          "tx_index": 0,
+          "txb_skip_context": 0,
+          "x": 16,
+          "y": 16
+        }
+      ]
+    },
+    {
+      "edge_event_count": 10,
+      "edge_leaf_count": 3,
+      "edge_transform_count": 5,
+      "events": [
+        {
+          "cdf_after": [
+            30752,
+            0,
+            5,
+            3,
+            3,
+            5
+          ],
+          "cdf_before": [
+            30687,
+            0,
+            4,
+            3,
+            3,
+            5
+          ],
+          "context": 1,
+          "leaf_index": 1,
+          "name": "txb_skip",
+          "row": 111,
+          "row_key": "txb_skip[111]",
+          "symbol": 1,
+          "tx_index": 0,
+          "x": 16,
+          "y": 0
+        },
+        {
+          "adaptive": false,
+          "detail": "all-zero transform: DCT_DCT and coefficient suffix omitted",
+          "leaf_index": 1,
+          "name": "primary_tx_type",
+          "tx_index": 0,
+          "x": 16,
+          "y": 0
+        },
+        {
+          "cdf_after": [
+            30815,
+            0,
+            6,
+            3,
+            3,
+            5
+          ],
+          "cdf_before": [
+            30752,
+            0,
+            5,
+            3,
+            3,
+            5
+          ],
+          "context": 1,
+          "leaf_index": 1,
+          "name": "txb_skip",
+          "row": 111,
+          "row_key": "txb_skip[111]",
+          "symbol": 1,
+          "tx_index": 1,
+          "x": 16,
+          "y": 8
+        },
+        {
+          "adaptive": false,
+          "detail": "all-zero transform: DCT_DCT and coefficient suffix omitted",
+          "leaf_index": 1,
+          "name": "primary_tx_type",
+          "tx_index": 1,
+          "x": 16,
+          "y": 8
+        },
+        {
+          "cdf_after": [
+            30876,
+            0,
+            7,
+            3,
+            3,
+            5
+          ],
+          "cdf_before": [
+            30815,
+            0,
+            6,
+            3,
+            3,
+            5
+          ],
+          "context": 1,
+          "leaf_index": 2,
+          "name": "txb_skip",
+          "row": 111,
+          "row_key": "txb_skip[111]",
+          "symbol": 1,
+          "tx_index": 0,
+          "x": 0,
+          "y": 16
+        },
+        {
+          "adaptive": false,
+          "detail": "all-zero transform: DCT_DCT and coefficient suffix omitted",
+          "leaf_index": 2,
+          "name": "primary_tx_type",
+          "tx_index": 0,
+          "x": 0,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            30935,
+            0,
+            8,
+            3,
+            3,
+            5
+          ],
+          "cdf_before": [
+            30876,
+            0,
+            7,
+            3,
+            3,
+            5
+          ],
+          "context": 1,
+          "leaf_index": 2,
+          "name": "txb_skip",
+          "row": 111,
+          "row_key": "txb_skip[111]",
+          "symbol": 1,
+          "tx_index": 1,
+          "x": 8,
+          "y": 16
+        },
+        {
+          "adaptive": false,
+          "detail": "all-zero transform: DCT_DCT and coefficient suffix omitted",
+          "leaf_index": 2,
+          "name": "primary_tx_type",
+          "tx_index": 1,
+          "x": 8,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            5179,
+            0,
+            1,
+            1,
+            2,
+            4
+          ],
+          "cdf_before": [
+            1238,
+            0,
+            0,
+            1,
+            2,
+            4
+          ],
+          "context": 0,
+          "leaf_index": 3,
+          "name": "txb_skip",
+          "row": 110,
+          "row_key": "txb_skip[110]",
+          "symbol": 1,
+          "tx_index": 0,
+          "x": 16,
+          "y": 16
+        },
+        {
+          "adaptive": false,
+          "detail": "all-zero transform: DCT_DCT and coefficient suffix omitted",
+          "leaf_index": 3,
+          "name": "primary_tx_type",
+          "tx_index": 0,
+          "x": 16,
+          "y": 16
+        }
+      ],
+      "leaves": [
+        {
+          "height": 16,
+          "leaf_index": 1,
+          "width": 8,
+          "x": 16,
+          "y": 0
+        },
+        {
+          "height": 8,
+          "leaf_index": 2,
+          "width": 16,
+          "x": 0,
+          "y": 16
+        },
+        {
+          "height": 8,
+          "leaf_index": 3,
+          "width": 8,
+          "x": 16,
+          "y": 16
+        }
+      ],
+      "profile": "flat128",
+      "q_context": 1,
+      "qindex": 91,
+      "reconstruction_sha256": "1c7f1156eaaa2fbe418f6322b129d0cb73bc1750cdc326fa8dee82a2e94228e7",
+      "source_sha256": "1c7f1156eaaa2fbe418f6322b129d0cb73bc1750cdc326fa8dee82a2e94228e7",
+      "transforms": [
+        {
+          "cul_level": 0,
+          "dc_sign_context": 0,
+          "leaf_index": 1,
+          "level": 0,
+          "prediction": 128,
+          "prediction_block_height": 16,
+          "prediction_block_width": 8,
+          "reconstruction": 128,
+          "tx_index": 0,
+          "txb_skip_context": 1,
+          "x": 16,
+          "y": 0
+        },
+        {
+          "cul_level": 0,
+          "dc_sign_context": 0,
+          "leaf_index": 1,
+          "level": 0,
+          "prediction": 128,
+          "prediction_block_height": 16,
+          "prediction_block_width": 8,
+          "reconstruction": 128,
+          "tx_index": 1,
+          "txb_skip_context": 1,
+          "x": 16,
+          "y": 8
+        },
+        {
+          "cul_level": 0,
+          "dc_sign_context": 0,
+          "leaf_index": 2,
+          "level": 0,
+          "prediction": 128,
+          "prediction_block_height": 8,
+          "prediction_block_width": 16,
+          "reconstruction": 128,
+          "tx_index": 0,
+          "txb_skip_context": 1,
+          "x": 0,
+          "y": 16
+        },
+        {
+          "cul_level": 0,
+          "dc_sign_context": 0,
+          "leaf_index": 2,
+          "level": 0,
+          "prediction": 128,
+          "prediction_block_height": 8,
+          "prediction_block_width": 16,
+          "reconstruction": 128,
+          "tx_index": 1,
+          "txb_skip_context": 1,
+          "x": 8,
+          "y": 16
+        },
+        {
+          "cul_level": 0,
+          "dc_sign_context": 0,
+          "leaf_index": 3,
+          "level": 0,
+          "prediction": 128,
+          "prediction_block_height": 8,
+          "prediction_block_width": 8,
+          "reconstruction": 128,
+          "tx_index": 0,
+          "txb_skip_context": 0,
+          "x": 16,
+          "y": 16
+        }
+      ]
+    },
+    {
+      "edge_event_count": 10,
+      "edge_leaf_count": 3,
+      "edge_transform_count": 5,
+      "events": [
+        {
+          "cdf_after": [
+            30752,
+            0,
+            5,
+            3,
+            3,
+            5
+          ],
+          "cdf_before": [
+            30687,
+            0,
+            4,
+            3,
+            3,
+            5
+          ],
+          "context": 1,
+          "leaf_index": 1,
+          "name": "txb_skip",
+          "row": 111,
+          "row_key": "txb_skip[111]",
+          "symbol": 1,
+          "tx_index": 0,
+          "x": 16,
+          "y": 0
+        },
+        {
+          "adaptive": false,
+          "detail": "all-zero transform: DCT_DCT and coefficient suffix omitted",
+          "leaf_index": 1,
+          "name": "primary_tx_type",
+          "tx_index": 0,
+          "x": 16,
+          "y": 0
+        },
+        {
+          "cdf_after": [
+            30815,
+            0,
+            6,
+            3,
+            3,
+            5
+          ],
+          "cdf_before": [
+            30752,
+            0,
+            5,
+            3,
+            3,
+            5
+          ],
+          "context": 1,
+          "leaf_index": 1,
+          "name": "txb_skip",
+          "row": 111,
+          "row_key": "txb_skip[111]",
+          "symbol": 1,
+          "tx_index": 1,
+          "x": 16,
+          "y": 8
+        },
+        {
+          "adaptive": false,
+          "detail": "all-zero transform: DCT_DCT and coefficient suffix omitted",
+          "leaf_index": 1,
+          "name": "primary_tx_type",
+          "tx_index": 1,
+          "x": 16,
+          "y": 8
+        },
+        {
+          "cdf_after": [
+            30876,
+            0,
+            7,
+            3,
+            3,
+            5
+          ],
+          "cdf_before": [
+            30815,
+            0,
+            6,
+            3,
+            3,
+            5
+          ],
+          "context": 1,
+          "leaf_index": 2,
+          "name": "txb_skip",
+          "row": 111,
+          "row_key": "txb_skip[111]",
+          "symbol": 1,
+          "tx_index": 0,
+          "x": 0,
+          "y": 16
+        },
+        {
+          "adaptive": false,
+          "detail": "all-zero transform: DCT_DCT and coefficient suffix omitted",
+          "leaf_index": 2,
+          "name": "primary_tx_type",
+          "tx_index": 0,
+          "x": 0,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            30935,
+            0,
+            8,
+            3,
+            3,
+            5
+          ],
+          "cdf_before": [
+            30876,
+            0,
+            7,
+            3,
+            3,
+            5
+          ],
+          "context": 1,
+          "leaf_index": 2,
+          "name": "txb_skip",
+          "row": 111,
+          "row_key": "txb_skip[111]",
+          "symbol": 1,
+          "tx_index": 1,
+          "x": 8,
+          "y": 16
+        },
+        {
+          "adaptive": false,
+          "detail": "all-zero transform: DCT_DCT and coefficient suffix omitted",
+          "leaf_index": 2,
+          "name": "primary_tx_type",
+          "tx_index": 1,
+          "x": 8,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            5179,
+            0,
+            1,
+            1,
+            2,
+            4
+          ],
+          "cdf_before": [
+            1238,
+            0,
+            0,
+            1,
+            2,
+            4
+          ],
+          "context": 0,
+          "leaf_index": 3,
+          "name": "txb_skip",
+          "row": 110,
+          "row_key": "txb_skip[110]",
+          "symbol": 1,
+          "tx_index": 0,
+          "x": 16,
+          "y": 16
+        },
+        {
+          "adaptive": false,
+          "detail": "all-zero transform: DCT_DCT and coefficient suffix omitted",
+          "leaf_index": 3,
+          "name": "primary_tx_type",
+          "tx_index": 0,
+          "x": 16,
+          "y": 16
+        }
+      ],
+      "leaves": [
+        {
+          "height": 16,
+          "leaf_index": 1,
+          "width": 8,
+          "x": 16,
+          "y": 0
+        },
+        {
+          "height": 8,
+          "leaf_index": 2,
+          "width": 16,
+          "x": 0,
+          "y": 16
+        },
+        {
+          "height": 8,
+          "leaf_index": 3,
+          "width": 8,
+          "x": 16,
+          "y": 16
+        }
+      ],
+      "profile": "flat128",
+      "q_context": 1,
+      "qindex": 100,
+      "reconstruction_sha256": "1c7f1156eaaa2fbe418f6322b129d0cb73bc1750cdc326fa8dee82a2e94228e7",
+      "source_sha256": "1c7f1156eaaa2fbe418f6322b129d0cb73bc1750cdc326fa8dee82a2e94228e7",
+      "transforms": [
+        {
+          "cul_level": 0,
+          "dc_sign_context": 0,
+          "leaf_index": 1,
+          "level": 0,
+          "prediction": 128,
+          "prediction_block_height": 16,
+          "prediction_block_width": 8,
+          "reconstruction": 128,
+          "tx_index": 0,
+          "txb_skip_context": 1,
+          "x": 16,
+          "y": 0
+        },
+        {
+          "cul_level": 0,
+          "dc_sign_context": 0,
+          "leaf_index": 1,
+          "level": 0,
+          "prediction": 128,
+          "prediction_block_height": 16,
+          "prediction_block_width": 8,
+          "reconstruction": 128,
+          "tx_index": 1,
+          "txb_skip_context": 1,
+          "x": 16,
+          "y": 8
+        },
+        {
+          "cul_level": 0,
+          "dc_sign_context": 0,
+          "leaf_index": 2,
+          "level": 0,
+          "prediction": 128,
+          "prediction_block_height": 8,
+          "prediction_block_width": 16,
+          "reconstruction": 128,
+          "tx_index": 0,
+          "txb_skip_context": 1,
+          "x": 0,
+          "y": 16
+        },
+        {
+          "cul_level": 0,
+          "dc_sign_context": 0,
+          "leaf_index": 2,
+          "level": 0,
+          "prediction": 128,
+          "prediction_block_height": 8,
+          "prediction_block_width": 16,
+          "reconstruction": 128,
+          "tx_index": 1,
+          "txb_skip_context": 1,
+          "x": 8,
+          "y": 16
+        },
+        {
+          "cul_level": 0,
+          "dc_sign_context": 0,
+          "leaf_index": 3,
+          "level": 0,
+          "prediction": 128,
+          "prediction_block_height": 8,
+          "prediction_block_width": 8,
+          "reconstruction": 128,
+          "tx_index": 0,
+          "txb_skip_context": 0,
+          "x": 16,
+          "y": 16
+        }
+      ]
+    },
+    {
+      "edge_event_count": 10,
+      "edge_leaf_count": 3,
+      "edge_transform_count": 5,
+      "events": [
+        {
+          "cdf_after": [
+            29343,
+            0,
+            5,
+            2,
+            3,
+            5
+          ],
+          "cdf_before": [
+            29115,
+            0,
+            4,
+            2,
+            3,
+            5
+          ],
+          "context": 1,
+          "leaf_index": 1,
+          "name": "txb_skip",
+          "row": 211,
+          "row_key": "txb_skip[211]",
+          "symbol": 1,
+          "tx_index": 0,
+          "x": 16,
+          "y": 0
+        },
+        {
+          "adaptive": false,
+          "detail": "all-zero transform: DCT_DCT and coefficient suffix omitted",
+          "leaf_index": 1,
+          "name": "primary_tx_type",
+          "tx_index": 0,
+          "x": 16,
+          "y": 0
+        },
+        {
+          "cdf_after": [
+            29557,
+            0,
+            6,
+            2,
+            3,
+            5
+          ],
+          "cdf_before": [
+            29343,
+            0,
+            5,
+            2,
+            3,
+            5
+          ],
+          "context": 1,
+          "leaf_index": 1,
+          "name": "txb_skip",
+          "row": 211,
+          "row_key": "txb_skip[211]",
+          "symbol": 1,
+          "tx_index": 1,
+          "x": 16,
+          "y": 8
+        },
+        {
+          "adaptive": false,
+          "detail": "all-zero transform: DCT_DCT and coefficient suffix omitted",
+          "leaf_index": 1,
+          "name": "primary_tx_type",
+          "tx_index": 1,
+          "x": 16,
+          "y": 8
+        },
+        {
+          "cdf_after": [
+            29757,
+            0,
+            7,
+            2,
+            3,
+            5
+          ],
+          "cdf_before": [
+            29557,
+            0,
+            6,
+            2,
+            3,
+            5
+          ],
+          "context": 1,
+          "leaf_index": 2,
+          "name": "txb_skip",
+          "row": 211,
+          "row_key": "txb_skip[211]",
+          "symbol": 1,
+          "tx_index": 0,
+          "x": 0,
+          "y": 16
+        },
+        {
+          "adaptive": false,
+          "detail": "all-zero transform: DCT_DCT and coefficient suffix omitted",
+          "leaf_index": 2,
+          "name": "primary_tx_type",
+          "tx_index": 0,
+          "x": 0,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            29945,
+            0,
+            8,
+            2,
+            3,
+            5
+          ],
+          "cdf_before": [
+            29757,
+            0,
+            7,
+            2,
+            3,
+            5
+          ],
+          "context": 1,
+          "leaf_index": 2,
+          "name": "txb_skip",
+          "row": 211,
+          "row_key": "txb_skip[211]",
+          "symbol": 1,
+          "tx_index": 1,
+          "x": 8,
+          "y": 16
+        },
+        {
+          "adaptive": false,
+          "detail": "all-zero transform: DCT_DCT and coefficient suffix omitted",
+          "leaf_index": 2,
+          "name": "primary_tx_type",
+          "tx_index": 1,
+          "x": 8,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            4361,
+            0,
+            1,
+            2,
+            3,
+            4
+          ],
+          "cdf_before": [
+            2468,
+            0,
+            0,
+            2,
+            3,
+            4
+          ],
+          "context": 0,
+          "leaf_index": 3,
+          "name": "txb_skip",
+          "row": 210,
+          "row_key": "txb_skip[210]",
+          "symbol": 1,
+          "tx_index": 0,
+          "x": 16,
+          "y": 16
+        },
+        {
+          "adaptive": false,
+          "detail": "all-zero transform: DCT_DCT and coefficient suffix omitted",
+          "leaf_index": 3,
+          "name": "primary_tx_type",
+          "tx_index": 0,
+          "x": 16,
+          "y": 16
+        }
+      ],
+      "leaves": [
+        {
+          "height": 16,
+          "leaf_index": 1,
+          "width": 8,
+          "x": 16,
+          "y": 0
+        },
+        {
+          "height": 8,
+          "leaf_index": 2,
+          "width": 16,
+          "x": 0,
+          "y": 16
+        },
+        {
+          "height": 8,
+          "leaf_index": 3,
+          "width": 8,
+          "x": 16,
+          "y": 16
+        }
+      ],
+      "profile": "flat128",
+      "q_context": 2,
+      "qindex": 141,
+      "reconstruction_sha256": "1c7f1156eaaa2fbe418f6322b129d0cb73bc1750cdc326fa8dee82a2e94228e7",
+      "source_sha256": "1c7f1156eaaa2fbe418f6322b129d0cb73bc1750cdc326fa8dee82a2e94228e7",
+      "transforms": [
+        {
+          "cul_level": 0,
+          "dc_sign_context": 0,
+          "leaf_index": 1,
+          "level": 0,
+          "prediction": 128,
+          "prediction_block_height": 16,
+          "prediction_block_width": 8,
+          "reconstruction": 128,
+          "tx_index": 0,
+          "txb_skip_context": 1,
+          "x": 16,
+          "y": 0
+        },
+        {
+          "cul_level": 0,
+          "dc_sign_context": 0,
+          "leaf_index": 1,
+          "level": 0,
+          "prediction": 128,
+          "prediction_block_height": 16,
+          "prediction_block_width": 8,
+          "reconstruction": 128,
+          "tx_index": 1,
+          "txb_skip_context": 1,
+          "x": 16,
+          "y": 8
+        },
+        {
+          "cul_level": 0,
+          "dc_sign_context": 0,
+          "leaf_index": 2,
+          "level": 0,
+          "prediction": 128,
+          "prediction_block_height": 8,
+          "prediction_block_width": 16,
+          "reconstruction": 128,
+          "tx_index": 0,
+          "txb_skip_context": 1,
+          "x": 0,
+          "y": 16
+        },
+        {
+          "cul_level": 0,
+          "dc_sign_context": 0,
+          "leaf_index": 2,
+          "level": 0,
+          "prediction": 128,
+          "prediction_block_height": 8,
+          "prediction_block_width": 16,
+          "reconstruction": 128,
+          "tx_index": 1,
+          "txb_skip_context": 1,
+          "x": 8,
+          "y": 16
+        },
+        {
+          "cul_level": 0,
+          "dc_sign_context": 0,
+          "leaf_index": 3,
+          "level": 0,
+          "prediction": 128,
+          "prediction_block_height": 8,
+          "prediction_block_width": 8,
+          "reconstruction": 128,
+          "tx_index": 0,
+          "txb_skip_context": 0,
+          "x": 16,
+          "y": 16
+        }
+      ]
+    },
+    {
+      "edge_event_count": 10,
+      "edge_leaf_count": 3,
+      "edge_transform_count": 5,
+      "events": [
+        {
+          "cdf_after": [
+            28175,
+            0,
+            5,
+            3,
+            3,
+            5
+          ],
+          "cdf_before": [
+            28027,
+            0,
+            4,
+            3,
+            3,
+            5
+          ],
+          "context": 1,
+          "leaf_index": 1,
+          "name": "txb_skip",
+          "row": 311,
+          "row_key": "txb_skip[311]",
+          "symbol": 1,
+          "tx_index": 0,
+          "x": 16,
+          "y": 0
+        },
+        {
+          "adaptive": false,
+          "detail": "all-zero transform: DCT_DCT and coefficient suffix omitted",
+          "leaf_index": 1,
+          "name": "primary_tx_type",
+          "tx_index": 0,
+          "x": 16,
+          "y": 0
+        },
+        {
+          "cdf_after": [
+            28318,
+            0,
+            6,
+            3,
+            3,
+            5
+          ],
+          "cdf_before": [
+            28175,
+            0,
+            5,
+            3,
+            3,
+            5
+          ],
+          "context": 1,
+          "leaf_index": 1,
+          "name": "txb_skip",
+          "row": 311,
+          "row_key": "txb_skip[311]",
+          "symbol": 1,
+          "tx_index": 1,
+          "x": 16,
+          "y": 8
+        },
+        {
+          "adaptive": false,
+          "detail": "all-zero transform: DCT_DCT and coefficient suffix omitted",
+          "leaf_index": 1,
+          "name": "primary_tx_type",
+          "tx_index": 1,
+          "x": 16,
+          "y": 8
+        },
+        {
+          "cdf_after": [
+            28457,
+            0,
+            7,
+            3,
+            3,
+            5
+          ],
+          "cdf_before": [
+            28318,
+            0,
+            6,
+            3,
+            3,
+            5
+          ],
+          "context": 1,
+          "leaf_index": 2,
+          "name": "txb_skip",
+          "row": 311,
+          "row_key": "txb_skip[311]",
+          "symbol": 1,
+          "tx_index": 0,
+          "x": 0,
+          "y": 16
+        },
+        {
+          "adaptive": false,
+          "detail": "all-zero transform: DCT_DCT and coefficient suffix omitted",
+          "leaf_index": 2,
+          "name": "primary_tx_type",
+          "tx_index": 0,
+          "x": 0,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            28591,
+            0,
+            8,
+            3,
+            3,
+            5
+          ],
+          "cdf_before": [
+            28457,
+            0,
+            7,
+            3,
+            3,
+            5
+          ],
+          "context": 1,
+          "leaf_index": 2,
+          "name": "txb_skip",
+          "row": 311,
+          "row_key": "txb_skip[311]",
+          "symbol": 1,
+          "tx_index": 1,
+          "x": 8,
+          "y": 16
+        },
+        {
+          "adaptive": false,
+          "detail": "all-zero transform: DCT_DCT and coefficient suffix omitted",
+          "leaf_index": 2,
+          "name": "primary_tx_type",
+          "tx_index": 1,
+          "x": 8,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            6966,
+            0,
+            1,
+            2,
+            3,
+            4
+          ],
+          "cdf_before": [
+            5246,
+            0,
+            0,
+            2,
+            3,
+            4
+          ],
+          "context": 0,
+          "leaf_index": 3,
+          "name": "txb_skip",
+          "row": 310,
+          "row_key": "txb_skip[310]",
+          "symbol": 1,
+          "tx_index": 0,
+          "x": 16,
+          "y": 16
+        },
+        {
+          "adaptive": false,
+          "detail": "all-zero transform: DCT_DCT and coefficient suffix omitted",
+          "leaf_index": 3,
+          "name": "primary_tx_type",
+          "tx_index": 0,
+          "x": 16,
+          "y": 16
+        }
+      ],
+      "leaves": [
+        {
+          "height": 16,
+          "leaf_index": 1,
+          "width": 8,
+          "x": 16,
+          "y": 0
+        },
+        {
+          "height": 8,
+          "leaf_index": 2,
+          "width": 16,
+          "x": 0,
+          "y": 16
+        },
+        {
+          "height": 8,
+          "leaf_index": 3,
+          "width": 8,
+          "x": 16,
+          "y": 16
+        }
+      ],
+      "profile": "flat128",
+      "q_context": 3,
+      "qindex": 191,
+      "reconstruction_sha256": "1c7f1156eaaa2fbe418f6322b129d0cb73bc1750cdc326fa8dee82a2e94228e7",
+      "source_sha256": "1c7f1156eaaa2fbe418f6322b129d0cb73bc1750cdc326fa8dee82a2e94228e7",
+      "transforms": [
+        {
+          "cul_level": 0,
+          "dc_sign_context": 0,
+          "leaf_index": 1,
+          "level": 0,
+          "prediction": 128,
+          "prediction_block_height": 16,
+          "prediction_block_width": 8,
+          "reconstruction": 128,
+          "tx_index": 0,
+          "txb_skip_context": 1,
+          "x": 16,
+          "y": 0
+        },
+        {
+          "cul_level": 0,
+          "dc_sign_context": 0,
+          "leaf_index": 1,
+          "level": 0,
+          "prediction": 128,
+          "prediction_block_height": 16,
+          "prediction_block_width": 8,
+          "reconstruction": 128,
+          "tx_index": 1,
+          "txb_skip_context": 1,
+          "x": 16,
+          "y": 8
+        },
+        {
+          "cul_level": 0,
+          "dc_sign_context": 0,
+          "leaf_index": 2,
+          "level": 0,
+          "prediction": 128,
+          "prediction_block_height": 8,
+          "prediction_block_width": 16,
+          "reconstruction": 128,
+          "tx_index": 0,
+          "txb_skip_context": 1,
+          "x": 0,
+          "y": 16
+        },
+        {
+          "cul_level": 0,
+          "dc_sign_context": 0,
+          "leaf_index": 2,
+          "level": 0,
+          "prediction": 128,
+          "prediction_block_height": 8,
+          "prediction_block_width": 16,
+          "reconstruction": 128,
+          "tx_index": 1,
+          "txb_skip_context": 1,
+          "x": 8,
+          "y": 16
+        },
+        {
+          "cul_level": 0,
+          "dc_sign_context": 0,
+          "leaf_index": 3,
+          "level": 0,
+          "prediction": 128,
+          "prediction_block_height": 8,
+          "prediction_block_width": 8,
+          "reconstruction": 128,
+          "tx_index": 0,
+          "txb_skip_context": 0,
+          "x": 16,
+          "y": 16
+        }
+      ]
+    },
+    {
+      "edge_event_count": 10,
+      "edge_leaf_count": 3,
+      "edge_transform_count": 5,
+      "events": [
+        {
+          "cdf_after": [
+            28175,
+            0,
+            5,
+            3,
+            3,
+            5
+          ],
+          "cdf_before": [
+            28027,
+            0,
+            4,
+            3,
+            3,
+            5
+          ],
+          "context": 1,
+          "leaf_index": 1,
+          "name": "txb_skip",
+          "row": 311,
+          "row_key": "txb_skip[311]",
+          "symbol": 1,
+          "tx_index": 0,
+          "x": 16,
+          "y": 0
+        },
+        {
+          "adaptive": false,
+          "detail": "all-zero transform: DCT_DCT and coefficient suffix omitted",
+          "leaf_index": 1,
+          "name": "primary_tx_type",
+          "tx_index": 0,
+          "x": 16,
+          "y": 0
+        },
+        {
+          "cdf_after": [
+            28318,
+            0,
+            6,
+            3,
+            3,
+            5
+          ],
+          "cdf_before": [
+            28175,
+            0,
+            5,
+            3,
+            3,
+            5
+          ],
+          "context": 1,
+          "leaf_index": 1,
+          "name": "txb_skip",
+          "row": 311,
+          "row_key": "txb_skip[311]",
+          "symbol": 1,
+          "tx_index": 1,
+          "x": 16,
+          "y": 8
+        },
+        {
+          "adaptive": false,
+          "detail": "all-zero transform: DCT_DCT and coefficient suffix omitted",
+          "leaf_index": 1,
+          "name": "primary_tx_type",
+          "tx_index": 1,
+          "x": 16,
+          "y": 8
+        },
+        {
+          "cdf_after": [
+            28457,
+            0,
+            7,
+            3,
+            3,
+            5
+          ],
+          "cdf_before": [
+            28318,
+            0,
+            6,
+            3,
+            3,
+            5
+          ],
+          "context": 1,
+          "leaf_index": 2,
+          "name": "txb_skip",
+          "row": 311,
+          "row_key": "txb_skip[311]",
+          "symbol": 1,
+          "tx_index": 0,
+          "x": 0,
+          "y": 16
+        },
+        {
+          "adaptive": false,
+          "detail": "all-zero transform: DCT_DCT and coefficient suffix omitted",
+          "leaf_index": 2,
+          "name": "primary_tx_type",
+          "tx_index": 0,
+          "x": 0,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            28591,
+            0,
+            8,
+            3,
+            3,
+            5
+          ],
+          "cdf_before": [
+            28457,
+            0,
+            7,
+            3,
+            3,
+            5
+          ],
+          "context": 1,
+          "leaf_index": 2,
+          "name": "txb_skip",
+          "row": 311,
+          "row_key": "txb_skip[311]",
+          "symbol": 1,
+          "tx_index": 1,
+          "x": 8,
+          "y": 16
+        },
+        {
+          "adaptive": false,
+          "detail": "all-zero transform: DCT_DCT and coefficient suffix omitted",
+          "leaf_index": 2,
+          "name": "primary_tx_type",
+          "tx_index": 1,
+          "x": 8,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            6966,
+            0,
+            1,
+            2,
+            3,
+            4
+          ],
+          "cdf_before": [
+            5246,
+            0,
+            0,
+            2,
+            3,
+            4
+          ],
+          "context": 0,
+          "leaf_index": 3,
+          "name": "txb_skip",
+          "row": 310,
+          "row_key": "txb_skip[310]",
+          "symbol": 1,
+          "tx_index": 0,
+          "x": 16,
+          "y": 16
+        },
+        {
+          "adaptive": false,
+          "detail": "all-zero transform: DCT_DCT and coefficient suffix omitted",
+          "leaf_index": 3,
+          "name": "primary_tx_type",
+          "tx_index": 0,
+          "x": 16,
+          "y": 16
+        }
+      ],
+      "leaves": [
+        {
+          "height": 16,
+          "leaf_index": 1,
+          "width": 8,
+          "x": 16,
+          "y": 0
+        },
+        {
+          "height": 8,
+          "leaf_index": 2,
+          "width": 16,
+          "x": 0,
+          "y": 16
+        },
+        {
+          "height": 8,
+          "leaf_index": 3,
+          "width": 8,
+          "x": 16,
+          "y": 16
+        }
+      ],
+      "profile": "flat128",
+      "q_context": 3,
+      "qindex": 255,
+      "reconstruction_sha256": "1c7f1156eaaa2fbe418f6322b129d0cb73bc1750cdc326fa8dee82a2e94228e7",
+      "source_sha256": "1c7f1156eaaa2fbe418f6322b129d0cb73bc1750cdc326fa8dee82a2e94228e7",
+      "transforms": [
+        {
+          "cul_level": 0,
+          "dc_sign_context": 0,
+          "leaf_index": 1,
+          "level": 0,
+          "prediction": 128,
+          "prediction_block_height": 16,
+          "prediction_block_width": 8,
+          "reconstruction": 128,
+          "tx_index": 0,
+          "txb_skip_context": 1,
+          "x": 16,
+          "y": 0
+        },
+        {
+          "cul_level": 0,
+          "dc_sign_context": 0,
+          "leaf_index": 1,
+          "level": 0,
+          "prediction": 128,
+          "prediction_block_height": 16,
+          "prediction_block_width": 8,
+          "reconstruction": 128,
+          "tx_index": 1,
+          "txb_skip_context": 1,
+          "x": 16,
+          "y": 8
+        },
+        {
+          "cul_level": 0,
+          "dc_sign_context": 0,
+          "leaf_index": 2,
+          "level": 0,
+          "prediction": 128,
+          "prediction_block_height": 8,
+          "prediction_block_width": 16,
+          "reconstruction": 128,
+          "tx_index": 0,
+          "txb_skip_context": 1,
+          "x": 0,
+          "y": 16
+        },
+        {
+          "cul_level": 0,
+          "dc_sign_context": 0,
+          "leaf_index": 2,
+          "level": 0,
+          "prediction": 128,
+          "prediction_block_height": 8,
+          "prediction_block_width": 16,
+          "reconstruction": 128,
+          "tx_index": 1,
+          "txb_skip_context": 1,
+          "x": 8,
+          "y": 16
+        },
+        {
+          "cul_level": 0,
+          "dc_sign_context": 0,
+          "leaf_index": 3,
+          "level": 0,
+          "prediction": 128,
+          "prediction_block_height": 8,
+          "prediction_block_width": 8,
+          "reconstruction": 128,
+          "tx_index": 0,
+          "txb_skip_context": 0,
+          "x": 16,
+          "y": 16
+        }
+      ]
+    },
+    {
+      "edge_event_count": 35,
+      "edge_leaf_count": 3,
+      "edge_transform_count": 5,
+      "events": [
+        {
+          "cdf_after": [
+            15826,
+            0,
+            3,
+            2,
+            3,
+            3
+          ],
+          "cdf_before": [
+            16881,
+            0,
+            2,
+            2,
+            3,
+            3
+          ],
+          "context": 3,
+          "leaf_index": 1,
+          "name": "txb_skip",
+          "row": 13,
+          "row_key": "txb_skip[13]",
+          "symbol": 0,
+          "tx_index": 0,
+          "x": 16,
+          "y": 0
+        },
+        {
+          "cdf_after": [
+            22395,
+            22026,
+            20552,
+            18208,
+            14080,
+            8141,
+            0,
+            5,
+            2,
+            3,
+            3
+          ],
+          "cdf_before": [
+            23887,
+            23494,
+            21922,
+            19421,
+            15018,
+            8683,
+            0,
+            4,
+            2,
+            3,
+            3
+          ],
+          "context": 0,
+          "leaf_index": 1,
+          "name": "eob_pt_64",
+          "row": 0,
+          "row_key": "eob_pt_64[0]",
+          "symbol": 0,
+          "tx_index": 0,
+          "x": 16,
+          "y": 0
+        },
+        {
+          "adaptive": false,
+          "detail": "DC intra with eob=1: DCT_DCT, no transform-type symbol",
+          "leaf_index": 1,
+          "name": "primary_tx_type",
+          "tx_index": 0,
+          "x": 16,
+          "y": 0
+        },
+        {
+          "cdf_after": [
+            13070,
+            10164,
+            9811,
+            9632,
+            0,
+            5,
+            2,
+            3,
+            3
+          ],
+          "cdf_before": [
+            11757,
+            8658,
+            8281,
+            8090,
+            0,
+            4,
+            2,
+            3,
+            3
+          ],
+          "context": 0,
+          "leaf_index": 1,
+          "name": "coeff_base_lf_eob",
+          "row": 4,
+          "row_key": "coeff_base_lf_eob[4]",
+          "symbol": 4,
+          "tx_index": 0,
+          "x": 16,
+          "y": 0
+        },
+        {
+          "cdf_after": [
+            27014,
+            22488,
+            17721,
+            0,
+            5,
+            2,
+            3,
+            3
+          ],
+          "cdf_before": [
+            26631,
+            21803,
+            16718,
+            0,
+            4,
+            2,
+            3,
+            3
+          ],
+          "context": 0,
+          "leaf_index": 1,
+          "name": "coeff_br_lf",
+          "row": 0,
+          "row_key": "coeff_br_lf[0]",
+          "symbol": 3,
+          "tx_index": 0,
+          "x": 16,
+          "y": 0
+        },
+        {
+          "cdf_after": [
+            13907,
+            0,
+            2,
+            3,
+            3,
+            4
+          ],
+          "cdf_before": [
+            13299,
+            0,
+            1,
+            3,
+            3,
+            4
+          ],
+          "context": 2,
+          "leaf_index": 1,
+          "name": "dc_sign",
+          "row": 2,
+          "row_key": "dc_sign[2]",
+          "symbol": 1,
+          "tx_index": 0,
+          "x": 16,
+          "y": 0
+        },
+        {
+          "adaptive": false,
+          "coeff_rem": 185,
+          "coeff_rem_width": 10,
+          "golomb_length_bits": "000000001",
+          "leaf_index": 1,
+          "name": "coeff_remainder",
+          "q_length_bits": "00000",
+          "tx_index": 0,
+          "value": 1215,
+          "x": 16,
+          "y": 0
+        },
+        {
+          "cdf_after": [
+            853,
+            0,
+            2,
+            2,
+            3,
+            4
+          ],
+          "cdf_before": [
+            909,
+            0,
+            1,
+            2,
+            3,
+            4
+          ],
+          "context": 5,
+          "leaf_index": 1,
+          "name": "txb_skip",
+          "row": 15,
+          "row_key": "txb_skip[15]",
+          "symbol": 0,
+          "tx_index": 1,
+          "x": 16,
+          "y": 8
+        },
+        {
+          "cdf_after": [
+            20996,
+            20650,
+            19268,
+            17070,
+            13200,
+            7633,
+            0,
+            6,
+            2,
+            3,
+            3
+          ],
+          "cdf_before": [
+            22395,
+            22026,
+            20552,
+            18208,
+            14080,
+            8141,
+            0,
+            5,
+            2,
+            3,
+            3
+          ],
+          "context": 0,
+          "leaf_index": 1,
+          "name": "eob_pt_64",
+          "row": 0,
+          "row_key": "eob_pt_64[0]",
+          "symbol": 0,
+          "tx_index": 1,
+          "x": 16,
+          "y": 8
+        },
+        {
+          "adaptive": false,
+          "detail": "DC intra with eob=1: DCT_DCT, no transform-type symbol",
+          "leaf_index": 1,
+          "name": "primary_tx_type",
+          "tx_index": 1,
+          "x": 16,
+          "y": 8
+        },
+        {
+          "cdf_after": [
+            14301,
+            11576,
+            11245,
+            11078,
+            0,
+            6,
+            2,
+            3,
+            3
+          ],
+          "cdf_before": [
+            13070,
+            10164,
+            9811,
+            9632,
+            0,
+            5,
+            2,
+            3,
+            3
+          ],
+          "context": 0,
+          "leaf_index": 1,
+          "name": "coeff_base_lf_eob",
+          "row": 4,
+          "row_key": "coeff_base_lf_eob[4]",
+          "symbol": 4,
+          "tx_index": 1,
+          "x": 16,
+          "y": 8
+        },
+        {
+          "cdf_after": [
+            27373,
+            23130,
+            18661,
+            0,
+            6,
+            2,
+            3,
+            3
+          ],
+          "cdf_before": [
+            27014,
+            22488,
+            17721,
+            0,
+            5,
+            2,
+            3,
+            3
+          ],
+          "context": 0,
+          "leaf_index": 1,
+          "name": "coeff_br_lf",
+          "row": 0,
+          "row_key": "coeff_br_lf[0]",
+          "symbol": 3,
+          "tx_index": 1,
+          "x": 16,
+          "y": 8
+        },
+        {
+          "cdf_after": [
+            17910,
+            0,
+            2,
+            3,
+            4,
+            5
+          ],
+          "cdf_before": [
+            17431,
+            0,
+            1,
+            3,
+            4,
+            5
+          ],
+          "context": 0,
+          "leaf_index": 1,
+          "name": "dc_sign",
+          "row": 0,
+          "row_key": "dc_sign[0]",
+          "symbol": 1,
+          "tx_index": 1,
+          "x": 16,
+          "y": 8
+        },
+        {
+          "adaptive": false,
+          "coeff_rem": 236,
+          "coeff_rem_width": 8,
+          "golomb_length_bits": "0000001",
+          "leaf_index": 1,
+          "name": "coeff_remainder",
+          "q_length_bits": "00000",
+          "tx_index": 1,
+          "value": 498,
+          "x": 16,
+          "y": 8
+        },
+        {
+          "cdf_after": [
+            14837,
+            0,
+            4,
+            2,
+            3,
+            3
+          ],
+          "cdf_before": [
+            15826,
+            0,
+            3,
+            2,
+            3,
+            3
+          ],
+          "context": 3,
+          "leaf_index": 2,
+          "name": "txb_skip",
+          "row": 13,
+          "row_key": "txb_skip[13]",
+          "symbol": 0,
+          "tx_index": 0,
+          "x": 0,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            19684,
+            19360,
+            18064,
+            16004,
+            12375,
+            7156,
+            0,
+            7,
+            2,
+            3,
+            3
+          ],
+          "cdf_before": [
+            20996,
+            20650,
+            19268,
+            17070,
+            13200,
+            7633,
+            0,
+            6,
+            2,
+            3,
+            3
+          ],
+          "context": 0,
+          "leaf_index": 2,
+          "name": "eob_pt_64",
+          "row": 0,
+          "row_key": "eob_pt_64[0]",
+          "symbol": 0,
+          "tx_index": 0,
+          "x": 0,
+          "y": 16
+        },
+        {
+          "adaptive": false,
+          "detail": "DC intra with eob=1: DCT_DCT, no transform-type symbol",
+          "leaf_index": 2,
+          "name": "primary_tx_type",
+          "tx_index": 0,
+          "x": 0,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            15455,
+            12900,
+            12590,
+            12433,
+            0,
+            7,
+            2,
+            3,
+            3
+          ],
+          "cdf_before": [
+            14301,
+            11576,
+            11245,
+            11078,
+            0,
+            6,
+            2,
+            3,
+            3
+          ],
+          "context": 0,
+          "leaf_index": 2,
+          "name": "coeff_base_lf_eob",
+          "row": 4,
+          "row_key": "coeff_base_lf_eob[4]",
+          "symbol": 4,
+          "tx_index": 0,
+          "x": 0,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            27710,
+            23732,
+            19542,
+            0,
+            7,
+            2,
+            3,
+            3
+          ],
+          "cdf_before": [
+            27373,
+            23130,
+            18661,
+            0,
+            6,
+            2,
+            3,
+            3
+          ],
+          "context": 0,
+          "leaf_index": 2,
+          "name": "coeff_br_lf",
+          "row": 0,
+          "row_key": "coeff_br_lf[0]",
+          "symbol": 3,
+          "tx_index": 0,
+          "x": 0,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            14496,
+            0,
+            3,
+            3,
+            3,
+            4
+          ],
+          "cdf_before": [
+            13907,
+            0,
+            2,
+            3,
+            3,
+            4
+          ],
+          "context": 2,
+          "leaf_index": 2,
+          "name": "dc_sign",
+          "row": 2,
+          "row_key": "dc_sign[2]",
+          "symbol": 1,
+          "tx_index": 0,
+          "x": 0,
+          "y": 16
+        },
+        {
+          "adaptive": false,
+          "coeff_rem": 134,
+          "coeff_rem_width": 8,
+          "golomb_length_bits": "0000001",
+          "leaf_index": 2,
+          "name": "coeff_remainder",
+          "q_length_bits": "00000",
+          "tx_index": 0,
+          "value": 396,
+          "x": 0,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            800,
+            0,
+            3,
+            2,
+            3,
+            4
+          ],
+          "cdf_before": [
+            853,
+            0,
+            2,
+            2,
+            3,
+            4
+          ],
+          "context": 5,
+          "leaf_index": 2,
+          "name": "txb_skip",
+          "row": 15,
+          "row_key": "txb_skip[15]",
+          "symbol": 0,
+          "tx_index": 1,
+          "x": 8,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            18454,
+            18150,
+            16935,
+            15004,
+            11602,
+            6709,
+            0,
+            8,
+            2,
+            3,
+            3
+          ],
+          "cdf_before": [
+            19684,
+            19360,
+            18064,
+            16004,
+            12375,
+            7156,
+            0,
+            7,
+            2,
+            3,
+            3
+          ],
+          "context": 0,
+          "leaf_index": 2,
+          "name": "eob_pt_64",
+          "row": 0,
+          "row_key": "eob_pt_64[0]",
+          "symbol": 0,
+          "tx_index": 1,
+          "x": 8,
+          "y": 16
+        },
+        {
+          "adaptive": false,
+          "detail": "DC intra with eob=1: DCT_DCT, no transform-type symbol",
+          "leaf_index": 2,
+          "name": "primary_tx_type",
+          "tx_index": 1,
+          "x": 8,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            16537,
+            14141,
+            13851,
+            13703,
+            0,
+            8,
+            2,
+            3,
+            3
+          ],
+          "cdf_before": [
+            15455,
+            12900,
+            12590,
+            12433,
+            0,
+            7,
+            2,
+            3,
+            3
+          ],
+          "context": 0,
+          "leaf_index": 2,
+          "name": "coeff_base_lf_eob",
+          "row": 4,
+          "row_key": "coeff_base_lf_eob[4]",
+          "symbol": 4,
+          "tx_index": 1,
+          "x": 8,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            28026,
+            24296,
+            20368,
+            0,
+            8,
+            2,
+            3,
+            3
+          ],
+          "cdf_before": [
+            27710,
+            23732,
+            19542,
+            0,
+            7,
+            2,
+            3,
+            3
+          ],
+          "context": 0,
+          "leaf_index": 2,
+          "name": "coeff_br_lf",
+          "row": 0,
+          "row_key": "coeff_br_lf[0]",
+          "symbol": 3,
+          "tx_index": 1,
+          "x": 8,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            17351,
+            0,
+            3,
+            3,
+            4,
+            5
+          ],
+          "cdf_before": [
+            17910,
+            0,
+            2,
+            3,
+            4,
+            5
+          ],
+          "context": 0,
+          "leaf_index": 2,
+          "name": "dc_sign",
+          "row": 0,
+          "row_key": "dc_sign[0]",
+          "symbol": 0,
+          "tx_index": 1,
+          "x": 8,
+          "y": 16
+        },
+        {
+          "adaptive": false,
+          "coeff_rem": 31,
+          "coeff_rem_width": 8,
+          "golomb_length_bits": "0000001",
+          "leaf_index": 2,
+          "name": "coeff_remainder",
+          "q_length_bits": "00000",
+          "tx_index": 1,
+          "value": 293,
+          "x": 8,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            5977,
+            0,
+            1,
+            0,
+            2,
+            3
+          ],
+          "cdf_before": [
+            7969,
+            0,
+            0,
+            0,
+            2,
+            3
+          ],
+          "context": 0,
+          "leaf_index": 3,
+          "name": "txb_skip",
+          "row": 10,
+          "row_key": "txb_skip[10]",
+          "symbol": 0,
+          "tx_index": 0,
+          "x": 16,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            17301,
+            17016,
+            15877,
+            14067,
+            10877,
+            6290,
+            0,
+            9,
+            2,
+            3,
+            3
+          ],
+          "cdf_before": [
+            18454,
+            18150,
+            16935,
+            15004,
+            11602,
+            6709,
+            0,
+            8,
+            2,
+            3,
+            3
+          ],
+          "context": 0,
+          "leaf_index": 3,
+          "name": "eob_pt_64",
+          "row": 0,
+          "row_key": "eob_pt_64[0]",
+          "symbol": 0,
+          "tx_index": 0,
+          "x": 16,
+          "y": 16
+        },
+        {
+          "adaptive": false,
+          "detail": "DC intra with eob=1: DCT_DCT, no transform-type symbol",
+          "leaf_index": 3,
+          "name": "primary_tx_type",
+          "tx_index": 0,
+          "x": 16,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            17551,
+            15305,
+            15033,
+            14894,
+            0,
+            9,
+            2,
+            3,
+            3
+          ],
+          "cdf_before": [
+            16537,
+            14141,
+            13851,
+            13703,
+            0,
+            8,
+            2,
+            3,
+            3
+          ],
+          "context": 0,
+          "leaf_index": 3,
+          "name": "coeff_base_lf_eob",
+          "row": 4,
+          "row_key": "coeff_base_lf_eob[4]",
+          "symbol": 4,
+          "tx_index": 0,
+          "x": 16,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            28322,
+            24825,
+            21143,
+            0,
+            9,
+            2,
+            3,
+            3
+          ],
+          "cdf_before": [
+            28026,
+            24296,
+            20368,
+            0,
+            8,
+            2,
+            3,
+            3
+          ],
+          "context": 0,
+          "leaf_index": 3,
+          "name": "coeff_br_lf",
+          "row": 0,
+          "row_key": "coeff_br_lf[0]",
+          "symbol": 3,
+          "tx_index": 0,
+          "x": 16,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            17832,
+            0,
+            4,
+            3,
+            4,
+            5
+          ],
+          "cdf_before": [
+            17351,
+            0,
+            3,
+            3,
+            4,
+            5
+          ],
+          "context": 0,
+          "leaf_index": 3,
+          "name": "dc_sign",
+          "row": 0,
+          "row_key": "dc_sign[0]",
+          "symbol": 1,
+          "tx_index": 0,
+          "x": 16,
+          "y": 16
+        },
+        {
+          "adaptive": false,
+          "coeff_rem": 288,
+          "coeff_rem_width": 9,
+          "golomb_length_bits": "00000001",
+          "leaf_index": 3,
+          "name": "coeff_remainder",
+          "q_length_bits": "00000",
+          "tx_index": 0,
+          "value": 806,
+          "x": 16,
+          "y": 16
+        }
+      ],
+      "leaves": [
+        {
+          "height": 16,
+          "leaf_index": 1,
+          "width": 8,
+          "x": 16,
+          "y": 0
+        },
+        {
+          "height": 8,
+          "leaf_index": 2,
+          "width": 16,
+          "x": 0,
+          "y": 16
+        },
+        {
+          "height": 8,
+          "leaf_index": 3,
+          "width": 8,
+          "x": 16,
+          "y": 16
+        }
+      ],
+      "profile": "alternating-8x8-dc",
+      "q_context": 0,
+      "qindex": 1,
+      "reconstruction_sha256": "94f2c65a1e0959306f3d8b79d0c61c4681d76ea1fa903c231134ee2526d92980",
+      "source_sha256": "94f2c65a1e0959306f3d8b79d0c61c4681d76ea1fa903c231134ee2526d92980",
+      "transforms": [
+        {
+          "cul_level": 15,
+          "dc_sign_context": 2,
+          "leaf_index": 1,
+          "level": -1223,
+          "prediction": 160,
+          "prediction_block_height": 16,
+          "prediction_block_width": 8,
+          "reconstruction": 64,
+          "tx_index": 0,
+          "txb_skip_context": 3,
+          "x": 16,
+          "y": 0
+        },
+        {
+          "cul_level": 15,
+          "dc_sign_context": 0,
+          "leaf_index": 1,
+          "level": -506,
+          "prediction": 136,
+          "prediction_block_height": 16,
+          "prediction_block_width": 8,
+          "reconstruction": 96,
+          "tx_index": 1,
+          "txb_skip_context": 5,
+          "x": 16,
+          "y": 8
+        },
+        {
+          "cul_level": 15,
+          "dc_sign_context": 2,
+          "leaf_index": 2,
+          "level": -404,
+          "prediction": 96,
+          "prediction_block_height": 8,
+          "prediction_block_width": 16,
+          "reconstruction": 64,
+          "tx_index": 0,
+          "txb_skip_context": 3,
+          "x": 0,
+          "y": 16
+        },
+        {
+          "cul_level": 23,
+          "dc_sign_context": 0,
+          "leaf_index": 2,
+          "level": 301,
+          "prediction": 136,
+          "prediction_block_height": 8,
+          "prediction_block_width": 16,
+          "reconstruction": 160,
+          "tx_index": 1,
+          "txb_skip_context": 5,
+          "x": 8,
+          "y": 16
+        },
+        {
+          "cul_level": 15,
+          "dc_sign_context": 0,
+          "leaf_index": 3,
+          "level": -814,
+          "prediction": 128,
+          "prediction_block_height": 8,
+          "prediction_block_width": 8,
+          "reconstruction": 64,
+          "tx_index": 0,
+          "txb_skip_context": 0,
+          "x": 16,
+          "y": 16
+        }
+      ]
+    },
+    {
+      "edge_event_count": 35,
+      "edge_leaf_count": 3,
+      "edge_transform_count": 5,
+      "events": [
+        {
+          "cdf_after": [
+            15826,
+            0,
+            3,
+            2,
+            3,
+            3
+          ],
+          "cdf_before": [
+            16881,
+            0,
+            2,
+            2,
+            3,
+            3
+          ],
+          "context": 3,
+          "leaf_index": 1,
+          "name": "txb_skip",
+          "row": 13,
+          "row_key": "txb_skip[13]",
+          "symbol": 0,
+          "tx_index": 0,
+          "x": 16,
+          "y": 0
+        },
+        {
+          "cdf_after": [
+            22395,
+            22026,
+            20552,
+            18208,
+            14080,
+            8141,
+            0,
+            5,
+            2,
+            3,
+            3
+          ],
+          "cdf_before": [
+            23887,
+            23494,
+            21922,
+            19421,
+            15018,
+            8683,
+            0,
+            4,
+            2,
+            3,
+            3
+          ],
+          "context": 0,
+          "leaf_index": 1,
+          "name": "eob_pt_64",
+          "row": 0,
+          "row_key": "eob_pt_64[0]",
+          "symbol": 0,
+          "tx_index": 0,
+          "x": 16,
+          "y": 0
+        },
+        {
+          "adaptive": false,
+          "detail": "DC intra with eob=1: DCT_DCT, no transform-type symbol",
+          "leaf_index": 1,
+          "name": "primary_tx_type",
+          "tx_index": 0,
+          "x": 16,
+          "y": 0
+        },
+        {
+          "cdf_after": [
+            13070,
+            10164,
+            9811,
+            9632,
+            0,
+            5,
+            2,
+            3,
+            3
+          ],
+          "cdf_before": [
+            11757,
+            8658,
+            8281,
+            8090,
+            0,
+            4,
+            2,
+            3,
+            3
+          ],
+          "context": 0,
+          "leaf_index": 1,
+          "name": "coeff_base_lf_eob",
+          "row": 4,
+          "row_key": "coeff_base_lf_eob[4]",
+          "symbol": 4,
+          "tx_index": 0,
+          "x": 16,
+          "y": 0
+        },
+        {
+          "cdf_after": [
+            27014,
+            22488,
+            17721,
+            0,
+            5,
+            2,
+            3,
+            3
+          ],
+          "cdf_before": [
+            26631,
+            21803,
+            16718,
+            0,
+            4,
+            2,
+            3,
+            3
+          ],
+          "context": 0,
+          "leaf_index": 1,
+          "name": "coeff_br_lf",
+          "row": 0,
+          "row_key": "coeff_br_lf[0]",
+          "symbol": 3,
+          "tx_index": 0,
+          "x": 16,
+          "y": 0
+        },
+        {
+          "cdf_after": [
+            13907,
+            0,
+            2,
+            3,
+            3,
+            4
+          ],
+          "cdf_before": [
+            13299,
+            0,
+            1,
+            3,
+            3,
+            4
+          ],
+          "context": 2,
+          "leaf_index": 1,
+          "name": "dc_sign",
+          "row": 2,
+          "row_key": "dc_sign[2]",
+          "symbol": 1,
+          "tx_index": 0,
+          "x": 16,
+          "y": 0
+        },
+        {
+          "adaptive": false,
+          "coeff_rem": 15,
+          "coeff_rem_width": 6,
+          "golomb_length_bits": "00001",
+          "leaf_index": 1,
+          "name": "coeff_remainder",
+          "q_length_bits": "00000",
+          "tx_index": 0,
+          "value": 85,
+          "x": 16,
+          "y": 0
+        },
+        {
+          "cdf_after": [
+            853,
+            0,
+            2,
+            2,
+            3,
+            4
+          ],
+          "cdf_before": [
+            909,
+            0,
+            1,
+            2,
+            3,
+            4
+          ],
+          "context": 5,
+          "leaf_index": 1,
+          "name": "txb_skip",
+          "row": 15,
+          "row_key": "txb_skip[15]",
+          "symbol": 0,
+          "tx_index": 1,
+          "x": 16,
+          "y": 8
+        },
+        {
+          "cdf_after": [
+            20996,
+            20650,
+            19268,
+            17070,
+            13200,
+            7633,
+            0,
+            6,
+            2,
+            3,
+            3
+          ],
+          "cdf_before": [
+            22395,
+            22026,
+            20552,
+            18208,
+            14080,
+            8141,
+            0,
+            5,
+            2,
+            3,
+            3
+          ],
+          "context": 0,
+          "leaf_index": 1,
+          "name": "eob_pt_64",
+          "row": 0,
+          "row_key": "eob_pt_64[0]",
+          "symbol": 0,
+          "tx_index": 1,
+          "x": 16,
+          "y": 8
+        },
+        {
+          "adaptive": false,
+          "detail": "DC intra with eob=1: DCT_DCT, no transform-type symbol",
+          "leaf_index": 1,
+          "name": "primary_tx_type",
+          "tx_index": 1,
+          "x": 16,
+          "y": 8
+        },
+        {
+          "cdf_after": [
+            14301,
+            11576,
+            11245,
+            11078,
+            0,
+            6,
+            2,
+            3,
+            3
+          ],
+          "cdf_before": [
+            13070,
+            10164,
+            9811,
+            9632,
+            0,
+            5,
+            2,
+            3,
+            3
+          ],
+          "context": 0,
+          "leaf_index": 1,
+          "name": "coeff_base_lf_eob",
+          "row": 4,
+          "row_key": "coeff_base_lf_eob[4]",
+          "symbol": 4,
+          "tx_index": 1,
+          "x": 16,
+          "y": 8
+        },
+        {
+          "cdf_after": [
+            27373,
+            23130,
+            18661,
+            0,
+            6,
+            2,
+            3,
+            3
+          ],
+          "cdf_before": [
+            27014,
+            22488,
+            17721,
+            0,
+            5,
+            2,
+            3,
+            3
+          ],
+          "context": 0,
+          "leaf_index": 1,
+          "name": "coeff_br_lf",
+          "row": 0,
+          "row_key": "coeff_br_lf[0]",
+          "symbol": 3,
+          "tx_index": 1,
+          "x": 16,
+          "y": 8
+        },
+        {
+          "cdf_after": [
+            17910,
+            0,
+            2,
+            3,
+            4,
+            5
+          ],
+          "cdf_before": [
+            17431,
+            0,
+            1,
+            3,
+            4,
+            5
+          ],
+          "context": 0,
+          "leaf_index": 1,
+          "name": "dc_sign",
+          "row": 0,
+          "row_key": "dc_sign[0]",
+          "symbol": 1,
+          "tx_index": 1,
+          "x": 16,
+          "y": 8
+        },
+        {
+          "adaptive": false,
+          "coeff_rem": 9,
+          "coeff_rem_width": 4,
+          "golomb_length_bits": "001",
+          "leaf_index": 1,
+          "name": "coeff_remainder",
+          "q_length_bits": "00000",
+          "tx_index": 1,
+          "value": 31,
+          "x": 16,
+          "y": 8
+        },
+        {
+          "cdf_after": [
+            14837,
+            0,
+            4,
+            2,
+            3,
+            3
+          ],
+          "cdf_before": [
+            15826,
+            0,
+            3,
+            2,
+            3,
+            3
+          ],
+          "context": 3,
+          "leaf_index": 2,
+          "name": "txb_skip",
+          "row": 13,
+          "row_key": "txb_skip[13]",
+          "symbol": 0,
+          "tx_index": 0,
+          "x": 0,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            19684,
+            19360,
+            18064,
+            16004,
+            12375,
+            7156,
+            0,
+            7,
+            2,
+            3,
+            3
+          ],
+          "cdf_before": [
+            20996,
+            20650,
+            19268,
+            17070,
+            13200,
+            7633,
+            0,
+            6,
+            2,
+            3,
+            3
+          ],
+          "context": 0,
+          "leaf_index": 2,
+          "name": "eob_pt_64",
+          "row": 0,
+          "row_key": "eob_pt_64[0]",
+          "symbol": 0,
+          "tx_index": 0,
+          "x": 0,
+          "y": 16
+        },
+        {
+          "adaptive": false,
+          "detail": "DC intra with eob=1: DCT_DCT, no transform-type symbol",
+          "leaf_index": 2,
+          "name": "primary_tx_type",
+          "tx_index": 0,
+          "x": 0,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            15455,
+            12900,
+            12590,
+            12433,
+            0,
+            7,
+            2,
+            3,
+            3
+          ],
+          "cdf_before": [
+            14301,
+            11576,
+            11245,
+            11078,
+            0,
+            6,
+            2,
+            3,
+            3
+          ],
+          "context": 0,
+          "leaf_index": 2,
+          "name": "coeff_base_lf_eob",
+          "row": 4,
+          "row_key": "coeff_base_lf_eob[4]",
+          "symbol": 4,
+          "tx_index": 0,
+          "x": 0,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            27710,
+            23732,
+            19542,
+            0,
+            7,
+            2,
+            3,
+            3
+          ],
+          "cdf_before": [
+            27373,
+            23130,
+            18661,
+            0,
+            6,
+            2,
+            3,
+            3
+          ],
+          "context": 0,
+          "leaf_index": 2,
+          "name": "coeff_br_lf",
+          "row": 0,
+          "row_key": "coeff_br_lf[0]",
+          "symbol": 3,
+          "tx_index": 0,
+          "x": 0,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            14496,
+            0,
+            3,
+            3,
+            3,
+            4
+          ],
+          "cdf_before": [
+            13907,
+            0,
+            2,
+            3,
+            3,
+            4
+          ],
+          "context": 2,
+          "leaf_index": 2,
+          "name": "dc_sign",
+          "row": 2,
+          "row_key": "dc_sign[2]",
+          "symbol": 1,
+          "tx_index": 0,
+          "x": 0,
+          "y": 16
+        },
+        {
+          "adaptive": false,
+          "coeff_rem": 1,
+          "coeff_rem_width": 4,
+          "golomb_length_bits": "001",
+          "leaf_index": 2,
+          "name": "coeff_remainder",
+          "q_length_bits": "00000",
+          "tx_index": 0,
+          "value": 23,
+          "x": 0,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            800,
+            0,
+            3,
+            2,
+            3,
+            4
+          ],
+          "cdf_before": [
+            853,
+            0,
+            2,
+            2,
+            3,
+            4
+          ],
+          "context": 5,
+          "leaf_index": 2,
+          "name": "txb_skip",
+          "row": 15,
+          "row_key": "txb_skip[15]",
+          "symbol": 0,
+          "tx_index": 1,
+          "x": 8,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            18454,
+            18150,
+            16935,
+            15004,
+            11602,
+            6709,
+            0,
+            8,
+            2,
+            3,
+            3
+          ],
+          "cdf_before": [
+            19684,
+            19360,
+            18064,
+            16004,
+            12375,
+            7156,
+            0,
+            7,
+            2,
+            3,
+            3
+          ],
+          "context": 0,
+          "leaf_index": 2,
+          "name": "eob_pt_64",
+          "row": 0,
+          "row_key": "eob_pt_64[0]",
+          "symbol": 0,
+          "tx_index": 1,
+          "x": 8,
+          "y": 16
+        },
+        {
+          "adaptive": false,
+          "detail": "DC intra with eob=1: DCT_DCT, no transform-type symbol",
+          "leaf_index": 2,
+          "name": "primary_tx_type",
+          "tx_index": 1,
+          "x": 8,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            16537,
+            14141,
+            13851,
+            13703,
+            0,
+            8,
+            2,
+            3,
+            3
+          ],
+          "cdf_before": [
+            15455,
+            12900,
+            12590,
+            12433,
+            0,
+            7,
+            2,
+            3,
+            3
+          ],
+          "context": 0,
+          "leaf_index": 2,
+          "name": "coeff_base_lf_eob",
+          "row": 4,
+          "row_key": "coeff_base_lf_eob[4]",
+          "symbol": 4,
+          "tx_index": 1,
+          "x": 8,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            28026,
+            24296,
+            20368,
+            0,
+            8,
+            2,
+            3,
+            3
+          ],
+          "cdf_before": [
+            27710,
+            23732,
+            19542,
+            0,
+            7,
+            2,
+            3,
+            3
+          ],
+          "context": 0,
+          "leaf_index": 2,
+          "name": "coeff_br_lf",
+          "row": 0,
+          "row_key": "coeff_br_lf[0]",
+          "symbol": 3,
+          "tx_index": 1,
+          "x": 8,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            17351,
+            0,
+            3,
+            3,
+            4,
+            5
+          ],
+          "cdf_before": [
+            17910,
+            0,
+            2,
+            3,
+            4,
+            5
+          ],
+          "context": 0,
+          "leaf_index": 2,
+          "name": "dc_sign",
+          "row": 0,
+          "row_key": "dc_sign[0]",
+          "symbol": 0,
+          "tx_index": 1,
+          "x": 8,
+          "y": 16
+        },
+        {
+          "adaptive": false,
+          "coeff_rem": 1,
+          "coeff_rem_width": 3,
+          "golomb_length_bits": "01",
+          "leaf_index": 2,
+          "name": "coeff_remainder",
+          "q_length_bits": "00000",
+          "tx_index": 1,
+          "value": 15,
+          "x": 8,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            5977,
+            0,
+            1,
+            0,
+            2,
+            3
+          ],
+          "cdf_before": [
+            7969,
+            0,
+            0,
+            0,
+            2,
+            3
+          ],
+          "context": 0,
+          "leaf_index": 3,
+          "name": "txb_skip",
+          "row": 10,
+          "row_key": "txb_skip[10]",
+          "symbol": 0,
+          "tx_index": 0,
+          "x": 16,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            17301,
+            17016,
+            15877,
+            14067,
+            10877,
+            6290,
+            0,
+            9,
+            2,
+            3,
+            3
+          ],
+          "cdf_before": [
+            18454,
+            18150,
+            16935,
+            15004,
+            11602,
+            6709,
+            0,
+            8,
+            2,
+            3,
+            3
+          ],
+          "context": 0,
+          "leaf_index": 3,
+          "name": "eob_pt_64",
+          "row": 0,
+          "row_key": "eob_pt_64[0]",
+          "symbol": 0,
+          "tx_index": 0,
+          "x": 16,
+          "y": 16
+        },
+        {
+          "adaptive": false,
+          "detail": "DC intra with eob=1: DCT_DCT, no transform-type symbol",
+          "leaf_index": 3,
+          "name": "primary_tx_type",
+          "tx_index": 0,
+          "x": 16,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            17551,
+            15305,
+            15033,
+            14894,
+            0,
+            9,
+            2,
+            3,
+            3
+          ],
+          "cdf_before": [
+            16537,
+            14141,
+            13851,
+            13703,
+            0,
+            8,
+            2,
+            3,
+            3
+          ],
+          "context": 0,
+          "leaf_index": 3,
+          "name": "coeff_base_lf_eob",
+          "row": 4,
+          "row_key": "coeff_base_lf_eob[4]",
+          "symbol": 4,
+          "tx_index": 0,
+          "x": 16,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            28322,
+            24825,
+            21143,
+            0,
+            9,
+            2,
+            3,
+            3
+          ],
+          "cdf_before": [
+            28026,
+            24296,
+            20368,
+            0,
+            8,
+            2,
+            3,
+            3
+          ],
+          "context": 0,
+          "leaf_index": 3,
+          "name": "coeff_br_lf",
+          "row": 0,
+          "row_key": "coeff_br_lf[0]",
+          "symbol": 3,
+          "tx_index": 0,
+          "x": 16,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            17832,
+            0,
+            4,
+            3,
+            4,
+            5
+          ],
+          "cdf_before": [
+            17351,
+            0,
+            3,
+            3,
+            4,
+            5
+          ],
+          "context": 0,
+          "leaf_index": 3,
+          "name": "dc_sign",
+          "row": 0,
+          "row_key": "dc_sign[0]",
+          "symbol": 1,
+          "tx_index": 0,
+          "x": 16,
+          "y": 16
+        },
+        {
+          "adaptive": false,
+          "coeff_rem": 16,
+          "coeff_rem_width": 5,
+          "golomb_length_bits": "0001",
+          "leaf_index": 3,
+          "name": "coeff_remainder",
+          "q_length_bits": "00000",
+          "tx_index": 0,
+          "value": 54,
+          "x": 16,
+          "y": 16
+        }
+      ],
+      "leaves": [
+        {
+          "height": 16,
+          "leaf_index": 1,
+          "width": 8,
+          "x": 16,
+          "y": 0
+        },
+        {
+          "height": 8,
+          "leaf_index": 2,
+          "width": 16,
+          "x": 0,
+          "y": 16
+        },
+        {
+          "height": 8,
+          "leaf_index": 3,
+          "width": 8,
+          "x": 16,
+          "y": 16
+        }
+      ],
+      "profile": "alternating-8x8-dc",
+      "q_context": 0,
+      "qindex": 90,
+      "reconstruction_sha256": "94f2c65a1e0959306f3d8b79d0c61c4681d76ea1fa903c231134ee2526d92980",
+      "source_sha256": "94f2c65a1e0959306f3d8b79d0c61c4681d76ea1fa903c231134ee2526d92980",
+      "transforms": [
+        {
+          "cul_level": 15,
+          "dc_sign_context": 2,
+          "leaf_index": 1,
+          "level": -93,
+          "prediction": 160,
+          "prediction_block_height": 16,
+          "prediction_block_width": 8,
+          "reconstruction": 64,
+          "tx_index": 0,
+          "txb_skip_context": 3,
+          "x": 16,
+          "y": 0
+        },
+        {
+          "cul_level": 15,
+          "dc_sign_context": 0,
+          "leaf_index": 1,
+          "level": -39,
+          "prediction": 136,
+          "prediction_block_height": 16,
+          "prediction_block_width": 8,
+          "reconstruction": 96,
+          "tx_index": 1,
+          "txb_skip_context": 5,
+          "x": 16,
+          "y": 8
+        },
+        {
+          "cul_level": 15,
+          "dc_sign_context": 2,
+          "leaf_index": 2,
+          "level": -31,
+          "prediction": 96,
+          "prediction_block_height": 8,
+          "prediction_block_width": 16,
+          "reconstruction": 64,
+          "tx_index": 0,
+          "txb_skip_context": 3,
+          "x": 0,
+          "y": 16
+        },
+        {
+          "cul_level": 23,
+          "dc_sign_context": 0,
+          "leaf_index": 2,
+          "level": 23,
+          "prediction": 136,
+          "prediction_block_height": 8,
+          "prediction_block_width": 16,
+          "reconstruction": 160,
+          "tx_index": 1,
+          "txb_skip_context": 5,
+          "x": 8,
+          "y": 16
+        },
+        {
+          "cul_level": 15,
+          "dc_sign_context": 0,
+          "leaf_index": 3,
+          "level": -62,
+          "prediction": 128,
+          "prediction_block_height": 8,
+          "prediction_block_width": 8,
+          "reconstruction": 64,
+          "tx_index": 0,
+          "txb_skip_context": 0,
+          "x": 16,
+          "y": 16
+        }
+      ]
+    },
+    {
+      "edge_event_count": 35,
+      "edge_leaf_count": 3,
+      "edge_transform_count": 5,
+      "events": [
+        {
+          "cdf_after": [
+            12132,
+            0,
+            3,
+            1,
+            2,
+            3
+          ],
+          "cdf_before": [
+            13865,
+            0,
+            2,
+            1,
+            2,
+            3
+          ],
+          "context": 3,
+          "leaf_index": 1,
+          "name": "txb_skip",
+          "row": 113,
+          "row_key": "txb_skip[113]",
+          "symbol": 0,
+          "tx_index": 0,
+          "x": 16,
+          "y": 0
+        },
+        {
+          "cdf_after": [
+            23052,
+            22732,
+            21458,
+            18999,
+            13871,
+            7946,
+            0,
+            5,
+            2,
+            3,
+            4
+          ],
+          "cdf_before": [
+            24588,
+            24247,
+            22888,
+            20265,
+            14795,
+            8475,
+            0,
+            4,
+            2,
+            3,
+            4
+          ],
+          "context": 0,
+          "leaf_index": 1,
+          "name": "eob_pt_64",
+          "row": 3,
+          "row_key": "eob_pt_64[3]",
+          "symbol": 0,
+          "tx_index": 0,
+          "x": 16,
+          "y": 0
+        },
+        {
+          "adaptive": false,
+          "detail": "DC intra with eob=1: DCT_DCT, no transform-type symbol",
+          "leaf_index": 1,
+          "name": "primary_tx_type",
+          "tx_index": 0,
+          "x": 16,
+          "y": 0
+        },
+        {
+          "cdf_after": [
+            8407,
+            5455,
+            5066,
+            4957,
+            0,
+            5,
+            3,
+            4,
+            4
+          ],
+          "cdf_before": [
+            7622,
+            4574,
+            4173,
+            4060,
+            0,
+            4,
+            3,
+            4,
+            4
+          ],
+          "context": 0,
+          "leaf_index": 1,
+          "name": "coeff_base_lf_eob",
+          "row": 24,
+          "row_key": "coeff_base_lf_eob[24]",
+          "symbol": 4,
+          "tx_index": 0,
+          "x": 16,
+          "y": 0
+        },
+        {
+          "cdf_after": [
+            24081,
+            19747,
+            15497,
+            0,
+            5,
+            2,
+            2,
+            3
+          ],
+          "cdf_before": [
+            23502,
+            18879,
+            14346,
+            0,
+            4,
+            2,
+            2,
+            3
+          ],
+          "context": 0,
+          "leaf_index": 1,
+          "name": "coeff_br_lf",
+          "row": 14,
+          "row_key": "coeff_br_lf[14]",
+          "symbol": 3,
+          "tx_index": 0,
+          "x": 16,
+          "y": 0
+        },
+        {
+          "cdf_after": [
+            14591,
+            0,
+            2,
+            3,
+            4,
+            5
+          ],
+          "cdf_before": [
+            14005,
+            0,
+            1,
+            3,
+            4,
+            5
+          ],
+          "context": 2,
+          "leaf_index": 1,
+          "name": "dc_sign",
+          "row": 14,
+          "row_key": "dc_sign[14]",
+          "symbol": 1,
+          "tx_index": 0,
+          "x": 16,
+          "y": 0
+        },
+        {
+          "adaptive": false,
+          "coeff_rem": 12,
+          "coeff_rem_width": 6,
+          "golomb_length_bits": "00001",
+          "leaf_index": 1,
+          "name": "coeff_remainder",
+          "q_length_bits": "00000",
+          "tx_index": 0,
+          "value": 82,
+          "x": 16,
+          "y": 0
+        },
+        {
+          "cdf_after": [
+            1138,
+            0,
+            2,
+            2,
+            2,
+            4
+          ],
+          "cdf_before": [
+            1213,
+            0,
+            1,
+            2,
+            2,
+            4
+          ],
+          "context": 5,
+          "leaf_index": 1,
+          "name": "txb_skip",
+          "row": 115,
+          "row_key": "txb_skip[115]",
+          "symbol": 0,
+          "tx_index": 1,
+          "x": 16,
+          "y": 8
+        },
+        {
+          "cdf_after": [
+            21612,
+            21312,
+            20117,
+            17812,
+            13005,
+            7450,
+            0,
+            6,
+            2,
+            3,
+            4
+          ],
+          "cdf_before": [
+            23052,
+            22732,
+            21458,
+            18999,
+            13871,
+            7946,
+            0,
+            5,
+            2,
+            3,
+            4
+          ],
+          "context": 0,
+          "leaf_index": 1,
+          "name": "eob_pt_64",
+          "row": 3,
+          "row_key": "eob_pt_64[3]",
+          "symbol": 0,
+          "tx_index": 1,
+          "x": 16,
+          "y": 8
+        },
+        {
+          "adaptive": false,
+          "detail": "DC intra with eob=1: DCT_DCT, no transform-type symbol",
+          "leaf_index": 1,
+          "name": "primary_tx_type",
+          "tx_index": 1,
+          "x": 16,
+          "y": 8
+        },
+        {
+          "cdf_after": [
+            9168,
+            6308,
+            5931,
+            5826,
+            0,
+            6,
+            3,
+            4,
+            4
+          ],
+          "cdf_before": [
+            8407,
+            5455,
+            5066,
+            4957,
+            0,
+            5,
+            3,
+            4,
+            4
+          ],
+          "context": 0,
+          "leaf_index": 1,
+          "name": "coeff_base_lf_eob",
+          "row": 24,
+          "row_key": "coeff_base_lf_eob[24]",
+          "symbol": 4,
+          "tx_index": 1,
+          "x": 16,
+          "y": 8
+        },
+        {
+          "cdf_after": [
+            24623,
+            20560,
+            16576,
+            0,
+            6,
+            2,
+            2,
+            3
+          ],
+          "cdf_before": [
+            24081,
+            19747,
+            15497,
+            0,
+            5,
+            2,
+            2,
+            3
+          ],
+          "context": 0,
+          "leaf_index": 1,
+          "name": "coeff_br_lf",
+          "row": 14,
+          "row_key": "coeff_br_lf[14]",
+          "symbol": 3,
+          "tx_index": 1,
+          "x": 16,
+          "y": 8
+        },
+        {
+          "cdf_after": [
+            17244,
+            0,
+            2,
+            3,
+            4,
+            5
+          ],
+          "cdf_before": [
+            16744,
+            0,
+            1,
+            3,
+            4,
+            5
+          ],
+          "context": 0,
+          "leaf_index": 1,
+          "name": "dc_sign",
+          "row": 12,
+          "row_key": "dc_sign[12]",
+          "symbol": 1,
+          "tx_index": 1,
+          "x": 16,
+          "y": 8
+        },
+        {
+          "adaptive": false,
+          "coeff_rem": 8,
+          "coeff_rem_width": 4,
+          "golomb_length_bits": "001",
+          "leaf_index": 1,
+          "name": "coeff_remainder",
+          "q_length_bits": "00000",
+          "tx_index": 1,
+          "value": 30,
+          "x": 16,
+          "y": 8
+        },
+        {
+          "cdf_after": [
+            10616,
+            0,
+            4,
+            1,
+            2,
+            3
+          ],
+          "cdf_before": [
+            12132,
+            0,
+            3,
+            1,
+            2,
+            3
+          ],
+          "context": 3,
+          "leaf_index": 2,
+          "name": "txb_skip",
+          "row": 113,
+          "row_key": "txb_skip[113]",
+          "symbol": 0,
+          "tx_index": 0,
+          "x": 0,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            20262,
+            19980,
+            18860,
+            16699,
+            12193,
+            6985,
+            0,
+            7,
+            2,
+            3,
+            4
+          ],
+          "cdf_before": [
+            21612,
+            21312,
+            20117,
+            17812,
+            13005,
+            7450,
+            0,
+            6,
+            2,
+            3,
+            4
+          ],
+          "context": 0,
+          "leaf_index": 2,
+          "name": "eob_pt_64",
+          "row": 3,
+          "row_key": "eob_pt_64[3]",
+          "symbol": 0,
+          "tx_index": 0,
+          "x": 0,
+          "y": 16
+        },
+        {
+          "adaptive": false,
+          "detail": "DC intra with eob=1: DCT_DCT, no transform-type symbol",
+          "leaf_index": 2,
+          "name": "primary_tx_type",
+          "tx_index": 0,
+          "x": 0,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            9905,
+            7134,
+            6769,
+            6667,
+            0,
+            7,
+            3,
+            4,
+            4
+          ],
+          "cdf_before": [
+            9168,
+            6308,
+            5931,
+            5826,
+            0,
+            6,
+            3,
+            4,
+            4
+          ],
+          "context": 0,
+          "leaf_index": 2,
+          "name": "coeff_base_lf_eob",
+          "row": 24,
+          "row_key": "coeff_base_lf_eob[24]",
+          "symbol": 4,
+          "tx_index": 0,
+          "x": 0,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            25132,
+            21323,
+            17588,
+            0,
+            7,
+            2,
+            2,
+            3
+          ],
+          "cdf_before": [
+            24623,
+            20560,
+            16576,
+            0,
+            6,
+            2,
+            2,
+            3
+          ],
+          "context": 0,
+          "leaf_index": 2,
+          "name": "coeff_br_lf",
+          "row": 14,
+          "row_key": "coeff_br_lf[14]",
+          "symbol": 3,
+          "tx_index": 0,
+          "x": 0,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            15159,
+            0,
+            3,
+            3,
+            4,
+            5
+          ],
+          "cdf_before": [
+            14591,
+            0,
+            2,
+            3,
+            4,
+            5
+          ],
+          "context": 2,
+          "leaf_index": 2,
+          "name": "dc_sign",
+          "row": 14,
+          "row_key": "dc_sign[14]",
+          "symbol": 1,
+          "tx_index": 0,
+          "x": 0,
+          "y": 16
+        },
+        {
+          "adaptive": false,
+          "coeff_rem": 0,
+          "coeff_rem_width": 4,
+          "golomb_length_bits": "001",
+          "leaf_index": 2,
+          "name": "coeff_remainder",
+          "q_length_bits": "00000",
+          "tx_index": 0,
+          "value": 22,
+          "x": 0,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            1067,
+            0,
+            3,
+            2,
+            2,
+            4
+          ],
+          "cdf_before": [
+            1138,
+            0,
+            2,
+            2,
+            2,
+            4
+          ],
+          "context": 5,
+          "leaf_index": 2,
+          "name": "txb_skip",
+          "row": 115,
+          "row_key": "txb_skip[115]",
+          "symbol": 0,
+          "tx_index": 1,
+          "x": 8,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            18996,
+            18732,
+            17682,
+            15656,
+            11431,
+            6549,
+            0,
+            8,
+            2,
+            3,
+            4
+          ],
+          "cdf_before": [
+            20262,
+            19980,
+            18860,
+            16699,
+            12193,
+            6985,
+            0,
+            7,
+            2,
+            3,
+            4
+          ],
+          "context": 0,
+          "leaf_index": 2,
+          "name": "eob_pt_64",
+          "row": 3,
+          "row_key": "eob_pt_64[3]",
+          "symbol": 0,
+          "tx_index": 1,
+          "x": 8,
+          "y": 16
+        },
+        {
+          "adaptive": false,
+          "detail": "DC intra with eob=1: DCT_DCT, no transform-type symbol",
+          "leaf_index": 2,
+          "name": "primary_tx_type",
+          "tx_index": 1,
+          "x": 8,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            10619,
+            7935,
+            7581,
+            7482,
+            0,
+            8,
+            3,
+            4,
+            4
+          ],
+          "cdf_before": [
+            9905,
+            7134,
+            6769,
+            6667,
+            0,
+            7,
+            3,
+            4,
+            4
+          ],
+          "context": 0,
+          "leaf_index": 2,
+          "name": "coeff_base_lf_eob",
+          "row": 24,
+          "row_key": "coeff_base_lf_eob[24]",
+          "symbol": 4,
+          "tx_index": 1,
+          "x": 8,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            25609,
+            22038,
+            18536,
+            0,
+            8,
+            2,
+            2,
+            3
+          ],
+          "cdf_before": [
+            25132,
+            21323,
+            17588,
+            0,
+            7,
+            2,
+            2,
+            3
+          ],
+          "context": 0,
+          "leaf_index": 2,
+          "name": "coeff_br_lf",
+          "row": 14,
+          "row_key": "coeff_br_lf[14]",
+          "symbol": 3,
+          "tx_index": 1,
+          "x": 8,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            16706,
+            0,
+            3,
+            3,
+            4,
+            5
+          ],
+          "cdf_before": [
+            17244,
+            0,
+            2,
+            3,
+            4,
+            5
+          ],
+          "context": 0,
+          "leaf_index": 2,
+          "name": "dc_sign",
+          "row": 12,
+          "row_key": "dc_sign[12]",
+          "symbol": 0,
+          "tx_index": 1,
+          "x": 8,
+          "y": 16
+        },
+        {
+          "adaptive": false,
+          "coeff_rem": 1,
+          "coeff_rem_width": 3,
+          "golomb_length_bits": "01",
+          "leaf_index": 2,
+          "name": "coeff_remainder",
+          "q_length_bits": "00000",
+          "tx_index": 1,
+          "value": 15,
+          "x": 8,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            1084,
+            0,
+            1,
+            1,
+            2,
+            4
+          ],
+          "cdf_before": [
+            1238,
+            0,
+            0,
+            1,
+            2,
+            4
+          ],
+          "context": 0,
+          "leaf_index": 3,
+          "name": "txb_skip",
+          "row": 110,
+          "row_key": "txb_skip[110]",
+          "symbol": 0,
+          "tx_index": 0,
+          "x": 16,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            17809,
+            17562,
+            16577,
+            14678,
+            10717,
+            6140,
+            0,
+            9,
+            2,
+            3,
+            4
+          ],
+          "cdf_before": [
+            18996,
+            18732,
+            17682,
+            15656,
+            11431,
+            6549,
+            0,
+            8,
+            2,
+            3,
+            4
+          ],
+          "context": 0,
+          "leaf_index": 3,
+          "name": "eob_pt_64",
+          "row": 3,
+          "row_key": "eob_pt_64[3]",
+          "symbol": 0,
+          "tx_index": 0,
+          "x": 16,
+          "y": 16
+        },
+        {
+          "adaptive": false,
+          "detail": "DC intra with eob=1: DCT_DCT, no transform-type symbol",
+          "leaf_index": 3,
+          "name": "primary_tx_type",
+          "tx_index": 0,
+          "x": 16,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            11311,
+            8711,
+            8368,
+            8272,
+            0,
+            9,
+            3,
+            4,
+            4
+          ],
+          "cdf_before": [
+            10619,
+            7935,
+            7581,
+            7482,
+            0,
+            8,
+            3,
+            4,
+            4
+          ],
+          "context": 0,
+          "leaf_index": 3,
+          "name": "coeff_base_lf_eob",
+          "row": 24,
+          "row_key": "coeff_base_lf_eob[24]",
+          "symbol": 4,
+          "tx_index": 0,
+          "x": 16,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            26056,
+            22708,
+            19425,
+            0,
+            9,
+            2,
+            2,
+            3
+          ],
+          "cdf_before": [
+            25609,
+            22038,
+            18536,
+            0,
+            8,
+            2,
+            2,
+            3
+          ],
+          "context": 0,
+          "leaf_index": 3,
+          "name": "coeff_br_lf",
+          "row": 14,
+          "row_key": "coeff_br_lf[14]",
+          "symbol": 3,
+          "tx_index": 0,
+          "x": 16,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            17207,
+            0,
+            4,
+            3,
+            4,
+            5
+          ],
+          "cdf_before": [
+            16706,
+            0,
+            3,
+            3,
+            4,
+            5
+          ],
+          "context": 0,
+          "leaf_index": 3,
+          "name": "dc_sign",
+          "row": 12,
+          "row_key": "dc_sign[12]",
+          "symbol": 1,
+          "tx_index": 0,
+          "x": 16,
+          "y": 16
+        },
+        {
+          "adaptive": false,
+          "coeff_rem": 14,
+          "coeff_rem_width": 5,
+          "golomb_length_bits": "0001",
+          "leaf_index": 3,
+          "name": "coeff_remainder",
+          "q_length_bits": "00000",
+          "tx_index": 0,
+          "value": 52,
+          "x": 16,
+          "y": 16
+        }
+      ],
+      "leaves": [
+        {
+          "height": 16,
+          "leaf_index": 1,
+          "width": 8,
+          "x": 16,
+          "y": 0
+        },
+        {
+          "height": 8,
+          "leaf_index": 2,
+          "width": 16,
+          "x": 0,
+          "y": 16
+        },
+        {
+          "height": 8,
+          "leaf_index": 3,
+          "width": 8,
+          "x": 16,
+          "y": 16
+        }
+      ],
+      "profile": "alternating-8x8-dc",
+      "q_context": 1,
+      "qindex": 91,
+      "reconstruction_sha256": "94f2c65a1e0959306f3d8b79d0c61c4681d76ea1fa903c231134ee2526d92980",
+      "source_sha256": "94f2c65a1e0959306f3d8b79d0c61c4681d76ea1fa903c231134ee2526d92980",
+      "transforms": [
+        {
+          "cul_level": 15,
+          "dc_sign_context": 2,
+          "leaf_index": 1,
+          "level": -90,
+          "prediction": 160,
+          "prediction_block_height": 16,
+          "prediction_block_width": 8,
+          "reconstruction": 64,
+          "tx_index": 0,
+          "txb_skip_context": 3,
+          "x": 16,
+          "y": 0
+        },
+        {
+          "cul_level": 15,
+          "dc_sign_context": 0,
+          "leaf_index": 1,
+          "level": -38,
+          "prediction": 136,
+          "prediction_block_height": 16,
+          "prediction_block_width": 8,
+          "reconstruction": 96,
+          "tx_index": 1,
+          "txb_skip_context": 5,
+          "x": 16,
+          "y": 8
+        },
+        {
+          "cul_level": 15,
+          "dc_sign_context": 2,
+          "leaf_index": 2,
+          "level": -30,
+          "prediction": 96,
+          "prediction_block_height": 8,
+          "prediction_block_width": 16,
+          "reconstruction": 64,
+          "tx_index": 0,
+          "txb_skip_context": 3,
+          "x": 0,
+          "y": 16
+        },
+        {
+          "cul_level": 23,
+          "dc_sign_context": 0,
+          "leaf_index": 2,
+          "level": 23,
+          "prediction": 136,
+          "prediction_block_height": 8,
+          "prediction_block_width": 16,
+          "reconstruction": 160,
+          "tx_index": 1,
+          "txb_skip_context": 5,
+          "x": 8,
+          "y": 16
+        },
+        {
+          "cul_level": 15,
+          "dc_sign_context": 0,
+          "leaf_index": 3,
+          "level": -60,
+          "prediction": 128,
+          "prediction_block_height": 8,
+          "prediction_block_width": 8,
+          "reconstruction": 64,
+          "tx_index": 0,
+          "txb_skip_context": 0,
+          "x": 16,
+          "y": 16
+        }
+      ]
+    },
+    {
+      "edge_event_count": 35,
+      "edge_leaf_count": 3,
+      "edge_transform_count": 5,
+      "events": [
+        {
+          "cdf_after": [
+            12132,
+            0,
+            3,
+            1,
+            2,
+            3
+          ],
+          "cdf_before": [
+            13865,
+            0,
+            2,
+            1,
+            2,
+            3
+          ],
+          "context": 3,
+          "leaf_index": 1,
+          "name": "txb_skip",
+          "row": 113,
+          "row_key": "txb_skip[113]",
+          "symbol": 0,
+          "tx_index": 0,
+          "x": 16,
+          "y": 0
+        },
+        {
+          "cdf_after": [
+            23052,
+            22732,
+            21458,
+            18999,
+            13871,
+            7946,
+            0,
+            5,
+            2,
+            3,
+            4
+          ],
+          "cdf_before": [
+            24588,
+            24247,
+            22888,
+            20265,
+            14795,
+            8475,
+            0,
+            4,
+            2,
+            3,
+            4
+          ],
+          "context": 0,
+          "leaf_index": 1,
+          "name": "eob_pt_64",
+          "row": 3,
+          "row_key": "eob_pt_64[3]",
+          "symbol": 0,
+          "tx_index": 0,
+          "x": 16,
+          "y": 0
+        },
+        {
+          "adaptive": false,
+          "detail": "DC intra with eob=1: DCT_DCT, no transform-type symbol",
+          "leaf_index": 1,
+          "name": "primary_tx_type",
+          "tx_index": 0,
+          "x": 16,
+          "y": 0
+        },
+        {
+          "cdf_after": [
+            8407,
+            5455,
+            5066,
+            4957,
+            0,
+            5,
+            3,
+            4,
+            4
+          ],
+          "cdf_before": [
+            7622,
+            4574,
+            4173,
+            4060,
+            0,
+            4,
+            3,
+            4,
+            4
+          ],
+          "context": 0,
+          "leaf_index": 1,
+          "name": "coeff_base_lf_eob",
+          "row": 24,
+          "row_key": "coeff_base_lf_eob[24]",
+          "symbol": 4,
+          "tx_index": 0,
+          "x": 16,
+          "y": 0
+        },
+        {
+          "cdf_after": [
+            24081,
+            19747,
+            15497,
+            0,
+            5,
+            2,
+            2,
+            3
+          ],
+          "cdf_before": [
+            23502,
+            18879,
+            14346,
+            0,
+            4,
+            2,
+            2,
+            3
+          ],
+          "context": 0,
+          "leaf_index": 1,
+          "name": "coeff_br_lf",
+          "row": 14,
+          "row_key": "coeff_br_lf[14]",
+          "symbol": 3,
+          "tx_index": 0,
+          "x": 16,
+          "y": 0
+        },
+        {
+          "cdf_after": [
+            14591,
+            0,
+            2,
+            3,
+            4,
+            5
+          ],
+          "cdf_before": [
+            14005,
+            0,
+            1,
+            3,
+            4,
+            5
+          ],
+          "context": 2,
+          "leaf_index": 1,
+          "name": "dc_sign",
+          "row": 14,
+          "row_key": "dc_sign[14]",
+          "symbol": 1,
+          "tx_index": 0,
+          "x": 16,
+          "y": 0
+        },
+        {
+          "adaptive": false,
+          "coeff_rem": 24,
+          "coeff_rem_width": 5,
+          "golomb_length_bits": "0001",
+          "leaf_index": 1,
+          "name": "coeff_remainder",
+          "q_length_bits": "00000",
+          "tx_index": 0,
+          "value": 62,
+          "x": 16,
+          "y": 0
+        },
+        {
+          "cdf_after": [
+            1138,
+            0,
+            2,
+            2,
+            2,
+            4
+          ],
+          "cdf_before": [
+            1213,
+            0,
+            1,
+            2,
+            2,
+            4
+          ],
+          "context": 5,
+          "leaf_index": 1,
+          "name": "txb_skip",
+          "row": 115,
+          "row_key": "txb_skip[115]",
+          "symbol": 0,
+          "tx_index": 1,
+          "x": 16,
+          "y": 8
+        },
+        {
+          "cdf_after": [
+            21612,
+            21312,
+            20117,
+            17812,
+            13005,
+            7450,
+            0,
+            6,
+            2,
+            3,
+            4
+          ],
+          "cdf_before": [
+            23052,
+            22732,
+            21458,
+            18999,
+            13871,
+            7946,
+            0,
+            5,
+            2,
+            3,
+            4
+          ],
+          "context": 0,
+          "leaf_index": 1,
+          "name": "eob_pt_64",
+          "row": 3,
+          "row_key": "eob_pt_64[3]",
+          "symbol": 0,
+          "tx_index": 1,
+          "x": 16,
+          "y": 8
+        },
+        {
+          "adaptive": false,
+          "detail": "DC intra with eob=1: DCT_DCT, no transform-type symbol",
+          "leaf_index": 1,
+          "name": "primary_tx_type",
+          "tx_index": 1,
+          "x": 16,
+          "y": 8
+        },
+        {
+          "cdf_after": [
+            9168,
+            6308,
+            5931,
+            5826,
+            0,
+            6,
+            3,
+            4,
+            4
+          ],
+          "cdf_before": [
+            8407,
+            5455,
+            5066,
+            4957,
+            0,
+            5,
+            3,
+            4,
+            4
+          ],
+          "context": 0,
+          "leaf_index": 1,
+          "name": "coeff_base_lf_eob",
+          "row": 24,
+          "row_key": "coeff_base_lf_eob[24]",
+          "symbol": 4,
+          "tx_index": 1,
+          "x": 16,
+          "y": 8
+        },
+        {
+          "cdf_after": [
+            24623,
+            20560,
+            16576,
+            0,
+            6,
+            2,
+            2,
+            3
+          ],
+          "cdf_before": [
+            24081,
+            19747,
+            15497,
+            0,
+            5,
+            2,
+            2,
+            3
+          ],
+          "context": 0,
+          "leaf_index": 1,
+          "name": "coeff_br_lf",
+          "row": 14,
+          "row_key": "coeff_br_lf[14]",
+          "symbol": 3,
+          "tx_index": 1,
+          "x": 16,
+          "y": 8
+        },
+        {
+          "cdf_after": [
+            17244,
+            0,
+            2,
+            3,
+            4,
+            5
+          ],
+          "cdf_before": [
+            16744,
+            0,
+            1,
+            3,
+            4,
+            5
+          ],
+          "context": 0,
+          "leaf_index": 1,
+          "name": "dc_sign",
+          "row": 12,
+          "row_key": "dc_sign[12]",
+          "symbol": 1,
+          "tx_index": 1,
+          "x": 16,
+          "y": 8
+        },
+        {
+          "adaptive": false,
+          "coeff_rem": 7,
+          "coeff_rem_width": 3,
+          "golomb_length_bits": "01",
+          "leaf_index": 1,
+          "name": "coeff_remainder",
+          "q_length_bits": "00000",
+          "tx_index": 1,
+          "value": 21,
+          "x": 16,
+          "y": 8
+        },
+        {
+          "cdf_after": [
+            10616,
+            0,
+            4,
+            1,
+            2,
+            3
+          ],
+          "cdf_before": [
+            12132,
+            0,
+            3,
+            1,
+            2,
+            3
+          ],
+          "context": 3,
+          "leaf_index": 2,
+          "name": "txb_skip",
+          "row": 113,
+          "row_key": "txb_skip[113]",
+          "symbol": 0,
+          "tx_index": 0,
+          "x": 0,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            20262,
+            19980,
+            18860,
+            16699,
+            12193,
+            6985,
+            0,
+            7,
+            2,
+            3,
+            4
+          ],
+          "cdf_before": [
+            21612,
+            21312,
+            20117,
+            17812,
+            13005,
+            7450,
+            0,
+            6,
+            2,
+            3,
+            4
+          ],
+          "context": 0,
+          "leaf_index": 2,
+          "name": "eob_pt_64",
+          "row": 3,
+          "row_key": "eob_pt_64[3]",
+          "symbol": 0,
+          "tx_index": 0,
+          "x": 0,
+          "y": 16
+        },
+        {
+          "adaptive": false,
+          "detail": "DC intra with eob=1: DCT_DCT, no transform-type symbol",
+          "leaf_index": 2,
+          "name": "primary_tx_type",
+          "tx_index": 0,
+          "x": 0,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            9905,
+            7134,
+            6769,
+            6667,
+            0,
+            7,
+            3,
+            4,
+            4
+          ],
+          "cdf_before": [
+            9168,
+            6308,
+            5931,
+            5826,
+            0,
+            6,
+            3,
+            4,
+            4
+          ],
+          "context": 0,
+          "leaf_index": 2,
+          "name": "coeff_base_lf_eob",
+          "row": 24,
+          "row_key": "coeff_base_lf_eob[24]",
+          "symbol": 4,
+          "tx_index": 0,
+          "x": 0,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            25132,
+            21323,
+            17588,
+            0,
+            7,
+            2,
+            2,
+            3
+          ],
+          "cdf_before": [
+            24623,
+            20560,
+            16576,
+            0,
+            6,
+            2,
+            2,
+            3
+          ],
+          "context": 0,
+          "leaf_index": 2,
+          "name": "coeff_br_lf",
+          "row": 14,
+          "row_key": "coeff_br_lf[14]",
+          "symbol": 3,
+          "tx_index": 0,
+          "x": 0,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            15159,
+            0,
+            3,
+            3,
+            4,
+            5
+          ],
+          "cdf_before": [
+            14591,
+            0,
+            2,
+            3,
+            4,
+            5
+          ],
+          "context": 2,
+          "leaf_index": 2,
+          "name": "dc_sign",
+          "row": 14,
+          "row_key": "dc_sign[14]",
+          "symbol": 1,
+          "tx_index": 0,
+          "x": 0,
+          "y": 16
+        },
+        {
+          "adaptive": false,
+          "coeff_rem": 0,
+          "coeff_rem_width": 3,
+          "golomb_length_bits": "01",
+          "leaf_index": 2,
+          "name": "coeff_remainder",
+          "q_length_bits": "00000",
+          "tx_index": 0,
+          "value": 14,
+          "x": 0,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            1067,
+            0,
+            3,
+            2,
+            2,
+            4
+          ],
+          "cdf_before": [
+            1138,
+            0,
+            2,
+            2,
+            2,
+            4
+          ],
+          "context": 5,
+          "leaf_index": 2,
+          "name": "txb_skip",
+          "row": 115,
+          "row_key": "txb_skip[115]",
+          "symbol": 0,
+          "tx_index": 1,
+          "x": 8,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            18996,
+            18732,
+            17682,
+            15656,
+            11431,
+            6549,
+            0,
+            8,
+            2,
+            3,
+            4
+          ],
+          "cdf_before": [
+            20262,
+            19980,
+            18860,
+            16699,
+            12193,
+            6985,
+            0,
+            7,
+            2,
+            3,
+            4
+          ],
+          "context": 0,
+          "leaf_index": 2,
+          "name": "eob_pt_64",
+          "row": 3,
+          "row_key": "eob_pt_64[3]",
+          "symbol": 0,
+          "tx_index": 1,
+          "x": 8,
+          "y": 16
+        },
+        {
+          "adaptive": false,
+          "detail": "DC intra with eob=1: DCT_DCT, no transform-type symbol",
+          "leaf_index": 2,
+          "name": "primary_tx_type",
+          "tx_index": 1,
+          "x": 8,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            10619,
+            7935,
+            7581,
+            7482,
+            0,
+            8,
+            3,
+            4,
+            4
+          ],
+          "cdf_before": [
+            9905,
+            7134,
+            6769,
+            6667,
+            0,
+            7,
+            3,
+            4,
+            4
+          ],
+          "context": 0,
+          "leaf_index": 2,
+          "name": "coeff_base_lf_eob",
+          "row": 24,
+          "row_key": "coeff_base_lf_eob[24]",
+          "symbol": 4,
+          "tx_index": 1,
+          "x": 8,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            25609,
+            22038,
+            18536,
+            0,
+            8,
+            2,
+            2,
+            3
+          ],
+          "cdf_before": [
+            25132,
+            21323,
+            17588,
+            0,
+            7,
+            2,
+            2,
+            3
+          ],
+          "context": 0,
+          "leaf_index": 2,
+          "name": "coeff_br_lf",
+          "row": 14,
+          "row_key": "coeff_br_lf[14]",
+          "symbol": 3,
+          "tx_index": 1,
+          "x": 8,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            16706,
+            0,
+            3,
+            3,
+            4,
+            5
+          ],
+          "cdf_before": [
+            17244,
+            0,
+            2,
+            3,
+            4,
+            5
+          ],
+          "context": 0,
+          "leaf_index": 2,
+          "name": "dc_sign",
+          "row": 12,
+          "row_key": "dc_sign[12]",
+          "symbol": 0,
+          "tx_index": 1,
+          "x": 8,
+          "y": 16
+        },
+        {
+          "adaptive": false,
+          "coeff_rem": 1,
+          "coeff_rem_width": 1,
+          "golomb_length_bits": "",
+          "leaf_index": 2,
+          "name": "coeff_remainder",
+          "q_length_bits": "00001",
+          "tx_index": 1,
+          "value": 9,
+          "x": 8,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            1084,
+            0,
+            1,
+            1,
+            2,
+            4
+          ],
+          "cdf_before": [
+            1238,
+            0,
+            0,
+            1,
+            2,
+            4
+          ],
+          "context": 0,
+          "leaf_index": 3,
+          "name": "txb_skip",
+          "row": 110,
+          "row_key": "txb_skip[110]",
+          "symbol": 0,
+          "tx_index": 0,
+          "x": 16,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            17809,
+            17562,
+            16577,
+            14678,
+            10717,
+            6140,
+            0,
+            9,
+            2,
+            3,
+            4
+          ],
+          "cdf_before": [
+            18996,
+            18732,
+            17682,
+            15656,
+            11431,
+            6549,
+            0,
+            8,
+            2,
+            3,
+            4
+          ],
+          "context": 0,
+          "leaf_index": 3,
+          "name": "eob_pt_64",
+          "row": 3,
+          "row_key": "eob_pt_64[3]",
+          "symbol": 0,
+          "tx_index": 0,
+          "x": 16,
+          "y": 16
+        },
+        {
+          "adaptive": false,
+          "detail": "DC intra with eob=1: DCT_DCT, no transform-type symbol",
+          "leaf_index": 3,
+          "name": "primary_tx_type",
+          "tx_index": 0,
+          "x": 16,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            11311,
+            8711,
+            8368,
+            8272,
+            0,
+            9,
+            3,
+            4,
+            4
+          ],
+          "cdf_before": [
+            10619,
+            7935,
+            7581,
+            7482,
+            0,
+            8,
+            3,
+            4,
+            4
+          ],
+          "context": 0,
+          "leaf_index": 3,
+          "name": "coeff_base_lf_eob",
+          "row": 24,
+          "row_key": "coeff_base_lf_eob[24]",
+          "symbol": 4,
+          "tx_index": 0,
+          "x": 16,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            26056,
+            22708,
+            19425,
+            0,
+            9,
+            2,
+            2,
+            3
+          ],
+          "cdf_before": [
+            25609,
+            22038,
+            18536,
+            0,
+            8,
+            2,
+            2,
+            3
+          ],
+          "context": 0,
+          "leaf_index": 3,
+          "name": "coeff_br_lf",
+          "row": 14,
+          "row_key": "coeff_br_lf[14]",
+          "symbol": 3,
+          "tx_index": 0,
+          "x": 16,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            17207,
+            0,
+            4,
+            3,
+            4,
+            5
+          ],
+          "cdf_before": [
+            16706,
+            0,
+            3,
+            3,
+            4,
+            5
+          ],
+          "context": 0,
+          "leaf_index": 3,
+          "name": "dc_sign",
+          "row": 12,
+          "row_key": "dc_sign[12]",
+          "symbol": 1,
+          "tx_index": 0,
+          "x": 16,
+          "y": 16
+        },
+        {
+          "adaptive": false,
+          "coeff_rem": 0,
+          "coeff_rem_width": 5,
+          "golomb_length_bits": "0001",
+          "leaf_index": 3,
+          "name": "coeff_remainder",
+          "q_length_bits": "00000",
+          "tx_index": 0,
+          "value": 38,
+          "x": 16,
+          "y": 16
+        }
+      ],
+      "leaves": [
+        {
+          "height": 16,
+          "leaf_index": 1,
+          "width": 8,
+          "x": 16,
+          "y": 0
+        },
+        {
+          "height": 8,
+          "leaf_index": 2,
+          "width": 16,
+          "x": 0,
+          "y": 16
+        },
+        {
+          "height": 8,
+          "leaf_index": 3,
+          "width": 8,
+          "x": 16,
+          "y": 16
+        }
+      ],
+      "profile": "alternating-8x8-dc",
+      "q_context": 1,
+      "qindex": 100,
+      "reconstruction_sha256": "1d2d4245eb0900a60f3c0b5eb9548eaeee5f6176ca3c4d28991bb144d5a9a552",
+      "source_sha256": "94f2c65a1e0959306f3d8b79d0c61c4681d76ea1fa903c231134ee2526d92980",
+      "transforms": [
+        {
+          "cul_level": 15,
+          "dc_sign_context": 2,
+          "leaf_index": 1,
+          "level": -70,
+          "prediction": 160,
+          "prediction_block_height": 16,
+          "prediction_block_width": 8,
+          "reconstruction": 64,
+          "tx_index": 0,
+          "txb_skip_context": 3,
+          "x": 16,
+          "y": 0
+        },
+        {
+          "cul_level": 15,
+          "dc_sign_context": 0,
+          "leaf_index": 1,
+          "level": -29,
+          "prediction": 136,
+          "prediction_block_height": 16,
+          "prediction_block_width": 8,
+          "reconstruction": 96,
+          "tx_index": 1,
+          "txb_skip_context": 5,
+          "x": 16,
+          "y": 8
+        },
+        {
+          "cul_level": 15,
+          "dc_sign_context": 2,
+          "leaf_index": 2,
+          "level": -22,
+          "prediction": 95,
+          "prediction_block_height": 8,
+          "prediction_block_width": 16,
+          "reconstruction": 65,
+          "tx_index": 0,
+          "txb_skip_context": 3,
+          "x": 0,
+          "y": 16
+        },
+        {
+          "cul_level": 23,
+          "dc_sign_context": 0,
+          "leaf_index": 2,
+          "level": 17,
+          "prediction": 137,
+          "prediction_block_height": 8,
+          "prediction_block_width": 16,
+          "reconstruction": 160,
+          "tx_index": 1,
+          "txb_skip_context": 5,
+          "x": 8,
+          "y": 16
+        },
+        {
+          "cul_level": 15,
+          "dc_sign_context": 0,
+          "leaf_index": 3,
+          "level": -46,
+          "prediction": 128,
+          "prediction_block_height": 8,
+          "prediction_block_width": 8,
+          "reconstruction": 65,
+          "tx_index": 0,
+          "txb_skip_context": 0,
+          "x": 16,
+          "y": 16
+        }
+      ]
+    },
+    {
+      "edge_event_count": 33,
+      "edge_leaf_count": 3,
+      "edge_transform_count": 5,
+      "events": [
+        {
+          "cdf_after": [
+            15911,
+            0,
+            3,
+            2,
+            2,
+            3
+          ],
+          "cdf_before": [
+            16971,
+            0,
+            2,
+            2,
+            2,
+            3
+          ],
+          "context": 3,
+          "leaf_index": 1,
+          "name": "txb_skip",
+          "row": 213,
+          "row_key": "txb_skip[213]",
+          "symbol": 0,
+          "tx_index": 0,
+          "x": 16,
+          "y": 0
+        },
+        {
+          "cdf_after": [
+            22267,
+            21387,
+            18686,
+            14265,
+            8078,
+            3713,
+            0,
+            5,
+            2,
+            3,
+            4
+          ],
+          "cdf_before": [
+            23751,
+            22812,
+            19931,
+            15216,
+            8616,
+            3960,
+            0,
+            4,
+            2,
+            3,
+            4
+          ],
+          "context": 0,
+          "leaf_index": 1,
+          "name": "eob_pt_64",
+          "row": 6,
+          "row_key": "eob_pt_64[6]",
+          "symbol": 0,
+          "tx_index": 0,
+          "x": 16,
+          "y": 0
+        },
+        {
+          "adaptive": false,
+          "detail": "DC intra with eob=1: DCT_DCT, no transform-type symbol",
+          "leaf_index": 1,
+          "name": "primary_tx_type",
+          "tx_index": 0,
+          "x": 16,
+          "y": 0
+        },
+        {
+          "cdf_after": [
+            7747,
+            5215,
+            4936,
+            4854,
+            0,
+            5,
+            3,
+            4,
+            5
+          ],
+          "cdf_before": [
+            6940,
+            4327,
+            4039,
+            3954,
+            0,
+            4,
+            3,
+            4,
+            5
+          ],
+          "context": 0,
+          "leaf_index": 1,
+          "name": "coeff_base_lf_eob",
+          "row": 44,
+          "row_key": "coeff_base_lf_eob[44]",
+          "symbol": 4,
+          "tx_index": 0,
+          "x": 16,
+          "y": 0
+        },
+        {
+          "cdf_after": [
+            23121,
+            17498,
+            11613,
+            0,
+            5,
+            2,
+            2,
+            3
+          ],
+          "cdf_before": [
+            22478,
+            16481,
+            10203,
+            0,
+            4,
+            2,
+            2,
+            3
+          ],
+          "context": 0,
+          "leaf_index": 1,
+          "name": "coeff_br_lf",
+          "row": 28,
+          "row_key": "coeff_br_lf[28]",
+          "symbol": 3,
+          "tx_index": 0,
+          "x": 16,
+          "y": 0
+        },
+        {
+          "cdf_after": [
+            13193,
+            0,
+            2,
+            3,
+            4,
+            5
+          ],
+          "cdf_before": [
+            12562,
+            0,
+            1,
+            3,
+            4,
+            5
+          ],
+          "context": 2,
+          "leaf_index": 1,
+          "name": "dc_sign",
+          "row": 26,
+          "row_key": "dc_sign[26]",
+          "symbol": 1,
+          "tx_index": 0,
+          "x": 16,
+          "y": 0
+        },
+        {
+          "adaptive": false,
+          "coeff_rem": 3,
+          "coeff_rem_width": 2,
+          "golomb_length_bits": "1",
+          "leaf_index": 1,
+          "name": "coeff_remainder",
+          "q_length_bits": "00000",
+          "tx_index": 0,
+          "value": 13,
+          "x": 16,
+          "y": 0
+        },
+        {
+          "cdf_after": [
+            3028,
+            0,
+            2,
+            1,
+            2,
+            4
+          ],
+          "cdf_before": [
+            3460,
+            0,
+            1,
+            1,
+            2,
+            4
+          ],
+          "context": 5,
+          "leaf_index": 1,
+          "name": "txb_skip",
+          "row": 215,
+          "row_key": "txb_skip[215]",
+          "symbol": 0,
+          "tx_index": 1,
+          "x": 16,
+          "y": 8
+        },
+        {
+          "cdf_after": [
+            20876,
+            20051,
+            17519,
+            13374,
+            7574,
+            3481,
+            0,
+            6,
+            2,
+            3,
+            4
+          ],
+          "cdf_before": [
+            22267,
+            21387,
+            18686,
+            14265,
+            8078,
+            3713,
+            0,
+            5,
+            2,
+            3,
+            4
+          ],
+          "context": 0,
+          "leaf_index": 1,
+          "name": "eob_pt_64",
+          "row": 6,
+          "row_key": "eob_pt_64[6]",
+          "symbol": 0,
+          "tx_index": 1,
+          "x": 16,
+          "y": 8
+        },
+        {
+          "adaptive": false,
+          "detail": "DC intra with eob=1: DCT_DCT, no transform-type symbol",
+          "leaf_index": 1,
+          "name": "primary_tx_type",
+          "tx_index": 1,
+          "x": 16,
+          "y": 8
+        },
+        {
+          "cdf_after": [
+            8528,
+            6076,
+            5805,
+            5726,
+            0,
+            6,
+            3,
+            4,
+            5
+          ],
+          "cdf_before": [
+            7747,
+            5215,
+            4936,
+            4854,
+            0,
+            5,
+            3,
+            4,
+            5
+          ],
+          "context": 0,
+          "leaf_index": 1,
+          "name": "coeff_base_lf_eob",
+          "row": 44,
+          "row_key": "coeff_base_lf_eob[44]",
+          "symbol": 4,
+          "tx_index": 1,
+          "x": 16,
+          "y": 8
+        },
+        {
+          "cdf_after": [
+            23723,
+            18452,
+            12935,
+            0,
+            6,
+            2,
+            2,
+            3
+          ],
+          "cdf_before": [
+            23121,
+            17498,
+            11613,
+            0,
+            5,
+            2,
+            2,
+            3
+          ],
+          "context": 0,
+          "leaf_index": 1,
+          "name": "coeff_br_lf",
+          "row": 28,
+          "row_key": "coeff_br_lf[28]",
+          "symbol": 3,
+          "tx_index": 1,
+          "x": 16,
+          "y": 8
+        },
+        {
+          "cdf_after": [
+            16274,
+            0,
+            2,
+            3,
+            3,
+            4
+          ],
+          "cdf_before": [
+            15742,
+            0,
+            1,
+            3,
+            3,
+            4
+          ],
+          "context": 0,
+          "leaf_index": 1,
+          "name": "dc_sign",
+          "row": 24,
+          "row_key": "dc_sign[24]",
+          "symbol": 1,
+          "tx_index": 1,
+          "x": 16,
+          "y": 8
+        },
+        {
+          "adaptive": false,
+          "coeff_rem": 1,
+          "coeff_rem_width": 1,
+          "golomb_length_bits": "",
+          "leaf_index": 1,
+          "name": "coeff_remainder",
+          "q_length_bits": "1",
+          "tx_index": 1,
+          "value": 1,
+          "x": 16,
+          "y": 8
+        },
+        {
+          "cdf_after": [
+            14917,
+            0,
+            4,
+            2,
+            2,
+            3
+          ],
+          "cdf_before": [
+            15911,
+            0,
+            3,
+            2,
+            2,
+            3
+          ],
+          "context": 3,
+          "leaf_index": 2,
+          "name": "txb_skip",
+          "row": 213,
+          "row_key": "txb_skip[213]",
+          "symbol": 0,
+          "tx_index": 0,
+          "x": 0,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            19572,
+            18798,
+            16425,
+            12539,
+            7101,
+            3264,
+            0,
+            7,
+            2,
+            3,
+            4
+          ],
+          "cdf_before": [
+            20876,
+            20051,
+            17519,
+            13374,
+            7574,
+            3481,
+            0,
+            6,
+            2,
+            3,
+            4
+          ],
+          "context": 0,
+          "leaf_index": 2,
+          "name": "eob_pt_64",
+          "row": 6,
+          "row_key": "eob_pt_64[6]",
+          "symbol": 0,
+          "tx_index": 0,
+          "x": 0,
+          "y": 16
+        },
+        {
+          "adaptive": false,
+          "detail": "DC intra with eob=1: DCT_DCT, no transform-type symbol",
+          "leaf_index": 2,
+          "name": "primary_tx_type",
+          "tx_index": 0,
+          "x": 0,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            9285,
+            6910,
+            6647,
+            6571,
+            0,
+            7,
+            3,
+            4,
+            5
+          ],
+          "cdf_before": [
+            8528,
+            6076,
+            5805,
+            5726,
+            0,
+            6,
+            3,
+            4,
+            5
+          ],
+          "context": 0,
+          "leaf_index": 2,
+          "name": "coeff_base_lf_eob",
+          "row": 44,
+          "row_key": "coeff_base_lf_eob[44]",
+          "symbol": 4,
+          "tx_index": 0,
+          "x": 0,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            24288,
+            19346,
+            12127,
+            0,
+            7,
+            2,
+            2,
+            3
+          ],
+          "cdf_before": [
+            23723,
+            18452,
+            12935,
+            0,
+            6,
+            2,
+            2,
+            3
+          ],
+          "context": 0,
+          "leaf_index": 2,
+          "name": "coeff_br_lf",
+          "row": 28,
+          "row_key": "coeff_br_lf[28]",
+          "symbol": 2,
+          "tx_index": 0,
+          "x": 0,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            13804,
+            0,
+            3,
+            3,
+            4,
+            5
+          ],
+          "cdf_before": [
+            13193,
+            0,
+            2,
+            3,
+            4,
+            5
+          ],
+          "context": 2,
+          "leaf_index": 2,
+          "name": "dc_sign",
+          "row": 26,
+          "row_key": "dc_sign[26]",
+          "symbol": 1,
+          "tx_index": 0,
+          "x": 0,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            2650,
+            0,
+            3,
+            1,
+            2,
+            4
+          ],
+          "cdf_before": [
+            3028,
+            0,
+            2,
+            1,
+            2,
+            4
+          ],
+          "context": 5,
+          "leaf_index": 2,
+          "name": "txb_skip",
+          "row": 215,
+          "row_key": "txb_skip[215]",
+          "symbol": 0,
+          "tx_index": 1,
+          "x": 8,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            18349,
+            17624,
+            15399,
+            11756,
+            6658,
+            3060,
+            0,
+            8,
+            2,
+            3,
+            4
+          ],
+          "cdf_before": [
+            19572,
+            18798,
+            16425,
+            12539,
+            7101,
+            3264,
+            0,
+            7,
+            2,
+            3,
+            4
+          ],
+          "context": 0,
+          "leaf_index": 2,
+          "name": "eob_pt_64",
+          "row": 6,
+          "row_key": "eob_pt_64[6]",
+          "symbol": 0,
+          "tx_index": 1,
+          "x": 8,
+          "y": 16
+        },
+        {
+          "adaptive": false,
+          "detail": "DC intra with eob=1: DCT_DCT, no transform-type symbol",
+          "leaf_index": 2,
+          "name": "primary_tx_type",
+          "tx_index": 1,
+          "x": 8,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            10018,
+            7718,
+            7463,
+            7389,
+            0,
+            8,
+            3,
+            4,
+            5
+          ],
+          "cdf_before": [
+            9285,
+            6910,
+            6647,
+            6571,
+            0,
+            7,
+            3,
+            4,
+            5
+          ],
+          "context": 0,
+          "leaf_index": 2,
+          "name": "coeff_base_lf_eob",
+          "row": 44,
+          "row_key": "coeff_base_lf_eob[44]",
+          "symbol": 4,
+          "tx_index": 1,
+          "x": 8,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            22770,
+            18137,
+            11370,
+            0,
+            8,
+            2,
+            2,
+            3
+          ],
+          "cdf_before": [
+            24288,
+            19346,
+            12127,
+            0,
+            7,
+            2,
+            2,
+            3
+          ],
+          "context": 0,
+          "leaf_index": 2,
+          "name": "coeff_br_lf",
+          "row": 28,
+          "row_key": "coeff_br_lf[28]",
+          "symbol": 0,
+          "tx_index": 1,
+          "x": 8,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            15766,
+            0,
+            3,
+            3,
+            3,
+            4
+          ],
+          "cdf_before": [
+            16274,
+            0,
+            2,
+            3,
+            3,
+            4
+          ],
+          "context": 0,
+          "leaf_index": 2,
+          "name": "dc_sign",
+          "row": 24,
+          "row_key": "dc_sign[24]",
+          "symbol": 0,
+          "tx_index": 1,
+          "x": 8,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            2314,
+            0,
+            1,
+            2,
+            3,
+            4
+          ],
+          "cdf_before": [
+            2468,
+            0,
+            0,
+            2,
+            3,
+            4
+          ],
+          "context": 0,
+          "leaf_index": 3,
+          "name": "txb_skip",
+          "row": 210,
+          "row_key": "txb_skip[210]",
+          "symbol": 0,
+          "tx_index": 0,
+          "x": 16,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            17203,
+            16523,
+            14437,
+            11022,
+            6242,
+            2869,
+            0,
+            9,
+            2,
+            3,
+            4
+          ],
+          "cdf_before": [
+            18349,
+            17624,
+            15399,
+            11756,
+            6658,
+            3060,
+            0,
+            8,
+            2,
+            3,
+            4
+          ],
+          "context": 0,
+          "leaf_index": 3,
+          "name": "eob_pt_64",
+          "row": 6,
+          "row_key": "eob_pt_64[6]",
+          "symbol": 0,
+          "tx_index": 0,
+          "x": 16,
+          "y": 16
+        },
+        {
+          "adaptive": false,
+          "detail": "DC intra with eob=1: DCT_DCT, no transform-type symbol",
+          "leaf_index": 3,
+          "name": "primary_tx_type",
+          "tx_index": 0,
+          "x": 16,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            10728,
+            8500,
+            8253,
+            8182,
+            0,
+            9,
+            3,
+            4,
+            5
+          ],
+          "cdf_before": [
+            10018,
+            7718,
+            7463,
+            7389,
+            0,
+            8,
+            3,
+            4,
+            5
+          ],
+          "context": 0,
+          "leaf_index": 3,
+          "name": "coeff_base_lf_eob",
+          "row": 44,
+          "row_key": "coeff_base_lf_eob[44]",
+          "symbol": 4,
+          "tx_index": 0,
+          "x": 16,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            23394,
+            19051,
+            12707,
+            0,
+            9,
+            2,
+            2,
+            3
+          ],
+          "cdf_before": [
+            22770,
+            18137,
+            11370,
+            0,
+            8,
+            2,
+            2,
+            3
+          ],
+          "context": 0,
+          "leaf_index": 3,
+          "name": "coeff_br_lf",
+          "row": 28,
+          "row_key": "coeff_br_lf[28]",
+          "symbol": 3,
+          "tx_index": 0,
+          "x": 16,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            16297,
+            0,
+            4,
+            3,
+            3,
+            4
+          ],
+          "cdf_before": [
+            15766,
+            0,
+            3,
+            3,
+            3,
+            4
+          ],
+          "context": 0,
+          "leaf_index": 3,
+          "name": "dc_sign",
+          "row": 24,
+          "row_key": "dc_sign[24]",
+          "symbol": 1,
+          "tx_index": 0,
+          "x": 16,
+          "y": 16
+        },
+        {
+          "adaptive": false,
+          "coeff_rem": 0,
+          "coeff_rem_width": 1,
+          "golomb_length_bits": "",
+          "leaf_index": 3,
+          "name": "coeff_remainder",
+          "q_length_bits": "0001",
+          "tx_index": 0,
+          "value": 6,
+          "x": 16,
+          "y": 16
+        }
+      ],
+      "leaves": [
+        {
+          "height": 16,
+          "leaf_index": 1,
+          "width": 8,
+          "x": 16,
+          "y": 0
+        },
+        {
+          "height": 8,
+          "leaf_index": 2,
+          "width": 16,
+          "x": 0,
+          "y": 16
+        },
+        {
+          "height": 8,
+          "leaf_index": 3,
+          "width": 8,
+          "x": 16,
+          "y": 16
+        }
+      ],
+      "profile": "alternating-8x8-dc",
+      "q_context": 2,
+      "qindex": 141,
+      "reconstruction_sha256": "16e19986a3cfe489366f731b609d0afc31c39449b22174ba43f3c81d5e1ae253",
+      "source_sha256": "94f2c65a1e0959306f3d8b79d0c61c4681d76ea1fa903c231134ee2526d92980",
+      "transforms": [
+        {
+          "cul_level": 15,
+          "dc_sign_context": 2,
+          "leaf_index": 1,
+          "level": -21,
+          "prediction": 160,
+          "prediction_block_height": 16,
+          "prediction_block_width": 8,
+          "reconstruction": 66,
+          "tx_index": 0,
+          "txb_skip_context": 3,
+          "x": 16,
+          "y": 0
+        },
+        {
+          "cul_level": 15,
+          "dc_sign_context": 0,
+          "leaf_index": 1,
+          "level": -9,
+          "prediction": 136,
+          "prediction_block_height": 16,
+          "prediction_block_width": 8,
+          "reconstruction": 96,
+          "tx_index": 1,
+          "txb_skip_context": 5,
+          "x": 16,
+          "y": 8
+        },
+        {
+          "cul_level": 15,
+          "dc_sign_context": 2,
+          "leaf_index": 2,
+          "level": -7,
+          "prediction": 97,
+          "prediction_block_height": 8,
+          "prediction_block_width": 16,
+          "reconstruction": 66,
+          "tx_index": 0,
+          "txb_skip_context": 3,
+          "x": 0,
+          "y": 16
+        },
+        {
+          "cul_level": 21,
+          "dc_sign_context": 0,
+          "leaf_index": 2,
+          "level": 5,
+          "prediction": 136,
+          "prediction_block_height": 8,
+          "prediction_block_width": 16,
+          "reconstruction": 159,
+          "tx_index": 1,
+          "txb_skip_context": 5,
+          "x": 8,
+          "y": 16
+        },
+        {
+          "cul_level": 15,
+          "dc_sign_context": 0,
+          "leaf_index": 3,
+          "level": -14,
+          "prediction": 128,
+          "prediction_block_height": 8,
+          "prediction_block_width": 8,
+          "reconstruction": 65,
+          "tx_index": 0,
+          "txb_skip_context": 0,
+          "x": 16,
+          "y": 16
+        }
+      ]
+    },
+    {
+      "edge_event_count": 26,
+      "edge_leaf_count": 3,
+      "edge_transform_count": 5,
+      "events": [
+        {
+          "cdf_after": [
+            18603,
+            0,
+            3,
+            2,
+            3,
+            4
+          ],
+          "cdf_before": [
+            19843,
+            0,
+            2,
+            2,
+            3,
+            4
+          ],
+          "context": 3,
+          "leaf_index": 1,
+          "name": "txb_skip",
+          "row": 313,
+          "row_key": "txb_skip[313]",
+          "symbol": 0,
+          "tx_index": 0,
+          "x": 16,
+          "y": 0
+        },
+        {
+          "cdf_after": [
+            21006,
+            19146,
+            14071,
+            8647,
+            2854,
+            349,
+            0,
+            5,
+            2,
+            3,
+            4
+          ],
+          "cdf_before": [
+            22406,
+            20422,
+            15009,
+            9223,
+            3044,
+            372,
+            0,
+            4,
+            2,
+            3,
+            4
+          ],
+          "context": 0,
+          "leaf_index": 1,
+          "name": "eob_pt_64",
+          "row": 9,
+          "row_key": "eob_pt_64[9]",
+          "symbol": 0,
+          "tx_index": 0,
+          "x": 16,
+          "y": 0
+        },
+        {
+          "adaptive": false,
+          "detail": "DC intra with eob=1: DCT_DCT, no transform-type symbol",
+          "leaf_index": 1,
+          "name": "primary_tx_type",
+          "tx_index": 0,
+          "x": 16,
+          "y": 0
+        },
+        {
+          "cdf_after": [
+            5109,
+            4017,
+            2993,
+            1981,
+            0,
+            5,
+            3,
+            4,
+            4
+          ],
+          "cdf_before": [
+            4217,
+            3090,
+            2033,
+            988,
+            0,
+            4,
+            3,
+            4,
+            4
+          ],
+          "context": 0,
+          "leaf_index": 1,
+          "name": "coeff_base_lf_eob",
+          "row": 64,
+          "row_key": "coeff_base_lf_eob[64]",
+          "symbol": 4,
+          "tx_index": 0,
+          "x": 16,
+          "y": 0
+        },
+        {
+          "cdf_after": [
+            14397,
+            9027,
+            4786,
+            0,
+            2,
+            1,
+            2,
+            3
+          ],
+          "cdf_before": [
+            16453,
+            10316,
+            5469,
+            0,
+            1,
+            1,
+            2,
+            3
+          ],
+          "context": 0,
+          "leaf_index": 1,
+          "name": "coeff_br_lf",
+          "row": 42,
+          "row_key": "coeff_br_lf[42]",
+          "symbol": 0,
+          "tx_index": 0,
+          "x": 16,
+          "y": 0
+        },
+        {
+          "cdf_after": [
+            12494,
+            0,
+            2,
+            3,
+            4,
+            5
+          ],
+          "cdf_before": [
+            11840,
+            0,
+            1,
+            3,
+            4,
+            5
+          ],
+          "context": 2,
+          "leaf_index": 1,
+          "name": "dc_sign",
+          "row": 38,
+          "row_key": "dc_sign[38]",
+          "symbol": 1,
+          "tx_index": 0,
+          "x": 16,
+          "y": 0
+        },
+        {
+          "cdf_after": [
+            9207,
+            0,
+            1,
+            1,
+            2,
+            3
+          ],
+          "cdf_before": [
+            10522,
+            0,
+            0,
+            1,
+            2,
+            3
+          ],
+          "context": 5,
+          "leaf_index": 1,
+          "name": "txb_skip",
+          "row": 315,
+          "row_key": "txb_skip[315]",
+          "symbol": 0,
+          "tx_index": 1,
+          "x": 16,
+          "y": 8
+        },
+        {
+          "cdf_after": [
+            19694,
+            17950,
+            13192,
+            8107,
+            2676,
+            328,
+            0,
+            6,
+            2,
+            3,
+            4
+          ],
+          "cdf_before": [
+            21006,
+            19146,
+            14071,
+            8647,
+            2854,
+            349,
+            0,
+            5,
+            2,
+            3,
+            4
+          ],
+          "context": 0,
+          "leaf_index": 1,
+          "name": "eob_pt_64",
+          "row": 9,
+          "row_key": "eob_pt_64[9]",
+          "symbol": 0,
+          "tx_index": 1,
+          "x": 16,
+          "y": 8
+        },
+        {
+          "adaptive": false,
+          "detail": "DC intra with eob=1: DCT_DCT, no transform-type symbol",
+          "leaf_index": 1,
+          "name": "primary_tx_type",
+          "tx_index": 1,
+          "x": 16,
+          "y": 8
+        },
+        {
+          "cdf_after": [
+            5973,
+            3892,
+            2900,
+            1920,
+            0,
+            6,
+            3,
+            4,
+            4
+          ],
+          "cdf_before": [
+            5109,
+            4017,
+            2993,
+            1981,
+            0,
+            5,
+            3,
+            4,
+            4
+          ],
+          "context": 0,
+          "leaf_index": 1,
+          "name": "coeff_base_lf_eob",
+          "row": 64,
+          "row_key": "coeff_base_lf_eob[64]",
+          "symbol": 1,
+          "tx_index": 1,
+          "x": 16,
+          "y": 8
+        },
+        {
+          "cdf_after": [
+            15094,
+            0,
+            2,
+            2,
+            3,
+            3
+          ],
+          "cdf_before": [
+            13916,
+            0,
+            1,
+            2,
+            3,
+            3
+          ],
+          "context": 0,
+          "leaf_index": 1,
+          "name": "dc_sign",
+          "row": 36,
+          "row_key": "dc_sign[36]",
+          "symbol": 1,
+          "tx_index": 1,
+          "x": 16,
+          "y": 8
+        },
+        {
+          "cdf_after": [
+            26722,
+            0,
+            1,
+            3,
+            4,
+            4
+          ],
+          "cdf_before": [
+            27583,
+            0,
+            0,
+            3,
+            4,
+            4
+          ],
+          "context": 2,
+          "leaf_index": 2,
+          "name": "txb_skip",
+          "row": 312,
+          "row_key": "txb_skip[312]",
+          "symbol": 0,
+          "tx_index": 0,
+          "x": 0,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            18464,
+            16829,
+            12368,
+            7601,
+            2509,
+            308,
+            0,
+            7,
+            2,
+            3,
+            4
+          ],
+          "cdf_before": [
+            19694,
+            17950,
+            13192,
+            8107,
+            2676,
+            328,
+            0,
+            6,
+            2,
+            3,
+            4
+          ],
+          "context": 0,
+          "leaf_index": 2,
+          "name": "eob_pt_64",
+          "row": 9,
+          "row_key": "eob_pt_64[9]",
+          "symbol": 0,
+          "tx_index": 0,
+          "x": 0,
+          "y": 16
+        },
+        {
+          "adaptive": false,
+          "detail": "DC intra with eob=1: DCT_DCT, no transform-type symbol",
+          "leaf_index": 2,
+          "name": "primary_tx_type",
+          "tx_index": 0,
+          "x": 0,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            5787,
+            3771,
+            2810,
+            1860,
+            0,
+            7,
+            3,
+            4,
+            4
+          ],
+          "cdf_before": [
+            5973,
+            3892,
+            2900,
+            1920,
+            0,
+            6,
+            3,
+            4,
+            4
+          ],
+          "context": 0,
+          "leaf_index": 2,
+          "name": "coeff_base_lf_eob",
+          "row": 64,
+          "row_key": "coeff_base_lf_eob[64]",
+          "symbol": 0,
+          "tx_index": 0,
+          "x": 0,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            13127,
+            0,
+            3,
+            3,
+            4,
+            5
+          ],
+          "cdf_before": [
+            12494,
+            0,
+            2,
+            3,
+            4,
+            5
+          ],
+          "context": 2,
+          "leaf_index": 2,
+          "name": "dc_sign",
+          "row": 38,
+          "row_key": "dc_sign[38]",
+          "symbol": 1,
+          "tx_index": 0,
+          "x": 0,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            17278,
+            0,
+            2,
+            2,
+            3,
+            3
+          ],
+          "cdf_before": [
+            18429,
+            0,
+            1,
+            2,
+            3,
+            3
+          ],
+          "context": 4,
+          "leaf_index": 2,
+          "name": "txb_skip",
+          "row": 314,
+          "row_key": "txb_skip[314]",
+          "symbol": 0,
+          "tx_index": 1,
+          "x": 8,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            17310,
+            15778,
+            11595,
+            7126,
+            2353,
+            289,
+            0,
+            8,
+            2,
+            3,
+            4
+          ],
+          "cdf_before": [
+            18464,
+            16829,
+            12368,
+            7601,
+            2509,
+            308,
+            0,
+            7,
+            2,
+            3,
+            4
+          ],
+          "context": 0,
+          "leaf_index": 2,
+          "name": "eob_pt_64",
+          "row": 9,
+          "row_key": "eob_pt_64[9]",
+          "symbol": 0,
+          "tx_index": 1,
+          "x": 8,
+          "y": 16
+        },
+        {
+          "adaptive": false,
+          "detail": "DC intra with eob=1: DCT_DCT, no transform-type symbol",
+          "leaf_index": 2,
+          "name": "primary_tx_type",
+          "tx_index": 1,
+          "x": 8,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            5607,
+            3654,
+            2723,
+            1802,
+            0,
+            8,
+            3,
+            4,
+            4
+          ],
+          "cdf_before": [
+            5787,
+            3771,
+            2810,
+            1860,
+            0,
+            7,
+            3,
+            4,
+            4
+          ],
+          "context": 0,
+          "leaf_index": 2,
+          "name": "coeff_base_lf_eob",
+          "row": 64,
+          "row_key": "coeff_base_lf_eob[64]",
+          "symbol": 0,
+          "tx_index": 1,
+          "x": 8,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            14151,
+            0,
+            3,
+            2,
+            3,
+            3
+          ],
+          "cdf_before": [
+            15094,
+            0,
+            2,
+            2,
+            3,
+            3
+          ],
+          "context": 0,
+          "leaf_index": 2,
+          "name": "dc_sign",
+          "row": 36,
+          "row_key": "dc_sign[36]",
+          "symbol": 0,
+          "tx_index": 1,
+          "x": 8,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            4919,
+            0,
+            1,
+            2,
+            3,
+            4
+          ],
+          "cdf_before": [
+            5246,
+            0,
+            0,
+            2,
+            3,
+            4
+          ],
+          "context": 0,
+          "leaf_index": 3,
+          "name": "txb_skip",
+          "row": 310,
+          "row_key": "txb_skip[310]",
+          "symbol": 0,
+          "tx_index": 0,
+          "x": 16,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            16229,
+            14792,
+            10871,
+            6681,
+            2206,
+            271,
+            0,
+            9,
+            2,
+            3,
+            4
+          ],
+          "cdf_before": [
+            17310,
+            15778,
+            11595,
+            7126,
+            2353,
+            289,
+            0,
+            8,
+            2,
+            3,
+            4
+          ],
+          "context": 0,
+          "leaf_index": 3,
+          "name": "eob_pt_64",
+          "row": 9,
+          "row_key": "eob_pt_64[9]",
+          "symbol": 0,
+          "tx_index": 0,
+          "x": 16,
+          "y": 16
+        },
+        {
+          "adaptive": false,
+          "detail": "DC intra with eob=1: DCT_DCT, no transform-type symbol",
+          "leaf_index": 3,
+          "name": "primary_tx_type",
+          "tx_index": 0,
+          "x": 16,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            6455,
+            4563,
+            2638,
+            1746,
+            0,
+            9,
+            3,
+            4,
+            4
+          ],
+          "cdf_before": [
+            5607,
+            3654,
+            2723,
+            1802,
+            0,
+            8,
+            3,
+            4,
+            4
+          ],
+          "context": 0,
+          "leaf_index": 3,
+          "name": "coeff_base_lf_eob",
+          "row": 64,
+          "row_key": "coeff_base_lf_eob[64]",
+          "symbol": 2,
+          "tx_index": 0,
+          "x": 16,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            15314,
+            0,
+            4,
+            2,
+            3,
+            3
+          ],
+          "cdf_before": [
+            14151,
+            0,
+            3,
+            2,
+            3,
+            3
+          ],
+          "context": 0,
+          "leaf_index": 3,
+          "name": "dc_sign",
+          "row": 36,
+          "row_key": "dc_sign[36]",
+          "symbol": 1,
+          "tx_index": 0,
+          "x": 16,
+          "y": 16
+        }
+      ],
+      "leaves": [
+        {
+          "height": 16,
+          "leaf_index": 1,
+          "width": 8,
+          "x": 16,
+          "y": 0
+        },
+        {
+          "height": 8,
+          "leaf_index": 2,
+          "width": 16,
+          "x": 0,
+          "y": 16
+        },
+        {
+          "height": 8,
+          "leaf_index": 3,
+          "width": 8,
+          "x": 16,
+          "y": 16
+        }
+      ],
+      "profile": "alternating-8x8-dc",
+      "q_context": 3,
+      "qindex": 191,
+      "reconstruction_sha256": "d401fcd98cf4a62c903f913f9811b3518f87d948598c2af02a25001dfbe2c713",
+      "source_sha256": "94f2c65a1e0959306f3d8b79d0c61c4681d76ea1fa903c231134ee2526d92980",
+      "transforms": [
+        {
+          "cul_level": 13,
+          "dc_sign_context": 2,
+          "leaf_index": 1,
+          "level": -5,
+          "prediction": 166,
+          "prediction_block_height": 16,
+          "prediction_block_width": 8,
+          "reconstruction": 71,
+          "tx_index": 0,
+          "txb_skip_context": 3,
+          "x": 16,
+          "y": 0
+        },
+        {
+          "cul_level": 10,
+          "dc_sign_context": 0,
+          "leaf_index": 1,
+          "level": -2,
+          "prediction": 138,
+          "prediction_block_height": 16,
+          "prediction_block_width": 8,
+          "reconstruction": 100,
+          "tx_index": 1,
+          "txb_skip_context": 5,
+          "x": 16,
+          "y": 8
+        },
+        {
+          "cul_level": 9,
+          "dc_sign_context": 2,
+          "leaf_index": 2,
+          "level": -1,
+          "prediction": 90,
+          "prediction_block_height": 8,
+          "prediction_block_width": 16,
+          "reconstruction": 71,
+          "tx_index": 0,
+          "txb_skip_context": 2,
+          "x": 0,
+          "y": 16
+        },
+        {
+          "cul_level": 17,
+          "dc_sign_context": 0,
+          "leaf_index": 2,
+          "level": 1,
+          "prediction": 138,
+          "prediction_block_height": 8,
+          "prediction_block_width": 16,
+          "reconstruction": 157,
+          "tx_index": 1,
+          "txb_skip_context": 4,
+          "x": 8,
+          "y": 16
+        },
+        {
+          "cul_level": 11,
+          "dc_sign_context": 0,
+          "leaf_index": 3,
+          "level": -3,
+          "prediction": 129,
+          "prediction_block_height": 8,
+          "prediction_block_width": 8,
+          "reconstruction": 72,
+          "tx_index": 0,
+          "txb_skip_context": 0,
+          "x": 16,
+          "y": 16
+        }
+      ]
+    },
+    {
+      "edge_event_count": 19,
+      "edge_leaf_count": 3,
+      "edge_transform_count": 5,
+      "events": [
+        {
+          "cdf_after": [
+            24296,
+            0,
+            4,
+            3,
+            4,
+            4
+          ],
+          "cdf_before": [
+            25079,
+            0,
+            3,
+            3,
+            4,
+            4
+          ],
+          "context": 2,
+          "leaf_index": 1,
+          "name": "txb_skip",
+          "row": 312,
+          "row_key": "txb_skip[312]",
+          "symbol": 0,
+          "tx_index": 0,
+          "x": 16,
+          "y": 0
+        },
+        {
+          "cdf_after": [
+            21006,
+            19146,
+            14071,
+            8647,
+            2854,
+            349,
+            0,
+            5,
+            2,
+            3,
+            4
+          ],
+          "cdf_before": [
+            22406,
+            20422,
+            15009,
+            9223,
+            3044,
+            372,
+            0,
+            4,
+            2,
+            3,
+            4
+          ],
+          "context": 0,
+          "leaf_index": 1,
+          "name": "eob_pt_64",
+          "row": 9,
+          "row_key": "eob_pt_64[9]",
+          "symbol": 0,
+          "tx_index": 0,
+          "x": 16,
+          "y": 0
+        },
+        {
+          "adaptive": false,
+          "detail": "DC intra with eob=1: DCT_DCT, no transform-type symbol",
+          "leaf_index": 1,
+          "name": "primary_tx_type",
+          "tx_index": 0,
+          "x": 16,
+          "y": 0
+        },
+        {
+          "cdf_after": [
+            1264,
+            171,
+            49,
+            28,
+            0,
+            5,
+            3,
+            4,
+            4
+          ],
+          "cdf_before": [
+            1304,
+            176,
+            50,
+            28,
+            0,
+            4,
+            3,
+            4,
+            4
+          ],
+          "context": 0,
+          "leaf_index": 1,
+          "name": "coeff_base_lf_eob",
+          "row": 64,
+          "row_key": "coeff_base_lf_eob[64]",
+          "symbol": 0,
+          "tx_index": 0,
+          "x": 16,
+          "y": 0
+        },
+        {
+          "cdf_after": [
+            12494,
+            0,
+            2,
+            3,
+            4,
+            5
+          ],
+          "cdf_before": [
+            11840,
+            0,
+            1,
+            3,
+            4,
+            5
+          ],
+          "context": 2,
+          "leaf_index": 1,
+          "name": "dc_sign",
+          "row": 38,
+          "row_key": "dc_sign[38]",
+          "symbol": 1,
+          "tx_index": 0,
+          "x": 16,
+          "y": 0
+        },
+        {
+          "cdf_after": [
+            24560,
+            0,
+            5,
+            3,
+            4,
+            4
+          ],
+          "cdf_before": [
+            24296,
+            0,
+            4,
+            3,
+            4,
+            4
+          ],
+          "context": 2,
+          "leaf_index": 1,
+          "name": "txb_skip",
+          "row": 312,
+          "row_key": "txb_skip[312]",
+          "symbol": 1,
+          "tx_index": 1,
+          "x": 16,
+          "y": 8
+        },
+        {
+          "adaptive": false,
+          "detail": "all-zero transform: DCT_DCT and coefficient suffix omitted",
+          "leaf_index": 1,
+          "name": "primary_tx_type",
+          "tx_index": 1,
+          "x": 16,
+          "y": 8
+        },
+        {
+          "cdf_after": [
+            23793,
+            0,
+            6,
+            3,
+            4,
+            4
+          ],
+          "cdf_before": [
+            24560,
+            0,
+            5,
+            3,
+            4,
+            4
+          ],
+          "context": 2,
+          "leaf_index": 2,
+          "name": "txb_skip",
+          "row": 312,
+          "row_key": "txb_skip[312]",
+          "symbol": 0,
+          "tx_index": 0,
+          "x": 0,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            19694,
+            17950,
+            13192,
+            8107,
+            2676,
+            328,
+            0,
+            6,
+            2,
+            3,
+            4
+          ],
+          "cdf_before": [
+            21006,
+            19146,
+            14071,
+            8647,
+            2854,
+            349,
+            0,
+            5,
+            2,
+            3,
+            4
+          ],
+          "context": 0,
+          "leaf_index": 2,
+          "name": "eob_pt_64",
+          "row": 9,
+          "row_key": "eob_pt_64[9]",
+          "symbol": 0,
+          "tx_index": 0,
+          "x": 0,
+          "y": 16
+        },
+        {
+          "adaptive": false,
+          "detail": "DC intra with eob=1: DCT_DCT, no transform-type symbol",
+          "leaf_index": 2,
+          "name": "primary_tx_type",
+          "tx_index": 0,
+          "x": 0,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            1225,
+            166,
+            48,
+            28,
+            0,
+            6,
+            3,
+            4,
+            4
+          ],
+          "cdf_before": [
+            1264,
+            171,
+            49,
+            28,
+            0,
+            5,
+            3,
+            4,
+            4
+          ],
+          "context": 0,
+          "leaf_index": 2,
+          "name": "coeff_base_lf_eob",
+          "row": 64,
+          "row_key": "coeff_base_lf_eob[64]",
+          "symbol": 0,
+          "tx_index": 0,
+          "x": 0,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            13127,
+            0,
+            3,
+            3,
+            4,
+            5
+          ],
+          "cdf_before": [
+            12494,
+            0,
+            2,
+            3,
+            4,
+            5
+          ],
+          "context": 2,
+          "leaf_index": 2,
+          "name": "dc_sign",
+          "row": 38,
+          "row_key": "dc_sign[38]",
+          "symbol": 1,
+          "tx_index": 0,
+          "x": 0,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            24073,
+            0,
+            7,
+            3,
+            4,
+            4
+          ],
+          "cdf_before": [
+            23793,
+            0,
+            6,
+            3,
+            4,
+            4
+          ],
+          "context": 2,
+          "leaf_index": 2,
+          "name": "txb_skip",
+          "row": 312,
+          "row_key": "txb_skip[312]",
+          "symbol": 1,
+          "tx_index": 1,
+          "x": 8,
+          "y": 16
+        },
+        {
+          "adaptive": false,
+          "detail": "all-zero transform: DCT_DCT and coefficient suffix omitted",
+          "leaf_index": 2,
+          "name": "primary_tx_type",
+          "tx_index": 1,
+          "x": 8,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            4919,
+            0,
+            1,
+            2,
+            3,
+            4
+          ],
+          "cdf_before": [
+            5246,
+            0,
+            0,
+            2,
+            3,
+            4
+          ],
+          "context": 0,
+          "leaf_index": 3,
+          "name": "txb_skip",
+          "row": 310,
+          "row_key": "txb_skip[310]",
+          "symbol": 0,
+          "tx_index": 0,
+          "x": 16,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            18464,
+            16829,
+            12368,
+            7601,
+            2509,
+            308,
+            0,
+            7,
+            2,
+            3,
+            4
+          ],
+          "cdf_before": [
+            19694,
+            17950,
+            13192,
+            8107,
+            2676,
+            328,
+            0,
+            6,
+            2,
+            3,
+            4
+          ],
+          "context": 0,
+          "leaf_index": 3,
+          "name": "eob_pt_64",
+          "row": 9,
+          "row_key": "eob_pt_64[9]",
+          "symbol": 0,
+          "tx_index": 0,
+          "x": 16,
+          "y": 16
+        },
+        {
+          "adaptive": false,
+          "detail": "DC intra with eob=1: DCT_DCT, no transform-type symbol",
+          "leaf_index": 3,
+          "name": "primary_tx_type",
+          "tx_index": 0,
+          "x": 16,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            1187,
+            161,
+            47,
+            28,
+            0,
+            7,
+            3,
+            4,
+            4
+          ],
+          "cdf_before": [
+            1225,
+            166,
+            48,
+            28,
+            0,
+            6,
+            3,
+            4,
+            4
+          ],
+          "context": 0,
+          "leaf_index": 3,
+          "name": "coeff_base_lf_eob",
+          "row": 64,
+          "row_key": "coeff_base_lf_eob[64]",
+          "symbol": 0,
+          "tx_index": 0,
+          "x": 16,
+          "y": 16
+        },
+        {
+          "cdf_after": [
+            15094,
+            0,
+            2,
+            2,
+            3,
+            3
+          ],
+          "cdf_before": [
+            13916,
+            0,
+            1,
+            2,
+            3,
+            3
+          ],
+          "context": 0,
+          "leaf_index": 3,
+          "name": "dc_sign",
+          "row": 36,
+          "row_key": "dc_sign[36]",
+          "symbol": 1,
+          "tx_index": 0,
+          "x": 16,
+          "y": 16
+        }
+      ],
+      "leaves": [
+        {
+          "height": 16,
+          "leaf_index": 1,
+          "width": 8,
+          "x": 16,
+          "y": 0
+        },
+        {
+          "height": 8,
+          "leaf_index": 2,
+          "width": 16,
+          "x": 0,
+          "y": 16
+        },
+        {
+          "height": 8,
+          "leaf_index": 3,
+          "width": 8,
+          "x": 16,
+          "y": 16
+        }
+      ],
+      "profile": "alternating-8x8-dc",
+      "q_context": 3,
+      "qindex": 255,
+      "reconstruction_sha256": "abcdcd2b0a84b0d687cca7f84c8e4673fd7cac12973166c33775b8a69fc5bbf9",
+      "source_sha256": "94f2c65a1e0959306f3d8b79d0c61c4681d76ea1fa903c231134ee2526d92980",
+      "transforms": [
+        {
+          "cul_level": 9,
+          "dc_sign_context": 2,
+          "leaf_index": 1,
+          "level": -1,
+          "prediction": 128,
+          "prediction_block_height": 16,
+          "prediction_block_width": 8,
+          "reconstruction": 8,
+          "tx_index": 0,
+          "txb_skip_context": 2,
+          "x": 16,
+          "y": 0
+        },
+        {
+          "cul_level": 0,
+          "dc_sign_context": 0,
+          "leaf_index": 1,
+          "level": 0,
+          "prediction": 128,
+          "prediction_block_height": 16,
+          "prediction_block_width": 8,
+          "reconstruction": 128,
+          "tx_index": 1,
+          "txb_skip_context": 2,
+          "x": 16,
+          "y": 8
+        },
+        {
+          "cul_level": 9,
+          "dc_sign_context": 2,
+          "leaf_index": 2,
+          "level": -1,
+          "prediction": 128,
+          "prediction_block_height": 8,
+          "prediction_block_width": 16,
+          "reconstruction": 8,
+          "tx_index": 0,
+          "txb_skip_context": 2,
+          "x": 0,
+          "y": 16
+        },
+        {
+          "cul_level": 0,
+          "dc_sign_context": 0,
+          "leaf_index": 2,
+          "level": 0,
+          "prediction": 128,
+          "prediction_block_height": 8,
+          "prediction_block_width": 16,
+          "reconstruction": 128,
+          "tx_index": 1,
+          "txb_skip_context": 2,
+          "x": 8,
+          "y": 16
+        },
+        {
+          "cul_level": 9,
+          "dc_sign_context": 0,
+          "leaf_index": 3,
+          "level": -1,
+          "prediction": 128,
+          "prediction_block_height": 8,
+          "prediction_block_width": 8,
+          "reconstruction": 8,
+          "tx_index": 0,
+          "txb_skip_context": 0,
+          "x": 16,
+          "y": 16
+        }
+      ]
+    }
+  ],
+  "dimensions": "17x17",
+  "edge_shapes": [
+    "8x16",
+    "16x8",
+    "8x8"
+  ],
+  "normative_cdf_sha256": "53005e308e1182060f47abb15b276040e2dc494f1b5eb9307c3369b02eab50ac",
+  "profiles": [
+    "flat128",
+    "alternating-8x8-dc"
+  ],
+  "qindex_cases": [
+    1,
+    90,
+    91,
+    100,
+    141,
+    191,
+    255
+  ],
+  "schema": "av2-m3-edge-coeff-context-v1"
+}

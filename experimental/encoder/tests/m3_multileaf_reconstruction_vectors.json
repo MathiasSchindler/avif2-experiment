@@ -1,0 +1,2901 @@
+{
+  "cases": [
+    {
+      "active_squared_error": 1413051,
+      "coded_height": 24,
+      "coded_width": 24,
+      "context_trace_sha256": "bd37d59f3b1c1d42452a472fe704ed409662a81063f1e529dade7d4ac8138971",
+      "decoder_reconstruction_sha256": "bcfe5b02c2ab7d80610e11db01f66a00444cc52f40acfa683667edbf739c1d65",
+      "first_legacy_order_difference": 2,
+      "first_transforms": [
+        {
+          "all_zero_context": 1,
+          "dc_sign_context": 0,
+          "leaf": 0,
+          "level": -8,
+          "prediction": 128,
+          "reconstruction": 117,
+          "tx": 0,
+          "x": 0,
+          "y": 0
+        },
+        {
+          "all_zero_context": 3,
+          "dc_sign_context": 1,
+          "leaf": 0,
+          "level": 8,
+          "prediction": 117,
+          "reconstruction": 128,
+          "tx": 1,
+          "x": 8,
+          "y": 0
+        },
+        {
+          "all_zero_context": 3,
+          "dc_sign_context": 1,
+          "leaf": 0,
+          "level": 20,
+          "prediction": 117,
+          "reconstruction": 145,
+          "tx": 2,
+          "x": 0,
+          "y": 8
+        },
+        {
+          "all_zero_context": 5,
+          "dc_sign_context": 2,
+          "leaf": 0,
+          "level": -19,
+          "prediction": 137,
+          "reconstruction": 111,
+          "tx": 3,
+          "x": 8,
+          "y": 8
+        },
+        {
+          "all_zero_context": 3,
+          "dc_sign_context": 2,
+          "leaf": 1,
+          "level": 38,
+          "prediction": 128,
+          "reconstruction": 180,
+          "tx": 0,
+          "x": 16,
+          "y": 0
+        },
+        {
+          "all_zero_context": 5,
+          "dc_sign_context": 0,
+          "leaf": 1,
+          "level": -42,
+          "prediction": 146,
+          "reconstruction": 88,
+          "tx": 1,
+          "x": 16,
+          "y": 8
+        },
+        {
+          "all_zero_context": 3,
+          "dc_sign_context": 2,
+          "leaf": 2,
+          "level": -4,
+          "prediction": 145,
+          "reconstruction": 140,
+          "tx": 0,
+          "x": 0,
+          "y": 16
+        },
+        {
+          "all_zero_context": 5,
+          "dc_sign_context": 1,
+          "leaf": 2,
+          "level": 17,
+          "prediction": 126,
+          "reconstruction": 149,
+          "tx": 1,
+          "x": 8,
+          "y": 16
+        }
+      ],
+      "height": 17,
+      "leaf_order": [
+        [
+          0,
+          0
+        ],
+        [
+          16,
+          0
+        ],
+        [
+          0,
+          16
+        ],
+        [
+          16,
+          16
+        ]
+      ],
+      "legacy_local_decoder_exact": false,
+      "legacy_raster_matches_decoder_order": false,
+      "legacy_raster_reconstruction_sha256": "bcfe5b02c2ab7d80610e11db01f66a00444cc52f40acfa683667edbf739c1d65",
+      "legacy_raster_squared_error": 1413051,
+      "legacy_stream_decoder_sha256": "4f6731b1ba983f267c2de40ca6c96ac58d8635797f19ab5262285902c2e52656",
+      "legacy_stream_decoder_squared_error": 1799602,
+      "local_decoder_exact": true,
+      "local_reconstruction_sha256": "bcfe5b02c2ab7d80610e11db01f66a00444cc52f40acfa683667edbf739c1d65",
+      "padded_source_sha256": "be2a6698e5c855c07bfb8142acb86fe0876864d33c079dbca5c936219c975327",
+      "qindex": 100,
+      "source_sha256": "5c49496bbcb9e79c3b9bf8f0a3a3f654d01d3ad318a38b25ef4f9061fd4d7347",
+      "transform_count": 9,
+      "transform_order": [
+        [
+          0,
+          0
+        ],
+        [
+          8,
+          0
+        ],
+        [
+          0,
+          8
+        ],
+        [
+          8,
+          8
+        ],
+        [
+          16,
+          0
+        ],
+        [
+          16,
+          8
+        ],
+        [
+          0,
+          16
+        ],
+        [
+          8,
+          16
+        ],
+        [
+          16,
+          16
+        ]
+      ],
+      "width": 17
+    },
+    {
+      "active_squared_error": 5641910,
+      "coded_height": 64,
+      "coded_width": 24,
+      "context_trace_sha256": "640a33bb6ad058a802f890af451ba70cae3460bde843f55e6abdd6d0b4e6ae7f",
+      "decoder_reconstruction_sha256": "9b6dfba7f7d6f0e81b3b8b6ae4bda70ee007aed62204f9ce2b8881c149fe36f1",
+      "first_legacy_order_difference": 2,
+      "first_transforms": [
+        {
+          "all_zero_context": 1,
+          "dc_sign_context": 0,
+          "leaf": 0,
+          "level": -8,
+          "prediction": 128,
+          "reconstruction": 117,
+          "tx": 0,
+          "x": 0,
+          "y": 0
+        },
+        {
+          "all_zero_context": 3,
+          "dc_sign_context": 1,
+          "leaf": 0,
+          "level": 8,
+          "prediction": 117,
+          "reconstruction": 128,
+          "tx": 1,
+          "x": 8,
+          "y": 0
+        },
+        {
+          "all_zero_context": 3,
+          "dc_sign_context": 1,
+          "leaf": 0,
+          "level": 20,
+          "prediction": 117,
+          "reconstruction": 145,
+          "tx": 2,
+          "x": 0,
+          "y": 8
+        },
+        {
+          "all_zero_context": 5,
+          "dc_sign_context": 2,
+          "leaf": 0,
+          "level": -19,
+          "prediction": 137,
+          "reconstruction": 111,
+          "tx": 3,
+          "x": 8,
+          "y": 8
+        },
+        {
+          "all_zero_context": 3,
+          "dc_sign_context": 2,
+          "leaf": 1,
+          "level": 38,
+          "prediction": 128,
+          "reconstruction": 180,
+          "tx": 0,
+          "x": 16,
+          "y": 0
+        },
+        {
+          "all_zero_context": 5,
+          "dc_sign_context": 0,
+          "leaf": 1,
+          "level": -42,
+          "prediction": 146,
+          "reconstruction": 88,
+          "tx": 1,
+          "x": 16,
+          "y": 8
+        },
+        {
+          "all_zero_context": 3,
+          "dc_sign_context": 2,
+          "leaf": 2,
+          "level": -4,
+          "prediction": 145,
+          "reconstruction": 140,
+          "tx": 0,
+          "x": 0,
+          "y": 16
+        },
+        {
+          "all_zero_context": 5,
+          "dc_sign_context": 1,
+          "leaf": 2,
+          "level": 7,
+          "prediction": 126,
+          "reconstruction": 136,
+          "tx": 1,
+          "x": 8,
+          "y": 16
+        }
+      ],
+      "height": 64,
+      "leaf_order": [
+        [
+          0,
+          0
+        ],
+        [
+          16,
+          0
+        ],
+        [
+          0,
+          16
+        ],
+        [
+          16,
+          16
+        ],
+        [
+          0,
+          32
+        ],
+        [
+          16,
+          32
+        ],
+        [
+          0,
+          48
+        ],
+        [
+          16,
+          48
+        ]
+      ],
+      "legacy_local_decoder_exact": false,
+      "legacy_raster_matches_decoder_order": false,
+      "legacy_raster_reconstruction_sha256": "9b6dfba7f7d6f0e81b3b8b6ae4bda70ee007aed62204f9ce2b8881c149fe36f1",
+      "legacy_raster_squared_error": 5641910,
+      "legacy_stream_decoder_sha256": "44a50b010cfb022db7ee779f11fa97a8ea11367c1276e1838753b4963c3a2857",
+      "legacy_stream_decoder_squared_error": 7915990,
+      "local_decoder_exact": true,
+      "local_reconstruction_sha256": "9b6dfba7f7d6f0e81b3b8b6ae4bda70ee007aed62204f9ce2b8881c149fe36f1",
+      "padded_source_sha256": "52b2178481efeb2f5d72865feb09b01aeec325eacb7b8143e4f1abe3c2df3412",
+      "qindex": 100,
+      "source_sha256": "d865ba4cf09d21441f421160b636c8eee42f28885e1dde25f8f6e4b271c29a6e",
+      "transform_count": 24,
+      "transform_order": [
+        [
+          0,
+          0
+        ],
+        [
+          8,
+          0
+        ],
+        [
+          0,
+          8
+        ],
+        [
+          8,
+          8
+        ],
+        [
+          16,
+          0
+        ],
+        [
+          16,
+          8
+        ],
+        [
+          0,
+          16
+        ],
+        [
+          8,
+          16
+        ],
+        [
+          0,
+          24
+        ],
+        [
+          8,
+          24
+        ],
+        [
+          16,
+          16
+        ],
+        [
+          16,
+          24
+        ],
+        [
+          0,
+          32
+        ],
+        [
+          8,
+          32
+        ],
+        [
+          0,
+          40
+        ],
+        [
+          8,
+          40
+        ],
+        [
+          16,
+          32
+        ],
+        [
+          16,
+          40
+        ],
+        [
+          0,
+          48
+        ],
+        [
+          8,
+          48
+        ],
+        [
+          0,
+          56
+        ],
+        [
+          8,
+          56
+        ],
+        [
+          16,
+          48
+        ],
+        [
+          16,
+          56
+        ]
+      ],
+      "width": 17
+    },
+    {
+      "active_squared_error": 5330383,
+      "coded_height": 40,
+      "coded_width": 32,
+      "context_trace_sha256": "1419566577f6ee209e4eda6d0cb8258ead44b7077a0642391a13a3a5582b8e66",
+      "decoder_reconstruction_sha256": "580b7e6d5e79dbad24440d501e59c091c0dbcc03c7af5c3ab22d5445b00bb787",
+      "first_legacy_order_difference": 2,
+      "first_transforms": [
+        {
+          "all_zero_context": 1,
+          "dc_sign_context": 0,
+          "leaf": 0,
+          "level": -8,
+          "prediction": 128,
+          "reconstruction": 117,
+          "tx": 0,
+          "x": 0,
+          "y": 0
+        },
+        {
+          "all_zero_context": 3,
+          "dc_sign_context": 1,
+          "leaf": 0,
+          "level": 8,
+          "prediction": 117,
+          "reconstruction": 128,
+          "tx": 1,
+          "x": 8,
+          "y": 0
+        },
+        {
+          "all_zero_context": 3,
+          "dc_sign_context": 1,
+          "leaf": 0,
+          "level": 20,
+          "prediction": 117,
+          "reconstruction": 145,
+          "tx": 2,
+          "x": 0,
+          "y": 8
+        },
+        {
+          "all_zero_context": 5,
+          "dc_sign_context": 2,
+          "leaf": 0,
+          "level": -19,
+          "prediction": 137,
+          "reconstruction": 111,
+          "tx": 3,
+          "x": 8,
+          "y": 8
+        },
+        {
+          "all_zero_context": 3,
+          "dc_sign_context": 2,
+          "leaf": 1,
+          "level": 13,
+          "prediction": 128,
+          "reconstruction": 146,
+          "tx": 0,
+          "x": 16,
+          "y": 0
+        },
+        {
+          "all_zero_context": 3,
+          "dc_sign_context": 2,
+          "leaf": 1,
+          "level": -16,
+          "prediction": 146,
+          "reconstruction": 124,
+          "tx": 1,
+          "x": 24,
+          "y": 0
+        },
+        {
+          "all_zero_context": 5,
+          "dc_sign_context": 0,
+          "leaf": 1,
+          "level": -14,
+          "prediction": 129,
+          "reconstruction": 110,
+          "tx": 2,
+          "x": 16,
+          "y": 8
+        },
+        {
+          "all_zero_context": 5,
+          "dc_sign_context": 1,
+          "leaf": 1,
+          "level": 12,
+          "prediction": 117,
+          "reconstruction": 134,
+          "tx": 3,
+          "x": 24,
+          "y": 8
+        }
+      ],
+      "height": 33,
+      "leaf_order": [
+        [
+          0,
+          0
+        ],
+        [
+          16,
+          0
+        ],
+        [
+          0,
+          16
+        ],
+        [
+          16,
+          16
+        ],
+        [
+          0,
+          32
+        ],
+        [
+          16,
+          32
+        ]
+      ],
+      "legacy_local_decoder_exact": false,
+      "legacy_raster_matches_decoder_order": false,
+      "legacy_raster_reconstruction_sha256": "580b7e6d5e79dbad24440d501e59c091c0dbcc03c7af5c3ab22d5445b00bb787",
+      "legacy_raster_squared_error": 5330383,
+      "legacy_stream_decoder_sha256": "0ae5b9b158352a22028f9a130a0aaa6124bc5fb5505438cf1e8f044dc56d6d03",
+      "legacy_stream_decoder_squared_error": 5563274,
+      "local_decoder_exact": true,
+      "local_reconstruction_sha256": "580b7e6d5e79dbad24440d501e59c091c0dbcc03c7af5c3ab22d5445b00bb787",
+      "padded_source_sha256": "cc54d2ae24d8aabf449ec153c18d51aa90c9bdc83be092ddb58598baf9936175",
+      "qindex": 100,
+      "source_sha256": "b86429b213a7d3056c2bc080f4edc179ee347696e81a101321a75fe18ca16b06",
+      "transform_count": 20,
+      "transform_order": [
+        [
+          0,
+          0
+        ],
+        [
+          8,
+          0
+        ],
+        [
+          0,
+          8
+        ],
+        [
+          8,
+          8
+        ],
+        [
+          16,
+          0
+        ],
+        [
+          24,
+          0
+        ],
+        [
+          16,
+          8
+        ],
+        [
+          24,
+          8
+        ],
+        [
+          0,
+          16
+        ],
+        [
+          8,
+          16
+        ],
+        [
+          0,
+          24
+        ],
+        [
+          8,
+          24
+        ],
+        [
+          16,
+          16
+        ],
+        [
+          24,
+          16
+        ],
+        [
+          16,
+          24
+        ],
+        [
+          24,
+          24
+        ],
+        [
+          0,
+          32
+        ],
+        [
+          8,
+          32
+        ],
+        [
+          16,
+          32
+        ],
+        [
+          24,
+          32
+        ]
+      ],
+      "width": 31
+    },
+    {
+      "active_squared_error": 5376226,
+      "coded_height": 32,
+      "coded_width": 32,
+      "context_trace_sha256": "f6e456ab6277cc50c3583bcb041c9093685b8d6c319a4295f4266cb66d865060",
+      "decoder_reconstruction_sha256": "1306d7b934e428d5fd358093c74a76c3f0cce0ab37ff430b6010a60e21cf558a",
+      "first_legacy_order_difference": 2,
+      "first_transforms": [
+        {
+          "all_zero_context": 1,
+          "dc_sign_context": 0,
+          "leaf": 0,
+          "level": -8,
+          "prediction": 128,
+          "reconstruction": 117,
+          "tx": 0,
+          "x": 0,
+          "y": 0
+        },
+        {
+          "all_zero_context": 3,
+          "dc_sign_context": 1,
+          "leaf": 0,
+          "level": 8,
+          "prediction": 117,
+          "reconstruction": 128,
+          "tx": 1,
+          "x": 8,
+          "y": 0
+        },
+        {
+          "all_zero_context": 3,
+          "dc_sign_context": 1,
+          "leaf": 0,
+          "level": 20,
+          "prediction": 117,
+          "reconstruction": 145,
+          "tx": 2,
+          "x": 0,
+          "y": 8
+        },
+        {
+          "all_zero_context": 5,
+          "dc_sign_context": 2,
+          "leaf": 0,
+          "level": -19,
+          "prediction": 137,
+          "reconstruction": 111,
+          "tx": 3,
+          "x": 8,
+          "y": 8
+        },
+        {
+          "all_zero_context": 3,
+          "dc_sign_context": 2,
+          "leaf": 1,
+          "level": 13,
+          "prediction": 128,
+          "reconstruction": 146,
+          "tx": 0,
+          "x": 16,
+          "y": 0
+        },
+        {
+          "all_zero_context": 3,
+          "dc_sign_context": 2,
+          "leaf": 1,
+          "level": -18,
+          "prediction": 146,
+          "reconstruction": 121,
+          "tx": 1,
+          "x": 24,
+          "y": 0
+        },
+        {
+          "all_zero_context": 5,
+          "dc_sign_context": 0,
+          "leaf": 1,
+          "level": -14,
+          "prediction": 129,
+          "reconstruction": 110,
+          "tx": 2,
+          "x": 16,
+          "y": 8
+        },
+        {
+          "all_zero_context": 5,
+          "dc_sign_context": 1,
+          "leaf": 1,
+          "level": 14,
+          "prediction": 116,
+          "reconstruction": 135,
+          "tx": 3,
+          "x": 24,
+          "y": 8
+        }
+      ],
+      "height": 32,
+      "leaf_order": [
+        [
+          0,
+          0
+        ],
+        [
+          16,
+          0
+        ],
+        [
+          0,
+          16
+        ],
+        [
+          16,
+          16
+        ]
+      ],
+      "legacy_local_decoder_exact": false,
+      "legacy_raster_matches_decoder_order": false,
+      "legacy_raster_reconstruction_sha256": "1306d7b934e428d5fd358093c74a76c3f0cce0ab37ff430b6010a60e21cf558a",
+      "legacy_raster_squared_error": 5376226,
+      "legacy_stream_decoder_sha256": "1343f53812fd68789df1fcb6a9e573107d7aae542c526ea9d1e34b315c545351",
+      "legacy_stream_decoder_squared_error": 5609644,
+      "local_decoder_exact": true,
+      "local_reconstruction_sha256": "1306d7b934e428d5fd358093c74a76c3f0cce0ab37ff430b6010a60e21cf558a",
+      "padded_source_sha256": "3b077017dd59b9866e90b1b1d325ec104f3cfad8b43ac2ef76a1dddf1e7210cd",
+      "qindex": 100,
+      "source_sha256": "3b077017dd59b9866e90b1b1d325ec104f3cfad8b43ac2ef76a1dddf1e7210cd",
+      "transform_count": 16,
+      "transform_order": [
+        [
+          0,
+          0
+        ],
+        [
+          8,
+          0
+        ],
+        [
+          0,
+          8
+        ],
+        [
+          8,
+          8
+        ],
+        [
+          16,
+          0
+        ],
+        [
+          24,
+          0
+        ],
+        [
+          16,
+          8
+        ],
+        [
+          24,
+          8
+        ],
+        [
+          0,
+          16
+        ],
+        [
+          8,
+          16
+        ],
+        [
+          0,
+          24
+        ],
+        [
+          8,
+          24
+        ],
+        [
+          16,
+          16
+        ],
+        [
+          24,
+          16
+        ],
+        [
+          16,
+          24
+        ],
+        [
+          24,
+          24
+        ]
+      ],
+      "width": 32
+    },
+    {
+      "active_squared_error": 5341114,
+      "coded_height": 32,
+      "coded_width": 40,
+      "context_trace_sha256": "124a886fd16b15ae83527399552228033e803879fd984b1d6adf04e4ebbfa59e",
+      "decoder_reconstruction_sha256": "981aa4de48e5aeda4dd8cc4039476674274a72b83f7d30da6889107b3b4c977b",
+      "first_legacy_order_difference": 2,
+      "first_transforms": [
+        {
+          "all_zero_context": 1,
+          "dc_sign_context": 0,
+          "leaf": 0,
+          "level": -8,
+          "prediction": 128,
+          "reconstruction": 117,
+          "tx": 0,
+          "x": 0,
+          "y": 0
+        },
+        {
+          "all_zero_context": 3,
+          "dc_sign_context": 1,
+          "leaf": 0,
+          "level": 8,
+          "prediction": 117,
+          "reconstruction": 128,
+          "tx": 1,
+          "x": 8,
+          "y": 0
+        },
+        {
+          "all_zero_context": 3,
+          "dc_sign_context": 1,
+          "leaf": 0,
+          "level": 20,
+          "prediction": 117,
+          "reconstruction": 145,
+          "tx": 2,
+          "x": 0,
+          "y": 8
+        },
+        {
+          "all_zero_context": 5,
+          "dc_sign_context": 2,
+          "leaf": 0,
+          "level": -19,
+          "prediction": 137,
+          "reconstruction": 111,
+          "tx": 3,
+          "x": 8,
+          "y": 8
+        },
+        {
+          "all_zero_context": 3,
+          "dc_sign_context": 2,
+          "leaf": 1,
+          "level": 13,
+          "prediction": 128,
+          "reconstruction": 146,
+          "tx": 0,
+          "x": 16,
+          "y": 0
+        },
+        {
+          "all_zero_context": 3,
+          "dc_sign_context": 2,
+          "leaf": 1,
+          "level": -18,
+          "prediction": 146,
+          "reconstruction": 121,
+          "tx": 1,
+          "x": 24,
+          "y": 0
+        },
+        {
+          "all_zero_context": 5,
+          "dc_sign_context": 0,
+          "leaf": 1,
+          "level": -14,
+          "prediction": 129,
+          "reconstruction": 110,
+          "tx": 2,
+          "x": 16,
+          "y": 8
+        },
+        {
+          "all_zero_context": 5,
+          "dc_sign_context": 1,
+          "leaf": 1,
+          "level": 14,
+          "prediction": 116,
+          "reconstruction": 135,
+          "tx": 3,
+          "x": 24,
+          "y": 8
+        }
+      ],
+      "height": 31,
+      "leaf_order": [
+        [
+          0,
+          0
+        ],
+        [
+          16,
+          0
+        ],
+        [
+          0,
+          16
+        ],
+        [
+          16,
+          16
+        ],
+        [
+          32,
+          0
+        ],
+        [
+          32,
+          16
+        ]
+      ],
+      "legacy_local_decoder_exact": false,
+      "legacy_raster_matches_decoder_order": false,
+      "legacy_raster_reconstruction_sha256": "981aa4de48e5aeda4dd8cc4039476674274a72b83f7d30da6889107b3b4c977b",
+      "legacy_raster_squared_error": 5341114,
+      "legacy_stream_decoder_sha256": "3162aaa1c814ae021abf0fd305b26187283b872aeadfc453127cfbfeb8c0d55a",
+      "legacy_stream_decoder_squared_error": 6107973,
+      "local_decoder_exact": true,
+      "local_reconstruction_sha256": "981aa4de48e5aeda4dd8cc4039476674274a72b83f7d30da6889107b3b4c977b",
+      "padded_source_sha256": "e636f12a999bd3091c3cab97eea0282c7fd18aa6ffdfc7fdf03b3c9294c11548",
+      "qindex": 100,
+      "source_sha256": "2e5b61f282e33b7f71b6b456cde21c7977fadc31a96262bde872c3b7dc7a242d",
+      "transform_count": 20,
+      "transform_order": [
+        [
+          0,
+          0
+        ],
+        [
+          8,
+          0
+        ],
+        [
+          0,
+          8
+        ],
+        [
+          8,
+          8
+        ],
+        [
+          16,
+          0
+        ],
+        [
+          24,
+          0
+        ],
+        [
+          16,
+          8
+        ],
+        [
+          24,
+          8
+        ],
+        [
+          0,
+          16
+        ],
+        [
+          8,
+          16
+        ],
+        [
+          0,
+          24
+        ],
+        [
+          8,
+          24
+        ],
+        [
+          16,
+          16
+        ],
+        [
+          24,
+          16
+        ],
+        [
+          16,
+          24
+        ],
+        [
+          24,
+          24
+        ],
+        [
+          32,
+          0
+        ],
+        [
+          32,
+          8
+        ],
+        [
+          32,
+          16
+        ],
+        [
+          32,
+          24
+        ]
+      ],
+      "width": 33
+    },
+    {
+      "active_squared_error": 12114999,
+      "coded_height": 48,
+      "coded_width": 48,
+      "context_trace_sha256": "aecab77c968d4a852c424faac9dbd55c68b96c717716de3462780c67bff72541",
+      "decoder_reconstruction_sha256": "ad657986e602c250b6e17a118a13cd4ddde7e53b78c3014175714cc0e1590d65",
+      "first_legacy_order_difference": 2,
+      "first_transforms": [
+        {
+          "all_zero_context": 1,
+          "dc_sign_context": 0,
+          "leaf": 0,
+          "level": -8,
+          "prediction": 128,
+          "reconstruction": 117,
+          "tx": 0,
+          "x": 0,
+          "y": 0
+        },
+        {
+          "all_zero_context": 3,
+          "dc_sign_context": 1,
+          "leaf": 0,
+          "level": 8,
+          "prediction": 117,
+          "reconstruction": 128,
+          "tx": 1,
+          "x": 8,
+          "y": 0
+        },
+        {
+          "all_zero_context": 3,
+          "dc_sign_context": 1,
+          "leaf": 0,
+          "level": 20,
+          "prediction": 117,
+          "reconstruction": 145,
+          "tx": 2,
+          "x": 0,
+          "y": 8
+        },
+        {
+          "all_zero_context": 5,
+          "dc_sign_context": 2,
+          "leaf": 0,
+          "level": -19,
+          "prediction": 137,
+          "reconstruction": 111,
+          "tx": 3,
+          "x": 8,
+          "y": 8
+        },
+        {
+          "all_zero_context": 3,
+          "dc_sign_context": 2,
+          "leaf": 1,
+          "level": 13,
+          "prediction": 128,
+          "reconstruction": 146,
+          "tx": 0,
+          "x": 16,
+          "y": 0
+        },
+        {
+          "all_zero_context": 3,
+          "dc_sign_context": 2,
+          "leaf": 1,
+          "level": -18,
+          "prediction": 146,
+          "reconstruction": 121,
+          "tx": 1,
+          "x": 24,
+          "y": 0
+        },
+        {
+          "all_zero_context": 5,
+          "dc_sign_context": 0,
+          "leaf": 1,
+          "level": -14,
+          "prediction": 129,
+          "reconstruction": 110,
+          "tx": 2,
+          "x": 16,
+          "y": 8
+        },
+        {
+          "all_zero_context": 5,
+          "dc_sign_context": 1,
+          "leaf": 1,
+          "level": 14,
+          "prediction": 116,
+          "reconstruction": 135,
+          "tx": 3,
+          "x": 24,
+          "y": 8
+        }
+      ],
+      "height": 48,
+      "leaf_order": [
+        [
+          0,
+          0
+        ],
+        [
+          16,
+          0
+        ],
+        [
+          0,
+          16
+        ],
+        [
+          16,
+          16
+        ],
+        [
+          32,
+          0
+        ],
+        [
+          32,
+          16
+        ],
+        [
+          0,
+          32
+        ],
+        [
+          16,
+          32
+        ],
+        [
+          32,
+          32
+        ]
+      ],
+      "legacy_local_decoder_exact": false,
+      "legacy_raster_matches_decoder_order": false,
+      "legacy_raster_reconstruction_sha256": "ad657986e602c250b6e17a118a13cd4ddde7e53b78c3014175714cc0e1590d65",
+      "legacy_raster_squared_error": 12114999,
+      "legacy_stream_decoder_sha256": "43939842924aa74470638e5d7e5b6e310f1d78eaa9ea0c16b98e707509a0d019",
+      "legacy_stream_decoder_squared_error": 13712695,
+      "local_decoder_exact": true,
+      "local_reconstruction_sha256": "ad657986e602c250b6e17a118a13cd4ddde7e53b78c3014175714cc0e1590d65",
+      "padded_source_sha256": "2fc743b4311f007c6e6ad6b77270de9aca91c5180d6a42548131a36e9ead81b1",
+      "qindex": 100,
+      "source_sha256": "2fc743b4311f007c6e6ad6b77270de9aca91c5180d6a42548131a36e9ead81b1",
+      "transform_count": 36,
+      "transform_order": [
+        [
+          0,
+          0
+        ],
+        [
+          8,
+          0
+        ],
+        [
+          0,
+          8
+        ],
+        [
+          8,
+          8
+        ],
+        [
+          16,
+          0
+        ],
+        [
+          24,
+          0
+        ],
+        [
+          16,
+          8
+        ],
+        [
+          24,
+          8
+        ],
+        [
+          0,
+          16
+        ],
+        [
+          8,
+          16
+        ],
+        [
+          0,
+          24
+        ],
+        [
+          8,
+          24
+        ],
+        [
+          16,
+          16
+        ],
+        [
+          24,
+          16
+        ],
+        [
+          16,
+          24
+        ],
+        [
+          24,
+          24
+        ],
+        [
+          32,
+          0
+        ],
+        [
+          40,
+          0
+        ],
+        [
+          32,
+          8
+        ],
+        [
+          40,
+          8
+        ],
+        [
+          32,
+          16
+        ],
+        [
+          40,
+          16
+        ],
+        [
+          32,
+          24
+        ],
+        [
+          40,
+          24
+        ],
+        [
+          0,
+          32
+        ],
+        [
+          8,
+          32
+        ],
+        [
+          0,
+          40
+        ],
+        [
+          8,
+          40
+        ],
+        [
+          16,
+          32
+        ],
+        [
+          24,
+          32
+        ],
+        [
+          16,
+          40
+        ],
+        [
+          24,
+          40
+        ],
+        [
+          32,
+          32
+        ],
+        [
+          40,
+          32
+        ],
+        [
+          32,
+          40
+        ],
+        [
+          40,
+          40
+        ]
+      ],
+      "width": 48
+    },
+    {
+      "active_squared_error": 21219976,
+      "coded_height": 64,
+      "coded_width": 64,
+      "context_trace_sha256": "bcde94123c42a8e46c3975ab2545b73bf1c4ea79ac342aaaafba668f56feeb47",
+      "decoder_reconstruction_sha256": "1063e68537bebb999b68bd51cad81ed6696561b5ffdc992eb87fa41daec6115e",
+      "first_legacy_order_difference": 2,
+      "first_transforms": [
+        {
+          "all_zero_context": 1,
+          "dc_sign_context": 0,
+          "leaf": 0,
+          "level": -8,
+          "prediction": 128,
+          "reconstruction": 117,
+          "tx": 0,
+          "x": 0,
+          "y": 0
+        },
+        {
+          "all_zero_context": 3,
+          "dc_sign_context": 1,
+          "leaf": 0,
+          "level": 8,
+          "prediction": 117,
+          "reconstruction": 128,
+          "tx": 1,
+          "x": 8,
+          "y": 0
+        },
+        {
+          "all_zero_context": 3,
+          "dc_sign_context": 1,
+          "leaf": 0,
+          "level": 20,
+          "prediction": 117,
+          "reconstruction": 145,
+          "tx": 2,
+          "x": 0,
+          "y": 8
+        },
+        {
+          "all_zero_context": 5,
+          "dc_sign_context": 2,
+          "leaf": 0,
+          "level": -19,
+          "prediction": 137,
+          "reconstruction": 111,
+          "tx": 3,
+          "x": 8,
+          "y": 8
+        },
+        {
+          "all_zero_context": 3,
+          "dc_sign_context": 2,
+          "leaf": 1,
+          "level": 13,
+          "prediction": 128,
+          "reconstruction": 146,
+          "tx": 0,
+          "x": 16,
+          "y": 0
+        },
+        {
+          "all_zero_context": 3,
+          "dc_sign_context": 2,
+          "leaf": 1,
+          "level": -18,
+          "prediction": 146,
+          "reconstruction": 121,
+          "tx": 1,
+          "x": 24,
+          "y": 0
+        },
+        {
+          "all_zero_context": 5,
+          "dc_sign_context": 0,
+          "leaf": 1,
+          "level": -14,
+          "prediction": 129,
+          "reconstruction": 110,
+          "tx": 2,
+          "x": 16,
+          "y": 8
+        },
+        {
+          "all_zero_context": 5,
+          "dc_sign_context": 1,
+          "leaf": 1,
+          "level": 14,
+          "prediction": 116,
+          "reconstruction": 135,
+          "tx": 3,
+          "x": 24,
+          "y": 8
+        }
+      ],
+      "height": 64,
+      "leaf_order": [
+        [
+          0,
+          0
+        ],
+        [
+          16,
+          0
+        ],
+        [
+          0,
+          16
+        ],
+        [
+          16,
+          16
+        ],
+        [
+          32,
+          0
+        ],
+        [
+          48,
+          0
+        ],
+        [
+          32,
+          16
+        ],
+        [
+          48,
+          16
+        ],
+        [
+          0,
+          32
+        ],
+        [
+          16,
+          32
+        ],
+        [
+          0,
+          48
+        ],
+        [
+          16,
+          48
+        ],
+        [
+          32,
+          32
+        ],
+        [
+          48,
+          32
+        ],
+        [
+          32,
+          48
+        ],
+        [
+          48,
+          48
+        ]
+      ],
+      "legacy_local_decoder_exact": false,
+      "legacy_raster_matches_decoder_order": false,
+      "legacy_raster_reconstruction_sha256": "1063e68537bebb999b68bd51cad81ed6696561b5ffdc992eb87fa41daec6115e",
+      "legacy_raster_squared_error": 21219976,
+      "legacy_stream_decoder_sha256": "d3981f3d1778bf8ce006c088d886051b2b32f18f68c7322b15f321890cd1b517",
+      "legacy_stream_decoder_squared_error": 25561042,
+      "local_decoder_exact": true,
+      "local_reconstruction_sha256": "1063e68537bebb999b68bd51cad81ed6696561b5ffdc992eb87fa41daec6115e",
+      "padded_source_sha256": "903b43969ade2fb757b7e128c6df5b8f9ed891feaab246afca3c35c88cc693fe",
+      "qindex": 100,
+      "source_sha256": "b4aec64abd7b9124bf80ae0082b63fbec910e102f04a09f1482c591df5aedfba",
+      "transform_count": 64,
+      "transform_order": [
+        [
+          0,
+          0
+        ],
+        [
+          8,
+          0
+        ],
+        [
+          0,
+          8
+        ],
+        [
+          8,
+          8
+        ],
+        [
+          16,
+          0
+        ],
+        [
+          24,
+          0
+        ],
+        [
+          16,
+          8
+        ],
+        [
+          24,
+          8
+        ],
+        [
+          0,
+          16
+        ],
+        [
+          8,
+          16
+        ],
+        [
+          0,
+          24
+        ],
+        [
+          8,
+          24
+        ],
+        [
+          16,
+          16
+        ],
+        [
+          24,
+          16
+        ],
+        [
+          16,
+          24
+        ],
+        [
+          24,
+          24
+        ],
+        [
+          32,
+          0
+        ],
+        [
+          40,
+          0
+        ],
+        [
+          32,
+          8
+        ],
+        [
+          40,
+          8
+        ],
+        [
+          48,
+          0
+        ],
+        [
+          56,
+          0
+        ],
+        [
+          48,
+          8
+        ],
+        [
+          56,
+          8
+        ],
+        [
+          32,
+          16
+        ],
+        [
+          40,
+          16
+        ],
+        [
+          32,
+          24
+        ],
+        [
+          40,
+          24
+        ],
+        [
+          48,
+          16
+        ],
+        [
+          56,
+          16
+        ],
+        [
+          48,
+          24
+        ],
+        [
+          56,
+          24
+        ],
+        [
+          0,
+          32
+        ],
+        [
+          8,
+          32
+        ],
+        [
+          0,
+          40
+        ],
+        [
+          8,
+          40
+        ],
+        [
+          16,
+          32
+        ],
+        [
+          24,
+          32
+        ],
+        [
+          16,
+          40
+        ],
+        [
+          24,
+          40
+        ],
+        [
+          0,
+          48
+        ],
+        [
+          8,
+          48
+        ],
+        [
+          0,
+          56
+        ],
+        [
+          8,
+          56
+        ],
+        [
+          16,
+          48
+        ],
+        [
+          24,
+          48
+        ],
+        [
+          16,
+          56
+        ],
+        [
+          24,
+          56
+        ],
+        [
+          32,
+          32
+        ],
+        [
+          40,
+          32
+        ],
+        [
+          32,
+          40
+        ],
+        [
+          40,
+          40
+        ],
+        [
+          48,
+          32
+        ],
+        [
+          56,
+          32
+        ],
+        [
+          48,
+          40
+        ],
+        [
+          56,
+          40
+        ],
+        [
+          32,
+          48
+        ],
+        [
+          40,
+          48
+        ],
+        [
+          32,
+          56
+        ],
+        [
+          40,
+          56
+        ],
+        [
+          48,
+          48
+        ],
+        [
+          56,
+          48
+        ],
+        [
+          48,
+          56
+        ],
+        [
+          56,
+          56
+        ]
+      ],
+      "width": 63
+    },
+    {
+      "active_squared_error": 5566189,
+      "coded_height": 24,
+      "coded_width": 64,
+      "context_trace_sha256": "423d084e459596f57556372cdbfb52fafc1b2ee9841f5d7e84b11c31a77a3298",
+      "decoder_reconstruction_sha256": "3e5163eadb3039c5958df87c656e3cbdf5ee6fafbfe93428b8ed13633c3ddd18",
+      "first_legacy_order_difference": 2,
+      "first_transforms": [
+        {
+          "all_zero_context": 1,
+          "dc_sign_context": 0,
+          "leaf": 0,
+          "level": -8,
+          "prediction": 128,
+          "reconstruction": 117,
+          "tx": 0,
+          "x": 0,
+          "y": 0
+        },
+        {
+          "all_zero_context": 3,
+          "dc_sign_context": 1,
+          "leaf": 0,
+          "level": 8,
+          "prediction": 117,
+          "reconstruction": 128,
+          "tx": 1,
+          "x": 8,
+          "y": 0
+        },
+        {
+          "all_zero_context": 3,
+          "dc_sign_context": 1,
+          "leaf": 0,
+          "level": 20,
+          "prediction": 117,
+          "reconstruction": 145,
+          "tx": 2,
+          "x": 0,
+          "y": 8
+        },
+        {
+          "all_zero_context": 5,
+          "dc_sign_context": 2,
+          "leaf": 0,
+          "level": -19,
+          "prediction": 137,
+          "reconstruction": 111,
+          "tx": 3,
+          "x": 8,
+          "y": 8
+        },
+        {
+          "all_zero_context": 3,
+          "dc_sign_context": 2,
+          "leaf": 1,
+          "level": 13,
+          "prediction": 128,
+          "reconstruction": 146,
+          "tx": 0,
+          "x": 16,
+          "y": 0
+        },
+        {
+          "all_zero_context": 3,
+          "dc_sign_context": 2,
+          "leaf": 1,
+          "level": -18,
+          "prediction": 146,
+          "reconstruction": 121,
+          "tx": 1,
+          "x": 24,
+          "y": 0
+        },
+        {
+          "all_zero_context": 5,
+          "dc_sign_context": 0,
+          "leaf": 1,
+          "level": -14,
+          "prediction": 129,
+          "reconstruction": 110,
+          "tx": 2,
+          "x": 16,
+          "y": 8
+        },
+        {
+          "all_zero_context": 5,
+          "dc_sign_context": 1,
+          "leaf": 1,
+          "level": 14,
+          "prediction": 116,
+          "reconstruction": 135,
+          "tx": 3,
+          "x": 24,
+          "y": 8
+        }
+      ],
+      "height": 17,
+      "leaf_order": [
+        [
+          0,
+          0
+        ],
+        [
+          16,
+          0
+        ],
+        [
+          0,
+          16
+        ],
+        [
+          16,
+          16
+        ],
+        [
+          32,
+          0
+        ],
+        [
+          48,
+          0
+        ],
+        [
+          32,
+          16
+        ],
+        [
+          48,
+          16
+        ]
+      ],
+      "legacy_local_decoder_exact": false,
+      "legacy_raster_matches_decoder_order": false,
+      "legacy_raster_reconstruction_sha256": "3e5163eadb3039c5958df87c656e3cbdf5ee6fafbfe93428b8ed13633c3ddd18",
+      "legacy_raster_squared_error": 5566189,
+      "legacy_stream_decoder_sha256": "028eab394100c90c4317a2a6672ae5ccee26cb7af6b4ec155c0f6326aa5751de",
+      "legacy_stream_decoder_squared_error": 6869157,
+      "local_decoder_exact": true,
+      "local_reconstruction_sha256": "3e5163eadb3039c5958df87c656e3cbdf5ee6fafbfe93428b8ed13633c3ddd18",
+      "padded_source_sha256": "c07b067f117ad266572230b47c2e141984fd3cb6b95b6a4836dbaeb5eb3906f8",
+      "qindex": 100,
+      "source_sha256": "51237407998fe75711fa3afb6872f5cb5856372b7bbcad2d1550e5210803cde0",
+      "transform_count": 24,
+      "transform_order": [
+        [
+          0,
+          0
+        ],
+        [
+          8,
+          0
+        ],
+        [
+          0,
+          8
+        ],
+        [
+          8,
+          8
+        ],
+        [
+          16,
+          0
+        ],
+        [
+          24,
+          0
+        ],
+        [
+          16,
+          8
+        ],
+        [
+          24,
+          8
+        ],
+        [
+          0,
+          16
+        ],
+        [
+          8,
+          16
+        ],
+        [
+          16,
+          16
+        ],
+        [
+          24,
+          16
+        ],
+        [
+          32,
+          0
+        ],
+        [
+          40,
+          0
+        ],
+        [
+          32,
+          8
+        ],
+        [
+          40,
+          8
+        ],
+        [
+          48,
+          0
+        ],
+        [
+          56,
+          0
+        ],
+        [
+          48,
+          8
+        ],
+        [
+          56,
+          8
+        ],
+        [
+          32,
+          16
+        ],
+        [
+          40,
+          16
+        ],
+        [
+          48,
+          16
+        ],
+        [
+          56,
+          16
+        ]
+      ],
+      "width": 64
+    },
+    {
+      "active_squared_error": 21211213,
+      "coded_height": 64,
+      "coded_width": 64,
+      "context_trace_sha256": "335cfc2ed2738092dff2c762ba1cb355213ae93d8aee2c6ff95d53ad06d7219d",
+      "decoder_reconstruction_sha256": "4ea33051f3bb22c290d85c21cd545606366a7912e87951a06f5c106e9e67728b",
+      "first_legacy_order_difference": 2,
+      "first_transforms": [
+        {
+          "all_zero_context": 1,
+          "dc_sign_context": 0,
+          "leaf": 0,
+          "level": -8,
+          "prediction": 128,
+          "reconstruction": 117,
+          "tx": 0,
+          "x": 0,
+          "y": 0
+        },
+        {
+          "all_zero_context": 3,
+          "dc_sign_context": 1,
+          "leaf": 0,
+          "level": 8,
+          "prediction": 117,
+          "reconstruction": 128,
+          "tx": 1,
+          "x": 8,
+          "y": 0
+        },
+        {
+          "all_zero_context": 3,
+          "dc_sign_context": 1,
+          "leaf": 0,
+          "level": 20,
+          "prediction": 117,
+          "reconstruction": 145,
+          "tx": 2,
+          "x": 0,
+          "y": 8
+        },
+        {
+          "all_zero_context": 5,
+          "dc_sign_context": 2,
+          "leaf": 0,
+          "level": -19,
+          "prediction": 137,
+          "reconstruction": 111,
+          "tx": 3,
+          "x": 8,
+          "y": 8
+        },
+        {
+          "all_zero_context": 3,
+          "dc_sign_context": 2,
+          "leaf": 1,
+          "level": 13,
+          "prediction": 128,
+          "reconstruction": 146,
+          "tx": 0,
+          "x": 16,
+          "y": 0
+        },
+        {
+          "all_zero_context": 3,
+          "dc_sign_context": 2,
+          "leaf": 1,
+          "level": -18,
+          "prediction": 146,
+          "reconstruction": 121,
+          "tx": 1,
+          "x": 24,
+          "y": 0
+        },
+        {
+          "all_zero_context": 5,
+          "dc_sign_context": 0,
+          "leaf": 1,
+          "level": -14,
+          "prediction": 129,
+          "reconstruction": 110,
+          "tx": 2,
+          "x": 16,
+          "y": 8
+        },
+        {
+          "all_zero_context": 5,
+          "dc_sign_context": 1,
+          "leaf": 1,
+          "level": 14,
+          "prediction": 116,
+          "reconstruction": 135,
+          "tx": 3,
+          "x": 24,
+          "y": 8
+        }
+      ],
+      "height": 63,
+      "leaf_order": [
+        [
+          0,
+          0
+        ],
+        [
+          16,
+          0
+        ],
+        [
+          0,
+          16
+        ],
+        [
+          16,
+          16
+        ],
+        [
+          32,
+          0
+        ],
+        [
+          48,
+          0
+        ],
+        [
+          32,
+          16
+        ],
+        [
+          48,
+          16
+        ],
+        [
+          0,
+          32
+        ],
+        [
+          16,
+          32
+        ],
+        [
+          0,
+          48
+        ],
+        [
+          16,
+          48
+        ],
+        [
+          32,
+          32
+        ],
+        [
+          48,
+          32
+        ],
+        [
+          32,
+          48
+        ],
+        [
+          48,
+          48
+        ]
+      ],
+      "legacy_local_decoder_exact": false,
+      "legacy_raster_matches_decoder_order": false,
+      "legacy_raster_reconstruction_sha256": "4ea33051f3bb22c290d85c21cd545606366a7912e87951a06f5c106e9e67728b",
+      "legacy_raster_squared_error": 21211213,
+      "legacy_stream_decoder_sha256": "29e53800ac399573790926a71553216a5dcbcf6a78e50287e00908dfb5b0a22e",
+      "legacy_stream_decoder_squared_error": 25588213,
+      "local_decoder_exact": true,
+      "local_reconstruction_sha256": "4ea33051f3bb22c290d85c21cd545606366a7912e87951a06f5c106e9e67728b",
+      "padded_source_sha256": "78178542d0d40f18baf74cb63636b210a0d655c49c4bdbc774a9844cc4c56c36",
+      "qindex": 100,
+      "source_sha256": "57fc11bf5b878f07c5383b097b18d6115e4455fe005b53eb3aec27e451ebbe16",
+      "transform_count": 64,
+      "transform_order": [
+        [
+          0,
+          0
+        ],
+        [
+          8,
+          0
+        ],
+        [
+          0,
+          8
+        ],
+        [
+          8,
+          8
+        ],
+        [
+          16,
+          0
+        ],
+        [
+          24,
+          0
+        ],
+        [
+          16,
+          8
+        ],
+        [
+          24,
+          8
+        ],
+        [
+          0,
+          16
+        ],
+        [
+          8,
+          16
+        ],
+        [
+          0,
+          24
+        ],
+        [
+          8,
+          24
+        ],
+        [
+          16,
+          16
+        ],
+        [
+          24,
+          16
+        ],
+        [
+          16,
+          24
+        ],
+        [
+          24,
+          24
+        ],
+        [
+          32,
+          0
+        ],
+        [
+          40,
+          0
+        ],
+        [
+          32,
+          8
+        ],
+        [
+          40,
+          8
+        ],
+        [
+          48,
+          0
+        ],
+        [
+          56,
+          0
+        ],
+        [
+          48,
+          8
+        ],
+        [
+          56,
+          8
+        ],
+        [
+          32,
+          16
+        ],
+        [
+          40,
+          16
+        ],
+        [
+          32,
+          24
+        ],
+        [
+          40,
+          24
+        ],
+        [
+          48,
+          16
+        ],
+        [
+          56,
+          16
+        ],
+        [
+          48,
+          24
+        ],
+        [
+          56,
+          24
+        ],
+        [
+          0,
+          32
+        ],
+        [
+          8,
+          32
+        ],
+        [
+          0,
+          40
+        ],
+        [
+          8,
+          40
+        ],
+        [
+          16,
+          32
+        ],
+        [
+          24,
+          32
+        ],
+        [
+          16,
+          40
+        ],
+        [
+          24,
+          40
+        ],
+        [
+          0,
+          48
+        ],
+        [
+          8,
+          48
+        ],
+        [
+          0,
+          56
+        ],
+        [
+          8,
+          56
+        ],
+        [
+          16,
+          48
+        ],
+        [
+          24,
+          48
+        ],
+        [
+          16,
+          56
+        ],
+        [
+          24,
+          56
+        ],
+        [
+          32,
+          32
+        ],
+        [
+          40,
+          32
+        ],
+        [
+          32,
+          40
+        ],
+        [
+          40,
+          40
+        ],
+        [
+          48,
+          32
+        ],
+        [
+          56,
+          32
+        ],
+        [
+          48,
+          40
+        ],
+        [
+          56,
+          40
+        ],
+        [
+          32,
+          48
+        ],
+        [
+          40,
+          48
+        ],
+        [
+          32,
+          56
+        ],
+        [
+          40,
+          56
+        ],
+        [
+          48,
+          48
+        ],
+        [
+          56,
+          48
+        ],
+        [
+          48,
+          56
+        ],
+        [
+          56,
+          56
+        ]
+      ],
+      "width": 64
+    },
+    {
+      "active_squared_error": 21535068,
+      "coded_height": 64,
+      "coded_width": 64,
+      "context_trace_sha256": "57fe9f0b9498f94e202c51e4094761b7f88f9e45f53dacb2a8531be31fadef4e",
+      "decoder_reconstruction_sha256": "528f2cd51530a305f35c2957ed6b6a73ccd1a876eddbdb09e481920098ab3b88",
+      "first_legacy_order_difference": 2,
+      "first_transforms": [
+        {
+          "all_zero_context": 1,
+          "dc_sign_context": 0,
+          "leaf": 0,
+          "level": -8,
+          "prediction": 128,
+          "reconstruction": 117,
+          "tx": 0,
+          "x": 0,
+          "y": 0
+        },
+        {
+          "all_zero_context": 3,
+          "dc_sign_context": 1,
+          "leaf": 0,
+          "level": 8,
+          "prediction": 117,
+          "reconstruction": 128,
+          "tx": 1,
+          "x": 8,
+          "y": 0
+        },
+        {
+          "all_zero_context": 3,
+          "dc_sign_context": 1,
+          "leaf": 0,
+          "level": 20,
+          "prediction": 117,
+          "reconstruction": 145,
+          "tx": 2,
+          "x": 0,
+          "y": 8
+        },
+        {
+          "all_zero_context": 5,
+          "dc_sign_context": 2,
+          "leaf": 0,
+          "level": -19,
+          "prediction": 137,
+          "reconstruction": 111,
+          "tx": 3,
+          "x": 8,
+          "y": 8
+        },
+        {
+          "all_zero_context": 3,
+          "dc_sign_context": 2,
+          "leaf": 1,
+          "level": 13,
+          "prediction": 128,
+          "reconstruction": 146,
+          "tx": 0,
+          "x": 16,
+          "y": 0
+        },
+        {
+          "all_zero_context": 3,
+          "dc_sign_context": 2,
+          "leaf": 1,
+          "level": -18,
+          "prediction": 146,
+          "reconstruction": 121,
+          "tx": 1,
+          "x": 24,
+          "y": 0
+        },
+        {
+          "all_zero_context": 5,
+          "dc_sign_context": 0,
+          "leaf": 1,
+          "level": -14,
+          "prediction": 129,
+          "reconstruction": 110,
+          "tx": 2,
+          "x": 16,
+          "y": 8
+        },
+        {
+          "all_zero_context": 5,
+          "dc_sign_context": 1,
+          "leaf": 1,
+          "level": 14,
+          "prediction": 116,
+          "reconstruction": 135,
+          "tx": 3,
+          "x": 24,
+          "y": 8
+        }
+      ],
+      "height": 64,
+      "leaf_order": [
+        [
+          0,
+          0
+        ],
+        [
+          16,
+          0
+        ],
+        [
+          0,
+          16
+        ],
+        [
+          16,
+          16
+        ],
+        [
+          32,
+          0
+        ],
+        [
+          48,
+          0
+        ],
+        [
+          32,
+          16
+        ],
+        [
+          48,
+          16
+        ],
+        [
+          0,
+          32
+        ],
+        [
+          16,
+          32
+        ],
+        [
+          0,
+          48
+        ],
+        [
+          16,
+          48
+        ],
+        [
+          32,
+          32
+        ],
+        [
+          48,
+          32
+        ],
+        [
+          32,
+          48
+        ],
+        [
+          48,
+          48
+        ]
+      ],
+      "legacy_local_decoder_exact": false,
+      "legacy_raster_matches_decoder_order": false,
+      "legacy_raster_reconstruction_sha256": "528f2cd51530a305f35c2957ed6b6a73ccd1a876eddbdb09e481920098ab3b88",
+      "legacy_raster_squared_error": 21535068,
+      "legacy_stream_decoder_sha256": "284bdffb47d30184a6fac8b72076fa134ba7d2a3c025da84144f35e79e1151cb",
+      "legacy_stream_decoder_squared_error": 25980422,
+      "local_decoder_exact": true,
+      "local_reconstruction_sha256": "528f2cd51530a305f35c2957ed6b6a73ccd1a876eddbdb09e481920098ab3b88",
+      "padded_source_sha256": "9571d07f370bed258c37186bc81b0503e9a6a76e0f6f36d9778760617b5c14b3",
+      "qindex": 100,
+      "source_sha256": "9571d07f370bed258c37186bc81b0503e9a6a76e0f6f36d9778760617b5c14b3",
+      "transform_count": 64,
+      "transform_order": [
+        [
+          0,
+          0
+        ],
+        [
+          8,
+          0
+        ],
+        [
+          0,
+          8
+        ],
+        [
+          8,
+          8
+        ],
+        [
+          16,
+          0
+        ],
+        [
+          24,
+          0
+        ],
+        [
+          16,
+          8
+        ],
+        [
+          24,
+          8
+        ],
+        [
+          0,
+          16
+        ],
+        [
+          8,
+          16
+        ],
+        [
+          0,
+          24
+        ],
+        [
+          8,
+          24
+        ],
+        [
+          16,
+          16
+        ],
+        [
+          24,
+          16
+        ],
+        [
+          16,
+          24
+        ],
+        [
+          24,
+          24
+        ],
+        [
+          32,
+          0
+        ],
+        [
+          40,
+          0
+        ],
+        [
+          32,
+          8
+        ],
+        [
+          40,
+          8
+        ],
+        [
+          48,
+          0
+        ],
+        [
+          56,
+          0
+        ],
+        [
+          48,
+          8
+        ],
+        [
+          56,
+          8
+        ],
+        [
+          32,
+          16
+        ],
+        [
+          40,
+          16
+        ],
+        [
+          32,
+          24
+        ],
+        [
+          40,
+          24
+        ],
+        [
+          48,
+          16
+        ],
+        [
+          56,
+          16
+        ],
+        [
+          48,
+          24
+        ],
+        [
+          56,
+          24
+        ],
+        [
+          0,
+          32
+        ],
+        [
+          8,
+          32
+        ],
+        [
+          0,
+          40
+        ],
+        [
+          8,
+          40
+        ],
+        [
+          16,
+          32
+        ],
+        [
+          24,
+          32
+        ],
+        [
+          16,
+          40
+        ],
+        [
+          24,
+          40
+        ],
+        [
+          0,
+          48
+        ],
+        [
+          8,
+          48
+        ],
+        [
+          0,
+          56
+        ],
+        [
+          8,
+          56
+        ],
+        [
+          16,
+          48
+        ],
+        [
+          24,
+          48
+        ],
+        [
+          16,
+          56
+        ],
+        [
+          24,
+          56
+        ],
+        [
+          32,
+          32
+        ],
+        [
+          40,
+          32
+        ],
+        [
+          32,
+          40
+        ],
+        [
+          40,
+          40
+        ],
+        [
+          48,
+          32
+        ],
+        [
+          56,
+          32
+        ],
+        [
+          48,
+          40
+        ],
+        [
+          56,
+          40
+        ],
+        [
+          32,
+          48
+        ],
+        [
+          40,
+          48
+        ],
+        [
+          32,
+          56
+        ],
+        [
+          40,
+          56
+        ],
+        [
+          48,
+          48
+        ],
+        [
+          56,
+          48
+        ],
+        [
+          48,
+          56
+        ],
+        [
+          56,
+          56
+        ]
+      ],
+      "width": 64
+    }
+  ],
+  "schema": "av2-m3-multileaf-reconstruction-v1"
+}

@@ -1,0 +1,12 @@
+{
+  "schema": "av2-m3-production-matrix-v1",
+  "dimensions": {
+    "minimum": 17,
+    "maximum": 64,
+    "pair_count": 2304
+  },
+  "pattern": "(x*17+y*31+x*y*3+(x^y)*5+(x&1)*29+(y&1)*47)&255",
+  "qindex": 100,
+  "case_count": 2304,
+  "aggregate_sha256": "ea6d6a2919c2ef35e70e3c78774c76226a83b28793002a10e923c42a39816047"
+}

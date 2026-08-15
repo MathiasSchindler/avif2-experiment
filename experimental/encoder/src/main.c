@@ -92,7 +92,7 @@ static void report_m3_metrics(const EncM3Result *result) {
     }
 
     report_error("dB workspace_bytes=");
-    report_u64(result->pixel_count);
+    report_u64(result->workspace_size);
     if (result->qindex != 0U) {
         report_error(" qindex=");
         report_u64(result->qindex);
@@ -105,6 +105,7 @@ static void report_m4_metrics(const EncM4Result *result) {
     metrics.stream_size = result->stream_size;
     metrics.squared_error = result->squared_error;
     metrics.pixel_count = result->pixel_count;
+    metrics.workspace_size = result->pixel_count;
     metrics.qindex = 0U;
     report_m3_metrics(&metrics);
 }
@@ -123,6 +124,21 @@ static int parse_size(const char *text, size_t *value) {
     }
     *value = parsed;
     return 1;
+}
+
+static EncStatus release_mapping(EncMemoryMapping *mapping) {
+    if (mapping->data == 0) return ENC_OK;
+    return enc_page_free(mapping);
+}
+
+static EncStatus release_i400_memory(
+    EncMemoryMapping *workspace, EncMemoryMapping *stream,
+    EncMemoryMapping *reconstruction) {
+    EncStatus status = ENC_OK;
+    if (release_mapping(reconstruction) != ENC_OK) status = ENC_IO_ERROR;
+    if (release_mapping(stream) != ENC_OK) status = ENC_IO_ERROR;
+    if (release_mapping(workspace) != ENC_OK) status = ENC_IO_ERROR;
+    return status;
 }
 
 static int run_constant_mode(const char *output_path) {
@@ -147,8 +163,10 @@ static int run_constant_mode(const char *output_path) {
 static int run_i400_mode(long argument_count, char **arguments) {
     EncI400Input input;
     EncM3Result result;
-    uint8_t stream[ENC_M3_MAX_STREAM_SIZE];
-    uint8_t reconstruction[ENC_M3_MAX_PIXELS];
+    EncM3WorkspaceLayout layout;
+    EncMemoryMapping workspace = {0, 0U};
+    EncMemoryMapping stream = {0, 0U};
+    EncMemoryMapping reconstruction = {0, 0U};
     EncStatus status;
     size_t width;
     size_t height;
@@ -213,34 +231,60 @@ static int run_i400_mode(long argument_count, char **arguments) {
         report_error("encoder: cannot read I400 input\n");
         return ENC_EXIT_INPUT_IO;
     }
-    if (width < ENC_M3_MIN_DIMENSION || width > ENC_M3_MAX_DIMENSION ||
-        height < ENC_M3_MIN_DIMENSION || height > ENC_M3_MAX_DIMENSION) {
+    if (width < ENC_M3_MIN_DIMENSION ||
+        width > ENC_M3_PRODUCTION_MAX_DIMENSION ||
+        height < ENC_M3_MIN_DIMENSION ||
+        height > ENC_M3_PRODUCTION_MAX_DIMENSION) {
         (void)enc_i400_input_close(&input);
         report_error(
-            "encoder: DC subset supports 1 through 16 pixels per axis\n");
+            "encoder: DC subset supports 1..896 pixels per axis\n");
         return ENC_EXIT_UNSUPPORTED;
     }
-    status = enc_m3_dc_i400_q(
+    status = enc_m3_query_workspace(input.width, input.height, &layout);
+    if (status != ENC_OK) {
+        (void)enc_i400_input_close(&input);
+        report_error("encoder: I400 workspace geometry overflow\n");
+        return ENC_EXIT_ENCODER;
+    }
+    if (enc_page_allocate(layout.size, &workspace) != ENC_OK ||
+        enc_page_allocate(layout.stream_capacity, &stream) != ENC_OK ||
+        enc_page_allocate(layout.pixel_count, &reconstruction) != ENC_OK) {
+        (void)release_i400_memory(&workspace, &stream, &reconstruction);
+        (void)enc_i400_input_close(&input);
+        report_error("encoder: cannot allocate I400 workspace\n");
+        return ENC_EXIT_ENCODER;
+    }
+    status = enc_m3_dc_i400_q_workspace(
         input.plane, input.width, input.height, input.stride,
         (unsigned int)qindex,
-        stream, sizeof(stream),
-        reconstruction, sizeof(reconstruction), &result);
+        workspace.data, workspace.size,
+        stream.data, stream.size,
+        (uint8_t *)reconstruction.data, reconstruction.size, &result);
     if (status != ENC_OK) {
+        (void)release_i400_memory(&workspace, &stream, &reconstruction);
         (void)enc_i400_input_close(&input);
         report_error("encoder: I400 DC encoding failed\n");
         return ENC_EXIT_ENCODER;
     }
     status = enc_i400_input_close(&input);
     if (status != ENC_OK) {
+        (void)release_i400_memory(&workspace, &stream, &reconstruction);
         report_error("encoder: cannot release I400 input\n");
         return ENC_EXIT_INPUT_IO;
     }
-    status = enc_file_write_atomic(output_path, stream, result.stream_size);
+    status = enc_file_write_atomic(
+        output_path, stream.data, result.stream_size);
     if (status != ENC_OK) {
+        (void)release_i400_memory(&workspace, &stream, &reconstruction);
         report_error("encoder: output write failed\n");
         return ENC_EXIT_OUTPUT_IO;
     }
     report_m3_metrics(&result);
+    if (release_i400_memory(
+            &workspace, &stream, &reconstruction) != ENC_OK) {
+        report_error("encoder: cannot release I400 workspace\n");
+        return ENC_EXIT_ENCODER;
+    }
     return ENC_EXIT_OK;
 }
 

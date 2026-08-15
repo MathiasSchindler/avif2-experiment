@@ -1,0 +1,142 @@
+{
+  "avm_revision": "966a7d7cd6fcf60360caf5dc413b2aeeb65e144d",
+  "avmdec_sha256": "c247cbb4e71e48bdec89f3c8b2b8efdce17f673aeaa39e3c116a276d16286aa0",
+  "cases": [
+    {
+      "avmdec_returncode": 1,
+      "avmdec_stderr": "Warning: Failed to decode frame 1: Corrupt frame detected\nWarning: Additional information: Failed to decode tile data",
+      "name": "24x24-flat",
+      "obu_bytes": 23,
+      "obu_sha256": "6e81231ce72fc57ab9e947c5965c5f1f16bc073de1c44b6fe616ad71b0c6b335",
+      "project_decoder_returncode": 1,
+      "project_decoder_stderr": "error: decode failed: truncated input (cause 2, stage 2, tell 33)\n  leaf=(4,4) block=3 plane=0 syntax=0 mode=0 mrl=0/0 tx=1 primary=3 secondary=0/0 fsc=0 skip=0 zero=0 eob=58 coeff=31/11/0 inverse=0",
+      "rejection_offset": {
+        "rejection": "range overflow",
+        "tell_bits": 158,
+        "tile_bytes": 4
+      }
+    },
+    {
+      "avmdec_returncode": 1,
+      "avmdec_stderr": "Warning: Failed to decode frame 1: Corrupt frame detected\nWarning: Additional information: Failed to decode tile data",
+      "name": "24x24-nonflat",
+      "obu_bytes": 46,
+      "obu_sha256": "da00613261559e849a2a42e223a3c567afd0bf0403ed24a27522e306521f0960",
+      "project_decoder_returncode": 0,
+      "project_decoder_stderr": "",
+      "rejection_offset": {
+        "padding_byte_offset": 26,
+        "padding_value": 192,
+        "rejection": "nonzero trailing padding",
+        "tell_bits": 204,
+        "tile_bytes": 27
+      }
+    },
+    {
+      "avmdec_returncode": 0,
+      "avmdec_stderr": "",
+      "name": "32x32-flat",
+      "obu_bytes": 23,
+      "obu_sha256": "e1bba80e205f1604fc5c762447c501dbee0d68d99641f7f1129bb4440d1c2db0",
+      "project_decoder_returncode": 0,
+      "project_decoder_stderr": ""
+    },
+    {
+      "avmdec_returncode": 0,
+      "avmdec_stderr": "",
+      "name": "32x32-nonflat",
+      "obu_bytes": 61,
+      "obu_sha256": "0da045d43f014661e8681bf7ee5a01461f3e8a4f56e12a0e072bbe61b6730e36",
+      "project_decoder_returncode": 0,
+      "project_decoder_stderr": ""
+    },
+    {
+      "avmdec_returncode": 0,
+      "avmdec_stderr": "",
+      "name": "40x40-flat",
+      "obu_bytes": 26,
+      "obu_sha256": "92e2ef6827fbd9322161dd425464a29827b5eff886321bc07c6283cb9e1896f1",
+      "project_decoder_returncode": 0,
+      "project_decoder_stderr": ""
+    },
+    {
+      "avmdec_returncode": 0,
+      "avmdec_stderr": "",
+      "name": "40x40-nonflat",
+      "obu_bytes": 79,
+      "obu_sha256": "5bc3e4f2eba2ca23bfbfd703fbe1b72e3020a4a047358e7131f4bd9d377e567e",
+      "project_decoder_returncode": 0,
+      "project_decoder_stderr": ""
+    },
+    {
+      "avmdec_returncode": 0,
+      "avmdec_stderr": "",
+      "name": "48x48-flat",
+      "obu_bytes": 26,
+      "obu_sha256": "508bf083c7c3f7bb4617ace44acd9663d7066d4cd08fdd7e4e550d1c5933b2aa",
+      "project_decoder_returncode": 0,
+      "project_decoder_stderr": ""
+    },
+    {
+      "avmdec_returncode": 0,
+      "avmdec_stderr": "",
+      "name": "48x48-nonflat",
+      "obu_bytes": 99,
+      "obu_sha256": "1c5dd8b16aee2c22420fcd7d1d97a2ad60b587637adafa8ba4648d7ab56e44c4",
+      "project_decoder_returncode": 0,
+      "project_decoder_stderr": ""
+    },
+    {
+      "avmdec_returncode": 1,
+      "avmdec_stderr": "Warning: Failed to decode frame 1: Corrupt frame detected\nWarning: Additional information: Failed to decode tile data",
+      "name": "56x56-flat",
+      "obu_bytes": 30,
+      "obu_sha256": "6cb93f64ff4bfaa08fe0b0541d67d620b218ea6b191295b27a9a913c1d8bd9d0",
+      "project_decoder_returncode": 0,
+      "project_decoder_stderr": "",
+      "rejection_offset": {
+        "expected_pattern": 32,
+        "last_byte": 208,
+        "rejection": "invalid trailing marker",
+        "tell_bits": 83,
+        "tile_bytes": 11
+      }
+    },
+    {
+      "avmdec_returncode": 1,
+      "avmdec_stderr": "Warning: Failed to decode frame 1: Corrupt frame detected\nWarning: Additional information: Failed to decode tile data",
+      "name": "56x56-nonflat",
+      "obu_bytes": 124,
+      "obu_sha256": "db03bfd6720a611fa6de706d4059cf3da3649f33e88380e12041ea5108340261",
+      "project_decoder_returncode": 0,
+      "project_decoder_stderr": "",
+      "rejection_offset": {
+        "padding_byte_offset": 104,
+        "padding_value": 53,
+        "rejection": "nonzero trailing padding",
+        "tell_bits": 830,
+        "tile_bytes": 105
+      }
+    },
+    {
+      "avmdec_returncode": 0,
+      "avmdec_stderr": "",
+      "name": "64x64-flat",
+      "obu_bytes": 29,
+      "obu_sha256": "4568a0284e0c7e5dcbd29e0a4c59678ef7210c04af3dedc94d78ff9d656608e8",
+      "project_decoder_returncode": 0,
+      "project_decoder_stderr": ""
+    },
+    {
+      "avmdec_returncode": 0,
+      "avmdec_stderr": "",
+      "name": "64x64-nonflat",
+      "obu_bytes": 151,
+      "obu_sha256": "a045f92aac9dc778406274a417f3bb1121bc5e49d05452bc459683246d09a049",
+      "project_decoder_returncode": 0,
+      "project_decoder_stderr": ""
+    }
+  ],
+  "project_decoder_sha256": "c0c6329cc85de13c92d04a00deff8124c9b45dbe74da8a86ddc60d9d7b4de9df",
+  "schema": "av2-m3-boundary-partition-legacy-probes-v1"
+}

@@ -106,8 +106,10 @@ def normative_facts() -> dict[str, object]:
         "do_split_context_no_smaller_neighbors": {"16x16": 4, "32x32": 8},
         "tx_partition_group": {"16x16": 3, "32x32": 5},
         "tx_partition_type_group": {"16x16": 3, "32x32": 6},
-        "square_split_context_top_left": 0,
-        "square_split_row": [18000, 7, 0],
+        "square_split_eligible": ["128x128", "256x256"],
+        "legal_32x32_path": [
+            ["32x32", "HORZ"], ["32x16", "VERT"], ["16x16", "NONE"]
+        ],
         "delta_q_scope": "ReadDeltas is reset once per superblock",
     }
 

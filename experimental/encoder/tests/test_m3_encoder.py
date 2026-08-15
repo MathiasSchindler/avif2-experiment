@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
 
 import math
+import hashlib
+import json
 import os
 import re
 import shutil
 import subprocess
 import sys
 import unittest
+import importlib.util
 from pathlib import Path
 
 
@@ -15,6 +18,23 @@ ROOT = ENCODER.parents[1]
 sys.path.insert(0, str(ENCODER / "tests"))
 
 from validator_support import configured_path, require_executable, require_validator
+
+sys.path.insert(0, str(ENCODER / "tools"))
+PARTITION_SPEC = importlib.util.spec_from_file_location(
+    "m3_encoder_partitions", ENCODER / "tools/m3_large_partition_model.py"
+)
+assert PARTITION_SPEC and PARTITION_SPEC.loader
+PARTITIONS = importlib.util.module_from_spec(PARTITION_SPEC)
+sys.modules[PARTITION_SPEC.name] = PARTITIONS
+PARTITION_SPEC.loader.exec_module(PARTITIONS)
+MULTISB_SPEC = importlib.util.spec_from_file_location(
+    "m3_encoder_multisuperblock",
+    ENCODER / "tools/m3_multisuperblock_model.py",
+)
+assert MULTISB_SPEC and MULTISB_SPEC.loader
+MULTISB = importlib.util.module_from_spec(MULTISB_SPEC)
+sys.modules[MULTISB_SPEC.name] = MULTISB
+MULTISB_SPEC.loader.exec_module(MULTISB)
 
 
 class M3EncoderTests(unittest.TestCase):
@@ -73,18 +93,40 @@ class M3EncoderTests(unittest.TestCase):
     def local_reconstruction(
         cls, samples: bytes, width: int, height: int, qindex: int = 100
     ) -> tuple[bytes, int]:
-        padded = bytearray(16 * 16)
+        coded_width = ((width + 7) // 8) * 8
+        coded_height = ((height + 7) // 8) * 8
+        padded = bytearray(coded_width * coded_height)
         total_error = 0
-        for by in range(0, ((height + 7) // 8) * 8, 8):
-            for bx in range(0, ((width + 7) // 8) * 8, 8):
+        if width <= 16 and height <= 16:
+            transforms = [
+                (x, y)
+                for y in range(0, coded_height, 8)
+                for x in range(0, coded_width, 8)
+            ]
+        elif width <= 64 and height <= 64 and width >= 17 and height >= 17:
+            transforms = [
+                (int(leaf["x"]) + x, int(leaf["y"]) + y)
+                for leaf in PARTITIONS.model(width, height)["leaves"]
+                for y in range(0, int(leaf["height"]), 8)
+                for x in range(0, int(leaf["width"]), 8)
+            ]
+        else:
+            traversal = MULTISB.model(width, height)
+            assert traversal["transform_exact_cover"]
+            transforms = traversal["transform_order"]
+        for bx, by in transforms:
                 edges = []
                 if by:
                     edges.extend(
-                        padded[(by - 1) * 16 + bx : (by - 1) * 16 + bx + 8]
+                        padded[
+                            (by - 1) * coded_width + bx:
+                            (by - 1) * coded_width + bx + 8
+                        ]
                     )
                 if bx:
                     edges.extend(
-                        padded[(by + y) * 16 + bx - 1] for y in range(8)
+                        padded[(by + y) * coded_width + bx - 1]
+                        for y in range(8)
                     )
                 prediction = 128 if not edges else cls.round2(sum(edges), len(edges).bit_length() - 1)
                 block = [
@@ -108,6 +150,8 @@ class M3EncoderTests(unittest.TestCase):
                     value = cls.reconstruct_level(level, prediction, qindex)
                     error = sum((sample - value) ** 2 for sample in block)
                     candidates.append((level, value, error))
+                    if error == 0:
+                        break
                 level, value, error = min(
                     candidates,
                     key=lambda item: (item[2], abs(item[0]), item[0] < 0),
@@ -118,10 +162,11 @@ class M3EncoderTests(unittest.TestCase):
                     for x in range(bx, min(bx + 8, width)):
                         total_error += (samples[y * width + x] - value) ** 2
                 for y in range(8):
-                    start = (by + y) * 16 + bx
+                    start = (by + y) * coded_width + bx
                     padded[start : start + 8] = bytes([value]) * 8
         result = b"".join(
-            padded[y * 16 : y * 16 + width] for y in range(height)
+            padded[y * coded_width : y * coded_width + width]
+            for y in range(height)
         )
         return result, total_error
 
@@ -193,9 +238,23 @@ class M3EncoderTests(unittest.TestCase):
         avm, project = self.decode(name, first)
         self.assertEqual(avm, expected)
         self.assertEqual(project, expected)
+        block_columns = (width + 7) // 8
+        block_rows = (height + 7) // 8
+        base_workspace = (
+            block_columns * 8 * block_rows * 8 + width * height + 1
+        ) // 2 * 2 + block_columns * block_rows * 2
+        stream_capacity = (
+            256 if width <= 16 and height <= 16
+            else block_columns * block_rows * 64 + 256
+        )
+        workspace_size = base_workspace + (
+            stream_capacity
+            if width <= 16 and height <= 16
+            else stream_capacity * 3
+        )
         match = re.fullmatch(
             r"encoder: bytes=(\d+) sse_y=(\d+) psnr_y=(inf|\d+\.\d\d)dB "
-            rf"workspace_bytes={width * height} qindex={qindex}\n",
+            rf"workspace_bytes={workspace_size} qindex={qindex}\n",
             metrics,
         )
         self.assertIsNotNone(match)
@@ -246,6 +305,56 @@ class M3EncoderTests(unittest.TestCase):
             source[y * 896 + 17 : y * 896 + 30] for y in range(11)
         )
         self.check_case("prepared-crop-13x11", crop_odd, 13, 11)
+
+    def test_multisuperblock_representatives(self) -> None:
+        for width, height in (
+            (65, 1), (1, 65), (65, 65), (127, 64), (64, 127),
+            (127, 127), (128, 128), (129, 129),
+        ):
+            samples = bytes(
+                (
+                    x * 17 + y * 29
+                    + (((x // 5) ^ (y // 7)) & 1) * 61
+                    + (x * y) % 23
+                ) & 255
+                for y in range(height)
+                for x in range(width)
+            )
+            self.check_case(
+                f"multisb-{width}x{height}", samples, width, height,
+                width + 3, qindex=191, repeat=False,
+            )
+
+    def test_multisuperblock_q_contexts(self) -> None:
+        width = height = 65
+        samples = bytes(
+            (x * 23 + y * 41 + x * y * 7 + (x ^ y) * 11) & 255
+            for y in range(height)
+            for x in range(width)
+        )
+        for qindex in (1, 100, 141, 191):
+            self.check_case(
+                f"multisb-q-{qindex}", samples, width, height,
+                qindex=qindex, repeat=False,
+            )
+
+    def test_smallest_selected_prepared_image_when_available(self) -> None:
+        prepared = (
+            ROOT / "images/prepared/le896/hong-kong-harbour-night/"
+            "source-896x424-gray8.i400"
+        )
+        if not prepared.is_file():
+            self.skipTest("smallest selected prepared image is unavailable")
+        first, _ = self.encode(
+            "prepared-full-896x424", prepared.read_bytes(), 896, 424
+        )
+        second, _ = self.encode(
+            "prepared-full-896x424-repeat", prepared.read_bytes(), 896, 424
+        )
+        self.assertEqual(first.read_bytes(), second.read_bytes())
+        avm, project = self.decode("prepared-full-896x424", first)
+        self.assertEqual(avm, project)
+        self.assertEqual(len(avm), 896 * 424)
 
     def test_rectangular_grids(self) -> None:
         for width, height in ((8, 16), (16, 8)):
@@ -321,19 +430,84 @@ class M3EncoderTests(unittest.TestCase):
             self.assertIn("qindex must be in 1..255", completed.stderr)
             self.assertFalse(output.exists())
 
-    def test_dimensions_above_sixteen_are_unsupported(self) -> None:
+    def test_mixed_axis_dimensions_are_supported(self) -> None:
         source = self.work / "wide.i400"
         output = self.work / "wide.obu"
-        source.write_bytes(bytes(32 * 32))
+        source.write_bytes(bytes(17 * 16))
         completed = subprocess.run(
             [
                 str(self.binary), "--i400-8", str(source),
-                "--width", "32", "--height", "32", str(output),
+                "--width", "17", "--height", "16", str(output),
             ],
             check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
         )
-        self.assertEqual(completed.returncode, 5)
-        self.assertFalse(output.exists())
+        self.assertEqual(completed.returncode, 0)
+        self.assertTrue(output.exists())
+
+    def test_large_representative_patterns_and_q_contexts(self) -> None:
+        width, height = 17, 17
+        patterns = {
+            "flat": bytes([83]) * (width * height),
+            "ramp": bytes(
+                (x * 11 + y * 7) & 255
+                for y in range(height) for x in range(width)
+            ),
+            "odd": bytes(
+                (x * 17 + y * 31 + x * y * 3 + (x ^ y) * 5) & 255
+                for y in range(height) for x in range(width)
+            ),
+        }
+        impulse = bytearray(width * height)
+        impulse[(height // 2) * width + width // 2] = 255
+        patterns["impulse"] = bytes(impulse)
+        for name, samples in patterns.items():
+            self.check_case(
+                f"large-{name}", samples, width, height, width + 3
+            )
+        for qindex in (1, 100, 141, 191):
+            self.check_case(
+                f"large-q-{qindex}", patterns["odd"], width, height,
+                width + 1, qindex,
+            )
+
+    def test_all_dimensions_seventeen_through_sixty_four(self) -> None:
+        frozen = json.loads(
+            (ENCODER / "tests/m3_production_matrix.json").read_text()
+        )
+        digest = hashlib.sha256()
+        case_count = 0
+        for height in range(17, 65):
+            for width in range(17, 65):
+                samples = bytes(
+                    (
+                        x * 17 + y * 31 + x * y * 3 +
+                        (x ^ y) * 5 + (x & 1) * 29 + (y & 1) * 47
+                    ) & 255
+                    for y in range(height)
+                    for x in range(width)
+                )
+                expected, error = self.local_reconstruction(
+                    samples, width, height
+                )
+                obu, _metrics = self.encode(
+                    f"production-{width}x{height}", samples, width, height,
+                    width + 3,
+                )
+                stream = obu.read_bytes()
+                avm, project = self.decode(
+                    f"production-{width}x{height}", obu
+                )
+                self.assertEqual(avm, expected, (width, height, "avm"))
+                self.assertEqual(project, expected, (width, height, "project"))
+                record = (
+                    f"{width}x{height} {len(stream)} "
+                    f"{hashlib.sha256(stream).hexdigest()} "
+                    f"{hashlib.sha256(expected).hexdigest()} {error}\n"
+                )
+                digest.update(record.encode("ascii"))
+                case_count += 1
+        self.assertEqual(case_count, frozen["case_count"])
+        self.assertEqual(digest.hexdigest(), frozen["aggregate_sha256"])
 
 
 if __name__ == "__main__":

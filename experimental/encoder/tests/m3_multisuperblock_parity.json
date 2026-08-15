@@ -1,0 +1,244 @@
+{
+  "schema": "av2-encoder-m3-multisuperblock-parity-v1",
+  "qindex": 100,
+  "encoder_sha256": "80669d241481f387333f14af3c9f653cb8d94ca0c87dc1f2b2e52a0257c7f54f",
+  "avmdec_sha256": "c247cbb4e71e48bdec89f3c8b2b8efdce17f673aeaa39e3c116a276d16286aa0",
+  "project_decoder_sha256": "c0c6329cc85de13c92d04a00deff8124c9b45dbe74da8a86ddc60d9d7b4de9df",
+  "case_count": 14,
+  "deterministic_count": 14,
+  "avm_project_parity_count": 14,
+  "minimum_dimensions": [
+    896,
+    424
+  ],
+  "maximum_dimensions": [
+    896,
+    896
+  ],
+  "cases": [
+    {
+      "id": "baya-weaver-le896",
+      "dimensions": [
+        896,
+        598
+      ],
+      "sequence_level_index": 0,
+      "input_sha256": "b91d856ba048095fbb066934a967531a82a8813f66acd18b3a1d4522edfc3c20",
+      "obu_bytes": 2651,
+      "obu_sha256": "5528c8499e292f625a8c77308c6e992c84ed7601ce0010ed67b6099c05deb59a",
+      "decoded_sha256": "256ddf3b94f2cb58154702c38d5734d591a23f9acda9cd36cf99337586ba9b66",
+      "sse_y": 52891312,
+      "workspace_bytes": 2703776,
+      "deterministic_rerun": true,
+      "avm_project_exact": true
+    },
+    {
+      "id": "chinnathurai-church-le896",
+      "dimensions": [
+        896,
+        896
+      ],
+      "sequence_level_index": 1,
+      "input_sha256": "b2cda7cf91f932933c3fe022e1628acb21c2f7fe50ac4dc6dc07478dcded6220",
+      "obu_bytes": 5999,
+      "obu_sha256": "7d1fa76997a50eed72a913b9d59db3a7ca763eee8079c97ffe2998536495f7de",
+      "decoded_sha256": "8afbd56473387a3becbf1c477abea0532c7b37595335479de96090792e1db164",
+      "sse_y": 255323539,
+      "workspace_bytes": 4039936,
+      "deterministic_rerun": true,
+      "avm_project_exact": true
+    },
+    {
+      "id": "elbrus-milky-way-le896",
+      "dimensions": [
+        598,
+        896
+      ],
+      "sequence_level_index": 0,
+      "input_sha256": "517e9b5a796b6836d670a0e28a2a4e8517b47bfe496da8f47131be82a9364418",
+      "obu_bytes": 3816,
+      "obu_sha256": "33493bda425cffeb692717d476fdf62a3fb26ed4e8e9de55d46eb5de58c32af2",
+      "decoded_sha256": "c0baafe5cb78e8887ae877fda0dcacfef7597be370afa87f3fb4f16512da6866",
+      "sse_y": 65694467,
+      "workspace_bytes": 2703776,
+      "deterministic_rerun": true,
+      "avm_project_exact": true
+    },
+    {
+      "id": "emerald-swift-le896",
+      "dimensions": [
+        896,
+        448
+      ],
+      "sequence_level_index": 0,
+      "input_sha256": "1b9db5bbf1a3e6faca7acb717a1a7f2f65a691d3323dcb857048e032773eb18a",
+      "obu_bytes": 3784,
+      "obu_sha256": "881f4e7afc43c58d2cdc7a547f6c6c446d8253ccf8bce6e8807639ba8ca23ffc",
+      "decoded_sha256": "96c0ebcf2c9ffc50fb1aa8013fa08ed9350b59fedb82a289f76fa8838768d16a",
+      "sse_y": 383216713,
+      "workspace_bytes": 2020352,
+      "deterministic_rerun": true,
+      "avm_project_exact": true
+    },
+    {
+      "id": "finland-warbirds-le896",
+      "dimensions": [
+        896,
+        504
+      ],
+      "sequence_level_index": 0,
+      "input_sha256": "72176a06e2254e0200262943ae9d0a91282278d4f3d6d984f75bf22dffb2824b",
+      "obu_bytes": 4540,
+      "obu_sha256": "9ad5dc52c706207a37f9302611da6bbfb6b6e9540645da5072d9fd5fb99dee1f",
+      "decoded_sha256": "8fc79e096001d59f66233671bf3674efdfe920a5000c53ef8523ec91fa808721",
+      "sse_y": 112191001,
+      "workspace_bytes": 2272800,
+      "deterministic_rerun": true,
+      "avm_project_exact": true
+    },
+    {
+      "id": "freiburg-minster-columns-le896",
+      "dimensions": [
+        598,
+        896
+      ],
+      "sequence_level_index": 0,
+      "input_sha256": "ff1644889a619eb7aff3e7c6ce2bc91f79ba56b5ef964756425f3ca0931fd19f",
+      "obu_bytes": 8695,
+      "obu_sha256": "da7d04c02909a4d978cf53177b016b2e892ba9cd0360db0898f0738855915a82",
+      "decoded_sha256": "7f72578750de7522ebcd73d78a15fd2f21d29524dc33c92888a52c6ea83855e6",
+      "sse_y": 382966068,
+      "workspace_bytes": 2703776,
+      "deterministic_rerun": true,
+      "avm_project_exact": true
+    },
+    {
+      "id": "hong-kong-harbour-night-le896",
+      "dimensions": [
+        896,
+        424
+      ],
+      "sequence_level_index": 0,
+      "input_sha256": "3c4e46488f0be934a67e3339183d33ab37094c3ec1b6237beeaa14d865b0ae2b",
+      "obu_bytes": 4287,
+      "obu_sha256": "3543639fdafcdeba3e0b8c4bb0c1bdb606ec02ed1b37494f3ede95fe728438b3",
+      "decoded_sha256": "aa788a972d1c612dde892d5fc3f86a6d02e8b6e256e08592cf36de01e9ee0b3d",
+      "sse_y": 225686847,
+      "workspace_bytes": 1912160,
+      "deterministic_rerun": true,
+      "avm_project_exact": true
+    },
+    {
+      "id": "jinan-grand-theater-le896",
+      "dimensions": [
+        896,
+        672
+      ],
+      "sequence_level_index": 1,
+      "input_sha256": "8e32e842cb1449641f60996d2fa5e2fc3337dabb41832b593ef79619f3a74faa",
+      "obu_bytes": 7312,
+      "obu_sha256": "d6b104f8a595358bfa05df880fc50afc6b1616f17474715e6e56b01d6b09ab7e",
+      "decoded_sha256": "273f9b7044d4c6caa030484f867c018ae844072cbfc6eb95815be888bebc7e8e",
+      "sse_y": 655562711,
+      "workspace_bytes": 3030144,
+      "deterministic_rerun": true,
+      "avm_project_exact": true
+    },
+    {
+      "id": "pastel-chalks-le896",
+      "dimensions": [
+        896,
+        598
+      ],
+      "sequence_level_index": 0,
+      "input_sha256": "b529c7705e11b3c313f95130f2e0e648155fcb87fdf33c7bf87f7cbfa9335d8e",
+      "obu_bytes": 5496,
+      "obu_sha256": "b54c80a9dadee167bbe5056ae716e0974bc921421ceee302e02a127c072b308c",
+      "decoded_sha256": "aafa8421f299be200abd80e4251e44d993b913d1e7f7433951cc3b49ada3cb1c",
+      "sse_y": 63636386,
+      "workspace_bytes": 2703776,
+      "deterministic_rerun": true,
+      "avm_project_exact": true
+    },
+    {
+      "id": "pitti-ceiling-le896",
+      "dimensions": [
+        896,
+        896
+      ],
+      "sequence_level_index": 1,
+      "input_sha256": "93a053a6bfd2db1a21a948cb5901b5ef2c69e4962cf25e1385482f47a22c97cd",
+      "obu_bytes": 10014,
+      "obu_sha256": "00682c7e53457dfc3a73830bb04dced56783cca4763e8b65ab3979e43bb96174",
+      "decoded_sha256": "ac1e594b7c45ec29f5e024fd535e9e37b09d2644187587b88aabb9ad20348408",
+      "sse_y": 595122948,
+      "workspace_bytes": 4039936,
+      "deterministic_rerun": true,
+      "avm_project_exact": true
+    },
+    {
+      "id": "rome-ponte-blue-hour-le896",
+      "dimensions": [
+        896,
+        598
+      ],
+      "sequence_level_index": 0,
+      "input_sha256": "b2465c2a01f1be28f7ddbbbaa6352e8d16bd74277d185ba11963c29746de2fbd",
+      "obu_bytes": 4306,
+      "obu_sha256": "ed687067e82f637ab387b585cb738a698c3707d0d73311d969c38874e79d181f",
+      "decoded_sha256": "1b41107ac623850db1da0bb0bd50c3b51c907b9dfcff71d62881b83e377215ad",
+      "sse_y": 140722615,
+      "workspace_bytes": 2703776,
+      "deterministic_rerun": true,
+      "avm_project_exact": true
+    },
+    {
+      "id": "scarlet-flycatcher-le896",
+      "dimensions": [
+        896,
+        598
+      ],
+      "sequence_level_index": 0,
+      "input_sha256": "c4e75dfe5126e60e463a26e7826dfec9b13458264e08cff33035b0b806d6eb43",
+      "obu_bytes": 3385,
+      "obu_sha256": "2652dce2315dea4695fe864fd76c8c439caf57445a7cf675758b837e783635d0",
+      "decoded_sha256": "540d336345d366801144b9d5b428af746b26aef858eecec1754866b1a26cdea7",
+      "sse_y": 72332648,
+      "workspace_bytes": 2703776,
+      "deterministic_rerun": true,
+      "avm_project_exact": true
+    },
+    {
+      "id": "succisa-flower-bud-le896",
+      "dimensions": [
+        896,
+        896
+      ],
+      "sequence_level_index": 1,
+      "input_sha256": "975711bc5410322fe0dc3bb2be3920758c6f4cdb522836465e160d67b850e25b",
+      "obu_bytes": 4214,
+      "obu_sha256": "0313562b82c6a24e03bccec26e3e47446b1d0290dd861b9060ff287b934555e3",
+      "decoded_sha256": "5ac7284654db021321b04aa148a74911f81ce7e0996ecc7c6856b802ad826310",
+      "sse_y": 96356323,
+      "workspace_bytes": 4039936,
+      "deterministic_rerun": true,
+      "avm_project_exact": true
+    },
+    {
+      "id": "toco-toucan-le896",
+      "dimensions": [
+        896,
+        598
+      ],
+      "sequence_level_index": 0,
+      "input_sha256": "f07f0f044d927c6f4b0c65e0185251742afb5cb1a439260ee268f2938421dfef",
+      "obu_bytes": 5529,
+      "obu_sha256": "be9a6456d3ce3d50510cb5f2562ecb9ff00d2ffc6c37ce5e9e92590f3f9babcd",
+      "decoded_sha256": "b5f04c4486ac66600ecbb17bbdec1331f9b1e7ab330cf3f681eea92849f0260e",
+      "sse_y": 92969456,
+      "workspace_bytes": 2703776,
+      "deterministic_rerun": true,
+      "avm_project_exact": true
+    }
+  ]
+}

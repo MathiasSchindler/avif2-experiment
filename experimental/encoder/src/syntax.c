@@ -229,10 +229,12 @@ static unsigned int dimension_bits(size_t value) {
 static EncStatus write_sequence_header(
     void *data, size_t capacity, size_t *size,
     size_t width, size_t height, unsigned int enable_ibp,
-    unsigned int enable_intra_ist) {
+    unsigned int enable_intra_ist,
+    unsigned int enable_ext_partitions) {
     EncBitWriter writer;
     unsigned int width_bits;
     unsigned int height_bits;
+    unsigned int level_index;
     uint8_t flags[] = {
         0U, 0U, 0U, 1U, 1U, 0U, 0U, 0U, 0U, 1U, 1U, 1U, 1U, 1U,
         1U, 0U, 0U
@@ -247,19 +249,21 @@ static EncStatus write_sequence_header(
     }
     width_bits = dimension_bits(width);
     height_bits = dimension_bits(height);
+    level_index = width * height > 552960U ? 1U : 0U;
     if (width_bits == 0U || width_bits > 16U ||
         height_bits == 0U || height_bits > 16U) {
         return ENC_INVALID_ARGUMENT;
     }
     *size = 0U;
     flags[13U] = enable_ibp != 0U ? 1U : 0U;
+    flags[3U] = enable_ext_partitions != 0U ? 1U : 0U;
     transform_filter_flags[3U] =
         enable_intra_ist != 0U ? 1U : 0U;
     enc_bit_writer_init(&writer, data, capacity);
     if (enc_bit_writer_uvlc(&writer, 0U) != ENC_OK ||
         enc_bit_writer_write(&writer, 0U, 5U) != ENC_OK ||
         enc_bit_writer_write(&writer, 1U, 1U) != ENC_OK ||
-        enc_bit_writer_write(&writer, 0U, 5U) != ENC_OK ||
+    enc_bit_writer_write(&writer, level_index, 5U) != ENC_OK ||
         enc_bit_writer_uvlc(&writer, 1U) != ENC_OK ||
         enc_bit_writer_uvlc(&writer, 1U) != ENC_OK ||
         enc_bit_writer_write(&writer, width_bits - 1U, 4U) != ENC_OK ||
@@ -269,6 +273,7 @@ static EncStatus write_sequence_header(
         return writer.status;
     }
     for (index = 0U; index < sizeof(flags); ++index) {
+        if (index == 4U && enable_ext_partitions == 0U) continue;
         if (enc_bit_writer_write(&writer, flags[index], 1U) != ENC_OK) {
             return writer.status;
         }
@@ -291,16 +296,17 @@ static EncStatus write_sequence_header(
 }
 
 EncStatus enc_m1_sequence_header(void *data, size_t capacity, size_t *size) {
-    return write_sequence_header(data, capacity, size, 8U, 8U, 1U, 1U);
+    return write_sequence_header(data, capacity, size, 8U, 8U, 1U, 1U, 1U);
 }
 
 EncStatus enc_m3_sequence_header(void *data, size_t capacity, size_t *size,
                                  size_t width, size_t height) {
-    return write_sequence_header(data, capacity, size, width, height, 0U, 1U);
+    return write_sequence_header(
+        data, capacity, size, width, height, 0U, 1U, 1U);
 }
 
 EncStatus enc_m4_sequence_header(void *data, size_t capacity, size_t *size) {
-    return write_sequence_header(data, capacity, size, 8U, 8U, 0U, 0U);
+    return write_sequence_header(data, capacity, size, 8U, 8U, 0U, 0U, 1U);
 }
 
 EncStatus enc_m1_frame_header(void *data, size_t capacity, size_t *size) {
@@ -387,10 +393,19 @@ EncStatus enc_m1_tile(void *data, size_t capacity, size_t *size) {
 
 EncStatus enc_m3_frame_header_q(void *data, size_t capacity, size_t *size,
                                 unsigned int qindex) {
+    return enc_m3_frame_header_q_for_size(
+        data, capacity, size, 64U, 64U, qindex);
+}
+
+EncStatus enc_m3_frame_header_q_for_size(
+    void *data, size_t capacity, size_t *size,
+    size_t width, size_t height, unsigned int qindex) {
     EncBitWriter writer;
     static const uint8_t prefix_flags[] = {1U, 0U, 0U, 0U, 1U};
     size_t index;
     if (size == 0 || (data == 0 && capacity != 0U) ||
+        width == 0U || width > 16384U ||
+        height == 0U || height > 16384U ||
         qindex == 0U || qindex > 255U) {
         return ENC_INVALID_ARGUMENT;
     }
@@ -404,6 +419,12 @@ EncStatus enc_m3_frame_header_q(void *data, size_t capacity, size_t *size,
                 &writer, prefix_flags[index], 1U) != ENC_OK) {
             return writer.status;
         }
+    }
+    if ((width > 64U &&
+         enc_bit_writer_write(&writer, 0U, 1U) != ENC_OK) ||
+        (height > 64U &&
+         enc_bit_writer_write(&writer, 0U, 1U) != ENC_OK)) {
+        return writer.status;
     }
     if (enc_bit_writer_write(&writer, qindex, 8U) != ENC_OK ||
         enc_bit_writer_write(&writer, 0U, 1U) != ENC_OK ||
@@ -580,22 +601,100 @@ typedef struct {
     size_t height;
     const int16_t *levels;
     size_t q_context;
+    size_t level_index;
+    uint8_t partition_above[224U];
+    uint8_t partition_left[16U];
+    uint8_t coeff_above[224U];
+    uint8_t coeff_left[16U];
 } EncM3TileState;
+
+static size_t m3_context_bit(
+    uint8_t value, size_t dimension, size_t extension) {
+    size_t shift = 0U;
+    while (dimension > 1U) {
+        dimension >>= 1U;
+        ++shift;
+    }
+    shift = shift > extension ? shift - extension : 0U;
+    return ((size_t)value >> shift) & 1U;
+}
+
+static size_t m3_or_low_levels(const uint8_t *values, size_t count) {
+    size_t result = 0U;
+    size_t index;
+    for (index = 0U; index < count; ++index) result |= values[index] & 7U;
+    return result;
+}
+
+static void m3_coeff_context(
+    EncM3TileState *state, size_t x, size_t y,
+    size_t block_width, size_t block_height,
+    size_t *skip_context, size_t *sign_context) {
+    size_t column = x / 4U;
+    size_t row = (y / 4U) % 16U;
+    size_t mi_columns = ((state->width + 7U) / 8U) * 2U;
+    size_t mi_rows = ((state->height + 7U) / 8U) * 2U;
+    size_t columns = column + 2U <= mi_columns ? 2U : mi_columns - column;
+    size_t global_row = y / 4U;
+    size_t rows =
+        global_row + 2U <= mi_rows ? 2U : mi_rows - global_row;
+    size_t top = m3_or_low_levels(state->coeff_above + column, columns);
+    size_t side = m3_or_low_levels(state->coeff_left + row, rows);
+    int score = 0;
+    size_t index;
+    static const uint8_t contexts[5U][5U] = {
+        {1U, 2U, 2U, 3U, 3U}, {2U, 2U, 3U, 3U, 4U},
+        {2U, 3U, 3U, 4U, 4U}, {3U, 3U, 4U, 4U, 5U},
+        {3U, 4U, 4U, 5U, 5U}
+    };
+    for (index = 0U; index < columns; ++index) {
+        uint8_t value = state->coeff_above[column + index];
+        score += (value & 16U) != 0U ? 1 : (value & 8U) != 0U ? -1 : 0;
+    }
+    for (index = 0U; index < rows; ++index) {
+        uint8_t value = state->coeff_left[row + index];
+        score += (value & 16U) != 0U ? 1 : (value & 8U) != 0U ? -1 : 0;
+    }
+    *skip_context = block_width == 8U && block_height == 8U
+        ? 0U : contexts[top > 4U ? 4U : top][side > 4U ? 4U : side];
+    *sign_context = score < 0 ? 1U : score > 0 ? 2U : 0U;
+}
+
+static void m3_commit_coeff_context(
+    EncM3TileState *state, size_t x, size_t y, int16_t level) {
+    size_t column = x / 4U;
+    size_t global_row = y / 4U;
+    size_t row = global_row % 16U;
+    size_t mi_columns = ((state->width + 7U) / 8U) * 2U;
+    size_t mi_rows = ((state->height + 7U) / 8U) * 2U;
+    unsigned int magnitude =
+        level < 0 ? (unsigned int)(-(int)level) : (unsigned int)level;
+    uint8_t value = (uint8_t)(magnitude > 7U ? 7U : magnitude);
+    size_t index;
+    value = (uint8_t)(value | (level < 0 ? 8U : level > 0 ? 16U : 0U));
+    for (index = column; index < column + 2U && index < mi_columns; ++index) {
+        state->coeff_above[index] = value;
+    }
+    for (index = row;
+         index < row + 2U && global_row + index - row < mi_rows;
+         ++index) {
+        state->coeff_left[index] = value;
+    }
+}
+
+static EncStatus write_m3_leaf_tail(
+    EncM3TileState *state, size_t block_x, size_t block_y,
+    size_t block_width, size_t block_height);
 
 static EncStatus write_m3_leaf(
     EncM3TileState *state, size_t block_x, size_t block_y,
     size_t block_width, size_t block_height) {
-    size_t block_columns = (state->width + 7U) / 8U;
-    size_t tx_columns = block_width / 8U;
-    size_t tx_rows = block_height / 8U;
     size_t block_size_group =
         block_width == block_height
             ? (block_width == 16U ? 4U : 2U) : 3U;
     size_t tx_size_group =
         block_width == block_height
             ? (block_width == 16U ? 3U : 1U) : 2U;
-    size_t tx_y;
-    size_t tx_x;
     EncStatus status;
     status = write_m3_mode(
         state->writer, state->cdfs, block_size_group);
@@ -608,6 +707,268 @@ static EncStatus write_m3_leaf(
             2U, 1) != ENC_OK) {
         return enc_range_writer_status(state->writer);
     }
+    return write_m3_leaf_tail(
+        state, block_x, block_y, block_width, block_height);
+}
+
+static EncStatus write_m3_large_leaf(
+        EncM3TileState *state, size_t block_x, size_t block_y,
+        size_t block_width, size_t block_height) {
+        size_t block_size_group =
+            block_width == block_height
+                ? (block_width == 16U ? 4U : 2U) : 3U;
+        size_t tx_size_group =
+            block_width == block_height
+                ? (block_width == 16U ? 3U : 1U) : 2U;
+        size_t tx_y;
+        size_t tx_x;
+        EncStatus status = write_m3_mode(
+            state->writer, state->cdfs, block_size_group);
+        if (status != ENC_OK) return status;
+        if (enc_range_writer_symbol(
+                state->writer,
+                block_width != 8U || block_height != 8U ? 1U : 0U,
+                enc_syntax_tx_do_partition_cdf(
+                    state->cdfs, 0U, 0U, tx_size_group),
+                2U, 1) != ENC_OK) {
+            return enc_range_writer_status(state->writer);
+        }
+        if ((block_width != 8U || block_height != 8U) &&
+            enc_range_writer_symbol(
+                state->writer,
+                block_width == block_height ? 0U :
+                block_width == 8U ? 1U : 2U,
+                enc_syntax_tx_partition_type_cdf(
+                    state->cdfs, 0U, 0U,
+                    block_width == block_height ? 3U :
+                    block_width == 8U ? 1U : 2U),
+                7U, 1) != ENC_OK) {
+            return enc_range_writer_status(state->writer);
+        }
+        for (tx_y = 0U; tx_y < block_height; tx_y += 8U) {
+            for (tx_x = 0U; tx_x < block_width; tx_x += 8U) {
+                int16_t level = state->levels[state->level_index++];
+                size_t skip_context;
+                size_t sign_context;
+                m3_coeff_context(
+                    state, block_x + tx_x, block_y + tx_y,
+                    block_width, block_height, &skip_context, &sign_context);
+                status = write_m3_dc_coeff(
+                    state->writer, state->cdfs, level,
+                    skip_context, sign_context, state->q_context);
+                if (status != ENC_OK) return status;
+                m3_commit_coeff_context(
+                    state, block_x + tx_x, block_y + tx_y, level);
+            }
+        }
+        return ENC_OK;
+    }
+
+    static int m3_forced_axis(
+        size_t mi_rows, size_t mi_columns, size_t row, size_t column,
+        size_t width, size_t height) {
+        int has_rows = row + height / 2U < mi_rows;
+        int has_columns = column + width / 2U < mi_columns;
+        if (has_rows && has_columns) return 0;
+        if (width == height) {
+            return has_rows && !has_columns ? 2 : 1;
+        }
+        if (height > width) {
+            if (!has_rows) return 1;
+            if (!has_columns && width >= 4U &&
+                column + width / 4U >= mi_columns) return 1;
+        } else {
+            if (!has_columns) return 2;
+            if (!has_rows && height >= 4U &&
+                row + height / 4U >= mi_rows) return 2;
+        }
+        return 0;
+    }
+
+    static int m3_partial_boundary_axis(
+        size_t mi_rows, size_t mi_columns, size_t row, size_t column,
+        size_t width, size_t height) {
+        int has_rows = row + height / 2U < mi_rows;
+        int has_columns = column + width / 2U < mi_columns;
+        if (height > width && has_rows && !has_columns) return 2;
+        if (width > height && !has_rows && has_columns) return 1;
+        return 0;
+    }
+
+    static void m3_partition_contexts(
+        EncM3TileState *state, size_t row, size_t column,
+        size_t width, size_t height, int axis,
+        size_t *split_context, size_t *rect_context,
+        size_t *extension_context) {
+        size_t split_adjust =
+            width >= 16U || height >= 16U
+                ? (width >= 8U || height >= 8U ? 3U : 2U) : 1U;
+        size_t rect_adjust;
+        size_t left_index = row % 16U;
+        size_t left_smaller =
+            m3_context_bit(state->partition_left[left_index], height, 1U);
+        size_t above_smaller =
+            m3_context_bit(state->partition_above[column], width, 1U);
+        size_t first;
+        size_t second;
+        if (width == height) {
+            split_adjust = width == 16U ? 3U :
+                           width == 8U ? 2U :
+                           width == 4U ? 1U : 0U;
+            rect_adjust = width == 16U ? 6U : width == 8U ? 3U : 0U;
+        } else if (height > width) {
+            split_adjust = height == 16U ? 3U : height == 8U ? 2U : 1U;
+            rect_adjust = width == 8U ? 4U : width == 4U ? 1U : 0U;
+        } else {
+            split_adjust = width == 16U ? 3U : width == 8U ? 2U : 1U;
+            rect_adjust = height == 8U ? 5U : height == 4U ? 2U : 0U;
+        }
+        if (axis == 1) {
+            first = m3_context_bit(
+                state->partition_left[left_index], height, 2U);
+            second = m3_context_bit(
+                state->partition_left[
+                    (left_index + height / 2U) % 16U], height, 2U);
+        } else {
+            first = m3_context_bit(
+                state->partition_above[column], width, 2U);
+            second = m3_context_bit(
+                state->partition_above[column + width / 2U], width, 2U);
+        }
+        *split_context = split_adjust * 4U + left_smaller * 2U + above_smaller;
+        *rect_context = rect_adjust * 4U + left_smaller * 2U + above_smaller;
+        *extension_context = split_adjust * 4U + first * 2U + second;
+    }
+
+    static int m3_extension_allowed(
+        size_t width, size_t height, int axis) {
+        size_t pixel_width = width * 4U;
+        size_t pixel_height = height * 4U;
+        if (pixel_width <= 8U && pixel_height <= 8U) return 0;
+        if ((pixel_width == 16U && pixel_height == 8U && axis == 1) ||
+            (pixel_width == 8U && pixel_height == 16U && axis == 2) ||
+            (pixel_width == 32U && pixel_height == 8U && axis == 1) ||
+            (pixel_width == 8U && pixel_height == 32U && axis == 2) ||
+            (pixel_width == 64U && pixel_height == 16U && axis == 1) ||
+            (pixel_width == 16U && pixel_height == 64U && axis == 2)) {
+            return 0;
+        }
+        return 1;
+    }
+
+    static void m3_commit_partition(
+        EncM3TileState *state, size_t row, size_t column,
+        size_t width, size_t height) {
+        size_t index;
+        size_t left_index = row % 16U;
+        for (index = column;
+             index < column + width && index < 224U;
+             ++index) {
+            state->partition_above[index] = (uint8_t)(64U - width);
+        }
+        for (index = left_index;
+             index < left_index + height && index < 16U;
+             ++index) {
+            state->partition_left[index] = (uint8_t)(64U - height);
+        }
+    }
+
+    static EncStatus write_m3_large_partition(
+        EncM3TileState *state, size_t row, size_t column,
+        size_t width, size_t height) {
+        size_t mi_columns = ((state->width + 7U) / 8U) * 2U;
+        size_t mi_rows = ((state->height + 7U) / 8U) * 2U;
+        int forced;
+        int boundary;
+        int axis;
+        size_t split_context;
+        size_t rect_context;
+        size_t extension_context;
+        EncStatus status;
+        if (row >= mi_rows || column >= mi_columns) return ENC_OK;
+        forced = m3_forced_axis(
+            mi_rows, mi_columns, row, column, width, height);
+        if (forced != 0) {
+            if (forced == 1) {
+                status = write_m3_large_partition(
+                    state, row, column, width, height / 2U);
+                if (status != ENC_OK) return status;
+                return write_m3_large_partition(
+                    state, row + height / 2U, column, width, height / 2U);
+            }
+            status = write_m3_large_partition(
+                state, row, column, width / 2U, height);
+            if (status != ENC_OK) return status;
+            return write_m3_large_partition(
+                state, row, column + width / 2U, width / 2U, height);
+        }
+        if (width <= 4U && height <= 4U) {
+            m3_partition_contexts(
+                state, row, column, width, height, 1,
+                &split_context, &rect_context, &extension_context);
+            if (enc_range_writer_symbol(
+                    state->writer, 0U,
+                    enc_syntax_do_split_cdf(state->cdfs, 0U, split_context),
+                    2U, 1) != ENC_OK) {
+                return enc_range_writer_status(state->writer);
+            }
+            status = write_m3_large_leaf(
+                state, column * 4U, row * 4U, width * 4U, height * 4U);
+            if (status == ENC_OK) {
+                m3_commit_partition(state, row, column, width, height);
+            }
+            return status;
+        }
+        boundary = m3_partial_boundary_axis(
+            mi_rows, mi_columns, row, column, width, height);
+        axis = height >= width ? 1 : 2;
+        m3_partition_contexts(
+            state, row, column, width, height, axis,
+            &split_context, &rect_context, &extension_context);
+        if (boundary == 0 &&
+            enc_range_writer_symbol(
+                state->writer, 1U,
+                enc_syntax_do_split_cdf(state->cdfs, 0U, split_context),
+                2U, 1) != ENC_OK) {
+            return enc_range_writer_status(state->writer);
+        }
+        if (enc_range_writer_symbol(
+                state->writer, axis == 1 ? 0U : 1U,
+                enc_syntax_rect_type_cdf(state->cdfs, 0U, rect_context),
+                2U, 1) != ENC_OK) {
+            return enc_range_writer_status(state->writer);
+        }
+        if (m3_extension_allowed(width, height, axis) &&
+            enc_range_writer_symbol(
+                state->writer, 0U,
+                enc_syntax_do_ext_partition_cdf(
+                    state->cdfs, 0U, extension_context),
+                2U, 1) != ENC_OK) {
+            return enc_range_writer_status(state->writer);
+        }
+        if (axis == 1) {
+            status = write_m3_large_partition(
+                state, row, column, width, height / 2U);
+            if (status != ENC_OK) return status;
+            return write_m3_large_partition(
+                state, row + height / 2U, column, width, height / 2U);
+        }
+        status = write_m3_large_partition(
+            state, row, column, width / 2U, height);
+        if (status != ENC_OK) return status;
+        return write_m3_large_partition(
+            state, row, column + width / 2U, width / 2U, height);
+}
+
+static EncStatus write_m3_leaf_tail(
+    EncM3TileState *state, size_t block_x, size_t block_y,
+    size_t block_width, size_t block_height) {
+    size_t block_columns = (state->width + 7U) / 8U;
+    size_t tx_columns = block_width / 8U;
+    size_t tx_rows = block_height / 8U;
+    size_t tx_y;
+    size_t tx_x;
+    EncStatus status;
     if (block_width == 16U && block_height == 16U &&
         enc_range_writer_symbol(
             state->writer, 0U,
@@ -732,8 +1093,8 @@ EncStatus enc_m3_dc_grid_tile_q(
     size_t block_count;
     EncStatus status;
     if (size == 0 || (data == 0 && capacity != 0U) || levels == 0 ||
-        width == 0U || width > 16U ||
-        height == 0U || height > 16U ||
+        width == 0U || width > 896U ||
+        height == 0U || height > 896U ||
         qindex == 0U || qindex > 255U) {
         return ENC_INVALID_ARGUMENT;
     }
@@ -749,11 +1110,49 @@ EncStatus enc_m3_dc_grid_tile_q(
     state.width = width;
     state.height = height;
     state.levels = levels;
+    state.level_index = 0U;
+    {
+        size_t index;
+        for (index = 0U; index < 224U; ++index) {
+            state.partition_above[index] = 0U;
+            state.coeff_above[index] = 0U;
+        }
+        for (index = 0U; index < 16U; ++index) {
+            state.partition_left[index] = 0U;
+            state.coeff_left[index] = 0U;
+        }
+    }
     state.q_context = qindex <= 90U ? 0U :
                       qindex <= 140U ? 1U :
                       qindex <= 190U ? 2U : 3U;
-    status = write_m3_partition(&state, 0U, 0U, 64U);
+    if (width <= 16U && height <= 16U) {
+        status = write_m3_partition(&state, 0U, 0U, 64U);
+    } else {
+        size_t mi_columns = ((width + 7U) / 8U) * 2U;
+        size_t mi_rows = ((height + 7U) / 8U) * 2U;
+        size_t row;
+        size_t column;
+        status = ENC_OK;
+        for (row = 0U; row < mi_rows && status == ENC_OK; row += 16U) {
+            if (row != 0U) {
+                size_t index;
+                for (index = 0U; index < 16U; ++index) {
+                    state.partition_left[index] = 0U;
+                    state.coeff_left[index] = 0U;
+                }
+            }
+            for (column = 0U;
+                 column < mi_columns && status == ENC_OK;
+                 column += 16U) {
+                status = write_m3_large_partition(
+                    &state, row, column, 16U, 16U);
+            }
+        }
+    }
     if (status != ENC_OK) return status;
+    if (width > 16U && state.level_index != level_count) {
+        return ENC_INVALID_ARGUMENT;
+    }
     if (enc_range_writer_finish(&writer) != ENC_OK) {
         return enc_range_writer_status(&writer);
     }

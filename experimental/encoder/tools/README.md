@@ -103,6 +103,56 @@ SSE cannot increase as qindex decreases:
 python3 experimental/encoder/tools/m3_q_sweep.py
 ```
 
+`m3_multileaf_cdf_model.py` freezes every adaptive transform-partition and
+DC-coefficient CDF transition for representative 17..64 non-flat I400 frames.
+It models decoder-style coefficient neighbor state after every 8x8 transform,
+all four frame base-q CDF banks, all-zero transforms, and the second-transform
+divergence inside a 16x16 prediction leaf. The tracked probe report also locks
+pinned AVM bitstream/output hashes:
+
+```sh
+python3 experimental/encoder/tools/m3_multileaf_cdf_model.py --vectors
+python3 -m unittest \
+  experimental/encoder/tests/test_m3_multileaf_cdf_model.py
+```
+
+`m3_edge_coeff_model.py` isolates the 17x17 8x16, 16x8, and 8x8 boundary
+leaves across qindex 1, 90, 91, 100, 141, 191, and 255. It freezes exact
+coefficient CDF transitions and reconstruction updates. Its probe matrix
+requires local reconstruction, pinned AVM, and the project decoder to agree on
+all 14 cases and records that the corrected production path is enabled:
+
+```sh
+python3 experimental/encoder/tools/m3_edge_coeff_model.py --vectors
+python3 experimental/encoder/tools/m3_edge_coeff_model.py \
+  --probe experimental/encoder/build/m3-edge-coeff-probes
+python3 -m unittest \
+  experimental/encoder/tests/test_m3_edge_coeff_model.py
+```
+
+`m3_large_partition_model.py` independently composes the verified
+rectangle-only partition tree with leaf-local 8x8 transform visitation,
+reconstructed-neighbor prediction, coefficient/DC-sign contexts, source edge
+extension, inverse DC reconstruction, coded-canvas crop, and decoder-visible
+sample commits. Frozen odd/rectangular/square vectors expose the historical
+32x32 global-raster level-order mismatch:
+
+```sh
+python3 experimental/encoder/tools/m3_large_partition_model.py \
+  --width 32 --height 32 --reconstruction
+python3 -m unittest \
+  experimental/encoder/tests/test_m3_large_partition_model.py
+```
+
+`m3_multisuperblock_model.py` extends the frozen transform order across
+row-major 64x64 roots and records boundary-rounded coverage plus left-context
+row epochs:
+
+```sh
+python3 experimental/encoder/tools/m3_multisuperblock_model.py \
+  --width 896 --height 424
+```
+
 `m4_ac_model.py` extends the executable model to an 8x8 DCT_DCT block with
 DC plus scan-position-1 AC, including the normative scan, inverse transform,
 canonical forward search, and EOB/base/BR/sign transcript:
@@ -119,6 +169,20 @@ python3 experimental/encoder/tools/obu_inspect.py --bits input.obu
 ```
 ## M3 benchmark
 
+`m3_boundary_partition_transcript.py` reproduces the private 8x8 boundary
+context mismatch, models every partition/mode/transform/flat-coefficient CDF
+and range transition, and probes pinned AVM plus the project decoder across
+the 24/32/40/48/56/64 flat and non-flat classes. benchmark
+
 `m3_benchmark.py` orchestrates the locked gray-image M3 suite, both decoders,
 integer distortion metrics, optional reconstruction parity, timing, and JSONL
 reporting. See `../docs/m3-benchmark.md`.
+
+`m3_prepared_corpus.py` derives and checks the complete 28-preparation image
+inventory from `images/recipes/prepared-lock.json`. It deterministically picks
+the smallest full I400 preparation for each of the 14 sources and runs each
+image twice. All selected dimensions (896x424 through 896x896, with either
+axis at most 896) must encode; any `expected_blocked`, `blocked`, or `error`
+status fails the gate. Both OBU hashes must match and local, pinned-AVM, and
+project reconstruction hashes, SSE/PSNR, and timings are mandatory. This does
+not claim arbitrary dimensions or chroma support.

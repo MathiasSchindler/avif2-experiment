@@ -21,6 +21,10 @@ EncStatus enc_syntax_cdfs_init(EncSyntaxCdfs *cdfs) {
         return ENC_INVALID_ARGUMENT;
     }
     MATERIALIZE_TABLE(do_split, enc_norm_do_split, ENC_DO_SPLIT_ROWS, 2U);
+    MATERIALIZE_TABLE(rect_type, enc_norm_rect_type, ENC_RECT_TYPE_ROWS, 2U);
+    MATERIALIZE_TABLE(
+        do_ext_partition, enc_norm_do_ext_partition,
+        ENC_DO_EXT_PARTITION_ROWS, 2U);
     MATERIALIZE_TABLE(delta_q, enc_norm_delta_q, ENC_DELTA_Q_ROWS, 8U);
     MATERIALIZE_TABLE(y_mode_set, enc_norm_y_mode_set, ENC_Y_MODE_SET_ROWS, 4U);
     MATERIALIZE_TABLE(
@@ -67,6 +71,20 @@ uint16_t *enc_syntax_do_split_cdf(
     size_t row = partition_structure * 64U + context;
     return cdfs != 0 && partition_structure < 2U && context < 64U
         ? cdfs->do_split[row] : 0;
+}
+
+uint16_t *enc_syntax_rect_type_cdf(
+    EncSyntaxCdfs *cdfs, size_t partition_structure, size_t context) {
+    size_t row = partition_structure * 64U + context;
+    return cdfs != 0 && partition_structure < 2U && context < 64U
+        ? cdfs->rect_type[row] : 0;
+}
+
+uint16_t *enc_syntax_do_ext_partition_cdf(
+    EncSyntaxCdfs *cdfs, size_t partition_structure, size_t context) {
+    size_t row = partition_structure * 64U + context;
+    return cdfs != 0 && partition_structure < 2U && context < 64U
+        ? cdfs->do_ext_partition[row] : 0;
 }
 
 uint16_t *enc_syntax_delta_q_cdf(EncSyntaxCdfs *cdfs) {

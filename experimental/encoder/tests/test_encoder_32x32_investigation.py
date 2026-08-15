@@ -26,4 +26,9 @@ class Encoder32x32InvestigationTests(TestCase):
         self.assertEqual(facts["do_split_context_no_smaller_neighbors"]["32x32"], 8)
         self.assertEqual(facts["tx_partition_group"]["32x32"], 5)
         self.assertEqual(facts["tx_partition_type_group"]["32x32"], 6)
-        self.assertEqual(facts["square_split_row"], [18000, 7, 0])
+        self.assertEqual(
+            facts["square_split_eligible"], ["128x128", "256x256"]
+        )
+        self.assertEqual(
+            facts["legal_32x32_path"][0], ["32x32", "HORZ"]
+        )

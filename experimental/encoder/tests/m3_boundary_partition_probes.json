@@ -1,0 +1,129 @@
+{
+  "all_pass": true,
+  "avm_revision": "966a7d7cd6fcf60360caf5dc413b2aeeb65e144d",
+  "avmdec_sha256": "c247cbb4e71e48bdec89f3c8b2b8efdce17f673aeaa39e3c116a276d16286aa0",
+  "cases": [
+    {
+      "avmdec_returncode": 0,
+      "encoder_returncode": 0,
+      "name": "24x24-flat",
+      "obu_bytes": 23,
+      "obu_sha256": "17546ef3cea9d3a9ea68c9a817ca03704da20a70ed505d43a22f01d7708fa528",
+      "output_sha256": "af1857bf5516aa3e2e39b6842559746fa7b45daa8dc4cc6675ad86e0cfe425b9",
+      "project_decoder_returncode": 0,
+      "validators_exact_equal": true
+    },
+    {
+      "avmdec_returncode": 0,
+      "encoder_returncode": 0,
+      "name": "24x24-nonflat",
+      "obu_bytes": 46,
+      "obu_sha256": "f2f9bd3516606fd930cfef054830a5f2a09e06bb83e9a441426c09bdaa9053fd",
+      "output_sha256": "efaa63e5662f3da823832e4478747261898477c80ea3752b930bbbd76ce1ea69",
+      "project_decoder_returncode": 0,
+      "validators_exact_equal": true
+    },
+    {
+      "avmdec_returncode": 0,
+      "encoder_returncode": 0,
+      "name": "32x32-flat",
+      "obu_bytes": 23,
+      "obu_sha256": "e1bba80e205f1604fc5c762447c501dbee0d68d99641f7f1129bb4440d1c2db0",
+      "output_sha256": "f991acb1e5897fe61be2decbf1d1b41b165ec8c2317284f8e3d8322c4d052e21",
+      "project_decoder_returncode": 0,
+      "validators_exact_equal": true
+    },
+    {
+      "avmdec_returncode": 0,
+      "encoder_returncode": 0,
+      "name": "32x32-nonflat",
+      "obu_bytes": 61,
+      "obu_sha256": "0da045d43f014661e8681bf7ee5a01461f3e8a4f56e12a0e072bbe61b6730e36",
+      "output_sha256": "c58f6b762a20826ab2bff7b9849617b62dd2ea77860ba383685cdae06c8de0fc",
+      "project_decoder_returncode": 0,
+      "validators_exact_equal": true
+    },
+    {
+      "avmdec_returncode": 0,
+      "encoder_returncode": 0,
+      "name": "40x40-flat",
+      "obu_bytes": 26,
+      "obu_sha256": "92e2ef6827fbd9322161dd425464a29827b5eff886321bc07c6283cb9e1896f1",
+      "output_sha256": "1719c8cde412ad396875d1ec9dd0abb9ff55124502e40873a90105c220ea3015",
+      "project_decoder_returncode": 0,
+      "validators_exact_equal": true
+    },
+    {
+      "avmdec_returncode": 0,
+      "encoder_returncode": 0,
+      "name": "40x40-nonflat",
+      "obu_bytes": 79,
+      "obu_sha256": "5bc3e4f2eba2ca23bfbfd703fbe1b72e3020a4a047358e7131f4bd9d377e567e",
+      "output_sha256": "c40767fca090aa58f0ec2ea6f62d46948c1feeaf99f8f7c8a34a67ffb087e5ee",
+      "project_decoder_returncode": 0,
+      "validators_exact_equal": true
+    },
+    {
+      "avmdec_returncode": 0,
+      "encoder_returncode": 0,
+      "name": "48x48-flat",
+      "obu_bytes": 26,
+      "obu_sha256": "508bf083c7c3f7bb4617ace44acd9663d7066d4cd08fdd7e4e550d1c5933b2aa",
+      "output_sha256": "dea313a03db46a224a28a8a79febff397b832f3256b9c9ce236e79ee90e6ed7f",
+      "project_decoder_returncode": 0,
+      "validators_exact_equal": true
+    },
+    {
+      "avmdec_returncode": 0,
+      "encoder_returncode": 0,
+      "name": "48x48-nonflat",
+      "obu_bytes": 99,
+      "obu_sha256": "1c5dd8b16aee2c22420fcd7d1d97a2ad60b587637adafa8ba4648d7ab56e44c4",
+      "output_sha256": "4511381134de95535bbce6b9d3835af9b9e6f77b02b0e7745f765afbee438a53",
+      "project_decoder_returncode": 0,
+      "validators_exact_equal": true
+    },
+    {
+      "avmdec_returncode": 0,
+      "encoder_returncode": 0,
+      "name": "56x56-flat",
+      "obu_bytes": 30,
+      "obu_sha256": "991c6f5429a41f9fb5ee4154c34ec8806a7572543ebccb15c3286f551ec67be4",
+      "output_sha256": "b17fb24e8ee9d522f074791bbd943719d8fbf7cf0424d71f3460c4dcc57c58b9",
+      "project_decoder_returncode": 0,
+      "validators_exact_equal": true
+    },
+    {
+      "avmdec_returncode": 0,
+      "encoder_returncode": 0,
+      "name": "56x56-nonflat",
+      "obu_bytes": 124,
+      "obu_sha256": "4642bf8367ef7d6726c65eed306467ac5b79733683fc384c07d6287e37ec06c8",
+      "output_sha256": "aa682a89569c6e083969e8b9ee075ec14dee6279a491f50a53a4eadaf03ccd2d",
+      "project_decoder_returncode": 0,
+      "validators_exact_equal": true
+    },
+    {
+      "avmdec_returncode": 0,
+      "encoder_returncode": 0,
+      "name": "64x64-flat",
+      "obu_bytes": 29,
+      "obu_sha256": "4568a0284e0c7e5dcbd29e0a4c59678ef7210c04af3dedc94d78ff9d656608e8",
+      "output_sha256": "78aacbc3fb34efb8ffa5467b931291ec2bdf5e19564fc45fe97b5affbc893dc6",
+      "project_decoder_returncode": 0,
+      "validators_exact_equal": true
+    },
+    {
+      "avmdec_returncode": 0,
+      "encoder_returncode": 0,
+      "name": "64x64-nonflat",
+      "obu_bytes": 151,
+      "obu_sha256": "a045f92aac9dc778406274a417f3bb1121bc5e49d05452bc459683246d09a049",
+      "output_sha256": "49793ca5a8a9183539958fc6976c01b05670f84abc90e50e5226be4110f4ceb2",
+      "project_decoder_returncode": 0,
+      "validators_exact_equal": true
+    }
+  ],
+  "project_decoder_sha256": "c0c6329cc85de13c92d04a00deff8124c9b45dbe74da8a86ddc60d9d7b4de9df",
+  "schema": "av2-m3-boundary-partition-probes-v1"
+}

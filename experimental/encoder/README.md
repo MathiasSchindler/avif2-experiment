@@ -46,8 +46,8 @@ sent through the forward range writer using CDFs materialized from the
 normative AV2 v1.0.0 attachment values listed in `PROVENANCE.md`; no fixture or
 complete golden stream is embedded in production code.
 
-The active M3 subset accepts arbitrary-pixel raw 8-bit I400 images whose
-dimensions are each in 1 through 16:
+The active M3 subset accepts arbitrary-pixel raw 8-bit I400 images with each
+axis in 1 through 896:
 
 ```sh
 experimental/encoder/build/av2-encoder-experiment \
@@ -61,25 +61,42 @@ validated non-lossless range. Qindex 0 is rejected because it changes the
 frame to lossless transform semantics that this M3 path does not emit.
 Active samples are edge-extended to complete 8×8 transform blocks for DC
 selection, while reported SSE and returned reconstruction are cropped to the
-declared frame. AV2's four-pixel boundary grid implies a legal 8×8, 8×16,
-16×8, or 16×16 prediction block containing one, two, or four 8×8 transforms.
-Transforms reconstruct in raster order and use already reconstructed top/left
-edges. Local dequantization, inverse-DC reconstruction, and clipping exactly
-match both validators.
+declared frame. AV2's four-pixel boundary grid implies legal rectangle-only prediction leaves.
+The scalable path visits 64×64 superblocks row-major and traverses each root
+depth first. It reconstructs each leaf's 8×8
+transforms in local raster order, persists adaptive CDFs across the tile, and
+updates coefficient contexts after every transform. Local dequantization,
+inverse-DC reconstruction, clipping, and the compact cropped reconstruction
+exactly match both validators.
 
 Input metadata validation still accepts dimensions through 16384 for a precise
-unsupported result, but validated encoding is intentionally limited to
-dimensions whose width and height are each 1 through 16.
+unsupported result, but validated encoding is limited to 896 on either axis.
 Stride must be at least width and the file must contain exactly
 `stride * height` bytes. Larger dimensions exit 5 without creating output.
-The current shared-tree 32×32 attempt can emit a stream, but pinned
-`avmdec` rejects it at tile data; 32×32 must therefore be treated as
-unsupported until it passes both decoder gates.
-This is a completed bounded submilestone, not the full M3 gate. An exhaustive
+The complete multi-leaf transform/coefficient CDF transition model is frozen
+in `tests/m3_multileaf_cdf_vectors.json` and documented in
+`spec-notes/m3-multileaf-cdf-state.md`. The production matrix transcript in
+`tests/m3_production_matrix.json` freezes all 2,304 17..64 dimension pairs;
+local reconstruction, pinned `avmdec`, and the project decoder agree exactly.
+The one-superblock transcript remains frozen. The 14 selected complete
+prepared planes are 896×424 (1), 896×448 (1), 896×504 (1), 896×598 (5),
+598×896 (2), 896×672 (1), and 896×896 (3); every one has deterministic OBU
+and exact local/pinned-AVM/project reconstruction parity. This is a
+896-per-axis I400 bound, not arbitrary-size or chroma support. An exhaustive
 257-case check (all 256 constant 8×8 sample values plus one four-quadrant
 16×16 grid) was deterministic and byte-exact between local reconstruction,
 pinned `avmdec`, and the project decoder. Representative results are flat-128:
 19 bytes, infinite PSNR; four-quadrant 16×16: 30 bytes, infinite PSNR.
+
+The scalable C entry point is `enc_m3_dc_i400_q_workspace()`.
+`enc_m3_query_workspace()` returns overflow-checked padded geometry, block and
+pixel counts, alignment, and the exact caller-owned workspace size. Short or
+misaligned workspaces, reconstruction spans, and stream spans fail without
+modifying caller outputs. The older `enc_m3_dc_i400[_q]()` wrappers remain source-compatible with their
+64×64 bounded internal arena; larger encoding uses the workspace entry point.
+The Linux CLI obtains
+workspace, stream, and reconstruction storage from anonymous page mappings;
+allocation stays outside the freestanding codec core.
 
 The bounded M4 experiment is an explicit 8×8 DC-plus-vertical-AC mode:
 
@@ -134,11 +151,11 @@ padded strides, all 256 dimension pairs in 1..16, and even/odd prepared
 photographic-luma crops. Stride products and the final active input offset are
 overflow-checked; output is committed by an exclusive sibling temporary file
 plus atomic rename, with cleanup on failure; the full gate requires both
-validators rather than silently skipping them. The 32×32 failure was traced
-to omitted transform-partition-type
-syntax and an illegal sixteen-8×8 interpretation of a 32×32 prediction block;
-the current four-16×16-prediction-block attempt is still rejected at tile data
-and remains unsupported.
+validators rather than silently skipping them. The 32×32 investigations found two separate errors: omitted transform-
+partition-type syntax in the one-block path, and a coded 32×32 square split
+where AV2 v1.0 requires rectangular partitioning. The verified replacement is
+documented in `spec-notes/m3-large-partitions.md`; it is not yet production
+syntax.
 
 Remaining work is deliberately broad: larger dimensions, general AC
 coefficient streams and transforms, chroma, partition/intra search, in-loop

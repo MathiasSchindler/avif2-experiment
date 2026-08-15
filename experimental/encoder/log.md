@@ -704,3 +704,353 @@ Next restart command/boundary:
 - **Milestone boundary:** this closes the reviewed 1..16 M3 submilestone only.
   Full M3 remains active for dimensions above 16, broader partition and mode
   search, filtering, and rate control.
+
+## 2026-08-15 — M3 scalable storage boundary
+
+- **Status:** PASS for todo `encoder-m3-scalable-storage`.
+- **Core API:** `enc_m3_query_workspace` computes padded dimensions, active and
+  padded pixels, transform-block count, alignment, and total bytes with checked
+  add/multiply/round-up operations. The workspace encoder stages padded and
+  compact reconstruction, signed levels, and the complete stream there.
+- **Ownership:** the codec core remains freestanding and allocation-free. The
+  Linux runtime provides anonymous read/write page mappings and deterministic
+  unmapping for CLI workspace, reconstruction, and stream storage.
+- **Compatibility:** the legacy 1..16 APIs wrap the workspace entry point and
+  preserve existing qindex-100 bitstreams. Dimensions above 16 now reach
+  scalable geometry accounting but return `ENC_UNSUPPORTED`; no partition
+  syntax was invented.
+- **Failure contract:** short/misaligned workspace, reconstruction exhaustion,
+  stream exhaustion, stride/geometry overflow, and unsupported syntax leave
+  stream and reconstruction outputs unchanged. Atomic file replacement remains
+  the only output commit.
+- **Coverage:** native tests cover 16384×16384 sizing, odd padded geometry,
+  overflow, padded strides, every short span, mmap success/failure/reset, and
+  legacy compatibility. Dependency auditing rejects allocation calls in core
+  sources and fixed M3 geometry arrays.
+- **Validation:** `make -C experimental/encoder test` passes generated checks,
+  native tests, input/atomic shell gates, dependency/static-ELF audits, both
+  pinned decoders, and all 80 Python tests. Existing 1..16 streams and
+  reconstructions remain exact.
+
+## 2026-08-15 — Full prepared-image corpus gate preparation
+
+- **Status:** EXPECTED BLOCKED; no complete prepared image is claimed encoded.
+- **Inventory:** the generated M3 corpus manifest covers all 28 locked
+  preparations for 14 sources and all four prepared outputs (`master`,
+  `gray8`, `yuv420p8`, `yuv444p8`). It records source/preparation manifest
+  hashes, dimensions, packed I400 stride and bytes, and every output hash.
+- **Selection:** minimum pixel area then preparation ID selects exactly one
+  full image per source; this is the 14-image `le896` set. All 28 local I400
+  planes were present and lock-verifiable during this work.
+- **Gate behavior:** each selected plane is hash-checked and encoded twice.
+  Two clean exit-5 rejections without output are `expected_blocked`.
+  Inconsistent reruns, unexpected encoder failures, missing inputs, or any
+  validator rejection after encoder success fail the gate. Successful future
+  records require repeated OBU hashes plus local/AVM/project reconstruction
+  hashes, SSE/PSNR, and command/timing evidence.
+- **Current result:** 14/14 selected full images are expected-blocked because
+  each axis is outside the current 1..16 M3 limit; 0 are passes and 0 reached
+  validators. This records unsupported dimensions honestly and does not close
+  full M3.
+- **Commands:** `python3 experimental/encoder/tools/m3_prepared_corpus.py
+  --inventory-only`; `python3 experimental/encoder/tools/m3_prepared_corpus.py`;
+  and `python3 -m unittest
+  experimental/encoder/tests/test_m3_prepared_corpus.py`.
+
+## 2026-08-15 — Legal 17..64 partition traversal
+
+- **Status:** PASS for grammar/model/probes; production M3 remains bounded.
+- **Correction:** AV2 v1.0 square split is eligible only at 128x128 and
+  256x256. The rejected coded `BLOCK_32X32` square split was invalid. The legal
+  four-leaf path is 32x32 HORZ, then each 32x16 VERT.
+- **Model:** `tools/m3_large_partition_model.py` implements 64x64-superblock
+  depth-first traversal, boundary implications, rectangular grammar,
+  partition contexts, exact active coverage, and reconstruction dependencies.
+- **Local evidence:** all 2,304 width/height pairs 17..64 have exact MI-grid
+  coverage, no square-split symbol, legal 8x8/8x16/16x8/16x16 leaves, and
+  previously reconstructed external top/left edges.
+- **Validator probes:** forced min/max partition size 16, extended/uneven
+  partitions disabled, flat-128 I400. All 36 rounded dimension classes passed
+  pinned AVM and the project decoder with identical exact visible planes.
+- **Pins:** AVM revision
+  `966a7d7cd6fcf60360caf5dc413b2aeeb65e144d`; `avmenc`
+  `830c5f7a82e071560501183fb85ea9e2632ce7665c9033232ac64b546efb7e64`;
+  `avmdec`
+  `c247cbb4e71e48bdec89f3c8b2b8efdce17f673aeaa39e3c116a276d16286aa0`;
+  project decoder
+  `c0c6329cc85de13c92d04a00deff8124c9b45dbe74da8a86ddc60d9d7b4de9df`.
+- **Representative streams:** 32x32
+  `2eb6389d684515545c0e89aae56f76902b562537ec95c29b791846e62c9f08dd`;
+  64x64
+  `822275bad706991e50c950e511b0a36dfe5a9f34cac3749e20205177f80b414c`.
+- **Raster conclusion:** global leaf order is not always raster, but one raster
+  reconstruction surface is safe because external top/left dependencies
+  precede each leaf. Emit syntax depth first and transforms leaf-locally.
+- **Production decision:** no syntax/storage changes were made. The encoder
+  remains exactly 1..16, avoiding conflicts in `src/m3.c` and storage. Next:
+  materialize proved partition CDF rows, validate a project-generated non-flat
+  17..64 stream, then extend across superblocks for full prepared images.
+- **Commands:** `python3 -m unittest
+  experimental/encoder/tests/test_m3_large_partition_model.py`; and
+  `python3 experimental/encoder/tools/m3_large_partition_model.py
+  --probe-all-classes`.
+## 2026-08-15 — full-image integration boundary
+
+Attempted to connect the verified 17..64 rectangle traversal to production
+entropy coding. A 32x32 prototype reached the intended
+64x64→64x32→32x32→32x16→16x16 depth-first tree in the project decoder, but
+non-flat reconstruction diverged from encoder-local SSE. Tightening
+coefficient contexts then desynchronized at the second transform. No >16
+path is exposed: the exact next boundary is multi-leaf adaptive
+transform/coefficient traversal at 17 pixels on either axis. Beyond 64 also
+requires independently verified multi-superblock row resets. The 14 selected
+prepared images begin at 896x424, so all remain explicit unsupported cases.
+
+## 2026-08-15 — M3 multi-leaf CDF state
+
+- **Status:** PASS for model/transcript; production integration unchanged.
+- **Milestone:** exact transform/coefficient entropy state for 17..64 I400.
+- **Result:** complete before/after inverse-CDF transcripts are frozen for
+  17x17, 17x32, 32x17, 32x32, 48x64, and 64x64 non-flat DC-only models, plus
+  flat-128 and all four base-q context controls.
+- **Key finding:** adaptive CDFs persist for the tile across transforms,
+  prediction leaves, and superblock positions. Coefficient neighbor state is
+  committed after every transform. The 32x32 second transform changes skip
+  context 1→3 and sign context 0→1 after the first level -46.
+- **Pinned AVM:** revision
+  `966a7d7cd6fcf60360caf5dc413b2aeeb65e144d`; all six sources encode/decode.
+  Exact hashes are in `tests/m3_multileaf_cdf_avm_probes.json`.
+- **Project decoder blocker:** AVM non-flat probes currently fail at the first
+  coefficient with `integer overflow (cause 7, stage 2, tell 25)`; its source
+  still independently establishes state lifetime and context update order.
+- **Validation:** focused 31-test M3 model suite, `make -C
+  experimental/encoder test-unit`, and full `make -C experimental/encoder
+  test` all pass.
+- **Restart boundary:** integrate the frozen traversal/context/CDF sequence
+  into production only in a separate change; do not alter the current 1..16
+  support bound here.
+
+## 2026-08-15 — M3 multi-leaf non-entropy reconstruction
+
+- **Status:** PASS; production `src/m3.c` and entropy integration unchanged.
+- **Order proof:** rectangular leaves are visited depth first and each 8x8
+  transform is visited in leaf-local raster order. Prediction is per
+  transform from already reconstructed top/left samples.
+- **32x32 root cause:** the old local path selected levels in global raster
+  order while the decoder consumed them in rectangular leaf order. The first
+  mismatch is transform index 2. Frozen non-flat SSE is `5376226` in correct
+  order versus `5609644` when the legacy level sequence is replayed by the
+  decoder.
+- **Edges/crop:** source edges repeat the final active row/column to the
+  eight-pixel coded canvas. A full local canvas and decoder-visible-only
+  commits produce identical active crops for ten odd, rectangular, and square
+  representatives through inverse DC reconstruction and clipping.
+- **Contexts:** all-zero and DC-sign contexts are derived from decoder-style
+  MI state and committed after every transform.
+- **Evidence:** `tests/m3_multileaf_reconstruction_vectors.json`,
+  `tests/m3_multileaf_avm_probes.json`, and
+  `tools/m3_large_partition_model.py`. Pinned AVM accepts all ten non-flat
+  probes; the project decoder's frozen nonzero inverse-transform
+  `integer overflow` remains an implementation limitation.
+- **Validation:** 34 focused M3 tests, `make -C experimental/encoder
+  test-unit`, full `make -C experimental/encoder test`, and
+  `git diff --check` pass.
+
+## 2026-08-15 — M3 production integration remains blocked
+
+- Integrated the frozen depth-first leaf order, adaptive transform/coefficient
+  CDF lifetime, coefficient MI contexts, scalable staging, edge extension,
+  crop, and qindex range into a private production prototype.
+- Exact 32x32 alternating-DC probes passed pinned AVM and the project decoder
+  at qindex 1, 90, 91, 100, 141, 191, and 255. The qindex-100 output also
+  matched the frozen local reconstruction hash.
+- The same prototype was not validator-complete: pinned AVM rejected all eight
+  17x17 general-pattern q probes (1, 2, 10, 50, 90, 100, 191, 255), and rejected
+  non-flat rounded classes 24 and 56 while accepting 32, 40, 48, and 64.
+  The project decoder accepted those generated streams, so its known overflow
+  on AVM-generated non-flat probes is not the blocker observed here.
+- The public maximum remains 16 and existing streams remain on the legacy
+  sequence/tool path. Hash-locked rectangle and extension-partition CDF
+  defaults and the private traversal code are retained only to make the next
+  transcript investigation reproducible.
+- Follow-on work must freeze the exact range/CDF state at the first 24x24 and
+  56x56 divergence, then verify edge 8x16/16x8/8x8 coefficient contexts before
+  another production-support attempt.
+
+## 2026-08-15 — M3 boundary partition transcript resolved
+
+- **Root cause:** private large-partition syntax measured geometry in MI units
+  but mapped a 2x2-MI (8x8) `NONE` leaf to split adjustment 1/context 4.
+  AV2 and pinned AVM require adjustment 0/context 0.
+- **Exact divergence:** 24x24 event 34 at `(16,16)`, tell 21, range 43952
+  became 35320 instead of 37712. 56x56 event 181 at `(48,48)`, tell 78,
+  range 54888 became 49864 instead of 47080. 40x40 also selected the wrong
+  CDF row, but probability quantization produced the same range and bytes.
+- **Ruled out:** rectangle symbols, extension enablement/signaling,
+  boundary-implied decisions, extension contexts, and all observed
+  partition CDF defaults/updates matched pinned AVM.
+- **Legacy rejection:** flat 24 overflowed at tell 158; non-flat 24 rejected
+  padding at tell 204. Flat 56 rejected its marker at tell 83; non-flat 56
+  rejected padding at tell 830.
+- **Correction:** the private helper now maps 8x8 to split adjustment 0.
+  Public support remains 1..16, whose legacy syntax path is unchanged.
+- **Parity:** pinned AVM and the project decoder accept and exactly agree on
+  all flat/non-flat 24/32/40/48/56/64 probes.
+- **Evidence:** `spec-notes/m3-boundary-partition-transcript.md`,
+  `tools/m3_boundary_partition_transcript.py`, three locked JSON reports, and
+  `test_m3_boundary_partition_transcript.py`.
+- **Validation:** focused tests, `make test-unit`, full `make test`, all 32
+  project CTest regressions, and generated-CDF/dependency/ELF audits pass.
+
+## 2026-08-15 — M3 17x17 edge coefficient context parity
+
+- **Status:** complete after rerunning the frozen matrix against the corrected
+  partition range state.
+- **Coverage:** 14 cases: flat/non-flat 17x17 at qindex 1, 90, 91, 100, 141,
+  191, and 255; 3 edge leaves and 5 edge transforms per case.
+- **Derivation:** exact adaptive skip/eob/base/BR/sign/remainder rows, clipped
+  two-by-two MI spatial contexts, immediate `cul_level` commits, predictions,
+  and reconstruction updates are locked in
+  `tests/m3_edge_coeff_context_vectors.json`.
+- **Validator result:** 14/14 local == pinned AVM == project. The pinned
+  `avmdec` hash is
+  `c247cbb4e71e48bdec89f3c8b2b8efdce17f673aeaa39e3c116a276d16286aa0`.
+- **Root-cause separation:** all 11 former mismatches were downstream of the
+  terminal 8x8 `PARTITION_NONE` split-context error (context 4 instead of 0).
+  With the corrected range state, no edge coefficient-context error remains.
+- **Decision:** public maximum remains 16 and production syntax is unchanged,
+  preserving the exact 1..16 matrix.
+- **Evidence:** `spec-notes/m3-edge-coeff-context-parity.md`,
+  `tools/m3_edge_coeff_model.py`,
+  `tests/m3_edge_coeff_context_vectors.json`, and
+  `tests/m3_edge_coeff_avm_probes.json`.
+- **Validation:** focused edge/boundary tests, `make test-unit`, full
+  `make test`, and all 32 project CTest regressions pass.
+
+## 2026-08-15 — M3 17..64 production promotion
+
+- **Status:** PASS. The corrected rectangle-only one-superblock path is public
+  for dimensions whose axes are both 17..64; 1..16 remains on the unchanged
+  legacy branch and mixed ranges remain unsupported.
+- **Production behavior:** terminal 8x8 partition split context 0, depth-first
+  rectangle traversal, leaf-local transform order, tile-wide adaptive CDF
+  lifetime, per-transform coefficient context commits, edge extension, compact
+  crop, and exact local reconstruction are integrated.
+- **Exhaustive parity:** all 2,304 width/height pairs 17..64 encoded the locked
+  odd-sensitive non-flat pattern at qindex 100. All 2,304 local
+  reconstructions equal pinned AVM and the project decoder (4,608 successful
+  decoder runs). The deterministic aggregate transcript SHA-256 is
+  `ea6d6a2919c2ef35e70e3c78774c76226a83b28793002a10e923c42a39816047`;
+  `tests/m3_production_matrix.json` SHA-256 is
+  `edc0bcd2a6d761b4a8bd71a43690a76245afb8312c069965fd80d82d705c5662`.
+- **Pattern/Q coverage:** 17x17 flat, ramp, impulse, and odd-sensitive cases
+  pass, plus qindex 1, 100, 141, and 191 covering q-contexts 0, 1, 2, and 3.
+  The frozen 14-case edge matrix remains exact.
+- **Maximum case:** 64x64 qindex-100 produces 81 bytes, OBU SHA-256
+  `d622c094be17589bd43c186953f35ba9701607118e7cb88fc6dc022fdd16f97d`,
+  and reconstruction SHA-256
+  `9b4f6dfdfcbf8fe70776bd6146924640e76ba5f869c011a95bcc9faa31c0c4ef`
+  with SSE 22,496,640 and workspace 21,376 bytes.
+- **Compatibility:** the legacy flat-128 stream remains 19 bytes with its
+  prior SHA-256
+  `870bd45c5a6cb2251b404c63ab6f44d75286329f94f8f5195f839cf6f5daf48c`.
+  The complete 256-pair 1..16 validator matrix and existing qindex/default
+  compatibility tests pass without syntax-path changes.
+- **Memory/failure gates:** public maxima are 64 pixels/axis, 4,096 pixels,
+  64 transforms, 4,352 stream bytes, and 21,376 workspace bytes. Exact maximum
+  layout, padded stride, short workspace/stream/reconstruction, overlap,
+  stride overflow, wrapper parity, and failure atomicity tests pass.
+- **Validation:** full `make -C experimental/encoder test` passes 106 Python
+  tests plus all native/shell gates; generated-CDF, dependency, static-ELF,
+  input, and atomic-output audits pass. All 32 project CTests pass. A separate
+  second exhaustive 2,304-case run reproduces the frozen aggregate hash.
+  Encoder, pinned AVM, and project decoder SHA-256 values are respectively
+  `4a3f1422fc1c5b0a84e9f7c5aad7311ddf460fe18995e645cf6ce15df8499a8c`,
+  `c247cbb4e71e48bdec89f3c8b2b8efdce17f673aeaa39e3c116a276d16286aa0`,
+  and `c0c6329cc85de13c92d04a00deff8124c9b45dbe74da8a86ddc60d9d7b4de9df`.
+- **Remaining boundary:** dimensions above 64 and multi-superblock prepared
+  images require row/above context extension; they are not part of this
+  production promotion.
+
+## 2026-08-15 — M3 multi-superblock and prepared-image promotion
+
+- **Status:** PASS; `encoder-m3-multisuperblock-traversal` is complete.
+- **Supported production workspace dimensions:** every width and height in
+  1..896, including mixed axes. The bounded convenience wrappers retain their
+  prior 64x64 arena limit.
+- **Traversal/state:** 64x64 roots are row-major; boundary nodes use the
+  rounded frame MI grid. Partition and coefficient left contexts reset when
+  traversal wraps to a new superblock row. Above contexts, adaptive CDFs, and
+  the reconstruction surface persist tile-wide. DC prediction therefore uses
+  reconstructed neighbors across superblock boundaries.
+- **Frame syntax boundary:** level index 0 is valid through the normative
+  552,960-sample picture limit. Initial 896x672/896x896 probes correctly
+  exposed that boundary in pinned AVM; level index 1 resolves it without
+  changing any 1..64 stream.
+- **Requested representatives:** 65x1, 1x65, 65x65, 127x64, 64x127,
+  127x127, 128x128, and 129x129 pass non-flat qindex-191 local/AVM/project
+  reconstruction parity. A separate 65x65 sweep passes qindex 1, 100, 141,
+  and 191, covering all four coefficient q contexts. The independent model
+  also covers 896x424, 598x896, and 896x896.
+- **Prepared corpus:** 14/14 selected `le896` planes encode twice
+  deterministically and 14/14 decode byte-exactly in pinned AVM and the
+  project decoder. Dimensions range from 896x424 to 896x896. Frozen evidence
+  is `tests/m3_multisuperblock_parity.json`.
+- **Smallest selected case:** 896x424 qindex 100 emits 4,287 bytes, OBU
+  SHA-256
+  `3543639fdafcdeba3e0b8c4bb0c1bdb606ec02ed1b37494f3ede95fe728438b3`,
+  decoded SHA-256
+  `aa788a972d1c612dde892d5fc3f86a6d02e8b6e256e08592cf36de01e9ee0b3d`,
+  SSE 225,686,847, and uses 1,912,160 workspace bytes.
+- **Maximum selected case:** 896x896 uses 4,039,936 workspace bytes; all
+  three selected 896x896 sources pass both decoders.
+- **Compatibility/safety:** exact legacy tests and the frozen 2,304-case
+  17..64 transcript remain unchanged. Workspace products, sums, alignment,
+  overlaps, capacities, and stride reachability remain checked before output
+  commit.
+- **Evidence:** `tools/m3_multisuperblock_model.py`,
+  `tests/test_m3_multisuperblock_model.py`,
+  `tests/m3_multisuperblock_parity.json`, and
+  `spec-notes/m3-multisuperblock-traversal.md`.
+- **Validation:** full encoder gate passes 111 Python tests plus all native,
+  shell, generated-CDF, dependency, static-ELF, input, and atomic-output
+  checks. All 32 project CTests pass; freestanding syntax-only audits and
+  `git diff --check` pass.
+
+## 2026-08-15 — M3 complete prepared-image gate rerun
+
+- **Status:** PASS; `encoder-m3-full-image` is complete.
+- **Inventory:** the locked 28-preparation inventory has all 28 local complete
+  I400 planes. The deterministic 14-source selection is 896x424 (1), 896x448
+  (1), 896x504 (1), 896x598 (5), 598x896 (2), 896x672 (1), and 896x896 (3).
+  Packed stride equals width, byte size equals width times height, and every
+  preparation/source manifest and plane SHA-256 matched the lock/catalog.
+- **Double gate:** two independent complete-corpus runs at qindex 100 each
+  returned `pass=14, expected_blocked=0, blocked=0, error=0`. All 28 encoder
+  invocations succeeded; all OBU rerun hashes, reconstruction hashes, and
+  distortion records repeated exactly. The canonical timing-independent
+  evidence SHA-256 was
+  `5d19556ca20d6daeaaf4c0a048b2df0357932ff3fe5fe3a026b89eff630f3744`
+  for both runs.
+- **Parity/coverage:** all 14 local reconstructions equal pinned AVM and the
+  project decoder byte-for-byte. Distortion sample counts equal active
+  `width*height`; no padding enters SSE/PSNR. OBU sizes are 2,651..10,014
+  bytes, SSE is 52,891,312..655,562,711, and PSNR is 17.761..28.187 dB.
+- **Tool identities:** encoder
+  `80669d241481f387333f14af3c9f653cb8d94ca0c87dc1f2b2e52a0257c7f54f`,
+  pinned avmdec
+  `c247cbb4e71e48bdec89f3c8b2b8efdce17f673aeaa39e3c116a276d16286aa0`,
+  project decoder
+  `c0c6329cc85de13c92d04a00deff8124c9b45dbe74da8a86ddc60d9d7b4de9df`,
+  and prepared manifest
+  `3fafa92351e97555180b8d42acbc55605a60c12dd1d6b65e8e1b9c36a5a381ce`.
+- **Integration fix:** the corpus runner now resolves its work directory before
+  invoking commands from the repository root; relative `--work-dir` values no
+  longer produce false output-write failures. Nonzero `expected_blocked`
+  counts now fail the complete-image gate.
+- **Validation:** targeted M3 tests pass (18), full encoder tests pass (112
+  Python plus native/shell/generated-CDF/dependency/static-ELF audits), all 32
+  project CTests pass, and `git diff --check` passes. Default qindex 100 versus
+  explicit 100 remains bit-identical; qindex 0/256 remain rejected.
+- **Boundary:** this completes 8-bit I400 through 896 pixels per axis only.
+  Arbitrary larger dimensions and chroma remain future work.
