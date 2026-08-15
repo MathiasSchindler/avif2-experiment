@@ -3,7 +3,7 @@
   "qindex": 100,
   "encoder_sha256": "80669d241481f387333f14af3c9f653cb8d94ca0c87dc1f2b2e52a0257c7f54f",
   "avmdec_sha256": "c247cbb4e71e48bdec89f3c8b2b8efdce17f673aeaa39e3c116a276d16286aa0",
-  "project_decoder_sha256": "c0c6329cc85de13c92d04a00deff8124c9b45dbe74da8a86ddc60d9d7b4de9df",
+  "project_decoder_sha256": "7d17f598f2cdffe7dfb4ab46982cf5c4822215a5f429cb39e7748a60ce5ef535",
   "case_count": 14,
   "deterministic_count": 14,
   "avm_project_parity_count": 14,

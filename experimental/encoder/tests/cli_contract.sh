@@ -83,18 +83,25 @@ expect_status 3 "$encoder" "$directory/conflict/source-8x8.i400"
 grep -q 'geometry conflict' "$error"
 
 dd if=/dev/zero of="$directory/color-8x8.i444" bs=192 count=1 2>/dev/null
-expect_status 5 "$encoder" "$directory/color-8x8.i444"
-grep -q 'raw chroma input' "$error"
-test ! -e "$directory/color-8x8.obu"
+"$encoder" "$directory/color-8x8.i444" >/dev/null 2>"$error"
+test -f "$directory/color-8x8.obu"
 
-printf '\211PNG\r\n\032\n' >"$directory/color.png"
-expect_status 5 "$encoder" "$directory/color.png"
-grep -q 'default to 8-bit I444' "$error"
-test ! -e "$directory/color.obu"
+cp fixtures/image-input/solid-rgba.png "$directory/color.png"
+"$encoder" "$directory/color.png" >/dev/null 2>"$error"
+test -f "$directory/color.obu"
+
+cp fixtures/image-input/solid-color.bmp "$directory/color.bmp"
+"$encoder" "$directory/color.bmp" >/dev/null 2>"$error"
+test -f "$directory/color.obu"
+
+cp fixtures/image-input/unsupported-depth.png "$directory/unsupported.png"
+expect_status 5 "$encoder" "$directory/unsupported.png"
+grep -q 'unsupported BMP/PNG subset' "$error"
+test ! -e "$directory/unsupported.obu"
 
 printf '\211PNG\r\n\032\n' >"$directory/signature-only.data"
-expect_status 5 "$encoder" "$directory/signature-only.data"
-grep -q 'default to 8-bit I444' "$error"
+expect_status 4 "$encoder" "$directory/signature-only.data"
+grep -q 'malformed BMP/PNG input' "$error"
 test ! -e "$directory/signature-only.data.obu"
 
 printf 'not a png' >"$directory/bad.png"

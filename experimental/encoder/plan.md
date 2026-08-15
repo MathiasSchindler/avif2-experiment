@@ -397,7 +397,7 @@ cross subsystem boundaries.
 ## Explicit non-goals
 
 No decoder refactor, shared codec library, repository build integration,
-container output, image loader, network access, runtime CPU dispatcher,
+container output, network access, runtime CPU dispatcher,
 assembly-only algorithm, hidden heap, external metric library, or unpinned
 oracle is part of this experiment. Promotion outside this directory requires a
 separate reviewed project after the experimental gates pass.
@@ -409,7 +409,22 @@ encoding supports 1..896 on either axis. All 14 selected full prepared images,
 at 896x424 (1), 896x448 (1), 896x504 (1), 896x598 (5), 598x896 (2),
 896x672 (1), and 896x896 (3), are deterministic and match both decoders.
 This is the current 8-bit I400 896-per-axis bound; arbitrary dimensions and
-chroma remain future milestones.
+the unrestricted chroma rectangle remains a future milestone.
+
+The admitted 8-bit DC-only chroma profile now covers every I420/I444 width and
+height from 1 through 896 at every qindex 1..255: 802,816 dimension pairs per
+format. The final half-grid correction uses the frame's 8-pixel-aligned MI
+boundary for the separate chroma tree, omits the normative 8×8 chroma
+partition symbol, and models rectangular 4×8/8×4 and 8×16/16×8 transforms
+with their exact EOB, skip, edge, prediction, and inverse-scaling rules. All
+prepared-image dimensions are open.
+
+The ordinary input milestone is complete: one `.i400`, `.i420`, `.i444`,
+`.bmp`, or `.png` positional input selects a sibling `.obu`, defaults to
+qindex 100, loads checked planar descriptors, and dispatches to the I400 or
+typed chroma workspace encoder. BMP/PNG grayscale is I400; color, palette, and
+RGBA are deterministic full-resolution I444 with alpha ignored. Output commit
+remains atomic and input/output identity is rejected before encoding.
 
 The boundary partition blocker is resolved. The private path used split
 context 4 instead of 0 for terminal 8x8 boundary leaves; the corrected path

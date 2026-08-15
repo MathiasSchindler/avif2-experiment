@@ -364,7 +364,8 @@ Av2hStatus av2h_chroma_predict(
                 predictor[(size_t)row * predictor_stride_samples + column] = value;
             }
         }
-        if (width != 4U || height != 4U) {
+        if ((mode->ibp_configured == 0U || mode->edge_ibp != 0U) &&
+            (width != 4U || height != 4U)) {
             apply_ibp_dc(predictor, predictor_stride_samples, width, height,
                          references->above, references->left);
         }

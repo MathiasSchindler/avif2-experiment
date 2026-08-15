@@ -54,7 +54,9 @@ encoder implementation.
   `src/image_input.c` use encoder-local interfaces, caller-owned storage,
   stricter subset validation, local unfiltering, and local integer YUV
   conversion. No newos file is compiled, linked, or required at runtime.
-  Encoder CLI and codec integration are outside this change.
+  The CLI now maps files through the existing Linux syscall substrate and
+  passes typed planes to encoder-local workspace APIs; no external image or
+  allocation library was introduced.
 
 ## AV2 v1.0.0 normative CDF attachments
 

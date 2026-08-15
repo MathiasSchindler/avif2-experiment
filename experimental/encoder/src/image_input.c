@@ -163,6 +163,8 @@ static EncStatus enc_bmp_query(const uint8_t *data, size_t size,
     if (bits == 8U) {
         uint32_t colors = enc_u32le(data + 46U);
         size_t palette_end;
+        int grayscale = 1;
+        size_t index;
         if (colors == 0U) colors = 256U;
         if (colors > 256U ||
             !enc_size_multiply((size_t)colors, 4U, &palette_end) ||
@@ -170,10 +172,18 @@ static EncStatus enc_bmp_query(const uint8_t *data, size_t size,
             palette_end > offset || palette_end > size) {
             return ENC_INVALID_ARGUMENT;
         }
+        for (index = 0U; index < colors; ++index) {
+            const uint8_t *entry = data + 14U + dib + index * 4U;
+            if (entry[0] != entry[1] || entry[1] != entry[2]) {
+                grayscale = 0;
+                break;
+            }
+        }
+        return enc_layout(width, height,
+                          grayscale ? ENC_IMAGE_I400 : ENC_IMAGE_I444,
+                          0U, layout);
     }
-    return enc_layout(width, height,
-                      bits == 8U ? ENC_IMAGE_I400 : ENC_IMAGE_I444,
-                      0U, layout);
+    return enc_layout(width, height, ENC_IMAGE_I444, 0U, layout);
 }
 
 static EncStatus enc_png_header(const uint8_t *data, size_t size,
@@ -551,9 +561,22 @@ static EncStatus enc_bmp_decode(const uint8_t *data, size_t size,
     size_t row_size = ((width * (bits == 24U ? 3U : 1U)) + 3U) &
                       ~(size_t)3U;
     size_t pixels = width * height;
+    int grayscale = bits == 8U;
     size_t y;
     uint8_t *planes[3] = {output, output + pixels, output + 2U * pixels};
     (void)size;
+    if (bits == 8U) {
+        uint32_t colors = enc_u32le(data + 46U);
+        size_t index;
+        if (colors == 0U) colors = 256U;
+        for (index = 0U; index < colors; ++index) {
+            const uint8_t *entry = data + 14U + dib + index * 4U;
+            if (entry[0] != entry[1] || entry[1] != entry[2]) {
+                grayscale = 0;
+                break;
+            }
+        }
+    }
     for (y = 0U; y < height; ++y) {
         size_t source_y = signed_height < 0 ? y : height - 1U - y;
         const uint8_t *row = data + pixel_offset + source_y * row_size;
@@ -567,10 +590,12 @@ static EncStatus enc_bmp_decode(const uint8_t *data, size_t size,
                 if (colors == 0U) colors = 256U;
                 if ((uint32_t)index >= colors) return ENC_INVALID_ARGUMENT;
                 entry = data + 14U + dib + (size_t)index * 4U;
-                if (entry[0] != entry[1] || entry[1] != entry[2]) {
-                    return ENC_UNSUPPORTED;
+                if (grayscale) planes[0][p] = entry[0];
+                else {
+                    enc_rgb_to_yuv(entry[2], entry[1], entry[0],
+                                   &planes[0][p], &planes[1][p],
+                                   &planes[2][p]);
                 }
-                planes[0][p] = entry[0];
             } else {
                 enc_rgb_to_yuv(row[x * 3U + 2U], row[x * 3U + 1U],
                                row[x * 3U], &planes[0][p], &planes[1][p],
@@ -578,15 +603,15 @@ static EncStatus enc_bmp_decode(const uint8_t *data, size_t size,
             }
         }
     }
-    image->type = bits == 8U ? ENC_IMAGE_I400 : ENC_IMAGE_I444;
+    image->type = grayscale ? ENC_IMAGE_I400 : ENC_IMAGE_I444;
     image->width = width;
     image->height = height;
     image->plane[0] = planes[0];
-    image->plane[1] = bits == 8U ? 0 : planes[1];
-    image->plane[2] = bits == 8U ? 0 : planes[2];
+    image->plane[1] = grayscale ? 0 : planes[1];
+    image->plane[2] = grayscale ? 0 : planes[2];
     image->stride[0] = width;
-    image->stride[1] = bits == 8U ? 0U : width;
-    image->stride[2] = bits == 8U ? 0U : width;
+    image->stride[1] = grayscale ? 0U : width;
+    image->stride[2] = grayscale ? 0U : width;
     return ENC_OK;
 }
 

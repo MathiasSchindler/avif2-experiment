@@ -637,7 +637,7 @@ static EncStatus write_m3_dc_coeff(
 
 static EncStatus write_m3_chroma_dc_coeff(
     EncRangeWriter *writer, EncSyntaxCdfs *cdfs,
-    int16_t level, size_t tx_size, size_t skip_context,
+    int16_t level, size_t tx_size, size_t eob_class, size_t skip_context,
     size_t sign_context, size_t q_context, int is_v) {
     unsigned int magnitude =
         level < 0 ? (unsigned int)(-(int)level) : (unsigned int)level;
@@ -654,7 +654,7 @@ static EncStatus write_m3_chroma_dc_coeff(
     }
     if (magnitude == 0U) return ENC_OK;
     eob_cdf = enc_syntax_chroma_eob_pt_cdf(
-        cdfs, q_context, tx_size, &eob_symbols);
+        cdfs, q_context, eob_class, &eob_symbols);
     if (enc_range_writer_symbol(
             writer, 0U, eob_cdf, eob_symbols, 1) != ENC_OK ||
         enc_range_writer_symbol(
@@ -682,6 +682,9 @@ typedef struct {
     const int16_t *levels;
     size_t q_context;
     size_t level_index;
+    int has_chroma;
+    int16_t u_level;
+    int16_t v_level;
     uint8_t partition_above[224U];
     uint8_t partition_left[16U];
     uint8_t coeff_above[224U];
@@ -787,8 +790,30 @@ static EncStatus write_m3_leaf(
             2U, 1) != ENC_OK) {
         return enc_range_writer_status(state->writer);
     }
-    return write_m3_leaf_tail(
+    status = write_m3_leaf_tail(
         state, block_x, block_y, block_width, block_height);
+    if (status != ENC_OK || !state->has_chroma) return status;
+    if (enc_range_writer_symbol(
+            state->writer, 0U, enc_syntax_is_cfl_cdf(state->cdfs, 0U),
+            2U, 1) != ENC_OK ||
+        enc_range_writer_symbol(
+            state->writer, 0U, enc_syntax_uv_mode_cdf(state->cdfs, 0U),
+            8U, 1) != ENC_OK ||
+        write_m3_chroma_dc_coeff(
+            state->writer, state->cdfs, state->u_level,
+            block_width == 8U ? 0U : 1U,
+            block_width == 8U ? 0U : 2U,
+            6U, 0U, state->q_context, 0) != ENC_OK ||
+        write_m3_chroma_dc_coeff(
+            state->writer, state->cdfs, state->v_level,
+            block_width == 8U ? 0U : 1U,
+            block_width == 8U ? 0U : 2U,
+            (block_width == 8U ? 0U : 3U) +
+                (state->u_level != 0 ? 6U : 0U),
+            0U, state->q_context, 1) != ENC_OK) {
+        return enc_range_writer_status(state->writer);
+    }
+    return ENC_OK;
 }
 
 static EncStatus write_m3_large_leaf(
@@ -802,7 +827,8 @@ static EncStatus write_m3_large_leaf(
                 ? (block_width == 16U ? 3U : 1U) : 2U;
         size_t tx_y;
         size_t tx_x;
-        EncStatus status = write_m3_mode(
+        EncStatus status;
+        status = write_m3_mode(
             state->writer, state->cdfs, block_size_group);
         if (status != ENC_OK) return status;
         if (enc_range_writer_symbol(
@@ -898,10 +924,12 @@ static EncStatus write_m3_large_leaf(
             rect_adjust = width == 16U ? 6U : width == 8U ? 3U : 0U;
         } else if (height > width) {
             split_adjust = height == 16U ? 3U : height == 8U ? 2U : 1U;
-            rect_adjust = width == 8U ? 4U : width == 4U ? 1U : 0U;
+            rect_adjust = width == 8U ? 4U :
+                          width == 4U || width == 2U ? 1U : 0U;
         } else {
             split_adjust = width == 16U ? 3U : width == 8U ? 2U : 1U;
-            rect_adjust = height == 8U ? 5U : height == 4U ? 2U : 0U;
+            rect_adjust = height == 8U ? 5U :
+                          height == 4U || height == 2U ? 2U : 0U;
         }
         if (axis == 1) {
             first = m3_context_bit(
@@ -1191,6 +1219,9 @@ EncStatus enc_m3_dc_grid_tile_q(
     state.height = height;
     state.levels = levels;
     state.level_index = 0U;
+    state.has_chroma = 0;
+    state.u_level = 0;
+    state.v_level = 0;
     {
         size_t index;
         for (index = 0U; index < 224U; ++index) {
@@ -1287,11 +1318,436 @@ EncStatus enc_m3_dc_i420_i444_8x8_tile_q(
             8U, 1) != ENC_OK ||
         write_m3_chroma_dc_coeff(
             &writer, &cdfs, u_level, chroma_tx_size,
+            chroma_tx_size == 0U ? 0U : 2U,
             6U, 0U, q_context, 0) != ENC_OK ||
         write_m3_chroma_dc_coeff(
             &writer, &cdfs, v_level, chroma_tx_size,
+            chroma_tx_size == 0U ? 0U : 2U,
             u_level != 0 ? 6U : 0U, 0U, q_context, 1) != ENC_OK ||
         enc_range_writer_finish(&writer) != ENC_OK) {
+        return enc_range_writer_status(&writer);
+    }
+    *size = enc_range_writer_bytes_used(&writer);
+    return ENC_OK;
+}
+
+typedef struct {
+    EncM3TileState base;
+    const int16_t *plane_levels[3U];
+    size_t level_index;
+    size_t chroma_level_index;
+    unsigned int chroma_format_idc;
+    uint8_t chroma_above[2U][224U];
+    uint8_t chroma_left[2U][16U];
+} EncM3ColorTileState;
+
+static void m3_chroma_coeff_context(
+    EncM3ColorTileState *state, size_t plane, size_t x, size_t y,
+    size_t tx_width, size_t tx_height,
+    size_t *skip_context, size_t *sign_context) {
+    size_t width_units = tx_width / 4U;
+    size_t height_units = tx_height / 4U;
+    size_t column = x / 4U;
+    size_t row = (y / 4U) % 16U;
+    size_t top = 0U;
+    size_t side = 0U;
+    int score = 0;
+    size_t index;
+    for (index = 0U; index < width_units; ++index) {
+        uint8_t above = state->chroma_above[plane][column + index];
+        top |= above & 7U;
+        score += (above & 16U) != 0U ? 1 :
+                 (above & 8U) != 0U ? -1 : 0;
+    }
+    for (index = 0U; index < height_units; ++index) {
+        uint8_t left = state->chroma_left[plane][row + index];
+        side |= left & 7U;
+        score += (left & 16U) != 0U ? 1 :
+                 (left & 8U) != 0U ? -1 : 0;
+    }
+    *skip_context = (top != 0U ? 1U : 0U) +
+                    (side != 0U ? 1U : 0U);
+    *sign_context = score < 0 ? 1U : score > 0 ? 2U : 0U;
+}
+
+static void m3_commit_chroma_coeff_context(
+    EncM3ColorTileState *state, size_t plane, size_t x, size_t y,
+    size_t tx_width, size_t tx_height, int16_t level) {
+    size_t width_units = tx_width / 4U;
+    size_t height_units = tx_height / 4U;
+    size_t column = x / 4U;
+    size_t row = (y / 4U) % 16U;
+    unsigned int magnitude =
+        level < 0 ? (unsigned int)(-(int)level) : (unsigned int)level;
+    uint8_t value = (uint8_t)(magnitude > 7U ? 7U : magnitude);
+    size_t index;
+    value = (uint8_t)(value | (level < 0 ? 8U : level > 0 ? 16U : 0U));
+    for (index = 0U; index < width_units; ++index) {
+        state->chroma_above[plane][column + index] = value;
+    }
+    for (index = 0U; index < height_units; ++index) {
+        state->chroma_left[plane][row + index] = value;
+    }
+}
+
+static EncStatus write_m3_color_leaf(
+    EncM3ColorTileState *state, size_t block_x, size_t block_y,
+    size_t block_width, size_t block_height) {
+    size_t subsampling = state->chroma_format_idc == 0U ? 1U : 0U;
+    size_t chroma_x = block_x >> subsampling;
+    size_t chroma_y = block_y >> subsampling;
+    size_t chroma_tx_width = block_width >> subsampling;
+    size_t chroma_tx_height = block_height >> subsampling;
+    size_t chroma_tx_max = chroma_tx_width > chroma_tx_height
+        ? chroma_tx_width : chroma_tx_height;
+    size_t chroma_tx_index = chroma_tx_max == 4U ? 0U :
+                             chroma_tx_max == 8U ? 1U : 2U;
+    size_t chroma_eob_class =
+        chroma_tx_width * chroma_tx_height == 16U ? 0U :
+        chroma_tx_width * chroma_tx_height == 32U ? 1U :
+        chroma_tx_width * chroma_tx_height == 64U ? 2U :
+        chroma_tx_width * chroma_tx_height == 128U ? 3U : 4U;
+    size_t chroma_index = state->chroma_level_index++;
+    int16_t u_level = state->plane_levels[1U][chroma_index];
+    int16_t v_level = state->plane_levels[2U][chroma_index];
+    size_t u_skip;
+    size_t u_sign;
+    size_t v_skip;
+    size_t v_sign;
+    EncStatus status;
+    if (enc_range_writer_symbol(
+            state->base.writer, 0U,
+            enc_syntax_is_cfl_cdf(state->base.cdfs, 0U),
+            2U, 1) != ENC_OK ||
+        enc_range_writer_symbol(
+            state->base.writer, 0U,
+            enc_syntax_uv_mode_cdf(state->base.cdfs, 0U),
+            8U, 1) != ENC_OK) {
+        return enc_range_writer_status(state->base.writer);
+    }
+    m3_chroma_coeff_context(
+        state, 0U, chroma_x, chroma_y,
+        chroma_tx_width, chroma_tx_height,
+        &u_skip, &u_sign);
+    status = write_m3_chroma_dc_coeff(
+        state->base.writer, state->base.cdfs, u_level, chroma_tx_index,
+        chroma_eob_class,
+        u_skip + 6U, u_sign, state->base.q_context, 0);
+    if (status != ENC_OK) return status;
+    m3_commit_chroma_coeff_context(
+        state, 0U, chroma_x, chroma_y,
+        chroma_tx_width, chroma_tx_height, u_level);
+    m3_chroma_coeff_context(
+        state, 1U, chroma_x, chroma_y,
+        chroma_tx_width, chroma_tx_height,
+        &v_skip, &v_sign);
+    status = write_m3_chroma_dc_coeff(
+        state->base.writer, state->base.cdfs, v_level, chroma_tx_index,
+        chroma_eob_class,
+        v_skip + (u_level != 0 ? 6U : 0U), v_sign,
+        state->base.q_context, 1);
+    if (status != ENC_OK) return status;
+    m3_commit_chroma_coeff_context(
+        state, 1U, chroma_x, chroma_y,
+        chroma_tx_width, chroma_tx_height, v_level);
+    return ENC_OK;
+}
+
+static EncStatus write_m3_color_partition(
+    EncM3ColorTileState *state, size_t row, size_t column,
+    size_t width, size_t height) {
+    size_t mi_columns = ((state->base.width + 7U) / 8U) * 2U;
+    size_t mi_rows = ((state->base.height + 7U) / 8U) * 2U;
+    int forced;
+    int boundary;
+    int axis;
+    size_t split_context;
+    size_t rect_context;
+    size_t extension_context;
+    EncStatus status;
+    if (row >= mi_rows || column >= mi_columns) return ENC_OK;
+    forced = m3_forced_axis(
+        mi_rows, mi_columns, row, column, width, height);
+    if (forced != 0) {
+        if (forced == 1) {
+            status = write_m3_color_partition(
+                state, row, column, width, height / 2U);
+            if (status != ENC_OK) return status;
+            return write_m3_color_partition(
+                state, row + height / 2U, column, width, height / 2U);
+        }
+        status = write_m3_color_partition(
+            state, row, column, width / 2U, height);
+        if (status != ENC_OK) return status;
+        return write_m3_color_partition(
+            state, row, column + width / 2U, width / 2U, height);
+    }
+    if (width <= 4U && height <= 4U) {
+        m3_partition_contexts(
+            &state->base, row, column, width, height, 1,
+            &split_context, &rect_context, &extension_context);
+        if ((width != 2U || height != 2U) &&
+            enc_range_writer_symbol(
+                state->base.writer, 0U,
+                enc_syntax_do_split_cdf(
+                    state->base.cdfs, 1U, split_context),
+                2U, 1) != ENC_OK) {
+            return enc_range_writer_status(state->base.writer);
+        }
+        status = write_m3_color_leaf(
+            state, column * 4U, row * 4U, width * 4U, height * 4U);
+        if (status == ENC_OK) {
+            m3_commit_partition(&state->base, row, column, width, height);
+        }
+        return status;
+    }
+    boundary = m3_partial_boundary_axis(
+        mi_rows, mi_columns, row, column, width, height);
+    axis = height >= width ? 1 : 2;
+    m3_partition_contexts(
+        &state->base, row, column, width, height, axis,
+        &split_context, &rect_context, &extension_context);
+    if (boundary == 0 &&
+        enc_range_writer_symbol(
+            state->base.writer, 1U,
+            enc_syntax_do_split_cdf(
+                state->base.cdfs, 1U, split_context),
+            2U, 1) != ENC_OK) {
+        return enc_range_writer_status(state->base.writer);
+    }
+    if (enc_range_writer_symbol(
+            state->base.writer, axis == 1 ? 0U : 1U,
+            enc_syntax_rect_type_cdf(
+                state->base.cdfs, 1U, rect_context),
+            2U, 1) != ENC_OK) {
+        return enc_range_writer_status(state->base.writer);
+    }
+    if (m3_extension_allowed(width, height, axis) &&
+        enc_range_writer_symbol(
+            state->base.writer, 0U,
+            enc_syntax_do_ext_partition_cdf(
+                state->base.cdfs, 1U, extension_context),
+            2U, 1) != ENC_OK) {
+        return enc_range_writer_status(state->base.writer);
+    }
+    if (axis == 1) {
+        status = write_m3_color_partition(
+            state, row, column, width, height / 2U);
+        if (status != ENC_OK) return status;
+        return write_m3_color_partition(
+            state, row + height / 2U, column, width, height / 2U);
+    }
+    status = write_m3_color_partition(
+        state, row, column, width / 2U, height);
+    if (status != ENC_OK) return status;
+    return write_m3_color_partition(
+        state, row, column + width / 2U, width / 2U, height);
+}
+
+EncStatus enc_m3_dc_yuv_grid_tile_q(
+    void *data, size_t capacity, size_t *size,
+    size_t width, size_t height,
+    const int16_t *y_levels, const int16_t *u_levels,
+    const int16_t *v_levels, size_t level_count,
+    unsigned int chroma_format_idc, unsigned int qindex) {
+    EncSyntaxCdfs cdfs;
+    EncRangeWriter writer;
+    EncM3ColorTileState state;
+    EncM3TileState luma;
+    size_t block_count;
+    size_t index;
+    size_t row;
+    size_t column;
+    EncStatus status;
+    if (size == 0 || (data == 0 && capacity != 0U) ||
+        y_levels == 0 || u_levels == 0 || v_levels == 0 ||
+        width == 0U || height == 0U || width > 896U || height > 896U ||
+        (chroma_format_idc != 0U && chroma_format_idc != 2U) ||
+        qindex == 0U || qindex > 255U) {
+        return ENC_INVALID_ARGUMENT;
+    }
+    block_count = ((width + 7U) / 8U) * ((height + 7U) / 8U);
+    if (level_count != block_count) return ENC_INVALID_ARGUMENT;
+    *size = 0U;
+    status = enc_syntax_cdfs_init(&cdfs);
+    if (status != ENC_OK) return status;
+    enc_range_writer_init(&writer, data, capacity);
+    if (width == 8U && height == 8U) {
+        size_t q_context = qindex <= 90U ? 0U :
+                           qindex <= 140U ? 1U :
+                           qindex <= 190U ? 2U : 3U;
+        size_t chroma_tx_size = chroma_format_idc == 2U ? 1U : 0U;
+        if (enc_range_writer_symbol(
+                &writer, 0U, enc_syntax_do_split_cdf(&cdfs, 0U, 0U),
+                2U, 1) != ENC_OK ||
+            write_m3_mode(&writer, &cdfs, 2U) != ENC_OK ||
+            enc_range_writer_symbol(
+                &writer, 0U,
+                enc_syntax_tx_do_partition_cdf(&cdfs, 0U, 0U, 1U),
+                2U, 1) != ENC_OK ||
+            write_m3_dc_coeff(
+                &writer, &cdfs, y_levels[0U], 0U, 0U, q_context) != ENC_OK ||
+            enc_range_writer_symbol(
+                &writer, 0U, enc_syntax_is_cfl_cdf(&cdfs, 0U),
+                2U, 1) != ENC_OK ||
+            enc_range_writer_symbol(
+                &writer, 0U, enc_syntax_uv_mode_cdf(&cdfs, 0U),
+                8U, 1) != ENC_OK ||
+            write_m3_chroma_dc_coeff(
+                &writer, &cdfs, u_levels[0U], chroma_tx_size,
+                chroma_tx_size == 0U ? 0U : 2U,
+                6U, 0U, q_context, 0) != ENC_OK ||
+            write_m3_chroma_dc_coeff(
+                &writer, &cdfs, v_levels[0U], chroma_tx_size,
+                chroma_tx_size == 0U ? 0U : 2U,
+                u_levels[0U] != 0 ? 6U : 0U, 0U, q_context, 1) != ENC_OK ||
+            enc_range_writer_finish(&writer) != ENC_OK) {
+            return enc_range_writer_status(&writer);
+        }
+        *size = enc_range_writer_bytes_used(&writer);
+        return ENC_OK;
+    }
+    state.base.writer = &writer;
+    state.base.cdfs = &cdfs;
+    state.base.width = width;
+    state.base.height = height;
+    state.base.levels = y_levels;
+    state.base.q_context = qindex <= 90U ? 0U :
+                           qindex <= 140U ? 1U :
+                           qindex <= 190U ? 2U : 3U;
+    state.base.level_index = 0U;
+    state.plane_levels[0U] = y_levels;
+    state.plane_levels[1U] = u_levels;
+    state.plane_levels[2U] = v_levels;
+    state.level_index = 0U;
+    state.chroma_level_index = 0U;
+    state.chroma_format_idc = chroma_format_idc;
+    luma.writer = &writer;
+    luma.cdfs = &cdfs;
+    luma.width = width;
+    luma.height = height;
+    luma.levels = y_levels;
+    luma.q_context = state.base.q_context;
+    luma.level_index = 0U;
+    luma.has_chroma = 2;
+    luma.u_level = 0;
+    luma.v_level = 0;
+    for (index = 0U; index < 224U; ++index) {
+        luma.partition_above[index] = 0U;
+        luma.coeff_above[index] = 0U;
+        state.base.partition_above[index] = 0U;
+        state.base.coeff_above[index] = 0U;
+        state.chroma_above[0U][index] = 0U;
+        state.chroma_above[1U][index] = 0U;
+    }
+    for (index = 0U; index < 16U; ++index) {
+        luma.partition_left[index] = 0U;
+        luma.coeff_left[index] = 0U;
+        state.base.partition_left[index] = 0U;
+        state.base.coeff_left[index] = 0U;
+        state.chroma_left[0U][index] = 0U;
+        state.chroma_left[1U][index] = 0U;
+    }
+    status = ENC_OK;
+    for (row = 0U;
+         row < ((height + 7U) / 8U) * 2U && status == ENC_OK;
+         row += 16U) {
+        if (row != 0U) {
+            for (index = 0U; index < 16U; ++index) {
+                luma.partition_left[index] = 0U;
+                luma.coeff_left[index] = 0U;
+                state.base.partition_left[index] = 0U;
+                state.base.coeff_left[index] = 0U;
+                state.chroma_left[0U][index] = 0U;
+                state.chroma_left[1U][index] = 0U;
+            }
+        }
+        for (column = 0U;
+             column < ((width + 7U) / 8U) * 2U && status == ENC_OK;
+             column += 16U) {
+            size_t chroma_columns = ((width + 7U) / 8U) * 2U;
+            size_t chroma_rows = ((height + 7U) / 8U) * 2U;
+            status = write_m3_large_partition(
+                &luma, row, column, 16U, 16U);
+            if (status == ENC_OK) {
+                if (chroma_columns - column > 8U &&
+                    chroma_rows - row > 8U) {
+                    status = write_m3_color_partition(
+                        &state, row, column, 16U, 8U);
+                    if (status == ENC_OK) {
+                        status = write_m3_color_partition(
+                            &state, row + 8U, column, 16U, 8U);
+                    }
+                } else {
+                    status = write_m3_color_partition(
+                        &state, row, column, 16U, 16U);
+                }
+            }
+        }
+    }
+    if (status != ENC_OK) return status;
+    if (luma.level_index != level_count) return ENC_INVALID_ARGUMENT;
+    if (state.chroma_level_index !=
+        (width <= 8U && height <= 8U
+            ? 1U : ((width + 15U) / 16U) * ((height + 15U) / 16U))) {
+        return ENC_INVALID_ARGUMENT;
+    }
+    if (enc_range_writer_finish(&writer) != ENC_OK)
+        return enc_range_writer_status(&writer);
+    *size = enc_range_writer_bytes_used(&writer);
+    return ENC_OK;
+}
+
+EncStatus enc_m3_dc_i420_single_leaf_tile_q(
+    void *data, size_t capacity, size_t *size,
+    size_t width, size_t height,
+    const int16_t *y_levels, size_t y_level_count,
+    int16_t u_level, int16_t v_level, unsigned int qindex) {
+    EncSyntaxCdfs cdfs;
+    EncRangeWriter writer;
+    EncM3TileState state;
+    size_t coded_width;
+    size_t coded_height;
+    size_t index;
+    EncStatus status;
+    if (size == 0 || (data == 0 && capacity != 0U) || y_levels == 0 ||
+        width == 0U || width > 16U || height == 0U || height > 16U ||
+        qindex == 0U || qindex > 255U) {
+        return ENC_INVALID_ARGUMENT;
+    }
+    coded_width = (width + 7U) & ~(size_t)7U;
+    coded_height = (height + 7U) & ~(size_t)7U;
+    if (coded_width != coded_height ||
+        y_level_count != (coded_width / 8U) * (coded_height / 8U)) {
+        return ENC_UNSUPPORTED;
+    }
+    *size = 0U;
+    status = enc_syntax_cdfs_init(&cdfs);
+    if (status != ENC_OK) return status;
+    enc_range_writer_init(&writer, data, capacity);
+    state.writer = &writer;
+    state.cdfs = &cdfs;
+    state.width = width;
+    state.height = height;
+    state.levels = y_levels;
+    state.q_context = qindex <= 90U ? 0U :
+                      qindex <= 140U ? 1U :
+                      qindex <= 190U ? 2U : 3U;
+    state.level_index = 0U;
+    state.has_chroma = 1;
+    state.u_level = u_level;
+    state.v_level = v_level;
+    for (index = 0U; index < 224U; ++index) {
+        state.partition_above[index] = 0U;
+        state.coeff_above[index] = 0U;
+    }
+    for (index = 0U; index < 16U; ++index) {
+        state.partition_left[index] = 0U;
+        state.coeff_left[index] = 0U;
+    }
+    status = write_m3_partition(&state, 0U, 0U, 64U);
+    if (status != ENC_OK) return status;
+    if (enc_range_writer_finish(&writer) != ENC_OK) {
         return enc_range_writer_status(&writer);
     }
     *size = enc_range_writer_bytes_used(&writer);

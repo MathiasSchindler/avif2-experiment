@@ -4,6 +4,144 @@ This is an append-only record of decisions, commands, pins, hashes, gate
 results, blockers, and restart points. Do not replace exact values with links
 or “latest”.
 
+## 2026-08-15 — M3 chroma boundary half-grid completion
+
+- **Status:** PASS. Todo `encoder-chroma-boundary-halfgrid`.
+- **Bounds:** every 8-bit I420 and I444 width/height pair in 1..896 at every
+  qindex 1..255: 802,816 dimension pairs per format. Only zero dimensions,
+  unsupported formats, qindex 0/256, and an axis above 896 are rejected.
+- **Root cause:** the separate chroma tree used `4*ceil(axis/16)` MI cells.
+  Pinned AVM uses the frame's 8-pixel-aligned boundary,
+  `2*ceil(axis/8)`. The difference exists exactly for `16k+1..16k+8`.
+  Those classes introduce 16×8, 8×16, and 8×8 luma-reference chroma leaves.
+- **Normative syntax:** CHROMA `BLOCK_8X8` is forced `PARTITION_NONE` and
+  consumes no `do_split` symbol. I420 rectangular transforms are 4×8/8×4,
+  skip context 1, EOB-32; I444 rectangular transforms are 8×16/16×8,
+  skip context 2, EOB-128. Exact-width above and exact-height left state feed
+  skip/sign and DC prediction. Rectangular inverse input uses 2896/4096
+  scaling. Existing U-to-V coupling, tile-persistent above/CDF state, and
+  superblock-row left resets remain unchanged.
+- **Evidence:** required probes 8×9, 17×16, 24×24, and 64×65 pass generated
+  non-flat I420/I444 parity. Required real sizes 896×424, 896×504, 896×598,
+  and 598×896 pass both formats. The matrix contains 118
+  local == pinned AVM == project parity cases, seven deterministic reruns, and
+  exhaustive admission checks through 897 on both axes.
+- **Frozen vectors:** 20 streams; manifest SHA-256
+  `fbbd85fbb088a2824b58ce9f068674cc3fb154371bd5ec73c5a5d68aefcb3987`.
+  The original I400, four 8×8 chroma, and four odd-I420 hashes are unchanged.
+- **Independent model:** `tools/m3_chroma_boundary_model.py` freezes forced
+  axes, leaf shapes, rectangular transform context/EOB classes, and the
+  802,816-pair count independently of the C implementation.
+- **Gates:** generated CDF/input checks, full encoder tests and audits, all 32
+  project CTests, and deterministic reruns pass.
+- **Blockers:** none within the bounded 8-bit DC-only profile.
+
+## 2026-08-15 — Encoder input integration
+
+- **Status:** PASS. Todo `encoder-input-integration`.
+- **CLI:** exactly one ordinary `.i400`, `.i420`, `.i444`, `.bmp`, or `.png`
+  input succeeds within the admitted subset, defaults to qindex 100, and
+  replaces the final extension with sibling `.obu`; `-o`/`--output`,
+  `--qindex`, explicit raw dimensions, and every legacy mode remain supported.
+- **Formats:** 8-bit I400, I420, and I444, with every width/height pair in
+  1..896 admitted by the DC-only encoder. Raw I420 uses ceil-divided chroma.
+  BMP/PNG grayscale maps to I400; RGB, palette, and RGBA map deterministically
+  to full-resolution I444. Alpha is ignored, not composited.
+- **Loading/lifecycle:** exact-size raw mmap, bounded arbitrary-size image
+  mmap, checked decode/output/scratch pages, typed plane validation, workspace
+  query/encode wiring, atomic rename, input inode collision rejection, and
+  complete mmap/page cleanup on every exit. The production ELF remains
+  freestanding, static, no-libc, and has no undefined symbols.
+- **Discovery/errors:** prepared names and sibling manifests supply raw
+  geometry; missing, ambiguous, or conflicting metadata is explicit and
+  dimensions can be supplied manually. Unsupported image subsets, malformed
+  files, exact-size failures, bounds, output collisions, allocation/encoding,
+  and write failures have distinct diagnostics/status classes.
+- **Coverage:** five extension paths plus grayscale/color image mapping, odd
+  3×3/3×5 geometry, qindex/output overrides, deterministic reruns, atomic
+  failures, and real prepared 896×424 PNG/I420. Integration tests contain
+  2 methods and the mandatory Python gate totals 130 tests. Local, pinned AVM,
+  and project reconstruction are exact for generated cases; real prepared
+  outputs have pinned AVM/project exact parity.
+- **Gates:** generated checks; full mandatory encoder gate; 32/32 project
+  CTests; dependency, static ELF, dynamic-segment, and undefined-symbol audits;
+  legacy golden preservation; and cleanup all pass.
+- **Blockers:** none.
+
+## 2026-08-15 — M3 full chroma admission
+
+- **Status:** PASS with unsupported boundary classes kept closed.
+- **Milestones:** `encoder-chroma-full-admission`,
+  `encoder-chroma-i420-i444`.
+- **Public bounds:** qindex 1..255 and axes at most 896. The general I420/I444
+  axis set is `16k+9..16k+16`, `k=0..55`; axes are independent. I420 also
+  admits every 1..8 by 1..8 dimension, while I444 additionally admits exactly
+  8×8. This is 200,768 I420 and 200,705 I444 dimension pairs.
+- **Reconciliation:** retained the odd-I420 single-leaf path and byte-exact
+  8×8 path; generalized active/coded layout and multileaf routing; made
+  chroma search use the syntax forced-axis rule; and selected whole versus
+  horizontally split chroma roots from each partial superblock's remaining
+  rounded extent. The latter fixes 48-, 16-, and 32-pixel superblock tails.
+- **Coverage:** 94 local == pinned AVM == project parity cases (53 I420,
+  41 I444), 22 closed-profile negatives, and four deterministic reruns.
+  Cases cross mixed odd/even axes, 8/16/64/128 boundaries, qindex contexts
+  1/90/91/140/141/190/191/255, flat/generated-spatial/color-asymmetric
+  inputs, separate U/V residuals, U-to-V coupling, partial/full superblocks,
+  crop and per-plane SSE, workspace alignment/capacity/alias/error atomicity,
+  and the 896 bound.
+- **Prepared dimensions:** 896×448, 896×672, and 896×896 pass. 896×424,
+  896×504, 896×598, and 598×896 remain closed.
+- **Workspace maxima at 896×896:** I420 4,855,296 bytes with 1,204,224-byte
+  active reconstruction; I444 7,263,744 bytes with 2,408,448-byte active
+  reconstruction. Both reserve an 803,072-byte stream and report transform
+  counts 12,544/3,136/3,136.
+- **Frozen evidence:** manifest SHA-256
+  `36fe698ac6f8d78c056eaf9caa720099fa288122fe11fde95a47442fc9437e7e`.
+  New OBU hashes are `feaef728740314cfedce5d666c4a71b92ec3a25a69e99a93fd88c5c84f6f33df`
+  (I420 25×32 spatial),
+  `5beae6fd123147481b4f4ff35f6f8c096caab83af9963c14827b2b0b48f31914`
+  (I444 47×48 asymmetric),
+  `3593db3a1d7b468f5d9efcac6c5b79efa4be9be3afaba0436e293f0dfa47b099`
+  (I420 896×672), and
+  `8311fefc5898230395899bd18565b7427674a3384792123fde8b8e9fae9a1414`
+  (I444 896×896).
+- **Pins:** AVM decoder
+  `c247cbb4e71e48bdec89f3c8b2b8efdce17f673aeaa39e3c116a276d16286aa0`;
+  project decoder
+  `7d17f598f2cdffe7dfb4ab46982cf5c4822215a5f429cb39e7748a60ce5ef535`.
+- **Preservation:** mandatory encoder tests retain all I400 goldens; the
+  original four 8×8 and four odd-I420 frozen stream hashes are unchanged.
+- **Gates:** generated CDF/input checks; native chroma workspace/metric tests;
+  full encoder gate (125 Python tests plus native, oracle, static ELF, and
+  dependency audits); all 32 project CTests; two deterministic chroma reruns.
+- **Blocker:** general axes `16k+1..16k+8` produce a chroma transcript rejected
+  by pinned AVM (project-only acceptance is not admission evidence). Those
+  profiles and the affected prepared sizes remain `ENC_UNSUPPORTED`.
+
+## 2026-08-15 — M3 multileaf chroma contexts
+
+- **Status:** PASS.
+- **Milestone:** `encoder-chroma-multileaf-contexts`.
+- **Formats:** even-dimension I420 and I444, preserving the byte-exact legacy
+  8×8 path and the odd-I420 single-leaf API.
+- **Traversal:** luma tree then chroma tree per 64×64 superblock; search,
+  reconstruction, and syntax share depth-first leaf/transform order.
+- **State:** reconstructed-neighbor DC prediction; separate U/V above/left
+  coefficient and sign contexts; normative U-to-V skip coupling; adaptive
+  CDF and above persistence; left resets at superblock rows.
+- **Parity:** flat and generated non-flat 64×64, 128×64, and 128×128 I420/I444
+  plus qindex 1, 90, 91, 140, 141, 190, 191, and 255 are byte-identical in
+  local, pinned AVM, and project reconstruction. The chroma matrix contains
+  58 parity cases: 35 I420 and 23 I444.
+- **Project decoder:** chroma DC IBP is now conditional on `edge_ibp`; disabled
+  sequence IBP no longer changes multileaf I420 reconstruction. Updated
+  project decoder SHA-256:
+  `7d17f598f2cdffe7dfb4ab46982cf5c4822215a5f429cb39e7748a60ce5ef535`.
+- **Preservation:** frozen I400, legacy 8×8 chroma, and odd-I420 vectors remain
+  unchanged.
+- **Gates:** generated checks, the full experimental encoder gate (122 Python
+  tests plus native/audit/oracle checks), and all 32 project CTests pass.
+
 ## 2026-08-15 — Raw planar input abstractions
 
 - **Status:** PASS.
@@ -1104,3 +1242,34 @@ prepared images begin at 896x424, so all remain explicit unsupported cases.
   explicit 100 remains bit-identical; qindex 0/256 remain rejected.
 - **Boundary:** this completes 8-bit I400 through 896 pixels per axis only.
   Arbitrary larger dimensions and chroma remain future work.
+
+## 2026-08-15 — bounded 8-bit chroma DC admission
+
+- Added a typed caller-owned multi-plane API without changing the I400 entry
+  points or their streams.
+- Admitted only I420 8×8/4×4/4×4 and I444 8×8/8×8/8×8, qindex 1..255.
+- Generated the required chroma CDF subset from hash-locked AV2 v1.0
+  attachments in a separate file so the frozen I400 normative subset and
+  model hashes remain exact.
+- Froze four flat/spatial vectors and passed 18 local == pinned AVM == project
+  parity cases at qindex 1, 90, 91, 100, 140, 141, 190, 191, and 255.
+- Passed `make -C experimental/encoder test`, the static/dependency audits,
+  and all 32 project CTests.
+- General I420/I444 remains blocked on odd plane geometry, multi-transform
+  chroma traversal, reconstructed-neighbor prediction, and cross-leaf
+  coefficient contexts/CDF adaptation.
+
+## 2026-08-15 — odd I420 single-leaf geometry
+
+- Derived active I420 chroma as ceil-divided dimensions and exposed active
+  plus coded plane geometry and transform counts in the workspace query.
+- Admitted square coded luma canvases 8×8 and 16×16: active 1..8 by 1..8 and
+  9..15 by 9..15. Mixed coded axes and exact 16+ remain unsupported.
+- Added edge-replicated luma search, raster four-node mapping, active crop,
+  2-byte aligned extended workspaces, alias/capacity/atomicity checks, and
+  active per-plane SSE. Extended U/V is deliberately context-neutral
+  zero-residual coding; nonzero extended chroma belongs to the sibling
+  adaptive-context task.
+- Froze four independent odd/rectangle vectors and passed local == pinned AVM
+  == project parity for 1×1, 2×7, 7×2, 7×7, 9×9, 9×15, 15×9, and 15×15.
+- Preserved all I400 behavior and the four frozen 8×8 chroma hashes.

@@ -28,6 +28,8 @@ EncStatus enc_file_read_small(const char *path, void *buffer, size_t capacity,
                               size_t *size);
 EncStatus enc_paths_same_file(const char *left, const char *right,
                               int *same);
+EncStatus enc_file_map_readonly(const char *path, size_t maximum_size,
+                                EncReadMapping *mapping);
 EncStatus enc_file_map_readonly_exact(const char *path, size_t expected_size,
                                       EncReadMapping *mapping);
 EncStatus enc_file_unmap(EncReadMapping *mapping);

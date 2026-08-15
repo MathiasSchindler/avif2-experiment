@@ -47,6 +47,18 @@
     "bytes": 85,
     "sha256": "4dbbd8961bac7aaf4d325c7f3601713fd327b27fbd4fb0e006bb048ef629a98b"
   },
+  "solid-color.bmp": {
+    "bytes": 114,
+    "sha256": "8276e93063ceaa53e806bd160ba942d6a03818db4facd9448223a40694eb4d31"
+  },
+  "solid-gray.png": {
+    "bytes": 95,
+    "sha256": "5ff2422e299f50b466feba3cf032d052ebdaebd87f4a905167dc81ec1b21839f"
+  },
+  "solid-rgba.png": {
+    "bytes": 113,
+    "sha256": "b747be5cf5fddfd8cf73ae2002a4e255274303925c273a3c9353df08a8f36a99"
+  },
   "unsupported-depth.png": {
     "bytes": 67,
     "sha256": "acff988065612b66d84f101e1473edfeda7b623c26d61ab7d2af6af927380565"

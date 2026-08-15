@@ -55,10 +55,10 @@ the width. The older
 `--constant-128-8x8`, and `--experimental-m4-ac` forms remain supported.
 
 PNG and BMP are recognized by suffix and checked against their file
-signatures. Their reusable color-input contract is 8-bit I444: color is not
-silently subsampled. Alpha does not become an AV2 plane. The current DC
-encoder subset reports these color inputs, and raw I420/I444, as unsupported
-without creating output.
+signatures. Grayscale decodes to I400. RGB, RGBA, and palette color decode to
+full-resolution I444; color is never silently subsampled. Alpha is ignored
+rather than composited and does not become an AV2 plane. All three raw planar
+formats and both image formats feed the admitted 1..896 DC workspace encoder.
 
 The encoder refuses an output path that names the input, including an
 existing hard-link or symlink alias. Existing non-input outputs are replaced
@@ -116,12 +116,20 @@ updates coefficient contexts after every transform. Local dequantization,
 inverse-DC reconstruction, clipping, and the compact cropped reconstruction
 exactly match both validators.
 
+The color M3 workspace API additionally supports even multileaf I420 and I444
+through multiple 64×64 superblocks. Luma and chroma trees are searched and
+written in decoder order, with reconstructed-neighbor DC prediction, separate
+U/V coefficient and sign contexts, normative U-to-V coupling, tile-persistent
+adaptive CDFs and above state, and superblock-row left-state resets. The
+validator matrix covers flat and generated non-flat 64×64, 128×64, and
+128×128 frames at every q-context boundary.
+
 Input metadata validation still accepts dimensions through 16384 for a precise
 unsupported result, but validated encoding is limited to 896 on either axis.
 Stride must be at least width and the file must contain exactly
 `stride * height` bytes. Larger dimensions exit 5 without creating output.
 
-The input module also provides codec-independent 8-bit I400, I420, and I444
+The input module provides codec-independent 8-bit I400, I420, and I444
 views and exact-size loaders. Each plane has a typed byte span plus
 width/height/stride; I420 chroma uses ceil-divided geometry, so odd luma sizes
 retain their final chroma row and column. Plane sizes and offsets are checked,
@@ -133,9 +141,9 @@ Dimensions may be discovered only from an existing prepared-image
 `manifest.json` whose output record agrees with the file, or from the exact
 prepared names `source-WxH-gray8.i400`, `source-WxH-yuv420p8.i420`, and
 `source-WxH-yuv444p8.i444`. `tools/raw_planar_input.py` exposes the manifest
-helper. Generic raw names do not imply dimensions and are intentionally
-rejected. Chroma loading is an input-boundary capability only; codec syntax
-and the current CLI encoding mode remain I400.
+helper. Generic raw names with missing or ambiguous geometry are rejected;
+explicit `--width` and `--height` remain available. The CLI wires these plane
+descriptors directly to the I400 or typed chroma workspace API.
 The complete multi-leaf transform/coefficient CDF transition model is frozen
 in `tests/m3_multileaf_cdf_vectors.json` and documented in
 `spec-notes/m3-multileaf-cdf-state.md`. The production matrix transcript in
@@ -160,6 +168,33 @@ modifying caller outputs. The older `enc_m3_dc_i400[_q]()` wrappers remain sourc
 The Linux CLI obtains
 workspace, stream, and reconstruction storage from anonymous page mappings;
 allocation stays outside the freestanding codec core.
+
+The typed experimental multi-plane entry point
+`enc_m3_dc_yuv8_q_workspace()` admits decoder-exact 8-bit DC-only I420 and
+I444 at qindex 1 through 255 for every width and height from 1 through 896.
+This is 802,816 dimension pairs per format. Existing I400, 8×8 chroma, odd
+I420, and previously admitted half-grid streams remain unchanged; only an
+axis above 896 is closed. The public bound is
+`ENC_M3_CHROMA_MAX_DIMENSION`.
+
+I420 active U/V dimensions are `ceil(width/2) × ceil(height/2)`.
+General coded luma axes are `8*ceil(axis/8)`; I420 coded chroma axes are half
+those values and I444 coded chroma axes are equal to them. Separate chroma
+partition traversal uses that 8-pixel-aligned MI boundary, producing 16×16,
+16×8, 8×16, and 8×8 luma-reference leaves. The 8×8 chroma node is
+normatively unsignaled. Rectangular transforms use the 32/128 EOB CDF classes,
+the max-axis skip context, rectangular inverse scaling, and exact width/height
+neighbor spans. All selected prepared-image dimensions, including 896×424,
+896×504, 896×598, and 598×896, are admitted.
+
+Workspace queries expose active and coded plane geometry, transform counts,
+alignment, staged reconstruction, and stream capacity. Strides may be padded;
+capacity, arithmetic, alignment, all output/input alias classes, workspace,
+stream, and atomic commit failures are checked. The existing I400 functions and frozen 8×8 and odd-I420 chroma streams are
+unchanged. Twenty frozen vectors plus dual-decoder probes cover odd geometry,
+mixed-axis boundaries, non-flat color, U/V asymmetry, a prepared 896×672
+I420 frame, all four required real-image boundary sizes, and the 896×896 I444
+bound.
 
 The bounded M4 experiment is an explicit 8×8 DC-plus-vertical-AC mode:
 
@@ -240,13 +275,13 @@ header, source, object, library, or build target is included or linked.
 ## Standalone BMP and PNG input module
 
 `include/encoder/image_input.h` exposes a caller-owned, memory-to-memory input
-module; it is intentionally not wired into the encoder CLI or codec.
+module used by the encoder CLI.
 `enc_image_query()` reports exact output and scratch sizes, and
 `enc_image_decode()` produces full-resolution planar 8-bit I400 or I444.
 
 BMP support covers Windows DIB size 40 or larger, BI_RGB, top-down or
-bottom-up rows, 8-bit indexed input whose used entries are grayscale, and
-24-bit BGR input, including four-byte row padding. PNG support validates the
+bottom-up rows, grayscale or color 8-bit indexed input, and 24-bit BGR input,
+including four-byte row padding. PNG support validates the
 signature, chunks, CRCs, ordering, zlib Adler-32, and accepts non-interlaced
 8-bit grayscale, RGB, RGBA, and palette images, all five filters, split IDAT,
 and stored/fixed/dynamic DEFLATE. Other depths, interlace, grayscale-alpha,

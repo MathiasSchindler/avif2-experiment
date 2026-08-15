@@ -125,6 +125,7 @@ Av2hStatus av2h_chroma_mode_read_with_delta_for_sdp(
     mode->is_cfl = (uint8_t)value;
     mode->after_cfl_bits = av2h_range_tell(decoder);
     mode->uses_cfl = 0U;
+    mode->ibp_configured = 1U;
     mode->edge_ibp = sequence->enable_ibp;
     mode->cfl_index = 0U;
     mode->cfl_mhccp_switch = 0U;

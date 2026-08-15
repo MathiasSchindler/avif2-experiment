@@ -27,7 +27,8 @@ NOLIBC_LDFLAGS := -nostdlib -static -no-pie -Wl,--build-id=none
 
 CORE_SOURCES := src/memory.c src/writer.c src/range.c src/cdf.c src/obu.c \
 	src/syntax_cdf.c src/syntax.c src/m1.c src/m3.c src/m4.c
-ENCODER_SOURCES := src/main.c src/input.c src/cli_input.c $(CORE_SOURCES) \
+ENCODER_SOURCES := src/main.c src/input.c src/cli_input.c src/image_input.c \
+	$(CORE_SOURCES) \
 	platform/linux.c \
 	platform/x86_64/start.S
 ENCODER_OBJECTS := $(patsubst %.c,$(BUILD)/%.o,$(filter %.c,$(ENCODER_SOURCES))) \
@@ -175,8 +176,11 @@ define run-tests
 		tests/test_m3_boundary_partition_transcript.py \
 		tests/test_m3_multileaf_cdf_model.py \
 		tests/test_m3_edge_coeff_model.py \
+		tests/test_m3_chroma_boundary_model.py \
+		tests/test_m3_chroma_encoder.py \
 		tests/test_m4_ac_model.py tests/test_m4_encoder.py \
-		tests/test_raw_planar_input.py
+		tests/test_raw_planar_input.py \
+		tests/test_encoder_input_integration.py
 endef
 
 test: check-validators check-generated $(BIT_TEST) $(RANGE_TEST) \

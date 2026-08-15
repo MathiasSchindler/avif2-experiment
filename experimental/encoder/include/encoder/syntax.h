@@ -22,7 +22,10 @@
 #define ENC_TXB_SKIP_ROWS 400U
 #define ENC_V_TXB_SKIP_ROWS 48U
 #define ENC_CHROMA_EOB_PT_16_ROWS 12U
+#define ENC_CHROMA_EOB_PT_32_ROWS 12U
 #define ENC_CHROMA_EOB_PT_64_ROWS 12U
+#define ENC_CHROMA_EOB_PT_128_ROWS 12U
+#define ENC_CHROMA_EOB_PT_256_ROWS 12U
 #define ENC_COEFF_BASE_LF_EOB_UV_ROWS 16U
 #define ENC_COEFF_BR_UV_ROWS 16U
 #define ENC_EOB_PT_64_ROWS 12U
@@ -51,7 +54,10 @@ typedef struct {
     uint16_t txb_skip[ENC_TXB_SKIP_ROWS][6U];
     uint16_t v_txb_skip[ENC_V_TXB_SKIP_ROWS][6U];
     uint16_t chroma_eob_pt_16[ENC_CHROMA_EOB_PT_16_ROWS][9U];
+    uint16_t chroma_eob_pt_32[ENC_CHROMA_EOB_PT_32_ROWS][10U];
     uint16_t chroma_eob_pt_64[ENC_CHROMA_EOB_PT_64_ROWS][11U];
+    uint16_t chroma_eob_pt_128[ENC_CHROMA_EOB_PT_128_ROWS][12U];
+    uint16_t chroma_eob_pt_256[ENC_CHROMA_EOB_PT_256_ROWS][12U];
     uint16_t coeff_base_lf_eob_uv[ENC_COEFF_BASE_LF_EOB_UV_ROWS][9U];
     uint16_t coeff_br_uv[ENC_COEFF_BR_UV_ROWS][8U];
     uint16_t eob_pt_64[ENC_EOB_PT_64_ROWS][11U];
@@ -111,7 +117,7 @@ uint16_t *enc_syntax_txb_skip_cdf(
 uint16_t *enc_syntax_v_txb_skip_cdf(
     EncSyntaxCdfs *cdfs, size_t q_context, size_t skip_context);
 uint16_t *enc_syntax_chroma_eob_pt_cdf(
-    EncSyntaxCdfs *cdfs, size_t q_context, size_t tx_size,
+    EncSyntaxCdfs *cdfs, size_t q_context, size_t eob_class,
     size_t *symbol_count);
 uint16_t *enc_syntax_coeff_base_lf_eob_uv_cdf(
     EncSyntaxCdfs *cdfs, size_t q_context, size_t context);
@@ -169,5 +175,16 @@ EncStatus enc_m3_dc_i420_i444_8x8_tile_q(
     void *data, size_t capacity, size_t *size,
     int16_t y_level, int16_t u_level, int16_t v_level,
     unsigned int chroma_format_idc, unsigned int qindex);
+EncStatus enc_m3_dc_yuv_grid_tile_q(
+    void *data, size_t capacity, size_t *size,
+    size_t width, size_t height,
+    const int16_t *y_levels, const int16_t *u_levels,
+    const int16_t *v_levels, size_t level_count,
+    unsigned int chroma_format_idc, unsigned int qindex);
+EncStatus enc_m3_dc_i420_single_leaf_tile_q(
+    void *data, size_t capacity, size_t *size,
+    size_t width, size_t height,
+    const int16_t *y_levels, size_t y_level_count,
+    int16_t u_level, int16_t v_level, unsigned int qindex);
 
 #endif

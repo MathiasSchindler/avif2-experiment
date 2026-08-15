@@ -6,6 +6,7 @@
 #define ENC_M3_MIN_DIMENSION 1U
 #define ENC_M3_MAX_DIMENSION 64U
 #define ENC_M3_PRODUCTION_MAX_DIMENSION 896U
+#define ENC_M3_CHROMA_MAX_DIMENSION 896U
 #define ENC_M3_LEGACY_MAX_DIMENSION 16U
 #define ENC_M3_MAX_PIXELS 4096U
 #define ENC_M3_MAX_BLOCKS 64U
@@ -80,6 +81,10 @@ typedef struct {
     size_t plane_width[3U];
     size_t plane_height[3U];
     size_t plane_size[3U];
+    size_t coded_plane_width[3U];
+    size_t coded_plane_height[3U];
+    size_t coded_plane_size[3U];
+    size_t transform_count[3U];
     size_t reconstruction_size;
 } EncM3ChromaWorkspaceLayout;
 
@@ -87,6 +92,7 @@ typedef struct {
     size_t stream_size;
     size_t workspace_size;
     size_t plane_size[3U];
+    size_t transform_count[3U];
     uint64_t squared_error[3U];
     int16_t dc_level[3U];
     uint8_t reconstructed_sample[3U];

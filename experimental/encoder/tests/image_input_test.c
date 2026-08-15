@@ -111,8 +111,11 @@ static int malformed_tests(void) {
     data = read_file("fixtures/image-input/gray.bmp", &size);
     if (data == 0 || enc_image_query(data, size, &layout) != ENC_OK) return 17;
     data[54U + 10U * 4U] ^= 1U;
-    if (enc_image_decode(data, size, output, sizeof(output), scratch,
-                         sizeof(scratch), &image) != ENC_UNSUPPORTED) return 18;
+    if (enc_image_query(data, size, &layout) != ENC_OK ||
+        layout.type != ENC_IMAGE_I444 ||
+        enc_image_decode(data, size, output, sizeof(output), scratch,
+                         sizeof(scratch), &image) != ENC_OK ||
+        image.type != ENC_IMAGE_I444) return 18;
     free(data);
     return 0;
 }

@@ -48,8 +48,17 @@ EncStatus enc_syntax_cdfs_init(EncSyntaxCdfs *cdfs) {
         chroma_eob_pt_16, enc_norm_chroma_eob_pt_16,
         ENC_CHROMA_EOB_PT_16_ROWS, 5U);
     MATERIALIZE_TABLE(
+        chroma_eob_pt_32, enc_norm_chroma_eob_pt_32,
+        ENC_CHROMA_EOB_PT_32_ROWS, 6U);
+    MATERIALIZE_TABLE(
         chroma_eob_pt_64, enc_norm_chroma_eob_pt_64,
         ENC_CHROMA_EOB_PT_64_ROWS, 7U);
+    MATERIALIZE_TABLE(
+        chroma_eob_pt_128, enc_norm_chroma_eob_pt_128,
+        ENC_CHROMA_EOB_PT_128_ROWS, 8U);
+    MATERIALIZE_TABLE(
+        chroma_eob_pt_256, enc_norm_chroma_eob_pt_256,
+        ENC_CHROMA_EOB_PT_256_ROWS, 8U);
     MATERIALIZE_TABLE(
         coeff_base_lf_eob_uv, enc_norm_coeff_base_lf_eob_uv,
         ENC_COEFF_BASE_LF_EOB_UV_ROWS, 5U);
@@ -172,17 +181,29 @@ uint16_t *enc_syntax_v_txb_skip_cdf(
 }
 
 uint16_t *enc_syntax_chroma_eob_pt_cdf(
-    EncSyntaxCdfs *cdfs, size_t q_context, size_t tx_size,
+    EncSyntaxCdfs *cdfs, size_t q_context, size_t eob_class,
     size_t *symbol_count) {
     size_t row = q_context * 3U + 2U;
     if (cdfs == 0 || q_context >= 4U || symbol_count == 0) return 0;
-    if (tx_size == 0U) {
+    if (eob_class == 0U) {
         *symbol_count = 5U;
         return cdfs->chroma_eob_pt_16[row];
     }
-    if (tx_size == 1U) {
+    if (eob_class == 1U) {
+        *symbol_count = 6U;
+        return cdfs->chroma_eob_pt_32[row];
+    }
+    if (eob_class == 2U) {
         *symbol_count = 7U;
         return cdfs->chroma_eob_pt_64[row];
+    }
+    if (eob_class == 3U) {
+        *symbol_count = 8U;
+        return cdfs->chroma_eob_pt_128[row];
+    }
+    if (eob_class == 4U) {
+        *symbol_count = 8U;
+        return cdfs->chroma_eob_pt_256[row];
     }
     return 0;
 }

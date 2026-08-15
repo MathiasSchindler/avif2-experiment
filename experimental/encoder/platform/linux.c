@@ -346,6 +346,7 @@ EncStatus enc_file_map_readonly_exact(const char *path, size_t expected_size,
     if (path == 0 || expected_size == 0U || mapping == 0) {
         return ENC_INVALID_ARGUMENT;
     }
+
     mapping->data = 0;
     mapping->size = 0U;
     if (enc_file_open_read(path, &file) != ENC_OK) {
@@ -373,6 +374,46 @@ EncStatus enc_file_map_readonly_exact(const char *path, size_t expected_size,
     }
     mapping->data = (const uint8_t *)result;
     mapping->size = expected_size;
+    return ENC_OK;
+}
+
+EncStatus enc_file_map_readonly(const char *path, size_t maximum_size,
+                                EncReadMapping *mapping) {
+    EncFile file = {-1};
+    EncLinuxStat information;
+    size_t size;
+    long result;
+    EncStatus close_status;
+    if (path == 0 || maximum_size == 0U || mapping == 0) {
+        return ENC_INVALID_ARGUMENT;
+    }
+    mapping->data = 0;
+    mapping->size = 0U;
+    if (enc_file_open_read(path, &file) != ENC_OK) return ENC_IO_ERROR;
+    result = enc_syscall2(ENC_SYS_FSTAT, file.descriptor, (long)&information);
+    if (result < 0 || information.size <= 0) {
+        (void)enc_file_close(&file);
+        return result < 0 ? ENC_IO_ERROR : ENC_SIZE_MISMATCH;
+    }
+    if ((uint64_t)information.size > (uint64_t)SIZE_MAX) {
+        (void)enc_file_close(&file);
+        return ENC_OVERFLOW;
+    }
+    size = (size_t)information.size;
+    if (size > maximum_size) {
+        (void)enc_file_close(&file);
+        return ENC_UNSUPPORTED;
+    }
+    result = enc_syscall6(ENC_SYS_MMAP, 0, (long)size, ENC_PROT_READ,
+                          ENC_MAP_PRIVATE, file.descriptor, 0);
+    close_status = enc_file_close(&file);
+    if (result < 0) return ENC_IO_ERROR;
+    if (close_status != ENC_OK) {
+        (void)enc_syscall2(ENC_SYS_MUNMAP, result, (long)size);
+        return close_status;
+    }
+    mapping->data = (const uint8_t *)result;
+    mapping->size = size;
     return ENC_OK;
 }
 

@@ -65,6 +65,26 @@ static uint8_t reconstructed_chroma_value(
     return (uint8_t)clip_int(0, 255, (int)prediction + residual);
 }
 
+static uint8_t reconstructed_chroma_rect_value(
+    int level, uint8_t prediction, uint32_t q, unsigned int shift,
+    int rectangular) {
+    unsigned int magnitude =
+        level < 0 ? (unsigned int)(-level) : (unsigned int)level;
+    uint32_t dequant_magnitude =
+        ((uint32_t)magnitude * q + 4U) >> 3U;
+    int dequant = level < 0
+        ? -(int)dequant_magnitude : (int)dequant_magnitude;
+    int row;
+    int residual;
+    dequant = clip_int(-32768, 32767, dequant);
+    if (rectangular) {
+        dequant = round_shift(2896 * dequant, 12U);
+    }
+    row = clip_int(-32768, 32767, round_shift(64 * dequant, 7U));
+    residual = clip_int(-256, 255, round_shift(64 * row, shift));
+    return (uint8_t)clip_int(0, 255, (int)prediction + residual);
+}
+
 static uint64_t block_error(
     const uint8_t *input, size_t width, size_t height, size_t stride,
     size_t block_x, size_t block_y, uint8_t reconstructed) {
@@ -177,24 +197,47 @@ static void clear_chroma_result(EncM3ChromaResult *result) {
         result->format = ENC_M3_PIXEL_I400;
         for (plane = 0U; plane < 3U; ++plane) {
             result->plane_size[plane] = 0U;
+            result->transform_count[plane] = 0U;
             result->squared_error[plane] = 0U;
             result->dc_level[plane] = 0;
             result->reconstructed_sample[plane] = 0U;
         }
     }
 
+static int chroma_axis_admitted(size_t dimension) {
+        return dimension <= ENC_M3_CHROMA_MAX_DIMENSION;
+    }
+
 EncStatus enc_m3_query_chroma_workspace(
         EncM3PixelFormat format, size_t width, size_t height,
         EncM3ChromaWorkspaceLayout *layout) {
         EncM3ChromaWorkspaceLayout candidate;
+        int single_leaf_i420;
         size_t plane;
         size_t total = 0U;
         if (layout == 0 || width == 0U || height == 0U ||
             (format != ENC_M3_PIXEL_I420 && format != ENC_M3_PIXEL_I444)) {
             return ENC_INVALID_ARGUMENT;
         }
-        if (width != 8U || height != 8U) return ENC_UNSUPPORTED;
-        candidate.alignment = 1U;
+        if (width > ENC_M3_CHROMA_MAX_DIMENSION ||
+            height > ENC_M3_CHROMA_MAX_DIMENSION) {
+            return ENC_UNSUPPORTED;
+        }
+        if (!((format == ENC_M3_PIXEL_I420 &&
+               width <= 8U && height <= 8U) ||
+              (width == 8U && height == 8U) ||
+              (chroma_axis_admitted(width) &&
+               chroma_axis_admitted(height)))) {
+            return ENC_UNSUPPORTED;
+        }
+        single_leaf_i420 =
+            format == ENC_M3_PIXEL_I420 &&
+            (width != 8U || height != 8U) &&
+            width < 16U && height < 16U &&
+            ((width + 7U) & ~(size_t)7U) ==
+                ((height + 7U) & ~(size_t)7U);
+        candidate.alignment =
+            width == 8U && height == 8U ? 1U : ENC_M3_WORKSPACE_ALIGNMENT;
         candidate.stream_capacity = ENC_M3_LEGACY_MAX_STREAM_SIZE;
         candidate.plane_width[0] = width;
         candidate.plane_height[0] = height;
@@ -212,11 +255,84 @@ EncStatus enc_m3_query_chroma_workspace(
                 !enc_size_add(total, candidate.plane_size[plane], &total)) {
                 return ENC_OVERFLOW;
             }
+            candidate.coded_plane_width[plane] =
+                width == 8U && height == 8U
+                    ? candidate.plane_width[plane]
+                    : plane == 0U
+                        ? (candidate.plane_width[plane] + 7U) & ~(size_t)7U
+                        : format == ENC_M3_PIXEL_I420
+                            ? ((width + 7U) & ~(size_t)7U) / 2U
+                            : (width + 7U) & ~(size_t)7U;
+            candidate.coded_plane_height[plane] =
+                width == 8U && height == 8U
+                    ? candidate.plane_height[plane]
+                    : plane == 0U
+                        ? (candidate.plane_height[plane] + 7U) & ~(size_t)7U
+                        : format == ENC_M3_PIXEL_I420
+                            ? ((height + 7U) & ~(size_t)7U) / 2U
+                            : (height + 7U) & ~(size_t)7U;
+            if (!enc_size_multiply(
+                    candidate.coded_plane_width[plane],
+                    candidate.coded_plane_height[plane],
+                    &candidate.coded_plane_size[plane])) {
+                return ENC_OVERFLOW;
+            }
+            candidate.transform_count[plane] =
+                plane == 0U
+                    ? (candidate.coded_plane_width[plane] / 8U) *
+                      (candidate.coded_plane_height[plane] / 8U)
+                    : width == 8U && height == 8U
+                        ? 1U
+                        : single_leaf_i420
+                            ? 1U
+                        : ((width + 15U) / 16U) *
+                          ((height + 15U) / 16U);
+        }
+        if (candidate.transform_count[0U] > 1U) {
+            size_t stream_bytes;
+            if (!enc_size_multiply(
+                    candidate.transform_count[0U], 64U, &stream_bytes) ||
+                !enc_size_add(
+                    stream_bytes, 256U, &candidate.stream_capacity)) {
+                return ENC_OVERFLOW;
+            }
         }
         candidate.reconstruction_size = total;
-        if (!enc_size_add(
-                total, candidate.stream_capacity, &candidate.size)) {
-            return ENC_OVERFLOW;
+        if (width == 8U && height == 8U) {
+            if (!enc_size_add(
+                    total, candidate.stream_capacity, &candidate.size)) {
+                return ENC_OVERFLOW;
+            }
+        } else {
+            size_t coded_total = 0U;
+            size_t level_count = 0U;
+            size_t level_bytes;
+            size_t staged_stream_bytes;
+            for (plane = 0U; plane < 3U; ++plane) {
+                if (!enc_size_add(
+                        coded_total, candidate.coded_plane_size[plane],
+                        &coded_total) ||
+                    !enc_size_add(
+                        level_count, candidate.transform_count[plane],
+                        &level_count)) {
+                    return ENC_OVERFLOW;
+                }
+            }
+            if (!enc_size_multiply(
+                    level_count, sizeof(int16_t), &level_bytes) ||
+                !enc_size_add(coded_total, total, &candidate.size) ||
+                !align_size(
+                    candidate.size, candidate.alignment, &candidate.size) ||
+                !enc_size_add(candidate.size, level_bytes, &candidate.size) ||
+                !enc_size_multiply(
+                    candidate.stream_capacity,
+                    candidate.transform_count[0U] > 1U ? 3U : 1U,
+                    &staged_stream_bytes) ||
+                !enc_size_add(
+                    candidate.size, staged_stream_bytes,
+                    &candidate.size)) {
+                return ENC_OVERFLOW;
+            }
         }
         *layout = candidate;
         return ENC_OK;
@@ -272,6 +388,827 @@ static void search_chroma_plane(
         }
     }
 
+static void search_i420_transform(
+        const EncM3Plane8 *plane, size_t active_width, size_t active_height,
+        size_t block_x, size_t block_y, size_t transform_size,
+        uint8_t prediction, uint32_t q, unsigned int shift,
+        int16_t *best_level, uint8_t *best_value,
+        uint64_t *active_error) {
+        unsigned int max_level =
+            (unsigned int)((UINT32_C(32768) * 8U + q - 1U) / q + 1U);
+        uint64_t best_coded_error = 0U;
+        int level;
+        size_t y;
+        size_t x;
+        *best_level = 0;
+        *best_value = prediction;
+        for (y = 0U; y < transform_size; ++y) {
+            size_t source_y = block_y + y < active_height
+                ? block_y + y : active_height - 1U;
+            for (x = 0U; x < transform_size; ++x) {
+                size_t source_x = block_x + x < active_width
+                    ? block_x + x : active_width - 1U;
+                int difference =
+                    (int)plane->data[source_y * plane->stride + source_x] -
+                    (int)prediction;
+                best_coded_error += (uint64_t)(difference * difference);
+            }
+        }
+        for (level = 1;
+             level <= (int)max_level && best_coded_error != 0U; ++level) {
+            int sign;
+            for (sign = 0; sign < 2; ++sign) {
+                int candidate_level = sign == 0 ? level : -level;
+                uint8_t candidate_value = reconstructed_chroma_value(
+                    candidate_level, prediction, q, shift);
+                uint64_t error = 0U;
+                for (y = 0U; y < transform_size; ++y) {
+                    size_t source_y = block_y + y < active_height
+                        ? block_y + y : active_height - 1U;
+                    for (x = 0U; x < transform_size; ++x) {
+                        size_t source_x = block_x + x < active_width
+                            ? block_x + x : active_width - 1U;
+                        int difference = (int)plane->data[
+                            source_y * plane->stride + source_x] -
+                            (int)candidate_value;
+                        error += (uint64_t)(difference * difference);
+                    }
+
+                }
+                if (error < best_coded_error) {
+                    best_coded_error = error;
+                    *best_level = (int16_t)candidate_level;
+                    *best_value = candidate_value;
+                }
+            }
+        }
+        *active_error = 0U;
+        for (y = block_y;
+             y < block_y + transform_size && y < active_height; ++y) {
+            for (x = block_x;
+                 x < block_x + transform_size && x < active_width; ++x) {
+                int difference =
+                    (int)plane->data[y * plane->stride + x] -
+                    (int)*best_value;
+                *active_error += (uint64_t)(difference * difference);
+            }
+        }
+    }
+
+static void search_chroma_rect_transform(
+        const EncM3Plane8 *plane, size_t active_width, size_t active_height,
+        size_t block_x, size_t block_y,
+        size_t transform_width, size_t transform_height,
+        uint8_t prediction, uint32_t q, unsigned int shift,
+        int16_t *best_level, uint8_t *best_value,
+        uint64_t *active_error) {
+        unsigned int max_level =
+            (unsigned int)((UINT32_C(32768) * 8U + q - 1U) / q + 1U);
+        uint64_t best_coded_error = 0U;
+        int rectangular = transform_width != transform_height;
+        int level;
+        size_t y;
+        size_t x;
+        *best_level = 0;
+        *best_value = prediction;
+        for (y = 0U; y < transform_height; ++y) {
+            size_t source_y = block_y + y < active_height
+                ? block_y + y : active_height - 1U;
+            for (x = 0U; x < transform_width; ++x) {
+                size_t source_x = block_x + x < active_width
+                    ? block_x + x : active_width - 1U;
+                int difference =
+                    (int)plane->data[source_y * plane->stride + source_x] -
+                    (int)prediction;
+                best_coded_error += (uint64_t)(difference * difference);
+            }
+        }
+        for (level = 1;
+             level <= (int)max_level && best_coded_error != 0U; ++level) {
+            int sign;
+            for (sign = 0; sign < 2; ++sign) {
+                int candidate_level = sign == 0 ? level : -level;
+                uint8_t candidate_value = reconstructed_chroma_rect_value(
+                    candidate_level, prediction, q, shift, rectangular);
+                uint64_t error = 0U;
+                for (y = 0U; y < transform_height; ++y) {
+                    size_t source_y = block_y + y < active_height
+                        ? block_y + y : active_height - 1U;
+                    for (x = 0U; x < transform_width; ++x) {
+                        size_t source_x = block_x + x < active_width
+                            ? block_x + x : active_width - 1U;
+                        int difference = (int)plane->data[
+                            source_y * plane->stride + source_x] -
+                            (int)candidate_value;
+                        error += (uint64_t)(difference * difference);
+                    }
+                }
+                if (error < best_coded_error) {
+                    best_coded_error = error;
+                    *best_level = (int16_t)candidate_level;
+                    *best_value = candidate_value;
+                }
+            }
+        }
+        *active_error = 0U;
+        for (y = block_y;
+             y < block_y + transform_height && y < active_height; ++y) {
+            for (x = block_x;
+                 x < block_x + transform_width && x < active_width; ++x) {
+                int difference =
+                    (int)plane->data[y * plane->stride + x] -
+                    (int)*best_value;
+                *active_error += (uint64_t)(difference * difference);
+            }
+        }
+    }
+
+static EncStatus encode_i420_single_leaf(
+        const EncM3Image8 *input, unsigned int qindex,
+        void *workspace, size_t workspace_capacity,
+        void *stream, size_t stream_capacity,
+        EncM3MutableImage8 *reconstruction,
+        EncM3ChromaResult *result) {
+        EncM3ChromaWorkspaceLayout layout;
+        EncM3ChromaResult candidate;
+        uint8_t sequence[16U];
+        uint8_t frame_header[8U];
+        uint8_t tile[224U];
+        uint8_t frame_payload[232U];
+        uint8_t *workspace_bytes = (uint8_t *)workspace;
+        uint8_t *padded[3U];
+        uint8_t *staged[3U];
+        uint8_t *staged_stream;
+        int16_t *levels;
+        size_t input_span[3U];
+        size_t output_span[3U];
+        size_t coded_total = 0U;
+        size_t active_total = 0U;
+        size_t level_offset;
+        size_t stream_offset;
+        size_t sequence_size;
+        size_t frame_header_size;
+        size_t tile_size;
+        size_t plane;
+        size_t level_index = 0U;
+        uint32_t q;
+        EncByteWriter payload_writer;
+        EncByteWriter writer;
+        EncStatus status;
+        clear_chroma_result(&candidate);
+        status = enc_m3_query_chroma_workspace(
+            input->format, input->width, input->height, &layout);
+        if (status != ENC_OK) return status;
+        if ((uintptr_t)workspace % layout.alignment != 0U) {
+            return ENC_INVALID_ARGUMENT;
+        }
+        if (workspace_capacity < layout.size) return ENC_OUT_OF_SPACE;
+        for (plane = 0U; plane < 3U; ++plane) {
+            if (input->planes[plane].data == 0 ||
+                reconstruction->planes[plane].data == 0 ||
+                !plane_span_size(
+                    layout.plane_width[plane], layout.plane_height[plane],
+                    input->planes[plane].stride, &input_span[plane]) ||
+                !plane_span_size(
+                    layout.plane_width[plane], layout.plane_height[plane],
+                    reconstruction->planes[plane].stride,
+                    &output_span[plane])) {
+                return ENC_INVALID_ARGUMENT;
+            }
+            if (input->planes[plane].capacity < input_span[plane] ||
+                reconstruction->planes[plane].capacity < output_span[plane]) {
+                return ENC_OUT_OF_SPACE;
+            }
+            if (ranges_overlap(
+                    workspace, layout.size,
+                    input->planes[plane].data, input_span[plane]) ||
+                ranges_overlap(
+                    workspace, layout.size,
+                    reconstruction->planes[plane].data, output_span[plane]) ||
+                ranges_overlap(
+                    stream, stream_capacity,
+                    input->planes[plane].data, input_span[plane]) ||
+                ranges_overlap(
+                    stream, stream_capacity,
+                    reconstruction->planes[plane].data, output_span[plane])) {
+                return ENC_INVALID_ARGUMENT;
+            }
+            padded[plane] = workspace_bytes + coded_total;
+            coded_total += layout.coded_plane_size[plane];
+        }
+        for (plane = 0U; plane < 3U; ++plane) {
+            size_t other;
+            staged[plane] = workspace_bytes + coded_total + active_total;
+            active_total += layout.plane_size[plane];
+            for (other = 0U; other < 3U; ++other) {
+                if (ranges_overlap(
+                        reconstruction->planes[plane].data,
+                        output_span[plane],
+                        input->planes[other].data, input_span[other])) {
+                    return ENC_INVALID_ARGUMENT;
+                }
+                if (other > plane && ranges_overlap(
+                        reconstruction->planes[plane].data,
+                        output_span[plane],
+                        reconstruction->planes[other].data,
+                        output_span[other])) {
+                    return ENC_INVALID_ARGUMENT;
+                }
+            }
+        }
+        if (ranges_overlap(
+                workspace, layout.size, stream, stream_capacity)) {
+            return ENC_INVALID_ARGUMENT;
+        }
+        if (!align_size(
+                coded_total + active_total, layout.alignment, &level_offset)) {
+            return ENC_OVERFLOW;
+        }
+        levels = (int16_t *)(void *)(workspace_bytes + level_offset);
+        if (!enc_size_multiply(
+                layout.transform_count[0] + 2U,
+                sizeof(int16_t), &stream_offset) ||
+            !enc_size_add(level_offset, stream_offset, &stream_offset)) {
+            return ENC_OVERFLOW;
+        }
+        staged_stream = workspace_bytes + stream_offset;
+        q = qlookup(qindex);
+        for (plane = 0U; plane < 3U; ++plane) {
+            size_t transform_size = plane == 0U ? 8U :
+                layout.coded_plane_width[plane];
+            size_t block_y;
+            size_t block_x;
+            candidate.plane_size[plane] = layout.plane_size[plane];
+            candidate.transform_count[plane] = layout.transform_count[plane];
+            for (block_y = 0U;
+                 block_y < layout.coded_plane_height[plane];
+                 block_y += transform_size) {
+                for (block_x = 0U;
+                     block_x < layout.coded_plane_width[plane];
+                     block_x += transform_size) {
+                    uint8_t above[8U];
+                    uint8_t left[8U];
+                    const uint8_t *above_edge = 0;
+                    const uint8_t *left_edge = 0;
+                    uint8_t prediction;
+                    uint8_t value;
+                    int16_t level;
+                    uint64_t error;
+                    size_t edge;
+                    size_t y;
+                    size_t x;
+                    if (block_y != 0U) {
+                        for (edge = 0U; edge < transform_size; ++edge) {
+                            above[edge] = padded[plane][
+                                (block_y - 1U) *
+                                    layout.coded_plane_width[plane] +
+                                block_x + edge];
+                        }
+                        above_edge = above;
+                    }
+                    if (block_x != 0U) {
+                        for (edge = 0U; edge < transform_size; ++edge) {
+                            left[edge] = padded[plane][
+                                (block_y + edge) *
+                                    layout.coded_plane_width[plane] +
+                                block_x - 1U];
+                        }
+                        left_edge = left;
+                    }
+                    prediction = enc_m3_dc_prediction(
+                        above_edge, left_edge, transform_size);
+                    if (plane == 0U) {
+                        search_i420_transform(
+                            &input->planes[plane],
+                            layout.plane_width[plane],
+                            layout.plane_height[plane],
+                            block_x, block_y, transform_size, prediction, q,
+                            11U, &level, &value, &error);
+                    } else {
+                        size_t active_y;
+                        size_t active_x;
+                        level = 0;
+                        value = prediction;
+                        error = 0U;
+                        for (active_y = 0U;
+                             active_y < layout.plane_height[plane];
+                             ++active_y) {
+                            for (active_x = 0U;
+                                 active_x < layout.plane_width[plane];
+                                 ++active_x) {
+                                int difference = (int)input->planes[plane].data[
+                                    active_y * input->planes[plane].stride +
+                                    active_x] - (int)value;
+                                error +=
+                                    (uint64_t)(difference * difference);
+                            }
+                        }
+                    }
+                    if (level_index == 0U || plane != 0U) {
+                        candidate.dc_level[plane] = level;
+                        candidate.reconstructed_sample[plane] = value;
+                    }
+                    levels[level_index++] = level;
+                    candidate.squared_error[plane] += error;
+                    for (y = 0U; y < transform_size; ++y) {
+                        for (x = 0U; x < transform_size; ++x) {
+                            padded[plane][
+                                (block_y + y) *
+                                    layout.coded_plane_width[plane] +
+                                block_x + x] = value;
+                        }
+                    }
+                }
+            }
+            {
+                size_t y;
+                for (y = 0U; y < layout.plane_height[plane]; ++y) {
+                    size_t x;
+                    for (x = 0U; x < layout.plane_width[plane]; ++x) {
+                        staged[plane][y * layout.plane_width[plane] + x] =
+                            padded[plane][
+                                y * layout.coded_plane_width[plane] + x];
+                    }
+                }
+            }
+        }
+        status = enc_m3_sequence_header_for_format(
+            sequence, sizeof(sequence), &sequence_size,
+            input->width, input->height, (unsigned int)input->format);
+        if (status != ENC_OK) return status;
+        status = enc_m3_frame_header_q_for_size(
+            frame_header, sizeof(frame_header), &frame_header_size,
+            input->width, input->height, qindex);
+        if (status != ENC_OK) return status;
+        status = enc_m3_dc_i420_single_leaf_tile_q(
+            tile, sizeof(tile), &tile_size, input->width, input->height,
+            levels, layout.transform_count[0],
+            levels[layout.transform_count[0]],
+            levels[layout.transform_count[0] + 1U], qindex);
+        if (status != ENC_OK) return status;
+        enc_byte_writer_init(
+            &payload_writer, frame_payload, sizeof(frame_payload));
+        if (enc_byte_writer_write(
+                &payload_writer, frame_header, frame_header_size) != ENC_OK ||
+            enc_byte_writer_write(
+                &payload_writer, tile, tile_size) != ENC_OK) {
+            return payload_writer.status;
+        }
+        enc_byte_writer_init(
+            &writer, staged_stream, layout.stream_capacity);
+        if (enc_obu_write(&writer, 2U, 0, 0U) != ENC_OK ||
+            enc_obu_write(&writer, 1U, sequence, sequence_size) != ENC_OK ||
+            enc_obu_write(
+                &writer, 4U, frame_payload, payload_writer.position) != ENC_OK) {
+            return writer.status;
+        }
+        if (writer.position > stream_capacity) return ENC_OUT_OF_SPACE;
+        for (plane = 0U; plane < 3U; ++plane) {
+            size_t y;
+            for (y = 0U; y < layout.plane_height[plane]; ++y) {
+                status = enc_memory_copy(
+                    reconstruction->planes[plane].data +
+                        y * reconstruction->planes[plane].stride,
+                    reconstruction->planes[plane].capacity -
+                        y * reconstruction->planes[plane].stride,
+                    staged[plane] + y * layout.plane_width[plane],
+                    layout.plane_width[plane]);
+                if (status != ENC_OK) return status;
+            }
+        }
+        status = enc_memory_copy(
+            stream, stream_capacity, staged_stream, writer.position);
+        if (status != ENC_OK) return status;
+        candidate.stream_size = writer.position;
+        candidate.workspace_size = layout.size;
+        candidate.qindex = qindex;
+        candidate.format = input->format;
+        *result = candidate;
+        return ENC_OK;
+    }
+
+typedef struct {
+    const EncM3Image8 *input;
+    const EncM3ChromaWorkspaceLayout *layout;
+    uint8_t *padded[3U];
+    int16_t *levels[3U];
+    size_t transform_index[3U];
+    uint32_t q;
+    EncM3ChromaResult *result;
+} EncM3ColorSearchState;
+
+static int color_search_forced_axis(
+    size_t rows, size_t columns, size_t row, size_t column,
+    size_t width, size_t height) {
+    int has_rows = row + height / 2U < rows;
+    int has_columns = column + width / 2U < columns;
+    if (has_rows && has_columns) return 0;
+    if (width == height) return has_rows && !has_columns ? 2 : 1;
+    if (height > width) {
+        if (!has_rows) return 1;
+        if (!has_columns && width >= 4U &&
+            column + width / 4U >= columns) return 1;
+    } else {
+        if (!has_columns) return 2;
+        if (!has_rows && height >= 4U &&
+            row + height / 4U >= rows) return 2;
+    }
+    return 0;
+}
+
+static void search_color_transform(
+    EncM3ColorSearchState *state, size_t plane,
+    size_t block_x, size_t block_y,
+    size_t transform_width, size_t transform_height) {
+    size_t coded_width = state->layout->coded_plane_width[plane];
+    uint8_t above[16U] = {0U};
+    uint8_t left[16U] = {0U};
+    const uint8_t *above_edge = 0;
+    const uint8_t *left_edge = 0;
+    uint8_t prediction;
+    uint8_t value;
+    int16_t level;
+    uint64_t error;
+    size_t index;
+    size_t y;
+    size_t x;
+    if (block_y != 0U) {
+        for (index = 0U; index < transform_width; ++index) {
+            above[index] = state->padded[plane][
+                (block_y - 1U) * coded_width + block_x + index];
+        }
+        above_edge = above;
+    }
+    if (block_x != 0U) {
+        for (index = 0U; index < transform_height; ++index) {
+            left[index] = state->padded[plane][
+                (block_y + index) * coded_width + block_x - 1U];
+        }
+        left_edge = left;
+    }
+    if (above_edge != 0 && left_edge != 0) {
+        uint32_t sum = 0U;
+        for (index = 0U; index < transform_width; ++index) {
+            sum += above[index];
+        }
+        for (index = 0U; index < transform_height; ++index) {
+            sum += left[index];
+        }
+        prediction = (uint8_t)(
+            (sum + (transform_width + transform_height) / 2U) /
+            (transform_width + transform_height));
+    } else if (above_edge != 0) {
+        prediction = enc_m3_dc_prediction(
+            above_edge, 0, transform_width);
+    } else if (left_edge != 0) {
+        prediction = enc_m3_dc_prediction(
+            0, left_edge, transform_height);
+    } else {
+        prediction = 128U;
+    }
+    search_chroma_rect_transform(
+        &state->input->planes[plane],
+        state->layout->plane_width[plane],
+        state->layout->plane_height[plane],
+        block_x, block_y, transform_width, transform_height,
+        prediction, state->q,
+        transform_width >= 16U && transform_height >= 16U ? 12U :
+        transform_width >= 8U && transform_height >= 8U ? 11U : 10U,
+        &level, &value, &error);
+    index = state->transform_index[plane]++;
+    state->levels[plane][index] = level;
+    state->result->squared_error[plane] += error;
+    if (index == 0U) {
+        state->result->dc_level[plane] = level;
+        state->result->reconstructed_sample[plane] = value;
+    }
+    for (y = 0U; y < transform_height; ++y) {
+        for (x = 0U; x < transform_width; ++x) {
+            state->padded[plane][
+                (block_y + y) * coded_width + block_x + x] = value;
+        }
+    }
+}
+
+static void search_luma_partition(
+    EncM3ColorSearchState *state, size_t row, size_t column,
+    size_t width, size_t height) {
+    size_t rows = ((state->input->height + 7U) / 8U) * 2U;
+    size_t columns = ((state->input->width + 7U) / 8U) * 2U;
+    int forced;
+    int axis;
+    if (row >= rows || column >= columns) return;
+    forced = color_search_forced_axis(
+        rows, columns, row, column, width, height);
+    if (forced != 0) {
+        axis = forced;
+    } else if (width <= 4U && height <= 4U) {
+        size_t tx_y;
+        size_t tx_x;
+        for (tx_y = 0U; tx_y < height * 4U; tx_y += 8U) {
+            for (tx_x = 0U; tx_x < width * 4U; tx_x += 8U) {
+                search_color_transform(
+                    state, 0U, column * 4U + tx_x,
+                    row * 4U + tx_y, 8U, 8U);
+            }
+        }
+        return;
+    } else {
+        axis = height >= width ? 1 : 2;
+    }
+    if (axis == 1) {
+        search_luma_partition(
+            state, row, column, width, height / 2U);
+        search_luma_partition(
+            state, row + height / 2U, column, width, height / 2U);
+    } else {
+        search_luma_partition(
+            state, row, column, width / 2U, height);
+        search_luma_partition(
+            state, row, column + width / 2U, width / 2U, height);
+    }
+}
+
+static void search_chroma_partition(
+    EncM3ColorSearchState *state, size_t row, size_t column,
+    size_t width, size_t height) {
+    size_t rows = ((state->input->height + 7U) / 8U) * 2U;
+    size_t columns = ((state->input->width + 7U) / 8U) * 2U;
+    int forced;
+    int axis;
+    if (row >= rows || column >= columns) return;
+    forced = color_search_forced_axis(
+        rows, columns, row, column, width, height);
+    if (forced != 0) {
+        axis = forced;
+    } else if (width <= 4U && height <= 4U) {
+        size_t subsampling =
+            state->input->format == ENC_M3_PIXEL_I420 ? 1U : 0U;
+        size_t transform_width =
+            (width * 4U) >> subsampling;
+        size_t transform_height =
+            (height * 4U) >> subsampling;
+        size_t block_x = column * 4U >> subsampling;
+        size_t block_y = row * 4U >> subsampling;
+        search_color_transform(
+            state, 1U, block_x, block_y,
+            transform_width, transform_height);
+        search_color_transform(
+            state, 2U, block_x, block_y,
+            transform_width, transform_height);
+        return;
+    } else {
+        axis = height >= width ? 1 : 2;
+    }
+    if (axis == 1) {
+        search_chroma_partition(
+            state, row, column, width, height / 2U);
+        search_chroma_partition(
+            state, row + height / 2U, column, width, height / 2U);
+    } else {
+        search_chroma_partition(
+            state, row, column, width / 2U, height);
+        search_chroma_partition(
+            state, row, column + width / 2U, width / 2U, height);
+    }
+}
+
+static EncStatus encode_even_chroma_multileaf(
+        const EncM3Image8 *input, unsigned int qindex,
+        void *workspace, size_t workspace_capacity,
+        void *stream, size_t stream_capacity,
+        EncM3MutableImage8 *reconstruction,
+        EncM3ChromaResult *result) {
+        EncM3ChromaWorkspaceLayout layout;
+        EncM3ChromaResult candidate;
+        uint8_t sequence[16U];
+        uint8_t frame_header[8U];
+        uint8_t *workspace_bytes = (uint8_t *)workspace;
+        uint8_t *padded[3U];
+        uint8_t *staged[3U];
+        int16_t *levels;
+        int16_t *plane_levels[3U];
+        uint8_t *tile;
+        uint8_t *frame_payload;
+        uint8_t *staged_stream;
+        size_t input_span[3U];
+        size_t output_span[3U];
+        size_t coded_total = 0U;
+        size_t active_total = 0U;
+        size_t level_offset;
+        size_t buffer_offset;
+        size_t sequence_size;
+        size_t frame_header_size;
+        size_t tile_size;
+        size_t plane;
+        size_t transform_index[3U] = {0U, 0U, 0U};
+        uint32_t q;
+        EncByteWriter payload_writer;
+        EncByteWriter writer;
+        EncStatus status;
+        clear_chroma_result(&candidate);
+        status = enc_m3_query_chroma_workspace(
+            input->format, input->width, input->height, &layout);
+        if (status != ENC_OK) return status;
+        if ((uintptr_t)workspace % layout.alignment != 0U) {
+            return ENC_INVALID_ARGUMENT;
+        }
+        if (workspace_capacity < layout.size) return ENC_OUT_OF_SPACE;
+        for (plane = 0U; plane < 3U; ++plane) {
+            if (input->planes[plane].data == 0 ||
+                reconstruction->planes[plane].data == 0 ||
+                !plane_span_size(
+                    layout.plane_width[plane], layout.plane_height[plane],
+                    input->planes[plane].stride, &input_span[plane]) ||
+                !plane_span_size(
+                    layout.plane_width[plane], layout.plane_height[plane],
+                    reconstruction->planes[plane].stride,
+                    &output_span[plane])) {
+                return ENC_INVALID_ARGUMENT;
+            }
+            if (input->planes[plane].capacity < input_span[plane] ||
+                reconstruction->planes[plane].capacity < output_span[plane]) {
+                return ENC_OUT_OF_SPACE;
+            }
+            if (ranges_overlap(
+                    workspace, layout.size,
+                    input->planes[plane].data, input_span[plane]) ||
+                ranges_overlap(
+                    workspace, layout.size,
+                    reconstruction->planes[plane].data, output_span[plane]) ||
+                ranges_overlap(
+                    stream, stream_capacity,
+                    input->planes[plane].data, input_span[plane]) ||
+                ranges_overlap(
+                    stream, stream_capacity,
+                    reconstruction->planes[plane].data, output_span[plane])) {
+                return ENC_INVALID_ARGUMENT;
+            }
+            padded[plane] = workspace_bytes + coded_total;
+            coded_total += layout.coded_plane_size[plane];
+        }
+        for (plane = 0U; plane < 3U; ++plane) {
+            size_t other;
+            staged[plane] = workspace_bytes + coded_total + active_total;
+            active_total += layout.plane_size[plane];
+            for (other = 0U; other < 3U; ++other) {
+                if (ranges_overlap(
+                        reconstruction->planes[plane].data,
+                        output_span[plane],
+                        input->planes[other].data, input_span[other])) {
+                    return ENC_INVALID_ARGUMENT;
+                }
+                if (other > plane && ranges_overlap(
+                        reconstruction->planes[plane].data,
+                        output_span[plane],
+                        reconstruction->planes[other].data,
+                        output_span[other])) {
+                    return ENC_INVALID_ARGUMENT;
+                }
+            }
+        }
+        if (ranges_overlap(
+                workspace, layout.size, stream, stream_capacity)) {
+            return ENC_INVALID_ARGUMENT;
+        }
+        if (!align_size(
+                coded_total + active_total, layout.alignment, &level_offset)) {
+            return ENC_OVERFLOW;
+        }
+        levels = (int16_t *)(void *)(workspace_bytes + level_offset);
+        plane_levels[0U] = levels;
+        plane_levels[1U] =
+            plane_levels[0U] + layout.transform_count[0U];
+        plane_levels[2U] =
+            plane_levels[1U] + layout.transform_count[1U];
+        if (!enc_size_add(
+                layout.transform_count[0U], layout.transform_count[1U],
+                &buffer_offset) ||
+            !enc_size_add(
+                buffer_offset, layout.transform_count[2U],
+                &buffer_offset) ||
+            !enc_size_multiply(
+                buffer_offset, sizeof(int16_t), &buffer_offset) ||
+            !enc_size_add(level_offset, buffer_offset, &buffer_offset)) {
+            return ENC_OVERFLOW;
+        }
+        tile = workspace_bytes + buffer_offset;
+        frame_payload = tile + layout.stream_capacity;
+        staged_stream = frame_payload + layout.stream_capacity;
+        q = qlookup(qindex);
+        {
+            EncM3ColorSearchState search;
+            size_t sb_y;
+            size_t sb_x;
+            search.input = input;
+            search.layout = &layout;
+            search.q = q;
+            search.result = &candidate;
+            for (plane = 0U; plane < 3U; ++plane) {
+                search.padded[plane] = padded[plane];
+                search.levels[plane] = plane_levels[plane];
+                search.transform_index[plane] = 0U;
+            }
+            for (sb_y = 0U; sb_y < input->height; sb_y += 64U) {
+                for (sb_x = 0U; sb_x < input->width; sb_x += 64U) {
+                    size_t row = sb_y / 4U;
+                    size_t column = sb_x / 4U;
+                    size_t chroma_rows =
+                        ((input->height + 15U) / 16U) * 4U;
+                    size_t chroma_columns =
+                        ((input->width + 15U) / 16U) * 4U;
+                    search_luma_partition(
+                        &search, row, column, 16U, 16U);
+                    if (chroma_columns - column > 8U &&
+                        chroma_rows - row > 8U) {
+                        search_chroma_partition(
+                            &search, row, column, 16U, 8U);
+                        search_chroma_partition(
+                            &search, row + 8U, column, 16U, 8U);
+                    } else {
+                        search_chroma_partition(
+                            &search, row, column, 16U, 16U);
+                    }
+                }
+            }
+            for (plane = 0U; plane < 3U; ++plane) {
+                transform_index[plane] = search.transform_index[plane];
+            }
+        }
+        for (plane = 0U; plane < 3U; ++plane) {
+            if (transform_index[plane] != layout.transform_count[plane]) {
+                return ENC_INVALID_ARGUMENT;
+            }
+        }
+        for (plane = 0U; plane < 3U; ++plane) {
+            size_t y;
+            candidate.plane_size[plane] = layout.plane_size[plane];
+            candidate.transform_count[plane] = layout.transform_count[plane];
+            for (y = 0U; y < layout.plane_height[plane]; ++y) {
+                size_t x;
+                for (x = 0U; x < layout.plane_width[plane]; ++x) {
+                    staged[plane][y * layout.plane_width[plane] + x] =
+                        padded[plane][
+                            y * layout.coded_plane_width[plane] + x];
+                }
+            }
+        }
+        status = enc_m3_sequence_header_for_format(
+            sequence, sizeof(sequence), &sequence_size,
+            input->width, input->height, (unsigned int)input->format);
+        if (status != ENC_OK) return status;
+        status = enc_m3_frame_header_q_for_size(
+            frame_header, sizeof(frame_header), &frame_header_size,
+            input->width, input->height, qindex);
+        if (status != ENC_OK) return status;
+        status = enc_m3_dc_yuv_grid_tile_q(
+            tile, layout.stream_capacity, &tile_size,
+            input->width, input->height,
+            plane_levels[0U], plane_levels[1U], plane_levels[2U],
+            layout.transform_count[0U],
+            (unsigned int)input->format, qindex);
+        if (status != ENC_OK) return status;
+        enc_byte_writer_init(
+            &payload_writer, frame_payload, layout.stream_capacity);
+        if (enc_byte_writer_write(
+                &payload_writer, frame_header, frame_header_size) != ENC_OK ||
+            enc_byte_writer_write(
+                &payload_writer, tile, tile_size) != ENC_OK) {
+            return payload_writer.status;
+        }
+        enc_byte_writer_init(
+            &writer, staged_stream, layout.stream_capacity);
+        if (enc_obu_write(&writer, 2U, 0, 0U) != ENC_OK ||
+            enc_obu_write(&writer, 1U, sequence, sequence_size) != ENC_OK ||
+            enc_obu_write(
+                &writer, 4U, frame_payload, payload_writer.position) != ENC_OK) {
+            return writer.status;
+        }
+        if (writer.position > stream_capacity) return ENC_OUT_OF_SPACE;
+        for (plane = 0U; plane < 3U; ++plane) {
+            size_t y;
+            for (y = 0U; y < layout.plane_height[plane]; ++y) {
+                status = enc_memory_copy(
+                    reconstruction->planes[plane].data +
+                        y * reconstruction->planes[plane].stride,
+                    reconstruction->planes[plane].capacity -
+                        y * reconstruction->planes[plane].stride,
+                    staged[plane] + y * layout.plane_width[plane],
+                    layout.plane_width[plane]);
+                if (status != ENC_OK) return status;
+            }
+        }
+        status = enc_memory_copy(
+            stream, stream_capacity, staged_stream, writer.position);
+        if (status != ENC_OK) return status;
+        candidate.stream_size = writer.position;
+        candidate.workspace_size = layout.size;
+        candidate.qindex = qindex;
+        candidate.format = input->format;
+        *result = candidate;
+        return ENC_OK;
+    }
+
 EncStatus enc_m3_dc_yuv8_q_workspace(
         const EncM3Image8 *input, unsigned int qindex,
         void *workspace, size_t workspace_capacity,
@@ -306,6 +1243,20 @@ EncStatus enc_m3_dc_yuv8_q_workspace(
             input->width != reconstruction->width ||
             input->height != reconstruction->height) {
             return ENC_INVALID_ARGUMENT;
+        }
+        if (input->format == ENC_M3_PIXEL_I420 &&
+            (input->width != 8U || input->height != 8U) &&
+            input->width < 16U && input->height < 16U &&
+            ((input->width + 7U) & ~(size_t)7U) ==
+                ((input->height + 7U) & ~(size_t)7U)) {
+            return encode_i420_single_leaf(
+                input, qindex, workspace, workspace_capacity,
+                stream, stream_capacity, reconstruction, result);
+        }
+        if (input->width != 8U || input->height != 8U) {
+            return encode_even_chroma_multileaf(
+                input, qindex, workspace, workspace_capacity,
+                stream, stream_capacity, reconstruction, result);
         }
         status = enc_m3_query_chroma_workspace(
             input->format, input->width, input->height, &layout);
@@ -390,6 +1341,7 @@ EncStatus enc_m3_dc_yuv8_q_workspace(
             candidate.reconstructed_sample[plane] = value;
             candidate.squared_error[plane] = error;
             candidate.plane_size[plane] = layout.plane_size[plane];
+            candidate.transform_count[plane] = 1U;
             for (y = 0U; y < layout.plane_height[plane]; ++y) {
                 for (x = 0U; x < layout.plane_width[plane]; ++x) {
                     staged_reconstruction[offsets[plane] +

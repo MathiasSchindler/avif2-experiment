@@ -99,6 +99,16 @@ def bmp8() -> bytes:
     return header + dib + palette + pixels
 
 
+def solid_bmp24() -> bytes:
+    width, height = 3, 5
+    row = bytes((0, 0, 255)) * width + b"\0" * 3
+    pixels = row * height
+    header = struct.pack("<2sIHHI", b"BM", 54 + len(pixels), 0, 0, 54)
+    dib = struct.pack("<IiiHHIIiiII", 40, width, height, 1, 24, 0,
+                      len(pixels), 0, 0, 0, 0)
+    return header + dib + pixels
+
+
 def files() -> dict[str, bytes]:
     rgb_rows = [
         bytes((255, 0, 0, 0, 255, 0, 0, 0, 255)),
@@ -109,6 +119,12 @@ def files() -> dict[str, bytes]:
     ]
     gray_rows = [bytes((10, 20, 30)), bytes((40, 50, 60))]
     rgba_rows = [bytes((255, 0, 0, 0, 0, 255, 0, 255))]
+    solid_rgba_rows = [
+        b"".join(bytes((255, 0, 0, (y * 53 + x * 29) & 255))
+                 for x in range(3))
+        for y in range(5)
+    ]
+    solid_gray_rows = [bytes((128, 128, 128)) for _ in range(5)]
     palette = bytes((255, 0, 0, 0, 255, 0, 0, 0, 255))
     result = {
         "rgb-filters-dynamic.png": png(3, 5, 2, rgb_rows, "dynamic"),
@@ -116,11 +132,16 @@ def files() -> dict[str, bytes]:
         "rgb-stored.png": png(3, 5, 2, rgb_rows, "stored"),
         "gray.png": png(3, 2, 0, gray_rows, "dynamic"),
         "rgba.png": png(2, 1, 6, rgba_rows, "dynamic"),
+        "solid-rgba.png": png(
+            3, 5, 6, solid_rgba_rows, "dynamic"),
+        "solid-gray.png": png(
+            3, 5, 0, solid_gray_rows, "dynamic"),
         "palette.png": png(3, 1, 3, [bytes((0, 1, 2))], "dynamic",
                            palette),
         "rgb-bottom-up.bmp": bmp24(False),
         "rgb-top-down.bmp": bmp24(True),
         "gray.bmp": bmp8(),
+        "solid-color.bmp": solid_bmp24(),
     }
     raw = bytes((5, 7))
     compressed = zlib.compress(raw, level=0)

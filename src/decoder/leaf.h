@@ -327,6 +327,7 @@ typedef struct {
     uint8_t use_dpcm_uv;
     uint8_t dpcm_mode_uv;
     uint8_t uses_cfl;
+    uint8_t ibp_configured;
     uint8_t edge_ibp;
     uint8_t above_smooth;
     uint8_t left_smooth;

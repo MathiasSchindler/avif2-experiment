@@ -40,6 +40,15 @@ static void test_chroma_geometry_through_64(void) {
     references.above_count = sizeof(above);
     references.left = left;
     references.left_count = sizeof(left);
+    mode.mode = AV2H_INTRA_DC;
+    mode.ibp_configured = 1U;
+    mode.edge_ibp = 0U;
+    CHECK(av2h_chroma_predict(
+              &mode, 8U, 8U, &references, predictor, 8U) == AV2H_OK);
+    for (index = 0U; index < 64U; ++index) {
+        CHECK(predictor[index] == 128U);
+    }
+    mode.edge_ibp = 0U;
     mode.mode = AV2H_INTRA_D67;
     mode.angle_delta = -2;
     CHECK(av2h_chroma_predict(
