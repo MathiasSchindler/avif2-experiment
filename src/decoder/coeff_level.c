@@ -2,17 +2,17 @@
 
 #include "internal/coeff_common.h"
 #include "internal/coeff_modules.h"
+#include "internal/decode_diagnostics.h"
 
 #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
-static uint16_t diagnostic_cdf[4U];
-static uint64_t diagnostic_range[4U];
-
-const uint16_t *av2h_coeff_level_diagnostic_cdf(void) {
-    return diagnostic_cdf;
+const uint16_t *av2h_coeff_level_diagnostic_cdf(
+    const Av2hDecodeDiagnostics *diagnostics) {
+    return diagnostics != 0 ? diagnostics->coefficient_level_cdf : 0;
 }
 
-const uint64_t *av2h_coeff_level_diagnostic_range(void) {
-    return diagnostic_range;
+const uint64_t *av2h_coeff_level_diagnostic_range(
+    const Av2hDecodeDiagnostics *diagnostics) {
+    return diagnostics != 0 ? diagnostics->coefficient_level_range : 0;
 }
 
 #endif
@@ -821,17 +821,23 @@ Av2hStatus av2h_coeff_block_read(
             }
             if (cdf == 0) return AV2H_UNSUPPORTED;
 #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
-            if (av2h_range_tell(decoder) == 745163U &&
+            if (decoder->diagnostics != 0 &&
+                av2h_range_tell(decoder) == 745163U &&
                 scan_index == 335U) {
                 size_t diagnostic_index;
                 for (diagnostic_index = 0U; diagnostic_index < 4U;
                      ++diagnostic_index) {
-                    diagnostic_cdf[diagnostic_index] = cdf[diagnostic_index];
+                    decoder->diagnostics->coefficient_level_cdf[
+                        diagnostic_index] = cdf[diagnostic_index];
                 }
-                diagnostic_range[0] = decoder->range;
-                diagnostic_range[1] = decoder->value;
-                diagnostic_range[2] = decoder->bit_position;
-                diagnostic_range[3] = (uint64_t)decoder->available_bits;
+                decoder->diagnostics->coefficient_level_range[0] =
+                    decoder->range;
+                decoder->diagnostics->coefficient_level_range[1] =
+                    decoder->value;
+                decoder->diagnostics->coefficient_level_range[2] =
+                    decoder->bit_position;
+                decoder->diagnostics->coefficient_level_range[3] =
+                    (uint64_t)decoder->available_bits;
             }
 #endif
             symbol = av2h_range_read_adaptive(decoder, cdf, 3U);

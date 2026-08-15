@@ -39,6 +39,16 @@ Av2hStatus av2h_reconstruct_transform_generic(
     size_t predictor_stride_samples,
     Av2hReconstructionScratch *scratch,
     Av2hFirstReconstruction *reconstruction);
+Av2hStatus av2h_reconstruct_transform_generic_with_diagnostics(
+    struct Av2hDecodeDiagnostics *diagnostics,
+    const Av2hFirstLeafMode *mode,
+    const Av2hFirstCoeffPrefix *prefix,
+    const Av2hFirstTransformType *transform,
+    const Av2hFirstCoeffBlock *coefficients,
+    const uint8_t *predictor,
+    size_t predictor_stride_samples,
+    Av2hReconstructionScratch *scratch,
+    Av2hFirstReconstruction *reconstruction);
 
 Av2hStatus av2h_reconstruct_lossless_4x4(
     const Av2hFirstLeafMode *mode,
@@ -49,6 +59,16 @@ Av2hStatus av2h_reconstruct_lossless_4x4(
     Av2hFirstReconstruction *reconstruction);
 
 Av2hStatus av2h_reconstruct_transform_generic_u16(
+    const Av2hFirstLeafMode *mode,
+    const Av2hFirstCoeffPrefix *prefix,
+    const Av2hFirstTransformType *transform,
+    const Av2hFirstCoeffBlock *coefficients,
+    const uint16_t *predictor,
+    size_t predictor_stride_samples,
+    Av2hReconstructionScratchU16 *scratch,
+    Av2hFirstReconstructionU16 *reconstruction);
+Av2hStatus av2h_reconstruct_transform_generic_u16_with_diagnostics(
+    struct Av2hDecodeDiagnostics *diagnostics,
     const Av2hFirstLeafMode *mode,
     const Av2hFirstCoeffPrefix *prefix,
     const Av2hFirstTransformType *transform,
@@ -135,6 +155,7 @@ Av2hStatus av2h_intrabc_morph_u16(
     uint16_t *predictor);
 
 Av2hStatus av2h_intrabc_predict(
+    struct Av2hDecodeDiagnostics *diagnostics,
     const Av2hFirstLeafMode *mode,
     const Av2hReconstructionPlane *plane,
     uint16_t block_x,
@@ -255,6 +276,7 @@ Av2hStatus av2h_cfl_explicit_predict_u16_444(
     size_t predictor_stride_samples);
 
 Av2hStatus av2h_mhccp_predict_observed(
+    struct Av2hDecodeDiagnostics *diagnostics,
     const Av2hFirstChromaMode *mode,
     const Av2hReconstructionPlane *luma_plane,
     const Av2hReconstructionPlane *chroma_plane,

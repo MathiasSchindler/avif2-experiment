@@ -132,6 +132,7 @@ typedef struct {
     uint8_t has_pending_leaf;
     Av2hPartitionNode diagnostic_node;
     size_t diagnostic_before_bits;
+    struct Av2hDecodeDiagnostics *diagnostics;
 } Av2hPartitionTraversal;
 
 Av2hStatus av2h_block_dimensions_mi(Av2hBlockSize block_size,
@@ -202,23 +203,22 @@ Av2hStatus av2h_partition_traversal_commit_leaf(
     Av2hPartitionContextState *state,
     Av2hPartitionNode leaf);
 #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
-typedef struct {
-    uint8_t stage;
-    uint8_t mode;
-    uint16_t eob;
-    size_t tell;
-} Av2hPartitionLeafDiagnostic;
-const Av2hPartitionDecision *av2h_partition_diagnostic_trace(size_t *count);
-const uint8_t *av2h_partition_diagnostic_trace_structure(void);
+struct Av2hDecodeDiagnostics;
+typedef struct Av2hPartitionLeafDiagnostic Av2hPartitionLeafDiagnostic;
+const Av2hPartitionDecision *av2h_partition_diagnostic_trace(
+    const struct Av2hDecodeDiagnostics *diagnostics, size_t *count);
+const uint8_t *av2h_partition_diagnostic_trace_structure(
+    const struct Av2hDecodeDiagnostics *diagnostics);
 void av2h_partition_diagnostic_forced_decision(
+    struct Av2hDecodeDiagnostics *diagnostics,
     Av2hPartitionNode node,
     Av2hPartitionType partition,
     uint8_t structure);
 void av2h_partition_diagnostic_leaf_stage(
-    Av2hPartitionNode node, uint8_t stage, uint8_t mode, uint16_t eob,
-    size_t tell);
+    struct Av2hDecodeDiagnostics *diagnostics, Av2hPartitionNode node,
+    uint8_t stage, uint8_t mode, uint16_t eob, size_t tell);
 const Av2hPartitionLeafDiagnostic *av2h_partition_diagnostic_leaf_trace(
-    size_t *count);
+    const struct Av2hDecodeDiagnostics *diagnostics, size_t *count);
 #endif
 Av2hStatus av2h_partition_first_prefix_read(
     Av2hRangeDecoder *decoder,

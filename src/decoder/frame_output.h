@@ -3,6 +3,8 @@
 
 #include "filter.h"
 #include "tile.h"
+#include "internal/decode_diagnostics.h"
+#include "runtime/execution.h"
 
 typedef struct {
     Av2hFilterPlaneU16 plane[AV2H_FRAME_PLANE_COUNT];
@@ -17,6 +19,8 @@ typedef struct {
     Av2hReconstructionScratchU16 *reconstruction_scratch_u16;
     Av2hFilterWorkspace *filter_workspace;
     Av2hPlanarOutputU16 output_u16;
+    Av2hDecodeDiagnostics diagnostics_storage;
+    Av2hDecodeDiagnostics *diagnostics;
     uint8_t bytes_per_sample;
 } Av2hFrameDecodeWorkspace;
 
@@ -96,6 +100,7 @@ typedef struct {
     uint16_t coefficient_position;
     uint8_t coefficient_context;
     uint8_t coefficient_kind;
+    const Av2hDecodeDiagnostics *diagnostics;
 } Av2hFrameDecodeResult;
 
 Av2hStatus av2h_planar_output_size(
@@ -122,6 +127,13 @@ Av2hStatus av2h_copy_visible_planar_private(
     const size_t coded_data_size_bytes[AV2H_FRAME_PLANE_COUNT],
     uint8_t *output,
     size_t output_size_bytes);
+Av2hStatus av2h_copy_visible_planar_with_execution_private(
+    const Av2hFrameState *frame,
+    const Av2hFilterPlanes *coded,
+    const size_t coded_data_size_bytes[AV2H_FRAME_PLANE_COUNT],
+    uint8_t *output,
+    size_t output_size_bytes,
+    const Av2hExecution *execution);
 
 Av2hStatus av2h_decode_frame_planar_private(
     Av2hSpan entropy,
@@ -131,5 +143,14 @@ Av2hStatus av2h_decode_frame_planar_private(
     uint8_t *output,
     size_t output_size_bytes,
     Av2hFrameDecodeResult *result);
+Av2hStatus av2h_decode_frame_planar_with_execution_private(
+    Av2hSpan entropy,
+    const Av2hSequenceState *sequence,
+    const Av2hFrameState *frame,
+    Av2hFrameDecodeWorkspace *workspace,
+    uint8_t *output,
+    size_t output_size_bytes,
+    Av2hFrameDecodeResult *result,
+    const Av2hExecution *execution);
 
 #endif

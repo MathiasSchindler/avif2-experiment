@@ -365,6 +365,8 @@ Av2hStatus av2h_frame_decode_workspace_init_bytes(
     local_workspace.filter_workspace = filter_workspace;
     local_workspace.bytes_per_sample = (uint8_t)bytes_per_sample;
     av2h_memory_copy(workspace, &local_workspace, sizeof(local_workspace));
+    workspace->diagnostics = &workspace->diagnostics_storage;
+    workspace->filter_workspace->diagnostics = workspace->diagnostics;
     return AV2H_OK;
 }
 
@@ -1019,12 +1021,55 @@ static int maps_and_readiness_complete(
     return 1;
 }
 
-Av2hStatus av2h_copy_visible_planar_private(
+#define AV2H_PARALLEL_COPY_MIN_BYTES (64U * 1024U)
+#define AV2H_PARALLEL_COPY_TARGET_CHUNK_BYTES (16U * 1024U)
+
+typedef struct {
+    const uint8_t *source;
+    uint8_t *destination;
+    size_t source_stride;
+    size_t row_bytes;
+} Av2hCopyRowsU8;
+
+static int copy_rows_u8(size_t begin, size_t end,
+                        unsigned int worker_index, void *argument) {
+    Av2hCopyRowsU8 *copy = (Av2hCopyRowsU8 *)argument;
+    size_t row;
+    (void)worker_index;
+    for (row = begin; row < end; ++row) {
+        av2h_memory_copy(
+            copy->destination + row * copy->row_bytes,
+            copy->source + row * copy->source_stride,
+            copy->row_bytes);
+    }
+    return 0;
+}
+
+static int copy_rows_dispatch(const Av2hExecution *execution,
+                              size_t height,
+                              size_t row_bytes,
+                              Av2hParallelBody body,
+                              void *argument) {
+    size_t total_bytes = height * row_bytes;
+    size_t min_chunk;
+    if (execution == 0 || execution->parallel_for == 0 ||
+        execution->width <= 1U || height <= 1U ||
+        total_bytes < AV2H_PARALLEL_COPY_MIN_BYTES) {
+        return body(0U, height, 0U, argument);
+    }
+    min_chunk = AV2H_PARALLEL_COPY_TARGET_CHUNK_BYTES / row_bytes;
+    if (min_chunk == 0U) min_chunk = 1U;
+    return execution->parallel_for(
+        execution->context, height, min_chunk, body, argument);
+}
+
+Av2hStatus av2h_copy_visible_planar_with_execution_private(
     const Av2hFrameState *frame,
     const Av2hFilterPlanes *coded,
     const size_t coded_data_size_bytes[AV2H_FRAME_PLANE_COUNT],
     uint8_t *output,
-    size_t output_size_bytes) {
+    size_t output_size_bytes,
+    const Av2hExecution *execution) {
     Av2hFilterWorkspaceLayout layout;
     size_t required_output_bytes;
     size_t offset = 0U;
@@ -1059,20 +1104,62 @@ Av2hStatus av2h_copy_visible_planar_private(
             frame, plane, frame->width);
         size_t height = av2h_frame_plane_dimension(
             frame, plane, frame->height);
-        av2h_visible_crop_u8(
-            output + offset, source->data,
-            source->stride_samples, width, height);
+        Av2hCopyRowsU8 copy = {
+            source->data, output + offset, source->stride_samples, width
+        };
+        if (copy_rows_dispatch(
+                execution, height, width, copy_rows_u8, &copy) != 0) {
+            return AV2H_INVALID_DATA;
+        }
         offset += width * height;
     }
     return AV2H_OK;
 }
 
-Av2hStatus av2h_copy_visible_planar_u16_private(
+Av2hStatus av2h_copy_visible_planar_private(
+    const Av2hFrameState *frame,
+    const Av2hFilterPlanes *coded,
+    const size_t coded_data_size_bytes[AV2H_FRAME_PLANE_COUNT],
+    uint8_t *output,
+    size_t output_size_bytes) {
+    return av2h_copy_visible_planar_with_execution_private(
+        frame, coded, coded_data_size_bytes, output, output_size_bytes, 0);
+}
+
+typedef struct {
+    const uint16_t *source;
+    uint8_t *destination;
+    size_t source_stride;
+    size_t width;
+} Av2hCopyRowsU16;
+
+static int copy_rows_u16(size_t begin, size_t end,
+                         unsigned int worker_index, void *argument) {
+    Av2hCopyRowsU16 *copy = (Av2hCopyRowsU16 *)argument;
+    size_t row;
+    (void)worker_index;
+    for (row = begin; row < end; ++row) {
+        size_t column;
+        uint8_t *destination =
+            copy->destination + row * copy->width * sizeof(uint16_t);
+        const uint16_t *source =
+            copy->source + row * copy->source_stride;
+        for (column = 0U; column < copy->width; ++column) {
+            uint16_t sample = source[column];
+            destination[column * 2U] = (uint8_t)sample;
+            destination[column * 2U + 1U] = (uint8_t)(sample >> 8U);
+        }
+    }
+    return 0;
+}
+
+Av2hStatus av2h_copy_visible_planar_u16_with_execution_private(
     const Av2hFrameState *frame,
     const Av2hReconstructionPlaneU16 coded[AV2H_FRAME_PLANE_COUNT],
     const size_t coded_data_size_bytes[AV2H_FRAME_PLANE_COUNT],
     uint8_t *output,
-    size_t output_size_bytes) {
+    size_t output_size_bytes,
+    const Av2hExecution *execution) {
     Av2hFilterWorkspaceLayout layout;
     size_t required_output_bytes;
     size_t offset = 0U;
@@ -1110,18 +1197,27 @@ Av2hStatus av2h_copy_visible_planar_u16_private(
             frame, plane, frame->width);
         size_t height = av2h_frame_plane_dimension(
             frame, plane, frame->height);
-        size_t row;
-        size_t column;
-        for (row = 0U; row < height; ++row) {
-            for (column = 0U; column < width; ++column) {
-                uint16_t sample = source->data[
-                    row * source->stride_samples + column];
-                output[offset++] = (uint8_t)sample;
-                output[offset++] = (uint8_t)(sample >> 8U);
-            }
+        size_t row_bytes = width * sizeof(uint16_t);
+        Av2hCopyRowsU16 copy = {
+            source->data, output + offset, source->stride_samples, width
+        };
+        if (copy_rows_dispatch(
+                execution, height, row_bytes, copy_rows_u16, &copy) != 0) {
+            return AV2H_INVALID_DATA;
         }
+        offset += row_bytes * height;
     }
     return AV2H_OK;
+}
+
+Av2hStatus av2h_copy_visible_planar_u16_private(
+    const Av2hFrameState *frame,
+    const Av2hReconstructionPlaneU16 coded[AV2H_FRAME_PLANE_COUNT],
+    const size_t coded_data_size_bytes[AV2H_FRAME_PLANE_COUNT],
+    uint8_t *output,
+    size_t output_size_bytes) {
+    return av2h_copy_visible_planar_u16_with_execution_private(
+        frame, coded, coded_data_size_bytes, output, output_size_bytes, 0);
 }
 
 Av2hStatus av2h_frame_workspace_prepare(

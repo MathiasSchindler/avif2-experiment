@@ -8,6 +8,13 @@ The decoder core is CC0, freestanding C11, allocation-free, and libc-free. It
 uses caller-provided workspace and output buffers. Pinned AVM tools generate
 reference files and verify decoded pixels, but are not production dependencies.
 
+The project uses the CC0-licensed
+[newos](https://github.com/MathiasSchindler/newos) project as a source
+substrate for suitable freestanding support code. Needed code is copied and
+adapted into this repository rather than adding newos as a build or runtime
+dependency. Imported source revisions, paths, and adaptations are recorded in
+[provenance/cc0-sources.md](provenance/cc0-sources.md).
+
 > [!WARNING]
 > This is research software and has not received a production security review.
 > Do not use it in production to process untrusted files. See

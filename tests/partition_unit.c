@@ -1,4 +1,7 @@
 #include "decoder/partition.h"
+#if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
+#include "decoder/internal/decode_diagnostics.h"
+#endif
 
 #include <stdio.h>
 
@@ -750,6 +753,39 @@ static void test_partial_boundary_honors_implied_rect_axis(void) {
     CHECK(av2h_range_tell(&decoder) == before_bits);
 }
 
+#if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
+static void test_diagnostic_context_isolation(void) {
+    static Av2hDecodeDiagnostics first;
+    static Av2hDecodeDiagnostics second;
+    static Av2hPartitionDecision first_trace[1U];
+    static Av2hPartitionDecision second_trace[1U];
+    static uint8_t first_structure[1U];
+    static uint8_t second_structure[1U];
+    const Av2hPartitionDecision *trace;
+    size_t count;
+    first.partition_trace = first_trace;
+    first.partition_trace_structure = first_structure;
+    first.partition_trace_capacity = 1U;
+    second.partition_trace = second_trace;
+    second.partition_trace_structure = second_structure;
+    second.partition_trace_capacity = 1U;
+    av2h_partition_diagnostic_forced_decision(
+        &first, (Av2hPartitionNode){ 1U, 2U, AV2H_BLOCK_8X8 },
+        AV2H_PARTITION_NONE, 0U);
+    av2h_partition_diagnostic_forced_decision(
+        &second, (Av2hPartitionNode){ 3U, 4U, AV2H_BLOCK_16X16 },
+        AV2H_PARTITION_SPLIT, 1U);
+    trace = av2h_partition_diagnostic_trace(&first, &count);
+    CHECK(count == 1U);
+    CHECK(trace[0].node.row == 1U);
+    CHECK(trace[0].partition == AV2H_PARTITION_NONE);
+    trace = av2h_partition_diagnostic_trace(&second, &count);
+    CHECK(count == 1U);
+    CHECK(trace[0].node.row == 3U);
+    CHECK(trace[0].partition == AV2H_PARTITION_SPLIT);
+}
+#endif
+
     static void test_forced_horz_3_traversal(void) {
         Av2hPartitionNode root = { 32U, 16U, AV2H_BLOCK_64X64 };
         Av2hPartitionNode children[4U];
@@ -799,6 +835,9 @@ int main(void) {
     test_partial_boundary_implies_illegal_extension();
     test_partial_boundary_honors_implied_rect_axis();
     test_forced_horz_3_traversal();
+#if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
+    test_diagnostic_context_isolation();
+#endif
     if (failures != 0) {
         fprintf(stderr, "%d partition checks failed\n", failures);
         return 1;

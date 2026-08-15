@@ -2,22 +2,22 @@
 #include "internal/decode_diagnostics.h"
 #include "internal/transform_modules.h"
 
+const Av2hTransformDiagnostics *av2h_transform_diagnostics_get(
+    const Av2hDecodeDiagnostics *diagnostics) {
 #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
-static Av2hTransformDiagnostics transform_diagnostics;
-#endif
-
-const Av2hTransformDiagnostics *av2h_transform_diagnostics_get(void) {
-#if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
-    return &transform_diagnostics;
+    return diagnostics != 0 ? &diagnostics->transform : 0;
 #else
+    (void)diagnostics;
     return 0;
 #endif
 }
 
-void av2h_transform_diagnostics_set_stage(uint8_t value) {
+void av2h_transform_diagnostics_set_stage(
+    Av2hDecodeDiagnostics *diagnostics, uint8_t value) {
 #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
-    transform_diagnostics.transform_stage = value;
+    if (diagnostics != 0) diagnostics->transform.transform_stage = value;
 #else
+    (void)diagnostics;
     (void)value;
 #endif
 }
@@ -81,7 +81,7 @@ static Av2hStatus read_primary(Av2hRangeDecoder *decoder,
     transform->primary_symbol = 0U;
     transform->primary_long_side_symbol = 0U;
     transform->primary_type = AV2H_TX_DCT_DCT;
-    av2h_transform_diagnostics_set_stage(2U);
+    av2h_transform_diagnostics_set_stage(decoder->diagnostics, 2U);
     status = av2h_tx_descriptor_get(coeff->tx_size, &descriptor);
     if (status != AV2H_OK) return status;
     mapped_mode = *mode;
@@ -222,7 +222,7 @@ static Av2hStatus read_primary(Av2hRangeDecoder *decoder,
             (uint8_t)long_side,
             (uint8_t)symbol, &transform->primary_type);
     }
-            av2h_transform_diagnostics_set_stage(3U);
+            av2h_transform_diagnostics_set_stage(decoder->diagnostics, 3U);
             if (coeff->tx_size == AV2H_TX_32X32 && mode->use_intrabc) {
         static const Av2hFirstTxType intrabc_32x32_types[] = {
             AV2H_TX_IDTX, AV2H_TX_DCT_DCT
@@ -293,7 +293,7 @@ static Av2hStatus read_primary(Av2hRangeDecoder *decoder,
             decoder, type_cdf,
             signaling_set2 && set != 0U ? 4U :
                 AV2H_INTER_TX_TYPE_INDEX_SYMBOLS);
-        av2h_transform_diagnostics_set_stage(32U);
+        av2h_transform_diagnostics_set_stage(decoder->diagnostics, 32U);
         transform->primary_long_side_symbol = (uint8_t)set;
         transform->primary_symbol = (uint8_t)symbol;
         if (signaling_set2) {
@@ -308,7 +308,7 @@ static Av2hStatus read_primary(Av2hRangeDecoder *decoder,
         } else if (symbol < AV2H_INTER_TX_TYPE_INDEX_SYMBOLS) {
             transform->primary_type = intrabc_types[set * 8U + symbol];
         } else {
-            av2h_transform_diagnostics_set_stage(33U);
+            av2h_transform_diagnostics_set_stage(decoder->diagnostics, 33U);
             return AV2H_UNSUPPORTED;
         }
          } else if ((coeff->tx_size == AV2H_TX_4X4 ||
@@ -967,7 +967,8 @@ Av2hStatus av2h_first_transform_type_read(
         mode == 0 || coeff == 0 || transform == 0) {
         return AV2H_INVALID_ARGUMENT;
     }
-    av2h_transform_diagnostics_set_stage(1U);
+    av2h_transform_diagnostics_set_stage(
+        decoder != 0 ? decoder->diagnostics : 0, 1U);
     if (frame->reduced_tx_set || coeff->all_zero || coeff->eob == 0U) {
         return AV2H_UNSUPPORTED;
     }
@@ -1007,7 +1008,7 @@ Av2hStatus av2h_first_transform_type_read(
     }
     status = read_primary(decoder, cdfs, mode, coeff, transform);
     if (status != AV2H_OK) return status;
-    av2h_transform_diagnostics_set_stage(4U);
+    av2h_transform_diagnostics_set_stage(decoder->diagnostics, 4U);
     transform->after_primary_bits = av2h_range_tell(decoder);
     status = av2h_tx_descriptor_get(coeff->tx_size, &descriptor);
     if (status != AV2H_OK) return status;
@@ -1019,7 +1020,7 @@ Av2hStatus av2h_first_transform_type_read(
     status = av2h_secondary_tx_type_signal(
         sequence, mode, coeff, transform->primary_type, &secondary_signaled);
     if (status != AV2H_OK) return status;
-    av2h_transform_diagnostics_set_stage(5U);
+    av2h_transform_diagnostics_set_stage(decoder->diagnostics, 5U);
     if (secondary_signaled) {
         uint16_t *secondary_cdf = mode->use_intrabc ?
             cdfs->intrabc_secondary[descriptor->square_class] :

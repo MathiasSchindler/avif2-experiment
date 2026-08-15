@@ -3,6 +3,8 @@
 
 #include "base.h"
 
+struct Av2hDecodeDiagnostics;
+
 typedef struct {
     const Av2hSpan *spans;
     size_t span_count;
@@ -13,6 +15,7 @@ typedef struct {
     int64_t available_bits;
     size_t tell;
     Av2hStatus status;
+    struct Av2hDecodeDiagnostics *diagnostics;
 } Av2hRangeDecoder;
 
 Av2hStatus av2h_range_init(Av2hRangeDecoder *decoder,

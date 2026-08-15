@@ -5,6 +5,7 @@
 #include "decoder/tile.h"
 #include "platform/linux/linux_abi.h"
 #include "preview.h"
+#include "runtime/concurrency.h"
 #include "shared/png_writer.h"
 
 #define AV2H_CLI_MAX_INPUT (256U * 1024U * 1024U)
@@ -188,7 +189,8 @@ static Av2hStatus decode_obu(Av2hSpan input,
                             uint16_t *width,
                             uint16_t *height,
                             uint8_t *chroma_format_idc,
-                            Av2hPixelFormat *output_format) {
+                            Av2hPixelFormat *output_format,
+                            const Av2hExecution *execution) {
     Av2hObu entries[4U];
     Av2hObuLedger ledger = { entries, 4U, 0U };
     Av2hError error;
@@ -255,9 +257,9 @@ static Av2hStatus decode_obu(Av2hSpan input,
         workspace_memory.memory, workspace_memory.size,
         &workspace, &filter_workspace, &filter_storage);
     if (status == AV2H_OK) {
-        status = av2h_decode_frame_planar_private(
+        status = av2h_decode_frame_planar_with_execution_private(
             group.entropy, &sequence, &frame, &workspace,
-            output->memory, output->size, &decode_result);
+            output->memory, output->size, &decode_result, execution);
     }
     release_memory(&workspace_memory);
     if (status != AV2H_OK) {
@@ -409,6 +411,8 @@ int main(int argc, char **argv) {
     uint16_t height = 0U;
     uint8_t chroma_format_idc = 0U;
     Av2hPixelFormat output_format;
+    Av2hTaskPool task_pool;
+    Av2hExecution execution;
     const char *raw_extension;
     Av2hStatus status;
     int written;
@@ -422,9 +426,16 @@ int main(int argc, char **argv) {
         write_console("error: cannot read input OBU\n");
         return 1;
     }
+    if (av2h_task_pool_init(&task_pool, 0U) != 0) {
+        release_memory(&input);
+        write_console("error: cannot initialize decode workers\n");
+        return 1;
+    }
+    av2h_task_pool_execution(&task_pool, &execution);
     status = decode_obu(
         (Av2hSpan){ input.memory, input.size }, &output,
-        &width, &height, &chroma_format_idc, &output_format);
+        &width, &height, &chroma_format_idc, &output_format, &execution);
+    av2h_task_pool_destroy(&task_pool);
     if (status != AV2H_OK) {
         write_console("error: decode failed: ");
         write_console(av2h_status_string(status));

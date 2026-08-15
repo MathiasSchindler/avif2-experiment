@@ -3,10 +3,6 @@
 #include "internal/tile_modules.h"
 #include "tx_geometry.h"
 
-#if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
-static Av2hTileDiagnostics tile_diagnostics;
-#endif
-
 Av2hStatus av2h_tile_luma_tx_node_get(
     const Av2hTileDecoder *decoder, uint16_t index,
     Av2hPartitionNode *node) {
@@ -33,43 +29,55 @@ static void tile_reset_left_partition_contexts(Av2hTileDecoder *decoder) {
     }
 }
 
-const Av2hTileDiagnostics *av2h_tile_diagnostics_get(void) {
+const Av2hTileDiagnostics *av2h_tile_diagnostics_get(
+    const Av2hDecodeDiagnostics *diagnostics) {
 #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
-    return &tile_diagnostics;
+    return diagnostics != 0 ? &diagnostics->tile : 0;
 #else
+    (void)diagnostics;
     return 0;
 #endif
 }
 
-void av2h_tile_diagnostics_set_luma_range(size_t index, uint32_t value) {
+void av2h_tile_diagnostics_set_luma_range(
+    Av2hDecodeDiagnostics *diagnostics, size_t index, uint32_t value) {
 #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
-    if (index < 5U) tile_diagnostics.luma_stage_ranges[index] = value;
+    if (diagnostics != 0 && index < 5U) {
+        diagnostics->tile.luma_stage_ranges[index] = value;
+    }
 #else
+    (void)diagnostics;
     (void)index;
     (void)value;
 #endif
 }
 
-void av2h_tile_diagnostics_set_luma_stage(uint8_t value) {
+void av2h_tile_diagnostics_set_luma_stage(
+    Av2hDecodeDiagnostics *diagnostics, uint8_t value) {
 #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
-    tile_diagnostics.luma_tile_stage = value;
+    if (diagnostics != 0) diagnostics->tile.luma_tile_stage = value;
 #else
+    (void)diagnostics;
     (void)value;
 #endif
 }
 
-void av2h_tile_diagnostics_set_chroma_stage(uint8_t value) {
+void av2h_tile_diagnostics_set_chroma_stage(
+    Av2hDecodeDiagnostics *diagnostics, uint8_t value) {
 #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
-    tile_diagnostics.chroma_tile_stage = value;
+    if (diagnostics != 0) diagnostics->tile.chroma_tile_stage = value;
 #else
+    (void)diagnostics;
     (void)value;
 #endif
 }
 
-void av2h_tile_diagnostics_set_chroma_reason(uint8_t value) {
+void av2h_tile_diagnostics_set_chroma_reason(
+    Av2hDecodeDiagnostics *diagnostics, uint8_t value) {
 #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
-    tile_diagnostics.chroma_parse_reason = value;
+    if (diagnostics != 0) diagnostics->tile.chroma_parse_reason = value;
 #else
+    (void)diagnostics;
     (void)value;
 #endif
 }

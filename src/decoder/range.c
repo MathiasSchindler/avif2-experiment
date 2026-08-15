@@ -109,6 +109,7 @@ Av2hStatus av2h_range_init(Av2hRangeDecoder *decoder,
     decoder->available_bits = (int64_t)(size * 8U) - 15;
     decoder->tell = 1U;
     decoder->status = AV2H_OK;
+    decoder->diagnostics = 0;
     initial_bits = size * 8U < 15U ? (unsigned int)(size * 8U) : 15U;
     initial_value = range_input_bits(decoder, initial_bits);
     decoder->value = (AV2H_RANGE_TOP - 1U) ^

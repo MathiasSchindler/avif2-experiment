@@ -67,6 +67,38 @@ set(AV2HEIF_CORE_SOURCES
     src/decoder/tx_geometry.c
 )
 
+set(AV2HEIF_RUNTIME_SOURCES
+    src/runtime/concurrency.c
+)
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND
+   CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|amd64|AMD64)$" AND
+   CMAKE_C_COMPILER_ID MATCHES "Clang|GNU")
+    enable_language(ASM)
+    list(APPEND AV2HEIF_RUNTIME_SOURCES
+        src/runtime/concurrency_linux_x86_64.c
+        src/arch/x86_64/linux/concurrency.S
+    )
+else()
+    list(APPEND AV2HEIF_RUNTIME_SOURCES
+        src/runtime/concurrency_serial.c
+    )
+endif()
+
+add_library(av2heif-runtime-objects OBJECT ${AV2HEIF_RUNTIME_SOURCES})
+target_compile_features(av2heif-runtime-objects PRIVATE c_std_11)
+target_include_directories(av2heif-runtime-objects PRIVATE src src/shared)
+if(CMAKE_C_COMPILER_ID MATCHES "Clang|GNU")
+    target_compile_options(av2heif-runtime-objects PRIVATE
+        -Wall -Wextra -Wpedantic -Werror -O2
+        -ffreestanding -fno-builtin -fno-stack-protector
+        -fno-unwind-tables -fno-asynchronous-unwind-tables
+        -ffunction-sections -fdata-sections -nostdinc
+    )
+endif()
+add_library(av2heif-runtime STATIC
+    $<TARGET_OBJECTS:av2heif-runtime-objects>)
+target_include_directories(av2heif-runtime PUBLIC src)
+
 add_library(av2heif-core STATIC ${AV2HEIF_CORE_SOURCES})
 target_compile_features(av2heif-core PUBLIC c_std_11)
 target_include_directories(av2heif-core
@@ -119,6 +151,25 @@ if(CMAKE_C_COMPILER_ID MATCHES "Clang|GNU")
     )
     add_custom_target(av2heif-freestanding-check ALL
         DEPENDS "${AV2HEIF_FREESTANDING_STAMP}")
+
+    set(AV2HEIF_RUNTIME_FREESTANDING_STAMP
+        "${CMAKE_CURRENT_BINARY_DIR}/freestanding/runtime-symbols-checked")
+    add_custom_command(
+        OUTPUT "${AV2HEIF_RUNTIME_FREESTANDING_STAMP}"
+        COMMAND "${CMAKE_COMMAND}" -E make_directory
+                "${CMAKE_CURRENT_BINARY_DIR}/freestanding"
+        COMMAND "${CMAKE_COMMAND}"
+                "-DNM=${CMAKE_NM}"
+            "-DOBJECTS=$<JOIN:$<TARGET_OBJECTS:av2heif-runtime-objects>,|>"
+            "-DSTAMP=${AV2HEIF_RUNTIME_FREESTANDING_STAMP}"
+                -P "${CMAKE_CURRENT_SOURCE_DIR}/scripts/check-undefined-symbols.cmake"
+        DEPENDS av2heif-runtime-objects
+                "${CMAKE_CURRENT_SOURCE_DIR}/scripts/check-undefined-symbols.cmake"
+        COMMAND_EXPAND_LISTS
+        VERBATIM
+    )
+    add_custom_target(av2heif-runtime-freestanding-check ALL
+        DEPENDS "${AV2HEIF_RUNTIME_FREESTANDING_STAMP}")
 endif()
 
 if(WIN32 AND TARGET av2heif-freestanding-objects)
@@ -129,6 +180,10 @@ endif()
 if(AV2HEIF_BUILD_HOST_TESTS)
     function(av2heif_configure_host_target target)
         target_compile_features(${target} PRIVATE c_std_11)
+        if(AV2HEIF_ENABLE_DIAGNOSTICS)
+            target_compile_definitions(${target} PRIVATE
+                AV2HEIF_ENABLE_DIAGNOSTICS=1)
+        endif()
         if(CMAKE_C_COMPILER_ID MATCHES "Clang|GNU")
             target_compile_options(${target} PRIVATE
                 -Wall -Wextra -Wpedantic -Werror -O1 -g
@@ -150,10 +205,6 @@ if(AV2HEIF_BUILD_HOST_TESTS)
         PUBLIC include
         PRIVATE src
     )
-    if(AV2HEIF_ENABLE_DIAGNOSTICS)
-        target_compile_definitions(av2heif-host-core PRIVATE
-            AV2HEIF_ENABLE_DIAGNOSTICS=1)
-    endif()
 
     set(AV2HEIF_HOST_UNIT_NAMES
         substrate
@@ -172,6 +223,7 @@ if(AV2HEIF_BUILD_HOST_TESTS)
         artifact_profile
         layout
         output_layout
+        output_parallel
         pixel_format
         png_writer
         preview
@@ -191,6 +243,16 @@ if(AV2HEIF_BUILD_HOST_TESTS)
             WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
         )
     endforeach()
+
+    add_executable(runtime-substrate-unit tests/runtime_substrate_unit.c)
+    target_compile_features(runtime-substrate-unit PRIVATE c_std_11)
+    target_include_directories(runtime-substrate-unit PRIVATE src)
+    target_link_libraries(runtime-substrate-unit PRIVATE av2heif-runtime)
+    if(CMAKE_C_COMPILER_ID MATCHES "Clang|GNU")
+        target_compile_options(runtime-substrate-unit PRIVATE
+            -Wall -Wextra -Wpedantic -Werror -O1 -g)
+    endif()
+    add_test(NAME runtime-substrate-unit COMMAND runtime-substrate-unit)
 
     add_executable(public-decode-fuzz tests/public_decode_fuzz.c)
     av2heif_configure_host_target(public-decode-fuzz)
@@ -354,7 +416,8 @@ if(AV2HEIF_BUILD_LINUX_NOLIBC)
         ${AV2HEIF_LINUX_RUNTIME}
     )
     target_include_directories(av2heif-decoder-nolibc PRIVATE src src/shared)
-    target_link_libraries(av2heif-decoder-nolibc PRIVATE av2heif-core)
+    target_link_libraries(av2heif-decoder-nolibc PRIVATE
+        av2heif-core av2heif-runtime)
     target_compile_options(av2heif-decoder-nolibc PRIVATE
         -Wall -Wextra -Wpedantic -Werror -Oz
         -ffreestanding -fno-builtin -fno-stack-protector
@@ -368,6 +431,28 @@ if(AV2HEIF_BUILD_LINUX_NOLIBC)
         -Wl,--gc-sections,--build-id=none
     )
 
+    if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|amd64|AMD64)$")
+        add_executable(runtime-substrate-freestanding
+            tests/runtime_substrate_freestanding.c
+            src/platform/linux/runtime.c
+            src/arch/x86_64/linux/runtime.S
+        )
+        target_include_directories(runtime-substrate-freestanding
+            PRIVATE src src/shared)
+        target_link_libraries(runtime-substrate-freestanding
+            PRIVATE av2heif-runtime)
+        target_compile_options(runtime-substrate-freestanding PRIVATE
+            -Wall -Wextra -Wpedantic -Werror -Oz
+            -ffreestanding -fno-builtin -fno-stack-protector
+            -fno-unwind-tables -fno-asynchronous-unwind-tables
+            -ffunction-sections -fdata-sections -fno-pic -fno-pie
+            -nostdinc)
+        target_link_options(runtime-substrate-freestanding PRIVATE
+            -nostdlib -static -fuse-ld=lld
+            -Wl,-e,_start
+            -Wl,--gc-sections,--build-id=none)
+    endif()
+
     if(BUILD_TESTING)
         add_test(NAME linux-nolibc-static-elf
             COMMAND "${CMAKE_COMMAND}"
@@ -375,6 +460,14 @@ if(AV2HEIF_BUILD_LINUX_NOLIBC)
                 "-DREADELF=${CMAKE_READELF}"
                 "-DNM=${CMAKE_NM}"
                 -P "${CMAKE_CURRENT_SOURCE_DIR}/scripts/check-static-elf.cmake")
+        if(TARGET runtime-substrate-freestanding)
+            add_test(NAME runtime-substrate-freestanding-static-elf
+                COMMAND "${CMAKE_COMMAND}"
+                    "-DINPUT=$<TARGET_FILE:runtime-substrate-freestanding>"
+                    "-DREADELF=${CMAKE_READELF}"
+                    "-DNM=${CMAKE_NM}"
+                    -P "${CMAKE_CURRENT_SOURCE_DIR}/scripts/check-static-elf.cmake")
+        endif()
     endif()
     if(BUILD_TESTING AND NOT CMAKE_CROSSCOMPILING)
         add_test(NAME linux-nolibc-i444-parity
@@ -391,6 +484,10 @@ if(AV2HEIF_BUILD_LINUX_NOLIBC)
                 "-DOUTPUT=${CMAKE_CURRENT_BINARY_DIR}/Testing/Temporary/aq-segmentation-nolibc.i420"
                 "-DEXPECTED_SHA256=230e95f06ee03d1b204bb1b913bc926238b0449e665ca1db898d05b4033d5341"
                 -P "${CMAKE_CURRENT_SOURCE_DIR}/scripts/check-decoder-parity.cmake")
+        if(TARGET runtime-substrate-freestanding)
+            add_test(NAME runtime-substrate-freestanding
+                COMMAND runtime-substrate-freestanding)
+        endif()
     endif()
 endif()
 

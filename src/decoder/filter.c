@@ -5,28 +5,34 @@
 #include "decoder/internal/filter_modules.h"
 #include "decoder/internal/sample_math.h"
 
+const Av2hFilterDiagnostics *av2h_filter_diagnostics_get(
+    const Av2hDecodeDiagnostics *diagnostics) {
 #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
-static Av2hFilterDiagnostics filter_diagnostics;
-#endif
-
-const Av2hFilterDiagnostics *av2h_filter_diagnostics_get(void) {
-#if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
-    return &filter_diagnostics;
+    return diagnostics != 0 ? &diagnostics->filter : 0;
 #else
+    (void)diagnostics;
     return 0;
 #endif
 }
 
-static void reset_filter_diagnostics(void) {
+static void reset_filter_diagnostics(Av2hFilterWorkspace *workspace) {
 #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
-    filter_diagnostics.reason = 0U;
+    if (workspace != 0 && workspace->diagnostics != 0) {
+        workspace->diagnostics->filter.reason = 0U;
+    }
+#else
+    (void)workspace;
 #endif
 }
 
-static void set_filter_reason(uint8_t reason) {
+static void set_filter_reason(
+    Av2hFilterWorkspace *workspace, uint8_t reason) {
 #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
-    filter_diagnostics.reason = reason;
+    if (workspace != 0 && workspace->diagnostics != 0) {
+        workspace->diagnostics->filter.reason = reason;
+    }
 #else
+    (void)workspace;
     (void)reason;
 #endif
 }
@@ -40,16 +46,16 @@ Av2hStatus av2h_filter_frame(
     Av2hStatus status;
     const Av2hFilterPlane *gdf_baseline;
     Av2hFilterPlanes restoration_planes;
-    reset_filter_diagnostics();
+    reset_filter_diagnostics(workspace);
     if (sequence == 0 || frame == 0 || planes == 0 || workspace == 0) {
-        set_filter_reason(1U);
+        set_filter_reason(workspace, 1U);
         return AV2H_INVALID_ARGUMENT;
     }
     if (sequence->enable_restoration == 0U &&
         (frame->restoration_type[0] != AV2H_RESTORE_NONE ||
          frame->restoration_type[1] != AV2H_RESTORE_NONE ||
          frame->restoration_type[2] != AV2H_RESTORE_NONE)) {
-        set_filter_reason(2U);
+        set_filter_reason(workspace, 2U);
         return AV2H_UNSUPPORTED;
     }
     if (sequence->enable_restoration != 0U &&
@@ -60,13 +66,13 @@ Av2hStatus av2h_filter_frame(
           frame->restoration_type[1] != AV2H_RESTORE_WIENER_NONSEP) ||
          (frame->restoration_type[2] != AV2H_RESTORE_NONE &&
           frame->restoration_type[2] != AV2H_RESTORE_WIENER_NONSEP))) {
-        set_filter_reason(2U);
+        set_filter_reason(workspace, 2U);
         return AV2H_UNSUPPORTED;
     }
     if (frame->cdef_strength_count != 0U &&
         (frame->cdef_on_skip_transform == 0U ||
          frame->cdef_damping < 3U)) {
-        set_filter_reason(5U);
+        set_filter_reason(workspace, 5U);
         return AV2H_UNSUPPORTED;
     }
     if ((frame->cdef_strength_count != 0U &&
@@ -87,7 +93,7 @@ Av2hStatus av2h_filter_frame(
         !av2h_deblock_map_valid(&workspace->deblocked,
                            &workspace->deblock_map) ||
         !av2h_ccso_controls_valid(frame, &workspace->ccso_controls)) {
-        set_filter_reason(6U);
+        set_filter_reason(workspace, 6U);
         return AV2H_INVALID_ARGUMENT;
     }
     if (frame->restoration_type[0] != AV2H_RESTORE_NONE &&
@@ -103,7 +109,7 @@ Av2hStatus av2h_filter_frame(
          workspace->deblocked.plane[0].data ==
              workspace->restoration.data ||
          workspace->cdef.plane[0].data == workspace->restoration.data)) {
-        set_filter_reason(6U);
+        set_filter_reason(workspace, 6U);
         return AV2H_INVALID_ARGUMENT;
     }
     for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
@@ -112,7 +118,7 @@ Av2hStatus av2h_filter_frame(
             planes->plane[plane].data == workspace->cdef.plane[plane].data ||
             workspace->deblocked.plane[plane].data ==
                 workspace->cdef.plane[plane].data) {
-            set_filter_reason(7U);
+            set_filter_reason(workspace, 7U);
             return AV2H_INVALID_ARGUMENT;
         }
     }

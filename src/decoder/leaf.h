@@ -5,8 +5,11 @@
 #include "partition.h"
 
 #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
-const int16_t *av2h_intrabc_diagnostic_candidates(size_t *count);
-const int16_t *av2h_intrabc_diagnostic_bank(size_t *count);
+struct Av2hDecodeDiagnostics;
+const int16_t *av2h_intrabc_diagnostic_candidates(
+    const struct Av2hDecodeDiagnostics *diagnostics, size_t *count);
+const int16_t *av2h_intrabc_diagnostic_bank(
+    const struct Av2hDecodeDiagnostics *diagnostics, size_t *count);
 #endif
 
 #define AV2H_INTRABC_CONTEXT_COUNT 3U

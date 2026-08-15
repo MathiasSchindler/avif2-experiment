@@ -5,43 +5,51 @@
 
 #include "coeff_prefix_cdf_all.inc"
 
+const Av2hCoefficientDiagnostics *av2h_coefficient_diagnostics_get(
+    const Av2hDecodeDiagnostics *diagnostics) {
 #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
-static Av2hCoefficientDiagnostics coefficient_diagnostics;
-#endif
-
-const Av2hCoefficientDiagnostics *av2h_coefficient_diagnostics_get(void) {
-#if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
-    return &coefficient_diagnostics;
+    return diagnostics != 0 ? &diagnostics->coefficient : 0;
 #else
+    (void)diagnostics;
     return 0;
 #endif
 }
 
 void av2h_coefficient_diagnostics_set_eob(
-    uint32_t range, uint8_t tx_size, uint8_t eob_class) {
+    Av2hDecodeDiagnostics *diagnostics, uint32_t range,
+    uint8_t tx_size, uint8_t eob_class) {
 #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
-    coefficient_diagnostics.eob_range = range;
-    coefficient_diagnostics.eob_tx = tx_size;
-    coefficient_diagnostics.eob_class = eob_class;
+    if (diagnostics != 0) {
+        diagnostics->coefficient.eob_range = range;
+        diagnostics->coefficient.eob_tx = tx_size;
+        diagnostics->coefficient.eob_class = eob_class;
+    }
 #else
+    (void)diagnostics;
     (void)range;
     (void)tx_size;
     (void)eob_class;
 #endif
 }
 
-void av2h_coefficient_diagnostics_set_skip_range(uint32_t value) {
+void av2h_coefficient_diagnostics_set_skip_range(
+    Av2hDecodeDiagnostics *diagnostics, uint32_t value) {
 #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
-    coefficient_diagnostics.skip_range = value;
+    if (diagnostics != 0) diagnostics->coefficient.skip_range = value;
 #else
+    (void)diagnostics;
     (void)value;
 #endif
 }
 
-void av2h_coefficient_diagnostics_set_luma_prefix_stage(uint8_t value) {
+void av2h_coefficient_diagnostics_set_luma_prefix_stage(
+    Av2hDecodeDiagnostics *diagnostics, uint8_t value) {
 #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
-    coefficient_diagnostics.luma_prefix_stage = value;
+    if (diagnostics != 0) {
+        diagnostics->coefficient.luma_prefix_stage = value;
+    }
 #else
+    (void)diagnostics;
     (void)value;
 #endif
 }
@@ -614,7 +622,8 @@ static Av2hStatus decode_eob(Av2hRangeDecoder *decoder,
         point_symbols = point_override_symbols;
     }
     av2h_coefficient_diagnostics_set_eob(
-        decoder->range, (uint8_t)prefix->tx_size, (uint8_t)eob_class);
+        decoder->diagnostics, decoder->range,
+        (uint8_t)prefix->tx_size, (uint8_t)eob_class);
     value = av2h_range_read_adaptive(decoder, point_cdf, point_symbols);
     if (av2h_range_status(decoder) != AV2H_OK) {
         return av2h_range_status(decoder);
@@ -677,7 +686,8 @@ Av2hStatus av2h_coeff_prefix_read(
     uint16_t *cdf;
     uint32_t value;
     Av2hStatus status;
-    av2h_coefficient_diagnostics_set_luma_prefix_stage(2U);
+    av2h_coefficient_diagnostics_set_luma_prefix_stage(
+        decoder != 0 ? decoder->diagnostics : 0, 2U);
     if (decoder == 0 || cdfs == 0 || frame == 0 || leaf == 0 ||
         mode == 0 || prefix == 0) {
         return AV2H_INVALID_ARGUMENT;
@@ -685,11 +695,13 @@ Av2hStatus av2h_coeff_prefix_read(
     if (cdfs->q_context != av2h_coeff_q_context(frame->base_q_index)) {
         return AV2H_UNSUPPORTED;
     }
-    av2h_coefficient_diagnostics_set_luma_prefix_stage(3U);
+    av2h_coefficient_diagnostics_set_luma_prefix_stage(
+        decoder->diagnostics, 3U);
     status = derive_tx_size(leaf->block_size, &prefix->tx_size,
                             &prefix->tx_size_context);
     if (status != AV2H_OK) return status;
-    av2h_coefficient_diagnostics_set_luma_prefix_stage(4U);
+    av2h_coefficient_diagnostics_set_luma_prefix_stage(
+        decoder->diagnostics, 4U);
     prefix->txb_skip_context = txb_skip_context;
     if ((mode->fsc_mode ? txb_skip_context != 9U :
          txb_skip_context >= 10U) ||
@@ -697,21 +709,26 @@ Av2hStatus av2h_coeff_prefix_read(
         frame->disable_cdf_update) {
         return AV2H_UNSUPPORTED;
     }
-    av2h_coefficient_diagnostics_set_luma_prefix_stage(5U);
-    av2h_coefficient_diagnostics_set_luma_prefix_stage(6U);
+    av2h_coefficient_diagnostics_set_luma_prefix_stage(
+        decoder->diagnostics, 5U);
+    av2h_coefficient_diagnostics_set_luma_prefix_stage(
+        decoder->diagnostics, 6U);
     prefix->before_all_zero_bits = av2h_range_tell(decoder);
     cdf = cdfs->full_luma_txb_skip[
         mode->use_intrabc || mode->fsc_mode][prefix->tx_size_context]
                                              [txb_skip_context];
-    av2h_coefficient_diagnostics_set_skip_range(decoder->range);
-    av2h_coefficient_diagnostics_set_luma_prefix_stage(7U);
+    av2h_coefficient_diagnostics_set_skip_range(
+        decoder->diagnostics, decoder->range);
+    av2h_coefficient_diagnostics_set_luma_prefix_stage(
+        decoder->diagnostics, 7U);
     value = av2h_range_read_adaptive(decoder, cdf, 2U);
     if (av2h_range_status(decoder) != AV2H_OK) {
         return av2h_range_status(decoder);
     }
     prefix->all_zero = (uint8_t)value;
     prefix->after_all_zero_bits = av2h_range_tell(decoder);
-    av2h_coefficient_diagnostics_set_luma_prefix_stage(8U);
+    av2h_coefficient_diagnostics_set_luma_prefix_stage(
+        decoder->diagnostics, 8U);
     if (value != 0U) {
         prefix->eob_point = 0U;
         prefix->eob_offset_bits = 0U;
@@ -727,12 +744,14 @@ Av2hStatus av2h_coeff_prefix_read(
             5U, 6U, 7U, 8U, 8U, 8U, 8U
         };
         const Av2hTxDescriptor *descriptor;
-        av2h_coefficient_diagnostics_set_luma_prefix_stage(9U);
+        av2h_coefficient_diagnostics_set_luma_prefix_stage(
+            decoder->diagnostics, 9U);
         status = av2h_tx_descriptor_get(prefix->tx_size, &descriptor);
         if (status != AV2H_OK || descriptor->eob_class >= 7U) {
             return AV2H_UNSUPPORTED;
         }
-        av2h_coefficient_diagnostics_set_luma_prefix_stage(10U);
+        av2h_coefficient_diagnostics_set_luma_prefix_stage(
+            decoder->diagnostics, 10U);
         return decode_eob(decoder, cdfs,
             cdfs->inter_eob_pt[descriptor->eob_class],
             symbols[descriptor->eob_class], prefix);
@@ -766,7 +785,8 @@ Av2hStatus av2h_coeff_prefix_read_with_state(
     Av2hStatus status = av2h_coeff_contexts_from_state(
         state, 0U, leaf, mode != 0 ? mode->fsc_mode : 0U,
         &txb_skip_context, dc_sign_context);
-    av2h_coefficient_diagnostics_set_luma_prefix_stage(1U);
+    av2h_coefficient_diagnostics_set_luma_prefix_stage(
+        decoder != 0 ? decoder->diagnostics : 0, 1U);
     if (status != AV2H_OK) return status;
     return av2h_coeff_prefix_read(decoder, cdfs, frame, leaf, mode,
                                   txb_skip_context, prefix);

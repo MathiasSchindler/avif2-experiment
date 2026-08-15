@@ -1,5 +1,13 @@
 # CC0 source provenance
 
+This project uses the sibling
+[`newos`](https://github.com/MathiasSchindler/newos) project as a source
+substrate where its freestanding, dependency-free code fits the decoder's
+needs. Both projects are released under CC0-1.0. Selected code is copied,
+adapted, and maintained in this repository; newos is not a build or runtime
+dependency. Each import is recorded below with its reviewed revision, source
+paths, and adaptation boundary.
+
 The initial generic substrate was adapted from the sibling `avif-decoder`
 checkout at commit `57667e4e01f62bc03593e2f84129eca428afaa7b`, which is
 published under CC0-1.0.
@@ -125,3 +133,24 @@ support, checked PNG chunk sizing, and platform-independent output callbacks.
 The newos PNG parser, zlib inflate paths, Huffman encoders, LZ77 tables, runtime
 layer, and public compression interfaces were not copied. The sibling checkout
 is audit evidence only and is not a build input.
+
+The reusable concurrency substrate in `src/runtime/concurrency.c`,
+`src/runtime/concurrency_linux_x86_64.c`, and
+`src/arch/x86_64/linux/concurrency.S` was adapted from the sibling `newos`
+checkout at commit `972ca695b3f4b401a00f596ed78172dd1ceb03cf`, whose root
+`LICENSE` declares CC0-1.0. The reviewed source paths were:
+
+- `src/shared/concurrency.h`;
+- `src/shared/runtime/concurrency.c`;
+- `src/platform/linux/thread.c`;
+- `src/platform/linux/common.h`; and
+- `src/arch/x86_64/linux/syscall_stubs.S`.
+
+The adaptation keeps the raw x86-64 `clone` trampoline, page-backed worker
+stacks, kernel clear-tid join, futex generation waits, fixed reusable workers,
+dynamic parallel-for chunks, explicit worker indices, and serial fallback.
+It is narrowed to the `av2h_` namespace and removes task groups, statistics,
+TLS, pthreads, libc, and general heap allocation. Unsupported targets compile
+the serial backend; Linux x86-64 uses direct syscalls. The Linux no-libc CLI is
+wired to the task substrate, while the public `av2h_decode` path remains
+serial.

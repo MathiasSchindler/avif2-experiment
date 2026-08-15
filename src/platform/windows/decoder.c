@@ -182,6 +182,8 @@ static const char *block_size_name(uint8_t block_size) {
 }
 
 static void write_decode_diagnostic(const Av2hFrameDecodeResult *result) {
+    static const uint16_t zero_cdf[4U] = { 0U, 0U, 0U, 0U };
+    static const uint64_t zero_range[4U] = { 0U, 0U, 0U, 0U };
     const uint16_t *coefficient_cdf;
     const uint64_t *coefficient_range;
     const Av2hPartitionDecision *partition_trace;
@@ -326,7 +328,8 @@ static void write_decode_diagnostic(const Av2hFrameDecodeResult *result) {
     write_unsigned(result->eob_tx_size);
     write_console("/");
     write_unsigned(result->eob_class);
-    coefficient_cdf = av2h_coeff_level_diagnostic_cdf();
+    coefficient_cdf = av2h_coeff_level_diagnostic_cdf(result->diagnostics);
+    if (coefficient_cdf == 0) coefficient_cdf = zero_cdf;
     write_console("\r\n  coeff-cdf=");
     write_unsigned(coefficient_cdf[0]);
     write_console("/");
@@ -335,12 +338,15 @@ static void write_decode_diagnostic(const Av2hFrameDecodeResult *result) {
     write_unsigned(coefficient_cdf[2]);
     write_console("/");
     write_unsigned(coefficient_cdf[3]);
-    coefficient_range = av2h_coeff_level_diagnostic_range();
+    coefficient_range = av2h_coeff_level_diagnostic_range(
+        result->diagnostics);
+    if (coefficient_range == 0) coefficient_range = zero_range;
     {
         size_t candidate_count;
         size_t candidate;
         const int16_t *candidates =
-            av2h_intrabc_diagnostic_candidates(&candidate_count);
+            av2h_intrabc_diagnostic_candidates(
+                result->diagnostics, &candidate_count);
         write_console("\r\n  intrabc-candidates=");
         for (candidate = 0U; candidate < candidate_count; ++candidate) {
             if (candidate != 0U) write_console(" ");
@@ -348,7 +354,8 @@ static void write_decode_diagnostic(const Av2hFrameDecodeResult *result) {
             write_console("/");
             write_signed(candidates[candidate * 2U + 1U]);
         }
-        candidates = av2h_intrabc_diagnostic_bank(&candidate_count);
+        candidates = av2h_intrabc_diagnostic_bank(
+            result->diagnostics, &candidate_count);
         write_console("\r\n  intrabc-bank=");
         for (candidate = 0U; candidate < candidate_count; ++candidate) {
             if (candidate != 0U) write_console(" ");
@@ -365,8 +372,10 @@ static void write_decode_diagnostic(const Av2hFrameDecodeResult *result) {
     write_unsigned(coefficient_range[2]);
     write_console("/");
     write_unsigned(coefficient_range[3]);
-    partition_trace = av2h_partition_diagnostic_trace(&partition_trace_count);
-    partition_trace_structure = av2h_partition_diagnostic_trace_structure();
+    partition_trace = av2h_partition_diagnostic_trace(
+        result->diagnostics, &partition_trace_count);
+    partition_trace_structure = av2h_partition_diagnostic_trace_structure(
+        result->diagnostics);
     for (partition_trace_index = 0U;
          partition_trace_index < partition_trace_count;
          ++partition_trace_index) {
@@ -390,7 +399,8 @@ static void write_decode_diagnostic(const Av2hFrameDecodeResult *result) {
         write_console(" tell=");
         write_unsigned(decision->after_bits);
     }
-    leaf_trace = av2h_partition_diagnostic_leaf_trace(&leaf_trace_count);
+    leaf_trace = av2h_partition_diagnostic_leaf_trace(
+        result->diagnostics, &leaf_trace_count);
     for (leaf_trace_index = 0U; leaf_trace_index < leaf_trace_count;
          ++leaf_trace_index) {
         write_console("\r\n  local-leaf: stage=");
@@ -514,6 +524,7 @@ static const Av2hObu *find_obu(const Av2hObuLedger *ledger, uint8_t type) {
 
 static Av2hStatus decode_obu(Av2hSpan input,
                             Av2hOwnedMemory *output,
+                            Av2hOwnedMemory *diagnostic_memory,
                             uint16_t *width,
                             uint16_t *height,
                             uint8_t *chroma_format_idc,
@@ -579,11 +590,55 @@ static Av2hStatus decode_obu(Av2hSpan input,
         release_memory(output);
         return AV2H_OUT_OF_MEMORY;
     }
+#if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
+    {
+        size_t diagnostic_size =
+            sizeof(Av2hDecodeDiagnostics) +
+            AV2H_PARTITION_DIAGNOSTIC_CAPACITY *
+                sizeof(Av2hPartitionDecision) +
+            AV2H_PARTITION_DIAGNOSTIC_CAPACITY * sizeof(uint8_t) +
+            AV2H_PARTITION_LEAF_DIAGNOSTIC_CAPACITY *
+                sizeof(Av2hPartitionLeafDiagnostic) +
+            _Alignof(Av2hPartitionDecision) +
+            _Alignof(Av2hPartitionLeafDiagnostic);
+        if (!allocate_memory(diagnostic_size, diagnostic_memory)) {
+            release_memory(&workspace_memory);
+            release_memory(output);
+            return AV2H_OUT_OF_MEMORY;
+        }
+    }
+#endif
     status = av2h_frame_decode_workspace_init_bytes(
         &sequence, &frame, bytes_per_sample, &workspace_layout,
         workspace_memory.memory, workspace_memory.size,
         &workspace, &filter_workspace, &filter_storage);
     if (status == AV2H_OK) {
+#if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
+        uintptr_t cursor = (uintptr_t)diagnostic_memory->memory;
+        Av2hDecodeDiagnostics *diagnostics =
+            (Av2hDecodeDiagnostics *)cursor;
+        cursor += sizeof(*diagnostics);
+        cursor = (cursor + _Alignof(Av2hPartitionDecision) - 1U) &
+            ~(uintptr_t)(_Alignof(Av2hPartitionDecision) - 1U);
+        av2h_memory_fill(diagnostics, 0U, sizeof(*diagnostics));
+        diagnostics->partition_trace = (Av2hPartitionDecision *)cursor;
+        cursor += AV2H_PARTITION_DIAGNOSTIC_CAPACITY *
+            sizeof(Av2hPartitionDecision);
+        diagnostics->partition_trace_structure = (uint8_t *)cursor;
+        cursor += AV2H_PARTITION_DIAGNOSTIC_CAPACITY;
+        cursor = (cursor + _Alignof(Av2hPartitionLeafDiagnostic) - 1U) &
+            ~(uintptr_t)(_Alignof(Av2hPartitionLeafDiagnostic) - 1U);
+        diagnostics->partition_leaf_trace =
+            (Av2hPartitionLeafDiagnostic *)cursor;
+        diagnostics->partition_trace_capacity =
+            AV2H_PARTITION_DIAGNOSTIC_CAPACITY;
+        diagnostics->partition_leaf_trace_capacity =
+            AV2H_PARTITION_LEAF_DIAGNOSTIC_CAPACITY;
+        workspace.diagnostics = diagnostics;
+        workspace.filter_workspace->diagnostics = diagnostics;
+#else
+        (void)diagnostic_memory;
+#endif
         status = av2h_decode_frame_planar_private(
             group.entropy, &sequence, &frame, &workspace,
             output->memory, output->size, decode_result);
@@ -733,6 +788,7 @@ static unsigned int run_decoder(void) {
     Av2hOwnedMemory command_line = { 0, 0U };
     Av2hOwnedMemory input = { 0, 0U };
     Av2hOwnedMemory output = { 0, 0U };
+    Av2hOwnedMemory diagnostic_memory = { 0, 0U };
     Av2hWinChar *arguments[AV2H_CLI_ARGUMENT_CAPACITY];
     int argument_count;
     uint16_t width = 0U;
@@ -769,13 +825,14 @@ static unsigned int run_decoder(void) {
         return 1U;
     }
     status = decode_obu(
-        (Av2hSpan){ input.memory, input.size }, &output, &width, &height,
-        &chroma_format_idc, &output_format, &decode_result);
+        (Av2hSpan){ input.memory, input.size }, &output, &diagnostic_memory,
+        &width, &height, &chroma_format_idc, &output_format, &decode_result);
     if (status != AV2H_OK) {
         write_status("error: decode failed: ", status);
 #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
         write_decode_diagnostic(&decode_result);
 #endif
+        release_memory(&diagnostic_memory);
         release_memory(&output);
         release_memory(&input);
         release_memory(&command_line);
@@ -784,6 +841,7 @@ static unsigned int run_decoder(void) {
 #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
     write_decode_diagnostic(&decode_result);
 #endif
+    release_memory(&diagnostic_memory);
     raw_extension = av2h_raw_output_extension(&output_format);
     if (!wide_ends_with_ascii(arguments[3], ".bmp") &&
         !wide_ends_with_ascii(arguments[3], ".png") &&

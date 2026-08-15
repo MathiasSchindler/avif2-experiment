@@ -47,14 +47,15 @@ static Av2hStatus restoration_tx_skip_commit(
     return AV2H_OK;
 }
 
-Av2hStatus av2h_decode_frame_planar_private(
+Av2hStatus av2h_decode_frame_planar_with_execution_private(
     Av2hSpan entropy,
     const Av2hSequenceState *sequence,
     const Av2hFrameState *frame,
     Av2hFrameDecodeWorkspace *workspace,
     uint8_t *output,
     size_t output_size_bytes,
-    Av2hFrameDecodeResult *result) {
+    Av2hFrameDecodeResult *result,
+    const Av2hExecution *execution) {
     Av2hFilterWorkspaceLayout layout;
     Av2hTileDecoder decoder;
     Av2hTileFilterControls filter_controls;
@@ -87,6 +88,32 @@ Av2hStatus av2h_decode_frame_planar_private(
     if (sequence == 0 || frame == 0 || workspace == 0 || output == 0) {
         return AV2H_INVALID_ARGUMENT;
     }
+#if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
+    if (workspace->diagnostics != 0) {
+        Av2hPartitionDecision *partition_trace =
+            workspace->diagnostics->partition_trace;
+        uint8_t *partition_trace_structure =
+            workspace->diagnostics->partition_trace_structure;
+        size_t partition_trace_capacity =
+            workspace->diagnostics->partition_trace_capacity;
+        Av2hPartitionLeafDiagnostic *partition_leaf_trace =
+            workspace->diagnostics->partition_leaf_trace;
+        size_t partition_leaf_trace_capacity =
+            workspace->diagnostics->partition_leaf_trace_capacity;
+        av2h_memory_fill(
+            workspace->diagnostics, 0U, sizeof(*workspace->diagnostics));
+        workspace->diagnostics->partition_trace = partition_trace;
+        workspace->diagnostics->partition_trace_structure =
+            partition_trace_structure;
+        workspace->diagnostics->partition_trace_capacity =
+            partition_trace_capacity;
+        workspace->diagnostics->partition_leaf_trace =
+            partition_leaf_trace;
+        workspace->diagnostics->partition_leaf_trace_capacity =
+            partition_leaf_trace_capacity;
+        decoded.diagnostics = workspace->diagnostics;
+    }
+#endif
     if (workspace->bytes_per_sample != 1U &&
         workspace->bytes_per_sample != 2U) return AV2H_UNSUPPORTED;
     if ((workspace->bytes_per_sample == 1U &&
@@ -105,6 +132,10 @@ Av2hStatus av2h_decode_frame_planar_private(
     status = av2h_tile_decoder_init(
         &decoder, entropy, sequence, frame, &workspace->tile_context);
     if (status != AV2H_OK) return status;
+    decoder.diagnostics = workspace->diagnostics;
+    decoder.entropy_state.range.diagnostics = workspace->diagnostics;
+    decoder.traversal.luma_traversal.diagnostics = workspace->diagnostics;
+    decoder.traversal.chroma_traversal.diagnostics = workspace->diagnostics;
     while (decoder.control.phase != AV2H_TILE_DECODE_DONE) {
         uint8_t has_leaf = 0U;
         if (decoder.control.phase == AV2H_TILE_DECODE_LUMA &&
@@ -118,7 +149,9 @@ Av2hStatus av2h_decode_frame_planar_private(
                 if (workspace->bytes_per_sample == 2U) {
                     for (plane = 1U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
                         unsigned int index = plane - 1U;
-                        status = av2h_chroma_reconstruct_to_plane_u16(
+                        status =
+                            av2h_chroma_reconstruct_to_plane_u16_with_diagnostics(
+                            workspace->diagnostics,
                             &pending_leaf->node, &pending_leaf->mode,
                             &pending_leaf->prefix[index],
                             &pending_leaf->transform[index],
@@ -154,7 +187,9 @@ Av2hStatus av2h_decode_frame_planar_private(
                 }
                 for (plane = 1U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
                     unsigned int index = plane - 1U;
-                    status = av2h_chroma_reconstruct_to_plane_format(
+                    status =
+                        av2h_chroma_reconstruct_to_plane_format_with_diagnostics(
+                        workspace->diagnostics,
                         &pending_leaf->node, &pending_leaf->mode,
                         &pending_leaf->prefix[index],
                         &pending_leaf->transform[index],
@@ -196,16 +231,17 @@ Av2hStatus av2h_decode_frame_planar_private(
                 &decoder, &leaf, &block, &has_leaf);
             if (status != AV2H_OK) {
                 const Av2hTileDiagnostics *tile_diagnostics =
-                    av2h_tile_diagnostics_get();
+                    av2h_tile_diagnostics_get(workspace->diagnostics);
                 const Av2hLeafDiagnostics *leaf_diagnostics =
-                    av2h_leaf_diagnostics_get();
+                    av2h_leaf_diagnostics_get(workspace->diagnostics);
                 const Av2hCoefficientDiagnostics *coefficient_diagnostics =
-                    av2h_coefficient_diagnostics_get();
+                    av2h_coefficient_diagnostics_get(workspace->diagnostics);
                 const Av2hTransformDiagnostics *transform_diagnostics =
-                    av2h_transform_diagnostics_get();
+                    av2h_transform_diagnostics_get(workspace->diagnostics);
                 const Av2hReconstructionDiagnostics *
                     reconstruction_diagnostics =
-                        av2h_reconstruction_diagnostics_get();
+                        av2h_reconstruction_diagnostics_get(
+                            workspace->diagnostics);
                 uint8_t luma_tile_stage = tile_diagnostics != 0 ?
                     tile_diagnostics->luma_tile_stage : 0U;
                 Av2hStatus returned = status == AV2H_UNSUPPORTED ?
@@ -284,19 +320,23 @@ Av2hStatus av2h_decode_frame_planar_private(
             }
             if (!has_leaf) continue;
             if (workspace->bytes_per_sample == 1U) {
-                status = av2h_luma_reconstruct_to_plane(
+                status = av2h_luma_reconstruct_to_plane_with_diagnostics(
+                    workspace->diagnostics,
                     &leaf.node, &leaf.mode, &leaf.prefix, &leaf.transform,
                     &block, &workspace->coded[0],
                     workspace->reconstruction_scratch);
             } else {
-                status = av2h_luma_reconstruct_to_plane_u16(
+                status =
+                    av2h_luma_reconstruct_to_plane_u16_with_diagnostics(
+                    workspace->diagnostics,
                     &leaf.node, &leaf.mode, &leaf.prefix, &leaf.transform,
                     &block, &workspace->coded_u16[0],
                     workspace->reconstruction_scratch_u16);
             }
             if (status != AV2H_OK) {
                 const Av2hReconstructionDiagnostics *diagnostics =
-                    av2h_reconstruction_diagnostics_get();
+                    av2h_reconstruction_diagnostics_get(
+                        workspace->diagnostics);
                 Av2hStatus returned = status == AV2H_UNSUPPORTED ?
                     AV2H_OVERFLOW : status;
                 decoded.mode = (uint8_t)leaf.mode.mode;
@@ -371,9 +411,9 @@ Av2hStatus av2h_decode_frame_planar_private(
                 &decoder, &leaf, &blocks[0], &blocks[1], &has_leaf);
             if (status != AV2H_OK) {
                 const Av2hTileDiagnostics *tile_diagnostics =
-                    av2h_tile_diagnostics_get();
+                    av2h_tile_diagnostics_get(workspace->diagnostics);
                 const Av2hLeafDiagnostics *leaf_diagnostics =
-                    av2h_leaf_diagnostics_get();
+                    av2h_leaf_diagnostics_get(workspace->diagnostics);
                 uint8_t chroma_tile_stage = tile_diagnostics != 0 ?
                     tile_diagnostics->chroma_tile_stage : 0U;
                 unsigned int diagnostic_index =
@@ -426,14 +466,18 @@ Av2hStatus av2h_decode_frame_planar_private(
                 unsigned int index = leaf.decoded_plane - 1U;
                 plane = leaf.decoded_plane;
                 if (workspace->bytes_per_sample == 1U) {
-                    status = av2h_chroma_reconstruct_to_plane_format(
+                    status =
+                        av2h_chroma_reconstruct_to_plane_format_with_diagnostics(
+                        workspace->diagnostics,
                         &leaf.node, &leaf.mode, &leaf.prefix[index],
                         &leaf.transform[index], &blocks[index],
                         &workspace->coded[plane], &workspace->coded[0],
                         (uint8_t)plane, 0, frame->chroma_format_idc,
                         workspace->reconstruction_scratch);
                 } else {
-                    status = av2h_chroma_reconstruct_to_plane_u16(
+                    status =
+                        av2h_chroma_reconstruct_to_plane_u16_with_diagnostics(
+                        workspace->diagnostics,
                         &leaf.node, &leaf.mode, &leaf.prefix[index],
                         &leaf.transform[index], &blocks[index],
                         &workspace->coded_u16[plane],
@@ -507,7 +551,9 @@ Av2hStatus av2h_decode_frame_planar_private(
             if (workspace->bytes_per_sample == 1U) {
                 for (plane = 1U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
                     unsigned int index = plane - 1U;
-                    status = av2h_chroma_reconstruct_to_plane_format(
+                    status =
+                        av2h_chroma_reconstruct_to_plane_format_with_diagnostics(
+                        workspace->diagnostics,
                         &leaf.node, &leaf.mode, &leaf.prefix[index],
                         &leaf.transform[index], &blocks[index],
                         &workspace->coded[plane], &workspace->coded[0],
@@ -515,10 +561,12 @@ Av2hStatus av2h_decode_frame_planar_private(
                         workspace->reconstruction_scratch);
                     if (status != AV2H_OK) {
                         const Av2hPredictionDiagnostics *prediction_diagnostics =
-                            av2h_prediction_diagnostics_get();
+                            av2h_prediction_diagnostics_get(
+                                workspace->diagnostics);
                         const Av2hReconstructionDiagnostics *
                             reconstruction_diagnostics =
-                                av2h_reconstruction_diagnostics_get();
+                                av2h_reconstruction_diagnostics_get(
+                                    workspace->diagnostics);
                         Av2hStatus returned = status == AV2H_UNSUPPORTED ?
                             AV2H_INVALID_DATA : status;
                         decoded.mode = (uint8_t)leaf.mode.mode;
@@ -570,7 +618,9 @@ Av2hStatus av2h_decode_frame_planar_private(
             } else {
                 for (plane = 1U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
                     unsigned int index = plane - 1U;
-                    status = av2h_chroma_reconstruct_to_plane_u16(
+                    status =
+                        av2h_chroma_reconstruct_to_plane_u16_with_diagnostics(
+                        workspace->diagnostics,
                         &leaf.node, &leaf.mode, &leaf.prefix[index],
                         &leaf.transform[index], &blocks[index],
                         &workspace->coded_u16[plane],
@@ -580,7 +630,8 @@ Av2hStatus av2h_decode_frame_planar_private(
                         workspace->reconstruction_scratch_u16);
                     if (status != AV2H_OK) {
                         const Av2hReconstructionDiagnostics *diagnostics =
-                            av2h_reconstruction_diagnostics_get();
+                            av2h_reconstruction_diagnostics_get(
+                                workspace->diagnostics);
                         decoded.mode = (uint8_t)leaf.mode.mode;
                         decoded.angle_delta = leaf.mode.angle_delta;
                         decoded.chroma_mode_index = leaf.mode.mode_index;
@@ -705,9 +756,9 @@ Av2hStatus av2h_decode_frame_planar_private(
                 status, status, AV2H_FRAME_DECODE_STAGE_FILTER,
                 0U, 0, 0U);
         }
-        status = av2h_copy_visible_planar_u16_private(
+        status = av2h_copy_visible_planar_u16_with_execution_private(
             frame, workspace->coded_u16, workspace->coded_data_size_bytes,
-            output, output_size_bytes);
+            output, output_size_bytes, execution);
         if (status != AV2H_OK) {
             AV2H_DECODE_FAIL(
                 status, status, AV2H_FRAME_DECODE_STAGE_OUTPUT,
@@ -730,16 +781,16 @@ Av2hStatus av2h_decode_frame_planar_private(
         Av2hStatus returned = status == AV2H_UNSUPPORTED ?
             AV2H_OUT_OF_MEMORY : status;
         const Av2hFilterDiagnostics *filter_diagnostics =
-            av2h_filter_diagnostics_get();
+            av2h_filter_diagnostics_get(workspace->diagnostics);
         decoded.filter_reason = filter_diagnostics != 0 ?
             filter_diagnostics->reason : 0U;
         AV2H_DECODE_FAIL(
             returned, status, AV2H_FRAME_DECODE_STAGE_FILTER,
             0U, 0, 0U);
     }
-    status = av2h_copy_visible_planar_private(
+    status = av2h_copy_visible_planar_with_execution_private(
         frame, &final_planes, workspace->coded_data_size_bytes,
-        output, output_size_bytes);
+        output, output_size_bytes, execution);
     if (status != AV2H_OK) {
         AV2H_DECODE_FAIL(
             status, status, AV2H_FRAME_DECODE_STAGE_OUTPUT,
@@ -748,4 +799,17 @@ Av2hStatus av2h_decode_frame_planar_private(
     if (result != 0) *result = decoded;
 #undef AV2H_DECODE_FAIL
     return AV2H_OK;
+}
+
+Av2hStatus av2h_decode_frame_planar_private(
+    Av2hSpan entropy,
+    const Av2hSequenceState *sequence,
+    const Av2hFrameState *frame,
+    Av2hFrameDecodeWorkspace *workspace,
+    uint8_t *output,
+    size_t output_size_bytes,
+    Av2hFrameDecodeResult *result) {
+    return av2h_decode_frame_planar_with_execution_private(
+        entropy, sequence, frame, workspace, output, output_size_bytes,
+        result, 0);
 }

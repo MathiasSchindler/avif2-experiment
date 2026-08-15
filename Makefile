@@ -68,7 +68,8 @@ WP14_WINDOWS_PRESET ?= windows-x86_64
 WP14_WINDOWS_BUILD_DIR ?= build/windows-x86_64
 WP14_WINDOWS_EMULATOR ?=
 OBJDUMP ?= objdump
-.PHONY: test test-host-build test-c test-corpus test-freestanding test-extended \
+.PHONY: test test-host-build test-c test-corpus test-freestanding \
+	test-runtime-substrate test-extended \
 	test-reference-locks test-reference-images test-reference-images-wasm \
 	reference-avm reference-avm-accounting \
 	reference-avm-negatives generate-10bit-sources \
@@ -118,7 +119,16 @@ test-reference-images-wasm:
 	node tools/validate_image_references_wasm.js "$(REFERENCE_WASM)"
 
 test-freestanding: test-host-build
-	cmake --build --preset $(HOST_PRESET) $(CMAKE_BUILD_ARGS) --target av2heif-freestanding-check
+	cmake --build --preset $(HOST_PRESET) $(CMAKE_BUILD_ARGS) --target av2heif-freestanding-check av2heif-runtime-freestanding-check
+
+test-runtime-substrate:
+	cmake --preset host
+	cmake --build --preset host $(CMAKE_BUILD_ARGS) --target runtime-substrate-unit av2heif-runtime-freestanding-check
+	ctest --preset host $(CTEST_ARGS) -R '^runtime-substrate-unit$$'
+	cmake --preset linux-nolibc-x86_64
+	cmake --build --preset linux-nolibc-x86_64 $(CMAKE_BUILD_ARGS) --target runtime-substrate-freestanding av2heif-runtime-freestanding-check
+	./build/linux-nolibc-x86_64/runtime-substrate-freestanding
+	ctest --preset linux-nolibc-x86_64 $(CTEST_ARGS) -R '^runtime-substrate-freestanding(-static-elf)?$$'
 
 test-extended: test test-reference-images test-reference-images-wasm \
 	test-decoder-evidence \

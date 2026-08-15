@@ -37,8 +37,11 @@ uint16_t *av2h_coeff_level_br_row(
 uint16_t *av2h_coeff_level_eob_row(
     Av2hFirstCoeffLevelCdfs *cdfs, uint8_t tx_context, uint8_t context);
 #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
-const uint16_t *av2h_coeff_level_diagnostic_cdf(void);
-const uint64_t *av2h_coeff_level_diagnostic_range(void);
+struct Av2hDecodeDiagnostics;
+const uint16_t *av2h_coeff_level_diagnostic_cdf(
+    const struct Av2hDecodeDiagnostics *diagnostics);
+const uint64_t *av2h_coeff_level_diagnostic_range(
+    const struct Av2hDecodeDiagnostics *diagnostics);
 #endif
 
 #endif

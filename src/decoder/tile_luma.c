@@ -2,6 +2,16 @@
 #include "internal/coeff_modules.h"
 #include "internal/decode_diagnostics.h"
 #include "internal/tile_modules.h"
+
+#define av2h_partition_diagnostic_leaf_stage(...) \
+    av2h_partition_diagnostic_leaf_stage(          \
+        decoder->entropy_state.range.diagnostics, __VA_ARGS__)
+#define av2h_tile_diagnostics_set_luma_range(...) \
+    av2h_tile_diagnostics_set_luma_range(          \
+        decoder->entropy_state.range.diagnostics, __VA_ARGS__)
+#define av2h_tile_diagnostics_set_luma_stage(...) \
+    av2h_tile_diagnostics_set_luma_stage(          \
+        decoder->entropy_state.range.diagnostics, __VA_ARGS__)
 #include "internal/wiener_nonsep.h"
 #include "tx_geometry.h"
 

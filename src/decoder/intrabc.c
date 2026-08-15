@@ -8,19 +8,16 @@ typedef struct {
 } Av2hIntrabcCandidate;
 
 #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
-static int16_t intrabc_diagnostic_candidates[8U];
-static size_t intrabc_diagnostic_candidate_count;
-static int16_t intrabc_diagnostic_bank[8U];
-static size_t intrabc_diagnostic_bank_count;
-
-const int16_t *av2h_intrabc_diagnostic_candidates(size_t *count) {
-    *count = intrabc_diagnostic_candidate_count;
-    return intrabc_diagnostic_candidates;
+const int16_t *av2h_intrabc_diagnostic_candidates(
+    const Av2hDecodeDiagnostics *diagnostics, size_t *count) {
+    *count = diagnostics != 0 ? diagnostics->intrabc_candidate_count : 0U;
+    return diagnostics != 0 ? diagnostics->intrabc_candidates : 0;
 }
 
-const int16_t *av2h_intrabc_diagnostic_bank(size_t *count) {
-    *count = intrabc_diagnostic_bank_count;
-    return intrabc_diagnostic_bank;
+const int16_t *av2h_intrabc_diagnostic_bank(
+    const Av2hDecodeDiagnostics *diagnostics, size_t *count) {
+    *count = diagnostics != 0 ? diagnostics->intrabc_bank_count : 0U;
+    return diagnostics != 0 ? diagnostics->intrabc_bank : 0;
 }
 
 #endif
@@ -292,7 +289,7 @@ Av2hStatus av2h_leaf_read_first_intrabc(
     Av2hStatus status = av2h_block_dimensions_mi(
         leaf->block_size, &width_mi, &height_mi);
     if (status != AV2H_OK) return status;
-    av2h_leaf_diagnostics_set_luma_stage(20U);
+    av2h_leaf_diagnostics_set_luma_stage(decoder->diagnostics, 20U);
     mode->before_mode_bits = av2h_range_tell(decoder);
     mode->intrabc_mode = (uint8_t)av2h_range_read_adaptive(
         decoder, cdfs->intrabc_mode, 2U);
@@ -300,7 +297,7 @@ Av2hStatus av2h_leaf_read_first_intrabc(
         return av2h_range_status(decoder);
     }
     mode->after_mode_set_bits = av2h_range_tell(decoder);
-    av2h_leaf_diagnostics_set_luma_stage(21U);
+    av2h_leaf_diagnostics_set_luma_stage(decoder->diagnostics, 21U);
     mode->intrabc_drl_index = 0U;
     for (index = 0U; index < frame->max_bvp_drl_bits; ++index) {
         value = av2h_range_read_bypass(decoder, 1U);
@@ -311,24 +308,27 @@ Av2hStatus av2h_leaf_read_first_intrabc(
         if (value == 0U) break;
     }
     mode->after_mode_index_bits = av2h_range_tell(decoder);
-    av2h_leaf_diagnostics_set_luma_stage(22U);
+    av2h_leaf_diagnostics_set_luma_stage(decoder->diagnostics, 22U);
     build_intrabc_candidates(
         sequence, frame, leaf, width_mi, height_mi, state,
         candidates, &candidate_count);
 #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
-    if (leaf->row == 64U && leaf->column == 104U) {
-        intrabc_diagnostic_candidate_count = candidate_count;
+    if (decoder->diagnostics != 0 &&
+        leaf->row == 64U && leaf->column == 104U) {
+        decoder->diagnostics->intrabc_candidate_count = candidate_count;
         for (index = 0U; index < candidate_count; ++index) {
-            intrabc_diagnostic_candidates[index * 2U] = candidates[index].x;
-            intrabc_diagnostic_candidates[index * 2U + 1U] = candidates[index].y;
+            decoder->diagnostics->intrabc_candidates[index * 2U] =
+                candidates[index].x;
+            decoder->diagnostics->intrabc_candidates[index * 2U + 1U] =
+                candidates[index].y;
         }
-        intrabc_diagnostic_bank_count = state->intrabc_bank_count;
+        decoder->diagnostics->intrabc_bank_count = state->intrabc_bank_count;
         for (index = 0U; index < state->intrabc_bank_count; ++index) {
             size_t bank_index =
                 (state->intrabc_bank_start + index) % 4U;
-            intrabc_diagnostic_bank[index * 2U] =
+            decoder->diagnostics->intrabc_bank[index * 2U] =
                 state->intrabc_bank_x[bank_index];
-            intrabc_diagnostic_bank[index * 2U + 1U] =
+            decoder->diagnostics->intrabc_bank[index * 2U + 1U] =
                 state->intrabc_bank_y[bank_index];
         }
     }
@@ -346,7 +346,7 @@ Av2hStatus av2h_leaf_read_first_intrabc(
         mode->mv_precision = value == 0U ? 3U : 5U;
     }
     mode->after_fsc_bits = av2h_range_tell(decoder);
-    av2h_leaf_diagnostics_set_luma_stage(23U);
+    av2h_leaf_diagnostics_set_luma_stage(decoder->diagnostics, 23U);
     if (mode->intrabc_mode == 0U) {
         value = av2h_range_read_adaptive(
             decoder, cdfs->intrabc_shell_set, 2U);
@@ -355,10 +355,10 @@ Av2hStatus av2h_leaf_read_first_intrabc(
         }
         if (mode->mv_precision != 3U && mode->mv_precision != 5U) {
             av2h_leaf_diagnostics_set_luma_stage(
-                value == 0U ? 231U : 233U);
+                decoder->diagnostics, value == 0U ? 231U : 233U);
             return AV2H_UNSUPPORTED;
         }
-        av2h_leaf_diagnostics_set_luma_stage(24U);
+        av2h_leaf_diagnostics_set_luma_stage(decoder->diagnostics, 24U);
         mode->after_mrl_bits = av2h_range_tell(decoder);
         if (value != 0U) {
             shell_class = (mode->mv_precision == 5U ? 8U : 7U) +

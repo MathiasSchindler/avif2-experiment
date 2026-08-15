@@ -87,6 +87,7 @@ typedef struct {
     Av2hGdfControlMap gdf_controls;
     Av2hRestorationControlMap restoration_controls;
     uint8_t *restoration_tx_skip;
+    struct Av2hDecodeDiagnostics *diagnostics;
 } Av2hFilterWorkspace;
 
 typedef struct {

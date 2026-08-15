@@ -450,6 +450,7 @@ static Av2hStatus apply_intrabc_morph_prediction(
 }
 
 Av2hStatus av2h_intrabc_predict(
+    Av2hDecodeDiagnostics *diagnostics,
     const Av2hFirstLeafMode *mode,
     const Av2hReconstructionPlane *plane,
     uint16_t block_x,
@@ -466,7 +467,8 @@ Av2hStatus av2h_intrabc_predict(
     uint32_t subpel_x;
     uint32_t subpel_y;
     Av2hStatus status;
-    av2h_reconstruction_diagnostics_set_luma_stage(10U);
+    av2h_reconstruction_diagnostics_set_luma_stage(
+        diagnostics, 10U);
     position_x = av2h_intrabc_plane_position(
         block_x, mode->displacement_x, 0U);
     position_y = av2h_intrabc_plane_position(
@@ -477,13 +479,15 @@ Av2hStatus av2h_intrabc_predict(
         position_x - source_x * (1 << AV2H_SUBPEL_BITS));
     subpel_y = (uint32_t)(
         position_y - source_y * (1 << AV2H_SUBPEL_BITS));
-    av2h_reconstruction_diagnostics_set_luma_stage(11U);
+    av2h_reconstruction_diagnostics_set_luma_stage(
+        diagnostics, 11U);
     if (source_x < 0 || source_y < 0 ||
         (uint32_t)source_x + width + (subpel_x != 0U) > plane->width ||
         (uint32_t)source_y + height + (subpel_y != 0U) > plane->height) {
         return AV2H_INVALID_DATA;
     }
-    av2h_reconstruction_diagnostics_set_luma_stage(12U);
+    av2h_reconstruction_diagnostics_set_luma_stage(
+        diagnostics, 12U);
     for (row = 0U; row < (size_t)height + (subpel_y != 0U); ++row) {
         for (column = 0U; column < (size_t)width + (subpel_x != 0U);
              ++column) {
@@ -491,6 +495,7 @@ Av2hStatus av2h_intrabc_predict(
             size_t sample_y = (size_t)source_y + row;
             if (!av2h_plane_sample_reconstructed(plane, sample_x, sample_y)) {
                 av2h_reconstruction_diagnostics_set_intrabc_source(
+                    diagnostics,
                     (uint16_t)sample_x, (uint16_t)sample_y,
                     (sample_y / 4U) * plane->reconstructed_stride_cells +
                         sample_x / 4U);
@@ -513,6 +518,7 @@ Av2hStatus av2h_intrabc_predict(
             width, height, predictor);
         if (status != AV2H_OK) return status;
     }
-    av2h_reconstruction_diagnostics_set_luma_stage(13U);
+    av2h_reconstruction_diagnostics_set_luma_stage(
+        diagnostics, 13U);
     return AV2H_OK;
 }

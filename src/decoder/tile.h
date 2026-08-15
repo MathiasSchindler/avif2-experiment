@@ -213,6 +213,7 @@ typedef struct {
     Av2hTileChromaState chroma;
     Av2hTileSharedChromaState shared_chroma;
     Av2hTileControlState control;
+    struct Av2hDecodeDiagnostics *diagnostics;
 } Av2hTileDecoder;
 
 Av2hStatus av2h_tile_luma_tx_node_get(
