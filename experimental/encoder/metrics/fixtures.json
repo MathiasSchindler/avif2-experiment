@@ -1,0 +1,78 @@
+{
+  "schema": "av2-encoder-m3-fixtures-v1",
+  "fixtures": [
+    {
+      "id": "flat-128-8x8",
+      "kind": "generated",
+      "generator": "flat",
+      "value": 128,
+      "width": 8,
+      "height": 8,
+      "profile": "i400-8",
+      "encoder_mode": "constant-128-8x8"
+    },
+    {
+      "id": "ramp-x-16x8",
+      "kind": "generated",
+      "generator": "ramp-x",
+      "width": 16,
+      "height": 8,
+      "profile": "i400-8",
+      "encoder_mode": "raw-i400"
+    },
+    {
+      "id": "impulse-8x8",
+      "kind": "generated",
+      "generator": "impulse",
+      "width": 8,
+      "height": 8,
+      "profile": "i400-8",
+      "encoder_mode": "raw-i400"
+    },
+    {
+      "id": "odd-edge-17x15",
+      "kind": "generated",
+      "generator": "odd-edge",
+      "width": 17,
+      "height": 15,
+      "profile": "i400-8",
+      "encoder_mode": "raw-i400"
+    },
+    {
+      "id": "pitti-ceiling-896x896",
+      "kind": "prepared",
+      "path": "images/prepared/le896/pitti-ceiling/source-896x896-gray8.i400",
+      "metadata": "images/prepared/le896/pitti-ceiling/manifest.json",
+      "sha256": "93a053a6bfd2db1a21a948cb5901b5ef2c69e4962cf25e1385482f47a22c97cd",
+      "width": 896,
+      "height": 896,
+      "profile": "i400-8",
+      "orientation": "square",
+      "encoder_mode": "raw-i400"
+    },
+    {
+      "id": "baya-weaver-896x598",
+      "kind": "prepared",
+      "path": "images/prepared/le896/baya-weaver/source-896x598-gray8.i400",
+      "metadata": "images/prepared/le896/baya-weaver/manifest.json",
+      "sha256": "b91d856ba048095fbb066934a967531a82a8813f66acd18b3a1d4522edfc3c20",
+      "width": 896,
+      "height": 598,
+      "profile": "i400-8",
+      "orientation": "landscape",
+      "encoder_mode": "raw-i400"
+    },
+    {
+      "id": "elbrus-milky-way-598x896",
+      "kind": "prepared",
+      "path": "images/prepared/le896/elbrus-milky-way/source-598x896-gray8.i400",
+      "metadata": "images/prepared/le896/elbrus-milky-way/manifest.json",
+      "sha256": "517e9b5a796b6836d670a0e28a2a4e8517b47bfe496da8f47131be82a9364418",
+      "width": 598,
+      "height": 896,
+      "profile": "i400-8",
+      "orientation": "portrait",
+      "encoder_mode": "raw-i400"
+    }
+  ]
+}

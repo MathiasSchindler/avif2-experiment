@@ -1,0 +1,159 @@
+{
+  "acceptance": {
+    "accepted_dimensions": [
+      [
+        8,
+        8
+      ],
+      [
+        16,
+        16
+      ],
+      [
+        64,
+        64
+      ]
+    ],
+    "accepted_raw_input": "Complete I420 frame with constant neutral chroma plus --monochrome. All listed options were accepted; output decoded as width*height-byte I400 with every sample exactly 128.",
+    "accepted_y4m_probe": "Cmono Y4M at 8x8, 16x16, and 64x64 also encoded with the listed options.",
+    "rejected_raw_input": "Headerless width*height-byte I400 at 8x8, 16x16, and 64x64: avmenc exited 0 but consumed no complete frame and wrote a zero-byte OBU."
+  },
+  "avm": {
+    "avmdec": {
+      "bytes": 18324480,
+      "path": "build/reference/avm/avmdec",
+      "sha256": "c247cbb4e71e48bdec89f3c8b2b8efdce17f673aeaa39e3c116a276d16286aa0"
+    },
+    "avmenc": {
+      "bytes": 18372624,
+      "path": "build/reference/avm/avmenc",
+      "sha256": "830c5f7a82e071560501183fb85ea9e2632ce7665c9033232ac64b546efb7e64"
+    },
+    "revision": "966a7d7cd6fcf60360caf5dc413b2aeeb65e144d",
+    "version": "v1.0.0"
+  },
+  "cases": [
+    {
+      "decoded_output": {
+        "bytes": 64,
+        "constant_sample": 128,
+        "exact": true,
+        "format": "I400",
+        "sha256": "1df1b7ce1fd8fcbe20cde61646875e54fe38d8945ea7911afd59e025cc520a68"
+      },
+      "height": 8,
+      "input": {
+        "bytes": 96,
+        "path": "experimental/encoder/fixtures/avm-v1.0.0-monochrome/constant-128-8x8.i420",
+        "sha256": "1b34669db94decae583e183ee2ffeb07cf504b9f52fae0056c5cf343325157e4"
+      },
+      "name": "constant-128-8x8",
+      "obu": {
+        "bytes": 19,
+        "path": "experimental/encoder/fixtures/avm-v1.0.0-monochrome/constant-128-8x8.obu",
+        "sha256": "3fd4a46a30554e31d4fd1da790782ac44008973a809a28d1b52549df191861bc"
+      },
+      "width": 8
+    },
+    {
+      "decoded_output": {
+        "bytes": 256,
+        "constant_sample": 128,
+        "exact": true,
+        "format": "I400",
+        "sha256": "5a5f307aa9ce504d9235634f15cf382e8914c49fbd8dd4d4c47136c917886f7b"
+      },
+      "height": 16,
+      "input": {
+        "bytes": 384,
+        "path": "experimental/encoder/fixtures/avm-v1.0.0-monochrome/constant-128-16x16.i420",
+        "sha256": "f83545d43c6939ec393b6b8310959b6174fd764b08a12fc22d908408a7e6a43e"
+      },
+      "name": "constant-128-16x16",
+      "obu": {
+        "bytes": 20,
+        "path": "experimental/encoder/fixtures/avm-v1.0.0-monochrome/constant-128-16x16.obu",
+        "sha256": "75c83855428facf888a4415fde5bee3eec132635095ec462e3dd46a535ace58a"
+      },
+      "width": 16
+    },
+    {
+      "decoded_output": {
+        "bytes": 4096,
+        "constant_sample": 128,
+        "exact": true,
+        "format": "I400",
+        "sha256": "78aacbc3fb34efb8ffa5467b931291ec2bdf5e19564fc45fe97b5affbc893dc6"
+      },
+      "height": 64,
+      "input": {
+        "bytes": 6144,
+        "path": "experimental/encoder/fixtures/avm-v1.0.0-monochrome/constant-128-64x64.i420",
+        "sha256": "cb11e05cb5da949c0e0f5b5a7cb310df35a96a22c45d1ada70d950859fe697d1"
+      },
+      "name": "constant-128-64x64",
+      "obu": {
+        "bytes": 21,
+        "path": "experimental/encoder/fixtures/avm-v1.0.0-monochrome/constant-128-64x64.obu",
+        "sha256": "7f0052699dd7d9e3abb433508640e198d0c084fb0b04b39d9b5514cbaaa4a362"
+      },
+      "width": 64
+    }
+  ],
+  "commands": {
+    "decode": [
+      "build/reference/avm/avmdec",
+      "--codec=av2",
+      "--rawvideo",
+      "--limit=1",
+      "--output-bit-depth=8",
+      "-o",
+      "experimental/encoder/build/m1-fixture-generation/{name}.i400",
+      "experimental/encoder/fixtures/avm-v1.0.0-monochrome/{name}.obu"
+    ],
+    "encode": [
+      "build/reference/avm/avmenc",
+      "--codec=av2",
+      "--obu",
+      "--good",
+      "--quiet",
+      "--debug",
+      "--passes=1",
+      "--limit=1",
+      "--width={width}",
+      "--height={height}",
+      "--bit-depth=8",
+      "--input-bit-depth=8",
+      "--monochrome",
+      "--threads=1",
+      "--row-mt=0",
+      "--lag-in-frames=0",
+      "--lossless=1",
+      "--enable-tcq=0",
+      "--enable-cdef=0",
+      "--enable-restoration=0",
+      "--enable-deblocking=0",
+      "--enable-gdf=0",
+      "--enable-qm=0",
+      "--enable-palette=0",
+      "--enable-intrabc=0",
+      "--enable-ist=0",
+      "--enable-fsc=0",
+      "--enable-sdp=0",
+      "--enable-angle-delta=0",
+      "--enable-smooth-intra=0",
+      "--enable-paeth-intra=0",
+      "--enable-mrls=0",
+      "--enable-intra-dip=0",
+      "--enable-tx-partition=0",
+      "--enable-flip-idtx=0",
+      "-o",
+      "experimental/encoder/fixtures/avm-v1.0.0-monochrome/{name}.obu",
+      "experimental/encoder/fixtures/avm-v1.0.0-monochrome/{name}.i420"
+    ],
+    "substitution": "For each case, replace {width}, {height}, and {name} with that case values; run from repository root."
+  },
+  "description": "Project-authored constant inputs and small AVM oracle outputs; OBU data is not encoder implementation.",
+  "license": "CC0-1.0",
+  "schema": "av2-encoder-m1-fixtures-v1"
+}

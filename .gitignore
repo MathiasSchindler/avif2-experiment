@@ -34,3 +34,15 @@ __pycache__/
 !/experimental/wasm/**
 !/experimental/viewerdemo/
 !/experimental/viewerdemo/**
+!/experimental/encoder/
+!/experimental/encoder/**
+/experimental/encoder/.research/
+/experimental/encoder/build/
+/experimental/encoder/generated/
+/experimental/encoder/oracle-runs/
+/experimental/encoder/results/
+/experimental/encoder/spec-av2*
+/experimental/encoder/**/*.jsonl
+/experimental/encoder/**/*.log
+/experimental/encoder/**/__pycache__/
+/experimental/encoder/**/*.py[cod]

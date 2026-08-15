@@ -1,0 +1,7 @@
+# Metadata-only pointer; the licensed photographic bytes remain ignored under images/prepared.
+path=images/prepared/le896/baya-weaver/source-896x598-gray8.i400
+width=896
+height=598
+stride=896
+byte_size=535808
+sha256=b91d856ba048095fbb066934a967531a82a8813f66acd18b3a1d4522edfc3c20
