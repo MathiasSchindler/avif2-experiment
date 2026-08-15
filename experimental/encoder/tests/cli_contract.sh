@@ -76,11 +76,37 @@ dd if=/dev/zero of="$directory/conflict/source-8x8.i400" \
 cat >"$directory/conflict/manifest.json" <<'EOF'
 {
   "dimensions": [4, 16],
-  "outputs": {"gray8": {"filename": "source-8x8.i400"}}
+  "outputs": {
+    "gray8": {
+      "filename": "source-8x8.i400",
+      "byte_size": 64
+    }
+  }
 }
 EOF
 expect_status 3 "$encoder" "$directory/conflict/source-8x8.i400"
 grep -q 'geometry conflict' "$error"
+
+mkdir "$directory/record-mismatch"
+dd if=/dev/zero of="$directory/record-mismatch/plain.i400" \
+    bs=64 count=1 2>/dev/null
+cat >"$directory/record-mismatch/manifest.json" <<'EOF'
+{
+  "dimensions": [8, 8],
+  "outputs": {
+    "gray8": {
+      "filename": "other.i400",
+      "byte_size": 65
+    },
+    "yuv420p8": {
+      "filename": "plain.i400",
+      "byte_size": 64
+    }
+  }
+}
+EOF
+expect_status 3 "$encoder" "$directory/record-mismatch/plain.i400"
+grep -q 'geometry is ambiguous' "$error"
 
 dd if=/dev/zero of="$directory/color-8x8.i444" bs=192 count=1 2>/dev/null
 "$encoder" "$directory/color-8x8.i444" >/dev/null 2>"$error"

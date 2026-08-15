@@ -114,21 +114,152 @@ static int enc_bytes_equal(const char *left, const char *right, size_t count) {
     return 1;
 }
 
+static unsigned int enc_manifest_object(
+    const char *manifest, size_t search_start, size_t search_end, const char *key,
+    size_t key_size, size_t *object_start, size_t *object_end) {
+    size_t position;
+    unsigned int matches = 0U;
+    for (position = search_start; position + key_size <= search_end; ++position) {
+        size_t cursor;
+        size_t depth = 0U;
+        int in_string = 0;
+        int escaped = 0;
+        if (!enc_bytes_equal(manifest + position, key, key_size)) continue;
+        cursor = position + key_size;
+        while (cursor < search_end &&
+               (manifest[cursor] == ' ' || manifest[cursor] == '\n' ||
+                manifest[cursor] == '\r' || manifest[cursor] == '\t')) {
+            ++cursor;
+        }
+        if (cursor == search_end || manifest[cursor++] != ':') return 2U;
+        while (cursor < search_end &&
+               (manifest[cursor] == ' ' || manifest[cursor] == '\n' ||
+                manifest[cursor] == '\r' || manifest[cursor] == '\t')) {
+            ++cursor;
+        }
+        if (cursor == search_end || manifest[cursor] != '{') return 2U;
+        *object_start = cursor;
+        for (; cursor < search_end; ++cursor) {
+            char value = manifest[cursor];
+            if (in_string) {
+                if (escaped) {
+                    escaped = 0;
+                } else if (value == '\\') {
+                    escaped = 1;
+                } else if (value == '"') {
+                    in_string = 0;
+                }
+            } else if (value == '"') {
+                in_string = 1;
+            } else if (value == '{') {
+                ++depth;
+            } else if (value == '}') {
+                if (depth == 0U) return 2U;
+                --depth;
+                if (depth == 0U) {
+                    *object_end = cursor + 1U;
+                    break;
+                }
+            }
+        }
+        if (cursor == search_end || in_string || depth != 0U) return 2U;
+        ++matches;
+        position = cursor;
+    }
+    return matches;
+}
+
+static unsigned int enc_manifest_record_string(
+    const char *manifest, size_t start, size_t end, const char *key,
+    size_t key_size, const char *expected, size_t expected_size) {
+    size_t position;
+    unsigned int matches = 0U;
+    for (position = start; position + key_size <= end; ++position) {
+        size_t cursor;
+        if (!enc_bytes_equal(manifest + position, key, key_size)) continue;
+        cursor = position + key_size;
+        while (cursor < end &&
+               (manifest[cursor] == ' ' || manifest[cursor] == '\n' ||
+                manifest[cursor] == '\r' || manifest[cursor] == '\t')) {
+            ++cursor;
+        }
+        if (cursor == end || manifest[cursor++] != ':') return 2U;
+        while (cursor < end &&
+               (manifest[cursor] == ' ' || manifest[cursor] == '\n' ||
+                manifest[cursor] == '\r' || manifest[cursor] == '\t')) {
+            ++cursor;
+        }
+        if (cursor == end || manifest[cursor++] != '"' ||
+            cursor + expected_size >= end ||
+            !enc_bytes_equal(manifest + cursor, expected, expected_size) ||
+            manifest[cursor + expected_size] != '"') {
+            return 2U;
+        }
+        ++matches;
+    }
+    return matches;
+}
+
+static unsigned int enc_manifest_record_size(
+    const char *manifest, size_t start, size_t end, const char *key,
+    size_t key_size, size_t expected) {
+    size_t position;
+    unsigned int matches = 0U;
+    for (position = start; position + key_size <= end; ++position) {
+        size_t cursor;
+        size_t used;
+        size_t value;
+        if (!enc_bytes_equal(manifest + position, key, key_size)) continue;
+        cursor = position + key_size;
+        while (cursor < end &&
+               (manifest[cursor] == ' ' || manifest[cursor] == '\n' ||
+                manifest[cursor] == '\r' || manifest[cursor] == '\t')) {
+            ++cursor;
+        }
+        if (cursor == end || manifest[cursor++] != ':') return 2U;
+        while (cursor < end &&
+               (manifest[cursor] == ' ' || manifest[cursor] == '\n' ||
+                manifest[cursor] == '\r' || manifest[cursor] == '\t')) {
+            ++cursor;
+        }
+        if (!enc_parse_decimal(manifest + cursor, end - cursor, &used,
+                               &value) ||
+            value != expected) {
+            return 2U;
+        }
+        ++matches;
+    }
+    return matches;
+}
+
 static unsigned int enc_manifest_dimensions(
     const char *path, size_t *width, size_t *height) {
     static const char dimensions_key[] = "\"dimensions\"";
     static const char filename_key[] = "\"filename\"";
+    static const char byte_size_key[] = "\"byte_size\"";
+    static const char outputs_key[] = "\"outputs\"";
+    static const char gray_key[] = "\"gray8\"";
+    static const char i420_key[] = "\"yuv420p8\"";
+    static const char i444_key[] = "\"yuv444p8\"";
     char manifest_path[ENC_CLI_PATH_CAPACITY];
     char manifest[ENC_CLI_MANIFEST_CAPACITY];
     const char *base = enc_path_basename(path);
+    const char *extension = enc_path_extension(path);
+    const char *record_key;
+    size_t record_key_size;
     size_t base_size = enc_text_size(base);
     size_t directory_size = (size_t)(base - path);
     size_t manifest_size;
     size_t position;
+    size_t object_start = 0U;
+    size_t object_end = 0U;
+    size_t outputs_start = 0U;
+    size_t outputs_end = 0U;
+    size_t pixels;
+    size_t expected_size;
     size_t parsed_width = 0U;
     size_t parsed_height = 0U;
     unsigned int dimension_count = 0U;
-    unsigned int filename_count = 0U;
     if (directory_size + sizeof("manifest.json") > sizeof(manifest_path)) {
         return 2U;
     }
@@ -146,29 +277,6 @@ static unsigned int enc_manifest_dimensions(
                             &manifest_size) != ENC_OK) {
         return 0U;
     }
-    for (position = 0U; position + sizeof(filename_key) - 1U < manifest_size;
-         ++position) {
-        size_t cursor;
-        if (!enc_bytes_equal(manifest + position, filename_key,
-                             sizeof(filename_key) - 1U)) {
-            continue;
-        }
-        cursor = position + sizeof(filename_key) - 1U;
-        while (cursor < manifest_size &&
-               (manifest[cursor] == ' ' || manifest[cursor] == '\n' ||
-                manifest[cursor] == '\r' || manifest[cursor] == '\t' ||
-                manifest[cursor] == ':')) {
-            ++cursor;
-        }
-        if (cursor < manifest_size && manifest[cursor] == '"' &&
-            cursor + 1U + base_size < manifest_size &&
-            enc_bytes_equal(manifest + cursor + 1U, base, base_size) &&
-            manifest[cursor + 1U + base_size] == '"') {
-            ++filename_count;
-        }
-    }
-    if (filename_count == 0U) return 0U;
-    if (filename_count != 1U) return 2U;
     for (position = 0U; position + sizeof(dimensions_key) - 1U < manifest_size;
          ++position) {
         size_t cursor;
@@ -210,6 +318,47 @@ static unsigned int enc_manifest_dimensions(
         ++dimension_count;
     }
     if (dimension_count != 1U) return 2U;
+    if (!enc_size_multiply(parsed_width, parsed_height, &pixels)) return 2U;
+    if (extension != 0 && enc_extension_equal(extension, ".i400")) {
+        record_key = gray_key;
+        record_key_size = sizeof(gray_key) - 1U;
+        expected_size = pixels;
+    } else if (extension != 0 && enc_extension_equal(extension, ".i420")) {
+        size_t chroma_width;
+        size_t chroma_height;
+        size_t chroma_pixels;
+        if (parsed_width == SIZE_MAX || parsed_height == SIZE_MAX) return 2U;
+        chroma_width = (parsed_width + 1U) / 2U;
+        chroma_height = (parsed_height + 1U) / 2U;
+        if (!enc_size_multiply(chroma_width, chroma_height, &chroma_pixels) ||
+            chroma_pixels > (SIZE_MAX - pixels) / 2U) {
+            return 2U;
+        }
+        record_key = i420_key;
+        record_key_size = sizeof(i420_key) - 1U;
+        expected_size = pixels + 2U * chroma_pixels;
+    } else if (extension != 0 && enc_extension_equal(extension, ".i444")) {
+        if (pixels > SIZE_MAX / 3U) return 2U;
+        record_key = i444_key;
+        record_key_size = sizeof(i444_key) - 1U;
+        expected_size = 3U * pixels;
+    } else {
+        return 2U;
+    }
+    if (enc_manifest_object(manifest, 0U, manifest_size, outputs_key,
+                            sizeof(outputs_key) - 1U, &outputs_start,
+                            &outputs_end) != 1U ||
+        enc_manifest_object(manifest, outputs_start + 1U, outputs_end,
+                            record_key, record_key_size, &object_start,
+                            &object_end) != 1U ||
+        enc_manifest_record_string(
+            manifest, object_start, object_end, filename_key,
+            sizeof(filename_key) - 1U, base, base_size) != 1U ||
+        enc_manifest_record_size(
+            manifest, object_start, object_end, byte_size_key,
+            sizeof(byte_size_key) - 1U, expected_size) != 1U) {
+        return 2U;
+    }
     *width = parsed_width;
     *height = parsed_height;
     return 1U;

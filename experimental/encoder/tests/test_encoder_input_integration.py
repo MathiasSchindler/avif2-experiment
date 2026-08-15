@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 
 import shutil
+import struct
 import subprocess
+import zlib
 from pathlib import Path
 from unittest import TestCase
 
@@ -32,6 +34,90 @@ def chroma_pattern(
                 else value
             )
     return bytes(result)
+
+
+def png_i444(path: Path) -> bytes:
+    data = path.read_bytes()
+    if data[:8] != b"\x89PNG\r\n\x1a\n":
+        raise ValueError("not a PNG")
+    position = 8
+    width = height = color_type = 0
+    compressed = bytearray()
+    while position < len(data):
+        length = struct.unpack(">I", data[position:position + 4])[0]
+        name = data[position + 4:position + 8]
+        payload = data[position + 8:position + 8 + length]
+        position += 12 + length
+        if name == b"IHDR":
+            width, height, depth, color_type, compression, filtering, interlace = (
+                struct.unpack(">IIBBBBB", payload)
+            )
+            if (depth, compression, filtering, interlace) != (8, 0, 0, 0):
+                raise ValueError("unsupported PNG")
+        elif name == b"IDAT":
+            compressed.extend(payload)
+        elif name == b"IEND":
+            break
+    channels = {2: 3, 6: 4}.get(color_type)
+    if channels is None:
+        raise ValueError("expected RGB PNG")
+    packed = zlib.decompress(bytes(compressed))
+    stride = width * channels
+    rows = []
+    previous = bytearray(stride)
+    cursor = 0
+    for _ in range(height):
+        filter_type = packed[cursor]
+        cursor += 1
+        encoded = packed[cursor:cursor + stride]
+        cursor += stride
+        row = bytearray(stride)
+        for index, value in enumerate(encoded):
+            left = row[index - channels] if index >= channels else 0
+            above = previous[index]
+            upper_left = previous[index - channels] if index >= channels else 0
+            if filter_type == 0:
+                predictor = 0
+            elif filter_type == 1:
+                predictor = left
+            elif filter_type == 2:
+                predictor = above
+            elif filter_type == 3:
+                predictor = (left + above) // 2
+            elif filter_type == 4:
+                estimate = left + above - upper_left
+                distances = (
+                    abs(estimate - left),
+                    abs(estimate - above),
+                    abs(estimate - upper_left),
+                )
+                predictor = (left, above, upper_left)[distances.index(min(distances))]
+            else:
+                raise ValueError("invalid PNG filter")
+            row[index] = (value + predictor) & 255
+        rows.append(row)
+        previous = row
+    planes = [bytearray(), bytearray(), bytearray()]
+    def trunc_div256(value: int) -> int:
+        return value // 256 if value >= 0 else -((-value) // 256)
+
+    for row in rows:
+        for position in range(0, stride, channels):
+            red, green, blue = row[position:position + 3]
+            planes[0].append(
+                max(0, min(255, (54 * red + 183 * green + 19 * blue + 128) // 256))
+            )
+            planes[1].append(
+                max(0, min(255, 128 + trunc_div256(
+                    -29 * red - 99 * green + 128 * blue
+                )))
+            )
+            planes[2].append(
+                max(0, min(255, 128 + trunc_div256(
+                    128 * red - 116 * green - 12 * blue
+                )))
+            )
+    return b"".join(planes)
 
 
 class EncoderInputIntegrationTests(TestCase):
@@ -218,6 +304,23 @@ class EncoderInputIntegrationTests(TestCase):
                     stderr=subprocess.DEVNULL,
                 )
                 self.assertEqual(avm.read_bytes(), project_output.read_bytes())
+                if extension == "i444":
+                    expected_raw = WORK / "prepared-independent.i444"
+                    expected_raw.write_bytes(png_i444(source))
+                    expected_obu = WORK / "prepared-independent.obu"
+                    subprocess.run(
+                        [
+                            str(ENCODER), str(expected_raw),
+                            "--width", "896", "--height", "424",
+                            "--output", str(expected_obu),
+                        ],
+                        cwd=ROOT,
+                        check=True,
+                        stdout=subprocess.DEVNULL,
+                        stderr=subprocess.DEVNULL,
+                    )
+                    self.assertEqual(output.read_bytes(),
+                                     expected_obu.read_bytes())
 
 
 if __name__ == "__main__":
