@@ -41,11 +41,73 @@ typedef struct {
     size_t stream_capacity;
 } EncM3WorkspaceLayout;
 
+typedef enum {
+    ENC_M3_PIXEL_I420 = 0,
+    ENC_M3_PIXEL_I400 = 1,
+    ENC_M3_PIXEL_I444 = 2
+} EncM3PixelFormat;
+
+typedef struct {
+    const uint8_t *data;
+    size_t stride;
+    size_t capacity;
+} EncM3Plane8;
+
+typedef struct {
+    EncM3PixelFormat format;
+    size_t width;
+    size_t height;
+    EncM3Plane8 planes[3U];
+} EncM3Image8;
+
+typedef struct {
+    uint8_t *data;
+    size_t stride;
+    size_t capacity;
+} EncM3MutablePlane8;
+
+typedef struct {
+    EncM3PixelFormat format;
+    size_t width;
+    size_t height;
+    EncM3MutablePlane8 planes[3U];
+} EncM3MutableImage8;
+
+typedef struct {
+    size_t size;
+    size_t alignment;
+    size_t stream_capacity;
+    size_t plane_width[3U];
+    size_t plane_height[3U];
+    size_t plane_size[3U];
+    size_t reconstruction_size;
+} EncM3ChromaWorkspaceLayout;
+
+typedef struct {
+    size_t stream_size;
+    size_t workspace_size;
+    size_t plane_size[3U];
+    uint64_t squared_error[3U];
+    int16_t dc_level[3U];
+    uint8_t reconstructed_sample[3U];
+    unsigned int qindex;
+    EncM3PixelFormat format;
+} EncM3ChromaResult;
+
 uint8_t enc_m3_dc_prediction(
     const uint8_t *above, const uint8_t *left, size_t block_size);
 
 EncStatus enc_m3_query_workspace(
     size_t width, size_t height, EncM3WorkspaceLayout *layout);
+EncStatus enc_m3_query_chroma_workspace(
+    EncM3PixelFormat format, size_t width, size_t height,
+    EncM3ChromaWorkspaceLayout *layout);
+EncStatus enc_m3_dc_yuv8_q_workspace(
+    const EncM3Image8 *input, unsigned int qindex,
+    void *workspace, size_t workspace_capacity,
+    void *stream, size_t stream_capacity,
+    EncM3MutableImage8 *reconstruction,
+    EncM3ChromaResult *result);
 EncStatus enc_m3_dc_i400_q_workspace(
     const uint8_t *input, size_t width, size_t height, size_t stride,
     unsigned int qindex,

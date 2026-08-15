@@ -2,6 +2,7 @@
 #include "encoder/syntax.h"
 
 #include "normative_cdfs.inc"
+#include "normative_chroma_cdfs.inc"
 
 #define MATERIALIZE_TABLE(member, source, rows, symbols)                     \
     do {                                                                      \
@@ -29,6 +30,8 @@ EncStatus enc_syntax_cdfs_init(EncSyntaxCdfs *cdfs) {
     MATERIALIZE_TABLE(y_mode_set, enc_norm_y_mode_set, ENC_Y_MODE_SET_ROWS, 4U);
     MATERIALIZE_TABLE(
         y_mode_index, enc_norm_y_mode_index, ENC_Y_MODE_INDEX_ROWS, 8U);
+    MATERIALIZE_TABLE(is_cfl, enc_norm_is_cfl, ENC_IS_CFL_ROWS, 2U);
+    MATERIALIZE_TABLE(uv_mode, enc_norm_uv_mode, ENC_UV_MODE_ROWS, 8U);
     MATERIALIZE_TABLE(fsc_mode, enc_norm_fsc_mode, ENC_FSC_MODE_ROWS, 2U);
     MATERIALIZE_TABLE(
         tx_do_partition, enc_norm_tx_do_partition,
@@ -39,6 +42,19 @@ EncStatus enc_syntax_cdfs_init(EncSyntaxCdfs *cdfs) {
     MATERIALIZE_TABLE(
         palette_y_mode, enc_norm_palette_y_mode, ENC_PALETTE_Y_MODE_ROWS, 2U);
     MATERIALIZE_TABLE(txb_skip, enc_norm_txb_skip, ENC_TXB_SKIP_ROWS, 2U);
+    MATERIALIZE_TABLE(
+        v_txb_skip, enc_norm_v_txb_skip, ENC_V_TXB_SKIP_ROWS, 2U);
+    MATERIALIZE_TABLE(
+        chroma_eob_pt_16, enc_norm_chroma_eob_pt_16,
+        ENC_CHROMA_EOB_PT_16_ROWS, 5U);
+    MATERIALIZE_TABLE(
+        chroma_eob_pt_64, enc_norm_chroma_eob_pt_64,
+        ENC_CHROMA_EOB_PT_64_ROWS, 7U);
+    MATERIALIZE_TABLE(
+        coeff_base_lf_eob_uv, enc_norm_coeff_base_lf_eob_uv,
+        ENC_COEFF_BASE_LF_EOB_UV_ROWS, 5U);
+    MATERIALIZE_TABLE(
+        coeff_br_uv, enc_norm_coeff_br_uv, ENC_COEFF_BR_UV_ROWS, 4U);
     MATERIALIZE_TABLE(eob_pt_64, enc_norm_eob_pt_64, ENC_EOB_PT_64_ROWS, 7U);
     MATERIALIZE_TABLE(
         coeff_base_eob, enc_norm_coeff_base_eob,
@@ -99,6 +115,16 @@ uint16_t *enc_syntax_y_mode_index_cdf(EncSyntaxCdfs *cdfs, size_t context) {
     return cdfs != 0 && context < 3U ? cdfs->y_mode_index[context] : 0;
 }
 
+uint16_t *enc_syntax_is_cfl_cdf(EncSyntaxCdfs *cdfs, size_t context) {
+    return cdfs != 0 && context < ENC_IS_CFL_ROWS
+        ? cdfs->is_cfl[context] : 0;
+}
+
+uint16_t *enc_syntax_uv_mode_cdf(EncSyntaxCdfs *cdfs, size_t context) {
+    return cdfs != 0 && context < ENC_UV_MODE_ROWS
+        ? cdfs->uv_mode[context] : 0;
+}
+
 uint16_t *enc_syntax_fsc_mode_cdf(
     EncSyntaxCdfs *cdfs, size_t context, size_t block_size_context) {
     size_t row = context * 6U + block_size_context;
@@ -136,6 +162,43 @@ uint16_t *enc_syntax_txb_skip_cdf(
     return cdfs != 0 && q_context < 4U && plane_type < 2U &&
             tx_size < 5U && skip_context < 10U
         ? cdfs->txb_skip[row] : 0;
+}
+
+uint16_t *enc_syntax_v_txb_skip_cdf(
+    EncSyntaxCdfs *cdfs, size_t q_context, size_t skip_context) {
+    size_t row = q_context * 12U + skip_context;
+    return cdfs != 0 && q_context < 4U && skip_context < 12U
+        ? cdfs->v_txb_skip[row] : 0;
+}
+
+uint16_t *enc_syntax_chroma_eob_pt_cdf(
+    EncSyntaxCdfs *cdfs, size_t q_context, size_t tx_size,
+    size_t *symbol_count) {
+    size_t row = q_context * 3U + 2U;
+    if (cdfs == 0 || q_context >= 4U || symbol_count == 0) return 0;
+    if (tx_size == 0U) {
+        *symbol_count = 5U;
+        return cdfs->chroma_eob_pt_16[row];
+    }
+    if (tx_size == 1U) {
+        *symbol_count = 7U;
+        return cdfs->chroma_eob_pt_64[row];
+    }
+    return 0;
+}
+
+uint16_t *enc_syntax_coeff_base_lf_eob_uv_cdf(
+    EncSyntaxCdfs *cdfs, size_t q_context, size_t context) {
+    size_t row = q_context * 4U + context;
+    return cdfs != 0 && q_context < 4U && context < 4U
+        ? cdfs->coeff_base_lf_eob_uv[row] : 0;
+}
+
+uint16_t *enc_syntax_coeff_br_uv_cdf(
+    EncSyntaxCdfs *cdfs, size_t q_context, size_t context) {
+    size_t row = q_context * 4U + context;
+    return cdfs != 0 && q_context < 4U && context < 4U
+        ? cdfs->coeff_br_uv[row] : 0;
 }
 
 uint16_t *enc_syntax_eob_pt_64_cdf(

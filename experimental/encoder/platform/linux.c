@@ -281,6 +281,62 @@ EncStatus enc_file_write_atomic(const char *path, const void *buffer,
     return status;
 }
 
+EncStatus enc_file_read_small(const char *path, void *buffer, size_t capacity,
+                              size_t *size) {
+    EncFile file = {-1};
+    size_t used = 0U;
+    EncStatus status = ENC_OK;
+    if (path == 0 || buffer == 0 || capacity == 0U || size == 0) {
+        return ENC_INVALID_ARGUMENT;
+    }
+    if (enc_file_open_read(path, &file) != ENC_OK) return ENC_IO_ERROR;
+    while (used < capacity) {
+        size_t count = 0U;
+        status = enc_file_read(&file, (uint8_t *)buffer + used,
+                               capacity - used, &count);
+        if (status != ENC_OK || count == 0U) break;
+        used += count;
+    }
+    if (status == ENC_OK && used == capacity) {
+        uint8_t extra;
+        size_t count = 0U;
+        status = enc_file_read(&file, &extra, 1U, &count);
+        if (status == ENC_OK && count != 0U) status = ENC_OUT_OF_SPACE;
+    }
+    if (enc_file_close(&file) != ENC_OK && status == ENC_OK) {
+        status = ENC_IO_ERROR;
+    }
+    if (status == ENC_OK) *size = used;
+    return status;
+}
+
+EncStatus enc_paths_same_file(const char *left, const char *right, int *same) {
+    EncFile left_file = {-1};
+    EncFile right_file = {-1};
+    EncLinuxStat left_information;
+    EncLinuxStat right_information;
+    long result;
+    if (left == 0 || right == 0 || same == 0) return ENC_INVALID_ARGUMENT;
+    *same = 0;
+    if (enc_file_open_read(left, &left_file) != ENC_OK) return ENC_IO_ERROR;
+    if (enc_file_open_read(right, &right_file) != ENC_OK) {
+        (void)enc_file_close(&left_file);
+        return ENC_OK;
+    }
+    result = enc_syscall2(ENC_SYS_FSTAT, left_file.descriptor,
+                          (long)&left_information);
+    if (result >= 0) {
+        result = enc_syscall2(ENC_SYS_FSTAT, right_file.descriptor,
+                              (long)&right_information);
+    }
+    if (enc_file_close(&right_file) != ENC_OK && result >= 0) result = -1;
+    if (enc_file_close(&left_file) != ENC_OK && result >= 0) result = -1;
+    if (result < 0) return ENC_IO_ERROR;
+    *same = left_information.device == right_information.device &&
+            left_information.inode == right_information.inode;
+    return ENC_OK;
+}
+
 EncStatus enc_file_map_readonly_exact(const char *path, size_t expected_size,
                                       EncReadMapping *mapping) {
     EncFile file = {-1};

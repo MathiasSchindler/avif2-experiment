@@ -1,3 +1,4 @@
+#include "encoder/cli_input.h"
 #include "encoder/input.h"
 #include "encoder/m1.h"
 #include "encoder/m3.h"
@@ -160,7 +161,37 @@ static int run_constant_mode(const char *output_path) {
     return ENC_EXIT_OK;
 }
 
-static int run_i400_mode(long argument_count, char **arguments) {
+static int paths_equal(const char *left, const char *right) {
+    return strings_equal(left, right);
+}
+
+static int validate_output_path(const char *input_path,
+                                const char *output_path) {
+    int same = 0;
+    EncStatus status;
+    if (output_path == 0 || output_path[0] == '\0') {
+        report_error("encoder: invalid output path\n");
+        return ENC_EXIT_USAGE;
+    }
+    if (paths_equal(input_path, output_path)) {
+        report_error("encoder: output path must not be the input path\n");
+        return ENC_EXIT_INPUT_METADATA;
+    }
+    status = enc_paths_same_file(input_path, output_path, &same);
+    if (status != ENC_OK) {
+        report_error("encoder: cannot inspect input/output collision\n");
+        return ENC_EXIT_INPUT_IO;
+    }
+    if (same) {
+        report_error("encoder: output resolves to the input file\n");
+        return ENC_EXIT_INPUT_METADATA;
+    }
+    return ENC_EXIT_OK;
+}
+
+static int run_i400_encode(const char *input_path, size_t width,
+                           size_t height, size_t stride, size_t qindex,
+                           const char *output_path) {
     EncI400Input input;
     EncM3Result result;
     EncM3WorkspaceLayout layout;
@@ -168,57 +199,10 @@ static int run_i400_mode(long argument_count, char **arguments) {
     EncMemoryMapping stream = {0, 0U};
     EncMemoryMapping reconstruction = {0, 0U};
     EncStatus status;
-    size_t width;
-    size_t height;
-    size_t stride;
-    size_t qindex = ENC_M3_DEFAULT_QINDEX;
-    long option;
-    int saw_stride = 0;
-    int saw_qindex = 0;
-    const char *output_path;
-    if ((argument_count != 8 && argument_count != 10 &&
-         argument_count != 12) ||
-        !strings_equal(arguments[3], "--width") ||
-        !strings_equal(arguments[5], "--height")) {
-        report_error("usage: encoder --i400-8 INPUT --width W --height H "
-                     "[--stride S] [--qindex Q] OUTPUT\n");
-        return ENC_EXIT_USAGE;
-    }
-
-    if (!parse_size(arguments[4], &width) ||
-        !parse_size(arguments[6], &height)) {
-        report_error("encoder: invalid I400 dimensions\n");
-        return ENC_EXIT_INPUT_METADATA;
-    }
-    stride = width;
-    for (option = 7; option + 1 < argument_count - 1; option += 2) {
-        if (strings_equal(arguments[option], "--stride") && !saw_stride) {
-            if (!parse_size(arguments[option + 1], &stride)) {
-                report_error("encoder: invalid I400 stride\n");
-                return ENC_EXIT_INPUT_METADATA;
-            }
-            saw_stride = 1;
-        } else if (strings_equal(arguments[option], "--qindex") &&
-                   !saw_qindex) {
-            if (!parse_size(arguments[option + 1], &qindex) ||
-                qindex < ENC_M3_MIN_QINDEX ||
-                qindex > ENC_M3_MAX_QINDEX) {
-                report_error("encoder: qindex must be in 1..255\n");
-                return ENC_EXIT_INPUT_METADATA;
-            }
-            saw_qindex = 1;
-        } else {
-            report_error("usage: encoder --i400-8 INPUT --width W --height H "
-                         "[--stride S] [--qindex Q] OUTPUT\n");
-            return ENC_EXIT_USAGE;
-        }
-    }
-    output_path = arguments[argument_count - 1];
-    if (output_path == 0 || output_path[0] == '\0') {
-        report_error("encoder: invalid output path\n");
-        return ENC_EXIT_USAGE;
-    }
-    status = enc_i400_input_open(arguments[2], width, height, stride, &input);
+    int collision_status =
+        validate_output_path(input_path, output_path);
+    if (collision_status != ENC_EXIT_OK) return collision_status;
+    status = enc_i400_input_open(input_path, width, height, stride, &input);
     if (status == ENC_INVALID_ARGUMENT || status == ENC_OVERFLOW) {
         report_error("encoder: invalid I400 dimensions or stride\n");
         return ENC_EXIT_INPUT_METADATA;
@@ -288,6 +272,57 @@ static int run_i400_mode(long argument_count, char **arguments) {
     return ENC_EXIT_OK;
 }
 
+static int run_i400_mode(long argument_count, char **arguments) {
+    size_t width;
+    size_t height;
+    size_t stride;
+    size_t qindex = ENC_M3_DEFAULT_QINDEX;
+    long option;
+    int saw_stride = 0;
+    int saw_qindex = 0;
+    const char *output_path;
+    if ((argument_count != 8 && argument_count != 10 &&
+         argument_count != 12) ||
+        !strings_equal(arguments[3], "--width") ||
+        !strings_equal(arguments[5], "--height")) {
+        report_error("usage: encoder --i400-8 INPUT --width W --height H "
+                     "[--stride S] [--qindex Q] OUTPUT\n");
+        return ENC_EXIT_USAGE;
+    }
+
+    if (!parse_size(arguments[4], &width) ||
+        !parse_size(arguments[6], &height)) {
+        report_error("encoder: invalid I400 dimensions\n");
+        return ENC_EXIT_INPUT_METADATA;
+    }
+    stride = width;
+    for (option = 7; option + 1 < argument_count - 1; option += 2) {
+        if (strings_equal(arguments[option], "--stride") && !saw_stride) {
+            if (!parse_size(arguments[option + 1], &stride)) {
+                report_error("encoder: invalid I400 stride\n");
+                return ENC_EXIT_INPUT_METADATA;
+            }
+            saw_stride = 1;
+        } else if (strings_equal(arguments[option], "--qindex") &&
+                   !saw_qindex) {
+            if (!parse_size(arguments[option + 1], &qindex) ||
+                qindex < ENC_M3_MIN_QINDEX ||
+                qindex > ENC_M3_MAX_QINDEX) {
+                report_error("encoder: qindex must be in 1..255\n");
+                return ENC_EXIT_INPUT_METADATA;
+            }
+            saw_qindex = 1;
+        } else {
+            report_error("usage: encoder --i400-8 INPUT --width W --height H "
+                         "[--stride S] [--qindex Q] OUTPUT\n");
+            return ENC_EXIT_USAGE;
+        }
+    }
+    output_path = arguments[argument_count - 1];
+    return run_i400_encode(arguments[2], width, height, stride, qindex,
+                           output_path);
+}
+
 static int run_m4_mode(long argument_count, char **arguments) {
     EncI400Input input;
     EncM4Result result;
@@ -298,6 +333,11 @@ static int run_m4_mode(long argument_count, char **arguments) {
         report_error(
             "usage: encoder --experimental-m4-ac INPUT OUTPUT\n");
         return ENC_EXIT_USAGE;
+    }
+    {
+        int collision_status =
+            validate_output_path(arguments[2], arguments[3]);
+        if (collision_status != ENC_EXIT_OK) return collision_status;
     }
     status = enc_i400_input_open(arguments[2], 8U, 8U, 8U, &input);
     if (status == ENC_SIZE_MISMATCH) {
@@ -328,11 +368,164 @@ static int run_m4_mode(long argument_count, char **arguments) {
     return ENC_EXIT_OK;
 }
 
+static void report_generic_usage(void) {
+    report_error(
+        "usage: encoder INPUT [--output OUTPUT] [--qindex Q]\n"
+        "       encoder RAW [--width W --height H] [--stride S] "
+        "[--output OUTPUT] [--qindex Q]\n"
+        "       encoder --i400-8 INPUT --width W --height H "
+        "[--stride S] [--qindex Q] OUTPUT\n");
+}
+
+static int report_discovery_error(EncStatus status, EncCliInputIssue issue) {
+    if (status == ENC_IO_ERROR) {
+        report_error("encoder: cannot read input\n");
+        return ENC_EXIT_INPUT_IO;
+    }
+    if (issue == ENC_CLI_INPUT_ISSUE_UNKNOWN_FORMAT) {
+        report_error(
+            "encoder: unknown input format; expected .i400, .i420, .i444, "
+            ".png, or .bmp\n");
+    } else if (issue == ENC_CLI_INPUT_ISSUE_CONTENT_MISMATCH) {
+        report_error("encoder: input content does not match its extension\n");
+    } else if (issue == ENC_CLI_INPUT_ISSUE_METADATA_AMBIGUOUS) {
+        report_error(
+            "encoder: raw geometry is ambiguous; use --width and --height\n");
+    } else if (issue == ENC_CLI_INPUT_ISSUE_METADATA_CONFLICT) {
+        report_error(
+            "encoder: raw filename and sibling manifest geometry conflict\n");
+    } else {
+        report_error(
+            "encoder: raw geometry missing; use one WIDTHxHEIGHT filename "
+            "token, a matching sibling manifest.json, or --width/--height\n");
+    }
+    return ENC_EXIT_INPUT_METADATA;
+}
+
+static int run_inferred_mode(long argument_count, char **arguments) {
+    EncCliInputContract contract;
+    EncCliInputIssue issue;
+    EncStatus discovery_status;
+    const char *input_path = 0;
+    const char *output_path = 0;
+    char default_output[ENC_CLI_PATH_CAPACITY];
+    size_t width = 0U;
+    size_t height = 0U;
+    size_t stride = 0U;
+    size_t qindex = ENC_M3_DEFAULT_QINDEX;
+    int saw_width = 0;
+    int saw_height = 0;
+    int saw_stride = 0;
+    int saw_qindex = 0;
+    int saw_output = 0;
+    long index;
+    for (index = 1; index < argument_count; ++index) {
+        const char *argument = arguments[index];
+        if (strings_equal(argument, "--width") ||
+            strings_equal(argument, "--height") ||
+            strings_equal(argument, "--stride") ||
+            strings_equal(argument, "--qindex") ||
+            strings_equal(argument, "--output") ||
+            strings_equal(argument, "-o")) {
+            const char *value;
+            if (index + 1 >= argument_count) {
+                report_generic_usage();
+                return ENC_EXIT_USAGE;
+            }
+            value = arguments[++index];
+            if (strings_equal(argument, "--width") && !saw_width) {
+                if (!parse_size(value, &width)) {
+                    report_error("encoder: invalid raw width\n");
+                    return ENC_EXIT_INPUT_METADATA;
+                }
+                saw_width = 1;
+            } else if (strings_equal(argument, "--height") && !saw_height) {
+                if (!parse_size(value, &height)) {
+                    report_error("encoder: invalid raw height\n");
+                    return ENC_EXIT_INPUT_METADATA;
+                }
+                saw_height = 1;
+            } else if (strings_equal(argument, "--stride") && !saw_stride) {
+                if (!parse_size(value, &stride)) {
+                    report_error("encoder: invalid raw stride\n");
+                    return ENC_EXIT_INPUT_METADATA;
+                }
+                saw_stride = 1;
+            } else if (strings_equal(argument, "--qindex") && !saw_qindex) {
+                if (!parse_size(value, &qindex) ||
+                    qindex < ENC_M3_MIN_QINDEX ||
+                    qindex > ENC_M3_MAX_QINDEX) {
+                    report_error("encoder: qindex must be in 1..255\n");
+                    return ENC_EXIT_INPUT_METADATA;
+                }
+                saw_qindex = 1;
+            } else if ((strings_equal(argument, "--output") ||
+                        strings_equal(argument, "-o")) &&
+                       !saw_output) {
+                output_path = value;
+                saw_output = 1;
+            } else {
+                report_generic_usage();
+                return ENC_EXIT_USAGE;
+            }
+        } else if (argument[0] == '-') {
+            report_error("encoder: unknown option\n");
+            return ENC_EXIT_USAGE;
+        } else if (input_path == 0) {
+            input_path = argument;
+        } else {
+            report_generic_usage();
+            return ENC_EXIT_USAGE;
+        }
+    }
+    if (input_path == 0 || saw_width != saw_height) {
+        report_generic_usage();
+        return ENC_EXIT_USAGE;
+    }
+    discovery_status = enc_cli_input_discover(input_path, &contract, &issue);
+    if (discovery_status != ENC_OK &&
+        !(saw_width && (contract.format == ENC_CLI_INPUT_I400 ||
+                        contract.format == ENC_CLI_INPUT_I420 ||
+                        contract.format == ENC_CLI_INPUT_I444))) {
+        return report_discovery_error(discovery_status, issue);
+    }
+    if (output_path == 0) {
+        if (enc_cli_default_output(input_path, default_output,
+                                   sizeof(default_output)) != ENC_OK) {
+            report_error("encoder: cannot derive sibling .obu output path\n");
+            return ENC_EXIT_USAGE;
+        }
+        output_path = default_output;
+    }
+    if (contract.format == ENC_CLI_INPUT_PNG ||
+        contract.format == ENC_CLI_INPUT_BMP) {
+        int collision_status = validate_output_path(input_path, output_path);
+        if (collision_status != ENC_EXIT_OK) return collision_status;
+        report_error(
+            "encoder: BMP/PNG inputs default to 8-bit I444, but color "
+            "encoding is not supported by this encoder subset\n");
+        return ENC_EXIT_UNSUPPORTED;
+    }
+    if (contract.format != ENC_CLI_INPUT_I400) {
+        int collision_status = validate_output_path(input_path, output_path);
+        if (collision_status != ENC_EXIT_OK) return collision_status;
+        report_error(
+            "encoder: inferred raw chroma input is not supported by this "
+            "encoder subset\n");
+        return ENC_EXIT_UNSUPPORTED;
+    }
+    if (!saw_width) {
+        width = contract.width;
+        height = contract.height;
+    }
+    if (!saw_stride) stride = width;
+    return run_i400_encode(input_path, width, height, stride, qindex,
+                           output_path);
+}
+
 int encoder_main(long argument_count, char **arguments) {
     if (arguments == 0 || argument_count < 2) {
-        report_error("usage: encoder --constant-128-8x8 OUTPUT or "
-                     "--i400-8 INPUT --width W --height H "
-                     "[--stride S] [--qindex Q] OUTPUT\n");
+        report_generic_usage();
         return ENC_EXIT_USAGE;
     }
     if (argument_count == 3 &&
@@ -345,6 +538,5 @@ int encoder_main(long argument_count, char **arguments) {
     if (strings_equal(arguments[1], "--experimental-m4-ac")) {
         return run_m4_mode(argument_count, arguments);
     }
-    report_error("encoder: unknown mode\n");
-    return ENC_EXIT_USAGE;
+    return run_inferred_mode(argument_count, arguments);
 }

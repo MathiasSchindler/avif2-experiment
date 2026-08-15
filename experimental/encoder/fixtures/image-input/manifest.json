@@ -1,0 +1,58 @@
+{
+  "gray.bmp": {
+    "bytes": 1086,
+    "sha256": "7f59fef7411925fe2a500bbc67c2e1aa270ad142fb9bfd70f8b086c6a9b006df"
+  },
+  "gray.png": {
+    "bytes": 85,
+    "sha256": "728b0cb2037b6384e4c02139f61a90614287f6003e84ef5c3d9bfd66a31ce62e"
+  },
+  "invalid-deflate.png": {
+    "bytes": 85,
+    "sha256": "3ef747d1c3a9722f687a577b65baf3faf47530f4d7e11032fe22faf2e155e524"
+  },
+  "invalid-filter.png": {
+    "bytes": 70,
+    "sha256": "134797f617a6da0334c850f06f68e4d8bd9d1a324a2b808c6bede87fa71df665"
+  },
+  "overflow-dimensions.png": {
+    "bytes": 65,
+    "sha256": "888b4b50e766cda483bb95c3fee96fa358da8749c116352bcf9c6c67f565660d"
+  },
+  "palette.png": {
+    "bytes": 102,
+    "sha256": "ebbb118f5959c91322e61cc68a087f5597dc6a3763fe7b1c3d63c5407960cf9f"
+  },
+  "rgb-bottom-up.bmp": {
+    "bytes": 78,
+    "sha256": "a34c72483aadc766a4414f6755b25e32a2946bdd7c7915b7d27958c6c357d77e"
+  },
+  "rgb-filters-dynamic.png": {
+    "bytes": 125,
+    "sha256": "7fb4e50dcffb7a77edafa0a1aea7b7d4fab45a5200c9783fade4d9e6e500e96d"
+  },
+  "rgb-fixed.png": {
+    "bytes": 125,
+    "sha256": "2a29cd9ebfaefdb0dba77e7c5f0905cbee1159c0b221406778e2c1236c5cb62b"
+  },
+  "rgb-stored.png": {
+    "bytes": 130,
+    "sha256": "808b5719638da4d7c76c013c7e65ef03efd475f838c3a4ad7cd5dc2dfd87a68e"
+  },
+  "rgb-top-down.bmp": {
+    "bytes": 78,
+    "sha256": "dffd25d10a95b8a6af73326f4de72e6c01a7c5f5ed432c8d3b98918bfe5e0a53"
+  },
+  "rgba.png": {
+    "bytes": 85,
+    "sha256": "4dbbd8961bac7aaf4d325c7f3601713fd327b27fbd4fb0e006bb048ef629a98b"
+  },
+  "unsupported-depth.png": {
+    "bytes": 67,
+    "sha256": "acff988065612b66d84f101e1473edfeda7b623c26d61ab7d2af6af927380565"
+  },
+  "unsupported-interlace.png": {
+    "bytes": 67,
+    "sha256": "78e373209602be76929fe1367370c3c5c68eb49fbd988dacf6bc8e2f033c188a"
+  }
+}

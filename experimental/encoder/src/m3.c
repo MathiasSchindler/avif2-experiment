@@ -49,6 +49,22 @@ static uint8_t reconstructed_value(
     return (uint8_t)value;
 }
 
+static uint8_t reconstructed_chroma_value(
+    int level, uint8_t prediction, uint32_t q, unsigned int shift) {
+    unsigned int magnitude =
+        level < 0 ? (unsigned int)(-level) : (unsigned int)level;
+    uint32_t dequant_magnitude =
+        ((uint32_t)magnitude * q + 4U) >> 3U;
+    int dequant = level < 0
+        ? -(int)dequant_magnitude : (int)dequant_magnitude;
+    int row;
+    int residual;
+    dequant = clip_int(-32768, 32767, dequant);
+    row = clip_int(-32768, 32767, round_shift(64 * dequant, 7U));
+    residual = clip_int(-256, 255, round_shift(64 * row, shift));
+    return (uint8_t)clip_int(0, 255, (int)prediction + residual);
+}
+
 static uint64_t block_error(
     const uint8_t *input, size_t width, size_t height, size_t stride,
     size_t block_x, size_t block_y, uint8_t reconstructed) {
@@ -152,6 +168,289 @@ static int ranges_overlap(
     return left_address < right_end && right_address < left_end;
 }
 
+static void clear_chroma_result(EncM3ChromaResult *result) {
+        size_t plane;
+        if (result == 0) return;
+        result->stream_size = 0U;
+        result->workspace_size = 0U;
+        result->qindex = 0U;
+        result->format = ENC_M3_PIXEL_I400;
+        for (plane = 0U; plane < 3U; ++plane) {
+            result->plane_size[plane] = 0U;
+            result->squared_error[plane] = 0U;
+            result->dc_level[plane] = 0;
+            result->reconstructed_sample[plane] = 0U;
+        }
+    }
+
+EncStatus enc_m3_query_chroma_workspace(
+        EncM3PixelFormat format, size_t width, size_t height,
+        EncM3ChromaWorkspaceLayout *layout) {
+        EncM3ChromaWorkspaceLayout candidate;
+        size_t plane;
+        size_t total = 0U;
+        if (layout == 0 || width == 0U || height == 0U ||
+            (format != ENC_M3_PIXEL_I420 && format != ENC_M3_PIXEL_I444)) {
+            return ENC_INVALID_ARGUMENT;
+        }
+        if (width != 8U || height != 8U) return ENC_UNSUPPORTED;
+        candidate.alignment = 1U;
+        candidate.stream_capacity = ENC_M3_LEGACY_MAX_STREAM_SIZE;
+        candidate.plane_width[0] = width;
+        candidate.plane_height[0] = height;
+        candidate.plane_width[1] =
+            format == ENC_M3_PIXEL_I420 ? (width + 1U) / 2U : width;
+        candidate.plane_height[1] =
+            format == ENC_M3_PIXEL_I420 ? (height + 1U) / 2U : height;
+        candidate.plane_width[2] = candidate.plane_width[1];
+        candidate.plane_height[2] = candidate.plane_height[1];
+        for (plane = 0U; plane < 3U; ++plane) {
+            if (!enc_size_multiply(
+                    candidate.plane_width[plane],
+                    candidate.plane_height[plane],
+                    &candidate.plane_size[plane]) ||
+                !enc_size_add(total, candidate.plane_size[plane], &total)) {
+                return ENC_OVERFLOW;
+            }
+        }
+        candidate.reconstruction_size = total;
+        if (!enc_size_add(
+                total, candidate.stream_capacity, &candidate.size)) {
+            return ENC_OVERFLOW;
+        }
+        *layout = candidate;
+        return ENC_OK;
+    }
+
+static int plane_span_size(
+        size_t width, size_t height, size_t stride, size_t *size) {
+        size_t last_row;
+        if (width == 0U || height == 0U || stride < width || size == 0) return 0;
+        return enc_size_multiply(height - 1U, stride, &last_row) &&
+            enc_size_add(last_row, width, size);
+    }
+
+static void search_chroma_plane(
+        const EncM3Plane8 *plane, size_t width, size_t height,
+        uint32_t q, unsigned int shift,
+        int16_t *best_level, uint8_t *best_value, uint64_t *best_error) {
+        unsigned int max_level =
+            (unsigned int)((UINT32_C(32768) * 8U + q - 1U) / q + 1U);
+        int level;
+        size_t y;
+        size_t x;
+        *best_level = 0;
+        *best_value = 128U;
+        *best_error = 0U;
+        for (y = 0U; y < height; ++y) {
+            for (x = 0U; x < width; ++x) {
+                int difference = (int)plane->data[y * plane->stride + x] - 128;
+                *best_error += (uint64_t)(difference * difference);
+            }
+        }
+        for (level = 1; level <= (int)max_level && *best_error != 0U; ++level) {
+            int sign;
+            for (sign = 0; sign < 2; ++sign) {
+                int candidate_level = sign == 0 ? level : -level;
+                uint8_t candidate_value = reconstructed_chroma_value(
+                    candidate_level, 128U, q, shift);
+                uint64_t error = 0U;
+                for (y = 0U; y < height; ++y) {
+                    for (x = 0U; x < width; ++x) {
+                        int difference =
+                            (int)plane->data[y * plane->stride + x] -
+                            (int)candidate_value;
+                        error += (uint64_t)(difference * difference);
+                    }
+                }
+                if (error < *best_error) {
+                    *best_error = error;
+                    *best_level = (int16_t)candidate_level;
+                    *best_value = candidate_value;
+                }
+            }
+        }
+    }
+
+EncStatus enc_m3_dc_yuv8_q_workspace(
+        const EncM3Image8 *input, unsigned int qindex,
+        void *workspace, size_t workspace_capacity,
+        void *stream, size_t stream_capacity,
+        EncM3MutableImage8 *reconstruction,
+        EncM3ChromaResult *result) {
+        EncM3ChromaWorkspaceLayout layout;
+        EncM3ChromaResult candidate;
+        uint8_t sequence[16U];
+        uint8_t frame_header[8U];
+        uint8_t tile[224U];
+        uint8_t frame_payload[232U];
+        uint8_t *staged_reconstruction = (uint8_t *)workspace;
+        uint8_t *staged_stream;
+        EncByteWriter payload_writer;
+        EncByteWriter writer;
+        size_t input_span[3U];
+        size_t output_span[3U];
+        size_t offsets[3U] = {0U, 0U, 0U};
+        size_t sequence_size;
+        size_t frame_header_size;
+        size_t tile_size;
+        size_t plane;
+        uint32_t q;
+        EncStatus status;
+        clear_chroma_result(result);
+        clear_chroma_result(&candidate);
+        if (input == 0 || reconstruction == 0 || result == 0 ||
+            workspace == 0 || (stream == 0 && stream_capacity != 0U) ||
+            qindex < ENC_M3_MIN_QINDEX || qindex > ENC_M3_MAX_QINDEX ||
+            input->format != reconstruction->format ||
+            input->width != reconstruction->width ||
+            input->height != reconstruction->height) {
+            return ENC_INVALID_ARGUMENT;
+        }
+        status = enc_m3_query_chroma_workspace(
+            input->format, input->width, input->height, &layout);
+        if (status != ENC_OK) return status;
+        if (workspace_capacity < layout.size) return ENC_OUT_OF_SPACE;
+        staged_stream = staged_reconstruction + layout.reconstruction_size;
+        offsets[1] = layout.plane_size[0];
+        offsets[2] = offsets[1] + layout.plane_size[1];
+        for (plane = 0U; plane < 3U; ++plane) {
+            if (input->planes[plane].data == 0 ||
+                reconstruction->planes[plane].data == 0 ||
+                !plane_span_size(
+                    layout.plane_width[plane], layout.plane_height[plane],
+                    input->planes[plane].stride, &input_span[plane]) ||
+                !plane_span_size(
+                    layout.plane_width[plane], layout.plane_height[plane],
+                    reconstruction->planes[plane].stride,
+                    &output_span[plane])) {
+                return ENC_INVALID_ARGUMENT;
+            }
+            if (input->planes[plane].capacity < input_span[plane] ||
+                reconstruction->planes[plane].capacity < output_span[plane]) {
+                return ENC_OUT_OF_SPACE;
+            }
+            if (ranges_overlap(
+                    workspace, layout.size,
+                    input->planes[plane].data, input_span[plane]) ||
+                ranges_overlap(
+                    workspace, layout.size,
+                    reconstruction->planes[plane].data, output_span[plane]) ||
+                ranges_overlap(
+                    stream, stream_capacity,
+                    input->planes[plane].data, input_span[plane]) ||
+                ranges_overlap(
+                    stream, stream_capacity,
+                    reconstruction->planes[plane].data, output_span[plane])) {
+                return ENC_INVALID_ARGUMENT;
+            }
+        }
+        for (plane = 0U; plane < 3U; ++plane) {
+            size_t other;
+            for (other = plane + 1U; other < 3U; ++other) {
+                if (ranges_overlap(
+                        reconstruction->planes[plane].data, output_span[plane],
+                        reconstruction->planes[other].data, output_span[other])) {
+                    return ENC_INVALID_ARGUMENT;
+                }
+                if (ranges_overlap(
+                        reconstruction->planes[plane].data, output_span[plane],
+                        input->planes[other].data, input_span[other]) ||
+                    ranges_overlap(
+                        reconstruction->planes[other].data, output_span[other],
+                        input->planes[plane].data, input_span[plane])) {
+                    return ENC_INVALID_ARGUMENT;
+                }
+            }
+        }
+        if (ranges_overlap(
+                workspace, layout.size, stream, stream_capacity)) {
+            return ENC_INVALID_ARGUMENT;
+        }
+        for (plane = 0U; plane < 3U; ++plane) {
+            if (ranges_overlap(
+                    reconstruction->planes[plane].data, output_span[plane],
+                    input->planes[plane].data, input_span[plane])) {
+                return ENC_INVALID_ARGUMENT;
+            }
+        }
+        q = qlookup(qindex);
+        for (plane = 0U; plane < 3U; ++plane) {
+            uint8_t value;
+            uint64_t error;
+            int16_t level;
+            size_t y;
+            size_t x;
+            search_chroma_plane(
+                &input->planes[plane],
+                layout.plane_width[plane], layout.plane_height[plane], q,
+                plane == 0U || input->format == ENC_M3_PIXEL_I444 ? 11U : 10U,
+                &level, &value, &error);
+            candidate.dc_level[plane] = level;
+            candidate.reconstructed_sample[plane] = value;
+            candidate.squared_error[plane] = error;
+            candidate.plane_size[plane] = layout.plane_size[plane];
+            for (y = 0U; y < layout.plane_height[plane]; ++y) {
+                for (x = 0U; x < layout.plane_width[plane]; ++x) {
+                    staged_reconstruction[offsets[plane] +
+                        y * layout.plane_width[plane] + x] = value;
+                }
+            }
+        }
+        status = enc_m3_sequence_header_for_format(
+            sequence, sizeof(sequence), &sequence_size,
+            input->width, input->height, (unsigned int)input->format);
+        if (status != ENC_OK) return status;
+        status = enc_m3_frame_header_q_for_size(
+            frame_header, sizeof(frame_header), &frame_header_size,
+            input->width, input->height, qindex);
+        if (status != ENC_OK) return status;
+        status = enc_m3_dc_i420_i444_8x8_tile_q(
+            tile, sizeof(tile), &tile_size,
+            candidate.dc_level[0], candidate.dc_level[1], candidate.dc_level[2],
+            (unsigned int)input->format, qindex);
+        if (status != ENC_OK) return status;
+        enc_byte_writer_init(
+            &payload_writer, frame_payload, sizeof(frame_payload));
+        if (enc_byte_writer_write(
+                &payload_writer, frame_header, frame_header_size) != ENC_OK ||
+            enc_byte_writer_write(
+                &payload_writer, tile, tile_size) != ENC_OK) {
+            return payload_writer.status;
+        }
+        enc_byte_writer_init(
+            &writer, staged_stream, layout.stream_capacity);
+        if (enc_obu_write(&writer, 2U, 0, 0U) != ENC_OK ||
+            enc_obu_write(&writer, 1U, sequence, sequence_size) != ENC_OK ||
+            enc_obu_write(
+                &writer, 4U, frame_payload, payload_writer.position) != ENC_OK) {
+            return writer.status;
+        }
+        if (writer.position > stream_capacity) return ENC_OUT_OF_SPACE;
+        for (plane = 0U; plane < 3U; ++plane) {
+            size_t y;
+            for (y = 0U; y < layout.plane_height[plane]; ++y) {
+                status = enc_memory_copy(
+                    reconstruction->planes[plane].data +
+                        y * reconstruction->planes[plane].stride,
+                    reconstruction->planes[plane].capacity -
+                        y * reconstruction->planes[plane].stride,
+                    staged_reconstruction + offsets[plane] +
+                        y * layout.plane_width[plane],
+                    layout.plane_width[plane]);
+                if (status != ENC_OK) return status;
+            }
+        }
+        status = enc_memory_copy(
+            stream, stream_capacity, staged_stream, writer.position);
+        if (status != ENC_OK) return status;
+        candidate.stream_size = writer.position;
+        candidate.workspace_size = layout.size;
+        candidate.qindex = qindex;
+        candidate.format = input->format;
+        *result = candidate;
+        return ENC_OK;
+    }
 EncStatus enc_m3_query_workspace(
     size_t width, size_t height, EncM3WorkspaceLayout *layout) {
     EncM3WorkspaceLayout candidate;

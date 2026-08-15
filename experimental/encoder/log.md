@@ -4,6 +4,29 @@ This is an append-only record of decisions, commands, pins, hashes, gate
 results, blockers, and restart points. Do not replace exact values with links
 or “latest”.
 
+## 2026-08-15 — Raw planar input abstractions
+
+- **Status:** PASS.
+- **Boundary:** dependency-free input metadata and loading, separate from AV2
+  syntax and the I400-only CLI integration.
+- **Formats:** typed 8-bit I400, I420, and I444 plane descriptors with explicit
+  byte spans, width, height, and stride.
+- **Geometry:** checked products and accumulated offsets; odd I420 dimensions
+  use ceil division independently on both axes. The existing 16384-per-axis and
+  256 MiB input bounds remain authoritative.
+- **Files:** read-only platform mappings require the exact packed planar size;
+  short inputs and trailing bytes both fail. Close unmaps once and clears all
+  borrowed pointers. External image validation rejects malformed geometry,
+  size disagreement, overlapping plane spans, and pointer-range overflow.
+- **Discovery:** only the existing prepared `manifest.json` layout and exact
+  `source-WxH-{gray8,yuv420p8,yuv444p8}.{i400,i420,i444}` names carry implicit
+  dimensions. Generic raw filenames are never guessed.
+- **Provenance:** reused the already recorded encoder-local CC0 newos checked
+  arithmetic/span/ownership patterns; copied no new external source.
+- **Validation:** native C geometry/load/cleanup/alias/overflow tests, Python
+  manifest/name tests, CLI short/excess checks, full encoder unit suite, strict
+  dependency audit, and static ELF audit pass.
+
 ## Entry template
 
 ```text
@@ -28,6 +51,33 @@ Gate result:
 Decision or blocker:
 Next restart command/boundary:
 ```
+
+## 2026-08-15 — Freestanding BMP/PNG input module
+
+- **Status:** BLOCKED (implementation and targeted gates pass; full shared
+  suite has unrelated generated-lock mismatches).
+- **Milestone:** `encoder-input-bmp-png`.
+- **Implementation:** dependency-free BMP/PNG, CRC-32, zlib/DEFLATE,
+  unfiltering, and deterministic typed I400/I444 conversion. Storage is
+  caller-owned and CLI/codec integration remains separate.
+- **Subset:** BMP BI_RGB grayscale palette/24-bit BGR with both row
+  directions and padding; PNG non-interlaced 8-bit grayscale/RGB/RGBA/palette,
+  all filters, split IDAT, and stored/fixed/dynamic DEFLATE.
+- **Alpha:** ignored, with documented full-range integer RGB conversion.
+- **Provenance:** newos CC0 revision
+  `972ca695b3f4b401a00f596ed78172dd1ceb03cf`; exact files and local boundary
+  are recorded in `PROVENANCE.md`.
+- **Tests:** reproducibly generated fixtures, malformed/truncated/CRC/filter/
+  DEFLATE/capacity/overflow/unsupported cases, both BMP orientations, and an
+  optional prepared 896×896 RGB PNG.
+- **Isolation:** the module compiles under freestanding warning-as-error flags;
+  existing static nolibc ELF and dependency audits remain mandatory.
+- **Gate result:** image-input tests, prepared PNG decode, generated-fixture
+  check, freestanding compile, and dependency/static ELF audits pass.
+  `make test-unit` reaches 117 Python tests but currently fails four unrelated
+  CDF/vector locks changed concurrently (`test_cdf_subset`,
+  `test_m3_boundary_partition_transcript`, `test_m3_multileaf_cdf_model`, and
+  `test_m3_edge_coeff_model`). No image-input test fails.
 
 ## 2026-08-15 — Architecture plan
 

@@ -24,6 +24,10 @@ EncStatus enc_file_write_all(EncFile *file, const void *buffer, size_t size);
 EncStatus enc_file_close(EncFile *file);
 EncStatus enc_file_write_atomic(const char *path, const void *buffer,
                                 size_t size);
+EncStatus enc_file_read_small(const char *path, void *buffer, size_t capacity,
+                              size_t *size);
+EncStatus enc_paths_same_file(const char *left, const char *right,
+                              int *same);
 EncStatus enc_file_map_readonly_exact(const char *path, size_t expected_size,
                                       EncReadMapping *mapping);
 EncStatus enc_file_unmap(EncReadMapping *mapping);

@@ -17,6 +17,11 @@ runtime dependency.
   `src/writer.c` use encoder-local names and interfaces. No newos file is
   compiled or linked.
 
+The planar input implementation reuses only those already recorded
+encoder-local checked-addition, checked-multiplication, bounded-span, and
+explicit-ownership patterns. No additional newos source or interface was
+copied for the I400/I420/I444 loader.
+
 ## Linux x86-64 process substrate
 
 - **Revision:** `972ca695b3f4b401a00f596ed78172dd1ceb03cf`
@@ -33,6 +38,23 @@ The reviewed newos revisions declare CC0-1.0. This record covers copied or
 adapted concepts and their local ownership boundary; no decoder source,
 header, object, library, generated table, or build target is part of the
 encoder implementation.
+
+## BMP, PNG, CRC, and zlib/DEFLATE input research
+
+- **Revision:** `972ca695b3f4b401a00f596ed78172dd1ceb03cf`
+- **Reviewed paths:** `src/shared/image/bmp.c`,
+  `src/shared/image/png.c`, `src/shared/compression/crc32.c`,
+  `src/shared/compression/zlib.c`, and their local headers.
+- **License checked:** `/home/mathias/newos/LICENSE`, CC0 1.0 Universal.
+- **Concepts adapted:** bounded endian reads, BMP signed-height and
+  compression classification, PNG chunk walking, nibble-table CRC-32,
+  Adler-32, LSB-first DEFLATE reads, canonical Huffman construction,
+  stored/fixed/dynamic blocks, and overlapping LZ77 copies.
+- **Local boundary:** `include/encoder/image_input.h` and
+  `src/image_input.c` use encoder-local interfaces, caller-owned storage,
+  stricter subset validation, local unfiltering, and local integer YUV
+  conversion. No newos file is compiled, linked, or required at runtime.
+  Encoder CLI and codec integration are outside this change.
 
 ## AV2 v1.0.0 normative CDF attachments
 
