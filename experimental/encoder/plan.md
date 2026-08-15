@@ -205,7 +205,7 @@ Pinned `avmdec` and the project decoder both accept it and produce the same
 This is only a fixed constant-image milestone, not arbitrary-image support.
 Exact commands, tool hashes, measurements, and limitations are in `log.md`.
 
-### [~] M2 — Complete entropy-writing foundation
+### [x] M2 — Complete entropy-writing foundation
 
 Implement normalized range encoding, bypass literals, inverse-CDF symbol
 mapping, adaptive CDF updates, tell/cost accounting, flush behavior, default
@@ -213,14 +213,25 @@ CDF expansion, and syntax helpers for signed, quasi-uniform, UVLC, alignment,
 and coefficient values. Build round-trip transcripts against independently
 specified decoder vectors and freeze exact encoded bytes.
 
-**Exit:** all alphabet sizes and update-rate boundaries pass; split-buffer and
-capacity tests pass; symbol transcripts decode exactly in both validators.
+**Exit:** independent C and Python transcript decoders agree with the C writer
+for every alphabet size 2 through 16 and update boundary; split-buffer and
+capacity tests pass. Separately, generated complete M1/M3/M4 streams decode
+byte-identically in the pinned `avmdec` and project decoder. Raw range
+transcripts are not image streams and are never presented to those decoders.
 
-Range writing and the M1 CDF subset exist, but the complete M2 transcript and
-alphabet gate has not passed. The independent Python decoder model is blocked
-on the recorded AV2 v1.0.0 attachment/black-box delta-Q discrepancy. Current
-active work is to resolve that model, extend the syntax/CDF foundation, and add
-bounded raw-I400 input plumbing without claiming that those pixels are encoded.
+**Completed result:** the normalized writer and independent decoder models
+cover every supported alphabet size (2 through 16), every symbol, exact
+tell/cost changes, bypass literals through 32 bits, deterministic finish,
+split-buffer decoding, long carry/`0xff` paths, and exact/short/zero
+capacities. CDF materialization and adaptation cover all 125 normative
+parameter combinations and the count transitions around 16 and 32. Raw and
+range syntax helpers cover signed literals, UVLC/SVLC, `ns`, subexponential
+coding with reference recentering, alignment/trailing bits, and general
+base/BR/remainder coefficient values. The C and Python models independently
+decode the frozen writer transcript matrix; six generated complete M1/M3/M4
+streams, rather than raw transcripts, decode exactly in the hash-pinned AVM
+v1.0.0 and project validators. Exact commands, hashes, capacities, and post-M2
+limits are recorded in `log.md` and `spec-notes/m2-validator-matrix.md`.
 
 ### [~] M3 — Real prepared-image DC encoder
 
@@ -233,15 +244,24 @@ quantize/reconstruct locally, and extend edges. No input pixels may be ignored.
 the encoder's reconstruction hash exactly equals each validator's decoded
 hash; quality changes monotonically in aggregate over a locked Q sweep.
 
-**Completed bounded submilestone (not full M3):** arbitrary-pixel 8×8, 8×16,
-16×8, and 16×16 I400 inputs use legal 8×8 transform grids at qindex 100.
+**Completed bounded submilestone (not full M3):** arbitrary-pixel dimensions
+1 through 16 use legal edge-extended 8×8 transform grids. Qindex 1 through 255
+is configurable, with default 100 compatibility. A locked generated/prepared
+crop sweep proves exact local/AVM/project parity and aggregate SSE
+non-increasing as qindex decreases (quality increases).
+The complete 256-pair dimension matrix is exercised with an odd-sensitive
+pattern through local reconstruction and both decoders.
+Caller-owned stream and compact active reconstruction spans are capacity
+checked; the core stages both and commits neither on output or reconstruction
+exhaustion. The CLI retains atomic `.obu` replacement and reports exact bytes,
+active-pixel SSE/PSNR, reconstruction bytes, and qindex.
 Boundary-implied
 rectangular prediction blocks split horizontally or vertically into two 8×8
 transforms; 16×16 splits four ways. Raster reconstruction, coefficient
 contexts, base/BR/remainder syntax, exact dequantization, inverse-DC
 reconstruction, and clipping are decoder-exact. The gate remains active
-because odd and broader dimensions, the locked Q sweep, general partition/mode
-search, filters, and rate control are not implemented. A shared-tree 32×32
+because broader dimensions, general partition/mode search, filters, and rate
+control are not implemented. A shared-tree 32×32
 four-16×16-prediction-block attempt exists, but its current stream is rejected
 at tile data by pinned `avmdec`; it is not supported or part of this completed
 submilestone.

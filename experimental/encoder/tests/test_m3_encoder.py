@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import math
+import os
 import re
 import shutil
 import subprocess
@@ -17,6 +18,11 @@ from validator_support import configured_path, require_executable, require_valid
 
 
 class M3EncoderTests(unittest.TestCase):
+    AC_QLOOKUP = (
+        64, 40, 41, 43, 44, 45, 47, 48, 49, 51, 52, 54, 55,
+        57, 59, 60, 62, 64, 66, 68, 70, 72, 74, 76, 78,
+    )
+
     def setUp(self) -> None:
         self.binary = ENCODER / "build/av2-encoder-experiment"
         require_executable(self, self.binary, "experimental encoder")
@@ -33,7 +39,7 @@ class M3EncoderTests(unittest.TestCase):
             ),
             "project decoder",
         )
-        self.work = ENCODER / "build/m3-encoder-test"
+        self.work = ENCODER / f"build/m3-encoder-test-{os.getpid()}"
         shutil.rmtree(self.work, ignore_errors=True)
         self.work.mkdir(parents=True)
 
@@ -45,8 +51,19 @@ class M3EncoderTests(unittest.TestCase):
         return (value + (1 << (bits - 1))) >> bits
 
     @classmethod
-    def reconstruct_level(cls, level: int, prediction: int) -> int:
-        magnitude = cls.round2(abs(level) * 704, 3)
+    def qlookup(cls, qindex: int) -> int:
+        if qindex < 25:
+            return cls.AC_QLOOKUP[qindex]
+        return (
+            cls.AC_QLOOKUP[((qindex - 1) % 24) + 1]
+            << ((qindex - 1) // 24)
+        )
+
+    @classmethod
+    def reconstruct_level(
+        cls, level: int, prediction: int, qindex: int
+    ) -> int:
+        magnitude = cls.round2(abs(level) * cls.qlookup(qindex), 3)
         dequant = max(-32768, min(32767, -magnitude if level < 0 else magnitude))
         row = max(-32768, min(32767, cls.round2(64 * dequant, 7)))
         residual = max(-256, min(255, cls.round2(64 * row, 11)))
@@ -54,29 +71,41 @@ class M3EncoderTests(unittest.TestCase):
 
     @classmethod
     def local_reconstruction(
-        cls, samples: bytes, width: int, height: int
+        cls, samples: bytes, width: int, height: int, qindex: int = 100
     ) -> tuple[bytes, int]:
-        result = bytearray(width * height)
+        padded = bytearray(16 * 16)
         total_error = 0
-        for by in range(0, height, 8):
-            for bx in range(0, width, 8):
+        for by in range(0, ((height + 7) // 8) * 8, 8):
+            for bx in range(0, ((width + 7) // 8) * 8, 8):
                 edges = []
                 if by:
-                    edges.extend(result[(by - 1) * width + bx : (by - 1) * width + bx + 8])
+                    edges.extend(
+                        padded[(by - 1) * 16 + bx : (by - 1) * 16 + bx + 8]
+                    )
                 if bx:
-                    edges.extend(result[(by + y) * width + bx - 1] for y in range(8))
+                    edges.extend(
+                        padded[(by + y) * 16 + bx - 1] for y in range(8)
+                    )
                 prediction = 128 if not edges else cls.round2(sum(edges), len(edges).bit_length() - 1)
                 block = [
-                    samples[(by + y) * width + bx + x]
+                    samples[
+                        min(by + y, height - 1) * width +
+                        min(bx + x, width - 1)
+                    ]
                     for y in range(8) for x in range(8)
                 ]
                 candidates = []
+                maximum = (
+                    ((1 << 15) * 8 + cls.qlookup(qindex) - 1)
+                    // cls.qlookup(qindex)
+                    + 1
+                )
                 for level in [0] + [
                     signed
-                    for magnitude in range(1, 375)
+                    for magnitude in range(1, maximum + 1)
                     for signed in (magnitude, -magnitude)
                 ]:
-                    value = cls.reconstruct_level(level, prediction)
+                    value = cls.reconstruct_level(level, prediction, qindex)
                     error = sum((sample - value) ** 2 for sample in block)
                     candidates.append((level, value, error))
                 level, value, error = min(
@@ -84,14 +113,21 @@ class M3EncoderTests(unittest.TestCase):
                     key=lambda item: (item[2], abs(item[0]), item[0] < 0),
                 )
                 del level
-                total_error += error
+                del error
+                for y in range(by, min(by + 8, height)):
+                    for x in range(bx, min(bx + 8, width)):
+                        total_error += (samples[y * width + x] - value) ** 2
                 for y in range(8):
-                    result[(by + y) * width + bx : (by + y) * width + bx + 8] = bytes([value]) * 8
-        return bytes(result), total_error
+                    start = (by + y) * 16 + bx
+                    padded[start : start + 8] = bytes([value]) * 8
+        result = b"".join(
+            padded[y * 16 : y * 16 + width] for y in range(height)
+        )
+        return result, total_error
 
     def encode(
         self, name: str, packed: bytes, width: int, height: int,
-        stride: int | None = None,
+        stride: int | None = None, qindex: int = 100,
     ) -> tuple[Path, str]:
         if stride is None:
             stride = width
@@ -112,6 +148,8 @@ class M3EncoderTests(unittest.TestCase):
         ]
         if stride != width:
             command += ["--stride", str(stride)]
+        if qindex != 100:
+            command += ["--qindex", str(qindex)]
         command.append(str(output))
         completed = subprocess.run(
             command, check=True, text=True, capture_output=True
@@ -136,22 +174,28 @@ class M3EncoderTests(unittest.TestCase):
 
     def check_case(
         self, name: str, samples: bytes, width: int = 8, height: int = 8,
-        stride: int | None = None,
+        stride: int | None = None, qindex: int = 100,
+        repeat: bool = True,
     ) -> None:
-        expected, error = self.local_reconstruction(samples, width, height)
-        first, metrics = self.encode(name, samples, width, height, stride)
-        first_bytes = first.read_bytes()
-        second, second_metrics = self.encode(
-            f"{name}-repeat", samples, width, height, stride
+        expected, error = self.local_reconstruction(
+            samples, width, height, qindex
         )
-        self.assertEqual(first_bytes, second.read_bytes())
-        self.assertEqual(metrics, second_metrics)
+        first, metrics = self.encode(
+            name, samples, width, height, stride, qindex
+        )
+        first_bytes = first.read_bytes()
+        if repeat:
+            second, second_metrics = self.encode(
+                f"{name}-repeat", samples, width, height, stride, qindex
+            )
+            self.assertEqual(first_bytes, second.read_bytes())
+            self.assertEqual(metrics, second_metrics)
         avm, project = self.decode(name, first)
         self.assertEqual(avm, expected)
         self.assertEqual(project, expected)
         match = re.fullmatch(
             r"encoder: bytes=(\d+) sse_y=(\d+) psnr_y=(inf|\d+\.\d\d)dB "
-            rf"workspace_bytes={width * height}\n",
+            rf"workspace_bytes={width * height} qindex={qindex}\n",
             metrics,
         )
         self.assertIsNotNone(match)
@@ -198,6 +242,10 @@ class M3EncoderTests(unittest.TestCase):
             source[y * 896 : y * 896 + 16] for y in range(16)
         )
         self.check_case("prepared-crop-16x16", crop16, 16, 16)
+        crop_odd = b"".join(
+            source[y * 896 + 17 : y * 896 + 30] for y in range(11)
+        )
+        self.check_case("prepared-crop-13x11", crop_odd, 13, 11)
 
     def test_rectangular_grids(self) -> None:
         for width, height in ((8, 16), (16, 8)):
@@ -213,7 +261,67 @@ class M3EncoderTests(unittest.TestCase):
                 width, height, width + 3,
             )
 
-    def test_non_power_of_two_grid_is_unsupported(self) -> None:
+    def test_all_dimensions_one_through_sixteen(self) -> None:
+        for height in range(1, 17):
+            for width in range(1, 17):
+                samples = bytes(
+                    (x * 17 + y * 31 + x * y * 3) & 255
+                    for y in range(height)
+                    for x in range(width)
+                )
+                self.check_case(
+                    f"matrix-{width}x{height}", samples, width, height,
+                    width + 3, repeat=False,
+                )
+
+    def test_odd_generated_cases_and_q_sweep(self) -> None:
+        width, height = 13, 11
+        ramp = bytes(
+            (x * 255 + (width - 1) // 2) // (width - 1)
+            for _y in range(height)
+            for x in range(width)
+        )
+        impulse = bytearray(width * height)
+        impulse[(height // 2) * width + width // 2] = 255
+        self.check_case("odd-ramp", ramp, width, height, width + 5)
+        self.check_case(
+            "odd-impulse", bytes(impulse), width, height, width + 3
+        )
+        for qindex in (191, 210, 230, 250, 255):
+            self.check_case(
+                f"q-{qindex}", ramp, width, height, qindex=qindex
+            )
+
+    def test_qindex_validation_and_default_stream_compatibility(self) -> None:
+        samples = bytes(range(64))
+        default, _ = self.encode("q-default", samples, 8, 8)
+        source = self.work / "q-explicit.i400"
+        explicit = self.work / "q-explicit.obu"
+        source.write_bytes(samples)
+        subprocess.run(
+            [
+                str(self.binary), "--i400-8", str(source),
+                "--width", "8", "--height", "8",
+                "--qindex", "100", str(explicit),
+            ],
+            check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+        )
+        self.assertEqual(default.read_bytes(), explicit.read_bytes())
+        for value in ("0", "256", "bad"):
+            output = self.work / f"q-invalid-{value}.obu"
+            completed = subprocess.run(
+                [
+                    str(self.binary), "--i400-8", str(source),
+                    "--width", "8", "--height", "8",
+                    "--qindex", value, str(output),
+                ],
+                check=False, text=True, capture_output=True,
+            )
+            self.assertEqual(completed.returncode, 3)
+            self.assertIn("qindex must be in 1..255", completed.stderr)
+            self.assertFalse(output.exists())
+
+    def test_dimensions_above_sixteen_are_unsupported(self) -> None:
         source = self.work / "wide.i400"
         output = self.work / "wide.obu"
         source.write_bytes(bytes(32 * 32))

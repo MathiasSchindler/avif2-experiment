@@ -1,0 +1,57 @@
+{
+  "schema": "av2-encoder-m3-q-sweep-v1",
+  "quality_direction": "lower_qindex_is_higher_quality",
+  "qindexes": [124, 100, 76, 52, 28, 4],
+  "fixtures": [
+    {
+      "id": "ramp-x-16x8",
+      "kind": "generated",
+      "generator": "ramp-x",
+      "width": 16,
+      "height": 8
+    },
+    {
+      "id": "impulse-8x8",
+      "kind": "generated",
+      "generator": "impulse",
+      "width": 8,
+      "height": 8
+    },
+    {
+      "id": "pitti-ceiling-center-16x16",
+      "kind": "prepared-crop",
+      "path": "images/prepared/le896/pitti-ceiling/source-896x896-gray8.i400",
+      "sha256": "93a053a6bfd2db1a21a948cb5901b5ef2c69e4962cf25e1385482f47a22c97cd",
+      "source_width": 896,
+      "source_height": 896,
+      "x": 440,
+      "y": 440,
+      "width": 16,
+      "height": 16
+    },
+    {
+      "id": "baya-weaver-center-16x16",
+      "kind": "prepared-crop",
+      "path": "images/prepared/le896/baya-weaver/source-896x598-gray8.i400",
+      "sha256": "b91d856ba048095fbb066934a967531a82a8813f66acd18b3a1d4522edfc3c20",
+      "source_width": 896,
+      "source_height": 598,
+      "x": 440,
+      "y": 291,
+      "width": 16,
+      "height": 16
+    },
+    {
+      "id": "elbrus-center-16x16",
+      "kind": "prepared-crop",
+      "path": "images/prepared/le896/elbrus-milky-way/source-598x896-gray8.i400",
+      "sha256": "517e9b5a796b6836d670a0e28a2a4e8517b47bfe496da8f47131be82a9364418",
+      "source_width": 598,
+      "source_height": 896,
+      "x": 291,
+      "y": 440,
+      "width": 16,
+      "height": 16
+    }
+  ]
+}

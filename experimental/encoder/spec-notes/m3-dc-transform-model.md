@@ -52,6 +52,14 @@ inverse transform, prediction addition, and clipping. `base_q_idx`, not the
 per-block delta-Q result, selects coefficient CDF group 0/1/2/3 at boundaries
 90, 140, and 190.
 
+The configurable M3 encoder accepts `base_q_idx` 1 through 255. The sequence
+configuration is invariant across this range; the frame header writes the
+selected base index, `delta_q_present=0`, so every block uses that same index.
+The dequantizer, exhaustive useful-level search, and coefficient CDF group all
+derive from it. Index 0 is deliberately excluded because AV2 lossless mode
+changes transform semantics. The compatibility wrapper and CLI default remain
+100.
+
 ## DC-only coefficient transcript
 
 For intra luma with `fsc_mode=0`, `eob=1` implies `DCT_DCT`; no transform-type
@@ -119,6 +127,14 @@ For 8×16 and 16×8 frames, the 16×16 partition node is boundary-implied to
 block signals `do_split=0` and uses `TX_PARTITION_HORZ` or
 `TX_PARTITION_VERT` to form two square 8×8 transforms. This avoids introducing
 rectangular transform coefficient models.
+
+For active dimensions in 1..16, boundary tests use the frame dimensions
+rounded up to the AV2 four-pixel grid. An axis with at most eight coded pixels
+is boundary-implied at the 16×16 node; nine through sixteen coded pixels remain
+in the 16-wide leaf. Input samples outside the active plane replicate the last
+active row or column to complete each 8×8 transform. Only active pixels
+contribute to reported SSE, and reconstruction is cropped to the declared
+width and height.
 
 ## Lossless alternatives
 

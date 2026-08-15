@@ -395,3 +395,312 @@ Next restart command/boundary:
   positions/magnitudes/transforms, chroma, partition/intra search, filters and
   restoration, and quality/rate control. These bounded PASS results do not
   complete full M3 or M4.
+
+## 2026-08-15 — M2 rigorous validator division
+
+- **Status:** PASS.
+- **Milestone:** M2 entropy-writer exit gate.
+- **Transcript gate:** the production C writer emits four compact syntax
+  transcripts and 75 exhaustive adaptive transcripts covering every alphabet
+  size 2 through 16 at initial counts 0, 15, 16, 31, and 32. Every exhaustive
+  case writes all symbols ascending and descending.
+- **Independent models:** `tests/range_writer_test.c` and
+  `tools/m2_transcript_matrix.py` independently decode that exhaustive family,
+  reproduce all symbols and final CDF states, and validate legal range exits.
+  The Python matrix additionally freezes bytes, SHA-256, post-operation tells,
+  exact-capacity success, and one-byte-short exhaustion. Fixture SHA-256:
+  `255555cbbf2c1503cc65a1be68fc5f811d9707e558bc2d048f9d2e09b480a7f0`.
+- **Technical boundary:** arbitrary range transcripts are not AV2 image
+  streams and are not passed to image decoders.
+- **Full-stream gate:** six generated complete M1/M3/M4 streams regenerate
+  byte-for-byte, then decode to byte-identical planes in pinned `avmdec`
+  SHA-256
+  `c247cbb4e71e48bdec89f3c8b2b8efdce17f673aeaa39e3c116a276d16286aa0`
+  and the project decoder SHA-256
+  `c0c6329cc85de13c92d04a00deff8124c9b45dbe74da8a86ddc60d9d7b4de9df`.
+  Full-stream manifest SHA-256:
+  `f332e305823f67e52426576410d07df73e6177e8894ec90e40fb9d83d878b0bd`.
+- **Command:** `make -C experimental/encoder test`.
+- **Result:** PASS: exhaustive native range model, five transcript/syntax
+  Python tests, M1/M3/M4 native tests, 59 integration/model tests including
+  dual-decoder stream parity, generated-CDF check, input/atomic-output checks,
+  dependency audit, and static ELF audit.
+- **Gate result:** M2 PASS under the explicit transcript-model versus complete
+  image-stream validator division; later codec breadth remains M3/M4 work.
+
+## 2026-08-15 — M2 final reconciled completion gate
+
+- **Status:** PASS; M2 is complete. M3 and M4 remain active bounded
+  submilestones and were not extended by this work.
+- **Source boundary:** repository revision
+  `f10aefa0552e3cf249edc5a92128fb16dc80b90e` plus the recorded dirty M2
+  changes below.
+- **Normative source:** AV2 Bitstream & Decoding Process Specification v1.0.0,
+  28 May 2026, <https://av2.aomedia.org/v1.0.0/index.html>, especially
+  §§4.11.3, 4.11.8, 5.20, 8.2, and 8.3. Normative attachments used by the
+  hash-locked CDF generator include `prob_inc.h`,
+  `para_adjustment_list.h`, and the CDF attachments enumerated by
+  `tools/generate_cdf_subset.py`.
+- **Compiler/build:** GCC 15.2.0; production objects use freestanding C11,
+  warnings as errors, disabled builtins/stack protector/PIC/PIE/unwind, and a
+  static `-nostdlib` link. Final executable: 66,544 bytes, SHA-256
+  `f6856b21dc084acfe1cdb6adb784405f9bb2ea2214bdaff71c1355aa1d05f64d`;
+  ELF and dependency audits pass with no interpreter, dynamic dependency,
+  undefined symbol, decoder include, or decoder build dependency.
+- **Range/CDF exit mapping:** all supported alphabet sizes 2 through 16 and
+  every symbol pass independent C and Python decoding. The frozen matrix has
+  75 adaptive cases (15 alphabets × counts 0/15/16/31/32), ascending and
+  descending symbols, exact tell changes, final CDF equality, and legal exits.
+  Native tests additionally cover all 125 parameter combinations, adaptation
+  through count saturation, literals 0 through 32 bits, deterministic empty
+  and nonempty finish, long pending-`0xff` and carry paths, and a
+  6,000-operation mixed stress transcript at five split positions.
+- **Syntax-helper exit mapping:** raw UVLC/SVLC, two's-complement signed
+  literals, `ns`, subexponential coding, signed/unsigned reference
+  recentering, zero alignment, trailing bits, arithmetic signed literals and
+  `ns`, and general coefficient base/BR/remainder coding round-trip through an
+  independent Python reader. Invalid domains, sticky failures, overflow
+  boundaries, and writes beyond declared capacities are checked.
+- **Capacity record:** compact transcript outputs are 1/3/1/3 bytes and pass
+  both exact capacity and one-byte-short exhaustion. The 75 exhaustive
+  transcripts range from 1 to 18 bytes under the same exact/short check.
+  Stress encoding passes with an 8,192-byte roomy buffer, its exact size, and
+  rejects exact-minus-one, one-byte, and zero-byte capacities. The exhaustive
+  helper vectors occupy 71,644 raw bytes and 481 range-coded bytes; compact
+  boundary encodes test every insufficient capacity while preserving bytes
+  outside the caller span.
+- **Transcript manifest:** four named compact transcripts plus 75 exhaustive
+  transcripts are frozen in `fixtures/m2-transcript-matrix.json`, SHA-256
+  `255555cbbf2c1503cc65a1be68fc5f811d9707e558bc2d048f9d2e09b480a7f0`.
+  Generator/model identities: `tools/m2_transcript_matrix.py`
+  `c1f31ae200dfaee8804b2713a8bebaea97daf6b8800a3c059374c5930e22a920`
+  and `tools/syntax_reference.py`
+  `8614c4c79b37fcd3af40623d691c338f81350d1f4c3a64ea495f1dfdf48447c0`.
+- **Complete-stream manifest:** six generated streams cover M1
+  coefficient-free, M3 DC base/BR/remainder and multi-block adaptation, and M4
+  AC/sign paths. Their OBU sizes are 21/20/21/21/27/21 bytes.
+  `fixtures/m2-full-streams/manifest.json` SHA-256 is
+  `f332e305823f67e52426576410d07df73e6177e8894ec90e40fb9d83d878b0bd`;
+  `tools/m2_full_stream_matrix.py` SHA-256 is
+  `e078353fced672e1aceaf2d3167ca1d6c7251f3c98cc544efac056f062155782`.
+- **Validator identities:** pinned AVM v1.0.0 revision
+  `966a7d7cd6fcf60360caf5dc413b2aeeb65e144d`, `avmdec` SHA-256
+  `c247cbb4e71e48bdec89f3c8b2b8efdce17f673aeaa39e3c116a276d16286aa0`;
+  project decoder SHA-256
+  `c0c6329cc85de13c92d04a00deff8124c9b45dbe74da8a86ddc60d9d7b4de9df`.
+  Both independently decode all six complete streams to byte-identical planes
+  matching the manifest. Arbitrary range transcripts are correctly validated
+  by the independent transcript models, not misrepresented as image streams.
+- **Commands/results:** the integrator ran
+  `make -C experimental/encoder clean test-unit` and
+  `make -C experimental/encoder check-generated`: PASS, with five M2
+  transcript/syntax Python tests, 59 broader Python tests with 14 explicit
+  validator skips, five native executables, three shell gates, generated-data,
+  dependency, and ELF checks. A separate task agent then ran
+  `make -C experimental/encoder clean test`,
+  `make -C experimental/encoder check-generated`, and `git diff --check`:
+  PASS with 64 Python tests, zero skips, all five native executables, all three
+  shell gates, both validators, generated checks, and audits.
+- **Post-M2 limitations:** the entropy foundation does not add chroma, general
+  AC scans or transforms, broader/odd frame and partition syntax, partition or
+  intra search, filters, restoration, quality selection, or rate control.
+  The supported image encoder remains the previously documented bounded
+  M1/M3/M4 surface; full M3 and M4 exit criteria remain open.
+- **Gate decision:** all M2 plan requirements and exit criteria are satisfied;
+  `plan.md` is marked `[x]`. Restart from
+  `make -C experimental/encoder clean test` before any later entropy change.
+
+## 2026-08-15 — M3 complete 1..16 dimension grid
+
+- **Status:** PASS for the requested grid expansion; 32×32 remains excluded.
+- **Dimensions:** every width and height pair in 1..16 is accepted, including
+  odd rectangles. AV2 partition boundaries use dimensions rounded to the
+  four-pixel grid and select legal 8×8, 8×16, 16×8, or 16×16 prediction
+  blocks with one, two, or four square 8×8 transforms.
+- **Edges/crop:** source samples outside the active plane replicate the final
+  active row or column for transform-level selection. Reconstruction uses a
+  bounded 16×16 padded workspace, then copies only `width * height` active
+  pixels to the caller. Reported SSE likewise covers only active pixels.
+- **Ordering/contexts:** transform records and coefficient neighbors use
+  ceil-divided 8×8 grid coordinates in raster order; the previous floor-width
+  indexing hazard for widths below or just above eight is covered.
+- **Bounds:** dimensions, stride, final active input offset, output capacity,
+  reconstruction capacity, level count, and syntax spans are checked. The
+  maximum remains four transform records and 256 active/padded pixels; no
+  32×32 allocation or syntax path was enabled.
+- **Matrix validation:** `test_all_dimensions_one_through_sixteen` runs an
+  odd-sensitive generated pattern for all 256 dimension pairs through the
+  encoder, local reconstruction, pinned `avmdec`, and the project decoder.
+  Every decoded active plane is byte-identical. Padded-stride input is used
+  throughout the matrix.
+- **Focused command:** `make -C experimental/encoder
+  build/m3-test build/av2-encoder-experiment && experimental/encoder/build/m3-test
+  && AVMDEC=$PWD/build/reference/avm/avmdec
+  PROJECT_DECODER=$PWD/build/host-cmake/av2heif-decoder python3 -m unittest
+  experimental/encoder/tests/test_m3_encoder.py`.
+- **Focused result:** PASS, eight Python tests in 13.707 seconds plus the
+  native M3 executable. Test work directories include the process ID so
+  concurrent validation agents cannot delete each other's decoder outputs.
+- **Full gate:** `make -C experimental/encoder test` PASS: generated-data,
+  dependency and static-ELF audits; five native executables; three shell
+  gates; five entropy/syntax Python tests; and 65 integration/model tests with
+  both decoders. The prepared 30-case multi-Q benchmark also reports exact
+  parity and aggregate monotonic SSE.
+
+## 2026-08-15 — Prepared-image bounded M3 gate
+
+- **Status:** PASS.
+- **Scope:** benchmark and evidence only; no prepared image bytes are tracked.
+  `metrics/fixtures.json` locks seven offset crops from metadata-locked square
+  Pitti, landscape Baya, and portrait Elbrus I400 sources. Dimensions are 1×1,
+  15×15, 16×16, 8×7, 16×8, 7×8, and 8×16, covering odd/even edges and the
+  complete 16×16 bound.
+- **Reproduction:** `tools/m3_benchmark.py` verifies each preparation manifest,
+  source dimensions/hash, crop offset/bounds, and crop hash before extracting
+  packed bytes only under ignored `experimental/encoder/build/`.
+- **Q sweep:** every crop passed at qindex 50, 100, 150, and 200: 28/28
+  encodes, 28/28 byte-identical pinned-AVM/project decodes, and 28/28 matches
+  between encoder-local bytes/SSE/workspace and decoded evidence.
+- **Aggregate evidence (850 pixels per Q):** q50: 177 bytes, 1.665882 bpp,
+  SSE 468727, PSNR 20.716 dB; q100: 169 bytes, 1.590588 bpp, SSE 468869,
+  PSNR 20.714 dB; q150: 160 bytes, 1.505882 bpp, SSE 469615, PSNR 20.708 dB;
+  q200: 146 bytes, 1.374118 bpp, SSE 516655, PSNR 20.293 dB.
+- **Timing evidence:** encoder median/worst by Q was 979,878/1,723,622 ns,
+  877,211/1,043,992 ns, 790,746/987,491 ns, and 730,334/747,445 ns.
+  Median pinned-AVM decode was 36.285–38.212 ms; median project decode was
+  1.376–1.513 ms. Per-case command and timing records are in JSONL.
+- **Tool identities:** encoder SHA-256
+  `dc46f1e0a1332e5a5881214b0fcb11ebb4ac86989710bb57a6f34140bb01495b`;
+  pinned `avmdec`
+  `c247cbb4e71e48bdec89f3c8b2b8efdce17f673aeaa39e3c116a276d16286aa0`;
+  project decoder
+  `c0c6329cc85de13c92d04a00deff8124c9b45dbe74da8a86ddc60d9d7b4de9df`.
+- **Commands:** `python3 experimental/encoder/tools/m3_benchmark.py --output
+  experimental/encoder/results/m3-prepared-gate.jsonl --work-dir
+  experimental/encoder/build/m3-prepared-gate`; and `python3 -m unittest
+  experimental/encoder/tests/test_m3_benchmark.py`.
+- **Mandatory tests:** seven tests pass, including locked fixture coverage,
+  reproducible extraction, and all four-Q local/AVM/project parity for all
+  seven prepared crops. The complete `make -C experimental/encoder test` gate
+  also passes 65 Python tests plus all native, shell, generated-data,
+  dependency, static-ELF, and dual-decoder checks.
+- **Out-of-bound evidence:** generated 17×15 remains clearly recorded as
+  `unsupported`; it is not one of the chosen 1..16 prepared gate cases.
+- **Gate decision:** PASS; all chosen bounded prepared cases encode.
+
+## 2026-08-15 — Configurable M3 qindex and locked monotonic sweep
+
+- **Status:** PASS for `encoder-m3-q-sweep`.
+- **CLI/API:** `--qindex Q` accepts the documented non-lossless range 1..255.
+  The default remains 100 and produces the same stream as explicit qindex 100.
+  Backward-compatible C entry points wrap the new q-aware encoder, frame-header,
+  and tile APIs.
+- **Derived behavior:** the frame `base_q_idx`, fixed-zero delta-Q behavior,
+  dequant lookup, useful signed-level search bound, and coefficient CDF group
+  all derive from the selected qindex. Sequence syntax remains invariant.
+  Qindex 0 is rejected because it requires lossless transform semantics.
+- **Locked direction:** `metrics/m3-q-sweep.json` orders
+  `124,100,76,52,28,4`; decreasing qindex means increasing quality, therefore
+  aggregate SSE must be non-increasing.
+- **Evidence:** 30/30 generated/prepared-crop cases have byte-exact
+  local-model, pinned AVM, and project reconstruction parity. Aggregate SSE is
+  `953467, 953055, 952871, 952871, 952871, 952871`; aggregate OBU bytes are
+  `126, 135, 136, 140, 144, 149`.
+- **Artifacts:** locked inputs are in `metrics/m3-q-sweep.json`; sorted JSON
+  evidence is in `metrics/m3-q-sweep-results.json`.
+- **Command:** `python3 experimental/encoder/tools/m3_q_sweep.py`.
+
+## 2026-08-15 — Exact M3 odd-edge syntax and reconstruction model
+
+- **Status:** PASS for the requested 1..16 odd-edge derivation and probes.
+- **Normative geometry:** `MiCols/MiRows = 2*((FrameWidth/Height+7)>>3)`,
+  hence the coded canvas rounds each axis to 8 or 16 while decoder output
+  remains exactly the active width×height.
+- **Forced path:** the top-left path is implied, with no symbols:
+  64×64 HORZ, 64×32 VERT, 32×32 HORZ, 32×16 VERT. At 16×16 the boundary
+  further implies HORZ+VERT for 8×8, VERT for 8×16, HORZ for 16×8, or
+  nothing for 16×16. Only the resulting block's `PARTITION_NONE` decision is
+  coded.
+- **Forward recipe:** extend the active source by repeating the final active
+  row/column to the coded canvas; use full 8×8 residual inputs and 8×8
+  transforms. Out-of-display coded samples are reconstructed samples, not
+  unavailable neighbors. Prediction uses reconstructed raster neighbors,
+  with divisors 8 for one edge and 16 for both, never the active crop count.
+- **Contexts/crop:** a lone 8×8 transform uses all-zero context 0; transforms
+  in larger prediction blocks use `(Min(4,|topDC|)+Min(4,|leftDC|)+3)>>1`,
+  so the first split transform uses context 1. DC-sign context uses the
+  signed neighboring DC categories. Reconstruction fills the coded canvas,
+  then copies only the active rectangle.
+- **AVM probes:** pinned `avmenc` accepted 1×1, 7×9, 9×7, 15×15, 1×16, and
+  16×1 block-flat QP-100 probes. Pinned `avmdec` returned exact visible
+  samples and exactly 1/63/63/225/16/16 bytes respectively. The project
+  decoder was exercised too and rejected these broader AVM-encoder tile
+  streams; its separate bounded experimental-stream parity remains covered
+  by the M3 gates.
+- **Artifacts:** `spec-notes/m3-odd-edge-model.md`,
+  `tools/m3_odd_model.py`, `tests/test_m3_odd_model.py`,
+  `tests/m3_odd_model_vectors.json`, and
+  `tests/m3_odd_avm_probes.json`.
+- **Validation:** five focused model tests pass; AVM probe generation and
+  decode pass for all six representative dimensions.
+
+## 2026-08-15 — Bounded M3 1..16 orchestration completion
+
+- **Status:** PASS for todo `encoder-m3-dc-gray`; full unbounded M3 remains
+  active.
+- **Scope:** every 8-bit I400 width/height pair from 1 through 16, explicit
+  packed or padded stride, qindex 1 through 255, legal edge-extended 8×8
+  transform coverage, and exact active-pixel reconstruction.
+- **Ownership/bounds:** the C API accepts caller-owned stream and compact
+  reconstruction spans. It stages the complete stream and reconstruction
+  locally, checks `width*height`, final input offset, stream capacity, and
+  reconstruction capacity, and leaves both caller outputs unchanged on
+  exhaustion. The CLI maps exact input bytes and atomically replaces only a
+  complete `.obu`.
+- **Exactness:** the odd-sensitive exhaustive 256-dimension matrix and
+  generated flat/ramp/impulse cases match the independent local model, pinned
+  `avmdec`, and the project decoder byte-for-byte. Prepared 1×1, 15×15,
+  16×16, 8×7, 16×8, 7×8, and 8×16 photographic crops pass at qindex 50, 100,
+  150, and 200. No dimension inside 1..16 is blocked.
+- **Quality/determinism:** the locked 30-case q sweep has exact three-way
+  reconstruction parity and aggregate SSE
+  `953467,953055,952871,952871,952871,952871` for qindex
+  `124,100,76,52,28,4`; repeated representative encodes and metrics are
+  identical.
+- **Metrics:** active-pixel SSE and fixed-point PSNR, `.obu` bytes,
+  reconstruction/workspace bytes, and qindex are reported. SSIM remains not
+  implemented.
+- **Failure tests:** short stream and reconstruction capacities preserve
+  sentinel bytes and zero the result; invalid dimensions, stride overflow,
+  qindex 0/256, short/excess input, output I/O failure, and temporary-name
+  exhaustion fail without partial success.
+- **Validation command:** `make -C experimental/encoder clean test`.
+  Result: PASS, including six native/model executables, shell input/atomic
+  checks, 71 Python tests, dependency audit, and static no-libc ELF audit.
+- **Binary:** 66,968 bytes; SHA-256
+  `7896d785fab7366bac12133074971b4e2047a58a5acf379f9540f6548ff237a2`;
+  no interpreter, dynamic dependencies, or undefined symbols.
+- **Locked q evidence:** `metrics/m3-q-sweep-results.json`, 22,274 bytes,
+  SHA-256
+  `74ca7a27b71e382615eab63ea6b3d5acdbaee29323a6c65281fefb2ae8a8be5b`.
+- **Remaining boundary:** dimensions above 16, broader partition/mode search,
+  filters, and rate control remain outside this bounded task.
+
+## 2026-08-15 — Final bounded M3 gate review
+
+- **Status:** PASS after independent review and clean mandatory validation.
+- **Review fix:** `tools/m3_benchmark.py` previously classified rejection of a
+  supported generated stream by either validator as nonfatal `unsupported`.
+  Such rejection now records `error`, preserves the validator return code, and
+  forces a failing process status. A `/bin/false` regression test locks this
+  behavior.
+- **Validation:** the mandatory gate passes with zero skips or failures:
+  generated-data checks, five compiled unit binaries, 76 Python tests, smoke,
+  input-error and atomic-output integration checks, the exhaustive 256-pair
+  dimension matrix, 28 prepared crop/qindex cases, and the locked 30-case
+  aggregate quality sweep.
+- **Audits:** dependency and ELF audits pass; the encoder remains statically
+  linked with no interpreter, dynamic dependencies, or undefined symbols.
+- **Milestone boundary:** this closes the reviewed 1..16 M3 submilestone only.
+  Full M3 remains active for dimensions above 16, broader partition and mode
+  search, filtering, and rate control.

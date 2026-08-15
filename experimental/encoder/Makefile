@@ -7,6 +7,7 @@ BUILD := build
 TARGET := $(BUILD)/av2-encoder-experiment
 BIT_TEST := $(BUILD)/bit-writer-test
 RANGE_TEST := $(BUILD)/range-writer-test
+M2_MATRIX_DRIVER := $(BUILD)/m2-transcript-driver
 M1_TEST := $(BUILD)/m1-test
 M3_TEST := $(BUILD)/m3-test
 M4_TEST := $(BUILD)/m4-test
@@ -49,11 +50,17 @@ $(BIT_TEST): tests/bit_writer_test.c src/writer.c src/memory.c \
 		-O2 -fno-builtin -o $@ tests/bit_writer_test.c src/writer.c \
 		src/memory.c
 
-$(RANGE_TEST): tests/range_writer_test.c src/range.c \
-	include/encoder/range.h include/encoder/base.h
+$(RANGE_TEST): tests/range_writer_test.c src/range.c src/cdf.c \
+	include/encoder/range.h include/encoder/cdf.h include/encoder/base.h
 	@mkdir -p $(dir $@)
 	$(CC) $(CPPFLAGS) -std=c11 -Wall -Wextra -Wpedantic -Werror \
-		-O2 -fno-builtin -o $@ tests/range_writer_test.c src/range.c
+		-O2 -fno-builtin -o $@ tests/range_writer_test.c src/range.c src/cdf.c
+
+$(M2_MATRIX_DRIVER): tests/m2_transcript_driver.c src/range.c \
+	include/encoder/range.h include/encoder/cdf.h include/encoder/base.h
+	@mkdir -p $(dir $@)
+	$(CC) $(CPPFLAGS) -std=c11 -Wall -Wextra -Wpedantic -Werror \
+		-O2 -fno-builtin -o $@ tests/m2_transcript_driver.c src/range.c
 
 $(M1_TEST): tests/m1_test.c $(CORE_SOURCES)
 	@mkdir -p $(dir $@)
@@ -92,6 +99,8 @@ check-validators:
 define run-tests
 	./$(BIT_TEST)
 	./$(RANGE_TEST)
+	$(PYTHON) -m unittest tests/test_m2_transcript_matrix.py \
+		tests/test_syntax_helpers.py
 	./$(M1_TEST)
 	./$(M3_TEST)
 	./$(M4_TEST)
@@ -102,17 +111,20 @@ define run-tests
 		$(PYTHON) -m unittest tests/test_encoder_oracle.py \
 		tests/test_obu_inspect.py tests/test_m1_syntax.py \
 		tests/test_m1_entropy.py tests/test_m1_encoder.py \
+		tests/test_m2_full_stream_matrix.py \
 		tests/test_cdf_subset.py tests/test_m3_dc_model.py \
 		tests/test_m3_encoder.py tests/test_m3_benchmark.py \
+		tests/test_m3_odd_model.py \
 		tests/test_m4_ac_model.py tests/test_m4_encoder.py
 endef
 
-test: check-validators check-generated $(BIT_TEST) $(RANGE_TEST) $(M1_TEST) \
+test: check-validators check-generated $(BIT_TEST) $(RANGE_TEST) \
+	$(M2_MATRIX_DRIVER) $(M1_TEST) \
 	$(M3_TEST) $(M4_TEST) audit
 	$(call run-tests,)
 
-test-unit: check-generated $(BIT_TEST) $(RANGE_TEST) $(M1_TEST) $(M3_TEST) \
-	$(M4_TEST) audit
+test-unit: check-generated $(BIT_TEST) $(RANGE_TEST) $(M2_MATRIX_DRIVER) \
+	$(M1_TEST) $(M3_TEST) $(M4_TEST) audit
 	$(call run-tests,ENCODER_TEST_UNIT_ONLY=1)
 
 clean:

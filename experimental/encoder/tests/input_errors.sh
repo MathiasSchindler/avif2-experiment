@@ -22,16 +22,16 @@ expect_status()
     fi
 }
 
-printf '\001\002\003\004\005\006' >"$input"
+dd if=/dev/zero of="$input" bs=34 count=1 2>/dev/null
 rm -f "$output"
-expect_status 5 "$encoder" --i400-8 "$input" --width 3 --height 2 "$output"
+expect_status 5 "$encoder" --i400-8 "$input" --width 17 --height 2 "$output"
 test ! -e "$output"
-grep -q 'supports 8 or 16 pixels per axis' "$error"
+grep -q 'supports 1 through 16 pixels per axis' "$error"
 
 printf 'sentinel' >"$output"
-printf '\001\002\003\000\004\005\006\000' >"$input"
-expect_status 5 "$encoder" --i400-8 "$input" --width 3 --height 2 \
-    --stride 4 "$output"
+dd if=/dev/zero of="$input" bs=36 count=1 2>/dev/null
+expect_status 5 "$encoder" --i400-8 "$input" --width 17 --height 2 \
+    --stride 18 "$output"
 test "$(cat "$output")" = sentinel
 
 printf '\001\002\003\004\005' >"$input"
@@ -50,6 +50,10 @@ expect_status 3 "$encoder" --i400-8 "$input" --width 16385 --height 2 "$output"
 expect_status 3 "$encoder" --i400-8 "$input" --width nope --height 2 "$output"
 expect_status 3 "$encoder" --i400-8 "$input" --width 16384 --height 16384 \
     --stride 16385 "$output"
+expect_status 3 "$encoder" --i400-8 "$input" --width 3 --height 2 \
+    --qindex 0 "$output"
+expect_status 3 "$encoder" --i400-8 "$input" --width 3 --height 2 \
+    --qindex 256 "$output"
 expect_status 4 "$encoder" --i400-8 "$build_directory/missing.i400" \
     --width 1 --height 1 "$output"
 expect_status 2 "$encoder" --i400-8 "$input" --height 2 --width 3 "$output"

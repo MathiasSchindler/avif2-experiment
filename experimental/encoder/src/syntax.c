@@ -7,50 +7,201 @@ static EncStatus write_m3_mode(
     EncRangeWriter *writer, EncSyntaxCdfs *cdfs,
     size_t block_size_group);
 
-static EncStatus write_uvlc(EncBitWriter *writer, uint32_t value) {
-    uint32_t code;
-    unsigned int width = 0U;
-    unsigned int leading;
-    if (value == UINT32_MAX) {
+static EncStatus range_syntax_fail(
+    EncRangeWriter *writer, EncStatus status) {
+    if (writer == 0) {
         return ENC_INVALID_ARGUMENT;
     }
-    code = value + 1U;
-    {
-        uint32_t probe = code;
-        while (probe != 0U) {
-            ++width;
-            probe >>= 1U;
-        }
+    if (writer->status == ENC_OK) {
+        writer->status = status;
     }
-    leading = width - 1U;
-    if (enc_bit_writer_write(writer, 0U, leading) != ENC_OK) {
-        return writer->status;
-    }
-    return enc_bit_writer_write(writer, code, width);
+    return writer->status;
 }
 
-static EncStatus write_ns(EncBitWriter *writer, uint32_t value,
-                          uint32_t domain) {
+EncStatus enc_range_writer_signed_literal(
+    EncRangeWriter *writer, int32_t value, unsigned int magnitude_bits) {
+    int64_t minimum;
+    int64_t maximum;
+    unsigned int total_bits;
+    uint32_t encoded;
+    if (writer == 0) {
+        return ENC_INVALID_ARGUMENT;
+    }
+    if (magnitude_bits > 31U) {
+        return range_syntax_fail(writer, ENC_INVALID_ARGUMENT);
+    }
+    total_bits = magnitude_bits + 1U;
+    minimum = -(INT64_C(1) << magnitude_bits);
+    maximum = (INT64_C(1) << magnitude_bits) - 1;
+    if ((int64_t)value < minimum || (int64_t)value > maximum) {
+        return range_syntax_fail(writer, ENC_INVALID_ARGUMENT);
+    }
+    encoded = (uint32_t)value;
+    if (total_bits < 32U) {
+        encoded &= (UINT32_C(1) << total_bits) - 1U;
+    }
+    return enc_range_writer_literal(writer, encoded, total_bits);
+}
+
+EncStatus enc_range_writer_ns(
+    EncRangeWriter *writer, uint32_t value, uint32_t symbol_count) {
     unsigned int width = 0U;
     uint32_t cutoff;
     uint32_t probe;
-    if (domain == 0U || value >= domain) {
+    if (writer == 0) {
         return ENC_INVALID_ARGUMENT;
     }
-    probe = domain - 1U;
+    if (symbol_count == 0U || value >= symbol_count) {
+        return range_syntax_fail(writer, ENC_INVALID_ARGUMENT);
+    }
+    if (symbol_count == 1U) {
+        return enc_range_writer_status(writer);
+    }
+    probe = symbol_count - 1U;
     while (probe != 0U) {
         ++width;
         probe >>= 1U;
     }
-    cutoff = (UINT32_C(1) << width) - domain;
+    cutoff = (uint32_t)((UINT64_C(1) << width) - symbol_count);
     if (value < cutoff) {
-        return enc_bit_writer_write(writer, value, width - 1U);
+        return enc_range_writer_literal(writer, value, width - 1U);
     }
     value += cutoff;
-    if (enc_bit_writer_write(writer, value >> 1U, width - 1U) != ENC_OK) {
-        return writer->status;
+    if (enc_range_writer_literal(writer, value >> 1U, width - 1U) !=
+        ENC_OK) {
+        return enc_range_writer_status(writer);
     }
-    return enc_bit_writer_write(writer, value & 1U, 1U);
+    return enc_range_writer_bypass(writer, value & 1U);
+}
+
+static unsigned int floor_log2_u32(uint32_t value) {
+    unsigned int result = 0U;
+    while (value > 1U) {
+        value >>= 1U;
+        ++result;
+    }
+    return result;
+}
+
+EncStatus enc_range_writer_coeff_remainder(
+    EncRangeWriter *writer, uint32_t value, uint32_t predicted_level) {
+    unsigned int m;
+    unsigned int k;
+    unsigned int cmax;
+    unsigned int quotient;
+    unsigned int length;
+    unsigned int index;
+    uint64_t xbase;
+    if (writer == 0) {
+        return ENC_INVALID_ARGUMENT;
+    }
+    m = floor_log2_u32(predicted_level);
+    if (m < 1U) m = 1U;
+    if (m > 6U) m = 6U;
+    k = m + 1U;
+    cmax = m + 4U < 6U ? m + 4U : 6U;
+    quotient = value >> m;
+    if (quotient < cmax) {
+        for (index = 0U; index < quotient; ++index) {
+            if (enc_range_writer_bypass(writer, 0U) != ENC_OK) {
+                return enc_range_writer_status(writer);
+            }
+        }
+        if (enc_range_writer_bypass(writer, 1U) != ENC_OK) {
+            return enc_range_writer_status(writer);
+        }
+        return enc_range_writer_literal(
+            writer, value & ((UINT32_C(1) << m) - 1U), m);
+    }
+    for (index = 0U; index < cmax; ++index) {
+        if (enc_range_writer_bypass(writer, 0U) != ENC_OK) {
+            return enc_range_writer_status(writer);
+        }
+    }
+    length = k;
+    for (;;) {
+        uint64_t next_base =
+            ((uint64_t)cmax << m) +
+            (UINT64_C(1) << (length + 1U)) -
+            (UINT64_C(1) << k);
+        if ((uint64_t)value < next_base) {
+            break;
+        }
+        ++length;
+    }
+    for (index = k; index < length; ++index) {
+        if (enc_range_writer_bypass(writer, 0U) != ENC_OK) {
+            return enc_range_writer_status(writer);
+        }
+    }
+    if (enc_range_writer_bypass(writer, 1U) != ENC_OK) {
+        return enc_range_writer_status(writer);
+    }
+    xbase = ((uint64_t)cmax << m) +
+            (UINT64_C(1) << length) -
+            (UINT64_C(1) << k);
+    return enc_range_writer_literal(
+        writer, (uint32_t)((uint64_t)value - xbase), length);
+}
+
+EncStatus enc_range_writer_coeff_value(
+    EncRangeWriter *writer, uint32_t magnitude, int is_eob,
+    uint32_t base_levels, uint32_t base_range, uint32_t predicted_level,
+    uint16_t *base_cdf, uint16_t *br_cdf, int update_cdf,
+    EncCoeffValueCoding *coding) {
+    uint32_t offset = is_eob != 0 ? 1U : 0U;
+    uint32_t base_symbol_max;
+    uint32_t base_symbol;
+    uint32_t level;
+    uint32_t br_symbol = 0U;
+    uint32_t max_level;
+    EncStatus status;
+    if (writer == 0) {
+        return ENC_INVALID_ARGUMENT;
+    }
+    if (base_levels == 0U || base_levels > 14U ||
+        base_range == 0U || base_range > 15U ||
+        base_cdf == 0 || br_cdf == 0 || magnitude < offset) {
+        return range_syntax_fail(writer, ENC_INVALID_ARGUMENT);
+    }
+    base_symbol_max = base_levels + 1U - offset;
+    base_symbol = magnitude - offset;
+    if (base_symbol > base_symbol_max) {
+        base_symbol = base_symbol_max;
+    }
+    status = enc_range_writer_symbol(
+        writer, base_symbol, base_cdf, base_symbol_max + 1U, update_cdf);
+    if (status != ENC_OK) {
+        return status;
+    }
+    level = base_symbol + offset;
+    if (level > base_levels) {
+        br_symbol = magnitude - level;
+        if (br_symbol > base_range) {
+            br_symbol = base_range;
+        }
+        status = enc_range_writer_symbol(
+            writer, br_symbol, br_cdf, base_range + 1U, update_cdf);
+        if (status != ENC_OK) {
+            return status;
+        }
+        level += br_symbol;
+    }
+    max_level = base_levels + base_range + 1U;
+    if (level >= max_level) {
+        status = enc_range_writer_coeff_remainder(
+            writer, magnitude - level, predicted_level);
+        if (status != ENC_OK) {
+            return status;
+        }
+    }
+    if (coding != 0) {
+        coding->base_symbol = base_symbol;
+        coding->br_symbol = br_symbol;
+        coding->coded_level = level;
+        coding->remainder = magnitude - level;
+    }
+    return ENC_OK;
 }
 
 static EncStatus finish_bits(EncBitWriter *writer, size_t *size) {
@@ -105,12 +256,12 @@ static EncStatus write_sequence_header(
     transform_filter_flags[3U] =
         enable_intra_ist != 0U ? 1U : 0U;
     enc_bit_writer_init(&writer, data, capacity);
-    if (write_uvlc(&writer, 0U) != ENC_OK ||
+    if (enc_bit_writer_uvlc(&writer, 0U) != ENC_OK ||
         enc_bit_writer_write(&writer, 0U, 5U) != ENC_OK ||
         enc_bit_writer_write(&writer, 1U, 1U) != ENC_OK ||
         enc_bit_writer_write(&writer, 0U, 5U) != ENC_OK ||
-        write_uvlc(&writer, 1U) != ENC_OK ||
-        write_uvlc(&writer, 1U) != ENC_OK ||
+        enc_bit_writer_uvlc(&writer, 1U) != ENC_OK ||
+        enc_bit_writer_uvlc(&writer, 1U) != ENC_OK ||
         enc_bit_writer_write(&writer, width_bits - 1U, 4U) != ENC_OK ||
         enc_bit_writer_write(&writer, height_bits - 1U, 4U) != ENC_OK ||
         enc_bit_writer_write(&writer, width - 1U, width_bits) != ENC_OK ||
@@ -122,7 +273,7 @@ static EncStatus write_sequence_header(
             return writer.status;
         }
     }
-    if (write_ns(&writer, 2U, 3U) != ENC_OK) return writer.status;
+    if (enc_bit_writer_ns(&writer, 2U, 3U) != ENC_OK) return writer.status;
     for (index = 0U; index < sizeof(transform_filter_flags); ++index) {
         if (enc_bit_writer_write(
                 &writer, transform_filter_flags[index], 1U) != ENC_OK) {
@@ -162,8 +313,8 @@ EncStatus enc_m1_frame_header(void *data, size_t capacity, size_t *size) {
     }
     *size = 0U;
     enc_bit_writer_init(&writer, data, capacity);
-    if (write_uvlc(&writer, 0U) != ENC_OK ||
-        write_uvlc(&writer, 0U) != ENC_OK) {
+    if (enc_bit_writer_uvlc(&writer, 0U) != ENC_OK ||
+        enc_bit_writer_uvlc(&writer, 0U) != ENC_OK) {
         return writer.status;
     }
     for (index = 0U; index < sizeof(prefix_flags); ++index) {
@@ -234,25 +385,27 @@ EncStatus enc_m1_tile(void *data, size_t capacity, size_t *size) {
     return ENC_OK;
 }
 
-EncStatus enc_m3_frame_header(void *data, size_t capacity, size_t *size) {
+EncStatus enc_m3_frame_header_q(void *data, size_t capacity, size_t *size,
+                                unsigned int qindex) {
     EncBitWriter writer;
     static const uint8_t prefix_flags[] = {1U, 0U, 0U, 0U, 1U};
     size_t index;
-    if (size == 0 || (data == 0 && capacity != 0U)) {
+    if (size == 0 || (data == 0 && capacity != 0U) ||
+        qindex == 0U || qindex > 255U) {
         return ENC_INVALID_ARGUMENT;
     }
 
     *size = 0U;
     enc_bit_writer_init(&writer, data, capacity);
-    if (write_uvlc(&writer, 0U) != ENC_OK ||
-        write_uvlc(&writer, 0U) != ENC_OK) return writer.status;
+    if (enc_bit_writer_uvlc(&writer, 0U) != ENC_OK ||
+        enc_bit_writer_uvlc(&writer, 0U) != ENC_OK) return writer.status;
     for (index = 0U; index < sizeof(prefix_flags); ++index) {
         if (enc_bit_writer_write(
                 &writer, prefix_flags[index], 1U) != ENC_OK) {
             return writer.status;
         }
     }
-    if (enc_bit_writer_write(&writer, 100U, 8U) != ENC_OK ||
+    if (enc_bit_writer_write(&writer, qindex, 8U) != ENC_OK ||
         enc_bit_writer_write(&writer, 0U, 1U) != ENC_OK ||
         enc_bit_writer_write(&writer, 0U, 1U) != ENC_OK ||
         enc_bit_writer_write(&writer, 0U, 1U) != ENC_OK ||
@@ -265,6 +418,10 @@ EncStatus enc_m3_frame_header(void *data, size_t capacity, size_t *size) {
     return finish_bits(&writer, size);
 }
 
+EncStatus enc_m3_frame_header(void *data, size_t capacity, size_t *size) {
+    return enc_m3_frame_header_q(data, capacity, size, 100U);
+}
+
 EncStatus enc_m4_frame_header(void *data, size_t capacity, size_t *size) {
     EncBitWriter writer;
     static const uint8_t prefix_flags[] = {1U, 0U, 0U, 0U, 1U};
@@ -274,8 +431,8 @@ EncStatus enc_m4_frame_header(void *data, size_t capacity, size_t *size) {
     }
     *size = 0U;
     enc_bit_writer_init(&writer, data, capacity);
-    if (write_uvlc(&writer, 0U) != ENC_OK ||
-        write_uvlc(&writer, 0U) != ENC_OK) return writer.status;
+    if (enc_bit_writer_uvlc(&writer, 0U) != ENC_OK ||
+        enc_bit_writer_uvlc(&writer, 0U) != ENC_OK) return writer.status;
     for (index = 0U; index < sizeof(prefix_flags); ++index) {
         if (enc_bit_writer_write(
                 &writer, prefix_flags[index], 1U) != ENC_OK) {
@@ -357,60 +514,6 @@ EncStatus enc_m4_ac_tile(void *data, size_t capacity, size_t *size,
     return ENC_OK;
 }
 
-static EncStatus write_dc_remainder(
-    EncRangeWriter *writer, unsigned int value) {
-    unsigned int quotient;
-    unsigned int remainder;
-    unsigned int length;
-    unsigned int base;
-    unsigned int index;
-    if (value < 10U) {
-        quotient = value >> 1U;
-        remainder = value & 1U;
-        for (index = 0U; index < quotient; ++index) {
-            if (enc_range_writer_bypass(writer, 0U) != ENC_OK) {
-                return enc_range_writer_status(writer);
-            }
-        }
-        if (enc_range_writer_bypass(writer, 1U) != ENC_OK ||
-            enc_range_writer_bypass(writer, remainder) != ENC_OK) {
-            return enc_range_writer_status(writer);
-        }
-        return ENC_OK;
-    }
-    for (index = 0U; index < 5U; ++index) {
-        if (enc_range_writer_bypass(writer, 0U) != ENC_OK) {
-            return enc_range_writer_status(writer);
-        }
-    }
-    length = 2U;
-    while (length < 20U &&
-           value >= 6U + (UINT32_C(1) << (length + 1U))) {
-        ++length;
-    }
-    if (length == 20U &&
-        value >= 6U + (UINT32_C(1) << 21U)) {
-        return ENC_INVALID_ARGUMENT;
-    }
-    for (index = 2U; index < length; ++index) {
-        if (enc_range_writer_bypass(writer, 0U) != ENC_OK) {
-            return enc_range_writer_status(writer);
-        }
-    }
-    if (enc_range_writer_bypass(writer, 1U) != ENC_OK) {
-        return enc_range_writer_status(writer);
-    }
-    base = 6U + (UINT32_C(1) << length);
-    remainder = value - base;
-    for (index = length; index != 0U; --index) {
-        if (enc_range_writer_bypass(
-                writer, (remainder >> (index - 1U)) & 1U) != ENC_OK) {
-            return enc_range_writer_status(writer);
-        }
-    }
-    return ENC_OK;
-}
-
 static EncStatus write_m3_mode(
     EncRangeWriter *writer, EncSyntaxCdfs *cdfs,
     size_t block_size_group) {
@@ -430,41 +533,44 @@ static EncStatus write_m3_mode(
 
 static EncStatus write_m3_dc_coeff(
     EncRangeWriter *writer, EncSyntaxCdfs *cdfs,
-    int16_t level, size_t skip_context, size_t sign_context) {
+    int16_t level, size_t skip_context, size_t sign_context,
+    size_t q_context) {
     unsigned int magnitude =
         level < 0 ? (unsigned int)(-(int)level) : (unsigned int)level;
     if (enc_range_writer_symbol(
             writer, magnitude == 0U ? 1U : 0U,
             enc_syntax_txb_skip_cdf(
-                cdfs, 1U, 0U, 1U, skip_context),
+                cdfs, q_context, 0U, 1U, skip_context),
             2U, 1) != ENC_OK) {
         return enc_range_writer_status(writer);
     }
     if (magnitude == 0U) return ENC_OK;
     if (enc_range_writer_symbol(
-            writer, 0U, enc_syntax_eob_pt_64_cdf(cdfs, 1U, 0U),
+            writer, 0U, enc_syntax_eob_pt_64_cdf(cdfs, q_context, 0U),
             7U, 1) != ENC_OK ||
         enc_range_writer_symbol(
             writer, magnitude > 5U ? 4U : magnitude - 1U,
-            enc_syntax_coeff_base_lf_eob_cdf(cdfs, 1U, 1U, 0U),
+            enc_syntax_coeff_base_lf_eob_cdf(cdfs, q_context, 1U, 0U),
             5U, 1) != ENC_OK) {
         return enc_range_writer_status(writer);
     }
     if (magnitude >= 5U &&
         enc_range_writer_symbol(
             writer, magnitude > 8U ? 3U : magnitude - 5U,
-            enc_syntax_coeff_br_lf_cdf(cdfs, 1U, 0U),
+            enc_syntax_coeff_br_lf_cdf(cdfs, q_context, 0U),
             4U, 1) != ENC_OK) {
         return enc_range_writer_status(writer);
     }
     if (enc_range_writer_symbol(
             writer, level < 0 ? 1U : 0U,
-            enc_syntax_dc_sign_cdf(cdfs, 1U, 0U, 0U, sign_context),
+            enc_syntax_dc_sign_cdf(
+                cdfs, q_context, 0U, 0U, sign_context),
             2U, 1) != ENC_OK) {
         return enc_range_writer_status(writer);
     }
     return magnitude >= 8U
-        ? write_dc_remainder(writer, magnitude - 8U) : ENC_OK;
+        ? enc_range_writer_coeff_remainder(
+              writer, magnitude - 8U, 0U) : ENC_OK;
 }
 
 typedef struct {
@@ -473,12 +579,13 @@ typedef struct {
     size_t width;
     size_t height;
     const int16_t *levels;
+    size_t q_context;
 } EncM3TileState;
 
 static EncStatus write_m3_leaf(
     EncM3TileState *state, size_t block_x, size_t block_y,
     size_t block_width, size_t block_height) {
-    size_t block_columns = state->width / 8U;
+    size_t block_columns = (state->width + 7U) / 8U;
     size_t tx_columns = block_width / 8U;
     size_t tx_rows = block_height / 8U;
     size_t block_size_group =
@@ -547,7 +654,7 @@ static EncStatus write_m3_leaf(
             if (score > 0) sign_context = 2U;
             status = write_m3_dc_coeff(
                 state->writer, state->cdfs, state->levels[block],
-                skip_context, sign_context);
+                skip_context, sign_context, state->q_context);
             if (status != ENC_OK) return status;
         }
     }
@@ -558,11 +665,13 @@ static EncStatus write_m3_partition(
     EncM3TileState *state, size_t block_x, size_t block_y,
     size_t block_size) {
     size_t half;
+    size_t coded_width = (state->width + 7U) & ~(size_t)7U;
+    size_t coded_height = (state->height + 7U) & ~(size_t)7U;
     EncStatus status;
-    if (block_x >= state->width || block_y >= state->height) return ENC_OK;
+    if (block_x >= coded_width || block_y >= coded_height) return ENC_OK;
     if (block_size == 16U &&
-        block_x + block_size > state->width &&
-        block_y + block_size <= state->height) {
+        block_x + block_size / 2U >= coded_width &&
+        block_y + block_size / 2U < coded_height) {
         if (enc_range_writer_symbol(
                 state->writer, 0U,
                 enc_syntax_do_split_cdf(state->cdfs, 0U, 4U),
@@ -573,8 +682,8 @@ static EncStatus write_m3_partition(
             state, block_x, block_y, 8U, 16U);
     }
     if (block_size == 16U &&
-        block_y + block_size > state->height &&
-        block_x + block_size <= state->width) {
+        block_y + block_size / 2U >= coded_height &&
+        block_x + block_size / 2U < coded_width) {
         if (enc_range_writer_symbol(
                 state->writer, 0U,
                 enc_syntax_do_split_cdf(state->cdfs, 0U, 4U),
@@ -585,8 +694,8 @@ static EncStatus write_m3_partition(
             state, block_x, block_y, 16U, 8U);
     }
     if (block_size > 8U &&
-        (block_x + block_size > state->width ||
-         block_y + block_size > state->height)) {
+        (block_x + block_size / 2U >= coded_width ||
+         block_y + block_size / 2U >= coded_height)) {
         half = block_size / 2U;
     } else {
         size_t context = block_size == 16U ? 4U : 0U;
@@ -612,9 +721,10 @@ static EncStatus write_m3_partition(
         state, block_x + half, block_y + half, half);
 }
 
-EncStatus enc_m3_dc_grid_tile(
+EncStatus enc_m3_dc_grid_tile_q(
     void *data, size_t capacity, size_t *size,
-    size_t width, size_t height, const int16_t *levels, size_t level_count) {
+    size_t width, size_t height, const int16_t *levels, size_t level_count,
+    unsigned int qindex) {
     EncSyntaxCdfs cdfs;
     EncRangeWriter writer;
     EncM3TileState state;
@@ -622,12 +732,13 @@ EncStatus enc_m3_dc_grid_tile(
     size_t block_count;
     EncStatus status;
     if (size == 0 || (data == 0 && capacity != 0U) || levels == 0 ||
-        (width != 8U && width != 16U) ||
-        (height != 8U && height != 16U)) {
+        width == 0U || width > 16U ||
+        height == 0U || height > 16U ||
+        qindex == 0U || qindex > 255U) {
         return ENC_INVALID_ARGUMENT;
     }
-    block_columns = width / 8U;
-    block_count = block_columns * (height / 8U);
+    block_columns = (width + 7U) / 8U;
+    block_count = block_columns * ((height + 7U) / 8U);
     if (level_count != block_count) return ENC_INVALID_ARGUMENT;
     *size = 0U;
     status = enc_syntax_cdfs_init(&cdfs);
@@ -638,6 +749,9 @@ EncStatus enc_m3_dc_grid_tile(
     state.width = width;
     state.height = height;
     state.levels = levels;
+    state.q_context = qindex <= 90U ? 0U :
+                      qindex <= 140U ? 1U :
+                      qindex <= 190U ? 2U : 3U;
     status = write_m3_partition(&state, 0U, 0U, 64U);
     if (status != ENC_OK) return status;
     if (enc_range_writer_finish(&writer) != ENC_OK) {
@@ -645,6 +759,13 @@ EncStatus enc_m3_dc_grid_tile(
     }
     *size = enc_range_writer_bytes_used(&writer);
     return ENC_OK;
+}
+
+EncStatus enc_m3_dc_grid_tile(
+    void *data, size_t capacity, size_t *size,
+    size_t width, size_t height, const int16_t *levels, size_t level_count) {
+    return enc_m3_dc_grid_tile_q(
+        data, capacity, size, width, height, levels, level_count, 100U);
 }
 
 EncStatus enc_m3_dc_tile(void *data, size_t capacity, size_t *size,

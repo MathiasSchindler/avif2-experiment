@@ -93,6 +93,10 @@ static void report_m3_metrics(const EncM3Result *result) {
 
     report_error("dB workspace_bytes=");
     report_u64(result->pixel_count);
+    if (result->qindex != 0U) {
+        report_error(" qindex=");
+        report_u64(result->qindex);
+    }
     report_error("\n");
 }
 
@@ -101,6 +105,7 @@ static void report_m4_metrics(const EncM4Result *result) {
     metrics.stream_size = result->stream_size;
     metrics.squared_error = result->squared_error;
     metrics.pixel_count = result->pixel_count;
+    metrics.qindex = 0U;
     report_m3_metrics(&metrics);
 }
 
@@ -148,13 +153,17 @@ static int run_i400_mode(long argument_count, char **arguments) {
     size_t width;
     size_t height;
     size_t stride;
+    size_t qindex = ENC_M3_DEFAULT_QINDEX;
+    long option;
+    int saw_stride = 0;
+    int saw_qindex = 0;
     const char *output_path;
-    if ((argument_count != 8 && argument_count != 10) ||
+    if ((argument_count != 8 && argument_count != 10 &&
+         argument_count != 12) ||
         !strings_equal(arguments[3], "--width") ||
-        !strings_equal(arguments[5], "--height") ||
-        (argument_count == 10 && !strings_equal(arguments[7], "--stride"))) {
+        !strings_equal(arguments[5], "--height")) {
         report_error("usage: encoder --i400-8 INPUT --width W --height H "
-                     "[--stride S] OUTPUT\n");
+                     "[--stride S] [--qindex Q] OUTPUT\n");
         return ENC_EXIT_USAGE;
     }
 
@@ -164,14 +173,29 @@ static int run_i400_mode(long argument_count, char **arguments) {
         return ENC_EXIT_INPUT_METADATA;
     }
     stride = width;
-    output_path = arguments[7];
-    if (argument_count == 10) {
-        if (!parse_size(arguments[8], &stride)) {
-            report_error("encoder: invalid I400 stride\n");
-            return ENC_EXIT_INPUT_METADATA;
+    for (option = 7; option + 1 < argument_count - 1; option += 2) {
+        if (strings_equal(arguments[option], "--stride") && !saw_stride) {
+            if (!parse_size(arguments[option + 1], &stride)) {
+                report_error("encoder: invalid I400 stride\n");
+                return ENC_EXIT_INPUT_METADATA;
+            }
+            saw_stride = 1;
+        } else if (strings_equal(arguments[option], "--qindex") &&
+                   !saw_qindex) {
+            if (!parse_size(arguments[option + 1], &qindex) ||
+                qindex < ENC_M3_MIN_QINDEX ||
+                qindex > ENC_M3_MAX_QINDEX) {
+                report_error("encoder: qindex must be in 1..255\n");
+                return ENC_EXIT_INPUT_METADATA;
+            }
+            saw_qindex = 1;
+        } else {
+            report_error("usage: encoder --i400-8 INPUT --width W --height H "
+                         "[--stride S] [--qindex Q] OUTPUT\n");
+            return ENC_EXIT_USAGE;
         }
-        output_path = arguments[9];
     }
+    output_path = arguments[argument_count - 1];
     if (output_path == 0 || output_path[0] == '\0') {
         report_error("encoder: invalid output path\n");
         return ENC_EXIT_USAGE;
@@ -189,15 +213,16 @@ static int run_i400_mode(long argument_count, char **arguments) {
         report_error("encoder: cannot read I400 input\n");
         return ENC_EXIT_INPUT_IO;
     }
-    if ((width != 8U && width != 16U) ||
-        (height != 8U && height != 16U)) {
+    if (width < ENC_M3_MIN_DIMENSION || width > ENC_M3_MAX_DIMENSION ||
+        height < ENC_M3_MIN_DIMENSION || height > ENC_M3_MAX_DIMENSION) {
         (void)enc_i400_input_close(&input);
         report_error(
-            "encoder: DC subset supports 8 or 16 pixels per axis\n");
+            "encoder: DC subset supports 1 through 16 pixels per axis\n");
         return ENC_EXIT_UNSUPPORTED;
     }
-    status = enc_m3_dc_i400(
+    status = enc_m3_dc_i400_q(
         input.plane, input.width, input.height, input.stride,
+        (unsigned int)qindex,
         stream, sizeof(stream),
         reconstruction, sizeof(reconstruction), &result);
     if (status != ENC_OK) {
@@ -262,7 +287,8 @@ static int run_m4_mode(long argument_count, char **arguments) {
 int encoder_main(long argument_count, char **arguments) {
     if (arguments == 0 || argument_count < 2) {
         report_error("usage: encoder --constant-128-8x8 OUTPUT or "
-                     "--i400-8 INPUT --width W --height H [--stride S] OUTPUT\n");
+                     "--i400-8 INPUT --width W --height H "
+                     "[--stride S] [--qindex Q] OUTPUT\n");
         return ENC_EXIT_USAGE;
     }
     if (argument_count == 3 &&

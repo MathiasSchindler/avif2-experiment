@@ -38,6 +38,43 @@ CDF adaptation and the C writer's explicitly inverse-CDF API. Tests round-trip
 the native writer's fixed and adaptive golden vectors. The separate AVM
 fixture uses a lossless configuration with no delta-Q symbol.
 
+`m2_transcript_matrix.py` runs the native C range writer through four compact
+syntax transcripts plus an exhaustive 2-through-16 alphabet matrix at initial
+update counts 0/15/16/31/32. It independently decodes them in Python, checks
+final adaptive CDF states and per-operation bit positions, and verifies
+exact-capacity success plus one-byte-short exhaustion:
+
+```sh
+python3 experimental/encoder/tools/m2_transcript_matrix.py
+```
+
+The independent decoder in `range_writer_test.c` checks the same exhaustive
+alphabet/update-boundary transcript family directly against the writer and
+also covers every symbol, all 125 CDF parameter combinations, literals of 0
+through 32 bits, split-buffer decoding, carry/`0xff` stress, deterministic
+finish, and exact/short/zero capacities. Raw transcripts are intentionally
+validated only by these range-decoder models; they are not image bitstreams.
+
+`m2_full_stream_matrix.py` regenerates the tracked M1/M3/M4 streams and checks
+them against their manifest. `--write` is the explicit fixture-maintenance
+mode and additionally requires the hash-pinned AVM v1.0.0 decoder and the
+project decoder:
+
+```sh
+python3 experimental/encoder/tools/m2_full_stream_matrix.py
+python3 experimental/encoder/tools/m2_full_stream_matrix.py --write
+```
+
+`syntax_reference.py` independently decodes the freestanding raw and
+range-coded helper vectors: UVLC/SVLC, signed literals, ns, subexp with
+reference recentering, trailing bits, arithmetic ns, signed literals, and
+general coefficient BR/remainder paths. The test exhausts small domains and
+all output capacities of compact boundary transcripts:
+
+```sh
+python3 -m unittest experimental/encoder/tests/test_syntax_helpers.py
+```
+
 `generate_cdf_subset.py` verifies and extracts the exact AV2 v1.0.0 normative
 CDF subset used by M1 and fixed-DC 8x8 grayscale M3 syntax. It emits the
 tracked `src/normative_cdfs.inc`; production builds never read the
@@ -56,6 +93,14 @@ selected CDF rows, lossless WHT/IDTX checks, and constant/ramp vectors:
 ```sh
 python3 experimental/encoder/tools/m3_dc_model.py --vectors
 python3 experimental/encoder/tools/m3_dc_model.py --transcript -21 8 255
+```
+
+`m3_q_sweep.py` runs the locked generated/prepared-crop qindex ladder, requires
+exact local/AVM/project reconstruction parity, and writes aggregate JSON whose
+SSE cannot increase as qindex decreases:
+
+```sh
+python3 experimental/encoder/tools/m3_q_sweep.py
 ```
 
 `m4_ac_model.py` extends the executable model to an 8x8 DCT_DCT block with

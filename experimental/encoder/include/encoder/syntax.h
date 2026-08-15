@@ -2,6 +2,7 @@
 #define EXPERIMENTAL_ENCODER_SYNTAX_H
 
 #include "encoder/base.h"
+#include "encoder/range.h"
 
 #define ENC_M4_MIN_LEVEL_MAGNITUDE 1U
 #define ENC_M4_MAX_LEVEL_MAGNITUDE 4U
@@ -45,6 +46,25 @@ typedef struct {
     uint16_t intra_tx_type_set2[ENC_INTRA_TX_TYPE_SET2_ROWS][6U];
     uint16_t intra_tx_type_long[ENC_INTRA_TX_TYPE_LONG_ROWS][8U];
 } EncSyntaxCdfs;
+
+typedef struct {
+    uint32_t base_symbol;
+    uint32_t br_symbol;
+    uint32_t coded_level;
+    uint32_t remainder;
+} EncCoeffValueCoding;
+
+EncStatus enc_range_writer_signed_literal(
+    EncRangeWriter *writer, int32_t value, unsigned int magnitude_bits);
+EncStatus enc_range_writer_ns(
+    EncRangeWriter *writer, uint32_t value, uint32_t symbol_count);
+EncStatus enc_range_writer_coeff_remainder(
+    EncRangeWriter *writer, uint32_t value, uint32_t predicted_level);
+EncStatus enc_range_writer_coeff_value(
+    EncRangeWriter *writer, uint32_t magnitude, int is_eob,
+    uint32_t base_levels, uint32_t base_range, uint32_t predicted_level,
+    uint16_t *base_cdf, uint16_t *br_cdf, int update_cdf,
+    EncCoeffValueCoding *coding);
 
 EncStatus enc_syntax_cdfs_init(EncSyntaxCdfs *cdfs);
 uint16_t *enc_syntax_do_split_cdf(
@@ -92,6 +112,8 @@ EncStatus enc_m3_sequence_header(void *data, size_t capacity, size_t *size,
                                  size_t width, size_t height);
 EncStatus enc_m4_sequence_header(void *data, size_t capacity, size_t *size);
 EncStatus enc_m3_frame_header(void *data, size_t capacity, size_t *size);
+EncStatus enc_m3_frame_header_q(void *data, size_t capacity, size_t *size,
+                                unsigned int qindex);
 EncStatus enc_m4_frame_header(void *data, size_t capacity, size_t *size);
 EncStatus enc_m4_ac_tile(void *data, size_t capacity, size_t *size,
                          int16_t dc_level, int16_t ac_level);
@@ -100,5 +122,9 @@ EncStatus enc_m3_dc_tile(void *data, size_t capacity, size_t *size,
 EncStatus enc_m3_dc_grid_tile(
     void *data, size_t capacity, size_t *size,
     size_t width, size_t height, const int16_t *levels, size_t level_count);
+EncStatus enc_m3_dc_grid_tile_q(
+    void *data, size_t capacity, size_t *size,
+    size_t width, size_t height, const int16_t *levels, size_t level_count,
+    unsigned int qindex);
 
 #endif

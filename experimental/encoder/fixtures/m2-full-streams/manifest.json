@@ -1,0 +1,187 @@
+{
+  "cases": [
+    {
+      "coverage": [
+        "coefficient-free",
+        "M1"
+      ],
+      "height": 8,
+      "mode": "m1",
+      "name": "m1-coefficient-free",
+      "obu": {
+        "bytes": 21,
+        "path": "experimental/encoder/fixtures/m2-full-streams/m1-coefficient-free.obu",
+        "sha256": "4c13e82fce9975d573b92b8ca2da25e1fed90308ac6857ec4d2d92dba0268b11"
+      },
+      "source": {
+        "bytes": 64,
+        "path": "experimental/encoder/fixtures/m2-full-streams/m1-coefficient-free.i400",
+        "sha256": "1df1b7ce1fd8fcbe20cde61646875e54fe38d8945ea7911afd59e025cc520a68"
+      },
+      "width": 8
+    },
+    {
+      "coverage": [
+        "DC",
+        "base",
+        "M3"
+      ],
+      "height": 8,
+      "mode": "m3",
+      "name": "m3-dc-base",
+      "obu": {
+        "bytes": 20,
+        "path": "experimental/encoder/fixtures/m2-full-streams/m3-dc-base.obu",
+        "sha256": "aa82e299fe478c0f6184875d7d7ba0111ebdeb63384695a6eb8067fedd7970f3"
+      },
+      "source": {
+        "bytes": 64,
+        "path": "experimental/encoder/fixtures/m2-full-streams/m3-dc-base.i400",
+        "sha256": "761421230b7d9df6f62ba984f246d5880b13a45ac28bbc93e38abc39f0c15add"
+      },
+      "width": 8
+    },
+    {
+      "coverage": [
+        "DC",
+        "base",
+        "BR",
+        "M3"
+      ],
+      "height": 8,
+      "mode": "m3",
+      "name": "m3-dc-br",
+      "obu": {
+        "bytes": 21,
+        "path": "experimental/encoder/fixtures/m2-full-streams/m3-dc-br.obu",
+        "sha256": "bf22a5296bffdb637d638178d488dbfc50f9f0c3a8c3ba1515d899c7b018d1e0"
+      },
+      "source": {
+        "bytes": 64,
+        "path": "experimental/encoder/fixtures/m2-full-streams/m3-dc-br.i400",
+        "sha256": "aa02dcccc3f53a0e5c9c57a47b89ea0e6d2c9762cd70849a4cc6e2f8168c0c3f"
+      },
+      "width": 8
+    },
+    {
+      "coverage": [
+        "DC",
+        "base",
+        "BR",
+        "remainder",
+        "M3"
+      ],
+      "height": 8,
+      "mode": "m3",
+      "name": "m3-dc-remainder",
+      "obu": {
+        "bytes": 21,
+        "path": "experimental/encoder/fixtures/m2-full-streams/m3-dc-remainder.obu",
+        "sha256": "d1263eba939bacd5ab6c025a6b8ee43078c127a152af46f091f2b10caa32a35d"
+      },
+      "source": {
+        "bytes": 64,
+        "path": "experimental/encoder/fixtures/m2-full-streams/m3-dc-remainder.i400",
+        "sha256": "bfefb05ee6fe6ef78115ca5d04b64e42c5513210315d713b668fe4d5d87b305c"
+      },
+      "width": 8
+    },
+    {
+      "coverage": [
+        "multi-block",
+        "CDF-adaptation",
+        "M3"
+      ],
+      "height": 16,
+      "mode": "m3",
+      "name": "m3-multi-block-adaptation",
+      "obu": {
+        "bytes": 27,
+        "path": "experimental/encoder/fixtures/m2-full-streams/m3-multi-block-adaptation.obu",
+        "sha256": "b58b8eac4c69cc9d5f84ffdbe6062fd3c439877de129af16f0d94f530fbf15be"
+      },
+      "source": {
+        "bytes": 256,
+        "path": "experimental/encoder/fixtures/m2-full-streams/m3-multi-block-adaptation.i400",
+        "sha256": "3027d13d5b1bade8fd413fb9f97cc45322ffb3afadde630a78bfaebb9762856b"
+      },
+      "width": 16
+    },
+    {
+      "coverage": [
+        "DC",
+        "AC(1,0)",
+        "sign",
+        "M4"
+      ],
+      "height": 8,
+      "mode": "m4",
+      "name": "m4-vertical-ac",
+      "obu": {
+        "bytes": 21,
+        "path": "experimental/encoder/fixtures/m2-full-streams/m4-vertical-ac.obu",
+        "sha256": "9d84278811a478aaece5b87bf9340e47d1dfd20badc6af0765776840f8d98c15"
+      },
+      "source": {
+        "bytes": 64,
+        "path": "experimental/encoder/fixtures/m2-full-streams/m4-vertical-ac.i400",
+        "sha256": "fa5e2dc3cd94a1e52711093de4db4bc9d7d1124d86c2c4389534521761edbf93"
+      },
+      "width": 8
+    }
+  ],
+  "decoded": [
+    {
+      "avmdec_project_exact": true,
+      "bytes": 64,
+      "name": "m1-coefficient-free",
+      "sha256": "1df1b7ce1fd8fcbe20cde61646875e54fe38d8945ea7911afd59e025cc520a68",
+      "source_exact": true
+    },
+    {
+      "avmdec_project_exact": true,
+      "bytes": 64,
+      "name": "m3-dc-base",
+      "sha256": "761421230b7d9df6f62ba984f246d5880b13a45ac28bbc93e38abc39f0c15add",
+      "source_exact": true
+    },
+    {
+      "avmdec_project_exact": true,
+      "bytes": 64,
+      "name": "m3-dc-br",
+      "sha256": "aa02dcccc3f53a0e5c9c57a47b89ea0e6d2c9762cd70849a4cc6e2f8168c0c3f",
+      "source_exact": true
+    },
+    {
+      "avmdec_project_exact": true,
+      "bytes": 64,
+      "name": "m3-dc-remainder",
+      "sha256": "bfefb05ee6fe6ef78115ca5d04b64e42c5513210315d713b668fe4d5d87b305c",
+      "source_exact": true
+    },
+    {
+      "avmdec_project_exact": true,
+      "bytes": 256,
+      "name": "m3-multi-block-adaptation",
+      "sha256": "889c470c0c1233bff458fe01979a2ff80b2287982502e43e6da30fe2ca36645e",
+      "source_exact": false
+    },
+    {
+      "avmdec_project_exact": true,
+      "bytes": 64,
+      "name": "m4-vertical-ac",
+      "sha256": "fa5e2dc3cd94a1e52711093de4db4bc9d7d1124d86c2c4389534521761edbf93",
+      "source_exact": true
+    }
+  ],
+  "description": "Generated current M1/M3/M4 streams; both decoders must produce byte-exact matching reconstructed planes.",
+  "schema": "av2-encoder-m2-full-stream-matrix-v1",
+  "validators": {
+    "avmdec": {
+      "revision": "966a7d7cd6fcf60360caf5dc413b2aeeb65e144d",
+      "sha256": "c247cbb4e71e48bdec89f3c8b2b8efdce17f673aeaa39e3c116a276d16286aa0",
+      "version": "v1.0.0"
+    },
+    "project_decoder_generation_sha256": "c0c6329cc85de13c92d04a00deff8124c9b45dbe74da8a86ddc60d9d7b4de9df"
+  }
+}

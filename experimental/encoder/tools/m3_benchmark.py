@@ -8,6 +8,7 @@ import hashlib
 import json
 import math
 import os
+import re
 import subprocess
 import sys
 import time
@@ -123,6 +124,48 @@ def executable(path: Path, label: str) -> Path:
     return path.resolve()
 
 
+def prepared_crop(
+    fixture: dict[str, Any], fixture_dir: Path
+) -> tuple[Path, bytes]:
+    path = ROOT / fixture["path"]
+    metadata_path = ROOT / fixture["metadata"]
+    if not path.is_file():
+        raise BenchmarkError(f"prepared input is absent: {fixture['path']}")
+    if not metadata_path.is_file():
+        raise BenchmarkError(f"prepared metadata is absent: {fixture['metadata']}")
+    source = path.read_bytes()
+    metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+    source_width = int(fixture["source_width"])
+    source_height = int(fixture["source_height"])
+    expected_hash = fixture["source_sha256"]
+    output = metadata.get("outputs", {}).get("gray8", {})
+    if metadata.get("dimensions") != [source_width, source_height]:
+        raise BenchmarkError(f"prepared metadata dimensions changed: {fixture['metadata']}")
+    if output.get("filename") != path.name or output.get("sha256") != expected_hash:
+        raise BenchmarkError(f"prepared metadata lock changed: {fixture['metadata']}")
+    if len(source) != source_width * source_height:
+        raise BenchmarkError(f"prepared source size changed: {fixture['path']}")
+    if sha256_bytes(source) != expected_hash:
+        raise BenchmarkError(f"prepared input hash mismatch: {fixture['path']}")
+    crop = fixture["crop"]
+    x = int(crop["x"])
+    y = int(crop["y"])
+    width = int(fixture["width"])
+    height = int(fixture["height"])
+    if x < 0 or y < 0 or x + width > source_width or y + height > source_height:
+        raise BenchmarkError(f"prepared crop is out of bounds: {fixture['id']}")
+    pixels = b"".join(
+        source[(y + row) * source_width + x:
+               (y + row) * source_width + x + width]
+        for row in range(height)
+    )
+    if sha256_bytes(pixels) != fixture["sha256"]:
+        raise BenchmarkError(f"prepared crop hash mismatch: {fixture['id']}")
+    path = fixture_dir / "source.i400"
+    path.write_bytes(pixels)
+    return path, pixels
+
+
 def input_for_fixture(fixture: dict[str, Any], fixture_dir: Path) -> tuple[Path, bytes]:
     width = int(fixture["width"])
     height = int(fixture["height"])
@@ -132,13 +175,16 @@ def input_for_fixture(fixture: dict[str, Any], fixture_dir: Path) -> tuple[Path,
         path = fixture_dir / "source.i400"
         path.write_bytes(pixels)
     elif fixture["kind"] == "prepared":
-        path = ROOT / fixture["path"]
-        if not path.is_file():
-            raise BenchmarkError(f"prepared input is absent: {fixture['path']}")
-        pixels = path.read_bytes()
-        expected_hash = fixture.get("sha256")
-        if expected_hash and sha256_bytes(pixels) != expected_hash:
-            raise BenchmarkError(f"prepared input hash mismatch: {fixture['path']}")
+        if "crop" in fixture:
+            path, pixels = prepared_crop(fixture, fixture_dir)
+        else:
+            path = ROOT / fixture["path"]
+            if not path.is_file():
+                raise BenchmarkError(f"prepared input is absent: {fixture['path']}")
+            pixels = path.read_bytes()
+            expected_hash = fixture.get("sha256")
+            if expected_hash and sha256_bytes(pixels) != expected_hash:
+                raise BenchmarkError(f"prepared input hash mismatch: {fixture['path']}")
     else:
         raise BenchmarkError(f"unknown fixture kind: {fixture['kind']}")
     if len(pixels) != expected_size:
@@ -163,6 +209,7 @@ def decode_commands(
 
 def run_fixture(
     fixture: dict[str, Any],
+    qindex: int | None,
     encoder: Path,
     avmdec: Path,
     project_decoder: Path,
@@ -170,11 +217,13 @@ def run_fixture(
     reconstruction_dir: Path | None,
 ) -> dict[str, Any]:
     fixture_id = fixture["id"]
-    fixture_dir = work_root / fixture_id
+    case_id = f"{fixture_id}-q{qindex}" if qindex is not None else fixture_id
+    fixture_dir = work_root / case_id
     fixture_dir.mkdir(parents=True, exist_ok=True)
     record: dict[str, Any] = {
-        "schema": "av2-encoder-m3-benchmark-v1",
-        "fixture": fixture_id,
+        "schema": "av2-encoder-m3-benchmark-v2",
+        "fixture": case_id,
+        "source_fixture": fixture_id,
         "kind": fixture["kind"],
         "profile": fixture["profile"],
         "width": int(fixture["width"]),
@@ -189,6 +238,16 @@ def run_fixture(
     record["source_sha256"] = sha256_bytes(source)
     if fixture.get("metadata"):
         record["metadata"] = fixture["metadata"]
+    if fixture.get("crop"):
+        record["crop"] = fixture["crop"]
+        record["prepared_source"] = {
+            "path": fixture["path"],
+            "width": int(fixture["source_width"]),
+            "height": int(fixture["source_height"]),
+            "sha256": fixture["source_sha256"],
+        }
+    if qindex is not None:
+        record["qindex"] = qindex
     obu = fixture_dir / "encoded.obu"
     obu.unlink(missing_ok=True)
     if fixture["encoder_mode"] == "constant-128-8x8":
@@ -197,17 +256,36 @@ def run_fixture(
         encoder_command = [
             str(encoder), "--i400-8", str(input_path),
             "--width", str(fixture["width"]), "--height", str(fixture["height"]),
-            str(obu),
         ]
+        if qindex is not None:
+            encoder_command.extend(["--qindex", str(qindex)])
+        encoder_command.append(str(obu))
     completed, duration = run(encoder_command)
     record["commands"]["encoder"] = command_record(
         encoder_command, completed, duration
     )
     record["encode_time_ns"] = duration
-    if completed.returncode in (3, 5):
+    metric_match = re.search(
+        rb"encoder: bytes=(\d+) sse_y=(\d+) psnr_y=(inf|\d+\.\d+)dB "
+        rb"workspace_bytes=(\d+)",
+        completed.stderr,
+    )
+    if metric_match:
+        record["encoder_local"] = {
+            "obu_bytes": int(metric_match.group(1)),
+            "sse": int(metric_match.group(2)),
+            "psnr": metric_match.group(3).decode("ascii"),
+            "workspace_bytes": int(metric_match.group(4)),
+        }
+    if completed.returncode in (3, 5) or (
+        qindex is not None and completed.returncode == 2
+    ):
         record.update({
             "status": "unsupported",
-            "reason": "encoder rejected or does not implement this dimension/profile",
+            "reason": (
+                "encoder rejected or does not implement this "
+                "dimension/profile/qindex"
+            ),
             "encoder_returncode": completed.returncode,
         })
         return record
@@ -220,6 +298,12 @@ def run_fixture(
         return record
     obu_bytes = obu.stat().st_size
     pixels = int(fixture["width"]) * int(fixture["height"])
+    if fixture["encoder_mode"] == "raw-i400" and "encoder_local" not in record:
+        record.update({
+            "status": "error",
+            "reason": "encoder omitted mandatory local reconstruction metrics",
+        })
+        return record
     record.update({
         "obu_bytes": obu_bytes,
         "obu_sha256": sha256_file(obu),
@@ -232,10 +316,12 @@ def run_fixture(
     for name, command in (("avmdec", avm_command), ("project", project_command)):
         decoded, decode_time = run(command)
         record["commands"][name] = command_record(command, decoded, decode_time)
+        record[f"{name}_time_ns"] = decode_time
         if decoded.returncode != 0:
             record.update({
-                "status": "unsupported",
-                "reason": f"{name} rejected the encoded dimension/profile",
+                "status": "error",
+                "reason": f"{name} rejected the supported encoded fixture",
+                f"{name}_returncode": decoded.returncode,
             })
             return record
     try:
@@ -247,8 +333,17 @@ def run_fixture(
         record["avm_sha256"] = sha256_bytes(avm)
         record["project_sha256"] = sha256_bytes(project)
         record["source_vs_decode"] = distortion(source, avm)
+        if "encoder_local" in record:
+            local = record["encoder_local"]
+            record["local_parity"] = {
+                "obu_bytes": local["obu_bytes"] == obu_bytes,
+                "sse": local["sse"] == record["source_vs_decode"]["sse"],
+                "workspace_bytes": local["workspace_bytes"] == pixels,
+            }
+            if not all(record["local_parity"].values()):
+                raise BenchmarkError("encoder local metrics disagree with decoded output")
         if reconstruction_dir is not None:
-            reconstruction = reconstruction_dir / f"{fixture_id}.i400"
+            reconstruction = reconstruction_dir / f"{case_id}.i400"
             if reconstruction.is_file():
                 rebuilt = reconstruction.read_bytes()
                 record["reconstruction"] = {
@@ -286,6 +381,8 @@ def parser() -> argparse.ArgumentParser:
     result.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
     result.add_argument("--work-dir", type=Path, default=DEFAULT_WORK)
     result.add_argument("--fixture", action="append", help="run only this fixture ID")
+    result.add_argument("--qindex", type=int, action="append",
+                        help="run only this qindex from fixture sweeps")
     result.add_argument("--append", action="store_true")
     result.add_argument(
         "--reconstruction-dir", type=Path,
@@ -315,20 +412,25 @@ def main(argv: Sequence[str] | None = None) -> int:
     args.work_dir.mkdir(parents=True, exist_ok=True)
     if not args.append:
         args.output.unlink(missing_ok=True)
+    requested_qindices = set(args.qindex or ())
     failed = False
     for fixture in fixtures:
-        record = run_fixture(
-            fixture, encoder, avmdec, project, args.work_dir,
-            args.reconstruction_dir,
-        )
-        record["tools"] = {
-            "encoder_sha256": sha256_file(encoder),
-            "avmdec_sha256": sha256_file(avmdec),
-            "project_decoder_sha256": sha256_file(project),
-        }
-        append_record(args.output, record)
-        print(f"{fixture['id']}: {record['status']}")
-        failed |= record["status"] in ("error", "mismatch", "blocked")
+        qindices = fixture.get("qindices", [None])
+        if requested_qindices:
+            qindices = [q for q in qindices if q in requested_qindices]
+        for qindex in qindices:
+            record = run_fixture(
+                fixture, qindex, encoder, avmdec, project, args.work_dir,
+                args.reconstruction_dir,
+            )
+            record["tools"] = {
+                "encoder_sha256": sha256_file(encoder),
+                "avmdec_sha256": sha256_file(avmdec),
+                "project_decoder_sha256": sha256_file(project),
+            }
+            append_record(args.output, record)
+            print(f"{record['fixture']}: {record['status']}")
+            failed |= record["status"] in ("error", "mismatch", "blocked")
     return 1 if failed else 0
 
 

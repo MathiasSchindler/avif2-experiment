@@ -1,0 +1,685 @@
+{
+  "aggregate_sse_non_increasing_as_quality_increases": true,
+  "aggregates": [
+    {
+      "obu_bytes": 126,
+      "qindex": 124,
+      "sse": 953467
+    },
+    {
+      "obu_bytes": 135,
+      "qindex": 100,
+      "sse": 953055
+    },
+    {
+      "obu_bytes": 136,
+      "qindex": 76,
+      "sse": 952871
+    },
+    {
+      "obu_bytes": 140,
+      "qindex": 52,
+      "sse": 952871
+    },
+    {
+      "obu_bytes": 144,
+      "qindex": 28,
+      "sse": 952871
+    },
+    {
+      "obu_bytes": 149,
+      "qindex": 4,
+      "sse": 952871
+    }
+  ],
+  "case_count": 30,
+  "cases": [
+    {
+      "distortion": {
+        "exact": false,
+        "mse_denominator": 2,
+        "mse_numerator": 3037,
+        "psnr_infinite": false,
+        "psnr_millidb": 16317,
+        "samples": 128,
+        "sse": 194368
+      },
+      "fixture": "ramp-x-16x8",
+      "height": 8,
+      "kind": "generated",
+      "local_avm_project_exact": true,
+      "obu_bytes": 26,
+      "obu_sha256": "a5dcd953091bcc3848f82f1a3ee640e914f444c8af0ff644652cb3da993d56ca",
+      "qindex": 124,
+      "reconstruction_sha256": "4bc52601e54a2831f78ce1197bfdcb6247550a58df054de6f40ea6a0d740aa4e",
+      "source_sha256": "01292f14b6a98e99bad04755108ec11182e59962003783effeefdc2a8d9c744f",
+      "width": 16
+    },
+    {
+      "distortion": {
+        "exact": false,
+        "mse_denominator": 2,
+        "mse_numerator": 3035,
+        "psnr_infinite": false,
+        "psnr_millidb": 16320,
+        "samples": 128,
+        "sse": 194240
+      },
+      "fixture": "ramp-x-16x8",
+      "height": 8,
+      "kind": "generated",
+      "local_avm_project_exact": true,
+      "obu_bytes": 27,
+      "obu_sha256": "34f1b120a9bd676e0f4ed2dea36c46c1ed111d04db724efc95bf4623b06e0977",
+      "qindex": 100,
+      "reconstruction_sha256": "14a1a1e7fb7825c1c9ac9b3be102893bc850ac17c04012224522df6a82cc6a23",
+      "source_sha256": "01292f14b6a98e99bad04755108ec11182e59962003783effeefdc2a8d9c744f",
+      "width": 16
+    },
+    {
+      "distortion": {
+        "exact": false,
+        "mse_denominator": 2,
+        "mse_numerator": 3035,
+        "psnr_infinite": false,
+        "psnr_millidb": 16320,
+        "samples": 128,
+        "sse": 194240
+      },
+      "fixture": "ramp-x-16x8",
+      "height": 8,
+      "kind": "generated",
+      "local_avm_project_exact": true,
+      "obu_bytes": 27,
+      "obu_sha256": "26c7a70e56af94b0267c426ac26cce9579f16327b069a00479785cea41f4bbb9",
+      "qindex": 76,
+      "reconstruction_sha256": "ad72bd962ca9866087d9d9c81b7ab0d0a736f606baf1292cd16922fb63e5e826",
+      "source_sha256": "01292f14b6a98e99bad04755108ec11182e59962003783effeefdc2a8d9c744f",
+      "width": 16
+    },
+    {
+      "distortion": {
+        "exact": false,
+        "mse_denominator": 2,
+        "mse_numerator": 3035,
+        "psnr_infinite": false,
+        "psnr_millidb": 16320,
+        "samples": 128,
+        "sse": 194240
+      },
+      "fixture": "ramp-x-16x8",
+      "height": 8,
+      "kind": "generated",
+      "local_avm_project_exact": true,
+      "obu_bytes": 27,
+      "obu_sha256": "162606b2d65d754d95b623b592dac5faa7c0a2f6052f3978ffa1cbda8c37dfe8",
+      "qindex": 52,
+      "reconstruction_sha256": "ad72bd962ca9866087d9d9c81b7ab0d0a736f606baf1292cd16922fb63e5e826",
+      "source_sha256": "01292f14b6a98e99bad04755108ec11182e59962003783effeefdc2a8d9c744f",
+      "width": 16
+    },
+    {
+      "distortion": {
+        "exact": false,
+        "mse_denominator": 2,
+        "mse_numerator": 3035,
+        "psnr_infinite": false,
+        "psnr_millidb": 16320,
+        "samples": 128,
+        "sse": 194240
+      },
+      "fixture": "ramp-x-16x8",
+      "height": 8,
+      "kind": "generated",
+      "local_avm_project_exact": true,
+      "obu_bytes": 28,
+      "obu_sha256": "c99138d6ebd8fbcbf89f1a35bc47a8622d77be558cbf49059ca620c3f47e924c",
+      "qindex": 28,
+      "reconstruction_sha256": "ad72bd962ca9866087d9d9c81b7ab0d0a736f606baf1292cd16922fb63e5e826",
+      "source_sha256": "01292f14b6a98e99bad04755108ec11182e59962003783effeefdc2a8d9c744f",
+      "width": 16
+    },
+    {
+      "distortion": {
+        "exact": false,
+        "mse_denominator": 2,
+        "mse_numerator": 3035,
+        "psnr_infinite": false,
+        "psnr_millidb": 16320,
+        "samples": 128,
+        "sse": 194240
+      },
+      "fixture": "ramp-x-16x8",
+      "height": 8,
+      "kind": "generated",
+      "local_avm_project_exact": true,
+      "obu_bytes": 28,
+      "obu_sha256": "ecacb16b097f84505a5a92eb47219cd1eb8e9b4e747d1abb2f9aafcad73e6601",
+      "qindex": 4,
+      "reconstruction_sha256": "ad72bd962ca9866087d9d9c81b7ab0d0a736f606baf1292cd16922fb63e5e826",
+      "source_sha256": "01292f14b6a98e99bad04755108ec11182e59962003783effeefdc2a8d9c744f",
+      "width": 16
+    },
+    {
+      "distortion": {
+        "exact": false,
+        "mse_denominator": 64,
+        "mse_numerator": 64009,
+        "psnr_infinite": false,
+        "psnr_millidb": 18130,
+        "samples": 64,
+        "sse": 64009
+      },
+      "fixture": "impulse-8x8",
+      "height": 8,
+      "kind": "generated",
+      "local_avm_project_exact": true,
+      "obu_bytes": 22,
+      "obu_sha256": "f7d2c3f12add4bfea6df9f2505684aa2faf46e0d27741a170675762d95356bed",
+      "qindex": 124,
+      "reconstruction_sha256": "cb4cdf1351c7b7812e52b873640ab20bd748a7142ffec144b18439bc8b833924",
+      "source_sha256": "61c4e5b815d11437bf4d47f6b436c07d499567fac9fbfc161e961e3cbd631ecc",
+      "width": 8
+    },
+    {
+      "distortion": {
+        "exact": false,
+        "mse_denominator": 64,
+        "mse_numerator": 64009,
+        "psnr_infinite": false,
+        "psnr_millidb": 18130,
+        "samples": 64,
+        "sse": 64009
+      },
+      "fixture": "impulse-8x8",
+      "height": 8,
+      "kind": "generated",
+      "local_avm_project_exact": true,
+      "obu_bytes": 23,
+      "obu_sha256": "e4eb3bf7cd64cceb51eec6fdf38c0b71d1a72cb71875c632d6ef0903cc6f65a5",
+      "qindex": 100,
+      "reconstruction_sha256": "cb4cdf1351c7b7812e52b873640ab20bd748a7142ffec144b18439bc8b833924",
+      "source_sha256": "61c4e5b815d11437bf4d47f6b436c07d499567fac9fbfc161e961e3cbd631ecc",
+      "width": 8
+    },
+    {
+      "distortion": {
+        "exact": false,
+        "mse_denominator": 64,
+        "mse_numerator": 64009,
+        "psnr_infinite": false,
+        "psnr_millidb": 18130,
+        "samples": 64,
+        "sse": 64009
+      },
+      "fixture": "impulse-8x8",
+      "height": 8,
+      "kind": "generated",
+      "local_avm_project_exact": true,
+      "obu_bytes": 23,
+      "obu_sha256": "dff32c199af90c408ada2e55bba6b34385af508a01095b60c68ba80416a746c6",
+      "qindex": 76,
+      "reconstruction_sha256": "cb4cdf1351c7b7812e52b873640ab20bd748a7142ffec144b18439bc8b833924",
+      "source_sha256": "61c4e5b815d11437bf4d47f6b436c07d499567fac9fbfc161e961e3cbd631ecc",
+      "width": 8
+    },
+    {
+      "distortion": {
+        "exact": false,
+        "mse_denominator": 64,
+        "mse_numerator": 64009,
+        "psnr_infinite": false,
+        "psnr_millidb": 18130,
+        "samples": 64,
+        "sse": 64009
+      },
+      "fixture": "impulse-8x8",
+      "height": 8,
+      "kind": "generated",
+      "local_avm_project_exact": true,
+      "obu_bytes": 23,
+      "obu_sha256": "93e174980fa5cdeb324a9e4111affe5ad49b09311f6fa0f5d9cdc08d415bcf7c",
+      "qindex": 52,
+      "reconstruction_sha256": "cb4cdf1351c7b7812e52b873640ab20bd748a7142ffec144b18439bc8b833924",
+      "source_sha256": "61c4e5b815d11437bf4d47f6b436c07d499567fac9fbfc161e961e3cbd631ecc",
+      "width": 8
+    },
+    {
+      "distortion": {
+        "exact": false,
+        "mse_denominator": 64,
+        "mse_numerator": 64009,
+        "psnr_infinite": false,
+        "psnr_millidb": 18130,
+        "samples": 64,
+        "sse": 64009
+      },
+      "fixture": "impulse-8x8",
+      "height": 8,
+      "kind": "generated",
+      "local_avm_project_exact": true,
+      "obu_bytes": 23,
+      "obu_sha256": "8332d62360f866b6ed5022f922e3a57df35a5ae6a4019b7094a18e6de547c60d",
+      "qindex": 28,
+      "reconstruction_sha256": "cb4cdf1351c7b7812e52b873640ab20bd748a7142ffec144b18439bc8b833924",
+      "source_sha256": "61c4e5b815d11437bf4d47f6b436c07d499567fac9fbfc161e961e3cbd631ecc",
+      "width": 8
+    },
+    {
+      "distortion": {
+        "exact": false,
+        "mse_denominator": 64,
+        "mse_numerator": 64009,
+        "psnr_infinite": false,
+        "psnr_millidb": 18130,
+        "samples": 64,
+        "sse": 64009
+      },
+      "fixture": "impulse-8x8",
+      "height": 8,
+      "kind": "generated",
+      "local_avm_project_exact": true,
+      "obu_bytes": 23,
+      "obu_sha256": "2e6c8c87eeb81bfc92557e53b8c4634ebda114cc54ca97a88bc7bff55860491f",
+      "qindex": 4,
+      "reconstruction_sha256": "cb4cdf1351c7b7812e52b873640ab20bd748a7142ffec144b18439bc8b833924",
+      "source_sha256": "61c4e5b815d11437bf4d47f6b436c07d499567fac9fbfc161e961e3cbd631ecc",
+      "width": 8
+    },
+    {
+      "distortion": {
+        "exact": false,
+        "mse_denominator": 128,
+        "mse_numerator": 189519,
+        "psnr_infinite": false,
+        "psnr_millidb": 16426,
+        "samples": 256,
+        "sse": 379038
+      },
+      "fixture": "pitti-ceiling-center-16x16",
+      "height": 16,
+      "kind": "prepared-crop",
+      "local_avm_project_exact": true,
+      "obu_bytes": 27,
+      "obu_sha256": "021ffcff52dfe8acda99a4848a18a6065590a3f45942fe1321713dd0bb9f2cca",
+      "qindex": 124,
+      "reconstruction_sha256": "b0deeb32b2be0a236d4243ebbd18678330c95d47f2db48977cfce5d049138872",
+      "source_sha256": "cfc7cc27a5062603b95be411c6852ed9426ab9682a3b4c16bb008402a33038f8",
+      "width": 16
+    },
+    {
+      "distortion": {
+        "exact": false,
+        "mse_denominator": 64,
+        "mse_numerator": 94741,
+        "psnr_infinite": false,
+        "psnr_millidb": 16427,
+        "samples": 256,
+        "sse": 378964
+      },
+      "fixture": "pitti-ceiling-center-16x16",
+      "height": 16,
+      "kind": "prepared-crop",
+      "local_avm_project_exact": true,
+      "obu_bytes": 29,
+      "obu_sha256": "bed203f18da6a42011a390475b8b46e74d307bb579cf08949206948f9e5f1e24",
+      "qindex": 100,
+      "reconstruction_sha256": "c80f16baddccbc667f9bde5b7698b76b8501ff8c26cdb2300a2d10d54932e3aa",
+      "source_sha256": "cfc7cc27a5062603b95be411c6852ed9426ab9682a3b4c16bb008402a33038f8",
+      "width": 16
+    },
+    {
+      "distortion": {
+        "exact": false,
+        "mse_denominator": 128,
+        "mse_numerator": 189437,
+        "psnr_infinite": false,
+        "psnr_millidb": 16428,
+        "samples": 256,
+        "sse": 378874
+      },
+      "fixture": "pitti-ceiling-center-16x16",
+      "height": 16,
+      "kind": "prepared-crop",
+      "local_avm_project_exact": true,
+      "obu_bytes": 31,
+      "obu_sha256": "b83e886417988fe0071ef2941b7645254cd6325c50abfbecca5f4926a70956fd",
+      "qindex": 76,
+      "reconstruction_sha256": "5afec17bd711bdbcc6afaa72d97d0803f31bc45d1ca7cefc58318dd39d2bdd70",
+      "source_sha256": "cfc7cc27a5062603b95be411c6852ed9426ab9682a3b4c16bb008402a33038f8",
+      "width": 16
+    },
+    {
+      "distortion": {
+        "exact": false,
+        "mse_denominator": 128,
+        "mse_numerator": 189437,
+        "psnr_infinite": false,
+        "psnr_millidb": 16428,
+        "samples": 256,
+        "sse": 378874
+      },
+      "fixture": "pitti-ceiling-center-16x16",
+      "height": 16,
+      "kind": "prepared-crop",
+      "local_avm_project_exact": true,
+      "obu_bytes": 32,
+      "obu_sha256": "58f3902d4f424b6b28e59ac6ba27677602e37f3bfa84bf5c83b7cca085498b5d",
+      "qindex": 52,
+      "reconstruction_sha256": "5afec17bd711bdbcc6afaa72d97d0803f31bc45d1ca7cefc58318dd39d2bdd70",
+      "source_sha256": "cfc7cc27a5062603b95be411c6852ed9426ab9682a3b4c16bb008402a33038f8",
+      "width": 16
+    },
+    {
+      "distortion": {
+        "exact": false,
+        "mse_denominator": 128,
+        "mse_numerator": 189437,
+        "psnr_infinite": false,
+        "psnr_millidb": 16428,
+        "samples": 256,
+        "sse": 378874
+      },
+      "fixture": "pitti-ceiling-center-16x16",
+      "height": 16,
+      "kind": "prepared-crop",
+      "local_avm_project_exact": true,
+      "obu_bytes": 33,
+      "obu_sha256": "b05f50ecea78c73dd67732d32ad720513da6f8e6e82a7fd2cfac3d21ba4fe87f",
+      "qindex": 28,
+      "reconstruction_sha256": "5afec17bd711bdbcc6afaa72d97d0803f31bc45d1ca7cefc58318dd39d2bdd70",
+      "source_sha256": "cfc7cc27a5062603b95be411c6852ed9426ab9682a3b4c16bb008402a33038f8",
+      "width": 16
+    },
+    {
+      "distortion": {
+        "exact": false,
+        "mse_denominator": 128,
+        "mse_numerator": 189437,
+        "psnr_infinite": false,
+        "psnr_millidb": 16428,
+        "samples": 256,
+        "sse": 378874
+      },
+      "fixture": "pitti-ceiling-center-16x16",
+      "height": 16,
+      "kind": "prepared-crop",
+      "local_avm_project_exact": true,
+      "obu_bytes": 35,
+      "obu_sha256": "db6f897b704d310f48ca0f3eac607cba8554c7de13b6de66ace128aebe9197ad",
+      "qindex": 4,
+      "reconstruction_sha256": "5afec17bd711bdbcc6afaa72d97d0803f31bc45d1ca7cefc58318dd39d2bdd70",
+      "source_sha256": "cfc7cc27a5062603b95be411c6852ed9426ab9682a3b4c16bb008402a33038f8",
+      "width": 16
+    },
+    {
+      "distortion": {
+        "exact": false,
+        "mse_denominator": 32,
+        "mse_numerator": 35739,
+        "psnr_infinite": false,
+        "psnr_millidb": 17651,
+        "samples": 256,
+        "sse": 285912
+      },
+      "fixture": "baya-weaver-center-16x16",
+      "height": 16,
+      "kind": "prepared-crop",
+      "local_avm_project_exact": true,
+      "obu_bytes": 25,
+      "obu_sha256": "125bc0ddb0b09b56374efd10847b304213be8a9cd4934b360efea64d1fb04317",
+      "qindex": 124,
+      "reconstruction_sha256": "692fd639fdfe91ac3f2ccf05ad5a73a79da743ac93e9d649d0d738f96ffc48b7",
+      "source_sha256": "f9dd18eb51f06aab79d599cb4fb6fa8030f906ba197ffcec4d47f65d8b613cf4",
+      "width": 16
+    },
+    {
+      "distortion": {
+        "exact": false,
+        "mse_denominator": 16,
+        "mse_numerator": 17865,
+        "psnr_infinite": false,
+        "psnr_millidb": 17652,
+        "samples": 256,
+        "sse": 285840
+      },
+      "fixture": "baya-weaver-center-16x16",
+      "height": 16,
+      "kind": "prepared-crop",
+      "local_avm_project_exact": true,
+      "obu_bytes": 27,
+      "obu_sha256": "c1a782c6dbf5997569e145bff79ee30b96407af201475fc0c82f3602b5c240a6",
+      "qindex": 100,
+      "reconstruction_sha256": "bebd9c5c4b8a87c845e806408d1bf77829d1c7d7e31f39b92fba3bd049b36616",
+      "source_sha256": "f9dd18eb51f06aab79d599cb4fb6fa8030f906ba197ffcec4d47f65d8b613cf4",
+      "width": 16
+    },
+    {
+      "distortion": {
+        "exact": false,
+        "mse_denominator": 16,
+        "mse_numerator": 17863,
+        "psnr_infinite": false,
+        "psnr_millidb": 17652,
+        "samples": 256,
+        "sse": 285808
+      },
+      "fixture": "baya-weaver-center-16x16",
+      "height": 16,
+      "kind": "prepared-crop",
+      "local_avm_project_exact": true,
+      "obu_bytes": 27,
+      "obu_sha256": "e97d4593f33d85bb4f680c9972a663d369278a8885194f5724e36077cb48d070",
+      "qindex": 76,
+      "reconstruction_sha256": "69bcccab7d5cb854d68aa8432f2c3bbb14882244a18c6cb99bfe5be1dc5eb62d",
+      "source_sha256": "f9dd18eb51f06aab79d599cb4fb6fa8030f906ba197ffcec4d47f65d8b613cf4",
+      "width": 16
+    },
+    {
+      "distortion": {
+        "exact": false,
+        "mse_denominator": 16,
+        "mse_numerator": 17863,
+        "psnr_infinite": false,
+        "psnr_millidb": 17652,
+        "samples": 256,
+        "sse": 285808
+      },
+      "fixture": "baya-weaver-center-16x16",
+      "height": 16,
+      "kind": "prepared-crop",
+      "local_avm_project_exact": true,
+      "obu_bytes": 29,
+      "obu_sha256": "6b97c7de1411ed4fbb9109ed4054fbe6ed35d5e44397f2152a7ddc894893719e",
+      "qindex": 52,
+      "reconstruction_sha256": "69bcccab7d5cb854d68aa8432f2c3bbb14882244a18c6cb99bfe5be1dc5eb62d",
+      "source_sha256": "f9dd18eb51f06aab79d599cb4fb6fa8030f906ba197ffcec4d47f65d8b613cf4",
+      "width": 16
+    },
+    {
+      "distortion": {
+        "exact": false,
+        "mse_denominator": 16,
+        "mse_numerator": 17863,
+        "psnr_infinite": false,
+        "psnr_millidb": 17652,
+        "samples": 256,
+        "sse": 285808
+      },
+      "fixture": "baya-weaver-center-16x16",
+      "height": 16,
+      "kind": "prepared-crop",
+      "local_avm_project_exact": true,
+      "obu_bytes": 29,
+      "obu_sha256": "19acae1bc46f47b0c4fc6ca40fe8ce8726440cfa042869469728bd8e90c3c5e1",
+      "qindex": 28,
+      "reconstruction_sha256": "69bcccab7d5cb854d68aa8432f2c3bbb14882244a18c6cb99bfe5be1dc5eb62d",
+      "source_sha256": "f9dd18eb51f06aab79d599cb4fb6fa8030f906ba197ffcec4d47f65d8b613cf4",
+      "width": 16
+    },
+    {
+      "distortion": {
+        "exact": false,
+        "mse_denominator": 16,
+        "mse_numerator": 17863,
+        "psnr_infinite": false,
+        "psnr_millidb": 17652,
+        "samples": 256,
+        "sse": 285808
+      },
+      "fixture": "baya-weaver-center-16x16",
+      "height": 16,
+      "kind": "prepared-crop",
+      "local_avm_project_exact": true,
+      "obu_bytes": 30,
+      "obu_sha256": "94449c1229d171b30d95a148620267faa355a62023b8556d83441e23a76c7b9b",
+      "qindex": 4,
+      "reconstruction_sha256": "69bcccab7d5cb854d68aa8432f2c3bbb14882244a18c6cb99bfe5be1dc5eb62d",
+      "source_sha256": "f9dd18eb51f06aab79d599cb4fb6fa8030f906ba197ffcec4d47f65d8b613cf4",
+      "width": 16
+    },
+    {
+      "distortion": {
+        "exact": false,
+        "mse_denominator": 64,
+        "mse_numerator": 7535,
+        "psnr_infinite": false,
+        "psnr_millidb": 27422,
+        "samples": 256,
+        "sse": 30140
+      },
+      "fixture": "elbrus-center-16x16",
+      "height": 16,
+      "kind": "prepared-crop",
+      "local_avm_project_exact": true,
+      "obu_bytes": 26,
+      "obu_sha256": "1b16acf27a171e2a5cb2a4b8286d44f7f82e86b4869a2308ffd2bd97059f615a",
+      "qindex": 124,
+      "reconstruction_sha256": "8a8de87b5a6555024d122bba43498e0fa6f2899ab0eb2581a7ccd2ad56da8afd",
+      "source_sha256": "f254d1468cf18db0f74dc66abb78b678b280bf95d6228cbd5559eb69ae2f54f3",
+      "width": 16
+    },
+    {
+      "distortion": {
+        "exact": false,
+        "mse_denominator": 128,
+        "mse_numerator": 15001,
+        "psnr_infinite": false,
+        "psnr_millidb": 27442,
+        "samples": 256,
+        "sse": 30002
+      },
+      "fixture": "elbrus-center-16x16",
+      "height": 16,
+      "kind": "prepared-crop",
+      "local_avm_project_exact": true,
+      "obu_bytes": 29,
+      "obu_sha256": "047d81ac5644dea38b434eeaac8e4cbca22db297861e92de4026d58797f7fe5e",
+      "qindex": 100,
+      "reconstruction_sha256": "330c05c07e2ea1308d61fa6375c61e4f1422ca5cf461873b22079ad123ba2dae",
+      "source_sha256": "f254d1468cf18db0f74dc66abb78b678b280bf95d6228cbd5559eb69ae2f54f3",
+      "width": 16
+    },
+    {
+      "distortion": {
+        "exact": false,
+        "mse_denominator": 64,
+        "mse_numerator": 7485,
+        "psnr_infinite": false,
+        "psnr_millidb": 27451,
+        "samples": 256,
+        "sse": 29940
+      },
+      "fixture": "elbrus-center-16x16",
+      "height": 16,
+      "kind": "prepared-crop",
+      "local_avm_project_exact": true,
+      "obu_bytes": 28,
+      "obu_sha256": "aeaf503b5c2148dcafc0eed14a97dc94f4730ea9c5a991e23e801746eac0d8a8",
+      "qindex": 76,
+      "reconstruction_sha256": "35129957147fc91ac3b77cbcad40a7ed04617d587c23b23c3862cbd87ba33fe4",
+      "source_sha256": "f254d1468cf18db0f74dc66abb78b678b280bf95d6228cbd5559eb69ae2f54f3",
+      "width": 16
+    },
+    {
+      "distortion": {
+        "exact": false,
+        "mse_denominator": 64,
+        "mse_numerator": 7485,
+        "psnr_infinite": false,
+        "psnr_millidb": 27451,
+        "samples": 256,
+        "sse": 29940
+      },
+      "fixture": "elbrus-center-16x16",
+      "height": 16,
+      "kind": "prepared-crop",
+      "local_avm_project_exact": true,
+      "obu_bytes": 29,
+      "obu_sha256": "370e629257b281d3f3331f35e9c9143930730e9e6b9464ac19c8b0031a0dd86e",
+      "qindex": 52,
+      "reconstruction_sha256": "35129957147fc91ac3b77cbcad40a7ed04617d587c23b23c3862cbd87ba33fe4",
+      "source_sha256": "f254d1468cf18db0f74dc66abb78b678b280bf95d6228cbd5559eb69ae2f54f3",
+      "width": 16
+    },
+    {
+      "distortion": {
+        "exact": false,
+        "mse_denominator": 64,
+        "mse_numerator": 7485,
+        "psnr_infinite": false,
+        "psnr_millidb": 27451,
+        "samples": 256,
+        "sse": 29940
+      },
+      "fixture": "elbrus-center-16x16",
+      "height": 16,
+      "kind": "prepared-crop",
+      "local_avm_project_exact": true,
+      "obu_bytes": 31,
+      "obu_sha256": "12e1441b39b479cb294073d4e45be0335917b9712d654d18de3dac59e8ef617b",
+      "qindex": 28,
+      "reconstruction_sha256": "35129957147fc91ac3b77cbcad40a7ed04617d587c23b23c3862cbd87ba33fe4",
+      "source_sha256": "f254d1468cf18db0f74dc66abb78b678b280bf95d6228cbd5559eb69ae2f54f3",
+      "width": 16
+    },
+    {
+      "distortion": {
+        "exact": false,
+        "mse_denominator": 64,
+        "mse_numerator": 7485,
+        "psnr_infinite": false,
+        "psnr_millidb": 27451,
+        "samples": 256,
+        "sse": 29940
+      },
+      "fixture": "elbrus-center-16x16",
+      "height": 16,
+      "kind": "prepared-crop",
+      "local_avm_project_exact": true,
+      "obu_bytes": 33,
+      "obu_sha256": "be008f1ac50f11ec8365f64e282db400cb72034170c0ce027f6ff72a9a3d30f3",
+      "qindex": 4,
+      "reconstruction_sha256": "35129957147fc91ac3b77cbcad40a7ed04617d587c23b23c3862cbd87ba33fe4",
+      "source_sha256": "f254d1468cf18db0f74dc66abb78b678b280bf95d6228cbd5559eb69ae2f54f3",
+      "width": 16
+    }
+  ],
+  "fixture_count": 5,
+  "local_avm_project_parity": true,
+  "qindexes": [
+    124,
+    100,
+    76,
+    52,
+    28,
+    4
+  ],
+  "quality_direction": "lower_qindex_is_higher_quality",
+  "schema": "av2-encoder-m3-q-sweep-results-v1",
+  "tools": {
+    "avmdec_sha256": "c247cbb4e71e48bdec89f3c8b2b8efdce17f673aeaa39e3c116a276d16286aa0",
+    "encoder_sha256": "7896d785fab7366bac12133074971b4e2047a58a5acf379f9540f6548ff237a2",
+    "project_decoder_sha256": "c0c6329cc85de13c92d04a00deff8124c9b45dbe74da8a86ddc60d9d7b4de9df"
+  }
+}

@@ -164,11 +164,11 @@ EncStatus enc_range_writer_literal(EncRangeWriter *writer, uint32_t value,
     if (writer == 0) {
         return ENC_INVALID_ARGUMENT;
     }
-    if (bit_count > 32U) {
-        writer->status = ENC_INVALID_ARGUMENT;
+    if (writer->status != ENC_OK) {
         return writer->status;
     }
-    if (writer->status != ENC_OK) {
+    if (bit_count > 32U) {
+        writer->status = ENC_INVALID_ARGUMENT;
         return writer->status;
     }
     if (writer->finished) {

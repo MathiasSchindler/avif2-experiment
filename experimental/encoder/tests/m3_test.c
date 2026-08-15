@@ -91,11 +91,15 @@ static int test_stride_determinism_and_bounds(void) {
             input, 8U, 8U, 12U,
             second, sizeof(second), reconstruction,
             63U, &second_result) !=
-            ENC_INVALID_ARGUMENT) {
+            ENC_OUT_OF_SPACE) {
         return 3;
     }
     if (enc_m3_dc_i400(
-            input, 7U, 8U, 12U, second, sizeof(second),
+            input, 0U, 8U, 12U, second, sizeof(second),
+            reconstruction, sizeof(reconstruction), &second_result) !=
+            ENC_INVALID_ARGUMENT ||
+        enc_m3_dc_i400(
+            input, 17U, 8U, 17U, second, sizeof(second),
             reconstruction, sizeof(reconstruction), &second_result) !=
             ENC_INVALID_ARGUMENT) {
         return 4;
@@ -206,6 +210,80 @@ static int test_rectangular_grids(void) {
     return 0;
 }
 
+static int test_odd_dimensions_and_qindex(void) {
+    static const size_t widths[] = {1U, 3U, 7U, 8U, 9U, 15U, 16U};
+    static const size_t heights[] = {1U, 2U, 9U, 1U, 7U, 16U, 15U};
+    uint8_t input[ENC_M3_MAX_PIXELS];
+    uint8_t stream[ENC_M3_MAX_STREAM_SIZE];
+    uint8_t reconstruction[ENC_M3_MAX_PIXELS];
+    EncM3Result result;
+    size_t test;
+    size_t index;
+    for (test = 0U; test < sizeof(widths) / sizeof(widths[0]); ++test) {
+        size_t pixels = widths[test] * heights[test];
+        for (index = 0U; index < pixels; ++index) {
+            input[index] = (uint8_t)(index * 37U + test * 11U);
+        }
+        if (enc_m3_dc_i400_q(
+                input, widths[test], heights[test], widths[test], 191U,
+                stream, sizeof(stream), reconstruction, pixels, &result) !=
+                ENC_OK ||
+            result.pixel_count != pixels || result.qindex != 191U ||
+            result.block_count !=
+                ((widths[test] + 7U) / 8U) *
+                ((heights[test] + 7U) / 8U)) {
+            return 1;
+        }
+    }
+    if (enc_m3_dc_i400_q(
+            input, 1U, 1U, 1U, 0U, stream, sizeof(stream),
+            reconstruction, sizeof(reconstruction), &result) !=
+            ENC_INVALID_ARGUMENT ||
+        enc_m3_dc_i400_q(
+            input, 1U, 1U, 1U, 256U, stream, sizeof(stream),
+            reconstruction, sizeof(reconstruction), &result) !=
+            ENC_INVALID_ARGUMENT) {
+        return 2;
+    }
+    return 0;
+}
+
+static int test_failure_atomicity(void) {
+    uint8_t input[64U];
+    uint8_t stream[ENC_M3_MAX_STREAM_SIZE];
+    uint8_t reconstruction[ENC_M3_MAX_PIXELS];
+    EncM3Result result;
+    size_t index;
+    fill(input, sizeof(input), 73U);
+    fill(stream, sizeof(stream), 0xa5U);
+    fill(reconstruction, sizeof(reconstruction), 0x5aU);
+    if (enc_m3_dc_i400(
+            input, 8U, 8U, 8U, stream, 1U,
+            reconstruction, sizeof(reconstruction), &result) !=
+            ENC_OUT_OF_SPACE) {
+        return 1;
+    }
+    for (index = 0U; index < sizeof(stream); ++index) {
+        if (stream[index] != 0xa5U) return 2;
+    }
+    for (index = 0U; index < sizeof(reconstruction); ++index) {
+        if (reconstruction[index] != 0x5aU) return 3;
+    }
+    if (result.stream_size != 0U || result.pixel_count != 0U) return 4;
+    if (enc_m3_dc_i400(
+            input, 8U, 8U, 8U, stream, sizeof(stream),
+            reconstruction, 63U, &result) != ENC_OUT_OF_SPACE) {
+        return 5;
+    }
+    for (index = 0U; index < sizeof(stream); ++index) {
+        if (stream[index] != 0xa5U) return 6;
+    }
+    for (index = 0U; index < sizeof(reconstruction); ++index) {
+        if (reconstruction[index] != 0x5aU) return 7;
+    }
+    return 0;
+}
+
 int main(void) {
     static const uint8_t above[] = {8U, 16U, 24U, 32U};
     static const uint8_t left[] = {40U, 48U, 56U, 64U};
@@ -219,11 +297,15 @@ int main(void) {
     if (result != 0) return 40 + result;
     result = test_rectangular_grids();
     if (result != 0) return 50 + result;
+    result = test_odd_dimensions_and_qindex();
+    if (result != 0) return 60 + result;
+    result = test_failure_atomicity();
+    if (result != 0) return 70 + result;
     if (enc_m3_dc_prediction(0, 0, 8U) != 128U ||
         enc_m3_dc_prediction(above, 0, 4U) != 20U ||
         enc_m3_dc_prediction(0, left, 4U) != 52U ||
         enc_m3_dc_prediction(above, left, 4U) != 36U) {
-        return 60;
+        return 80;
     }
     return 0;
 }

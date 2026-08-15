@@ -21,6 +21,17 @@ local, dependency-independent checks and explicitly skips tests needing those
 external validators. It is not a substitute for the full decode-validation
 gate.
 
+The M2 validation matrix is frozen in `fixtures/m2-transcript-matrix.json`
+and `fixtures/m2-full-streams/manifest.json`. Independent C and Python range
+decoder models both check C-writer transcripts for every 2-through-16-symbol
+alphabet at update counts 0/15/16/31/32; the native suite additionally covers
+all 125 CDF parameter combinations, bypass/tell/finish, split buffers,
+carry/`0xff` stress, and capacity failures. Raw range transcripts are not
+valid image streams. Separately, six generated complete M1/M3/M4 streams cover
+coefficient-free, base/BR/remainder, multi-block adaptation, and AC/sign
+syntax; these must decode byte-identically in hash-pinned AVM v1.0.0 and the
+project decoder.
+
 The M1 CLI is:
 
 ```sh
@@ -35,30 +46,33 @@ sent through the forward range writer using CDFs materialized from the
 normative AV2 v1.0.0 attachment values listed in `PROVENANCE.md`; no fixture or
 complete golden stream is embedded in production code.
 
-The active M3 subset accepts arbitrary-pixel raw 8-bit I400 8×8, 8×16,
-16×8, and 16×16 images:
+The active M3 subset accepts arbitrary-pixel raw 8-bit I400 images whose
+dimensions are each in 1 through 16:
 
 ```sh
 experimental/encoder/build/av2-encoder-experiment \
-  --i400-8 input.i400 --width 8 --height 8 [--stride 8] output.obu
+  --i400-8 input.i400 --width 8 --height 8 \
+  [--stride 8] [--qindex 1..255] output.obu
 ```
 
-Every input pixel participates in deterministic SSE minimization at qindex
-100. An 8×8 image uses one transform block. The rectangular images use the
-boundary-implied AV2 rectangular prediction block and a legal horizontal or
-vertical transform partition into two 8×8 transforms. A 16×16 image uses one
-prediction block split into four 8×8 transforms. Transforms reconstruct in
-raster order and use already reconstructed top/left edges. Coefficients support
-all useful signed DC levels through base, BR, and literal remainder syntax.
-Local dequantization, inverse-DC reconstruction, and clipping exactly match
-both validators.
+Every input pixel participates in deterministic SSE minimization. Qindex 100
+is the default and preserves the pre-option stream; 1 through 255 is the
+validated non-lossless range. Qindex 0 is rejected because it changes the
+frame to lossless transform semantics that this M3 path does not emit.
+Active samples are edge-extended to complete 8×8 transform blocks for DC
+selection, while reported SSE and returned reconstruction are cropped to the
+declared frame. AV2's four-pixel boundary grid implies a legal 8×8, 8×16,
+16×8, or 16×16 prediction block containing one, two, or four 8×8 transforms.
+Transforms reconstruct in raster order and use already reconstructed top/left
+edges. Local dequantization, inverse-DC reconstruction, and clipping exactly
+match both validators.
 
 Input metadata validation still accepts dimensions through 16384 for a precise
 unsupported result, but validated encoding is intentionally limited to
-dimensions whose width and height are each 8 or 16.
+dimensions whose width and height are each 1 through 16.
 Stride must be at least width and the file must contain exactly
-`stride * height` bytes. Odd and other dimensions exit 5 without creating
-output. The current shared-tree 32×32 attempt can emit a stream, but pinned
+`stride * height` bytes. Larger dimensions exit 5 without creating output.
+The current shared-tree 32×32 attempt can emit a stream, but pinned
 `avmdec` rejects it at tile data; 32×32 must therefore be treated as
 unsupported until it passes both decoder gates.
 This is a completed bounded submilestone, not the full M3 gate. An exhaustive
@@ -116,18 +130,17 @@ bounded M3 subset with native/Python tests, decoder checks, smoke/input checks,
 and dependency/ELF audits.
 
 The CLI encodes generated flat, ramp, impulse and multi-block edge images,
-padded strides, rectangular 8×16/16×8 grids, and 8×8/16×16 prepared
+padded strides, all 256 dimension pairs in 1..16, and even/odd prepared
 photographic-luma crops. Stride products and the final active input offset are
 overflow-checked; output is committed by an exclusive sibling temporary file
 plus atomic rename, with cleanup on failure; the full gate requires both
-validators rather than silently skipping them. This remains an honest bounded
-M3 subset: odd and broader dimensions and the locked quality sweep remain
-unsupported. The 32×32 failure was traced to omitted transform-partition-type
+validators rather than silently skipping them. The 32×32 failure was traced
+to omitted transform-partition-type
 syntax and an illegal sixteen-8×8 interpretation of a 32×32 prediction block;
 the current four-16×16-prediction-block attempt is still rejected at tile data
 and remains unsupported.
 
-Remaining work is deliberately broad: odd/larger dimensions, general AC
+Remaining work is deliberately broad: larger dimensions, general AC
 coefficient streams and transforms, chroma, partition/intra search, in-loop
 filters/restoration, and quality/rate control.
 
