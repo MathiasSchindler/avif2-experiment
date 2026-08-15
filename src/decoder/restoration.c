@@ -4,12 +4,48 @@
 
 #define RESTORATION_PROC_UNIT_SIZE 64
 #define NUM_PC_WIENER_TAPS_LUMA 13
-#define NUM_FILTER_CLASSES_BITS 3
-#define AVM_INLINE inline
-#define assert(condition) ((void)0)
-#include "../../vendor/avm/av2/common/pc_wiener_filters.h"
-#undef assert
-#undef AVM_INLINE
+#define AV2H_PC_WIENER_FILTER_COUNT 64U
+#define AV2H_PC_WIENER_CLASS_COUNT 256U
+
+#include "pc_wiener_data.inc"
+
+static const int32_t pc_wiener_feature_normalizers[4] = {
+    0, 3739, 3273, 3074
+};
+
+static const int32_t pc_wiener_mode_weights[4][3] = {
+    { -527, 15325, 321 },
+    { 26436, -17705, 17905 },
+    { 366, -147, -194 },
+    { 202, -267, -179 }
+};
+
+static const int32_t pc_wiener_mode_offsets[4] = {
+    -547, -21565, -573, -680
+};
+
+static const int32_t pc_wiener_lut_weights[4] = {
+    512, 64, 8, 1
+};
+
+static unsigned int pc_wiener_filter_set_index(unsigned int qindex) {
+    if (qindex < 130U) return 0U;
+    if (qindex < 190U) return 1U;
+    if (qindex < 220U) return 2U;
+    return 3U;
+}
+
+static const int16_t *pc_wiener_filter(unsigned int set_index,
+                                       unsigned int filter_index) {
+    return av2h_pc_wiener_filters +
+        ((size_t)(set_index & 3U) * AV2H_PC_WIENER_FILTER_COUNT +
+         (filter_index & 63U)) * NUM_PC_WIENER_TAPS_LUMA;
+}
+
+static const uint8_t *pc_wiener_filter_selector(unsigned int set_index) {
+    return av2h_pc_wiener_sub_classify +
+        (size_t)(set_index & 3U) * AV2H_PC_WIENER_CLASS_COUNT;
+}
 
 const Av2hWienerNonsepParameters *av2h_wienerns_parameters(
     unsigned int plane) {
@@ -69,7 +105,8 @@ Av2hStatus av2h_wienerns_frame_predictor(
     if (match_index - class_count >= 64U - class_count) {
         return AV2H_INVALID_DATA;
     }
-    source = get_filter_set(0)[shuffled_index[match_index - class_count]];
+    source = pc_wiener_filter(
+        0U, shuffled_index[match_index - class_count]);
     count = NUM_PC_WIENER_TAPS_LUMA - 1;
     if (count > parameters->coefficient_count) {
         count = parameters->coefficient_count;
@@ -89,18 +126,21 @@ Av2hStatus av2h_wienerns_frame_predictor(
 
 const uint8_t *av2h_wienerns_class_map(unsigned int class_count,
                                        unsigned int set_index) {
-    const PcWienerSubClassifiers *classifiers =
-        get_sub_classifiers((int)(set_index & 3U));
+    unsigned int class_index;
     switch (class_count) {
-        case 2U: return classifiers->pc_wiener_sub_classify_to_2;
-        case 3U: return classifiers->pc_wiener_sub_classify_to_3;
-        case 4U: return classifiers->pc_wiener_sub_classify_to_4;
-        case 6U: return classifiers->pc_wiener_sub_classify_to_6;
-        case 8U: return classifiers->pc_wiener_sub_classify_to_8;
-        case 12U: return classifiers->pc_wiener_sub_classify_to_12;
-        case 16U: return classifiers->pc_wiener_sub_classify_to_16;
-        default: return pc_wiener_sub_classify_to_1;
+        case 1U: class_index = 0U; break;
+        case 2U: class_index = 1U; break;
+        case 3U: class_index = 2U; break;
+        case 4U: class_index = 3U; break;
+        case 6U: class_index = 4U; break;
+        case 8U: class_index = 5U; break;
+        case 12U: class_index = 6U; break;
+        case 16U: class_index = 7U; break;
+        default: class_index = 0U; break;
     }
+    return av2h_pc_wiener_sub_classify2 +
+        ((size_t)(set_index & 3U) * 8U + class_index) *
+            AV2H_PC_WIENER_CLASS_COUNT;
 }
 
 #define AV2H_PC_WIENER_BLOCK_SIZE 4
@@ -173,11 +213,11 @@ static int pc_wiener_q_adjustment(
     const int tskip_shifted = (int)tskip << 5;
     const int product = round_shift_symmetric(
         (int)tskip * qstep, 8U);
-    int value = mode_weights[feature][0] * tskip_shifted +
-        mode_weights[feature][1] * qstep +
-        mode_weights[feature][2] * product;
+    int value = pc_wiener_mode_weights[feature][0] * tskip_shifted +
+        pc_wiener_mode_weights[feature][1] * qstep +
+        pc_wiener_mode_weights[feature][2] * product;
     value = round_shift_symmetric(value, 13U);
-    return 255 * (value + mode_offsets[feature]);
+    return 255 * (value + pc_wiener_mode_offsets[feature]);
 }
 
 static unsigned int pc_wiener_tx_skip_sum(
@@ -245,13 +285,13 @@ static uint8_t pc_wiener_classify(
     }
     for (row = 0; row < 4; ++row) {
         int value = round_shift_symmetric(
-            feature[row] * feature_normalizers_luma[row] +
+            feature[row] * pc_wiener_feature_normalizers[row] +
                 pc_wiener_q_adjustment(qindex, tskip, (unsigned int)row),
-            PC_WIENER_PREC_FEATURE);
-        value = av2h_sample_clamp(value, 0, 255) >> pc_wiener_threshold_shift;
-        lut_index += pc_wiener_thresholds[row] * value;
+            14U);
+        value = av2h_sample_clamp(value, 0, 255) >> 5U;
+        lut_index += pc_wiener_lut_weights[row] * value;
     }
-    return pc_wiener_lut_to_class_index[lut_index];
+    return av2h_pc_wiener_lut_to_class[lut_index];
 }
 
 static void pc_wiener_filter_block(
@@ -302,8 +342,9 @@ Av2hStatus av2h_pc_wiener_filter_luma(
     const Av2hFrameState *frame,
     const Av2hRestorationControlMap *controls) {
     size_t unit_row;
-    const int16_t (*filters)[NUM_PC_WIENER_TAPS_LUMA];
+    const int16_t *filters;
     const uint8_t *selector;
+    unsigned int filter_set;
     if (destination == 0 || source == 0 || deblocked == 0 || frame == 0 ||
         controls == 0 || destination->data == 0 || source->data == 0 ||
         deblocked->data == 0 || controls->unit_flags[0] == 0 ||
@@ -320,9 +361,9 @@ Av2hStatus av2h_pc_wiener_filter_luma(
         frame->restoration_type[0] != AV2H_RESTORE_PC_WIENER) {
         return AV2H_INVALID_ARGUMENT;
     }
-    filters = get_filter_set(get_filter_set_index(frame->base_q_index, 0));
-    selector = get_filter_selector(
-        get_filter_set_index(frame->base_q_index, 0));
+    filter_set = pc_wiener_filter_set_index(frame->base_q_index);
+    filters = pc_wiener_filter(filter_set, 0U);
+    selector = pc_wiener_filter_selector(filter_set);
     filter_copy_plane(destination, source);
     for (unit_row = 0U; unit_row < controls->unit_rows[0]; ++unit_row) {
         int unit_y0 = pc_wiener_unit_row_start(controls, unit_row);
@@ -385,7 +426,9 @@ Av2hStatus av2h_pc_wiener_filter_luma(
                                 stripe_start + block_row,
                                 chunk_start + block_column,
                                 block_height, block_width,
-                                filters[selector[class_index]]);
+                                filters +
+                                    (size_t)selector[class_index] *
+                                        NUM_PC_WIENER_TAPS_LUMA);
                         }
                     }
                 }
@@ -549,7 +592,7 @@ Av2hStatus av2h_wiener_nonsep_filter_frame(
             }
             class_map = av2h_wienerns_class_map(
                 class_count,
-                (unsigned int)get_filter_set_index(frame->base_q_index, 0));
+                pc_wiener_filter_set_index(frame->base_q_index));
         }
         for (unit_row = 0U; unit_row < controls->unit_rows[plane];
              ++unit_row) {

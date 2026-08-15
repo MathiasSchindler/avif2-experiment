@@ -85,7 +85,6 @@ def main() -> None:
         f"-I{ROOT / 'include'}",
         f"-I{ROOT / 'src'}",
         f"-I{ROOT / 'src' / 'shared'}",
-        f"-I{ROOT / 'vendor' / 'avm'}",
         "-nostdlib",
         "-Wl,--no-entry",
         "-Wl,--export-memory",

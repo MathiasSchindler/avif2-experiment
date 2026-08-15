@@ -9,6 +9,13 @@ gdf_intra_error.h = "5c92199161ce38a981805f444cd2906917502231fd2a9b1f8c6377ea336
 gdf_inter_error.h = "4ca252f213b3f230ef1eb40683f3066d304fc54f43b132133f691aabb9c5376f"
 side_thresholds.h = "9880d3ac26c5f31372ebeeaeb9302ac07bae51c514c89e58e37e0e8ba763bed0"
 
+# Normative Intra-DIP and pixel-classified Wiener tables.
+dip_weights.h = "978a840baf471b1c6a8b59811692e4b6eafa8f31d4a18617ee955a3231a74eac"
+pc_wiener_filters.h = "d368e9d2831497833b59c4516ff6b11f6925240474e86b6c3e7d27f285393a63"
+pc_wiener_lut_to_class.h = "2b5a7364cb1abd9020a861b20183231de45eb49a00d0f106712ef9988d664a46"
+pc_wiener_sub_classify.h = "2641737152ba5e461fed148d4b66aa79e3fa56bf5cf5b4f1723b6eb063bd479e"
+pc_wiener_sub_classify2.h = "ae1f16ce7fd10076976aff653f869e7611c15c75e00b9437ee17b3ce0aae3362"
+
 default_do_ext_partition_cdf.h = "34e128f47a3331f44e41eec3faaeac3f68dc66a02d94d69707623e07451b7372"
 default_do_split_cdf.h = "bb40c072c47561c4742cb96cd6e91cb1ea18ba153862e3e6bd1f88ef19c0b692"
 default_do_square_split_cdf.h = "73cf5e0851fc98be518dc6d47a31657d2c503f34512e1428403e6ccf19eb4ace"

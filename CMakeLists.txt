@@ -71,7 +71,7 @@ add_library(av2heif-core STATIC ${AV2HEIF_CORE_SOURCES})
 target_compile_features(av2heif-core PUBLIC c_std_11)
 target_include_directories(av2heif-core
     PUBLIC include
-    PRIVATE src src/shared vendor/avm
+    PRIVATE src src/shared
 )
 if(AV2HEIF_ENABLE_DIAGNOSTICS)
     target_compile_definitions(av2heif-core PRIVATE
@@ -89,7 +89,7 @@ if(CMAKE_C_COMPILER_ID MATCHES "Clang|GNU")
     add_library(av2heif-freestanding-objects OBJECT ${AV2HEIF_CORE_SOURCES})
     target_compile_features(av2heif-freestanding-objects PRIVATE c_std_11)
     target_include_directories(av2heif-freestanding-objects PRIVATE
-        include src src/shared vendor/avm
+        include src src/shared
     )
     if(AV2HEIF_ENABLE_DIAGNOSTICS)
         target_compile_definitions(av2heif-freestanding-objects PRIVATE
@@ -148,7 +148,7 @@ if(AV2HEIF_BUILD_HOST_TESTS)
     av2heif_configure_host_target(av2heif-host-core)
     target_include_directories(av2heif-host-core
         PUBLIC include
-        PRIVATE src vendor/avm
+        PRIVATE src
     )
     if(AV2HEIF_ENABLE_DIAGNOSTICS)
         target_compile_definitions(av2heif-host-core PRIVATE

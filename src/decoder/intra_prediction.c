@@ -2,35 +2,30 @@
 #include "internal/reconstruct_modules.h"
 #include "internal/sample_math.h"
 
-static uint16_t intra_dip_clip(int value, int bit_depth) {
-    int maximum = (1 << bit_depth) - 1;
-    if (value < 0) return 0U;
-    if (value > maximum) return (uint16_t)maximum;
-    return (uint16_t)value;
+static int32_t round_shift(int64_t value, uint8_t shift) {
+    int64_t adjusted = value + ((int64_t)1 << (shift - 1U));
+    if (adjusted >= 0) return (int32_t)(adjusted >> shift);
+    return (int32_t)-(((-adjusted) + (((int64_t)1 << shift) - 1)) >> shift);
 }
 
-#define AVM_AVM_DSP_AVM_DSP_COMMON_H_
-#define AVM_AV2_COMMON_INTRA_DIP_H_
-#define AVM_AV2_COMMON_INTRA_MATRIX_H_
-#define INTRA_DIP_MODE_CNT 6
-#define DIP_ROWS 64
-#define DIP_COLS 16
-#define DIP_BITS 12
-#define DIP_OFFSET (1 << 11)
-#define DIP_SCALE 4
-#define DIP_FEATURES 11
-#define clip_pixel_highbd intra_dip_clip
-#define av2_dip_matrix_multiplication av2_dip_matrix_multiplication_c
-#include "../../vendor/avm/av2/common/intra_matrix.c"
-#undef av2_dip_matrix_multiplication
-#undef clip_pixel_highbd
-#undef DIP_FEATURES
-#undef DIP_SCALE
-#undef DIP_OFFSET
-#undef DIP_BITS
-#undef DIP_COLS
-#undef DIP_ROWS
-#undef INTRA_DIP_MODE_CNT
+#include "intra_dip_data.inc"
+
+static void intra_dip_matrix_predict(const uint16_t input[11U],
+                                     unsigned int mode,
+                                     uint16_t output[64U]) {
+    unsigned int position;
+    for (position = 0U; position < 64U; ++position) {
+        int64_t sum = 0;
+        unsigned int feature;
+        size_t base = ((size_t)mode * 64U + position) * 11U;
+        for (feature = 0U; feature < 11U; ++feature) {
+            sum += (int64_t)av2h_intra_dip_weights[base + feature] *
+                   input[feature];
+        }
+        output[position] = (uint16_t)av2h_sample_clamp(
+            round_shift(sum, 10U), 0, 255);
+    }
+}
 
 #define directional_base_angle av2h_directional_base_angle
 #define luma_wide_angle av2h_luma_wide_angle
@@ -110,12 +105,6 @@ static const uint8_t ibp_weights[5U][16U] = {
     { 68U, 72U, 76U, 79U, 83U, 87U, 90U, 94U,
       98U, 102U, 106U, 109U, 113U, 117U, 121U, 124U }
 };
-
-static int32_t round_shift(int64_t value, uint8_t shift) {
-    int64_t adjusted = value + ((int64_t)1 << (shift - 1U));
-    if (adjusted >= 0) return (int32_t)(adjusted >> shift);
-    return (int32_t)-(((-adjusted) + (((int64_t)1 << shift) - 1)) >> shift);
-}
 
 static uint8_t block_log2(uint16_t size) {
     return size == 4U ? 2U : size == 8U ? 3U :
@@ -238,7 +227,7 @@ static Av2hStatus predict_intra_dip(
         input[feature++] = (uint16_t)(
             (sum + (down >> 1U)) >> down_log2[side]);
     }
-    av2_intra_matrix_pred(input, (int)mode_index, output, 8);
+    intra_dip_matrix_predict(input, mode_index, output);
     up_x_log2 = width_log2 > 3U ? width_log2 - 3U : 0U;
     up_y_log2 = height_log2 > 3U ? height_log2 - 3U : 0U;
     if (width_log2 < 3U) down_x_log2 = 3U - width_log2;

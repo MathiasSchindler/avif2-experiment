@@ -365,6 +365,12 @@ test-decoder-evidence:
 	$(PYTHON) tools/generate_gdf_tables.py \
 		--output build/decoder-evidence/evidence/gdf_data.inc
 	@cmp src/decoder/gdf_data.inc build/decoder-evidence/evidence/gdf_data.inc
+	$(PYTHON) tools/generate_normative_prediction_tables.py \
+		--output-directory build/decoder-evidence/evidence
+	@cmp src/decoder/intra_dip_data.inc \
+		build/decoder-evidence/evidence/intra_dip_data.inc
+	@cmp src/decoder/pc_wiener_data.inc \
+		build/decoder-evidence/evidence/pc_wiener_data.inc
 	$(PYTHON) tools/check_partition_cdfs.py
 	$(PYTHON) tools/check_leaf_cdfs.py
 	$(PYTHON) tools/check_coeff_cdfs.py
