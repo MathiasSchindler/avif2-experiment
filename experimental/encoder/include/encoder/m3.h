@@ -58,7 +58,8 @@ typedef enum {
     ENC_M3_INTRA_SEARCH_DIRECTIONAL_EXACT = 2,
     ENC_M3_INTRA_SEARCH_INTRA = 3,
     ENC_M3_INTRA_SEARCH_DIRECTIONAL_FULL = 4,
-    ENC_M3_INTRA_SEARCH_DIRECTIONAL_FULL_EXACT = 5
+    ENC_M3_INTRA_SEARCH_DIRECTIONAL_FULL_EXACT = 5,
+    ENC_M3_INTRA_SEARCH_PLANE_QDELTA = 6
 } EncM3IntraSearch;
 
 typedef struct {
@@ -127,6 +128,13 @@ EncStatus enc_m3_query_chroma_workspace(
     EncM3ChromaWorkspaceLayout *layout);
 EncStatus enc_m3_dc_yuv8_q_workspace(
     const EncM3Image8 *input, unsigned int qindex,
+    void *workspace, size_t workspace_capacity,
+    void *stream, size_t stream_capacity,
+    EncM3MutableImage8 *reconstruction,
+    EncM3ChromaResult *result);
+EncStatus enc_m3_plane_qdelta_yuv8_q_workspace(
+    const EncM3Image8 *input, unsigned int qindex,
+    int u_qdelta, int v_qdelta,
     void *workspace, size_t workspace_capacity,
     void *stream, size_t stream_capacity,
     EncM3MutableImage8 *reconstruction,

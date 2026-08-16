@@ -50,8 +50,9 @@ wide-angle mapping, legal deltas, and inherited chroma deltas. The production
 quality path currently admits the reconstruction-safe 29-token 90°..180°
 subset; outward D45/D67/D203 admission remains open until reference
 availability across the fixed transform traversal is exact. The frozen
-28-case gate records 11 strict wins, five prepared-image wins, 5,728,016 SSE
-reduction, 48 fewer bytes, and exact local/AVM/project parity.
+28-case gate records 21 strict luma wins, 12 prepared-image wins, 17,403,864
+SSE reduction, one fewer byte, and exact local/AVM/project parity. Production
+chroma remains DC; broader chroma modes stay in the exact oracle.
 
 `encoder-smooth-paeth-production` is complete as explicit `--search intra`.
 The path preserves directional compatibility and adds luma Smooth, Smooth-V,
@@ -429,6 +430,16 @@ Each feature must preserve the default-off baseline hashes and pass exact local,
 pinned-AVM, and project-decoder reconstruction before RD evaluation. Candidate
 selection must include the prior mode, use exact emitted bytes, and have stable
 tie-breaking; therefore no individual case may be forced to regress.
+
+The frame-level U/V tranche is now admitted explicitly as
+`--search plane-qdelta`. Production trials shared deltas `{0,-16,-8,8,16}`
+and at most one independently best pair, with tied DC/AC deltas per plane,
+zero-delta fallback, exact complete-stream rate, Y invariance, and a two-byte
+per-case cap. `metrics/plane-qdelta-gate.json` records four strict generated
+wins across I420/I444, 62,976 aggregate chroma-SSE reduction, 262 fewer bytes,
+and exact local/pinned-AVM/project parity. The older 24-point full-prepared 5%
+target remains an aspirational combined-quality target rather than the
+admission threshold for this explicit search mode.
 
 Feature gates, evaluated at equal-or-lower bytes than the matching baseline:
 

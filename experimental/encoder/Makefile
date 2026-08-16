@@ -13,6 +13,8 @@ M3_TEST := $(BUILD)/m3-test
 M3_CHROMA_TEST := $(BUILD)/m3-chroma-test
 M3_CHROMA_DRIVER := $(BUILD)/m3-chroma-driver
 M3_PLANE_QDELTA_DRIVER := $(BUILD)/m3-plane-qdelta-driver
+M3_PLANE_QDELTA_PRODUCTION_DRIVER := \
+	$(BUILD)/m3-plane-qdelta-production-driver
 QDELTA_SYNTAX_TEST := $(BUILD)/qdelta-syntax-test
 M3_BOUNDARY_DRIVER := $(BUILD)/m3-boundary-partition-driver
 M4_TEST := $(BUILD)/m4-test
@@ -44,7 +46,7 @@ ENCODER_OBJECTS := $(patsubst %.c,$(BUILD)/%.o,$(filter %.c,$(ENCODER_SOURCES)))
 
 .PHONY: all clean test test-unit check-validators audit audit-dependencies \
 	check-generated chroma-ac-gate full-directional-gate \
-	smooth-paeth-full-gate
+	smooth-paeth-full-gate plane-qdelta-gate
 
 all: $(TARGET)
 
@@ -110,6 +112,13 @@ $(M3_PLANE_QDELTA_DRIVER): tests/m3_plane_qdelta_driver.c $(CORE_SOURCES)
 	$(CC) $(CPPFLAGS) -std=c11 -Wall -Wextra -Wpedantic -Werror \
 		-O2 -fno-builtin -o $@ tests/m3_plane_qdelta_driver.c \
 		$(CORE_SOURCES)
+
+$(M3_PLANE_QDELTA_PRODUCTION_DRIVER): \
+	tests/m3_plane_qdelta_production_driver.c $(CORE_SOURCES)
+	@mkdir -p $(dir $@)
+	$(CC) $(CPPFLAGS) -std=c11 -Wall -Wextra -Wpedantic -Werror \
+		-O2 -fno-builtin -o $@ \
+		tests/m3_plane_qdelta_production_driver.c $(CORE_SOURCES)
 
 $(QDELTA_SYNTAX_TEST): tests/qdelta_syntax_test.c $(CORE_SOURCES)
 	@mkdir -p $(dir $@)
@@ -253,6 +262,7 @@ define run-tests
 		tests/test_smooth_paeth_full_gate.py \
 		tests/test_m3_plane_qdelta_model.py \
 		tests/test_m3_plane_qdelta_production.py \
+		tests/test_plane_qdelta_gate.py \
 		tests/test_m4_ac_model.py tests/test_ac8x8_model.py \
 		tests/test_ac8x8_hardbudget_model.py \
 		tests/test_ac8x8_production.py \
@@ -269,7 +279,7 @@ endef
 test: check-validators check-generated $(BIT_TEST) $(RANGE_TEST) \
 	$(M2_MATRIX_DRIVER) $(M1_TEST) \
 	$(M3_TEST) $(M3_CHROMA_TEST) $(M3_CHROMA_DRIVER) \
-	$(M3_PLANE_QDELTA_DRIVER) \
+	$(M3_PLANE_QDELTA_DRIVER) $(M3_PLANE_QDELTA_PRODUCTION_DRIVER) \
 	$(QDELTA_SYNTAX_TEST) \
 	$(M3_BOUNDARY_DRIVER) $(M4_TEST) $(AC8X8_TEST) \
 	$(AC8X8_COLOR_SYNTAX_DRIVER) $(PLATFORM_MEMORY_TEST) \
@@ -279,7 +289,7 @@ test: check-validators check-generated $(BIT_TEST) $(RANGE_TEST) \
 
 test-unit: check-generated $(BIT_TEST) $(RANGE_TEST) $(M2_MATRIX_DRIVER) \
 	$(M1_TEST) $(M3_TEST) $(M3_CHROMA_TEST) $(M3_CHROMA_DRIVER) \
-	$(M3_PLANE_QDELTA_DRIVER) \
+	$(M3_PLANE_QDELTA_DRIVER) $(M3_PLANE_QDELTA_PRODUCTION_DRIVER) \
 	$(QDELTA_SYNTAX_TEST) \
 	$(M3_BOUNDARY_DRIVER) $(M4_TEST) $(AC8X8_TEST) \
 	$(AC8X8_COLOR_SYNTAX_DRIVER) \
@@ -300,6 +310,11 @@ full-directional-gate: all
 
 smooth-paeth-full-gate: all
 	$(PYTHON) tools/smooth_paeth_full_gate.py \
+		--avmdec "$(AVMDEC)" \
+		--project-decoder "$(PROJECT_DECODER)"
+
+plane-qdelta-gate: all
+	$(PYTHON) tools/plane_qdelta_gate.py \
 		--avmdec "$(AVMDEC)" \
 		--project-decoder "$(PROJECT_DECODER)"
 

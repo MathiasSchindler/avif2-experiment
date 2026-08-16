@@ -60,9 +60,15 @@ production dimension range, including the legacy 8x8 and small-I420 syntax
 classes. Complete-stream trials track reconstructed reference availability at
 4x4 granularity so optional Smooth endpoints match decoder traversal exactly.
 Full-directional color syntax supports all eight base modes and inherited luma
-deltas; the safe production search currently trials V/D113/D135/D157/H chroma
-bases. Mode syntax emits the complete joint mode-set/index/offset grammar,
-FSC=0, MRLS=0, and CfL=0.
+deltas; the exact oracle covers them, while safe production color search keeps
+chroma at DC until chroma directional reconstruction has independent
+AVM/project parity. Mode syntax emits the complete joint mode-set/index/offset
+grammar, FSC=0, MRLS=0, and CfL=0.
+`--search plane-qdelta` is available for I420 and I444. It trials tied U/V
+DC+AC frame deltas `{0,-16,-8,8,16}`, then at most one independently best
+U/V pair. Candidates preserve Y exactly, may add at most two bytes relative
+to zero delta, and use stable chroma-SSE/rate/magnitude ordering. I400 rejects
+this color-only search explicitly.
 Search-off hashes remain locked. Directional and intra prediction searches
 remain explicit modes and are not combined with the default AC search.
 
@@ -73,8 +79,13 @@ exact local/pinned-AVM/project reconstruction parity.
 
 `make full-directional-gate` reproduces
 `metrics/full-directional-gate.json`: 28 I400/I420/I444 generated and prepared
-cases, 11 strict wins, five prepared-image wins, 5,728,016 total SSE reduction,
-48 fewer bytes, deterministic output, and exact local/AVM/project parity.
+cases, 21 strict wins, 12 prepared-image wins, 17,403,864 total SSE reduction,
+one fewer byte, deterministic output, and exact local/AVM/project parity.
+
+`make plane-qdelta-gate` reproduces `metrics/plane-qdelta-gate.json`.
+The gate covers I420/I444 shared and independent delta selection, exact
+local/pinned-AVM/project reconstruction, deterministic output, Y invariance,
+the two-byte per-stream cap, and a hash-locked prepared image.
 
 Raw planar bytes do not identify their dimensions. With no explicit
 `--width W --height H`, geometry is accepted only from:

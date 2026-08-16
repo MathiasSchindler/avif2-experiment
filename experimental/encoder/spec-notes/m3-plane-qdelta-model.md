@@ -1,7 +1,7 @@
 # AV2 frame U/V quantizer-delta model
 
-Status: isolated syntax, reconstruction, parity, and bounded RD model. No M3
-production syntax or search path consumes these deltas.
+Status: syntax, reconstruction, parity, bounded RD model, and explicit
+production `--search plane-qdelta` are complete for I420/I444.
 
 For the admitted 8-bit color still profile, `base_q_idx` is an unsigned
 8-bit value. A sequence header first signals `separate_uv_delta_q`. It then
@@ -62,6 +62,12 @@ the project decoder. It also freezes a 31-byte independent U/V DC/AC probe
 with sequence UV bases `-2/+3` and frame
 `U(dc,ac)=(-8,+8), V(dc,ac)=(+16,-16)`.
 
+Production exposes both the fixed-delta
+`enc_m3_plane_qdelta_yuv8_q_workspace()` API and bounded search through
+`enc_m3_intra_yuv8_q_workspace()`. The search is color-only; I400 is rejected.
+The public enum value is distinct from both full-directional modes, correcting
+the former private value collision with `directional-full`.
+
 Selected non-neutral improvements include I420 q90 `4456 -> 4440` SSE for
 one byte, q141 `4600 -> 4456` for two bytes with distinct U/V, and q190
 `14364 -> 10068` for one byte. I444 q141 improves `30400 -> 30272` for two
@@ -69,3 +75,10 @@ bytes and q190 improves `84681 -> 84041` for two bytes. Neutral blocks always
 retain zero delta and zero SSE; candidates unable to improve under the
 two-byte cap retain the baseline. I400 sequence/frame generation remains
 untouched, and the isolated model rejects monochrome format id 1.
+
+`metrics/plane-qdelta-gate.json` freezes four 64x64 generated I420/I444
+points at qindex 141/190 and one hash-locked prepared 896x896 I444 image.
+Every stream is deterministic with exact encoder-local, pinned-AVM, and
+project reconstruction. The generated cases all improve, selected pairs
+include shared and independent U/V deltas, aggregate chroma SSE falls by
+62,976, aggregate size falls by 262 bytes, and Y is invariant.

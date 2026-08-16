@@ -143,10 +143,11 @@ an explicit quality mode but too expensive as an implicit default. Explicit
 search-off streams retain their locked hashes.
 
 `metrics/full-directional-gate.json` freezes 28 generated and prepared
-I400/I420/I444 cases at qindex 100. The production-safe search passes all
-cases with deterministic output, exact local/pinned-AVM/project parity, 11
-strict wins, five prepared-image wins, 5,728,016 aggregate SSE reduction,
-48 fewer bytes, and a 43.6 ms median measured process time.
+I400/I420/I444 cases at qindex 100. The corrected production-safe search
+applies the 29-token profile to luma and retains DC chroma. It passes all
+cases with deterministic output, exact local/pinned-AVM/project parity, 21
+strict wins, 12 prepared-image wins, 17,403,864 aggregate SSE reduction,
+one fewer byte, and a 33.3 ms median measured process time.
 
 **Broader directional status: PARTIAL — safe 90°..180° production profile
 complete; outward-angle production admission remains open.**

@@ -1,7 +1,6 @@
 #include "encoder/m3.h"
 #include "encoder/directional.h"
 
-#define ENC_M3_PRIVATE_SEARCH_PLANE_QDELTA ((EncM3IntraSearch)4)
 #include "encoder/obu.h"
 #include "encoder/syntax.h"
 #include "encoder/writer.h"
@@ -1704,9 +1703,8 @@ static EncStatus encode_even_chroma_multileaf(
             search.result = &candidate;
             search.luma_mode = luma_mode;
             search.chroma_mode = chroma_mode;
-            search.fast_search =
-                qdelta_enabled || luma_mode != 0U || chroma_mode != 0U;
-            search.fast_luma_search = qdelta_enabled;
+            search.fast_search = luma_mode != 0U || chroma_mode != 0U;
+            search.fast_luma_search = 0;
             for (plane = 0U; plane < 3U; ++plane) {
                 search.padded[plane] = padded[plane];
                 search.levels[plane] = plane_levels[plane];
@@ -2101,6 +2099,24 @@ EncStatus enc_m3_dc_yuv8_q_workspace(
         reconstruction, result);
 }
 
+EncStatus enc_m3_plane_qdelta_yuv8_q_workspace(
+        const EncM3Image8 *input, unsigned int qindex,
+        int u_qdelta, int v_qdelta,
+        void *workspace, size_t workspace_capacity,
+        void *stream, size_t stream_capacity,
+        EncM3MutableImage8 *reconstruction,
+        EncM3ChromaResult *result) {
+    if (u_qdelta < -64 || u_qdelta > 63 ||
+        v_qdelta < -64 || v_qdelta > 63) {
+        return ENC_INVALID_ARGUMENT;
+    }
+    return encode_yuv_qdelta(
+        input, qindex, u_qdelta != 0 || v_qdelta != 0,
+        u_qdelta, v_qdelta,
+        workspace, workspace_capacity, stream, stream_capacity,
+        reconstruction, result);
+}
+
 EncStatus enc_m3_dc_yuv8_q_workspace_levels(
     const EncM3Image8 *input, unsigned int qindex,
     void *workspace, size_t workspace_capacity,
@@ -2136,13 +2152,13 @@ EncStatus enc_m3_intra_yuv8_q_workspace(
     if (search != ENC_M3_INTRA_SEARCH_OFF &&
         search != ENC_M3_INTRA_SEARCH_DIRECTIONAL &&
         search != ENC_M3_INTRA_SEARCH_DIRECTIONAL_EXACT &&
-        search != ENC_M3_PRIVATE_SEARCH_PLANE_QDELTA &&
+        search != ENC_M3_INTRA_SEARCH_PLANE_QDELTA &&
         search != ENC_M3_INTRA_SEARCH_INTRA &&
         search != ENC_M3_INTRA_SEARCH_DIRECTIONAL_FULL &&
         search != ENC_M3_INTRA_SEARCH_DIRECTIONAL_FULL_EXACT) {
         return ENC_INVALID_ARGUMENT;
     }
-    if (search == ENC_M3_PRIVATE_SEARCH_PLANE_QDELTA) {
+    if (search == ENC_M3_INTRA_SEARCH_PLANE_QDELTA) {
         static const int8_t delta_values[5U] = {0, -16, -8, 8, 16};
         EncM3ChromaResult baseline;
         EncM3ChromaResult candidate;
@@ -2346,8 +2362,7 @@ EncStatus enc_m3_intra_yuv8_q_workspace(
             }
         }
     }
-    if (search == ENC_M3_INTRA_SEARCH_DIRECTIONAL_FULL ||
-        search == ENC_M3_INTRA_SEARCH_DIRECTIONAL_FULL_EXACT) {
+    if (search == ENC_M3_INTRA_SEARCH_DIRECTIONAL_FULL_EXACT) {
         static const uint8_t base_chroma[5U] = {
             26U, 33U, 40U, 47U, 54U
         };

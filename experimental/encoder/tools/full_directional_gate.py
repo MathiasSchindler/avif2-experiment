@@ -274,7 +274,11 @@ def main() -> int:
                 record["rd_cost_gain"] >= 0 for record in successful),
             "strict_directional_wins": len(strict_wins) >= 8,
             "prepared_image_wins": len(prepared_wins) >= 4,
-            "chroma_directional_wins": len(chroma_wins) >= 2,
+            "chroma_dc_preserved": all(
+                record["selected_modes"].get("chroma_mode", 0) == 0
+                and sum(record["sse_gain"][1:]) == 0
+                for record in successful
+                if record["pixel_format"] != "i400"),
             "noncardinal_luma_reachable": any(
                 mode not in (0, 26, 54) for mode in luma_modes),
         }
@@ -289,6 +293,7 @@ def main() -> int:
                 "syntax_oracle_candidate_count": 56,
                 "luma_interpolation": "four-tap IDIF",
                 "chroma_interpolation": "two-sample linear",
+                "production_chroma_mode": "DC",
                 "mrl_index": 0,
                 "dip": False,
                 "ibp": False,

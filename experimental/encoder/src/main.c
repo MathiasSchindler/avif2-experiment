@@ -208,6 +208,10 @@ static int parse_search(const char *text, EncAc8x8Search *search) {
         *search = ENC_AC8X8_SEARCH_INTRA;
         return 1;
     }
+    if (strings_equal(text, "plane-qdelta")) {
+        *search = ENC_AC8X8_SEARCH_PLANE_QDELTA;
+        return 1;
+    }
     return 0;
 }
 
@@ -309,6 +313,11 @@ static int run_i400_encode(const char *input_path, size_t width,
             "encoder: DC subset supports 1..1440 pixels per axis\n");
         return ENC_EXIT_UNSUPPORTED;
     }
+    if (quality_search == ENC_AC8X8_SEARCH_PLANE_QDELTA) {
+        (void)enc_i400_input_close(&input);
+        report_error("encoder: plane-qdelta requires I420 or I444 input\n");
+        return ENC_EXIT_UNSUPPORTED;
+    }
     status = quality_search == ENC_AC8X8_SEARCH_BOUNDED
         ? enc_ac8x8_query_workspace(input.width, input.height, &ac_layout)
         : enc_m3_query_workspace(input.width, input.height, &layout);
@@ -365,6 +374,8 @@ static int run_i400_encode(const char *input_path, size_t width,
                     ? ENC_M3_INTRA_SEARCH_DIRECTIONAL_FULL_EXACT
                 : quality_search == ENC_AC8X8_SEARCH_INTRA
                     ? ENC_M3_INTRA_SEARCH_INTRA
+                    : quality_search == ENC_AC8X8_SEARCH_PLANE_QDELTA
+                        ? ENC_M3_INTRA_SEARCH_PLANE_QDELTA
                     : ENC_M3_INTRA_SEARCH_OFF,
             workspace.data, workspace.size,
             stream.data, stream.size,
@@ -419,6 +430,10 @@ static int run_i400_image_encode(const char *input_path,
     if (image->planes[0].width > ENC_M3_PRODUCTION_MAX_DIMENSION ||
         image->planes[0].height > ENC_M3_PRODUCTION_MAX_DIMENSION) {
         report_error("encoder: DC subset supports 1..1440 pixels per axis\n");
+        return ENC_EXIT_UNSUPPORTED;
+    }
+    if (quality_search == ENC_AC8X8_SEARCH_PLANE_QDELTA) {
+        report_error("encoder: plane-qdelta requires I420 or I444 input\n");
         return ENC_EXIT_UNSUPPORTED;
     }
     status = quality_search == ENC_AC8X8_SEARCH_BOUNDED
@@ -478,6 +493,8 @@ static int run_i400_image_encode(const char *input_path,
                     ? ENC_M3_INTRA_SEARCH_DIRECTIONAL_FULL_EXACT
                 : quality_search == ENC_AC8X8_SEARCH_INTRA
                     ? ENC_M3_INTRA_SEARCH_INTRA
+                    : quality_search == ENC_AC8X8_SEARCH_PLANE_QDELTA
+                        ? ENC_M3_INTRA_SEARCH_PLANE_QDELTA
                     : ENC_M3_INTRA_SEARCH_OFF,
             workspace.data, workspace.size,
             stream.data, stream.size, (uint8_t *)reconstruction.data,
@@ -616,6 +633,8 @@ static int run_chroma_encode(const char *input_path,
                     ? ENC_M3_INTRA_SEARCH_DIRECTIONAL_FULL_EXACT
                 : quality_search == ENC_AC8X8_SEARCH_INTRA
                     ? ENC_M3_INTRA_SEARCH_INTRA
+                : quality_search == ENC_AC8X8_SEARCH_PLANE_QDELTA
+                    ? ENC_M3_INTRA_SEARCH_PLANE_QDELTA
                 : ENC_M3_INTRA_SEARCH_OFF,
             workspace.data, workspace.size,
             stream.data, stream.size, &reconstruction, &result);
@@ -781,7 +800,8 @@ static int run_i400_mode(long argument_count, char **arguments) {
         report_error("usage: encoder --i400-8 INPUT --width W --height H "
                      "[--stride S] [--qindex Q] "
                      "[--search off|bounded|directional|directional-exact|"
-                     "directional-full|directional-full-exact|intra] "
+                     "directional-full|directional-full-exact|intra|"
+                     "plane-qdelta] "
                      "OUTPUT\n");
         return ENC_EXIT_USAGE;
     }
@@ -814,7 +834,7 @@ static int run_i400_mode(long argument_count, char **arguments) {
                 report_error(
                     "encoder: search must be off, bounded, directional, "
                     "directional-exact, directional-full, "
-                    "directional-full-exact, or intra\n");
+                    "directional-full-exact, intra, or plane-qdelta\n");
                 return ENC_EXIT_INPUT_METADATA;
             }
             saw_search = 1;
@@ -822,7 +842,8 @@ static int run_i400_mode(long argument_count, char **arguments) {
             report_error("usage: encoder --i400-8 INPUT --width W --height H "
                          "[--stride S] [--qindex Q] "
                          "[--search off|bounded|directional|directional-exact|"
-                         "directional-full|directional-full-exact|intra] "
+                         "directional-full|directional-full-exact|intra|"
+                         "plane-qdelta] "
                          "OUTPUT\n");
             return ENC_EXIT_USAGE;
         }
@@ -883,11 +904,11 @@ static void report_generic_usage(void) {
         "       encoder RAW [--width W --height H] [--stride S] "
         "[--output OUTPUT] [--qindex Q] "
         "[--search off|bounded|directional|directional-exact|"
-        "directional-full|directional-full-exact|intra]\n"
+        "directional-full|directional-full-exact|intra|plane-qdelta]\n"
         "       encoder --i400-8 INPUT --width W --height H "
         "[--stride S] [--qindex Q] "
         "[--search off|bounded|directional|directional-exact|"
-        "directional-full|directional-full-exact|intra] OUTPUT\n"
+        "directional-full|directional-full-exact|intra|plane-qdelta] OUTPUT\n"
         "formats: .i400, .i420, .i444, .bmp, .png; default qindex: 100; "
         "default search: off\n"
         "output: sibling INPUT with its extension replaced by .obu\n");
@@ -987,7 +1008,7 @@ static int run_inferred_mode(long argument_count, char **arguments) {
                     report_error(
                         "encoder: search must be off, bounded, directional, "
                         "directional-exact, directional-full, "
-                        "directional-full-exact, or intra\n");
+                        "directional-full-exact, intra, or plane-qdelta\n");
                     return ENC_EXIT_INPUT_METADATA;
                 }
                 saw_search = 1;

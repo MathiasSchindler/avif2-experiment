@@ -1,0 +1,580 @@
+{
+  "cases": [
+    {
+      "byte_delta": 1,
+      "height": 64,
+      "id": "tiled-gradient-i420-q141",
+      "off": {
+        "attempts": [
+          {
+            "duration_ns": 7533187,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=40 sse_y=0 sse_u=139776 sse_v=149504 workspace_bytes=25536 qindex=141 qdelta_u=0 qdelta_v=0"
+          }
+        ],
+        "avm_project_exact": true,
+        "decode_time_ns": {
+          "avm": 36940142,
+          "project": 1570528
+        },
+        "decoded_sha256": "ca1d650c0c3842d7ab97d06b686b74e436d71cdc410841546a0ad78cdb72e503",
+        "deterministic": true,
+        "local_sse_matches_decode": true,
+        "obu_bytes": 40,
+        "obu_sha256": "c6f70569345aeade2c941c4e7d370a47f5e5029b9e61267a7d1cfb5a8b81e152",
+        "planes": [
+          {
+            "plane": "y",
+            "sha256": "78aacbc3fb34efb8ffa5467b931291ec2bdf5e19564fc45fe97b5affbc893dc6",
+            "sse": 0
+          },
+          {
+            "plane": "u",
+            "sha256": "004ff2ad28c856e1e1eccdb7a0222f100eb2c26b6301a9f5968cdda899307987",
+            "sse": 139776
+          },
+          {
+            "plane": "v",
+            "sha256": "ad4a993c4c33431e94166f7465ae154d135f0d125121d566e181cfe128dbb57c",
+            "sse": 149504
+          }
+        ],
+        "status": "pass",
+        "workspace_bytes": 25536
+      },
+      "pixel_format": "i420",
+      "plane_qdelta": {
+        "attempts": [
+          {
+            "duration_ns": 47962197,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=41 sse_y=0 sse_u=136704 sse_v=148480 workspace_bytes=25536 qindex=141 qdelta_u=-16 qdelta_v=-16"
+          },
+          {
+            "duration_ns": 48297157,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=41 sse_y=0 sse_u=136704 sse_v=148480 workspace_bytes=25536 qindex=141 qdelta_u=-16 qdelta_v=-16"
+          }
+        ],
+        "avm_project_exact": true,
+        "decode_time_ns": {
+          "avm": 35204158,
+          "project": 1221810
+        },
+        "decoded_sha256": "2b0d0667a2fe9e85b443a13b42670eb61f0bf1bfec38d5268b002609088c5ce4",
+        "deterministic": true,
+        "local_sse_matches_decode": true,
+        "obu_bytes": 41,
+        "obu_sha256": "9e9da7ead892713f4d3ad5a06e6713ffabbe727b0e8c615eec78794f0fb0ad46",
+        "planes": [
+          {
+            "plane": "y",
+            "sha256": "78aacbc3fb34efb8ffa5467b931291ec2bdf5e19564fc45fe97b5affbc893dc6",
+            "sse": 0
+          },
+          {
+            "plane": "u",
+            "sha256": "01ff2984f7c59de5064eec041cae3f67db369ae6e21d8463ac699fefbeae3b27",
+            "sse": 136704
+          },
+          {
+            "plane": "v",
+            "sha256": "3dd10580e08d87e7d5619f3caf2a3b6334da85d4017d3130628968089bace107",
+            "sse": 148480
+          }
+        ],
+        "status": "pass",
+        "workspace_bytes": 25536
+      },
+      "qindex": 141,
+      "selected_deltas": [
+        -16,
+        -16
+      ],
+      "source_sha256": "3c9e1936811493d82d60bfe8aae1b01ce6a4fd120ab3b401efe9e6f8fbaf75cc",
+      "sse_gain": [
+        0,
+        3072,
+        1024
+      ],
+      "subset": "generated",
+      "width": 64
+    },
+    {
+      "byte_delta": 1,
+      "height": 64,
+      "id": "tiled-gradient-i420-q190",
+      "off": {
+        "attempts": [
+          {
+            "duration_ns": 2263777,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=38 sse_y=0 sse_u=144896 sse_v=152576 workspace_bytes=25536 qindex=190 qdelta_u=0 qdelta_v=0"
+          }
+        ],
+        "avm_project_exact": true,
+        "decode_time_ns": {
+          "avm": 34763807,
+          "project": 1337607
+        },
+        "decoded_sha256": "0d6a3a2ed0013cb97670fd60b0d9d8eaabc12ecdfb8ef25b41bd560163657cdc",
+        "deterministic": true,
+        "local_sse_matches_decode": true,
+        "obu_bytes": 38,
+        "obu_sha256": "ab9b1a12a2fac0d31016bf046fab617315895f17f1480789a78169bed6318127",
+        "planes": [
+          {
+            "plane": "y",
+            "sha256": "78aacbc3fb34efb8ffa5467b931291ec2bdf5e19564fc45fe97b5affbc893dc6",
+            "sse": 0
+          },
+          {
+            "plane": "u",
+            "sha256": "3de86bf06f2b582df37e00296e87144bd2ef7e6d76660fa2fb3ba88c25200983",
+            "sse": 144896
+          },
+          {
+            "plane": "v",
+            "sha256": "7b2f7b9c2a1280a0c450f1170c35af3fc28b5f1e49c605c896228d3e1d50f54a",
+            "sse": 152576
+          }
+        ],
+        "status": "pass",
+        "workspace_bytes": 25536
+      },
+      "pixel_format": "i420",
+      "plane_qdelta": {
+        "attempts": [
+          {
+            "duration_ns": 13081685,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=39 sse_y=0 sse_u=135680 sse_v=152576 workspace_bytes=25536 qindex=190 qdelta_u=-8 qdelta_v=-8"
+          },
+          {
+            "duration_ns": 13259013,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=39 sse_y=0 sse_u=135680 sse_v=152576 workspace_bytes=25536 qindex=190 qdelta_u=-8 qdelta_v=-8"
+          }
+        ],
+        "avm_project_exact": true,
+        "decode_time_ns": {
+          "avm": 36248361,
+          "project": 1232216
+        },
+        "decoded_sha256": "44dd425d9a03b78229543a0aaa489dd07bb7104efe51730156bae23c0a0adf3e",
+        "deterministic": true,
+        "local_sse_matches_decode": true,
+        "obu_bytes": 39,
+        "obu_sha256": "45953698e93b9b0262243106fbfe11aa4bf8a6613e7f2d9bb3d321760c7c7932",
+        "planes": [
+          {
+            "plane": "y",
+            "sha256": "78aacbc3fb34efb8ffa5467b931291ec2bdf5e19564fc45fe97b5affbc893dc6",
+            "sse": 0
+          },
+          {
+            "plane": "u",
+            "sha256": "3cac1ce6b3157db0536a073d047d00de410176a2503f986f10444798e430fa51",
+            "sse": 135680
+          },
+          {
+            "plane": "v",
+            "sha256": "9558a8f71651ee58777d30730f5d54f9dee0d22a2fe38a130cbeb227f59b1f47",
+            "sse": 152576
+          }
+        ],
+        "status": "pass",
+        "workspace_bytes": 25536
+      },
+      "qindex": 190,
+      "selected_deltas": [
+        -8,
+        -8
+      ],
+      "source_sha256": "3c9e1936811493d82d60bfe8aae1b01ce6a4fd120ab3b401efe9e6f8fbaf75cc",
+      "sse_gain": [
+        0,
+        9216,
+        0
+      ],
+      "subset": "generated",
+      "width": 64
+    },
+    {
+      "byte_delta": 0,
+      "height": 64,
+      "id": "tiled-gradient-i444-q141",
+      "off": {
+        "attempts": [
+          {
+            "duration_ns": 13568341,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=43 sse_y=0 sse_u=969216 sse_v=968704 workspace_bytes=37824 qindex=141 qdelta_u=0 qdelta_v=0"
+          }
+        ],
+        "avm_project_exact": true,
+        "decode_time_ns": {
+          "avm": 33856983,
+          "project": 1226978
+        },
+        "decoded_sha256": "fded4c7553fa0e882031591c3d50b7a6394a6867c3d2b1b2942b28580bf7c9aa",
+        "deterministic": true,
+        "local_sse_matches_decode": true,
+        "obu_bytes": 43,
+        "obu_sha256": "af8995743a02c683c2e5e338fd1d2d7a3c639baaf000dbb67f2a0f152c7cd534",
+        "planes": [
+          {
+            "plane": "y",
+            "sha256": "78aacbc3fb34efb8ffa5467b931291ec2bdf5e19564fc45fe97b5affbc893dc6",
+            "sse": 0
+          },
+          {
+            "plane": "u",
+            "sha256": "a5a88b836a093e86754d4a7eb0d7d21aadd0184ca7b759df75fcc74206ca45dc",
+            "sse": 969216
+          },
+          {
+            "plane": "v",
+            "sha256": "33a3fdc733bfc4bbf1ea94d60969ae88edfdeb871b67f3a1409a6bb0e0e39a0e",
+            "sse": 968704
+          }
+        ],
+        "status": "pass",
+        "workspace_bytes": 37824
+      },
+      "pixel_format": "i444",
+      "plane_qdelta": {
+        "attempts": [
+          {
+            "duration_ns": 97329328,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=43 sse_y=0 sse_u=968704 sse_v=968704 workspace_bytes=37824 qindex=141 qdelta_u=-8 qdelta_v=-8"
+          },
+          {
+            "duration_ns": 99535905,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=43 sse_y=0 sse_u=968704 sse_v=968704 workspace_bytes=37824 qindex=141 qdelta_u=-8 qdelta_v=-8"
+          }
+        ],
+        "avm_project_exact": true,
+        "decode_time_ns": {
+          "avm": 35450700,
+          "project": 1257987
+        },
+        "decoded_sha256": "48313ab3c5d636f8a129832d8455857a69a71e8358a1386dab387effd5a190ff",
+        "deterministic": true,
+        "local_sse_matches_decode": true,
+        "obu_bytes": 43,
+        "obu_sha256": "c70b536da418194b5943f77aba13c24ed18faacba8e279d69178ab4117d70e04",
+        "planes": [
+          {
+            "plane": "y",
+            "sha256": "78aacbc3fb34efb8ffa5467b931291ec2bdf5e19564fc45fe97b5affbc893dc6",
+            "sse": 0
+          },
+          {
+            "plane": "u",
+            "sha256": "d50650a0e0ac7f0b74212a83b75d27bb5609040a0cb79255c32e10b175e6fbfd",
+            "sse": 968704
+          },
+          {
+            "plane": "v",
+            "sha256": "33a3fdc733bfc4bbf1ea94d60969ae88edfdeb871b67f3a1409a6bb0e0e39a0e",
+            "sse": 968704
+          }
+        ],
+        "status": "pass",
+        "workspace_bytes": 37824
+      },
+      "qindex": 141,
+      "selected_deltas": [
+        -8,
+        -8
+      ],
+      "source_sha256": "7c1eecb0ce34b83bcdc5e683119668f845ec0dd91cde81dde994623f2506edf6",
+      "sse_gain": [
+        0,
+        512,
+        0
+      ],
+      "subset": "generated",
+      "width": 64
+    },
+    {
+      "byte_delta": 2,
+      "height": 64,
+      "id": "tiled-gradient-i444-q190",
+      "off": {
+        "attempts": [
+          {
+            "duration_ns": 4283526,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=40 sse_y=0 sse_u=1017856 sse_v=968704 workspace_bytes=37824 qindex=190 qdelta_u=0 qdelta_v=0"
+          }
+        ],
+        "avm_project_exact": true,
+        "decode_time_ns": {
+          "avm": 34272122,
+          "project": 1198762
+        },
+        "decoded_sha256": "801daf41687fefe8e6706d4e6cb0267fa95036ddbd1c0a33ea1756de017a340f",
+        "deterministic": true,
+        "local_sse_matches_decode": true,
+        "obu_bytes": 40,
+        "obu_sha256": "37ee866d4c11338a7325e940a8b4fc225d5ea7ced6ba2bad2ccd79f90ebbcf9b",
+        "planes": [
+          {
+            "plane": "y",
+            "sha256": "78aacbc3fb34efb8ffa5467b931291ec2bdf5e19564fc45fe97b5affbc893dc6",
+            "sse": 0
+          },
+          {
+            "plane": "u",
+            "sha256": "834369536b343287d6d8eea4dd9f232218c1ffbc87cb979cc7cc65e760b27e2b",
+            "sse": 1017856
+          },
+          {
+            "plane": "v",
+            "sha256": "730a414f6b17e1570106acf9a90254b69fbe3317a5da3cbe0efd96648813ff32",
+            "sse": 968704
+          }
+        ],
+        "status": "pass",
+        "workspace_bytes": 37824
+      },
+      "pixel_format": "i444",
+      "plane_qdelta": {
+        "attempts": [
+          {
+            "duration_ns": 25868499,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=42 sse_y=0 sse_u=968704 sse_v=968704 workspace_bytes=37824 qindex=190 qdelta_u=-8 qdelta_v=0"
+          },
+          {
+            "duration_ns": 26032696,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=42 sse_y=0 sse_u=968704 sse_v=968704 workspace_bytes=37824 qindex=190 qdelta_u=-8 qdelta_v=0"
+          }
+        ],
+        "avm_project_exact": true,
+        "decode_time_ns": {
+          "avm": 33755363,
+          "project": 1240597
+        },
+        "decoded_sha256": "c27967e25b3d2dfa5ccebd65bebb1aacfeb6db1cba744358251d274d38b2d56b",
+        "deterministic": true,
+        "local_sse_matches_decode": true,
+        "obu_bytes": 42,
+        "obu_sha256": "098e4f18632f92c173982e068b45b17ee63fe714da3cd92f3f0fd030d76fc47a",
+        "planes": [
+          {
+            "plane": "y",
+            "sha256": "78aacbc3fb34efb8ffa5467b931291ec2bdf5e19564fc45fe97b5affbc893dc6",
+            "sse": 0
+          },
+          {
+            "plane": "u",
+            "sha256": "a49d5b7c3e0fc8f80c7c17e79110c88485a0dc2b99375aab0a6b3562c7907f24",
+            "sse": 968704
+          },
+          {
+            "plane": "v",
+            "sha256": "730a414f6b17e1570106acf9a90254b69fbe3317a5da3cbe0efd96648813ff32",
+            "sse": 968704
+          }
+        ],
+        "status": "pass",
+        "workspace_bytes": 37824
+      },
+      "qindex": 190,
+      "selected_deltas": [
+        -8,
+        0
+      ],
+      "source_sha256": "7c1eecb0ce34b83bcdc5e683119668f845ec0dd91cde81dde994623f2506edf6",
+      "sse_gain": [
+        0,
+        49152,
+        0
+      ],
+      "subset": "generated",
+      "width": 64
+    },
+    {
+      "byte_delta": -266,
+      "height": 896,
+      "id": "prepared-pitti-ceiling-i444-q100",
+      "off": {
+        "attempts": [
+          {
+            "duration_ns": 8128910629,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=13813 sse_y=603768520 sse_u=85194834 sse_v=31795370 workspace_bytes=7263744 qindex=100 qdelta_u=0 qdelta_v=0"
+          }
+        ],
+        "avm_project_exact": true,
+        "decode_time_ns": {
+          "avm": 90902642,
+          "project": 102506269
+        },
+        "decoded_sha256": "f2ab0945e8c7a96e428a931a00abc3e08a6f121fc857ab276c7bd5eca962bc60",
+        "deterministic": true,
+        "local_sse_matches_decode": true,
+        "obu_bytes": 13813,
+        "obu_sha256": "4c3a48978c6e9b2c19e9a7ff615cf9f84212d06d568b9c4579a8b0dde7f3cfe4",
+        "planes": [
+          {
+            "plane": "y",
+            "sha256": "76f3737f5e02740aef6ce40c015a46a3feb3d2771450191dc758cdf10eaf69ea",
+            "sse": 603768520
+          },
+          {
+            "plane": "u",
+            "sha256": "ee102f74b461c25a088e1a318a3b52c70fa9c1dfa62b8e0f775d61c5934f2f32",
+            "sse": 85194834
+          },
+          {
+            "plane": "v",
+            "sha256": "5f66974d98f60f876df5c8754a63cc87decceba9a804ee96153df875cc3720cb",
+            "sse": 31795370
+          }
+        ],
+        "status": "pass",
+        "workspace_bytes": 7263744
+      },
+      "pixel_format": "i444",
+      "plane_qdelta": {
+        "attempts": [
+          {
+            "duration_ns": 49188374903,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=13547 sse_y=603768520 sse_u=85194834 sse_v=31795370 workspace_bytes=7263744 qindex=100 qdelta_u=8 qdelta_v=8"
+          },
+          {
+            "duration_ns": 49080992083,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=13547 sse_y=603768520 sse_u=85194834 sse_v=31795370 workspace_bytes=7263744 qindex=100 qdelta_u=8 qdelta_v=8"
+          }
+        ],
+        "avm_project_exact": true,
+        "decode_time_ns": {
+          "avm": 88231759,
+          "project": 103063955
+        },
+        "decoded_sha256": "f2ab0945e8c7a96e428a931a00abc3e08a6f121fc857ab276c7bd5eca962bc60",
+        "deterministic": true,
+        "local_sse_matches_decode": true,
+        "obu_bytes": 13547,
+        "obu_sha256": "083aa014d6fdee553592c9003ad701f2c6a994e2b0c535c623fb736ec65e4602",
+        "planes": [
+          {
+            "plane": "y",
+            "sha256": "76f3737f5e02740aef6ce40c015a46a3feb3d2771450191dc758cdf10eaf69ea",
+            "sse": 603768520
+          },
+          {
+            "plane": "u",
+            "sha256": "ee102f74b461c25a088e1a318a3b52c70fa9c1dfa62b8e0f775d61c5934f2f32",
+            "sse": 85194834
+          },
+          {
+            "plane": "v",
+            "sha256": "5f66974d98f60f876df5c8754a63cc87decceba9a804ee96153df875cc3720cb",
+            "sse": 31795370
+          }
+        ],
+        "status": "pass",
+        "workspace_bytes": 7263744
+      },
+      "qindex": 100,
+      "selected_deltas": [
+        8,
+        8
+      ],
+      "source_sha256": "8557dbad21902377f956e7a9e84250476dc6d2d497722963cb3e474e266db7d0",
+      "sse_gain": [
+        0,
+        0,
+        0
+      ],
+      "subset": "prepared",
+      "width": 896
+    }
+  ],
+  "configuration": {
+    "candidate_deltas": [
+      0,
+      -16,
+      -8,
+      8,
+      16
+    ],
+    "dc_ac_tied_per_plane": true,
+    "formats": [
+      "i420",
+      "i444"
+    ],
+    "maximum_added_bytes": 2,
+    "qindices": [
+      141,
+      190
+    ]
+  },
+  "corpus": {
+    "images/prepared/le896/pitti-ceiling/source-896x896-yuv444p8.i444": "8557dbad21902377f956e7a9e84250476dc6d2d497722963cb3e474e266db7d0",
+    "prepared_lock_sha256": "f12c63adf93a46066866e85bc7c336594fe27ac1514b34abd0f22ddb494bf97f"
+  },
+  "gates": {
+    "all_cases_validated": true,
+    "both_formats_select_deltas": true,
+    "chroma_sse_nonregression": true,
+    "deterministic": true,
+    "generated_strict_wins": true,
+    "local_avm_project_exact": true,
+    "per_case_rate_cap": true,
+    "prepared_image_validated": true,
+    "y_invariant": true
+  },
+  "schema": "av2-encoder-plane-qdelta-gate-v1",
+  "status": "pass",
+  "summary": {
+    "maximum_workspace_bytes": 7263744,
+    "selected_delta_pairs": [
+      [
+        -16,
+        -16
+      ],
+      [
+        -8,
+        -8
+      ],
+      [
+        -8,
+        0
+      ],
+      [
+        8,
+        8
+      ]
+    ],
+    "strict_wins": 4,
+    "successful_cases": 5,
+    "total_byte_delta": -262,
+    "total_chroma_sse_gain": 62976
+  }
+}

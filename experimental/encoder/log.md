@@ -1635,3 +1635,27 @@ prepared images begin at 896x424, so all remain explicit unsupported cases.
   reconstruction, and every frozen stream is deterministic with exact
   pinned-AVM/project-decoder agreement. The four-case full-dimension gate has
   exact local agreement for every case.
+
+## 2026-08-16 — U/V frame quantizer deltas
+
+- **Production surface:** `--search plane-qdelta` now admits frame-level U/V
+  quantizer deltas for I420/I444. I400 rejects the color-only mode explicitly.
+- **Candidate policy:** search trials tied DC+AC deltas
+  `{0,-16,-8,8,16}` and at most one independently best U/V pair. Zero delta is
+  retained, exact complete-stream bytes are compared, and no candidate may
+  add more than two bytes.
+- **Correctness:** U/V deltas no longer share a private enum value with
+  `directional-full`. Qdelta candidates use the same luma and coefficient
+  search policy as zero delta, so Y syntax, reconstruction, and SSE remain
+  invariant.
+- **Directional correction:** removing that collision exposed that the prior
+  color gate had exercised qdelta search instead of full directional search.
+  Production full-directional color now searches the safe 29-token luma set
+  and keeps chroma DC. The corrected 28-case gate has 21 strict wins, 12
+  prepared wins, 17,403,864 SSE reduction, one fewer byte, and exact parity.
+- **API:** `enc_m3_plane_qdelta_yuv8_q_workspace()` exposes validated fixed
+  deltas in `[-64,63]`; bounded search uses the existing M3 color entry point.
+- **Frozen gate:** `metrics/plane-qdelta-gate.json` passes five I420/I444
+  generated/prepared cases with four strict wins, 62,976 aggregate chroma-SSE
+  reduction, 262 fewer bytes, shared and independent delta selections, and
+  exact encoder-local/pinned-AVM/project parity.
