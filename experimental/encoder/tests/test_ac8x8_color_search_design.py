@@ -15,17 +15,17 @@ SPEC.loader.exec_module(MODEL)
 
 
 class Ac8x8ColorSearchDesignTests(unittest.TestCase):
-    def test_896_layout_projections(self):
+    def test_1440_layout_projections(self):
         report = MODEL.build_report()
         layouts = report["layouts"]
-        self.assertEqual(layouts["I400"]["size"], 6_493_736)
-        self.assertEqual(layouts["I420"]["size"], 7_309_096)
-        self.assertEqual(layouts["I444"]["size"], 9_717_544)
+        self.assertEqual(layouts["I400"]["size"], 16_660_960)
+        self.assertEqual(layouts["I420"]["size"], 18_766_960)
+        self.assertEqual(layouts["I444"]["size"], 24_987_760)
         for layout in layouts.values():
-            self.assertEqual(layout["stream_capacity"], 803_072)
-            self.assertEqual(layout["transform_count"][0], 12_544)
-            self.assertEqual(layout["searched_blocks"], 256)
-            self.assertEqual(layout["candidate_trials"], 98_304)
+            self.assertEqual(layout["stream_capacity"], 2_073_856)
+            self.assertEqual(layout["transform_count"][0], 32_400)
+            self.assertEqual(layout["searched_blocks"], 32_400)
+            self.assertEqual(layout["candidate_trials"], 1_555_200)
 
     def test_uv_remains_one_dc_level_per_transform(self):
         i420 = MODEL.query_layout(MODEL.PixelFormat.I420, 896, 896)

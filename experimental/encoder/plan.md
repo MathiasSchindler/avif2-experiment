@@ -52,12 +52,12 @@ bound. Chroma mode search remains deferred. The 224-case full-stream gate has
 the locked 90 cases use 276,756 bytes with unchanged plane SSE relative to
 directional and 263.108 seconds aggregate median runtime.
 
-`encoder-ac8x8-production` is complete as an explicit mode.
-`enc_ac8x8_yuv8_q_workspace()` and CLI `--search bounded` cover I400, I420,
-and I444 through 896 while preserving default/search-off streams. The locked
-12-case gate passes deterministic local/pinned-AVM/project parity and U/V
-identity, with 11 luma wins. Default-on is not admitted: bounded streams cost
-1,686 bytes versus 777 search-off bytes.
+`encoder-ac8x8-production` is complete as the ordinary luma path.
+`enc_ac8x8_yuv8_q_workspace()` and default CLI `--search bounded` cover every
+luma transform in I400, I420, and I444 through 1440 per axis. `--search off`
+preserves the frozen DC-only streams. Multi-superblock generated cases and
+real 1440x960 preparations pass deterministic local/pinned-AVM/project parity;
+U/V remain DC-only and unchanged by luma AC search.
 
 ## Allocation and ownership
 
@@ -448,23 +448,20 @@ itself.
 
 ### 8x8 AC production admission result
 
-The explicit I400 candidate is implemented behind `--search bounded`; search
-defaults to `off`. Work is capped at 256 transforms, 16 positions per searched
-transform, 8 nonzeros, and magnitude 63. Candidate streams and
-reconstructions are staged in caller workspace and committed atomically.
+The I400/I420/I444 candidate is implemented as default `--search bounded`.
+Every luma transform searches eight low-frequency positions, with at most
+8 nonzeros and magnitude 63. Candidate streams and reconstructions are staged
+in caller workspace and committed atomically; `--search off` preserves the
+frozen DC-only path.
 
-The locked admission gate is not met. On the 18 targeted I400 points the
-candidate reduces AC-subset Y SSE by 66.06%, with 7/9 subset wins, but grows
-complete-stream bytes from 786 to 4,459. Default-on and chroma admission remain
-blocked until deterministic whole-corpus rate allocation (including q
-alternatives) meets the aggregate byte budget without plane-SSE regression.
-
-The independent exact-stream hard-budget follow-up is also blocked. A
-whole-image greedy frontier plus aggregate knapsack selects only DC at the
-locked 786 bytes. Its best reachable 8%-gain point has 7/9 wins and needs
-1,048 aggregate bytes; neither qindex-180 line case has a winning candidate.
-The next candidate surface must win both cases and eliminate at least 262
-bytes from that reachable frontier.
+The earlier equal-byte gate remains useful rate evidence: AC substantially
+increases stream size at fixed qindex. Production promotion prioritizes visual
+quality and keeps that tradeoff explicit in reported bytes and runtime. On the
+real 1440x960 Baya Weaver I400 preparation at qindex 100, luma SSE falls 56%
+and PSNR rises 3.56 dB, while output grows from 6,083 to 15,234 bytes and encode
+time grows from 1.73 to 28.58 seconds. Future coefficient selection should
+recover rate efficiency without weakening decoder parity or the selectable
+DC-only compatibility stream.
 
 ### [ ] M10 — Portable backends without weakening the first target
 
@@ -515,9 +512,10 @@ exact local/pinned-AVM/project parity, including three 1440x1440 sources and
 both axis orientations. This is the current 8-bit I400 1440-per-axis bound;
 arbitrary larger dimensions remain a future milestone.
 
-The admitted 8-bit DC-only chroma profile now covers every I420/I444 width and
-height from 1 through 1440 at every qindex 1..255: 2,073,600 dimension pairs per
-format. The final half-grid correction uses the frame's 8-pixel-aligned MI
+The admitted 8-bit color profile now covers every I420/I444 width and height
+from 1 through 1440 at every qindex 1..255: 2,073,600 dimension pairs per
+format. Luma uses default 8x8 AC search while U/V remain DC-only. The final
+half-grid correction uses the frame's 8-pixel-aligned MI
 boundary for the separate chroma tree, omits the normative 8×8 chroma
 partition symbol, and models rectangular 4×8/8×4 and 8×16/16×8 transforms
 with their exact EOB, skip, edge, prediction, and inverse-scaling rules. All

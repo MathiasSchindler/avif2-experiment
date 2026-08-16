@@ -9,8 +9,7 @@ from dataclasses import asdict, dataclass
 from enum import IntEnum
 
 
-MAX_SEARCHED_BLOCKS = 256
-POSITIONS_PER_SEARCHED_BLOCK = 16
+POSITIONS_PER_SEARCHED_BLOCK = 8
 CHOICES_PER_POSITION = 6
 COEFFICIENTS_PER_LUMA_TRANSFORM = 64
 STREAM_SLICE_COUNT = 4
@@ -136,11 +135,10 @@ def query_layout(
     size = align(
         stream_staging_offset + STREAM_SLICE_COUNT * stream_capacity)
 
-    searched_blocks = min(y_transforms, MAX_SEARCHED_BLOCKS)
+    searched_blocks = y_transforms
     candidate_trials = (
         searched_blocks * POSITIONS_PER_SEARCHED_BLOCK *
-        CHOICES_PER_POSITION +
-        (y_transforms - searched_blocks) * CHOICES_PER_POSITION
+        CHOICES_PER_POSITION
     )
     return Layout(
         format=pixel_format.name,
@@ -167,7 +165,7 @@ def query_layout(
     )
 
 
-def build_report(width: int = 896, height: int = 896) -> dict:
+def build_report(width: int = 1440, height: int = 1440) -> dict:
     layouts = {
         pixel_format.name: asdict(query_layout(pixel_format, width, height))
         for pixel_format in (
@@ -177,7 +175,7 @@ def build_report(width: int = 896, height: int = 896) -> dict:
         "schema": 1,
         "policy": {
             "search_values": {"off": 0, "bounded": 1},
-            "max_searched_blocks": MAX_SEARCHED_BLOCKS,
+            "max_searched_blocks": None,
             "positions_per_searched_block": POSITIONS_PER_SEARCHED_BLOCK,
             "choices_per_position": CHOICES_PER_POSITION,
             "stream_slice_count": STREAM_SLICE_COUNT,
@@ -189,16 +187,16 @@ def build_report(width: int = 896, height: int = 896) -> dict:
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--width", type=int, default=896)
-    parser.add_argument("--height", type=int, default=896)
+    parser.add_argument("--width", type=int, default=1440)
+    parser.add_argument("--height", type=int, default=1440)
     parser.add_argument("--check", action="store_true")
     arguments = parser.parse_args()
     report = build_report(arguments.width, arguments.height)
     if arguments.check:
-        assert report["layouts"]["I400"]["size"] == 6_493_736
-        assert report["layouts"]["I420"]["size"] == 7_309_096
-        assert report["layouts"]["I444"]["size"] == 9_717_544
-        assert report["layouts"]["I400"]["candidate_trials"] == 98_304
+        assert report["layouts"]["I400"]["size"] == 16_660_960
+        assert report["layouts"]["I420"]["size"] == 18_766_960
+        assert report["layouts"]["I444"]["size"] == 24_987_760
+        assert report["layouts"]["I400"]["candidate_trials"] == 1_555_200
         return 0
     print(json.dumps(report, indent=2, sort_keys=True))
     return 0

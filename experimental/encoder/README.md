@@ -39,11 +39,11 @@ image with no recognized suffix has `.obu` appended instead. `-o PATH` and
 form and defaults to 100, exactly like the legacy I400 form. Options may
 appear before or after the single input.
 
-Quality search defaults to `--search off`, preserving the legacy DC-only
-bitstream. `--search bounded` enables the scalar general 8x8 DCT_DCT AC
-candidate for luma in I400, I420, and I444; U/V remain DC-only. It is capped
-at 256 transforms per image, 16 positions per searched transform, 8 nonzeros,
-and magnitude 63.
+Quality search defaults to `--search bounded`. It applies scalar 8x8 DCT_DCT
+AC search to every luma transform in I400, I420, and I444 through 1440 pixels
+per axis; U/V remain DC-only. Each transform searches eight low-frequency
+positions with at most 8 nonzeros and magnitude 63. `--search off` retains the
+frozen legacy DC-only bitstream.
 `--search directional` enables the production predictor-SSE shortlist followed
 by deterministic exact DC/vertical/horizontal complete-stream trials for I400,
 I420, and I444. `--search directional-exact` bypasses only the prefilter and is
@@ -55,10 +55,8 @@ Mode syntax emits exact mode-set/index contexts, FSC=0, MRLS=0 only for V/H,
 and color emits CfL=0 plus DC UV syntax. Each complete-stream trial starts from
 fresh writer/CDF state. Candidates must not regress any plane SSE or bytes;
 stable ties retain DC, V, H, Smooth, Smooth-V, Smooth-H, then Paeth.
-Search-off hashes remain locked.
-The ordinary default remains off: the policy passes the 600-second gate at
-263.108 seconds for 90 cases, but that cost is still too high for an implicit
-default.
+Search-off hashes remain locked. Directional and intra prediction searches
+remain explicit modes and are not combined with the default AC search.
 
 Raw planar bytes do not identify their dimensions. With no explicit
 `--width W --height H`, geometry is accepted only from:
@@ -220,16 +218,18 @@ mixed-axis boundaries, non-flat color, U/V asymmetry, a prepared 896×672
 I420 frame, all four required real-image boundary sizes, and the 896×896 I444
 bound.
 
-Explicit production luma AC is available through
-`enc_ac8x8_yuv8_q_workspace()` and CLI `--search bounded` for I400, I420, and
-I444 in the validated 1..896 range. The typed query reports active/coded plane
+Production luma AC is available through `enc_ac8x8_yuv8_q_workspace()` and is
+the CLI default for I400, I420, and I444 in the validated 1..1440 range. The
+typed query reports active/coded plane
 geometry, transform counts, stream capacity, and the complete caller-owned
 workspace layout. Only Y changes to general 8x8 DCT_DCT coefficients; U/V keep
 the existing DC transforms, reconstruction, plane isolation, and U-to-V EOB
-coupling. The 12-case color gate has 12 deterministic three-decoder-exact
-streams, 11 luma wins, unchanged U/V, and a 98,864-byte maximum workspace.
-Bounded output costs 1,686 bytes versus 777 search-off bytes (+909); it remains
-explicit rather than default-on.
+coupling. Multi-superblock I400/I420/I444 tests and real 1440x960 preparations
+are deterministic and match local, pinned-AVM, and project reconstruction.
+On the prepared Baya Weaver I400 image at qindex 100, AC lowers luma SSE from
+124,853,206 to 55,002,899 and raises PSNR from 28.57 dB to 32.13 dB. The
+default stream is 15,234 bytes and encodes in 28.58 seconds on the recorded
+validation host; `--search off` remains available for smaller DC-only output.
 
 The bounded M4 experiment is an explicit 8×8 DC-plus-vertical-AC mode:
 

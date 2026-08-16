@@ -596,16 +596,11 @@ EncStatus enc_ac8x8_i400_q_workspace(
         source_block(
             input, width, height, stride, block_x, block_y, samples);
         search_block(
-            samples, pred, qindex,
-            block < ENC_AC8X8_MAX_SEARCHED_BLOCKS &&
-                !((width > 64U || height > 64U) && block >= 64U),
-            (width > 64U || height > 64U ? 5 : 0) |
+            samples, pred, qindex, 1,
+            (width > 64U || height > 64U ? 1 : 0) |
             (qindex >= 141U && width >= 64U && height >= 64U ? 2 : 0),
             levels + block * 64U, decoded);
-        if (block < ENC_AC8X8_MAX_SEARCHED_BLOCKS &&
-            !((width > 64U || height > 64U) && block >= 64U)) {
-            result->searched_blocks++;
-        }
+        result->searched_blocks++;
         for (offset = 1U; offset < 64U; ++offset) {
             if (levels[block * 64U + offset] != 0) {
                 ++ac_blocks;
@@ -650,9 +645,7 @@ EncStatus enc_ac8x8_i400_q_workspace(
     }
     result->candidate_stream_size = obu_writer.position;
     result->candidate_squared_error = candidate_error;
-    result->admitted =
-        width <= 64U && height <= 64U &&
-        candidate_error < legacy_result.squared_error;
+    result->admitted = candidate_error < legacy_result.squared_error;
     if (result->admitted) {
         if (obu_writer.position > stream_capacity) return ENC_OUT_OF_SPACE;
         status = enc_memory_copy(
@@ -727,8 +720,8 @@ EncStatus enc_ac8x8_i400_q_workspace(
              format != ENC_M3_PIXEL_I444)) {
             return ENC_INVALID_ARGUMENT;
         }
-        if (width > ENC_M3_FROZEN_PRODUCTION_MAX_DIMENSION ||
-            height > ENC_M3_FROZEN_PRODUCTION_MAX_DIMENSION) {
+        if (width > ENC_M3_PRODUCTION_MAX_DIMENSION ||
+            height > ENC_M3_PRODUCTION_MAX_DIMENSION) {
             return ENC_UNSUPPORTED;
         }
         candidate.alignment = ENC_M3_WORKSPACE_ALIGNMENT;
@@ -1253,18 +1246,12 @@ EncStatus enc_ac8x8_i400_q_workspace(
                 input->planes[0U].data, input->width, input->height,
                 input->planes[0U].stride, block_x, block_y, samples);
             search_block(
-                samples, pred, qindex,
-                block < ENC_AC8X8_MAX_SEARCHED_BLOCKS,
+                samples, pred, qindex, 1,
                 1 | (qindex >= 141U && input->width >= 64U &&
                      input->height >= 64U ? 2 : 0),
                 y_levels + block * 64U, decoded);
-            if (block < ENC_AC8X8_MAX_SEARCHED_BLOCKS) {
-                ++result->searched_blocks;
-                result->candidate_trials +=
-                    ENC_AC8X8_MAX_POSITIONS * 6U;
-            } else {
-                result->candidate_trials += 6U;
-            }
+            ++result->searched_blocks;
+            result->candidate_trials += 8U * 6U;
             for (offset = 1U; offset < 64U; ++offset) {
                 if (y_levels[block * 64U + offset] != 0) {
                     ++ac_blocks;

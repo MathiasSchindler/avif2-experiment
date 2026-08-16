@@ -4,6 +4,28 @@ This is an append-only record of decisions, commands, pins, hashes, gate
 results, blockers, and restart points. Do not replace exact values with links
 or “latest”.
 
+## 2026-08-16 — full-image 8x8 luma AC production default
+
+- **Surface:** default `--search bounded` searches eight low-frequency
+  positions in every luma 8x8 transform for I400/I420/I444 through 1440 per
+  axis. `--search off` preserves the frozen DC-only stream; U/V remain DC-only.
+- **Syntax repair:** secondary-transform zero signaling now follows the AVM
+  8x8 DCT condition `2 <= EOB <= 20`; the monochrome path materializes the same
+  tile-persistent CDF as color. This fixes padded edge leaves after the first
+  64 transforms in a 72x64 stream.
+- **Generated gate:** deterministic 72x64 I400/I420/I444 streams have exact
+  local/pinned-AVM/project parity. Default output equals explicit bounded
+  output, while explicit off remains distinct and decoder-valid.
+- **1440 color admission:** the stale frozen-896 workspace guard now uses the
+  public 1440 production bound. The independent 1440x1440 projection searches
+  32,400 luma blocks / 1,555,200 candidates and reports 16,660,960-byte I400,
+  18,766,960-byte I420, and 24,987,760-byte I444 workspaces.
+- **Real evidence:** Baya Weaver 1440x960 q100 passes pinned-AVM/project parity
+  in all three formats. I400 AC is 15,234 bytes, SSE 55,002,899, PSNR 32.13 dB,
+  28.58 seconds, and 10,548 KiB peak RSS; off is 6,083 bytes, SSE 124,853,206,
+  PSNR 28.57 dB, and 1.73 seconds. I420 is 17,653 bytes / 34.02 seconds /
+  14,172 KiB RSS; I444 is 17,936 bytes / 41.61 seconds / 23,980 KiB RSS.
+
 ## 2026-08-16 — explicit luma AC color admission gate
 
 - **Status:** DONE for todo `encoder-ac8x8-production`.

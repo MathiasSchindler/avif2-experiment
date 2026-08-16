@@ -94,9 +94,11 @@ class Ac8x8ProductionTests(unittest.TestCase):
                     "bounded")
                 self.assertEqual(first, second)
 
-    def test_search_off_is_legacy_compatible(self) -> None:
+    def test_default_is_bounded_and_off_is_legacy_compatible(self) -> None:
         source = self.pixels(64, 64, "checker")
-        explicit = self.encode(
+        bounded = self.encode(
+            "bounded-explicit", source, 64, 64, 100, "bounded")[0]
+        off = self.encode(
             "off-explicit", source, 64, 64, 100, "off")[0]
         raw = self.work / "off-default.i400"
         obu = self.work / "off-default.obu"
@@ -105,7 +107,39 @@ class Ac8x8ProductionTests(unittest.TestCase):
             str(self.encoder), str(raw), "--width", "64", "--height", "64",
             "--qindex", "100", "--output", str(obu),
         ], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        self.assertEqual(explicit, obu.read_bytes())
+        self.assertEqual(bounded, obu.read_bytes())
+        self.assertNotEqual(off, obu.read_bytes())
+
+    def test_multisuperblock_color_parity(self) -> None:
+        width = 72
+        height = 64
+        y = self.pixels(width, height, "lines")
+        for format_name, chroma_size in (("i420", width * height // 4),
+                                         ("i444", width * height)):
+            with self.subTest(format=format_name):
+                raw = self.work / f"color.{format_name}"
+                obu = self.work / f"color-{format_name}.obu"
+                avm = self.work / f"color-{format_name}.avm.{format_name}"
+                project = self.work / f"color-{format_name}.project.{format_name}"
+                raw.write_bytes(y + bytes([96]) * chroma_size +
+                                bytes([160]) * chroma_size)
+                subprocess.run([
+                    str(self.encoder), str(raw), "--width", str(width),
+                    "--height", str(height), "--qindex", "100",
+                    "--search", "bounded", "--output", str(obu),
+                ], check=True, stdout=subprocess.DEVNULL,
+                   stderr=subprocess.DEVNULL)
+                subprocess.run([
+                    str(self.avmdec), "--codec=av2", "--rawvideo",
+                    "--limit=1", "--output-bit-depth=8", "-o", str(avm),
+                    str(obu),
+                ], check=True, stdout=subprocess.DEVNULL,
+                   stderr=subprocess.DEVNULL)
+                subprocess.run(
+                    [str(self.project), str(obu), "-o", str(project)],
+                    check=True, stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL)
+                self.assertEqual(avm.read_bytes(), project.read_bytes())
 
     def test_chroma_bounded_search_is_production_reachable(self) -> None:
         source = self.work / "staged-8x8.i444"

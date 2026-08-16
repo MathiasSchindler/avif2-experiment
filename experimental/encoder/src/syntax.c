@@ -1014,7 +1014,7 @@ static EncStatus write_ac8x8_coeff(
                     7U, 1) != ENC_OK) {
                 return enc_range_writer_status(writer);
             }
-            if (eob > 1U && secondary_tx_cdf != 0 &&
+            if (eob > 1U && eob <= 20U && secondary_tx_cdf != 0 &&
                 enc_range_writer_symbol(
                     writer, 0U, secondary_tx_cdf, 4U, 1) != ENC_OK) {
                 return enc_range_writer_status(writer);
@@ -1835,6 +1835,7 @@ static EncStatus enc_m3_grid_tile_q(
     size_t block_columns;
     size_t block_count;
     EncStatus status;
+    uint16_t secondary_tx_cdf[8U];
     if (size == 0 || (data == 0 && capacity != 0U) || levels == 0 ||
         width == 0U || width > ENC_M3_PRODUCTION_MAX_DIMENSION ||
         height == 0U || height > ENC_M3_PRODUCTION_MAX_DIMENSION ||
@@ -1851,6 +1852,12 @@ static EncStatus enc_m3_grid_tile_q(
     *size = 0U;
     status = enc_syntax_cdfs_init(&cdfs);
     if (status != ENC_OK) return status;
+    if (levels_per_block == 64U) {
+        static const uint16_t thresholds[3U] = {2357U, 9504U, 16641U};
+        status = enc_cdf_materialize(
+            secondary_tx_cdf, 8U, thresholds, 4U, 5U, 0U);
+        if (status != ENC_OK) return status;
+    }
     enc_range_writer_init(&writer, data, capacity);
     state.writer = &writer;
     state.cdfs = &cdfs;
@@ -1858,7 +1865,8 @@ static EncStatus enc_m3_grid_tile_q(
     state.height = height;
     state.levels = levels;
     state.levels_per_block = levels_per_block;
-    state.secondary_tx_cdf = 0;
+    state.secondary_tx_cdf =
+        levels_per_block == 64U ? secondary_tx_cdf : 0;
     state.level_index = 0U;
     state.modes = modes;
     state.mode_count = mode_count;

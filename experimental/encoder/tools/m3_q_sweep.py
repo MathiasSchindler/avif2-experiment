@@ -136,7 +136,7 @@ def run_sweep(
             command = [
                 str(encoder), "--i400-8", str(source_path),
                 "--width", str(width), "--height", str(height),
-                "--qindex", str(qindex), str(obu),
+                "--qindex", str(qindex), "--search", "off", str(obu),
             ]
             encoded = run_command(command)
             if encoded.returncode != 0:

@@ -190,6 +190,7 @@ class M3EncoderTests(unittest.TestCase):
         command = [
             str(self.binary), "--i400-8", str(source),
             "--width", str(width), "--height", str(height),
+            "--search", "off",
         ]
         if stride != width:
             command += ["--stride", str(stride)]
@@ -401,7 +402,7 @@ class M3EncoderTests(unittest.TestCase):
                 f"q-{qindex}", ramp, width, height, qindex=qindex
             )
 
-    def test_qindex_validation_and_default_stream_compatibility(self) -> None:
+    def test_qindex_validation_and_search_off_stream_compatibility(self) -> None:
         samples = bytes(range(64))
         default, _ = self.encode("q-default", samples, 8, 8)
         source = self.work / "q-explicit.i400"
@@ -411,7 +412,7 @@ class M3EncoderTests(unittest.TestCase):
             [
                 str(self.binary), "--i400-8", str(source),
                 "--width", "8", "--height", "8",
-                "--qindex", "100", str(explicit),
+                "--qindex", "100", "--search", "off", str(explicit),
             ],
             check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
         )

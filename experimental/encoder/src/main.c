@@ -15,7 +15,7 @@
 #define ENC_EXIT_ENCODER 6
 #define ENC_EXIT_OUTPUT_IO 7
 
-static EncAc8x8Search quality_search = ENC_AC8X8_SEARCH_OFF;
+static EncAc8x8Search quality_search = ENC_AC8X8_SEARCH_BOUNDED;
 
 static int strings_equal(const char *left, const char *right) {
     if (left == 0 || right == 0) return 0;
@@ -1022,7 +1022,7 @@ static int run_inferred_mode(long argument_count, char **arguments) {
 }
 
 int encoder_main(long argument_count, char **arguments) {
-    quality_search = ENC_AC8X8_SEARCH_OFF;
+    quality_search = ENC_AC8X8_SEARCH_BOUNDED;
     if (arguments == 0 || argument_count < 2) {
         report_generic_usage();
         return ENC_EXIT_USAGE;

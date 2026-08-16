@@ -154,7 +154,7 @@ class EncoderInputIntegrationTests(TestCase):
     def encode(self, source: Path, *options: str) -> Path:
         output = source.with_suffix(".obu")
         subprocess.run(
-            [str(ENCODER), str(source), *options],
+            [str(ENCODER), str(source), "--search", "off", *options],
             cwd=ROOT,
             check=True,
             stdout=subprocess.DEVNULL,
@@ -163,7 +163,8 @@ class EncoderInputIntegrationTests(TestCase):
         self.assertTrue(output.is_file())
         rerun = WORK / f"{source.stem}-rerun.obu"
         subprocess.run(
-            [str(ENCODER), str(source), "--output", str(rerun), *options],
+            [str(ENCODER), str(source), "--search", "off",
+             "--output", str(rerun), *options],
             cwd=ROOT,
             check=True,
             stdout=subprocess.DEVNULL,
