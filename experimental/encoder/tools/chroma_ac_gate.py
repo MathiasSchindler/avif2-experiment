@@ -43,6 +43,11 @@ def main() -> int:
         "--work-dir", type=Path,
         default=ENCODER / "results/chroma-ac-gate")
     args = parser.parse_args()
+    args.encoder = args.encoder.resolve()
+    args.avmdec = args.avmdec.resolve()
+    args.project_decoder = args.project_decoder.resolve()
+    args.output = args.output.resolve()
+    args.work_dir = args.work_dir.resolve()
     cases, corpus = fixture_cases()
     shutil.rmtree(args.work_dir, ignore_errors=True)
     args.work_dir.mkdir(parents=True)
@@ -123,9 +128,9 @@ def main() -> int:
             "chroma_wins": len(comparable_chroma) >= 4
                 and all(sum(record["sse_gain"][1:]) > 0
                         for record in comparable_chroma),
-            "bounded_workspace": max(
+            "bounded_workspace": max((
                 record["bounded"].get("workspace_bytes", 0)
-                for record in successful) <= 16 * 1024 * 1024,
+                for record in successful), default=0) <= 16 * 1024 * 1024,
         }
         report = {
             "schema": "av2-encoder-chroma-ac-gate-v1",
@@ -159,9 +164,9 @@ def main() -> int:
                     record["bounded"].get("obu_bytes", 0) -
                     record["off"].get("obu_bytes", 0)
                     for record in records),
-                "max_workspace_bytes": max(
+                "max_workspace_bytes": max((
                     record["bounded"].get("workspace_bytes", 0)
-                    for record in successful),
+                    for record in successful), default=0),
                 "median_bounded_time_ns":
                     int(statistics.median(times)) if times else 0,
                 "worst_bounded_time_ns": max(times, default=0),
