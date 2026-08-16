@@ -39,6 +39,27 @@ image with no recognized suffix has `.obu` appended instead. `-o PATH` and
 form and defaults to 100, exactly like the legacy I400 form. Options may
 appear before or after the single input.
 
+Quality search defaults to `--search off`, preserving the legacy DC-only
+bitstream. `--search bounded` enables the scalar general 8x8 DCT_DCT AC
+candidate for I400. It is capped at 256 transforms per image, 16 positions per
+searched transform, 8 nonzeros, and magnitude 63. I420/I444 admission remains
+staged and bounded search fails explicitly for those formats.
+`--search directional` enables the production predictor-SSE shortlist followed
+by deterministic exact DC/vertical/horizontal complete-stream trials for I400,
+I420, and I444. `--search directional-exact` bypasses only the prefilter and is
+the validator/oracle path. `--search intra` extends that surface with luma
+Smooth, Smooth-V, Smooth-H, and Paeth for images up to 64x64; larger images use
+the directional shortlist/runtime policy, and the legacy 8x8/I420-small syntax
+classes retain DC fallback. Chroma remains independently DC-predicted.
+Mode syntax emits exact mode-set/index contexts, FSC=0, MRLS=0 only for V/H,
+and color emits CfL=0 plus DC UV syntax. Each complete-stream trial starts from
+fresh writer/CDF state. Candidates must not regress any plane SSE or bytes;
+stable ties retain DC, V, H, Smooth, Smooth-V, Smooth-H, then Paeth.
+Search-off hashes remain locked.
+The ordinary default remains off: the policy passes the 600-second gate at
+263.108 seconds for 90 cases, but that cost is still too high for an implicit
+default.
+
 Raw planar bytes do not identify their dimensions. With no explicit
 `--width W --height H`, geometry is accepted only from:
 

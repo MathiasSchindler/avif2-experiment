@@ -1,0 +1,298 @@
+{
+  "candidate": {
+    "all_deterministic": true,
+    "all_validator_exact": true,
+    "max_workspace_bytes": 7263744,
+    "median_encode_time_ns": 101660248,
+    "total_obu_bytes": 273129,
+    "total_sse": {
+      "u": 916684002,
+      "v": 910228570,
+      "y": 9609641256
+    },
+    "worst_encode_time_ns": 27772181066
+  },
+  "case_report": {
+    "path": "metrics/encoder-plane-qdelta-production-cases.json",
+    "sha256": "5d3f7f20e1589480af9dac1afda481c06b4f4db74d38ca0033a0361957077f0a"
+  },
+  "changed_cases": [
+    {
+      "byte_delta": -330,
+      "id": "full-chinnathurai-church-i420-q60",
+      "pixel_format": "i420",
+      "sse_delta": {
+        "u": 0,
+        "v": 0,
+        "y": 0
+      },
+      "subset": "full-prepared"
+    },
+    {
+      "byte_delta": -520,
+      "id": "full-chinnathurai-church-i444-q60",
+      "pixel_format": "i444",
+      "sse_delta": {
+        "u": 0,
+        "v": 0,
+        "y": 0
+      },
+      "subset": "full-prepared"
+    },
+    {
+      "byte_delta": -116,
+      "id": "full-chinnathurai-church-i444-q100",
+      "pixel_format": "i444",
+      "sse_delta": {
+        "u": 0,
+        "v": 0,
+        "y": 0
+      },
+      "subset": "full-prepared"
+    },
+    {
+      "byte_delta": -83,
+      "id": "full-elbrus-milky-way-i420-q60",
+      "pixel_format": "i420",
+      "sse_delta": {
+        "u": 0,
+        "v": 0,
+        "y": 0
+      },
+      "subset": "full-prepared"
+    },
+    {
+      "byte_delta": -83,
+      "id": "full-elbrus-milky-way-i444-q60",
+      "pixel_format": "i444",
+      "sse_delta": {
+        "u": 0,
+        "v": 0,
+        "y": 0
+      },
+      "subset": "full-prepared"
+    },
+    {
+      "byte_delta": -13,
+      "id": "full-elbrus-milky-way-i444-q100",
+      "pixel_format": "i444",
+      "sse_delta": {
+        "u": 0,
+        "v": -8,
+        "y": 0
+      },
+      "subset": "full-prepared"
+    },
+    {
+      "byte_delta": -754,
+      "id": "full-pastel-chalks-i420-q60",
+      "pixel_format": "i420",
+      "sse_delta": {
+        "u": 0,
+        "v": 0,
+        "y": 0
+      },
+      "subset": "full-prepared"
+    },
+    {
+      "byte_delta": -803,
+      "id": "full-pastel-chalks-i444-q60",
+      "pixel_format": "i444",
+      "sse_delta": {
+        "u": -100998,
+        "v": -583414,
+        "y": 0
+      },
+      "subset": "full-prepared"
+    },
+    {
+      "byte_delta": -144,
+      "id": "full-pastel-chalks-i444-q100",
+      "pixel_format": "i444",
+      "sse_delta": {
+        "u": 0,
+        "v": -1644,
+        "y": 0
+      },
+      "subset": "full-prepared"
+    },
+    {
+      "byte_delta": -730,
+      "id": "full-pitti-ceiling-i420-q60",
+      "pixel_format": "i420",
+      "sse_delta": {
+        "u": 0,
+        "v": 0,
+        "y": 0
+      },
+      "subset": "full-prepared"
+    },
+    {
+      "byte_delta": -1156,
+      "id": "full-pitti-ceiling-i444-q60",
+      "pixel_format": "i444",
+      "sse_delta": {
+        "u": -396,
+        "v": 0,
+        "y": 0
+      },
+      "subset": "full-prepared"
+    },
+    {
+      "byte_delta": -266,
+      "id": "full-pitti-ceiling-i444-q100",
+      "pixel_format": "i444",
+      "sse_delta": {
+        "u": 0,
+        "v": 0,
+        "y": 0
+      },
+      "subset": "full-prepared"
+    },
+    {
+      "byte_delta": -5,
+      "id": "target-diagonal-edge-i420-q60",
+      "pixel_format": "i420",
+      "sse_delta": {
+        "u": 0,
+        "v": 0,
+        "y": 0
+      },
+      "subset": "targeted"
+    },
+    {
+      "byte_delta": 2,
+      "id": "target-diagonal-edge-i420-q100",
+      "pixel_format": "i420",
+      "sse_delta": {
+        "u": -160,
+        "v": 80,
+        "y": 0
+      },
+      "subset": "targeted"
+    },
+    {
+      "byte_delta": 2,
+      "id": "target-diagonal-edge-i420-q180",
+      "pixel_format": "i420",
+      "sse_delta": {
+        "u": -2128,
+        "v": -3568,
+        "y": 0
+      },
+      "subset": "targeted"
+    },
+    {
+      "byte_delta": -4,
+      "id": "target-diagonal-edge-i444-q60",
+      "pixel_format": "i444",
+      "sse_delta": {
+        "u": 0,
+        "v": 0,
+        "y": 0
+      },
+      "subset": "targeted"
+    },
+    {
+      "byte_delta": -2,
+      "id": "target-diagonal-edge-i444-q100",
+      "pixel_format": "i444",
+      "sse_delta": {
+        "u": 0,
+        "v": 0,
+        "y": 0
+      },
+      "subset": "targeted"
+    },
+    {
+      "byte_delta": 0,
+      "id": "target-diagonal-edge-i444-q180",
+      "pixel_format": "i444",
+      "sse_delta": {
+        "u": 10624,
+        "v": -11264,
+        "y": 0
+      },
+      "subset": "targeted"
+    }
+  ],
+  "counts": {
+    "full_cases": 36,
+    "full_format_images": 12,
+    "prepared_sources": 4,
+    "targeted_cases": 54,
+    "targeted_format_images": 18,
+    "total_cases": 90
+  },
+  "deltas": {
+    "obu_bytes": -5005,
+    "sse": {
+      "u": -93058,
+      "v": -599818,
+      "y": 0
+    },
+    "workspace_bytes": 0
+  },
+  "deterministic": true,
+  "full_prepared_chroma": {
+    "baseline_sse": 1629123800,
+    "candidate_sse": 1628437340,
+    "gain_percent": 0.042137,
+    "points": 24,
+    "wins": 4
+  },
+  "gates": {
+    "aggregate_bytes_nonincrease": true,
+    "aggregate_u_nonincrease": true,
+    "aggregate_v_nonincrease": true,
+    "aggregate_y_nonincrease": true,
+    "full_prepared_chroma_gain_at_least_5_percent": false,
+    "full_prepared_wins_at_least_6": false
+  },
+  "locked_baseline": {
+    "all_deterministic": true,
+    "all_validator_exact": true,
+    "max_workspace_bytes": 7263744,
+    "median_encode_time_ns": 8192059,
+    "total_obu_bytes": 278134,
+    "total_sse": {
+      "u": 916777060,
+      "v": 910828388,
+      "y": 9609641256
+    },
+    "worst_encode_time_ns": 4214024477
+  },
+  "policy": {
+    "deltas": [
+      0,
+      -16,
+      -8,
+      8,
+      16
+    ],
+    "independent_pair_count_max": 1,
+    "maximum_added_bytes_per_case": 2,
+    "rate_cost": "exact complete OBU bytes",
+    "search": "plane-qdelta",
+    "tie_order": [
+      "chroma_sse",
+      "bytes",
+      "delta_magnitude",
+      "shared_before_separate",
+      "signed_u",
+      "signed_v"
+    ],
+    "zero_delta_fallback": "legacy stream"
+  },
+  "rate_cap": {
+    "maximum_observed_added_bytes": 2,
+    "violations": 0
+  },
+  "runtime": {
+    "median_ratio_to_locked": 12.409608866342394,
+    "off_mode_retained": true
+  },
+  "schema": "av2-encoder-plane-qdelta-production-v1",
+  "status": "blocked",
+  "validator_exact": true
+}

@@ -1,0 +1,1648 @@
+{
+  "schema": "av2-m3-plane-qdelta-v1",
+  "avmdec_sha256": "c247cbb4e71e48bdec89f3c8b2b8efdce17f673aeaa39e3c116a276d16286aa0",
+  "project_decoder_sha256": "7d17f598f2cdffe7dfb4ab46982cf5c4822215a5f429cb39e7748a60ce5ef535",
+  "candidate_policy": {
+    "shared_deltas": [
+      0,
+      -16,
+      -8,
+      8,
+      16
+    ],
+    "maximum_added_bytes": 2,
+    "weights": {
+      "u": 1,
+      "v": 1
+    }
+  },
+  "cases": [
+    {
+      "name": "i420-q1-neutral-4",
+      "format": 0,
+      "qindex": 1,
+      "block": "neutral-4",
+      "candidates": [
+        {
+          "u_delta": 0,
+          "v_delta": 0,
+          "levels": [
+            0,
+            0
+          ],
+          "reconstruction": [
+            128,
+            128
+          ],
+          "weighted_chroma_sse": 0,
+          "stream_bytes": 21,
+          "header_bits": 24,
+          "obu_sha256": "3bdd3530ded5e85461473ba12dc0dc203851ee9a4921383703090e138202caa0",
+          "selected": true
+        },
+        {
+          "u_delta": -16,
+          "v_delta": -16,
+          "levels": [
+            0,
+            0
+          ],
+          "reconstruction": [
+            128,
+            128
+          ],
+          "weighted_chroma_sse": 0,
+          "stream_bytes": 22,
+          "header_bits": 31,
+          "obu_sha256": "81fa02cc88606415d5adc9fb043e1bd34d0c1de541655518c1c13073100ed737",
+          "selected": false
+        },
+        {
+          "u_delta": -8,
+          "v_delta": -8,
+          "levels": [
+            0,
+            0
+          ],
+          "reconstruction": [
+            128,
+            128
+          ],
+          "weighted_chroma_sse": 0,
+          "stream_bytes": 22,
+          "header_bits": 31,
+          "obu_sha256": "4420a4295c823b770f905458cb804bb8fb63bf6a65fd03bde70e4019c7e5194b",
+          "selected": false
+        },
+        {
+          "u_delta": 8,
+          "v_delta": 8,
+          "levels": [
+            0,
+            0
+          ],
+          "reconstruction": [
+            128,
+            128
+          ],
+          "weighted_chroma_sse": 0,
+          "stream_bytes": 22,
+          "header_bits": 31,
+          "obu_sha256": "35a3436420a29938e88036ab77b1238f0791c449bd3c785344a629f59891a486",
+          "selected": false
+        },
+        {
+          "u_delta": 16,
+          "v_delta": 16,
+          "levels": [
+            0,
+            0
+          ],
+          "reconstruction": [
+            128,
+            128
+          ],
+          "weighted_chroma_sse": 0,
+          "stream_bytes": 22,
+          "header_bits": 31,
+          "obu_sha256": "d8226f0211fca8a827598872edec9eda9ad13c420bf79ad59de2c25fd8844e60",
+          "selected": false
+        }
+      ],
+      "reconstruction_sha256": "1b34669db94decae583e183ee2ffeb07cf504b9f52fae0056c5cf343325157e4"
+    },
+    {
+      "name": "i420-q90-color-gradient-4",
+      "format": 0,
+      "qindex": 90,
+      "block": "color-gradient-4",
+      "candidates": [
+        {
+          "u_delta": 0,
+          "v_delta": 0,
+          "levels": [
+            -7,
+            8
+          ],
+          "reconstruction": [
+            114,
+            145
+          ],
+          "weighted_chroma_sse": 4456,
+          "stream_bytes": 25,
+          "header_bits": 24,
+          "obu_sha256": "aaf4af464aefffef5679d9e5e4392a077bec89bf0f4aaa4b6f028825ae2438a0",
+          "selected": false
+        },
+        {
+          "u_delta": -16,
+          "v_delta": -16,
+          "levels": [
+            -12,
+            13
+          ],
+          "reconstruction": [
+            113,
+            145
+          ],
+          "weighted_chroma_sse": 4440,
+          "stream_bytes": 26,
+          "header_bits": 31,
+          "obu_sha256": "371c2c047f0e65081dd3b699f2448a4c02413499bbe48e641b45b13925a97614",
+          "selected": true
+        },
+        {
+          "u_delta": -8,
+          "v_delta": -8,
+          "levels": [
+            -9,
+            10
+          ],
+          "reconstruction": [
+            113,
+            144
+          ],
+          "weighted_chroma_sse": 4456,
+          "stream_bytes": 26,
+          "header_bits": 31,
+          "obu_sha256": "e7ae5ac1acebdf1b0ed6a7debe2f4a2179fd3b085ed35261e79b2f4b139ef617",
+          "selected": false
+        },
+        {
+          "u_delta": 8,
+          "v_delta": 8,
+          "levels": [
+            -6,
+            7
+          ],
+          "reconstruction": [
+            113,
+            146
+          ],
+          "weighted_chroma_sse": 4456,
+          "stream_bytes": 26,
+          "header_bits": 31,
+          "obu_sha256": "4215cbc55713a881eeb7079317ccd369fab608e61751c609d13c55c8c5a48805",
+          "selected": false
+        },
+        {
+          "u_delta": 16,
+          "v_delta": 16,
+          "levels": [
+            -5,
+            5
+          ],
+          "reconstruction": [
+            112,
+            144
+          ],
+          "weighted_chroma_sse": 4472,
+          "stream_bytes": 26,
+          "header_bits": 31,
+          "obu_sha256": "d7d2b77caa9142e26934f45e73895e728834be5019c2016d0c2fbea67a336f89",
+          "selected": false
+        },
+        {
+          "u_delta": -8,
+          "v_delta": 0,
+          "levels": [
+            -9,
+            8
+          ],
+          "reconstruction": [
+            113,
+            145
+          ],
+          "weighted_chroma_sse": 4440,
+          "stream_bytes": 27,
+          "header_bits": 33,
+          "obu_sha256": "8ae2b7525f3aa3b2f0fef655e7f6dcc5a1b3d9a017acc2814181c645b893142f",
+          "selected": false
+        }
+      ],
+      "reconstruction_sha256": "4a58ac133346a7c07ba196848180312e14a95f9905fb511b03533b25182f0d4e"
+    },
+    {
+      "name": "i420-q91-prepared-chroma-4",
+      "format": 0,
+      "qindex": 91,
+      "block": "prepared-chroma-4",
+      "candidates": [
+        {
+          "u_delta": 0,
+          "v_delta": 0,
+          "levels": [
+            -12,
+            12
+          ],
+          "reconstruction": [
+            103,
+            154
+          ],
+          "weighted_chroma_sse": 9972,
+          "stream_bytes": 26,
+          "header_bits": 24,
+          "obu_sha256": "57265ce0e1830563598d7ab72fa655ae37ccec6fe964246de1c543a3a7ea02a2",
+          "selected": false
+        },
+        {
+          "u_delta": -16,
+          "v_delta": -16,
+          "levels": [
+            -19,
+            18
+          ],
+          "reconstruction": [
+            103,
+            152
+          ],
+          "weighted_chroma_sse": 9956,
+          "stream_bytes": 28,
+          "header_bits": 31,
+          "obu_sha256": "2d870f47b32b6931d81f48ed671acdb1516d111baa257cf942080d5d963dc02a",
+          "selected": false
+        },
+        {
+          "u_delta": -8,
+          "v_delta": -8,
+          "levels": [
+            -15,
+            15
+          ],
+          "reconstruction": [
+            103,
+            153
+          ],
+          "weighted_chroma_sse": 9948,
+          "stream_bytes": 28,
+          "header_bits": 31,
+          "obu_sha256": "64eed8f4a7cdda6377c2e2b2f4e7588ca43d5539c28a9c5f4f58b93dde4a7bc5",
+          "selected": true
+        },
+        {
+          "u_delta": 8,
+          "v_delta": 8,
+          "levels": [
+            -10,
+            9
+          ],
+          "reconstruction": [
+            101,
+            152
+          ],
+          "weighted_chroma_sse": 9972,
+          "stream_bytes": 27,
+          "header_bits": 31,
+          "obu_sha256": "e3ddb05ce620fca889753eefc15d7ac924628f17c2efb82dbb4bab0c93913eb6",
+          "selected": false
+        },
+        {
+          "u_delta": 16,
+          "v_delta": 16,
+          "levels": [
+            -8,
+            7
+          ],
+          "reconstruction": [
+            101,
+            152
+          ],
+          "weighted_chroma_sse": 9972,
+          "stream_bytes": 27,
+          "header_bits": 31,
+          "obu_sha256": "482128dc6d9b763f76e7bbb3744f014d80feb115819ca4db5b8859a737029b0e",
+          "selected": false
+        },
+        {
+          "u_delta": 0,
+          "v_delta": -8,
+          "levels": [
+            -12,
+            15
+          ],
+          "reconstruction": [
+            103,
+            153
+          ],
+          "weighted_chroma_sse": 9948,
+          "stream_bytes": 29,
+          "header_bits": 33,
+          "obu_sha256": "d46215d22ec9209fdc66d07b4eb7be2b546e09abbddfdbda8acd1c21880fe766",
+          "selected": false
+        }
+      ],
+      "reconstruction_sha256": "15d00217f3330429fd85a13c2ce289aadc2c153090ff937e0a80f16689a03e9d"
+    },
+    {
+      "name": "i420-q140-neutral-4",
+      "format": 0,
+      "qindex": 140,
+      "block": "neutral-4",
+      "candidates": [
+        {
+          "u_delta": 0,
+          "v_delta": 0,
+          "levels": [
+            0,
+            0
+          ],
+          "reconstruction": [
+            128,
+            128
+          ],
+          "weighted_chroma_sse": 0,
+          "stream_bytes": 22,
+          "header_bits": 24,
+          "obu_sha256": "40e36d5973dbbb366606a2b65d30b37847fa6282f65e2b3956ea5a277a52edcc",
+          "selected": true
+        },
+        {
+          "u_delta": -16,
+          "v_delta": -16,
+          "levels": [
+            0,
+            0
+          ],
+          "reconstruction": [
+            128,
+            128
+          ],
+          "weighted_chroma_sse": 0,
+          "stream_bytes": 23,
+          "header_bits": 31,
+          "obu_sha256": "8b431340995e9166051cc513081a08e4ffa1dc329e9ee79637f5c72cff2fbf7f",
+          "selected": false
+        },
+        {
+          "u_delta": -8,
+          "v_delta": -8,
+          "levels": [
+            0,
+            0
+          ],
+          "reconstruction": [
+            128,
+            128
+          ],
+          "weighted_chroma_sse": 0,
+          "stream_bytes": 23,
+          "header_bits": 31,
+          "obu_sha256": "0356d485121572d396faa45ec64d19b81d5bac5a78db75e5372501eb28030f9c",
+          "selected": false
+        },
+        {
+          "u_delta": 8,
+          "v_delta": 8,
+          "levels": [
+            0,
+            0
+          ],
+          "reconstruction": [
+            128,
+            128
+          ],
+          "weighted_chroma_sse": 0,
+          "stream_bytes": 23,
+          "header_bits": 31,
+          "obu_sha256": "9a9489239deb9591c095e97a141487bc8fd104ee5a465c720ae262dcfdd0ec6f",
+          "selected": false
+        },
+        {
+          "u_delta": 16,
+          "v_delta": 16,
+          "levels": [
+            0,
+            0
+          ],
+          "reconstruction": [
+            128,
+            128
+          ],
+          "weighted_chroma_sse": 0,
+          "stream_bytes": 23,
+          "header_bits": 31,
+          "obu_sha256": "f16691c0c53a2d9035ea1ec7154ab14a30ede26d2e39c0fd371d964fed923069",
+          "selected": false
+        }
+      ],
+      "reconstruction_sha256": "1b34669db94decae583e183ee2ffeb07cf504b9f52fae0056c5cf343325157e4"
+    },
+    {
+      "name": "i420-q141-color-gradient-4",
+      "format": 0,
+      "qindex": 141,
+      "block": "color-gradient-4",
+      "candidates": [
+        {
+          "u_delta": 0,
+          "v_delta": 0,
+          "levels": [
+            -2,
+            2
+          ],
+          "reconstruction": [
+            110,
+            146
+          ],
+          "weighted_chroma_sse": 4600,
+          "stream_bytes": 24,
+          "header_bits": 24,
+          "obu_sha256": "2c73071e71ebbc72cb9c8de992a45da367519325b4788d9b5d2f374a58c55586",
+          "selected": false
+        },
+        {
+          "u_delta": -16,
+          "v_delta": -16,
+          "levels": [
+            -3,
+            3
+          ],
+          "reconstruction": [
+            111,
+            145
+          ],
+          "weighted_chroma_sse": 4504,
+          "stream_bytes": 25,
+          "header_bits": 31,
+          "obu_sha256": "37680e0ff88ff2320bc3ed5957eec1b346a8f1859c150831bedfc25bc259592e",
+          "selected": false
+        },
+        {
+          "u_delta": -8,
+          "v_delta": -8,
+          "levels": [
+            -2,
+            2
+          ],
+          "reconstruction": [
+            114,
+            142
+          ],
+          "weighted_chroma_sse": 4600,
+          "stream_bytes": 25,
+          "header_bits": 31,
+          "obu_sha256": "a88ed927aab5402ae9d17482a767b914a9ca2fdace827eb5846384e64467d669",
+          "selected": false
+        },
+        {
+          "u_delta": 8,
+          "v_delta": 8,
+          "levels": [
+            -1,
+            1
+          ],
+          "reconstruction": [
+            117,
+            139
+          ],
+          "weighted_chroma_sse": 5272,
+          "stream_bytes": 24,
+          "header_bits": 31,
+          "obu_sha256": "af691df28617ab2c139e8eaf12f2ea817c53506d1d30220f19b168aa5068235a",
+          "selected": false
+        },
+        {
+          "u_delta": 16,
+          "v_delta": 16,
+          "levels": [
+            -1,
+            1
+          ],
+          "reconstruction": [
+            114,
+            142
+          ],
+          "weighted_chroma_sse": 4600,
+          "stream_bytes": 24,
+          "header_bits": 31,
+          "obu_sha256": "fb8d2b10c5ae1b03e362fa74ba44001ad0ea148db9a57c10f4995de4f5e02efe",
+          "selected": false
+        },
+        {
+          "u_delta": -8,
+          "v_delta": -16,
+          "levels": [
+            -2,
+            3
+          ],
+          "reconstruction": [
+            114,
+            145
+          ],
+          "weighted_chroma_sse": 4456,
+          "stream_bytes": 26,
+          "header_bits": 40,
+          "obu_sha256": "0994b39808852c88067ae2567cc9f47d4c08abd38d14d5da6291ac502d652fa7",
+          "selected": true
+        }
+      ],
+      "reconstruction_sha256": "b4a8ad09dedc5c93321f477e07ed4caa650e2c35d105e7dfe74db9b4cb587311"
+    },
+    {
+      "name": "i420-q190-prepared-chroma-4",
+      "format": 0,
+      "qindex": 190,
+      "block": "prepared-chroma-4",
+      "candidates": [
+        {
+          "u_delta": 0,
+          "v_delta": 0,
+          "levels": [
+            -1,
+            1
+          ],
+          "reconstruction": [
+            91,
+            165
+          ],
+          "weighted_chroma_sse": 14364,
+          "stream_bytes": 23,
+          "header_bits": 24,
+          "obu_sha256": "f027af87ee42dc2df1af2deae923604d51e7b7f74f0d6befc6e3efe73262d39e",
+          "selected": false
+        },
+        {
+          "u_delta": -16,
+          "v_delta": -16,
+          "levels": [
+            -1,
+            1
+          ],
+          "reconstruction": [
+            105,
+            152
+          ],
+          "weighted_chroma_sse": 10068,
+          "stream_bytes": 24,
+          "header_bits": 31,
+          "obu_sha256": "853a9ae71a67b360a60e8f106a4173afb7d8b6e9f6f5fb6b001cc919b71b9ce1",
+          "selected": true
+        },
+        {
+          "u_delta": -8,
+          "v_delta": -8,
+          "levels": [
+            -1,
+            1
+          ],
+          "reconstruction": [
+            99,
+            158
+          ],
+          "weighted_chroma_sse": 10548,
+          "stream_bytes": 24,
+          "header_bits": 31,
+          "obu_sha256": "41054250751468b39ab37b8c9fd29a818e9b261f3eb63d182bdf02958ad1f949",
+          "selected": false
+        },
+        {
+          "u_delta": 8,
+          "v_delta": 8,
+          "levels": [
+            -1,
+            1
+          ],
+          "reconstruction": [
+            81,
+            175
+          ],
+          "weighted_chroma_sse": 25084,
+          "stream_bytes": 24,
+          "header_bits": 31,
+          "obu_sha256": "e64c138da66c87474594c846afa70928fc0f061f7ed8a465687f74fa70dc09ed",
+          "selected": false
+        },
+        {
+          "u_delta": 16,
+          "v_delta": 16,
+          "levels": [
+            0,
+            0
+          ],
+          "reconstruction": [
+            128,
+            128
+          ],
+          "weighted_chroma_sse": 30348,
+          "stream_bytes": 23,
+          "header_bits": 31,
+          "obu_sha256": "b4632f4c55130f75a026f28de7b36a0b0acd6185d702319478e82ade03c4d72f",
+          "selected": false
+        }
+      ],
+      "reconstruction_sha256": "39bb3192b55629f10b7bcc75919401a78bc926b0625e473f81acde45d8ff002b"
+    },
+    {
+      "name": "i420-q191-neutral-4",
+      "format": 0,
+      "qindex": 191,
+      "block": "neutral-4",
+      "candidates": [
+        {
+          "u_delta": 0,
+          "v_delta": 0,
+          "levels": [
+            0,
+            0
+          ],
+          "reconstruction": [
+            128,
+            128
+          ],
+          "weighted_chroma_sse": 0,
+          "stream_bytes": 21,
+          "header_bits": 24,
+          "obu_sha256": "581cd38b84f9e1b2bb8c30929672b8ad73f18dc46408056e4886c8598b1de3cf",
+          "selected": true
+        },
+        {
+          "u_delta": -16,
+          "v_delta": -16,
+          "levels": [
+            0,
+            0
+          ],
+          "reconstruction": [
+            128,
+            128
+          ],
+          "weighted_chroma_sse": 0,
+          "stream_bytes": 22,
+          "header_bits": 31,
+          "obu_sha256": "841b98ad65560989d906e67a2abd54f143882779aeb0c17a8b12e044c9c387f3",
+          "selected": false
+        },
+        {
+          "u_delta": -8,
+          "v_delta": -8,
+          "levels": [
+            0,
+            0
+          ],
+          "reconstruction": [
+            128,
+            128
+          ],
+          "weighted_chroma_sse": 0,
+          "stream_bytes": 22,
+          "header_bits": 31,
+          "obu_sha256": "181b3bff960a5c7e6638437cb1ed8cfa59158417365a090c8bdee19d84d5b39c",
+          "selected": false
+        },
+        {
+          "u_delta": 8,
+          "v_delta": 8,
+          "levels": [
+            0,
+            0
+          ],
+          "reconstruction": [
+            128,
+            128
+          ],
+          "weighted_chroma_sse": 0,
+          "stream_bytes": 22,
+          "header_bits": 31,
+          "obu_sha256": "69d3c7750edd831faab8f8b7ad373b294c1f2c4e22708f1cd223777a83a225bd",
+          "selected": false
+        },
+        {
+          "u_delta": 16,
+          "v_delta": 16,
+          "levels": [
+            0,
+            0
+          ],
+          "reconstruction": [
+            128,
+            128
+          ],
+          "weighted_chroma_sse": 0,
+          "stream_bytes": 22,
+          "header_bits": 31,
+          "obu_sha256": "5918838dc8ad7f9e88d44c169213a22c0ad8e594b56529aac625d75a9637a14e",
+          "selected": false
+        }
+      ],
+      "reconstruction_sha256": "1b34669db94decae583e183ee2ffeb07cf504b9f52fae0056c5cf343325157e4"
+    },
+    {
+      "name": "i420-q255-color-gradient-4",
+      "format": 0,
+      "qindex": 255,
+      "block": "color-gradient-4",
+      "candidates": [
+        {
+          "u_delta": 0,
+          "v_delta": 0,
+          "levels": [
+            0,
+            0
+          ],
+          "reconstruction": [
+            128,
+            128
+          ],
+          "weighted_chroma_sse": 12664,
+          "stream_bytes": 21,
+          "header_bits": 24,
+          "obu_sha256": "e45c74d3d965dadf1d07e845c1ec8498f297288d82c82388552907b5cf802c2b",
+          "selected": true
+        },
+        {
+          "u_delta": -16,
+          "v_delta": -16,
+          "levels": [
+            0,
+            0
+          ],
+          "reconstruction": [
+            128,
+            128
+          ],
+          "weighted_chroma_sse": 12664,
+          "stream_bytes": 22,
+          "header_bits": 31,
+          "obu_sha256": "e03a23a7cffc6ef33d07cd92cdc655666c9099d71c91f71917335d98bcf5a289",
+          "selected": false
+        },
+        {
+          "u_delta": -8,
+          "v_delta": -8,
+          "levels": [
+            0,
+            0
+          ],
+          "reconstruction": [
+            128,
+            128
+          ],
+          "weighted_chroma_sse": 12664,
+          "stream_bytes": 22,
+          "header_bits": 31,
+          "obu_sha256": "06765a8ee252344d547ab01f6970ac8db31c6603bd3c302ca461c67f161bd7ec",
+          "selected": false
+        },
+        {
+          "u_delta": 8,
+          "v_delta": 8,
+          "levels": [
+            0,
+            0
+          ],
+          "reconstruction": [
+            128,
+            128
+          ],
+          "weighted_chroma_sse": 12664,
+          "stream_bytes": 22,
+          "header_bits": 31,
+          "obu_sha256": "dfa0963d896cff3c7c1ce44e55fe7dbd6e27fc4055bb0de42c01bc909e0f3dd8",
+          "selected": false
+        },
+        {
+          "u_delta": 16,
+          "v_delta": 16,
+          "levels": [
+            0,
+            0
+          ],
+          "reconstruction": [
+            128,
+            128
+          ],
+          "weighted_chroma_sse": 12664,
+          "stream_bytes": 22,
+          "header_bits": 31,
+          "obu_sha256": "ea582de8cccc6ac00bae53de8acf8e0ac3d1c8d908d3274d339b5719e00585c5",
+          "selected": false
+        }
+      ],
+      "reconstruction_sha256": "1b34669db94decae583e183ee2ffeb07cf504b9f52fae0056c5cf343325157e4"
+    },
+    {
+      "name": "i444-q1-neutral-8",
+      "format": 2,
+      "qindex": 1,
+      "block": "neutral-8",
+      "candidates": [
+        {
+          "u_delta": 0,
+          "v_delta": 0,
+          "levels": [
+            0,
+            0
+          ],
+          "reconstruction": [
+            128,
+            128
+          ],
+          "weighted_chroma_sse": 0,
+          "stream_bytes": 21,
+          "header_bits": 24,
+          "obu_sha256": "f9cbe80321e4260e9f73c6b02245892253cd3bc0cf7e667f470267d750c4dd67",
+          "selected": true
+        },
+        {
+          "u_delta": -16,
+          "v_delta": -16,
+          "levels": [
+            0,
+            0
+          ],
+          "reconstruction": [
+            128,
+            128
+          ],
+          "weighted_chroma_sse": 0,
+          "stream_bytes": 22,
+          "header_bits": 31,
+          "obu_sha256": "6958454f47ed00e67c34ac049ae4d14c303ccef32363fad73ae85a0e5bf9ecf6",
+          "selected": false
+        },
+        {
+          "u_delta": -8,
+          "v_delta": -8,
+          "levels": [
+            0,
+            0
+          ],
+          "reconstruction": [
+            128,
+            128
+          ],
+          "weighted_chroma_sse": 0,
+          "stream_bytes": 22,
+          "header_bits": 31,
+          "obu_sha256": "b6013a67b5199c9d98bae4dc8e3c70c0da33a53d7c6e2ed6462dceb433654606",
+          "selected": false
+        },
+        {
+          "u_delta": 8,
+          "v_delta": 8,
+          "levels": [
+            0,
+            0
+          ],
+          "reconstruction": [
+            128,
+            128
+          ],
+          "weighted_chroma_sse": 0,
+          "stream_bytes": 22,
+          "header_bits": 31,
+          "obu_sha256": "250d33f4a142e455de0712c282c0792248816df0addfbac2dab285af4e134144",
+          "selected": false
+        },
+        {
+          "u_delta": 16,
+          "v_delta": 16,
+          "levels": [
+            0,
+            0
+          ],
+          "reconstruction": [
+            128,
+            128
+          ],
+          "weighted_chroma_sse": 0,
+          "stream_bytes": 22,
+          "header_bits": 31,
+          "obu_sha256": "4747e09348bdc25bfe6f3f9272e5e4b6ccd7d22a628f1d3ed2a0bbff73d15c27",
+          "selected": false
+        }
+      ],
+      "reconstruction_sha256": "fa7b78cc215df21d7ce54d8c3c6637c326dab95c10fbc12263101365973f4268"
+    },
+    {
+      "name": "i444-q90-color-gradient-8",
+      "format": 2,
+      "qindex": 90,
+      "block": "color-gradient-8",
+      "candidates": [
+        {
+          "u_delta": 0,
+          "v_delta": 0,
+          "levels": [
+            -14,
+            17
+          ],
+          "reconstruction": [
+            114,
+            146
+          ],
+          "weighted_chroma_sse": 30272,
+          "stream_bytes": 26,
+          "header_bits": 24,
+          "obu_sha256": "c3d05368d687eb7ee4a2320d390d5bd54ee11761b403d98fc7f0fae1e276ba6e",
+          "selected": true
+        },
+        {
+          "u_delta": -16,
+          "v_delta": -16,
+          "levels": [
+            -22,
+            28
+          ],
+          "reconstruction": [
+            114,
+            146
+          ],
+          "weighted_chroma_sse": 30272,
+          "stream_bytes": 28,
+          "header_bits": 31,
+          "obu_sha256": "7a38e4f45d86577a8151c2c700ada179f94bbc7d631b03b080d9654887a754a8",
+          "selected": false
+        },
+        {
+          "u_delta": -8,
+          "v_delta": -8,
+          "levels": [
+            -17,
+            22
+          ],
+          "reconstruction": [
+            114,
+            146
+          ],
+          "weighted_chroma_sse": 30272,
+          "stream_bytes": 27,
+          "header_bits": 31,
+          "obu_sha256": "11e4f48a9751f6711724796e7b991fff562c8fc691d8e6f8eaf357859ed5be66",
+          "selected": false
+        },
+        {
+          "u_delta": 8,
+          "v_delta": 8,
+          "levels": [
+            -11,
+            14
+          ],
+          "reconstruction": [
+            114,
+            146
+          ],
+          "weighted_chroma_sse": 30272,
+          "stream_bytes": 26,
+          "header_bits": 31,
+          "obu_sha256": "207a97274d6528f3ce04b3b7e49c981ce61c3fd5ef7c91bb0da3ba5978be1802",
+          "selected": false
+        },
+        {
+          "u_delta": 16,
+          "v_delta": 16,
+          "levels": [
+            -9,
+            11
+          ],
+          "reconstruction": [
+            113,
+            146
+          ],
+          "weighted_chroma_sse": 30272,
+          "stream_bytes": 26,
+          "header_bits": 31,
+          "obu_sha256": "f24577cbac0d94d95f60bf133e73849350045cbe4af30491b393d7c51762c823",
+          "selected": false
+        }
+      ],
+      "reconstruction_sha256": "59a12ccec945f58b2f0f7852e56e535c096de5edf33c3c8497698a05645c76fc"
+    },
+    {
+      "name": "i444-q91-prepared-chroma-8",
+      "format": 2,
+      "qindex": 91,
+      "block": "prepared-chroma-8",
+      "candidates": [
+        {
+          "u_delta": 0,
+          "v_delta": 0,
+          "levels": [
+            -18,
+            21
+          ],
+          "reconstruction": [
+            109,
+            150
+          ],
+          "weighted_chroma_sse": 83823,
+          "stream_bytes": 27,
+          "header_bits": 24,
+          "obu_sha256": "8e450136d2d59ccdddf972c8ae5123b90f4d7a53acfe5c04bc6cd4352df3401e",
+          "selected": true
+        },
+        {
+          "u_delta": -16,
+          "v_delta": -16,
+          "levels": [
+            -28,
+            32
+          ],
+          "reconstruction": [
+            109,
+            150
+          ],
+          "weighted_chroma_sse": 83823,
+          "stream_bytes": 29,
+          "header_bits": 31,
+          "obu_sha256": "02a11542dd69b747f5fbfef88c7698fa4495301ae8bbb3e447f9bedd2b94dd95",
+          "selected": false
+        },
+        {
+          "u_delta": -8,
+          "v_delta": -8,
+          "levels": [
+            -22,
+            26
+          ],
+          "reconstruction": [
+            109,
+            150
+          ],
+          "weighted_chroma_sse": 83823,
+          "stream_bytes": 29,
+          "header_bits": 31,
+          "obu_sha256": "c4a082be15d0cc7f57d2555c8e9cd872d218de07b1f012851560df5c9ca1f51f",
+          "selected": false
+        },
+        {
+          "u_delta": 8,
+          "v_delta": 8,
+          "levels": [
+            -14,
+            16
+          ],
+          "reconstruction": [
+            109,
+            150
+          ],
+          "weighted_chroma_sse": 83823,
+          "stream_bytes": 28,
+          "header_bits": 31,
+          "obu_sha256": "f72673b6878dd2dc5e3850f1d3a6f7543c8771a1327880f453c707c60aaceee9",
+          "selected": false
+        },
+        {
+          "u_delta": 16,
+          "v_delta": 16,
+          "levels": [
+            -11,
+            13
+          ],
+          "reconstruction": [
+            109,
+            150
+          ],
+          "weighted_chroma_sse": 83823,
+          "stream_bytes": 27,
+          "header_bits": 31,
+          "obu_sha256": "87f7bbe9cd4f3076a732f47ca6c607a9f0c12c907482be65db9bcd563bdeb1bc",
+          "selected": false
+        }
+      ],
+      "reconstruction_sha256": "f1d4d6f14ef244faeafad3da3e03819e4ab754ebe6608fb529949ecfa7d7c4b6"
+    },
+    {
+      "name": "i444-q140-neutral-8",
+      "format": 2,
+      "qindex": 140,
+      "block": "neutral-8",
+      "candidates": [
+        {
+          "u_delta": 0,
+          "v_delta": 0,
+          "levels": [
+            0,
+            0
+          ],
+          "reconstruction": [
+            128,
+            128
+          ],
+          "weighted_chroma_sse": 0,
+          "stream_bytes": 22,
+          "header_bits": 24,
+          "obu_sha256": "479f3543db9eab1a17c4fc57b5c7ee3d7dee3f107c75c95a98a7acd932744352",
+          "selected": true
+        },
+        {
+          "u_delta": -16,
+          "v_delta": -16,
+          "levels": [
+            0,
+            0
+          ],
+          "reconstruction": [
+            128,
+            128
+          ],
+          "weighted_chroma_sse": 0,
+          "stream_bytes": 23,
+          "header_bits": 31,
+          "obu_sha256": "613aced94856e986e4d51ea6f906991960867d0906b9fd4c44bcd1c80567e1d3",
+          "selected": false
+        },
+        {
+          "u_delta": -8,
+          "v_delta": -8,
+          "levels": [
+            0,
+            0
+          ],
+          "reconstruction": [
+            128,
+            128
+          ],
+          "weighted_chroma_sse": 0,
+          "stream_bytes": 23,
+          "header_bits": 31,
+          "obu_sha256": "b2a157aeaf8586b280d7a3c8f622482a580aee7ae2c73a4e17320b46a25f5d30",
+          "selected": false
+        },
+        {
+          "u_delta": 8,
+          "v_delta": 8,
+          "levels": [
+            0,
+            0
+          ],
+          "reconstruction": [
+            128,
+            128
+          ],
+          "weighted_chroma_sse": 0,
+          "stream_bytes": 23,
+          "header_bits": 31,
+          "obu_sha256": "9acefd33f2cb4bbf9c28a6cc2c705e405659e06e2fa022c82a896fa22539aaf4",
+          "selected": false
+        },
+        {
+          "u_delta": 16,
+          "v_delta": 16,
+          "levels": [
+            0,
+            0
+          ],
+          "reconstruction": [
+            128,
+            128
+          ],
+          "weighted_chroma_sse": 0,
+          "stream_bytes": 23,
+          "header_bits": 31,
+          "obu_sha256": "102b8957d92c42d6d3aa5cf3ddc18c4eb2ccf65ac1f8cbe53513e326d273be3a",
+          "selected": false
+        }
+      ],
+      "reconstruction_sha256": "fa7b78cc215df21d7ce54d8c3c6637c326dab95c10fbc12263101365973f4268"
+    },
+    {
+      "name": "i444-q141-color-gradient-8",
+      "format": 2,
+      "qindex": 141,
+      "block": "color-gradient-8",
+      "candidates": [
+        {
+          "u_delta": 0,
+          "v_delta": 0,
+          "levels": [
+            -3,
+            4
+          ],
+          "reconstruction": [
+            115,
+            146
+          ],
+          "weighted_chroma_sse": 30400,
+          "stream_bytes": 25,
+          "header_bits": 24,
+          "obu_sha256": "81755f890de7f11f5c22369c74d48985ee1e92e778a38b3dd10d349dadc94324",
+          "selected": false
+        },
+        {
+          "u_delta": -16,
+          "v_delta": -16,
+          "levels": [
+            -5,
+            6
+          ],
+          "reconstruction": [
+            114,
+            145
+          ],
+          "weighted_chroma_sse": 30400,
+          "stream_bytes": 26,
+          "header_bits": 31,
+          "obu_sha256": "0a314bf737e903d2c1eb52d3e1ba98374d0851a47e1ca3d9232c63af890d0dee",
+          "selected": false
+        },
+        {
+          "u_delta": -8,
+          "v_delta": -8,
+          "levels": [
+            -4,
+            5
+          ],
+          "reconstruction": [
+            114,
+            146
+          ],
+          "weighted_chroma_sse": 30272,
+          "stream_bytes": 27,
+          "header_bits": 31,
+          "obu_sha256": "105e376d6211d23cf0a7a97fc1b46f7b0aa20787e4a72e440d8cf1b2f0e64f8f",
+          "selected": false
+        },
+        {
+          "u_delta": 8,
+          "v_delta": 8,
+          "levels": [
+            -3,
+            3
+          ],
+          "reconstruction": [
+            111,
+            145
+          ],
+          "weighted_chroma_sse": 30784,
+          "stream_bytes": 25,
+          "header_bits": 31,
+          "obu_sha256": "9c1b70b608f6a6fad1b3ca0c338e73df1f063d58e831c71f01caf1def75fff34",
+          "selected": false
+        },
+        {
+          "u_delta": 16,
+          "v_delta": 16,
+          "levels": [
+            -2,
+            3
+          ],
+          "reconstruction": [
+            114,
+            149
+          ],
+          "weighted_chroma_sse": 30656,
+          "stream_bytes": 25,
+          "header_bits": 31,
+          "obu_sha256": "61128cdb6dbce3a700ee45c5cf51b12f5731a128bc9be0ed37472b14bda27f17",
+          "selected": false
+        },
+        {
+          "u_delta": -8,
+          "v_delta": 0,
+          "levels": [
+            -4,
+            4
+          ],
+          "reconstruction": [
+            114,
+            146
+          ],
+          "weighted_chroma_sse": 30272,
+          "stream_bytes": 27,
+          "header_bits": 33,
+          "obu_sha256": "a714694bc05e37a495d9b8d92b4078a98b7e0b9a9d37f01fb73600aac78f3488",
+          "selected": true
+        }
+      ],
+      "reconstruction_sha256": "59a12ccec945f58b2f0f7852e56e535c096de5edf33c3c8497698a05645c76fc"
+    },
+    {
+      "name": "i444-q190-prepared-chroma-8",
+      "format": 2,
+      "qindex": 190,
+      "block": "prepared-chroma-8",
+      "candidates": [
+        {
+          "u_delta": 0,
+          "v_delta": 0,
+          "levels": [
+            -1,
+            1
+          ],
+          "reconstruction": [
+            110,
+            147
+          ],
+          "weighted_chroma_sse": 84681,
+          "stream_bytes": 23,
+          "header_bits": 24,
+          "obu_sha256": "b5b6c5e69b476f319a1b7f18821fe671a7c255ba126b80595b92cdb2f7bda7fc",
+          "selected": false
+        },
+        {
+          "u_delta": -16,
+          "v_delta": -16,
+          "levels": [
+            -2,
+            2
+          ],
+          "reconstruction": [
+            105,
+            152
+          ],
+          "weighted_chroma_sse": 84871,
+          "stream_bytes": 25,
+          "header_bits": 31,
+          "obu_sha256": "d700daad6c6a2157135a1891a22cf4dec92605e2bc087ea6cc1ec659ca1c7ed1",
+          "selected": false
+        },
+        {
+          "u_delta": -8,
+          "v_delta": -8,
+          "levels": [
+            -1,
+            1
+          ],
+          "reconstruction": [
+            113,
+            143
+          ],
+          "weighted_chroma_sse": 88535,
+          "stream_bytes": 24,
+          "header_bits": 31,
+          "obu_sha256": "7bee3b8d422374bf694611854a52acc004040f10c743be7d7b1dd062603d5bfe",
+          "selected": false
+        },
+        {
+          "u_delta": 8,
+          "v_delta": 8,
+          "levels": [
+            -1,
+            1
+          ],
+          "reconstruction": [
+            105,
+            152
+          ],
+          "weighted_chroma_sse": 84871,
+          "stream_bytes": 24,
+          "header_bits": 31,
+          "obu_sha256": "6660476bca24318344d90b501d44d408a211260f78cf742fe3f4940ebd1fd124",
+          "selected": false
+        },
+        {
+          "u_delta": 16,
+          "v_delta": 16,
+          "levels": [
+            -1,
+            1
+          ],
+          "reconstruction": [
+            99,
+            158
+          ],
+          "weighted_chroma_sse": 93547,
+          "stream_bytes": 24,
+          "header_bits": 31,
+          "obu_sha256": "58773d64b1e1f9462d8411f7b189722d5757e9e00051523c3ce96000cb0f2af4",
+          "selected": false
+        },
+        {
+          "u_delta": 0,
+          "v_delta": 8,
+          "levels": [
+            -1,
+            1
+          ],
+          "reconstruction": [
+            110,
+            152
+          ],
+          "weighted_chroma_sse": 84041,
+          "stream_bytes": 25,
+          "header_bits": 33,
+          "obu_sha256": "e89ac4bb18d3440e4e51a1176f4f6b600d3fe73b124a28c0a3d60b218d9a050a",
+          "selected": true
+        }
+      ],
+      "reconstruction_sha256": "0e6a4d47b65e59c0b5ff9eb9efbb1120e4cfa62920e74f067d3c6c42fffa218a"
+    },
+    {
+      "name": "i444-q191-neutral-8",
+      "format": 2,
+      "qindex": 191,
+      "block": "neutral-8",
+      "candidates": [
+        {
+          "u_delta": 0,
+          "v_delta": 0,
+          "levels": [
+            0,
+            0
+          ],
+          "reconstruction": [
+            128,
+            128
+          ],
+          "weighted_chroma_sse": 0,
+          "stream_bytes": 21,
+          "header_bits": 24,
+          "obu_sha256": "37a3ed02c2eb07a20f88048a229fd98cbb10370502af99948485a6492e35580b",
+          "selected": true
+        },
+        {
+          "u_delta": -16,
+          "v_delta": -16,
+          "levels": [
+            0,
+            0
+          ],
+          "reconstruction": [
+            128,
+            128
+          ],
+          "weighted_chroma_sse": 0,
+          "stream_bytes": 22,
+          "header_bits": 31,
+          "obu_sha256": "d359652f0185002dafedc2a4b99b152dc18d2baece4f3c772664ba1871b6fbbf",
+          "selected": false
+        },
+        {
+          "u_delta": -8,
+          "v_delta": -8,
+          "levels": [
+            0,
+            0
+          ],
+          "reconstruction": [
+            128,
+            128
+          ],
+          "weighted_chroma_sse": 0,
+          "stream_bytes": 22,
+          "header_bits": 31,
+          "obu_sha256": "0cce595b97298fe868fa8ffb15b8eeb557ebce46c6dc36fd9c4de29d8a045e38",
+          "selected": false
+        },
+        {
+          "u_delta": 8,
+          "v_delta": 8,
+          "levels": [
+            0,
+            0
+          ],
+          "reconstruction": [
+            128,
+            128
+          ],
+          "weighted_chroma_sse": 0,
+          "stream_bytes": 22,
+          "header_bits": 31,
+          "obu_sha256": "a466895ca4f0a69314056b1200c436c1c69fb91203cffb23e08b736f373ad167",
+          "selected": false
+        },
+        {
+          "u_delta": 16,
+          "v_delta": 16,
+          "levels": [
+            0,
+            0
+          ],
+          "reconstruction": [
+            128,
+            128
+          ],
+          "weighted_chroma_sse": 0,
+          "stream_bytes": 22,
+          "header_bits": 31,
+          "obu_sha256": "c7d69b5a8fd7467184c641fa140248e318932e515ed2378b31888ac07bf3a313",
+          "selected": false
+        }
+      ],
+      "reconstruction_sha256": "fa7b78cc215df21d7ce54d8c3c6637c326dab95c10fbc12263101365973f4268"
+    },
+    {
+      "name": "i444-q255-color-gradient-8",
+      "format": 2,
+      "qindex": 255,
+      "block": "color-gradient-8",
+      "candidates": [
+        {
+          "u_delta": 0,
+          "v_delta": 0,
+          "levels": [
+            0,
+            0
+          ],
+          "reconstruction": [
+            128,
+            128
+          ],
+          "weighted_chroma_sse": 65600,
+          "stream_bytes": 21,
+          "header_bits": 24,
+          "obu_sha256": "15b5996795ab227654b0b90fd6e4e90c1c0e460c316f09dc39caea6ad5932d83",
+          "selected": true
+        },
+        {
+          "u_delta": -16,
+          "v_delta": -16,
+          "levels": [
+            0,
+            0
+          ],
+          "reconstruction": [
+            128,
+            128
+          ],
+          "weighted_chroma_sse": 65600,
+          "stream_bytes": 22,
+          "header_bits": 31,
+          "obu_sha256": "93dca871d64a63ca3c56df0d42241b927f8c4b559b904bb9ad1a97d0edf7408f",
+          "selected": false
+        },
+        {
+          "u_delta": -8,
+          "v_delta": -8,
+          "levels": [
+            0,
+            0
+          ],
+          "reconstruction": [
+            128,
+            128
+          ],
+          "weighted_chroma_sse": 65600,
+          "stream_bytes": 22,
+          "header_bits": 31,
+          "obu_sha256": "a780e4ac683296af91fed5fb352b8172fb8730fa58100115fdfc304e7fdd09f8",
+          "selected": false
+        },
+        {
+          "u_delta": 8,
+          "v_delta": 8,
+          "levels": [
+            0,
+            0
+          ],
+          "reconstruction": [
+            128,
+            128
+          ],
+          "weighted_chroma_sse": 65600,
+          "stream_bytes": 22,
+          "header_bits": 31,
+          "obu_sha256": "cf65ea683e5b11012b1ddcacf13a0189e384875a1e3f498d022fd1327027f3ab",
+          "selected": false
+        },
+        {
+          "u_delta": 16,
+          "v_delta": 16,
+          "levels": [
+            0,
+            0
+          ],
+          "reconstruction": [
+            128,
+            128
+          ],
+          "weighted_chroma_sse": 65600,
+          "stream_bytes": 22,
+          "header_bits": 31,
+          "obu_sha256": "37f3e1acd4d6e8afb5f1d21985ccb299048cd94b18ad15e38d702485a183a02e",
+          "selected": false
+        }
+      ],
+      "reconstruction_sha256": "fa7b78cc215df21d7ce54d8c3c6637c326dab95c10fbc12263101365973f4268"
+    }
+  ],
+  "syntax_probes": [
+    {
+      "name": "independent-u-v-dc-ac",
+      "format": 0,
+      "qindex": 100,
+      "block": "prepared-chroma-4",
+      "config": {
+        "separate_uv_delta_q": true,
+        "equal_ac_dc_q": false,
+        "base_y_dc_delta_q": 0,
+        "y_dc_delta_q_enabled": false,
+        "base_uv_dc_delta_q": -2,
+        "uv_dc_delta_q_enabled": true,
+        "base_uv_ac_delta_q": 3,
+        "uv_ac_delta_q_enabled": true
+      },
+      "deltas": {
+        "y_dc": 0,
+        "u_dc": -8,
+        "u_ac": 8,
+        "v_dc": 16,
+        "v_ac": -16
+      },
+      "levels": [
+        -12,
+        6
+      ],
+      "reconstruction": [
+        103,
+        153
+      ],
+      "weighted_chroma_sse": 9948,
+      "header_bits": 56,
+      "stream_bytes": 31,
+      "obu_sha256": "6bf8d01050643a54dff400f9ce940627989be83357055aabe7c65831e3648eb5",
+      "reconstruction_sha256": "15d00217f3330429fd85a13c2ce289aadc2c153090ff937e0a80f16689a03e9d"
+    }
+  ]
+}

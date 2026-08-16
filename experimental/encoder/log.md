@@ -4,6 +4,70 @@ This is an append-only record of decisions, commands, pins, hashes, gate
 results, blockers, and restart points. Do not replace exact values with links
 or “latest”.
 
+## 2026-08-16 — Smooth/Paeth production intra search
+
+- **Status:** DONE. Todo `encoder-smooth-paeth-production`.
+- **Surface:** explicit `--search intra`, default remains `off`;
+  `directional` and `directional-exact` remain compatible.
+- **Admitted:** luma DC/V/H/Smooth/Smooth-V/Smooth-H/Paeth for fixed 8x8
+  transform leaves in images up to 64x64. Larger images use the directional
+  runtime policy; legacy 8x8 and small-I420 syntax classes use DC fallback.
+  Chroma mode search is deferred and remains DC.
+- **Syntax/tools:** exact luma mode-index contexts, FSC=0, MRLS=0 for V/H
+  only, CfL=0, deterministic stable ties, fresh complete-stream writer/CDF
+  trials, per-plane SSE and byte non-regression.
+- **224-case gate:** 5,314 vs 5,326 bytes; Y SSE 43,593,650 vs 43,744,028;
+  U/V unchanged at 23,596,698/23,493,845; 32 wins. Winners are Smooth 12,
+  Smooth-V 14, Smooth-H 2, Paeth 4. Runtime 783,160,668 vs 768,759,740 ns.
+- **90-case gate:** 276,756 bytes, Y/U/V SSE
+  9,609,637,634/916,732,746/910,298,990, six byte wins over directional,
+  deterministic and dual-decoder exact. Aggregate median runtime 263.108 s,
+  per-case median 158.129 ms, worst 52.981 s, max workspace 7,263,744 bytes.
+- **Evidence:** `metrics/encoder-smooth-paeth-production.json`,
+  `metrics/encoder-intra-production.json`, and
+  `metrics/smooth-paeth-model.json`.
+
+## 2026-08-16 — whole-image AC hard-budget model
+
+- **Status:** BLOCKED for todo `encoder-ac8x8-hardbudget-model`; production
+  core was not changed.
+- The deterministic model evaluates complete streams after every block
+  position-prefix choice, including decode-order prediction, adaptive CDFs,
+  range flush, and OBU framing, then applies an aggregate knapsack.
+- Locked selection: 786 bytes, Y SSE 191,088,000, 0/9 subset wins, 0% gain.
+  It is the frozen DC selection with local/pinned-AVM/project parity.
+- Best reachable 8%-gain frontier: 7/9 wins, subset SSE 164,950,576,
+  1,048 aggregate bytes, 262 bytes over budget. The qindex-180 horizontal and
+  vertical line cases have no winning candidate at any modeled rate.
+- Runtime: 288 frontier states in 56,962,202,090 ns; worst case
+  6,849,728,178 ns.
+- Exact restart requirement: add wins for both qindex-180 line cases and save
+  at least 262 bytes, or find another 9-win, >=8%-gain frontier within 786
+  bytes.
+
+## 2026-08-16 — Equal-size AC qindex trials
+
+- **Status:** BLOCKED. Todo `encoder-ac8x8-equalsize-qtrial`.
+- **Policy:** per comparison, reproduce the requested-qindex DC-only stream,
+  then try at most 16 monotonically increasing qindices through 255 with
+  explicit `--search bounded`. Admit only complete streams at or below that
+  case's DC byte count; rank by dual-decoder Y SSE; retain strict DC fallback.
+- **Quality semantics:** requested qindex is a quality anchor and byte-budget
+  reference, not a promise that the selected stream signals the same qindex.
+  Any selected higher qindex is reported as nominally lower quality.
+- **Evidence:** `metrics/ac8x8-equalsize-qtrial.json`; 18 targeted and 12
+  prepared I400 comparisons from the locked 90-case baseline, complete OBU
+  bytes, pinned-AVM/project reconstruction parity, selected-stream reruns,
+  trial counts, q shifts, and runtime.
+- **Gate:** every selected case is individually no larger than DC-only and no
+  prepared case regresses. The locked nine-case AC subset does not reach 8%
+  aggregate SSE gain or nine wins.
+- **Blocker:** checkerboard and two-pixel line DC streams are only 29 bytes.
+  Every fitting tested AC trial has equivalent DC-only reconstruction, so
+  qindex movement cannot clear the complete-stream syntax-rate floor. In
+  addition, pinned AVM rejects 33 byte-fitting non-selected AC trials,
+  concentrated in prepared images and diagonal-edge q60/q100.
+
 ## 2026-08-15 — M3 chroma boundary half-grid completion
 
 - **Status:** PASS. Todo `encoder-chroma-boundary-halfgrid`.
@@ -1273,3 +1337,119 @@ prepared images begin at 896x424, so all remain explicit unsupported cases.
 - Froze four independent odd/rectangle vectors and passed local == pinned AVM
   == project parity for 1×1, 2×7, 7×2, 7×7, 9×9, 9×15, 15×9, and 15×15.
 - Preserved all I400 behavior and the four frozen 8×8 chroma hashes.
+
+## 2026-08-16 — encoder quality baseline and roadmap
+
+- **Status:** PASS for todo `encoder-quality-baseline`; no coding feature was
+  implemented and no codec core source was changed.
+- **Ranking:** first tranche is broader scalar 8x8 DCT_DCT AC coding, then
+  horizontal/vertical intra prediction, then U/V plane quantizer deltas.
+  Smooth/Paeth, CfL, deblocking, general partition search, and rate control are
+  deferred in that order of dependency/validation cost. Exact 1..5 planning
+  scores are in `featurematrix.md`.
+- **Corpus:** qindices 60, 100, and 180; four full prepared sources
+  (church, Milky Way, pastel chalks, and ceiling) in I400/I420/I444 produce 12
+  full format images and 36 qindex cases. Six generated 64x64
+  horizontal/vertical/diagonal edge, checkerboard, and two line patterns in all
+  formats produce 18 targeted format images and 54 cases: 90 total.
+- **Frozen result:** all 90 cases are deterministic across two encodes and
+  pinned AVM/project decoded bytes agree exactly. Total OBU bytes are 278,134;
+  decoded-plane aggregate SSE is Y 9,609,641,256, U 916,777,060, and V
+  910,828,388. Maximum workspace is 7,263,744 bytes; median per-case median
+  encode time is 8,192,059 ns and worst observed encode is 4,214,024,477 ns.
+- **Hashes:** baseline JSON SHA-256
+  `e25f70c5f32764684fbce76a2a3a7c3207892dfa5dbc5745bf6b002bdecce0f3`;
+  encoder
+  `7404f51cca977a5b583651733077626c16492ea321eb18446228f56a00bc6be6`;
+  pinned AVM
+  `c247cbb4e71e48bdec89f3c8b2b8efdce17f673aeaa39e3c116a276d16286aa0`;
+  project decoder
+  `7d17f598f2cdffe7dfb4ab46982cf5c4822215a5f429cb39e7748a60ce5ef535`.
+- **Metric note:** seven chroma cases have small differences between
+  encoder-reported SSE and SSE recomputed from the mutually exact validator
+  output. The frozen comparator records both and uses decoded active-plane SSE
+  and derived PSNR as authoritative; no core metric fix is claimed here.
+- **Acceptance:** every candidate must fit the matching baseline byte count,
+  retain the old mode, preserve default-off hashes, and pass exact validators.
+  AC requires at least 8% targeted texture/line Y-SSE reduction and 9/27 wins;
+  H/V requires at least 10% oriented-edge/line reduction and 12/36 wins; U/V
+  deltas require at least 5% full-image chroma reduction and 6/24 wins. The
+  combined tranche permits no aggregate Y/U/V regression or byte increase.
+  Workspace is capped at +25% and median time at 4x unless baseline effort
+  remains selectable.
+- **Commands:** `make -C experimental/encoder all`;
+  `python3 experimental/encoder/tools/encoder_quality_baseline.py`;
+  `python3 -m unittest
+  experimental/encoder/tests/test_encoder_quality_baseline.py`.
+
+## 2026-08-16 — general 8x8 AC production candidate
+
+- **Status:** BLOCKED for todo `encoder-ac8x8-production`; explicit I400
+  candidate proven, locked production admission gate not met.
+- Added scalar 8x8 forward/inverse DCT_DCT, complete scan/EOB/base/BR/
+  remainder/sign syntax, adaptive CDFs, exact writer-tell RD costs, local
+  reconstruction, bounded search, and DC/all-zero fallback.
+- `--search off` is the default and preserves legacy streams.
+  `--search bounded` is capped at 256 transforms, 16 positions, 8 nonzeros,
+  and magnitude 63. I420/I444 fail explicitly pending chroma context work.
+- Complete streams pass local == pinned AVM == project over four q contexts,
+  8x8 patterns, a 9x15 crop, 16x16 multileaf, and 72x64 multi-superblock
+  coverage. Caller workspace capacity/overflow/alias atomicity and the static
+  no-libc ELF are tested.
+- Locked targeted-I400 report: 18 cases, 9 overall wins; AC subset gain
+  66.06%, 7/9 wins; bytes 4,459 versus 786 baseline. Maximum workspace is
+  59,521 bytes and worst deterministic rerun encode is 187,888,069 ns.
+- Follow-on: add deterministic whole-corpus q/rate-budget selection or a
+  sparse exact-rate trellis that reaches the minimum wins while funding AC
+  bits without aggregate byte or plane-SSE regression; then prove I420/I444
+  luma/chroma context integration.
+## 2026-08-16 — Cardinal directional production integration
+
+- **Status:** PARTIAL/BLOCKED for default enablement; explicit search passes.
+- **Admitted:** `--search directional`, I400/I420/I444, 1..896 axes; fixed
+  production leaves 8x8/8x16/16x8/16x16 and their 8x8 luma transforms.
+- **Syntax:** exact luma mode-set/index reordering, FSC=0, MRLS=0; color
+  CfL=0 and DC UV syntax. Search-off remains byte-identical.
+- **Targeted gate:** 64x64 vertical-edge streams win in all three formats,
+  58→41, 95→80, and 98→82 bytes with unchanged plane SSE. Pinned AVM and
+  project complete-stream outputs match exactly.
+- **Runtime blocker:** the 90-case prepared/targeted baseline was attempted
+  repeatedly; the best bounded run completed 34 cases in 600 seconds.
+  The final implementation completed 4 case directories in a clean 60-second
+  probe (about 22.5 minutes projected before decoding/rerun variance).
+  Default search therefore remains off. Follow-on: reduce full-image trial
+  cost or add a transform-local exact-writer state trial before rerunning the
+  locked aggregate baseline.
+
+## 2026-08-16 — Bounded directional fast-search model
+
+- **Status:** DONE for the requested model/tool-only surface; production core
+  intentionally unchanged.
+- **Policy:** source-edge predictor SSE prefilter, transactional exact
+  shortlisted stream trial, and commit only with no byte or per-plane SSE
+  regression. The independent leaf model snapshots writer/CDF state and safely
+  prunes candidates whose distortion lower bound already loses.
+- **Agreement:** 90/90 locked stream decisions and 140/140 independent model
+  decisions; 167 of 420 model candidates prune early.
+- **Runtime:** exhaustive locked-case measurement 584.227 s; measured policy
+  projection 268.155 s against the 600 s gate.
+- **RD:** aggregate 278134→276706 bytes with no aggregate plane-SSE regression;
+  the nine-case I400 directional subset is 525→436 bytes (16.952%) at identical
+  SSE. All 72 shortlisted exact results reproduced deterministically.
+
+## 2026-08-16 — Directional fast-search production gate
+
+- **Status:** DONE. `--search directional` now applies the locked predictor-SSE
+  prefilter before exact transactional DC/V/H stream trials;
+  `--search directional-exact` preserves the exhaustive oracle path.
+- **Safety:** 90/90 production decisions agree with the exact oracle. Explicit
+  search-off hashes remain locked. Stable ties retain DC, then V, then H.
+- **Gate:** 72 shortlisted, 18 early-pruned, 12 committed wins; aggregate
+  278134→276771 bytes with no aggregate plane-SSE regression. The directional
+  subset is 525→456 bytes (13.143%) with seven wins.
+- **Parity/determinism:** all shortlisted reruns are deterministic; pinned AVM
+  and project validation are exact for all 90 I400/I420/I444 cases. The final
+  production matrix is 278134→276771 bytes; decoded aggregate Y/U/V SSE changes
+  by -3622/-44314/-529398. Peak workspace remains 7263744 bytes.
+- **Runtime/default:** 262.186 s under the 600 s gate. Ordinary default remains
+  search-off because the production policy is still an expensive quality mode.

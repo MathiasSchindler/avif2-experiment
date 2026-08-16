@@ -29,6 +29,7 @@ typedef struct {
     size_t pixel_count;
     size_t workspace_size;
     unsigned int qindex;
+    uint8_t intra_mode;
 } EncM3Result;
 
 typedef struct {
@@ -47,6 +48,13 @@ typedef enum {
     ENC_M3_PIXEL_I400 = 1,
     ENC_M3_PIXEL_I444 = 2
 } EncM3PixelFormat;
+
+typedef enum {
+    ENC_M3_INTRA_SEARCH_OFF = 0,
+    ENC_M3_INTRA_SEARCH_DIRECTIONAL = 1,
+    ENC_M3_INTRA_SEARCH_DIRECTIONAL_EXACT = 2,
+    ENC_M3_INTRA_SEARCH_INTRA = 3
+} EncM3IntraSearch;
 
 typedef struct {
     const uint8_t *data;
@@ -98,6 +106,10 @@ typedef struct {
     uint8_t reconstructed_sample[3U];
     unsigned int qindex;
     EncM3PixelFormat format;
+    int8_t u_qdelta;
+    int8_t v_qdelta;
+    uint8_t luma_mode;
+    uint8_t chroma_mode;
 } EncM3ChromaResult;
 
 uint8_t enc_m3_dc_prediction(
@@ -114,9 +126,22 @@ EncStatus enc_m3_dc_yuv8_q_workspace(
     void *stream, size_t stream_capacity,
     EncM3MutableImage8 *reconstruction,
     EncM3ChromaResult *result);
+EncStatus enc_m3_intra_yuv8_q_workspace(
+    const EncM3Image8 *input, unsigned int qindex, EncM3IntraSearch search,
+    void *workspace, size_t workspace_capacity,
+    void *stream, size_t stream_capacity,
+    EncM3MutableImage8 *reconstruction,
+    EncM3ChromaResult *result);
 EncStatus enc_m3_dc_i400_q_workspace(
     const uint8_t *input, size_t width, size_t height, size_t stride,
     unsigned int qindex,
+    void *workspace, size_t workspace_capacity,
+    void *stream, size_t stream_capacity,
+    uint8_t *reconstruction, size_t reconstruction_capacity,
+    EncM3Result *result);
+EncStatus enc_m3_intra_i400_q_workspace(
+    const uint8_t *input, size_t width, size_t height, size_t stride,
+    unsigned int qindex, EncM3IntraSearch search,
     void *workspace, size_t workspace_capacity,
     void *stream, size_t stream_capacity,
     uint8_t *reconstruction, size_t reconstruction_capacity,

@@ -35,6 +35,23 @@ This experiment is a new encoder, not an extension of the decoder.
 No milestone may weaken these rules. A feature that cannot fit them is deferred
 behind an interface rather than added as an exception.
 
+## Current production decision
+
+`encoder-directional-intra-production` is complete. Explicit
+`--search directional` uses the locked predictor-SSE prefilter and exact
+transactional DC/V/H selection; `--search directional-exact` remains available
+for oracle validation. The ordinary default remains search-off because the
+90-case policy runtime is 262.186 seconds despite passing the 600-second gate.
+
+`encoder-smooth-paeth-production` is complete as explicit `--search intra`.
+The path preserves directional compatibility and adds luma Smooth, Smooth-V,
+Smooth-H, and Paeth trials for images up to 64x64, with DC fallback for the
+legacy small syntax classes and the directional runtime policy above that
+bound. Chroma mode search remains deferred. The 224-case full-stream gate has
+32 incremental wins, 5,314 vs 5,326 bytes, and 43,593,650 vs 43,744,028 Y SSE;
+the locked 90 cases use 276,756 bytes with unchanged plane SSE relative to
+directional and 263.108 seconds aggregate median runtime.
+
 ## Allocation and ownership
 
 The core never allocates. `enc_query_memory(config, image)` returns checked
@@ -325,6 +342,11 @@ reconstruction distortion. Tie-break by a documented stable ordering.
 decoder-exact, and Pareto-improves at least one locked corpus point without
 worsening aggregate distortion at equal-or-lower bytes.
 
+Cardinal production checkpoint: DC/V/H luma search is available explicitly
+for I400/I420/I444 with complete-stream dual-decoder parity and search-off
+compatibility. Default enablement remains blocked pending a bounded successful
+90-case baseline and runtime gate.
+
 ### [ ] M7 — In-loop filters and restoration choices
 
 Add deblock, then CDEF, then CCSO as independent trial choices. Encode a choice
@@ -363,6 +385,79 @@ without linking or importing AVM.
 the encoder offers at least three useful deterministic quality points; reports
 contain exact hashes, bitrate/size, PSNR, SSIM status, speed, memory, and binary
 size; known unsupported tools fail before output commit.
+
+## Still-image quality tranche and acceptance gates
+
+`metrics/encoder-quality-baseline.json` is the frozen DC-only comparator for
+the next quality tranche. It locks qindices 60, 100, and 180 over four full
+prepared sources in I400/I420/I444 plus six 64x64 edge/texture patterns in all
+three formats. Every candidate is compared with the same
+`(source_case, pixel_format, qindex)` record. Bytes are complete OBU bytes;
+distortion is validator-decoded active-plane SSE, with PSNR derived per plane.
+Runtime is informative and must be measured with the same two-run procedure;
+stream, decoded-plane, input, encoder, and validator hashes are normative.
+
+The implementation order is:
+
+1. broader scalar 8x8 DCT_DCT AC scan/EOB/base/BR/remainder coding;
+2. basic horizontal and vertical intra prediction with DC retained as a
+   candidate; and
+3. frame-level U and V quantizer deltas with zero deltas retained.
+
+Each feature must preserve the default-off baseline hashes and pass exact local,
+pinned-AVM, and project-decoder reconstruction before RD evaluation. Candidate
+selection must include the prior mode, use exact emitted bytes, and have stable
+tie-breaking; therefore no individual case may be forced to regress.
+
+Feature gates, evaluated at equal-or-lower bytes than the matching baseline:
+
+- **Broader 8x8 AC:** aggregate Y SSE over all 90 cases must not increase;
+  targeted checkerboard/line cases must reduce aggregate Y SSE by at least 8%,
+  and at least 9 of their 27 I400/I420/I444 qindex cases must improve.
+- **Horizontal/vertical intra:** aggregate Y SSE must not increase; the
+  horizontal-edge, vertical-edge, horizontal-lines, and vertical-lines subset
+  must reduce aggregate Y SSE by at least 10%, with wins in both horizontal
+  and vertical orientation families and at least 12 of 36 cases.
+- **U/V quantizer deltas:** total full-prepared U+V SSE must fall by at least
+  5% with no Y SSE increase, at least 6 of the 24 full-prepared I420/I444
+  points must improve, and combined bytes must not exceed their baseline sum.
+- **Combined tranche:** total bytes must be no greater than the 90-case
+  baseline; aggregate Y, U, and V SSE must each be no greater; all three
+  feature-specific subset gates must still pass; every stream must be
+  deterministic and exact in both validators; worst workspace may grow by at
+  most 25% and median encode time by at most 4x unless a separately documented
+  search-effort mode retains the baseline bound.
+
+Deblocking is deferred until unfiltered transform/prediction reconstruction is
+stable because it adds frame-wide state, boundary kernels, signaling search,
+and post-filter validator hashes. CfL follows basic chroma quantizer control
+and broader luma AC because its benefit and correctness depend on both.
+Smooth/Paeth follow horizontal/vertical modes to keep the first mode syntax
+and neighbor tests small. General partition search is deferred until multiple
+useful modes have exact rate costs; otherwise it multiplies an immature search
+space. Rate control is deferred until the constant-q RD points are useful and
+stable, because it selects operating points rather than improving coding by
+itself.
+
+### 8x8 AC production admission result
+
+The explicit I400 candidate is implemented behind `--search bounded`; search
+defaults to `off`. Work is capped at 256 transforms, 16 positions per searched
+transform, 8 nonzeros, and magnitude 63. Candidate streams and
+reconstructions are staged in caller workspace and committed atomically.
+
+The locked admission gate is not met. On the 18 targeted I400 points the
+candidate reduces AC-subset Y SSE by 66.06%, with 7/9 subset wins, but grows
+complete-stream bytes from 786 to 4,459. Default-on and chroma admission remain
+blocked until deterministic whole-corpus rate allocation (including q
+alternatives) meets the aggregate byte budget without plane-SSE regression.
+
+The independent exact-stream hard-budget follow-up is also blocked. A
+whole-image greedy frontier plus aggregate knapsack selects only DC at the
+locked 786 bytes. Its best reachable 8%-gain point has 7/9 wins and needs
+1,048 aggregate bytes; neither qindex-180 line case has a winning candidate.
+The next candidate surface must win both cases and eliminate at least 262
+bytes from that reachable frontier.
 
 ### [ ] M10 — Portable backends without weakening the first target
 

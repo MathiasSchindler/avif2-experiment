@@ -1,0 +1,1360 @@
+{
+  "cases": [
+    {
+      "dc_only": {
+        "nonzero": [],
+        "rate_bits": 4,
+        "rd_cost": 262170.265625,
+        "reconstruction_sha256": "1df1b7ce1fd8fcbe20cde61646875e54fe38d8945ea7911afd59e025cc520a68",
+        "sse": 262144
+      },
+      "general": {
+        "nonzero": [
+          {
+            "level": -63,
+            "position": 8,
+            "scan": 1
+          },
+          {
+            "level": 61,
+            "position": 24,
+            "scan": 6
+          },
+          {
+            "level": -42,
+            "position": 40,
+            "scan": 15
+          },
+          {
+            "level": 34,
+            "position": 56,
+            "scan": 28
+          }
+        ],
+        "rate_bits": 91,
+        "rd_cost": 91317.542969,
+        "reconstruction_sha256": "8452ae203d64f7e5ffb1a2fe2436bf1a2cfa0abcd097251fdaabbc1ab2fa107d",
+        "sse": 90720
+      },
+      "general_vs_dc_sse_percent": 65.393,
+      "general_vs_m4_sse_percent": 33.793,
+      "lambda": 6.566406,
+      "m4_surface": {
+        "nonzero": [
+          {
+            "level": -63,
+            "position": 8,
+            "scan": 1
+          }
+        ],
+        "rate_bits": 33,
+        "rd_cost": 137240.691406,
+        "reconstruction_sha256": "05d6fd0fe950c5ace8e4e9aaab06f51f60e7c8722b6c29a8a52165419a472a8d",
+        "sse": 137024
+      },
+      "name": "horizontal-edge",
+      "qindex": 50,
+      "source_sha256": "c6e33b356bb33d7874a25f87b42bb384f8e4d27022f1e248eecfe5a601e51d92"
+    },
+    {
+      "dc_only": {
+        "nonzero": [],
+        "rate_bits": 6,
+        "rd_cost": 262870.0,
+        "reconstruction_sha256": "1df1b7ce1fd8fcbe20cde61646875e54fe38d8945ea7911afd59e025cc520a68",
+        "sse": 262144
+      },
+      "general": {
+        "nonzero": [
+          {
+            "level": -43,
+            "position": 8,
+            "scan": 1
+          },
+          {
+            "level": 15,
+            "position": 24,
+            "scan": 6
+          },
+          {
+            "level": -9,
+            "position": 40,
+            "scan": 15
+          },
+          {
+            "level": 8,
+            "position": 56,
+            "scan": 28
+          }
+        ],
+        "rate_bits": 83,
+        "rd_cost": 10155.0,
+        "reconstruction_sha256": "ad30f57114fde8d9eb66faf8ef013d5771ba9f84064ddf158ca89bff39e69a9d",
+        "sse": 112
+      },
+      "general_vs_dc_sse_percent": 99.957,
+      "general_vs_m4_sse_percent": 99.757,
+      "lambda": 121.0,
+      "m4_surface": {
+        "nonzero": [
+          {
+            "level": -43,
+            "position": 8,
+            "scan": 1
+          }
+        ],
+        "rate_bits": 37,
+        "rd_cost": 50589.0,
+        "reconstruction_sha256": "cd60a7921656b8bd55a8a2604d2a55061b6190d62949021317310a6a70d27214",
+        "sse": 46112
+      },
+      "name": "horizontal-edge",
+      "qindex": 100,
+      "source_sha256": "c6e33b356bb33d7874a25f87b42bb384f8e4d27022f1e248eecfe5a601e51d92"
+    },
+    {
+      "dc_only": {
+        "nonzero": [],
+        "rate_bits": 5,
+        "rd_cost": 273189.0,
+        "reconstruction_sha256": "1df1b7ce1fd8fcbe20cde61646875e54fe38d8945ea7911afd59e025cc520a68",
+        "sse": 262144
+      },
+      "general": {
+        "nonzero": [
+          {
+            "level": -10,
+            "position": 8,
+            "scan": 1
+          },
+          {
+            "level": 1,
+            "position": 24,
+            "scan": 6
+          }
+        ],
+        "rate_bits": 27,
+        "rd_cost": 93443.0,
+        "reconstruction_sha256": "bd1ef654b35dec814f7000fc8d7d885dc6473f9990a8eba501478989dbc980d9",
+        "sse": 33800
+      },
+      "general_vs_dc_sse_percent": 87.106,
+      "general_vs_m4_sse_percent": 26.7,
+      "lambda": 2209.0,
+      "m4_surface": {
+        "nonzero": [
+          {
+            "level": -10,
+            "position": 8,
+            "scan": 1
+          }
+        ],
+        "rate_bits": 26,
+        "rd_cost": 103546.0,
+        "reconstruction_sha256": "cd60a7921656b8bd55a8a2604d2a55061b6190d62949021317310a6a70d27214",
+        "sse": 46112
+      },
+      "name": "horizontal-edge",
+      "qindex": 150,
+      "source_sha256": "c6e33b356bb33d7874a25f87b42bb384f8e4d27022f1e248eecfe5a601e51d92"
+    },
+    {
+      "dc_only": {
+        "nonzero": [],
+        "rate_bits": 4,
+        "rd_cost": 540928.0,
+        "reconstruction_sha256": "1df1b7ce1fd8fcbe20cde61646875e54fe38d8945ea7911afd59e025cc520a68",
+        "sse": 262144
+      },
+      "general": {
+        "nonzero": [],
+        "rate_bits": 4,
+        "rd_cost": 540928.0,
+        "reconstruction_sha256": "1df1b7ce1fd8fcbe20cde61646875e54fe38d8945ea7911afd59e025cc520a68",
+        "sse": 262144
+      },
+      "general_vs_dc_sse_percent": 0.0,
+      "general_vs_m4_sse_percent": 0.0,
+      "lambda": 69696.0,
+      "m4_surface": {
+        "nonzero": [],
+        "rate_bits": 4,
+        "rd_cost": 540928.0,
+        "reconstruction_sha256": "1df1b7ce1fd8fcbe20cde61646875e54fe38d8945ea7911afd59e025cc520a68",
+        "sse": 262144
+      },
+      "name": "horizontal-edge",
+      "qindex": 210,
+      "source_sha256": "c6e33b356bb33d7874a25f87b42bb384f8e4d27022f1e248eecfe5a601e51d92"
+    },
+    {
+      "dc_only": {
+        "nonzero": [],
+        "rate_bits": 4,
+        "rd_cost": 262170.265625,
+        "reconstruction_sha256": "1df1b7ce1fd8fcbe20cde61646875e54fe38d8945ea7911afd59e025cc520a68",
+        "sse": 262144
+      },
+      "general": {
+        "nonzero": [
+          {
+            "level": -63,
+            "position": 1,
+            "scan": 2
+          },
+          {
+            "level": 61,
+            "position": 3,
+            "scan": 9
+          },
+          {
+            "level": -42,
+            "position": 5,
+            "scan": 20
+          },
+          {
+            "level": 34,
+            "position": 7,
+            "scan": 35
+          }
+        ],
+        "rate_bits": 94,
+        "rd_cost": 91337.242188,
+        "reconstruction_sha256": "1cb895db61e6024a66b20cb629e3328b08599ce35312684e5ee459cfdc14393e",
+        "sse": 90720
+      },
+      "general_vs_dc_sse_percent": 65.393,
+      "general_vs_m4_sse_percent": 65.393,
+      "lambda": 6.566406,
+      "m4_surface": {
+        "nonzero": [],
+        "rate_bits": 4,
+        "rd_cost": 262170.265625,
+        "reconstruction_sha256": "1df1b7ce1fd8fcbe20cde61646875e54fe38d8945ea7911afd59e025cc520a68",
+        "sse": 262144
+      },
+      "name": "vertical-edge",
+      "qindex": 50,
+      "source_sha256": "59bc6c846ee376601e39fb71118df7162797148b2e819ed4cb49053a24d10da6"
+    },
+    {
+      "dc_only": {
+        "nonzero": [],
+        "rate_bits": 6,
+        "rd_cost": 262870.0,
+        "reconstruction_sha256": "1df1b7ce1fd8fcbe20cde61646875e54fe38d8945ea7911afd59e025cc520a68",
+        "sse": 262144
+      },
+      "general": {
+        "nonzero": [
+          {
+            "level": -43,
+            "position": 1,
+            "scan": 2
+          },
+          {
+            "level": 15,
+            "position": 3,
+            "scan": 9
+          },
+          {
+            "level": -9,
+            "position": 5,
+            "scan": 20
+          },
+          {
+            "level": 8,
+            "position": 7,
+            "scan": 35
+          }
+        ],
+        "rate_bits": 85,
+        "rd_cost": 10397.0,
+        "reconstruction_sha256": "6a9c0e88974e315569784febfd167a4bbf11ea74c507d4d7449bd2609f28cc16",
+        "sse": 112
+      },
+      "general_vs_dc_sse_percent": 99.957,
+      "general_vs_m4_sse_percent": 99.957,
+      "lambda": 121.0,
+      "m4_surface": {
+        "nonzero": [],
+        "rate_bits": 6,
+        "rd_cost": 262870.0,
+        "reconstruction_sha256": "1df1b7ce1fd8fcbe20cde61646875e54fe38d8945ea7911afd59e025cc520a68",
+        "sse": 262144
+      },
+      "name": "vertical-edge",
+      "qindex": 100,
+      "source_sha256": "59bc6c846ee376601e39fb71118df7162797148b2e819ed4cb49053a24d10da6"
+    },
+    {
+      "dc_only": {
+        "nonzero": [],
+        "rate_bits": 5,
+        "rd_cost": 273189.0,
+        "reconstruction_sha256": "1df1b7ce1fd8fcbe20cde61646875e54fe38d8945ea7911afd59e025cc520a68",
+        "sse": 262144
+      },
+      "general": {
+        "nonzero": [
+          {
+            "level": -10,
+            "position": 1,
+            "scan": 2
+          },
+          {
+            "level": 1,
+            "position": 3,
+            "scan": 9
+          }
+        ],
+        "rate_bits": 28,
+        "rd_cost": 95652.0,
+        "reconstruction_sha256": "e77e91a5889d4b987017a1ce51dc87e443563fff7d8df72d608655875dbd5869",
+        "sse": 33800
+      },
+      "general_vs_dc_sse_percent": 87.106,
+      "general_vs_m4_sse_percent": 87.106,
+      "lambda": 2209.0,
+      "m4_surface": {
+        "nonzero": [],
+        "rate_bits": 5,
+        "rd_cost": 273189.0,
+        "reconstruction_sha256": "1df1b7ce1fd8fcbe20cde61646875e54fe38d8945ea7911afd59e025cc520a68",
+        "sse": 262144
+      },
+      "name": "vertical-edge",
+      "qindex": 150,
+      "source_sha256": "59bc6c846ee376601e39fb71118df7162797148b2e819ed4cb49053a24d10da6"
+    },
+    {
+      "dc_only": {
+        "nonzero": [],
+        "rate_bits": 4,
+        "rd_cost": 540928.0,
+        "reconstruction_sha256": "1df1b7ce1fd8fcbe20cde61646875e54fe38d8945ea7911afd59e025cc520a68",
+        "sse": 262144
+      },
+      "general": {
+        "nonzero": [],
+        "rate_bits": 4,
+        "rd_cost": 540928.0,
+        "reconstruction_sha256": "1df1b7ce1fd8fcbe20cde61646875e54fe38d8945ea7911afd59e025cc520a68",
+        "sse": 262144
+      },
+      "general_vs_dc_sse_percent": 0.0,
+      "general_vs_m4_sse_percent": 0.0,
+      "lambda": 69696.0,
+      "m4_surface": {
+        "nonzero": [],
+        "rate_bits": 4,
+        "rd_cost": 540928.0,
+        "reconstruction_sha256": "1df1b7ce1fd8fcbe20cde61646875e54fe38d8945ea7911afd59e025cc520a68",
+        "sse": 262144
+      },
+      "name": "vertical-edge",
+      "qindex": 210,
+      "source_sha256": "59bc6c846ee376601e39fb71118df7162797148b2e819ed4cb49053a24d10da6"
+    },
+    {
+      "dc_only": {
+        "nonzero": [],
+        "rate_bits": 4,
+        "rd_cost": 409626.265625,
+        "reconstruction_sha256": "1df1b7ce1fd8fcbe20cde61646875e54fe38d8945ea7911afd59e025cc520a68",
+        "sse": 409600
+      },
+      "general": {
+        "nonzero": [
+          {
+            "level": 40,
+            "position": 15,
+            "scan": 42
+          },
+          {
+            "level": 48,
+            "position": 31,
+            "scan": 53
+          },
+          {
+            "level": 25,
+            "position": 45,
+            "scan": 51
+          },
+          {
+            "level": 63,
+            "position": 47,
+            "scan": 60
+          },
+          {
+            "level": 40,
+            "position": 57,
+            "scan": 36
+          },
+          {
+            "level": 49,
+            "position": 59,
+            "scan": 49
+          },
+          {
+            "level": 62,
+            "position": 61,
+            "scan": 58
+          },
+          {
+            "level": 63,
+            "position": 63,
+            "scan": 63
+          }
+        ],
+        "rate_bits": 181,
+        "rd_cost": 143172.519531,
+        "reconstruction_sha256": "2977fa84f382be7c4bb571e984d6597a0db7c0bb8a91c52aa6ec9cbf6644e26c",
+        "sse": 141984
+      },
+      "general_vs_dc_sse_percent": 65.336,
+      "general_vs_m4_sse_percent": 65.336,
+      "lambda": 6.566406,
+      "m4_surface": {
+        "nonzero": [],
+        "rate_bits": 4,
+        "rd_cost": 409626.265625,
+        "reconstruction_sha256": "1df1b7ce1fd8fcbe20cde61646875e54fe38d8945ea7911afd59e025cc520a68",
+        "sse": 409600
+      },
+      "name": "checker",
+      "qindex": 50,
+      "source_sha256": "2e81ba26c11d7ef54478b072d9b2a7d985294574481ce446c3b44a5ff9867a2e"
+    },
+    {
+      "dc_only": {
+        "nonzero": [],
+        "rate_bits": 6,
+        "rd_cost": 410326.0,
+        "reconstruction_sha256": "1df1b7ce1fd8fcbe20cde61646875e54fe38d8945ea7911afd59e025cc520a68",
+        "sse": 409600
+      },
+      "general": {
+        "nonzero": [
+          {
+            "level": 10,
+            "position": 15,
+            "scan": 42
+          },
+          {
+            "level": 11,
+            "position": 31,
+            "scan": 53
+          },
+          {
+            "level": 7,
+            "position": 45,
+            "scan": 51
+          },
+          {
+            "level": 18,
+            "position": 47,
+            "scan": 60
+          },
+          {
+            "level": 9,
+            "position": 57,
+            "scan": 36
+          },
+          {
+            "level": 11,
+            "position": 59,
+            "scan": 49
+          },
+          {
+            "level": 16,
+            "position": 61,
+            "scan": 58
+          },
+          {
+            "level": 50,
+            "position": 63,
+            "scan": 63
+          }
+        ],
+        "rate_bits": 152,
+        "rd_cost": 28072.0,
+        "reconstruction_sha256": "6dcae785cfbd3442e0ec0e0439a81c1e03a1eb1e0436cea7216fa59e70047709",
+        "sse": 9680
+      },
+      "general_vs_dc_sse_percent": 97.637,
+      "general_vs_m4_sse_percent": 97.637,
+      "lambda": 121.0,
+      "m4_surface": {
+        "nonzero": [],
+        "rate_bits": 6,
+        "rd_cost": 410326.0,
+        "reconstruction_sha256": "1df1b7ce1fd8fcbe20cde61646875e54fe38d8945ea7911afd59e025cc520a68",
+        "sse": 409600
+      },
+      "name": "checker",
+      "qindex": 100,
+      "source_sha256": "2e81ba26c11d7ef54478b072d9b2a7d985294574481ce446c3b44a5ff9867a2e"
+    },
+    {
+      "dc_only": {
+        "nonzero": [],
+        "rate_bits": 5,
+        "rd_cost": 420645.0,
+        "reconstruction_sha256": "1df1b7ce1fd8fcbe20cde61646875e54fe38d8945ea7911afd59e025cc520a68",
+        "sse": 409600
+      },
+      "general": {
+        "nonzero": [
+          {
+            "level": 2,
+            "position": 47,
+            "scan": 60
+          },
+          {
+            "level": 2,
+            "position": 61,
+            "scan": 58
+          },
+          {
+            "level": 13,
+            "position": 63,
+            "scan": 63
+          }
+        ],
+        "rate_bits": 66,
+        "rd_cost": 233526.0,
+        "reconstruction_sha256": "c5ef3bbe5f27a9e6d15a0228f0a25943d5e34c57cdd76b229758d3f80e500581",
+        "sse": 87732
+      },
+      "general_vs_dc_sse_percent": 78.581,
+      "general_vs_m4_sse_percent": 78.581,
+      "lambda": 2209.0,
+      "m4_surface": {
+        "nonzero": [],
+        "rate_bits": 5,
+        "rd_cost": 420645.0,
+        "reconstruction_sha256": "1df1b7ce1fd8fcbe20cde61646875e54fe38d8945ea7911afd59e025cc520a68",
+        "sse": 409600
+      },
+      "name": "checker",
+      "qindex": 150,
+      "source_sha256": "2e81ba26c11d7ef54478b072d9b2a7d985294574481ce446c3b44a5ff9867a2e"
+    },
+    {
+      "dc_only": {
+        "nonzero": [],
+        "rate_bits": 4,
+        "rd_cost": 688384.0,
+        "reconstruction_sha256": "1df1b7ce1fd8fcbe20cde61646875e54fe38d8945ea7911afd59e025cc520a68",
+        "sse": 409600
+      },
+      "general": {
+        "nonzero": [],
+        "rate_bits": 4,
+        "rd_cost": 688384.0,
+        "reconstruction_sha256": "1df1b7ce1fd8fcbe20cde61646875e54fe38d8945ea7911afd59e025cc520a68",
+        "sse": 409600
+      },
+      "general_vs_dc_sse_percent": 0.0,
+      "general_vs_m4_sse_percent": 0.0,
+      "lambda": 69696.0,
+      "m4_surface": {
+        "nonzero": [],
+        "rate_bits": 4,
+        "rd_cost": 688384.0,
+        "reconstruction_sha256": "1df1b7ce1fd8fcbe20cde61646875e54fe38d8945ea7911afd59e025cc520a68",
+        "sse": 409600
+      },
+      "name": "checker",
+      "qindex": 210,
+      "source_sha256": "2e81ba26c11d7ef54478b072d9b2a7d985294574481ce446c3b44a5ff9867a2e"
+    },
+    {
+      "dc_only": {
+        "nonzero": [
+          {
+            "level": 39,
+            "position": 0,
+            "scan": 0
+          }
+        ],
+        "rate_bits": 26,
+        "rd_cost": 188024.726562,
+        "reconstruction_sha256": "9505347c75c42c27aa81b123663e5585db78f3c00355519489e1cf96a14230a1",
+        "sse": 187854
+      },
+      "general": {
+        "nonzero": [
+          {
+            "level": 43,
+            "position": 0,
+            "scan": 0
+          },
+          {
+            "level": -63,
+            "position": 1,
+            "scan": 2
+          },
+          {
+            "level": -32,
+            "position": 3,
+            "scan": 9
+          },
+          {
+            "level": -8,
+            "position": 5,
+            "scan": 20
+          },
+          {
+            "level": -9,
+            "position": 6,
+            "scan": 27
+          },
+          {
+            "level": -63,
+            "position": 8,
+            "scan": 1
+          },
+          {
+            "level": -26,
+            "position": 24,
+            "scan": 6
+          },
+          {
+            "level": -12,
+            "position": 48,
+            "scan": 21
+          }
+        ],
+        "rate_bits": 145,
+        "rd_cost": 46888.128906,
+        "reconstruction_sha256": "db9830becc2fafec3b80d907d2e3a2db6d8d51f1f36b81ce3d4095781ba4dee4",
+        "sse": 45936
+      },
+      "general_vs_dc_sse_percent": 75.547,
+      "general_vs_m4_sse_percent": 68.512,
+      "lambda": 6.566406,
+      "m4_surface": {
+        "nonzero": [
+          {
+            "level": 42,
+            "position": 0,
+            "scan": 0
+          },
+          {
+            "level": -63,
+            "position": 8,
+            "scan": 1
+          }
+        ],
+        "rate_bits": 43,
+        "rd_cost": 146164.355469,
+        "reconstruction_sha256": "96481da6f34875d32f0396be407663154d315d0a93f73048bd78f720a2cd722f",
+        "sse": 145882
+      },
+      "name": "detail",
+      "qindex": 50,
+      "source_sha256": "83b374980bf180902a03cb24aa975f6a9a572d6268e3bcb2935e575d767f0b71"
+    },
+    {
+      "dc_only": {
+        "nonzero": [
+          {
+            "level": 9,
+            "position": 0,
+            "scan": 0
+          }
+        ],
+        "rate_bits": 19,
+        "rd_cost": 190253.0,
+        "reconstruction_sha256": "05dc8898677b1fed2066f25ba295807824cfd1b7e175b4c07ae626b59df67e87",
+        "sse": 187954
+      },
+      "general": {
+        "nonzero": [
+          {
+            "level": 9,
+            "position": 0,
+            "scan": 0
+          },
+          {
+            "level": -33,
+            "position": 1,
+            "scan": 2
+          },
+          {
+            "level": -2,
+            "position": 2,
+            "scan": 5
+          },
+          {
+            "level": -7,
+            "position": 3,
+            "scan": 9
+          },
+          {
+            "level": -18,
+            "position": 8,
+            "scan": 1
+          },
+          {
+            "level": -2,
+            "position": 16,
+            "scan": 3
+          },
+          {
+            "level": -5,
+            "position": 24,
+            "scan": 6
+          },
+          {
+            "level": -1,
+            "position": 48,
+            "scan": 21
+          }
+        ],
+        "rate_bits": 81,
+        "rd_cost": 16715.0,
+        "reconstruction_sha256": "5948f94a24fb5efce85375eadf75e2a3ea998f381e07aa1e02483777976949c3",
+        "sse": 6914
+      },
+      "general_vs_dc_sse_percent": 96.321,
+      "general_vs_m4_sse_percent": 95.197,
+      "lambda": 121.0,
+      "m4_surface": {
+        "nonzero": [
+          {
+            "level": 9,
+            "position": 0,
+            "scan": 0
+          },
+          {
+            "level": -20,
+            "position": 8,
+            "scan": 1
+          }
+        ],
+        "rate_bits": 38,
+        "rd_cost": 148548.0,
+        "reconstruction_sha256": "34a77e47d93e255ab6ddb31d904b640794d1bf066324db446027996504ecdd27",
+        "sse": 143950
+      },
+      "name": "detail",
+      "qindex": 100,
+      "source_sha256": "83b374980bf180902a03cb24aa975f6a9a572d6268e3bcb2935e575d767f0b71"
+    },
+    {
+      "dc_only": {
+        "nonzero": [
+          {
+            "level": 1,
+            "position": 0,
+            "scan": 0
+          }
+        ],
+        "rate_bits": 7,
+        "rd_cost": 206705.0,
+        "reconstruction_sha256": "9ea7fd78fd94605bcd9910327324421446e77e685a625ff2010cab28816f36ee",
+        "sse": 191242
+      },
+      "general": {
+        "nonzero": [
+          {
+            "level": 2,
+            "position": 0,
+            "scan": 0
+          },
+          {
+            "level": -7,
+            "position": 1,
+            "scan": 2
+          },
+          {
+            "level": -1,
+            "position": 3,
+            "scan": 9
+          },
+          {
+            "level": -3,
+            "position": 8,
+            "scan": 1
+          },
+          {
+            "level": -1,
+            "position": 24,
+            "scan": 6
+          }
+        ],
+        "rate_bits": 35,
+        "rd_cost": 91545.0,
+        "reconstruction_sha256": "d44969f6534a9252ffe37a58abdf6edf817886b8a3ac6d169c5d1cfc40cfae16",
+        "sse": 14230
+      },
+      "general_vs_dc_sse_percent": 92.559,
+      "general_vs_m4_sse_percent": 90.372,
+      "lambda": 2209.0,
+      "m4_surface": {
+        "nonzero": [
+          {
+            "level": 1,
+            "position": 0,
+            "scan": 0
+          },
+          {
+            "level": -4,
+            "position": 8,
+            "scan": 1
+          }
+        ],
+        "rate_bits": 20,
+        "rd_cost": 191982.0,
+        "reconstruction_sha256": "4af04e5826ae56e4c25e0002e0fbde369bf164a80138b435418c2febe52559e1",
+        "sse": 147802
+      },
+      "name": "detail",
+      "qindex": 150,
+      "source_sha256": "83b374980bf180902a03cb24aa975f6a9a572d6268e3bcb2935e575d767f0b71"
+    },
+    {
+      "dc_only": {
+        "nonzero": [],
+        "rate_bits": 4,
+        "rd_cost": 477922.0,
+        "reconstruction_sha256": "1df1b7ce1fd8fcbe20cde61646875e54fe38d8945ea7911afd59e025cc520a68",
+        "sse": 199138
+      },
+      "general": {
+        "nonzero": [],
+        "rate_bits": 4,
+        "rd_cost": 477922.0,
+        "reconstruction_sha256": "1df1b7ce1fd8fcbe20cde61646875e54fe38d8945ea7911afd59e025cc520a68",
+        "sse": 199138
+      },
+      "general_vs_dc_sse_percent": 0.0,
+      "general_vs_m4_sse_percent": 0.0,
+      "lambda": 69696.0,
+      "m4_surface": {
+        "nonzero": [],
+        "rate_bits": 4,
+        "rd_cost": 477922.0,
+        "reconstruction_sha256": "1df1b7ce1fd8fcbe20cde61646875e54fe38d8945ea7911afd59e025cc520a68",
+        "sse": 199138
+      },
+      "name": "detail",
+      "qindex": 210,
+      "source_sha256": "83b374980bf180902a03cb24aa975f6a9a572d6268e3bcb2935e575d767f0b71"
+    },
+    {
+      "dc_only": {
+        "nonzero": [
+          {
+            "level": -2,
+            "position": 0,
+            "scan": 0
+          }
+        ],
+        "rate_bits": 10,
+        "rd_cost": 50117.664062,
+        "reconstruction_sha256": "e0205519f6bcde4208fd5e9aece72f518eb4ce5879ca1832a6cb221d534a2d7e",
+        "sse": 50052
+      },
+      "general": {
+        "nonzero": [
+          {
+            "level": -19,
+            "position": 11,
+            "scan": 13
+          },
+          {
+            "level": 17,
+            "position": 12,
+            "scan": 19
+          },
+          {
+            "level": -19,
+            "position": 19,
+            "scan": 18
+          },
+          {
+            "level": -17,
+            "position": 49,
+            "scan": 29
+          },
+          {
+            "level": 18,
+            "position": 50,
+            "scan": 37
+          },
+          {
+            "level": -18,
+            "position": 53,
+            "scan": 55
+          },
+          {
+            "level": -17,
+            "position": 61,
+            "scan": 58
+          },
+          {
+            "level": -51,
+            "position": 62,
+            "scan": 61
+          }
+        ],
+        "rate_bits": 186,
+        "rd_cost": 19719.351562,
+        "reconstruction_sha256": "3a7175da180a760db0ef76fc230c46a89db970171da4410211187a5f1f9dbd23",
+        "sse": 18498
+      },
+      "general_vs_dc_sse_percent": 63.042,
+      "general_vs_m4_sse_percent": 63.017,
+      "lambda": 6.566406,
+      "m4_surface": {
+        "nonzero": [
+          {
+            "level": -2,
+            "position": 0,
+            "scan": 0
+          },
+          {
+            "level": -1,
+            "position": 8,
+            "scan": 1
+          }
+        ],
+        "rate_bits": 12,
+        "rd_cost": 50096.796875,
+        "reconstruction_sha256": "5efc97a866f0315471314d2845b3a2ff30e1b995411f2dadf573678256ce73ac",
+        "sse": 50018
+      },
+      "name": "noise",
+      "qindex": 50,
+      "source_sha256": "d61eaf5bafd7b3e160784c3fbeb13fa856bd8b81722d0bca40710eec6d3b54ba"
+    },
+    {
+      "dc_only": {
+        "nonzero": [],
+        "rate_bits": 6,
+        "rd_cost": 50834.0,
+        "reconstruction_sha256": "1df1b7ce1fd8fcbe20cde61646875e54fe38d8945ea7911afd59e025cc520a68",
+        "sse": 50108
+      },
+      "general": {
+        "nonzero": [
+          {
+            "level": -2,
+            "position": 11,
+            "scan": 13
+          },
+          {
+            "level": 2,
+            "position": 12,
+            "scan": 19
+          },
+          {
+            "level": -2,
+            "position": 19,
+            "scan": 18
+          },
+          {
+            "level": -2,
+            "position": 49,
+            "scan": 29
+          },
+          {
+            "level": 2,
+            "position": 50,
+            "scan": 37
+          },
+          {
+            "level": -4,
+            "position": 53,
+            "scan": 55
+          },
+          {
+            "level": -4,
+            "position": 61,
+            "scan": 58
+          },
+          {
+            "level": -12,
+            "position": 62,
+            "scan": 61
+          }
+        ],
+        "rate_bits": 107,
+        "rd_cost": 34146.0,
+        "reconstruction_sha256": "477c47d6a3754cadcbfb4f25bd7038acbca5f2ae05831588aa8030f672790fb9",
+        "sse": 21199
+      },
+      "general_vs_dc_sse_percent": 57.693,
+      "general_vs_m4_sse_percent": 57.693,
+      "lambda": 121.0,
+      "m4_surface": {
+        "nonzero": [],
+        "rate_bits": 6,
+        "rd_cost": 50834.0,
+        "reconstruction_sha256": "1df1b7ce1fd8fcbe20cde61646875e54fe38d8945ea7911afd59e025cc520a68",
+        "sse": 50108
+      },
+      "name": "noise",
+      "qindex": 100,
+      "source_sha256": "d61eaf5bafd7b3e160784c3fbeb13fa856bd8b81722d0bca40710eec6d3b54ba"
+    },
+    {
+      "dc_only": {
+        "nonzero": [],
+        "rate_bits": 5,
+        "rd_cost": 61153.0,
+        "reconstruction_sha256": "1df1b7ce1fd8fcbe20cde61646875e54fe38d8945ea7911afd59e025cc520a68",
+        "sse": 50108
+      },
+      "general": {
+        "nonzero": [],
+        "rate_bits": 5,
+        "rd_cost": 61153.0,
+        "reconstruction_sha256": "1df1b7ce1fd8fcbe20cde61646875e54fe38d8945ea7911afd59e025cc520a68",
+        "sse": 50108
+      },
+      "general_vs_dc_sse_percent": 0.0,
+      "general_vs_m4_sse_percent": 0.0,
+      "lambda": 2209.0,
+      "m4_surface": {
+        "nonzero": [],
+        "rate_bits": 5,
+        "rd_cost": 61153.0,
+        "reconstruction_sha256": "1df1b7ce1fd8fcbe20cde61646875e54fe38d8945ea7911afd59e025cc520a68",
+        "sse": 50108
+      },
+      "name": "noise",
+      "qindex": 150,
+      "source_sha256": "d61eaf5bafd7b3e160784c3fbeb13fa856bd8b81722d0bca40710eec6d3b54ba"
+    },
+    {
+      "dc_only": {
+        "nonzero": [],
+        "rate_bits": 4,
+        "rd_cost": 328892.0,
+        "reconstruction_sha256": "1df1b7ce1fd8fcbe20cde61646875e54fe38d8945ea7911afd59e025cc520a68",
+        "sse": 50108
+      },
+      "general": {
+        "nonzero": [],
+        "rate_bits": 4,
+        "rd_cost": 328892.0,
+        "reconstruction_sha256": "1df1b7ce1fd8fcbe20cde61646875e54fe38d8945ea7911afd59e025cc520a68",
+        "sse": 50108
+      },
+      "general_vs_dc_sse_percent": 0.0,
+      "general_vs_m4_sse_percent": 0.0,
+      "lambda": 69696.0,
+      "m4_surface": {
+        "nonzero": [],
+        "rate_bits": 4,
+        "rd_cost": 328892.0,
+        "reconstruction_sha256": "1df1b7ce1fd8fcbe20cde61646875e54fe38d8945ea7911afd59e025cc520a68",
+        "sse": 50108
+      },
+      "name": "noise",
+      "qindex": 210,
+      "source_sha256": "d61eaf5bafd7b3e160784c3fbeb13fa856bd8b81722d0bca40710eec6d3b54ba"
+    },
+    {
+      "dc_only": {
+        "nonzero": [
+          {
+            "level": -61,
+            "position": 0,
+            "scan": 0
+          }
+        ],
+        "rate_bits": 28,
+        "rd_cost": 93400.859375,
+        "reconstruction_sha256": "6714e95219c67c4cda7eeff21b662ca5a1c8f07ae2098f885c2ce24b2be75cb3",
+        "sse": 93217
+      },
+      "general": {
+        "nonzero": [
+          {
+            "level": -61,
+            "position": 0,
+            "scan": 0
+          },
+          {
+            "level": -23,
+            "position": 2,
+            "scan": 5
+          },
+          {
+            "level": 22,
+            "position": 4,
+            "scan": 14
+          },
+          {
+            "level": -22,
+            "position": 10,
+            "scan": 8
+          },
+          {
+            "level": -17,
+            "position": 16,
+            "scan": 3
+          },
+          {
+            "level": 31,
+            "position": 18,
+            "scan": 12
+          },
+          {
+            "level": -18,
+            "position": 24,
+            "scan": 6
+          },
+          {
+            "level": 12,
+            "position": 26,
+            "scan": 17
+          }
+        ],
+        "rate_bits": 138,
+        "rd_cost": 73441.164062,
+        "reconstruction_sha256": "7902e5100a670615e06d72c876914e6b6b0b08e5b553449ef74e7bf29740d060",
+        "sse": 72535
+      },
+      "general_vs_dc_sse_percent": 22.187,
+      "general_vs_m4_sse_percent": 22.187,
+      "lambda": 6.566406,
+      "m4_surface": {
+        "nonzero": [
+          {
+            "level": -61,
+            "position": 0,
+            "scan": 0
+          }
+        ],
+        "rate_bits": 28,
+        "rd_cost": 93400.859375,
+        "reconstruction_sha256": "6714e95219c67c4cda7eeff21b662ca5a1c8f07ae2098f885c2ce24b2be75cb3",
+        "sse": 93217
+      },
+      "name": "photographic",
+      "qindex": 50,
+      "source_sha256": "f31d760f32ee10396e71898aa074a829cfe3204cdf12e59156b4f50ea35122c4"
+    },
+    {
+      "dc_only": {
+        "nonzero": [
+          {
+            "level": -38,
+            "position": 0,
+            "scan": 0
+          }
+        ],
+        "rate_bits": 29,
+        "rd_cost": 31510.0,
+        "reconstruction_sha256": "7280df47238543003e6170477496046002c39761326b31a8d7acd79fc7de383b",
+        "sse": 28001
+      },
+      "general": {
+        "nonzero": [
+          {
+            "level": -38,
+            "position": 0,
+            "scan": 0
+          },
+          {
+            "level": -5,
+            "position": 2,
+            "scan": 5
+          },
+          {
+            "level": 4,
+            "position": 4,
+            "scan": 14
+          },
+          {
+            "level": -4,
+            "position": 10,
+            "scan": 8
+          },
+          {
+            "level": -5,
+            "position": 16,
+            "scan": 3
+          },
+          {
+            "level": 6,
+            "position": 18,
+            "scan": 12
+          },
+          {
+            "level": -3,
+            "position": 24,
+            "scan": 6
+          },
+          {
+            "level": 1,
+            "position": 26,
+            "scan": 17
+          }
+        ],
+        "rate_bits": 87,
+        "rd_cost": 17664.0,
+        "reconstruction_sha256": "cfdaf8757a9251282c223bcaedbfcd3599cadad285204505ae9e141967248726",
+        "sse": 7137
+      },
+      "general_vs_dc_sse_percent": 74.512,
+      "general_vs_m4_sse_percent": 74.512,
+      "lambda": 121.0,
+      "m4_surface": {
+        "nonzero": [
+          {
+            "level": -38,
+            "position": 0,
+            "scan": 0
+          }
+        ],
+        "rate_bits": 29,
+        "rd_cost": 31510.0,
+        "reconstruction_sha256": "7280df47238543003e6170477496046002c39761326b31a8d7acd79fc7de383b",
+        "sse": 28001
+      },
+      "name": "photographic",
+      "qindex": 100,
+      "source_sha256": "f31d760f32ee10396e71898aa074a829cfe3204cdf12e59156b4f50ea35122c4"
+    },
+    {
+      "dc_only": {
+        "nonzero": [
+          {
+            "level": -9,
+            "position": 0,
+            "scan": 0
+          }
+        ],
+        "rate_bits": 22,
+        "rd_cost": 76673.0,
+        "reconstruction_sha256": "49fd751e673d8c2c36cee358f2d89eaf224515ead26b5ddb977a79dda9d1ad60",
+        "sse": 28075
+      },
+      "general": {
+        "nonzero": [
+          {
+            "level": -9,
+            "position": 0,
+            "scan": 0
+          },
+          {
+            "level": -1,
+            "position": 1,
+            "scan": 2
+          },
+          {
+            "level": -1,
+            "position": 2,
+            "scan": 5
+          }
+        ],
+        "rate_bits": 21,
+        "rd_cost": 70522.0,
+        "reconstruction_sha256": "ee37ec0c9494ed38bac333b46ddd0f0cb83c34e86909276a0aa0440e0e6747d9",
+        "sse": 24133
+      },
+      "general_vs_dc_sse_percent": 14.041,
+      "general_vs_m4_sse_percent": 18.894,
+      "lambda": 2209.0,
+      "m4_surface": {
+        "nonzero": [
+          {
+            "level": -9,
+            "position": 0,
+            "scan": 0
+          },
+          {
+            "level": 1,
+            "position": 8,
+            "scan": 1
+          }
+        ],
+        "rate_bits": 18,
+        "rd_cost": 69517.0,
+        "reconstruction_sha256": "bd222adfbdb056caa0cbe78ad2ebfd65be65768e22e86d627ef540d2032663ec",
+        "sse": 29755
+      },
+      "name": "photographic",
+      "qindex": 150,
+      "source_sha256": "f31d760f32ee10396e71898aa074a829cfe3204cdf12e59156b4f50ea35122c4"
+    },
+    {
+      "dc_only": {
+        "nonzero": [
+          {
+            "level": -1,
+            "position": 0,
+            "scan": 0
+          }
+        ],
+        "rate_bits": 6,
+        "rd_cost": 469091.0,
+        "reconstruction_sha256": "89ec7e9081cd930b3d5ebc6befd97e8a3e50ef8e1be2f7b23621c6543013fdd3",
+        "sse": 50915
+      },
+      "general": {
+        "nonzero": [
+          {
+            "level": -1,
+            "position": 0,
+            "scan": 0
+          }
+        ],
+        "rate_bits": 6,
+        "rd_cost": 469091.0,
+        "reconstruction_sha256": "89ec7e9081cd930b3d5ebc6befd97e8a3e50ef8e1be2f7b23621c6543013fdd3",
+        "sse": 50915
+      },
+      "general_vs_dc_sse_percent": 0.0,
+      "general_vs_m4_sse_percent": 0.0,
+      "lambda": 69696.0,
+      "m4_surface": {
+        "nonzero": [
+          {
+            "level": -1,
+            "position": 0,
+            "scan": 0
+          }
+        ],
+        "rate_bits": 6,
+        "rd_cost": 469091.0,
+        "reconstruction_sha256": "89ec7e9081cd930b3d5ebc6befd97e8a3e50ef8e1be2f7b23621c6543013fdd3",
+        "sse": 50915
+      },
+      "name": "photographic",
+      "qindex": 210,
+      "source_sha256": "f31d760f32ee10396e71898aa074a829cfe3204cdf12e59156b4f50ea35122c4"
+    }
+  ],
+  "schema": "av2-encoder-ac8x8-rd-v1",
+  "surface": {
+    "level_magnitudes": [
+      1,
+      32767
+    ],
+    "max_search_nonzero": 8,
+    "parity_hiding": false,
+    "raster_positions": [
+      0,
+      63
+    ],
+    "scan_positions": [
+      0,
+      63
+    ],
+    "search_level_magnitudes": [
+      1,
+      63
+    ],
+    "tcq": false,
+    "transform": "8x8 DCT_DCT"
+  }
+}

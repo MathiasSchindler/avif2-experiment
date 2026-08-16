@@ -1,0 +1,4987 @@
+{
+  "cases": [
+    {
+      "avm_project_exact": true,
+      "decode_time_ns": {
+        "avm": 78970909,
+        "project": 35757657
+      },
+      "decoded_sha256": "20155b47a47f73e347cad8369ee4c377a8d7548410b7f4fc2875f39bff142b25",
+      "deterministic_rerun": true,
+      "encode_time_ns": {
+        "median": 3391200318,
+        "samples": [
+          3388163918,
+          3394236718
+        ],
+        "worst": 3394236718
+      },
+      "encoder_reported_sse": [
+        255269023
+      ],
+      "encoder_reported_sse_matches_decode": true,
+      "height": 896,
+      "id": "full-chinnathurai-church-i400-q60",
+      "input_bytes": 802816,
+      "input_sha256": "b2cda7cf91f932933c3fe022e1628acb21c2f7fe50ac4dc6dc07478dcded6220",
+      "obu_bytes": 8246,
+      "obu_sha256": "cf4152d8fd250e10135ae374dd942ffdb160fa27582549ee6162fe0b6600b299",
+      "pattern": null,
+      "pixel_format": "i400",
+      "planes": [
+        {
+          "decoded_sha256": "20155b47a47f73e347cad8369ee4c377a8d7548410b7f4fc2875f39bff142b25",
+          "plane": "y",
+          "psnr_db": "23.106983",
+          "samples": 802816,
+          "sse": 255269023
+        }
+      ],
+      "qindex": 60,
+      "source_case": "full-chinnathurai-church-i400",
+      "source_id": "chinnathurai-church",
+      "subset": "full-prepared",
+      "width": 896,
+      "workspace_bytes": 4039936
+    },
+    {
+      "avm_project_exact": true,
+      "decode_time_ns": {
+        "avm": 74890132,
+        "project": 34827576
+      },
+      "decoded_sha256": "065ab05f177dc6f5aaabecf26f30a9ee858a56eced55f74538307e9a6ffa8cd0",
+      "deterministic_rerun": true,
+      "encode_time_ns": {
+        "median": 1131877373,
+        "samples": [
+          1120361850,
+          1143392896
+        ],
+        "worst": 1143392896
+      },
+      "encoder_reported_sse": [
+        255319917
+      ],
+      "encoder_reported_sse_matches_decode": true,
+      "height": 896,
+      "id": "full-chinnathurai-church-i400-q100",
+      "input_bytes": 802816,
+      "input_sha256": "b2cda7cf91f932933c3fe022e1628acb21c2f7fe50ac4dc6dc07478dcded6220",
+      "obu_bytes": 5824,
+      "obu_sha256": "cb39e5228e4f2ded80e80ea841718dd2cdbd262f2ffa657c8fe077c7e2109166",
+      "pattern": null,
+      "pixel_format": "i400",
+      "planes": [
+        {
+          "decoded_sha256": "065ab05f177dc6f5aaabecf26f30a9ee858a56eced55f74538307e9a6ffa8cd0",
+          "plane": "y",
+          "psnr_db": "23.106117",
+          "samples": 802816,
+          "sse": 255319917
+        }
+      ],
+      "qindex": 100,
+      "source_case": "full-chinnathurai-church-i400",
+      "source_id": "chinnathurai-church",
+      "subset": "full-prepared",
+      "width": 896,
+      "workspace_bytes": 4039936
+    },
+    {
+      "avm_project_exact": true,
+      "decode_time_ns": {
+        "avm": 73048478,
+        "project": 27898100
+      },
+      "decoded_sha256": "abdf65ba6b67442c04f9ca3a7c7e7a30eb4f194afe678a6dc5ac9b0da15d0de0",
+      "deterministic_rerun": true,
+      "encode_time_ns": {
+        "median": 282651520,
+        "samples": [
+          283193421,
+          282109619
+        ],
+        "worst": 283193421
+      },
+      "encoder_reported_sse": [
+        267080753
+      ],
+      "encoder_reported_sse_matches_decode": true,
+      "height": 896,
+      "id": "full-chinnathurai-church-i400-q180",
+      "input_bytes": 802816,
+      "input_sha256": "b2cda7cf91f932933c3fe022e1628acb21c2f7fe50ac4dc6dc07478dcded6220",
+      "obu_bytes": 2065,
+      "obu_sha256": "d0899baf1627bc968d459515a93c1d50598b0408e70433c3f89e254b2f34b705",
+      "pattern": null,
+      "pixel_format": "i400",
+      "planes": [
+        {
+          "decoded_sha256": "abdf65ba6b67442c04f9ca3a7c7e7a30eb4f194afe678a6dc5ac9b0da15d0de0",
+          "plane": "y",
+          "psnr_db": "22.910538",
+          "samples": 802816,
+          "sse": 267080753
+        }
+      ],
+      "qindex": 180,
+      "source_case": "full-chinnathurai-church-i400",
+      "source_id": "chinnathurai-church",
+      "subset": "full-prepared",
+      "width": 896,
+      "workspace_bytes": 4039936
+    },
+    {
+      "avm_project_exact": true,
+      "decode_time_ns": {
+        "avm": 77916160,
+        "project": 48482802
+      },
+      "decoded_sha256": "e71aa71b1939fc12428ba2630d5fdb16b6e3fec3191ced6d91cda483505eab51",
+      "deterministic_rerun": true,
+      "encode_time_ns": {
+        "median": 26668150301,
+        "samples": [
+          26618753342,
+          26717547261
+        ],
+        "worst": 26717547261
+      },
+      "encoder_reported_sse": [
+        256029178,
+        4104493,
+        3729294
+      ],
+      "encoder_reported_sse_matches_decode": true,
+      "height": 896,
+      "id": "full-chinnathurai-church-i420-q60",
+      "input_bytes": 1204224,
+      "input_sha256": "44b794261a50593e64014772a07ff6d0fd4d8e567ffb93c9572e95d27f3d7f23",
+      "obu_bytes": 11435,
+      "obu_sha256": "c3a0e44820766fd79c1a717c616f2e4af8b86152afec1a94cdc0bbeb0996217c",
+      "pattern": null,
+      "pixel_format": "i420",
+      "planes": [
+        {
+          "decoded_sha256": "7a2cc487893a00b461430eb6b3531e3ce8b534c75cf41ad19f3c9f9530cdaac6",
+          "plane": "y",
+          "psnr_db": "23.094069",
+          "samples": 802816,
+          "sse": 256029178
+        },
+        {
+          "decoded_sha256": "c30bb81aded870e9220caab2ab1ea550131417bb0ffdfe47c7c00abde00190d9",
+          "plane": "u",
+          "psnr_db": "35.023769",
+          "samples": 200704,
+          "sse": 4104493
+        },
+        {
+          "decoded_sha256": "27816f58458d9ef4e577a4c6020cd6d1287a5900d60143d8e10dd65e78e04c78",
+          "plane": "v",
+          "psnr_db": "35.440098",
+          "samples": 200704,
+          "sse": 3729294
+        }
+      ],
+      "qindex": 60,
+      "source_case": "full-chinnathurai-church-i420",
+      "source_id": "chinnathurai-church",
+      "subset": "full-prepared",
+      "width": 896,
+      "workspace_bytes": 4855296
+    },
+    {
+      "avm_project_exact": true,
+      "decode_time_ns": {
+        "avm": 79528384,
+        "project": 48273277
+      },
+      "decoded_sha256": "8c6b373c3999bfe7e566c9a65dec5c930f0b61f2659b5fba648b6b29f9711514",
+      "deterministic_rerun": true,
+      "encode_time_ns": {
+        "median": 8427466236,
+        "samples": [
+          8407635823,
+          8447296649
+        ],
+        "worst": 8447296649
+      },
+      "encoder_reported_sse": [
+        256084800,
+        4117313,
+        3742948
+      ],
+      "encoder_reported_sse_matches_decode": true,
+      "height": 896,
+      "id": "full-chinnathurai-church-i420-q100",
+      "input_bytes": 1204224,
+      "input_sha256": "44b794261a50593e64014772a07ff6d0fd4d8e567ffb93c9572e95d27f3d7f23",
+      "obu_bytes": 8027,
+      "obu_sha256": "cf5b9f04becde727f9bdbd1f35f6a95cc176f09d8249cd64809815f1e1adef94",
+      "pattern": null,
+      "pixel_format": "i420",
+      "planes": [
+        {
+          "decoded_sha256": "0c5a1b629684e741f6b39843f1ff76ee007373f30812f26a09ad8ed4e75508f0",
+          "plane": "y",
+          "psnr_db": "23.093126",
+          "samples": 802816,
+          "sse": 256084800
+        },
+        {
+          "decoded_sha256": "750454ab54779aa2b7d361ec778354e29b001608b5398330f53c02ac263ca3db",
+          "plane": "u",
+          "psnr_db": "35.010225",
+          "samples": 200704,
+          "sse": 4117313
+        },
+        {
+          "decoded_sha256": "f26de4de0a2be79c106a3014b275f2c78611f26a222b065dba74ed49dbd5e8d0",
+          "plane": "v",
+          "psnr_db": "35.424226",
+          "samples": 200704,
+          "sse": 3742948
+        }
+      ],
+      "qindex": 100,
+      "source_case": "full-chinnathurai-church-i420",
+      "source_id": "chinnathurai-church",
+      "subset": "full-prepared",
+      "width": 896,
+      "workspace_bytes": 4855296
+    },
+    {
+      "avm_project_exact": true,
+      "decode_time_ns": {
+        "avm": 76770479,
+        "project": 37605457
+      },
+      "decoded_sha256": "a02fc8ef54b3aaf958a3da2c5a16b49cfc9d087303a6fb97d7445861b3a6c0f2",
+      "deterministic_rerun": true,
+      "encode_time_ns": {
+        "median": 1011007772,
+        "samples": [
+          1005080837,
+          1016934707
+        ],
+        "worst": 1016934707
+      },
+      "encoder_reported_sse": [
+        266957812,
+        7248577,
+        6604056
+      ],
+      "encoder_reported_sse_matches_decode": true,
+      "height": 896,
+      "id": "full-chinnathurai-church-i420-q180",
+      "input_bytes": 1204224,
+      "input_sha256": "44b794261a50593e64014772a07ff6d0fd4d8e567ffb93c9572e95d27f3d7f23",
+      "obu_bytes": 2493,
+      "obu_sha256": "f0a21bed7306cfd812cb79c08fc266e9f90110e80b80e8eb2756ed19d44109df",
+      "pattern": null,
+      "pixel_format": "i420",
+      "planes": [
+        {
+          "decoded_sha256": "9d203ef0c034e16020aea5129ba0bb3e206b6ea97740fc7e4c68bb077f69cbdc",
+          "plane": "y",
+          "psnr_db": "22.912537",
+          "samples": 802816,
+          "sse": 266957812
+        },
+        {
+          "decoded_sha256": "310e9b53cf5b91b70d13eeec6d9b5700af2bc70b8831844731fc655e39d6567a",
+          "plane": "u",
+          "psnr_db": "32.553836",
+          "samples": 200704,
+          "sse": 7248577
+        },
+        {
+          "decoded_sha256": "8c216b6e408614688a97f2dcefb705d63d8e50477a07f7728058bac784494d0e",
+          "plane": "v",
+          "psnr_db": "32.958256",
+          "samples": 200704,
+          "sse": 6604056
+        }
+      ],
+      "qindex": 180,
+      "source_case": "full-chinnathurai-church-i420",
+      "source_id": "chinnathurai-church",
+      "subset": "full-prepared",
+      "width": 896,
+      "workspace_bytes": 4855296
+    },
+    {
+      "avm_project_exact": true,
+      "decode_time_ns": {
+        "avm": 91502313,
+        "project": 80458116
+      },
+      "decoded_sha256": "58231962911f519da03d2840f48e23deed6c376e744f021ef9f9e1ff8f794a26",
+      "deterministic_rerun": true,
+      "encode_time_ns": {
+        "median": 52975115417,
+        "samples": [
+          52981267033,
+          52968963802
+        ],
+        "worst": 52981267033
+      },
+      "encoder_reported_sse": [
+        256029178,
+        18782783,
+        16989604
+      ],
+      "encoder_reported_sse_matches_decode": true,
+      "height": 896,
+      "id": "full-chinnathurai-church-i444-q60",
+      "input_bytes": 2408448,
+      "input_sha256": "fcdd3a2636c77952884729eb31d5982bb0b4f3072c6768a20138d33ecf32507e",
+      "obu_bytes": 12125,
+      "obu_sha256": "50a7f7b72eda17bf6a86b181d7036c1bbc33653fded8ddc6f5c727d3d1726e07",
+      "pattern": null,
+      "pixel_format": "i444",
+      "planes": [
+        {
+          "decoded_sha256": "7a2cc487893a00b461430eb6b3531e3ce8b534c75cf41ad19f3c9f9530cdaac6",
+          "plane": "y",
+          "psnr_db": "23.094069",
+          "samples": 802816,
+          "sse": 256029178
+        },
+        {
+          "decoded_sha256": "2a628c040552460b596c002300aa4614d0e1ad59de9045792f0c0400dc112f90",
+          "plane": "u",
+          "psnr_db": "34.439364",
+          "samples": 802816,
+          "sse": 18782783
+        },
+        {
+          "decoded_sha256": "b5eff969d3392b8a1d22c0951782292e5f073df1489b410d8245742f64024a04",
+          "plane": "v",
+          "psnr_db": "34.875131",
+          "samples": 802816,
+          "sse": 16989604
+        }
+      ],
+      "qindex": 60,
+      "source_case": "full-chinnathurai-church-i444",
+      "source_id": "chinnathurai-church",
+      "subset": "full-prepared",
+      "width": 896,
+      "workspace_bytes": 7263744
+    },
+    {
+      "avm_project_exact": true,
+      "decode_time_ns": {
+        "avm": 91576554,
+        "project": 80308026
+      },
+      "decoded_sha256": "90d6401ab64ddd631df4cc7c3ecafb215af235ac72349654e9c0612776ee1790",
+      "deterministic_rerun": true,
+      "encode_time_ns": {
+        "median": 16773312716,
+        "samples": [
+          16804480346,
+          16742145086
+        ],
+        "worst": 16804480346
+      },
+      "encoder_reported_sse": [
+        256084800,
+        18782783,
+        16989604
+      ],
+      "encoder_reported_sse_matches_decode": true,
+      "height": 896,
+      "id": "full-chinnathurai-church-i444-q100",
+      "input_bytes": 2408448,
+      "input_sha256": "fcdd3a2636c77952884729eb31d5982bb0b4f3072c6768a20138d33ecf32507e",
+      "obu_bytes": 8369,
+      "obu_sha256": "0d1b2b963349b8e878e266ac3394830d7a3c1aa9c79dcc231e80be97852d2d2f",
+      "pattern": null,
+      "pixel_format": "i444",
+      "planes": [
+        {
+          "decoded_sha256": "0c5a1b629684e741f6b39843f1ff76ee007373f30812f26a09ad8ed4e75508f0",
+          "plane": "y",
+          "psnr_db": "23.093126",
+          "samples": 802816,
+          "sse": 256084800
+        },
+        {
+          "decoded_sha256": "2a628c040552460b596c002300aa4614d0e1ad59de9045792f0c0400dc112f90",
+          "plane": "u",
+          "psnr_db": "34.439364",
+          "samples": 802816,
+          "sse": 18782783
+        },
+        {
+          "decoded_sha256": "b5eff969d3392b8a1d22c0951782292e5f073df1489b410d8245742f64024a04",
+          "plane": "v",
+          "psnr_db": "34.875131",
+          "samples": 802816,
+          "sse": 16989604
+        }
+      ],
+      "qindex": 100,
+      "source_case": "full-chinnathurai-church-i444",
+      "source_id": "chinnathurai-church",
+      "subset": "full-prepared",
+      "width": 896,
+      "workspace_bytes": 7263744
+    },
+    {
+      "avm_project_exact": true,
+      "decode_time_ns": {
+        "avm": 90115678,
+        "project": 55803671
+      },
+      "decoded_sha256": "74933d2662fd7b04a35c8a3716fa716d42c0d04654f6866facd6f9e614e0c59e",
+      "deterministic_rerun": true,
+      "encode_time_ns": {
+        "median": 1982617811,
+        "samples": [
+          1979955448,
+          1985280174
+        ],
+        "worst": 1985280174
+      },
+      "encoder_reported_sse": [
+        266957812,
+        22061901,
+        19448476
+      ],
+      "encoder_reported_sse_matches_decode": true,
+      "height": 896,
+      "id": "full-chinnathurai-church-i444-q180",
+      "input_bytes": 2408448,
+      "input_sha256": "fcdd3a2636c77952884729eb31d5982bb0b4f3072c6768a20138d33ecf32507e",
+      "obu_bytes": 2810,
+      "obu_sha256": "1549613ff33e7b749a4eed75f5271d7e8d1c2b70f748a968fc0d8d5f91400b1c",
+      "pattern": null,
+      "pixel_format": "i444",
+      "planes": [
+        {
+          "decoded_sha256": "9d203ef0c034e16020aea5129ba0bb3e206b6ea97740fc7e4c68bb077f69cbdc",
+          "plane": "y",
+          "psnr_db": "22.912537",
+          "samples": 802816,
+          "sse": 266957812
+        },
+        {
+          "decoded_sha256": "e71a568d7fc37644f9877b94c45de406fb73b36e12a47de84d37191eef3a3f96",
+          "plane": "u",
+          "psnr_db": "33.740534",
+          "samples": 802816,
+          "sse": 22061901
+        },
+        {
+          "decoded_sha256": "6fda4639532b07191bbe8960837ee3e109c871553d204547aee4c6d1b7057352",
+          "plane": "v",
+          "psnr_db": "34.288108",
+          "samples": 802816,
+          "sse": 19448476
+        }
+      ],
+      "qindex": 180,
+      "source_case": "full-chinnathurai-church-i444",
+      "source_id": "chinnathurai-church",
+      "subset": "full-prepared",
+      "width": 896,
+      "workspace_bytes": 7263744
+    },
+    {
+      "avm_project_exact": true,
+      "decode_time_ns": {
+        "avm": 73075088,
+        "project": 27760930
+      },
+      "decoded_sha256": "0eca58694e904cdfa0f00ab065194366e695a88c10046fa2c52f3456ff04974e",
+      "deterministic_rerun": true,
+      "encode_time_ns": {
+        "median": 2141395772,
+        "samples": [
+          2130367430,
+          2152424115
+        ],
+        "worst": 2152424115
+      },
+      "encoder_reported_sse": [
+        65623559
+      ],
+      "encoder_reported_sse_matches_decode": true,
+      "height": 896,
+      "id": "full-elbrus-milky-way-i400-q60",
+      "input_bytes": 535808,
+      "input_sha256": "517e9b5a796b6836d670a0e28a2a4e8517b47bfe496da8f47131be82a9364418",
+      "obu_bytes": 4885,
+      "obu_sha256": "366f02bc9cd24130064f1e2bcbbf573e458d284818b65c55139f302e22f64583",
+      "pattern": null,
+      "pixel_format": "i400",
+      "planes": [
+        {
+          "decoded_sha256": "0eca58694e904cdfa0f00ab065194366e695a88c10046fa2c52f3456ff04974e",
+          "plane": "y",
+          "psnr_db": "27.250298",
+          "samples": 535808,
+          "sse": 65623559
+        }
+      ],
+      "qindex": 60,
+      "source_case": "full-elbrus-milky-way-i400",
+      "source_id": "elbrus-milky-way",
+      "subset": "full-prepared",
+      "width": 598,
+      "workspace_bytes": 2703776
+    },
+    {
+      "avm_project_exact": true,
+      "decode_time_ns": {
+        "avm": 67650558,
+        "project": 27430439
+      },
+      "decoded_sha256": "c0baafe5cb78e8887ae877fda0dcacfef7597be370afa87f3fb4f16512da6866",
+      "deterministic_rerun": true,
+      "encode_time_ns": {
+        "median": 692039582,
+        "samples": [
+          683974306,
+          700104859
+        ],
+        "worst": 700104859
+      },
+      "encoder_reported_sse": [
+        65694467
+      ],
+      "encoder_reported_sse_matches_decode": true,
+      "height": 896,
+      "id": "full-elbrus-milky-way-i400-q100",
+      "input_bytes": 535808,
+      "input_sha256": "517e9b5a796b6836d670a0e28a2a4e8517b47bfe496da8f47131be82a9364418",
+      "obu_bytes": 3816,
+      "obu_sha256": "33493bda425cffeb692717d476fdf62a3fb26ed4e8e9de55d46eb5de58c32af2",
+      "pattern": null,
+      "pixel_format": "i400",
+      "planes": [
+        {
+          "decoded_sha256": "c0baafe5cb78e8887ae877fda0dcacfef7597be370afa87f3fb4f16512da6866",
+          "plane": "y",
+          "psnr_db": "27.245608",
+          "samples": 535808,
+          "sse": 65694467
+        }
+      ],
+      "qindex": 100,
+      "source_case": "full-elbrus-milky-way-i400",
+      "source_id": "elbrus-milky-way",
+      "subset": "full-prepared",
+      "width": 598,
+      "workspace_bytes": 2703776
+    },
+    {
+      "avm_project_exact": true,
+      "decode_time_ns": {
+        "avm": 61906922,
+        "project": 16708772
+      },
+      "decoded_sha256": "06a6333c6a2479822e5515c0faffaf2840401a31bf6b37bba65a43142a6fd3c3",
+      "deterministic_rerun": true,
+      "encode_time_ns": {
+        "median": 90636172,
+        "samples": [
+          90387012,
+          90885332
+        ],
+        "worst": 90885332
+      },
+      "encoder_reported_sse": [
+        72020317
+      ],
+      "encoder_reported_sse_matches_decode": true,
+      "height": 896,
+      "id": "full-elbrus-milky-way-i400-q180",
+      "input_bytes": 535808,
+      "input_sha256": "517e9b5a796b6836d670a0e28a2a4e8517b47bfe496da8f47131be82a9364418",
+      "obu_bytes": 815,
+      "obu_sha256": "6fab3544d82dcb93c16526dc5f9892a31536ff8e0e1da59929c5ed21bf981639",
+      "pattern": null,
+      "pixel_format": "i400",
+      "planes": [
+        {
+          "decoded_sha256": "06a6333c6a2479822e5515c0faffaf2840401a31bf6b37bba65a43142a6fd3c3",
+          "plane": "y",
+          "psnr_db": "26.846345",
+          "samples": 535808,
+          "sse": 72020317
+        }
+      ],
+      "qindex": 180,
+      "source_case": "full-elbrus-milky-way-i400",
+      "source_id": "elbrus-milky-way",
+      "subset": "full-prepared",
+      "width": 598,
+      "workspace_bytes": 2703776
+    },
+    {
+      "avm_project_exact": true,
+      "decode_time_ns": {
+        "avm": 74533660,
+        "project": 35348735
+      },
+      "decoded_sha256": "b626458d94f22cafc6ab9ec2608abd47d61bb12f35ecd6b716d67209f4e6cf79",
+      "deterministic_rerun": true,
+      "encode_time_ns": {
+        "median": 8742821343,
+        "samples": [
+          8738336987,
+          8747305700
+        ],
+        "worst": 8747305700
+      },
+      "encoder_reported_sse": [
+        65454981,
+        571508,
+        784093
+      ],
+      "encoder_reported_sse_matches_decode": true,
+      "height": 896,
+      "id": "full-elbrus-milky-way-i420-q60",
+      "input_bytes": 803712,
+      "input_sha256": "7409d91a961f881a0e6660fe198137d2514966fd8212c41b0be6ea3bbb22da8a",
+      "obu_bytes": 6030,
+      "obu_sha256": "81a9a35f8c9eff53a6de730e13019b8cfc450e617ffb38c4bc53f11f183c718c",
+      "pattern": null,
+      "pixel_format": "i420",
+      "planes": [
+        {
+          "decoded_sha256": "629e088497901afe79b5dff45a6a179f9cd493678897c3bce056b2d90637b6a8",
+          "plane": "y",
+          "psnr_db": "27.261469",
+          "samples": 535808,
+          "sse": 65454981
+        },
+        {
+          "decoded_sha256": "14f99828340a24d582f0b2a098487b31be4a85bd41ee56eda50d980218ad963a",
+          "plane": "u",
+          "psnr_db": "41.830072",
+          "samples": 133952,
+          "sse": 571508
+        },
+        {
+          "decoded_sha256": "d74eeb90bcaa3021d277b4a0e3f581af5da18c38bc397fefbb676e3cde3de7d6",
+          "plane": "v",
+          "psnr_db": "40.456620",
+          "samples": 133952,
+          "sse": 784093
+        }
+      ],
+      "qindex": 60,
+      "source_case": "full-elbrus-milky-way-i420",
+      "source_id": "elbrus-milky-way",
+      "subset": "full-prepared",
+      "width": 598,
+      "workspace_bytes": 3248992
+    },
+    {
+      "avm_project_exact": true,
+      "decode_time_ns": {
+        "avm": 80485006,
+        "project": 37078503
+      },
+      "decoded_sha256": "124b4eb03e922d7dd9f85f724665cadda1c3fe4c4fa2603b45c9e23572b074c0",
+      "deterministic_rerun": true,
+      "encode_time_ns": {
+        "median": 2769100247,
+        "samples": [
+          2783021256,
+          2755179239
+        ],
+        "worst": 2783021256
+      },
+      "encoder_reported_sse": [
+        65525599,
+        575450,
+        788987
+      ],
+      "encoder_reported_sse_matches_decode": true,
+      "height": 896,
+      "id": "full-elbrus-milky-way-i420-q100",
+      "input_bytes": 803712,
+      "input_sha256": "7409d91a961f881a0e6660fe198137d2514966fd8212c41b0be6ea3bbb22da8a",
+      "obu_bytes": 4782,
+      "obu_sha256": "cba5927e2935621cbb2b504d15aba19f43a27de0c3bc41317f8d43d258ddf5ac",
+      "pattern": null,
+      "pixel_format": "i420",
+      "planes": [
+        {
+          "decoded_sha256": "eca708138d6d87c0f85a72d546893d31f29671a5e26f8490af24a969593d06ab",
+          "plane": "y",
+          "psnr_db": "27.256786",
+          "samples": 535808,
+          "sse": 65525599
+        },
+        {
+          "decoded_sha256": "6a2a7a71677f51cf04a7a6b65122f6ddbeee1b783602bc729af49a10fcca6e76",
+          "plane": "u",
+          "psnr_db": "41.800220",
+          "samples": 133952,
+          "sse": 575450
+        },
+        {
+          "decoded_sha256": "9e44c13fb27d6cec35ccdcb961d1ea07ff1d5c13023322fe73187e9b94b27926",
+          "plane": "v",
+          "psnr_db": "40.429597",
+          "samples": 133952,
+          "sse": 788987
+        }
+      ],
+      "qindex": 100,
+      "source_case": "full-elbrus-milky-way-i420",
+      "source_id": "elbrus-milky-way",
+      "subset": "full-prepared",
+      "width": 598,
+      "workspace_bytes": 3248992
+    },
+    {
+      "avm_project_exact": true,
+      "decode_time_ns": {
+        "avm": 73341743,
+        "project": 22726746
+      },
+      "decoded_sha256": "e446e21255c3dac496860884828b7b7d07cae64b6b33865f2c7f61ffdb8467a7",
+      "deterministic_rerun": true,
+      "encode_time_ns": {
+        "median": 321810744,
+        "samples": [
+          310665627,
+          332955862
+        ],
+        "worst": 332955862
+      },
+      "encoder_reported_sse": [
+        71928853,
+        2484628,
+        2152099
+      ],
+      "encoder_reported_sse_matches_decode": true,
+      "height": 896,
+      "id": "full-elbrus-milky-way-i420-q180",
+      "input_bytes": 803712,
+      "input_sha256": "7409d91a961f881a0e6660fe198137d2514966fd8212c41b0be6ea3bbb22da8a",
+      "obu_bytes": 917,
+      "obu_sha256": "f6355095eb345bd779e88d08f4d9f10dfedf8394c726b45692f2d6137e164a85",
+      "pattern": null,
+      "pixel_format": "i420",
+      "planes": [
+        {
+          "decoded_sha256": "81fc48aace895f8a1ffa31c97ca7fbf941a56e3640366706ab990552018ca3d9",
+          "plane": "y",
+          "psnr_db": "26.851864",
+          "samples": 535808,
+          "sse": 71928853
+        },
+        {
+          "decoded_sha256": "3a8457a032b403a62126bc67dcddb3e3a3110b2706d068bd42c71b9cfb869045",
+          "plane": "u",
+          "psnr_db": "35.447682",
+          "samples": 133952,
+          "sse": 2484628
+        },
+        {
+          "decoded_sha256": "e1fc594e398ea03d6a5521cdc0f3bcb675bc8745caf9ac40ff37889b6c21a04b",
+          "plane": "v",
+          "psnr_db": "36.071673",
+          "samples": 133952,
+          "sse": 2152099
+        }
+      ],
+      "qindex": 180,
+      "source_case": "full-elbrus-milky-way-i420",
+      "source_id": "elbrus-milky-way",
+      "subset": "full-prepared",
+      "width": 598,
+      "workspace_bytes": 3248992
+    },
+    {
+      "avm_project_exact": true,
+      "decode_time_ns": {
+        "avm": 75119772,
+        "project": 53998684
+      },
+      "decoded_sha256": "9c31c0ad694b22d4207fc6eb33c0f791f1b2a01f87a3a65d6b1c7e4847715dc9",
+      "deterministic_rerun": true,
+      "encode_time_ns": {
+        "median": 17636423677,
+        "samples": [
+          17687281619,
+          17585565736
+        ],
+        "worst": 17687281619
+      },
+      "encoder_reported_sse": [
+        65454981,
+        5737538,
+        8252062
+      ],
+      "encoder_reported_sse_matches_decode": true,
+      "height": 896,
+      "id": "full-elbrus-milky-way-i444-q60",
+      "input_bytes": 1607424,
+      "input_sha256": "0eb6d4f4e7506cb006f1231216e88caa640e98d52091a90ab0575c0bf395e02d",
+      "obu_bytes": 6138,
+      "obu_sha256": "25bc64cf28f00e328e4a1bae8efc800212afb8e136987a8ca225795a424ef6e4",
+      "pattern": null,
+      "pixel_format": "i444",
+      "planes": [
+        {
+          "decoded_sha256": "629e088497901afe79b5dff45a6a179f9cd493678897c3bce056b2d90637b6a8",
+          "plane": "y",
+          "psnr_db": "27.261469",
+          "samples": 535808,
+          "sse": 65454981
+        },
+        {
+          "decoded_sha256": "d277b0efb071157bd9197cdbc4d9e24c0c4a3e355265699d2fdae07164477cfb",
+          "plane": "u",
+          "psnr_db": "37.833640",
+          "samples": 535808,
+          "sse": 5737538
+        },
+        {
+          "decoded_sha256": "25e57a2b58081eb545de467a544e54de5be00aa781148384c4d2f33d381f3897",
+          "plane": "v",
+          "psnr_db": "36.255271",
+          "samples": 535808,
+          "sse": 8252062
+        }
+      ],
+      "qindex": 60,
+      "source_case": "full-elbrus-milky-way-i444",
+      "source_id": "elbrus-milky-way",
+      "subset": "full-prepared",
+      "width": 598,
+      "workspace_bytes": 4859104
+    },
+    {
+      "avm_project_exact": true,
+      "decode_time_ns": {
+        "avm": 72464392,
+        "project": 53087950
+      },
+      "decoded_sha256": "eb859b22afda480cdbaaa9819870fbf2138f94d9a65fd1daf96c2bab0d188e7d",
+      "deterministic_rerun": true,
+      "encode_time_ns": {
+        "median": 5542146722,
+        "samples": [
+          5537317139,
+          5546976306
+        ],
+        "worst": 5546976306
+      },
+      "encoder_reported_sse": [
+        65525599,
+        5737538,
+        8252062
+      ],
+      "encoder_reported_sse_matches_decode": true,
+      "height": 896,
+      "id": "full-elbrus-milky-way-i444-q100",
+      "input_bytes": 1607424,
+      "input_sha256": "0eb6d4f4e7506cb006f1231216e88caa640e98d52091a90ab0575c0bf395e02d",
+      "obu_bytes": 4885,
+      "obu_sha256": "5fd7d2579dc85b3764ceff13e2a0b2067dad5acb0e2379febbf294535dd192d7",
+      "pattern": null,
+      "pixel_format": "i444",
+      "planes": [
+        {
+          "decoded_sha256": "eca708138d6d87c0f85a72d546893d31f29671a5e26f8490af24a969593d06ab",
+          "plane": "y",
+          "psnr_db": "27.256786",
+          "samples": 535808,
+          "sse": 65525599
+        },
+        {
+          "decoded_sha256": "d277b0efb071157bd9197cdbc4d9e24c0c4a3e355265699d2fdae07164477cfb",
+          "plane": "u",
+          "psnr_db": "37.833640",
+          "samples": 535808,
+          "sse": 5737538
+        },
+        {
+          "decoded_sha256": "25e57a2b58081eb545de467a544e54de5be00aa781148384c4d2f33d381f3897",
+          "plane": "v",
+          "psnr_db": "36.255271",
+          "samples": 535808,
+          "sse": 8252062
+        }
+      ],
+      "qindex": 100,
+      "source_case": "full-elbrus-milky-way-i444",
+      "source_id": "elbrus-milky-way",
+      "subset": "full-prepared",
+      "width": 598,
+      "workspace_bytes": 4859104
+    },
+    {
+      "avm_project_exact": true,
+      "decode_time_ns": {
+        "avm": 72159324,
+        "project": 28155885
+      },
+      "decoded_sha256": "d10c4bdcdc53bf7d2fd17314361bc8e3f2c4ee665cf207ff623be5ce059d9283",
+      "deterministic_rerun": true,
+      "encode_time_ns": {
+        "median": 628039087,
+        "samples": [
+          608790420,
+          647287755
+        ],
+        "worst": 647287755
+      },
+      "encoder_reported_sse": [
+        71928853,
+        7541346,
+        9564198
+      ],
+      "encoder_reported_sse_matches_decode": true,
+      "height": 896,
+      "id": "full-elbrus-milky-way-i444-q180",
+      "input_bytes": 1607424,
+      "input_sha256": "0eb6d4f4e7506cb006f1231216e88caa640e98d52091a90ab0575c0bf395e02d",
+      "obu_bytes": 1013,
+      "obu_sha256": "3b9bfb7ab7a5460f908f733c3a90de21edc70665cf366d1d122cf6a08e9458f7",
+      "pattern": null,
+      "pixel_format": "i444",
+      "planes": [
+        {
+          "decoded_sha256": "81fc48aace895f8a1ffa31c97ca7fbf941a56e3640366706ab990552018ca3d9",
+          "plane": "y",
+          "psnr_db": "26.851864",
+          "samples": 535808,
+          "sse": 71928853
+        },
+        {
+          "decoded_sha256": "94b005df898c058ad90ae1feb56ef10da8aad445d1fc686144bf6bd826e31f48",
+          "plane": "u",
+          "psnr_db": "36.646407",
+          "samples": 535808,
+          "sse": 7541346
+        },
+        {
+          "decoded_sha256": "dfedf641119ba98e0d0d94e80a35d3e4b2642d467e21e02867f7b2a6e1c41a39",
+          "plane": "v",
+          "psnr_db": "35.614410",
+          "samples": 535808,
+          "sse": 9564198
+        }
+      ],
+      "qindex": 180,
+      "source_case": "full-elbrus-milky-way-i444",
+      "source_id": "elbrus-milky-way",
+      "subset": "full-prepared",
+      "width": 598,
+      "workspace_bytes": 4859104
+    },
+    {
+      "avm_project_exact": true,
+      "decode_time_ns": {
+        "avm": 69347220,
+        "project": 28646523
+      },
+      "decoded_sha256": "662a2794f8193078576db5d4ff06dc4a7f921e60cd2f19250eec0398b51cca53",
+      "deterministic_rerun": true,
+      "encode_time_ns": {
+        "median": 2338050769,
+        "samples": [
+          2333296196,
+          2342805343
+        ],
+        "worst": 2342805343
+      },
+      "encoder_reported_sse": [
+        63567030
+      ],
+      "encoder_reported_sse_matches_decode": true,
+      "height": 598,
+      "id": "full-pastel-chalks-i400-q60",
+      "input_bytes": 535808,
+      "input_sha256": "b529c7705e11b3c313f95130f2e0e648155fcb87fdf33c7bf87f7cbfa9335d8e",
+      "obu_bytes": 8187,
+      "obu_sha256": "b1bb5f76f1aa808d97be9fb515c67941f99dad24c93d7f5ea7c7c87ca1081f66",
+      "pattern": null,
+      "pixel_format": "i400",
+      "planes": [
+        {
+          "decoded_sha256": "662a2794f8193078576db5d4ff06dc4a7f921e60cd2f19250eec0398b51cca53",
+          "plane": "y",
+          "psnr_db": "27.388576",
+          "samples": 535808,
+          "sse": 63567030
+        }
+      ],
+      "qindex": 60,
+      "source_case": "full-pastel-chalks-i400",
+      "source_id": "pastel-chalks",
+      "subset": "full-prepared",
+      "width": 896,
+      "workspace_bytes": 2703776
+    },
+    {
+      "avm_project_exact": true,
+      "decode_time_ns": {
+        "avm": 73031437,
+        "project": 28142894
+      },
+      "decoded_sha256": "aafa8421f299be200abd80e4251e44d993b913d1e7f7433951cc3b49ada3cb1c",
+      "deterministic_rerun": true,
+      "encode_time_ns": {
+        "median": 1403401898,
+        "samples": [
+          1406049455,
+          1400754342
+        ],
+        "worst": 1406049455
+      },
+      "encoder_reported_sse": [
+        63636386
+      ],
+      "encoder_reported_sse_matches_decode": true,
+      "height": 598,
+      "id": "full-pastel-chalks-i400-q100",
+      "input_bytes": 535808,
+      "input_sha256": "b529c7705e11b3c313f95130f2e0e648155fcb87fdf33c7bf87f7cbfa9335d8e",
+      "obu_bytes": 5496,
+      "obu_sha256": "b54c80a9dadee167bbe5056ae716e0974bc921421ceee302e02a127c072b308c",
+      "pattern": null,
+      "pixel_format": "i400",
+      "planes": [
+        {
+          "decoded_sha256": "aafa8421f299be200abd80e4251e44d993b913d1e7f7433951cc3b49ada3cb1c",
+          "plane": "y",
+          "psnr_db": "27.383840",
+          "samples": 535808,
+          "sse": 63636386
+        }
+      ],
+      "qindex": 100,
+      "source_case": "full-pastel-chalks-i400",
+      "source_id": "pastel-chalks",
+      "subset": "full-prepared",
+      "width": 896,
+      "workspace_bytes": 2703776
+    },
+    {
+      "avm_project_exact": true,
+      "decode_time_ns": {
+        "avm": 67158454,
+        "project": 20174803
+      },
+      "decoded_sha256": "5c04048f56055929fc1968e858cbb48be755c4b283c8a44aa329e9e079cb33d4",
+      "deterministic_rerun": true,
+      "encode_time_ns": {
+        "median": 194818197,
+        "samples": [
+          187460382,
+          202176013
+        ],
+        "worst": 202176013
+      },
+      "encoder_reported_sse": [
+        71202040
+      ],
+      "encoder_reported_sse_matches_decode": true,
+      "height": 598,
+      "id": "full-pastel-chalks-i400-q180",
+      "input_bytes": 535808,
+      "input_sha256": "b529c7705e11b3c313f95130f2e0e648155fcb87fdf33c7bf87f7cbfa9335d8e",
+      "obu_bytes": 1918,
+      "obu_sha256": "f56ebde7cf9eb40542441a44260731a4d85f11dceabdbfab3b45ebccbcc6c780",
+      "pattern": null,
+      "pixel_format": "i400",
+      "planes": [
+        {
+          "decoded_sha256": "5c04048f56055929fc1968e858cbb48be755c4b283c8a44aa329e9e079cb33d4",
+          "plane": "y",
+          "psnr_db": "26.895971",
+          "samples": 535808,
+          "sse": 71202040
+        }
+      ],
+      "qindex": 180,
+      "source_case": "full-pastel-chalks-i400",
+      "source_id": "pastel-chalks",
+      "subset": "full-prepared",
+      "width": 896,
+      "workspace_bytes": 2703776
+    },
+    {
+      "avm_project_exact": true,
+      "decode_time_ns": {
+        "avm": 68375654,
+        "project": 40748401
+      },
+      "decoded_sha256": "d7d47c6d51a62bc264a92c91f521c7a979a36b8d12e2e8190772e8b51f5fad0c",
+      "deterministic_rerun": true,
+      "encode_time_ns": {
+        "median": 9298153548,
+        "samples": [
+          9287732898,
+          9308574199
+        ],
+        "worst": 9308574199
+      },
+      "encoder_reported_sse": [
+        71904393,
+        23166060,
+        40139707
+      ],
+      "encoder_reported_sse_matches_decode": false,
+      "height": 598,
+      "id": "full-pastel-chalks-i420-q60",
+      "input_bytes": 803712,
+      "input_sha256": "0eaffab5a62adfb211e7fb8d68bccd5ed3c5ff818225f73093224e4506929869",
+      "obu_bytes": 13141,
+      "obu_sha256": "99fd93acbaf9ac8dc6d6dbcc35710ed3f3febe2679d6e8f4948674b9671b1d32",
+      "pattern": null,
+      "pixel_format": "i420",
+      "planes": [
+        {
+          "decoded_sha256": "fd5a81cdf9efd612aab10e0702679483870ed275e68c829ae98d6722a95e45a8",
+          "plane": "y",
+          "psnr_db": "26.853341",
+          "samples": 535808,
+          "sse": 71904393
+        },
+        {
+          "decoded_sha256": "9bb408aac6877e81f158addf361b5d694c2f16774cb94ea1a6fcfd754d1c091e",
+          "plane": "u",
+          "psnr_db": "25.751764",
+          "samples": 133952,
+          "sse": 23166112
+        },
+        {
+          "decoded_sha256": "823281918d0d81048254e2cebf7b50a0d9644f41180c2c726f5a68bb8612e745",
+          "plane": "v",
+          "psnr_db": "23.364545",
+          "samples": 133952,
+          "sse": 40139789
+        }
+      ],
+      "qindex": 60,
+      "source_case": "full-pastel-chalks-i420",
+      "source_id": "pastel-chalks",
+      "subset": "full-prepared",
+      "width": 896,
+      "workspace_bytes": 3248992
+    },
+    {
+      "avm_project_exact": true,
+      "decode_time_ns": {
+        "avm": 70167860,
+        "project": 40278506
+      },
+      "decoded_sha256": "ff8261911d5ffbf489cc95cc99f6fd2043227a86d8be6fc0b2a2ef6b37f63b17",
+      "deterministic_rerun": true,
+      "encode_time_ns": {
+        "median": 5651630601,
+        "samples": [
+          5651129383,
+          5652131820
+        ],
+        "worst": 5652131820
+      },
+      "encoder_reported_sse": [
+        71976395,
+        23184336,
+        40157365
+      ],
+      "encoder_reported_sse_matches_decode": false,
+      "height": 598,
+      "id": "full-pastel-chalks-i420-q100",
+      "input_bytes": 803712,
+      "input_sha256": "0eaffab5a62adfb211e7fb8d68bccd5ed3c5ff818225f73093224e4506929869",
+      "obu_bytes": 9024,
+      "obu_sha256": "a785577bf224429a16841075e204f8d6ef6cf548a81e575a2946410dba7ea682",
+      "pattern": null,
+      "pixel_format": "i420",
+      "planes": [
+        {
+          "decoded_sha256": "bed2e3b54f901486cb883aadcf45b65a0e099b6f1a718120ebf1ded65a35d368",
+          "plane": "y",
+          "psnr_db": "26.848995",
+          "samples": 535808,
+          "sse": 71976395
+        },
+        {
+          "decoded_sha256": "7e14cb01a82937939e7951a948d2181c76bc5c2b0f07f640acd0b2df07318179",
+          "plane": "u",
+          "psnr_db": "25.748349",
+          "samples": 133952,
+          "sse": 23184336
+        },
+        {
+          "decoded_sha256": "a713f581aa4dcdd5cbfe5c61f45f5005ddabd7e4cc2b59d774a7b2a5c4addeee",
+          "plane": "v",
+          "psnr_db": "23.362645",
+          "samples": 133952,
+          "sse": 40157351
+        }
+      ],
+      "qindex": 100,
+      "source_case": "full-pastel-chalks-i420",
+      "source_id": "pastel-chalks",
+      "subset": "full-prepared",
+      "width": 896,
+      "workspace_bytes": 3248992
+    },
+    {
+      "avm_project_exact": true,
+      "decode_time_ns": {
+        "avm": 71518108,
+        "project": 30402830
+      },
+      "decoded_sha256": "224c25db4162e2cb78dc7de35fbfa7b94ba09ac602b4fa07d1accd2966488ab2",
+      "deterministic_rerun": true,
+      "encode_time_ns": {
+        "median": 683148533,
+        "samples": [
+          674911516,
+          691385550
+        ],
+        "worst": 691385550
+      },
+      "encoder_reported_sse": [
+        79780739,
+        25145670,
+        42219307
+      ],
+      "encoder_reported_sse_matches_decode": false,
+      "height": 598,
+      "id": "full-pastel-chalks-i420-q180",
+      "input_bytes": 803712,
+      "input_sha256": "0eaffab5a62adfb211e7fb8d68bccd5ed3c5ff818225f73093224e4506929869",
+      "obu_bytes": 3246,
+      "obu_sha256": "40abb7eb594df8282bf4cb9ebced0dbdb75344cc28540b589d1927d366678516",
+      "pattern": null,
+      "pixel_format": "i420",
+      "planes": [
+        {
+          "decoded_sha256": "c8c74f8a2ec2db964dba84ba3cd6bc6aea8be6e34642fe281cf8fe213751ba71",
+          "plane": "y",
+          "psnr_db": "26.401915",
+          "samples": 535808,
+          "sse": 79780739
+        },
+        {
+          "decoded_sha256": "969f03d26fbc0e091ed3b35078db9ef9b52ca5b212f907f5b3190a8929794077",
+          "plane": "u",
+          "psnr_db": "25.395703",
+          "samples": 133952,
+          "sse": 25145440
+        },
+        {
+          "decoded_sha256": "cc54b064571f3ead019e21740d218f6eb72dea3430951b2aec9404198947baff",
+          "plane": "v",
+          "psnr_db": "23.145059",
+          "samples": 133952,
+          "sse": 42220531
+        }
+      ],
+      "qindex": 180,
+      "source_case": "full-pastel-chalks-i420",
+      "source_id": "pastel-chalks",
+      "subset": "full-prepared",
+      "width": 896,
+      "workspace_bytes": 3248992
+    },
+    {
+      "avm_project_exact": true,
+      "decode_time_ns": {
+        "avm": 75345570,
+        "project": 71655556
+      },
+      "decoded_sha256": "5c207c8e71576883b566ea5250cc890d166d131acf8ac0cd132ad2c539144014",
+      "deterministic_rerun": true,
+      "encode_time_ns": {
+        "median": 18244212010,
+        "samples": [
+          18191603977,
+          18296820043
+        ],
+        "worst": 18296820043
+      },
+      "encoder_reported_sse": [
+        71904393,
+        97194726,
+        168742043
+      ],
+      "encoder_reported_sse_matches_decode": false,
+      "height": 598,
+      "id": "full-pastel-chalks-i444-q60",
+      "input_bytes": 1607424,
+      "input_sha256": "def0bfc144452d811d76c4a2217b6d2e89d5485eff580a8b166ffbd22358e27b",
+      "obu_bytes": 14326,
+      "obu_sha256": "447cc77a64b6ac696a0f2de4cead27100fc76d61a29a19dfadbfb4276f704602",
+      "pattern": null,
+      "pixel_format": "i444",
+      "planes": [
+        {
+          "decoded_sha256": "fd5a81cdf9efd612aab10e0702679483870ed275e68c829ae98d6722a95e45a8",
+          "plane": "y",
+          "psnr_db": "26.853341",
+          "samples": 535808,
+          "sse": 71904393
+        },
+        {
+          "decoded_sha256": "913b2a5f51a49510848531b58693a7b881f766e674fdcf2315e05db2958ed4f4",
+          "plane": "u",
+          "psnr_db": "25.541928",
+          "samples": 535808,
+          "sse": 97251600
+        },
+        {
+          "decoded_sha256": "ebbd039c8233f1c15df36c2ffb4ac0d197d66c34bf69c5b7b6f70f08b07e7100",
+          "plane": "v",
+          "psnr_db": "23.147268",
+          "samples": 535808,
+          "sse": 168796225
+        }
+      ],
+      "qindex": 60,
+      "source_case": "full-pastel-chalks-i444",
+      "source_id": "pastel-chalks",
+      "subset": "full-prepared",
+      "width": 896,
+      "workspace_bytes": 4859104
+    },
+    {
+      "avm_project_exact": true,
+      "decode_time_ns": {
+        "avm": 72291186,
+        "project": 71401682
+      },
+      "decoded_sha256": "8de249b22323631aefcbed29eea0ec9540c57ad2368e8917deb6ba723cff9321",
+      "deterministic_rerun": true,
+      "encode_time_ns": {
+        "median": 11269057451,
+        "samples": [
+          11313291648,
+          11224823255
+        ],
+        "worst": 11313291648
+      },
+      "encoder_reported_sse": [
+        71976395,
+        97194726,
+        168742043
+      ],
+      "encoder_reported_sse_matches_decode": false,
+      "height": 598,
+      "id": "full-pastel-chalks-i444-q100",
+      "input_bytes": 1607424,
+      "input_sha256": "def0bfc144452d811d76c4a2217b6d2e89d5485eff580a8b166ffbd22358e27b",
+      "obu_bytes": 10047,
+      "obu_sha256": "9bdbeb32e12dc0e3e3bf837c858de715d710aeb89f572bbaa084d1689d51a6d0",
+      "pattern": null,
+      "pixel_format": "i444",
+      "planes": [
+        {
+          "decoded_sha256": "bed2e3b54f901486cb883aadcf45b65a0e099b6f1a718120ebf1ded65a35d368",
+          "plane": "y",
+          "psnr_db": "26.848995",
+          "samples": 535808,
+          "sse": 71976395
+        },
+        {
+          "decoded_sha256": "bb10904ab069c1e413dc1ad15819c282d81bea26bafacf6b7eba60a24894f0df",
+          "plane": "u",
+          "psnr_db": "25.544460",
+          "samples": 535808,
+          "sse": 97194916
+        },
+        {
+          "decoded_sha256": "8a52040f8d2dc92a859b1807ed01759ee2d06ac52dc31673ef9ba174c2614f0d",
+          "plane": "v",
+          "psnr_db": "23.148658",
+          "samples": 535808,
+          "sse": 168742209
+        }
+      ],
+      "qindex": 100,
+      "source_case": "full-pastel-chalks-i444",
+      "source_id": "pastel-chalks",
+      "subset": "full-prepared",
+      "width": 896,
+      "workspace_bytes": 4859104
+    },
+    {
+      "avm_project_exact": true,
+      "decode_time_ns": {
+        "avm": 76116411,
+        "project": 54622999
+      },
+      "decoded_sha256": "d5a7abc379985e7067cf63697c6a098c0ccead081c851f761f68152e76b90bd4",
+      "deterministic_rerun": true,
+      "encode_time_ns": {
+        "median": 1338093374,
+        "samples": [
+          1348078667,
+          1328108082
+        ],
+        "worst": 1348078667
+      },
+      "encoder_reported_sse": [
+        79780739,
+        99328862,
+        170761317
+      ],
+      "encoder_reported_sse_matches_decode": false,
+      "height": 598,
+      "id": "full-pastel-chalks-i444-q180",
+      "input_bytes": 1607424,
+      "input_sha256": "def0bfc144452d811d76c4a2217b6d2e89d5485eff580a8b166ffbd22358e27b",
+      "obu_bytes": 3729,
+      "obu_sha256": "635ca06a4e383581e778349efd98ae91cce653099cfa948259511238f84c848d",
+      "pattern": null,
+      "pixel_format": "i444",
+      "planes": [
+        {
+          "decoded_sha256": "c8c74f8a2ec2db964dba84ba3cd6bc6aea8be6e34642fe281cf8fe213751ba71",
+          "plane": "y",
+          "psnr_db": "26.401915",
+          "samples": 535808,
+          "sse": 79780739
+        },
+        {
+          "decoded_sha256": "3d8427efe137e5ebca1bf6374b47c72166984f228a1f7f0c811714fe76f71afc",
+          "plane": "u",
+          "psnr_db": "25.450181",
+          "samples": 535808,
+          "sse": 99327954
+        },
+        {
+          "decoded_sha256": "cf30e07ab4c120e5f6d4e09e954bb88e075f19454f6de202cc2822021eb5f070",
+          "plane": "v",
+          "psnr_db": "23.097001",
+          "samples": 535808,
+          "sse": 170761317
+        }
+      ],
+      "qindex": 180,
+      "source_case": "full-pastel-chalks-i444",
+      "source_id": "pastel-chalks",
+      "subset": "full-prepared",
+      "width": 896,
+      "workspace_bytes": 4859104
+    },
+    {
+      "avm_project_exact": true,
+      "decode_time_ns": {
+        "avm": 76869024,
+        "project": 56894039
+      },
+      "decoded_sha256": "9a3e840a469913496107ae06311443fa2237d133087443c4f50cea3dfedb5689",
+      "deterministic_rerun": true,
+      "encode_time_ns": {
+        "median": 3223974278,
+        "samples": [
+          3175740741,
+          3272207815
+        ],
+        "worst": 3272207815
+      },
+      "encoder_reported_sse": [
+        595015524
+      ],
+      "encoder_reported_sse_matches_decode": true,
+      "height": 896,
+      "id": "full-pitti-ceiling-i400-q60",
+      "input_bytes": 802816,
+      "input_sha256": "93a053a6bfd2db1a21a948cb5901b5ef2c69e4962cf25e1385482f47a22c97cd",
+      "obu_bytes": 16169,
+      "obu_sha256": "51339c848b020314f59d68f4f35a8d7c3b301bfbbb240bf69de1ac522c020c47",
+      "pattern": null,
+      "pixel_format": "i400",
+      "planes": [
+        {
+          "decoded_sha256": "9a3e840a469913496107ae06311443fa2237d133087443c4f50cea3dfedb5689",
+          "plane": "y",
+          "psnr_db": "19.431681",
+          "samples": 802816,
+          "sse": 595015524
+        }
+      ],
+      "qindex": 60,
+      "source_case": "full-pitti-ceiling-i400",
+      "source_id": "pitti-ceiling",
+      "subset": "full-prepared",
+      "width": 896,
+      "workspace_bytes": 4039936
+    },
+    {
+      "avm_project_exact": true,
+      "decode_time_ns": {
+        "avm": 77148950,
+        "project": 42414472
+      },
+      "decoded_sha256": "ac1e594b7c45ec29f5e024fd535e9e37b09d2644187587b88aabb9ad20348408",
+      "deterministic_rerun": true,
+      "encode_time_ns": {
+        "median": 1025254033,
+        "samples": [
+          1026184673,
+          1024323393
+        ],
+        "worst": 1026184673
+      },
+      "encoder_reported_sse": [
+        595122948
+      ],
+      "encoder_reported_sse_matches_decode": true,
+      "height": 896,
+      "id": "full-pitti-ceiling-i400-q100",
+      "input_bytes": 802816,
+      "input_sha256": "93a053a6bfd2db1a21a948cb5901b5ef2c69e4962cf25e1385482f47a22c97cd",
+      "obu_bytes": 10014,
+      "obu_sha256": "00682c7e53457dfc3a73830bb04dced56783cca4763e8b65ab3979e43bb96174",
+      "pattern": null,
+      "pixel_format": "i400",
+      "planes": [
+        {
+          "decoded_sha256": "ac1e594b7c45ec29f5e024fd535e9e37b09d2644187587b88aabb9ad20348408",
+          "plane": "y",
+          "psnr_db": "19.430897",
+          "samples": 802816,
+          "sse": 595122948
+        }
+      ],
+      "qindex": 100,
+      "source_case": "full-pitti-ceiling-i400",
+      "source_id": "pitti-ceiling",
+      "subset": "full-prepared",
+      "width": 896,
+      "workspace_bytes": 4039936
+    },
+    {
+      "avm_project_exact": true,
+      "decode_time_ns": {
+        "avm": 73502798,
+        "project": 37910945
+      },
+      "decoded_sha256": "f020bfcc26fabebd707c9ecf80b21ebc660066ebd4a214501feeb5964b571ae9",
+      "deterministic_rerun": true,
+      "encode_time_ns": {
+        "median": 133721089,
+        "samples": [
+          134011630,
+          133430548
+        ],
+        "worst": 134011630
+      },
+      "encoder_reported_sse": [
+        607785666
+      ],
+      "encoder_reported_sse_matches_decode": true,
+      "height": 896,
+      "id": "full-pitti-ceiling-i400-q180",
+      "input_bytes": 802816,
+      "input_sha256": "93a053a6bfd2db1a21a948cb5901b5ef2c69e4962cf25e1385482f47a22c97cd",
+      "obu_bytes": 3892,
+      "obu_sha256": "f95cef95f335f05eb7c34654cf68e61629c7f3af92be5982659ec64889730eee",
+      "pattern": null,
+      "pixel_format": "i400",
+      "planes": [
+        {
+          "decoded_sha256": "f020bfcc26fabebd707c9ecf80b21ebc660066ebd4a214501feeb5964b571ae9",
+          "plane": "y",
+          "psnr_db": "19.339459",
+          "samples": 802816,
+          "sse": 607785666
+        }
+      ],
+      "qindex": 180,
+      "source_case": "full-pitti-ceiling-i400",
+      "source_id": "pitti-ceiling",
+      "subset": "full-prepared",
+      "width": 896,
+      "workspace_bytes": 4039936
+    },
+    {
+      "avm_project_exact": true,
+      "decode_time_ns": {
+        "avm": 83675580,
+        "project": 61179592
+      },
+      "decoded_sha256": "69ba6057dea7b1f88c5ad24af9e594fb889af513f99ff8b17381ba17e76101b6",
+      "deterministic_rerun": true,
+      "encode_time_ns": {
+        "median": 13118292347,
+        "samples": [
+          13067969986,
+          13168614708
+        ],
+        "worst": 13168614708
+      },
+      "encoder_reported_sse": [
+        603660434,
+        18038044,
+        6651551
+      ],
+      "encoder_reported_sse_matches_decode": true,
+      "height": 896,
+      "id": "full-pitti-ceiling-i420-q60",
+      "input_bytes": 1204224,
+      "input_sha256": "cb2279bb9801d0193b7ae628620be541004e5ff5abab2b9890b9b5ad09a67cf8",
+      "obu_bytes": 20728,
+      "obu_sha256": "efce9acec8b5be202b6ef2c710ac83f539d7504509bdfa1f9730eb8e54c54245",
+      "pattern": null,
+      "pixel_format": "i420",
+      "planes": [
+        {
+          "decoded_sha256": "6d3bed3ba48896aee57a483990cf72e98856a9701744850d6284001f2645542e",
+          "plane": "y",
+          "psnr_db": "19.369037",
+          "samples": 802816,
+          "sse": 603660434
+        },
+        {
+          "decoded_sha256": "f366b4065624b4ccd6ef131a0a40499c201924adee309b25b3d4b8286dc5663d",
+          "plane": "u",
+          "psnr_db": "28.594469",
+          "samples": 200704,
+          "sse": 18038044
+        },
+        {
+          "decoded_sha256": "6d0f710df8732b5e07ae5f18bbf7ab0d22dd2d97e63bc5ec0449714c26d9382e",
+          "plane": "v",
+          "psnr_db": "32.927135",
+          "samples": 200704,
+          "sse": 6651551
+        }
+      ],
+      "qindex": 60,
+      "source_case": "full-pitti-ceiling-i420",
+      "source_id": "pitti-ceiling",
+      "subset": "full-prepared",
+      "width": 896,
+      "workspace_bytes": 4855296
+    },
+    {
+      "avm_project_exact": true,
+      "decode_time_ns": {
+        "avm": 87179395,
+        "project": 61983748
+      },
+      "decoded_sha256": "966154ddb6f37474c2f1d8adce6f732335279fac7778b0ca76e3d2522754c725",
+      "deterministic_rerun": true,
+      "encode_time_ns": {
+        "median": 4117048766,
+        "samples": [
+          4116252152,
+          4117845380
+        ],
+        "worst": 4117845380
+      },
+      "encoder_reported_sse": [
+        603768520,
+        18065750,
+        6677845
+      ],
+      "encoder_reported_sse_matches_decode": true,
+      "height": 896,
+      "id": "full-pitti-ceiling-i420-q100",
+      "input_bytes": 1204224,
+      "input_sha256": "cb2279bb9801d0193b7ae628620be541004e5ff5abab2b9890b9b5ad09a67cf8",
+      "obu_bytes": 13138,
+      "obu_sha256": "7a48ff3ac028d8e60c60e24e76e631e003c4087b3fda81e03d6c7ca6c5592d44",
+      "pattern": null,
+      "pixel_format": "i420",
+      "planes": [
+        {
+          "decoded_sha256": "76f3737f5e02740aef6ce40c015a46a3feb3d2771450191dc758cdf10eaf69ea",
+          "plane": "y",
+          "psnr_db": "19.368259",
+          "samples": 802816,
+          "sse": 603768520
+        },
+        {
+          "decoded_sha256": "08a07ed5adbeb415fc1ee6f43c513403a23c6599846b709f98aeec3f673fb3ac",
+          "plane": "u",
+          "psnr_db": "28.587804",
+          "samples": 200704,
+          "sse": 18065750
+        },
+        {
+          "decoded_sha256": "5f0f701bfb790a42ab96f39775e1333b3d7bda3526401272476d89b01d7f9563",
+          "plane": "v",
+          "psnr_db": "32.910001",
+          "samples": 200704,
+          "sse": 6677845
+        }
+      ],
+      "qindex": 100,
+      "source_case": "full-pitti-ceiling-i420",
+      "source_id": "pitti-ceiling",
+      "subset": "full-prepared",
+      "width": 896,
+      "workspace_bytes": 4855296
+    },
+    {
+      "avm_project_exact": true,
+      "decode_time_ns": {
+        "avm": 85562072,
+        "project": 45065521
+      },
+      "decoded_sha256": "4e4597dba68bc9927dd9f47fa2b4c1c57bf6ba8a79951d2f55b3207dfc31580e",
+      "deterministic_rerun": true,
+      "encode_time_ns": {
+        "median": 478506726,
+        "samples": [
+          476344359,
+          480669093
+        ],
+        "worst": 480669093
+      },
+      "encoder_reported_sse": [
+        616446298,
+        21159796,
+        9427889
+      ],
+      "encoder_reported_sse_matches_decode": true,
+      "height": 896,
+      "id": "full-pitti-ceiling-i420-q180",
+      "input_bytes": 1204224,
+      "input_sha256": "cb2279bb9801d0193b7ae628620be541004e5ff5abab2b9890b9b5ad09a67cf8",
+      "obu_bytes": 4666,
+      "obu_sha256": "c110f7cfba1a0c4bb3362caabb64acf1e4512997b831c4658667a67164d71192",
+      "pattern": null,
+      "pixel_format": "i420",
+      "planes": [
+        {
+          "decoded_sha256": "6ac8959fdb42f2edcb4a5440cd93940569db92595b73429054f3aee9bd166a05",
+          "plane": "y",
+          "psnr_db": "19.278011",
+          "samples": 802816,
+          "sse": 616446298
+        },
+        {
+          "decoded_sha256": "c385c96c74ff52dbc60a2993aff2867abac3eed3601c9c296b70235f4a658861",
+          "plane": "u",
+          "psnr_db": "27.901249",
+          "samples": 200704,
+          "sse": 21159796
+        },
+        {
+          "decoded_sha256": "c65f5fad7d0ffcc27f9f38a1d091e46f7bbc4ea03169829797f4feaa649d32cd",
+          "plane": "v",
+          "psnr_db": "31.412219",
+          "samples": 200704,
+          "sse": 9427889
+        }
+      ],
+      "qindex": 180,
+      "source_case": "full-pitti-ceiling-i420",
+      "source_id": "pitti-ceiling",
+      "subset": "full-prepared",
+      "width": 896,
+      "workspace_bytes": 4855296
+    },
+    {
+      "avm_project_exact": true,
+      "decode_time_ns": {
+        "avm": 98987938,
+        "project": 107123022
+      },
+      "decoded_sha256": "35bf47ed70bc89c2466b7f0fe8e800e93c92d438a9eb4e4a2034ea85ccec97a0",
+      "deterministic_rerun": true,
+      "encode_time_ns": {
+        "median": 26247543997,
+        "samples": [
+          26269544844,
+          26225543150
+        ],
+        "worst": 26269544844
+      },
+      "encoder_reported_sse": [
+        603660434,
+        85194834,
+        31795370
+      ],
+      "encoder_reported_sse_matches_decode": false,
+      "height": 896,
+      "id": "full-pitti-ceiling-i444-q60",
+      "input_bytes": 2408448,
+      "input_sha256": "8557dbad21902377f956e7a9e84250476dc6d2d497722963cb3e474e266db7d0",
+      "obu_bytes": 22231,
+      "obu_sha256": "b30d3b999e0343b47b6ef28949db24cc17325b6b39f811b140aefdd9ed90137e",
+      "pattern": null,
+      "pixel_format": "i444",
+      "planes": [
+        {
+          "decoded_sha256": "6d3bed3ba48896aee57a483990cf72e98856a9701744850d6284001f2645542e",
+          "plane": "y",
+          "psnr_db": "19.369037",
+          "samples": 802816,
+          "sse": 603660434
+        },
+        {
+          "decoded_sha256": "1a5da2ab2b05187397b2e002a44ed2fa6dda79c28a155229bbc1302d4983fe60",
+          "plane": "u",
+          "psnr_db": "27.872811",
+          "samples": 802816,
+          "sse": 85195230
+        },
+        {
+          "decoded_sha256": "5f66974d98f60f876df5c8754a63cc87decceba9a804ee96153df875cc3720cb",
+          "plane": "v",
+          "psnr_db": "32.153325",
+          "samples": 802816,
+          "sse": 31795370
+        }
+      ],
+      "qindex": 60,
+      "source_case": "full-pitti-ceiling-i444",
+      "source_id": "pitti-ceiling",
+      "subset": "full-prepared",
+      "width": 896,
+      "workspace_bytes": 7263744
+    },
+    {
+      "avm_project_exact": true,
+      "decode_time_ns": {
+        "avm": 92157008,
+        "project": 105708449
+      },
+      "decoded_sha256": "f2ab0945e8c7a96e428a931a00abc3e08a6f121fc857ab276c7bd5eca962bc60",
+      "deterministic_rerun": true,
+      "encode_time_ns": {
+        "median": 8258849964,
+        "samples": [
+          8272343647,
+          8245356282
+        ],
+        "worst": 8272343647
+      },
+      "encoder_reported_sse": [
+        603768520,
+        85194834,
+        31795370
+      ],
+      "encoder_reported_sse_matches_decode": true,
+      "height": 896,
+      "id": "full-pitti-ceiling-i444-q100",
+      "input_bytes": 2408448,
+      "input_sha256": "8557dbad21902377f956e7a9e84250476dc6d2d497722963cb3e474e266db7d0",
+      "obu_bytes": 13813,
+      "obu_sha256": "4c3a48978c6e9b2c19e9a7ff615cf9f84212d06d568b9c4579a8b0dde7f3cfe4",
+      "pattern": null,
+      "pixel_format": "i444",
+      "planes": [
+        {
+          "decoded_sha256": "76f3737f5e02740aef6ce40c015a46a3feb3d2771450191dc758cdf10eaf69ea",
+          "plane": "y",
+          "psnr_db": "19.368259",
+          "samples": 802816,
+          "sse": 603768520
+        },
+        {
+          "decoded_sha256": "ee102f74b461c25a088e1a318a3b52c70fa9c1dfa62b8e0f775d61c5934f2f32",
+          "plane": "u",
+          "psnr_db": "27.872831",
+          "samples": 802816,
+          "sse": 85194834
+        },
+        {
+          "decoded_sha256": "5f66974d98f60f876df5c8754a63cc87decceba9a804ee96153df875cc3720cb",
+          "plane": "v",
+          "psnr_db": "32.153325",
+          "samples": 802816,
+          "sse": 31795370
+        }
+      ],
+      "qindex": 100,
+      "source_case": "full-pitti-ceiling-i444",
+      "source_id": "pitti-ceiling",
+      "subset": "full-prepared",
+      "width": 896,
+      "workspace_bytes": 7263744
+    },
+    {
+      "avm_project_exact": true,
+      "decode_time_ns": {
+        "avm": 90416555,
+        "project": 73495884
+      },
+      "decoded_sha256": "ffdc80e975ad1b3f59fb6ba1cc4861232ce14c7b9df8c987ac998dac98a4f441",
+      "deterministic_rerun": true,
+      "encode_time_ns": {
+        "median": 908229388,
+        "samples": [
+          911366291,
+          905092486
+        ],
+        "worst": 911366291
+      },
+      "encoder_reported_sse": [
+        616446298,
+        88454668,
+        34962620
+      ],
+      "encoder_reported_sse_matches_decode": true,
+      "height": 896,
+      "id": "full-pitti-ceiling-i444-q180",
+      "input_bytes": 2408448,
+      "input_sha256": "8557dbad21902377f956e7a9e84250476dc6d2d497722963cb3e474e266db7d0",
+      "obu_bytes": 5241,
+      "obu_sha256": "1904944f54da3450449d9e37d883832164355c46d6504c0e0f7c2172fd49fd6e",
+      "pattern": null,
+      "pixel_format": "i444",
+      "planes": [
+        {
+          "decoded_sha256": "6ac8959fdb42f2edcb4a5440cd93940569db92595b73429054f3aee9bd166a05",
+          "plane": "y",
+          "psnr_db": "19.278011",
+          "samples": 802816,
+          "sse": 616446298
+        },
+        {
+          "decoded_sha256": "3bdbd856863291b95f3a87b452504146a8d697215a4bdcc78d4e3adfc34b6fd6",
+          "plane": "u",
+          "psnr_db": "27.709756",
+          "samples": 802816,
+          "sse": 88454668
+        },
+        {
+          "decoded_sha256": "3c33f013da5e38e8c8f11ccaff34ee29ea84e8945c61e7a37e4f0cdb80b2f97c",
+          "plane": "v",
+          "psnr_db": "31.740924",
+          "samples": 802816,
+          "sse": 34962620
+        }
+      ],
+      "qindex": 180,
+      "source_case": "full-pitti-ceiling-i444",
+      "source_id": "pitti-ceiling",
+      "subset": "full-prepared",
+      "width": 896,
+      "workspace_bytes": 7263744
+    },
+    {
+      "avm_project_exact": true,
+      "decode_time_ns": {
+        "avm": 39730110,
+        "project": 1504738
+      },
+      "decoded_sha256": "afd6fb00c3c342eaad3a6707107da73a5e4429dc590edaf81e549a8d68885776",
+      "deterministic_rerun": true,
+      "encode_time_ns": {
+        "median": 3182683,
+        "samples": [
+          3284931,
+          3080435
+        ],
+        "worst": 3284931
+      },
+      "encoder_reported_sse": [
+        0
+      ],
+      "encoder_reported_sse_matches_decode": true,
+      "height": 64,
+      "id": "target-horizontal-edge-i400-q60",
+      "input_bytes": 4096,
+      "input_sha256": "afd6fb00c3c342eaad3a6707107da73a5e4429dc590edaf81e549a8d68885776",
+      "obu_bytes": 41,
+      "obu_sha256": "2dea789269f2347553cf88ae9b3aa164239f4eca2e5c08a93f3a351e0b979572",
+      "pattern": "horizontal-edge",
+      "pixel_format": "i400",
+      "planes": [
+        {
+          "decoded_sha256": "afd6fb00c3c342eaad3a6707107da73a5e4429dc590edaf81e549a8d68885776",
+          "plane": "y",
+          "psnr_db": "inf",
+          "samples": 4096,
+          "sse": 0
+        }
+      ],
+      "qindex": 60,
+      "source_case": "target-horizontal-edge-i400",
+      "source_id": null,
+      "subset": "targeted",
+      "width": 64,
+      "workspace_bytes": 21376
+    },
+    {
+      "avm_project_exact": true,
+      "decode_time_ns": {
+        "avm": 39509829,
+        "project": 1151479
+      },
+      "decoded_sha256": "6fbaa4a3d6d2139fa261ae0deb8a83129a4f3dca95118040eef788e1de18b5cc",
+      "deterministic_rerun": true,
+      "encode_time_ns": {
+        "median": 2292587,
+        "samples": [
+          2158526,
+          2426648
+        ],
+        "worst": 2426648
+      },
+      "encoder_reported_sse": [
+        64
+      ],
+      "encoder_reported_sse_matches_decode": true,
+      "height": 64,
+      "id": "target-horizontal-edge-i400-q100",
+      "input_bytes": 4096,
+      "input_sha256": "afd6fb00c3c342eaad3a6707107da73a5e4429dc590edaf81e549a8d68885776",
+      "obu_bytes": 41,
+      "obu_sha256": "815d768b4a7dc38b136fc430f7991491fdeb4780cadc45148c986efbd6965682",
+      "pattern": "horizontal-edge",
+      "pixel_format": "i400",
+      "planes": [
+        {
+          "decoded_sha256": "6fbaa4a3d6d2139fa261ae0deb8a83129a4f3dca95118040eef788e1de18b5cc",
+          "plane": "y",
+          "psnr_db": "66.192603",
+          "samples": 4096,
+          "sse": 64
+        }
+      ],
+      "qindex": 100,
+      "source_case": "target-horizontal-edge-i400",
+      "source_id": null,
+      "subset": "targeted",
+      "width": 64,
+      "workspace_bytes": 21376
+    },
+    {
+      "avm_project_exact": true,
+      "decode_time_ns": {
+        "avm": 38079822,
+        "project": 1516890
+      },
+      "decoded_sha256": "1c07a3b3ea707ffe91a7cea4f83ee227155b78d419da551fc7b1aef3b05fdb27",
+      "deterministic_rerun": true,
+      "encode_time_ns": {
+        "median": 2053484,
+        "samples": [
+          1884258,
+          2222710
+        ],
+        "worst": 2222710
+      },
+      "encoder_reported_sse": [
+        2048
+      ],
+      "encoder_reported_sse_matches_decode": true,
+      "height": 64,
+      "id": "target-horizontal-edge-i400-q180",
+      "input_bytes": 4096,
+      "input_sha256": "afd6fb00c3c342eaad3a6707107da73a5e4429dc590edaf81e549a8d68885776",
+      "obu_bytes": 38,
+      "obu_sha256": "a0693631823b4f0dcee22ee5371233a1b143eddfd40174ff426ccad0923f2d86",
+      "pattern": "horizontal-edge",
+      "pixel_format": "i400",
+      "planes": [
+        {
+          "decoded_sha256": "1c07a3b3ea707ffe91a7cea4f83ee227155b78d419da551fc7b1aef3b05fdb27",
+          "plane": "y",
+          "psnr_db": "51.141104",
+          "samples": 4096,
+          "sse": 2048
+        }
+      ],
+      "qindex": 180,
+      "source_case": "target-horizontal-edge-i400",
+      "source_id": null,
+      "subset": "targeted",
+      "width": 64,
+      "workspace_bytes": 21376
+    },
+    {
+      "avm_project_exact": true,
+      "decode_time_ns": {
+        "avm": 40538038,
+        "project": 1603983
+      },
+      "decoded_sha256": "c424c39cec6b146e937537c849f66a3bfc817b2cfd2dfb5f6bb539644ae93419",
+      "deterministic_rerun": true,
+      "encode_time_ns": {
+        "median": 158374241,
+        "samples": [
+          159280681,
+          157467801
+        ],
+        "worst": 159280681
+      },
+      "encoder_reported_sse": [
+        0,
+        0,
+        0
+      ],
+      "encoder_reported_sse_matches_decode": true,
+      "height": 64,
+      "id": "target-horizontal-edge-i420-q60",
+      "input_bytes": 6144,
+      "input_sha256": "c424c39cec6b146e937537c849f66a3bfc817b2cfd2dfb5f6bb539644ae93419",
+      "obu_bytes": 99,
+      "obu_sha256": "a443af19912e6908cbef6832129f43c2affe43464eb536f72f1dc39ede4ad0e9",
+      "pattern": "horizontal-edge",
+      "pixel_format": "i420",
+      "planes": [
+        {
+          "decoded_sha256": "afd6fb00c3c342eaad3a6707107da73a5e4429dc590edaf81e549a8d68885776",
+          "plane": "y",
+          "psnr_db": "inf",
+          "samples": 4096,
+          "sse": 0
+        },
+        {
+          "decoded_sha256": "bef5585219c8176d4bf5527e21b77e640398f2a171d3bb696399d4b6393790d2",
+          "plane": "u",
+          "psnr_db": "inf",
+          "samples": 1024,
+          "sse": 0
+        },
+        {
+          "decoded_sha256": "9f08590a23a02627f6a01237ebd92a2b16c84c79bd70c031a6c42ab29211eb5a",
+          "plane": "v",
+          "psnr_db": "inf",
+          "samples": 1024,
+          "sse": 0
+        }
+      ],
+      "qindex": 60,
+      "source_case": "target-horizontal-edge-i420",
+      "source_id": null,
+      "subset": "targeted",
+      "width": 64,
+      "workspace_bytes": 25536
+    },
+    {
+      "avm_project_exact": true,
+      "decode_time_ns": {
+        "avm": 45029901,
+        "project": 1817978
+      },
+      "decoded_sha256": "3c2fd78552cafbdd031c19a2ccfd34da5b11c229ba1e13cee0b425f2f609353f",
+      "deterministic_rerun": true,
+      "encode_time_ns": {
+        "median": 50930157,
+        "samples": [
+          50666470,
+          51193845
+        ],
+        "worst": 51193845
+      },
+      "encoder_reported_sse": [
+        64,
+        0,
+        0
+      ],
+      "encoder_reported_sse_matches_decode": true,
+      "height": 64,
+      "id": "target-horizontal-edge-i420-q100",
+      "input_bytes": 6144,
+      "input_sha256": "c424c39cec6b146e937537c849f66a3bfc817b2cfd2dfb5f6bb539644ae93419",
+      "obu_bytes": 94,
+      "obu_sha256": "2218a075960e301abb187f7207660c44b83b81e84a8bed116d2cc74f3f1b10b2",
+      "pattern": "horizontal-edge",
+      "pixel_format": "i420",
+      "planes": [
+        {
+          "decoded_sha256": "6fbaa4a3d6d2139fa261ae0deb8a83129a4f3dca95118040eef788e1de18b5cc",
+          "plane": "y",
+          "psnr_db": "66.192603",
+          "samples": 4096,
+          "sse": 64
+        },
+        {
+          "decoded_sha256": "bef5585219c8176d4bf5527e21b77e640398f2a171d3bb696399d4b6393790d2",
+          "plane": "u",
+          "psnr_db": "inf",
+          "samples": 1024,
+          "sse": 0
+        },
+        {
+          "decoded_sha256": "9f08590a23a02627f6a01237ebd92a2b16c84c79bd70c031a6c42ab29211eb5a",
+          "plane": "v",
+          "psnr_db": "inf",
+          "samples": 1024,
+          "sse": 0
+        }
+      ],
+      "qindex": 100,
+      "source_case": "target-horizontal-edge-i420",
+      "source_id": null,
+      "subset": "targeted",
+      "width": 64,
+      "workspace_bytes": 25536
+    },
+    {
+      "avm_project_exact": true,
+      "decode_time_ns": {
+        "avm": 42911814,
+        "project": 1392432
+      },
+      "decoded_sha256": "220e5eac1c1769927e80c6ceea9224b16b1d0b86db5892e94084468684b97fd6",
+      "deterministic_rerun": true,
+      "encode_time_ns": {
+        "median": 7958698,
+        "samples": [
+          7647309,
+          8270087
+        ],
+        "worst": 8270087
+      },
+      "encoder_reported_sse": [
+        2048,
+        21824,
+        16384
+      ],
+      "encoder_reported_sse_matches_decode": true,
+      "height": 64,
+      "id": "target-horizontal-edge-i420-q180",
+      "input_bytes": 6144,
+      "input_sha256": "c424c39cec6b146e937537c849f66a3bfc817b2cfd2dfb5f6bb539644ae93419",
+      "obu_bytes": 65,
+      "obu_sha256": "eb2ac954902a5afbeee9eebfa4747fe748f6a1523ec7afbdb96a94476af2b50b",
+      "pattern": "horizontal-edge",
+      "pixel_format": "i420",
+      "planes": [
+        {
+          "decoded_sha256": "1c07a3b3ea707ffe91a7cea4f83ee227155b78d419da551fc7b1aef3b05fdb27",
+          "plane": "y",
+          "psnr_db": "51.141104",
+          "samples": 4096,
+          "sse": 2048
+        },
+        {
+          "decoded_sha256": "a635975509d66ee24a29804544d556fe78743dcbc8565327f3b8b0039238f481",
+          "plane": "u",
+          "psnr_db": "34.844460",
+          "samples": 1024,
+          "sse": 21824
+        },
+        {
+          "decoded_sha256": "6bcced37fc725325c93a29684da10841274c5aaa53ee6fe7f2c60bd3396bd39a",
+          "plane": "v",
+          "psnr_db": "36.089604",
+          "samples": 1024,
+          "sse": 16384
+        }
+      ],
+      "qindex": 180,
+      "source_case": "target-horizontal-edge-i420",
+      "source_id": null,
+      "subset": "targeted",
+      "width": 64,
+      "workspace_bytes": 25536
+    },
+    {
+      "avm_project_exact": true,
+      "decode_time_ns": {
+        "avm": 43852023,
+        "project": 1639812
+      },
+      "decoded_sha256": "8d5b74b3804e06f77b05a873545a96d8fa4be192a834991756ee1faf98e5a24d",
+      "deterministic_rerun": true,
+      "encode_time_ns": {
+        "median": 295620482,
+        "samples": [
+          300363357,
+          290877607
+        ],
+        "worst": 300363357
+      },
+      "encoder_reported_sse": [
+        0,
+        0,
+        0
+      ],
+      "encoder_reported_sse_matches_decode": true,
+      "height": 64,
+      "id": "target-horizontal-edge-i444-q60",
+      "input_bytes": 12288,
+      "input_sha256": "8d5b74b3804e06f77b05a873545a96d8fa4be192a834991756ee1faf98e5a24d",
+      "obu_bytes": 104,
+      "obu_sha256": "c983c3edc40a6ccbc2b26d9236b425c752f1950fa6a887959fba19f148bc2fdc",
+      "pattern": "horizontal-edge",
+      "pixel_format": "i444",
+      "planes": [
+        {
+          "decoded_sha256": "afd6fb00c3c342eaad3a6707107da73a5e4429dc590edaf81e549a8d68885776",
+          "plane": "y",
+          "psnr_db": "inf",
+          "samples": 4096,
+          "sse": 0
+        },
+        {
+          "decoded_sha256": "13f8ae2b7dee7dea0d63ba67900da76b0fdecfbd69bf4bca7c8d55a9f8075ec1",
+          "plane": "u",
+          "psnr_db": "inf",
+          "samples": 4096,
+          "sse": 0
+        },
+        {
+          "decoded_sha256": "f977581bb80be18721384c0e00e0debacdaefeed0f7a130754c28da3cc988a64",
+          "plane": "v",
+          "psnr_db": "inf",
+          "samples": 4096,
+          "sse": 0
+        }
+      ],
+      "qindex": 60,
+      "source_case": "target-horizontal-edge-i444",
+      "source_id": null,
+      "subset": "targeted",
+      "width": 64,
+      "workspace_bytes": 37824
+    },
+    {
+      "avm_project_exact": true,
+      "decode_time_ns": {
+        "avm": 41104104,
+        "project": 1764060
+      },
+      "decoded_sha256": "d39857a7b8b3c5f7065089220d6483539fef3eac047756b5a4c2852e27bd2abb",
+      "deterministic_rerun": true,
+      "encode_time_ns": {
+        "median": 94866444,
+        "samples": [
+          95847160,
+          93885728
+        ],
+        "worst": 95847160
+      },
+      "encoder_reported_sse": [
+        64,
+        0,
+        0
+      ],
+      "encoder_reported_sse_matches_decode": true,
+      "height": 64,
+      "id": "target-horizontal-edge-i444-q100",
+      "input_bytes": 12288,
+      "input_sha256": "8d5b74b3804e06f77b05a873545a96d8fa4be192a834991756ee1faf98e5a24d",
+      "obu_bytes": 98,
+      "obu_sha256": "cdaa567e17fd7142db2307d3c9f7450a7e035ed64a35c53b3014eaecf3fbd447",
+      "pattern": "horizontal-edge",
+      "pixel_format": "i444",
+      "planes": [
+        {
+          "decoded_sha256": "6fbaa4a3d6d2139fa261ae0deb8a83129a4f3dca95118040eef788e1de18b5cc",
+          "plane": "y",
+          "psnr_db": "66.192603",
+          "samples": 4096,
+          "sse": 64
+        },
+        {
+          "decoded_sha256": "13f8ae2b7dee7dea0d63ba67900da76b0fdecfbd69bf4bca7c8d55a9f8075ec1",
+          "plane": "u",
+          "psnr_db": "inf",
+          "samples": 4096,
+          "sse": 0
+        },
+        {
+          "decoded_sha256": "f977581bb80be18721384c0e00e0debacdaefeed0f7a130754c28da3cc988a64",
+          "plane": "v",
+          "psnr_db": "inf",
+          "samples": 4096,
+          "sse": 0
+        }
+      ],
+      "qindex": 100,
+      "source_case": "target-horizontal-edge-i444",
+      "source_id": null,
+      "subset": "targeted",
+      "width": 64,
+      "workspace_bytes": 37824
+    },
+    {
+      "avm_project_exact": true,
+      "decode_time_ns": {
+        "avm": 40894649,
+        "project": 1317841
+      },
+      "decoded_sha256": "112d0e6d9b001ab4669e66b0d4d10b3130cc8a3e776c539fa2fea117c1af2266",
+      "deterministic_rerun": true,
+      "encode_time_ns": {
+        "median": 13416647,
+        "samples": [
+          13164798,
+          13668496
+        ],
+        "worst": 13668496
+      },
+      "encoder_reported_sse": [
+        2048,
+        5632,
+        36864
+      ],
+      "encoder_reported_sse_matches_decode": true,
+      "height": 64,
+      "id": "target-horizontal-edge-i444-q180",
+      "input_bytes": 12288,
+      "input_sha256": "8d5b74b3804e06f77b05a873545a96d8fa4be192a834991756ee1faf98e5a24d",
+      "obu_bytes": 69,
+      "obu_sha256": "48233871687301ce2d8e02e56a5e96e0911a8a953242e3435ebec38d03c2ea76",
+      "pattern": "horizontal-edge",
+      "pixel_format": "i444",
+      "planes": [
+        {
+          "decoded_sha256": "1c07a3b3ea707ffe91a7cea4f83ee227155b78d419da551fc7b1aef3b05fdb27",
+          "plane": "y",
+          "psnr_db": "51.141104",
+          "samples": 4096,
+          "sse": 2048
+        },
+        {
+          "decoded_sha256": "7d72cce21aa429b88915ec5d3abc92884688733d096225ede31dd8d7cc920d93",
+          "plane": "u",
+          "psnr_db": "46.747777",
+          "samples": 4096,
+          "sse": 5632
+        },
+        {
+          "decoded_sha256": "d13adaf1aeb967f03eb622b388df9b4fa3c002cdb5d53e023640f99e1b6b4cc5",
+          "plane": "v",
+          "psnr_db": "38.588379",
+          "samples": 4096,
+          "sse": 36864
+        }
+      ],
+      "qindex": 180,
+      "source_case": "target-horizontal-edge-i444",
+      "source_id": null,
+      "subset": "targeted",
+      "width": 64,
+      "workspace_bytes": 37824
+    },
+    {
+      "avm_project_exact": true,
+      "decode_time_ns": {
+        "avm": 40026797,
+        "project": 1068647
+      },
+      "decoded_sha256": "590067fa0c5ae49ec5ef9c05148ab8aca7e0981befb081e3f985fdb001a89936",
+      "deterministic_rerun": true,
+      "encode_time_ns": {
+        "median": 2376362,
+        "samples": [
+          2582674,
+          2170050
+        ],
+        "worst": 2582674
+      },
+      "encoder_reported_sse": [
+        0
+      ],
+      "encoder_reported_sse_matches_decode": true,
+      "height": 64,
+      "id": "target-vertical-edge-i400-q60",
+      "input_bytes": 4096,
+      "input_sha256": "590067fa0c5ae49ec5ef9c05148ab8aca7e0981befb081e3f985fdb001a89936",
+      "obu_bytes": 40,
+      "obu_sha256": "14ad791819f9c83dc8ac41976ed70eb446821f7456b9c4f15783b6f97afa7fa0",
+      "pattern": "vertical-edge",
+      "pixel_format": "i400",
+      "planes": [
+        {
+          "decoded_sha256": "590067fa0c5ae49ec5ef9c05148ab8aca7e0981befb081e3f985fdb001a89936",
+          "plane": "y",
+          "psnr_db": "inf",
+          "samples": 4096,
+          "sse": 0
+        }
+      ],
+      "qindex": 60,
+      "source_case": "target-vertical-edge-i400",
+      "source_id": null,
+      "subset": "targeted",
+      "width": 64,
+      "workspace_bytes": 21376
+    },
+    {
+      "avm_project_exact": true,
+      "decode_time_ns": {
+        "avm": 41132250,
+        "project": 1128012
+      },
+      "decoded_sha256": "b8afce0fd11c6f2e704be29f10e207de391d8ecba44e73498a2a0fd697f09d6c",
+      "deterministic_rerun": true,
+      "encode_time_ns": {
+        "median": 1922530,
+        "samples": [
+          2132684,
+          1712377
+        ],
+        "worst": 2132684
+      },
+      "encoder_reported_sse": [
+        64
+      ],
+      "encoder_reported_sse_matches_decode": true,
+      "height": 64,
+      "id": "target-vertical-edge-i400-q100",
+      "input_bytes": 4096,
+      "input_sha256": "590067fa0c5ae49ec5ef9c05148ab8aca7e0981befb081e3f985fdb001a89936",
+      "obu_bytes": 41,
+      "obu_sha256": "f275677cebc444a8c308386b454bb9473d73e6b97facf4590d8c571e3dc070c5",
+      "pattern": "vertical-edge",
+      "pixel_format": "i400",
+      "planes": [
+        {
+          "decoded_sha256": "b8afce0fd11c6f2e704be29f10e207de391d8ecba44e73498a2a0fd697f09d6c",
+          "plane": "y",
+          "psnr_db": "66.192603",
+          "samples": 4096,
+          "sse": 64
+        }
+      ],
+      "qindex": 100,
+      "source_case": "target-vertical-edge-i400",
+      "source_id": null,
+      "subset": "targeted",
+      "width": 64,
+      "workspace_bytes": 21376
+    },
+    {
+      "avm_project_exact": true,
+      "decode_time_ns": {
+        "avm": 38043853,
+        "project": 1116139
+      },
+      "decoded_sha256": "d6affe3dbee838c44aaa044e55301c106ff41f9080006fbb5995d7af1762ba91",
+      "deterministic_rerun": true,
+      "encode_time_ns": {
+        "median": 1694078,
+        "samples": [
+          1666491,
+          1721666
+        ],
+        "worst": 1721666
+      },
+      "encoder_reported_sse": [
+        2048
+      ],
+      "encoder_reported_sse_matches_decode": true,
+      "height": 64,
+      "id": "target-vertical-edge-i400-q180",
+      "input_bytes": 4096,
+      "input_sha256": "590067fa0c5ae49ec5ef9c05148ab8aca7e0981befb081e3f985fdb001a89936",
+      "obu_bytes": 38,
+      "obu_sha256": "ad25f0056ff041d8913cba608bddba928277d65cd84ba92707f70f9e7d938ddb",
+      "pattern": "vertical-edge",
+      "pixel_format": "i400",
+      "planes": [
+        {
+          "decoded_sha256": "d6affe3dbee838c44aaa044e55301c106ff41f9080006fbb5995d7af1762ba91",
+          "plane": "y",
+          "psnr_db": "51.141104",
+          "samples": 4096,
+          "sse": 2048
+        }
+      ],
+      "qindex": 180,
+      "source_case": "target-vertical-edge-i400",
+      "source_id": null,
+      "subset": "targeted",
+      "width": 64,
+      "workspace_bytes": 21376
+    },
+    {
+      "avm_project_exact": true,
+      "decode_time_ns": {
+        "avm": 39523798,
+        "project": 1438109
+      },
+      "decoded_sha256": "4d2bd038742d69fefee86255af13cac36068e98b7996234ecc4b20f97cb098f3",
+      "deterministic_rerun": true,
+      "encode_time_ns": {
+        "median": 158763399,
+        "samples": [
+          158531839,
+          158994959
+        ],
+        "worst": 158994959
+      },
+      "encoder_reported_sse": [
+        0,
+        0,
+        0
+      ],
+      "encoder_reported_sse_matches_decode": true,
+      "height": 64,
+      "id": "target-vertical-edge-i420-q60",
+      "input_bytes": 6144,
+      "input_sha256": "4d2bd038742d69fefee86255af13cac36068e98b7996234ecc4b20f97cb098f3",
+      "obu_bytes": 99,
+      "obu_sha256": "4ee3857a678a632a0e353f822ecf29acde5b15c8a2a6d2386df81a036b25d09a",
+      "pattern": "vertical-edge",
+      "pixel_format": "i420",
+      "planes": [
+        {
+          "decoded_sha256": "590067fa0c5ae49ec5ef9c05148ab8aca7e0981befb081e3f985fdb001a89936",
+          "plane": "y",
+          "psnr_db": "inf",
+          "samples": 4096,
+          "sse": 0
+        },
+        {
+          "decoded_sha256": "e06d20894fc95df85015272d2b00242f04e03b7e74c2fee469c851975adc112a",
+          "plane": "u",
+          "psnr_db": "inf",
+          "samples": 1024,
+          "sse": 0
+        },
+        {
+          "decoded_sha256": "072cfb81e0a85058dfcafa9e6590aa28dd0bfd3a166c4f8b04a4ae5c53034f85",
+          "plane": "v",
+          "psnr_db": "inf",
+          "samples": 1024,
+          "sse": 0
+        }
+      ],
+      "qindex": 60,
+      "source_case": "target-vertical-edge-i420",
+      "source_id": null,
+      "subset": "targeted",
+      "width": 64,
+      "workspace_bytes": 25536
+    },
+    {
+      "avm_project_exact": true,
+      "decode_time_ns": {
+        "avm": 48051950,
+        "project": 1258965
+      },
+      "decoded_sha256": "138b846e267c26ed90791b7303599ec4a8f1cb4f7aab95893597dd5ca57de717",
+      "deterministic_rerun": true,
+      "encode_time_ns": {
+        "median": 51033314,
+        "samples": [
+          50485162,
+          51581466
+        ],
+        "worst": 51581466
+      },
+      "encoder_reported_sse": [
+        64,
+        0,
+        0
+      ],
+      "encoder_reported_sse_matches_decode": true,
+      "height": 64,
+      "id": "target-vertical-edge-i420-q100",
+      "input_bytes": 6144,
+      "input_sha256": "4d2bd038742d69fefee86255af13cac36068e98b7996234ecc4b20f97cb098f3",
+      "obu_bytes": 94,
+      "obu_sha256": "86e13e947949828fa674cc169ce0f4d9351e469eeac459ff1a33167703157cde",
+      "pattern": "vertical-edge",
+      "pixel_format": "i420",
+      "planes": [
+        {
+          "decoded_sha256": "b8afce0fd11c6f2e704be29f10e207de391d8ecba44e73498a2a0fd697f09d6c",
+          "plane": "y",
+          "psnr_db": "66.192603",
+          "samples": 4096,
+          "sse": 64
+        },
+        {
+          "decoded_sha256": "e06d20894fc95df85015272d2b00242f04e03b7e74c2fee469c851975adc112a",
+          "plane": "u",
+          "psnr_db": "inf",
+          "samples": 1024,
+          "sse": 0
+        },
+        {
+          "decoded_sha256": "072cfb81e0a85058dfcafa9e6590aa28dd0bfd3a166c4f8b04a4ae5c53034f85",
+          "plane": "v",
+          "psnr_db": "inf",
+          "samples": 1024,
+          "sse": 0
+        }
+      ],
+      "qindex": 100,
+      "source_case": "target-vertical-edge-i420",
+      "source_id": null,
+      "subset": "targeted",
+      "width": 64,
+      "workspace_bytes": 25536
+    },
+    {
+      "avm_project_exact": true,
+      "decode_time_ns": {
+        "avm": 40771518,
+        "project": 1261061
+      },
+      "decoded_sha256": "164a30dd1ff6e149ad55999b85893c265199d53ecc2aa75c0ece53b9ba391ffa",
+      "deterministic_rerun": true,
+      "encode_time_ns": {
+        "median": 7841399,
+        "samples": [
+          7809411,
+          7873387
+        ],
+        "worst": 7873387
+      },
+      "encoder_reported_sse": [
+        2048,
+        21824,
+        16384
+      ],
+      "encoder_reported_sse_matches_decode": true,
+      "height": 64,
+      "id": "target-vertical-edge-i420-q180",
+      "input_bytes": 6144,
+      "input_sha256": "4d2bd038742d69fefee86255af13cac36068e98b7996234ecc4b20f97cb098f3",
+      "obu_bytes": 65,
+      "obu_sha256": "ce0e4fc17a119428ca12073b9db27afc2148443c062925cea1865fadd2965c24",
+      "pattern": "vertical-edge",
+      "pixel_format": "i420",
+      "planes": [
+        {
+          "decoded_sha256": "d6affe3dbee838c44aaa044e55301c106ff41f9080006fbb5995d7af1762ba91",
+          "plane": "y",
+          "psnr_db": "51.141104",
+          "samples": 4096,
+          "sse": 2048
+        },
+        {
+          "decoded_sha256": "8851c98ae51eb41b304eb9e50cb88f85ab9887b417b2ce04d110ff150f36970e",
+          "plane": "u",
+          "psnr_db": "34.844460",
+          "samples": 1024,
+          "sse": 21824
+        },
+        {
+          "decoded_sha256": "8c4d40e952a3ec6a1b8da19decbb8b55182809db27211f8ee1656b186a44257a",
+          "plane": "v",
+          "psnr_db": "36.089604",
+          "samples": 1024,
+          "sse": 16384
+        }
+      ],
+      "qindex": 180,
+      "source_case": "target-vertical-edge-i420",
+      "source_id": null,
+      "subset": "targeted",
+      "width": 64,
+      "workspace_bytes": 25536
+    },
+    {
+      "avm_project_exact": true,
+      "decode_time_ns": {
+        "avm": 41238968,
+        "project": 1293397
+      },
+      "decoded_sha256": "240a1d8e2f5a9511ba9f64a8e63cb1a379dfdbe0c80d1ec5f69aac05dfdb9090",
+      "deterministic_rerun": true,
+      "encode_time_ns": {
+        "median": 305375193,
+        "samples": [
+          296860101,
+          313890285
+        ],
+        "worst": 313890285
+      },
+      "encoder_reported_sse": [
+        0,
+        0,
+        0
+      ],
+      "encoder_reported_sse_matches_decode": true,
+      "height": 64,
+      "id": "target-vertical-edge-i444-q60",
+      "input_bytes": 12288,
+      "input_sha256": "240a1d8e2f5a9511ba9f64a8e63cb1a379dfdbe0c80d1ec5f69aac05dfdb9090",
+      "obu_bytes": 104,
+      "obu_sha256": "c4d98dbdd6a3dcbb5ee523ca817d1037b3461bbbb7a11167f446656eb863049a",
+      "pattern": "vertical-edge",
+      "pixel_format": "i444",
+      "planes": [
+        {
+          "decoded_sha256": "590067fa0c5ae49ec5ef9c05148ab8aca7e0981befb081e3f985fdb001a89936",
+          "plane": "y",
+          "psnr_db": "inf",
+          "samples": 4096,
+          "sse": 0
+        },
+        {
+          "decoded_sha256": "18646bbb8e78db697a73243bd5a3319907091ed0deeedfe38deaa382fb7dff37",
+          "plane": "u",
+          "psnr_db": "inf",
+          "samples": 4096,
+          "sse": 0
+        },
+        {
+          "decoded_sha256": "2c4701d4fd9beeb4349f2fe581ca7317d19af8bd198a1c08e37efed3e9652871",
+          "plane": "v",
+          "psnr_db": "inf",
+          "samples": 4096,
+          "sse": 0
+        }
+      ],
+      "qindex": 60,
+      "source_case": "target-vertical-edge-i444",
+      "source_id": null,
+      "subset": "targeted",
+      "width": 64,
+      "workspace_bytes": 37824
+    },
+    {
+      "avm_project_exact": true,
+      "decode_time_ns": {
+        "avm": 42158363,
+        "project": 1758752
+      },
+      "decoded_sha256": "6688030bec2ad82a4a277e2108716cf1ca86b7a518837b5bff1562580257fcc5",
+      "deterministic_rerun": true,
+      "encode_time_ns": {
+        "median": 95488628,
+        "samples": [
+          95160338,
+          95816919
+        ],
+        "worst": 95816919
+      },
+      "encoder_reported_sse": [
+        64,
+        0,
+        0
+      ],
+      "encoder_reported_sse_matches_decode": true,
+      "height": 64,
+      "id": "target-vertical-edge-i444-q100",
+      "input_bytes": 12288,
+      "input_sha256": "240a1d8e2f5a9511ba9f64a8e63cb1a379dfdbe0c80d1ec5f69aac05dfdb9090",
+      "obu_bytes": 98,
+      "obu_sha256": "7a1a4b15727d20afed6f7a061188ef932c93f719f4f0bbbdd02ea2cc7796c6ee",
+      "pattern": "vertical-edge",
+      "pixel_format": "i444",
+      "planes": [
+        {
+          "decoded_sha256": "b8afce0fd11c6f2e704be29f10e207de391d8ecba44e73498a2a0fd697f09d6c",
+          "plane": "y",
+          "psnr_db": "66.192603",
+          "samples": 4096,
+          "sse": 64
+        },
+        {
+          "decoded_sha256": "18646bbb8e78db697a73243bd5a3319907091ed0deeedfe38deaa382fb7dff37",
+          "plane": "u",
+          "psnr_db": "inf",
+          "samples": 4096,
+          "sse": 0
+        },
+        {
+          "decoded_sha256": "2c4701d4fd9beeb4349f2fe581ca7317d19af8bd198a1c08e37efed3e9652871",
+          "plane": "v",
+          "psnr_db": "inf",
+          "samples": 4096,
+          "sse": 0
+        }
+      ],
+      "qindex": 100,
+      "source_case": "target-vertical-edge-i444",
+      "source_id": null,
+      "subset": "targeted",
+      "width": 64,
+      "workspace_bytes": 37824
+    },
+    {
+      "avm_project_exact": true,
+      "decode_time_ns": {
+        "avm": 41019875,
+        "project": 1836066
+      },
+      "decoded_sha256": "2f1a6f072effcbd4e1b327da0c6a1cbbecb66602ce9c55a41d3607b8bf06347a",
+      "deterministic_rerun": true,
+      "encode_time_ns": {
+        "median": 13303852,
+        "samples": [
+          13168430,
+          13439275
+        ],
+        "worst": 13439275
+      },
+      "encoder_reported_sse": [
+        2048,
+        5632,
+        36864
+      ],
+      "encoder_reported_sse_matches_decode": true,
+      "height": 64,
+      "id": "target-vertical-edge-i444-q180",
+      "input_bytes": 12288,
+      "input_sha256": "240a1d8e2f5a9511ba9f64a8e63cb1a379dfdbe0c80d1ec5f69aac05dfdb9090",
+      "obu_bytes": 69,
+      "obu_sha256": "9b59ec5077d601d2bc0952b4716a685beb580dcd599ef885ad368ffeddc7b84a",
+      "pattern": "vertical-edge",
+      "pixel_format": "i444",
+      "planes": [
+        {
+          "decoded_sha256": "d6affe3dbee838c44aaa044e55301c106ff41f9080006fbb5995d7af1762ba91",
+          "plane": "y",
+          "psnr_db": "51.141104",
+          "samples": 4096,
+          "sse": 2048
+        },
+        {
+          "decoded_sha256": "d1e3d14ad24c7ea19edec593ff5931c60bfe78c8a63b681e61a3e2e6b8ea6c31",
+          "plane": "u",
+          "psnr_db": "46.747777",
+          "samples": 4096,
+          "sse": 5632
+        },
+        {
+          "decoded_sha256": "e8f3c61b84baa6af5bb20a0ca01241aa235659140eab86bdb3d031ba6007b8cd",
+          "plane": "v",
+          "psnr_db": "38.588379",
+          "samples": 4096,
+          "sse": 36864
+        }
+      ],
+      "qindex": 180,
+      "source_case": "target-vertical-edge-i444",
+      "source_id": null,
+      "subset": "targeted",
+      "width": 64,
+      "workspace_bytes": 37824
+    },
+    {
+      "avm_project_exact": true,
+      "decode_time_ns": {
+        "avm": 42630283,
+        "project": 1721946
+      },
+      "decoded_sha256": "ae2b3e489d34c53feba3db1c0ee0fc287f6f18ff8bbd2d3bf0fc8c415d78096b",
+      "deterministic_rerun": true,
+      "encode_time_ns": {
+        "median": 5877522,
+        "samples": [
+          5887300,
+          5867744
+        ],
+        "worst": 5887300
+      },
+      "encoder_reported_sse": [
+        3902976
+      ],
+      "encoder_reported_sse_matches_decode": true,
+      "height": 64,
+      "id": "target-diagonal-edge-i400-q60",
+      "input_bytes": 4096,
+      "input_sha256": "afecd01816349533d58110c520310d0e8a4c3143f70203b4de9eeb821be209eb",
+      "obu_bytes": 82,
+      "obu_sha256": "019bf13fec7f027e574f82ed81021ea523e2c852f49621dcf18908d2688b6f22",
+      "pattern": "diagonal-edge",
+      "pixel_format": "i400",
+      "planes": [
+        {
+          "decoded_sha256": "ae2b3e489d34c53feba3db1c0ee0fc287f6f18ff8bbd2d3bf0fc8c415d78096b",
+          "plane": "y",
+          "psnr_db": "18.340444",
+          "samples": 4096,
+          "sse": 3902976
+        }
+      ],
+      "qindex": 60,
+      "source_case": "target-diagonal-edge-i400",
+      "source_id": null,
+      "subset": "targeted",
+      "width": 64,
+      "workspace_bytes": 21376
+    },
+    {
+      "avm_project_exact": true,
+      "decode_time_ns": {
+        "avm": 42066382,
+        "project": 1422325
+      },
+      "decoded_sha256": "d6daeeb3230ded109dd47e14360a81d32e6e08fd193a586508842cab86566ff4",
+      "deterministic_rerun": true,
+      "encode_time_ns": {
+        "median": 5654448,
+        "samples": [
+          5414054,
+          5894843
+        ],
+        "worst": 5894843
+      },
+      "encoder_reported_sse": [
+        3903744
+      ],
+      "encoder_reported_sse_matches_decode": true,
+      "height": 64,
+      "id": "target-diagonal-edge-i400-q100",
+      "input_bytes": 4096,
+      "input_sha256": "afecd01816349533d58110c520310d0e8a4c3143f70203b4de9eeb821be209eb",
+      "obu_bytes": 71,
+      "obu_sha256": "21fb5f45efd4487e0b3c0d8798f9b53adb422b1c512d72c819ffc3304b275466",
+      "pattern": "diagonal-edge",
+      "pixel_format": "i400",
+      "planes": [
+        {
+          "decoded_sha256": "d6daeeb3230ded109dd47e14360a81d32e6e08fd193a586508842cab86566ff4",
+          "plane": "y",
+          "psnr_db": "18.339590",
+          "samples": 4096,
+          "sse": 3903744
+        }
+      ],
+      "qindex": 100,
+      "source_case": "target-diagonal-edge-i400",
+      "source_id": null,
+      "subset": "targeted",
+      "width": 64,
+      "workspace_bytes": 21376
+    },
+    {
+      "avm_project_exact": true,
+      "decode_time_ns": {
+        "avm": 42685109,
+        "project": 1377347
+      },
+      "decoded_sha256": "d76bd83804a17a19ea6ba8491179ccfff43265e06310b6b38f3de722089b38da",
+      "deterministic_rerun": true,
+      "encode_time_ns": {
+        "median": 3212610,
+        "samples": [
+          3421122,
+          3004098
+        ],
+        "worst": 3421122
+      },
+      "encoder_reported_sse": [
+        3970560
+      ],
+      "encoder_reported_sse_matches_decode": true,
+      "height": 64,
+      "id": "target-diagonal-edge-i400-q180",
+      "input_bytes": 4096,
+      "input_sha256": "afecd01816349533d58110c520310d0e8a4c3143f70203b4de9eeb821be209eb",
+      "obu_bytes": 49,
+      "obu_sha256": "4ac519c9d5ccde25d5f8145bcaeefea912c2e1190a2c3114edc9fa87b7d86464",
+      "pattern": "diagonal-edge",
+      "pixel_format": "i400",
+      "planes": [
+        {
+          "decoded_sha256": "d76bd83804a17a19ea6ba8491179ccfff43265e06310b6b38f3de722089b38da",
+          "plane": "y",
+          "psnr_db": "18.265885",
+          "samples": 4096,
+          "sse": 3970560
+        }
+      ],
+      "qindex": 180,
+      "source_case": "target-diagonal-edge-i400",
+      "source_id": null,
+      "subset": "targeted",
+      "width": 64,
+      "workspace_bytes": 21376
+    },
+    {
+      "avm_project_exact": true,
+      "decode_time_ns": {
+        "avm": 40836541,
+        "project": 1717894
+      },
+      "decoded_sha256": "038219e8d45cca255a70887e94798f53833647a1cf3f4e48c1010689acee47df",
+      "deterministic_rerun": true,
+      "encode_time_ns": {
+        "median": 166739523,
+        "samples": [
+          176767419,
+          156711627
+        ],
+        "worst": 176767419
+      },
+      "encoder_reported_sse": [
+        3902976,
+        1199808,
+        655488
+      ],
+      "encoder_reported_sse_matches_decode": true,
+      "height": 64,
+      "id": "target-diagonal-edge-i420-q60",
+      "input_bytes": 6144,
+      "input_sha256": "0a9374b617230726075754210ffcca7175b91b271b4488bd84bb36502cefc429",
+      "obu_bytes": 136,
+      "obu_sha256": "3f3d651ef37d43c93fb2ba51c45eeeb5c4f46c5668e26202a3f9a6d61416104c",
+      "pattern": "diagonal-edge",
+      "pixel_format": "i420",
+      "planes": [
+        {
+          "decoded_sha256": "ae2b3e489d34c53feba3db1c0ee0fc287f6f18ff8bbd2d3bf0fc8c415d78096b",
+          "plane": "y",
+          "psnr_db": "18.340444",
+          "samples": 4096,
+          "sse": 3902976
+        },
+        {
+          "decoded_sha256": "95e58990c05b7726d145a0cb10ab5dbc65a02f533de0ce483bc23dc2c9c408cf",
+          "plane": "u",
+          "psnr_db": "17.442686",
+          "samples": 1024,
+          "sse": 1199808
+        },
+        {
+          "decoded_sha256": "26414d6c318db7a5d8f071420f3581b93cbf8b8e85fc05831517f35dd397f39a",
+          "plane": "v",
+          "psnr_db": "20.068156",
+          "samples": 1024,
+          "sse": 655488
+        }
+      ],
+      "qindex": 60,
+      "source_case": "target-diagonal-edge-i420",
+      "source_id": null,
+      "subset": "targeted",
+      "width": 64,
+      "workspace_bytes": 25536
+    },
+    {
+      "avm_project_exact": true,
+      "decode_time_ns": {
+        "avm": 42177011,
+        "project": 1565780
+      },
+      "decoded_sha256": "549395843244939083076f695ecf3dc064fe9f167d464eb83cca87fd11aa6d96",
+      "deterministic_rerun": true,
+      "encode_time_ns": {
+        "median": 54547989,
+        "samples": [
+          57133526,
+          51962452
+        ],
+        "worst": 57133526
+      },
+      "encoder_reported_sse": [
+        3903744,
+        1199968,
+        655568
+      ],
+      "encoder_reported_sse_matches_decode": true,
+      "height": 64,
+      "id": "target-diagonal-edge-i420-q100",
+      "input_bytes": 6144,
+      "input_sha256": "0a9374b617230726075754210ffcca7175b91b271b4488bd84bb36502cefc429",
+      "obu_bytes": 114,
+      "obu_sha256": "45c18c4618b08faa3ac0d64feb168ea5d21e50a7528333dc457dbdc9ac43056a",
+      "pattern": "diagonal-edge",
+      "pixel_format": "i420",
+      "planes": [
+        {
+          "decoded_sha256": "d6daeeb3230ded109dd47e14360a81d32e6e08fd193a586508842cab86566ff4",
+          "plane": "y",
+          "psnr_db": "18.339590",
+          "samples": 4096,
+          "sse": 3903744
+        },
+        {
+          "decoded_sha256": "cfdad6dda035e60991775815b01c900680f08ae7075e4eea3c55fdb2f1ebcf8a",
+          "plane": "u",
+          "psnr_db": "17.442107",
+          "samples": 1024,
+          "sse": 1199968
+        },
+        {
+          "decoded_sha256": "9662de552cbd6c27b1dbc50574ff575ee0ee23949504a1f457379aea30a724bc",
+          "plane": "v",
+          "psnr_db": "20.067626",
+          "samples": 1024,
+          "sse": 655568
+        }
+      ],
+      "qindex": 100,
+      "source_case": "target-diagonal-edge-i420",
+      "source_id": null,
+      "subset": "targeted",
+      "width": 64,
+      "workspace_bytes": 25536
+    },
+    {
+      "avm_project_exact": true,
+      "decode_time_ns": {
+        "avm": 41824869,
+        "project": 1576256
+      },
+      "decoded_sha256": "0d69735dd4c43a36ef9f6ea6ffbabfe90e5349b28b8ef2ac1667eeb09ff7d73a",
+      "deterministic_rerun": true,
+      "encode_time_ns": {
+        "median": 8075927,
+        "samples": [
+          7883723,
+          8268131
+        ],
+        "worst": 8268131
+      },
+      "encoder_reported_sse": [
+        3970560,
+        1210608,
+        676784
+      ],
+      "encoder_reported_sse_matches_decode": true,
+      "height": 64,
+      "id": "target-diagonal-edge-i420-q180",
+      "input_bytes": 6144,
+      "input_sha256": "0a9374b617230726075754210ffcca7175b91b271b4488bd84bb36502cefc429",
+      "obu_bytes": 73,
+      "obu_sha256": "293571f5573c8b267f97427f2a67f12853bf9bb2b9a2b1900a89abe05b51e7cf",
+      "pattern": "diagonal-edge",
+      "pixel_format": "i420",
+      "planes": [
+        {
+          "decoded_sha256": "d76bd83804a17a19ea6ba8491179ccfff43265e06310b6b38f3de722089b38da",
+          "plane": "y",
+          "psnr_db": "18.265885",
+          "samples": 4096,
+          "sse": 3970560
+        },
+        {
+          "decoded_sha256": "08cb61b0a25b9340dda13edd312ec2008e79f71ebf69910f0ff319b8e743de05",
+          "plane": "u",
+          "psnr_db": "17.403768",
+          "samples": 1024,
+          "sse": 1210608
+        },
+        {
+          "decoded_sha256": "4a2656fd323a017dec2352866235d257a68ed640869a6f01b555a9a0e3e8cd6e",
+          "plane": "v",
+          "psnr_db": "19.929302",
+          "samples": 1024,
+          "sse": 676784
+        }
+      ],
+      "qindex": 180,
+      "source_case": "target-diagonal-edge-i420",
+      "source_id": null,
+      "subset": "targeted",
+      "width": 64,
+      "workspace_bytes": 25536
+    },
+    {
+      "avm_project_exact": true,
+      "decode_time_ns": {
+        "avm": 43456300,
+        "project": 1743457
+      },
+      "decoded_sha256": "623662184fb8f1be6e266987870c468adcb89b8c311804720d4c1b368fd4956f",
+      "deterministic_rerun": true,
+      "encode_time_ns": {
+        "median": 294981466,
+        "samples": [
+          296328117,
+          293634815
+        ],
+        "worst": 296328117
+      },
+      "encoder_reported_sse": [
+        3902976,
+        4856320,
+        2653056
+      ],
+      "encoder_reported_sse_matches_decode": true,
+      "height": 64,
+      "id": "target-diagonal-edge-i444-q60",
+      "input_bytes": 12288,
+      "input_sha256": "ef43a7bd9b0851de3dcf13ff5407d119a5ccc9055b6255918f37b17c9a2cfe66",
+      "obu_bytes": 140,
+      "obu_sha256": "b4a0266e37798534ad44991a23872451f28b139792c72bbcddcb79800cb5ba4a",
+      "pattern": "diagonal-edge",
+      "pixel_format": "i444",
+      "planes": [
+        {
+          "decoded_sha256": "ae2b3e489d34c53feba3db1c0ee0fc287f6f18ff8bbd2d3bf0fc8c415d78096b",
+          "plane": "y",
+          "psnr_db": "18.340444",
+          "samples": 4096,
+          "sse": 3902976
+        },
+        {
+          "decoded_sha256": "a24bcbe0a1e47485e03cdee8492a64b9980ac59ee948dd0e71d7fac995cf17bd",
+          "plane": "u",
+          "psnr_db": "17.391330",
+          "samples": 4096,
+          "sse": 4856320
+        },
+        {
+          "decoded_sha256": "98482d7ad84ac141bdcbebec400d1e4d0b01a4d7e032c7c0383741b82d349d4b",
+          "plane": "v",
+          "psnr_db": "20.016939",
+          "samples": 4096,
+          "sse": 2653056
+        }
+      ],
+      "qindex": 60,
+      "source_case": "target-diagonal-edge-i444",
+      "source_id": null,
+      "subset": "targeted",
+      "width": 64,
+      "workspace_bytes": 37824
+    },
+    {
+      "avm_project_exact": true,
+      "decode_time_ns": {
+        "avm": 40210061,
+        "project": 1958709
+      },
+      "decoded_sha256": "7a471f9df923d1de533337656d882fae27c8ce206aea7e6d6a0a705c22edd6c7",
+      "deterministic_rerun": true,
+      "encode_time_ns": {
+        "median": 98449774,
+        "samples": [
+          101396427,
+          95503121
+        ],
+        "worst": 101396427
+      },
+      "encoder_reported_sse": [
+        3903744,
+        4856320,
+        2653056
+      ],
+      "encoder_reported_sse_matches_decode": true,
+      "height": 64,
+      "id": "target-diagonal-edge-i444-q100",
+      "input_bytes": 12288,
+      "input_sha256": "ef43a7bd9b0851de3dcf13ff5407d119a5ccc9055b6255918f37b17c9a2cfe66",
+      "obu_bytes": 119,
+      "obu_sha256": "1a03ec144e93254873e5fb249a3535cc8c48dfbadd7581891395c63694c6c24a",
+      "pattern": "diagonal-edge",
+      "pixel_format": "i444",
+      "planes": [
+        {
+          "decoded_sha256": "d6daeeb3230ded109dd47e14360a81d32e6e08fd193a586508842cab86566ff4",
+          "plane": "y",
+          "psnr_db": "18.339590",
+          "samples": 4096,
+          "sse": 3903744
+        },
+        {
+          "decoded_sha256": "a24bcbe0a1e47485e03cdee8492a64b9980ac59ee948dd0e71d7fac995cf17bd",
+          "plane": "u",
+          "psnr_db": "17.391330",
+          "samples": 4096,
+          "sse": 4856320
+        },
+        {
+          "decoded_sha256": "98482d7ad84ac141bdcbebec400d1e4d0b01a4d7e032c7c0383741b82d349d4b",
+          "plane": "v",
+          "psnr_db": "20.016939",
+          "samples": 4096,
+          "sse": 2653056
+        }
+      ],
+      "qindex": 100,
+      "source_case": "target-diagonal-edge-i444",
+      "source_id": null,
+      "subset": "targeted",
+      "width": 64,
+      "workspace_bytes": 37824
+    },
+    {
+      "avm_project_exact": true,
+      "decode_time_ns": {
+        "avm": 39962194,
+        "project": 1601329
+      },
+      "decoded_sha256": "07b28bfec96a812ccb942f5f785e2e3c31a44cab343d4daf81c1b5cd858fab5f",
+      "deterministic_rerun": true,
+      "encode_time_ns": {
+        "median": 13654353,
+        "samples": [
+          13346596,
+          13962110
+        ],
+        "worst": 13962110
+      },
+      "encoder_reported_sse": [
+        3970560,
+        4867712,
+        2677472
+      ],
+      "encoder_reported_sse_matches_decode": true,
+      "height": 64,
+      "id": "target-diagonal-edge-i444-q180",
+      "input_bytes": 12288,
+      "input_sha256": "ef43a7bd9b0851de3dcf13ff5407d119a5ccc9055b6255918f37b17c9a2cfe66",
+      "obu_bytes": 76,
+      "obu_sha256": "961bf4dd15c1d3968c9e8e5325afcc46523956783a8331e37dda49a48dcf1042",
+      "pattern": "diagonal-edge",
+      "pixel_format": "i444",
+      "planes": [
+        {
+          "decoded_sha256": "d76bd83804a17a19ea6ba8491179ccfff43265e06310b6b38f3de722089b38da",
+          "plane": "y",
+          "psnr_db": "18.265885",
+          "samples": 4096,
+          "sse": 3970560
+        },
+        {
+          "decoded_sha256": "13e6e51e45776efd88274ccc846c929b0fb8cdde9adb233a96fa01a302b0128f",
+          "plane": "u",
+          "psnr_db": "17.381154",
+          "samples": 4096,
+          "sse": 4867712
+        },
+        {
+          "decoded_sha256": "02b896e1202dd68e93fdabf8275ae787592784554c1efc3b0442d19bfad52d5d",
+          "plane": "v",
+          "psnr_db": "19.977154",
+          "samples": 4096,
+          "sse": 2677472
+        }
+      ],
+      "qindex": 180,
+      "source_case": "target-diagonal-edge-i444",
+      "source_id": null,
+      "subset": "targeted",
+      "width": 64,
+      "workspace_bytes": 37824
+    },
+    {
+      "avm_project_exact": true,
+      "decode_time_ns": {
+        "avm": 44076354,
+        "project": 1131644
+      },
+      "decoded_sha256": "78aacbc3fb34efb8ffa5467b931291ec2bdf5e19564fc45fe97b5affbc893dc6",
+      "deterministic_rerun": true,
+      "encode_time_ns": {
+        "median": 42347808,
+        "samples": [
+          42339462,
+          42356155
+        ],
+        "worst": 42356155
+      },
+      "encoder_reported_sse": [
+        26214400
+      ],
+      "encoder_reported_sse_matches_decode": true,
+      "height": 64,
+      "id": "target-checkerboard-4-i400-q60",
+      "input_bytes": 4096,
+      "input_sha256": "dad397840b33e78d3b5d484127c567a8052d0f7f81d3f07252be351c2248c528",
+      "obu_bytes": 29,
+      "obu_sha256": "4378addd3d707214b6987c1952b076fa1bf3d965e39d238b9770093982a7a482",
+      "pattern": "checkerboard-4",
+      "pixel_format": "i400",
+      "planes": [
+        {
+          "decoded_sha256": "78aacbc3fb34efb8ffa5467b931291ec2bdf5e19564fc45fe97b5affbc893dc6",
+          "plane": "y",
+          "psnr_db": "10.069004",
+          "samples": 4096,
+          "sse": 26214400
+        }
+      ],
+      "qindex": 60,
+      "source_case": "target-checkerboard-4-i400",
+      "source_id": null,
+      "subset": "targeted",
+      "width": 64,
+      "workspace_bytes": 21376
+    },
+    {
+      "avm_project_exact": true,
+      "decode_time_ns": {
+        "avm": 41991791,
+        "project": 1653571
+      },
+      "decoded_sha256": "78aacbc3fb34efb8ffa5467b931291ec2bdf5e19564fc45fe97b5affbc893dc6",
+      "deterministic_rerun": true,
+      "encode_time_ns": {
+        "median": 13877043,
+        "samples": [
+          13833741,
+          13920345
+        ],
+        "worst": 13920345
+      },
+      "encoder_reported_sse": [
+        26214400
+      ],
+      "encoder_reported_sse_matches_decode": true,
+      "height": 64,
+      "id": "target-checkerboard-4-i400-q100",
+      "input_bytes": 4096,
+      "input_sha256": "dad397840b33e78d3b5d484127c567a8052d0f7f81d3f07252be351c2248c528",
+      "obu_bytes": 29,
+      "obu_sha256": "4568a0284e0c7e5dcbd29e0a4c59678ef7210c04af3dedc94d78ff9d656608e8",
+      "pattern": "checkerboard-4",
+      "pixel_format": "i400",
+      "planes": [
+        {
+          "decoded_sha256": "78aacbc3fb34efb8ffa5467b931291ec2bdf5e19564fc45fe97b5affbc893dc6",
+          "plane": "y",
+          "psnr_db": "10.069004",
+          "samples": 4096,
+          "sse": 26214400
+        }
+      ],
+      "qindex": 100,
+      "source_case": "target-checkerboard-4-i400",
+      "source_id": null,
+      "subset": "targeted",
+      "width": 64,
+      "workspace_bytes": 21376
+    },
+    {
+      "avm_project_exact": true,
+      "decode_time_ns": {
+        "avm": 40774521,
+        "project": 1288159
+      },
+      "decoded_sha256": "78aacbc3fb34efb8ffa5467b931291ec2bdf5e19564fc45fe97b5affbc893dc6",
+      "deterministic_rerun": true,
+      "encode_time_ns": {
+        "median": 2783712,
+        "samples": [
+          2782839,
+          2784585
+        ],
+        "worst": 2784585
+      },
+      "encoder_reported_sse": [
+        26214400
+      ],
+      "encoder_reported_sse_matches_decode": true,
+      "height": 64,
+      "id": "target-checkerboard-4-i400-q180",
+      "input_bytes": 4096,
+      "input_sha256": "dad397840b33e78d3b5d484127c567a8052d0f7f81d3f07252be351c2248c528",
+      "obu_bytes": 29,
+      "obu_sha256": "a361f598f5c801500d3197bd35ee42866311ad2e4416c21766d9f50fc42c7144",
+      "pattern": "checkerboard-4",
+      "pixel_format": "i400",
+      "planes": [
+        {
+          "decoded_sha256": "78aacbc3fb34efb8ffa5467b931291ec2bdf5e19564fc45fe97b5affbc893dc6",
+          "plane": "y",
+          "psnr_db": "10.069004",
+          "samples": 4096,
+          "sse": 26214400
+        }
+      ],
+      "qindex": 180,
+      "source_case": "target-checkerboard-4-i400",
+      "source_id": null,
+      "subset": "targeted",
+      "width": 64,
+      "workspace_bytes": 21376
+    },
+    {
+      "avm_project_exact": true,
+      "decode_time_ns": {
+        "avm": 40985234,
+        "project": 1618510
+      },
+      "decoded_sha256": "cb11e05cb5da949c0e0f5b5a7cb310df35a96a22c45d1ada70d950859fe697d1",
+      "deterministic_rerun": true,
+      "encode_time_ns": {
+        "median": 157883115,
+        "samples": [
+          158480086,
+          157286144
+        ],
+        "worst": 158480086
+      },
+      "encoder_reported_sse": [
+        26214400,
+        3810304,
+        1893376
+      ],
+      "encoder_reported_sse_matches_decode": true,
+      "height": 64,
+      "id": "target-checkerboard-4-i420-q60",
+      "input_bytes": 6144,
+      "input_sha256": "cafbee0afd3c2b90fc25720d8311b1bb9442fa16203c6fc2f3e84450ac3b2c8b",
+      "obu_bytes": 36,
+      "obu_sha256": "f327cb5f1156c18a28427857500e01f97ca6c7a6773e63736603e8017c0c3ed6",
+      "pattern": "checkerboard-4",
+      "pixel_format": "i420",
+      "planes": [
+        {
+          "decoded_sha256": "78aacbc3fb34efb8ffa5467b931291ec2bdf5e19564fc45fe97b5affbc893dc6",
+          "plane": "y",
+          "psnr_db": "10.069004",
+          "samples": 4096,
+          "sse": 26214400
+        },
+        {
+          "decoded_sha256": "f991acb1e5897fe61be2decbf1d1b41b165ec8c2317284f8e3d8322c4d052e21",
+          "plane": "u",
+          "psnr_db": "12.424207",
+          "samples": 1024,
+          "sse": 3810304
+        },
+        {
+          "decoded_sha256": "f991acb1e5897fe61be2decbf1d1b41b165ec8c2317284f8e3d8322c4d052e21",
+          "plane": "v",
+          "psnr_db": "15.461434",
+          "samples": 1024,
+          "sse": 1893376
+        }
+      ],
+      "qindex": 60,
+      "source_case": "target-checkerboard-4-i420",
+      "source_id": null,
+      "subset": "targeted",
+      "width": 64,
+      "workspace_bytes": 25536
+    },
+    {
+      "avm_project_exact": true,
+      "decode_time_ns": {
+        "avm": 39923432,
+        "project": 1147847
+      },
+      "decoded_sha256": "cb11e05cb5da949c0e0f5b5a7cb310df35a96a22c45d1ada70d950859fe697d1",
+      "deterministic_rerun": true,
+      "encode_time_ns": {
+        "median": 51396595,
+        "samples": [
+          50902047,
+          51891144
+        ],
+        "worst": 51891144
+      },
+      "encoder_reported_sse": [
+        26214400,
+        3810304,
+        1893376
+      ],
+      "encoder_reported_sse_matches_decode": true,
+      "height": 64,
+      "id": "target-checkerboard-4-i420-q100",
+      "input_bytes": 6144,
+      "input_sha256": "cafbee0afd3c2b90fc25720d8311b1bb9442fa16203c6fc2f3e84450ac3b2c8b",
+      "obu_bytes": 36,
+      "obu_sha256": "0d17e2e29df782ef4839fca05d271dbf93b4bf508af717acdb1fb26bc0cc6fad",
+      "pattern": "checkerboard-4",
+      "pixel_format": "i420",
+      "planes": [
+        {
+          "decoded_sha256": "78aacbc3fb34efb8ffa5467b931291ec2bdf5e19564fc45fe97b5affbc893dc6",
+          "plane": "y",
+          "psnr_db": "10.069004",
+          "samples": 4096,
+          "sse": 26214400
+        },
+        {
+          "decoded_sha256": "f991acb1e5897fe61be2decbf1d1b41b165ec8c2317284f8e3d8322c4d052e21",
+          "plane": "u",
+          "psnr_db": "12.424207",
+          "samples": 1024,
+          "sse": 3810304
+        },
+        {
+          "decoded_sha256": "f991acb1e5897fe61be2decbf1d1b41b165ec8c2317284f8e3d8322c4d052e21",
+          "plane": "v",
+          "psnr_db": "15.461434",
+          "samples": 1024,
+          "sse": 1893376
+        }
+      ],
+      "qindex": 100,
+      "source_case": "target-checkerboard-4-i420",
+      "source_id": null,
+      "subset": "targeted",
+      "width": 64,
+      "workspace_bytes": 25536
+    },
+    {
+      "avm_project_exact": true,
+      "decode_time_ns": {
+        "avm": 42065543,
+        "project": 1381817
+      },
+      "decoded_sha256": "cb11e05cb5da949c0e0f5b5a7cb310df35a96a22c45d1ada70d950859fe697d1",
+      "deterministic_rerun": true,
+      "encode_time_ns": {
+        "median": 9366601,
+        "samples": [
+          10745694,
+          7987508
+        ],
+        "worst": 10745694
+      },
+      "encoder_reported_sse": [
+        26214400,
+        3810304,
+        1893376
+      ],
+      "encoder_reported_sse_matches_decode": true,
+      "height": 64,
+      "id": "target-checkerboard-4-i420-q180",
+      "input_bytes": 6144,
+      "input_sha256": "cafbee0afd3c2b90fc25720d8311b1bb9442fa16203c6fc2f3e84450ac3b2c8b",
+      "obu_bytes": 36,
+      "obu_sha256": "8aee5f914c47c225e0f15ce60200eaed81143391ab2ad62b5a4c9fb48caaa7b5",
+      "pattern": "checkerboard-4",
+      "pixel_format": "i420",
+      "planes": [
+        {
+          "decoded_sha256": "78aacbc3fb34efb8ffa5467b931291ec2bdf5e19564fc45fe97b5affbc893dc6",
+          "plane": "y",
+          "psnr_db": "10.069004",
+          "samples": 4096,
+          "sse": 26214400
+        },
+        {
+          "decoded_sha256": "f991acb1e5897fe61be2decbf1d1b41b165ec8c2317284f8e3d8322c4d052e21",
+          "plane": "u",
+          "psnr_db": "12.424207",
+          "samples": 1024,
+          "sse": 3810304
+        },
+        {
+          "decoded_sha256": "f991acb1e5897fe61be2decbf1d1b41b165ec8c2317284f8e3d8322c4d052e21",
+          "plane": "v",
+          "psnr_db": "15.461434",
+          "samples": 1024,
+          "sse": 1893376
+        }
+      ],
+      "qindex": 180,
+      "source_case": "target-checkerboard-4-i420",
+      "source_id": null,
+      "subset": "targeted",
+      "width": 64,
+      "workspace_bytes": 25536
+    },
+    {
+      "avm_project_exact": true,
+      "decode_time_ns": {
+        "avm": 43631114,
+        "project": 1578141
+      },
+      "decoded_sha256": "2203a98fd84adfbd3cbbfda33c94fcc2d33f0e1d6ebfa4e0ced17c5469ba54e5",
+      "deterministic_rerun": true,
+      "encode_time_ns": {
+        "median": 292801115,
+        "samples": [
+          293584948,
+          292017283
+        ],
+        "worst": 293584948
+      },
+      "encoder_reported_sse": [
+        26214400,
+        15241216,
+        7573504
+      ],
+      "encoder_reported_sse_matches_decode": true,
+      "height": 64,
+      "id": "target-checkerboard-4-i444-q60",
+      "input_bytes": 12288,
+      "input_sha256": "9b0905b86d108ce4129bb0922249346ba995978f1dcff84eb9f4a8b03485b0f1",
+      "obu_bytes": 37,
+      "obu_sha256": "6616c5c7f4836b5b6f9400287627652f418e3cd7c9a5d567615a9576df0236c7",
+      "pattern": "checkerboard-4",
+      "pixel_format": "i444",
+      "planes": [
+        {
+          "decoded_sha256": "78aacbc3fb34efb8ffa5467b931291ec2bdf5e19564fc45fe97b5affbc893dc6",
+          "plane": "y",
+          "psnr_db": "10.069004",
+          "samples": 4096,
+          "sse": 26214400
+        },
+        {
+          "decoded_sha256": "78aacbc3fb34efb8ffa5467b931291ec2bdf5e19564fc45fe97b5affbc893dc6",
+          "plane": "u",
+          "psnr_db": "12.424207",
+          "samples": 4096,
+          "sse": 15241216
+        },
+        {
+          "decoded_sha256": "78aacbc3fb34efb8ffa5467b931291ec2bdf5e19564fc45fe97b5affbc893dc6",
+          "plane": "v",
+          "psnr_db": "15.461434",
+          "samples": 4096,
+          "sse": 7573504
+        }
+      ],
+      "qindex": 60,
+      "source_case": "target-checkerboard-4-i444",
+      "source_id": null,
+      "subset": "targeted",
+      "width": 64,
+      "workspace_bytes": 37824
+    },
+    {
+      "avm_project_exact": true,
+      "decode_time_ns": {
+        "avm": 41650685,
+        "project": 1594624
+      },
+      "decoded_sha256": "2203a98fd84adfbd3cbbfda33c94fcc2d33f0e1d6ebfa4e0ced17c5469ba54e5",
+      "deterministic_rerun": true,
+      "encode_time_ns": {
+        "median": 96042298,
+        "samples": [
+          96691616,
+          95392981
+        ],
+        "worst": 96691616
+      },
+      "encoder_reported_sse": [
+        26214400,
+        15241216,
+        7573504
+      ],
+      "encoder_reported_sse_matches_decode": true,
+      "height": 64,
+      "id": "target-checkerboard-4-i444-q100",
+      "input_bytes": 12288,
+      "input_sha256": "9b0905b86d108ce4129bb0922249346ba995978f1dcff84eb9f4a8b03485b0f1",
+      "obu_bytes": 37,
+      "obu_sha256": "6cc5fc21a2ecf34a21766cb5147a5b66affde19783988cc1c6e5b6ec2b3dfe1b",
+      "pattern": "checkerboard-4",
+      "pixel_format": "i444",
+      "planes": [
+        {
+          "decoded_sha256": "78aacbc3fb34efb8ffa5467b931291ec2bdf5e19564fc45fe97b5affbc893dc6",
+          "plane": "y",
+          "psnr_db": "10.069004",
+          "samples": 4096,
+          "sse": 26214400
+        },
+        {
+          "decoded_sha256": "78aacbc3fb34efb8ffa5467b931291ec2bdf5e19564fc45fe97b5affbc893dc6",
+          "plane": "u",
+          "psnr_db": "12.424207",
+          "samples": 4096,
+          "sse": 15241216
+        },
+        {
+          "decoded_sha256": "78aacbc3fb34efb8ffa5467b931291ec2bdf5e19564fc45fe97b5affbc893dc6",
+          "plane": "v",
+          "psnr_db": "15.461434",
+          "samples": 4096,
+          "sse": 7573504
+        }
+      ],
+      "qindex": 100,
+      "source_case": "target-checkerboard-4-i444",
+      "source_id": null,
+      "subset": "targeted",
+      "width": 64,
+      "workspace_bytes": 37824
+    },
+    {
+      "avm_project_exact": true,
+      "decode_time_ns": {
+        "avm": 41069043,
+        "project": 1204000
+      },
+      "decoded_sha256": "2203a98fd84adfbd3cbbfda33c94fcc2d33f0e1d6ebfa4e0ced17c5469ba54e5",
+      "deterministic_rerun": true,
+      "encode_time_ns": {
+        "median": 13271935,
+        "samples": [
+          12990473,
+          13553397
+        ],
+        "worst": 13553397
+      },
+      "encoder_reported_sse": [
+        26214400,
+        15241216,
+        7573504
+      ],
+      "encoder_reported_sse_matches_decode": true,
+      "height": 64,
+      "id": "target-checkerboard-4-i444-q180",
+      "input_bytes": 12288,
+      "input_sha256": "9b0905b86d108ce4129bb0922249346ba995978f1dcff84eb9f4a8b03485b0f1",
+      "obu_bytes": 37,
+      "obu_sha256": "d76f19ae67ac804d1c4a9f18a5a6d9c58761a07a1dee2a0de6b84cd7f2750f05",
+      "pattern": "checkerboard-4",
+      "pixel_format": "i444",
+      "planes": [
+        {
+          "decoded_sha256": "78aacbc3fb34efb8ffa5467b931291ec2bdf5e19564fc45fe97b5affbc893dc6",
+          "plane": "y",
+          "psnr_db": "10.069004",
+          "samples": 4096,
+          "sse": 26214400
+        },
+        {
+          "decoded_sha256": "78aacbc3fb34efb8ffa5467b931291ec2bdf5e19564fc45fe97b5affbc893dc6",
+          "plane": "u",
+          "psnr_db": "12.424207",
+          "samples": 4096,
+          "sse": 15241216
+        },
+        {
+          "decoded_sha256": "78aacbc3fb34efb8ffa5467b931291ec2bdf5e19564fc45fe97b5affbc893dc6",
+          "plane": "v",
+          "psnr_db": "15.461434",
+          "samples": 4096,
+          "sse": 7573504
+        }
+      ],
+      "qindex": 180,
+      "source_case": "target-checkerboard-4-i444",
+      "source_id": null,
+      "subset": "targeted",
+      "width": 64,
+      "workspace_bytes": 37824
+    },
+    {
+      "avm_project_exact": true,
+      "decode_time_ns": {
+        "avm": 40326278,
+        "project": 1512980
+      },
+      "decoded_sha256": "78aacbc3fb34efb8ffa5467b931291ec2bdf5e19564fc45fe97b5affbc893dc6",
+      "deterministic_rerun": true,
+      "encode_time_ns": {
+        "median": 41976810,
+        "samples": [
+          41402607,
+          42551013
+        ],
+        "worst": 42551013
+      },
+      "encoder_reported_sse": [
+        16777216
+      ],
+      "encoder_reported_sse_matches_decode": true,
+      "height": 64,
+      "id": "target-horizontal-lines-2-i400-q60",
+      "input_bytes": 4096,
+      "input_sha256": "29fe8e928597f7cf4490628f18a6a331b57ca69cdba41aeac501aeb0217bfb39",
+      "obu_bytes": 29,
+      "obu_sha256": "4378addd3d707214b6987c1952b076fa1bf3d965e39d238b9770093982a7a482",
+      "pattern": "horizontal-lines-2",
+      "pixel_format": "i400",
+      "planes": [
+        {
+          "decoded_sha256": "78aacbc3fb34efb8ffa5467b931291ec2bdf5e19564fc45fe97b5affbc893dc6",
+          "plane": "y",
+          "psnr_db": "12.007204",
+          "samples": 4096,
+          "sse": 16777216
+        }
+      ],
+      "qindex": 60,
+      "source_case": "target-horizontal-lines-2-i400",
+      "source_id": null,
+      "subset": "targeted",
+      "width": 64,
+      "workspace_bytes": 21376
+    },
+    {
+      "avm_project_exact": true,
+      "decode_time_ns": {
+        "avm": 41176111,
+        "project": 1168939
+      },
+      "decoded_sha256": "78aacbc3fb34efb8ffa5467b931291ec2bdf5e19564fc45fe97b5affbc893dc6",
+      "deterministic_rerun": true,
+      "encode_time_ns": {
+        "median": 14462595,
+        "samples": [
+          14533205,
+          14391985
+        ],
+        "worst": 14533205
+      },
+      "encoder_reported_sse": [
+        16777216
+      ],
+      "encoder_reported_sse_matches_decode": true,
+      "height": 64,
+      "id": "target-horizontal-lines-2-i400-q100",
+      "input_bytes": 4096,
+      "input_sha256": "29fe8e928597f7cf4490628f18a6a331b57ca69cdba41aeac501aeb0217bfb39",
+      "obu_bytes": 29,
+      "obu_sha256": "4568a0284e0c7e5dcbd29e0a4c59678ef7210c04af3dedc94d78ff9d656608e8",
+      "pattern": "horizontal-lines-2",
+      "pixel_format": "i400",
+      "planes": [
+        {
+          "decoded_sha256": "78aacbc3fb34efb8ffa5467b931291ec2bdf5e19564fc45fe97b5affbc893dc6",
+          "plane": "y",
+          "psnr_db": "12.007204",
+          "samples": 4096,
+          "sse": 16777216
+        }
+      ],
+      "qindex": 100,
+      "source_case": "target-horizontal-lines-2-i400",
+      "source_id": null,
+      "subset": "targeted",
+      "width": 64,
+      "workspace_bytes": 21376
+    },
+    {
+      "avm_project_exact": true,
+      "decode_time_ns": {
+        "avm": 40030568,
+        "project": 1133809
+      },
+      "decoded_sha256": "78aacbc3fb34efb8ffa5467b931291ec2bdf5e19564fc45fe97b5affbc893dc6",
+      "deterministic_rerun": true,
+      "encode_time_ns": {
+        "median": 2968130,
+        "samples": [
+          2935095,
+          3001165
+        ],
+        "worst": 3001165
+      },
+      "encoder_reported_sse": [
+        16777216
+      ],
+      "encoder_reported_sse_matches_decode": true,
+      "height": 64,
+      "id": "target-horizontal-lines-2-i400-q180",
+      "input_bytes": 4096,
+      "input_sha256": "29fe8e928597f7cf4490628f18a6a331b57ca69cdba41aeac501aeb0217bfb39",
+      "obu_bytes": 29,
+      "obu_sha256": "a361f598f5c801500d3197bd35ee42866311ad2e4416c21766d9f50fc42c7144",
+      "pattern": "horizontal-lines-2",
+      "pixel_format": "i400",
+      "planes": [
+        {
+          "decoded_sha256": "78aacbc3fb34efb8ffa5467b931291ec2bdf5e19564fc45fe97b5affbc893dc6",
+          "plane": "y",
+          "psnr_db": "12.007204",
+          "samples": 4096,
+          "sse": 16777216
+        }
+      ],
+      "qindex": 180,
+      "source_case": "target-horizontal-lines-2-i400",
+      "source_id": null,
+      "subset": "targeted",
+      "width": 64,
+      "workspace_bytes": 21376
+    },
+    {
+      "avm_project_exact": true,
+      "decode_time_ns": {
+        "avm": 40323903,
+        "project": 1618929
+      },
+      "decoded_sha256": "cb11e05cb5da949c0e0f5b5a7cb310df35a96a22c45d1ada70d950859fe697d1",
+      "deterministic_rerun": true,
+      "encode_time_ns": {
+        "median": 159826074,
+        "samples": [
+          160914627,
+          158737522
+        ],
+        "worst": 160914627
+      },
+      "encoder_reported_sse": [
+        16777216,
+        2073600,
+        746496
+      ],
+      "encoder_reported_sse_matches_decode": true,
+      "height": 64,
+      "id": "target-horizontal-lines-2-i420-q60",
+      "input_bytes": 6144,
+      "input_sha256": "8b6efcc51af8f9cd10cc4a3969241535a5c71b09af3be61f0455da1d5246a0c9",
+      "obu_bytes": 36,
+      "obu_sha256": "f327cb5f1156c18a28427857500e01f97ca6c7a6773e63736603e8017c0c3ed6",
+      "pattern": "horizontal-lines-2",
+      "pixel_format": "i420",
+      "planes": [
+        {
+          "decoded_sha256": "78aacbc3fb34efb8ffa5467b931291ec2bdf5e19564fc45fe97b5affbc893dc6",
+          "plane": "y",
+          "psnr_db": "12.007204",
+          "samples": 4096,
+          "sse": 16777216
+        },
+        {
+          "decoded_sha256": "f991acb1e5897fe61be2decbf1d1b41b165ec8c2317284f8e3d8322c4d052e21",
+          "plane": "u",
+          "psnr_db": "15.066553",
+          "samples": 1024,
+          "sse": 2073600
+        },
+        {
+          "decoded_sha256": "f991acb1e5897fe61be2decbf1d1b41b165ec8c2317284f8e3d8322c4d052e21",
+          "plane": "v",
+          "psnr_db": "19.503528",
+          "samples": 1024,
+          "sse": 746496
+        }
+      ],
+      "qindex": 60,
+      "source_case": "target-horizontal-lines-2-i420",
+      "source_id": null,
+      "subset": "targeted",
+      "width": 64,
+      "workspace_bytes": 25536
+    },
+    {
+      "avm_project_exact": true,
+      "decode_time_ns": {
+        "avm": 42450720,
+        "project": 1585615
+      },
+      "decoded_sha256": "cb11e05cb5da949c0e0f5b5a7cb310df35a96a22c45d1ada70d950859fe697d1",
+      "deterministic_rerun": true,
+      "encode_time_ns": {
+        "median": 51169680,
+        "samples": [
+          51247763,
+          51091597
+        ],
+        "worst": 51247763
+      },
+      "encoder_reported_sse": [
+        16777216,
+        2073600,
+        746496
+      ],
+      "encoder_reported_sse_matches_decode": true,
+      "height": 64,
+      "id": "target-horizontal-lines-2-i420-q100",
+      "input_bytes": 6144,
+      "input_sha256": "8b6efcc51af8f9cd10cc4a3969241535a5c71b09af3be61f0455da1d5246a0c9",
+      "obu_bytes": 36,
+      "obu_sha256": "0d17e2e29df782ef4839fca05d271dbf93b4bf508af717acdb1fb26bc0cc6fad",
+      "pattern": "horizontal-lines-2",
+      "pixel_format": "i420",
+      "planes": [
+        {
+          "decoded_sha256": "78aacbc3fb34efb8ffa5467b931291ec2bdf5e19564fc45fe97b5affbc893dc6",
+          "plane": "y",
+          "psnr_db": "12.007204",
+          "samples": 4096,
+          "sse": 16777216
+        },
+        {
+          "decoded_sha256": "f991acb1e5897fe61be2decbf1d1b41b165ec8c2317284f8e3d8322c4d052e21",
+          "plane": "u",
+          "psnr_db": "15.066553",
+          "samples": 1024,
+          "sse": 2073600
+        },
+        {
+          "decoded_sha256": "f991acb1e5897fe61be2decbf1d1b41b165ec8c2317284f8e3d8322c4d052e21",
+          "plane": "v",
+          "psnr_db": "19.503528",
+          "samples": 1024,
+          "sse": 746496
+        }
+      ],
+      "qindex": 100,
+      "source_case": "target-horizontal-lines-2-i420",
+      "source_id": null,
+      "subset": "targeted",
+      "width": 64,
+      "workspace_bytes": 25536
+    },
+    {
+      "avm_project_exact": true,
+      "decode_time_ns": {
+        "avm": 43112469,
+        "project": 1481970
+      },
+      "decoded_sha256": "cb11e05cb5da949c0e0f5b5a7cb310df35a96a22c45d1ada70d950859fe697d1",
+      "deterministic_rerun": true,
+      "encode_time_ns": {
+        "median": 7862142,
+        "samples": [
+          8006505,
+          7717780
+        ],
+        "worst": 8006505
+      },
+      "encoder_reported_sse": [
+        16777216,
+        2073600,
+        746496
+      ],
+      "encoder_reported_sse_matches_decode": true,
+      "height": 64,
+      "id": "target-horizontal-lines-2-i420-q180",
+      "input_bytes": 6144,
+      "input_sha256": "8b6efcc51af8f9cd10cc4a3969241535a5c71b09af3be61f0455da1d5246a0c9",
+      "obu_bytes": 36,
+      "obu_sha256": "8aee5f914c47c225e0f15ce60200eaed81143391ab2ad62b5a4c9fb48caaa7b5",
+      "pattern": "horizontal-lines-2",
+      "pixel_format": "i420",
+      "planes": [
+        {
+          "decoded_sha256": "78aacbc3fb34efb8ffa5467b931291ec2bdf5e19564fc45fe97b5affbc893dc6",
+          "plane": "y",
+          "psnr_db": "12.007204",
+          "samples": 4096,
+          "sse": 16777216
+        },
+        {
+          "decoded_sha256": "f991acb1e5897fe61be2decbf1d1b41b165ec8c2317284f8e3d8322c4d052e21",
+          "plane": "u",
+          "psnr_db": "15.066553",
+          "samples": 1024,
+          "sse": 2073600
+        },
+        {
+          "decoded_sha256": "f991acb1e5897fe61be2decbf1d1b41b165ec8c2317284f8e3d8322c4d052e21",
+          "plane": "v",
+          "psnr_db": "19.503528",
+          "samples": 1024,
+          "sse": 746496
+        }
+      ],
+      "qindex": 180,
+      "source_case": "target-horizontal-lines-2-i420",
+      "source_id": null,
+      "subset": "targeted",
+      "width": 64,
+      "workspace_bytes": 25536
+    },
+    {
+      "avm_project_exact": true,
+      "decode_time_ns": {
+        "avm": 38907305,
+        "project": 1202394
+      },
+      "decoded_sha256": "2203a98fd84adfbd3cbbfda33c94fcc2d33f0e1d6ebfa4e0ced17c5469ba54e5",
+      "deterministic_rerun": true,
+      "encode_time_ns": {
+        "median": 304555008,
+        "samples": [
+          294728116,
+          314381900
+        ],
+        "worst": 314381900
+      },
+      "encoder_reported_sse": [
+        16777216,
+        8294400,
+        2985984
+      ],
+      "encoder_reported_sse_matches_decode": true,
+      "height": 64,
+      "id": "target-horizontal-lines-2-i444-q60",
+      "input_bytes": 12288,
+      "input_sha256": "7ef5b59831e8eec179dc1373667ef6e50f9c44226335c5a5775c2c169c9cebcc",
+      "obu_bytes": 37,
+      "obu_sha256": "6616c5c7f4836b5b6f9400287627652f418e3cd7c9a5d567615a9576df0236c7",
+      "pattern": "horizontal-lines-2",
+      "pixel_format": "i444",
+      "planes": [
+        {
+          "decoded_sha256": "78aacbc3fb34efb8ffa5467b931291ec2bdf5e19564fc45fe97b5affbc893dc6",
+          "plane": "y",
+          "psnr_db": "12.007204",
+          "samples": 4096,
+          "sse": 16777216
+        },
+        {
+          "decoded_sha256": "78aacbc3fb34efb8ffa5467b931291ec2bdf5e19564fc45fe97b5affbc893dc6",
+          "plane": "u",
+          "psnr_db": "15.066553",
+          "samples": 4096,
+          "sse": 8294400
+        },
+        {
+          "decoded_sha256": "78aacbc3fb34efb8ffa5467b931291ec2bdf5e19564fc45fe97b5affbc893dc6",
+          "plane": "v",
+          "psnr_db": "19.503528",
+          "samples": 4096,
+          "sse": 2985984
+        }
+      ],
+      "qindex": 60,
+      "source_case": "target-horizontal-lines-2-i444",
+      "source_id": null,
+      "subset": "targeted",
+      "width": 64,
+      "workspace_bytes": 37824
+    },
+    {
+      "avm_project_exact": true,
+      "decode_time_ns": {
+        "avm": 43058203,
+        "project": 1190101
+      },
+      "decoded_sha256": "2203a98fd84adfbd3cbbfda33c94fcc2d33f0e1d6ebfa4e0ced17c5469ba54e5",
+      "deterministic_rerun": true,
+      "encode_time_ns": {
+        "median": 94690513,
+        "samples": [
+          94536652,
+          94844375
+        ],
+        "worst": 94844375
+      },
+      "encoder_reported_sse": [
+        16777216,
+        8294400,
+        2985984
+      ],
+      "encoder_reported_sse_matches_decode": true,
+      "height": 64,
+      "id": "target-horizontal-lines-2-i444-q100",
+      "input_bytes": 12288,
+      "input_sha256": "7ef5b59831e8eec179dc1373667ef6e50f9c44226335c5a5775c2c169c9cebcc",
+      "obu_bytes": 37,
+      "obu_sha256": "6cc5fc21a2ecf34a21766cb5147a5b66affde19783988cc1c6e5b6ec2b3dfe1b",
+      "pattern": "horizontal-lines-2",
+      "pixel_format": "i444",
+      "planes": [
+        {
+          "decoded_sha256": "78aacbc3fb34efb8ffa5467b931291ec2bdf5e19564fc45fe97b5affbc893dc6",
+          "plane": "y",
+          "psnr_db": "12.007204",
+          "samples": 4096,
+          "sse": 16777216
+        },
+        {
+          "decoded_sha256": "78aacbc3fb34efb8ffa5467b931291ec2bdf5e19564fc45fe97b5affbc893dc6",
+          "plane": "u",
+          "psnr_db": "15.066553",
+          "samples": 4096,
+          "sse": 8294400
+        },
+        {
+          "decoded_sha256": "78aacbc3fb34efb8ffa5467b931291ec2bdf5e19564fc45fe97b5affbc893dc6",
+          "plane": "v",
+          "psnr_db": "19.503528",
+          "samples": 4096,
+          "sse": 2985984
+        }
+      ],
+      "qindex": 100,
+      "source_case": "target-horizontal-lines-2-i444",
+      "source_id": null,
+      "subset": "targeted",
+      "width": 64,
+      "workspace_bytes": 37824
+    },
+    {
+      "avm_project_exact": true,
+      "decode_time_ns": {
+        "avm": 40795125,
+        "project": 1588897
+      },
+      "decoded_sha256": "2203a98fd84adfbd3cbbfda33c94fcc2d33f0e1d6ebfa4e0ced17c5469ba54e5",
+      "deterministic_rerun": true,
+      "encode_time_ns": {
+        "median": 13292014,
+        "samples": [
+          13193573,
+          13390456
+        ],
+        "worst": 13390456
+      },
+      "encoder_reported_sse": [
+        16777216,
+        8294400,
+        2985984
+      ],
+      "encoder_reported_sse_matches_decode": true,
+      "height": 64,
+      "id": "target-horizontal-lines-2-i444-q180",
+      "input_bytes": 12288,
+      "input_sha256": "7ef5b59831e8eec179dc1373667ef6e50f9c44226335c5a5775c2c169c9cebcc",
+      "obu_bytes": 37,
+      "obu_sha256": "d76f19ae67ac804d1c4a9f18a5a6d9c58761a07a1dee2a0de6b84cd7f2750f05",
+      "pattern": "horizontal-lines-2",
+      "pixel_format": "i444",
+      "planes": [
+        {
+          "decoded_sha256": "78aacbc3fb34efb8ffa5467b931291ec2bdf5e19564fc45fe97b5affbc893dc6",
+          "plane": "y",
+          "psnr_db": "12.007204",
+          "samples": 4096,
+          "sse": 16777216
+        },
+        {
+          "decoded_sha256": "78aacbc3fb34efb8ffa5467b931291ec2bdf5e19564fc45fe97b5affbc893dc6",
+          "plane": "u",
+          "psnr_db": "15.066553",
+          "samples": 4096,
+          "sse": 8294400
+        },
+        {
+          "decoded_sha256": "78aacbc3fb34efb8ffa5467b931291ec2bdf5e19564fc45fe97b5affbc893dc6",
+          "plane": "v",
+          "psnr_db": "19.503528",
+          "samples": 4096,
+          "sse": 2985984
+        }
+      ],
+      "qindex": 180,
+      "source_case": "target-horizontal-lines-2-i444",
+      "source_id": null,
+      "subset": "targeted",
+      "width": 64,
+      "workspace_bytes": 37824
+    },
+    {
+      "avm_project_exact": true,
+      "decode_time_ns": {
+        "avm": 41636716,
+        "project": 1327480
+      },
+      "decoded_sha256": "78aacbc3fb34efb8ffa5467b931291ec2bdf5e19564fc45fe97b5affbc893dc6",
+      "deterministic_rerun": true,
+      "encode_time_ns": {
+        "median": 41601830,
+        "samples": [
+          41438925,
+          41764736
+        ],
+        "worst": 41764736
+      },
+      "encoder_reported_sse": [
+        16777216
+      ],
+      "encoder_reported_sse_matches_decode": true,
+      "height": 64,
+      "id": "target-vertical-lines-2-i400-q60",
+      "input_bytes": 4096,
+      "input_sha256": "bcc3f27ec2478c11bd6e45e2bc3ea9f8bb0b851acb9c40bc11d2bd1b9e150ac4",
+      "obu_bytes": 29,
+      "obu_sha256": "4378addd3d707214b6987c1952b076fa1bf3d965e39d238b9770093982a7a482",
+      "pattern": "vertical-lines-2",
+      "pixel_format": "i400",
+      "planes": [
+        {
+          "decoded_sha256": "78aacbc3fb34efb8ffa5467b931291ec2bdf5e19564fc45fe97b5affbc893dc6",
+          "plane": "y",
+          "psnr_db": "12.007204",
+          "samples": 4096,
+          "sse": 16777216
+        }
+      ],
+      "qindex": 60,
+      "source_case": "target-vertical-lines-2-i400",
+      "source_id": null,
+      "subset": "targeted",
+      "width": 64,
+      "workspace_bytes": 21376
+    },
+    {
+      "avm_project_exact": true,
+      "decode_time_ns": {
+        "avm": 44599957,
+        "project": 1444674
+      },
+      "decoded_sha256": "78aacbc3fb34efb8ffa5467b931291ec2bdf5e19564fc45fe97b5affbc893dc6",
+      "deterministic_rerun": true,
+      "encode_time_ns": {
+        "median": 14293823,
+        "samples": [
+          13824941,
+          14762705
+        ],
+        "worst": 14762705
+      },
+      "encoder_reported_sse": [
+        16777216
+      ],
+      "encoder_reported_sse_matches_decode": true,
+      "height": 64,
+      "id": "target-vertical-lines-2-i400-q100",
+      "input_bytes": 4096,
+      "input_sha256": "bcc3f27ec2478c11bd6e45e2bc3ea9f8bb0b851acb9c40bc11d2bd1b9e150ac4",
+      "obu_bytes": 29,
+      "obu_sha256": "4568a0284e0c7e5dcbd29e0a4c59678ef7210c04af3dedc94d78ff9d656608e8",
+      "pattern": "vertical-lines-2",
+      "pixel_format": "i400",
+      "planes": [
+        {
+          "decoded_sha256": "78aacbc3fb34efb8ffa5467b931291ec2bdf5e19564fc45fe97b5affbc893dc6",
+          "plane": "y",
+          "psnr_db": "12.007204",
+          "samples": 4096,
+          "sse": 16777216
+        }
+      ],
+      "qindex": 100,
+      "source_case": "target-vertical-lines-2-i400",
+      "source_id": null,
+      "subset": "targeted",
+      "width": 64,
+      "workspace_bytes": 21376
+    },
+    {
+      "avm_project_exact": true,
+      "decode_time_ns": {
+        "avm": 40211737,
+        "project": 1072628
+      },
+      "decoded_sha256": "78aacbc3fb34efb8ffa5467b931291ec2bdf5e19564fc45fe97b5affbc893dc6",
+      "deterministic_rerun": true,
+      "encode_time_ns": {
+        "median": 2603032,
+        "samples": [
+          2547124,
+          2658940
+        ],
+        "worst": 2658940
+      },
+      "encoder_reported_sse": [
+        16777216
+      ],
+      "encoder_reported_sse_matches_decode": true,
+      "height": 64,
+      "id": "target-vertical-lines-2-i400-q180",
+      "input_bytes": 4096,
+      "input_sha256": "bcc3f27ec2478c11bd6e45e2bc3ea9f8bb0b851acb9c40bc11d2bd1b9e150ac4",
+      "obu_bytes": 29,
+      "obu_sha256": "a361f598f5c801500d3197bd35ee42866311ad2e4416c21766d9f50fc42c7144",
+      "pattern": "vertical-lines-2",
+      "pixel_format": "i400",
+      "planes": [
+        {
+          "decoded_sha256": "78aacbc3fb34efb8ffa5467b931291ec2bdf5e19564fc45fe97b5affbc893dc6",
+          "plane": "y",
+          "psnr_db": "12.007204",
+          "samples": 4096,
+          "sse": 16777216
+        }
+      ],
+      "qindex": 180,
+      "source_case": "target-vertical-lines-2-i400",
+      "source_id": null,
+      "subset": "targeted",
+      "width": 64,
+      "workspace_bytes": 21376
+    },
+    {
+      "avm_project_exact": true,
+      "decode_time_ns": {
+        "avm": 40102994,
+        "project": 1595392
+      },
+      "decoded_sha256": "cb11e05cb5da949c0e0f5b5a7cb310df35a96a22c45d1ada70d950859fe697d1",
+      "deterministic_rerun": true,
+      "encode_time_ns": {
+        "median": 158625636,
+        "samples": [
+          159005715,
+          158245558
+        ],
+        "worst": 159005715
+      },
+      "encoder_reported_sse": [
+        16777216,
+        2073600,
+        746496
+      ],
+      "encoder_reported_sse_matches_decode": true,
+      "height": 64,
+      "id": "target-vertical-lines-2-i420-q60",
+      "input_bytes": 6144,
+      "input_sha256": "04f5839647b743b95c0c8577d8f5ea28b625961766271e367c2fb4b56a32f495",
+      "obu_bytes": 36,
+      "obu_sha256": "f327cb5f1156c18a28427857500e01f97ca6c7a6773e63736603e8017c0c3ed6",
+      "pattern": "vertical-lines-2",
+      "pixel_format": "i420",
+      "planes": [
+        {
+          "decoded_sha256": "78aacbc3fb34efb8ffa5467b931291ec2bdf5e19564fc45fe97b5affbc893dc6",
+          "plane": "y",
+          "psnr_db": "12.007204",
+          "samples": 4096,
+          "sse": 16777216
+        },
+        {
+          "decoded_sha256": "f991acb1e5897fe61be2decbf1d1b41b165ec8c2317284f8e3d8322c4d052e21",
+          "plane": "u",
+          "psnr_db": "15.066553",
+          "samples": 1024,
+          "sse": 2073600
+        },
+        {
+          "decoded_sha256": "f991acb1e5897fe61be2decbf1d1b41b165ec8c2317284f8e3d8322c4d052e21",
+          "plane": "v",
+          "psnr_db": "19.503528",
+          "samples": 1024,
+          "sse": 746496
+        }
+      ],
+      "qindex": 60,
+      "source_case": "target-vertical-lines-2-i420",
+      "source_id": null,
+      "subset": "targeted",
+      "width": 64,
+      "workspace_bytes": 25536
+    },
+    {
+      "avm_project_exact": true,
+      "decode_time_ns": {
+        "avm": 41442347,
+        "project": 1580516
+      },
+      "decoded_sha256": "cb11e05cb5da949c0e0f5b5a7cb310df35a96a22c45d1ada70d950859fe697d1",
+      "deterministic_rerun": true,
+      "encode_time_ns": {
+        "median": 50787366,
+        "samples": [
+          50616394,
+          50958339
+        ],
+        "worst": 50958339
+      },
+      "encoder_reported_sse": [
+        16777216,
+        2073600,
+        746496
+      ],
+      "encoder_reported_sse_matches_decode": true,
+      "height": 64,
+      "id": "target-vertical-lines-2-i420-q100",
+      "input_bytes": 6144,
+      "input_sha256": "04f5839647b743b95c0c8577d8f5ea28b625961766271e367c2fb4b56a32f495",
+      "obu_bytes": 36,
+      "obu_sha256": "0d17e2e29df782ef4839fca05d271dbf93b4bf508af717acdb1fb26bc0cc6fad",
+      "pattern": "vertical-lines-2",
+      "pixel_format": "i420",
+      "planes": [
+        {
+          "decoded_sha256": "78aacbc3fb34efb8ffa5467b931291ec2bdf5e19564fc45fe97b5affbc893dc6",
+          "plane": "y",
+          "psnr_db": "12.007204",
+          "samples": 4096,
+          "sse": 16777216
+        },
+        {
+          "decoded_sha256": "f991acb1e5897fe61be2decbf1d1b41b165ec8c2317284f8e3d8322c4d052e21",
+          "plane": "u",
+          "psnr_db": "15.066553",
+          "samples": 1024,
+          "sse": 2073600
+        },
+        {
+          "decoded_sha256": "f991acb1e5897fe61be2decbf1d1b41b165ec8c2317284f8e3d8322c4d052e21",
+          "plane": "v",
+          "psnr_db": "19.503528",
+          "samples": 1024,
+          "sse": 746496
+        }
+      ],
+      "qindex": 100,
+      "source_case": "target-vertical-lines-2-i420",
+      "source_id": null,
+      "subset": "targeted",
+      "width": 64,
+      "workspace_bytes": 25536
+    },
+    {
+      "avm_project_exact": true,
+      "decode_time_ns": {
+        "avm": 40572818,
+        "project": 1671310
+      },
+      "decoded_sha256": "cb11e05cb5da949c0e0f5b5a7cb310df35a96a22c45d1ada70d950859fe697d1",
+      "deterministic_rerun": true,
+      "encode_time_ns": {
+        "median": 7442498,
+        "samples": [
+          7432895,
+          7452102
+        ],
+        "worst": 7452102
+      },
+      "encoder_reported_sse": [
+        16777216,
+        2073600,
+        746496
+      ],
+      "encoder_reported_sse_matches_decode": true,
+      "height": 64,
+      "id": "target-vertical-lines-2-i420-q180",
+      "input_bytes": 6144,
+      "input_sha256": "04f5839647b743b95c0c8577d8f5ea28b625961766271e367c2fb4b56a32f495",
+      "obu_bytes": 36,
+      "obu_sha256": "8aee5f914c47c225e0f15ce60200eaed81143391ab2ad62b5a4c9fb48caaa7b5",
+      "pattern": "vertical-lines-2",
+      "pixel_format": "i420",
+      "planes": [
+        {
+          "decoded_sha256": "78aacbc3fb34efb8ffa5467b931291ec2bdf5e19564fc45fe97b5affbc893dc6",
+          "plane": "y",
+          "psnr_db": "12.007204",
+          "samples": 4096,
+          "sse": 16777216
+        },
+        {
+          "decoded_sha256": "f991acb1e5897fe61be2decbf1d1b41b165ec8c2317284f8e3d8322c4d052e21",
+          "plane": "u",
+          "psnr_db": "15.066553",
+          "samples": 1024,
+          "sse": 2073600
+        },
+        {
+          "decoded_sha256": "f991acb1e5897fe61be2decbf1d1b41b165ec8c2317284f8e3d8322c4d052e21",
+          "plane": "v",
+          "psnr_db": "19.503528",
+          "samples": 1024,
+          "sse": 746496
+        }
+      ],
+      "qindex": 180,
+      "source_case": "target-vertical-lines-2-i420",
+      "source_id": null,
+      "subset": "targeted",
+      "width": 64,
+      "workspace_bytes": 25536
+    },
+    {
+      "avm_project_exact": true,
+      "decode_time_ns": {
+        "avm": 40628832,
+        "project": 1601329
+      },
+      "decoded_sha256": "2203a98fd84adfbd3cbbfda33c94fcc2d33f0e1d6ebfa4e0ced17c5469ba54e5",
+      "deterministic_rerun": true,
+      "encode_time_ns": {
+        "median": 294581203,
+        "samples": [
+          296961371,
+          292201036
+        ],
+        "worst": 296961371
+      },
+      "encoder_reported_sse": [
+        16777216,
+        8294400,
+        2985984
+      ],
+      "encoder_reported_sse_matches_decode": true,
+      "height": 64,
+      "id": "target-vertical-lines-2-i444-q60",
+      "input_bytes": 12288,
+      "input_sha256": "77f789a848c16bc00c3d6beae456bcd85f7123e5b535947e0dfc77444dfb23aa",
+      "obu_bytes": 37,
+      "obu_sha256": "6616c5c7f4836b5b6f9400287627652f418e3cd7c9a5d567615a9576df0236c7",
+      "pattern": "vertical-lines-2",
+      "pixel_format": "i444",
+      "planes": [
+        {
+          "decoded_sha256": "78aacbc3fb34efb8ffa5467b931291ec2bdf5e19564fc45fe97b5affbc893dc6",
+          "plane": "y",
+          "psnr_db": "12.007204",
+          "samples": 4096,
+          "sse": 16777216
+        },
+        {
+          "decoded_sha256": "78aacbc3fb34efb8ffa5467b931291ec2bdf5e19564fc45fe97b5affbc893dc6",
+          "plane": "u",
+          "psnr_db": "15.066553",
+          "samples": 4096,
+          "sse": 8294400
+        },
+        {
+          "decoded_sha256": "78aacbc3fb34efb8ffa5467b931291ec2bdf5e19564fc45fe97b5affbc893dc6",
+          "plane": "v",
+          "psnr_db": "19.503528",
+          "samples": 4096,
+          "sse": 2985984
+        }
+      ],
+      "qindex": 60,
+      "source_case": "target-vertical-lines-2-i444",
+      "source_id": null,
+      "subset": "targeted",
+      "width": 64,
+      "workspace_bytes": 37824
+    },
+    {
+      "avm_project_exact": true,
+      "decode_time_ns": {
+        "avm": 43926334,
+        "project": 1696244
+      },
+      "decoded_sha256": "2203a98fd84adfbd3cbbfda33c94fcc2d33f0e1d6ebfa4e0ced17c5469ba54e5",
+      "deterministic_rerun": true,
+      "encode_time_ns": {
+        "median": 95344790,
+        "samples": [
+          94158600,
+          96530980
+        ],
+        "worst": 96530980
+      },
+      "encoder_reported_sse": [
+        16777216,
+        8294400,
+        2985984
+      ],
+      "encoder_reported_sse_matches_decode": true,
+      "height": 64,
+      "id": "target-vertical-lines-2-i444-q100",
+      "input_bytes": 12288,
+      "input_sha256": "77f789a848c16bc00c3d6beae456bcd85f7123e5b535947e0dfc77444dfb23aa",
+      "obu_bytes": 37,
+      "obu_sha256": "6cc5fc21a2ecf34a21766cb5147a5b66affde19783988cc1c6e5b6ec2b3dfe1b",
+      "pattern": "vertical-lines-2",
+      "pixel_format": "i444",
+      "planes": [
+        {
+          "decoded_sha256": "78aacbc3fb34efb8ffa5467b931291ec2bdf5e19564fc45fe97b5affbc893dc6",
+          "plane": "y",
+          "psnr_db": "12.007204",
+          "samples": 4096,
+          "sse": 16777216
+        },
+        {
+          "decoded_sha256": "78aacbc3fb34efb8ffa5467b931291ec2bdf5e19564fc45fe97b5affbc893dc6",
+          "plane": "u",
+          "psnr_db": "15.066553",
+          "samples": 4096,
+          "sse": 8294400
+        },
+        {
+          "decoded_sha256": "78aacbc3fb34efb8ffa5467b931291ec2bdf5e19564fc45fe97b5affbc893dc6",
+          "plane": "v",
+          "psnr_db": "19.503528",
+          "samples": 4096,
+          "sse": 2985984
+        }
+      ],
+      "qindex": 100,
+      "source_case": "target-vertical-lines-2-i444",
+      "source_id": null,
+      "subset": "targeted",
+      "width": 64,
+      "workspace_bytes": 37824
+    },
+    {
+      "avm_project_exact": true,
+      "decode_time_ns": {
+        "avm": 40523511,
+        "project": 1642675
+      },
+      "decoded_sha256": "2203a98fd84adfbd3cbbfda33c94fcc2d33f0e1d6ebfa4e0ced17c5469ba54e5",
+      "deterministic_rerun": true,
+      "encode_time_ns": {
+        "median": 14342886,
+        "samples": [
+          14051507,
+          14634266
+        ],
+        "worst": 14634266
+      },
+      "encoder_reported_sse": [
+        16777216,
+        8294400,
+        2985984
+      ],
+      "encoder_reported_sse_matches_decode": true,
+      "height": 64,
+      "id": "target-vertical-lines-2-i444-q180",
+      "input_bytes": 12288,
+      "input_sha256": "77f789a848c16bc00c3d6beae456bcd85f7123e5b535947e0dfc77444dfb23aa",
+      "obu_bytes": 37,
+      "obu_sha256": "d76f19ae67ac804d1c4a9f18a5a6d9c58761a07a1dee2a0de6b84cd7f2750f05",
+      "pattern": "vertical-lines-2",
+      "pixel_format": "i444",
+      "planes": [
+        {
+          "decoded_sha256": "78aacbc3fb34efb8ffa5467b931291ec2bdf5e19564fc45fe97b5affbc893dc6",
+          "plane": "y",
+          "psnr_db": "12.007204",
+          "samples": 4096,
+          "sse": 16777216
+        },
+        {
+          "decoded_sha256": "78aacbc3fb34efb8ffa5467b931291ec2bdf5e19564fc45fe97b5affbc893dc6",
+          "plane": "u",
+          "psnr_db": "15.066553",
+          "samples": 4096,
+          "sse": 8294400
+        },
+        {
+          "decoded_sha256": "78aacbc3fb34efb8ffa5467b931291ec2bdf5e19564fc45fe97b5affbc893dc6",
+          "plane": "v",
+          "psnr_db": "19.503528",
+          "samples": 4096,
+          "sse": 2985984
+        }
+      ],
+      "qindex": 180,
+      "source_case": "target-vertical-lines-2-i444",
+      "source_id": null,
+      "subset": "targeted",
+      "width": 64,
+      "workspace_bytes": 37824
+    }
+  ],
+  "configuration": {
+    "encode_repetitions": 2,
+    "formats": [
+      "i400",
+      "i420",
+      "i444"
+    ],
+    "patterns": [
+      "horizontal-edge",
+      "vertical-edge",
+      "diagonal-edge",
+      "checkerboard-4",
+      "horizontal-lines-2",
+      "vertical-lines-2"
+    ],
+    "prepared_sources": [
+      "chinnathurai-church",
+      "elbrus-milky-way",
+      "pastel-chalks",
+      "pitti-ceiling"
+    ],
+    "qindices": [
+      60,
+      100,
+      180
+    ],
+    "search": "intra"
+  },
+  "counts": {
+    "full_cases": 36,
+    "full_format_images": 12,
+    "prepared_sources": 4,
+    "targeted_cases": 54,
+    "targeted_format_images": 18,
+    "total_cases": 90
+  },
+  "generated_by": "experimental/encoder/tools/encoder_quality_baseline.py",
+  "schema": "av2-encoder-quality-baseline-v1",
+  "summary": {
+    "all_deterministic": true,
+    "all_validator_exact": true,
+    "max_workspace_bytes": 7263744,
+    "median_encode_time_ns": 158128678,
+    "total_obu_bytes": 276756,
+    "total_sse": {
+      "u": 916732746,
+      "v": 910298990,
+      "y": 9609637634
+    },
+    "worst_encode_time_ns": 52981267033
+  },
+  "tools": {
+    "avmdec_sha256": "c247cbb4e71e48bdec89f3c8b2b8efdce17f673aeaa39e3c116a276d16286aa0",
+    "encoder": {
+      "bytes": 179248,
+      "sha256": "ff4751a6db837fe01a45f0806a5f2ad3b317cdaaea5a1c9fed04ddf2de11ba47"
+    },
+    "machine": "x86_64",
+    "prepared_lock_sha256": "f12c63adf93a46066866e85bc7c336594fe27ac1514b34abd0f22ddb494bf97f",
+    "project_decoder_sha256": "7d17f598f2cdffe7dfb4ab46982cf5c4822215a5f429cb39e7748a60ce5ef535",
+    "python": "3.14.4",
+    "system": "Linux"
+  }
+}

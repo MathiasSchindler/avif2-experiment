@@ -12,8 +12,11 @@ M1_TEST := $(BUILD)/m1-test
 M3_TEST := $(BUILD)/m3-test
 M3_CHROMA_TEST := $(BUILD)/m3-chroma-test
 M3_CHROMA_DRIVER := $(BUILD)/m3-chroma-driver
+M3_PLANE_QDELTA_DRIVER := $(BUILD)/m3-plane-qdelta-driver
+QDELTA_SYNTAX_TEST := $(BUILD)/qdelta-syntax-test
 M3_BOUNDARY_DRIVER := $(BUILD)/m3-boundary-partition-driver
 M4_TEST := $(BUILD)/m4-test
+AC8X8_TEST := $(BUILD)/ac8x8-test
 PLATFORM_MEMORY_TEST := $(BUILD)/platform-memory-test
 IMAGE_INPUT_TEST := $(BUILD)/image-input-test
 IMAGE_INPUT_FREESTANDING := $(BUILD)/image-input-freestanding.o
@@ -26,7 +29,7 @@ COMMON_CFLAGS := -std=c11 -Wall -Wextra -Wpedantic -Werror -O2 \
 NOLIBC_LDFLAGS := -nostdlib -static -no-pie -Wl,--build-id=none
 
 CORE_SOURCES := src/memory.c src/writer.c src/range.c src/cdf.c src/obu.c \
-	src/syntax_cdf.c src/syntax.c src/m1.c src/m3.c src/m4.c
+	src/syntax_cdf.c src/syntax.c src/m1.c src/m3.c src/m4.c src/ac8x8.c
 ENCODER_SOURCES := src/main.c src/input.c src/cli_input.c src/image_input.c \
 	$(CORE_SOURCES) \
 	platform/linux.c \
@@ -44,13 +47,16 @@ $(TARGET): $(ENCODER_OBJECTS)
 
 $(BUILD)/%.o: %.c
 	@mkdir -p $(dir $@)
-	$(CC) $(CPPFLAGS) $(COMMON_CFLAGS) -c -o $@ $<
+	$(CC) $(CPPFLAGS) $(COMMON_CFLAGS) -MMD -MP \
+		-MF $(@:.o=.d) -c -o $@ $<
 
 $(BUILD)/src/syntax_cdf.o: src/normative_cdfs.inc src/normative_chroma_cdfs.inc
 
 $(BUILD)/%.o: %.S
 	@mkdir -p $(dir $@)
 	$(CC) -c -o $@ $<
+
+-include $(ENCODER_OBJECTS:.o=.d)
 
 $(BIT_TEST): tests/bit_writer_test.c src/writer.c src/memory.c \
 	include/encoder/writer.h include/encoder/base.h
@@ -91,6 +97,17 @@ $(M3_CHROMA_DRIVER): tests/m3_chroma_driver.c $(CORE_SOURCES)
 	$(CC) $(CPPFLAGS) -std=c11 -Wall -Wextra -Wpedantic -Werror \
 		-O2 -fno-builtin -o $@ tests/m3_chroma_driver.c $(CORE_SOURCES)
 
+$(M3_PLANE_QDELTA_DRIVER): tests/m3_plane_qdelta_driver.c $(CORE_SOURCES)
+	@mkdir -p $(dir $@)
+	$(CC) $(CPPFLAGS) -std=c11 -Wall -Wextra -Wpedantic -Werror \
+		-O2 -fno-builtin -o $@ tests/m3_plane_qdelta_driver.c \
+		$(CORE_SOURCES)
+
+$(QDELTA_SYNTAX_TEST): tests/qdelta_syntax_test.c $(CORE_SOURCES)
+	@mkdir -p $(dir $@)
+	$(CC) $(CPPFLAGS) -std=c11 -Wall -Wextra -Wpedantic -Werror \
+		-O2 -fno-builtin -o $@ tests/qdelta_syntax_test.c $(CORE_SOURCES)
+
 $(M3_BOUNDARY_DRIVER): tests/m3_boundary_partition_driver.c $(CORE_SOURCES)
 	@mkdir -p $(dir $@)
 	$(CC) $(CPPFLAGS) -std=c11 -Wall -Wextra -Wpedantic -Werror \
@@ -101,6 +118,11 @@ $(M4_TEST): tests/m4_test.c $(CORE_SOURCES)
 	@mkdir -p $(dir $@)
 	$(CC) $(CPPFLAGS) -std=c11 -Wall -Wextra -Wpedantic -Werror \
 		-O2 -fno-builtin -o $@ tests/m4_test.c $(CORE_SOURCES)
+
+$(AC8X8_TEST): tests/ac8x8_test.c $(CORE_SOURCES)
+	@mkdir -p $(dir $@)
+	$(CC) $(CPPFLAGS) -std=c11 -Wall -Wextra -Wpedantic -Werror \
+		-O2 -fno-builtin -o $@ tests/ac8x8_test.c $(CORE_SOURCES)
 
 $(PLATFORM_MEMORY_TEST): tests/platform_memory_test.c platform/linux.c
 	@mkdir -p $(dir $@)
@@ -114,6 +136,8 @@ check-generated:
 	$(PYTHON) tools/generate_cdf_subset.py --check
 	$(PYTHON) tools/generate_chroma_cdf_subset.py --check
 	$(PYTHON) tools/generate_input_fixtures.py --check
+	$(PYTHON) tools/ac8x8_model.py --check
+	$(PYTHON) tools/directional_fast_search.py --check
 
 $(IMAGE_INPUT_TEST): tests/image_input_test.c src/image_input.c src/memory.c
 	@mkdir -p $(dir $@)
@@ -154,7 +178,9 @@ define run-tests
 	./$(M1_TEST)
 	./$(M3_TEST)
 	./$(M3_CHROMA_TEST)
+	./$(QDELTA_SYNTAX_TEST)
 	./$(M4_TEST)
+	./$(AC8X8_TEST)
 	./$(PLATFORM_MEMORY_TEST)
 	./$(IMAGE_INPUT_TEST)
 	./$(INPUT_PLANAR_TEST)
@@ -178,21 +204,37 @@ define run-tests
 		tests/test_m3_edge_coeff_model.py \
 		tests/test_m3_chroma_boundary_model.py \
 		tests/test_m3_chroma_encoder.py \
-		tests/test_m4_ac_model.py tests/test_m4_encoder.py \
+		tests/test_directional_intra_model.py \
+		tests/test_directional_intra_production.py \
+		tests/test_directional_fast_search.py \
+		tests/test_smooth_paeth_model.py \
+		tests/test_smooth_paeth_production.py \
+		tests/test_m3_plane_qdelta_model.py \
+		tests/test_m3_plane_qdelta_production.py \
+		tests/test_m4_ac_model.py tests/test_ac8x8_model.py \
+		tests/test_ac8x8_hardbudget_model.py \
+		tests/test_ac8x8_production.py \
+		tests/test_ac8x8_equalsize_qtrial.py \
+		tests/test_m4_encoder.py \
 		tests/test_raw_planar_input.py \
-		tests/test_encoder_input_integration.py
+		tests/test_encoder_input_integration.py \
+		tests/test_encoder_quality_baseline.py
 endef
 
 test: check-validators check-generated $(BIT_TEST) $(RANGE_TEST) \
 	$(M2_MATRIX_DRIVER) $(M1_TEST) \
 	$(M3_TEST) $(M3_CHROMA_TEST) $(M3_CHROMA_DRIVER) \
-	$(M3_BOUNDARY_DRIVER) $(M4_TEST) $(PLATFORM_MEMORY_TEST) \
+	$(M3_PLANE_QDELTA_DRIVER) \
+	$(QDELTA_SYNTAX_TEST) \
+	$(M3_BOUNDARY_DRIVER) $(M4_TEST) $(AC8X8_TEST) $(PLATFORM_MEMORY_TEST) \
 	$(IMAGE_INPUT_TEST) $(IMAGE_INPUT_FREESTANDING) $(INPUT_PLANAR_TEST) audit
 	$(call run-tests,)
 
 test-unit: check-generated $(BIT_TEST) $(RANGE_TEST) $(M2_MATRIX_DRIVER) \
 	$(M1_TEST) $(M3_TEST) $(M3_CHROMA_TEST) $(M3_CHROMA_DRIVER) \
-	$(M3_BOUNDARY_DRIVER) $(M4_TEST) \
+	$(M3_PLANE_QDELTA_DRIVER) \
+	$(QDELTA_SYNTAX_TEST) \
+	$(M3_BOUNDARY_DRIVER) $(M4_TEST) $(AC8X8_TEST) \
 	$(PLATFORM_MEMORY_TEST) $(IMAGE_INPUT_TEST) $(IMAGE_INPUT_FREESTANDING) \
 	$(INPUT_PLANAR_TEST) audit
 	$(call run-tests,ENCODER_TEST_UNIT_ONLY=1)

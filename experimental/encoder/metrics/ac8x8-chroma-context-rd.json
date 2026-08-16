@@ -1,0 +1,161 @@
+{
+  "admission": {
+    "production_blockers": [
+      "bit-exact rectangular forward/inverse transform parity",
+      "skip/EOB cost must share caller tile CDF state",
+      "U must precede V so V skip uses U EOB",
+      "neighbor entropy state must commit only with chosen candidate",
+      "superblock/tile reset and edge clipping need stream parity",
+      "CCTX, qmatrix, delta-q, prediction and full-stream rate gates"
+    ],
+    "safe_model_boundary": "entropy/context estimator and candidate ranking only"
+  },
+  "mean_scalar_ac_sse_gain_percent": 83.058,
+  "parity": {
+    "derived_scan_vs_pinned_avm": [
+      6,
+      6
+    ],
+    "frozen_entropy_vectors": [
+      12,
+      12
+    ],
+    "independent_context_probes": [
+      72,
+      72
+    ]
+  },
+  "rd_cases": [
+    {
+      "axis": "vertical",
+      "coefficient_rate_bits": 32,
+      "dc_sse": 65536,
+      "position": 4,
+      "scalar_ac_sse": 9598,
+      "size": "4x4",
+      "sse_gain_percent": 85.355
+    },
+    {
+      "axis": "horizontal",
+      "coefficient_rate_bits": 33,
+      "dc_sse": 65536,
+      "position": 1,
+      "scalar_ac_sse": 9598,
+      "size": "4x4",
+      "sse_gain_percent": 85.355
+    },
+    {
+      "axis": "vertical",
+      "coefficient_rate_bits": 32,
+      "dc_sse": 131072,
+      "position": 4,
+      "scalar_ac_sse": 23453,
+      "size": "4x8",
+      "sse_gain_percent": 82.107
+    },
+    {
+      "axis": "horizontal",
+      "coefficient_rate_bits": 33,
+      "dc_sse": 131072,
+      "position": 1,
+      "scalar_ac_sse": 19195,
+      "size": "4x8",
+      "sse_gain_percent": 85.355
+    },
+    {
+      "axis": "vertical",
+      "coefficient_rate_bits": 32,
+      "dc_sse": 131072,
+      "position": 8,
+      "scalar_ac_sse": 19195,
+      "size": "8x4",
+      "sse_gain_percent": 85.355
+    },
+    {
+      "axis": "horizontal",
+      "coefficient_rate_bits": 33,
+      "dc_sse": 131072,
+      "position": 1,
+      "scalar_ac_sse": 23453,
+      "size": "8x4",
+      "sse_gain_percent": 82.107
+    },
+    {
+      "axis": "vertical",
+      "coefficient_rate_bits": 33,
+      "dc_sse": 262144,
+      "position": 8,
+      "scalar_ac_sse": 46906,
+      "size": "8x8",
+      "sse_gain_percent": 82.107
+    },
+    {
+      "axis": "horizontal",
+      "coefficient_rate_bits": 33,
+      "dc_sse": 262144,
+      "position": 1,
+      "scalar_ac_sse": 46906,
+      "size": "8x8",
+      "sse_gain_percent": 82.107
+    },
+    {
+      "axis": "vertical",
+      "coefficient_rate_bits": 33,
+      "dc_sse": 524288,
+      "position": 8,
+      "scalar_ac_sse": 97948,
+      "size": "8x16",
+      "sse_gain_percent": 81.318
+    },
+    {
+      "axis": "horizontal",
+      "coefficient_rate_bits": 33,
+      "dc_sse": 524288,
+      "position": 1,
+      "scalar_ac_sse": 93812,
+      "size": "8x16",
+      "sse_gain_percent": 82.107
+    },
+    {
+      "axis": "vertical",
+      "coefficient_rate_bits": 33,
+      "dc_sse": 524288,
+      "position": 16,
+      "scalar_ac_sse": 93812,
+      "size": "16x8",
+      "sse_gain_percent": 82.107
+    },
+    {
+      "axis": "horizontal",
+      "coefficient_rate_bits": 33,
+      "dc_sse": 524288,
+      "position": 1,
+      "scalar_ac_sse": 97948,
+      "size": "16x8",
+      "sse_gain_percent": 81.318
+    }
+  ],
+  "schema": "av2-encoder-ac8x8-chroma-context-rd-v1",
+  "surface": {
+    "ac_sign": "equiprobable literal",
+    "formats": [
+      "I420",
+      "I444"
+    ],
+    "lf_rule": "row+column<1 (DC only)",
+    "parity_hiding": false,
+    "planes": [
+      "U",
+      "V"
+    ],
+    "tcq": false,
+    "transforms": [
+      "4x4 DCT_DCT",
+      "4x8 DCT_DCT",
+      "8x4 DCT_DCT",
+      "8x8 DCT_DCT",
+      "8x16 DCT_DCT",
+      "16x8 DCT_DCT"
+    ]
+  }
+}

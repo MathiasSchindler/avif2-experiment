@@ -1,0 +1,42 @@
+{
+  "baseline": {
+    "bytes": 108,
+    "sse": 82861817
+  },
+  "cases": 224,
+  "evaluation_runtime_ms": 0.269,
+  "expanded": {
+    "bytes": 108,
+    "sse": 76832967
+  },
+  "full_model_runtime_ms": 375.203,
+  "gate": {
+    "checks": {
+      "incremental_wins_at_least_quarter": true,
+      "subset_sse_improves_5_percent": true,
+      "whole_bytes_nonincreasing": true,
+      "whole_sse_improves_5_percent": true
+    },
+    "passed": true
+  },
+  "incremental_wins": 112,
+  "locked_subset": {
+    "baseline_bits": 396,
+    "baseline_bytes": 50,
+    "baseline_sse": 80044960,
+    "cases": 112,
+    "expanded_bits": 409,
+    "expanded_bytes": 52,
+    "expanded_sse": 74053386,
+    "wins": 60
+  },
+  "winner_counts": {
+    "dc": 89,
+    "horizontal": 20,
+    "paeth": 51,
+    "smooth": 18,
+    "smooth_horizontal": 17,
+    "smooth_vertical": 26,
+    "vertical": 3
+  }
+}

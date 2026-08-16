@@ -71,10 +71,10 @@ append-only [log.md](log.md). Detailed syntax derivations are under
 | Blocks | Partition contexts across superblocks | **Implemented** | Above/left partition state and normative row resets are implemented for the fixed production traversal. |
 | Intra prediction | Luma DC prediction | **Implemented** | Prediction uses reconstructed top/left neighbors; unavailable edges use the normative neutral behavior. |
 | Intra prediction | Chroma DC prediction | **Implemented** | Separate U/V reconstructed-neighbor prediction is implemented for I420 and I444. |
-| Intra prediction | Directional/angular modes | **Not implemented** | No directional mode generation or search. |
-| Intra prediction | Smooth, Paeth, and other non-DC modes | **Not implemented** | Production block mode is fixed to DC. PNG's Paeth input filter is unrelated to AV2 intra prediction. |
+| Intra prediction | Directional/angular modes | **Partial** | Reachable production `--search directional` remains compatible; `--search intra` includes exact cardinal V/H trials before non-directional trials. Arbitrary angles and default enablement remain deferred. |
+| Intra prediction | Smooth, Paeth, and other non-DC modes | **Partial** | Explicit `--search intra` admits luma Smooth/Smooth-V/Smooth-H/Paeth for the fixed 8x8 transform leaves in images up to 64x64. The 224-case full-stream gate has 32 incremental wins, 5,314 vs 5,326 bytes, Y SSE 43,593,650 vs 43,744,028, exact AVM/project parity, and all four modes selected. Chroma-mode search and larger-image smooth trials remain deferred; PNG's Paeth filter is unrelated. |
 | Intra prediction | Directional intra prediction extensions (DIP) | **Disabled** | No DIP mode is selected or searched. |
-| Intra prediction | Edge filtering/upsampling and MRLS | **Disabled** | No directional predictor path consumes these tools. |
+| Intra prediction | Edge filtering/upsampling and MRLS | **Partial** | Cardinal 90/180 returns before filtering/upsampling; directional syntax explicitly emits MRLS index 0. Nonzero MRLS is absent. |
 | Intra prediction | Chroma from luma (CfL) | **Disabled** | Color syntax explicitly selects non-CfL; chroma is coded independently. |
 | Intra prediction | Multi-hypothesis cross-component prediction (MHCCP) | **Disabled** | No cross-component predictor is generated. |
 | Intra prediction | Intra block prediction (IBP/edge IBP) | **Disabled** | The production M3 sequence disables IBP; no IBP references are formed. |
@@ -85,14 +85,14 @@ append-only [log.md](log.md). Detailed syntax derivations are under
 | Transform | Chroma square and rectangular transforms | **Implemented** | I420 uses the admitted 4x4/4x8/8x4 classes and I444 uses 8x8/8x16/16x8 classes as required by leaf geometry. |
 | Transform | Transform partition syntax | **Implemented** | Fixed square/horizontal/vertical transform splitting is emitted in decoder order. |
 | Transform | Transform partition search | **Not implemented** | Transform subdivision follows fixed leaf geometry. |
-| Transform | DCT_DCT | **Partial** | Full DC behavior is implemented; M4 additionally implements one bounded 8x8 DCT_DCT AC experiment. |
+| Transform | DCT_DCT | **Partial** | Full DC behavior is implemented. Explicit I400 `--search bounded` additionally reaches scalar 8x8 DCT_DCT across all coefficient positions; it remains non-default because its locked equal-rate gate failed. |
 | Transform | ADST, flip-ADST, identity, and other transform types | **Not implemented** | No general transform-type search or kernels. |
 | Transform | Intra secondary transform (IST) | **Not implemented** | Some sequence paths enable availability, but production coding never selects or reconstructs IST. |
 | Transform | Reduced transform set | **Disabled** | Fixed frame syntax is emitted; there is no transform-set selection policy. |
 | Coefficients | All-zero transform block/skip syntax | **Implemented** | Context-coded all-zero decisions and state updates are covered. |
 | Coefficients | DC coefficient coding | **Implemented** | Signed levels, EOB, base, BR, Golomb/remainder, sign contexts, and immediate neighbor-state commits are implemented. |
-| Coefficients | AC coefficient coding | **Partial** | Only the explicit 8x8 M4 mode with scan positions 0 and vertical `(1,0)`, EOB=2, and nonzero magnitudes 1..4 is reachable. |
-| Coefficients | General scans, EOB classes, base/BR/remainder AC syntax | **Not implemented** | The entropy primitives exist, but arbitrary AC positions, magnitudes, and transform sizes are not encoded. |
+| Coefficients | AC coefficient coding | **Partial** | Explicit I400 `--search bounded` reaches all 64 positions in scalar 8x8 DCT_DCT with signed levels, EOB/base/BR/remainder/sign syntax and exact reconstruction. It is validator-proven but non-default because every tested equal-rate policy missed the locked byte/quality gate. The smaller fixed M4 mode remains available separately. |
+| Coefficients | General scans, EOB classes, base/BR/remainder AC syntax | **Partial** | General 8x8 I400 scan/EOB/base/BR/remainder syntax is reachable through explicit bounded search. Other transform sizes and chroma AC remain model-only. |
 | Coefficients | U-to-V coefficient context coupling | **Implemented** | Chroma skip/context selection includes normative U-to-V coupling. |
 | Coefficients | Transform coefficient quantization (TCQ) | **Disabled** | No TCQ state, decisions, or reconstruction path. |
 | Coefficients | Coefficient parity hiding | **Disabled** | No parity-hiding search or syntax. |
@@ -116,7 +116,7 @@ append-only [log.md](log.md). Detailed syntax derivations are under
 | Inter-only tools | Reference mode, skip mode, BAWP, warp, and global motion | **Out of scope** | Inferred off for the intra-only Closed Loop Key picture. |
 | Search | Pixel-dependent DC level search | **Implemented** | Every active input sample contributes to deterministic SSE minimization; edges are replicated only outside the active crop. |
 | Search | General transform, intra-mode, and partition RD search | **Not implemented** | No exact-rate candidate search across coding tools. |
-| Search | Rate control and target-size encoding | **Not implemented** | Qindex is supplied directly; no quality mapping, lambda model, trial rate control, or byte target. |
+| Search | Rate control and target-size encoding | **Not implemented** | Qindex is supplied directly. A tools-only bounded equal-size qindex experiment is validator-backed but blocked by the 29-byte AC-subset floor; it does not change the production CLI. |
 | Reconstruction | Local closed-loop reconstruction | **Implemented** | Prediction, dequantization, inverse DC transforms, clipping, chroma state, edge extension, and active crop match both validators. |
 | Reconstruction | General AC inverse reconstruction | **Partial** | Implemented only for the bounded 8x8 M4 DCT_DCT experiment. |
 | Metrics | Per-plane SSE and PSNR | **Implemented** | Active-pixel distortion is reported; chroma results retain per-plane SSE. |
@@ -133,11 +133,44 @@ append-only [log.md](log.md). Detailed syntax derivations are under
 The useful production profile is one 8-bit, one-tile, intra-only Closed Loop
 Key picture in I400, I420, or I444, with both axes in 1..896 and qindex in
 1..255. It uses a deterministic rectangle-only 64x64-superblock traversal,
-DC prediction, DC-only transform coefficients, no in-loop filters, and no
-metadata or container. The only production AC path is the separate bounded
-8x8 I400 M4 experiment; it should not be read as general AC support.
+DC prediction, DC-only transform coefficients by default, no in-loop filters,
+and no metadata or container. General 8x8 I400 AC is reachable only through
+the explicit default-off bounded search; the locked quality/rate gate has not
+admitted it as the default. I420/I444 remain DC-only.
 
 When a new coding tool becomes reachable, this matrix should be updated only
 after its local reconstruction and emitted syntax pass the required validator
 gate. Planned work in [plan.md](plan.md) and retained research under
 [spec-notes/](spec-notes/) remains **Not implemented** until that point.
+
+## Prioritized still-image quality roadmap
+
+Scores are 1 (low) through 5 (high). Complexity, portability/no-libc risk, and
+validator burden are costs; expected RD benefit is upside. These are planning
+rankings only and do not change any implementation status above.
+
+| Priority | Feature | Complexity | Expected RD benefit | Portability / no-libc risk | Validator burden | Decision |
+|---:|---|---:|---:|---:|---:|---|
+| 1 | Broader scalar 8x8 DCT_DCT AC coding | 4 | 5 | 1 | 4 | First: directly removes the dominant DC-only texture loss while scalar integer kernels preserve the portability oracle. |
+| 2 | Horizontal/vertical intra prediction | 2 | 4 | 1 | 3 | First: small candidate set with strong edge wins and reusable mode-search structure. |
+| 3 | U/V plane quantizer deltas | 2 | 3 | 1 | 2 | First: low syntax/search cost and direct chroma allocation control at fixed total bytes. |
+| 4 | Smooth and Paeth prediction | 3 | 3 | 1 | 3 | Implemented explicitly by `--search intra`: the full-stream 224-case gate has 32 wins, 12 fewer bytes, lower luma SSE, exact decoder parity, and about 1.02x runtime. Chroma-mode search and trials above 64x64 remain deferred. |
+| 5 | Chroma from luma (CfL) | 4 | 4 | 2 | 4 | Defer until broader luma AC and plane quantizer control provide a trustworthy chroma comparator. |
+| 6 | Deblocking | 4 | 3 | 2 | 5 | Defer: frame-wide filtered reconstruction, edge rules, level search, and three-way hash parity add high validation cost. |
+| 7 | General partition search | 5 | 5 | 2 | 5 | Defer until several coding modes have exact costs; otherwise search complexity grows before useful choices exist. |
+| 8 | Rate control / target bytes | 4 | 1 | 2 | 3 | Defer: it selects qpoints but supplies little intrinsic RD gain before the constant-q curve improves. |
+
+The frozen comparator is
+`metrics/encoder-quality-baseline.json` (90 cases: 36 full prepared and 54
+targeted). The first tranche and exact measurable gates are defined in
+[plan.md](plan.md). Baseline inclusion does not imply that any roadmap feature
+is implemented.
+
+### Reachable 8x8 AC surface
+
+| Surface | Status | Evidence |
+|---|---|---|
+| I400, explicit `--search bounded` | **Experimental / validator-proven** | Scalar forward/inverse DCT_DCT, all 64 coefficient positions, adaptive syntax, bounded search, caller workspace, and complete-stream parity across q contexts/crops/multileaf/superblocks. |
+| I400 default | **Legacy DC-only** | Default is `--search off`; legacy streams remain selectable. |
+| I420/I444 AC | **Not admitted** | Chroma/luma coefficient-context and rate-budget integration is staged; bounded search fails explicitly. |
+| Default-on quality feature | **Blocked** | Locked byte and minimum-win gates fail; see `metrics/ac8x8-production.json`. |
