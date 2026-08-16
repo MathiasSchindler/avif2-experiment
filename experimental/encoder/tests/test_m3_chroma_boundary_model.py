@@ -13,7 +13,7 @@ from m3_chroma_boundary_model import (  # noqa: E402
 
 class M3ChromaBoundaryModelTests(TestCase):
     def test_full_admission_count(self) -> None:
-        self.assertEqual(admitted_pair_count(), 802816)
+        self.assertEqual(admitted_pair_count(), 2073600)
 
     def test_half_grid_leaf_shapes(self) -> None:
         expected = {

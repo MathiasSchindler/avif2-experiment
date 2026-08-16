@@ -188,6 +188,9 @@ class M3ChromaEncoderTests(TestCase):
             (889, 896, 100, (128, 128, 128)),
             (896, 889, 100, (128, 128, 128)),
             (896, 896, 100, (128, 128, 128)),
+            (1440, 960, 100, (128, 128, 128)),
+            (960, 1440, 100, (128, 128, 128)),
+            (1440, 1440, 100, (128, 128, 128)),
         )
         for format_id in (0, 2):
             for width, height, qindex, values in cases:
@@ -202,7 +205,7 @@ class M3ChromaEncoderTests(TestCase):
     def test_closed_dimension_bounds(self) -> None:
         for format_id in (0, 2):
             for width, height in (
-                (897, 896), (896, 897),
+                (1441, 1440), (1440, 1441),
             ):
                 with self.subTest(
                     format=format_id, width=width, height=height

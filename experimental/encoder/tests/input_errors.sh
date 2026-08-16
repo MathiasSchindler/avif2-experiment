@@ -22,16 +22,16 @@ expect_status()
     fi
 }
 
-dd if=/dev/zero of="$input" bs=897 count=1 2>/dev/null
+dd if=/dev/zero of="$input" bs=1441 count=1 2>/dev/null
 rm -f "$output"
-expect_status 5 "$encoder" --i400-8 "$input" --width 897 --height 1 "$output"
+expect_status 5 "$encoder" --i400-8 "$input" --width 1441 --height 1 "$output"
 test ! -e "$output"
-grep -q 'supports 1..896 pixels per axis' "$error"
+grep -q 'supports 1..1440 pixels per axis' "$error"
 
 printf 'sentinel' >"$output"
-dd if=/dev/zero of="$input" bs=898 count=1 2>/dev/null
-expect_status 5 "$encoder" --i400-8 "$input" --width 897 --height 1 \
-    --stride 898 "$output"
+dd if=/dev/zero of="$input" bs=1442 count=1 2>/dev/null
+expect_status 5 "$encoder" --i400-8 "$input" --width 1441 --height 1 \
+    --stride 1442 "$output"
 test "$(cat "$output")" = sentinel
 
 printf '\001\002\003\004\005' >"$input"

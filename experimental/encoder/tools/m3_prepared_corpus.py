@@ -125,6 +125,17 @@ def corpus_manifest(lock_path: Path = PREPARED_LOCK) -> dict[str, Any]:
     }
 
 
+def select_inventory(inventory: Sequence[dict[str, Any]],
+                     preparation: str | None) -> list[dict[str, Any]]:
+    selected = [
+        item for item in inventory
+        if item["preparation_id"] == preparation
+    ] if preparation else [item for item in inventory if item["selected"]]
+    if preparation and not selected:
+        raise BenchmarkError("unknown preparation selection")
+    return selected
+
+
 def verify_manifest(path: Path, expected: dict[str, Any]) -> None:
     actual = json.loads(path.read_text(encoding="utf-8"))
     if actual != expected:
@@ -250,7 +261,7 @@ def run_case(
     if returncodes == [5, 5] and not any(output.exists() for output in outputs):
         record.update({
             "status": "expected_blocked",
-            "reason": "full-image dimensions exceed the current 896-pixel M3 bound",
+            "reason": "full-image dimensions exceed the current 1440-pixel M3 bound",
             "deterministic_rerun": True,
         })
         return record
@@ -321,6 +332,7 @@ def parser() -> argparse.ArgumentParser:
     result.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
     result.add_argument("--work-dir", type=Path, default=DEFAULT_WORK)
     result.add_argument("--source", action="append")
+    result.add_argument("--preparation")
     result.add_argument("--qindex", type=int, default=100)
     return result
 
@@ -336,7 +348,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 encoding="utf-8",
             )
         verify_manifest(args.manifest, expected)
-        selected = [item for item in expected["inventory"] if item["selected"]]
+        selected = select_inventory(expected["inventory"], args.preparation)
         requested = set(args.source or ())
         if requested:
             selected = [item for item in selected if item["source_id"] in requested]

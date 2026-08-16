@@ -71,10 +71,10 @@ append-only [log.md](log.md). Detailed syntax derivations are under
 | Blocks | Partition contexts across superblocks | **Implemented** | Above/left partition state and normative row resets are implemented for the fixed production traversal. |
 | Intra prediction | Luma DC prediction | **Implemented** | Prediction uses reconstructed top/left neighbors; unavailable edges use the normative neutral behavior. |
 | Intra prediction | Chroma DC prediction | **Implemented** | Separate U/V reconstructed-neighbor prediction is implemented for I420 and I444. |
-| Intra prediction | Directional/angular modes | **Partial** | Reachable production `--search directional` remains compatible; `--search intra` includes exact cardinal V/H trials before non-directional trials. Arbitrary angles and default enablement remain deferred. |
+| Intra prediction | Directional/angular modes | **Partial** | Explicit production `--search directional` and `--search directional-exact` select exact luma DC/V/H trials for I400/I420/I444 across the 1..896 production bound. Arbitrary angles, chroma directional modes, and default enablement remain deferred. |
 | Intra prediction | Smooth, Paeth, and other non-DC modes | **Partial** | Explicit `--search intra` admits luma Smooth/Smooth-V/Smooth-H/Paeth for the fixed 8x8 transform leaves in images up to 64x64. The 224-case full-stream gate has 32 incremental wins, 5,314 vs 5,326 bytes, Y SSE 43,593,650 vs 43,744,028, exact AVM/project parity, and all four modes selected. Chroma-mode search and larger-image smooth trials remain deferred; PNG's Paeth filter is unrelated. |
 | Intra prediction | Directional intra prediction extensions (DIP) | **Disabled** | No DIP mode is selected or searched. |
-| Intra prediction | Edge filtering/upsampling and MRLS | **Partial** | Cardinal 90/180 returns before filtering/upsampling; directional syntax explicitly emits MRLS index 0. Nonzero MRLS is absent. |
+| Intra prediction | Edge filtering/upsampling and MRLS | **Partial** | Cardinal V/H returns before filtering/upsampling; directional syntax explicitly emits MRLS index 0. Filtered/upsampled angular prediction and nonzero MRLS are absent. |
 | Intra prediction | Chroma from luma (CfL) | **Disabled** | Color syntax explicitly selects non-CfL; chroma is coded independently. |
 | Intra prediction | Multi-hypothesis cross-component prediction (MHCCP) | **Disabled** | No cross-component predictor is generated. |
 | Intra prediction | Intra block prediction (IBP/edge IBP) | **Disabled** | The production M3 sequence disables IBP; no IBP references are formed. |
@@ -115,10 +115,10 @@ append-only [log.md](log.md). Detailed syntax derivations are under
 | Filtering | Cross-tile filter control | **Disabled** | Only one tile exists and no in-loop filter is enabled. |
 | Inter-only tools | Reference mode, skip mode, BAWP, warp, and global motion | **Out of scope** | Inferred off for the intra-only Closed Loop Key picture. |
 | Search | Pixel-dependent DC level search | **Implemented** | Every active input sample contributes to deterministic SSE minimization; edges are replicated only outside the active crop. |
-| Search | General transform, intra-mode, and partition RD search | **Not implemented** | No exact-rate candidate search across coding tools. |
+| Search | General transform, intra-mode, and partition RD search | **Partial** | Explicit complete-stream intra search selects among DC/V/H and, through 64x64, Smooth/Smooth-V/Smooth-H/Paeth with fresh writer/CDF state, byte and per-plane-SSE non-regression, and stable ties. Bounded AC search exists separately; combined transform/mode search and partition search are absent. |
 | Search | Rate control and target-size encoding | **Not implemented** | Qindex is supplied directly. A tools-only bounded equal-size qindex experiment is validator-backed but blocked by the 29-byte AC-subset floor; it does not change the production CLI. |
 | Reconstruction | Local closed-loop reconstruction | **Implemented** | Prediction, dequantization, inverse DC transforms, clipping, chroma state, edge extension, and active crop match both validators. |
-| Reconstruction | General AC inverse reconstruction | **Partial** | Implemented only for the bounded 8x8 M4 DCT_DCT experiment. |
+| Reconstruction | General AC inverse reconstruction | **Partial** | Explicit I400 `--search bounded` has scalar inverse 8x8 DCT_DCT reconstruction for all 64 coefficient positions and matches both validators. Other transform sizes/types and chroma AC reconstruction are absent; the older fixed M4 experiment remains separate. |
 | Metrics | Per-plane SSE and PSNR | **Implemented** | Active-pixel distortion is reported; chroma results retain per-plane SSE. |
 | Metrics | SSIM | **Not implemented** | No local deterministic SSIM implementation. |
 | Container | AVIF/HEIF (BMFF) muxing | **Out of scope** | Output is elementary `.obu` only. |
@@ -151,9 +151,9 @@ rankings only and do not change any implementation status above.
 
 | Priority | Feature | Complexity | Expected RD benefit | Portability / no-libc risk | Validator burden | Decision |
 |---:|---|---:|---:|---:|---:|---|
-| 1 | Broader scalar 8x8 DCT_DCT AC coding | 4 | 5 | 1 | 4 | First: directly removes the dominant DC-only texture loss while scalar integer kernels preserve the portability oracle. |
-| 2 | Horizontal/vertical intra prediction | 2 | 4 | 1 | 3 | First: small candidate set with strong edge wins and reusable mode-search structure. |
-| 3 | U/V plane quantizer deltas | 2 | 3 | 1 | 2 | First: low syntax/search cost and direct chroma allocation control at fixed total bytes. |
+| 1 | Broader scalar 8x8 DCT_DCT AC coding | 4 | 5 | 1 | 4 | Validator-proven behind `--search bounded`; default admission remains blocked because the equal-rate and hard-budget gates miss their required wins and byte budget. |
+| 2 | Horizontal/vertical intra prediction | 2 | 4 | 1 | 3 | Implemented explicitly by `--search directional`; the 90-case gate has 12 committed wins, lower bytes and plane SSE, exact parity, and a 262.186-second runtime. Default remains off. |
+| 3 | U/V plane quantizer deltas | 2 | 3 | 1 | 2 | Next unimplemented tranche item: low syntax/search cost and direct chroma allocation control at fixed total bytes. |
 | 4 | Smooth and Paeth prediction | 3 | 3 | 1 | 3 | Implemented explicitly by `--search intra`: the full-stream 224-case gate has 32 wins, 12 fewer bytes, lower luma SSE, exact decoder parity, and about 1.02x runtime. Chroma-mode search and trials above 64x64 remain deferred. |
 | 5 | Chroma from luma (CfL) | 4 | 4 | 2 | 4 | Defer until broader luma AC and plane quantizer control provide a trustworthy chroma comparator. |
 | 6 | Deblocking | 4 | 3 | 2 | 5 | Defer: frame-wide filtered reconstruction, edge rules, level search, and three-way hash parity add high validation cost. |

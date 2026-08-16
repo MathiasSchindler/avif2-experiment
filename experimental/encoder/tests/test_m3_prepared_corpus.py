@@ -13,14 +13,27 @@ ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT / "experimental/encoder/tools"))
 
 from m3_prepared_corpus import (
+    BenchmarkError,
     DEFAULT_MANIFEST,
     corpus_manifest,
     run_case,
+    select_inventory,
     verify_manifest,
 )
 
 
 class M3PreparedCorpusTests(unittest.TestCase):
+    def test_explicit_preparation_selection(self) -> None:
+        inventory = corpus_manifest()["inventory"]
+        selected = select_inventory(inventory, "le1440")
+        self.assertEqual(len(selected), 14)
+        self.assertEqual(
+            {item["source_id"] for item in selected},
+            {item["source_id"] for item in inventory},
+        )
+        with self.assertRaises(BenchmarkError):
+            select_inventory(inventory, "missing")
+
     def test_manifest_is_current_and_inventories_every_preparation(self) -> None:
         expected = corpus_manifest()
         verify_manifest(DEFAULT_MANIFEST, expected)
@@ -84,23 +97,23 @@ class M3PreparedCorpusTests(unittest.TestCase):
         source = work / "source.i400"
         metadata = work / "manifest.json"
         work.mkdir(parents=True)
-        source.write_bytes(bytes(897))
+        source.write_bytes(bytes(1441))
         import hashlib
         digest = hashlib.sha256(source.read_bytes()).hexdigest()
         metadata_data = {
-            "dimensions": [897, 1],
+            "dimensions": [1441, 1],
             "source_sha256": "a" * 64,
             "outputs": {"gray8": {
-                "filename": source.name, "byte_size": 897, "sha256": digest,
+                "filename": source.name, "byte_size": 1441, "sha256": digest,
             }},
         }
         metadata.write_text(json.dumps(metadata_data))
         case = {
             "id": "unit-le896", "path": str(source.relative_to(ROOT)),
-            "pixel_format": "i400-8", "width": 897, "height": 1,
-            "stride": 897, "byte_size": 897, "sha256": digest,
+            "pixel_format": "i400-8", "width": 1441, "height": 1,
+            "stride": 1441, "byte_size": 1441, "sha256": digest,
             "source_id": "unit", "source_sha256": "a" * 64,
-            "source_dimensions": [897, 1], "preparation_id": "le896",
+            "source_dimensions": [1441, 1], "preparation_id": "le896",
             "source_manifest": "unused/source.json",
             "source_manifest_sha256": "c" * 64,
             "preparation_manifest": str(metadata.relative_to(ROOT)),

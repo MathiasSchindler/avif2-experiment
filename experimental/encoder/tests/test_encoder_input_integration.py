@@ -257,13 +257,17 @@ class EncoderInputIntegrationTests(TestCase):
         self.assert_parity(gray_obu, bytes([128]) * 15, "i400")
 
     def test_real_prepared_png_and_raw_parity(self) -> None:
-        prepared = (
+        prepared_le896 = (
             ROOT / "images" / "prepared" / "le896" /
             "hong-kong-harbour-night"
         )
+        prepared_le1440 = (
+            ROOT / "images" / "prepared" / "le1440" / "baya-weaver"
+        )
         cases = (
-            (prepared / "master.png", "i444"),
-            (prepared / "source-896x424-yuv420p8.i420", "i420"),
+            (prepared_le896 / "master.png", "i444"),
+            (prepared_le896 / "source-896x424-yuv420p8.i420", "i420"),
+            (prepared_le1440 / "source-1440x960-gray8.i400", "i400"),
         )
         avmdec, project = self.validators()
         for source, extension in cases:

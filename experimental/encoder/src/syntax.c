@@ -1,4 +1,5 @@
 #include "encoder/cdf.h"
+#include "encoder/m3.h"
 #include "encoder/range.h"
 #include "encoder/syntax.h"
 #include "encoder/writer.h"
@@ -350,7 +351,11 @@ static EncStatus write_sequence_header(
     }
     width_bits = dimension_bits(width);
     height_bits = dimension_bits(height);
-    level_index = width * height > 552960U ? 1U : 0U;
+    level_index =
+        width > ENC_M3_FROZEN_PRODUCTION_MAX_DIMENSION ||
+        height > ENC_M3_FROZEN_PRODUCTION_MAX_DIMENSION
+            ? 4U
+            : width * height > 552960U ? 1U : 0U;
     if (width_bits == 0U || width_bits > 16U ||
         height_bits == 0U || height_bits > 16U) {
         return ENC_INVALID_ARGUMENT;
@@ -1229,11 +1234,11 @@ typedef struct {
     int has_chroma;
     int16_t u_level;
     int16_t v_level;
-    uint8_t partition_above[224U];
+    uint8_t partition_above[ENC_M3_MAX_MI_COLUMNS];
     uint8_t partition_left[16U];
-    uint8_t coeff_above[224U];
+    uint8_t coeff_above[ENC_M3_MAX_MI_COLUMNS];
     uint8_t coeff_left[16U];
-    uint8_t mode_above[224U];
+    uint8_t mode_above[ENC_M3_MAX_MI_COLUMNS];
     uint8_t mode_left[16U];
 } EncM3TileState;
 
@@ -1256,7 +1261,9 @@ static uint16_t m3_leaf_mode(
     if (mode == 4U) mode = block_x == 0U ? 0U : 2U;
     if (mode >= 5U && mode <= 8U) mode -= 2U;
     if (mode > 6U) return UINT16_MAX;
-    for (index = 0U; index < width_units && column + index < 224U; ++index) {
+    for (index = 0U;
+         index < width_units && column + index < ENC_M3_MAX_MI_COLUMNS;
+         ++index) {
         state->mode_above[column + index] = mode;
     }
     for (index = 0U; index < height_units && row + index < 16U; ++index) {
@@ -1579,7 +1586,7 @@ static EncStatus write_m3_large_leaf(
         size_t index;
         size_t left_index = row % 16U;
         for (index = column;
-             index < column + width && index < 224U;
+             index < column + width && index < ENC_M3_MAX_MI_COLUMNS;
              ++index) {
             state->partition_above[index] = (uint8_t)(64U - width);
         }
@@ -1820,8 +1827,8 @@ static EncStatus enc_m3_grid_tile_q(
     size_t block_count;
     EncStatus status;
     if (size == 0 || (data == 0 && capacity != 0U) || levels == 0 ||
-        width == 0U || width > 896U ||
-        height == 0U || height > 896U ||
+        width == 0U || width > ENC_M3_PRODUCTION_MAX_DIMENSION ||
+        height == 0U || height > ENC_M3_PRODUCTION_MAX_DIMENSION ||
         qindex == 0U || qindex > 255U ||
         ((modes == 0) != (mode_count == 0U)) ||
         (levels_per_block != 1U && levels_per_block != 64U)) {
@@ -1851,7 +1858,7 @@ static EncStatus enc_m3_grid_tile_q(
     state.v_level = 0;
     {
         size_t index;
-        for (index = 0U; index < 224U; ++index) {
+        for (index = 0U; index < ENC_M3_MAX_MI_COLUMNS; ++index) {
             state.partition_above[index] = 0U;
             state.coeff_above[index] = 0U;
             state.mode_above[index] = 0U;
@@ -2003,7 +2010,7 @@ typedef struct {
     size_t chroma_mode_index;
     uint8_t luma_mode;
     unsigned int chroma_format_idc;
-    uint8_t chroma_above[2U][224U];
+    uint8_t chroma_above[2U][ENC_M3_MAX_MI_COLUMNS];
     uint8_t chroma_left[2U][16U];
 } EncM3ColorTileState;
 
@@ -2259,7 +2266,9 @@ static EncStatus enc_m3_yuv_grid_tile_q(
     EncStatus status;
     if (size == 0 || (data == 0 && capacity != 0U) ||
         y_levels == 0 || u_levels == 0 || v_levels == 0 ||
-        width == 0U || height == 0U || width > 896U || height > 896U ||
+        width == 0U || height == 0U ||
+        width > ENC_M3_PRODUCTION_MAX_DIMENSION ||
+        height > ENC_M3_PRODUCTION_MAX_DIMENSION ||
         (chroma_format_idc != 0U && chroma_format_idc != 2U) ||
         ((luma_modes == 0) != (luma_mode_count == 0U)) ||
         ((chroma_modes == 0) != (chroma_mode_count == 0U)) ||
@@ -2351,7 +2360,7 @@ static EncStatus enc_m3_yuv_grid_tile_q(
     luma.has_chroma = 2;
     luma.u_level = 0;
     luma.v_level = 0;
-    for (index = 0U; index < 224U; ++index) {
+    for (index = 0U; index < ENC_M3_MAX_MI_COLUMNS; ++index) {
         luma.partition_above[index] = 0U;
         luma.coeff_above[index] = 0U;
         luma.mode_above[index] = 0U;
@@ -2501,7 +2510,7 @@ EncStatus enc_m3_dc_i420_single_leaf_tile_q(
     state.has_chroma = 1;
     state.u_level = u_level;
     state.v_level = v_level;
-    for (index = 0U; index < 224U; ++index) {
+    for (index = 0U; index < ENC_M3_MAX_MI_COLUMNS; ++index) {
         state.partition_above[index] = 0U;
         state.coeff_above[index] = 0U;
         state.mode_above[index] = 0U;

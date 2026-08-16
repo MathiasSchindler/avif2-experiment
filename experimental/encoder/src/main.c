@@ -294,7 +294,7 @@ static int run_i400_encode(const char *input_path, size_t width,
         height > ENC_M3_PRODUCTION_MAX_DIMENSION) {
         (void)enc_i400_input_close(&input);
         report_error(
-            "encoder: DC subset supports 1..896 pixels per axis\n");
+            "encoder: DC subset supports 1..1440 pixels per axis\n");
         return ENC_EXIT_UNSUPPORTED;
     }
     status = quality_search == ENC_AC8X8_SEARCH_BOUNDED
@@ -402,7 +402,7 @@ static int run_i400_image_encode(const char *input_path,
     }
     if (image->planes[0].width > ENC_M3_PRODUCTION_MAX_DIMENSION ||
         image->planes[0].height > ENC_M3_PRODUCTION_MAX_DIMENSION) {
-        report_error("encoder: DC subset supports 1..896 pixels per axis\n");
+        report_error("encoder: DC subset supports 1..1440 pixels per axis\n");
         return ENC_EXIT_UNSUPPORTED;
     }
     status = quality_search == ENC_AC8X8_SEARCH_BOUNDED
@@ -526,7 +526,7 @@ static int run_chroma_encode(const char *input_path,
     status = enc_m3_query_chroma_workspace(input.format, input.width,
                                            input.height, &layout);
     if (status == ENC_UNSUPPORTED) {
-        report_error("encoder: DC subset supports 1..896 pixels per axis\n");
+        report_error("encoder: DC subset supports 1..1440 pixels per axis\n");
         return ENC_EXIT_UNSUPPORTED;
     }
     if (status != ENC_OK) {
@@ -652,7 +652,7 @@ static int run_image_encode(const char *input_path, size_t qindex,
     }
     if (layout.width > ENC_M3_PRODUCTION_MAX_DIMENSION ||
         layout.height > ENC_M3_PRODUCTION_MAX_DIMENSION) {
-        report_error("encoder: DC subset supports 1..896 pixels per axis\n");
+        report_error("encoder: DC subset supports 1..1440 pixels per axis\n");
         result = ENC_EXIT_UNSUPPORTED;
         goto cleanup;
     }

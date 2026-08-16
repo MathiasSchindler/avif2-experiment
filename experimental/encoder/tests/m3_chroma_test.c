@@ -155,7 +155,8 @@ static int test_atomic_failures(void) {
 static int test_i420_geometry(void) {
     static const size_t boundaries[] = {
         1U, 2U, 7U, 8U, 9U, 15U, 16U, 17U, 24U, 25U, 31U, 32U,
-        63U, 64U, 65U, 79U, 80U, 895U, 896U, 897U
+        63U, 64U, 65U, 79U, 80U, 895U, 896U, 897U,
+        1439U, 1440U, 1441U
     };
     EncM3ChromaWorkspaceLayout layout;
     size_t admitted_i420 = 0U;
@@ -226,7 +227,7 @@ static int test_i420_geometry(void) {
             admitted_i444 += i444 == ENC_OK ? 1U : 0U;
         }
     }
-    if (admitted_i420 != 802816U || admitted_i444 != 802816U) return 6;
+    if (admitted_i420 != 2073600U || admitted_i444 != 2073600U) return 6;
     return 0;
 }
 

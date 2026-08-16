@@ -73,5 +73,5 @@ def transform_geometry(leaf: Leaf, format_id: int) -> tuple[int, int, int, int]:
     return width, height, context, eob_class
 
 
-def admitted_pair_count(max_dimension: int = 896) -> int:
+def admitted_pair_count(max_dimension: int = 1440) -> int:
     return max_dimension * max_dimension

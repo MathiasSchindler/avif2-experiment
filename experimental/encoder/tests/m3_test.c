@@ -153,6 +153,15 @@ static int test_workspace_layout_and_capacity(void) {
         layout.size != 1912160U) {
         return 18;
     }
+    if (enc_m3_query_workspace(1440U, 1440U, &layout) != ENC_OK ||
+        layout.padded_width != 1440U || layout.padded_height != 1440U ||
+        layout.pixel_count != 2073600U ||
+        layout.padded_pixel_count != 2073600U ||
+        layout.block_count != 32400U ||
+        layout.stream_capacity != 2073856U ||
+        layout.size != 10433568U) {
+        return 19;
+    }
 
     if (enc_m3_query_workspace(SIZE_MAX, 1U, &layout) != ENC_OVERFLOW ||
         enc_m3_query_workspace(SIZE_MAX / 2U, 3U, &layout) != ENC_OVERFLOW ||
