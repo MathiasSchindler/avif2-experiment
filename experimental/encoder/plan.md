@@ -55,12 +55,14 @@ reduction, 48 fewer bytes, and exact local/AVM/project parity.
 
 `encoder-smooth-paeth-production` is complete as explicit `--search intra`.
 The path preserves directional compatibility and adds luma Smooth, Smooth-V,
-Smooth-H, and Paeth trials for images up to 64x64, with DC fallback for the
-legacy small syntax classes and the directional runtime policy above that
-bound. Chroma mode search remains deferred. The 224-case full-stream gate has
-32 incremental wins, 5,314 vs 5,326 bytes, and 43,593,650 vs 43,744,028 Y SSE;
-the locked 90 cases use 276,756 bytes with unchanged plane SSE relative to
-directional and 263.108 seconds aggregate median runtime.
+Smooth-H, and Paeth trials throughout the 1..1440 production range, including
+legacy 8x8 and small-I420 syntax classes. Per-4x4 reconstruction availability
+now controls optional Smooth endpoints, eliminating the former local/decoder
+predictor divergence. Chroma mode search remains deferred. The refreshed
+224-case gate has 38 incremental wins, 5,319 vs 5,326 bytes, and 43,518,512 vs
+43,744,028 Y SSE. The full-dimension gate covers I400/I420/I444 at 1440x1440
+plus a prepared 1440x1440 image, with two strict wins, 1,031,790 aggregate SSE
+reduction, 410 fewer bytes, and exact local/AVM/project parity.
 
 `encoder-ac8x8-production` is complete as the ordinary luma path.
 `enc_ac8x8_yuv8_q_workspace()` and default CLI `--search bounded` cover every

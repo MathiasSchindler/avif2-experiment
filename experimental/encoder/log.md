@@ -1612,3 +1612,26 @@ prepared images begin at 896x424, so all remain explicit unsupported cases.
 - **Parity/runtime:** every production-gate stream is deterministic and has
   exact encoder-local, pinned-AVM, and project reconstruction. Median/worst
   measured process time is 43.6/87.4 ms.
+
+## 2026-08-16 — Smooth/Paeth at full production dimensions
+
+- **Production range:** explicit `--search intra` now trials luma Smooth,
+  Smooth-V, Smooth-H, and Paeth for I400/I420/I444 across every admitted
+  dimension from 1 through 1440, including 8x8 and small-I420 streams.
+- **Reference correctness:** the fixed traversal now tracks reconstructed 4x4
+  cells per plane. Smooth uses optional top-right/bottom-left extension
+  samples only when the decoder exposes them, fixing a pre-existing
+  encoder-local reconstruction mismatch that the older decoder-only gate did
+  not detect.
+- **Refreshed small gate:** the 224-case full-stream corpus has 38 incremental
+  wins, 5,319 versus 5,326 bytes, and Y SSE 43,518,512 versus 43,744,028.
+  Mode wins are Smooth 13, Smooth-V 21, Smooth-H 2, and Paeth 2.
+- **Full-dimension gate:** `metrics/smooth-paeth-full-gate.json` validates
+  I400/I420/I444 at 1440x1440 plus a prepared 1440x1440 image. It records two
+  strict Smooth wins, 1,031,790 aggregate SSE reduction, 410 fewer bytes,
+  8.59/23.24-second median/worst search time, and 18,760,368-byte peak
+  workspace.
+- **Parity:** every selected Smooth-family stream has exact encoder-local
+  reconstruction, and every frozen stream is deterministic with exact
+  pinned-AVM/project-decoder agreement. The four-case full-dimension gate has
+  exact local agreement for every case.

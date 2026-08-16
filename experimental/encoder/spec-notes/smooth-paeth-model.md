@@ -32,8 +32,9 @@ Smooth uses the normative two linear corner interpolants plus the power-of-two
 near-edge blend. `scale = Round2(log2W + log2H - 4, 2)`;
 `sTop = 32 >> min(6, (row*2)>>scale)` and likewise for `sLeft`. Smooth-V
 returns the vertical result, Smooth-H the horizontal result, and Smooth rounds
-their sum by one bit. The bottom-left and top-right endpoints are
-`LeftCol[h]` and `AboveRow[w]`.
+their sum by one bit. The bottom-left and top-right endpoints are `LeftCol[h]` and `AboveRow[w]`
+when those reconstructed extension samples are available, otherwise the final
+in-block edge samples are repeated.
 
 Paeth computes `base = top + left - top_left`, then chooses the nearest of
 left, top, and top-left, resolving ties in that order. Short available edges
@@ -75,17 +76,24 @@ candidate evaluations, runs in under one second on the recorded host. See
 
 The production surface trials DC, V, H, Smooth, Smooth-V, Smooth-H, then
 Paeth with stable ties and fresh complete-stream state. Smooth-family trials
-are bounded to images at most 64x64; larger images retain the directional
-prefilter/runtime policy. Legacy 8x8 and small-I420 syntax classes fall back
-to DC. FSC is zero, MRLS is zero only for V/H, CfL is zero, and chroma uses
-DC prediction.
+cover every admitted I400/I420/I444 image dimension from 1 through 1440.
+The fixed superblock traversal tracks reconstructed 4x4 cells separately per
+plane; optional top-right and bottom-left endpoints are used only when the
+decoder would expose them. FSC is zero, MRLS is zero only for V/H, CfL is
+zero, and chroma uses DC prediction.
 
-The locked 224-case full-stream subset passes local reconstruction and exact
-pinned-AVM/project parity: 5,314 versus 5,326 bytes, Y SSE 43,593,650 versus
-43,744,028, unchanged U/V SSE, and 32 incremental wins (Smooth 12, Smooth-V
-14, Smooth-H 2, Paeth 4). Runtime is 783,160,668 versus 768,759,740 ns
-(1.019x). The 90-case gate is 276,756 bytes, with unchanged plane SSE against
-directional, six byte wins, 263.108 seconds aggregate median runtime,
-158.129 ms median, 52.981 s worst, and 7,263,744 workspace bytes.
+The locked 224-case full-stream subset passes exact local reconstruction for
+every selected Smooth-family mode and exact pinned-AVM/project parity for
+every stream: 5,319 versus 5,326 bytes, Y SSE 43,518,512 versus 43,744,028,
+unchanged U/V SSE, and 38 incremental wins (Smooth 13, Smooth-V 21, Smooth-H
+2, Paeth 2).
+
+`metrics/smooth-paeth-full-gate.json` adds three synthetic I400/I420/I444
+1440x1440 cases and one prepared 1440x1440 I400 image. All four are
+deterministic with exact local/AVM/project reconstruction. Smooth wins two
+synthetic color cases, reducing aggregate SSE by 1,031,790 and aggregate size
+by 410 bytes; the I400 and prepared cases do not regress. Median/worst
+`--search intra` time is 8.59/23.24 seconds and peak workspace is 18,760,368
+bytes.
 
 **`encoder-smooth-paeth-production` status: DONE.**

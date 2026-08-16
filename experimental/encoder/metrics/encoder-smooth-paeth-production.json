@@ -6,7 +6,7 @@
       23596698,
       23493845
     ],
-    "time_ns": 768759740
+    "time_ns": 745401743
   },
   "cases": 224,
   "gate": {
@@ -14,30 +14,32 @@
       "bytes_nonincreasing": true,
       "incremental_wins": true,
       "plane_sse_nonincreasing": true,
-      "runtime_ratio_at_most_4": true
+      "runtime_ratio_at_most_4": true,
+      "smooth_sse_matches_decode": true
     },
     "passed": true
   },
-  "incremental_wins": 32,
+  "incremental_wins": 38,
   "intra": {
-    "bytes": 5314,
+    "bytes": 5319,
     "sse": [
-      43593650,
+      43518512,
       23596698,
       23493845
     ],
-    "time_ns": 783160668
+    "time_ns": 813510625
   },
   "mode_wins": {
-    "paeth": 4,
-    "smooth": 12,
+    "paeth": 2,
+    "smooth": 13,
     "smooth-h": 2,
-    "smooth-v": 14
+    "smooth-v": 21
   },
   "records": [
     {
       "format": "i400",
       "index": 0,
+      "local_sse_matches_decode": true,
       "plane": "Y",
       "results": {
         "directional-exact": {
@@ -47,7 +49,7 @@
           "sse": [
             0
           ],
-          "time_ns": 1172571
+          "time_ns": 1176901
         },
         "intra": {
           "bytes": 19,
@@ -56,7 +58,7 @@
           "sse": [
             0
           ],
-          "time_ns": 1172501
+          "time_ns": 1099376
         }
       },
       "size": [
@@ -68,6 +70,7 @@
     {
       "format": "i400",
       "index": 1,
+      "local_sse_matches_decode": true,
       "plane": "Y",
       "results": {
         "directional-exact": {
@@ -77,7 +80,7 @@
           "sse": [
             249944
           ],
-          "time_ns": 1320286
+          "time_ns": 1421347
         },
         "intra": {
           "bytes": 20,
@@ -86,7 +89,7 @@
           "sse": [
             249944
           ],
-          "time_ns": 1061733
+          "time_ns": 1167612
         }
       },
       "size": [
@@ -98,6 +101,7 @@
     {
       "format": "i400",
       "index": 2,
+      "local_sse_matches_decode": true,
       "plane": "Y",
       "results": {
         "directional-exact": {
@@ -107,7 +111,7 @@
           "sse": [
             249944
           ],
-          "time_ns": 935179
+          "time_ns": 844944
         },
         "intra": {
           "bytes": 20,
@@ -116,7 +120,7 @@
           "sse": [
             245176
           ],
-          "time_ns": 1367220
+          "time_ns": 1501595
         }
       },
       "size": [
@@ -128,6 +132,7 @@
     {
       "format": "i400",
       "index": 3,
+      "local_sse_matches_decode": true,
       "plane": "Y",
       "results": {
         "directional-exact": {
@@ -137,7 +142,7 @@
           "sse": [
             39328
           ],
-          "time_ns": 1311486
+          "time_ns": 871973
         },
         "intra": {
           "bytes": 22,
@@ -146,7 +151,7 @@
           "sse": [
             39328
           ],
-          "time_ns": 997408
+          "time_ns": 1292419
         }
       },
       "size": [
@@ -158,6 +163,7 @@
     {
       "format": "i400",
       "index": 4,
+      "local_sse_matches_decode": true,
       "plane": "Y",
       "results": {
         "directional-exact": {
@@ -167,7 +173,7 @@
           "sse": [
             589824
           ],
-          "time_ns": 1203580
+          "time_ns": 876442
         },
         "intra": {
           "bytes": 19,
@@ -176,7 +182,7 @@
           "sse": [
             589824
           ],
-          "time_ns": 1287111
+          "time_ns": 1259454
         }
       },
       "size": [
@@ -188,6 +194,7 @@
     {
       "format": "i400",
       "index": 5,
+      "local_sse_matches_decode": true,
       "plane": "Y",
       "results": {
         "directional-exact": {
@@ -197,7 +204,7 @@
           "sse": [
             569088
           ],
-          "time_ns": 1092812
+          "time_ns": 860379
         },
         "intra": {
           "bytes": 21,
@@ -206,7 +213,7 @@
           "sse": [
             569088
           ],
-          "time_ns": 1156228
+          "time_ns": 1286413
         }
       },
       "size": [
@@ -218,6 +225,7 @@
     {
       "format": "i400",
       "index": 6,
+      "local_sse_matches_decode": true,
       "plane": "Y",
       "results": {
         "directional-exact": {
@@ -227,7 +235,7 @@
           "sse": [
             370560
           ],
-          "time_ns": 1161606
+          "time_ns": 1117536
         },
         "intra": {
           "bytes": 19,
@@ -236,7 +244,7 @@
           "sse": [
             370560
           ],
-          "time_ns": 1240667
+          "time_ns": 1207771
         }
       },
       "size": [
@@ -248,6 +256,7 @@
     {
       "format": "i400",
       "index": 7,
+      "local_sse_matches_decode": true,
       "plane": "Y",
       "results": {
         "directional-exact": {
@@ -257,7 +266,7 @@
           "sse": [
             107764
           ],
-          "time_ns": 998736
+          "time_ns": 1469468
         },
         "intra": {
           "bytes": 22,
@@ -266,7 +275,7 @@
           "sse": [
             107486
           ],
-          "time_ns": 963954
+          "time_ns": 1147986
         }
       },
       "size": [
@@ -278,6 +287,7 @@
     {
       "format": "i400",
       "index": 8,
+      "local_sse_matches_decode": true,
       "plane": "Y",
       "results": {
         "directional-exact": {
@@ -287,7 +297,7 @@
           "sse": [
             0
           ],
-          "time_ns": 871903
+          "time_ns": 1248768
         },
         "intra": {
           "bytes": 19,
@@ -296,7 +306,7 @@
           "sse": [
             0
           ],
-          "time_ns": 934900
+          "time_ns": 1320704
         }
       },
       "size": [
@@ -308,6 +318,7 @@
     {
       "format": "i400",
       "index": 9,
+      "local_sse_matches_decode": true,
       "plane": "Y",
       "results": {
         "directional-exact": {
@@ -317,7 +328,7 @@
           "sse": [
             499888
           ],
-          "time_ns": 1227327
+          "time_ns": 1010398
         },
         "intra": {
           "bytes": 20,
@@ -326,7 +337,7 @@
           "sse": [
             499888
           ],
-          "time_ns": 1234661
+          "time_ns": 1097421
         }
       },
       "size": [
@@ -338,6 +349,7 @@
     {
       "format": "i400",
       "index": 10,
+      "local_sse_matches_decode": true,
       "plane": "Y",
       "results": {
         "directional-exact": {
@@ -347,7 +359,7 @@
           "sse": [
             109560
           ],
-          "time_ns": 1314070
+          "time_ns": 1334324
         },
         "intra": {
           "bytes": 26,
@@ -356,7 +368,7 @@
           "sse": [
             109560
           ],
-          "time_ns": 1186680
+          "time_ns": 1471353
         }
       },
       "size": [
@@ -368,6 +380,7 @@
     {
       "format": "i400",
       "index": 11,
+      "local_sse_matches_decode": true,
       "plane": "Y",
       "results": {
         "directional-exact": {
@@ -377,7 +390,7 @@
           "sse": [
             78656
           ],
-          "time_ns": 1152387
+          "time_ns": 1426305
         },
         "intra": {
           "bytes": 26,
@@ -386,7 +399,7 @@
           "sse": [
             78656
           ],
-          "time_ns": 1476452
+          "time_ns": 1229003
         }
       },
       "size": [
@@ -398,6 +411,7 @@
     {
       "format": "i400",
       "index": 12,
+      "local_sse_matches_decode": true,
       "plane": "Y",
       "results": {
         "directional-exact": {
@@ -407,7 +421,7 @@
           "sse": [
             1179648
           ],
-          "time_ns": 1133180
+          "time_ns": 1438597
         },
         "intra": {
           "bytes": 19,
@@ -416,7 +430,7 @@
           "sse": [
             1179648
           ],
-          "time_ns": 1858415
+          "time_ns": 1450610
         }
       },
       "size": [
@@ -428,6 +442,7 @@
     {
       "format": "i400",
       "index": 13,
+      "local_sse_matches_decode": true,
       "plane": "Y",
       "results": {
         "directional-exact": {
@@ -437,7 +452,7 @@
           "sse": [
             1138176
           ],
-          "time_ns": 1150641
+          "time_ns": 1070811
         },
         "intra": {
           "bytes": 22,
@@ -446,7 +461,7 @@
           "sse": [
             1137472
           ],
-          "time_ns": 1128920
+          "time_ns": 1426095
         }
       },
       "size": [
@@ -458,6 +473,7 @@
     {
       "format": "i400",
       "index": 14,
+      "local_sse_matches_decode": true,
       "plane": "Y",
       "results": {
         "directional-exact": {
@@ -467,7 +483,7 @@
           "sse": [
             720384
           ],
-          "time_ns": 1473449
+          "time_ns": 1021224
         },
         "intra": {
           "bytes": 21,
@@ -476,7 +492,7 @@
           "sse": [
             720384
           ],
-          "time_ns": 1172361
+          "time_ns": 1062081
         }
       },
       "size": [
@@ -488,6 +504,7 @@
     {
       "format": "i400",
       "index": 15,
+      "local_sse_matches_decode": true,
       "plane": "Y",
       "results": {
         "directional-exact": {
@@ -497,7 +514,7 @@
           "sse": [
             167015
           ],
-          "time_ns": 1337957
+          "time_ns": 1127452
         },
         "intra": {
           "bytes": 23,
@@ -506,7 +523,7 @@
           "sse": [
             166979
           ],
-          "time_ns": 1302197
+          "time_ns": 1061313
         }
       },
       "size": [
@@ -518,6 +535,7 @@
     {
       "format": "i400",
       "index": 16,
+      "local_sse_matches_decode": true,
       "plane": "Y",
       "results": {
         "directional-exact": {
@@ -527,7 +545,7 @@
           "sse": [
             0
           ],
-          "time_ns": 1048253
+          "time_ns": 1076747
         },
         "intra": {
           "bytes": 19,
@@ -536,7 +554,7 @@
           "sse": [
             0
           ],
-          "time_ns": 1349410
+          "time_ns": 828461
         }
       },
       "size": [
@@ -548,6 +566,7 @@
     {
       "format": "i400",
       "index": 17,
+      "local_sse_matches_decode": true,
       "plane": "Y",
       "results": {
         "directional-exact": {
@@ -557,7 +576,7 @@
           "sse": [
             109560
           ],
-          "time_ns": 1397950
+          "time_ns": 1049370
         },
         "intra": {
           "bytes": 26,
@@ -566,7 +585,7 @@
           "sse": [
             109560
           ],
-          "time_ns": 1444325
+          "time_ns": 1538331
         }
       },
       "size": [
@@ -578,6 +597,7 @@
     {
       "format": "i400",
       "index": 18,
+      "local_sse_matches_decode": true,
       "plane": "Y",
       "results": {
         "directional-exact": {
@@ -587,7 +607,7 @@
           "sse": [
             499888
           ],
-          "time_ns": 1188495
+          "time_ns": 1017732
         },
         "intra": {
           "bytes": 20,
@@ -596,7 +616,7 @@
           "sse": [
             499888
           ],
-          "time_ns": 1195339
+          "time_ns": 1064177
         }
       },
       "size": [
@@ -608,6 +628,7 @@
     {
       "format": "i400",
       "index": 19,
+      "local_sse_matches_decode": true,
       "plane": "Y",
       "results": {
         "directional-exact": {
@@ -617,7 +638,7 @@
           "sse": [
             78656
           ],
-          "time_ns": 1562707
+          "time_ns": 1616484
         },
         "intra": {
           "bytes": 26,
@@ -626,7 +647,7 @@
           "sse": [
             75520
           ],
-          "time_ns": 1271537
+          "time_ns": 1251841
         }
       },
       "size": [
@@ -638,6 +659,7 @@
     {
       "format": "i400",
       "index": 20,
+      "local_sse_matches_decode": true,
       "plane": "Y",
       "results": {
         "directional-exact": {
@@ -647,7 +669,7 @@
           "sse": [
             1179648
           ],
-          "time_ns": 1174317
+          "time_ns": 1024507
         },
         "intra": {
           "bytes": 19,
@@ -656,7 +678,7 @@
           "sse": [
             1179648
           ],
-          "time_ns": 1246115
+          "time_ns": 1536585
         }
       },
       "size": [
@@ -668,6 +690,7 @@
     {
       "format": "i400",
       "index": 21,
+      "local_sse_matches_decode": true,
       "plane": "Y",
       "results": {
         "directional-exact": {
@@ -677,7 +700,7 @@
           "sse": [
             1138176
           ],
-          "time_ns": 1087504
+          "time_ns": 1659506
         },
         "intra": {
           "bytes": 22,
@@ -686,7 +709,7 @@
           "sse": [
             1137932
           ],
-          "time_ns": 1553069
+          "time_ns": 1601817
         }
       },
       "size": [
@@ -698,6 +721,7 @@
     {
       "format": "i400",
       "index": 22,
+      "local_sse_matches_decode": true,
       "plane": "Y",
       "results": {
         "directional-exact": {
@@ -707,7 +731,7 @@
           "sse": [
             704768
           ],
-          "time_ns": 1057472
+          "time_ns": 1063198
         },
         "intra": {
           "bytes": 19,
@@ -716,7 +740,7 @@
           "sse": [
             704768
           ],
-          "time_ns": 1188914
+          "time_ns": 1097630
         }
       },
       "size": [
@@ -728,6 +752,7 @@
     {
       "format": "i400",
       "index": 23,
+      "local_sse_matches_decode": true,
       "plane": "Y",
       "results": {
         "directional-exact": {
@@ -737,7 +762,7 @@
           "sse": [
             209129
           ],
-          "time_ns": 1149244
+          "time_ns": 1536934
         },
         "intra": {
           "bytes": 23,
@@ -746,7 +771,7 @@
           "sse": [
             207481
           ],
-          "time_ns": 1152038
+          "time_ns": 1146450
         }
       },
       "size": [
@@ -758,6 +783,7 @@
     {
       "format": "i400",
       "index": 24,
+      "local_sse_matches_decode": true,
       "plane": "Y",
       "results": {
         "directional-exact": {
@@ -767,7 +793,7 @@
           "sse": [
             0
           ],
-          "time_ns": 944748
+          "time_ns": 1255961
         },
         "intra": {
           "bytes": 20,
@@ -776,7 +802,7 @@
           "sse": [
             0
           ],
-          "time_ns": 1179206
+          "time_ns": 1431264
         }
       },
       "size": [
@@ -788,6 +814,7 @@
     {
       "format": "i400",
       "index": 25,
+      "local_sse_matches_decode": false,
       "plane": "Y",
       "results": {
         "directional-exact": {
@@ -797,7 +824,7 @@
           "sse": [
             219120
           ],
-          "time_ns": 1409055
+          "time_ns": 1571575
         },
         "intra": {
           "bytes": 28,
@@ -806,7 +833,7 @@
           "sse": [
             219120
           ],
-          "time_ns": 2071014
+          "time_ns": 1497194
         }
       },
       "size": [
@@ -818,6 +845,7 @@
     {
       "format": "i400",
       "index": 26,
+      "local_sse_matches_decode": false,
       "plane": "Y",
       "results": {
         "directional-exact": {
@@ -827,7 +855,7 @@
           "sse": [
             219120
           ],
-          "time_ns": 1364706
+          "time_ns": 1267485
         },
         "intra": {
           "bytes": 28,
@@ -836,7 +864,7 @@
           "sse": [
             219120
           ],
-          "time_ns": 1550624
+          "time_ns": 1574788
         }
       },
       "size": [
@@ -848,6 +876,7 @@
     {
       "format": "i400",
       "index": 27,
+      "local_sse_matches_decode": true,
       "plane": "Y",
       "results": {
         "directional-exact": {
@@ -857,16 +886,16 @@
           "sse": [
             157312
           ],
-          "time_ns": 1340750
+          "time_ns": 1248838
         },
         "intra": {
-          "bytes": 32,
-          "mode": 5,
-          "sha256": "2b6d5b661a95e9ed2d3d0288dbe730482edc1723ad73ec4258a3febdba7f74b5",
+          "bytes": 33,
+          "mode": 6,
+          "sha256": "3bc04b534ab3d63cfa26af73d3820b3004b845ae84e1a277715d332a4bcb6569",
           "sse": [
-            123460
+            138304
           ],
-          "time_ns": 1302476
+          "time_ns": 1281384
         }
       },
       "size": [
@@ -878,6 +907,7 @@
     {
       "format": "i400",
       "index": 28,
+      "local_sse_matches_decode": true,
       "plane": "Y",
       "results": {
         "directional-exact": {
@@ -887,7 +917,7 @@
           "sse": [
             64
           ],
-          "time_ns": 1443696
+          "time_ns": 1054608
         },
         "intra": {
           "bytes": 34,
@@ -896,7 +926,7 @@
           "sse": [
             64
           ],
-          "time_ns": 1378255
+          "time_ns": 1229352
         }
       },
       "size": [
@@ -908,6 +938,7 @@
     {
       "format": "i400",
       "index": 29,
+      "local_sse_matches_decode": true,
       "plane": "Y",
       "results": {
         "directional-exact": {
@@ -917,7 +948,7 @@
           "sse": [
             2276352
           ],
-          "time_ns": 1470236
+          "time_ns": 1210494
         },
         "intra": {
           "bytes": 24,
@@ -926,7 +957,7 @@
           "sse": [
             2275178
           ],
-          "time_ns": 1434687
+          "time_ns": 1260361
         }
       },
       "size": [
@@ -938,6 +969,7 @@
     {
       "format": "i400",
       "index": 30,
+      "local_sse_matches_decode": true,
       "plane": "Y",
       "results": {
         "directional-exact": {
@@ -947,7 +979,7 @@
           "sse": [
             1399296
           ],
-          "time_ns": 1465138
+          "time_ns": 1221809
         },
         "intra": {
           "bytes": 24,
@@ -956,7 +988,7 @@
           "sse": [
             1399296
           ],
-          "time_ns": 1452217
+          "time_ns": 1431334
         }
       },
       "size": [
@@ -968,6 +1000,7 @@
     {
       "format": "i400",
       "index": 31,
+      "local_sse_matches_decode": true,
       "plane": "Y",
       "results": {
         "directional-exact": {
@@ -977,7 +1010,7 @@
           "sse": [
             318384
           ],
-          "time_ns": 1626542
+          "time_ns": 1249746
         },
         "intra": {
           "bytes": 26,
@@ -986,7 +1019,7 @@
           "sse": [
             316736
           ],
-          "time_ns": 1498103
+          "time_ns": 1291930
         }
       },
       "size": [
@@ -998,6 +1031,7 @@
     {
       "format": "i420",
       "index": 32,
+      "local_sse_matches_decode": true,
       "plane": "Y",
       "results": {
         "directional-exact": {
@@ -1009,7 +1043,7 @@
             0,
             0
           ],
-          "time_ns": 615305
+          "time_ns": 529888
         },
         "intra": {
           "bytes": 22,
@@ -1020,7 +1054,7 @@
             0,
             0
           ],
-          "time_ns": 677184
+          "time_ns": 1311275
         }
       },
       "size": [
@@ -1032,6 +1066,7 @@
     {
       "format": "i420",
       "index": 33,
+      "local_sse_matches_decode": true,
       "plane": "Y",
       "results": {
         "directional-exact": {
@@ -1043,7 +1078,7 @@
             0,
             0
           ],
-          "time_ns": 681445
+          "time_ns": 598682
         },
         "intra": {
           "bytes": 22,
@@ -1054,7 +1089,7 @@
             0,
             0
           ],
-          "time_ns": 664474
+          "time_ns": 1270279
         }
       },
       "size": [
@@ -1066,6 +1101,7 @@
     {
       "format": "i420",
       "index": 34,
+      "local_sse_matches_decode": true,
       "plane": "Y",
       "results": {
         "directional-exact": {
@@ -1077,18 +1113,18 @@
             0,
             0
           ],
-          "time_ns": 676556
+          "time_ns": 621310
         },
         "intra": {
           "bytes": 22,
-          "mode": 0,
-          "sha256": "8a3bed9977cb53ea47a7f4a1601755511e76defe8646dd3a2cb611f14d4049d6",
+          "mode": 6,
+          "sha256": "e3a9b2f86bb387a032a6c229466edd32053e2ddac5f2a862e09e5a6be014e984",
           "sse": [
-            249944,
+            245176,
             0,
             0
           ],
-          "time_ns": 680048
+          "time_ns": 1444045
         }
       },
       "size": [
@@ -1100,6 +1136,7 @@
     {
       "format": "i420",
       "index": 35,
+      "local_sse_matches_decode": true,
       "plane": "Y",
       "results": {
         "directional-exact": {
@@ -1111,18 +1148,18 @@
             0,
             0
           ],
-          "time_ns": 670201
+          "time_ns": 761763
         },
         "intra": {
           "bytes": 25,
-          "mode": 0,
-          "sha256": "e786cc8e1c140cce859ee133fdd977524bd6b0943eec07842de4db7208b1dc18",
+          "mode": 6,
+          "sha256": "bcd29b7ea2ff30319f10ca03cf48641605abd2dc8ec2bca5bccb3b698b3e513a",
           "sse": [
-            39328,
+            37760,
             0,
             0
           ],
-          "time_ns": 691362
+          "time_ns": 1267276
         }
       },
       "size": [
@@ -1134,6 +1171,7 @@
     {
       "format": "i420",
       "index": 36,
+      "local_sse_matches_decode": true,
       "plane": "Y",
       "results": {
         "directional-exact": {
@@ -1145,7 +1183,7 @@
             0,
             0
           ],
-          "time_ns": 599730
+          "time_ns": 568301
         },
         "intra": {
           "bytes": 22,
@@ -1156,7 +1194,7 @@
             0,
             0
           ],
-          "time_ns": 711127
+          "time_ns": 1286482
         }
       },
       "size": [
@@ -1168,6 +1206,7 @@
     {
       "format": "i420",
       "index": 37,
+      "local_sse_matches_decode": true,
       "plane": "Y",
       "results": {
         "directional-exact": {
@@ -1179,18 +1218,18 @@
             0,
             0
           ],
-          "time_ns": 755267
+          "time_ns": 554822
         },
         "intra": {
           "bytes": 24,
-          "mode": 0,
-          "sha256": "d0aca2cdc5ede741a62bf24bc5e6fdec907505279dcbbca58143c8998b4ac8d6",
+          "mode": 5,
+          "sha256": "efd5b81869f1e5add5a488cbd5df391b07e8239732ebd7cb0aef2e050f06c064",
           "sse": [
-            569088,
+            568252,
             0,
             0
           ],
-          "time_ns": 808906
+          "time_ns": 1244927
         }
       },
       "size": [
@@ -1202,6 +1241,7 @@
     {
       "format": "i420",
       "index": 38,
+      "local_sse_matches_decode": true,
       "plane": "Y",
       "results": {
         "directional-exact": {
@@ -1213,7 +1253,7 @@
             0,
             0
           ],
-          "time_ns": 618727
+          "time_ns": 694505
         },
         "intra": {
           "bytes": 22,
@@ -1224,7 +1264,7 @@
             0,
             0
           ],
-          "time_ns": 862474
+          "time_ns": 1547690
         }
       },
       "size": [
@@ -1236,6 +1276,7 @@
     {
       "format": "i420",
       "index": 39,
+      "local_sse_matches_decode": true,
       "plane": "U",
       "results": {
         "directional-exact": {
@@ -1247,7 +1288,7 @@
             0,
             0
           ],
-          "time_ns": 849414
+          "time_ns": 524162
         },
         "intra": {
           "bytes": 22,
@@ -1258,7 +1299,7 @@
             0,
             0
           ],
-          "time_ns": 622918
+          "time_ns": 1209587
         }
       },
       "size": [
@@ -1270,6 +1311,7 @@
     {
       "format": "i420",
       "index": 40,
+      "local_sse_matches_decode": true,
       "plane": "U",
       "results": {
         "directional-exact": {
@@ -1281,7 +1323,7 @@
             81164,
             0
           ],
-          "time_ns": 612860
+          "time_ns": 566904
         },
         "intra": {
           "bytes": 22,
@@ -1292,7 +1334,7 @@
             81164,
             0
           ],
-          "time_ns": 697718
+          "time_ns": 1245345
         }
       },
       "size": [
@@ -1304,6 +1346,7 @@
     {
       "format": "i420",
       "index": 41,
+      "local_sse_matches_decode": true,
       "plane": "U",
       "results": {
         "directional-exact": {
@@ -1315,7 +1358,7 @@
             81164,
             0
           ],
-          "time_ns": 649178
+          "time_ns": 756385
         },
         "intra": {
           "bytes": 22,
@@ -1326,7 +1369,7 @@
             81164,
             0
           ],
-          "time_ns": 647292
+          "time_ns": 1904370
         }
       },
       "size": [
@@ -1338,6 +1381,7 @@
     {
       "format": "i420",
       "index": 42,
+      "local_sse_matches_decode": true,
       "plane": "U",
       "results": {
         "directional-exact": {
@@ -1349,7 +1393,7 @@
             2344,
             0
           ],
-          "time_ns": 600847
+          "time_ns": 905776
         },
         "intra": {
           "bytes": 25,
@@ -1360,7 +1404,7 @@
             2344,
             0
           ],
-          "time_ns": 658467
+          "time_ns": 1390546
         }
       },
       "size": [
@@ -1372,6 +1416,7 @@
     {
       "format": "i420",
       "index": 43,
+      "local_sse_matches_decode": true,
       "plane": "U",
       "results": {
         "directional-exact": {
@@ -1383,7 +1428,7 @@
             147456,
             0
           ],
-          "time_ns": 647920
+          "time_ns": 731242
         },
         "intra": {
           "bytes": 22,
@@ -1394,7 +1439,7 @@
             147456,
             0
           ],
-          "time_ns": 664683
+          "time_ns": 1356463
         }
       },
       "size": [
@@ -1406,6 +1451,7 @@
     {
       "format": "i420",
       "index": 44,
+      "local_sse_matches_decode": true,
       "plane": "U",
       "results": {
         "directional-exact": {
@@ -1417,7 +1463,7 @@
             110608,
             0
           ],
-          "time_ns": 793960
+          "time_ns": 1010258
         },
         "intra": {
           "bytes": 25,
@@ -1428,7 +1474,7 @@
             110608,
             0
           ],
-          "time_ns": 763578
+          "time_ns": 1498381
         }
       },
       "size": [
@@ -1440,6 +1486,7 @@
     {
       "format": "i420",
       "index": 45,
+      "local_sse_matches_decode": true,
       "plane": "U",
       "results": {
         "directional-exact": {
@@ -1451,7 +1498,7 @@
             41856,
             0
           ],
-          "time_ns": 813305
+          "time_ns": 734733
         },
         "intra": {
           "bytes": 23,
@@ -1462,7 +1509,7 @@
             41856,
             0
           ],
-          "time_ns": 748842
+          "time_ns": 1292978
         }
       },
       "size": [
@@ -1474,6 +1521,7 @@
     {
       "format": "i420",
       "index": 46,
+      "local_sse_matches_decode": true,
       "plane": "V",
       "results": {
         "directional-exact": {
@@ -1485,7 +1533,7 @@
             0,
             0
           ],
-          "time_ns": 908151
+          "time_ns": 556218
         },
         "intra": {
           "bytes": 22,
@@ -1496,7 +1544,7 @@
             0,
             0
           ],
-          "time_ns": 841661
+          "time_ns": 1347175
         }
       },
       "size": [
@@ -1508,6 +1556,7 @@
     {
       "format": "i420",
       "index": 47,
+      "local_sse_matches_decode": true,
       "plane": "V",
       "results": {
         "directional-exact": {
@@ -1519,7 +1568,7 @@
             0,
             81164
           ],
-          "time_ns": 648899
+          "time_ns": 543856
         },
         "intra": {
           "bytes": 22,
@@ -1530,7 +1579,7 @@
             0,
             81164
           ],
-          "time_ns": 647711
+          "time_ns": 1261130
         }
       },
       "size": [
@@ -1542,6 +1591,7 @@
     {
       "format": "i420",
       "index": 48,
+      "local_sse_matches_decode": true,
       "plane": "V",
       "results": {
         "directional-exact": {
@@ -1553,7 +1603,7 @@
             0,
             81164
           ],
-          "time_ns": 702467
+          "time_ns": 569209
         },
         "intra": {
           "bytes": 22,
@@ -1564,7 +1614,7 @@
             0,
             81164
           ],
-          "time_ns": 750588
+          "time_ns": 1232844
         }
       },
       "size": [
@@ -1576,6 +1626,7 @@
     {
       "format": "i420",
       "index": 49,
+      "local_sse_matches_decode": true,
       "plane": "V",
       "results": {
         "directional-exact": {
@@ -1587,7 +1638,7 @@
             0,
             2344
           ],
-          "time_ns": 603082
+          "time_ns": 603990
         },
         "intra": {
           "bytes": 26,
@@ -1598,7 +1649,7 @@
             0,
             2344
           ],
-          "time_ns": 647641
+          "time_ns": 1260571
         }
       },
       "size": [
@@ -1610,6 +1661,7 @@
     {
       "format": "i420",
       "index": 50,
+      "local_sse_matches_decode": true,
       "plane": "V",
       "results": {
         "directional-exact": {
@@ -1621,7 +1673,7 @@
             0,
             147456
           ],
-          "time_ns": 829370
+          "time_ns": 597146
         },
         "intra": {
           "bytes": 22,
@@ -1632,7 +1684,7 @@
             0,
             147456
           ],
-          "time_ns": 763928
+          "time_ns": 1461715
         }
       },
       "size": [
@@ -1644,6 +1696,7 @@
     {
       "format": "i420",
       "index": 51,
+      "local_sse_matches_decode": true,
       "plane": "V",
       "results": {
         "directional-exact": {
@@ -1655,7 +1708,7 @@
             0,
             110608
           ],
-          "time_ns": 670969
+          "time_ns": 542879
         },
         "intra": {
           "bytes": 25,
@@ -1666,7 +1719,7 @@
             0,
             110608
           ],
-          "time_ns": 780620
+          "time_ns": 1398019
         }
       },
       "size": [
@@ -1678,6 +1731,7 @@
     {
       "format": "i420",
       "index": 52,
+      "local_sse_matches_decode": true,
       "plane": "V",
       "results": {
         "directional-exact": {
@@ -1689,7 +1743,7 @@
             0,
             41856
           ],
-          "time_ns": 674112
+          "time_ns": 553355
         },
         "intra": {
           "bytes": 24,
@@ -1700,7 +1754,7 @@
             0,
             41856
           ],
-          "time_ns": 644289
+          "time_ns": 1254145
         }
       },
       "size": [
@@ -1712,6 +1766,7 @@
     {
       "format": "i420",
       "index": 53,
+      "local_sse_matches_decode": true,
       "plane": "Y",
       "results": {
         "directional-exact": {
@@ -1723,7 +1778,7 @@
             0,
             0
           ],
-          "time_ns": 919186
+          "time_ns": 678791
         },
         "intra": {
           "bytes": 24,
@@ -1734,7 +1789,7 @@
             0,
             0
           ],
-          "time_ns": 893553
+          "time_ns": 1276844
         }
       },
       "size": [
@@ -1746,6 +1801,7 @@
     {
       "format": "i420",
       "index": 54,
+      "local_sse_matches_decode": true,
       "plane": "U",
       "results": {
         "directional-exact": {
@@ -1757,7 +1813,7 @@
             1697,
             0
           ],
-          "time_ns": 709312
+          "time_ns": 607761
         },
         "intra": {
           "bytes": 23,
@@ -1768,7 +1824,7 @@
             1697,
             0
           ],
-          "time_ns": 796544
+          "time_ns": 1763849
         }
       },
       "size": [
@@ -1780,6 +1836,7 @@
     {
       "format": "i420",
       "index": 55,
+      "local_sse_matches_decode": true,
       "plane": "V",
       "results": {
         "directional-exact": {
@@ -1791,7 +1848,7 @@
             0,
             732
           ],
-          "time_ns": 886779
+          "time_ns": 675019
         },
         "intra": {
           "bytes": 24,
@@ -1802,7 +1859,7 @@
             0,
             732
           ],
-          "time_ns": 695274
+          "time_ns": 1327759
         }
       },
       "size": [
@@ -1814,6 +1871,7 @@
     {
       "format": "i420",
       "index": 56,
+      "local_sse_matches_decode": true,
       "plane": "Y",
       "results": {
         "directional-exact": {
@@ -1825,7 +1883,7 @@
             0,
             0
           ],
-          "time_ns": 3209503
+          "time_ns": 2774318
         },
         "intra": {
           "bytes": 22,
@@ -1836,7 +1894,7 @@
             0,
             0
           ],
-          "time_ns": 3272290
+          "time_ns": 3608296
         }
       },
       "size": [
@@ -1848,6 +1906,7 @@
     {
       "format": "i420",
       "index": 57,
+      "local_sse_matches_decode": true,
       "plane": "Y",
       "results": {
         "directional-exact": {
@@ -1859,7 +1918,7 @@
             0,
             0
           ],
-          "time_ns": 3187222
+          "time_ns": 3724722
         },
         "intra": {
           "bytes": 23,
@@ -1870,7 +1929,7 @@
             0,
             0
           ],
-          "time_ns": 3261046
+          "time_ns": 3951008
         }
       },
       "size": [
@@ -1882,6 +1941,7 @@
     {
       "format": "i420",
       "index": 58,
+      "local_sse_matches_decode": true,
       "plane": "Y",
       "results": {
         "directional-exact": {
@@ -1893,7 +1953,7 @@
             0,
             0
           ],
-          "time_ns": 3338010
+          "time_ns": 3573165
         },
         "intra": {
           "bytes": 29,
@@ -1904,7 +1964,7 @@
             0,
             0
           ],
-          "time_ns": 2748687
+          "time_ns": 3042439
         }
       },
       "size": [
@@ -1916,6 +1976,7 @@
     {
       "format": "i420",
       "index": 59,
+      "local_sse_matches_decode": true,
       "plane": "Y",
       "results": {
         "directional-exact": {
@@ -1927,7 +1988,7 @@
             0,
             0
           ],
-          "time_ns": 2963800
+          "time_ns": 2861829
         },
         "intra": {
           "bytes": 29,
@@ -1938,7 +1999,7 @@
             0,
             0
           ],
-          "time_ns": 2390051
+          "time_ns": 2876216
         }
       },
       "size": [
@@ -1950,6 +2011,7 @@
     {
       "format": "i420",
       "index": 60,
+      "local_sse_matches_decode": true,
       "plane": "Y",
       "results": {
         "directional-exact": {
@@ -1961,7 +2023,7 @@
             0,
             0
           ],
-          "time_ns": 3001304
+          "time_ns": 3342549
         },
         "intra": {
           "bytes": 22,
@@ -1972,7 +2034,7 @@
             0,
             0
           ],
-          "time_ns": 3155235
+          "time_ns": 3426569
         }
       },
       "size": [
@@ -1984,6 +2046,7 @@
     {
       "format": "i420",
       "index": 61,
+      "local_sse_matches_decode": true,
       "plane": "Y",
       "results": {
         "directional-exact": {
@@ -1995,7 +2058,7 @@
             0,
             0
           ],
-          "time_ns": 2971901
+          "time_ns": 2838921
         },
         "intra": {
           "bytes": 25,
@@ -2006,7 +2069,7 @@
             0,
             0
           ],
-          "time_ns": 2457238
+          "time_ns": 2712717
         }
       },
       "size": [
@@ -2018,6 +2081,7 @@
     {
       "format": "i420",
       "index": 62,
+      "local_sse_matches_decode": true,
       "plane": "Y",
       "results": {
         "directional-exact": {
@@ -2029,7 +2093,7 @@
             0,
             0
           ],
-          "time_ns": 2976231
+          "time_ns": 2813010
         },
         "intra": {
           "bytes": 23,
@@ -2040,7 +2104,7 @@
             0,
             0
           ],
-          "time_ns": 3851836
+          "time_ns": 3564506
         }
       },
       "size": [
@@ -2052,6 +2116,7 @@
     {
       "format": "i420",
       "index": 63,
+      "local_sse_matches_decode": true,
       "plane": "U",
       "results": {
         "directional-exact": {
@@ -2063,7 +2128,7 @@
             0,
             0
           ],
-          "time_ns": 2886624
+          "time_ns": 2955347
         },
         "intra": {
           "bytes": 22,
@@ -2074,7 +2139,7 @@
             0,
             0
           ],
-          "time_ns": 3077013
+          "time_ns": 3425800
         }
       },
       "size": [
@@ -2086,6 +2151,7 @@
     {
       "format": "i420",
       "index": 64,
+      "local_sse_matches_decode": true,
       "plane": "U",
       "results": {
         "directional-exact": {
@@ -2097,7 +2163,7 @@
             162328,
             0
           ],
-          "time_ns": 3310004
+          "time_ns": 2892070
         },
         "intra": {
           "bytes": 22,
@@ -2108,7 +2174,7 @@
             162328,
             0
           ],
-          "time_ns": 3520507
+          "time_ns": 3453527
         }
       },
       "size": [
@@ -2120,6 +2186,7 @@
     {
       "format": "i420",
       "index": 65,
+      "local_sse_matches_decode": true,
       "plane": "U",
       "results": {
         "directional-exact": {
@@ -2131,7 +2198,7 @@
             124996,
             0
           ],
-          "time_ns": 3384665
+          "time_ns": 2923499
         },
         "intra": {
           "bytes": 22,
@@ -2142,7 +2209,7 @@
             124996,
             0
           ],
-          "time_ns": 3868737
+          "time_ns": 3385711
         }
       },
       "size": [
@@ -2154,6 +2221,7 @@
     {
       "format": "i420",
       "index": 66,
+      "local_sse_matches_decode": true,
       "plane": "U",
       "results": {
         "directional-exact": {
@@ -2165,7 +2233,7 @@
             15056,
             0
           ],
-          "time_ns": 3300506
+          "time_ns": 2855055
         },
         "intra": {
           "bytes": 25,
@@ -2176,7 +2244,7 @@
             15056,
             0
           ],
-          "time_ns": 3105020
+          "time_ns": 3254408
         }
       },
       "size": [
@@ -2188,6 +2256,7 @@
     {
       "format": "i420",
       "index": 67,
+      "local_sse_matches_decode": true,
       "plane": "U",
       "results": {
         "directional-exact": {
@@ -2199,7 +2268,7 @@
             294912,
             0
           ],
-          "time_ns": 3151674
+          "time_ns": 2815315
         },
         "intra": {
           "bytes": 22,
@@ -2210,7 +2279,7 @@
             294912,
             0
           ],
-          "time_ns": 3439421
+          "time_ns": 3154326
         }
       },
       "size": [
@@ -2222,6 +2291,7 @@
     {
       "format": "i420",
       "index": 68,
+      "local_sse_matches_decode": true,
       "plane": "U",
       "results": {
         "directional-exact": {
@@ -2233,7 +2303,7 @@
             294912,
             0
           ],
-          "time_ns": 2950389
+          "time_ns": 2780394
         },
         "intra": {
           "bytes": 22,
@@ -2244,7 +2314,7 @@
             294912,
             0
           ],
-          "time_ns": 3142734
+          "time_ns": 3920349
         }
       },
       "size": [
@@ -2256,6 +2326,7 @@
     {
       "format": "i420",
       "index": 69,
+      "local_sse_matches_decode": true,
       "plane": "U",
       "results": {
         "directional-exact": {
@@ -2267,7 +2338,7 @@
             181056,
             0
           ],
-          "time_ns": 3010104
+          "time_ns": 2926432
         },
         "intra": {
           "bytes": 24,
@@ -2278,7 +2349,7 @@
             181056,
             0
           ],
-          "time_ns": 3705238
+          "time_ns": 3831301
         }
       },
       "size": [
@@ -2290,6 +2361,7 @@
     {
       "format": "i420",
       "index": 70,
+      "local_sse_matches_decode": true,
       "plane": "V",
       "results": {
         "directional-exact": {
@@ -2301,7 +2373,7 @@
             0,
             0
           ],
-          "time_ns": 3143293
+          "time_ns": 2933975
         },
         "intra": {
           "bytes": 22,
@@ -2312,7 +2384,7 @@
             0,
             0
           ],
-          "time_ns": 3232899
+          "time_ns": 3477203
         }
       },
       "size": [
@@ -2324,6 +2396,7 @@
     {
       "format": "i420",
       "index": 71,
+      "local_sse_matches_decode": true,
       "plane": "V",
       "results": {
         "directional-exact": {
@@ -2335,7 +2408,7 @@
             0,
             162328
           ],
-          "time_ns": 3153559
+          "time_ns": 2817410
         },
         "intra": {
           "bytes": 22,
@@ -2346,7 +2419,7 @@
             0,
             162328
           ],
-          "time_ns": 3326068
+          "time_ns": 3202866
         }
       },
       "size": [
@@ -2358,6 +2431,7 @@
     {
       "format": "i420",
       "index": 72,
+      "local_sse_matches_decode": true,
       "plane": "V",
       "results": {
         "directional-exact": {
@@ -2369,7 +2443,7 @@
             0,
             124996
           ],
-          "time_ns": 2987476
+          "time_ns": 2808470
         },
         "intra": {
           "bytes": 22,
@@ -2380,7 +2454,7 @@
             0,
             124996
           ],
-          "time_ns": 3389903
+          "time_ns": 3045303
         }
       },
       "size": [
@@ -2392,6 +2466,7 @@
     {
       "format": "i420",
       "index": 73,
+      "local_sse_matches_decode": true,
       "plane": "V",
       "results": {
         "directional-exact": {
@@ -2403,7 +2478,7 @@
             0,
             15056
           ],
-          "time_ns": 2840250
+          "time_ns": 2832566
         },
         "intra": {
           "bytes": 25,
@@ -2414,7 +2489,7 @@
             0,
             15056
           ],
-          "time_ns": 3578894
+          "time_ns": 3688335
         }
       },
       "size": [
@@ -2426,6 +2501,7 @@
     {
       "format": "i420",
       "index": 74,
+      "local_sse_matches_decode": true,
       "plane": "V",
       "results": {
         "directional-exact": {
@@ -2437,7 +2513,7 @@
             0,
             294912
           ],
-          "time_ns": 2876567
+          "time_ns": 2842413
         },
         "intra": {
           "bytes": 22,
@@ -2448,7 +2524,7 @@
             0,
             294912
           ],
-          "time_ns": 3401846
+          "time_ns": 3520365
         }
       },
       "size": [
@@ -2460,6 +2536,7 @@
     {
       "format": "i420",
       "index": 75,
+      "local_sse_matches_decode": true,
       "plane": "V",
       "results": {
         "directional-exact": {
@@ -2471,7 +2548,7 @@
             0,
             294912
           ],
-          "time_ns": 2960028
+          "time_ns": 2829911
         },
         "intra": {
           "bytes": 22,
@@ -2482,7 +2559,7 @@
             0,
             294912
           ],
-          "time_ns": 3309725
+          "time_ns": 3671922
         }
       },
       "size": [
@@ -2494,6 +2571,7 @@
     {
       "format": "i420",
       "index": 76,
+      "local_sse_matches_decode": true,
       "plane": "V",
       "results": {
         "directional-exact": {
@@ -2505,7 +2583,7 @@
             0,
             181056
           ],
-          "time_ns": 3001653
+          "time_ns": 2779346
         },
         "intra": {
           "bytes": 24,
@@ -2516,7 +2594,7 @@
             0,
             181056
           ],
-          "time_ns": 3435510
+          "time_ns": 3355190
         }
       },
       "size": [
@@ -2528,6 +2606,7 @@
     {
       "format": "i420",
       "index": 77,
+      "local_sse_matches_decode": true,
       "plane": "Y",
       "results": {
         "directional-exact": {
@@ -2539,7 +2618,7 @@
             0,
             0
           ],
-          "time_ns": 3245331
+          "time_ns": 3249031
         },
         "intra": {
           "bytes": 26,
@@ -2550,7 +2629,7 @@
             0,
             0
           ],
-          "time_ns": 3033572
+          "time_ns": 2447459
         }
       },
       "size": [
@@ -2562,6 +2641,7 @@
     {
       "format": "i420",
       "index": 78,
+      "local_sse_matches_decode": true,
       "plane": "U",
       "results": {
         "directional-exact": {
@@ -2573,7 +2653,7 @@
             3596,
             0
           ],
-          "time_ns": 3187013
+          "time_ns": 2866230
         },
         "intra": {
           "bytes": 23,
@@ -2584,7 +2664,7 @@
             3596,
             0
           ],
-          "time_ns": 3139940
+          "time_ns": 3420352
         }
       },
       "size": [
@@ -2596,6 +2676,7 @@
     {
       "format": "i420",
       "index": 79,
+      "local_sse_matches_decode": true,
       "plane": "V",
       "results": {
         "directional-exact": {
@@ -2607,7 +2688,7 @@
             0,
             1594
           ],
-          "time_ns": 3071914
+          "time_ns": 2931671
         },
         "intra": {
           "bytes": 24,
@@ -2618,7 +2699,7 @@
             0,
             1594
           ],
-          "time_ns": 3157051
+          "time_ns": 3555007
         }
       },
       "size": [
@@ -2630,6 +2711,7 @@
     {
       "format": "i420",
       "index": 80,
+      "local_sse_matches_decode": true,
       "plane": "Y",
       "results": {
         "directional-exact": {
@@ -2641,7 +2723,7 @@
             0,
             0
           ],
-          "time_ns": 3114169
+          "time_ns": 3085881
         },
         "intra": {
           "bytes": 22,
@@ -2652,7 +2734,7 @@
             0,
             0
           ],
-          "time_ns": 3252525
+          "time_ns": 3334378
         }
       },
       "size": [
@@ -2664,6 +2746,7 @@
     {
       "format": "i420",
       "index": 81,
+      "local_sse_matches_decode": true,
       "plane": "Y",
       "results": {
         "directional-exact": {
@@ -2675,7 +2758,7 @@
             0,
             0
           ],
-          "time_ns": 3135610
+          "time_ns": 2797436
         },
         "intra": {
           "bytes": 29,
@@ -2686,7 +2769,7 @@
             0,
             0
           ],
-          "time_ns": 3253014
+          "time_ns": 3263419
         }
       },
       "size": [
@@ -2698,6 +2781,7 @@
     {
       "format": "i420",
       "index": 82,
+      "local_sse_matches_decode": true,
       "plane": "Y",
       "results": {
         "directional-exact": {
@@ -2709,7 +2793,7 @@
             0,
             0
           ],
-          "time_ns": 3292753
+          "time_ns": 2787448
         },
         "intra": {
           "bytes": 23,
@@ -2720,7 +2804,7 @@
             0,
             0
           ],
-          "time_ns": 2604953
+          "time_ns": 2696235
         }
       },
       "size": [
@@ -2732,6 +2816,7 @@
     {
       "format": "i420",
       "index": 83,
+      "local_sse_matches_decode": true,
       "plane": "Y",
       "results": {
         "directional-exact": {
@@ -2743,7 +2828,7 @@
             0,
             0
           ],
-          "time_ns": 3054524
+          "time_ns": 2809379
         },
         "intra": {
           "bytes": 28,
@@ -2754,7 +2839,7 @@
             0,
             0
           ],
-          "time_ns": 3483980
+          "time_ns": 3341012
         }
       },
       "size": [
@@ -2766,6 +2851,7 @@
     {
       "format": "i420",
       "index": 84,
+      "local_sse_matches_decode": true,
       "plane": "Y",
       "results": {
         "directional-exact": {
@@ -2777,7 +2863,7 @@
             0,
             0
           ],
-          "time_ns": 2878942
+          "time_ns": 2934605
         },
         "intra": {
           "bytes": 22,
@@ -2788,7 +2874,7 @@
             0,
             0
           ],
-          "time_ns": 3088327
+          "time_ns": 3335984
         }
       },
       "size": [
@@ -2800,6 +2886,7 @@
     {
       "format": "i420",
       "index": 85,
+      "local_sse_matches_decode": true,
       "plane": "Y",
       "results": {
         "directional-exact": {
@@ -2811,7 +2898,7 @@
             0,
             0
           ],
-          "time_ns": 3105019
+          "time_ns": 2850096
         },
         "intra": {
           "bytes": 25,
@@ -2822,7 +2909,7 @@
             0,
             0
           ],
-          "time_ns": 2864205
+          "time_ns": 2381458
         }
       },
       "size": [
@@ -2834,6 +2921,7 @@
     {
       "format": "i420",
       "index": 86,
+      "local_sse_matches_decode": true,
       "plane": "Y",
       "results": {
         "directional-exact": {
@@ -2845,7 +2933,7 @@
             0,
             0
           ],
-          "time_ns": 3254620
+          "time_ns": 2830470
         },
         "intra": {
           "bytes": 22,
@@ -2856,7 +2944,7 @@
             0,
             0
           ],
-          "time_ns": 3540273
+          "time_ns": 3338638
         }
       },
       "size": [
@@ -2868,6 +2956,7 @@
     {
       "format": "i420",
       "index": 87,
+      "local_sse_matches_decode": true,
       "plane": "U",
       "results": {
         "directional-exact": {
@@ -2879,7 +2968,7 @@
             0,
             0
           ],
-          "time_ns": 3314125
+          "time_ns": 2927830
         },
         "intra": {
           "bytes": 22,
@@ -2890,7 +2979,7 @@
             0,
             0
           ],
-          "time_ns": 3269007
+          "time_ns": 3341641
         }
       },
       "size": [
@@ -2902,6 +2991,7 @@
     {
       "format": "i420",
       "index": 88,
+      "local_sse_matches_decode": true,
       "plane": "U",
       "results": {
         "directional-exact": {
@@ -2913,7 +3003,7 @@
             124996,
             0
           ],
-          "time_ns": 3204543
+          "time_ns": 2905760
         },
         "intra": {
           "bytes": 22,
@@ -2924,7 +3014,7 @@
             124996,
             0
           ],
-          "time_ns": 3307350
+          "time_ns": 3951777
         }
       },
       "size": [
@@ -2936,6 +3026,7 @@
     {
       "format": "i420",
       "index": 89,
+      "local_sse_matches_decode": true,
       "plane": "U",
       "results": {
         "directional-exact": {
@@ -2947,7 +3038,7 @@
             162328,
             0
           ],
-          "time_ns": 2960936
+          "time_ns": 2778298
         },
         "intra": {
           "bytes": 22,
@@ -2958,7 +3049,7 @@
             162328,
             0
           ],
-          "time_ns": 3477205
+          "time_ns": 3699719
         }
       },
       "size": [
@@ -2970,6 +3061,7 @@
     {
       "format": "i420",
       "index": 90,
+      "local_sse_matches_decode": true,
       "plane": "U",
       "results": {
         "directional-exact": {
@@ -2981,7 +3073,7 @@
             9296,
             0
           ],
-          "time_ns": 2889977
+          "time_ns": 3418117
         },
         "intra": {
           "bytes": 25,
@@ -2992,7 +3084,7 @@
             9296,
             0
           ],
-          "time_ns": 3749308
+          "time_ns": 3595585
         }
       },
       "size": [
@@ -3004,6 +3096,7 @@
     {
       "format": "i420",
       "index": 91,
+      "local_sse_matches_decode": true,
       "plane": "U",
       "results": {
         "directional-exact": {
@@ -3015,7 +3108,7 @@
             294912,
             0
           ],
-          "time_ns": 3937322
+          "time_ns": 2844089
         },
         "intra": {
           "bytes": 22,
@@ -3026,7 +3119,7 @@
             294912,
             0
           ],
-          "time_ns": 3304277
+          "time_ns": 3085672
         }
       },
       "size": [
@@ -3038,6 +3131,7 @@
     {
       "format": "i420",
       "index": 92,
+      "local_sse_matches_decode": true,
       "plane": "U",
       "results": {
         "directional-exact": {
@@ -3049,7 +3143,7 @@
             290304,
             0
           ],
-          "time_ns": 3105298
+          "time_ns": 3029239
         },
         "intra": {
           "bytes": 24,
@@ -3060,7 +3154,7 @@
             290304,
             0
           ],
-          "time_ns": 3199026
+          "time_ns": 3328860
         }
       },
       "size": [
@@ -3072,6 +3166,7 @@
     {
       "format": "i420",
       "index": 93,
+      "local_sse_matches_decode": true,
       "plane": "U",
       "results": {
         "directional-exact": {
@@ -3083,7 +3178,7 @@
             120640,
             0
           ],
-          "time_ns": 3094194
+          "time_ns": 3056547
         },
         "intra": {
           "bytes": 24,
@@ -3094,7 +3189,7 @@
             120640,
             0
           ],
-          "time_ns": 3213693
+          "time_ns": 3137564
         }
       },
       "size": [
@@ -3106,6 +3201,7 @@
     {
       "format": "i420",
       "index": 94,
+      "local_sse_matches_decode": true,
       "plane": "V",
       "results": {
         "directional-exact": {
@@ -3117,7 +3213,7 @@
             0,
             0
           ],
-          "time_ns": 2928041
+          "time_ns": 3070236
         },
         "intra": {
           "bytes": 22,
@@ -3128,7 +3224,7 @@
             0,
             0
           ],
-          "time_ns": 3032314
+          "time_ns": 3245190
         }
       },
       "size": [
@@ -3140,6 +3236,7 @@
     {
       "format": "i420",
       "index": 95,
+      "local_sse_matches_decode": true,
       "plane": "V",
       "results": {
         "directional-exact": {
@@ -3151,7 +3248,7 @@
             0,
             124996
           ],
-          "time_ns": 2948295
+          "time_ns": 3004934
         },
         "intra": {
           "bytes": 22,
@@ -3162,7 +3259,7 @@
             0,
             124996
           ],
-          "time_ns": 3026308
+          "time_ns": 3007239
         }
       },
       "size": [
@@ -3174,6 +3271,7 @@
     {
       "format": "i420",
       "index": 96,
+      "local_sse_matches_decode": true,
       "plane": "V",
       "results": {
         "directional-exact": {
@@ -3185,7 +3283,7 @@
             0,
             162328
           ],
-          "time_ns": 3070308
+          "time_ns": 3118986
         },
         "intra": {
           "bytes": 22,
@@ -3196,7 +3294,7 @@
             0,
             162328
           ],
-          "time_ns": 3526653
+          "time_ns": 3125551
         }
       },
       "size": [
@@ -3208,6 +3306,7 @@
     {
       "format": "i420",
       "index": 97,
+      "local_sse_matches_decode": true,
       "plane": "V",
       "results": {
         "directional-exact": {
@@ -3219,7 +3318,7 @@
             0,
             9296
           ],
-          "time_ns": 3688755
+          "time_ns": 3447800
         },
         "intra": {
           "bytes": 25,
@@ -3230,7 +3329,7 @@
             0,
             9296
           ],
-          "time_ns": 3226055
+          "time_ns": 3386339
         }
       },
       "size": [
@@ -3242,6 +3341,7 @@
     {
       "format": "i420",
       "index": 98,
+      "local_sse_matches_decode": true,
       "plane": "V",
       "results": {
         "directional-exact": {
@@ -3253,7 +3353,7 @@
             0,
             294912
           ],
-          "time_ns": 3527142
+          "time_ns": 3098802
         },
         "intra": {
           "bytes": 22,
@@ -3264,7 +3364,7 @@
             0,
             294912
           ],
-          "time_ns": 3151184
+          "time_ns": 3441445
         }
       },
       "size": [
@@ -3276,6 +3376,7 @@
     {
       "format": "i420",
       "index": 99,
+      "local_sse_matches_decode": true,
       "plane": "V",
       "results": {
         "directional-exact": {
@@ -3287,7 +3388,7 @@
             0,
             290304
           ],
-          "time_ns": 2951298
+          "time_ns": 3060458
         },
         "intra": {
           "bytes": 24,
@@ -3298,7 +3399,7 @@
             0,
             290304
           ],
-          "time_ns": 3768166
+          "time_ns": 3501298
         }
       },
       "size": [
@@ -3310,6 +3411,7 @@
     {
       "format": "i420",
       "index": 100,
+      "local_sse_matches_decode": true,
       "plane": "V",
       "results": {
         "directional-exact": {
@@ -3321,7 +3423,7 @@
             0,
             120640
           ],
-          "time_ns": 3240792
+          "time_ns": 2780533
         },
         "intra": {
           "bytes": 24,
@@ -3332,7 +3434,7 @@
             0,
             120640
           ],
-          "time_ns": 3665009
+          "time_ns": 3399400
         }
       },
       "size": [
@@ -3344,6 +3446,7 @@
     {
       "format": "i420",
       "index": 101,
+      "local_sse_matches_decode": true,
       "plane": "Y",
       "results": {
         "directional-exact": {
@@ -3355,7 +3458,7 @@
             0,
             0
           ],
-          "time_ns": 2957444
+          "time_ns": 3041741
         },
         "intra": {
           "bytes": 26,
@@ -3366,7 +3469,7 @@
             0,
             0
           ],
-          "time_ns": 2760141
+          "time_ns": 2530920
         }
       },
       "size": [
@@ -3378,6 +3481,7 @@
     {
       "format": "i420",
       "index": 102,
+      "local_sse_matches_decode": true,
       "plane": "U",
       "results": {
         "directional-exact": {
@@ -3389,7 +3493,7 @@
             3931,
             0
           ],
-          "time_ns": 3242817
+          "time_ns": 3025538
         },
         "intra": {
           "bytes": 24,
@@ -3400,7 +3504,7 @@
             3931,
             0
           ],
-          "time_ns": 3205801
+          "time_ns": 3105087
         }
       },
       "size": [
@@ -3412,6 +3516,7 @@
     {
       "format": "i420",
       "index": 103,
+      "local_sse_matches_decode": true,
       "plane": "V",
       "results": {
         "directional-exact": {
@@ -3423,7 +3528,7 @@
             0,
             1665
           ],
-          "time_ns": 3379706
+          "time_ns": 2890325
         },
         "intra": {
           "bytes": 24,
@@ -3434,7 +3539,7 @@
             0,
             1665
           ],
-          "time_ns": 3623453
+          "time_ns": 3052147
         }
       },
       "size": [
@@ -3446,6 +3551,7 @@
     {
       "format": "i420",
       "index": 104,
+      "local_sse_matches_decode": true,
       "plane": "Y",
       "results": {
         "directional-exact": {
@@ -3457,7 +3563,7 @@
             0,
             0
           ],
-          "time_ns": 5309431
+          "time_ns": 4923344
         },
         "intra": {
           "bytes": 22,
@@ -3468,7 +3574,7 @@
             0,
             0
           ],
-          "time_ns": 6098990
+          "time_ns": 5254463
         }
       },
       "size": [
@@ -3480,6 +3586,7 @@
     {
       "format": "i420",
       "index": 105,
+      "local_sse_matches_decode": true,
       "plane": "Y",
       "results": {
         "directional-exact": {
@@ -3491,7 +3598,7 @@
             0,
             0
           ],
-          "time_ns": 5532924
+          "time_ns": 5156195
         },
         "intra": {
           "bytes": 30,
@@ -3502,7 +3609,7 @@
             0,
             0
           ],
-          "time_ns": 4626100
+          "time_ns": 4327665
         }
       },
       "size": [
@@ -3514,6 +3621,7 @@
     {
       "format": "i420",
       "index": 106,
+      "local_sse_matches_decode": true,
       "plane": "Y",
       "results": {
         "directional-exact": {
@@ -3525,18 +3633,18 @@
             0,
             0
           ],
-          "time_ns": 6051778
+          "time_ns": 5734763
         },
         "intra": {
-          "bytes": 30,
-          "mode": 8,
-          "sha256": "fb7f352ea7c638fce23165ad27547a7560b45507b341b8d2ef277a4be0480cbc",
+          "bytes": 32,
+          "mode": 6,
+          "sha256": "1515e6a5c8e4968c28afbf9ea5c814f02ed94006affad8846037342b2c11954f",
           "sse": [
-            219120,
+            159832,
             0,
             0
           ],
-          "time_ns": 4290930
+          "time_ns": 4051581
         }
       },
       "size": [
@@ -3548,6 +3656,7 @@
     {
       "format": "i420",
       "index": 107,
+      "local_sse_matches_decode": true,
       "plane": "Y",
       "results": {
         "directional-exact": {
@@ -3559,18 +3668,18 @@
             0,
             0
           ],
-          "time_ns": 5743427
+          "time_ns": 5098297
         },
         "intra": {
           "bytes": 34,
           "mode": 5,
-          "sha256": "3f76edbe003c37dcff5e4e4eef392cdee79fd40d199e1b6e4dc1646b9f0aa654",
+          "sha256": "fbf12ba22dd96a25f404837ed82d07309df175f2d0b2ba0cb49ef2aff14d3578",
           "sse": [
-            122827,
+            145794,
             0,
             0
           ],
-          "time_ns": 4035729
+          "time_ns": 4106895
         }
       },
       "size": [
@@ -3582,6 +3691,7 @@
     {
       "format": "i420",
       "index": 108,
+      "local_sse_matches_decode": true,
       "plane": "Y",
       "results": {
         "directional-exact": {
@@ -3593,7 +3703,7 @@
             0,
             0
           ],
-          "time_ns": 5515114
+          "time_ns": 5024823
         },
         "intra": {
           "bytes": 36,
@@ -3604,7 +3714,7 @@
             0,
             0
           ],
-          "time_ns": 5617711
+          "time_ns": 5439473
         }
       },
       "size": [
@@ -3616,6 +3726,7 @@
     {
       "format": "i420",
       "index": 109,
+      "local_sse_matches_decode": true,
       "plane": "Y",
       "results": {
         "directional-exact": {
@@ -3627,7 +3738,7 @@
             0,
             0
           ],
-          "time_ns": 5039423
+          "time_ns": 5288196
         },
         "intra": {
           "bytes": 25,
@@ -3638,7 +3749,7 @@
             0,
             0
           ],
-          "time_ns": 5564422
+          "time_ns": 5669252
         }
       },
       "size": [
@@ -3650,6 +3761,7 @@
     {
       "format": "i420",
       "index": 110,
+      "local_sse_matches_decode": true,
       "plane": "Y",
       "results": {
         "directional-exact": {
@@ -3661,7 +3773,7 @@
             0,
             0
           ],
-          "time_ns": 5157315
+          "time_ns": 5040538
         },
         "intra": {
           "bytes": 26,
@@ -3672,7 +3784,7 @@
             0,
             0
           ],
-          "time_ns": 5290015
+          "time_ns": 5792871
         }
       },
       "size": [
@@ -3684,6 +3796,7 @@
     {
       "format": "i420",
       "index": 111,
+      "local_sse_matches_decode": true,
       "plane": "U",
       "results": {
         "directional-exact": {
@@ -3695,7 +3808,7 @@
             0,
             0
           ],
-          "time_ns": 5660943
+          "time_ns": 4975725
         },
         "intra": {
           "bytes": 22,
@@ -3706,7 +3819,7 @@
             0,
             0
           ],
-          "time_ns": 5707248
+          "time_ns": 5979000
         }
       },
       "size": [
@@ -3718,6 +3831,7 @@
     {
       "format": "i420",
       "index": 112,
+      "local_sse_matches_decode": true,
       "plane": "U",
       "results": {
         "directional-exact": {
@@ -3729,7 +3843,7 @@
             249944,
             0
           ],
-          "time_ns": 5376408
+          "time_ns": 5200964
         },
         "intra": {
           "bytes": 23,
@@ -3740,7 +3854,7 @@
             249944,
             0
           ],
-          "time_ns": 5334434
+          "time_ns": 5828630
         }
       },
       "size": [
@@ -3752,6 +3866,7 @@
     {
       "format": "i420",
       "index": 113,
+      "local_sse_matches_decode": true,
       "plane": "U",
       "results": {
         "directional-exact": {
@@ -3763,7 +3878,7 @@
             249944,
             0
           ],
-          "time_ns": 5026642
+          "time_ns": 5139154
         },
         "intra": {
           "bytes": 23,
@@ -3774,7 +3889,7 @@
             249944,
             0
           ],
-          "time_ns": 5358809
+          "time_ns": 5524819
         }
       },
       "size": [
@@ -3786,6 +3901,7 @@
     {
       "format": "i420",
       "index": 114,
+      "local_sse_matches_decode": true,
       "plane": "U",
       "results": {
         "directional-exact": {
@@ -3797,7 +3913,7 @@
             39328,
             0
           ],
-          "time_ns": 5376758
+          "time_ns": 5227015
         },
         "intra": {
           "bytes": 25,
@@ -3808,7 +3924,7 @@
             39328,
             0
           ],
-          "time_ns": 5495628
+          "time_ns": 5659265
         }
       },
       "size": [
@@ -3820,6 +3936,7 @@
     {
       "format": "i420",
       "index": 115,
+      "local_sse_matches_decode": true,
       "plane": "U",
       "results": {
         "directional-exact": {
@@ -3831,7 +3948,7 @@
             589824,
             0
           ],
-          "time_ns": 5386885
+          "time_ns": 4923273
         },
         "intra": {
           "bytes": 22,
@@ -3842,7 +3959,7 @@
             589824,
             0
           ],
-          "time_ns": 5508619
+          "time_ns": 5553524
         }
       },
       "size": [
@@ -3854,6 +3971,7 @@
     {
       "format": "i420",
       "index": 116,
+      "local_sse_matches_decode": true,
       "plane": "U",
       "results": {
         "directional-exact": {
@@ -3865,7 +3983,7 @@
             569088,
             0
           ],
-          "time_ns": 5424250
+          "time_ns": 5364393
         },
         "intra": {
           "bytes": 25,
@@ -3876,7 +3994,7 @@
             569088,
             0
           ],
-          "time_ns": 5620016
+          "time_ns": 5730922
         }
       },
       "size": [
@@ -3888,6 +4006,7 @@
     {
       "format": "i420",
       "index": 117,
+      "local_sse_matches_decode": true,
       "plane": "U",
       "results": {
         "directional-exact": {
@@ -3899,7 +4018,7 @@
             370560,
             0
           ],
-          "time_ns": 5015816
+          "time_ns": 5006106
         },
         "intra": {
           "bytes": 22,
@@ -3910,7 +4029,7 @@
             370560,
             0
           ],
-          "time_ns": 5956793
+          "time_ns": 5592496
         }
       },
       "size": [
@@ -3922,6 +4041,7 @@
     {
       "format": "i420",
       "index": 118,
+      "local_sse_matches_decode": true,
       "plane": "V",
       "results": {
         "directional-exact": {
@@ -3933,7 +4053,7 @@
             0,
             0
           ],
-          "time_ns": 5094598
+          "time_ns": 5404622
         },
         "intra": {
           "bytes": 22,
@@ -3944,7 +4064,7 @@
             0,
             0
           ],
-          "time_ns": 5353012
+          "time_ns": 5781627
         }
       },
       "size": [
@@ -3956,6 +4076,7 @@
     {
       "format": "i420",
       "index": 119,
+      "local_sse_matches_decode": true,
       "plane": "V",
       "results": {
         "directional-exact": {
@@ -3967,7 +4088,7 @@
             0,
             249944
           ],
-          "time_ns": 5054160
+          "time_ns": 5531384
         },
         "intra": {
           "bytes": 23,
@@ -3978,7 +4099,7 @@
             0,
             249944
           ],
-          "time_ns": 5669045
+          "time_ns": 5402946
         }
       },
       "size": [
@@ -3990,6 +4111,7 @@
     {
       "format": "i420",
       "index": 120,
+      "local_sse_matches_decode": true,
       "plane": "V",
       "results": {
         "directional-exact": {
@@ -4001,7 +4123,7 @@
             0,
             249944
           ],
-          "time_ns": 4946673
+          "time_ns": 4951560
         },
         "intra": {
           "bytes": 23,
@@ -4012,7 +4134,7 @@
             0,
             249944
           ],
-          "time_ns": 5960424
+          "time_ns": 5566724
         }
       },
       "size": [
@@ -4024,6 +4146,7 @@
     {
       "format": "i420",
       "index": 121,
+      "local_sse_matches_decode": true,
       "plane": "V",
       "results": {
         "directional-exact": {
@@ -4035,7 +4158,7 @@
             0,
             39328
           ],
-          "time_ns": 5151239
+          "time_ns": 4929350
         },
         "intra": {
           "bytes": 26,
@@ -4046,7 +4169,7 @@
             0,
             39328
           ],
-          "time_ns": 5544238
+          "time_ns": 5481447
         }
       },
       "size": [
@@ -4058,6 +4181,7 @@
     {
       "format": "i420",
       "index": 122,
+      "local_sse_matches_decode": true,
       "plane": "V",
       "results": {
         "directional-exact": {
@@ -4069,7 +4193,7 @@
             0,
             589824
           ],
-          "time_ns": 5291900
+          "time_ns": 5619595
         },
         "intra": {
           "bytes": 22,
@@ -4080,7 +4204,7 @@
             0,
             589824
           ],
-          "time_ns": 5837363
+          "time_ns": 5647462
         }
       },
       "size": [
@@ -4092,6 +4216,7 @@
     {
       "format": "i420",
       "index": 123,
+      "local_sse_matches_decode": true,
       "plane": "V",
       "results": {
         "directional-exact": {
@@ -4103,7 +4228,7 @@
             0,
             569088
           ],
-          "time_ns": 5003804
+          "time_ns": 4953375
         },
         "intra": {
           "bytes": 25,
@@ -4114,7 +4239,7 @@
             0,
             569088
           ],
-          "time_ns": 5968666
+          "time_ns": 5310755
         }
       },
       "size": [
@@ -4126,6 +4251,7 @@
     {
       "format": "i420",
       "index": 124,
+      "local_sse_matches_decode": true,
       "plane": "V",
       "results": {
         "directional-exact": {
@@ -4137,7 +4263,7 @@
             0,
             370560
           ],
-          "time_ns": 5085169
+          "time_ns": 5221846
         },
         "intra": {
           "bytes": 22,
@@ -4148,7 +4274,7 @@
             0,
             370560
           ],
-          "time_ns": 5951485
+          "time_ns": 5778484
         }
       },
       "size": [
@@ -4160,6 +4286,7 @@
     {
       "format": "i420",
       "index": 125,
+      "local_sse_matches_decode": true,
       "plane": "Y",
       "results": {
         "directional-exact": {
@@ -4171,18 +4298,18 @@
             0,
             0
           ],
-          "time_ns": 5544238
+          "time_ns": 5644598
         },
         "intra": {
           "bytes": 28,
           "mode": 6,
-          "sha256": "ac57cef0f0273c23d185b15c8e383b870800cde31321e7a0dd269515412e601d",
+          "sha256": "ea426434488223935808eb3422b08017bdbec56d54fd682afd261e07320df261",
           "sse": [
-            319889,
+            318391,
             0,
             0
           ],
-          "time_ns": 4731561
+          "time_ns": 4363214
         }
       },
       "size": [
@@ -4194,6 +4321,7 @@
     {
       "format": "i420",
       "index": 126,
+      "local_sse_matches_decode": true,
       "plane": "U",
       "results": {
         "directional-exact": {
@@ -4205,7 +4333,7 @@
             8806,
             0
           ],
-          "time_ns": 5397012
+          "time_ns": 5349726
         },
         "intra": {
           "bytes": 24,
@@ -4216,7 +4344,7 @@
             8806,
             0
           ],
-          "time_ns": 5540048
+          "time_ns": 5366558
         }
       },
       "size": [
@@ -4228,6 +4356,7 @@
     {
       "format": "i420",
       "index": 127,
+      "local_sse_matches_decode": true,
       "plane": "V",
       "results": {
         "directional-exact": {
@@ -4239,7 +4368,7 @@
             0,
             3718
           ],
-          "time_ns": 5423552
+          "time_ns": 5027617
         },
         "intra": {
           "bytes": 25,
@@ -4250,7 +4379,7 @@
             0,
             3718
           ],
-          "time_ns": 5765008
+          "time_ns": 5520838
         }
       },
       "size": [
@@ -4262,6 +4391,7 @@
     {
       "format": "i444",
       "index": 128,
+      "local_sse_matches_decode": true,
       "plane": "Y",
       "results": {
         "directional-exact": {
@@ -4273,7 +4403,7 @@
             0,
             0
           ],
-          "time_ns": 680676
+          "time_ns": 614048
         },
         "intra": {
           "bytes": 22,
@@ -4284,7 +4414,7 @@
             0,
             0
           ],
-          "time_ns": 573190
+          "time_ns": 1232774
         }
       },
       "size": [
@@ -4296,6 +4426,7 @@
     {
       "format": "i444",
       "index": 129,
+      "local_sse_matches_decode": true,
       "plane": "Y",
       "results": {
         "directional-exact": {
@@ -4307,7 +4438,7 @@
             0,
             0
           ],
-          "time_ns": 737807
+          "time_ns": 738296
         },
         "intra": {
           "bytes": 22,
@@ -4318,7 +4449,7 @@
             0,
             0
           ],
-          "time_ns": 795985
+          "time_ns": 1305129
         }
       },
       "size": [
@@ -4330,6 +4461,7 @@
     {
       "format": "i444",
       "index": 130,
+      "local_sse_matches_decode": true,
       "plane": "Y",
       "results": {
         "directional-exact": {
@@ -4341,18 +4473,18 @@
             0,
             0
           ],
-          "time_ns": 685705
+          "time_ns": 574866
         },
         "intra": {
           "bytes": 22,
-          "mode": 0,
-          "sha256": "d93f3377cbfb1f114b623fb83839dcc1a73aff3c177891b716b480ad78c35d77",
+          "mode": 6,
+          "sha256": "055a55ed421f0fb3efbe38ff71145b3a0e4b8a7345b693f66ded3aaeb8d1878f",
           "sse": [
-            249944,
+            245176,
             0,
             0
           ],
-          "time_ns": 703934
+          "time_ns": 1317422
         }
       },
       "size": [
@@ -4364,6 +4496,7 @@
     {
       "format": "i444",
       "index": 131,
+      "local_sse_matches_decode": true,
       "plane": "Y",
       "results": {
         "directional-exact": {
@@ -4375,18 +4508,18 @@
             0,
             0
           ],
-          "time_ns": 633254
+          "time_ns": 642054
         },
         "intra": {
           "bytes": 25,
-          "mode": 0,
-          "sha256": "12ba170d4c7fbd700d18cec44d938ea5379295731ec38e652bd3c10514867d84",
+          "mode": 6,
+          "sha256": "c7b4aa2d2c985f3ff50a9aca272bccfab3658b2faf1406c2d2302b283ef90dba",
           "sse": [
-            39328,
+            37760,
             0,
             0
           ],
-          "time_ns": 680188
+          "time_ns": 1265181
         }
       },
       "size": [
@@ -4398,6 +4531,7 @@
     {
       "format": "i444",
       "index": 132,
+      "local_sse_matches_decode": true,
       "plane": "Y",
       "results": {
         "directional-exact": {
@@ -4409,7 +4543,7 @@
             0,
             0
           ],
-          "time_ns": 832093
+          "time_ns": 589044
         },
         "intra": {
           "bytes": 22,
@@ -4420,7 +4554,7 @@
             0,
             0
           ],
-          "time_ns": 669153
+          "time_ns": 1346615
         }
       },
       "size": [
@@ -4432,6 +4566,7 @@
     {
       "format": "i444",
       "index": 133,
+      "local_sse_matches_decode": true,
       "plane": "Y",
       "results": {
         "directional-exact": {
@@ -4443,18 +4578,18 @@
             0,
             0
           ],
-          "time_ns": 608880
+          "time_ns": 562155
         },
         "intra": {
           "bytes": 24,
-          "mode": 0,
-          "sha256": "a30f723d9e6a32e78bf7848eace8c14d03eab80b42b606d08f285052a3633dff",
+          "mode": 5,
+          "sha256": "8d31b541a9e9d788c7947c9cae11a710e4895babae95f3102261f0d19b429a3d",
           "sse": [
-            569088,
+            568252,
             0,
             0
           ],
-          "time_ns": 684658
+          "time_ns": 1712795
         }
       },
       "size": [
@@ -4466,6 +4601,7 @@
     {
       "format": "i444",
       "index": 134,
+      "local_sse_matches_decode": true,
       "plane": "Y",
       "results": {
         "directional-exact": {
@@ -4477,7 +4613,7 @@
             0,
             0
           ],
-          "time_ns": 974431
+          "time_ns": 554961
         },
         "intra": {
           "bytes": 22,
@@ -4488,7 +4624,7 @@
             0,
             0
           ],
-          "time_ns": 661540
+          "time_ns": 1331809
         }
       },
       "size": [
@@ -4500,6 +4636,7 @@
     {
       "format": "i444",
       "index": 135,
+      "local_sse_matches_decode": true,
       "plane": "U",
       "results": {
         "directional-exact": {
@@ -4511,7 +4648,7 @@
             0,
             0
           ],
-          "time_ns": 627177
+          "time_ns": 539317
         },
         "intra": {
           "bytes": 22,
@@ -4522,7 +4659,7 @@
             0,
             0
           ],
-          "time_ns": 678861
+          "time_ns": 1235847
         }
       },
       "size": [
@@ -4534,6 +4671,7 @@
     {
       "format": "i444",
       "index": 136,
+      "local_sse_matches_decode": true,
       "plane": "U",
       "results": {
         "directional-exact": {
@@ -4545,7 +4683,7 @@
             249944,
             0
           ],
-          "time_ns": 719858
+          "time_ns": 599311
         },
         "intra": {
           "bytes": 22,
@@ -4556,7 +4694,7 @@
             249944,
             0
           ],
-          "time_ns": 685286
+          "time_ns": 1645119
         }
       },
       "size": [
@@ -4568,6 +4706,7 @@
     {
       "format": "i444",
       "index": 137,
+      "local_sse_matches_decode": true,
       "plane": "U",
       "results": {
         "directional-exact": {
@@ -4579,7 +4718,7 @@
             249944,
             0
           ],
-          "time_ns": 635419
+          "time_ns": 648130
         },
         "intra": {
           "bytes": 22,
@@ -4590,7 +4729,7 @@
             249944,
             0
           ],
-          "time_ns": 643451
+          "time_ns": 1291860
         }
       },
       "size": [
@@ -4602,6 +4741,7 @@
     {
       "format": "i444",
       "index": 138,
+      "local_sse_matches_decode": true,
       "plane": "U",
       "results": {
         "directional-exact": {
@@ -4613,7 +4753,7 @@
             39328,
             0
           ],
-          "time_ns": 868551
+          "time_ns": 697717
         },
         "intra": {
           "bytes": 25,
@@ -4624,7 +4764,7 @@
             39328,
             0
           ],
-          "time_ns": 804925
+          "time_ns": 1386495
         }
       },
       "size": [
@@ -4636,6 +4776,7 @@
     {
       "format": "i444",
       "index": 139,
+      "local_sse_matches_decode": true,
       "plane": "U",
       "results": {
         "directional-exact": {
@@ -4647,7 +4788,7 @@
             589824,
             0
           ],
-          "time_ns": 811909
+          "time_ns": 695203
         },
         "intra": {
           "bytes": 22,
@@ -4658,7 +4799,7 @@
             589824,
             0
           ],
-          "time_ns": 786347
+          "time_ns": 1391175
         }
       },
       "size": [
@@ -4670,6 +4811,7 @@
     {
       "format": "i444",
       "index": 140,
+      "local_sse_matches_decode": true,
       "plane": "U",
       "results": {
         "directional-exact": {
@@ -4681,7 +4823,7 @@
             569088,
             0
           ],
-          "time_ns": 796404
+          "time_ns": 856746
         },
         "intra": {
           "bytes": 25,
@@ -4692,7 +4834,7 @@
             569088,
             0
           ],
-          "time_ns": 764277
+          "time_ns": 1698547
         }
       },
       "size": [
@@ -4704,6 +4846,7 @@
     {
       "format": "i444",
       "index": 141,
+      "local_sse_matches_decode": true,
       "plane": "U",
       "results": {
         "directional-exact": {
@@ -4715,7 +4858,7 @@
             370560,
             0
           ],
-          "time_ns": 889224
+          "time_ns": 878048
         },
         "intra": {
           "bytes": 22,
@@ -4726,7 +4869,7 @@
             370560,
             0
           ],
-          "time_ns": 840404
+          "time_ns": 1480432
         }
       },
       "size": [
@@ -4738,6 +4881,7 @@
     {
       "format": "i444",
       "index": 142,
+      "local_sse_matches_decode": true,
       "plane": "V",
       "results": {
         "directional-exact": {
@@ -4749,7 +4893,7 @@
             0,
             0
           ],
-          "time_ns": 756874
+          "time_ns": 531564
         },
         "intra": {
           "bytes": 22,
@@ -4760,7 +4904,7 @@
             0,
             0
           ],
-          "time_ns": 642613
+          "time_ns": 1263225
         }
       },
       "size": [
@@ -4772,6 +4916,7 @@
     {
       "format": "i444",
       "index": 143,
+      "local_sse_matches_decode": true,
       "plane": "V",
       "results": {
         "directional-exact": {
@@ -4783,7 +4928,7 @@
             0,
             249944
           ],
-          "time_ns": 775381
+          "time_ns": 550421
         },
         "intra": {
           "bytes": 23,
@@ -4794,7 +4939,7 @@
             0,
             249944
           ],
-          "time_ns": 883846
+          "time_ns": 1305828
         }
       },
       "size": [
@@ -4806,6 +4951,7 @@
     {
       "format": "i444",
       "index": 144,
+      "local_sse_matches_decode": true,
       "plane": "V",
       "results": {
         "directional-exact": {
@@ -4817,7 +4963,7 @@
             0,
             249944
           ],
-          "time_ns": 674390
+          "time_ns": 571794
         },
         "intra": {
           "bytes": 23,
@@ -4828,7 +4974,7 @@
             0,
             249944
           ],
-          "time_ns": 690664
+          "time_ns": 1318400
         }
       },
       "size": [
@@ -4840,6 +4986,7 @@
     {
       "format": "i444",
       "index": 145,
+      "local_sse_matches_decode": true,
       "plane": "V",
       "results": {
         "directional-exact": {
@@ -4851,7 +4998,7 @@
             0,
             39328
           ],
-          "time_ns": 625013
+          "time_ns": 652670
         },
         "intra": {
           "bytes": 25,
@@ -4862,7 +5009,7 @@
             0,
             39328
           ],
-          "time_ns": 718810
+          "time_ns": 1603633
         }
       },
       "size": [
@@ -4874,6 +5021,7 @@
     {
       "format": "i444",
       "index": 146,
+      "local_sse_matches_decode": true,
       "plane": "V",
       "results": {
         "directional-exact": {
@@ -4885,7 +5033,7 @@
             0,
             589824
           ],
-          "time_ns": 645476
+          "time_ns": 572352
         },
         "intra": {
           "bytes": 22,
@@ -4896,7 +5044,7 @@
             0,
             589824
           ],
-          "time_ns": 713642
+          "time_ns": 1303663
         }
       },
       "size": [
@@ -4908,6 +5056,7 @@
     {
       "format": "i444",
       "index": 147,
+      "local_sse_matches_decode": true,
       "plane": "V",
       "results": {
         "directional-exact": {
@@ -4919,7 +5068,7 @@
             0,
             569088
           ],
-          "time_ns": 642823
+          "time_ns": 634441
         },
         "intra": {
           "bytes": 25,
@@ -4930,7 +5079,7 @@
             0,
             569088
           ],
-          "time_ns": 795985
+          "time_ns": 1598185
         }
       },
       "size": [
@@ -4942,6 +5091,7 @@
     {
       "format": "i444",
       "index": 148,
+      "local_sse_matches_decode": true,
       "plane": "V",
       "results": {
         "directional-exact": {
@@ -4953,7 +5103,7 @@
             0,
             370560
           ],
-          "time_ns": 665730
+          "time_ns": 556498
         },
         "intra": {
           "bytes": 22,
@@ -4964,7 +5114,7 @@
             0,
             370560
           ],
-          "time_ns": 678301
+          "time_ns": 1306456
         }
       },
       "size": [
@@ -4976,6 +5126,7 @@
     {
       "format": "i444",
       "index": 149,
+      "local_sse_matches_decode": true,
       "plane": "Y",
       "results": {
         "directional-exact": {
@@ -4987,7 +5138,7 @@
             0,
             0
           ],
-          "time_ns": 690245
+          "time_ns": 857166
         },
         "intra": {
           "bytes": 24,
@@ -4998,7 +5149,7 @@
             0,
             0
           ],
-          "time_ns": 696460
+          "time_ns": 1429448
         }
       },
       "size": [
@@ -5010,6 +5161,7 @@
     {
       "format": "i444",
       "index": 150,
+      "local_sse_matches_decode": true,
       "plane": "U",
       "results": {
         "directional-exact": {
@@ -5021,7 +5173,7 @@
             15129,
             0
           ],
-          "time_ns": 938532
+          "time_ns": 621521
         },
         "intra": {
           "bytes": 25,
@@ -5032,7 +5184,7 @@
             15129,
             0
           ],
-          "time_ns": 819382
+          "time_ns": 1358698
         }
       },
       "size": [
@@ -5044,6 +5196,7 @@
     {
       "format": "i444",
       "index": 151,
+      "local_sse_matches_decode": true,
       "plane": "V",
       "results": {
         "directional-exact": {
@@ -5055,7 +5208,7 @@
             0,
             3458
           ],
-          "time_ns": 858005
+          "time_ns": 874137
         },
         "intra": {
           "bytes": 25,
@@ -5066,7 +5219,7 @@
             0,
             3458
           ],
-          "time_ns": 695832
+          "time_ns": 1323987
         }
       },
       "size": [
@@ -5078,6 +5231,7 @@
     {
       "format": "i444",
       "index": 152,
+      "local_sse_matches_decode": true,
       "plane": "Y",
       "results": {
         "directional-exact": {
@@ -5089,7 +5243,7 @@
             0,
             0
           ],
-          "time_ns": 4431731
+          "time_ns": 4356788
         },
         "intra": {
           "bytes": 22,
@@ -5100,7 +5254,7 @@
             0,
             0
           ],
-          "time_ns": 4853295
+          "time_ns": 5016651
         }
       },
       "size": [
@@ -5112,6 +5266,7 @@
     {
       "format": "i444",
       "index": 153,
+      "local_sse_matches_decode": true,
       "plane": "Y",
       "results": {
         "directional-exact": {
@@ -5123,7 +5278,7 @@
             0,
             0
           ],
-          "time_ns": 4658157
+          "time_ns": 4356719
         },
         "intra": {
           "bytes": 23,
@@ -5134,7 +5289,7 @@
             0,
             0
           ],
-          "time_ns": 4781428
+          "time_ns": 5166113
         }
       },
       "size": [
@@ -5146,6 +5301,7 @@
     {
       "format": "i444",
       "index": 154,
+      "local_sse_matches_decode": true,
       "plane": "Y",
       "results": {
         "directional-exact": {
@@ -5157,7 +5313,7 @@
             0,
             0
           ],
-          "time_ns": 4601306
+          "time_ns": 4904626
         },
         "intra": {
           "bytes": 29,
@@ -5168,7 +5324,7 @@
             0,
             0
           ],
-          "time_ns": 3454437
+          "time_ns": 3489984
         }
       },
       "size": [
@@ -5180,6 +5336,7 @@
     {
       "format": "i444",
       "index": 155,
+      "local_sse_matches_decode": true,
       "plane": "Y",
       "results": {
         "directional-exact": {
@@ -5191,7 +5348,7 @@
             0,
             0
           ],
-          "time_ns": 4538938
+          "time_ns": 4380675
         },
         "intra": {
           "bytes": 29,
@@ -5202,7 +5359,7 @@
             0,
             0
           ],
-          "time_ns": 3201890
+          "time_ns": 3851065
         }
       },
       "size": [
@@ -5214,6 +5371,7 @@
     {
       "format": "i444",
       "index": 156,
+      "local_sse_matches_decode": true,
       "plane": "Y",
       "results": {
         "directional-exact": {
@@ -5225,7 +5383,7 @@
             0,
             0
           ],
-          "time_ns": 4614646
+          "time_ns": 4627843
         },
         "intra": {
           "bytes": 22,
@@ -5236,7 +5394,7 @@
             0,
             0
           ],
-          "time_ns": 5194610
+          "time_ns": 5291130
         }
       },
       "size": [
@@ -5248,6 +5406,7 @@
     {
       "format": "i444",
       "index": 157,
+      "local_sse_matches_decode": true,
       "plane": "Y",
       "results": {
         "directional-exact": {
@@ -5259,7 +5418,7 @@
             0,
             0
           ],
-          "time_ns": 4505903
+          "time_ns": 4271652
         },
         "intra": {
           "bytes": 25,
@@ -5270,7 +5429,7 @@
             0,
             0
           ],
-          "time_ns": 3361268
+          "time_ns": 3334657
         }
       },
       "size": [
@@ -5282,6 +5441,7 @@
     {
       "format": "i444",
       "index": 158,
+      "local_sse_matches_decode": true,
       "plane": "Y",
       "results": {
         "directional-exact": {
@@ -5293,7 +5453,7 @@
             0,
             0
           ],
-          "time_ns": 4434733
+          "time_ns": 4683787
         },
         "intra": {
           "bytes": 23,
@@ -5304,7 +5464,7 @@
             0,
             0
           ],
-          "time_ns": 4632386
+          "time_ns": 4869077
         }
       },
       "size": [
@@ -5316,6 +5476,7 @@
     {
       "format": "i444",
       "index": 159,
+      "local_sse_matches_decode": true,
       "plane": "U",
       "results": {
         "directional-exact": {
@@ -5327,7 +5488,7 @@
             0,
             0
           ],
-          "time_ns": 4451635
+          "time_ns": 4318027
         },
         "intra": {
           "bytes": 22,
@@ -5338,7 +5499,7 @@
             0,
             0
           ],
-          "time_ns": 5084889
+          "time_ns": 5022449
         }
       },
       "size": [
@@ -5350,6 +5511,7 @@
     {
       "format": "i444",
       "index": 160,
+      "local_sse_matches_decode": true,
       "plane": "U",
       "results": {
         "directional-exact": {
@@ -5361,7 +5523,7 @@
             499888,
             0
           ],
-          "time_ns": 4296866
+          "time_ns": 4592224
         },
         "intra": {
           "bytes": 22,
@@ -5372,7 +5534,7 @@
             499888,
             0
           ],
-          "time_ns": 5120998
+          "time_ns": 4615273
         }
       },
       "size": [
@@ -5384,6 +5546,7 @@
     {
       "format": "i444",
       "index": 161,
+      "local_sse_matches_decode": true,
       "plane": "U",
       "results": {
         "directional-exact": {
@@ -5395,7 +5558,7 @@
             441672,
             0
           ],
-          "time_ns": 4476150
+          "time_ns": 4579793
         },
         "intra": {
           "bytes": 22,
@@ -5406,7 +5569,7 @@
             441672,
             0
           ],
-          "time_ns": 5416219
+          "time_ns": 4979286
         }
       },
       "size": [
@@ -5418,6 +5581,7 @@
     {
       "format": "i444",
       "index": 162,
+      "local_sse_matches_decode": true,
       "plane": "U",
       "results": {
         "directional-exact": {
@@ -5429,7 +5593,7 @@
             244544,
             0
           ],
-          "time_ns": 4412524
+          "time_ns": 4319703
         },
         "intra": {
           "bytes": 25,
@@ -5440,7 +5604,7 @@
             244544,
             0
           ],
-          "time_ns": 4809714
+          "time_ns": 4864467
         }
       },
       "size": [
@@ -5452,6 +5616,7 @@
     {
       "format": "i444",
       "index": 163,
+      "local_sse_matches_decode": true,
       "plane": "U",
       "results": {
         "directional-exact": {
@@ -5463,7 +5628,7 @@
             1179648,
             0
           ],
-          "time_ns": 4800285
+          "time_ns": 4656269
         },
         "intra": {
           "bytes": 22,
@@ -5474,7 +5639,7 @@
             1179648,
             0
           ],
-          "time_ns": 5270110
+          "time_ns": 4440738
         }
       },
       "size": [
@@ -5486,6 +5651,7 @@
     {
       "format": "i444",
       "index": 164,
+      "local_sse_matches_decode": true,
       "plane": "U",
       "results": {
         "directional-exact": {
@@ -5497,7 +5663,7 @@
             1138176,
             0
           ],
-          "time_ns": 4711656
+          "time_ns": 4227372
         },
         "intra": {
           "bytes": 25,
@@ -5508,7 +5674,7 @@
             1138176,
             0
           ],
-          "time_ns": 4983131
+          "time_ns": 5206272
         }
       },
       "size": [
@@ -5520,6 +5686,7 @@
     {
       "format": "i444",
       "index": 165,
+      "local_sse_matches_decode": true,
       "plane": "U",
       "results": {
         "directional-exact": {
@@ -5531,7 +5698,7 @@
             720896,
             0
           ],
-          "time_ns": 4370479
+          "time_ns": 4286039
         },
         "intra": {
           "bytes": 22,
@@ -5542,7 +5709,7 @@
             720896,
             0
           ],
-          "time_ns": 5317113
+          "time_ns": 5108215
         }
       },
       "size": [
@@ -5554,6 +5721,7 @@
     {
       "format": "i444",
       "index": 166,
+      "local_sse_matches_decode": true,
       "plane": "V",
       "results": {
         "directional-exact": {
@@ -5565,7 +5733,7 @@
             0,
             0
           ],
-          "time_ns": 4545642
+          "time_ns": 4671565
         },
         "intra": {
           "bytes": 22,
@@ -5576,7 +5744,7 @@
             0,
             0
           ],
-          "time_ns": 4644119
+          "time_ns": 4790085
         }
       },
       "size": [
@@ -5588,6 +5756,7 @@
     {
       "format": "i444",
       "index": 167,
+      "local_sse_matches_decode": true,
       "plane": "V",
       "results": {
         "directional-exact": {
@@ -5599,7 +5768,7 @@
             0,
             499888
           ],
-          "time_ns": 4680018
+          "time_ns": 4688816
         },
         "intra": {
           "bytes": 22,
@@ -5610,7 +5779,7 @@
             0,
             499888
           ],
-          "time_ns": 4806990
+          "time_ns": 4862581
         }
       },
       "size": [
@@ -5622,6 +5791,7 @@
     {
       "format": "i444",
       "index": 168,
+      "local_sse_matches_decode": true,
       "plane": "V",
       "results": {
         "directional-exact": {
@@ -5633,7 +5803,7 @@
             0,
             441672
           ],
-          "time_ns": 4745390
+          "time_ns": 4295468
         },
         "intra": {
           "bytes": 22,
@@ -5644,7 +5814,7 @@
             0,
             441672
           ],
-          "time_ns": 4787574
+          "time_ns": 5192233
         }
       },
       "size": [
@@ -5656,6 +5826,7 @@
     {
       "format": "i444",
       "index": 169,
+      "local_sse_matches_decode": true,
       "plane": "V",
       "results": {
         "directional-exact": {
@@ -5667,7 +5838,7 @@
             0,
             244544
           ],
-          "time_ns": 4724786
+          "time_ns": 4463786
         },
         "intra": {
           "bytes": 25,
@@ -5678,7 +5849,7 @@
             0,
             244544
           ],
-          "time_ns": 4652360
+          "time_ns": 4565405
         }
       },
       "size": [
@@ -5690,6 +5861,7 @@
     {
       "format": "i444",
       "index": 170,
+      "local_sse_matches_decode": true,
       "plane": "V",
       "results": {
         "directional-exact": {
@@ -5701,7 +5873,7 @@
             0,
             1179648
           ],
-          "time_ns": 4740222
+          "time_ns": 4320401
         },
         "intra": {
           "bytes": 22,
@@ -5712,7 +5884,7 @@
             0,
             1179648
           ],
-          "time_ns": 5011556
+          "time_ns": 4454148
         }
       },
       "size": [
@@ -5724,6 +5896,7 @@
     {
       "format": "i444",
       "index": 171,
+      "local_sse_matches_decode": true,
       "plane": "V",
       "results": {
         "directional-exact": {
@@ -5735,7 +5908,7 @@
             0,
             1138176
           ],
-          "time_ns": 4595230
+          "time_ns": 4335697
         },
         "intra": {
           "bytes": 25,
@@ -5746,7 +5919,7 @@
             0,
             1138176
           ],
-          "time_ns": 5058070
+          "time_ns": 4910772
         }
       },
       "size": [
@@ -5758,6 +5931,7 @@
     {
       "format": "i444",
       "index": 172,
+      "local_sse_matches_decode": true,
       "plane": "V",
       "results": {
         "directional-exact": {
@@ -5769,7 +5943,7 @@
             0,
             720896
           ],
-          "time_ns": 4444931
+          "time_ns": 4234496
         },
         "intra": {
           "bytes": 22,
@@ -5780,7 +5954,7 @@
             0,
             720896
           ],
-          "time_ns": 4690983
+          "time_ns": 4782752
         }
       },
       "size": [
@@ -5792,6 +5966,7 @@
     {
       "format": "i444",
       "index": 173,
+      "local_sse_matches_decode": true,
       "plane": "Y",
       "results": {
         "directional-exact": {
@@ -5803,7 +5978,7 @@
             0,
             0
           ],
-          "time_ns": 4526994
+          "time_ns": 4806150
         },
         "intra": {
           "bytes": 26,
@@ -5814,7 +5989,7 @@
             0,
             0
           ],
-          "time_ns": 3459675
+          "time_ns": 3846246
         }
       },
       "size": [
@@ -5826,6 +6001,7 @@
     {
       "format": "i444",
       "index": 174,
+      "local_sse_matches_decode": true,
       "plane": "U",
       "results": {
         "directional-exact": {
@@ -5837,7 +6013,7 @@
             23499,
             0
           ],
-          "time_ns": 4883327
+          "time_ns": 4832270
         },
         "intra": {
           "bytes": 25,
@@ -5848,7 +6024,7 @@
             23499,
             0
           ],
-          "time_ns": 5220592
+          "time_ns": 4659691
         }
       },
       "size": [
@@ -5860,6 +6036,7 @@
     {
       "format": "i444",
       "index": 175,
+      "local_sse_matches_decode": true,
       "plane": "V",
       "results": {
         "directional-exact": {
@@ -5871,7 +6048,7 @@
             0,
             5637
           ],
-          "time_ns": 4544036
+          "time_ns": 4357626
         },
         "intra": {
           "bytes": 25,
@@ -5882,7 +6059,7 @@
             0,
             5637
           ],
-          "time_ns": 5334783
+          "time_ns": 5127281
         }
       },
       "size": [
@@ -5894,6 +6071,7 @@
     {
       "format": "i444",
       "index": 176,
+      "local_sse_matches_decode": true,
       "plane": "Y",
       "results": {
         "directional-exact": {
@@ -5905,7 +6083,7 @@
             0,
             0
           ],
-          "time_ns": 4673034
+          "time_ns": 4648866
         },
         "intra": {
           "bytes": 22,
@@ -5916,7 +6094,7 @@
             0,
             0
           ],
-          "time_ns": 4552417
+          "time_ns": 4618625
         }
       },
       "size": [
@@ -5928,6 +6106,7 @@
     {
       "format": "i444",
       "index": 177,
+      "local_sse_matches_decode": true,
       "plane": "Y",
       "results": {
         "directional-exact": {
@@ -5939,7 +6118,7 @@
             0,
             0
           ],
-          "time_ns": 4343311
+          "time_ns": 4819071
         },
         "intra": {
           "bytes": 29,
@@ -5950,7 +6129,7 @@
             0,
             0
           ],
-          "time_ns": 4802171
+          "time_ns": 4950722
         }
       },
       "size": [
@@ -5962,6 +6141,7 @@
     {
       "format": "i444",
       "index": 178,
+      "local_sse_matches_decode": true,
       "plane": "Y",
       "results": {
         "directional-exact": {
@@ -5973,7 +6153,7 @@
             0,
             0
           ],
-          "time_ns": 4990463
+          "time_ns": 4378509
         },
         "intra": {
           "bytes": 23,
@@ -5984,7 +6164,7 @@
             0,
             0
           ],
-          "time_ns": 3401427
+          "time_ns": 3200002
         }
       },
       "size": [
@@ -5996,6 +6176,7 @@
     {
       "format": "i444",
       "index": 179,
+      "local_sse_matches_decode": true,
       "plane": "Y",
       "results": {
         "directional-exact": {
@@ -6007,7 +6188,7 @@
             0,
             0
           ],
-          "time_ns": 4620373
+          "time_ns": 4458548
         },
         "intra": {
           "bytes": 28,
@@ -6018,7 +6199,7 @@
             0,
             0
           ],
-          "time_ns": 5118902
+          "time_ns": 5172887
         }
       },
       "size": [
@@ -6030,6 +6211,7 @@
     {
       "format": "i444",
       "index": 180,
+      "local_sse_matches_decode": true,
       "plane": "Y",
       "results": {
         "directional-exact": {
@@ -6041,7 +6223,7 @@
             0,
             0
           ],
-          "time_ns": 4489630
+          "time_ns": 4367823
         },
         "intra": {
           "bytes": 22,
@@ -6052,7 +6234,7 @@
             0,
             0
           ],
-          "time_ns": 6232179
+          "time_ns": 5016721
         }
       },
       "size": [
@@ -6064,6 +6246,7 @@
     {
       "format": "i444",
       "index": 181,
+      "local_sse_matches_decode": true,
       "plane": "Y",
       "results": {
         "directional-exact": {
@@ -6075,7 +6258,7 @@
             0,
             0
           ],
-          "time_ns": 4507928
+          "time_ns": 4659203
         },
         "intra": {
           "bytes": 25,
@@ -6086,7 +6269,7 @@
             0,
             0
           ],
-          "time_ns": 3697136
+          "time_ns": 3858678
         }
       },
       "size": [
@@ -6098,6 +6281,7 @@
     {
       "format": "i444",
       "index": 182,
+      "local_sse_matches_decode": true,
       "plane": "Y",
       "results": {
         "directional-exact": {
@@ -6109,7 +6293,7 @@
             0,
             0
           ],
-          "time_ns": 4396041
+          "time_ns": 4545989
         },
         "intra": {
           "bytes": 22,
@@ -6120,7 +6304,7 @@
             0,
             0
           ],
-          "time_ns": 4854831
+          "time_ns": 4965807
         }
       },
       "size": [
@@ -6132,6 +6316,7 @@
     {
       "format": "i444",
       "index": 183,
+      "local_sse_matches_decode": true,
       "plane": "U",
       "results": {
         "directional-exact": {
@@ -6143,7 +6328,7 @@
             0,
             0
           ],
-          "time_ns": 5060165
+          "time_ns": 4752720
         },
         "intra": {
           "bytes": 22,
@@ -6154,7 +6339,7 @@
             0,
             0
           ],
-          "time_ns": 4901486
+          "time_ns": 4863559
         }
       },
       "size": [
@@ -6166,6 +6351,7 @@
     {
       "format": "i444",
       "index": 184,
+      "local_sse_matches_decode": true,
       "plane": "U",
       "results": {
         "directional-exact": {
@@ -6177,7 +6363,7 @@
             441672,
             0
           ],
-          "time_ns": 4327876
+          "time_ns": 4573647
         },
         "intra": {
           "bytes": 22,
@@ -6188,7 +6374,7 @@
             441672,
             0
           ],
-          "time_ns": 5059468
+          "time_ns": 4911470
         }
       },
       "size": [
@@ -6200,6 +6386,7 @@
     {
       "format": "i444",
       "index": 185,
+      "local_sse_matches_decode": true,
       "plane": "U",
       "results": {
         "directional-exact": {
@@ -6211,7 +6398,7 @@
             499888,
             0
           ],
-          "time_ns": 4363775
+          "time_ns": 5081954
         },
         "intra": {
           "bytes": 22,
@@ -6222,7 +6409,7 @@
             499888,
             0
           ],
-          "time_ns": 4893873
+          "time_ns": 5049128
         }
       },
       "size": [
@@ -6234,6 +6421,7 @@
     {
       "format": "i444",
       "index": 186,
+      "local_sse_matches_decode": true,
       "plane": "U",
       "results": {
         "directional-exact": {
@@ -6245,7 +6433,7 @@
             152384,
             0
           ],
-          "time_ns": 4640068
+          "time_ns": 4298540
         },
         "intra": {
           "bytes": 25,
@@ -6256,7 +6444,7 @@
             152384,
             0
           ],
-          "time_ns": 4575116
+          "time_ns": 4913914
         }
       },
       "size": [
@@ -6268,6 +6456,7 @@
     {
       "format": "i444",
       "index": 187,
+      "local_sse_matches_decode": true,
       "plane": "U",
       "results": {
         "directional-exact": {
@@ -6279,7 +6468,7 @@
             1179648,
             0
           ],
-          "time_ns": 4430404
+          "time_ns": 4431728
         },
         "intra": {
           "bytes": 22,
@@ -6290,7 +6479,7 @@
             1179648,
             0
           ],
-          "time_ns": 4617300
+          "time_ns": 5074620
         }
       },
       "size": [
@@ -6302,6 +6491,7 @@
     {
       "format": "i444",
       "index": 188,
+      "local_sse_matches_decode": true,
       "plane": "U",
       "results": {
         "directional-exact": {
@@ -6313,7 +6503,7 @@
             1138176,
             0
           ],
-          "time_ns": 4594951
+          "time_ns": 4370757
         },
         "intra": {
           "bytes": 25,
@@ -6324,7 +6514,7 @@
             1138176,
             0
           ],
-          "time_ns": 5297628
+          "time_ns": 5235535
         }
       },
       "size": [
@@ -6336,6 +6526,7 @@
     {
       "format": "i444",
       "index": 189,
+      "local_sse_matches_decode": true,
       "plane": "U",
       "results": {
         "directional-exact": {
@@ -6347,7 +6538,7 @@
             704768,
             0
           ],
-          "time_ns": 4651802
+          "time_ns": 4380954
         },
         "intra": {
           "bytes": 22,
@@ -6358,7 +6549,7 @@
             704768,
             0
           ],
-          "time_ns": 4982641
+          "time_ns": 5161084
         }
       },
       "size": [
@@ -6370,6 +6561,7 @@
     {
       "format": "i444",
       "index": 190,
+      "local_sse_matches_decode": true,
       "plane": "V",
       "results": {
         "directional-exact": {
@@ -6381,7 +6573,7 @@
             0,
             0
           ],
-          "time_ns": 5154102
+          "time_ns": 4496192
         },
         "intra": {
           "bytes": 22,
@@ -6392,7 +6584,7 @@
             0,
             0
           ],
-          "time_ns": 5057092
+          "time_ns": 4944785
         }
       },
       "size": [
@@ -6404,6 +6596,7 @@
     {
       "format": "i444",
       "index": 191,
+      "local_sse_matches_decode": true,
       "plane": "V",
       "results": {
         "directional-exact": {
@@ -6415,7 +6608,7 @@
             0,
             441672
           ],
-          "time_ns": 4694824
+          "time_ns": 4332134
         },
         "intra": {
           "bytes": 22,
@@ -6426,7 +6619,7 @@
             0,
             441672
           ],
-          "time_ns": 5112547
+          "time_ns": 4594739
         }
       },
       "size": [
@@ -6438,6 +6631,7 @@
     {
       "format": "i444",
       "index": 192,
+      "local_sse_matches_decode": true,
       "plane": "V",
       "results": {
         "directional-exact": {
@@ -6449,7 +6643,7 @@
             0,
             499888
           ],
-          "time_ns": 4474264
+          "time_ns": 4418459
         },
         "intra": {
           "bytes": 22,
@@ -6460,7 +6654,7 @@
             0,
             499888
           ],
-          "time_ns": 5187487
+          "time_ns": 4745107
         }
       },
       "size": [
@@ -6472,6 +6666,7 @@
     {
       "format": "i444",
       "index": 193,
+      "local_sse_matches_decode": true,
       "plane": "V",
       "results": {
         "directional-exact": {
@@ -6483,7 +6678,7 @@
             0,
             152384
           ],
-          "time_ns": 6081320
+          "time_ns": 4297981
         },
         "intra": {
           "bytes": 25,
@@ -6494,7 +6689,7 @@
             0,
             152384
           ],
-          "time_ns": 5214585
+          "time_ns": 4584053
         }
       },
       "size": [
@@ -6506,6 +6701,7 @@
     {
       "format": "i444",
       "index": 194,
+      "local_sse_matches_decode": true,
       "plane": "V",
       "results": {
         "directional-exact": {
@@ -6517,7 +6713,7 @@
             0,
             1179648
           ],
-          "time_ns": 4325082
+          "time_ns": 4497030
         },
         "intra": {
           "bytes": 22,
@@ -6528,7 +6724,7 @@
             0,
             1179648
           ],
-          "time_ns": 5245247
+          "time_ns": 4623025
         }
       },
       "size": [
@@ -6540,6 +6736,7 @@
     {
       "format": "i444",
       "index": 195,
+      "local_sse_matches_decode": true,
       "plane": "V",
       "results": {
         "directional-exact": {
@@ -6551,7 +6748,7 @@
             0,
             1138176
           ],
-          "time_ns": 4726043
+          "time_ns": 4411405
         },
         "intra": {
           "bytes": 25,
@@ -6562,7 +6759,7 @@
             0,
             1138176
           ],
-          "time_ns": 4709701
+          "time_ns": 5431650
         }
       },
       "size": [
@@ -6574,6 +6771,7 @@
     {
       "format": "i444",
       "index": 196,
+      "local_sse_matches_decode": true,
       "plane": "V",
       "results": {
         "directional-exact": {
@@ -6585,7 +6783,7 @@
             0,
             704768
           ],
-          "time_ns": 4922787
+          "time_ns": 4608079
         },
         "intra": {
           "bytes": 22,
@@ -6596,7 +6794,7 @@
             0,
             704768
           ],
-          "time_ns": 4943880
+          "time_ns": 5078741
         }
       },
       "size": [
@@ -6608,6 +6806,7 @@
     {
       "format": "i444",
       "index": 197,
+      "local_sse_matches_decode": true,
       "plane": "Y",
       "results": {
         "directional-exact": {
@@ -6619,7 +6818,7 @@
             0,
             0
           ],
-          "time_ns": 4666259
+          "time_ns": 4757260
         },
         "intra": {
           "bytes": 26,
@@ -6630,7 +6829,7 @@
             0,
             0
           ],
-          "time_ns": 3915671
+          "time_ns": 4021269
         }
       },
       "size": [
@@ -6642,6 +6841,7 @@
     {
       "format": "i444",
       "index": 198,
+      "local_sse_matches_decode": true,
       "plane": "U",
       "results": {
         "directional-exact": {
@@ -6653,7 +6853,7 @@
             31708,
             0
           ],
-          "time_ns": 4970350
+          "time_ns": 4549272
         },
         "intra": {
           "bytes": 25,
@@ -6664,7 +6864,7 @@
             31708,
             0
           ],
-          "time_ns": 5029925
+          "time_ns": 5128399
         }
       },
       "size": [
@@ -6676,6 +6876,7 @@
     {
       "format": "i444",
       "index": 199,
+      "local_sse_matches_decode": true,
       "plane": "V",
       "results": {
         "directional-exact": {
@@ -6687,7 +6888,7 @@
             0,
             6961
           ],
-          "time_ns": 4677993
+          "time_ns": 4593133
         },
         "intra": {
           "bytes": 25,
@@ -6698,7 +6899,7 @@
             0,
             6961
           ],
-          "time_ns": 4968743
+          "time_ns": 5154170
         }
       },
       "size": [
@@ -6710,6 +6911,7 @@
     {
       "format": "i444",
       "index": 200,
+      "local_sse_matches_decode": true,
       "plane": "Y",
       "results": {
         "directional-exact": {
@@ -6721,7 +6923,7 @@
             0,
             0
           ],
-          "time_ns": 7705278
+          "time_ns": 8427156
         },
         "intra": {
           "bytes": 22,
@@ -6732,7 +6934,7 @@
             0,
             0
           ],
-          "time_ns": 8179921
+          "time_ns": 8729221
         }
       },
       "size": [
@@ -6744,6 +6946,7 @@
     {
       "format": "i444",
       "index": 201,
+      "local_sse_matches_decode": true,
       "plane": "Y",
       "results": {
         "directional-exact": {
@@ -6755,7 +6958,7 @@
             0,
             0
           ],
-          "time_ns": 7947000
+          "time_ns": 7915777
         },
         "intra": {
           "bytes": 30,
@@ -6766,7 +6969,7 @@
             0,
             0
           ],
-          "time_ns": 5560581
+          "time_ns": 5459238
         }
       },
       "size": [
@@ -6778,6 +6981,7 @@
     {
       "format": "i444",
       "index": 202,
+      "local_sse_matches_decode": true,
       "plane": "Y",
       "results": {
         "directional-exact": {
@@ -6789,18 +6993,18 @@
             0,
             0
           ],
-          "time_ns": 8063985
+          "time_ns": 7682995
         },
         "intra": {
-          "bytes": 30,
-          "mode": 8,
-          "sha256": "0cb108ae07e24fa94664534fb6595dc2ea187e1c8fa33abfe2790a831862199e",
+          "bytes": 32,
+          "mode": 6,
+          "sha256": "14d8fb72246b08d629734897891177a4e69d208821eaa851269f011cf8b070e4",
           "sse": [
-            219120,
+            159832,
             0,
             0
           ],
-          "time_ns": 5753623
+          "time_ns": 5761233
         }
       },
       "size": [
@@ -6812,6 +7016,7 @@
     {
       "format": "i444",
       "index": 203,
+      "local_sse_matches_decode": true,
       "plane": "Y",
       "results": {
         "directional-exact": {
@@ -6823,18 +7028,18 @@
             0,
             0
           ],
-          "time_ns": 8204715
+          "time_ns": 7694588
         },
         "intra": {
           "bytes": 34,
           "mode": 5,
-          "sha256": "3517b358cf12791d7a4db3dd85c573f3a09ad9f6b9d3568335a22ee2c4ff8eb9",
+          "sha256": "09329aef039a81e67f5a2c4add8e54e1f7b28c3d8c64bc066c7b167c7789f5d8",
           "sse": [
-            122827,
+            145794,
             0,
             0
           ],
-          "time_ns": 5566308
+          "time_ns": 5649486
         }
       },
       "size": [
@@ -6846,6 +7051,7 @@
     {
       "format": "i444",
       "index": 204,
+      "local_sse_matches_decode": true,
       "plane": "Y",
       "results": {
         "directional-exact": {
@@ -6857,7 +7063,7 @@
             0,
             0
           ],
-          "time_ns": 8355992
+          "time_ns": 7673008
         },
         "intra": {
           "bytes": 36,
@@ -6868,7 +7074,7 @@
             0,
             0
           ],
-          "time_ns": 8415637
+          "time_ns": 8485125
         }
       },
       "size": [
@@ -6880,6 +7086,7 @@
     {
       "format": "i444",
       "index": 205,
+      "local_sse_matches_decode": true,
       "plane": "Y",
       "results": {
         "directional-exact": {
@@ -6891,7 +7098,7 @@
             0,
             0
           ],
-          "time_ns": 8449930
+          "time_ns": 8019631
         },
         "intra": {
           "bytes": 25,
@@ -6902,7 +7109,7 @@
             0,
             0
           ],
-          "time_ns": 8672724
+          "time_ns": 8887204
         }
       },
       "size": [
@@ -6914,6 +7121,7 @@
     {
       "format": "i444",
       "index": 206,
+      "local_sse_matches_decode": true,
       "plane": "Y",
       "results": {
         "directional-exact": {
@@ -6925,7 +7133,7 @@
             0,
             0
           ],
-          "time_ns": 7654992
+          "time_ns": 7870170
         },
         "intra": {
           "bytes": 26,
@@ -6936,7 +7144,7 @@
             0,
             0
           ],
-          "time_ns": 8305287
+          "time_ns": 7937567
         }
       },
       "size": [
@@ -6948,6 +7156,7 @@
     {
       "format": "i444",
       "index": 207,
+      "local_sse_matches_decode": true,
       "plane": "U",
       "results": {
         "directional-exact": {
@@ -6959,7 +7168,7 @@
             0,
             0
           ],
-          "time_ns": 8329731
+          "time_ns": 8705196
         },
         "intra": {
           "bytes": 22,
@@ -6970,7 +7179,7 @@
             0,
             0
           ],
-          "time_ns": 8913887
+          "time_ns": 8502376
         }
       },
       "size": [
@@ -6982,6 +7191,7 @@
     {
       "format": "i444",
       "index": 208,
+      "local_sse_matches_decode": true,
       "plane": "U",
       "results": {
         "directional-exact": {
@@ -6993,7 +7203,7 @@
             883344,
             0
           ],
-          "time_ns": 7782174
+          "time_ns": 7879948
         },
         "intra": {
           "bytes": 23,
@@ -7004,7 +7214,7 @@
             883344,
             0
           ],
-          "time_ns": 8493720
+          "time_ns": 8156521
         }
       },
       "size": [
@@ -7016,6 +7226,7 @@
     {
       "format": "i444",
       "index": 209,
+      "local_sse_matches_decode": true,
       "plane": "U",
       "results": {
         "directional-exact": {
@@ -7027,7 +7238,7 @@
             883344,
             0
           ],
-          "time_ns": 8157014
+          "time_ns": 7744524
         },
         "intra": {
           "bytes": 23,
@@ -7038,7 +7249,7 @@
             883344,
             0
           ],
-          "time_ns": 8231186
+          "time_ns": 8076552
         }
       },
       "size": [
@@ -7050,6 +7261,7 @@
     {
       "format": "i444",
       "index": 210,
+      "local_sse_matches_decode": true,
       "plane": "U",
       "results": {
         "directional-exact": {
@@ -7061,7 +7273,7 @@
             636544,
             0
           ],
-          "time_ns": 7996518
+          "time_ns": 8023123
         },
         "intra": {
           "bytes": 24,
@@ -7072,7 +7284,7 @@
             636544,
             0
           ],
-          "time_ns": 8630260
+          "time_ns": 8408509
         }
       },
       "size": [
@@ -7084,6 +7296,7 @@
     {
       "format": "i444",
       "index": 211,
+      "local_sse_matches_decode": true,
       "plane": "U",
       "results": {
         "directional-exact": {
@@ -7095,7 +7308,7 @@
             2359296,
             0
           ],
-          "time_ns": 8119857
+          "time_ns": 8105606
         },
         "intra": {
           "bytes": 22,
@@ -7106,7 +7319,7 @@
             2359296,
             0
           ],
-          "time_ns": 8414310
+          "time_ns": 7914520
         }
       },
       "size": [
@@ -7118,6 +7331,7 @@
     {
       "format": "i444",
       "index": 212,
+      "local_sse_matches_decode": true,
       "plane": "U",
       "results": {
         "directional-exact": {
@@ -7129,7 +7343,7 @@
             2276352,
             0
           ],
-          "time_ns": 7811716
+          "time_ns": 7688093
         },
         "intra": {
           "bytes": 25,
@@ -7140,7 +7354,7 @@
             2276352,
             0
           ],
-          "time_ns": 7914313
+          "time_ns": 9087090
         }
       },
       "size": [
@@ -7152,6 +7366,7 @@
     {
       "format": "i444",
       "index": 213,
+      "local_sse_matches_decode": true,
       "plane": "U",
       "results": {
         "directional-exact": {
@@ -7163,7 +7378,7 @@
             1401344,
             0
           ],
-          "time_ns": 8736350
+          "time_ns": 7638296
         },
         "intra": {
           "bytes": 22,
@@ -7174,7 +7389,7 @@
             1401344,
             0
           ],
-          "time_ns": 8363954
+          "time_ns": 9035407
         }
       },
       "size": [
@@ -7186,6 +7401,7 @@
     {
       "format": "i444",
       "index": 214,
+      "local_sse_matches_decode": true,
       "plane": "V",
       "results": {
         "directional-exact": {
@@ -7197,7 +7413,7 @@
             0,
             0
           ],
-          "time_ns": 7884771
+          "time_ns": 7858996
         },
         "intra": {
           "bytes": 22,
@@ -7208,7 +7424,7 @@
             0,
             0
           ],
-          "time_ns": 8215331
+          "time_ns": 8070964
         }
       },
       "size": [
@@ -7220,6 +7436,7 @@
     {
       "format": "i444",
       "index": 215,
+      "local_sse_matches_decode": true,
       "plane": "V",
       "results": {
         "directional-exact": {
@@ -7231,7 +7448,7 @@
             0,
             883344
           ],
-          "time_ns": 7700529
+          "time_ns": 8207156
         },
         "intra": {
           "bytes": 23,
@@ -7242,7 +7459,7 @@
             0,
             883344
           ],
-          "time_ns": 8548336
+          "time_ns": 8315410
         }
       },
       "size": [
@@ -7254,6 +7471,7 @@
     {
       "format": "i444",
       "index": 216,
+      "local_sse_matches_decode": true,
       "plane": "V",
       "results": {
         "directional-exact": {
@@ -7265,7 +7483,7 @@
             0,
             883344
           ],
-          "time_ns": 7668332
+          "time_ns": 7966901
         },
         "intra": {
           "bytes": 23,
@@ -7276,7 +7494,7 @@
             0,
             883344
           ],
-          "time_ns": 8283078
+          "time_ns": 8617475
         }
       },
       "size": [
@@ -7288,6 +7506,7 @@
     {
       "format": "i444",
       "index": 217,
+      "local_sse_matches_decode": true,
       "plane": "V",
       "results": {
         "directional-exact": {
@@ -7299,7 +7518,7 @@
             0,
             636544
           ],
-          "time_ns": 8151007
+          "time_ns": 7855084
         },
         "intra": {
           "bytes": 25,
@@ -7310,7 +7529,7 @@
             0,
             636544
           ],
-          "time_ns": 8106169
+          "time_ns": 8297112
         }
       },
       "size": [
@@ -7322,6 +7541,7 @@
     {
       "format": "i444",
       "index": 218,
+      "local_sse_matches_decode": true,
       "plane": "V",
       "results": {
         "directional-exact": {
@@ -7333,7 +7553,7 @@
             0,
             2359296
           ],
-          "time_ns": 8474723
+          "time_ns": 8058324
         },
         "intra": {
           "bytes": 22,
@@ -7344,7 +7564,7 @@
             0,
             2359296
           ],
-          "time_ns": 8158899
+          "time_ns": 8617684
         }
       },
       "size": [
@@ -7356,6 +7576,7 @@
     {
       "format": "i444",
       "index": 219,
+      "local_sse_matches_decode": true,
       "plane": "V",
       "results": {
         "directional-exact": {
@@ -7367,7 +7588,7 @@
             0,
             2276352
           ],
-          "time_ns": 8002174
+          "time_ns": 8101974
         },
         "intra": {
           "bytes": 25,
@@ -7378,7 +7599,7 @@
             0,
             2276352
           ],
-          "time_ns": 8319954
+          "time_ns": 8267010
         }
       },
       "size": [
@@ -7390,6 +7611,7 @@
     {
       "format": "i444",
       "index": 220,
+      "local_sse_matches_decode": true,
       "plane": "V",
       "results": {
         "directional-exact": {
@@ -7401,7 +7623,7 @@
             0,
             1401344
           ],
-          "time_ns": 8071876
+          "time_ns": 7650658
         },
         "intra": {
           "bytes": 22,
@@ -7412,7 +7634,7 @@
             0,
             1401344
           ],
-          "time_ns": 8232303
+          "time_ns": 8495742
         }
       },
       "size": [
@@ -7424,6 +7646,7 @@
     {
       "format": "i444",
       "index": 221,
+      "local_sse_matches_decode": true,
       "plane": "Y",
       "results": {
         "directional-exact": {
@@ -7435,18 +7658,18 @@
             0,
             0
           ],
-          "time_ns": 8360393
+          "time_ns": 8609583
         },
         "intra": {
           "bytes": 28,
           "mode": 6,
-          "sha256": "8f8131a9e2786012ce171f0ea955f5141e545340e3fbb67a419ef2a7f0337525",
+          "sha256": "a617899cb56a34f8e4ebff8df8a8270f38a892a19cbc34b4d169119c61cba2a1",
           "sse": [
-            319889,
+            318391,
             0,
             0
           ],
-          "time_ns": 5532435
+          "time_ns": 5619594
         }
       },
       "size": [
@@ -7458,6 +7681,7 @@
     {
       "format": "i444",
       "index": 222,
+      "local_sse_matches_decode": true,
       "plane": "U",
       "results": {
         "directional-exact": {
@@ -7469,7 +7693,7 @@
             49044,
             0
           ],
-          "time_ns": 8189909
+          "time_ns": 8332102
         },
         "intra": {
           "bytes": 25,
@@ -7480,7 +7704,7 @@
             49044,
             0
           ],
-          "time_ns": 8304519
+          "time_ns": 8237956
         }
       },
       "size": [
@@ -7492,6 +7716,7 @@
     {
       "format": "i444",
       "index": 223,
+      "local_sse_matches_decode": true,
       "plane": "V",
       "results": {
         "directional-exact": {
@@ -7503,7 +7728,7 @@
             0,
             10792
           ],
-          "time_ns": 7928352
+          "time_ns": 8555874
         },
         "intra": {
           "bytes": 26,
@@ -7514,7 +7739,7 @@
             0,
             10792
           ],
-          "time_ns": 8627955
+          "time_ns": 8337201
         }
       },
       "size": [
@@ -7524,5 +7749,5 @@
       "source": "prepared:pitti-ceiling-le896"
     }
   ],
-  "schema": "encoder-smooth-paeth-production-v1"
+  "schema": "encoder-smooth-paeth-production-v2"
 }

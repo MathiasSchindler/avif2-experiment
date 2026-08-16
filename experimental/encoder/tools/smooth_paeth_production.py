@@ -104,7 +104,8 @@ def main() -> int:
         fmt = str(case["format"])
         width, height = map(int, case["luma_reference_size"])
         source = args.work_dir / f"{index:03d}.{fmt}"
-        source.write_bytes(planar_case(model, case))
+        source_data = planar_case(model, case)
+        source.write_bytes(source_data)
         record = {"index": index, "format": fmt, "plane": case["plane"],
                   "size": case["size"], "source": case["source"]}
         outputs = {}
@@ -150,10 +151,23 @@ def main() -> int:
                 raise RuntimeError(f"decoder rejected case {index}")
         if avm.read_bytes() != project.read_bytes():
             raise RuntimeError(f"decoder mismatch case {index}")
+        decoded = avm.read_bytes()
+        decoded_sse = []
+        offset = 0
+        for plane_width, plane_height in geometry(fmt, width, height):
+            size = plane_width * plane_height
+            decoded_sse.append(sum(
+                (left - right) ** 2 for left, right in zip(
+                    source_data[offset:offset + size],
+                    decoded[offset:offset + size])
+            ))
+            offset += size
+        local_sse_matches_decode = decoded_sse == outputs["intra"]["sse"]
         if outputs["intra"]["mode"] >= 5:
             wins += 1
             mode_wins[mode_names[outputs["intra"]["mode"]]] += 1
         record["results"] = outputs
+        record["local_sse_matches_decode"] = local_sse_matches_decode
         records.append(record)
     checks = {
         "bytes_nonincreasing":
@@ -162,11 +176,15 @@ def main() -> int:
             after <= before for after, before in zip(
                 totals["intra"]["sse"], totals["directional-exact"]["sse"])),
         "incremental_wins": wins > 0,
+        "smooth_sse_matches_decode": all(
+            record["local_sse_matches_decode"]
+            for record in records
+            if record["results"]["intra"]["mode"] >= 5),
         "runtime_ratio_at_most_4":
             totals["intra"]["time_ns"] <= totals["directional-exact"]["time_ns"] * 4,
     }
     result = {
-        "schema": "encoder-smooth-paeth-production-v1",
+        "schema": "encoder-smooth-paeth-production-v2",
         "cases": len(records), "baseline": totals["directional-exact"],
         "intra": totals["intra"], "incremental_wins": wins,
         "mode_wins": mode_wins, "gate": {"checks": checks,

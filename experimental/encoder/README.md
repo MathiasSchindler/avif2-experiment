@@ -55,12 +55,14 @@ interpolation, normative edge filtering, wide-angle mapping, and MRLS=0.
 tokens as a syntax/kernel oracle; outward D45/D67/D203 production admission is
 held back until transform-order reference availability is modeled exactly.
 `--search intra` extends the cardinal surface with luma
-Smooth, Smooth-V, Smooth-H, and Paeth for images up to 64x64; larger images use
-the directional shortlist/runtime policy, and the legacy 8x8/I420-small syntax
-classes retain DC fallback. Full-directional color syntax supports all eight
-base modes and inherited luma deltas; the safe production search currently
-trials V/D113/D135/D157/H chroma bases. Mode syntax emits the complete joint
-mode-set/index/offset grammar, FSC=0, MRLS=0, and CfL=0.
+Smooth, Smooth-V, Smooth-H, and Paeth throughout the complete 1..1440
+production dimension range, including the legacy 8x8 and small-I420 syntax
+classes. Complete-stream trials track reconstructed reference availability at
+4x4 granularity so optional Smooth endpoints match decoder traversal exactly.
+Full-directional color syntax supports all eight base modes and inherited luma
+deltas; the safe production search currently trials V/D113/D135/D157/H chroma
+bases. Mode syntax emits the complete joint mode-set/index/offset grammar,
+FSC=0, MRLS=0, and CfL=0.
 Search-off hashes remain locked. Directional and intra prediction searches
 remain explicit modes and are not combined with the default AC search.
 

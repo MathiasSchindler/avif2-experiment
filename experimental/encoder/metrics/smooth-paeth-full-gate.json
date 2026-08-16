@@ -1,0 +1,415 @@
+{
+  "cases": [
+    {
+      "directional_exact": {
+        "attempts": [
+          {
+            "duration_ns": 5158625175,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=4219 sse_y=1501439 psnr_y=49.53dB workspace_bytes=10433568 qindex=100 intra_mode=0"
+          }
+        ],
+        "avm_project_exact": true,
+        "decode_time_ns": {
+          "avm": 137544422,
+          "project": 91118273
+        },
+        "decoded_sha256": "040199b5be9c20a6c06653f43b4b20313c39b1e6f45db0c1214673d703858327",
+        "deterministic": true,
+        "local_sse_matches_decode": true,
+        "obu_bytes": 4219,
+        "obu_sha256": "461683e875b62a7533b8351e7713abc66e1e847469c543dc05f5b0ca3e46f661",
+        "planes": [
+          {
+            "plane": "y",
+            "sha256": "040199b5be9c20a6c06653f43b4b20313c39b1e6f45db0c1214673d703858327",
+            "sse": 1501439
+          }
+        ],
+        "status": "pass",
+        "workspace_bytes": 10433568
+      },
+      "height": 1440,
+      "id": "synthetic-center-i400-1440x1440",
+      "intra": {
+        "attempts": [
+          {
+            "duration_ns": 5346063171,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=4219 sse_y=1501439 psnr_y=49.53dB workspace_bytes=10433568 qindex=100 intra_mode=0"
+          },
+          {
+            "duration_ns": 5307434067,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=4219 sse_y=1501439 psnr_y=49.53dB workspace_bytes=10433568 qindex=100 intra_mode=0"
+          }
+        ],
+        "avm_project_exact": true,
+        "decode_time_ns": {
+          "avm": 116752022,
+          "project": 90776468
+        },
+        "decoded_sha256": "040199b5be9c20a6c06653f43b4b20313c39b1e6f45db0c1214673d703858327",
+        "deterministic": true,
+        "local_sse_matches_decode": true,
+        "obu_bytes": 4219,
+        "obu_sha256": "461683e875b62a7533b8351e7713abc66e1e847469c543dc05f5b0ca3e46f661",
+        "planes": [
+          {
+            "plane": "y",
+            "sha256": "040199b5be9c20a6c06653f43b4b20313c39b1e6f45db0c1214673d703858327",
+            "sse": 1501439
+          }
+        ],
+        "status": "pass",
+        "workspace_bytes": 10433568
+      },
+      "pixel_format": "i400",
+      "qindex": 100,
+      "rd_cost_gain": 0,
+      "selected_luma_mode": 0,
+      "source_sha256": "9e6701831874667d3ddc22f7b96ab3d4fb61b644d1b589ffa9bd6e0431061889",
+      "sse_gain": [
+        0
+      ],
+      "subset": "synthetic-center",
+      "width": 1440
+    },
+    {
+      "directional_exact": {
+        "attempts": [
+          {
+            "duration_ns": 21476813955,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=4292 sse_y=1501439 sse_u=0 sse_v=0 workspace_bytes=12539568 qindex=100 qdelta_u=0 qdelta_v=0 luma_mode=0 chroma_mode=0"
+          }
+        ],
+        "avm_project_exact": true,
+        "decode_time_ns": {
+          "avm": 140535109,
+          "project": 113571854
+        },
+        "decoded_sha256": "deec444de913d341b065e842e1942fb8633094bce22cbb4f23b5014913f54010",
+        "deterministic": true,
+        "local_sse_matches_decode": true,
+        "obu_bytes": 4292,
+        "obu_sha256": "8a8ad841264d344a07d7e2162f281edae6367bc6af734e6900b496b43467bb83",
+        "planes": [
+          {
+            "plane": "y",
+            "sha256": "040199b5be9c20a6c06653f43b4b20313c39b1e6f45db0c1214673d703858327",
+            "sse": 1501439
+          },
+          {
+            "plane": "u",
+            "sha256": "0598769dc44af6ef95540ee94114ccdddf50277b869c9b4a8b78c29e15081392",
+            "sse": 0
+          },
+          {
+            "plane": "v",
+            "sha256": "0598769dc44af6ef95540ee94114ccdddf50277b869c9b4a8b78c29e15081392",
+            "sse": 0
+          }
+        ],
+        "status": "pass",
+        "workspace_bytes": 12539568
+      },
+      "height": 1440,
+      "id": "synthetic-center-i420-1440x1440",
+      "intra": {
+        "attempts": [
+          {
+            "duration_ns": 11540715078,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=4087 sse_y=985544 sse_u=0 sse_v=0 workspace_bytes=12539568 qindex=100 qdelta_u=0 qdelta_v=0 luma_mode=5 chroma_mode=0"
+          },
+          {
+            "duration_ns": 11534439532,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=4087 sse_y=985544 sse_u=0 sse_v=0 workspace_bytes=12539568 qindex=100 qdelta_u=0 qdelta_v=0 luma_mode=5 chroma_mode=0"
+          }
+        ],
+        "avm_project_exact": true,
+        "decode_time_ns": {
+          "avm": 138089396,
+          "project": 117665690
+        },
+        "decoded_sha256": "0219e8159f3f52e6b5097387cc7b4b63e29c0a0d8ee489e2d5fcd463b38de3e5",
+        "deterministic": true,
+        "local_sse_matches_decode": true,
+        "obu_bytes": 4087,
+        "obu_sha256": "e2daa8027c5aa828571972a1378c91101a53a1887749be4352d563059d244fe6",
+        "planes": [
+          {
+            "plane": "y",
+            "sha256": "766d5af9f83a046fe6ca182b9190ca2d175f306caa56ada49f1df68fb25e93f7",
+            "sse": 985544
+          },
+          {
+            "plane": "u",
+            "sha256": "0598769dc44af6ef95540ee94114ccdddf50277b869c9b4a8b78c29e15081392",
+            "sse": 0
+          },
+          {
+            "plane": "v",
+            "sha256": "0598769dc44af6ef95540ee94114ccdddf50277b869c9b4a8b78c29e15081392",
+            "sse": 0
+          }
+        ],
+        "status": "pass",
+        "workspace_bytes": 12539568
+      },
+      "pixel_format": "i420",
+      "qindex": 100,
+      "rd_cost_gain": 132070760,
+      "selected_luma_mode": 5,
+      "source_sha256": "daf247e1df701a4440f08318bfbc2613c718d60b11a19c0b826823cfd72619b9",
+      "sse_gain": [
+        515895,
+        0,
+        0
+      ],
+      "subset": "synthetic-center",
+      "width": 1440
+    },
+    {
+      "directional_exact": {
+        "attempts": [
+          {
+            "duration_ns": 43455081452,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=4292 sse_y=1501439 sse_u=0 sse_v=0 workspace_bytes=18760368 qindex=100 qdelta_u=0 qdelta_v=0 luma_mode=0 chroma_mode=0"
+          }
+        ],
+        "avm_project_exact": true,
+        "decode_time_ns": {
+          "avm": 148126889,
+          "project": 124380609
+        },
+        "decoded_sha256": "5f3bedca54d0a0185952616d76345ab8cab7016432815f7ed4acfcc83508664f",
+        "deterministic": true,
+        "local_sse_matches_decode": true,
+        "obu_bytes": 4292,
+        "obu_sha256": "a35248f3e31c0c8f1c3fcca69cf391d407d039f0cce04c7d7e9f7622b31a4eb1",
+        "planes": [
+          {
+            "plane": "y",
+            "sha256": "040199b5be9c20a6c06653f43b4b20313c39b1e6f45db0c1214673d703858327",
+            "sse": 1501439
+          },
+          {
+            "plane": "u",
+            "sha256": "888fafb21f5b4ec781cccf0b17692f35502ec3f62f4fcd37451861259f5e3ad9",
+            "sse": 0
+          },
+          {
+            "plane": "v",
+            "sha256": "888fafb21f5b4ec781cccf0b17692f35502ec3f62f4fcd37451861259f5e3ad9",
+            "sse": 0
+          }
+        ],
+        "status": "pass",
+        "workspace_bytes": 18760368
+      },
+      "height": 1440,
+      "id": "synthetic-center-i444-1440x1440",
+      "intra": {
+        "attempts": [
+          {
+            "duration_ns": 23244508233,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=4087 sse_y=985544 sse_u=0 sse_v=0 workspace_bytes=18760368 qindex=100 qdelta_u=0 qdelta_v=0 luma_mode=5 chroma_mode=0"
+          },
+          {
+            "duration_ns": 23119034131,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=4087 sse_y=985544 sse_u=0 sse_v=0 workspace_bytes=18760368 qindex=100 qdelta_u=0 qdelta_v=0 luma_mode=5 chroma_mode=0"
+          }
+        ],
+        "avm_project_exact": true,
+        "decode_time_ns": {
+          "avm": 158274813,
+          "project": 132074437
+        },
+        "decoded_sha256": "94414399599503a6d49be1641edfc46f37217df4ba74df2660802742d726a0a6",
+        "deterministic": true,
+        "local_sse_matches_decode": true,
+        "obu_bytes": 4087,
+        "obu_sha256": "15c409c478eda492a9b6eef863e212c4efcf0769cb1bc58448886b9a2c1bc644",
+        "planes": [
+          {
+            "plane": "y",
+            "sha256": "766d5af9f83a046fe6ca182b9190ca2d175f306caa56ada49f1df68fb25e93f7",
+            "sse": 985544
+          },
+          {
+            "plane": "u",
+            "sha256": "888fafb21f5b4ec781cccf0b17692f35502ec3f62f4fcd37451861259f5e3ad9",
+            "sse": 0
+          },
+          {
+            "plane": "v",
+            "sha256": "888fafb21f5b4ec781cccf0b17692f35502ec3f62f4fcd37451861259f5e3ad9",
+            "sse": 0
+          }
+        ],
+        "status": "pass",
+        "workspace_bytes": 18760368
+      },
+      "pixel_format": "i444",
+      "qindex": 100,
+      "rd_cost_gain": 132070760,
+      "selected_luma_mode": 5,
+      "source_sha256": "7cdd9f6e1517e0e32af35016a3d6ba7c92c00a122ed339eb38cdb8fedde09ddc",
+      "sse_gain": [
+        515895,
+        0,
+        0
+      ],
+      "subset": "synthetic-center",
+      "width": 1440
+    },
+    {
+      "directional_exact": {
+        "attempts": [
+          {
+            "duration_ns": 5318500666,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=25978 sse_y=1488577152 psnr_y=19.57dB workspace_bytes=10433568 qindex=100 intra_mode=0"
+          }
+        ],
+        "avm_project_exact": true,
+        "decode_time_ns": {
+          "avm": 116258459,
+          "project": 104321622
+        },
+        "decoded_sha256": "f10713321ee22f670232d0384caefecbc68c61c895c7b79001bc95358a12ee4c",
+        "deterministic": true,
+        "local_sse_matches_decode": true,
+        "obu_bytes": 25978,
+        "obu_sha256": "27f87241568bcc1c2799d6e5203a9cd00831afa27cd8202f8f14deebf2fc5568",
+        "planes": [
+          {
+            "plane": "y",
+            "sha256": "f10713321ee22f670232d0384caefecbc68c61c895c7b79001bc95358a12ee4c",
+            "sse": 1488577152
+          }
+        ],
+        "status": "pass",
+        "workspace_bytes": 10433568
+      },
+      "height": 1440,
+      "id": "prepared-pitti-ceiling-i400-1440x1440",
+      "intra": {
+        "attempts": [
+          {
+            "duration_ns": 5589705916,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=25978 sse_y=1488577152 psnr_y=19.57dB workspace_bytes=10433568 qindex=100 intra_mode=0"
+          },
+          {
+            "duration_ns": 5639889896,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=25978 sse_y=1488577152 psnr_y=19.57dB workspace_bytes=10433568 qindex=100 intra_mode=0"
+          }
+        ],
+        "avm_project_exact": true,
+        "decode_time_ns": {
+          "avm": 122676413,
+          "project": 104250244
+        },
+        "decoded_sha256": "f10713321ee22f670232d0384caefecbc68c61c895c7b79001bc95358a12ee4c",
+        "deterministic": true,
+        "local_sse_matches_decode": true,
+        "obu_bytes": 25978,
+        "obu_sha256": "27f87241568bcc1c2799d6e5203a9cd00831afa27cd8202f8f14deebf2fc5568",
+        "planes": [
+          {
+            "plane": "y",
+            "sha256": "f10713321ee22f670232d0384caefecbc68c61c895c7b79001bc95358a12ee4c",
+            "sse": 1488577152
+          }
+        ],
+        "status": "pass",
+        "workspace_bytes": 10433568
+      },
+      "pixel_format": "i400",
+      "prepared_source": "images/prepared/le1440/pitti-ceiling/source-1440x1440-gray8.i400",
+      "qindex": 100,
+      "rd_cost_gain": 0,
+      "selected_luma_mode": 0,
+      "source_sha256": "3f7446165875b8801ad0e4d54e598400bb12ff2cceef7cdf9d8f15268f7694ce",
+      "sse_gain": [
+        0
+      ],
+      "subset": "prepared-image",
+      "width": 1440
+    }
+  ],
+  "configuration": {
+    "candidate_order": [
+      "DC",
+      "V",
+      "H",
+      "Smooth",
+      "Smooth-V",
+      "Smooth-H",
+      "Paeth"
+    ],
+    "chroma_mode": "DC",
+    "dimensions": [
+      1440,
+      1440
+    ],
+    "formats": [
+      "i400",
+      "i420",
+      "i444"
+    ],
+    "qindex": 100
+  },
+  "corpus": {
+    "prepared_lock_sha256": "f12c63adf93a46066866e85bc7c336594fe27ac1514b34abd0f22ddb494bf97f",
+    "prepared_sources": {
+      "images/prepared/le1440/pitti-ceiling/source-1440x1440-gray8.i400": "3f7446165875b8801ad0e4d54e598400bb12ff2cceef7cdf9d8f15268f7694ce"
+    }
+  },
+  "gates": {
+    "all_cases_validated": true,
+    "all_formats_at_1440": true,
+    "deterministic": true,
+    "local_avm_project_exact": true,
+    "no_plane_sse_regression": true,
+    "rd_cost_nonregression": true,
+    "runtime_ratio_at_most_4": true,
+    "smooth_family_win": true,
+    "workspace_bounded": true
+  },
+  "schema": "av2-encoder-smooth-paeth-full-gate-v1",
+  "status": "pass",
+  "summary": {
+    "maximum_workspace_bytes": 18760368,
+    "median_intra_time_ns": 8587164714,
+    "selected_luma_modes": [
+      0,
+      5
+    ],
+    "strict_wins": 2,
+    "successful_cases": 4,
+    "total_byte_gain": 410,
+    "total_sse_gain": 1031790,
+    "worst_intra_time_ns": 23244508233
+  }
+}

@@ -43,7 +43,8 @@ ENCODER_OBJECTS := $(patsubst %.c,$(BUILD)/%.o,$(filter %.c,$(ENCODER_SOURCES)))
 	$(patsubst %.S,$(BUILD)/%.o,$(filter %.S,$(ENCODER_SOURCES)))
 
 .PHONY: all clean test test-unit check-validators audit audit-dependencies \
-	check-generated chroma-ac-gate full-directional-gate
+	check-generated chroma-ac-gate full-directional-gate \
+	smooth-paeth-full-gate
 
 all: $(TARGET)
 
@@ -249,6 +250,7 @@ define run-tests
 		tests/test_directional_fast_search.py \
 		tests/test_smooth_paeth_model.py \
 		tests/test_smooth_paeth_production.py \
+		tests/test_smooth_paeth_full_gate.py \
 		tests/test_m3_plane_qdelta_model.py \
 		tests/test_m3_plane_qdelta_production.py \
 		tests/test_m4_ac_model.py tests/test_ac8x8_model.py \
@@ -293,6 +295,11 @@ chroma-ac-gate: all
 
 full-directional-gate: all
 	$(PYTHON) tools/full_directional_gate.py \
+		--avmdec "$(AVMDEC)" \
+		--project-decoder "$(PROJECT_DECODER)"
+
+smooth-paeth-full-gate: all
+	$(PYTHON) tools/smooth_paeth_full_gate.py \
 		--avmdec "$(AVMDEC)" \
 		--project-decoder "$(PROJECT_DECODER)"
 

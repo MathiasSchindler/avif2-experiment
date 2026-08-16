@@ -1047,7 +1047,49 @@ typedef struct {
     uint8_t chroma_mode;
     int fast_search;
     int fast_luma_search;
+    size_t superblock_x;
+    size_t superblock_y;
+    uint8_t reconstructed_cells[3U][32U];
 } EncM3ColorSearchState;
+
+static int search_sample_reconstructed(
+    size_t superblock_x, size_t superblock_y,
+    size_t superblock_size,
+    const uint8_t reconstructed_cells[32U],
+    size_t sample_x, size_t sample_y) {
+    size_t cell;
+    size_t cells_per_side = superblock_size / 4U;
+    if (sample_y < superblock_y) return 1;
+    if (sample_y >= superblock_y + superblock_size) return 0;
+    if (sample_x < superblock_x) return 1;
+    if (sample_x >= superblock_x + superblock_size) return 0;
+    cell = ((sample_y - superblock_y) / 4U) * cells_per_side +
+           (sample_x - superblock_x) / 4U;
+    return (reconstructed_cells[cell / 8U] >> (cell % 8U)) & 1U;
+}
+
+static void search_mark_reconstructed(
+    size_t superblock_x, size_t superblock_y,
+    size_t superblock_size,
+    uint8_t reconstructed_cells[32U],
+    size_t block_x, size_t block_y, size_t width, size_t height) {
+    size_t y;
+    size_t x;
+    size_t cells_per_side = superblock_size / 4U;
+    for (y = block_y; y < block_y + height; y += 4U) {
+        for (x = block_x; x < block_x + width; x += 4U) {
+            if (x < superblock_x || x >= superblock_x + superblock_size ||
+                y < superblock_y || y >= superblock_y + superblock_size) {
+                continue;
+            }
+            size_t cell =
+                          ((y - superblock_y) / 4U) * cells_per_side +
+                          (x - superblock_x) / 4U;
+            reconstructed_cells[cell / 8U] |=
+                (uint8_t)(1U << (cell % 8U));
+        }
+    }
+}
 
 static uint8_t color_dc_prediction(
     const uint8_t *above, const uint8_t *left,
@@ -1116,9 +1158,11 @@ static void color_prediction(
     }
     if (mode >= 3U) {
         uint8_t top_right = above != 0
-            ? above[width] : left != 0 ? left[0U] : 127U;
+            ? above[above_count > width ? width : width - 1U]
+            : left != 0 ? left[0U] : 127U;
         uint8_t bottom_left = left != 0
-            ? left[height] : above != 0 ? above[0U] : 129U;
+            ? left[left_count > height ? height : height - 1U]
+            : above != 0 ? above[0U] : 129U;
         unsigned int log2_width = 0U;
         unsigned int log2_height = 0U;
         unsigned int scale;
@@ -1325,40 +1369,76 @@ static void search_color_transform(
     size_t index;
     size_t y;
     size_t x;
+    size_t above_count = 0U;
+    size_t left_count = 0U;
     if (block_y != 0U) {
-        for (index = 0U;
-             index <= transform_width + transform_height; ++index) {
-            size_t edge_x = block_x + index < coded_width
-                ? block_x + index : coded_width - 1U;
+        size_t limit = mode >= 5U && mode <= 7U
+            ? 2U * transform_width
+            : transform_width + transform_height + 1U;
+        for (index = 0U; index < limit; ++index) {
+            size_t edge_x = block_x + index <
+                    state->layout->plane_width[plane]
+                ? block_x + index
+                : state->layout->plane_width[plane] - 1U;
+            if (mode >= 5U && mode <= 7U &&
+                !search_sample_reconstructed(
+                    state->superblock_x >> (plane != 0U &&
+                        state->input->format == ENC_M3_PIXEL_I420),
+                    state->superblock_y >> (plane != 0U &&
+                        state->input->format == ENC_M3_PIXEL_I420),
+                    64U >> (plane != 0U &&
+                        state->input->format == ENC_M3_PIXEL_I420),
+                    state->reconstructed_cells[plane],
+                    edge_x, block_y - 1U)) {
+                break;
+            }
             above[index] = state->padded[plane][
                 (block_y - 1U) * coded_width + edge_x];
         }
+        above_count = index;
         above[-1] = block_x == 0U ? above[0U] :
             state->padded[plane][
                 (block_y - 1U) * coded_width + block_x - 1U];
-        above_edge = above;
+        above_edge = above_count == 0U ? 0 : above;
     }
     if (block_x != 0U) {
-        for (index = 0U;
-             index <= transform_width + transform_height; ++index) {
+        size_t limit = mode >= 5U && mode <= 7U &&
+                block_y + transform_height <
+                    state->layout->plane_height[plane]
+            ? transform_height + 1U
+            : mode >= 5U && mode <= 7U
+                ? transform_height
+                : transform_width + transform_height + 1U;
+        for (index = 0U; index < limit; ++index) {
             size_t edge_y = block_y + index <
-                    state->layout->coded_plane_height[plane]
+                    state->layout->plane_height[plane]
                 ? block_y + index
-                : state->layout->coded_plane_height[plane] - 1U;
+                : state->layout->plane_height[plane] - 1U;
+            if (mode >= 5U && mode <= 7U &&
+                !search_sample_reconstructed(
+                    state->superblock_x >> (plane != 0U &&
+                        state->input->format == ENC_M3_PIXEL_I420),
+                    state->superblock_y >> (plane != 0U &&
+                        state->input->format == ENC_M3_PIXEL_I420),
+                    64U >> (plane != 0U &&
+                        state->input->format == ENC_M3_PIXEL_I420),
+                    state->reconstructed_cells[plane],
+                    block_x - 1U, edge_y)) {
+                break;
+            }
             left[index] = state->padded[plane][
                 edge_y * coded_width + block_x - 1U];
         }
-        left_edge = left;
+        left_count = index;
+        left_edge = left_count == 0U ? 0 : left;
     }
     corner = above_edge != 0 && left_edge != 0 ? above[-1] :
              above_edge != 0 ? above[0U] :
              left_edge != 0 ? left[0U] : 128U;
     color_prediction(
         mode, (unsigned int)plane,
-        above_edge, above_edge != 0
-            ? transform_width + transform_height + 1U : 0U,
-        left_edge, left_edge != 0
-            ? transform_width + transform_height + 1U : 0U, corner,
+        above_edge, above_edge != 0 ? above_count : 0U,
+        left_edge, left_edge != 0 ? left_count : 0U, corner,
         transform_width, transform_height, prediction);
     search_color_prediction(
         &state->input->planes[plane],
@@ -1386,6 +1466,15 @@ static void search_color_transform(
                 reconstructed[y * transform_width + x];
         }
     }
+    search_mark_reconstructed(
+        state->superblock_x >> (plane != 0U &&
+            state->input->format == ENC_M3_PIXEL_I420),
+        state->superblock_y >> (plane != 0U &&
+            state->input->format == ENC_M3_PIXEL_I420),
+        64U >> (plane != 0U &&
+            state->input->format == ENC_M3_PIXEL_I420),
+        state->reconstructed_cells[plane],
+        block_x, block_y, transform_width, transform_height);
 }
 
 static void search_luma_partition(
@@ -1631,6 +1720,16 @@ static EncStatus encode_even_chroma_multileaf(
                         ((input->height + 15U) / 16U) * 4U;
                     size_t chroma_columns =
                         ((input->width + 15U) / 16U) * 4U;
+                    size_t clear_index;
+                    search.superblock_x = sb_x;
+                    search.superblock_y = sb_y;
+                    for (plane = 0U; plane < 3U; ++plane) {
+                        for (clear_index = 0U;
+                             clear_index < 32U; ++clear_index) {
+                            search.reconstructed_cells[plane][clear_index] =
+                                0U;
+                        }
+                    }
                     search_luma_partition(
                         &search, row, column, 16U, 16U);
                     if (chroma_columns - column > 8U &&
@@ -2183,17 +2282,10 @@ EncStatus enc_m3_intra_yuv8_q_workspace(
     }
     if (search != ENC_M3_INTRA_SEARCH_DIRECTIONAL_FULL &&
         search != ENC_M3_INTRA_SEARCH_DIRECTIONAL_FULL_EXACT &&
+        search != ENC_M3_INTRA_SEARCH_INTRA &&
         ((input->width == 8U && input->height == 8U) ||
          (input->format == ENC_M3_PIXEL_I420 &&
           input->width < 16U && input->height < 16U))) {
-        *result = best;
-        return ENC_OK;
-    }
-    if (search == ENC_M3_INTRA_SEARCH_INTRA &&
-        input->width * input->height > ENC_M3_DIRECTIONAL_SMALL_PIXELS &&
-        !directional_prefilter_shortlists(
-            input->planes[0U].data, input->width, input->height,
-            input->planes[0U].stride)) {
         *result = best;
         return ENC_OK;
     }
@@ -2205,9 +2297,7 @@ EncStatus enc_m3_intra_yuv8_q_workspace(
             search == ENC_M3_INTRA_SEARCH_DIRECTIONAL_FULL_EXACT,
             luma_candidates);
     } else {
-        uint8_t last = search == ENC_M3_INTRA_SEARCH_INTRA &&
-            input->width * input->height <= ENC_M3_DIRECTIONAL_SMALL_PIXELS
-                ? 8U : 4U;
+        uint8_t last = search == ENC_M3_INTRA_SEARCH_INTRA ? 8U : 4U;
         for (luma = 3U; luma <= last; ++luma) {
             luma_candidates[luma_candidate_count++] = luma;
         }
@@ -2385,15 +2475,18 @@ typedef struct {
     size_t level_count;
     uint64_t error;
     uint8_t mode;
+    size_t superblock_x;
+    size_t superblock_y;
+    uint8_t reconstructed_cells[32U];
 } EncM3SearchState;
 
 static void intra_prediction8(
-    uint8_t mode, const uint8_t *above, const uint8_t *left,
+    uint8_t mode, const uint8_t *above, size_t above_count,
+    const uint8_t *left, size_t left_count,
     uint8_t corner, uint8_t prediction[64U]) {
     color_prediction(
         mode, 0U,
-        above, above != 0 ? 16U : 0U,
-        left, left != 0 ? 16U : 0U,
+        above, above_count, left, left_count,
         corner, 8U, 8U, prediction);
 }
 
@@ -2445,34 +2538,52 @@ static void search_transform(
     size_t edge;
     size_t y;
     size_t x;
+    size_t above_count = 0U;
+    size_t left_count = 0U;
     if (block_y != 0U) {
-        for (edge = 0U; edge < 16U; ++edge) {
-            size_t edge_x = block_x + edge < state->padded_width
-                ? block_x + edge : state->padded_width - 1U;
+        size_t limit = actual_mode >= 5U && actual_mode <= 7U ? 8U : 16U;
+        for (edge = 0U; edge < limit; ++edge) {
+            size_t edge_x = block_x + edge < state->width
+                ? block_x + edge : state->width - 1U;
+            if (actual_mode >= 5U && actual_mode <= 7U &&
+                !search_sample_reconstructed(
+                    state->superblock_x, state->superblock_y, 64U,
+                    state->reconstructed_cells, edge_x, block_y - 1U)) {
+                break;
+            }
             above[edge] = state->reconstruction[
                 (block_y - 1U) * state->padded_width + edge_x];
         }
+        above_count = edge;
         above[-1] = block_x == 0U ? above[0U] :
             state->reconstruction[
                 (block_y - 1U) * state->padded_width + block_x - 1U];
-        above_edge = above;
+        above_edge = above_count == 0U ? 0 : above;
     }
     if (block_x != 0U) {
-        for (edge = 0U; edge < 16U; ++edge) {
-            size_t edge_y = block_y + edge <
-                    ((state->height + 7U) & ~(size_t)7U)
+        size_t limit = actual_mode >= 5U && actual_mode <= 7U ? 8U : 16U;
+        for (edge = 0U; edge < limit; ++edge) {
+            size_t edge_y = block_y + edge < state->height
                 ? block_y + edge
-                : ((state->height + 7U) & ~(size_t)7U) - 1U;
+                : state->height - 1U;
+            if (actual_mode >= 5U && actual_mode <= 7U &&
+                !search_sample_reconstructed(
+                    state->superblock_x, state->superblock_y, 64U,
+                    state->reconstructed_cells, block_x - 1U, edge_y)) {
+                break;
+            }
             left[edge] = state->reconstruction[
                 edge_y * state->padded_width + block_x - 1U];
         }
-        left_edge = left;
+        left_count = edge;
+        left_edge = left_count == 0U ? 0 : left;
     }
     corner = above_edge != 0 && left_edge != 0 ? above[-1] :
              above_edge != 0 ? above[0U] :
              left_edge != 0 ? left[0U] : 128U;
     intra_prediction8(
-        actual_mode, above_edge, left_edge, corner, prediction);
+        actual_mode, above_edge, above_count,
+        left_edge, left_count, corner, prediction);
     best_error = predictive_block_error(
         state->input, state->width, state->height, state->stride,
         block_x, block_y, prediction, 0, 0, best_reconstruction);
@@ -2557,6 +2668,9 @@ static void search_transform(
                 best_reconstruction[y * 8U + x];
         }
     }
+    search_mark_reconstructed(
+        state->superblock_x, state->superblock_y, 64U,
+        state->reconstructed_cells, block_x, block_y, 8U, 8U);
 }
 
 static int search_forced_axis(
@@ -2634,6 +2748,12 @@ static void search_tile_superblocks(EncM3SearchState *state) {
     size_t column;
     for (row = 0U; row < mi_rows; row += 16U) {
         for (column = 0U; column < mi_columns; column += 16U) {
+            size_t index;
+            state->superblock_x = column * 4U;
+            state->superblock_y = row * 4U;
+            for (index = 0U; index < 32U; ++index) {
+                state->reconstructed_cells[index] = 0U;
+            }
             search_large_partition(state, row, column, 16U, 16U);
         }
     }
@@ -2759,6 +2879,7 @@ static EncStatus encode_i400_mode(
         total_error = search.error;
     } else if (mode != 0U) {
         EncM3SearchState search;
+        size_t index;
         search.input = input;
         search.width = width;
         search.height = height;
@@ -2771,6 +2892,11 @@ static EncStatus encode_i400_mode(
         search.level_count = 0U;
         search.error = 0U;
         search.mode = mode;
+        search.superblock_x = 0U;
+        search.superblock_y = 0U;
+        for (index = 0U; index < 32U; ++index) {
+            search.reconstructed_cells[index] = 0U;
+        }
         for (block = 0U; block < block_count; ++block) {
             size_t block_x = (block % block_columns) * 8U;
             size_t block_y = (block / block_columns) * 8U;
@@ -2956,12 +3082,6 @@ EncStatus enc_m3_intra_i400_q_workspace(
         *result = best;
         return ENC_OK;
     }
-    if (search == ENC_M3_INTRA_SEARCH_INTRA &&
-        width * height > ENC_M3_DIRECTIONAL_SMALL_PIXELS &&
-        !directional_prefilter_shortlists(input, width, height, stride)) {
-        *result = best;
-        return ENC_OK;
-    }
     if (search == ENC_M3_INTRA_SEARCH_DIRECTIONAL_FULL ||
         search == ENC_M3_INTRA_SEARCH_DIRECTIONAL_FULL_EXACT) {
         candidate_count = full_directional_candidates(
@@ -2969,8 +3089,7 @@ EncStatus enc_m3_intra_i400_q_workspace(
             search == ENC_M3_INTRA_SEARCH_DIRECTIONAL_FULL_EXACT,
             candidates);
     } else {
-        uint8_t last = search == ENC_M3_INTRA_SEARCH_INTRA &&
-            width * height <= ENC_M3_DIRECTIONAL_SMALL_PIXELS ? 8U : 4U;
+        uint8_t last = search == ENC_M3_INTRA_SEARCH_INTRA ? 8U : 4U;
         for (mode = 3U; mode <= last; ++mode) {
             candidates[candidate_count++] = mode;
         }
