@@ -26,6 +26,36 @@ headers. It was renamed to the `av2h_` namespace. AVIF defaults, capability
 state, AV1 framing options, file I/O, platform code, and decoder state were not
 copied.
 
+The macOS ARM64 no-libc build was adapted from the sibling `newos` checkout at
+commit `c9383f9ee97480c1c3158f1757709a4f30584f3d`, whose root `LICENSE`
+declares CC0-1.0. The hosted Mach-O linker closure is copied without source
+changes under `tools/macho_linker/newos/`. Reviewed source paths were:
+
+- `src/tools/linker.c`;
+- `src/compiler/linker.c`, `linker_util.c`, `linker_elf.c`,
+  `linker_object.c`, `linker_symbols.c`, `linker_gc.c`, `linker_merge.c`,
+  `linker_icf.c`, `linker_reloc.c`, `linker_layout.c`, `linker_report.c`,
+  `linker_lto.c`, and `linker_macho.c`;
+- `src/shared/crypto/sha256.c`;
+- `src/shared/runtime/memory.c`, `string.c`, `parse.c`, and `io.c`;
+- `src/shared/tool_cli.c`, `tool_io.c`, `tool_json.c`, and `tool_path.c`; and
+- `src/platform/posix/fs.c`, `process.c`, and `identity.c`.
+
+The copied header closure comprises `src/compiler/compiler.h`, `linker.h`,
+`linker_internal.h`, and `source.h`; `src/platform/common/signal_util.h`;
+`src/platform/posix/common.h`; `src/shared/concurrency.h`, `limits.h`,
+`platform.h`, `runtime.h`, `stddef.h`, `stdint.h`, `tool_util.h`, and `xml.h`;
+and `src/shared/crypto/sha256.h`.
+
+The direct Darwin syscall wrappers in `src/platform/macos/macos_abi.h` were
+reduced and renamed from `src/arch/aarch64/macos/syscall.h`. The entry code in
+`src/arch/aarch64/macos/runtime.S` was reduced from
+`src/platform/macos/newlinker_start.S`; environment setup was omitted because
+the decoder does not consume the environment. The decoder-specific allocation,
+file I/O, and output policy remain project-owned code shared with the Linux
+no-libc CLI. No newos checkout, library, binary, or generated file is a build
+or runtime dependency.
+
 The byte and bit writers, AV2 LEB128 and OBU carriage parser, Sequence Header
 and Content Interpretation parsers, draft-shaped `av2C`, and BMFF box framing
 in this repository are project-owned CC0 code written for this experiment. The

@@ -3,16 +3,68 @@
 #include "decoder/internal/frame_workspace.h"
 #include "decoder/partition.h"
 #include "decoder/tile.h"
+#if defined(__APPLE__) && defined(__aarch64__)
+#include "platform/macos/macos_abi.h"
+#define AV2H_ABI_EINTR AV2H_MACOS_EINTR
+#define AV2H_ABI_PAGE_SIZE AV2H_MACOS_PAGE_SIZE
+#define AV2H_ABI_SYS_WRITE AV2H_MACOS_SYS_WRITE
+#define AV2H_ABI_SYS_READ AV2H_MACOS_SYS_READ
+#define AV2H_ABI_SYS_CLOSE AV2H_MACOS_SYS_CLOSE
+#define AV2H_ABI_SYS_MMAP AV2H_MACOS_SYS_MMAP
+#define AV2H_ABI_SYS_MUNMAP AV2H_MACOS_SYS_MUNMAP
+#define AV2H_ABI_SYS_LSEEK AV2H_MACOS_SYS_LSEEK
+#define AV2H_ABI_PROT_READ AV2H_MACOS_PROT_READ
+#define AV2H_ABI_PROT_WRITE AV2H_MACOS_PROT_WRITE
+#define AV2H_ABI_MAP_PRIVATE AV2H_MACOS_MAP_PRIVATE
+#define AV2H_ABI_MAP_ANONYMOUS AV2H_MACOS_MAP_ANONYMOUS
+#define AV2H_ABI_O_RDONLY AV2H_MACOS_O_RDONLY
+#define AV2H_ABI_O_WRONLY AV2H_MACOS_O_WRONLY
+#define AV2H_ABI_O_CREAT AV2H_MACOS_O_CREAT
+#define AV2H_ABI_O_TRUNC AV2H_MACOS_O_TRUNC
+#define AV2H_ABI_O_CLOEXEC AV2H_MACOS_O_CLOEXEC
+#define AV2H_ABI_SEEK_SET AV2H_MACOS_SEEK_SET
+#define AV2H_ABI_SEEK_END AV2H_MACOS_SEEK_END
+#define av2h_abi_syscall1 av2h_macos_syscall1
+#define av2h_abi_syscall2 av2h_macos_syscall2
+#define av2h_abi_syscall3 av2h_macos_syscall3
+#define av2h_abi_syscall6 av2h_macos_syscall6
+#define av2h_abi_open(path, flags, mode) \
+    av2h_macos_syscall3(AV2H_MACOS_SYS_OPEN, (long)(path), (flags), (mode))
+#else
 #include "platform/linux/linux_abi.h"
+#define AV2H_ABI_EINTR 4
+#define AV2H_ABI_PAGE_SIZE 4096U
+#define AV2H_ABI_SYS_WRITE AV2H_LINUX_SYS_WRITE
+#define AV2H_ABI_SYS_READ AV2H_LINUX_SYS_READ
+#define AV2H_ABI_SYS_CLOSE AV2H_LINUX_SYS_CLOSE
+#define AV2H_ABI_SYS_MMAP AV2H_LINUX_SYS_MMAP
+#define AV2H_ABI_SYS_MUNMAP AV2H_LINUX_SYS_MUNMAP
+#define AV2H_ABI_SYS_LSEEK AV2H_LINUX_SYS_LSEEK
+#define AV2H_ABI_PROT_READ AV2H_LINUX_PROT_READ
+#define AV2H_ABI_PROT_WRITE AV2H_LINUX_PROT_WRITE
+#define AV2H_ABI_MAP_PRIVATE AV2H_LINUX_MAP_PRIVATE
+#define AV2H_ABI_MAP_ANONYMOUS AV2H_LINUX_MAP_ANONYMOUS
+#define AV2H_ABI_O_RDONLY AV2H_LINUX_O_RDONLY
+#define AV2H_ABI_O_WRONLY AV2H_LINUX_O_WRONLY
+#define AV2H_ABI_O_CREAT AV2H_LINUX_O_CREAT
+#define AV2H_ABI_O_TRUNC AV2H_LINUX_O_TRUNC
+#define AV2H_ABI_O_CLOEXEC AV2H_LINUX_O_CLOEXEC
+#define AV2H_ABI_SEEK_SET AV2H_LINUX_SEEK_SET
+#define AV2H_ABI_SEEK_END AV2H_LINUX_SEEK_END
+#define av2h_abi_syscall1 av2h_linux_syscall1
+#define av2h_abi_syscall2 av2h_linux_syscall2
+#define av2h_abi_syscall3 av2h_linux_syscall3
+#define av2h_abi_syscall6 av2h_linux_syscall6
+#define av2h_abi_open(path, flags, mode) \
+    av2h_linux_syscall4(AV2H_LINUX_SYS_OPENAT, AV2H_LINUX_AT_FDCWD, \
+                        (long)(path), (flags), (mode))
+#endif
 #include "preview.h"
 #include "runtime/concurrency.h"
 #include "shared/png_writer.h"
 
 #define AV2H_CLI_MAX_INPUT (256U * 1024U * 1024U)
 #define AV2H_BMP_HEADER_SIZE 54U
-#define AV2H_LINUX_EINTR 4
-#define AV2H_LINUX_PAGE_SIZE 4096U
-
 typedef struct {
     void *memory;
     size_t size;
@@ -37,9 +89,9 @@ static void write_console(const char *text) {
     size_t remaining = text_length(text);
     const char *cursor = text;
     while (remaining != 0U) {
-        long written = av2h_linux_syscall3(
-            AV2H_LINUX_SYS_WRITE, 2, (long)cursor, (long)remaining);
-        if (written == -AV2H_LINUX_EINTR) continue;
+        long written = av2h_abi_syscall3(
+            AV2H_ABI_SYS_WRITE, 2, (long)cursor, (long)remaining);
+        if (written == -AV2H_ABI_EINTR) continue;
         if (written <= 0) return;
         cursor += (size_t)written;
         remaining -= (size_t)written;
@@ -48,8 +100,8 @@ static void write_console(const char *text) {
 
 static void release_memory(Av2hOwnedMemory *owned) {
     if (owned->memory != NULL && owned->size != 0U) {
-        (void)av2h_linux_syscall2(
-            AV2H_LINUX_SYS_MUNMAP, (long)owned->memory, (long)owned->size);
+        (void)av2h_abi_syscall2(
+            AV2H_ABI_SYS_MUNMAP, (long)owned->memory, (long)owned->size);
     }
     owned->memory = NULL;
     owned->size = 0U;
@@ -59,11 +111,11 @@ static int allocate_memory(size_t size,
                            size_t alignment,
                            Av2hOwnedMemory *owned) {
     long mapped;
-    if (size == 0U || alignment > AV2H_LINUX_PAGE_SIZE) return 0;
-    mapped = av2h_linux_syscall6(
-        AV2H_LINUX_SYS_MMAP, 0, (long)size,
-        AV2H_LINUX_PROT_READ | AV2H_LINUX_PROT_WRITE,
-        AV2H_LINUX_MAP_PRIVATE | AV2H_LINUX_MAP_ANONYMOUS, -1, 0);
+    if (size == 0U || alignment > AV2H_ABI_PAGE_SIZE) return 0;
+    mapped = av2h_abi_syscall6(
+        AV2H_ABI_SYS_MMAP, 0, (long)size,
+        AV2H_ABI_PROT_READ | AV2H_ABI_PROT_WRITE,
+        AV2H_ABI_MAP_PRIVATE | AV2H_ABI_MAP_ANONYMOUS, -1, 0);
     if (mapped < 0) return 0;
     owned->memory = (void *)mapped;
     owned->size = size;
@@ -73,17 +125,17 @@ static int allocate_memory(size_t size,
 static int close_file(int descriptor) {
     long result;
     do {
-        result = av2h_linux_syscall1(AV2H_LINUX_SYS_CLOSE, descriptor);
-    } while (result == -AV2H_LINUX_EINTR);
+        result = av2h_abi_syscall1(AV2H_ABI_SYS_CLOSE, descriptor);
+    } while (result == -AV2H_ABI_EINTR);
     return result == 0;
 }
 
 static int read_all(int descriptor, void *data, size_t size) {
     uint8_t *cursor = (uint8_t *)data;
     while (size != 0U) {
-        long count = av2h_linux_syscall3(
-            AV2H_LINUX_SYS_READ, descriptor, (long)cursor, (long)size);
-        if (count == -AV2H_LINUX_EINTR) continue;
+        long count = av2h_abi_syscall3(
+            AV2H_ABI_SYS_READ, descriptor, (long)cursor, (long)size);
+        if (count == -AV2H_ABI_EINTR) continue;
         if (count <= 0) return 0;
         cursor += (size_t)count;
         size -= (size_t)count;
@@ -94,9 +146,9 @@ static int read_all(int descriptor, void *data, size_t size) {
 static int write_all(int descriptor, const void *data, size_t size) {
     const uint8_t *cursor = (const uint8_t *)data;
     while (size != 0U) {
-        long count = av2h_linux_syscall3(
-            AV2H_LINUX_SYS_WRITE, descriptor, (long)cursor, (long)size);
-        if (count == -AV2H_LINUX_EINTR) continue;
+        long count = av2h_abi_syscall3(
+            AV2H_ABI_SYS_WRITE, descriptor, (long)cursor, (long)size);
+        if (count == -AV2H_ABI_EINTR) continue;
         if (count <= 0) return 0;
         cursor += (size_t)count;
         size -= (size_t)count;
@@ -105,17 +157,16 @@ static int write_all(int descriptor, const void *data, size_t size) {
 }
 
 static int open_read(const char *path) {
-    long descriptor = av2h_linux_syscall4(
-        AV2H_LINUX_SYS_OPENAT, AV2H_LINUX_AT_FDCWD, (long)path,
-        AV2H_LINUX_O_RDONLY | AV2H_LINUX_O_CLOEXEC, 0);
+    long descriptor =
+        av2h_abi_open(path, AV2H_ABI_O_RDONLY | AV2H_ABI_O_CLOEXEC, 0);
     return descriptor < 0 ? -1 : (int)descriptor;
 }
 
 static int open_write(const char *path) {
-    long descriptor = av2h_linux_syscall4(
-        AV2H_LINUX_SYS_OPENAT, AV2H_LINUX_AT_FDCWD, (long)path,
-        AV2H_LINUX_O_WRONLY | AV2H_LINUX_O_CREAT |
-            AV2H_LINUX_O_TRUNC | AV2H_LINUX_O_CLOEXEC,
+    long descriptor = av2h_abi_open(
+        path,
+        AV2H_ABI_O_WRONLY | AV2H_ABI_O_CREAT |
+            AV2H_ABI_O_TRUNC | AV2H_ABI_O_CLOEXEC,
         0666);
     return descriptor < 0 ? -1 : (int)descriptor;
 }
@@ -125,12 +176,12 @@ static int read_entire_file(const char *path, Av2hOwnedMemory *owned) {
     long length;
     int result;
     if (descriptor < 0) return 0;
-    length = av2h_linux_syscall3(
-        AV2H_LINUX_SYS_LSEEK, descriptor, 0, AV2H_LINUX_SEEK_END);
+    length = av2h_abi_syscall3(
+        AV2H_ABI_SYS_LSEEK, descriptor, 0, AV2H_ABI_SEEK_END);
     if (length <= 0 || (unsigned long)length > AV2H_CLI_MAX_INPUT ||
-        av2h_linux_syscall3(
-            AV2H_LINUX_SYS_LSEEK, descriptor, 0,
-            AV2H_LINUX_SEEK_SET) != 0 ||
+        av2h_abi_syscall3(
+            AV2H_ABI_SYS_LSEEK, descriptor, 0,
+            AV2H_ABI_SEEK_SET) != 0 ||
         !allocate_memory((size_t)length, sizeof(void *), owned)) {
         (void)close_file(descriptor);
         return 0;

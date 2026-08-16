@@ -62,7 +62,7 @@ Current evidence includes:
 - exact native and published WebAssembly output for all 102 streams;
 - dedicated 8-bit I400, I420, and I444 corpora;
 - 10-bit 4:2:0 and 4:4:4 synthetic and photographic release gates; and
-- hosted sanitizer, freestanding symbol, Linux no-libc, Windows, fuzz, and
+- hosted sanitizer, freestanding symbol, Linux/macOS no-libc, Windows, fuzz, and
   malformed-input checks.
 
 This evidence covers the tested files and tuples. It does not establish general
@@ -107,11 +107,17 @@ Run the same reference locks through the published browser module with:
 make test-reference-images-wasm
 ```
 
-Build the static Linux no-libc decoder on x86-64 or AArch64 with:
+Build the no-libc decoder on Linux x86-64/AArch64 or macOS ARM64 with:
 
 ```sh
 make nolibc
 ```
+
+The Makefile selects a static ELF executable on Linux and a no-import Mach-O
+executable on macOS. The macOS build requires the Apple Command Line Tools and
+uses the CC0 project linker copied from newos; the resulting decoder has no
+`libSystem` or other dylib dependency. Both platform paths run their artifact
+inspection and exact decode parity tests as part of `make nolibc`.
 
 Build the browser decoder and viewer assets with:
 

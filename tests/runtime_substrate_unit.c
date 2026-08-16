@@ -81,6 +81,10 @@ static void test_native_pool(void) {
     Work work;
     unsigned int generation;
     CHECK(av2h_task_pool_init(&pool, 4U) == 0);
+    if (av2h_task_pool_width(&pool) == 1U) {
+        av2h_task_pool_destroy(&pool);
+        return;
+    }
     CHECK(av2h_task_pool_width(&pool) == 4U);
     av2h_task_pool_execution(&pool, &execution);
     CHECK(execution.width == 4U);

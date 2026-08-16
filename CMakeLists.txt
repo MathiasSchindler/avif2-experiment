@@ -10,7 +10,12 @@ option(AV2HEIF_ENABLE_PYTHON_TESTS "Enable Python development tests" OFF)
 option(AV2HEIF_BUILD_WINDOWS_TOOLS "Build freestanding Windows executables" ON)
 option(AV2HEIF_BUILD_NATIVE_CLI "Build the native hosted decoder executable" ON)
 option(AV2HEIF_BUILD_LINUX_NOLIBC "Build the static Linux no-libc decoder" OFF)
+option(AV2HEIF_BUILD_MACOS_NOLIBC "Build the no-import macOS ARM64 decoder" OFF)
 option(AV2HEIF_ENABLE_DIAGNOSTICS "Enable private decoder diagnostics" OFF)
+
+if(AV2HEIF_BUILD_MACOS_NOLIBC)
+    add_subdirectory(tools/macho_linker)
+endif()
 
 set(AV2HEIF_CORE_SOURCES
     src/base.c
@@ -411,7 +416,7 @@ if(AV2HEIF_BUILD_LINUX_NOLIBC)
     endif()
 
     add_executable(av2heif-decoder-nolibc
-        src/platform/linux/decoder.c
+        src/platform/nolibc/decoder.c
         src/platform/linux/runtime.c
         ${AV2HEIF_LINUX_RUNTIME}
     )
@@ -488,6 +493,86 @@ if(AV2HEIF_BUILD_LINUX_NOLIBC)
             add_test(NAME runtime-substrate-freestanding
                 COMMAND runtime-substrate-freestanding)
         endif()
+    endif()
+endif()
+
+if(AV2HEIF_BUILD_MACOS_NOLIBC)
+    if(NOT APPLE OR NOT CMAKE_SYSTEM_PROCESSOR MATCHES "^(arm64|aarch64)$")
+        message(FATAL_ERROR
+            "The macOS no-libc decoder requires an ARM64 macOS target")
+    endif()
+    if(NOT CMAKE_C_COMPILER_ID STREQUAL "AppleClang")
+        message(FATAL_ERROR
+            "The macOS no-libc decoder requires AppleClang")
+    endif()
+
+    enable_language(ASM)
+    add_library(av2heif-macos-nolibc-platform OBJECT
+        src/platform/nolibc/decoder.c
+        src/platform/macos/runtime.c
+        src/arch/aarch64/macos/runtime.S
+    )
+    target_include_directories(av2heif-macos-nolibc-platform PRIVATE
+        include src src/shared)
+    target_compile_options(av2heif-macos-nolibc-platform PRIVATE
+        "$<$<COMPILE_LANGUAGE:C>:-Wall;-Wextra;-Wpedantic;-Werror;-Oz>"
+        "$<$<COMPILE_LANGUAGE:C>:-ffreestanding;-fno-builtin;-fno-common>"
+        "$<$<COMPILE_LANGUAGE:C>:-fno-jump-tables;-fno-stack-protector>"
+        "$<$<COMPILE_LANGUAGE:C>:-fno-unwind-tables;-fno-asynchronous-unwind-tables>"
+        "$<$<COMPILE_LANGUAGE:C>:-ffunction-sections;-fdata-sections;-nostdinc>"
+    )
+
+    set(AV2HEIF_MACOS_NOLIBC_OUTPUT
+        "${CMAKE_CURRENT_BINARY_DIR}/av2heif-decoder-nolibc")
+    set(AV2HEIF_MACOS_NOLIBC_STAMP
+        "${CMAKE_CURRENT_BINARY_DIR}/freestanding/macos-nolibc-linked")
+    add_custom_command(
+        OUTPUT "${AV2HEIF_MACOS_NOLIBC_STAMP}"
+        BYPRODUCTS "${AV2HEIF_MACOS_NOLIBC_OUTPUT}"
+        COMMAND "${CMAKE_COMMAND}" -E make_directory
+            "${CMAKE_CURRENT_BINARY_DIR}/freestanding"
+        COMMAND "${CMAKE_COMMAND}" -E remove_directory
+            "${AV2HEIF_MACOS_NOLIBC_OUTPUT}.lto-prelink.o"
+        COMMAND "${CMAKE_COMMAND}" -E rm -f
+            "${AV2HEIF_MACOS_NOLIBC_OUTPUT}.lto-prelink.o"
+        COMMAND "$<TARGET_FILE:av2heif-macho-linker>"
+            --target=mach-o-arm64
+            --macho-compact
+            --gc-sections
+            "--lto-cc=${CMAKE_C_COMPILER}"
+            -o "${AV2HEIF_MACOS_NOLIBC_OUTPUT}"
+            $<TARGET_OBJECTS:av2heif-macos-nolibc-platform>
+            $<TARGET_OBJECTS:av2heif-freestanding-objects>
+            $<TARGET_OBJECTS:av2heif-runtime-objects>
+        COMMAND "${CMAKE_COMMAND}" -E touch
+            "${AV2HEIF_MACOS_NOLIBC_STAMP}"
+        DEPENDS
+            av2heif-macho-linker
+            av2heif-macos-nolibc-platform
+            av2heif-freestanding-objects
+            av2heif-runtime-objects
+            $<TARGET_OBJECTS:av2heif-macos-nolibc-platform>
+            $<TARGET_OBJECTS:av2heif-freestanding-objects>
+            $<TARGET_OBJECTS:av2heif-runtime-objects>
+        COMMAND_EXPAND_LISTS
+        VERBATIM
+    )
+    add_custom_target(av2heif-decoder-nolibc-build ALL
+        DEPENDS "${AV2HEIF_MACOS_NOLIBC_STAMP}")
+
+    if(BUILD_TESTING)
+        add_test(NAME macos-nolibc-no-imports
+            COMMAND "${CMAKE_COMMAND}"
+                "-DINPUT=${AV2HEIF_MACOS_NOLIBC_OUTPUT}"
+                "-DNM=${CMAKE_NM}"
+                -P "${CMAKE_CURRENT_SOURCE_DIR}/scripts/check-no-import-macho.cmake")
+        add_test(NAME macos-nolibc-pc-wiener-parity
+            COMMAND "${CMAKE_COMMAND}"
+                "-DDECODER=${AV2HEIF_MACOS_NOLIBC_OUTPUT}"
+                "-DINPUT=${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/pc-wiener-restoration.obu"
+                "-DOUTPUT=${CMAKE_CURRENT_BINARY_DIR}/Testing/Temporary/pc-wiener-restoration-nolibc.i420"
+                "-DEXPECTED_SHA256=facb6781bb64f8066feae441fcd8305022f3db4c3fd2ff70c22d2729c5042a0c"
+                -P "${CMAKE_CURRENT_SOURCE_DIR}/scripts/check-decoder-parity.cmake")
     endif()
 endif()
 

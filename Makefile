@@ -18,6 +18,16 @@ DECODER_PRESET ?= native
 DECODER_BUILD_DIR ?= build/native
 endif
 
+HOST_SYSTEM := $(shell uname -s 2>/dev/null)
+ifeq ($(HOST_SYSTEM),Darwin)
+NOLIBC_PRESET ?= macos-nolibc-arm64
+NOLIBC_TARGET ?= av2heif-decoder-nolibc-build \
+	av2heif-freestanding-check av2heif-runtime-freestanding-check
+else
+NOLIBC_PRESET ?= linux-nolibc
+NOLIBC_TARGET ?= av2heif-decoder-nolibc av2heif-freestanding-check
+endif
+
 VIEWER_BUILD_ARGS ?= --skip-assets --jobs $(JOBS)
 
 .PHONY: all decoder nolibc clean wasm reference-gallery
@@ -29,9 +39,9 @@ decoder:
 	cmake --build --preset $(DECODER_PRESET) $(CMAKE_BUILD_ARGS) --target av2heif-decoder av2heif-freestanding-check
 
 nolibc:
-	cmake --preset linux-nolibc
-	cmake --build --preset linux-nolibc $(CMAKE_BUILD_ARGS) --target av2heif-decoder-nolibc av2heif-freestanding-check
-	ctest --preset linux-nolibc $(CTEST_PARALLEL_ARGS)
+	cmake --preset $(NOLIBC_PRESET)
+	cmake --build --preset $(NOLIBC_PRESET) $(CMAKE_BUILD_ARGS) --target $(NOLIBC_TARGET)
+	ctest --preset $(NOLIBC_PRESET) $(CTEST_PARALLEL_ARGS)
 
 clean:
 	cmake -E rm -rf $(DECODER_BUILD_DIR)

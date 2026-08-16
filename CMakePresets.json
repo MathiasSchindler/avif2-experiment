@@ -77,6 +77,28 @@
       }
     },
     {
+      "name": "macos-nolibc-arm64",
+      "displayName": "macOS ARM64 no-import decoder",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/macos-nolibc-arm64",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_C_COMPILER": "/usr/bin/clang",
+        "CMAKE_C_FLAGS": "-flto=full",
+        "CMAKE_OSX_ARCHITECTURES": "arm64",
+        "CMAKE_OSX_DEPLOYMENT_TARGET": "11.0",
+        "AV2HEIF_BUILD_HOST_TESTS": "OFF",
+        "AV2HEIF_BUILD_WINDOWS_TOOLS": "OFF",
+        "AV2HEIF_BUILD_NATIVE_CLI": "OFF",
+        "AV2HEIF_BUILD_MACOS_NOLIBC": "ON"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Darwin"
+      }
+    },
+    {
       "name": "windows-x86_64",
       "displayName": "Windows x86-64 (freestanding LLVM)",
       "generator": "Ninja",
@@ -137,6 +159,10 @@
       "configurePreset": "linux-nolibc-aarch64"
     },
     {
+      "name": "macos-nolibc-arm64",
+      "configurePreset": "macos-nolibc-arm64"
+    },
+    {
       "name": "windows-x86_64",
       "configurePreset": "windows-x86_64"
     },
@@ -177,6 +203,13 @@
     {
       "name": "linux-nolibc-aarch64",
       "configurePreset": "linux-nolibc-aarch64",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "macos-nolibc-arm64",
+      "configurePreset": "macos-nolibc-arm64",
       "output": {
         "outputOnFailure": true
       }
