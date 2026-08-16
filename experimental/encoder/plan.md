@@ -280,7 +280,7 @@ level, and stream staging now use an explicitly queried caller workspace.
 Checked workspace geometry scales through the prepared-input limits without
 fixed 16×16 core arrays; the Linux CLI owns anonymous page mappings and
 releases them deterministically. The codec core remains allocation-free.
-Dimensions through 896 on either axis use the derived legal rectangle-only
+Dimensions through 1440 on either axis use the derived legal rectangle-only
 partition syntax across row-major 64x64 superblocks. The CLI retains atomic
 `.obu` replacement and reports exact
 bytes, active-pixel SSE/PSNR, workspace bytes, and qindex.
@@ -500,14 +500,16 @@ separate reviewed project after the experimental gates pass.
 
 The prepared-corpus, partition, adaptive-CDF, coefficient-context, scalable
 storage, and multi-superblock traversal gates are complete. Public workspace
-encoding supports 1..896 on either axis. All 14 selected full prepared images,
+encoding supports 1..1440 on either axis. All 14 selected frozen full prepared images,
 at 896x424 (1), 896x448 (1), 896x504 (1), 896x598 (5), 598x896 (2),
 896x672 (1), and 896x896 (3), are deterministic and match both decoders.
-This is the current 8-bit I400 896-per-axis bound; arbitrary dimensions and
-the unrestricted chroma rectangle remains a future milestone.
+All 14 explicit `le1440` prepared images also pass deterministic encoding and
+exact local/pinned-AVM/project parity, including three 1440x1440 sources and
+both axis orientations. This is the current 8-bit I400 1440-per-axis bound;
+arbitrary larger dimensions remain a future milestone.
 
 The admitted 8-bit DC-only chroma profile now covers every I420/I444 width and
-height from 1 through 896 at every qindex 1..255: 802,816 dimension pairs per
+height from 1 through 1440 at every qindex 1..255: 2,073,600 dimension pairs per
 format. The final half-grid correction uses the frame's 8-pixel-aligned MI
 boundary for the separate chroma tree, omits the normative 8×8 chroma
 partition symbol, and models rectangular 4×8/8×4 and 8×16/16×8 transforms

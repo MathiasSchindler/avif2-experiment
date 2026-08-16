@@ -189,5 +189,5 @@ neighbors cross superblock boundaries.
 The former integration mismatch is exact: terminal 8x8 boundary leaves
 used split context 4 instead of 0. The private correction passes both decoders
 for flat and non-flat 24/32/40/48/56/64 classes. See
-`m3-boundary-partition-transcript.md`. The public one-superblock limit is now
-896; full-image/multi-superblock promotion is complete.
+`m3-boundary-partition-transcript.md`. Full-image/multi-superblock promotion
+is complete through the 1440-per-axis production bound.

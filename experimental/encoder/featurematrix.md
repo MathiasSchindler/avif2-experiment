@@ -39,12 +39,12 @@ append-only [log.md](log.md). Detailed syntax derivations are under
 | Sequence | Scalability and dependency layers | **Out of scope** | One independently decodable picture and one layer only. |
 | Sequence | 8-bit samples | **Implemented** | Production I400, I420, and I444 paths are 8-bit. |
 | Sequence | 10-bit and 12-bit samples | **Not implemented** | Higher-bit-depth input, transforms, quantization, reconstruction, and signaling are absent. |
-| Sequence | I400 monochrome | **Implemented** | Every width and height from 1 through 896 at qindex 1 through 255. |
-| Sequence | I420 4:2:0 | **Implemented** | Every width and height from 1 through 896, including odd ceil-divided chroma geometry. |
-| Sequence | I444 4:4:4 | **Implemented** | Every width and height from 1 through 896. |
+| Sequence | I400 monochrome | **Implemented** | Every width and height from 1 through 1440 at qindex 1 through 255. |
+| Sequence | I420 4:2:0 | **Implemented** | Every width and height from 1 through 1440, including odd ceil-divided chroma geometry. |
+| Sequence | I444 4:4:4 | **Implemented** | Every width and height from 1 through 1440. |
 | Sequence | Other chroma formats/subsampling | **Not implemented** | No additional `chroma_format_idc` surface is admitted. |
 | Sequence | Color description, range, and chroma sample position choices | **Partial** | The encoder emits one fixed color configuration per admitted format; arbitrary colorimetry and siting controls are absent. |
-| Sequence | Maximum frame dimensions | **Implemented** | Dimensions are encoded from the input; the validated production bound is 1..896 on each axis. |
+| Sequence | Maximum frame dimensions | **Implemented** | Dimensions are encoded from the input; the validated production bound is 1..1440 on each axis. Streams through 896 retain their frozen level selection; the expanded band uses level index 4. |
 | Sequence | Conformance/display cropping | **Disabled** | The coded boundary is edge-extended internally, but no independent sequence crop window is selected. Decoder output uses the declared active dimensions. |
 | Frame | Closed Loop Key still picture | **Implemented** | One intra-only, immediately displayed, independently decodable frame. |
 | Frame | Other key/intra frame arrangements | **Not implemented** | No alternative frame lifecycle or multi-frame sequence is produced. |
@@ -131,7 +131,7 @@ append-only [log.md](log.md). Detailed syntax derivations are under
 ## Current practical profile
 
 The useful production profile is one 8-bit, one-tile, intra-only Closed Loop
-Key picture in I400, I420, or I444, with both axes in 1..896 and qindex in
+Key picture in I400, I420, or I444, with both axes in 1..1440 and qindex in
 1..255. It uses a deterministic rectangle-only 64x64-superblock traversal,
 DC prediction, DC-only transform coefficients by default, no in-loop filters,
 and no metadata or container. General 8x8 I400 AC is reachable only through

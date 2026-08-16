@@ -1,6 +1,6 @@
 # M3 multi-superblock traversal
 
-Status: production-complete for 8-bit DC-only I400 through 896x896.
+Status: production-complete for 8-bit DC-only I400 through 1440x1440.
 
 The single tile visits 64x64 superblock roots row-major in 16-MI steps.
 Frame MI dimensions remain `2 * ceil(pixels / 8)`, so the final root on each
@@ -18,7 +18,9 @@ SSE and returned reconstruction use only the active crop.
 
 `tools/m3_multisuperblock_model.py` independently freezes root and transform
 order for the requested 65/127/128/129 cases and prepared-image dimensions.
-`tests/m3_multisuperblock_parity.json` records 14/14 deterministic selected
-prepared-image encodes and 14/14 exact pinned-AVM/project parity. Level index
-0 is used through its 552,960-sample picture limit; larger selected images use
-level index 1.
+`tests/m3_multisuperblock_parity.json` records the frozen 14/14 deterministic
+`le896` encodes and exact pinned-AVM/project parity. The explicit `le1440`
+corpus gate records another 14/14 deterministic encodes with exact
+local/pinned-AVM/project parity. Level index 0 is used through its
+552,960-sample picture limit and level index 1 above it within the frozen
+896-axis band; any axis in 897..1440 uses level index 4.

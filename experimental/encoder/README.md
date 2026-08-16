@@ -79,7 +79,7 @@ PNG and BMP are recognized by suffix and checked against their file
 signatures. Grayscale decodes to I400. RGB, RGBA, and palette color decode to
 full-resolution I444; color is never silently subsampled. Alpha is ignored
 rather than composited and does not become an AV2 plane. All three raw planar
-formats and both image formats feed the admitted 1..896 DC workspace encoder.
+formats and both image formats feed the admitted 1..1440 DC workspace encoder.
 
 The encoder refuses an output path that names the input, including an
 existing hard-link or symlink alias. Existing non-input outputs are replaced
@@ -115,7 +115,7 @@ normative AV2 v1.0.0 attachment values listed in `PROVENANCE.md`; no fixture or
 complete golden stream is embedded in production code.
 
 The active M3 subset accepts arbitrary-pixel raw 8-bit I400 images with each
-axis in 1 through 896:
+axis in 1 through 1440:
 
 ```sh
 experimental/encoder/build/av2-encoder-experiment \
@@ -146,7 +146,7 @@ validator matrix covers flat and generated non-flat 64×64, 128×64, and
 128×128 frames at every q-context boundary.
 
 Input metadata validation still accepts dimensions through 16384 for a precise
-unsupported result, but validated encoding is limited to 896 on either axis.
+unsupported result, but validated encoding is limited to 1440 on either axis.
 Stride must be at least width and the file must contain exactly
 `stride * height` bytes. Larger dimensions exit 5 without creating output.
 
@@ -170,11 +170,14 @@ in `tests/m3_multileaf_cdf_vectors.json` and documented in
 `spec-notes/m3-multileaf-cdf-state.md`. The production matrix transcript in
 `tests/m3_production_matrix.json` freezes all 2,304 17..64 dimension pairs;
 local reconstruction, pinned `avmdec`, and the project decoder agree exactly.
-The one-superblock transcript remains frozen. The 14 selected complete
+The one-superblock transcript remains frozen. The 14 historically selected complete
 prepared planes are 896×424 (1), 896×448 (1), 896×504 (1), 896×598 (5),
 598×896 (2), 896×672 (1), and 896×896 (3); every one has deterministic OBU
-and exact local/pinned-AVM/project reconstruction parity. This is a
-896-per-axis I400 bound, not arbitrary-size or chroma support. An exhaustive
+and exact local/pinned-AVM/project reconstruction parity. The explicit
+`le1440` gate additionally passes all 14 prepared sources, including three
+1440×1440 images and both axis orientations, with deterministic OBU and exact
+three-way reconstruction parity. This is a 1440-per-axis production bound,
+not arbitrary-size support. An exhaustive
 257-case check (all 256 constant 8×8 sample values plus one four-quadrant
 16×16 grid) was deterministic and byte-exact between local reconstruction,
 pinned `avmdec`, and the project decoder. Representative results are flat-128:
@@ -192,10 +195,10 @@ allocation stays outside the freestanding codec core.
 
 The typed experimental multi-plane entry point
 `enc_m3_dc_yuv8_q_workspace()` admits decoder-exact 8-bit DC-only I420 and
-I444 at qindex 1 through 255 for every width and height from 1 through 896.
-This is 802,816 dimension pairs per format. Existing I400, 8×8 chroma, odd
-I420, and previously admitted half-grid streams remain unchanged; only an
-axis above 896 is closed. The public bound is
+I444 at qindex 1 through 255 for every width and height from 1 through 1440.
+This is 2,073,600 dimension pairs per format. Existing I400, 8×8 chroma, odd
+I420, and previously admitted half-grid streams through 896 retain their
+frozen level selection; only an axis above 1440 is closed. The public bound is
 `ENC_M3_CHROMA_MAX_DIMENSION`.
 
 I420 active U/V dimensions are `ceil(width/2) × ceil(height/2)`.

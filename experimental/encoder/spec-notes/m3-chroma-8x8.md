@@ -9,8 +9,8 @@ chroma, shared U/V quantization, and the existing filter-free still-picture
 configuration. The frame header retains qindex 1..255 and disables qmatrix,
 delta-q, and deblock.
 
-I420 active planes are `cw=(width+1)/2`, `ch=(height+1)/2`. The bounded profile admits every width and height from 1 through 896 for both
-formats: 802,816 dimension pairs each. All qindices 1..255 are supported.
+I420 active planes are `cw=(width+1)/2`, `ch=(height+1)/2`. The bounded profile admits every width and height from 1 through 1440 for both
+formats: 2,073,600 dimension pairs each. All qindices 1..255 are supported.
 
 The 8×8 path codes one shared partition. Luma uses
 the existing DC path. Chroma codes DC mode, non-CfL, one U and one V transform,
@@ -86,4 +86,6 @@ mixed odd/even axes, 8/16/64/128 boundaries, partial and complete
 superblocks, 896×424, 896×448, 896×504, 896×598, 598×896, 896×672, and 896×896, plus qindex boundaries 1, 90, 91,
 140, 141, 190, 191, and 255. Local reconstruction is byte-identical to pinned
 AVM and the project decoder. The frozen manifest has 20 streams. Probes
-include 8×9, 17×16, 24×24, and 64×65. Any axis above 896 is closed.
+include 8×9, 17×16, 24×24, 64×65, 1440×960, 960×1440, and 1440×1440.
+Any axis above 1440 is closed; streams through 896 retain frozen level
+selection.

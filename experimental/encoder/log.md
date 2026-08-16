@@ -4,6 +4,34 @@ This is an append-only record of decisions, commands, pins, hashes, gate
 results, blockers, and restart points. Do not replace exact values with links
 or “latest”.
 
+## 2026-08-16 — 1440-per-axis DC production admission
+
+- **Status:** DONE. The 8-bit I400/I420/I444 DC profile now admits every
+  width and height in 1..1440 at qindex 1..255; 1441 is rejected atomically.
+- **Compatibility:** the existing 1..896 sequence-level rule and frozen
+  streams are unchanged. If either axis is in 897..1440, the sequence header
+  uses level index 4 to satisfy the single-picture DPB constraint.
+- **Storage:** tile-wide partition, coefficient, mode, and chroma above state
+  now derives 360 MI columns from the public maximum. Exact 1440x1440 I400
+  geometry is 32,400 transforms, 2,073,856 bytes of stream capacity, and
+  10,433,568 bytes of caller-owned workspace.
+- **Chroma gate:** native exhaustive geometry admits 2,073,600 dimension
+  pairs per I420/I444 format. Generated 1440x960, 960x1440, and 1440x1440
+  streams reconstruct byte-identically in pinned AVM and the project decoder.
+- **Real corpus gate:** all 14 explicit `le1440` I400 preparations passed at
+  qindex 100 with deterministic reruns and exact local/AVM/project output;
+  `pass=14, expected_blocked=0, blocked=0, error=0`. The set contains three
+  1440x1440 images, two 960x1440 portraits, and nine 1440-wide landscapes.
+  OBU sizes are 6,083..25,978 bytes. Evidence SHA-256 is
+  `59078086fd1f44dc80e3c300eab7a7e61ede88ed28e0d580c024de34660bf8d6`.
+- **Implementation:** the freestanding static/no-libc architecture is
+  unchanged. The corpus runner gained explicit `--preparation le1440`
+  selection while preserving its historical smallest-preparation default.
+- **Validation:** full `make test` passes 173 Python tests plus all
+  generated/native/shell checks, dependency audit, and static-ELF audit. All
+  32 project CTests pass. `git diff --check` and feature-matrix table checks
+  pass.
+
 ## 2026-08-16 — Smooth/Paeth production intra search
 
 - **Status:** DONE. Todo `encoder-smooth-paeth-production`.
