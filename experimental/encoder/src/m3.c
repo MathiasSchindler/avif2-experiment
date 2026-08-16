@@ -2536,73 +2536,19 @@ static uint64_t predictive_block_error(
     return error;
 }
 
-static void search_transform(
+static void search_predicted_transform(
     EncM3SearchState *state, size_t block_x, size_t block_y,
-    uint8_t actual_mode) {
-    uint8_t above_storage[17U];
-    uint8_t left[16U];
-    uint8_t *above = &above_storage[1U];
-    const uint8_t *above_edge = 0;
-    const uint8_t *left_edge = 0;
-    uint8_t corner = 128U;
-    uint8_t prediction[64U];
+    const uint8_t prediction[64U], int non_dc) {
     uint8_t best_reconstruction[64U];
     int best_level = 0;
     uint64_t best_error;
     int level;
-    size_t edge;
     size_t y;
     size_t x;
-    size_t above_count = 0U;
-    size_t left_count = 0U;
-    if (block_y != 0U) {
-        size_t limit = actual_mode >= 5U && actual_mode <= 7U ? 8U : 16U;
-        for (edge = 0U; edge < limit; ++edge) {
-            size_t edge_x = block_x + edge < state->width
-                ? block_x + edge : state->width - 1U;
-            if (actual_mode >= 5U && actual_mode <= 7U &&
-                !search_sample_reconstructed(
-                    state->superblock_x, state->superblock_y, 64U,
-                    state->reconstructed_cells, edge_x, block_y - 1U)) {
-                break;
-            }
-            above[edge] = state->reconstruction[
-                (block_y - 1U) * state->padded_width + edge_x];
-        }
-        above_count = edge;
-        above[-1] = block_x == 0U ? above[0U] :
-            state->reconstruction[
-                (block_y - 1U) * state->padded_width + block_x - 1U];
-        above_edge = above_count == 0U ? 0 : above;
-    }
-    if (block_x != 0U) {
-        size_t limit = actual_mode >= 5U && actual_mode <= 7U ? 8U : 16U;
-        for (edge = 0U; edge < limit; ++edge) {
-            size_t edge_y = block_y + edge < state->height
-                ? block_y + edge
-                : state->height - 1U;
-            if (actual_mode >= 5U && actual_mode <= 7U &&
-                !search_sample_reconstructed(
-                    state->superblock_x, state->superblock_y, 64U,
-                    state->reconstructed_cells, block_x - 1U, edge_y)) {
-                break;
-            }
-            left[edge] = state->reconstruction[
-                edge_y * state->padded_width + block_x - 1U];
-        }
-        left_count = edge;
-        left_edge = left_count == 0U ? 0 : left;
-    }
-    corner = above_edge != 0 && left_edge != 0 ? above[-1] :
-             above_edge != 0 ? above[0U] :
-             left_edge != 0 ? left[0U] : 128U;
-    intra_prediction8(
-        actual_mode, above_edge, above_count,
-        left_edge, left_count, corner, prediction);
     best_error = predictive_block_error(
         state->input, state->width, state->height, state->stride,
         block_x, block_y, prediction, 0, 0, best_reconstruction);
-    if (actual_mode != 0U && best_error != 0U) {
+    if (non_dc && best_error != 0U) {
         int64_t difference_sum = 0;
         int low = -(int)state->max_level;
         int high = (int)state->max_level;
@@ -2688,6 +2634,74 @@ static void search_transform(
         state->reconstructed_cells, block_x, block_y, 8U, 8U);
 }
 
+static void search_transform(
+    EncM3SearchState *state, size_t block_x, size_t block_y,
+    uint8_t actual_mode, int extended_edges_unavailable) {
+    uint8_t above_storage[17U];
+    uint8_t left[16U];
+    uint8_t *above = &above_storage[1U];
+    const uint8_t *above_edge = 0;
+    const uint8_t *left_edge = 0;
+    uint8_t corner = 128U;
+    uint8_t prediction[64U];
+    size_t edge;
+    size_t above_count = 0U;
+    size_t left_count = 0U;
+    if (block_y != 0U) {
+        size_t limit = actual_mode >= 5U && actual_mode <= 7U &&
+                extended_edges_unavailable
+            ? 8U : 16U;
+        for (edge = 0U; edge < limit; ++edge) {
+            size_t edge_x = block_x + edge < state->width
+                ? block_x + edge : state->width - 1U;
+            if (actual_mode >= 5U && actual_mode <= 7U &&
+                !search_sample_reconstructed(
+                    state->superblock_x, state->superblock_y, 64U,
+                    state->reconstructed_cells, edge_x, block_y - 1U)) {
+                break;
+            }
+            above[edge] = state->reconstruction[
+                (block_y - 1U) * state->padded_width + edge_x];
+        }
+        above_count = edge;
+        above_edge = above_count == 0U ? 0 : above;
+        above[-1] = above_edge == 0 ? 128U :
+            block_x == 0U ? above[0U] :
+                state->reconstruction[
+                    (block_y - 1U) * state->padded_width + block_x - 1U];
+    }
+    if (block_x != 0U) {
+        size_t limit = actual_mode >= 5U && actual_mode <= 6U &&
+                !extended_edges_unavailable &&
+                block_y + 8U < state->height
+            ? 9U :
+            actual_mode >= 5U && actual_mode <= 7U ? 8U : 16U;
+        for (edge = 0U; edge < limit; ++edge) {
+            size_t edge_y = block_y + edge < state->height
+                ? block_y + edge
+                : state->height - 1U;
+            if (actual_mode >= 5U && actual_mode <= 7U &&
+                !search_sample_reconstructed(
+                    state->superblock_x, state->superblock_y, 64U,
+                    state->reconstructed_cells, block_x - 1U, edge_y)) {
+                break;
+            }
+            left[edge] = state->reconstruction[
+                edge_y * state->padded_width + block_x - 1U];
+        }
+        left_count = edge;
+        left_edge = left_count == 0U ? 0 : left;
+    }
+    corner = above_edge != 0 && left_edge != 0 ? above[-1] :
+             above_edge != 0 ? above[0U] :
+             left_edge != 0 ? left[0U] : 128U;
+    intra_prediction8(
+        actual_mode, above_edge, above_count,
+        left_edge, left_count, corner, prediction);
+    search_predicted_transform(
+        state, block_x, block_y, prediction, actual_mode != 0U);
+}
+
 static int search_forced_axis(
     size_t mi_rows, size_t mi_columns, size_t row, size_t column,
     size_t width, size_t height) {
@@ -2739,7 +2753,8 @@ static void search_large_partition(
         for (y = 0U; y < height * 4U; y += 8U) {
             for (x = 0U; x < width * 4U; x += 8U) {
                 search_transform(
-                    state, column * 4U + x, row * 4U + y, mode);
+                    state, column * 4U + x, row * 4U + y, mode,
+                    0);
             }
         }
         return;
@@ -2918,7 +2933,7 @@ static EncStatus encode_i400_mode(
             search_transform(
                 &search, block_x, block_y,
                 mode == 3U ? (block_y == 0U ? 0U : 1U) :
-                mode == 4U ? (block_x == 0U ? 0U : 2U) : mode);
+                mode == 4U ? (block_x == 0U ? 0U : 2U) : mode, 0);
         }
         total_error = search.error;
     } else for (block = 0U; block < block_count; ++block) {

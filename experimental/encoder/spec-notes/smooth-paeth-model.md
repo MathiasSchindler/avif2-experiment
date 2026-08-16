@@ -79,8 +79,11 @@ Paeth with stable ties and fresh complete-stream state. Smooth-family trials
 cover every admitted I400/I420/I444 image dimension from 1 through 1440.
 The fixed superblock traversal tracks reconstructed 4x4 cells separately per
 plane; optional top-right and bottom-left endpoints are used only when the
-decoder would expose them. FSC is zero, MRLS is zero only for V/H, CfL is
-zero, and chroma uses DC prediction.
+decoder would expose them. For large I400 split leaves, the emitted square and
+two-way transform partitions keep extended transform edges available, so the
+local oracle uses up to twice the top width and one extra bottom-left sample
+for Smooth/Smooth-V exactly like both decoders. FSC is zero, MRLS is zero only
+for V/H, CfL is zero, and chroma uses DC prediction.
 
 The locked 224-case full-stream subset passes exact local reconstruction for
 every selected Smooth-family mode and exact pinned-AVM/project parity for

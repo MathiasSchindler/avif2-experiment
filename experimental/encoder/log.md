@@ -4,6 +4,37 @@ This is an append-only record of decisions, commands, pins, hashes, gate
 results, blockers, and restart points. Do not replace exact values with links
 or “latest”.
 
+## 2026-08-16 — blockiness diagnosis M0
+
+- **Status:** DONE for `blocky.md` M0. The frozen gate covers Baya Weaver
+  1440x960 I400/I420/I444 with bounded qindices 60, 80, 100, 120, 150, 165,
+  180, and 220 plus q100 off/intra/directional anchors: 33 deterministic
+  streams, 33 retained OBUs, and 36 retained luma crops.
+- **Parity:** encoder-local reported SSE equals decoded source SSE in every
+  case; pinned AVM and the project decoder reconstruct byte-identically.
+  Encoder SHA-256 is
+  `d569695a1b470450ec62bafd699fd86c3cdd13c6344e85491f1772a514ef0f6b`;
+  pinned AVM is
+  `c247cbb4e71e48bdec89f3c8b2b8efdce17f673aeaa39e3c116a276d16286aa0`;
+  project decoder is
+  `7d17f598f2cdffe7dfb4ab46982cf5c4822215a5f429cb39e7748a60ce5ef535`.
+- **Metrics:** deterministic 8x8-window SSIM accompanies SSE/PSNR. The
+  boundary metric compares decoded-minus-source adjacent-sample gradient
+  error at coded 4x4/8x8/16x16 boundaries against non-boundary gradients, so
+  real feather and branch edges are not automatically classified as blocks.
+- **Diagnosis:** residual capacity. Aggregate q60 versus q100 bounded output
+  grows 61.63% in bytes but improves luma SSE only 3.93%. The q60 aggregate
+  8x8 boundary/interior gradient-error ratio is 1.068, below the frozen 1.15
+  boundary threshold. Prioritize M1 combined prediction/AC and M2 residual
+  breadth before M3 deblocking.
+- **Defect found:** full-size I400 Smooth local reconstruction had treated
+  all transform extended edges as unavailable although the emitted square and
+  two-way partitions preserve them. Corrected edge counts now make a locked
+  32x32 Smooth stream and the full Baya anchor exact in local/AVM/project
+  reconstruction.
+- **Evidence:** `metrics/blockiness-m0.json`,
+  `metrics/blockiness-m0/`, and `make -C experimental/encoder blockiness-m0`.
+
 ## 2026-08-16 — full-image 8x8 luma AC production default
 
 - **Surface:** default `--search bounded` searches eight low-frequency

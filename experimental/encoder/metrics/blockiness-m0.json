@@ -1,0 +1,5318 @@
+{
+  "cases": [
+    {
+      "avm_project_exact": true,
+      "command": [
+        "av2-encoder-experiment",
+        "source-1440x960-gray8.i400",
+        "--width",
+        "1440",
+        "--height",
+        "960",
+        "--qindex",
+        "60",
+        "--search",
+        "bounded",
+        "--output",
+        "bounded-q60.obu"
+      ],
+      "decode_time_ns": {
+        "avm": 90314904,
+        "project": 56159566
+      },
+      "decoded_sha256": "14896ff2735e9071ccfa2d85fdc7c52368ace243375c2ba7dfe7e0a39e3d8a99",
+      "deterministic": true,
+      "encode_time_ns": {
+        "median": 33337829479,
+        "samples": [
+          33287341855,
+          33388317103
+        ],
+        "worst": 33388317103
+      },
+      "encoder_local_sse_matches_decode": true,
+      "encoder_reported_sse": [
+        52588279
+      ],
+      "height": 960,
+      "id": "i400-bounded-q60",
+      "input_bytes": 1382400,
+      "input_sha256": "e83bb7ed1fef36481d39f196ccc60d3ea658a598a237e818b92866758913bf5e",
+      "obu_bytes": 24517,
+      "obu_sha256": "d749b955a464e6cca01893d01336c5af0c5e2daf65a6f7fd3a9ae25e8a708b03",
+      "pixel_format": "i400",
+      "planes": [
+        {
+          "boundaries": [
+            {
+              "block": 4,
+              "boundary_excess_discontinuity": 430492,
+              "boundary_gradient_error_absolute": 1946131,
+              "boundary_gradient_error_squared": 38190557,
+              "boundary_samples": 688800,
+              "boundary_to_interior_error_ratio_ppm": 1028995,
+              "interior_gradient_error_squared": 111731127,
+              "interior_samples": 2073600
+            },
+            {
+              "block": 8,
+              "boundary_excess_discontinuity": 373679,
+              "boundary_gradient_error_absolute": 1026110,
+              "boundary_gradient_error_squared": 19662488,
+              "boundary_samples": 343200,
+              "boundary_to_interior_error_ratio_ppm": 1064031,
+              "interior_gradient_error_squared": 130259196,
+              "interior_samples": 2419200
+            },
+            {
+              "block": 16,
+              "boundary_excess_discontinuity": 187196,
+              "boundary_gradient_error_absolute": 512142,
+              "boundary_gradient_error_squared": 9951300,
+              "boundary_samples": 170400,
+              "boundary_to_interior_error_ratio_ppm": 1081456,
+              "interior_gradient_error_squared": 139970384,
+              "interior_samples": 2592000
+            }
+          ],
+          "decoded_sha256": "14896ff2735e9071ccfa2d85fdc7c52368ace243375c2ba7dfe7e0a39e3d8a99",
+          "height": 960,
+          "plane": "y",
+          "psnr_db": "32.328251",
+          "samples": 1382400,
+          "source_sha256": "e83bb7ed1fef36481d39f196ccc60d3ea658a598a237e818b92866758913bf5e",
+          "sse": 52588279,
+          "ssim_q1e9": 945037806,
+          "width": 1440
+        }
+      ],
+      "qindex": 60,
+      "retained_obu": "metrics/blockiness-m0/streams/i400/bounded-q60.obu",
+      "search": "bounded",
+      "width": 1440,
+      "workspace_bytes": 19398849
+    },
+    {
+      "avm_project_exact": true,
+      "command": [
+        "av2-encoder-experiment",
+        "source-1440x960-gray8.i400",
+        "--width",
+        "1440",
+        "--height",
+        "960",
+        "--qindex",
+        "80",
+        "--search",
+        "bounded",
+        "--output",
+        "bounded-q80.obu"
+      ],
+      "decode_time_ns": {
+        "avm": 91406808,
+        "project": 68191319
+      },
+      "decoded_sha256": "d1e325f5e7f7fd77170193c5983df5560944bc036d774dd5f0c91b8f9763b3f0",
+      "deterministic": true,
+      "encode_time_ns": {
+        "median": 30875625410,
+        "samples": [
+          30729076315,
+          31022174505
+        ],
+        "worst": 31022174505
+      },
+      "encoder_local_sse_matches_decode": true,
+      "encoder_reported_sse": [
+        50441051
+      ],
+      "height": 960,
+      "id": "i400-bounded-q80",
+      "input_bytes": 1382400,
+      "input_sha256": "e83bb7ed1fef36481d39f196ccc60d3ea658a598a237e818b92866758913bf5e",
+      "obu_bytes": 19676,
+      "obu_sha256": "013dcaccd406984167ce47a94a53553617f448aef68201045860c4afc0bcfee5",
+      "pixel_format": "i400",
+      "planes": [
+        {
+          "boundaries": [
+            {
+              "block": 4,
+              "boundary_excess_discontinuity": 428511,
+              "boundary_gradient_error_absolute": 1936724,
+              "boundary_gradient_error_squared": 37743656,
+              "boundary_samples": 688800,
+              "boundary_to_interior_error_ratio_ppm": 1013248,
+              "interior_gradient_error_squared": 112139844,
+              "interior_samples": 2073600
+            },
+            {
+              "block": 8,
+              "boundary_excess_discontinuity": 371317,
+              "boundary_gradient_error_absolute": 1016208,
+              "boundary_gradient_error_squared": 19232182,
+              "boundary_samples": 343200,
+              "boundary_to_interior_error_ratio_ppm": 1037622,
+              "interior_gradient_error_squared": 130651318,
+              "interior_samples": 2419200
+            },
+            {
+              "block": 16,
+              "boundary_excess_discontinuity": 184496,
+              "boundary_gradient_error_absolute": 505925,
+              "boundary_gradient_error_squared": 9680579,
+              "boundary_samples": 170400,
+              "boundary_to_interior_error_ratio_ppm": 1050291,
+              "interior_gradient_error_squared": 140202921,
+              "interior_samples": 2592000
+            }
+          ],
+          "decoded_sha256": "d1e325f5e7f7fd77170193c5983df5560944bc036d774dd5f0c91b8f9763b3f0",
+          "height": 960,
+          "plane": "y",
+          "psnr_db": "32.509300",
+          "samples": 1382400,
+          "source_sha256": "e83bb7ed1fef36481d39f196ccc60d3ea658a598a237e818b92866758913bf5e",
+          "sse": 50441051,
+          "ssim_q1e9": 942511236,
+          "width": 1440
+        }
+      ],
+      "qindex": 80,
+      "retained_obu": "metrics/blockiness-m0/streams/i400/bounded-q80.obu",
+      "search": "bounded",
+      "width": 1440,
+      "workspace_bytes": 19398849
+    },
+    {
+      "avm_project_exact": true,
+      "command": [
+        "av2-encoder-experiment",
+        "source-1440x960-gray8.i400",
+        "--width",
+        "1440",
+        "--height",
+        "960",
+        "--qindex",
+        "100",
+        "--search",
+        "bounded",
+        "--output",
+        "bounded-q100.obu"
+      ],
+      "decode_time_ns": {
+        "avm": 90686705,
+        "project": 53859562
+      },
+      "decoded_sha256": "1d17e3d6cffe5d5ed38b88c176602ff803a824c382e0e4da1fd882b8c3856f09",
+      "deterministic": true,
+      "encode_time_ns": {
+        "median": 29374144051,
+        "samples": [
+          29337915041,
+          29410373061
+        ],
+        "worst": 29410373061
+      },
+      "encoder_local_sse_matches_decode": true,
+      "encoder_reported_sse": [
+        55002899
+      ],
+      "height": 960,
+      "id": "i400-bounded-q100",
+      "input_bytes": 1382400,
+      "input_sha256": "e83bb7ed1fef36481d39f196ccc60d3ea658a598a237e818b92866758913bf5e",
+      "obu_bytes": 15234,
+      "obu_sha256": "ebfc94c8267cac9c4f81dd876f10a22314972738f92c2672add326eeb122dbf2",
+      "pixel_format": "i400",
+      "planes": [
+        {
+          "boundaries": [
+            {
+              "block": 4,
+              "boundary_excess_discontinuity": 416445,
+              "boundary_gradient_error_absolute": 1951227,
+              "boundary_gradient_error_squared": 38390573,
+              "boundary_samples": 688800,
+              "boundary_to_interior_error_ratio_ppm": 1019911,
+              "interior_gradient_error_squared": 113316761,
+              "interior_samples": 2073600
+            },
+            {
+              "block": 8,
+              "boundary_excess_discontinuity": 365338,
+              "boundary_gradient_error_absolute": 1029788,
+              "boundary_gradient_error_squared": 19764432,
+              "boundary_samples": 343200,
+              "boundary_to_interior_error_ratio_ppm": 1055900,
+              "interior_gradient_error_squared": 131942902,
+              "interior_samples": 2419200
+            },
+            {
+              "block": 16,
+              "boundary_excess_discontinuity": 182886,
+              "boundary_gradient_error_absolute": 513624,
+              "boundary_gradient_error_squared": 9966918,
+              "boundary_samples": 170400,
+              "boundary_to_interior_error_ratio_ppm": 1069627,
+              "interior_gradient_error_squared": 141740416,
+              "interior_samples": 2592000
+            }
+          ],
+          "decoded_sha256": "1d17e3d6cffe5d5ed38b88c176602ff803a824c382e0e4da1fd882b8c3856f09",
+          "height": 960,
+          "plane": "y",
+          "psnr_db": "32.133285",
+          "samples": 1382400,
+          "source_sha256": "e83bb7ed1fef36481d39f196ccc60d3ea658a598a237e818b92866758913bf5e",
+          "sse": 55002899,
+          "ssim_q1e9": 934596689,
+          "width": 1440
+        }
+      ],
+      "qindex": 100,
+      "retained_obu": "metrics/blockiness-m0/streams/i400/bounded-q100.obu",
+      "search": "bounded",
+      "width": 1440,
+      "workspace_bytes": 19398849
+    },
+    {
+      "avm_project_exact": true,
+      "command": [
+        "av2-encoder-experiment",
+        "source-1440x960-gray8.i400",
+        "--width",
+        "1440",
+        "--height",
+        "960",
+        "--qindex",
+        "120",
+        "--search",
+        "bounded",
+        "--output",
+        "bounded-q120.obu"
+      ],
+      "decode_time_ns": {
+        "avm": 83926874,
+        "project": 45810313
+      },
+      "decoded_sha256": "5d7ede605fb37c46d73840d7cc9707b0eaf54afdd53c0235c46f119aa0f41569",
+      "deterministic": true,
+      "encode_time_ns": {
+        "median": 28700516961,
+        "samples": [
+          28708886154,
+          28692147768
+        ],
+        "worst": 28708886154
+      },
+      "encoder_local_sse_matches_decode": true,
+      "encoder_reported_sse": [
+        67921143
+      ],
+      "height": 960,
+      "id": "i400-bounded-q120",
+      "input_bytes": 1382400,
+      "input_sha256": "e83bb7ed1fef36481d39f196ccc60d3ea658a598a237e818b92866758913bf5e",
+      "obu_bytes": 9897,
+      "obu_sha256": "d8df19b39d9e81fea72ac2973b58b614e5ee74ceb11245c5279576aea91ecc4f",
+      "pixel_format": "i400",
+      "planes": [
+        {
+          "boundaries": [
+            {
+              "block": 4,
+              "boundary_excess_discontinuity": 430137,
+              "boundary_gradient_error_absolute": 2020135,
+              "boundary_gradient_error_squared": 40806475,
+              "boundary_samples": 688800,
+              "boundary_to_interior_error_ratio_ppm": 1056358,
+              "interior_gradient_error_squared": 116291952,
+              "interior_samples": 2073600
+            },
+            {
+              "block": 8,
+              "boundary_excess_discontinuity": 390163,
+              "boundary_gradient_error_absolute": 1094716,
+              "boundary_gradient_error_squared": 21866496,
+              "boundary_samples": 343200,
+              "boundary_to_interior_error_ratio_ppm": 1139788,
+              "interior_gradient_error_squared": 135231931,
+              "interior_samples": 2419200
+            },
+            {
+              "block": 16,
+              "boundary_excess_discontinuity": 196937,
+              "boundary_gradient_error_absolute": 548399,
+              "boundary_gradient_error_squared": 11079945,
+              "boundary_samples": 170400,
+              "boundary_to_interior_error_ratio_ppm": 1154237,
+              "interior_gradient_error_squared": 146018482,
+              "interior_samples": 2592000
+            }
+          ],
+          "decoded_sha256": "5d7ede605fb37c46d73840d7cc9707b0eaf54afdd53c0235c46f119aa0f41569",
+          "height": 960,
+          "plane": "y",
+          "psnr_db": "31.217091",
+          "samples": 1382400,
+          "source_sha256": "e83bb7ed1fef36481d39f196ccc60d3ea658a598a237e818b92866758913bf5e",
+          "sse": 67921143,
+          "ssim_q1e9": 919324600,
+          "width": 1440
+        }
+      ],
+      "qindex": 120,
+      "retained_obu": "metrics/blockiness-m0/streams/i400/bounded-q120.obu",
+      "search": "bounded",
+      "width": 1440,
+      "workspace_bytes": 19398849
+    },
+    {
+      "avm_project_exact": true,
+      "command": [
+        "av2-encoder-experiment",
+        "source-1440x960-gray8.i400",
+        "--width",
+        "1440",
+        "--height",
+        "960",
+        "--qindex",
+        "150",
+        "--search",
+        "bounded",
+        "--output",
+        "bounded-q150.obu"
+      ],
+      "decode_time_ns": {
+        "avm": 88822422,
+        "project": 45820790
+      },
+      "decoded_sha256": "5e558431f9068b32794a2cf6b55f90b3a0bddddda780d8ab04e5dce8b2d83db0",
+      "deterministic": true,
+      "encode_time_ns": {
+        "median": 28032564862,
+        "samples": [
+          27982801931,
+          28082327793
+        ],
+        "worst": 28082327793
+      },
+      "encoder_local_sse_matches_decode": true,
+      "encoder_reported_sse": [
+        56356760
+      ],
+      "height": 960,
+      "id": "i400-bounded-q150",
+      "input_bytes": 1382400,
+      "input_sha256": "e83bb7ed1fef36481d39f196ccc60d3ea658a598a237e818b92866758913bf5e",
+      "obu_bytes": 9276,
+      "obu_sha256": "8de0dc3ce38d2ff9a6b2f0c49506d770d603b1203d2a56f5369a7cb949560484",
+      "pixel_format": "i400",
+      "planes": [
+        {
+          "boundaries": [
+            {
+              "block": 4,
+              "boundary_excess_discontinuity": 614730,
+              "boundary_gradient_error_absolute": 2132391,
+              "boundary_gradient_error_squared": 41652289,
+              "boundary_samples": 688800,
+              "boundary_to_interior_error_ratio_ppm": 1101954,
+              "interior_gradient_error_squared": 113790818,
+              "interior_samples": 2073600
+            },
+            {
+              "block": 8,
+              "boundary_excess_discontinuity": 549894,
+              "boundary_gradient_error_absolute": 1205095,
+              "boundary_gradient_error_squared": 22974065,
+              "boundary_samples": 343200,
+              "boundary_to_interior_error_ratio_ppm": 1222497,
+              "interior_gradient_error_squared": 132469042,
+              "interior_samples": 2419200
+            },
+            {
+              "block": 16,
+              "boundary_excess_discontinuity": 274998,
+              "boundary_gradient_error_absolute": 601092,
+              "boundary_gradient_error_squared": 11607330,
+              "boundary_samples": 170400,
+              "boundary_to_interior_error_ratio_ppm": 1227526,
+              "interior_gradient_error_squared": 143835777,
+              "interior_samples": 2592000
+            }
+          ],
+          "decoded_sha256": "5e558431f9068b32794a2cf6b55f90b3a0bddddda780d8ab04e5dce8b2d83db0",
+          "height": 960,
+          "plane": "y",
+          "psnr_db": "32.027681",
+          "samples": 1382400,
+          "source_sha256": "e83bb7ed1fef36481d39f196ccc60d3ea658a598a237e818b92866758913bf5e",
+          "sse": 56356760,
+          "ssim_q1e9": 940516760,
+          "width": 1440
+        }
+      ],
+      "qindex": 150,
+      "retained_obu": "metrics/blockiness-m0/streams/i400/bounded-q150.obu",
+      "search": "bounded",
+      "width": 1440,
+      "workspace_bytes": 19398849
+    },
+    {
+      "avm_project_exact": true,
+      "command": [
+        "av2-encoder-experiment",
+        "source-1440x960-gray8.i400",
+        "--width",
+        "1440",
+        "--height",
+        "960",
+        "--qindex",
+        "165",
+        "--search",
+        "bounded",
+        "--output",
+        "bounded-q165.obu"
+      ],
+      "decode_time_ns": {
+        "avm": 96369369,
+        "project": 44392389
+      },
+      "decoded_sha256": "a154e65b679da1a28bfb5058bf5ee8694634c62d97ef0a6387e7b0b3bbdbbca0",
+      "deterministic": true,
+      "encode_time_ns": {
+        "median": 27793321827,
+        "samples": [
+          27810425379,
+          27776218275
+        ],
+        "worst": 27810425379
+      },
+      "encoder_local_sse_matches_decode": true,
+      "encoder_reported_sse": [
+        65371924
+      ],
+      "height": 960,
+      "id": "i400-bounded-q165",
+      "input_bytes": 1382400,
+      "input_sha256": "e83bb7ed1fef36481d39f196ccc60d3ea658a598a237e818b92866758913bf5e",
+      "obu_bytes": 6834,
+      "obu_sha256": "c7fe43b84fa03bb6724e5c81807615884250ea5e9b4b54e96c81645c239fecfd",
+      "pixel_format": "i400",
+      "planes": [
+        {
+          "boundaries": [
+            {
+              "block": 4,
+              "boundary_excess_discontinuity": 694829,
+              "boundary_gradient_error_absolute": 2234784,
+              "boundary_gradient_error_squared": 46121848,
+              "boundary_samples": 688800,
+              "boundary_to_interior_error_ratio_ppm": 1200292,
+              "interior_gradient_error_squared": 115678206,
+              "interior_samples": 2073600
+            },
+            {
+              "block": 8,
+              "boundary_excess_discontinuity": 626993,
+              "boundary_gradient_error_absolute": 1302457,
+              "boundary_gradient_error_squared": 27279863,
+              "boundary_samples": 343200,
+              "boundary_to_interior_error_ratio_ppm": 1429483,
+              "interior_gradient_error_squared": 134520191,
+              "interior_samples": 2419200
+            },
+            {
+              "block": 16,
+              "boundary_excess_discontinuity": 311180,
+              "boundary_gradient_error_absolute": 647599,
+              "boundary_gradient_error_squared": 13657591,
+              "boundary_samples": 170400,
+              "boundary_to_interior_error_ratio_ppm": 1402361,
+              "interior_gradient_error_squared": 148142463,
+              "interior_samples": 2592000
+            }
+          ],
+          "decoded_sha256": "a154e65b679da1a28bfb5058bf5ee8694634c62d97ef0a6387e7b0b3bbdbbca0",
+          "height": 960,
+          "plane": "y",
+          "psnr_db": "31.383228",
+          "samples": 1382400,
+          "source_sha256": "e83bb7ed1fef36481d39f196ccc60d3ea658a598a237e818b92866758913bf5e",
+          "sse": 65371924,
+          "ssim_q1e9": 933567608,
+          "width": 1440
+        }
+      ],
+      "qindex": 165,
+      "retained_obu": "metrics/blockiness-m0/streams/i400/bounded-q165.obu",
+      "search": "bounded",
+      "width": 1440,
+      "workspace_bytes": 19398849
+    },
+    {
+      "avm_project_exact": true,
+      "command": [
+        "av2-encoder-experiment",
+        "source-1440x960-gray8.i400",
+        "--width",
+        "1440",
+        "--height",
+        "960",
+        "--qindex",
+        "180",
+        "--search",
+        "bounded",
+        "--output",
+        "bounded-q180.obu"
+      ],
+      "decode_time_ns": {
+        "avm": 94560331,
+        "project": 42699078
+      },
+      "decoded_sha256": "fc05e0a62b1aad61d075007a526dbf0bf742970d2cd08dc5fcfb3bb48d5da7ed",
+      "deterministic": true,
+      "encode_time_ns": {
+        "median": 27828032664,
+        "samples": [
+          27827290388,
+          27828774941
+        ],
+        "worst": 27828774941
+      },
+      "encoder_local_sse_matches_decode": true,
+      "encoder_reported_sse": [
+        85220606
+      ],
+      "height": 960,
+      "id": "i400-bounded-q180",
+      "input_bytes": 1382400,
+      "input_sha256": "e83bb7ed1fef36481d39f196ccc60d3ea658a598a237e818b92866758913bf5e",
+      "obu_bytes": 4729,
+      "obu_sha256": "c02a9caeecb23640a5d3ac055163e0200d6c92f5e51467f5a4b368b8c4a163c7",
+      "pixel_format": "i400",
+      "planes": [
+        {
+          "boundaries": [
+            {
+              "block": 4,
+              "boundary_excess_discontinuity": 790803,
+              "boundary_gradient_error_absolute": 2373783,
+              "boundary_gradient_error_squared": 53423805,
+              "boundary_samples": 688800,
+              "boundary_to_interior_error_ratio_ppm": 1353482,
+              "interior_gradient_error_squared": 118826738,
+              "interior_samples": 2073600
+            },
+            {
+              "block": 8,
+              "boundary_excess_discontinuity": 723624,
+              "boundary_gradient_error_absolute": 1434090,
+              "boundary_gradient_error_squared": 34226450,
+              "boundary_samples": 343200,
+              "boundary_to_interior_error_ratio_ppm": 1747959,
+              "interior_gradient_error_squared": 138024093,
+              "interior_samples": 2419200
+            },
+            {
+              "block": 16,
+              "boundary_excess_discontinuity": 363110,
+              "boundary_gradient_error_absolute": 717395,
+              "boundary_gradient_error_squared": 17292515,
+              "boundary_samples": 170400,
+              "boundary_to_interior_error_ratio_ppm": 1697498,
+              "interior_gradient_error_squared": 154958028,
+              "interior_samples": 2592000
+            }
+          ],
+          "decoded_sha256": "fc05e0a62b1aad61d075007a526dbf0bf742970d2cd08dc5fcfb3bb48d5da7ed",
+          "height": 960,
+          "plane": "y",
+          "psnr_db": "30.231695",
+          "samples": 1382400,
+          "source_sha256": "e83bb7ed1fef36481d39f196ccc60d3ea658a598a237e818b92866758913bf5e",
+          "sse": 85220606,
+          "ssim_q1e9": 922223904,
+          "width": 1440
+        }
+      ],
+      "qindex": 180,
+      "retained_obu": "metrics/blockiness-m0/streams/i400/bounded-q180.obu",
+      "search": "bounded",
+      "width": 1440,
+      "workspace_bytes": 19398849
+    },
+    {
+      "avm_project_exact": true,
+      "command": [
+        "av2-encoder-experiment",
+        "source-1440x960-gray8.i400",
+        "--width",
+        "1440",
+        "--height",
+        "960",
+        "--qindex",
+        "220",
+        "--search",
+        "bounded",
+        "--output",
+        "bounded-q220.obu"
+      ],
+      "decode_time_ns": {
+        "avm": 90242792,
+        "project": 38055727
+      },
+      "decoded_sha256": "0c7f14a0384b1c3b6590707ea3fd405e45200b89ff8011c6bedba81ae4963e0a",
+      "deterministic": true,
+      "encode_time_ns": {
+        "median": 27976690473,
+        "samples": [
+          28274272502,
+          27679108444
+        ],
+        "worst": 28274272502
+      },
+      "encoder_local_sse_matches_decode": true,
+      "encoder_reported_sse": [
+        281314647
+      ],
+      "height": 960,
+      "id": "i400-bounded-q220",
+      "input_bytes": 1382400,
+      "input_sha256": "e83bb7ed1fef36481d39f196ccc60d3ea658a598a237e818b92866758913bf5e",
+      "obu_bytes": 1151,
+      "obu_sha256": "e32c41e44568730b9ddae4223e195c3984bf3f167eb7e2ca4fb865879cf4d1c7",
+      "pixel_format": "i400",
+      "planes": [
+        {
+          "boundaries": [
+            {
+              "block": 4,
+              "boundary_excess_discontinuity": 888002,
+              "boundary_gradient_error_absolute": 2657490,
+              "boundary_gradient_error_squared": 86421288,
+              "boundary_samples": 688800,
+              "boundary_to_interior_error_ratio_ppm": 1973258,
+              "interior_gradient_error_squared": 131846475,
+              "interior_samples": 2073600
+            },
+            {
+              "block": 8,
+              "boundary_excess_discontinuity": 853457,
+              "boundary_gradient_error_absolute": 1694441,
+              "boundary_gradient_error_squared": 65166173,
+              "boundary_samples": 343200,
+              "boundary_to_interior_error_ratio_ppm": 3000316,
+              "interior_gradient_error_squared": 153101590,
+              "interior_samples": 2419200
+            },
+            {
+              "block": 16,
+              "boundary_excess_discontinuity": 426535,
+              "boundary_gradient_error_absolute": 845812,
+              "boundary_gradient_error_squared": 32576992,
+              "boundary_samples": 170400,
+              "boundary_to_interior_error_ratio_ppm": 2668615,
+              "interior_gradient_error_squared": 185690771,
+              "interior_samples": 2592000
+            }
+          ],
+          "decoded_sha256": "0c7f14a0384b1c3b6590707ea3fd405e45200b89ff8011c6bedba81ae4963e0a",
+          "height": 960,
+          "plane": "y",
+          "psnr_db": "25.045217",
+          "samples": 1382400,
+          "source_sha256": "e83bb7ed1fef36481d39f196ccc60d3ea658a598a237e818b92866758913bf5e",
+          "sse": 281314647,
+          "ssim_q1e9": 870508293,
+          "width": 1440
+        }
+      ],
+      "qindex": 220,
+      "retained_obu": "metrics/blockiness-m0/streams/i400/bounded-q220.obu",
+      "search": "bounded",
+      "width": 1440,
+      "workspace_bytes": 19398849
+    },
+    {
+      "avm_project_exact": true,
+      "command": [
+        "av2-encoder-experiment",
+        "source-1440x960-gray8.i400",
+        "--width",
+        "1440",
+        "--height",
+        "960",
+        "--qindex",
+        "100",
+        "--search",
+        "off",
+        "--output",
+        "off-q100.obu"
+      ],
+      "decode_time_ns": {
+        "avm": 90211014,
+        "project": 53662679
+      },
+      "decoded_sha256": "694589765bc6ce1550415adb0706b0dd72ba4e784705345768806d3595c8438f",
+      "deterministic": true,
+      "encode_time_ns": {
+        "median": 1709517154,
+        "samples": [
+          1709516212,
+          1709518097
+        ],
+        "worst": 1709518097
+      },
+      "encoder_local_sse_matches_decode": true,
+      "encoder_reported_sse": [
+        124853206
+      ],
+      "height": 960,
+      "id": "i400-off-q100",
+      "input_bytes": 1382400,
+      "input_sha256": "e83bb7ed1fef36481d39f196ccc60d3ea658a598a237e818b92866758913bf5e",
+      "obu_bytes": 6083,
+      "obu_sha256": "84259dc4bb678cb2a7ec712ac3439836aaaaabd5caae441ed6db0bbb72a2e5b5",
+      "pixel_format": "i400",
+      "planes": [
+        {
+          "boundaries": [
+            {
+              "block": 4,
+              "boundary_excess_discontinuity": 557293,
+              "boundary_gradient_error_absolute": 2355210,
+              "boundary_gradient_error_squared": 61697170,
+              "boundary_samples": 688800,
+              "boundary_to_interior_error_ratio_ppm": 1390929,
+              "interior_gradient_error_squared": 133533989,
+              "interior_samples": 2073600
+            },
+            {
+              "block": 8,
+              "boundary_excess_discontinuity": 557293,
+              "boundary_gradient_error_absolute": 1388287,
+              "boundary_gradient_error_squared": 39516555,
+              "boundary_samples": 343200,
+              "boundary_to_interior_error_ratio_ppm": 1788851,
+              "interior_gradient_error_squared": 155714604,
+              "interior_samples": 2419200
+            },
+            {
+              "block": 16,
+              "boundary_excess_discontinuity": 276922,
+              "boundary_gradient_error_absolute": 689766,
+              "boundary_gradient_error_squared": 19410026,
+              "boundary_samples": 170400,
+              "boundary_to_interior_error_ratio_ppm": 1679269,
+              "interior_gradient_error_squared": 175821133,
+              "interior_samples": 2592000
+            }
+          ],
+          "decoded_sha256": "694589765bc6ce1550415adb0706b0dd72ba4e784705345768806d3595c8438f",
+          "height": 960,
+          "plane": "y",
+          "psnr_db": "28.573144",
+          "samples": 1382400,
+          "source_sha256": "e83bb7ed1fef36481d39f196ccc60d3ea658a598a237e818b92866758913bf5e",
+          "sse": 124853206,
+          "ssim_q1e9": 862371592,
+          "width": 1440
+        }
+      ],
+      "qindex": 100,
+      "retained_obu": "metrics/blockiness-m0/streams/i400/off-q100.obu",
+      "search": "off",
+      "width": 1440,
+      "workspace_bytes": 6955968
+    },
+    {
+      "avm_project_exact": true,
+      "command": [
+        "av2-encoder-experiment",
+        "source-1440x960-gray8.i400",
+        "--width",
+        "1440",
+        "--height",
+        "960",
+        "--qindex",
+        "100",
+        "--search",
+        "intra",
+        "--output",
+        "intra-q100.obu"
+      ],
+      "decode_time_ns": {
+        "avm": 87218859,
+        "project": 66483227
+      },
+      "decoded_sha256": "26c6aa7b70f59dcc840127900775421db78685a1c8fc1f17ae567ce1bc63b500",
+      "deterministic": true,
+      "encode_time_ns": {
+        "median": 2017142515,
+        "samples": [
+          2004307474,
+          2029977556
+        ],
+        "worst": 2029977556
+      },
+      "encoder_local_sse_matches_decode": true,
+      "encoder_reported_sse": [
+        120533318
+      ],
+      "height": 960,
+      "id": "i400-intra-q100",
+      "input_bytes": 1382400,
+      "input_sha256": "e83bb7ed1fef36481d39f196ccc60d3ea658a598a237e818b92866758913bf5e",
+      "obu_bytes": 5712,
+      "obu_sha256": "efac670877012c708bdc2c0978c1fb7d0a18e8fb3ed42cc39d22d5fcaf0dcd0f",
+      "pixel_format": "i400",
+      "planes": [
+        {
+          "boundaries": [
+            {
+              "block": 4,
+              "boundary_excess_discontinuity": 466218,
+              "boundary_gradient_error_absolute": 2278378,
+              "boundary_gradient_error_squared": 56842014,
+              "boundary_samples": 688800,
+              "boundary_to_interior_error_ratio_ppm": 1285831,
+              "interior_gradient_error_squared": 133081381,
+              "interior_samples": 2073600
+            },
+            {
+              "block": 8,
+              "boundary_excess_discontinuity": 449421,
+              "boundary_gradient_error_absolute": 1301490,
+              "boundary_gradient_error_squared": 34739612,
+              "boundary_samples": 343200,
+              "boundary_to_interior_error_ratio_ppm": 1577985,
+              "interior_gradient_error_squared": 155183783,
+              "interior_samples": 2419200
+            },
+            {
+              "block": 16,
+              "boundary_excess_discontinuity": 218496,
+              "boundary_gradient_error_absolute": 641444,
+              "boundary_gradient_error_squared": 16726086,
+              "boundary_samples": 170400,
+              "boundary_to_interior_error_ratio_ppm": 1468989,
+              "interior_gradient_error_squared": 173197309,
+              "interior_samples": 2592000
+            }
+          ],
+          "decoded_sha256": "26c6aa7b70f59dcc840127900775421db78685a1c8fc1f17ae567ce1bc63b500",
+          "height": 960,
+          "plane": "y",
+          "psnr_db": "28.726070",
+          "samples": 1382400,
+          "source_sha256": "e83bb7ed1fef36481d39f196ccc60d3ea658a598a237e818b92866758913bf5e",
+          "sse": 120533318,
+          "ssim_q1e9": 869295834,
+          "width": 1440
+        }
+      ],
+      "qindex": 100,
+      "retained_obu": "metrics/blockiness-m0/streams/i400/intra-q100.obu",
+      "search": "intra",
+      "width": 1440,
+      "workspace_bytes": 6955968
+    },
+    {
+      "avm_project_exact": true,
+      "command": [
+        "av2-encoder-experiment",
+        "source-1440x960-gray8.i400",
+        "--width",
+        "1440",
+        "--height",
+        "960",
+        "--qindex",
+        "100",
+        "--search",
+        "directional",
+        "--output",
+        "directional-q100.obu"
+      ],
+      "decode_time_ns": {
+        "avm": 85374620,
+        "project": 54320377
+      },
+      "decoded_sha256": "694589765bc6ce1550415adb0706b0dd72ba4e784705345768806d3595c8438f",
+      "deterministic": true,
+      "encode_time_ns": {
+        "median": 1757086743,
+        "samples": [
+          1765250113,
+          1748923374
+        ],
+        "worst": 1765250113
+      },
+      "encoder_local_sse_matches_decode": true,
+      "encoder_reported_sse": [
+        124853206
+      ],
+      "height": 960,
+      "id": "i400-directional-q100",
+      "input_bytes": 1382400,
+      "input_sha256": "e83bb7ed1fef36481d39f196ccc60d3ea658a598a237e818b92866758913bf5e",
+      "obu_bytes": 6083,
+      "obu_sha256": "84259dc4bb678cb2a7ec712ac3439836aaaaabd5caae441ed6db0bbb72a2e5b5",
+      "pixel_format": "i400",
+      "planes": [
+        {
+          "boundaries": [
+            {
+              "block": 4,
+              "boundary_excess_discontinuity": 557293,
+              "boundary_gradient_error_absolute": 2355210,
+              "boundary_gradient_error_squared": 61697170,
+              "boundary_samples": 688800,
+              "boundary_to_interior_error_ratio_ppm": 1390929,
+              "interior_gradient_error_squared": 133533989,
+              "interior_samples": 2073600
+            },
+            {
+              "block": 8,
+              "boundary_excess_discontinuity": 557293,
+              "boundary_gradient_error_absolute": 1388287,
+              "boundary_gradient_error_squared": 39516555,
+              "boundary_samples": 343200,
+              "boundary_to_interior_error_ratio_ppm": 1788851,
+              "interior_gradient_error_squared": 155714604,
+              "interior_samples": 2419200
+            },
+            {
+              "block": 16,
+              "boundary_excess_discontinuity": 276922,
+              "boundary_gradient_error_absolute": 689766,
+              "boundary_gradient_error_squared": 19410026,
+              "boundary_samples": 170400,
+              "boundary_to_interior_error_ratio_ppm": 1679269,
+              "interior_gradient_error_squared": 175821133,
+              "interior_samples": 2592000
+            }
+          ],
+          "decoded_sha256": "694589765bc6ce1550415adb0706b0dd72ba4e784705345768806d3595c8438f",
+          "height": 960,
+          "plane": "y",
+          "psnr_db": "28.573144",
+          "samples": 1382400,
+          "source_sha256": "e83bb7ed1fef36481d39f196ccc60d3ea658a598a237e818b92866758913bf5e",
+          "sse": 124853206,
+          "ssim_q1e9": 862371592,
+          "width": 1440
+        }
+      ],
+      "qindex": 100,
+      "retained_obu": "metrics/blockiness-m0/streams/i400/directional-q100.obu",
+      "search": "directional",
+      "width": 1440,
+      "workspace_bytes": 6955968
+    },
+    {
+      "avm_project_exact": true,
+      "command": [
+        "av2-encoder-experiment",
+        "source-1440x960-yuv420p8.i420",
+        "--width",
+        "1440",
+        "--height",
+        "960",
+        "--qindex",
+        "60",
+        "--search",
+        "bounded",
+        "--output",
+        "bounded-q60.obu"
+      ],
+      "decode_time_ns": {
+        "avm": 104801210,
+        "project": 79620089
+      },
+      "decoded_sha256": "5ab4930060dd0ced57902ca984120f746bde630d0b565c8246a4177b1e62ac8d",
+      "deterministic": true,
+      "encode_time_ns": {
+        "median": 50835911185,
+        "samples": [
+          50631674942,
+          51040147429
+        ],
+        "worst": 51040147429
+      },
+      "encoder_local_sse_matches_decode": true,
+      "encoder_reported_sse": [
+        53360581,
+        1451455,
+        234529
+      ],
+      "height": 960,
+      "id": "i420-bounded-q60",
+      "input_bytes": 2073600,
+      "input_sha256": "f5a538f7ce0c6791381f5d27ae71e1bce0850c20f41c9ec5e8515921c2e4a238",
+      "obu_bytes": 34031,
+      "obu_sha256": "4ba50f5bf40665e6c4991017a11400f3b4118ecb22d65fb3b22850d727c62d30",
+      "pixel_format": "i420",
+      "planes": [
+        {
+          "boundaries": [
+            {
+              "block": 4,
+              "boundary_excess_discontinuity": 435501,
+              "boundary_gradient_error_absolute": 1954783,
+              "boundary_gradient_error_squared": 38556373,
+              "boundary_samples": 688800,
+              "boundary_to_interior_error_ratio_ppm": 1032233,
+              "interior_gradient_error_squared": 112447610,
+              "interior_samples": 2073600
+            },
+            {
+              "block": 8,
+              "boundary_excess_discontinuity": 378128,
+              "boundary_gradient_error_absolute": 1032074,
+              "boundary_gradient_error_squared": 19905430,
+              "boundary_samples": 343200,
+              "boundary_to_interior_error_ratio_ppm": 1070281,
+              "interior_gradient_error_squared": 131098553,
+              "interior_samples": 2419200
+            },
+            {
+              "block": 16,
+              "boundary_excess_discontinuity": 188839,
+              "boundary_gradient_error_absolute": 515163,
+              "boundary_gradient_error_squared": 10053625,
+              "boundary_samples": 170400,
+              "boundary_to_interior_error_ratio_ppm": 1084980,
+              "interior_gradient_error_squared": 140950358,
+              "interior_samples": 2592000
+            }
+          ],
+          "decoded_sha256": "3645df6564d06d34bda5716e499b4ba91862ac1ad35003e0bba09fb294954713",
+          "height": 960,
+          "plane": "y",
+          "psnr_db": "32.264935",
+          "samples": 1382400,
+          "source_sha256": "8cbc3d75ccdd96ced565d1ad3b23bc7715056ff8a96178c7c6f433bc77db11f4",
+          "sse": 53360581,
+          "ssim_q1e9": 944734393,
+          "width": 1440
+        },
+        {
+          "boundaries": [
+            {
+              "block": 4,
+              "boundary_excess_discontinuity": 58524,
+              "boundary_gradient_error_absolute": 127476,
+              "boundary_gradient_error_squared": 960142,
+              "boundary_samples": 171600,
+              "boundary_to_interior_error_ratio_ppm": 1209118,
+              "interior_gradient_error_squared": 2398911,
+              "interior_samples": 518400
+            },
+            {
+              "block": 8,
+              "boundary_excess_discontinuity": 48879,
+              "boundary_gradient_error_absolute": 76507,
+              "boundary_gradient_error_squared": 585623,
+              "boundary_samples": 85200,
+              "boundary_to_interior_error_ratio_ppm": 1498901,
+              "interior_gradient_error_squared": 2773430,
+              "interior_samples": 604800
+            },
+            {
+              "block": 16,
+              "boundary_excess_discontinuity": 24160,
+              "boundary_gradient_error_absolute": 37786,
+              "boundary_gradient_error_squared": 299294,
+              "boundary_samples": 42000,
+              "boundary_to_interior_error_ratio_ppm": 1509164,
+              "interior_gradient_error_squared": 3059759,
+              "interior_samples": 648000
+            }
+          ],
+          "decoded_sha256": "121f7dc6f5ef51c71695c477681bb0dabac3e17a884adc41a86ccb5659f0988b",
+          "height": 480,
+          "plane": "u",
+          "psnr_db": "41.898505",
+          "samples": 345600,
+          "source_sha256": "2d4388e6efe6f8549399c6ea0204a1bb7edf69ba71fd50d7849c42c668e1ecb2",
+          "sse": 1451455,
+          "ssim_q1e9": 985234140,
+          "width": 720
+        },
+        {
+          "boundaries": [
+            {
+              "block": 4,
+              "boundary_excess_discontinuity": 27781,
+              "boundary_gradient_error_absolute": 66194,
+              "boundary_gradient_error_squared": 162242,
+              "boundary_samples": 171600,
+              "boundary_to_interior_error_ratio_ppm": 1261968,
+              "interior_gradient_error_squared": 388385,
+              "interior_samples": 518400
+            },
+            {
+              "block": 8,
+              "boundary_excess_discontinuity": 23425,
+              "boundary_gradient_error_absolute": 39551,
+              "boundary_gradient_error_squared": 102605,
+              "boundary_samples": 85200,
+              "boundary_to_interior_error_ratio_ppm": 1625703,
+              "interior_gradient_error_squared": 448022,
+              "interior_samples": 604800
+            },
+            {
+              "block": 16,
+              "boundary_excess_discontinuity": 11688,
+              "boundary_gradient_error_absolute": 19407,
+              "boundary_gradient_error_squared": 51063,
+              "boundary_samples": 42000,
+              "boundary_to_interior_error_ratio_ppm": 1577033,
+              "interior_gradient_error_squared": 499564,
+              "interior_samples": 648000
+            }
+          ],
+          "decoded_sha256": "2a36304a3bd61b4776383ba0658cc8caffb8f141fcedc4c894e1ae5fb78aa117",
+          "height": 480,
+          "plane": "v",
+          "psnr_db": "49.814575",
+          "samples": 345600,
+          "source_sha256": "252001463a6ecc8ba9d0b0a60cf70fbd9fe4aef00f4caf7821d1620990101b7f",
+          "sse": 234529,
+          "ssim_q1e9": 992757714,
+          "width": 720
+        }
+      ],
+      "qindex": 60,
+      "retained_obu": "metrics/blockiness-m0/streams/i420/bounded-q60.obu",
+      "search": "bounded",
+      "width": 1440,
+      "workspace_bytes": 22206592
+    },
+    {
+      "avm_project_exact": true,
+      "command": [
+        "av2-encoder-experiment",
+        "source-1440x960-yuv420p8.i420",
+        "--width",
+        "1440",
+        "--height",
+        "960",
+        "--qindex",
+        "80",
+        "--search",
+        "bounded",
+        "--output",
+        "bounded-q80.obu"
+      ],
+      "decode_time_ns": {
+        "avm": 107323401,
+        "project": 78439696
+      },
+      "decoded_sha256": "67a98cedd0cfe11de9a5fffe6abb535d53010a68e95b2f40f25ca47cae0663f2",
+      "deterministic": true,
+      "encode_time_ns": {
+        "median": 40962953264,
+        "samples": [
+          41168778579,
+          40757127950
+        ],
+        "worst": 41168778579
+      },
+      "encoder_local_sse_matches_decode": true,
+      "encoder_reported_sse": [
+        50892044,
+        1354734,
+        243961
+      ],
+      "height": 960,
+      "id": "i420-bounded-q80",
+      "input_bytes": 2073600,
+      "input_sha256": "f5a538f7ce0c6791381f5d27ae71e1bce0850c20f41c9ec5e8515921c2e4a238",
+      "obu_bytes": 26839,
+      "obu_sha256": "8b38817ff5976074dc4c90fea3f5acefa1b826b396f6dcfb6a612c667c487999",
+      "pixel_format": "i420",
+      "planes": [
+        {
+          "boundaries": [
+            {
+              "block": 4,
+              "boundary_excess_discontinuity": 432730,
+              "boundary_gradient_error_absolute": 1942241,
+              "boundary_gradient_error_squared": 38028093,
+              "boundary_samples": 688800,
+              "boundary_to_interior_error_ratio_ppm": 1014380,
+              "interior_gradient_error_squared": 112858854,
+              "interior_samples": 2073600
+            },
+            {
+              "block": 8,
+              "boundary_excess_discontinuity": 374894,
+              "boundary_gradient_error_absolute": 1018864,
+              "boundary_gradient_error_squared": 19399596,
+              "boundary_samples": 343200,
+              "boundary_to_interior_error_ratio_ppm": 1039999,
+              "interior_gradient_error_squared": 131487351,
+              "interior_samples": 2419200
+            },
+            {
+              "block": 16,
+              "boundary_excess_discontinuity": 186671,
+              "boundary_gradient_error_absolute": 507383,
+              "boundary_gradient_error_squared": 9787943,
+              "boundary_samples": 170400,
+              "boundary_to_interior_error_ratio_ppm": 1055195,
+              "interior_gradient_error_squared": 141099004,
+              "interior_samples": 2592000
+            }
+          ],
+          "decoded_sha256": "4e96c61554de12e47dd75c1700404eef232fd4c3d4a0c9b527b9d1e3a489b727",
+          "height": 960,
+          "plane": "y",
+          "psnr_db": "32.470642",
+          "samples": 1382400,
+          "source_sha256": "8cbc3d75ccdd96ced565d1ad3b23bc7715056ff8a96178c7c6f433bc77db11f4",
+          "sse": 50892044,
+          "ssim_q1e9": 942257284,
+          "width": 1440
+        },
+        {
+          "boundaries": [
+            {
+              "block": 4,
+              "boundary_excess_discontinuity": 61002,
+              "boundary_gradient_error_absolute": 130014,
+              "boundary_gradient_error_squared": 941970,
+              "boundary_samples": 171600,
+              "boundary_to_interior_error_ratio_ppm": 1183034,
+              "interior_gradient_error_squared": 2405401,
+              "interior_samples": 518400
+            },
+            {
+              "block": 8,
+              "boundary_excess_discontinuity": 51296,
+              "boundary_gradient_error_absolute": 78849,
+              "boundary_gradient_error_squared": 567841,
+              "boundary_samples": 85200,
+              "boundary_to_interior_error_ratio_ppm": 1450198,
+              "interior_gradient_error_squared": 2779530,
+              "interior_samples": 604800
+            },
+            {
+              "block": 16,
+              "boundary_excess_discontinuity": 25661,
+              "boundary_gradient_error_absolute": 39157,
+              "boundary_gradient_error_squared": 290135,
+              "boundary_samples": 42000,
+              "boundary_to_interior_error_ratio_ppm": 1464188,
+              "interior_gradient_error_squared": 3057236,
+              "interior_samples": 648000
+            }
+          ],
+          "decoded_sha256": "71b735273a589af2f093abd1c7a07a1c4782750f4c91cac1d2341b627f631589",
+          "height": 480,
+          "plane": "u",
+          "psnr_db": "42.198001",
+          "samples": 345600,
+          "source_sha256": "2d4388e6efe6f8549399c6ea0204a1bb7edf69ba71fd50d7849c42c668e1ecb2",
+          "sse": 1354734,
+          "ssim_q1e9": 985045017,
+          "width": 720
+        },
+        {
+          "boundaries": [
+            {
+              "block": 4,
+              "boundary_excess_discontinuity": 29850,
+              "boundary_gradient_error_absolute": 68872,
+              "boundary_gradient_error_squared": 168748,
+              "boundary_samples": 171600,
+              "boundary_to_interior_error_ratio_ppm": 1297907,
+              "interior_gradient_error_squared": 392774,
+              "interior_samples": 518400
+            },
+            {
+              "block": 8,
+              "boundary_excess_discontinuity": 25632,
+              "boundary_gradient_error_absolute": 42123,
+              "boundary_gradient_error_squared": 108379,
+              "boundary_samples": 85200,
+              "boundary_to_interior_error_ratio_ppm": 1697782,
+              "interior_gradient_error_squared": 453143,
+              "interior_samples": 604800
+            },
+            {
+              "block": 16,
+              "boundary_excess_discontinuity": 12689,
+              "boundary_gradient_error_absolute": 20672,
+              "boundary_gradient_error_squared": 54248,
+              "boundary_samples": 42000,
+              "boundary_to_interior_error_ratio_ppm": 1649935,
+              "interior_gradient_error_squared": 507274,
+              "interior_samples": 648000
+            }
+          ],
+          "decoded_sha256": "7e27b7a2ac918765e80f3b2eb545c43c4a2620933ee8bf2afe5ab9145411128d",
+          "height": 480,
+          "plane": "v",
+          "psnr_db": "49.643337",
+          "samples": 345600,
+          "source_sha256": "252001463a6ecc8ba9d0b0a60cf70fbd9fe4aef00f4caf7821d1620990101b7f",
+          "sse": 243961,
+          "ssim_q1e9": 992528484,
+          "width": 720
+        }
+      ],
+      "qindex": 80,
+      "retained_obu": "metrics/blockiness-m0/streams/i420/bounded-q80.obu",
+      "search": "bounded",
+      "width": 1440,
+      "workspace_bytes": 22206592
+    },
+    {
+      "avm_project_exact": true,
+      "command": [
+        "av2-encoder-experiment",
+        "source-1440x960-yuv420p8.i420",
+        "--width",
+        "1440",
+        "--height",
+        "960",
+        "--qindex",
+        "100",
+        "--search",
+        "bounded",
+        "--output",
+        "bounded-q100.obu"
+      ],
+      "decode_time_ns": {
+        "avm": 107426906,
+        "project": 76343120
+      },
+      "decoded_sha256": "f3bb0fceb7f384924e69c7c0c03e6f0b15854035bda688a42af81f4c522cf8f8",
+      "deterministic": true,
+      "encode_time_ns": {
+        "median": 35310041968,
+        "samples": [
+          35366062779,
+          35254021157
+        ],
+        "worst": 35366062779
+      },
+      "encoder_local_sse_matches_decode": true,
+      "encoder_reported_sse": [
+        55409894,
+        1395987,
+        274340
+      ],
+      "height": 960,
+      "id": "i420-bounded-q100",
+      "input_bytes": 2073600,
+      "input_sha256": "f5a538f7ce0c6791381f5d27ae71e1bce0850c20f41c9ec5e8515921c2e4a238",
+      "obu_bytes": 20626,
+      "obu_sha256": "9fedad65939afbdf276796bc75147d15ed4506e12d23931486bb80f7327f4350",
+      "pixel_format": "i420",
+      "planes": [
+        {
+          "boundaries": [
+            {
+              "block": 4,
+              "boundary_excess_discontinuity": 422165,
+              "boundary_gradient_error_absolute": 1959298,
+              "boundary_gradient_error_squared": 38688648,
+              "boundary_samples": 688800,
+              "boundary_to_interior_error_ratio_ppm": 1021311,
+              "interior_gradient_error_squared": 114040004,
+              "interior_samples": 2073600
+            },
+            {
+              "block": 8,
+              "boundary_excess_discontinuity": 370384,
+              "boundary_gradient_error_absolute": 1035189,
+              "boundary_gradient_error_squared": 19963697,
+              "boundary_samples": 343200,
+              "boundary_to_interior_error_ratio_ppm": 1059941,
+              "interior_gradient_error_squared": 132764955,
+              "interior_samples": 2419200
+            },
+            {
+              "block": 16,
+              "boundary_excess_discontinuity": 185205,
+              "boundary_gradient_error_absolute": 516539,
+              "boundary_gradient_error_squared": 10087045,
+              "boundary_samples": 170400,
+              "boundary_to_interior_error_ratio_ppm": 1075680,
+              "interior_gradient_error_squared": 142641607,
+              "interior_samples": 2592000
+            }
+          ],
+          "decoded_sha256": "8a3f1f0aba44ca942197fb2bfadfd8496a01e66f5080d52223026ea7397c557e",
+          "height": 960,
+          "plane": "y",
+          "psnr_db": "32.101268",
+          "samples": 1382400,
+          "source_sha256": "8cbc3d75ccdd96ced565d1ad3b23bc7715056ff8a96178c7c6f433bc77db11f4",
+          "sse": 55409894,
+          "ssim_q1e9": 934341819,
+          "width": 1440
+        },
+        {
+          "boundaries": [
+            {
+              "block": 4,
+              "boundary_excess_discontinuity": 64711,
+              "boundary_gradient_error_absolute": 134529,
+              "boundary_gradient_error_squared": 975841,
+              "boundary_samples": 171600,
+              "boundary_to_interior_error_ratio_ppm": 1214974,
+              "interior_gradient_error_squared": 2426384,
+              "interior_samples": 518400
+            },
+            {
+              "block": 8,
+              "boundary_excess_discontinuity": 55029,
+              "boundary_gradient_error_absolute": 83214,
+              "boundary_gradient_error_squared": 598684,
+              "boundary_samples": 85200,
+              "boundary_to_interior_error_ratio_ppm": 1515873,
+              "interior_gradient_error_squared": 2803541,
+              "interior_samples": 604800
+            },
+            {
+              "block": 16,
+              "boundary_excess_discontinuity": 27202,
+              "boundary_gradient_error_absolute": 40949,
+              "boundary_gradient_error_squared": 302645,
+              "boundary_samples": 42000,
+              "boundary_to_interior_error_ratio_ppm": 1506455,
+              "interior_gradient_error_squared": 3099580,
+              "interior_samples": 648000
+            }
+          ],
+          "decoded_sha256": "485b352adf4ac8280a2f1b9b5d3b6d5af4781dd83f6286916c1e9b2e173ffd8f",
+          "height": 480,
+          "plane": "u",
+          "psnr_db": "42.067727",
+          "samples": 345600,
+          "source_sha256": "2d4388e6efe6f8549399c6ea0204a1bb7edf69ba71fd50d7849c42c668e1ecb2",
+          "sse": 1395987,
+          "ssim_q1e9": 984040061,
+          "width": 720
+        },
+        {
+          "boundaries": [
+            {
+              "block": 4,
+              "boundary_excess_discontinuity": 33389,
+              "boundary_gradient_error_absolute": 73427,
+              "boundary_gradient_error_squared": 193525,
+              "boundary_samples": 171600,
+              "boundary_to_interior_error_ratio_ppm": 1452036,
+              "interior_gradient_error_squared": 402631,
+              "interior_samples": 518400
+            },
+            {
+              "block": 8,
+              "boundary_excess_discontinuity": 28940,
+              "boundary_gradient_error_absolute": 46204,
+              "boundary_gradient_error_squared": 131110,
+              "boundary_samples": 85200,
+              "boundary_to_interior_error_ratio_ppm": 2001299,
+              "interior_gradient_error_squared": 465046,
+              "interior_samples": 604800
+            },
+            {
+              "block": 16,
+              "boundary_excess_discontinuity": 14361,
+              "boundary_gradient_error_absolute": 22711,
+              "boundary_gradient_error_squared": 65747,
+              "boundary_samples": 42000,
+              "boundary_to_interior_error_ratio_ppm": 1912453,
+              "interior_gradient_error_squared": 530409,
+              "interior_samples": 648000
+            }
+          ],
+          "decoded_sha256": "2bd8b9d19cc24ed76ece15c30fa5ce4a8a62751241947ec2e2a0c0a1aac97a93",
+          "height": 480,
+          "plane": "v",
+          "psnr_db": "49.133650",
+          "samples": 345600,
+          "source_sha256": "252001463a6ecc8ba9d0b0a60cf70fbd9fe4aef00f4caf7821d1620990101b7f",
+          "sse": 274340,
+          "ssim_q1e9": 991524371,
+          "width": 720
+        }
+      ],
+      "qindex": 100,
+      "retained_obu": "metrics/blockiness-m0/streams/i420/bounded-q100.obu",
+      "search": "bounded",
+      "width": 1440,
+      "workspace_bytes": 22206592
+    },
+    {
+      "avm_project_exact": true,
+      "command": [
+        "av2-encoder-experiment",
+        "source-1440x960-yuv420p8.i420",
+        "--width",
+        "1440",
+        "--height",
+        "960",
+        "--qindex",
+        "120",
+        "--search",
+        "bounded",
+        "--output",
+        "bounded-q120.obu"
+      ],
+      "decode_time_ns": {
+        "avm": 100177345,
+        "project": 76074299
+      },
+      "decoded_sha256": "129a60e90fa77fe4270325dd5a9172d80af5c30d4c308f455307fae88c5babb6",
+      "deterministic": true,
+      "encode_time_ns": {
+        "median": 32297795041,
+        "samples": [
+          32251899696,
+          32343690387
+        ],
+        "worst": 32343690387
+      },
+      "encoder_local_sse_matches_decode": true,
+      "encoder_reported_sse": [
+        68343634,
+        1601409,
+        457267
+      ],
+      "height": 960,
+      "id": "i420-bounded-q120",
+      "input_bytes": 2073600,
+      "input_sha256": "f5a538f7ce0c6791381f5d27ae71e1bce0850c20f41c9ec5e8515921c2e4a238",
+      "obu_bytes": 13357,
+      "obu_sha256": "587192200936b1dfa5c63475e9d40f0725d94e31f9bc52847f4b8fa199251382",
+      "pixel_format": "i420",
+      "planes": [
+        {
+          "boundaries": [
+            {
+              "block": 4,
+              "boundary_excess_discontinuity": 434495,
+              "boundary_gradient_error_absolute": 2028603,
+              "boundary_gradient_error_squared": 41178017,
+              "boundary_samples": 688800,
+              "boundary_to_interior_error_ratio_ppm": 1059311,
+              "interior_gradient_error_squared": 117023678,
+              "interior_samples": 2073600
+            },
+            {
+              "block": 8,
+              "boundary_excess_discontinuity": 393697,
+              "boundary_gradient_error_absolute": 1100046,
+              "boundary_gradient_error_squared": 22110312,
+              "boundary_samples": 343200,
+              "boundary_to_interior_error_ratio_ppm": 1145219,
+              "interior_gradient_error_squared": 136091383,
+              "interior_samples": 2419200
+            },
+            {
+              "block": 16,
+              "boundary_excess_discontinuity": 197773,
+              "boundary_gradient_error_absolute": 549910,
+              "boundary_gradient_error_squared": 11195080,
+              "boundary_samples": 170400,
+              "boundary_to_interior_error_ratio_ppm": 1158392,
+              "interior_gradient_error_squared": 147006615,
+              "interior_samples": 2592000
+            }
+          ],
+          "decoded_sha256": "1378c546a78d961f2dd7ce4162662acf5391385cea6cfd651e613616e1bcc55f",
+          "height": 960,
+          "plane": "y",
+          "psnr_db": "31.190160",
+          "samples": 1382400,
+          "source_sha256": "8cbc3d75ccdd96ced565d1ad3b23bc7715056ff8a96178c7c6f433bc77db11f4",
+          "sse": 68343634,
+          "ssim_q1e9": 918841086,
+          "width": 1440
+        },
+        {
+          "boundaries": [
+            {
+              "block": 4,
+              "boundary_excess_discontinuity": 82022,
+              "boundary_gradient_error_absolute": 155001,
+              "boundary_gradient_error_squared": 1065717,
+              "boundary_samples": 171600,
+              "boundary_to_interior_error_ratio_ppm": 1306459,
+              "interior_gradient_error_squared": 2464301,
+              "interior_samples": 518400
+            },
+            {
+              "block": 8,
+              "boundary_excess_discontinuity": 72285,
+              "boundary_gradient_error_absolute": 103092,
+              "boundary_gradient_error_squared": 684880,
+              "boundary_samples": 85200,
+              "boundary_to_interior_error_ratio_ppm": 1708768,
+              "interior_gradient_error_squared": 2845138,
+              "interior_samples": 604800
+            },
+            {
+              "block": 16,
+              "boundary_excess_discontinuity": 34998,
+              "boundary_gradient_error_absolute": 50235,
+              "boundary_gradient_error_squared": 340227,
+              "boundary_samples": 42000,
+              "boundary_to_interior_error_ratio_ppm": 1645630,
+              "interior_gradient_error_squared": 3189791,
+              "interior_samples": 648000
+            }
+          ],
+          "decoded_sha256": "761ff55fc3480fd2c3b0b07bbd23711cb652de7136474682129dc6f04436eccc",
+          "height": 480,
+          "plane": "u",
+          "psnr_db": "41.471518",
+          "samples": 345600,
+          "source_sha256": "2d4388e6efe6f8549399c6ea0204a1bb7edf69ba71fd50d7849c42c668e1ecb2",
+          "sse": 1601409,
+          "ssim_q1e9": 981678275,
+          "width": 720
+        },
+        {
+          "boundaries": [
+            {
+              "block": 4,
+              "boundary_excess_discontinuity": 41973,
+              "boundary_gradient_error_absolute": 84657,
+              "boundary_gradient_error_squared": 256781,
+              "boundary_samples": 171600,
+              "boundary_to_interior_error_ratio_ppm": 1831971,
+              "interior_gradient_error_squared": 423440,
+              "interior_samples": 518400
+            },
+            {
+              "block": 8,
+              "boundary_excess_discontinuity": 38004,
+              "boundary_gradient_error_absolute": 57214,
+              "boundary_gradient_error_squared": 191568,
+              "boundary_samples": 85200,
+              "boundary_to_interior_error_ratio_ppm": 2782880,
+              "interior_gradient_error_squared": 488653,
+              "interior_samples": 604800
+            },
+            {
+              "block": 16,
+              "boundary_excess_discontinuity": 19101,
+              "boundary_gradient_error_absolute": 28286,
+              "boundary_gradient_error_squared": 94566,
+              "boundary_samples": 42000,
+              "boundary_to_interior_error_ratio_ppm": 2491258,
+              "interior_gradient_error_squared": 585655,
+              "interior_samples": 648000
+            }
+          ],
+          "decoded_sha256": "7bad7d6bcbc649b342ed5a16ab763660046a9e82500f0388ea6b66ccd70d02a8",
+          "height": 480,
+          "plane": "v",
+          "psnr_db": "46.914842",
+          "samples": 345600,
+          "source_sha256": "252001463a6ecc8ba9d0b0a60cf70fbd9fe4aef00f4caf7821d1620990101b7f",
+          "sse": 457267,
+          "ssim_q1e9": 989325580,
+          "width": 720
+        }
+      ],
+      "qindex": 120,
+      "retained_obu": "metrics/blockiness-m0/streams/i420/bounded-q120.obu",
+      "search": "bounded",
+      "width": 1440,
+      "workspace_bytes": 22206592
+    },
+    {
+      "avm_project_exact": true,
+      "command": [
+        "av2-encoder-experiment",
+        "source-1440x960-yuv420p8.i420",
+        "--width",
+        "1440",
+        "--height",
+        "960",
+        "--qindex",
+        "150",
+        "--search",
+        "bounded",
+        "--output",
+        "bounded-q150.obu"
+      ],
+      "decode_time_ns": {
+        "avm": 101443294,
+        "project": 62009452
+      },
+      "decoded_sha256": "14267640b6851024950bb89ac02be9fb2d7fcf925fc76c68effe8133ad4b0392",
+      "deterministic": true,
+      "encode_time_ns": {
+        "median": 29991312718,
+        "samples": [
+          30053256274,
+          29929369162
+        ],
+        "worst": 30053256274
+      },
+      "encoder_local_sse_matches_decode": true,
+      "encoder_reported_sse": [
+        56772745,
+        2884488,
+        1389611
+      ],
+      "height": 960,
+      "id": "i420-bounded-q150",
+      "input_bytes": 2073600,
+      "input_sha256": "f5a538f7ce0c6791381f5d27ae71e1bce0850c20f41c9ec5e8515921c2e4a238",
+      "obu_bytes": 10829,
+      "obu_sha256": "401341d4bb62121fa5dcef7543df6952be9760082dc28153f9baceba07f54cab",
+      "pixel_format": "i420",
+      "planes": [
+        {
+          "boundaries": [
+            {
+              "block": 4,
+              "boundary_excess_discontinuity": 625199,
+              "boundary_gradient_error_absolute": 2145240,
+              "boundary_gradient_error_squared": 41979934,
+              "boundary_samples": 688800,
+              "boundary_to_interior_error_ratio_ppm": 1103508,
+              "interior_gradient_error_squared": 114524392,
+              "interior_samples": 2073600
+            },
+            {
+              "block": 8,
+              "boundary_excess_discontinuity": 559486,
+              "boundary_gradient_error_absolute": 1215335,
+              "boundary_gradient_error_squared": 23200595,
+              "boundary_samples": 343200,
+              "boundary_to_interior_error_ratio_ppm": 1226821,
+              "interior_gradient_error_squared": 133303731,
+              "interior_samples": 2419200
+            },
+            {
+              "block": 16,
+              "boundary_excess_discontinuity": 279627,
+              "boundary_gradient_error_absolute": 606223,
+              "boundary_gradient_error_squared": 11763485,
+              "boundary_samples": 170400,
+              "boundary_to_interior_error_ratio_ppm": 1236261,
+              "interior_gradient_error_squared": 144740841,
+              "interior_samples": 2592000
+            }
+          ],
+          "decoded_sha256": "675461c662b69efb42bdac14067017946a827ed1f539b0682ad1e1c7bc080682",
+          "height": 960,
+          "plane": "y",
+          "psnr_db": "31.995742",
+          "samples": 1382400,
+          "source_sha256": "8cbc3d75ccdd96ced565d1ad3b23bc7715056ff8a96178c7c6f433bc77db11f4",
+          "sse": 56772745,
+          "ssim_q1e9": 940190748,
+          "width": 1440
+        },
+        {
+          "boundaries": [
+            {
+              "block": 4,
+              "boundary_excess_discontinuity": 106561,
+              "boundary_gradient_error_absolute": 186568,
+              "boundary_gradient_error_squared": 1536308,
+              "boundary_samples": 171600,
+              "boundary_to_interior_error_ratio_ppm": 1777759,
+              "interior_gradient_error_squared": 2610676,
+              "interior_samples": 518400
+            },
+            {
+              "block": 8,
+              "boundary_excess_discontinuity": 97059,
+              "boundary_gradient_error_absolute": 132334,
+              "boundary_gradient_error_squared": 1121416,
+              "boundary_samples": 85200,
+              "boundary_to_interior_error_ratio_ppm": 2631067,
+              "interior_gradient_error_squared": 3025568,
+              "interior_samples": 604800
+            },
+            {
+              "block": 16,
+              "boundary_excess_discontinuity": 47824,
+              "boundary_gradient_error_absolute": 65027,
+              "boundary_gradient_error_squared": 546629,
+              "boundary_samples": 42000,
+              "boundary_to_interior_error_ratio_ppm": 2342464,
+              "interior_gradient_error_squared": 3600355,
+              "interior_samples": 648000
+            }
+          ],
+          "decoded_sha256": "cb775786852515b083e1b7b17498be9c6c865b328b52ffaebfed0c8a280c6f26",
+          "height": 480,
+          "plane": "u",
+          "psnr_db": "38.915854",
+          "samples": 345600,
+          "source_sha256": "2d4388e6efe6f8549399c6ea0204a1bb7edf69ba71fd50d7849c42c668e1ecb2",
+          "sse": 2884488,
+          "ssim_q1e9": 973343131,
+          "width": 720
+        },
+        {
+          "boundaries": [
+            {
+              "block": 4,
+              "boundary_excess_discontinuity": 54505,
+              "boundary_gradient_error_absolute": 101360,
+              "boundary_gradient_error_squared": 459386,
+              "boundary_samples": 171600,
+              "boundary_to_interior_error_ratio_ppm": 2938003,
+              "interior_gradient_error_squared": 472360,
+              "interior_samples": 518400
+            },
+            {
+              "block": 8,
+              "boundary_excess_discontinuity": 51447,
+              "boundary_gradient_error_absolute": 73084,
+              "boundary_gradient_error_squared": 385338,
+              "boundary_samples": 85200,
+              "boundary_to_interior_error_ratio_ppm": 5006070,
+              "interior_gradient_error_squared": 546408,
+              "interior_samples": 604800
+            },
+            {
+              "block": 16,
+              "boundary_excess_discontinuity": 25466,
+              "boundary_gradient_error_absolute": 36016,
+              "boundary_gradient_error_squared": 195558,
+              "boundary_samples": 42000,
+              "boundary_to_interior_error_ratio_ppm": 4098383,
+              "interior_gradient_error_squared": 736188,
+              "interior_samples": 648000
+            }
+          ],
+          "decoded_sha256": "b4c01ca3942aea44fead777f684d0ac4092c81978acda8e8e03c146e64268b44",
+          "height": 480,
+          "plane": "v",
+          "psnr_db": "42.087609",
+          "samples": 345600,
+          "source_sha256": "252001463a6ecc8ba9d0b0a60cf70fbd9fe4aef00f4caf7821d1620990101b7f",
+          "sse": 1389611,
+          "ssim_q1e9": 983189700,
+          "width": 720
+        }
+      ],
+      "qindex": 150,
+      "retained_obu": "metrics/blockiness-m0/streams/i420/bounded-q150.obu",
+      "search": "bounded",
+      "width": 1440,
+      "workspace_bytes": 22206592
+    },
+    {
+      "avm_project_exact": true,
+      "command": [
+        "av2-encoder-experiment",
+        "source-1440x960-yuv420p8.i420",
+        "--width",
+        "1440",
+        "--height",
+        "960",
+        "--qindex",
+        "165",
+        "--search",
+        "bounded",
+        "--output",
+        "bounded-q165.obu"
+      ],
+      "decode_time_ns": {
+        "avm": 99962931,
+        "project": 61137269
+      },
+      "decoded_sha256": "567d6277874580e4c3a60a4528a8531bbbb838848c41aa3782f9b01131df2f1e",
+      "deterministic": true,
+      "encode_time_ns": {
+        "median": 29197981655,
+        "samples": [
+          29176254133,
+          29219709177
+        ],
+        "worst": 29219709177
+      },
+      "encoder_local_sse_matches_decode": true,
+      "encoder_reported_sse": [
+        66081678,
+        4568855,
+        3030112
+      ],
+      "height": 960,
+      "id": "i420-bounded-q165",
+      "input_bytes": 2073600,
+      "input_sha256": "f5a538f7ce0c6791381f5d27ae71e1bce0850c20f41c9ec5e8515921c2e4a238",
+      "obu_bytes": 7894,
+      "obu_sha256": "2e24d3b6d1394359d6c66fea05dc3abff0f64a22304c5f8f1d1716dd4c380c60",
+      "pixel_format": "i420",
+      "planes": [
+        {
+          "boundaries": [
+            {
+              "block": 4,
+              "boundary_excess_discontinuity": 704783,
+              "boundary_gradient_error_absolute": 2248818,
+              "boundary_gradient_error_squared": 46508322,
+              "boundary_samples": 688800,
+              "boundary_to_interior_error_ratio_ppm": 1202689,
+              "interior_gradient_error_squared": 116415007,
+              "interior_samples": 2073600
+            },
+            {
+              "block": 8,
+              "boundary_excess_discontinuity": 637123,
+              "boundary_gradient_error_absolute": 1314519,
+              "boundary_gradient_error_squared": 27586969,
+              "boundary_samples": 343200,
+              "boundary_to_interior_error_ratio_ppm": 1436858,
+              "interior_gradient_error_squared": 135336360,
+              "interior_samples": 2419200
+            },
+            {
+              "block": 16,
+              "boundary_excess_discontinuity": 315443,
+              "boundary_gradient_error_absolute": 653047,
+              "boundary_gradient_error_squared": 13788325,
+              "boundary_samples": 170400,
+              "boundary_to_interior_error_ratio_ppm": 1406362,
+              "interior_gradient_error_squared": 149135004,
+              "interior_samples": 2592000
+            }
+          ],
+          "decoded_sha256": "f77c6fc2ed2fe884560850996ab965dbb9329d0a7d051610d463ed6814dec68f",
+          "height": 960,
+          "plane": "y",
+          "psnr_db": "31.336330",
+          "samples": 1382400,
+          "source_sha256": "8cbc3d75ccdd96ced565d1ad3b23bc7715056ff8a96178c7c6f433bc77db11f4",
+          "sse": 66081678,
+          "ssim_q1e9": 933163480,
+          "width": 1440
+        },
+        {
+          "boundaries": [
+            {
+              "block": 4,
+              "boundary_excess_discontinuity": 121672,
+              "boundary_gradient_error_absolute": 204888,
+              "boundary_gradient_error_squared": 1939168,
+              "boundary_samples": 171600,
+              "boundary_to_interior_error_ratio_ppm": 2127159,
+              "interior_gradient_error_squared": 2753995,
+              "interior_samples": 518400
+            },
+            {
+              "block": 8,
+              "boundary_excess_discontinuity": 113635,
+              "boundary_gradient_error_absolute": 150425,
+              "boundary_gradient_error_squared": 1517133,
+              "boundary_samples": 85200,
+              "boundary_to_interior_error_ratio_ppm": 3390870,
+              "interior_gradient_error_squared": 3176030,
+              "interior_samples": 604800
+            },
+            {
+              "block": 16,
+              "boundary_excess_discontinuity": 56718,
+              "boundary_gradient_error_absolute": 74826,
+              "boundary_gradient_error_squared": 778624,
+              "boundary_samples": 42000,
+              "boundary_to_interior_error_ratio_ppm": 3068830,
+              "interior_gradient_error_squared": 3914539,
+              "interior_samples": 648000
+            }
+          ],
+          "decoded_sha256": "36cc07aa84bc93979fb48df41ef8613c62fdad43f33a55b6ae42ae43beb55566",
+          "height": 480,
+          "plane": "u",
+          "psnr_db": "36.918467",
+          "samples": 345600,
+          "source_sha256": "2d4388e6efe6f8549399c6ea0204a1bb7edf69ba71fd50d7849c42c668e1ecb2",
+          "sse": 4568855,
+          "ssim_q1e9": 966885568,
+          "width": 720
+        },
+        {
+          "boundaries": [
+            {
+              "block": 4,
+              "boundary_excess_discontinuity": 68257,
+              "boundary_gradient_error_absolute": 117189,
+              "boundary_gradient_error_squared": 633637,
+              "boundary_samples": 171600,
+              "boundary_to_interior_error_ratio_ppm": 3864081,
+              "interior_gradient_error_squared": 495384,
+              "interior_samples": 518400
+            },
+            {
+              "block": 8,
+              "boundary_excess_discontinuity": 66493,
+              "boundary_gradient_error_absolute": 88904,
+              "boundary_gradient_error_squared": 554676,
+              "boundary_samples": 85200,
+              "boundary_to_interior_error_ratio_ppm": 6855493,
+              "interior_gradient_error_squared": 574345,
+              "interior_samples": 604800
+            },
+            {
+              "block": 16,
+              "boundary_excess_discontinuity": 33028,
+              "boundary_gradient_error_absolute": 43889,
+              "boundary_gradient_error_squared": 286925,
+              "boundary_samples": 42000,
+              "boundary_to_interior_error_ratio_ppm": 5256933,
+              "interior_gradient_error_squared": 842096,
+              "interior_samples": 648000
+            }
+          ],
+          "decoded_sha256": "34fbff18afa30c93a4c03204eb2449b1b5d104b636535e49a8a3db54e265335b",
+          "height": 480,
+          "plane": "v",
+          "psnr_db": "38.701954",
+          "samples": 345600,
+          "source_sha256": "252001463a6ecc8ba9d0b0a60cf70fbd9fe4aef00f4caf7821d1620990101b7f",
+          "sse": 3030112,
+          "ssim_q1e9": 979428736,
+          "width": 720
+        }
+      ],
+      "qindex": 165,
+      "retained_obu": "metrics/blockiness-m0/streams/i420/bounded-q165.obu",
+      "search": "bounded",
+      "width": 1440,
+      "workspace_bytes": 22206592
+    },
+    {
+      "avm_project_exact": true,
+      "command": [
+        "av2-encoder-experiment",
+        "source-1440x960-yuv420p8.i420",
+        "--width",
+        "1440",
+        "--height",
+        "960",
+        "--qindex",
+        "180",
+        "--search",
+        "bounded",
+        "--output",
+        "bounded-q180.obu"
+      ],
+      "decode_time_ns": {
+        "avm": 99527818,
+        "project": 58454513
+      },
+      "decoded_sha256": "da69874e616b47011e1e1416704f1f5034dbfd54552092ab297932e3e9024a3f",
+      "deterministic": true,
+      "encode_time_ns": {
+        "median": 28907933757,
+        "samples": [
+          28870312934,
+          28945554581
+        ],
+        "worst": 28945554581
+      },
+      "encoder_local_sse_matches_decode": true,
+      "encoder_reported_sse": [
+        86318190,
+        7649488,
+        8103777
+      ],
+      "height": 960,
+      "id": "i420-bounded-q180",
+      "input_bytes": 2073600,
+      "input_sha256": "f5a538f7ce0c6791381f5d27ae71e1bce0850c20f41c9ec5e8515921c2e4a238",
+      "obu_bytes": 5429,
+      "obu_sha256": "3adeef7c5ba459f60eec06e99c11269bb59f56ffbd516d088914dd00aaa5cc68",
+      "pixel_format": "i420",
+      "planes": [
+        {
+          "boundaries": [
+            {
+              "block": 4,
+              "boundary_excess_discontinuity": 805261,
+              "boundary_gradient_error_absolute": 2390919,
+              "boundary_gradient_error_squared": 53775217,
+              "boundary_samples": 688800,
+              "boundary_to_interior_error_ratio_ppm": 1354211,
+              "interior_gradient_error_squared": 119543931,
+              "interior_samples": 2073600
+            },
+            {
+              "block": 8,
+              "boundary_excess_discontinuity": 737569,
+              "boundary_gradient_error_absolute": 1449163,
+              "boundary_gradient_error_squared": 34479001,
+              "boundary_samples": 343200,
+              "boundary_to_interior_error_ratio_ppm": 1750508,
+              "interior_gradient_error_squared": 138840147,
+              "interior_samples": 2419200
+            },
+            {
+              "block": 16,
+              "boundary_excess_discontinuity": 369791,
+              "boundary_gradient_error_absolute": 723959,
+              "boundary_gradient_error_squared": 17429791,
+              "boundary_samples": 170400,
+              "boundary_to_interior_error_ratio_ppm": 1700752,
+              "interior_gradient_error_squared": 155889357,
+              "interior_samples": 2592000
+            }
+          ],
+          "decoded_sha256": "bcf80029829839dcc34e0e66229307bb50e5e5f214ab73b0060316a619770bfd",
+          "height": 960,
+          "plane": "y",
+          "psnr_db": "30.176118",
+          "samples": 1382400,
+          "source_sha256": "8cbc3d75ccdd96ced565d1ad3b23bc7715056ff8a96178c7c6f433bc77db11f4",
+          "sse": 86318190,
+          "ssim_q1e9": 921873422,
+          "width": 1440
+        },
+        {
+          "boundaries": [
+            {
+              "block": 4,
+              "boundary_excess_discontinuity": 124269,
+              "boundary_gradient_error_absolute": 212436,
+              "boundary_gradient_error_squared": 2487864,
+              "boundary_samples": 171600,
+              "boundary_to_interior_error_ratio_ppm": 2562338,
+              "interior_gradient_error_squared": 2933174,
+              "interior_samples": 518400
+            },
+            {
+              "block": 8,
+              "boundary_excess_discontinuity": 116918,
+              "boundary_gradient_error_absolute": 157311,
+              "boundary_gradient_error_squared": 2035081,
+              "boundary_samples": 85200,
+              "boundary_to_interior_error_ratio_ppm": 4266506,
+              "interior_gradient_error_squared": 3385957,
+              "interior_samples": 604800
+            },
+            {
+              "block": 16,
+              "boundary_excess_discontinuity": 59088,
+              "boundary_gradient_error_absolute": 78846,
+              "boundary_gradient_error_squared": 1029850,
+              "boundary_samples": 42000,
+              "boundary_to_interior_error_ratio_ppm": 3618409,
+              "interior_gradient_error_squared": 4391188,
+              "interior_samples": 648000
+            }
+          ],
+          "decoded_sha256": "8bb506838fce77d0b3d5ea141564c55d27af8428ebff4486f3ae10c8fc7f2f5d",
+          "height": 480,
+          "plane": "u",
+          "psnr_db": "34.680217",
+          "samples": 345600,
+          "source_sha256": "2d4388e6efe6f8549399c6ea0204a1bb7edf69ba71fd50d7849c42c668e1ecb2",
+          "sse": 7649488,
+          "ssim_q1e9": 961320438,
+          "width": 720
+        },
+        {
+          "boundaries": [
+            {
+              "block": 4,
+              "boundary_excess_discontinuity": 76309,
+              "boundary_gradient_error_absolute": 127587,
+              "boundary_gradient_error_squared": 826281,
+              "boundary_samples": 171600,
+              "boundary_to_interior_error_ratio_ppm": 4869516,
+              "interior_gradient_error_squared": 512613,
+              "interior_samples": 518400
+            },
+            {
+              "block": 8,
+              "boundary_excess_discontinuity": 75441,
+              "boundary_gradient_error_absolute": 99294,
+              "boundary_gradient_error_squared": 744408,
+              "boundary_samples": 85200,
+              "boundary_to_interior_error_ratio_ppm": 8888768,
+              "interior_gradient_error_squared": 594486,
+              "interior_samples": 604800
+            },
+            {
+              "block": 16,
+              "boundary_excess_discontinuity": 37211,
+              "boundary_gradient_error_absolute": 48927,
+              "boundary_gradient_error_squared": 381117,
+              "boundary_samples": 42000,
+              "boundary_to_interior_error_ratio_ppm": 6139310,
+              "interior_gradient_error_squared": 957777,
+              "interior_samples": 648000
+            }
+          ],
+          "decoded_sha256": "235d6bf3b708e251c7a2372025a1a0b2684af4a8362db65681063f5b360d7531",
+          "height": 480,
+          "plane": "v",
+          "psnr_db": "34.429666",
+          "samples": 345600,
+          "source_sha256": "252001463a6ecc8ba9d0b0a60cf70fbd9fe4aef00f4caf7821d1620990101b7f",
+          "sse": 8103777,
+          "ssim_q1e9": 976051588,
+          "width": 720
+        }
+      ],
+      "qindex": 180,
+      "retained_obu": "metrics/blockiness-m0/streams/i420/bounded-q180.obu",
+      "search": "bounded",
+      "width": 1440,
+      "workspace_bytes": 22206592
+    },
+    {
+      "avm_project_exact": true,
+      "command": [
+        "av2-encoder-experiment",
+        "source-1440x960-yuv420p8.i420",
+        "--width",
+        "1440",
+        "--height",
+        "960",
+        "--qindex",
+        "220",
+        "--search",
+        "bounded",
+        "--output",
+        "bounded-q220.obu"
+      ],
+      "decode_time_ns": {
+        "avm": 106730026,
+        "project": 53537802
+      },
+      "decoded_sha256": "e39610401cac23cc5cca671118d743830cf97dd8e6490c953cdedc584831b7d5",
+      "deterministic": true,
+      "encode_time_ns": {
+        "median": 28423177306,
+        "samples": [
+          28400919826,
+          28445434787
+        ],
+        "worst": 28445434787
+      },
+      "encoder_local_sse_matches_decode": true,
+      "encoder_reported_sse": [
+        290324287,
+        66756305,
+        42784355
+      ],
+      "height": 960,
+      "id": "i420-bounded-q220",
+      "input_bytes": 2073600,
+      "input_sha256": "f5a538f7ce0c6791381f5d27ae71e1bce0850c20f41c9ec5e8515921c2e4a238",
+      "obu_bytes": 1411,
+      "obu_sha256": "bed6b8e3e08ded1ce51173bd673007d279a623cdd5487556874177c94e18e090",
+      "pixel_format": "i420",
+      "planes": [
+        {
+          "boundaries": [
+            {
+              "block": 4,
+              "boundary_excess_discontinuity": 1027276,
+              "boundary_gradient_error_absolute": 2796120,
+              "boundary_gradient_error_squared": 89225990,
+              "boundary_samples": 688800,
+              "boundary_to_interior_error_ratio_ppm": 2024710,
+              "interior_gradient_error_squared": 132666170,
+              "interior_samples": 2073600
+            },
+            {
+              "block": 8,
+              "boundary_excess_discontinuity": 990027,
+              "boundary_gradient_error_absolute": 1828953,
+              "boundary_gradient_error_squared": 67776135,
+              "boundary_samples": 343200,
+              "boundary_to_interior_error_ratio_ppm": 3099941,
+              "interior_gradient_error_squared": 154116025,
+              "interior_samples": 2419200
+            },
+            {
+              "block": 16,
+              "boundary_excess_discontinuity": 502864,
+              "boundary_gradient_error_absolute": 919714,
+              "boundary_gradient_error_squared": 34623864,
+              "boundary_samples": 170400,
+              "boundary_to_interior_error_ratio_ppm": 2812397,
+              "interior_gradient_error_squared": 187268296,
+              "interior_samples": 2592000
+            }
+          ],
+          "decoded_sha256": "8a49aefa9704c141da22b959ce294427a98ca70ae03b59d53398285a67d57081",
+          "height": 960,
+          "plane": "y",
+          "psnr_db": "24.908307",
+          "samples": 1382400,
+          "source_sha256": "8cbc3d75ccdd96ced565d1ad3b23bc7715056ff8a96178c7c6f433bc77db11f4",
+          "sse": 290324287,
+          "ssim_q1e9": 870988430,
+          "width": 1440
+        },
+        {
+          "boundaries": [
+            {
+              "block": 4,
+              "boundary_excess_discontinuity": 179311,
+              "boundary_gradient_error_absolute": 277914,
+              "boundary_gradient_error_squared": 5473824,
+              "boundary_samples": 171600,
+              "boundary_to_interior_error_ratio_ppm": 4914849,
+              "interior_gradient_error_squared": 3364560,
+              "interior_samples": 518400
+            },
+            {
+              "block": 8,
+              "boundary_excess_discontinuity": 175501,
+              "boundary_gradient_error_absolute": 221967,
+              "boundary_gradient_error_squared": 4925001,
+              "boundary_samples": 85200,
+              "boundary_to_interior_error_ratio_ppm": 8933592,
+              "interior_gradient_error_squared": 3913383,
+              "interior_samples": 604800
+            },
+            {
+              "block": 16,
+              "boundary_excess_discontinuity": 85895,
+              "boundary_gradient_error_absolute": 108574,
+              "boundary_gradient_error_squared": 2454806,
+              "boundary_samples": 42000,
+              "boundary_to_interior_error_ratio_ppm": 5933059,
+              "interior_gradient_error_squared": 6383578,
+              "interior_samples": 648000
+            }
+          ],
+          "decoded_sha256": "10b2090053c95a5b9c5eed11b610948b72fe3754c6feb4bb1463fcf2b8cd02c0",
+          "height": 480,
+          "plane": "u",
+          "psnr_db": "25.271618",
+          "samples": 345600,
+          "source_sha256": "2d4388e6efe6f8549399c6ea0204a1bb7edf69ba71fd50d7849c42c668e1ecb2",
+          "sse": 66756305,
+          "ssim_q1e9": 940920966,
+          "width": 720
+        },
+        {
+          "boundaries": [
+            {
+              "block": 4,
+              "boundary_excess_discontinuity": 31938,
+              "boundary_gradient_error_absolute": 87253,
+              "boundary_gradient_error_squared": 686465,
+              "boundary_samples": 171600,
+              "boundary_to_interior_error_ratio_ppm": 3918656,
+              "interior_gradient_error_squared": 529211,
+              "interior_samples": 518400
+            },
+            {
+              "block": 8,
+              "boundary_excess_discontinuity": 31938,
+              "boundary_gradient_error_absolute": 59088,
+              "boundary_gradient_error_squared": 601984,
+              "boundary_samples": 85200,
+              "boundary_to_interior_error_ratio_ppm": 6963164,
+              "interior_gradient_error_squared": 613692,
+              "interior_samples": 604800
+            },
+            {
+              "block": 16,
+              "boundary_excess_discontinuity": 16848,
+              "boundary_gradient_error_absolute": 30039,
+              "boundary_gradient_error_squared": 332383,
+              "boundary_samples": 42000,
+              "boundary_to_interior_error_ratio_ppm": 5805768,
+              "interior_gradient_error_squared": 883293,
+              "interior_samples": 648000
+            }
+          ],
+          "decoded_sha256": "0bb327c1bb0abcd0df97af01bb7f75f81398481d9a02e1caa4908ca54f574ede",
+          "height": 480,
+          "plane": "v",
+          "psnr_db": "27.203691",
+          "samples": 345600,
+          "source_sha256": "252001463a6ecc8ba9d0b0a60cf70fbd9fe4aef00f4caf7821d1620990101b7f",
+          "sse": 42784355,
+          "ssim_q1e9": 970713817,
+          "width": 720
+        }
+      ],
+      "qindex": 220,
+      "retained_obu": "metrics/blockiness-m0/streams/i420/bounded-q220.obu",
+      "search": "bounded",
+      "width": 1440,
+      "workspace_bytes": 22206592
+    },
+    {
+      "avm_project_exact": true,
+      "command": [
+        "av2-encoder-experiment",
+        "source-1440x960-yuv420p8.i420",
+        "--width",
+        "1440",
+        "--height",
+        "960",
+        "--qindex",
+        "100",
+        "--search",
+        "off",
+        "--output",
+        "off-q100.obu"
+      ],
+      "decode_time_ns": {
+        "avm": 108626157,
+        "project": 87383964
+      },
+      "decoded_sha256": "4e81aba62a887966a2f439d284db508cbd1876411ce35c50120ca8f08747abf3",
+      "deterministic": true,
+      "encode_time_ns": {
+        "median": 7059709431,
+        "samples": [
+          7057545877,
+          7061872985
+        ],
+        "worst": 7061872985
+      },
+      "encoder_local_sse_matches_decode": true,
+      "encoder_reported_sse": [
+        126860400,
+        6439964,
+        900825
+      ],
+      "height": 960,
+      "id": "i420-off-q100",
+      "input_bytes": 2073600,
+      "input_sha256": "f5a538f7ce0c6791381f5d27ae71e1bce0850c20f41c9ec5e8515921c2e4a238",
+      "obu_bytes": 8521,
+      "obu_sha256": "bb2409cdf16a94520cc5978f596cc21c9fc51d7f7e5d163845940fdc2afd5f50",
+      "pixel_format": "i420",
+      "planes": [
+        {
+          "boundaries": [
+            {
+              "block": 4,
+              "boundary_excess_discontinuity": 566229,
+              "boundary_gradient_error_absolute": 2367761,
+              "boundary_gradient_error_squared": 62585103,
+              "boundary_samples": 688800,
+              "boundary_to_interior_error_ratio_ppm": 1399226,
+              "interior_gradient_error_squared": 134652623,
+              "interior_samples": 2073600
+            },
+            {
+              "block": 8,
+              "boundary_excess_discontinuity": 566229,
+              "boundary_gradient_error_absolute": 1397699,
+              "boundary_gradient_error_squared": 40214105,
+              "boundary_samples": 343200,
+              "boundary_to_interior_error_ratio_ppm": 1805252,
+              "interior_gradient_error_squared": 157023621,
+              "interior_samples": 2419200
+            },
+            {
+              "block": 16,
+              "boundary_excess_discontinuity": 281591,
+              "boundary_gradient_error_absolute": 695088,
+              "boundary_gradient_error_squared": 19759216,
+              "boundary_samples": 170400,
+              "boundary_to_interior_error_ratio_ppm": 1693516,
+              "interior_gradient_error_squared": 177478510,
+              "interior_samples": 2592000
+            }
+          ],
+          "decoded_sha256": "b5334a75f6f22f3029f4dfe7da95d30942face720a889506acbf485e94bc4d40",
+          "height": 960,
+          "plane": "y",
+          "psnr_db": "28.503880",
+          "samples": 1382400,
+          "source_sha256": "8cbc3d75ccdd96ced565d1ad3b23bc7715056ff8a96178c7c6f433bc77db11f4",
+          "sse": 126860400,
+          "ssim_q1e9": 862026566,
+          "width": 1440
+        },
+        {
+          "boundaries": [
+            {
+              "block": 4,
+              "boundary_excess_discontinuity": 98098,
+              "boundary_gradient_error_absolute": 191690,
+              "boundary_gradient_error_squared": 3092132,
+              "boundary_samples": 171600,
+              "boundary_to_interior_error_ratio_ppm": 2632027,
+              "interior_gradient_error_squared": 3549076,
+              "interior_samples": 518400
+            },
+            {
+              "block": 8,
+              "boundary_excess_discontinuity": 98098,
+              "boundary_gradient_error_absolute": 136183,
+              "boundary_gradient_error_squared": 2506349,
+              "boundary_samples": 85200,
+              "boundary_to_interior_error_ratio_ppm": 4302818,
+              "interior_gradient_error_squared": 4134859,
+              "interior_samples": 604800
+            },
+            {
+              "block": 16,
+              "boundary_excess_discontinuity": 49007,
+              "boundary_gradient_error_absolute": 67881,
+              "boundary_gradient_error_squared": 1297327,
+              "boundary_samples": 42000,
+              "boundary_to_interior_error_ratio_ppm": 3745574,
+              "interior_gradient_error_squared": 5343881,
+              "interior_samples": 648000
+            }
+          ],
+          "decoded_sha256": "5e5e760b3f6b81a93d212e779bf7d5a683c59e476d1b7ca598de6a7a63545b01",
+          "height": 480,
+          "plane": "u",
+          "psnr_db": "35.427707",
+          "samples": 345600,
+          "source_sha256": "2d4388e6efe6f8549399c6ea0204a1bb7edf69ba71fd50d7849c42c668e1ecb2",
+          "sse": 6439964,
+          "ssim_q1e9": 943054344,
+          "width": 720
+        },
+        {
+          "boundaries": [
+            {
+              "block": 4,
+              "boundary_excess_discontinuity": 45876,
+              "boundary_gradient_error_absolute": 93947,
+              "boundary_gradient_error_squared": 479667,
+              "boundary_samples": 171600,
+              "boundary_to_interior_error_ratio_ppm": 2738159,
+              "interior_gradient_error_squared": 529211,
+              "interior_samples": 518400
+            },
+            {
+              "block": 8,
+              "boundary_excess_discontinuity": 45876,
+              "boundary_gradient_error_absolute": 65782,
+              "boundary_gradient_error_squared": 395186,
+              "boundary_samples": 85200,
+              "boundary_to_interior_error_ratio_ppm": 4571126,
+              "interior_gradient_error_squared": 613692,
+              "interior_samples": 604800
+            },
+            {
+              "block": 16,
+              "boundary_excess_discontinuity": 22286,
+              "boundary_gradient_error_absolute": 32079,
+              "boundary_gradient_error_squared": 188345,
+              "boundary_samples": 42000,
+              "boundary_to_interior_error_ratio_ppm": 3541471,
+              "interior_gradient_error_squared": 820533,
+              "interior_samples": 648000
+            }
+          ],
+          "decoded_sha256": "62c08d6965a4e8e9767eb6a0a77c38c23c1990f9ab528f39feba740dd4f6764d",
+          "height": 480,
+          "plane": "v",
+          "psnr_db": "43.970137",
+          "samples": 345600,
+          "source_sha256": "252001463a6ecc8ba9d0b0a60cf70fbd9fe4aef00f4caf7821d1620990101b7f",
+          "sse": 900825,
+          "ssim_q1e9": 974324411,
+          "width": 720
+        }
+      ],
+      "qindex": 100,
+      "retained_obu": "metrics/blockiness-m0/streams/i420/off-q100.obu",
+      "search": "off",
+      "width": 1440,
+      "workspace_bytes": 8359968
+    },
+    {
+      "avm_project_exact": true,
+      "command": [
+        "av2-encoder-experiment",
+        "source-1440x960-yuv420p8.i420",
+        "--width",
+        "1440",
+        "--height",
+        "960",
+        "--qindex",
+        "100",
+        "--search",
+        "intra",
+        "--output",
+        "intra-q100.obu"
+      ],
+      "decode_time_ns": {
+        "avm": 104595108,
+        "project": 81771490
+      },
+      "decoded_sha256": "5713763a3d0fdeca5f0d81b06feff6aa690113b51ebf3b62a87dc87354d6ae7b",
+      "deterministic": true,
+      "encode_time_ns": {
+        "median": 7805765217,
+        "samples": [
+          7793605649,
+          7817924785
+        ],
+        "worst": 7817924785
+      },
+      "encoder_local_sse_matches_decode": true,
+      "encoder_reported_sse": [
+        122398687,
+        6439964,
+        900825
+      ],
+      "height": 960,
+      "id": "i420-intra-q100",
+      "input_bytes": 2073600,
+      "input_sha256": "f5a538f7ce0c6791381f5d27ae71e1bce0850c20f41c9ec5e8515921c2e4a238",
+      "obu_bytes": 8175,
+      "obu_sha256": "030740e6831653a3ad3de1f676c2a3fdbf05498c92dafffe87ddc1617c1adfd0",
+      "pixel_format": "i420",
+      "planes": [
+        {
+          "boundaries": [
+            {
+              "block": 4,
+              "boundary_excess_discontinuity": 472894,
+              "boundary_gradient_error_absolute": 2289165,
+              "boundary_gradient_error_squared": 57516375,
+              "boundary_samples": 688800,
+              "boundary_to_interior_error_ratio_ppm": 1290586,
+              "interior_gradient_error_squared": 134164083,
+              "interior_samples": 2073600
+            },
+            {
+              "block": 8,
+              "boundary_excess_discontinuity": 455688,
+              "boundary_gradient_error_absolute": 1308857,
+              "boundary_gradient_error_squared": 35229729,
+              "boundary_samples": 343200,
+              "boundary_to_interior_error_ratio_ppm": 1587289,
+              "interior_gradient_error_squared": 156450729,
+              "interior_samples": 2419200
+            },
+            {
+              "block": 16,
+              "boundary_excess_discontinuity": 221823,
+              "boundary_gradient_error_absolute": 645566,
+              "boundary_gradient_error_squared": 16960704,
+              "boundary_samples": 170400,
+              "boundary_to_interior_error_ratio_ppm": 1476614,
+              "interior_gradient_error_squared": 174719754,
+              "interior_samples": 2592000
+            }
+          ],
+          "decoded_sha256": "8d3dafd016e7b34c4949d4c631499f91d41dc7407c4be8995113c9644eed0160",
+          "height": 960,
+          "plane": "y",
+          "psnr_db": "28.659373",
+          "samples": 1382400,
+          "source_sha256": "8cbc3d75ccdd96ced565d1ad3b23bc7715056ff8a96178c7c6f433bc77db11f4",
+          "sse": 122398687,
+          "ssim_q1e9": 869040760,
+          "width": 1440
+        },
+        {
+          "boundaries": [
+            {
+              "block": 4,
+              "boundary_excess_discontinuity": 98098,
+              "boundary_gradient_error_absolute": 191690,
+              "boundary_gradient_error_squared": 3092132,
+              "boundary_samples": 171600,
+              "boundary_to_interior_error_ratio_ppm": 2632027,
+              "interior_gradient_error_squared": 3549076,
+              "interior_samples": 518400
+            },
+            {
+              "block": 8,
+              "boundary_excess_discontinuity": 98098,
+              "boundary_gradient_error_absolute": 136183,
+              "boundary_gradient_error_squared": 2506349,
+              "boundary_samples": 85200,
+              "boundary_to_interior_error_ratio_ppm": 4302818,
+              "interior_gradient_error_squared": 4134859,
+              "interior_samples": 604800
+            },
+            {
+              "block": 16,
+              "boundary_excess_discontinuity": 49007,
+              "boundary_gradient_error_absolute": 67881,
+              "boundary_gradient_error_squared": 1297327,
+              "boundary_samples": 42000,
+              "boundary_to_interior_error_ratio_ppm": 3745574,
+              "interior_gradient_error_squared": 5343881,
+              "interior_samples": 648000
+            }
+          ],
+          "decoded_sha256": "5e5e760b3f6b81a93d212e779bf7d5a683c59e476d1b7ca598de6a7a63545b01",
+          "height": 480,
+          "plane": "u",
+          "psnr_db": "35.427707",
+          "samples": 345600,
+          "source_sha256": "2d4388e6efe6f8549399c6ea0204a1bb7edf69ba71fd50d7849c42c668e1ecb2",
+          "sse": 6439964,
+          "ssim_q1e9": 943054344,
+          "width": 720
+        },
+        {
+          "boundaries": [
+            {
+              "block": 4,
+              "boundary_excess_discontinuity": 45876,
+              "boundary_gradient_error_absolute": 93947,
+              "boundary_gradient_error_squared": 479667,
+              "boundary_samples": 171600,
+              "boundary_to_interior_error_ratio_ppm": 2738159,
+              "interior_gradient_error_squared": 529211,
+              "interior_samples": 518400
+            },
+            {
+              "block": 8,
+              "boundary_excess_discontinuity": 45876,
+              "boundary_gradient_error_absolute": 65782,
+              "boundary_gradient_error_squared": 395186,
+              "boundary_samples": 85200,
+              "boundary_to_interior_error_ratio_ppm": 4571126,
+              "interior_gradient_error_squared": 613692,
+              "interior_samples": 604800
+            },
+            {
+              "block": 16,
+              "boundary_excess_discontinuity": 22286,
+              "boundary_gradient_error_absolute": 32079,
+              "boundary_gradient_error_squared": 188345,
+              "boundary_samples": 42000,
+              "boundary_to_interior_error_ratio_ppm": 3541471,
+              "interior_gradient_error_squared": 820533,
+              "interior_samples": 648000
+            }
+          ],
+          "decoded_sha256": "62c08d6965a4e8e9767eb6a0a77c38c23c1990f9ab528f39feba740dd4f6764d",
+          "height": 480,
+          "plane": "v",
+          "psnr_db": "43.970137",
+          "samples": 345600,
+          "source_sha256": "252001463a6ecc8ba9d0b0a60cf70fbd9fe4aef00f4caf7821d1620990101b7f",
+          "sse": 900825,
+          "ssim_q1e9": 974324411,
+          "width": 720
+        }
+      ],
+      "qindex": 100,
+      "retained_obu": "metrics/blockiness-m0/streams/i420/intra-q100.obu",
+      "search": "intra",
+      "width": 1440,
+      "workspace_bytes": 8359968
+    },
+    {
+      "avm_project_exact": true,
+      "command": [
+        "av2-encoder-experiment",
+        "source-1440x960-yuv420p8.i420",
+        "--width",
+        "1440",
+        "--height",
+        "960",
+        "--qindex",
+        "100",
+        "--search",
+        "directional",
+        "--output",
+        "directional-q100.obu"
+      ],
+      "decode_time_ns": {
+        "avm": 99507773,
+        "project": 76598391
+      },
+      "decoded_sha256": "4e81aba62a887966a2f439d284db508cbd1876411ce35c50120ca8f08747abf3",
+      "deterministic": true,
+      "encode_time_ns": {
+        "median": 7109052788,
+        "samples": [
+          7117118484,
+          7100987092
+        ],
+        "worst": 7117118484
+      },
+      "encoder_local_sse_matches_decode": true,
+      "encoder_reported_sse": [
+        126860400,
+        6439964,
+        900825
+      ],
+      "height": 960,
+      "id": "i420-directional-q100",
+      "input_bytes": 2073600,
+      "input_sha256": "f5a538f7ce0c6791381f5d27ae71e1bce0850c20f41c9ec5e8515921c2e4a238",
+      "obu_bytes": 8521,
+      "obu_sha256": "bb2409cdf16a94520cc5978f596cc21c9fc51d7f7e5d163845940fdc2afd5f50",
+      "pixel_format": "i420",
+      "planes": [
+        {
+          "boundaries": [
+            {
+              "block": 4,
+              "boundary_excess_discontinuity": 566229,
+              "boundary_gradient_error_absolute": 2367761,
+              "boundary_gradient_error_squared": 62585103,
+              "boundary_samples": 688800,
+              "boundary_to_interior_error_ratio_ppm": 1399226,
+              "interior_gradient_error_squared": 134652623,
+              "interior_samples": 2073600
+            },
+            {
+              "block": 8,
+              "boundary_excess_discontinuity": 566229,
+              "boundary_gradient_error_absolute": 1397699,
+              "boundary_gradient_error_squared": 40214105,
+              "boundary_samples": 343200,
+              "boundary_to_interior_error_ratio_ppm": 1805252,
+              "interior_gradient_error_squared": 157023621,
+              "interior_samples": 2419200
+            },
+            {
+              "block": 16,
+              "boundary_excess_discontinuity": 281591,
+              "boundary_gradient_error_absolute": 695088,
+              "boundary_gradient_error_squared": 19759216,
+              "boundary_samples": 170400,
+              "boundary_to_interior_error_ratio_ppm": 1693516,
+              "interior_gradient_error_squared": 177478510,
+              "interior_samples": 2592000
+            }
+          ],
+          "decoded_sha256": "b5334a75f6f22f3029f4dfe7da95d30942face720a889506acbf485e94bc4d40",
+          "height": 960,
+          "plane": "y",
+          "psnr_db": "28.503880",
+          "samples": 1382400,
+          "source_sha256": "8cbc3d75ccdd96ced565d1ad3b23bc7715056ff8a96178c7c6f433bc77db11f4",
+          "sse": 126860400,
+          "ssim_q1e9": 862026566,
+          "width": 1440
+        },
+        {
+          "boundaries": [
+            {
+              "block": 4,
+              "boundary_excess_discontinuity": 98098,
+              "boundary_gradient_error_absolute": 191690,
+              "boundary_gradient_error_squared": 3092132,
+              "boundary_samples": 171600,
+              "boundary_to_interior_error_ratio_ppm": 2632027,
+              "interior_gradient_error_squared": 3549076,
+              "interior_samples": 518400
+            },
+            {
+              "block": 8,
+              "boundary_excess_discontinuity": 98098,
+              "boundary_gradient_error_absolute": 136183,
+              "boundary_gradient_error_squared": 2506349,
+              "boundary_samples": 85200,
+              "boundary_to_interior_error_ratio_ppm": 4302818,
+              "interior_gradient_error_squared": 4134859,
+              "interior_samples": 604800
+            },
+            {
+              "block": 16,
+              "boundary_excess_discontinuity": 49007,
+              "boundary_gradient_error_absolute": 67881,
+              "boundary_gradient_error_squared": 1297327,
+              "boundary_samples": 42000,
+              "boundary_to_interior_error_ratio_ppm": 3745574,
+              "interior_gradient_error_squared": 5343881,
+              "interior_samples": 648000
+            }
+          ],
+          "decoded_sha256": "5e5e760b3f6b81a93d212e779bf7d5a683c59e476d1b7ca598de6a7a63545b01",
+          "height": 480,
+          "plane": "u",
+          "psnr_db": "35.427707",
+          "samples": 345600,
+          "source_sha256": "2d4388e6efe6f8549399c6ea0204a1bb7edf69ba71fd50d7849c42c668e1ecb2",
+          "sse": 6439964,
+          "ssim_q1e9": 943054344,
+          "width": 720
+        },
+        {
+          "boundaries": [
+            {
+              "block": 4,
+              "boundary_excess_discontinuity": 45876,
+              "boundary_gradient_error_absolute": 93947,
+              "boundary_gradient_error_squared": 479667,
+              "boundary_samples": 171600,
+              "boundary_to_interior_error_ratio_ppm": 2738159,
+              "interior_gradient_error_squared": 529211,
+              "interior_samples": 518400
+            },
+            {
+              "block": 8,
+              "boundary_excess_discontinuity": 45876,
+              "boundary_gradient_error_absolute": 65782,
+              "boundary_gradient_error_squared": 395186,
+              "boundary_samples": 85200,
+              "boundary_to_interior_error_ratio_ppm": 4571126,
+              "interior_gradient_error_squared": 613692,
+              "interior_samples": 604800
+            },
+            {
+              "block": 16,
+              "boundary_excess_discontinuity": 22286,
+              "boundary_gradient_error_absolute": 32079,
+              "boundary_gradient_error_squared": 188345,
+              "boundary_samples": 42000,
+              "boundary_to_interior_error_ratio_ppm": 3541471,
+              "interior_gradient_error_squared": 820533,
+              "interior_samples": 648000
+            }
+          ],
+          "decoded_sha256": "62c08d6965a4e8e9767eb6a0a77c38c23c1990f9ab528f39feba740dd4f6764d",
+          "height": 480,
+          "plane": "v",
+          "psnr_db": "43.970137",
+          "samples": 345600,
+          "source_sha256": "252001463a6ecc8ba9d0b0a60cf70fbd9fe4aef00f4caf7821d1620990101b7f",
+          "sse": 900825,
+          "ssim_q1e9": 974324411,
+          "width": 720
+        }
+      ],
+      "qindex": 100,
+      "retained_obu": "metrics/blockiness-m0/streams/i420/directional-q100.obu",
+      "search": "directional",
+      "width": 1440,
+      "workspace_bytes": 8359968
+    },
+    {
+      "avm_project_exact": true,
+      "command": [
+        "av2-encoder-experiment",
+        "source-1440x960-yuv444p8.i444",
+        "--width",
+        "1440",
+        "--height",
+        "960",
+        "--qindex",
+        "60",
+        "--search",
+        "bounded",
+        "--output",
+        "bounded-q60.obu"
+      ],
+      "decode_time_ns": {
+        "avm": 115236622,
+        "project": 116711958
+      },
+      "decoded_sha256": "7af51294ee85dcbd455e145bd5abba6d1111e0269c9f43ef3213f2cbd3723c84",
+      "deterministic": true,
+      "encode_time_ns": {
+        "median": 77456084617,
+        "samples": [
+          77556721774,
+          77355447460
+        ],
+        "worst": 77556721774
+      },
+      "encoder_local_sse_matches_decode": true,
+      "encoder_reported_sse": [
+        53360581,
+        13319080,
+        1790624
+      ],
+      "height": 960,
+      "id": "i444-bounded-q60",
+      "input_bytes": 4147200,
+      "input_sha256": "b69bde49364dc29e1eeab29af51feb7776b51eb5f930267dff7e2e83fd70e8ad",
+      "obu_bytes": 36145,
+      "obu_sha256": "e584e1777625ca2e0b8e281c6fd5188ab8f5e210fcde3d612b135783c2cd48ac",
+      "pixel_format": "i444",
+      "planes": [
+        {
+          "boundaries": [
+            {
+              "block": 4,
+              "boundary_excess_discontinuity": 435501,
+              "boundary_gradient_error_absolute": 1954783,
+              "boundary_gradient_error_squared": 38556373,
+              "boundary_samples": 688800,
+              "boundary_to_interior_error_ratio_ppm": 1032233,
+              "interior_gradient_error_squared": 112447610,
+              "interior_samples": 2073600
+            },
+            {
+              "block": 8,
+              "boundary_excess_discontinuity": 378128,
+              "boundary_gradient_error_absolute": 1032074,
+              "boundary_gradient_error_squared": 19905430,
+              "boundary_samples": 343200,
+              "boundary_to_interior_error_ratio_ppm": 1070281,
+              "interior_gradient_error_squared": 131098553,
+              "interior_samples": 2419200
+            },
+            {
+              "block": 16,
+              "boundary_excess_discontinuity": 188839,
+              "boundary_gradient_error_absolute": 515163,
+              "boundary_gradient_error_squared": 10053625,
+              "boundary_samples": 170400,
+              "boundary_to_interior_error_ratio_ppm": 1084980,
+              "interior_gradient_error_squared": 140950358,
+              "interior_samples": 2592000
+            }
+          ],
+          "decoded_sha256": "3645df6564d06d34bda5716e499b4ba91862ac1ad35003e0bba09fb294954713",
+          "height": 960,
+          "plane": "y",
+          "psnr_db": "32.264935",
+          "samples": 1382400,
+          "source_sha256": "8cbc3d75ccdd96ced565d1ad3b23bc7715056ff8a96178c7c6f433bc77db11f4",
+          "sse": 53360581,
+          "ssim_q1e9": 944734393,
+          "width": 1440
+        },
+        {
+          "boundaries": [
+            {
+              "block": 4,
+              "boundary_excess_discontinuity": 153520,
+              "boundary_gradient_error_absolute": 449704,
+              "boundary_gradient_error_squared": 3921812,
+              "boundary_samples": 688800,
+              "boundary_to_interior_error_ratio_ppm": 1857668,
+              "interior_gradient_error_squared": 6355510,
+              "interior_samples": 2073600
+            },
+            {
+              "block": 8,
+              "boundary_excess_discontinuity": 140773,
+              "boundary_gradient_error_absolute": 279291,
+              "boundary_gradient_error_squared": 2859241,
+              "boundary_samples": 343200,
+              "boundary_to_interior_error_ratio_ppm": 2716962,
+              "interior_gradient_error_squared": 7418081,
+              "interior_samples": 2419200
+            },
+            {
+              "block": 16,
+              "boundary_excess_discontinuity": 135456,
+              "boundary_gradient_error_absolute": 194716,
+              "boundary_gradient_error_squared": 2322412,
+              "boundary_samples": 170400,
+              "boundary_to_interior_error_ratio_ppm": 4440883,
+              "interior_gradient_error_squared": 7954910,
+              "interior_samples": 2592000
+            }
+          ],
+          "decoded_sha256": "db4f28ada48e1b782a37ad247327bdaa98a24bce634e4010bea85d4c96040057",
+          "height": 960,
+          "plane": "u",
+          "psnr_db": "38.292399",
+          "samples": 1382400,
+          "source_sha256": "7dcb4193ae38e118c01244d789da7eb573985a8c78ddaefccc755dfd02b26116",
+          "sse": 13319080,
+          "ssim_q1e9": 973146124,
+          "width": 1440
+        },
+        {
+          "boundaries": [
+            {
+              "block": 4,
+              "boundary_excess_discontinuity": 70572,
+              "boundary_gradient_error_absolute": 240265,
+              "boundary_gradient_error_squared": 626189,
+              "boundary_samples": 688800,
+              "boundary_to_interior_error_ratio_ppm": 1571975,
+              "interior_gradient_error_squared": 1199200,
+              "interior_samples": 2073600
+            },
+            {
+              "block": 8,
+              "boundary_excess_discontinuity": 62729,
+              "boundary_gradient_error_absolute": 143271,
+              "boundary_gradient_error_squared": 430619,
+              "boundary_samples": 343200,
+              "boundary_to_interior_error_ratio_ppm": 2176281,
+              "interior_gradient_error_squared": 1394770,
+              "interior_samples": 2419200
+            },
+            {
+              "block": 16,
+              "boundary_excess_discontinuity": 59386,
+              "boundary_gradient_error_absolute": 95271,
+              "boundary_gradient_error_squared": 334889,
+              "boundary_samples": 170400,
+              "boundary_to_interior_error_ratio_ppm": 3417702,
+              "interior_gradient_error_squared": 1490500,
+              "interior_samples": 2592000
+            }
+          ],
+          "decoded_sha256": "91b790fbf3aba4b511db5ba6652f389047b007b2126d76b5d734c465cfd79e7e",
+          "height": 960,
+          "plane": "v",
+          "psnr_db": "47.007097",
+          "samples": 1382400,
+          "source_sha256": "1aa82ad6f6684a19877952f5a35d3646206eb1700cd905df1c67a606903c142b",
+          "sse": 1790624,
+          "ssim_q1e9": 989439482,
+          "width": 1440
+        }
+      ],
+      "qindex": 60,
+      "retained_obu": "metrics/blockiness-m0/streams/i444/bounded-q60.obu",
+      "search": "bounded",
+      "width": 1440,
+      "workspace_bytes": 34648192
+    },
+    {
+      "avm_project_exact": true,
+      "command": [
+        "av2-encoder-experiment",
+        "source-1440x960-yuv444p8.i444",
+        "--width",
+        "1440",
+        "--height",
+        "960",
+        "--qindex",
+        "80",
+        "--search",
+        "bounded",
+        "--output",
+        "bounded-q80.obu"
+      ],
+      "decode_time_ns": {
+        "avm": 114477863,
+        "project": 120272205
+      },
+      "decoded_sha256": "8ebc370eaacae1050b3f7e6ca2b31da246904f778276f1b4d32d65eb65c54207",
+      "deterministic": true,
+      "encode_time_ns": {
+        "median": 57803286970,
+        "samples": [
+          57842893994,
+          57763679946
+        ],
+        "worst": 57842893994
+      },
+      "encoder_local_sse_matches_decode": true,
+      "encoder_reported_sse": [
+        50892044,
+        12323112,
+        1669530
+      ],
+      "height": 960,
+      "id": "i444-bounded-q80",
+      "input_bytes": 4147200,
+      "input_sha256": "b69bde49364dc29e1eeab29af51feb7776b51eb5f930267dff7e2e83fd70e8ad",
+      "obu_bytes": 29506,
+      "obu_sha256": "173dc1e93f49a321c06c3f58dec20dbf0c861d8073dbe5ad09f7df2e2749efb4",
+      "pixel_format": "i444",
+      "planes": [
+        {
+          "boundaries": [
+            {
+              "block": 4,
+              "boundary_excess_discontinuity": 432730,
+              "boundary_gradient_error_absolute": 1942241,
+              "boundary_gradient_error_squared": 38028093,
+              "boundary_samples": 688800,
+              "boundary_to_interior_error_ratio_ppm": 1014380,
+              "interior_gradient_error_squared": 112858854,
+              "interior_samples": 2073600
+            },
+            {
+              "block": 8,
+              "boundary_excess_discontinuity": 374894,
+              "boundary_gradient_error_absolute": 1018864,
+              "boundary_gradient_error_squared": 19399596,
+              "boundary_samples": 343200,
+              "boundary_to_interior_error_ratio_ppm": 1039999,
+              "interior_gradient_error_squared": 131487351,
+              "interior_samples": 2419200
+            },
+            {
+              "block": 16,
+              "boundary_excess_discontinuity": 186671,
+              "boundary_gradient_error_absolute": 507383,
+              "boundary_gradient_error_squared": 9787943,
+              "boundary_samples": 170400,
+              "boundary_to_interior_error_ratio_ppm": 1055195,
+              "interior_gradient_error_squared": 141099004,
+              "interior_samples": 2592000
+            }
+          ],
+          "decoded_sha256": "4e96c61554de12e47dd75c1700404eef232fd4c3d4a0c9b527b9d1e3a489b727",
+          "height": 960,
+          "plane": "y",
+          "psnr_db": "32.470642",
+          "samples": 1382400,
+          "source_sha256": "8cbc3d75ccdd96ced565d1ad3b23bc7715056ff8a96178c7c6f433bc77db11f4",
+          "sse": 50892044,
+          "ssim_q1e9": 942257284,
+          "width": 1440
+        },
+        {
+          "boundaries": [
+            {
+              "block": 4,
+              "boundary_excess_discontinuity": 156187,
+              "boundary_gradient_error_absolute": 449760,
+              "boundary_gradient_error_squared": 3838002,
+              "boundary_samples": 688800,
+              "boundary_to_interior_error_ratio_ppm": 1830032,
+              "interior_gradient_error_squared": 6313617,
+              "interior_samples": 2073600
+            },
+            {
+              "block": 8,
+              "boundary_excess_discontinuity": 140714,
+              "boundary_gradient_error_absolute": 278268,
+              "boundary_gradient_error_squared": 2782900,
+              "boundary_samples": 343200,
+              "boundary_to_interior_error_ratio_ppm": 2662135,
+              "interior_gradient_error_squared": 7368719,
+              "interior_samples": 2419200
+            },
+            {
+              "block": 16,
+              "boundary_excess_discontinuity": 134933,
+              "boundary_gradient_error_absolute": 193695,
+              "boundary_gradient_error_squared": 2251455,
+              "boundary_samples": 170400,
+              "boundary_to_interior_error_ratio_ppm": 4335034,
+              "interior_gradient_error_squared": 7900164,
+              "interior_samples": 2592000
+            }
+          ],
+          "decoded_sha256": "5e65ec9235e382ba7b3628232d87233091bc315376b6c7c4b283acfec8ba6338",
+          "height": 960,
+          "plane": "u",
+          "psnr_db": "38.629937",
+          "samples": 1382400,
+          "source_sha256": "7dcb4193ae38e118c01244d789da7eb573985a8c78ddaefccc755dfd02b26116",
+          "sse": 12323112,
+          "ssim_q1e9": 973952112,
+          "width": 1440
+        },
+        {
+          "boundaries": [
+            {
+              "block": 4,
+              "boundary_excess_discontinuity": 73547,
+              "boundary_gradient_error_absolute": 242368,
+              "boundary_gradient_error_squared": 619848,
+              "boundary_samples": 688800,
+              "boundary_to_interior_error_ratio_ppm": 1561642,
+              "interior_gradient_error_squared": 1194911,
+              "interior_samples": 2073600
+            },
+            {
+              "block": 8,
+              "boundary_excess_discontinuity": 63770,
+              "boundary_gradient_error_absolute": 144111,
+              "boundary_gradient_error_squared": 423443,
+              "boundary_samples": 343200,
+              "boundary_to_interior_error_ratio_ppm": 2145327,
+              "interior_gradient_error_squared": 1391316,
+              "interior_samples": 2419200
+            },
+            {
+              "block": 16,
+              "boundary_excess_discontinuity": 60171,
+              "boundary_gradient_error_absolute": 96051,
+              "boundary_gradient_error_squared": 328395,
+              "boundary_samples": 170400,
+              "boundary_to_interior_error_ratio_ppm": 3360754,
+              "interior_gradient_error_squared": 1486364,
+              "interior_samples": 2592000
+            }
+          ],
+          "decoded_sha256": "6912619e04787c8b93fffe33f8c22a27160607bb8005fc30476fd54477d83445",
+          "height": 960,
+          "plane": "v",
+          "psnr_db": "47.311199",
+          "samples": 1382400,
+          "source_sha256": "1aa82ad6f6684a19877952f5a35d3646206eb1700cd905df1c67a606903c142b",
+          "sse": 1669530,
+          "ssim_q1e9": 989672507,
+          "width": 1440
+        }
+      ],
+      "qindex": 80,
+      "retained_obu": "metrics/blockiness-m0/streams/i444/bounded-q80.obu",
+      "search": "bounded",
+      "width": 1440,
+      "workspace_bytes": 34648192
+    },
+    {
+      "avm_project_exact": true,
+      "command": [
+        "av2-encoder-experiment",
+        "source-1440x960-yuv444p8.i444",
+        "--width",
+        "1440",
+        "--height",
+        "960",
+        "--qindex",
+        "100",
+        "--search",
+        "bounded",
+        "--output",
+        "bounded-q100.obu"
+      ],
+      "decode_time_ns": {
+        "avm": 116785431,
+        "project": 113563915
+      },
+      "decoded_sha256": "a61cad77efb410cb92f1ba50a8b3312e06ea88c4fba1a92941dd41325461695f",
+      "deterministic": true,
+      "encode_time_ns": {
+        "median": 46673777275,
+        "samples": [
+          46684982949,
+          46662571602
+        ],
+        "worst": 46684982949
+      },
+      "encoder_local_sse_matches_decode": true,
+      "encoder_reported_sse": [
+        55409894,
+        11787157,
+        1550186
+      ],
+      "height": 960,
+      "id": "i444-bounded-q100",
+      "input_bytes": 4147200,
+      "input_sha256": "b69bde49364dc29e1eeab29af51feb7776b51eb5f930267dff7e2e83fd70e8ad",
+      "obu_bytes": 22725,
+      "obu_sha256": "e9829d7b9d3d856d26079fc5c981a2ce92484fc1886ef517dcc98782a5d01949",
+      "pixel_format": "i444",
+      "planes": [
+        {
+          "boundaries": [
+            {
+              "block": 4,
+              "boundary_excess_discontinuity": 422165,
+              "boundary_gradient_error_absolute": 1959298,
+              "boundary_gradient_error_squared": 38688648,
+              "boundary_samples": 688800,
+              "boundary_to_interior_error_ratio_ppm": 1021311,
+              "interior_gradient_error_squared": 114040004,
+              "interior_samples": 2073600
+            },
+            {
+              "block": 8,
+              "boundary_excess_discontinuity": 370384,
+              "boundary_gradient_error_absolute": 1035189,
+              "boundary_gradient_error_squared": 19963697,
+              "boundary_samples": 343200,
+              "boundary_to_interior_error_ratio_ppm": 1059941,
+              "interior_gradient_error_squared": 132764955,
+              "interior_samples": 2419200
+            },
+            {
+              "block": 16,
+              "boundary_excess_discontinuity": 185205,
+              "boundary_gradient_error_absolute": 516539,
+              "boundary_gradient_error_squared": 10087045,
+              "boundary_samples": 170400,
+              "boundary_to_interior_error_ratio_ppm": 1075680,
+              "interior_gradient_error_squared": 142641607,
+              "interior_samples": 2592000
+            }
+          ],
+          "decoded_sha256": "8a3f1f0aba44ca942197fb2bfadfd8496a01e66f5080d52223026ea7397c557e",
+          "height": 960,
+          "plane": "y",
+          "psnr_db": "32.101268",
+          "samples": 1382400,
+          "source_sha256": "8cbc3d75ccdd96ced565d1ad3b23bc7715056ff8a96178c7c6f433bc77db11f4",
+          "sse": 55409894,
+          "ssim_q1e9": 934341819,
+          "width": 1440
+        },
+        {
+          "boundaries": [
+            {
+              "block": 4,
+              "boundary_excess_discontinuity": 160555,
+              "boundary_gradient_error_absolute": 452701,
+              "boundary_gradient_error_squared": 3707579,
+              "boundary_samples": 688800,
+              "boundary_to_interior_error_ratio_ppm": 1777563,
+              "interior_gradient_error_squared": 6279096,
+              "interior_samples": 2073600
+            },
+            {
+              "block": 8,
+              "boundary_excess_discontinuity": 145803,
+              "boundary_gradient_error_absolute": 282612,
+              "boundary_gradient_error_squared": 2662020,
+              "boundary_samples": 343200,
+              "boundary_to_interior_error_ratio_ppm": 2561820,
+              "interior_gradient_error_squared": 7324655,
+              "interior_samples": 2419200
+            },
+            {
+              "block": 16,
+              "boundary_excess_discontinuity": 139819,
+              "boundary_gradient_error_absolute": 198262,
+              "boundary_gradient_error_squared": 2134134,
+              "boundary_samples": 170400,
+              "boundary_to_interior_error_ratio_ppm": 4134060,
+              "interior_gradient_error_squared": 7852541,
+              "interior_samples": 2592000
+            }
+          ],
+          "decoded_sha256": "aab19e488bafac52e0fd4aee14ccfcdead9f4f97d6813980af22a4281776b831",
+          "height": 960,
+          "plane": "u",
+          "psnr_db": "38.823050",
+          "samples": 1382400,
+          "source_sha256": "7dcb4193ae38e118c01244d789da7eb573985a8c78ddaefccc755dfd02b26116",
+          "sse": 11787157,
+          "ssim_q1e9": 974607018,
+          "width": 1440
+        },
+        {
+          "boundaries": [
+            {
+              "block": 4,
+              "boundary_excess_discontinuity": 77801,
+              "boundary_gradient_error_absolute": 245961,
+              "boundary_gradient_error_squared": 613905,
+              "boundary_samples": 688800,
+              "boundary_to_interior_error_ratio_ppm": 1546402,
+              "interior_gradient_error_squared": 1195117,
+              "interior_samples": 2073600
+            },
+            {
+              "block": 8,
+              "boundary_excess_discontinuity": 68273,
+              "boundary_gradient_error_absolute": 148433,
+              "boundary_gradient_error_squared": 420321,
+              "boundary_samples": 343200,
+              "boundary_to_interior_error_ratio_ppm": 2133520,
+              "interior_gradient_error_squared": 1388701,
+              "interior_samples": 2419200
+            },
+            {
+              "block": 16,
+              "boundary_excess_discontinuity": 64407,
+              "boundary_gradient_error_absolute": 100283,
+              "boundary_gradient_error_squared": 325369,
+              "boundary_samples": 170400,
+              "boundary_to_interior_error_ratio_ppm": 3335870,
+              "interior_gradient_error_squared": 1483653,
+              "interior_samples": 2592000
+            }
+          ],
+          "decoded_sha256": "963c41c5018b04999a2f9d4f6afab02fa1e82ab524966eef69344d286747d043",
+          "height": 960,
+          "plane": "v",
+          "psnr_db": "47.633303",
+          "samples": 1382400,
+          "source_sha256": "1aa82ad6f6684a19877952f5a35d3646206eb1700cd905df1c67a606903c142b",
+          "sse": 1550186,
+          "ssim_q1e9": 989840374,
+          "width": 1440
+        }
+      ],
+      "qindex": 100,
+      "retained_obu": "metrics/blockiness-m0/streams/i444/bounded-q100.obu",
+      "search": "bounded",
+      "width": 1440,
+      "workspace_bytes": 34648192
+    },
+    {
+      "avm_project_exact": true,
+      "command": [
+        "av2-encoder-experiment",
+        "source-1440x960-yuv444p8.i444",
+        "--width",
+        "1440",
+        "--height",
+        "960",
+        "--qindex",
+        "120",
+        "--search",
+        "bounded",
+        "--output",
+        "bounded-q120.obu"
+      ],
+      "decode_time_ns": {
+        "avm": 114509431,
+        "project": 106338866
+      },
+      "decoded_sha256": "8c3bd8f03b4e3fe2050ee661e4d7bccf853d3f2445be5f127f099b413b38f314",
+      "deterministic": true,
+      "encode_time_ns": {
+        "median": 40427498957,
+        "samples": [
+          40367855553,
+          40487142362
+        ],
+        "worst": 40487142362
+      },
+      "encoder_local_sse_matches_decode": true,
+      "encoder_reported_sse": [
+        68343634,
+        10990539,
+        1501607
+      ],
+      "height": 960,
+      "id": "i444-bounded-q120",
+      "input_bytes": 4147200,
+      "input_sha256": "b69bde49364dc29e1eeab29af51feb7776b51eb5f930267dff7e2e83fd70e8ad",
+      "obu_bytes": 15529,
+      "obu_sha256": "025bdf04e56dd13e945cbc11b0cac20a20c2c40df7233a63e658216cc629207f",
+      "pixel_format": "i444",
+      "planes": [
+        {
+          "boundaries": [
+            {
+              "block": 4,
+              "boundary_excess_discontinuity": 434495,
+              "boundary_gradient_error_absolute": 2028603,
+              "boundary_gradient_error_squared": 41178017,
+              "boundary_samples": 688800,
+              "boundary_to_interior_error_ratio_ppm": 1059311,
+              "interior_gradient_error_squared": 117023678,
+              "interior_samples": 2073600
+            },
+            {
+              "block": 8,
+              "boundary_excess_discontinuity": 393697,
+              "boundary_gradient_error_absolute": 1100046,
+              "boundary_gradient_error_squared": 22110312,
+              "boundary_samples": 343200,
+              "boundary_to_interior_error_ratio_ppm": 1145219,
+              "interior_gradient_error_squared": 136091383,
+              "interior_samples": 2419200
+            },
+            {
+              "block": 16,
+              "boundary_excess_discontinuity": 197773,
+              "boundary_gradient_error_absolute": 549910,
+              "boundary_gradient_error_squared": 11195080,
+              "boundary_samples": 170400,
+              "boundary_to_interior_error_ratio_ppm": 1158392,
+              "interior_gradient_error_squared": 147006615,
+              "interior_samples": 2592000
+            }
+          ],
+          "decoded_sha256": "1378c546a78d961f2dd7ce4162662acf5391385cea6cfd651e613616e1bcc55f",
+          "height": 960,
+          "plane": "y",
+          "psnr_db": "31.190160",
+          "samples": 1382400,
+          "source_sha256": "8cbc3d75ccdd96ced565d1ad3b23bc7715056ff8a96178c7c6f433bc77db11f4",
+          "sse": 68343634,
+          "ssim_q1e9": 918841086,
+          "width": 1440
+        },
+        {
+          "boundaries": [
+            {
+              "block": 4,
+              "boundary_excess_discontinuity": 168937,
+              "boundary_gradient_error_absolute": 458943,
+              "boundary_gradient_error_squared": 3638577,
+              "boundary_samples": 688800,
+              "boundary_to_interior_error_ratio_ppm": 1757550,
+              "interior_gradient_error_squared": 6232405,
+              "interior_samples": 2073600
+            },
+            {
+              "block": 8,
+              "boundary_excess_discontinuity": 152028,
+              "boundary_gradient_error_absolute": 288008,
+              "boundary_gradient_error_squared": 2600194,
+              "boundary_samples": 343200,
+              "boundary_to_interior_error_ratio_ppm": 2520860,
+              "interior_gradient_error_squared": 7270788,
+              "interior_samples": 2419200
+            },
+            {
+              "block": 16,
+              "boundary_excess_discontinuity": 144919,
+              "boundary_gradient_error_absolute": 203278,
+              "boundary_gradient_error_squared": 2077154,
+              "boundary_samples": 170400,
+              "boundary_to_interior_error_ratio_ppm": 4053995,
+              "interior_gradient_error_squared": 7793828,
+              "interior_samples": 2592000
+            }
+          ],
+          "decoded_sha256": "c12e1f78791bc968b106e8c32dd431c650a5dd15e3eb70597fd64b48e118b6b7",
+          "height": 960,
+          "plane": "u",
+          "psnr_db": "39.126951",
+          "samples": 1382400,
+          "source_sha256": "7dcb4193ae38e118c01244d789da7eb573985a8c78ddaefccc755dfd02b26116",
+          "sse": 10990539,
+          "ssim_q1e9": 974732186,
+          "width": 1440
+        },
+        {
+          "boundaries": [
+            {
+              "block": 4,
+              "boundary_excess_discontinuity": 81182,
+              "boundary_gradient_error_absolute": 249870,
+              "boundary_gradient_error_squared": 630228,
+              "boundary_samples": 688800,
+              "boundary_to_interior_error_ratio_ppm": 1592219,
+              "interior_gradient_error_squared": 1191589,
+              "interior_samples": 2073600
+            },
+            {
+              "block": 8,
+              "boundary_excess_discontinuity": 71891,
+              "boundary_gradient_error_absolute": 152439,
+              "boundary_gradient_error_squared": 436545,
+              "boundary_samples": 343200,
+              "boundary_to_interior_error_ratio_ppm": 2221357,
+              "interior_gradient_error_squared": 1385272,
+              "interior_samples": 2419200
+            },
+            {
+              "block": 16,
+              "boundary_excess_discontinuity": 67602,
+              "boundary_gradient_error_absolute": 103988,
+              "boundary_gradient_error_squared": 341196,
+              "boundary_samples": 170400,
+              "boundary_to_interior_error_ratio_ppm": 3505301,
+              "interior_gradient_error_squared": 1480621,
+              "interior_samples": 2592000
+            }
+          ],
+          "decoded_sha256": "1b6ff795bec0847dc30102438910ec0e80924d173305ebe8d66563f3177fe2e8",
+          "height": 960,
+          "plane": "v",
+          "psnr_db": "47.771578",
+          "samples": 1382400,
+          "source_sha256": "1aa82ad6f6684a19877952f5a35d3646206eb1700cd905df1c67a606903c142b",
+          "sse": 1501607,
+          "ssim_q1e9": 989453763,
+          "width": 1440
+        }
+      ],
+      "qindex": 120,
+      "retained_obu": "metrics/blockiness-m0/streams/i444/bounded-q120.obu",
+      "search": "bounded",
+      "width": 1440,
+      "workspace_bytes": 34648192
+    },
+    {
+      "avm_project_exact": true,
+      "command": [
+        "av2-encoder-experiment",
+        "source-1440x960-yuv444p8.i444",
+        "--width",
+        "1440",
+        "--height",
+        "960",
+        "--qindex",
+        "150",
+        "--search",
+        "bounded",
+        "--output",
+        "bounded-q150.obu"
+      ],
+      "decode_time_ns": {
+        "avm": 112080059,
+        "project": 87272237
+      },
+      "decoded_sha256": "a1b1b5154c27c42cb371a154ef9ab63b0b12ae735af4b84e8bff5d0155428f02",
+      "deterministic": true,
+      "encode_time_ns": {
+        "median": 35702036299,
+        "samples": [
+          35619445863,
+          35784626736
+        ],
+        "worst": 35784626736
+      },
+      "encoder_local_sse_matches_decode": true,
+      "encoder_reported_sse": [
+        56772745,
+        10694399,
+        2667845
+      ],
+      "height": 960,
+      "id": "i444-bounded-q150",
+      "input_bytes": 4147200,
+      "input_sha256": "b69bde49364dc29e1eeab29af51feb7776b51eb5f930267dff7e2e83fd70e8ad",
+      "obu_bytes": 12258,
+      "obu_sha256": "998b3028b2b7a4f61ec2456135ae6982fd4d286b8fd85111c79d4728130e0507",
+      "pixel_format": "i444",
+      "planes": [
+        {
+          "boundaries": [
+            {
+              "block": 4,
+              "boundary_excess_discontinuity": 625199,
+              "boundary_gradient_error_absolute": 2145240,
+              "boundary_gradient_error_squared": 41979934,
+              "boundary_samples": 688800,
+              "boundary_to_interior_error_ratio_ppm": 1103508,
+              "interior_gradient_error_squared": 114524392,
+              "interior_samples": 2073600
+            },
+            {
+              "block": 8,
+              "boundary_excess_discontinuity": 559486,
+              "boundary_gradient_error_absolute": 1215335,
+              "boundary_gradient_error_squared": 23200595,
+              "boundary_samples": 343200,
+              "boundary_to_interior_error_ratio_ppm": 1226821,
+              "interior_gradient_error_squared": 133303731,
+              "interior_samples": 2419200
+            },
+            {
+              "block": 16,
+              "boundary_excess_discontinuity": 279627,
+              "boundary_gradient_error_absolute": 606223,
+              "boundary_gradient_error_squared": 11763485,
+              "boundary_samples": 170400,
+              "boundary_to_interior_error_ratio_ppm": 1236261,
+              "interior_gradient_error_squared": 144740841,
+              "interior_samples": 2592000
+            }
+          ],
+          "decoded_sha256": "675461c662b69efb42bdac14067017946a827ed1f539b0682ad1e1c7bc080682",
+          "height": 960,
+          "plane": "y",
+          "psnr_db": "31.995742",
+          "samples": 1382400,
+          "source_sha256": "8cbc3d75ccdd96ced565d1ad3b23bc7715056ff8a96178c7c6f433bc77db11f4",
+          "sse": 56772745,
+          "ssim_q1e9": 940190748,
+          "width": 1440
+        },
+        {
+          "boundaries": [
+            {
+              "block": 4,
+              "boundary_excess_discontinuity": 221856,
+              "boundary_gradient_error_absolute": 514466,
+              "boundary_gradient_error_squared": 3667596,
+              "boundary_samples": 688800,
+              "boundary_to_interior_error_ratio_ppm": 1774348,
+              "interior_gradient_error_squared": 6222637,
+              "interior_samples": 2073600
+            },
+            {
+              "block": 8,
+              "boundary_excess_discontinuity": 202929,
+              "boundary_gradient_error_absolute": 341208,
+              "boundary_gradient_error_squared": 2624034,
+              "boundary_samples": 343200,
+              "boundary_to_interior_error_ratio_ppm": 2545579,
+              "interior_gradient_error_squared": 7266199,
+              "interior_samples": 2419200
+            },
+            {
+              "block": 16,
+              "boundary_excess_discontinuity": 195188,
+              "boundary_gradient_error_absolute": 255903,
+              "boundary_gradient_error_squared": 2108409,
+              "boundary_samples": 170400,
+              "boundary_to_interior_error_ratio_ppm": 4121343,
+              "interior_gradient_error_squared": 7781824,
+              "interior_samples": 2592000
+            }
+          ],
+          "decoded_sha256": "14a70a0d3a99e64389cff7b8f9708e974c70efcf4fe9e2da650ae89c9e2465ef",
+          "height": 960,
+          "plane": "u",
+          "psnr_db": "39.245577",
+          "samples": 1382400,
+          "source_sha256": "7dcb4193ae38e118c01244d789da7eb573985a8c78ddaefccc755dfd02b26116",
+          "sse": 10694399,
+          "ssim_q1e9": 972772674,
+          "width": 1440
+        },
+        {
+          "boundaries": [
+            {
+              "block": 4,
+              "boundary_excess_discontinuity": 109929,
+              "boundary_gradient_error_absolute": 284145,
+              "boundary_gradient_error_squared": 847553,
+              "boundary_samples": 688800,
+              "boundary_to_interior_error_ratio_ppm": 2115472,
+              "interior_gradient_error_squared": 1206122,
+              "interior_samples": 2073600
+            },
+            {
+              "block": 8,
+              "boundary_excess_discontinuity": 102671,
+              "boundary_gradient_error_absolute": 186397,
+              "boundary_gradient_error_squared": 647869,
+              "boundary_samples": 343200,
+              "boundary_to_interior_error_ratio_ppm": 3248525,
+              "interior_gradient_error_squared": 1405806,
+              "interior_samples": 2419200
+            },
+            {
+              "block": 16,
+              "boundary_excess_discontinuity": 99317,
+              "boundary_gradient_error_absolute": 138142,
+              "boundary_gradient_error_squared": 550848,
+              "boundary_samples": 170400,
+              "boundary_to_interior_error_ratio_ppm": 5575556,
+              "interior_gradient_error_squared": 1502827,
+              "interior_samples": 2592000
+            }
+          ],
+          "decoded_sha256": "9876111a59d90646292777a0c1ed2cb0884d32ea8640da7f1f357ba465a0ca66",
+          "height": 960,
+          "plane": "v",
+          "psnr_db": "45.275535",
+          "samples": 1382400,
+          "source_sha256": "1aa82ad6f6684a19877952f5a35d3646206eb1700cd905df1c67a606903c142b",
+          "sse": 2667845,
+          "ssim_q1e9": 987447509,
+          "width": 1440
+        }
+      ],
+      "qindex": 150,
+      "retained_obu": "metrics/blockiness-m0/streams/i444/bounded-q150.obu",
+      "search": "bounded",
+      "width": 1440,
+      "workspace_bytes": 34648192
+    },
+    {
+      "avm_project_exact": true,
+      "command": [
+        "av2-encoder-experiment",
+        "source-1440x960-yuv444p8.i444",
+        "--width",
+        "1440",
+        "--height",
+        "960",
+        "--qindex",
+        "165",
+        "--search",
+        "bounded",
+        "--output",
+        "bounded-q165.obu"
+      ],
+      "decode_time_ns": {
+        "avm": 118739879,
+        "project": 81807965
+      },
+      "decoded_sha256": "0707bdcb0f3e03adba7a8d3ffe78b72ad954750161acfeb603327fafd42fbf57",
+      "deterministic": true,
+      "encode_time_ns": {
+        "median": 34823365450,
+        "samples": [
+          34874360853,
+          34772370048
+        ],
+        "worst": 34874360853
+      },
+      "encoder_local_sse_matches_decode": true,
+      "encoder_reported_sse": [
+        66081678,
+        11560492,
+        4041411
+      ],
+      "height": 960,
+      "id": "i444-bounded-q165",
+      "input_bytes": 4147200,
+      "input_sha256": "b69bde49364dc29e1eeab29af51feb7776b51eb5f930267dff7e2e83fd70e8ad",
+      "obu_bytes": 8861,
+      "obu_sha256": "62d041e27d1e8f423356d4dd50e7655a40f41d34dbf38941a9179dc7b10211da",
+      "pixel_format": "i444",
+      "planes": [
+        {
+          "boundaries": [
+            {
+              "block": 4,
+              "boundary_excess_discontinuity": 704783,
+              "boundary_gradient_error_absolute": 2248818,
+              "boundary_gradient_error_squared": 46508322,
+              "boundary_samples": 688800,
+              "boundary_to_interior_error_ratio_ppm": 1202689,
+              "interior_gradient_error_squared": 116415007,
+              "interior_samples": 2073600
+            },
+            {
+              "block": 8,
+              "boundary_excess_discontinuity": 637123,
+              "boundary_gradient_error_absolute": 1314519,
+              "boundary_gradient_error_squared": 27586969,
+              "boundary_samples": 343200,
+              "boundary_to_interior_error_ratio_ppm": 1436858,
+              "interior_gradient_error_squared": 135336360,
+              "interior_samples": 2419200
+            },
+            {
+              "block": 16,
+              "boundary_excess_discontinuity": 315443,
+              "boundary_gradient_error_absolute": 653047,
+              "boundary_gradient_error_squared": 13788325,
+              "boundary_samples": 170400,
+              "boundary_to_interior_error_ratio_ppm": 1406362,
+              "interior_gradient_error_squared": 149135004,
+              "interior_samples": 2592000
+            }
+          ],
+          "decoded_sha256": "f77c6fc2ed2fe884560850996ab965dbb9329d0a7d051610d463ed6814dec68f",
+          "height": 960,
+          "plane": "y",
+          "psnr_db": "31.336330",
+          "samples": 1382400,
+          "source_sha256": "8cbc3d75ccdd96ced565d1ad3b23bc7715056ff8a96178c7c6f433bc77db11f4",
+          "sse": 66081678,
+          "ssim_q1e9": 933163480,
+          "width": 1440
+        },
+        {
+          "boundaries": [
+            {
+              "block": 4,
+              "boundary_excess_discontinuity": 228745,
+              "boundary_gradient_error_absolute": 526069,
+              "boundary_gradient_error_squared": 3857159,
+              "boundary_samples": 688800,
+              "boundary_to_interior_error_ratio_ppm": 1853793,
+              "interior_gradient_error_squared": 6263803,
+              "interior_samples": 2073600
+            },
+            {
+              "block": 8,
+              "boundary_excess_discontinuity": 211573,
+              "boundary_gradient_error_absolute": 352855,
+              "boundary_gradient_error_squared": 2812441,
+              "boundary_samples": 343200,
+              "boundary_to_interior_error_ratio_ppm": 2712554,
+              "interior_gradient_error_squared": 7308521,
+              "interior_samples": 2419200
+            },
+            {
+              "block": 16,
+              "boundary_excess_discontinuity": 203228,
+              "boundary_gradient_error_absolute": 266691,
+              "boundary_gradient_error_squared": 2292113,
+              "boundary_samples": 170400,
+              "boundary_to_interior_error_ratio_ppm": 4453521,
+              "interior_gradient_error_squared": 7828849,
+              "interior_samples": 2592000
+            }
+          ],
+          "decoded_sha256": "1ce00055910938f0c7e1cf629d979e1b6e19de24dcf70628f910c0bc311a80dc",
+          "height": 960,
+          "plane": "u",
+          "psnr_db": "38.907378",
+          "samples": 1382400,
+          "source_sha256": "7dcb4193ae38e118c01244d789da7eb573985a8c78ddaefccc755dfd02b26116",
+          "sse": 11560492,
+          "ssim_q1e9": 970774562,
+          "width": 1440
+        },
+        {
+          "boundaries": [
+            {
+              "block": 4,
+              "boundary_excess_discontinuity": 110040,
+              "boundary_gradient_error_absolute": 288258,
+              "boundary_gradient_error_squared": 981092,
+              "boundary_samples": 688800,
+              "boundary_to_interior_error_ratio_ppm": 2418601,
+              "interior_gradient_error_squared": 1221173,
+              "interior_samples": 2073600
+            },
+            {
+              "block": 8,
+              "boundary_excess_discontinuity": 105104,
+              "boundary_gradient_error_absolute": 190772,
+              "boundary_gradient_error_squared": 776450,
+              "boundary_samples": 343200,
+              "boundary_to_interior_error_ratio_ppm": 3838617,
+              "interior_gradient_error_squared": 1425815,
+              "interior_samples": 2419200
+            },
+            {
+              "block": 16,
+              "boundary_excess_discontinuity": 101649,
+              "boundary_gradient_error_absolute": 142220,
+              "boundary_gradient_error_squared": 678310,
+              "boundary_samples": 170400,
+              "boundary_to_interior_error_ratio_ppm": 6770511,
+              "interior_gradient_error_squared": 1523955,
+              "interior_samples": 2592000
+            }
+          ],
+          "decoded_sha256": "52b74e0c464085f16396852f9a7c70a3e3f424ac228ca369569c528389f63630",
+          "height": 960,
+          "plane": "v",
+          "psnr_db": "43.471811",
+          "samples": 1382400,
+          "source_sha256": "1aa82ad6f6684a19877952f5a35d3646206eb1700cd905df1c67a606903c142b",
+          "sse": 4041411,
+          "ssim_q1e9": 986056631,
+          "width": 1440
+        }
+      ],
+      "qindex": 165,
+      "retained_obu": "metrics/blockiness-m0/streams/i444/bounded-q165.obu",
+      "search": "bounded",
+      "width": 1440,
+      "workspace_bytes": 34648192
+    },
+    {
+      "avm_project_exact": true,
+      "command": [
+        "av2-encoder-experiment",
+        "source-1440x960-yuv444p8.i444",
+        "--width",
+        "1440",
+        "--height",
+        "960",
+        "--qindex",
+        "180",
+        "--search",
+        "bounded",
+        "--output",
+        "bounded-q180.obu"
+      ],
+      "decode_time_ns": {
+        "avm": 116535397,
+        "project": 78614736
+      },
+      "decoded_sha256": "52ef5e1681c08ab56126e24c37464245a83bbe1e045a1539a8c12450d9a9d257",
+      "deterministic": true,
+      "encode_time_ns": {
+        "median": 34027560390,
+        "samples": [
+          34114961450,
+          33940159331
+        ],
+        "worst": 34114961450
+      },
+      "encoder_local_sse_matches_decode": true,
+      "encoder_reported_sse": [
+        86318190,
+        15527401,
+        6732150
+      ],
+      "height": 960,
+      "id": "i444-bounded-q180",
+      "input_bytes": 4147200,
+      "input_sha256": "b69bde49364dc29e1eeab29af51feb7776b51eb5f930267dff7e2e83fd70e8ad",
+      "obu_bytes": 6061,
+      "obu_sha256": "fc87d78bcd1ca0face5f3869fd2f1f630b429acf34bddcdf5ec302c270a318a3",
+      "pixel_format": "i444",
+      "planes": [
+        {
+          "boundaries": [
+            {
+              "block": 4,
+              "boundary_excess_discontinuity": 805261,
+              "boundary_gradient_error_absolute": 2390919,
+              "boundary_gradient_error_squared": 53775217,
+              "boundary_samples": 688800,
+              "boundary_to_interior_error_ratio_ppm": 1354211,
+              "interior_gradient_error_squared": 119543931,
+              "interior_samples": 2073600
+            },
+            {
+              "block": 8,
+              "boundary_excess_discontinuity": 737569,
+              "boundary_gradient_error_absolute": 1449163,
+              "boundary_gradient_error_squared": 34479001,
+              "boundary_samples": 343200,
+              "boundary_to_interior_error_ratio_ppm": 1750508,
+              "interior_gradient_error_squared": 138840147,
+              "interior_samples": 2419200
+            },
+            {
+              "block": 16,
+              "boundary_excess_discontinuity": 369791,
+              "boundary_gradient_error_absolute": 723959,
+              "boundary_gradient_error_squared": 17429791,
+              "boundary_samples": 170400,
+              "boundary_to_interior_error_ratio_ppm": 1700752,
+              "interior_gradient_error_squared": 155889357,
+              "interior_samples": 2592000
+            }
+          ],
+          "decoded_sha256": "bcf80029829839dcc34e0e66229307bb50e5e5f214ab73b0060316a619770bfd",
+          "height": 960,
+          "plane": "y",
+          "psnr_db": "30.176118",
+          "samples": 1382400,
+          "source_sha256": "8cbc3d75ccdd96ced565d1ad3b23bc7715056ff8a96178c7c6f433bc77db11f4",
+          "sse": 86318190,
+          "ssim_q1e9": 921873422,
+          "width": 1440
+        },
+        {
+          "boundaries": [
+            {
+              "block": 4,
+              "boundary_excess_discontinuity": 252420,
+              "boundary_gradient_error_absolute": 554246,
+              "boundary_gradient_error_squared": 4490214,
+              "boundary_samples": 688800,
+              "boundary_to_interior_error_ratio_ppm": 2130904,
+              "interior_gradient_error_squared": 6343587,
+              "interior_samples": 2073600
+            },
+            {
+              "block": 8,
+              "boundary_excess_discontinuity": 235511,
+              "boundary_gradient_error_absolute": 379314,
+              "boundary_gradient_error_squared": 3424440,
+              "boundary_samples": 343200,
+              "boundary_to_interior_error_ratio_ppm": 3257866,
+              "interior_gradient_error_squared": 7409361,
+              "interior_samples": 2419200
+            },
+            {
+              "block": 16,
+              "boundary_excess_discontinuity": 227700,
+              "boundary_gradient_error_absolute": 292994,
+              "boundary_gradient_error_squared": 2901070,
+              "boundary_samples": 170400,
+              "boundary_to_interior_error_ratio_ppm": 5562895,
+              "interior_gradient_error_squared": 7932731,
+              "interior_samples": 2592000
+            }
+          ],
+          "decoded_sha256": "35743e44592a562e24dd07af169591172754b9456dee7044c0ecfb018b7e7403",
+          "height": 960,
+          "plane": "u",
+          "psnr_db": "37.626153",
+          "samples": 1382400,
+          "source_sha256": "7dcb4193ae38e118c01244d789da7eb573985a8c78ddaefccc755dfd02b26116",
+          "sse": 15527401,
+          "ssim_q1e9": 968040531,
+          "width": 1440
+        },
+        {
+          "boundaries": [
+            {
+              "block": 4,
+              "boundary_excess_discontinuity": 111642,
+              "boundary_gradient_error_absolute": 292303,
+              "boundary_gradient_error_squared": 1244535,
+              "boundary_samples": 688800,
+              "boundary_to_interior_error_ratio_ppm": 3021706,
+              "interior_gradient_error_squared": 1239900,
+              "interior_samples": 2073600
+            },
+            {
+              "block": 8,
+              "boundary_excess_discontinuity": 107422,
+              "boundary_gradient_error_absolute": 194693,
+              "boundary_gradient_error_squared": 1036205,
+              "boundary_samples": 343200,
+              "boundary_to_interior_error_ratio_ppm": 5043507,
+              "interior_gradient_error_squared": 1448230,
+              "interior_samples": 2419200
+            },
+            {
+              "block": 16,
+              "boundary_excess_discontinuity": 105105,
+              "boundary_gradient_error_absolute": 146490,
+              "boundary_gradient_error_squared": 936376,
+              "boundary_samples": 170400,
+              "boundary_to_interior_error_ratio_ppm": 9200854,
+              "interior_gradient_error_squared": 1548059,
+              "interior_samples": 2592000
+            }
+          ],
+          "decoded_sha256": "9c53407249a1da9de4ac8bce2cafac29df3e5ecf1a718bd7ff84c1ed936631a8",
+          "height": 960,
+          "plane": "v",
+          "psnr_db": "41.255603",
+          "samples": 1382400,
+          "source_sha256": "1aa82ad6f6684a19877952f5a35d3646206eb1700cd905df1c67a606903c142b",
+          "sse": 6732150,
+          "ssim_q1e9": 984808584,
+          "width": 1440
+        }
+      ],
+      "qindex": 180,
+      "retained_obu": "metrics/blockiness-m0/streams/i444/bounded-q180.obu",
+      "search": "bounded",
+      "width": 1440,
+      "workspace_bytes": 34648192
+    },
+    {
+      "avm_project_exact": true,
+      "command": [
+        "av2-encoder-experiment",
+        "source-1440x960-yuv444p8.i444",
+        "--width",
+        "1440",
+        "--height",
+        "960",
+        "--qindex",
+        "220",
+        "--search",
+        "bounded",
+        "--output",
+        "bounded-q220.obu"
+      ],
+      "decode_time_ns": {
+        "avm": 109872644,
+        "project": 63416565
+      },
+      "decoded_sha256": "5632890faa0d2a7893df7e3916a41466f6a2d13daec8086680c05f8f1906f7e7",
+      "deterministic": true,
+      "encode_time_ns": {
+        "median": 32968951024,
+        "samples": [
+          32965529482,
+          32972372566
+        ],
+        "worst": 32972372566
+      },
+      "encoder_local_sse_matches_decode": true,
+      "encoder_reported_sse": [
+        299778090,
+        67273118,
+        69696864
+      ],
+      "height": 960,
+      "id": "i444-bounded-q220",
+      "input_bytes": 4147200,
+      "input_sha256": "b69bde49364dc29e1eeab29af51feb7776b51eb5f930267dff7e2e83fd70e8ad",
+      "obu_bytes": 1088,
+      "obu_sha256": "fa01d382b8e6a1c0c9112ac3595a926b267ad184bf80fda3cda86b84f9aadc78",
+      "pixel_format": "i444",
+      "planes": [
+        {
+          "boundaries": [
+            {
+              "block": 4,
+              "boundary_excess_discontinuity": 883008,
+              "boundary_gradient_error_absolute": 2719509,
+              "boundary_gradient_error_squared": 79581595,
+              "boundary_samples": 688800,
+              "boundary_to_interior_error_ratio_ppm": 1779220,
+              "interior_gradient_error_squared": 134652623,
+              "interior_samples": 2073600
+            },
+            {
+              "block": 8,
+              "boundary_excess_discontinuity": 883008,
+              "boundary_gradient_error_absolute": 1749447,
+              "boundary_gradient_error_squared": 57210597,
+              "boundary_samples": 343200,
+              "boundary_to_interior_error_ratio_ppm": 2568242,
+              "interior_gradient_error_squared": 157023621,
+              "interior_samples": 2419200
+            },
+            {
+              "block": 16,
+              "boundary_excess_discontinuity": 438408,
+              "boundary_gradient_error_absolute": 868412,
+              "boundary_gradient_error_squared": 28303662,
+              "boundary_samples": 170400,
+              "boundary_to_interior_error_ratio_ppm": 2315566,
+              "interior_gradient_error_squared": 185930556,
+              "interior_samples": 2592000
+            }
+          ],
+          "decoded_sha256": "5f7982035f6be097abab2ce79aeaa7d7f04c8df2661660ada0088709beed800a",
+          "height": 960,
+          "plane": "y",
+          "psnr_db": "24.769142",
+          "samples": 1382400,
+          "source_sha256": "8cbc3d75ccdd96ced565d1ad3b23bc7715056ff8a96178c7c6f433bc77db11f4",
+          "sse": 299778090,
+          "ssim_q1e9": 858916426,
+          "width": 1440
+        },
+        {
+          "boundaries": [
+            {
+              "block": 4,
+              "boundary_excess_discontinuity": 306147,
+              "boundary_gradient_error_absolute": 639114,
+              "boundary_gradient_error_squared": 9399556,
+              "boundary_samples": 688800,
+              "boundary_to_interior_error_ratio_ppm": 3966434,
+              "interior_gradient_error_squared": 7134096,
+              "interior_samples": 2073600
+            },
+            {
+              "block": 8,
+              "boundary_excess_discontinuity": 306147,
+              "boundary_gradient_error_absolute": 466265,
+              "boundary_gradient_error_squared": 8148475,
+              "boundary_samples": 343200,
+              "boundary_to_interior_error_ratio_ppm": 6849968,
+              "interior_gradient_error_squared": 8385177,
+              "interior_samples": 2419200
+            },
+            {
+              "block": 16,
+              "boundary_excess_discontinuity": 306147,
+              "boundary_gradient_error_absolute": 380232,
+              "boundary_gradient_error_squared": 7521892,
+              "boundary_samples": 170400,
+              "boundary_to_interior_error_ratio_ppm": 12696466,
+              "interior_gradient_error_squared": 9011760,
+              "interior_samples": 2592000
+            }
+          ],
+          "decoded_sha256": "93c799c85225d71019def6bc22f5ce711b5c40878c399f87b8675c65467b36b9",
+          "height": 960,
+          "plane": "u",
+          "psnr_db": "31.258725",
+          "samples": 1382400,
+          "source_sha256": "7dcb4193ae38e118c01244d789da7eb573985a8c78ddaefccc755dfd02b26116",
+          "sse": 67273118,
+          "ssim_q1e9": 957185350,
+          "width": 1440
+        },
+        {
+          "boundaries": [
+            {
+              "block": 4,
+              "boundary_excess_discontinuity": 122493,
+              "boundary_gradient_error_absolute": 311418,
+              "boundary_gradient_error_squared": 1920848,
+              "boundary_samples": 688800,
+              "boundary_to_interior_error_ratio_ppm": 4520220,
+              "interior_gradient_error_squared": 1279279,
+              "interior_samples": 2073600
+            },
+            {
+              "block": 8,
+              "boundary_excess_discontinuity": 122493,
+              "boundary_gradient_error_absolute": 215192,
+              "boundary_gradient_error_squared": 1704612,
+              "boundary_samples": 343200,
+              "boundary_to_interior_error_ratio_ppm": 8034507,
+              "interior_gradient_error_squared": 1495515,
+              "interior_samples": 2419200
+            },
+            {
+              "block": 16,
+              "boundary_excess_discontinuity": 122493,
+              "boundary_gradient_error_absolute": 167495,
+              "boundary_gradient_error_squared": 1600665,
+              "boundary_samples": 170400,
+              "boundary_to_interior_error_ratio_ppm": 15222708,
+              "interior_gradient_error_squared": 1599462,
+              "interior_samples": 2592000
+            }
+          ],
+          "decoded_sha256": "c93a3b588c73a2e6adaa9039ca22bbe748231d4c1cac1ab12b9bda3ad5dd21f5",
+          "height": 960,
+          "plane": "v",
+          "psnr_db": "31.105008",
+          "samples": 1382400,
+          "source_sha256": "1aa82ad6f6684a19877952f5a35d3646206eb1700cd905df1c67a606903c142b",
+          "sse": 69696864,
+          "ssim_q1e9": 981667994,
+          "width": 1440
+        }
+      ],
+      "qindex": 220,
+      "retained_obu": "metrics/blockiness-m0/streams/i444/bounded-q220.obu",
+      "search": "bounded",
+      "width": 1440,
+      "workspace_bytes": 34648192
+    },
+    {
+      "avm_project_exact": true,
+      "command": [
+        "av2-encoder-experiment",
+        "source-1440x960-yuv444p8.i444",
+        "--width",
+        "1440",
+        "--height",
+        "960",
+        "--qindex",
+        "100",
+        "--search",
+        "off",
+        "--output",
+        "off-q100.obu"
+      ],
+      "decode_time_ns": {
+        "avm": 116725926,
+        "project": 114863180
+      },
+      "decoded_sha256": "d86c094d3db84707698bccf83631fe9017e43c5d2199dd936000adfe73e269fa",
+      "deterministic": true,
+      "encode_time_ns": {
+        "median": 14228701043,
+        "samples": [
+          14304199305,
+          14153202781
+        ],
+        "worst": 14304199305
+      },
+      "encoder_local_sse_matches_decode": true,
+      "encoder_reported_sse": [
+        126860400,
+        27548118,
+        3871662
+      ],
+      "height": 960,
+      "id": "i444-off-q100",
+      "input_bytes": 4147200,
+      "input_sha256": "b69bde49364dc29e1eeab29af51feb7776b51eb5f930267dff7e2e83fd70e8ad",
+      "obu_bytes": 8804,
+      "obu_sha256": "8a753373af88de8c453652bfdea03b9d5c4de9b67380be82c75b90706f6c8586",
+      "pixel_format": "i444",
+      "planes": [
+        {
+          "boundaries": [
+            {
+              "block": 4,
+              "boundary_excess_discontinuity": 566229,
+              "boundary_gradient_error_absolute": 2367761,
+              "boundary_gradient_error_squared": 62585103,
+              "boundary_samples": 688800,
+              "boundary_to_interior_error_ratio_ppm": 1399226,
+              "interior_gradient_error_squared": 134652623,
+              "interior_samples": 2073600
+            },
+            {
+              "block": 8,
+              "boundary_excess_discontinuity": 566229,
+              "boundary_gradient_error_absolute": 1397699,
+              "boundary_gradient_error_squared": 40214105,
+              "boundary_samples": 343200,
+              "boundary_to_interior_error_ratio_ppm": 1805252,
+              "interior_gradient_error_squared": 157023621,
+              "interior_samples": 2419200
+            },
+            {
+              "block": 16,
+              "boundary_excess_discontinuity": 281591,
+              "boundary_gradient_error_absolute": 695088,
+              "boundary_gradient_error_squared": 19759216,
+              "boundary_samples": 170400,
+              "boundary_to_interior_error_ratio_ppm": 1693516,
+              "interior_gradient_error_squared": 177478510,
+              "interior_samples": 2592000
+            }
+          ],
+          "decoded_sha256": "b5334a75f6f22f3029f4dfe7da95d30942face720a889506acbf485e94bc4d40",
+          "height": 960,
+          "plane": "y",
+          "psnr_db": "28.503880",
+          "samples": 1382400,
+          "source_sha256": "8cbc3d75ccdd96ced565d1ad3b23bc7715056ff8a96178c7c6f433bc77db11f4",
+          "sse": 126860400,
+          "ssim_q1e9": 862026566,
+          "width": 1440
+        },
+        {
+          "boundaries": [
+            {
+              "block": 4,
+              "boundary_excess_discontinuity": 212700,
+              "boundary_gradient_error_absolute": 539926,
+              "boundary_gradient_error_squared": 7193580,
+              "boundary_samples": 688800,
+              "boundary_to_interior_error_ratio_ppm": 3035554,
+              "interior_gradient_error_squared": 7134096,
+              "interior_samples": 2073600
+            },
+            {
+              "block": 8,
+              "boundary_excess_discontinuity": 212700,
+              "boundary_gradient_error_absolute": 367077,
+              "boundary_gradient_error_squared": 5942499,
+              "boundary_samples": 343200,
+              "boundary_to_interior_error_ratio_ppm": 4995527,
+              "interior_gradient_error_squared": 8385177,
+              "interior_samples": 2419200
+            },
+            {
+              "block": 16,
+              "boundary_excess_discontinuity": 212700,
+              "boundary_gradient_error_absolute": 281044,
+              "boundary_gradient_error_squared": 5315916,
+              "boundary_samples": 170400,
+              "boundary_to_interior_error_ratio_ppm": 8972922,
+              "interior_gradient_error_squared": 9011760,
+              "interior_samples": 2592000
+            }
+          ],
+          "decoded_sha256": "4961095513cafcc0bf4464341dc3c59e6aa8bcb9139f857bb0f82e1f23a4d0a3",
+          "height": 960,
+          "plane": "u",
+          "psnr_db": "35.136222",
+          "samples": 1382400,
+          "source_sha256": "7dcb4193ae38e118c01244d789da7eb573985a8c78ddaefccc755dfd02b26116",
+          "sse": 27548118,
+          "ssim_q1e9": 958404149,
+          "width": 1440
+        },
+        {
+          "boundaries": [
+            {
+              "block": 4,
+              "boundary_excess_discontinuity": 99090,
+              "boundary_gradient_error_absolute": 282198,
+              "boundary_gradient_error_squared": 1180030,
+              "boundary_samples": 688800,
+              "boundary_to_interior_error_ratio_ppm": 2776896,
+              "interior_gradient_error_squared": 1279279,
+              "interior_samples": 2073600
+            },
+            {
+              "block": 8,
+              "boundary_excess_discontinuity": 99090,
+              "boundary_gradient_error_absolute": 185972,
+              "boundary_gradient_error_squared": 963794,
+              "boundary_samples": 343200,
+              "boundary_to_interior_error_ratio_ppm": 4542740,
+              "interior_gradient_error_squared": 1495515,
+              "interior_samples": 2419200
+            },
+            {
+              "block": 16,
+              "boundary_excess_discontinuity": 99090,
+              "boundary_gradient_error_absolute": 138275,
+              "boundary_gradient_error_squared": 859847,
+              "boundary_samples": 170400,
+              "boundary_to_interior_error_ratio_ppm": 8177351,
+              "interior_gradient_error_squared": 1599462,
+              "interior_samples": 2592000
+            }
+          ],
+          "decoded_sha256": "06821db58ef748e6d47abbe9408bcda5c6c12e88e7e20c30286b42555b5afb9b",
+          "height": 960,
+          "plane": "v",
+          "psnr_db": "43.658167",
+          "samples": 1382400,
+          "source_sha256": "1aa82ad6f6684a19877952f5a35d3646206eb1700cd905df1c67a606903c142b",
+          "sse": 3871662,
+          "ssim_q1e9": 983178427,
+          "width": 1440
+        }
+      ],
+      "qindex": 100,
+      "retained_obu": "metrics/blockiness-m0/streams/i444/off-q100.obu",
+      "search": "off",
+      "width": 1440,
+      "workspace_bytes": 12507168
+    },
+    {
+      "avm_project_exact": true,
+      "command": [
+        "av2-encoder-experiment",
+        "source-1440x960-yuv444p8.i444",
+        "--width",
+        "1440",
+        "--height",
+        "960",
+        "--qindex",
+        "100",
+        "--search",
+        "intra",
+        "--output",
+        "intra-q100.obu"
+      ],
+      "decode_time_ns": {
+        "avm": 119808596,
+        "project": 117644064
+      },
+      "decoded_sha256": "497ddf3dbcee0a930786c708c17648280faf4c24991b2edbcb412e65a56b9c50",
+      "deterministic": true,
+      "encode_time_ns": {
+        "median": 15481160056,
+        "samples": [
+          15579259774,
+          15383060339
+        ],
+        "worst": 15579259774
+      },
+      "encoder_local_sse_matches_decode": true,
+      "encoder_reported_sse": [
+        122398687,
+        27548118,
+        3871662
+      ],
+      "height": 960,
+      "id": "i444-intra-q100",
+      "input_bytes": 4147200,
+      "input_sha256": "b69bde49364dc29e1eeab29af51feb7776b51eb5f930267dff7e2e83fd70e8ad",
+      "obu_bytes": 8459,
+      "obu_sha256": "fcfbe3262594dcc8dd847f9941d06ee8a357bd0183c3e83f7afbe044033050ae",
+      "pixel_format": "i444",
+      "planes": [
+        {
+          "boundaries": [
+            {
+              "block": 4,
+              "boundary_excess_discontinuity": 472894,
+              "boundary_gradient_error_absolute": 2289165,
+              "boundary_gradient_error_squared": 57516375,
+              "boundary_samples": 688800,
+              "boundary_to_interior_error_ratio_ppm": 1290586,
+              "interior_gradient_error_squared": 134164083,
+              "interior_samples": 2073600
+            },
+            {
+              "block": 8,
+              "boundary_excess_discontinuity": 455688,
+              "boundary_gradient_error_absolute": 1308857,
+              "boundary_gradient_error_squared": 35229729,
+              "boundary_samples": 343200,
+              "boundary_to_interior_error_ratio_ppm": 1587289,
+              "interior_gradient_error_squared": 156450729,
+              "interior_samples": 2419200
+            },
+            {
+              "block": 16,
+              "boundary_excess_discontinuity": 221823,
+              "boundary_gradient_error_absolute": 645566,
+              "boundary_gradient_error_squared": 16960704,
+              "boundary_samples": 170400,
+              "boundary_to_interior_error_ratio_ppm": 1476614,
+              "interior_gradient_error_squared": 174719754,
+              "interior_samples": 2592000
+            }
+          ],
+          "decoded_sha256": "8d3dafd016e7b34c4949d4c631499f91d41dc7407c4be8995113c9644eed0160",
+          "height": 960,
+          "plane": "y",
+          "psnr_db": "28.659373",
+          "samples": 1382400,
+          "source_sha256": "8cbc3d75ccdd96ced565d1ad3b23bc7715056ff8a96178c7c6f433bc77db11f4",
+          "sse": 122398687,
+          "ssim_q1e9": 869040760,
+          "width": 1440
+        },
+        {
+          "boundaries": [
+            {
+              "block": 4,
+              "boundary_excess_discontinuity": 212700,
+              "boundary_gradient_error_absolute": 539926,
+              "boundary_gradient_error_squared": 7193580,
+              "boundary_samples": 688800,
+              "boundary_to_interior_error_ratio_ppm": 3035554,
+              "interior_gradient_error_squared": 7134096,
+              "interior_samples": 2073600
+            },
+            {
+              "block": 8,
+              "boundary_excess_discontinuity": 212700,
+              "boundary_gradient_error_absolute": 367077,
+              "boundary_gradient_error_squared": 5942499,
+              "boundary_samples": 343200,
+              "boundary_to_interior_error_ratio_ppm": 4995527,
+              "interior_gradient_error_squared": 8385177,
+              "interior_samples": 2419200
+            },
+            {
+              "block": 16,
+              "boundary_excess_discontinuity": 212700,
+              "boundary_gradient_error_absolute": 281044,
+              "boundary_gradient_error_squared": 5315916,
+              "boundary_samples": 170400,
+              "boundary_to_interior_error_ratio_ppm": 8972922,
+              "interior_gradient_error_squared": 9011760,
+              "interior_samples": 2592000
+            }
+          ],
+          "decoded_sha256": "4961095513cafcc0bf4464341dc3c59e6aa8bcb9139f857bb0f82e1f23a4d0a3",
+          "height": 960,
+          "plane": "u",
+          "psnr_db": "35.136222",
+          "samples": 1382400,
+          "source_sha256": "7dcb4193ae38e118c01244d789da7eb573985a8c78ddaefccc755dfd02b26116",
+          "sse": 27548118,
+          "ssim_q1e9": 958404149,
+          "width": 1440
+        },
+        {
+          "boundaries": [
+            {
+              "block": 4,
+              "boundary_excess_discontinuity": 99090,
+              "boundary_gradient_error_absolute": 282198,
+              "boundary_gradient_error_squared": 1180030,
+              "boundary_samples": 688800,
+              "boundary_to_interior_error_ratio_ppm": 2776896,
+              "interior_gradient_error_squared": 1279279,
+              "interior_samples": 2073600
+            },
+            {
+              "block": 8,
+              "boundary_excess_discontinuity": 99090,
+              "boundary_gradient_error_absolute": 185972,
+              "boundary_gradient_error_squared": 963794,
+              "boundary_samples": 343200,
+              "boundary_to_interior_error_ratio_ppm": 4542740,
+              "interior_gradient_error_squared": 1495515,
+              "interior_samples": 2419200
+            },
+            {
+              "block": 16,
+              "boundary_excess_discontinuity": 99090,
+              "boundary_gradient_error_absolute": 138275,
+              "boundary_gradient_error_squared": 859847,
+              "boundary_samples": 170400,
+              "boundary_to_interior_error_ratio_ppm": 8177351,
+              "interior_gradient_error_squared": 1599462,
+              "interior_samples": 2592000
+            }
+          ],
+          "decoded_sha256": "06821db58ef748e6d47abbe9408bcda5c6c12e88e7e20c30286b42555b5afb9b",
+          "height": 960,
+          "plane": "v",
+          "psnr_db": "43.658167",
+          "samples": 1382400,
+          "source_sha256": "1aa82ad6f6684a19877952f5a35d3646206eb1700cd905df1c67a606903c142b",
+          "sse": 3871662,
+          "ssim_q1e9": 983178427,
+          "width": 1440
+        }
+      ],
+      "qindex": 100,
+      "retained_obu": "metrics/blockiness-m0/streams/i444/intra-q100.obu",
+      "search": "intra",
+      "width": 1440,
+      "workspace_bytes": 12507168
+    },
+    {
+      "avm_project_exact": true,
+      "command": [
+        "av2-encoder-experiment",
+        "source-1440x960-yuv444p8.i444",
+        "--width",
+        "1440",
+        "--height",
+        "960",
+        "--qindex",
+        "100",
+        "--search",
+        "directional",
+        "--output",
+        "directional-q100.obu"
+      ],
+      "decode_time_ns": {
+        "avm": 115912201,
+        "project": 112899442
+      },
+      "decoded_sha256": "d86c094d3db84707698bccf83631fe9017e43c5d2199dd936000adfe73e269fa",
+      "deterministic": true,
+      "encode_time_ns": {
+        "median": 14320185569,
+        "samples": [
+          14407973167,
+          14232397972
+        ],
+        "worst": 14407973167
+      },
+      "encoder_local_sse_matches_decode": true,
+      "encoder_reported_sse": [
+        126860400,
+        27548118,
+        3871662
+      ],
+      "height": 960,
+      "id": "i444-directional-q100",
+      "input_bytes": 4147200,
+      "input_sha256": "b69bde49364dc29e1eeab29af51feb7776b51eb5f930267dff7e2e83fd70e8ad",
+      "obu_bytes": 8804,
+      "obu_sha256": "8a753373af88de8c453652bfdea03b9d5c4de9b67380be82c75b90706f6c8586",
+      "pixel_format": "i444",
+      "planes": [
+        {
+          "boundaries": [
+            {
+              "block": 4,
+              "boundary_excess_discontinuity": 566229,
+              "boundary_gradient_error_absolute": 2367761,
+              "boundary_gradient_error_squared": 62585103,
+              "boundary_samples": 688800,
+              "boundary_to_interior_error_ratio_ppm": 1399226,
+              "interior_gradient_error_squared": 134652623,
+              "interior_samples": 2073600
+            },
+            {
+              "block": 8,
+              "boundary_excess_discontinuity": 566229,
+              "boundary_gradient_error_absolute": 1397699,
+              "boundary_gradient_error_squared": 40214105,
+              "boundary_samples": 343200,
+              "boundary_to_interior_error_ratio_ppm": 1805252,
+              "interior_gradient_error_squared": 157023621,
+              "interior_samples": 2419200
+            },
+            {
+              "block": 16,
+              "boundary_excess_discontinuity": 281591,
+              "boundary_gradient_error_absolute": 695088,
+              "boundary_gradient_error_squared": 19759216,
+              "boundary_samples": 170400,
+              "boundary_to_interior_error_ratio_ppm": 1693516,
+              "interior_gradient_error_squared": 177478510,
+              "interior_samples": 2592000
+            }
+          ],
+          "decoded_sha256": "b5334a75f6f22f3029f4dfe7da95d30942face720a889506acbf485e94bc4d40",
+          "height": 960,
+          "plane": "y",
+          "psnr_db": "28.503880",
+          "samples": 1382400,
+          "source_sha256": "8cbc3d75ccdd96ced565d1ad3b23bc7715056ff8a96178c7c6f433bc77db11f4",
+          "sse": 126860400,
+          "ssim_q1e9": 862026566,
+          "width": 1440
+        },
+        {
+          "boundaries": [
+            {
+              "block": 4,
+              "boundary_excess_discontinuity": 212700,
+              "boundary_gradient_error_absolute": 539926,
+              "boundary_gradient_error_squared": 7193580,
+              "boundary_samples": 688800,
+              "boundary_to_interior_error_ratio_ppm": 3035554,
+              "interior_gradient_error_squared": 7134096,
+              "interior_samples": 2073600
+            },
+            {
+              "block": 8,
+              "boundary_excess_discontinuity": 212700,
+              "boundary_gradient_error_absolute": 367077,
+              "boundary_gradient_error_squared": 5942499,
+              "boundary_samples": 343200,
+              "boundary_to_interior_error_ratio_ppm": 4995527,
+              "interior_gradient_error_squared": 8385177,
+              "interior_samples": 2419200
+            },
+            {
+              "block": 16,
+              "boundary_excess_discontinuity": 212700,
+              "boundary_gradient_error_absolute": 281044,
+              "boundary_gradient_error_squared": 5315916,
+              "boundary_samples": 170400,
+              "boundary_to_interior_error_ratio_ppm": 8972922,
+              "interior_gradient_error_squared": 9011760,
+              "interior_samples": 2592000
+            }
+          ],
+          "decoded_sha256": "4961095513cafcc0bf4464341dc3c59e6aa8bcb9139f857bb0f82e1f23a4d0a3",
+          "height": 960,
+          "plane": "u",
+          "psnr_db": "35.136222",
+          "samples": 1382400,
+          "source_sha256": "7dcb4193ae38e118c01244d789da7eb573985a8c78ddaefccc755dfd02b26116",
+          "sse": 27548118,
+          "ssim_q1e9": 958404149,
+          "width": 1440
+        },
+        {
+          "boundaries": [
+            {
+              "block": 4,
+              "boundary_excess_discontinuity": 99090,
+              "boundary_gradient_error_absolute": 282198,
+              "boundary_gradient_error_squared": 1180030,
+              "boundary_samples": 688800,
+              "boundary_to_interior_error_ratio_ppm": 2776896,
+              "interior_gradient_error_squared": 1279279,
+              "interior_samples": 2073600
+            },
+            {
+              "block": 8,
+              "boundary_excess_discontinuity": 99090,
+              "boundary_gradient_error_absolute": 185972,
+              "boundary_gradient_error_squared": 963794,
+              "boundary_samples": 343200,
+              "boundary_to_interior_error_ratio_ppm": 4542740,
+              "interior_gradient_error_squared": 1495515,
+              "interior_samples": 2419200
+            },
+            {
+              "block": 16,
+              "boundary_excess_discontinuity": 99090,
+              "boundary_gradient_error_absolute": 138275,
+              "boundary_gradient_error_squared": 859847,
+              "boundary_samples": 170400,
+              "boundary_to_interior_error_ratio_ppm": 8177351,
+              "interior_gradient_error_squared": 1599462,
+              "interior_samples": 2592000
+            }
+          ],
+          "decoded_sha256": "06821db58ef748e6d47abbe9408bcda5c6c12e88e7e20c30286b42555b5afb9b",
+          "height": 960,
+          "plane": "v",
+          "psnr_db": "43.658167",
+          "samples": 1382400,
+          "source_sha256": "1aa82ad6f6684a19877952f5a35d3646206eb1700cd905df1c67a606903c142b",
+          "sse": 3871662,
+          "ssim_q1e9": 983178427,
+          "width": 1440
+        }
+      ],
+      "qindex": 100,
+      "retained_obu": "metrics/blockiness-m0/streams/i444/directional-q100.obu",
+      "search": "directional",
+      "width": 1440,
+      "workspace_bytes": 12507168
+    }
+  ],
+  "configuration": {
+    "anchor_searches": [
+      "off",
+      "intra",
+      "directional"
+    ],
+    "boundary_metric": "squared decoded-minus-source adjacent-sample gradient error; block-edge MSE is compared with non-boundary MSE",
+    "boundary_sizes": [
+      4,
+      8,
+      16
+    ],
+    "bounded_qindices": [
+      60,
+      80,
+      100,
+      120,
+      150,
+      165,
+      180,
+      220
+    ],
+    "continuity_qindex": 100,
+    "dimensions": [
+      1440,
+      960
+    ],
+    "formats": [
+      "i400",
+      "i420",
+      "i444"
+    ],
+    "preparation": "le1440",
+    "representative_luma_crop": {
+      "height": 576,
+      "width": 512,
+      "x": 448,
+      "y": 192
+    },
+    "source": "baya-weaver",
+    "ssim": {
+      "constants": "C1=(0.01*255)^2, C2=(0.03*255)^2",
+      "scale": 1000000000,
+      "window": "non-overlapping 8x8 active-crop windows"
+    }
+  },
+  "corpus": {
+    "images/prepared/le1440/baya-weaver/manifest.json": "d226783fd694f95d4a2cee653d47a37211dd52c4ea81ad49867bb8fb05bdd490",
+    "images/prepared/le1440/baya-weaver/source-1440x960-gray8.i400": "e83bb7ed1fef36481d39f196ccc60d3ea658a598a237e818b92866758913bf5e",
+    "images/prepared/le1440/baya-weaver/source-1440x960-yuv420p8.i420": "f5a538f7ce0c6791381f5d27ae71e1bce0850c20f41c9ec5e8515921c2e4a238",
+    "images/prepared/le1440/baya-weaver/source-1440x960-yuv444p8.i444": "b69bde49364dc29e1eeab29af51feb7776b51eb5f930267dff7e2e83fd70e8ad",
+    "images/recipes/prepared-lock.json": "f12c63adf93a46066866e85bc7c336594fe27ac1514b34abd0f22ddb494bf97f"
+  },
+  "diagnosis": {
+    "aggregate_luma_sse_improvement_ppm": 39278,
+    "aggregate_stream_rate_growth_ppm": 616335,
+    "block_boundary_evidence": false,
+    "classification": "residual-capacity",
+    "continuity_qindex": 100,
+    "lower_quantization_8x8_boundary_to_interior_error_ratio_ppm": 1068207,
+    "lower_quantization_qindex": 60,
+    "recommendation": "prioritize M1 and M2 residual breadth",
+    "residual_capacity_evidence": true,
+    "thresholds": {
+      "block_boundary_minimum_error_ratio_ppm": 1150000,
+      "residual_capacity_minimum_sse_improvement_ppm": 200000,
+      "residual_saturation_maximum_sse_improvement_ppm": 100000,
+      "residual_saturation_minimum_rate_growth_ppm": 300000
+    }
+  },
+  "equal_byte_comparisons": [
+    {
+      "anchor_bytes": 6083,
+      "anchor_plane_sse": [
+        124853206
+      ],
+      "anchor_plane_ssim_q1e9": [
+        862371592
+      ],
+      "anchor_qindex": 100,
+      "anchor_search": "off",
+      "bounded_bytes": 6834,
+      "bounded_plane_sse": [
+        65371924
+      ],
+      "bounded_plane_ssim_q1e9": [
+        933567608
+      ],
+      "bounded_qindex": 165,
+      "byte_difference": 751,
+      "byte_difference_ppm": 123458,
+      "pixel_format": "i400"
+    },
+    {
+      "anchor_bytes": 5712,
+      "anchor_plane_sse": [
+        120533318
+      ],
+      "anchor_plane_ssim_q1e9": [
+        869295834
+      ],
+      "anchor_qindex": 100,
+      "anchor_search": "intra",
+      "bounded_bytes": 4729,
+      "bounded_plane_sse": [
+        85220606
+      ],
+      "bounded_plane_ssim_q1e9": [
+        922223904
+      ],
+      "bounded_qindex": 180,
+      "byte_difference": -983,
+      "byte_difference_ppm": -172094,
+      "pixel_format": "i400"
+    },
+    {
+      "anchor_bytes": 6083,
+      "anchor_plane_sse": [
+        124853206
+      ],
+      "anchor_plane_ssim_q1e9": [
+        862371592
+      ],
+      "anchor_qindex": 100,
+      "anchor_search": "directional",
+      "bounded_bytes": 6834,
+      "bounded_plane_sse": [
+        65371924
+      ],
+      "bounded_plane_ssim_q1e9": [
+        933567608
+      ],
+      "bounded_qindex": 165,
+      "byte_difference": 751,
+      "byte_difference_ppm": 123458,
+      "pixel_format": "i400"
+    },
+    {
+      "anchor_bytes": 8521,
+      "anchor_plane_sse": [
+        126860400,
+        6439964,
+        900825
+      ],
+      "anchor_plane_ssim_q1e9": [
+        862026566,
+        943054344,
+        974324411
+      ],
+      "anchor_qindex": 100,
+      "anchor_search": "off",
+      "bounded_bytes": 7894,
+      "bounded_plane_sse": [
+        66081678,
+        4568855,
+        3030112
+      ],
+      "bounded_plane_ssim_q1e9": [
+        933163480,
+        966885568,
+        979428736
+      ],
+      "bounded_qindex": 165,
+      "byte_difference": -627,
+      "byte_difference_ppm": -73583,
+      "pixel_format": "i420"
+    },
+    {
+      "anchor_bytes": 8175,
+      "anchor_plane_sse": [
+        122398687,
+        6439964,
+        900825
+      ],
+      "anchor_plane_ssim_q1e9": [
+        869040760,
+        943054344,
+        974324411
+      ],
+      "anchor_qindex": 100,
+      "anchor_search": "intra",
+      "bounded_bytes": 7894,
+      "bounded_plane_sse": [
+        66081678,
+        4568855,
+        3030112
+      ],
+      "bounded_plane_ssim_q1e9": [
+        933163480,
+        966885568,
+        979428736
+      ],
+      "bounded_qindex": 165,
+      "byte_difference": -281,
+      "byte_difference_ppm": -34374,
+      "pixel_format": "i420"
+    },
+    {
+      "anchor_bytes": 8521,
+      "anchor_plane_sse": [
+        126860400,
+        6439964,
+        900825
+      ],
+      "anchor_plane_ssim_q1e9": [
+        862026566,
+        943054344,
+        974324411
+      ],
+      "anchor_qindex": 100,
+      "anchor_search": "directional",
+      "bounded_bytes": 7894,
+      "bounded_plane_sse": [
+        66081678,
+        4568855,
+        3030112
+      ],
+      "bounded_plane_ssim_q1e9": [
+        933163480,
+        966885568,
+        979428736
+      ],
+      "bounded_qindex": 165,
+      "byte_difference": -627,
+      "byte_difference_ppm": -73583,
+      "pixel_format": "i420"
+    },
+    {
+      "anchor_bytes": 8804,
+      "anchor_plane_sse": [
+        126860400,
+        27548118,
+        3871662
+      ],
+      "anchor_plane_ssim_q1e9": [
+        862026566,
+        958404149,
+        983178427
+      ],
+      "anchor_qindex": 100,
+      "anchor_search": "off",
+      "bounded_bytes": 8861,
+      "bounded_plane_sse": [
+        66081678,
+        11560492,
+        4041411
+      ],
+      "bounded_plane_ssim_q1e9": [
+        933163480,
+        970774562,
+        986056631
+      ],
+      "bounded_qindex": 165,
+      "byte_difference": 57,
+      "byte_difference_ppm": 6474,
+      "pixel_format": "i444"
+    },
+    {
+      "anchor_bytes": 8459,
+      "anchor_plane_sse": [
+        122398687,
+        27548118,
+        3871662
+      ],
+      "anchor_plane_ssim_q1e9": [
+        869040760,
+        958404149,
+        983178427
+      ],
+      "anchor_qindex": 100,
+      "anchor_search": "intra",
+      "bounded_bytes": 8861,
+      "bounded_plane_sse": [
+        66081678,
+        11560492,
+        4041411
+      ],
+      "bounded_plane_ssim_q1e9": [
+        933163480,
+        970774562,
+        986056631
+      ],
+      "bounded_qindex": 165,
+      "byte_difference": 402,
+      "byte_difference_ppm": 47523,
+      "pixel_format": "i444"
+    },
+    {
+      "anchor_bytes": 8804,
+      "anchor_plane_sse": [
+        126860400,
+        27548118,
+        3871662
+      ],
+      "anchor_plane_ssim_q1e9": [
+        862026566,
+        958404149,
+        983178427
+      ],
+      "anchor_qindex": 100,
+      "anchor_search": "directional",
+      "bounded_bytes": 8861,
+      "bounded_plane_sse": [
+        66081678,
+        11560492,
+        4041411
+      ],
+      "bounded_plane_ssim_q1e9": [
+        933163480,
+        970774562,
+        986056631
+      ],
+      "bounded_qindex": 165,
+      "byte_difference": 57,
+      "byte_difference_ppm": 6474,
+      "pixel_format": "i444"
+    }
+  ],
+  "gates": {
+    "all_artifacts_retained": true,
+    "all_avm_project_exact": true,
+    "all_deterministic": true,
+    "all_local_sse_exact": true,
+    "bounded_sweep_complete": true,
+    "locked_inputs": true,
+    "q100_anchors_complete": true
+  },
+  "revision": {
+    "avmdec_sha256": "c247cbb4e71e48bdec89f3c8b2b8efdce17f673aeaa39e3c116a276d16286aa0",
+    "encoder_sha256": "d569695a1b470450ec62bafd699fd86c3cdd13c6344e85491f1772a514ef0f6b",
+    "git_commit": "c709952e6554116e8cbb7d10d7d9a6497e19b7c5",
+    "project_decoder_sha256": "7d17f598f2cdffe7dfb4ab46982cf5c4822215a5f429cb39e7748a60ce5ef535"
+  },
+  "schema": "av2-encoder-blockiness-m0-v1",
+  "status": "pass",
+  "summary": {
+    "case_count": 33,
+    "crop_count": 36,
+    "maximum_workspace_bytes": 34648192,
+    "stream_count": 33,
+    "worst_encode_time_ns": 77556721774
+  }
+}
