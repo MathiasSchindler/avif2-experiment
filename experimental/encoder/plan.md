@@ -57,7 +57,9 @@ directional and 263.108 seconds aggregate median runtime.
 luma transform in I400, I420, and I444 through 1440 per axis. `--search off`
 preserves the frozen DC-only streams. Multi-superblock generated cases and
 real 1440x960 preparations pass deterministic local/pinned-AVM/project parity;
-U/V remain DC-only and unchanged by luma AC search.
+the production chroma extension now searches matching U/V DCT_DCT transforms
+without permitting any Y/U/V SSE regression. Its frozen evidence is
+`metrics/chroma-ac-gate.json`.
 
 ## Allocation and ownership
 
@@ -514,7 +516,7 @@ arbitrary larger dimensions remain a future milestone.
 
 The admitted 8-bit color profile now covers every I420/I444 width and height
 from 1 through 1440 at every qindex 1..255: 2,073,600 dimension pairs per
-format. Luma uses default 8x8 AC search while U/V remain DC-only. The final
+format. Luma and U/V use default bounded DCT_DCT AC search. The final
 half-grid correction uses the frame's 8-pixel-aligned MI
 boundary for the separate chroma tree, omits the normative 8×8 chroma
 partition symbol, and models rectangular 4×8/8×4 and 8×16/16×8 transforms

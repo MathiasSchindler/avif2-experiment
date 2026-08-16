@@ -28,7 +28,10 @@ BASE = importlib.util.module_from_spec(SPEC)
 sys.modules[SPEC.name] = BASE
 SPEC.loader.exec_module(BASE)
 
-SIZES = ((4, 4), (4, 8), (8, 4), (8, 8), (8, 16), (16, 8))
+SIZES = (
+    (4, 4), (4, 8), (8, 4), (8, 8),
+    (8, 16), (16, 8), (16, 16),
+)
 GROUP_START = (0, 1, 2, 3, 5, 9, 17, 33, 65, 129)
 OFFSET_BITS = (0, 0, 0, 1, 2, 3, 4, 5, 6, 7)
 HASHES = {
@@ -220,16 +223,23 @@ def encode_coefficients(levels: Sequence[int], width: int, height: int,
     point = max(i for i, start in enumerate(GROUP_START) if start <= eob)
     eob_name = f"eob_pt_{width * height}"
     eob_rows = _rows(f"default_{eob_name}_cdf.h", point if False else
-                     {16: 5, 32: 6, 64: 7, 128: 8}[width * height], 12)
+                     {16: 5, 32: 6, 64: 7, 128: 8, 256: 8}[width * height],
+                     12)
     key = ("dynamic-" + eob_name, qctx * 3 + 2)
-    symbols = {16: 5, 32: 6, 64: 7, 128: 8}[width * height]
+    symbols = {16: 5, 32: 6, 64: 7, 128: 8, 256: 8}[width * height]
     if key not in state.cdfs:
         state.cdfs[key] = BASE.materialize(eob_rows[qctx * 3 + 2], symbols)
     before = writer.tell()
-    writer.symbol(point - 1, state.cdfs[key], symbols)
+    point_symbol = min(point - 1, symbols - 1)
+    writer.symbol(point_symbol, state.cdfs[key], symbols)
     events.append({"name": eob_name, "row": qctx * 3 + 2,
-                   "symbol": point - 1, "bits_before": before,
+                   "symbol": point_symbol, "bits_before": before,
                    "bits_after": writer.tell()})
+    if width * height == 256 and point_symbol == symbols - 1:
+        before = writer.tell()
+        writer.literal(point - 1 - point_symbol, 1)
+        events.append({"name": "eob_point_literal", "value": point,
+                       "bits_before": before, "bits_after": writer.tell()})
     extra_bits = OFFSET_BITS[point]
     extra = eob - GROUP_START[point]
     if extra_bits:

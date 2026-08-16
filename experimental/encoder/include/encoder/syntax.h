@@ -28,6 +28,9 @@
 #define ENC_CHROMA_EOB_PT_128_ROWS 12U
 #define ENC_CHROMA_EOB_PT_256_ROWS 12U
 #define ENC_COEFF_BASE_LF_EOB_UV_ROWS 16U
+#define ENC_COEFF_BASE_EOB_UV_ROWS 16U
+#define ENC_COEFF_BASE_LF_UV_ROWS 48U
+#define ENC_COEFF_BASE_UV_ROWS 48U
 #define ENC_COEFF_BR_UV_ROWS 16U
 #define ENC_EOB_PT_64_ROWS 12U
 #define ENC_EOB_EXTRA_ROWS 4U
@@ -64,6 +67,9 @@ typedef struct {
     uint16_t chroma_eob_pt_128[ENC_CHROMA_EOB_PT_128_ROWS][12U];
     uint16_t chroma_eob_pt_256[ENC_CHROMA_EOB_PT_256_ROWS][12U];
     uint16_t coeff_base_lf_eob_uv[ENC_COEFF_BASE_LF_EOB_UV_ROWS][9U];
+    uint16_t coeff_base_eob_uv[ENC_COEFF_BASE_EOB_UV_ROWS][7U];
+    uint16_t coeff_base_lf_uv[ENC_COEFF_BASE_LF_UV_ROWS][10U];
+    uint16_t coeff_base_uv[ENC_COEFF_BASE_UV_ROWS][8U];
     uint16_t coeff_br_uv[ENC_COEFF_BR_UV_ROWS][8U];
     uint16_t eob_pt_64[ENC_EOB_PT_64_ROWS][11U];
     uint16_t eob_extra[ENC_EOB_EXTRA_ROWS][6U];
@@ -148,6 +154,12 @@ uint16_t *enc_syntax_chroma_eob_pt_cdf(
     EncSyntaxCdfs *cdfs, size_t q_context, size_t eob_class,
     size_t *symbol_count);
 uint16_t *enc_syntax_coeff_base_lf_eob_uv_cdf(
+    EncSyntaxCdfs *cdfs, size_t q_context, size_t context);
+uint16_t *enc_syntax_coeff_base_eob_uv_cdf(
+    EncSyntaxCdfs *cdfs, size_t q_context, size_t context);
+uint16_t *enc_syntax_coeff_base_lf_uv_cdf(
+    EncSyntaxCdfs *cdfs, size_t q_context, size_t context);
+uint16_t *enc_syntax_coeff_base_uv_cdf(
     EncSyntaxCdfs *cdfs, size_t q_context, size_t context);
 uint16_t *enc_syntax_coeff_br_uv_cdf(
     EncSyntaxCdfs *cdfs, size_t q_context, size_t context);
@@ -242,6 +254,12 @@ EncStatus enc_ac8x8_yuv_grid_tile_q(
     size_t width, size_t height,
     const int16_t *y_levels, const int16_t *u_levels,
     const int16_t *v_levels, size_t level_count,
+    unsigned int chroma_format_idc, unsigned int qindex);
+EncStatus enc_ac8x8_yuv_chroma_grid_tile_q(
+    void *data, size_t capacity, size_t *size,
+    size_t width, size_t height,
+    const int16_t *y_levels, const int16_t *u_levels,
+    const int16_t *v_levels, size_t level_count, size_t chroma_level_count,
     unsigned int chroma_format_idc, unsigned int qindex);
 EncStatus enc_m3_intra_yuv_grid_tile_q(
     void *data, size_t capacity, size_t *size,

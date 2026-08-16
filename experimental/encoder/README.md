@@ -39,11 +39,11 @@ image with no recognized suffix has `.obu` appended instead. `-o PATH` and
 form and defaults to 100, exactly like the legacy I400 form. Options may
 appear before or after the single input.
 
-Quality search defaults to `--search bounded`. It applies scalar 8x8 DCT_DCT
-AC search to every luma transform in I400, I420, and I444 through 1440 pixels
-per axis; U/V remain DC-only. Each transform searches eight low-frequency
-positions with at most 8 nonzeros and magnitude 63. `--search off` retains the
-frozen legacy DC-only bitstream.
+Quality search defaults to `--search bounded`. It applies scalar DCT_DCT AC
+search to luma and chroma transforms in I400, I420, and I444 through 1440
+pixels per axis. The production transform set is 4x4, 4x8, 8x4, 8x8, 8x16,
+16x8, and 16x16; each chroma transform searches eight low-frequency
+positions. `--search off` retains the frozen legacy DC-only bitstream.
 `--search directional` enables the production predictor-SSE shortlist followed
 by deterministic exact DC/vertical/horizontal complete-stream trials for I400,
 I420, and I444. `--search directional-exact` bypasses only the prefilter and is
@@ -57,6 +57,11 @@ fresh writer/CDF state. Candidates must not regress any plane SSE or bytes;
 stable ties retain DC, V, H, Smooth, Smooth-V, Smooth-H, then Paeth.
 Search-off hashes remain locked. Directional and intra prediction searches
 remain explicit modes and are not combined with the default AC search.
+
+`make chroma-ac-gate` reproduces the frozen production report in
+`metrics/chroma-ac-gate.json`. It requires deterministic output, no per-plane
+SSE regression, strict chroma wins on comparable I420/I444 fixtures, and
+exact local/pinned-AVM/project reconstruction parity.
 
 Raw planar bytes do not identify their dimensions. With no explicit
 `--width W --height H`, geometry is accepted only from:

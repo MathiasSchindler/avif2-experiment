@@ -59,6 +59,7 @@ typedef struct {
     size_t baseline_reconstruction_offset;
     size_t luma_coefficients_offset;
     size_t chroma_dc_levels_offset;
+    size_t chroma_coefficients_offset;
     size_t entropy_state_offset;
     size_t entropy_state_size;
     size_t stream_staging_offset;

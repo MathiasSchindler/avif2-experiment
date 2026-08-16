@@ -65,6 +65,15 @@ EncStatus enc_syntax_cdfs_init(EncSyntaxCdfs *cdfs) {
         coeff_base_lf_eob_uv, enc_norm_coeff_base_lf_eob_uv,
         ENC_COEFF_BASE_LF_EOB_UV_ROWS, 5U);
     MATERIALIZE_TABLE(
+        coeff_base_eob_uv, enc_norm_coeff_base_eob_uv,
+        ENC_COEFF_BASE_EOB_UV_ROWS, 3U);
+    MATERIALIZE_TABLE(
+        coeff_base_lf_uv, enc_norm_coeff_base_lf_uv,
+        ENC_COEFF_BASE_LF_UV_ROWS, 6U);
+    MATERIALIZE_TABLE(
+        coeff_base_uv, enc_norm_coeff_base_uv,
+        ENC_COEFF_BASE_UV_ROWS, 4U);
+    MATERIALIZE_TABLE(
         coeff_br_uv, enc_norm_coeff_br_uv, ENC_COEFF_BR_UV_ROWS, 4U);
     MATERIALIZE_TABLE(eob_pt_64, enc_norm_eob_pt_64, ENC_EOB_PT_64_ROWS, 7U);
     MATERIALIZE_TABLE(
@@ -226,6 +235,27 @@ uint16_t *enc_syntax_coeff_base_lf_eob_uv_cdf(
     size_t row = q_context * 4U + context;
     return cdfs != 0 && q_context < 4U && context < 4U
         ? cdfs->coeff_base_lf_eob_uv[row] : 0;
+}
+
+uint16_t *enc_syntax_coeff_base_eob_uv_cdf(
+    EncSyntaxCdfs *cdfs, size_t q_context, size_t context) {
+    size_t row = q_context * 4U + context;
+    return cdfs != 0 && q_context < 4U && context < 4U
+        ? cdfs->coeff_base_eob_uv[row] : 0;
+}
+
+uint16_t *enc_syntax_coeff_base_lf_uv_cdf(
+    EncSyntaxCdfs *cdfs, size_t q_context, size_t context) {
+    size_t row = q_context * 12U + context;
+    return cdfs != 0 && q_context < 4U && context < 8U
+        ? cdfs->coeff_base_lf_uv[row] : 0;
+}
+
+uint16_t *enc_syntax_coeff_base_uv_cdf(
+    EncSyntaxCdfs *cdfs, size_t q_context, size_t context) {
+    size_t row = q_context * 12U + context;
+    return cdfs != 0 && q_context < 4U && context < 8U
+        ? cdfs->coeff_base_uv[row] : 0;
 }
 
 uint16_t *enc_syntax_coeff_br_uv_cdf(

@@ -19,6 +19,7 @@ M4_TEST := $(BUILD)/m4-test
 AC8X8_TEST := $(BUILD)/ac8x8-test
 AC8X8_COLOR_SYNTAX_DRIVER := $(BUILD)/ac8x8-color-syntax-driver
 AC8X8_COLOR_GATE_DRIVER := $(BUILD)/ac8x8-color-gate-driver
+CHROMA_AC_SYNTAX_DRIVER := $(BUILD)/chroma-ac-syntax-driver
 PLATFORM_MEMORY_TEST := $(BUILD)/platform-memory-test
 IMAGE_INPUT_TEST := $(BUILD)/image-input-test
 IMAGE_INPUT_FREESTANDING := $(BUILD)/image-input-freestanding.o
@@ -40,7 +41,7 @@ ENCODER_OBJECTS := $(patsubst %.c,$(BUILD)/%.o,$(filter %.c,$(ENCODER_SOURCES)))
 	$(patsubst %.S,$(BUILD)/%.o,$(filter %.S,$(ENCODER_SOURCES)))
 
 .PHONY: all clean test test-unit check-validators audit audit-dependencies \
-	check-generated
+	check-generated chroma-ac-gate
 
 all: $(TARGET)
 
@@ -53,6 +54,7 @@ $(BUILD)/%.o: %.c
 		-MF $(@:.o=.d) -c -o $@ $<
 
 $(BUILD)/src/syntax_cdf.o: src/normative_cdfs.inc src/normative_chroma_cdfs.inc
+$(BUILD)/src/ac8x8.o: src/normative_dct16.inc
 
 $(BUILD)/%.o: %.S
 	@mkdir -p $(dir $@)
@@ -141,6 +143,12 @@ $(AC8X8_COLOR_GATE_DRIVER): tests/ac8x8_color_gate_driver.c $(CORE_SOURCES)
 		-O2 -fno-builtin -o $@ tests/ac8x8_color_gate_driver.c \
 		$(CORE_SOURCES)
 
+$(CHROMA_AC_SYNTAX_DRIVER): tests/chroma_ac_syntax_driver.c $(CORE_SOURCES)
+	@mkdir -p $(dir $@)
+	$(CC) $(CPPFLAGS) -std=c11 -Wall -Wextra -Wpedantic -Werror \
+		-O2 -fno-builtin -o $@ tests/chroma_ac_syntax_driver.c \
+		$(CORE_SOURCES)
+
 $(PLATFORM_MEMORY_TEST): tests/platform_memory_test.c platform/linux.c
 	@mkdir -p $(dir $@)
 	$(CC) $(CPPFLAGS) -std=c11 -Wall -Wextra -Wpedantic -Werror \
@@ -152,6 +160,7 @@ audit-dependencies:
 check-generated:
 	$(PYTHON) tools/generate_cdf_subset.py --check
 	$(PYTHON) tools/generate_chroma_cdf_subset.py --check
+	$(PYTHON) tools/generate_dct16.py --check
 	$(PYTHON) tools/generate_input_fixtures.py --check
 	$(PYTHON) tools/ac8x8_model.py --check
 	$(PYTHON) tools/ac8x8_color_syntax_model.py --check
@@ -234,6 +243,7 @@ define run-tests
 		tests/test_ac8x8_production.py \
 		tests/test_ac8x8_color_syntax_model.py \
 		tests/test_ac8x8_color_gate.py \
+		tests/test_chroma_ac_production.py \
 		tests/test_ac8x8_equalsize_qtrial.py \
 		tests/test_m4_encoder.py \
 		tests/test_raw_planar_input.py \
@@ -262,6 +272,11 @@ test-unit: check-generated $(BIT_TEST) $(RANGE_TEST) $(M2_MATRIX_DRIVER) \
 	$(PLATFORM_MEMORY_TEST) $(IMAGE_INPUT_TEST) $(IMAGE_INPUT_FREESTANDING) \
 	$(INPUT_PLANAR_TEST) audit
 	$(call run-tests,ENCODER_TEST_UNIT_ONLY=1)
+
+chroma-ac-gate: all
+	$(PYTHON) tools/chroma_ac_gate.py \
+		--avmdec "$(AVMDEC)" \
+		--project-decoder "$(PROJECT_DECODER)"
 
 clean:
 	rm -rf "$(BUILD)"

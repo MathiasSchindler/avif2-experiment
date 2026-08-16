@@ -70,8 +70,8 @@ class ChromaContextModelTest(unittest.TestCase):
             (ENCODER / "metrics/ac8x8-chroma-context-rd.json").read_text())
         self.assertEqual(vectors, MODEL.build_vectors())
         self.assertEqual(report, MODEL.build_report())
-        self.assertEqual(len(vectors["vectors"]), 12)
-        self.assertEqual(len(report["rd_cases"]), 12)
+        self.assertEqual(len(vectors["vectors"]), 14)
+        self.assertEqual(len(report["rd_cases"]), 14)
         self.assertGreater(report["mean_scalar_ac_sse_gain_percent"], 0)
 
 
