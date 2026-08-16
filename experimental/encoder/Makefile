@@ -20,6 +20,7 @@ AC8X8_TEST := $(BUILD)/ac8x8-test
 AC8X8_COLOR_SYNTAX_DRIVER := $(BUILD)/ac8x8-color-syntax-driver
 AC8X8_COLOR_GATE_DRIVER := $(BUILD)/ac8x8-color-gate-driver
 CHROMA_AC_SYNTAX_DRIVER := $(BUILD)/chroma-ac-syntax-driver
+FULL_DIRECTIONAL_SYNTAX_DRIVER := $(BUILD)/full-directional-syntax-driver
 PLATFORM_MEMORY_TEST := $(BUILD)/platform-memory-test
 IMAGE_INPUT_TEST := $(BUILD)/image-input-test
 IMAGE_INPUT_FREESTANDING := $(BUILD)/image-input-freestanding.o
@@ -32,7 +33,8 @@ COMMON_CFLAGS := -std=c11 -Wall -Wextra -Wpedantic -Werror -O2 \
 NOLIBC_LDFLAGS := -nostdlib -static -no-pie -Wl,--build-id=none
 
 CORE_SOURCES := src/memory.c src/writer.c src/range.c src/cdf.c src/obu.c \
-	src/syntax_cdf.c src/syntax.c src/m1.c src/m3.c src/m4.c src/ac8x8.c
+	src/syntax_cdf.c src/syntax.c src/directional.c \
+	src/m1.c src/m3.c src/m4.c src/ac8x8.c
 ENCODER_SOURCES := src/main.c src/input.c src/cli_input.c src/image_input.c \
 	$(CORE_SOURCES) \
 	platform/linux.c \
@@ -41,7 +43,7 @@ ENCODER_OBJECTS := $(patsubst %.c,$(BUILD)/%.o,$(filter %.c,$(ENCODER_SOURCES)))
 	$(patsubst %.S,$(BUILD)/%.o,$(filter %.S,$(ENCODER_SOURCES)))
 
 .PHONY: all clean test test-unit check-validators audit audit-dependencies \
-	check-generated chroma-ac-gate
+	check-generated chroma-ac-gate full-directional-gate
 
 all: $(TARGET)
 
@@ -55,6 +57,7 @@ $(BUILD)/%.o: %.c
 
 $(BUILD)/src/syntax_cdf.o: src/normative_cdfs.inc src/normative_chroma_cdfs.inc
 $(BUILD)/src/ac8x8.o: src/normative_dct16.inc
+$(BUILD)/src/directional.o: src/normative_directional.inc
 
 $(BUILD)/%.o: %.S
 	@mkdir -p $(dir $@)
@@ -130,12 +133,12 @@ $(AC8X8_TEST): tests/ac8x8_test.c $(CORE_SOURCES)
 
 $(AC8X8_COLOR_SYNTAX_DRIVER): tests/ac8x8_color_syntax_driver.c \
 		src/syntax_cdf.c src/range.c src/cdf.c src/writer.c src/memory.c \
-		src/obu.c
+		src/obu.c src/directional.c
 	@mkdir -p $(dir $@)
 	$(CC) $(CPPFLAGS) -std=c11 -Wall -Wextra -Wpedantic -Werror \
 		-O2 -fno-builtin -o $@ tests/ac8x8_color_syntax_driver.c \
 		src/syntax_cdf.c src/range.c src/cdf.c src/writer.c src/memory.c \
-		src/obu.c
+		src/obu.c src/directional.c
 
 $(AC8X8_COLOR_GATE_DRIVER): tests/ac8x8_color_gate_driver.c $(CORE_SOURCES)
 	@mkdir -p $(dir $@)
@@ -147,6 +150,13 @@ $(CHROMA_AC_SYNTAX_DRIVER): tests/chroma_ac_syntax_driver.c $(CORE_SOURCES)
 	@mkdir -p $(dir $@)
 	$(CC) $(CPPFLAGS) -std=c11 -Wall -Wextra -Wpedantic -Werror \
 		-O2 -fno-builtin -o $@ tests/chroma_ac_syntax_driver.c \
+		$(CORE_SOURCES)
+
+$(FULL_DIRECTIONAL_SYNTAX_DRIVER): \
+		tests/full_directional_syntax_driver.c $(CORE_SOURCES)
+	@mkdir -p $(dir $@)
+	$(CC) $(CPPFLAGS) -std=c11 -Wall -Wextra -Wpedantic -Werror \
+		-O2 -fno-builtin -o $@ tests/full_directional_syntax_driver.c \
 		$(CORE_SOURCES)
 
 $(PLATFORM_MEMORY_TEST): tests/platform_memory_test.c platform/linux.c
@@ -161,6 +171,7 @@ check-generated:
 	$(PYTHON) tools/generate_cdf_subset.py --check
 	$(PYTHON) tools/generate_chroma_cdf_subset.py --check
 	$(PYTHON) tools/generate_dct16.py --check
+	$(PYTHON) tools/generate_directional_tables.py --check
 	$(PYTHON) tools/generate_input_fixtures.py --check
 	$(PYTHON) tools/ac8x8_model.py --check
 	$(PYTHON) tools/ac8x8_color_syntax_model.py --check
@@ -233,6 +244,8 @@ define run-tests
 		tests/test_m3_chroma_encoder.py \
 		tests/test_directional_intra_model.py \
 		tests/test_directional_intra_production.py \
+		tests/test_full_directional_production.py \
+		tests/test_full_directional_gate.py \
 		tests/test_directional_fast_search.py \
 		tests/test_smooth_paeth_model.py \
 		tests/test_smooth_paeth_production.py \
@@ -275,6 +288,11 @@ test-unit: check-generated $(BIT_TEST) $(RANGE_TEST) $(M2_MATRIX_DRIVER) \
 
 chroma-ac-gate: all
 	$(PYTHON) tools/chroma_ac_gate.py \
+		--avmdec "$(AVMDEC)" \
+		--project-decoder "$(PROJECT_DECODER)"
+
+full-directional-gate: all
+	$(PYTHON) tools/full_directional_gate.py \
 		--avmdec "$(AVMDEC)" \
 		--project-decoder "$(PROJECT_DECODER)"
 

@@ -37,7 +37,7 @@ class SyntaxHelperTests(unittest.TestCase):
                 "-Wpedantic", "-Werror", "-O2", "-fno-builtin",
                 "-o", str(cls.binary), "tests/syntax_helpers_vectors.c",
                 "src/memory.c", "src/writer.c", "src/range.c", "src/cdf.c",
-                "src/syntax_cdf.c", "src/syntax.c",
+                "src/syntax_cdf.c", "src/syntax.c", "src/directional.c",
             ],
             cwd=ENCODER, check=True,
         )

@@ -13,6 +13,7 @@
 #define ENC_DELTA_Q_ROWS 1U
 #define ENC_Y_MODE_SET_ROWS 1U
 #define ENC_Y_MODE_INDEX_ROWS 3U
+#define ENC_Y_MODE_OFFSET_ROWS 3U
 #define ENC_MRL_INDEX_ROWS 3U
 #define ENC_IS_CFL_ROWS 3U
 #define ENC_UV_MODE_ROWS 2U
@@ -52,6 +53,7 @@ typedef struct {
     uint16_t delta_q[ENC_DELTA_Q_ROWS][12U];
     uint16_t y_mode_set[ENC_Y_MODE_SET_ROWS][8U];
     uint16_t y_mode_index[ENC_Y_MODE_INDEX_ROWS][12U];
+    uint16_t y_mode_offset[ENC_Y_MODE_OFFSET_ROWS][10U];
     uint16_t mrl_index[ENC_MRL_INDEX_ROWS][8U];
     uint16_t is_cfl[ENC_IS_CFL_ROWS][6U];
     uint16_t uv_mode[ENC_UV_MODE_ROWS][12U];
@@ -133,6 +135,7 @@ uint16_t *enc_syntax_do_ext_partition_cdf(
 uint16_t *enc_syntax_delta_q_cdf(EncSyntaxCdfs *cdfs);
 uint16_t *enc_syntax_y_mode_set_cdf(EncSyntaxCdfs *cdfs);
 uint16_t *enc_syntax_y_mode_index_cdf(EncSyntaxCdfs *cdfs, size_t context);
+uint16_t *enc_syntax_y_mode_offset_cdf(EncSyntaxCdfs *cdfs, size_t context);
 uint16_t *enc_syntax_mrl_index_cdf(EncSyntaxCdfs *cdfs, size_t context);
 uint16_t *enc_syntax_is_cfl_cdf(EncSyntaxCdfs *cdfs, size_t context);
 uint16_t *enc_syntax_uv_mode_cdf(EncSyntaxCdfs *cdfs, size_t context);

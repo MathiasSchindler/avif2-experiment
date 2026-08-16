@@ -1,22 +1,25 @@
-# Basic horizontal/vertical intra model for fixed production leaves
+# Classic directional intra model for fixed production leaves
 
-Status: the bounded search policy is integrated in production. The cardinal
-subset remains explicit behind `--search directional`; `--search
-directional-exact` retains the exhaustive validator path, and default/search-off
-remains legacy DC-only. DIP,
-smooth, Paeth, angular deltas, edge filtering,
-upsampling, nonzero MRLS, IBP, CfL, and MHCCP are outside this first surface.
+Status: cardinal DC/V/H remains behind `--search directional`. The broader
+`--search directional-full` production path admits joint tokens 26..54,
+covering V through D113/D135/D157 to H and every legal delta whose mapped
+angle remains in 90°..180°. All 56 classic joint modes are implemented and
+exercised by `--search directional-full-exact` and the syntax/kernel tests.
+Outward D45/D67/D203 production admission is intentionally held until
+transform-order extended-reference availability is modeled exactly. DIP,
+nonzero MRLS, CfL, MHCCP, and IBP remain outside this surface.
 
 ## Enablement and syntax
 
-The current production sequence signals DIP off and edge filtering, MRLS, CfL,
-MHCCP, IBP, and intra IDTX available. This first model keeps those transmitted
-sequence fields unchanged. A cardinal luma mode must additionally code
+The production sequence disables DIP and IBP while enabling intra edge
+filtering and MRLS syntax. A directional luma mode additionally codes
 `mrl_index=0`; merely replacing the existing DC `y_mode_index` is not
-conforming. Color leaves code `is_cfl=0`. Pure 90/180 cardinal prediction
-returns before the enabled edge-filter and IBP machinery, so those tools do
-not change these kernels. A later clean profile may disable them, but that is
-not assumed by the frozen production-surface syntax.
+conforming. Color leaves code `is_cfl=0`.
+
+General mode syntax uses the normative neighbor reordering, `y_mode_set`,
+`y_mode_index`, six-symbol `y_mode_offset`, and literal mode ranges. UV syntax
+uses the eight-symbol CDF plus the extended literal and inherits the luma angle
+delta when the colocated base modes match.
 
 For every luma leaf the ordered surface is:
 
@@ -51,6 +54,18 @@ edge is absent, V uses `left[0]` or neutral 127; H uses `above[0]` or neutral
 129. These asymmetric neutral values are normative midpoint-minus/plus-one,
 not DC's neutral 128. Cardinal 90/180 prediction returns before edge filtering,
 interpolation, or IBP.
+
+Non-cardinal luma prediction uses the published four-tap IDIF table. Chroma
+uses two-sample linear interpolation. Both use the normative derivative table,
+wide-angle thresholds, edge extension, corner filtering, and strength-based
+edge filtering. The generated constants are hash-locked to the published AV2
+attachments by `tools/generate_directional_tables.py`.
+
+The project-decoder kernel comparison covers all 56 tokens for luma and chroma
+at 4x4, 4x8, 8x4, 8x8, 8x16, 16x8, and 16x16: 784 comparisons. The complete
+syntax test additionally decodes every luma joint token and representative
+chroma base/inherited-delta streams identically in pinned AVM and the project
+decoder.
 
 ## Deterministic comparison against DC
 
@@ -127,4 +142,11 @@ The ordinary default remains search-off because this runtime is acceptable for
 an explicit quality mode but too expensive as an implicit default. Explicit
 search-off streams retain their locked hashes.
 
-**`encoder-directional-intra-production` status: DONE.**
+`metrics/full-directional-gate.json` freezes 28 generated and prepared
+I400/I420/I444 cases at qindex 100. The production-safe search passes all
+cases with deterministic output, exact local/pinned-AVM/project parity, 11
+strict wins, five prepared-image wins, 5,728,016 aggregate SSE reduction,
+48 fewer bytes, and a 43.6 ms median measured process time.
+
+**Broader directional status: PARTIAL — safe 90°..180° production profile
+complete; outward-angle production admission remains open.**

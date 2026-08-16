@@ -113,6 +113,8 @@ static void report_m3_metrics(const EncM3Result *result) {
     }
     if (quality_search == ENC_AC8X8_SEARCH_DIRECTIONAL ||
         quality_search == ENC_AC8X8_SEARCH_DIRECTIONAL_EXACT ||
+        quality_search == ENC_AC8X8_SEARCH_DIRECTIONAL_FULL ||
+        quality_search == ENC_AC8X8_SEARCH_DIRECTIONAL_FULL_EXACT ||
         quality_search == ENC_AC8X8_SEARCH_INTRA) {
         report_error(" intra_mode=");
         report_u64(result->intra_mode);
@@ -149,6 +151,8 @@ static void report_chroma_metrics(const EncM3ChromaResult *result) {
     report_i64(result->v_qdelta);
     if (quality_search == ENC_AC8X8_SEARCH_DIRECTIONAL ||
         quality_search == ENC_AC8X8_SEARCH_DIRECTIONAL_EXACT ||
+        quality_search == ENC_AC8X8_SEARCH_DIRECTIONAL_FULL ||
+        quality_search == ENC_AC8X8_SEARCH_DIRECTIONAL_FULL_EXACT ||
         quality_search == ENC_AC8X8_SEARCH_INTRA) {
         report_error(" luma_mode=");
         report_u64(result->luma_mode);
@@ -190,6 +194,14 @@ static int parse_search(const char *text, EncAc8x8Search *search) {
     }
     if (strings_equal(text, "directional-exact")) {
         *search = ENC_AC8X8_SEARCH_DIRECTIONAL_EXACT;
+        return 1;
+    }
+    if (strings_equal(text, "directional-full")) {
+        *search = ENC_AC8X8_SEARCH_DIRECTIONAL_FULL;
+        return 1;
+    }
+    if (strings_equal(text, "directional-full-exact")) {
+        *search = ENC_AC8X8_SEARCH_DIRECTIONAL_FULL_EXACT;
         return 1;
     }
     if (strings_equal(text, "intra")) {
@@ -347,6 +359,10 @@ static int run_i400_encode(const char *input_path, size_t width,
                 ? ENC_M3_INTRA_SEARCH_DIRECTIONAL
                 : quality_search == ENC_AC8X8_SEARCH_DIRECTIONAL_EXACT
                     ? ENC_M3_INTRA_SEARCH_DIRECTIONAL_EXACT
+                : quality_search == ENC_AC8X8_SEARCH_DIRECTIONAL_FULL
+                    ? ENC_M3_INTRA_SEARCH_DIRECTIONAL_FULL
+                : quality_search == ENC_AC8X8_SEARCH_DIRECTIONAL_FULL_EXACT
+                    ? ENC_M3_INTRA_SEARCH_DIRECTIONAL_FULL_EXACT
                 : quality_search == ENC_AC8X8_SEARCH_INTRA
                     ? ENC_M3_INTRA_SEARCH_INTRA
                     : ENC_M3_INTRA_SEARCH_OFF,
@@ -456,6 +472,10 @@ static int run_i400_image_encode(const char *input_path,
                 ? ENC_M3_INTRA_SEARCH_DIRECTIONAL
                 : quality_search == ENC_AC8X8_SEARCH_DIRECTIONAL_EXACT
                     ? ENC_M3_INTRA_SEARCH_DIRECTIONAL_EXACT
+                : quality_search == ENC_AC8X8_SEARCH_DIRECTIONAL_FULL
+                    ? ENC_M3_INTRA_SEARCH_DIRECTIONAL_FULL
+                : quality_search == ENC_AC8X8_SEARCH_DIRECTIONAL_FULL_EXACT
+                    ? ENC_M3_INTRA_SEARCH_DIRECTIONAL_FULL_EXACT
                 : quality_search == ENC_AC8X8_SEARCH_INTRA
                     ? ENC_M3_INTRA_SEARCH_INTRA
                     : ENC_M3_INTRA_SEARCH_OFF,
@@ -590,6 +610,10 @@ static int run_chroma_encode(const char *input_path,
                 ? ENC_M3_INTRA_SEARCH_DIRECTIONAL
                 : quality_search == ENC_AC8X8_SEARCH_DIRECTIONAL_EXACT
                     ? ENC_M3_INTRA_SEARCH_DIRECTIONAL_EXACT
+                : quality_search == ENC_AC8X8_SEARCH_DIRECTIONAL_FULL
+                    ? ENC_M3_INTRA_SEARCH_DIRECTIONAL_FULL
+                : quality_search == ENC_AC8X8_SEARCH_DIRECTIONAL_FULL_EXACT
+                    ? ENC_M3_INTRA_SEARCH_DIRECTIONAL_FULL_EXACT
                 : quality_search == ENC_AC8X8_SEARCH_INTRA
                     ? ENC_M3_INTRA_SEARCH_INTRA
                 : ENC_M3_INTRA_SEARCH_OFF,
@@ -756,7 +780,8 @@ static int run_i400_mode(long argument_count, char **arguments) {
         !strings_equal(arguments[5], "--height")) {
         report_error("usage: encoder --i400-8 INPUT --width W --height H "
                      "[--stride S] [--qindex Q] "
-                     "[--search off|bounded|directional|directional-exact|intra] "
+                     "[--search off|bounded|directional|directional-exact|"
+                     "directional-full|directional-full-exact|intra] "
                      "OUTPUT\n");
         return ENC_EXIT_USAGE;
     }
@@ -788,14 +813,16 @@ static int run_i400_mode(long argument_count, char **arguments) {
             if (!parse_search(arguments[option + 1], &quality_search)) {
                 report_error(
                     "encoder: search must be off, bounded, directional, "
-                    "directional-exact, or intra\n");
+                    "directional-exact, directional-full, "
+                    "directional-full-exact, or intra\n");
                 return ENC_EXIT_INPUT_METADATA;
             }
             saw_search = 1;
         } else {
             report_error("usage: encoder --i400-8 INPUT --width W --height H "
                          "[--stride S] [--qindex Q] "
-                         "[--search off|bounded|directional|directional-exact|intra] "
+                         "[--search off|bounded|directional|directional-exact|"
+                         "directional-full|directional-full-exact|intra] "
                          "OUTPUT\n");
             return ENC_EXIT_USAGE;
         }
@@ -855,10 +882,12 @@ static void report_generic_usage(void) {
         "usage: encoder INPUT [--output OUTPUT] [--qindex Q]\n"
         "       encoder RAW [--width W --height H] [--stride S] "
         "[--output OUTPUT] [--qindex Q] "
-        "[--search off|bounded|directional|directional-exact|intra]\n"
+        "[--search off|bounded|directional|directional-exact|"
+        "directional-full|directional-full-exact|intra]\n"
         "       encoder --i400-8 INPUT --width W --height H "
         "[--stride S] [--qindex Q] "
-        "[--search off|bounded|directional|directional-exact|intra] OUTPUT\n"
+        "[--search off|bounded|directional|directional-exact|"
+        "directional-full|directional-full-exact|intra] OUTPUT\n"
         "formats: .i400, .i420, .i444, .bmp, .png; default qindex: 100; "
         "default search: off\n"
         "output: sibling INPUT with its extension replaced by .obu\n");
@@ -957,7 +986,8 @@ static int run_inferred_mode(long argument_count, char **arguments) {
                 if (!parse_search(value, &quality_search)) {
                     report_error(
                         "encoder: search must be off, bounded, directional, "
-                        "directional-exact, or intra\n");
+                        "directional-exact, directional-full, "
+                        "directional-full-exact, or intra\n");
                     return ENC_EXIT_INPUT_METADATA;
                 }
                 saw_search = 1;

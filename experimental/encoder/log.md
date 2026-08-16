@@ -1590,3 +1590,25 @@ prepared images begin at 896x424, so all remain explicit unsupported cases.
 - **Validation:** the complete encoder suite passes 182 Python tests plus all
   native, shell, generated-data, dependency, and static ELF checks. The
   repository decoder passes all 32 CTests, and `git diff --check` passes.
+
+## 2026-08-16 — Broader classic directional prediction
+
+- **Status:** PARTIAL production closure. All 56 classic joint directional
+  tokens, legal deltas, full luma/UV syntax, luma IDIF, chroma linear
+  interpolation, edge filtering, wide-angle mapping, and MRLS=0 are
+  implemented and validator-tested.
+- **Production safety profile:** `--search directional-full` admits tokens
+  26..54, the 29 mapped angles from 90° through 180°. The outward D45/D67/D203
+  families remain available to the exact syntax/kernel oracle but are not
+  admitted by production search until transform-order extended-reference
+  availability is exact.
+- **Syntax evidence:** all 56 luma tokens plus all eight chroma base modes and
+  inherited delta extremes decode identically in pinned AVM and the project
+  decoder. The project-kernel matrix covers 784 luma/chroma mode-size cases.
+- **Frozen quality gate:** `metrics/full-directional-gate.json` passes 28
+  I400/I420/I444 generated and 64x64 prepared-image crops. It records 11
+  strict wins, five prepared-image wins, four color-plane wins, aggregate SSE
+  gain 5,728,016, and 48 fewer bytes than search-off.
+- **Parity/runtime:** every production-gate stream is deterministic and has
+  exact encoder-local, pinned-AVM, and project reconstruction. Median/worst
+  measured process time is 43.6/87.4 ms.

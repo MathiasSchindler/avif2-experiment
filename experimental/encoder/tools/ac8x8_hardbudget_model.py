@@ -27,7 +27,8 @@ def build_driver() -> Path:
     output = ENCODER / "build/ac8x8-hardbudget-driver"
     sources = [
         "src/memory.c", "src/writer.c", "src/range.c", "src/cdf.c",
-        "src/obu.c", "src/syntax_cdf.c", "src/syntax.c", "src/m1.c",
+        "src/obu.c", "src/syntax_cdf.c", "src/syntax.c",
+        "src/directional.c", "src/m1.c",
         "src/m3.c", "src/m4.c",
     ]
     command = [

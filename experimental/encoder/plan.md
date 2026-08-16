@@ -43,6 +43,16 @@ transactional DC/V/H selection; `--search directional-exact` remains available
 for oracle validation. The ordinary default remains search-off because the
 90-case policy runtime is 262.186 seconds despite passing the 600-second gate.
 
+The broader classic directional surface is available explicitly as
+`--search directional-full`. All 56 joint tokens are syntax- and
+kernel-covered, including luma IDIF, chroma interpolation, edge filtering,
+wide-angle mapping, legal deltas, and inherited chroma deltas. The production
+quality path currently admits the reconstruction-safe 29-token 90°..180°
+subset; outward D45/D67/D203 admission remains open until reference
+availability across the fixed transform traversal is exact. The frozen
+28-case gate records 11 strict wins, five prepared-image wins, 5,728,016 SSE
+reduction, 48 fewer bytes, and exact local/AVM/project parity.
+
 `encoder-smooth-paeth-production` is complete as explicit `--search intra`.
 The path preserves directional compatibility and adds luma Smooth, Smooth-V,
 Smooth-H, and Paeth trials for images up to 64x64, with DC fallback for the

@@ -1,4 +1,5 @@
 #include "encoder/cdf.h"
+#include "encoder/directional.h"
 #include "encoder/m3.h"
 #include "encoder/range.h"
 #include "encoder/syntax.h"
@@ -9,12 +10,12 @@ static EncStatus write_m3_mode(
     size_t block_size_group);
 
 static int m3_directional_mode(uint8_t mode) {
-    return mode == 1U || mode == 2U;
+    return enc_directional_joint_is_directional(mode);
 }
 
 static size_t m3_luma_mode_index(
-    uint8_t mode, size_t block_width, size_t block_height,
-    uint8_t left_mode, uint8_t above_mode) {
+    uint8_t joint_mode, size_t block_width, size_t block_height,
+    uint8_t left_joint_mode, uint8_t above_joint_mode) {
     static const uint8_t defaults[56U] = {
         22U, 50U, 8U, 15U, 29U, 36U, 43U, 57U,
         20U, 24U, 48U, 52U, 6U, 10U, 13U, 17U,
@@ -24,58 +25,90 @@ static size_t m3_luma_mode_index(
         19U, 25U, 47U, 53U, 5U, 11U, 12U, 18U,
         26U, 32U, 33U, 39U, 40U, 46U, 54U, 60U
     };
-    uint8_t target;
-    uint8_t neighbor[2U];
-    size_t position = 5U;
+    uint8_t ordered[61U];
+    uint8_t selected[61U] = {0U};
+    uint8_t neighbor[2U] = {left_joint_mode, above_joint_mode};
+    size_t directional_count = 0U;
+    size_t count = 5U;
     size_t index;
-    if (mode == 0U) return 0U;
-    if (mode >= 3U && mode <= 6U) return mode - 2U;
-    target = mode == 1U ? 22U : 50U;
-    if (block_width == 8U && block_height == 8U) {
-        return mode == 1U ? 5U : 6U;
+    if (joint_mode < 5U) return joint_mode;
+    if (joint_mode > 60U) return 61U;
+    for (index = 0U; index < 5U; ++index) {
+        ordered[index] = (uint8_t)index;
+        selected[index] = 1U;
     }
-    neighbor[0U] = left_mode == 1U ? 22U :
-                   left_mode == 2U ? 50U : 0U;
-    neighbor[1U] = above_mode == 1U ? 22U :
-                   above_mode == 2U ? 50U : 0U;
     for (index = 0U; index < 2U; ++index) {
-        if (neighbor[index] != 0U &&
-            (index == 0U || neighbor[index] != neighbor[0U])) {
-            if (neighbor[index] == target) return position;
-            ++position;
+        uint8_t candidate = neighbor[index];
+        if (m3_directional_mode(candidate) && !selected[candidate]) {
+            ordered[count++] = candidate;
+            selected[candidate] = 1U;
+            ++directional_count;
+        }
+    }
+    if (block_width * block_height > 64U) {
+        size_t offset;
+        for (offset = 0U; offset < 4U; ++offset) {
+            size_t neighbor_index;
+            for (neighbor_index = 0U;
+                 neighbor_index < directional_count; ++neighbor_index) {
+                uint8_t center = ordered[5U + neighbor_index];
+                uint8_t before = (uint8_t)(
+                    5U + ((size_t)center - 5U + 55U - offset) % 56U);
+                uint8_t after = (uint8_t)(
+                    5U + ((size_t)center - 5U + 1U + offset) % 56U);
+                if (!selected[before]) {
+                    ordered[count++] = before;
+                    selected[before] = 1U;
+                }
+                if (!selected[after]) {
+                    ordered[count++] = after;
+                    selected[after] = 1U;
+                }
+            }
         }
     }
     for (index = 0U; index < 56U; ++index) {
-        if (defaults[index] == neighbor[0U] ||
-            defaults[index] == neighbor[1U]) {
-            continue;
+        uint8_t candidate = defaults[index];
+        if (!selected[candidate]) {
+            ordered[count++] = candidate;
+            selected[candidate] = 1U;
         }
-        if (defaults[index] == target) return position;
-        ++position;
     }
-    return 64U;
+    for (index = 5U; index < count; ++index) {
+        if (ordered[index] == joint_mode) return index;
+    }
+    return 61U;
 }
 
 static EncStatus write_m3_intra_mode(
     EncRangeWriter *writer, EncSyntaxCdfs *cdfs,
     size_t block_width, size_t block_height, size_t block_size_group,
     uint8_t mode, uint8_t left_mode, uint8_t above_mode) {
-    size_t context =
-        (size_t)m3_directional_mode(left_mode) +
+    size_t context = (size_t)m3_directional_mode(left_mode) +
         (size_t)m3_directional_mode(above_mode);
     size_t mode_index = m3_luma_mode_index(
         mode, block_width, block_height, left_mode, above_mode);
-    if (mode > 6U || mode_index >= 8U) return ENC_INVALID_ARGUMENT;
+    uint32_t mode_set;
+    if (mode > 60U || mode_index > 60U) return ENC_INVALID_ARGUMENT;
+    mode_set = mode_index <= 12U ? 0U :
+        1U + (uint32_t)(mode_index - 13U) / 16U;
     if (enc_range_writer_symbol(
-            writer, 0U, enc_syntax_y_mode_set_cdf(cdfs), 4U, 1) != ENC_OK ||
-        enc_range_writer_symbol(
-            writer, (uint32_t)mode_index,
-            enc_syntax_y_mode_index_cdf(cdfs, context), 8U, 1) != ENC_OK ||
+            writer, mode_set, enc_syntax_y_mode_set_cdf(cdfs),
+            4U, 1) != ENC_OK ||
+        (mode_set == 0U && enc_range_writer_symbol(
+            writer, mode_index < 7U ? (uint32_t)mode_index : 7U,
+            enc_syntax_y_mode_index_cdf(cdfs, context), 8U, 1) != ENC_OK) ||
+        (mode_set == 0U && mode_index >= 7U &&
+         enc_range_writer_symbol(
+            writer, (uint32_t)(mode_index - 7U),
+            enc_syntax_y_mode_offset_cdf(cdfs, context), 6U, 1) != ENC_OK) ||
+        (mode_set != 0U && enc_range_writer_literal(
+            writer, (uint32_t)(mode_index - 13U) & 15U, 4U) != ENC_OK) ||
         enc_range_writer_symbol(
             writer, 0U,
             enc_syntax_fsc_mode_cdf(cdfs, 0U, block_size_group),
             2U, 1) != ENC_OK ||
-        ((mode == 1U || mode == 2U) && enc_range_writer_symbol(
+        (m3_directional_mode(mode) && enc_range_writer_symbol(
             writer, 0U, enc_syntax_mrl_index_cdf(cdfs, 0U),
             4U, 1) != ENC_OK)) {
         return enc_range_writer_status(writer);
@@ -1488,25 +1521,25 @@ typedef struct {
     uint8_t mode_left[16U];
 } EncM3TileState;
 
-static uint16_t m3_leaf_mode(
+static uint32_t m3_leaf_mode(
     EncM3TileState *state, size_t block_x, size_t block_y,
     size_t block_width, size_t block_height) {
     size_t column = block_x / 4U;
     size_t row = (block_y / 4U) % 16U;
-    uint8_t mode = state->modes == 0 ? 0U :
+    uint8_t token = state->modes == 0 ? 0U :
         state->mode_count == 1U ? state->modes[0U] :
         state->mode_index < state->mode_count
             ? state->modes[state->mode_index] : 255U;
+    uint8_t mode;
     uint8_t left_mode = block_x == 0U ? 0U : state->mode_left[row];
     uint8_t above_mode = block_y == 0U ? 0U : state->mode_above[column];
     size_t width_units = block_width / 4U;
     size_t height_units = block_height / 4U;
     size_t index;
     ++state->mode_index;
-    if (mode == 3U) mode = block_y == 0U ? 0U : 1U;
-    if (mode == 4U) mode = block_x == 0U ? 0U : 2U;
-    if (mode >= 5U && mode <= 8U) mode -= 2U;
-    if (mode > 6U) return UINT16_MAX;
+    if (token == 3U) token = block_y == 0U ? 0U : 1U;
+    if (token == 4U) token = block_x == 0U ? 0U : 2U;
+    if (!enc_directional_token_to_joint(token, &mode)) return UINT32_MAX;
     for (index = 0U;
          index < width_units && column + index < ENC_M3_MAX_MI_COLUMNS;
          ++index) {
@@ -1515,8 +1548,8 @@ static uint16_t m3_leaf_mode(
     for (index = 0U; index < height_units && row + index < 16U; ++index) {
         state->mode_left[row + index] = mode;
     }
-    return (uint16_t)(mode | ((uint16_t)left_mode << 3U) |
-                      ((uint16_t)above_mode << 6U));
+    return (uint32_t)mode | ((uint32_t)left_mode << 6U) |
+        ((uint32_t)above_mode << 12U);
 }
 
 static const int16_t *m3_block_levels(
@@ -1620,16 +1653,16 @@ static EncStatus write_m3_leaf(
     size_t tx_size_group =
         block_width == block_height
             ? (block_width == 16U ? 3U : 1U) : 2U;
-    uint16_t packed_mode = m3_leaf_mode(
+    uint32_t packed_mode = m3_leaf_mode(
         state, block_x, block_y, block_width, block_height);
-    uint8_t mode = (uint8_t)(packed_mode & 7U);
+    uint8_t mode = (uint8_t)(packed_mode & 63U);
     EncStatus status;
-    if (packed_mode == UINT16_MAX) return ENC_INVALID_ARGUMENT;
+    if (packed_mode == UINT32_MAX) return ENC_INVALID_ARGUMENT;
     status = write_m3_intra_mode(
         state->writer, state->cdfs, block_width, block_height,
         block_size_group, mode,
-        (uint8_t)((packed_mode >> 3U) & 7U),
-        (uint8_t)((packed_mode >> 6U) & 7U));
+        (uint8_t)((packed_mode >> 6U) & 63U),
+        (uint8_t)((packed_mode >> 12U) & 63U));
     if (status != ENC_OK) return status;
     if (enc_range_writer_symbol(
             state->writer,
@@ -1676,16 +1709,16 @@ static EncStatus write_m3_large_leaf(
                 ? (block_width == 16U ? 3U : 1U) : 2U;
         size_t tx_y;
         size_t tx_x;
-        uint16_t packed_mode = m3_leaf_mode(
+        uint32_t packed_mode = m3_leaf_mode(
             state, block_x, block_y, block_width, block_height);
-        uint8_t mode = (uint8_t)(packed_mode & 7U);
+        uint8_t mode = (uint8_t)(packed_mode & 63U);
         EncStatus status;
-        if (packed_mode == UINT16_MAX) return ENC_INVALID_ARGUMENT;
+        if (packed_mode == UINT32_MAX) return ENC_INVALID_ARGUMENT;
         status = write_m3_intra_mode(
             state->writer, state->cdfs, block_width, block_height,
             block_size_group, mode,
-            (uint8_t)((packed_mode >> 3U) & 7U),
-            (uint8_t)((packed_mode >> 6U) & 7U));
+            (uint8_t)((packed_mode >> 6U) & 63U),
+            (uint8_t)((packed_mode >> 12U) & 63U));
         if (status != ENC_OK) return status;
         if (enc_range_writer_symbol(
                 state->writer,
@@ -2274,17 +2307,59 @@ typedef struct {
 } EncM3ColorTileState;
 
 static size_t m3_uv_mode_symbol(uint8_t luma_mode, uint8_t chroma_mode) {
-    if (luma_mode >= 5U && luma_mode <= 8U) luma_mode -= 2U;
-    if (chroma_mode >= 5U && chroma_mode <= 8U) chroma_mode -= 2U;
-    if (!m3_directional_mode(luma_mode)) {
-        return chroma_mode == 0U ? 0U :
-               chroma_mode >= 3U ? chroma_mode - 2U :
-               chroma_mode == 1U ? 5U : 6U;
+    static const uint8_t ordinary[13U] = {
+        0U, 9U, 10U, 11U, 12U, 1U, 2U, 3U, 4U, 8U, 5U, 6U, 7U
+    };
+    static const uint8_t directional[8U] = {
+        1U, 2U, 3U, 4U, 8U, 5U, 6U, 7U
+    };
+    uint8_t luma_base;
+    uint8_t chroma_base;
+    int8_t unused_delta;
+    size_t count = 0U;
+    size_t index;
+    if (!enc_directional_joint_to_mode(
+            luma_mode, &luma_base, &unused_delta) ||
+        !enc_directional_joint_to_mode(
+            chroma_mode, &chroma_base, &unused_delta)) {
+        return 13U;
     }
-    if (chroma_mode == luma_mode) return 0U;
-    if (chroma_mode == 0U) return 1U;
-    if (chroma_mode >= 3U && chroma_mode <= 6U) return chroma_mode - 1U;
-    return 6U;
+    if (!m3_directional_mode(luma_mode)) {
+        for (index = 0U; index < 13U; ++index) {
+            if (ordinary[index] == chroma_base) return index;
+        }
+        return 13U;
+    }
+    if (chroma_base == luma_base) return 0U;
+    if (chroma_base == 0U) return 1U;
+    if (chroma_base >= 9U && chroma_base <= 12U) {
+        return (size_t)chroma_base - 7U;
+    }
+    count = 6U;
+    for (index = 0U; index < 8U; ++index) {
+        if (directional[index] == luma_base) continue;
+        if (directional[index] == chroma_base) return count;
+        ++count;
+    }
+    return 13U;
+}
+
+static EncStatus write_m3_uv_mode(
+    EncRangeWriter *writer, EncSyntaxCdfs *cdfs,
+    uint8_t luma_joint_mode, uint8_t chroma_joint_mode) {
+    size_t symbol = m3_uv_mode_symbol(luma_joint_mode, chroma_joint_mode);
+    size_t context = m3_directional_mode(luma_joint_mode) ? 1U : 0U;
+    if (symbol > 12U ||
+        enc_range_writer_symbol(
+            writer, symbol < 7U ? (uint32_t)symbol : 7U,
+            enc_syntax_uv_mode_cdf(cdfs, context), 8U, 1) != ENC_OK ||
+        (symbol >= 7U && enc_range_writer_literal(
+            writer, (uint32_t)(symbol - 7U), 3U) != ENC_OK)) {
+        return symbol > 12U
+            ? range_syntax_fail(writer, ENC_INVALID_ARGUMENT)
+            : enc_range_writer_status(writer);
+    }
+    return ENC_OK;
 }
 
 static void m3_chroma_coeff_context(
@@ -2373,21 +2448,18 @@ static EncStatus write_m3_color_leaf(
             ? state->chroma_modes[state->chroma_mode_index] : 255U;
     EncStatus status;
     ++state->chroma_mode_index;
-    if (luma_mode >= 5U && luma_mode <= 8U) luma_mode -= 2U;
-    if (chroma_mode > 2U && (chroma_mode < 5U || chroma_mode > 8U)) {
+    if (chroma_x == 0U || chroma_y == 0U) chroma_mode = 0U;
+    if (!enc_directional_token_to_joint(luma_mode, &luma_mode) ||
+        !enc_directional_token_to_joint(chroma_mode, &chroma_mode)) {
         return ENC_INVALID_ARGUMENT;
     }
     if (enc_range_writer_symbol(
             state->base.writer, 0U,
             enc_syntax_is_cfl_cdf(state->base.cdfs, 0U),
             2U, 1) != ENC_OK ||
-        enc_range_writer_symbol(
-            state->base.writer,
-            (uint32_t)m3_uv_mode_symbol(luma_mode, chroma_mode),
-            enc_syntax_uv_mode_cdf(
-                state->base.cdfs,
-                m3_directional_mode(luma_mode) ? 1U : 0U),
-            8U, 1) != ENC_OK) {
+        write_m3_uv_mode(
+            state->base.writer, state->base.cdfs,
+            luma_mode, chroma_mode) != ENC_OK) {
         return enc_range_writer_status(state->base.writer);
     }
     m3_chroma_coeff_context(
@@ -2589,6 +2661,10 @@ static EncStatus enc_m3_yuv_grid_tile_q(
         if (chroma_ac && chroma_level_count != chroma_count) {
             return ENC_INVALID_ARGUMENT;
         }
+        if (!enc_directional_token_to_joint(luma_mode, &luma_mode) ||
+            !enc_directional_token_to_joint(chroma_mode, &chroma_mode)) {
+            return ENC_INVALID_ARGUMENT;
+        }
         if (chroma_ac) {
             for (chroma_index = 0U;
                  chroma_index < chroma_count; ++chroma_index) {
@@ -2614,12 +2690,8 @@ static EncStatus enc_m3_yuv_grid_tile_q(
             enc_range_writer_symbol(
                 &writer, 0U, enc_syntax_is_cfl_cdf(&cdfs, 0U),
                 2U, 1) != ENC_OK ||
-            enc_range_writer_symbol(
-                &writer, (uint32_t)m3_uv_mode_symbol(
-                    luma_mode, chroma_mode),
-                enc_syntax_uv_mode_cdf(
-                    &cdfs, m3_directional_mode(luma_mode) ? 1U : 0U),
-                8U, 1) != ENC_OK ||
+            write_m3_uv_mode(
+                &writer, &cdfs, luma_mode, chroma_mode) != ENC_OK ||
             (chroma_ac
                 ? write_m3_chroma_coeff(
                       &writer, &cdfs, u_levels,

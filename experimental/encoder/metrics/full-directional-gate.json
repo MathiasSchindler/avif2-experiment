@@ -1,0 +1,2855 @@
+{
+  "cases": [
+    {
+      "bounded": {
+        "attempts": [
+          {
+            "duration_ns": 8071526,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=56 sse_y=1155598 psnr_y=23.63dB workspace_bytes=21376 qindex=100 intra_mode=40"
+          },
+          {
+            "duration_ns": 7910262,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=56 sse_y=1155598 psnr_y=23.63dB workspace_bytes=21376 qindex=100 intra_mode=40"
+          }
+        ],
+        "avm_project_exact": true,
+        "decode_time_ns": {
+          "avm": 35934700,
+          "project": 1574928
+        },
+        "decoded_sha256": "3ee1be91a93ffcfe78417d8900b80243e830c669761a1bf515d684742af24133",
+        "deterministic": true,
+        "local_sse_matches_decode": true,
+        "obu_bytes": 56,
+        "obu_sha256": "511bfa68edb9a148b3535ead9b47015ffec4d85fe0f34f60d6ffa2095773835b",
+        "planes": [
+          {
+            "plane": "y",
+            "sha256": "3ee1be91a93ffcfe78417d8900b80243e830c669761a1bf515d684742af24133",
+            "sse": 1155598
+          }
+        ],
+        "status": "pass",
+        "workspace_bytes": 21376
+      },
+      "height": 64,
+      "id": "synthetic-d45-i400",
+      "off": {
+        "attempts": [
+          {
+            "duration_ns": 2691696,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=71 sse_y=3903744 psnr_y=18.34dB workspace_bytes=21376 qindex=100"
+          }
+        ],
+        "avm_project_exact": true,
+        "decode_time_ns": {
+          "avm": 39708592,
+          "project": 1653500
+        },
+        "decoded_sha256": "d6daeeb3230ded109dd47e14360a81d32e6e08fd193a586508842cab86566ff4",
+        "deterministic": true,
+        "local_sse_matches_decode": true,
+        "obu_bytes": 71,
+        "obu_sha256": "21fb5f45efd4487e0b3c0d8798f9b53adb422b1c512d72c819ffc3304b275466",
+        "planes": [
+          {
+            "plane": "y",
+            "sha256": "d6daeeb3230ded109dd47e14360a81d32e6e08fd193a586508842cab86566ff4",
+            "sse": 3903744
+          }
+        ],
+        "status": "pass",
+        "workspace_bytes": 21376
+      },
+      "pixel_format": "i400",
+      "qindex": 100,
+      "rd_cost_gain": 703525496,
+      "selected_modes": {
+        "intra_mode": 40
+      },
+      "source_sha256": "afecd01816349533d58110c520310d0e8a4c3143f70203b4de9eeb821be209eb",
+      "sse_gain": [
+        2748146
+      ],
+      "subset": "synthetic-directional",
+      "width": 64
+    },
+    {
+      "bounded": {
+        "attempts": [
+          {
+            "duration_ns": 43619164,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=114 sse_y=3903744 sse_u=1270672 sse_v=818816 workspace_bytes=25536 qindex=100 qdelta_u=0 qdelta_v=0 luma_mode=0 chroma_mode=0"
+          },
+          {
+            "duration_ns": 44723849,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=114 sse_y=3903744 sse_u=1270672 sse_v=818816 workspace_bytes=25536 qindex=100 qdelta_u=0 qdelta_v=0 luma_mode=0 chroma_mode=0"
+          }
+        ],
+        "avm_project_exact": true,
+        "decode_time_ns": {
+          "avm": 40382564,
+          "project": 1750092
+        },
+        "decoded_sha256": "76a9e7df583a20afeac26ee230183d9bd16231f95bd262e22d35b93cb2cf7291",
+        "deterministic": true,
+        "local_sse_matches_decode": true,
+        "obu_bytes": 114,
+        "obu_sha256": "02f4e6c06018258a6686ccf56355e63b7eff4a065407f60b6685348b558fe70a",
+        "planes": [
+          {
+            "plane": "y",
+            "sha256": "d6daeeb3230ded109dd47e14360a81d32e6e08fd193a586508842cab86566ff4",
+            "sse": 3903744
+          },
+          {
+            "plane": "u",
+            "sha256": "3ae4e0ee647d5355f1760504e1f8258de3cc3676d88f273e88ad354a32588a70",
+            "sse": 1270672
+          },
+          {
+            "plane": "v",
+            "sha256": "9a57bea97d8c65b9e8f0bbea2c359aaffbbe8e3c00d14f0cff88c0cf3c857b47",
+            "sse": 818816
+          }
+        ],
+        "status": "pass",
+        "workspace_bytes": 25536
+      },
+      "height": 64,
+      "id": "synthetic-d45-i420",
+      "off": {
+        "attempts": [
+          {
+            "duration_ns": 21703214,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=114 sse_y=3903744 sse_u=1270672 sse_v=818816 workspace_bytes=25536 qindex=100 qdelta_u=0 qdelta_v=0"
+          }
+        ],
+        "avm_project_exact": true,
+        "decode_time_ns": {
+          "avm": 39661379,
+          "project": 1785361
+        },
+        "decoded_sha256": "76a9e7df583a20afeac26ee230183d9bd16231f95bd262e22d35b93cb2cf7291",
+        "deterministic": true,
+        "local_sse_matches_decode": true,
+        "obu_bytes": 114,
+        "obu_sha256": "02f4e6c06018258a6686ccf56355e63b7eff4a065407f60b6685348b558fe70a",
+        "planes": [
+          {
+            "plane": "y",
+            "sha256": "d6daeeb3230ded109dd47e14360a81d32e6e08fd193a586508842cab86566ff4",
+            "sse": 3903744
+          },
+          {
+            "plane": "u",
+            "sha256": "3ae4e0ee647d5355f1760504e1f8258de3cc3676d88f273e88ad354a32588a70",
+            "sse": 1270672
+          },
+          {
+            "plane": "v",
+            "sha256": "9a57bea97d8c65b9e8f0bbea2c359aaffbbe8e3c00d14f0cff88c0cf3c857b47",
+            "sse": 818816
+          }
+        ],
+        "status": "pass",
+        "workspace_bytes": 25536
+      },
+      "pixel_format": "i420",
+      "qindex": 100,
+      "rd_cost_gain": 0,
+      "selected_modes": {
+        "chroma_mode": 0,
+        "luma_mode": 0
+      },
+      "source_sha256": "fd9a5142576086d42c740f0993aabcac2165f82f1b99b7e71712e9b7514ac364",
+      "sse_gain": [
+        0,
+        0,
+        0
+      ],
+      "subset": "synthetic-directional",
+      "width": 64
+    },
+    {
+      "bounded": {
+        "attempts": [
+          {
+            "duration_ns": 45314709,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=117 sse_y=3903744 sse_u=5142016 sse_v=3314176 workspace_bytes=37824 qindex=100 qdelta_u=16 qdelta_v=16 luma_mode=0 chroma_mode=0"
+          },
+          {
+            "duration_ns": 44634033,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=117 sse_y=3903744 sse_u=5142016 sse_v=3314176 workspace_bytes=37824 qindex=100 qdelta_u=16 qdelta_v=16 luma_mode=0 chroma_mode=0"
+          }
+        ],
+        "avm_project_exact": true,
+        "decode_time_ns": {
+          "avm": 40755658,
+          "project": 1513259
+        },
+        "decoded_sha256": "7f26e024c0e386d7bd40f656c9a65d83809fcfceef4920978a5745ac3e8c105f",
+        "deterministic": true,
+        "local_sse_matches_decode": true,
+        "obu_bytes": 117,
+        "obu_sha256": "bbad67fbb7d6ae36e085021e66e6ed79f8ea5234c7ce4df79d993881e3dd60ed",
+        "planes": [
+          {
+            "plane": "y",
+            "sha256": "d6daeeb3230ded109dd47e14360a81d32e6e08fd193a586508842cab86566ff4",
+            "sse": 3903744
+          },
+          {
+            "plane": "u",
+            "sha256": "ab58e1f9e0518f1acaffcd20d114d73717c55e4b5579affd4399d1b24437d3cd",
+            "sse": 5142016
+          },
+          {
+            "plane": "v",
+            "sha256": "88d992994871e1e7159be14b81f3000bf1f9e55e42db503cbe30515564456a32",
+            "sse": 3314176
+          }
+        ],
+        "status": "pass",
+        "workspace_bytes": 37824
+      },
+      "height": 64,
+      "id": "synthetic-d45-i444",
+      "off": {
+        "attempts": [
+          {
+            "duration_ns": 46284670,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=119 sse_y=3903744 sse_u=5142016 sse_v=3314176 workspace_bytes=37824 qindex=100 qdelta_u=0 qdelta_v=0"
+          }
+        ],
+        "avm_project_exact": true,
+        "decode_time_ns": {
+          "avm": 40973284,
+          "project": 1410521
+        },
+        "decoded_sha256": "7f26e024c0e386d7bd40f656c9a65d83809fcfceef4920978a5745ac3e8c105f",
+        "deterministic": true,
+        "local_sse_matches_decode": true,
+        "obu_bytes": 119,
+        "obu_sha256": "f1db4a1060fa2eacad9457d4eda8a43c7436fe509df7f394168a527e945619f1",
+        "planes": [
+          {
+            "plane": "y",
+            "sha256": "d6daeeb3230ded109dd47e14360a81d32e6e08fd193a586508842cab86566ff4",
+            "sse": 3903744
+          },
+          {
+            "plane": "u",
+            "sha256": "ab58e1f9e0518f1acaffcd20d114d73717c55e4b5579affd4399d1b24437d3cd",
+            "sse": 5142016
+          },
+          {
+            "plane": "v",
+            "sha256": "88d992994871e1e7159be14b81f3000bf1f9e55e42db503cbe30515564456a32",
+            "sse": 3314176
+          }
+        ],
+        "status": "pass",
+        "workspace_bytes": 37824
+      },
+      "pixel_format": "i444",
+      "qindex": 100,
+      "rd_cost_gain": 16,
+      "selected_modes": {
+        "chroma_mode": 0,
+        "luma_mode": 0
+      },
+      "source_sha256": "28cbca8c7f680ee402892da2ab71686fa3e8841bc779bdc46280c5771fbcadb0",
+      "sse_gain": [
+        0,
+        0,
+        0
+      ],
+      "subset": "synthetic-directional",
+      "width": 64
+    },
+    {
+      "bounded": {
+        "attempts": [
+          {
+            "duration_ns": 7648705,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=76 sse_y=3902976 psnr_y=18.34dB workspace_bytes=21376 qindex=100 intra_mode=0"
+          },
+          {
+            "duration_ns": 7789436,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=76 sse_y=3902976 psnr_y=18.34dB workspace_bytes=21376 qindex=100 intra_mode=0"
+          }
+        ],
+        "avm_project_exact": true,
+        "decode_time_ns": {
+          "avm": 40282970,
+          "project": 1180463
+        },
+        "decoded_sha256": "58a1dc3826030af80324dc46ae8f07d9042c312e2fe779100ee95b37f088b31a",
+        "deterministic": true,
+        "local_sse_matches_decode": true,
+        "obu_bytes": 76,
+        "obu_sha256": "3fd3d23bcb1f1a184ea017549f5cc4ef7659ce5ee5dbbd81b1c14a93683e0df8",
+        "planes": [
+          {
+            "plane": "y",
+            "sha256": "58a1dc3826030af80324dc46ae8f07d9042c312e2fe779100ee95b37f088b31a",
+            "sse": 3902976
+          }
+        ],
+        "status": "pass",
+        "workspace_bytes": 21376
+      },
+      "height": 64,
+      "id": "synthetic-d135-i400",
+      "off": {
+        "attempts": [
+          {
+            "duration_ns": 1374134,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=76 sse_y=3902976 psnr_y=18.34dB workspace_bytes=21376 qindex=100"
+          }
+        ],
+        "avm_project_exact": true,
+        "decode_time_ns": {
+          "avm": 39699163,
+          "project": 1172571
+        },
+        "decoded_sha256": "58a1dc3826030af80324dc46ae8f07d9042c312e2fe779100ee95b37f088b31a",
+        "deterministic": true,
+        "local_sse_matches_decode": true,
+        "obu_bytes": 76,
+        "obu_sha256": "3fd3d23bcb1f1a184ea017549f5cc4ef7659ce5ee5dbbd81b1c14a93683e0df8",
+        "planes": [
+          {
+            "plane": "y",
+            "sha256": "58a1dc3826030af80324dc46ae8f07d9042c312e2fe779100ee95b37f088b31a",
+            "sse": 3902976
+          }
+        ],
+        "status": "pass",
+        "workspace_bytes": 21376
+      },
+      "pixel_format": "i400",
+      "qindex": 100,
+      "rd_cost_gain": 0,
+      "selected_modes": {
+        "intra_mode": 0
+      },
+      "source_sha256": "7f0947105fd68c352cdf371800bad799231d815aabe032eae92c3bb95cd3c3ee",
+      "sse_gain": [
+        0
+      ],
+      "subset": "synthetic-directional",
+      "width": 64
+    },
+    {
+      "bounded": {
+        "attempts": [
+          {
+            "duration_ns": 23050458,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=126 sse_y=3902976 sse_u=1270336 sse_v=818752 workspace_bytes=25536 qindex=100 qdelta_u=0 qdelta_v=8 luma_mode=0 chroma_mode=0"
+          },
+          {
+            "duration_ns": 23664715,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=126 sse_y=3902976 sse_u=1270336 sse_v=818752 workspace_bytes=25536 qindex=100 qdelta_u=0 qdelta_v=8 luma_mode=0 chroma_mode=0"
+          }
+        ],
+        "avm_project_exact": true,
+        "decode_time_ns": {
+          "avm": 39892904,
+          "project": 1304501
+        },
+        "decoded_sha256": "621d0406094cc51def53765f04ebfbd7f6eee00713bb395c5e4c4de2ae015eb3",
+        "deterministic": true,
+        "local_sse_matches_decode": true,
+        "obu_bytes": 126,
+        "obu_sha256": "58504295d9c974614cf4d95686e43f8a970e7ac1ad0fccf4ec6794ed9ac67cea",
+        "planes": [
+          {
+            "plane": "y",
+            "sha256": "58a1dc3826030af80324dc46ae8f07d9042c312e2fe779100ee95b37f088b31a",
+            "sse": 3902976
+          },
+          {
+            "plane": "u",
+            "sha256": "9c95950f8de7bde6394ff4ab2c3564b8a21c6a607d5a30e2cc7bd049bef8e4af",
+            "sse": 1270336
+          },
+          {
+            "plane": "v",
+            "sha256": "985dc4d121f9ffa7f4f483ab32f5f59b3986d1ec05f6e04aea348fba818258dd",
+            "sse": 818752
+          }
+        ],
+        "status": "pass",
+        "workspace_bytes": 25536
+      },
+      "height": 64,
+      "id": "synthetic-d135-i420",
+      "off": {
+        "attempts": [
+          {
+            "duration_ns": 21194766,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=127 sse_y=3902976 sse_u=1270336 sse_v=819008 workspace_bytes=25536 qindex=100 qdelta_u=0 qdelta_v=0"
+          }
+        ],
+        "avm_project_exact": true,
+        "decode_time_ns": {
+          "avm": 40591670,
+          "project": 1508020
+        },
+        "decoded_sha256": "746acc546773c26c9bf703be2bc2a559372d87f5f24469b270048c6717ba72ac",
+        "deterministic": true,
+        "local_sse_matches_decode": true,
+        "obu_bytes": 127,
+        "obu_sha256": "cd118d7bfb5aec97fa914f29014adb028809b63ad69ad7970e04cdb0265436bf",
+        "planes": [
+          {
+            "plane": "y",
+            "sha256": "58a1dc3826030af80324dc46ae8f07d9042c312e2fe779100ee95b37f088b31a",
+            "sse": 3902976
+          },
+          {
+            "plane": "u",
+            "sha256": "9c95950f8de7bde6394ff4ab2c3564b8a21c6a607d5a30e2cc7bd049bef8e4af",
+            "sse": 1270336
+          },
+          {
+            "plane": "v",
+            "sha256": "a1bfbb2613758df219dd85c9e5c683aeb14b5a13d5199b985facb7fe9af0e817",
+            "sse": 819008
+          }
+        ],
+        "status": "pass",
+        "workspace_bytes": 25536
+      },
+      "pixel_format": "i420",
+      "qindex": 100,
+      "rd_cost_gain": 65544,
+      "selected_modes": {
+        "chroma_mode": 0,
+        "luma_mode": 0
+      },
+      "source_sha256": "c0a3fd3e69472446c95352888df07acbd5f4fc32d05bea82a1dc9251fbfea4a3",
+      "sse_gain": [
+        0,
+        0,
+        256
+      ],
+      "subset": "synthetic-directional",
+      "width": 64
+    },
+    {
+      "bounded": {
+        "attempts": [
+          {
+            "duration_ns": 45955436,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=128 sse_y=3902976 sse_u=5142016 sse_v=3314176 workspace_bytes=37824 qindex=100 qdelta_u=16 qdelta_v=16 luma_mode=0 chroma_mode=0"
+          },
+          {
+            "duration_ns": 45719442,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=128 sse_y=3902976 sse_u=5142016 sse_v=3314176 workspace_bytes=37824 qindex=100 qdelta_u=16 qdelta_v=16 luma_mode=0 chroma_mode=0"
+          }
+        ],
+        "avm_project_exact": true,
+        "decode_time_ns": {
+          "avm": 40453453,
+          "project": 1393131
+        },
+        "decoded_sha256": "617204b1c5cd291c91b936b3e45926da6d288027d79a8b4bc6f51a79bfc353ee",
+        "deterministic": true,
+        "local_sse_matches_decode": true,
+        "obu_bytes": 128,
+        "obu_sha256": "3a7b58288ffa14f59a9624bb82101634ad7392c522b03ccd2789284a15f76731",
+        "planes": [
+          {
+            "plane": "y",
+            "sha256": "58a1dc3826030af80324dc46ae8f07d9042c312e2fe779100ee95b37f088b31a",
+            "sse": 3902976
+          },
+          {
+            "plane": "u",
+            "sha256": "f64594f38ebf8936c5a0c0e14c5324be72b5fe9255cdb25b32515a7bd29e3c06",
+            "sse": 5142016
+          },
+          {
+            "plane": "v",
+            "sha256": "550f9f0a2c8d42b40beeff38c96406c9bce0faa1927f92348640f0a7d8a7cb4d",
+            "sse": 3314176
+          }
+        ],
+        "status": "pass",
+        "workspace_bytes": 37824
+      },
+      "height": 64,
+      "id": "synthetic-d135-i444",
+      "off": {
+        "attempts": [
+          {
+            "duration_ns": 45079762,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=131 sse_y=3902976 sse_u=5142016 sse_v=3314176 workspace_bytes=37824 qindex=100 qdelta_u=0 qdelta_v=0"
+          }
+        ],
+        "avm_project_exact": true,
+        "decode_time_ns": {
+          "avm": 40893246,
+          "project": 1756308
+        },
+        "decoded_sha256": "617204b1c5cd291c91b936b3e45926da6d288027d79a8b4bc6f51a79bfc353ee",
+        "deterministic": true,
+        "local_sse_matches_decode": true,
+        "obu_bytes": 131,
+        "obu_sha256": "c98627ef8b85a34f662288d8505f9ab51370a221a29a7503d380be1341bfa8db",
+        "planes": [
+          {
+            "plane": "y",
+            "sha256": "58a1dc3826030af80324dc46ae8f07d9042c312e2fe779100ee95b37f088b31a",
+            "sse": 3902976
+          },
+          {
+            "plane": "u",
+            "sha256": "f64594f38ebf8936c5a0c0e14c5324be72b5fe9255cdb25b32515a7bd29e3c06",
+            "sse": 5142016
+          },
+          {
+            "plane": "v",
+            "sha256": "550f9f0a2c8d42b40beeff38c96406c9bce0faa1927f92348640f0a7d8a7cb4d",
+            "sse": 3314176
+          }
+        ],
+        "status": "pass",
+        "workspace_bytes": 37824
+      },
+      "pixel_format": "i444",
+      "qindex": 100,
+      "rd_cost_gain": 24,
+      "selected_modes": {
+        "chroma_mode": 0,
+        "luma_mode": 0
+      },
+      "source_sha256": "4d3be87e35ad4c03648753d460cad1c27fb387a54553e31dbaebb15eda402471",
+      "sse_gain": [
+        0,
+        0,
+        0
+      ],
+      "subset": "synthetic-directional",
+      "width": 64
+    },
+    {
+      "bounded": {
+        "attempts": [
+          {
+            "duration_ns": 7194036,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=73 sse_y=1983231 psnr_y=21.28dB workspace_bytes=21376 qindex=100 intra_mode=34"
+          },
+          {
+            "duration_ns": 7203115,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=73 sse_y=1983231 psnr_y=21.28dB workspace_bytes=21376 qindex=100 intra_mode=34"
+          }
+        ],
+        "avm_project_exact": true,
+        "decode_time_ns": {
+          "avm": 39525817,
+          "project": 1323848
+        },
+        "decoded_sha256": "e059924de887846c26e5bc65465e6e10d9c2bffbde4ac98dd7422f0417c983ff",
+        "deterministic": true,
+        "local_sse_matches_decode": true,
+        "obu_bytes": 73,
+        "obu_sha256": "a2e51042c2c39bc80448476121bdd1b547fc977ec4d5f35e65ecaac655699c0b",
+        "planes": [
+          {
+            "plane": "y",
+            "sha256": "e059924de887846c26e5bc65465e6e10d9c2bffbde4ac98dd7422f0417c983ff",
+            "sse": 1983231
+          }
+        ],
+        "status": "pass",
+        "workspace_bytes": 21376
+      },
+      "height": 64,
+      "id": "synthetic-steep-i400",
+      "off": {
+        "attempts": [
+          {
+            "duration_ns": 1304921,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=70 sse_y=2973696 psnr_y=19.52dB workspace_bytes=21376 qindex=100"
+          }
+        ],
+        "avm_project_exact": true,
+        "decode_time_ns": {
+          "avm": 39280463,
+          "project": 1167822
+        },
+        "decoded_sha256": "0ccfcccec73fa3e7086fe7be73e573ea90d3cfb9f0f214d2c2729f6ca720697b",
+        "deterministic": true,
+        "local_sse_matches_decode": true,
+        "obu_bytes": 70,
+        "obu_sha256": "665f253c5de9ec921df5a574fa3017008cdc6a9279c6da5b9550429b88aa9866",
+        "planes": [
+          {
+            "plane": "y",
+            "sha256": "0ccfcccec73fa3e7086fe7be73e573ea90d3cfb9f0f214d2c2729f6ca720697b",
+            "sse": 2973696
+          }
+        ],
+        "status": "pass",
+        "workspace_bytes": 21376
+      },
+      "pixel_format": "i400",
+      "qindex": 100,
+      "rd_cost_gain": 253559016,
+      "selected_modes": {
+        "intra_mode": 34
+      },
+      "source_sha256": "93ae75be45a7794637aeb038d09b72b95b50ca1a773216ec3f1212d0b6966a04",
+      "sse_gain": [
+        990465
+      ],
+      "subset": "synthetic-directional",
+      "width": 64
+    },
+    {
+      "bounded": {
+        "attempts": [
+          {
+            "duration_ns": 43425074,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=115 sse_y=2973696 sse_u=968128 sse_v=624000 workspace_bytes=25536 qindex=100 qdelta_u=0 qdelta_v=0 luma_mode=0 chroma_mode=0"
+          },
+          {
+            "duration_ns": 44367029,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=115 sse_y=2973696 sse_u=968128 sse_v=624000 workspace_bytes=25536 qindex=100 qdelta_u=0 qdelta_v=0 luma_mode=0 chroma_mode=0"
+          }
+        ],
+        "avm_project_exact": true,
+        "decode_time_ns": {
+          "avm": 40348272,
+          "project": 1529112
+        },
+        "decoded_sha256": "db6e2e91572f688c7f3b481604c53cf276bdf8cb4b28fdbd98f2c63d7953831d",
+        "deterministic": true,
+        "local_sse_matches_decode": true,
+        "obu_bytes": 115,
+        "obu_sha256": "14cdb1de9f9cc33aa9248335c7e049ebb165071052be0c2397e193f6a48b167a",
+        "planes": [
+          {
+            "plane": "y",
+            "sha256": "0ccfcccec73fa3e7086fe7be73e573ea90d3cfb9f0f214d2c2729f6ca720697b",
+            "sse": 2973696
+          },
+          {
+            "plane": "u",
+            "sha256": "e9ec172c997100a5b40f17548384c0c2ab4c4e0ec1dac3af0ecdb84d904564b7",
+            "sse": 968128
+          },
+          {
+            "plane": "v",
+            "sha256": "91cd916205cfdeccecb7f52591f3b9bb8cbb0b5571fe47901406ba166a2bd0e7",
+            "sse": 624000
+          }
+        ],
+        "status": "pass",
+        "workspace_bytes": 25536
+      },
+      "height": 64,
+      "id": "synthetic-steep-i420",
+      "off": {
+        "attempts": [
+          {
+            "duration_ns": 21190157,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=115 sse_y=2973696 sse_u=968128 sse_v=624000 workspace_bytes=25536 qindex=100 qdelta_u=0 qdelta_v=0"
+          }
+        ],
+        "avm_project_exact": true,
+        "decode_time_ns": {
+          "avm": 40941436,
+          "project": 1328387
+        },
+        "decoded_sha256": "db6e2e91572f688c7f3b481604c53cf276bdf8cb4b28fdbd98f2c63d7953831d",
+        "deterministic": true,
+        "local_sse_matches_decode": true,
+        "obu_bytes": 115,
+        "obu_sha256": "14cdb1de9f9cc33aa9248335c7e049ebb165071052be0c2397e193f6a48b167a",
+        "planes": [
+          {
+            "plane": "y",
+            "sha256": "0ccfcccec73fa3e7086fe7be73e573ea90d3cfb9f0f214d2c2729f6ca720697b",
+            "sse": 2973696
+          },
+          {
+            "plane": "u",
+            "sha256": "e9ec172c997100a5b40f17548384c0c2ab4c4e0ec1dac3af0ecdb84d904564b7",
+            "sse": 968128
+          },
+          {
+            "plane": "v",
+            "sha256": "91cd916205cfdeccecb7f52591f3b9bb8cbb0b5571fe47901406ba166a2bd0e7",
+            "sse": 624000
+          }
+        ],
+        "status": "pass",
+        "workspace_bytes": 25536
+      },
+      "pixel_format": "i420",
+      "qindex": 100,
+      "rd_cost_gain": 0,
+      "selected_modes": {
+        "chroma_mode": 0,
+        "luma_mode": 0
+      },
+      "source_sha256": "a7ca36727cc7dd52a77dffb5423a6698fa6b41d9842d1c9168c5ce943fc76575",
+      "sse_gain": [
+        0,
+        0,
+        0
+      ],
+      "subset": "synthetic-directional",
+      "width": 64
+    },
+    {
+      "bounded": {
+        "attempts": [
+          {
+            "duration_ns": 45855214,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=121 sse_y=2973696 sse_u=3871744 sse_v=2495488 workspace_bytes=37824 qindex=100 qdelta_u=8 qdelta_v=8 luma_mode=0 chroma_mode=0"
+          },
+          {
+            "duration_ns": 45155191,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=121 sse_y=2973696 sse_u=3871744 sse_v=2495488 workspace_bytes=37824 qindex=100 qdelta_u=8 qdelta_v=8 luma_mode=0 chroma_mode=0"
+          }
+        ],
+        "avm_project_exact": true,
+        "decode_time_ns": {
+          "avm": 40121007,
+          "project": 1605938
+        },
+        "decoded_sha256": "5e954044f9b7d3f611646a03064f890283a3de91262c6d4a153e6ace12a99480",
+        "deterministic": true,
+        "local_sse_matches_decode": true,
+        "obu_bytes": 121,
+        "obu_sha256": "c9de4b1bd8e1b85e63b6988bc02a69386c83b974cdcce19efc3cf97d792ff76a",
+        "planes": [
+          {
+            "plane": "y",
+            "sha256": "0ccfcccec73fa3e7086fe7be73e573ea90d3cfb9f0f214d2c2729f6ca720697b",
+            "sse": 2973696
+          },
+          {
+            "plane": "u",
+            "sha256": "f08b4e91977738bb286536eb122a926a2b7375b30b413bbe573430646d415b88",
+            "sse": 3871744
+          },
+          {
+            "plane": "v",
+            "sha256": "1ade7eab6a6bc1804c174f3f690f26e15e460fdc83188f5f67c5e8f5451000c4",
+            "sse": 2495488
+          }
+        ],
+        "status": "pass",
+        "workspace_bytes": 37824
+      },
+      "height": 64,
+      "id": "synthetic-steep-i444",
+      "off": {
+        "attempts": [
+          {
+            "duration_ns": 43316610,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=123 sse_y=2973696 sse_u=3871744 sse_v=2495488 workspace_bytes=37824 qindex=100 qdelta_u=0 qdelta_v=0"
+          }
+        ],
+        "avm_project_exact": true,
+        "decode_time_ns": {
+          "avm": 40407637,
+          "project": 1389987
+        },
+        "decoded_sha256": "5e954044f9b7d3f611646a03064f890283a3de91262c6d4a153e6ace12a99480",
+        "deterministic": true,
+        "local_sse_matches_decode": true,
+        "obu_bytes": 123,
+        "obu_sha256": "18ab6ac154d8278374b1d92909d008f7109529d94182c8ecee9696819e64a55e",
+        "planes": [
+          {
+            "plane": "y",
+            "sha256": "0ccfcccec73fa3e7086fe7be73e573ea90d3cfb9f0f214d2c2729f6ca720697b",
+            "sse": 2973696
+          },
+          {
+            "plane": "u",
+            "sha256": "f08b4e91977738bb286536eb122a926a2b7375b30b413bbe573430646d415b88",
+            "sse": 3871744
+          },
+          {
+            "plane": "v",
+            "sha256": "1ade7eab6a6bc1804c174f3f690f26e15e460fdc83188f5f67c5e8f5451000c4",
+            "sse": 2495488
+          }
+        ],
+        "status": "pass",
+        "workspace_bytes": 37824
+      },
+      "pixel_format": "i444",
+      "qindex": 100,
+      "rd_cost_gain": 16,
+      "selected_modes": {
+        "chroma_mode": 0,
+        "luma_mode": 0
+      },
+      "source_sha256": "f286ba501f48a52d9bfafe0524523b7c9dc0183f10e2b9cbe38a569b8780d533",
+      "sse_gain": [
+        0,
+        0,
+        0
+      ],
+      "subset": "synthetic-directional",
+      "width": 64
+    },
+    {
+      "bounded": {
+        "attempts": [
+          {
+            "duration_ns": 7226931,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=72 sse_y=1884096 psnr_y=21.50dB workspace_bytes=21376 qindex=100 intra_mode=46"
+          },
+          {
+            "duration_ns": 7762757,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=72 sse_y=1884096 psnr_y=21.50dB workspace_bytes=21376 qindex=100 intra_mode=46"
+          }
+        ],
+        "avm_project_exact": true,
+        "decode_time_ns": {
+          "avm": 39599709,
+          "project": 1267346
+        },
+        "decoded_sha256": "e4fb2dad1d11a340dd9501f99d8a8974c5d684a0c9ed51af58a3b45c7df6d247",
+        "deterministic": true,
+        "local_sse_matches_decode": true,
+        "obu_bytes": 72,
+        "obu_sha256": "bee22ef4fe82060c347813835d844395ec334c7c2330e484ea21725ab12dd593",
+        "planes": [
+          {
+            "plane": "y",
+            "sha256": "e4fb2dad1d11a340dd9501f99d8a8974c5d684a0c9ed51af58a3b45c7df6d247",
+            "sse": 1884096
+          }
+        ],
+        "status": "pass",
+        "workspace_bytes": 21376
+      },
+      "height": 64,
+      "id": "synthetic-shallow-i400",
+      "off": {
+        "attempts": [
+          {
+            "duration_ns": 1941038,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=71 sse_y=2912384 psnr_y=19.61dB workspace_bytes=21376 qindex=100"
+          }
+        ],
+        "avm_project_exact": true,
+        "decode_time_ns": {
+          "avm": 39512058,
+          "project": 1169498
+        },
+        "decoded_sha256": "8706f804bbb7e11524345841674197a89f4984503df72bc945f7546b6bbf745e",
+        "deterministic": true,
+        "local_sse_matches_decode": true,
+        "obu_bytes": 71,
+        "obu_sha256": "f2a624cb7bbdccc178ba4e22f223fbd6d5aee2c0c9f1517c7d69c52d76278205",
+        "planes": [
+          {
+            "plane": "y",
+            "sha256": "8706f804bbb7e11524345841674197a89f4984503df72bc945f7546b6bbf745e",
+            "sse": 2912384
+          }
+        ],
+        "status": "pass",
+        "workspace_bytes": 21376
+      },
+      "pixel_format": "i400",
+      "qindex": 100,
+      "rd_cost_gain": 263241720,
+      "selected_modes": {
+        "intra_mode": 46
+      },
+      "source_sha256": "e351e218985f727223ad1e6400638c0bac9e4ab507f77673ac693e7382c6b458",
+      "sse_gain": [
+        1028288
+      ],
+      "subset": "synthetic-directional",
+      "width": 64
+    },
+    {
+      "bounded": {
+        "attempts": [
+          {
+            "duration_ns": 43843077,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=116 sse_y=2912384 sse_u=947760 sse_v=610928 workspace_bytes=25536 qindex=100 qdelta_u=0 qdelta_v=0 luma_mode=0 chroma_mode=0"
+          },
+          {
+            "duration_ns": 44517187,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=116 sse_y=2912384 sse_u=947760 sse_v=610928 workspace_bytes=25536 qindex=100 qdelta_u=0 qdelta_v=0 luma_mode=0 chroma_mode=0"
+          }
+        ],
+        "avm_project_exact": true,
+        "decode_time_ns": {
+          "avm": 39812377,
+          "project": 1250165
+        },
+        "decoded_sha256": "71c87cae9b9a2a97588ea59052c432865ae71012f4491e76727295ef5592558b",
+        "deterministic": true,
+        "local_sse_matches_decode": true,
+        "obu_bytes": 116,
+        "obu_sha256": "0addae19e1d21248aa3a960730389f5f560f28ea7a101036c2a952b89de80665",
+        "planes": [
+          {
+            "plane": "y",
+            "sha256": "8706f804bbb7e11524345841674197a89f4984503df72bc945f7546b6bbf745e",
+            "sse": 2912384
+          },
+          {
+            "plane": "u",
+            "sha256": "88d3914ee6904b850027886a1d4748e6962e2353f7c92f1e89680121db9128ee",
+            "sse": 947760
+          },
+          {
+            "plane": "v",
+            "sha256": "646203249f90351d48f6ecca20297d4ad84a660aa5b9f9d7e736adcea4d0004c",
+            "sse": 610928
+          }
+        ],
+        "status": "pass",
+        "workspace_bytes": 25536
+      },
+      "height": 64,
+      "id": "synthetic-shallow-i420",
+      "off": {
+        "attempts": [
+          {
+            "duration_ns": 21405827,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=116 sse_y=2912384 sse_u=947760 sse_v=610928 workspace_bytes=25536 qindex=100 qdelta_u=0 qdelta_v=0"
+          }
+        ],
+        "avm_project_exact": true,
+        "decode_time_ns": {
+          "avm": 36003075,
+          "project": 1295283
+        },
+        "decoded_sha256": "71c87cae9b9a2a97588ea59052c432865ae71012f4491e76727295ef5592558b",
+        "deterministic": true,
+        "local_sse_matches_decode": true,
+        "obu_bytes": 116,
+        "obu_sha256": "0addae19e1d21248aa3a960730389f5f560f28ea7a101036c2a952b89de80665",
+        "planes": [
+          {
+            "plane": "y",
+            "sha256": "8706f804bbb7e11524345841674197a89f4984503df72bc945f7546b6bbf745e",
+            "sse": 2912384
+          },
+          {
+            "plane": "u",
+            "sha256": "88d3914ee6904b850027886a1d4748e6962e2353f7c92f1e89680121db9128ee",
+            "sse": 947760
+          },
+          {
+            "plane": "v",
+            "sha256": "646203249f90351d48f6ecca20297d4ad84a660aa5b9f9d7e736adcea4d0004c",
+            "sse": 610928
+          }
+        ],
+        "status": "pass",
+        "workspace_bytes": 25536
+      },
+      "pixel_format": "i420",
+      "qindex": 100,
+      "rd_cost_gain": 0,
+      "selected_modes": {
+        "chroma_mode": 0,
+        "luma_mode": 0
+      },
+      "source_sha256": "1f61ea74f065c825609905f50fb63e343cbf507682679ac8ebb036989b129e41",
+      "sse_gain": [
+        0,
+        0,
+        0
+      ],
+      "subset": "synthetic-directional",
+      "width": 64
+    },
+    {
+      "bounded": {
+        "attempts": [
+          {
+            "duration_ns": 46054751,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=121 sse_y=2912384 sse_u=3851328 sse_v=2482240 workspace_bytes=37824 qindex=100 qdelta_u=16 qdelta_v=16 luma_mode=0 chroma_mode=0"
+          },
+          {
+            "duration_ns": 45789283,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=121 sse_y=2912384 sse_u=3851328 sse_v=2482240 workspace_bytes=37824 qindex=100 qdelta_u=16 qdelta_v=16 luma_mode=0 chroma_mode=0"
+          }
+        ],
+        "avm_project_exact": true,
+        "decode_time_ns": {
+          "avm": 43136908,
+          "project": 1869241
+        },
+        "decoded_sha256": "f00e2ed667b334250bcd1f5d7b453c15588bbd8336ba2185e327618cc4081463",
+        "deterministic": true,
+        "local_sse_matches_decode": true,
+        "obu_bytes": 121,
+        "obu_sha256": "f16e31cf10b889aaabd6e53608eb314e7e607a00e1902da89ddadbe23bc272fa",
+        "planes": [
+          {
+            "plane": "y",
+            "sha256": "8706f804bbb7e11524345841674197a89f4984503df72bc945f7546b6bbf745e",
+            "sse": 2912384
+          },
+          {
+            "plane": "u",
+            "sha256": "163c336fb249adc1733eed0935980e248f4ab4af25c59915ae7964baa15308f9",
+            "sse": 3851328
+          },
+          {
+            "plane": "v",
+            "sha256": "3d6e85954ab9596cf9bfbaa2838d1a756f6601f46d78c7e1b5c704f9fac325e3",
+            "sse": 2482240
+          }
+        ],
+        "status": "pass",
+        "workspace_bytes": 37824
+      },
+      "height": 64,
+      "id": "synthetic-shallow-i444",
+      "off": {
+        "attempts": [
+          {
+            "duration_ns": 42807046,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=125 sse_y=2912384 sse_u=3851328 sse_v=2482240 workspace_bytes=37824 qindex=100 qdelta_u=0 qdelta_v=0"
+          }
+        ],
+        "avm_project_exact": true,
+        "decode_time_ns": {
+          "avm": 40855532,
+          "project": 1874270
+        },
+        "decoded_sha256": "f00e2ed667b334250bcd1f5d7b453c15588bbd8336ba2185e327618cc4081463",
+        "deterministic": true,
+        "local_sse_matches_decode": true,
+        "obu_bytes": 125,
+        "obu_sha256": "9e71b38104e2ad95136a8e9a02084297b22c470ba83145ac517eaaab97436e46",
+        "planes": [
+          {
+            "plane": "y",
+            "sha256": "8706f804bbb7e11524345841674197a89f4984503df72bc945f7546b6bbf745e",
+            "sse": 2912384
+          },
+          {
+            "plane": "u",
+            "sha256": "163c336fb249adc1733eed0935980e248f4ab4af25c59915ae7964baa15308f9",
+            "sse": 3851328
+          },
+          {
+            "plane": "v",
+            "sha256": "3d6e85954ab9596cf9bfbaa2838d1a756f6601f46d78c7e1b5c704f9fac325e3",
+            "sse": 2482240
+          }
+        ],
+        "status": "pass",
+        "workspace_bytes": 37824
+      },
+      "pixel_format": "i444",
+      "qindex": 100,
+      "rd_cost_gain": 32,
+      "selected_modes": {
+        "chroma_mode": 0,
+        "luma_mode": 0
+      },
+      "source_sha256": "15fba64dcbab8866a5599ee42b8ad6bf114bc02b54c32e935ffc39ca3bed38ad",
+      "sse_gain": [
+        0,
+        0,
+        0
+      ],
+      "subset": "synthetic-directional",
+      "width": 64
+    },
+    {
+      "bounded": {
+        "attempts": [
+          {
+            "duration_ns": 22955544,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=76 sse_y=0 sse_u=193536 sse_v=192224 workspace_bytes=25536 qindex=100 qdelta_u=16 qdelta_v=16 luma_mode=0 chroma_mode=0"
+          },
+          {
+            "duration_ns": 23828284,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=76 sse_y=0 sse_u=193536 sse_v=192224 workspace_bytes=25536 qindex=100 qdelta_u=16 qdelta_v=16 luma_mode=0 chroma_mode=0"
+          }
+        ],
+        "avm_project_exact": true,
+        "decode_time_ns": {
+          "avm": 36125368,
+          "project": 1338025
+        },
+        "decoded_sha256": "263740497a47cced7ee9828e6a1ddbee43274701c6585e1fc98eb8d3ce298e33",
+        "deterministic": true,
+        "local_sse_matches_decode": true,
+        "obu_bytes": 76,
+        "obu_sha256": "3ec5ec2225b0f90c486ef973e27ceda75b7f21e6c6952f258ef1939bb372ac48",
+        "planes": [
+          {
+            "plane": "y",
+            "sha256": "78aacbc3fb34efb8ffa5467b931291ec2bdf5e19564fc45fe97b5affbc893dc6",
+            "sse": 0
+          },
+          {
+            "plane": "u",
+            "sha256": "405a9b442b4e11a124dcc2ce803096f2ff5d37c9ae9698bb38bd3cd12d5f4fe1",
+            "sse": 193536
+          },
+          {
+            "plane": "v",
+            "sha256": "b2db7d7f34a7bb23181b487c8ae468b12fbc16f20eecd865d2694901fd7c5184",
+            "sse": 192224
+          }
+        ],
+        "status": "pass",
+        "workspace_bytes": 25536
+      },
+      "height": 64,
+      "id": "synthetic-chroma-vertical-i420",
+      "off": {
+        "attempts": [
+          {
+            "duration_ns": 21902053,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=84 sse_y=0 sse_u=193984 sse_v=192640 workspace_bytes=25536 qindex=100 qdelta_u=0 qdelta_v=0"
+          }
+        ],
+        "avm_project_exact": true,
+        "decode_time_ns": {
+          "avm": 39358895,
+          "project": 1257149
+        },
+        "decoded_sha256": "f7bba15c8eba9f1ba9246856192517e27e340ed56e8839d0ccb8a6b7f74f72a9",
+        "deterministic": true,
+        "local_sse_matches_decode": true,
+        "obu_bytes": 84,
+        "obu_sha256": "56969347594d6d43a47143b200ea3e3abbd99697aafed699e1348f1b689f2beb",
+        "planes": [
+          {
+            "plane": "y",
+            "sha256": "78aacbc3fb34efb8ffa5467b931291ec2bdf5e19564fc45fe97b5affbc893dc6",
+            "sse": 0
+          },
+          {
+            "plane": "u",
+            "sha256": "4cb26a324cb5382d68066a9ab2ebcc3ca253cbc0190587e51068bc1bdd4806ea",
+            "sse": 193984
+          },
+          {
+            "plane": "v",
+            "sha256": "aa3f2228769a761378607d8f98cbc06eb2597a2241ab78b0f2178922582b10a1",
+            "sse": 192640
+          }
+        ],
+        "status": "pass",
+        "workspace_bytes": 25536
+      },
+      "pixel_format": "i420",
+      "qindex": 100,
+      "rd_cost_gain": 221248,
+      "selected_modes": {
+        "chroma_mode": 0,
+        "luma_mode": 0
+      },
+      "source_sha256": "b79b47945993d1afeeb47f862d76be0d03decd5d7a3209ea51c1cfaa83601af4",
+      "sse_gain": [
+        0,
+        448,
+        416
+      ],
+      "subset": "synthetic-directional",
+      "width": 64
+    },
+    {
+      "bounded": {
+        "attempts": [
+          {
+            "duration_ns": 44679918,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=92 sse_y=0 sse_u=784384 sse_v=771136 workspace_bytes=37824 qindex=100 qdelta_u=16 qdelta_v=16 luma_mode=0 chroma_mode=0"
+          },
+          {
+            "duration_ns": 45201775,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=92 sse_y=0 sse_u=784384 sse_v=771136 workspace_bytes=37824 qindex=100 qdelta_u=16 qdelta_v=16 luma_mode=0 chroma_mode=0"
+          }
+        ],
+        "avm_project_exact": true,
+        "decode_time_ns": {
+          "avm": 38706225,
+          "project": 1446071
+        },
+        "decoded_sha256": "73936898a39942e789f259f937f6af9bfd46ecca6ef8b98b6b0d856615ad3fa3",
+        "deterministic": true,
+        "local_sse_matches_decode": true,
+        "obu_bytes": 92,
+        "obu_sha256": "f3ab6604882d136fead87749f4456f85a998a750925c4885d26de1086386eda4",
+        "planes": [
+          {
+            "plane": "y",
+            "sha256": "78aacbc3fb34efb8ffa5467b931291ec2bdf5e19564fc45fe97b5affbc893dc6",
+            "sse": 0
+          },
+          {
+            "plane": "u",
+            "sha256": "323682833a3db0ea5af70bed557c1a863a94fd875e409c7aabb93470697cb2c1",
+            "sse": 784384
+          },
+          {
+            "plane": "v",
+            "sha256": "22ca748e6951dea9dcdb6405b054552842f614b53c19b481513878e479ae495b",
+            "sse": 771136
+          }
+        ],
+        "status": "pass",
+        "workspace_bytes": 37824
+      },
+      "height": 64,
+      "id": "synthetic-chroma-vertical-i444",
+      "off": {
+        "attempts": [
+          {
+            "duration_ns": 42542416,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=96 sse_y=0 sse_u=784384 sse_v=771136 workspace_bytes=37824 qindex=100 qdelta_u=0 qdelta_v=0"
+          }
+        ],
+        "avm_project_exact": true,
+        "decode_time_ns": {
+          "avm": 39308959,
+          "project": 1415061
+        },
+        "decoded_sha256": "d6d31ad1b29aecbe0fb1e48bf7e488071a5d8bc9a4e8d148e2f9e5d162340e9d",
+        "deterministic": true,
+        "local_sse_matches_decode": true,
+        "obu_bytes": 96,
+        "obu_sha256": "e70f98820c52640af953785a8d32b8b2f8dc06e8258f644a55b1579ad2e424a7",
+        "planes": [
+          {
+            "plane": "y",
+            "sha256": "78aacbc3fb34efb8ffa5467b931291ec2bdf5e19564fc45fe97b5affbc893dc6",
+            "sse": 0
+          },
+          {
+            "plane": "u",
+            "sha256": "cdebca64b8b7c019eb9e42d2f1ba847b6aa36acbc44b86a99d24401d4be53e32",
+            "sse": 784384
+          },
+          {
+            "plane": "v",
+            "sha256": "22ca748e6951dea9dcdb6405b054552842f614b53c19b481513878e479ae495b",
+            "sse": 771136
+          }
+        ],
+        "status": "pass",
+        "workspace_bytes": 37824
+      },
+      "pixel_format": "i444",
+      "qindex": 100,
+      "rd_cost_gain": 32,
+      "selected_modes": {
+        "chroma_mode": 0,
+        "luma_mode": 0
+      },
+      "source_sha256": "9fe1731e2686e3788d487a439999b2a47e8e0814b6d3d8423de6f5ba84ca5a30",
+      "sse_gain": [
+        0,
+        0,
+        0
+      ],
+      "subset": "synthetic-directional",
+      "width": 64
+    },
+    {
+      "bounded": {
+        "attempts": [
+          {
+            "duration_ns": 24391277,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=76 sse_y=0 sse_u=193536 sse_v=192224 workspace_bytes=25536 qindex=100 qdelta_u=16 qdelta_v=16 luma_mode=0 chroma_mode=0"
+          },
+          {
+            "duration_ns": 23341139,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=76 sse_y=0 sse_u=193536 sse_v=192224 workspace_bytes=25536 qindex=100 qdelta_u=16 qdelta_v=16 luma_mode=0 chroma_mode=0"
+          }
+        ],
+        "avm_project_exact": true,
+        "decode_time_ns": {
+          "avm": 39569957,
+          "project": 1249327
+        },
+        "decoded_sha256": "9d89092c09ba11d749575b9a4f7668cfd17c69a83e03a4babd9f8b75ad0b92bc",
+        "deterministic": true,
+        "local_sse_matches_decode": true,
+        "obu_bytes": 76,
+        "obu_sha256": "e2602aab5d48bc036f0adcce411ae852e23ccb2bf4ade9932bdc623595d67232",
+        "planes": [
+          {
+            "plane": "y",
+            "sha256": "78aacbc3fb34efb8ffa5467b931291ec2bdf5e19564fc45fe97b5affbc893dc6",
+            "sse": 0
+          },
+          {
+            "plane": "u",
+            "sha256": "77d35d63d95d9be8f2b4d5a2e476858a29bee61d759e2be4d5642e21063aa157",
+            "sse": 193536
+          },
+          {
+            "plane": "v",
+            "sha256": "532c946482538ea8faf0c4c576c224e0b1b5bf768f21ff30f24b535b856e0e18",
+            "sse": 192224
+          }
+        ],
+        "status": "pass",
+        "workspace_bytes": 25536
+      },
+      "height": 64,
+      "id": "synthetic-chroma-horizontal-i420",
+      "off": {
+        "attempts": [
+          {
+            "duration_ns": 21751614,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=84 sse_y=0 sse_u=193984 sse_v=192640 workspace_bytes=25536 qindex=100 qdelta_u=0 qdelta_v=0"
+          }
+        ],
+        "avm_project_exact": true,
+        "decode_time_ns": {
+          "avm": 39248196,
+          "project": 1447049
+        },
+        "decoded_sha256": "9ad47227963b6d8c196bdec5128ca1b926cc21621d957ba21b113766d5c0ec84",
+        "deterministic": true,
+        "local_sse_matches_decode": true,
+        "obu_bytes": 84,
+        "obu_sha256": "3709fced55c2eabcbeca6fcb9824ead767d3a8ec3b052017b1708308df32096c",
+        "planes": [
+          {
+            "plane": "y",
+            "sha256": "78aacbc3fb34efb8ffa5467b931291ec2bdf5e19564fc45fe97b5affbc893dc6",
+            "sse": 0
+          },
+          {
+            "plane": "u",
+            "sha256": "26d3bf0a7bd9f65f885ecb80c9aa51b8c329d898437e6c9361c40a2900935eec",
+            "sse": 193984
+          },
+          {
+            "plane": "v",
+            "sha256": "344de53ca01cabdcfde808a6eb8ff0440431bb45f79682d26d8f24a04f8dfdc4",
+            "sse": 192640
+          }
+        ],
+        "status": "pass",
+        "workspace_bytes": 25536
+      },
+      "pixel_format": "i420",
+      "qindex": 100,
+      "rd_cost_gain": 221248,
+      "selected_modes": {
+        "chroma_mode": 0,
+        "luma_mode": 0
+      },
+      "source_sha256": "aedcf9f3049d62a124a77e803df3188f1c85a6219a86030f72516c9e8429e5b3",
+      "sse_gain": [
+        0,
+        448,
+        416
+      ],
+      "subset": "synthetic-directional",
+      "width": 64
+    },
+    {
+      "bounded": {
+        "attempts": [
+          {
+            "duration_ns": 45262398,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=92 sse_y=0 sse_u=784384 sse_v=771136 workspace_bytes=37824 qindex=100 qdelta_u=16 qdelta_v=16 luma_mode=0 chroma_mode=0"
+          },
+          {
+            "duration_ns": 44666160,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=92 sse_y=0 sse_u=784384 sse_v=771136 workspace_bytes=37824 qindex=100 qdelta_u=16 qdelta_v=16 luma_mode=0 chroma_mode=0"
+          }
+        ],
+        "avm_project_exact": true,
+        "decode_time_ns": {
+          "avm": 40558844,
+          "project": 1508090
+        },
+        "decoded_sha256": "d1f484e16b8ef2ebc32225e3d248c816ede6449e6321bede14453e611007fc14",
+        "deterministic": true,
+        "local_sse_matches_decode": true,
+        "obu_bytes": 92,
+        "obu_sha256": "e9d2019c99c309864f69dbfe92a2fff2f361e72ae1c15fca729c99be247e32e7",
+        "planes": [
+          {
+            "plane": "y",
+            "sha256": "78aacbc3fb34efb8ffa5467b931291ec2bdf5e19564fc45fe97b5affbc893dc6",
+            "sse": 0
+          },
+          {
+            "plane": "u",
+            "sha256": "ed1eaf3c7db74b3dd8031c44cac1ed5c576bacf740b474c9f00b41d20d9932e5",
+            "sse": 784384
+          },
+          {
+            "plane": "v",
+            "sha256": "63f7c5685a43047f0b0e542510833197318b90fc3be91aefc52220ea188182f1",
+            "sse": 771136
+          }
+        ],
+        "status": "pass",
+        "workspace_bytes": 37824
+      },
+      "height": 64,
+      "id": "synthetic-chroma-horizontal-i444",
+      "off": {
+        "attempts": [
+          {
+            "duration_ns": 43262833,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=96 sse_y=0 sse_u=784384 sse_v=771136 workspace_bytes=37824 qindex=100 qdelta_u=0 qdelta_v=0"
+          }
+        ],
+        "avm_project_exact": true,
+        "decode_time_ns": {
+          "avm": 40454361,
+          "project": 1397950
+        },
+        "decoded_sha256": "947da33519def2d1e2a09920435ae6b603653e56dcd6d624c39d2c07d4188f50",
+        "deterministic": true,
+        "local_sse_matches_decode": true,
+        "obu_bytes": 96,
+        "obu_sha256": "fcc4a0e31c43e9cb2aa798de7eae70e7c1d11922c24bff3168597e42749b1f38",
+        "planes": [
+          {
+            "plane": "y",
+            "sha256": "78aacbc3fb34efb8ffa5467b931291ec2bdf5e19564fc45fe97b5affbc893dc6",
+            "sse": 0
+          },
+          {
+            "plane": "u",
+            "sha256": "4aab4256d58967ddbb788a4ca6b11708d69bd81fc0b927c0ae9eaa5c586bd622",
+            "sse": 784384
+          },
+          {
+            "plane": "v",
+            "sha256": "63f7c5685a43047f0b0e542510833197318b90fc3be91aefc52220ea188182f1",
+            "sse": 771136
+          }
+        ],
+        "status": "pass",
+        "workspace_bytes": 37824
+      },
+      "pixel_format": "i444",
+      "qindex": 100,
+      "rd_cost_gain": 32,
+      "selected_modes": {
+        "chroma_mode": 0,
+        "luma_mode": 0
+      },
+      "source_sha256": "23b21c9efdec7db2d79c98295bbd1cf727668a921e506e9991356dc3bfd66e21",
+      "sse_gain": [
+        0,
+        0,
+        0
+      ],
+      "subset": "synthetic-directional",
+      "width": 64
+    },
+    {
+      "bounded": {
+        "attempts": [
+          {
+            "duration_ns": 11898498,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=107 sse_y=2045177 psnr_y=21.15dB workspace_bytes=21376 qindex=100 intra_mode=41"
+          },
+          {
+            "duration_ns": 12296176,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=107 sse_y=2045177 psnr_y=21.15dB workspace_bytes=21376 qindex=100 intra_mode=41"
+          }
+        ],
+        "avm_project_exact": true,
+        "decode_time_ns": {
+          "avm": 40140912,
+          "project": 1424559
+        },
+        "decoded_sha256": "78fa3f0a2e0e3287fbbfa28d2ab1e19c40a9b1490a66feb8338696a44dc1890d",
+        "deterministic": true,
+        "local_sse_matches_decode": true,
+        "obu_bytes": 107,
+        "obu_sha256": "bbce72bf979d210f04673360e11895917332e39b331e2134ec7608635df6e091",
+        "planes": [
+          {
+            "plane": "y",
+            "sha256": "78fa3f0a2e0e3287fbbfa28d2ab1e19c40a9b1490a66feb8338696a44dc1890d",
+            "sse": 2045177
+          }
+        ],
+        "status": "pass",
+        "workspace_bytes": 21376
+      },
+      "crop": [
+        416,
+        624,
+        64,
+        64
+      ],
+      "height": 64,
+      "id": "prepared-chinnathurai-church-i400",
+      "off": {
+        "attempts": [
+          {
+            "duration_ns": 5602415,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=102 sse_y=2277707 psnr_y=20.68dB workspace_bytes=21376 qindex=100"
+          }
+        ],
+        "avm_project_exact": true,
+        "decode_time_ns": {
+          "avm": 39518135,
+          "project": 1684719
+        },
+        "decoded_sha256": "e0045b2d8b56269c15b0368f4113d77ddc54a406385e33dc68b4cc721fa99455",
+        "deterministic": true,
+        "local_sse_matches_decode": true,
+        "obu_bytes": 102,
+        "obu_sha256": "1892c97114df570600e8bd45386173987ee3dca94dfc1606241b6ad28914f634",
+        "planes": [
+          {
+            "plane": "y",
+            "sha256": "e0045b2d8b56269c15b0368f4113d77ddc54a406385e33dc68b4cc721fa99455",
+            "sse": 2277707
+          }
+        ],
+        "status": "pass",
+        "workspace_bytes": 21376
+      },
+      "pixel_format": "i400",
+      "qindex": 100,
+      "rd_cost_gain": 59527640,
+      "selected_modes": {
+        "intra_mode": 41
+      },
+      "source_id": "chinnathurai-church",
+      "source_sha256": "f2784b5ffb52a262b6a43dd16d3835a99c7cf6baf99f06a7b212cc1fc90c9be8",
+      "sse_gain": [
+        232530
+      ],
+      "subset": "prepared-crop",
+      "width": 64
+    },
+    {
+      "bounded": {
+        "attempts": [
+          {
+            "duration_ns": 24881635,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=137 sse_y=2267852 sse_u=35990 sse_v=85794 workspace_bytes=25536 qindex=100 qdelta_u=-8 qdelta_v=-8 luma_mode=0 chroma_mode=0"
+          },
+          {
+            "duration_ns": 24030756,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=137 sse_y=2267852 sse_u=35990 sse_v=85794 workspace_bytes=25536 qindex=100 qdelta_u=-8 qdelta_v=-8 luma_mode=0 chroma_mode=0"
+          }
+        ],
+        "avm_project_exact": true,
+        "decode_time_ns": {
+          "avm": 39565836,
+          "project": 1385379
+        },
+        "decoded_sha256": "c3b42c9c427546932cedec200e9a73265db305c55f3de76ca4ecef988f9be600",
+        "deterministic": true,
+        "local_sse_matches_decode": true,
+        "obu_bytes": 137,
+        "obu_sha256": "66f2afe1a155c37ba5f73c9a8fa8e7967ab7edc63afef233bb0df4a04613fef2",
+        "planes": [
+          {
+            "plane": "y",
+            "sha256": "dd71d5b5b6c2f465ffb7bdad61614be383167d9f80c9d88e2595f7b07359a3fb",
+            "sse": 2267852
+          },
+          {
+            "plane": "u",
+            "sha256": "3a83b26ac3fc1d623087b4db2cd3a62cd5cc930ddeb4dea42fbef24a136238b0",
+            "sse": 35990
+          },
+          {
+            "plane": "v",
+            "sha256": "87110f61d1de52ee28c452df9f231731d23ed0d185fe47d019a85b895608bb1b",
+            "sse": 85794
+          }
+        ],
+        "status": "pass",
+        "workspace_bytes": 25536
+      },
+      "crop": [
+        416,
+        624,
+        64,
+        64
+      ],
+      "height": 64,
+      "id": "prepared-chinnathurai-church-i420",
+      "off": {
+        "attempts": [
+          {
+            "duration_ns": 21337104,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=135 sse_y=2267852 sse_u=36056 sse_v=85828 workspace_bytes=25536 qindex=100 qdelta_u=0 qdelta_v=0"
+          }
+        ],
+        "avm_project_exact": true,
+        "decode_time_ns": {
+          "avm": 50312366,
+          "project": 2193446
+        },
+        "decoded_sha256": "8e559a834ebf1b5c0774682df33507a0d89a8505252e54b756f10a691f976148",
+        "deterministic": true,
+        "local_sse_matches_decode": true,
+        "obu_bytes": 135,
+        "obu_sha256": "60fb37aeabbef3699e641dd19df42f358a43c38df4dd5b49e812a5b8903c2f8c",
+        "planes": [
+          {
+            "plane": "y",
+            "sha256": "dd71d5b5b6c2f465ffb7bdad61614be383167d9f80c9d88e2595f7b07359a3fb",
+            "sse": 2267852
+          },
+          {
+            "plane": "u",
+            "sha256": "b8a4b88803fb5d1d3f989f4cf2edef8ba70d005ff5a45fa790f09a6b1a632404",
+            "sse": 36056
+          },
+          {
+            "plane": "v",
+            "sha256": "2ff57b0a0d8c2a21af14704114ca15eeedc750b408e608305568e007c9e60a7d",
+            "sse": 85828
+          }
+        ],
+        "status": "pass",
+        "workspace_bytes": 25536
+      },
+      "pixel_format": "i420",
+      "qindex": 100,
+      "rd_cost_gain": 25584,
+      "selected_modes": {
+        "chroma_mode": 0,
+        "luma_mode": 0
+      },
+      "source_id": "chinnathurai-church",
+      "source_sha256": "c2ab0ec3d4088d786c5139f8a2202f49bd21c7a584179c107b74e9f80038bae1",
+      "sse_gain": [
+        0,
+        66,
+        34
+      ],
+      "subset": "prepared-crop",
+      "width": 64
+    },
+    {
+      "bounded": {
+        "attempts": [
+          {
+            "duration_ns": 44161415,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=140 sse_y=2267852 sse_u=162837 sse_v=394513 workspace_bytes=37824 qindex=100 qdelta_u=8 qdelta_v=8 luma_mode=0 chroma_mode=0"
+          },
+          {
+            "duration_ns": 45029755,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=140 sse_y=2267852 sse_u=162837 sse_v=394513 workspace_bytes=37824 qindex=100 qdelta_u=8 qdelta_v=8 luma_mode=0 chroma_mode=0"
+          }
+        ],
+        "avm_project_exact": true,
+        "decode_time_ns": {
+          "avm": 40068347,
+          "project": 1630383
+        },
+        "decoded_sha256": "792c9f7e028a4f25631a5beab399956adeb1bb40df3d8ddb5f524841cfc6a18a",
+        "deterministic": true,
+        "local_sse_matches_decode": true,
+        "obu_bytes": 140,
+        "obu_sha256": "308ab4315ddc66247fcaf74c9d9c933461c3e075df831fd6b40d7c87d9d76a74",
+        "planes": [
+          {
+            "plane": "y",
+            "sha256": "dd71d5b5b6c2f465ffb7bdad61614be383167d9f80c9d88e2595f7b07359a3fb",
+            "sse": 2267852
+          },
+          {
+            "plane": "u",
+            "sha256": "4162ae46b9671b618cc0b1ee51b11d3fc519894c29bc726188e8205ff8a8edd3",
+            "sse": 162837
+          },
+          {
+            "plane": "v",
+            "sha256": "3bd70083b6f1c25d80cb0339ace3209888afaa470c6a573f2967a87fe3b31529",
+            "sse": 394513
+          }
+        ],
+        "status": "pass",
+        "workspace_bytes": 37824
+      },
+      "crop": [
+        416,
+        624,
+        64,
+        64
+      ],
+      "height": 64,
+      "id": "prepared-chinnathurai-church-i444",
+      "off": {
+        "attempts": [
+          {
+            "duration_ns": 41872146,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=142 sse_y=2267852 sse_u=162837 sse_v=394513 workspace_bytes=37824 qindex=100 qdelta_u=0 qdelta_v=0"
+          }
+        ],
+        "avm_project_exact": true,
+        "decode_time_ns": {
+          "avm": 39611303,
+          "project": 2326075
+        },
+        "decoded_sha256": "792c9f7e028a4f25631a5beab399956adeb1bb40df3d8ddb5f524841cfc6a18a",
+        "deterministic": true,
+        "local_sse_matches_decode": true,
+        "obu_bytes": 142,
+        "obu_sha256": "fee8f7102ab93666403b2f036a1747c6f999d23d6858592e91df791ba26ef475",
+        "planes": [
+          {
+            "plane": "y",
+            "sha256": "dd71d5b5b6c2f465ffb7bdad61614be383167d9f80c9d88e2595f7b07359a3fb",
+            "sse": 2267852
+          },
+          {
+            "plane": "u",
+            "sha256": "4162ae46b9671b618cc0b1ee51b11d3fc519894c29bc726188e8205ff8a8edd3",
+            "sse": 162837
+          },
+          {
+            "plane": "v",
+            "sha256": "3bd70083b6f1c25d80cb0339ace3209888afaa470c6a573f2967a87fe3b31529",
+            "sse": 394513
+          }
+        ],
+        "status": "pass",
+        "workspace_bytes": 37824
+      },
+      "pixel_format": "i444",
+      "qindex": 100,
+      "rd_cost_gain": 16,
+      "selected_modes": {
+        "chroma_mode": 0,
+        "luma_mode": 0
+      },
+      "source_id": "chinnathurai-church",
+      "source_sha256": "9820ffb570f82d35184d0bbd2f2cf4e3352268b2dba670f36ba35827021b23ed",
+      "sse_gain": [
+        0,
+        0,
+        0
+      ],
+      "subset": "prepared-crop",
+      "width": 64
+    },
+    {
+      "bounded": {
+        "attempts": [
+          {
+            "duration_ns": 11490413,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=84 sse_y=590606 psnr_y=26.54dB workspace_bytes=21376 qindex=100 intra_mode=40"
+          },
+          {
+            "duration_ns": 11783119,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=84 sse_y=590606 psnr_y=26.54dB workspace_bytes=21376 qindex=100 intra_mode=40"
+          }
+        ],
+        "avm_project_exact": true,
+        "decode_time_ns": {
+          "avm": 39209295,
+          "project": 1326712
+        },
+        "decoded_sha256": "42c88d73d50401a21db1093b35cac9453bcc01408b9ac4fd096a0e38ea687075",
+        "deterministic": true,
+        "local_sse_matches_decode": true,
+        "obu_bytes": 84,
+        "obu_sha256": "cc9989675f3a1f17187a1e9a2280d2017ef760689a57949f60fbd6a1d4cae9b7",
+        "planes": [
+          {
+            "plane": "y",
+            "sha256": "42c88d73d50401a21db1093b35cac9453bcc01408b9ac4fd096a0e38ea687075",
+            "sse": 590606
+          }
+        ],
+        "status": "pass",
+        "workspace_bytes": 21376
+      },
+      "crop": [
+        400,
+        416,
+        64,
+        64
+      ],
+      "height": 64,
+      "id": "prepared-elbrus-milky-way-i400",
+      "off": {
+        "attempts": [
+          {
+            "duration_ns": 5693140,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=79 sse_y=624033 psnr_y=26.30dB workspace_bytes=21376 qindex=100"
+          }
+        ],
+        "avm_project_exact": true,
+        "decode_time_ns": {
+          "avm": 39784300,
+          "project": 1237314
+        },
+        "decoded_sha256": "730cddbae695c39f66df314df1f4fac66fe8a04a848acdd0dc7986d70128ca08",
+        "deterministic": true,
+        "local_sse_matches_decode": true,
+        "obu_bytes": 79,
+        "obu_sha256": "c5f884dcbdab2eee44f223d61e8e897a096f9d8d57d643502327fc19805b32d1",
+        "planes": [
+          {
+            "plane": "y",
+            "sha256": "730cddbae695c39f66df314df1f4fac66fe8a04a848acdd0dc7986d70128ca08",
+            "sse": 624033
+          }
+        ],
+        "status": "pass",
+        "workspace_bytes": 21376
+      },
+      "pixel_format": "i400",
+      "qindex": 100,
+      "rd_cost_gain": 8557272,
+      "selected_modes": {
+        "intra_mode": 40
+      },
+      "source_id": "elbrus-milky-way",
+      "source_sha256": "3c9890a683605b50d60617b655ebdf9586ddeecb7d8bcc66ddf9dd10d97d2439",
+      "sse_gain": [
+        33427
+      ],
+      "subset": "prepared-crop",
+      "width": 64
+    },
+    {
+      "bounded": {
+        "attempts": [
+          {
+            "duration_ns": 43270934,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=99 sse_y=617225 sse_u=3577 sse_v=5464 workspace_bytes=25536 qindex=100 qdelta_u=0 qdelta_v=0 luma_mode=0 chroma_mode=0"
+          },
+          {
+            "duration_ns": 44381066,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=99 sse_y=617225 sse_u=3577 sse_v=5464 workspace_bytes=25536 qindex=100 qdelta_u=0 qdelta_v=0 luma_mode=0 chroma_mode=0"
+          }
+        ],
+        "avm_project_exact": true,
+        "decode_time_ns": {
+          "avm": 40953589,
+          "project": 1392991
+        },
+        "decoded_sha256": "76915d94837e8ecf8576bde3392670a3a823f99d7b71edc5944407fdfbb80638",
+        "deterministic": true,
+        "local_sse_matches_decode": true,
+        "obu_bytes": 99,
+        "obu_sha256": "fbb32c0cf6ef42217bb313bd27a5de28b8abdc11cf9fd837fb66be6f1a5652e9",
+        "planes": [
+          {
+            "plane": "y",
+            "sha256": "45a94f9b59e7c498c653ae5465a46fa4a25f03c839721624ccb6aea3eb5aacd7",
+            "sse": 617225
+          },
+          {
+            "plane": "u",
+            "sha256": "054d0f22c58122574e5b13d2401c0e76a312a480f7c3869e1600f7960e8f157d",
+            "sse": 3577
+          },
+          {
+            "plane": "v",
+            "sha256": "1761fc0bb7382d172224f5aa348000f079b60967c619e503e2d7560f5a685d50",
+            "sse": 5464
+          }
+        ],
+        "status": "pass",
+        "workspace_bytes": 25536
+      },
+      "crop": [
+        400,
+        416,
+        64,
+        64
+      ],
+      "height": 64,
+      "id": "prepared-elbrus-milky-way-i420",
+      "off": {
+        "attempts": [
+          {
+            "duration_ns": 21566673,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=99 sse_y=617225 sse_u=3577 sse_v=5464 workspace_bytes=25536 qindex=100 qdelta_u=0 qdelta_v=0"
+          }
+        ],
+        "avm_project_exact": true,
+        "decode_time_ns": {
+          "avm": 39660402,
+          "project": 1338934
+        },
+        "decoded_sha256": "76915d94837e8ecf8576bde3392670a3a823f99d7b71edc5944407fdfbb80638",
+        "deterministic": true,
+        "local_sse_matches_decode": true,
+        "obu_bytes": 99,
+        "obu_sha256": "fbb32c0cf6ef42217bb313bd27a5de28b8abdc11cf9fd837fb66be6f1a5652e9",
+        "planes": [
+          {
+            "plane": "y",
+            "sha256": "45a94f9b59e7c498c653ae5465a46fa4a25f03c839721624ccb6aea3eb5aacd7",
+            "sse": 617225
+          },
+          {
+            "plane": "u",
+            "sha256": "054d0f22c58122574e5b13d2401c0e76a312a480f7c3869e1600f7960e8f157d",
+            "sse": 3577
+          },
+          {
+            "plane": "v",
+            "sha256": "1761fc0bb7382d172224f5aa348000f079b60967c619e503e2d7560f5a685d50",
+            "sse": 5464
+          }
+        ],
+        "status": "pass",
+        "workspace_bytes": 25536
+      },
+      "pixel_format": "i420",
+      "qindex": 100,
+      "rd_cost_gain": 0,
+      "selected_modes": {
+        "chroma_mode": 0,
+        "luma_mode": 0
+      },
+      "source_id": "elbrus-milky-way",
+      "source_sha256": "ad5cbf2495f5f35ead6cd5a4680bd244d01f76722ecd0e32f3487e6bda6a8ea6",
+      "sse_gain": [
+        0,
+        0,
+        0
+      ],
+      "subset": "prepared-crop",
+      "width": 64
+    },
+    {
+      "bounded": {
+        "attempts": [
+          {
+            "duration_ns": 87383110,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=105 sse_y=617225 sse_u=35719 sse_v=55740 workspace_bytes=37824 qindex=100 qdelta_u=0 qdelta_v=0 luma_mode=0 chroma_mode=0"
+          },
+          {
+            "duration_ns": 86093484,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=105 sse_y=617225 sse_u=35719 sse_v=55740 workspace_bytes=37824 qindex=100 qdelta_u=0 qdelta_v=0 luma_mode=0 chroma_mode=0"
+          }
+        ],
+        "avm_project_exact": true,
+        "decode_time_ns": {
+          "avm": 40401142,
+          "project": 1706021
+        },
+        "decoded_sha256": "55838b2f6556133aaa54249b45c22ab2b0b4a100683ca19f39cb5d4a02873c36",
+        "deterministic": true,
+        "local_sse_matches_decode": true,
+        "obu_bytes": 105,
+        "obu_sha256": "a1c1ccc8b3c7959be85c702a440c3c9e6eb26569cd157fcab0c1be7895a6577d",
+        "planes": [
+          {
+            "plane": "y",
+            "sha256": "45a94f9b59e7c498c653ae5465a46fa4a25f03c839721624ccb6aea3eb5aacd7",
+            "sse": 617225
+          },
+          {
+            "plane": "u",
+            "sha256": "c4263babc14be33815b9c0b16539453d87a4a246f9a85e2958c48dfd15b5cefb",
+            "sse": 35719
+          },
+          {
+            "plane": "v",
+            "sha256": "0e33dc21d5529d4003d58c21546f33143923765e64860bf5dd0d36ff5fc196a1",
+            "sse": 55740
+          }
+        ],
+        "status": "pass",
+        "workspace_bytes": 37824
+      },
+      "crop": [
+        400,
+        416,
+        64,
+        64
+      ],
+      "height": 64,
+      "id": "prepared-elbrus-milky-way-i444",
+      "off": {
+        "attempts": [
+          {
+            "duration_ns": 43139980,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=105 sse_y=617225 sse_u=35719 sse_v=55740 workspace_bytes=37824 qindex=100 qdelta_u=0 qdelta_v=0"
+          }
+        ],
+        "avm_project_exact": true,
+        "decode_time_ns": {
+          "avm": 45859824,
+          "project": 2372939
+        },
+        "decoded_sha256": "55838b2f6556133aaa54249b45c22ab2b0b4a100683ca19f39cb5d4a02873c36",
+        "deterministic": true,
+        "local_sse_matches_decode": true,
+        "obu_bytes": 105,
+        "obu_sha256": "a1c1ccc8b3c7959be85c702a440c3c9e6eb26569cd157fcab0c1be7895a6577d",
+        "planes": [
+          {
+            "plane": "y",
+            "sha256": "45a94f9b59e7c498c653ae5465a46fa4a25f03c839721624ccb6aea3eb5aacd7",
+            "sse": 617225
+          },
+          {
+            "plane": "u",
+            "sha256": "c4263babc14be33815b9c0b16539453d87a4a246f9a85e2958c48dfd15b5cefb",
+            "sse": 35719
+          },
+          {
+            "plane": "v",
+            "sha256": "0e33dc21d5529d4003d58c21546f33143923765e64860bf5dd0d36ff5fc196a1",
+            "sse": 55740
+          }
+        ],
+        "status": "pass",
+        "workspace_bytes": 37824
+      },
+      "pixel_format": "i444",
+      "qindex": 100,
+      "rd_cost_gain": 0,
+      "selected_modes": {
+        "chroma_mode": 0,
+        "luma_mode": 0
+      },
+      "source_id": "elbrus-milky-way",
+      "source_sha256": "0478b421a65633a39a7806252d96d1bfd3340e44734732e6c8f093d0e2b95f0f",
+      "sse_gain": [
+        0,
+        0,
+        0
+      ],
+      "subset": "prepared-crop",
+      "width": 64
+    },
+    {
+      "bounded": {
+        "attempts": [
+          {
+            "duration_ns": 11130170,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=91 sse_y=393613 psnr_y=28.30dB workspace_bytes=21376 qindex=100 intra_mode=39"
+          },
+          {
+            "duration_ns": 11476864,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=91 sse_y=393613 psnr_y=28.30dB workspace_bytes=21376 qindex=100 intra_mode=39"
+          }
+        ],
+        "avm_project_exact": true,
+        "decode_time_ns": {
+          "avm": 39254762,
+          "project": 1275029
+        },
+        "decoded_sha256": "a4dd6e98ecb44cea822e47e5fc16867459b48eea26f564f570f8c6af1ff3b103",
+        "deterministic": true,
+        "local_sse_matches_decode": true,
+        "obu_bytes": 91,
+        "obu_sha256": "ee2246d6d3cf8034a59f04f179851c5bf24ae58f316b19cbd358064069b7d6bb",
+        "planes": [
+          {
+            "plane": "y",
+            "sha256": "a4dd6e98ecb44cea822e47e5fc16867459b48eea26f564f570f8c6af1ff3b103",
+            "sse": 393613
+          }
+        ],
+        "status": "pass",
+        "workspace_bytes": 21376
+      },
+      "crop": [
+        624,
+        400,
+        64,
+        64
+      ],
+      "height": 64,
+      "id": "prepared-pastel-chalks-i400",
+      "off": {
+        "attempts": [
+          {
+            "duration_ns": 5218915,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=89 sse_y=589529 psnr_y=26.55dB workspace_bytes=21376 qindex=100"
+          }
+        ],
+        "avm_project_exact": true,
+        "decode_time_ns": {
+          "avm": 39538039,
+          "project": 1245415
+        },
+        "decoded_sha256": "1836d82186dfa4f6921c4eb28a47790ffcb44b308dda6bd20562cd319d32645c",
+        "deterministic": true,
+        "local_sse_matches_decode": true,
+        "obu_bytes": 89,
+        "obu_sha256": "5c22f9507a4f5ff1d9dd7cd2238fe732660faba03dd673496ac36eb2c7a99c57",
+        "planes": [
+          {
+            "plane": "y",
+            "sha256": "1836d82186dfa4f6921c4eb28a47790ffcb44b308dda6bd20562cd319d32645c",
+            "sse": 589529
+          }
+        ],
+        "status": "pass",
+        "workspace_bytes": 21376
+      },
+      "pixel_format": "i400",
+      "qindex": 100,
+      "rd_cost_gain": 50154480,
+      "selected_modes": {
+        "intra_mode": 39
+      },
+      "source_id": "pastel-chalks",
+      "source_sha256": "c7e208f3a239cd6c9bdf294d177cbde93a070e5c5de627ac9f5e55b0c0a97545",
+      "sse_gain": [
+        195916
+      ],
+      "subset": "prepared-crop",
+      "width": 64
+    },
+    {
+      "bounded": {
+        "attempts": [
+          {
+            "duration_ns": 43821355,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=135 sse_y=716549 sse_u=130593 sse_v=313787 workspace_bytes=25536 qindex=100 qdelta_u=0 qdelta_v=0 luma_mode=0 chroma_mode=0"
+          },
+          {
+            "duration_ns": 43770721,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=135 sse_y=716549 sse_u=130593 sse_v=313787 workspace_bytes=25536 qindex=100 qdelta_u=0 qdelta_v=0 luma_mode=0 chroma_mode=0"
+          }
+        ],
+        "avm_project_exact": true,
+        "decode_time_ns": {
+          "avm": 40956033,
+          "project": 1825241
+        },
+        "decoded_sha256": "176a257a177ce9cd9f0dd5ca79f6bf4791bbd864e38f58a816c162841ed77e7e",
+        "deterministic": true,
+        "local_sse_matches_decode": true,
+        "obu_bytes": 135,
+        "obu_sha256": "aa7bde6d3e07712ac2c522dec053e19b44f5fb95c450490d0b76e6c76fb4e370",
+        "planes": [
+          {
+            "plane": "y",
+            "sha256": "56e61126a97754d1cb23f047b061e4c655b3d173121f33ed6aa2d7df1faf9562",
+            "sse": 716549
+          },
+          {
+            "plane": "u",
+            "sha256": "bb935c0ba21b6af631aac1414d79a74402a653b8862e265ca71ab2df63c3c4df",
+            "sse": 130593
+          },
+          {
+            "plane": "v",
+            "sha256": "dca63f48efb359d0c466cae0cb56c41aac85f047eed25b84a35941b8c12e85ad",
+            "sse": 313787
+          }
+        ],
+        "status": "pass",
+        "workspace_bytes": 25536
+      },
+      "crop": [
+        624,
+        400,
+        64,
+        64
+      ],
+      "height": 64,
+      "id": "prepared-pastel-chalks-i420",
+      "off": {
+        "attempts": [
+          {
+            "duration_ns": 21282558,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=135 sse_y=716549 sse_u=130593 sse_v=313787 workspace_bytes=25536 qindex=100 qdelta_u=0 qdelta_v=0"
+          }
+        ],
+        "avm_project_exact": true,
+        "decode_time_ns": {
+          "avm": 39272431,
+          "project": 1354160
+        },
+        "decoded_sha256": "176a257a177ce9cd9f0dd5ca79f6bf4791bbd864e38f58a816c162841ed77e7e",
+        "deterministic": true,
+        "local_sse_matches_decode": true,
+        "obu_bytes": 135,
+        "obu_sha256": "aa7bde6d3e07712ac2c522dec053e19b44f5fb95c450490d0b76e6c76fb4e370",
+        "planes": [
+          {
+            "plane": "y",
+            "sha256": "56e61126a97754d1cb23f047b061e4c655b3d173121f33ed6aa2d7df1faf9562",
+            "sse": 716549
+          },
+          {
+            "plane": "u",
+            "sha256": "bb935c0ba21b6af631aac1414d79a74402a653b8862e265ca71ab2df63c3c4df",
+            "sse": 130593
+          },
+          {
+            "plane": "v",
+            "sha256": "dca63f48efb359d0c466cae0cb56c41aac85f047eed25b84a35941b8c12e85ad",
+            "sse": 313787
+          }
+        ],
+        "status": "pass",
+        "workspace_bytes": 25536
+      },
+      "pixel_format": "i420",
+      "qindex": 100,
+      "rd_cost_gain": 0,
+      "selected_modes": {
+        "chroma_mode": 0,
+        "luma_mode": 0
+      },
+      "source_id": "pastel-chalks",
+      "source_sha256": "8e3b33c9f5b83cc6999e20996bb4566ca5b38631258c215b938f56922c9ea8e9",
+      "sse_gain": [
+        0,
+        0,
+        0
+      ],
+      "subset": "prepared-crop",
+      "width": 64
+    },
+    {
+      "bounded": {
+        "attempts": [
+          {
+            "duration_ns": 45798782,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=143 sse_y=716549 sse_u=536802 sse_v=1291369 workspace_bytes=37824 qindex=100 qdelta_u=8 qdelta_v=8 luma_mode=0 chroma_mode=0"
+          },
+          {
+            "duration_ns": 45567117,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=143 sse_y=716549 sse_u=536802 sse_v=1291369 workspace_bytes=37824 qindex=100 qdelta_u=8 qdelta_v=8 luma_mode=0 chroma_mode=0"
+          }
+        ],
+        "avm_project_exact": true,
+        "decode_time_ns": {
+          "avm": 39735691,
+          "project": 1903883
+        },
+        "decoded_sha256": "8a8faf421f59764d11e3b1c2f81a5d157193722780c7b2683462674828acdb8b",
+        "deterministic": true,
+        "local_sse_matches_decode": true,
+        "obu_bytes": 143,
+        "obu_sha256": "45f0428ca7480323e10cf085c2376fbe3f6322cc4e0337c82eb7ba8ab51f738f",
+        "planes": [
+          {
+            "plane": "y",
+            "sha256": "56e61126a97754d1cb23f047b061e4c655b3d173121f33ed6aa2d7df1faf9562",
+            "sse": 716549
+          },
+          {
+            "plane": "u",
+            "sha256": "4ea3953f1a3b37c7e5d05c7a7619aaf909fdfcfbaefe2baccb028d3205c7b7e7",
+            "sse": 536802
+          },
+          {
+            "plane": "v",
+            "sha256": "26a9657f018b8a710564c6cfba8ecb3d3200d56394685550efb3ed5347e2dd9d",
+            "sse": 1291369
+          }
+        ],
+        "status": "pass",
+        "workspace_bytes": 37824
+      },
+      "crop": [
+        624,
+        400,
+        64,
+        64
+      ],
+      "height": 64,
+      "id": "prepared-pastel-chalks-i444",
+      "off": {
+        "attempts": [
+          {
+            "duration_ns": 42599756,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=148 sse_y=716549 sse_u=536802 sse_v=1291369 workspace_bytes=37824 qindex=100 qdelta_u=0 qdelta_v=0"
+          }
+        ],
+        "avm_project_exact": true,
+        "decode_time_ns": {
+          "avm": 41902877,
+          "project": 1842352
+        },
+        "decoded_sha256": "8a8faf421f59764d11e3b1c2f81a5d157193722780c7b2683462674828acdb8b",
+        "deterministic": true,
+        "local_sse_matches_decode": true,
+        "obu_bytes": 148,
+        "obu_sha256": "de51717e6fe50c9bd2ee0e522aadb65e7fa5cdd5e86e9cf7159525438a36885e",
+        "planes": [
+          {
+            "plane": "y",
+            "sha256": "56e61126a97754d1cb23f047b061e4c655b3d173121f33ed6aa2d7df1faf9562",
+            "sse": 716549
+          },
+          {
+            "plane": "u",
+            "sha256": "4ea3953f1a3b37c7e5d05c7a7619aaf909fdfcfbaefe2baccb028d3205c7b7e7",
+            "sse": 536802
+          },
+          {
+            "plane": "v",
+            "sha256": "26a9657f018b8a710564c6cfba8ecb3d3200d56394685550efb3ed5347e2dd9d",
+            "sse": 1291369
+          }
+        ],
+        "status": "pass",
+        "workspace_bytes": 37824
+      },
+      "pixel_format": "i444",
+      "qindex": 100,
+      "rd_cost_gain": 40,
+      "selected_modes": {
+        "chroma_mode": 0,
+        "luma_mode": 0
+      },
+      "source_id": "pastel-chalks",
+      "source_sha256": "bfa68eb213a1863533a249dd1dcbf53617279d5f44c85bc50cc587e90135dac5",
+      "sse_gain": [
+        0,
+        0,
+        0
+      ],
+      "subset": "prepared-crop",
+      "width": 64
+    },
+    {
+      "bounded": {
+        "attempts": [
+          {
+            "duration_ns": 11697214,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=95 sse_y=2866047 psnr_y=19.68dB workspace_bytes=21376 qindex=100 intra_mode=40"
+          },
+          {
+            "duration_ns": 12271382,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=95 sse_y=2866047 psnr_y=19.68dB workspace_bytes=21376 qindex=100 intra_mode=40"
+          }
+        ],
+        "avm_project_exact": true,
+        "decode_time_ns": {
+          "avm": 39689944,
+          "project": 1332159
+        },
+        "decoded_sha256": "215cccacbd03391d3f0acd3fe4a237f6d4cb82b80b520f3058d8068f588ef379",
+        "deterministic": true,
+        "local_sse_matches_decode": true,
+        "obu_bytes": 95,
+        "obu_sha256": "7dc1b02ff0e44a3f73feedbc8bbe3381e4dacbb2e75e419bbe6f7c86b6ef7ec2",
+        "planes": [
+          {
+            "plane": "y",
+            "sha256": "215cccacbd03391d3f0acd3fe4a237f6d4cb82b80b520f3058d8068f588ef379",
+            "sse": 2866047
+          }
+        ],
+        "status": "pass",
+        "workspace_bytes": 21376
+      },
+      "crop": [
+        208,
+        208,
+        64,
+        64
+      ],
+      "height": 64,
+      "id": "prepared-pitti-ceiling-i400",
+      "off": {
+        "attempts": [
+          {
+            "duration_ns": 5701241,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=100 sse_y=3363207 psnr_y=18.99dB workspace_bytes=21376 qindex=100"
+          }
+        ],
+        "avm_project_exact": true,
+        "decode_time_ns": {
+          "avm": 37589179,
+          "project": 1905769
+        },
+        "decoded_sha256": "862493288c752b9e146a7810560e2af6a7522f5ed18d70682240ddd090532be5",
+        "deterministic": true,
+        "local_sse_matches_decode": true,
+        "obu_bytes": 100,
+        "obu_sha256": "0e81b373c59a62ed48864ab49fdb499724378df3750d247170c60658dff3be3a",
+        "planes": [
+          {
+            "plane": "y",
+            "sha256": "862493288c752b9e146a7810560e2af6a7522f5ed18d70682240ddd090532be5",
+            "sse": 3363207
+          }
+        ],
+        "status": "pass",
+        "workspace_bytes": 21376
+      },
+      "pixel_format": "i400",
+      "qindex": 100,
+      "rd_cost_gain": 127273000,
+      "selected_modes": {
+        "intra_mode": 40
+      },
+      "source_id": "pitti-ceiling",
+      "source_sha256": "e8bbe0b4cc3aa13607696b0cff7a59034fa2e7c435b89672405a7cc412220677",
+      "sse_gain": [
+        497160
+      ],
+      "subset": "prepared-crop",
+      "width": 64
+    },
+    {
+      "bounded": {
+        "attempts": [
+          {
+            "duration_ns": 44221059,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=136 sse_y=3436543 sse_u=169420 sse_v=71618 workspace_bytes=25536 qindex=100 qdelta_u=0 qdelta_v=0 luma_mode=0 chroma_mode=0"
+          },
+          {
+            "duration_ns": 43613297,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=136 sse_y=3436543 sse_u=169420 sse_v=71618 workspace_bytes=25536 qindex=100 qdelta_u=0 qdelta_v=0 luma_mode=0 chroma_mode=0"
+          }
+        ],
+        "avm_project_exact": true,
+        "decode_time_ns": {
+          "avm": 37651826,
+          "project": 1391873
+        },
+        "decoded_sha256": "9a11da341d8912685d726474393b91f4d6201216c11c5c5e46a12a910648fd3b",
+        "deterministic": true,
+        "local_sse_matches_decode": true,
+        "obu_bytes": 136,
+        "obu_sha256": "adb384a5a44191662da56ba2d6f1009ad986637a650cbd95e2c2f3392e2d88ef",
+        "planes": [
+          {
+            "plane": "y",
+            "sha256": "21c7e3e077821225f54d008f49db602eb0dce3a6fd532e5c19e66c46e35f1d55",
+            "sse": 3436543
+          },
+          {
+            "plane": "u",
+            "sha256": "fb0886cfedb7c16ea9c6230be92b0f6202068b4de273db6a83a4cec32f67d052",
+            "sse": 169420
+          },
+          {
+            "plane": "v",
+            "sha256": "ac61e441874f3f5880cb74d0fb02e1fd33f586b93e7ff97cec820414716477b7",
+            "sse": 71618
+          }
+        ],
+        "status": "pass",
+        "workspace_bytes": 25536
+      },
+      "crop": [
+        208,
+        208,
+        64,
+        64
+      ],
+      "height": 64,
+      "id": "prepared-pitti-ceiling-i420",
+      "off": {
+        "attempts": [
+          {
+            "duration_ns": 21423078,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=136 sse_y=3436543 sse_u=169420 sse_v=71618 workspace_bytes=25536 qindex=100 qdelta_u=0 qdelta_v=0"
+          }
+        ],
+        "avm_project_exact": true,
+        "decode_time_ns": {
+          "avm": 39678072,
+          "project": 1334604
+        },
+        "decoded_sha256": "9a11da341d8912685d726474393b91f4d6201216c11c5c5e46a12a910648fd3b",
+        "deterministic": true,
+        "local_sse_matches_decode": true,
+        "obu_bytes": 136,
+        "obu_sha256": "adb384a5a44191662da56ba2d6f1009ad986637a650cbd95e2c2f3392e2d88ef",
+        "planes": [
+          {
+            "plane": "y",
+            "sha256": "21c7e3e077821225f54d008f49db602eb0dce3a6fd532e5c19e66c46e35f1d55",
+            "sse": 3436543
+          },
+          {
+            "plane": "u",
+            "sha256": "fb0886cfedb7c16ea9c6230be92b0f6202068b4de273db6a83a4cec32f67d052",
+            "sse": 169420
+          },
+          {
+            "plane": "v",
+            "sha256": "ac61e441874f3f5880cb74d0fb02e1fd33f586b93e7ff97cec820414716477b7",
+            "sse": 71618
+          }
+        ],
+        "status": "pass",
+        "workspace_bytes": 25536
+      },
+      "pixel_format": "i420",
+      "qindex": 100,
+      "rd_cost_gain": 0,
+      "selected_modes": {
+        "chroma_mode": 0,
+        "luma_mode": 0
+      },
+      "source_id": "pitti-ceiling",
+      "source_sha256": "be6b8e83d1b6e1d2bea8f16dfc3f77b72671d20521f9750ee10a92d737b796e2",
+      "sse_gain": [
+        0,
+        0,
+        0
+      ],
+      "subset": "prepared-crop",
+      "width": 64
+    },
+    {
+      "bounded": {
+        "attempts": [
+          {
+            "duration_ns": 44797672,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=143 sse_y=3436543 sse_u=814799 sse_v=350918 workspace_bytes=37824 qindex=100 qdelta_u=8 qdelta_v=8 luma_mode=0 chroma_mode=0"
+          },
+          {
+            "duration_ns": 45313312,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=143 sse_y=3436543 sse_u=814799 sse_v=350918 workspace_bytes=37824 qindex=100 qdelta_u=8 qdelta_v=8 luma_mode=0 chroma_mode=0"
+          }
+        ],
+        "avm_project_exact": true,
+        "decode_time_ns": {
+          "avm": 39068284,
+          "project": 1628916
+        },
+        "decoded_sha256": "9edc2efe1cf41fec2014eaeaf6ada0c08c575760e7342563d4d2e44e19960bb3",
+        "deterministic": true,
+        "local_sse_matches_decode": true,
+        "obu_bytes": 143,
+        "obu_sha256": "1282f97f48829177ba96d5dc3b82c0e1d3b703f9feb1dd58392a8e9cc8679fe7",
+        "planes": [
+          {
+            "plane": "y",
+            "sha256": "21c7e3e077821225f54d008f49db602eb0dce3a6fd532e5c19e66c46e35f1d55",
+            "sse": 3436543
+          },
+          {
+            "plane": "u",
+            "sha256": "250b73b9d5a1d8602ed6dce3fd26e7eed7e338b05dfb923885b0ea2a80383d3b",
+            "sse": 814799
+          },
+          {
+            "plane": "v",
+            "sha256": "e60942d0cfa3beb7cd2a5dbedb4e4d6f6805cec969afe54c9d9b77daab8948e6",
+            "sse": 350918
+          }
+        ],
+        "status": "pass",
+        "workspace_bytes": 37824
+      },
+      "crop": [
+        208,
+        208,
+        64,
+        64
+      ],
+      "height": 64,
+      "id": "prepared-pitti-ceiling-i444",
+      "off": {
+        "attempts": [
+          {
+            "duration_ns": 42732735,
+            "output_exists": true,
+            "returncode": 0,
+            "stderr": "encoder: bytes=146 sse_y=3436543 sse_u=814799 sse_v=350918 workspace_bytes=37824 qindex=100 qdelta_u=0 qdelta_v=0"
+          }
+        ],
+        "avm_project_exact": true,
+        "decode_time_ns": {
+          "avm": 39994594,
+          "project": 1636529
+        },
+        "decoded_sha256": "9edc2efe1cf41fec2014eaeaf6ada0c08c575760e7342563d4d2e44e19960bb3",
+        "deterministic": true,
+        "local_sse_matches_decode": true,
+        "obu_bytes": 146,
+        "obu_sha256": "234aba050cb46c340ba4a5a7d4e07261eb4265548e0624c618ed9b06d460ea42",
+        "planes": [
+          {
+            "plane": "y",
+            "sha256": "21c7e3e077821225f54d008f49db602eb0dce3a6fd532e5c19e66c46e35f1d55",
+            "sse": 3436543
+          },
+          {
+            "plane": "u",
+            "sha256": "250b73b9d5a1d8602ed6dce3fd26e7eed7e338b05dfb923885b0ea2a80383d3b",
+            "sse": 814799
+          },
+          {
+            "plane": "v",
+            "sha256": "e60942d0cfa3beb7cd2a5dbedb4e4d6f6805cec969afe54c9d9b77daab8948e6",
+            "sse": 350918
+          }
+        ],
+        "status": "pass",
+        "workspace_bytes": 37824
+      },
+      "pixel_format": "i444",
+      "qindex": 100,
+      "rd_cost_gain": 24,
+      "selected_modes": {
+        "chroma_mode": 0,
+        "luma_mode": 0
+      },
+      "source_id": "pitti-ceiling",
+      "source_sha256": "febe2564a7991a260afafbf53d04e8784b9e1b48142ac6944e3977855ff0a973",
+      "sse_gain": [
+        0,
+        0,
+        0
+      ],
+      "subset": "prepared-crop",
+      "width": 64
+    }
+  ],
+  "configuration": {
+    "bounded_candidate_count": 29,
+    "case_count": 28,
+    "chroma_interpolation": "two-sample linear",
+    "dip": false,
+    "formats": [
+      "i400",
+      "i420",
+      "i444"
+    ],
+    "ibp": false,
+    "luma_interpolation": "four-tap IDIF",
+    "mrl_index": 0,
+    "qindex": 100,
+    "syntax_oracle_candidate_count": 56
+  },
+  "corpus": {
+    "prepared_lock_sha256": "f12c63adf93a46066866e85bc7c336594fe27ac1514b34abd0f22ddb494bf97f",
+    "prepared_sources": {
+      "images/prepared/le896/chinnathurai-church/source-896x896-gray8.i400": "b2cda7cf91f932933c3fe022e1628acb21c2f7fe50ac4dc6dc07478dcded6220",
+      "images/prepared/le896/chinnathurai-church/source-896x896-yuv420p8.i420": "44b794261a50593e64014772a07ff6d0fd4d8e567ffb93c9572e95d27f3d7f23",
+      "images/prepared/le896/chinnathurai-church/source-896x896-yuv444p8.i444": "fcdd3a2636c77952884729eb31d5982bb0b4f3072c6768a20138d33ecf32507e",
+      "images/prepared/le896/elbrus-milky-way/source-598x896-gray8.i400": "517e9b5a796b6836d670a0e28a2a4e8517b47bfe496da8f47131be82a9364418",
+      "images/prepared/le896/elbrus-milky-way/source-598x896-yuv420p8.i420": "7409d91a961f881a0e6660fe198137d2514966fd8212c41b0be6ea3bbb22da8a",
+      "images/prepared/le896/elbrus-milky-way/source-598x896-yuv444p8.i444": "0eb6d4f4e7506cb006f1231216e88caa640e98d52091a90ab0575c0bf395e02d",
+      "images/prepared/le896/pastel-chalks/source-896x598-gray8.i400": "b529c7705e11b3c313f95130f2e0e648155fcb87fdf33c7bf87f7cbfa9335d8e",
+      "images/prepared/le896/pastel-chalks/source-896x598-yuv420p8.i420": "0eaffab5a62adfb211e7fb8d68bccd5ed3c5ff818225f73093224e4506929869",
+      "images/prepared/le896/pastel-chalks/source-896x598-yuv444p8.i444": "def0bfc144452d811d76c4a2217b6d2e89d5485eff580a8b166ffbd22358e27b",
+      "images/prepared/le896/pitti-ceiling/source-896x896-gray8.i400": "93a053a6bfd2db1a21a948cb5901b5ef2c69e4962cf25e1385482f47a22c97cd",
+      "images/prepared/le896/pitti-ceiling/source-896x896-yuv420p8.i420": "cb2279bb9801d0193b7ae628620be541004e5ff5abab2b9890b9b5ad09a67cf8",
+      "images/prepared/le896/pitti-ceiling/source-896x896-yuv444p8.i444": "8557dbad21902377f956e7a9e84250476dc6d2d497722963cb3e474e266db7d0"
+    }
+  },
+  "gates": {
+    "all_cases_validated": true,
+    "chroma_directional_wins": true,
+    "deterministic": true,
+    "local_avm_project_exact": true,
+    "no_plane_sse_regression": true,
+    "noncardinal_luma_reachable": true,
+    "prepared_image_wins": true,
+    "rd_cost_nonregression": true,
+    "strict_directional_wins": true
+  },
+  "schema": "av2-encoder-full-directional-gate-v1",
+  "status": "pass",
+  "summary": {
+    "chroma_wins": 4,
+    "median_bounded_time_ns": 43694942,
+    "prepared_wins": 5,
+    "selected_chroma_modes": [
+      0
+    ],
+    "selected_luma_modes": [
+      0,
+      34,
+      39,
+      40,
+      41,
+      46
+    ],
+    "strict_wins": 11,
+    "successful_cases": 28,
+    "total_byte_cost": -48,
+    "total_sse_gain": 5728016,
+    "worst_bounded_time_ns": 87383110
+  }
+}

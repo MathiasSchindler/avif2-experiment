@@ -19,7 +19,7 @@ from generate_cdf_subset import (
 class CdfSubsetTests(unittest.TestCase):
     def test_hashes_counts_and_ranges(self) -> None:
         spec = ENCODER.parents[1] / "docs/spec/av2-v1.0.0/attachments"
-        self.assertEqual(sum(table.rows for table in TABLES), 3347)
+        self.assertEqual(sum(table.rows for table in TABLES), 3350)
         verify_parameter_adjustments(spec)
         for table in TABLES:
             self.assertEqual(len(parse_table(spec, table)), table.rows)

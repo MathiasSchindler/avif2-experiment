@@ -31,6 +31,8 @@ EncStatus enc_syntax_cdfs_init(EncSyntaxCdfs *cdfs) {
     MATERIALIZE_TABLE(
         y_mode_index, enc_norm_y_mode_index, ENC_Y_MODE_INDEX_ROWS, 8U);
     MATERIALIZE_TABLE(
+        y_mode_offset, enc_norm_y_mode_offset, ENC_Y_MODE_OFFSET_ROWS, 6U);
+    MATERIALIZE_TABLE(
         mrl_index, enc_norm_mrl_index, ENC_MRL_INDEX_ROWS, 4U);
     MATERIALIZE_TABLE(is_cfl, enc_norm_is_cfl, ENC_IS_CFL_ROWS, 2U);
     MATERIALIZE_TABLE(uv_mode, enc_norm_uv_mode, ENC_UV_MODE_ROWS, 8U);
@@ -138,7 +140,13 @@ uint16_t *enc_syntax_y_mode_set_cdf(EncSyntaxCdfs *cdfs) {
 }
 
 uint16_t *enc_syntax_y_mode_index_cdf(EncSyntaxCdfs *cdfs, size_t context) {
-    return cdfs != 0 && context < 3U ? cdfs->y_mode_index[context] : 0;
+return cdfs != 0 && context < 3U ? cdfs->y_mode_index[context] : 0;
+}
+
+uint16_t *enc_syntax_y_mode_offset_cdf(
+EncSyntaxCdfs *cdfs, size_t context) {
+return cdfs != 0 && context < ENC_Y_MODE_OFFSET_ROWS
+    ? cdfs->y_mode_offset[context] : 0;
 }
 
 uint16_t *enc_syntax_mrl_index_cdf(EncSyntaxCdfs *cdfs, size_t context) {

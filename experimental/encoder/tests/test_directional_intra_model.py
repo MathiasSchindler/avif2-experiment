@@ -104,7 +104,9 @@ class DirectionalIntraModelTests(TestCase):
             os.environ.get("CC", "cc"), "-std=c11", "-Wall", "-Wextra",
             "-Wpedantic", "-Werror", "-I", str(root / "include"),
             "-I", str(root / "src"),
+            "-I", str(root / "experimental/encoder/include"),
             str(Path(__file__).parent / "directional_intra_project_driver.c"),
+            str(root / "experimental/encoder/src/directional.c"),
             str(library), "-o", str(output),
         ], check=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         self.assertEqual(completed.returncode, 0,

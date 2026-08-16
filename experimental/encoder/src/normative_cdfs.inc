@@ -415,6 +415,13 @@ static const uint16_t enc_norm_y_mode_index[3U][9U] = {
     {5636U, 9004U, 10456U, 12122U, 12744U, 20325U, 25607U, 0U, 0U},
 };
 
+/* default_y_mode_offset_cdf.h sha256: 53279fa370568aa6d098755566252bca56e4f4d26fa25fe76e3c654a737db59c */
+static const uint16_t enc_norm_y_mode_offset[3U][7U] = {
+    {12743U, 18172U, 20194U, 23648U, 26419U, 6U, 0U},
+    {8976U, 16084U, 20827U, 24595U, 28496U, 75U, 0U},
+    {8784U, 14556U, 19710U, 24903U, 28724U, 75U, 0U},
+};
+
 /* default_mrl_index_cdf.h sha256: 07763f90a8d3bea6d382ac40318a3ffd7f906b2e46e261277c04b2cc51659aca */
 static const uint16_t enc_norm_mrl_index[3U][5U] = {
     {29573U, 31193U, 32023U, 78U, 0U},

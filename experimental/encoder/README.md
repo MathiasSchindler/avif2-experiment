@@ -47,14 +47,20 @@ positions. `--search off` retains the frozen legacy DC-only bitstream.
 `--search directional` enables the production predictor-SSE shortlist followed
 by deterministic exact DC/vertical/horizontal complete-stream trials for I400,
 I420, and I444. `--search directional-exact` bypasses only the prefilter and is
-the validator/oracle path. `--search intra` extends that surface with luma
+the validator/oracle path. `--search directional-full` adds the reconstruction-
+safe 90°..180° classic angular surface: V through D113/D135/D157 to H, including
+all legal deltas in that range, with four-tap luma IDIF, linear chroma
+interpolation, normative edge filtering, wide-angle mapping, and MRLS=0.
+`--search directional-full-exact` exercises all 56 classic joint directional
+tokens as a syntax/kernel oracle; outward D45/D67/D203 production admission is
+held back until transform-order reference availability is modeled exactly.
+`--search intra` extends the cardinal surface with luma
 Smooth, Smooth-V, Smooth-H, and Paeth for images up to 64x64; larger images use
 the directional shortlist/runtime policy, and the legacy 8x8/I420-small syntax
-classes retain DC fallback. Chroma remains independently DC-predicted.
-Mode syntax emits exact mode-set/index contexts, FSC=0, MRLS=0 only for V/H,
-and color emits CfL=0 plus DC UV syntax. Each complete-stream trial starts from
-fresh writer/CDF state. Candidates must not regress any plane SSE or bytes;
-stable ties retain DC, V, H, Smooth, Smooth-V, Smooth-H, then Paeth.
+classes retain DC fallback. Full-directional color syntax supports all eight
+base modes and inherited luma deltas; the safe production search currently
+trials V/D113/D135/D157/H chroma bases. Mode syntax emits the complete joint
+mode-set/index/offset grammar, FSC=0, MRLS=0, and CfL=0.
 Search-off hashes remain locked. Directional and intra prediction searches
 remain explicit modes and are not combined with the default AC search.
 
@@ -62,6 +68,11 @@ remain explicit modes and are not combined with the default AC search.
 `metrics/chroma-ac-gate.json`. It requires deterministic output, no per-plane
 SSE regression, strict chroma wins on comparable I420/I444 fixtures, and
 exact local/pinned-AVM/project reconstruction parity.
+
+`make full-directional-gate` reproduces
+`metrics/full-directional-gate.json`: 28 I400/I420/I444 generated and prepared
+cases, 11 strict wins, five prepared-image wins, 5,728,016 total SSE reduction,
+48 fewer bytes, deterministic output, and exact local/AVM/project parity.
 
 Raw planar bytes do not identify their dimensions. With no explicit
 `--width W --height H`, geometry is accepted only from:
