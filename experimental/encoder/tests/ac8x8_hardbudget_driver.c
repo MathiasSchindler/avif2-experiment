@@ -35,7 +35,7 @@ static void search_block_limit(
     size_t positions[ENC_AC8X8_MAX_POSITIONS];
     size_t index;
     if (position_count == 0U) {
-        search_block(samples, pred, qindex, 0, best, reconstructed);
+        search_block(samples, pred, qindex, 0, 0, best, reconstructed);
         return;
     }
     forward8(samples, pred, analysis);

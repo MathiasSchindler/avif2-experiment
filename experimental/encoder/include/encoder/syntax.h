@@ -237,6 +237,12 @@ EncStatus enc_m3_dc_yuv_grid_tile_q(
     const int16_t *y_levels, const int16_t *u_levels,
     const int16_t *v_levels, size_t level_count,
     unsigned int chroma_format_idc, unsigned int qindex);
+EncStatus enc_ac8x8_yuv_grid_tile_q(
+    void *data, size_t capacity, size_t *size,
+    size_t width, size_t height,
+    const int16_t *y_levels, const int16_t *u_levels,
+    const int16_t *v_levels, size_t level_count,
+    unsigned int chroma_format_idc, unsigned int qindex);
 EncStatus enc_m3_intra_yuv_grid_tile_q(
     void *data, size_t capacity, size_t *size,
     size_t width, size_t height,

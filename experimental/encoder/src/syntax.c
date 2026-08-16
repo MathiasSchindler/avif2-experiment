@@ -958,7 +958,8 @@ static size_t ac8x8_br_context(
 
 static EncStatus write_ac8x8_coeff(
         EncRangeWriter *writer, EncSyntaxCdfs *cdfs, const int16_t *levels,
-        size_t skip_context, size_t sign_context, size_t q_context) {
+        size_t skip_context, size_t sign_context, size_t q_context,
+        uint16_t *secondary_tx_cdf) {
         static const uint8_t group_start[9U] = {0U, 1U, 2U, 3U, 5U, 9U, 17U, 33U, 65U};
         static const uint8_t offset_bits[9U] = {0U, 0U, 0U, 1U, 2U, 3U, 4U, 5U, 6U};
         int last = -1;
@@ -1011,6 +1012,11 @@ static EncStatus write_ac8x8_coeff(
                     writer, 0U,
                     enc_syntax_intra_tx_type_set1_cdf(cdfs, 1U),
                     7U, 1) != ENC_OK) {
+                return enc_range_writer_status(writer);
+            }
+            if (eob > 1U && secondary_tx_cdf != 0 &&
+                enc_range_writer_symbol(
+                    writer, 0U, secondary_tx_cdf, 4U, 1) != ENC_OK) {
                 return enc_range_writer_status(writer);
             }
         }
@@ -1174,7 +1180,7 @@ EncStatus enc_ac8x8_coeff_rate(
     status = write_ac8x8_coeff(
         &writer, &cdfs, levels, skip_context, sign_context,
         qindex <= 90U ? 0U : qindex <= 140U ? 1U :
-        qindex <= 190U ? 2U : 3U);
+        qindex <= 190U ? 2U : 3U, 0);
     if (status != ENC_OK) return status;
     *tell_bits = enc_range_writer_tell(&writer);
     return ENC_OK;
@@ -1226,6 +1232,7 @@ typedef struct {
     size_t height;
     const int16_t *levels;
     size_t levels_per_block;
+    uint16_t *secondary_tx_cdf;
     size_t q_context;
     size_t level_index;
     const uint8_t *modes;
@@ -1476,7 +1483,8 @@ static EncStatus write_m3_large_leaf(
                           skip_context, sign_context, state->q_context)
                     : write_ac8x8_coeff(
                           state->writer, state->cdfs, block_levels,
-                          skip_context, sign_context, state->q_context);
+                          skip_context, sign_context, state->q_context,
+                          state->secondary_tx_cdf);
                 if (status != ENC_OK) return status;
                 m3_commit_coeff_context(
                     state, block_x + tx_x, block_y + tx_y,
@@ -1748,7 +1756,8 @@ static EncStatus write_m3_leaf_tail(
                 : write_ac8x8_coeff(
                       state->writer, state->cdfs,
                       m3_block_levels(state, block),
-                      skip_context, sign_context, state->q_context);
+                      skip_context, sign_context, state->q_context,
+                      state->secondary_tx_cdf);
             if (status != ENC_OK) return status;
         }
     }
@@ -1849,6 +1858,7 @@ static EncStatus enc_m3_grid_tile_q(
     state.height = height;
     state.levels = levels;
     state.levels_per_block = levels_per_block;
+    state.secondary_tx_cdf = 0;
     state.level_index = 0U;
     state.modes = modes;
     state.mode_count = mode_count;
@@ -2254,7 +2264,8 @@ static EncStatus enc_m3_yuv_grid_tile_q(
     const int16_t *v_levels, size_t level_count,
     const uint8_t *luma_modes, size_t luma_mode_count,
     const uint8_t *chroma_modes, size_t chroma_mode_count,
-    unsigned int chroma_format_idc, unsigned int qindex) {
+    unsigned int chroma_format_idc, unsigned int qindex,
+    size_t luma_levels_per_block) {
     EncSyntaxCdfs cdfs;
     EncRangeWriter writer;
     EncM3ColorTileState state;
@@ -2264,6 +2275,7 @@ static EncStatus enc_m3_yuv_grid_tile_q(
     size_t row;
     size_t column;
     EncStatus status;
+    uint16_t secondary_tx_cdf[8U];
     if (size == 0 || (data == 0 && capacity != 0U) ||
         y_levels == 0 || u_levels == 0 || v_levels == 0 ||
         width == 0U || height == 0U ||
@@ -2280,6 +2292,14 @@ static EncStatus enc_m3_yuv_grid_tile_q(
     *size = 0U;
     status = enc_syntax_cdfs_init(&cdfs);
     if (status != ENC_OK) return status;
+    if (luma_levels_per_block == 64U) {
+        static const uint16_t thresholds[3U] = {2357U, 9504U, 16641U};
+        status = enc_cdf_materialize(
+            secondary_tx_cdf, 8U, thresholds, 4U, 5U, 0U);
+        if (status != ENC_OK) return status;
+    } else if (luma_levels_per_block != 1U) {
+        return ENC_INVALID_ARGUMENT;
+    }
     enc_range_writer_init(&writer, data, capacity);
     if (width == 8U && height == 8U) {
         uint8_t luma_mode = luma_modes == 0 ? 0U : luma_modes[0U];
@@ -2298,8 +2318,12 @@ static EncStatus enc_m3_yuv_grid_tile_q(
                 &writer, 0U,
                 enc_syntax_tx_do_partition_cdf(&cdfs, 0U, 0U, 1U),
                 2U, 1) != ENC_OK ||
-            write_m3_dc_coeff(
-                &writer, &cdfs, y_levels[0U], 0U, 0U, q_context) != ENC_OK ||
+            (luma_levels_per_block == 1U
+                ? write_m3_dc_coeff(
+                      &writer, &cdfs, y_levels[0U], 0U, 0U, q_context)
+                : write_ac8x8_coeff(
+                      &writer, &cdfs, y_levels, 0U, 0U, q_context,
+                      secondary_tx_cdf)) != ENC_OK ||
             enc_range_writer_symbol(
                 &writer, 0U, enc_syntax_is_cfl_cdf(&cdfs, 0U),
                 2U, 1) != ENC_OK ||
@@ -2328,7 +2352,9 @@ static EncStatus enc_m3_yuv_grid_tile_q(
     state.base.width = width;
     state.base.height = height;
     state.base.levels = y_levels;
-    state.base.levels_per_block = 1U;
+    state.base.levels_per_block = luma_levels_per_block;
+    state.base.secondary_tx_cdf =
+        luma_levels_per_block == 64U ? secondary_tx_cdf : 0;
     state.base.q_context = qindex <= 90U ? 0U :
                            qindex <= 140U ? 1U :
                            qindex <= 190U ? 2U : 3U;
@@ -2351,7 +2377,9 @@ static EncStatus enc_m3_yuv_grid_tile_q(
     luma.width = width;
     luma.height = height;
     luma.levels = y_levels;
-    luma.levels_per_block = 1U;
+    luma.levels_per_block = luma_levels_per_block;
+    luma.secondary_tx_cdf =
+        luma_levels_per_block == 64U ? secondary_tx_cdf : 0;
     luma.q_context = state.base.q_context;
     luma.level_index = 0U;
     luma.modes = luma_modes;
@@ -2449,7 +2477,19 @@ EncStatus enc_m3_dc_yuv_grid_tile_q(
     return enc_m3_yuv_grid_tile_q(
         data, capacity, size, width, height,
         y_levels, u_levels, v_levels, level_count,
-        0, 0U, 0, 0U, chroma_format_idc, qindex);
+        0, 0U, 0, 0U, chroma_format_idc, qindex, 1U);
+}
+
+EncStatus enc_ac8x8_yuv_grid_tile_q(
+    void *data, size_t capacity, size_t *size,
+    size_t width, size_t height,
+    const int16_t *y_levels, const int16_t *u_levels,
+    const int16_t *v_levels, size_t level_count,
+    unsigned int chroma_format_idc, unsigned int qindex) {
+    return enc_m3_yuv_grid_tile_q(
+        data, capacity, size, width, height,
+        y_levels, u_levels, v_levels, level_count,
+        0, 0U, 0, 0U, chroma_format_idc, qindex, 64U);
 }
 
 EncStatus enc_m3_intra_yuv_grid_tile_q(
@@ -2464,7 +2504,7 @@ EncStatus enc_m3_intra_yuv_grid_tile_q(
         data, capacity, size, width, height,
         y_levels, u_levels, v_levels, level_count,
         luma_modes, luma_mode_count, chroma_modes, chroma_mode_count,
-        chroma_format_idc, qindex);
+        chroma_format_idc, qindex, 1U);
 }
 
 EncStatus enc_m3_dc_i420_single_leaf_tile_q(
@@ -2500,6 +2540,7 @@ EncStatus enc_m3_dc_i420_single_leaf_tile_q(
     state.height = height;
     state.levels = y_levels;
     state.levels_per_block = 1U;
+    state.secondary_tx_cdf = 0;
     state.q_context = qindex <= 90U ? 0U :
                       qindex <= 140U ? 1U :
                       qindex <= 190U ? 2U : 3U;

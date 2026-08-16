@@ -1318,7 +1318,9 @@ static EncStatus encode_even_chroma_multileaf(
         void *workspace, size_t workspace_capacity,
         void *stream, size_t stream_capacity,
         EncM3MutableImage8 *reconstruction,
-        EncM3ChromaResult *result) {
+        EncM3ChromaResult *result,
+        int16_t *saved_u_levels, int16_t *saved_v_levels,
+        size_t saved_level_capacity) {
         EncM3ChromaWorkspaceLayout layout;
         EncM3ChromaResult candidate;
         uint8_t sequence[16U];
@@ -1485,6 +1487,16 @@ static EncStatus encode_even_chroma_multileaf(
                 return ENC_INVALID_ARGUMENT;
             }
         }
+        if (saved_u_levels != 0 || saved_v_levels != 0) {
+            if (saved_u_levels == 0 || saved_v_levels == 0 ||
+                saved_level_capacity < layout.transform_count[1U]) {
+                return ENC_OUT_OF_SPACE;
+            }
+            for (plane = 0U; plane < layout.transform_count[1U]; ++plane) {
+                saved_u_levels[plane] = plane_levels[1U][plane];
+                saved_v_levels[plane] = plane_levels[2U][plane];
+            }
+        }
         for (plane = 0U; plane < 3U; ++plane) {
             size_t y;
             candidate.plane_size[plane] = layout.plane_size[plane];
@@ -1637,7 +1649,8 @@ static EncStatus encode_yuv_qdelta(
                 input, qindex, 0U, 0U,
                 qdelta_enabled, u_qdelta, v_qdelta,
                 workspace, workspace_capacity,
-                stream, stream_capacity, reconstruction, result);
+                stream, stream_capacity, reconstruction, result,
+                0, 0, 0U);
         }
         status = enc_m3_query_chroma_workspace(
             input->format, input->width, input->height, &layout);
@@ -1820,6 +1833,22 @@ EncStatus enc_m3_dc_yuv8_q_workspace(
         input, qindex, 0, 0, 0,
         workspace, workspace_capacity, stream, stream_capacity,
         reconstruction, result);
+}
+
+EncStatus enc_m3_dc_yuv8_q_workspace_levels(
+    const EncM3Image8 *input, unsigned int qindex,
+    void *workspace, size_t workspace_capacity,
+    void *stream, size_t stream_capacity,
+    EncM3MutableImage8 *reconstruction,
+    int16_t *u_levels, int16_t *v_levels, size_t level_capacity,
+    EncM3ChromaResult *result) {
+    if (input == 0 || input->width == 8U || input->height == 8U) {
+        return ENC_INVALID_ARGUMENT;
+    }
+    return encode_even_chroma_multileaf(
+        input, qindex, 0U, 0U, 0, 0, 0,
+        workspace, workspace_capacity, stream, stream_capacity,
+        reconstruction, result, u_levels, v_levels, level_capacity);
 }
 
 EncStatus enc_m3_intra_yuv8_q_workspace(
@@ -2009,7 +2038,7 @@ EncStatus enc_m3_intra_yuv8_q_workspace(
                 input, qindex, luma, chroma,
                 0, 0, 0,
                 workspace, workspace_capacity, stream, stream_capacity,
-                reconstruction, &trial);
+                reconstruction, &trial, 0, 0, 0U);
             if (status != ENC_OK) return status;
             if (trial.stream_size > best.stream_size ||
                 trial.squared_error[0U] > best.squared_error[0U] ||
@@ -2046,7 +2075,7 @@ EncStatus enc_m3_intra_yuv8_q_workspace(
         input, qindex, best_luma, best_chroma,
         0, 0, 0,
         workspace, workspace_capacity, stream, stream_capacity,
-        reconstruction, result);
+        reconstruction, result, 0, 0, 0U);
 }
 EncStatus enc_m3_query_workspace(
     size_t width, size_t height, EncM3WorkspaceLayout *layout) {

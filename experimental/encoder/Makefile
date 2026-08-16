@@ -17,6 +17,8 @@ QDELTA_SYNTAX_TEST := $(BUILD)/qdelta-syntax-test
 M3_BOUNDARY_DRIVER := $(BUILD)/m3-boundary-partition-driver
 M4_TEST := $(BUILD)/m4-test
 AC8X8_TEST := $(BUILD)/ac8x8-test
+AC8X8_COLOR_SYNTAX_DRIVER := $(BUILD)/ac8x8-color-syntax-driver
+AC8X8_COLOR_GATE_DRIVER := $(BUILD)/ac8x8-color-gate-driver
 PLATFORM_MEMORY_TEST := $(BUILD)/platform-memory-test
 IMAGE_INPUT_TEST := $(BUILD)/image-input-test
 IMAGE_INPUT_FREESTANDING := $(BUILD)/image-input-freestanding.o
@@ -124,6 +126,21 @@ $(AC8X8_TEST): tests/ac8x8_test.c $(CORE_SOURCES)
 	$(CC) $(CPPFLAGS) -std=c11 -Wall -Wextra -Wpedantic -Werror \
 		-O2 -fno-builtin -o $@ tests/ac8x8_test.c $(CORE_SOURCES)
 
+$(AC8X8_COLOR_SYNTAX_DRIVER): tests/ac8x8_color_syntax_driver.c \
+		src/syntax_cdf.c src/range.c src/cdf.c src/writer.c src/memory.c \
+		src/obu.c
+	@mkdir -p $(dir $@)
+	$(CC) $(CPPFLAGS) -std=c11 -Wall -Wextra -Wpedantic -Werror \
+		-O2 -fno-builtin -o $@ tests/ac8x8_color_syntax_driver.c \
+		src/syntax_cdf.c src/range.c src/cdf.c src/writer.c src/memory.c \
+		src/obu.c
+
+$(AC8X8_COLOR_GATE_DRIVER): tests/ac8x8_color_gate_driver.c $(CORE_SOURCES)
+	@mkdir -p $(dir $@)
+	$(CC) $(CPPFLAGS) -std=c11 -Wall -Wextra -Wpedantic -Werror \
+		-O2 -fno-builtin -o $@ tests/ac8x8_color_gate_driver.c \
+		$(CORE_SOURCES)
+
 $(PLATFORM_MEMORY_TEST): tests/platform_memory_test.c platform/linux.c
 	@mkdir -p $(dir $@)
 	$(CC) $(CPPFLAGS) -std=c11 -Wall -Wextra -Wpedantic -Werror \
@@ -137,6 +154,7 @@ check-generated:
 	$(PYTHON) tools/generate_chroma_cdf_subset.py --check
 	$(PYTHON) tools/generate_input_fixtures.py --check
 	$(PYTHON) tools/ac8x8_model.py --check
+	$(PYTHON) tools/ac8x8_color_syntax_model.py --check
 	$(PYTHON) tools/directional_fast_search.py --check
 
 $(IMAGE_INPUT_TEST): tests/image_input_test.c src/image_input.c src/memory.c
@@ -214,6 +232,8 @@ define run-tests
 		tests/test_m4_ac_model.py tests/test_ac8x8_model.py \
 		tests/test_ac8x8_hardbudget_model.py \
 		tests/test_ac8x8_production.py \
+		tests/test_ac8x8_color_syntax_model.py \
+		tests/test_ac8x8_color_gate.py \
 		tests/test_ac8x8_equalsize_qtrial.py \
 		tests/test_m4_encoder.py \
 		tests/test_raw_planar_input.py \
@@ -226,7 +246,9 @@ test: check-validators check-generated $(BIT_TEST) $(RANGE_TEST) \
 	$(M3_TEST) $(M3_CHROMA_TEST) $(M3_CHROMA_DRIVER) \
 	$(M3_PLANE_QDELTA_DRIVER) \
 	$(QDELTA_SYNTAX_TEST) \
-	$(M3_BOUNDARY_DRIVER) $(M4_TEST) $(AC8X8_TEST) $(PLATFORM_MEMORY_TEST) \
+	$(M3_BOUNDARY_DRIVER) $(M4_TEST) $(AC8X8_TEST) \
+	$(AC8X8_COLOR_SYNTAX_DRIVER) $(PLATFORM_MEMORY_TEST) \
+	$(AC8X8_COLOR_GATE_DRIVER) \
 	$(IMAGE_INPUT_TEST) $(IMAGE_INPUT_FREESTANDING) $(INPUT_PLANAR_TEST) audit
 	$(call run-tests,)
 
@@ -235,6 +257,8 @@ test-unit: check-generated $(BIT_TEST) $(RANGE_TEST) $(M2_MATRIX_DRIVER) \
 	$(M3_PLANE_QDELTA_DRIVER) \
 	$(QDELTA_SYNTAX_TEST) \
 	$(M3_BOUNDARY_DRIVER) $(M4_TEST) $(AC8X8_TEST) \
+	$(AC8X8_COLOR_SYNTAX_DRIVER) \
+	$(AC8X8_COLOR_GATE_DRIVER) \
 	$(PLATFORM_MEMORY_TEST) $(IMAGE_INPUT_TEST) $(IMAGE_INPUT_FREESTANDING) \
 	$(INPUT_PLANAR_TEST) audit
 	$(call run-tests,ENCODER_TEST_UNIT_ONLY=1)

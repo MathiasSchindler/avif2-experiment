@@ -107,15 +107,16 @@ class Ac8x8ProductionTests(unittest.TestCase):
         ], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         self.assertEqual(explicit, obu.read_bytes())
 
-    def test_chroma_admission_is_explicitly_staged(self) -> None:
+    def test_chroma_bounded_search_is_production_reachable(self) -> None:
         source = self.work / "staged-8x8.i444"
         source.write_bytes(bytes([128]) * (8 * 8 * 3))
         completed = subprocess.run([
             str(self.encoder), str(source), "--width", "8", "--height", "8",
             "--search", "bounded", "--output", str(self.work / "staged.obu"),
         ], text=True, capture_output=True)
-        self.assertEqual(completed.returncode, 5)
-        self.assertIn("currently admitted for I400 only", completed.stderr)
+        self.assertEqual(completed.returncode, 0)
+        self.assertTrue((self.work / "staged.obu").is_file())
+        self.assertIn("sse_u=", completed.stderr)
 
 
 if __name__ == "__main__":

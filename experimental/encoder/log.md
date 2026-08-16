@@ -4,6 +4,45 @@ This is an append-only record of decisions, commands, pins, hashes, gate
 results, blockers, and restart points. Do not replace exact values with links
 or “latest”.
 
+## 2026-08-16 — explicit luma AC color admission gate
+
+- **Status:** DONE for todo `encoder-ac8x8-production`.
+- **Surface:** typed `enc_ac8x8_query_yuv8_workspace()` /
+  `enc_ac8x8_yuv8_q_workspace()` plus `.i400`, `.i420`, and `.i444`
+  `--search bounded`; default and `--search off` remain exact.
+- **Gate:** 12/12 deterministic and local/pinned-AVM/project exact; U/V match
+  DC reconstruction; 11 luma wins. I400 prepared multisuperblock safely keeps
+  the baseline.
+- **Rate/resources:** 1,686 bounded bytes versus 777 off (+909), 98,864-byte
+  maximum workspace, 22 ms median and 164 ms worst runtime.
+- **State/syntax:** tile-persistent adaptive CDFs, luma cul-level neighbors,
+  plane-isolated chroma contexts, U-to-V EOB coupling, color stx_flag=0, and
+  q-context thresholds 90/140/190.
+- **Evidence:** `metrics/ac8x8-color-gate.json`; no blockers.
+- **Validation:** clean/full encoder suite passes 179 Python tests plus native,
+  shell, generated, dependency, and static-ELF checks; all 32 project CTests
+  pass; `git diff --check` passes.
+
+- **Status:** BLOCKED for todo `encoder-ac8x8-color-gate`; production core was
+  not changed.
+- **Matrix:** 12 focused I400/I420/I444 cases: odd detail, even texture, edge,
+  and locked prepared-corpus multisuperblock detail; neutral/non-neutral
+  chroma; qindex 60/100/180.
+- **Reachability/parity:** three bounded I400 cases have exact local API,
+  pinned AVM, and project reconstruction. Eight color cases fail explicitly
+  because bounded AC remains I400-only. Pinned AVM rejects the deterministic
+  prepared-detail I400 bounded stream.
+- **Quality/rate:** 2/3 comparable I400 cases win. Those candidates total 237
+  bytes versus 97 search-off bytes (+140); the q180 edge is unchanged.
+- **Passing gates:** deterministic candidate hashes, default == explicit
+  search-off hashes, 59,521-byte maximum workspace, about 8 ms median and
+  163 ms worst bounded runtime, 366,468-byte peak disposable files, and
+  invalid-option/capacity/result-atomic/CLI-atomic paths.
+- **Blockers:** missing I420/I444 CLI and API reachability, incomplete
+  local/AVM/project parity, untestable U/V invariance, one non-win, and one
+  AVM-rejected I400 candidate. Evidence:
+  `metrics/ac8x8-color-gate.json`.
+
 ## 2026-08-16 — 1440-per-axis DC production admission
 
 - **Status:** DONE. The 8-bit I400/I420/I444 DC profile now admits every
@@ -1481,3 +1520,25 @@ prepared images begin at 896x424, so all remain explicit unsupported cases.
   by -3622/-44314/-529398. Peak workspace remains 7263744 bytes.
 - **Runtime/default:** 262.186 s under the 600 s gate. Ordinary default remains
   search-off because the production policy is still an expensive quality mode.
+
+## 2026-08-16 — Production 8x8 luma AC review closure
+
+- **Status:** PASS.
+- **API metadata:** the typed I400 path now reports genuine DC-baseline and
+  bounded-candidate stream sizes and luma SSE, selected output metadata, and
+  the luma transform count. Its detailed workspace offsets describe the
+  actual baseline reconstruction, coded reconstruction, luma coefficients,
+  entropy state, and four contiguous stream-staging buffers.
+- **Aliasing:** input and reconstruction descriptor objects are rejected when
+  they overlap each other, caller workspace, stream storage, or plane storage.
+  Native regressions cover both descriptor types in workspace and stream.
+- **Documentation:** README and feature matrix now consistently describe
+  explicit default-off luma AC for I400/I420/I444, with U/V remaining DC-only.
+- **Focused gate:** all 12 color cases pass with exact local, pinned-AVM, and
+  project-decoder reconstruction parity; 11 comparable cases improve luma
+  SSE. Bounded streams total 1,686 bytes versus 777 bytes for the DC baseline,
+  so the feature remains explicit rather than default-on.
+- **Validation:** clean encoder suite passes 179 Python tests, native tests,
+  generated-data checks, dependency audit, and static ELF/no-undefined-symbol
+  audit. The repository decoder passes all 32 CTests. `git diff --check`
+  passes.

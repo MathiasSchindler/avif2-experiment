@@ -129,6 +129,13 @@ EncStatus enc_m3_dc_yuv8_q_workspace(
     void *stream, size_t stream_capacity,
     EncM3MutableImage8 *reconstruction,
     EncM3ChromaResult *result);
+EncStatus enc_m3_dc_yuv8_q_workspace_levels(
+    const EncM3Image8 *input, unsigned int qindex,
+    void *workspace, size_t workspace_capacity,
+    void *stream, size_t stream_capacity,
+    EncM3MutableImage8 *reconstruction,
+    int16_t *u_levels, int16_t *v_levels, size_t level_capacity,
+    EncM3ChromaResult *result);
 EncStatus enc_m3_intra_yuv8_q_workspace(
     const EncM3Image8 *input, unsigned int qindex, EncM3IntraSearch search,
     void *workspace, size_t workspace_capacity,

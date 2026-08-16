@@ -52,6 +52,13 @@ bound. Chroma mode search remains deferred. The 224-case full-stream gate has
 the locked 90 cases use 276,756 bytes with unchanged plane SSE relative to
 directional and 263.108 seconds aggregate median runtime.
 
+`encoder-ac8x8-production` is complete as an explicit mode.
+`enc_ac8x8_yuv8_q_workspace()` and CLI `--search bounded` cover I400, I420,
+and I444 through 896 while preserving default/search-off streams. The locked
+12-case gate passes deterministic local/pinned-AVM/project parity and U/V
+identity, with 11 luma wins. Default-on is not admitted: bounded streams cost
+1,686 bytes versus 777 search-off bytes.
+
 ## Allocation and ownership
 
 The core never allocates. `enc_query_memory(config, image)` returns checked

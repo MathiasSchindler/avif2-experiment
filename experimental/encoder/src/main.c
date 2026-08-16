@@ -495,6 +495,7 @@ static int run_chroma_encode(const char *input_path,
     EncM3Image8 input;
     EncM3MutableImage8 reconstruction;
     EncM3ChromaWorkspaceLayout layout;
+    EncAc8x8YuvWorkspaceLayout ac_layout;
     EncM3ChromaResult result;
     EncMemoryMapping workspace = {0, 0U};
     EncMemoryMapping stream = {0, 0U};
@@ -506,11 +507,6 @@ static int run_chroma_encode(const char *input_path,
     int result_status = ENC_EXIT_ENCODER;
     int collision_status = validate_output_path(input_path, output_path);
     if (collision_status != ENC_EXIT_OK) return collision_status;
-    if (quality_search == ENC_AC8X8_SEARCH_BOUNDED) {
-        report_error(
-            "encoder: bounded AC search is currently admitted for I400 only\n");
-        return ENC_EXIT_UNSUPPORTED;
-    }
     if (enc_planar_image_validate(image) != ENC_OK ||
         (image->format != ENC_PIXEL_FORMAT_I420_8 &&
          image->format != ENC_PIXEL_FORMAT_I444_8)) {
@@ -523,8 +519,11 @@ static int run_chroma_encode(const char *input_path,
     reconstruction.format = input.format;
     reconstruction.width = input.width;
     reconstruction.height = input.height;
-    status = enc_m3_query_chroma_workspace(input.format, input.width,
-                                           input.height, &layout);
+    status = quality_search == ENC_AC8X8_SEARCH_BOUNDED
+        ? enc_ac8x8_query_yuv8_workspace(
+              input.format, input.width, input.height, &ac_layout)
+        : enc_m3_query_chroma_workspace(
+              input.format, input.width, input.height, &layout);
     if (status == ENC_UNSUPPORTED) {
         report_error("encoder: DC subset supports 1..1440 pixels per axis\n");
         return ENC_EXIT_UNSUPPORTED;
@@ -533,9 +532,18 @@ static int run_chroma_encode(const char *input_path,
         report_error("encoder: chroma workspace geometry overflow\n");
         return ENC_EXIT_ENCODER;
     }
-    if (enc_page_allocate(layout.size, &workspace) != ENC_OK ||
-        enc_page_allocate(layout.stream_capacity, &stream) != ENC_OK ||
-        enc_page_allocate(layout.reconstruction_size,
+    if (enc_page_allocate(
+            quality_search == ENC_AC8X8_SEARCH_BOUNDED
+                ? ac_layout.size : layout.size, &workspace) != ENC_OK ||
+        enc_page_allocate(
+            quality_search == ENC_AC8X8_SEARCH_BOUNDED
+                ? ac_layout.stream_capacity : layout.stream_capacity,
+            &stream) != ENC_OK ||
+        enc_page_allocate(
+            quality_search == ENC_AC8X8_SEARCH_BOUNDED
+                ? ac_layout.plane_size[0U] + ac_layout.plane_size[1U] +
+                      ac_layout.plane_size[2U]
+                : layout.reconstruction_size,
                           &reconstruction_memory) != ENC_OK) {
         report_error("encoder: cannot allocate chroma workspace\n");
         goto cleanup;
@@ -546,21 +554,48 @@ static int run_chroma_encode(const char *input_path,
         input.planes[plane].capacity = image->planes[plane].bytes.size;
         reconstruction.planes[plane].data =
             (uint8_t *)reconstruction_memory.data + offset;
-        reconstruction.planes[plane].stride = layout.plane_width[plane];
-        reconstruction.planes[plane].capacity = layout.plane_size[plane];
-        offset += layout.plane_size[plane];
+        reconstruction.planes[plane].stride =
+            quality_search == ENC_AC8X8_SEARCH_BOUNDED
+                ? ac_layout.plane_width[plane] : layout.plane_width[plane];
+        reconstruction.planes[plane].capacity =
+            quality_search == ENC_AC8X8_SEARCH_BOUNDED
+                ? ac_layout.plane_size[plane] : layout.plane_size[plane];
+        offset += reconstruction.planes[plane].capacity;
     }
-    status = enc_m3_intra_yuv8_q_workspace(
-        &input, (unsigned int)qindex,
-        quality_search == ENC_AC8X8_SEARCH_DIRECTIONAL
-            ? ENC_M3_INTRA_SEARCH_DIRECTIONAL
-            : quality_search == ENC_AC8X8_SEARCH_DIRECTIONAL_EXACT
-                ? ENC_M3_INTRA_SEARCH_DIRECTIONAL_EXACT
-            : quality_search == ENC_AC8X8_SEARCH_INTRA
-                ? ENC_M3_INTRA_SEARCH_INTRA
-            : ENC_M3_INTRA_SEARCH_OFF,
-        workspace.data, workspace.size,
-        stream.data, stream.size, &reconstruction, &result);
+    if (quality_search == ENC_AC8X8_SEARCH_BOUNDED) {
+        EncAc8x8YuvResult ac_result;
+        size_t index;
+        status = enc_ac8x8_yuv8_q_workspace(
+            &input, (unsigned int)qindex,
+            ENC_AC8X8_COEFFICIENT_SEARCH_BOUNDED,
+            workspace.data, workspace.size,
+            stream.data, stream.size, &reconstruction, &ac_result);
+        result.stream_size = ac_result.stream_size;
+        result.workspace_size = ac_result.workspace_size;
+        result.qindex = ac_result.qindex;
+        result.format = ac_result.format;
+        result.u_qdelta = ac_result.u_qdelta;
+        result.v_qdelta = ac_result.v_qdelta;
+        result.luma_mode = ac_result.luma_mode;
+        result.chroma_mode = ac_result.chroma_mode;
+        for (index = 0U; index < 3U; ++index) {
+            result.plane_size[index] = ac_result.plane_size[index];
+            result.transform_count[index] = ac_result.transform_count[index];
+            result.squared_error[index] = ac_result.squared_error[index];
+        }
+    } else {
+        status = enc_m3_intra_yuv8_q_workspace(
+            &input, (unsigned int)qindex,
+            quality_search == ENC_AC8X8_SEARCH_DIRECTIONAL
+                ? ENC_M3_INTRA_SEARCH_DIRECTIONAL
+                : quality_search == ENC_AC8X8_SEARCH_DIRECTIONAL_EXACT
+                    ? ENC_M3_INTRA_SEARCH_DIRECTIONAL_EXACT
+                : quality_search == ENC_AC8X8_SEARCH_INTRA
+                    ? ENC_M3_INTRA_SEARCH_INTRA
+                : ENC_M3_INTRA_SEARCH_OFF,
+            workspace.data, workspace.size,
+            stream.data, stream.size, &reconstruction, &result);
+    }
     if (status != ENC_OK) {
         report_error("encoder: chroma DC encoding failed\n");
         goto cleanup;

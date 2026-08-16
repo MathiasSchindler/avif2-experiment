@@ -85,14 +85,14 @@ append-only [log.md](log.md). Detailed syntax derivations are under
 | Transform | Chroma square and rectangular transforms | **Implemented** | I420 uses the admitted 4x4/4x8/8x4 classes and I444 uses 8x8/8x16/16x8 classes as required by leaf geometry. |
 | Transform | Transform partition syntax | **Implemented** | Fixed square/horizontal/vertical transform splitting is emitted in decoder order. |
 | Transform | Transform partition search | **Not implemented** | Transform subdivision follows fixed leaf geometry. |
-| Transform | DCT_DCT | **Partial** | Full DC behavior is implemented. Explicit I400 `--search bounded` additionally reaches scalar 8x8 DCT_DCT across all coefficient positions; it remains non-default because its locked equal-rate gate failed. |
+| Transform | DCT_DCT | **Partial** | Full DC behavior is implemented. Explicit I400/I420/I444 `--search bounded` reaches general luma 8x8 DCT_DCT through 896; chroma remains DC-only and the mode is non-default because its streams are larger. |
 | Transform | ADST, flip-ADST, identity, and other transform types | **Not implemented** | No general transform-type search or kernels. |
 | Transform | Intra secondary transform (IST) | **Not implemented** | Some sequence paths enable availability, but production coding never selects or reconstructs IST. |
 | Transform | Reduced transform set | **Disabled** | Fixed frame syntax is emitted; there is no transform-set selection policy. |
 | Coefficients | All-zero transform block/skip syntax | **Implemented** | Context-coded all-zero decisions and state updates are covered. |
 | Coefficients | DC coefficient coding | **Implemented** | Signed levels, EOB, base, BR, Golomb/remainder, sign contexts, and immediate neighbor-state commits are implemented. |
-| Coefficients | AC coefficient coding | **Partial** | Explicit I400 `--search bounded` reaches all 64 positions in scalar 8x8 DCT_DCT with signed levels, EOB/base/BR/remainder/sign syntax and exact reconstruction. It is validator-proven but non-default because every tested equal-rate policy missed the locked byte/quality gate. The smaller fixed M4 mode remains available separately. |
-| Coefficients | General scans, EOB classes, base/BR/remainder AC syntax | **Partial** | General 8x8 I400 scan/EOB/base/BR/remainder syntax is reachable through explicit bounded search. Other transform sizes and chroma AC remain model-only. |
+| Coefficients | AC coefficient coding | **Partial** | Explicit I400/I420/I444 `--search bounded` codes signed luma 8x8 coefficients with EOB/base/BR/remainder/sign syntax and exact reconstruction. U/V remain the existing DC-only path. |
+| Coefficients | General scans, EOB classes, base/BR/remainder AC syntax | **Partial** | General luma 8x8 syntax is production-reachable in all three formats; other transform sizes and chroma AC remain absent. |
 | Coefficients | U-to-V coefficient context coupling | **Implemented** | Chroma skip/context selection includes normative U-to-V coupling. |
 | Coefficients | Transform coefficient quantization (TCQ) | **Disabled** | No TCQ state, decisions, or reconstruction path. |
 | Coefficients | Coefficient parity hiding | **Disabled** | No parity-hiding search or syntax. |
@@ -118,7 +118,7 @@ append-only [log.md](log.md). Detailed syntax derivations are under
 | Search | General transform, intra-mode, and partition RD search | **Partial** | Explicit complete-stream intra search selects among DC/V/H and, through 64x64, Smooth/Smooth-V/Smooth-H/Paeth with fresh writer/CDF state, byte and per-plane-SSE non-regression, and stable ties. Bounded AC search exists separately; combined transform/mode search and partition search are absent. |
 | Search | Rate control and target-size encoding | **Not implemented** | Qindex is supplied directly. A tools-only bounded equal-size qindex experiment is validator-backed but blocked by the 29-byte AC-subset floor; it does not change the production CLI. |
 | Reconstruction | Local closed-loop reconstruction | **Implemented** | Prediction, dequantization, inverse DC transforms, clipping, chroma state, edge extension, and active crop match both validators. |
-| Reconstruction | General AC inverse reconstruction | **Partial** | Explicit I400 `--search bounded` has scalar inverse 8x8 DCT_DCT reconstruction for all 64 coefficient positions and matches both validators. Other transform sizes/types and chroma AC reconstruction are absent; the older fixed M4 experiment remains separate. |
+| Reconstruction | General AC inverse reconstruction | **Partial** | Explicit I400/I420/I444 `--search bounded` has scalar inverse luma 8x8 DCT_DCT reconstruction for all 64 coefficient positions and matches both validators. Other transform sizes/types and chroma AC reconstruction are absent; the older fixed M4 experiment remains separate. |
 | Metrics | Per-plane SSE and PSNR | **Implemented** | Active-pixel distortion is reported; chroma results retain per-plane SSE. |
 | Metrics | SSIM | **Not implemented** | No local deterministic SSIM implementation. |
 | Container | AVIF/HEIF (BMFF) muxing | **Out of scope** | Output is elementary `.obu` only. |
@@ -134,9 +134,10 @@ The useful production profile is one 8-bit, one-tile, intra-only Closed Loop
 Key picture in I400, I420, or I444, with both axes in 1..1440 and qindex in
 1..255. It uses a deterministic rectangle-only 64x64-superblock traversal,
 DC prediction, DC-only transform coefficients by default, no in-loop filters,
-and no metadata or container. General 8x8 I400 AC is reachable only through
-the explicit default-off bounded search; the locked quality/rate gate has not
-admitted it as the default. I420/I444 remain DC-only.
+and no metadata or container. General 8x8 luma AC is reachable for
+I400/I420/I444 only through the explicit default-off bounded search; the
+locked quality/rate gate has not admitted it as the default. U/V remain
+DC-only.
 
 When a new coding tool becomes reachable, this matrix should be updated only
 after its local reconstruction and emitted syntax pass the required validator
@@ -170,7 +171,8 @@ is implemented.
 
 | Surface | Status | Evidence |
 |---|---|---|
-| I400, explicit `--search bounded` | **Experimental / validator-proven** | Scalar forward/inverse DCT_DCT, all 64 coefficient positions, adaptive syntax, bounded search, caller workspace, and complete-stream parity across q contexts/crops/multileaf/superblocks. |
+| I400/I420/I444, explicit `--search bounded` | **Production-reachable / validator-proven** | Scalar forward/inverse luma DCT_DCT, all 64 coefficient positions, adaptive syntax, and caller workspace are reachable. The focused 12-case gate has exact local, pinned-AVM, and project-decoder reconstruction parity with 11 luma wins. U/V remain DC-only. |
 | I400 default | **Legacy DC-only** | Default is `--search off`; legacy streams remain selectable. |
-| I420/I444 AC | **Not admitted** | Chroma/luma coefficient-context and rate-budget integration is staged; bounded search fails explicitly. |
+| I420/I444 explicit luma AC | **Implemented** | The CLI and typed caller-workspace API apply bounded AC search to Y while preserving the existing DC-only U/V reconstruction. |
+| Explicit luma AC color gate | **Passed** | All 12 I400/I420/I444 cases pass with exact local/AVM/project parity and 11 luma wins. The streams cost 1,686 vs 777 baseline bytes, so the feature remains explicit and default-off; see `metrics/ac8x8-color-gate.json`. |
 | Default-on quality feature | **Blocked** | Locked byte and minimum-win gates fail; see `metrics/ac8x8-production.json`. |
