@@ -3,7 +3,14 @@ CC := clang
 endif
 AR ?= ar
 NM ?= nm
-JOBS ?= $(or $(NUMBER_OF_PROCESSORS),$(shell getconf _NPROCESSORS_ONLN 2>/dev/null),$(shell sysctl -n hw.ncpu 2>/dev/null),1)
+JOBS ?= $(or $(NUMBER_OF_PROCESSORS),$(shell nproc 2>/dev/null),$(shell getconf _NPROCESSORS_ONLN 2>/dev/null),$(shell sysctl -n hw.ncpu 2>/dev/null),1)
+ifeq ($(filter -j% --jobs%,$(MAKEFLAGS)),)
+MAKEFLAGS += -j$(JOBS)
+endif
+
+USE_CCACHE ?= 1
+CCACHE ?= $(shell command -v ccache 2>/dev/null)
+COMPILE_CC = $(if $(filter 1,$(USE_CCACHE)),$(if $(CCACHE),$(CCACHE) ))$(CC)
 
 CORE_SOURCES := \
 	src/base.c \
@@ -59,7 +66,7 @@ CORE_SOURCES := \
 	src/decoder/transform_map.c \
 	src/decoder/tx_geometry.c
 
-COMMON_WARNINGS := -std=c11 -Wall -Wextra -Wpedantic -Werror
+COMMON_WARNINGS := -std=c11 -Wall -Wextra -Wpedantic -Werror -pipe
 FREESTANDING_CFLAGS := $(COMMON_WARNINGS) -O2 \
 	-ffreestanding -fno-builtin -fno-stack-protector \
 	-fno-unwind-tables -fno-asynchronous-unwind-tables \
@@ -148,20 +155,27 @@ NEWOS_LINKER_CFLAGS := $(COMMON_WARNINGS) -O2 -fno-lto \
 	-Itools/macho_linker/newos/src/platform/common \
 	-DCOMPILER_LINKER_ENABLE_REPORTING=1
 
+NOLIBC_OPT_CFLAGS ?= -Oz
+NOLIBC_LTO ?= 1
+NOLIBC_LTO_CFLAGS := $(if $(filter 1,$(NOLIBC_LTO)),-flto=full)
+LLVM_NM ?= $(shell major=$$($(firstword $(CC)) -dumpversion 2>/dev/null | cut -d. -f1); \
+	command -v llvm-nm-$$major 2>/dev/null || command -v llvm-nm 2>/dev/null || printf '%s' '$(NM)')
+NOLIBC_NM := $(if $(filter 1,$(NOLIBC_LTO)),$(LLVM_NM),$(NM))
+
 ifeq ($(HOST_SYSTEM),Darwin)
 NOLIBC_BUILD_DIR ?= build/macos-nolibc-arm64
-NOLIBC_CORE_EXTRA_CFLAGS := -flto=full
-NOLIBC_RUNTIME_EXTRA_CFLAGS := -flto=full
-NOLIBC_PLATFORM_EXTRA_CFLAGS := -flto=full -fno-common -fno-jump-tables
+NOLIBC_CORE_EXTRA_CFLAGS := $(NOLIBC_OPT_CFLAGS) $(NOLIBC_LTO_CFLAGS)
+NOLIBC_RUNTIME_EXTRA_CFLAGS := $(NOLIBC_OPT_CFLAGS) $(NOLIBC_LTO_CFLAGS)
+NOLIBC_PLATFORM_EXTRA_CFLAGS := $(NOLIBC_OPT_CFLAGS) $(NOLIBC_LTO_CFLAGS) -fno-common -fno-jump-tables
 NOLIBC_PLATFORM_C_SOURCES := src/platform/nolibc/decoder.c src/platform/macos/runtime.c
 NOLIBC_PLATFORM_ASM_SOURCES := src/arch/aarch64/macos/runtime.S
 NEWOS_LINKER_CFLAGS += -Itools/macho_linker/newos/src/shared
 NEWOS_LINKER_LDFLAGS := -fno-lto -Wl,-dead_strip
 else
 NOLIBC_BUILD_DIR ?= build/linux-nolibc
-NOLIBC_CORE_EXTRA_CFLAGS := -fno-jump-tables -fno-pic -fno-pie
-NOLIBC_RUNTIME_EXTRA_CFLAGS := -fno-pic -fno-pie
-NOLIBC_PLATFORM_EXTRA_CFLAGS := -fno-pic -fno-pie
+NOLIBC_CORE_EXTRA_CFLAGS := $(NOLIBC_OPT_CFLAGS) $(NOLIBC_LTO_CFLAGS) -fno-jump-tables -fno-pic -fno-pie
+NOLIBC_RUNTIME_EXTRA_CFLAGS := $(NOLIBC_OPT_CFLAGS) $(NOLIBC_LTO_CFLAGS) -fno-pic -fno-pie
+NOLIBC_PLATFORM_EXTRA_CFLAGS := $(NOLIBC_OPT_CFLAGS) $(NOLIBC_LTO_CFLAGS) -fno-pic -fno-pie
 NOLIBC_PLATFORM_C_SOURCES := src/platform/nolibc/decoder.c src/platform/linux/runtime.c
 NEWOS_LINKER_CFLAGS += -idirafter tools/macho_linker/newos/src/shared
 NEWOS_LINKER_LDFLAGS := -fno-lto -Wl,--gc-sections
@@ -169,7 +183,9 @@ ifneq ($(filter x86_64 amd64 AMD64,$(HOST_ARCH)),)
 NOLIBC_PLATFORM_ASM_SOURCES := src/arch/x86_64/linux/runtime.S
 else
 NOLIBC_PLATFORM_ASM_SOURCES := src/arch/aarch64/linux/runtime.S
+NOLIBC_CORE_EXTRA_CFLAGS += -mno-outline-atomics
 NOLIBC_RUNTIME_EXTRA_CFLAGS += -mno-outline-atomics
+NOLIBC_PLATFORM_EXTRA_CFLAGS += -mno-outline-atomics
 endif
 endif
 
@@ -194,7 +210,11 @@ VIEWER_BUILD_ARGS ?= --skip-assets --jobs $(JOBS)
 
 .PHONY: all decoder nolibc clean wasm reference-gallery census
 
+ifeq ($(HOST_SYSTEM),Linux)
+all: nolibc
+else
 all: decoder
+endif
 
 decoder:
 ifeq ($(OS),Windows_NT)
@@ -211,7 +231,7 @@ $(CENSUS): tools/census/census.c $(AVM_BUILD_DIR)/libavm.a
 
 $(NATIVE_BUILD_DIR)/obj/%.o: %.c
 	@mkdir -p $(@D)
-	$(CC) $(FREESTANDING_CFLAGS) -c $< -o $@
+	$(COMPILE_CC) $(FREESTANDING_CFLAGS) -c $< -o $@
 
 $(NATIVE_LIBRARY): $(NATIVE_OBJECTS)
 	@mkdir -p $(@D)
@@ -257,29 +277,29 @@ endif
 
 $(NOLIBC_BUILD_DIR)/obj/core/%.o: %.c
 	@mkdir -p $(@D)
-	$(CC) $(FREESTANDING_CFLAGS) $(NOLIBC_CORE_EXTRA_CFLAGS) -c $< -o $@
+	$(COMPILE_CC) $(FREESTANDING_CFLAGS) $(NOLIBC_CORE_EXTRA_CFLAGS) -c $< -o $@
 
 $(NOLIBC_BUILD_DIR)/obj/runtime/%.o: %.c
 	@mkdir -p $(@D)
-	$(CC) $(COMMON_WARNINGS) -O2 -ffreestanding -fno-builtin \
+	$(COMPILE_CC) $(COMMON_WARNINGS) -ffreestanding -fno-builtin \
 		-fno-stack-protector -fno-unwind-tables -fno-asynchronous-unwind-tables \
 		-ffunction-sections -fdata-sections -nostdinc -Isrc -Isrc/shared \
 		$(NOLIBC_RUNTIME_EXTRA_CFLAGS) -c $< -o $@
 
 $(NOLIBC_BUILD_DIR)/obj/runtime/%.o: %.S
 	@mkdir -p $(@D)
-	$(CC) $(NOLIBC_RUNTIME_EXTRA_CFLAGS) -c $< -o $@
+	$(COMPILE_CC) $(NOLIBC_RUNTIME_EXTRA_CFLAGS) -c $< -o $@
 
 $(NOLIBC_BUILD_DIR)/obj/platform/%.o: %.c
 	@mkdir -p $(@D)
-	$(CC) $(COMMON_WARNINGS) -Oz -ffreestanding -fno-builtin \
+	$(COMPILE_CC) $(COMMON_WARNINGS) -ffreestanding -fno-builtin \
 		-fno-stack-protector -fno-unwind-tables -fno-asynchronous-unwind-tables \
 		-ffunction-sections -fdata-sections -nostdinc -Iinclude -Isrc -Isrc/shared \
 		$(NOLIBC_PLATFORM_EXTRA_CFLAGS) -c $< -o $@
 
 $(NOLIBC_BUILD_DIR)/obj/platform/%.o: %.S
 	@mkdir -p $(@D)
-	$(CC) $(NOLIBC_PLATFORM_EXTRA_CFLAGS) -c $< -o $@
+	$(COMPILE_CC) $(NOLIBC_PLATFORM_EXTRA_CFLAGS) -c $< -o $@
 
 $(NOLIBC_LINKER): $(NEWOS_LINKER_SOURCES)
 	@mkdir -p $(@D)
@@ -293,39 +313,41 @@ $(NOLIBC_DECODER): $(NOLIBC_LINKER) $(NOLIBC_PLATFORM_OBJECTS) $(NOLIBC_CORE_OBJ
 else
 ifneq ($(filter x86_64 amd64 AMD64,$(HOST_ARCH)),)
 $(NOLIBC_DECODER): $(NOLIBC_LINKER) $(NOLIBC_PLATFORM_OBJECTS) $(NOLIBC_CORE_OBJECTS) $(NOLIBC_RUNTIME_OBJECTS)
-	$(NOLIBC_LINKER) --target=elf64-x86_64 --gc-sections --entry=_start \
+	$(NOLIBC_LINKER) --target=elf64-x86_64 --gc-sections --icf=safe --entry=_start \
+		$(if $(filter 1,$(NOLIBC_LTO)),--lto-cc=$(firstword $(CC))) \
 		-o $@ $(NOLIBC_PLATFORM_OBJECTS) $(NOLIBC_CORE_OBJECTS) $(NOLIBC_RUNTIME_OBJECTS)
 else
 $(NOLIBC_DECODER): $(NOLIBC_PLATFORM_OBJECTS) $(NOLIBC_CORE_OBJECTS) $(NOLIBC_RUNTIME_OBJECTS)
-	$(CC) -nostdlib -static -fuse-ld=lld -Wl,-e,_start \
-		-Wl,--gc-sections,--build-id=none -o $@ $^
+	$(CC) $(NOLIBC_LTO_CFLAGS) -nostdlib -static -fuse-ld=lld -Wl,-e,_start \
+		-Wl,--gc-sections,--icf=safe,--build-id=none -o $@ $^
 endif
 endif
 
 $(NOLIBC_CORE_STAMP): $(NOLIBC_CORE_OBJECTS) scripts/check-undefined-symbols.sh
 	@mkdir -p $(@D)
-	@sh scripts/check-undefined-symbols.sh "$(NM)" $(NOLIBC_CORE_OBJECTS)
+	@sh scripts/check-undefined-symbols.sh "$(NOLIBC_NM)" $(NOLIBC_CORE_OBJECTS)
 	@touch $@
 
 $(NOLIBC_RUNTIME_STAMP): $(NOLIBC_RUNTIME_OBJECTS) scripts/check-undefined-symbols.sh
 	@mkdir -p $(@D)
-	@sh scripts/check-undefined-symbols.sh "$(NM)" $(NOLIBC_RUNTIME_OBJECTS)
+	@sh scripts/check-undefined-symbols.sh "$(NOLIBC_NM)" $(NOLIBC_RUNTIME_OBJECTS)
 	@touch $@
 
 $(NOLIBC_BUILD_DIR)/obj/substrate/%.o: %.c
 	@mkdir -p $(@D)
-	$(CC) $(COMMON_WARNINGS) -Oz -ffreestanding -fno-builtin \
+	$(COMPILE_CC) $(COMMON_WARNINGS) -Oz -ffreestanding -fno-builtin \
 		-fno-stack-protector -fno-unwind-tables -fno-asynchronous-unwind-tables \
 		-ffunction-sections -fdata-sections -fno-pic -fno-pie -nostdinc \
 		-Isrc -Isrc/shared -c $< -o $@
 
 $(NOLIBC_BUILD_DIR)/obj/substrate/%.o: %.S
 	@mkdir -p $(@D)
-	$(CC) -fno-pic -fno-pie -c $< -o $@
+	$(COMPILE_CC) -fno-pic -fno-pie -c $< -o $@
 
 $(NOLIBC_SUBSTRATE): $(NOLIBC_LINKER) $(NOLIBC_SUBSTRATE_C_OBJECTS) \
 		$(NOLIBC_SUBSTRATE_ASM_OBJECTS) $(NOLIBC_RUNTIME_OBJECTS)
-	$(NOLIBC_LINKER) --target=elf64-x86_64 --gc-sections --entry=_start \
+	$(NOLIBC_LINKER) --target=elf64-x86_64 --gc-sections --icf=safe --entry=_start \
+		$(if $(filter 1,$(NOLIBC_LTO)),--lto-cc=$(firstword $(CC))) \
 		-o $@ $(NOLIBC_SUBSTRATE_C_OBJECTS) $(NOLIBC_SUBSTRATE_ASM_OBJECTS) \
 		$(NOLIBC_RUNTIME_OBJECTS)
 
@@ -421,7 +443,7 @@ windows-arm64:
 
 $(WINDOWS_BUILD_DIR)/obj/core/%.o: %.c
 	@mkdir -p $(@D)
-	$(CC) $(WINDOWS_CFLAGS) -c $< -o $@
+	$(COMPILE_CC) $(WINDOWS_CFLAGS) -c $< -o $@
 
 $(WINDOWS_LIBRARY): $(WINDOWS_CORE_OBJECTS)
 	@mkdir -p $(@D)
@@ -434,7 +456,7 @@ $(WINDOWS_IMPORT_LIBRARY): src/platform/windows/kernel32.def
 
 $(WINDOWS_BUILD_DIR)/obj/platform/%.o: %.c
 	@mkdir -p $(@D)
-	$(CC) $(WINDOWS_CFLAGS) -Oz -Isrc/shared -c $< -o $@
+	$(COMPILE_CC) $(WINDOWS_CFLAGS) -Oz -Isrc/shared -c $< -o $@
 
 $(WINDOWS_DECODER): $(WINDOWS_DECODER_OBJECT) $(WINDOWS_LIBRARY) $(WINDOWS_IMPORT_LIBRARY)
 	$(CC) --target=$(WINDOWS_TARGET) -nostdlib -fuse-ld=lld \
@@ -461,12 +483,14 @@ $(WINDOWS_SMOKE): $(WINDOWS_SMOKE_OBJECT) $(WINDOWS_LIBRARY) $(WINDOWS_IMPORT_LI
 	test-decoder-evidence test-reconstruction test-filter-parity \
 	intrabc-admission tcq-pilot
 
+.NOTPARALLEL: test test-extended 10bit-wp0-reference
+
 test: test-c test-corpus test-reference-locks test-freestanding
 	$(PYTHON) -m unittest discover -s tests -p 'test_*.py'
 
 $(HOST_BUILD_DIR)/obj/core/%.o: %.c
 	@mkdir -p $(@D)
-	$(CC) $(HOST_CFLAGS) -c $< -o $@
+	$(COMPILE_CC) $(HOST_CFLAGS) -c $< -o $@
 
 $(HOST_LIBRARY): $(HOST_CORE_OBJECTS)
 	@mkdir -p $(@D)
@@ -475,13 +499,13 @@ $(HOST_LIBRARY): $(HOST_CORE_OBJECTS)
 
 $(HOST_BUILD_DIR)/obj/runtime/%.o: %.c
 	@mkdir -p $(@D)
-	$(CC) $(COMMON_WARNINGS) -O2 -ffreestanding -fno-builtin \
+	$(COMPILE_CC) $(COMMON_WARNINGS) -O2 -ffreestanding -fno-builtin \
 		-fno-stack-protector -fno-unwind-tables -fno-asynchronous-unwind-tables \
 		-ffunction-sections -fdata-sections -nostdinc -Isrc -Isrc/shared -c $< -o $@
 
 $(HOST_BUILD_DIR)/obj/runtime/%.o: %.S
 	@mkdir -p $(@D)
-	$(CC) -c $< -o $@
+	$(COMPILE_CC) -c $< -o $@
 
 $(HOST_RUNTIME_LIBRARY): $(HOST_RUNTIME_OBJECTS)
 	@mkdir -p $(@D)

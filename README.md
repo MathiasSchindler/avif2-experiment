@@ -71,15 +71,31 @@ AV2 conformance or security.
 ## Build and test
 
 GNU Make, Clang, `ar`, Python 3, and standard Unix command-line tools are
-required. Build the native decoder with:
+required. Build the platform default with:
 
 ```sh
 make
 ```
 
+On Linux, plain `make` builds and validates the size-optimized no-libc static
+ELF at `build/linux-nolibc/av2heif-decoder-nolibc`; it is equivalent to
+`make nolibc`. Build the libc-backed POSIX decoder explicitly with:
+
+```sh
+make decoder
+```
+
+That hosted executable is written to `build/native/av2heif-decoder`.
+
 The Makefile contains the authoritative source lists and invokes the compiler,
 archiver, linker, and tests directly. It does not use CMake, Ninja, generated
 dependency files, or a separate test registry.
+
+Builds use one GNU Make job per available processor by default and use `ccache`
+when it is installed. An explicit job count takes precedence, for example
+`make -j4`; `make JOBS=4` changes the project-wide default. Set
+`USE_CCACHE=0` to compile without the cache. Compile-only commands also use
+`-pipe` to avoid temporary preprocessor files.
 
 With the generated corpus assets present, run the hosted, corpus,
 reference-lock, freestanding, and Python gates:
@@ -126,6 +142,20 @@ ELF backend. The macOS build requires the Apple Command Line Tools. The
 resulting binaries have no libc or other dynamic library dependency. Both
 platform paths run their artifact inspection and exact decode parity tests as
 part of `make nolibc`.
+
+No-libc builds follow newos's size-first policy: Clang `-Oz`, full LTO, section
+garbage collection, and safe identical-code folding. On Linux x86-64 this
+reduces the decoder ELF by about 15.5% compared with the former `-O2` build.
+The size build was about 40% slower on the local high-detail fixture, so use the
+speed-oriented profile when decode throughput matters:
+
+```sh
+make nolibc NOLIBC_BUILD_DIR=build/linux-nolibc-o2 \
+  NOLIBC_OPT_CFLAGS=-O2 NOLIBC_LTO=0
+```
+
+Using `-Os` with LTO disabled is a middle ground. Use a separate build directory
+or run `make clean` when changing compiler flags.
 
 Build the browser decoder and viewer assets with:
 
