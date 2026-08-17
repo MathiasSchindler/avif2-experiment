@@ -23,6 +23,7 @@ M3_I400_INTRA_DRIVER := $(BUILD)/m3-i400-intra-driver
 QDELTA_SYNTAX_TEST := $(BUILD)/qdelta-syntax-test
 M3_BOUNDARY_DRIVER := $(BUILD)/m3-boundary-partition-driver
 M4_TEST := $(BUILD)/m4-test
+M4_PARTITION_TEST := $(BUILD)/m4-partition-test
 AC8X8_TEST := $(BUILD)/ac8x8-test
 AC8X8_COLOR_SYNTAX_DRIVER := $(BUILD)/ac8x8-color-syntax-driver
 AC8X8_COLOR_GATE_DRIVER := $(BUILD)/ac8x8-color-gate-driver
@@ -54,7 +55,8 @@ ENCODER_OBJECTS := $(patsubst %.c,$(BUILD)/%.o,$(filter %.c,$(ENCODER_SOURCES)))
 	smooth-paeth-full-gate plane-qdelta-gate blockiness-m0 \
 	blocky-m1-transaction-test blocky-m1-oracle-test \
 	blocky-m1-parity-test blocky-m1-diagnostic \
-	blocky-m1-corpus-frontier blocky-m1-full-gate blocky-m1-gate
+	blocky-m1-corpus-frontier blocky-m1-full-gate blocky-m1-gate \
+	blocky-m4-partition-gate
 
 all: $(TARGET)
 
@@ -169,6 +171,11 @@ $(M4_TEST): tests/m4_test.c $(CORE_SOURCES)
 	$(CC) $(CPPFLAGS) -std=c11 -Wall -Wextra -Wpedantic -Werror \
 		-O2 -fno-builtin -o $@ tests/m4_test.c $(CORE_SOURCES)
 
+$(M4_PARTITION_TEST): tests/m4_partition_test.c $(CORE_SOURCES)
+	@mkdir -p $(dir $@)
+	$(CC) $(CPPFLAGS) -std=c11 -Wall -Wextra -Wpedantic -Werror \
+		-O2 -fno-builtin -o $@ tests/m4_partition_test.c $(CORE_SOURCES)
+
 $(AC8X8_TEST): tests/ac8x8_test.c $(CORE_SOURCES)
 	@mkdir -p $(dir $@)
 	$(CC) $(CPPFLAGS) -std=c11 -Wall -Wextra -Wpedantic -Werror \
@@ -264,6 +271,7 @@ define run-tests
 	./$(M3_CHROMA_TEST)
 	./$(QDELTA_SYNTAX_TEST)
 	./$(M4_TEST)
+	./$(M4_PARTITION_TEST)
 	./$(AC8X8_TEST)
 	./$(PLATFORM_MEMORY_TEST)
 	./$(IMAGE_INPUT_TEST)
@@ -309,6 +317,7 @@ define run-tests
 		tests/test_ac8x8_color_gate.py \
 		tests/test_chroma_ac_production.py \
 		tests/test_ac8x8_equalsize_qtrial.py \
+		tests/test_m4_partition_rd.py \
 		tests/test_m4_encoder.py \
 		tests/test_raw_planar_input.py \
 		tests/test_encoder_input_integration.py \
@@ -323,7 +332,7 @@ test: check-validators check-generated $(BIT_TEST) $(RANGE_TEST) \
 	$(M3_PLANE_QDELTA_DRIVER) $(M3_PLANE_QDELTA_PRODUCTION_DRIVER) \
 	$(M3_I400_INTRA_DRIVER) \
 	$(QDELTA_SYNTAX_TEST) \
-	$(M3_BOUNDARY_DRIVER) $(M4_TEST) $(AC8X8_TEST) \
+	$(M3_BOUNDARY_DRIVER) $(M4_TEST) $(M4_PARTITION_TEST) $(AC8X8_TEST) \
 	$(AC8X8_COLOR_SYNTAX_DRIVER) $(PLATFORM_MEMORY_TEST) \
 	$(AC8X8_COLOR_GATE_DRIVER) \
 	$(IMAGE_INPUT_TEST) $(IMAGE_INPUT_FREESTANDING) $(INPUT_PLANAR_TEST) audit
@@ -337,7 +346,7 @@ test-unit: check-generated $(BIT_TEST) $(RANGE_TEST) $(M2_MATRIX_DRIVER) \
 	$(M3_PLANE_QDELTA_DRIVER) $(M3_PLANE_QDELTA_PRODUCTION_DRIVER) \
 	$(M3_I400_INTRA_DRIVER) \
 	$(QDELTA_SYNTAX_TEST) \
-	$(M3_BOUNDARY_DRIVER) $(M4_TEST) $(AC8X8_TEST) \
+	$(M3_BOUNDARY_DRIVER) $(M4_TEST) $(M4_PARTITION_TEST) $(AC8X8_TEST) \
 	$(AC8X8_COLOR_SYNTAX_DRIVER) \
 	$(AC8X8_COLOR_GATE_DRIVER) \
 	$(PLATFORM_MEMORY_TEST) $(IMAGE_INPUT_TEST) $(IMAGE_INPUT_FREESTANDING) \
@@ -401,6 +410,11 @@ blocky-m1-full-gate: all check-validators
 		--project-decoder "$(PROJECT_DECODER)"
 
 blocky-m1-gate: blocky-m1-full-gate
+
+blocky-m4-partition-gate: all check-validators
+	$(PYTHON) tools/blocky_m4_partition_gate.py \
+		--avmdec "$(AVMDEC)" \
+		--project-decoder "$(PROJECT_DECODER)"
 
 clean:
 	rm -rf "$(BUILD)"

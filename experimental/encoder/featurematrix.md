@@ -65,7 +65,7 @@ append-only [log.md](log.md). Detailed syntax derivations are under
 | Blocks | 128x128 and 256x256 superblocks | **Disabled** | Sequence selection is fixed to 64x64 superblocks. |
 | Blocks | Boundary-implied partitioning | **Implemented** | Active dimensions are rounded to the normative MI boundary and out-of-frame branches are inferred. |
 | Blocks | Rectangle partition traversal | **Implemented** | The fixed depth-first tree uses legal horizontal/vertical splits and 8x8, 8x16, 16x8, and 16x16 luma-reference leaves. |
-| Blocks | General partition search | **Not implemented** | There is one deterministic legal tree, not RD selection among legal partition candidates. |
+| Blocks | General partition search | **Experimental / blocked** | `--search partition-rd` trials only the fixed 16x16 leaf versus its four-8x8 transform subdivision at bounded I400 positions. It is not the AV2 partition universe, and emitted 16x16 winners remain disabled by the exact-parity safety gate. |
 | Blocks | Extended and uneven partition choices | **Partial** | Sequence syntax and the fixed tree use the required rectangle grammar, but general extended/uneven candidate search is absent. |
 | Blocks | Square split at 128x128/256x256 | **Not implemented** | Those superblock sizes and their square-split choices are not used. |
 | Blocks | Partition contexts across superblocks | **Implemented** | Above/left partition state and normative row resets are implemented for the fixed production traversal. |
@@ -84,7 +84,7 @@ append-only [log.md](log.md). Detailed syntax derivations are under
 | Transform | 8x8 transform grid for luma | **Implemented** | M3 reconstructs every fixed leaf as one or more 8x8 DC transforms. |
 | Transform | Chroma square and rectangular transforms | **Implemented** | I420 uses the admitted 4x4/4x8/8x4 classes and I444 uses 8x8/8x16/16x8 classes as required by leaf geometry. |
 | Transform | Transform partition syntax | **Implemented** | Fixed square/horizontal/vertical transform splitting is emitted in decoder order. |
-| Transform | Transform partition search | **Not implemented** | Transform subdivision follows fixed leaf geometry. |
+| Transform | Transform partition search | **Experimental / blocked** | The additive M4 path uses live exact transactions for 16x16 no-split versus four 8x8 transforms. Synthetic candidate telemetry selects both, but final output falls back to admitted `rd` whenever a 16x16 candidate wins. |
 | Transform | DCT_DCT | **Implemented** | Default I400/I420/I444 encoding applies scalar DCT_DCT AC search to the production 4x4-through-16x16 square/rectangular luma and chroma transform set through 1440 per axis. |
 | Transform | ADST, flip-ADST, identity, and other transform types | **Not implemented** | No general transform-type search or kernels. |
 | Transform | Intra secondary transform (IST) | **Not implemented** | Some sequence paths enable availability, but production coding never selects or reconstructs IST. |
@@ -115,7 +115,7 @@ append-only [log.md](log.md). Detailed syntax derivations are under
 | Filtering | Cross-tile filter control | **Disabled** | Only one tile exists and no in-loop filter is enabled. |
 | Inter-only tools | Reference mode, skip mode, BAWP, warp, and global motion | **Out of scope** | Inferred off for the intra-only Closed Loop Key picture. |
 | Search | Pixel-dependent DC level search | **Implemented** | Every active input sample contributes to deterministic SSE minimization; edges are replicated only outside the active crop. |
-| Search | General transform, intra-mode, and partition RD search | **Partial** | Explicit complete-stream intra search selects among DC/V/H and Smooth/Smooth-V/Smooth-H/Paeth throughout the 1..1440 production range with fresh writer/CDF state, byte and per-plane-SSE non-regression, and stable ties. Bounded AC and plane-qdelta search exist separately; combined transform/mode search and partition search are absent. |
+| Search | General transform, intra-mode, and partition RD search | **Partial / blocked experiment** | The admitted `rd` path combines prediction and residual search. `partition-rd` additionally trials a capped 16x16-versus-four-8x8 decision with exact live rate and caller-owned state, but the final safety guard prevents emitting unproven 16x16 winners and color retains the fixed tree. |
 | Search | Combined block-local `--search rd` | **Implemented / admitted** | Live writer/CDF/context transactions select legal DC/V/H/Smooth/Smooth-V/Smooth-H/Paeth predictors with skip, DC-only, or bounded DCT_DCT AC per luma leaf. I420/I444 replay frozen Y decisions through nine qdelta trials. The 27-case Baya/full-prepared gate has six strict full-image wins, 6,206 fewer aggregate bytes, 31,503,407 lower aggregate Y SSE, exact local/AVM/project parity, and bounded 34,669,792-byte workspace. |
 | Search | Rate control and target-size encoding | **Not implemented** | Qindex is supplied directly. A tools-only bounded equal-size qindex experiment is validator-backed but blocked by the 29-byte AC-subset floor; it does not change the production CLI. |
 | Reconstruction | Local closed-loop reconstruction | **Implemented** | Prediction, dequantization, inverse DC transforms, clipping, chroma state, edge extension, and active crop match both validators. |

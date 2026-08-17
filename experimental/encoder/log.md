@@ -1751,3 +1751,31 @@ prepared images begin at 896x424, so all remain explicit unsupported cases.
   encoder/AVM/project hashes are recorded in the report. Superseded blocked
   and partial targeted reports were removed rather than retained as current
   admission evidence.
+
+## 2026-08-17 — M4 bounded partition/transform experiment
+
+- **Status:** BLOCKED, not admitted. M2 and M3 remain unimplemented.
+  `--search partition-rd` preserves admitted `rd` as the first candidate and
+  trials a capped 16x16 no-transform-split DCT_DCT shape against the fixed
+  four-8x8 leaf with the live writer/CDF/context transaction.
+- **Safety result:** native rollback and candidate tests pass, and synthetic
+  fixtures select both shapes. Decoder probes found that emitted 16x16
+  winners can desynchronize later coefficient syntax, while color also needs
+  exact chroma derivation. Final output therefore falls back to `rd` whenever
+  a 16x16 candidate wins; I420/I444 keep the fixed tree.
+- **Baya q100:** I400 15,356 bytes / Y SSE 52,513,443; I420 19,500 bytes /
+  SSE `[54,185,612,1,395,987,274,340]`; I444 21,599 bytes /
+  `[54,185,612,11,787,157,1,550,186]`. All streams and hashes match admitted
+  `rd`; AVM/project output is exact. Candidate trials are 116,160 / 518,400 /
+  518,400. I400 candidate telemetry selects 5,392 split leaves and eight
+  16x16 leaves; color selects 5,400 split and zero large leaves.
+- **Resources:** measured wall time is 786.59 s I400, 467.11 s I420, and
+  575.94 s I444. Reported caller workspaces are 19,442,049 / 22,249,792 /
+  34,691,392 bytes; observed process peaks were 11,364 / 16,656 / 32,868 KiB.
+- **Evidence:** `metrics/blocky-m4-partition-gate.json` SHA-256
+  `f3489123e0f818b9c7a58fa0c9ef0ef0a8723e767c7a78d57cc3a01627a4f0b5`.
+  The report includes deterministic hashes, exact parity, per-plane SSE,
+  SSIM, 8x8 boundary metrics, trials, shapes, runtime, and workspace.
+- **Continuation:** fix 16x16 coefficient context/order across subsequent
+  leaves, add exact transform-aware chroma derivation, then remove the safety
+  fallback only after a deterministic full Baya or prepared-image Pareto win.

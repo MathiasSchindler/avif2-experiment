@@ -79,6 +79,8 @@ EncStatus enc_syntax_cdfs_init(EncSyntaxCdfs *cdfs) {
         coeff_br_uv, enc_norm_coeff_br_uv, ENC_COEFF_BR_UV_ROWS, 4U);
     MATERIALIZE_TABLE(eob_pt_64, enc_norm_eob_pt_64, ENC_EOB_PT_64_ROWS, 7U);
     MATERIALIZE_TABLE(
+        eob_pt_256, enc_norm_eob_pt_256, ENC_EOB_PT_256_ROWS, 8U);
+    MATERIALIZE_TABLE(
         eob_extra, enc_norm_eob_extra, ENC_EOB_EXTRA_ROWS, 2U);
     MATERIALIZE_TABLE(
         coeff_base_eob, enc_norm_coeff_base_eob,
@@ -278,6 +280,13 @@ uint16_t *enc_syntax_eob_pt_64_cdf(
     size_t row = q_context * 3U + plane_context;
     return cdfs != 0 && q_context < 4U && plane_context < 3U
         ? cdfs->eob_pt_64[row] : 0;
+}
+
+uint16_t *enc_syntax_eob_pt_256_cdf(
+    EncSyntaxCdfs *cdfs, size_t q_context, size_t plane_context) {
+    size_t row = q_context * 3U + plane_context;
+    return cdfs != 0 && q_context < 4U && plane_context < 3U
+        ? cdfs->eob_pt_256[row] : 0;
 }
 
 uint16_t *enc_syntax_eob_extra_cdf(

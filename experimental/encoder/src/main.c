@@ -118,6 +118,19 @@ static void report_rd_winners(
     }
 }
 
+static void report_partition_winners(
+    const size_t partition_counts[2U],
+    const size_t transform_counts[2U]) {
+    report_error(" rd_candidate_partition_split8=");
+    report_u64(partition_counts[0U]);
+    report_error(" rd_candidate_partition_keep16=");
+    report_u64(partition_counts[1U]);
+    report_error(" rd_candidate_transform_8x8=");
+    report_u64(transform_counts[0U]);
+    report_error(" rd_candidate_transform_16x16=");
+    report_u64(transform_counts[1U]);
+}
+
 static void report_m3_metrics(const EncM3Result *result) {
     report_error("encoder: bytes=");
     report_u64(result->stream_size);
@@ -250,12 +263,17 @@ static int parse_search(const char *text, EncAc8x8Search *search) {
         *search = ENC_AC8X8_SEARCH_RD;
         return 1;
     }
+    if (strings_equal(text, "partition-rd")) {
+        *search = ENC_AC8X8_SEARCH_PARTITION_RD;
+        return 1;
+    }
     return 0;
 }
 
 static int uses_ac8x8_search(EncAc8x8Search search) {
     return search == ENC_AC8X8_SEARCH_BOUNDED ||
-           search == ENC_AC8X8_SEARCH_RD;
+           search == ENC_AC8X8_SEARCH_RD ||
+           search == ENC_AC8X8_SEARCH_PARTITION_RD;
 }
 
 static EncStatus release_mapping(EncMemoryMapping *mapping) {
@@ -556,10 +574,17 @@ static int run_i400_image_encode(const char *input_path,
         goto cleanup;
     }
     report_m3_metrics(&result);
-    if (quality_search == ENC_AC8X8_SEARCH_RD && have_ac_result) {
+    if ((quality_search == ENC_AC8X8_SEARCH_RD ||
+         quality_search == ENC_AC8X8_SEARCH_PARTITION_RD) &&
+        have_ac_result) {
         report_rd_winners(
             ac_result.rd_mode_counts, ac_result.rd_residual_counts,
             ac_result.candidate_trials, 0U, 0, 0);
+        if (quality_search == ENC_AC8X8_SEARCH_PARTITION_RD) {
+            report_partition_winners(
+                ac_result.rd_partition_counts,
+                ac_result.rd_transform_counts);
+        }
         report_error("\n");
     }
     result_status = ENC_EXIT_OK;
@@ -656,8 +681,10 @@ static int run_chroma_encode(const char *input_path,
         size_t index;
         status = enc_ac8x8_yuv8_q_workspace(
             &input, (unsigned int)qindex,
-            quality_search == ENC_AC8X8_SEARCH_RD
-                ? ENC_AC8X8_COEFFICIENT_SEARCH_RD
+            quality_search == ENC_AC8X8_SEARCH_PARTITION_RD
+                ? ENC_AC8X8_COEFFICIENT_SEARCH_PARTITION_RD
+                : quality_search == ENC_AC8X8_SEARCH_RD
+                    ? ENC_AC8X8_COEFFICIENT_SEARCH_RD
                 : ENC_AC8X8_COEFFICIENT_SEARCH_BOUNDED,
             workspace.data, workspace.size,
             stream.data, stream.size, &reconstruction, &ac_result);
@@ -705,11 +732,18 @@ static int run_chroma_encode(const char *input_path,
         goto cleanup;
     }
     report_chroma_metrics(&result);
-    if (quality_search == ENC_AC8X8_SEARCH_RD && have_ac_result) {
+    if ((quality_search == ENC_AC8X8_SEARCH_RD ||
+         quality_search == ENC_AC8X8_SEARCH_PARTITION_RD) &&
+        have_ac_result) {
         report_rd_winners(
             ac_result.rd_mode_counts, ac_result.rd_residual_counts,
             ac_result.candidate_trials, ac_result.rd_qdelta_trials,
             ac_result.rd_qdelta_y_preserved, 1);
+        if (quality_search == ENC_AC8X8_SEARCH_PARTITION_RD) {
+            report_partition_winners(
+                ac_result.rd_partition_counts,
+                ac_result.rd_transform_counts);
+        }
         report_error("\n");
     }
     result_status = ENC_EXIT_OK;
@@ -863,7 +897,7 @@ static int run_i400_mode(long argument_count, char **arguments) {
                      "[--stride S] [--qindex Q] "
                      "[--search off|bounded|directional|directional-exact|"
                      "directional-full|directional-full-exact|intra|"
-                     "plane-qdelta|rd] "
+                     "plane-qdelta|rd|partition-rd] "
                      "OUTPUT\n");
         return ENC_EXIT_USAGE;
     }
@@ -896,7 +930,8 @@ static int run_i400_mode(long argument_count, char **arguments) {
                 report_error(
                     "encoder: search must be off, bounded, directional, "
                     "directional-exact, directional-full, "
-                    "directional-full-exact, intra, plane-qdelta, or rd\n");
+                    "directional-full-exact, intra, plane-qdelta, rd, or "
+                    "partition-rd\n");
                 return ENC_EXIT_INPUT_METADATA;
             }
             saw_search = 1;
@@ -905,7 +940,7 @@ static int run_i400_mode(long argument_count, char **arguments) {
                          "[--stride S] [--qindex Q] "
                          "[--search off|bounded|directional|directional-exact|"
                          "directional-full|directional-full-exact|intra|"
-                         "plane-qdelta|rd] "
+                         "plane-qdelta|rd|partition-rd] "
                          "OUTPUT\n");
             return ENC_EXIT_USAGE;
         }
@@ -966,11 +1001,13 @@ static void report_generic_usage(void) {
         "       encoder RAW [--width W --height H] [--stride S] "
         "[--output OUTPUT] [--qindex Q] "
         "[--search off|bounded|directional|directional-exact|"
-        "directional-full|directional-full-exact|intra|plane-qdelta|rd]\n"
+        "directional-full|directional-full-exact|intra|plane-qdelta|rd|"
+        "partition-rd]\n"
         "       encoder --i400-8 INPUT --width W --height H "
         "[--stride S] [--qindex Q] "
         "[--search off|bounded|directional|directional-exact|"
-        "directional-full|directional-full-exact|intra|plane-qdelta|rd] OUTPUT\n"
+        "directional-full|directional-full-exact|intra|plane-qdelta|rd|"
+        "partition-rd] OUTPUT\n"
         "formats: .i400, .i420, .i444, .bmp, .png; default qindex: 100; "
         "default search: off\n"
         "output: sibling INPUT with its extension replaced by .obu\n");
@@ -1070,7 +1107,8 @@ static int run_inferred_mode(long argument_count, char **arguments) {
                     report_error(
                         "encoder: search must be off, bounded, directional, "
                         "directional-exact, directional-full, "
-                        "directional-full-exact, intra, plane-qdelta, or rd\n");
+                        "directional-full-exact, intra, plane-qdelta, rd, or "
+                        "partition-rd\n");
                     return ENC_EXIT_INPUT_METADATA;
                 }
                 saw_search = 1;

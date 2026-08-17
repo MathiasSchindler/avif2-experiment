@@ -35747,7 +35747,7 @@
     ],
     "width": 32
   },
-  "normative_cdf_sha256": "f89e87409bd23b6368b4da10e0e6d270fe1f98a98ae6b669fd1a1ac6cd3e64b1",
+  "normative_cdf_sha256": "85826e27c72dc6c8f7bd62dc5a084f657ca44cb64c36f86b51ef5ad9c73b29f5",
   "persistence": {
     "cdf_reset": "tile initialization only",
     "coefficient_spatial_context": "updated after every transform; above persists and left is overwritten/reset by superblock-row traversal",

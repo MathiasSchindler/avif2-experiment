@@ -688,6 +688,70 @@ static int test_live_writer_trial_rolls_back(void) {
     return 0;
 }
 
+static EncStatus partition_trial_callback(
+    void *opaque, void *transaction,
+    size_t block_x, size_t block_y,
+    size_t block_width, size_t block_height,
+    uint8_t *selected_mode, uint8_t *selected_shape,
+    int16_t selected_levels[4U][64U]) {
+    LiveTrialState *state = (LiveTrialState *)opaque;
+    int16_t levels[4U][64U] = {{0}};
+    size_t baseline_tell;
+    size_t trial_tell;
+    size_t tx;
+    size_t coefficient;
+    (void)block_x;
+    (void)block_y;
+    if (state == 0 || transaction == 0 || selected_mode == 0 ||
+        selected_shape == 0 ||
+        enc_partition_rd_transaction_trial(
+            transaction, 0U, 0U, levels, &baseline_tell) != ENC_OK ||
+        baseline_tell == 0U) {
+        return ENC_INVALID_ARGUMENT;
+    }
+    if (state->repeat_trial != 0 &&
+        block_width == 16U && block_height == 16U &&
+        (enc_partition_rd_transaction_trial(
+             transaction, 0U, 1U, levels, &trial_tell) != ENC_OK ||
+         trial_tell == 0U ||
+         enc_partition_rd_transaction_trial(
+             transaction, 0U, 0U, levels, &trial_tell) != ENC_OK ||
+         trial_tell != baseline_tell)) {
+        return ENC_INVALID_ARGUMENT;
+    }
+    for (tx = 0U; tx < 4U; ++tx) {
+        for (coefficient = 0U; coefficient < 64U; ++coefficient) {
+            selected_levels[tx][coefficient] = 0;
+        }
+    }
+    *selected_mode = 0U;
+    *selected_shape = 0U;
+    ++state->calls;
+    return ENC_OK;
+}
+
+static int test_partition_trial_rolls_back(void) {
+    uint8_t baseline_stream[1024U];
+    uint8_t shape_trial_stream[1024U];
+    size_t baseline_size;
+    size_t shape_trial_size;
+    LiveTrialState baseline = {0, 0U};
+    LiveTrialState shape_trial = {1, 0U};
+    if (enc_partition_rd_grid_tile_q(
+            baseline_stream, sizeof(baseline_stream), &baseline_size,
+            24U, 24U, 100U, partition_trial_callback, &baseline) != ENC_OK ||
+        enc_partition_rd_grid_tile_q(
+            shape_trial_stream, sizeof(shape_trial_stream), &shape_trial_size,
+            24U, 24U, 100U, partition_trial_callback,
+            &shape_trial) != ENC_OK ||
+        baseline.calls == 0U || baseline.calls != shape_trial.calls ||
+        baseline_size != shape_trial_size ||
+        !bytes_equal(baseline_stream, shape_trial_stream, baseline_size)) {
+        return 1;
+    }
+    return 0;
+}
+
 int main(void) {
     int result = test_rollback_restores_all_fields();
     if (result != 0) return 10 + result;
@@ -695,5 +759,7 @@ int main(void) {
     if (result != 0) return 20 + result;
     result = test_live_writer_trial_rolls_back();
     if (result != 0) return 30 + result;
+    result = test_partition_trial_rolls_back();
+    if (result != 0) return 40 + result;
     return 0;
 }

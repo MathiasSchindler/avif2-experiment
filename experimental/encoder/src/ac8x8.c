@@ -41,6 +41,11 @@ static EncStatus enc_ac8x8_i400_rd_workspace(
     unsigned int qindex, void *workspace, size_t workspace_capacity,
     void *stream, size_t stream_capacity, uint8_t *reconstruction,
     size_t reconstruction_capacity, EncAc8x8Result *result);
+static EncStatus enc_ac8x8_i400_partition_rd_workspace(
+    const uint8_t *input, size_t width, size_t height, size_t stride,
+    unsigned int qindex, void *workspace, size_t workspace_capacity,
+    void *stream, size_t stream_capacity, uint8_t *reconstruction,
+    size_t reconstruction_capacity, EncAc8x8Result *result);
 
 static int clip_int(int low, int high, int value) {
     if (value < low) return low;
@@ -120,6 +125,10 @@ static void clear_result(EncAc8x8Result *result) {
     for (index = 0U; index < 3U; ++index) {
         result->rd_residual_counts[index] = 0U;
     }
+    for (index = 0U; index < 2U; ++index) {
+        result->rd_partition_counts[index] = 0U;
+        result->rd_transform_counts[index] = 0U;
+    }
     result->qindex = 0U;
     result->admitted = 0;
 }
@@ -146,6 +155,7 @@ EncStatus enc_ac8x8_query_workspace(
         !enc_size_add(size, padded, &size) ||
         !enc_size_add(size, ENC_M3_WORKSPACE_ALIGNMENT - 1U, &size) ||
         !enc_size_add(size, coeff_bytes, &size) ||
+        !enc_size_add(size, legacy.block_count, &size) ||
         !enc_size_add(size, legacy.block_count, &size) ||
         !enc_size_add(size, streams, &size)) {
         return ENC_OVERFLOW;
@@ -262,6 +272,121 @@ static uint64_t reconstruct8(
         }
     }
     return error;
+}
+
+static void source_transform(
+    const uint8_t *input, size_t width, size_t height, size_t stride,
+    size_t block_x, size_t block_y, size_t block_width, size_t block_height,
+    uint8_t samples[256U]) {
+    size_t y;
+    size_t x;
+    for (y = 0U; y < block_height; ++y) {
+        size_t sy = block_y + y < height ? block_y + y : height - 1U;
+        for (x = 0U; x < block_width; ++x) {
+            size_t sx = block_x + x < width ? block_x + x : width - 1U;
+            samples[y * block_width + x] = input[sy * stride + sx];
+        }
+    }
+}
+
+static uint64_t reconstruct_transform(
+    const uint8_t samples[256U], const int16_t levels[256U],
+    const uint8_t prediction[256U], size_t width, size_t height,
+    uint32_t q, uint8_t output[256U]) {
+    int coefficients[256U];
+    int rows[256U];
+    uint64_t error = 0U;
+    unsigned int row_shift =
+        width == 16U && height == 16U ? 6U : 7U;
+    unsigned int column_shift =
+        width == 16U && height == 16U ? 13U :
+        width >= 8U && height >= 8U ? 11U : 10U;
+    size_t count = width * height;
+    size_t index;
+    size_t y;
+    size_t x;
+    for (index = 0U; index < count; ++index) {
+        int level = levels[index];
+        unsigned int magnitude =
+            level < 0 ? (unsigned int)(-level) : (unsigned int)level;
+        int value = (int)((magnitude * q + 4U) >> 3U);
+        if (level < 0) value = -value;
+        coefficients[index] = clip_int(-32768, 32767, value);
+    }
+    for (y = 0U; y < height; ++y) {
+        for (x = 0U; x < width; ++x) {
+            int sum = 0;
+            for (index = 0U; index < width; ++index) {
+                int value = coefficients[y * width + index];
+                if (width != height) value = round_shift(value * 2896, 12U);
+                sum += dct_value(width, index, x) * value;
+            }
+            rows[y * width + x] =
+                clip_int(-32768, 32767, round_shift(sum, row_shift));
+        }
+    }
+    for (y = 0U; y < height; ++y) {
+        for (x = 0U; x < width; ++x) {
+            int sum = 0;
+            int value;
+            int difference;
+            for (index = 0U; index < height; ++index) {
+                sum += dct_value(height, index, y) *
+                       rows[index * width + x];
+            }
+            value = clip_int(
+                0, 255, (int)prediction[y * width + x] +
+                clip_int(-256, 255, round_shift(sum, column_shift)));
+            output[y * width + x] = (uint8_t)value;
+            difference = (int)samples[y * width + x] - value;
+            error += (uint64_t)(difference * difference);
+        }
+    }
+    return error;
+}
+
+static void search_transform_dc(
+    const uint8_t samples[256U], const uint8_t prediction[256U],
+    size_t width, size_t height, uint32_t q,
+    int16_t levels[256U], uint8_t reconstructed[256U]) {
+    int64_t sum = 0;
+    int ideal;
+    int choices[6U];
+    uint64_t best_error = UINT64_MAX;
+    size_t count = width * height;
+    size_t index;
+    size_t choice;
+    for (index = 0U; index < count; ++index) {
+        sum += (int)samples[index] - (int)prediction[index];
+        levels[index] = 0;
+    }
+    ideal = (int)((sum * 8) / ((int64_t)q * (int64_t)(count / 64U)));
+    ideal = clip_int(
+        -(int)ENC_AC8X8_LEVEL_LIMIT, (int)ENC_AC8X8_LEVEL_LIMIT, ideal);
+    choices[0U] = 0;
+    choices[1U] = ideal - 2;
+    choices[2U] = ideal - 1;
+    choices[3U] = ideal;
+    choices[4U] = ideal + 1;
+    choices[5U] = ideal + 2;
+    for (choice = 0U; choice < 6U; ++choice) {
+        int16_t trial[256U] = {0};
+        uint8_t output[256U];
+        int value = clip_int(
+            -(int)ENC_AC8X8_LEVEL_LIMIT,
+            (int)ENC_AC8X8_LEVEL_LIMIT, choices[choice]);
+        uint64_t error;
+        trial[0U] = (int16_t)value;
+        error = reconstruct_transform(
+            samples, trial, prediction, width, height, q, output);
+        if (error < best_error) {
+            best_error = error;
+            levels[0U] = (int16_t)value;
+            for (index = 0U; index < count; ++index) {
+                reconstructed[index] = output[index];
+            }
+        }
+    }
 }
 
 static size_t nonzero_count(const int16_t levels[64U]) {
@@ -725,6 +850,72 @@ static int rd_evaluate_leaf_candidate(
     return 1;
 }
 
+static int rd_evaluate_16x16_candidate(
+    const uint8_t *input, size_t width, size_t height, size_t stride,
+    uint8_t *padded_reconstruction, size_t padded_width,
+    size_t leaf_x, size_t leaf_y,
+    size_t superblock_x, size_t superblock_y, uint8_t cells[32U],
+    unsigned int qindex, uint8_t mode, size_t residual_kind,
+    int16_t levels[4U][64U], uint8_t reconstruction[256U],
+    uint64_t *squared_error) {
+    uint8_t saved_reconstruction[256U];
+    uint8_t saved_cells[32U];
+    uint8_t samples[256U];
+    uint8_t prediction[256U];
+    uint32_t q = qlookup(qindex);
+    size_t index;
+    size_t y;
+    size_t x;
+    if (leaf_x + 16U > width || leaf_y + 16U > height ||
+        residual_kind > 1U) {
+        return 0;
+    }
+    for (y = 0U; y < 16U; ++y) {
+        for (x = 0U; x < 16U; ++x) {
+            saved_reconstruction[y * 16U + x] =
+                padded_reconstruction[
+                    (leaf_y + y) * padded_width + leaf_x + x];
+        }
+    }
+    for (index = 0U; index < sizeof(saved_cells); ++index) {
+        saved_cells[index] = cells[index];
+    }
+    source_transform(
+        input, width, height, stride, leaf_x, leaf_y, 16U, 16U, samples);
+    rd_intra_prediction(
+        mode, padded_reconstruction, padded_width, width, height,
+        leaf_x, leaf_y, superblock_x, superblock_y, cells,
+        16U, 16U, 1, prediction);
+    for (index = 0U; index < 256U; ++index) {
+        levels[index / 64U][index % 64U] = 0;
+    }
+    if (residual_kind == 0U) {
+        *squared_error = reconstruct_transform(
+            samples, &levels[0U][0U], prediction, 16U, 16U, q,
+            reconstruction);
+    } else {
+        search_transform_dc(
+            samples, prediction, 16U, 16U, q,
+            &levels[0U][0U], reconstruction);
+        *squared_error = 0U;
+        for (index = 0U; index < 256U; ++index) {
+            int difference = (int)samples[index] - (int)reconstruction[index];
+            *squared_error += (uint64_t)(difference * difference);
+        }
+    }
+    for (y = 0U; y < 16U; ++y) {
+        for (x = 0U; x < 16U; ++x) {
+            padded_reconstruction[
+                (leaf_y + y) * padded_width + leaf_x + x] =
+                saved_reconstruction[y * 16U + x];
+        }
+    }
+    for (index = 0U; index < sizeof(saved_cells); ++index) {
+        cells[index] = saved_cells[index];
+    }
+    return 1;
+}
+
 /*
  * RD is intentionally integer-only: accumulated active luma SSE is scaled by
  * 4096 and added to q(qindex)^2 times exact range-writer bits. Candidates are
@@ -863,8 +1054,12 @@ typedef struct {
     const uint8_t *incumbent_reconstruction;
     size_t incumbent_stride;
     int replay;
+    int partition_search;
+    uint8_t *stored_shapes;
     size_t mode_counts[7U];
     size_t residual_counts[3U];
+    size_t partition_counts[2U];
+    size_t transform_counts[2U];
 } EncAc8x8RdSearchState;
 
 static void rd_record_search_telemetry(
@@ -876,6 +1071,10 @@ static void rd_record_search_telemetry(
     }
     for (index = 0U; index < 3U; ++index) {
         result->rd_residual_counts[index] = search->residual_counts[index];
+    }
+    for (index = 0U; index < 2U; ++index) {
+        result->rd_partition_counts[index] = search->partition_counts[index];
+        result->rd_transform_counts[index] = search->transform_counts[index];
     }
 }
 
@@ -1013,6 +1212,7 @@ static EncStatus rd_select_transaction_leaf(
         state->searched_blocks += transform_count;
         return ENC_OK;
     }
+
     superblock_x = leaf_x & ~(size_t)63U;
     superblock_y = leaf_y & ~(size_t)63U;
     if (superblock_x != state->superblock_x ||
@@ -1168,6 +1368,280 @@ static EncStatus rd_select_transaction_leaf(
     return ENC_OK;
 }
 
+static EncStatus partition_rd_select_transaction_leaf(
+    void *opaque, void *transaction,
+    size_t leaf_x, size_t leaf_y, size_t leaf_width, size_t leaf_height,
+    uint8_t *selected_mode, uint8_t *selected_shape,
+    int16_t selected_levels[4U][64U]) {
+    EncAc8x8RdSearchState *state = (EncAc8x8RdSearchState *)opaque;
+    static const uint8_t candidate_modes[7U] = {
+        0U, 1U, 2U, 5U, 6U, 7U, 8U
+    };
+    size_t transform_count = (leaf_width / 8U) * (leaf_height / 8U);
+    size_t shape_index;
+    if (state == 0 || transaction == 0 || selected_mode == 0 ||
+        selected_shape == 0 || state->stored_shapes == 0 ||
+        state->stored_levels == 0 || state->stored_modes == 0 ||
+        transform_count == 0U || transform_count > 4U) {
+        return ENC_INVALID_ARGUMENT;
+    }
+    shape_index = state->stored_mode_index;
+    if (shape_index >= state->stored_block_count ||
+        state->stored_level_index + transform_count >
+            state->stored_block_count) {
+        return ENC_INVALID_ARGUMENT;
+    }
+    if (state->replay != 0) {
+        uint8_t shape = state->stored_shapes[shape_index];
+        *selected_shape = shape;
+        if (shape == 0U) {
+            EncStatus status = rd_select_transaction_leaf(
+                opaque, transaction, leaf_x, leaf_y, leaf_width, leaf_height,
+                selected_mode, selected_levels);
+            if (status != ENC_OK) return status;
+            return ENC_OK;
+        }
+        if (shape != 1U || leaf_width != 16U || leaf_height != 16U ||
+            state->stored_level_index + 4U > state->stored_block_count) {
+            return ENC_INVALID_ARGUMENT;
+        }
+        {
+            const int16_t *levels =
+                state->stored_levels + state->stored_level_index * 64U;
+            uint8_t samples[256U];
+            uint8_t prediction[256U];
+            uint8_t decoded[256U];
+            size_t index;
+            size_t y;
+            size_t x;
+            size_t superblock_x = leaf_x & ~(size_t)63U;
+            size_t superblock_y = leaf_y & ~(size_t)63U;
+            if (superblock_x != state->superblock_x ||
+                superblock_y != state->superblock_y) {
+                enc_memory_fill(
+                    state->reconstructed_cells, 0U,
+                    sizeof(state->reconstructed_cells));
+                state->superblock_x = superblock_x;
+                state->superblock_y = superblock_y;
+            }
+            *selected_mode = state->stored_modes[state->stored_mode_index];
+            for (index = 0U; index < 256U; ++index) {
+                selected_levels[index / 64U][index % 64U] = levels[index];
+            }
+            source_transform(
+                state->input, state->width, state->height, state->stride,
+                leaf_x, leaf_y, 16U, 16U, samples);
+            rd_intra_prediction(
+                *selected_mode, state->padded_reconstruction,
+                state->padded_width, state->width, state->height,
+                leaf_x, leaf_y, state->superblock_x, state->superblock_y,
+                state->reconstructed_cells, 16U, 16U, 1, prediction);
+            state->squared_error += reconstruct_transform(
+                samples, levels, prediction, 16U, 16U,
+                qlookup(state->qindex), decoded);
+            for (y = 0U; y < 16U; ++y) {
+                for (x = 0U; x < 16U; ++x) {
+                    state->padded_reconstruction[
+                        (leaf_y + y) * state->padded_width + leaf_x + x] =
+                        decoded[y * 16U + x];
+                }
+            }
+            rd_mark_reconstructed(
+                state->superblock_x, state->superblock_y,
+                state->reconstructed_cells, leaf_x, leaf_y, 16U, 16U);
+            state->stored_level_index += 4U;
+            ++state->stored_mode_index;
+            ++state->searched_blocks;
+        }
+        return ENC_OK;
+    }
+    if (state->partition_search < 2 ||
+        leaf_width != 16U || leaf_height != 16U ||
+        (leaf_x & 63U) != 16U || (leaf_y & 63U) != 0U ||
+        leaf_x + 16U > state->width || leaf_y + 16U > state->height) {
+        EncStatus status = rd_select_transaction_leaf(
+            opaque, transaction, leaf_x, leaf_y, leaf_width, leaf_height,
+            selected_mode, selected_levels);
+        if (status != ENC_OK) return status;
+        *selected_shape = 0U;
+        state->stored_shapes[shape_index] = 0U;
+        if (leaf_width == 16U && leaf_height == 16U) {
+            ++state->partition_counts[0U];
+        }
+        state->transform_counts[0U] += transform_count;
+        return ENC_OK;
+    }
+    {
+        uint8_t prefix_pixels[256U];
+        uint8_t split_pixels[256U];
+        uint8_t prefix_cells[32U];
+        int16_t split_levels[4U][64U];
+        size_t saved_mode_counts[7U];
+        size_t saved_residual_counts[3U];
+        size_t saved_level_index = state->stored_level_index;
+        size_t saved_mode_index = state->stored_mode_index;
+        size_t saved_ac_blocks = state->ac_blocks;
+        size_t saved_searched_blocks = state->searched_blocks;
+        uint64_t saved_error = state->squared_error;
+        uint64_t incumbent_error = rd_incumbent_leaf_error(
+            state, leaf_x, leaf_y, leaf_width, leaf_height);
+        uint8_t split_mode;
+        uint8_t best_mode;
+        uint8_t best_shape = 0U;
+        size_t best_mode_index = 0U;
+        size_t best_residual_kind = 0U;
+        uint64_t best_error;
+        uint64_t best_cost;
+        size_t tell_bits;
+        size_t index;
+        size_t y;
+        size_t x;
+        EncStatus status;
+        for (index = 0U; index < 7U; ++index) {
+            saved_mode_counts[index] = state->mode_counts[index];
+        }
+        for (index = 0U; index < 3U; ++index) {
+            saved_residual_counts[index] = state->residual_counts[index];
+        }
+        for (index = 0U; index < sizeof(prefix_cells); ++index) {
+            prefix_cells[index] = state->reconstructed_cells[index];
+        }
+        for (y = 0U; y < 16U; ++y) {
+            for (x = 0U; x < 16U; ++x) {
+                prefix_pixels[y * 16U + x] =
+                    state->padded_reconstruction[
+                        (leaf_y + y) * state->padded_width + leaf_x + x];
+            }
+        }
+        status = rd_select_transaction_leaf(
+            state, transaction, leaf_x, leaf_y, leaf_width, leaf_height,
+            &split_mode, split_levels);
+        if (status != ENC_OK) return status;
+        best_error = state->squared_error - saved_error;
+        for (y = 0U; y < 16U; ++y) {
+            for (x = 0U; x < 16U; ++x) {
+                split_pixels[y * 16U + x] =
+                    state->padded_reconstruction[
+                        (leaf_y + y) * state->padded_width + leaf_x + x];
+                state->padded_reconstruction[
+                    (leaf_y + y) * state->padded_width + leaf_x + x] =
+                    prefix_pixels[y * 16U + x];
+            }
+        }
+        for (index = 0U; index < sizeof(prefix_cells); ++index) {
+            state->reconstructed_cells[index] = prefix_cells[index];
+        }
+        status = enc_partition_rd_transaction_trial(
+            transaction, split_mode, 0U, split_levels, &tell_bits);
+        if (status != ENC_OK) return status;
+        ++state->trials;
+        best_cost = rd_cost(best_error, tell_bits, qlookup(state->qindex));
+        best_mode = split_mode;
+        for (index = 0U; index < 7U; ++index) {
+            if (state->mode_counts[index] != saved_mode_counts[index]) {
+                best_mode_index = index;
+                break;
+            }
+        }
+        for (index = 0U; index < 3U; ++index) {
+            if (state->residual_counts[index] !=
+                saved_residual_counts[index]) {
+                best_residual_kind = index;
+                break;
+            }
+        }
+        for (size_t mode_index = 0U; mode_index < 7U; ++mode_index) {
+            for (size_t residual_kind = 0U;
+                 residual_kind < 1U; ++residual_kind) {
+                int16_t trial_levels[4U][64U];
+                uint8_t trial_pixels[256U];
+                uint64_t error;
+                uint64_t cost;
+                if (!rd_evaluate_16x16_candidate(
+                        state->input, state->width, state->height,
+                        state->stride, state->padded_reconstruction,
+                        state->padded_width, leaf_x, leaf_y,
+                        state->superblock_x, state->superblock_y,
+                        state->reconstructed_cells, state->qindex,
+                        candidate_modes[mode_index], residual_kind,
+                        trial_levels, trial_pixels, &error)) {
+                    continue;
+                }
+                if (enc_partition_rd_transaction_trial(
+                        transaction, candidate_modes[mode_index], 1U,
+                        trial_levels, &tell_bits) != ENC_OK) {
+                    continue;
+                }
+                ++state->trials;
+                if (error > incumbent_error) continue;
+                cost = rd_cost(error, tell_bits, qlookup(state->qindex));
+                if (cost < best_cost) {
+                    best_cost = cost;
+                    best_error = error;
+                    best_mode = candidate_modes[mode_index];
+                    best_mode_index = mode_index;
+                    best_residual_kind = residual_kind;
+                    best_shape = 1U;
+                    for (index = 0U; index < 256U; ++index) {
+                        selected_levels[index / 64U][index % 64U] =
+                            trial_levels[index / 64U][index % 64U];
+                        split_pixels[index] = trial_pixels[index];
+                    }
+                }
+            }
+        }
+        if (best_shape == 0U) {
+            for (index = 0U; index < 256U; ++index) {
+                selected_levels[index / 64U][index % 64U] =
+                    split_levels[index / 64U][index % 64U];
+            }
+        } else {
+            state->squared_error = saved_error + best_error;
+            state->ac_blocks = saved_ac_blocks;
+            state->searched_blocks = saved_searched_blocks + 1U;
+            for (index = 0U; index < 7U; ++index) {
+                state->mode_counts[index] = saved_mode_counts[index];
+            }
+            for (index = 0U; index < 3U; ++index) {
+                state->residual_counts[index] =
+                    saved_residual_counts[index];
+            }
+            ++state->mode_counts[best_mode_index];
+            ++state->residual_counts[best_residual_kind];
+            state->stored_level_index = saved_level_index + 4U;
+            state->stored_mode_index = saved_mode_index + 1U;
+        }
+        *selected_mode = best_mode;
+        *selected_shape = best_shape;
+        for (index = 0U; index < 256U; ++index) {
+            state->stored_levels[saved_level_index * 64U + index] =
+                selected_levels[index / 64U][index % 64U];
+        }
+        state->stored_modes[saved_mode_index] = best_mode;
+        state->stored_shapes[saved_mode_index] = best_shape;
+        for (y = 0U; y < 16U; ++y) {
+            for (x = 0U; x < 16U; ++x) {
+                state->padded_reconstruction[
+                    (leaf_y + y) * state->padded_width + leaf_x + x] =
+                    split_pixels[y * 16U + x];
+            }
+        }
+        for (index = 0U; index < sizeof(prefix_cells); ++index) {
+            state->reconstructed_cells[index] = prefix_cells[index];
+        }
+        rd_mark_reconstructed(
+            state->superblock_x, state->superblock_y,
+            state->reconstructed_cells, leaf_x, leaf_y, 16U, 16U);
+        ++state->partition_counts[best_shape];
+        if (best_shape == 0U) {
+            state->transform_counts[0U] += 4U;
+        } else {
+            ++state->transform_counts[1U];
+        }
+    }
+    return ENC_OK;
+}
+
 EncStatus enc_ac8x8_i400_q_workspace(
     const uint8_t *input, size_t width, size_t height, size_t stride,
     unsigned int qindex, EncAc8x8Search search,
@@ -1208,6 +1682,12 @@ EncStatus enc_ac8x8_i400_q_workspace(
             workspace_capacity, stream, stream_capacity, reconstruction,
             reconstruction_capacity, result);
     }
+    if (search == ENC_AC8X8_SEARCH_PARTITION_RD) {
+        return enc_ac8x8_i400_partition_rd_workspace(
+            input, width, height, stride, qindex, workspace,
+            workspace_capacity, stream, stream_capacity, reconstruction,
+            reconstruction_capacity, result);
+    }
     if (input == 0 || width == 0U || height == 0U || stride < width ||
         workspace == 0 ||
         (uintptr_t)workspace % ENC_M3_WORKSPACE_ALIGNMENT != 0U ||
@@ -1244,6 +1724,7 @@ EncStatus enc_ac8x8_i400_q_workspace(
     if ((uintptr_t)cursor % ENC_M3_WORKSPACE_ALIGNMENT != 0U) ++cursor;
     levels = (int16_t *)(void *)cursor;
     cursor += legacy_layout.block_count * 64U * sizeof(int16_t);
+    cursor += legacy_layout.block_count;
     cursor += legacy_layout.block_count;
     legacy_stream = cursor;
     cursor += legacy_layout.stream_capacity;
@@ -1384,7 +1865,8 @@ static EncStatus enc_ac8x8_i400_rd_transaction_workspace(
     const uint8_t *input, size_t width, size_t height, size_t stride,
     unsigned int qindex, void *workspace, size_t workspace_capacity,
     void *stream, size_t stream_capacity, uint8_t *reconstruction,
-    size_t reconstruction_capacity, EncAc8x8Result *result) {
+    size_t reconstruction_capacity, EncAc8x8Result *result,
+    int partition_search) {
     EncAc8x8Result current;
     EncAc8x8WorkspaceLayout layout;
     EncM3WorkspaceLayout m3_layout;
@@ -1393,6 +1875,7 @@ static EncStatus enc_ac8x8_i400_rd_transaction_workspace(
     uint8_t *padded_reconstruction;
     int16_t *levels;
     uint8_t *modes;
+    uint8_t *shapes;
     uint8_t *tile;
     uint8_t *payload;
     uint8_t *candidate_stream;
@@ -1406,7 +1889,9 @@ static EncStatus enc_ac8x8_i400_rd_transaction_workspace(
     size_t row;
     EncStatus status;
     status = enc_ac8x8_i400_q_workspace(
-        input, width, height, stride, qindex, ENC_AC8X8_SEARCH_BOUNDED,
+        input, width, height, stride, qindex,
+        partition_search != 0
+            ? ENC_AC8X8_SEARCH_RD : ENC_AC8X8_SEARCH_BOUNDED,
         workspace, workspace_capacity, stream, stream_capacity,
         reconstruction, reconstruction_capacity, &current);
     if (status != ENC_OK) return status;
@@ -1423,6 +1908,8 @@ static EncStatus enc_ac8x8_i400_rd_transaction_workspace(
     levels = (int16_t *)(void *)cursor;
     cursor += m3_layout.block_count * 64U * sizeof(*levels);
     modes = cursor;
+    cursor += m3_layout.block_count;
+    shapes = cursor;
     cursor += m3_layout.block_count;
     cursor += m3_layout.stream_capacity;
     tile = cursor;
@@ -1459,14 +1946,26 @@ static EncStatus enc_ac8x8_i400_rd_transaction_workspace(
     search.incumbent_reconstruction = reconstruction;
     search.incumbent_stride = width;
     search.replay = 0;
+    search.partition_search = partition_search;
+    search.stored_shapes = shapes;
     for (row = 0U; row < 7U; ++row) search.mode_counts[row] = 0U;
     for (row = 0U; row < 3U; ++row) search.residual_counts[row] = 0U;
+    for (row = 0U; row < 2U; ++row) {
+        search.partition_counts[row] = 0U;
+        search.transform_counts[row] = 0U;
+    }
     enc_memory_fill(
         levels, 0U, m3_layout.block_count * 64U * sizeof(*levels));
     enc_memory_fill(modes, 0U, m3_layout.block_count);
-    status = enc_ac8x8_rd_grid_tile_q(
-        tile, m3_layout.stream_capacity, &tile_size, width, height, qindex,
-        rd_select_transaction_leaf, &search);
+    enc_memory_fill(shapes, 0U, m3_layout.block_count);
+    status = partition_search != 0
+        ? enc_partition_rd_grid_tile_q(
+              tile, m3_layout.stream_capacity, &tile_size,
+              width, height, qindex,
+              partition_rd_select_transaction_leaf, &search)
+        : enc_ac8x8_rd_grid_tile_q(
+              tile, m3_layout.stream_capacity, &tile_size,
+              width, height, qindex, rd_select_transaction_leaf, &search);
     if (status != ENC_OK) {
         *result = current;
         rd_record_search_telemetry(result, &search);
@@ -1484,9 +1983,14 @@ static EncStatus enc_ac8x8_i400_rd_transaction_workspace(
     search.stored_level_index = 0U;
     search.stored_mode_index = 0U;
     search.replay = 1;
-    status = enc_ac8x8_rd_grid_tile_q(
-        tile, m3_layout.stream_capacity, &tile_size, width, height, qindex,
-        rd_select_transaction_leaf, &search);
+    status = partition_search != 0
+        ? enc_partition_rd_grid_tile_q(
+              tile, m3_layout.stream_capacity, &tile_size,
+              width, height, qindex,
+              partition_rd_select_transaction_leaf, &search)
+        : enc_ac8x8_rd_grid_tile_q(
+              tile, m3_layout.stream_capacity, &tile_size,
+              width, height, qindex, rd_select_transaction_leaf, &search);
     if (status != ENC_OK) {
         *result = current;
         rd_record_search_telemetry(result, &search);
@@ -1522,6 +2026,7 @@ static EncStatus enc_ac8x8_i400_rd_transaction_workspace(
      * searched candidate as telemetry-only until boundary parity is exact.
      */
     if ((width & 15U) != 0U || (height & 15U) != 0U ||
+        (partition_search != 0 && search.transform_counts[1U] != 0U) ||
         obu_writer.position > stream_capacity ||
         search.squared_error > current.squared_error ||
         rd_cost(search.squared_error, obu_writer.position * 8U, qlookup(qindex)) >=
@@ -1596,7 +2101,7 @@ static EncStatus enc_ac8x8_i400_rd_workspace(
     return enc_ac8x8_i400_rd_transaction_workspace(
         input, width, height, stride, qindex, workspace, workspace_capacity,
         stream, stream_capacity, reconstruction, reconstruction_capacity,
-        result);
+        result, 0);
 
     status = enc_ac8x8_i400_q_workspace(
         input, width, height, stride, qindex, ENC_AC8X8_SEARCH_BOUNDED,
@@ -1614,6 +2119,7 @@ static EncStatus enc_ac8x8_i400_rd_workspace(
     levels = (int16_t *)(void *)cursor;
     cursor += m3_layout.block_count * 64U * sizeof(int16_t);
     modes = cursor;
+    cursor += m3_layout.block_count;
     cursor += m3_layout.block_count;
     cursor += m3_layout.stream_capacity; /* Legacy stream staging. */
     tile = cursor;
@@ -1768,6 +2274,17 @@ static EncStatus enc_ac8x8_i400_rd_workspace(
     return ENC_OK;
 }
 
+static EncStatus enc_ac8x8_i400_partition_rd_workspace(
+    const uint8_t *input, size_t width, size_t height, size_t stride,
+    unsigned int qindex, void *workspace, size_t workspace_capacity,
+    void *stream, size_t stream_capacity, uint8_t *reconstruction,
+    size_t reconstruction_capacity, EncAc8x8Result *result) {
+    return enc_ac8x8_i400_rd_transaction_workspace(
+        input, width, height, stride, qindex, workspace, workspace_capacity,
+        stream, stream_capacity, reconstruction, reconstruction_capacity,
+        result, 2);
+}
+
     static void clear_yuv_result(EncAc8x8YuvResult *result) {
         size_t plane;
         size_t index;
@@ -1784,6 +2301,10 @@ static EncStatus enc_ac8x8_i400_rd_workspace(
         }
         for (index = 0U; index < 3U; ++index) {
             result->rd_residual_counts[index] = 0U;
+        }
+        for (index = 0U; index < 2U; ++index) {
+            result->rd_partition_counts[index] = 0U;
+            result->rd_transform_counts[index] = 0U;
         }
         result->rd_qdelta_trials = 0U;
         result->qindex = 0U;
@@ -1865,6 +2386,10 @@ static EncStatus enc_ac8x8_i400_rd_workspace(
                     if (!enc_size_add(offset, legacy.block_count, &offset)) {
                         return ENC_OVERFLOW;
                     }
+                    candidate.luma_shapes_offset = offset;
+                    if (!enc_size_add(offset, legacy.block_count, &offset)) {
+                        return ENC_OVERFLOW;
+                    }
                     if ((offset & 1U) != 0U &&
                         !enc_size_add(offset, 1U, &offset)) {
                         return ENC_OVERFLOW;
@@ -1909,6 +2434,10 @@ static EncStatus enc_ac8x8_i400_rd_workspace(
             return ENC_OVERFLOW;
         }
         candidate.luma_modes_offset = offset;
+        if (!enc_size_add(offset, m3.transform_count[0U], &offset)) {
+            return ENC_OVERFLOW;
+        }
+        candidate.luma_shapes_offset = offset;
         if (!enc_size_add(offset, m3.transform_count[0U], &offset)) {
             return ENC_OVERFLOW;
         }
@@ -2326,6 +2855,7 @@ static EncStatus enc_ac8x8_i400_rd_workspace(
         uint8_t *candidate_stream;
         int16_t *y_levels;
         uint8_t *y_modes;
+        uint8_t *y_shapes;
         int16_t *u_levels;
         int16_t *v_levels;
         int16_t *u_coefficients;
@@ -2412,6 +2942,8 @@ static EncStatus enc_ac8x8_i400_rd_workspace(
                 input->planes[0U].stride, qindex,
                 search == ENC_AC8X8_COEFFICIENT_SEARCH_RD
                     ? ENC_AC8X8_SEARCH_RD
+                    : search == ENC_AC8X8_COEFFICIENT_SEARCH_PARTITION_RD
+                        ? ENC_AC8X8_SEARCH_PARTITION_RD
                     : (EncAc8x8Search)search,
                 workspace, workspace_capacity, stream, stream_capacity,
                 reconstruction->planes[0U].data,
@@ -2439,6 +2971,12 @@ static EncStatus enc_ac8x8_i400_rd_workspace(
                 result->rd_residual_counts[plane] =
                     mono.rd_residual_counts[plane];
             }
+            for (plane = 0U; plane < 2U; ++plane) {
+                result->rd_partition_counts[plane] =
+                    mono.rd_partition_counts[plane];
+                result->rd_transform_counts[plane] =
+                    mono.rd_transform_counts[plane];
+            }
             result->qindex = mono.qindex;
             result->format = ENC_M3_PIXEL_I400;
             result->admitted = mono.admitted;
@@ -2450,7 +2988,8 @@ static EncStatus enc_ac8x8_i400_rd_workspace(
               v_qdelta < -64 || v_qdelta > 63)) ||
             (search != ENC_AC8X8_COEFFICIENT_SEARCH_OFF &&
              search != ENC_AC8X8_COEFFICIENT_SEARCH_BOUNDED &&
-             search != ENC_AC8X8_COEFFICIENT_SEARCH_RD) ||
+            search != ENC_AC8X8_COEFFICIENT_SEARCH_RD &&
+            search != ENC_AC8X8_COEFFICIENT_SEARCH_PARTITION_RD) ||
             input->format != reconstruction->format ||
             input->width != reconstruction->width ||
             input->height != reconstruction->height ||
@@ -2543,6 +3082,7 @@ static EncStatus enc_ac8x8_i400_rd_workspace(
         y_levels =
             (int16_t *)(void *)(base + layout.luma_coefficients_offset);
         y_modes = base + layout.luma_modes_offset;
+        y_shapes = base + layout.luma_shapes_offset;
         u_levels =
             (int16_t *)(void *)(base + layout.chroma_dc_levels_offset);
         v_levels = u_levels + layout.transform_count[1U];
@@ -2603,12 +3143,14 @@ static EncStatus enc_ac8x8_i400_rd_workspace(
             result->format = input->format;
             return ENC_OK;
         }
-        if (search == ENC_AC8X8_COEFFICIENT_SEARCH_RD &&
+        if ((search == ENC_AC8X8_COEFFICIENT_SEARCH_RD ||
+             search == ENC_AC8X8_COEFFICIENT_SEARCH_PARTITION_RD) &&
             replay_luma == 0) {
             enc_memory_fill(
                 y_levels, 0U,
                 layout.transform_count[0U] * 64U * sizeof(*y_levels));
             enc_memory_fill(y_modes, 0U, layout.transform_count[0U]);
+            enc_memory_fill(y_shapes, 0U, layout.transform_count[0U]);
             enc_memory_fill(rd_cells, 0U, sizeof(rd_cells));
             rd_leaf_count =
                 ((layout.coded_plane_width[0U] + 15U) / 16U) *
@@ -2623,7 +3165,8 @@ static EncStatus enc_ac8x8_i400_rd_workspace(
             uint8_t pred;
             size_t y;
             size_t x;
-            if (search == ENC_AC8X8_COEFFICIENT_SEARCH_RD &&
+            if ((search == ENC_AC8X8_COEFFICIENT_SEARCH_RD ||
+                 search == ENC_AC8X8_COEFFICIENT_SEARCH_PARTITION_RD) &&
                 input->width > 8U && input->height > 8U) {
                 continue;
             }
@@ -2632,7 +3175,8 @@ static EncStatus enc_ac8x8_i400_rd_workspace(
             source_block(
                 input->planes[0U].data, input->width, input->height,
                 input->planes[0U].stride, block_x, block_y, samples);
-            if (search == ENC_AC8X8_COEFFICIENT_SEARCH_RD) {
+            if (search == ENC_AC8X8_COEFFICIENT_SEARCH_RD ||
+                search == ENC_AC8X8_COEFFICIENT_SEARCH_PARTITION_RD) {
                 size_t coded_width = layout.coded_plane_width[0U];
                 size_t coded_height = layout.coded_plane_height[0U];
                 size_t leaf_width;
@@ -2726,7 +3270,8 @@ static EncStatus enc_ac8x8_i400_rd_workspace(
                 }
             }
         }
-        if (search == ENC_AC8X8_COEFFICIENT_SEARCH_RD &&
+        if ((search == ENC_AC8X8_COEFFICIENT_SEARCH_RD ||
+             search == ENC_AC8X8_COEFFICIENT_SEARCH_PARTITION_RD) &&
             (input->width <= 8U || input->height <= 8U) &&
             (rd_next_block != layout.transform_count[0U] ||
              rd_leaf_index != rd_leaf_count)) {
@@ -2894,7 +3439,8 @@ static EncStatus enc_ac8x8_i400_rd_workspace(
                 input->width, input->height, qindex);
         }
         if (status != ENC_OK) return status;
-        if (search == ENC_AC8X8_COEFFICIENT_SEARCH_RD &&
+        if ((search == ENC_AC8X8_COEFFICIENT_SEARCH_RD ||
+             search == ENC_AC8X8_COEFFICIENT_SEARCH_PARTITION_RD) &&
             input->width > 8U && input->height > 8U) {
             EncAc8x8RdSearchState rd_search;
             size_t pass;
@@ -2921,22 +3467,36 @@ static EncStatus enc_ac8x8_i400_rd_workspace(
                 rd_search.trials = 0U;
                 rd_search.stored_levels = y_levels;
                 rd_search.stored_modes = y_modes;
+                rd_search.stored_shapes = y_shapes;
                 rd_search.stored_block_count = layout.transform_count[0U];
                 rd_search.stored_level_index = 0U;
                 rd_search.stored_mode_index = 0U;
                 rd_search.incumbent_reconstruction = baseline_planes[0U];
                 rd_search.incumbent_stride = layout.plane_width[0U];
                 rd_search.replay = replay_pass;
+                rd_search.partition_search =
+                    search ==
+                    ENC_AC8X8_COEFFICIENT_SEARCH_PARTITION_RD;
                 for (offset = 0U; offset < 7U; ++offset) {
                     rd_search.mode_counts[offset] = 0U;
                 }
                 for (offset = 0U; offset < 3U; ++offset) {
                     rd_search.residual_counts[offset] = 0U;
                 }
-                status = enc_ac8x8_rd_grid_tile_q(
-                    tile, layout.stream_capacity, &tile_size,
-                    input->width, input->height, qindex,
-                    rd_select_transaction_leaf, &rd_search);
+                for (offset = 0U; offset < 2U; ++offset) {
+                    rd_search.partition_counts[offset] = 0U;
+                    rd_search.transform_counts[offset] = 0U;
+                }
+                status =
+                    search == ENC_AC8X8_COEFFICIENT_SEARCH_PARTITION_RD
+                    ? enc_partition_rd_grid_tile_q(
+                          tile, layout.stream_capacity, &tile_size,
+                          input->width, input->height, qindex,
+                          partition_rd_select_transaction_leaf, &rd_search)
+                    : enc_ac8x8_rd_grid_tile_q(
+                          tile, layout.stream_capacity, &tile_size,
+                          input->width, input->height, qindex,
+                          rd_select_transaction_leaf, &rd_search);
                 if (status != ENC_OK) break;
                 if (!replay_pass) {
                     if (luma_selection_error != 0) {
@@ -2950,6 +3510,12 @@ static EncStatus enc_ac8x8_i400_rd_workspace(
                     for (offset = 0U; offset < 3U; ++offset) {
                         result->rd_residual_counts[offset] =
                             rd_search.residual_counts[offset];
+                    }
+                    for (offset = 0U; offset < 2U; ++offset) {
+                        result->rd_partition_counts[offset] =
+                            rd_search.partition_counts[offset];
+                        result->rd_transform_counts[offset] =
+                            rd_search.transform_counts[offset];
                     }
                 } else {
                     candidate_error = rd_search.squared_error;
@@ -2968,7 +3534,8 @@ static EncStatus enc_ac8x8_i400_rd_workspace(
                         ((layout.coded_plane_height[0U] + 15U) / 16U),
                     (unsigned int)input->format, qindex);
             }
-        } else if (search == ENC_AC8X8_COEFFICIENT_SEARCH_RD) {
+        } else if (search == ENC_AC8X8_COEFFICIENT_SEARCH_RD ||
+                   search == ENC_AC8X8_COEFFICIENT_SEARCH_PARTITION_RD) {
             status = enc_ac8x8_intra_yuv_chroma_grid_tile_q(
                 tile, layout.stream_capacity, &tile_size,
                 input->width, input->height,
@@ -3084,7 +3651,8 @@ EncStatus enc_ac8x8_yuv8_q_workspace(
     size_t qdelta_trials = 1U;
     size_t delta_index;
     EncStatus status;
-    if (search != ENC_AC8X8_COEFFICIENT_SEARCH_RD ||
+    if ((search != ENC_AC8X8_COEFFICIENT_SEARCH_RD &&
+         search != ENC_AC8X8_COEFFICIENT_SEARCH_PARTITION_RD) ||
         input == 0 || input->format == ENC_M3_PIXEL_I400) {
         return enc_ac8x8_yuv8_q_workspace_inner(
             input, qindex, search, workspace, workspace_capacity,
@@ -3195,6 +3763,12 @@ EncStatus enc_ac8x8_yuv8_q_workspace(
         for (delta_index = 0U; delta_index < 3U; ++delta_index) {
             result->rd_residual_counts[delta_index] =
                 luma_stats.rd_residual_counts[delta_index];
+        }
+        for (delta_index = 0U; delta_index < 2U; ++delta_index) {
+            result->rd_partition_counts[delta_index] =
+                luma_stats.rd_partition_counts[delta_index];
+            result->rd_transform_counts[delta_index] =
+                luma_stats.rd_transform_counts[delta_index];
         }
     }
     return status;

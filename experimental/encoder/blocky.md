@@ -290,6 +290,8 @@ regression.
 
 ## M4 - Limited partition and transform search
 
+Status: **implemented experiment; admission blocked**.
+
 Do not begin with the entire AV2 partition universe. Add a small set of legal
 choices around the existing fixed tree and production transform shapes.
 
@@ -327,6 +329,30 @@ choices around the existing fixed tree and production transform shapes.
 **Exit:** the encoder makes deterministic bounded partition and transform
 choices, selects both larger and smaller structures on locked fixtures, and
 improves at least one prepared image with exact local/AVM/project parity.
+
+### M4 result — blocked
+
+`--search partition-rd` reuses the M1 live transaction and keeps the admitted
+fixed four-8x8 tree first with stable tie wins. Explicit caller-owned shape
+state trials a capped 16x16 no-transform-split DCT_DCT alternative at bounded
+I400 positions. Native rollback tests cover repeated split/large trials, and
+the parity suite covers flat/smooth, directional edge, checker/fine texture,
+odd boundaries, and multiple superblocks. Both 8x8 and 16x16 candidates win
+during locked synthetic search.
+
+Admission is blocked rather than claimed. Exact decoding exposed context/order
+failures when an emitted 16x16 winner was followed by later leaves, and color
+transform-tree changes require a matching chroma derivation. The final safety
+guard therefore emits admitted `rd` whenever any 16x16 candidate was selected;
+I420/I444 keep the fixed tree. On Baya Weaver q100, all final streams match
+`rd` exactly: I400 15,356 bytes / Y SSE 52,513,443; I420 19,500 bytes /
+`[54,185,612,1,395,987,274,340]`; I444 21,599 bytes /
+`[54,185,612,11,787,157,1,550,186]`. Candidate trials were 116,160 /
+518,400 / 518,400, with I400 selecting eight 16x16 candidates before the
+safety fallback and color selecting none. Exact hashes, SSIM, 8x8 boundary
+metrics, runtime, workspace, and dual-decoder parity are frozen in
+`metrics/blocky-m4-partition-gate.json`. Because there is no honest Pareto or
+objective improvement, M4 remains blocked; M2 and M3 remain unimplemented.
 
 ## M5 - CfL and chroma mode search
 

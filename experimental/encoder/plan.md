@@ -376,6 +376,15 @@ aggregate bytes, 31,503,407 lower aggregate Y SSE, and exact three-way parity;
 see `metrics/blocky-m1-gate.json`. This releases the broader DCT_DCT residual
 work in `blocky.md` M2, but M2 is not implemented here.
 
+The separate blockiness M4 `--search partition-rd` experiment is implemented
+but blocked. It trials only 16x16 no-split versus the existing four-8x8
+transform leaf through the M1 live transaction. Synthetic candidate telemetry
+selects both shapes, but exact decoding exposed state/order failures for
+emitted 16x16 winners and color requires transform-aware chroma derivation.
+The safety guard therefore emits admitted `rd`; the Baya report is frozen in
+`metrics/blocky-m4-partition-gate.json`. This does not complete or alter the
+unimplemented blockiness M2/M3 milestones.
+
 ### [ ] M7 — In-loop filters and restoration choices
 
 Add deblock, then CDEF, then CCSO as independent trial choices. Encode a choice

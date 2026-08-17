@@ -34,6 +34,7 @@
 #define ENC_COEFF_BASE_UV_ROWS 48U
 #define ENC_COEFF_BR_UV_ROWS 16U
 #define ENC_EOB_PT_64_ROWS 12U
+#define ENC_EOB_PT_256_ROWS 12U
 #define ENC_EOB_EXTRA_ROWS 4U
 #define ENC_COEFF_BASE_EOB_ROWS 80U
 #define ENC_COEFF_BASE_LF_EOB_ROWS 80U
@@ -74,6 +75,7 @@ typedef struct {
     uint16_t coeff_base_uv[ENC_COEFF_BASE_UV_ROWS][8U];
     uint16_t coeff_br_uv[ENC_COEFF_BR_UV_ROWS][8U];
     uint16_t eob_pt_64[ENC_EOB_PT_64_ROWS][11U];
+    uint16_t eob_pt_256[ENC_EOB_PT_256_ROWS][12U];
     uint16_t eob_extra[ENC_EOB_EXTRA_ROWS][6U];
     uint16_t coeff_base_eob[ENC_COEFF_BASE_EOB_ROWS][7U];
     uint16_t coeff_base_lf_eob[ENC_COEFF_BASE_LF_EOB_ROWS][9U];
@@ -118,6 +120,13 @@ typedef EncStatus (*EncAc8x8RdLeafSearch)(
     size_t block_x, size_t block_y,
     size_t block_width, size_t block_height,
     uint8_t *selected_mode, int16_t selected_levels[4U][64U]);
+
+typedef EncStatus (*EncPartitionRdLeafSearch)(
+    void *opaque, void *transaction,
+    size_t block_x, size_t block_y,
+    size_t block_width, size_t block_height,
+    uint8_t *selected_mode, uint8_t *selected_shape,
+    int16_t selected_levels[4U][64U]);
 
 EncStatus enc_range_writer_signed_literal(
     EncRangeWriter *writer, int32_t value, unsigned int magnitude_bits);
@@ -173,6 +182,8 @@ uint16_t *enc_syntax_coeff_base_uv_cdf(
 uint16_t *enc_syntax_coeff_br_uv_cdf(
     EncSyntaxCdfs *cdfs, size_t q_context, size_t context);
 uint16_t *enc_syntax_eob_pt_64_cdf(
+    EncSyntaxCdfs *cdfs, size_t q_context, size_t plane_context);
+uint16_t *enc_syntax_eob_pt_256_cdf(
     EncSyntaxCdfs *cdfs, size_t q_context, size_t plane_context);
 uint16_t *enc_syntax_eob_extra_cdf(
     EncSyntaxCdfs *cdfs, size_t q_context);
@@ -265,6 +276,20 @@ EncStatus enc_ac8x8_rd_transaction_trial(
     void *transaction, uint8_t mode,
     const int16_t *levels, size_t transform_count,
     size_t *tell_bits);
+EncStatus enc_partition_rd_transaction_trial(
+    void *transaction, uint8_t mode, uint8_t shape,
+    int16_t levels[4U][64U], size_t *tell_bits);
+EncStatus enc_partition_rd_grid_tile_q(
+    void *data, size_t capacity, size_t *size,
+    size_t width, size_t height, unsigned int qindex,
+    EncPartitionRdLeafSearch search, void *opaque);
+EncStatus enc_partition_rd_yuv_chroma_grid_tile_q(
+    void *data, size_t capacity, size_t *size,
+    size_t width, size_t height,
+    const int16_t *u_levels, const int16_t *v_levels,
+    size_t chroma_level_count, unsigned int chroma_format_idc,
+    unsigned int qindex, const uint8_t *luma_modes,
+    size_t luma_mode_count, EncPartitionRdLeafSearch search, void *opaque);
 EncStatus enc_ac8x8_coeff_rate(
     const int16_t levels[64U], unsigned int qindex,
     size_t skip_context, size_t sign_context, size_t *tell_bits);

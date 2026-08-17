@@ -1,0 +1,245 @@
+{
+  "cases": [
+    {
+      "adaptive": {
+        "bytes": 15356,
+        "candidate_partition_keep16": 8,
+        "candidate_partition_split8": 5392,
+        "candidate_transform_16x16": 8,
+        "candidate_transform_8x8": 21568,
+        "candidate_trials": 116160,
+        "decoder_exact": true,
+        "planes": [
+          {
+            "boundary_8": {
+              "block": 8,
+              "boundary_excess_discontinuity": 324135,
+              "boundary_gradient_error_absolute": 996562,
+              "boundary_gradient_error_squared": 19103074,
+              "boundary_samples": 343200,
+              "boundary_to_interior_error_ratio_ppm": 1025995,
+              "interior_gradient_error_squared": 131244864,
+              "interior_samples": 2419200
+            },
+            "decoded_sha256": "526ada688534e588333e8ca407356588b58a8d8e39fa42ebc9baa1730c516704",
+            "plane": "y",
+            "sse": 52513443,
+            "ssim_q1e9": 937350461
+          }
+        ],
+        "runtime_seconds": 786.59,
+        "stream_sha256": "b139e0ac58afba4a9f5e35583e73baede78ee5a981fd8cd4ab9b358ca782351c",
+        "workspace_bytes": 19442049
+      },
+      "comparison": {
+        "byte_delta": 0,
+        "plane_sse_delta": [
+          0
+        ],
+        "stream_matches_rd": true,
+        "strict_pareto": false
+      },
+      "input_sha256": "e83bb7ed1fef36481d39f196ccc60d3ea658a598a237e818b92866758913bf5e",
+      "pixel_format": "i400",
+      "rd_baseline": {
+        "bytes": 15356,
+        "decoder_exact": true,
+        "deterministic": true,
+        "plane_sse": [
+          52513443
+        ],
+        "stream_sha256": "b139e0ac58afba4a9f5e35583e73baede78ee5a981fd8cd4ab9b358ca782351c"
+      }
+    },
+    {
+      "adaptive": {
+        "bytes": 19500,
+        "candidate_partition_keep16": 0,
+        "candidate_partition_split8": 5400,
+        "candidate_transform_16x16": 0,
+        "candidate_transform_8x8": 21600,
+        "candidate_trials": 518400,
+        "decoder_exact": true,
+        "planes": [
+          {
+            "boundary_8": {
+              "block": 8,
+              "boundary_excess_discontinuity": 325454,
+              "boundary_gradient_error_absolute": 1005018,
+              "boundary_gradient_error_squared": 19348930,
+              "boundary_samples": 343200,
+              "boundary_to_interior_error_ratio_ppm": 1030432,
+              "interior_gradient_error_squared": 132361631,
+              "interior_samples": 2419200
+            },
+            "decoded_sha256": "a8ca138825fa0234e1d028ce375374583201ad5eb23b0999d07ba2c363b6a9e4",
+            "plane": "y",
+            "sse": 54185612,
+            "ssim_q1e9": 935849297
+          },
+          {
+            "boundary_8": {
+              "block": 8,
+              "boundary_excess_discontinuity": 55029,
+              "boundary_gradient_error_absolute": 83214,
+              "boundary_gradient_error_squared": 598684,
+              "boundary_samples": 85200,
+              "boundary_to_interior_error_ratio_ppm": 1515873,
+              "interior_gradient_error_squared": 2803541,
+              "interior_samples": 604800
+            },
+            "decoded_sha256": "485b352adf4ac8280a2f1b9b5d3b6d5af4781dd83f6286916c1e9b2e173ffd8f",
+            "plane": "u",
+            "sse": 1395987,
+            "ssim_q1e9": 984040061
+          },
+          {
+            "boundary_8": {
+              "block": 8,
+              "boundary_excess_discontinuity": 28940,
+              "boundary_gradient_error_absolute": 46204,
+              "boundary_gradient_error_squared": 131110,
+              "boundary_samples": 85200,
+              "boundary_to_interior_error_ratio_ppm": 2001299,
+              "interior_gradient_error_squared": 465046,
+              "interior_samples": 604800
+            },
+            "decoded_sha256": "2bd8b9d19cc24ed76ece15c30fa5ce4a8a62751241947ec2e2a0c0a1aac97a93",
+            "plane": "v",
+            "sse": 274340,
+            "ssim_q1e9": 991524371
+          }
+        ],
+        "runtime_seconds": 467.11,
+        "stream_sha256": "53673a45a0a19d63f825cdb8a7c1c4dd488306d206a44015bd8ee03d98254340",
+        "workspace_bytes": 22249792
+      },
+      "comparison": {
+        "byte_delta": 0,
+        "plane_sse_delta": [
+          0,
+          0,
+          0
+        ],
+        "stream_matches_rd": true,
+        "strict_pareto": false
+      },
+      "input_sha256": "f5a538f7ce0c6791381f5d27ae71e1bce0850c20f41c9ec5e8515921c2e4a238",
+      "pixel_format": "i420",
+      "rd_baseline": {
+        "bytes": 19500,
+        "decoder_exact": true,
+        "deterministic": true,
+        "plane_sse": [
+          54185612,
+          1395987,
+          274340
+        ],
+        "stream_sha256": "53673a45a0a19d63f825cdb8a7c1c4dd488306d206a44015bd8ee03d98254340"
+      }
+    },
+    {
+      "adaptive": {
+        "bytes": 21599,
+        "candidate_partition_keep16": 0,
+        "candidate_partition_split8": 5400,
+        "candidate_transform_16x16": 0,
+        "candidate_transform_8x8": 21600,
+        "candidate_trials": 518400,
+        "decoder_exact": true,
+        "planes": [
+          {
+            "boundary_8": {
+              "block": 8,
+              "boundary_excess_discontinuity": 325454,
+              "boundary_gradient_error_absolute": 1005018,
+              "boundary_gradient_error_squared": 19348930,
+              "boundary_samples": 343200,
+              "boundary_to_interior_error_ratio_ppm": 1030432,
+              "interior_gradient_error_squared": 132361631,
+              "interior_samples": 2419200
+            },
+            "decoded_sha256": "a8ca138825fa0234e1d028ce375374583201ad5eb23b0999d07ba2c363b6a9e4",
+            "plane": "y",
+            "sse": 54185612,
+            "ssim_q1e9": 935849297
+          },
+          {
+            "boundary_8": {
+              "block": 8,
+              "boundary_excess_discontinuity": 145803,
+              "boundary_gradient_error_absolute": 282612,
+              "boundary_gradient_error_squared": 2662020,
+              "boundary_samples": 343200,
+              "boundary_to_interior_error_ratio_ppm": 2561820,
+              "interior_gradient_error_squared": 7324655,
+              "interior_samples": 2419200
+            },
+            "decoded_sha256": "aab19e488bafac52e0fd4aee14ccfcdead9f4f97d6813980af22a4281776b831",
+            "plane": "u",
+            "sse": 11787157,
+            "ssim_q1e9": 974607018
+          },
+          {
+            "boundary_8": {
+              "block": 8,
+              "boundary_excess_discontinuity": 68273,
+              "boundary_gradient_error_absolute": 148433,
+              "boundary_gradient_error_squared": 420321,
+              "boundary_samples": 343200,
+              "boundary_to_interior_error_ratio_ppm": 2133520,
+              "interior_gradient_error_squared": 1388701,
+              "interior_samples": 2419200
+            },
+            "decoded_sha256": "963c41c5018b04999a2f9d4f6afab02fa1e82ab524966eef69344d286747d043",
+            "plane": "v",
+            "sse": 1550186,
+            "ssim_q1e9": 989840374
+          }
+        ],
+        "runtime_seconds": 575.94,
+        "stream_sha256": "032a0b402f77bac2de603d2ab183ea6e0d50ffdbf6084193062e588a9f2a3d3c",
+        "workspace_bytes": 34691392
+      },
+      "comparison": {
+        "byte_delta": 0,
+        "plane_sse_delta": [
+          0,
+          0,
+          0
+        ],
+        "stream_matches_rd": true,
+        "strict_pareto": false
+      },
+      "input_sha256": "b69bde49364dc29e1eeab29af51feb7776b51eb5f930267dff7e2e83fd70e8ad",
+      "pixel_format": "i444",
+      "rd_baseline": {
+        "bytes": 21599,
+        "decoder_exact": true,
+        "deterministic": true,
+        "plane_sse": [
+          54185612,
+          11787157,
+          1550186
+        ],
+        "stream_sha256": "032a0b402f77bac2de603d2ab183ea6e0d50ffdbf6084193062e588a9f2a3d3c"
+      }
+    }
+  ],
+  "configuration": {
+    "adaptive_search": "partition-rd",
+    "baseline_search": "rd",
+    "height": 960,
+    "qindex": 100,
+    "width": 1440
+  },
+  "reason": "All three final Baya streams match admitted rd byte-for-byte; candidate 16x16 trials do not produce a validator-exact admitted Baya objective improvement.",
+  "schema": 1,
+  "status": "blocked",
+  "summary": {
+    "all_decoder_exact": true,
+    "all_match_rd": true,
+    "all_per_plane_nonregressing": true,
+    "strict_pareto_cases": 0
+  }
+}

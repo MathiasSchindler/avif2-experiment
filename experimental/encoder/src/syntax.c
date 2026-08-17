@@ -1196,6 +1196,65 @@ static EncStatus write_ac8x8_coeff(
         return ENC_OK;
 }
 
+static EncStatus write_ac16x16_dc_coeff(
+    EncRangeWriter *writer, EncSyntaxCdfs *cdfs, const int16_t *levels,
+    size_t skip_context, size_t sign_context, size_t q_context) {
+    unsigned int magnitude =
+        levels[0U] < 0 ? (unsigned int)(-(int)levels[0U])
+                       : (unsigned int)levels[0U];
+    unsigned int symbol;
+    unsigned int coded;
+    size_t index;
+    for (index = 1U; index < 256U; ++index) {
+        if (levels[index] != 0) return ENC_INVALID_ARGUMENT;
+    }
+    if (enc_range_writer_symbol(
+            writer, magnitude == 0U ? 1U : 0U,
+            enc_syntax_txb_skip_cdf(
+                cdfs, q_context, 0U, 2U, skip_context),
+            2U, 1) != ENC_OK || magnitude == 0U) {
+        return enc_range_writer_status(writer);
+    }
+    if (enc_range_writer_symbol(
+            writer, 0U,
+            enc_syntax_eob_pt_256_cdf(cdfs, q_context, 0U),
+            8U, 1) != ENC_OK) {
+        return enc_range_writer_status(writer);
+    }
+    symbol = magnitude - 1U;
+    if (symbol > 4U) symbol = 4U;
+    if (enc_range_writer_symbol(
+            writer, symbol,
+            enc_syntax_coeff_base_lf_eob_cdf(
+                cdfs, q_context, 2U, 0U),
+            5U, 1) != ENC_OK) {
+        return enc_range_writer_status(writer);
+    }
+    coded = symbol + 1U;
+    if (coded > 4U) {
+        unsigned int br = magnitude - coded;
+        if (br > 3U) br = 3U;
+        if (enc_range_writer_symbol(
+                writer, br,
+                enc_syntax_coeff_br_lf_cdf(cdfs, q_context, 0U),
+                4U, 1) != ENC_OK) {
+            return enc_range_writer_status(writer);
+        }
+        coded += br;
+    }
+    if (enc_range_writer_symbol(
+            writer, levels[0U] < 0 ? 1U : 0U,
+            enc_syntax_dc_sign_cdf(
+                cdfs, q_context, 0U, 0U, sign_context),
+            2U, 1) != ENC_OK) {
+        return enc_range_writer_status(writer);
+    }
+    return coded >= 8U
+        ? enc_range_writer_coeff_remainder(
+              writer, magnitude - coded, 0U)
+        : ENC_OK;
+}
+
 EncStatus enc_ac8x8_coeff_rate(
     const int16_t levels[64U], unsigned int qindex,
     size_t skip_context, size_t sign_context, size_t *tell_bits) {
@@ -1622,6 +1681,42 @@ static void m3_coeff_context(
     *sign_context = score < 0 ? 1U : score > 0 ? 2U : 0U;
 }
 
+static void m3_large_coeff_context(
+    EncM3TileState *state, size_t x, size_t y,
+    size_t block_width, size_t block_height,
+    size_t *skip_context, size_t *sign_context) {
+    size_t column = x / 4U;
+    size_t row = (y / 4U) % 16U;
+    size_t mi_columns = ((state->width + 7U) / 8U) * 2U;
+    size_t mi_rows = ((state->height + 7U) / 8U) * 2U;
+    size_t columns = block_width / 4U;
+    size_t rows = block_height / 4U;
+    size_t global_row = y / 4U;
+    size_t top;
+    size_t side;
+    int score = 0;
+    size_t index;
+    static const uint8_t contexts[5U][5U] = {
+        {1U, 2U, 2U, 3U, 3U}, {2U, 2U, 3U, 3U, 4U},
+        {2U, 3U, 3U, 4U, 4U}, {3U, 3U, 4U, 4U, 5U},
+        {3U, 4U, 4U, 5U, 5U}
+    };
+    if (column + columns > mi_columns) columns = mi_columns - column;
+    if (global_row + rows > mi_rows) rows = mi_rows - global_row;
+    top = m3_or_low_levels(state->coeff_above + column, columns);
+    side = m3_or_low_levels(state->coeff_left + row, rows);
+    for (index = 0U; index < columns; ++index) {
+        uint8_t value = state->coeff_above[column + index];
+        score += (value & 16U) != 0U ? 1 : (value & 8U) != 0U ? -1 : 0;
+    }
+    for (index = 0U; index < rows; ++index) {
+        uint8_t value = state->coeff_left[row + index];
+        score += (value & 16U) != 0U ? 1 : (value & 8U) != 0U ? -1 : 0;
+    }
+    *skip_context = contexts[top > 4U ? 4U : top][side > 4U ? 4U : side];
+    *sign_context = score < 0 ? 1U : score > 0 ? 2U : 0U;
+}
+
 static void m3_commit_coeff_context(
     EncM3TileState *state, size_t x, size_t y, uint8_t value) {
     size_t column = x / 4U;
@@ -1972,6 +2067,7 @@ typedef struct {
     uint16_t secondary_tx_cdf[8U];
     EncM3TileState state;
     EncAc8x8RdLeafSearch search;
+    EncPartitionRdLeafSearch partition_search;
     void *opaque;
 } EncAc8x8RdTile;
 
@@ -2023,7 +2119,7 @@ static uint32_t m3_rd_leaf_mode(
 
 static EncStatus m3_rd_write_leaf(
     EncM3TileState *state, uint8_t token,
-    const int16_t *levels, size_t transform_count,
+    const int16_t *levels, size_t transform_count, uint8_t shape,
     size_t block_x, size_t block_y,
     size_t block_width, size_t block_height) {
     size_t block_size_group =
@@ -2036,8 +2132,11 @@ static EncStatus m3_rd_write_leaf(
     size_t tx = 0U;
     size_t tx_y;
     size_t tx_x;
+    int single_16 =
+        shape == 1U && block_width == 16U && block_height == 16U;
     EncStatus status;
-    if (transform_count != (block_width / 8U) * (block_height / 8U) ||
+    if ((shape != 0U && !single_16) ||
+        transform_count != (block_width / 8U) * (block_height / 8U) ||
         transform_count == 0U || transform_count > 4U) {
         return ENC_INVALID_ARGUMENT;
     }
@@ -2052,13 +2151,14 @@ static EncStatus m3_rd_write_leaf(
     if (status != ENC_OK) return status;
     if (enc_range_writer_symbol(
             state->writer,
-            block_width != 8U || block_height != 8U ? 1U : 0U,
+            single_16 ? 0U :
+                block_width != 8U || block_height != 8U ? 1U : 0U,
             enc_syntax_tx_do_partition_cdf(
                 state->cdfs, 0U, 0U, tx_size_group),
             2U, 1) != ENC_OK) {
         return enc_range_writer_status(state->writer);
     }
-    if ((block_width != 8U || block_height != 8U) &&
+    if (!single_16 && (block_width != 8U || block_height != 8U) &&
         enc_range_writer_symbol(
             state->writer,
             block_width == block_height ? 0U :
@@ -2069,6 +2169,32 @@ static EncStatus m3_rd_write_leaf(
                 block_width == 8U ? 1U : 2U),
             7U, 1) != ENC_OK) {
         return enc_range_writer_status(state->writer);
+    }
+    if (single_16) {
+        size_t skip_context;
+        size_t sign_context;
+        size_t column = block_x / 4U;
+        size_t row = (block_y / 4U) % 16U;
+        size_t index;
+        uint8_t value;
+        m3_large_coeff_context(
+            state, block_x, block_y, block_width, block_height,
+            &skip_context, &sign_context);
+        status = write_ac16x16_dc_coeff(
+            state->writer, state->cdfs, levels, skip_context,
+            sign_context, state->q_context);
+        if (status != ENC_OK) return status;
+        value = m3_cul_level(levels, 256U);
+        for (index = column;
+             index < column + 4U && index < ENC_M3_MAX_MI_COLUMNS;
+             ++index) {
+            state->coeff_above[index] = value;
+        }
+        for (index = row; index < row + 4U && index < 16U; ++index) {
+            state->coeff_left[index] = value;
+        }
+        state->level_index += 4U;
+        return ENC_OK;
     }
     for (tx_y = 0U; tx_y < block_height; tx_y += 8U) {
         for (tx_x = 0U; tx_x < block_width; tx_x += 8U) {
@@ -2098,9 +2224,9 @@ static void m3_rd_copy_bytes(
     for (index = 0U; index < size; ++index) destination[index] = source[index];
 }
 
-EncStatus enc_ac8x8_rd_transaction_trial(
+static EncStatus m3_rd_transaction_trial(
     void *transaction, uint8_t mode,
-    const int16_t *levels, size_t transform_count,
+    const int16_t *levels, size_t transform_count, uint8_t shape,
     size_t *tell_bits) {
     EncAc8x8RdTransaction *trial = (EncAc8x8RdTransaction *)transaction;
     EncAc8x8RdTile *tile;
@@ -2137,6 +2263,7 @@ EncStatus enc_ac8x8_rd_transaction_trial(
     trial->tail_saved = 0;
     status = m3_rd_write_leaf(
         &tile->state, mode, levels, transform_count,
+        shape,
         trial->block_x, trial->block_y,
         trial->block_width, trial->block_height);
     if (status == ENC_OK) {
@@ -2190,6 +2317,28 @@ EncStatus enc_ac8x8_rd_transaction_trial(
     return status;
 }
 
+EncStatus enc_ac8x8_rd_transaction_trial(
+    void *transaction, uint8_t mode,
+    const int16_t *levels, size_t transform_count,
+    size_t *tell_bits) {
+    return m3_rd_transaction_trial(
+        transaction, mode, levels, transform_count, 0U, tell_bits);
+}
+
+EncStatus enc_partition_rd_transaction_trial(
+    void *transaction, uint8_t mode, uint8_t shape,
+    int16_t levels[4U][64U], size_t *tell_bits) {
+    EncAc8x8RdTransaction *trial =
+        (EncAc8x8RdTransaction *)transaction;
+    size_t transform_count;
+    if (trial == 0) return ENC_INVALID_ARGUMENT;
+    transform_count =
+        (trial->block_width / 8U) * (trial->block_height / 8U);
+    return m3_rd_transaction_trial(
+        transaction, mode, &levels[0U][0U],
+        transform_count, shape, tell_bits);
+}
+
 static EncStatus m3_rd_select_and_write(
     EncAc8x8RdTile *tile,
     size_t block_x, size_t block_y,
@@ -2197,6 +2346,7 @@ static EncStatus m3_rd_select_and_write(
     EncAc8x8RdTransaction transaction;
     int16_t levels[4U][64U] = {{0}};
     uint8_t mode = 0U;
+    uint8_t shape = 0U;
     size_t transform_count = (block_width / 8U) * (block_height / 8U);
     size_t tx;
     size_t coefficient;
@@ -2209,10 +2359,18 @@ static EncStatus m3_rd_select_and_write(
     transaction.block_y = block_y;
     transaction.block_width = block_width;
     transaction.block_height = block_height;
-    status = tile->search(
-        tile->opaque, &transaction, block_x, block_y,
-        block_width, block_height, &mode, levels);
+    status = tile->partition_search != 0
+        ? tile->partition_search(
+              tile->opaque, &transaction, block_x, block_y,
+              block_width, block_height, &mode, &shape, levels)
+        : tile->search(
+              tile->opaque, &transaction, block_x, block_y,
+              block_width, block_height, &mode, levels);
     if (status != ENC_OK) return status;
+    if (shape > 1U ||
+        (shape == 1U && (block_width != 16U || block_height != 16U))) {
+        return ENC_INVALID_ARGUMENT;
+    }
     for (tx = transform_count; tx < 4U; ++tx) {
         for (coefficient = 0U; coefficient < 64U; ++coefficient) {
             if (levels[tx][coefficient] != 0) return ENC_INVALID_ARGUMENT;
@@ -2220,6 +2378,7 @@ static EncStatus m3_rd_select_and_write(
     }
     return m3_rd_write_leaf(
         &tile->state, mode, &levels[0U][0U], transform_count,
+        shape,
         block_x, block_y, block_width, block_height);
 }
 
@@ -2363,16 +2522,19 @@ static EncStatus m3_rd_partition(
     return m3_rd_partition(tile, block_x + half, block_y + half, half);
 }
 
-EncStatus enc_ac8x8_rd_grid_tile_q(
+static EncStatus m3_rd_grid_tile_q(
     void *data, size_t capacity, size_t *size,
     size_t width, size_t height, unsigned int qindex,
-    EncAc8x8RdLeafSearch search, void *opaque) {
+    EncAc8x8RdLeafSearch search,
+    EncPartitionRdLeafSearch partition_search, void *opaque) {
     EncAc8x8RdTile tile;
     size_t block_count;
     size_t index;
     EncStatus status;
     static const uint16_t thresholds[3U] = {2357U, 9504U, 16641U};
-    if (size == 0 || (data == 0 && capacity != 0U) || search == 0 ||
+    if (size == 0 || (data == 0 && capacity != 0U) ||
+        (search == 0 && partition_search == 0) ||
+        (search != 0 && partition_search != 0) ||
         width == 0U || width > ENC_M3_PRODUCTION_MAX_DIMENSION ||
         height == 0U || height > ENC_M3_PRODUCTION_MAX_DIMENSION ||
         qindex == 0U || qindex > 255U) {
@@ -2417,6 +2579,7 @@ EncStatus enc_ac8x8_rd_grid_tile_q(
         tile.state.mode_left[index] = 0U;
     }
     tile.search = search;
+    tile.partition_search = partition_search;
     tile.opaque = opaque;
     if (width <= 16U && height <= 16U) {
         status = m3_rd_partition(&tile, 0U, 0U, 64U);
@@ -2449,6 +2612,24 @@ EncStatus enc_ac8x8_rd_grid_tile_q(
     }
     *size = enc_range_writer_bytes_used(&tile.writer);
     return ENC_OK;
+}
+
+EncStatus enc_ac8x8_rd_grid_tile_q(
+    void *data, size_t capacity, size_t *size,
+    size_t width, size_t height, unsigned int qindex,
+    EncAc8x8RdLeafSearch search, void *opaque) {
+    return m3_rd_grid_tile_q(
+        data, capacity, size, width, height, qindex,
+        search, 0, opaque);
+}
+
+EncStatus enc_partition_rd_grid_tile_q(
+    void *data, size_t capacity, size_t *size,
+    size_t width, size_t height, unsigned int qindex,
+    EncPartitionRdLeafSearch search, void *opaque) {
+    return m3_rd_grid_tile_q(
+        data, capacity, size, width, height, qindex,
+        0, search, opaque);
 }
 
 static EncStatus write_m3_leaf_tail(
@@ -3417,13 +3598,14 @@ EncStatus enc_ac8x8_intra_yuv_chroma_grid_tile_q(
  * the same adaptive CDFs. This is deliberately separate from the complete
  * grid writer above: callers use the latter as a small-fixture oracle.
  */
-EncStatus enc_ac8x8_rd_yuv_chroma_grid_tile_q(
+static EncStatus m3_rd_yuv_chroma_grid_tile_q(
     void *data, size_t capacity, size_t *size,
     size_t width, size_t height,
     const int16_t *u_levels, const int16_t *v_levels,
     size_t chroma_level_count, unsigned int chroma_format_idc,
     unsigned int qindex, const uint8_t *luma_modes,
-    size_t luma_mode_count, EncAc8x8RdLeafSearch search, void *opaque) {
+    size_t luma_mode_count, EncAc8x8RdLeafSearch search,
+    EncPartitionRdLeafSearch partition_search, void *opaque) {
     EncAc8x8RdTile tile;
     EncM3ColorTileState color;
     size_t block_count;
@@ -3434,7 +3616,9 @@ EncStatus enc_ac8x8_rd_yuv_chroma_grid_tile_q(
     EncStatus status;
     static const uint16_t thresholds[3U] = {2357U, 9504U, 16641U};
     if (size == 0 || (data == 0 && capacity != 0U) || u_levels == 0 ||
-        v_levels == 0 || search == 0 || width <= 8U || height <= 8U ||
+        v_levels == 0 || (search == 0 && partition_search == 0) ||
+        (search != 0 && partition_search != 0) ||
+        width <= 8U || height <= 8U ||
         width > ENC_M3_PRODUCTION_MAX_DIMENSION ||
         height > ENC_M3_PRODUCTION_MAX_DIMENSION ||
         (chroma_format_idc != 0U && chroma_format_idc != 2U) ||
@@ -3484,6 +3668,7 @@ EncStatus enc_ac8x8_rd_yuv_chroma_grid_tile_q(
         tile.state.mode_left[index] = 0U;
     }
     tile.search = search;
+    tile.partition_search = partition_search;
     tile.opaque = opaque;
     status = ENC_OK;
     for (row = 0U;
@@ -3597,6 +3782,32 @@ EncStatus enc_ac8x8_rd_yuv_chroma_grid_tile_q(
     }
     *size = enc_range_writer_bytes_used(&tile.writer);
     return ENC_OK;
+}
+
+EncStatus enc_ac8x8_rd_yuv_chroma_grid_tile_q(
+    void *data, size_t capacity, size_t *size,
+    size_t width, size_t height,
+    const int16_t *u_levels, const int16_t *v_levels,
+    size_t chroma_level_count, unsigned int chroma_format_idc,
+    unsigned int qindex, const uint8_t *luma_modes,
+    size_t luma_mode_count, EncAc8x8RdLeafSearch search, void *opaque) {
+    return m3_rd_yuv_chroma_grid_tile_q(
+        data, capacity, size, width, height, u_levels, v_levels,
+        chroma_level_count, chroma_format_idc, qindex, luma_modes,
+        luma_mode_count, search, 0, opaque);
+}
+
+EncStatus enc_partition_rd_yuv_chroma_grid_tile_q(
+    void *data, size_t capacity, size_t *size,
+    size_t width, size_t height,
+    const int16_t *u_levels, const int16_t *v_levels,
+    size_t chroma_level_count, unsigned int chroma_format_idc,
+    unsigned int qindex, const uint8_t *luma_modes,
+    size_t luma_mode_count, EncPartitionRdLeafSearch search, void *opaque) {
+    return m3_rd_yuv_chroma_grid_tile_q(
+        data, capacity, size, width, height, u_levels, v_levels,
+        chroma_level_count, chroma_format_idc, qindex, luma_modes,
+        luma_mode_count, 0, search, opaque);
 }
 
 EncStatus enc_m3_intra_yuv_grid_tile_q(

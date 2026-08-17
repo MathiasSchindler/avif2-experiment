@@ -78,6 +78,20 @@ covers odd dimensions, all formats, the 1440 ceiling, Baya Weaver, and all 14
 selected full prepared images; it is deterministic and exact against both
 decoders, saves 6,206 aggregate bytes and 31,503,407 aggregate Y SSE, and has
 six strict full-image Pareto wins. See `metrics/blocky-m1-gate.json`.
+`--search partition-rd` is the additive M4 experiment. It preserves the
+admitted `rd` fixed tree as the first candidate and trials a bounded 16x16
+no-transform-split alternative against the existing four-8x8 leaf at selected
+I400 positions. Prediction, residual, exact live writer/CDF/context rate,
+active SSE, reconstruction, and reconstructed-cell availability are
+transacted together; ties keep the fixed tree. I420/I444 currently execute
+the exact fixed-tree candidate only because changing the luma transform tree
+without a proven matching chroma derivation corrupted full color streams.
+Telemetry is candidate telemetry: `rd_candidate_partition_split8`,
+`rd_candidate_partition_keep16`, `rd_candidate_transform_8x8`, and
+`rd_candidate_transform_16x16`. The locked synthetic suite exercises both
+candidate shapes, but every final Baya q100 stream matches admitted `rd`
+byte-for-byte. M4 admission is blocked pending a validator-exact emitted 16x16
+objective win; see `metrics/blocky-m4-partition-gate.json`.
 Search-off hashes remain locked. Directional and intra prediction searches
 remain explicit modes and are not combined with the default AC search.
 
@@ -86,6 +100,7 @@ M1 validation is split into
 `blocky-m1-parity-test`, `blocky-m1-diagnostic`,
 `blocky-m1-corpus-frontier`, and the admission target
 `blocky-m1-full-gate` (`blocky-m1-gate` is its compatibility alias).
+`make blocky-m4-partition-gate` reruns the Baya-focused M4 comparison.
 
 `make chroma-ac-gate` reproduces the frozen production report in
 `metrics/chroma-ac-gate.json`. It requires deterministic output, no per-plane
