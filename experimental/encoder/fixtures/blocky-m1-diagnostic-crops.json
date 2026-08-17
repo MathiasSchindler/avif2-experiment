@@ -1,0 +1,98 @@
+{
+  "schema": "av2-encoder-blocky-m1-diagnostic-crops-v1",
+  "crops": [
+    {
+      "id": "baya-rd-unique-texture-i400-q100",
+      "source_id": "baya-weaver",
+      "preparation_id": "le1440",
+      "pixel_format": "i400",
+      "qindex": 100,
+      "crop": {
+        "x": 640,
+        "y": 256,
+        "width": 64,
+        "height": 64
+      },
+      "expected_rd_relation": "rd-unique",
+      "role": "real-texture-rd-unique",
+      "tags": [
+        "baya-weaver",
+        "diagnostic-crop",
+        "i400",
+        "real-image",
+        "texture"
+      ],
+      "note": "Real 64x64 luma crop where rd is unique and improves both bytes and SSE relative to bounded."
+    },
+    {
+      "id": "baya-rd-equals-bounded-i400-q100",
+      "source_id": "baya-weaver",
+      "preparation_id": "le1440",
+      "pixel_format": "i400",
+      "qindex": 100,
+      "crop": {
+        "x": 896,
+        "y": 256,
+        "width": 64,
+        "height": 64
+      },
+      "expected_rd_relation": "rd-equals-bounded",
+      "role": "real-luma-rd-equals-bounded",
+      "tags": [
+        "baya-weaver",
+        "diagnostic-crop",
+        "i400",
+        "real-image"
+      ],
+      "note": "Real 64x64 luma crop where rd and bounded emit the same stream and metrics."
+    },
+    {
+      "id": "baya-rd-unique-texture-i420-q100",
+      "source_id": "baya-weaver",
+      "preparation_id": "le1440",
+      "pixel_format": "i420",
+      "qindex": 100,
+      "crop": {
+        "x": 640,
+        "y": 256,
+        "width": 64,
+        "height": 64
+      },
+      "expected_rd_relation": "rd-unique",
+      "role": "real-color-rd-unique",
+      "tags": [
+        "baya-weaver",
+        "color",
+        "diagnostic-crop",
+        "i420",
+        "real-image",
+        "texture"
+      ],
+      "note": "Real 64x64 I420 crop where rd is unique and also selects a non-zero qdelta pair."
+    },
+    {
+      "id": "baya-rd-unique-texture-i444-q100",
+      "source_id": "baya-weaver",
+      "preparation_id": "le1440",
+      "pixel_format": "i444",
+      "qindex": 100,
+      "crop": {
+        "x": 640,
+        "y": 256,
+        "width": 64,
+        "height": 64
+      },
+      "expected_rd_relation": "rd-unique",
+      "role": "real-color-rd-unique",
+      "tags": [
+        "baya-weaver",
+        "color",
+        "diagnostic-crop",
+        "i444",
+        "real-image",
+        "texture"
+      ],
+      "note": "Real 64x64 I444 crop where rd is unique and differs from both bounded and plane-qdelta."
+    }
+  ]
+}

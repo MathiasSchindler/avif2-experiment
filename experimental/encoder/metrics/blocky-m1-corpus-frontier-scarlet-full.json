@@ -1,0 +1,797 @@
+{
+  "cases": [
+    {
+      "artifacts": {
+        "baseline": "experimental/encoder/metrics/blocky-m1-scarlet-full/streams/prepared-scarlet-flycatcher-le896-i400-full-q60/bounded.obu",
+        "rd": "experimental/encoder/metrics/blocky-m1-scarlet-full/streams/prepared-scarlet-flycatcher-le896-i400-full-q60/rd.obu"
+      },
+      "baseline_search": "bounded",
+      "expected_categories": [],
+      "height": 598,
+      "id": "prepared-scarlet-flycatcher-le896-i400-full-q60",
+      "invalid_legacy_searches": [],
+      "origin": {
+        "preparation_id": "le896",
+        "source": "images/prepared/le896/scarlet-flycatcher/source-896x598-gray8.i400",
+        "source_id": "scarlet-flycatcher",
+        "source_sha256": "c4e75dfe5126e60e463a26e7826dfec9b13458264e08cff33035b0b806d6eb43"
+      },
+      "pixel_format": "i400",
+      "qindex": 60,
+      "rd_emitted_candidate": false,
+      "rd_vs_baseline": {
+        "baseline_search": "bounded",
+        "byte_delta": 0,
+        "nonregression": true,
+        "plane_sse_gain": [
+          0
+        ],
+        "strict_pareto_win": false
+      },
+      "rd_winner_categories": [],
+      "searches": {
+        "bounded": {
+          "attempts": [
+            {
+              "argv": [
+                "/home/mathias/avif2-experiment/experimental/encoder/build/av2-encoder-experiment",
+                "/home/mathias/avif2-experiment/experimental/encoder/build/blocky-m1-scarlet-full-work/prepared-scarlet-flycatcher-le896-i400-full-q60/source.i400",
+                "--width",
+                "896",
+                "--height",
+                "598",
+                "--qindex",
+                "60",
+                "--search",
+                "bounded",
+                "--output",
+                "experimental/encoder/build/blocky-m1-scarlet-full-work/prepared-scarlet-flycatcher-le896-i400-full-q60/bounded/encoded-0.obu"
+              ],
+              "duration_ns": 12688876529,
+              "output_exists": true,
+              "returncode": 0,
+              "stderr": "encoder: bytes=13838 sse_y=29890521 psnr_y=30.67dB workspace_bytes=7550065 qindex=60"
+            }
+          ],
+          "avm_project_exact": true,
+          "avm_sha256": "790ba94b083d75e6e4445a513e6ef7d9d2f4bdc0cbd4edf02aec4c1890e9dd09",
+          "category": "ac",
+          "decode_time_ns": {
+            "avm": 59947083,
+            "project": 26705757
+          },
+          "decoded_sha256": "790ba94b083d75e6e4445a513e6ef7d9d2f4bdc0cbd4edf02aec4c1890e9dd09",
+          "deterministic": true,
+          "encode_time_ns": {
+            "median": 12688876529,
+            "samples": [
+              12688876529
+            ],
+            "worst": 12688876529
+          },
+          "input_bytes": 535808,
+          "input_sha256": "c4e75dfe5126e60e463a26e7826dfec9b13458264e08cff33035b0b806d6eb43",
+          "local_sse_matches_decode": true,
+          "obu_bytes": 13838,
+          "obu_sha256": "0540f5d1bc9a54d3861cb635395ec6febf965b941a04e9059e9fe0fea2a90768",
+          "output_dir": "/home/mathias/avif2-experiment/experimental/encoder/build/blocky-m1-scarlet-full-work/prepared-scarlet-flycatcher-le896-i400-full-q60/bounded",
+          "planes": [
+            {
+              "decoded_psnr_db": "30.665561",
+              "decoded_sha256": "790ba94b083d75e6e4445a513e6ef7d9d2f4bdc0cbd4edf02aec4c1890e9dd09",
+              "decoded_sse": 29890521,
+              "height": 598,
+              "plane": "y",
+              "reported_psnr_db": "30.665561",
+              "reported_sse": 29890521,
+              "samples": 535808,
+              "source_sha256": "c4e75dfe5126e60e463a26e7826dfec9b13458264e08cff33035b0b806d6eb43",
+              "width": 896
+            }
+          ],
+          "primary_output_path": "/home/mathias/avif2-experiment/experimental/encoder/build/blocky-m1-scarlet-full-work/prepared-scarlet-flycatcher-le896-i400-full-q60/bounded/encoded-0.obu",
+          "project_sha256": "790ba94b083d75e6e4445a513e6ef7d9d2f4bdc0cbd4edf02aec4c1890e9dd09",
+          "qdelta_y_preserved_reported": null,
+          "reported_qindex": 60,
+          "reported_sse": [
+            29890521
+          ],
+          "search": "bounded",
+          "selected_qdelta": [],
+          "status": "pass",
+          "tokens": {
+            "bytes": "13838",
+            "psnr_y": "30.67dB",
+            "qindex": "60",
+            "sse_y": "29890521",
+            "workspace_bytes": "7550065"
+          },
+          "validated": true,
+          "workspace_bytes": 7550065
+        },
+        "directional": {
+          "attempts": [
+            {
+              "argv": [
+                "/home/mathias/avif2-experiment/experimental/encoder/build/av2-encoder-experiment",
+                "/home/mathias/avif2-experiment/experimental/encoder/build/blocky-m1-scarlet-full-work/prepared-scarlet-flycatcher-le896-i400-full-q60/source.i400",
+                "--width",
+                "896",
+                "--height",
+                "598",
+                "--qindex",
+                "60",
+                "--search",
+                "directional",
+                "--output",
+                "experimental/encoder/build/blocky-m1-scarlet-full-work/prepared-scarlet-flycatcher-le896-i400-full-q60/directional/encoded-0.obu"
+              ],
+              "duration_ns": 2166671330,
+              "output_exists": true,
+              "returncode": 0,
+              "stderr": "encoder: bytes=4503 sse_y=72281248 psnr_y=26.83dB workspace_bytes=2703776 qindex=60 intra_mode=0"
+            }
+          ],
+          "avm_project_exact": true,
+          "avm_sha256": "0d40b3f442981220d23eefa370a47bf35a6492bcf26f551101c3f1cbd58d644f",
+          "category": "dc",
+          "decode_time_ns": {
+            "avm": 60359079,
+            "project": 26784678
+          },
+          "decoded_sha256": "0d40b3f442981220d23eefa370a47bf35a6492bcf26f551101c3f1cbd58d644f",
+          "deterministic": true,
+          "encode_time_ns": {
+            "median": 2166671330,
+            "samples": [
+              2166671330
+            ],
+            "worst": 2166671330
+          },
+          "input_bytes": 535808,
+          "input_sha256": "c4e75dfe5126e60e463a26e7826dfec9b13458264e08cff33035b0b806d6eb43",
+          "local_sse_matches_decode": true,
+          "obu_bytes": 4503,
+          "obu_sha256": "4451b60e2bf1c11bdf19f21042ec573424bd0d9f2e1dee71943a201aab0e0618",
+          "output_dir": "/home/mathias/avif2-experiment/experimental/encoder/build/blocky-m1-scarlet-full-work/prepared-scarlet-flycatcher-le896-i400-full-q60/directional",
+          "planes": [
+            {
+              "decoded_psnr_db": "26.830639",
+              "decoded_sha256": "0d40b3f442981220d23eefa370a47bf35a6492bcf26f551101c3f1cbd58d644f",
+              "decoded_sse": 72281248,
+              "height": 598,
+              "plane": "y",
+              "reported_psnr_db": "26.830639",
+              "reported_sse": 72281248,
+              "samples": 535808,
+              "source_sha256": "c4e75dfe5126e60e463a26e7826dfec9b13458264e08cff33035b0b806d6eb43",
+              "width": 896
+            }
+          ],
+          "primary_output_path": "/home/mathias/avif2-experiment/experimental/encoder/build/blocky-m1-scarlet-full-work/prepared-scarlet-flycatcher-le896-i400-full-q60/directional/encoded-0.obu",
+          "project_sha256": "0d40b3f442981220d23eefa370a47bf35a6492bcf26f551101c3f1cbd58d644f",
+          "qdelta_y_preserved_reported": null,
+          "reported_qindex": 60,
+          "reported_sse": [
+            72281248
+          ],
+          "search": "directional",
+          "selected_qdelta": [],
+          "status": "pass",
+          "tokens": {
+            "bytes": "4503",
+            "intra_mode": "0",
+            "psnr_y": "26.83dB",
+            "qindex": "60",
+            "sse_y": "72281248",
+            "workspace_bytes": "2703776"
+          },
+          "validated": true,
+          "workspace_bytes": 2703776
+        },
+        "directional-exact": {
+          "attempts": [
+            {
+              "argv": [
+                "/home/mathias/avif2-experiment/experimental/encoder/build/av2-encoder-experiment",
+                "/home/mathias/avif2-experiment/experimental/encoder/build/blocky-m1-scarlet-full-work/prepared-scarlet-flycatcher-le896-i400-full-q60/source.i400",
+                "--width",
+                "896",
+                "--height",
+                "598",
+                "--qindex",
+                "60",
+                "--search",
+                "directional-exact",
+                "--output",
+                "experimental/encoder/build/blocky-m1-scarlet-full-work/prepared-scarlet-flycatcher-le896-i400-full-q60/directional-exact/encoded-0.obu"
+              ],
+              "duration_ns": 4393338071,
+              "output_exists": true,
+              "returncode": 0,
+              "stderr": "encoder: bytes=4503 sse_y=72281248 psnr_y=26.83dB workspace_bytes=2703776 qindex=60 intra_mode=0"
+            }
+          ],
+          "avm_project_exact": true,
+          "avm_sha256": "0d40b3f442981220d23eefa370a47bf35a6492bcf26f551101c3f1cbd58d644f",
+          "category": "dc",
+          "decode_time_ns": {
+            "avm": 63297805,
+            "project": 26476816
+          },
+          "decoded_sha256": "0d40b3f442981220d23eefa370a47bf35a6492bcf26f551101c3f1cbd58d644f",
+          "deterministic": true,
+          "encode_time_ns": {
+            "median": 4393338071,
+            "samples": [
+              4393338071
+            ],
+            "worst": 4393338071
+          },
+          "input_bytes": 535808,
+          "input_sha256": "c4e75dfe5126e60e463a26e7826dfec9b13458264e08cff33035b0b806d6eb43",
+          "local_sse_matches_decode": true,
+          "obu_bytes": 4503,
+          "obu_sha256": "4451b60e2bf1c11bdf19f21042ec573424bd0d9f2e1dee71943a201aab0e0618",
+          "output_dir": "/home/mathias/avif2-experiment/experimental/encoder/build/blocky-m1-scarlet-full-work/prepared-scarlet-flycatcher-le896-i400-full-q60/directional-exact",
+          "planes": [
+            {
+              "decoded_psnr_db": "26.830639",
+              "decoded_sha256": "0d40b3f442981220d23eefa370a47bf35a6492bcf26f551101c3f1cbd58d644f",
+              "decoded_sse": 72281248,
+              "height": 598,
+              "plane": "y",
+              "reported_psnr_db": "26.830639",
+              "reported_sse": 72281248,
+              "samples": 535808,
+              "source_sha256": "c4e75dfe5126e60e463a26e7826dfec9b13458264e08cff33035b0b806d6eb43",
+              "width": 896
+            }
+          ],
+          "primary_output_path": "/home/mathias/avif2-experiment/experimental/encoder/build/blocky-m1-scarlet-full-work/prepared-scarlet-flycatcher-le896-i400-full-q60/directional-exact/encoded-0.obu",
+          "project_sha256": "0d40b3f442981220d23eefa370a47bf35a6492bcf26f551101c3f1cbd58d644f",
+          "qdelta_y_preserved_reported": null,
+          "reported_qindex": 60,
+          "reported_sse": [
+            72281248
+          ],
+          "search": "directional-exact",
+          "selected_qdelta": [],
+          "status": "pass",
+          "tokens": {
+            "bytes": "4503",
+            "intra_mode": "0",
+            "psnr_y": "26.83dB",
+            "qindex": "60",
+            "sse_y": "72281248",
+            "workspace_bytes": "2703776"
+          },
+          "validated": true,
+          "workspace_bytes": 2703776
+        },
+        "directional-full": {
+          "attempts": [
+            {
+              "argv": [
+                "/home/mathias/avif2-experiment/experimental/encoder/build/av2-encoder-experiment",
+                "/home/mathias/avif2-experiment/experimental/encoder/build/blocky-m1-scarlet-full-work/prepared-scarlet-flycatcher-le896-i400-full-q60/source.i400",
+                "--width",
+                "896",
+                "--height",
+                "598",
+                "--qindex",
+                "60",
+                "--search",
+                "directional-full",
+                "--output",
+                "experimental/encoder/build/blocky-m1-scarlet-full-work/prepared-scarlet-flycatcher-le896-i400-full-q60/directional-full/encoded-0.obu"
+              ],
+              "duration_ns": 4886290103,
+              "output_exists": true,
+              "returncode": 0,
+              "stderr": "encoder: bytes=4503 sse_y=72281248 psnr_y=26.83dB workspace_bytes=2703776 qindex=60 intra_mode=0"
+            }
+          ],
+          "avm_project_exact": true,
+          "avm_sha256": "0d40b3f442981220d23eefa370a47bf35a6492bcf26f551101c3f1cbd58d644f",
+          "category": "dc",
+          "decode_time_ns": {
+            "avm": 59703685,
+            "project": 34575021
+          },
+          "decoded_sha256": "0d40b3f442981220d23eefa370a47bf35a6492bcf26f551101c3f1cbd58d644f",
+          "deterministic": true,
+          "encode_time_ns": {
+            "median": 4886290103,
+            "samples": [
+              4886290103
+            ],
+            "worst": 4886290103
+          },
+          "input_bytes": 535808,
+          "input_sha256": "c4e75dfe5126e60e463a26e7826dfec9b13458264e08cff33035b0b806d6eb43",
+          "local_sse_matches_decode": true,
+          "obu_bytes": 4503,
+          "obu_sha256": "4451b60e2bf1c11bdf19f21042ec573424bd0d9f2e1dee71943a201aab0e0618",
+          "output_dir": "/home/mathias/avif2-experiment/experimental/encoder/build/blocky-m1-scarlet-full-work/prepared-scarlet-flycatcher-le896-i400-full-q60/directional-full",
+          "planes": [
+            {
+              "decoded_psnr_db": "26.830639",
+              "decoded_sha256": "0d40b3f442981220d23eefa370a47bf35a6492bcf26f551101c3f1cbd58d644f",
+              "decoded_sse": 72281248,
+              "height": 598,
+              "plane": "y",
+              "reported_psnr_db": "26.830639",
+              "reported_sse": 72281248,
+              "samples": 535808,
+              "source_sha256": "c4e75dfe5126e60e463a26e7826dfec9b13458264e08cff33035b0b806d6eb43",
+              "width": 896
+            }
+          ],
+          "primary_output_path": "/home/mathias/avif2-experiment/experimental/encoder/build/blocky-m1-scarlet-full-work/prepared-scarlet-flycatcher-le896-i400-full-q60/directional-full/encoded-0.obu",
+          "project_sha256": "0d40b3f442981220d23eefa370a47bf35a6492bcf26f551101c3f1cbd58d644f",
+          "qdelta_y_preserved_reported": null,
+          "reported_qindex": 60,
+          "reported_sse": [
+            72281248
+          ],
+          "search": "directional-full",
+          "selected_qdelta": [],
+          "status": "pass",
+          "tokens": {
+            "bytes": "4503",
+            "intra_mode": "0",
+            "psnr_y": "26.83dB",
+            "qindex": "60",
+            "sse_y": "72281248",
+            "workspace_bytes": "2703776"
+          },
+          "validated": true,
+          "workspace_bytes": 2703776
+        },
+        "directional-full-exact": {
+          "attempts": [
+            {
+              "argv": [
+                "/home/mathias/avif2-experiment/experimental/encoder/build/av2-encoder-experiment",
+                "/home/mathias/avif2-experiment/experimental/encoder/build/blocky-m1-scarlet-full-work/prepared-scarlet-flycatcher-le896-i400-full-q60/source.i400",
+                "--width",
+                "896",
+                "--height",
+                "598",
+                "--qindex",
+                "60",
+                "--search",
+                "directional-full-exact",
+                "--output",
+                "experimental/encoder/build/blocky-m1-scarlet-full-work/prepared-scarlet-flycatcher-le896-i400-full-q60/directional-full-exact/encoded-0.obu"
+              ],
+              "duration_ns": 5212943245,
+              "output_exists": true,
+              "returncode": 0,
+              "stderr": "encoder: bytes=4503 sse_y=72281248 psnr_y=26.83dB workspace_bytes=2703776 qindex=60 intra_mode=0"
+            }
+          ],
+          "avm_project_exact": true,
+          "avm_sha256": "0d40b3f442981220d23eefa370a47bf35a6492bcf26f551101c3f1cbd58d644f",
+          "category": "dc",
+          "decode_time_ns": {
+            "avm": 58528670,
+            "project": 24497994
+          },
+          "decoded_sha256": "0d40b3f442981220d23eefa370a47bf35a6492bcf26f551101c3f1cbd58d644f",
+          "deterministic": true,
+          "encode_time_ns": {
+            "median": 5212943245,
+            "samples": [
+              5212943245
+            ],
+            "worst": 5212943245
+          },
+          "input_bytes": 535808,
+          "input_sha256": "c4e75dfe5126e60e463a26e7826dfec9b13458264e08cff33035b0b806d6eb43",
+          "local_sse_matches_decode": true,
+          "obu_bytes": 4503,
+          "obu_sha256": "4451b60e2bf1c11bdf19f21042ec573424bd0d9f2e1dee71943a201aab0e0618",
+          "output_dir": "/home/mathias/avif2-experiment/experimental/encoder/build/blocky-m1-scarlet-full-work/prepared-scarlet-flycatcher-le896-i400-full-q60/directional-full-exact",
+          "planes": [
+            {
+              "decoded_psnr_db": "26.830639",
+              "decoded_sha256": "0d40b3f442981220d23eefa370a47bf35a6492bcf26f551101c3f1cbd58d644f",
+              "decoded_sse": 72281248,
+              "height": 598,
+              "plane": "y",
+              "reported_psnr_db": "26.830639",
+              "reported_sse": 72281248,
+              "samples": 535808,
+              "source_sha256": "c4e75dfe5126e60e463a26e7826dfec9b13458264e08cff33035b0b806d6eb43",
+              "width": 896
+            }
+          ],
+          "primary_output_path": "/home/mathias/avif2-experiment/experimental/encoder/build/blocky-m1-scarlet-full-work/prepared-scarlet-flycatcher-le896-i400-full-q60/directional-full-exact/encoded-0.obu",
+          "project_sha256": "0d40b3f442981220d23eefa370a47bf35a6492bcf26f551101c3f1cbd58d644f",
+          "qdelta_y_preserved_reported": null,
+          "reported_qindex": 60,
+          "reported_sse": [
+            72281248
+          ],
+          "search": "directional-full-exact",
+          "selected_qdelta": [],
+          "status": "pass",
+          "tokens": {
+            "bytes": "4503",
+            "intra_mode": "0",
+            "psnr_y": "26.83dB",
+            "qindex": "60",
+            "sse_y": "72281248",
+            "workspace_bytes": "2703776"
+          },
+          "validated": true,
+          "workspace_bytes": 2703776
+        },
+        "intra": {
+          "attempts": [
+            {
+              "argv": [
+                "/home/mathias/avif2-experiment/experimental/encoder/build/av2-encoder-experiment",
+                "/home/mathias/avif2-experiment/experimental/encoder/build/blocky-m1-scarlet-full-work/prepared-scarlet-flycatcher-le896-i400-full-q60/source.i400",
+                "--width",
+                "896",
+                "--height",
+                "598",
+                "--qindex",
+                "60",
+                "--search",
+                "intra",
+                "--output",
+                "experimental/encoder/build/blocky-m1-scarlet-full-work/prepared-scarlet-flycatcher-le896-i400-full-q60/intra/encoded-0.obu"
+              ],
+              "duration_ns": 4439988289,
+              "output_exists": true,
+              "returncode": 0,
+              "stderr": "encoder: bytes=4503 sse_y=72281248 psnr_y=26.83dB workspace_bytes=2703776 qindex=60 intra_mode=0"
+            }
+          ],
+          "avm_project_exact": true,
+          "avm_sha256": "0d40b3f442981220d23eefa370a47bf35a6492bcf26f551101c3f1cbd58d644f",
+          "category": "dc",
+          "decode_time_ns": {
+            "avm": 58275634,
+            "project": 25856972
+          },
+          "decoded_sha256": "0d40b3f442981220d23eefa370a47bf35a6492bcf26f551101c3f1cbd58d644f",
+          "deterministic": true,
+          "encode_time_ns": {
+            "median": 4439988289,
+            "samples": [
+              4439988289
+            ],
+            "worst": 4439988289
+          },
+          "input_bytes": 535808,
+          "input_sha256": "c4e75dfe5126e60e463a26e7826dfec9b13458264e08cff33035b0b806d6eb43",
+          "local_sse_matches_decode": true,
+          "obu_bytes": 4503,
+          "obu_sha256": "4451b60e2bf1c11bdf19f21042ec573424bd0d9f2e1dee71943a201aab0e0618",
+          "output_dir": "/home/mathias/avif2-experiment/experimental/encoder/build/blocky-m1-scarlet-full-work/prepared-scarlet-flycatcher-le896-i400-full-q60/intra",
+          "planes": [
+            {
+              "decoded_psnr_db": "26.830639",
+              "decoded_sha256": "0d40b3f442981220d23eefa370a47bf35a6492bcf26f551101c3f1cbd58d644f",
+              "decoded_sse": 72281248,
+              "height": 598,
+              "plane": "y",
+              "reported_psnr_db": "26.830639",
+              "reported_sse": 72281248,
+              "samples": 535808,
+              "source_sha256": "c4e75dfe5126e60e463a26e7826dfec9b13458264e08cff33035b0b806d6eb43",
+              "width": 896
+            }
+          ],
+          "primary_output_path": "/home/mathias/avif2-experiment/experimental/encoder/build/blocky-m1-scarlet-full-work/prepared-scarlet-flycatcher-le896-i400-full-q60/intra/encoded-0.obu",
+          "project_sha256": "0d40b3f442981220d23eefa370a47bf35a6492bcf26f551101c3f1cbd58d644f",
+          "qdelta_y_preserved_reported": null,
+          "reported_qindex": 60,
+          "reported_sse": [
+            72281248
+          ],
+          "search": "intra",
+          "selected_qdelta": [],
+          "status": "pass",
+          "tokens": {
+            "bytes": "4503",
+            "intra_mode": "0",
+            "psnr_y": "26.83dB",
+            "qindex": "60",
+            "sse_y": "72281248",
+            "workspace_bytes": "2703776"
+          },
+          "validated": true,
+          "workspace_bytes": 2703776
+        },
+        "off": {
+          "attempts": [
+            {
+              "argv": [
+                "/home/mathias/avif2-experiment/experimental/encoder/build/av2-encoder-experiment",
+                "/home/mathias/avif2-experiment/experimental/encoder/build/blocky-m1-scarlet-full-work/prepared-scarlet-flycatcher-le896-i400-full-q60/source.i400",
+                "--width",
+                "896",
+                "--height",
+                "598",
+                "--qindex",
+                "60",
+                "--search",
+                "off",
+                "--output",
+                "experimental/encoder/build/blocky-m1-scarlet-full-work/prepared-scarlet-flycatcher-le896-i400-full-q60/off/encoded-0.obu"
+              ],
+              "duration_ns": 2115633173,
+              "output_exists": true,
+              "returncode": 0,
+              "stderr": "encoder: bytes=4503 sse_y=72281248 psnr_y=26.83dB workspace_bytes=2703776 qindex=60"
+            }
+          ],
+          "avm_project_exact": true,
+          "avm_sha256": "0d40b3f442981220d23eefa370a47bf35a6492bcf26f551101c3f1cbd58d644f",
+          "category": "skip",
+          "decode_time_ns": {
+            "avm": 58082661,
+            "project": 25023552
+          },
+          "decoded_sha256": "0d40b3f442981220d23eefa370a47bf35a6492bcf26f551101c3f1cbd58d644f",
+          "deterministic": true,
+          "encode_time_ns": {
+            "median": 2115633173,
+            "samples": [
+              2115633173
+            ],
+            "worst": 2115633173
+          },
+          "input_bytes": 535808,
+          "input_sha256": "c4e75dfe5126e60e463a26e7826dfec9b13458264e08cff33035b0b806d6eb43",
+          "local_sse_matches_decode": true,
+          "obu_bytes": 4503,
+          "obu_sha256": "4451b60e2bf1c11bdf19f21042ec573424bd0d9f2e1dee71943a201aab0e0618",
+          "output_dir": "/home/mathias/avif2-experiment/experimental/encoder/build/blocky-m1-scarlet-full-work/prepared-scarlet-flycatcher-le896-i400-full-q60/off",
+          "planes": [
+            {
+              "decoded_psnr_db": "26.830639",
+              "decoded_sha256": "0d40b3f442981220d23eefa370a47bf35a6492bcf26f551101c3f1cbd58d644f",
+              "decoded_sse": 72281248,
+              "height": 598,
+              "plane": "y",
+              "reported_psnr_db": "26.830639",
+              "reported_sse": 72281248,
+              "samples": 535808,
+              "source_sha256": "c4e75dfe5126e60e463a26e7826dfec9b13458264e08cff33035b0b806d6eb43",
+              "width": 896
+            }
+          ],
+          "primary_output_path": "/home/mathias/avif2-experiment/experimental/encoder/build/blocky-m1-scarlet-full-work/prepared-scarlet-flycatcher-le896-i400-full-q60/off/encoded-0.obu",
+          "project_sha256": "0d40b3f442981220d23eefa370a47bf35a6492bcf26f551101c3f1cbd58d644f",
+          "qdelta_y_preserved_reported": null,
+          "reported_qindex": 60,
+          "reported_sse": [
+            72281248
+          ],
+          "search": "off",
+          "selected_qdelta": [],
+          "status": "pass",
+          "tokens": {
+            "bytes": "4503",
+            "psnr_y": "26.83dB",
+            "qindex": "60",
+            "sse_y": "72281248",
+            "workspace_bytes": "2703776"
+          },
+          "validated": true,
+          "workspace_bytes": 2703776
+        },
+        "rd": {
+          "attempts": [
+            {
+              "argv": [
+                "/home/mathias/avif2-experiment/experimental/encoder/build/av2-encoder-experiment",
+                "/home/mathias/avif2-experiment/experimental/encoder/build/blocky-m1-scarlet-full-work/prepared-scarlet-flycatcher-le896-i400-full-q60/source.i400",
+                "--width",
+                "896",
+                "--height",
+                "598",
+                "--qindex",
+                "60",
+                "--search",
+                "rd",
+                "--output",
+                "experimental/encoder/build/blocky-m1-scarlet-full-work/prepared-scarlet-flycatcher-le896-i400-full-q60/rd/encoded-0.obu"
+              ],
+              "duration_ns": 162121057200,
+              "output_exists": true,
+              "returncode": 0,
+              "stderr": "encoder: bytes=13838 sse_y=29890521 psnr_y=30.67dB workspace_bytes=7550065 qindex=60\n rd_mode_dc=424 rd_mode_vertical=175 rd_mode_horizontal=196 rd_mode_smooth=665 rd_mode_smooth_v=273 rd_mode_smooth_h=326 rd_mode_paeth=69 rd_residual_skip=631 rd_residual_dc=926 rd_residual_ac=571 rd_trials=44688"
+            },
+            {
+              "argv": [
+                "/home/mathias/avif2-experiment/experimental/encoder/build/av2-encoder-experiment",
+                "/home/mathias/avif2-experiment/experimental/encoder/build/blocky-m1-scarlet-full-work/prepared-scarlet-flycatcher-le896-i400-full-q60/source.i400",
+                "--width",
+                "896",
+                "--height",
+                "598",
+                "--qindex",
+                "60",
+                "--search",
+                "rd",
+                "--output",
+                "experimental/encoder/build/blocky-m1-scarlet-full-work/prepared-scarlet-flycatcher-le896-i400-full-q60/rd/encoded-1.obu"
+              ],
+              "duration_ns": 163175633101,
+              "output_exists": true,
+              "returncode": 0,
+              "stderr": "encoder: bytes=13838 sse_y=29890521 psnr_y=30.67dB workspace_bytes=7550065 qindex=60\n rd_mode_dc=424 rd_mode_vertical=175 rd_mode_horizontal=196 rd_mode_smooth=665 rd_mode_smooth_v=273 rd_mode_smooth_h=326 rd_mode_paeth=69 rd_residual_skip=631 rd_residual_dc=926 rd_residual_ac=571 rd_trials=44688"
+            }
+          ],
+          "avm_project_exact": true,
+          "avm_sha256": "790ba94b083d75e6e4445a513e6ef7d9d2f4bdc0cbd4edf02aec4c1890e9dd09",
+          "category": null,
+          "decode_time_ns": {
+            "avm": 57284790,
+            "project": 33185104
+          },
+          "decoded_sha256": "790ba94b083d75e6e4445a513e6ef7d9d2f4bdc0cbd4edf02aec4c1890e9dd09",
+          "deterministic": true,
+          "encode_time_ns": {
+            "median": 162648345150,
+            "samples": [
+              162121057200,
+              163175633101
+            ],
+            "worst": 163175633101
+          },
+          "input_bytes": 535808,
+          "input_sha256": "c4e75dfe5126e60e463a26e7826dfec9b13458264e08cff33035b0b806d6eb43",
+          "local_sse_matches_decode": true,
+          "obu_bytes": 13838,
+          "obu_sha256": "0540f5d1bc9a54d3861cb635395ec6febf965b941a04e9059e9fe0fea2a90768",
+          "output_dir": "/home/mathias/avif2-experiment/experimental/encoder/build/blocky-m1-scarlet-full-work/prepared-scarlet-flycatcher-le896-i400-full-q60/rd",
+          "planes": [
+            {
+              "decoded_psnr_db": "30.665561",
+              "decoded_sha256": "790ba94b083d75e6e4445a513e6ef7d9d2f4bdc0cbd4edf02aec4c1890e9dd09",
+              "decoded_sse": 29890521,
+              "height": 598,
+              "plane": "y",
+              "reported_psnr_db": "30.665561",
+              "reported_sse": 29890521,
+              "samples": 535808,
+              "source_sha256": "c4e75dfe5126e60e463a26e7826dfec9b13458264e08cff33035b0b806d6eb43",
+              "width": 896
+            }
+          ],
+          "primary_output_path": "/home/mathias/avif2-experiment/experimental/encoder/build/blocky-m1-scarlet-full-work/prepared-scarlet-flycatcher-le896-i400-full-q60/rd/encoded-0.obu",
+          "project_sha256": "790ba94b083d75e6e4445a513e6ef7d9d2f4bdc0cbd4edf02aec4c1890e9dd09",
+          "qdelta_y_preserved_reported": null,
+          "reported_qindex": 60,
+          "reported_sse": [
+            29890521
+          ],
+          "search": "rd",
+          "selected_qdelta": [],
+          "status": "pass",
+          "tokens": {
+            "bytes": "13838",
+            "psnr_y": "30.67dB",
+            "qindex": "60",
+            "rd_mode_dc": "424",
+            "rd_mode_horizontal": "196",
+            "rd_mode_paeth": "69",
+            "rd_mode_smooth": "665",
+            "rd_mode_smooth_h": "326",
+            "rd_mode_smooth_v": "273",
+            "rd_mode_vertical": "175",
+            "rd_residual_ac": "571",
+            "rd_residual_dc": "926",
+            "rd_residual_skip": "631",
+            "rd_trials": "44688",
+            "sse_y": "29890521",
+            "workspace_bytes": "7550065"
+          },
+          "validated": true,
+          "workspace_bytes": 7550065
+        }
+      },
+      "source_bytes": 535808,
+      "source_sha256": "c4e75dfe5126e60e463a26e7826dfec9b13458264e08cff33035b0b806d6eb43",
+      "subset": "prepared-full",
+      "tags": [
+        "full-image",
+        "multiple-superblocks",
+        "prepared",
+        "real-image"
+      ],
+      "validator_exact_searches": [
+        "bounded",
+        "directional",
+        "directional-exact",
+        "directional-full",
+        "directional-full-exact",
+        "intra",
+        "off",
+        "rd"
+      ],
+      "width": 896
+    }
+  ],
+  "configuration": {
+    "baseline_selector": "validator-exact legacy candidates at or above RD bytes; minimum decoded total SSE, bytes, then help order",
+    "crop_selector": "full source bytes",
+    "legacy_repetitions": 1,
+    "legacy_searches": [
+      "off",
+      "bounded",
+      "directional",
+      "directional-exact",
+      "directional-full",
+      "directional-full-exact",
+      "intra"
+    ],
+    "qindices": [
+      60
+    ],
+    "rd_repetitions": 2,
+    "selection": "le896"
+  },
+  "corpus": {
+    "crop_size": null,
+    "full_source": "scarlet-flycatcher",
+    "qindices": [
+      60
+    ],
+    "selection": "le896",
+    "source_count": 1,
+    "sources": {
+      "images/prepared/le896/scarlet-flycatcher/source-896x598-gray8.i400": "c4e75dfe5126e60e463a26e7826dfec9b13458264e08cff33035b0b806d6eb43"
+    }
+  },
+  "schema": "av2-encoder-blocky-m1-corpus-frontier-prepared-crops-v1",
+  "status": "blocked",
+  "summary": {
+    "case_count": 1,
+    "comparable_case_count": 1,
+    "decoder_rejected_search_count": 0,
+    "legacy_nonexact_case_count": 0,
+    "rd_exact_case_count": 1,
+    "rd_telemetry_totals": {
+      "rd_mode_dc": 424,
+      "rd_mode_horizontal": 196,
+      "rd_mode_paeth": 69,
+      "rd_mode_smooth": 665,
+      "rd_mode_smooth_h": 326,
+      "rd_mode_smooth_v": 273,
+      "rd_mode_vertical": 175,
+      "rd_residual_ac": 571,
+      "rd_residual_dc": 926,
+      "rd_residual_skip": 631,
+      "rd_trials": 44688
+    },
+    "rd_trial_case_count": 1,
+    "rd_zero_trial_cases": [],
+    "strict_pareto_evidence": [],
+    "strict_pareto_win_count": 0,
+    "strict_pareto_wins": []
+  },
+  "tools": {
+    "avmdec": {
+      "path": "build/reference/avm/avmdec",
+      "sha256": "c247cbb4e71e48bdec89f3c8b2b8efdce17f673aeaa39e3c116a276d16286aa0"
+    },
+    "encoder": {
+      "path": "experimental/encoder/build/av2-encoder-experiment",
+      "sha256": "595d5124159aed3224e0bd9b68c6e9bee53b4d572a2d4e2c7cf9107150ab0ca9"
+    },
+    "project_decoder": {
+      "path": "build/host-cmake/av2heif-decoder",
+      "sha256": "7d17f598f2cdffe7dfb4ab46982cf5c4822215a5f429cb39e7748a60ce5ef535"
+    }
+  }
+}

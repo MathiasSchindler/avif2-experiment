@@ -120,6 +120,11 @@ typedef struct {
 
 uint8_t enc_m3_dc_prediction(
     const uint8_t *above, const uint8_t *left, size_t block_size);
+void enc_m3_intra_prediction(
+    uint8_t mode, unsigned int plane,
+    const uint8_t *above, size_t above_count,
+    const uint8_t *left, size_t left_count, uint8_t corner,
+    size_t width, size_t height, uint8_t *output);
 
 EncStatus enc_m3_query_workspace(
     size_t width, size_t height, EncM3WorkspaceLayout *layout);

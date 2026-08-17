@@ -113,6 +113,12 @@ typedef struct {
     int16_t v_ac;
 } EncFrameQuantizerDeltas;
 
+typedef EncStatus (*EncAc8x8RdLeafSearch)(
+    void *opaque, void *transaction,
+    size_t block_x, size_t block_y,
+    size_t block_width, size_t block_height,
+    uint8_t *selected_mode, int16_t selected_levels[4U][64U]);
+
 EncStatus enc_range_writer_signed_literal(
     EncRangeWriter *writer, int32_t value, unsigned int magnitude_bits);
 EncStatus enc_range_writer_ns(
@@ -239,6 +245,26 @@ EncStatus enc_ac8x8_grid_tile_q(
     void *data, size_t capacity, size_t *size,
     size_t width, size_t height, const int16_t *levels, size_t level_count,
     unsigned int qindex);
+EncStatus enc_ac8x8_intra_grid_tile_q(
+    void *data, size_t capacity, size_t *size,
+    size_t width, size_t height, const int16_t *levels, size_t level_count,
+    const uint8_t *luma_modes, size_t luma_mode_count,
+    unsigned int qindex);
+EncStatus enc_ac8x8_rd_grid_tile_q(
+    void *data, size_t capacity, size_t *size,
+    size_t width, size_t height, unsigned int qindex,
+    EncAc8x8RdLeafSearch search, void *opaque);
+EncStatus enc_ac8x8_rd_yuv_chroma_grid_tile_q(
+    void *data, size_t capacity, size_t *size,
+    size_t width, size_t height,
+    const int16_t *u_levels, const int16_t *v_levels,
+    size_t chroma_level_count, unsigned int chroma_format_idc,
+    unsigned int qindex, const uint8_t *luma_modes,
+    size_t luma_mode_count, EncAc8x8RdLeafSearch search, void *opaque);
+EncStatus enc_ac8x8_rd_transaction_trial(
+    void *transaction, uint8_t mode,
+    const int16_t *levels, size_t transform_count,
+    size_t *tell_bits);
 EncStatus enc_ac8x8_coeff_rate(
     const int16_t levels[64U], unsigned int qindex,
     size_t skip_context, size_t sign_context, size_t *tell_bits);
@@ -263,6 +289,13 @@ EncStatus enc_ac8x8_yuv_chroma_grid_tile_q(
     size_t width, size_t height,
     const int16_t *y_levels, const int16_t *u_levels,
     const int16_t *v_levels, size_t level_count, size_t chroma_level_count,
+    unsigned int chroma_format_idc, unsigned int qindex);
+EncStatus enc_ac8x8_intra_yuv_chroma_grid_tile_q(
+    void *data, size_t capacity, size_t *size,
+    size_t width, size_t height,
+    const int16_t *y_levels, const int16_t *u_levels,
+    const int16_t *v_levels, size_t level_count, size_t chroma_level_count,
+    const uint8_t *luma_modes, size_t luma_mode_count,
     unsigned int chroma_format_idc, unsigned int qindex);
 EncStatus enc_m3_intra_yuv_grid_tile_q(
     void *data, size_t capacity, size_t *size,

@@ -168,7 +168,40 @@ DCT_DCT residuals, chroma AC, and frame-level qdelta. It has exact
 local/AVM/project parity and Pareto-improves at least one locked real image
 without aggregate per-plane regression at equal-or-lower bytes.
 
+### M1 result — complete
+
+`make -C experimental/encoder blocky-m1-full-gate` passes all 27 production
+cases: nine targeted cases, the 1440x1440 Smooth ceiling, Baya Weaver
+I400/I420/I444, and all 14 selected full prepared images. Every selected
+stream is deterministic, encoder-local SSE matches decoded source SSE, and
+pinned AVM/project reconstruction is byte exact. The 15 comparable full real
+images move from 274,261 to 268,055 bytes and aggregate per-plane SSE from
+`[1,080,593,021, 13,183,144, 1,824,526]` to
+`[1,049,089,614, 13,183,144, 1,824,526]`.
+
+There are six strict full-image Pareto wins. Baya Weaver I420 and I444 each
+save 1,126 bytes and 1,224,282 Y SSE. Chinnathurai Church, Jinan Grand
+Theater, Pitti Ceiling, and Succisa Flower Bud provide four additional full
+prepared-corpus wins. Emitted winners cover DC, both directional modes, all
+Smooth modes, Paeth, skip, DC-only, and AC; their frozen mode counts are
+`[11388,3910,3730,4010,2442,2909,1155]` and residual counts are
+`[16309,2575,10660]` in the documented stable order. Six color cases execute
+all nine qdelta trials, for 54 total, with Y reconstruction preserved.
+
+The locked Scarlet Flycatcher crop remains supporting evidence only: its
+800-byte/967,184-SSE RD stream beats bounded at 806 bytes/1,653,563 SSE, but a
+crop alone does not satisfy M1.6. Admission instead rests on the complete
+Baya/full-prepared gate above. The full run took 2:44:46 wall time, used at
+most 34,669,792 caller-owned workspace bytes, and is frozen in
+`metrics/blocky-m1-gate.json` (SHA-256
+`8228d19e8512853aa80aa9f02085247a20baed0ae2a1f07dad7885eaf2c90fb0`).
+
+M2 is released for implementation by this result, but no M2 code is included
+in the M1 admission change.
+
 ## M2 - Broader DCT_DCT residual search
+
+Status: **released by M1 admission; not started**.
 
 The current bounded AC search uses eight low-frequency positions, at most
 eight nonzero coefficients, and coefficient magnitude 63. Expand those limits

@@ -1134,7 +1134,7 @@ static uint8_t effective_chroma_directional_token(
             ? luma_token : chroma_token;
 }
 
-static void color_prediction(
+void enc_m3_intra_prediction(
     uint8_t mode, unsigned int plane,
     const uint8_t *above, size_t above_count,
     const uint8_t *left, size_t left_count,
@@ -1434,7 +1434,7 @@ static void search_color_transform(
     corner = above_edge != 0 && left_edge != 0 ? above[-1] :
              above_edge != 0 ? above[0U] :
              left_edge != 0 ? left[0U] : 128U;
-    color_prediction(
+    enc_m3_intra_prediction(
         mode, (unsigned int)plane,
         above_edge, above_edge != 0 ? above_count : 0U,
         left_edge, left_edge != 0 ? left_count : 0U, corner,
@@ -2499,7 +2499,7 @@ static void intra_prediction8(
     uint8_t mode, const uint8_t *above, size_t above_count,
     const uint8_t *left, size_t left_count,
     uint8_t corner, uint8_t prediction[64U]) {
-    color_prediction(
+    enc_m3_intra_prediction(
         mode, 0U,
         above, above_count, left, left_count,
         corner, 8U, 8U, prediction);

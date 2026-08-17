@@ -369,6 +369,13 @@ for I400/I420/I444 with complete-stream dual-decoder parity and search-off
 compatibility. Default enablement remains blocked pending a bounded successful
 90-case baseline and runtime gate.
 
+The separate blockiness M1 `--search rd` integration is admitted. Live
+block-local transactions and frozen-Y qdelta replay pass the complete 27-case
+Baya/full-prepared gate with six strict full-image Pareto wins, 6,206 fewer
+aggregate bytes, 31,503,407 lower aggregate Y SSE, and exact three-way parity;
+see `metrics/blocky-m1-gate.json`. This releases the broader DCT_DCT residual
+work in `blocky.md` M2, but M2 is not implemented here.
+
 ### [ ] M7 — In-loop filters and restoration choices
 
 Add deblock, then CDEF, then CCSO as independent trial choices. Encode a choice

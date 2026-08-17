@@ -27,6 +27,7 @@ static void search_block_limit(
     const uint8_t samples[64U], uint8_t pred, unsigned int qindex,
     size_t position_count, int16_t best[64U], uint8_t reconstructed[64U]) {
     int analysis[64U];
+    uint8_t prediction8[64U];
     uint8_t trial_reconstruction[64U];
     uint32_t q = qlookup(qindex);
     uint64_t best_sse;
@@ -34,11 +35,13 @@ static void search_block_limit(
     size_t best_rate;
     size_t positions[ENC_AC8X8_MAX_POSITIONS];
     size_t index;
+    constant_prediction(pred, prediction8);
     if (position_count == 0U) {
-        search_block(samples, pred, qindex, 0, 0, best, reconstructed);
+        search_block(
+            samples, prediction8, qindex, 0, 0, best, reconstructed);
         return;
     }
-    forward8(samples, pred, analysis);
+    forward8(samples, prediction8, analysis);
     for (index = 0U; index < 64U; ++index) best[index] = 0;
     for (index = 0U; index < position_count; ++index) {
         size_t candidate;
@@ -63,7 +66,7 @@ static void search_block_limit(
         }
         positions[index] = selected;
     }
-    best_sse = reconstruct8(samples, best, pred, q, reconstructed);
+    best_sse = reconstruct8(samples, best, prediction8, q, reconstructed);
     if (enc_ac8x8_coeff_rate(
             best, qindex, 0U, 0U, &best_rate) != ENC_OK) {
         best_rate = SIZE_MAX / 2U;
@@ -99,7 +102,8 @@ static void search_block_limit(
             for (copy = 0U; copy < 64U; ++copy) trial[copy] = best[copy];
             trial[position] = (int16_t)value;
             if (nonzero_count(trial) > ENC_AC8X8_MAX_NONZERO) continue;
-            sse = reconstruct8(samples, trial, pred, q, trial_reconstruction);
+            sse = reconstruct8(
+                samples, trial, prediction8, q, trial_reconstruction);
             if (enc_ac8x8_coeff_rate(
                     trial, qindex, 0U, 0U, &rate) != ENC_OK) continue;
             cost = rd_cost(sse, rate, q);
@@ -117,7 +121,7 @@ static void search_block_limit(
         best_cost = local_cost;
         best_rate = local_rate;
     }
-    (void)reconstruct8(samples, best, pred, q, reconstructed);
+    (void)reconstruct8(samples, best, prediction8, q, reconstructed);
 }
 
 static int evaluate(

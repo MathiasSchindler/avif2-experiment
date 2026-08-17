@@ -16,12 +16,14 @@ typedef enum {
     ENC_AC8X8_SEARCH_INTRA = 4,
     ENC_AC8X8_SEARCH_DIRECTIONAL_FULL = 5,
     ENC_AC8X8_SEARCH_DIRECTIONAL_FULL_EXACT = 6,
-    ENC_AC8X8_SEARCH_PLANE_QDELTA = 7
+    ENC_AC8X8_SEARCH_PLANE_QDELTA = 7,
+    ENC_AC8X8_SEARCH_RD = 8
 } EncAc8x8Search;
 
 typedef enum {
     ENC_AC8X8_COEFFICIENT_SEARCH_OFF = 0,
-    ENC_AC8X8_COEFFICIENT_SEARCH_BOUNDED = 1
+    ENC_AC8X8_COEFFICIENT_SEARCH_BOUNDED = 1,
+    ENC_AC8X8_COEFFICIENT_SEARCH_RD = 2
 } EncAc8x8CoefficientSearch;
 
 typedef struct {
@@ -43,6 +45,9 @@ typedef struct {
     size_t workspace_size;
     size_t searched_blocks;
     size_t ac_blocks;
+    size_t candidate_trials;
+    size_t rd_mode_counts[7U];
+    size_t rd_residual_counts[3U];
     unsigned int qindex;
     int admitted;
 } EncAc8x8Result;
@@ -61,6 +66,7 @@ typedef struct {
     size_t coded_reconstruction_offset;
     size_t baseline_reconstruction_offset;
     size_t luma_coefficients_offset;
+    size_t luma_modes_offset;
     size_t chroma_dc_levels_offset;
     size_t chroma_coefficients_offset;
     size_t entropy_state_offset;
@@ -82,10 +88,14 @@ typedef struct {
     size_t searched_blocks;
     size_t ac_blocks;
     size_t candidate_trials;
+    size_t rd_mode_counts[7U];
+    size_t rd_residual_counts[3U];
+    size_t rd_qdelta_trials;
     unsigned int qindex;
     EncM3PixelFormat format;
     int8_t u_qdelta;
     int8_t v_qdelta;
+    int rd_qdelta_y_preserved;
     uint8_t luma_mode;
     uint8_t chroma_mode;
     int admitted;

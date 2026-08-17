@@ -9,6 +9,10 @@ BIT_TEST := $(BUILD)/bit-writer-test
 RANGE_TEST := $(BUILD)/range-writer-test
 M2_MATRIX_DRIVER := $(BUILD)/m2-transcript-driver
 M1_TEST := $(BUILD)/m1-test
+M1_STATE_TRANSACTION_TEST := $(BUILD)/m1-state-transaction-test
+M1_CANDIDATE_ORACLE_TEST := $(BUILD)/m1-candidate-oracle-test
+M1_MULTISUPERBLOCK_PARITY_DRIVER := \
+	$(BUILD)/m1-multisuperblock-parity-driver
 M3_TEST := $(BUILD)/m3-test
 M3_CHROMA_TEST := $(BUILD)/m3-chroma-test
 M3_CHROMA_DRIVER := $(BUILD)/m3-chroma-driver
@@ -47,7 +51,10 @@ ENCODER_OBJECTS := $(patsubst %.c,$(BUILD)/%.o,$(filter %.c,$(ENCODER_SOURCES)))
 
 .PHONY: all clean test test-unit check-validators audit audit-dependencies \
 	check-generated chroma-ac-gate full-directional-gate \
-	smooth-paeth-full-gate plane-qdelta-gate blockiness-m0
+	smooth-paeth-full-gate plane-qdelta-gate blockiness-m0 \
+	blocky-m1-transaction-test blocky-m1-oracle-test \
+	blocky-m1-parity-test blocky-m1-diagnostic \
+	blocky-m1-corpus-frontier blocky-m1-full-gate blocky-m1-gate
 
 all: $(TARGET)
 
@@ -92,6 +99,25 @@ $(M1_TEST): tests/m1_test.c $(CORE_SOURCES)
 	@mkdir -p $(dir $@)
 	$(CC) $(CPPFLAGS) -std=c11 -Wall -Wextra -Wpedantic -Werror \
 		-O2 -fno-builtin -o $@ tests/m1_test.c $(CORE_SOURCES)
+
+$(M1_STATE_TRANSACTION_TEST): tests/m1_state_transaction_test.c $(CORE_SOURCES)
+	@mkdir -p $(dir $@)
+	$(CC) $(CPPFLAGS) -std=c11 -Wall -Wextra -Wpedantic -Werror \
+		-O2 -fno-builtin -o $@ tests/m1_state_transaction_test.c \
+		$(CORE_SOURCES)
+
+$(M1_CANDIDATE_ORACLE_TEST): tests/m1_candidate_oracle_test.c $(CORE_SOURCES)
+	@mkdir -p $(dir $@)
+	$(CC) $(CPPFLAGS) -std=c11 -Wall -Wextra -Wpedantic -Werror \
+		-O2 -fno-builtin -o $@ tests/m1_candidate_oracle_test.c \
+		$(filter-out src/ac8x8.c,$(CORE_SOURCES))
+
+$(M1_MULTISUPERBLOCK_PARITY_DRIVER): \
+	tests/m1_multisuperblock_parity_driver.c $(CORE_SOURCES)
+	@mkdir -p $(dir $@)
+	$(CC) $(CPPFLAGS) -std=c11 -Wall -Wextra -Wpedantic -Werror \
+		-O2 -fno-builtin -o $@ \
+		tests/m1_multisuperblock_parity_driver.c $(CORE_SOURCES)
 
 $(M3_TEST): tests/m3_test.c $(CORE_SOURCES)
 	@mkdir -p $(dir $@)
@@ -229,8 +255,11 @@ define run-tests
 	./$(BIT_TEST)
 	./$(RANGE_TEST)
 	$(PYTHON) -m unittest tests/test_m2_transcript_matrix.py \
-		tests/test_syntax_helpers.py
+		tests/test_syntax_helpers.py tests/test_blocky_m1_gate.py \
+		tests/test_blocky_m1_diagnostic.py
 	./$(M1_TEST)
+	./$(M1_STATE_TRANSACTION_TEST)
+	./$(M1_CANDIDATE_ORACLE_TEST)
 	./$(M3_TEST)
 	./$(M3_CHROMA_TEST)
 	./$(QDELTA_SYNTAX_TEST)
@@ -271,6 +300,8 @@ define run-tests
 		tests/test_m3_plane_qdelta_production.py \
 		tests/test_plane_qdelta_gate.py \
 		tests/test_blockiness_m0.py \
+		tests/test_m1_candidate_oracle.py \
+		tests/test_m1_multisuperblock_parity.py \
 		tests/test_m4_ac_model.py tests/test_ac8x8_model.py \
 		tests/test_ac8x8_hardbudget_model.py \
 		tests/test_ac8x8_production.py \
@@ -285,7 +316,9 @@ define run-tests
 endef
 
 test: check-validators check-generated $(BIT_TEST) $(RANGE_TEST) \
-	$(M2_MATRIX_DRIVER) $(M1_TEST) \
+	$(M2_MATRIX_DRIVER) $(M1_TEST) $(M1_STATE_TRANSACTION_TEST) \
+	$(M1_CANDIDATE_ORACLE_TEST) \
+	$(M1_MULTISUPERBLOCK_PARITY_DRIVER) \
 	$(M3_TEST) $(M3_CHROMA_TEST) $(M3_CHROMA_DRIVER) \
 	$(M3_PLANE_QDELTA_DRIVER) $(M3_PLANE_QDELTA_PRODUCTION_DRIVER) \
 	$(M3_I400_INTRA_DRIVER) \
@@ -297,7 +330,10 @@ test: check-validators check-generated $(BIT_TEST) $(RANGE_TEST) \
 	$(call run-tests,)
 
 test-unit: check-generated $(BIT_TEST) $(RANGE_TEST) $(M2_MATRIX_DRIVER) \
-	$(M1_TEST) $(M3_TEST) $(M3_CHROMA_TEST) $(M3_CHROMA_DRIVER) \
+	$(M1_TEST) $(M1_STATE_TRANSACTION_TEST) \
+	$(M1_CANDIDATE_ORACLE_TEST) \
+	$(M1_MULTISUPERBLOCK_PARITY_DRIVER) \
+	$(M3_TEST) $(M3_CHROMA_TEST) $(M3_CHROMA_DRIVER) \
 	$(M3_PLANE_QDELTA_DRIVER) $(M3_PLANE_QDELTA_PRODUCTION_DRIVER) \
 	$(M3_I400_INTRA_DRIVER) \
 	$(QDELTA_SYNTAX_TEST) \
@@ -332,6 +368,39 @@ blockiness-m0: all check-validators
 	$(PYTHON) tools/blockiness_m0.py \
 		--avmdec "$(AVMDEC)" \
 		--project-decoder "$(PROJECT_DECODER)"
+
+blocky-m1-transaction-test: $(M1_STATE_TRANSACTION_TEST)
+	./$(M1_STATE_TRANSACTION_TEST)
+
+blocky-m1-oracle-test: all check-validators $(M1_CANDIDATE_ORACLE_TEST)
+	./$(M1_CANDIDATE_ORACLE_TEST)
+	AVMDEC="$(AVMDEC)" PROJECT_DECODER="$(PROJECT_DECODER)" \
+		$(PYTHON) -m unittest tests/test_m1_candidate_oracle.py
+
+blocky-m1-parity-test: check-validators $(M1_MULTISUPERBLOCK_PARITY_DRIVER)
+	AVMDEC="$(AVMDEC)" PROJECT_DECODER="$(PROJECT_DECODER)" \
+		$(PYTHON) -m unittest tests/test_m1_multisuperblock_parity.py
+
+blocky-m1-diagnostic: all check-validators
+	$(PYTHON) tools/blocky_m1_diagnostic.py \
+		--avmdec "$(AVMDEC)" \
+		--project-decoder "$(PROJECT_DECODER)" \
+		--output metrics/blocky-m1-diagnostic.json \
+		--artifacts-dir metrics/blocky-m1-diagnostic
+
+blocky-m1-corpus-frontier: all check-validators
+	$(PYTHON) tools/blocky_m1_corpus_frontier.py \
+		--avmdec "$(AVMDEC)" \
+		--project-decoder "$(PROJECT_DECODER)" \
+		--output metrics/blocky-m1-corpus-frontier-prepared-crops.json \
+		--artifacts-dir metrics/blocky-m1-corpus-frontier-prepared-crops
+
+blocky-m1-full-gate: all check-validators
+	$(PYTHON) tools/blocky_m1_gate.py \
+		--avmdec "$(AVMDEC)" \
+		--project-decoder "$(PROJECT_DECODER)"
+
+blocky-m1-gate: blocky-m1-full-gate
 
 clean:
 	rm -rf "$(BUILD)"

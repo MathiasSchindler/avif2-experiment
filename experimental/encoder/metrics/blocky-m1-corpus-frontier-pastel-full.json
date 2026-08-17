@@ -1,0 +1,798 @@
+{
+  "cases": [
+    {
+      "artifacts": {
+        "baseline": "experimental/encoder/metrics/blocky-m1-pastel-full/streams/prepared-pastel-chalks-le896-i400-full-q141/bounded.obu",
+        "rd": "experimental/encoder/metrics/blocky-m1-pastel-full/streams/prepared-pastel-chalks-le896-i400-full-q141/rd.obu"
+      },
+      "baseline_search": "bounded",
+      "expected_categories": [],
+      "height": 598,
+      "id": "prepared-pastel-chalks-le896-i400-full-q141",
+      "invalid_legacy_searches": [
+        "directional-full",
+        "directional-full-exact"
+      ],
+      "origin": {
+        "preparation_id": "le896",
+        "source": "images/prepared/le896/pastel-chalks/source-896x598-gray8.i400",
+        "source_id": "pastel-chalks",
+        "source_sha256": "b529c7705e11b3c313f95130f2e0e648155fcb87fdf33c7bf87f7cbfa9335d8e"
+      },
+      "pixel_format": "i400",
+      "qindex": 141,
+      "rd_emitted_candidate": false,
+      "rd_vs_baseline": {
+        "baseline_search": "bounded",
+        "byte_delta": 0,
+        "nonregression": true,
+        "plane_sse_gain": [
+          0
+        ],
+        "strict_pareto_win": false
+      },
+      "rd_winner_categories": [],
+      "searches": {
+        "bounded": {
+          "attempts": [
+            {
+              "argv": [
+                "/home/mathias/avif2-experiment/experimental/encoder/build/av2-encoder-experiment",
+                "/home/mathias/avif2-experiment/experimental/encoder/build/blocky-m1-pastel-full-work/prepared-pastel-chalks-le896-i400-full-q141/source.i400",
+                "--width",
+                "896",
+                "--height",
+                "598",
+                "--qindex",
+                "141",
+                "--search",
+                "bounded",
+                "--output",
+                "experimental/encoder/build/blocky-m1-pastel-full-work/prepared-pastel-chalks-le896-i400-full-q141/bounded/encoded-0.obu"
+              ],
+              "duration_ns": 10784993563,
+              "output_exists": true,
+              "returncode": 0,
+              "stderr": "encoder: bytes=10077 sse_y=10397255 psnr_y=35.25dB workspace_bytes=7550065 qindex=141"
+            }
+          ],
+          "avm_project_exact": true,
+          "avm_sha256": "331c4a5beb8dacedc234a6de548f82f50cbaa8b4412e1bb30dc4de4226c27a3b",
+          "category": "ac",
+          "decode_time_ns": {
+            "avm": 62337203,
+            "project": 26578855
+          },
+          "decoded_sha256": "331c4a5beb8dacedc234a6de548f82f50cbaa8b4412e1bb30dc4de4226c27a3b",
+          "deterministic": true,
+          "encode_time_ns": {
+            "median": 10784993563,
+            "samples": [
+              10784993563
+            ],
+            "worst": 10784993563
+          },
+          "input_bytes": 535808,
+          "input_sha256": "b529c7705e11b3c313f95130f2e0e648155fcb87fdf33c7bf87f7cbfa9335d8e",
+          "local_sse_matches_decode": true,
+          "obu_bytes": 10077,
+          "obu_sha256": "5c2a6d1db43aa97d5d1de9414b49733cdf5223cd3adb29304a02155f9f21264b",
+          "output_dir": "/home/mathias/avif2-experiment/experimental/encoder/build/blocky-m1-pastel-full-work/prepared-pastel-chalks-le896-i400-full-q141/bounded",
+          "planes": [
+            {
+              "decoded_psnr_db": "35.251709",
+              "decoded_sha256": "331c4a5beb8dacedc234a6de548f82f50cbaa8b4412e1bb30dc4de4226c27a3b",
+              "decoded_sse": 10397255,
+              "height": 598,
+              "plane": "y",
+              "reported_psnr_db": "35.251709",
+              "reported_sse": 10397255,
+              "samples": 535808,
+              "source_sha256": "b529c7705e11b3c313f95130f2e0e648155fcb87fdf33c7bf87f7cbfa9335d8e",
+              "width": 896
+            }
+          ],
+          "primary_output_path": "/home/mathias/avif2-experiment/experimental/encoder/build/blocky-m1-pastel-full-work/prepared-pastel-chalks-le896-i400-full-q141/bounded/encoded-0.obu",
+          "project_sha256": "331c4a5beb8dacedc234a6de548f82f50cbaa8b4412e1bb30dc4de4226c27a3b",
+          "qdelta_y_preserved_reported": null,
+          "reported_qindex": 141,
+          "reported_sse": [
+            10397255
+          ],
+          "search": "bounded",
+          "selected_qdelta": [],
+          "status": "pass",
+          "tokens": {
+            "bytes": "10077",
+            "psnr_y": "35.25dB",
+            "qindex": "141",
+            "sse_y": "10397255",
+            "workspace_bytes": "7550065"
+          },
+          "validated": true,
+          "workspace_bytes": 7550065
+        },
+        "directional": {
+          "attempts": [
+            {
+              "argv": [
+                "/home/mathias/avif2-experiment/experimental/encoder/build/av2-encoder-experiment",
+                "/home/mathias/avif2-experiment/experimental/encoder/build/blocky-m1-pastel-full-work/prepared-pastel-chalks-le896-i400-full-q141/source.i400",
+                "--width",
+                "896",
+                "--height",
+                "598",
+                "--qindex",
+                "141",
+                "--search",
+                "directional",
+                "--output",
+                "experimental/encoder/build/blocky-m1-pastel-full-work/prepared-pastel-chalks-le896-i400-full-q141/directional/encoded-0.obu"
+              ],
+              "duration_ns": 275677703,
+              "output_exists": true,
+              "returncode": 0,
+              "stderr": "encoder: bytes=3404 sse_y=64432412 psnr_y=27.33dB workspace_bytes=2703776 qindex=141 intra_mode=3"
+            }
+          ],
+          "avm_project_exact": true,
+          "avm_sha256": "2ef069e42e996d62f02b5921a8e79963f56d34a8d7312a8969d42eb5a46b895d",
+          "category": "directional",
+          "decode_time_ns": {
+            "avm": 58612549,
+            "project": 24010011
+          },
+          "decoded_sha256": "2ef069e42e996d62f02b5921a8e79963f56d34a8d7312a8969d42eb5a46b895d",
+          "deterministic": true,
+          "encode_time_ns": {
+            "median": 275677703,
+            "samples": [
+              275677703
+            ],
+            "worst": 275677703
+          },
+          "input_bytes": 535808,
+          "input_sha256": "b529c7705e11b3c313f95130f2e0e648155fcb87fdf33c7bf87f7cbfa9335d8e",
+          "local_sse_matches_decode": true,
+          "obu_bytes": 3404,
+          "obu_sha256": "79d254c48c894fcc19ec8d860e01fbca31e34aacf4593c0b346c9b9fca0d8e3f",
+          "output_dir": "/home/mathias/avif2-experiment/experimental/encoder/build/blocky-m1-pastel-full-work/prepared-pastel-chalks-le896-i400-full-q141/directional",
+          "planes": [
+            {
+              "decoded_psnr_db": "27.329852",
+              "decoded_sha256": "2ef069e42e996d62f02b5921a8e79963f56d34a8d7312a8969d42eb5a46b895d",
+              "decoded_sse": 64432412,
+              "height": 598,
+              "plane": "y",
+              "reported_psnr_db": "27.329852",
+              "reported_sse": 64432412,
+              "samples": 535808,
+              "source_sha256": "b529c7705e11b3c313f95130f2e0e648155fcb87fdf33c7bf87f7cbfa9335d8e",
+              "width": 896
+            }
+          ],
+          "primary_output_path": "/home/mathias/avif2-experiment/experimental/encoder/build/blocky-m1-pastel-full-work/prepared-pastel-chalks-le896-i400-full-q141/directional/encoded-0.obu",
+          "project_sha256": "2ef069e42e996d62f02b5921a8e79963f56d34a8d7312a8969d42eb5a46b895d",
+          "qdelta_y_preserved_reported": null,
+          "reported_qindex": 141,
+          "reported_sse": [
+            64432412
+          ],
+          "search": "directional",
+          "selected_qdelta": [],
+          "status": "pass",
+          "tokens": {
+            "bytes": "3404",
+            "intra_mode": "3",
+            "psnr_y": "27.33dB",
+            "qindex": "141",
+            "sse_y": "64432412",
+            "workspace_bytes": "2703776"
+          },
+          "validated": true,
+          "workspace_bytes": 2703776
+        },
+        "directional-exact": {
+          "attempts": [
+            {
+              "argv": [
+                "/home/mathias/avif2-experiment/experimental/encoder/build/av2-encoder-experiment",
+                "/home/mathias/avif2-experiment/experimental/encoder/build/blocky-m1-pastel-full-work/prepared-pastel-chalks-le896-i400-full-q141/source.i400",
+                "--width",
+                "896",
+                "--height",
+                "598",
+                "--qindex",
+                "141",
+                "--search",
+                "directional-exact",
+                "--output",
+                "experimental/encoder/build/blocky-m1-pastel-full-work/prepared-pastel-chalks-le896-i400-full-q141/directional-exact/encoded-0.obu"
+              ],
+              "duration_ns": 261779501,
+              "output_exists": true,
+              "returncode": 0,
+              "stderr": "encoder: bytes=3404 sse_y=64432412 psnr_y=27.33dB workspace_bytes=2703776 qindex=141 intra_mode=3"
+            }
+          ],
+          "avm_project_exact": true,
+          "avm_sha256": "2ef069e42e996d62f02b5921a8e79963f56d34a8d7312a8969d42eb5a46b895d",
+          "category": "directional",
+          "decode_time_ns": {
+            "avm": 60505258,
+            "project": 24856491
+          },
+          "decoded_sha256": "2ef069e42e996d62f02b5921a8e79963f56d34a8d7312a8969d42eb5a46b895d",
+          "deterministic": true,
+          "encode_time_ns": {
+            "median": 261779501,
+            "samples": [
+              261779501
+            ],
+            "worst": 261779501
+          },
+          "input_bytes": 535808,
+          "input_sha256": "b529c7705e11b3c313f95130f2e0e648155fcb87fdf33c7bf87f7cbfa9335d8e",
+          "local_sse_matches_decode": true,
+          "obu_bytes": 3404,
+          "obu_sha256": "79d254c48c894fcc19ec8d860e01fbca31e34aacf4593c0b346c9b9fca0d8e3f",
+          "output_dir": "/home/mathias/avif2-experiment/experimental/encoder/build/blocky-m1-pastel-full-work/prepared-pastel-chalks-le896-i400-full-q141/directional-exact",
+          "planes": [
+            {
+              "decoded_psnr_db": "27.329852",
+              "decoded_sha256": "2ef069e42e996d62f02b5921a8e79963f56d34a8d7312a8969d42eb5a46b895d",
+              "decoded_sse": 64432412,
+              "height": 598,
+              "plane": "y",
+              "reported_psnr_db": "27.329852",
+              "reported_sse": 64432412,
+              "samples": 535808,
+              "source_sha256": "b529c7705e11b3c313f95130f2e0e648155fcb87fdf33c7bf87f7cbfa9335d8e",
+              "width": 896
+            }
+          ],
+          "primary_output_path": "/home/mathias/avif2-experiment/experimental/encoder/build/blocky-m1-pastel-full-work/prepared-pastel-chalks-le896-i400-full-q141/directional-exact/encoded-0.obu",
+          "project_sha256": "2ef069e42e996d62f02b5921a8e79963f56d34a8d7312a8969d42eb5a46b895d",
+          "qdelta_y_preserved_reported": null,
+          "reported_qindex": 141,
+          "reported_sse": [
+            64432412
+          ],
+          "search": "directional-exact",
+          "selected_qdelta": [],
+          "status": "pass",
+          "tokens": {
+            "bytes": "3404",
+            "intra_mode": "3",
+            "psnr_y": "27.33dB",
+            "qindex": "141",
+            "sse_y": "64432412",
+            "workspace_bytes": "2703776"
+          },
+          "validated": true,
+          "workspace_bytes": 2703776
+        },
+        "directional-full": {
+          "attempts": [
+            {
+              "argv": [
+                "/home/mathias/avif2-experiment/experimental/encoder/build/av2-encoder-experiment",
+                "/home/mathias/avif2-experiment/experimental/encoder/build/blocky-m1-pastel-full-work/prepared-pastel-chalks-le896-i400-full-q141/source.i400",
+                "--width",
+                "896",
+                "--height",
+                "598",
+                "--qindex",
+                "141",
+                "--search",
+                "directional-full",
+                "--output",
+                "experimental/encoder/build/blocky-m1-pastel-full-work/prepared-pastel-chalks-le896-i400-full-q141/directional-full/encoded-0.obu"
+              ],
+              "duration_ns": 847491742,
+              "output_exists": true,
+              "returncode": 0,
+              "stderr": "encoder: bytes=3395 sse_y=50738351 psnr_y=28.37dB workspace_bytes=2703776 qindex=141 intra_mode=39"
+            }
+          ],
+          "avm_project_exact": true,
+          "avm_sha256": "80a820714d570117b4a34446cb2e4ef30db2f16c8337818d29a4eb104b682ff0",
+          "category": "directional",
+          "decode_time_ns": {
+            "avm": 64269720,
+            "project": 28575138
+          },
+          "decoded_sha256": "80a820714d570117b4a34446cb2e4ef30db2f16c8337818d29a4eb104b682ff0",
+          "deterministic": true,
+          "encode_time_ns": {
+            "median": 847491742,
+            "samples": [
+              847491742
+            ],
+            "worst": 847491742
+          },
+          "input_bytes": 535808,
+          "input_sha256": "b529c7705e11b3c313f95130f2e0e648155fcb87fdf33c7bf87f7cbfa9335d8e",
+          "local_sse_matches_decode": false,
+          "obu_bytes": 3395,
+          "obu_sha256": "7ea195328e5bd4a4442dfaa50dd8b193e423b1515fc086ee2b03773541296bc0",
+          "output_dir": "/home/mathias/avif2-experiment/experimental/encoder/build/blocky-m1-pastel-full-work/prepared-pastel-chalks-le896-i400-full-q141/directional-full",
+          "planes": [
+            {
+              "decoded_psnr_db": "28.367533",
+              "decoded_sha256": "80a820714d570117b4a34446cb2e4ef30db2f16c8337818d29a4eb104b682ff0",
+              "decoded_sse": 50738345,
+              "height": 598,
+              "plane": "y",
+              "reported_psnr_db": "28.367532",
+              "reported_sse": 50738351,
+              "samples": 535808,
+              "source_sha256": "b529c7705e11b3c313f95130f2e0e648155fcb87fdf33c7bf87f7cbfa9335d8e",
+              "width": 896
+            }
+          ],
+          "primary_output_path": "/home/mathias/avif2-experiment/experimental/encoder/build/blocky-m1-pastel-full-work/prepared-pastel-chalks-le896-i400-full-q141/directional-full/encoded-0.obu",
+          "project_sha256": "80a820714d570117b4a34446cb2e4ef30db2f16c8337818d29a4eb104b682ff0",
+          "qdelta_y_preserved_reported": null,
+          "reported_qindex": 141,
+          "reported_sse": [
+            50738351
+          ],
+          "search": "directional-full",
+          "selected_qdelta": [],
+          "status": "pass",
+          "tokens": {
+            "bytes": "3395",
+            "intra_mode": "39",
+            "psnr_y": "28.37dB",
+            "qindex": "141",
+            "sse_y": "50738351",
+            "workspace_bytes": "2703776"
+          },
+          "validated": true,
+          "workspace_bytes": 2703776
+        },
+        "directional-full-exact": {
+          "attempts": [
+            {
+              "argv": [
+                "/home/mathias/avif2-experiment/experimental/encoder/build/av2-encoder-experiment",
+                "/home/mathias/avif2-experiment/experimental/encoder/build/blocky-m1-pastel-full-work/prepared-pastel-chalks-le896-i400-full-q141/source.i400",
+                "--width",
+                "896",
+                "--height",
+                "598",
+                "--qindex",
+                "141",
+                "--search",
+                "directional-full-exact",
+                "--output",
+                "experimental/encoder/build/blocky-m1-pastel-full-work/prepared-pastel-chalks-le896-i400-full-q141/directional-full-exact/encoded-0.obu"
+              ],
+              "duration_ns": 1155195806,
+              "output_exists": true,
+              "returncode": 0,
+              "stderr": "encoder: bytes=3395 sse_y=50738351 psnr_y=28.37dB workspace_bytes=2703776 qindex=141 intra_mode=39"
+            }
+          ],
+          "avm_project_exact": true,
+          "avm_sha256": "80a820714d570117b4a34446cb2e4ef30db2f16c8337818d29a4eb104b682ff0",
+          "category": "directional",
+          "decode_time_ns": {
+            "avm": 63739273,
+            "project": 27798149
+          },
+          "decoded_sha256": "80a820714d570117b4a34446cb2e4ef30db2f16c8337818d29a4eb104b682ff0",
+          "deterministic": true,
+          "encode_time_ns": {
+            "median": 1155195806,
+            "samples": [
+              1155195806
+            ],
+            "worst": 1155195806
+          },
+          "input_bytes": 535808,
+          "input_sha256": "b529c7705e11b3c313f95130f2e0e648155fcb87fdf33c7bf87f7cbfa9335d8e",
+          "local_sse_matches_decode": false,
+          "obu_bytes": 3395,
+          "obu_sha256": "7ea195328e5bd4a4442dfaa50dd8b193e423b1515fc086ee2b03773541296bc0",
+          "output_dir": "/home/mathias/avif2-experiment/experimental/encoder/build/blocky-m1-pastel-full-work/prepared-pastel-chalks-le896-i400-full-q141/directional-full-exact",
+          "planes": [
+            {
+              "decoded_psnr_db": "28.367533",
+              "decoded_sha256": "80a820714d570117b4a34446cb2e4ef30db2f16c8337818d29a4eb104b682ff0",
+              "decoded_sse": 50738345,
+              "height": 598,
+              "plane": "y",
+              "reported_psnr_db": "28.367532",
+              "reported_sse": 50738351,
+              "samples": 535808,
+              "source_sha256": "b529c7705e11b3c313f95130f2e0e648155fcb87fdf33c7bf87f7cbfa9335d8e",
+              "width": 896
+            }
+          ],
+          "primary_output_path": "/home/mathias/avif2-experiment/experimental/encoder/build/blocky-m1-pastel-full-work/prepared-pastel-chalks-le896-i400-full-q141/directional-full-exact/encoded-0.obu",
+          "project_sha256": "80a820714d570117b4a34446cb2e4ef30db2f16c8337818d29a4eb104b682ff0",
+          "qdelta_y_preserved_reported": null,
+          "reported_qindex": 141,
+          "reported_sse": [
+            50738351
+          ],
+          "search": "directional-full-exact",
+          "selected_qdelta": [],
+          "status": "pass",
+          "tokens": {
+            "bytes": "3395",
+            "intra_mode": "39",
+            "psnr_y": "28.37dB",
+            "qindex": "141",
+            "sse_y": "50738351",
+            "workspace_bytes": "2703776"
+          },
+          "validated": true,
+          "workspace_bytes": 2703776
+        },
+        "intra": {
+          "attempts": [
+            {
+              "argv": [
+                "/home/mathias/avif2-experiment/experimental/encoder/build/av2-encoder-experiment",
+                "/home/mathias/avif2-experiment/experimental/encoder/build/blocky-m1-pastel-full-work/prepared-pastel-chalks-le896-i400-full-q141/source.i400",
+                "--width",
+                "896",
+                "--height",
+                "598",
+                "--qindex",
+                "141",
+                "--search",
+                "intra",
+                "--output",
+                "experimental/encoder/build/blocky-m1-pastel-full-work/prepared-pastel-chalks-le896-i400-full-q141/intra/encoded-0.obu"
+              ],
+              "duration_ns": 328645164,
+              "output_exists": true,
+              "returncode": 0,
+              "stderr": "encoder: bytes=3404 sse_y=64432412 psnr_y=27.33dB workspace_bytes=2703776 qindex=141 intra_mode=3"
+            }
+          ],
+          "avm_project_exact": true,
+          "avm_sha256": "2ef069e42e996d62f02b5921a8e79963f56d34a8d7312a8969d42eb5a46b895d",
+          "category": "directional",
+          "decode_time_ns": {
+            "avm": 58030769,
+            "project": 24624896
+          },
+          "decoded_sha256": "2ef069e42e996d62f02b5921a8e79963f56d34a8d7312a8969d42eb5a46b895d",
+          "deterministic": true,
+          "encode_time_ns": {
+            "median": 328645164,
+            "samples": [
+              328645164
+            ],
+            "worst": 328645164
+          },
+          "input_bytes": 535808,
+          "input_sha256": "b529c7705e11b3c313f95130f2e0e648155fcb87fdf33c7bf87f7cbfa9335d8e",
+          "local_sse_matches_decode": true,
+          "obu_bytes": 3404,
+          "obu_sha256": "79d254c48c894fcc19ec8d860e01fbca31e34aacf4593c0b346c9b9fca0d8e3f",
+          "output_dir": "/home/mathias/avif2-experiment/experimental/encoder/build/blocky-m1-pastel-full-work/prepared-pastel-chalks-le896-i400-full-q141/intra",
+          "planes": [
+            {
+              "decoded_psnr_db": "27.329852",
+              "decoded_sha256": "2ef069e42e996d62f02b5921a8e79963f56d34a8d7312a8969d42eb5a46b895d",
+              "decoded_sse": 64432412,
+              "height": 598,
+              "plane": "y",
+              "reported_psnr_db": "27.329852",
+              "reported_sse": 64432412,
+              "samples": 535808,
+              "source_sha256": "b529c7705e11b3c313f95130f2e0e648155fcb87fdf33c7bf87f7cbfa9335d8e",
+              "width": 896
+            }
+          ],
+          "primary_output_path": "/home/mathias/avif2-experiment/experimental/encoder/build/blocky-m1-pastel-full-work/prepared-pastel-chalks-le896-i400-full-q141/intra/encoded-0.obu",
+          "project_sha256": "2ef069e42e996d62f02b5921a8e79963f56d34a8d7312a8969d42eb5a46b895d",
+          "qdelta_y_preserved_reported": null,
+          "reported_qindex": 141,
+          "reported_sse": [
+            64432412
+          ],
+          "search": "intra",
+          "selected_qdelta": [],
+          "status": "pass",
+          "tokens": {
+            "bytes": "3404",
+            "intra_mode": "3",
+            "psnr_y": "27.33dB",
+            "qindex": "141",
+            "sse_y": "64432412",
+            "workspace_bytes": "2703776"
+          },
+          "validated": true,
+          "workspace_bytes": 2703776
+        },
+        "off": {
+          "attempts": [
+            {
+              "argv": [
+                "/home/mathias/avif2-experiment/experimental/encoder/build/av2-encoder-experiment",
+                "/home/mathias/avif2-experiment/experimental/encoder/build/blocky-m1-pastel-full-work/prepared-pastel-chalks-le896-i400-full-q141/source.i400",
+                "--width",
+                "896",
+                "--height",
+                "598",
+                "--qindex",
+                "141",
+                "--search",
+                "off",
+                "--output",
+                "experimental/encoder/build/blocky-m1-pastel-full-work/prepared-pastel-chalks-le896-i400-full-q141/off/encoded-0.obu"
+              ],
+              "duration_ns": 210932501,
+              "output_exists": true,
+              "returncode": 0,
+              "stderr": "encoder: bytes=3414 sse_y=64440262 psnr_y=27.33dB workspace_bytes=2703776 qindex=141"
+            }
+          ],
+          "avm_project_exact": true,
+          "avm_sha256": "8b3c28304211568411c54263e055b49abebe34f9ebe96084605796a6443067f9",
+          "category": "skip",
+          "decode_time_ns": {
+            "avm": 63185219,
+            "project": 24345530
+          },
+          "decoded_sha256": "8b3c28304211568411c54263e055b49abebe34f9ebe96084605796a6443067f9",
+          "deterministic": true,
+          "encode_time_ns": {
+            "median": 210932501,
+            "samples": [
+              210932501
+            ],
+            "worst": 210932501
+          },
+          "input_bytes": 535808,
+          "input_sha256": "b529c7705e11b3c313f95130f2e0e648155fcb87fdf33c7bf87f7cbfa9335d8e",
+          "local_sse_matches_decode": true,
+          "obu_bytes": 3414,
+          "obu_sha256": "936565f8ba94ac7913d29a84e3dea1a6bcfbda861abf2a93d3922b33ba8c4165",
+          "output_dir": "/home/mathias/avif2-experiment/experimental/encoder/build/blocky-m1-pastel-full-work/prepared-pastel-chalks-le896-i400-full-q141/off",
+          "planes": [
+            {
+              "decoded_psnr_db": "27.329323",
+              "decoded_sha256": "8b3c28304211568411c54263e055b49abebe34f9ebe96084605796a6443067f9",
+              "decoded_sse": 64440262,
+              "height": 598,
+              "plane": "y",
+              "reported_psnr_db": "27.329323",
+              "reported_sse": 64440262,
+              "samples": 535808,
+              "source_sha256": "b529c7705e11b3c313f95130f2e0e648155fcb87fdf33c7bf87f7cbfa9335d8e",
+              "width": 896
+            }
+          ],
+          "primary_output_path": "/home/mathias/avif2-experiment/experimental/encoder/build/blocky-m1-pastel-full-work/prepared-pastel-chalks-le896-i400-full-q141/off/encoded-0.obu",
+          "project_sha256": "8b3c28304211568411c54263e055b49abebe34f9ebe96084605796a6443067f9",
+          "qdelta_y_preserved_reported": null,
+          "reported_qindex": 141,
+          "reported_sse": [
+            64440262
+          ],
+          "search": "off",
+          "selected_qdelta": [],
+          "status": "pass",
+          "tokens": {
+            "bytes": "3414",
+            "psnr_y": "27.33dB",
+            "qindex": "141",
+            "sse_y": "64440262",
+            "workspace_bytes": "2703776"
+          },
+          "validated": true,
+          "workspace_bytes": 2703776
+        },
+        "rd": {
+          "attempts": [
+            {
+              "argv": [
+                "/home/mathias/avif2-experiment/experimental/encoder/build/av2-encoder-experiment",
+                "/home/mathias/avif2-experiment/experimental/encoder/build/blocky-m1-pastel-full-work/prepared-pastel-chalks-le896-i400-full-q141/source.i400",
+                "--width",
+                "896",
+                "--height",
+                "598",
+                "--qindex",
+                "141",
+                "--search",
+                "rd",
+                "--output",
+                "experimental/encoder/build/blocky-m1-pastel-full-work/prepared-pastel-chalks-le896-i400-full-q141/rd/encoded-0.obu"
+              ],
+              "duration_ns": 160859891341,
+              "output_exists": true,
+              "returncode": 0,
+              "stderr": "encoder: bytes=10077 sse_y=10397255 psnr_y=35.25dB workspace_bytes=7550065 qindex=141\n rd_mode_dc=415 rd_mode_vertical=325 rd_mode_horizontal=97 rd_mode_smooth=703 rd_mode_smooth_v=224 rd_mode_smooth_h=314 rd_mode_paeth=50 rd_residual_skip=363 rd_residual_dc=388 rd_residual_ac=1377 rd_trials=44688"
+            },
+            {
+              "argv": [
+                "/home/mathias/avif2-experiment/experimental/encoder/build/av2-encoder-experiment",
+                "/home/mathias/avif2-experiment/experimental/encoder/build/blocky-m1-pastel-full-work/prepared-pastel-chalks-le896-i400-full-q141/source.i400",
+                "--width",
+                "896",
+                "--height",
+                "598",
+                "--qindex",
+                "141",
+                "--search",
+                "rd",
+                "--output",
+                "experimental/encoder/build/blocky-m1-pastel-full-work/prepared-pastel-chalks-le896-i400-full-q141/rd/encoded-1.obu"
+              ],
+              "duration_ns": 160932299006,
+              "output_exists": true,
+              "returncode": 0,
+              "stderr": "encoder: bytes=10077 sse_y=10397255 psnr_y=35.25dB workspace_bytes=7550065 qindex=141\n rd_mode_dc=415 rd_mode_vertical=325 rd_mode_horizontal=97 rd_mode_smooth=703 rd_mode_smooth_v=224 rd_mode_smooth_h=314 rd_mode_paeth=50 rd_residual_skip=363 rd_residual_dc=388 rd_residual_ac=1377 rd_trials=44688"
+            }
+          ],
+          "avm_project_exact": true,
+          "avm_sha256": "331c4a5beb8dacedc234a6de548f82f50cbaa8b4412e1bb30dc4de4226c27a3b",
+          "category": null,
+          "decode_time_ns": {
+            "avm": 58762289,
+            "project": 26943568
+          },
+          "decoded_sha256": "331c4a5beb8dacedc234a6de548f82f50cbaa8b4412e1bb30dc4de4226c27a3b",
+          "deterministic": true,
+          "encode_time_ns": {
+            "median": 160896095173,
+            "samples": [
+              160859891341,
+              160932299006
+            ],
+            "worst": 160932299006
+          },
+          "input_bytes": 535808,
+          "input_sha256": "b529c7705e11b3c313f95130f2e0e648155fcb87fdf33c7bf87f7cbfa9335d8e",
+          "local_sse_matches_decode": true,
+          "obu_bytes": 10077,
+          "obu_sha256": "5c2a6d1db43aa97d5d1de9414b49733cdf5223cd3adb29304a02155f9f21264b",
+          "output_dir": "/home/mathias/avif2-experiment/experimental/encoder/build/blocky-m1-pastel-full-work/prepared-pastel-chalks-le896-i400-full-q141/rd",
+          "planes": [
+            {
+              "decoded_psnr_db": "35.251709",
+              "decoded_sha256": "331c4a5beb8dacedc234a6de548f82f50cbaa8b4412e1bb30dc4de4226c27a3b",
+              "decoded_sse": 10397255,
+              "height": 598,
+              "plane": "y",
+              "reported_psnr_db": "35.251709",
+              "reported_sse": 10397255,
+              "samples": 535808,
+              "source_sha256": "b529c7705e11b3c313f95130f2e0e648155fcb87fdf33c7bf87f7cbfa9335d8e",
+              "width": 896
+            }
+          ],
+          "primary_output_path": "/home/mathias/avif2-experiment/experimental/encoder/build/blocky-m1-pastel-full-work/prepared-pastel-chalks-le896-i400-full-q141/rd/encoded-0.obu",
+          "project_sha256": "331c4a5beb8dacedc234a6de548f82f50cbaa8b4412e1bb30dc4de4226c27a3b",
+          "qdelta_y_preserved_reported": null,
+          "reported_qindex": 141,
+          "reported_sse": [
+            10397255
+          ],
+          "search": "rd",
+          "selected_qdelta": [],
+          "status": "pass",
+          "tokens": {
+            "bytes": "10077",
+            "psnr_y": "35.25dB",
+            "qindex": "141",
+            "rd_mode_dc": "415",
+            "rd_mode_horizontal": "97",
+            "rd_mode_paeth": "50",
+            "rd_mode_smooth": "703",
+            "rd_mode_smooth_h": "314",
+            "rd_mode_smooth_v": "224",
+            "rd_mode_vertical": "325",
+            "rd_residual_ac": "1377",
+            "rd_residual_dc": "388",
+            "rd_residual_skip": "363",
+            "rd_trials": "44688",
+            "sse_y": "10397255",
+            "workspace_bytes": "7550065"
+          },
+          "validated": true,
+          "workspace_bytes": 7550065
+        }
+      },
+      "source_bytes": 535808,
+      "source_sha256": "b529c7705e11b3c313f95130f2e0e648155fcb87fdf33c7bf87f7cbfa9335d8e",
+      "subset": "prepared-full",
+      "tags": [
+        "full-image",
+        "multiple-superblocks",
+        "prepared",
+        "real-image"
+      ],
+      "validator_exact_searches": [
+        "bounded",
+        "directional",
+        "directional-exact",
+        "intra",
+        "off",
+        "rd"
+      ],
+      "width": 896
+    }
+  ],
+  "configuration": {
+    "baseline_selector": "validator-exact legacy candidates at or above RD bytes; minimum decoded total SSE, bytes, then help order",
+    "crop_selector": "full source bytes",
+    "legacy_repetitions": 1,
+    "legacy_searches": [
+      "off",
+      "bounded",
+      "directional",
+      "directional-exact",
+      "directional-full",
+      "directional-full-exact",
+      "intra"
+    ],
+    "qindices": [
+      141
+    ],
+    "rd_repetitions": 2,
+    "selection": "le896"
+  },
+  "corpus": {
+    "crop_size": null,
+    "full_source": "pastel-chalks",
+    "qindices": [
+      141
+    ],
+    "selection": "le896",
+    "source_count": 1,
+    "sources": {
+      "images/prepared/le896/pastel-chalks/source-896x598-gray8.i400": "b529c7705e11b3c313f95130f2e0e648155fcb87fdf33c7bf87f7cbfa9335d8e"
+    }
+  },
+  "schema": "av2-encoder-blocky-m1-corpus-frontier-prepared-crops-v1",
+  "status": "blocked",
+  "summary": {
+    "case_count": 1,
+    "comparable_case_count": 1,
+    "decoder_rejected_search_count": 0,
+    "legacy_nonexact_case_count": 1,
+    "rd_exact_case_count": 1,
+    "rd_telemetry_totals": {
+      "rd_mode_dc": 415,
+      "rd_mode_horizontal": 97,
+      "rd_mode_paeth": 50,
+      "rd_mode_smooth": 703,
+      "rd_mode_smooth_h": 314,
+      "rd_mode_smooth_v": 224,
+      "rd_mode_vertical": 325,
+      "rd_residual_ac": 1377,
+      "rd_residual_dc": 388,
+      "rd_residual_skip": 363,
+      "rd_trials": 44688
+    },
+    "rd_trial_case_count": 1,
+    "rd_zero_trial_cases": [],
+    "strict_pareto_evidence": [],
+    "strict_pareto_win_count": 0,
+    "strict_pareto_wins": []
+  },
+  "tools": {
+    "avmdec": {
+      "path": "build/reference/avm/avmdec",
+      "sha256": "c247cbb4e71e48bdec89f3c8b2b8efdce17f673aeaa39e3c116a276d16286aa0"
+    },
+    "encoder": {
+      "path": "experimental/encoder/build/av2-encoder-experiment",
+      "sha256": "595d5124159aed3224e0bd9b68c6e9bee53b4d572a2d4e2c7cf9107150ab0ca9"
+    },
+    "project_decoder": {
+      "path": "build/host-cmake/av2heif-decoder",
+      "sha256": "7d17f598f2cdffe7dfb4ab46982cf5c4822215a5f429cb39e7748a60ce5ef535"
+    }
+  }
+}

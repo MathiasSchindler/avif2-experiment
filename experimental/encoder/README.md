@@ -69,8 +69,23 @@ DC+AC frame deltas `{0,-16,-8,8,16}`, then at most one independently best
 U/V pair. Candidates preserve Y exactly, may add at most two bytes relative
 to zero delta, and use stable chroma-SSE/rate/magnitude ordering. I400 rejects
 this color-only search explicitly.
+`--search rd` is the admitted M1 integration surface. It uses live
+block-local writer/CDF/context transactions to combine DC, vertical,
+horizontal, Smooth-family, and Paeth luma prediction with skip, DC-only, and
+bounded DCT_DCT AC residuals. Color keeps the selected Y decisions while
+running nine complete-stream U/V qdelta trials. The 27-case production gate
+covers odd dimensions, all formats, the 1440 ceiling, Baya Weaver, and all 14
+selected full prepared images; it is deterministic and exact against both
+decoders, saves 6,206 aggregate bytes and 31,503,407 aggregate Y SSE, and has
+six strict full-image Pareto wins. See `metrics/blocky-m1-gate.json`.
 Search-off hashes remain locked. Directional and intra prediction searches
 remain explicit modes and are not combined with the default AC search.
+
+M1 validation is split into
+`make blocky-m1-transaction-test`, `blocky-m1-oracle-test`,
+`blocky-m1-parity-test`, `blocky-m1-diagnostic`,
+`blocky-m1-corpus-frontier`, and the admission target
+`blocky-m1-full-gate` (`blocky-m1-gate` is its compatibility alias).
 
 `make chroma-ac-gate` reproduces the frozen production report in
 `metrics/chroma-ac-gate.json`. It requires deterministic output, no per-plane

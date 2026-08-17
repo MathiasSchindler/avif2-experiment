@@ -1,0 +1,812 @@
+{
+  "candidate_full_images": {
+    "pastel": {
+      "report": "experimental/encoder/metrics/blocky-m1-corpus-frontier-pastel-full.json",
+      "report_sha256": "9a93856f78bfba8ad7974dfc54952d31843e6d937e4adad20cc791ee6e606841",
+      "summary": {
+        "case_count": 1,
+        "comparable_case_count": 1,
+        "decoder_rejected_search_count": 0,
+        "legacy_nonexact_case_count": 1,
+        "rd_exact_case_count": 1,
+        "rd_telemetry_totals": {
+          "rd_mode_dc": 415,
+          "rd_mode_horizontal": 97,
+          "rd_mode_paeth": 50,
+          "rd_mode_smooth": 703,
+          "rd_mode_smooth_h": 314,
+          "rd_mode_smooth_v": 224,
+          "rd_mode_vertical": 325,
+          "rd_residual_ac": 1377,
+          "rd_residual_dc": 388,
+          "rd_residual_skip": 363,
+          "rd_trials": 44688
+        },
+        "rd_trial_case_count": 1,
+        "rd_zero_trial_cases": [],
+        "strict_pareto_evidence": [],
+        "strict_pareto_win_count": 0,
+        "strict_pareto_wins": []
+      }
+    },
+    "scarlet": {
+      "report": "experimental/encoder/metrics/blocky-m1-corpus-frontier-scarlet-full.json",
+      "report_sha256": "92ec9493f5a7bbff515718feb472631ca71cd52ea9a9458a224fc0f3afec2d9e",
+      "summary": {
+        "case_count": 1,
+        "comparable_case_count": 1,
+        "decoder_rejected_search_count": 0,
+        "legacy_nonexact_case_count": 0,
+        "rd_exact_case_count": 1,
+        "rd_telemetry_totals": {
+          "rd_mode_dc": 424,
+          "rd_mode_horizontal": 196,
+          "rd_mode_paeth": 69,
+          "rd_mode_smooth": 665,
+          "rd_mode_smooth_h": 326,
+          "rd_mode_smooth_v": 273,
+          "rd_mode_vertical": 175,
+          "rd_residual_ac": 571,
+          "rd_residual_dc": 926,
+          "rd_residual_skip": 631,
+          "rd_trials": 44688
+        },
+        "rd_trial_case_count": 1,
+        "rd_zero_trial_cases": [],
+        "strict_pareto_evidence": [],
+        "strict_pareto_win_count": 0,
+        "strict_pareto_wins": []
+      }
+    }
+  },
+  "diagnostic": {
+    "maximum_resident_set_kib": 72444,
+    "report": "experimental/encoder/metrics/blocky-m1-diagnostic.json",
+    "report_sha256": "73bbd4c4e9cc14e8bf06726714363a20abedcdf54c0e2472120a7cb644541c50",
+    "summary": {
+      "by_format": {
+        "i400": {
+          "case_count": 7,
+          "median_rd_runtime_ratio_vs_bounded": 14.399477121310758,
+          "rd_equals_bounded_cases": [
+            "ac-checker-i400-q100",
+            "baya-rd-equals-bounded-i400-q100"
+          ],
+          "rd_unique_cases": [
+            "smooth-strong-center-i400-q60",
+            "baya-rd-unique-texture-i400-q100"
+          ]
+        },
+        "i420": {
+          "case_count": 2,
+          "median_rd_runtime_ratio_vs_bounded": 24.47002214595286,
+          "rd_equals_bounded_cases": [],
+          "rd_unique_cases": [
+            "baya-rd-unique-texture-i420-q100"
+          ]
+        },
+        "i444": {
+          "case_count": 2,
+          "median_rd_runtime_ratio_vs_bounded": 21.347487853265548,
+          "rd_equals_bounded_cases": [],
+          "rd_unique_cases": [
+            "baya-rd-unique-texture-i444-q100"
+          ]
+        }
+      },
+      "case_count": 11,
+      "expected_relation_mismatches": [],
+      "legacy_frontier_not_matched_by_rd": [
+        "directional-horizontal-edge-i400-q60",
+        "paeth-vertical-edge-i400-q60",
+        "qdelta-tiled-gradient-i444-q141",
+        "smooth-strong-center-i400-q60",
+        "baya-rd-unique-texture-i400-q100",
+        "baya-rd-unique-texture-i420-q100",
+        "baya-rd-unique-texture-i444-q100"
+      ],
+      "max_rd_runtime_ratio_vs_bounded": 26.22551687139256,
+      "median_rd_runtime_ratio_vs_bounded": 14.842245281023736,
+      "median_rd_runtime_ratio_vs_off": 253.1549912971162,
+      "rd_equals_bounded_cases": [
+        "ac-checker-i400-q100",
+        "baya-rd-equals-bounded-i400-q100"
+      ],
+      "rd_equals_off_cases": [
+        "directional-horizontal-edge-i400-q60",
+        "paeth-vertical-edge-i400-q60",
+        "qdelta-tiled-gradient-i420-q141",
+        "qdelta-tiled-gradient-i444-q141",
+        "skip-flat-odd-i400-q100"
+      ],
+      "rd_unique_cases": [
+        "smooth-strong-center-i400-q60",
+        "baya-rd-unique-texture-i400-q100",
+        "baya-rd-unique-texture-i420-q100",
+        "baya-rd-unique-texture-i444-q100"
+      ]
+    },
+    "wall_time": "0:54.17"
+  },
+  "full_admission_gate": {
+    "gates": {
+      "all_cases_validated": true,
+      "all_formats_covered": true,
+      "baya_weaver_covered": true,
+      "ceiling_covered": true,
+      "emitted_winner_categories_covered": true,
+      "full_prepared_strict_pareto_win": true,
+      "multiple_superblocks_covered": true,
+      "odd_dimensions_covered": true,
+      "plane_qdelta_y_invariant": true,
+      "prepared_corpus_covered": true,
+      "rd_available": true,
+      "rd_color_qdelta_trials_complete": true,
+      "rd_color_qdelta_y_invariant": true,
+      "rd_deterministic": true,
+      "rd_local_avm_project_exact": true,
+      "real_aggregate_plane_nonregression": true,
+      "real_cases_have_rate_ceiling_baseline": true,
+      "real_per_case_nonregression": true,
+      "real_strict_pareto_win": true,
+      "real_total_byte_nonregression": true,
+      "selected_baselines_local_avm_project_exact": true
+    },
+    "maximum_resident_set_kib": 179932,
+    "report": "experimental/encoder/metrics/blocky-m1-gate.json",
+    "report_sha256": "8228d19e8512853aa80aa9f02085247a20baed0ae2a1f07dad7885eaf2c90fb0",
+    "status": "pass",
+    "summary": {
+      "case_count": 27,
+      "emitted_rd_mode_counts": {
+        "dc": 11388,
+        "horizontal": 3730,
+        "paeth": 1155,
+        "smooth": 4010,
+        "smooth_h": 2909,
+        "smooth_v": 2442,
+        "vertical": 3910
+      },
+      "emitted_rd_residual_counts": {
+        "ac": 10660,
+        "dc": 2575,
+        "skip": 16309
+      },
+      "emitted_winner_categories": [
+        "ac",
+        "dc",
+        "directional",
+        "paeth",
+        "skip",
+        "smooth"
+      ],
+      "full_prepared_case_count": 14,
+      "full_prepared_expected_case_count": 14,
+      "maximum_workspace_bytes": 34669792,
+      "missing_emitted_winner_categories": [],
+      "missing_targeted_categories": [
+        "dc",
+        "skip"
+      ],
+      "rd_encode_median_time_total_ns": 4491319631410,
+      "rd_encode_worst_single_time_ns": 624992612577,
+      "rd_pass_cases": 27,
+      "rd_qdelta_trial_total": 54,
+      "real_case_count": 15,
+      "real_case_count_with_rate_ceiling_baseline": 15,
+      "real_legacy_bytes": 274261,
+      "real_legacy_plane_sse": [
+        1080593021,
+        13183144,
+        1824526
+      ],
+      "real_rd_bytes": 268055,
+      "real_rd_plane_sse": [
+        1049089614,
+        13183144,
+        1824526
+      ],
+      "real_total_byte_delta": -6206,
+      "selected_subsets": [
+        "targeted",
+        "ceiling",
+        "baya",
+        "prepared"
+      ],
+      "strict_baya_pareto_wins": 2,
+      "strict_full_prepared_pareto_wins": 6,
+      "strict_prepared_corpus_pareto_wins": 4,
+      "strict_real_pareto_wins": 6,
+      "targeted_observed_categories": [
+        "ac",
+        "directional",
+        "paeth",
+        "smooth"
+      ]
+    },
+    "tools": {
+      "avmdec": {
+        "path": "build/reference/avm/avmdec",
+        "sha256": "c247cbb4e71e48bdec89f3c8b2b8efdce17f673aeaa39e3c116a276d16286aa0"
+      },
+      "encoder": {
+        "path": "experimental/encoder/build/av2-encoder-experiment",
+        "sha256": "595d5124159aed3224e0bd9b68c6e9bee53b4d572a2d4e2c7cf9107150ab0ca9"
+      },
+      "project_decoder": {
+        "path": "build/host-cmake/av2heif-decoder",
+        "sha256": "7d17f598f2cdffe7dfb4ab46982cf5c4822215a5f429cb39e7748a60ce5ef535"
+      }
+    },
+    "wall_time": "2:44:46"
+  },
+  "interpretation": {
+    "crop_suffices_for_exit": false,
+    "m2_implemented": false,
+    "m2_released": true,
+    "reason": "Prepared crops are supporting reachability/parity evidence only. Admission requires the complete Baya and 14-image full prepared corpus plus at least one strict full prepared-image Pareto win."
+  },
+  "locked_crop_fixture": {
+    "bounded": {
+      "avm_project_exact": true,
+      "bytes": 806,
+      "decoded_sha256": "597e374095f84938da369ae0976504a013aeb1723306ce1012a68526262949c4",
+      "decoded_sse": [
+        1653563
+      ],
+      "file": "bounded.obu",
+      "local_sse_matches_decode": true,
+      "sha256": "cb3f587b813c09e41b9120b3e6edd5bfdd8c20d9bcd5f790187ab384ffc83cd9"
+    },
+    "comparison": {
+      "baseline_search": "bounded",
+      "byte_delta": -6,
+      "nonregression": true,
+      "plane_sse_gain": [
+        686379
+      ],
+      "strict_pareto_win": true
+    },
+    "id": "prepared-scarlet-flycatcher-le896-i400-crop-512x336-q60",
+    "manifest": "experimental/encoder/fixtures/blocky-m1-corpus-frontier/manifest.json",
+    "manifest_sha256": "50e3144196e9a9a95390c10459ed6fb0ad98a779a3454d908e86f123aa15b192",
+    "rd": {
+      "avm_project_exact": true,
+      "bytes": 800,
+      "decoded_sha256": "690fab5a9475b699af8a33a139eb3942c56fb722c42adea9f7b489f634f4382f",
+      "decoded_sse": [
+        967184
+      ],
+      "file": "rd.obu",
+      "local_sse_matches_decode": true,
+      "sha256": "18bd384f224a3b721285e8c2fb96cf3c10ce54de17487f92b0baa260de0912d4"
+    }
+  },
+  "prepared_crop_sweep": {
+    "report": "experimental/encoder/metrics/blocky-m1-corpus-frontier-prepared-crops.json",
+    "report_sha256": "9475bd1de53eb42fccacd16281b6123c082730acf3903dda8f856007230dba6d",
+    "summary": {
+      "case_count": 42,
+      "comparable_case_count": 25,
+      "decoder_rejected_search_count": 0,
+      "legacy_nonexact_case_count": 11,
+      "rd_exact_case_count": 42,
+      "rd_telemetry_totals": {
+        "rd_mode_dc": 270,
+        "rd_mode_horizontal": 66,
+        "rd_mode_paeth": 30,
+        "rd_mode_smooth": 133,
+        "rd_mode_smooth_h": 78,
+        "rd_mode_smooth_v": 68,
+        "rd_mode_vertical": 27,
+        "rd_residual_ac": 655,
+        "rd_residual_dc": 10,
+        "rd_residual_skip": 7,
+        "rd_trials": 14112
+      },
+      "rd_trial_case_count": 42,
+      "rd_zero_trial_cases": [],
+      "strict_pareto_evidence": [
+        {
+          "baseline": {
+            "bytes": 804,
+            "decoded_sse": [
+              1160864
+            ]
+          },
+          "id": "prepared-elbrus-milky-way-le896-i400-crop-224x0-q60",
+          "origin": {
+            "crop": {
+              "height": 64,
+              "width": 64,
+              "x": 224,
+              "y": 0
+            },
+            "gradient_score": 120665,
+            "preparation_id": "le896",
+            "source": "images/prepared/le896/elbrus-milky-way/source-598x896-gray8.i400",
+            "source_id": "elbrus-milky-way",
+            "source_sha256": "517e9b5a796b6836d670a0e28a2a4e8517b47bfe496da8f47131be82a9364418"
+          },
+          "qindex": 60,
+          "rd": {
+            "bytes": 777,
+            "decoded_sse": [
+              1066293
+            ]
+          }
+        },
+        {
+          "baseline": {
+            "bytes": 422,
+            "decoded_sse": [
+              1324868
+            ]
+          },
+          "id": "prepared-finland-warbirds-le896-i400-crop-528x112-q141",
+          "origin": {
+            "crop": {
+              "height": 64,
+              "width": 64,
+              "x": 528,
+              "y": 112
+            },
+            "gradient_score": 136575,
+            "preparation_id": "le896",
+            "source": "images/prepared/le896/finland-warbirds/source-896x504-gray8.i400",
+            "source_id": "finland-warbirds",
+            "source_sha256": "72176a06e2254e0200262943ae9d0a91282278d4f3d6d984f75bf22dffb2824b"
+          },
+          "qindex": 141,
+          "rd": {
+            "bytes": 419,
+            "decoded_sse": [
+              1242788
+            ]
+          }
+        },
+        {
+          "baseline": {
+            "bytes": 510,
+            "decoded_sse": [
+              183022
+            ]
+          },
+          "id": "prepared-freiburg-minster-columns-le896-i400-crop-224x368-q100",
+          "origin": {
+            "crop": {
+              "height": 64,
+              "width": 64,
+              "x": 224,
+              "y": 368
+            },
+            "gradient_score": 104602,
+            "preparation_id": "le896",
+            "source": "images/prepared/le896/freiburg-minster-columns/source-598x896-gray8.i400",
+            "source_id": "freiburg-minster-columns",
+            "source_sha256": "ff1644889a619eb7aff3e7c6ce2bc91f79ba56b5ef964756425f3ca0931fd19f"
+          },
+          "qindex": 100,
+          "rd": {
+            "bytes": 481,
+            "decoded_sse": [
+              168856
+            ]
+          }
+        },
+        {
+          "baseline": {
+            "bytes": 383,
+            "decoded_sse": [
+              199530
+            ]
+          },
+          "id": "prepared-freiburg-minster-columns-le896-i400-crop-224x368-q141",
+          "origin": {
+            "crop": {
+              "height": 64,
+              "width": 64,
+              "x": 224,
+              "y": 368
+            },
+            "gradient_score": 104602,
+            "preparation_id": "le896",
+            "source": "images/prepared/le896/freiburg-minster-columns/source-598x896-gray8.i400",
+            "source_id": "freiburg-minster-columns",
+            "source_sha256": "ff1644889a619eb7aff3e7c6ce2bc91f79ba56b5ef964756425f3ca0931fd19f"
+          },
+          "qindex": 141,
+          "rd": {
+            "bytes": 353,
+            "decoded_sse": [
+              165701
+            ]
+          }
+        },
+        {
+          "baseline": {
+            "bytes": 864,
+            "decoded_sse": [
+              1656591
+            ]
+          },
+          "id": "prepared-hong-kong-harbour-night-le896-i400-crop-544x144-q60",
+          "origin": {
+            "crop": {
+              "height": 64,
+              "width": 64,
+              "x": 544,
+              "y": 144
+            },
+            "gradient_score": 177132,
+            "preparation_id": "le896",
+            "source": "images/prepared/le896/hong-kong-harbour-night/source-896x424-gray8.i400",
+            "source_id": "hong-kong-harbour-night",
+            "source_sha256": "3c4e46488f0be934a67e3339183d33ab37094c3ec1b6237beeaa14d865b0ae2b"
+          },
+          "qindex": 60,
+          "rd": {
+            "bytes": 864,
+            "decoded_sse": [
+              1324257
+            ]
+          }
+        },
+        {
+          "baseline": {
+            "bytes": 646,
+            "decoded_sse": [
+              1217839
+            ]
+          },
+          "id": "prepared-hong-kong-harbour-night-le896-i400-crop-544x144-q100",
+          "origin": {
+            "crop": {
+              "height": 64,
+              "width": 64,
+              "x": 544,
+              "y": 144
+            },
+            "gradient_score": 177132,
+            "preparation_id": "le896",
+            "source": "images/prepared/le896/hong-kong-harbour-night/source-896x424-gray8.i400",
+            "source_id": "hong-kong-harbour-night",
+            "source_sha256": "3c4e46488f0be934a67e3339183d33ab37094c3ec1b6237beeaa14d865b0ae2b"
+          },
+          "qindex": 100,
+          "rd": {
+            "bytes": 642,
+            "decoded_sse": [
+              1146494
+            ]
+          }
+        },
+        {
+          "baseline": {
+            "bytes": 817,
+            "decoded_sse": [
+              4136206
+            ]
+          },
+          "id": "prepared-jinan-grand-theater-le896-i400-crop-496x176-q60",
+          "origin": {
+            "crop": {
+              "height": 64,
+              "width": 64,
+              "x": 496,
+              "y": 176
+            },
+            "gradient_score": 174929,
+            "preparation_id": "le896",
+            "source": "images/prepared/le896/jinan-grand-theater/source-896x672-gray8.i400",
+            "source_id": "jinan-grand-theater",
+            "source_sha256": "8e32e842cb1449641f60996d2fa5e2fc3337dabb41832b593ef79619f3a74faa"
+          },
+          "qindex": 60,
+          "rd": {
+            "bytes": 807,
+            "decoded_sse": [
+              2271195
+            ]
+          }
+        },
+        {
+          "baseline": {
+            "bytes": 637,
+            "decoded_sse": [
+              1446511
+            ]
+          },
+          "id": "prepared-jinan-grand-theater-le896-i400-crop-496x176-q100",
+          "origin": {
+            "crop": {
+              "height": 64,
+              "width": 64,
+              "x": 496,
+              "y": 176
+            },
+            "gradient_score": 174929,
+            "preparation_id": "le896",
+            "source": "images/prepared/le896/jinan-grand-theater/source-896x672-gray8.i400",
+            "source_id": "jinan-grand-theater",
+            "source_sha256": "8e32e842cb1449641f60996d2fa5e2fc3337dabb41832b593ef79619f3a74faa"
+          },
+          "qindex": 100,
+          "rd": {
+            "bytes": 585,
+            "decoded_sse": [
+              1056322
+            ]
+          }
+        },
+        {
+          "baseline": {
+            "bytes": 483,
+            "decoded_sse": [
+              1464635
+            ]
+          },
+          "id": "prepared-jinan-grand-theater-le896-i400-crop-496x176-q141",
+          "origin": {
+            "crop": {
+              "height": 64,
+              "width": 64,
+              "x": 496,
+              "y": 176
+            },
+            "gradient_score": 174929,
+            "preparation_id": "le896",
+            "source": "images/prepared/le896/jinan-grand-theater/source-896x672-gray8.i400",
+            "source_id": "jinan-grand-theater",
+            "source_sha256": "8e32e842cb1449641f60996d2fa5e2fc3337dabb41832b593ef79619f3a74faa"
+          },
+          "qindex": 141,
+          "rd": {
+            "bytes": 469,
+            "decoded_sse": [
+              1115462
+            ]
+          }
+        },
+        {
+          "baseline": {
+            "bytes": 184,
+            "decoded_sse": [
+              147185
+            ]
+          },
+          "id": "prepared-pastel-chalks-le896-i400-crop-432x240-q100",
+          "origin": {
+            "crop": {
+              "height": 64,
+              "width": 64,
+              "x": 432,
+              "y": 240
+            },
+            "gradient_score": 48307,
+            "preparation_id": "le896",
+            "source": "images/prepared/le896/pastel-chalks/source-896x598-gray8.i400",
+            "source_id": "pastel-chalks",
+            "source_sha256": "b529c7705e11b3c313f95130f2e0e648155fcb87fdf33c7bf87f7cbfa9335d8e"
+          },
+          "qindex": 100,
+          "rd": {
+            "bytes": 177,
+            "decoded_sse": [
+              142699
+            ]
+          }
+        },
+        {
+          "baseline": {
+            "bytes": 185,
+            "decoded_sse": [
+              136118
+            ]
+          },
+          "id": "prepared-pastel-chalks-le896-i400-crop-432x240-q141",
+          "origin": {
+            "crop": {
+              "height": 64,
+              "width": 64,
+              "x": 432,
+              "y": 240
+            },
+            "gradient_score": 48307,
+            "preparation_id": "le896",
+            "source": "images/prepared/le896/pastel-chalks/source-896x598-gray8.i400",
+            "source_id": "pastel-chalks",
+            "source_sha256": "b529c7705e11b3c313f95130f2e0e648155fcb87fdf33c7bf87f7cbfa9335d8e"
+          },
+          "qindex": 141,
+          "rd": {
+            "bytes": 181,
+            "decoded_sse": [
+              131763
+            ]
+          }
+        },
+        {
+          "baseline": {
+            "bytes": 806,
+            "decoded_sse": [
+              1653563
+            ]
+          },
+          "id": "prepared-scarlet-flycatcher-le896-i400-crop-512x336-q60",
+          "origin": {
+            "crop": {
+              "height": 64,
+              "width": 64,
+              "x": 512,
+              "y": 336
+            },
+            "gradient_score": 138125,
+            "preparation_id": "le896",
+            "source": "images/prepared/le896/scarlet-flycatcher/source-896x598-gray8.i400",
+            "source_id": "scarlet-flycatcher",
+            "source_sha256": "c4e75dfe5126e60e463a26e7826dfec9b13458264e08cff33035b0b806d6eb43"
+          },
+          "qindex": 60,
+          "rd": {
+            "bytes": 800,
+            "decoded_sse": [
+              967184
+            ]
+          }
+        },
+        {
+          "baseline": {
+            "bytes": 546,
+            "decoded_sse": [
+              834674
+            ]
+          },
+          "id": "prepared-scarlet-flycatcher-le896-i400-crop-512x336-q100",
+          "origin": {
+            "crop": {
+              "height": 64,
+              "width": 64,
+              "x": 512,
+              "y": 336
+            },
+            "gradient_score": 138125,
+            "preparation_id": "le896",
+            "source": "images/prepared/le896/scarlet-flycatcher/source-896x598-gray8.i400",
+            "source_id": "scarlet-flycatcher",
+            "source_sha256": "c4e75dfe5126e60e463a26e7826dfec9b13458264e08cff33035b0b806d6eb43"
+          },
+          "qindex": 100,
+          "rd": {
+            "bytes": 537,
+            "decoded_sse": [
+              813554
+            ]
+          }
+        },
+        {
+          "baseline": {
+            "bytes": 414,
+            "decoded_sse": [
+              680568
+            ]
+          },
+          "id": "prepared-toco-toucan-le896-i400-crop-528x432-q141",
+          "origin": {
+            "crop": {
+              "height": 64,
+              "width": 64,
+              "x": 528,
+              "y": 432
+            },
+            "gradient_score": 127221,
+            "preparation_id": "le896",
+            "source": "images/prepared/le896/toco-toucan/source-896x598-gray8.i400",
+            "source_id": "toco-toucan",
+            "source_sha256": "f07f0f044d927c6f4b0c65e0185251742afb5cb1a439260ee268f2938421dfef"
+          },
+          "qindex": 141,
+          "rd": {
+            "bytes": 412,
+            "decoded_sse": [
+              672908
+            ]
+          }
+        }
+      ],
+      "strict_pareto_win_count": 14,
+      "strict_pareto_wins": [
+        "prepared-elbrus-milky-way-le896-i400-crop-224x0-q60",
+        "prepared-finland-warbirds-le896-i400-crop-528x112-q141",
+        "prepared-freiburg-minster-columns-le896-i400-crop-224x368-q100",
+        "prepared-freiburg-minster-columns-le896-i400-crop-224x368-q141",
+        "prepared-hong-kong-harbour-night-le896-i400-crop-544x144-q60",
+        "prepared-hong-kong-harbour-night-le896-i400-crop-544x144-q100",
+        "prepared-jinan-grand-theater-le896-i400-crop-496x176-q60",
+        "prepared-jinan-grand-theater-le896-i400-crop-496x176-q100",
+        "prepared-jinan-grand-theater-le896-i400-crop-496x176-q141",
+        "prepared-pastel-chalks-le896-i400-crop-432x240-q100",
+        "prepared-pastel-chalks-le896-i400-crop-432x240-q141",
+        "prepared-scarlet-flycatcher-le896-i400-crop-512x336-q60",
+        "prepared-scarlet-flycatcher-le896-i400-crop-512x336-q100",
+        "prepared-toco-toucan-le896-i400-crop-528x432-q141"
+      ]
+    }
+  },
+  "reduced_heavy_gate": {
+    "maximum_resident_set_kib": 180492,
+    "report": "experimental/encoder/metrics/blocky-m1-gate-reduced-heavy.json",
+    "report_sha256": "d2f43c9502ed554d5901316a4c755b042616e5cc4cb5b3def5b4a6c3cca8465e",
+    "scope_note": "Intentionally omitted the 14-image prepared corpus, so it is supporting evidence rather than the admission gate.",
+    "status": "blocked",
+    "summary": {
+      "case_count": 7,
+      "emitted_rd_mode_counts": {
+        "dc": 6968,
+        "horizontal": 1941,
+        "paeth": 162,
+        "smooth": 2202,
+        "smooth_h": 1479,
+        "smooth_v": 1034,
+        "vertical": 2414
+      },
+      "emitted_rd_residual_counts": {
+        "ac": 2612,
+        "dc": 1627,
+        "skip": 11961
+      },
+      "emitted_winner_categories": [
+        "ac",
+        "dc",
+        "directional",
+        "paeth",
+        "skip",
+        "smooth"
+      ],
+      "full_prepared_case_count": 0,
+      "full_prepared_expected_case_count": 0,
+      "maximum_workspace_bytes": 34669792,
+      "missing_emitted_winner_categories": [],
+      "missing_targeted_categories": [
+        "ac",
+        "dc",
+        "directional",
+        "paeth",
+        "skip",
+        "smooth"
+      ],
+      "rd_encode_median_time_total_ns": 2073596127557,
+      "rd_encode_worst_single_time_ns": 620168462696,
+      "rd_pass_cases": 7,
+      "rd_qdelta_trial_total": 36,
+      "real_case_count": 2,
+      "real_case_count_with_rate_ceiling_baseline": 2,
+      "real_legacy_bytes": 43351,
+      "real_legacy_plane_sse": [
+        110819788,
+        13183144,
+        1824526
+      ],
+      "real_rd_bytes": 41099,
+      "real_rd_plane_sse": [
+        108371224,
+        13183144,
+        1824526
+      ],
+      "real_total_byte_delta": -2252,
+      "selected_subsets": [
+        "targeted",
+        "ceiling",
+        "baya"
+      ],
+      "strict_baya_pareto_wins": 2,
+      "strict_full_prepared_pareto_wins": 0,
+      "strict_prepared_corpus_pareto_wins": 0,
+      "strict_real_pareto_wins": 2,
+      "targeted_observed_categories": []
+    },
+    "wall_time": "1:19:19"
+  },
+  "schema": "av2-encoder-blocky-m1-corpus-frontier-v2",
+  "status": "m1-admitted"
+}

@@ -1690,3 +1690,64 @@ prepared images begin at 896x424, so all remain explicit unsupported cases.
   generated/prepared cases with four strict wins, 62,976 aggregate chroma-SSE
   reduction, 262 fewer bytes, shared and independent delta selections, and
   exact encoder-local/pinned-AVM/project parity.
+
+## 2026-08-17 — blockiness M1 combined RD integration
+
+- **Status:** BLOCKED; M1 is not admitted and M2 must not start.
+- **Surface/tests:** `--search rd`, the native transaction-state test, unit
+  gate tests, and explicit `blocky-m1-gate` Make target are wired. The frozen
+  targeted report has 9/9 deterministic, encoder-local/pinned-AVM/project
+  exact streams. Its SHA-256 is
+  `257561a87d33cf5f6fca048ccaea80a516c9719c7608deb563f2a8bd884928fa`.
+- **Full-gate blocker:** the mandatory invocation
+  `make -C experimental/encoder blocky-m1-gate` was stopped during Baya Weaver
+  1440x960 I420 `--search rd` after 51:31 CPU time. The color path rebuilds
+  the complete tile for each local candidate. It therefore cannot complete
+  the Baya/prepared/1440 corpus within the retained bounded search budget.
+- **Observed real result:** Baya I400 `rd` equals bounded exactly: 15,234
+  bytes, luma SSE 55,002,899, and OBU SHA-256
+  `ebfc94c8267cac9c4f81dd876f10a22314972738f92c2672add326eeb122dbf2`.
+  There is no strict real-image Pareto win and no aggregate per-plane
+  non-regression admission.
+- **Evidence:** `metrics/blocky-m1-gate-blocked.json`,
+  `metrics/blocky-m1-gate-targeted.json`, and
+  `metrics/blocky-m1-gate/`. The next M1 attempt must implement live warm
+  range/CDF/context transactions; do not weaken the gate.
+
+## 2026-08-17 — blockiness M1 admitted; M2 released
+
+- **Status:** PASS. The preceding blocked entry is superseded. M1 is formally
+  admitted; M2 is released but not implemented by this change.
+- **Core:** live block-local writer/CDF/context transactions evaluate the
+  stable 7-mode × 3-residual candidate set. Paeth is included and validator
+  exact. The complete-stream oracle covers one through four leaves, and the
+  multisuperblock I420 driver matches local, pinned AVM, and project output.
+- **Qdelta:** six color gate cases each execute exactly nine trials, 54 total.
+  Stored Y modes/coefficients are replayed unchanged; the oracle compares
+  active candidate Y bytes at every point and telemetry reports Y preserved.
+- **Reduced heavy gate:** odd skip, 1440 Smooth, and Baya I400/I420/I444
+  completed in 1:19:19 wall time with 180,492 KiB maximum RSS. Baya I420 and
+  I444 were strict wins; the reduced report remained blocked only because it
+  intentionally omitted the 14-image prepared corpus.
+- **Full gate:** 27/27 deterministic and exact cases passed in 2:44:46 wall
+  time with 179,932 KiB maximum RSS and 34,669,792 maximum caller-owned
+  workspace bytes. The sum of per-case median RD encode times is
+  4,491,319,631,410 ns; the worst single RD encode was 624,992,612,577 ns.
+- **Aggregate real-image result:** 15 comparable full images move from
+  274,261 to 268,055 bytes. SSE moves from
+  `[1080593021,13183144,1824526]` to
+  `[1049089614,13183144,1824526]`. Six strict wins comprise Baya I420/I444
+  plus Chinnathurai Church, Jinan Grand Theater, Pitti Ceiling, and Succisa
+  Flower Bud.
+- **Coverage:** emitted mode counts in DC/V/H/Smooth/Smooth-V/Smooth-H/Paeth
+  order are `[11388,3910,3730,4010,2442,2909,1155]`; residual counts in
+  skip/DC-only/AC order are `[16309,2575,10660]`.
+- **Crop interpretation:** the locked Scarlet crop remains a valid supporting
+  800-byte/967,184-SSE win over bounded at 806 bytes/1,653,563 SSE, but it does
+  not satisfy M1.6 by itself. Admission uses full Baya images and all 14 full
+  prepared inputs.
+- **Frozen evidence:** `metrics/blocky-m1-gate.json`, report SHA-256
+  `8228d19e8512853aa80aa9f02085247a20baed0ae2a1f07dad7885eaf2c90fb0`;
+  encoder/AVM/project hashes are recorded in the report. Superseded blocked
+  and partial targeted reports were removed rather than retained as current
+  admission evidence.

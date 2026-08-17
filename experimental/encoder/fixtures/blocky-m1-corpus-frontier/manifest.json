@@ -1,0 +1,71 @@
+{
+  "comparison": {
+    "baseline_search": "bounded",
+    "byte_delta": -6,
+    "nonregression": true,
+    "plane_sse_gain": [
+      686379
+    ],
+    "strict_pareto_win": true
+  },
+  "crop": {
+    "height": 64,
+    "sha256": "c006971e66aab1ce89453848f61fa3ded257a818aa581ac2818108cab699b449",
+    "width": 64,
+    "x": 512,
+    "y": 336
+  },
+  "id": "prepared-scarlet-flycatcher-le896-i400-crop-512x336-q60",
+  "prepared_source": {
+    "dimensions": [
+      896,
+      598
+    ],
+    "path": "images/prepared/le896/scarlet-flycatcher/source-896x598-gray8.i400",
+    "pixel_format": "i400",
+    "sha256": "c4e75dfe5126e60e463a26e7826dfec9b13458264e08cff33035b0b806d6eb43"
+  },
+  "qindex": 60,
+  "reproduce": [
+    "python3 experimental/encoder/tools/blocky_m1_corpus_frontier.py --selection le896 --qindices 60,100,141 --output experimental/encoder/metrics/blocky-m1-corpus-frontier-prepared-crops.json --work-dir experimental/encoder/build/blocky-m1-corpus-frontier-prepared-crops-work --artifacts-dir experimental/encoder/build/blocky-m1-corpus-frontier-prepared-crops-artifacts"
+  ],
+  "schema": "av2-encoder-blocky-m1-corpus-frontier-fixture-v1",
+  "searches": {
+    "bounded": {
+      "avm_project_exact": true,
+      "bytes": 806,
+      "decoded_sha256": "597e374095f84938da369ae0976504a013aeb1723306ce1012a68526262949c4",
+      "decoded_sse": [
+        1653563
+      ],
+      "file": "bounded.obu",
+      "local_sse_matches_decode": true,
+      "sha256": "cb3f587b813c09e41b9120b3e6edd5bfdd8c20d9bcd5f790187ab384ffc83cd9"
+    },
+    "rd": {
+      "avm_project_exact": true,
+      "bytes": 800,
+      "decoded_sha256": "690fab5a9475b699af8a33a139eb3942c56fb722c42adea9f7b489f634f4382f",
+      "decoded_sse": [
+        967184
+      ],
+      "file": "rd.obu",
+      "local_sse_matches_decode": true,
+      "sha256": "18bd384f224a3b721285e8c2fb96cf3c10ce54de17487f92b0baa260de0912d4"
+    }
+  },
+  "tools": {
+    "avmdec": {
+      "path": "build/reference/avm/avmdec",
+      "sha256": "c247cbb4e71e48bdec89f3c8b2b8efdce17f673aeaa39e3c116a276d16286aa0"
+    },
+    "encoder": {
+      "path": "experimental/encoder/build/av2-encoder-experiment",
+      "sha256": "11fe8505a538907094fd16ace0d115c37d0ee2f0d4037ef2582b79b07d348d0a"
+    },
+    "project_decoder": {
+      "path": "build/host-cmake/av2heif-decoder",
+      "sha256": "7d17f598f2cdffe7dfb4ab46982cf5c4822215a5f429cb39e7748a60ce5ef535"
+    }
+  }
+}
