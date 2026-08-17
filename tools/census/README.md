@@ -17,15 +17,14 @@ Prepare AVM first:
 ./scripts/setup-avm.ps1
 ```
 
-Configure the census with the same LLVM-MinGW toolchain used by AVM:
+Build the census against the prepared AVM archive:
 
-```powershell
-$toolchainFile = (Resolve-Path `
-  vendor/avm/cmake/toolchains/x86_64-mingw-gcc.cmake).Path
-cmake -S tools/census -B build/census -G Ninja `
-  "-DCMAKE_TOOLCHAIN_FILE=$toolchainFile"
-cmake --build build/census
+```sh
+make census
 ```
+
+On Windows, set `CC` to the LLVM-MinGW compiler used for AVM, for example
+`make census CC=x86_64-w64-mingw32-clang`.
 
 ## Use
 
@@ -88,8 +87,8 @@ inferred from reconstructed pixels or transform metadata.
 
 The per-artifact exposure map uses a separate accounting-enabled AVM census.
 Configure AVM in an isolated build directory with `CONFIG_ACCOUNTING=1` and
-`CONFIG_INSPECTION=1`, then configure this census with `AVM_BUILD_DIR` pointing
-at that build. Generate
+`CONFIG_INSPECTION=1`, then run `make census` with `AVM_BUILD_DIR` pointing at
+that build. Generate
 `build/census/all-artifacts-accounting.json` from all artifact OBUs and run:
 
 ```powershell

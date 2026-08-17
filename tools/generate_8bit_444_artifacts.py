@@ -19,7 +19,7 @@ IMAGE_DIR = ROOT / "images"
 DEFAULT_OUTPUT = IMAGE_DIR / "artifacts-8bit-444"
 DEFAULT_ENCODER = ROOT / "build" / "reference" / "avm-arm64" / "avmenc.exe"
 DEFAULT_DECODER = ROOT / "build" / "reference" / "avm-arm64" / "avmdec.exe"
-DEFAULT_INSPECTOR = ROOT / "build" / "host-cmake" / "av2heif-artifact.exe"
+DEFAULT_INSPECTOR = ROOT / "build" / "host-sanitized" / "av2heif-artifact.exe"
 DEFAULT_PROJECT_DECODER = (
     ROOT / "build" / "windows-x86_64" / "av2heif-decoder.exe"
 )

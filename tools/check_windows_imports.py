@@ -40,6 +40,13 @@ def imports(objdump: str, executable: Path) -> tuple[set[str], set[str]]:
             re.MULTILINE,
         )
     )
+    symbols.update(
+        re.findall(
+            r"^\s+\d+\s+([A-Za-z_?@]\S*)\s*$",
+            completed.stdout,
+            re.MULTILINE,
+        )
+    )
     return libraries, symbols
 
 

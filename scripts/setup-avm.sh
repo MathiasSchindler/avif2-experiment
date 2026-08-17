@@ -40,6 +40,7 @@ cmake -S "$vendor_dir" -B "$build_dir" -G Ninja \
     -DENABLE_DOCS=OFF \
     -DENABLE_EXAMPLES=ON \
     -DENABLE_TESTS=OFF \
+    -DCONFIG_INSPECTION=1 \
     -DCONFIG_TENSORFLOW_LITE=0
 cmake --build "$build_dir" --target avmenc avmdec --parallel
 

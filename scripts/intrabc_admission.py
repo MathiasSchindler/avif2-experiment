@@ -546,7 +546,7 @@ def parse_args() -> argparse.Namespace:
         default=ROOT / "build" / "reference" / "census-accounting" / "av2-census",
     )
     parser.add_argument(
-        "--host-build", type=Path, default=ROOT / "build" / "host-cmake"
+        "--host-build", type=Path, default=ROOT / "build" / "host-sanitized"
     )
     parser.add_argument("--jobs", type=int, default=4)
     parser.add_argument("--encoder-threads", type=int, default=8)

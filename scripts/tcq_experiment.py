@@ -523,7 +523,7 @@ def parse_args() -> argparse.Namespace:
         default=ROOT / "build" / "reference" / "census-accounting" / "av2-census",
     )
     parser.add_argument(
-        "--host-build", type=Path, default=ROOT / "build" / "host-cmake"
+        "--host-build", type=Path, default=ROOT / "build" / "host-sanitized"
     )
     args = parser.parse_args()
     for name in ("prepared_lock", "output_root", "avm_build", "census", "host_build"):

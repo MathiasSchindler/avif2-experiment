@@ -41,21 +41,21 @@ def require_tool(value: str) -> str:
 
 
 def core_sources() -> list[Path]:
-    cmake_file = ROOT / "CMakeLists.txt"
-    cmake = cmake_file.read_text(encoding="utf-8")
+    makefile = ROOT / "Makefile"
+    make_text = makefile.read_text(encoding="utf-8")
     match = re.search(
-        r"set\s*\(\s*AV2HEIF_CORE_SOURCES\b(?P<body>.*?)\)",
-        cmake,
-        flags=re.DOTALL,
+        r"^CORE_SOURCES\s*:=\s*(?P<body>(?:[^\n]*\\\n)*[^\n]*)",
+        make_text,
+        flags=re.MULTILINE,
     )
     if match is None:
-        raise RuntimeError("could not read AV2HEIF_CORE_SOURCES from CMakeLists.txt")
+        raise RuntimeError("could not read CORE_SOURCES from Makefile")
     sources = [
         ROOT / token
         for token in re.findall(r"[^\s()]+\.c", match.group("body"))
     ]
     if not sources or any(not source.is_file() for source in sources):
-        raise RuntimeError("AV2HEIF_CORE_SOURCES contains a missing source file")
+        raise RuntimeError("CORE_SOURCES contains a missing source file")
     return sources
 
 

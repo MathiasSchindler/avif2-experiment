@@ -26,9 +26,10 @@ headers. It was renamed to the `av2h_` namespace. AVIF defaults, capability
 state, AV1 framing options, file I/O, platform code, and decoder state were not
 copied.
 
-The macOS ARM64 no-libc build was adapted from the sibling `newos` checkout at
+The Linux x86-64 and macOS ARM64 no-libc builds use the linker adapted from the
+sibling `newos` checkout at
 commit `c9383f9ee97480c1c3158f1757709a4f30584f3d`, whose root `LICENSE`
-declares CC0-1.0. The hosted Mach-O linker closure is copied without source
+declares CC0-1.0. The hosted ELF/Mach-O linker closure is copied without source
 changes under `tools/macho_linker/newos/`. Reviewed source paths were:
 
 - `src/tools/linker.c`;

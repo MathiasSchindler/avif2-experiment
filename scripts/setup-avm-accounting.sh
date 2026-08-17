@@ -7,7 +7,7 @@ avm_build_dir="$root/build/reference/avm-accounting"
 census_build_dir="$root/build/reference/census-accounting"
 revision=966a7d7cd6fcf60360caf5dc413b2aeeb65e144d
 
-for tool in git cmake ninja; do
+for tool in git cmake ninja make clang; do
     if ! command -v "$tool" >/dev/null 2>&1; then
         echo "error: $tool is required" >&2
         exit 1
@@ -39,10 +39,9 @@ cmake -S "$vendor_dir" -B "$avm_build_dir" -G Ninja \
     -DCONFIG_TENSORFLOW_LITE=0
 cmake --build "$avm_build_dir" --target avm --parallel
 
-cmake -S "$root/tools/census" -B "$census_build_dir" -G Ninja \
-    -DCMAKE_BUILD_TYPE=Release \
-    -DAVM_SOURCE_DIR="$vendor_dir" \
-    -DAVM_BUILD_DIR="$avm_build_dir"
-cmake --build "$census_build_dir" --target av2-census --parallel
+make -C "$root" census \
+    AVM_SOURCE_DIR="$vendor_dir" \
+    AVM_BUILD_DIR="$avm_build_dir" \
+    CENSUS_BUILD_DIR="$census_build_dir"
 
 echo "Accounting census is ready at $census_build_dir/av2-census"

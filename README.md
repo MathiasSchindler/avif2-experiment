@@ -70,11 +70,16 @@ AV2 conformance or security.
 
 ## Build and test
 
-CMake 3.20 or newer and Ninja are required. Build the native decoder with:
+GNU Make, Clang, `ar`, Python 3, and standard Unix command-line tools are
+required. Build the native decoder with:
 
 ```sh
 make
 ```
+
+The Makefile contains the authoritative source lists and invokes the compiler,
+archiver, linker, and tests directly. It does not use CMake, Ninja, generated
+dependency files, or a separate test registry.
 
 With the generated corpus assets present, run the hosted, corpus,
 reference-lock, freestanding, and Python gates:
@@ -114,16 +119,22 @@ make nolibc
 ```
 
 The Makefile selects a static ELF executable on Linux and a no-import Mach-O
-executable on macOS. The macOS build requires the Apple Command Line Tools and
-uses the CC0 project linker copied from newos; the resulting decoder has no
-`libSystem` or other dylib dependency. Both platform paths run their artifact
-inspection and exact decode parity tests as part of `make nolibc`.
+executable on macOS. Linux x86-64 and macOS ARM64 use the CC0 project linker
+copied from newos; Clang only compiles their freestanding objects. Linux
+AArch64 retains LLD because the project linker does not yet provide an AArch64
+ELF backend. The macOS build requires the Apple Command Line Tools. The
+resulting binaries have no libc or other dynamic library dependency. Both
+platform paths run their artifact inspection and exact decode parity tests as
+part of `make nolibc`.
 
 Build the browser decoder and viewer assets with:
 
 ```sh
 make wasm
 ```
+
+Optional pinned-AVM reference and accounting setup uses AVM's own upstream
+build system; that external build is separate from this project's Makefile.
 
 The public API is declared in [include/av2heif.h](include/av2heif.h). Detailed
 platform, corpus, and release procedures are indexed from
