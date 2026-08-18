@@ -102,6 +102,95 @@
           "--enable-ext-seg=0"
         ]
       }
+    },
+    {
+      "id": "spatial-still-8bit",
+      "reference_status": "planned",
+      "lock_file": "spatial-still-reference-lock.json",
+      "preparation_ids": [
+        "le896",
+        "le1440"
+      ],
+      "baseline_pixel_format": "i420",
+      "baseline_qps": [
+        96,
+        152
+      ],
+      "format_coverage": {
+        "preparation_id": "le896",
+        "pixel_formats": [
+          "i400",
+          "i444"
+        ],
+        "qps": [
+          152
+        ]
+      },
+      "spectrum": {
+        "source_id": "pastel-chalks",
+        "preparation_id": "le896",
+        "pixel_format": "i420",
+        "additional_qps": [
+          0,
+          48,
+          208,
+          255
+        ]
+      },
+      "supplemental_outputs": {
+        "decoded_yuv_alias": false,
+        "decoded_png": false
+      },
+      "encoder": {
+        "codec": "av2",
+        "container": "obu",
+        "frames": 1,
+        "passes": 1,
+        "deadline": "good",
+        "cpu_used": 0,
+        "thread_policy": "16 fixed threads",
+        "threads": 16,
+        "parallel_jobs": 1,
+        "row_mt": true,
+        "bit_depth": 8,
+        "input_bit_depth": 8,
+        "rate_control": "q",
+        "test_decode": "fatal",
+        "profile_arguments": [
+          "--enable-ext-partitions=1",
+          "--enable-tx-partition=1",
+          "--enable-rect-partitions=1",
+          "--enable-uneven-4way-partitions=1",
+          "--enable-sdp=1",
+          "--enable-mrls=1",
+          "--enable-fsc=1",
+          "--enable-idtx-intra=1",
+          "--enable-ist=1",
+          "--enable-cctx=1",
+          "--enable-ibp=1",
+          "--enable-intra-dip=1",
+          "--enable-cfl-intra=1",
+          "--enable-mhccp=1",
+          "--enable-palette=1",
+          "--enable-intrabc=1",
+          "--enable-intrabc-ext=1",
+          "--enable-tcq=1",
+          "--enable-parity-hiding=1",
+          "--enable-trellis-quant=1",
+          "--enable-qm=1",
+          "--enable-chroma-deltaq=1",
+          "--aq-mode=0",
+          "--deltaq-mode=2",
+          "--enable-ext-seg=1",
+          "--enable-deblocking=1",
+          "--enable-cdef=1",
+          "--enable-ccso=1",
+          "--enable-restoration=1",
+          "--enable-pc-wiener=1",
+          "--enable-wiener-nonsep=1",
+          "--enable-gdf=1"
+        ]
+      }
     }
   ]
 }

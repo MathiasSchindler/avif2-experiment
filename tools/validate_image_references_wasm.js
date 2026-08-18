@@ -28,12 +28,20 @@ function loadSuites(selectedSuite) {
         ? encodings.suites
         : encodings.suites.filter((suite) => suite.id === selectedSuite);
     if (suites.length === 0) fail(`unknown encoding suite: ${selectedSuite}`);
-    return suites.map((suite) => {
+    return suites.flatMap((suite) => {
+        const referenceStatus = suite.reference_status || "generated";
+        if (referenceStatus === "planned") {
+            console.log(`${suite.id}: recipe defined; references not generated`);
+            return [];
+        }
+        if (referenceStatus !== "generated") {
+            fail(`${suite.id}: unknown reference status ${referenceStatus}`);
+        }
         const lockPath = path.join(imagesRoot, "recipes", suite.lock_file);
-        return {
+        return [{
             id: suite.id,
             records: JSON.parse(fs.readFileSync(lockPath, "utf8")).references,
-        };
+        }];
     });
 }
 

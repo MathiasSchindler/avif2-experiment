@@ -238,6 +238,19 @@ def verify_suite(
     jobs: int,
 ) -> tuple[int, int]:
     lock_path = IMAGES_ROOT / "recipes" / suite["lock_file"]
+    reference_status = suite.get("reference_status", "generated")
+    if reference_status == "planned":
+        if lock_path.exists():
+            raise ValueError(
+                f"{suite['id']}: planned suite has a reference lock; "
+                "mark it generated after completing the full matrix"
+            )
+        print(f"{suite['id']}: recipe defined; references not generated")
+        return 0, 0
+    if reference_status != "generated":
+        raise ValueError(
+            f"{suite['id']}: unknown reference status {reference_status!r}"
+        )
     lock = json.loads(lock_path.read_text(encoding="utf-8"))
     if lock["avm"]["revision"] != encodings["avm_revision"]:
         raise ValueError("reference lock AVM revision differs from encoding recipe")

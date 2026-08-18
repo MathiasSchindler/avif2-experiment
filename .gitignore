@@ -9,6 +9,7 @@ __pycache__/
 !/images/plan.md
 !/images/README.md
 !/images/ATTRIBUTION.md
+!/images/featurematrix.md
 !/images/licenses/
 !/images/licenses/**
 !/images/sources/
@@ -46,3 +47,4 @@ __pycache__/
 /experimental/encoder/**/*.log
 /experimental/encoder/**/__pycache__/
 /experimental/encoder/**/*.py[cod]
+docs/assessment.md

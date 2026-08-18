@@ -124,7 +124,8 @@ arbitrary ImageMagick/FFmpeg builds reproduce it exactly.
 
 ## AVM references
 
-Both reference suites are tied to AVM revision
+The two generated reference suites and the planned `spatial-still-8bit` suite
+are tied to AVM revision
 `966a7d7cd6fcf60360caf5dc413b2aeeb65e144d`. The original
 `photographic-8bit` suite contains 88 one-frame cases:
 
@@ -194,12 +195,36 @@ python3 tools/verify_image_references.py --suite target-baseline-8bit
 python3 tools/verify_image_references.py --suite target-baseline-8bit --require-files
 ```
 
-The two suites have separate lock files, so generating or filtering the target
-suite cannot overwrite the original `reference-lock.json`. `--suite` is also
-accepted together with the existing source, preparation, pixel-format, and QP
-filters; filtered runs do not rewrite either complete lock.
+The two generated suites have separate lock files, so generating or filtering
+the target suite cannot overwrite the original `reference-lock.json`. `--suite`
+is also accepted together with the existing source, preparation, pixel-format,
+and QP filters; filtered runs do not rewrite either complete lock.
 
-The permanent repository gates cover both suites. Lock validation does not
+The third `spatial-still-8bit` suite is defined in
+`recipes/encodings.json` but has not been generated. Its planned 88-case matrix
+matches `photographic-8bit`, allowing direct comparisons at the same sources,
+preparations, pixel formats, and QPs. It uses `cpu-used=0` and explicitly opens
+the still-applicable prediction, transform, coefficient, quantization,
+segmentation, and reconstruction tools in the `spatial-still-8bit` decoder
+contract. Film grain remains disabled, while the decoder profile permits tiled
+pictures even though the best-compression reference recipe leaves AVM at its
+single-tile default.
+
+The recipe has `reference_status: planned` and intentionally has no
+`spatial-still-reference-lock.json` yet. Lock and parity validation report the
+suite as defined but ungenerated. When a complete generation is deliberately
+started later, use:
+
+```sh
+python3 tools/generate_image_references.py --suite spatial-still-8bit --resume
+```
+
+After all 88 cases have completed and the generated lock has been reviewed,
+change `reference_status` to `generated`. Do not commit a partial or fabricated
+lock.
+
+The permanent repository gates cover both generated suites and acknowledge
+planned suites without requiring a nonexistent lock. Lock validation does not
 require ignored payloads; native and WebAssembly parity do:
 
 ```sh
