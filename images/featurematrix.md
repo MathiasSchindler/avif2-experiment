@@ -316,6 +316,44 @@ For each candidate, record encoded bytes, encode time, decoded hashes, and
 quality metrics over all prepared photographs. A winning profile must also
 produce streams accepted byte-for-byte by native and WebAssembly decoders.
 
+### Baya Weaver QP 152 pilot
+
+An initial single-image pilot was run on 18 August 2026 using the pinned AVM
+revision, Baya Weaver `le896` I420 input, QP 152, 16 encoder threads, and one
+concurrent job. All three profiles were encoded on the same Apple M4 Max host
+with the same clean release build. Wall time is one run, not a stable
+performance benchmark. The benchmark executables were native arm64 binaries;
+the AVM build reported `AVM_ARCH_AARCH64=1` and NEON support. It was not tuned
+for the M4 specifically with an `-mcpu` flag.
+
+| Profile | OBU bytes | Wall time | Average PSNR | SSIM |
+| --- | ---: | ---: | ---: | ---: |
+| `photographic-8bit` | 5,454 | 12.86 s | 37.2754 dB | 0.969834 |
+| `target-baseline-8bit` | 11,144 | 739.09 s | 41.2219 dB | 0.982897 |
+| `spatial-still-8bit` | 10,369 | 944.05 s | 40.9131 dB | 0.982575 |
+
+Although each command requested 16 threads and row multithreading, user CPU
+time divided by wall time was only 1.22, 1.16, and 1.14 average cores for the
+legacy, target, and spatial runs respectively. Pinned AVM exposes little
+parallel work for this one-frame high-effort encode, so the spatial wall time
+primarily reflects single-core performance.
+
+The regenerated legacy and target OBU and decoded-plane hashes exactly matched
+their tracked locks. The spatial output was decoded by the clean pinned AVM
+decoder but remains a benchmark artifact outside `images/reference`; no partial
+reference lock was created.
+
+At the same QP, `spatial-still-8bit` was 6.95% smaller than the target baseline
+and took 27.7% longer, while average PSNR was 0.309 dB lower and SSIM was
+0.000322 lower. Against the legacy profile it was 90.1% larger and 73.4 times
+slower, with average PSNR 3.638 dB higher and SSIM 0.012741 higher.
+
+These results do not establish rate-distortion superiority. AV2 QP does not
+hold visual quality or output size constant across different tool and
+bit-allocation configurations. The next meaningful comparison should sweep QP
+for the target and spatial profiles and compare interpolated quality at matched
+bytes, plus bytes at matched quality, across the complete photographic corpus.
+
 ## Maintenance checklist
 
 When the pinned AVM revision or either recipe changes:
