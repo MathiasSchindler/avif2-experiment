@@ -1002,12 +1002,27 @@ static void test_arguments(void) {
     Av2hFirstCoeffPrefix prefix = { 0 };
     Av2hFirstTransformType transform = { 0 };
     Av2hFirstCoeffBlock block;
-    CHECK(sizeof(Av2hFirstCoeffLevelCdfs) == 25364U);
+    CHECK(sizeof(Av2hFirstCoeffLevelCdfs) == 25480U);
     CHECK(av2h_first_coeff_level_cdfs_init(0) == AV2H_INVALID_ARGUMENT);
     CHECK(av2h_first_coeff_block_read(
               0, &cdfs, &sequence, &frame, &mode, &prefix, &transform,
               &block) == AV2H_INVALID_ARGUMENT);
     CHECK(av2h_first_coeff_level_cdfs_init(&cdfs) == AV2H_OK);
+    {
+        static const uint16_t parity_cdf[8U] = {
+            24576U, 16384U, 8192U, 0U, 0U, 3U, 4U, 5U
+        };
+        static const uint16_t parity_sign_cdf[6U] = {
+            16384U, 0U, 0U, 2U, 3U, 4U
+        };
+        size_t context;
+        for (context = 0U; context < 5U; ++context) {
+            check_words(cdfs.parity_base[context], parity_cdf, 8U);
+        }
+        for (context = 0U; context < 3U; ++context) {
+            check_words(cdfs.parity_dc_sign[context], parity_sign_cdf, 6U);
+        }
+    }
     frame.base_q_index = 160U;
     mode.fsc_mode = 1U;
     prefix.tx_size = AV2H_TX_4X4;
@@ -1016,6 +1031,55 @@ static void test_arguments(void) {
     CHECK(av2h_first_coeff_block_read(
               &decoder, &cdfs, &sequence, &frame, &mode, &prefix,
               &transform, &block) == AV2H_UNSUPPORTED);
+}
+
+static void test_parity_hiding_gating(void) {
+    static const unsigned char bytes[4096U] = { 0U };
+    Av2hSpan span = { bytes, sizeof(bytes) };
+    Av2hSequenceState sequence = { 0 };
+    Av2hFrameState frame = { 0 };
+    Av2hFirstLeafMode mode = { 0 };
+    Av2hFirstCoeffPrefix prefix = { 0 };
+    Av2hFirstTransformType transform = { 0 };
+    Av2hFirstCoeffLevelCdfs cdfs;
+    Av2hFirstCoeffBlock block;
+    Av2hRangeDecoder decoder;
+    uint64_t before;
+    frame.base_q_index = 128U;
+    frame.allow_parity_hiding = 1U;
+    prefix.tx_size = AV2H_TX_4X4;
+    prefix.eob = 5U;
+    transform.primary_type = AV2H_TX_DCT_DCT;
+
+    CHECK(av2h_first_coeff_level_cdfs_init_for_q(&cdfs, 128U) == AV2H_OK);
+    before = word_hash(cdfs.parity_base[0U], 8U);
+    CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
+    CHECK(av2h_first_coeff_block_read(
+              &decoder, &cdfs, &sequence, &frame, &mode, &prefix,
+              &transform, &block) == AV2H_OK);
+    CHECK(word_hash(cdfs.parity_base[0U], 8U) == before);
+
+    CHECK(av2h_first_coeff_level_cdfs_init_for_q(&cdfs, 128U) == AV2H_OK);
+    before = word_hash(cdfs.parity_base[0U], 8U);
+    sequence.enable_parity_hiding = 1U;
+    transform.primary_type = AV2H_TX_IDTX;
+    mode.fsc_mode = 1U;
+    CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
+    CHECK(av2h_first_coeff_block_read(
+              &decoder, &cdfs, &sequence, &frame, &mode, &prefix,
+              &transform, &block) == AV2H_OK);
+    CHECK(word_hash(cdfs.parity_base[0U], 8U) == before);
+
+    CHECK(av2h_first_coeff_level_cdfs_init_for_q(&cdfs, 128U) == AV2H_OK);
+    before = word_hash(cdfs.parity_base[0U], 8U);
+    transform.primary_type = AV2H_TX_DCT_DCT;
+    mode.fsc_mode = 0U;
+    sequence.enable_tcq = 1U;
+    CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
+    CHECK(av2h_first_coeff_block_read(
+              &decoder, &cdfs, &sequence, &frame, &mode, &prefix,
+              &transform, &block) == AV2H_OK);
+    CHECK(word_hash(cdfs.parity_base[0U], 8U) == before);
 }
 
 static void test_tcq_state_and_cdfs(void) {
@@ -1156,6 +1220,7 @@ int main(void) {
     test_emerald_remaining_luma_blocks();
     test_fixture_coefficients();
     test_arguments();
+    test_parity_hiding_gating();
     test_tcq_state_and_cdfs();
     test_predefined_qmatrix_steps();
     test_custom_qmatrix();

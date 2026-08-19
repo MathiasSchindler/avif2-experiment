@@ -383,6 +383,9 @@ Av2hStatus av2h_first_coeff_level_cdfs_init(Av2hFirstCoeffLevelCdfs *cdfs) {
     static const uint16_t uv_br_ctx1[] = { 22490U, 28954U, 31256U };
     static const uint16_t uv_br_ctx2[] = { 17882U, 25670U, 29377U };
     static const uint16_t uv_br_ctx3[] = { 10664U, 17735U, 22437U };
+    static const uint16_t parity_thresholds[3U] = {
+        8192U, 16384U, 24576U
+    };
     size_t index;
     Av2hStatus status;
     if (cdfs == 0) return AV2H_INVALID_ARGUMENT;
@@ -526,6 +529,19 @@ Av2hStatus av2h_first_coeff_level_cdfs_init(Av2hFirstCoeffLevelCdfs *cdfs) {
     if (status != AV2H_OK) return status;
     status = av2h_cdf_init(cdfs->uv_br_ctx3, 8U, uv_br_ctx3, 4U, 75U, 0U);
     if (status != AV2H_OK) return status;
+    for (index = 0U; index < 5U; ++index) {
+        status = av2h_cdf_init(
+            cdfs->parity_base[index], 8U, parity_thresholds,
+            4U, 0U, 0U);
+        if (status != AV2H_OK) return status;
+    }
+    for (index = 0U; index < 3U; ++index) {
+        static const uint16_t sign_threshold[1U] = { 16384U };
+        status = av2h_cdf_init(
+            cdfs->parity_dc_sign[index], AV2H_BINARY_CDF_SIZE,
+            sign_threshold, 2U, 0U, 0U);
+        if (status != AV2H_OK) return status;
+    }
     return initialize_fsc_cdfs(cdfs, 1U);
 }
 

@@ -43,11 +43,11 @@ static void test_64_bit_decoder_layout(void) {
     CHECK(sizeof(Av2hReconstructionSum) == 8U);
     CHECK(sizeof(Av2hFirstCoeffPrefix) == 56U);
     CHECK(_Alignof(Av2hFirstCoeffPrefix) == 8U);
-    CHECK(sizeof(Av2hFirstCoeffLevelCdfs) == 25364U);
+    CHECK(sizeof(Av2hFirstCoeffLevelCdfs) == 25480U);
     CHECK(_Alignof(Av2hFirstCoeffLevelCdfs) == 2U);
     CHECK(sizeof(Av2hLeafCdfs) == 2914U);
     CHECK(_Alignof(Av2hLeafCdfs) == 2U);
-    CHECK(sizeof(Av2hTileDecoder) == 69928U);
+    CHECK(sizeof(Av2hTileDecoder) == 70048U);
     CHECK(_Alignof(Av2hTileDecoder) == 8U);
     CHECK(sizeof(Av2hReconstructionScratch) == 16896U);
     CHECK(_Alignof(Av2hReconstructionScratch) == 4U);

@@ -1,0 +1,57 @@
+{
+  "schema": "av2h-pinned-avm-fixture-v1",
+  "case_id": "parity-hidden-i444-16x16-qp96",
+  "avm_revision": "966a7d7cd6fcf60360caf5dc413b2aeeb65e144d",
+  "source": {
+    "derived_from": "tests/fixtures/i444-tiny.obu",
+    "raw_format": "i444",
+    "width": 16,
+    "height": 16,
+    "sha256": "88c13f2258aba8ade2736246bab77771bd3839815f567517a5db5330e2969ee6"
+  },
+  "encoded": {
+    "path": "tests/fixtures/parity-hidden-i444.obu",
+    "sha256": "643a95f14b8702887deff00010741185e94062d0d580f39c3d66ec3e6b67a2a1"
+  },
+  "decoded": {
+    "raw_format": "i444",
+    "sha256": "8e8793ce45863292d35328562a55b403ae4f7767f190586095731ae50b967da7"
+  },
+  "avm_binaries": {
+    "encoder_sha256": "621df24618405cd7a05aaf436034b224f757adc3395ddb23624fc3f0e8189d83",
+    "decoder_sha256": "43403968bb6f223220ccd6393c233071418f52d811ee04ebc51f072225d01616"
+  },
+  "encode_command": [
+    "build/reference/avm/avmenc",
+    "--debug",
+    "--codec=av2",
+    "--obu",
+    "--passes=1",
+    "--limit=1",
+    "--good",
+    "--cpu-used=9",
+    "--threads=24",
+    "--row-mt=1",
+    "--profile=4",
+    "--bit-depth=8",
+    "--input-bit-depth=8",
+    "--width=16",
+    "--height=16",
+    "--i444",
+    "--input-chroma-subsampling-x=0",
+    "--input-chroma-subsampling-y=0",
+    "--force-video-mode=0",
+    "--film-grain-test=0",
+    "--enable-lcr=0",
+    "--enable-operating-point-sets=0",
+    "--enable-atlas=0",
+    "--enable-intrabc=0",
+    "--enable-restoration=0",
+    "--enable-tcq=0",
+    "--enable-parity-hiding=1",
+    "--end-usage=q",
+    "--qp=96",
+    "--test-decode=fatal",
+    "--quiet"
+  ]
+}

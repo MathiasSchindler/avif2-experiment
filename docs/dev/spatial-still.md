@@ -169,6 +169,8 @@ freestanding and no-libc builds, and all 102 tracked reference locks pass.
 
 ## Milestone 3: coefficient and spatial-tool completion
 
+**Status:** implemented on 19 August 2026.
+
 Close coding-tool gaps that become reachable after segmentation and segmented
 QM support.
 
@@ -187,6 +189,22 @@ QM support.
 The current pilot encodes use single-picture TCQ, for which pinned AVM forces
 parity hiding off. Therefore pilot parity does not discharge the parity-hiding
 requirement.
+
+Parity hiding now follows the pinned frame and transform gates: it is disabled
+for coded-lossless pictures, TCQ, IDTX/FSC, chroma, and transforms with at most
+four coded coefficients. Eligible luma blocks decode scan position zero after
+the remaining coefficients, derive its parity from capped base levels, and use
+the dedicated hidden-base, hidden-DC-sign, and even high-range paths. The
+retained 16x16 I444 fixture enables parity hiding with TCQ disabled and matches
+pinned AVM exactly; public decode also locks its workspace, output layout, and
+truncation behavior.
+
+The existing bounded transform, reconstruction, and prediction matrices cover
+the admitted primary and secondary transforms, FSC/IDTX geometries, CfL and
+MHCCP prediction, CCTX nonzero propagation, transform partitions, and IntraBC
+reference geometry. Sequence-level parity advertisement no longer rejects FSC
+or chroma blocks, where the parity syntax is inapplicable. The four spatial
+pilots remain sample-exact and retain deterministic truncation frontiers.
 
 **Exit gate:** individual-family vectors and representative cross-products are
 sample-exact for I400, I420, and I444; sanitizer and bounded fuzz gates cover

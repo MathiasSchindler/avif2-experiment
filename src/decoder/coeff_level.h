@@ -167,6 +167,8 @@ typedef struct {
     uint16_t q3_br_lf_ctx9[4U + 4U];
     uint16_t q1_br_lf_ctx12[4U + 4U];
     uint16_t dc_sign[3U][AV2H_BINARY_CDF_SIZE];
+    uint16_t parity_dc_sign[3U][AV2H_BINARY_CDF_SIZE];
+    uint16_t parity_base[5U][4U + 4U];
     uint16_t fsc_bob_all[3U][3U][3U + 4U];
     uint16_t fsc_base_all[3U][7U][4U + 4U];
     uint16_t fsc_br_all[3U][7U][4U + 4U];

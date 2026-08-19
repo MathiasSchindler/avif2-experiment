@@ -74,6 +74,7 @@ typedef struct {
                      [AV2H_CUSTOM_QM_FUNDAMENTAL_SIZE];
     uint8_t delta_q_present;
     uint8_t delta_q_res;
+    uint8_t allow_parity_hiding;
     uint8_t deblock_enabled[4];
     uint8_t gdf_mode;
     uint8_t gdf_qp_index;

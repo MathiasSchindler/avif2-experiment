@@ -824,6 +824,24 @@ Av2hStatus av2h_frame_header_closed_key_parse_diagnostic(
         }
     }
     if (reader.status != AV2H_OK) return reader.status;
+    if (sequence->enable_parity_hiding != 0U) {
+        size_t segment;
+        size_t segment_count = av2h_sequence_segment_count(sequence);
+        int coded_lossless = 1;
+        for (segment = 0U; segment < segment_count; ++segment) {
+            Av2hQIndex q_index = av2h_leaf_segment_q_index(
+                sequence, frame, frame->base_q_index, (uint8_t)segment);
+            if (!av2h_quantizer_is_lossless(sequence, frame, q_index)) {
+                coded_lossless = 0;
+                break;
+            }
+        }
+        if (!coded_lossless) {
+            frame->allow_parity_hiding =
+                (uint8_t)av2h_bit_reader_read(&reader, 1U);
+        }
+    }
+    if (reader.status != AV2H_OK) return reader.status;
     if (frame->base_q_index == 0U) {
         frame->tx_mode = 1U;
         frame->reduced_tx_set =
