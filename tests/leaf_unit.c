@@ -60,7 +60,7 @@ static void test_arguments(void) {
     };
     Av2hSpan span = { bytes, sizeof(bytes) };
     size_t tell;
-    CHECK(sizeof(Av2hLeafCdfs) == 2806U);
+    CHECK(sizeof(Av2hLeafCdfs) == 2914U);
     CHECK(av2h_leaf_cdfs_init(0) == AV2H_INVALID_ARGUMENT);
     CHECK(av2h_first_leaf_mode_read(
               0, &cdfs, &sequence, &frame, &leaf, &mode) ==
@@ -154,6 +154,23 @@ static void test_arguments(void) {
               &decoder, &cdfs, &sequence, &frame, &leaf, &mode) ==
           AV2H_UNSUPPORTED);
     CHECK(av2h_leaf_cdfs_init(&cdfs) == AV2H_OK);
+        CHECK(av2h_sequence_segment_count(&sequence) ==
+            AV2H_BASE_SEGMENT_COUNT);
+        sequence.enable_ext_seg = 1U;
+        CHECK(av2h_sequence_segment_count(&sequence) == AV2H_SEGMENT_COUNT);
+        sequence.enable_ext_seg = 0U;
+        CHECK(cdfs.segment_id[0][0] == 27146U);
+        CHECK(cdfs.segment_id[1][6] == 424U);
+        CHECK(cdfs.segment_id[2][7] == 0U);
+        CHECK(cdfs.segment_id[2][8] == 0U);
+        CHECK(cdfs.segment_id_ext[0][0] == 28672U);
+        CHECK(cdfs.segment_id_ext[1][6] == 4096U);
+        CHECK(cdfs.segment_id_ext[2][7] == 0U);
+        CHECK(cdfs.segment_id_ext[2][8] == 0U);
+        CHECK(cdfs.segment_id_ext_flag[0][0] == 16384U);
+        CHECK(cdfs.segment_id_ext_flag[2][1] == 0U);
+        CHECK(cdfs.segment_id_ext_flag[2][2] == 0U);
+        CHECK(cdfs.segment_id_ext_flag[2][5] == 4U);
     CHECK(cdfs.lossless_tx_size[0][0][0] == 16384U);
     CHECK(cdfs.lossless_tx_size[0][1][0] == 16384U);
     CHECK(cdfs.lossless_tx_size[0][0][5] == 3U);
@@ -441,6 +458,82 @@ static void test_intrabc_morph_pred_cdf_defaults(void) {
     CHECK(cdfs.morph_pred[2][0] == (uint16_t)(32768U - 10555U));
 }
 
+static void test_extended_segment_ids(void) {
+    static const uint8_t segment_0_bytes[8U] = { 0U };
+    static const uint8_t segment_8_bytes[8U] = {
+        0x7fU, 0x80U, 0U, 0U, 0U, 0U, 0U, 0U
+    };
+    static const uint8_t segment_15_bytes[8U] = {
+        0xefU, 0xf0U, 0U, 0U, 0U, 0U, 0U, 0U
+    };
+    Av2hLeafCdfs cdfs;
+    Av2hRangeDecoder decoder;
+    Av2hSpan span;
+    uint8_t segment_id = 0U;
+    uint8_t context;
+    span.data = segment_0_bytes;
+    span.size = sizeof(segment_0_bytes);
+    CHECK(av2h_leaf_cdfs_init(&cdfs) == AV2H_OK);
+    CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
+    CHECK(av2h_leaf_segment_id_read(
+              &decoder, &cdfs, 1U, 0U, 0U, 1U, &segment_id) == AV2H_OK);
+    CHECK(segment_id == 0U);
+    span.data = segment_8_bytes;
+    span.size = sizeof(segment_8_bytes);
+    CHECK(av2h_leaf_cdfs_init(&cdfs) == AV2H_OK);
+    CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
+    CHECK(av2h_leaf_segment_id_read(
+              &decoder, &cdfs, 1U, 0U, 0U, 9U, &segment_id) == AV2H_OK);
+    CHECK(segment_id == 8U);
+    for (context = 0U; context < AV2H_SEGMENT_ID_CONTEXTS; ++context) {
+        span.data = segment_15_bytes;
+        span.size = sizeof(segment_15_bytes);
+        CHECK(av2h_leaf_cdfs_init(&cdfs) == AV2H_OK);
+        CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
+        CHECK(av2h_leaf_segment_id_read(
+                  &decoder, &cdfs, 1U, context, 0U, 16U,
+                  &segment_id) == AV2H_OK);
+        CHECK(segment_id == 15U);
+    }
+    span.data = segment_15_bytes;
+    span.size = sizeof(segment_15_bytes);
+    CHECK(av2h_leaf_cdfs_init(&cdfs) == AV2H_OK);
+    CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
+    CHECK(av2h_leaf_segment_id_read(
+              &decoder, &cdfs, 1U, 0U, 15U, 16U,
+              &segment_id) == AV2H_OK);
+    CHECK(segment_id == 0U);
+    CHECK(av2h_leaf_segment_id_read(
+              0, &cdfs, 1U, 0U, 0U, 16U,
+              &segment_id) == AV2H_INVALID_ARGUMENT);
+    CHECK(av2h_leaf_segment_id_read(
+              &decoder, &cdfs, 0U, 0U, 0U, 9U,
+              &segment_id) == AV2H_INVALID_ARGUMENT);
+    CHECK(av2h_leaf_segment_id_read(
+              &decoder, &cdfs, 1U, AV2H_SEGMENT_ID_CONTEXTS, 0U, 16U,
+              &segment_id) == AV2H_INVALID_ARGUMENT);
+    CHECK(av2h_leaf_segment_id_read(
+              &decoder, &cdfs, 1U, 0U, 16U, 16U,
+              &segment_id) == AV2H_INVALID_ARGUMENT);
+}
+
+static void test_segment_adjusted_q_index(void) {
+    Av2hSequenceState sequence = { 0 };
+    Av2hFrameState frame = { 0 };
+    sequence.info.bit_depth_idc = 1U;
+    frame.segmentation_enabled = 1U;
+    frame.seg_feature_mask[8] = 1U;
+    frame.seg_alt_q[8] = -128;
+    CHECK(av2h_leaf_segment_q_index(
+              &sequence, &frame, 128U, 8U) == 0U);
+    frame.seg_alt_q[8] = 351;
+    CHECK(av2h_leaf_segment_q_index(
+              &sequence, &frame, 128U, 8U) == 255U);
+    frame.seg_feature_mask[8] = 0U;
+    CHECK(av2h_leaf_segment_q_index(
+              &sequence, &frame, 128U, 8U) == 128U);
+}
+
 static void test_large_luma_block_spans_cdef_strength(void) {
     static const uint8_t bytes[8U] = { 0U };
     Av2hSequenceState sequence = { 0 };
@@ -482,6 +575,8 @@ int main(void) {
     test_intrabc_bank_origin_uses_coded_frame_bounds();
     test_luma_mode_bottom_left_clipped_to_frame();
     test_intrabc_morph_pred_cdf_defaults();
+    test_extended_segment_ids();
+    test_segment_adjusted_q_index();
     test_large_luma_block_spans_cdef_strength();
     if (failures != 0) {
         fprintf(stderr, "%d leaf checks failed\n", failures);

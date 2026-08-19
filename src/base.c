@@ -14,6 +14,38 @@ const char *av2h_status_string(Av2hStatus status) {
     return "unknown error";
 }
 
+const char *av2h_diagnostic_stage_string(uint8_t stage) {
+    static const char *const names[] = {
+        "none", "sequence-header", "frame-header", "tile", "leaf",
+        "coefficient", "reconstruction", "filter", "output", "complete"
+    };
+    return stage < sizeof(names) / sizeof(names[0]) ? names[stage] : "unknown";
+}
+
+const char *av2h_diagnostic_reason_string(uint8_t reason) {
+    static const char *const names[] = {
+        "none", "argument", "truncated", "malformed", "unsupported-tuple",
+        "entropy", "syntax", "reconstruction", "filter", "incomplete",
+        "resource"
+    };
+    return reason < sizeof(names) / sizeof(names[0]) ? names[reason] :
+        "unknown";
+}
+
+const char *av2h_diagnostic_syntax_string(uint8_t syntax) {
+    static const char *const names[] = {
+        "none", "sequence-id-profile", "sequence-format",
+        "sequence-dimensions", "sequence-tools", "sequence-film-grain",
+        "sequence-display-model", "sequence-trailing-bits", "frame-profile",
+        "frame-first-tile-group", "frame-header-ids", "frame-tile-layout",
+        "frame-segmentation", "frame-quantization", "frame-filters",
+        "tile-entropy", "leaf-mode", "coefficient", "reconstruction",
+        "filter"
+    };
+    return syntax < sizeof(names) / sizeof(names[0]) ? names[syntax] :
+        "unknown";
+}
+
 int av2h_size_add(size_t left, size_t right, size_t *result) {
     if (result == 0 || right > SIZE_MAX - left) return 0;
     *result = left + right;

@@ -19,6 +19,8 @@ read as the current capability boundary.
 
 - [Current roadmap](roadmap.md): unfinished reliability, maintainability, and
   product work.
+- [Spatial-still 8-bit decoder plan](dev/spatial-still.md): milestones for the
+  broad one-picture spatial profile and its missing decoder capabilities.
 - [Coding opportunities](research/feature.md): encoder experiments and research
   backlog. Capability statements there are explanatory; the capability matrix
   remains authoritative.

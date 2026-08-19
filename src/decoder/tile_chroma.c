@@ -9,7 +9,7 @@ static uint8_t tile_cfl_allowed_for_sdp(
     Av2hPartitionType luma_root_partition = decoder->root.luma_root_partition;
     uint8_t luma_direction;
     uint8_t chroma_direction;
-    if (decoder->entropy_state.frame->base_q_index == 0U &&
+    if (decoder->superblock.current_block_q_index == 0U &&
         decoder->entropy_state.frame->chroma_format_idc == 2U &&
         block_size != AV2H_BLOCK_4X4) {
         return 0U;
@@ -404,7 +404,7 @@ Av2hStatus av2h_tile_decoder_next_chroma(
         av2h_memory_copy(
             &leaf->mode, &decoder->shared_chroma.mode, sizeof(leaf->mode));
         decoder->chroma.shared_mode_pending = 0U;
-    } else if (decoder->entropy_state.frame->base_q_index == 0U) {
+    } else if (decoder->superblock.current_block_q_index == 0U) {
         av2h_memory_fill(&leaf->mode, 0U, sizeof(leaf->mode));
         leaf->mode.use_dpcm_uv = (uint8_t)av2h_range_read_adaptive(
             &decoder->entropy_state.range, decoder->entropy_state.leaf_cdfs.dpcm_uv, 2U);
@@ -479,7 +479,7 @@ Av2hStatus av2h_tile_decoder_next_chroma(
     }
     if (decoder->chroma.tx_count == 0U) {
         uint16_t tx_count;
-        status = decoder->entropy_state.frame->base_q_index == 0U ?
+        status = decoder->superblock.current_block_q_index == 0U ?
             av2h_chroma_lossless_tx_node_count(
                 &leaf->node, decoder->traversal.mi_columns, decoder->traversal.mi_rows,
                 decoder->entropy_state.frame->chroma_format_idc, &tx_count) :
@@ -500,7 +500,7 @@ Av2hStatus av2h_tile_decoder_next_chroma(
         }
     }
     if (decoder->chroma.tx_count != 0U) {
-        status = decoder->entropy_state.frame->base_q_index == 0U ?
+        status = decoder->superblock.current_block_q_index == 0U ?
             av2h_chroma_lossless_tx_node_get(
                 &decoder->chroma.coding_node,
                 decoder->traversal.mi_columns, decoder->traversal.mi_rows,
@@ -517,7 +517,7 @@ Av2hStatus av2h_tile_decoder_next_chroma(
     blocks[0] = u_block;
     blocks[1] = v_block;
     leaf->decoded_plane = 0U;
-    if (decoder->entropy_state.frame->base_q_index == 0U &&
+    if (decoder->superblock.current_block_q_index == 0U &&
         decoder->chroma.tx_count > 1U) {
         if (decoder->chroma.tx_plane == 0U) {
             decoder->chroma.tx_plane = 1U;

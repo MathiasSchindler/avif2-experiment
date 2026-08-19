@@ -26,18 +26,19 @@ static int16_t read_delta_q(Av2hBitReader *reader) {
 
 static int read_segmentation_features(
     Av2hBitReader *reader,
+    size_t segment_count,
     uint8_t feature_mask[AV2H_SEGMENT_COUNT],
     int16_t alt_q[AV2H_SEGMENT_COUNT],
     uint8_t *last_active_id) {
     size_t segment;
-    for (segment = 0U; segment < AV2H_SEGMENT_COUNT; ++segment) {
+    for (segment = 0U; segment < segment_count; ++segment) {
         unsigned int feature;
         for (feature = 0U; feature < 3U; ++feature) {
             uint8_t enabled =
                 (uint8_t)av2h_bit_reader_read(reader, 1U);
             if (enabled == 0U) continue;
+            feature_mask[segment] |= (uint8_t)(1U << feature);
             if (feature != 0U) return 0;
-            feature_mask[segment] |= 1U;
             alt_q[segment] = (int16_t)
                 av2h_bit_reader_inverse_signed(reader, 9U);
             if (alt_q[segment] < -351 || alt_q[segment] > 351) return 0;
@@ -624,16 +625,46 @@ static void read_ccso(Av2hBitReader *reader, Av2hFrameState *frame) {
     }
 }
 
-Av2hStatus av2h_frame_header_closed_key_parse(
+static Av2hStatus frame_diagnostic_fail(Av2hError *error,
+                                        Av2hStatus status,
+                                        const Av2hBitReader *reader,
+                                        uint8_t syntax,
+                                        uint32_t parsed_value) {
+    if (error != 0) {
+        error->status = status;
+        error->offset = reader != 0 ? reader->bit_position / 8U : 0U;
+        error->context = AV2H_CONTEXT_FRAME;
+        error->obu_index = SIZE_MAX;
+        error->obu_type = AV2H_OBU_CLOSED_LOOP_KEY;
+        error->diagnostic_stage = AV2H_DIAGNOSTIC_STAGE_FRAME_HEADER;
+        error->diagnostic_reason = status == AV2H_TRUNCATED ?
+            AV2H_DIAGNOSTIC_REASON_TRUNCATED :
+            status == AV2H_INVALID_DATA ? AV2H_DIAGNOSTIC_REASON_MALFORMED :
+            status == AV2H_INVALID_ARGUMENT ? AV2H_DIAGNOSTIC_REASON_ARGUMENT :
+            AV2H_DIAGNOSTIC_REASON_UNSUPPORTED_TUPLE;
+        error->syntax_stage = syntax;
+        error->plane = 0U;
+        error->row = 0U;
+        error->column = 0U;
+        error->entropy_tell = reader != 0 ? reader->bit_position : 0U;
+        error->parsed_value = parsed_value;
+    }
+    return status;
+}
+
+Av2hStatus av2h_frame_header_closed_key_parse_diagnostic(
     Av2hSpan payload,
     const Av2hSequenceState *sequence,
-    Av2hFrameState *frame) {
+    Av2hFrameState *frame,
+    Av2hError *error) {
     Av2hBitReader reader;
     uint32_t multi_frame_header_id;
     uint32_t sequence_header_id;
     if (sequence == 0 || frame == 0 ||
         (payload.data == 0 && payload.size != 0U)) {
-        return AV2H_INVALID_ARGUMENT;
+        return frame_diagnostic_fail(
+            error, AV2H_INVALID_ARGUMENT, 0,
+            AV2H_DIAGNOSTIC_SYNTAX_FRAME_PROFILE, 0U);
     }
     av2h_memory_fill(frame, 0U, sizeof(*frame));
     frame->plane_count = (uint8_t)av2h_sequence_plane_count(sequence);
@@ -641,7 +672,11 @@ Av2hStatus av2h_frame_header_closed_key_parse(
     frame->ccso_unit_size =
         sequence->ccso_unit_matches_superblock_size ?
             sequence->superblock_size : 256U;
-    if (payload.size == 0U) return AV2H_TRUNCATED;
+    if (payload.size == 0U) {
+        return frame_diagnostic_fail(
+            error, AV2H_TRUNCATED, 0,
+            AV2H_DIAGNOSTIC_SYNTAX_FRAME_PROFILE, 0U);
+    }
     if (sequence->info.still_picture == 0U ||
         (sequence->info.bit_depth_idc != 1U &&
          (sequence->info.bit_depth_idc != 0U ||
@@ -650,20 +685,30 @@ Av2hStatus av2h_frame_header_closed_key_parse(
             (sequence->info.seq_profile_idc == 4U &&
              sequence->info.chroma_format_idc == 2U)))) ||
         sequence->info.chroma_format_idc > 2U ||
-        sequence->seq_seg_info_present_flag != 0U ||
         sequence->seq_tile_info_present_flag != 0U) {
-        return AV2H_UNSUPPORTED;
+        return frame_diagnostic_fail(
+            error, AV2H_UNSUPPORTED, 0,
+            AV2H_DIAGNOSTIC_SYNTAX_FRAME_PROFILE,
+            ((uint32_t)sequence->info.bit_depth_idc << 8U) |
+                sequence->info.chroma_format_idc);
     }
     av2h_bit_reader_init(&reader, payload.data, payload.size, 0U);
     frame->first_tile_group =
         (uint8_t)av2h_bit_reader_read(&reader, 1U);
-    if (frame->first_tile_group == 0U) return AV2H_UNSUPPORTED;
+    if (frame->first_tile_group == 0U) {
+        return frame_diagnostic_fail(
+            error, AV2H_UNSUPPORTED, &reader,
+            AV2H_DIAGNOSTIC_SYNTAX_FRAME_FIRST_TILE_GROUP, 0U);
+    }
     multi_frame_header_id = av2h_bit_reader_uvlc(&reader);
     sequence_header_id = av2h_bit_reader_uvlc(&reader);
     if (reader.status != AV2H_OK) return reader.status;
     if (multi_frame_header_id != 0U ||
         sequence_header_id != sequence->sequence_header_id) {
-        return AV2H_UNSUPPORTED;
+        return frame_diagnostic_fail(
+            error, AV2H_UNSUPPORTED, &reader,
+            AV2H_DIAGNOSTIC_SYNTAX_FRAME_HEADER_IDS,
+            (multi_frame_header_id << 8U) | sequence_header_id);
     }
     frame->width = (uint16_t)(sequence->info.max_frame_width_minus_1 + 1U);
     frame->height = (uint16_t)(sequence->info.max_frame_height_minus_1 + 1U);
@@ -690,7 +735,11 @@ Av2hStatus av2h_frame_header_closed_key_parse(
     }
     frame->disable_cdf_update =
         (uint8_t)av2h_bit_reader_read(&reader, 1U);
-    if (!read_one_tile(&reader, sequence, frame)) return reader.status;
+    if (!read_one_tile(&reader, sequence, frame)) {
+        return frame_diagnostic_fail(
+            error, reader.status, &reader,
+            AV2H_DIAGNOSTIC_SYNTAX_FRAME_TILE_LAYOUT, 0U);
+    }
     read_quantization(&reader, sequence, frame);
     frame->segmentation_enabled =
         (uint8_t)av2h_bit_reader_read(&reader, 1U);
@@ -702,18 +751,22 @@ Av2hStatus av2h_frame_header_closed_key_parse(
         }
         if (reuse != 0U) {
             size_t segment;
-            for (segment = 0U; segment < AV2H_SEGMENT_COUNT; ++segment) {
+            size_t segment_count = av2h_sequence_segment_count(sequence);
+            for (segment = 0U; segment < segment_count; ++segment) {
                 frame->seg_feature_mask[segment] =
                     sequence->seg_feature_mask[segment];
                 frame->seg_alt_q[segment] = sequence->seg_alt_q[segment];
             }
             frame->seg_last_active_id = sequence->seg_last_active_id;
         } else if (!read_segmentation_features(
-                       &reader, frame->seg_feature_mask,
-                       frame->seg_alt_q, &frame->seg_last_active_id)) {
-            return reader.status != AV2H_OK ? reader.status : AV2H_UNSUPPORTED;
+                         &reader, av2h_sequence_segment_count(sequence),
+                         frame->seg_feature_mask,
+                         frame->seg_alt_q, &frame->seg_last_active_id)) {
+            return frame_diagnostic_fail(
+                error,
+                reader.status != AV2H_OK ? reader.status : AV2H_UNSUPPORTED,
+                &reader, AV2H_DIAGNOSTIC_SYNTAX_FRAME_SEGMENTATION, 0U);
         }
-        if (frame->base_q_index == 0U) return AV2H_UNSUPPORTED;
     }
     frame->using_qmatrix =
         (uint8_t)av2h_bit_reader_read(&reader, 1U);
@@ -773,4 +826,12 @@ Av2hStatus av2h_frame_header_closed_key_parse(
     if (reader.status != AV2H_OK) return reader.status;
     frame->uncompressed_header_bits = reader.bit_position - 1U;
     return AV2H_OK;
+}
+
+Av2hStatus av2h_frame_header_closed_key_parse(
+    Av2hSpan payload,
+    const Av2hSequenceState *sequence,
+    Av2hFrameState *frame) {
+    return av2h_frame_header_closed_key_parse_diagnostic(
+        payload, sequence, frame, 0);
 }

@@ -5,6 +5,21 @@
 
 uint8_t av2h_leaf_block_allows_palette(Av2hBlockSize block_size);
 
+Av2hStatus av2h_leaf_segment_id_read(
+    Av2hRangeDecoder *decoder,
+    Av2hLeafCdfs *cdfs,
+    uint8_t extended_enabled,
+    uint8_t context,
+    uint8_t predictor,
+    uint8_t maximum,
+    uint8_t *segment_id);
+
+Av2hQIndex av2h_leaf_segment_q_index(
+    const Av2hSequenceState *sequence,
+    const Av2hFrameState *frame,
+    Av2hQIndex base_q_index,
+    uint8_t segment_id);
+
 Av2hStatus av2h_leaf_palette_read_colors(
     Av2hRangeDecoder *decoder,
     const Av2hSequenceState *sequence,

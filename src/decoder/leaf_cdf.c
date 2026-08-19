@@ -100,6 +100,9 @@ Av2hStatus av2h_leaf_cdfs_init(Av2hLeafCdfs *cdfs) {
         { 14274U, 18230U, 22557U, 24935U, 29980U, 30851U, 32344U },
         { 27527U, 28487U, 28723U, 28890U, 32397U, 32647U, 32679U }
     };
+    static const uint16_t segment_id_ext[AV2H_BASE_SEGMENT_COUNT - 1U] = {
+        4096U, 8192U, 12288U, 16384U, 20480U, 24576U, 28672U
+    };
     static const uint16_t intrabc_shell_class[] = {
         8680U, 13723U, 18208U, 22686U, 26722U, 30020U
     };
@@ -246,8 +249,16 @@ Av2hStatus av2h_leaf_cdfs_init(Av2hLeafCdfs *cdfs) {
     if (status != AV2H_OK) return status;
     for (context = 0U; context < AV2H_SEGMENT_ID_CONTEXTS; ++context) {
         status = av2h_cdf_init(
-            cdfs->segment_id[context], AV2H_SEGMENT_COUNT + 4U,
-            segment_id[context], AV2H_SEGMENT_COUNT, 0U, 0U);
+            cdfs->segment_id[context], AV2H_BASE_SEGMENT_COUNT + 4U,
+            segment_id[context], AV2H_BASE_SEGMENT_COUNT, 0U, 0U);
+        if (status != AV2H_OK) return status;
+        status = av2h_cdf_init(
+            cdfs->segment_id_ext[context], AV2H_BASE_SEGMENT_COUNT + 4U,
+            segment_id_ext, AV2H_BASE_SEGMENT_COUNT, 0U, 0U);
+        if (status != AV2H_OK) return status;
+        status = av2h_binary_cdf_init(
+            cdfs->segment_id_ext_flag[context],
+            (Av2hBinaryCdfSpec){ 16384U, 0U, 0U });
         if (status != AV2H_OK) return status;
     }
     status = initialize_binary_table(cdfs->intrabc, intrabc_defaults,

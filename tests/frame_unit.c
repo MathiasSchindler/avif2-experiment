@@ -161,6 +161,13 @@ static void check_fixture(const unsigned char *sequence_bytes,
     CHECK(frame.reduced_tx_set == 0U);
     check_fixture_ccso(&frame, fixture_index);
     check_fixture_filters(&frame, fixture_index);
+    sequence.seq_seg_info_present_flag = 1U;
+    sequence.seg_allow_info_change = 0U;
+    CHECK(av2h_frame_header_closed_key_parse(
+              (Av2hSpan){ payload, payload_size }, &sequence,
+              &frame) == AV2H_OK);
+    CHECK(frame.segmentation_enabled == 0U);
+    sequence.seq_seg_info_present_flag = 0U;
     CHECK(av2h_tile_group_single_parse(
               (Av2hSpan){ payload, payload_size },
               frame.uncompressed_header_bits, &group) == AV2H_OK);
@@ -322,10 +329,16 @@ static void test_10bit_wp0_header(void) {
 
     changed_sequence = sequence;
     changed_sequence.info.bit_depth_idc = 2U;
-    CHECK(av2h_frame_header_closed_key_parse(
+        CHECK(av2h_frame_header_closed_key_parse_diagnostic(
               (Av2hSpan){ input + frame_obu->payload_offset,
                            frame_obu->payload_size },
-              &changed_sequence, &frame) == AV2H_UNSUPPORTED);
+              &changed_sequence, &frame, &error) == AV2H_UNSUPPORTED);
+        CHECK(error.context == AV2H_CONTEXT_FRAME);
+        CHECK(error.diagnostic_stage == AV2H_DIAGNOSTIC_STAGE_FRAME_HEADER);
+        CHECK(error.diagnostic_reason ==
+            AV2H_DIAGNOSTIC_REASON_UNSUPPORTED_TUPLE);
+        CHECK(error.syntax_stage == AV2H_DIAGNOSTIC_SYNTAX_FRAME_PROFILE);
+        CHECK(error.parsed_value == 0x200U);
     changed_sequence = sequence;
     changed_sequence.info.chroma_format_idc = 1U;
     CHECK(av2h_frame_header_closed_key_parse(

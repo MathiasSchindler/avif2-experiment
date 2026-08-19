@@ -1,6 +1,6 @@
 # Decoder capabilities
 
-**Status:** authoritative current decoder contract as of 14 August 2026
+**Status:** authoritative current decoder contract as of 19 August 2026
 
 This document is the source of truth for decoder admission. A feature is
 supported only for the stated tuple and only after exact decoded-output parity
@@ -29,7 +29,7 @@ with pinned AVM. Encoder presets may choose a narrower subset.
 | Transforms | Non-DCT transforms, transform partitioning, and reached secondary transforms | Unreached transform, geometry, and coefficient tuples |
 | TCQ | Pinned AVM always-on single-picture TCQ | Frame-adaptive video TCQ and parity hiding |
 | Quantization matrices | Predefined matrices in non-segmented pictures | Custom matrix OBUs and segmented multi-matrix selection |
-| AQ, delta-Q, segmentation | Pinned AVM `aq-mode=1` ALT_Q segmentation and `deltaq-mode=1`/`2` for closed-loop key pictures | Extended segmentation features, non-ALT_Q features, and untested bit depths |
+| AQ, delta-Q, segmentation | Pinned AVM `aq-mode=1` ALT_Q segmentation, extended-segmentation signaling with bounded 16-ID ALT_Q entropy and segment-adjusted lossless routing, and `deltaq-mode=1`/`2` for closed-loop key pictures | Non-ALT_Q features and untested bit depths |
 | Filters | Deblock, CDEF, CCSO, restoration, and GDF in normative pipeline order | Unsupported restoration combinations below |
 | Restoration | 8-bit luma PC-Wiener; 8-bit `RESTORE_WIENER_NONSEP` on any I420 plane with frame-level or per-unit filters and one or more luma classes | Switchable restoration, other chroma formats, and all 10-bit restoration |
 

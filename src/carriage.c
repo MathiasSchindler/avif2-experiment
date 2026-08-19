@@ -1,6 +1,18 @@
 #include "base.h"
 #include "decoder/sequence.h"
 
+static uint8_t diagnostic_reason(Av2hStatus status) {
+    if (status == AV2H_TRUNCATED) return AV2H_DIAGNOSTIC_REASON_TRUNCATED;
+    if (status == AV2H_INVALID_DATA) return AV2H_DIAGNOSTIC_REASON_MALFORMED;
+    if (status == AV2H_UNSUPPORTED) {
+        return AV2H_DIAGNOSTIC_REASON_UNSUPPORTED_TUPLE;
+    }
+    if (status == AV2H_INVALID_ARGUMENT) {
+        return AV2H_DIAGNOSTIC_REASON_ARGUMENT;
+    }
+    return AV2H_DIAGNOSTIC_REASON_NONE;
+}
+
 static Av2hStatus fail(Av2hError *error,
                        Av2hStatus status,
                        size_t offset,
@@ -11,6 +23,16 @@ static Av2hStatus fail(Av2hError *error,
         error->context = context;
         error->obu_index = SIZE_MAX;
         error->obu_type = 0U;
+        error->diagnostic_stage = context == AV2H_CONTEXT_SEQUENCE_HEADER ?
+            AV2H_DIAGNOSTIC_STAGE_SEQUENCE_HEADER :
+            AV2H_DIAGNOSTIC_STAGE_NONE;
+        error->diagnostic_reason = diagnostic_reason(status);
+        error->syntax_stage = 0U;
+        error->plane = 0U;
+        error->row = 0U;
+        error->column = 0U;
+        error->entropy_tell = 0U;
+        error->parsed_value = 0U;
     }
     return status;
 }
@@ -24,6 +46,21 @@ static Av2hStatus fail_obu(Av2hError *error,
     if (error != 0 && obu != 0) {
         error->obu_index = obu->index;
         error->obu_type = obu->type;
+    }
+    return status;
+}
+
+static Av2hStatus fail_obu_syntax(Av2hError *error,
+                                  Av2hStatus status,
+                                  const Av2hObu *obu,
+                                  size_t offset,
+                                  uint8_t syntax,
+                                  uint32_t parsed_value) {
+    status = fail_obu(error, status, obu, offset,
+                      AV2H_CONTEXT_SEQUENCE_HEADER);
+    if (error != 0) {
+        error->syntax_stage = syntax;
+        error->parsed_value = parsed_value;
     }
     return status;
 }
@@ -271,19 +308,19 @@ static int read_sequence_tools(Av2hBitReader *reader,
     state->enable_ext_seg = (uint8_t)av2h_bit_reader_read(reader, 1U);
     state->seq_seg_info_present_flag =
         (uint8_t)av2h_bit_reader_read(reader, 1U);
-    if (state->enable_ext_seg != 0U) return 0;
     if (state->seq_seg_info_present_flag != 0U) {
         size_t segment;
+        size_t segment_count = av2h_sequence_segment_count(state);
         state->seg_allow_info_change =
             (uint8_t)av2h_bit_reader_read(reader, 1U);
-        for (segment = 0U; segment < AV2H_SEGMENT_COUNT; ++segment) {
+        for (segment = 0U; segment < segment_count; ++segment) {
             unsigned int feature;
             for (feature = 0U; feature < 3U; ++feature) {
                 uint8_t enabled =
                     (uint8_t)av2h_bit_reader_read(reader, 1U);
                 if (enabled == 0U) continue;
+                state->seg_feature_mask[segment] |= (uint8_t)(1U << feature);
                 if (feature != 0U) return 0;
-                state->seg_feature_mask[segment] |= 1U;
                 state->seg_alt_q[segment] = (int16_t)
                     av2h_bit_reader_inverse_signed(reader, 9U);
                 if (state->seg_alt_q[segment] < -351 ||
@@ -452,9 +489,10 @@ Av2hStatus av2h_sequence_state_parse(Av2hSpan input,
                             av2h_bit_reader_offset(&reader),
                             AV2H_CONTEXT_SEQUENCE_HEADER);
         }
-        return fail_obu(error, AV2H_UNSUPPORTED, obu,
-                        av2h_bit_reader_offset(&reader),
-                        AV2H_CONTEXT_SEQUENCE_HEADER);
+        return fail_obu_syntax(
+            error, AV2H_UNSUPPORTED, obu, av2h_bit_reader_offset(&reader),
+            AV2H_DIAGNOSTIC_SYNTAX_SEQUENCE_ID_PROFILE,
+            (sequence_id << 8U) | sequence->seq_profile_idc);
     }
     sequence->seq_level_idx = (uint8_t)av2h_bit_reader_read(&reader, 5U);
     if (sequence->seq_level_idx > 21U && sequence->seq_level_idx != 31U) {
@@ -472,9 +510,10 @@ Av2hStatus av2h_sequence_state_parse(Av2hSpan input,
     }
     if (chroma > 2U || bit_depth > 2U ||
         (sequence->seq_profile_idc == 4U) != (chroma == 2U)) {
-        return fail_obu(error, AV2H_UNSUPPORTED, obu,
-                        av2h_bit_reader_offset(&reader),
-                        AV2H_CONTEXT_SEQUENCE_HEADER);
+        return fail_obu_syntax(
+            error, AV2H_UNSUPPORTED, obu, av2h_bit_reader_offset(&reader),
+            AV2H_DIAGNOSTIC_SYNTAX_SEQUENCE_FORMAT,
+            (chroma << 8U) | bit_depth);
     }
     sequence->chroma_format_idc = (uint8_t)chroma;
     sequence->bit_depth_idc = (uint8_t)bit_depth;
@@ -496,9 +535,9 @@ Av2hStatus av2h_sequence_state_parse(Av2hSpan input,
                         AV2H_CONTEXT_SEQUENCE_HEADER);
     }
     if (av2h_bit_reader_read(&reader, 1U) != 0U) {
-        return fail_obu(error, AV2H_UNSUPPORTED, obu,
-                        av2h_bit_reader_offset(&reader),
-                        AV2H_CONTEXT_SEQUENCE_HEADER);
+        return fail_obu_syntax(
+            error, AV2H_UNSUPPORTED, obu, av2h_bit_reader_offset(&reader),
+            AV2H_DIAGNOSTIC_SYNTAX_SEQUENCE_DIMENSIONS, 1U);
     }
     if (reader.status != AV2H_OK) {
         return fail_obu(error, reader.status, obu,
@@ -506,29 +545,28 @@ Av2hStatus av2h_sequence_state_parse(Av2hSpan input,
                         AV2H_CONTEXT_SEQUENCE_HEADER);
     }
     if (!read_sequence_tools(&reader, (uint8_t)(chroma == 1U), 1U, state)) {
-        return fail_obu(error,
-                        reader.status == AV2H_OK ? AV2H_UNSUPPORTED
-                                                 : reader.status,
-                        obu,
-                        av2h_bit_reader_offset(&reader),
-                        AV2H_CONTEXT_SEQUENCE_HEADER);
+        return fail_obu_syntax(
+            error, reader.status == AV2H_OK ? AV2H_UNSUPPORTED : reader.status,
+            obu, av2h_bit_reader_offset(&reader),
+            AV2H_DIAGNOSTIC_SYNTAX_SEQUENCE_TOOLS, 0U);
     }
     sequence->film_grain_params_present =
         (uint8_t)av2h_bit_reader_read(&reader, 1U);
     if (sequence->film_grain_params_present != 0U) {
-        return fail_obu(error, AV2H_UNSUPPORTED, obu,
-                        av2h_bit_reader_offset(&reader),
-                        AV2H_CONTEXT_SEQUENCE_HEADER);
+        return fail_obu_syntax(
+            error, AV2H_UNSUPPORTED, obu, av2h_bit_reader_offset(&reader),
+            AV2H_DIAGNOSTIC_SYNTAX_SEQUENCE_FILM_GRAIN,
+            sequence->film_grain_params_present);
     }
     if (av2h_bit_reader_read(&reader, 1U) != 0U) {
-        return fail_obu(error, AV2H_UNSUPPORTED, obu,
-                        av2h_bit_reader_offset(&reader),
-                        AV2H_CONTEXT_SEQUENCE_HEADER);
+        return fail_obu_syntax(
+            error, AV2H_UNSUPPORTED, obu, av2h_bit_reader_offset(&reader),
+            AV2H_DIAGNOSTIC_SYNTAX_SEQUENCE_DISPLAY_MODEL, 1U);
     }
     if (!check_trailing_bits(&reader)) {
-        return fail_obu(error, AV2H_INVALID_DATA, obu,
-                        av2h_bit_reader_offset(&reader),
-                        AV2H_CONTEXT_SEQUENCE_HEADER);
+        return fail_obu_syntax(
+            error, AV2H_INVALID_DATA, obu, av2h_bit_reader_offset(&reader),
+            AV2H_DIAGNOSTIC_SYNTAX_SEQUENCE_TRAILING_BITS, 0U);
     }
     return AV2H_OK;
 }

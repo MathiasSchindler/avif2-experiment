@@ -80,7 +80,11 @@ typedef struct {
                            [AV2H_BINARY_CDF_SIZE];
     uint16_t delta_q[AV2H_DELTA_Q_SYMBOLS + 4U];
     uint16_t segment_id[AV2H_SEGMENT_ID_CONTEXTS]
-                       [AV2H_SEGMENT_COUNT + 4U];
+                       [AV2H_BASE_SEGMENT_COUNT + 4U];
+    uint16_t segment_id_ext[AV2H_SEGMENT_ID_CONTEXTS]
+                           [AV2H_BASE_SEGMENT_COUNT + 4U];
+    uint16_t segment_id_ext_flag[AV2H_SEGMENT_ID_CONTEXTS]
+                                [AV2H_BINARY_CDF_SIZE];
     uint16_t ccso[AV2H_FRAME_PLANE_COUNT][AV2H_CCSO_CONTEXT_COUNT]
                  [AV2H_BINARY_CDF_SIZE];
     uint16_t y_mode_set[AV2H_Y_MODE_SET_SYMBOLS + 4U];

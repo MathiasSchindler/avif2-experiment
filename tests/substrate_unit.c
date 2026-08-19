@@ -338,6 +338,27 @@ static void test_sequence_headers(void) {
               &sequence, &error) == AV2H_TRUNCATED);
 }
 
+static void test_extended_segmentation_sequence_header(void) {
+    static const unsigned char bytes[] = {
+        0x0eU, 0x04U, 0x82U, 0x2aU, 0x99U, 0xdfU, 0xe5U, 0x53U,
+        0xd7U, 0x9cU, 0xdeU, 0x6dU, 0xceU, 0x24U, 0x40U
+    };
+    Av2hObu entry;
+    Av2hObuLedger ledger = { &entry, 1U, 0U };
+    Av2hSequenceState state;
+    Av2hError error;
+    CHECK(av2h_obu_parse((Av2hSpan){ bytes, sizeof(bytes) },
+                         &ledger, &error) == AV2H_OK);
+    CHECK(ledger.count == 1U);
+    CHECK(av2h_sequence_state_parse((Av2hSpan){ bytes, sizeof(bytes) },
+                                    &entry, &state, &error) == AV2H_OK);
+    CHECK(state.info.max_frame_width_minus_1 == 895U);
+    CHECK(state.info.max_frame_height_minus_1 == 597U);
+    CHECK(state.enable_ext_seg == 1U);
+    CHECK(state.seq_seg_info_present_flag == 0U);
+    CHECK(av2h_sequence_segment_count(&state) == AV2H_SEGMENT_COUNT);
+}
+
 static void test_av2c_and_carriage(void) {
     static const unsigned char config_obu[] = {
         0x0cU, 0x04U, 0x82U, 0x0aU, 0x33U, 0xffU, 0x1cU,
@@ -553,6 +574,7 @@ int main(void) {
     test_leb128_and_obus();
     test_obu_header_rules();
     test_sequence_headers();
+    test_extended_segmentation_sequence_header();
     test_av2c_and_carriage();
     test_carriage_rejections();
     test_content_interpretation();

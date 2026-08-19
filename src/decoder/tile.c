@@ -793,7 +793,7 @@ Av2hStatus av2h_tile_decoder_commit_leaf(
     if (decoder->control.phase == AV2H_TILE_DECODE_LUMA) {
         if (decoder->luma.tx_count != 0U) {
             Av2hPartitionNode expected;
-                status = decoder->entropy_state.frame->base_q_index == 0U &&
+                status = decoder->luma.coding_mode.q_index == 0U &&
                     decoder->luma.coding_mode.lossless_tx_size_large == 0U ?
                 av2h_luma_lossless_tx_node_get(
                     &decoder->luma.coding_node, decoder->traversal.mi_columns,
@@ -816,7 +816,7 @@ Av2hStatus av2h_tile_decoder_commit_leaf(
                         decoder->chroma.coding_node.column &&
                     decoder->luma.coding_node.block_size ==
                         decoder->chroma.coding_node.block_size &&
-                                        ((decoder->entropy_state.frame->base_q_index == 0U &&
+                                        ((decoder->luma.coding_mode.q_index == 0U &&
                                             decoder->luma.coding_mode.lossless_tx_size_large == 0U) ?
                                                 tile_luma_lossless_unit_complete(decoder, leaf) :
                                                 decoder->entropy_state.frame->chroma_format_idc == 2U)) {
@@ -825,7 +825,7 @@ Av2hStatus av2h_tile_decoder_commit_leaf(
                     return AV2H_OK;
                 }
                 if (decoder->entropy_state.sequence->enable_sdp &&
-                                        ((decoder->entropy_state.frame->base_q_index == 0U &&
+                                        ((decoder->luma.coding_mode.q_index == 0U &&
                                             decoder->luma.coding_mode.lossless_tx_size_large == 0U) ?
                                                 tile_luma_lossless_unit_complete(decoder, leaf) :
                                                 decoder->luma.tx_index == 1U) &&
@@ -868,7 +868,7 @@ Av2hStatus av2h_tile_decoder_commit_leaf(
                 decoder->luma.coding_node.block_size ==
                     decoder->chroma.coding_node.block_size &&
                 (decoder->entropy_state.frame->chroma_format_idc == 2U ||
-                 (decoder->entropy_state.frame->base_q_index == 0U &&
+                 (decoder->luma.coding_mode.q_index == 0U &&
                   decoder->entropy_state.frame->chroma_format_idc == 0U &&
                   decoder->luma.coding_mode.lossless_tx_size_large == 0U))) {
                 decoder->chroma.shared_commit_luma = 1U;
@@ -901,7 +901,7 @@ Av2hStatus av2h_tile_decoder_commit_leaf(
     } else if (decoder->control.phase == AV2H_TILE_DECODE_CHROMA) {
         if (decoder->chroma.tx_count != 0U) {
             Av2hPartitionNode expected;
-            status = decoder->entropy_state.frame->base_q_index == 0U ?
+            status = decoder->superblock.current_block_q_index == 0U ?
                 av2h_chroma_lossless_tx_node_get(
                     &decoder->chroma.coding_node,
                     decoder->traversal.mi_columns, decoder->traversal.mi_rows,
@@ -918,7 +918,7 @@ Av2hStatus av2h_tile_decoder_commit_leaf(
                     decoder, AV2H_INVALID_ARGUMENT);
             }
             ++decoder->chroma.tx_index;
-            if (decoder->entropy_state.frame->base_q_index == 0U &&
+            if (decoder->superblock.current_block_q_index == 0U &&
                 decoder->chroma.tx_plane != 0U &&
                 tile_chroma_lossless_unit_complete(decoder, leaf)) {
                 if (decoder->chroma.tx_plane == 1U) {
@@ -948,7 +948,7 @@ Av2hStatus av2h_tile_decoder_commit_leaf(
             }
             if (decoder->chroma.tx_index < decoder->chroma.tx_count) {
                 if (decoder->chroma.tx_plane == 0U &&
-                    decoder->entropy_state.frame->base_q_index != 0U &&
+                    decoder->superblock.current_block_q_index != 0U &&
                     decoder->chroma.shared_resume_luma &&
                     decoder->luma.tx_count != 0U &&
                     decoder->luma.tx_index < decoder->luma.tx_count &&
@@ -964,7 +964,7 @@ Av2hStatus av2h_tile_decoder_commit_leaf(
                 }
                 return AV2H_OK;
             }
-            if (decoder->entropy_state.frame->base_q_index != 0U &&
+            if (decoder->superblock.current_block_q_index != 0U &&
                 decoder->chroma.tx_plane == 1U) {
                 decoder->chroma.tx_plane = 2U;
                 decoder->chroma.tx_index = 0U;

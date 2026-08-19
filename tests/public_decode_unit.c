@@ -256,6 +256,11 @@ static void test_public_decode(const PublicFixture *fixture) {
                 (int)decode_status, error.context, error.offset);
     }
     CHECK(decode_status == AV2H_OK);
+    CHECK(error.status == AV2H_OK);
+    CHECK(error.diagnostic_stage == AV2H_DIAGNOSTIC_STAGE_COMPLETE);
+    CHECK(error.diagnostic_reason == AV2H_DIAGNOSTIC_REASON_NONE);
+    CHECK(error.syntax_stage == AV2H_DIAGNOSTIC_SYNTAX_NONE);
+    CHECK(av2h_diagnostic_stage_string(error.diagnostic_stage)[0] == 'c');
     if (fnv1a64(output, info.output_size) != fixture->output_hash) {
         fprintf(stderr, "%s: output hash=0x%016llx expected=0x%016llx\n",
                 fixture->path != 0 ? fixture->path : "embedded",
@@ -316,10 +321,14 @@ static void test_public_decode(const PublicFixture *fixture) {
     CHECK(output[0] == 0xa5U);
     for (prefix = 0U; prefix < container_size; ++prefix) {
         output[0] = 0xa5U;
+        error.diagnostic_stage = 255U;
+        error.parsed_value = UINT32_MAX;
         CHECK(av2h_decode((Av2hSpan){ container, prefix }, &info,
                            workspace, info.workspace_size, output,
                            info.output_size, &error) != AV2H_OK);
         CHECK(output[0] == 0xa5U);
+        CHECK(error.diagnostic_stage != 255U);
+        CHECK(error.parsed_value == 0U);
     }
     free(allocation);
 }

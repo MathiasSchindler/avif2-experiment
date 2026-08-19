@@ -481,7 +481,10 @@ $(WINDOWS_SMOKE): $(WINDOWS_SMOKE_OBJECT) $(WINDOWS_LIBRARY) $(WINDOWS_IMPORT_LI
 	10bit-wp14-fuzz \
 	test-carriage-reference test-artifact-lab \
 	test-decoder-evidence test-reconstruction test-filter-parity \
-	intrabc-admission tcq-pilot
+	intrabc-admission tcq-pilot spatial-still-frontiers
+
+spatial-still-frontiers: $(HOST_DECODER)
+	@$(PYTHON) tools/run_spatial_still_frontiers.py --decoder $(HOST_DECODER)
 
 .NOTPARALLEL: test test-extended 10bit-wp0-reference
 

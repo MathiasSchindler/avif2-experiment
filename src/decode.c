@@ -1,6 +1,33 @@
 #include "decode.h"
 #include "pixel_format.h"
 
+static uint8_t diagnostic_reason_from_status(Av2hStatus status) {
+    switch (status) {
+        case AV2H_INVALID_ARGUMENT: return AV2H_DIAGNOSTIC_REASON_ARGUMENT;
+        case AV2H_TRUNCATED: return AV2H_DIAGNOSTIC_REASON_TRUNCATED;
+        case AV2H_INVALID_DATA: return AV2H_DIAGNOSTIC_REASON_MALFORMED;
+        case AV2H_UNSUPPORTED:
+            return AV2H_DIAGNOSTIC_REASON_UNSUPPORTED_TUPLE;
+        case AV2H_OVERFLOW:
+        case AV2H_LIMIT_EXCEEDED:
+        case AV2H_OUT_OF_MEMORY:
+            return AV2H_DIAGNOSTIC_REASON_RESOURCE;
+        default: return AV2H_DIAGNOSTIC_REASON_NONE;
+    }
+}
+
+static void decode_error_diagnostics_clear(Av2hError *error) {
+    if (error == 0) return;
+    error->diagnostic_stage = AV2H_DIAGNOSTIC_STAGE_NONE;
+    error->diagnostic_reason = AV2H_DIAGNOSTIC_REASON_NONE;
+    error->syntax_stage = 0U;
+    error->plane = 0U;
+    error->row = 0U;
+    error->column = 0U;
+    error->entropy_tell = 0U;
+    error->parsed_value = 0U;
+}
+
 static Av2hStatus decode_fail(Av2hError *error,
                               Av2hStatus status,
                               uint32_t context) {
@@ -10,8 +37,61 @@ static Av2hStatus decode_fail(Av2hError *error,
         error->context = context;
         error->obu_index = SIZE_MAX;
         error->obu_type = 0U;
+        decode_error_diagnostics_clear(error);
+        error->diagnostic_reason = diagnostic_reason_from_status(status);
     }
     return status;
+}
+
+static uint8_t decode_result_stage(const Av2hFrameDecodeResult *result) {
+    switch (result->stage) {
+        case AV2H_FRAME_DECODE_STAGE_LUMA_PARSE:
+        case AV2H_FRAME_DECODE_STAGE_CHROMA_PARSE:
+            return result->syntax_stage != 0U ?
+                AV2H_DIAGNOSTIC_STAGE_COEFFICIENT :
+                AV2H_DIAGNOSTIC_STAGE_LEAF;
+        case AV2H_FRAME_DECODE_STAGE_LUMA_RECONSTRUCT:
+        case AV2H_FRAME_DECODE_STAGE_CHROMA_CROSS_TRANSFORM:
+        case AV2H_FRAME_DECODE_STAGE_CHROMA_RECONSTRUCT:
+            return AV2H_DIAGNOSTIC_STAGE_RECONSTRUCTION;
+        case AV2H_FRAME_DECODE_STAGE_FILTER:
+            return AV2H_DIAGNOSTIC_STAGE_FILTER;
+        case AV2H_FRAME_DECODE_STAGE_OUTPUT:
+            return AV2H_DIAGNOSTIC_STAGE_OUTPUT;
+        default: return AV2H_DIAGNOSTIC_STAGE_TILE;
+    }
+}
+
+static void decode_result_diagnostics(Av2hError *error,
+                                      const Av2hFrameDecodeResult *result) {
+    if (error == 0 || result == 0) return;
+    error->diagnostic_stage = decode_result_stage(result);
+    error->diagnostic_reason = diagnostic_reason_from_status(result->cause);
+    if (error->diagnostic_stage == AV2H_DIAGNOSTIC_STAGE_RECONSTRUCTION) {
+        error->diagnostic_reason = AV2H_DIAGNOSTIC_REASON_RECONSTRUCTION;
+    } else if (error->diagnostic_stage == AV2H_DIAGNOSTIC_STAGE_FILTER) {
+        error->diagnostic_reason = AV2H_DIAGNOSTIC_REASON_FILTER;
+    } else if (error->diagnostic_stage == AV2H_DIAGNOSTIC_STAGE_COEFFICIENT &&
+               error->diagnostic_reason == AV2H_DIAGNOSTIC_REASON_NONE) {
+        error->diagnostic_reason = AV2H_DIAGNOSTIC_REASON_ENTROPY;
+    }
+    error->syntax_stage = result->syntax_stage;
+    error->plane = result->plane;
+    error->row = result->row;
+    error->column = result->column;
+    error->entropy_tell = result->entropy_tell;
+    if (error->diagnostic_stage == AV2H_DIAGNOSTIC_STAGE_LEAF) {
+        error->parsed_value = result->mode;
+    } else if (error->diagnostic_stage == AV2H_DIAGNOSTIC_STAGE_COEFFICIENT) {
+        error->parsed_value = ((uint32_t)result->coefficient_kind << 24U) |
+            ((uint32_t)result->coefficient_context << 16U) |
+            result->coefficient_position;
+    } else if (error->diagnostic_stage ==
+               AV2H_DIAGNOSTIC_STAGE_RECONSTRUCTION) {
+        error->parsed_value = result->inverse_transform_stage;
+    } else if (error->diagnostic_stage == AV2H_DIAGNOSTIC_STAGE_FILTER) {
+        error->parsed_value = result->filter_reason;
+    }
 }
 
 static const Av2hObu *find_unique_obu(const Av2hObuLedger *ledger,
@@ -130,14 +210,15 @@ Av2hStatus av2h_decode_prepare(const Av2hHeifImage *image,
         image->source.config_obus, sequence_obu,
         &preparation->sequence, error);
     if (status != AV2H_OK) return status;
-    status = av2h_frame_header_closed_key_parse(
+    status = av2h_frame_header_closed_key_parse_diagnostic(
         (Av2hSpan){
             image->source.item_payload.data + frame_obu->payload_offset,
             frame_obu->payload_size
         },
-        &preparation->sequence, &preparation->frame);
+        &preparation->sequence, &preparation->frame, error);
     if (status != AV2H_OK) {
-        return decode_fail(error, status, AV2H_CONTEXT_FRAME);
+        if (error != 0) error->offset += frame_obu->payload_offset;
+        return status;
     }
     if (preparation->frame.width != image->width ||
         preparation->frame.height != image->height) {
@@ -193,6 +274,7 @@ Av2hStatus av2h_decode(Av2hSpan input,
                         error, sizeof(*error)))) {
         return AV2H_INVALID_ARGUMENT;
     }
+    decode_error_diagnostics_clear(error);
     status = av2h_query(input, 0, &fresh, error);
     if (status != AV2H_OK) return status;
     if (!info_matches(info, &fresh)) {
@@ -249,7 +331,14 @@ Av2hStatus av2h_decode(Av2hSpan input,
         &preparation.frame, &workspace, (uint8_t *)output_memory,
         output_size, &result);
     if (status != AV2H_OK) {
-        return decode_fail(error, status, decode_result_context(&result));
+        status = decode_fail(error, status, decode_result_context(&result));
+        decode_result_diagnostics(error, &result);
+        return status;
+    }
+    if (error != 0) {
+        decode_error_diagnostics_clear(error);
+        error->status = AV2H_OK;
+        error->diagnostic_stage = AV2H_DIAGNOSTIC_STAGE_COMPLETE;
     }
     return AV2H_OK;
 }

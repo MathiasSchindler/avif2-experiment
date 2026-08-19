@@ -1,0 +1,86 @@
+{
+  "schema": "av2h-spatial-still-frontiers-v1",
+  "avm_revision": "966a7d7cd6fcf60360caf5dc413b2aeeb65e144d",
+  "cases": [
+    {
+      "case_id": "baya-weaver-le896-i420-qp128",
+      "encoded_sha256": "6bad8d604472fa8da50a21a4e0f6fa38ff5264d0e6157b4a3ba201d2112254da",
+      "decoded_sha256": "9b64c07fb9b41372b3cd72664053f14e2456ff899d9329167ce29b5dae42fa9f",
+      "entropy_tell": 164925,
+      "luma_leaves": 4295,
+      "chroma_leaves": 812,
+      "truncation": {
+        "stage": "leaf",
+        "reason": "truncated",
+        "syntax": "none",
+        "entropy_tell": 164921,
+        "luma_leaves": 4295,
+        "chroma_leaves": 811,
+        "row": 144,
+        "column": 208,
+        "plane": 1,
+        "parsed_value": 0
+      }
+    },
+    {
+      "case_id": "baya-weaver-le896-i420-qp152",
+      "encoded_sha256": "e6aba61141f226e1f642ee60fdbb49e64bd8f955b4abcc2bad25581e6fd24bdc",
+      "decoded_sha256": "239d00f0a2ebff5210a46092d6cfd14a05eefd3d0a31c600a1bef01932d1888d",
+      "entropy_tell": 82568,
+      "luma_leaves": 3086,
+      "chroma_leaves": 524,
+      "truncation": {
+        "stage": "leaf",
+        "reason": "truncated",
+        "syntax": "none",
+        "entropy_tell": 82562,
+        "luma_leaves": 3084,
+        "chroma_leaves": 523,
+        "row": 148,
+        "column": 208,
+        "plane": 0,
+        "parsed_value": 0
+      }
+    },
+    {
+      "case_id": "baya-weaver-le896-i420-qp192",
+      "encoded_sha256": "780a2dea0dc937c23ad801231920f4187a13a64f7f7ac1505c139be4384c8dca",
+      "decoded_sha256": "3affee3b84625bd564685b5201a7e29a5c186a00be721b0a744aaf5ae9084d5c",
+      "entropy_tell": 19477,
+      "luma_leaves": 1136,
+      "chroma_leaves": 195,
+      "truncation": {
+        "stage": "leaf",
+        "reason": "truncated",
+        "syntax": "none",
+        "entropy_tell": 19473,
+        "luma_leaves": 1135,
+        "chroma_leaves": 194,
+        "row": 128,
+        "column": 208,
+        "plane": 0,
+        "parsed_value": 7
+      }
+    },
+    {
+      "case_id": "scarlet-flycatcher-le896-i420-qp152",
+      "encoded_sha256": "e173c70538f579cfa1a79ca9a04d53de62a221530231af0915ca90e2df24d7a5",
+      "decoded_sha256": "71ecdf1ef56d325931f01b7e4861e3b6e9bda571f63653f3563648e460bba5b2",
+      "entropy_tell": 112962,
+      "luma_leaves": 3840,
+      "chroma_leaves": 815,
+      "truncation": {
+        "stage": "leaf",
+        "reason": "truncated",
+        "syntax": "none",
+        "entropy_tell": 112961,
+        "luma_leaves": 3840,
+        "chroma_leaves": 814,
+        "row": 144,
+        "column": 208,
+        "plane": 1,
+        "parsed_value": 0
+      }
+    }
+  ]
+}

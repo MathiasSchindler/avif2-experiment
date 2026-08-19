@@ -525,7 +525,7 @@ Av2hStatus av2h_decode_frame_planar_with_execution_private(
                     0U, &leaf.node, 0U);
             }
                         if (decoder.chroma.shared_resume_luma &&
-                                !(frame->base_q_index == 0U &&
+                                !(decoder.luma.coding_mode.q_index == 0U &&
                                     decoder.luma.coding_mode.lossless_tx_size_large == 0U)) {
                 if (pending_chroma_count >= 4U) {
                     AV2H_DECODE_FAIL(

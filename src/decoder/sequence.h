@@ -3,7 +3,8 @@
 
 #include "base.h"
 
-#define AV2H_SEGMENT_COUNT 8U
+#define AV2H_BASE_SEGMENT_COUNT 8U
+#define AV2H_SEGMENT_COUNT 16U
 
 typedef struct {
     Av2hSequenceInfo info;
@@ -63,6 +64,12 @@ typedef struct {
     uint8_t deblock_parameter_bits_minus_2;
     uint8_t seq_tile_info_present_flag;
 } Av2hSequenceState;
+
+static inline size_t av2h_sequence_segment_count(
+    const Av2hSequenceState *sequence) {
+    return sequence != 0 && sequence->enable_ext_seg != 0U ?
+        AV2H_SEGMENT_COUNT : AV2H_BASE_SEGMENT_COUNT;
+}
 
 static inline int av2h_sequence_is_monochrome(
     const Av2hSequenceState *sequence) {

@@ -108,10 +108,10 @@ static Av2hStatus decode_obu(Av2hSpan input,
                             uint16_t *height,
                             uint8_t *chroma_format_idc,
                             Av2hPixelFormat *output_format,
-                            Av2hFrameDecodeResult *decode_result) {
+                            Av2hFrameDecodeResult *decode_result,
+                            Av2hError *diagnostic) {
     Av2hObu entries[4U];
     Av2hObuLedger ledger = { entries, 4U, 0U };
-    Av2hError error;
     const Av2hObu *sequence_obu;
     const Av2hObu *frame_obu;
     Av2hSequenceState sequence;
@@ -124,7 +124,9 @@ static Av2hStatus decode_obu(Av2hSpan input,
     Av2hFrameDecodeWorkspaceLayout workspace_layout;
     size_t output_size = 0U;
     size_t bytes_per_sample;
-    Av2hStatus status = av2h_obu_parse(input, &ledger, &error);
+    Av2hStatus status;
+    av2h_memory_fill(diagnostic, 0U, sizeof(*diagnostic));
+    status = av2h_obu_parse(input, &ledger, diagnostic);
     if (status != AV2H_OK) return status;
     if (find_obu(&ledger, AV2H_OBU_QUANTIZATION_MATRIX) != NULL) {
         return AV2H_UNSUPPORTED;
@@ -132,13 +134,17 @@ static Av2hStatus decode_obu(Av2hSpan input,
     sequence_obu = find_obu(&ledger, AV2H_OBU_SEQUENCE_HEADER);
     frame_obu = find_obu(&ledger, AV2H_OBU_CLOSED_LOOP_KEY);
     if (sequence_obu == NULL || frame_obu == NULL) return AV2H_INVALID_DATA;
-    status = av2h_sequence_state_parse(input, sequence_obu, &sequence, &error);
+    status = av2h_sequence_state_parse(
+        input, sequence_obu, &sequence, diagnostic);
     if (status != AV2H_OK) return status;
-    status = av2h_frame_header_closed_key_parse(
+    status = av2h_frame_header_closed_key_parse_diagnostic(
         (Av2hSpan){ input.data + frame_obu->payload_offset,
                     frame_obu->payload_size },
-        &sequence, &frame);
-    if (status != AV2H_OK) return status;
+        &sequence, &frame, diagnostic);
+    if (status != AV2H_OK) {
+        diagnostic->offset += frame_obu->payload_offset;
+        return status;
+    }
     status = av2h_tile_group_single_parse(
         (Av2hSpan){ input.data + frame_obu->payload_offset,
                     frame_obu->payload_size },
@@ -183,6 +189,11 @@ static Av2hStatus decode_obu(Av2hSpan input,
         release_memory(output);
         return status;
     }
+    diagnostic->status = AV2H_OK;
+    diagnostic->diagnostic_stage = AV2H_DIAGNOSTIC_STAGE_COMPLETE;
+    diagnostic->diagnostic_reason = AV2H_DIAGNOSTIC_REASON_NONE;
+    diagnostic->syntax_stage = AV2H_DIAGNOSTIC_SYNTAX_NONE;
+    diagnostic->entropy_tell = decode_result->entropy_tell;
     *width = frame.width;
     *height = frame.height;
     *chroma_format_idc = frame.chroma_format_idc;
@@ -315,8 +326,71 @@ static void usage(const char *program) {
     fprintf(stderr,
             "usage: %s INPUT.obu -o "
             "OUTPUT.i400|OUTPUT.i420|OUTPUT.i444|"
-            "OUTPUT.yuv420p10le|OUTPUT.yuv444p10le|OUTPUT.bmp|OUTPUT.png\n",
+            "OUTPUT.yuv420p10le|OUTPUT.yuv444p10le|OUTPUT.bmp|OUTPUT.png "
+            "[--diagnostics]\n",
             program);
+}
+
+static void write_diagnostics_json(const Av2hError *diagnostic,
+                                   const Av2hFrameDecodeResult *result) {
+    uint8_t stage = diagnostic->diagnostic_stage;
+    uint8_t reason = diagnostic->diagnostic_reason;
+    uint8_t syntax = diagnostic->syntax_stage;
+    size_t tell = diagnostic->entropy_tell;
+    uint16_t row = diagnostic->row;
+    uint16_t column = diagnostic->column;
+    uint8_t plane = diagnostic->plane;
+    uint32_t parsed_value = diagnostic->parsed_value;
+    if (stage == AV2H_DIAGNOSTIC_STAGE_NONE && result->stage != 0U) {
+        stage = result->stage == AV2H_FRAME_DECODE_STAGE_FILTER ?
+            AV2H_DIAGNOSTIC_STAGE_FILTER :
+            result->stage == AV2H_FRAME_DECODE_STAGE_LUMA_RECONSTRUCT ||
+            result->stage == AV2H_FRAME_DECODE_STAGE_CHROMA_CROSS_TRANSFORM ||
+            result->stage == AV2H_FRAME_DECODE_STAGE_CHROMA_RECONSTRUCT ?
+                AV2H_DIAGNOSTIC_STAGE_RECONSTRUCTION :
+            result->stage == AV2H_FRAME_DECODE_STAGE_LUMA_PARSE ||
+            result->stage == AV2H_FRAME_DECODE_STAGE_CHROMA_PARSE ?
+                (result->syntax_stage != 0U ?
+                    AV2H_DIAGNOSTIC_STAGE_COEFFICIENT :
+                    AV2H_DIAGNOSTIC_STAGE_LEAF) :
+                AV2H_DIAGNOSTIC_STAGE_TILE;
+        reason = result->cause == AV2H_INVALID_ARGUMENT ?
+            AV2H_DIAGNOSTIC_REASON_ARGUMENT :
+            result->cause == AV2H_TRUNCATED ?
+            AV2H_DIAGNOSTIC_REASON_TRUNCATED :
+            result->cause == AV2H_INVALID_DATA ?
+                AV2H_DIAGNOSTIC_REASON_MALFORMED :
+            result->cause == AV2H_OUT_OF_MEMORY ||
+            result->cause == AV2H_LIMIT_EXCEEDED ||
+            result->cause == AV2H_OVERFLOW ?
+                AV2H_DIAGNOSTIC_REASON_RESOURCE :
+                AV2H_DIAGNOSTIC_REASON_UNSUPPORTED_TUPLE;
+        syntax = result->syntax_stage;
+        tell = result->entropy_tell;
+        row = result->row;
+        column = result->column;
+        plane = result->plane;
+        parsed_value = stage == AV2H_DIAGNOSTIC_STAGE_LEAF ? result->mode :
+            stage == AV2H_DIAGNOSTIC_STAGE_COEFFICIENT ?
+                ((uint32_t)result->coefficient_kind << 24U) |
+                ((uint32_t)result->coefficient_context << 16U) |
+                result->coefficient_position :
+            stage == AV2H_DIAGNOSTIC_STAGE_RECONSTRUCTION ?
+                result->inverse_transform_stage :
+            stage == AV2H_DIAGNOSTIC_STAGE_FILTER ? result->filter_reason : 0U;
+    }
+    printf("{\"status\":\"%s\",\"stage\":\"%s\","
+           "\"reason\":\"%s\",\"syntax\":\"%s\","
+           "\"offset\":%zu,\"entropy_tell\":%zu,"
+           "\"parsed_value\":%u,\"row\":%u,\"column\":%u,"
+           "\"plane\":%u,\"luma_leaves\":%zu,"
+           "\"chroma_leaves\":%zu}\n",
+           av2h_status_string(diagnostic->status),
+           av2h_diagnostic_stage_string(stage),
+           av2h_diagnostic_reason_string(reason),
+           av2h_diagnostic_syntax_string(syntax), diagnostic->offset, tell,
+           parsed_value, row, column, plane, result->luma_leaf_count,
+           result->chroma_leaf_count);
 }
 
 int main(int argc, char **argv) {
@@ -327,10 +401,13 @@ int main(int argc, char **argv) {
     uint8_t chroma_format_idc = 0U;
     Av2hPixelFormat output_format;
     Av2hFrameDecodeResult decode_result = { 0 };
+    Av2hError diagnostic = { 0 };
     const char *raw_extension;
     Av2hStatus status;
     int written;
-    if (argc != 4 || strcmp(argv[2], "-o") != 0 ||
+    int diagnostics_enabled = argc == 5 &&
+        strcmp(argv[4], "--diagnostics") == 0;
+    if ((argc != 4 && !diagnostics_enabled) || strcmp(argv[2], "-o") != 0 ||
         !(is_raw_output_path(argv[3]) || ends_with(argv[3], ".bmp") ||
           ends_with(argv[3], ".png"))) {
         usage(argv[0]);
@@ -342,8 +419,13 @@ int main(int argc, char **argv) {
     }
     status = decode_obu(
         (Av2hSpan){ input.memory, input.size }, &output,
-        &width, &height, &chroma_format_idc, &output_format, &decode_result);
+        &width, &height, &chroma_format_idc, &output_format, &decode_result,
+        &diagnostic);
     if (status != AV2H_OK) {
+        diagnostic.status = status;
+        if (diagnostics_enabled) {
+            write_diagnostics_json(&diagnostic, &decode_result);
+        }
         fprintf(stderr,
             "error: decode failed: %s (cause %u, stage %u, tell %zu)\n",
                 av2h_status_string(status), decode_result.cause,
@@ -390,6 +472,9 @@ int main(int argc, char **argv) {
         written = write_entire_file(argv[3], output.memory, output.size);
     }
     if (!written) fprintf(stderr, "error: cannot write output\n");
+    if (written && diagnostics_enabled) {
+        write_diagnostics_json(&diagnostic, &decode_result);
+    }
     release_memory(&output);
     release_memory(&input);
     return written ? 0 : 1;

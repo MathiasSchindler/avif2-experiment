@@ -853,7 +853,7 @@ Av2hStatus av2h_tile_decoder_next_luma(
             (decoder->luma.tx_partition == 6U ||
              decoder->luma.tx_partition == 7U) &&
             decoder->luma.tx_index >= 1U);
-        status = decoder->entropy_state.frame->base_q_index == 0U &&
+        status = decoder->luma.coding_mode.q_index == 0U &&
             decoder->luma.coding_mode.lossless_tx_size_large == 0U ?
             av2h_luma_lossless_tx_node_get(
                     &decoder->luma.coding_node, decoder->traversal.mi_columns,
@@ -942,7 +942,7 @@ Av2hStatus av2h_tile_decoder_next_luma(
     status = av2h_luma_palette_map_read(
         &decoder->entropy_state.range, &decoder->entropy_state.leaf_cdfs, &leaf->node, &leaf->mode);
     if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
-    if (decoder->entropy_state.frame->base_q_index == 0U &&
+    if (leaf->mode.q_index == 0U &&
         leaf->mode.skip_transform == 0U &&
         (leaf->mode.fsc_mode != 0U || leaf->mode.use_intrabc != 0U) &&
         leaf->node.block_size != AV2H_BLOCK_4X4) {
@@ -997,7 +997,7 @@ Av2hStatus av2h_tile_decoder_next_luma(
     if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
     status = decoder->luma.selected_tx_count != 0U ?
         (tx_count = decoder->luma.selected_tx_count, AV2H_OK) :
-        decoder->entropy_state.frame->base_q_index == 0U &&
+        leaf->mode.q_index == 0U &&
             leaf->mode.lossless_tx_size_large == 0U ?
         av2h_luma_lossless_tx_node_count(
             &leaf->node, decoder->traversal.mi_columns, decoder->traversal.mi_rows, &tx_count) :
@@ -1010,7 +1010,7 @@ Av2hStatus av2h_tile_decoder_next_luma(
             sizeof(decoder->luma.coding_mode));
         decoder->luma.tx_index = 0U;
         decoder->luma.tx_count = tx_count;
-        status = decoder->entropy_state.frame->base_q_index == 0U &&
+        status = decoder->luma.coding_mode.q_index == 0U &&
             decoder->luma.coding_mode.lossless_tx_size_large == 0U ?
             av2h_luma_lossless_tx_node_get(
                 &decoder->luma.coding_node, decoder->traversal.mi_columns,

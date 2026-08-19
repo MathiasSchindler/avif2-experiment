@@ -28,6 +28,10 @@ freestanding, no-libc, sanitizer, and relevant platform gates.
 3. Keep the machine-readable suite recipes, locks, capability matrix, and
    public README synchronized when a profile boundary changes.
 
+The milestone plan for extending this evidence and implementation to the broad
+one-picture 8-bit spatial profile is in
+[dev/spatial-still.md](dev/spatial-still.md).
+
 ## Encoder research
 
 The measured encoder backlog remains in
