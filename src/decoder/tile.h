@@ -57,6 +57,7 @@ typedef struct {
 typedef struct {
     uint16_t restore_cdf[AV2H_BINARY_CDF_SIZE];
     uint16_t pc_wiener_restore_cdf[AV2H_BINARY_CDF_SIZE];
+    uint16_t switchable_restore_cdf[2U][AV2H_BINARY_CDF_SIZE];
     uint16_t length_cdf[2U][AV2H_BINARY_CDF_SIZE];
     uint16_t uv_sym_cdf[AV2H_BINARY_CDF_SIZE];
     uint16_t four_part_cdf[8U];

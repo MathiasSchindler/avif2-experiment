@@ -344,41 +344,75 @@ static Av2hStatus tile_read_restoration_units(Av2hTileDecoder *decoder) {
                 size_t unit_index = unit_row * state->unit_columns[plane] +
                     unit_column;
                 uint32_t value;
+                uint8_t unit_type = AV2H_RESTORE_NONE;
                 int16_t *taps;
                 Av2hStatus status;
                 if (unit_index >= state->unit_capacity[plane] ||
                     unit_index != state->decoded_count[plane]) {
                     return AV2H_INVALID_DATA;
                 }
-                value = av2h_range_read_adaptive(
-                    &decoder->entropy_state.range,
-                    decoder->entropy_state.frame->restoration_type[plane] ==
-                            AV2H_RESTORE_PC_WIENER ?
-                        state->pc_wiener_restore_cdf : state->restore_cdf,
-                    2U);
-                if (av2h_range_status(&decoder->entropy_state.range) != AV2H_OK) {
-                    return av2h_range_status(&decoder->entropy_state.range);
+                if (decoder->entropy_state.frame->restoration_type[plane] ==
+                        AV2H_RESTORE_SWITCHABLE) {
+                    unsigned int candidate;
+                    if (plane != 0U) return AV2H_INVALID_DATA;
+                    unit_type = AV2H_RESTORE_WIENER_NONSEP;
+                    for (candidate = AV2H_RESTORE_NONE;
+                         candidate < AV2H_RESTORE_WIENER_NONSEP;
+                         ++candidate) {
+                        if ((decoder->entropy_state.sequence->
+                                lr_tools_disable_mask[0] &
+                             (1U << candidate)) != 0U) {
+                            continue;
+                        }
+                        value = av2h_range_read_adaptive(
+                            &decoder->entropy_state.range,
+                            state->switchable_restore_cdf[candidate], 2U);
+                        if (av2h_range_status(&decoder->entropy_state.range) !=
+                            AV2H_OK) {
+                            return av2h_range_status(
+                                &decoder->entropy_state.range);
+                        }
+                        if (value != 0U) {
+                            unit_type = (uint8_t)candidate;
+                            break;
+                        }
+                    }
+                } else {
+                    value = av2h_range_read_adaptive(
+                        &decoder->entropy_state.range,
+                        decoder->entropy_state.frame->restoration_type[plane] ==
+                                AV2H_RESTORE_PC_WIENER ?
+                            state->pc_wiener_restore_cdf : state->restore_cdf,
+                        2U);
+                    if (av2h_range_status(&decoder->entropy_state.range) !=
+                        AV2H_OK) {
+                        return av2h_range_status(&decoder->entropy_state.range);
+                    }
+                    if (value != 0U) {
+                        unit_type = decoder->entropy_state.frame->
+                            restoration_type[plane];
+                    }
                 }
-                if (value > 1U) return AV2H_INVALID_DATA;
-                state->unit_flags[plane][unit_index] = (uint8_t)value;
+                state->unit_flags[plane][unit_index] = unit_type;
                 taps = state->unit_taps[plane] +
                     unit_index * AV2H_WIENER_NONSEP_MAX_TAPS;
-                if (value != 0U) {
-                    if (decoder->entropy_state.frame->restoration_type[plane] ==
-                        AV2H_RESTORE_PC_WIENER) {
+                if (unit_type != AV2H_RESTORE_NONE) {
+                    if (unit_type == AV2H_RESTORE_PC_WIENER) {
                         av2h_memory_fill(
                             taps, 0U,
                             AV2H_WIENER_NONSEP_MAX_TAPS * sizeof(taps[0]));
-                    } else if (
+                    } else if (unit_type == AV2H_RESTORE_WIENER_NONSEP &&
                         decoder->entropy_state.frame->restoration_frame_filters_on[plane]) {
                         av2h_memory_copy(
                             taps,
                             decoder->entropy_state.frame->restoration_frame_filter[plane][0],
                             AV2H_WIENER_NONSEP_MAX_TAPS * sizeof(taps[0]));
-                    } else {
+                    } else if (unit_type == AV2H_RESTORE_WIENER_NONSEP) {
                         status = tile_read_wiener_unit_filter(
                             decoder, plane, taps);
                         if (status != AV2H_OK) return status;
+                    } else {
+                        return AV2H_INVALID_DATA;
                     }
                 } else {
                     av2h_memory_fill(

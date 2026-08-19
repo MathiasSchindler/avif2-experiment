@@ -474,8 +474,8 @@ static void read_restoration(Av2hBitReader *reader,
         tool_index = av2h_bit_reader_quasi_uniform(reader, tool_count);
         if (reader->status != AV2H_OK || tool_index >= tool_count) return;
         frame->restoration_type[plane] = index_to_tool[tool_index];
-        if (frame->restoration_type[plane] ==
-            AV2H_RESTORE_WIENER_NONSEP) {
+        if (frame->restoration_type[plane] == AV2H_RESTORE_WIENER_NONSEP ||
+            frame->restoration_type[plane] == AV2H_RESTORE_SWITCHABLE) {
             frame->restoration_frame_filters_on[plane] =
                 (uint8_t)av2h_bit_reader_read(reader, 1U);
             frame->restoration_num_filter_classes[plane] =
@@ -489,10 +489,10 @@ static void read_restoration(Av2hBitReader *reader,
             else uses_chroma = 1U;
         }
         if (frame->restoration_type[plane] != AV2H_RESTORE_NONE &&
-            (plane != 0U || frame->restoration_type[plane] !=
-                  AV2H_RESTORE_PC_WIENER) &&
-              frame->restoration_type[plane] !=
-                  AV2H_RESTORE_WIENER_NONSEP) {
+            (plane != 0U ||
+             (frame->restoration_type[plane] != AV2H_RESTORE_PC_WIENER &&
+              frame->restoration_type[plane] != AV2H_RESTORE_SWITCHABLE)) &&
+            frame->restoration_type[plane] != AV2H_RESTORE_WIENER_NONSEP) {
             frame_fail(reader, AV2H_UNSUPPORTED);
             return;
         }

@@ -125,7 +125,8 @@ static inline size_t av2h_frame_mi_dimension(uint16_t pixels) {
 static inline int av2h_frame_restoration_needs_tx_skip(
     const Av2hFrameState *frame) {
     if (frame == 0) return 0;
-    if (frame->restoration_type[0] == AV2H_RESTORE_PC_WIENER) return 1;
+    if (frame->restoration_type[0] == AV2H_RESTORE_PC_WIENER ||
+        frame->restoration_type[0] == AV2H_RESTORE_SWITCHABLE) return 1;
     return frame->restoration_type[0] == AV2H_RESTORE_WIENER_NONSEP &&
         frame->restoration_num_filter_classes[0] > 1U;
 }

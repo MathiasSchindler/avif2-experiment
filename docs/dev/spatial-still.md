@@ -212,6 +212,9 @@ coefficient counts, scan bounds, transform geometry, and prediction references.
 
 ## Milestone 4: complete 8-bit restoration
 
+**Status:** implementation complete on 19 August 2026; the profile exit gate
+remains open on an upstream I444 chroma-reconstruction parity blocker.
+
 Extend restoration from the currently admitted PC-Wiener and Wiener-nonsep
 subsets to every still-applicable 8-bit combination.
 
@@ -228,6 +231,36 @@ subsets to every still-applicable 8-bit combination.
 **Exit gate:** stage-local and final-plane hashes match pinned AVM for each
 restoration family and representative switchable combinations, with malformed
 unit maps and parameters rejected before destination mutation.
+
+Switchable luma restoration now uses the pinned AVM binary-search syntax and
+adaptive CDF defaults, stores the selected tool for every unit, and composes
+PC-Wiener before Wiener-nonsep without allowing either stage to overwrite units
+owned by the other. Fixed-tool syntax and CDF behavior remain unchanged.
+I400, I420, and I444 unit geometry is admitted; chroma Wiener uses format-aware
+luma geometry, while switchable restoration remains correctly restricted to
+luma.
+
+Top-level filter validation now checks every active plane's unit dimensions,
+count, tap storage, and legal fixed or switchable tool references before any
+destination stage is mutated. The added switchable CDF state is covered by the
+64-bit layout lock (70,072-byte `Av2hTileDecoder`), checked frame-workspace
+accounting, ASan/UBSan tests, forced-freestanding compilation, and Linux
+no-libc parity.
+
+Pinned-AVM evidence includes exact existing PC-Wiener and I420 Wiener-nonsep
+vectors, an exact 896x598 I400 Wiener-nonsep vector with 35 units, and an exact
+320x320 switchable vector whose 3x3 luma map contains eight Wiener-nonsep units
+and one PC-Wiener unit. Three length truncations of the switchable stream fail
+without creating output. The switchable final-plane SHA-256 is
+`05106be4786a46ffb63e4b0b59246427bce975b2caced87b56ef65149e226f87`;
+the I400 hash is
+`52728f282547295784ea853108f53744befad48a319559c183fd6e02cd830cb5`.
+
+The remaining exit-gate failure is not in restoration: for a generated I444
+control stream, Y matches pinned AVM but U/V already differ with restoration,
+CDEF, and deblocking all disabled. I444 all-plane Wiener parsing stays entropy
+synchronized and restored Y is exact, but final U/V hashes cannot be accepted
+until that earlier chroma reconstruction mismatch is resolved.
 
 ## Milestone 5: spatial tiles and tile groups
 

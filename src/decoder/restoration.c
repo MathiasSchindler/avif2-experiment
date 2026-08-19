@@ -358,7 +358,8 @@ Av2hStatus av2h_pc_wiener_filter_luma(
         destination->stride_samples < destination->width ||
         source->stride_samples < source->width ||
         deblocked->stride_samples < deblocked->width ||
-        frame->restoration_type[0] != AV2H_RESTORE_PC_WIENER) {
+        (frame->restoration_type[0] != AV2H_RESTORE_PC_WIENER &&
+         frame->restoration_type[0] != AV2H_RESTORE_SWITCHABLE)) {
         return AV2H_INVALID_ARGUMENT;
     }
     filter_set = pc_wiener_filter_set_index(frame->base_q_index);
@@ -377,7 +378,8 @@ Av2hStatus av2h_pc_wiener_filter_luma(
                 source->width : unit_x0 + controls->unit_size[0];
             int stripe_start;
             if (controls->unit_flags[0][
-                    unit_row * controls->unit_columns[0] + unit_column] == 0U) {
+                    unit_row * controls->unit_columns[0] + unit_column] !=
+                AV2H_RESTORE_PC_WIENER) {
                 continue;
             }
             for (stripe_start = unit_y0; stripe_start < unit_y1;) {
@@ -441,11 +443,16 @@ Av2hStatus av2h_pc_wiener_filter_luma(
 
 static uint8_t wiener_nonsep_luma_sample(
     const Av2hPcWienerSource *luma, uint8_t filter_index,
-    int row, int column) {
-    int chroma_height = (luma->source->height + 1) >> 1;
-    int chroma_width = (luma->source->width + 1) >> 1;
+    unsigned int chroma_shift, int row, int column) {
+    int chroma_height =
+        (luma->source->height + ((int)1 << chroma_shift) - 1) >> chroma_shift;
+    int chroma_width =
+        (luma->source->width + ((int)1 << chroma_shift) - 1) >> chroma_shift;
     row = clamp_coordinate(row, chroma_height);
     column = clamp_coordinate(column, chroma_width);
+    if (chroma_shift == 0U) {
+        return pc_wiener_source_sample(luma, row, column);
+    }
     if (filter_index == 1U) {
         return (uint8_t)(((unsigned int)pc_wiener_source_sample(
                               luma, row * 2, column * 2) +
@@ -500,7 +507,8 @@ static void wiener_nonsep_filter_luma_region(
 static void wiener_nonsep_filter_chroma_region(
     Av2hFilterPlane *destination, const Av2hPcWienerSource *source,
     const Av2hPcWienerSource *luma, uint8_t luma_filter_index,
-    int y0, int y1, int x0, int x1, const int16_t *taps) {
+    unsigned int chroma_shift, int y0, int y1, int x0, int x1,
+    const int16_t *taps) {
     static const int8_t uv_row[6] = { 1, 0, 1, -1, 2, 0 };
     static const int8_t uv_column[6] = { 0, 1, 1, 1, 0, 2 };
     static const int8_t luma_row[12] = {
@@ -515,7 +523,7 @@ static void wiener_nonsep_filter_chroma_region(
         for (column = x0; column < x1; ++column) {
             int center = pc_wiener_source_sample(source, row, column);
             int luma_center = wiener_nonsep_luma_sample(
-                luma, luma_filter_index, row, column);
+                luma, luma_filter_index, chroma_shift, row, column);
             int32_t value = center << 7U;
             unsigned int tap;
             for (tap = 0U; tap < 6U; ++tap) {
@@ -530,7 +538,8 @@ static void wiener_nonsep_filter_chroma_region(
             for (tap = 0U; tap < 12U; ++tap) {
                 value += taps[tap + 6U] * (
                     (int)wiener_nonsep_luma_sample(
-                        luma, luma_filter_index, row + luma_row[tap],
+                        luma, luma_filter_index, chroma_shift,
+                        row + luma_row[tap],
                         column + luma_column[tap]) - luma_center);
             }
             destination->data[(size_t)row * destination->stride_samples +
@@ -547,7 +556,7 @@ Av2hStatus av2h_wiener_nonsep_filter_frame(
     const Av2hRestorationControlMap *controls) {
     unsigned int plane;
     if (destination == 0 || source == 0 || deblocked == 0 || sequence == 0 ||
-        frame == 0 || controls == 0 || frame->chroma_format_idc != 0U) {
+        frame == 0 || controls == 0 || frame->chroma_format_idc > 2U) {
         return AV2H_INVALID_ARGUMENT;
     }
     for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
@@ -562,7 +571,8 @@ Av2hStatus av2h_wiener_nonsep_filter_frame(
         unsigned int class_count =
             frame->restoration_num_filter_classes[plane];
         const uint8_t *class_map = 0;
-        if (frame->restoration_type[plane] != AV2H_RESTORE_WIENER_NONSEP) {
+        if (frame->restoration_type[plane] != AV2H_RESTORE_WIENER_NONSEP &&
+            frame->restoration_type[plane] != AV2H_RESTORE_SWITCHABLE) {
             continue;
         }
         if (input->data == 0 || deblocked_plane->data == 0 ||
@@ -573,7 +583,9 @@ Av2hStatus av2h_wiener_nonsep_filter_frame(
             input->height != deblocked_plane->height) {
             return AV2H_UNSUPPORTED;
         }
-        filter_copy_plane(output, input);
+        if (frame->restoration_type[plane] != AV2H_RESTORE_SWITCHABLE) {
+            filter_copy_plane(output, input);
+        }
         if (class_count == 0U ||
             class_count > AV2H_WIENER_NONSEP_MAX_CLASSES ||
             controls->unit_flags[plane] == 0 ||
@@ -616,7 +628,8 @@ Av2hStatus av2h_wiener_nonsep_filter_frame(
                 int stripe_start;
                 const int16_t *taps = controls->unit_taps[plane] +
                     unit_index * AV2H_WIENER_NONSEP_MAX_TAPS;
-                if (controls->unit_flags[plane][unit_index] == 0U) continue;
+                if (controls->unit_flags[plane][unit_index] !=
+                    AV2H_RESTORE_WIENER_NONSEP) continue;
                 for (stripe_start = unit_y0; stripe_start < unit_y1;) {
                     int relative_stripe =
                         (stripe_start + unit_offset) / stripe_size;
@@ -685,12 +698,13 @@ Av2hStatus av2h_wiener_nonsep_filter_frame(
                     } else {
                         Av2hPcWienerSource luma = {
                             &source->plane[0], &deblocked->plane[0],
-                            stripe_start << 1U,
-                            (stripe_start + stripe_height) << 1U
+                            stripe_start << shift,
+                            (stripe_start + stripe_height) << shift
                         };
                         wiener_nonsep_filter_chroma_region(
                             output, &context, &luma,
                             sequence->cfl_downsample_filter_index,
+                            shift,
                             stripe_start, stripe_start + stripe_height,
                             unit_x0, unit_x1, taps);
                     }

@@ -37,6 +37,46 @@ static void set_filter_reason(
 #endif
 }
 
+static int restoration_controls_valid(
+    const Av2hFrameState *frame,
+    const Av2hRestorationControlMap *controls) {
+    unsigned int plane;
+    for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
+        size_t unit_count;
+        size_t unit_index;
+        uint8_t frame_type = frame->restoration_type[plane];
+        if (frame_type == AV2H_RESTORE_NONE) continue;
+        if (controls->unit_flags[plane] == 0 ||
+            controls->unit_taps[plane] == 0 ||
+            controls->unit_columns[plane] !=
+                frame->restoration_unit_columns[plane] ||
+            controls->unit_rows[plane] !=
+                frame->restoration_unit_rows[plane] ||
+            controls->unit_size[plane] !=
+                frame->restoration_unit_size[plane] ||
+            !av2h_size_multiply(
+                controls->unit_columns[plane],
+                controls->unit_rows[plane], &unit_count) ||
+            unit_count != frame->restoration_unit_count[plane]) {
+            return 0;
+        }
+        for (unit_index = 0U; unit_index < unit_count; ++unit_index) {
+            uint8_t unit_type = controls->unit_flags[plane][unit_index];
+            if (unit_type == AV2H_RESTORE_NONE) continue;
+            if (frame_type == AV2H_RESTORE_SWITCHABLE) {
+                if (plane != 0U ||
+                    (unit_type != AV2H_RESTORE_PC_WIENER &&
+                     unit_type != AV2H_RESTORE_WIENER_NONSEP)) {
+                    return 0;
+                }
+            } else if (unit_type != frame_type) {
+                return 0;
+            }
+        }
+    }
+    return 1;
+}
+
 Av2hStatus av2h_filter_frame(
     Av2hFilterPlanes *planes,
     const Av2hSequenceState *sequence,
@@ -61,7 +101,8 @@ Av2hStatus av2h_filter_frame(
     if (sequence->enable_restoration != 0U &&
         ((frame->restoration_type[0] != AV2H_RESTORE_NONE &&
           frame->restoration_type[0] != AV2H_RESTORE_PC_WIENER &&
-          frame->restoration_type[0] != AV2H_RESTORE_WIENER_NONSEP) ||
+                    frame->restoration_type[0] != AV2H_RESTORE_WIENER_NONSEP &&
+                    frame->restoration_type[0] != AV2H_RESTORE_SWITCHABLE) ||
          (frame->restoration_type[1] != AV2H_RESTORE_NONE &&
           frame->restoration_type[1] != AV2H_RESTORE_WIENER_NONSEP) ||
          (frame->restoration_type[2] != AV2H_RESTORE_NONE &&
@@ -96,19 +137,14 @@ Av2hStatus av2h_filter_frame(
         set_filter_reason(workspace, 6U);
         return AV2H_INVALID_ARGUMENT;
     }
-    if (frame->restoration_type[0] != AV2H_RESTORE_NONE &&
-        (workspace->restoration.data == 0 ||
-         workspace->restoration_controls.unit_flags[0] == 0 ||
-         workspace->restoration_controls.unit_columns[0] !=
-             frame->restoration_unit_columns[0] ||
-         workspace->restoration_controls.unit_rows[0] !=
-             frame->restoration_unit_rows[0] ||
-         workspace->restoration_controls.unit_size[0] !=
-             frame->restoration_unit_size[0] ||
+    if (!restoration_controls_valid(
+            frame, &workspace->restoration_controls) ||
+        (frame->restoration_type[0] != AV2H_RESTORE_NONE &&
+         (workspace->restoration.data == 0 ||
          planes->plane[0].data == workspace->restoration.data ||
          workspace->deblocked.plane[0].data ==
              workspace->restoration.data ||
-         workspace->cdef.plane[0].data == workspace->restoration.data)) {
+         workspace->cdef.plane[0].data == workspace->restoration.data))) {
         set_filter_reason(workspace, 6U);
         return AV2H_INVALID_ARGUMENT;
     }
@@ -139,7 +175,8 @@ Av2hStatus av2h_filter_frame(
         workspace->deblocked.plane[0].stride_samples, frame,
         &workspace->ccso_controls);
     if (status != AV2H_OK) return status;
-    if (frame->restoration_type[0] == AV2H_RESTORE_PC_WIENER) {
+    if (frame->restoration_type[0] == AV2H_RESTORE_PC_WIENER ||
+        frame->restoration_type[0] == AV2H_RESTORE_SWITCHABLE) {
         if (workspace->restoration_controls.tx_skip == 0) {
             return AV2H_INVALID_ARGUMENT;
         }
@@ -150,6 +187,7 @@ Av2hStatus av2h_filter_frame(
         if (status != AV2H_OK) return status;
     }
     if (frame->restoration_type[0] == AV2H_RESTORE_WIENER_NONSEP ||
+        frame->restoration_type[0] == AV2H_RESTORE_SWITCHABLE ||
         frame->restoration_type[1] == AV2H_RESTORE_WIENER_NONSEP ||
         frame->restoration_type[2] == AV2H_RESTORE_WIENER_NONSEP) {
         restoration_planes.plane[0] = workspace->restoration;

@@ -225,8 +225,10 @@ static Av2hStatus tile_restoration_entropy_init(
         size_t plane_taps;
         size_t index;
         if (frame->restoration_type[plane] == AV2H_RESTORE_NONE) continue;
-        if ((frame->restoration_type[plane] != AV2H_RESTORE_PC_WIENER &&
-             frame->restoration_type[plane] != AV2H_RESTORE_WIENER_NONSEP) ||
+           if ((frame->restoration_type[plane] != AV2H_RESTORE_PC_WIENER &&
+               frame->restoration_type[plane] != AV2H_RESTORE_WIENER_NONSEP &&
+               (plane != 0U || frame->restoration_type[plane] !=
+                  AV2H_RESTORE_SWITCHABLE)) ||
             count == 0U ||
             !av2h_size_multiply(
                 count, AV2H_WIENER_NONSEP_MAX_TAPS, &plane_taps) ||
@@ -258,6 +260,14 @@ static Av2hStatus tile_restoration_entropy_init(
     status = av2h_binary_cdf_init(
         state->pc_wiener_restore_cdf,
         (Av2hBinaryCdfSpec){ 12799U, 25U, 0U });
+    if (status != AV2H_OK) return status;
+    status = av2h_binary_cdf_init(
+        state->switchable_restore_cdf[0U],
+        (Av2hBinaryCdfSpec){ 25542U, 62U, 0U });
+    if (status != AV2H_OK) return status;
+    status = av2h_binary_cdf_init(
+        state->switchable_restore_cdf[1U],
+        (Av2hBinaryCdfSpec){ 25550U, 37U, 0U });
     if (status != AV2H_OK) return status;
     status = av2h_binary_cdf_init(
         state->length_cdf[0], (Av2hBinaryCdfSpec){ 4898U, 56U, 0U });

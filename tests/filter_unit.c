@@ -5,6 +5,7 @@
 
 #include <stddef.h>
 #include <stdio.h>
+#include <string.h>
 
 static int failures;
 
@@ -1853,6 +1854,8 @@ static void test_fail_closed(void) {
     uint8_t cdef_u[16];
     uint8_t cdef_v[16];
     uint8_t control = 1U;
+    uint8_t restoration_control = AV2H_RESTORE_WIENER_NONSEP;
+    int16_t restoration_taps[AV2H_WIENER_NONSEP_MAX_TAPS] = { 0 };
     Av2hDeblockCell y_cells[4];
     Av2hDeblockCell u_cell;
     Av2hDeblockCell v_cell;
@@ -1946,6 +1949,30 @@ static void test_fail_closed(void) {
     CHECK(av2h_ccso_filter_frame(&planes, y, 8U, &frame,
                                   &controls) == AV2H_INVALID_ARGUMENT);
     CHECK(y[0] == 91U);
+
+        controls.columns = 1U;
+        frame.ccso[0].enabled = 0U;
+        sequence.enable_restoration = 1U;
+        frame.restoration_type[1] = AV2H_RESTORE_WIENER_NONSEP;
+        frame.restoration_unit_columns[1] = 1U;
+        frame.restoration_unit_rows[1] = 1U;
+        frame.restoration_unit_count[1] = 1U;
+        frame.restoration_unit_size[1] = 8U;
+        workspace.restoration_controls.unit_flags[1] = &restoration_control;
+        workspace.restoration_controls.unit_taps[1] = restoration_taps;
+        workspace.restoration_controls.unit_columns[1] = 1U;
+        workspace.restoration_controls.unit_rows[1] = 2U;
+        workspace.restoration_controls.unit_size[1] = 8U;
+        CHECK(av2h_filter_frame(&planes, &sequence, &frame, &workspace) ==
+            AV2H_INVALID_ARGUMENT);
+        CHECK(y[0] == 91U);
+        CHECK(u[0] == 92U);
+        workspace.restoration_controls.unit_rows[1] = 1U;
+        restoration_control = AV2H_RESTORE_PC_WIENER;
+        CHECK(av2h_filter_frame(&planes, &sequence, &frame, &workspace) ==
+            AV2H_INVALID_ARGUMENT);
+        CHECK(y[0] == 91U);
+        CHECK(u[0] == 92U);
 }
 
 /* Wiener nonseparable parameter tables: coefficient counts, subset masks and
@@ -2108,6 +2135,81 @@ static void test_restoration_tx_skip_requirement(void) {
     CHECK(av2h_frame_restoration_needs_tx_skip(&frame) == 0);
 }
 
+static void test_restoration_format_and_switchable_dispatch(void) {
+    uint8_t source_data[3U][64U];
+    uint8_t deblocked_data[3U][64U];
+    uint8_t destination_data[3U][64U];
+    uint8_t unit_type[3U] = {
+        AV2H_RESTORE_WIENER_NONSEP,
+        AV2H_RESTORE_WIENER_NONSEP,
+        AV2H_RESTORE_WIENER_NONSEP
+    };
+    uint8_t tx_skip[4U] = { 0U, 0U, 0U, 0U };
+    int16_t taps[3U][AV2H_WIENER_NONSEP_MAX_TAPS] = { { 0 } };
+    Av2hFilterPlanes source = { 0 };
+    Av2hFilterPlanes deblocked = { 0 };
+    Av2hFilterPlanes destination = { 0 };
+    Av2hRestorationControlMap controls = { 0 };
+    Av2hSequenceState sequence = { 0 };
+    Av2hFrameState frame = { 0 };
+    unsigned int plane;
+    size_t index;
+
+    for (plane = 0U; plane < 3U; ++plane) {
+        for (index = 0U; index < 64U; ++index) {
+            source_data[plane][index] = (uint8_t)(16U + plane + index);
+            deblocked_data[plane][index] = source_data[plane][index];
+            destination_data[plane][index] = 0U;
+        }
+        source.plane[plane] = (Av2hFilterPlane){
+            source_data[plane], 8U, 8U, 8U
+        };
+        deblocked.plane[plane] = (Av2hFilterPlane){
+            deblocked_data[plane], 8U, 8U, 8U
+        };
+        destination.plane[plane] = (Av2hFilterPlane){
+            destination_data[plane], 8U, 8U, 8U
+        };
+        controls.unit_flags[plane] = &unit_type[plane];
+        controls.unit_taps[plane] = taps[plane];
+        controls.unit_columns[plane] = 1U;
+        controls.unit_rows[plane] = 1U;
+        controls.unit_size[plane] = 8U;
+        frame.restoration_num_filter_classes[plane] = 1U;
+    }
+    controls.tx_skip = tx_skip;
+    controls.tx_skip_stride = 2U;
+
+    frame.chroma_format_idc = 1U;
+    frame.restoration_type[0] = AV2H_RESTORE_WIENER_NONSEP;
+    CHECK(av2h_wiener_nonsep_filter_frame(
+              &destination, &source, &deblocked, &sequence, &frame,
+              &controls) == AV2H_OK);
+    CHECK(memcmp(destination_data[0], source_data[0], 64U) == 0);
+
+    frame.chroma_format_idc = 2U;
+    frame.restoration_type[1] = AV2H_RESTORE_WIENER_NONSEP;
+    frame.restoration_type[2] = AV2H_RESTORE_WIENER_NONSEP;
+    for (plane = 0U; plane < 3U; ++plane) {
+        frame.restoration_unit_columns[plane] = 1U;
+        frame.restoration_unit_rows[plane] = 1U;
+        frame.restoration_unit_count[plane] = 1U;
+        frame.restoration_unit_size[plane] = 8U;
+    }
+    CHECK(av2h_wiener_nonsep_filter_frame(
+              &destination, &source, &deblocked, &sequence, &frame,
+              &controls) == AV2H_OK);
+    for (plane = 0U; plane < 3U; ++plane) {
+        CHECK(memcmp(destination_data[plane], source_data[plane], 64U) == 0);
+    }
+
+    frame.restoration_type[0] = AV2H_RESTORE_SWITCHABLE;
+    unit_type[0] = AV2H_RESTORE_PC_WIENER;
+    CHECK(av2h_pc_wiener_filter_luma(
+              &destination.plane[0], &source.plane[0], &deblocked.plane[0],
+              &frame, &controls) == AV2H_OK);
+}
+
 int main(void) {
     test_workspace_model();
     test_wide_q_index_handoff();
@@ -2144,6 +2246,7 @@ int main(void) {
     test_wienerns_frame_predictor();
     test_wienerns_class_map();
     test_restoration_tx_skip_requirement();
+    test_restoration_format_and_switchable_dispatch();
     if (failures != 0) {
         fprintf(stderr, "%d filter checks failed\n", failures);
         return 1;
