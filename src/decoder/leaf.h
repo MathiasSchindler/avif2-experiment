@@ -236,6 +236,11 @@ typedef struct {
     uint8_t edge_smooth[2];
     uint8_t palette_size[2];
     uint8_t use_intra_dip[2];
+    uint16_t owner_row[2];
+    uint16_t owner_column[2];
+    uint8_t ccso_present[2];
+    uint16_t ccso_owner_row[2];
+    uint16_t ccso_owner_column[2];
     uint16_t palette_colors[2][AV2H_PALETTE_MAX_SIZE];
 } Av2hLumaModeNeighbors;
 
@@ -305,6 +310,8 @@ typedef struct {
     uint16_t unit_columns;
     uint16_t unit_rows;
     uint16_t superblock_mi;
+    uint16_t tile_start_column;
+    uint16_t tile_start_row;
     uint8_t strength_count;
 } Av2hCdefEntropyState;
 
@@ -316,6 +323,8 @@ typedef struct {
     uint16_t unit_rows;
     uint16_t unit_size;
     uint16_t unit_size_mi;
+    uint16_t tile_start_column;
+    uint16_t tile_start_row;
     uint8_t enabled_mask;
 } Av2hCcsoEntropyState;
 
@@ -398,7 +407,19 @@ Av2hStatus av2h_cdef_entropy_state_init(
     const Av2hFrameState *frame,
     uint8_t *unit_strengths,
     size_t unit_strength_capacity);
+Av2hStatus av2h_cdef_entropy_state_init_preserving_controls(
+    Av2hCdefEntropyState *state,
+    const Av2hSequenceState *sequence,
+    const Av2hFrameState *frame,
+    uint8_t *unit_strengths,
+    size_t unit_strength_capacity);
 Av2hStatus av2h_ccso_entropy_state_init(
+    Av2hCcsoEntropyState *state,
+    const Av2hSequenceState *sequence,
+    const Av2hFrameState *frame,
+    uint8_t *const unit_controls[AV2H_FRAME_PLANE_COUNT],
+    size_t unit_control_capacity);
+Av2hStatus av2h_ccso_entropy_state_init_preserving_controls(
     Av2hCcsoEntropyState *state,
     const Av2hSequenceState *sequence,
     const Av2hFrameState *frame,

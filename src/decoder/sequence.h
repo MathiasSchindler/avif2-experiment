@@ -5,6 +5,8 @@
 
 #define AV2H_BASE_SEGMENT_COUNT 8U
 #define AV2H_SEGMENT_COUNT 16U
+#define AV2H_MAX_TILE_COLUMNS 64U
+#define AV2H_MAX_TILE_ROWS 64U
 
 typedef struct {
     Av2hSequenceInfo info;
@@ -63,6 +65,16 @@ typedef struct {
     uint8_t ccso_unit_matches_superblock_size;
     uint8_t deblock_parameter_bits_minus_2;
     uint8_t seq_tile_info_present_flag;
+    uint8_t allow_tile_info_change;
+    uint8_t uniform_tile_spacing;
+    uint8_t tile_column_log2;
+    uint8_t tile_row_log2;
+    uint8_t tile_column_count;
+    uint8_t tile_row_count;
+    uint16_t tile_sb_columns;
+    uint16_t tile_sb_rows;
+    uint16_t tile_column_start_sb[AV2H_MAX_TILE_COLUMNS + 1U];
+    uint16_t tile_row_start_sb[AV2H_MAX_TILE_ROWS + 1U];
 } Av2hSequenceState;
 
 static inline size_t av2h_sequence_segment_count(

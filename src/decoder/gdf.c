@@ -12,6 +12,47 @@ static const int8_t gdf_coordinates[18][2] = {
     { 0, 6 }, { 0, 5 }, { 0, 4 }, { 0, 3 }, { 0, 2 }, { 0, 1 }
 };
 
+typedef struct {
+    int left;
+    int top;
+    int right;
+    int bottom;
+} GdfTileBounds;
+
+static GdfTileBounds gdf_tile_bounds(
+    const Av2hSequenceState *sequence,
+    const Av2hFrameState *frame,
+    uint16_t x,
+    uint16_t y) {
+    GdfTileBounds bounds = { 0, 0, frame->width, frame->height };
+    unsigned int column;
+    unsigned int row;
+    if (sequence == 0 || sequence->disable_loopfilters_across_tiles == 0U) {
+        return bounds;
+    }
+    for (column = 0U; column < frame->tile_column_count; ++column) {
+        int end = (int)frame->tile_column_start_sb[column + 1U] *
+            sequence->superblock_size;
+        if ((int)x < end || column + 1U == frame->tile_column_count) {
+            bounds.left = (int)frame->tile_column_start_sb[column] *
+                sequence->superblock_size;
+            bounds.right = end < frame->width ? end : frame->width;
+            break;
+        }
+    }
+    for (row = 0U; row < frame->tile_row_count; ++row) {
+        int end = (int)frame->tile_row_start_sb[row + 1U] *
+            sequence->superblock_size;
+        if ((int)y < end || row + 1U == frame->tile_row_count) {
+            bounds.top = (int)frame->tile_row_start_sb[row] *
+                sequence->superblock_size;
+            bounds.bottom = end < frame->height ? end : frame->height;
+            break;
+        }
+    }
+    return bounds;
+}
+
 static size_t gdf_alpha_index(unsigned int qp_index,
                               unsigned int kernel_index,
                               unsigned int class_index) {
@@ -52,12 +93,13 @@ static uint8_t gdf_source_sample(const Av2hFilterPlane *cdef_luma,
                                  int x,
                                  int y,
                                  int stripe_start,
-                                 int stripe_end) {
+                                 int stripe_end,
+                                 const GdfTileBounds *bounds) {
     const Av2hFilterPlane *source = cdef_luma;
-    if (x < 0) x = 0;
-    if (x >= (int)cdef_luma->width) x = (int)cdef_luma->width - 1;
-    if (y < 0) y = 0;
-    if (y >= (int)cdef_luma->height) y = (int)cdef_luma->height - 1;
+    if (x < bounds->left) x = bounds->left;
+    if (x >= bounds->right) x = bounds->right - 1;
+    if (y < bounds->top) y = bounds->top;
+    if (y >= bounds->bottom) y = bounds->bottom - 1;
     if (y < stripe_start) {
         int minimum = stripe_start - 2;
         if (y < minimum) y = minimum;
@@ -76,12 +118,13 @@ static uint16_t gdf_source_sample_u16(
     int x,
     int y,
     int stripe_start,
-    int stripe_end) {
+    int stripe_end,
+    const GdfTileBounds *bounds) {
     const Av2hFilterPlaneU16 *source = cdef_luma;
-    if (x < 0) x = 0;
-    if (x >= (int)cdef_luma->width) x = (int)cdef_luma->width - 1;
-    if (y < 0) y = 0;
-    if (y >= (int)cdef_luma->height) y = (int)cdef_luma->height - 1;
+    if (x < bounds->left) x = bounds->left;
+    if (x >= bounds->right) x = bounds->right - 1;
+    if (y < bounds->top) y = bounds->top;
+    if (y >= bounds->bottom) y = bounds->bottom - 1;
     if (y < stripe_start) {
         int minimum = stripe_start - 2;
         if (y < minimum) y = minimum;
@@ -153,17 +196,16 @@ static void gdf_filter_block(Av2hFilterPlane *destination,
                              uint16_t block_x,
                              uint16_t block_y,
                              unsigned int qp_index,
-                             unsigned int pixel_scale) {
+                             unsigned int pixel_scale,
+                             const GdfTileBounds *bounds) {
     uint16_t gradient[4][6][6];
     uint8_t classes[2][2];
     unsigned int stripe_number = ((unsigned int)block_y + 8U) / 64U;
     int stripe_start = (int)(stripe_number * 64U) - 8;
     int stripe_end = stripe_start + 63;
     unsigned int row;
-    if (stripe_start < 0) stripe_start = 0;
-    if (stripe_end >= (int)cdef_luma->height) {
-        stripe_end = (int)cdef_luma->height - 1;
-    }
+    if (stripe_start < bounds->top) stripe_start = bounds->top;
+    if (stripe_end >= bounds->bottom) stripe_end = bounds->bottom - 1;
     for (row = 0U; row < 6U; ++row) {
         unsigned int column;
         for (column = 0U; column < 6U; ++column) {
@@ -178,13 +220,13 @@ static void gdf_filter_block(Av2hFilterPlane *destination,
                 int y = (int)block_y - 1 + (int)row;
                 int center = gdf_source_sample(
                     cdef_luma, deblocked_luma, x, y,
-                    stripe_start, stripe_end);
+                    stripe_start, stripe_end, bounds);
                 int first = gdf_source_sample(
                     cdef_luma, deblocked_luma, x - dx, y - dy,
-                    stripe_start, stripe_end);
+                    stripe_start, stripe_end, bounds);
                 int second = gdf_source_sample(
                     cdef_luma, deblocked_luma, x + dx, y + dy,
-                    stripe_start, stripe_end);
+                    stripe_start, stripe_end, bounds);
                 gradient[direction][row][column] =
                     (uint16_t)absolute_value(center * 2 - first - second);
             }
@@ -219,7 +261,7 @@ static void gdf_filter_block(Av2hFilterPlane *destination,
             int center = gdf_source_sample(
                 cdef_luma, deblocked_luma,
                 (int)block_x + (int)column,
-                (int)block_y + (int)row, stripe_start, stripe_end);
+                (int)block_y + (int)row, stripe_start, stripe_end, bounds);
             for (kernel_index = 0U; kernel_index < 22U; ++kernel_index) {
                 unsigned int alpha = gdf_alpha[gdf_alpha_index(
                     qp_index, kernel_index, class_index)];
@@ -231,12 +273,12 @@ static void gdf_filter_block(Av2hFilterPlane *destination,
                         cdef_luma, deblocked_luma,
                         (int)block_x + (int)column - dx,
                         (int)block_y + (int)row - dy,
-                        stripe_start, stripe_end) - center;
+                        stripe_start, stripe_end, bounds) - center;
                     int below = gdf_source_sample(
                         cdef_luma, deblocked_luma,
                         (int)block_x + (int)column + dx,
                         (int)block_y + (int)row + dy,
-                        stripe_start, stripe_end) - center;
+                        stripe_start, stripe_end, bounds) - center;
                     above *= 4;
                     below *= 4;
                     above = av2h_sample_clamp(
@@ -289,17 +331,16 @@ static void gdf_filter_block_u16(Av2hFilterPlaneU16 *destination,
                                  uint16_t block_x,
                                  uint16_t block_y,
                                  unsigned int qp_index,
-                                 unsigned int pixel_scale) {
+                                 unsigned int pixel_scale,
+                                 const GdfTileBounds *bounds) {
     uint16_t gradient[4][6][6];
     uint8_t classes[2][2];
     unsigned int stripe_number = ((unsigned int)block_y + 8U) / 64U;
     int stripe_start = (int)(stripe_number * 64U) - 8;
     int stripe_end = stripe_start + 63;
     unsigned int row;
-    if (stripe_start < 0) stripe_start = 0;
-    if (stripe_end >= (int)cdef_luma->height) {
-        stripe_end = (int)cdef_luma->height - 1;
-    }
+    if (stripe_start < bounds->top) stripe_start = bounds->top;
+    if (stripe_end >= bounds->bottom) stripe_end = bounds->bottom - 1;
     for (row = 0U; row < 6U; ++row) {
         unsigned int column;
         for (column = 0U; column < 6U; ++column) {
@@ -314,13 +355,13 @@ static void gdf_filter_block_u16(Av2hFilterPlaneU16 *destination,
                 int y = (int)block_y - 1 + (int)row;
                 int center = gdf_source_sample_u16(
                     cdef_luma, deblocked_luma, x, y,
-                    stripe_start, stripe_end);
+                    stripe_start, stripe_end, bounds);
                 int first = gdf_source_sample_u16(
                     cdef_luma, deblocked_luma, x - dx, y - dy,
-                    stripe_start, stripe_end);
+                    stripe_start, stripe_end, bounds);
                 int second = gdf_source_sample_u16(
                     cdef_luma, deblocked_luma, x + dx, y + dy,
-                    stripe_start, stripe_end);
+                    stripe_start, stripe_end, bounds);
                 gradient[direction][row][column] =
                     (uint16_t)absolute_value(center * 2 - first - second);
             }
@@ -355,7 +396,7 @@ static void gdf_filter_block_u16(Av2hFilterPlaneU16 *destination,
             int center = gdf_source_sample_u16(
                 cdef_luma, deblocked_luma,
                 (int)block_x + (int)column,
-                (int)block_y + (int)row, stripe_start, stripe_end);
+                (int)block_y + (int)row, stripe_start, stripe_end, bounds);
             for (kernel_index = 0U; kernel_index < 22U; ++kernel_index) {
                 unsigned int alpha = gdf_alpha[gdf_alpha_index(
                     qp_index, kernel_index, class_index)];
@@ -367,12 +408,12 @@ static void gdf_filter_block_u16(Av2hFilterPlaneU16 *destination,
                         cdef_luma, deblocked_luma,
                         (int)block_x + (int)column - dx,
                         (int)block_y + (int)row - dy,
-                        stripe_start, stripe_end) - center;
+                        stripe_start, stripe_end, bounds) - center;
                     int below = gdf_source_sample_u16(
                         cdef_luma, deblocked_luma,
                         (int)block_x + (int)column + dx,
                         (int)block_y + (int)row + dy,
-                        stripe_start, stripe_end) - center;
+                        stripe_start, stripe_end, bounds) - center;
                     above = av2h_sample_clamp(
                         above, -(int)alpha, (int)alpha);
                     below = av2h_sample_clamp(
@@ -424,6 +465,19 @@ Av2hStatus av2h_gdf_filter_frame_with_baseline(
     const Av2hFilterPlane *baseline_luma,
     const Av2hFilterPlane *cdef_luma,
     const Av2hFilterPlane *deblocked_luma,
+    const Av2hFrameState *frame,
+    const Av2hGdfControlMap *controls) {
+    return av2h_gdf_filter_frame_with_sequence(
+        destination, baseline_luma, cdef_luma, deblocked_luma,
+        0, frame, controls);
+}
+
+Av2hStatus av2h_gdf_filter_frame_with_sequence(
+    Av2hFilterPlane *destination,
+    const Av2hFilterPlane *baseline_luma,
+    const Av2hFilterPlane *cdef_luma,
+    const Av2hFilterPlane *deblocked_luma,
+    const Av2hSequenceState *sequence,
     const Av2hFrameState *frame,
     const Av2hGdfControlMap *controls) {
     uint16_t row;
@@ -489,6 +543,15 @@ Av2hStatus av2h_gdf_filter_frame_with_baseline(
         uint16_t column;
         for (column = 0U; column < destination->width;
              column = (uint16_t)(column + 4U)) {
+            GdfTileBounds bounds = gdf_tile_bounds(
+                sequence, frame, column, row);
+            if (sequence == 0 ||
+                sequence->disable_loopfilters_across_tiles == 0U ||
+                (uint32_t)frame->tile_column_count *
+                    frame->tile_row_count <= 1U) {
+                bounds.right = cdef_luma->width;
+                bounds.bottom = cdef_luma->height;
+            }
             if (frame->gdf_mode == 2U) {
                 size_t control_row =
                     ((size_t)row + 8U) / controls->block_size;
@@ -503,7 +566,8 @@ Av2hStatus av2h_gdf_filter_frame_with_baseline(
             }
             gdf_filter_block(destination, cdef_luma, deblocked_luma,
                              column, row, qp_index,
-                             (unsigned int)frame->gdf_scale_index + 1U);
+                             (unsigned int)frame->gdf_scale_index + 1U,
+                             &bounds);
         }
     }
     return AV2H_OK;
@@ -533,6 +597,17 @@ Av2hStatus av2h_gdf_filter_frame_u16_with_controls(
     Av2hFilterPlaneU16 *destination,
     const Av2hFilterPlaneU16 *cdef_luma,
     const Av2hFilterPlaneU16 *deblocked_luma,
+    const Av2hFrameState *frame,
+    const Av2hGdfControlMap *controls) {
+    return av2h_gdf_filter_frame_u16_with_sequence(
+        destination, cdef_luma, deblocked_luma, 0, frame, controls);
+}
+
+Av2hStatus av2h_gdf_filter_frame_u16_with_sequence(
+    Av2hFilterPlaneU16 *destination,
+    const Av2hFilterPlaneU16 *cdef_luma,
+    const Av2hFilterPlaneU16 *deblocked_luma,
+    const Av2hSequenceState *sequence,
     const Av2hFrameState *frame,
     const Av2hGdfControlMap *controls) {
     uint16_t row;
@@ -592,6 +667,15 @@ Av2hStatus av2h_gdf_filter_frame_u16_with_controls(
         uint16_t column;
         for (column = 0U; column < destination->width;
              column = (uint16_t)(column + 4U)) {
+            GdfTileBounds bounds = gdf_tile_bounds(
+                sequence, frame, column, row);
+            if (sequence == 0 ||
+                sequence->disable_loopfilters_across_tiles == 0U ||
+                (uint32_t)frame->tile_column_count *
+                    frame->tile_row_count <= 1U) {
+                bounds.right = cdef_luma->width;
+                bounds.bottom = cdef_luma->height;
+            }
             if (frame->gdf_mode == 2U) {
                 size_t control_row =
                     ((size_t)row + 8U) / controls->block_size;
@@ -607,7 +691,8 @@ Av2hStatus av2h_gdf_filter_frame_u16_with_controls(
             gdf_filter_block_u16(
                 destination, cdef_luma, deblocked_luma,
                 column, row, qp_index,
-                (unsigned int)frame->gdf_scale_index + 1U);
+                (unsigned int)frame->gdf_scale_index + 1U,
+                &bounds);
         }
     }
     return AV2H_OK;

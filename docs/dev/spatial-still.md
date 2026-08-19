@@ -267,6 +267,8 @@ the corresponding all-plane Wiener vector is sample-exact with SHA-256
 
 ## Milestone 5: spatial tiles and tile groups
 
+**Status:** implemented on 19 August 2026; the profile exit gate is complete.
+
 Generalize the current one-tile parser to all legal one-picture spatial tile
 layouts within documented resource limits.
 
@@ -286,6 +288,29 @@ layouts within documented resource limits.
 exactly; reordered, overlapping, truncated, duplicate, and oversized tile data
 fail closed. Parallel tile execution is optional and must not be required for
 profile conformance.
+
+Sequence and frame tile syntax now supports uniform spacing, explicit
+non-uniform SB dimensions, eligible sequence-layout reuse, frame override,
+context-update signaling, bounded tile sizes, and canonical multi-OBU tile
+groups. Each tile receives a fresh entropy state and a payload-bounded reader;
+prediction readiness is tile-local while frame-owned filter controls are
+preserved until the final postfilter handoff.
+
+Pinned-AVM evidence includes exact filter-free 2x1, 1x2, and 2x2 layouts,
+isolated tiled CDEF, CCSO, GDF/restoration, and deblock vectors, and combined
+all-filter 2x2 vectors with cross-tile filtering both enabled and disabled. The
+enabled uniform all-filter SHA-256 is
+`12a834478123e099c1278950a2efd0a1746f707378ec6200f9731b51f6d0760b`.
+An explicit non-uniform `2,3` by `2,3` SB layout split across four tile groups
+is sample-exact with SHA-256
+`73961f6048053bd1d36d1158d7f2e1bc91c228a79c7f7af987716b7766e450e7`.
+
+Focused parser tests cover implicit and explicit sequence reuse, explicit
+frame override, ineligible non-uniform geometry fallback, and non-uniform SB
+starts. Tile-group tests reject gaps, reorder/overlap, duplicates, truncated
+headers and sizes, and oversized encoded sizes. The complete ASan/UBSan C gate,
+1,206 deterministic fuzz cases, freestanding undefined-symbol checks, Linux
+no-libc parity, and the pinned spatial-still frontier lock pass.
 
 ## Milestone 6: lossless, crop, and signaling closure
 

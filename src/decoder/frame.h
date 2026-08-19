@@ -12,6 +12,7 @@
 #define AV2H_PICTURE_QM_COUNT 4U
 #define AV2H_CUSTOM_QM_COUNT 15U
 #define AV2H_CUSTOM_QM_FUNDAMENTAL_SIZE 128U
+#define AV2H_MAX_TILE_COUNT (AV2H_MAX_TILE_COLUMNS * AV2H_MAX_TILE_ROWS)
 
 typedef enum {
     AV2H_RESTORE_NONE = 0,
@@ -56,6 +57,14 @@ typedef struct {
     uint8_t max_bvp_drl_bits;
     uint8_t disable_cdf_update;
     uint8_t uniform_tile_spacing;
+    uint8_t tile_column_log2;
+    uint8_t tile_row_log2;
+    uint8_t tile_column_count;
+    uint8_t tile_row_count;
+    uint8_t tile_size_bytes;
+    uint16_t context_update_tile_id;
+    uint16_t tile_column_start_sb[AV2H_MAX_TILE_COLUMNS + 1U];
+    uint16_t tile_row_start_sb[AV2H_MAX_TILE_ROWS + 1U];
     uint8_t segmentation_enabled;
     uint8_t seg_feature_mask[AV2H_SEGMENT_COUNT];
     int16_t seg_alt_q[AV2H_SEGMENT_COUNT];
@@ -121,6 +130,11 @@ static inline size_t av2h_frame_plane_dimension(
 static inline size_t av2h_frame_mi_dimension(uint16_t pixels) {
     return (((size_t)pixels + 7U) / 8U) * 2U;
 }
+
+int av2h_frame_tile_layout_read(
+    Av2hBitReader *reader,
+    const Av2hSequenceState *sequence,
+    Av2hFrameState *frame);
 
 static inline int av2h_frame_restoration_needs_tx_skip(
     const Av2hFrameState *frame) {

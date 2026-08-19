@@ -224,12 +224,9 @@ Av2hStatus av2h_decode_prepare(const Av2hHeifImage *image,
         return decode_fail(error, AV2H_INVALID_DATA,
                            AV2H_CONTEXT_FRAME);
     }
-    status = av2h_tile_group_single_parse(
-        (Av2hSpan){
-            image->source.item_payload.data + frame_obu->payload_offset,
-            frame_obu->payload_size
-        },
-        preparation->frame.uncompressed_header_bits, &preparation->group);
+    status = av2h_tile_groups_ledger_parse(
+        image->source.item_payload, &payload, &preparation->frame,
+        &preparation->group);
     if (status != AV2H_OK) {
         return decode_fail(error, status, AV2H_CONTEXT_FRAME);
     }
@@ -325,8 +322,8 @@ Av2hStatus av2h_decode(Av2hSpan input,
         }
     }
     av2h_memory_fill(&result, 0U, sizeof(result));
-    status = av2h_decode_frame_planar_private(
-        preparation.group.entropy, &preparation.sequence,
+    status = av2h_decode_frame_group_planar_private(
+        &preparation.group, &preparation.sequence,
         &preparation.frame, &workspace, (uint8_t *)output_memory,
         output_size, &result);
     if (status != AV2H_OK) {

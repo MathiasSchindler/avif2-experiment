@@ -120,12 +120,13 @@ Av2hStatus av2h_leaf_read_gdf_entropy(
     return AV2H_OK;
 }
 
-Av2hStatus av2h_cdef_entropy_state_init(
+static Av2hStatus cdef_entropy_state_init(
     Av2hCdefEntropyState *state,
     const Av2hSequenceState *sequence,
     const Av2hFrameState *frame,
     uint8_t *unit_strengths,
-    size_t unit_strength_capacity) {
+    size_t unit_strength_capacity,
+    uint8_t preserve_controls) {
     static const Av2hBinaryCdfSpec index0_defaults[] = {
         { 29034U, 32U, 0U }, { 16472U, 32U, 0U },
         { 5751U, 32U, 0U }, { 3115U, 31U, 0U }
@@ -174,8 +175,10 @@ Av2hStatus av2h_cdef_entropy_state_init(
     }
     state->unit_strengths = unit_strengths;
     state->unit_strength_capacity = unit_strength_capacity;
-    for (index = 0U; index < state->unit_count; ++index) {
-        unit_strengths[index] = AV2H_CDEF_UNTRANSMITTED;
+    if (preserve_controls == 0U) {
+        for (index = 0U; index < state->unit_count; ++index) {
+            unit_strengths[index] = AV2H_CDEF_UNTRANSMITTED;
+        }
     }
     for (index = 0U; index < AV2H_CDEF_INDEX0_CONTEXT_COUNT; ++index) {
         Av2hStatus status = av2h_binary_cdf_init(
@@ -194,6 +197,26 @@ Av2hStatus av2h_cdef_entropy_state_init(
     return AV2H_OK;
 }
 
+Av2hStatus av2h_cdef_entropy_state_init(
+    Av2hCdefEntropyState *state,
+    const Av2hSequenceState *sequence,
+    const Av2hFrameState *frame,
+    uint8_t *unit_strengths,
+    size_t unit_strength_capacity) {
+    return cdef_entropy_state_init(
+        state, sequence, frame, unit_strengths, unit_strength_capacity, 0U);
+}
+
+Av2hStatus av2h_cdef_entropy_state_init_preserving_controls(
+    Av2hCdefEntropyState *state,
+    const Av2hSequenceState *sequence,
+    const Av2hFrameState *frame,
+    uint8_t *unit_strengths,
+    size_t unit_strength_capacity) {
+    return cdef_entropy_state_init(
+        state, sequence, frame, unit_strengths, unit_strength_capacity, 1U);
+}
+
 static Av2hStatus cdef_index0_context(
     const Av2hCdefEntropyState *state,
     const Av2hPartitionNode *leaf,
@@ -209,11 +232,13 @@ static Av2hStatus cdef_index0_context(
         unit_column >= state->unit_columns) {
         return AV2H_INVALID_ARGUMENT;
     }
-    if (unit_column != 0U) {
+    if (unit_column != 0U &&
+        unit_column * 16U > state->tile_start_column) {
         left = state->unit_strengths[
             unit_row * state->unit_columns + unit_column - 1U];
     }
-    if (unit_row != 0U && leaf->row >= 16U &&
+    if (unit_row != 0U && unit_row * 16U > state->tile_start_row &&
+        leaf->row >= 16U &&
         leaf->row / state->superblock_mi ==
             (leaf->row - 16U) / state->superblock_mi) {
         above = state->unit_strengths[
@@ -370,12 +395,13 @@ Av2hStatus av2h_leaf_read_cdef_entropy(
     return AV2H_OK;
 }
 
-Av2hStatus av2h_ccso_entropy_state_init(
+static Av2hStatus ccso_entropy_state_init(
     Av2hCcsoEntropyState *state,
     const Av2hSequenceState *sequence,
     const Av2hFrameState *frame,
     uint8_t *const unit_controls[AV2H_FRAME_PLANE_COUNT],
-    size_t unit_control_capacity) {
+    size_t unit_control_capacity,
+    uint8_t preserve_controls) {
     size_t plane;
     size_t index;
     if (state == 0 || sequence == 0 || frame == 0) {
@@ -394,10 +420,12 @@ Av2hStatus av2h_ccso_entropy_state_init(
          sequence->superblock_size != 256U)) {
         return AV2H_INVALID_DATA;
     }
-    state->unit_size = sequence->ccso_unit_matches_superblock_size ?
-        sequence->superblock_size : AV2H_CCSO_MAX_UNIT_SIZE;
-    if (frame->ccso_unit_size != 0U &&
-        frame->ccso_unit_size != state->unit_size) {
+    state->unit_size = frame->ccso_unit_size != 0U ?
+        frame->ccso_unit_size :
+        (sequence->ccso_unit_matches_superblock_size ?
+            sequence->superblock_size : AV2H_CCSO_MAX_UNIT_SIZE);
+    if (state->unit_size != 64U && state->unit_size != 128U &&
+        state->unit_size != 256U) {
         return AV2H_INVALID_DATA;
     }
     state->unit_size_mi = (uint16_t)(state->unit_size / 4U);
@@ -427,16 +455,39 @@ Av2hStatus av2h_ccso_entropy_state_init(
             return AV2H_OUT_OF_MEMORY;
         }
         state->unit_controls[plane] = unit_controls[plane];
-        for (index = 0U; index < state->unit_count; ++index) {
-            unit_controls[plane][index] = AV2H_CCSO_UNTRANSMITTED;
+        if (preserve_controls == 0U) {
+            for (index = 0U; index < state->unit_count; ++index) {
+                unit_controls[plane][index] = AV2H_CCSO_UNTRANSMITTED;
+            }
         }
     }
     state->unit_control_capacity = unit_control_capacity;
     return AV2H_OK;
 }
 
+Av2hStatus av2h_ccso_entropy_state_init(
+    Av2hCcsoEntropyState *state,
+    const Av2hSequenceState *sequence,
+    const Av2hFrameState *frame,
+    uint8_t *const unit_controls[AV2H_FRAME_PLANE_COUNT],
+    size_t unit_control_capacity) {
+    return ccso_entropy_state_init(
+        state, sequence, frame, unit_controls, unit_control_capacity, 0U);
+}
+
+Av2hStatus av2h_ccso_entropy_state_init_preserving_controls(
+    Av2hCcsoEntropyState *state,
+    const Av2hSequenceState *sequence,
+    const Av2hFrameState *frame,
+    uint8_t *const unit_controls[AV2H_FRAME_PLANE_COUNT],
+    size_t unit_control_capacity) {
+    return ccso_entropy_state_init(
+        state, sequence, frame, unit_controls, unit_control_capacity, 1U);
+}
+
 static Av2hStatus ccso_context(
     const Av2hCcsoEntropyState *state,
+    const Av2hLumaModeNeighbors *neighbors,
     size_t plane,
     size_t unit_row,
     size_t unit_column,
@@ -453,11 +504,16 @@ static Av2hStatus ccso_context(
         state->unit_controls[plane] == 0) {
         return AV2H_INVALID_ARGUMENT;
     }
-    if (unit_column != 0U) {
+    if (unit_column != 0U && neighbors != 0 &&
+        neighbors->ccso_present[0] != 0U &&
+        unit_column * state->unit_size_mi > state->tile_start_column) {
         left = state->unit_controls[plane][
             unit_row * state->unit_columns + unit_column - 1U];
     }
-    if (unit_row != 0U && above_available_at_leaf) {
+    if (unit_row != 0U && neighbors != 0 &&
+        neighbors->ccso_present[1] != 0U &&
+        unit_row * state->unit_size_mi > state->tile_start_row &&
+        above_available_at_leaf) {
         above = state->unit_controls[plane][
             (unit_row - 1U) * state->unit_columns + unit_column];
     }
@@ -467,7 +523,13 @@ static Av2hStatus ccso_context(
         (above_available && above > 1U)) {
         return AV2H_INVALID_DATA;
     }
-    if (left_available && above_available) {
+    if (left_available && above_available && neighbors != 0 &&
+        (neighbors->ccso_owner_row[0] / state->unit_size_mi) ==
+            (neighbors->ccso_owner_row[1] / state->unit_size_mi) &&
+        (neighbors->ccso_owner_column[0] / state->unit_size_mi) ==
+            (neighbors->ccso_owner_column[1] / state->unit_size_mi)) {
+        *context = left != 0U ? 2U : 0U;
+    } else if (left_available && above_available) {
         *context = left && above ? 3U : (size_t)(left || above);
     } else if (left_available || above_available) {
         uint8_t neighbor = left_available ? left : above;
@@ -484,6 +546,7 @@ Av2hStatus av2h_leaf_read_ccso_entropy(
     const Av2hSequenceState *sequence,
     const Av2hFrameState *frame,
     const Av2hPartitionNode *leaf,
+    const Av2hLumaModeNeighbors *neighbors,
     Av2hCcsoEntropyState *state,
     Av2hFirstLeafMode *mode) {
     size_t plane;
@@ -507,8 +570,10 @@ Av2hStatus av2h_leaf_read_ccso_entropy(
             expected_mask |= (uint8_t)(1U << plane);
         }
     }
-    expected_size = sequence->ccso_unit_matches_superblock_size ?
-        sequence->superblock_size : AV2H_CCSO_MAX_UNIT_SIZE;
+    expected_size = frame->ccso_unit_size != 0U ?
+        frame->ccso_unit_size :
+        (sequence->ccso_unit_matches_superblock_size ?
+            sequence->superblock_size : AV2H_CCSO_MAX_UNIT_SIZE);
     expected_columns = (uint16_t)(
         ((uint32_t)frame->width + expected_size - 1U) / expected_size);
     expected_rows = (uint16_t)(
@@ -546,6 +611,9 @@ Av2hStatus av2h_leaf_read_ccso_entropy(
     unit_index = unit_row * state->unit_columns + unit_column;
     for (plane = 0U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
         size_t context;
+        size_t last_unit_row;
+        size_t last_unit_column;
+        size_t span_row;
         uint32_t value;
         if ((state->enabled_mask & (uint8_t)(1U << plane)) == 0U) {
             continue;
@@ -556,7 +624,7 @@ Av2hStatus av2h_leaf_read_ccso_entropy(
             return AV2H_INVALID_DATA;
         }
         status = ccso_context(
-            state, plane, unit_row, unit_column,
+            state, neighbors, plane, unit_row, unit_column,
             (uint8_t)(leaf->row % (sequence->superblock_size / 4U) != 0U),
             &context);
         if (status != AV2H_OK) return status;
@@ -565,7 +633,29 @@ Av2hStatus av2h_leaf_read_ccso_entropy(
         if (av2h_range_status(decoder) != AV2H_OK) {
             return av2h_range_status(decoder);
         }
-        state->unit_controls[plane][unit_index] = (uint8_t)value;
+        last_unit_row = ((size_t)leaf->row + height - 1U) /
+            state->unit_size_mi;
+        last_unit_column = ((size_t)leaf->column + width - 1U) /
+            state->unit_size_mi;
+        if (last_unit_row >= state->unit_rows) {
+            last_unit_row = state->unit_rows - 1U;
+        }
+        if (last_unit_column >= state->unit_columns) {
+            last_unit_column = state->unit_columns - 1U;
+        }
+        for (span_row = unit_row; span_row <= last_unit_row; ++span_row) {
+            size_t span_column;
+            for (span_column = unit_column;
+                 span_column <= last_unit_column; ++span_column) {
+                size_t span_index =
+                    span_row * state->unit_columns + span_column;
+                uint8_t current = state->unit_controls[plane][span_index];
+                if (current != AV2H_CCSO_UNTRANSMITTED && current != value) {
+                    return AV2H_INVALID_DATA;
+                }
+                state->unit_controls[plane][span_index] = (uint8_t)value;
+            }
+        }
         mode->ccso_present_mask |= (uint8_t)(1U << plane);
         mode->ccso_block_control[plane] = (uint8_t)value;
         ++mode->ccso_controls_read;

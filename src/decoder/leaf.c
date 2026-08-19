@@ -852,7 +852,7 @@ static Av2hStatus luma_mode_read_internal(
             if (ccso_state != 0 && ccso_state->enabled_mask != 0U) {
                 status = av2h_leaf_read_ccso_entropy(
                     decoder, cdfs, sequence, frame, leaf,
-                    ccso_state, mode);
+                    neighbors, ccso_state, mode);
             } else {
                 status = av2h_leaf_read_first_ccso_without_state(
                     decoder, cdfs, sequence, frame, leaf, mode);
@@ -889,7 +889,8 @@ static Av2hStatus luma_mode_read_internal(
     }
     if (ccso_state != 0 && ccso_state->enabled_mask != 0U) {
         Av2hStatus status = av2h_leaf_read_ccso_entropy(
-            decoder, cdfs, sequence, frame, leaf, ccso_state, mode);
+            decoder, cdfs, sequence, frame, leaf, neighbors,
+            ccso_state, mode);
         if (status != AV2H_OK) return status;
     } else {
         Av2hStatus status = av2h_leaf_read_first_ccso_without_state(

@@ -9,10 +9,15 @@
 #define AV2H_TX_PARTITION_GROUPS 9U
 #define AV2H_TX_PARTITION_TYPE_GROUPS 14U
 #define AV2H_TX_PARTITION_TYPE_SYMBOLS 7U
+#define AV2H_PROFILE_MAX_TILES 256U
 
 typedef struct {
     size_t header_bits;
     size_t header_size;
+    uint16_t start_tile;
+    uint16_t end_tile;
+    uint16_t tile_count;
+    Av2hSpan tiles[AV2H_PROFILE_MAX_TILES];
     Av2hSpan entropy;
 } Av2hTileGroup;
 
@@ -144,6 +149,10 @@ typedef struct {
     size_t colocated_luma_count;
     size_t mi_columns;
     size_t mi_rows;
+    uint16_t tile_start_column;
+    uint16_t tile_end_column;
+    uint16_t tile_start_row;
+    uint16_t tile_end_row;
 } Av2hTileTraversalState;
 
 typedef struct {
@@ -224,12 +233,28 @@ Av2hStatus av2h_tile_luma_tx_node_get(
 Av2hStatus av2h_tile_group_single_parse(Av2hSpan payload,
                                          size_t uncompressed_header_bits,
                                          Av2hTileGroup *group);
+Av2hStatus av2h_tile_group_parse(Av2hSpan payload,
+                                 const Av2hFrameState *frame,
+                                 uint16_t expected_start_tile,
+                                 Av2hTileGroup *group);
+Av2hStatus av2h_tile_groups_ledger_parse(
+    Av2hSpan input,
+    const Av2hObuLedger *ledger,
+    const Av2hFrameState *frame,
+    Av2hTileGroup *group);
 Av2hStatus av2h_tile_decoder_init(
     Av2hTileDecoder *decoder,
     Av2hSpan entropy,
     const Av2hSequenceState *sequence,
     const Av2hFrameState *frame,
     const Av2hTileContextStorage *storage);
+Av2hStatus av2h_tile_decoder_init_at(
+    Av2hTileDecoder *decoder,
+    Av2hSpan entropy,
+    const Av2hSequenceState *sequence,
+    const Av2hFrameState *frame,
+    const Av2hTileContextStorage *storage,
+    uint16_t tile_id);
 Av2hStatus av2h_tile_decoder_next_luma(
     Av2hTileDecoder *decoder,
     Av2hTileLumaLeaf *leaf,

@@ -115,6 +115,18 @@ Av2hStatus av2h_luma_mode_neighbors_from_state(
         }
     }
     neighbors->spatial_valid = state->superblock_mi != 0U;
+    neighbors->ccso_present[0] =
+        (uint8_t)(candidates[2] != 0 && candidates[2]->present);
+    neighbors->ccso_present[1] =
+        (uint8_t)(candidates[3] != 0 && candidates[3]->present);
+    neighbors->ccso_owner_row[0] =
+        candidates[2] != 0 ? candidates[2]->owner_row : 0U;
+    neighbors->ccso_owner_row[1] =
+        candidates[3] != 0 ? candidates[3]->owner_row : 0U;
+    neighbors->ccso_owner_column[0] =
+        candidates[2] != 0 ? candidates[2]->owner_column : 0U;
+    neighbors->ccso_owner_column[1] =
+        candidates[3] != 0 ? candidates[3]->owner_column : 0U;
     for (index = 0U; index < 2U; ++index) {
         const Av2hLumaModeContext *context = selected[index];
         const Av2hLumaModeContext *spatial_context = spatial[index];
@@ -132,6 +144,10 @@ Av2hStatus av2h_luma_mode_neighbors_from_state(
             context != 0 ? context->use_intra_dip : 0U;
         neighbors->morph_pred[index] =
             context != 0 ? context->morph_pred : 0U;
+        neighbors->owner_row[index] =
+            context != 0 ? context->owner_row : 0U;
+        neighbors->owner_column[index] =
+            context != 0 ? context->owner_column : 0U;
         neighbors->spatial_present[index] =
             (uint8_t)(spatial_context != 0 && spatial_context->present);
         neighbors->spatial_use_intrabc[index] =

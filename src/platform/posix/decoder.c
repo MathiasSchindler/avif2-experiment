@@ -148,10 +148,7 @@ static Av2hStatus decode_obu(Av2hSpan input,
         input, &ledger, &frame, diagnostic);
     if (status == AV2H_OK) status = av2h_qmatrix_references_validate(&frame);
     if (status != AV2H_OK) return status;
-    status = av2h_tile_group_single_parse(
-        (Av2hSpan){ input.data + frame_obu->payload_offset,
-                    frame_obu->payload_size },
-        frame.uncompressed_header_bits, &group);
+    status = av2h_tile_groups_ledger_parse(input, &ledger, &frame, &group);
     if (status != AV2H_OK) return status;
     bytes_per_sample = sequence.info.bit_depth_idc == 0U ? 2U : 1U;
     if ((bytes_per_sample == 2U &&
@@ -183,8 +180,8 @@ static Av2hStatus decode_obu(Av2hSpan input,
         workspace_memory.memory, workspace_memory.size,
         &workspace, &filter_workspace, &filter_storage);
     if (status == AV2H_OK) {
-        status = av2h_decode_frame_planar_private(
-            group.entropy, &sequence, &frame, &workspace,
+        status = av2h_decode_frame_group_planar_private(
+            &group, &sequence, &frame, &workspace,
             output->memory, output->size, decode_result);
     }
     release_memory(&workspace_memory);

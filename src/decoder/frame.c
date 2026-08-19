@@ -60,6 +60,62 @@ static unsigned int ceil_log2_u32(uint32_t value) {
     return bits;
 }
 
+static unsigned int tile_log2_u32(uint32_t block_size, uint32_t target) {
+    unsigned int bits = 0U;
+    while (block_size < target) {
+        block_size <<= 1U;
+        ++bits;
+    }
+    return bits;
+}
+
+static uint32_t tile_width_scale(const Av2hSequenceState *sequence) {
+    unsigned int level = sequence->info.seq_level_idx;
+    if (level > 21U) return 0U;
+    if (sequence->info.seq_tier != 0U) {
+        if (level >= 18U) return 16U;
+        if (level >= 14U) return 8U;
+        return 4U;
+    }
+    return level >= 18U ? 8U : 4U;
+}
+
+static uint32_t tile_area_scale(const Av2hSequenceState *sequence) {
+    unsigned int level = sequence->info.seq_level_idx;
+    if (level > 21U) return 0U;
+    if (sequence->info.seq_tier != 0U) {
+        if (level >= 18U) return 32U;
+        if (level >= 14U) return 16U;
+        return 4U;
+    }
+    if (level >= 18U) return 16U;
+    if (level >= 14U) return 8U;
+    return 4U;
+}
+
+static void calculate_uniform_tile_starts(
+    uint32_t mi_dimension,
+    uint32_t superblock_mi,
+    unsigned int log2_count,
+    uint16_t *starts,
+    uint8_t *count) {
+    uint32_t full_superblocks = mi_dimension / superblock_mi;
+    uint32_t superblocks =
+        (mi_dimension + superblock_mi - 1U) / superblock_mi;
+    uint32_t base_size = full_superblocks >> log2_count;
+    uint32_t extras = full_superblocks - (base_size << log2_count);
+    uint32_t start = 0U;
+    uint32_t index = 0U;
+    if (base_size == 0U) extras += superblocks - full_superblocks;
+    while (start < superblocks && index < (1U << log2_count)) {
+        starts[index++] = (uint16_t)start;
+        start += base_size + (extras != 0U);
+        if (extras != 0U) --extras;
+    }
+    starts[index] = (uint16_t)superblocks;
+    *count = (uint8_t)index;
+}
+
 static void derive_gdf_block_geometry(
     const Av2hSequenceState *sequence,
     Av2hFrameState *frame) {
@@ -77,37 +133,199 @@ static void derive_gdf_block_geometry(
         (uint32_t)frame->gdf_block_columns * frame->gdf_block_rows;
 }
 
-static int read_one_tile(Av2hBitReader *reader,
-                         const Av2hSequenceState *sequence,
-                         Av2hFrameState *frame) {
+int av2h_frame_tile_layout_read(Av2hBitReader *reader,
+                                const Av2hSequenceState *sequence,
+                                Av2hFrameState *frame) {
+    uint32_t superblock_mi;
+    uint32_t mi_columns;
+    uint32_t mi_rows;
     uint32_t sb_columns;
     uint32_t sb_rows;
+    uint32_t max_width_sb;
+    uint32_t max_area_sb;
+    uint32_t width_scale;
+    uint32_t area_scale;
+    unsigned int min_log2_columns;
+    unsigned int min_log2_tiles;
+    unsigned int min_log2_rows;
     unsigned int max_log2_columns;
     unsigned int max_log2_rows;
+    uint32_t remaining;
+    uint32_t start;
+    uint32_t widest;
+    size_t index;
+    uint8_t reuse = 0U;
     if (sequence->superblock_size == 0U) {
         frame_fail(reader, AV2H_INVALID_DATA);
         return 0;
     }
-    sb_columns = ((uint32_t)frame->width + sequence->superblock_size - 1U) /
-                 sequence->superblock_size;
-    sb_rows = ((uint32_t)frame->height + sequence->superblock_size - 1U) /
-              sequence->superblock_size;
-    max_log2_columns = ceil_log2_u32(sb_columns);
-    max_log2_rows = ceil_log2_u32(sb_rows);
+    superblock_mi = sequence->superblock_size / 4U;
+    mi_columns = (uint32_t)av2h_frame_mi_dimension(frame->width);
+    mi_rows = (uint32_t)av2h_frame_mi_dimension(frame->height);
+    sb_columns = (mi_columns + superblock_mi - 1U) / superblock_mi;
+    sb_rows = (mi_rows + superblock_mi - 1U) / superblock_mi;
+    width_scale = tile_width_scale(sequence);
+    area_scale = tile_area_scale(sequence);
+    max_width_sb = width_scale == 0U ? sb_columns :
+        (width_scale * 4096U) / sequence->superblock_size / 4U;
+    max_area_sb = area_scale == 0U ? sb_columns * sb_rows :
+        (area_scale * (4096U * 2304U)) /
+            sequence->superblock_size / sequence->superblock_size / 4U;
+    if (max_width_sb == 0U || max_area_sb == 0U) {
+        frame_fail(reader, AV2H_UNSUPPORTED);
+        return 0;
+    }
+    min_log2_columns = tile_log2_u32(max_width_sb, sb_columns);
+    min_log2_tiles = tile_log2_u32(max_area_sb, sb_columns * sb_rows);
+    if (min_log2_tiles < min_log2_columns) {
+        min_log2_tiles = min_log2_columns;
+    }
+    max_log2_columns = ceil_log2_u32(
+        sb_columns < AV2H_MAX_TILE_COLUMNS ? sb_columns : AV2H_MAX_TILE_COLUMNS);
+    max_log2_rows = ceil_log2_u32(
+        sb_rows < AV2H_MAX_TILE_ROWS ? sb_rows : AV2H_MAX_TILE_ROWS);
+    if (sequence->seq_tile_info_present_flag != 0U) {
+        uint8_t eligible;
+        if (sequence->uniform_tile_spacing == 0U) {
+            eligible = sequence->tile_sb_columns == sb_columns &&
+                sequence->tile_sb_rows == sb_rows;
+        } else {
+            uint32_t columns = 1U << sequence->tile_column_log2;
+            uint32_t rows = 1U << sequence->tile_row_log2;
+            uint32_t tile_width =
+                (sb_columns + columns - 1U) >> sequence->tile_column_log2;
+            uint32_t tile_height =
+                (sb_rows + rows - 1U) >> sequence->tile_row_log2;
+            eligible = tile_width != 0U && tile_height != 0U &&
+                sb_columns > (columns - 1U) * tile_width &&
+                sb_rows > (rows - 1U) * tile_height;
+        }
+        if (eligible != 0U) {
+            reuse = sequence->allow_tile_info_change != 0U ?
+                (uint8_t)av2h_bit_reader_read(reader, 1U) : 1U;
+        }
+    }
+    if (reuse != 0U) {
+        frame->uniform_tile_spacing = sequence->uniform_tile_spacing;
+        frame->tile_column_log2 = sequence->tile_column_log2;
+        frame->tile_row_log2 = sequence->tile_row_log2;
+        if (frame->uniform_tile_spacing != 0U) {
+            calculate_uniform_tile_starts(
+                mi_columns, superblock_mi, frame->tile_column_log2,
+                frame->tile_column_start_sb, &frame->tile_column_count);
+            calculate_uniform_tile_starts(
+                mi_rows, superblock_mi, frame->tile_row_log2,
+                frame->tile_row_start_sb, &frame->tile_row_count);
+        } else {
+            frame->tile_column_count = sequence->tile_column_count;
+            frame->tile_row_count = sequence->tile_row_count;
+            for (index = 0U; index <= frame->tile_column_count; ++index) {
+                frame->tile_column_start_sb[index] =
+                    sequence->tile_column_start_sb[index];
+            }
+            for (index = 0U; index <= frame->tile_row_count; ++index) {
+                frame->tile_row_start_sb[index] =
+                    sequence->tile_row_start_sb[index];
+            }
+        }
+        goto tile_layout_complete;
+    }
     frame->uniform_tile_spacing =
         (uint8_t)av2h_bit_reader_read(reader, 1U);
-    if (frame->uniform_tile_spacing == 0U) {
-        frame_fail(reader, AV2H_UNSUPPORTED);
-        return 0;
+    if (frame->uniform_tile_spacing != 0U) {
+        frame->tile_column_log2 = (uint8_t)min_log2_columns;
+        while (frame->tile_column_log2 < max_log2_columns &&
+               av2h_bit_reader_read(reader, 1U) != 0U) {
+            ++frame->tile_column_log2;
+        }
+        min_log2_rows = min_log2_tiles > frame->tile_column_log2 ?
+            min_log2_tiles - frame->tile_column_log2 : 0U;
+        frame->tile_row_log2 = (uint8_t)min_log2_rows;
+        while (frame->tile_row_log2 < max_log2_rows &&
+               av2h_bit_reader_read(reader, 1U) != 0U) {
+            ++frame->tile_row_log2;
+        }
+        calculate_uniform_tile_starts(
+            mi_columns, superblock_mi, frame->tile_column_log2,
+            frame->tile_column_start_sb, &frame->tile_column_count);
+        calculate_uniform_tile_starts(
+            mi_rows, superblock_mi, frame->tile_row_log2,
+            frame->tile_row_start_sb, &frame->tile_row_count);
+    } else {
+        remaining = sb_columns;
+        start = 0U;
+        index = 0U;
+        widest = 1U;
+        while (remaining != 0U && index < AV2H_MAX_TILE_COLUMNS) {
+            uint32_t maximum = remaining < max_width_sb ? remaining : max_width_sb;
+            uint32_t size =
+                av2h_bit_reader_quasi_uniform(reader, maximum) + 1U;
+            frame->tile_column_start_sb[index++] = (uint16_t)start;
+            start += size;
+            remaining -= size;
+            if (size > widest) widest = size;
+        }
+        if (remaining != 0U) {
+            frame_fail(reader, AV2H_LIMIT_EXCEEDED);
+            return 0;
+        }
+        frame->tile_column_start_sb[index] = (uint16_t)start;
+        frame->tile_column_count = (uint8_t)index;
+        frame->tile_column_log2 = (uint8_t)ceil_log2_u32((uint32_t)index);
+        max_area_sb = sb_columns * sb_rows;
+        if (min_log2_tiles != 0U) max_area_sb >>= min_log2_tiles + 1U;
+        remaining = sb_rows;
+        start = 0U;
+        index = 0U;
+        max_width_sb = max_area_sb / widest;
+        if (max_width_sb == 0U) max_width_sb = 1U;
+        while (remaining != 0U && index < AV2H_MAX_TILE_ROWS) {
+            uint32_t maximum = remaining < max_width_sb ? remaining : max_width_sb;
+            uint32_t size =
+                av2h_bit_reader_quasi_uniform(reader, maximum) + 1U;
+            frame->tile_row_start_sb[index++] = (uint16_t)start;
+            start += size;
+            remaining -= size;
+        }
+        if (remaining != 0U) {
+            frame_fail(reader, AV2H_LIMIT_EXCEEDED);
+            return 0;
+        }
+        frame->tile_row_start_sb[index] = (uint16_t)start;
+        frame->tile_row_count = (uint8_t)index;
+        frame->tile_row_log2 = (uint8_t)ceil_log2_u32((uint32_t)index);
     }
-    if (max_log2_columns != 0U &&
-        av2h_bit_reader_read(reader, 1U) != 0U) {
-        frame_fail(reader, AV2H_UNSUPPORTED);
-        return 0;
+tile_layout_complete:
+    if (sequence->enable_ccso != 0U &&
+        sequence->ccso_unit_matches_superblock_size == 0U &&
+        ((uint32_t)frame->tile_column_count * frame->tile_row_count > 1U)) {
+        uint32_t odd_by_two = 0U;
+        uint32_t odd_by_four = 0U;
+        for (index = 0U; index + 1U < frame->tile_column_count; ++index) {
+            uint32_t size = frame->tile_column_start_sb[index + 1U] -
+                frame->tile_column_start_sb[index];
+            odd_by_two += size & 1U;
+            odd_by_four += size & 3U;
+        }
+        for (index = 0U; index + 1U < frame->tile_row_count; ++index) {
+            uint32_t size = frame->tile_row_start_sb[index + 1U] -
+                frame->tile_row_start_sb[index];
+            odd_by_two += size & 1U;
+            odd_by_four += size & 3U;
+        }
+        if (sequence->superblock_size >= 256U || odd_by_two != 0U) {
+            frame->ccso_unit_size = sequence->superblock_size;
+        } else if (sequence->superblock_size >= 128U || odd_by_four != 0U) {
+            frame->ccso_unit_size = sequence->superblock_size * 2U;
+        } else {
+            frame->ccso_unit_size = sequence->superblock_size * 4U;
+        }
+        if (frame->ccso_unit_size > 256U) frame->ccso_unit_size = 256U;
     }
-    if (max_log2_rows != 0U && av2h_bit_reader_read(reader, 1U) != 0U) {
-        frame_fail(reader, AV2H_UNSUPPORTED);
-        return 0;
+    if ((uint32_t)frame->tile_column_count * frame->tile_row_count > 1U) {
+        frame->context_update_tile_id = 0U;
+        frame->tile_size_bytes =
+            (uint8_t)(av2h_bit_reader_read(reader, 2U) + 1U);
     }
     return reader->status == AV2H_OK;
 }
@@ -686,8 +904,7 @@ Av2hStatus av2h_frame_header_closed_key_parse_diagnostic(
              sequence->info.chroma_format_idc == 0U) ||
             (sequence->info.seq_profile_idc == 4U &&
              sequence->info.chroma_format_idc == 2U)))) ||
-        sequence->info.chroma_format_idc > 2U ||
-        sequence->seq_tile_info_present_flag != 0U) {
+        sequence->info.chroma_format_idc > 2U) {
         return frame_diagnostic_fail(
             error, AV2H_UNSUPPORTED, 0,
             AV2H_DIAGNOSTIC_SYNTAX_FRAME_PROFILE,
@@ -737,7 +954,7 @@ Av2hStatus av2h_frame_header_closed_key_parse_diagnostic(
     }
     frame->disable_cdf_update =
         (uint8_t)av2h_bit_reader_read(&reader, 1U);
-    if (!read_one_tile(&reader, sequence, frame)) {
+    if (!av2h_frame_tile_layout_read(&reader, sequence, frame)) {
         return frame_diagnostic_fail(
             error, reader.status, &reader,
             AV2H_DIAGNOSTIC_SYNTAX_FRAME_TILE_LAYOUT, 0U);

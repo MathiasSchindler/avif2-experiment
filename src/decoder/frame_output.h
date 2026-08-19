@@ -152,5 +152,22 @@ Av2hStatus av2h_decode_frame_planar_with_execution_private(
     size_t output_size_bytes,
     Av2hFrameDecodeResult *result,
     const Av2hExecution *execution);
+Av2hStatus av2h_decode_frame_group_planar_private(
+    const Av2hTileGroup *group,
+    const Av2hSequenceState *sequence,
+    const Av2hFrameState *frame,
+    Av2hFrameDecodeWorkspace *workspace,
+    uint8_t *output,
+    size_t output_size_bytes,
+    Av2hFrameDecodeResult *result);
+Av2hStatus av2h_decode_frame_group_planar_with_execution_private(
+    const Av2hTileGroup *group,
+    const Av2hSequenceState *sequence,
+    const Av2hFrameState *frame,
+    Av2hFrameDecodeWorkspace *workspace,
+    uint8_t *output,
+    size_t output_size_bytes,
+    Av2hFrameDecodeResult *result,
+    const Av2hExecution *execution);
 
 #endif

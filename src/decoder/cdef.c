@@ -1,5 +1,6 @@
 #include "decoder/filter.h"
 #include "decoder/internal/filter_common.h"
+#include "decoder/internal/filter_modules.h"
 #include "decoder/internal/sample_math.h"
 
 static unsigned int floor_log2(unsigned int value) {
@@ -9,6 +10,75 @@ static unsigned int floor_log2(unsigned int value) {
         ++result;
     }
     return result;
+}
+
+typedef struct {
+    uint16_t left;
+    uint16_t top;
+    uint16_t right;
+    uint16_t bottom;
+} CdefTileBounds;
+
+static CdefTileBounds cdef_tile_bounds(
+    const Av2hSequenceState *sequence,
+    const Av2hFrameState *frame,
+    uint16_t x,
+    uint16_t y) {
+    CdefTileBounds bounds = { 0U, 0U, frame->width, frame->height };
+    unsigned int column;
+    unsigned int row;
+    if (sequence == 0 || sequence->disable_loopfilters_across_tiles == 0U) {
+        return bounds;
+    }
+    for (column = 0U; column < frame->tile_column_count; ++column) {
+        uint32_t end = (uint32_t)frame->tile_column_start_sb[column + 1U] *
+            sequence->superblock_size;
+        if (x < end || column + 1U == frame->tile_column_count) {
+            bounds.left = (uint16_t)(
+                frame->tile_column_start_sb[column] *
+                sequence->superblock_size);
+            bounds.right = (uint16_t)(end < frame->width ? end : frame->width);
+            break;
+        }
+    }
+    for (row = 0U; row < frame->tile_row_count; ++row) {
+        uint32_t end = (uint32_t)frame->tile_row_start_sb[row + 1U] *
+            sequence->superblock_size;
+        if (y < end || row + 1U == frame->tile_row_count) {
+            bounds.top = (uint16_t)(frame->tile_row_start_sb[row] *
+                                    sequence->superblock_size);
+            bounds.bottom = (uint16_t)(
+                end < frame->height ? end : frame->height);
+            break;
+        }
+    }
+    return bounds;
+}
+
+static Av2hFilterPlane cdef_plane_view(
+    const Av2hFilterPlane *plane,
+    const CdefTileBounds *bounds,
+    unsigned int shift) {
+    Av2hFilterPlane view = *plane;
+    size_t left = bounds->left >> shift;
+    size_t top = bounds->top >> shift;
+    view.data += top * view.stride_samples + left;
+    view.width = (uint16_t)((bounds->right >> shift) - left);
+    view.height = (uint16_t)((bounds->bottom >> shift) - top);
+    return view;
+}
+
+static Av2hFilterPlaneU16 cdef_plane_view_u16(
+    const Av2hFilterPlaneU16 *plane,
+    const CdefTileBounds *bounds,
+    unsigned int shift) {
+    Av2hFilterPlaneU16 view = *plane;
+    size_t left = bounds->left >> shift;
+    size_t top = bounds->top >> shift;
+    view.data += top * view.stride_samples + left;
+    view.width = (uint16_t)((bounds->right >> shift) - left);
+    view.height = (uint16_t)((bounds->bottom >> shift) - top);
+    return view;
 }
 
 Av2hStatus av2h_cdef_find_direction(
@@ -503,6 +573,16 @@ Av2hStatus av2h_cdef_filter_frame_with_controls(
     const Av2hFilterPlanes *deblocked,
     const Av2hFrameState *frame,
     const Av2hCdefControlMap *controls) {
+    return av2h_cdef_filter_frame_with_sequence(
+        destination, deblocked, 0, frame, controls);
+}
+
+Av2hStatus av2h_cdef_filter_frame_with_sequence(
+    Av2hFilterPlanes *destination,
+    const Av2hFilterPlanes *deblocked,
+    const Av2hSequenceState *sequence,
+    const Av2hFrameState *frame,
+    const Av2hCdefControlMap *controls) {
     uint16_t y;
     unsigned int plane;
     if (destination == 0 || deblocked == 0 || frame == 0 ||
@@ -557,6 +637,20 @@ Av2hStatus av2h_cdef_filter_frame_with_controls(
             uint8_t direction;
             uint32_t variance;
             Av2hStatus status;
+            CdefTileBounds bounds = cdef_tile_bounds(sequence, frame, x, y);
+            if (sequence == 0 ||
+                sequence->disable_loopfilters_across_tiles == 0U ||
+                (uint32_t)frame->tile_column_count *
+                    frame->tile_row_count <= 1U) {
+                bounds.right = deblocked->plane[0].width;
+                bounds.bottom = deblocked->plane[0].height;
+            }
+            Av2hFilterPlane luma_destination = cdef_plane_view(
+                &destination->plane[0], &bounds, 0U);
+            Av2hFilterPlane luma_source = cdef_plane_view(
+                &deblocked->plane[0], &bounds, 0U);
+            uint16_t tile_x = (uint16_t)(x - bounds.left);
+            uint16_t tile_y = (uint16_t)(y - bounds.top);
             if (frame->cdef_strength_count > 1U) {
                 strength_index = ((size_t)y / 64U) * controls->columns +
                     (size_t)x / 64U;
@@ -575,14 +669,14 @@ Av2hStatus av2h_cdef_filter_frame_with_controls(
             if (height > 8U) height = 8U;
             if (width == 8U && height == 8U) {
                 status = av2h_cdef_find_direction(
-                    &deblocked->plane[0], x, y, &direction, &variance);
+                    &luma_source, tile_x, tile_y, &direction, &variance);
             } else {
                 status = cdef_partial_direction(
-                    &deblocked->plane[0], x, y, &direction, &variance);
+                    &luma_source, tile_x, tile_y, &direction, &variance);
             }
             if (status != AV2H_OK) return status;
             status = av2h_cdef_filter_block(
-                &destination->plane[0], &deblocked->plane[0], x, y,
+                &luma_destination, &luma_source, tile_x, tile_y,
                 width, height, 0U, y_primary, y_secondary,
                 frame->cdef_damping,
                 y_primary != 0U ? direction : 0U, variance);
@@ -598,9 +692,15 @@ Av2hStatus av2h_cdef_filter_frame_with_controls(
                 uint16_t chroma_height = (uint16_t)(
                     ((uint32_t)height + ((uint32_t)1U << shift) - 1U) >>
                     shift);
+                Av2hFilterPlane chroma_destination = cdef_plane_view(
+                    &destination->plane[plane], &bounds, shift);
+                Av2hFilterPlane chroma_source = cdef_plane_view(
+                    &deblocked->plane[plane], &bounds, shift);
                 status = av2h_cdef_filter_block(
-                    &destination->plane[plane], &deblocked->plane[plane],
-                    chroma_x, chroma_y, chroma_width, chroma_height, plane,
+                    &chroma_destination, &chroma_source,
+                    (uint16_t)(chroma_x - (bounds.left >> shift)),
+                    (uint16_t)(chroma_y - (bounds.top >> shift)),
+                    chroma_width, chroma_height, plane,
                     uv_primary, uv_secondary, frame->cdef_damping,
                     uv_primary != 0U ? direction : 0U, variance);
                 if (status != AV2H_OK) return status;
@@ -621,6 +721,16 @@ Av2hStatus av2h_cdef_filter_frame(
 Av2hStatus av2h_cdef_filter_frame_u16_with_controls(
     Av2hFilterPlanesU16 *destination,
     const Av2hFilterPlanesU16 *deblocked,
+    const Av2hFrameState *frame,
+    const Av2hCdefControlMap *controls) {
+    return av2h_cdef_filter_frame_u16_with_sequence(
+        destination, deblocked, 0, frame, controls);
+}
+
+Av2hStatus av2h_cdef_filter_frame_u16_with_sequence(
+    Av2hFilterPlanesU16 *destination,
+    const Av2hFilterPlanesU16 *deblocked,
+    const Av2hSequenceState *sequence,
     const Av2hFrameState *frame,
     const Av2hCdefControlMap *controls) {
     uint16_t y;
@@ -675,6 +785,20 @@ Av2hStatus av2h_cdef_filter_frame_u16_with_controls(
             uint8_t direction;
             uint32_t variance;
             Av2hStatus status;
+            CdefTileBounds bounds = cdef_tile_bounds(sequence, frame, x, y);
+            if (sequence == 0 ||
+                sequence->disable_loopfilters_across_tiles == 0U ||
+                (uint32_t)frame->tile_column_count *
+                    frame->tile_row_count <= 1U) {
+                bounds.right = deblocked->plane[0].width;
+                bounds.bottom = deblocked->plane[0].height;
+            }
+            Av2hFilterPlaneU16 luma_destination = cdef_plane_view_u16(
+                &destination->plane[0], &bounds, 0U);
+            Av2hFilterPlaneU16 luma_source = cdef_plane_view_u16(
+                &deblocked->plane[0], &bounds, 0U);
+            uint16_t tile_x = (uint16_t)(x - bounds.left);
+            uint16_t tile_y = (uint16_t)(y - bounds.top);
             if (frame->cdef_strength_count > 1U) {
                 strength_index = ((size_t)y / 64U) * controls->columns +
                     (size_t)x / 64U;
@@ -693,14 +817,14 @@ Av2hStatus av2h_cdef_filter_frame_u16_with_controls(
             if (height > 8U) height = 8U;
             if (width == 8U && height == 8U) {
                 status = av2h_cdef_find_direction_u16(
-                    &deblocked->plane[0], x, y, &direction, &variance);
+                    &luma_source, tile_x, tile_y, &direction, &variance);
             } else {
                 status = cdef_partial_direction_u16(
-                    &deblocked->plane[0], x, y, &direction, &variance);
+                    &luma_source, tile_x, tile_y, &direction, &variance);
             }
             if (status != AV2H_OK) return status;
             status = av2h_cdef_filter_block_u16(
-                &destination->plane[0], &deblocked->plane[0], x, y,
+                &luma_destination, &luma_source, tile_x, tile_y,
                 width, height, 0U, y_primary, y_secondary,
                 frame->cdef_damping,
                 y_primary != 0U ? direction : 0U, variance);
@@ -714,9 +838,15 @@ Av2hStatus av2h_cdef_filter_frame_u16_with_controls(
                     ((uint32_t)width + ((uint32_t)1U << shift) - 1U) >> shift);
                 uint16_t chroma_height = (uint16_t)(
                     ((uint32_t)height + ((uint32_t)1U << shift) - 1U) >> shift);
+                Av2hFilterPlaneU16 chroma_destination = cdef_plane_view_u16(
+                    &destination->plane[plane], &bounds, shift);
+                Av2hFilterPlaneU16 chroma_source = cdef_plane_view_u16(
+                    &deblocked->plane[plane], &bounds, shift);
                 status = av2h_cdef_filter_block_u16(
-                    &destination->plane[plane], &deblocked->plane[plane],
-                    chroma_x, chroma_y, chroma_width, chroma_height, plane,
+                    &chroma_destination, &chroma_source,
+                    (uint16_t)(chroma_x - (bounds.left >> shift)),
+                    (uint16_t)(chroma_y - (bounds.top >> shift)),
+                    chroma_width, chroma_height, plane,
                     uv_primary, uv_secondary, frame->cdef_damping,
                     uv_primary != 0U ? direction : 0U, variance);
                 if (status != AV2H_OK) return status;

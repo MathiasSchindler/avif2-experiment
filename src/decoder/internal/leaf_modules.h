@@ -46,6 +46,7 @@ Av2hStatus av2h_leaf_read_ccso_entropy(
     const Av2hSequenceState *sequence,
     const Av2hFrameState *frame,
     const Av2hPartitionNode *leaf,
+    const Av2hLumaModeNeighbors *neighbors,
     Av2hCcsoEntropyState *state,
     Av2hFirstLeafMode *mode);
 

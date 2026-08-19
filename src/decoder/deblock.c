@@ -607,6 +607,7 @@ static Av2hStatus deblock_frame_edge(
     unsigned int maximum_positive;
     unsigned int maximum_negative;
     unsigned int superblock_edge;
+    unsigned int tile_edge = 0U;
     uint16_t current_q;
     uint16_t previous_q;
     uint16_t current_side;
@@ -616,6 +617,37 @@ static Av2hStatus deblock_frame_edge(
     size_t grid_size = plane_data->width / map->columns[plane];
     size_t x = column * grid_size;
     size_t y = row * grid_size;
+    if (pass == 0U) {
+        unsigned int shift = av2h_chroma_shift(
+            frame->chroma_format_idc, plane);
+        size_t tile_index;
+        for (tile_index = 1U;
+             tile_index < frame->tile_column_count;
+             ++tile_index) {
+            size_t boundary =
+                ((size_t)frame->tile_column_start_sb[tile_index] *
+                 sequence->superblock_size) >> shift;
+            if (x == boundary) {
+                tile_edge = 1U;
+                break;
+            }
+        }
+    }
+    if (sequence->disable_loopfilters_across_tiles != 0U && tile_edge != 0U) {
+        return AV2H_OK;
+    }
+    if (sequence->disable_loopfilters_across_tiles != 0U && pass != 0U) {
+        unsigned int shift = av2h_chroma_shift(
+            frame->chroma_format_idc, plane);
+        size_t tile_index;
+        for (tile_index = 1U; tile_index < frame->tile_row_count;
+             ++tile_index) {
+            size_t boundary =
+                ((size_t)frame->tile_row_start_sb[tile_index] *
+                 sequence->superblock_size) >> shift;
+            if (y == boundary) return AV2H_OK;
+        }
+    }
     if (transform_edge == 0U || (block_edge == 0U && cell->skip != 0U)) {
         return AV2H_OK;
     }
@@ -664,9 +696,10 @@ static Av2hStatus deblock_frame_edge(
     } else {
         maximum_positive = plane == 0U ? 8U : 4U;
     }
-    superblock_edge = pass != 0U &&
-        (row * grid_size %
-         (plane == 0U || frame->chroma_format_idc == 2U ? 64U : 32U)) == 0U;
+    superblock_edge = tile_edge != 0U ||
+        (pass != 0U &&
+         (row * grid_size %
+          (plane == 0U || frame->chroma_format_idc == 2U ? 64U : 32U)) == 0U);
     maximum_negative = maximum_positive;
     if (superblock_edge != 0U) {
         unsigned int limit = plane == 0U ? 6U : 2U;
@@ -704,6 +737,7 @@ static Av2hStatus deblock_frame_edge_u16(
     unsigned int maximum_positive;
     unsigned int maximum_negative;
     unsigned int superblock_edge;
+    unsigned int tile_edge = 0U;
     uint16_t current_q;
     uint16_t previous_q;
     uint16_t current_side;
@@ -713,6 +747,37 @@ static Av2hStatus deblock_frame_edge_u16(
     size_t grid_size = plane_data->width / map->columns[plane];
     size_t x = column * grid_size;
     size_t y = row * grid_size;
+    if (pass == 0U) {
+        unsigned int shift = av2h_chroma_shift(
+            frame->chroma_format_idc, plane);
+        size_t tile_index;
+        for (tile_index = 1U;
+             tile_index < frame->tile_column_count;
+             ++tile_index) {
+            size_t boundary =
+                ((size_t)frame->tile_column_start_sb[tile_index] *
+                 sequence->superblock_size) >> shift;
+            if (x == boundary) {
+                tile_edge = 1U;
+                break;
+            }
+        }
+    }
+    if (sequence->disable_loopfilters_across_tiles != 0U && tile_edge != 0U) {
+        return AV2H_OK;
+    }
+    if (sequence->disable_loopfilters_across_tiles != 0U && pass != 0U) {
+        unsigned int shift = av2h_chroma_shift(
+            frame->chroma_format_idc, plane);
+        size_t tile_index;
+        for (tile_index = 1U; tile_index < frame->tile_row_count;
+             ++tile_index) {
+            size_t boundary =
+                ((size_t)frame->tile_row_start_sb[tile_index] *
+                 sequence->superblock_size) >> shift;
+            if (y == boundary) return AV2H_OK;
+        }
+    }
     if (transform_edge == 0U || (block_edge == 0U && cell->skip != 0U)) {
         return AV2H_OK;
     }
@@ -761,9 +826,10 @@ static Av2hStatus deblock_frame_edge_u16(
     } else {
         maximum_positive = plane == 0U ? 8U : 4U;
     }
-    superblock_edge = pass != 0U &&
-        (row * grid_size %
-         (plane == 0U || frame->chroma_format_idc == 2U ? 64U : 32U)) == 0U;
+    superblock_edge = tile_edge != 0U ||
+        (pass != 0U &&
+         (row * grid_size %
+          (plane == 0U || frame->chroma_format_idc == 2U ? 64U : 32U)) == 0U);
     maximum_negative = maximum_positive;
     if (superblock_edge != 0U) {
         unsigned int limit = plane == 0U ? 6U : 2U;

@@ -1,6 +1,7 @@
 #include "decoder/tile.h"
 
 #include <stdio.h>
+#include <string.h>
 
 static int failures;
 
@@ -178,6 +179,83 @@ static void test_failures(void) {
     CHECK(av2h_tile_group_single_parse(
               (Av2hSpan){ header_only, sizeof(header_only) }, 0U,
               0) == AV2H_INVALID_ARGUMENT);
+}
+
+static Av2hStatus parse_two_tile_groups(const unsigned char *bytes,
+                                                                                size_t size,
+                                                                                size_t first_size,
+                                                                                Av2hTileGroup *group) {
+        Av2hObu entries[2] = {
+                { .payload_offset = 0U, .payload_size = first_size,
+                    .type = AV2H_OBU_CLOSED_LOOP_KEY },
+                { .payload_offset = first_size, .payload_size = size - first_size,
+                    .type = AV2H_OBU_CLOSED_LOOP_KEY }
+        };
+        Av2hObuLedger ledger = { entries, 2U, 2U };
+        Av2hFrameState frame = { 0 };
+        frame.tile_column_count = 2U;
+        frame.tile_row_count = 2U;
+        frame.tile_column_log2 = 1U;
+        frame.tile_row_log2 = 1U;
+        frame.tile_size_bytes = 1U;
+        return av2h_tile_groups_ledger_parse(
+                (Av2hSpan){ bytes, size }, &ledger, &frame, group);
+}
+
+static void test_tile_group_ledger(void) {
+        static const unsigned char canonical[] = {
+            0xc4U, 0x00U, 0xaaU, 0xbbU,
+                0x36U, 0x00U, 0xccU, 0xddU
+        };
+        unsigned char malformed[sizeof(canonical)];
+        Av2hTileGroup group;
+        Av2hObu duplicate_entries[3] = {
+                { .payload_offset = 0U, .payload_size = 4U,
+                    .type = AV2H_OBU_CLOSED_LOOP_KEY },
+                { .payload_offset = 4U, .payload_size = 4U,
+                    .type = AV2H_OBU_CLOSED_LOOP_KEY },
+                { .payload_offset = 4U, .payload_size = 4U,
+                    .type = AV2H_OBU_CLOSED_LOOP_KEY }
+        };
+        Av2hObuLedger duplicate_ledger = { duplicate_entries, 3U, 3U };
+        Av2hFrameState frame = { 0 };
+        CHECK(parse_two_tile_groups(
+                            canonical, sizeof(canonical), 4U, &group) == AV2H_OK);
+        CHECK(group.start_tile == 0U && group.end_tile == 3U &&
+                    group.tile_count == 4U);
+        CHECK(group.tiles[0].size == 1U && group.tiles[0].data[0] == 0xaaU);
+        CHECK(group.tiles[3].size == 1U && group.tiles[3].data[0] == 0xddU);
+
+        memcpy(malformed, canonical, sizeof(malformed));
+        malformed[4] = 0x3eU;
+        CHECK(parse_two_tile_groups(
+                            malformed, sizeof(malformed), 4U, &group) ==
+                    AV2H_INVALID_DATA);
+        memcpy(malformed, canonical, sizeof(malformed));
+        malformed[4] = 0x2eU;
+        CHECK(parse_two_tile_groups(
+                            malformed, sizeof(malformed), 4U, &group) ==
+                    AV2H_INVALID_DATA);
+        memcpy(malformed, canonical, sizeof(malformed));
+        malformed[4] = 0xb6U;
+        CHECK(parse_two_tile_groups(
+                            malformed, sizeof(malformed), 4U, &group) ==
+                    AV2H_INVALID_DATA);
+        CHECK(parse_two_tile_groups(
+                            canonical, 6U, 2U, &group) == AV2H_TRUNCATED);
+        memcpy(malformed, canonical, sizeof(malformed));
+        malformed[1] = 0xffU;
+        CHECK(parse_two_tile_groups(
+                            malformed, sizeof(malformed), 4U, &group) == AV2H_TRUNCATED);
+
+        frame.tile_column_count = 2U;
+        frame.tile_row_count = 2U;
+        frame.tile_column_log2 = 1U;
+        frame.tile_row_log2 = 1U;
+        frame.tile_size_bytes = 1U;
+        CHECK(av2h_tile_groups_ledger_parse(
+                            (Av2hSpan){ canonical, sizeof(canonical) },
+                            &duplicate_ledger, &frame, &group) == AV2H_INVALID_DATA);
 }
 
 #if 0
@@ -413,6 +491,11 @@ static void test_odd_luma_reconstruction(void) {
     CHECK(av2h_tile_group_single_parse(
               (Av2hSpan){ frame_bytes, sizeof(frame_bytes) },
               frame.uncompressed_header_bits, &group) == AV2H_OK);
+    CHECK(frame.uncompressed_header_bits == 148U);
+    CHECK(group.header_size == 19U);
+    CHECK(group.entropy.data == frame_bytes + 19U);
+    CHECK(group.entropy.size == sizeof(frame_bytes) - 19U);
+    CHECK(group.entropy.data[0] == 0xf3U);
     av2h_memory_fill(luma_pixels, 0U, sizeof(luma_pixels));
     av2h_memory_fill(u_pixels, 0U, sizeof(u_pixels));
     av2h_memory_fill(v_pixels, 0U, sizeof(v_pixels));
@@ -1604,6 +1687,7 @@ static void test_scheduler_guards_and_root_size(void) {
 
 int main(void) {
     test_failures();
+    test_tile_group_ledger();
     test_odd_luma_reconstruction();
     test_ordinary_luma_frontier();
     test_orchestrator_failures();

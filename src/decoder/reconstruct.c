@@ -205,7 +205,16 @@ static Av2hStatus reconstruct_lossless_4x4_u16(
 uint8_t av2h_plane_sample_reconstructed(
     const Av2hReconstructionPlane *plane, size_t x, size_t y) {
     size_t index = (y / 4U) * plane->reconstructed_stride_cells + x / 4U;
-    return index < plane->reconstructed_count_cells && plane->reconstructed[index];
+    return index < plane->reconstructed_count_cells &&
+        plane->reconstructed[index] != 0U &&
+        plane->reconstructed[index] != 2U;
+}
+
+static uint8_t plane_sample_inside_active_tile(
+    const Av2hReconstructionPlane *plane, size_t x, size_t y) {
+    size_t index = (y / 4U) * plane->reconstructed_stride_cells + x / 4U;
+    return index < plane->reconstructed_count_cells &&
+        plane->reconstructed[index] != 2U;
 }
 
 static void plane_mark_reconstructed(Av2hReconstructionPlane *plane,
@@ -229,7 +238,15 @@ static uint8_t plane_sample_reconstructed_u16(
     const Av2hReconstructionPlaneU16 *plane, size_t x, size_t y) {
     size_t index = (y / 4U) * plane->reconstructed_stride_cells + x / 4U;
     return index < plane->reconstructed_count_cells &&
-        plane->reconstructed[index];
+        plane->reconstructed[index] != 0U &&
+        plane->reconstructed[index] != 2U;
+}
+
+static uint8_t plane_sample_inside_active_tile_u16(
+    const Av2hReconstructionPlaneU16 *plane, size_t x, size_t y) {
+    size_t index = (y / 4U) * plane->reconstructed_stride_cells + x / 4U;
+    return index < plane->reconstructed_count_cells &&
+        plane->reconstructed[index] != 2U;
 }
 
 static void plane_mark_reconstructed_u16(
@@ -1639,7 +1656,9 @@ Av2hStatus av2h_luma_reconstruct_to_plane_with_diagnostics(
             plane->data[((size_t)block_y - 1U) * plane->stride_samples +
                         block_x - 1U] : 0U;
     references.has_above_left = block_x > mode->mrl_index &&
-        block_y > mode->mrl_index;
+        block_y > mode->mrl_index && plane_sample_inside_active_tile(
+            plane, (size_t)block_x - 1U - mode->mrl_index,
+            (size_t)block_y - 1U - mode->mrl_index);
     references.above_left = references.has_above_left ?
         plane->data[((size_t)block_y - 1U - mode->mrl_index) * plane->stride_samples +
                     block_x - 1U - mode->mrl_index] :
@@ -2025,7 +2044,10 @@ Av2hStatus av2h_luma_reconstruct_to_plane_u16_with_diagnostics(
                 plane->data, plane->stride_samples,
                 block_x - 1U, block_y - 1U) : 0U;
     references.has_above_left = (uint8_t)(
-        block_x > mode->mrl_index && block_y > mode->mrl_index);
+        block_x > mode->mrl_index && block_y > mode->mrl_index &&
+        plane_sample_inside_active_tile_u16(
+            plane, (size_t)block_x - 1U - mode->mrl_index,
+            (size_t)block_y - 1U - mode->mrl_index));
     references.above_left = references.has_above_left ?
         av2h_reconstructed_sample_load_u16(
             plane->data, plane->stride_samples,

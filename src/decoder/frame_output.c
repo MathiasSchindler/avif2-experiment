@@ -47,8 +47,123 @@ static Av2hStatus restoration_tx_skip_commit(
     return AV2H_OK;
 }
 
-Av2hStatus av2h_decode_frame_planar_with_execution_private(
-    Av2hSpan entropy,
+static uint8_t *tile_readiness_map(
+    Av2hFrameDecodeWorkspace *workspace,
+    unsigned int plane,
+    size_t *stride,
+    size_t *count) {
+    if (workspace->bytes_per_sample == 1U) {
+        *stride = workspace->coded[plane].reconstructed_stride_cells;
+        *count = workspace->coded[plane].reconstructed_count_cells;
+        return workspace->coded[plane].reconstructed;
+    }
+    *stride = workspace->coded_u16[plane].reconstructed_stride_cells;
+    *count = workspace->coded_u16[plane].reconstructed_count_cells;
+    return workspace->coded_u16[plane].reconstructed;
+}
+
+static void tile_readiness_clear(
+    const Av2hFrameState *frame,
+    Av2hFrameDecodeWorkspace *workspace,
+    const Av2hTileDecoder *decoder) {
+    unsigned int plane;
+    for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
+        unsigned int shift = av2h_chroma_shift(
+            frame->chroma_format_idc, plane);
+        size_t x0 = decoder->traversal.tile_start_column >> shift;
+        size_t y0 = decoder->traversal.tile_start_row >> shift;
+        size_t x1 = ((size_t)decoder->traversal.tile_end_column +
+            (1U << shift) - 1U) >> shift;
+        size_t y1 = ((size_t)decoder->traversal.tile_end_row +
+            (1U << shift) - 1U) >> shift;
+        size_t stride;
+        size_t count;
+        uint8_t *map = tile_readiness_map(
+            workspace, plane, &stride, &count);
+        size_t row;
+        av2h_memory_fill(map, 2U, count);
+        for (row = y0; row < y1; ++row) {
+            size_t width = x1 - x0;
+            if (row * stride + x0 < count &&
+                width <= count - (row * stride + x0)) {
+                av2h_memory_fill(map + row * stride + x0, 0U, width);
+            }
+        }
+    }
+}
+
+static int tile_readiness_complete(
+    const Av2hFrameState *frame,
+    Av2hFrameDecodeWorkspace *workspace,
+    const Av2hTileDecoder *decoder) {
+    unsigned int plane;
+    for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
+        unsigned int shift = av2h_chroma_shift(
+            frame->chroma_format_idc, plane);
+        size_t x0 = decoder->traversal.tile_start_column >> shift;
+        size_t y0 = decoder->traversal.tile_start_row >> shift;
+        size_t x1 = ((size_t)decoder->traversal.tile_end_column +
+            (1U << shift) - 1U) >> shift;
+        size_t y1 = ((size_t)decoder->traversal.tile_end_row +
+            (1U << shift) - 1U) >> shift;
+        size_t stride;
+        size_t count;
+        uint8_t *map = tile_readiness_map(
+            workspace, plane, &stride, &count);
+        size_t row;
+        for (row = y0; row < y1; ++row) {
+            size_t column;
+            for (column = x0; column < x1; ++column) {
+                size_t index = row * stride + column;
+                if (index >= count || map[index] == 0U) return 0;
+            }
+        }
+    }
+    return 1;
+}
+
+static void tile_readiness_restore_previous(
+    const Av2hSequenceState *sequence,
+    const Av2hFrameState *frame,
+    Av2hFrameDecodeWorkspace *workspace,
+    uint16_t tile_id) {
+    uint16_t previous;
+    uint16_t superblock_mi = (uint16_t)(sequence->superblock_size / 4U);
+    for (previous = 0U; previous < tile_id; ++previous) {
+        uint16_t tile_column =
+            (uint16_t)(previous % frame->tile_column_count);
+        uint16_t tile_row =
+            (uint16_t)(previous / frame->tile_column_count);
+        unsigned int plane;
+        for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
+            unsigned int shift = av2h_chroma_shift(
+                frame->chroma_format_idc, plane);
+            size_t x0 = ((size_t)frame->tile_column_start_sb[tile_column] *
+                superblock_mi) >> shift;
+            size_t y0 = ((size_t)frame->tile_row_start_sb[tile_row] *
+                superblock_mi) >> shift;
+            size_t x1 = ((size_t)frame->tile_column_start_sb[tile_column + 1U] *
+                superblock_mi) >> shift;
+            size_t y1 = ((size_t)frame->tile_row_start_sb[tile_row + 1U] *
+                superblock_mi) >> shift;
+            size_t stride;
+            size_t count;
+            uint8_t *map = tile_readiness_map(
+                workspace, plane, &stride, &count);
+            size_t row;
+            for (row = y0; row < y1; ++row) {
+                size_t width = x1 - x0;
+                if (row * stride + x0 < count &&
+                    width <= count - (row * stride + x0)) {
+                    av2h_memory_fill(map + row * stride + x0, 1U, width);
+                }
+            }
+        }
+    }
+}
+
+Av2hStatus av2h_decode_frame_group_planar_with_execution_private(
+    const Av2hTileGroup *group,
     const Av2hSequenceState *sequence,
     const Av2hFrameState *frame,
     Av2hFrameDecodeWorkspace *workspace,
@@ -66,6 +181,7 @@ Av2hStatus av2h_decode_frame_planar_with_execution_private(
     Av2hFirstCoeffBlock pending_chroma_blocks[4U][2U];
     uint8_t pending_chroma_count = 0U;
     size_t required_output_bytes;
+    size_t tile_index;
     Av2hStatus status;
     unsigned int plane;
 #define AV2H_DECODE_FAIL(returned_status, original_cause, failure_stage,       \
@@ -85,7 +201,9 @@ Av2hStatus av2h_decode_frame_planar_with_execution_private(
         if (result != 0) *result = decoded;                                    \
         return (returned_status);                                              \
     } while (0)
-    if (sequence == 0 || frame == 0 || workspace == 0 || output == 0) {
+    if (group == 0 || group->tile_count == 0U ||
+        group->tile_count > AV2H_PROFILE_MAX_TILES || sequence == 0 ||
+        frame == 0 || workspace == 0 || output == 0) {
         return AV2H_INVALID_ARGUMENT;
     }
 #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
@@ -129,14 +247,19 @@ Av2hStatus av2h_decode_frame_planar_with_execution_private(
         sequence, frame, workspace, output, required_output_bytes, result,
         &layout);
     if (status != AV2H_OK) return status;
-    status = av2h_tile_decoder_init(
-        &decoder, entropy, sequence, frame, &workspace->tile_context);
-    if (status != AV2H_OK) return status;
-    decoder.diagnostics = workspace->diagnostics;
-    decoder.entropy_state.range.diagnostics = workspace->diagnostics;
-    decoder.traversal.luma_traversal.diagnostics = workspace->diagnostics;
-    decoder.traversal.chroma_traversal.diagnostics = workspace->diagnostics;
-    while (decoder.control.phase != AV2H_TILE_DECODE_DONE) {
+    for (tile_index = 0U; tile_index < group->tile_count; ++tile_index) {
+        uint16_t tile_id = (uint16_t)(group->start_tile + tile_index);
+        pending_chroma_count = 0U;
+        status = av2h_tile_decoder_init_at(
+            &decoder, group->tiles[tile_index], sequence, frame,
+            &workspace->tile_context, tile_id);
+        if (status != AV2H_OK) return status;
+        tile_readiness_clear(frame, workspace, &decoder);
+        decoder.diagnostics = workspace->diagnostics;
+        decoder.entropy_state.range.diagnostics = workspace->diagnostics;
+        decoder.traversal.luma_traversal.diagnostics = workspace->diagnostics;
+        decoder.traversal.chroma_traversal.diagnostics = workspace->diagnostics;
+        while (decoder.control.phase != AV2H_TILE_DECODE_DONE) {
         uint8_t has_leaf = 0U;
         if (decoder.control.phase == AV2H_TILE_DECODE_LUMA &&
             decoder.chroma.shared_complete && pending_chroma_count != 0U &&
@@ -684,6 +807,14 @@ Av2hStatus av2h_decode_frame_planar_with_execution_private(
                 AV2H_FRAME_DECODE_STAGE_COMPLETENESS,
                 0U, 0, 0U);
         }
+        }
+        if (!tile_readiness_complete(frame, workspace, &decoder)) {
+            AV2H_DECODE_FAIL(
+                AV2H_INVALID_DATA, AV2H_INVALID_DATA,
+                AV2H_FRAME_DECODE_STAGE_COMPLETENESS, 0U, 0, 0U);
+        }
+        tile_readiness_restore_previous(
+            sequence, frame, workspace, tile_id);
     }
     if (!av2h_frame_workspace_complete(frame, workspace)) {
         AV2H_DECODE_FAIL(
@@ -811,5 +942,37 @@ Av2hStatus av2h_decode_frame_planar_private(
     Av2hFrameDecodeResult *result) {
     return av2h_decode_frame_planar_with_execution_private(
         entropy, sequence, frame, workspace, output, output_size_bytes,
+        result, 0);
+}
+
+Av2hStatus av2h_decode_frame_planar_with_execution_private(
+    Av2hSpan entropy,
+    const Av2hSequenceState *sequence,
+    const Av2hFrameState *frame,
+    Av2hFrameDecodeWorkspace *workspace,
+    uint8_t *output,
+    size_t output_size_bytes,
+    Av2hFrameDecodeResult *result,
+    const Av2hExecution *execution) {
+    Av2hTileGroup group;
+    av2h_memory_fill(&group, 0U, sizeof(group));
+    group.tile_count = 1U;
+    group.tiles[0] = entropy;
+    group.entropy = entropy;
+    return av2h_decode_frame_group_planar_with_execution_private(
+        &group, sequence, frame, workspace, output, output_size_bytes,
+        result, execution);
+}
+
+Av2hStatus av2h_decode_frame_group_planar_private(
+    const Av2hTileGroup *group,
+    const Av2hSequenceState *sequence,
+    const Av2hFrameState *frame,
+    Av2hFrameDecodeWorkspace *workspace,
+    uint8_t *output,
+    size_t output_size_bytes,
+    Av2hFrameDecodeResult *result) {
+    return av2h_decode_frame_group_planar_with_execution_private(
+        group, sequence, frame, workspace, output, output_size_bytes,
         result, 0);
 }

@@ -275,6 +275,46 @@ Av2hStatus av2h_obu_parse(Av2hSpan input,
     return AV2H_OK;
 }
 
+static unsigned int tile_log2_u32(uint32_t block_size, uint32_t target) {
+    unsigned int value = 0U;
+    while ((block_size << value) < target) ++value;
+    return value;
+}
+
+static unsigned int ceil_log2_u32(uint32_t value) {
+    unsigned int bits = 0U;
+    uint32_t limit = 1U;
+    while (limit < value) {
+        limit <<= 1U;
+        ++bits;
+    }
+    return bits;
+}
+
+static uint32_t sequence_tile_width_scale(const Av2hSequenceState *state) {
+    unsigned int level = state->info.seq_level_idx;
+    if (level > 21U) return 0U;
+    if (state->info.seq_tier != 0U) {
+        if (level >= 18U) return 16U;
+        if (level >= 14U) return 8U;
+        return 4U;
+    }
+    return level >= 18U ? 8U : 4U;
+}
+
+static uint32_t sequence_tile_area_scale(const Av2hSequenceState *state) {
+    unsigned int level = state->info.seq_level_idx;
+    if (level > 21U) return 0U;
+    if (state->info.seq_tier != 0U) {
+        if (level >= 18U) return 32U;
+        if (level >= 14U) return 16U;
+        return 4U;
+    }
+    if (level >= 18U) return 16U;
+    if (level >= 14U) return 8U;
+    return 4U;
+}
+
 static int read_sequence_tools(Av2hBitReader *reader,
                                uint8_t monochrome,
                                uint8_t single_picture,
@@ -435,7 +475,100 @@ static int read_sequence_tools(Av2hBitReader *reader,
         (uint8_t)av2h_bit_reader_read(reader, 2U);
     state->seq_tile_info_present_flag =
         (uint8_t)av2h_bit_reader_read(reader, 1U);
-    if (state->seq_tile_info_present_flag != 0U) return 0;
+    if (state->seq_tile_info_present_flag != 0U) {
+        uint32_t superblock_mi = state->superblock_size / 4U;
+        uint32_t mi_columns =
+            ((uint32_t)state->info.max_frame_width_minus_1 + 8U) / 4U;
+        uint32_t mi_rows =
+            ((uint32_t)state->info.max_frame_height_minus_1 + 8U) / 4U;
+        uint32_t sb_columns =
+            (mi_columns + superblock_mi - 1U) / superblock_mi;
+        uint32_t sb_rows =
+            (mi_rows + superblock_mi - 1U) / superblock_mi;
+        uint32_t width_scale = sequence_tile_width_scale(state);
+        uint32_t area_scale = sequence_tile_area_scale(state);
+        uint32_t max_width_sb = width_scale == 0U ? sb_columns :
+            (width_scale * 4096U) / state->superblock_size / 4U;
+        uint32_t max_area_sb = area_scale == 0U ? sb_columns * sb_rows :
+            (area_scale * (4096U * 2304U)) /
+                state->superblock_size / state->superblock_size / 4U;
+        unsigned int min_log2_columns;
+        unsigned int min_log2_tiles;
+        unsigned int min_log2_rows;
+        unsigned int max_log2_columns;
+        unsigned int max_log2_rows;
+        uint32_t remaining;
+        uint32_t start;
+        uint32_t widest = 1U;
+        size_t index;
+        if (superblock_mi == 0U || max_width_sb == 0U || max_area_sb == 0U) {
+            return 0;
+        }
+        state->tile_sb_columns = (uint16_t)sb_columns;
+        state->tile_sb_rows = (uint16_t)sb_rows;
+        min_log2_columns = tile_log2_u32(max_width_sb, sb_columns);
+        min_log2_tiles = tile_log2_u32(max_area_sb, sb_columns * sb_rows);
+        if (min_log2_tiles < min_log2_columns) min_log2_tiles = min_log2_columns;
+        max_log2_columns = ceil_log2_u32(
+            sb_columns < AV2H_MAX_TILE_COLUMNS ? sb_columns : AV2H_MAX_TILE_COLUMNS);
+        max_log2_rows = ceil_log2_u32(
+            sb_rows < AV2H_MAX_TILE_ROWS ? sb_rows : AV2H_MAX_TILE_ROWS);
+        state->allow_tile_info_change =
+            (uint8_t)av2h_bit_reader_read(reader, 1U);
+        state->uniform_tile_spacing =
+            (uint8_t)av2h_bit_reader_read(reader, 1U);
+        if (state->uniform_tile_spacing != 0U) {
+            state->tile_column_log2 = (uint8_t)min_log2_columns;
+            while (state->tile_column_log2 < max_log2_columns &&
+                   av2h_bit_reader_read(reader, 1U) != 0U) {
+                ++state->tile_column_log2;
+            }
+            min_log2_rows = min_log2_tiles > state->tile_column_log2 ?
+                min_log2_tiles - state->tile_column_log2 : 0U;
+            state->tile_row_log2 = (uint8_t)min_log2_rows;
+            while (state->tile_row_log2 < max_log2_rows &&
+                   av2h_bit_reader_read(reader, 1U) != 0U) {
+                ++state->tile_row_log2;
+            }
+            state->tile_column_count = (uint8_t)(1U << state->tile_column_log2);
+            state->tile_row_count = (uint8_t)(1U << state->tile_row_log2);
+        } else {
+            remaining = sb_columns;
+            start = 0U;
+            index = 0U;
+            while (remaining != 0U && index < AV2H_MAX_TILE_COLUMNS) {
+                uint32_t maximum = remaining < max_width_sb ? remaining : max_width_sb;
+                uint32_t size = av2h_bit_reader_quasi_uniform(reader, maximum) + 1U;
+                state->tile_column_start_sb[index++] = (uint16_t)start;
+                start += size;
+                remaining -= size;
+                if (size > widest) widest = size;
+            }
+            if (remaining != 0U) return 0;
+            state->tile_column_start_sb[index] = (uint16_t)start;
+            state->tile_column_count = (uint8_t)index;
+            state->tile_column_log2 = (uint8_t)ceil_log2_u32((uint32_t)index);
+            max_area_sb = sb_columns * sb_rows;
+            if (min_log2_tiles != 0U) max_area_sb >>= min_log2_tiles + 1U;
+            max_width_sb = max_area_sb / widest;
+            if (max_width_sb == 0U) max_width_sb = 1U;
+            remaining = sb_rows;
+            start = 0U;
+            index = 0U;
+            while (remaining != 0U && index < AV2H_MAX_TILE_ROWS) {
+                uint32_t maximum = remaining < max_width_sb ? remaining : max_width_sb;
+                uint32_t size = av2h_bit_reader_quasi_uniform(reader, maximum) + 1U;
+                state->tile_row_start_sb[index++] = (uint16_t)start;
+                start += size;
+                remaining -= size;
+            }
+            if (remaining != 0U) return 0;
+            state->tile_row_start_sb[index] = (uint16_t)start;
+            state->tile_row_count = (uint8_t)index;
+            state->tile_row_log2 = (uint8_t)ceil_log2_u32((uint32_t)index);
+        }
+        return reader->status == AV2H_OK;
+    }
     return reader->status == AV2H_OK;
 }
 

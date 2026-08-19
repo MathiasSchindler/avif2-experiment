@@ -22,6 +22,99 @@ static void test_mi_dimension_alignment(void) {
     CHECK(av2h_frame_mi_dimension(256U) == 64U);
 }
 
+static void init_tile_layout_state(Av2hSequenceState *sequence,
+                                   Av2hFrameState *frame) {
+    av2h_memory_fill(sequence, 0U, sizeof(*sequence));
+    av2h_memory_fill(frame, 0U, sizeof(*frame));
+    sequence->superblock_size = 64U;
+    sequence->info.seq_level_idx = 0U;
+    frame->width = 320U;
+    frame->height = 320U;
+}
+
+static void check_two_by_two_layout(const Av2hFrameState *frame) {
+    CHECK(frame->tile_column_count == 2U);
+    CHECK(frame->tile_row_count == 2U);
+    CHECK(frame->tile_column_start_sb[0] == 0U);
+    CHECK(frame->tile_column_start_sb[1] == 3U);
+    CHECK(frame->tile_column_start_sb[2] == 5U);
+    CHECK(frame->tile_row_start_sb[0] == 0U);
+    CHECK(frame->tile_row_start_sb[1] == 3U);
+    CHECK(frame->tile_row_start_sb[2] == 5U);
+}
+
+static void test_tile_layout_reuse(void) {
+    static const unsigned char implicit_bits[] = { 0x00U };
+    static const unsigned char explicit_bits[] = { 0xa0U };
+    static const unsigned char override_bits[] = { 0x40U };
+    Av2hBitReader reader;
+    Av2hSequenceState sequence;
+    Av2hFrameState frame;
+
+    init_tile_layout_state(&sequence, &frame);
+    sequence.seq_tile_info_present_flag = 1U;
+    sequence.uniform_tile_spacing = 1U;
+    sequence.tile_column_log2 = 1U;
+    sequence.tile_row_log2 = 1U;
+    av2h_bit_reader_init(&reader, implicit_bits, sizeof(implicit_bits), 0U);
+    CHECK(av2h_frame_tile_layout_read(&reader, &sequence, &frame));
+    CHECK(reader.bit_position == 2U);
+    CHECK(frame.uniform_tile_spacing == 1U);
+    CHECK(frame.tile_size_bytes == 1U);
+    check_two_by_two_layout(&frame);
+
+    init_tile_layout_state(&sequence, &frame);
+    sequence.seq_tile_info_present_flag = 1U;
+    sequence.allow_tile_info_change = 1U;
+    sequence.uniform_tile_spacing = 1U;
+    sequence.tile_column_log2 = 1U;
+    sequence.tile_row_log2 = 1U;
+    av2h_bit_reader_init(&reader, explicit_bits, sizeof(explicit_bits), 0U);
+    CHECK(av2h_frame_tile_layout_read(&reader, &sequence, &frame));
+    CHECK(reader.bit_position == 3U);
+    CHECK(frame.tile_size_bytes == 2U);
+    check_two_by_two_layout(&frame);
+
+    init_tile_layout_state(&sequence, &frame);
+    sequence.seq_tile_info_present_flag = 1U;
+    sequence.allow_tile_info_change = 1U;
+    sequence.uniform_tile_spacing = 1U;
+    sequence.tile_column_log2 = 1U;
+    sequence.tile_row_log2 = 1U;
+    av2h_bit_reader_init(&reader, override_bits, sizeof(override_bits), 0U);
+    CHECK(av2h_frame_tile_layout_read(&reader, &sequence, &frame));
+    CHECK(reader.bit_position == 4U);
+    CHECK(frame.uniform_tile_spacing == 1U);
+    CHECK(frame.tile_column_count == 1U);
+    CHECK(frame.tile_row_count == 1U);
+}
+
+static void test_nonuniform_tile_layout(void) {
+    static const unsigned char bits[] = { 0x3bU, 0xc0U };
+    Av2hBitReader reader;
+    Av2hSequenceState sequence;
+    Av2hFrameState frame;
+
+    init_tile_layout_state(&sequence, &frame);
+    sequence.seq_tile_info_present_flag = 1U;
+    sequence.uniform_tile_spacing = 0U;
+    sequence.tile_sb_columns = 4U;
+    sequence.tile_sb_rows = 5U;
+    av2h_bit_reader_init(&reader, bits, sizeof(bits), 0U);
+    CHECK(av2h_frame_tile_layout_read(&reader, &sequence, &frame));
+    CHECK(reader.bit_position == 11U);
+    CHECK(frame.uniform_tile_spacing == 0U);
+    CHECK(frame.tile_column_count == 2U);
+    CHECK(frame.tile_row_count == 2U);
+    CHECK(frame.tile_column_start_sb[0] == 0U);
+    CHECK(frame.tile_column_start_sb[1] == 2U);
+    CHECK(frame.tile_column_start_sb[2] == 5U);
+    CHECK(frame.tile_row_start_sb[0] == 0U);
+    CHECK(frame.tile_row_start_sb[1] == 2U);
+    CHECK(frame.tile_row_start_sb[2] == 5U);
+    CHECK(frame.tile_size_bytes == 3U);
+}
+
 typedef struct {
     uint16_t index;
     int8_t value;
@@ -442,6 +535,8 @@ static void test_emerald_q208_deblock_header(void) {
 
 int main(void) {
     test_mi_dimension_alignment();
+    test_tile_layout_reuse();
+    test_nonuniform_tile_layout();
     test_fixtures();
     test_failures();
     test_10bit_wp0_header();

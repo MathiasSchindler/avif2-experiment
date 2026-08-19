@@ -117,36 +117,191 @@ static uint8_t tile_chroma_lossless_unit_complete(
             (next.column - decoder->chroma.coding_node.column) / 16U);
 }
 
-Av2hStatus av2h_tile_group_single_parse(Av2hSpan payload,
-                                         size_t uncompressed_header_bits,
-                                         Av2hTileGroup *group) {
+static Av2hStatus tile_group_parse(
+    Av2hSpan payload,
+    size_t uncompressed_header_bits,
+    uint16_t tile_count,
+    uint8_t tile_id_bits,
+    uint8_t tile_size_bytes,
+    uint16_t expected_start_tile,
+    uint8_t first_group,
+    Av2hTileGroup *group) {
     Av2hBitReader reader;
-    size_t header_bits;
     size_t header_size;
+    size_t cursor;
+    size_t tile_index;
     if (group == 0 || (payload.data == 0 && payload.size != 0U)) {
         return AV2H_INVALID_ARGUMENT;
     }
-    group->header_bits = 0U;
-    group->header_size = 0U;
-    group->entropy.data = 0;
-    group->entropy.size = 0U;
+    av2h_memory_fill(group, 0U, sizeof(*group));
     if (payload.size == 0U) return AV2H_TRUNCATED;
-    if (!av2h_size_add(uncompressed_header_bits, 1U, &header_bits)) {
-        return AV2H_OVERFLOW;
+    if (uncompressed_header_bits == SIZE_MAX) return AV2H_OVERFLOW;
+    if (tile_count == 0U || tile_count > AV2H_PROFILE_MAX_TILES ||
+        expected_start_tile >= tile_count || tile_size_bytes > 4U) {
+        return AV2H_LIMIT_EXCEEDED;
     }
     av2h_bit_reader_init(&reader, payload.data, payload.size, 0U);
-    if (av2h_bit_reader_read(&reader, 1U) == 0U) return AV2H_UNSUPPORTED;
-    (void)av2h_bit_reader_skip(&reader, uncompressed_header_bits);
+    if (av2h_bit_reader_read(&reader, 1U) != first_group) {
+        return first_group != 0U ? AV2H_UNSUPPORTED : AV2H_INVALID_DATA;
+    }
+    if (first_group != 0U || av2h_bit_reader_read(&reader, 1U) != 0U) {
+        (void)av2h_bit_reader_skip(&reader, uncompressed_header_bits);
+    }
     if (reader.status != AV2H_OK) return reader.status;
+    group->start_tile = 0U;
+    group->end_tile = (uint16_t)(tile_count - 1U);
+    if (tile_count > 1U && av2h_bit_reader_read(&reader, 1U) != 0U) {
+        group->start_tile =
+            (uint16_t)av2h_bit_reader_read(&reader, tile_id_bits);
+        group->end_tile =
+            (uint16_t)av2h_bit_reader_read(&reader, tile_id_bits);
+    }
+    if (reader.status != AV2H_OK) return reader.status;
+    if (group->start_tile != expected_start_tile ||
+        group->start_tile > group->end_tile || group->end_tile >= tile_count) {
+        return AV2H_INVALID_DATA;
+    }
     if (av2h_bit_reader_align_zero(&reader) != AV2H_OK) {
         return reader.status;
     }
     header_size = reader.bit_position >> 3U;
     if (header_size >= payload.size) return AV2H_TRUNCATED;
-    group->header_bits = header_bits;
+    group->header_bits = reader.bit_position;
     group->header_size = header_size;
-    group->entropy.data = payload.data + header_size;
-    group->entropy.size = payload.size - header_size;
+    group->tile_count =
+        (uint16_t)(group->end_tile - group->start_tile + 1U);
+    cursor = header_size;
+    for (tile_index = 0U; tile_index < group->tile_count; ++tile_index) {
+        size_t tile_size;
+        if (tile_index + 1U == group->tile_count) {
+            tile_size = payload.size - cursor;
+        } else {
+            unsigned int byte_index;
+            uint32_t encoded_size = 0U;
+            if (tile_size_bytes == 0U ||
+                payload.size - cursor < tile_size_bytes) {
+                return AV2H_TRUNCATED;
+            }
+            for (byte_index = 0U; byte_index < tile_size_bytes; ++byte_index) {
+                encoded_size |= (uint32_t)payload.data[cursor + byte_index]
+                    << (byte_index * 8U);
+            }
+            cursor += tile_size_bytes;
+            tile_size = (size_t)encoded_size + 1U;
+            if (tile_size > payload.size - cursor) return AV2H_TRUNCATED;
+        }
+        if (tile_size == 0U) return AV2H_TRUNCATED;
+        group->tiles[tile_index].data = payload.data + cursor;
+        group->tiles[tile_index].size = tile_size;
+        cursor += tile_size;
+    }
+    group->entropy = group->tiles[0];
+    return AV2H_OK;
+}
+
+Av2hStatus av2h_tile_group_single_parse(Av2hSpan payload,
+                                         size_t uncompressed_header_bits,
+                                         Av2hTileGroup *group) {
+    return tile_group_parse(
+        payload, uncompressed_header_bits, 1U, 0U, 0U, 0U, 1U, group);
+}
+
+Av2hStatus av2h_tile_group_parse(Av2hSpan payload,
+                                 const Av2hFrameState *frame,
+                                 uint16_t expected_start_tile,
+                                 Av2hTileGroup *group) {
+    uint32_t tile_count;
+    if (frame == 0) return AV2H_INVALID_ARGUMENT;
+    tile_count = (uint32_t)frame->tile_column_count * frame->tile_row_count;
+    if (tile_count == 0U || tile_count > AV2H_PROFILE_MAX_TILES) {
+        return AV2H_LIMIT_EXCEEDED;
+    }
+    return tile_group_parse(
+        payload, frame->uncompressed_header_bits, (uint16_t)tile_count,
+        (uint8_t)(frame->tile_column_log2 + frame->tile_row_log2),
+        frame->tile_size_bytes, expected_start_tile, 1U, group);
+}
+
+Av2hStatus av2h_tile_groups_ledger_parse(
+    Av2hSpan input,
+    const Av2hObuLedger *ledger,
+    const Av2hFrameState *frame,
+    Av2hTileGroup *group) {
+    Av2hTileGroup current;
+    uint32_t total_tiles;
+    uint16_t expected_tile = 0U;
+    uint8_t found_frame = 0U;
+    size_t obu_index;
+    if (ledger == 0 || frame == 0 || group == 0 ||
+        (input.data == 0 && input.size != 0U)) {
+        return AV2H_INVALID_ARGUMENT;
+    }
+    total_tiles =
+        (uint32_t)frame->tile_column_count * frame->tile_row_count;
+    if (total_tiles == 0U || total_tiles > AV2H_PROFILE_MAX_TILES) {
+        return AV2H_LIMIT_EXCEEDED;
+    }
+    av2h_memory_fill(group, 0U, sizeof(*group));
+    for (obu_index = 0U; obu_index < ledger->count; ++obu_index) {
+        const Av2hObu *obu = &ledger->entries[obu_index];
+        Av2hFrameState group_frame;
+        Av2hStatus status;
+        size_t tile_index;
+        if (obu->type != AV2H_OBU_CLOSED_LOOP_KEY &&
+            obu->type != AV2H_OBU_REGULAR_TILE_GROUP) {
+            continue;
+        }
+        if (obu->payload_offset > input.size ||
+            obu->payload_size > input.size - obu->payload_offset) {
+            return AV2H_TRUNCATED;
+        }
+        if (found_frame != 0U && expected_tile >= total_tiles) {
+            return AV2H_INVALID_DATA;
+        }
+        if (found_frame == 0U) {
+            if (obu->type != AV2H_OBU_CLOSED_LOOP_KEY) {
+                return AV2H_INVALID_DATA;
+            }
+            found_frame = 1U;
+            group_frame = *frame;
+        } else {
+            group_frame = *frame;
+        }
+        if (expected_tile == 0U) {
+            status = av2h_tile_group_parse(
+                (Av2hSpan){ input.data + obu->payload_offset,
+                            obu->payload_size },
+                &group_frame, expected_tile, &current);
+        } else {
+            status = tile_group_parse(
+                (Av2hSpan){ input.data + obu->payload_offset,
+                            obu->payload_size },
+                group_frame.uncompressed_header_bits, (uint16_t)total_tiles,
+                (uint8_t)(group_frame.tile_column_log2 +
+                          group_frame.tile_row_log2),
+                group_frame.tile_size_bytes, expected_tile, 0U, &current);
+        }
+        if (status != AV2H_OK) return status;
+        if ((size_t)group->tile_count + current.tile_count >
+            AV2H_PROFILE_MAX_TILES) {
+            return AV2H_LIMIT_EXCEEDED;
+        }
+        if (group->tile_count == 0U) {
+            group->header_bits = current.header_bits;
+            group->header_size = current.header_size;
+            group->start_tile = current.start_tile;
+        }
+        for (tile_index = 0U; tile_index < current.tile_count; ++tile_index) {
+            group->tiles[group->tile_count++] = current.tiles[tile_index];
+        }
+        group->end_tile = current.end_tile;
+        expected_tile = (uint16_t)(current.end_tile + 1U);
+    }
+    if (found_frame == 0U || expected_tile != total_tiles ||
+        group->tile_count != total_tiles) {
+        return AV2H_INVALID_DATA;
+    }
+    group->entropy = group->tiles[0];
     return AV2H_OK;
 }
 
@@ -520,9 +675,23 @@ Av2hStatus av2h_tile_decoder_init(
     const Av2hSequenceState *sequence,
     const Av2hFrameState *frame,
     const Av2hTileContextStorage *storage) {
+    return av2h_tile_decoder_init_at(
+        decoder, entropy, sequence, frame, storage, UINT16_MAX);
+}
+
+Av2hStatus av2h_tile_decoder_init_at(
+    Av2hTileDecoder *decoder,
+    Av2hSpan entropy,
+    const Av2hSequenceState *sequence,
+    const Av2hFrameState *frame,
+    const Av2hTileContextStorage *storage,
+    uint16_t tile_id) {
     size_t cell_count;
     size_t sb_columns;
     size_t sb_rows;
+    uint32_t frame_tile_count;
+    uint16_t tile_column;
+    uint16_t tile_row;
     size_t index;
     Av2hStatus status;
     if (decoder == 0 || sequence == 0 || frame == 0 || storage == 0 ||
@@ -558,23 +727,64 @@ Av2hStatus av2h_tile_decoder_init(
     status = tile_superblock_geometry(
         sequence, &decoder->superblock.superblock_mi, &decoder->root.root_block_size);
     if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
+    frame_tile_count =
+        (uint32_t)frame->tile_column_count * frame->tile_row_count;
+    if (tile_id == UINT16_MAX || frame_tile_count == 0U) {
+        decoder->traversal.tile_start_column = 0U;
+        decoder->traversal.tile_end_column =
+            (uint16_t)decoder->traversal.mi_columns;
+        decoder->traversal.tile_start_row = 0U;
+        decoder->traversal.tile_end_row =
+            (uint16_t)decoder->traversal.mi_rows;
+    } else {
+        if (tile_id >= frame_tile_count) {
+            return av2h_tile_decoder_fail(decoder, AV2H_INVALID_ARGUMENT);
+        }
+        tile_column = (uint16_t)(tile_id % frame->tile_column_count);
+        tile_row = (uint16_t)(tile_id / frame->tile_column_count);
+        decoder->traversal.tile_start_column = (uint16_t)(
+            frame->tile_column_start_sb[tile_column] *
+            decoder->superblock.superblock_mi);
+        decoder->traversal.tile_end_column = (uint16_t)(
+            frame->tile_column_start_sb[tile_column + 1U] *
+            decoder->superblock.superblock_mi);
+        decoder->traversal.tile_start_row = (uint16_t)(
+            frame->tile_row_start_sb[tile_row] *
+            decoder->superblock.superblock_mi);
+        decoder->traversal.tile_end_row = (uint16_t)(
+            frame->tile_row_start_sb[tile_row + 1U] *
+            decoder->superblock.superblock_mi);
+        if (decoder->traversal.tile_end_column > decoder->traversal.mi_columns) {
+            decoder->traversal.tile_end_column =
+                (uint16_t)decoder->traversal.mi_columns;
+        }
+        if (decoder->traversal.tile_end_row > decoder->traversal.mi_rows) {
+            decoder->traversal.tile_end_row =
+                (uint16_t)decoder->traversal.mi_rows;
+        }
+    }
+    if (decoder->traversal.tile_start_column >=
+            decoder->traversal.tile_end_column ||
+        decoder->traversal.tile_start_row >= decoder->traversal.tile_end_row) {
+        return av2h_tile_decoder_fail(decoder, AV2H_INVALID_DATA);
+    }
     if (storage->left_count < decoder->superblock.superblock_mi) {
         return av2h_tile_decoder_fail(decoder, AV2H_OUT_OF_MEMORY);
     }
     sb_columns =
-        (decoder->traversal.mi_columns + decoder->superblock.superblock_mi - 1U) /
+        (decoder->traversal.tile_end_column -
+             decoder->traversal.tile_start_column +
+             decoder->superblock.superblock_mi - 1U) /
         decoder->superblock.superblock_mi;
     sb_rows =
-        (decoder->traversal.mi_rows + decoder->superblock.superblock_mi - 1U) /
+        (decoder->traversal.tile_end_row - decoder->traversal.tile_start_row +
+             decoder->superblock.superblock_mi - 1U) /
         decoder->superblock.superblock_mi;
     if (!av2h_size_multiply(sb_columns, sb_rows, &decoder->superblock.sb_count)) {
         return av2h_tile_decoder_fail(decoder, AV2H_OVERFLOW);
     }
-    if (!sequence->enable_sdp && !av2h_sequence_is_monochrome(sequence)) {
-        decoder->superblock.sb_count = 1U;
-    }
-    decoder->superblock.sb_row = 0U;
-    decoder->superblock.sb_column = 0U;
+    decoder->superblock.sb_row = decoder->traversal.tile_start_row;
+    decoder->superblock.sb_column = decoder->traversal.tile_start_column;
     decoder->superblock.current_q_index = frame->base_q_index;
     decoder->superblock.current_block_q_index = frame->base_q_index;
     decoder->superblock.sb_index = 0U;
@@ -602,16 +812,34 @@ Av2hStatus av2h_tile_decoder_init(
         &decoder->entropy_state.gdf_entropy, sequence, frame, storage->gdf_block_flags,
         storage->gdf_block_flag_capacity);
     if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
-    status = av2h_cdef_entropy_state_init(
-        &decoder->entropy_state.cdef_entropy, sequence, frame,
-        storage->cdef_unit_strengths,
-        storage->cdef_unit_strength_capacity);
+    status = tile_id != UINT16_MAX && tile_id != 0U ?
+        av2h_cdef_entropy_state_init_preserving_controls(
+            &decoder->entropy_state.cdef_entropy, sequence, frame,
+            storage->cdef_unit_strengths,
+            storage->cdef_unit_strength_capacity) :
+        av2h_cdef_entropy_state_init(
+            &decoder->entropy_state.cdef_entropy, sequence, frame,
+            storage->cdef_unit_strengths,
+            storage->cdef_unit_strength_capacity);
     if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
-    status = av2h_ccso_entropy_state_init(
-        &decoder->entropy_state.ccso_entropy, sequence, frame,
-        storage->ccso_unit_controls,
-        storage->ccso_unit_control_capacity);
+    decoder->entropy_state.cdef_entropy.tile_start_column =
+        decoder->traversal.tile_start_column;
+    decoder->entropy_state.cdef_entropy.tile_start_row =
+        decoder->traversal.tile_start_row;
+    status = tile_id != UINT16_MAX && tile_id != 0U ?
+        av2h_ccso_entropy_state_init_preserving_controls(
+            &decoder->entropy_state.ccso_entropy, sequence, frame,
+            storage->ccso_unit_controls,
+            storage->ccso_unit_control_capacity) :
+        av2h_ccso_entropy_state_init(
+            &decoder->entropy_state.ccso_entropy, sequence, frame,
+            storage->ccso_unit_controls,
+            storage->ccso_unit_control_capacity);
     if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
+    decoder->entropy_state.ccso_entropy.tile_start_column =
+        decoder->traversal.tile_start_column;
+    decoder->entropy_state.ccso_entropy.tile_start_row =
+        decoder->traversal.tile_start_row;
     status = tile_restoration_entropy_init(
         &decoder->entropy_state.restoration_entropy, sequence, frame, storage);
     if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
@@ -684,11 +912,12 @@ static Av2hStatus tile_advance_root_or_finish(Av2hTileDecoder *decoder) {
     if (decoder->superblock.sb_index + 1U < decoder->superblock.sb_count) {
         ++decoder->superblock.sb_index;
         if ((size_t)decoder->superblock.sb_column + decoder->superblock.superblock_mi <
-            decoder->traversal.mi_columns) {
+            decoder->traversal.tile_end_column) {
             decoder->superblock.sb_column =
                 (uint16_t)(decoder->superblock.sb_column + decoder->superblock.superblock_mi);
         } else {
-            decoder->superblock.sb_column = 0U;
+            decoder->superblock.sb_column =
+                decoder->traversal.tile_start_column;
             decoder->superblock.sb_row =
                 (uint16_t)(decoder->superblock.sb_row + decoder->superblock.superblock_mi);
             tile_reset_left_partition_contexts(decoder);
@@ -699,8 +928,11 @@ static Av2hStatus tile_advance_root_or_finish(Av2hTileDecoder *decoder) {
         decoder->control.event = AV2H_TILE_EVENT_ROOT_HANDOFF;
         return AV2H_OK;
     }
-    status = av2h_tile_filter_controls_handoff(decoder, &controls);
-    if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
+    if ((uint32_t)decoder->entropy_state.frame->tile_column_count *
+            decoder->entropy_state.frame->tile_row_count <= 1U) {
+        status = av2h_tile_filter_controls_handoff(decoder, &controls);
+        if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
+    }
     decoder->control.phase = AV2H_TILE_DECODE_DONE;
     decoder->control.event = AV2H_TILE_EVENT_DONE;
     return AV2H_OK;
