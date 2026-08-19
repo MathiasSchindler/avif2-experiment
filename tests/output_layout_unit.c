@@ -66,6 +66,29 @@ static void test_one_and_two_byte_layouts(void) {
     }
 }
 
+static void test_minimum_dimensions(void) {
+    static const size_t expected_sizes[3] = { 3U, 1U, 3U };
+    Av2hPlaneLayout planes[3];
+    Av2hError error;
+    size_t output_size;
+    uint8_t chroma_format_idc;
+    for (chroma_format_idc = 0U; chroma_format_idc <= 2U;
+         ++chroma_format_idc) {
+        CHECK(av2h_output_layout_calculate(
+                  1U, 1U, chroma_format_idc, 1U,
+                  planes, &output_size, &error) == AV2H_OK);
+        check_plane(&planes[0], 1U, 1U, 1U, 0U, 1U);
+        CHECK(output_size == expected_sizes[chroma_format_idc]);
+        if (chroma_format_idc == 1U) {
+            check_plane(&planes[1], 0U, 0U, 0U, 0U, 0U);
+            check_plane(&planes[2], 0U, 0U, 0U, 0U, 0U);
+        } else {
+            check_plane(&planes[1], 1U, 1U, 1U, 1U, 1U);
+            check_plane(&planes[2], 1U, 1U, 1U, 2U, 1U);
+        }
+    }
+}
+
 static void test_wp0_10bit_420_layout(void) {
     Av2hPlaneLayout planes[3];
     size_t output_size = 0U;
@@ -147,6 +170,7 @@ static void test_overflow_paths(void) {
 
 int main(void) {
     test_one_and_two_byte_layouts();
+    test_minimum_dimensions();
     test_wp0_10bit_420_layout();
     test_maximum_dimensions();
     test_invalid_inputs();

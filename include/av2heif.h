@@ -184,7 +184,19 @@ typedef struct {
     uint8_t transfer_characteristics;
     uint8_t matrix_coefficients;
     uint8_t full_range_flag;
+    uint8_t chroma_sample_position_x;
+    uint8_t chroma_sample_position_y;
 } Av2hColorInfo;
+
+typedef enum {
+    AV2H_CHROMA_SAMPLE_POSITION_LEFT = 0,
+    AV2H_CHROMA_SAMPLE_POSITION_CENTER = 1,
+    AV2H_CHROMA_SAMPLE_POSITION_TOP_LEFT = 2,
+    AV2H_CHROMA_SAMPLE_POSITION_TOP = 3,
+    AV2H_CHROMA_SAMPLE_POSITION_BOTTOM_LEFT = 4,
+    AV2H_CHROMA_SAMPLE_POSITION_BOTTOM = 5,
+    AV2H_CHROMA_SAMPLE_POSITION_UNSPECIFIED = 6
+} Av2hChromaSamplePosition;
 
 typedef struct {
     uint8_t configuration_version;

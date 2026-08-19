@@ -64,7 +64,7 @@ void av2h_limits_default(Av2hLimits *limits) {
     limits->max_workspace_size = 1073741824U;
     limits->max_width = 16384U;
     limits->max_height = 16384U;
-    limits->max_obu_count = 2U;
+    limits->max_obu_count = 3U;
     limits->max_property_count = 16U;
     limits->max_recursion_depth = 3U;
 }
@@ -148,6 +148,10 @@ Av2hStatus av2h_query(Av2hSpan input,
     size_t pixels;
     size_t output_size;
     Av2hDecodePreparation preparation;
+    Av2hObu config_entries[2];
+    Av2hObu item_entry;
+    Av2hObuLedger config_ledger = { config_entries, 2U, 0U };
+    Av2hObuLedger item_ledger = { &item_entry, 1U, 0U };
     unsigned int plane_count;
     if (info == 0 || (input.data == 0 && input.size != 0U)) {
         return query_fail(error, AV2H_INVALID_ARGUMENT, 0U,
@@ -176,7 +180,13 @@ Av2hStatus av2h_query(Av2hSpan input,
         return query_fail(error, AV2H_LIMIT_EXCEEDED, 0U,
                           AV2H_CONTEXT_LIMITS);
     }
-    info->obu_count = 2U;
+    status = av2h_obu_parse(info->image.source.config_obus,
+                            &config_ledger, error);
+    if (status != AV2H_OK) return status;
+    status = av2h_obu_parse(info->image.source.item_payload,
+                            &item_ledger, error);
+    if (status != AV2H_OK) return status;
+    info->obu_count = config_ledger.count + item_ledger.count;
     info->property_count = info->image.property_count;
     info->container_depth = 3U;
     if (info->obu_count > active->max_obu_count ||

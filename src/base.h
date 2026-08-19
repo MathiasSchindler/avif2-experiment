@@ -24,6 +24,13 @@ Av2hStatus av2h_container_probe(Av2hSpan input,
                                 Av2hContainerProbe *probe,
                                 Av2hError *error);
 
+Av2hStatus av2h_carriage_validate_metadata(Av2hSpan config_obus,
+                                           Av2hSpan item_payload,
+                                           Av2hSequenceInfo *sequence,
+                                           Av2hColorInfo *color,
+                                           uint8_t *color_present,
+                                           Av2hError *error);
+
 uint16_t av2h_load_u16be(const unsigned char *bytes);
 uint32_t av2h_load_u32be(const unsigned char *bytes);
 uint64_t av2h_load_u64be(const unsigned char *bytes);

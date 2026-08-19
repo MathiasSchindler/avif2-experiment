@@ -422,16 +422,31 @@ static void test_10bit_wp0_header(void) {
 
     changed_sequence = sequence;
     changed_sequence.info.bit_depth_idc = 2U;
-        CHECK(av2h_frame_header_closed_key_parse_diagnostic(
+    CHECK(av2h_frame_header_closed_key_parse_diagnostic(
               (Av2hSpan){ input + frame_obu->payload_offset,
                            frame_obu->payload_size },
               &changed_sequence, &frame, &error) == AV2H_UNSUPPORTED);
-        CHECK(error.context == AV2H_CONTEXT_FRAME);
-        CHECK(error.diagnostic_stage == AV2H_DIAGNOSTIC_STAGE_FRAME_HEADER);
-        CHECK(error.diagnostic_reason ==
-            AV2H_DIAGNOSTIC_REASON_UNSUPPORTED_TUPLE);
-        CHECK(error.syntax_stage == AV2H_DIAGNOSTIC_SYNTAX_FRAME_PROFILE);
-        CHECK(error.parsed_value == 0x200U);
+    CHECK(error.context == AV2H_CONTEXT_FRAME);
+    CHECK(error.diagnostic_stage == AV2H_DIAGNOSTIC_STAGE_FRAME_HEADER);
+    CHECK(error.diagnostic_reason ==
+          AV2H_DIAGNOSTIC_REASON_UNSUPPORTED_TUPLE);
+    CHECK(error.syntax_stage == AV2H_DIAGNOSTIC_SYNTAX_FRAME_PROFILE);
+    CHECK(error.parsed_value == 0x200U);
+    changed_sequence = sequence;
+    changed_sequence.info.chroma_format_idc = 3U;
+    CHECK(av2h_frame_header_closed_key_parse_diagnostic(
+              (Av2hSpan){ input + frame_obu->payload_offset,
+                           frame_obu->payload_size },
+              &changed_sequence, &frame, &error) == AV2H_UNSUPPORTED);
+    CHECK(error.syntax_stage == AV2H_DIAGNOSTIC_SYNTAX_FRAME_PROFILE);
+    CHECK(error.parsed_value == 0x003U);
+    changed_sequence = sequence;
+    changed_sequence.info.still_picture = 0U;
+    CHECK(av2h_frame_header_closed_key_parse_diagnostic(
+              (Av2hSpan){ input + frame_obu->payload_offset,
+                           frame_obu->payload_size },
+              &changed_sequence, &frame, &error) == AV2H_UNSUPPORTED);
+    CHECK(error.syntax_stage == AV2H_DIAGNOSTIC_SYNTAX_FRAME_PROFILE);
     changed_sequence = sequence;
     changed_sequence.info.chroma_format_idc = 1U;
     CHECK(av2h_frame_header_closed_key_parse(

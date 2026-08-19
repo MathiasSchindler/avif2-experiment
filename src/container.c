@@ -159,6 +159,16 @@ static Av2hStatus validate_pixel_metadata(
     return AV2H_OK;
 }
 
+static int color_description_equal(const Av2hColorInfo *left,
+                                   const Av2hColorInfo *right) {
+    return left->color_description_idc == right->color_description_idc &&
+           left->color_primaries == right->color_primaries &&
+           left->transfer_characteristics ==
+               right->transfer_characteristics &&
+           left->matrix_coefficients == right->matrix_coefficients &&
+           left->full_range_flag == right->full_range_flag;
+}
+
 static Av2hStatus read_box(Av2hSpan input,
                            size_t offset,
                            size_t limit,
@@ -400,8 +410,8 @@ static Av2hStatus parse_av2c_property(Av2hSpan input,
                                       const ContainerBox *box,
                                       ContainerState *state,
                                       Av2hError *error) {
-    Av2hObu entry;
-    Av2hObuLedger ledger = { &entry, 1U, 0U };
+    Av2hObu entries[2];
+    Av2hObuLedger ledger = { entries, 2U, 0U };
     Av2hSpan payload = {
         input.data + box->payload_offset,
         box->payload_size
@@ -500,6 +510,10 @@ static Av2hStatus parse_colr_property(Av2hSpan input,
     state->color.transfer_characteristics = (uint8_t)transfer;
     state->color.matrix_coefficients = (uint8_t)matrix;
     state->color.full_range_flag = (uint8_t)(range >> 7);
+    state->color.chroma_sample_position_x =
+        AV2H_CHROMA_SAMPLE_POSITION_UNSPECIFIED;
+    state->color.chroma_sample_position_y =
+        AV2H_CHROMA_SAMPLE_POSITION_UNSPECIFIED;
     return reader_result(&reader, error);
 }
 
@@ -876,6 +890,8 @@ Av2hStatus av2h_heif_parse(Av2hSpan input,
     ContainerBox mdat = { 0U, 0U, 0U, 0U, 0U };
     ContainerState state = { 0 };
     Av2hSequenceInfo sequence;
+    Av2hColorInfo content_color;
+    uint8_t content_color_present;
     size_t offset = 0U;
     size_t extent_end;
     int seen_ftyp = 0;
@@ -948,10 +964,19 @@ Av2hStatus av2h_heif_parse(Av2hSpan input,
     image->source.item_payload.data = input.data + state.extent_offset;
     image->source.item_payload.size = state.extent_length;
     image->source.color = state.color;
-    status = av2h_carriage_validate(image->source.config_obus,
-                                    image->source.item_payload,
-                                    &sequence, error);
+    status = av2h_carriage_validate_metadata(
+        image->source.config_obus, image->source.item_payload,
+        &sequence, &content_color, &content_color_present, error);
     if (status != AV2H_OK) return status;
+    if (content_color_present != 0U) {
+        if (!color_description_equal(&image->source.color, &content_color)) {
+            return heif_fail(error, AV2H_INVALID_DATA, meta.offset);
+        }
+        image->source.color.chroma_sample_position_x =
+            content_color.chroma_sample_position_x;
+        image->source.color.chroma_sample_position_y =
+            content_color.chroma_sample_position_y;
+    }
     if (state.width != (uint32_t)sequence.max_frame_width_minus_1 + 1U ||
         state.height != (uint32_t)sequence.max_frame_height_minus_1 + 1U) {
         return heif_fail(error, AV2H_INVALID_DATA, meta.offset);
@@ -975,6 +1000,8 @@ Av2hStatus av2h_heif_write(const Av2hHeifSource *source,
                            size_t *written,
                            Av2hError *error) {
     Av2hSequenceInfo sequence;
+    Av2hColorInfo content_color;
+    uint8_t content_color_present;
     Av2hAv2C configuration;
     Av2hByteWriter writer;
     Av2hStatus status;
@@ -999,10 +1026,18 @@ Av2hStatus av2h_heif_write(const Av2hHeifSource *source,
         source->item_payload.size > (size_t)UINT32_MAX - 8U) {
         return heif_fail(error, AV2H_OVERFLOW, 0U);
     }
-    status = av2h_carriage_validate(source->config_obus,
-                                    source->item_payload,
-                                    &sequence, error);
+    status = av2h_carriage_validate_metadata(
+        source->config_obus, source->item_payload, &sequence,
+        &content_color, &content_color_present, error);
     if (status != AV2H_OK) return status;
+    if (content_color_present != 0U &&
+        (!color_description_equal(&source->color, &content_color) ||
+         source->color.chroma_sample_position_x !=
+             content_color.chroma_sample_position_x ||
+         source->color.chroma_sample_position_y !=
+             content_color.chroma_sample_position_y)) {
+        return heif_fail(error, AV2H_INVALID_DATA, 0U);
+    }
     status = sequence_pixel_metadata(&sequence, &pixel_metadata);
     if (status != AV2H_OK) return heif_fail(error, status, 0U);
     meta_size = 226U + pixel_metadata.channel_count;

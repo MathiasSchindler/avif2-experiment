@@ -19,7 +19,8 @@ meta
     infe  item_ID=1, item_type=av02, name="AV2"
   iprp
     ipco
-      av2C  draft-shaped nine-byte header plus one Sequence Header OBU
+      av2C  draft-shaped nine-byte header plus one Sequence Header OBU and
+        optional static Content Interpretation OBU
       ispe  dimensions derived from the Sequence Header
       pixi  three 8-bit channels
       colr  explicit nclx values
@@ -58,15 +59,16 @@ state, and report checked status, byte offset, and parser context through
 
 ## Color contract
 
-Experimental v0 follows Decision D9: `configOBUs` contains exactly one Sequence
-Header OBU and item data contains exactly one Closed Loop Key OBU. Content
-Interpretation OBUs and other additional configuration or payload OBUs are
-therefore rejected.
+Experimental v0 follows Decision D9 with the static-metadata extension:
+`configOBUs` contains exactly one Sequence Header OBU followed by at most one
+Content Interpretation OBU, and item data contains exactly one Closed Loop Key
+OBU. Other additional configuration or payload OBUs are rejected.
 
-`Av2hHeifSource.color` is the explicit source metadata channel for the canonical
-`nclx` property. There is no second accepted AV2 color signal in v0 that can
-silently contradict it. This rule can be revisited only with a versioned profile
-that defines effective AV2 color semantics and their cross-checks.
+`Av2hHeifSource.color` is the effective metadata channel for the canonical
+`nclx` property and optional AV2 chroma positions. When Content Interpretation
+is present, its effective CICP values must equal `nclx`; both chroma-position
+values are preserved through parse and query. Pinned AVM's legal position range
+is `0..6`, with `6` meaning unspecified.
 
 ## Validation
 
@@ -83,7 +85,8 @@ separate C sanitizer binary covering:
 - missing, duplicate, reordered, dangling, nonessential, and unknown essential
   property associations;
 - `av2C`, `ispe`, `pixi`, and `nclx` conflicts and reserved bits; and
-- rejection of forbidden Content Interpretation OBUs in either input span.
+- Content Interpretation write/parse/query roundtrip, CICP mismatch rejection,
+  and rejection when it appears in item data or an invalid configuration order.
 
 Named container mutations assert the HEIF diagnostic context. Nested AV2
 configuration errors retain their more specific carriage, OBU, Sequence Header,

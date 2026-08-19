@@ -1,0 +1,51 @@
+{
+  "avm_revision": "966a7d7cd6fcf60360caf5dc413b2aeeb65e144d",
+  "avmenc_sha256": "621df24618405cd7a05aaf436034b224f757adc3395ddb23624fc3f0e8189d83",
+  "avmdec_sha256": "43403968bb6f223220ccd6393c233071418f52d811ee04ebc51f072225d01616",
+  "common_encode_arguments": [
+    "--debug", "--codec=av2", "--obu", "--passes=1", "--limit=1",
+    "--good", "--cpu-used=9", "--threads=1", "--bit-depth=8",
+    "--input-bit-depth=8", "--force-video-mode=0", "--film-grain-test=0",
+    "--enable-lcr=0", "--enable-operating-point-sets=0", "--enable-atlas=0",
+    "--lossless=1", "--test-decode=fatal", "--quiet"
+  ],
+  "cases": [
+    {
+      "name": "lossless-i400",
+      "width": 16,
+      "height": 16,
+      "pixel_format": "i400",
+      "source_fixture": "monochrome-tiny.obu",
+      "source_sha256": "c7040aa943bbe20b483479decc76efaa26e4fb3e5846ee3905a20e22dd07f76e",
+      "encode_arguments": ["--profile=0", "--monochrome"],
+      "obu_sha256": "480ea61f5459c1b03ca6a256f30bac70bb98211fc4c68d75c7e179a960f16e10",
+      "decoded_sha256": "c7040aa943bbe20b483479decc76efaa26e4fb3e5846ee3905a20e22dd07f76e"
+    },
+    {
+      "name": "lossless-i420",
+      "width": 160,
+      "height": 120,
+      "pixel_format": "i420",
+      "source_fixture": "ordinary-160x120.obu",
+      "source_sha256": "def0ced80c4bc1866d0d865fb392c80020ac0a823f310b2f62999d10eede1af5",
+      "encode_arguments": ["--profile=0", "--width=160", "--height=120", "--i420"],
+      "obu_sha256": "d4ab7dd9cf0478d43d987e6361897692fd867a95b17b9f86543305796a27a7f0",
+      "decoded_sha256": "def0ced80c4bc1866d0d865fb392c80020ac0a823f310b2f62999d10eede1af5"
+    },
+    {
+      "name": "lossless-i444",
+      "width": 16,
+      "height": 16,
+      "pixel_format": "i444",
+      "source_fixture": "i444-tiny.obu",
+      "source_sha256": "88c13f2258aba8ade2736246bab77771bd3839815f567517a5db5330e2969ee6",
+      "encode_arguments": [
+        "--profile=1", "--width=16", "--height=16", "--i444",
+        "--input-chroma-subsampling-x=0", "--input-chroma-subsampling-y=0",
+        "--enable-intrabc=0"
+      ],
+      "obu_sha256": "24552e9ab2fc1b38b6887592969c4f58bafa70057e0014a8d9e0b7c33f1c6447",
+      "decoded_sha256": "88c13f2258aba8ade2736246bab77771bd3839815f567517a5db5330e2969ee6"
+    }
+  ]
+}

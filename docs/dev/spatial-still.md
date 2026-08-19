@@ -314,6 +314,8 @@ no-libc parity, and the pinned spatial-still frontier lock pass.
 
 ## Milestone 6: lossless, crop, and signaling closure
 
+**Status:** implemented on 19 August 2026; the profile exit gate is complete.
+
 Prove the profile envelope beyond ordinary lossy I420 photographs.
 
 - Cover every legal base-Q-zero combination and the required disabling or
@@ -330,6 +332,40 @@ Prove the profile envelope beyond ordinary lossy I420 photographs.
 **Exit gate:** lossless output is sample-exact across all three chroma formats;
 crop and color metadata round-trip through query/decode; boundary and malformed
 vectors pass under sanitizers and strict workspace caps.
+
+Pinned AVM `--lossless=1` vectors now cover I400, I420, and I444 through the
+public decoder. Their complete planar outputs are sample-exact against the
+pre-encode sources. The encoded SHA-256 values are
+`480ea61f5459c1b03ca6a256f30bac70bb98211fc4c68d75c7e179a960f16e10`,
+`d4ab7dd9cf0478d43d987e6361897692fd867a95b17b9f86543305796a27a7f0`,
+and `24552e9ab2fc1b38b6887592969c4f58bafa70057e0014a8d9e0b7c33f1c6447`.
+The public tests lock exact output hashes and workspace sizes, including
+one-byte-short workspace rejection. The frame-header base-Q-zero return keeps
+delta-Q and all postfilters out of the lossless path, while reconstruction uses
+the lossless 4x4 transform route. Fixture provenance and commands are recorded
+in `tests/fixtures/lossless-manifest.json`.
+
+The visible output contract remains the frame dimensions carried by Sequence
+Header and `ispe`; internal transform, superblock, and filter padding is never
+published as display samples. Integrated odd I400, I420, and I444 vectors lock
+the visible crop, including ceil-divided I420 chroma planes. Layout tests cover
+valid 1x1 and 16384x16384 endpoints for every chroma format and storage width,
+and workspace tests cover the maximum dimensions under strict limits. The
+profile does not admit an independent HEIF clean-aperture crop.
+
+Static configuration may now contain one Content Interpretation OBU immediately
+after the Sequence Header. Public color metadata preserves both chroma sample
+positions using the pinned AVM `0..6` values; out-of-range UVLCs fail closed.
+HEIF `nclx` and effective AV2 CICP values must agree, and write, parse, and query
+round-trip the positions while accounting for the third OBU under caller limits.
+
+Focused exclusions cover I422, 12-bit, non-still frame state, film grain,
+temporal/layered headers, extra operating-point OBUs, invalid profiles, and
+unsupported display-model syntax with named diagnostics. The production decoder's
+separately documented 10-bit I420/I444 profiles remain supported; completing
+this 8-bit milestone does not regress that broader public capability. The full
+ASan/UBSan C gate, 1,206 deterministic fuzz cases, freestanding checks, Linux
+no-libc parity, and pinned spatial-still frontier gate pass.
 
 ## Milestone 7: conformance and release admission
 

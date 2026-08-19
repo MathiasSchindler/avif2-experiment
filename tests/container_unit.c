@@ -148,6 +148,10 @@ static Av2hHeifSource make_source(void) {
     source.color.transfer_characteristics = 2U;
     source.color.matrix_coefficients = 2U;
     source.color.full_range_flag = 0U;
+    source.color.chroma_sample_position_x =
+        AV2H_CHROMA_SAMPLE_POSITION_UNSPECIFIED;
+    source.color.chroma_sample_position_y =
+        AV2H_CHROMA_SAMPLE_POSITION_UNSPECIFIED;
     return source;
 }
 
@@ -295,6 +299,10 @@ static void test_golden_and_round_trip(void) {
     CHECK(av2h_memory_compare(image.source.item_payload.data, item_payload,
                               sizeof(item_payload)) == 0);
     CHECK(image.source.color.color_primaries == 2U);
+        CHECK(image.source.color.chroma_sample_position_x ==
+            AV2H_CHROMA_SAMPLE_POSITION_UNSPECIFIED);
+        CHECK(image.source.color.chroma_sample_position_y ==
+            AV2H_CHROMA_SAMPLE_POSITION_UNSPECIFIED);
     CHECK(av2h_heif_write(&image.source, remuxed, sizeof(remuxed),
                            &remuxed_size, &error) == AV2H_OK);
     CHECK(remuxed_size == sizeof(canonical));
@@ -553,14 +561,16 @@ static void test_mdat_before_meta(void) {
     CHECK(image.source.item_payload.size == sizeof(item_payload));
 }
 
-static void test_forbidden_av2_metadata(void) {
+static void test_av2_metadata(void) {
     static const unsigned char content_obu[] = {
-        0x03U, 0x60U, 0x20U, 0xaaU
+        0x03U, 0x60U, 0x10U, 0xa4U
     };
     unsigned char config_with_content[sizeof(config_obu) + sizeof(content_obu)];
     unsigned char payload_with_content[
         sizeof(item_payload) + sizeof(content_obu)];
     Av2hHeifSource source = make_source();
+    Av2hHeifImage image;
+    Av2hInfo info;
     Av2hError error;
     unsigned char bytes[512];
     size_t written = 0U;
@@ -569,8 +579,29 @@ static void test_forbidden_av2_metadata(void) {
                      sizeof(content_obu));
     source.config_obus.data = config_with_content;
     source.config_obus.size = sizeof(config_with_content);
+    source.item_payload.data = avm_item_payload;
+    source.item_payload.size = sizeof(avm_item_payload);
+    source.color.chroma_sample_position_x = AV2H_CHROMA_SAMPLE_POSITION_LEFT;
+    source.color.chroma_sample_position_y = AV2H_CHROMA_SAMPLE_POSITION_CENTER;
     CHECK(av2h_heif_write(&source, bytes, sizeof(bytes),
-                           &written, &error) == AV2H_INVALID_DATA);
+                           &written, &error) == AV2H_OK);
+    CHECK(av2h_heif_parse((Av2hSpan){ bytes, written },
+                          &image, &error) == AV2H_OK);
+    CHECK(image.source.color.chroma_sample_position_x ==
+          AV2H_CHROMA_SAMPLE_POSITION_LEFT);
+    CHECK(image.source.color.chroma_sample_position_y ==
+          AV2H_CHROMA_SAMPLE_POSITION_CENTER);
+    CHECK(av2h_query((Av2hSpan){ bytes, written }, 0,
+                     &info, &error) == AV2H_OK);
+    CHECK(info.image.source.color.chroma_sample_position_x ==
+          AV2H_CHROMA_SAMPLE_POSITION_LEFT);
+    CHECK(info.image.source.color.chroma_sample_position_y ==
+          AV2H_CHROMA_SAMPLE_POSITION_CENTER);
+    CHECK(info.obu_count == 3U);
+
+    source.color.chroma_sample_position_y = AV2H_CHROMA_SAMPLE_POSITION_TOP;
+    CHECK(av2h_heif_write(&source, bytes, sizeof(bytes),
+                          &written, &error) == AV2H_INVALID_DATA);
 
     source = make_source();
     av2h_memory_copy(payload_with_content, item_payload, sizeof(item_payload));
@@ -714,7 +745,7 @@ int main(void) {
     test_top_level_and_item_mutations();
     test_property_mutations();
     test_mdat_before_meta();
-    test_forbidden_av2_metadata();
+    test_av2_metadata();
     test_query_and_limits();
     test_dialect_detection();
     if (failures != 0) return 1;

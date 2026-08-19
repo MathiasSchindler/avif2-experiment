@@ -81,7 +81,13 @@ static const PublicFixture fixtures[] = {
         { "i444-ordinary", "tests/fixtures/i444-ordinary.obu", 0, 0U,
             160U, 120U, 3U, 2U, UINT64_C(0x0501cc0d7e7a50f6), 302678U, 1 },
         { "i444-high-detail", "tests/fixtures/i444-high-detail.obu", 0, 0U,
-            96U, 80U, 3U, 2U, UINT64_C(0x2fe36a3632f85bb1), 132722U, 0 }
+            96U, 80U, 3U, 2U, UINT64_C(0x2fe36a3632f85bb1), 132722U, 0 },
+            { "lossless-i400", "tests/fixtures/lossless-i400.obu", 0, 0U,
+                16U, 16U, 1U, 1U, UINT64_C(0xe5e202f90921b37a), 20091U, 1 },
+            { "lossless-i420", "tests/fixtures/lossless-i420.obu", 0, 0U,
+                160U, 120U, 3U, 0U, UINT64_C(0xfd5a024e7532149d), 216276U, 1 },
+            { "lossless-i444", "tests/fixtures/lossless-i444.obu", 0, 0U,
+                16U, 16U, 3U, 2U, UINT64_C(0xad5202f55d8da388), 22175U, 1 }
 };
 
 #define CHECK(condition)                                                       \
@@ -240,7 +246,11 @@ static void test_public_decode(const PublicFixture *fixture) {
               info.planes[2].offset == plane_size * 2U &&
               info.planes[2].size == plane_size);
     }
-    CHECK(info.workspace_size == fixture->workspace_size);
+    if (info.workspace_size != fixture->workspace_size) {
+        fprintf(stderr, "%s: workspace size %zu (expected %zu)\n",
+                fixture->name, info.workspace_size, fixture->workspace_size);
+        CHECK(info.workspace_size == fixture->workspace_size);
+    }
     CHECK(info.workspace_alignment == 4U);
     allocation_size = info.workspace_size + info.workspace_alignment - 1U +
                       info.output_size;

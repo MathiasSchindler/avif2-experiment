@@ -446,12 +446,19 @@ static void test_av2c_and_carriage(void) {
         static const unsigned char extended_payload[] = {
           0x03U, 0x90U, 0x00U, 0xaaU
         };
+                static const unsigned char operating_point[] = { 0x01U, 0x48U };
         unsigned char duplicate_config[sizeof(config_obu) * 2U];
+                unsigned char config_with_operating_point[
+                        sizeof(config_obu) + sizeof(operating_point)];
         Av2hSequenceInfo sequence;
         Av2hError error;
         av2h_memory_copy(duplicate_config, config_obu, sizeof(config_obu));
         av2h_memory_copy(duplicate_config + sizeof(config_obu),
                    config_obu, sizeof(config_obu));
+        av2h_memory_copy(config_with_operating_point, config_obu,
+                 sizeof(config_obu));
+        av2h_memory_copy(config_with_operating_point + sizeof(config_obu),
+                 operating_point, sizeof(operating_point));
         CHECK(av2h_carriage_validate(
               (Av2hSpan){ config_obu, sizeof(config_obu) },
               (Av2hSpan){ valid_payload, sizeof(valid_payload) },
@@ -475,6 +482,15 @@ static void test_av2c_and_carriage(void) {
         CHECK(error.context == AV2H_CONTEXT_OBU_ORDER && error.obu_index == 1U &&
             error.obu_type == AV2H_OBU_SEQUENCE_HEADER &&
             error.offset == sizeof(config_obu));
+          CHECK(av2h_carriage_validate(
+              (Av2hSpan){ config_with_operating_point,
+                       sizeof(config_with_operating_point) },
+              (Av2hSpan){ valid_payload, sizeof(valid_payload) },
+              &sequence, &error) == AV2H_INVALID_DATA);
+          CHECK(error.context == AV2H_CONTEXT_OBU_ORDER &&
+              error.obu_index == 1U &&
+              error.obu_type == AV2H_OBU_OPERATING_POINT_SET &&
+              error.offset == sizeof(config_obu));
         CHECK(av2h_carriage_validate(
               (Av2hSpan){ config_obu, sizeof(config_obu) },
               (Av2hSpan){ extended_payload, sizeof(extended_payload) },
@@ -517,6 +533,51 @@ static void test_content_interpretation(void) {
     CHECK(color.transfer_characteristics == 13U);
     CHECK(color.matrix_coefficients == 0U);
     CHECK(color.full_range_flag == 1U);
+    CHECK(color.chroma_sample_position_x ==
+          AV2H_CHROMA_SAMPLE_POSITION_UNSPECIFIED);
+    CHECK(color.chroma_sample_position_y ==
+          AV2H_CHROMA_SAMPLE_POSITION_UNSPECIFIED);
+
+    av2h_bit_writer_init(&writer, bytes + 2U, sizeof(bytes) - 2U);
+    (void)av2h_bit_writer_write(&writer, 0U, 2U);
+    (void)av2h_bit_writer_write(&writer, 0U, 1U);
+    (void)av2h_bit_writer_write(&writer, 1U, 1U);
+    (void)av2h_bit_writer_write(&writer, 0U, 4U);
+    (void)av2h_bit_writer_write(&writer, 1U, 1U);
+    (void)av2h_bit_writer_write(&writer, 0U, 1U);
+    (void)av2h_bit_writer_write(&writer, 1U, 1U);
+    (void)av2h_bit_writer_write(&writer, 0U, 2U);
+    (void)av2h_bit_writer_write(&writer, 1U, 1U);
+    (void)av2h_bit_writer_align_zero(&writer);
+    payload_size = av2h_bit_writer_required(&writer);
+    bytes[0] = (unsigned char)(payload_size + 1U);
+    CHECK(av2h_obu_parse((Av2hSpan){ bytes, payload_size + 2U },
+                         &ledger, &error) == AV2H_OK);
+    CHECK(av2h_content_interpretation_parse(
+              (Av2hSpan){ bytes, payload_size + 2U }, &entry,
+              &color, &error) == AV2H_OK);
+    CHECK(color.chroma_sample_position_x == 0U);
+    CHECK(color.chroma_sample_position_y == 1U);
+
+    av2h_bit_writer_init(&writer, bytes + 2U, sizeof(bytes) - 2U);
+    (void)av2h_bit_writer_write(&writer, 1U, 2U);
+    (void)av2h_bit_writer_write(&writer, 0U, 1U);
+    (void)av2h_bit_writer_write(&writer, 1U, 1U);
+    (void)av2h_bit_writer_write(&writer, 0U, 4U);
+    (void)av2h_bit_writer_write(&writer, 1U, 4U);
+    (void)av2h_bit_writer_write(&writer, 0U, 3U);
+    (void)av2h_bit_writer_write(&writer, 0U, 1U);
+    (void)av2h_bit_writer_write(&writer, 1U, 1U);
+    (void)av2h_bit_writer_align_zero(&writer);
+    payload_size = av2h_bit_writer_required(&writer);
+    bytes[0] = (unsigned char)(payload_size + 1U);
+    CHECK(av2h_obu_parse((Av2hSpan){ bytes, payload_size + 2U },
+                         &ledger, &error) == AV2H_OK);
+    CHECK(av2h_content_interpretation_parse(
+              (Av2hSpan){ bytes, payload_size + 2U }, &entry,
+              &color, &error) == AV2H_INVALID_DATA);
+    CHECK(error.context == AV2H_CONTEXT_CONTENT_INTERPRETATION);
+
     CHECK(av2h_obu_parse((Av2hSpan){ reserved_id, sizeof(reserved_id) },
                          &ledger, &error) == AV2H_OK);
     CHECK(av2h_content_interpretation_parse(
