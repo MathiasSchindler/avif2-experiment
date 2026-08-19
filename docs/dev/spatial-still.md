@@ -212,8 +212,7 @@ coefficient counts, scan bounds, transform geometry, and prediction references.
 
 ## Milestone 4: complete 8-bit restoration
 
-**Status:** implementation complete on 19 August 2026; the profile exit gate
-remains open on an upstream I444 chroma-reconstruction parity blocker.
+**Status:** implemented on 19 August 2026; the profile exit gate is complete.
 
 Extend restoration from the currently admitted PC-Wiener and Wiener-nonsep
 subsets to every still-applicable 8-bit combination.
@@ -256,11 +255,15 @@ without creating output. The switchable final-plane SHA-256 is
 the I400 hash is
 `52728f282547295784ea853108f53744befad48a319559c183fd6e02cd830cb5`.
 
-The remaining exit-gate failure is not in restoration: for a generated I444
-control stream, Y matches pinned AVM but U/V already differ with restoration,
-CDEF, and deblocking all disabled. I444 all-plane Wiener parsing stays entropy
-synchronized and restored Y is exact, but final U/V hashes cannot be accepted
-until that earlier chroma reconstruction mismatch is resolved.
+The I444 reconstruction blocker was a chroma reference-availability error:
+64-sample transforms gathered a bottom-left smooth extension even though AVM
+disallows chroma top-right and bottom-left extensions beyond 32 samples. The
+8-bit and high-bit-depth gathering paths now enforce that limit, with focused
+64x64 smooth and directional coverage. A fully filter-free 896x598 I444 control
+is sample-exact on all planes with SHA-256
+`3cd80fc776fb414b7a388632dd55eb57c9e78067b9c1c55a72472d5573727af8`;
+the corresponding all-plane Wiener vector is sample-exact with SHA-256
+`e8190c3eba2d019e6f28adaf8ac33f92751c23e5e8257c17216f9b22dff4e883`.
 
 ## Milestone 5: spatial tiles and tile groups
 

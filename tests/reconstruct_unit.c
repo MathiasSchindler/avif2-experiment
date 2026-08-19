@@ -5699,7 +5699,7 @@ static void test_i444_mhccp_long_left_reference(void) {
     CHECK(changed != 0U);
 }
 
-static void test_i444_64x64_directional_bottom_left_limit(void) {
+static void test_i444_64x64_bottom_left_limit(void) {
     static uint8_t chroma_data[200U * 200U];
     static uint8_t chroma_rec[50U * 50U];
     static uint8_t pred_data[200U * 200U];
@@ -5753,6 +5753,34 @@ static void test_i444_64x64_directional_bottom_left_limit(void) {
     for (row = 128U; row < 192U; ++row) {
         chroma_data[row * 200U + 63U] ^= 0xffU;
     }
+    av2h_memory_fill(pred_data, 0U, sizeof(pred_data));
+    av2h_memory_fill(pred_rec, 0U, sizeof(pred_rec));
+    CHECK(av2h_chroma_reconstruct_to_plane_format(
+              &leaf, &mode, &prefix, &transform, &block, &chroma, &chroma,
+              2U, &predictor, 2U, &scratch) == AV2H_OK);
+    for (row = 0U; row < 64U; ++row) {
+        for (column = 0U; column < 64U; ++column) {
+            CHECK(pred_data[(row + 64U) * 200U + column + 64U] ==
+                  expected[row * 64U + column]);
+        }
+    }
+    for (row = 128U; row < 192U; ++row) {
+        chroma_data[row * 200U + 63U] ^= 0xffU;
+    }
+    mode.mode = AV2H_INTRA_SMOOTH_VERTICAL;
+    mode.angle_delta = 0;
+    av2h_memory_fill(pred_data, 0U, sizeof(pred_data));
+    av2h_memory_fill(pred_rec, 0U, sizeof(pred_rec));
+    CHECK(av2h_chroma_reconstruct_to_plane_format(
+              &leaf, &mode, &prefix, &transform, &block, &chroma, &chroma,
+              2U, &predictor, 2U, &scratch) == AV2H_OK);
+    for (row = 0U; row < 64U; ++row) {
+        for (column = 0U; column < 64U; ++column) {
+            expected[row * 64U + column] =
+                pred_data[(row + 64U) * 200U + column + 64U];
+        }
+    }
+    chroma_data[128U * 200U + 63U] ^= 0xffU;
     av2h_memory_fill(pred_data, 0U, sizeof(pred_data));
     av2h_memory_fill(pred_rec, 0U, sizeof(pred_rec));
     CHECK(av2h_chroma_reconstruct_to_plane_format(
@@ -7145,7 +7173,7 @@ int main(void) {
     test_cfl_explicit_geometry_filter_matrix();
     if (0) test_mhccp_geometry_direction_matrix();
     test_i444_mhccp_long_left_reference();
-    test_i444_64x64_directional_bottom_left_limit();
+    test_i444_64x64_bottom_left_limit();
     test_i444_64x16_directional_top_right_limit();
     test_i444_mhccp_long_top_reference();
     test_emerald_chroma_plane_ex_checks();

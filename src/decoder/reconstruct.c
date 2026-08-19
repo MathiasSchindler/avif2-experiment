@@ -2494,7 +2494,7 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_format_with_diagnostics(
             directional_base_angle(mode->mode) + mode->angle_delta * 3,
             width, height);
         if (width > 32U && above_count > width) above_count = width;
-        if (left_count != 0U &&
+        if (left_count != 0U && height <= 32U &&
             (mode->mode == AV2H_INTRA_SMOOTH ||
              mode->mode == AV2H_INTRA_SMOOTH_VERTICAL)) {
             ++left_count;
@@ -2806,7 +2806,8 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_u16_with_diagnostics(
     apply_edge_ibp = (uint8_t)(mode->edge_ibp != 0U &&
         (width != 4U || height != 4U));
     above_target = width;
-    if ((mode->mode == AV2H_INTRA_SMOOTH ||
+    if (width <= 32U &&
+        (mode->mode == AV2H_INTRA_SMOOTH ||
          mode->mode == AV2H_INTRA_SMOOTH_HORIZONTAL) &&
         block_x + above_target < plane->width) {
         ++above_target;
@@ -2837,7 +2838,8 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_u16_with_diagnostics(
         }
     }
     left_target = height;
-    if ((mode->mode == AV2H_INTRA_SMOOTH ||
+    if (height <= 32U &&
+        (mode->mode == AV2H_INTRA_SMOOTH ||
          mode->mode == AV2H_INTRA_SMOOTH_VERTICAL) &&
         block_y + left_target < plane->height) {
         ++left_target;
