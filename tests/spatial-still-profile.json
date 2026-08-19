@@ -1,0 +1,193 @@
+{
+  "schema": "av2h-spatial-still-profile-v1",
+  "avm_revision": "966a7d7cd6fcf60360caf5dc413b2aeeb65e144d",
+  "required_feature_families": [
+    "i400", "i420", "i444", "odd-visible-crop", "qp-spectrum",
+    "extended-segmentation", "segmented-qmatrix", "custom-qmatrix",
+    "delta-q", "tcq-parity-hiding", "fsc-cctx", "intrabc-restoration",
+    "spatial-tiles", "nonuniform-tiles", "multiple-tile-groups",
+    "filter-tile-boundaries", "lossless", "restoration",
+    "filter-cross-products", "malformed-boundaries", "profile-rejection",
+    "workspace-boundaries"
+  ],
+  "cases": [
+    {
+      "id": "odd-i400", "path": "tests/fixtures/monochrome-odd.obu",
+      "pixel_format": "i400", "width": 17, "height": 15,
+      "encoded_sha256": "99a78c674074ca7d24facb7ea49547712bac8a48ca72b74f105b72c8edbf5c25",
+      "decoded_sha256": "a1b908d31fc5dd4881a94c5d5bfba588a9ea6dce69f69847bbcea1897f0c7b3e",
+      "features": ["i400", "odd-visible-crop"],
+      "provenance": "tests/fixtures/monochrome-manifest.json"
+    },
+    {
+      "id": "odd-i444", "path": "tests/fixtures/i444-odd.obu",
+      "pixel_format": "i444", "width": 17, "height": 15,
+      "encoded_sha256": "a37c0b4b92aeccb9dcc756eb96c472abd07f19edb8204c400c57cacae46e5eb8",
+      "decoded_sha256": "bc3451ded3097d36f426bb8af7e5ed8c78b982540499434d262484e27e6e3b9b",
+      "features": ["i444", "odd-visible-crop"],
+      "provenance": "tests/fixtures/i444-manifest.json"
+    },
+    {
+      "id": "high-detail-i420", "path": "tests/fixtures/high-detail-96x80.obu",
+      "pixel_format": "i420", "width": 96, "height": 80,
+      "encoded_sha256": "544cf228b81054e000698970d2ff3478b0cf2acd0e46a561d93c0e59b060c8e3",
+      "decoded_sha256": "4120930c9c9c49f73d4aa3e1d4c56cbb4b557679b42fe3b9de984bca1431745a",
+      "features": ["i420", "qp-spectrum"],
+      "provenance": "tests/fixtures/i420-manifest.json"
+    },
+    {
+      "id": "predefined-qmatrix", "path": "tests/fixtures/predefined-qmatrix.obu",
+      "pixel_format": "i420", "width": 896, "height": 598,
+      "encoded_sha256": "09bf837000b8bb7e41d3af1fc8b86f90b5920536a045df9e04a5d550ea059769",
+      "decoded_sha256": "6ef34c24eaa892cff0eff2ee75306e85c3432327b53863ac8b06d6d541864b08",
+      "features": ["i420"],
+      "provenance": "docs/research/feature.md"
+    },
+    {
+      "id": "aq-segmentation", "path": "tests/fixtures/aq-segmentation.obu",
+      "pixel_format": "i420", "width": 192, "height": 96,
+      "encoded_sha256": "7db615b6f3e36fddc50f53a3b223afde32bc9f43d590d5c84dcb22e9b9fb4c67",
+      "decoded_sha256": "230e95f06ee03d1b204bb1b913bc926238b0449e665ca1db898d05b4033d5341",
+      "features": ["i420", "extended-segmentation"],
+      "provenance": "tests/public_decode_unit.c"
+    },
+    {
+      "id": "delta-q-objective", "path": "tests/fixtures/delta-q-objective.obu",
+      "pixel_format": "i420", "width": 192, "height": 96,
+      "encoded_sha256": "19fa99d41083f8b28a095159f75183ecd8cd69547b566ae94e1d6f9b53472ebb",
+      "decoded_sha256": "54902a83f640d0e24a3a9cc7cee3fbb230f51268226e4ee32394efe2a22a7169",
+      "features": ["i420", "delta-q"],
+      "provenance": "tests/public_decode_unit.c"
+    },
+    {
+      "id": "delta-q-perceptual", "path": "tests/fixtures/delta-q-perceptual.obu",
+      "pixel_format": "i420", "width": 192, "height": 96,
+      "encoded_sha256": "61aadab97d956272f62b9278b6ba5296c7e67575f1cc924f68faed423fffa77d",
+      "decoded_sha256": "0f186b8193016e587779e588e56aa731feef0b86387b9a388da6cda187607456",
+      "features": ["i420", "delta-q", "qp-spectrum"],
+      "provenance": "tests/public_decode_unit.c"
+    },
+    {
+      "id": "pc-wiener-restoration", "path": "tests/fixtures/pc-wiener-restoration.obu",
+      "pixel_format": "i420", "width": 896, "height": 598,
+      "encoded_sha256": "b697a7917be4777e5396cc0ce4ec5e2791f459579ac479f2c337a37ffbe5efd5",
+      "decoded_sha256": "facb6781bb64f8066feae441fcd8305022f3db4c3fd2ff70c22d2729c5042a0c",
+      "features": ["i420", "restoration"],
+      "provenance": "tests/artifact-parity.sha256"
+    },
+    {
+      "id": "parity-hidden-i444", "path": "tests/fixtures/parity-hidden-i444.obu",
+      "pixel_format": "i444", "width": 16, "height": 16,
+      "encoded_sha256": "643a95f14b8702887deff00010741185e94062d0d580f39c3d66ec3e6b67a2a1",
+      "decoded_sha256": "8e8793ce45863292d35328562a55b403ae4f7767f190586095731ae50b967da7",
+      "features": ["i444", "tcq-parity-hiding"],
+      "provenance": "tests/fixtures/parity-hidden-i444.json"
+    },
+    {
+      "id": "lossless-i400", "path": "tests/fixtures/lossless-i400.obu",
+      "pixel_format": "i400", "width": 16, "height": 16,
+      "encoded_sha256": "480ea61f5459c1b03ca6a256f30bac70bb98211fc4c68d75c7e179a960f16e10",
+      "decoded_sha256": "c7040aa943bbe20b483479decc76efaa26e4fb3e5846ee3905a20e22dd07f76e",
+      "features": ["i400", "lossless"],
+      "provenance": "tests/fixtures/lossless-manifest.json"
+    },
+    {
+      "id": "lossless-i420", "path": "tests/fixtures/lossless-i420.obu",
+      "pixel_format": "i420", "width": 160, "height": 120,
+      "encoded_sha256": "d4ab7dd9cf0478d43d987e6361897692fd867a95b17b9f86543305796a27a7f0",
+      "decoded_sha256": "def0ced80c4bc1866d0d865fb392c80020ac0a823f310b2f62999d10eede1af5",
+      "features": ["i420", "lossless"],
+      "provenance": "tests/fixtures/lossless-manifest.json"
+    },
+    {
+      "id": "lossless-i444", "path": "tests/fixtures/lossless-i444.obu",
+      "pixel_format": "i444", "width": 16, "height": 16,
+      "encoded_sha256": "24552e9ab2fc1b38b6887592969c4f58bafa70057e0014a8d9e0b7c33f1c6447",
+      "decoded_sha256": "88c13f2258aba8ade2736246bab77771bd3839815f567517a5db5330e2969ee6",
+      "features": ["i444", "lossless"],
+      "provenance": "tests/fixtures/lossless-manifest.json"
+    },
+    {
+      "id": "tile-uniform-2x1", "path": "tests/fixtures/spatial-tile-uniform-2x1.obu",
+      "pixel_format": "i420", "width": 320, "height": 320,
+      "encoded_sha256": "48b432cf02a6937ece86052c202a1d6cf9d02ca31052c7d06ca4e2fd60b08169",
+      "decoded_sha256": "9ba9f878591e2de963bbf961248d310ca6378a9880ceeb6727657a1403b3f306",
+      "features": ["i420", "spatial-tiles"],
+      "provenance": "tests/fixtures/spatial-tiles-manifest.json"
+    },
+    {
+      "id": "tile-uniform-1x2", "path": "tests/fixtures/spatial-tile-uniform-1x2.obu",
+      "pixel_format": "i420", "width": 320, "height": 320,
+      "encoded_sha256": "848dd11d56164faada91d83570c0fe78f4a5f09543be41c1bf8a2e06b5cc0157",
+      "decoded_sha256": "8a097a389bd52dc00d1e227e5fb1188b81ebf9e7fb19932ddc7c65308a0f9de3",
+      "features": ["i420", "spatial-tiles"],
+      "provenance": "tests/fixtures/spatial-tiles-manifest.json"
+    },
+    {
+      "id": "tile-filter-boundaries", "path": "tests/fixtures/spatial-tile-filtered-disabled-2x2.obu",
+      "pixel_format": "i420", "width": 320, "height": 320,
+      "encoded_sha256": "c63c91c861478fbb37238fdd5fc1f9f3d53e80f0e8fc86a337c65df2dced5559",
+      "decoded_sha256": "891593b6d65c9479554a239aa28750b116f3c1259563fbbbf3dd64cda47c1e1c",
+      "features": ["i420", "spatial-tiles", "filter-tile-boundaries"],
+      "provenance": "tests/fixtures/spatial-tiles-manifest.json"
+    },
+    {
+      "id": "tile-nonuniform-groups", "path": "tests/fixtures/spatial-tile-filtered-nonuniform.obu",
+      "pixel_format": "i420", "width": 320, "height": 320,
+      "encoded_sha256": "e6fdccc0f3ddecbd2da559219a0b2f3320292c1ff25dc72243c21b2df963f0a0",
+      "decoded_sha256": "73961f6048053bd1d36d1158d7f2e1bc91c228a79c7f7af987716b7766e450e7",
+      "features": ["i420", "spatial-tiles", "nonuniform-tiles", "multiple-tile-groups", "restoration"],
+      "provenance": "tests/fixtures/spatial-tiles-manifest.json"
+    }
+  ],
+  "focused_witnesses": [
+    {
+      "id": "segmented-and-custom-qmatrix",
+      "test": "coeff-level-unit", "source": "tests/coeff_level_unit.c",
+      "source_sha256": "4259592fa0dcf43ffcd5ad1670bfa55c8d9f89654b9d4c2183739ad2c6d6cdf8",
+      "features": ["segmented-qmatrix", "custom-qmatrix", "tcq-parity-hiding", "fsc-cctx"]
+    },
+    {
+      "id": "frame-profile-and-lossless-gates",
+      "test": "frame-unit", "source": "tests/frame_unit.c",
+      "source_sha256": "c839217be69ac6457933b85c20e91cd8e174b7c3fad47b8984477a6c2813d3d0",
+      "features": ["lossless", "profile-rejection"]
+    },
+    {
+      "id": "intrabc-filter-composition",
+      "test": "leaf-unit", "source": "tests/leaf_unit.c",
+      "source_sha256": "16f215f10901618ce27b54284bad745694bdcfecf672ab4038606899379d48cc",
+      "features": ["intrabc-restoration"]
+    },
+    {
+      "id": "fsc-cctx-intrabc-reconstruction",
+      "test": "reconstruct-unit", "source": "tests/reconstruct_unit.c",
+      "source_sha256": "4706fef99029541c956b76df78a116570b0c0d2aa60ef559d1f56f285c730d05",
+      "features": ["fsc-cctx", "intrabc-restoration"]
+    },
+    {
+      "id": "filter-composition",
+      "test": "filter-unit", "source": "tests/filter_unit.c",
+      "source_sha256": "72ba0dba833e0305f5fac78d122af7378ed8119d1dacbc5ab4ec135546001891",
+      "features": ["filter-cross-products", "restoration"]
+    },
+    {
+      "id": "malformed-tile-groups",
+      "test": "tile-unit", "source": "tests/tile_unit.c",
+      "source_sha256": "e8fed52632100eabdb7719739c6ae83da01ca4a4824160753a98192edb39dad8",
+      "features": ["malformed-boundaries", "spatial-tiles", "multiple-tile-groups"]
+    },
+    {
+      "id": "malformed-sequence-signaling",
+      "test": "substrate-unit", "source": "tests/substrate_unit.c",
+      "source_sha256": "bd7cd2de2d793ca150a6a34de26e73aa1d98d9d67148b9191c33a91eade6b321",
+      "features": ["malformed-boundaries", "profile-rejection"]
+    },
+    {
+      "id": "workspace-extremes",
+      "test": "workspace-accounting-unit", "source": "tests/workspace_accounting_unit.c",
+      "source_sha256": "0b79d631ddfddce4c37f7d2876d6a611e38af97b265bce76bf9f4abe6528a40c",
+      "features": ["workspace-boundaries"]
+    }
+  ]
+}

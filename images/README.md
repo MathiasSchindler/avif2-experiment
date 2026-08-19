@@ -200,8 +200,10 @@ the target suite cannot overwrite the original `reference-lock.json`. `--suite`
 is also accepted together with the existing source, preparation, pixel-format,
 and QP filters; filtered runs do not rewrite either complete lock.
 
-The third `spatial-still-8bit` suite is defined in
-`recipes/encodings.json` but has not been generated. Its planned 88-case matrix
+The third `spatial-still-8bit` photographic suite is defined in
+`recipes/encodings.json` but has not been generated. Decoder profile admission
+is complete and independently locked by `../tests/spatial-still-profile.json`;
+it does not fabricate the planned photographic lock. The planned 88-case matrix
 matches `photographic-8bit`, allowing direct comparisons at the same sources,
 preparations, pixel formats, and QPs. It uses `cpu-used=0` and explicitly opens
 the still-applicable prediction, transform, coefficient, quantization,
@@ -210,7 +212,8 @@ contract. Film grain remains disabled, while the decoder profile permits tiled
 pictures even though the best-compression reference recipe leaves AVM at its
 single-tile default.
 
-The recipe has `reference_status: planned` and intentionally has no
+The recipe has `reference_status: planned`, `decoder_admission_status: admitted`,
+and intentionally has no
 `spatial-still-reference-lock.json` yet. Lock and parity validation report the
 suite as defined but ungenerated. When a complete generation is deliberately
 started later, use:

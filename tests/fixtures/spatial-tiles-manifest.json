@@ -1,0 +1,47 @@
+{
+  "schema": "av2h-spatial-tile-fixtures-v1",
+  "avm": {
+    "revision": "966a7d7cd6fcf60360caf5dc413b2aeeb65e144d",
+    "encoder_sha256": "621df24618405cd7a05aaf436034b224f757adc3395ddb23624fc3f0e8189d83",
+    "decoder_sha256": "43403968bb6f223220ccd6393c233071418f52d811ee04ebc51f072225d01616"
+  },
+  "format": "i420",
+  "width": 320,
+  "height": 320,
+  "decoded_size": 153600,
+  "decoder_command": "avmdec --codec=av2 --limit=1 -o OUTPUT.i420 INPUT.obu",
+  "fixtures": [
+    {
+      "file": "spatial-tile-uniform-2x1.obu",
+      "layout": "uniform 2x1",
+      "tile_groups": 1,
+      "filter_across_tiles": false,
+      "encoded_sha256": "48b432cf02a6937ece86052c202a1d6cf9d02ca31052c7d06ca4e2fd60b08169",
+      "decoded_sha256": "9ba9f878591e2de963bbf961248d310ca6378a9880ceeb6727657a1403b3f306"
+    },
+    {
+      "file": "spatial-tile-uniform-1x2.obu",
+      "layout": "uniform 1x2",
+      "tile_groups": 1,
+      "filter_across_tiles": false,
+      "encoded_sha256": "848dd11d56164faada91d83570c0fe78f4a5f09543be41c1bf8a2e06b5cc0157",
+      "decoded_sha256": "8a097a389bd52dc00d1e227e5fb1188b81ebf9e7fb19932ddc7c65308a0f9de3"
+    },
+    {
+      "file": "spatial-tile-filtered-disabled-2x2.obu",
+      "layout": "uniform 2x2",
+      "tile_groups": 1,
+      "filter_across_tiles": false,
+      "encoded_sha256": "c63c91c861478fbb37238fdd5fc1f9f3d53e80f0e8fc86a337c65df2dced5559",
+      "decoded_sha256": "891593b6d65c9479554a239aa28750b116f3c1259563fbbbf3dd64cda47c1e1c"
+    },
+    {
+      "file": "spatial-tile-filtered-nonuniform.obu",
+      "layout": "non-uniform 2,3 by 2,3 superblocks",
+      "tile_groups": 4,
+      "filter_across_tiles": true,
+      "encoded_sha256": "e6fdccc0f3ddecbd2da559219a0b2f3320292c1ff25dc72243c21b2df963f0a0",
+      "decoded_sha256": "73961f6048053bd1d36d1158d7f2e1bc91c228a79c7f7af987716b7766e450e7"
+    }
+  ]
+}

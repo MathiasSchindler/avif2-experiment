@@ -2,8 +2,8 @@
 
 This matrix records which AV2 coding tools the two generated photographic
 reference profiles permit and whether each tool is useful for a single-frame
-still image. The third profile, `spatial-still-8bit`, is now defined but not
-generated; its complete contract and encoder policy are recorded below.
+still image. The third decoder profile, `spatial-still-8bit`, is admitted; its
+88-case photographic encoder suite remains defined but not generated.
 
 The inventory is based on the feature controls exposed by the pinned AVM
 revision `966a7d7cd6fcf60360caf5dc413b2aeeb65e144d`, principally
@@ -280,7 +280,8 @@ Use streams from AVM plus independent or hand-authored vectors, and require:
 
 - exact reconstructed planes for the sample-preserving core;
 - malformed-input rejection at each variable-length/count boundary;
-- native and WebAssembly parity;
+- native, Linux no-libc, and WebAssembly parity, plus supported Windows build
+   and import checks;
 - explicit `spatial-still-8bit` capability advertisement so callers can reject
   out-of-profile streams before decoding.
 
@@ -289,7 +290,9 @@ Use streams from AVM plus independent or hand-authored vectors, and require:
 This decoder contract is deliberately independent of an encoder preset. The
 third encoder profile is now defined as `spatial-still-8bit` in
 [`recipes/encodings.json`](recipes/encodings.json). Its references have not
-been generated. The recipe opens the broad still-image tool set while retaining
+been generated, while decoder admission is locked independently by
+[`../tests/spatial-still-profile.json`](../tests/spatial-still-profile.json).
+The recipe opens the broad still-image tool set while retaining
 explicit choices where AVM requires a strategy rather than a capability switch.
 
 Recommended experiment order:

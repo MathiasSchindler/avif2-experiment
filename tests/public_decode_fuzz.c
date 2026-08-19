@@ -91,6 +91,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
 
 #define SEED_MAX_SIZE (4U * 1024U * 1024U)
 #define MUTATION_POSITIONS 128U
+#define EXHAUSTIVE_TRUNCATION_SIZE 1024U
 
 static int load_file(const char *path, unsigned char **bytes, size_t *size) {
     FILE *file = fopen(path, "rb");
@@ -168,9 +169,16 @@ static size_t exercise_seed(const unsigned char *seed, size_t size) {
     size_t position_count;
     LLVMFuzzerTestOneInput(seed, size);
     ++case_count;
-    for (index = 0U; index <= 16U; ++index) {
-        LLVMFuzzerTestOneInput(seed, (size * index) / 16U);
-        ++case_count;
+    if (size <= EXHAUSTIVE_TRUNCATION_SIZE) {
+        for (index = 0U; index <= size; ++index) {
+            LLVMFuzzerTestOneInput(seed, index);
+            ++case_count;
+        }
+    } else {
+        for (index = 0U; index <= 16U; ++index) {
+            LLVMFuzzerTestOneInput(seed, (size * index) / 16U);
+            ++case_count;
+        }
     }
     if (size == 0U) return case_count;
     mutated = (unsigned char *)malloc(size);

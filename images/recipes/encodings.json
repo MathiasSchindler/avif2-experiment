@@ -107,6 +107,8 @@
       "id": "spatial-still-8bit",
       "reference_status": "planned",
       "lock_file": "spatial-still-reference-lock.json",
+      "decoder_admission_status": "admitted",
+      "decoder_admission_manifest": "../../tests/spatial-still-profile.json",
       "preparation_ids": [
         "le896",
         "le1440"

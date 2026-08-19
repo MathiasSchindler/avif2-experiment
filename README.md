@@ -38,11 +38,12 @@ every buffer. `Av2hHeifImage.pixel_format` describes sample depth, storage,
 byte order, and plane order; plane offsets, row strides, capacities, and public
 buffer sizes are byte counts.
 
-The decoder admits tested 8-bit subsets of IntraBC, always-on single-picture
-TCQ, predefined quantization matrices, ALT_Q segmentation and delta-Q,
-Intra-DIP, transform partitioning, directional IBP and MRL, secondary
-transforms, PC-Wiener restoration, and Wiener-nonsep restoration. These are
-bounded profile statements, not claims of complete AV2 feature-family support.
+The decoder advertises the bounded `spatial-still-8bit` profile: one 8-bit
+I400, I420, or I444 closed-loop key picture, including admitted spatial tiles,
+lossless/lossy quantization, segmentation and QMs, TCQ/parity hiding,
+FSC/CCTX, IntraBC, and the still-image filter pipeline. This is a complete
+statement for the documented profile envelope, not a claim of general AV2
+video conformance.
 
 The authoritative supported and fail-closed boundaries are in
 [docs/capabilities.md](docs/capabilities.md). Current unfinished work is in
@@ -60,6 +61,8 @@ Current evidence includes:
 - 14 high-effort target-baseline photographic streams exercising the recently
   admitted coding tools;
 - exact native and published WebAssembly output for all 102 streams;
+- 16 retained `spatial-still-8bit` streams plus eight hash-bound focused
+  cross-product witnesses, exact on hosted, Linux no-libc, and WebAssembly;
 - dedicated 8-bit I400, I420, and I444 corpora;
 - 10-bit 4:2:0 and 4:4:4 synthetic and photographic release gates; and
 - hosted sanitizer, freestanding symbol, Linux/macOS no-libc, Windows, fuzz, and

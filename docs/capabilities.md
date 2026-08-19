@@ -23,15 +23,13 @@ with pinned AVM. Encoder presets may choose a narrower subset.
 
 | Area | Admitted subset | Important exclusions |
 | --- | --- | --- |
-| Picture structure | One closed-loop key picture in the project-defined still-image carriage | Multi-frame, non-initial or unsupported tile-group forms |
-| Prediction | Directional prediction, MRL, CfL/MHCCP, luma FSC, Intra-DIP, directional IBP, transform skip, and observed palette paths | Chroma FSC remains unaudited; feature combinations require reached evidence |
-| IntraBC | Reached 8-bit still-picture IntraBC and extended search paths | Unreached geometry and profile combinations |
-| Transforms | Non-DCT transforms, transform partitioning, and reached secondary transforms | Unreached transform, geometry, and coefficient tuples |
-| TCQ | Pinned AVM always-on single-picture TCQ | Frame-adaptive video TCQ and parity hiding |
-| Quantization matrices | Predefined matrices in non-segmented pictures | Custom matrix OBUs and segmented multi-matrix selection |
-| AQ, delta-Q, segmentation | Pinned AVM `aq-mode=1` ALT_Q segmentation, extended-segmentation signaling with bounded 16-ID ALT_Q entropy and segment-adjusted lossless routing, and `deltaq-mode=1`/`2` for closed-loop key pictures | Non-ALT_Q features and untested bit depths |
-| Filters | Deblock, CDEF, CCSO, restoration, and GDF in normative pipeline order | Unsupported restoration combinations below |
-| Restoration | 8-bit luma PC-Wiener; 8-bit `RESTORE_WIENER_NONSEP` on any I420 plane with frame-level or per-unit filters and one or more luma classes | Switchable restoration, other chroma formats, and all 10-bit restoration |
+| Picture structure | One closed-loop key picture; uniform/non-uniform spatial tiles, multiple tile groups, context resets, and both loop-filter boundary choices | Multi-frame, temporal/layered, non-initial, and additional-operating-point structures |
+| Prediction | Still-applicable intra prediction, MRL, CfL/MHCCP, FSC/CCTX, Intra-DIP, IBP, palette, transform skip, and IntraBC | Inter prediction and temporal reference state |
+| Transforms and coefficients | Legal admitted transform partitions, primary/secondary transforms, TCQ, and parity hiding | Frame-adaptive video TCQ and out-of-profile bit depths |
+| Quantization | Lossy and lossless base Q, delta-Q, predefined/custom QMs, and segmented matrix selection | 10/12-bit combinations outside their separately documented profiles |
+| Segmentation | Still-applicable segment IDs, ALT_Q routing, extended segmentation, and lossless interaction | Temporal segment-map prediction |
+| Filters and restoration | Deblock, CDEF, CCSO, GDF, PC-Wiener, Wiener-nonsep, and switchable per-unit restoration in normative order and at tile boundaries | Temporal filtering and unadmitted 10-bit restoration |
+| Signaling and geometry | I400/I420/I444, odd visible dimensions, legal 8-bit color/chroma-location metadata, and checked workspace endpoints | I422, 12-bit, film grain, and independent clean-aperture transforms |
 
 Support for one row does not imply support for every cross-product with other
 rows. Unknown or unsupported combinations must fail closed.
@@ -39,12 +37,8 @@ rows. Unknown or unsupported combinations must fail closed.
 ## Explicitly unsupported
 
 - Film-grain synthesis.
-- Parity-hiding coefficient syntax.
-- Custom quantization-matrix OBUs.
-- Segmentation features outside the admitted ALT_Q subset.
-- Switchable and 10-bit restoration.
-- Unconstrained base-Q-zero streams outside existing lossless evidence.
-- Multi-frame streams and unsupported tile signaling.
+- 10-bit restoration outside the separately admitted 10-bit decode profiles.
+- Temporal segmentation, inter pictures, and multi-frame or layered streams.
 - Container transforms, metadata expansion, auxiliary alpha, and image grids.
 
 Malformed input, inconsistent HEIF metadata, unsupported profile/chroma pairs,
@@ -56,6 +50,19 @@ The 8-bit photographic reference tree contains 88 legacy streams and 14
 target-baseline streams. All 102 decode exactly with the hosted decoder and the
 published `docs/decoder.wasm` against AVM revision
 `966a7d7cd6fcf60360caf5dc413b2aeeb65e144d`.
+
+The `spatial-still-8bit` admission manifest adds 16 retained exact streams and
+eight source-hash-bound focused witnesses for syntax cross-products that pinned
+AVM does not reliably emit as standalone vectors. The hosted and Linux no-libc
+decoders and WebAssembly module produce the locked output for all 16 streams;
+Windows x86-64 and ARM64 cross-build and import gates pass. Windows runtime
+parity was not executed on the Linux admission host.
+
+Run the complete profile and platform gate:
+
+```sh
+make spatial-still-platform-admission
+```
 
 Run lock validation without local media:
 

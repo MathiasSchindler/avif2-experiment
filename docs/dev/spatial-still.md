@@ -369,6 +369,8 @@ no-libc parity, and pinned spatial-still frontier gate pass.
 
 ## Milestone 7: conformance and release admission
 
+**Status:** implemented on 19 August 2026; the profile exit gate is complete.
+
 Turn the implemented feature set into a durable public capability rather than
 a corpus-specific exception.
 
@@ -392,6 +394,28 @@ a corpus-specific exception.
 **Exit gate:** every legal tested tuple inside the profile envelope decodes
 sample-exactly, malformed and out-of-envelope vectors fail deterministically,
 all platform gates pass, and `spatial-still-8bit` is explicitly advertised.
+
+The tracked admission manifest contains 16 exact pinned-AVM streams across
+I400, I420, I444, odd geometry, the QP spectrum, segmentation/QM/delta-Q,
+parity hiding, restoration, uniform and non-uniform tiles, multiple tile
+groups, filter-boundary choices, and lossless. Eight named focused unit
+witnesses cover hard-to-emit segmented/custom-QM, FSC/CCTX, IntraBC/filter,
+filter composition, malformed tile-group and sequence signaling,
+profile-rejection, and workspace cross-products; each witness is bound to its
+source SHA-256 so edits require explicit re-admission.
+
+All retained streams pass exact hosted ASan/UBSan, Linux no-libc, and
+WebAssembly output parity. The deterministic public-decode smoke executes
+11,850 profile-seed cases, including every byte-prefix truncation for compact
+streams and bounded mutations for larger streams. WebAssembly now uses the
+same QMatrix and multi-tile-group carriage path as native. Windows x86-64 and
+ARM64 cross-build and exact import checks pass; runtime execution remains
+unavailable on the Linux admission host. Run the complete gate with
+`make spatial-still-platform-admission`.
+
+The planned 88-case photographic encoder recipe remains ungenerated and keeps
+`reference_status: planned`; decoder admission is independently locked by
+`tests/spatial-still-profile.json` rather than a fabricated photographic lock.
 
 ## Profile completion criteria
 

@@ -2,6 +2,7 @@
 #include "decoder/frame.h"
 #include "decoder/frame_output.h"
 #include "decoder/internal/frame_workspace.h"
+#include "decoder/qmatrix.h"
 #include "decoder/sequence.h"
 
 #define AV2H_WASM_PAGE_SIZE 65536U
@@ -84,8 +85,8 @@ uint32_t av2h_wasm_alloc(uint32_t size) {
 
 __attribute__((export_name("av2h_decode")))
 uint32_t av2h_wasm_decode(uint32_t input_pointer, uint32_t input_size) {
-    Av2hObu entries[4U];
-    Av2hObuLedger ledger = { entries, 4U, 0U };
+    Av2hObu entries[16U];
+    Av2hObuLedger ledger = { entries, 16U, 0U };
     Av2hError error;
     const Av2hObu *sequence_obu;
     const Av2hObu *frame_obu;
@@ -127,10 +128,11 @@ uint32_t av2h_wasm_decode(uint32_t input_pointer, uint32_t input_size) {
                     frame_obu->payload_size },
         &sequence, &frame);
     if (status != AV2H_OK) goto done;
-    status = av2h_tile_group_single_parse(
-        (Av2hSpan){ input.data + frame_obu->payload_offset,
-                    frame_obu->payload_size },
-        frame.uncompressed_header_bits, &group);
+    av2h_qmatrix_state_reset(&frame);
+    status = av2h_qmatrix_ledger_parse(input, &ledger, &frame, &error);
+    if (status == AV2H_OK) status = av2h_qmatrix_references_validate(&frame);
+    if (status != AV2H_OK) goto done;
+    status = av2h_tile_groups_ledger_parse(input, &ledger, &frame, &group);
     if (status != AV2H_OK) goto done;
     status = av2h_planar_output_size_bytes(
         &frame, bytes_per_sample, &output_size);
@@ -154,8 +156,8 @@ uint32_t av2h_wasm_decode(uint32_t input_pointer, uint32_t input_size) {
         workspace_memory, workspace_layout.size_bytes,
         &workspace, &filter_workspace, &filter_storage);
     if (status != AV2H_OK) goto done;
-    status = av2h_decode_frame_planar_private(
-        group.entropy, &sequence, &frame, &workspace,
+    status = av2h_decode_frame_group_planar_private(
+        &group, &sequence, &frame, &workspace,
         output, output_size, &decode_result);
     if (status != AV2H_OK) goto done;
     wasm_result.output_pointer = (uint32_t)(uintptr_t)output;

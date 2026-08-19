@@ -472,6 +472,7 @@ $(WINDOWS_SMOKE): $(WINDOWS_SMOKE_OBJECT) $(WINDOWS_LIBRARY) $(WINDOWS_IMPORT_LI
 .PHONY: test test-host-build test-c test-corpus test-freestanding \
 	test-runtime-substrate test-extended \
 	test-reference-locks test-reference-images test-reference-images-wasm \
+	spatial-still-admission spatial-still-platform-admission \
 	reference-avm reference-avm-accounting \
 	reference-avm-negatives generate-10bit-sources \
 	generate-10bit-avm-references generate-10bit-synthetic \
@@ -487,9 +488,28 @@ $(WINDOWS_SMOKE): $(WINDOWS_SMOKE_OBJECT) $(WINDOWS_LIBRARY) $(WINDOWS_IMPORT_LI
 spatial-still-frontiers: $(HOST_DECODER)
 	@$(PYTHON) tools/run_spatial_still_frontiers.py --decoder $(HOST_DECODER)
 
+SPATIAL_STILL_FIXTURES := \
+	tests/fixtures/monochrome-odd.obu \
+	tests/fixtures/i444-odd.obu \
+	tests/fixtures/high-detail-96x80.obu \
+	tests/fixtures/predefined-qmatrix.obu \
+	tests/fixtures/aq-segmentation.obu \
+	tests/fixtures/delta-q-objective.obu \
+	tests/fixtures/delta-q-perceptual.obu \
+	tests/fixtures/pc-wiener-restoration.obu \
+	tests/fixtures/parity-hidden-i444.obu \
+	tests/fixtures/lossless-i400.obu \
+	tests/fixtures/lossless-i420.obu \
+	tests/fixtures/lossless-i444.obu \
+	tests/fixtures/spatial-tile-uniform-2x1.obu \
+	tests/fixtures/spatial-tile-uniform-1x2.obu \
+	tests/fixtures/spatial-tile-filtered-disabled-2x2.obu \
+	tests/fixtures/spatial-tile-filtered-nonuniform.obu
+
 .NOTPARALLEL: test test-extended 10bit-wp0-reference
 
-test: test-c test-corpus test-reference-locks test-freestanding
+test: test-c test-corpus test-reference-locks test-freestanding \
+	spatial-still-admission
 	$(PYTHON) -m unittest discover -s tests -p 'test_*.py'
 
 $(HOST_BUILD_DIR)/obj/core/%.o: %.c
@@ -555,6 +575,7 @@ test-c: test-host-build
 	$(HOST_FUZZ) tests/fixtures/i444-tiny.obu \
 		tests/fixtures/10bit/avm-reference/tiny-constrained-16x16-yuv420p10le-qp208.obu \
 		tests/fixtures/10bit/avm-reference/tiny-precision-16x16-yuv444p10le-qp128.obu
+
 	$(PYTHON) tools/build_checks.py output-policy --decoder $(HOST_DECODER) \
 		--fixture-dir tests/fixtures --output-dir $(HOST_BUILD_DIR)/test-output
 	$(PYTHON) tools/build_checks.py parity --decoder $(HOST_DECODER) \
@@ -577,6 +598,27 @@ test-c: test-host-build
 		--input tests/fixtures/delta-q-perceptual.obu \
 		--output $(HOST_BUILD_DIR)/delta-q-perceptual.i420 \
 		--expected 0f186b8193016e587779e588e56aa731feef0b86387b9a388da6cda187607456
+
+spatial-still-admission: test-host-build
+	$(PYTHON) tools/validate_spatial_still_profile.py \
+		--decoder $(HOST_DECODER) --host-build $(HOST_BUILD_DIR)
+	$(HOST_FUZZ) $(SPATIAL_STILL_FIXTURES)
+
+spatial-still-platform-admission: spatial-still-admission
+	@$(MAKE) nolibc
+	$(PYTHON) tools/validate_spatial_still_profile.py \
+		--decoder $(NOLIBC_DECODER)
+	$(PYTHON) experimental/wasm/build.py \
+		--output-directory build/wasm-spatial-still
+	node tools/validate_spatial_still_wasm.js \
+		build/wasm-spatial-still/decoder.wasm
+	@$(MAKE) windows-x86_64 windows-arm64
+	$(PYTHON) tools/check_windows_imports.py --objdump "$(OBJDUMP)" \
+		--decoder build/windows-x86_64/av2heif-decoder.exe \
+		--smoke build/windows-x86_64/av2heif-windows-smoke.exe
+	$(PYTHON) tools/check_windows_imports.py --objdump "$(OBJDUMP)" \
+		--decoder build/windows-arm64/av2heif-decoder.exe \
+		--smoke build/windows-arm64/av2heif-windows-smoke.exe
 
 test-corpus: test-host-build
 	$(PYTHON) tools/build_checks.py artifact-parity \

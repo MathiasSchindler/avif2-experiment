@@ -45,6 +45,14 @@ clear, but it does not isolate the decoder from the rest of the program. When
 testing files you do not trust, use a separate restricted environment with its
 own memory and CPU limits.
 
+The `spatial-still-8bit` release gate exercises strict workspace accounting,
+one-byte-short rejection, maximum admitted geometry, malformed tile groups,
+and deterministic mutation/truncation of every retained feature-family seed.
+Compact seeds are truncated at every byte boundary; larger seeds use bounded
+distributed truncations and mutations. These checks establish the documented
+resource and failure contracts for tested tuples, not a denial-of-service or
+memory-safety proof.
+
 ## Reference Tools and Artifacts
 
 The hosted AVM checkout, Python development tools, generated test files, and
