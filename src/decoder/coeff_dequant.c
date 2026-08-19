@@ -181,10 +181,35 @@ static size_t qmatrix_offset(uint16_t width, uint16_t height) {
     return SIZE_MAX;
 }
 
+static const uint8_t *custom_qmatrix(
+    const Av2hFrameState *frame, uint8_t id, uint8_t plane,
+    uint16_t width, uint16_t height, uint16_t position) {
+    const uint8_t *fundamental = frame->custom_qm[id][plane];
+    uint16_t row;
+    uint16_t column;
+    if (position >= (uint32_t)width * height) return 0;
+    if (!((width == 4U && height == 4U) ||
+          (width == 8U && height == 8U) ||
+          (width == 8U && height == 4U) ||
+          (width == 4U && height == 8U))) {
+        return 0;
+    }
+    row = position / width;
+    column = position % width;
+    if (width == 4U && height == 4U) {
+        return &fundamental[(row * 2U) * 8U + column * 2U];
+    }
+    if (width == 8U && height == 8U) return &fundamental[position];
+    if (width == 8U && height == 4U) return &fundamental[64U + position];
+    if (width == 4U && height == 8U) return &fundamental[96U + position];
+    return 0;
+}
+
 Av2hStatus av2h_coeff_qmatrix_dequant_step(
     const Av2hSequenceState *sequence,
     const Av2hFrameState *frame,
     Av2hQIndex q_index,
+    uint8_t segment_id,
     uint8_t plane,
     uint16_t tx_width,
     uint16_t tx_height,
@@ -195,7 +220,10 @@ Av2hStatus av2h_coeff_qmatrix_dequant_step(
     uint8_t level;
     size_t offset;
     uint64_t product;
-    if (sequence == 0 || frame == 0 || weighted_step == 0 || plane >= 3U) {
+    uint8_t matrix;
+    const uint8_t *custom_weight;
+    if (sequence == 0 || frame == 0 || weighted_step == 0 || plane >= 3U ||
+        segment_id >= av2h_sequence_segment_count(sequence)) {
         return AV2H_INVALID_ARGUMENT;
     }
     *weighted_step = dequant_step;
@@ -203,9 +231,25 @@ Av2hStatus av2h_coeff_qmatrix_dequant_step(
         av2h_quantizer_is_lossless(sequence, frame, q_index)) {
         return AV2H_OK;
     }
-    level = plane == 0U ? frame->qm_y :
-            plane == 1U ? frame->qm_u : frame->qm_v;
+    matrix = frame->segment_qm_index[segment_id];
+    if (matrix >= frame->picture_qm_count) return AV2H_INVALID_DATA;
+    level = plane == 0U ? frame->qm_y[matrix] :
+        plane == 1U ? frame->qm_u[matrix] : frame->qm_v[matrix];
     if (level == 15U) return AV2H_OK;
+    if ((frame->custom_qm_bitmap & (uint16_t)(1U << level)) != 0U &&
+        plane >= frame->custom_qm_plane_count[level]) {
+        return AV2H_INVALID_DATA;
+    }
+    custom_weight = (frame->custom_qm_bitmap &
+                     (uint16_t)(1U << level)) != 0U ?
+        custom_qmatrix(frame, level, plane, tx_width, tx_height, position) : 0;
+    if (custom_weight != 0) {
+        product = (uint64_t)dequant_step * *custom_weight;
+        product = (product + 16U) >> 5U;
+        if (product > UINT32_MAX) return AV2H_OVERFLOW;
+        *weighted_step = (uint32_t)product;
+        return AV2H_OK;
+    }
     offset = qmatrix_offset(tx_width, tx_height);
     if (offset == SIZE_MAX ||
         position >= (uint32_t)tx_width * tx_height ||

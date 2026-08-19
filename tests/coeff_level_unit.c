@@ -1,4 +1,5 @@
 #include "decoder/coeff_level.h"
+#include "decoder/qmatrix.h"
 
 #include <stdio.h>
 
@@ -982,7 +983,7 @@ static void test_chroma_all_zero_geometry(void) {
         prefix.tx_size = sizes[index];
         prefix.all_zero = 1U;
         CHECK(av2h_first_chroma_coeff_block_read(
-                  &decoder, &cdfs, &sequence, &frame, 1U, &prefix,
+                  &decoder, &cdfs, &sequence, &frame, 0U, 1U, &prefix,
                   &block) == AV2H_OK);
         CHECK(block.width == widths[index]);
         CHECK(block.height == heights[index]);
@@ -1046,34 +1047,98 @@ static void test_predefined_qmatrix_steps(void) {
     uint32_t step = 0U;
     sequence.info.bit_depth_idc = 1U;
     frame.using_qmatrix = 1U;
-    frame.qm_y = 7U;
-    frame.qm_u = 7U;
-    frame.qm_v = 7U;
+    frame.picture_qm_count = 1U;
+    frame.qm_y[0] = 7U;
+    frame.qm_u[0] = 7U;
+    frame.qm_v[0] = 7U;
     CHECK(av2h_coeff_qmatrix_dequant_step(
-              &sequence, &frame, 128U, 0U, 4U, 4U,
+              &sequence, &frame, 128U, 0U, 0U, 4U, 4U,
               AV2H_TX_DCT_DCT, 0U, 100U, &step) == AV2H_OK);
     CHECK(step == 100U);
     CHECK(av2h_coeff_qmatrix_dequant_step(
-              &sequence, &frame, 128U, 0U, 4U, 4U,
+              &sequence, &frame, 128U, 0U, 0U, 4U, 4U,
               AV2H_TX_DCT_DCT, 2U, 100U, &step) == AV2H_OK);
     CHECK(step == 131U);
+    frame.picture_qm_count = 2U;
+    frame.segment_qm_index[1] = 1U;
+    frame.qm_y[1] = 15U;
     CHECK(av2h_coeff_qmatrix_dequant_step(
-              &sequence, &frame, 128U, 0U, 4U, 4U,
+              &sequence, &frame, 128U, 1U, 0U, 4U, 4U,
+              AV2H_TX_DCT_DCT, 2U, 100U, &step) == AV2H_OK);
+    CHECK(step == 100U);
+    frame.picture_qm_count = 1U;
+    CHECK(av2h_coeff_qmatrix_dequant_step(
+              &sequence, &frame, 128U, 0U, 0U, 4U, 4U,
               AV2H_TX_IDTX, 2U, 100U, &step) == AV2H_OK);
     CHECK(step == 100U);
-    frame.qm_y = 15U;
+    frame.qm_y[0] = 15U;
     CHECK(av2h_coeff_qmatrix_dequant_step(
-              &sequence, &frame, 128U, 0U, 4U, 4U,
+              &sequence, &frame, 128U, 0U, 0U, 4U, 4U,
               AV2H_TX_DCT_DCT, 2U, 100U, &step) == AV2H_OK);
     CHECK(step == 100U);
-    frame.qm_y = 7U;
+    frame.qm_y[0] = 7U;
     CHECK(av2h_coeff_qmatrix_dequant_step(
-              &sequence, &frame, 0U, 0U, 4U, 4U,
+              &sequence, &frame, 0U, 0U, 0U, 4U, 4U,
               AV2H_TX_DCT_DCT, 2U, 100U, &step) == AV2H_OK);
     CHECK(step == 100U);
     CHECK(av2h_coeff_qmatrix_dequant_step(
-              &sequence, &frame, 128U, 0U, 8U, 2U,
+              &sequence, &frame, 128U, 0U, 0U, 8U, 2U,
               AV2H_TX_DCT_DCT, 0U, 100U, &step) == AV2H_UNSUPPORTED);
+}
+
+static void test_custom_qmatrix(void) {
+    unsigned char bytes[32] = { 0 };
+    Av2hBitWriter writer;
+    Av2hObu obu = { 0 };
+    Av2hFrameState frame = { 0 };
+    Av2hSequenceState sequence = { 0 };
+    Av2hError error;
+    uint32_t step;
+    unsigned int index;
+    av2h_bit_writer_init(&writer, bytes, sizeof(bytes));
+    CHECK(av2h_bit_writer_write(&writer, 1U, 15U) == AV2H_OK);
+    CHECK(av2h_bit_writer_write(&writer, 0U, 1U) == AV2H_OK);
+    CHECK(av2h_bit_writer_write(&writer, 0U, 1U) == AV2H_OK);
+    CHECK(av2h_bit_writer_write(&writer, 0U, 1U) == AV2H_OK);
+    for (index = 0U; index < 64U; ++index) {
+        CHECK(av2h_bit_writer_write(&writer, 1U, 1U) == AV2H_OK);
+    }
+    for (index = 0U; index < 32U; ++index) {
+        CHECK(av2h_bit_writer_write(&writer, 1U, 1U) == AV2H_OK);
+    }
+    CHECK(av2h_bit_writer_write(&writer, 1U, 1U) == AV2H_OK);
+    CHECK(av2h_bit_writer_write(&writer, 1U, 1U) == AV2H_OK);
+    CHECK(av2h_bit_writer_align_zero(&writer) == AV2H_OK);
+    obu.type = AV2H_OBU_QUANTIZATION_MATRIX;
+    obu.payload_size = av2h_bit_writer_required(&writer);
+    CHECK(av2h_qmatrix_obu_parse(
+              (Av2hSpan){ bytes, obu.payload_size }, &obu, &frame,
+              &error) == AV2H_OK);
+    CHECK(frame.custom_qm_bitmap == 1U);
+    CHECK(frame.custom_qm[0][0][0] == 32U);
+    CHECK(frame.custom_qm[0][0][127] == 32U);
+    CHECK(av2h_qmatrix_obu_parse(
+              (Av2hSpan){ bytes, obu.payload_size }, &obu, &frame,
+              &error) == AV2H_INVALID_DATA);
+
+    sequence.info.bit_depth_idc = 1U;
+    frame.using_qmatrix = 1U;
+    frame.picture_qm_count = 1U;
+    frame.qm_y[0] = 0U;
+    frame.custom_qm[0][0][0] = 64U;
+    CHECK(av2h_coeff_qmatrix_dequant_step(
+              &sequence, &frame, 128U, 0U, 0U, 4U, 4U,
+              AV2H_TX_DCT_DCT, 0U, 100U, &step) == AV2H_OK);
+    CHECK(step == 200U);
+    frame.custom_qm[0][0][64U] = 48U;
+    CHECK(av2h_coeff_qmatrix_dequant_step(
+              &sequence, &frame, 128U, 0U, 0U, 8U, 4U,
+              AV2H_TX_DCT_DCT, 0U, 100U, &step) == AV2H_OK);
+    CHECK(step == 150U);
+    frame.plane_count = 3U;
+    CHECK(av2h_qmatrix_references_validate(&frame) == AV2H_INVALID_DATA);
+    frame.plane_count = 1U;
+    CHECK(av2h_qmatrix_references_validate(&frame) == AV2H_OK);
 }
 
 int main(void) {
@@ -1093,6 +1158,7 @@ int main(void) {
     test_arguments();
     test_tcq_state_and_cdfs();
     test_predefined_qmatrix_steps();
+    test_custom_qmatrix();
     if (failures != 0) {
         fprintf(stderr, "%d coefficient level checks failed\n", failures);
         return 1;

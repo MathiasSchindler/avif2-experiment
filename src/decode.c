@@ -1,4 +1,5 @@
 #include "decode.h"
+#include "decoder/qmatrix.h"
 #include "pixel_format.h"
 
 static uint8_t diagnostic_reason_from_status(Av2hStatus status) {
@@ -106,14 +107,6 @@ static const Av2hObu *find_unique_obu(const Av2hObuLedger *ledger,
     return found;
 }
 
-static int ledger_has_obu(const Av2hObuLedger *ledger, uint8_t type) {
-    size_t index;
-    for (index = 0U; index < ledger->count; ++index) {
-        if (ledger->entries[index].type == type) return 1;
-    }
-    return 0;
-}
-
 static int ranges_overlap(const void *left,
                           size_t left_size,
                           const void *right,
@@ -195,11 +188,6 @@ Av2hStatus av2h_decode_prepare(const Av2hHeifImage *image,
     if (status != AV2H_OK) return status;
     status = av2h_obu_parse(image->source.item_payload, &payload, error);
     if (status != AV2H_OK) return status;
-    if (ledger_has_obu(&config, AV2H_OBU_QUANTIZATION_MATRIX) ||
-        ledger_has_obu(&payload, AV2H_OBU_QUANTIZATION_MATRIX)) {
-        return decode_fail(error, AV2H_UNSUPPORTED,
-                           AV2H_CONTEXT_DECODE);
-    }
     sequence_obu = find_unique_obu(&config, AV2H_OBU_SEQUENCE_HEADER);
     frame_obu = find_unique_obu(&payload, AV2H_OBU_CLOSED_LOOP_KEY);
     if (sequence_obu == 0 || frame_obu == 0) {
@@ -220,6 +208,17 @@ Av2hStatus av2h_decode_prepare(const Av2hHeifImage *image,
         if (error != 0) error->offset += frame_obu->payload_offset;
         return status;
     }
+    av2h_qmatrix_state_reset(&preparation->frame);
+    status = av2h_qmatrix_ledger_parse(
+        image->source.config_obus, &config, &preparation->frame, error);
+    if (status == AV2H_OK) {
+        status = av2h_qmatrix_ledger_parse(
+            image->source.item_payload, &payload, &preparation->frame, error);
+    }
+    if (status == AV2H_OK) {
+        status = av2h_qmatrix_references_validate(&preparation->frame);
+    }
+    if (status != AV2H_OK) return status;
     if (preparation->frame.width != image->width ||
         preparation->frame.height != image->height) {
         return decode_fail(error, AV2H_INVALID_DATA,

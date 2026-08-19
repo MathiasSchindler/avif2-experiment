@@ -32,7 +32,7 @@ static void test_64_bit_decoder_layout(void) {
     CHECK(_Alignof(Av2hError) == 8U);
     CHECK(sizeof(Av2hSequenceState) == 120U);
     CHECK(_Alignof(Av2hSequenceState) == 2U);
-    CHECK(sizeof(Av2hFrameState) == 5016U);
+    CHECK(sizeof(Av2hFrameState) == 10824U);
     CHECK(_Alignof(Av2hFrameState) == 8U);
     CHECK(sizeof(Av2hQIndex) == 2U);
     CHECK(sizeof(Av2hDequantizedCoefficient) == 4U);

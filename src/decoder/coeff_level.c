@@ -956,7 +956,7 @@ Av2hStatus av2h_coeff_block_read(
         status = av2h_coeff_qmatrix_dequant_step(
             sequence, frame,
             prefix->q_index != 0U ? prefix->q_index : frame->base_q_index,
-            0U, geometry.width, geometry.height,
+            mode->segment_id, 0U, geometry.width, geometry.height,
             (uint8_t)transform->primary_type, position, dequant, &dequant);
         if (status != AV2H_OK) return status;
         block->dequantized[position] =
@@ -1023,6 +1023,7 @@ static Av2hStatus read_chroma_block(
     Av2hFirstCoeffLevelCdfs *cdfs,
     const Av2hSequenceState *sequence,
     const Av2hFrameState *frame,
+    uint8_t segment_id,
     uint8_t plane,
     const Av2hFirstCoeffPrefix *prefix,
     uint8_t primary_type,
@@ -1177,7 +1178,7 @@ static Av2hStatus read_chroma_block(
         status = av2h_coeff_qmatrix_dequant_step(
             sequence, frame,
             prefix->q_index != 0U ? prefix->q_index : frame->base_q_index,
-            plane, geometry.width, geometry.height, primary_type,
+            segment_id, plane, geometry.width, geometry.height, primary_type,
             position, step, &step);
         if (status != AV2H_OK) return status;
         block->dequantized[position] =
@@ -1199,6 +1200,7 @@ Av2hStatus av2h_first_chroma_coeff_block_read(
     Av2hFirstCoeffLevelCdfs *cdfs,
     const Av2hSequenceState *sequence,
     const Av2hFrameState *frame,
+    uint8_t segment_id,
     uint8_t plane,
     const Av2hFirstCoeffPrefix *prefix,
     Av2hFirstCoeffBlock *block) {
@@ -1241,7 +1243,7 @@ Av2hStatus av2h_first_chroma_coeff_block_read(
         return AV2H_OK;
     }
     return read_chroma_block(
-        decoder, cdfs, sequence, frame, plane, prefix,
+        decoder, cdfs, sequence, frame, segment_id, plane, prefix,
         AV2H_TX_DCT_DCT, block);
 }
 
@@ -1251,6 +1253,7 @@ Av2hStatus av2h_chroma_coeff_block_read_with_state(
     const Av2hSequenceState *sequence,
     const Av2hFrameState *frame,
     const Av2hPartitionNode *leaf,
+    uint8_t segment_id,
     uint8_t plane,
     const Av2hFirstCoeffPrefix *prefix,
     const Av2hFirstTransformType *transform,
@@ -1263,7 +1266,7 @@ Av2hStatus av2h_chroma_coeff_block_read_with_state(
         return AV2H_INVALID_ARGUMENT;
     }
     status = read_chroma_block(
-        decoder, cdfs, sequence, frame, plane, prefix,
+        decoder, cdfs, sequence, frame, segment_id, plane, prefix,
         (uint8_t)transform->primary_type, block);
     if (status != AV2H_OK) return status;
     return av2h_coeff_context_state_update(state, plane, leaf,

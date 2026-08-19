@@ -126,6 +126,9 @@ the existing eight-segment AQ fixture decode byte-exactly under ASan/UBSan.
 
 ## Milestone 2: segmented quantization matrices
 
+**Status:** implemented on 19 August 2026 for one through four picture QM
+tuples, per-segment selection, and bounded custom-QM OBUs.
+
 Generalize quantization-matrix parsing and application to the syntax enabled by
 segmentation.
 
@@ -148,6 +151,21 @@ workspace size before exposing a matrix to dequantization.
 **Exit gate:** exact vectors cover one through four QM tuples, per-segment
 selection on all admitted planes, flat and custom matrices, separate U/V
 selection, rectangular transforms, and malformed or missing matrix references.
+
+The implementation follows the pinned AVM syntax: segmented pictures signal a
+two-bit count minus one, non-segmented pictures retain the exact one-tuple bit
+layout, and only non-lossless segments consume a matrix index. Luma and chroma
+coefficient paths select that tuple from the decoded segment ID; ID 15 remains
+flat, while IDTX/FSC and lossless paths bypass weighting as before.
+
+Type-22 OBUs use fixed caller-owned frame state for the 5,760-byte worst-case
+fundamental payload. The parser validates the 15-bit ID map, duplicate IDs,
+plane copies, 8x8 symmetry, 4x8 transpose references, signed coefficient
+deltas, repeat-to-end markers, trailing bits, and chroma-plane availability.
+Custom fundamentals weight 4x4, 8x8, 8x4, and 4x8 transforms; larger adjusted
+transforms retain the pinned predefined matrices. Hosted ASan/UBSan units, the
+1,206-case public fuzz smoke, predefined-QM/AQ/delta-Q parity, forced
+freestanding and no-libc builds, and all 102 tracked reference locks pass.
 
 ## Milestone 3: coefficient and spatial-tool completion
 

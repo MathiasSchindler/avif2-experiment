@@ -301,6 +301,7 @@ Av2hStatus av2h_coeff_qmatrix_dequant_step(
     const Av2hSequenceState *sequence,
     const Av2hFrameState *frame,
     Av2hQIndex q_index,
+    uint8_t segment_id,
     uint8_t plane,
     uint16_t tx_width,
     uint16_t tx_height,
@@ -352,6 +353,7 @@ Av2hStatus av2h_first_chroma_coeff_block_read(
     Av2hFirstCoeffLevelCdfs *cdfs,
     const Av2hSequenceState *sequence,
     const Av2hFrameState *frame,
+    uint8_t segment_id,
     uint8_t plane,
     const Av2hFirstCoeffPrefix *prefix,
     Av2hFirstCoeffBlock *block);
@@ -361,6 +363,7 @@ Av2hStatus av2h_chroma_coeff_block_read_with_state(
     const Av2hSequenceState *sequence,
     const Av2hFrameState *frame,
     const Av2hPartitionNode *leaf,
+    uint8_t segment_id,
     uint8_t plane,
     const Av2hFirstCoeffPrefix *prefix,
     const Av2hFirstTransformType *transform,

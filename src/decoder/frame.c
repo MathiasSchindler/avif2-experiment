@@ -1,4 +1,6 @@
 #include "frame.h"
+#include "coeff_level.h"
+#include "internal/leaf_modules.h"
 #include "internal/wiener_nonsep.h"
 
 static void frame_fail(Av2hBitReader *reader, Av2hStatus status) {
@@ -771,17 +773,27 @@ Av2hStatus av2h_frame_header_closed_key_parse_diagnostic(
     frame->using_qmatrix =
         (uint8_t)av2h_bit_reader_read(&reader, 1U);
     if (frame->using_qmatrix != 0U) {
-        frame->qm_y = (uint8_t)av2h_bit_reader_read(&reader, 4U);
-        if (frame->plane_count > 1U) {
-            uint8_t qm_uv_same_as_y =
-                (uint8_t)av2h_bit_reader_read(&reader, 1U);
-            if (qm_uv_same_as_y != 0U) {
-                frame->qm_u = frame->qm_y;
-                frame->qm_v = frame->qm_y;
-            } else {
-                frame->qm_u = (uint8_t)av2h_bit_reader_read(&reader, 4U);
-                frame->qm_v = sequence->separate_uv_delta_q != 0U ?
-                    (uint8_t)av2h_bit_reader_read(&reader, 4U) : frame->qm_u;
+        size_t matrix;
+        frame->picture_qm_count = frame->segmentation_enabled != 0U ?
+            (uint8_t)(av2h_bit_reader_read(&reader, 2U) + 1U) : 1U;
+        frame->qm_index_bits = (uint8_t)ceil_log2_u32(
+            frame->picture_qm_count);
+        for (matrix = 0U; matrix < frame->picture_qm_count; ++matrix) {
+            frame->qm_y[matrix] =
+                (uint8_t)av2h_bit_reader_read(&reader, 4U);
+            if (frame->plane_count > 1U) {
+                uint8_t qm_uv_same_as_y =
+                    (uint8_t)av2h_bit_reader_read(&reader, 1U);
+                if (qm_uv_same_as_y != 0U) {
+                    frame->qm_u[matrix] = frame->qm_y[matrix];
+                    frame->qm_v[matrix] = frame->qm_y[matrix];
+                } else {
+                    frame->qm_u[matrix] =
+                        (uint8_t)av2h_bit_reader_read(&reader, 4U);
+                    frame->qm_v[matrix] = sequence->separate_uv_delta_q != 0U ?
+                        (uint8_t)av2h_bit_reader_read(&reader, 4U) :
+                        frame->qm_u[matrix];
+                }
             }
         }
     }
@@ -791,6 +803,24 @@ Av2hStatus av2h_frame_header_closed_key_parse_diagnostic(
         if (frame->delta_q_present != 0U) {
             frame->delta_q_res = (uint8_t)(
                 1U << av2h_bit_reader_read(&reader, 2U));
+        }
+    }
+    if (reader.status != AV2H_OK) return reader.status;
+    if (frame->using_qmatrix != 0U && frame->qm_index_bits != 0U) {
+        size_t segment;
+        size_t segment_count = av2h_sequence_segment_count(sequence);
+        for (segment = 0U; segment < segment_count; ++segment) {
+            Av2hQIndex q_index = av2h_leaf_segment_q_index(
+                sequence, frame, frame->base_q_index, (uint8_t)segment);
+            if (av2h_quantizer_is_lossless(sequence, frame, q_index)) continue;
+            frame->segment_qm_index[segment] = (uint8_t)
+                av2h_bit_reader_read(&reader, frame->qm_index_bits);
+            if (frame->segment_qm_index[segment] >= frame->picture_qm_count) {
+                return frame_diagnostic_fail(
+                    error, AV2H_INVALID_DATA, &reader,
+                    AV2H_DIAGNOSTIC_SYNTAX_FRAME_QUANTIZATION,
+                    frame->segment_qm_index[segment]);
+            }
         }
     }
     if (reader.status != AV2H_OK) return reader.status;

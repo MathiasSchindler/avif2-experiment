@@ -4,6 +4,7 @@
 #include "decoder/frame_output.h"
 #include "decoder/internal/frame_workspace.h"
 #include "decoder/partition.h"
+#include "decoder/qmatrix.h"
 #include "decoder/tile.h"
 #include "preview.h"
 #include "shared/png_writer.h"
@@ -110,8 +111,8 @@ static Av2hStatus decode_obu(Av2hSpan input,
                             Av2hPixelFormat *output_format,
                             Av2hFrameDecodeResult *decode_result,
                             Av2hError *diagnostic) {
-    Av2hObu entries[4U];
-    Av2hObuLedger ledger = { entries, 4U, 0U };
+    Av2hObu entries[16U];
+    Av2hObuLedger ledger = { entries, 16U, 0U };
     const Av2hObu *sequence_obu;
     const Av2hObu *frame_obu;
     Av2hSequenceState sequence;
@@ -128,9 +129,6 @@ static Av2hStatus decode_obu(Av2hSpan input,
     av2h_memory_fill(diagnostic, 0U, sizeof(*diagnostic));
     status = av2h_obu_parse(input, &ledger, diagnostic);
     if (status != AV2H_OK) return status;
-    if (find_obu(&ledger, AV2H_OBU_QUANTIZATION_MATRIX) != NULL) {
-        return AV2H_UNSUPPORTED;
-    }
     sequence_obu = find_obu(&ledger, AV2H_OBU_SEQUENCE_HEADER);
     frame_obu = find_obu(&ledger, AV2H_OBU_CLOSED_LOOP_KEY);
     if (sequence_obu == NULL || frame_obu == NULL) return AV2H_INVALID_DATA;
@@ -145,6 +143,11 @@ static Av2hStatus decode_obu(Av2hSpan input,
         diagnostic->offset += frame_obu->payload_offset;
         return status;
     }
+    av2h_qmatrix_state_reset(&frame);
+    status = av2h_qmatrix_ledger_parse(
+        input, &ledger, &frame, diagnostic);
+    if (status == AV2H_OK) status = av2h_qmatrix_references_validate(&frame);
+    if (status != AV2H_OK) return status;
     status = av2h_tile_group_single_parse(
         (Av2hSpan){ input.data + frame_obu->payload_offset,
                     frame_obu->payload_size },

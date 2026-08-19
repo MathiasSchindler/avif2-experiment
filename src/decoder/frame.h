@@ -9,6 +9,9 @@
 #define AV2H_CCSO_LUT_SIZE (AV2H_CCSO_BAND_COUNT * 16U)
 #define AV2H_WIENER_NONSEP_MAX_TAPS 18U
 #define AV2H_WIENER_NONSEP_MAX_CLASSES 16U
+#define AV2H_PICTURE_QM_COUNT 4U
+#define AV2H_CUSTOM_QM_COUNT 15U
+#define AV2H_CUSTOM_QM_FUNDAMENTAL_SIZE 128U
 
 typedef enum {
     AV2H_RESTORE_NONE = 0,
@@ -58,9 +61,17 @@ typedef struct {
     int16_t seg_alt_q[AV2H_SEGMENT_COUNT];
     uint8_t seg_last_active_id;
     uint8_t using_qmatrix;
-    uint8_t qm_y;
-    uint8_t qm_u;
-    uint8_t qm_v;
+    uint8_t picture_qm_count;
+    uint8_t qm_index_bits;
+    uint8_t qm_y[AV2H_PICTURE_QM_COUNT];
+    uint8_t qm_u[AV2H_PICTURE_QM_COUNT];
+    uint8_t qm_v[AV2H_PICTURE_QM_COUNT];
+    uint8_t segment_qm_index[AV2H_SEGMENT_COUNT];
+    uint16_t custom_qm_definition_bitmap;
+    uint16_t custom_qm_bitmap;
+    uint8_t custom_qm_plane_count[AV2H_CUSTOM_QM_COUNT];
+    uint8_t custom_qm[AV2H_CUSTOM_QM_COUNT][AV2H_FRAME_PLANE_COUNT]
+                     [AV2H_CUSTOM_QM_FUNDAMENTAL_SIZE];
     uint8_t delta_q_present;
     uint8_t delta_q_res;
     uint8_t deblock_enabled[4];

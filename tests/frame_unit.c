@@ -371,7 +371,7 @@ static void test_10bit_wp0_header(void) {
               (Av2hSpan){ mutated, frame_obu->payload_size },
               &sequence, &frame) == AV2H_OK);
     CHECK(frame.using_qmatrix == 1U);
-    CHECK(frame.qm_u == frame.qm_v);
+    CHECK(frame.qm_u[0] == frame.qm_v[0]);
     av2h_memory_copy(
         mutated, input + frame_obu->payload_offset, frame_obu->payload_size);
     mutated[0] &= 0xfeU;

@@ -2,6 +2,7 @@
 #include "decoder/frame_output.h"
 #include "decoder/internal/frame_workspace.h"
 #include "decoder/partition.h"
+#include "decoder/qmatrix.h"
 #include "decoder/tile.h"
 #if defined(__APPLE__) && defined(__aarch64__)
 #include "platform/macos/macos_abi.h"
@@ -242,8 +243,8 @@ static Av2hStatus decode_obu(Av2hSpan input,
                             uint8_t *chroma_format_idc,
                             Av2hPixelFormat *output_format,
                             const Av2hExecution *execution) {
-    Av2hObu entries[4U];
-    Av2hObuLedger ledger = { entries, 4U, 0U };
+    Av2hObu entries[16U];
+    Av2hObuLedger ledger = { entries, 16U, 0U };
     Av2hError error;
     const Av2hObu *sequence_obu;
     const Av2hObu *frame_obu;
@@ -260,9 +261,6 @@ static Av2hStatus decode_obu(Av2hSpan input,
     size_t bytes_per_sample;
     Av2hStatus status = av2h_obu_parse(input, &ledger, &error);
     if (status != AV2H_OK) return status;
-    if (find_obu(&ledger, AV2H_OBU_QUANTIZATION_MATRIX) != 0) {
-        return AV2H_UNSUPPORTED;
-    }
     sequence_obu = find_obu(&ledger, AV2H_OBU_SEQUENCE_HEADER);
     frame_obu = find_obu(&ledger, AV2H_OBU_CLOSED_LOOP_KEY);
     if (sequence_obu == NULL || frame_obu == NULL) return AV2H_INVALID_DATA;
@@ -283,6 +281,10 @@ static Av2hStatus decode_obu(Av2hSpan input,
         (Av2hSpan){ input.data + frame_obu->payload_offset,
                     frame_obu->payload_size },
         &sequence, &frame);
+    if (status != AV2H_OK) return status;
+    av2h_qmatrix_state_reset(&frame);
+    status = av2h_qmatrix_ledger_parse(input, &ledger, &frame, &error);
+    if (status == AV2H_OK) status = av2h_qmatrix_references_validate(&frame);
     if (status != AV2H_OK) return status;
     status = av2h_tile_group_single_parse(
         (Av2hSpan){ input.data + frame_obu->payload_offset,

@@ -610,7 +610,8 @@ Av2hStatus av2h_tile_decoder_next_chroma(
         blocks[index]->diagnostic_kind = 90U;
         status = av2h_chroma_coeff_block_read_with_state(
             &decoder->entropy_state.range, &decoder->entropy_state.level_cdfs, decoder->entropy_state.sequence,
-            decoder->entropy_state.frame, &leaf->node, plane, &leaf->prefix[index],
+            decoder->entropy_state.frame, &leaf->node,
+            colocated->context.segment_id, plane, &leaf->prefix[index],
             &leaf->transform[index],
             &decoder->entropy_state.coefficient_contexts, blocks[index]);
         if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);

@@ -53,6 +53,7 @@ CORE_SOURCES := \
 	src/decoder/partition.c \
 	src/decoder/partition_context.c \
 	src/decoder/partition_cdf.c \
+	src/decoder/qmatrix.c \
 	src/decoder/range.c \
 	src/decoder/reconstruct.c \
 	src/decoder/restoration.c \
