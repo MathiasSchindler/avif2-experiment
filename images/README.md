@@ -124,7 +124,7 @@ arbitrary ImageMagick/FFmpeg builds reproduce it exactly.
 
 ## AVM references
 
-The two generated reference suites and the planned `spatial-still-8bit` suite
+The three generated reference suites and the planned `spatial-still-8bit` suite
 are tied to AVM revision
 `966a7d7cd6fcf60360caf5dc413b2aeeb65e144d`. The original
 `photographic-8bit` suite contains 88 one-frame cases:
@@ -195,10 +195,27 @@ python3 tools/verify_image_references.py --suite target-baseline-8bit
 python3 tools/verify_image_references.py --suite target-baseline-8bit --require-files
 ```
 
-The two generated suites have separate lock files, so generating or filtering
-the target suite cannot overwrite the original `reference-lock.json`. `--suite`
-is also accepted together with the existing source, preparation, pixel-format,
-and QP filters; filtered runs do not rewrite either complete lock.
+The generated suites have separate lock files, so generating or filtering one
+suite cannot overwrite another suite's lock. `--suite` is also accepted together
+with the existing source, preparation, pixel-format, and QP filters; filtered
+runs do not rewrite a complete lock.
+
+The `avm-default-8bit` suite retains 28 I420 QP 152 cases: every `le896` and
+`le1440` photograph encoded at `cpu-used=9`, 16 threads, and row
+multithreading, without coding-tool profile arguments. The commands explicitly
+record normative AV2 profile 0; omitting `--profile=0` was separately verified
+to produce a byte-identical stream. Each case contains `encoded.obu`, the
+pinned-AVM `decoded.i420`, and `manifest.json`, and is locked by
+`recipes/avm-default-reference-lock.json`.
+
+These references were imported from the 20 August 2026 compatibility run after
+all 28 project-decoder outputs matched pinned AVM byte for byte. The manifests
+bind the exact native arm64 AVM tool hashes used by that run. Regenerate the
+suite from the recipe with:
+
+```sh
+python3 tools/generate_image_references.py --suite avm-default-8bit --resume
+```
 
 The third `spatial-still-8bit` photographic suite is defined in
 `recipes/encodings.json` but has not been generated. Decoder profile admission
@@ -226,7 +243,7 @@ After all 88 cases have completed and the generated lock has been reviewed,
 change `reference_status` to `generated`. Do not commit a partial or fabricated
 lock.
 
-The permanent repository gates cover both generated suites and acknowledge
+The permanent repository gates cover all generated suites and acknowledge
 planned suites without requiring a nonexistent lock. Lock validation does not
 require ignored payloads; native and WebAssembly parity do:
 
@@ -247,7 +264,7 @@ python3 tools/verify_image_references.py --all-suites --require-files \
 The lock pins the AVM source revision plus SHA-256 identities of `avmenc` and
 `avmdec`. Each manifest records normalized commands, the exact prepared input,
 the parsed OBU ledger, and all output hashes. The current payload is
-318,088,662 bytes (313 MiB on disk). Regenerating the representative Pitti case
+370,284,159 bytes (354 MiB on disk). Regenerating the representative Pitti case
 was byte-identical for its OBU, decoded files, PNG, and manifest on this Linux
 host. This is measured local reproducibility, not yet a cross-platform claim.
 

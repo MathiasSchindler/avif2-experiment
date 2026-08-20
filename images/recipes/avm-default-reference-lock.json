@@ -1,0 +1,741 @@
+{
+  "schema_version": 1,
+  "generated_by": "imported from the default-AVM compatibility run; regenerate with tools/generate_image_references.py",
+  "avm": {
+    "revision": "966a7d7cd6fcf60360caf5dc413b2aeeb65e144d",
+    "encoder_sha256": "08dfb39155532a6d2fd38d12e650badcff367c58e83fdff1eef274c9b63efc22",
+    "decoder_sha256": "1f1a01ab868609ecc0390582ecfe6dbfc73da28febf9357c1220dc3839c592a6"
+  },
+  "encoder_threads": 16,
+  "generation_jobs": 1,
+  "references": [
+    {
+      "manifest": "reference/avm-966a7d7cd6fcf60360caf5dc413b2aeeb65e144d/avm-default-8bit/baya-weaver-le1440-i420-qp152/manifest.json",
+      "manifest_sha256": "4eee0da83ad9bf676ac4fd577b679e58ab18979c09c46bf3d3363ab8b9d81a07",
+      "case_id": "baya-weaver-le1440-i420-qp152",
+      "suite_id": "avm-default-8bit",
+      "source_id": "baya-weaver",
+      "preparation_id": "le1440",
+      "pixel_format": "i420",
+      "dimensions": [
+        1440,
+        960
+      ],
+      "qp": 152,
+      "outputs": {
+        "encoded_obu": {
+          "filename": "encoded.obu",
+          "byte_size": 12097,
+          "sha256": "9930f1b888b04a7990fd1067c085bb8c5d5cd865573012be2684b7826e3a8e2b"
+        },
+        "decoded": {
+          "filename": "decoded.i420",
+          "byte_size": 2073600,
+          "sha256": "9123fc666fc2eaaba27c8655ee2ae75c02993034dee1091b484809a6448a0694"
+        }
+      }
+    },
+    {
+      "manifest": "reference/avm-966a7d7cd6fcf60360caf5dc413b2aeeb65e144d/avm-default-8bit/baya-weaver-le896-i420-qp152/manifest.json",
+      "manifest_sha256": "87e499a5888a68df4a765f30eb330fe61a4072a5f2e3defd2f1c06812c917c35",
+      "case_id": "baya-weaver-le896-i420-qp152",
+      "suite_id": "avm-default-8bit",
+      "source_id": "baya-weaver",
+      "preparation_id": "le896",
+      "pixel_format": "i420",
+      "dimensions": [
+        896,
+        598
+      ],
+      "qp": 152,
+      "outputs": {
+        "encoded_obu": {
+          "filename": "encoded.obu",
+          "byte_size": 5348,
+          "sha256": "9ef44660a7acf9978682d5ab6e7eda5ee3db6f67fb84294cde2d483022766624"
+        },
+        "decoded": {
+          "filename": "decoded.i420",
+          "byte_size": 803712,
+          "sha256": "e60d7116663ff1d67254dc4eb34b79b72d948a1857da50d1f43bb07b7a1ea826"
+        }
+      }
+    },
+    {
+      "manifest": "reference/avm-966a7d7cd6fcf60360caf5dc413b2aeeb65e144d/avm-default-8bit/chinnathurai-church-le1440-i420-qp152/manifest.json",
+      "manifest_sha256": "52cb0b3093c99706363a6867087c277586052a1eeb797e621f3010ca74dea938",
+      "case_id": "chinnathurai-church-le1440-i420-qp152",
+      "suite_id": "avm-default-8bit",
+      "source_id": "chinnathurai-church",
+      "preparation_id": "le1440",
+      "pixel_format": "i420",
+      "dimensions": [
+        1440,
+        1440
+      ],
+      "qp": 152,
+      "outputs": {
+        "encoded_obu": {
+          "filename": "encoded.obu",
+          "byte_size": 35216,
+          "sha256": "0b4e164c3b0f78462db070bd060d73f66573716d85285797a9d455a426576279"
+        },
+        "decoded": {
+          "filename": "decoded.i420",
+          "byte_size": 3110400,
+          "sha256": "eb1d628598cb001f2c8e6ea3330f6dbae3c54b1d4aad5559b4af8208b152bc55"
+        }
+      }
+    },
+    {
+      "manifest": "reference/avm-966a7d7cd6fcf60360caf5dc413b2aeeb65e144d/avm-default-8bit/chinnathurai-church-le896-i420-qp152/manifest.json",
+      "manifest_sha256": "9b3dcffec33cfc0b17a92ebfc439e9bbde229c41bb702e0de643b185f922ad9b",
+      "case_id": "chinnathurai-church-le896-i420-qp152",
+      "suite_id": "avm-default-8bit",
+      "source_id": "chinnathurai-church",
+      "preparation_id": "le896",
+      "pixel_format": "i420",
+      "dimensions": [
+        896,
+        896
+      ],
+      "qp": 152,
+      "outputs": {
+        "encoded_obu": {
+          "filename": "encoded.obu",
+          "byte_size": 14763,
+          "sha256": "a74210b296147d8861fde72bb98c45979bcfc42cd9dd04274ebbdd1c1d271c09"
+        },
+        "decoded": {
+          "filename": "decoded.i420",
+          "byte_size": 1204224,
+          "sha256": "7d9b67854331d7cf6bf1082185683cd17d597659da4254f5e3a7e8d30d619da6"
+        }
+      }
+    },
+    {
+      "manifest": "reference/avm-966a7d7cd6fcf60360caf5dc413b2aeeb65e144d/avm-default-8bit/elbrus-milky-way-le1440-i420-qp152/manifest.json",
+      "manifest_sha256": "814def067b7fc1ff924aa794610671603cdc0175e0b9b28c0510e6d5be2c2fb5",
+      "case_id": "elbrus-milky-way-le1440-i420-qp152",
+      "suite_id": "avm-default-8bit",
+      "source_id": "elbrus-milky-way",
+      "preparation_id": "le1440",
+      "pixel_format": "i420",
+      "dimensions": [
+        960,
+        1440
+      ],
+      "qp": 152,
+      "outputs": {
+        "encoded_obu": {
+          "filename": "encoded.obu",
+          "byte_size": 27476,
+          "sha256": "e2df5963831f0ff128750d839f44102bdea2ea7f402faa1477d2f1762eb46e12"
+        },
+        "decoded": {
+          "filename": "decoded.i420",
+          "byte_size": 2073600,
+          "sha256": "b7b3d6e963268530dd32f64c4f2a0c959c61fbc6f73f93508e778379b9e4b89c"
+        }
+      }
+    },
+    {
+      "manifest": "reference/avm-966a7d7cd6fcf60360caf5dc413b2aeeb65e144d/avm-default-8bit/elbrus-milky-way-le896-i420-qp152/manifest.json",
+      "manifest_sha256": "83879540385db2855dc17a3b3b577ff3455cf2a701af19741b448d9c8fe3555d",
+      "case_id": "elbrus-milky-way-le896-i420-qp152",
+      "suite_id": "avm-default-8bit",
+      "source_id": "elbrus-milky-way",
+      "preparation_id": "le896",
+      "pixel_format": "i420",
+      "dimensions": [
+        598,
+        896
+      ],
+      "qp": 152,
+      "outputs": {
+        "encoded_obu": {
+          "filename": "encoded.obu",
+          "byte_size": 9381,
+          "sha256": "45c2e659ffea03e494e9a10bceaccd2683269c644b8a78d4f3b1c3c25f95deb0"
+        },
+        "decoded": {
+          "filename": "decoded.i420",
+          "byte_size": 803712,
+          "sha256": "5dde3b1770d49722fef4658cd857b1801479263b0fbda7bf8a3ecc56a6b3cc15"
+        }
+      }
+    },
+    {
+      "manifest": "reference/avm-966a7d7cd6fcf60360caf5dc413b2aeeb65e144d/avm-default-8bit/emerald-swift-le1440-i420-qp152/manifest.json",
+      "manifest_sha256": "fd4f6f8977d2cbedd9b6eb997d1ec2c452445c28e74abd3b5b29c4c060441006",
+      "case_id": "emerald-swift-le1440-i420-qp152",
+      "suite_id": "avm-default-8bit",
+      "source_id": "emerald-swift",
+      "preparation_id": "le1440",
+      "pixel_format": "i420",
+      "dimensions": [
+        1440,
+        720
+      ],
+      "qp": 152,
+      "outputs": {
+        "encoded_obu": {
+          "filename": "encoded.obu",
+          "byte_size": 82458,
+          "sha256": "c9a5026c755ecffed5b75b59c893bd86676401bf9c109c4319c83264ec4fc03c"
+        },
+        "decoded": {
+          "filename": "decoded.i420",
+          "byte_size": 1555200,
+          "sha256": "3ff56185a587812e6be88be275f5551b559a18e4a2ade0769e94bc8bdc5b7c0f"
+        }
+      }
+    },
+    {
+      "manifest": "reference/avm-966a7d7cd6fcf60360caf5dc413b2aeeb65e144d/avm-default-8bit/emerald-swift-le896-i420-qp152/manifest.json",
+      "manifest_sha256": "0ea416071bc4ee94f2d534130d12cf4f428173b2d94b9ee8069a65f9612ab9e4",
+      "case_id": "emerald-swift-le896-i420-qp152",
+      "suite_id": "avm-default-8bit",
+      "source_id": "emerald-swift",
+      "preparation_id": "le896",
+      "pixel_format": "i420",
+      "dimensions": [
+        896,
+        448
+      ],
+      "qp": 152,
+      "outputs": {
+        "encoded_obu": {
+          "filename": "encoded.obu",
+          "byte_size": 32791,
+          "sha256": "1862636615f3c96ecf0b6913958c0cfc77d0917844c067964323d8a440fe5c34"
+        },
+        "decoded": {
+          "filename": "decoded.i420",
+          "byte_size": 602112,
+          "sha256": "137392006e412701a0280cf7862ef85573efb68d65ed5a4e8374bbff754b6404"
+        }
+      }
+    },
+    {
+      "manifest": "reference/avm-966a7d7cd6fcf60360caf5dc413b2aeeb65e144d/avm-default-8bit/finland-warbirds-le1440-i420-qp152/manifest.json",
+      "manifest_sha256": "8f3705454ac366221fc28d15b34fb48af1e3549f6a10795a6344fe6ea776908e",
+      "case_id": "finland-warbirds-le1440-i420-qp152",
+      "suite_id": "avm-default-8bit",
+      "source_id": "finland-warbirds",
+      "preparation_id": "le1440",
+      "pixel_format": "i420",
+      "dimensions": [
+        1440,
+        810
+      ],
+      "qp": 152,
+      "outputs": {
+        "encoded_obu": {
+          "filename": "encoded.obu",
+          "byte_size": 13695,
+          "sha256": "88d9a8bf78441eb5f99cbcca05afc7990aba7fd7dcbd6a31a90a1d49c3c5fafa"
+        },
+        "decoded": {
+          "filename": "decoded.i420",
+          "byte_size": 1749600,
+          "sha256": "7b82bf6eab3da96802dccf458a0bac74b8d388e0d1e376313974767ea44636d2"
+        }
+      }
+    },
+    {
+      "manifest": "reference/avm-966a7d7cd6fcf60360caf5dc413b2aeeb65e144d/avm-default-8bit/finland-warbirds-le896-i420-qp152/manifest.json",
+      "manifest_sha256": "77daa837e1f5cedd4b1167484e557e394986ccf19b1408a028853e6045c784ed",
+      "case_id": "finland-warbirds-le896-i420-qp152",
+      "suite_id": "avm-default-8bit",
+      "source_id": "finland-warbirds",
+      "preparation_id": "le896",
+      "pixel_format": "i420",
+      "dimensions": [
+        896,
+        504
+      ],
+      "qp": 152,
+      "outputs": {
+        "encoded_obu": {
+          "filename": "encoded.obu",
+          "byte_size": 7772,
+          "sha256": "65350a098894123397d913838f4686445dd3cffaf2b0b2c4904a2e2bc82d17a5"
+        },
+        "decoded": {
+          "filename": "decoded.i420",
+          "byte_size": 677376,
+          "sha256": "23b19b698a30b5d5a88087b104c153bf139498cf705215f73c8e888f00e922d9"
+        }
+      }
+    },
+    {
+      "manifest": "reference/avm-966a7d7cd6fcf60360caf5dc413b2aeeb65e144d/avm-default-8bit/freiburg-minster-columns-le1440-i420-qp152/manifest.json",
+      "manifest_sha256": "d3f6b3c1dc976398216de21a1d9a01d37bbd3853a3c92f9cf85da432dbfc59c0",
+      "case_id": "freiburg-minster-columns-le1440-i420-qp152",
+      "suite_id": "avm-default-8bit",
+      "source_id": "freiburg-minster-columns",
+      "preparation_id": "le1440",
+      "pixel_format": "i420",
+      "dimensions": [
+        960,
+        1440
+      ],
+      "qp": 152,
+      "outputs": {
+        "encoded_obu": {
+          "filename": "encoded.obu",
+          "byte_size": 22716,
+          "sha256": "631f39f6f17e33f7ec869fede3ea46bce194c76e26769e63899e4a841495012b"
+        },
+        "decoded": {
+          "filename": "decoded.i420",
+          "byte_size": 2073600,
+          "sha256": "13466243cd774cb1b995c0b2e7cc19c4c0659a8ed81fc484e77ca3ea9b48b6e2"
+        }
+      }
+    },
+    {
+      "manifest": "reference/avm-966a7d7cd6fcf60360caf5dc413b2aeeb65e144d/avm-default-8bit/freiburg-minster-columns-le896-i420-qp152/manifest.json",
+      "manifest_sha256": "774649262a1abcfe6eb51ec929538c4d1f18bfe89515aba78dc26c2eb6c48fb9",
+      "case_id": "freiburg-minster-columns-le896-i420-qp152",
+      "suite_id": "avm-default-8bit",
+      "source_id": "freiburg-minster-columns",
+      "preparation_id": "le896",
+      "pixel_format": "i420",
+      "dimensions": [
+        598,
+        896
+      ],
+      "qp": 152,
+      "outputs": {
+        "encoded_obu": {
+          "filename": "encoded.obu",
+          "byte_size": 14708,
+          "sha256": "aecc8ec8a276633187a8e67515a491bf8a30bf12af1eee65844c4568c61f9cca"
+        },
+        "decoded": {
+          "filename": "decoded.i420",
+          "byte_size": 803712,
+          "sha256": "b1285968bbdbfd1d2e9042fe48187e9ffd0f802129b68e3073f40cbce8cdd40f"
+        }
+      }
+    },
+    {
+      "manifest": "reference/avm-966a7d7cd6fcf60360caf5dc413b2aeeb65e144d/avm-default-8bit/hong-kong-harbour-night-le1440-i420-qp152/manifest.json",
+      "manifest_sha256": "92f23d2d443bbcb2ae67fb136341f6830b10bc054a205c2c46f49f32d0e1f333",
+      "case_id": "hong-kong-harbour-night-le1440-i420-qp152",
+      "suite_id": "avm-default-8bit",
+      "source_id": "hong-kong-harbour-night",
+      "preparation_id": "le1440",
+      "pixel_format": "i420",
+      "dimensions": [
+        1440,
+        680
+      ],
+      "qp": 152,
+      "outputs": {
+        "encoded_obu": {
+          "filename": "encoded.obu",
+          "byte_size": 54885,
+          "sha256": "7cd59f9bc4c9de7897164607622154aa338255764e4bf45f2474f7117425dc95"
+        },
+        "decoded": {
+          "filename": "decoded.i420",
+          "byte_size": 1468800,
+          "sha256": "59e8f28db6dfdf55df6750e2749998536ae8252cce9a10e5cf8c7e486963f510"
+        }
+      }
+    },
+    {
+      "manifest": "reference/avm-966a7d7cd6fcf60360caf5dc413b2aeeb65e144d/avm-default-8bit/hong-kong-harbour-night-le896-i420-qp152/manifest.json",
+      "manifest_sha256": "db5fc6fdc5dfbcce3ff1023f90b9418ae2d26c902c49a0bea13bb476ef2214d8",
+      "case_id": "hong-kong-harbour-night-le896-i420-qp152",
+      "suite_id": "avm-default-8bit",
+      "source_id": "hong-kong-harbour-night",
+      "preparation_id": "le896",
+      "pixel_format": "i420",
+      "dimensions": [
+        896,
+        424
+      ],
+      "qp": 152,
+      "outputs": {
+        "encoded_obu": {
+          "filename": "encoded.obu",
+          "byte_size": 23938,
+          "sha256": "6e37628224181bd80d5266daecaa4ca6654abd4ac1d2920e4e6b9a9852f61043"
+        },
+        "decoded": {
+          "filename": "decoded.i420",
+          "byte_size": 569856,
+          "sha256": "be1e581e621b1bc66fdbe1d3f5f17a2b8f69689bef4dc12e80dfa32aac1aff12"
+        }
+      }
+    },
+    {
+      "manifest": "reference/avm-966a7d7cd6fcf60360caf5dc413b2aeeb65e144d/avm-default-8bit/jinan-grand-theater-le1440-i420-qp152/manifest.json",
+      "manifest_sha256": "10ad3871b91b655846ee525af4ccb405c62ad062b4439f598b08e54ad9b474ef",
+      "case_id": "jinan-grand-theater-le1440-i420-qp152",
+      "suite_id": "avm-default-8bit",
+      "source_id": "jinan-grand-theater",
+      "preparation_id": "le1440",
+      "pixel_format": "i420",
+      "dimensions": [
+        1440,
+        1080
+      ],
+      "qp": 152,
+      "outputs": {
+        "encoded_obu": {
+          "filename": "encoded.obu",
+          "byte_size": 36335,
+          "sha256": "5c635efc142a8b7953dfb5857370922f12b22167c23d9fbb38f7bfbcf0c8e9a1"
+        },
+        "decoded": {
+          "filename": "decoded.i420",
+          "byte_size": 2332800,
+          "sha256": "befc546e944edbee30f65ef0f3175d7ea98fa433e73007a5a3e45e78662c02b3"
+        }
+      }
+    },
+    {
+      "manifest": "reference/avm-966a7d7cd6fcf60360caf5dc413b2aeeb65e144d/avm-default-8bit/jinan-grand-theater-le896-i420-qp152/manifest.json",
+      "manifest_sha256": "e0a0702067d094742a6e5e224a641643973aa6ef9a64d18de1bba4e5866d5d9c",
+      "case_id": "jinan-grand-theater-le896-i420-qp152",
+      "suite_id": "avm-default-8bit",
+      "source_id": "jinan-grand-theater",
+      "preparation_id": "le896",
+      "pixel_format": "i420",
+      "dimensions": [
+        896,
+        672
+      ],
+      "qp": 152,
+      "outputs": {
+        "encoded_obu": {
+          "filename": "encoded.obu",
+          "byte_size": 18120,
+          "sha256": "0d36ffad007d1c22d7ceba03f342bcfcf291b1a0e556dd6222f694b59320108f"
+        },
+        "decoded": {
+          "filename": "decoded.i420",
+          "byte_size": 903168,
+          "sha256": "6189ac034b1516b0864fc24aec7b44c5043867b8b8252e840aeb31fdf09e2b24"
+        }
+      }
+    },
+    {
+      "manifest": "reference/avm-966a7d7cd6fcf60360caf5dc413b2aeeb65e144d/avm-default-8bit/pastel-chalks-le1440-i420-qp152/manifest.json",
+      "manifest_sha256": "212a1dd0831851f80f7570699c7e03ea87007dec19b31c2638af363d03ca26d0",
+      "case_id": "pastel-chalks-le1440-i420-qp152",
+      "suite_id": "avm-default-8bit",
+      "source_id": "pastel-chalks",
+      "preparation_id": "le1440",
+      "pixel_format": "i420",
+      "dimensions": [
+        1440,
+        960
+      ],
+      "qp": 152,
+      "outputs": {
+        "encoded_obu": {
+          "filename": "encoded.obu",
+          "byte_size": 12022,
+          "sha256": "153a7663aafb6270ba397b19d7245302bc4e00a0d1cc1d96b0fbb66bcbfde494"
+        },
+        "decoded": {
+          "filename": "decoded.i420",
+          "byte_size": 2073600,
+          "sha256": "d73a584766a680922a6aae183ceaef070973b202c5506e8777bc94e5a0c4a8bb"
+        }
+      }
+    },
+    {
+      "manifest": "reference/avm-966a7d7cd6fcf60360caf5dc413b2aeeb65e144d/avm-default-8bit/pastel-chalks-le896-i420-qp152/manifest.json",
+      "manifest_sha256": "a65f8cd2da953b39eb797f32a436b192c7362844d4b8058317dabec6aba779bd",
+      "case_id": "pastel-chalks-le896-i420-qp152",
+      "suite_id": "avm-default-8bit",
+      "source_id": "pastel-chalks",
+      "preparation_id": "le896",
+      "pixel_format": "i420",
+      "dimensions": [
+        896,
+        598
+      ],
+      "qp": 152,
+      "outputs": {
+        "encoded_obu": {
+          "filename": "encoded.obu",
+          "byte_size": 7640,
+          "sha256": "5b1ec06284676b717b491bc99d76109a656cb78630211b77e9391e4a097b93da"
+        },
+        "decoded": {
+          "filename": "decoded.i420",
+          "byte_size": 803712,
+          "sha256": "4f9bc47fda48d31c3291ec3a646399f2414552495ee5e77dd620dd15cd135f6b"
+        }
+      }
+    },
+    {
+      "manifest": "reference/avm-966a7d7cd6fcf60360caf5dc413b2aeeb65e144d/avm-default-8bit/pitti-ceiling-le1440-i420-qp152/manifest.json",
+      "manifest_sha256": "3fa4c6e06c0671ddd46ffff9d05f4072be11f2248414463c840404f38d76eea1",
+      "case_id": "pitti-ceiling-le1440-i420-qp152",
+      "suite_id": "avm-default-8bit",
+      "source_id": "pitti-ceiling",
+      "preparation_id": "le1440",
+      "pixel_format": "i420",
+      "dimensions": [
+        1440,
+        1440
+      ],
+      "qp": 152,
+      "outputs": {
+        "encoded_obu": {
+          "filename": "encoded.obu",
+          "byte_size": 123600,
+          "sha256": "939d49bd2c60b7a1bcad5338e348e70123065819b16a0f71b66785a53fb55e5a"
+        },
+        "decoded": {
+          "filename": "decoded.i420",
+          "byte_size": 3110400,
+          "sha256": "4353975b00f0d524fd19f67c3dc5766a984377667373edc4c03346edea2e6756"
+        }
+      }
+    },
+    {
+      "manifest": "reference/avm-966a7d7cd6fcf60360caf5dc413b2aeeb65e144d/avm-default-8bit/pitti-ceiling-le896-i420-qp152/manifest.json",
+      "manifest_sha256": "4fba751de2ea9e00dc8286e09da8e1644afa6ac1c5a2bbb1e88067f222783a58",
+      "case_id": "pitti-ceiling-le896-i420-qp152",
+      "suite_id": "avm-default-8bit",
+      "source_id": "pitti-ceiling",
+      "preparation_id": "le896",
+      "pixel_format": "i420",
+      "dimensions": [
+        896,
+        896
+      ],
+      "qp": 152,
+      "outputs": {
+        "encoded_obu": {
+          "filename": "encoded.obu",
+          "byte_size": 54403,
+          "sha256": "c3eed7af01ef1d4579f7c46baae55a126749d591a35070b0ef50825674dbbb5c"
+        },
+        "decoded": {
+          "filename": "decoded.i420",
+          "byte_size": 1204224,
+          "sha256": "c900e0e91b0ad1364a4aed7c5c0b8cae77f86b5cde392778fd06ee552ab0ab16"
+        }
+      }
+    },
+    {
+      "manifest": "reference/avm-966a7d7cd6fcf60360caf5dc413b2aeeb65e144d/avm-default-8bit/rome-ponte-blue-hour-le1440-i420-qp152/manifest.json",
+      "manifest_sha256": "f462799affe218215d07bbb1459851de20228030b8ad027e97a1162649942d4b",
+      "case_id": "rome-ponte-blue-hour-le1440-i420-qp152",
+      "suite_id": "avm-default-8bit",
+      "source_id": "rome-ponte-blue-hour",
+      "preparation_id": "le1440",
+      "pixel_format": "i420",
+      "dimensions": [
+        1440,
+        960
+      ],
+      "qp": 152,
+      "outputs": {
+        "encoded_obu": {
+          "filename": "encoded.obu",
+          "byte_size": 21722,
+          "sha256": "856d804b92fd91e206913101cd415706597841d00aaeed61ec4b71bb7d53d1fa"
+        },
+        "decoded": {
+          "filename": "decoded.i420",
+          "byte_size": 2073600,
+          "sha256": "79a6d0d319eb3dd7075e90524beca061e50cfa6192ba0321b06e3e3ce63711ae"
+        }
+      }
+    },
+    {
+      "manifest": "reference/avm-966a7d7cd6fcf60360caf5dc413b2aeeb65e144d/avm-default-8bit/rome-ponte-blue-hour-le896-i420-qp152/manifest.json",
+      "manifest_sha256": "6bd104187481f25e044cae56e0af9160a5e98b641e20de4ce3b678330c5d4056",
+      "case_id": "rome-ponte-blue-hour-le896-i420-qp152",
+      "suite_id": "avm-default-8bit",
+      "source_id": "rome-ponte-blue-hour",
+      "preparation_id": "le896",
+      "pixel_format": "i420",
+      "dimensions": [
+        896,
+        598
+      ],
+      "qp": 152,
+      "outputs": {
+        "encoded_obu": {
+          "filename": "encoded.obu",
+          "byte_size": 10328,
+          "sha256": "0a559cf62adb5523f0708476d90f4d917cd50dd9535a445bc2dc3219c1e9daf6"
+        },
+        "decoded": {
+          "filename": "decoded.i420",
+          "byte_size": 803712,
+          "sha256": "a8f89ccbcb274f4762fdd74f20a41bb296b14a52dd9c07a8a05829ac266299cf"
+        }
+      }
+    },
+    {
+      "manifest": "reference/avm-966a7d7cd6fcf60360caf5dc413b2aeeb65e144d/avm-default-8bit/scarlet-flycatcher-le1440-i420-qp152/manifest.json",
+      "manifest_sha256": "8000a83716461e3309a1338dcac9800353521e265dc0b4b64f12c357a1ffd3a7",
+      "case_id": "scarlet-flycatcher-le1440-i420-qp152",
+      "suite_id": "avm-default-8bit",
+      "source_id": "scarlet-flycatcher",
+      "preparation_id": "le1440",
+      "pixel_format": "i420",
+      "dimensions": [
+        1440,
+        960
+      ],
+      "qp": 152,
+      "outputs": {
+        "encoded_obu": {
+          "filename": "encoded.obu",
+          "byte_size": 15723,
+          "sha256": "828abd057e6359d593e71c38af0351d10f9f3e3d394a718f071b6378dd4592cd"
+        },
+        "decoded": {
+          "filename": "decoded.i420",
+          "byte_size": 2073600,
+          "sha256": "6ddb10e7c13402851b115ab0e51f91ecfcd0e739be73e8815d3937e352dbb9f7"
+        }
+      }
+    },
+    {
+      "manifest": "reference/avm-966a7d7cd6fcf60360caf5dc413b2aeeb65e144d/avm-default-8bit/scarlet-flycatcher-le896-i420-qp152/manifest.json",
+      "manifest_sha256": "ede4f99f3658d3e485e99b63c3bdc5730664cdc768c34de09e1f8710fb63d246",
+      "case_id": "scarlet-flycatcher-le896-i420-qp152",
+      "suite_id": "avm-default-8bit",
+      "source_id": "scarlet-flycatcher",
+      "preparation_id": "le896",
+      "pixel_format": "i420",
+      "dimensions": [
+        896,
+        598
+      ],
+      "qp": 152,
+      "outputs": {
+        "encoded_obu": {
+          "filename": "encoded.obu",
+          "byte_size": 6770,
+          "sha256": "ee2c5b1342133609641aa9cf4d345a256c87f201e435f25210dc7d087debe1bb"
+        },
+        "decoded": {
+          "filename": "decoded.i420",
+          "byte_size": 803712,
+          "sha256": "b5108377644dfa3c2c110385310799204e0aae6550e9c4d9026585892f029063"
+        }
+      }
+    },
+    {
+      "manifest": "reference/avm-966a7d7cd6fcf60360caf5dc413b2aeeb65e144d/avm-default-8bit/succisa-flower-bud-le1440-i420-qp152/manifest.json",
+      "manifest_sha256": "93af8d63d04180b01dd4cced1c99934ca149bfb99228e6e02c527bf4821794a3",
+      "case_id": "succisa-flower-bud-le1440-i420-qp152",
+      "suite_id": "avm-default-8bit",
+      "source_id": "succisa-flower-bud",
+      "preparation_id": "le1440",
+      "pixel_format": "i420",
+      "dimensions": [
+        1440,
+        1440
+      ],
+      "qp": 152,
+      "outputs": {
+        "encoded_obu": {
+          "filename": "encoded.obu",
+          "byte_size": 26850,
+          "sha256": "65a0aae9ca92eb037f927b3c58c925b3bdd51e158397e5d18339edd16074d953"
+        },
+        "decoded": {
+          "filename": "decoded.i420",
+          "byte_size": 3110400,
+          "sha256": "3442df73446fc052262dce6738fe76f88f66c1e0475a4063f29a7e0d857630ce"
+        }
+      }
+    },
+    {
+      "manifest": "reference/avm-966a7d7cd6fcf60360caf5dc413b2aeeb65e144d/avm-default-8bit/succisa-flower-bud-le896-i420-qp152/manifest.json",
+      "manifest_sha256": "594348c3c4ddf5cef52f1304e83dd1837da864552893fe0f6e9d28497483b93b",
+      "case_id": "succisa-flower-bud-le896-i420-qp152",
+      "suite_id": "avm-default-8bit",
+      "source_id": "succisa-flower-bud",
+      "preparation_id": "le896",
+      "pixel_format": "i420",
+      "dimensions": [
+        896,
+        896
+      ],
+      "qp": 152,
+      "outputs": {
+        "encoded_obu": {
+          "filename": "encoded.obu",
+          "byte_size": 10423,
+          "sha256": "93b4fb4a07c09548822ba65233021ab32cfe46a216017df00ecb2f146d499182"
+        },
+        "decoded": {
+          "filename": "decoded.i420",
+          "byte_size": 1204224,
+          "sha256": "02ac74589f24eff9b1234269b8bf9b980626e4e3a33af4f4fd17d085de4b41ab"
+        }
+      }
+    },
+    {
+      "manifest": "reference/avm-966a7d7cd6fcf60360caf5dc413b2aeeb65e144d/avm-default-8bit/toco-toucan-le1440-i420-qp152/manifest.json",
+      "manifest_sha256": "ebdffabb4f478e3cde54f90b410cbb8a386d745b6429dac253dc409160522b1a",
+      "case_id": "toco-toucan-le1440-i420-qp152",
+      "suite_id": "avm-default-8bit",
+      "source_id": "toco-toucan",
+      "preparation_id": "le1440",
+      "pixel_format": "i420",
+      "dimensions": [
+        1440,
+        960
+      ],
+      "qp": 152,
+      "outputs": {
+        "encoded_obu": {
+          "filename": "encoded.obu",
+          "byte_size": 16379,
+          "sha256": "9c47992bbea904743d193fc24d8567862a62a66933f223ece46505207a6601e0"
+        },
+        "decoded": {
+          "filename": "decoded.i420",
+          "byte_size": 2073600,
+          "sha256": "6bbb848616a43edc81ab82a0aeb327613f4870f8c1f0887989814c9b93ab0040"
+        }
+      }
+    },
+    {
+      "manifest": "reference/avm-966a7d7cd6fcf60360caf5dc413b2aeeb65e144d/avm-default-8bit/toco-toucan-le896-i420-qp152/manifest.json",
+      "manifest_sha256": "47ab95fa879995307190c71d457d9254bd0bd04aeca2d9fe2001c6f5ce05de44",
+      "case_id": "toco-toucan-le896-i420-qp152",
+      "suite_id": "avm-default-8bit",
+      "source_id": "toco-toucan",
+      "preparation_id": "le896",
+      "pixel_format": "i420",
+      "dimensions": [
+        896,
+        598
+      ],
+      "qp": 152,
+      "outputs": {
+        "encoded_obu": {
+          "filename": "encoded.obu",
+          "byte_size": 8782,
+          "sha256": "53a672e6242203a723795814b83e8cedae82d89fa9b7e56159c152cdea3399cb"
+        },
+        "decoded": {
+          "filename": "decoded.i420",
+          "byte_size": 803712,
+          "sha256": "f310f0bf4181372296188e47058a3536c5253c332cf2298fc7e74ada66a79d45"
+        }
+      }
+    }
+  ]
+}

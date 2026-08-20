@@ -193,6 +193,40 @@
           "--enable-gdf=1"
         ]
       }
+    },
+    {
+      "id": "avm-default-8bit",
+      "reference_status": "generated",
+      "lock_file": "avm-default-reference-lock.json",
+      "preparation_ids": [
+        "le896",
+        "le1440"
+      ],
+      "baseline_pixel_format": "i420",
+      "baseline_qps": [
+        152
+      ],
+      "supplemental_outputs": {
+        "decoded_yuv_alias": false,
+        "decoded_png": false
+      },
+      "encoder": {
+        "codec": "av2",
+        "container": "obu",
+        "frames": 1,
+        "passes": 1,
+        "deadline": "good",
+        "cpu_used": 9,
+        "thread_policy": "16 fixed threads",
+        "threads": 16,
+        "parallel_jobs": 1,
+        "row_mt": true,
+        "bit_depth": 8,
+        "input_bit_depth": 8,
+        "rate_control": "q",
+        "test_decode": "fatal",
+        "profile_arguments": []
+      }
     }
   ]
 }
