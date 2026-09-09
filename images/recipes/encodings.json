@@ -109,6 +109,10 @@
       "lock_file": "spatial-still-reference-lock.json",
       "decoder_admission_status": "admitted",
       "decoder_admission_manifest": "../../tests/spatial-still-profile.json",
+      "avm_binary_sha256": {
+        "encoder": "621df24618405cd7a05aaf436034b224f757adc3395ddb23624fc3f0e8189d83",
+        "decoder": "43403968bb6f223220ccd6393c233071418f52d811ee04ebc51f072225d01616"
+      },
       "preparation_ids": [
         "le896",
         "le1440"

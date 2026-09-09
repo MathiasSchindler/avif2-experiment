@@ -100,7 +100,11 @@ def normalize_obus(path: Path) -> list[dict[str, object]]:
     return [entry.ledger_entry() for entry in entries]
 
 
-def verify_tools(revision: str) -> tuple[Path, Path, dict[str, object]]:
+def verify_tools(
+    revision: str,
+    expected_encoder_sha256: str,
+    expected_decoder_sha256: str,
+) -> tuple[Path, Path, dict[str, object]]:
     encoder = AVM_BUILD_ROOT / "avmenc"
     decoder = AVM_BUILD_ROOT / "avmdec"
     if not encoder.is_file() or not decoder.is_file():
@@ -110,9 +114,9 @@ def verify_tools(revision: str) -> tuple[Path, Path, dict[str, object]]:
         raise RuntimeError(f"AVM revision is {actual_revision}, expected {revision}")
     encoder_hash = sha256(encoder)
     decoder_hash = sha256(decoder)
-    if encoder_hash != EXPECTED_ENCODER_SHA256:
+    if encoder_hash != expected_encoder_sha256:
         raise RuntimeError(f"unexpected avmenc SHA-256: {encoder_hash}")
-    if decoder_hash != EXPECTED_DECODER_SHA256:
+    if decoder_hash != expected_decoder_sha256:
         raise RuntimeError(f"unexpected avmdec SHA-256: {decoder_hash}")
     source_changes = run(["git", "-C", str(AVM_ROOT), "status", "--short"])
     if source_changes.strip():
@@ -521,7 +525,12 @@ def main() -> None:
     if not cases:
         raise SystemExit("no reference cases match the requested filters")
 
-    encoder, decoder, tools = verify_tools(encodings["avm_revision"])
+    binary_sha256 = suite.get("avm_binary_sha256", {})
+    encoder, decoder, tools = verify_tools(
+        encodings["avm_revision"],
+        binary_sha256.get("encoder", EXPECTED_ENCODER_SHA256),
+        binary_sha256.get("decoder", EXPECTED_DECODER_SHA256),
+    )
     ffmpeg = shutil.which("ffmpeg")
     if ffmpeg is None:
         raise RuntimeError("required tool not found: ffmpeg")
