@@ -1,7 +1,16 @@
 #ifndef AV2H_DECODER_TILE_H
 #define AV2H_DECODER_TILE_H
 
+#include "cdf.h"
+#include "coeff.h"
+#include "coeff_level.h"
+#include "frame.h"
+#include "leaf.h"
+#include "partition.h"
+#include "range.h"
 #include "reconstruct.h"
+#include "sequence.h"
+#include "transform.h"
 
 #define AV2H_MAX_LOSSLESS_CHROMA_TX_NODES 1024U
 #define AV2H_MAX_LUMA_PARTITION_NODES 2048U

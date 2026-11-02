@@ -67,6 +67,7 @@ CORE_SOURCES := \
 	src/decoder/reconstruct.c \
 	src/decoder/reconstruct_block.c \
 	src/decoder/restoration.c \
+	src/decoder/sample_math.c \
 	src/decoder/secondary_transform.c \
 	src/decoder/sequence.c \
 	src/decoder/tile.c \
@@ -388,7 +389,8 @@ HOST_UNIT_NAMES := substrate container range tile frame cdf partition leaf coeff
 	transform coeff_level reconstruct filter artifact_profile layout output_layout \
 	output_parallel pixel_format png_writer preview sample_math sample_ops \
 	workspace_accounting public_decode refactor_baseline reconstruction_block \
-	reconstruction_plane frame_refactor carriage_refactor
+	reconstruction_plane frame_refactor carriage_refactor prediction_math \
+	error_refactor
 HOST_UNIT_BINARIES := $(foreach name,$(HOST_UNIT_NAMES),\
 	$(HOST_BUILD_DIR)/$(subst _,-,$(name))-unit)
 HOST_RUNTIME_UNIT := $(HOST_BUILD_DIR)/runtime-substrate-unit
@@ -481,7 +483,7 @@ $(WINDOWS_SMOKE): $(WINDOWS_SMOKE_OBJECT) $(WINDOWS_LIBRARY) $(WINDOWS_IMPORT_LI
 		-Wl,-e,mainCRTStartup -Wl,-s,--gc-sections,--stack,8388608 \
 		-o $@ $(WINDOWS_SMOKE_OBJECT) $(WINDOWS_LIBRARY) $(WINDOWS_IMPORT_LIBRARY)
 
-.PHONY: test test-host-build test-c test-corpus test-freestanding \
+.PHONY: test test-host-build test-c test-corpus test-freestanding test-private-headers \
 	test-runtime-substrate test-extended \
 	test-reference-locks test-reference-images test-reference-images-wasm \
 	spatial-still-admission spatial-still-platform-admission \
@@ -520,7 +522,7 @@ SPATIAL_STILL_FIXTURES := \
 
 .NOTPARALLEL: test test-extended 10bit-wp0-reference
 
-test: test-c test-corpus test-reference-locks test-freestanding \
+test: test-c test-corpus test-reference-locks test-freestanding test-private-headers \
 	spatial-still-admission
 	$(PYTHON) -m unittest discover -s tests -p 'test_*.py'
 
@@ -581,7 +583,11 @@ run-host-tests: test-host-build
 		$(HOST_BUILD_DIR)/$$test; \
 	done
 
-test-c: test-host-build
+test-private-headers:
+	$(PYTHON) tools/check_private_headers.py --cc "$(CC)"
+	$(PYTHON) -m unittest discover -s tests -p test_private_headers.py
+
+test-c: test-host-build test-private-headers
 	@$(MAKE) run-host-tests TESTS='$(notdir $(HOST_UNIT_BINARIES))'
 	$(HOST_RUNTIME_UNIT)
 	$(HOST_FUZZ) tests/fixtures/i444-tiny.obu \

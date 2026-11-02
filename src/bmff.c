@@ -1,16 +1,10 @@
 #include "base.h"
+#include "error.h"
 
 static Av2hStatus box_fail(Av2hError *error,
                            Av2hStatus status,
                            size_t offset) {
-    if (error != 0) {
-        error->status = status;
-        error->offset = offset;
-        error->context = AV2H_CONTEXT_BOX;
-        error->obu_index = SIZE_MAX;
-        error->obu_type = 0U;
-    }
-    return status;
+    return av2h_error_set_core(error, status, offset, AV2H_CONTEXT_BOX);
 }
 
 Av2hStatus av2h_box_header_parse(Av2hSpan input,

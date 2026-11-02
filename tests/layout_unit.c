@@ -1,6 +1,7 @@
 #include "decoder/filter.h"
 #include "decoder/internal/frame_workspace.h"
 #include "decoder/tile.h"
+#include "decoder/prediction.h"
 
 #include <stdio.h>
 

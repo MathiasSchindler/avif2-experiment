@@ -1,5 +1,4 @@
 #include "internal/intra_prediction.h"
-#include "internal/reconstruct_modules.h"
 #include "internal/sample_math.h"
 
 static const uint8_t smooth8_blend[8U] = {
@@ -33,7 +32,7 @@ static uint8_t dc_predictor_average(unsigned int sum, unsigned int count,
     if (count == 0U) return av2h_sample_midpoint_8bit();
     if (have_top && have_left && width != height) {
         int shift;
-        uint16_t scale = av2h_cfl_resolve_divisor_32(count, &shift);
+        uint16_t scale = av2h_sample_resolve_divisor_32(count, &shift);
         return (uint8_t)(((uint64_t)sum * scale +
                           ((uint64_t)1U << (shift - 1))) >> shift);
     }

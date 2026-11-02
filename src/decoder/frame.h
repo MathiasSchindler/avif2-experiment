@@ -2,9 +2,10 @@
 #define AV2H_DECODER_FRAME_H
 
 #include "decoder/sequence.h"
+#include "decoder/plane.h"
+#include "decoder/quantizer.h"
 
 #define AV2H_CDEF_MAX_STRENGTHS 8U
-#define AV2H_FRAME_PLANE_COUNT 3U
 #define AV2H_CCSO_BAND_COUNT 64U
 #define AV2H_CCSO_LUT_SIZE (AV2H_CCSO_BAND_COUNT * 16U)
 #define AV2H_WIENER_NONSEP_MAX_TAPS 18U
@@ -20,8 +21,6 @@ typedef enum {
     AV2H_RESTORE_WIENER_NONSEP = 2,
     AV2H_RESTORE_SWITCHABLE = 3
 } Av2hRestorationType;
-
-typedef uint16_t Av2hQIndex;
 
 typedef struct {
     uint8_t enabled;

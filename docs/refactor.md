@@ -1,6 +1,7 @@
 # Decoder refactoring milestones
 
-**Status:** M0-M5 complete, 2 November 2026. M6-M8 remain planned.
+**Status:** M0-M7 complete. M8 integration work implemented, 3 November 2026;
+final acceptance remains blocked by the recorded media/platform gates.
 
 ## Purpose and scope
 
@@ -63,7 +64,8 @@ bucket. Proposed owner names below are illustrative, not mandatory file counts.
 
 ## Milestone overview
 
-M0-M5 are complete; all other milestones are pending. Dependencies are
+M0-M7 are complete; M8 has measured integration evidence but remains blocked
+at final acceptance. Dependencies are
 prerequisites, not merely list order; independent work may proceed separately
 if its edits do not overlap.
 
@@ -75,9 +77,9 @@ if its edits do not overlap.
 | M3 (complete) | Separate block reconstruction from plane integration | M1 |
 | M4 (complete) | Clarify frame storage, metadata, output, and orchestration | M3 |
 | M5 (complete) | Separate codec syntax from root-level carriage/container work | M0 |
-| M6 | Narrow private headers around the resulting owners | M1, M3, M4, M5 |
-| M7 | Standardize error-record initialization and context assembly | M4, M5 |
-| M8 | Complete integration evidence and ownership documentation | M2, M6, M7 |
+| M6 (complete) | Narrow private headers around the resulting owners | M1, M3, M4, M5 |
+| M7 (complete) | Standardize error-record initialization and context assembly | M4, M5 |
+| M8 (acceptance blocked) | Integration evidence and final ownership documented; outstanding full gates remain explicit | M2, M6, M7 |
 
 The recommended main sequence is M0 through M4, then M5 through M8.
 Minimal interface changes needed by an extraction belong in that milestone;
@@ -278,6 +280,10 @@ coefficient-level, transform, coefficient, leaf, and frame interfaces.
 are self-contained, no include cycle is introduced, and state sizes and
 freestanding linkage remain unchanged.
 
+**Completed:** see [M6 interface and validation evidence](dev/refactoring-m6.md),
+including 52 standalone private headers, 35 value-only kernel dependency roots,
+unchanged M0 inventories, and the preserved numerical/state declarations.
+
 ## M7: standardize error construction
 
 Introduce a small private helper for repeated error-record initialization in
@@ -295,6 +301,11 @@ observable behavior change belongs in a separate fix with its own tests.
 **Exit:** representative failures from container parsing, sequence/frame
 syntax, luma/chroma reconstruction, filtering, and output validation retain
 their status, location, stage/cause, and documented caller-buffer behavior.
+
+**Completed:** see [M7 error-construction evidence](dev/refactoring-m7.md),
+including 43,878 frozen error scenarios and 84,144 old/new diagnostic
+comparisons per configuration, preserved partial updates and buffer behavior,
+and unchanged M0 layouts.
 
 ## M8: integration and completion
 
@@ -314,6 +325,15 @@ tables or introduce a directory hierarchy solely to make the tree look tidy.
 
 **Exit:** required gates pass, coverage limitations are stated, and there is no
 unexplained output, admission, status, workspace, or platform behavior change.
+
+**Implemented, acceptance blocked:** see
+[M8 integration and final ownership evidence](dev/refactoring-m8.md).
+Both native diagnostic configurations and WebAssembly reproduce all 162
+available 8/10-bit reference outputs, M0 inventories remain identical, and
+Windows cross-build/import checks pass. Full acceptance is not marked
+complete: locked media are missing, macOS no-libc linking hits a toolchain
+limitation also reproduced before M0, and some platform runtimes are
+unavailable. The report lists each incomplete gate and the required closeout.
 
 ## Validation cadence
 

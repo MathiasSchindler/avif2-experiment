@@ -1,4 +1,10 @@
 #include "decoder/coeff.h"
+#include "decoder/frame.h"
+#include "decoder/leaf.h"
+#include "decoder/partition.h"
+#include "decoder/partition_cdf.h"
+#include "decoder/range.h"
+#include "decoder/sequence.h"
 #include "decoder/tx_geometry.h"
 
 #include <stdio.h>

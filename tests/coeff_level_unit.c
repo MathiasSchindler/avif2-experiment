@@ -1,5 +1,9 @@
 #include "decoder/coeff_level.h"
+#include "decoder/leaf.h"
+#include "decoder/partition.h"
+#include "decoder/partition_cdf.h"
 #include "decoder/qmatrix.h"
+#include "decoder/transform.h"
 
 #include <stdio.h>
 

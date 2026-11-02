@@ -451,6 +451,7 @@ def main() -> int:
                     "tools/av2heif_artifact.c",
                     "include/av2heif.h",
                     "src/base.c",
+                    "src/error.h",
                     "src/carriage.c",
                     "src/carriage.h",
                     "src/bmff.c",

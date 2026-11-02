@@ -1,6 +1,7 @@
 #include "base.h"
 #include "carriage.h"
 #include "container.h"
+#include "error.h"
 #include "pixel_format.h"
 
 enum {
@@ -47,14 +48,7 @@ typedef struct {
 Av2hStatus av2h_container_fail(Av2hError *error,
                             Av2hStatus status,
                             size_t offset) {
-    if (error != 0) {
-        error->status = status;
-        error->offset = offset;
-        error->context = AV2H_CONTEXT_HEIF;
-        error->obu_index = SIZE_MAX;
-        error->obu_type = 0U;
-    }
-    return status;
+    return av2h_error_set_core(error, status, offset, AV2H_CONTEXT_HEIF);
 }
 
 Av2hStatus av2h_container_sequence_pixel_metadata(

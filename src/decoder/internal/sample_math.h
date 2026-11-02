@@ -72,4 +72,28 @@ static inline uint16_t av2h_sample_clip_10bit(int32_t value) {
     return av2h_sample_clip_to_domain(value, &av2h_sample_domain_10bit);
 }
 
+static inline int32_t av2h_sample_round_pow2(int64_t value, int shift) {
+    return (int32_t)((value + (((int64_t)1 << shift) >> 1)) >> shift);
+}
+
+static inline int32_t av2h_sample_round_pow2_signed(int64_t value, int shift) {
+    return value < 0 ? -av2h_sample_round_pow2(-value, shift) :
+        av2h_sample_round_pow2(value, shift);
+}
+
+/* The reciprocal input is positive; shift receives its fixed-point scale. */
+uint16_t av2h_sample_resolve_divisor_32(uint32_t divisor, int *shift);
+
+/*
+ * Approximate Q-shift slope clipped to +/-((2 << shift) - 1).
+ * Statistics must have nonnegative variance; zero count yields zero.
+ */
+int32_t av2h_sample_regression_slope(
+    int32_t sum_x,
+    int32_t sum_y,
+    int32_t sum_xx,
+    int32_t sum_xy,
+    int count,
+    int shift);
+
 #endif

@@ -19,8 +19,9 @@ read as the current capability boundary.
 
 - [Current roadmap](roadmap.md): unfinished reliability, maintainability, and
   product work.
-- [Decoder refactoring milestones](refactor.md): the next ownership,
-  admission/dispatch, and private-interface refactoring pass.
+- [Decoder refactoring milestones](refactor.md): implemented ownership,
+  admission/dispatch, and private-interface changes, with outstanding M8
+  integration acceptance gates.
 - [Spatial-still 8-bit decoder plan](dev/spatial-still.md): milestones for the
   broad one-picture spatial profile and its missing decoder capabilities.
 - [Coding opportunities](research/feature.md): encoder experiments and research
@@ -39,6 +40,9 @@ release summaries include:
 - [Refactoring M3 block and plane reconstruction](dev/refactoring-m3.md)
 - [Refactoring M4 frame responsibility owners](dev/refactoring-m4.md)
 - [Refactoring M5 codec syntax and container carriage](dev/refactoring-m5.md)
+- [Refactoring M6 private interfaces and shared math](dev/refactoring-m6.md)
+- [Refactoring M7 error construction](dev/refactoring-m7.md)
+- [Refactoring M8 integration and final ownership](dev/refactoring-m8.md)
 - [Decoder refactoring plan](dev/decoder-refactoring-plan.md)
 - [I444 release evidence](dev/chroma-444.md)
 - [Filter parity](dev/filter-parity.md)

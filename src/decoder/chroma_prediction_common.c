@@ -1,6 +1,4 @@
-#include "reconstruct.h"
 #include "internal/chroma_prediction.h"
-#include "internal/reconstruct_modules.h"
 #include "internal/sample_ops.h"
 
 int av2h_chroma_plane_region_reconstructed(

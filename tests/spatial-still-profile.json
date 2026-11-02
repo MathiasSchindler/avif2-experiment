@@ -144,7 +144,7 @@
     {
       "id": "segmented-and-custom-qmatrix",
       "test": "coeff-level-unit", "source": "tests/coeff_level_unit.c",
-      "source_sha256": "4259592fa0dcf43ffcd5ad1670bfa55c8d9f89654b9d4c2183739ad2c6d6cdf8",
+      "source_sha256": "4774259d702804afbcb8153873970f94ae3075571bd5d755946aa9ea800bd783",
       "features": ["segmented-qmatrix", "custom-qmatrix", "tcq-parity-hiding", "fsc-cctx"]
     },
     {
@@ -162,7 +162,7 @@
     {
       "id": "fsc-cctx-intrabc-reconstruction",
       "test": "reconstruct-unit", "source": "tests/reconstruct_unit.c",
-      "source_sha256": "39af7a6c97f09339ab7a5c7bb54618ff33ad79e6f95b78568bdbb427d3ee65bd",
+      "source_sha256": "ae1fd3fad05ec2bc5c2f94155c6f58b8e481cda31142d131a3b0f08f5f103dd8",
       "features": ["fsc-cctx", "intrabc-restoration"]
     },
     {

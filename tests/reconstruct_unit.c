@@ -2,6 +2,9 @@
 #include "decoder/tx_geometry.h"
 #include "decoder/internal/frame_workspace.h"
 #include "decoder/internal/reconstruct_modules.h"
+#include "decoder/internal/chroma_prediction.h"
+#include "decoder/internal/intrabc_prediction.h"
+#include "decoder/prediction.h"
 
 #include <stdio.h>
 #include <stdlib.h>

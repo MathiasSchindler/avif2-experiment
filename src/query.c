@@ -1,6 +1,7 @@
 #include "base.h"
 #include "container.h"
 #include "decode.h"
+#include "error.h"
 #include "output_layout.h"
 #include "pixel_format.h"
 
@@ -8,14 +9,7 @@ static Av2hStatus query_fail(Av2hError *error,
                              Av2hStatus status,
                              size_t offset,
                              uint32_t context) {
-    if (error != 0) {
-        error->status = status;
-        error->offset = offset;
-        error->context = context;
-        error->obu_index = SIZE_MAX;
-        error->obu_type = 0U;
-    }
-    return status;
+    return av2h_error_set_core(error, status, offset, context);
 }
 
 static uint64_t input_fingerprint(Av2hSpan input) {

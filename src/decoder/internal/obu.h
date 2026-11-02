@@ -2,6 +2,7 @@
 #define AV2H_DECODER_INTERNAL_OBU_H
 
 #include "base.h"
+#include "error.h"
 
 static inline uint8_t av2h_obu_diagnostic_reason(Av2hStatus status) {
     if (status == AV2H_TRUNCATED) return AV2H_DIAGNOSTIC_REASON_TRUNCATED;
@@ -20,21 +21,11 @@ static inline Av2hStatus av2h_obu_fail(Av2hError *error,
                        size_t offset,
                        uint32_t context) {
     if (error != 0) {
-        error->status = status;
-        error->offset = offset;
-        error->context = context;
-        error->obu_index = SIZE_MAX;
-        error->obu_type = 0U;
-        error->diagnostic_stage = context == AV2H_CONTEXT_SEQUENCE_HEADER ?
+        (void)av2h_error_set_core(error, status, offset, context);
+        av2h_error_reset_diagnostics(
+            error, context == AV2H_CONTEXT_SEQUENCE_HEADER ?
             AV2H_DIAGNOSTIC_STAGE_SEQUENCE_HEADER :
-            AV2H_DIAGNOSTIC_STAGE_NONE;
-        error->diagnostic_reason = av2h_obu_diagnostic_reason(status);
-        error->syntax_stage = 0U;
-        error->plane = 0U;
-        error->row = 0U;
-        error->column = 0U;
-        error->entropy_tell = 0U;
-        error->parsed_value = 0U;
+            AV2H_DIAGNOSTIC_STAGE_NONE, av2h_obu_diagnostic_reason(status));
     }
     return status;
 }

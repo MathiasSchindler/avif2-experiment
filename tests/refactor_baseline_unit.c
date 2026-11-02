@@ -1,6 +1,7 @@
 #include "decoder/internal/decode_diagnostics.h"
 #include "decoder/internal/frame_workspace.h"
 #include "decoder/internal/reconstruct_modules.h"
+#include "decoder/prediction.h"
 
 #include <inttypes.h>
 #include <stdio.h>

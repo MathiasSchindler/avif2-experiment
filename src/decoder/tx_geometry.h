@@ -1,7 +1,37 @@
 #ifndef AV2H_DECODER_TX_GEOMETRY_H
 #define AV2H_DECODER_TX_GEOMETRY_H
 
-#include "coeff.h"
+#include "block_geometry.h"
+
+typedef enum {
+    AV2H_TX_4X4 = 0,
+    AV2H_TX_8X8 = 1,
+    AV2H_TX_16X16 = 2,
+    AV2H_TX_32X32 = 3,
+    AV2H_TX_64X64 = 4,
+    AV2H_TX_4X8 = 5,
+    AV2H_TX_8X4 = 6,
+    AV2H_TX_8X16 = 7,
+    AV2H_TX_16X8 = 8,
+    AV2H_TX_16X32 = 9,
+    AV2H_TX_32X16 = 10,
+    AV2H_TX_32X64 = 11,
+    AV2H_TX_64X32 = 12,
+    AV2H_TX_4X16 = 13,
+    AV2H_TX_16X4 = 14,
+    AV2H_TX_8X32 = 15,
+    AV2H_TX_32X8 = 16,
+    AV2H_TX_16X64 = 17,
+    AV2H_TX_64X16 = 18,
+    AV2H_TX_4X32 = 19,
+    AV2H_TX_32X4 = 20,
+    AV2H_TX_8X64 = 21,
+    AV2H_TX_64X8 = 22,
+    AV2H_TX_4X64 = 23,
+    AV2H_TX_64X4 = 24,
+    AV2H_TX_SIZE_COUNT = 25,
+    AV2H_TX_INVALID = 255
+} Av2hFirstTxSize;
 
 typedef enum {
     AV2H_TX_SQUARE_4 = 0,

@@ -1,5 +1,5 @@
-#include "reconstruct.h"
-#include "internal/reconstruct_modules.h"
+#include "internal/intra_prediction.h"
+#include "internal/chroma_prediction.h"
 #include "internal/sample_math.h"
 
 #define directional_base_angle av2h_directional_base_angle
@@ -75,7 +75,7 @@ uint8_t av2h_chroma_dc_predictor_average(
     (void)have_top;
     (void)have_left;
     if (count == 0U) return av2h_sample_midpoint_8bit();
-    scale = av2h_cfl_resolve_divisor_32(count, &shift);
+    scale = av2h_sample_resolve_divisor_32(count, &shift);
     return (uint8_t)(((uint64_t)sum * scale +
                       ((uint64_t)1U << (shift - 1))) >> shift);
 }

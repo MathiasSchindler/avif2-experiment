@@ -1,7 +1,9 @@
 #ifndef AV2H_DECODER_INTERNAL_DECODE_DIAGNOSTICS_H
 #define AV2H_DECODER_INTERNAL_DECODE_DIAGNOSTICS_H
 
-#include "decoder/partition.h"
+#include "base.h"
+
+typedef struct Av2hPartitionDecision Av2hPartitionDecision;
 
 #define AV2H_PARTITION_DIAGNOSTIC_CAPACITY 131072U
 #define AV2H_PARTITION_LEAF_DIAGNOSTIC_CAPACITY 512U

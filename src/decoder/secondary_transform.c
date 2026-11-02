@@ -1,5 +1,5 @@
 #include "reconstruct.h"
-#include "internal/coeff_modules.h"
+#include "coeff_block.h"
 #include "internal/sample_math.h"
 #include "internal/transform_modules.h"
 #include "ist_data.inc"

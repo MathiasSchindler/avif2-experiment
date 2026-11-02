@@ -1,14 +1,8 @@
 #include "output_layout.h"
+#include "error.h"
 
 static Av2hStatus output_layout_fail(Av2hError *error, Av2hStatus status) {
-    if (error != 0) {
-        error->status = status;
-        error->offset = 0U;
-        error->context = AV2H_CONTEXT_QUERY;
-        error->obu_index = SIZE_MAX;
-        error->obu_type = 0U;
-    }
-    return status;
+    return av2h_error_set_core(error, status, 0U, AV2H_CONTEXT_QUERY);
 }
 
 static Av2hStatus plane_layout(uint32_t width,

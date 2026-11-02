@@ -1,7 +1,8 @@
 #ifndef AV2H_DECODER_INTERNAL_TRANSFORM_MODULES_H
 #define AV2H_DECODER_INTERNAL_TRANSFORM_MODULES_H
 
-#include "decoder/transform.h"
+#include "decoder/leaf_mode.h"
+#include "decoder/transform_type.h"
 #include "decoder/tx_geometry.h"
 
 Av2hFirstLeafIntraMode av2h_transform_mode(

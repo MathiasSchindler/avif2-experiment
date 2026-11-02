@@ -1,5 +1,6 @@
 #include "decode.h"
 #include "decoder/qmatrix.h"
+#include "error.h"
 #include "pixel_format.h"
 
 static uint8_t diagnostic_reason_from_status(Av2hStatus status) {
@@ -17,28 +18,13 @@ static uint8_t diagnostic_reason_from_status(Av2hStatus status) {
     }
 }
 
-static void decode_error_diagnostics_clear(Av2hError *error) {
-    if (error == 0) return;
-    error->diagnostic_stage = AV2H_DIAGNOSTIC_STAGE_NONE;
-    error->diagnostic_reason = AV2H_DIAGNOSTIC_REASON_NONE;
-    error->syntax_stage = 0U;
-    error->plane = 0U;
-    error->row = 0U;
-    error->column = 0U;
-    error->entropy_tell = 0U;
-    error->parsed_value = 0U;
-}
-
 static Av2hStatus decode_fail(Av2hError *error,
                               Av2hStatus status,
                               uint32_t context) {
     if (error != 0) {
-        error->status = status;
-        error->offset = 0U;
-        error->context = context;
-        error->obu_index = SIZE_MAX;
-        error->obu_type = 0U;
-        decode_error_diagnostics_clear(error);
+        (void)av2h_error_set_core(error, status, 0U, context);
+        av2h_error_reset_diagnostics(error, AV2H_DIAGNOSTIC_STAGE_NONE,
+                                    AV2H_DIAGNOSTIC_REASON_NONE);
         error->diagnostic_reason = diagnostic_reason_from_status(status);
     }
     return status;
@@ -270,7 +256,8 @@ Av2hStatus av2h_decode(Av2hSpan input,
                         error, sizeof(*error)))) {
         return AV2H_INVALID_ARGUMENT;
     }
-    decode_error_diagnostics_clear(error);
+    av2h_error_reset_diagnostics(error, AV2H_DIAGNOSTIC_STAGE_NONE,
+                                AV2H_DIAGNOSTIC_REASON_NONE);
     status = av2h_query(input, 0, &fresh, error);
     if (status != AV2H_OK) return status;
     if (!info_matches(info, &fresh)) {
@@ -332,7 +319,8 @@ Av2hStatus av2h_decode(Av2hSpan input,
         return status;
     }
     if (error != 0) {
-        decode_error_diagnostics_clear(error);
+        av2h_error_reset_diagnostics(error, AV2H_DIAGNOSTIC_STAGE_NONE,
+                                    AV2H_DIAGNOSTIC_REASON_NONE);
         error->status = AV2H_OK;
         error->diagnostic_stage = AV2H_DIAGNOSTIC_STAGE_COMPLETE;
     }

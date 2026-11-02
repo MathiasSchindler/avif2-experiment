@@ -1,5 +1,4 @@
 #include "internal/intra_prediction.h"
-#include "internal/reconstruct_modules.h"
 #include "internal/sample_math.h"
 
 static const int8_t d45_filter[4U][4U] = {
@@ -89,7 +88,7 @@ static uint8_t directional_ibp_weight(unsigned int row,
     uint32_t y = (uint32_t)dy * (column + 1U);
     uint32_t distance = ((row + 1U) << 6U) + y;
     int shift;
-    uint16_t divisor = av2h_cfl_resolve_divisor_32(distance, &shift);
+    uint16_t divisor = av2h_sample_resolve_divisor_32(distance, &shift);
     shift -= 7;
     return (uint8_t)((y * divisor + ((uint32_t)1U << (shift - 1))) >> shift);
 }

@@ -1,4 +1,5 @@
 #include "frame.h"
+#include "error.h"
 #include "coeff_level.h"
 #include "internal/leaf_modules.h"
 #include "internal/wiener_nonsep.h"
@@ -851,10 +852,9 @@ static Av2hStatus frame_diagnostic_fail(Av2hError *error,
                                         uint8_t syntax,
                                         uint32_t parsed_value) {
     if (error != 0) {
-        error->status = status;
-        error->offset = reader != 0 ? reader->bit_position / 8U : 0U;
-        error->context = AV2H_CONTEXT_FRAME;
-        error->obu_index = SIZE_MAX;
+        (void)av2h_error_set_core(
+            error, status, reader != 0 ? reader->bit_position / 8U : 0U,
+            AV2H_CONTEXT_FRAME);
         error->obu_type = AV2H_OBU_CLOSED_LOOP_KEY;
         error->diagnostic_stage = AV2H_DIAGNOSTIC_STAGE_FRAME_HEADER;
         error->diagnostic_reason = status == AV2H_TRUNCATED ?

@@ -1,20 +1,14 @@
 #ifndef AV2H_DECODER_RECONSTRUCT_H
 #define AV2H_DECODER_RECONSTRUCT_H
 
-#include "coeff_level.h"
+#include "block_geometry.h"
+#include "coeff_block.h"
+#include "leaf_mode.h"
+#include "plane.h"
+#include "transform_type.h"
 
-/*
- * Predictor and reconstructed sample buffers must hold the full output
- * geometry of a luma transform block, which reaches 64x64 (4096 samples)
- * for the large Emerald Q208 blocks.  Coefficient buffers stay bounded at
- * AV2H_FIRST_COEFF_CAPACITY (1024) because AV2 clamps every coefficient
- * dimension to at most 32 (the adjusted transform size).
- */
-#define AV2H_RECON_SAMPLE_CAPACITY 4096U
+struct Av2hDecodeDiagnostics;
 
-typedef int32_t Av2hTransformIntermediate;
-typedef int64_t Av2hTransformSum;
-typedef int64_t Av2hPredictionSum;
 typedef int64_t Av2hReconstructionSum;
 
 typedef struct {
@@ -52,81 +46,6 @@ typedef struct {
     uint16_t secondary_above[128U];
     uint16_t secondary_left[128U];
 } Av2hReconstructionScratchU16;
-
-typedef struct {
-    uint8_t *data;
-    size_t stride_samples;
-    uint16_t width;
-    uint16_t height;
-    uint16_t reference_width;
-    uint16_t reference_height;
-    uint8_t *reconstructed;
-    size_t reconstructed_stride_cells;
-    size_t reconstructed_count_cells;
-} Av2hReconstructionPlane;
-
-typedef struct {
-    uint16_t *data;
-    size_t stride_samples;
-    uint16_t width;
-    uint16_t height;
-    uint16_t reference_width;
-    uint16_t reference_height;
-    uint8_t *reconstructed;
-    size_t reconstructed_stride_cells;
-    size_t reconstructed_count_cells;
-} Av2hReconstructionPlaneU16;
-
-typedef struct {
-    const uint8_t *left;
-    size_t left_count;
-    const uint8_t *above;
-    size_t above_count;
-    const uint8_t *secondary_left;
-    size_t secondary_left_count;
-    const uint8_t *secondary_above;
-    size_t secondary_above_count;
-    uint8_t secondary_above_left;
-    uint8_t has_secondary_above_left;
-    uint8_t above_left;
-    uint8_t has_above_left;
-    uint8_t above_negative[5U];
-    uint8_t left_negative[5U];
-    uint8_t negative_count;
-} Av2hLumaReferences;
-
-typedef struct {
-    const uint16_t *left;
-    size_t left_count;
-    const uint16_t *above;
-    size_t above_count;
-    const uint16_t *secondary_left;
-    size_t secondary_left_count;
-    const uint16_t *secondary_above;
-    size_t secondary_above_count;
-    uint16_t secondary_above_left;
-    uint16_t above_left;
-    uint16_t above_negative[5U];
-    uint16_t left_negative[5U];
-    uint8_t negative_count;
-    uint8_t has_secondary_above_left;
-    uint8_t has_above_left;
-} Av2hLumaReferencesU16;
-
-Av2hStatus av2h_luma_predict(
-    const Av2hFirstLeafMode *mode,
-    uint16_t width,
-    uint16_t height,
-    const Av2hLumaReferences *references,
-    uint8_t *predictor,
-    size_t predictor_stride_samples);
-Av2hStatus av2h_chroma_predict(
-    const Av2hFirstChromaMode *mode,
-    uint16_t width,
-    uint16_t height,
-    const Av2hLumaReferences *references,
-    uint8_t *predictor,
-    size_t predictor_stride_samples);
 
 Av2hStatus av2h_first_luma_reconstruct(
     const Av2hFirstLeafMode *mode,

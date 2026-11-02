@@ -4,9 +4,6 @@
 #include "decoder/coeff_level.h"
 
 uint8_t av2h_coeff_q_context(Av2hQIndex base_q_index);
-uint16_t av2h_coeff_scan_position(
-    uint16_t scan_index, uint16_t width, uint16_t height,
-    uint8_t vertical, uint8_t column_scan);
 uint8_t av2h_coeff_lf_context(
     const Av2hFirstCoeffBlock *block, uint16_t position,
     uint8_t vertical, uint8_t horizontal);

@@ -1,3 +1,7 @@
+#include "prediction.h"
+#include "internal/intra_prediction.h"
+#include "internal/chroma_prediction.h"
+#include "internal/intrabc_prediction.h"
 #include "reconstruct.h"
 #include "internal/decode_diagnostics.h"
 const Av2hReconstructionDiagnostics *av2h_reconstruction_diagnostics_get(

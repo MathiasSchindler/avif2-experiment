@@ -1,6 +1,4 @@
-#include "reconstruct.h"
 #include "internal/chroma_prediction.h"
-#include "internal/reconstruct_modules.h"
 #include "internal/sample_math.h"
 #include "internal/sample_ops.h"
 
@@ -18,100 +16,6 @@
  */
 #define AV2H_CFL_ADD_BITS_ALPHA 5
 #define AV2H_CFL_NUM_REF_SAM 8
-#define AV2H_DIV_LUT_BITS 7
-#define AV2H_DIV_LUT_PREC_BITS 9
-
-static const uint16_t cfl_div_lut[129U] = {
-    512, 508, 504, 500, 496, 493, 489, 485, 482, 478, 475, 471, 468, 465, 462,
-    458, 455, 452, 449, 446, 443, 440, 437, 434, 431, 428, 426, 423, 420, 417,
-    415, 412, 410, 407, 405, 402, 400, 397, 395, 392, 390, 388, 386, 383, 381,
-    379, 377, 374, 372, 370, 368, 366, 364, 362, 360, 358, 356, 354, 352, 350,
-    349, 347, 345, 343, 341, 340, 338, 336, 334, 333, 331, 329, 328, 326, 324,
-    323, 321, 320, 318, 317, 315, 314, 312, 311, 309, 308, 306, 305, 303, 302,
-    301, 299, 298, 297, 295, 294, 293, 291, 290, 289, 287, 286, 285, 284, 282,
-    281, 280, 279, 278, 277, 275, 274, 273, 272, 271, 270, 269, 267, 266, 265,
-    264, 263, 262, 261, 260, 259, 258, 257, 256
-};
-
-static int cfl_get_msb(uint32_t value) {
-    int log = 0;
-    while (value > 1U) {
-        value >>= 1U;
-        ++log;
-    }
-    return log;
-}
-
-static int32_t cfl_round_pow2(int64_t value, int shift) {
-    return (int32_t)((value + (((int64_t)1 << shift) >> 1)) >> shift);
-}
-
-static int32_t cfl_round_pow2_signed(int64_t value, int shift) {
-    return value < 0 ? -cfl_round_pow2(-value, shift) :
-        cfl_round_pow2(value, shift);
-}
-
-uint16_t av2h_cfl_resolve_divisor_32(uint32_t d, int *shift) {
-    int32_t f;
-    int s = cfl_get_msb(d);
-    int32_t e = (int32_t)(d - ((uint32_t)1 << s));
-    if (s > AV2H_DIV_LUT_BITS) {
-        f = cfl_round_pow2(e, s - AV2H_DIV_LUT_BITS);
-    } else {
-        f = e << (AV2H_DIV_LUT_BITS - s);
-    }
-    *shift = s + AV2H_DIV_LUT_PREC_BITS;
-    return cfl_div_lut[f];
-}
-
-static int32_t cfl_resolve_divisor_cfl(int32_t n, int32_t d, int shift) {
-    int sign_n = n < 0;
-    int32_t f_n;
-    int32_t f_d;
-    int shift_n;
-    int shift_d;
-    int shift_add;
-    int32_t ret;
-    if (sign_n) n = -n;
-    if (n == 0 || d == 0) return 0;
-    shift_n = cfl_get_msb((uint32_t)n);
-    shift_d = cfl_get_msb((uint32_t)d);
-    {
-        int32_t e_d = (int32_t)(d - ((uint32_t)1 << shift_d));
-        if (shift_d > AV2H_DIV_LUT_BITS) {
-            f_d = cfl_round_pow2(e_d, shift_d - AV2H_DIV_LUT_BITS);
-        } else {
-            f_d = e_d << (AV2H_DIV_LUT_BITS - shift_d);
-        }
-    }
-    if (shift_n > AV2H_DIV_LUT_BITS) {
-        f_n = cfl_round_pow2(n, shift_n - AV2H_DIV_LUT_BITS);
-    } else {
-        f_n = n << (AV2H_DIV_LUT_BITS - shift_n);
-    }
-    shift_add = shift_d - shift_n - shift;
-    if (shift_add <= 1) {
-        int shift0 = AV2H_DIV_LUT_PREC_BITS + AV2H_DIV_LUT_BITS + shift_add;
-        ret = shift0 >= 0 ? (cfl_div_lut[f_d] * f_n) >> shift0 :
-            (2 << shift) - 1;
-    } else {
-        ret = 0;
-    }
-    if (ret >= (2 << shift) - 1) ret = (2 << shift) - 1;
-    return sign_n ? -ret : ret;
-}
-
-int32_t av2h_cfl_derive_alpha(int32_t sum_x, int32_t sum_y, int32_t sum_xx,
-                              int32_t sum_xy, int count, int shift) {
-    int32_t der;
-    int32_t nor;
-    if (count == 0) return 0;
-    der = sum_xx - (int32_t)((int64_t)sum_x * sum_x / count);
-    nor = sum_xy - (int32_t)((int64_t)sum_x * sum_y / count);
-    if (der == 0 || nor == 0) return 0;
-    return cfl_resolve_divisor_cfl(nor, der, shift);
-}
-
 static uint16_t cfl_luma_filter2_current_q3(
     const Av2hReconstructionPlane *luma_plane,
     uint16_t chroma_x,
@@ -402,7 +306,7 @@ Av2hStatus av2h_cfl_derived_predict(
         }
         if (dc_count > 0) {
             int div_shift = 0;
-            uint16_t scale = av2h_cfl_resolve_divisor_32(
+            uint16_t scale = av2h_sample_resolve_divisor_32(
                 (uint32_t)dc_count, &div_shift);
             int32_t rounding = (1 << div_shift) >> 1;
             int32_t val = (int32_t)(((int64_t)sum * scale + rounding) >>
@@ -470,7 +374,7 @@ Av2hStatus av2h_cfl_derived_predict(
     }
     shift = 3 + AV2H_CFL_ADD_BITS_ALPHA;
     alpha = derive_alpha ?
-        av2h_cfl_derive_alpha(
+        av2h_sample_regression_slope(
             sum_x, sum_y, sum_xx, sum_xy, count, shift) :
         supplied_alpha_q3 * (1 << AV2H_CFL_ADD_BITS_ALPHA);
     /* Predict: DC base + scaled luma AC. */
@@ -519,7 +423,7 @@ Av2hStatus av2h_cfl_derived_predict(
                         luma_plane, sample_x + 1U, sample_y + 1U)) << 1;
             }
             int32_t ac = recon_q3 - avg_l;
-            int32_t scaled = cfl_round_pow2_signed(
+            int32_t scaled = av2h_sample_round_pow2_signed(
                 (int64_t)alpha * ac, 6 + AV2H_CFL_ADD_BITS_ALPHA);
             int32_t base_dc = predictor[(size_t)row * predictor_stride_samples + column];
             predictor[(size_t)row * predictor_stride_samples + column] =
@@ -727,7 +631,7 @@ static Av2hStatus cfl_predict_u16_scaled(
         }
         if (count != 0) {
             int divisor_shift = 0;
-            uint16_t divisor = av2h_cfl_resolve_divisor_32(
+            uint16_t divisor = av2h_sample_resolve_divisor_32(
                 (uint32_t)count, &divisor_shift);
             int32_t rounding = (1 << divisor_shift) >> 1;
             int32_t value = (int32_t)(
@@ -790,7 +694,7 @@ static Av2hStatus cfl_predict_u16_scaled(
             }
             {
                 int32_t ac = recon_q3 - avg_l;
-                int32_t scaled = cfl_round_pow2_signed(
+                int32_t scaled = av2h_sample_round_pow2_signed(
                     (int64_t)alpha * ac,
                     (uint8_t)(6U + alpha_extra_bits));
                 size_t output =
@@ -915,7 +819,7 @@ Av2hStatus av2h_cfl_explicit_predict_u16_444(
         }
         if (count != 0) {
             int divisor_shift = 0;
-            uint16_t divisor = av2h_cfl_resolve_divisor_32(
+            uint16_t divisor = av2h_sample_resolve_divisor_32(
                 (uint32_t)count, &divisor_shift);
             int32_t rounding = (1 << divisor_shift) >> 1;
             int32_t value = (int32_t)(
@@ -936,7 +840,7 @@ Av2hStatus av2h_cfl_explicit_predict_u16_444(
                 (uint16_t)(block_x + visible_width - 1U);
             int32_t recon_q3 = (int32_t)plane_coded_sample_u16(
                 luma_plane, sample_x, sample_y) << 3U;
-            int32_t scaled = cfl_round_pow2_signed(
+            int32_t scaled = av2h_sample_round_pow2_signed(
                 (int64_t)alpha_q3 * (recon_q3 - avg_l), 6U);
             size_t output = (size_t)row * predictor_stride_samples + column;
             predictor[output] = av2h_sample_clip_10bit(
@@ -1048,7 +952,7 @@ Av2hStatus av2h_cfl_derived_predict_u16(
             ++count;
         }
     }
-    alpha = av2h_cfl_derive_alpha(
+    alpha = av2h_sample_regression_slope(
         sum_x, sum_y, sum_xx, sum_xy, count,
         3 + AV2H_CFL_ADD_BITS_ALPHA);
     return cfl_predict_u16_scaled(
@@ -1197,7 +1101,7 @@ Av2hStatus av2h_cfl_derived_predict_u16_444(
     }
     if (dc_count != 0) {
         int divisor_shift = 0;
-        uint16_t divisor = av2h_cfl_resolve_divisor_32(
+        uint16_t divisor = av2h_sample_resolve_divisor_32(
             (uint32_t)dc_count, &divisor_shift);
         int32_t value = (int32_t)(((int64_t)sum * divisor +
             ((int32_t)1 << (divisor_shift - 1))) >> divisor_shift);
@@ -1250,7 +1154,7 @@ Av2hStatus av2h_cfl_derived_predict_u16_444(
             ++count;
         }
     }
-    alpha = av2h_cfl_derive_alpha(
+    alpha = av2h_sample_regression_slope(
         sum_x, sum_y, sum_xx, sum_xy, count,
         3 + AV2H_CFL_ADD_BITS_ALPHA);
     for (row = 0U; row < height; ++row) {
@@ -1258,7 +1162,7 @@ Av2hStatus av2h_cfl_derived_predict_u16_444(
             int32_t luma_q3 = (int32_t)plane_coded_sample_u16(
                 luma_plane, (size_t)block_x + column,
                 (size_t)block_y + row) << 3U;
-            int32_t scaled = cfl_round_pow2_signed(
+            int32_t scaled = av2h_sample_round_pow2_signed(
                 (int64_t)alpha * (luma_q3 - average_luma_q3),
                 6 + AV2H_CFL_ADD_BITS_ALPHA);
             size_t output = (size_t)row * predictor_stride_samples + column;

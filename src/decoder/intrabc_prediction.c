@@ -1,4 +1,4 @@
-#include "internal/reconstruct_modules.h"
+#include "internal/intrabc_prediction.h"
 #include "internal/decode_diagnostics.h"
 #include "internal/sample_math.h"
 
@@ -373,7 +373,7 @@ static Av2hStatus intrabc_morph_parameters(
         count += left_count;
     }
     if (count > 0) {
-        int32_t alpha = (int16_t)av2h_cfl_derive_alpha(
+        int32_t alpha = (int16_t)av2h_sample_regression_slope(
             sum_x, sum_y, sum_xx, sum_xy, count, AV2H_BAWP_SHIFT);
         if (alpha == 0) alpha = 1 << AV2H_BAWP_SHIFT;
         *alpha_out = alpha;
