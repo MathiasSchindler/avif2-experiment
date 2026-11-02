@@ -1,4 +1,5 @@
 #include "base.h"
+#include "container.h"
 #include "decode.h"
 #include "output_layout.h"
 #include "pixel_format.h"

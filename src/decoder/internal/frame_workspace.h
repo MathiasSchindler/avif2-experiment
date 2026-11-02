@@ -58,6 +58,19 @@ Av2hStatus av2h_copy_visible_planar_u16_with_execution_private(
     size_t output_size_bytes,
     const Av2hExecution *execution);
 
+Av2hStatus av2h_frame_output_validate_u8(
+    const Av2hFrameState *frame,
+    const Av2hFilterPlanes *coded,
+    const size_t coded_data_size_bytes[AV2H_FRAME_PLANE_COUNT],
+    uint8_t *output,
+    size_t output_size_bytes);
+Av2hStatus av2h_frame_output_validate_u16(
+    const Av2hFrameState *frame,
+    const Av2hReconstructionPlaneU16 coded[AV2H_FRAME_PLANE_COUNT],
+    const size_t coded_data_size_bytes[AV2H_FRAME_PLANE_COUNT],
+    uint8_t *output,
+    size_t output_size_bytes);
+
 Av2hStatus av2h_frame_workspace_prepare(
     const Av2hSequenceState *sequence,
     const Av2hFrameState *frame,

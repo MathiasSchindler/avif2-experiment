@@ -17,6 +17,7 @@ CORE_SOURCES := \
 	src/carriage.c \
 	src/bmff.c \
 	src/container.c \
+	src/container_write.c \
 	src/query.c \
 	src/decode.c \
 	src/output_layout.c \
@@ -33,12 +34,15 @@ CORE_SOURCES := \
 	src/decoder/coeff_dequant.c \
 	src/decoder/coeff_level.c \
 	src/decoder/coeff_level_cdf.c \
+	src/decoder/content_interpretation.c \
 	src/decoder/ccso.c \
 	src/decoder/cdef.c \
 	src/decoder/deblock.c \
 	src/decoder/filter.c \
 	src/decoder/filter_entropy.c \
 	src/decoder/frame_workspace.c \
+	src/decoder/frame_copy.c \
+	src/decoder/frame_filter_metadata.c \
 	src/decoder/frame.c \
 	src/decoder/frame_output.c \
 	src/decoder/gdf.c \
@@ -53,6 +57,7 @@ CORE_SOURCES := \
 	src/decoder/leaf.c \
 	src/decoder/leaf_context.c \
 	src/decoder/leaf_cdf.c \
+	src/decoder/obu.c \
 	src/decoder/palette.c \
 	src/decoder/partition.c \
 	src/decoder/partition_context.c \
@@ -60,8 +65,10 @@ CORE_SOURCES := \
 	src/decoder/qmatrix.c \
 	src/decoder/range.c \
 	src/decoder/reconstruct.c \
+	src/decoder/reconstruct_block.c \
 	src/decoder/restoration.c \
 	src/decoder/secondary_transform.c \
+	src/decoder/sequence.c \
 	src/decoder/tile.c \
 	src/decoder/tile_chroma.c \
 	src/decoder/tile_filter_handoff.c \
@@ -380,7 +387,8 @@ HOST_RUNTIME_LIBRARY := $(HOST_BUILD_DIR)/libav2heif-runtime.a
 HOST_UNIT_NAMES := substrate container range tile frame cdf partition leaf coeff \
 	transform coeff_level reconstruct filter artifact_profile layout output_layout \
 	output_parallel pixel_format png_writer preview sample_math sample_ops \
-	workspace_accounting public_decode refactor_baseline
+	workspace_accounting public_decode refactor_baseline reconstruction_block \
+	reconstruction_plane frame_refactor carriage_refactor
 HOST_UNIT_BINARIES := $(foreach name,$(HOST_UNIT_NAMES),\
 	$(HOST_BUILD_DIR)/$(subst _,-,$(name))-unit)
 HOST_RUNTIME_UNIT := $(HOST_BUILD_DIR)/runtime-substrate-unit

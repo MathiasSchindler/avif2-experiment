@@ -4,9 +4,6 @@
 #include "decoder/internal/frame_workspace.h"
 #include "decoder/internal/sample_ops.h"
 
-#include "output_layout.h"
-#include "decoder/tx_geometry.h"
-
 typedef struct {
     size_t luma_mode_above;
     size_t luma_mode_left;
@@ -411,131 +408,76 @@ static int sized_u16_plane_bytes(size_t stride_samples,
         av2h_size_multiply(sample_count, sizeof(uint16_t), size_bytes);
 }
 
-Av2hStatus av2h_planar_output_size(
+Av2hStatus av2h_frame_output_validate_u8(
     const Av2hFrameState *frame,
-    size_t *size_bytes) {
-    return av2h_planar_output_size_bytes(frame, 1U, size_bytes);
-}
-
-Av2hStatus av2h_planar_output_size_bytes(
-    const Av2hFrameState *frame,
-    size_t bytes_per_sample,
-    size_t *size_bytes) {
-    Av2hPlaneLayout planes[3];
-    if (frame == 0 || size_bytes == 0 || frame->width == 0U ||
-        frame->height == 0U) {
-        return AV2H_INVALID_ARGUMENT;
-    }
-    return av2h_output_layout_calculate(
-        frame->width, frame->height, frame->chroma_format_idc,
-        bytes_per_sample, planes, size_bytes, 0);
-}
-
-Av2hStatus av2h_planar_output_bind_u16(
-    const Av2hFrameState *frame,
-    void *output,
-    size_t output_size_bytes,
-    Av2hPlanarOutputU16 *planes) {
-    Av2hPlaneLayout layout[AV2H_FRAME_PLANE_COUNT];
-    Av2hPlanarOutputU16 bound;
-    size_t required_size;
+    const Av2hFilterPlanes *coded,
+    const size_t coded_data_size_bytes[AV2H_FRAME_PLANE_COUNT],
+    uint8_t *output,
+    size_t output_size_bytes) {
+    Av2hFilterWorkspaceLayout layout;
+    size_t required_output_bytes;
     unsigned int plane;
     Av2hStatus status;
-    if (frame == 0 || output == 0 || planes == 0 ||
-        ((uintptr_t)output & (_Alignof(uint16_t) - 1U)) != 0U) {
+    if (frame == 0 || coded == 0 || coded_data_size_bytes == 0 || output == 0) {
         return AV2H_INVALID_ARGUMENT;
     }
-    status = av2h_output_layout_calculate(
-        frame->width, frame->height, frame->chroma_format_idc, 2U,
-        layout, &required_size, 0);
+    status = av2h_planar_output_size(frame, &required_output_bytes);
     if (status != AV2H_OK) return status;
-    if (output_size_bytes < required_size) return AV2H_OUT_OF_MEMORY;
-    av2h_memory_fill(&bound, 0U, sizeof(bound));
+    if (output_size_bytes < required_output_bytes) return AV2H_OUT_OF_MEMORY;
+    status = av2h_filter_workspace_query(frame, &layout);
+    if (status != AV2H_OK) return status;
     for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
-        bound.plane[plane] = (Av2hFilterPlaneU16){
-            (uint16_t *)((uint8_t *)output + layout[plane].offset),
-            layout[plane].row_bytes / sizeof(uint16_t),
-            (uint16_t)layout[plane].width,
-            (uint16_t)layout[plane].height
-        };
+        const Av2hFilterPlane *source = &coded->plane[plane];
+        size_t source_size_bytes;
+        if (source->data == 0 ||
+            source->width != layout.plane_width[plane] ||
+            source->height != layout.plane_height[plane] ||
+            source->stride_samples < source->width ||
+            !sized_u8_plane_bytes(
+                source->stride_samples, source->height, &source_size_bytes) ||
+            source_size_bytes > coded_data_size_bytes[plane] ||
+            output_overlaps(
+                output, required_output_bytes, source->data, source_size_bytes)) {
+            return AV2H_INVALID_ARGUMENT;
+        }
     }
-    *planes = bound;
     return AV2H_OK;
 }
 
-Av2hStatus av2h_deblock_map_commit_transform(
-    Av2hDeblockMap *map,
-    uint8_t chroma_format_idc,
-    unsigned int plane,
-    const Av2hPartitionNode *leaf,
-    const Av2hFirstCoeffPrefix *prefix,
-    uint8_t skip,
-    uint8_t all_zero,
-    uint8_t lossless) {
-    const Av2hTxDescriptor *descriptor;
-    size_t grid_size;
-    size_t block_column;
-    size_t block_row;
-    size_t block_columns;
-    size_t block_rows;
-    size_t transform_columns;
-    size_t transform_rows;
-    size_t row;
+Av2hStatus av2h_frame_output_validate_u16(
+    const Av2hFrameState *frame,
+    const Av2hReconstructionPlaneU16 coded[AV2H_FRAME_PLANE_COUNT],
+    const size_t coded_data_size_bytes[AV2H_FRAME_PLANE_COUNT],
+    uint8_t *output,
+    size_t output_size_bytes) {
+    Av2hFilterWorkspaceLayout layout;
+    size_t required_output_bytes;
+    unsigned int plane;
     Av2hStatus status;
-    if (map == 0 || leaf == 0 || prefix == 0 ||
-        plane >= AV2H_FRAME_PLANE_COUNT || skip > 1U ||
-        all_zero > 1U || lossless > 1U || map->plane[plane] == 0 ||
-        map->columns[plane] == 0U || map->rows[plane] == 0U ||
-        map->stride_cells[plane] < map->columns[plane]) {
+    if (frame == 0 || coded == 0 || coded_data_size_bytes == 0 || output == 0) {
         return AV2H_INVALID_ARGUMENT;
     }
-    status = av2h_tx_descriptor_get(prefix->tx_size, &descriptor);
+    status = av2h_planar_output_size_bytes(
+        frame, sizeof(uint16_t), &required_output_bytes);
     if (status != AV2H_OK) return status;
-    status = av2h_block_dimensions_mi(
-        leaf->block_size, &block_columns, &block_rows);
+    if (output_size_bytes < required_output_bytes) return AV2H_OUT_OF_MEMORY;
+    status = av2h_filter_workspace_query_bytes(
+        frame, sizeof(uint16_t), &layout);
     if (status != AV2H_OK) return status;
-    if ((descriptor->output_width & 3U) != 0U ||
-        (descriptor->output_height & 3U) != 0U) {
-        return AV2H_UNSUPPORTED;
-    }
-    grid_size = 4U >> av2h_chroma_shift(chroma_format_idc, plane);
-    block_column = leaf->column;
-    block_row = leaf->row;
-    transform_columns = descriptor->output_width / grid_size;
-    transform_rows = descriptor->output_height / grid_size;
-    if (transform_columns > block_columns) transform_columns = block_columns;
-    if (transform_rows > block_rows) transform_rows = block_rows;
-    if (block_column >= map->columns[plane] ||
-        block_row >= map->rows[plane]) {
-        return AV2H_INVALID_ARGUMENT;
-    }
-    if (transform_columns > map->columns[plane] - block_column) {
-        transform_columns = map->columns[plane] - block_column;
-    }
-    if (transform_rows > map->rows[plane] - block_row) {
-        transform_rows = map->rows[plane] - block_row;
-    }
-    for (row = 0U; row < transform_rows; ++row) {
-        size_t column;
-        for (column = 0U; column < transform_columns; ++column) {
-            Av2hDeblockCell *cell = (Av2hDeblockCell *)&map->plane[plane][
-                (block_row + row) * map->stride_cells[plane] +
-                block_column + column];
-            if (cell->transform_width != 0U ||
-                cell->transform_height != 0U) {
-                return AV2H_INVALID_DATA;
-            }
-            *cell = (Av2hDeblockCell){
-                (uint16_t)block_column,
-                (uint16_t)block_row,
-                (uint16_t)block_column,
-                (uint16_t)block_row,
-                descriptor->output_width,
-                descriptor->output_height,
-                prefix->q_index,
-                (uint8_t)(skip != 0U || all_zero != 0U),
-                lossless
-            };
+    for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
+        const Av2hReconstructionPlaneU16 *source = &coded[plane];
+        size_t source_size_bytes;
+        if (source->data == 0 ||
+            source->width != layout.plane_width[plane] ||
+            source->height != layout.plane_height[plane] ||
+            source->stride_samples < source->width ||
+            !sized_u16_plane_bytes(
+                source->stride_samples, source->height, &source_size_bytes) ||
+            source_size_bytes > coded_data_size_bytes[plane] ||
+            output_overlaps(
+                output, required_output_bytes, source->data,
+                source_size_bytes)) {
+            return AV2H_INVALID_ARGUMENT;
         }
     }
     return AV2H_OK;
@@ -1019,205 +961,6 @@ static int maps_and_readiness_complete(
         }
     }
     return 1;
-}
-
-#define AV2H_PARALLEL_COPY_MIN_BYTES (64U * 1024U)
-#define AV2H_PARALLEL_COPY_TARGET_CHUNK_BYTES (16U * 1024U)
-
-typedef struct {
-    const uint8_t *source;
-    uint8_t *destination;
-    size_t source_stride;
-    size_t row_bytes;
-} Av2hCopyRowsU8;
-
-static int copy_rows_u8(size_t begin, size_t end,
-                        unsigned int worker_index, void *argument) {
-    Av2hCopyRowsU8 *copy = (Av2hCopyRowsU8 *)argument;
-    size_t row;
-    (void)worker_index;
-    for (row = begin; row < end; ++row) {
-        av2h_memory_copy(
-            copy->destination + row * copy->row_bytes,
-            copy->source + row * copy->source_stride,
-            copy->row_bytes);
-    }
-    return 0;
-}
-
-static int copy_rows_dispatch(const Av2hExecution *execution,
-                              size_t height,
-                              size_t row_bytes,
-                              Av2hParallelBody body,
-                              void *argument) {
-    size_t total_bytes = height * row_bytes;
-    size_t min_chunk;
-    if (execution == 0 || execution->parallel_for == 0 ||
-        execution->width <= 1U || height <= 1U ||
-        total_bytes < AV2H_PARALLEL_COPY_MIN_BYTES) {
-        return body(0U, height, 0U, argument);
-    }
-    min_chunk = AV2H_PARALLEL_COPY_TARGET_CHUNK_BYTES / row_bytes;
-    if (min_chunk == 0U) min_chunk = 1U;
-    return execution->parallel_for(
-        execution->context, height, min_chunk, body, argument);
-}
-
-Av2hStatus av2h_copy_visible_planar_with_execution_private(
-    const Av2hFrameState *frame,
-    const Av2hFilterPlanes *coded,
-    const size_t coded_data_size_bytes[AV2H_FRAME_PLANE_COUNT],
-    uint8_t *output,
-    size_t output_size_bytes,
-    const Av2hExecution *execution) {
-    Av2hFilterWorkspaceLayout layout;
-    size_t required_output_bytes;
-    size_t offset = 0U;
-    unsigned int plane;
-    Av2hStatus status;
-    if (frame == 0 || coded == 0 || coded_data_size_bytes == 0 || output == 0) {
-        return AV2H_INVALID_ARGUMENT;
-    }
-    status = av2h_planar_output_size(frame, &required_output_bytes);
-    if (status != AV2H_OK) return status;
-    if (output_size_bytes < required_output_bytes) return AV2H_OUT_OF_MEMORY;
-    status = av2h_filter_workspace_query(frame, &layout);
-    if (status != AV2H_OK) return status;
-    for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
-        const Av2hFilterPlane *source = &coded->plane[plane];
-        size_t source_size_bytes;
-        if (source->data == 0 ||
-            source->width != layout.plane_width[plane] ||
-            source->height != layout.plane_height[plane] ||
-            source->stride_samples < source->width ||
-            !sized_u8_plane_bytes(
-                source->stride_samples, source->height, &source_size_bytes) ||
-            source_size_bytes > coded_data_size_bytes[plane] ||
-            output_overlaps(
-                output, required_output_bytes, source->data, source_size_bytes)) {
-            return AV2H_INVALID_ARGUMENT;
-        }
-    }
-    for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
-        const Av2hFilterPlane *source = &coded->plane[plane];
-        size_t width = av2h_frame_plane_dimension(
-            frame, plane, frame->width);
-        size_t height = av2h_frame_plane_dimension(
-            frame, plane, frame->height);
-        Av2hCopyRowsU8 copy = {
-            source->data, output + offset, source->stride_samples, width
-        };
-        if (copy_rows_dispatch(
-                execution, height, width, copy_rows_u8, &copy) != 0) {
-            return AV2H_INVALID_DATA;
-        }
-        offset += width * height;
-    }
-    return AV2H_OK;
-}
-
-Av2hStatus av2h_copy_visible_planar_private(
-    const Av2hFrameState *frame,
-    const Av2hFilterPlanes *coded,
-    const size_t coded_data_size_bytes[AV2H_FRAME_PLANE_COUNT],
-    uint8_t *output,
-    size_t output_size_bytes) {
-    return av2h_copy_visible_planar_with_execution_private(
-        frame, coded, coded_data_size_bytes, output, output_size_bytes, 0);
-}
-
-typedef struct {
-    const uint16_t *source;
-    uint8_t *destination;
-    size_t source_stride;
-    size_t width;
-} Av2hCopyRowsU16;
-
-static int copy_rows_u16(size_t begin, size_t end,
-                         unsigned int worker_index, void *argument) {
-    Av2hCopyRowsU16 *copy = (Av2hCopyRowsU16 *)argument;
-    size_t row;
-    (void)worker_index;
-    for (row = begin; row < end; ++row) {
-        size_t column;
-        uint8_t *destination =
-            copy->destination + row * copy->width * sizeof(uint16_t);
-        const uint16_t *source =
-            copy->source + row * copy->source_stride;
-        for (column = 0U; column < copy->width; ++column) {
-            uint16_t sample = source[column];
-            destination[column * 2U] = (uint8_t)sample;
-            destination[column * 2U + 1U] = (uint8_t)(sample >> 8U);
-        }
-    }
-    return 0;
-}
-
-Av2hStatus av2h_copy_visible_planar_u16_with_execution_private(
-    const Av2hFrameState *frame,
-    const Av2hReconstructionPlaneU16 coded[AV2H_FRAME_PLANE_COUNT],
-    const size_t coded_data_size_bytes[AV2H_FRAME_PLANE_COUNT],
-    uint8_t *output,
-    size_t output_size_bytes,
-    const Av2hExecution *execution) {
-    Av2hFilterWorkspaceLayout layout;
-    size_t required_output_bytes;
-    size_t offset = 0U;
-    unsigned int plane;
-    Av2hStatus status;
-    if (frame == 0 || coded == 0 || coded_data_size_bytes == 0 || output == 0) {
-        return AV2H_INVALID_ARGUMENT;
-    }
-    status = av2h_planar_output_size_bytes(
-        frame, sizeof(uint16_t), &required_output_bytes);
-    if (status != AV2H_OK) return status;
-    if (output_size_bytes < required_output_bytes) return AV2H_OUT_OF_MEMORY;
-    status = av2h_filter_workspace_query_bytes(
-        frame, sizeof(uint16_t), &layout);
-    if (status != AV2H_OK) return status;
-    for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
-        const Av2hReconstructionPlaneU16 *source = &coded[plane];
-        size_t source_size_bytes;
-        if (source->data == 0 ||
-            source->width != layout.plane_width[plane] ||
-            source->height != layout.plane_height[plane] ||
-            source->stride_samples < source->width ||
-            !sized_u16_plane_bytes(
-                source->stride_samples, source->height, &source_size_bytes) ||
-            source_size_bytes > coded_data_size_bytes[plane] ||
-            output_overlaps(
-                output, required_output_bytes, source->data,
-                source_size_bytes)) {
-            return AV2H_INVALID_ARGUMENT;
-        }
-    }
-    for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
-        const Av2hReconstructionPlaneU16 *source = &coded[plane];
-        size_t width = av2h_frame_plane_dimension(
-            frame, plane, frame->width);
-        size_t height = av2h_frame_plane_dimension(
-            frame, plane, frame->height);
-        size_t row_bytes = width * sizeof(uint16_t);
-        Av2hCopyRowsU16 copy = {
-            source->data, output + offset, source->stride_samples, width
-        };
-        if (copy_rows_dispatch(
-                execution, height, row_bytes, copy_rows_u16, &copy) != 0) {
-            return AV2H_INVALID_DATA;
-        }
-        offset += row_bytes * height;
-    }
-    return AV2H_OK;
-}
-
-Av2hStatus av2h_copy_visible_planar_u16_private(
-    const Av2hFrameState *frame,
-    const Av2hReconstructionPlaneU16 coded[AV2H_FRAME_PLANE_COUNT],
-    const size_t coded_data_size_bytes[AV2H_FRAME_PLANE_COUNT],
-    uint8_t *output,
-    size_t output_size_bytes) {
-    return av2h_copy_visible_planar_u16_with_execution_private(
-        frame, coded, coded_data_size_bytes, output, output_size_bytes, 0);
 }
 
 Av2hStatus av2h_frame_workspace_prepare(

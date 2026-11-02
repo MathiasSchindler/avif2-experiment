@@ -445,8 +445,16 @@ def main() -> int:
                     "include/av2heif.h",
                     "src/base.c",
                     "src/carriage.c",
+                    "src/carriage.h",
                     "src/bmff.c",
                     "src/container.c",
+                    "src/container.h",
+                    "src/container_write.c",
+                    "src/decoder/obu.c",
+                    "src/decoder/internal/obu.h",
+                    "src/decoder/sequence.c",
+                    "src/decoder/sequence.h",
+                    "src/decoder/content_interpretation.c",
                 )
             },
         }

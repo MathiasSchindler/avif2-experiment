@@ -1,6 +1,6 @@
 # Decoder refactoring milestones
 
-**Status:** M0-M2 complete, 2 November 2026. M3-M8 remain planned.
+**Status:** M0-M5 complete, 2 November 2026. M6-M8 remain planned.
 
 ## Purpose and scope
 
@@ -63,7 +63,7 @@ bucket. Proposed owner names below are illustrative, not mandatory file counts.
 
 ## Milestone overview
 
-M0-M2 are complete; all other milestones are pending. Dependencies are
+M0-M5 are complete; all other milestones are pending. Dependencies are
 prerequisites, not merely list order; independent work may proceed separately
 if its edits do not overlap.
 
@@ -72,9 +72,9 @@ if its edits do not overlap.
 | M0 (complete) | Freeze behavioral and resource evidence | None |
 | M1 (complete) | Extract prediction families without behavior changes | M0 |
 | M2 (complete) | Simplify prediction admission and dispatch | M1 |
-| M3 | Separate block reconstruction from plane integration | M1 |
-| M4 | Clarify frame storage, metadata, output, and orchestration | M3 |
-| M5 | Separate codec syntax from root-level carriage/container work | M0 |
+| M3 (complete) | Separate block reconstruction from plane integration | M1 |
+| M4 (complete) | Clarify frame storage, metadata, output, and orchestration | M3 |
+| M5 (complete) | Separate codec syntax from root-level carriage/container work | M0 |
 | M6 | Narrow private headers around the resulting owners | M1, M3, M4, M5 |
 | M7 | Standardize error-record initialization and context assembly | M4, M5 |
 | M8 | Complete integration evidence and ownership documentation | M2, M6, M7 |
@@ -172,6 +172,8 @@ rule and dispatch path, with unchanged pixels, rejection statuses, and bounds.
 
 ## M3: separate block reconstruction from plane integration
 
+**Completed:** [block/plane ownership and equivalence evidence](dev/refactoring-m3.md).
+
 Split [`reconstruct.c`](../src/decoder/reconstruct.c) at the boundary between:
 
 1. Reconstructing samples from a supplied predictor and coefficient block:
@@ -217,6 +219,10 @@ hiding buffer bounds, increasing workspace, or changing lifetimes.
 owners. Layout, overlap, parallel-output, tile-boundary, filter-order, and
 failure-path tests preserve existing behavior.
 
+**Completed:** see [M4 ownership and validation evidence](dev/refactoring-m4.md),
+including unchanged allocation/scheduling bodies, frozen frame characterizations,
+and the existing missing-media limits on aggregate gates.
+
 ## M5: separate codec syntax and container carriage
 
 For [`carriage.c`](../src/carriage.c):
@@ -244,6 +250,10 @@ thin coordinators rather than moving codec internals into them.
 **Exit:** codec sequence syntax no longer belongs to container-carriage code.
 Container round-trip/determinism, dialect detection, metadata consistency, OBU
 validation, offsets, error precedence, and public decode tests remain exact.
+
+**Completed:** see [M5 ownership and validation evidence](dev/refactoring-m5.md),
+including all 57 preserved function bodies, 52,630 frozen parsing/container
+scenario groups, and the unchanged missing-media limits on aggregate gates.
 
 ## M6: narrow private interfaces
 

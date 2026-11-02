@@ -4,6 +4,7 @@
 #include "filter.h"
 #include "tile.h"
 #include "internal/decode_diagnostics.h"
+#include "internal/frame_filter_metadata.h"
 #include "runtime/execution.h"
 
 typedef struct {
@@ -110,16 +111,6 @@ Av2hStatus av2h_planar_output_size_bytes(
     const Av2hFrameState *frame,
     size_t bytes_per_sample,
     size_t *size_bytes);
-
-Av2hStatus av2h_deblock_map_commit_transform(
-    Av2hDeblockMap *map,
-    uint8_t chroma_format_idc,
-    unsigned int plane,
-    const Av2hPartitionNode *leaf,
-    const Av2hFirstCoeffPrefix *prefix,
-    uint8_t skip,
-    uint8_t all_zero,
-    uint8_t lossless);
 
 Av2hStatus av2h_copy_visible_planar_private(
     const Av2hFrameState *frame,

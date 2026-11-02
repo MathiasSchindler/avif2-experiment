@@ -6,45 +6,51 @@
 #include "decoder/internal/tile_modules.h"
 #include "decoder/tx_geometry.h"
 
-static Av2hStatus restoration_tx_skip_commit(
-    Av2hFilterWorkspace *workspace,
-    const Av2hPartitionNode *leaf,
-    const Av2hFirstCoeffPrefix *prefix) {
-    const Av2hTxDescriptor *descriptor;
-    size_t columns;
-    size_t rows;
-    size_t row;
-    Av2hStatus status;
-    if (workspace == 0 || leaf == 0 || prefix == 0 ||
-        workspace->restoration_tx_skip == 0 ||
-        workspace->restoration_controls.tx_skip_stride == 0U) {
-        return AV2H_INVALID_ARGUMENT;
-    }
-    status = av2h_tx_descriptor_get(prefix->tx_size, &descriptor);
-    if (status != AV2H_OK) return status;
-    columns = descriptor->output_width / 4U;
-    rows = descriptor->output_height / 4U;
-    if (leaf->column >= workspace->deblock_map.columns[0] ||
-        leaf->row >= workspace->deblock_map.rows[0]) {
-        return AV2H_INVALID_ARGUMENT;
-    }
-    if (columns > workspace->deblock_map.columns[0] - leaf->column) {
-        columns = workspace->deblock_map.columns[0] - leaf->column;
-    }
-    if (rows > workspace->deblock_map.rows[0] - leaf->row) {
-        rows = workspace->deblock_map.rows[0] - leaf->row;
-    }
-    for (row = 0U; row < rows; ++row) {
-        size_t column;
-        uint8_t *destination = workspace->restoration_tx_skip +
-            (leaf->row + row) *
-                workspace->restoration_controls.tx_skip_stride +
-            leaf->column;
-        for (column = 0U; column < columns; ++column) {
-            destination[column] = prefix->all_zero;
-        }
-    }
-    return AV2H_OK;
+static void luma_failure_context(
+    Av2hFrameDecodeResult *decoded,
+    const Av2hTileLumaLeaf *leaf,
+    const Av2hReconstructionDiagnostics *diagnostics) {
+    decoded->mode = (uint8_t)leaf->mode.mode;
+    decoded->angle_delta = leaf->mode.angle_delta;
+    decoded->mrl_index = leaf->mode.mrl_index;
+    decoded->multi_line_mrl = leaf->mode.multi_line_mrl;
+    decoded->enable_ibp = leaf->mode.enable_ibp;
+    decoded->use_intrabc = leaf->mode.use_intrabc;
+    decoded->displacement_x = leaf->mode.displacement_x;
+    decoded->displacement_y = leaf->mode.displacement_y;
+    decoded->morph_pred = leaf->mode.morph_pred;
+    decoded->fsc_mode = leaf->mode.fsc_mode;
+    decoded->skip_transform = leaf->mode.skip_transform;
+    decoded->palette_size = leaf->mode.palette_size;
+    decoded->tx_size = (uint8_t)leaf->prefix.tx_size;
+    decoded->inverse_transform_stage =
+        diagnostics != 0 ?
+            diagnostics->inverse_transform_stage : 0U;
+    decoded->intrabc_source_x = diagnostics != 0 ?
+        diagnostics->intrabc_source_x : 0U;
+    decoded->intrabc_source_y = diagnostics != 0 ?
+        diagnostics->intrabc_source_y : 0U;
+    decoded->intrabc_map_index = diagnostics != 0 ?
+        diagnostics->intrabc_map_index : 0U;
+    decoded->primary_type = (uint8_t)leaf->transform.primary_type;
+    decoded->primary_symbol = leaf->transform.primary_symbol;
+    decoded->secondary_symbol = leaf->transform.secondary_symbol;
+    decoded->secondary_set = leaf->transform.secondary_set;
+    decoded->eob = leaf->prefix.eob;
+}
+
+static void chroma_failure_context(
+    Av2hFrameDecodeResult *decoded,
+    const Av2hTileChromaLeaf *leaf,
+    unsigned int index) {
+    decoded->mode = (uint8_t)leaf->mode.mode;
+    decoded->angle_delta = leaf->mode.angle_delta;
+    decoded->tx_size = (uint8_t)leaf->prefix[index].tx_size;
+    decoded->primary_type = (uint8_t)leaf->transform[index].primary_type;
+    decoded->primary_symbol = leaf->transform[index].primary_symbol;
+    decoded->secondary_symbol = leaf->transform[index].secondary_symbol;
+    decoded->secondary_set = leaf->transform[index].secondary_set;
+    decoded->eob = leaf->prefix[index].eob;
 }
 
 static uint8_t *tile_readiness_map(
@@ -367,35 +373,10 @@ Av2hStatus av2h_decode_frame_group_planar_with_execution_private(
                             workspace->diagnostics);
                 uint8_t luma_tile_stage = tile_diagnostics != 0 ?
                     tile_diagnostics->luma_tile_stage : 0U;
-                decoded.mode = (uint8_t)leaf.mode.mode;
-                decoded.angle_delta = leaf.mode.angle_delta;
-                decoded.mrl_index = leaf.mode.mrl_index;
-                decoded.multi_line_mrl = leaf.mode.multi_line_mrl;
-                decoded.enable_ibp = leaf.mode.enable_ibp;
-                decoded.use_intrabc = leaf.mode.use_intrabc;
-                decoded.displacement_x = leaf.mode.displacement_x;
-                decoded.displacement_y = leaf.mode.displacement_y;
-                decoded.morph_pred = leaf.mode.morph_pred;
-                decoded.fsc_mode = leaf.mode.fsc_mode;
-                decoded.skip_transform = leaf.mode.skip_transform;
-                decoded.palette_size = leaf.mode.palette_size;
-                decoded.tx_size = (uint8_t)leaf.prefix.tx_size;
-                decoded.inverse_transform_stage =
-                    reconstruction_diagnostics != 0 ?
-                        reconstruction_diagnostics->inverse_transform_stage :
-                        0U;
-                decoded.intrabc_source_x = reconstruction_diagnostics != 0 ?
-                    reconstruction_diagnostics->intrabc_source_x : 0U;
-                decoded.intrabc_source_y = reconstruction_diagnostics != 0 ?
-                    reconstruction_diagnostics->intrabc_source_y : 0U;
-                decoded.intrabc_map_index = reconstruction_diagnostics != 0 ?
-                    reconstruction_diagnostics->intrabc_map_index : 0U;
-                decoded.primary_type = (uint8_t)leaf.transform.primary_type;
-                decoded.primary_symbol = leaf.transform.primary_symbol;
+                luma_failure_context(
+                    &decoded, &leaf, reconstruction_diagnostics);
                 decoded.primary_set_symbol =
                     leaf.transform.primary_long_side_symbol;
-                decoded.secondary_symbol = leaf.transform.secondary_symbol;
-                decoded.secondary_set = leaf.transform.secondary_set;
                 if (luma_tile_stage == 1U) {
                     decoded.syntax_stage = leaf_diagnostics != 0 ?
                         leaf_diagnostics->luma_mode_stage : 0U;
@@ -404,7 +385,6 @@ Av2hStatus av2h_decode_frame_group_planar_with_execution_private(
                     decoded.syntax_stage = transform_diagnostics != 0 ?
                         transform_diagnostics->transform_stage : 0U;
                 }
-                decoded.eob = leaf.prefix.eob;
                 decoded.prefix_stage = coefficient_diagnostics != 0 ?
                     coefficient_diagnostics->luma_prefix_stage : 0U;
                 decoded.txb_skip_context = leaf.prefix.txb_skip_context;
@@ -458,33 +438,7 @@ Av2hStatus av2h_decode_frame_group_planar_with_execution_private(
                 const Av2hReconstructionDiagnostics *diagnostics =
                     av2h_reconstruction_diagnostics_get(
                         workspace->diagnostics);
-                decoded.mode = (uint8_t)leaf.mode.mode;
-                decoded.angle_delta = leaf.mode.angle_delta;
-                decoded.mrl_index = leaf.mode.mrl_index;
-                decoded.multi_line_mrl = leaf.mode.multi_line_mrl;
-                decoded.enable_ibp = leaf.mode.enable_ibp;
-                decoded.use_intrabc = leaf.mode.use_intrabc;
-                decoded.displacement_x = leaf.mode.displacement_x;
-                decoded.displacement_y = leaf.mode.displacement_y;
-                decoded.morph_pred = leaf.mode.morph_pred;
-                decoded.fsc_mode = leaf.mode.fsc_mode;
-                decoded.skip_transform = leaf.mode.skip_transform;
-                decoded.palette_size = leaf.mode.palette_size;
-                decoded.tx_size = (uint8_t)leaf.prefix.tx_size;
-                decoded.inverse_transform_stage =
-                    diagnostics != 0 ?
-                        diagnostics->inverse_transform_stage : 0U;
-                decoded.intrabc_source_x = diagnostics != 0 ?
-                    diagnostics->intrabc_source_x : 0U;
-                decoded.intrabc_source_y = diagnostics != 0 ?
-                    diagnostics->intrabc_source_y : 0U;
-                decoded.intrabc_map_index = diagnostics != 0 ?
-                    diagnostics->intrabc_map_index : 0U;
-                decoded.primary_type = (uint8_t)leaf.transform.primary_type;
-                decoded.primary_symbol = leaf.transform.primary_symbol;
-                decoded.secondary_symbol = leaf.transform.secondary_symbol;
-                decoded.secondary_set = leaf.transform.secondary_set;
-                decoded.eob = leaf.prefix.eob;
+                luma_failure_context(&decoded, &leaf, diagnostics);
                 AV2H_DECODE_FAIL(
                     status, status,
                     AV2H_FRAME_DECODE_STAGE_LUMA_RECONSTRUCT,
@@ -504,7 +458,7 @@ Av2hStatus av2h_decode_frame_group_planar_with_execution_private(
                     0U, &leaf.node, 0U);
             }
             if (av2h_frame_restoration_needs_tx_skip(frame)) {
-                status = restoration_tx_skip_commit(
+                status = av2h_restoration_tx_skip_commit(
                     workspace->filter_workspace, &leaf.node, &leaf.prefix);
                 if (status != AV2H_OK) {
                     AV2H_DECODE_FAIL(
@@ -535,22 +489,10 @@ Av2hStatus av2h_decode_frame_group_planar_with_execution_private(
                     tile_diagnostics->chroma_tile_stage : 0U;
                 unsigned int diagnostic_index =
                     chroma_tile_stage >= 4U ? 1U : 0U;
-                decoded.mode = (uint8_t)leaf.mode.mode;
-                decoded.angle_delta = leaf.mode.angle_delta;
+                chroma_failure_context(&decoded, &leaf, diagnostic_index);
                 decoded.syntax_stage = leaf_diagnostics != 0 ?
                     leaf_diagnostics->chroma_mode_stage : 0U;
                 decoded.chroma_mode_index = leaf.mode.mode_index;
-                decoded.tx_size =
-                    (uint8_t)leaf.prefix[diagnostic_index].tx_size;
-                decoded.primary_type = (uint8_t)
-                    leaf.transform[diagnostic_index].primary_type;
-                decoded.primary_symbol =
-                    leaf.transform[diagnostic_index].primary_symbol;
-                decoded.secondary_symbol =
-                    leaf.transform[diagnostic_index].secondary_symbol;
-                decoded.secondary_set =
-                    leaf.transform[diagnostic_index].secondary_set;
-                decoded.eob = leaf.prefix[diagnostic_index].eob;
                 decoded.txb_skip_context =
                     leaf.prefix[diagnostic_index].txb_skip_context;
                 decoded.all_zero =
@@ -682,17 +624,7 @@ Av2hStatus av2h_decode_frame_group_planar_with_execution_private(
                             reconstruction_diagnostics =
                                 av2h_reconstruction_diagnostics_get(
                                     workspace->diagnostics);
-                        decoded.mode = (uint8_t)leaf.mode.mode;
-                        decoded.angle_delta = leaf.mode.angle_delta;
-                        decoded.tx_size = (uint8_t)leaf.prefix[index].tx_size;
-                        decoded.primary_type =
-                            (uint8_t)leaf.transform[index].primary_type;
-                        decoded.primary_symbol =
-                            leaf.transform[index].primary_symbol;
-                        decoded.secondary_symbol =
-                            leaf.transform[index].secondary_symbol;
-                        decoded.secondary_set =
-                            leaf.transform[index].secondary_set;
+                        chroma_failure_context(&decoded, &leaf, index);
                         decoded.is_cfl = leaf.mode.is_cfl;
                         decoded.cfl_kind = (uint8_t)leaf.mode.cfl_kind;
                         decoded.mhccp_direction = leaf.mode.mhccp_direction;
@@ -700,7 +632,6 @@ Av2hStatus av2h_decode_frame_group_planar_with_execution_private(
                             leaf.mode.cfl_downsample_filter_index;
                         decoded.mhccp_reason = prediction_diagnostics != 0 ?
                             prediction_diagnostics->mhccp_reason : 0U;
-                        decoded.eob = leaf.prefix[index].eob;
                         AV2H_DECODE_FAIL(
                             status, status,
                             AV2H_FRAME_DECODE_STAGE_CHROMA_RECONSTRUCT,
@@ -743,23 +674,12 @@ Av2hStatus av2h_decode_frame_group_planar_with_execution_private(
                         const Av2hReconstructionDiagnostics *diagnostics =
                             av2h_reconstruction_diagnostics_get(
                                 workspace->diagnostics);
-                        decoded.mode = (uint8_t)leaf.mode.mode;
-                        decoded.angle_delta = leaf.mode.angle_delta;
+                        chroma_failure_context(&decoded, &leaf, index);
                         decoded.chroma_mode_index = leaf.mode.mode_index;
-                        decoded.tx_size = (uint8_t)leaf.prefix[index].tx_size;
-                        decoded.primary_type =
-                            (uint8_t)leaf.transform[index].primary_type;
-                        decoded.primary_symbol =
-                            leaf.transform[index].primary_symbol;
-                        decoded.secondary_symbol =
-                            leaf.transform[index].secondary_symbol;
-                        decoded.secondary_set =
-                            leaf.transform[index].secondary_set;
                         decoded.is_cfl = leaf.mode.is_cfl;
                         decoded.cfl_kind = (uint8_t)leaf.mode.cfl_kind;
                         decoded.mhccp_direction =
                             leaf.mode.mhccp_direction;
-                        decoded.eob = leaf.prefix[index].eob;
                         AV2H_DECODE_FAIL(
                             status, status,
                             AV2H_FRAME_DECODE_STAGE_CHROMA_RECONSTRUCT,
