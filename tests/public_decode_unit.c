@@ -174,6 +174,7 @@ static void test_public_decode(const PublicFixture *fixture) {
     size_t expected_output;
     size_t index;
     size_t prefix;
+    uint64_t workspace_hash;
     CHECK(stream_size != 0U);
     CHECK(av2h_obu_parse((Av2hSpan){ stream, stream_size }, &ledger,
                           &error) == AV2H_OK);
@@ -320,16 +321,20 @@ static void test_public_decode(const PublicFixture *fixture) {
                        workspace, info.workspace_size, output,
                        info.output_size, &error) == AV2H_INVALID_DATA);
     CHECK(error.context == AV2H_CONTEXT_BINDING && output[0] == 0xa5U);
+    workspace_hash = fnv1a64(workspace, info.workspace_size);
     CHECK(av2h_decode((Av2hSpan){ container, container_size }, &info,
                        workspace, info.workspace_size, workspace,
                        info.output_size, &error) == AV2H_INVALID_ARGUMENT);
     CHECK(error.context == AV2H_CONTEXT_OUTPUT && output[0] == 0xa5U);
+    CHECK(fnv1a64(workspace, info.workspace_size) == workspace_hash);
     av2h_memory_copy(workspace, &info, sizeof(info));
+    workspace_hash = fnv1a64(workspace, info.workspace_size);
     CHECK(av2h_decode(
               (Av2hSpan){ container, container_size },
               (const Av2hInfo *)workspace, workspace, info.workspace_size,
               output, info.output_size, &error) == AV2H_INVALID_ARGUMENT);
     CHECK(error.context == AV2H_CONTEXT_OUTPUT && output[0] == 0xa5U);
+    CHECK(fnv1a64(workspace, info.workspace_size) == workspace_hash);
     CHECK(av2h_decode(
               (Av2hSpan){ container, container_size }, &info,
               workspace, info.workspace_size, output, info.output_size,
@@ -345,6 +350,9 @@ static void test_public_decode(const PublicFixture *fixture) {
         CHECK(output[0] == 0xa5U);
         CHECK(error.diagnostic_stage != 255U);
         CHECK(error.parsed_value == 0U);
+        for (index = 0U; index < info.output_size; ++index) {
+            CHECK(output[index] == 0xa5U);
+        }
     }
     free(allocation);
 }
@@ -391,6 +399,7 @@ static void test_10bit_public_decode(const TenBitPublicFixture *fixture) {
     size_t chroma_width;
     size_t chroma_plane_size;
     size_t luma_plane_size;
+    uint64_t workspace_hash;
     size_t index;
     size_t prefix;
     CHECK(stream_size == fixture->stream_size);
@@ -542,18 +551,22 @@ static void test_10bit_public_decode(const TenBitPublicFixture *fixture) {
               workspace, info.workspace_size,
               output, info.output_size, &error) == AV2H_INVALID_DATA);
     CHECK(error.context == AV2H_CONTEXT_BINDING && output[0] == 0xa5U);
+    workspace_hash = fnv1a64(workspace, info.workspace_size);
     CHECK(av2h_decode(
               (Av2hSpan){ container, container_size }, &info,
               workspace, info.workspace_size, workspace, info.output_size,
               &error) == AV2H_INVALID_ARGUMENT);
     CHECK(error.context == AV2H_CONTEXT_OUTPUT);
+    CHECK(fnv1a64(workspace, info.workspace_size) == workspace_hash);
     av2h_memory_copy(workspace, &info, sizeof(info));
+    workspace_hash = fnv1a64(workspace, info.workspace_size);
     CHECK(av2h_decode(
               (Av2hSpan){ container, container_size },
               (const Av2hInfo *)workspace,
               workspace, info.workspace_size,
               output, info.output_size, &error) == AV2H_INVALID_ARGUMENT);
     CHECK(error.context == AV2H_CONTEXT_OUTPUT && output[0] == 0xa5U);
+    CHECK(fnv1a64(workspace, info.workspace_size) == workspace_hash);
     CHECK(av2h_decode(
               (Av2hSpan){ container, container_size }, &info,
               workspace, info.workspace_size,
@@ -567,6 +580,9 @@ static void test_10bit_public_decode(const TenBitPublicFixture *fixture) {
                   workspace, info.workspace_size,
                   output, info.output_size, &error) != AV2H_OK);
         CHECK(output[0] == 0xa5U);
+        for (index = 0U; index <= info.output_size; ++index) {
+            CHECK(output[index] == 0xa5U);
+        }
     }
     free(allocation);
 }

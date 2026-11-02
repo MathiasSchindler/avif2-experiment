@@ -45,6 +45,10 @@ CORE_SOURCES := \
 	src/decoder/intrabc.c \
 	src/decoder/intrabc_prediction.c \
 	src/decoder/intra_prediction.c \
+	src/decoder/intra_prediction_basic.c \
+	src/decoder/intra_prediction_directional.c \
+	src/decoder/intra_prediction_edges.c \
+	src/decoder/intra_prediction_dip.c \
 	src/decoder/inverse_transform.c \
 	src/decoder/leaf.c \
 	src/decoder/leaf_context.c \
@@ -376,7 +380,7 @@ HOST_RUNTIME_LIBRARY := $(HOST_BUILD_DIR)/libav2heif-runtime.a
 HOST_UNIT_NAMES := substrate container range tile frame cdf partition leaf coeff \
 	transform coeff_level reconstruct filter artifact_profile layout output_layout \
 	output_parallel pixel_format png_writer preview sample_math sample_ops \
-	workspace_accounting public_decode
+	workspace_accounting public_decode refactor_baseline
 HOST_UNIT_BINARIES := $(foreach name,$(HOST_UNIT_NAMES),\
 	$(HOST_BUILD_DIR)/$(subst _,-,$(name))-unit)
 HOST_RUNTIME_UNIT := $(HOST_BUILD_DIR)/runtime-substrate-unit

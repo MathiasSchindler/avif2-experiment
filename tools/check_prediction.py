@@ -23,6 +23,10 @@ D67_MRL3_DERIVATIVE_INDEX = 58
 D67_MRL3_DERIVATIVE = 38
 D67_MRL3_FILTER_PHASES = (12, 31, 18, 5)
 SMOOTH8_BLEND = (32, 16, 8, 4, 2, 1, 0, 0)
+PRODUCTION_SOURCES = (
+    Path("src/decoder/intra_prediction_directional.c"),
+    Path("src/decoder/intra_prediction_basic.c"),
+)
 
 
 def initializer(source: str, name: str) -> str:
@@ -46,6 +50,25 @@ def rows(values: list[int], width: int) -> list[tuple[int, ...]]:
             for index in range(0, len(values), width)]
 
 
+def read_production(paths: list[Path] | None) -> str:
+    return "\n".join(
+        path.read_text() for path in (paths or PRODUCTION_SOURCES))
+
+
+def check_smooth_blend(production: str) -> None:
+    production_blend = tuple(integers(initializer(
+        production, "smooth8_blend")))
+    if production_blend != SMOOTH8_BLEND:
+        raise ValueError(
+            f"production 8-wide smooth blend differs: {production_blend} != "
+            f"{SMOOTH8_BLEND}")
+    if ("unsigned int distance = ((unsigned int)position << 1U) >> scale;"
+            not in production or
+            "return distance >= 6U ? 0U : (uint8_t)(64U >> distance);"
+            not in production):
+        raise ValueError("production geometric smooth blend process differs")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -61,8 +84,9 @@ def main() -> int:
         "--avm-predictor", type=Path,
         default=Path("vendor/avm/avm_dsp/intrapred.c"))
     parser.add_argument(
-        "--production", type=Path,
-        default=Path("src/decoder/intra_prediction.c"))
+        "--production", type=Path, action="append",
+        help="Production source; repeat for split owners (default: "
+             "intra_prediction_directional.c and intra_prediction_basic.c).")
     args = parser.parse_args()
 
     digest = hashlib.sha256(args.spec_derivative.read_bytes()).hexdigest()
@@ -87,7 +111,7 @@ def main() -> int:
 
     avm_filters = rows(integers(initializer(
         args.avm_intra.read_text(), "av2_dr_interp_filter")), 4)
-    production = args.production.read_text()
+    production = read_production(args.production)
     production_filters = rows(integers(initializer(
         production, "dr_interp_filter")), 4)
     if production_filters != avm_filters:
@@ -133,17 +157,7 @@ def main() -> int:
             r"\(\(r\s*<<\s*1\)\s*>>\s*scale\)\)",
             avm_predictor, re.DOTALL):
         raise ValueError("pinned AVM smooth blend process differs")
-    production_blend = tuple(integers(initializer(
-        production, "smooth8_blend")))
-    if production_blend != SMOOTH8_BLEND:
-        raise ValueError(
-            f"production 8-wide smooth blend differs: {production_blend} != "
-            f"{SMOOTH8_BLEND}")
-    if ("unsigned int shift = ((unsigned int)position << 1U) >> scale;"
-            not in production or
-            "return shift >= 6U ? 0U : (uint8_t)(64U >> shift);"
-            not in production):
-        raise ValueError("production geometric smooth blend process differs")
+    check_smooth_blend(production)
 
     print("D203 derivative: normative attachment and 90 AVM entries match")
     print("directional interpolation: all 32 production phases match pinned AVM")
