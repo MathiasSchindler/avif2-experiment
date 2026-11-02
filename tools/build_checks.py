@@ -32,6 +32,25 @@ def decode(decoder: Path, source: Path, output: Path) -> None:
     run([str(decoder), str(source), "-o", str(output)])
 
 
+def clean_build(_args: argparse.Namespace) -> None:
+    build = Path(__file__).resolve().parents[1] / "build"
+    if build.is_symlink():
+        raise RuntimeError(f"refusing to clean symbolic-link build directory: {build}")
+    if not build.exists():
+        print("build/: nothing to clean")
+        return
+    if not build.is_dir():
+        raise RuntimeError(f"build path is not a directory: {build}")
+    for entry in sorted(build.iterdir()):
+        if entry.name == "reference":
+            continue
+        if entry.is_symlink() or not entry.is_dir():
+            entry.unlink()
+        else:
+            shutil.rmtree(entry)
+    print("build/: generated outputs removed; reference/ preserved")
+
+
 def check_parity(args: argparse.Namespace) -> None:
     decode(args.decoder, args.input, args.output)
     actual = sha256(args.output)
@@ -130,6 +149,9 @@ def path_argument(value: str) -> Path:
 def main() -> int:
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers(dest="command", required=True)
+
+    clean = subparsers.add_parser("clean")
+    clean.set_defaults(action=clean_build)
 
     parity = subparsers.add_parser("parity")
     parity.add_argument("--decoder", type=path_argument, required=True)

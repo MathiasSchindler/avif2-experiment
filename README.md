@@ -100,6 +100,17 @@ when it is installed. An explicit job count takes precedence, for example
 `USE_CCACHE=0` to compile without the cache. Compile-only commands also use
 `-pipe` to avoid temporary preprocessor files.
 
+Remove generated outputs under `build/`, including custom and refactoring
+build directories, with:
+
+```sh
+make clean
+```
+
+This preserves `build/reference/` so the pinned and current AVM oracle builds
+do not need rebuilding. The `build/` directory itself remains; outputs
+configured outside it are not removed.
+
 With the generated corpus assets present, run the hosted, corpus,
 reference-lock, freestanding, and Python gates:
 

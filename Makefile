@@ -365,8 +365,7 @@ $(NOLIBC_SUBSTRATE): $(NOLIBC_LINKER) $(NOLIBC_SUBSTRATE_C_OBJECTS) \
 		$(NOLIBC_RUNTIME_OBJECTS)
 
 clean:
-	rm -rf build/native build/host-sanitized build/linux-nolibc \
-		build/macos-nolibc-arm64 build/windows-x86_64 build/windows-arm64
+	$(PYTHON) tools/build_checks.py clean
 
 wasm:
 	$(PYTHON) experimental/viewerdemo/build.py $(VIEWER_BUILD_ARGS)
