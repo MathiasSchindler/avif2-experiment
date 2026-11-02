@@ -19,9 +19,6 @@ read as the current capability boundary.
 
 - [Current roadmap](roadmap.md): unfinished reliability, maintainability, and
   product work.
-- [Decoder refactoring milestones](refactor.md): implemented ownership,
-  admission/dispatch, and private-interface changes, with outstanding M8
-  integration acceptance gates.
 - [Spatial-still 8-bit decoder plan](dev/spatial-still.md): milestones for the
   broad one-picture spatial profile and its missing decoder capabilities.
 - [Coding opportunities](research/feature.md): encoder experiments and research
@@ -34,6 +31,8 @@ Files under `dev/` record focused implementation and validation work. The main
 release summaries include:
 
 - [10-bit release gate](dev/10bit-wp14.md)
+- [Decoder refactoring milestones](refactor.md): M0-M8 complete under the
+  revised local-macOS acceptance scope.
 - [Refactoring M0 baseline](dev/refactoring-m0.md)
 - [Refactoring M1 prediction owners](dev/refactoring-m1.md)
 - [Refactoring M2 admission and dispatch](dev/refactoring-m2.md)

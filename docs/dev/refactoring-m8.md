@@ -2,11 +2,38 @@
 
 Integration work recorded 3 November 2026.
 
-**Status: implemented; final acceptance blocked.** Available native and
-WebAssembly references remain exact, resource inventories are unchanged, and
-the final ownership boundaries are documented below. This is not an
-all-gates-pass release claim. Missing locked media, an existing macOS linker
-limitation, and unavailable platform runtimes remain explicit.
+**Status: complete under revised local-macOS acceptance.** This is not an
+all-gates-pass release claim. The earlier broader coverage results and
+limitations below remain recorded.
+
+## Acceptance update: local macOS execution
+
+On 3 November 2026 the user clarified that cross-builds and complete image
+corpora are not required; it is sufficient that the program runs on this
+macOS computer.
+
+The normal native decoder was freshly built in `build/refactor-m8-macos`.
+It is a hosted Mach-O ARM64 executable linked to libSystem, not a sanitizer
+build or the separate no-import/no-libc target.
+
+```sh
+make -j4 NATIVE_BUILD_DIR=build/refactor-m8-macos decoder
+python3 tools/build_checks.py parity \
+  --decoder build/refactor-m8-macos/av2heif-decoder \
+  --input tests/fixtures/baya-weaver-current-i420-qp152.obu \
+  --output build/refactor-m8-macos/baya-weaver-current-i420-qp152.i420 \
+  --expected 7324889ae632f9e4f75eab47dcc8e430e1df8efde8c9ba68e23884bf5f492b1f
+python3 tools/check_10bit_wp0_oracle.py verify \
+  --decoder build/refactor-m8-macos/av2heif-decoder
+```
+
+All commands passed: retained Baya 8-bit output is exact, and the retained
+`tiny-constrained-16x16-yuv420p10le-qp208` WP0 oracle verifies successfully.
+This satisfies the revised acceptance criterion and closes M8.
+
+The existing no-libc linker issue is not claimed fixed. Missing media and
+unexecuted broader platform gates remain coverage limitations rather than
+blockers for this local-macOS milestone.
 
 ## Final ownership
 
@@ -135,7 +162,7 @@ golden pixel hash or reference lock. **1,088** pre-existing non-documentation
 file identities were compared before/after validation. The eight source-bound
 witnesses pass unchanged; no source-hash refresh was necessary.
 
-## Incomplete gates, not silently skipped
+## Optional broader gates and coverage limitations
 
 | Gate | Observed blocker or host limitation |
 | --- | --- |
@@ -191,12 +218,13 @@ invoked with the matching decoder/artifact tool and explicit
 This explicitly identifies the tested subset instead of implying that the
 missing photographic corpus passed.
 
-Final acceptance remains open until the original locked media are restored,
-the macOS linker limitation is resolved in a separately validated change, and
-the applicable full native/platform gates are rerun on suitable hosts. Restore
-inputs from their recorded provenance; do not replace pinned data with new
-encodes or relax hashes. Then update the acceptance status in
-[`refactor.md`](../refactor.md) with the actual results.
+The original broader closeout would require restoring locked media, resolving
+the macOS linker limitation in a separately validated change, and rerunning
+the full native/platform gates on suitable hosts. These are now optional
+follow-up coverage, not M8 exit conditions; the revised local-macOS acceptance
+is complete in [`refactor.md`](../refactor.md). Any future restoration must use
+the recorded provenance rather than replacing pinned data with new encodes or
+relaxing hashes.
 
 Pinned AVM remains `966a7d7cd6fcf60360caf5dc413b2aeeb65e144d`. The optional
 current oracle remains `edaf3ebc7ce3666290003f70a66efe5a508982a1`, with encoder

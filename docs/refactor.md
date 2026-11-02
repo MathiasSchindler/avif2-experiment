@@ -1,7 +1,8 @@
 # Decoder refactoring milestones
 
-**Status:** M0-M7 complete. M8 integration work implemented, 3 November 2026;
-final acceptance remains blocked by the recorded media/platform gates.
+**Status:** M0-M8 complete, 3 November 2026. M8 acceptance was narrowed by
+the user to execution on this macOS computer; cross-builds and complete image
+corpora are not required.
 
 ## Purpose and scope
 
@@ -64,8 +65,7 @@ bucket. Proposed owner names below are illustrative, not mandatory file counts.
 
 ## Milestone overview
 
-M0-M7 are complete; M8 has measured integration evidence but remains blocked
-at final acceptance. Dependencies are
+M0-M8 are complete under the revised local-macOS acceptance scope. Dependencies are
 prerequisites, not merely list order; independent work may proceed separately
 if its edits do not overlap.
 
@@ -79,7 +79,7 @@ if its edits do not overlap.
 | M5 (complete) | Separate codec syntax from root-level carriage/container work | M0 |
 | M6 (complete) | Narrow private headers around the resulting owners | M1, M3, M4, M5 |
 | M7 (complete) | Standardize error-record initialization and context assembly | M4, M5 |
-| M8 (acceptance blocked) | Integration evidence and final ownership documented; outstanding full gates remain explicit | M2, M6, M7 |
+| M8 (complete) | Verify local macOS execution and document final ownership/integration evidence | M2, M6, M7 |
 
 The recommended main sequence is M0 through M4, then M5 through M8.
 Minimal interface changes needed by an extraction belong in that milestone;
@@ -309,9 +309,13 @@ and unchanged M0 layouts.
 
 ## M8: integration and completion
 
-- Run the complete available native parity and malformed-input gates.
-- Exercise WebAssembly, freestanding/no-libc, and relevant Windows builds and
-  runtime checks on suitable hosts. Compilation is not runtime parity.
+- Build and execute the normal native decoder on this macOS computer using
+  representative retained 8-bit and 10-bit inputs.
+- Record focused native parity and malformed-input results. Complete image
+  corpora and cross-builds are not required for this milestone's acceptance.
+- Retain WebAssembly, freestanding/no-libc and other platform results as
+  additional coverage evidence, not mandatory exit conditions. Compilation is
+  not runtime parity.
 - Recheck 8-bit and 10-bit layouts, workspace sizes, and dependencies.
 - Update source-hash-bound witness records only after the modified tests
   actually pass. Do not change golden pixels to accommodate a refactor.
@@ -323,28 +327,32 @@ and unchanged M0 layouts.
 Directory regrouping is optional after ownership stabilizes. Do not move
 tables or introduce a directory hierarchy solely to make the tree look tidy.
 
-**Exit:** required gates pass, coverage limitations are stated, and there is no
-unexplained output, admission, status, workspace, or platform behavior change.
+**Exit:** the normal macOS executable runs and matches representative retained
+output, ownership/dependencies are documented, and coverage limitations are
+stated without claiming unexecuted platform or full-corpus gates.
 
-**Implemented, acceptance blocked:** see
+**Completed under the revised acceptance scope:** see
 [M8 integration and final ownership evidence](dev/refactoring-m8.md).
-Both native diagnostic configurations and WebAssembly reproduce all 162
-available 8/10-bit reference outputs, M0 inventories remain identical, and
-Windows cross-build/import checks pass. Full acceptance is not marked
-complete: locked media are missing, macOS no-libc linking hits a toolchain
-limitation also reproduced before M0, and some platform runtimes are
-unavailable. The report lists each incomplete gate and the required closeout.
+The normal hosted macOS ARM64 decoder builds and runs, with exact retained
+Baya 8-bit output and a passing 10-bit WP0 oracle check. The earlier native,
+WebAssembly and layout evidence remains valid. Missing media, the separate
+macOS no-libc linker limitation, and unavailable platform runtimes remain
+coverage notes, not M8 acceptance blockers.
 
 ## Validation cadence
 
 After each extraction, run the smallest affected unit set, followed by the
-relevant exact-parity tests. At milestone boundaries, use the existing gates:
+relevant exact-parity tests. Broader coverage gates remain available:
 
 ```sh
 make test
 make spatial-still-admission
 make test-reference-images
 ```
+
+M8's revised acceptance requires local macOS execution, not a fully populated
+image corpus or cross-platform execution. Incomplete broader gates must still
+be reported accurately.
 
 `make test` includes the sanitizer-backed C, corpus, reference-lock,
 freestanding, and Python tests. The retained Baya regression is in
