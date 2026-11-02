@@ -473,7 +473,7 @@ $(WINDOWS_SMOKE): $(WINDOWS_SMOKE_OBJECT) $(WINDOWS_LIBRARY) $(WINDOWS_IMPORT_LI
 	test-runtime-substrate test-extended \
 	test-reference-locks test-reference-images test-reference-images-wasm \
 	spatial-still-admission spatial-still-platform-admission \
-	reference-avm reference-avm-accounting \
+	reference-avm reference-avm-current check-avm-current reference-avm-accounting \
 	reference-avm-negatives generate-10bit-sources \
 	generate-10bit-avm-references generate-10bit-synthetic \
 	generate-10bit-synthetic-references generate-10bit-negatives \
@@ -598,6 +598,10 @@ test-c: test-host-build
 		--input tests/fixtures/delta-q-perceptual.obu \
 		--output $(HOST_BUILD_DIR)/delta-q-perceptual.i420 \
 		--expected 0f186b8193016e587779e588e56aa731feef0b86387b9a388da6cda187607456
+	$(PYTHON) tools/build_checks.py parity --decoder $(HOST_DECODER) \
+		--input tests/fixtures/baya-weaver-current-i420-qp152.obu \
+		--output $(HOST_BUILD_DIR)/baya-weaver-current-i420-qp152.i420 \
+		--expected 7324889ae632f9e4f75eab47dcc8e430e1df8efde8c9ba68e23884bf5f492b1f
 
 spatial-still-admission: test-host-build
 	$(PYTHON) tools/validate_spatial_still_profile.py \
@@ -665,6 +669,12 @@ test-extended: test test-reference-images test-reference-images-wasm \
 
 reference-avm:
 	sh scripts/setup-avm.sh
+
+reference-avm-current:
+	AVM_JOBS=$(JOBS) sh scripts/setup-avm.sh --current
+
+check-avm-current: $(HOST_DECODER)
+	$(PYTHON) tools/check_avm_current.py --decoder "$(HOST_DECODER)" $(ORACLE_ARGS)
 
 reference-avm-accounting:
 	sh scripts/setup-avm-accounting.sh

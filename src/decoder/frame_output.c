@@ -367,8 +367,6 @@ Av2hStatus av2h_decode_frame_group_planar_with_execution_private(
                             workspace->diagnostics);
                 uint8_t luma_tile_stage = tile_diagnostics != 0 ?
                     tile_diagnostics->luma_tile_stage : 0U;
-                Av2hStatus returned = status == AV2H_UNSUPPORTED ?
-                    AV2H_OVERFLOW : status;
                 decoded.mode = (uint8_t)leaf.mode.mode;
                 decoded.angle_delta = leaf.mode.angle_delta;
                 decoded.mrl_index = leaf.mode.mrl_index;
@@ -435,7 +433,7 @@ Av2hStatus av2h_decode_frame_group_planar_with_execution_private(
                             &decoder.traversal.luma_traversal.diagnostic_node :
                             &leaf.node;
                     AV2H_DECODE_FAIL(
-                        returned, status,
+                        status, status,
                         AV2H_FRAME_DECODE_STAGE_LUMA_PARSE,
                         0U, failure_node, decoded.syntax_stage != 0U ?
                             decoded.syntax_stage : luma_tile_stage);
@@ -460,8 +458,6 @@ Av2hStatus av2h_decode_frame_group_planar_with_execution_private(
                 const Av2hReconstructionDiagnostics *diagnostics =
                     av2h_reconstruction_diagnostics_get(
                         workspace->diagnostics);
-                Av2hStatus returned = status == AV2H_UNSUPPORTED ?
-                    AV2H_OVERFLOW : status;
                 decoded.mode = (uint8_t)leaf.mode.mode;
                 decoded.angle_delta = leaf.mode.angle_delta;
                 decoded.mrl_index = leaf.mode.mrl_index;
@@ -490,7 +486,7 @@ Av2hStatus av2h_decode_frame_group_planar_with_execution_private(
                 decoded.secondary_set = leaf.transform.secondary_set;
                 decoded.eob = leaf.prefix.eob;
                 AV2H_DECODE_FAIL(
-                    returned, status,
+                    status, status,
                     AV2H_FRAME_DECODE_STAGE_LUMA_RECONSTRUCT,
                     0U, &leaf.node,
                     diagnostics != 0 ? diagnostics->luma_stage : 0U);
@@ -503,10 +499,8 @@ Av2hStatus av2h_decode_frame_group_planar_with_execution_private(
                 (uint8_t)av2h_quantizer_is_lossless(
                     sequence, frame, frame->base_q_index));
             if (status != AV2H_OK) {
-                Av2hStatus returned = status == AV2H_UNSUPPORTED ?
-                    AV2H_OVERFLOW : status;
                 AV2H_DECODE_FAIL(
-                    returned, status, AV2H_FRAME_DECODE_STAGE_LUMA_DEBLOCK,
+                    status, status, AV2H_FRAME_DECODE_STAGE_LUMA_DEBLOCK,
                     0U, &leaf.node, 0U);
             }
             if (av2h_frame_restoration_needs_tx_skip(frame)) {
@@ -541,8 +535,6 @@ Av2hStatus av2h_decode_frame_group_planar_with_execution_private(
                     tile_diagnostics->chroma_tile_stage : 0U;
                 unsigned int diagnostic_index =
                     chroma_tile_stage >= 4U ? 1U : 0U;
-                Av2hStatus returned = status == AV2H_UNSUPPORTED ?
-                    AV2H_INVALID_ARGUMENT : status;
                 decoded.mode = (uint8_t)leaf.mode.mode;
                 decoded.angle_delta = leaf.mode.angle_delta;
                 decoded.syntax_stage = leaf_diagnostics != 0 ?
@@ -579,7 +571,7 @@ Av2hStatus av2h_decode_frame_group_planar_with_execution_private(
                     tile_diagnostics != 0 ?
                         tile_diagnostics->chroma_parse_reason : 0U;
                 AV2H_DECODE_FAIL(
-                    returned, status, AV2H_FRAME_DECODE_STAGE_CHROMA_PARSE,
+                    status, status, AV2H_FRAME_DECODE_STAGE_CHROMA_PARSE,
                     chroma_tile_stage >= 4U ? 2U : 1U,
                     &leaf.node, chroma_tile_stage != 0U ?
                         chroma_tile_stage : decoded.syntax_stage);
@@ -690,8 +682,6 @@ Av2hStatus av2h_decode_frame_group_planar_with_execution_private(
                             reconstruction_diagnostics =
                                 av2h_reconstruction_diagnostics_get(
                                     workspace->diagnostics);
-                        Av2hStatus returned = status == AV2H_UNSUPPORTED ?
-                            AV2H_INVALID_DATA : status;
                         decoded.mode = (uint8_t)leaf.mode.mode;
                         decoded.angle_delta = leaf.mode.angle_delta;
                         decoded.tx_size = (uint8_t)leaf.prefix[index].tx_size;
@@ -712,7 +702,7 @@ Av2hStatus av2h_decode_frame_group_planar_with_execution_private(
                             prediction_diagnostics->mhccp_reason : 0U;
                         decoded.eob = leaf.prefix[index].eob;
                         AV2H_DECODE_FAIL(
-                            returned, status,
+                            status, status,
                             AV2H_FRAME_DECODE_STAGE_CHROMA_RECONSTRUCT,
                             plane, &leaf.node,
                             reconstruction_diagnostics != 0 ?
@@ -730,10 +720,8 @@ Av2hStatus av2h_decode_frame_group_planar_with_execution_private(
                         (uint8_t)av2h_quantizer_is_lossless(
                             sequence, frame, frame->base_q_index));
                     if (status != AV2H_OK) {
-                        Av2hStatus returned = status == AV2H_UNSUPPORTED ?
-                            AV2H_OUT_OF_MEMORY : status;
                         AV2H_DECODE_FAIL(
-                            returned, status,
+                            status, status,
                             AV2H_FRAME_DECODE_STAGE_CHROMA_DEBLOCK,
                             plane, &leaf.node, 0U);
                     }
@@ -909,14 +897,12 @@ Av2hStatus av2h_decode_frame_group_planar_with_execution_private(
     status = av2h_filter_frame(
         &final_planes, sequence, frame, workspace->filter_workspace);
     if (status != AV2H_OK) {
-        Av2hStatus returned = status == AV2H_UNSUPPORTED ?
-            AV2H_OUT_OF_MEMORY : status;
         const Av2hFilterDiagnostics *filter_diagnostics =
             av2h_filter_diagnostics_get(workspace->diagnostics);
         decoded.filter_reason = filter_diagnostics != 0 ?
             filter_diagnostics->reason : 0U;
         AV2H_DECODE_FAIL(
-            returned, status, AV2H_FRAME_DECODE_STAGE_FILTER,
+            status, status, AV2H_FRAME_DECODE_STAGE_FILTER,
             0U, 0, 0U);
     }
     status = av2h_copy_visible_planar_with_execution_private(

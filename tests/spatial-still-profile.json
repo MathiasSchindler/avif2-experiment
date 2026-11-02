@@ -162,7 +162,7 @@
     {
       "id": "fsc-cctx-intrabc-reconstruction",
       "test": "reconstruct-unit", "source": "tests/reconstruct_unit.c",
-      "source_sha256": "4706fef99029541c956b76df78a116570b0c0d2aa60ef559d1f56f285c730d05",
+      "source_sha256": "39af7a6c97f09339ab7a5c7bb54618ff33ad79e6f95b78568bdbb427d3ee65bd",
       "features": ["fsc-cctx", "intrabc-restoration"]
     },
     {

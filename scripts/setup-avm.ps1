@@ -1,7 +1,8 @@
 param(
     [string]$ToolchainRoot = "",
     [ValidateSet("x64", "arm64")]
-    [string]$Architecture = "x64"
+    [string]$Architecture = "x64",
+    [switch]$Current
 )
 
 $ErrorActionPreference = "Stop"
@@ -25,6 +26,10 @@ $architectureConfig = @{
 $buildDir = Join-Path $root "build\reference\$($architectureConfig.BuildDirectory)"
 $revision = "966a7d7cd6fcf60360caf5dc413b2aeeb65e144d"
 $sourceUrl = "https://github.com/AOMediaCodec/avm.git"
+if ($Current) {
+    $vendorDir = Join-Path $root "vendor\avm-current"
+    $buildDir = Join-Path $root "build\reference\$($architectureConfig.BuildDirectory)-current"
+}
 
 function Find-Program([string]$Name, [string[]]$Fallbacks) {
     $command = Get-Command $Name -ErrorAction SilentlyContinue |
@@ -67,18 +72,33 @@ if (-not (Test-Path (Join-Path $perlDir "perl.exe"))) {
 }
 
 if (-not (Test-Path (Join-Path $vendorDir ".git"))) {
-    & $git clone --no-checkout $sourceUrl $vendorDir
-    if ($LASTEXITCODE -ne 0) { throw "AVM clone failed" }
-    & $git -C $vendorDir checkout --detach $revision
-    if ($LASTEXITCODE -ne 0) { throw "AVM checkout failed" }
+    if ($Current) {
+        & $git clone --depth 1 --branch main $sourceUrl $vendorDir
+        if ($LASTEXITCODE -ne 0) { throw "AVM clone failed" }
+    } else {
+        & $git clone --no-checkout $sourceUrl $vendorDir
+        if ($LASTEXITCODE -ne 0) { throw "AVM clone failed" }
+        & $git -C $vendorDir checkout --detach $revision
+        if ($LASTEXITCODE -ne 0) { throw "AVM checkout failed" }
+    }
 }
 
-$actualRevision = (& $git -C $vendorDir rev-parse HEAD).Trim()
-if ($actualRevision -ne $revision) {
-    throw "vendor/avm is at $actualRevision, expected $revision"
-}
 if (& $git -C $vendorDir status --short) {
-    throw "vendor/avm has local modifications"
+    throw "$vendorDir has local modifications"
+}
+if ($LASTEXITCODE -ne 0) { throw "AVM status failed" }
+if ($Current) {
+    & $git -C $vendorDir fetch --depth 1 $sourceUrl main
+    if ($LASTEXITCODE -ne 0) { throw "AVM fetch failed" }
+    & $git -C $vendorDir checkout --detach FETCH_HEAD
+    if ($LASTEXITCODE -ne 0) { throw "AVM checkout failed" }
+    $revision = (& $git -C $vendorDir rev-parse HEAD).Trim()
+    if ($LASTEXITCODE -ne 0) { throw "AVM revision lookup failed" }
+}
+$actualRevision = (& $git -C $vendorDir rev-parse HEAD).Trim()
+if ($LASTEXITCODE -ne 0) { throw "AVM revision lookup failed" }
+if ($actualRevision -ne $revision) {
+    throw "$vendorDir is at $actualRevision, expected $revision"
 }
 
 $toolchainBin = Join-Path $ToolchainRoot "bin"
@@ -113,6 +133,9 @@ foreach ($name in "avmenc", "avmdec") {
     $binary = Join-Path $buildDir "$name.exe"
     & $binary --help | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "$name smoke test failed" }
+}
+if ($Current) {
+    Set-Content -Path (Join-Path $buildDir "oracle-revision.txt") -Value $revision -Encoding ascii
 }
 
 Write-Output "AVM $Architecture reference tools are ready in $buildDir"

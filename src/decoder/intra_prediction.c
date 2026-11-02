@@ -2716,7 +2716,7 @@ Av2hStatus av2h_luma_predict(
     if (mode->mode == AV2H_INTRA_DC && mode->angle_delta == 0 &&
                 ((width == 4U &&
                     (height == 4U || height == 8U || height == 16U ||
-                     height == 32U)) ||
+                     height == 32U || height == 64U)) ||
          (width == 8U && (height == 4U || height == 8U)) ||
          (width == 8U && height == 16U) ||
          (width == 8U && height == 32U) ||
@@ -2730,7 +2730,7 @@ Av2hStatus av2h_luma_predict(
          (width == 32U && height == 8U) ||
          (width == 32U && height == 32U) ||
          (width == 64U &&
-                    (height == 8U || height == 16U ||
+                    (height == 4U || height == 8U || height == 16U ||
                      height == 32U || height == 64U)))) {
         unsigned int sum = 0U;
         unsigned int count = 0U;

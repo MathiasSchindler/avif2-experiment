@@ -1,0 +1,70 @@
+{
+  "schema": "av2h-current-avm-fixture-v1",
+  "case_id": "baya-weaver-le896-i420-qp152",
+  "avm_revision": "edaf3ebc7ce3666290003f70a66efe5a508982a1",
+  "source": {
+    "path": "images/prepared/le896/baya-weaver/source-896x598-yuv420p8.i420",
+    "metadata": "images/sources/commons/baya-weaver/source.json",
+    "raw_format": "i420",
+    "width": 896,
+    "height": 598,
+    "sha256": "801cc5086305a87968e9e9822d34a62b654abef46846c1ba4c53cc6e9045c667"
+  },
+  "license": {
+    "spdx": "CC-BY-SA-4.0",
+    "creator": "Tisha Mukherjee",
+    "source_url": "https://commons.wikimedia.org/wiki/File:Baya_Weaver_in_Bhigwan_August_2025_by_Tisha_Mukherjee_04.jpg",
+    "url": "https://creativecommons.org/licenses/by-sa/4.0/",
+    "legal_code": "images/licenses/CC-BY-SA-4.0-International.txt",
+    "changes": "Resized to 896x598, converted to 8-bit I420, and lossily encoded as an AV2 still at QP 152."
+  },
+  "encoded": {
+    "path": "tests/fixtures/baya-weaver-current-i420-qp152.obu",
+    "byte_size": 4889,
+    "sha256": "dc7eeffcccbcc20654d5e189f362b701701dfa2f5a63f542fdedf6c9a5f14ff3"
+  },
+  "decoded": {
+    "raw_format": "i420",
+    "byte_size": 803712,
+    "sha256": "7324889ae632f9e4f75eab47dcc8e430e1df8efde8c9ba68e23884bf5f492b1f"
+  },
+  "avm_binaries": {
+    "encoder_sha256": "1463b6e289bc2b0887f687de69bae4284570d72620cfa0cefd0648ecd369cc69",
+    "decoder_sha256": "a2081a6207c82cceac9c44ec4646416309bb9bcdc36002b23408c365d1a29121"
+  },
+  "encode_command": [
+    "build/reference/avm-current/avmenc",
+    "--debug",
+    "--codec=av2",
+    "--obu",
+    "--passes=1",
+    "--limit=1",
+    "--good",
+    "--cpu-used=9",
+    "--threads=24",
+    "--row-mt=1",
+    "--profile=0",
+    "--bit-depth=8",
+    "--input-bit-depth=8",
+    "--width=896",
+    "--height=598",
+    "--i420",
+    "--input-chroma-subsampling-x=1",
+    "--input-chroma-subsampling-y=1",
+    "--chroma-sample-position=unspecified",
+    "--force-video-mode=0",
+    "--film-grain-test=0",
+    "--enable-lcr=0",
+    "--enable-operating-point-sets=0",
+    "--enable-atlas=0",
+    "--enable-intrabc=0",
+    "--enable-restoration=0",
+    "--end-usage=q",
+    "--qp=152",
+    "--test-decode=fatal",
+    "--quiet",
+    "-o",
+    "tests/fixtures/baya-weaver-current-i420-qp152.obu",
+    "images/prepared/le896/baya-weaver/source-896x598-yuv420p8.i420"
+  ]
+}

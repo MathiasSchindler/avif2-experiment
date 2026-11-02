@@ -46,6 +46,15 @@ and insufficient or overlapping caller buffers are rejected.
 
 ## Evidence
 
+The moving-oracle Baya Weaver I420 QP 152 regression additionally covers 8-bit
+luma DC prediction at 4x64, with focused AVM-output checks for both 4x64 and
+64x4, all edge-availability combinations, and IBP on/off. Its retained
+[stream and provenance](../tests/fixtures/baya-weaver-current-i420-qp152.json)
+bind the exact decoded output to AVM revision
+`edaf3ebc7ce3666290003f70a66efe5a508982a1`; this is fixture provenance, not a
+second pinned oracle. Frame-stage unsupported errors retain
+`AV2H_UNSUPPORTED`, without conversion to overflow or other unrelated statuses.
+
 The 8-bit photographic reference tree contains 88 legacy streams and 14
 target-baseline streams. All 102 decode exactly with the hosted decoder and the
 published `docs/decoder.wasm` against AVM revision

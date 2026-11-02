@@ -2354,6 +2354,78 @@ static void test_dc_16x32_ibp_prediction(void) {
     CHECK(predictor[255] != predictor[0]);
 }
 
+static void test_dc_4x64_and_64x4_prediction(void) {
+    /* AVM edaf3ebc DC/IBP outputs: no edges, top, left, both; IBP off/on. */
+    static const uint64_t expected[2U][8U] = {
+        {
+            UINT64_C(0x7d11c7a73d560f83), UINT64_C(0x82ecfd3be2021083),
+            UINT64_C(0xdf6c8023d26b4083), UINT64_C(0xf88dc70e3abd1083),
+            UINT64_C(0x7d11c7a73d560f83), UINT64_C(0x6aa84736acc5f946),
+            UINT64_C(0xeb83d029f1d59f83), UINT64_C(0x469877973a3a5568)
+        },
+        {
+            UINT64_C(0x7d11c7a73d560f83), UINT64_C(0x992919d53be26883),
+            UINT64_C(0x01fb74d586b2f883), UINT64_C(0x893bd2ac94779b83),
+            UINT64_C(0x7d11c7a73d560f83), UINT64_C(0x47ff8a81b028dd23),
+            UINT64_C(0x9b67b0d6767350e8), UINT64_C(0x37bce4b3e52dd980)
+        }
+    };
+    uint8_t above[64U];
+    uint8_t left[64U];
+    uint8_t storage[67U * 64U + 2U];
+    uint8_t packed[256U];
+    size_t shape;
+    size_t index;
+    for (index = 0U; index < 64U; ++index) {
+        above[index] = (uint8_t)(index * 17U + 31U);
+        left[index] = (uint8_t)(index * 29U + 7U);
+    }
+    for (shape = 0U; shape < 2U; ++shape) {
+        uint16_t width = shape == 0U ? 4U : 64U;
+        uint16_t height = shape == 0U ? 64U : 4U;
+        size_t stride = width + 3U;
+        size_t test;
+        for (test = 0U; test < 8U; ++test) {
+            Av2hFirstLeafMode mode = { 0 };
+            Av2hLumaReferences references = { 0 };
+            Av2hStatus status;
+            size_t row;
+            size_t column;
+            mode.mode = AV2H_INTRA_DC;
+            mode.enable_ibp = (uint8_t)(test >> 2U);
+            references.above = (test & 1U) != 0U ? above : 0;
+            references.above_count = references.above != 0 ? width : 0U;
+            references.left = (test & 2U) != 0U ? left : 0;
+            references.left_count = references.left != 0 ? height : 0U;
+            av2h_memory_fill(storage, 0xa5U, sizeof(storage));
+            status = av2h_luma_predict(
+                &mode, width, height, &references, storage + 1U, stride);
+            CHECK(status == AV2H_OK);
+            if (status != AV2H_OK) continue;
+            for (row = 0U; row < height; ++row) {
+                for (column = 0U; column < width; ++column) {
+                    packed[row * width + column] =
+                        storage[1U + row * stride + column];
+                }
+                for (; column < stride; ++column) {
+                    CHECK(storage[1U + row * stride + column] == 0xa5U);
+                }
+            }
+            if (sample_hash(packed, sizeof(packed)) != expected[shape][test]) {
+                fprintf(stderr, "DC %ux%u case %zu: hash=0x%016llx\n",
+                        width, height, test,
+                        (unsigned long long)sample_hash(packed, sizeof(packed)));
+                ++failures;
+            }
+            CHECK(storage[0U] == 0xa5U);
+            for (index = 1U + height * stride;
+                 index < sizeof(storage); ++index) {
+                CHECK(storage[index] == 0xa5U);
+            }
+        }
+    }
+}
+
 static void test_d113_16x64_prediction(void) {
     Av2hFirstLeafMode mode = { 0 };
     Av2hLumaReferences references = { 0 };
@@ -6374,6 +6446,95 @@ static void test_emerald_chroma_dct_geometries(void) {
     }
 }
 
+static void test_frame_unsupported_status(void) {
+    uint8_t input[16384U];
+    uint8_t output[96U * 80U * 3U];
+    Av2hObu entries[4U];
+    Av2hObuLedger ledger = { entries, 4U, 0U };
+    Av2hError error;
+    Av2hSequenceState sequence;
+    Av2hFrameState frame;
+    Av2hTileGroup group;
+    Av2hFrameDecodeWorkspaceLayout layout;
+    Av2hFrameDecodeWorkspace workspace;
+    Av2hFilterWorkspace filter_workspace;
+    Av2hFilterWorkspaceStorage filter_storage;
+    Av2hFrameDecodeResult result = { 0 };
+    const Av2hObu *sequence_obu = 0;
+    const Av2hObu *frame_obu = 0;
+    uint8_t *allocation;
+    void *memory;
+    Av2hStatus status;
+    FILE *source = fopen("tests/fixtures/i444-high-detail.obu", "rb");
+    size_t input_size;
+    size_t index;
+    CHECK(source != 0);
+    if (source == 0) return;
+    input_size = fread(input, 1U, sizeof(input), source);
+    CHECK(!ferror(source));
+    CHECK(feof(source));
+    CHECK(fclose(source) == 0);
+    status = av2h_obu_parse(
+        (Av2hSpan){ input, input_size }, &ledger, &error);
+    CHECK(status == AV2H_OK);
+    if (status != AV2H_OK) return;
+    for (index = 0U; index < ledger.count; ++index) {
+        if (entries[index].type == AV2H_OBU_SEQUENCE_HEADER) {
+            sequence_obu = &entries[index];
+        } else if (entries[index].type == AV2H_OBU_CLOSED_LOOP_KEY) {
+            frame_obu = &entries[index];
+        }
+    }
+    CHECK(sequence_obu != 0 && frame_obu != 0);
+    if (sequence_obu == 0 || frame_obu == 0) return;
+    status = av2h_sequence_state_parse(
+        (Av2hSpan){ input, input_size }, sequence_obu, &sequence, &error);
+    CHECK(status == AV2H_OK);
+    if (status != AV2H_OK) return;
+    status = av2h_frame_header_closed_key_parse(
+        (Av2hSpan){ input + frame_obu->payload_offset,
+                     frame_obu->payload_size }, &sequence, &frame);
+    CHECK(status == AV2H_OK);
+    if (status != AV2H_OK) return;
+    status = av2h_tile_group_single_parse(
+        (Av2hSpan){ input + frame_obu->payload_offset,
+                     frame_obu->payload_size },
+        frame.uncompressed_header_bits, &group);
+    CHECK(status == AV2H_OK && group.entropy.size != 0U);
+    if (status != AV2H_OK || group.entropy.size == 0U) return;
+    /* A one-bit entropy mutation reaches an unsupported luma syntax tuple. */
+    input[(size_t)(group.entropy.data - input)] ^= 1U;
+    status = av2h_frame_decode_workspace_query(&sequence, &frame, &layout);
+    CHECK(status == AV2H_OK);
+    if (status != AV2H_OK) return;
+    allocation = (uint8_t *)malloc(
+        layout.size_bytes + layout.alignment - 1U);
+    CHECK(allocation != 0);
+    if (allocation == 0) return;
+    memory = (void *)(((uintptr_t)allocation + layout.alignment - 1U) &
+                      ~(uintptr_t)(layout.alignment - 1U));
+    status = av2h_frame_decode_workspace_init(
+        &sequence, &frame, &layout, memory, layout.size_bytes, &workspace,
+        &filter_workspace, &filter_storage);
+    CHECK(status == AV2H_OK);
+    if (status != AV2H_OK) {
+        free(allocation);
+        return;
+    }
+    av2h_memory_fill(output, 0xa5U, sizeof(output));
+    status = av2h_decode_frame_planar_private(
+        group.entropy, &sequence, &frame, &workspace,
+        output, sizeof(output), &result);
+    CHECK(status == AV2H_UNSUPPORTED);
+    CHECK(result.cause == AV2H_UNSUPPORTED);
+    CHECK(result.stage == AV2H_FRAME_DECODE_STAGE_LUMA_PARSE);
+    CHECK(result.entropy_tell == 171U);
+    for (index = 0U; index < sizeof(output); ++index) {
+        CHECK(output[index] == 0xa5U);
+    }
+    free(allocation);
+}
+
 static void test_10bit_wp5_frame_fixture(void) {
     uint8_t input[64U];
     uint8_t reference_bytes[768U];
@@ -7147,6 +7308,7 @@ int main(void) {
     test_tx16x32_dc_flipadst_reconstruction();
     test_dc_16x32_prediction();
     test_dc_16x32_ibp_prediction();
+    test_dc_4x64_and_64x4_prediction();
     if (0) test_d113_16x64_prediction();
     test_cardinal_prediction_without_references();
     if (0) test_luma_directional_feature_matrix();
@@ -7181,6 +7343,7 @@ int main(void) {
     test_tx8x4_adst_adst_reconstruction();
     test_emerald_chroma_dct_geometries();
     test_10bit_wp5_frame_fixture();
+    test_frame_unsupported_status();
     test_10bit_wp9_gdf_stage();
     test_10bit_wp6_tiny_matrix();
     if (failures != 0) {

@@ -268,6 +268,112 @@ the parsed OBU ledger, and all output hashes. The current payload is
 was byte-identical for its OBU, decoded files, PNG, and manifest on this Linux
 host. This is measured local reproducibility, not yet a cross-platform claim.
 
+### Moving AVM oracle
+
+`prepared/` contains ImageMagick/FFmpeg-generated masters and raw encoder
+inputs, not AV2 OBUs. AVM encodes those inputs into the streams in `reference/`.
+An AVM encoder update may change encoded bytes and decoded pixels at the same
+QP without any change to the prepared input.
+
+The v1.0.0 references and locks remain the baseline. Build or refresh an
+independent oracle from upstream `main` explicitly:
+
+```sh
+make reference-avm-current JOBS=4
+make check-avm-current
+```
+
+The first command uses `vendor/avm-current` and `build/reference/avm-current`;
+it never updates `vendor/avm`. It requires the same Git/CMake/Ninja toolchain as
+the pinned setup. The check is offline and is deliberately not part of
+`make test`: upstream changes and ignored media must not make the baseline
+gate depend on the network.
+
+Each check creates a new directory under `build/oracle-current/` containing
+`report.json`, fresh OBUs, and decoded planes. It records the current source
+revision, encoder/decoder binary hashes, project-decoder hash, input hashes,
+commands, return codes, and stderr. This is run provenance, not another
+committed AVM pin. The default checks all generated photographic suites and
+the tracked 10-bit synthetic reference manifest; planned suites are excluded.
+The report is checkpointed after each case; `complete: false` identifies an
+interrupted batch. Full photographic re-encoding can be expensive, so use the
+filters below for an initial smoke check.
+
+The two independent questions are:
+
+1. **Existing streams:** does current AVM still produce the v1.0.0 golden
+   decoded bytes?
+2. **Fresh encodes:** replay the recorded encoder settings on the same
+   hash-verified input, then compare this project's decoder sample-for-sample
+   against current AVM on the new stream.
+
+Changed fresh encoded bytes or changed lossy reconstruction relative to the old
+encode are reported as encoder drift, not decoder failure. Encoded-byte
+comparison excludes Content Interpretation OBUs, matching the original
+normalization; the actual fresh OBUs passed to both decoders are unmodified.
+Compiler, host, or thread-dependent encoder differences are not proof that an
+upstream source change caused the drift. Decode disagreement, command failure,
+wrong output size, and input hash changes fail the check. Unsupported new
+syntax remains a visible failure; it is not automatically admitted.
+
+Missing local media fails by default. Allow it explicitly, with skipped and
+partially checked cases retained in the report:
+
+```sh
+make check-avm-current ORACLE_ARGS='--allow-missing'
+```
+
+A run with errors or no fully checked cases returns nonzero. An existing output
+directory is never overwritten. Useful filtered runs include:
+
+```sh
+# Check old streams without re-encoding.
+make check-avm-current ORACLE_ARGS='--mode decode --allow-missing'
+
+# Re-encode four representative 8-bit cases from the prepared Baya Weaver input.
+make check-avm-current \
+  ORACLE_ARGS='--suite photographic-8bit --source baya-weaver --preparation le896'
+
+# Check both 10-bit chroma formats, including lossless and odd dimensions.
+make check-avm-current ORACLE_ARGS='--suite 10bit'
+```
+
+`--suite`, `--source`, `--preparation`, and `--pixel-format` are repeatable.
+`--mode encode` runs only the fresh-encode checks; `--mode both` is the default.
+`--output-dir` chooses a new destination directory. On Windows use
+`scripts/setup-avm.ps1 -Current`, then invoke `tools/check_avm_current.py`
+with `--decoder` pointing to the project decoder. For ARM64 also pass
+`--avm-build build/reference/avm-arm64-current`.
+
+The initial 2 November 2026 run used upstream
+`edaf3ebc7ce3666290003f70a66efe5a508982a1`. All 162 available existing
+photographic and 10-bit streams retained their golden decode hashes; 14
+target-baseline photographic references were absent. All 46 freshly encoded
+10-bit cases matched the project decoder, although 45 encoded hashes and 39
+reconstruction hashes differed from their baselines. All four fresh Baya Weaver
+`le896` photographic encodes changed; three decoded exactly and I420 QP 152
+was rejected by the project decoder with an integer-overflow status. That
+compatibility failure is retained by the report, not waived or promoted into
+the golden corpus. These measurements do not establish parity for the complete
+fresh photographic matrix.
+
+The Baya Weaver rejection was subsequently traced to missing 8-bit luma DC
+prediction admission for 4x64 blocks, not arithmetic overflow. Both 4x64 and
+64x4 now use the existing DC/IBP implementation. Sixteen AVM-output-bound unit
+cases cover both shapes, each edge-availability combination, and IBP off/on,
+including padded output strides and write guards. The fresh stream is retained
+as [`baya-weaver-current-i420-qp152.obu`](../tests/fixtures/baya-weaver-current-i420-qp152.obu)
+with [provenance and attribution](../tests/fixtures/baya-weaver-current-i420-qp152.json).
+Public HEIF decoding and `make test-c` lock its exact AVM output; no moving
+oracle or ignored prepared inputs are needed to run that regression. The
+follow-up fresh four-case Baya run passed all four cases. The v1.0.0 golden
+corpus is unchanged.
+
+Frame decode stages now propagate `AV2H_UNSUPPORTED` unchanged instead of
+relabeling it as overflow, invalid data/arguments, or out of memory. Original
+stage/cause diagnostics remain available, and a negative entropy fixture checks
+unsupported status propagation and unchanged caller output.
+
 ### Browser gallery
 
 Publish the reference gallery bundle after generating or updating the local
@@ -286,7 +392,8 @@ the gallery renders the streams through `docs/decoder.wasm`.
 ## Licensing
 
 The repository root CC0 dedication does not apply to these photographs or to
-their derivatives. The selected licenses for this batch are:
+their derivatives, including the Baya Weaver regression fixture under
+`tests/fixtures/`. The selected licenses for this batch are:
 
 - Creative Commons Attribution 4.0 International (`CC-BY-4.0`): 2 sources;
 - Creative Commons Attribution-ShareAlike 4.0 International

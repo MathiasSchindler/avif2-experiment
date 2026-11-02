@@ -169,6 +169,22 @@ make wasm
 Optional pinned-AVM reference and accounting setup uses AVM's own upstream
 build system; that external build is separate from this project's Makefile.
 
+Keep that v1.0.0 baseline while checking a separately built, moving upstream
+oracle with:
+
+```sh
+make reference-avm-current
+make check-avm-current
+```
+
+Only the first command fetches current upstream `main`. The check records the
+resolved revision and binary hashes rather than adding another revision pin.
+It compares old golden streams and fresh encodes without rewriting prepared
+inputs, references, or locks. Missing local media fails by default; use
+`ORACLE_ARGS='--allow-missing'` to explicitly report it as skipped. See the
+[current-oracle workflow](images/README.md#moving-avm-oracle) for filters and
+interpretation of encoder drift.
+
 The public API is declared in [include/av2heif.h](include/av2heif.h). Detailed
 platform, corpus, and release procedures are indexed from
 [docs/README.md](docs/README.md).
@@ -185,5 +201,7 @@ outside this repository.
 The decoder source and other material covered by [LICENSE](LICENSE) are
 released under CC0 1.0. The photographs under `images/`, their prepared forms,
 encoded derivatives, previews, and decoded references are separately licensed.
+This includes the Baya Weaver regression fixture under `tests/fixtures/`,
+licensed CC-BY-SA-4.0 with [its attribution](tests/fixtures/baya-weaver-current-i420-qp152.json).
 See [images/README.md](images/README.md) and
 [images/ATTRIBUTION.md](images/ATTRIBUTION.md).
