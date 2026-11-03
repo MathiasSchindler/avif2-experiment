@@ -258,9 +258,9 @@ static void test_frame_decode_workspace_model(void) {
 #undef CHECK_FRAME_WORKSPACE_FAILURE
 }
 
-static void test_frame_workspace_prepare_rejection(void) {
+static void test_frame_workspace_prepare_rejection(size_t bytes_per_sample) {
     static _Alignas(max_align_t) uint8_t memory[4U * 1024U * 1024U];
-    uint8_t output[512U];
+    _Alignas(uint16_t) uint8_t output[1024U];
     Av2hSequenceState sequence;
     Av2hFrameState frame;
     Av2hFrameDecodeWorkspaceLayout decode_layout;
@@ -273,18 +273,18 @@ static void test_frame_workspace_prepare_rejection(void) {
     av2h_memory_fill(&sequence, 0U, sizeof(sequence));
     av2h_memory_fill(&frame, 0U, sizeof(frame));
     av2h_memory_fill(&result, 0U, sizeof(result));
-    sequence.info.bit_depth_idc = 1U;
+    sequence.info.bit_depth_idc = bytes_per_sample == 1U ? 1U : 0U;
     sequence.superblock_size = 64U;
     frame.width = 17U;
     frame.height = 15U;
     CHECK(av2h_frame_decode_workspace_query(
-        &sequence, &frame, 1U, &decode_layout) == AV2H_OK);
+        &sequence, &frame, bytes_per_sample, &decode_layout) == AV2H_OK);
     CHECK(decode_layout.size_bytes <= sizeof(memory));
     CHECK(av2h_frame_decode_workspace_init(
-        &sequence, &frame, 1U, &decode_layout, memory, decode_layout.size_bytes,
+        &sequence, &frame, bytes_per_sample, &decode_layout, memory, decode_layout.size_bytes,
         &workspace, &filter_workspace, &filter_storage) == AV2H_OK);
     CHECK(av2h_planar_output_size(
-        &frame, 1U, &output_size) == AV2H_OK);
+        &frame, bytes_per_sample, &output_size) == AV2H_OK);
     CHECK(output_size <= sizeof(output));
 
 #define CHECK_PREPARE_FAILURE(pointer, result_pointer)                        \
@@ -297,11 +297,43 @@ static void test_frame_workspace_prepare_rejection(void) {
               AV2H_INVALID_ARGUMENT);                                         \
         CHECK(buffer_is_value(memory, decode_layout.size_bytes, 0xa5U));            \
     } while (0)
-    CHECK_PREPARE_FAILURE(workspace.coded[0].data, &result);
-    CHECK_PREPARE_FAILURE(filter_workspace.cdef.plane[1].data, &result);
-    CHECK_PREPARE_FAILURE(workspace.tile_context.luma_mode_above, &result);
     CHECK_PREPARE_FAILURE(
-        (uint8_t *)workspace.reconstruction_scratch, &result);
+        bytes_per_sample == 1U ? (void *)workspace.coded[0].data
+                              : (void *)workspace.coded_u16[0].data, &result);
+    CHECK_PREPARE_FAILURE(
+        bytes_per_sample == 1U ? (void *)filter_workspace.cdef.plane[1].data
+                              : (void *)filter_workspace.cdef_u16.plane[1].data, &result);
+    CHECK_PREPARE_FAILURE(workspace.tile_context.luma_mode_above, &result);
+    CHECK_PREPARE_FAILURE(&workspace.decode_scratch->tile_decoder, &result);
+    CHECK_PREPARE_FAILURE(workspace.decode_scratch->active_blocks, &result);
+    CHECK_PREPARE_FAILURE(workspace.decode_scratch->pending_chroma_leaves, &result);
+    CHECK_PREPARE_FAILURE(workspace.decode_scratch->pending_chroma_blocks, &result);
+    CHECK_PREPARE_FAILURE(
+        (uint8_t *)workspace.decode_scratch + sizeof(*workspace.decode_scratch) - 1U, &result);
+    {
+        Av2hFrameDecodeScratch *saved = workspace.decode_scratch;
+        workspace.decode_scratch = NULL;
+        CHECK_PREPARE_FAILURE(output, &result);
+        workspace.decode_scratch = (Av2hFrameDecodeScratch *)((uint8_t *)saved + 1U);
+        CHECK_PREPARE_FAILURE(output, &result);
+        workspace.decode_scratch = saved;
+    }
+    if (bytes_per_sample == 1U) {
+        CHECK_PREPARE_FAILURE(workspace.reconstruction_scratch, &result);
+        CHECK_PREPARE_FAILURE(workspace.reconstruction_scratch->reconstruction.residual, &result);
+        CHECK_PREPARE_FAILURE(workspace.reconstruction_scratch->reconstruction.pixels, &result);
+        CHECK_PREPARE_FAILURE(
+            (uint8_t *)workspace.reconstruction_scratch +
+                sizeof(*workspace.reconstruction_scratch) - 1U, &result);
+    } else {
+        CHECK_PREPARE_FAILURE(workspace.reconstruction_scratch_u16, &result);
+        CHECK_PREPARE_FAILURE(
+            workspace.reconstruction_scratch_u16->reconstruction.residual, &result);
+        CHECK_PREPARE_FAILURE(workspace.reconstruction_scratch_u16->reconstruction.pixels, &result);
+        CHECK_PREPARE_FAILURE(
+            (uint8_t *)workspace.reconstruction_scratch_u16 +
+                sizeof(*workspace.reconstruction_scratch_u16) - sizeof(uint16_t), &result);
+    }
     CHECK_PREPARE_FAILURE((uint8_t *)&result, &result);
     frame.width = 33U;
     CHECK_PREPARE_FAILURE(output, &result);
@@ -2220,7 +2252,8 @@ int main(void) {
     test_wide_q_index_handoff();
     test_quantizer_threshold_domains();
     test_frame_decode_workspace_model();
-    test_frame_workspace_prepare_rejection();
+    test_frame_workspace_prepare_rejection(1U);
+    test_frame_workspace_prepare_rejection(2U);
     test_filter_pipeline();
     test_disabled_filters_no_op();
     test_visible_i420_crop();

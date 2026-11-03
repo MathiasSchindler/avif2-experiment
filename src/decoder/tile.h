@@ -250,7 +250,8 @@ Av2hStatus av2h_tile_decoder_next_luma(Av2hTileDecoder *decoder, Av2hTileLumaLea
 Av2hStatus av2h_tile_decoder_reconstruct_next_luma(Av2hTileDecoder *decoder,
                                                    Av2hReconstructionPlane *plane,
                                                    Av2hReconstructionScratch *scratch,
-                                                   Av2hTileLumaLeaf *leaf, uint8_t *has_leaf);
+                                                   Av2hTileLumaLeaf *leaf, Av2hCoeffBlock *block,
+                                                   uint8_t *has_leaf);
 Av2hStatus av2h_tile_decoder_next_chroma(Av2hTileDecoder *decoder, Av2hTileChromaLeaf *leaf,
                                          Av2hCoeffBlock *u_block, Av2hCoeffBlock *v_block,
                                          uint8_t *has_leaf);
@@ -260,7 +261,8 @@ Av2hStatus av2h_tile_decoder_reconstruct_next_chroma(Av2hTileDecoder *decoder,
                                                      Av2hReconstructionPlane *u_plane,
                                                      Av2hReconstructionPlane *v_plane,
                                                      Av2hReconstructionScratch *scratch,
-                                                     Av2hTileChromaLeaf *leaf, uint8_t *has_leaf);
+                                                     Av2hTileChromaLeaf *leaf,
+                                                     Av2hCoeffBlock blocks[2U], uint8_t *has_leaf);
 Av2hStatus av2h_tile_decoder_finish_root(Av2hTileDecoder *decoder);
 Av2hStatus av2h_tile_decoder_commit_leaf(Av2hTileDecoder *decoder, Av2hPartitionNode leaf);
 

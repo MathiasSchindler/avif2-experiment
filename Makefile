@@ -253,6 +253,11 @@ $(CENSUS): tools/census/census.c $(AVM_BUILD_DIR)/libavm.a
 	@mkdir -p $(@D)
 	$(CC) $(CENSUS_CFLAGS) $< $(AVM_BUILD_DIR)/libavm.a $(CENSUS_LDFLAGS) -o $@
 
+$(NATIVE_BUILD_DIR)/obj/src/decoder/frame_output.o \
+$(NATIVE_BUILD_DIR)/obj/src/decoder/reconstruct.o \
+$(NATIVE_BUILD_DIR)/obj/src/decoder/tile_luma.o \
+$(NATIVE_BUILD_DIR)/obj/src/decoder/tile_chroma.o: FREESTANDING_CFLAGS += -Wframe-larger-than=4096
+
 $(NATIVE_BUILD_DIR)/obj/%.o: %.c
 	@mkdir -p $(@D)
 	$(COMPILE_CC) $(FREESTANDING_CFLAGS) -MMD -MP -c $< -o $@

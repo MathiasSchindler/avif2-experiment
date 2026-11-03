@@ -1158,17 +1158,18 @@ read_transform:
 Av2hStatus av2h_tile_decoder_reconstruct_next_luma(Av2hTileDecoder *decoder,
                                                    Av2hReconstructionPlane *plane,
                                                    Av2hReconstructionScratch *scratch,
-                                                   Av2hTileLumaLeaf *leaf, uint8_t *has_leaf) {
-    Av2hCoeffBlock block;
+                                                   Av2hTileLumaLeaf *leaf, Av2hCoeffBlock *block,
+                                                   uint8_t *has_leaf) {
     Av2hStatus status;
-    if (decoder == NULL || plane == NULL || scratch == NULL || leaf == NULL || has_leaf == NULL) {
+    if (decoder == NULL || plane == NULL || scratch == NULL || leaf == NULL || block == NULL ||
+        has_leaf == NULL) {
         return AV2H_INVALID_ARGUMENT;
     }
-    status = av2h_tile_decoder_next_luma(decoder, leaf, &block, has_leaf);
+    status = av2h_tile_decoder_next_luma(decoder, leaf, block, has_leaf);
     if (status != AV2H_OK || !*has_leaf)
         return status;
     status = av2h_luma_reconstruct_to_plane(NULL, &leaf->node, &leaf->mode, &leaf->prefix,
-                                            &leaf->transform, &block, plane, scratch);
+                                            &leaf->transform, block, plane, scratch);
     if (status != AV2H_OK)
         return av2h_tile_decoder_fail(decoder, status);
 #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)

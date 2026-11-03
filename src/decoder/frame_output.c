@@ -15,8 +15,7 @@ typedef struct {
     const Av2hSampleDomain *domain;
     Av2hTileDecoder *decoder;
     Av2hFrameDecodeResult *decoded;
-    Av2hTileChromaLeaf pending_chroma_leaves[4U];
-    Av2hCoeffBlock pending_chroma_blocks[4U][2U];
+    Av2hFrameDecodeScratch *scratch;
     uint8_t pending_chroma_count;
 } Av2hFrameDecodeContext;
 
@@ -254,22 +253,22 @@ static Av2hStatus decode_luma_leaf(Av2hFrameDecodeContext *context) {
     uint8_t has_leaf = 0U;
 
     Av2hTileLumaLeaf leaf;
-    Av2hCoeffBlock block;
+    Av2hCoeffBlock *block = &context->scratch->active_blocks[0];
     av2h_memory_fill(&leaf, 0U, sizeof(leaf));
-    av2h_memory_fill(&block, 0U, sizeof(block));
-    status = av2h_tile_decoder_next_luma(context->decoder, &leaf, &block, &has_leaf);
+    av2h_memory_fill(block, 0U, sizeof(*block));
+    status = av2h_tile_decoder_next_luma(context->decoder, &leaf, block, &has_leaf);
     if (status != AV2H_OK)
-        return populate_luma_parse_failure(context, status, &leaf, &block);
+        return populate_luma_parse_failure(context, status, &leaf, block);
     if (!has_leaf)
         return AV2H_OK;
     if (context->workspace->bytes_per_sample == 1U) {
         status = av2h_luma_reconstruct_to_plane(
             context->workspace->diagnostics, &leaf.node, &leaf.mode, &leaf.prefix, &leaf.transform,
-            &block, &context->workspace->coded[0], context->workspace->reconstruction_scratch);
+            block, &context->workspace->coded[0], context->workspace->reconstruction_scratch);
     } else {
         status = av2h_luma_reconstruct_to_plane_u16(
             context->workspace->diagnostics, &leaf.node, &leaf.mode, &leaf.prefix, &leaf.transform,
-            &block, &context->workspace->coded_u16[0],
+            block, &context->workspace->coded_u16[0],
             context->workspace->reconstruction_scratch_u16, context->domain);
     }
     if (status != AV2H_OK) {
@@ -389,11 +388,11 @@ static Av2hStatus commit_chroma_deblock(Av2hFrameDecodeContext *context,
 static Av2hStatus flush_pending_chroma_leaves(Av2hFrameDecodeContext *context) {
     uint8_t pending_index;
     for (pending_index = 0U; pending_index < context->pending_chroma_count; ++pending_index) {
-        const Av2hTileChromaLeaf *leaf = &context->pending_chroma_leaves[pending_index];
+        const Av2hTileChromaLeaf *leaf = &context->scratch->pending_chroma_leaves[pending_index];
         unsigned int plane;
         for (plane = 1U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
             Av2hStatus status = reconstruct_chroma_plane(
-                context, leaf, context->pending_chroma_blocks[pending_index], plane);
+                context, leaf, context->scratch->pending_chroma_blocks[pending_index], plane);
             if (status != AV2H_OK) {
                 return frame_decode_failure(context, status,
                                             AV2H_FRAME_DECODE_STAGE_CHROMA_RECONSTRUCT, plane,
@@ -416,12 +415,12 @@ static Av2hStatus flush_pending_chroma_leaves(Av2hFrameDecodeContext *context) {
 
 static Av2hStatus decode_chroma_leaf(Av2hFrameDecodeContext *context) {
     Av2hTileChromaLeaf leaf;
-    Av2hCoeffBlock blocks[2U];
+    Av2hCoeffBlock *blocks = context->scratch->active_blocks;
     uint8_t has_leaf = 0U;
     unsigned int plane;
     Av2hStatus status;
     av2h_memory_fill(&leaf, 0U, sizeof(leaf));
-    av2h_memory_fill(blocks, 0U, sizeof(blocks));
+    av2h_memory_fill(blocks, 0U, sizeof(context->scratch->active_blocks));
     status =
         av2h_tile_decoder_next_chroma(context->decoder, &leaf, &blocks[0], &blocks[1], &has_leaf);
     if (status != AV2H_OK)
@@ -461,14 +460,14 @@ static Av2hStatus decode_chroma_leaf(Av2hFrameDecodeContext *context) {
     if (context->decoder->chroma.shared_resume_luma &&
         !(context->decoder->luma.coding_mode.q_index == 0U &&
           context->decoder->luma.coding_mode.lossless_tx_size_large == 0U)) {
-        if (context->pending_chroma_count >= 4U) {
+        if (context->pending_chroma_count >= AV2H_PENDING_CHROMA_CAPACITY) {
             return frame_decode_failure(context, AV2H_OVERFLOW,
                                         AV2H_FRAME_DECODE_STAGE_CHROMA_COMMIT, 0U, &leaf.node, 0U);
         }
-        av2h_memory_copy(&context->pending_chroma_leaves[context->pending_chroma_count], &leaf,
-                         sizeof(leaf));
-        av2h_memory_copy(context->pending_chroma_blocks[context->pending_chroma_count], blocks,
-                         sizeof(blocks));
+        av2h_memory_copy(&context->scratch->pending_chroma_leaves[context->pending_chroma_count],
+                         &leaf, sizeof(leaf));
+        av2h_memory_copy(context->scratch->pending_chroma_blocks[context->pending_chroma_count],
+                         blocks, sizeof(context->scratch->active_blocks));
         ++context->pending_chroma_count;
         status = av2h_tile_decoder_commit_leaf(context->decoder, leaf.node);
         if (status != AV2H_OK) {
@@ -646,18 +645,19 @@ static Av2hStatus filter_and_output_frame(Av2hFrameDecodeContext *context, uint8
     return AV2H_OK;
 }
 
-Av2hStatus av2h_decode_frame_group_planar_private(
-    const Av2hTileGroup *group, const Av2hSequenceState *sequence, const Av2hFrameState *frame,
-    Av2hFrameDecodeWorkspace *workspace, uint8_t *output, size_t output_size_bytes,
-    Av2hFrameDecodeResult *result, const Av2hExecution *execution) {
+static Av2hStatus decode_frame_tiles_planar(const Av2hSpan *tiles, size_t tile_count,
+                                            uint16_t start_tile, const Av2hSequenceState *sequence,
+                                            const Av2hFrameState *frame,
+                                            Av2hFrameDecodeWorkspace *workspace, uint8_t *output,
+                                            size_t output_size_bytes, Av2hFrameDecodeResult *result,
+                                            const Av2hExecution *execution) {
     Av2hFrameDecodeContext context;
-    Av2hTileDecoder decoder;
     Av2hFrameDecodeResult decoded = {0};
     Av2hFilterWorkspaceLayout layout;
     size_t required_output_bytes;
     size_t tile_index;
     Av2hStatus status;
-    if (group == NULL || group->tile_count == 0U || group->tile_count > AV2H_PROFILE_MAX_TILES ||
+    if (tiles == NULL || tile_count == 0U || tile_count > AV2H_PROFILE_MAX_TILES ||
         sequence == NULL || frame == NULL || workspace == NULL || output == NULL) {
         return AV2H_INVALID_ARGUMENT;
     }
@@ -665,7 +665,6 @@ Av2hStatus av2h_decode_frame_group_planar_private(
     context.frame = frame;
     context.workspace = workspace;
     context.domain = av2h_sample_domain_from_idc(sequence->info.bit_depth_idc);
-    context.decoder = &decoder;
     context.decoded = &decoded;
     reset_frame_diagnostics(&context);
     if (workspace->bytes_per_sample != 1U && workspace->bytes_per_sample != 2U)
@@ -683,10 +682,12 @@ Av2hStatus av2h_decode_frame_group_planar_private(
                                           result, &layout);
     if (status != AV2H_OK)
         return status;
-    for (tile_index = 0U; tile_index < group->tile_count; ++tile_index) {
-        uint16_t tile_id = (uint16_t)(group->start_tile + tile_index);
+    context.scratch = workspace->decode_scratch;
+    context.decoder = &context.scratch->tile_decoder;
+    for (tile_index = 0U; tile_index < tile_count; ++tile_index) {
+        uint16_t tile_id = (uint16_t)(start_tile + tile_index);
         context.pending_chroma_count = 0U;
-        status = av2h_tile_decoder_init(context.decoder, group->tiles[tile_index], sequence, frame,
+        status = av2h_tile_decoder_init(context.decoder, tiles[tile_index], sequence, frame,
                                         &workspace->tile_context, tile_id);
         if (status != AV2H_OK)
             return status;
@@ -714,16 +715,23 @@ finished:
         *result = decoded;
     return status;
 }
+
+Av2hStatus av2h_decode_frame_group_planar_private(
+    const Av2hTileGroup *group, const Av2hSequenceState *sequence, const Av2hFrameState *frame,
+    Av2hFrameDecodeWorkspace *workspace, uint8_t *output, size_t output_size_bytes,
+    Av2hFrameDecodeResult *result, const Av2hExecution *execution) {
+    if (group == NULL)
+        return AV2H_INVALID_ARGUMENT;
+    return decode_frame_tiles_planar(group->tiles, group->tile_count, group->start_tile, sequence,
+                                     frame, workspace, output, output_size_bytes, result,
+                                     execution);
+}
+
 Av2hStatus av2h_decode_frame_planar_private(Av2hSpan entropy, const Av2hSequenceState *sequence,
                                             const Av2hFrameState *frame,
                                             Av2hFrameDecodeWorkspace *workspace, uint8_t *output,
                                             size_t output_size_bytes, Av2hFrameDecodeResult *result,
                                             const Av2hExecution *execution) {
-    Av2hTileGroup group;
-    av2h_memory_fill(&group, 0U, sizeof(group));
-    group.tile_count = 1U;
-    group.tiles[0] = entropy;
-    group.entropy = entropy;
-    return av2h_decode_frame_group_planar_private(&group, sequence, frame, workspace, output,
-                                                  output_size_bytes, result, execution);
+    return decode_frame_tiles_planar(&entropy, 1U, 0U, sequence, frame, workspace, output,
+                                     output_size_bytes, result, execution);
 }

@@ -224,7 +224,7 @@ class SourceConsistencyTests(unittest.TestCase):
     def test_frame_coordinator_stays_small_and_owns_one_pending_drain(self) -> None:
         text = (ROOT / "src/decoder/frame_output.c").read_text()
         coordinator = re.search(
-            r"^Av2hStatus av2h_decode_frame_group_planar_private\([^{}]*\)\s*\{.*?^\}",
+            r"^static Av2hStatus decode_frame_tiles_planar\([^{}]*\)\s*\{.*?^\}",
             text, re.M | re.S)
         self.assertIsNotNone(coordinator)
         if coordinator is not None:

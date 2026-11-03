@@ -37,6 +37,7 @@ typedef struct {
     uint8_t left[128U];
     uint8_t secondary_above[128U];
     uint8_t secondary_left[128U];
+    Av2hBlockReconstruction reconstruction;
 } Av2hReconstructionScratch;
 
 typedef struct {
@@ -48,6 +49,7 @@ typedef struct {
     uint16_t left[128U];
     uint16_t secondary_above[128U];
     uint16_t secondary_left[128U];
+    Av2hBlockReconstructionU16 reconstruction;
 } Av2hReconstructionScratchU16;
 
 Av2hStatus av2h_luma_reconstruct(struct Av2hDecodeDiagnostics *diagnostics,

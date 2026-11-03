@@ -590,30 +590,29 @@ Av2hStatus av2h_tile_decoder_reconstruct_next_chroma(Av2hTileDecoder *decoder,
                                                      Av2hReconstructionPlane *u_plane,
                                                      Av2hReconstructionPlane *v_plane,
                                                      Av2hReconstructionScratch *scratch,
-                                                     Av2hTileChromaLeaf *leaf, uint8_t *has_leaf) {
-    Av2hCoeffBlock u_block;
-    Av2hCoeffBlock v_block;
+                                                     Av2hTileChromaLeaf *leaf,
+                                                     Av2hCoeffBlock blocks[2U], uint8_t *has_leaf) {
     Av2hStatus status;
     if (decoder == NULL || u_plane == NULL || v_plane == NULL || scratch == NULL || leaf == NULL ||
-        has_leaf == NULL) {
+        blocks == NULL || has_leaf == NULL) {
         return AV2H_INVALID_ARGUMENT;
     }
-    status = av2h_tile_decoder_next_chroma(decoder, leaf, &u_block, &v_block, has_leaf);
+    status = av2h_tile_decoder_next_chroma(decoder, leaf, &blocks[0], &blocks[1], has_leaf);
     if (status != AV2H_OK || !*has_leaf)
         return status;
     status = av2h_chroma_inverse_cross_transform(
-        &u_block, &v_block, leaf->transform[0].cctx_type,
+        &blocks[0], &blocks[1], leaf->transform[0].cctx_type,
         av2h_sample_domain_from_idc(decoder->entropy_state.sequence->info.bit_depth_idc)
             ->bit_depth);
     if (status != AV2H_OK)
         return av2h_tile_decoder_fail(decoder, status);
     status = av2h_chroma_reconstruct_to_plane(
-        NULL, &leaf->node, &leaf->mode, &leaf->prefix[0], &leaf->transform[0], &u_block, u_plane,
+        NULL, &leaf->node, &leaf->mode, &leaf->prefix[0], &leaf->transform[0], &blocks[0], u_plane,
         NULL, 1U, NULL, decoder->entropy_state.sequence->info.chroma_format_idc, scratch);
     if (status != AV2H_OK)
         return av2h_tile_decoder_fail(decoder, status);
     status = av2h_chroma_reconstruct_to_plane(
-        NULL, &leaf->node, &leaf->mode, &leaf->prefix[1], &leaf->transform[1], &v_block, v_plane,
+        NULL, &leaf->node, &leaf->mode, &leaf->prefix[1], &leaf->transform[1], &blocks[1], v_plane,
         NULL, 2U, NULL, decoder->entropy_state.sequence->info.chroma_format_idc, scratch);
     if (status != AV2H_OK)
         return av2h_tile_decoder_fail(decoder, status);

@@ -474,6 +474,7 @@ static void test_odd_luma_reconstruction(void) {
     Av2hTileLumaLeaf leaf;
     Av2hTileChromaLeaf chroma_leaf;
     Av2hCoeffBlock block;
+    Av2hCoeffBlock chroma_blocks[2U];
     Av2hError error;
     Av2hStatus status;
     uint8_t has_leaf = 0U;
@@ -716,9 +717,10 @@ static void test_odd_luma_reconstruction(void) {
         }
     }
     for (;;) {
+        av2h_memory_fill(chroma_blocks, (uint8_t)(chroma_count * 85U), sizeof(chroma_blocks));
         status = av2h_tile_decoder_reconstruct_next_chroma(
             &decoder, &u_plane, &v_plane, &reconstruction_scratch,
-            &chroma_leaf, &has_leaf);
+            &chroma_leaf, chroma_blocks, &has_leaf);
         if (status != AV2H_OK) {
             fprintf(stderr,
                     "odd chroma failed after %zu leaves at (%u,%u), "
@@ -1193,8 +1195,17 @@ static void test_ordinary_luma_frontier(void) {
     CHECK(av2h_range_tell(&decoder.entropy_state.range) == 762U);
     {
         Av2hTileChromaLeaf chroma_leaf;
+        Av2hCoeffBlock chroma_blocks[2U];
         uint8_t has_chroma_leaf = 0U;
 
+        CHECK(av2h_tile_decoder_reconstruct_next_luma(
+                  &decoder, &luma_plane, &scratch, &leaf, NULL, &has_leaf) ==
+              AV2H_INVALID_ARGUMENT);
+        CHECK(av2h_tile_decoder_reconstruct_next_chroma(
+                  &decoder, &u_plane, &v_plane, &scratch, &chroma_leaf, NULL,
+                  &has_chroma_leaf) == AV2H_INVALID_ARGUMENT);
+        CHECK(av2h_range_tell(&decoder.entropy_state.range) == 762U);
+        CHECK(decoder.control.phase == AV2H_TILE_DECODE_CHROMA);
         av2h_memory_fill(u_pixels, 0U, sizeof(u_pixels));
         av2h_memory_fill(v_pixels, 0U, sizeof(v_pixels));
         av2h_memory_fill(u_reconstructed, 0U, sizeof(u_reconstructed));
@@ -1203,13 +1214,15 @@ static void test_ordinary_luma_frontier(void) {
                decoder.control.phase != AV2H_TILE_DECODE_DONE) {
             if (decoder.control.phase == AV2H_TILE_DECODE_LUMA) {
                 av2h_memory_fill(&leaf, 0U, sizeof(leaf));
+                av2h_memory_fill(&block, 0xa5U, sizeof(block));
                 status = av2h_tile_decoder_reconstruct_next_luma(
-                    &decoder, &luma_plane, &scratch, &leaf, &has_leaf);
+                    &decoder, &luma_plane, &scratch, &leaf, &block, &has_leaf);
             } else {
                 av2h_memory_fill(&chroma_leaf, 0U, sizeof(chroma_leaf));
+                av2h_memory_fill(chroma_blocks, 0xa5U, sizeof(chroma_blocks));
                 status = av2h_tile_decoder_reconstruct_next_chroma(
                     &decoder, &u_plane, &v_plane, &scratch,
-                    &chroma_leaf, &has_chroma_leaf);
+                    &chroma_leaf, chroma_blocks, &has_chroma_leaf);
             }
         }
         CHECK(status == AV2H_OK);

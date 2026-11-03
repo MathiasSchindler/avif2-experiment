@@ -7,6 +7,15 @@
 #include "runtime/execution.h"
 #include "tile.h"
 
+#define AV2H_PENDING_CHROMA_CAPACITY 4U
+
+typedef struct {
+    Av2hTileDecoder tile_decoder;
+    Av2hCoeffBlock active_blocks[2U];
+    Av2hTileChromaLeaf pending_chroma_leaves[AV2H_PENDING_CHROMA_CAPACITY];
+    Av2hCoeffBlock pending_chroma_blocks[AV2H_PENDING_CHROMA_CAPACITY][2U];
+} Av2hFrameDecodeScratch;
+
 typedef struct {
     Av2hFilterPlaneU16 plane[AV2H_FRAME_PLANE_COUNT];
 } Av2hPlanarOutputU16;
@@ -16,6 +25,7 @@ typedef struct {
     Av2hReconstructionPlaneU16 coded_u16[AV2H_FRAME_PLANE_COUNT];
     size_t coded_data_size_bytes[AV2H_FRAME_PLANE_COUNT];
     Av2hTileContextStorage tile_context;
+    Av2hFrameDecodeScratch *decode_scratch;
     Av2hReconstructionScratch *reconstruction_scratch;
     Av2hReconstructionScratchU16 *reconstruction_scratch_u16;
     Av2hFilterWorkspace *filter_workspace;

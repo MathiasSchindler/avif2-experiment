@@ -55,42 +55,42 @@ typedef struct {
 
 static const PublicFixture fixtures[] = {
         { "i420-tiny", 0, tiny_obu, sizeof(tiny_obu), 16U, 16U, 3U, 0U,
-            UINT64_C(0xb37800c03656c815), 21023U, 0 },
+            UINT64_C(0xb37800c03656c815), 197474U, 0 },
         { "i420-odd", 0, odd_obu, sizeof(odd_obu), 17U, 15U, 3U, 0U,
-            UINT64_C(0xcf92b88ddff4be85), 22328U, 0 },
+            UINT64_C(0xcf92b88ddff4be85), 198779U, 0 },
         { "i400-tiny", "tests/fixtures/monochrome-tiny.obu", 0, 0U,
-            16U, 16U, 1U, 1U, UINT64_C(0xe5e202f90921b37a), 20092U, 0 },
+            16U, 16U, 1U, 1U, UINT64_C(0xe5e202f90921b37a), 196543U, 0 },
         { "i400-odd", "tests/fixtures/monochrome-odd.obu", 0, 0U,
-            17U, 15U, 1U, 1U, UINT64_C(0x74b332bde19bea7d), 20964U, 0 },
+            17U, 15U, 1U, 1U, UINT64_C(0x74b332bde19bea7d), 197415U, 0 },
         { "i400-ordinary", "tests/fixtures/monochrome-ordinary.obu", 0, 0U,
-            160U, 120U, 1U, 1U, UINT64_C(0xa6f20fd0e7434fce), 151312U, 1 },
+            160U, 120U, 1U, 1U, UINT64_C(0xa6f20fd0e7434fce), 327763U, 1 },
         { "i400-high-detail", "tests/fixtures/monochrome-high-detail.obu",
             0, 0U, 96U, 80U, 1U, 1U, UINT64_C(0x99ddbd2918f02c3f),
-            72110U, 0 },
+            248561U, 0 },
         { "i420-ordinary", "tests/fixtures/ordinary-160x120.obu", 0, 0U,
-            160U, 120U, 3U, 0U, UINT64_C(0xfd5a024e7532149d), 216276U, 1 },
+            160U, 120U, 3U, 0U, UINT64_C(0xfd5a024e7532149d), 392727U, 1 },
         { "i420-high-detail", "tests/fixtures/high-detail-96x80.obu", 0, 0U,
-            96U, 80U, 3U, 0U, UINT64_C(0xdb8779d2f2c1afc6), 98162U, 0 },
+            96U, 80U, 3U, 0U, UINT64_C(0xdb8779d2f2c1afc6), 274613U, 0 },
         { "baya-weaver-current-i420-qp152",
             "tests/fixtures/baya-weaver-current-i420-qp152.obu", 0, 0U,
-            896U, 598U, 3U, 0U, UINT64_C(0x6fe0610ca8d389e1), 5511999U, 0 },
+            896U, 598U, 3U, 0U, UINT64_C(0x6fe0610ca8d389e1), 5688450U, 0 },
         { "i444-tiny", "tests/fixtures/i444-tiny.obu", 0, 0U,
-            16U, 16U, 3U, 2U, UINT64_C(0xad5202f55d8da388), 22175U, 0 },
+            16U, 16U, 3U, 2U, UINT64_C(0xad5202f55d8da388), 198626U, 0 },
         { "i444-parity-hidden", "tests/fixtures/parity-hidden-i444.obu",
             0, 0U, 16U, 16U, 3U, 2U, UINT64_C(0x4bf999d643c76605),
-            22175U, 1 },
+            198626U, 1 },
         { "i444-odd", "tests/fixtures/i444-odd.obu", 0, 0U,
-            17U, 15U, 3U, 2U, UINT64_C(0xd4c6d7722282b1ad), 24056U, 0 },
+            17U, 15U, 3U, 2U, UINT64_C(0xd4c6d7722282b1ad), 200507U, 0 },
         { "i444-ordinary", "tests/fixtures/i444-ordinary.obu", 0, 0U,
-            160U, 120U, 3U, 2U, UINT64_C(0x0501cc0d7e7a50f6), 302678U, 1 },
+            160U, 120U, 3U, 2U, UINT64_C(0x0501cc0d7e7a50f6), 479129U, 1 },
         { "i444-high-detail", "tests/fixtures/i444-high-detail.obu", 0, 0U,
-            96U, 80U, 3U, 2U, UINT64_C(0x2fe36a3632f85bb1), 132722U, 0 },
+            96U, 80U, 3U, 2U, UINT64_C(0x2fe36a3632f85bb1), 309173U, 0 },
             { "lossless-i400", "tests/fixtures/lossless-i400.obu", 0, 0U,
-                16U, 16U, 1U, 1U, UINT64_C(0xe5e202f90921b37a), 20091U, 1 },
+                16U, 16U, 1U, 1U, UINT64_C(0xe5e202f90921b37a), 196542U, 1 },
             { "lossless-i420", "tests/fixtures/lossless-i420.obu", 0, 0U,
-                160U, 120U, 3U, 0U, UINT64_C(0xfd5a024e7532149d), 216276U, 1 },
+                160U, 120U, 3U, 0U, UINT64_C(0xfd5a024e7532149d), 392727U, 1 },
             { "lossless-i444", "tests/fixtures/lossless-i444.obu", 0, 0U,
-                16U, 16U, 3U, 2U, UINT64_C(0xad5202f55d8da388), 22175U, 1 }
+                16U, 16U, 3U, 2U, UINT64_C(0xad5202f55d8da388), 198626U, 1 }
 };
 
 #define CHECK(condition)                                                       \
@@ -255,7 +255,7 @@ static void test_public_decode(const PublicFixture *fixture) {
                 fixture->name, info.workspace_size, fixture->workspace_size);
         CHECK(info.workspace_size == fixture->workspace_size);
     }
-    CHECK(info.workspace_alignment == 4U);
+    CHECK(info.workspace_alignment == 8U);
     allocation_size = info.workspace_size + info.workspace_alignment - 1U +
                       info.output_size;
     allocation = (unsigned char *)malloc(allocation_size);
@@ -477,7 +477,7 @@ static void test_10bit_public_decode(const TenBitPublicFixture *fixture) {
         CHECK(info.planes[2].size == chroma_plane_size);
         CHECK(info.output_size == fixture->output_size);
         CHECK(info.workspace_size == fixture->workspace_size &&
-            info.workspace_alignment == 4U);
+            info.workspace_alignment == 8U);
 
         reference_file = fopen(fixture->reference_path, "rb");
     CHECK(reference_file != 0);
@@ -595,7 +595,7 @@ int main(void) {
             "tiny-constrained-16x16-yuv420p10le-qp208.obu",
             "tests/fixtures/10bit/avm-reference/"
             "tiny-constrained-16x16-yuv420p10le-qp208-decoded.yuv",
-            45U, 16U, 16U, 0U, 768U, 26786U,
+            45U, 16U, 16U, 0U, 768U, 215525U,
             UINT64_C(0x61dd9ffdb54a4439)
         },
         {
@@ -604,7 +604,7 @@ int main(void) {
             "tiny-precision-16x16-yuv444p10le-qp128.obu",
             "tests/fixtures/10bit/avm-reference/"
             "tiny-precision-16x16-yuv444p10le-qp128-decoded.yuv",
-            218U, 16U, 16U, 2U, 1536U, 29090U,
+            218U, 16U, 16U, 2U, 1536U, 217829U,
             UINT64_C(0x1ed1553728d318a0)
         }
     };

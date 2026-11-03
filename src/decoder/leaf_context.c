@@ -95,6 +95,10 @@ Av2hStatus av2h_luma_mode_neighbors_from_state(const Av2hLumaModeContextState *s
     neighbors->line_valid = state->superblock_mi != 0U;
     {
         size_t line_count = 0U;
+        for (index = 0U; index < 2U; ++index) {
+            neighbors->line_present[index] = 0U;
+            neighbors->line_skip_transform[index] = 0U;
+        }
         for (index = 0U; index < 4U && line_count < 2U; ++index) {
             if (candidates[index] != NULL && candidates[index]->present) {
                 neighbors->line_present[line_count] = 1U;

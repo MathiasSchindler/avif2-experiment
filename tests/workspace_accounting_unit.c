@@ -35,7 +35,7 @@ static size_t stage_sample_count(const Av2hFilterWorkspaceLayout *layout) {
 
 static void test_storage_width_accounting(uint8_t chroma_format_idc) {
     static _Alignas(max_align_t) uint8_t storage_memory[
-        128U * 1024U + 2U * _Alignof(max_align_t)];
+        sizeof(Av2hFrameDecodeScratch) + 128U * 1024U + 2U * _Alignof(max_align_t)];
     Av2hSequenceState sequence;
     Av2hFrameState frame;
     Av2hFilterWorkspaceLayout filter_u8;
@@ -77,6 +77,7 @@ static void test_storage_width_accounting(uint8_t chroma_format_idc) {
     coded_plane_alignment_padding = av2h_frame_plane_count(&frame);
     CHECK(workspace_u16.size_bytes == workspace_u8.size_bytes +
           3U * sample_count + AV2H_RECON_SAMPLE_CAPACITY + 4U * 128U +
+          sizeof(Av2hBlockReconstructionU16) - sizeof(Av2hBlockReconstruction) +
           coded_plane_alignment_padding);
     CHECK(workspace_u16.alignment == workspace_u8.alignment);
     CHECK(workspace_u8.size_bytes != 0U);
@@ -89,6 +90,25 @@ static void test_storage_width_accounting(uint8_t chroma_format_idc) {
           CHECK(workspace.bytes_per_sample == 1U);
           CHECK(workspace.reconstruction_scratch != 0);
           CHECK(workspace.reconstruction_scratch_u16 == 0);
+    CHECK((uint8_t *)&workspace.reconstruction_scratch->reconstruction >= memory);
+    CHECK((uint8_t *)&workspace.reconstruction_scratch->reconstruction +
+              sizeof(workspace.reconstruction_scratch->reconstruction) <=
+          memory + workspace_u8.size_bytes);
+    CHECK((uintptr_t)&workspace.reconstruction_scratch->reconstruction %
+              _Alignof(Av2hBlockReconstruction) == 0U);
+    CHECK(workspace.reconstruction_scratch->predictor +
+              sizeof(workspace.reconstruction_scratch->predictor) <=
+          (uint8_t *)&workspace.reconstruction_scratch->reconstruction);
+    CHECK((uint8_t *)workspace.decode_scratch == memory);
+    CHECK((uintptr_t)workspace.decode_scratch % _Alignof(Av2hFrameDecodeScratch) == 0U);
+    CHECK((uint8_t *)&workspace.decode_scratch->tile_decoder >= memory);
+    CHECK((uint8_t *)workspace.coded[0].data >= memory + sizeof(*workspace.decode_scratch));
+    CHECK((uint8_t *)&workspace.decode_scratch->active_blocks[0] +
+              sizeof(workspace.decode_scratch->active_blocks) <= memory + workspace_u8.size_bytes);
+    CHECK((uint8_t *)&workspace.decode_scratch->pending_chroma_blocks[0] +
+              sizeof(workspace.decode_scratch->pending_chroma_blocks) <=
+          memory + workspace_u8.size_bytes);
+    CHECK(workspace_u8.alignment >= _Alignof(Av2hFrameDecodeScratch));
         CHECK(workspace.coded[0].reconstructed_stride_cells >=
             ((size_t)workspace.coded[0].width + 3U) / 4U);
             CHECK(workspace.coded[0].reconstructed_count_cells >=
@@ -117,6 +137,17 @@ static void test_storage_width_accounting(uint8_t chroma_format_idc) {
         CHECK(workspace.bytes_per_sample == 2U);
         CHECK(workspace.reconstruction_scratch == 0);
         CHECK(workspace.reconstruction_scratch_u16 != 0);
+        CHECK((uint8_t *)&workspace.reconstruction_scratch_u16->reconstruction >= memory);
+        CHECK((uint8_t *)&workspace.reconstruction_scratch_u16->reconstruction +
+                  sizeof(workspace.reconstruction_scratch_u16->reconstruction) <=
+              memory + workspace_u16.size_bytes);
+        CHECK((uintptr_t)&workspace.reconstruction_scratch_u16->reconstruction %
+                  _Alignof(Av2hBlockReconstructionU16) == 0U);
+        CHECK((uint8_t *)workspace.reconstruction_scratch_u16->predictor +
+                  sizeof(workspace.reconstruction_scratch_u16->predictor) <=
+              (uint8_t *)&workspace.reconstruction_scratch_u16->reconstruction);
+        CHECK((uint8_t *)workspace.decode_scratch == memory);
+        CHECK((uint8_t *)workspace.coded_u16[0].data >= memory + sizeof(*workspace.decode_scratch));
         CHECK(((uintptr_t)workspace.reconstruction_scratch_u16 & 1U) == 0U);
         for (plane = 0U; plane < av2h_frame_plane_count(&frame); ++plane) {
             CHECK(workspace.coded[plane].data == 0);

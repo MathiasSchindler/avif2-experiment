@@ -453,6 +453,33 @@ static void test_luma_mode_bottom_left_clipped_to_frame(void) {
     CHECK(neighbors.joint_mode[0] == 0U);
 }
 
+static void test_luma_mode_line_neighbors_reset(void) {
+    Av2hLumaModeContextState state;
+    Av2hLumaModeContext above[16U];
+    Av2hLumaModeContext left[16U];
+    Av2hLumaModeNeighbors neighbors;
+    Av2hPartitionNode leaf = {1U, 1U, AV2H_BLOCK_8X8};
+    unsigned int count;
+    CHECK(av2h_luma_mode_context_state_init(
+              &state, above, 16U, left, 16U) == AV2H_OK);
+    state.superblock_mi = 16U;
+    for (count = 0U; count <= 2U; ++count) {
+        unsigned int index;
+        left[1U].present = (uint8_t)(count >= 1U);
+        left[1U].skip_transform = 1U;
+        above[1U].present = (uint8_t)(count >= 2U);
+        above[1U].skip_transform = 1U;
+        memset(&neighbors, 0xa5, sizeof(neighbors));
+        CHECK(av2h_luma_mode_neighbors_from_state(
+                  &state, &leaf, &neighbors) == AV2H_OK);
+        CHECK(neighbors.line_valid == 1U);
+        for (index = 0U; index < 2U; ++index) {
+            CHECK(neighbors.line_present[index] == (uint8_t)(index < count));
+            CHECK(neighbors.line_skip_transform[index] == (uint8_t)(index < count));
+        }
+    }
+}
+
 static void test_intrabc_morph_pred_cdf_defaults(void) {
     Av2hLeafCdfs cdfs;
     CHECK(av2h_leaf_cdfs_init(&cdfs) == AV2H_OK);
@@ -577,6 +604,7 @@ int main(void) {
     test_intrabc_bank_survives_superblock_boundary();
     test_intrabc_bank_origin_uses_coded_frame_bounds();
     test_luma_mode_bottom_left_clipped_to_frame();
+    test_luma_mode_line_neighbors_reset();
     test_intrabc_morph_pred_cdf_defaults();
     test_extended_segment_ids();
     test_segment_adjusted_q_index();

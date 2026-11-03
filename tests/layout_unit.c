@@ -50,9 +50,9 @@ static void test_64_bit_decoder_layout(void) {
     CHECK(_Alignof(Av2hLeafCdfs) == 2U);
     CHECK(sizeof(Av2hTileDecoder) == 70088U);
     CHECK(_Alignof(Av2hTileDecoder) == 8U);
-    CHECK(sizeof(Av2hReconstructionScratch) == 16896U);
+    CHECK(sizeof(Av2hReconstructionScratch) == 29188U);
     CHECK(_Alignof(Av2hReconstructionScratch) == 4U);
-    CHECK(sizeof(Av2hReconstructionScratchU16) == 21504U);
+    CHECK(sizeof(Av2hReconstructionScratchU16) == 46084U);
     CHECK(_Alignof(Av2hReconstructionScratchU16) == 4U);
     CHECK(sizeof(Av2hReconstructionPlane) == 48U);
     CHECK(_Alignof(Av2hReconstructionPlane) == 8U);

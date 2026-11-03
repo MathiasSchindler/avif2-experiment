@@ -45,16 +45,11 @@ static size_t maximum_alignment(size_t left, size_t right) {
 }
 
 static void *workspace_reconstruction_scratch(Av2hArena *arena, size_t bytes_per_sample) {
-    const size_t coefficient_bytes = 3U * AV2H_COEFF_CAPACITY * sizeof(int32_t);
-    const size_t sample_count = AV2H_RECON_SAMPLE_CAPACITY + 4U * 128U;
-    size_t sample_bytes;
-    size_t scratch_bytes;
-    if (!av2h_size_multiply(sample_count, bytes_per_sample, &sample_bytes) ||
-        !av2h_size_add(coefficient_bytes, sample_bytes, &scratch_bytes)) {
-        arena->status = AV2H_OVERFLOW;
-        return NULL;
-    }
-    return av2h_arena_allocate(arena, scratch_bytes, _Alignof(Av2hReconstructionScratch));
+    size_t scratch_bytes = bytes_per_sample == 1U ? sizeof(Av2hReconstructionScratch)
+                                                  : sizeof(Av2hReconstructionScratchU16);
+    size_t alignment = bytes_per_sample == 1U ? _Alignof(Av2hReconstructionScratch)
+                                              : _Alignof(Av2hReconstructionScratchU16);
+    return av2h_arena_allocate(arena, scratch_bytes, alignment);
 }
 
 static Av2hStatus frame_decode_workspace_geometry(const Av2hSequenceState *sequence,
@@ -115,6 +110,10 @@ static void frame_decode_workspace_bind(Av2hArena *arena, const Av2hFrameState *
                                         const Av2hFrameDecodeWorkspaceGeometry *geometry,
                                         Av2hFrameDecodeWorkspace *workspace, void **filter_memory) {
     unsigned int plane;
+    Av2hFrameDecodeScratch *decode_scratch = av2h_arena_allocate(
+        arena, sizeof(Av2hFrameDecodeScratch), _Alignof(Av2hFrameDecodeScratch));
+    if (workspace != NULL)
+        workspace->decode_scratch = decode_scratch;
     *filter_memory =
         av2h_arena_allocate(arena, geometry->filter.size_bytes, geometry->filter.alignment);
     for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
@@ -213,7 +212,10 @@ Av2hStatus av2h_frame_decode_workspace_query(const Av2hSequenceState *sequence,
     result.alignment = geometry.filter.alignment;
     result.alignment = maximum_alignment(result.alignment, _Alignof(Av2hLumaModeContext));
     result.alignment = maximum_alignment(result.alignment, _Alignof(Av2hTileLumaModeCell));
-    result.alignment = maximum_alignment(result.alignment, _Alignof(Av2hReconstructionScratch));
+    result.alignment = maximum_alignment(
+        result.alignment, bytes_per_sample == 1U ? _Alignof(Av2hReconstructionScratch)
+                                                 : _Alignof(Av2hReconstructionScratchU16));
+    result.alignment = maximum_alignment(result.alignment, _Alignof(Av2hFrameDecodeScratch));
     *layout = result;
     return AV2H_OK;
 }
@@ -537,7 +539,9 @@ static int output_is_disjoint(uint8_t *output, size_t output_size_bytes,
                         layout->restoration_tx_skip_count)) {
         return 0;
     }
-    if (output_overlaps(output, output_size_bytes, context->luma_partition_above,
+    if (output_overlaps(output, output_size_bytes, workspace->decode_scratch,
+                        sizeof(*workspace->decode_scratch)) ||
+        output_overlaps(output, output_size_bytes, context->luma_partition_above,
                         context->above_count) ||
         output_overlaps(output, output_size_bytes, context->luma_partition_left,
                         context->left_count) ||
@@ -585,6 +589,8 @@ static void clear_decode_storage(const Av2hFrameState *frame,
                                  const Av2hFrameContextSizes *context_sizes) {
     Av2hTileContextStorage *context = &workspace->tile_context;
     unsigned int plane;
+    av2h_memory_fill(&workspace->decode_scratch->tile_decoder, 0U,
+                     sizeof(workspace->decode_scratch->tile_decoder));
     av2h_memory_fill(context->luma_partition_above, 0U, context->above_count);
     av2h_memory_fill(context->luma_partition_left, 0U, context->left_count);
     av2h_memory_fill(context->chroma_partition_above, 0U, context->above_count);
@@ -683,7 +689,9 @@ Av2hStatus av2h_frame_workspace_prepare(const Av2hSequenceState *sequence,
         frame, workspace != NULL ? workspace->bytes_per_sample : 0U, layout);
     if (status != AV2H_OK)
         return status;
-    if (!filter_workspace_valid(frame, layout, workspace->filter_workspace,
+    if (workspace->decode_scratch == NULL ||
+        (uintptr_t)workspace->decode_scratch % _Alignof(Av2hFrameDecodeScratch) != 0U ||
+        !filter_workspace_valid(frame, layout, workspace->filter_workspace,
                                 workspace->bytes_per_sample) ||
         !decode_planes_valid(frame, layout, workspace) ||
         !tile_context_valid(sequence, frame, &workspace->tile_context, &context_sizes) ||

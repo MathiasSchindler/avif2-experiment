@@ -522,6 +522,7 @@ typedef struct {
     uint64_t output[2U];
 } ResourceSnapshot;
 
+/* Pre-A1 layouts plus decoder scratch/padding and byte/wide reconstruction results. */
 static const ResourceSnapshot resources[] = {
     { 17U, 15U, 0U, { 2163U, 3315U }, { 22327U, 28666U }, { 399U, 798U } },
     { 17U, 15U, 1U, { 1105U, 1873U }, { 20963U, 26724U }, { 255U, 510U } },
@@ -576,11 +577,12 @@ static void test_resource_baseline(void) {
             }
             if (sizeof(void *) == 8U && sizeof(size_t) == 8U) {
                 CHECK(filter.size_bytes == expected->filter[storage]);
-                CHECK(workspace.size_bytes == expected->workspace[storage]);
+                CHECK(workspace.size_bytes == expected->workspace[storage] + 164159U +
+                      (storage == 0U ? 12292U : 24580U));
                 CHECK(output_size == expected->output[storage]);
             }
             CHECK(filter.alignment == 2U);
-            CHECK(workspace.alignment == 4U);
+            CHECK(workspace.alignment == 8U);
         }
     }
 }
@@ -596,7 +598,8 @@ static void test_private_layout_baseline(void) {
             CHECK(_Alignof(type) == (alignment));                              \
         }                                                                      \
     } while (0)
-    CHECK_LAYOUT(Av2hFrameDecodeWorkspace, 832U, 8U);
+    CHECK_LAYOUT(Av2hFrameDecodeWorkspace, 840U, 8U);
+    CHECK_LAYOUT(Av2hFrameDecodeScratch, 164152U, 8U);
     CHECK_LAYOUT(Av2hFrameDecodeResult, 144U, 8U);
     CHECK_LAYOUT(Av2hFilterWorkspaceStorage, 56U, 8U);
     CHECK_LAYOUT(Av2hDecodeDiagnostics, 216U, 8U);
@@ -606,6 +609,8 @@ static void test_private_layout_baseline(void) {
     CHECK_LAYOUT(Av2hLumaReferencesU16, 96U, 8U);
     CHECK_LAYOUT(Av2hBlockReconstruction, 12292U, 2U);
     CHECK_LAYOUT(Av2hBlockReconstructionU16, 24580U, 4U);
+    CHECK_LAYOUT(Av2hReconstructionScratch, 29188U, 4U);
+    CHECK_LAYOUT(Av2hReconstructionScratchU16, 46084U, 4U);
 #undef CHECK_LAYOUT
 }
 

@@ -39,11 +39,11 @@ static void initialize(Av2hSequenceState *sequence, Av2hFrameState *frame,
 
 static void test_storage_offsets(void) {
     static _Alignas(max_align_t) uint8_t memory[2U * 1024U * 1024U];
-    /* Pointer offsets measured before M4; absolute addresses are excluded. */
+    /* A1 adds decoder/coefficient and reconstruction scratch; absolute addresses are excluded. */
     static const uint64_t expected[6] = {
-        UINT64_C(0x09c68eb3b138720f), UINT64_C(0x39f5479409609aad),
-        UINT64_C(0x686b478e6b9736e5), UINT64_C(0x52fd92ced2bb7d99),
-        UINT64_C(0xe7dc32915fe9b3a4), UINT64_C(0xd6ccb38278c49ae9)
+        UINT64_C(0x2dfbdeb0dec7c0f8), UINT64_C(0xf196c363dbff56a1),
+        UINT64_C(0x3ca688afd9e52b95), UINT64_C(0xbeeb2f17554c98b4),
+        UINT64_C(0xd82aee9b765eaeb3), UINT64_C(0x93b90009e5ff2329)
     };
     unsigned int format;
     unsigned int bytes;
@@ -544,15 +544,15 @@ static void test_frame_orchestration_results(void) {
         "tests/fixtures/10bit/avm-reference/tiny-precision-16x16-yuv420p10le-qp160.obu",
         "tests/fixtures/10bit/avm-reference/tiny-precision-16x16-yuv444p10le-qp128.obu"
     };
-    /* Frame fields, entropy tells, output bytes and guard bytes frozen before C9. */
+    /* A1 initializes decoder/neighbors and bounds wide secondary references in mutated streams. */
     static const uint64_t expected[7U][2U] = {
         {UINT64_C(0xef68fa57994c3d43), UINT64_C(0xc9d75e745ba982b0)},
         {UINT64_C(0x43d917cfd867591c), UINT64_C(0x9d49e6063c1702ed)},
-        {UINT64_C(0xd6a383a848d0697c), UINT64_C(0x87efc9bb80473623)},
+        {UINT64_C(0x5b0a800d7c117abf), UINT64_C(0x4838d7ef837ba8e1)},
         {UINT64_C(0x82b56e940268c1ba), UINT64_C(0x3c59ee17cc09cc96)},
         {UINT64_C(0x06c0d53564fed226), UINT64_C(0xce774e626c2cc84b)},
         {UINT64_C(0x80c55175bf202253), UINT64_C(0x76c0e59323fec417)},
-        {UINT64_C(0xc7ab3808eed328c1), UINT64_C(0x8d083a108759f524)}
+        {UINT64_C(0x0fea65915921bf11), UINT64_C(0x5caff6c493fb7afc)}
     };
     static uint8_t input[262144U];
     static uint8_t output[256U * 256U * 6U];
@@ -651,7 +651,7 @@ static void test_frame_orchestration_results(void) {
             if (bit != 0U) input[(size_t)(group.tiles[0].data - input) + byte] ^= bit;
             CHECK(result.stage <= AV2H_FRAME_DECODE_STAGE_OUTPUT);
             if (result.stage <= AV2H_FRAME_DECODE_STAGE_OUTPUT) ++stages[result.stage];
-            if (variant == 0U) CHECK(status == AV2H_OK);
+            if (variant == 0U || variant == 74U) CHECK(status == AV2H_OK);
             if (variant == 73U) CHECK(status == AV2H_OUT_OF_MEMORY);
             if (variant == 75U) CHECK(status == AV2H_UNSUPPORTED);
             if (variant >= 76U && variant <= 78U) CHECK(status == AV2H_INVALID_ARGUMENT);
@@ -676,6 +676,42 @@ static void test_frame_orchestration_results(void) {
                 workspace.diagnostics->partition_leaf_trace_capacity = 8U;
             }
             workspace.bytes_per_sample = (uint8_t)bytes;
+        }
+        {
+            /* The last two mutations exercise bottom-edge wide multi-line references. */
+            static const size_t offsets[4U] = {0U, 2U, 1U, 5U};
+            static const uint8_t masks[4U] = {0U, 2U, 128U, 2U};
+            unsigned int mutation;
+            for (mutation = 0U; mutation < (fixture == 6U ? 4U : 2U); ++mutation) {
+                uint64_t expected_record = 0U;
+                unsigned int poison;
+                size_t input_offset = (size_t)(original.tiles[0].data - input) + offsets[mutation];
+                input[input_offset] ^= masks[mutation];
+                for (poison = 0U; poison < 4U; ++poison) {
+                    Av2hFrameDecodeResult result = {0};
+                    Av2hStatus status;
+                    uint64_t record;
+                    memset(workspace.decode_scratch, (int)(poison * 85U),
+                           sizeof(*workspace.decode_scratch));
+                    if (bytes == 1U)
+                        memset(workspace.reconstruction_scratch, (int)(poison * 85U),
+                               sizeof(*workspace.reconstruction_scratch));
+                    else
+                        memset(workspace.reconstruction_scratch_u16, (int)(poison * 85U),
+                               sizeof(*workspace.reconstruction_scratch_u16));
+                    memset(output, 0xa5, required + 16U);
+                    status = av2h_decode_frame_group_planar_private(
+                        &original, &sequence, &frame, &workspace, output, required, &result, NULL);
+                    if (mutation != 1U) CHECK(status == AV2H_OK);
+                    record = hash_result(hash_value(UINT64_C(14695981039346656037), status),
+                                         &result);
+                    for (index = 0U; index < required + 16U; ++index)
+                        record = hash_value(record, output[index]);
+                    if (poison == 0U) expected_record = record;
+                    else CHECK(record == expected_record);
+                }
+                input[input_offset] ^= masks[mutation];
+            }
         }
         printf("frame orchestration %zu: %016" PRIx64 "; stages", fixture, hash);
         for (index = 0U; index < sizeof(stages) / sizeof(stages[0]); ++index)

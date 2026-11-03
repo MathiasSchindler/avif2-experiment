@@ -277,7 +277,7 @@ Av2hStatus av2h_luma_reconstruct_to_plane(Av2hDecodeDiagnostics *diagnostics,
                                           Av2hReconstructionPlane *plane,
                                           Av2hReconstructionScratch *scratch) {
     const Av2hSampleDomain *domain = &av2h_sample_domain_8bit;
-    Av2hBlockReconstruction reconstruction;
+    Av2hBlockReconstruction *reconstruction;
     Av2hLumaReferences references;
     const Av2hTxDescriptor *descriptor;
     uint16_t block_x;
@@ -305,6 +305,7 @@ Av2hStatus av2h_luma_reconstruct_to_plane(Av2hDecodeDiagnostics *diagnostics,
             plane->reconstructed_stride_cells * (((size_t)plane->height + 3U) / 4U)) {
         return AV2H_INVALID_ARGUMENT;
     }
+    reconstruction = &scratch->reconstruction;
     av2h_reconstruction_diagnostics_set_luma_stage(diagnostics, 0U);
     block_x = (uint16_t)((uint32_t)leaf->column * 4U);
     block_y = (uint16_t)((uint32_t)leaf->row * 4U);
@@ -517,21 +518,21 @@ Av2hStatus av2h_luma_reconstruct_to_plane(Av2hDecodeDiagnostics *diagnostics,
         if (status != AV2H_OK)
             return status;
         status = av2h_luma_reconstruct(diagnostics, mode, prefix, transform, coefficients,
-                                       scratch->predictor, output_width, scratch, &reconstruction);
+                                       scratch->predictor, output_width, scratch, reconstruction);
     } else if (mode->use_intrabc) {
         status = av2h_intrabc_predict(diagnostics, mode, plane, block_x, block_y, output_width,
                                       output_height, scratch->predictor);
         if (status != AV2H_OK)
             return status;
         status = av2h_luma_reconstruct(diagnostics, mode, prefix, transform, coefficients,
-                                       scratch->predictor, output_width, scratch, &reconstruction);
+                                       scratch->predictor, output_width, scratch, reconstruction);
     } else if (mode->mode == AV2H_INTRA_DC && above_count == 0U && left_count == 0U &&
                mode->use_intra_dip == 0U) {
         for (index = 0U; index < (size_t)output_width * output_height; ++index) {
             scratch->predictor[index] = domain->midpoint;
         }
         status = av2h_luma_reconstruct(diagnostics, mode, prefix, transform, coefficients,
-                                       scratch->predictor, output_width, scratch, &reconstruction);
+                                       scratch->predictor, output_width, scratch, reconstruction);
     } else {
         av2h_reconstruction_diagnostics_set_luma_stage(diagnostics, 1U);
         av2h_memory_copy(&effective_mode, mode, sizeof(effective_mode));
@@ -544,16 +545,16 @@ Av2hStatus av2h_luma_reconstruct_to_plane(Av2hDecodeDiagnostics *diagnostics,
             return status;
         av2h_reconstruction_diagnostics_set_luma_stage(diagnostics, 2U);
         status = av2h_luma_reconstruct(diagnostics, mode, prefix, transform, coefficients,
-                                       scratch->predictor, output_width, scratch, &reconstruction);
+                                       scratch->predictor, output_width, scratch, reconstruction);
     }
     if (status != AV2H_OK)
         return status;
     av2h_reconstruction_diagnostics_set_luma_stage(diagnostics, 3U);
-    if (reconstruction.width != output_width || reconstruction.height != output_height) {
+    if (reconstruction->width != output_width || reconstruction->height != output_height) {
         return AV2H_UNSUPPORTED;
     }
     av2h_predictor_commit_u8(plane->data + (size_t)block_y * plane->stride_samples + block_x,
-                             plane->stride_samples, reconstruction.pixels, output_width,
+                             plane->stride_samples, reconstruction->pixels, output_width,
                              visible_width, visible_height);
     plane_mark_reconstructed(plane, block_x, block_y, visible_width, visible_height);
     return AV2H_OK;
@@ -567,7 +568,7 @@ av2h_chroma_reconstruct_to_plane(Av2hDecodeDiagnostics *diagnostics, const Av2hP
                                  Av2hReconstructionPlane *predictor_plane,
                                  uint8_t chroma_format_idc, Av2hReconstructionScratch *scratch) {
     const Av2hSampleDomain *domain = &av2h_sample_domain_8bit;
-    Av2hBlockReconstruction reconstruction;
+    Av2hBlockReconstruction *reconstruction;
     Av2hLumaReferences references;
     const Av2hTxDescriptor *descriptor;
     uint16_t block_x;
@@ -593,6 +594,7 @@ av2h_chroma_reconstruct_to_plane(Av2hDecodeDiagnostics *diagnostics, const Av2hP
             plane->reconstructed_stride_cells * (((size_t)plane->height + 3U) / 4U)) {
         return AV2H_INVALID_ARGUMENT;
     }
+    reconstruction = &scratch->reconstruction;
     av2h_reconstruction_diagnostics_set_chroma_stage(diagnostics, 1U);
     status = av2h_tx_descriptor_get(prefix->tx_size, &descriptor);
     if (status != AV2H_OK)
@@ -770,7 +772,7 @@ av2h_chroma_reconstruct_to_plane(Av2hDecodeDiagnostics *diagnostics, const Av2hP
                                  visible_width, visible_height);
     }
     status = av2h_chroma_reconstruct(diagnostics, mode, prefix, transform, coefficients,
-                                     scratch->predictor, width, height, scratch, &reconstruction);
+                                     scratch->predictor, width, height, scratch, reconstruction);
     if (status != AV2H_OK) {
         if (prefix->all_zero && coefficients->nonzero_count == 0U) {
             return status;
@@ -783,7 +785,7 @@ av2h_chroma_reconstruct_to_plane(Av2hDecodeDiagnostics *diagnostics, const Av2hP
         return status;
     }
     av2h_predictor_commit_u8(plane->data + (size_t)block_y * plane->stride_samples + block_x,
-                             plane->stride_samples, reconstruction.pixels, width, visible_width,
+                             plane->stride_samples, reconstruction->pixels, width, visible_width,
                              visible_height);
     plane_mark_reconstructed(plane, block_x, block_y, visible_width, visible_height);
     if (prefix->all_zero && coefficients->nonzero_count == 0U) {
@@ -799,7 +801,7 @@ Av2hStatus av2h_luma_reconstruct_to_plane_u16(
     Av2hReconstructionScratchU16 *scratch, const Av2hSampleDomain *domain) {
     if (!av2h_sample_domain_valid(domain))
         return AV2H_INVALID_ARGUMENT;
-    Av2hBlockReconstructionU16 reconstruction;
+    Av2hBlockReconstructionU16 *reconstruction;
     const Av2hTxDescriptor *descriptor;
     uint16_t block_x;
     uint16_t block_y;
@@ -834,6 +836,7 @@ Av2hStatus av2h_luma_reconstruct_to_plane_u16(
             plane->reconstructed_stride_cells * (((size_t)plane->height + 3U) / 4U)) {
         return AV2H_INVALID_ARGUMENT;
     }
+    reconstruction = &scratch->reconstruction;
     av2h_reconstruction_diagnostics_set_luma_stage(diagnostics, 0U);
     status = av2h_tx_descriptor_get(prefix->tx_size, &descriptor);
     if (status != AV2H_OK)
@@ -994,8 +997,10 @@ Av2hStatus av2h_luma_reconstruct_to_plane_u16(
             }
             for (index = 0U; index < secondary_left_count; ++index) {
                 size_t sample_y = block_y + index;
-                if (sample_y >= plane->height)
+                if (sample_y >= plane->height) {
+                    secondary_left_count = index;
                     break;
+                }
                 if (!plane_sample_reconstructed_u16(plane, block_x - 1U, sample_y)) {
                     secondary_left_count = index;
                     break;
@@ -1153,12 +1158,12 @@ Av2hStatus av2h_luma_reconstruct_to_plane_u16(
             return status;
     }
     status = av2h_luma_reconstruct_u16(diagnostics, mode, prefix, transform, coefficients,
-                                       scratch->predictor, scratch, &reconstruction, domain);
+                                       scratch->predictor, scratch, reconstruction, domain);
     if (status != AV2H_OK)
         return status;
     av2h_reconstruction_diagnostics_set_luma_stage(diagnostics, 3U);
     av2h_predictor_commit_u16(plane->data + (size_t)block_y * plane->stride_samples + block_x,
-                              plane->stride_samples, reconstruction.pixels,
+                              plane->stride_samples, reconstruction->pixels,
                               descriptor->output_width, visible_width, visible_height);
     plane_mark_reconstructed_u16(plane, block_x, block_y, visible_width, visible_height);
     return AV2H_OK;
@@ -1173,7 +1178,7 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_u16(
     if (!av2h_sample_domain_valid(domain))
         return AV2H_INVALID_ARGUMENT;
     Av2hLeafMode luma_mode;
-    Av2hBlockReconstructionU16 reconstruction;
+    Av2hBlockReconstructionU16 *reconstruction;
     const Av2hTxDescriptor *descriptor;
     uint16_t block_x;
     uint16_t block_y;
@@ -1199,6 +1204,7 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_u16(
         plane->reference_width > plane->width || plane->reference_height > plane->height) {
         return AV2H_INVALID_ARGUMENT;
     }
+    reconstruction = &scratch->reconstruction;
     status = av2h_tx_descriptor_get(prefix->tx_size, &descriptor);
     if (status != AV2H_OK)
         return status;
@@ -1429,11 +1435,11 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_u16(
     }
     av2h_reconstruction_diagnostics_set_chroma_stage(diagnostics, 2U);
     status = av2h_chroma_reconstruct_u16(diagnostics, mode, prefix, transform, coefficients,
-                                         scratch->predictor, scratch, &reconstruction, domain);
+                                         scratch->predictor, scratch, reconstruction, domain);
     if (status != AV2H_OK)
         return status;
     av2h_predictor_commit_u16(plane->data + (size_t)block_y * plane->stride_samples + block_x,
-                              plane->stride_samples, reconstruction.pixels, width, visible_width,
+                              plane->stride_samples, reconstruction->pixels, width, visible_width,
                               visible_height);
     plane_mark_reconstructed_u16(plane, block_x, block_y, visible_width, visible_height);
     av2h_reconstruction_diagnostics_set_chroma_stage(diagnostics, 3U);

@@ -1,6 +1,6 @@
 # Decoder Architecture and Runtime Improvement Plan
 
-**Status:** Planned  
+**Status:** A1 in progress (frame-decode and reconstruction arena steps complete); A2-A6 planned
 **Scope:** [`src/`](../src/) and [`include/av2heif.h`](../include/av2heif.h)
 
 ## Purpose and Scope
@@ -51,6 +51,142 @@ On freestanding / `nolibc` worker threads, WebAssembly linear-memory stacks, Win
 ### Exit Criteria
 - Compiling all of [`src/`](../src/) with `-Wframe-larger-than=4096 -Werror` succeeds with zero warnings.
 - `Av2hTileDecoder` and `Av2hCoeffBlock` buffers reside in the caller-supplied workspace arena.
+
+### A1 progress: frame-decode arena ownership
+
+The first implementation step is complete; **A1's global 4 KB exit criterion is
+not yet met**.
+
+- [`Av2hFrameDecodeScratch`](../src/decoder/frame_output.h) now owns the serial
+  tile decoder, two shared active coefficient blocks, and four deferred chroma
+  leaves with their coefficient pairs. One typed allocation in the existing
+  sizing/binding arena keeps these related buffers together and accounts for
+  their alignment identically during query and initialization. Luma and chroma
+  share the active pair because their decode stages do not overlap; deferred
+  coefficients have separate storage.
+- [`frame_output.c`](../src/decoder/frame_output.c) no longer allocates a tile
+  decoder, active coefficient blocks, or deferred buffers on the stack. The
+  single-tile entry point passes a one-span view to the same coordinator instead
+  of constructing a full 256-entry tile group. No public API change, heap
+  allocation, static mutable decoder state, or A2 parsing optimization was added.
+- Native ARM64 measurements with Clang 22.1.8 at `-O2` put the shared coordinator
+  at **2,704 bytes** without diagnostics and **2,720 bytes** with diagnostics,
+  versus the original **146,128-byte** frame-group coordinator. The former
+  20,576-byte leaf-loop frame is eliminated by inlining its now-small helpers.
+  The single-tile wrapper falls from **4,240 to 48 bytes**. Every compiled frame
+  in this owner is below 4,096 bytes in both configurations. The native object
+  has a persistent `-Wframe-larger-than=4096` build guard.
+- On this native ABI the arena scratch is **164,152 bytes**, with **8-byte**
+  alignment. Workspace queries increase by **164,159 bytes**, including the
+  existing sizing arena's seven worst-case padding bytes, and now report
+  8-byte rather than 4-byte alignment. Public workspace-size baselines, private
+  layouts, resource inventories, and storage-offset fingerprints were updated
+  explicitly. Existing byte/wide plane-storage differences remain unchanged.
+- New scratch storage is validated for presence, alignment, and output
+  disjointness before clearing or decoding. Tests cover overlap with every
+  scratch component, absent/misaligned storage, buffer guards, and reuse with
+  four different poison patterns.
+
+The stack relocation exposed initialization dependencies in malformed-input
+tests. The arena-owned decoder is reset at the start of each frame. In addition,
+[`av2h_luma_mode_neighbors_from_state`](../src/decoder/leaf_context.c) previously
+left unused `line_present` / `line_skip_transform` entries uninitialized when
+fewer than two line neighbors existed. A poisoned-output regression reproduced
+the defect; those absent entries are now initialized explicitly. This is a
+tightly coupled correctness fix, not an attempt to preserve stack garbage.
+The lossless and 10-bit 4:4:4 malformed-record fingerprints were updated
+explicitly; valid lossless retries with a NULL result now succeed after prior
+malformed attempts. All other retained frame-result fingerprints are unchanged.
+
+Validation for this step:
+
+- All **33 sanitized C suites** and **2,460 deterministic public-decode fuzz
+  cases**, with diagnostics absent and enabled.
+- **560** frozen orchestration variants plus **56** poisoned-scratch reuse cases
+  per diagnostic configuration; dedicated zero/one/two-neighbor initialization
+  coverage.
+- **179** unchanged native decoded-image hashes and **14** exact CLI
+  output/error/destination-preservation contracts.
+- **38** related Python checks, canonical formatting, freestanding undefined
+  symbols, **55** standalone private headers, and **35** value-only kernel roots.
+
+### A1 progress: reconstruction result ownership
+
+The second implementation step moves the byte/wide block-reconstruction results
+into the existing arena-backed
+[`Av2hReconstructionScratch`](../src/decoder/reconstruct.h) and
+[`Av2hReconstructionScratchU16`](../src/decoder/reconstruct.h). Luma and chroma
+reuse one result per storage domain; predictor, transform, and result storage
+remain disjoint. The four plane-reconstruction entry points no longer allocate
+these large results on the stack. The two direct tile-reconstruction helpers now
+require caller-owned coefficient blocks instead of allocating them internally;
+the normal frame path continues using its arena-owned active pair.
+
+Allocation now uses `sizeof` and `_Alignof` of the selected scratch type instead
+of duplicating its field-size arithmetic in
+[`frame_workspace.c`](../src/decoder/frame_workspace.c). On the native ABI:
+
+- Byte scratch grows from **16,896 to 29,188 bytes**.
+- Wide scratch grows from **21,504 to 46,084 bytes**.
+- Queried workspace grows by a further **12,292 / 24,580 bytes** for byte/wide
+  samples, respectively, beyond the first A1 step. Overall workspace alignment
+  remains **8 bytes**; both reconstruction scratch types remain 4-byte aligned.
+- Public size expectations, private-layout inventories, byte/wide accounting,
+  and storage-offset fingerprints explicitly include these changes. Tests check
+  result ownership, alignment, predictor disjointness, arena bounds, and output
+  overlap rejection through the final scratch byte in both storage domains.
+
+Native ARM64 Clang 22.1.8 `-O2` stack measurements:
+
+| Entry point | Before this step | After, diagnostics absent / enabled |
+| :--- | ---: | ---: |
+| Byte luma reconstruction | 14,352 | 2,048 / 2,048 |
+| Byte chroma reconstruction | 12,640 | 352 / 368 |
+| Wide luma reconstruction | 24,944 | 2,112 / 2,112 |
+| Wide chroma reconstruction | 26,704 | 2,112 / 2,112 |
+| Direct tile luma reconstruction | 9,344 | 64 / 64 |
+| Direct tile chroma reconstruction | 18,656 | 112 / 112 |
+
+The persistent native 4 KB build guard now covers
+[`reconstruct.c`](../src/decoder/reconstruct.c),
+[`tile_luma.c`](../src/decoder/tile_luma.c), and
+[`tile_chroma.c`](../src/decoder/tile_chroma.c), as well as the first step's
+frame-output owner.
+
+Expanded poison testing also reproduced a pre-existing wide multi-line
+reference defect: at the picture's bottom edge, the secondary-left fill loop
+stopped without reducing the advertised reference count. Prediction could then
+consume stale scratch samples. The count now includes only initialized samples.
+Two accepted bit-mutated 10-bit 4:4:4 streams exercise this path with four scratch
+patterns. Their output is now scratch-history independent; the corresponding
+mutation-record fingerprint was deliberately rebaselined. No admission rule or
+return status was changed, and all **179 retained native image hashes** and
+**14 CLI contracts** remain unchanged.
+
+Validation includes both diagnostic configurations of the **33 sanitized C
+suites**, **2,460 deterministic public-decode fuzz cases**, **560 frozen
+orchestration variants**, and now **64 poisoned-scratch reuse cases**. The poison
+checks cover the entire reconstruction scratch as well as frame-decode scratch.
+The **38 related Python checks**, standalone private headers, freestanding
+symbols, formatting, and explicit resource/layout baselines are also checked.
+
+### Remaining A1 work
+
+Full native stack inventories in both diagnostic configurations now have
+**10**, rather than the original 19, frames exceeding 4 KB:
+
+- Preparation and public orchestration: `av2h_query` (16,112 bytes),
+  `av2h_decode` (17,712 bytes), and `av2h_cli_decode` (18,384 bytes). Query has no
+  workspace argument, so preparation sizing/validation must be separated from
+  arena-backed materialized state without adding hidden allocation or breaking
+  the two-call public API.
+- Six directional-prediction helpers (4,208-11,952 bytes).
+- Tile-group ledger parsing (4,256 bytes).
+
+These are real remaining migrations, not suppressed warnings. The global
+`-Wframe-larger-than=4096 -Werror` check must only be declared passing after they
+are addressed. Other platform-only sources also need the applicable compile
+checks before claiming the all-source exit criterion.
 
 ---
 
