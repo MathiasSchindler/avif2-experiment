@@ -91,7 +91,7 @@ static int deblock_direction_error(const uint8_t *sample,
     int second = (parallel_sample[edge] - parallel_sample[endpoint]) -
                  (int)distance *
                      (parallel_sample[edge] - parallel_sample[adjacent]);
-    return (absolute_value(first) + absolute_value(second) + 1) >> 1;
+    return (av2h_sample_abs(first) + av2h_sample_abs(second) + 1) >> 1;
 }
 
 static unsigned int deblock_filter_choice(
@@ -112,14 +112,14 @@ static unsigned int deblock_filter_choice(
         positive_max < negative_max) {
         return 0U;
     }
-    second_derivative[0] = absolute_value(
+    second_derivative[0] = av2h_sample_abs(
         sample[-3 * step] - 2 * sample[-2 * step] + sample[-step]);
-    second_derivative[3] = absolute_value(
+    second_derivative[3] = av2h_sample_abs(
         sample[0] - 2 * sample[step] + sample[2 * step]);
-    second_derivative[0] = (second_derivative[0] + absolute_value(
+    second_derivative[0] = (second_derivative[0] + av2h_sample_abs(
         parallel_sample[-3 * step] - 2 * parallel_sample[-2 * step] +
         parallel_sample[-step]) + 1) >> 1;
-    second_derivative[3] = (second_derivative[3] + absolute_value(
+    second_derivative[3] = (second_derivative[3] + av2h_sample_abs(
         parallel_sample[0] - 2 * parallel_sample[step] +
         parallel_sample[2 * step]) + 1) >> 1;
     if (second_derivative[0] > side_threshold ||
@@ -127,14 +127,14 @@ static unsigned int deblock_filter_choice(
         return 0U;
     }
     if (positive_max == 1U) return 1U;
-    second_derivative[1] = absolute_value(
+    second_derivative[1] = av2h_sample_abs(
         sample[-2 * step] - 2 * sample[-step] + sample[0]);
-    second_derivative[2] = absolute_value(
+    second_derivative[2] = av2h_sample_abs(
         sample[-step] - 2 * sample[0] + sample[step]);
-    second_derivative[1] = (second_derivative[1] + absolute_value(
+    second_derivative[1] = (second_derivative[1] + av2h_sample_abs(
         parallel_sample[-2 * step] - 2 * parallel_sample[-step] +
         parallel_sample[0]) + 1) >> 1;
-    second_derivative[2] = (second_derivative[2] + absolute_value(
+    second_derivative[2] = (second_derivative[2] + av2h_sample_abs(
         parallel_sample[-step] - 2 * parallel_sample[0] +
         parallel_sample[step]) + 1) >> 1;
     if (second_derivative[0] > (side_threshold >> 2U) ||
@@ -195,7 +195,7 @@ static void deblock_filter_lane(uint8_t *sample,
     delta = av2h_sample_clamp(delta, -limit, limit);
     if (negative_lossless == 0U) {
         for (index = 0U; index < negative_width; ++index) {
-            int adjustment = round_shift_signed(
+            int adjustment = av2h_sample_round_pow2(
                 delta * deblock_weight[negative_width - 1U] *
                     (int)(negative_width - index),
                 11U);
@@ -205,7 +205,7 @@ static void deblock_filter_lane(uint8_t *sample,
     }
     if (positive_lossless == 0U) {
         for (index = 0U; index < positive_width; ++index) {
-            int adjustment = round_shift_signed(
+            int adjustment = av2h_sample_round_pow2(
                 delta * deblock_weight[positive_width - 1U] *
                     (int)(positive_width - index),
                 11U);
@@ -229,7 +229,7 @@ static int deblock_direction_error_u16(const uint16_t *sample,
     int second = (parallel_sample[edge] - parallel_sample[endpoint]) -
                  (int)distance *
                      (parallel_sample[edge] - parallel_sample[adjacent]);
-    return (absolute_value(first) + absolute_value(second) + 1) >> 1;
+    return (av2h_sample_abs(first) + av2h_sample_abs(second) + 1) >> 1;
 }
 
 static unsigned int deblock_filter_choice_u16(
@@ -250,14 +250,14 @@ static unsigned int deblock_filter_choice_u16(
         positive_max < negative_max) {
         return 0U;
     }
-    second_derivative[0] = absolute_value(
+    second_derivative[0] = av2h_sample_abs(
         sample[-3 * step] - 2 * sample[-2 * step] + sample[-step]);
-    second_derivative[3] = absolute_value(
+    second_derivative[3] = av2h_sample_abs(
         sample[0] - 2 * sample[step] + sample[2 * step]);
-    second_derivative[0] = (second_derivative[0] + absolute_value(
+    second_derivative[0] = (second_derivative[0] + av2h_sample_abs(
         parallel_sample[-3 * step] - 2 * parallel_sample[-2 * step] +
         parallel_sample[-step]) + 1) >> 1;
-    second_derivative[3] = (second_derivative[3] + absolute_value(
+    second_derivative[3] = (second_derivative[3] + av2h_sample_abs(
         parallel_sample[0] - 2 * parallel_sample[step] +
         parallel_sample[2 * step]) + 1) >> 1;
     if (second_derivative[0] > side_threshold ||
@@ -265,14 +265,14 @@ static unsigned int deblock_filter_choice_u16(
         return 0U;
     }
     if (positive_max == 1U) return 1U;
-    second_derivative[1] = absolute_value(
+    second_derivative[1] = av2h_sample_abs(
         sample[-2 * step] - 2 * sample[-step] + sample[0]);
-    second_derivative[2] = absolute_value(
+    second_derivative[2] = av2h_sample_abs(
         sample[-step] - 2 * sample[0] + sample[step]);
-    second_derivative[1] = (second_derivative[1] + absolute_value(
+    second_derivative[1] = (second_derivative[1] + av2h_sample_abs(
         parallel_sample[-2 * step] - 2 * parallel_sample[-step] +
         parallel_sample[0]) + 1) >> 1;
-    second_derivative[2] = (second_derivative[2] + absolute_value(
+    second_derivative[2] = (second_derivative[2] + av2h_sample_abs(
         parallel_sample[-step] - 2 * parallel_sample[0] +
         parallel_sample[step]) + 1) >> 1;
     if (second_derivative[0] > (side_threshold >> 2U) ||
@@ -335,7 +335,7 @@ static void deblock_filter_lane_u16(uint16_t *sample,
     delta = av2h_sample_clamp(delta, -limit, limit);
     if (negative_lossless == 0U) {
         for (index = 0U; index < negative_width; ++index) {
-            int adjustment = round_shift_signed(
+            int adjustment = av2h_sample_round_pow2(
                 delta * deblock_weight[negative_width - 1U] *
                     (int)(negative_width - index),
                 11U);
@@ -345,7 +345,7 @@ static void deblock_filter_lane_u16(uint16_t *sample,
     }
     if (positive_lossless == 0U) {
         for (index = 0U; index < positive_width; ++index) {
-            int adjustment = round_shift_signed(
+            int adjustment = av2h_sample_round_pow2(
                 delta * deblock_weight[positive_width - 1U] *
                     (int)(positive_width - index),
                 11U);

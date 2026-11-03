@@ -3,6 +3,7 @@
 #include "coeff_level.h"
 #include "internal/leaf_modules.h"
 #include "internal/wiener_nonsep.h"
+#include "shared/bit_math.h"
 
 static void frame_fail(Av2hBitReader *reader, Av2hStatus status) {
     if (reader->status == AV2H_OK) reader->status = status;
@@ -49,25 +50,6 @@ static int read_segmentation_features(
         }
     }
     return reader->status == AV2H_OK;
-}
-
-static unsigned int ceil_log2_u32(uint32_t value) {
-    unsigned int bits = 0U;
-    uint32_t probe = value > 0U ? value - 1U : 0U;
-    while (probe != 0U) {
-        ++bits;
-        probe >>= 1U;
-    }
-    return bits;
-}
-
-static unsigned int tile_log2_u32(uint32_t block_size, uint32_t target) {
-    unsigned int bits = 0U;
-    while (block_size < target) {
-        block_size <<= 1U;
-        ++bits;
-    }
-    return bits;
 }
 
 static uint32_t tile_width_scale(const Av2hSequenceState *sequence) {
@@ -176,14 +158,14 @@ int av2h_frame_tile_layout_read(Av2hBitReader *reader,
         frame_fail(reader, AV2H_UNSUPPORTED);
         return 0;
     }
-    min_log2_columns = tile_log2_u32(max_width_sb, sb_columns);
-    min_log2_tiles = tile_log2_u32(max_area_sb, sb_columns * sb_rows);
+    min_log2_columns = av2h_ceil_log2_ratio_u32(max_width_sb, sb_columns);
+    min_log2_tiles = av2h_ceil_log2_ratio_u32(max_area_sb, sb_columns * sb_rows);
     if (min_log2_tiles < min_log2_columns) {
         min_log2_tiles = min_log2_columns;
     }
-    max_log2_columns = ceil_log2_u32(
+    max_log2_columns = av2h_ceil_log2_u32(
         sb_columns < AV2H_MAX_TILE_COLUMNS ? sb_columns : AV2H_MAX_TILE_COLUMNS);
-    max_log2_rows = ceil_log2_u32(
+    max_log2_rows = av2h_ceil_log2_u32(
         sb_rows < AV2H_MAX_TILE_ROWS ? sb_rows : AV2H_MAX_TILE_ROWS);
     if (sequence->seq_tile_info_present_flag != 0U) {
         uint8_t eligible;
@@ -272,7 +254,7 @@ int av2h_frame_tile_layout_read(Av2hBitReader *reader,
         }
         frame->tile_column_start_sb[index] = (uint16_t)start;
         frame->tile_column_count = (uint8_t)index;
-        frame->tile_column_log2 = (uint8_t)ceil_log2_u32((uint32_t)index);
+        frame->tile_column_log2 = (uint8_t)av2h_ceil_log2_u32((uint32_t)index);
         max_area_sb = sb_columns * sb_rows;
         if (min_log2_tiles != 0U) max_area_sb >>= min_log2_tiles + 1U;
         remaining = sb_rows;
@@ -294,7 +276,7 @@ int av2h_frame_tile_layout_read(Av2hBitReader *reader,
         }
         frame->tile_row_start_sb[index] = (uint16_t)start;
         frame->tile_row_count = (uint8_t)index;
-        frame->tile_row_log2 = (uint8_t)ceil_log2_u32((uint32_t)index);
+        frame->tile_row_log2 = (uint8_t)av2h_ceil_log2_u32((uint32_t)index);
     }
 tile_layout_complete:
     if (sequence->enable_ccso != 0U &&
@@ -993,7 +975,7 @@ Av2hStatus av2h_frame_header_closed_key_parse_diagnostic(
         size_t matrix;
         frame->picture_qm_count = frame->segmentation_enabled != 0U ?
             (uint8_t)(av2h_bit_reader_read(&reader, 2U) + 1U) : 1U;
-        frame->qm_index_bits = (uint8_t)ceil_log2_u32(
+        frame->qm_index_bits = (uint8_t)av2h_ceil_log2_u32(
             frame->picture_qm_count);
         for (matrix = 0U; matrix < frame->picture_qm_count; ++matrix) {
             frame->qm_y[matrix] =

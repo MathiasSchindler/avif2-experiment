@@ -377,17 +377,13 @@ Av2hStatus av2h_byte_writer_u8(Av2hByteWriter *writer, uint8_t value) {
 
 Av2hStatus av2h_byte_writer_u16be(Av2hByteWriter *writer, uint16_t value) {
     unsigned char bytes[2];
-    bytes[0] = (unsigned char)(value >> 8);
-    bytes[1] = (unsigned char)value;
+    av2h_store_u16be(bytes, value);
     return av2h_byte_writer_write(writer, bytes, sizeof(bytes));
 }
 
 Av2hStatus av2h_byte_writer_u32be(Av2hByteWriter *writer, uint32_t value) {
     unsigned char bytes[4];
-    bytes[0] = (unsigned char)(value >> 24);
-    bytes[1] = (unsigned char)(value >> 16);
-    bytes[2] = (unsigned char)(value >> 8);
-    bytes[3] = (unsigned char)value;
+    av2h_store_u32be(bytes, value);
     return av2h_byte_writer_write(writer, bytes, sizeof(bytes));
 }
 

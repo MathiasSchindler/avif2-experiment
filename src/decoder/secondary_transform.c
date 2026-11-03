@@ -14,17 +14,6 @@
 #include "ist_reached_gaps_data.inc"
 #include "ist_palace_data.inc"
 
-static int32_t clamp(int32_t value, int32_t minimum, int32_t maximum) {
-    return av2h_sample_clamp(value, minimum, maximum);
-}
-
-static int32_t round_shift_signed(int64_t value, uint8_t shift) {
-    int64_t magnitude = value < 0 ? -value : value;
-    int32_t rounded = (int32_t)((magnitude +
-        ((int64_t)1 << (shift - 1U))) >> shift);
-    return value < 0 ? -rounded : rounded;
-}
-
 static uint16_t ist_scan_position(
     uint16_t scan_index, uint16_t width, uint16_t height) {
     unsigned int diagonal;
@@ -235,7 +224,7 @@ static Av2hStatus inverse_secondary_transform_4x4(
             sum += (int64_t)input[row] * kernel[row][index];
         }
         dequantized[position] =
-            clamp(round_shift_signed(sum, 7U), -32768, 32767);
+            av2h_sample_clamp(av2h_sample_round_pow2_signed(sum, 7U), -32768, 32767);
     }
     return AV2H_OK;
 }
@@ -290,7 +279,7 @@ Av2hStatus av2h_inverse_secondary_transform(
                     av2h_ist_4x4_set8_type1_kernel[row][index];
             }
             dequantized[position] =
-                clamp(round_shift_signed(sum, 7U), -32768, 32767);
+                av2h_sample_clamp(av2h_sample_round_pow2_signed(sum, 7U), -32768, 32767);
         }
         return AV2H_OK;
     }
@@ -315,7 +304,7 @@ Av2hStatus av2h_inverse_secondary_transform(
                     av2h_ist_4x4_set12_type2_kernel[row][index];
             }
             dequantized[position] =
-                clamp(round_shift_signed(sum, 7U), -32768, 32767);
+                av2h_sample_clamp(av2h_sample_round_pow2_signed(sum, 7U), -32768, 32767);
         }
         return AV2H_OK;
     }
@@ -340,7 +329,7 @@ Av2hStatus av2h_inverse_secondary_transform(
                     av2h_ist_4x4_set6_type1_kernel[row][index];
             }
             dequantized[position] =
-                clamp(round_shift_signed(sum, 7U), -32768, 32767);
+                av2h_sample_clamp(av2h_sample_round_pow2_signed(sum, 7U), -32768, 32767);
         }
         return AV2H_OK;
     }
@@ -365,7 +354,7 @@ Av2hStatus av2h_inverse_secondary_transform(
                     av2h_ist_4x4_set3_type1_kernel[row][index];
             }
             dequantized[position] =
-                clamp(round_shift_signed(sum, 7U), -32768, 32767);
+                av2h_sample_clamp(av2h_sample_round_pow2_signed(sum, 7U), -32768, 32767);
         }
         return AV2H_OK;
     }
@@ -1642,8 +1631,7 @@ apply_transform:
             return AV2H_INVALID_DATA;
         }
         dequantized[position] =
-            clamp(round_shift_signed(sum, 7U), -32768, 32767);
+            av2h_sample_clamp(av2h_sample_round_pow2_signed(sum, 7U), -32768, 32767);
     }
     return AV2H_OK;
 }
-

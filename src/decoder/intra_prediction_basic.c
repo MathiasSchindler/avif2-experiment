@@ -16,8 +16,8 @@ static const uint8_t ibp_weights[5U][16U] = {
 
 static uint8_t smooth_scale(uint16_t width, uint16_t height) {
     unsigned int sum =
-        (unsigned int)av2h_intra_block_log2(width) - 2U +
-        (unsigned int)av2h_intra_block_log2(height) - 2U;
+        (unsigned int)av2h_sample_block_log2(width) - 2U +
+        (unsigned int)av2h_sample_block_log2(height) - 2U;
     return (uint8_t)((sum + 2U) >> 2U);
 }
 
@@ -83,7 +83,7 @@ Av2hStatus av2h_predict_dc(
                 width < height && references->left != 0 &&
                     references->left_count >= height ?
                     (uint16_t)(width >> 2U) : 0U;
-            uint8_t weight_row = (uint8_t)(av2h_intra_block_log2(height) - 2U);
+            uint8_t weight_row = (uint8_t)(av2h_sample_block_log2(height) - 2U);
             for (row = 0U; row < row_limit; ++row) {
                 unsigned int weight = ibp_weights[weight_row][row];
                 for (column = column_start; column < width; ++column) {
@@ -106,7 +106,7 @@ Av2hStatus av2h_predict_dc(
                     references->above_count >= width ?
                     (uint16_t)(height >> 2U) : 0U;
             uint16_t column_limit = (uint16_t)(width >> 2U);
-            uint8_t weight_row = (uint8_t)(av2h_intra_block_log2(width) - 2U);
+            uint8_t weight_row = (uint8_t)(av2h_sample_block_log2(width) - 2U);
             for (row = row_start; row < height; ++row) {
                 for (column = 0U; column < column_limit; ++column) {
                     unsigned int weight =
@@ -157,11 +157,11 @@ Av2hStatus av2h_predict_smooth_vertical(
                 references->above_count - 1U] :
                 have_left ? references->left[0] :
                 av2h_sample_below_midpoint_8bit();
-            int32_t value = bottom_left + av2h_intra_round_shift(
+            int32_t value = bottom_left + av2h_sample_round_pow2(
                 ((int64_t)top - bottom_left) *
                     (height - 1U - row),
-                av2h_intra_block_log2(height));
-            value += av2h_intra_round_shift(
+                av2h_sample_block_log2(height));
+            value += av2h_sample_round_pow2(
                 ((int64_t)top - value) * blend, 7U);
             predictor[(size_t)row * predictor_stride_samples + column] =
                 (uint8_t)value;
@@ -198,11 +198,11 @@ Av2hStatus av2h_predict_smooth_horizontal(
                 have_above ? references->above[0] :
                 av2h_sample_above_midpoint_8bit();
             uint8_t blend = smooth_blend(column, scale);
-            int32_t value = top_right + av2h_intra_round_shift(
+            int32_t value = top_right + av2h_sample_round_pow2(
                 ((int64_t)left - top_right) *
                     (width - 1U - column),
-                av2h_intra_block_log2(width));
-            value += av2h_intra_round_shift(
+                av2h_sample_block_log2(width));
+            value += av2h_sample_round_pow2(
                 ((int64_t)left - value) * blend, 7U);
             predictor[(size_t)row * predictor_stride_samples + column] =
                 (uint8_t)value;
@@ -251,22 +251,22 @@ Av2hStatus av2h_predict_smooth(
                 references->left[row];
             uint8_t top_blend = smooth_blend(row, scale);
             uint8_t left_blend = smooth_blend(column, scale);
-            int32_t vertical = bottom_left + av2h_intra_round_shift(
+            int32_t vertical = bottom_left + av2h_sample_round_pow2(
                 ((int64_t)top - bottom_left) *
                     (height - 1U - row),
-                av2h_intra_block_log2(height));
-            int32_t horizontal = top_right + av2h_intra_round_shift(
+                av2h_sample_block_log2(height));
+            int32_t horizontal = top_right + av2h_sample_round_pow2(
                 ((int64_t)left - top_right) *
                     (width - 1U - column),
-                av2h_intra_block_log2(width));
-            vertical += av2h_intra_round_shift(
+                av2h_sample_block_log2(width));
+            vertical += av2h_sample_round_pow2(
                 ((int64_t)top - vertical) *
                     top_blend, 7U);
-            horizontal += av2h_intra_round_shift(
+            horizontal += av2h_sample_round_pow2(
                 ((int64_t)left - horizontal) *
                     left_blend, 7U);
             predictor[(size_t)row * predictor_stride_samples + column] =
-                (uint8_t)av2h_intra_round_shift(vertical + horizontal, 1U);
+                (uint8_t)av2h_sample_round_pow2(vertical + horizontal, 1U);
         }
     }
     return AV2H_OK;
@@ -296,22 +296,22 @@ Av2hStatus av2h_predict_smooth_16x8(
         for (column = 0U; column < width; ++column) {
             uint8_t top = references->above[column];
             uint8_t left = references->left[row];
-            int32_t vertical = bottom_left + av2h_intra_round_shift(
+            int32_t vertical = bottom_left + av2h_sample_round_pow2(
                 ((int64_t)top - bottom_left) *
                     (height - 1U - row),
-                av2h_intra_block_log2(height));
-            int32_t horizontal = top_right + av2h_intra_round_shift(
+                av2h_sample_block_log2(height));
+            int32_t horizontal = top_right + av2h_sample_round_pow2(
                 ((int64_t)left - top_right) *
                     (width - 1U - column),
-                av2h_intra_block_log2(width));
-            vertical += av2h_intra_round_shift(
+                av2h_sample_block_log2(width));
+            vertical += av2h_sample_round_pow2(
                 ((int64_t)top - vertical) *
                     smooth_blend(row, scale), 7U);
-            horizontal += av2h_intra_round_shift(
+            horizontal += av2h_sample_round_pow2(
                 ((int64_t)left - horizontal) *
                     smooth_blend(column, scale), 7U);
             predictor[(size_t)row * predictor_stride_samples + column] =
-                (uint8_t)av2h_intra_round_shift(vertical + horizontal, 1U);
+                (uint8_t)av2h_sample_round_pow2(vertical + horizontal, 1U);
         }
     }
     return AV2H_OK;
@@ -343,22 +343,22 @@ Av2hStatus av2h_predict_smooth_8x32(
         for (column = 0U; column < width; ++column) {
             uint8_t top = references->above_count != 0U ?
                 references->above[column] : references->left[0];
-            int32_t vertical = bottom_left + av2h_intra_round_shift(
+            int32_t vertical = bottom_left + av2h_sample_round_pow2(
                 ((int64_t)top - bottom_left) *
                     (height - 1U - row),
                 5U);
-            int32_t horizontal = top_right + av2h_intra_round_shift(
+            int32_t horizontal = top_right + av2h_sample_round_pow2(
                 ((int64_t)references->left[row] - top_right) *
                     (width - 1U - column),
                 3U);
-            vertical += av2h_intra_round_shift(
+            vertical += av2h_sample_round_pow2(
                 ((int64_t)top - vertical) * top_blend, 6U);
-            horizontal += av2h_intra_round_shift(
+            horizontal += av2h_sample_round_pow2(
                 ((int64_t)references->left[row] - horizontal) *
                     smooth8_blend[column],
                 6U);
             predictor[(size_t)row * predictor_stride_samples + column] =
-                (uint8_t)av2h_intra_round_shift(vertical + horizontal, 1U);
+                (uint8_t)av2h_sample_round_pow2(vertical + horizontal, 1U);
         }
     }
     return AV2H_OK;
@@ -465,18 +465,18 @@ Av2hStatus av2h_predict_smooth_u16(
                 have_left ? left[0] : 511U;
             uint16_t side = have_left ? left[row] :
                 have_above ? above[0] : 513U;
-            int32_t vertical = bottom_left + av2h_intra_round_shift(
+            int32_t vertical = bottom_left + av2h_sample_round_pow2(
                 ((int64_t)top - bottom_left) *
                     (height - 1U - row),
-                av2h_intra_block_log2(height));
-            int32_t horizontal = top_right + av2h_intra_round_shift(
+                av2h_sample_block_log2(height));
+            int32_t horizontal = top_right + av2h_sample_round_pow2(
                 ((int64_t)side - top_right) *
                     (width - 1U - column),
-                av2h_intra_block_log2(width));
-            vertical += av2h_intra_round_shift(
+                av2h_sample_block_log2(width));
+            vertical += av2h_sample_round_pow2(
                 ((int64_t)top - vertical) * smooth_blend(row, scale),
                 7U);
-            horizontal += av2h_intra_round_shift(
+            horizontal += av2h_sample_round_pow2(
                 ((int64_t)side - horizontal) *
                     smooth_blend(column, scale),
                 7U);
@@ -485,7 +485,7 @@ Av2hStatus av2h_predict_smooth_u16(
                     (uint16_t)vertical :
                 mode->mode == AV2H_INTRA_SMOOTH_HORIZONTAL ?
                     (uint16_t)horizontal :
-                    (uint16_t)av2h_intra_round_shift(vertical + horizontal, 1U);
+                    (uint16_t)av2h_sample_round_pow2(vertical + horizontal, 1U);
         }
     }
     return AV2H_OK;

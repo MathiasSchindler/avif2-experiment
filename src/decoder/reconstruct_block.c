@@ -4,29 +4,6 @@
 #include "internal/sample_math.h"
 #include "tx_geometry.h"
 
-static int32_t clamp(int32_t value, int32_t minimum, int32_t maximum) {
-    return av2h_sample_clamp(value, minimum, maximum);
-}
-
-static int32_t round_shift(int64_t value, uint8_t shift) {
-    int64_t adjusted = value + ((int64_t)1 << (shift - 1U));
-    if (adjusted >= 0) return (int32_t)(adjusted >> shift);
-    return (int32_t)-(((-adjusted) + (((int64_t)1 << shift) - 1)) >> shift);
-}
-
-static int32_t round_shift_signed(int64_t value, uint8_t shift) {
-    int64_t magnitude = value < 0 ? -value : value;
-    int32_t rounded = (int32_t)((magnitude +
-        ((int64_t)1 << (shift - 1U))) >> shift);
-    return value < 0 ? -rounded : rounded;
-}
-
-static int32_t floor_shift_i32(int32_t value, uint8_t shift) {
-    if (value >= 0) return value >> shift;
-    return -(int32_t)(((uint32_t)(-value) +
-        (((uint32_t)1U << shift) - 1U)) >> shift);
-}
-
 static Av2hStatus reconstruct_lossless_4x4_u16(
     const Av2hFirstCoeffBlock *coefficients,
     const uint16_t *predictor,
@@ -48,7 +25,7 @@ static Av2hStatus reconstruct_lossless_4x4_u16(
     }
     if (identity_transform != 0U || direct_dpcm != 0U) {
         for (row = 0U; row < 16U; ++row) {
-            residual[row] = floor_shift_i32(
+            residual[row] = av2h_sample_floor_shift(
                 coefficients->dequantized[row], 3U);
         }
         if (use_dpcm != 0U && dpcm_horizontal != 0U) {
@@ -76,18 +53,18 @@ static Av2hStatus reconstruct_lossless_4x4_u16(
         return AV2H_OK;
     }
     for (row = 0U; row < 4U; ++row) {
-        int32_t a = floor_shift_i32(
+        int32_t a = av2h_sample_floor_shift(
             coefficients->dequantized[row * 4U], 3U);
-        int32_t c = floor_shift_i32(
+        int32_t c = av2h_sample_floor_shift(
             coefficients->dequantized[row * 4U + 1U], 3U);
-        int32_t d = floor_shift_i32(
+        int32_t d = av2h_sample_floor_shift(
             coefficients->dequantized[row * 4U + 2U], 3U);
-        int32_t b = floor_shift_i32(
+        int32_t b = av2h_sample_floor_shift(
             coefficients->dequantized[row * 4U + 3U], 3U);
         int32_t e;
         a += c;
         d -= b;
-        e = floor_shift_i32(a - d, 1U);
+        e = av2h_sample_floor_shift(a - d, 1U);
         b = e - b;
         c = e - c;
         a -= b;
@@ -105,7 +82,7 @@ static Av2hStatus reconstruct_lossless_4x4_u16(
         int32_t e;
         a += c;
         d -= b;
-        e = floor_shift_i32(a - d, 1U);
+        e = av2h_sample_floor_shift(a - d, 1U);
         b = e - b;
         c = e - c;
         a -= b;
@@ -1069,18 +1046,18 @@ Av2hStatus av2h_luma_reconstruct_with_diagnostics(
         if (status != AV2H_OK) return status;
         if (rectangular) {
             for (index = 0U; index < count; ++index) {
-                scratch->scaled[index] = clamp(round_shift(
+                scratch->scaled[index] = av2h_sample_clamp(av2h_sample_round_pow2(
                     (int64_t)scratch->scaled[index] * 2896, 12U),
                     -32768, 32767);
             }
         }
     } else {
         for (index = 0U; index < count; ++index) {
-            scratch->scaled[index] = rectangular ? round_shift(
+            scratch->scaled[index] = rectangular ? av2h_sample_round_pow2(
                 (int64_t)coefficients->dequantized[index] * 2896, 12U) :
                 coefficients->dequantized[index];
             scratch->scaled[index] =
-                clamp(scratch->scaled[index], -32768, 32767);
+                av2h_sample_clamp(scratch->scaled[index], -32768, 32767);
         }
     }
     status = av2h_inverse_rows(scratch->scaled, scratch->transposed,
@@ -1177,18 +1154,18 @@ Av2hStatus av2h_chroma_inverse_cross_transform(
     for (index = 0U; index < u_coefficients->coefficient_count; ++index) {
         int32_t u = u_coefficients->dequantized[index];
         int32_t v = v_coefficients->dequantized[index];
-        int32_t first = round_shift_signed(
+        int32_t first = av2h_sample_round_pow2_signed(
             (int64_t)matrix[cctx_type - 1U][0U] * u -
                 (int64_t)matrix[cctx_type - 1U][1U] * v,
             8U);
-        int32_t second = round_shift_signed(
+        int32_t second = av2h_sample_round_pow2_signed(
             (int64_t)matrix[cctx_type - 1U][1U] * u +
                 (int64_t)matrix[cctx_type - 1U][0U] * v,
             8U);
         u_coefficients->dequantized[index] =
-            clamp(first, -coefficient_limit, coefficient_limit - 1);
+            av2h_sample_clamp(first, -coefficient_limit, coefficient_limit - 1);
         v_coefficients->dequantized[index] =
-            clamp(second, -coefficient_limit, coefficient_limit - 1);
+            av2h_sample_clamp(second, -coefficient_limit, coefficient_limit - 1);
         if (u_coefficients->dequantized[index] != 0) {
             ++u_coefficients->nonzero_count;
         }

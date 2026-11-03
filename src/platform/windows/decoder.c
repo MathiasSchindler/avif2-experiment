@@ -653,18 +653,6 @@ static Av2hStatus decode_obu(Av2hSpan input,
     return AV2H_OK;
 }
 
-static void store_u16le(uint8_t *bytes, uint16_t value) {
-    bytes[0] = (uint8_t)value;
-    bytes[1] = (uint8_t)(value >> 8U);
-}
-
-static void store_u32le(uint8_t *bytes, uint32_t value) {
-    bytes[0] = (uint8_t)value;
-    bytes[1] = (uint8_t)(value >> 8U);
-    bytes[2] = (uint8_t)(value >> 16U);
-    bytes[3] = (uint8_t)(value >> 24U);
-}
-
 static int write_bmp(const Av2hWinChar *path,
                      const uint8_t *planar,
                      uint16_t width,
@@ -693,14 +681,14 @@ static int write_bmp(const Av2hWinChar *path,
     av2h_memory_fill(header, 0U, sizeof(header));
     header[0] = 'B';
     header[1] = 'M';
-    store_u32le(header + 2U, (uint32_t)file_size);
-    store_u32le(header + 10U, AV2H_BMP_HEADER_SIZE);
-    store_u32le(header + 14U, 40U);
-    store_u32le(header + 18U, width);
-    store_u32le(header + 22U, height);
-    store_u16le(header + 26U, 1U);
-    store_u16le(header + 28U, 24U);
-    store_u32le(header + 34U, (uint32_t)pixel_bytes);
+    av2h_store_u32le(header + 2U, (uint32_t)file_size);
+    av2h_store_u32le(header + 10U, AV2H_BMP_HEADER_SIZE);
+    av2h_store_u32le(header + 14U, 40U);
+    av2h_store_u32le(header + 18U, width);
+    av2h_store_u32le(header + 22U, height);
+    av2h_store_u16le(header + 26U, 1U);
+    av2h_store_u16le(header + 28U, 24U);
+    av2h_store_u32le(header + 34U, (uint32_t)pixel_bytes);
     file = CreateFileW(
         path, AV2H_WIN_GENERIC_WRITE, 0U, 0, AV2H_WIN_CREATE_ALWAYS,
         AV2H_WIN_FILE_ATTRIBUTE_NORMAL, 0);

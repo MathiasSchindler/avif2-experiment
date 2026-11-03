@@ -15,6 +15,39 @@ uint16_t av2h_load_u16be(const unsigned char *bytes);
 uint32_t av2h_load_u32be(const unsigned char *bytes);
 uint64_t av2h_load_u64be(const unsigned char *bytes);
 
+static inline uint16_t av2h_load_u16le(const unsigned char *bytes) {
+    return (uint16_t)((uint16_t)bytes[0] | ((uint16_t)bytes[1] << 8U));
+}
+
+static inline uint32_t av2h_load_u32le(const unsigned char *bytes) {
+    return (uint32_t)bytes[0] | ((uint32_t)bytes[1] << 8U) |
+        ((uint32_t)bytes[2] << 16U) | ((uint32_t)bytes[3] << 24U);
+}
+
+static inline void av2h_store_u16le(unsigned char *bytes, uint16_t value) {
+    bytes[0] = (unsigned char)value;
+    bytes[1] = (unsigned char)(value >> 8U);
+}
+
+static inline void av2h_store_u32le(unsigned char *bytes, uint32_t value) {
+    bytes[0] = (unsigned char)value;
+    bytes[1] = (unsigned char)(value >> 8U);
+    bytes[2] = (unsigned char)(value >> 16U);
+    bytes[3] = (unsigned char)(value >> 24U);
+}
+
+static inline void av2h_store_u16be(unsigned char *bytes, uint16_t value) {
+    bytes[0] = (unsigned char)(value >> 8U);
+    bytes[1] = (unsigned char)value;
+}
+
+static inline void av2h_store_u32be(unsigned char *bytes, uint32_t value) {
+    bytes[0] = (unsigned char)(value >> 24U);
+    bytes[1] = (unsigned char)(value >> 16U);
+    bytes[2] = (unsigned char)(value >> 8U);
+    bytes[3] = (unsigned char)value;
+}
+
 typedef struct {
     const unsigned char *data;
     size_t size;

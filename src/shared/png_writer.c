@@ -15,18 +15,6 @@ typedef struct {
     uint32_t second;
 } Av2hAdler32;
 
-static void store_u16le(uint8_t *bytes, uint16_t value) {
-    bytes[0U] = (uint8_t)value;
-    bytes[1U] = (uint8_t)(value >> 8U);
-}
-
-static void store_u32be(uint8_t *bytes, uint32_t value) {
-    bytes[0U] = (uint8_t)(value >> 24U);
-    bytes[1U] = (uint8_t)(value >> 16U);
-    bytes[2U] = (uint8_t)(value >> 8U);
-    bytes[3U] = (uint8_t)value;
-}
-
 static uint32_t crc32_update(
     uint32_t crc,
     const uint8_t *data,
@@ -90,7 +78,7 @@ static void chunk_begin(
     uint32_t size,
     const uint8_t type[4U]) {
     uint8_t encoded_size[4U];
-    store_u32be(encoded_size, size);
+    av2h_store_u32be(encoded_size, size);
     output_raw(output, encoded_size, sizeof(encoded_size));
     output->crc = 0xffffffffU;
     chunk_data(output, type, 4U);
@@ -98,7 +86,7 @@ static void chunk_begin(
 
 static void chunk_end(Av2hPngOutput *output) {
     uint8_t encoded_crc[4U];
-    store_u32be(encoded_crc, output->crc ^ 0xffffffffU);
+    av2h_store_u32be(encoded_crc, output->crc ^ 0xffffffffU);
     output_raw(output, encoded_crc, sizeof(encoded_crc));
 }
 
@@ -127,8 +115,8 @@ static void write_stored_data(
                     AV2H_PNG_STORED_BLOCK_MAX : *stream_remaining);
             uint8_t header[5U];
             header[0U] = *stream_remaining == block_size ? 1U : 0U;
-            store_u16le(header + 1U, block_size);
-            store_u16le(header + 3U, (uint16_t)~block_size);
+            av2h_store_u16le(header + 1U, block_size);
+            av2h_store_u16le(header + 3U, (uint16_t)~block_size);
             chunk_data(output, header, sizeof(header));
             *block_remaining = block_size;
         }
@@ -198,8 +186,8 @@ Av2hStatus av2h_png_write_rgb(
     output.crc = 0U;
     output.status = AV2H_OK;
     output_raw(&output, signature, sizeof(signature));
-    store_u32be(ihdr + 0U, image->width);
-    store_u32be(ihdr + 4U, image->height);
+    av2h_store_u32be(ihdr + 0U, image->width);
+    av2h_store_u32be(ihdr + 4U, image->height);
     ihdr[8U] = image->bit_depth;
     ihdr[9U] = 2U;
     ihdr[10U] = 0U;
@@ -223,7 +211,7 @@ Av2hStatus av2h_png_write_rgb(
             &output, &adler, row_buffer, row_size,
             &stream_remaining, &block_remaining);
     }
-    store_u32be(encoded_adler, (adler.second << 16U) | adler.first);
+    av2h_store_u32be(encoded_adler, (adler.second << 16U) | adler.first);
     chunk_data(&output, encoded_adler, sizeof(encoded_adler));
     chunk_end(&output);
     write_chunk(&output, iend_type, 0, 0U);

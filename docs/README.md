@@ -42,6 +42,8 @@ release summaries include:
 - [Refactoring M6 private interfaces and shared math](dev/refactoring-m6.md)
 - [Refactoring M7 error construction](dev/refactoring-m7.md)
 - [Refactoring M8 integration and final ownership](dev/refactoring-m8.md)
+- [Native decoder performance baseline](dev/performance-baseline.md):
+  measured profile coverage, hotspots, and isolated portable experiments.
 - [Decoder refactoring plan](dev/decoder-refactoring-plan.md)
 - [I444 release evidence](dev/chroma-444.md)
 - [Filter parity](dev/filter-parity.md)

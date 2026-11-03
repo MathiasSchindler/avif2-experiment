@@ -191,12 +191,6 @@ static void ccso_tile_bounds(const Av2hSequenceState *sequence,
     }
 }
 
-static int ccso_clamp(int value, int minimum, int maximum) {
-    if (value < minimum) return minimum;
-    if (value > maximum) return maximum;
-    return value;
-}
-
 static void ccso_filter_plane(Av2hFilterPlane *destination,
                               const uint8_t *luma,
                               size_t luma_stride_samples,
@@ -260,16 +254,16 @@ static void ccso_filter_plane(Av2hFilterPlane *destination,
             if (parameters->band_only == 0U) {
                 first_class = ccso_class(
                     luma_sample(luma, luma_stride_samples, luma_width, luma_height,
-                                ccso_clamp(luma_x + first_x, tile_left,
+                                av2h_sample_clamp(luma_x + first_x, tile_left,
                                            tile_right - 1),
-                                ccso_clamp(luma_y + first_y, tile_top,
+                                av2h_sample_clamp(luma_y + first_y, tile_top,
                                            tile_bottom - 1)),
                     center, threshold, parameters->edge_classifier);
                 second_class = ccso_class(
                     luma_sample(luma, luma_stride_samples, luma_width, luma_height,
-                                ccso_clamp(luma_x + second_x, tile_left,
+                                av2h_sample_clamp(luma_x + second_x, tile_left,
                                            tile_right - 1),
-                                ccso_clamp(luma_y + second_y, tile_top,
+                                av2h_sample_clamp(luma_y + second_y, tile_top,
                                            tile_bottom - 1)),
                     center, threshold, parameters->edge_classifier);
             }
@@ -352,14 +346,14 @@ static void ccso_filter_plane_u16(Av2hFilterPlaneU16 *destination,
                 first_class = ccso_class_u16(
                     luma_sample_u16(
                         luma, luma_stride_samples, luma_width, luma_height,
-                        ccso_clamp(luma_x + first_x, tile_left, tile_right - 1),
-                        ccso_clamp(luma_y + first_y, tile_top, tile_bottom - 1)),
+                        av2h_sample_clamp(luma_x + first_x, tile_left, tile_right - 1),
+                        av2h_sample_clamp(luma_y + first_y, tile_top, tile_bottom - 1)),
                     center, threshold, parameters->edge_classifier);
                 second_class = ccso_class_u16(
                     luma_sample_u16(
                         luma, luma_stride_samples, luma_width, luma_height,
-                        ccso_clamp(luma_x + second_x, tile_left, tile_right - 1),
-                        ccso_clamp(luma_y + second_y, tile_top, tile_bottom - 1)),
+                        av2h_sample_clamp(luma_x + second_x, tile_left, tile_right - 1),
+                        av2h_sample_clamp(luma_y + second_y, tile_top, tile_bottom - 1)),
                     center, threshold, parameters->edge_classifier);
             }
             band = parameters->max_band_log2 == 0U ?
@@ -457,4 +451,3 @@ Av2hStatus av2h_ccso_filter_frame_u16_with_sequence(
     }
     return AV2H_OK;
 }
-

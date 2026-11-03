@@ -1,4 +1,5 @@
 #include "range.h"
+#include "shared/bit_math.h"
 
 #define AV2H_RANGE_TOP 32768U
 #define AV2H_RANGE_PROB_SHIFT 7U
@@ -32,15 +33,6 @@ static uint32_t range_input_bits(Av2hRangeDecoder *decoder,
     return value;
 }
 
-static unsigned int range_floor_log2(uint32_t value) {
-    unsigned int result = 0U;
-    while (value > 1U) {
-        value >>= 1U;
-        ++result;
-    }
-    return result;
-}
-
 static void range_check_overflow(Av2hRangeDecoder *decoder) {
     if (decoder->status == AV2H_OK && decoder->tell > decoder->size * 8U) {
         decoder->status = AV2H_TRUNCATED;
@@ -55,7 +47,7 @@ static void range_normalize(Av2hRangeDecoder *decoder) {
         decoder->status = AV2H_INVALID_DATA;
         return;
     }
-    shift = 15U - range_floor_log2(decoder->range);
+    shift = 15U - av2h_floor_log2_u32(decoder->range);
     decoder->range <<= shift;
     input_bits = decoder->available_bits > 0
         ? (unsigned int)(decoder->available_bits < (int64_t)shift

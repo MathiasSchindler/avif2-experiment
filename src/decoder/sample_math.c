@@ -1,4 +1,5 @@
 #include "internal/sample_math.h"
+#include "shared/bit_math.h"
 
 #define AV2H_DIV_LUT_BITS 7
 #define AV2H_DIV_LUT_PREC_BITS 9
@@ -15,18 +16,9 @@ static const uint16_t reciprocal_lut[129U] = {
     264, 263, 262, 261, 260, 259, 258, 257, 256
 };
 
-static int reciprocal_msb(uint32_t value) {
-    int log = 0;
-    while (value > 1U) {
-        value >>= 1U;
-        ++log;
-    }
-    return log;
-}
-
 uint16_t av2h_sample_resolve_divisor_32(uint32_t d, int *shift) {
     int32_t f;
-    int s = reciprocal_msb(d);
+    int s = (int)av2h_floor_log2_u32(d);
     int32_t e = (int32_t)(d - ((uint32_t)1 << s));
     if (s > AV2H_DIV_LUT_BITS) {
         f = av2h_sample_round_pow2(e, s - AV2H_DIV_LUT_BITS);
@@ -47,8 +39,8 @@ static int32_t resolve_fixed_ratio(int32_t n, int32_t d, int shift) {
     int32_t ret;
     if (sign_n) n = -n;
     if (n == 0 || d == 0) return 0;
-    shift_n = reciprocal_msb((uint32_t)n);
-    shift_d = reciprocal_msb((uint32_t)d);
+    shift_n = (int)av2h_floor_log2_u32((uint32_t)n);
+    shift_d = (int)av2h_floor_log2_u32((uint32_t)d);
     {
         int32_t e_d = (int32_t)(d - ((uint32_t)1 << shift_d));
         if (shift_d > AV2H_DIV_LUT_BITS) {

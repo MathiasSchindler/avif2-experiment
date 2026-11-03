@@ -108,13 +108,14 @@ def check(compiler: list[str]) -> None:
         raise ValueError("the compiler command must not be empty")
     directories = [ROOT / name for name in ("include", "src", "src/shared")]
     headers = sorted([
-        *(ROOT / "src").glob("*.h"), *(ROOT / "src/decoder").rglob("*.h")])
+        *(ROOT / "src").glob("*.h"), *(ROOT / "src/decoder").rglob("*.h"),
+        ROOT / "src/shared/bit_math.h"])
     check_cycles(include_graph(headers, directories))
     kernel_headers = {ROOT / "src/decoder" / name for name in KERNEL_HEADERS}
     allowed = kernel_headers | {
         ROOT / name for name in (
             "include/av2heif.h", "src/base.h", "src/shared/limits.h",
-            "src/shared/stddef.h", "src/shared/stdint.h")}
+            "src/shared/stddef.h", "src/shared/stdint.h", "src/shared/bit_math.h")}
     flags = [
         "-std=c11", "-Wall", "-Wextra", "-Wpedantic", "-Werror",
         "-ffreestanding", "-nostdinc",

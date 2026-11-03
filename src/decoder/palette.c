@@ -1,5 +1,6 @@
 #include "internal/leaf_modules.h"
 #include "internal/sample_math.h"
+#include "shared/bit_math.h"
 
 uint8_t av2h_leaf_block_allows_palette(Av2hBlockSize block_size) {
     size_t width;
@@ -8,20 +9,10 @@ uint8_t av2h_leaf_block_allows_palette(Av2hBlockSize block_size) {
         block_size >= AV2H_BLOCK_8X8 && width <= 16U && height <= 16U;
 }
 
-static unsigned int palette_ceil_log2(uint32_t value) {
-    unsigned int bits = 0U;
-    uint32_t limit = 1U;
-    while (limit < value) {
-        limit <<= 1U;
-        ++bits;
-    }
-    return bits;
-}
-
 static uint32_t palette_read_uniform(
     Av2hRangeDecoder *decoder,
     uint32_t symbol_count) {
-    unsigned int bits = palette_ceil_log2(symbol_count);
+    unsigned int bits = av2h_ceil_log2_u32(symbol_count);
     uint32_t cutoff;
     uint32_t value;
     if (bits == 0U) return 0U;
@@ -107,7 +98,7 @@ Av2hStatus av2h_leaf_palette_read_colors(
         }
         mode->palette_colors[index] = (uint16_t)color;
         range -= color - previous;
-        next_bits = palette_ceil_log2(range);
+        next_bits = av2h_ceil_log2_u32(range);
         if (next_bits < bits) bits = next_bits;
     }
 sort_colors:

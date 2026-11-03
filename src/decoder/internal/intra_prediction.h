@@ -2,22 +2,12 @@
 #define AV2H_DECODER_INTERNAL_INTRA_PREDICTION_H
 
 #include "decoder/prediction.h"
+#include "decoder/internal/sample_math.h"
 
 int av2h_luma_prediction_dimension_supported(uint16_t dimension);
 
 static inline int av2h_intra_mrl_angle_delta(uint8_t mrl_index) {
     return mrl_index == 1U ? 1 : mrl_index == 2U ? -1 : 0;
-}
-
-static inline int32_t av2h_intra_round_shift(int64_t value, uint8_t shift) {
-    int64_t adjusted = value + ((int64_t)1 << (shift - 1U));
-    if (adjusted >= 0) return (int32_t)(adjusted >> shift);
-    return (int32_t)-(((-adjusted) + (((int64_t)1 << shift) - 1)) >> shift);
-}
-
-static inline uint8_t av2h_intra_block_log2(uint16_t size) {
-    return size == 4U ? 2U : size == 8U ? 3U :
-        size == 16U ? 4U : size == 32U ? 5U : 6U;
 }
 
 Av2hStatus av2h_predict_intra_dip(

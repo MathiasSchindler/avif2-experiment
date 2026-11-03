@@ -2,15 +2,7 @@
 #include "decoder/internal/filter_common.h"
 #include "decoder/internal/filter_modules.h"
 #include "decoder/internal/sample_math.h"
-
-static unsigned int floor_log2(unsigned int value) {
-    unsigned int result = 0U;
-    while (value > 1U) {
-        value >>= 1U;
-        ++result;
-    }
-    return result;
-}
+#include "shared/bit_math.h"
 
 typedef struct {
     uint16_t left;
@@ -256,8 +248,8 @@ static int cdef_constrain(int difference,
     unsigned int adjustment;
     int constrained;
     if (threshold == 0U) return 0;
-    magnitude = (unsigned int)absolute_value(difference);
-    adjustment = floor_log2(threshold);
+    magnitude = (unsigned int)av2h_sample_abs(difference);
+    adjustment = av2h_floor_log2_u32(threshold);
     adjustment = damping > adjustment ? damping - adjustment : 0U;
     constrained = (int)threshold - (int)(magnitude >> adjustment);
     constrained = av2h_sample_clamp(constrained, 0, (int)magnitude);
@@ -355,7 +347,7 @@ Av2hStatus av2h_cdef_filter_block(
         } else {
             unsigned int strength_scale = variance >> 6U;
             strength_scale = strength_scale == 0U ? 0U :
-                floor_log2(strength_scale);
+                av2h_floor_log2_u32(strength_scale);
             if (strength_scale > 12U) strength_scale = 12U;
             adjusted_primary = (uint8_t)(
                 (primary_strength * (4U + strength_scale) + 8U) >> 4U);
@@ -404,7 +396,7 @@ Av2hStatus av2h_cdef_filter_block(
                     }
                 }
             }
-            center += floor_shift_signed(8 + sum - (sum < 0), 4U);
+            center += av2h_sample_floor_shift(8 + sum - (sum < 0), 4U);
             if (clipping_required) {
                 center = av2h_sample_clamp(center, minimum, maximum);
             }
@@ -462,7 +454,7 @@ Av2hStatus av2h_cdef_filter_block_u16(
         } else {
             unsigned int strength_scale = variance >> 6U;
             strength_scale = strength_scale == 0U ? 0U :
-                floor_log2(strength_scale);
+                av2h_floor_log2_u32(strength_scale);
             if (strength_scale > 12U) strength_scale = 12U;
             adjusted_primary =
                 (adjusted_primary * (4U + strength_scale) + 8U) >> 4U;
@@ -509,7 +501,7 @@ Av2hStatus av2h_cdef_filter_block_u16(
                     }
                 }
             }
-            center += floor_shift_signed(8 + sum - (sum < 0), 4U);
+            center += av2h_sample_floor_shift(8 + sum - (sum < 0), 4U);
             if (clipping_required) {
                 center = av2h_sample_clamp(center, minimum, maximum);
             }
@@ -863,4 +855,3 @@ Av2hStatus av2h_cdef_filter_frame_u16(
     return av2h_cdef_filter_frame_u16_with_controls(
         destination, deblocked, frame, 0);
 }
-

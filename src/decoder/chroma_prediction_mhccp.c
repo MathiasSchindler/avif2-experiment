@@ -2,6 +2,7 @@
 #include "internal/decode_diagnostics.h"
 #include "internal/sample_math.h"
 #include "internal/sample_ops.h"
+#include "shared/bit_math.h"
 
 #define plane_region_reconstructed \
     av2h_chroma_plane_region_reconstructed
@@ -19,20 +20,11 @@ static uint16_t mhccp_luma_filter2_q3(
 #define AV2H_MHCCP_DIV_PREC_BITS 14
 #define AV2H_MHCCP_DIV_SLOT_BITS 3
 
-static int mhccp_log2(uint32_t value) {
-    int result = 0;
-    while (value > 1U) {
-        value >>= 1U;
-        ++result;
-    }
-    return result;
-}
-
 static int32_t mhccp_mul_fixed(int32_t left, int32_t right, int shift) {
     uint32_t abs_left = (uint32_t)(left < 0 ? -left : left);
     uint32_t abs_right = (uint32_t)(right < 0 ? -right : right);
-    int left_bits = mhccp_log2(abs_left) + 1;
-    int right_bits = mhccp_log2(abs_right) + 1;
+    int left_bits = (int)av2h_floor_log2_u32(abs_left) + 1;
+    int right_bits = (int)av2h_floor_log2_u32(abs_right) + 1;
     int drop = left_bits + right_bits - 29;
     int left_drop;
     int right_drop;
@@ -69,7 +61,7 @@ static void mhccp_division_scale(uint32_t denominator, int32_t *scale,
     int32_t fraction;
     int32_t centered;
     int32_t index;
-    *shift = mhccp_log2(denominator);
+    *shift = (int)av2h_floor_log2_u32(denominator);
     delta = *shift - AV2H_MHCCP_DIV_PREC_BITS;
     if (delta >= 0) {
         int32_t rounding = delta > 0 ?

@@ -1,5 +1,6 @@
 #include "base.h"
 #include "decoder/sequence.h"
+#include "shared/bit_math.h"
 
 #include <stdio.h>
 
@@ -22,6 +23,98 @@ static void test_arithmetic(void) {
     CHECK(!av2h_size_multiply(SIZE_MAX, 2U, &result));
     CHECK(av2h_size_align(17U, 8U, &result) && result == 24U);
     CHECK(!av2h_size_align(17U, 3U, &result));
+}
+
+static unsigned int reference_floor_log2(uint32_t value) {
+    unsigned int bits = 0U;
+    while (value >= 2U) {
+        value /= 2U;
+        ++bits;
+    }
+    return bits;
+}
+
+static unsigned int reference_ceil_log2(uint32_t value) {
+    return value <= 1U ? 0U : reference_floor_log2(value - 1U) + 1U;
+}
+
+static void check_log2(uint32_t value) {
+    CHECK(av2h_floor_log2_u32(value) == reference_floor_log2(value));
+    CHECK(av2h_ceil_log2_u32(value) == reference_ceil_log2(value));
+}
+
+static void test_bit_math(void) {
+    static const uint32_t units[] = { 1U, 2U, 3U, 4U, 17U, 64U, 256U, 32768U };
+    uint32_t value;
+    unsigned int bit;
+    size_t unit;
+    for (value = 0U; value <= UINT16_MAX; ++value) check_log2(value);
+    for (bit = 0U; bit < 32U; ++bit) {
+        uint32_t power = UINT32_C(1) << bit;
+        check_log2(power - 1U);
+        check_log2(power);
+        check_log2(power + 1U);
+    }
+    check_log2(UINT32_MAX);
+    for (unit = 0U; unit < sizeof(units) / sizeof(units[0]); ++unit) {
+        for (value = 0U; value <= 4096U; ++value) {
+            uint32_t quotient = (uint32_t)(
+                ((uint64_t)value + units[unit] - 1U) / units[unit]);
+            CHECK(av2h_ceil_log2_ratio_u32(units[unit], value) ==
+                  reference_ceil_log2(quotient));
+        }
+    }
+    CHECK(av2h_ceil_log2_ratio_u32(1U, UINT32_MAX) == 32U);
+    CHECK(av2h_ceil_log2_ratio_u32(UINT32_C(1) << 31U, UINT32_MAX) == 1U);
+}
+
+static void check_endian32(unsigned char *bytes, uint32_t value) {
+    unsigned int byte;
+    bytes[0] = 0xa5U;
+    bytes[5] = 0x5aU;
+    av2h_store_u32be(bytes + 1U, value);
+    for (byte = 0U; byte < 4U; ++byte) {
+        CHECK(bytes[byte + 1U] == (unsigned char)(value >> (24U - 8U * byte)));
+    }
+    CHECK(av2h_load_u32be(bytes + 1U) == value);
+    CHECK(bytes[0] == 0xa5U && bytes[5] == 0x5aU);
+    av2h_store_u32le(bytes + 1U, value);
+    for (byte = 0U; byte < 4U; ++byte) {
+        CHECK(bytes[byte + 1U] == (unsigned char)(value >> (8U * byte)));
+    }
+    CHECK(av2h_load_u32le(bytes + 1U) == value);
+    CHECK(bytes[0] == 0xa5U && bytes[5] == 0x5aU);
+}
+
+static void test_endian(void) {
+    static const unsigned char wide[] = {
+        0xffU, 0x01U, 0x23U, 0x45U, 0x67U, 0x89U, 0xabU, 0xcdU, 0xefU
+    };
+    unsigned char bytes[6];
+    uint32_t value;
+    unsigned int bit;
+    for (value = 0U; value <= UINT16_MAX; ++value) {
+        bytes[0] = 0xa5U;
+        bytes[3] = 0x5aU;
+        av2h_store_u16be(bytes + 1U, (uint16_t)value);
+        CHECK(bytes[1] == (unsigned char)(value >> 8U));
+        CHECK(bytes[2] == (unsigned char)value);
+        CHECK(av2h_load_u16be(bytes + 1U) == value);
+        CHECK(bytes[0] == 0xa5U && bytes[3] == 0x5aU);
+        av2h_store_u16le(bytes + 1U, (uint16_t)value);
+        CHECK(bytes[1] == (unsigned char)value);
+        CHECK(bytes[2] == (unsigned char)(value >> 8U));
+        CHECK(av2h_load_u16le(bytes + 1U) == value);
+        CHECK(bytes[0] == 0xa5U && bytes[3] == 0x5aU);
+        check_endian32(bytes, (value << 16U) | ((~value) & UINT16_MAX));
+    }
+    for (bit = 0U; bit < 32U; ++bit) {
+        check_endian32(bytes, UINT32_C(1) << bit);
+    }
+    check_endian32(bytes, 0U);
+    check_endian32(bytes, UINT32_MAX);
+    check_endian32(bytes, UINT32_C(0x12345678));
+    CHECK(av2h_load_u64be(wide + 1U) == UINT64_C(0x0123456789abcdef));
 }
 
 static void test_readers(void) {
@@ -627,6 +720,8 @@ static void test_box_framing(void) {
 }
 
 int main(void) {
+    test_bit_math();
+    test_endian();
     test_arithmetic();
     test_readers();
     test_raw_syntax_readers();

@@ -2,14 +2,6 @@
 #include "internal/decode_diagnostics.h"
 #include "internal/sample_math.h"
 
-static int32_t clamp(int32_t value, int32_t minimum, int32_t maximum) {
-    return av2h_sample_clamp(value, minimum, maximum);
-}
-static int32_t round_shift(int64_t value, uint8_t shift) {
-    int64_t adjusted = value + ((int64_t)1 << (shift - 1U));
-    if (adjusted >= 0) return (int32_t)(adjusted >> shift);
-    return (int32_t)-(((-adjusted) + (((int64_t)1 << shift) - 1)) >> shift);
-}
 static const int8_t dct4[4U][4U] = {
     { 64, 64, 64, 64 },
     { 83, 35, -35, -83 },
@@ -365,7 +357,7 @@ Av2hStatus av2h_inverse_rows(const int32_t *input, int32_t *transposed,
                 }
             }
             transposed[(size_t)output * height + row] =
-                clamp(round_shift(sum, shift), -32768, 32767);
+                av2h_sample_clamp(av2h_sample_round_pow2(sum, shift), -32768, 32767);
         }
     }
     return AV2H_OK;
@@ -412,7 +404,7 @@ Av2hStatus av2h_inverse_columns(const int32_t *transposed,
                 sum += (int64_t)source * matrix;
             }
             output_block[(size_t)output * width + column] =
-                clamp(round_shift(sum, shift), -256, 255);
+                av2h_sample_clamp(av2h_sample_round_pow2(sum, shift), -256, 255);
         }
     }
     return AV2H_OK;
@@ -467,11 +459,6 @@ typedef enum {
     RECON_1D_IDENTITY,
     RECON_1D_NONE
 } Av2hRecon1dKind;
-
-static uint8_t recon_size_log2(uint16_t size) {
-    return size == 4U ? 2U : size == 8U ? 3U : size == 16U ? 4U :
-        size == 32U ? 5U : 6U;
-}
 
 static Av2hStatus recon_geometry(uint8_t tx_size,
                                  uint16_t *output_width,
@@ -677,7 +664,7 @@ static void recon_transform_1d(const int32_t *input, int32_t *output,
     uint16_t frequency;
     if (kind == RECON_1D_IDENTITY) {
         for (out = 0U; out < size; ++out) {
-            output[out] = clamp(round_shift(
+            output[out] = av2h_sample_clamp(av2h_sample_round_pow2(
                 (int64_t)input[out] * identity_scale(size), shift),
                 minimum, maximum);
         }
@@ -689,18 +676,12 @@ static void recon_transform_1d(const int32_t *input, int32_t *output,
             sum += (int64_t)recon_kernel_value(kind, size, frequency, out) *
                    input[frequency];
         }
-        output[out] = clamp(round_shift(sum, shift), minimum, maximum);
+        output[out] = av2h_sample_clamp(av2h_sample_round_pow2(sum, shift), minimum, maximum);
     }
 }
 
-static int32_t lossless_floor_shift(int32_t value, uint8_t shift) {
-    if (value >= 0) return value >> shift;
-    return -(int32_t)(((uint32_t)(-value) +
-        (((uint32_t)1U << shift) - 1U)) >> shift);
-}
-
 static int32_t lossless_half(int32_t value) {
-    return lossless_floor_shift(value, 1U);
+    return av2h_sample_floor_shift(value, 1U);
 }
 
 static void lossless_iwht4(int32_t *values) {
@@ -735,7 +716,7 @@ Av2hStatus av2h_reconstruct_lossless_4x4(
     for (row = 0U; row < 4U; ++row) {
         for (column = 0U; column < 4U; ++column) {
             residual[row * 4U + column] =
-                lossless_floor_shift(
+                av2h_sample_floor_shift(
                     coefficients->dequantized[row * 4U + column], 3U);
         }
         if (transform->primary_type == AV2H_TX_DCT_DCT &&
@@ -875,8 +856,8 @@ Av2hStatus av2h_reconstruct_transform_generic_with_diagnostics(
     }
     reconstruction->width = output_width;
     reconstruction->height = output_height;
-    rectangular = (uint8_t)((recon_size_log2(output_width) ^
-                             recon_size_log2(output_height)) & 1U);
+    rectangular = (uint8_t)((av2h_sample_block_log2(output_width) ^
+                             av2h_sample_block_log2(output_height)) & 1U);
     for (index = 0U; index < coefficients->coefficient_count; ++index) {
         scratch->scaled[index] = coefficients->dequantized[index];
     }
@@ -894,7 +875,7 @@ Av2hStatus av2h_reconstruct_transform_generic_with_diagnostics(
             int32_t value =
                 scratch->scaled[(size_t)row * coeff_width + column];
             row_input[column] = rectangular ?
-                round_shift((int64_t)value * 2896, 12U) : value;
+                av2h_sample_round_pow2((int64_t)value * 2896, 12U) : value;
         }
         recon_transform_1d(row_input, row_output, row_kind, coeff_width,
                            row_shift, 0U, 8U);
@@ -1022,8 +1003,8 @@ Av2hStatus av2h_reconstruct_transform_generic_u16_with_diagnostics(
         recon_kind_supported(column_kind, coeff_height) != AV2H_OK) {
         return AV2H_UNSUPPORTED;
     }
-    rectangular = (uint8_t)((recon_size_log2(output_width) ^
-                             recon_size_log2(output_height)) & 1U);
+    rectangular = (uint8_t)((av2h_sample_block_log2(output_width) ^
+                             av2h_sample_block_log2(output_height)) & 1U);
     for (index = 0U; index < coefficients->coefficient_count; ++index) {
         scratch->scaled[index] = coefficients->dequantized[index];
     }
@@ -1041,7 +1022,7 @@ Av2hStatus av2h_reconstruct_transform_generic_u16_with_diagnostics(
             int32_t value =
                 scratch->scaled[(size_t)row * coeff_width + column];
             row_input[column] = rectangular ?
-                round_shift((int64_t)value * 2896, 12U) : value;
+                av2h_sample_round_pow2((int64_t)value * 2896, 12U) : value;
         }
         recon_transform_1d(row_input, row_output, row_kind, coeff_width,
                            row_shift, 0U, 10U);
@@ -1157,7 +1138,7 @@ Av2hStatus av2h_reconstruct_transform_8x16_u16(
         return AV2H_OK;
     }
     for (index = 0U; index < 128U; ++index) {
-        scratch->scaled[index] = clamp(round_shift(
+        scratch->scaled[index] = av2h_sample_clamp(av2h_sample_round_pow2(
             (int64_t)coefficients->dequantized[index] * 2896, 12U),
             -131072, 131071);
     }
@@ -1228,7 +1209,7 @@ Av2hStatus av2h_reconstruct_transform_8x4_u16(
     reconstruction->width = 8U;
     reconstruction->height = 4U;
     for (index = 0U; index < 32U; ++index) {
-        scratch->scaled[index] = clamp(round_shift(
+        scratch->scaled[index] = av2h_sample_clamp(av2h_sample_round_pow2(
             (int64_t)coefficients->dequantized[index] * 2896, 12U),
             -131072, 131071);
     }

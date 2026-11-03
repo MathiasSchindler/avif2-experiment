@@ -30,21 +30,10 @@ static const uint8_t ibp_weights[5U][16U] = {
       98U, 102U, 106U, 109U, 113U, 117U, 121U, 124U }
 };
 
-static int32_t round_shift(int64_t value, uint8_t shift) {
-    int64_t adjusted = value + ((int64_t)1 << (shift - 1U));
-    if (adjusted >= 0) return (int32_t)(adjusted >> shift);
-    return (int32_t)-(((-adjusted) + (((int64_t)1 << shift) - 1)) >> shift);
-}
-
-static uint8_t block_log2(uint16_t size) {
-    return size == 4U ? 2U : size == 8U ? 3U :
-        size == 16U ? 4U : size == 32U ? 5U : 6U;
-}
-
 static uint8_t smooth_scale(uint16_t width, uint16_t height) {
     unsigned int sum =
-        (unsigned int)block_log2(width) - 2U +
-        (unsigned int)block_log2(height) - 2U;
+        (unsigned int)av2h_sample_block_log2(width) - 2U +
+        (unsigned int)av2h_sample_block_log2(height) - 2U;
     return (uint8_t)((sum + 2U) >> 2U);
 }
 
@@ -384,11 +373,11 @@ Av2hStatus av2h_chroma_predict(
                 uint8_t left = references->left == 0 ?
                     references->above[0] : references->left[row];
                 uint8_t blend = smooth_blend(column, scale);
-                int32_t value = top_right + round_shift(
+                int32_t value = top_right + av2h_sample_round_pow2(
                     ((int64_t)left - top_right) *
                         (width - 1U - column),
-                    block_log2(width));
-                value += round_shift(
+                    av2h_sample_block_log2(width));
+                value += av2h_sample_round_pow2(
                     ((int64_t)left - value) * blend, 7U);
                 predictor[(size_t)row * predictor_stride_samples + column] =
                     (uint8_t)value;

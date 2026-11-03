@@ -20,13 +20,7 @@ int32_t av2h_intrabc_plane_position(
 }
 
 int32_t av2h_intrabc_integer_position(int32_t position) {
-    return position >= 0 ? (position >> AV2H_SUBPEL_BITS) :
-        -(((-position) + ((1 << AV2H_SUBPEL_BITS) - 1)) >> AV2H_SUBPEL_BITS);
-}
-
-static int32_t intrabc_round_shift(int32_t value, uint8_t bits) {
-    if (bits == 0U) return value;
-    return (value + (1 << (bits - 1U))) >> bits;
+    return av2h_sample_floor_shift(position, AV2H_SUBPEL_BITS);
 }
 
 static void intrabc_filter_taps(uint32_t phase, int32_t taps[2]) {
@@ -120,8 +114,8 @@ Av2hStatus av2h_intrabc_convolve(
                         source8, source16, source_stride, x + 1U, y);
                 intrabc_store(
                     destination8, destination16, row * width + column,
-                    intrabc_round_shift(
-                        intrabc_round_shift(sum, round_0), bits),
+                    av2h_sample_round_pow2(
+                        av2h_sample_round_pow2(sum, round_0), bits),
                     bit_depth);
             }
         }
@@ -139,7 +133,7 @@ Av2hStatus av2h_intrabc_convolve(
                         source8, source16, source_stride, x, y + 1U);
                 intrabc_store(
                     destination8, destination16, row * width + column,
-                    intrabc_round_shift(
+                    av2h_sample_round_pow2(
                         sum, (uint8_t)AV2H_INTRABC_FILTER_BITS),
                     bit_depth);
             }
@@ -161,7 +155,7 @@ Av2hStatus av2h_intrabc_convolve(
         for (column = 0U; column < width; ++column) {
             size_t x = (size_t)source_x + column;
             size_t y = (size_t)source_y;
-            previous[column] = intrabc_round_shift(
+            previous[column] = av2h_sample_round_pow2(
                 horizontal_offset +
                     horizontal[0] * (int32_t)intrabc_load(
                         source8, source16, source_stride, x, y) +
@@ -174,7 +168,7 @@ Av2hStatus av2h_intrabc_convolve(
             for (column = 0U; column < width; ++column) {
                 size_t x = (size_t)source_x + column;
                 size_t y = (size_t)source_y + row + 1U;
-                next[column] = intrabc_round_shift(
+                next[column] = av2h_sample_round_pow2(
                     horizontal_offset +
                         horizontal[0] * (int32_t)intrabc_load(
                             source8, source16, source_stride, x, y) +
@@ -187,10 +181,10 @@ Av2hStatus av2h_intrabc_convolve(
                     vertical[0] * previous[column] +
                     vertical[1] * next[column];
                 int32_t value =
-                    intrabc_round_shift(sum, round_1) - bias;
+                    av2h_sample_round_pow2(sum, round_1) - bias;
                 intrabc_store(
                     destination8, destination16, row * width + column,
-                    intrabc_round_shift(value, bits), bit_depth);
+                    av2h_sample_round_pow2(value, bits), bit_depth);
             }
             swap = previous;
             previous = next;

@@ -1,5 +1,6 @@
 #include "sequence.h"
 #include "internal/obu.h"
+#include "shared/bit_math.h"
 
 static Av2hStatus fail_obu_syntax(Av2hError *error,
                                   Av2hStatus status,
@@ -14,22 +15,6 @@ static Av2hStatus fail_obu_syntax(Av2hError *error,
         error->parsed_value = parsed_value;
     }
     return status;
-}
-
-static unsigned int tile_log2_u32(uint32_t block_size, uint32_t target) {
-    unsigned int value = 0U;
-    while ((block_size << value) < target) ++value;
-    return value;
-}
-
-static unsigned int ceil_log2_u32(uint32_t value) {
-    unsigned int bits = 0U;
-    uint32_t limit = 1U;
-    while (limit < value) {
-        limit <<= 1U;
-        ++bits;
-    }
-    return bits;
 }
 
 static uint32_t sequence_tile_width_scale(const Av2hSequenceState *state) {
@@ -247,12 +232,12 @@ static int read_sequence_tools(Av2hBitReader *reader,
         }
         state->tile_sb_columns = (uint16_t)sb_columns;
         state->tile_sb_rows = (uint16_t)sb_rows;
-        min_log2_columns = tile_log2_u32(max_width_sb, sb_columns);
-        min_log2_tiles = tile_log2_u32(max_area_sb, sb_columns * sb_rows);
+        min_log2_columns = av2h_ceil_log2_ratio_u32(max_width_sb, sb_columns);
+        min_log2_tiles = av2h_ceil_log2_ratio_u32(max_area_sb, sb_columns * sb_rows);
         if (min_log2_tiles < min_log2_columns) min_log2_tiles = min_log2_columns;
-        max_log2_columns = ceil_log2_u32(
+        max_log2_columns = av2h_ceil_log2_u32(
             sb_columns < AV2H_MAX_TILE_COLUMNS ? sb_columns : AV2H_MAX_TILE_COLUMNS);
-        max_log2_rows = ceil_log2_u32(
+        max_log2_rows = av2h_ceil_log2_u32(
             sb_rows < AV2H_MAX_TILE_ROWS ? sb_rows : AV2H_MAX_TILE_ROWS);
         state->allow_tile_info_change =
             (uint8_t)av2h_bit_reader_read(reader, 1U);
@@ -288,7 +273,7 @@ static int read_sequence_tools(Av2hBitReader *reader,
             if (remaining != 0U) return 0;
             state->tile_column_start_sb[index] = (uint16_t)start;
             state->tile_column_count = (uint8_t)index;
-            state->tile_column_log2 = (uint8_t)ceil_log2_u32((uint32_t)index);
+            state->tile_column_log2 = (uint8_t)av2h_ceil_log2_u32((uint32_t)index);
             max_area_sb = sb_columns * sb_rows;
             if (min_log2_tiles != 0U) max_area_sb >>= min_log2_tiles + 1U;
             max_width_sb = max_area_sb / widest;
@@ -306,7 +291,7 @@ static int read_sequence_tools(Av2hBitReader *reader,
             if (remaining != 0U) return 0;
             state->tile_row_start_sb[index] = (uint16_t)start;
             state->tile_row_count = (uint8_t)index;
-            state->tile_row_log2 = (uint8_t)ceil_log2_u32((uint32_t)index);
+            state->tile_row_log2 = (uint8_t)av2h_ceil_log2_u32((uint32_t)index);
         }
         return reader->status == AV2H_OK;
     }

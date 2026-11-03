@@ -155,25 +155,19 @@ typedef struct {
     int stripe_end;
 } Av2hPcWienerSource;
 
-static int clamp_coordinate(int value, int limit) {
-    if (value < 0) return 0;
-    if (value >= limit) return limit - 1;
-    return value;
-}
-
 static uint8_t pc_wiener_source_sample(
     const Av2hPcWienerSource *context, int row, int column) {
     int source_row = row;
-    int source_column = clamp_coordinate(
-        column, context->source->width);
+    int source_column = av2h_sample_clamp(
+        column, 0, context->source->width - 1);
     if (row < context->stripe_start) {
         if (context->stripe_start == 0) {
             source_row = 0;
         } else {
             source_row = row < context->stripe_start - 1 ?
                 context->stripe_start - 2 : context->stripe_start - 1;
-            source_row = clamp_coordinate(
-                source_row, context->deblocked->height);
+            source_row = av2h_sample_clamp(
+                source_row, 0, context->deblocked->height - 1);
             return context->deblocked->data[
                 (size_t)source_row * context->deblocked->stride_samples +
                 (size_t)source_column];
@@ -184,14 +178,14 @@ static uint8_t pc_wiener_source_sample(
         } else {
             source_row = row == context->stripe_end ?
                 context->stripe_end : context->stripe_end + 1;
-            source_row = clamp_coordinate(
-                source_row, context->deblocked->height);
+            source_row = av2h_sample_clamp(
+                source_row, 0, context->deblocked->height - 1);
             return context->deblocked->data[
                 (size_t)source_row * context->deblocked->stride_samples +
                 (size_t)source_column];
         }
     }
-    source_row = clamp_coordinate(source_row, context->source->height);
+    source_row = av2h_sample_clamp(source_row, 0, context->source->height - 1);
     return context->source->data[
         (size_t)source_row * context->source->stride_samples +
         (size_t)source_column];
@@ -211,12 +205,12 @@ static int pc_wiener_q_adjustment(
     unsigned int qindex, unsigned int tskip, unsigned int feature) {
     const int qstep = pc_wiener_quantizer(qindex);
     const int tskip_shifted = (int)tskip << 5;
-    const int product = round_shift_symmetric(
+    const int product = av2h_sample_round_pow2_signed(
         (int)tskip * qstep, 8U);
     int value = pc_wiener_mode_weights[feature][0] * tskip_shifted +
         pc_wiener_mode_weights[feature][1] * qstep +
         pc_wiener_mode_weights[feature][2] * product;
-    value = round_shift_symmetric(value, 13U);
+    value = av2h_sample_round_pow2_signed(value, 13U);
     return 255 * (value + pc_wiener_mode_offsets[feature]);
 }
 
@@ -229,13 +223,13 @@ static unsigned int pc_wiener_tx_skip_sum(
     int row;
     for (row = -AV2H_PC_WIENER_FEATURE_LEAD;
          row <= AV2H_PC_WIENER_FEATURE_LAG; ++row) {
-        int local_row = clamp_coordinate(
-            block_row + row, stripe_height);
+        int local_row = av2h_sample_clamp(
+            block_row + row, 0, stripe_height - 1);
         int column;
         for (column = -AV2H_PC_WIENER_FEATURE_LEAD;
              column <= AV2H_PC_WIENER_FEATURE_LAG; ++column) {
-            int local_column = clamp_coordinate(
-                block_column + column, chunk_width);
+            int local_column = av2h_sample_clamp(
+                block_column + column, 0, chunk_width - 1);
             size_t map_row = (size_t)(stripe_start + local_row) / 4U;
             size_t map_column = (size_t)(chunk_start + local_column) / 4U;
             sum += controls->tx_skip[
@@ -266,17 +260,17 @@ static uint8_t pc_wiener_classify(
             int sample_column = chunk_start + block_column + column;
             int center = 2 * pc_wiener_source_sample(
                 context, sample_row, sample_column);
-            feature[1] += absolute_value(
+            feature[1] += av2h_sample_abs(
                 (int)pc_wiener_source_sample(
                     context, sample_row - 1, sample_column) +
                 pc_wiener_source_sample(
                     context, sample_row + 1, sample_column) - center);
-            feature[2] += absolute_value(
+            feature[2] += av2h_sample_abs(
                 (int)pc_wiener_source_sample(
                     context, sample_row - 1, sample_column + 1) +
                 pc_wiener_source_sample(
                     context, sample_row + 1, sample_column - 1) - center);
-            feature[3] += absolute_value(
+            feature[3] += av2h_sample_abs(
                 (int)pc_wiener_source_sample(
                     context, sample_row - 1, sample_column - 1) +
                 pc_wiener_source_sample(
@@ -284,7 +278,7 @@ static uint8_t pc_wiener_classify(
         }
     }
     for (row = 0; row < 4; ++row) {
-        int value = round_shift_symmetric(
+        int value = av2h_sample_round_pow2_signed(
             feature[row] * pc_wiener_feature_normalizers[row] +
                 pc_wiener_q_adjustment(qindex, tskip, (unsigned int)row),
             14U);
@@ -323,7 +317,7 @@ static void pc_wiener_filter_block(
             }
             destination->data[
                 (size_t)y * destination->stride_samples + (size_t)x] =
-                av2h_sample_clip(round_shift_symmetric(value, 7U));
+                av2h_sample_clip(av2h_sample_round_pow2_signed(value, 7U));
         }
     }
 }
@@ -448,8 +442,8 @@ static uint8_t wiener_nonsep_luma_sample(
         (luma->source->height + ((int)1 << chroma_shift) - 1) >> chroma_shift;
     int chroma_width =
         (luma->source->width + ((int)1 << chroma_shift) - 1) >> chroma_shift;
-    row = clamp_coordinate(row, chroma_height);
-    column = clamp_coordinate(column, chroma_width);
+    row = av2h_sample_clamp(row, 0, chroma_height - 1);
+    column = av2h_sample_clamp(column, 0, chroma_width - 1);
     if (chroma_shift == 0U) {
         return pc_wiener_source_sample(luma, row, column);
     }
@@ -499,7 +493,7 @@ static void wiener_nonsep_filter_luma_region(
             }
             destination->data[(size_t)row * destination->stride_samples +
                               (size_t)column] =
-                av2h_sample_clip(round_shift_symmetric(value, 7U));
+                av2h_sample_clip(av2h_sample_round_pow2_signed(value, 7U));
         }
     }
 }
@@ -544,7 +538,7 @@ static void wiener_nonsep_filter_chroma_region(
             }
             destination->data[(size_t)row * destination->stride_samples +
                               (size_t)column] =
-                av2h_sample_clip(round_shift_symmetric(value, 7U));
+                av2h_sample_clip(av2h_sample_round_pow2_signed(value, 7U));
         }
     }
 }

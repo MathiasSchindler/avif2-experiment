@@ -25,6 +25,16 @@ static inline int32_t av2h_sample_clamp(
     return value;
 }
 
+static inline int32_t av2h_sample_abs(int32_t value) {
+    return value < 0 ? -value : value;
+}
+
+/* Prediction/transform dispatch retains six for sizes outside 4/8/16/32. */
+static inline uint8_t av2h_sample_block_log2(uint16_t size) {
+    return size == 4U ? 2U : size == 8U ? 3U :
+        size == 16U ? 4U : size == 32U ? 5U : 6U;
+}
+
 static inline uint16_t av2h_sample_clip_to_domain(
     int32_t value, const Av2hSampleDomain *domain) {
     return (uint16_t)av2h_sample_clamp(
@@ -72,13 +82,30 @@ static inline uint16_t av2h_sample_clip_10bit(int32_t value) {
     return av2h_sample_clip_to_domain(value, &av2h_sample_domain_10bit);
 }
 
-static inline int32_t av2h_sample_round_pow2(int64_t value, int shift) {
-    return (int32_t)((value + (((int64_t)1 << shift) >> 1)) >> shift);
+/* Floor division by 2^shift without shifting a negative value; shift 0..63. */
+static inline int32_t av2h_sample_floor_shift(int64_t value, unsigned int shift) {
+    if (value >= 0) return (int32_t)((uint64_t)value >> shift);
+    {
+        uint64_t magnitude = (uint64_t)0U - (uint64_t)value;
+        return (int32_t)(-(int64_t)((magnitude - 1U) >> shift) - 1);
+    }
 }
 
+/* Half-up for nonnegative inputs; signed ties toward +infinity; shift 0..62. */
+static inline int32_t av2h_sample_round_pow2(int64_t value, int shift) {
+    return av2h_sample_floor_shift(
+        value + (((int64_t)1 << shift) >> 1), (unsigned int)shift);
+}
+
+/* Symmetric rounding, with ties away from zero; shift 0..62. */
 static inline int32_t av2h_sample_round_pow2_signed(int64_t value, int shift) {
-    return value < 0 ? -av2h_sample_round_pow2(-value, shift) :
-        av2h_sample_round_pow2(value, shift);
+    uint64_t magnitude;
+    int64_t rounded;
+    if (shift == 0) return (int32_t)value;
+    magnitude = value < 0 ? (uint64_t)0U - (uint64_t)value : (uint64_t)value;
+    rounded = (int64_t)((magnitude +
+        ((uint64_t)1U << (shift - 1))) >> shift);
+    return (int32_t)(value < 0 ? -rounded : rounded);
 }
 
 /* The reciprocal input is positive; shift receives its fixed-point scale. */

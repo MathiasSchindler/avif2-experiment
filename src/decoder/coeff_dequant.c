@@ -1,4 +1,5 @@
 #include "internal/coeff_modules.h"
+#include "shared/bit_math.h"
 
 #include "predefined_qmatrix.inc"
 
@@ -276,12 +277,6 @@ uint8_t av2h_coeff_finalize_cul_level(
     return (uint8_t)cul_level;
 }
 
-static uint8_t coeff_dim_log2(uint16_t dimension) {
-    uint8_t log2 = 0U;
-    while ((dimension >> log2) > 1) ++log2;
-    return log2;
-}
-
 Av2hStatus av2h_coeff_tx_geometry_from_dims(
     uint16_t tx_width,
     uint16_t tx_height,
@@ -305,9 +300,9 @@ Av2hStatus av2h_coeff_tx_geometry_from_dims(
     pels = (uint32_t)tx_width * tx_height;
     geometry->dequant_shift =
         (uint8_t)((pels > 256U ? 1U : 0U) + (pels > 1024U ? 1U : 0U));
-    low_log2 = coeff_dim_log2(
+    low_log2 = (uint8_t)av2h_floor_log2_u32(
         tx_width < tx_height ? tx_width : tx_height);
-    high_log2 = coeff_dim_log2(
+    high_log2 = (uint8_t)av2h_floor_log2_u32(
         tx_width > tx_height ? tx_width : tx_height);
     geometry->tx_context = (uint8_t)(
         ((low_log2 - 2U) + (high_log2 - 2U) + 1U) >> 1U);

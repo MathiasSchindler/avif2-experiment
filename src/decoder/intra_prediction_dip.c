@@ -16,7 +16,7 @@ static void intra_dip_matrix_predict(const uint16_t input[11U],
                    input[feature];
         }
         output[position] = (uint16_t)av2h_sample_clamp(
-            av2h_intra_round_shift(sum, 10U), 0, 255);
+            av2h_sample_round_pow2(sum, 10U), 0, 255);
     }
 }
 
@@ -71,8 +71,8 @@ Av2hStatus av2h_predict_intra_dip(
     if (transpose > 1U || mode_index >= AV2H_INTRA_DIP_MODES) {
         return AV2H_INVALID_DATA;
     }
-    width_log2 = av2h_intra_block_log2(width);
-    height_log2 = av2h_intra_block_log2(height);
+    width_log2 = av2h_sample_block_log2(width);
+    height_log2 = av2h_sample_block_log2(height);
     down_log2[0] = (transpose != 0U ? height_log2 : width_log2) - 2U;
     down_log2[1] = (transpose != 0U ? width_log2 : height_log2) - 2U;
     edge[0] = transpose != 0U ? references->left : references->above;

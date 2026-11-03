@@ -228,7 +228,7 @@ static void gdf_filter_block(Av2hFilterPlane *destination,
                     cdef_luma, deblocked_luma, x + dx, y + dy,
                     stripe_start, stripe_end, bounds);
                 gradient[direction][row][column] =
-                    (uint16_t)absolute_value(center * 2 - first - second);
+                    (uint16_t)av2h_sample_abs(center * 2 - first - second);
             }
         }
     }
@@ -303,7 +303,7 @@ static void gdf_filter_block(Av2hFilterPlane *destination,
             {
                 unsigned int position = 0U;
                 for (output_index = 0U; output_index < 3U; ++output_index) {
-                    int value = round_shift_symmetric(
+                    int value = av2h_sample_round_pow2_signed(
                         (accumulator[output_index] +
                          gdf_bias[gdf_bias_index(qp_index, output_index)]) *
                             8,
@@ -315,7 +315,7 @@ static void gdf_filter_block(Av2hFilterPlane *destination,
                     destination->data, destination->stride_samples,
                     (size_t)block_x + column, (size_t)block_y + row,
                     (int)destination->data[destination_index] +
-                        round_shift_symmetric(
+                        av2h_sample_round_pow2_signed(
                             (int)gdf_intra_error[
                                 qp_index * 4096U + position] *
                                 (int)pixel_scale,
@@ -363,7 +363,7 @@ static void gdf_filter_block_u16(Av2hFilterPlaneU16 *destination,
                     cdef_luma, deblocked_luma, x + dx, y + dy,
                     stripe_start, stripe_end, bounds);
                 gradient[direction][row][column] =
-                    (uint16_t)absolute_value(center * 2 - first - second);
+                    (uint16_t)av2h_sample_abs(center * 2 - first - second);
             }
         }
     }
@@ -437,7 +437,7 @@ static void gdf_filter_block_u16(Av2hFilterPlaneU16 *destination,
             {
                 unsigned int position = 0U;
                 for (output_index = 0U; output_index < 3U; ++output_index) {
-                    int value = round_shift_symmetric(
+                    int value = av2h_sample_round_pow2_signed(
                         (accumulator[output_index] +
                          gdf_bias[gdf_bias_index(qp_index, output_index)]) *
                             8,
@@ -449,7 +449,7 @@ static void gdf_filter_block_u16(Av2hFilterPlaneU16 *destination,
                     destination->data, destination->stride_samples,
                     (size_t)block_x + column, (size_t)block_y + row,
                     (int)destination->data[destination_index] +
-                        round_shift_symmetric(
+                        av2h_sample_round_pow2_signed(
                             (int)gdf_intra_error[
                                 qp_index * 4096U + position] *
                                 (int)pixel_scale,
