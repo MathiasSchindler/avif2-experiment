@@ -241,6 +241,8 @@ Av2hStatus av2h_tile_group_parse(Av2hSpan payload, const Av2hFrameState *frame,
                                  uint16_t expected_start_tile, Av2hTileGroup *group);
 Av2hStatus av2h_tile_groups_ledger_parse(Av2hSpan input, const Av2hObuLedger *ledger,
                                          const Av2hFrameState *frame, Av2hTileGroup *group);
+Av2hStatus av2h_tile_groups_ledger_validate(Av2hSpan input, const Av2hObuLedger *ledger,
+                                            const Av2hFrameState *frame);
 
 Av2hStatus av2h_tile_decoder_init(Av2hTileDecoder *decoder, Av2hSpan entropy,
                                   const Av2hSequenceState *sequence, const Av2hFrameState *frame,

@@ -188,7 +188,7 @@ static void test_arguments(void) {
         UINT64_C(6526772215835104301),
         UINT64_C(11085992068949705981)
     };
-    Av2hRangeDecoder decoder;
+    Av2hRangeDecoder decoder = {0};
     Av2hCoeffCdfs cdfs;
     Av2hFrameState frame = { 0 };
     Av2hPartitionNode leaf = { 0U, 0U, AV2H_BLOCK_8X8 };

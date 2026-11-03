@@ -109,6 +109,24 @@ static void test_storage_width_accounting(uint8_t chroma_format_idc) {
               sizeof(workspace.decode_scratch->pending_chroma_blocks) <=
           memory + workspace_u8.size_bytes);
     CHECK(workspace_u8.alignment >= _Alignof(Av2hFrameDecodeScratch));
+    CHECK((uint8_t *)&workspace.decode_scratch->preparation >= memory);
+    CHECK((uint8_t *)&workspace.decode_scratch->syntax >=
+          (uint8_t *)&workspace.decode_scratch->preparation +
+              sizeof(workspace.decode_scratch->preparation));
+    CHECK((uint8_t *)&workspace.decode_scratch->group >=
+          (uint8_t *)&workspace.decode_scratch->syntax + sizeof(workspace.decode_scratch->syntax));
+    CHECK((uint8_t *)&workspace.decode_scratch->group +
+              sizeof(workspace.decode_scratch->group) <=
+          memory + sizeof(*workspace.decode_scratch));
+    av2h_frame_syntax_storage_bind(&workspace.decode_scratch->preparation.frame,
+                                   &workspace.decode_scratch->syntax);
+    CHECK(workspace.decode_scratch->preparation.frame.custom_qm ==
+          workspace.decode_scratch->syntax.custom_qm);
+    CHECK(workspace.decode_scratch->preparation.frame.restoration_frame_filter ==
+          workspace.decode_scratch->syntax.restoration_frame_filter);
+    for (plane = 0U; plane < AV2H_FRAME_PLANE_COUNT; ++plane)
+        CHECK(workspace.decode_scratch->preparation.frame.ccso[plane].filter_offset ==
+              workspace.decode_scratch->syntax.ccso_filter_offset[plane]);
         CHECK(workspace.coded[0].reconstructed_stride_cells >=
             ((size_t)workspace.coded[0].width + 3U) / 4U);
             CHECK(workspace.coded[0].reconstructed_count_cells >=

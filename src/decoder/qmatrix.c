@@ -65,24 +65,29 @@ static Av2hStatus qmatrix_read_definition(Av2hBitReader *reader, Av2hFrameState 
     static const uint16_t widths[3] = {8U, 8U, 4U};
     static const uint16_t heights[3] = {8U, 4U, 8U};
     static const uint16_t offsets[3] = {0U, 64U, 96U};
+    uint8_t validation_definition[AV2H_FRAME_PLANE_COUNT][AV2H_CUSTOM_QM_FUNDAMENTAL_SIZE];
+    uint8_t (*definition)[AV2H_CUSTOM_QM_FUNDAMENTAL_SIZE] =
+        frame->custom_qm != NULL ? frame->custom_qm[id] : validation_definition;
     unsigned int shape;
     unsigned int plane;
+    if (frame->custom_qm == NULL)
+        av2h_memory_fill(validation_definition, 0U, sizeof(validation_definition));
     if (av2h_bit_reader_read(reader, 1U) != 0U)
         return reader->status;
     frame->custom_qm_bitmap |= (uint16_t)(1U << id);
     frame->custom_qm_plane_count[id] = plane_count;
     for (shape = 0U; shape < 3U; ++shape) {
         for (plane = 0U; plane < plane_count; ++plane) {
-            uint8_t *matrix = &frame->custom_qm[id][plane][offsets[shape]];
+            uint8_t *matrix = &definition[plane][offsets[shape]];
             if (plane > 0U && av2h_bit_reader_read(reader, 1U) != 0U) {
-                av2h_memory_copy(matrix, &frame->custom_qm[id][plane - 1U][offsets[shape]],
+                av2h_memory_copy(matrix, &definition[plane - 1U][offsets[shape]],
                                  (size_t)widths[shape] * heights[shape]);
                 continue;
             }
             if (shape == 2U && av2h_bit_reader_read(reader, 1U) != 0U) {
                 uint16_t row;
                 uint16_t column;
-                const uint8_t *source = &frame->custom_qm[id][plane][64U];
+                const uint8_t *source = &definition[plane][64U];
                 for (row = 0U; row < 8U; ++row) {
                     for (column = 0U; column < 4U; ++column) {
                         matrix[row * 4U + column] = source[column * 8U + row];
@@ -108,7 +113,8 @@ void av2h_qmatrix_state_reset(Av2hFrameState *frame) {
     frame->custom_qm_definition_bitmap = 0U;
     frame->custom_qm_bitmap = 0U;
     av2h_memory_fill(frame->custom_qm_plane_count, 0U, sizeof(frame->custom_qm_plane_count));
-    av2h_memory_fill(frame->custom_qm, 0U, sizeof(frame->custom_qm));
+    if (frame->custom_qm != NULL)
+        av2h_memory_fill(frame->custom_qm, 0U, sizeof(((Av2hFrameSyntaxStorage *)0)->custom_qm));
 }
 
 Av2hStatus av2h_qmatrix_obu_parse(Av2hSpan input, const Av2hObu *obu, Av2hFrameState *frame,

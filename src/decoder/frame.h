@@ -33,8 +33,16 @@ typedef struct {
     uint8_t edge_classifier;
     uint8_t max_band_log2;
     uint16_t offset_count;
-    int8_t filter_offset[AV2H_CCSO_LUT_SIZE];
+    int8_t *filter_offset;
 } Av2hCcsoPlane;
+
+typedef struct {
+    uint8_t custom_qm[AV2H_CUSTOM_QM_COUNT][AV2H_FRAME_PLANE_COUNT]
+                     [AV2H_CUSTOM_QM_FUNDAMENTAL_SIZE];
+    int16_t restoration_frame_filter[AV2H_FRAME_PLANE_COUNT][AV2H_WIENER_NONSEP_MAX_CLASSES]
+                                    [AV2H_WIENER_NONSEP_MAX_TAPS];
+    int8_t ccso_filter_offset[AV2H_FRAME_PLANE_COUNT][AV2H_CCSO_LUT_SIZE];
+} Av2hFrameSyntaxStorage;
 
 typedef struct {
     size_t uncompressed_header_bits;
@@ -80,8 +88,7 @@ typedef struct {
     uint16_t custom_qm_definition_bitmap;
     uint16_t custom_qm_bitmap;
     uint8_t custom_qm_plane_count[AV2H_CUSTOM_QM_COUNT];
-    uint8_t custom_qm[AV2H_CUSTOM_QM_COUNT][AV2H_FRAME_PLANE_COUNT]
-                     [AV2H_CUSTOM_QM_FUNDAMENTAL_SIZE];
+    uint8_t (*custom_qm)[AV2H_FRAME_PLANE_COUNT][AV2H_CUSTOM_QM_FUNDAMENTAL_SIZE];
     uint8_t delta_q_present;
     uint8_t delta_q_res;
     uint8_t allow_parity_hiding;
@@ -101,8 +108,8 @@ typedef struct {
     uint8_t restoration_type[AV2H_FRAME_PLANE_COUNT];
     uint8_t restoration_frame_filters_on[AV2H_FRAME_PLANE_COUNT];
     uint8_t restoration_num_filter_classes[AV2H_FRAME_PLANE_COUNT];
-    int16_t restoration_frame_filter[AV2H_FRAME_PLANE_COUNT][AV2H_WIENER_NONSEP_MAX_CLASSES]
-                                    [AV2H_WIENER_NONSEP_MAX_TAPS];
+    int16_t (
+        *restoration_frame_filter)[AV2H_WIENER_NONSEP_MAX_CLASSES][AV2H_WIENER_NONSEP_MAX_TAPS];
     uint16_t restoration_unit_size[AV2H_FRAME_PLANE_COUNT];
     uint16_t restoration_unit_columns[AV2H_FRAME_PLANE_COUNT];
     uint16_t restoration_unit_rows[AV2H_FRAME_PLANE_COUNT];
@@ -112,6 +119,29 @@ typedef struct {
     uint8_t tx_mode;
     uint8_t reduced_tx_set;
 } Av2hFrameState;
+
+static inline void av2h_frame_syntax_storage_bind(Av2hFrameState *frame,
+                                                  Av2hFrameSyntaxStorage *storage) {
+    unsigned int plane;
+    frame->custom_qm = storage != NULL ? storage->custom_qm : NULL;
+    frame->restoration_frame_filter = storage != NULL ? storage->restoration_frame_filter : NULL;
+    for (plane = 0U; plane < AV2H_FRAME_PLANE_COUNT; ++plane)
+        frame->ccso[plane].filter_offset =
+            storage != NULL ? storage->ccso_filter_offset[plane] : NULL;
+}
+
+static inline int av2h_frame_syntax_storage_valid(const Av2hFrameState *frame) {
+    unsigned int plane;
+    if (frame->using_qmatrix != 0U && frame->custom_qm_bitmap != 0U && frame->custom_qm == NULL)
+        return 0;
+    for (plane = 0U; plane < (frame->plane_count == 1U ? 1U : AV2H_FRAME_PLANE_COUNT); ++plane) {
+        if ((frame->ccso[plane].enabled != 0U && frame->ccso[plane].filter_offset == NULL) ||
+            (frame->restoration_frame_filters_on[plane] != 0U &&
+             frame->restoration_frame_filter == NULL))
+            return 0;
+    }
+    return 1;
+}
 
 static inline unsigned int av2h_frame_plane_count(const Av2hFrameState *frame) {
     return frame != NULL && frame->plane_count == 1U ? 1U : AV2H_FRAME_PLANE_COUNT;
@@ -141,6 +171,7 @@ static inline int av2h_frame_restoration_needs_tx_skip(const Av2hFrameState *fra
 }
 
 Av2hStatus av2h_frame_header_closed_key_parse(Av2hSpan payload, const Av2hSequenceState *sequence,
-                                              Av2hFrameState *frame, Av2hError *error);
+                                              Av2hFrameState *frame,
+                                              Av2hFrameSyntaxStorage *storage, Av2hError *error);
 
 #endif

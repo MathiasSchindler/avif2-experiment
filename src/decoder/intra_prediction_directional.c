@@ -309,15 +309,11 @@ Av2hStatus av2h_predict_d45_8x4_ibp(const Av2hLumaReferences *references, uint8_
     return AV2H_OK;
 }
 
-Av2hStatus av2h_predict_luma_directional_feature(const Av2hLeafMode *mode, uint16_t width,
-                                                 uint16_t height,
-                                                 const Av2hLumaReferences *references,
-                                                 uint8_t *predictor,
-                                                 size_t predictor_stride_samples) {
+Av2hStatus av2h_predict_luma_directional_feature(
+    const Av2hLeafMode *mode, uint16_t width, uint16_t height, const Av2hLumaReferences *references,
+    uint8_t *predictor, size_t predictor_stride_samples, uint8_t *secondary_predictor) {
     Av2hLeafMode primary_mode;
-    Av2hLeafMode secondary_mode;
     Av2hLumaReferences secondary_references;
-    uint8_t secondary_predictor[AV2H_RECON_SAMPLE_CAPACITY];
     Av2hStatus status;
     uint16_t row;
     uint16_t column;
@@ -330,6 +326,8 @@ Av2hStatus av2h_predict_luma_directional_feature(const Av2hLeafMode *mode, uint1
         return av2h_predict_directional_idif(mode, primary_angle, width, height, references,
                                              predictor, predictor_stride_samples);
     }
+    if (secondary_predictor == NULL)
+        return AV2H_INVALID_ARGUMENT;
     if (mode->multi_line_mrl != 1U || mode->mrl_index == 0U) {
         return AV2H_INVALID_ARGUMENT;
     }
@@ -339,19 +337,19 @@ Av2hStatus av2h_predict_luma_directional_feature(const Av2hLeafMode *mode, uint1
         return AV2H_INVALID_ARGUMENT;
     }
     av2h_memory_copy(&primary_mode, mode, sizeof(primary_mode));
-    av2h_memory_copy(&secondary_mode, mode, sizeof(secondary_mode));
     av2h_memory_copy(&secondary_references, references, sizeof(secondary_references));
     primary_mode.multi_line_mrl = 0U;
     primary_mode.enable_ibp = 0U;
-    secondary_mode.mrl_index = 0U;
-    secondary_mode.multi_line_mrl = 0U;
-    secondary_mode.enable_ibp = 0U;
     status = av2h_predict_directional_idif(&primary_mode, primary_angle, width, height, references,
                                            predictor, predictor_stride_samples);
     if (status != AV2H_OK)
         return status;
     if (width == 4U && height == 4U)
         return AV2H_OK;
+    av2h_memory_copy(&primary_mode, mode, sizeof(primary_mode));
+    primary_mode.mrl_index = 0U;
+    primary_mode.multi_line_mrl = 0U;
+    primary_mode.enable_ibp = 0U;
     secondary_references.above = references->secondary_above;
     secondary_references.above_count = references->secondary_above_count;
     secondary_references.left = references->secondary_left;
@@ -359,7 +357,7 @@ Av2hStatus av2h_predict_luma_directional_feature(const Av2hLeafMode *mode, uint1
     secondary_references.above_left = references->secondary_above_left;
     secondary_references.has_above_left = references->has_secondary_above_left;
     status =
-        av2h_predict_directional_idif_unfiltered(&secondary_mode, secondary_angle, width, height,
+        av2h_predict_directional_idif_unfiltered(&primary_mode, secondary_angle, width, height,
                                                  &secondary_references, secondary_predictor, width);
     if (status != AV2H_OK)
         return status;
@@ -522,7 +520,6 @@ Av2hStatus av2h_predict_directional_multiline_ibp(const Av2hLeafMode *mode, uint
     uint16_t row;
     uint16_t column;
     Av2hLeafMode primary_mode;
-    Av2hLeafMode secondary_mode;
     Av2hLumaReferences secondary_references;
     uint8_t secondary_predictor[16U * 32U];
     Av2hStatus status;
@@ -531,11 +528,8 @@ Av2hStatus av2h_predict_directional_multiline_ibp(const Av2hLeafMode *mode, uint
         return AV2H_INVALID_ARGUMENT;
     }
     av2h_memory_copy(&primary_mode, mode, sizeof(primary_mode));
-    av2h_memory_copy(&secondary_mode, mode, sizeof(secondary_mode));
     av2h_memory_copy(&secondary_references, references, sizeof(secondary_references));
     primary_mode.multi_line_mrl = 0U;
-    secondary_mode.mrl_index = 0U;
-    secondary_mode.multi_line_mrl = 0U;
     int angle = mode->mode == AV2H_INTRA_D135       ? 138
                 : mode->mode == AV2H_INTRA_D157     ? 157
                 : mode->mode == AV2H_INTRA_VERTICAL ? 99
@@ -544,6 +538,9 @@ Av2hStatus av2h_predict_directional_multiline_ibp(const Av2hLeafMode *mode, uint
                                            predictor, predictor_stride_samples);
     if (status != AV2H_OK)
         return status;
+    av2h_memory_copy(&primary_mode, mode, sizeof(primary_mode));
+    primary_mode.mrl_index = 0U;
+    primary_mode.multi_line_mrl = 0U;
     secondary_references.above = references->secondary_above;
     secondary_references.above_count = references->secondary_above_count;
     secondary_references.left = references->secondary_left;
@@ -551,7 +548,7 @@ Av2hStatus av2h_predict_directional_multiline_ibp(const Av2hLeafMode *mode, uint
     secondary_references.above_left = references->secondary_above_left;
     secondary_references.has_above_left = references->has_secondary_above_left;
     status = av2h_predict_directional_idif_unfiltered(
-        &secondary_mode, angle, width, height, &secondary_references, secondary_predictor, width);
+        &primary_mode, angle, width, height, &secondary_references, secondary_predictor, width);
     if (status != AV2H_OK)
         return status;
     for (row = 0U; row < height; ++row) {
@@ -574,7 +571,6 @@ Av2hStatus av2h_predict_horizontal_multiline_angle(const Av2hLeafMode *mode, uin
     uint16_t row;
     uint16_t column;
     Av2hLeafMode primary_mode;
-    Av2hLeafMode secondary_mode;
     Av2hLumaReferences secondary_references;
     uint8_t secondary_predictor[32U * 16U];
     int angle = 180 + mode->angle_delta * 3;
@@ -584,15 +580,15 @@ Av2hStatus av2h_predict_horizontal_multiline_angle(const Av2hLeafMode *mode, uin
         return AV2H_INVALID_ARGUMENT;
     }
     av2h_memory_copy(&primary_mode, mode, sizeof(primary_mode));
-    av2h_memory_copy(&secondary_mode, mode, sizeof(secondary_mode));
     av2h_memory_copy(&secondary_references, references, sizeof(secondary_references));
     primary_mode.multi_line_mrl = 0U;
-    secondary_mode.mrl_index = 0U;
-    secondary_mode.multi_line_mrl = 0U;
     status = av2h_predict_directional_idif(&primary_mode, angle, width, height, references,
                                            predictor, predictor_stride_samples);
     if (status != AV2H_OK)
         return status;
+    av2h_memory_copy(&primary_mode, mode, sizeof(primary_mode));
+    primary_mode.mrl_index = 0U;
+    primary_mode.multi_line_mrl = 0U;
     secondary_references.above = references->secondary_above;
     secondary_references.above_count = references->secondary_above_count;
     secondary_references.left = references->secondary_left;
@@ -600,7 +596,7 @@ Av2hStatus av2h_predict_horizontal_multiline_angle(const Av2hLeafMode *mode, uin
     secondary_references.above_left = references->secondary_above_left;
     secondary_references.has_above_left = references->has_secondary_above_left;
     status = av2h_predict_directional_idif_unfiltered(
-        &secondary_mode, angle, width, height, &secondary_references, secondary_predictor, width);
+        &primary_mode, angle, width, height, &secondary_references, secondary_predictor, width);
     if (status != AV2H_OK)
         return status;
     for (row = 0U; row < height; ++row) {
@@ -641,7 +637,6 @@ Av2hStatus av2h_predict_horizontal_multiline_tall(const Av2hLeafMode *mode, uint
     uint16_t row;
     uint16_t column;
     Av2hLeafMode primary_mode;
-    Av2hLeafMode secondary_mode;
     Av2hLumaReferences secondary_references;
     uint8_t secondary_predictor[16U * 64U];
     Av2hStatus status;
@@ -650,15 +645,15 @@ Av2hStatus av2h_predict_horizontal_multiline_tall(const Av2hLeafMode *mode, uint
         return AV2H_INVALID_ARGUMENT;
     }
     av2h_memory_copy(&primary_mode, mode, sizeof(primary_mode));
-    av2h_memory_copy(&secondary_mode, mode, sizeof(secondary_mode));
     av2h_memory_copy(&secondary_references, references, sizeof(secondary_references));
     primary_mode.multi_line_mrl = 0U;
-    secondary_mode.mrl_index = 0U;
-    secondary_mode.multi_line_mrl = 0U;
     status = av2h_predict_directional_idif(&primary_mode, 186, width, height, references, predictor,
                                            predictor_stride_samples);
     if (status != AV2H_OK)
         return status;
+    av2h_memory_copy(&primary_mode, mode, sizeof(primary_mode));
+    primary_mode.mrl_index = 0U;
+    primary_mode.multi_line_mrl = 0U;
     secondary_references.above = references->secondary_above;
     secondary_references.above_count = references->secondary_above_count;
     secondary_references.left = references->secondary_left;
@@ -666,7 +661,7 @@ Av2hStatus av2h_predict_horizontal_multiline_tall(const Av2hLeafMode *mode, uint
     secondary_references.above_left = references->secondary_above_left;
     secondary_references.has_above_left = references->has_secondary_above_left;
     status = av2h_predict_directional_idif_unfiltered(
-        &secondary_mode, 186, width, height, &secondary_references, secondary_predictor, width);
+        &primary_mode, 186, width, height, &secondary_references, secondary_predictor, width);
     if (status != AV2H_OK)
         return status;
     for (row = 0U; row < height; ++row) {
@@ -732,7 +727,6 @@ Av2hStatus av2h_predict_d203_multiline(const Av2hLeafMode *mode, uint16_t width,
     uint16_t row;
     uint16_t column;
     Av2hLeafMode primary_mode;
-    Av2hLeafMode secondary_mode;
     Av2hLumaReferences secondary_references;
     uint8_t secondary_predictor[16U * 64U];
     Av2hStatus status;
@@ -740,15 +734,15 @@ Av2hStatus av2h_predict_d203_multiline(const Av2hLeafMode *mode, uint16_t width,
         return AV2H_INVALID_ARGUMENT;
     }
     av2h_memory_copy(&primary_mode, mode, sizeof(primary_mode));
-    av2h_memory_copy(&secondary_mode, mode, sizeof(secondary_mode));
     av2h_memory_copy(&secondary_references, references, sizeof(secondary_references));
     primary_mode.multi_line_mrl = 0U;
-    secondary_mode.mrl_index = 0U;
-    secondary_mode.multi_line_mrl = 0U;
     status = av2h_predict_directional_idif(&primary_mode, 206, width, height, references, predictor,
                                            predictor_stride_samples);
     if (status != AV2H_OK)
         return status;
+    av2h_memory_copy(&primary_mode, mode, sizeof(primary_mode));
+    primary_mode.mrl_index = 0U;
+    primary_mode.multi_line_mrl = 0U;
     secondary_references.above = references->secondary_above;
     secondary_references.above_count = references->secondary_above_count;
     secondary_references.left = references->secondary_left;
@@ -756,7 +750,7 @@ Av2hStatus av2h_predict_d203_multiline(const Av2hLeafMode *mode, uint16_t width,
     secondary_references.above_left = references->secondary_above_left;
     secondary_references.has_above_left = references->has_secondary_above_left;
     status = av2h_predict_directional_idif_unfiltered(
-        &secondary_mode, 206, width, height, &secondary_references, secondary_predictor, width);
+        &primary_mode, 206, width, height, &secondary_references, secondary_predictor, width);
     if (status != AV2H_OK)
         return status;
     for (row = 0U; row < height; ++row) {
@@ -1293,15 +1287,14 @@ Av2hStatus av2h_predict_d203_plus_three(uint16_t width, uint16_t height,
 Av2hStatus av2h_predict_multiline_u16(const Av2hLeafMode *mode, uint16_t width, uint16_t height,
                                       const Av2hLumaReferencesU16 *references, uint16_t *predictor,
                                       size_t predictor_stride_samples, uint8_t use_idif,
-                                      const Av2hSampleDomain *domain) {
-    if (!av2h_sample_domain_valid(domain))
+                                      const Av2hSampleDomain *domain,
+                                      uint16_t *secondary_predictor) {
+    if (!av2h_sample_domain_valid(domain) || secondary_predictor == NULL)
         return AV2H_INVALID_ARGUMENT;
     uint16_t row;
     uint16_t column;
     Av2hLeafMode primary_mode;
-    Av2hLeafMode secondary_mode;
     Av2hLumaReferencesU16 secondary_references;
-    uint16_t secondary_predictor[AV2H_RECON_SAMPLE_CAPACITY];
     Av2hStatus status;
     if ((width != 4U || height != 4U) &&
         (references->secondary_above == NULL || references->secondary_above_count == 0U) &&
@@ -1309,19 +1302,20 @@ Av2hStatus av2h_predict_multiline_u16(const Av2hLeafMode *mode, uint16_t width, 
         return AV2H_INVALID_ARGUMENT;
     }
     av2h_memory_copy(&primary_mode, mode, sizeof(primary_mode));
-    av2h_memory_copy(&secondary_mode, mode, sizeof(secondary_mode));
     av2h_memory_copy(&secondary_references, references, sizeof(secondary_references));
     primary_mode.multi_line_mrl = 0U;
     primary_mode.enable_ibp = 0U;
-    secondary_mode.mrl_index = 0U;
-    secondary_mode.multi_line_mrl = 0U;
-    secondary_mode.enable_ibp = 0U;
-    status = av2h_luma_predict_u16_adjusted(&primary_mode, width, height, references, predictor,
-                                            predictor_stride_samples, 0, 1U, use_idif, domain);
+    status =
+        av2h_luma_predict_u16_adjusted(&primary_mode, width, height, references, predictor,
+                                       predictor_stride_samples, 0, 1U, use_idif, domain, NULL);
     if (status != AV2H_OK)
         return status;
     if (width == 4U && height == 4U)
         return AV2H_OK;
+    av2h_memory_copy(&primary_mode, mode, sizeof(primary_mode));
+    primary_mode.mrl_index = 0U;
+    primary_mode.multi_line_mrl = 0U;
+    primary_mode.enable_ibp = 0U;
     secondary_references.above = references->secondary_above;
     secondary_references.above_count = references->secondary_above_count;
     secondary_references.left = references->secondary_left;
@@ -1329,8 +1323,8 @@ Av2hStatus av2h_predict_multiline_u16(const Av2hLeafMode *mode, uint16_t width, 
     secondary_references.above_left = references->secondary_above_left;
     secondary_references.has_above_left = references->has_secondary_above_left;
     status = av2h_luma_predict_u16_adjusted(
-        &secondary_mode, width, height, &secondary_references, secondary_predictor, width,
-        av2h_intra_mrl_angle_delta(mode->mrl_index), 1U, use_idif, domain);
+        &primary_mode, width, height, &secondary_references, secondary_predictor, width,
+        av2h_intra_mrl_angle_delta(mode->mrl_index), 1U, use_idif, domain, NULL);
     if (status != AV2H_OK)
         return status;
     for (row = 0U; row < height; ++row) {

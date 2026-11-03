@@ -39,11 +39,11 @@ static void initialize(Av2hSequenceState *sequence, Av2hFrameState *frame,
 
 static void test_storage_offsets(void) {
     static _Alignas(max_align_t) uint8_t memory[2U * 1024U * 1024U];
-    /* A1 adds decoder/coefficient and reconstruction scratch; absolute addresses are excluded. */
+    /* A1 adds preparation, decoder/coefficient and reconstruction scratch; addresses are excluded. */
     static const uint64_t expected[6] = {
-        UINT64_C(0x2dfbdeb0dec7c0f8), UINT64_C(0xf196c363dbff56a1),
-        UINT64_C(0x3ca688afd9e52b95), UINT64_C(0xbeeb2f17554c98b4),
-        UINT64_C(0xd82aee9b765eaeb3), UINT64_C(0x93b90009e5ff2329)
+        UINT64_C(0xa8031a162cb0fb90), UINT64_C(0xa41249720bf13222),
+        UINT64_C(0x3a64f61ec386d1a6), UINT64_C(0xa71bcc09bcedd7e6),
+        UINT64_C(0x9f5d7c1ece1d0909), UINT64_C(0x3a7d0479a3c5f7c9)
     };
     unsigned int format;
     unsigned int bytes;
@@ -489,7 +489,7 @@ static void test_frame_results(void) {
                                    &sequence, &error) == AV2H_OK);
     CHECK(av2h_frame_header_closed_key_parse(
         (Av2hSpan){ input + frame_obu->payload_offset, frame_obu->payload_size },
-        &sequence, &frame, NULL) == AV2H_OK);
+        &sequence, &frame, &(Av2hFrameSyntaxStorage){0},  NULL) == AV2H_OK);
     CHECK(av2h_tile_group_single_parse(
               (Av2hSpan){ input + frame_obu->payload_offset, frame_obu->payload_size },
               frame.uncompressed_header_bits, &group) == AV2H_OK);
@@ -601,7 +601,7 @@ static void test_frame_orchestration_results(void) {
                                        &sequence, &error) == AV2H_OK);
         CHECK(av2h_frame_header_closed_key_parse(
                   (Av2hSpan){input + frame_obu->payload_offset, frame_obu->payload_size},
-                  &sequence, &frame, NULL) == AV2H_OK);
+                  &sequence, &frame, &(Av2hFrameSyntaxStorage){0},  NULL) == AV2H_OK);
         CHECK(av2h_tile_groups_ledger_parse(
                   (Av2hSpan){input, size}, &ledger, &frame, &original) == AV2H_OK);
         bytes = sequence.info.bit_depth_idc == 1U ? 1U : 2U;

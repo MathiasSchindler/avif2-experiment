@@ -6,6 +6,15 @@
 
 #include <stddef.h>
 
+typedef struct {
+    size_t header_bits;
+    size_t header_size;
+    uint16_t start_tile;
+    uint16_t end_tile;
+    uint16_t tile_count;
+    Av2hSpan entropy;
+} Av2hTileGroupHeader;
+
 Av2hStatus av2h_tile_luma_tx_node_get(const Av2hTileDecoder *decoder, uint16_t index,
                                       Av2hPartitionNode *node) {
     if (decoder == NULL || node == NULL)
@@ -118,11 +127,13 @@ static int tile_chroma_lossless_unit_complete(const Av2hTileDecoder *decoder,
 static Av2hStatus tile_group_parse(Av2hSpan payload, size_t uncompressed_header_bits,
                                    uint16_t tile_count, uint8_t tile_id_bits,
                                    uint8_t tile_size_bytes, uint16_t expected_start_tile,
-                                   uint8_t first_group, Av2hTileGroup *group) {
+                                   uint8_t first_group, Av2hTileGroupHeader *group,
+                                   Av2hSpan *tiles) {
     Av2hBitReader reader;
     size_t header_size;
     size_t cursor;
     size_t tile_index;
+    Av2hSpan entropy = {NULL, 0U};
     if (group == NULL || (payload.data == NULL && payload.size != 0U)) {
         return AV2H_INVALID_ARGUMENT;
     }
@@ -186,54 +197,80 @@ static Av2hStatus tile_group_parse(Av2hSpan payload, size_t uncompressed_header_
         }
         if (tile_size == 0U)
             return AV2H_TRUNCATED;
-        group->tiles[tile_index].data = payload.data + cursor;
-        group->tiles[tile_index].size = tile_size;
+        if (tiles != NULL)
+            tiles[tile_index] = (Av2hSpan){payload.data + cursor, tile_size};
+        if (tile_index == 0U)
+            entropy = (Av2hSpan){payload.data + cursor, tile_size};
         cursor += tile_size;
     }
-    group->entropy = group->tiles[0];
+    group->entropy = entropy;
     return AV2H_OK;
+}
+
+static void tile_group_header_copy(Av2hTileGroup *group, const Av2hTileGroupHeader *header) {
+    group->header_bits = header->header_bits;
+    group->header_size = header->header_size;
+    group->start_tile = header->start_tile;
+    group->end_tile = header->end_tile;
+    group->tile_count = header->tile_count;
+    group->entropy = header->entropy;
 }
 
 Av2hStatus av2h_tile_group_single_parse(Av2hSpan payload, size_t uncompressed_header_bits,
                                         Av2hTileGroup *group) {
-    return tile_group_parse(payload, uncompressed_header_bits, 1U, 0U, 0U, 0U, 1U, group);
+    Av2hTileGroupHeader header;
+    Av2hStatus status;
+    if (group == NULL || (payload.data == NULL && payload.size != 0U))
+        return AV2H_INVALID_ARGUMENT;
+    av2h_memory_fill(group, 0U, sizeof(*group));
+    status = tile_group_parse(payload, uncompressed_header_bits, 1U, 0U, 0U, 0U, 1U, &header,
+                              group->tiles);
+    tile_group_header_copy(group, &header);
+    return status;
 }
 
 Av2hStatus av2h_tile_group_parse(Av2hSpan payload, const Av2hFrameState *frame,
                                  uint16_t expected_start_tile, Av2hTileGroup *group) {
     uint32_t tile_count;
+    Av2hTileGroupHeader header;
+    Av2hStatus status;
     if (frame == NULL)
         return AV2H_INVALID_ARGUMENT;
     tile_count = (uint32_t)frame->tile_column_count * frame->tile_row_count;
     if (tile_count == 0U || tile_count > AV2H_PROFILE_MAX_TILES) {
         return AV2H_LIMIT_EXCEEDED;
     }
-    return tile_group_parse(payload, frame->uncompressed_header_bits, (uint16_t)tile_count,
-                            (uint8_t)(frame->tile_column_log2 + frame->tile_row_log2),
-                            frame->tile_size_bytes, expected_start_tile, 1U, group);
+    if (group == NULL || (payload.data == NULL && payload.size != 0U))
+        return AV2H_INVALID_ARGUMENT;
+    av2h_memory_fill(group, 0U, sizeof(*group));
+    status =
+        tile_group_parse(payload, frame->uncompressed_header_bits, (uint16_t)tile_count,
+                         (uint8_t)(frame->tile_column_log2 + frame->tile_row_log2),
+                         frame->tile_size_bytes, expected_start_tile, 1U, &header, group->tiles);
+    tile_group_header_copy(group, &header);
+    return status;
 }
 
-Av2hStatus av2h_tile_groups_ledger_parse(Av2hSpan input, const Av2hObuLedger *ledger,
-                                         const Av2hFrameState *frame, Av2hTileGroup *group) {
-    Av2hTileGroup current;
+static Av2hStatus tile_groups_ledger_parse(Av2hSpan input, const Av2hObuLedger *ledger,
+                                           const Av2hFrameState *frame, Av2hTileGroup *group) {
+    Av2hTileGroupHeader current;
     uint32_t total_tiles;
     uint16_t expected_tile = 0U;
+    uint16_t parsed_tiles = 0U;
     uint8_t found_frame = 0U;
     size_t obu_index;
-    if (ledger == NULL || frame == NULL || group == NULL ||
-        (input.data == NULL && input.size != 0U)) {
+    if (ledger == NULL || frame == NULL || (input.data == NULL && input.size != 0U)) {
         return AV2H_INVALID_ARGUMENT;
     }
     total_tiles = (uint32_t)frame->tile_column_count * frame->tile_row_count;
     if (total_tiles == 0U || total_tiles > AV2H_PROFILE_MAX_TILES) {
         return AV2H_LIMIT_EXCEEDED;
     }
-    av2h_memory_fill(group, 0U, sizeof(*group));
+    if (group != NULL)
+        av2h_memory_fill(group, 0U, sizeof(*group));
     for (obu_index = 0U; obu_index < ledger->count; ++obu_index) {
         const Av2hObu *obu = &ledger->entries[obu_index];
-        Av2hFrameState group_frame;
         Av2hStatus status;
-        size_t tile_index;
         if (obu->type != AV2H_OBU_CLOSED_LOOP_KEY && obu->type != AV2H_OBU_REGULAR_TILE_GROUP) {
             continue;
         }
@@ -249,42 +286,51 @@ Av2hStatus av2h_tile_groups_ledger_parse(Av2hSpan input, const Av2hObuLedger *le
                 return AV2H_INVALID_DATA;
             }
             found_frame = 1U;
-            group_frame = *frame;
-        } else {
-            group_frame = *frame;
         }
-        if (expected_tile == 0U) {
-            status = av2h_tile_group_parse(
-                (Av2hSpan){input.data + obu->payload_offset, obu->payload_size}, &group_frame,
-                expected_tile, &current);
-        } else {
-            status = tile_group_parse(
-                (Av2hSpan){input.data + obu->payload_offset, obu->payload_size},
-                group_frame.uncompressed_header_bits, (uint16_t)total_tiles,
-                (uint8_t)(group_frame.tile_column_log2 + group_frame.tile_row_log2),
-                group_frame.tile_size_bytes, expected_tile, 0U, &current);
-        }
-        if (status != AV2H_OK)
+        status = tile_group_parse((Av2hSpan){input.data + obu->payload_offset, obu->payload_size},
+                                  frame->uncompressed_header_bits, (uint16_t)total_tiles,
+                                  (uint8_t)(frame->tile_column_log2 + frame->tile_row_log2),
+                                  frame->tile_size_bytes, expected_tile, expected_tile == 0U,
+                                  &current, group != NULL ? group->tiles + parsed_tiles : NULL);
+        if (status != AV2H_OK) {
+            if (group != NULL)
+                av2h_memory_fill(group->tiles + parsed_tiles, 0U,
+                                 (AV2H_PROFILE_MAX_TILES - parsed_tiles) * sizeof(group->tiles[0]));
             return status;
-        if ((size_t)group->tile_count + current.tile_count > AV2H_PROFILE_MAX_TILES) {
+        }
+        if ((size_t)parsed_tiles + current.tile_count > AV2H_PROFILE_MAX_TILES) {
             return AV2H_LIMIT_EXCEEDED;
         }
-        if (group->tile_count == 0U) {
-            group->header_bits = current.header_bits;
-            group->header_size = current.header_size;
-            group->start_tile = current.start_tile;
+        if (group != NULL) {
+            if (parsed_tiles == 0U) {
+                group->header_bits = current.header_bits;
+                group->header_size = current.header_size;
+                group->start_tile = current.start_tile;
+            }
+            group->tile_count = (uint16_t)(parsed_tiles + current.tile_count);
+            group->end_tile = current.end_tile;
         }
-        for (tile_index = 0U; tile_index < current.tile_count; ++tile_index) {
-            group->tiles[group->tile_count++] = current.tiles[tile_index];
-        }
-        group->end_tile = current.end_tile;
+        parsed_tiles = (uint16_t)(parsed_tiles + current.tile_count);
         expected_tile = (uint16_t)(current.end_tile + 1U);
     }
-    if (found_frame == 0U || expected_tile != total_tiles || group->tile_count != total_tiles) {
+    if (found_frame == 0U || expected_tile != total_tiles || parsed_tiles != total_tiles) {
         return AV2H_INVALID_DATA;
     }
-    group->entropy = group->tiles[0];
+    if (group != NULL)
+        group->entropy = group->tiles[0];
     return AV2H_OK;
+}
+
+Av2hStatus av2h_tile_groups_ledger_parse(Av2hSpan input, const Av2hObuLedger *ledger,
+                                         const Av2hFrameState *frame, Av2hTileGroup *group) {
+    if (group == NULL)
+        return AV2H_INVALID_ARGUMENT;
+    return tile_groups_ledger_parse(input, ledger, frame, group);
+}
+
+Av2hStatus av2h_tile_groups_ledger_validate(Av2hSpan input, const Av2hObuLedger *ledger,
+                                            const Av2hFrameState *frame) {
+    return tile_groups_ledger_parse(input, ledger, frame, NULL);
 }
 
 Av2hStatus av2h_tile_decoder_fail(Av2hTileDecoder *decoder, Av2hStatus status) {
@@ -635,13 +681,13 @@ Av2hStatus av2h_tile_decoder_init(Av2hTileDecoder *decoder, Av2hSpan entropy,
     size_t index;
     Av2hStatus status;
     if (decoder == NULL || sequence == NULL || frame == NULL || storage == NULL ||
-        entropy.data == NULL || entropy.size == 0U || frame->width == 0U || frame->height == 0U ||
-        storage->above_count == 0U || storage->left_count == 0U ||
-        storage->luma_partition_above == NULL || storage->luma_partition_left == NULL ||
-        storage->chroma_partition_above == NULL || storage->chroma_partition_left == NULL ||
-        storage->luma_mode_above == NULL || storage->luma_mode_left == NULL ||
-        storage->coefficient_above == NULL || storage->coefficient_left == NULL ||
-        storage->colocated_luma == NULL) {
+        !av2h_frame_syntax_storage_valid(frame) || entropy.data == NULL || entropy.size == 0U ||
+        frame->width == 0U || frame->height == 0U || storage->above_count == 0U ||
+        storage->left_count == 0U || storage->luma_partition_above == NULL ||
+        storage->luma_partition_left == NULL || storage->chroma_partition_above == NULL ||
+        storage->chroma_partition_left == NULL || storage->luma_mode_above == NULL ||
+        storage->luma_mode_left == NULL || storage->coefficient_above == NULL ||
+        storage->coefficient_left == NULL || storage->colocated_luma == NULL) {
         return AV2H_INVALID_ARGUMENT;
     }
     decoder->traversal.mi_columns = av2h_frame_mi_dimension(frame->width);

@@ -7,6 +7,9 @@
 #include <stdio.h>
 #include <string.h>
 
+static uint8_t prediction_scratch[AV2H_RECON_SAMPLE_CAPACITY];
+static uint16_t prediction_scratch_u16[AV2H_RECON_SAMPLE_CAPACITY];
+
 static int failures;
 static int inventory;
 
@@ -152,10 +155,10 @@ static void prediction_case(PredictionSnapshot *snapshot,
     av2h_memory_fill(storage_u16, 0xa5U, sizeof(storage_u16));
     if (high_bit_depth != 0U) {
         status = av2h_luma_predict_u16(
-            mode, width, height, &references_u16, storage_u16 + 1U, STRIDE, &av2h_sample_domain_10bit);
+            mode, width, height, &references_u16, storage_u16 + 1U, STRIDE, &av2h_sample_domain_10bit, prediction_scratch_u16);
     } else {
         status = av2h_luma_predict(
-            mode, width, height, &references, storage + 1U, STRIDE);
+            mode, width, height, &references, storage + 1U, STRIDE, prediction_scratch);
     }
     if (status == AV2H_OK) {
         ++snapshot->ok;
@@ -577,7 +580,7 @@ static void test_resource_baseline(void) {
             }
             if (sizeof(void *) == 8U && sizeof(size_t) == 8U) {
                 CHECK(filter.size_bytes == expected->filter[storage]);
-                CHECK(workspace.size_bytes == expected->workspace[storage] + 164159U +
+                CHECK(workspace.size_bytes == expected->workspace[storage] + 179879U +
                       (storage == 0U ? 12292U : 24580U));
                 CHECK(output_size == expected->output[storage]);
             }
@@ -599,7 +602,8 @@ static void test_private_layout_baseline(void) {
         }                                                                      \
     } while (0)
     CHECK_LAYOUT(Av2hFrameDecodeWorkspace, 840U, 8U);
-    CHECK_LAYOUT(Av2hFrameDecodeScratch, 164152U, 8U);
+    CHECK_LAYOUT(Av2hFrameDecodeScratch, 179872U, 8U);
+    CHECK_LAYOUT(Av2hDecodePreparation, 1024U, 8U);
     CHECK_LAYOUT(Av2hFrameDecodeResult, 144U, 8U);
     CHECK_LAYOUT(Av2hFilterWorkspaceStorage, 56U, 8U);
     CHECK_LAYOUT(Av2hDecodeDiagnostics, 216U, 8U);

@@ -1164,6 +1164,7 @@ static void test_custom_qmatrix(void) {
     Av2hError error;
     uint32_t step;
     unsigned int index;
+    av2h_frame_syntax_storage_bind(&frame, &(Av2hFrameSyntaxStorage){0});
     av2h_bit_writer_init(&writer, bytes, sizeof(bytes));
     CHECK(av2h_bit_writer_write(&writer, 1U, 15U) == AV2H_OK);
     CHECK(av2h_bit_writer_write(&writer, 0U, 1U) == AV2H_OK);
@@ -1186,6 +1187,30 @@ static void test_custom_qmatrix(void) {
     CHECK(frame.custom_qm_bitmap == 1U);
     CHECK(frame.custom_qm[0][0][0] == 32U);
     CHECK(frame.custom_qm[0][0][127] == 32U);
+    {
+        size_t length;
+        size_t full_size = obu.payload_size;
+        for (length = 0U; length <= full_size; ++length) {
+            Av2hFrameState materialized = {0};
+            Av2hFrameState metadata = {0};
+            Av2hFrameSyntaxStorage syntax = {0};
+            Av2hError materialized_error = {0};
+            Av2hError metadata_error = {0};
+            Av2hStatus status;
+            av2h_frame_syntax_storage_bind(&materialized, &syntax);
+            obu.payload_size = length;
+            status = av2h_qmatrix_obu_parse(
+                (Av2hSpan){bytes, length}, &obu, &materialized, &materialized_error);
+            CHECK(av2h_qmatrix_obu_parse(
+                (Av2hSpan){bytes, length}, &obu, &metadata, &metadata_error) == status);
+            CHECK(metadata.custom_qm == NULL);
+            CHECK(metadata.custom_qm_bitmap == materialized.custom_qm_bitmap);
+            CHECK(metadata.custom_qm_plane_count[0] == materialized.custom_qm_plane_count[0]);
+            CHECK(metadata_error.status == materialized_error.status);
+            CHECK(metadata_error.offset == materialized_error.offset);
+        }
+        obu.payload_size = full_size;
+    }
     CHECK(av2h_qmatrix_obu_parse(
               (Av2hSpan){ bytes, obu.payload_size }, &obu, &frame,
               &error) == AV2H_INVALID_DATA);
@@ -1208,6 +1233,10 @@ static void test_custom_qmatrix(void) {
     CHECK(av2h_qmatrix_references_validate(&frame) == AV2H_INVALID_DATA);
     frame.plane_count = 1U;
     CHECK(av2h_qmatrix_references_validate(&frame) == AV2H_OK);
+    frame.custom_qm = NULL;
+    CHECK(av2h_coeff_qmatrix_dequant_step(
+              &sequence, &frame, 128U, 0U, 0U, 4U, 4U,
+              AV2H_TX_DCT_DCT, 0U, 100U, &step) == AV2H_INVALID_DATA);
 }
 
 int main(void) {

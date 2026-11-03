@@ -290,12 +290,14 @@ static void test_frame_workspace_prepare_rejection(size_t bytes_per_sample) {
 #define CHECK_PREPARE_FAILURE(pointer, result_pointer)                        \
     do {                                                                       \
         av2h_memory_fill(memory, 0xa5U, decode_layout.size_bytes);                  \
+        av2h_memory_fill(output, 0xa5U, sizeof(output));                         \
         CHECK(av2h_frame_workspace_prepare(                                   \
               &sequence, &frame, &workspace, (uint8_t *)(pointer),        \
               output_size,                                                \
                   (result_pointer), &filter_layout) ==                        \
               AV2H_INVALID_ARGUMENT);                                         \
         CHECK(buffer_is_value(memory, decode_layout.size_bytes, 0xa5U));            \
+        CHECK(buffer_is_value(output, sizeof(output), 0xa5U));                   \
     } while (0)
     CHECK_PREPARE_FAILURE(
         bytes_per_sample == 1U ? (void *)workspace.coded[0].data
@@ -308,6 +310,20 @@ static void test_frame_workspace_prepare_rejection(size_t bytes_per_sample) {
     CHECK_PREPARE_FAILURE(workspace.decode_scratch->active_blocks, &result);
     CHECK_PREPARE_FAILURE(workspace.decode_scratch->pending_chroma_leaves, &result);
     CHECK_PREPARE_FAILURE(workspace.decode_scratch->pending_chroma_blocks, &result);
+    CHECK_PREPARE_FAILURE(&workspace.decode_scratch->preparation, &result);
+    CHECK_PREPARE_FAILURE(&workspace.decode_scratch->syntax, &result);
+    CHECK_PREPARE_FAILURE(&workspace.decode_scratch->group, &result);
+    frame.using_qmatrix = 1U;
+    frame.custom_qm_bitmap = 1U;
+    CHECK_PREPARE_FAILURE(output, &result);
+    frame.using_qmatrix = 0U;
+    frame.custom_qm_bitmap = 0U;
+    frame.ccso[0].enabled = 1U;
+    CHECK_PREPARE_FAILURE(output, &result);
+    frame.ccso[0].enabled = 0U;
+    frame.restoration_frame_filters_on[0] = 1U;
+    CHECK_PREPARE_FAILURE(output, &result);
+    frame.restoration_frame_filters_on[0] = 0U;
     CHECK_PREPARE_FAILURE(
         (uint8_t *)workspace.decode_scratch + sizeof(*workspace.decode_scratch) - 1U, &result);
     {
@@ -360,10 +376,12 @@ static void test_filter_pipeline(void) {
     Av2hFilterWorkspaceLayout layout;
     Av2hSequenceState sequence;
     Av2hFrameState frame;
+    Av2hFrameSyntaxStorage syntax_storage = {0};
     size_t row;
     size_t column;
     av2h_memory_fill(&sequence, 0U, sizeof(sequence));
     av2h_memory_fill(&frame, 0U, sizeof(frame));
+    av2h_frame_syntax_storage_bind(&frame, &syntax_storage);
     frame.width = 8U;
     frame.height = 8U;
     frame.deblock_enabled[0] = 1U;
@@ -1641,9 +1659,11 @@ static void test_band_only_and_control(void) {
     uint8_t control = 1U;
     Av2hFilterPlanes planes;
     Av2hFrameState frame;
+    Av2hFrameSyntaxStorage syntax_storage = {0};
     Av2hCcsoControlMap controls;
     size_t index;
     av2h_memory_fill(&frame, 0U, sizeof(frame));
+    av2h_frame_syntax_storage_bind(&frame, &syntax_storage);
     av2h_memory_fill(&controls, 0U, sizeof(controls));
     for (index = 0U; index < 64U; ++index) {
         y[index] = 100U;
@@ -1684,9 +1704,11 @@ static void test_ccso_u16(void) {
     uint8_t control = 1U;
     Av2hFilterPlanesU16 planes;
     Av2hFrameState frame;
+    Av2hFrameSyntaxStorage syntax_storage = {0};
     Av2hCcsoControlMap controls;
     size_t index;
     av2h_memory_fill(&frame, 0U, sizeof(frame));
+    av2h_frame_syntax_storage_bind(&frame, &syntax_storage);
     av2h_memory_fill(&controls, 0U, sizeof(controls));
     for (index = 0U; index < 64U; ++index) {
         y[index] = 1000U;
@@ -1739,10 +1761,12 @@ static void test_ccso_multi_unit_chroma(void) {
     uint8_t control[2] = { 1U, 1U };
     Av2hFilterPlanes planes;
     Av2hFrameState frame;
+    Av2hFrameSyntaxStorage syntax_storage = {0};
     Av2hCcsoControlMap controls;
     size_t row;
     size_t column;
     av2h_memory_fill(&frame, 0U, sizeof(frame));
+    av2h_frame_syntax_storage_bind(&frame, &syntax_storage);
     av2h_memory_fill(&controls, 0U, sizeof(controls));
     av2h_memory_fill(y, 0U, sizeof(y));
     av2h_memory_fill(u, 100U, sizeof(u));
@@ -1796,9 +1820,11 @@ static void test_edge_classes(void) {
     uint8_t control = 1U;
     Av2hFilterPlanes planes;
     Av2hFrameState frame;
+    Av2hFrameSyntaxStorage syntax_storage = {0};
     Av2hCcsoControlMap controls;
     size_t index;
     av2h_memory_fill(&frame, 0U, sizeof(frame));
+    av2h_frame_syntax_storage_bind(&frame, &syntax_storage);
     av2h_memory_fill(&controls, 0U, sizeof(controls));
     for (index = 0U; index < 64U; ++index) {
         y[index] = 100U;
@@ -1836,12 +1862,14 @@ static void test_ccso_validation(void) {
     uint8_t control = 1U;
     Av2hFilterPlanes planes;
     Av2hFrameState frame;
+    Av2hFrameSyntaxStorage syntax_storage = {0};
     Av2hCcsoControlMap controls;
     av2h_memory_fill(y, 100U, sizeof(y));
     av2h_memory_fill(reference, 100U, sizeof(reference));
     av2h_memory_fill(u, 100U, sizeof(u));
     av2h_memory_fill(v, 100U, sizeof(v));
     av2h_memory_fill(&frame, 0U, sizeof(frame));
+    av2h_frame_syntax_storage_bind(&frame, &syntax_storage);
     av2h_memory_fill(&controls, 0U, sizeof(controls));
     initialize_planes(&planes, y, u, v);
     frame.width = 8U;
@@ -1899,6 +1927,7 @@ static void test_fail_closed(void) {
     Av2hFilterPlanes planes;
     Av2hSequenceState sequence;
     Av2hFrameState frame;
+    Av2hFrameSyntaxStorage syntax_storage = {0};
     Av2hCcsoControlMap controls;
     Av2hFilterWorkspace workspace;
     size_t index;
@@ -1907,6 +1936,7 @@ static void test_fail_closed(void) {
     av2h_memory_fill(v, 93U, sizeof(v));
     av2h_memory_fill(&sequence, 0U, sizeof(sequence));
     av2h_memory_fill(&frame, 0U, sizeof(frame));
+    av2h_frame_syntax_storage_bind(&frame, &syntax_storage);
     av2h_memory_fill(&controls, 0U, sizeof(controls));
     av2h_memory_fill(&workspace, 0U, sizeof(workspace));
     initialize_planes(&planes, y, u, v);

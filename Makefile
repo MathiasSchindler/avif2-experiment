@@ -83,7 +83,7 @@ CORE_SOURCES := \
 CLI_SOURCES := src/shared/cli_common.c src/shared/cli_diagnostics.c
 
 COMMON_WARNINGS := -std=c11 -Wall -Wextra -Wpedantic -Werror -pipe
-FREESTANDING_CFLAGS := $(COMMON_WARNINGS) -O2 \
+FREESTANDING_CFLAGS := $(COMMON_WARNINGS) -Wframe-larger-than=4096 -O2 \
 	-ffreestanding -fno-builtin -fno-stack-protector \
 	-fno-unwind-tables -fno-asynchronous-unwind-tables \
 	-ffunction-sections -fdata-sections -nostdinc \
@@ -253,11 +253,6 @@ $(CENSUS): tools/census/census.c $(AVM_BUILD_DIR)/libavm.a
 	@mkdir -p $(@D)
 	$(CC) $(CENSUS_CFLAGS) $< $(AVM_BUILD_DIR)/libavm.a $(CENSUS_LDFLAGS) -o $@
 
-$(NATIVE_BUILD_DIR)/obj/src/decoder/frame_output.o \
-$(NATIVE_BUILD_DIR)/obj/src/decoder/reconstruct.o \
-$(NATIVE_BUILD_DIR)/obj/src/decoder/tile_luma.o \
-$(NATIVE_BUILD_DIR)/obj/src/decoder/tile_chroma.o: FREESTANDING_CFLAGS += -Wframe-larger-than=4096
-
 $(NATIVE_BUILD_DIR)/obj/%.o: %.c
 	@mkdir -p $(@D)
 	$(COMPILE_CC) $(FREESTANDING_CFLAGS) -MMD -MP -c $< -o $@
@@ -273,7 +268,7 @@ $(NATIVE_BUILD_DIR)/obj/cli/%.o: %.c
 
 $(NATIVE_DECODER): src/platform/posix/decoder.c $(NATIVE_CLI_OBJECTS) $(NATIVE_LIBRARY)
 	@mkdir -p $(@D)
-	$(CC) $(COMMON_WARNINGS) -O2 -Iinclude -Isrc $< $(NATIVE_CLI_OBJECTS) $(NATIVE_LIBRARY) -o $@
+	$(CC) $(COMMON_WARNINGS) -Wframe-larger-than=4096 -O2 -Iinclude -Isrc $< $(NATIVE_CLI_OBJECTS) $(NATIVE_LIBRARY) -o $@
 
 $(NATIVE_FREESTANDING_STAMP): $(NATIVE_OBJECTS) $(NATIVE_CLI_OBJECTS) scripts/check-undefined-symbols.sh
 	@mkdir -p $(@D)
@@ -318,7 +313,7 @@ $(NOLIBC_BUILD_DIR)/obj/cli/%.o: %.c
 
 $(NOLIBC_BUILD_DIR)/obj/runtime/%.o: %.c
 	@mkdir -p $(@D)
-	$(COMPILE_CC) $(COMMON_WARNINGS) -ffreestanding -fno-builtin \
+	$(COMPILE_CC) $(COMMON_WARNINGS) -Wframe-larger-than=4096 -ffreestanding -fno-builtin \
 		-fno-stack-protector -fno-unwind-tables -fno-asynchronous-unwind-tables \
 		-ffunction-sections -fdata-sections -nostdinc -Isrc -Isrc/shared \
 		$(NOLIBC_RUNTIME_EXTRA_CFLAGS) -c $< -o $@
@@ -329,7 +324,7 @@ $(NOLIBC_BUILD_DIR)/obj/runtime/%.o: %.S
 
 $(NOLIBC_BUILD_DIR)/obj/platform/%.o: %.c
 	@mkdir -p $(@D)
-	$(COMPILE_CC) $(COMMON_WARNINGS) -ffreestanding -fno-builtin \
+	$(COMPILE_CC) $(COMMON_WARNINGS) -Wframe-larger-than=4096 -ffreestanding -fno-builtin \
 		-fno-stack-protector -fno-unwind-tables -fno-asynchronous-unwind-tables \
 		-ffunction-sections -fdata-sections -nostdinc -Iinclude -Isrc -Isrc/shared \
 		$(NOLIBC_PLATFORM_EXTRA_CFLAGS) -c $< -o $@
@@ -579,7 +574,7 @@ $(HOST_LIBRARY): $(HOST_CORE_OBJECTS)
 
 $(HOST_BUILD_DIR)/obj/runtime/%.o: %.c
 	@mkdir -p $(@D)
-	$(COMPILE_CC) $(COMMON_WARNINGS) -O2 -ffreestanding -fno-builtin \
+	$(COMPILE_CC) $(COMMON_WARNINGS) -Wframe-larger-than=4096 -O2 -ffreestanding -fno-builtin \
 		-fno-stack-protector -fno-unwind-tables -fno-asynchronous-unwind-tables \
 		-ffunction-sections -fdata-sections -nostdinc -Isrc -Isrc/shared -c $< -o $@
 

@@ -1,6 +1,6 @@
 # Decoder Architecture and Runtime Improvement Plan
 
-**Status:** A1 in progress (frame-decode and reconstruction arena steps complete); A2-A6 planned
+**Status:** A1 complete; A2-A6 planned
 **Scope:** [`src/`](../src/) and [`include/av2heif.h`](../include/av2heif.h)
 
 ## Purpose and Scope
@@ -33,10 +33,10 @@ Every milestone must preserve:
 ## A1: Move Large Decoder State Off the Call Stack Into the Workspace Arena
 
 ### Problem
-Although the decoder enforces a zero-heap-allocation policy via caller-provided workspace memory, a single call to `av2h_decode` currently places **~140–155 KB** of state onto the C call stack:
-1. **`Av2hTileDecoder` (~120 KB on stack):** Declared as a local variable in `av2h_decode_frame_group_planar_private` ([`src/decoder/frame_output.c`](../src/decoder/frame_output.c)). Its `Av2hCoeffLevelCdfs` member alone holds ~95 KB of 16-bit CDF arrays, alongside `luma_partition_nodes[2048]` (~12 KB) and `chroma.u_eobs[1024]` (2 KB).
+Before A1, the native frame-group coordinator alone placed **146,128 bytes** of state onto the C call stack despite the caller-provided workspace policy:
+1. **`Av2hTileDecoder` (70,088 bytes on the native ABI):** Declared as a local variable in `av2h_decode_frame_group_planar_private` ([`src/decoder/frame_output.c`](../src/decoder/frame_output.c)). Its coefficient-level CDF storage occupies 25,480 bytes, alongside partition nodes and chroma contexts.
 2. **`Av2hCoeffBlock`s (8–16 KB on stack):** `decode_luma_leaf` allocates one `Av2hCoeffBlock` (8 KB: `quantized[1024]` + `dequantized[1024]`) and `decode_chroma_leaf` allocates `Av2hCoeffBlock blocks[2U]` (16 KB) on the stack, in addition to `pending_chroma_blocks[4U][2U]` (64 KB) inside `Av2hFrameDecodeContext`.
-3. **`Av2hDecodePreparation` (~10+ KB on stack, twice):** Allocated on the stack in `av2h_query` and again in `av2h_decode` (`Av2hFrameState` embeds `custom_qm[15][3][128]` and `restoration_frame_filter[3][16][18]`).
+3. **Preparation and tile groups (16–18 KB public-entrypoint frames):** Allocated on the stack in `av2h_query` and again in `av2h_decode`. The 11,088-byte `Av2hFrameState` embedded custom quantization matrices, restoration filters, and CCSO tables.
 
 On freestanding / `nolibc` worker threads, WebAssembly linear-memory stacks, Windows threads, or embedded targets, >128 KB stack frames risk stack overflow and contradict the explicit workspace-arena design.
 
@@ -54,8 +54,8 @@ On freestanding / `nolibc` worker threads, WebAssembly linear-memory stacks, Win
 
 ### A1 progress: frame-decode arena ownership
 
-The first implementation step is complete; **A1's global 4 KB exit criterion is
-not yet met**.
+The first implementation step established frame-decode arena ownership.
+The global ceiling was verified after the subsequent steps below.
 
 - [`Av2hFrameDecodeScratch`](../src/decoder/frame_output.h) now owns the serial
   tile decoder, two shared active coefficient blocks, and four deferred chroma
@@ -147,7 +147,7 @@ Native ARM64 Clang 22.1.8 `-O2` stack measurements:
 | Direct tile luma reconstruction | 9,344 | 64 / 64 |
 | Direct tile chroma reconstruction | 18,656 | 112 / 112 |
 
-The persistent native 4 KB build guard now covers
+At this step, the persistent native 4 KB build guard covered
 [`reconstruct.c`](../src/decoder/reconstruct.c),
 [`tile_luma.c`](../src/decoder/tile_luma.c), and
 [`tile_chroma.c`](../src/decoder/tile_chroma.c), as well as the first step's
@@ -170,23 +170,86 @@ checks cover the entire reconstruction scratch as well as frame-decode scratch.
 The **38 related Python checks**, standalone private headers, freestanding
 symbols, formatting, and explicit resource/layout baselines are also checked.
 
-### Remaining A1 work
+### A1 completion: preparation, prediction, and the all-source ceiling
 
-Full native stack inventories in both diagnostic configurations now have
-**10**, rather than the original 19, frames exceeding 4 KB:
+The final step removes the remaining ten oversized native frames:
 
-- Preparation and public orchestration: `av2h_query` (16,112 bytes),
-  `av2h_decode` (17,712 bytes), and `av2h_cli_decode` (18,384 bytes). Query has no
-  workspace argument, so preparation sizing/validation must be separated from
-  arena-backed materialized state without adding hidden allocation or breaking
-  the two-call public API.
-- Six directional-prediction helpers (4,208-11,952 bytes).
-- Tile-group ledger parsing (4,256 bytes).
+- [`Av2hFrameState`](../src/decoder/frame.h) is now **600 bytes**. Its pointers
+  refer to a separate **10,560-byte** syntax store for custom matrices,
+  restoration filters, and CCSO offsets. Query validates the same syntax using
+  bounded per-definition/per-plane buffers without materializing those tables.
+  Decoding materializes the tables in the caller's arena. Execution rejects
+  missing required tables explicitly; metadata-only query remains supported.
+- [`Av2hFrameDecodeScratch`](../src/decoder/frame_output.h) additionally owns the
+  **1,024-byte** preparation and **4,136-byte** tile group. Public decode binds
+  these only after its existing size, alignment, input-binding, and overlap
+  checks. Workspace preparation clears the decoder, not the live preparation.
+  The raw CLI preserves validation-before-allocation and error ordering by
+  replaying materialization into its allocated arena. A2's redundant-parse and
+  hashing optimizations remain separate.
+- Tile-group validation uses a small header and optionally writes spans directly
+  to the caller's group. It no longer needs a local 256-span group or a frame
+  copy. Partial-error state is preserved.
+- Directional prediction borrows secondary pixels from the arena-backed
+  reconstruction result, whose lifetime does not overlap prediction. Serial
+  primary/secondary passes reuse one mode projection. Wide chroma also borrows
+  its caller's projection after prediction, avoiding a second reconstruction
+  projection. Neither change adds another prediction workspace allocation.
+- Explicit out-of-line phase boundaries prevent LTO from recombining bounded
+  CLI, workspace-binding, frame, reconstruction, and prediction working sets.
+  The production build guard covers core, CLI, platform, and runtime C recipes;
+  sanitizer test fixtures are not subject to the production frame limit.
+  No frame warnings are disabled or suppressed.
 
-These are real remaining migrations, not suppressed warnings. The global
-`-Wframe-larger-than=4096 -Werror` check must only be declared passing after they
-are addressed. Other platform-only sources also need the applicable compile
-checks before claiming the all-source exit criterion.
+The final native scratch is **179,872 bytes**, aligned to **8 bytes**. Its query
+reservation is **179,879 bytes**, including worst-case alignment padding.
+Preparation adds **15,720 bytes** beyond step two; total queried growth over the
+pre-A1 baseline is **192,171 bytes** for byte samples and **204,459 bytes** for
+wide samples. All resource/layout and storage-offset baselines were updated
+explicitly; decoded-output fingerprints remain unchanged.
+
+Final ARM64 Clang 22.1.8 `-O2` frames, diagnostics absent / enabled:
+
+| Entry point | Bytes |
+| :--- | ---: |
+| Public query | 1,504 / 1,504 |
+| Public decode | 2,064 / 2,064 |
+| Raw CLI decode | 3,760 / 3,760 |
+| Frame coordinator | 2,704 / 2,720 |
+| Byte directional feature prediction | 1,952 / 1,952 |
+| Wide multiline prediction | 2,000 / 2,000 |
+| Tile-group ledger parser | 176 / 176 |
+
+Validation:
+
+- **All 76 production C sources** are represented in guarded object/stack
+  inventories in both diagnostic configurations, with **zero frames over 4,096
+  bytes**. Native core/CLI and actual macOS, Linux x86-64/ARM64, and Windows
+  x86-64/ARM64 platform/runtime branches were compiled. Foreign binaries were
+  not linked or executed.
+- Both complete configurations pass **33 sanitized C suites**, **2,460**
+  deterministic public-decode fuzz cases, **560** frozen orchestration variants,
+  and **64** poisoned-scratch reuse cases. New checks cover metadata/materialized
+  parser parity, truncated custom matrices, arena ownership, missing tables,
+  missing prediction/projection scratch, and rejection without buffer writes.
+  A newly exposed uninitialized range-decoder argument-test fixture was fixed.
+- All **179 native image hashes** and **14 exact CLI contracts** match their
+  retained baselines in each configuration.
+- **38** related Python checks, **55** standalone private headers, **35**
+  value-only kernel roots, freestanding symbols, formatting, and whitespace
+  checks pass.
+- The size-optimized native nolibc objects also pass the frame guard. Actual
+  default-LTO backend code generation emits no oversized-frame warnings after
+  the phase-boundary fixes. End-to-end nolibc execution could not be verified:
+  the existing custom Mach-O linker rejects `__ustring` emitted from unchanged
+  [`coeff_level_cdf.c`](../src/decoder/coeff_level_cdf.c), with both LLVM and
+  Apple Clang. A separate non-LTO `-Oz` symbol audit also reports legacy
+  compiler-emitted `memcpy` / `bzero` calls in
+  [`container.c`](../src/container.c),
+  [`frame_copy.c`](../src/decoder/frame_copy.c), and
+  [`frame_output.c`](../src/decoder/frame_output.c); compiling the HEAD
+  frame-output source reproduces both symbols. These baseline toolchain
+  limitations are not changed by A1. Native `-O2` freestanding symbol checks pass.
 
 ---
 
@@ -197,7 +260,7 @@ In the normal two-step public API workflow (`av2h_query` followed by `av2h_decod
 1. **Double HEIF Container Parse in `av2h_query`:** `av2h_query` ([`src/query.c`](../src/query.c)) calls `av2h_dialect_detect(input, ...)`—which runs `av2h_heif_parse(input, &image, &strict_error)`—and on the very next step calls `av2h_heif_parse(input, &info->image, error)` again on the same bytes.
 2. **Redundant Full `av2h_query` + Double `av2h_decode_prepare` in `av2h_decode`:**
    - `av2h_decode` ([`src/decode.c`](../src/decode.c)) calls `av2h_query(input, NULL, &fresh, error)` from scratch (re-running `av2h_dialect_detect`, both `av2h_heif_parse` passes, `av2h_decode_prepare`, and the full-buffer `input_fingerprint` FNV-1a loop over every byte of `input`).
-   - Immediately after `info_matches(info, &fresh)`, `av2h_decode` calls `av2h_decode_prepare(&fresh.image, &preparation, error)` **again**, even though `av2h_query` just executed `av2h_decode_prepare` to compute `fresh.workspace_size`!
+   - Immediately after `info_matches(info, &fresh)` and workspace validation, `av2h_decode` calls `av2h_decode_prepare` **again**, materializing arena-owned state even though `av2h_query` just validated the same syntax to compute `fresh.workspace_size`!
 3. **Result:** A single `av2h_query` + `av2h_decode` call parses the HEIF container **4 times**, parses the Sequence/Frame/QMatrix/TileGroup OBUs **3 times**, and hashes the entire input file byte-by-byte **2 times**.
 
 ### Actions

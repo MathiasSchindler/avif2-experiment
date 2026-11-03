@@ -181,7 +181,7 @@ static void test_zero_geometry(void) {
             } else {
                 status = av2h_chroma_reconstruct_u16(
                     0, &chroma, &prefix, &transform, &coefficients, predictor_u16,
-                    &scratch_u16, &output_u16, &av2h_sample_domain_10bit);
+                    &scratch_u16, &output_u16, &(Av2hLeafMode){0}, &av2h_sample_domain_10bit);
             }
             CHECK(status == AV2H_OK);
             CHECK((path & 1U ? output_u16.width : output.width) ==
@@ -291,7 +291,7 @@ static void test_lossless_chroma_and_rejection(void) {
               &scratch, &output) == AV2H_OK);
     CHECK(av2h_chroma_reconstruct_u16(
               0, &mode, &prefix, &transform, &coefficients, predictor_u16,
-              &scratch_u16, &output_u16, &av2h_sample_domain_10bit) == AV2H_OK);
+              &scratch_u16, &output_u16, &(Av2hLeafMode){0}, &av2h_sample_domain_10bit) == AV2H_OK);
     for (index = 0U; index < 16U; ++index) {
         CHECK(output.residual[index] == (index < 4U ? -3 : 0));
         CHECK(output_u16.residual[index] == (index < 4U ? -3 : 0));
@@ -312,7 +312,11 @@ static void test_lossless_chroma_and_rejection(void) {
     coefficients.coefficient_count = 15U;
     CHECK(av2h_chroma_reconstruct_u16(
               0, &mode, &prefix, &transform, &coefficients, predictor_u16,
-              &scratch_u16, &output_u16, &av2h_sample_domain_10bit) == AV2H_UNSUPPORTED);
+              &scratch_u16, &output_u16, &(Av2hLeafMode){0}, &av2h_sample_domain_10bit) == AV2H_UNSUPPORTED);
+    CHECK(memcmp(&output_u16, &original_u16, sizeof(output_u16)) == 0);
+    CHECK(av2h_chroma_reconstruct_u16(
+              0, &mode, &prefix, &transform, &coefficients, predictor_u16,
+              &scratch_u16, &output_u16, NULL, &av2h_sample_domain_10bit) == AV2H_INVALID_ARGUMENT);
     CHECK(memcmp(&output_u16, &original_u16, sizeof(output_u16)) == 0);
     CHECK(av2h_luma_reconstruct_u16(
               0, 0, &prefix, &transform, &coefficients, predictor_u16,
@@ -322,7 +326,7 @@ static void test_lossless_chroma_and_rejection(void) {
               &scratch, &output) == AV2H_INVALID_ARGUMENT);
     CHECK(av2h_chroma_reconstruct_u16(
               0, &mode, &prefix, &transform, &coefficients, 0,
-              &scratch_u16, &output_u16, &av2h_sample_domain_10bit) == AV2H_INVALID_ARGUMENT);
+              &scratch_u16, &output_u16, &(Av2hLeafMode){0}, &av2h_sample_domain_10bit) == AV2H_INVALID_ARGUMENT);
 }
 
 static void test_dpcm_scale_and_stride(void) {
@@ -447,7 +451,7 @@ static void test_u16_transform_selection(void) {
             memset(&output, 0x7d, sizeof(output));
             CHECK(av2h_chroma_reconstruct_u16(
                       0, &chroma, &prefix, &transform, &coefficients, predictor,
-                      &scratch, &output, &av2h_sample_domain_10bit) == expected_status);
+                      &scratch, &output, &(Av2hLeafMode){0}, &av2h_sample_domain_10bit) == expected_status);
             CHECK(memcmp(&output, &expected, sizeof(output)) == 0);
         }
     }

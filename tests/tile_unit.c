@@ -487,7 +487,7 @@ static void test_odd_luma_reconstruction(void) {
               (Av2hSpan){ sequence_bytes, sizeof(sequence_bytes) }, &obu,
               &sequence, &error) == AV2H_OK);
     CHECK(av2h_frame_header_closed_key_parse(
-        (Av2hSpan){ frame_bytes, sizeof(frame_bytes) }, &sequence, &frame, NULL) == AV2H_OK);
+        (Av2hSpan){ frame_bytes, sizeof(frame_bytes) }, &sequence, &frame, &(Av2hFrameSyntaxStorage){0},  NULL) == AV2H_OK);
     CHECK(av2h_tile_group_single_parse(
               (Av2hSpan){ frame_bytes, sizeof(frame_bytes) },
               frame.uncompressed_header_bits, &group) == AV2H_OK);
@@ -839,7 +839,7 @@ static void test_ordinary_luma_frontier(void) {
     CHECK(av2h_frame_header_closed_key_parse(
         (Av2hSpan){ stream + entries[1].payload_offset,
                            entries[1].payload_size },
-        &sequence, &frame, NULL) == AV2H_OK);
+        &sequence, &frame, &(Av2hFrameSyntaxStorage){0},  NULL) == AV2H_OK);
     CHECK(av2h_tile_group_single_parse(
               (Av2hSpan){ stream + entries[1].payload_offset,
                            entries[1].payload_size },
@@ -1309,7 +1309,7 @@ static void test_high_detail_frame(void) {
     CHECK(av2h_frame_header_closed_key_parse(
         (Av2hSpan){ stream + entries[2].payload_offset,
                            entries[2].payload_size },
-        &sequence, &frame, NULL) == AV2H_OK);
+        &sequence, &frame, &(Av2hFrameSyntaxStorage){0},  NULL) == AV2H_OK);
     CHECK(frame.width == 96U && frame.height == 80U);
     CHECK(av2h_tile_group_single_parse(
               (Av2hSpan){ stream + entries[2].payload_offset,

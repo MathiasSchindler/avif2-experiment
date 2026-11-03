@@ -4,10 +4,11 @@
 
 Av2hStatus av2h_luma_predict(const Av2hLeafMode *mode, uint16_t width, uint16_t height,
                              const Av2hLumaReferences *references, uint8_t *predictor,
-                             size_t predictor_stride_samples);
+                             size_t predictor_stride_samples, uint8_t *secondary_predictor);
 Av2hStatus av2h_luma_predict_u16(const Av2hLeafMode *mode, uint16_t width, uint16_t height,
                                  const Av2hLumaReferencesU16 *references, uint16_t *predictor,
-                                 size_t predictor_stride_samples, const Av2hSampleDomain *domain);
+                                 size_t predictor_stride_samples, const Av2hSampleDomain *domain,
+                                 uint16_t *secondary_predictor);
 
 int av2h_luma_prediction_dimension_supported(uint16_t dimension) {
     return dimension == 4U || dimension == 8U || dimension == 16U || dimension == 32U ||
@@ -42,7 +43,8 @@ Av2hStatus av2h_luma_predict_u16_adjusted(const Av2hLeafMode *mode, uint16_t wid
                                           const Av2hLumaReferencesU16 *references,
                                           uint16_t *predictor, size_t predictor_stride_samples,
                                           int angle_adjust, uint8_t disable_edge_filter,
-                                          uint8_t use_idif, const Av2hSampleDomain *domain) {
+                                          uint8_t use_idif, const Av2hSampleDomain *domain,
+                                          uint16_t *secondary_predictor) {
     if (!av2h_sample_domain_valid(domain))
         return AV2H_INVALID_ARGUMENT;
 
@@ -53,7 +55,8 @@ Av2hStatus av2h_luma_predict_u16_adjusted(const Av2hLeafMode *mode, uint16_t wid
     }
     if (mode->multi_line_mrl == 1U && mode->mrl_index != 0U && mode->mrl_index <= 3U) {
         return av2h_predict_multiline_u16(mode, width, height, references, predictor,
-                                          predictor_stride_samples, use_idif, domain);
+                                          predictor_stride_samples, use_idif, domain,
+                                          secondary_predictor);
     }
     if ((mode->angle_delta != 0 && av2h_directional_base_angle(mode->mode) == 0) ||
         mode->mrl_index > 3U || mode->multi_line_mrl != 0U) {
@@ -94,14 +97,16 @@ Av2hStatus av2h_luma_predict_u16_adjusted(const Av2hLeafMode *mode, uint16_t wid
     return AV2H_UNSUPPORTED;
 }
 
-Av2hStatus av2h_chroma_predict_u16(const Av2hLeafMode *mode, uint16_t width, uint16_t height,
-                                   const Av2hLumaReferencesU16 *references, uint16_t *predictor,
-                                   size_t predictor_stride_samples,
-                                   const Av2hSampleDomain *domain) {
+AV2H_NOINLINE Av2hStatus av2h_chroma_predict_u16(const Av2hLeafMode *mode, uint16_t width,
+                                                 uint16_t height,
+                                                 const Av2hLumaReferencesU16 *references,
+                                                 uint16_t *predictor,
+                                                 size_t predictor_stride_samples,
+                                                 const Av2hSampleDomain *domain) {
     if (!av2h_sample_domain_valid(domain))
         return AV2H_INVALID_ARGUMENT;
     return av2h_luma_predict_u16_adjusted(mode, width, height, references, predictor,
-                                          predictor_stride_samples, 0, 0U, 0U, domain);
+                                          predictor_stride_samples, 0, 0U, 0U, domain, NULL);
 }
 
 /* Compatibility for direct-helper fields outside canonical bitstream admission. */
@@ -270,7 +275,7 @@ static Av2hStatus predict_legacy_directional(const Av2hLeafMode *mode, uint16_t 
 
 Av2hStatus av2h_luma_predict(const Av2hLeafMode *mode, uint16_t width, uint16_t height,
                              const Av2hLumaReferences *references, uint8_t *predictor,
-                             size_t predictor_stride_samples) {
+                             size_t predictor_stride_samples, uint8_t *secondary_predictor) {
     if (mode == NULL || references == NULL || predictor == NULL ||
         predictor_stride_samples < width) {
         return AV2H_INVALID_ARGUMENT;
@@ -287,7 +292,8 @@ Av2hStatus av2h_luma_predict(const Av2hLeafMode *mode, uint16_t width, uint16_t 
                        mode->mrl_index < AV2H_MRL_INDEX_SYMBOLS && mode->multi_line_mrl <= 1U &&
                        mode->enable_ibp <= 1U))) {
             return av2h_predict_luma_directional_feature(mode, width, height, references, predictor,
-                                                         predictor_stride_samples);
+                                                         predictor_stride_samples,
+                                                         secondary_predictor);
         }
         return predict_legacy_directional(mode, width, height, references, predictor,
                                           predictor_stride_samples);
@@ -321,9 +327,11 @@ Av2hStatus av2h_luma_predict(const Av2hLeafMode *mode, uint16_t width, uint16_t 
 
 Av2hStatus av2h_luma_predict_u16(const Av2hLeafMode *mode, uint16_t width, uint16_t height,
                                  const Av2hLumaReferencesU16 *references, uint16_t *predictor,
-                                 size_t predictor_stride_samples, const Av2hSampleDomain *domain) {
+                                 size_t predictor_stride_samples, const Av2hSampleDomain *domain,
+                                 uint16_t *secondary_predictor) {
     if (!av2h_sample_domain_valid(domain))
         return AV2H_INVALID_ARGUMENT;
     return av2h_luma_predict_u16_adjusted(mode, width, height, references, predictor,
-                                          predictor_stride_samples, 0, 0U, 1U, domain);
+                                          predictor_stride_samples, 0, 0U, 1U, domain,
+                                          secondary_predictor);
 }

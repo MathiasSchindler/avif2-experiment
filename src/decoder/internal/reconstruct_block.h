@@ -27,7 +27,7 @@ av2h_chroma_reconstruct_u16(struct Av2hDecodeDiagnostics *diagnostics,
                             const Av2hChromaLeafMode *mode, const Av2hCoeffPrefix *prefix,
                             const Av2hTransformType *transform, const Av2hCoeffBlock *coefficients,
                             const uint16_t *predictor, Av2hReconstructionScratchU16 *scratch,
-                            Av2hBlockReconstructionU16 *reconstruction,
+                            Av2hBlockReconstructionU16 *reconstruction, Av2hLeafMode *luma_mode,
                             const Av2hSampleDomain *domain);
 
 #endif

@@ -97,7 +97,8 @@ class DecoderEntrypointTests(unittest.TestCase):
 
     def test_no_default_only_forwarding_functions(self) -> None:
         pattern = re.compile(
-            r"^(?:static\s+)?[A-Za-z_]\w*\s+(av2h_\w+)\s*\([^;{}]*\)"
+            r"^(?:static\s+)?(?:AV2H_NOINLINE\s+)?[A-Za-z_]\w*\s+"
+            r"(av2h_\w+)\s*\([^;{}]*\)"
             r"\s*\{\s*(?:if\s*\(!av2h_sample_domain_valid\(domain\)\)"
             r"\s*return AV2H_INVALID_ARGUMENT;\s*)?"
             r"return\s+(av2h_\w+)\s*\([^;{}]*\);\s*\}",

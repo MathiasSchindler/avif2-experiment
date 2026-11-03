@@ -220,7 +220,7 @@ Av2hStatus av2h_coeff_qmatrix_dequant_step(const Av2hSequenceState *sequence,
     if (level == 15U)
         return AV2H_OK;
     if ((frame->custom_qm_bitmap & (uint16_t)(1U << level)) != 0U &&
-        plane >= frame->custom_qm_plane_count[level]) {
+        (frame->custom_qm == NULL || plane >= frame->custom_qm_plane_count[level])) {
         return AV2H_INVALID_DATA;
     }
     custom_weight = (frame->custom_qm_bitmap & (uint16_t)(1U << level)) != 0U

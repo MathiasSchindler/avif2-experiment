@@ -10,10 +10,26 @@
 #define AV2H_PENDING_CHROMA_CAPACITY 4U
 
 typedef struct {
+    size_t size_bytes;
+    size_t alignment;
+} Av2hFrameDecodeWorkspaceLayout;
+
+typedef struct {
+    Av2hSequenceState sequence;
+    Av2hFrameState frame;
+    Av2hTileGroup *group;
+    Av2hFrameDecodeWorkspaceLayout workspace;
+    size_t output_size;
+} Av2hDecodePreparation;
+
+typedef struct {
     Av2hTileDecoder tile_decoder;
     Av2hCoeffBlock active_blocks[2U];
     Av2hTileChromaLeaf pending_chroma_leaves[AV2H_PENDING_CHROMA_CAPACITY];
     Av2hCoeffBlock pending_chroma_blocks[AV2H_PENDING_CHROMA_CAPACITY][2U];
+    Av2hDecodePreparation preparation;
+    Av2hFrameSyntaxStorage syntax;
+    Av2hTileGroup group;
 } Av2hFrameDecodeScratch;
 
 typedef struct {

@@ -194,7 +194,7 @@ Av2hStatus av2h_query(Av2hSpan input, const Av2hLimits *limits, Av2hInfo *info, 
         return query_fail(error, AV2H_LIMIT_EXCEEDED, 0U, AV2H_CONTEXT_LIMITS);
     }
     info->output_size = output_size;
-    status = av2h_decode_prepare(&info->image, &preparation, error);
+    status = av2h_decode_prepare(&info->image, &preparation, NULL, NULL, error);
     if (status != AV2H_OK)
         return status;
     if (preparation.output_size != output_size) {

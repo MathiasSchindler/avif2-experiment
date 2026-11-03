@@ -50,7 +50,7 @@ int av2h_ccso_parameters_valid(const Av2hFrameState *frame) {
         }
         if (parameters->enabled == 0U)
             continue;
-        if (parameters->scale_index >= 4U)
+        if (parameters->filter_offset == NULL || parameters->scale_index >= 4U)
             return 0;
         if (parameters->band_only != 0U) {
             if (parameters->quant_index != 0U || parameters->extended_filter_support != 0U ||

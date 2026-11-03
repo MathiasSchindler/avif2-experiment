@@ -3,6 +3,13 @@
 
 #include "av2heif.h"
 
+/* Keep bounded decode phases from sharing one stack frame under LTO. */
+#if defined(__GNUC__) || defined(__clang__)
+#define AV2H_NOINLINE __attribute__((noinline))
+#else
+#define AV2H_NOINLINE
+#endif
+
 typedef struct {
     const unsigned char *data;
     size_t size;

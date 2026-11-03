@@ -513,7 +513,7 @@ Av2hStatus av2h_wiener_nonsep_filter_frame(Av2hFilterPlanes *destination,
         }
         if (class_count > 1U) {
             if (plane != 0U || frame->restoration_frame_filters_on[plane] == 0U ||
-                controls->tx_skip == NULL ||
+                frame->restoration_frame_filter == NULL || controls->tx_skip == NULL ||
                 controls->tx_skip_stride < ((size_t)input->width + 3U) / 4U) {
                 return AV2H_UNSUPPORTED;
             }

@@ -10,6 +10,8 @@
 #error sample kernel configuration leaked out of its owner
 #endif
 
+static uint16_t prediction_scratch_u16[AV2H_RECON_SAMPLE_CAPACITY];
+
 static int failures;
 
 #define CHECK(expression)                                                                          \
@@ -75,7 +77,7 @@ static void test_prediction(void) {
         mode.mode = modes[index];
         av2h_plane_fill_u16(predictor, 6U, 6U, 4U, 0x5555U);
         CHECK(av2h_luma_predict_u16(&mode, 4U, 4U, &references, predictor, 6U,
-                                    &av2h_sample_domain_12bit) == AV2H_OK);
+                                    &av2h_sample_domain_12bit, prediction_scratch_u16) == AV2H_OK);
         for (sample = 0U; sample < 24U; ++sample) {
             CHECK(predictor[sample] == (sample % 6U < 4U ? 3000U : 0x5555U));
         }
@@ -83,19 +85,24 @@ static void test_prediction(void) {
     references = (Av2hLumaReferencesU16){0};
     mode.mode = AV2H_INTRA_VERTICAL;
     CHECK(av2h_luma_predict_u16(&mode, 4U, 4U, &references, predictor, 6U,
-                                &av2h_sample_domain_12bit) == AV2H_OK);
+                                &av2h_sample_domain_12bit, prediction_scratch_u16) == AV2H_OK);
     CHECK(predictor[0] == 2047U);
     mode.mode = AV2H_INTRA_HORIZONTAL;
     CHECK(av2h_luma_predict_u16(&mode, 4U, 4U, &references, predictor, 6U,
-                                &av2h_sample_domain_12bit) == AV2H_OK);
+                                &av2h_sample_domain_12bit, prediction_scratch_u16) == AV2H_OK);
     CHECK(predictor[0] == 2049U);
-    CHECK(av2h_luma_predict_u16(&mode, 4U, 4U, &references, predictor, 6U, NULL) ==
+    CHECK(av2h_luma_predict_u16(&mode, 4U, 4U, &references, predictor, 6U, NULL, prediction_scratch_u16) ==
           AV2H_INVALID_ARGUMENT);
     {
         Av2hSampleDomain invalid = {7U, 1U, 64U, 127U};
-        CHECK(av2h_luma_predict_u16(&mode, 4U, 4U, &references, predictor, 6U, &invalid) ==
+        CHECK(av2h_luma_predict_u16(&mode, 4U, 4U, &references, predictor, 6U, &invalid, prediction_scratch_u16) ==
               AV2H_INVALID_ARGUMENT);
     }
+    mode.mrl_index = 1U;
+    mode.multi_line_mrl = 1U;
+    CHECK(av2h_luma_predict_u16(&mode, 4U, 4U, &references, predictor, 6U,
+                                 &av2h_sample_domain_12bit, NULL) == AV2H_INVALID_ARGUMENT);
+    CHECK(predictor[0] == 2049U);
 }
 
 static void test_cfl(void) {
@@ -333,6 +340,7 @@ static void test_filters(void) {
         Av2hCcsoControlMap controls = {0};
         Av2hFilterPlanesU16 planes = {0};
         frame = (Av2hFrameState){0};
+        av2h_frame_syntax_storage_bind(&frame, &(Av2hFrameSyntaxStorage){0});
         frame.width = 8U;
         frame.height = 8U;
         frame.ccso[1].enabled = 1U;

@@ -10,6 +10,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+static uint8_t prediction_scratch[AV2H_RECON_SAMPLE_CAPACITY];
+
 static int failures;
 
 #define CHECK(condition)                                                       \
@@ -994,7 +996,7 @@ static void test_first_leaf_intra_dip_without_references(void) {
     block.height = 8U;
     block.coefficient_count = 64U;
     CHECK(av2h_luma_predict(
-              &mode, 8U, 8U, &references, expected, 8U) == AV2H_OK);
+              &mode, 8U, 8U, &references, expected, 8U, prediction_scratch) == AV2H_OK);
     CHECK(sample_hash(expected, sizeof(expected)) ==
           UINT64_C(0x6ff77c8972b84653));
     av2h_memory_fill(pixels, 0U, sizeof(pixels));
@@ -1025,7 +1027,7 @@ static void test_all_zero_16x16_reconstruction(void) {
     references.above = above;
     references.above_count = sizeof(above);
     CHECK(av2h_luma_predict(
-                  &mode, 16U, 16U, &references, predictor, 16U) == AV2H_OK);
+                  &mode, 16U, 16U, &references, predictor, 16U, prediction_scratch) == AV2H_OK);
     for (index = 0U; index < sizeof(predictor); ++index) {
         CHECK(predictor[index] == 98U);
     }
@@ -1198,7 +1200,7 @@ static void test_laarim_q96_32x32_reconstruction(void) {
     }
 
     CHECK(av2h_luma_predict(
-              &mode, 32U, 32U, &references, scratch.predictor, 32U) ==
+              &mode, 32U, 32U, &references, scratch.predictor, 32U, prediction_scratch) ==
           AV2H_OK);
     CHECK(sample_hash(scratch.predictor, 1024U) ==
           UINT64_C(0x75290844cee19be7));
@@ -1313,7 +1315,7 @@ static void test_schwaebisch_q208_64x16_reconstruction(void) {
     CHECK(av2h_frame_header_closed_key_parse(
         (Av2hSpan){ stream + frame_obu->payload_offset,
                            frame_obu->payload_size },
-        &sequence, &frame, NULL) == AV2H_OK);
+        &sequence, &frame, &(Av2hFrameSyntaxStorage){0},  NULL) == AV2H_OK);
     CHECK(frame.width == 417U);
     CHECK(frame.height == 277U);
     CHECK(frame.base_q_index == 208U);
@@ -1455,7 +1457,7 @@ static void test_d45_minus_one_16x4_prediction(void) {
     av2h_memory_fill(predictor, 0xa5U, sizeof(predictor));
 
     CHECK(av2h_luma_predict(
-              &mode, 16U, 4U, &references, predictor, 20U) == AV2H_OK);
+              &mode, 16U, 4U, &references, predictor, 20U, prediction_scratch) == AV2H_OK);
     for (row = 0U; row < 4U; ++row) {
         for (column = 0U; column < 16U; ++column) {
             CHECK(predictor[row * 20U + column] ==
@@ -1497,7 +1499,7 @@ static void test_d45_8x4_ibp_prediction(void) {
     av2h_memory_fill(predictor, 0xa5U, sizeof(predictor));
 
     CHECK(av2h_luma_predict(
-              &mode, 8U, 4U, &references, predictor, 10U) == AV2H_OK);
+              &mode, 8U, 4U, &references, predictor, 10U, prediction_scratch) == AV2H_OK);
     for (row = 0U; row < 4U; ++row) {
         for (column = 0U; column < 8U; ++column) {
             CHECK(predictor[row * 10U + column] ==
@@ -1510,11 +1512,11 @@ static void test_d45_8x4_ibp_prediction(void) {
     references.left = 0;
     references.left_count = 0U;
     CHECK(av2h_luma_predict(
-              &mode, 8U, 4U, &references, predictor, 10U) == AV2H_OK);
+              &mode, 8U, 4U, &references, predictor, 10U, prediction_scratch) == AV2H_OK);
     references.above = 0;
     references.above_count = 0U;
     CHECK(av2h_luma_predict(
-              &mode, 8U, 4U, &references, predictor, 10U) == AV2H_OK);
+              &mode, 8U, 4U, &references, predictor, 10U, prediction_scratch) == AV2H_OK);
 }
 
 static void test_d45_16x8_prediction(void) {
@@ -1532,7 +1534,7 @@ static void test_d45_16x8_prediction(void) {
     references.above_count = sizeof(above);
 
     CHECK(av2h_luma_predict(
-              &mode, 16U, 8U, &references, predictor, 16U) == AV2H_OK);
+              &mode, 16U, 8U, &references, predictor, 16U, prediction_scratch) == AV2H_OK);
     CHECK(predictor[0U] == 226U);
     CHECK(predictor[127U] == 255U);
 }
@@ -1562,7 +1564,7 @@ static void test_d45_no_neighbor_ibp_prediction(void) {
         size_t size = sizes[size_index];
         CHECK(av2h_luma_predict(
                   &mode, (uint16_t)size, (uint16_t)size, &references,
-                  predictor, size) == AV2H_OK);
+                  predictor, size, prediction_scratch) == AV2H_OK);
         for (row = 0U; row < size; ++row) {
             size_t count_129 = row < 4U ? 0U :
                 2U * (((row - 4U) / 6U) + 1U);
@@ -2044,7 +2046,7 @@ static void test_tx4x4_d203_fsc_reconstruction(void) {
     references.left = left;
     references.left_count = sizeof(left);
     CHECK(av2h_luma_predict(
-              &mode, 4U, 4U, &references, predicted, 4U) == AV2H_OK);
+              &mode, 4U, 4U, &references, predicted, 4U, prediction_scratch) == AV2H_OK);
     for (index = 0U; index < 16U; ++index) {
         CHECK(predicted[index] == predictor[index]);
     }
@@ -2104,7 +2106,7 @@ static void test_tx8x4_d203_reconstruction(void) {
     references.has_above_left = 1U;
     references.above_left = 251U;
     CHECK(av2h_luma_predict(
-              &mode, 8U, 4U, &references, predicted, 8U) == AV2H_OK);
+              &mode, 8U, 4U, &references, predicted, 8U, prediction_scratch) == AV2H_OK);
     for (index = 0U; index < 32U; ++index) {
         CHECK(predicted[index] == predictor[index]);
     }
@@ -2171,7 +2173,7 @@ static void test_tx8x8_d203_mrl_reconstruction(void) {
     references.has_above_left = 1U;
     references.above_left = 175U;
     CHECK(av2h_luma_predict(
-              &mode, 8U, 8U, &references, predicted, 8U) == AV2H_OK);
+              &mode, 8U, 8U, &references, predicted, 8U, prediction_scratch) == AV2H_OK);
     for (index = 0U; index < 64U; ++index) {
         CHECK(predicted[index] == predictor[index]);
     }
@@ -2448,7 +2450,7 @@ static void test_dc_16x32_prediction(void) {
     expected_dc = (uint8_t)((sum + 24U) / 48U);
 
     CHECK(av2h_luma_predict(
-              &mode, 16U, 32U, &references, predictor, 16U) == AV2H_OK);
+              &mode, 16U, 32U, &references, predictor, 16U, prediction_scratch) == AV2H_OK);
     for (index = 0U; index < 512U; ++index) {
         CHECK(predictor[index] == expected_dc);
     }
@@ -2458,7 +2460,7 @@ static void test_dc_16x32_prediction(void) {
     references.left = 0;
     references.left_count = 0U;
     CHECK(av2h_luma_predict(
-              &mode, 16U, 32U, &references, predictor, 16U) == AV2H_OK);
+              &mode, 16U, 32U, &references, predictor, 16U, prediction_scratch) == AV2H_OK);
     for (index = 0U; index < 512U; ++index) {
         CHECK(predictor[index] == 128U);
     }
@@ -2490,7 +2492,7 @@ static void test_dc_16x32_ibp_prediction(void) {
     dc = (uint8_t)((200U * 16U + 50U * 32U + 24U) / 48U);
 
     CHECK(av2h_luma_predict(
-              &mode, 16U, 32U, &references, predictor, 16U) == AV2H_OK);
+              &mode, 16U, 32U, &references, predictor, 16U, prediction_scratch) == AV2H_OK);
     CHECK(predictor[0] != dc);
     CHECK(predictor[255] != predictor[0]);
 }
@@ -2540,7 +2542,7 @@ static void test_dc_4x64_and_64x4_prediction(void) {
             references.left_count = references.left != 0 ? height : 0U;
             av2h_memory_fill(storage, 0xa5U, sizeof(storage));
             status = av2h_luma_predict(
-                &mode, width, height, &references, storage + 1U, stride);
+                &mode, width, height, &references, storage + 1U, stride, prediction_scratch);
             CHECK(status == AV2H_OK);
             if (status != AV2H_OK) continue;
             for (row = 0U; row < height; ++row) {
@@ -2592,7 +2594,7 @@ static void test_d113_16x64_prediction(void) {
     references.has_above_left = 1U;
 
     CHECK(av2h_luma_predict(
-              &mode, 16U, 64U, &references, predictor, 16U) == AV2H_OK);
+              &mode, 16U, 64U, &references, predictor, 16U, prediction_scratch) == AV2H_OK);
     CHECK(storage[0U] == 0xa5U);
     CHECK(storage[sizeof(storage) - 1U] == 0xa5U);
         CHECK(sample_hash(predictor, 16U * 64U) ==
@@ -2626,7 +2628,7 @@ static void test_d203_16x16_ibp_prediction(void) {
     references.has_above_left = 1U;
 
     CHECK(av2h_luma_predict(
-              &mode, 16U, 16U, &references, predictor, 16U) == AV2H_OK);
+              &mode, 16U, 16U, &references, predictor, 16U, prediction_scratch) == AV2H_OK);
     CHECK(av2h_memory_compare(
               predictor, expected_first_row,
               sizeof(expected_first_row)) == 0);
@@ -2718,9 +2720,16 @@ static void test_luma_directional_feature_matrix(void) {
                                 mode.enable_ibp = (uint8_t)ibp;
                                 av2h_memory_fill(storage, 0xa5U,
                                                  sizeof(storage));
+                                if (multi_line_mrl != 0U && mrl_index != 0U) {
+                                    CHECK(av2h_luma_predict(
+                                        &mode, width, height, &references, predictor,
+                                        width, NULL) == AV2H_INVALID_ARGUMENT);
+                                    for (index = 0U; index < sizeof(storage); ++index)
+                                        CHECK(storage[index] == 0xa5U);
+                                }
                                 CHECK(av2h_luma_predict(&mode, width, height,
                                                         &references, predictor,
-                                                        width) == expected);
+                                                        width, prediction_scratch) == expected);
                                 CHECK(storage[0U] == 0xa5U);
                                 CHECK(storage[sizeof(storage) - 1U] == 0xa5U);
                                 if (expected == AV2H_OK && mrl_index != 0U) {
@@ -2773,7 +2782,7 @@ static void test_luma_directional_feature_matrix(void) {
                                         CHECK(av2h_luma_predict(
                                                   &mode, width, height,
                                                   &boundary_references,
-                                                  boundary_predictor, width) ==
+                                                  boundary_predictor, width, prediction_scratch) ==
                                               AV2H_OK);
                                         boundary_references = references;
                                         boundary_references.secondary_left = 0;
@@ -2782,7 +2791,7 @@ static void test_luma_directional_feature_matrix(void) {
                                         CHECK(av2h_luma_predict(
                                                   &mode, width, height,
                                                   &boundary_references,
-                                                  boundary_predictor, width) ==
+                                                  boundary_predictor, width, prediction_scratch) ==
                                               AV2H_OK);
                                         boundary_references.secondary_above = 0;
                                         boundary_references.secondary_above_count =
@@ -2790,7 +2799,7 @@ static void test_luma_directional_feature_matrix(void) {
                                         CHECK(av2h_luma_predict(
                                                   &mode, width, height,
                                                   &boundary_references,
-                                                  boundary_predictor, width) ==
+                                                  boundary_predictor, width, prediction_scratch) ==
                                               (width == 4U && height == 4U
                                                    ? AV2H_OK
                                                    : AV2H_INVALID_ARGUMENT));
@@ -2805,7 +2814,7 @@ static void test_luma_directional_feature_matrix(void) {
                                     CHECK(av2h_luma_predict(
                                               &component_mode, width, height,
                                               &references, primary_predictor,
-                                              width) == AV2H_OK);
+                                              width, prediction_scratch) == AV2H_OK);
                                     if (width == 4U && height == 4U) {
                                         for (index = 0U; index < sample_count;
                                              ++index) {
@@ -2831,7 +2840,7 @@ static void test_luma_directional_feature_matrix(void) {
                                               &component_mode, width, height,
                                               &secondary_references,
                                               secondary_predictor,
-                                              width) == AV2H_OK);
+                                              width, prediction_scratch) == AV2H_OK);
                                     for (index = 0U; index < sample_count;
                                          ++index) {
                                         CHECK(predictor[index] == (uint8_t)(
@@ -2857,14 +2866,14 @@ static void test_cardinal_prediction_without_references(void) {
 
     mode.mode = AV2H_INTRA_VERTICAL;
     CHECK(av2h_luma_predict(
-              &mode, 8U, 8U, &references, predictor, 8U) == AV2H_OK);
+              &mode, 8U, 8U, &references, predictor, 8U, prediction_scratch) == AV2H_OK);
     for (index = 0U; index < sizeof(predictor); ++index) {
         CHECK(predictor[index] == 127U);
     }
 
     mode.mode = AV2H_INTRA_HORIZONTAL;
     CHECK(av2h_luma_predict(
-              &mode, 8U, 8U, &references, predictor, 8U) == AV2H_OK);
+              &mode, 8U, 8U, &references, predictor, 8U, prediction_scratch) == AV2H_OK);
     for (index = 0U; index < sizeof(predictor); ++index) {
         CHECK(predictor[index] == 129U);
     }
@@ -2934,7 +2943,7 @@ static void test_luma_zero_angle_frontier_matrix(void) {
         av2h_memory_fill(storage, 0xa5U, sizeof(storage));
         CHECK(av2h_luma_predict(
                   &mode, cases[case_index].width, cases[case_index].height,
-                  &references, predictor, cases[case_index].width) == AV2H_OK);
+                  &references, predictor, cases[case_index].width, prediction_scratch) == AV2H_OK);
         CHECK(storage[0U] == 0xa5U);
         CHECK(storage[sizeof(storage) - 1U] == 0xa5U);
         if (mode.mode == AV2H_INTRA_D203 &&
@@ -2949,7 +2958,7 @@ static void test_luma_zero_angle_frontier_matrix(void) {
             CHECK(av2h_luma_predict(
                       &mode, cases[case_index].width,
                       cases[case_index].height, &references, predictor,
-                      cases[case_index].width) == AV2H_OK);
+                      cases[case_index].width, prediction_scratch) == AV2H_OK);
             CHECK(sample_hash(
                       predictor, (size_t)cases[case_index].width *
                           cases[case_index].height) != ibp_hash);
@@ -2991,7 +3000,7 @@ static void test_luma_smooth_vertical_geometry_matrix(void) {
             av2h_memory_fill(storage, 0xa5U, sizeof(storage));
             CHECK(av2h_luma_predict(
                       &mode, width, height, &references,
-                      predictor, width) == AV2H_OK);
+                      predictor, width, prediction_scratch) == AV2H_OK);
             CHECK(storage[0U] == 0xa5U);
             CHECK(storage[sizeof(storage) - 1U] == 0xa5U);
         }
@@ -3054,7 +3063,7 @@ static void test_luma_smooth_partial_left_extension(void) {
         reconstructed[2U * 8U + 1U] = 1U;
         CHECK(av2h_luma_predict(
                   &mode, 16U, 16U, &references,
-                  expected, 16U) == AV2H_OK);
+                  expected, 16U, prediction_scratch) == AV2H_OK);
         CHECK(av2h_luma_reconstruct_to_plane(
             NULL, &leaf, &mode, &prefix, &transform, &block, &plane, &scratch) == AV2H_OK);
         for (index = 0U; index < sizeof(expected); ++index) {
@@ -3126,7 +3135,7 @@ static void test_chroma_angle_delta_matrix(void) {
                     if (chroma_mode.angle_delta != 0) {
                         CHECK(av2h_luma_predict(
                                   &luma_mode, width, height, &references,
-                                  luma_predictor, width) == AV2H_OK);
+                                  luma_predictor, width, prediction_scratch) == AV2H_OK);
                     }
                     if (chroma_mode.angle_delta != 0 &&
                         chroma_mode.angle_delta != -2 &&
@@ -6621,7 +6630,7 @@ static void test_frame_unsupported_status(void) {
     status = av2h_frame_header_closed_key_parse(
         (Av2hSpan){ input + frame_obu->payload_offset,
                      frame_obu->payload_size },
-        &sequence, &frame, NULL);
+        &sequence, &frame, &(Av2hFrameSyntaxStorage){0},  NULL);
     CHECK(status == AV2H_OK);
     if (status != AV2H_OK) return;
     status = av2h_tile_group_single_parse(
@@ -6752,7 +6761,7 @@ static void test_10bit_wp5_frame_fixture(void) {
     CHECK(av2h_frame_header_closed_key_parse(
         (Av2hSpan){ input + frame_obu->payload_offset,
                            frame_obu->payload_size },
-        &sequence, &frame, NULL) == AV2H_OK);
+        &sequence, &frame, &(Av2hFrameSyntaxStorage){0},  NULL) == AV2H_OK);
     CHECK(av2h_tile_group_single_parse(
               (Av2hSpan){ input + frame_obu->payload_offset,
                            frame_obu->payload_size },
@@ -7064,7 +7073,7 @@ static void test_10bit_wp9_gdf_stage(void) {
     CHECK(av2h_frame_header_closed_key_parse(
         (Av2hSpan){ input + frame_obu->payload_offset,
                            frame_obu->payload_size },
-        &sequence, &frame, NULL) == AV2H_OK);
+        &sequence, &frame, &(Av2hFrameSyntaxStorage){0},  NULL) == AV2H_OK);
     CHECK(frame.width == 65U && frame.height == 63U);
     CHECK(frame.gdf_mode == 1U);
     {
@@ -7193,7 +7202,7 @@ static void test_10bit_wp6_tiny_matrix(void) {
         status = av2h_frame_header_closed_key_parse(
             (Av2hSpan){ input + frame_obu->payload_offset,
                          frame_obu->payload_size },
-            &sequence, &frame, NULL);
+            &sequence, &frame, &(Av2hFrameSyntaxStorage){0},  NULL);
         CHECK(status == AV2H_OK);
         if (status != AV2H_OK) continue;
         status = av2h_tile_group_single_parse(

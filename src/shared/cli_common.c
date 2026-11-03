@@ -80,7 +80,6 @@ static Av2hStatus decode_image(Av2hSpan input, const Av2hCliAllocator *allocator
     const Av2hObu *frame_obu;
     Av2hSequenceState sequence;
     Av2hFrameState frame;
-    Av2hTileGroup group;
     Av2hOwnedMemory workspace_memory = {NULL, 0U};
     Av2hFrameDecodeWorkspace workspace;
     Av2hFilterWorkspace filter_workspace;
@@ -105,7 +104,7 @@ static Av2hStatus decode_image(Av2hSpan input, const Av2hCliAllocator *allocator
     }
     status = av2h_frame_header_closed_key_parse(
         (Av2hSpan){input.data + frame_obu->payload_offset, frame_obu->payload_size}, &sequence,
-        &frame, options->validate_format_first ? NULL : &image->error);
+        &frame, NULL, options->validate_format_first ? NULL : &image->error);
     if (status != AV2H_OK) {
         if (!options->validate_format_first) {
             image->error.offset += frame_obu->payload_offset;
@@ -118,7 +117,7 @@ static Av2hStatus decode_image(Av2hSpan input, const Av2hCliAllocator *allocator
         status = av2h_qmatrix_references_validate(&frame);
     if (status != AV2H_OK)
         return status;
-    status = av2h_tile_groups_ledger_parse(input, &ledger, &frame, &group);
+    status = av2h_tile_groups_ledger_validate(input, &ledger, &frame);
     if (status != AV2H_OK)
         return status;
     if (!options->validate_format_first) {
@@ -153,13 +152,32 @@ static Av2hStatus decode_image(Av2hSpan input, const Av2hCliAllocator *allocator
                                               workspace_memory.memory, workspace_memory.size,
                                               &workspace, &filter_workspace, &filter_storage);
     if (status == AV2H_OK) {
+        Av2hDecodePreparation *preparation = &workspace.decode_scratch->preparation;
+        av2h_memory_copy(&preparation->sequence, &sequence, sizeof(sequence));
+        preparation->group = &workspace.decode_scratch->group;
+        status = av2h_frame_header_closed_key_parse(
+            (Av2hSpan){input.data + frame_obu->payload_offset, frame_obu->payload_size},
+            &preparation->sequence, &preparation->frame, &workspace.decode_scratch->syntax,
+            options->validate_format_first ? NULL : &image->error);
+        if (status != AV2H_OK && !options->validate_format_first)
+            image->error.offset += frame_obu->payload_offset;
+        if (status == AV2H_OK) {
+            av2h_qmatrix_state_reset(&preparation->frame);
+            status = av2h_qmatrix_ledger_parse(input, &ledger, &preparation->frame, &image->error);
+        }
+        if (status == AV2H_OK)
+            status = av2h_qmatrix_references_validate(&preparation->frame);
+        if (status == AV2H_OK)
+            status = av2h_tile_groups_ledger_parse(input, &ledger, &preparation->frame,
+                                                   preparation->group);
 #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
         if (options->retain_trace)
             bind_trace(&image->diagnostic_memory, &workspace);
 #endif
-        status = av2h_decode_frame_group_planar_private(&group, &sequence, &frame, &workspace,
-                                                        image->output.memory, image->output.size,
-                                                        &image->result, options->execution);
+        if (status == AV2H_OK)
+            status = av2h_decode_frame_group_planar_private(
+                preparation->group, &preparation->sequence, &preparation->frame, &workspace,
+                image->output.memory, image->output.size, &image->result, options->execution);
     }
     if (image->diagnostic_memory.memory == NULL) {
         image->result.diagnostics = NULL;
@@ -179,8 +197,8 @@ static Av2hStatus decode_image(Av2hSpan input, const Av2hCliAllocator *allocator
     return AV2H_OK;
 }
 
-Av2hStatus av2h_cli_decode(Av2hSpan input, const Av2hCliAllocator *allocator,
-                           const Av2hCliDecodeOptions *options, Av2hCliImage *image) {
+AV2H_NOINLINE Av2hStatus av2h_cli_decode(Av2hSpan input, const Av2hCliAllocator *allocator,
+                                         const Av2hCliDecodeOptions *options, Av2hCliImage *image) {
     Av2hStatus status;
     if ((input.data == NULL && input.size != 0U) || allocator == NULL ||
         allocator->allocate == NULL || allocator->release == NULL || options == NULL ||

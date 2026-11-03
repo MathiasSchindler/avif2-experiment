@@ -991,15 +991,14 @@ av2h_chroma_reconstruct_u16(Av2hDecodeDiagnostics *diagnostics, const Av2hChroma
                             const Av2hCoeffPrefix *prefix, const Av2hTransformType *transform,
                             const Av2hCoeffBlock *coefficients, const uint16_t *predictor,
                             Av2hReconstructionScratchU16 *scratch,
-                            Av2hBlockReconstructionU16 *reconstruction,
+                            Av2hBlockReconstructionU16 *reconstruction, Av2hLeafMode *luma_mode,
                             const Av2hSampleDomain *domain) {
     if (!av2h_sample_domain_valid(domain))
         return AV2H_INVALID_ARGUMENT;
-    Av2hLeafMode luma_mode;
     const Av2hTxDescriptor *descriptor;
     Av2hStatus status;
     if (mode == NULL || prefix == NULL || transform == NULL || coefficients == NULL ||
-        predictor == NULL || scratch == NULL || reconstruction == NULL) {
+        predictor == NULL || scratch == NULL || reconstruction == NULL || luma_mode == NULL) {
         return AV2H_INVALID_ARGUMENT;
     }
     status = av2h_tx_descriptor_get(prefix->tx_size, &descriptor);
@@ -1011,14 +1010,14 @@ av2h_chroma_reconstruct_u16(Av2hDecodeDiagnostics *diagnostics, const Av2hChroma
                                               (uint8_t)(transform->primary_type == AV2H_TX_IDTX),
                                               mode->use_dpcm_uv, reconstruction, domain);
     } else {
-        av2h_memory_fill(&luma_mode, 0U, sizeof(luma_mode));
-        luma_mode.mode = mode->mode;
-        luma_mode.angle_delta = mode->angle_delta;
-        luma_mode.edge_ibp = mode->edge_ibp;
-        luma_mode.above_smooth = mode->above_smooth;
-        luma_mode.left_smooth = mode->left_smooth;
+        av2h_memory_fill(luma_mode, 0U, sizeof(*luma_mode));
+        luma_mode->mode = mode->mode;
+        luma_mode->angle_delta = mode->angle_delta;
+        luma_mode->edge_ibp = mode->edge_ibp;
+        luma_mode->above_smooth = mode->above_smooth;
+        luma_mode->left_smooth = mode->left_smooth;
         status = av2h_reconstruct_transform_generic_u16(
-            diagnostics, &luma_mode, prefix, transform, coefficients, predictor,
+            diagnostics, luma_mode, prefix, transform, coefficients, predictor,
             descriptor->output_width, scratch, reconstruction, domain);
     }
     return status;

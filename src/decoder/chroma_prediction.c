@@ -111,9 +111,9 @@ static void apply_ibp_dc(uint8_t *dst, size_t stride_samples, uint16_t width, ui
     }
 }
 
-Av2hStatus av2h_chroma_predict(const Av2hChromaLeafMode *mode, uint16_t width, uint16_t height,
-                               const Av2hLumaReferences *references, uint8_t *predictor,
-                               size_t predictor_stride_samples) {
+AV2H_NOINLINE Av2hStatus av2h_chroma_predict(const Av2hChromaLeafMode *mode, uint16_t width,
+                                             uint16_t height, const Av2hLumaReferences *references,
+                                             uint8_t *predictor, size_t predictor_stride_samples) {
     uint16_t row;
     uint16_t column;
     if (mode == NULL || references == NULL || predictor == NULL ||
@@ -161,7 +161,7 @@ Av2hStatus av2h_chroma_predict(const Av2hChromaLeafMode *mode, uint16_t width, u
         luma_mode.mode = mode->mode;
         luma_mode.angle_delta = mode->angle_delta;
         return av2h_luma_predict(&luma_mode, width, height, references, predictor,
-                                 predictor_stride_samples);
+                                 predictor_stride_samples, NULL);
     }
     if (mode->angle_delta == 0 && av2h_directional_base_angle(mode->mode) != 0 &&
         av2h_luma_prediction_dimension_supported(width) &&
@@ -183,7 +183,7 @@ Av2hStatus av2h_chroma_predict(const Av2hChromaLeafMode *mode, uint16_t width, u
         av2h_memory_fill(&luma_mode, 0U, sizeof(luma_mode));
         luma_mode.mode = mode->mode;
         return av2h_luma_predict(&luma_mode, width, height, references, predictor,
-                                 predictor_stride_samples);
+                                 predictor_stride_samples, NULL);
     }
     if (mode->mode == AV2H_INTRA_HORIZONTAL &&
         (mode->angle_delta == -3 || mode->angle_delta == -2) && width == 32U && height == 32U) {
@@ -193,7 +193,7 @@ Av2hStatus av2h_chroma_predict(const Av2hChromaLeafMode *mode, uint16_t width, u
         luma_mode.angle_delta = mode->angle_delta;
         luma_mode.enable_ibp = 1U;
         return av2h_luma_predict(&luma_mode, width, height, references, predictor,
-                                 predictor_stride_samples);
+                                 predictor_stride_samples, NULL);
     }
     if (mode->mode == AV2H_INTRA_HORIZONTAL &&
         (mode->angle_delta == -3 || mode->angle_delta == -2) && width == 32U && height == 16U) {
@@ -203,7 +203,7 @@ Av2hStatus av2h_chroma_predict(const Av2hChromaLeafMode *mode, uint16_t width, u
         luma_mode.angle_delta = mode->angle_delta;
         luma_mode.enable_ibp = 1U;
         return av2h_luma_predict(&luma_mode, width, height, references, predictor,
-                                 predictor_stride_samples);
+                                 predictor_stride_samples, NULL);
     }
     if (mode->mode == AV2H_INTRA_HORIZONTAL && mode->angle_delta == 1 && width == 16U &&
         height == 32U) {
@@ -213,7 +213,7 @@ Av2hStatus av2h_chroma_predict(const Av2hChromaLeafMode *mode, uint16_t width, u
         luma_mode.angle_delta = mode->angle_delta;
         luma_mode.enable_ibp = 1U;
         return av2h_luma_predict(&luma_mode, width, height, references, predictor,
-                                 predictor_stride_samples);
+                                 predictor_stride_samples, NULL);
     }
     if (mode->mode == AV2H_INTRA_VERTICAL && mode->angle_delta == 0 && width == 32U &&
         height == 16U) {

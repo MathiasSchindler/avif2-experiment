@@ -152,6 +152,7 @@ static uint32_t decode_result_context(const Av2hFrameDecodeResult *result) {
 }
 
 Av2hStatus av2h_decode_prepare(const Av2hHeifImage *image, Av2hDecodePreparation *preparation,
+                               Av2hFrameSyntaxStorage *storage, Av2hTileGroup *group,
                                Av2hError *error) {
     Av2hObu config_entries[16U];
     Av2hObu payload_entries[16U];
@@ -163,6 +164,7 @@ Av2hStatus av2h_decode_prepare(const Av2hHeifImage *image, Av2hDecodePreparation
     if (image == NULL || preparation == NULL) {
         return decode_fail(error, AV2H_INVALID_ARGUMENT, AV2H_CONTEXT_DECODE);
     }
+    preparation->group = group;
     status = av2h_obu_parse(image->source.config_obus, &config, error);
     if (status != AV2H_OK)
         return status;
@@ -181,7 +183,7 @@ Av2hStatus av2h_decode_prepare(const Av2hHeifImage *image, Av2hDecodePreparation
     status = av2h_frame_header_closed_key_parse(
         (Av2hSpan){image->source.item_payload.data + frame_obu->payload_offset,
                    frame_obu->payload_size},
-        &preparation->sequence, &preparation->frame, error);
+        &preparation->sequence, &preparation->frame, storage, error);
     if (status != AV2H_OK) {
         if (error != NULL)
             error->offset += frame_obu->payload_offset;
@@ -202,8 +204,10 @@ Av2hStatus av2h_decode_prepare(const Av2hHeifImage *image, Av2hDecodePreparation
     if (preparation->frame.width != image->width || preparation->frame.height != image->height) {
         return decode_fail(error, AV2H_INVALID_DATA, AV2H_CONTEXT_FRAME);
     }
-    status = av2h_tile_groups_ledger_parse(image->source.item_payload, &payload,
-                                           &preparation->frame, &preparation->group);
+    status = group != NULL ? av2h_tile_groups_ledger_parse(image->source.item_payload, &payload,
+                                                           &preparation->frame, group)
+                           : av2h_tile_groups_ledger_validate(image->source.item_payload, &payload,
+                                                              &preparation->frame);
     if (status != AV2H_OK) {
         return decode_fail(error, status, AV2H_CONTEXT_FRAME);
     }
@@ -225,7 +229,8 @@ Av2hStatus av2h_decode(Av2hSpan input, const Av2hInfo *info, void *workspace_mem
                        size_t workspace_size, void *output_memory, size_t output_size,
                        Av2hError *error) {
     Av2hInfo fresh;
-    Av2hDecodePreparation preparation;
+    Av2hDecodePreparation *preparation;
+    Av2hFrameDecodeScratch *scratch;
     Av2hFrameDecodeWorkspace workspace;
     Av2hFilterWorkspace filter_workspace;
     Av2hFilterWorkspaceStorage filter_storage;
@@ -261,18 +266,21 @@ Av2hStatus av2h_decode(Av2hSpan input, const Av2hInfo *info, void *workspace_mem
         ranges_overlap(output_memory, fresh.output_size, workspace_memory, fresh.workspace_size)) {
         return decode_fail(error, AV2H_INVALID_ARGUMENT, AV2H_CONTEXT_OUTPUT);
     }
-    status = av2h_decode_prepare(&fresh.image, &preparation, error);
+    scratch = workspace_memory;
+    preparation = &scratch->preparation;
+    status =
+        av2h_decode_prepare(&fresh.image, preparation, &scratch->syntax, &scratch->group, error);
     if (status != AV2H_OK)
         return status;
     status = av2h_frame_decode_workspace_init(
-        &preparation.sequence, &preparation.frame, fresh.image.pixel_format.bytes_per_sample,
-        &preparation.workspace, workspace_memory, workspace_size, &workspace, &filter_workspace,
+        &preparation->sequence, &preparation->frame, fresh.image.pixel_format.bytes_per_sample,
+        &preparation->workspace, workspace_memory, workspace_size, &workspace, &filter_workspace,
         &filter_storage);
     if (status != AV2H_OK) {
         return decode_fail(error, status, AV2H_CONTEXT_WORKSPACE);
     }
     if (fresh.image.pixel_format.bytes_per_sample == 2U) {
-        status = av2h_planar_output_bind_u16(&preparation.frame, output_memory, output_size,
+        status = av2h_planar_output_bind_u16(&preparation->frame, output_memory, output_size,
                                              &workspace.output_u16);
         if (status != AV2H_OK) {
             return decode_fail(error, status, AV2H_CONTEXT_OUTPUT);
@@ -280,7 +288,7 @@ Av2hStatus av2h_decode(Av2hSpan input, const Av2hInfo *info, void *workspace_mem
     }
     av2h_memory_fill(&result, 0U, sizeof(result));
     status = av2h_decode_frame_group_planar_private(
-        &preparation.group, &preparation.sequence, &preparation.frame, &workspace,
+        preparation->group, &preparation->sequence, &preparation->frame, &workspace,
         (uint8_t *)output_memory, output_size, &result, NULL);
     if (status != AV2H_OK) {
         status = decode_fail(error, status, decode_result_context(&result));

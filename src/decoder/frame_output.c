@@ -645,12 +645,11 @@ static Av2hStatus filter_and_output_frame(Av2hFrameDecodeContext *context, uint8
     return AV2H_OK;
 }
 
-static Av2hStatus decode_frame_tiles_planar(const Av2hSpan *tiles, size_t tile_count,
-                                            uint16_t start_tile, const Av2hSequenceState *sequence,
-                                            const Av2hFrameState *frame,
-                                            Av2hFrameDecodeWorkspace *workspace, uint8_t *output,
-                                            size_t output_size_bytes, Av2hFrameDecodeResult *result,
-                                            const Av2hExecution *execution) {
+static AV2H_NOINLINE Av2hStatus decode_frame_tiles_planar(
+    const Av2hSpan *tiles, size_t tile_count, uint16_t start_tile,
+    const Av2hSequenceState *sequence, const Av2hFrameState *frame,
+    Av2hFrameDecodeWorkspace *workspace, uint8_t *output, size_t output_size_bytes,
+    Av2hFrameDecodeResult *result, const Av2hExecution *execution) {
     Av2hFrameDecodeContext context;
     Av2hFrameDecodeResult decoded = {0};
     Av2hFilterWorkspaceLayout layout;

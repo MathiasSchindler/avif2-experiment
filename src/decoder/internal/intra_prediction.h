@@ -42,11 +42,9 @@ Av2hStatus av2h_predict_directional_idif_unfiltered(const Av2hLeafMode *mode, in
 Av2hStatus av2h_predict_d45_8x4_ibp(const Av2hLumaReferences *references, uint8_t *predictor,
                                     size_t predictor_stride_samples);
 
-Av2hStatus av2h_predict_luma_directional_feature(const Av2hLeafMode *mode, uint16_t width,
-                                                 uint16_t height,
-                                                 const Av2hLumaReferences *references,
-                                                 uint8_t *predictor,
-                                                 size_t predictor_stride_samples);
+Av2hStatus av2h_predict_luma_directional_feature(
+    const Av2hLeafMode *mode, uint16_t width, uint16_t height, const Av2hLumaReferences *references,
+    uint8_t *predictor, size_t predictor_stride_samples, uint8_t *secondary_predictor);
 
 Av2hStatus av2h_predict_d203_fallback(const Av2hLeafMode *mode, uint16_t width, uint16_t height,
                                       const Av2hLumaReferences *references, uint8_t *predictor,
@@ -185,7 +183,8 @@ Av2hStatus av2h_predict_d203_plus_three(uint16_t width, uint16_t height,
 Av2hStatus av2h_predict_multiline_u16(const Av2hLeafMode *mode, uint16_t width, uint16_t height,
                                       const Av2hLumaReferencesU16 *references, uint16_t *predictor,
                                       size_t predictor_stride_samples, uint8_t use_idif,
-                                      const Av2hSampleDomain *domain);
+                                      const Av2hSampleDomain *domain,
+                                      uint16_t *secondary_predictor);
 
 Av2hStatus av2h_predict_zone2_u16(const Av2hLeafMode *mode, uint16_t width, uint16_t height,
                                   const Av2hLumaReferencesU16 *references, uint16_t *predictor,
@@ -219,7 +218,8 @@ Av2hStatus av2h_luma_predict_u16_adjusted(const Av2hLeafMode *mode, uint16_t wid
                                           const Av2hLumaReferencesU16 *references,
                                           uint16_t *predictor, size_t predictor_stride_samples,
                                           int angle_adjust, uint8_t disable_edge_filter,
-                                          uint8_t use_idif, const Av2hSampleDomain *domain);
+                                          uint8_t use_idif, const Av2hSampleDomain *domain,
+                                          uint16_t *secondary_predictor);
 
 /* Edge pointers have five negative and 136 nonnegative sample slots. */
 void av2h_prepare_directional_edges(const Av2hLeafMode *mode, int angle, uint16_t width,

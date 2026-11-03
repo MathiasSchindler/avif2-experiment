@@ -527,6 +527,10 @@ static void read_wienerns_match_indices(Av2hBitReader *reader, unsigned int clas
 
 static void read_wienerns_frame_filter(Av2hBitReader *reader, const Av2hSequenceState *sequence,
                                        Av2hFrameState *frame, unsigned int plane) {
+    int16_t validation_filters[AV2H_WIENER_NONSEP_MAX_CLASSES][AV2H_WIENER_NONSEP_MAX_TAPS];
+    int16_t (*filters)[AV2H_WIENER_NONSEP_MAX_TAPS] = frame->restoration_frame_filter != NULL
+                                                          ? frame->restoration_frame_filter[plane]
+                                                          : validation_filters;
     const Av2hWienerNonsepParameters *parameters = av2h_wienerns_parameters(plane);
     unsigned int class_count = frame->restoration_num_filter_classes[plane];
     unsigned int no_pc_wiener = (sequence->lr_tools_disable_mask[0] >> AV2H_RESTORE_PC_WIENER) & 1U;
@@ -534,6 +538,8 @@ static void read_wienerns_frame_filter(Av2hBitReader *reader, const Av2hSequence
     uint32_t match_indices[AV2H_WIENER_NONSEP_MAX_CLASSES];
     uint8_t exact_match[AV2H_WIENER_NONSEP_MAX_CLASSES];
     unsigned int class_index;
+    if (frame->restoration_frame_filter == NULL)
+        av2h_memory_fill(validation_filters, 0U, sizeof(validation_filters));
     if (class_count == 0U || class_count > AV2H_WIENER_NONSEP_MAX_CLASSES ||
         (plane != 0U && class_count != 1U)) {
         frame_fail(reader, AV2H_INVALID_DATA);
@@ -552,14 +558,13 @@ static void read_wienerns_frame_filter(Av2hBitReader *reader, const Av2hSequence
         return;
     for (class_index = 0U; class_index < class_count; ++class_index) {
         int16_t predictor[AV2H_WIENER_NONSEP_MAX_TAPS];
-        int16_t *taps = frame->restoration_frame_filter[plane][class_index];
+        int16_t *taps = filters[class_index];
         unsigned int subset = 0U;
         unsigned int symmetric = 1U;
         unsigned int index;
         Av2hStatus status = av2h_wienerns_frame_predictor(
             plane, match_indices[class_index], class_index, class_count,
-            (const int16_t (*)[AV2H_WIENER_NONSEP_MAX_TAPS])frame->restoration_frame_filter[plane],
-            predictor);
+            (const int16_t (*)[AV2H_WIENER_NONSEP_MAX_TAPS])filters, predictor);
         if (status != AV2H_OK) {
             frame_fail(reader, status);
             return;
@@ -717,8 +722,9 @@ static uint16_t read_ccso_offsets(Av2hBitReader *reader, Av2hCcsoPlane *plane,
                     if (av2h_bit_reader_read(reader, 1U) == 0U)
                         break;
                 }
-                plane->filter_offset[(band << 4U) + (first << 2U) + second] =
-                    ccso_offset_from_index(unary, plane->scale_index);
+                if (plane->filter_offset != NULL)
+                    plane->filter_offset[(band << 4U) + (first << 2U) + second] =
+                        ccso_offset_from_index(unary, plane->scale_index);
                 ++count;
                 if (reader->status != AV2H_OK)
                     return count;
@@ -790,7 +796,8 @@ static Av2hStatus frame_diagnostic_fail(Av2hError *error, Av2hStatus status,
 }
 
 Av2hStatus av2h_frame_header_closed_key_parse(Av2hSpan payload, const Av2hSequenceState *sequence,
-                                              Av2hFrameState *frame, Av2hError *error) {
+                                              Av2hFrameState *frame,
+                                              Av2hFrameSyntaxStorage *storage, Av2hError *error) {
     Av2hBitReader reader;
     uint32_t multi_frame_header_id;
     uint32_t sequence_header_id;
@@ -799,6 +806,9 @@ Av2hStatus av2h_frame_header_closed_key_parse(Av2hSpan payload, const Av2hSequen
                                      AV2H_DIAGNOSTIC_SYNTAX_FRAME_PROFILE, 0U);
     }
     av2h_memory_fill(frame, 0U, sizeof(*frame));
+    if (storage != NULL)
+        av2h_memory_fill(storage, 0U, sizeof(*storage));
+    av2h_frame_syntax_storage_bind(frame, storage);
     frame->plane_count = (uint8_t)av2h_sequence_plane_count(sequence);
     frame->chroma_format_idc = sequence->info.chroma_format_idc;
     frame->ccso_unit_size =

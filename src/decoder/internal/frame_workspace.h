@@ -3,11 +3,6 @@
 
 #include "decoder/frame_output.h"
 
-typedef struct {
-    size_t size_bytes;
-    size_t alignment;
-} Av2hFrameDecodeWorkspaceLayout;
-
 Av2hStatus av2h_frame_decode_workspace_query(const Av2hSequenceState *sequence,
                                              const Av2hFrameState *frame, size_t bytes_per_sample,
                                              Av2hFrameDecodeWorkspaceLayout *layout);
