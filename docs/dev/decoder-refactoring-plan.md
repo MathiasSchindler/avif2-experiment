@@ -178,7 +178,7 @@ Target layout:
 - `coeff_level.c`: luma/chroma/FSC entropy reads and public forwarding entry
   points.
 
-Keep `Av2hFirstCoeffLevelCdfs` layout unchanged. The generated
+Keep `Av2hCoeffLevelCdfs` layout unchanged. The generated
 `coeff_cdf_*.inc` and `fsc_cdf_data.inc` files remain generator-owned data.
 
 Validation: `coeff-level-unit`, `coeff-unit`, relevant malformed vectors,
@@ -198,7 +198,7 @@ Target layout:
 - `transform.c`: syntax signaling and range-decoder reads.
 
 This phase does not move inverse-transform kernels; those belong to
-reconstruction phases. Keep `Av2hFirstTransformCdfs` layout and existing public
+reconstruction phases. Keep `Av2hTransformCdfs` layout and existing public
 private entry points stable.
 
 Validation: `transform-unit`, coefficient tests, exact entropy endpoint vectors,
@@ -221,7 +221,7 @@ Target layout:
 - `leaf_context.c`: neighbor derivation and context-state lifecycle.
 - `leaf.c`: luma/chroma mode orchestration and compatibility wrappers.
 
-Do not split the `Av2hFirstLeafMode` structure during move-only work. Its later
+Do not split the `Av2hLeafMode` structure during move-only work. Its later
 separation into syntax result and diagnostics belongs to Phase 9.
 
 Validation: restored `leaf-unit`, partition and tile tests, sanitizer gate, and

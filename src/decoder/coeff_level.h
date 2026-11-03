@@ -199,7 +199,7 @@ typedef struct {
     uint16_t adjusted_uv_base_lf[2U][8U][6U + 4U];
     uint16_t adjusted_uv_br[2U][3U][4U + 4U];
     uint8_t q_context;
-} Av2hFirstCoeffLevelCdfs;
+} Av2hCoeffLevelCdfs;
 
 Av2hStatus av2h_coeff_dequant_steps(
     const Av2hSequenceState *sequence,
@@ -229,60 +229,60 @@ Av2hStatus av2h_coeff_qmatrix_dequant_step(
     uint16_t position,
     uint32_t dequant_step,
     uint32_t *weighted_step);
-Av2hStatus av2h_first_coeff_level_cdfs_init(Av2hFirstCoeffLevelCdfs *cdfs);
-Av2hStatus av2h_first_coeff_level_cdfs_init_for_q(
-    Av2hFirstCoeffLevelCdfs *cdfs,
+Av2hStatus av2h_coeff_level_cdfs_init(Av2hCoeffLevelCdfs *cdfs);
+Av2hStatus av2h_coeff_level_cdfs_init_for_q(
+    Av2hCoeffLevelCdfs *cdfs,
     Av2hQIndex base_q_index);
 Av2hStatus av2h_coeff_block_read(
     Av2hRangeDecoder *decoder,
-    Av2hFirstCoeffLevelCdfs *cdfs,
+    Av2hCoeffLevelCdfs *cdfs,
     const Av2hSequenceState *sequence,
     const Av2hFrameState *frame,
-    const Av2hFirstLeafMode *mode,
-    const Av2hFirstCoeffPrefix *prefix,
-    const Av2hFirstTransformType *transform,
+    const Av2hLeafMode *mode,
+    const Av2hCoeffPrefix *prefix,
+    const Av2hTransformType *transform,
     uint8_t dc_sign_context,
-    Av2hFirstCoeffBlock *block);
+    Av2hCoeffBlock *block);
 Av2hStatus av2h_coeff_block_read_with_state(
     Av2hRangeDecoder *decoder,
-    Av2hFirstCoeffLevelCdfs *cdfs,
+    Av2hCoeffLevelCdfs *cdfs,
     const Av2hSequenceState *sequence,
     const Av2hFrameState *frame,
     const Av2hPartitionNode *leaf,
-    const Av2hFirstLeafMode *mode,
-    const Av2hFirstCoeffPrefix *prefix,
-    const Av2hFirstTransformType *transform,
+    const Av2hLeafMode *mode,
+    const Av2hCoeffPrefix *prefix,
+    const Av2hTransformType *transform,
     Av2hCoeffContextState *state,
-    Av2hFirstCoeffBlock *block);
-Av2hStatus av2h_first_coeff_block_read(
+    Av2hCoeffBlock *block);
+Av2hStatus av2h_coeff_block_read_default_context(
     Av2hRangeDecoder *decoder,
-    Av2hFirstCoeffLevelCdfs *cdfs,
+    Av2hCoeffLevelCdfs *cdfs,
     const Av2hSequenceState *sequence,
     const Av2hFrameState *frame,
-    const Av2hFirstLeafMode *mode,
-    const Av2hFirstCoeffPrefix *prefix,
-    const Av2hFirstTransformType *transform,
-    Av2hFirstCoeffBlock *block);
-Av2hStatus av2h_first_chroma_coeff_block_read(
+    const Av2hLeafMode *mode,
+    const Av2hCoeffPrefix *prefix,
+    const Av2hTransformType *transform,
+    Av2hCoeffBlock *block);
+Av2hStatus av2h_chroma_coeff_block_read(
     Av2hRangeDecoder *decoder,
-    Av2hFirstCoeffLevelCdfs *cdfs,
+    Av2hCoeffLevelCdfs *cdfs,
     const Av2hSequenceState *sequence,
     const Av2hFrameState *frame,
     uint8_t segment_id,
     uint8_t plane,
-    const Av2hFirstCoeffPrefix *prefix,
-    Av2hFirstCoeffBlock *block);
+    const Av2hCoeffPrefix *prefix,
+    Av2hCoeffBlock *block);
 Av2hStatus av2h_chroma_coeff_block_read_with_state(
     Av2hRangeDecoder *decoder,
-    Av2hFirstCoeffLevelCdfs *cdfs,
+    Av2hCoeffLevelCdfs *cdfs,
     const Av2hSequenceState *sequence,
     const Av2hFrameState *frame,
     const Av2hPartitionNode *leaf,
     uint8_t segment_id,
     uint8_t plane,
-    const Av2hFirstCoeffPrefix *prefix,
-    const Av2hFirstTransformType *transform,
+    const Av2hCoeffPrefix *prefix,
+    const Av2hTransformType *transform,
     Av2hCoeffContextState *state,
-    Av2hFirstCoeffBlock *block);
+    Av2hCoeffBlock *block);
 
 #endif

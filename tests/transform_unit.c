@@ -15,8 +15,8 @@ static int failures;
     } while (0)
 
 static void test_secondary_adst_set_adaptation_metadata(void) {
-    Av2hFirstTransformCdfs cdfs;
-    CHECK(av2h_first_transform_cdfs_init(&cdfs) == AV2H_OK);
+    Av2hTransformCdfs cdfs;
+    CHECK(av2h_transform_cdfs_init(&cdfs) == AV2H_OK);
     CHECK(cdfs.secondary_adst_set[4U] == 0U);
     CHECK(cdfs.secondary_adst_set[5U] == 3U);
     CHECK(cdfs.secondary_adst_set[6U] == 3U);
@@ -30,7 +30,7 @@ static void check_fixture(const char *name,
                           uint16_t width,
                           uint16_t height,
                           Av2hFrameState frame,
-                          Av2hFirstTxType expected_type,
+                          Av2hTxType expected_type,
                           uint8_t expected_primary_signaled,
                           uint8_t expected_primary_symbol,
                           uint8_t expected_secondary_signaled,
@@ -42,20 +42,20 @@ static void check_fixture(const char *name,
     Av2hRangeDecoder decoder;
     Av2hPartitionCdfs partition_cdfs;
     Av2hLeafCdfs leaf_cdfs;
-    Av2hFirstCoeffCdfs coeff_cdfs;
-    Av2hFirstTransformCdfs transform_cdfs;
-    Av2hFirstLeafPath path;
-    Av2hFirstLeafMode mode;
-    Av2hFirstCoeffPrefix prefix;
-    Av2hFirstTransformType transform;
+    Av2hCoeffCdfs coeff_cdfs;
+    Av2hTransformCdfs transform_cdfs;
+    Av2hLeafPath path;
+    Av2hLeafMode mode;
+    Av2hCoeffPrefix prefix;
+    Av2hTransformType transform;
     Av2hStatus status;
     sequence.enable_sdp = 1U;
     sequence.enable_idtx_intra = 1U;
     sequence.enable_ist = 1U;
     CHECK(av2h_partition_cdfs_init(&partition_cdfs) == AV2H_OK);
     CHECK(av2h_leaf_cdfs_init(&leaf_cdfs) == AV2H_OK);
-    CHECK(av2h_first_coeff_cdfs_init(&coeff_cdfs) == AV2H_OK);
-    CHECK(av2h_first_transform_cdfs_init(&transform_cdfs) == AV2H_OK);
+    CHECK(av2h_coeff_cdfs_init(&coeff_cdfs) == AV2H_OK);
+    CHECK(av2h_transform_cdfs_init(&transform_cdfs) == AV2H_OK);
     CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
     CHECK(av2h_partition_first_leaf_read(
               &decoder, &partition_cdfs, width, height, 1U, &path) == AV2H_OK);
@@ -65,7 +65,7 @@ static void check_fixture(const char *name,
     CHECK(av2h_first_coeff_prefix_read(
               &decoder, &coeff_cdfs, &frame, &path.leaf, &mode, &prefix) ==
           AV2H_OK);
-    status = av2h_first_transform_type_read(
+    status = av2h_transform_type_read(
         &decoder, &transform_cdfs, &sequence, &frame, &mode, &prefix,
         &transform);
     if (status != AV2H_OK) {
@@ -151,15 +151,15 @@ static void test_arguments(void) {
         22278U, 17374U, 10562U, 0U, 0U, 2U, 3U, 4U
     };
     Av2hRangeDecoder decoder;
-    Av2hFirstTransformCdfs cdfs;
+    Av2hTransformCdfs cdfs;
     Av2hSequenceState sequence = { 0 };
     Av2hFrameState frame = { 0 };
-    Av2hFirstLeafMode mode = { 0 };
-    Av2hFirstCoeffPrefix prefix = { 0 };
-    Av2hFirstTransformType transform;
-    CHECK(sizeof(Av2hFirstTransformCdfs) == 886U);
-    CHECK(av2h_first_transform_cdfs_init(0) == AV2H_INVALID_ARGUMENT);
-    CHECK(av2h_first_transform_cdfs_init(&cdfs) == AV2H_OK);
+    Av2hLeafMode mode = { 0 };
+    Av2hCoeffPrefix prefix = { 0 };
+    Av2hTransformType transform;
+    CHECK(sizeof(Av2hTransformCdfs) == 886U);
+    CHECK(av2h_transform_cdfs_init(0) == AV2H_INVALID_ARGUMENT);
+    CHECK(av2h_transform_cdfs_init(&cdfs) == AV2H_OK);
     for (size_t index = 0U;
          index < sizeof(primary_size2) / sizeof(primary_size2[0]); ++index) {
         CHECK(cdfs.primary_size2[index] == primary_size2[index]);
@@ -171,42 +171,42 @@ static void test_arguments(void) {
         CHECK(cdfs.intrabc_secondary[AV2H_TX_SQUARE_16][index] ==
               intrabc_secondary_16[index]);
     }
-    CHECK(av2h_first_transform_type_read(
+    CHECK(av2h_transform_type_read(
               0, &cdfs, &sequence, &frame, &mode, &prefix, &transform) ==
           AV2H_INVALID_ARGUMENT);
     frame.base_q_index = 128U;
     frame.reduced_tx_set = 1U;
     prefix.eob = 2U;
-    CHECK(av2h_first_transform_type_read(
+    CHECK(av2h_transform_type_read(
               &decoder, &cdfs, &sequence, &frame, &mode, &prefix,
               &transform) == AV2H_UNSUPPORTED);
 }
 
 static void test_fsc_single_coefficient_uses_idtx(void) {
     static const unsigned char bytes[] = { 0U, 0U, 0U, 0U };
-    static const Av2hFirstTxSize fsc_sizes[] = {
+    static const Av2hTxSize fsc_sizes[] = {
         AV2H_TX_4X4, AV2H_TX_4X8, AV2H_TX_8X4,
         AV2H_TX_8X16, AV2H_TX_16X4
     };
     Av2hSpan span = { bytes, sizeof(bytes) };
-    Av2hFirstTransformCdfs cdfs;
+    Av2hTransformCdfs cdfs;
     Av2hSequenceState sequence = { 0 };
     Av2hFrameState frame = { 0 };
-    Av2hFirstLeafMode mode = { 0 };
-    Av2hFirstCoeffPrefix prefix = { 0 };
+    Av2hLeafMode mode = { 0 };
+    Av2hCoeffPrefix prefix = { 0 };
     size_t index;
 
     frame.base_q_index = 128U;
     mode.fsc_mode = 1U;
     prefix.eob = 1U;
-    CHECK(av2h_first_transform_cdfs_init(&cdfs) == AV2H_OK);
+    CHECK(av2h_transform_cdfs_init(&cdfs) == AV2H_OK);
     for (index = 0U; index < sizeof(fsc_sizes) / sizeof(fsc_sizes[0]);
          ++index) {
         Av2hRangeDecoder decoder;
-        Av2hFirstTransformType transform;
+        Av2hTransformType transform;
         prefix.tx_size = fsc_sizes[index];
         CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
-        CHECK(av2h_first_transform_type_read(
+        CHECK(av2h_transform_type_read(
                   &decoder, &cdfs, &sequence, &frame, &mode, &prefix,
                   &transform) == AV2H_OK);
         CHECK(transform.primary_type == AV2H_TX_IDTX);
@@ -218,12 +218,12 @@ static void test_fsc_single_coefficient_uses_idtx(void) {
     }
 }
 
-static void check_primary_map(Av2hFirstTxSize tx_size,
-                              Av2hFirstLeafIntraMode mode,
+static void check_primary_map(Av2hTxSize tx_size,
+                              Av2hIntraMode mode,
                               uint8_t long_side_symbol,
                               uint8_t primary_symbol,
-                              Av2hFirstTxType expected_type) {
-    Av2hFirstTxType tx_type = AV2H_TX_TYPE_INVALID;
+                              Av2hTxType expected_type) {
+    Av2hTxType tx_type = AV2H_TX_TYPE_INVALID;
     CHECK(av2h_primary_tx_type_map(
               tx_size, mode, long_side_symbol, primary_symbol, &tx_type) ==
           AV2H_OK);
@@ -231,7 +231,7 @@ static void check_primary_map(Av2hFirstTxSize tx_size,
 }
 
 static void test_emerald_primary_mappings(void) {
-    Av2hFirstTxType tx_type;
+    Av2hTxType tx_type;
     check_primary_map(AV2H_TX_32X8, AV2H_INTRA_DC, 1U, 1U,
                       AV2H_TX_ADST_DCT);
     check_primary_map(AV2H_TX_32X32, AV2H_INTRA_SMOOTH, 0U, 0U,
@@ -278,16 +278,16 @@ static void test_v_flipadst_primary_mappings(void) {
 
 #if 0
 static void test_dct_adst_primary_mappings(void) {
-    static const Av2hFirstTxSize compact_sizes[] = {
+    static const Av2hTxSize compact_sizes[] = {
         AV2H_TX_4X4, AV2H_TX_4X8, AV2H_TX_8X4,
         AV2H_TX_4X16, AV2H_TX_16X4, AV2H_TX_8X8,
         AV2H_TX_8X16, AV2H_TX_16X8, AV2H_TX_16X16
     };
-    static const Av2hFirstTxSize tall_sizes[] = {
+    static const Av2hTxSize tall_sizes[] = {
         AV2H_TX_4X32, AV2H_TX_8X32, AV2H_TX_16X32,
         AV2H_TX_4X64, AV2H_TX_8X64, AV2H_TX_16X64
     };
-    Av2hFirstTxType tx_type;
+    Av2hTxType tx_type;
     size_t size_index;
     size_t mode_index;
 
@@ -300,7 +300,7 @@ static void test_dct_adst_primary_mappings(void) {
                 mode_index == AV2H_INTRA_PAETH ? 2U : 3U;
             check_primary_map(
                 compact_sizes[size_index],
-                (Av2hFirstLeafIntraMode)mode_index, 0U, symbol,
+                (Av2hIntraMode)mode_index, 0U, symbol,
                 AV2H_TX_DCT_ADST);
         }
     }
@@ -311,7 +311,7 @@ static void test_dct_adst_primary_mappings(void) {
              mode_index <= AV2H_INTRA_PAETH; ++mode_index) {
             check_primary_map(
                 tall_sizes[size_index],
-                (Av2hFirstLeafIntraMode)mode_index, 1U, 1U,
+                (Av2hIntraMode)mode_index, 1U, 1U,
                 AV2H_TX_DCT_ADST);
         }
     }
@@ -322,12 +322,12 @@ static void test_dct_adst_primary_mappings(void) {
 #endif
 
 static void test_adst_dct_primary_mappings(void) {
-    static const Av2hFirstTxSize compact_sizes[] = {
+    static const Av2hTxSize compact_sizes[] = {
         AV2H_TX_4X4, AV2H_TX_4X8, AV2H_TX_8X4,
         AV2H_TX_4X16, AV2H_TX_16X4, AV2H_TX_8X8,
         AV2H_TX_8X16, AV2H_TX_16X8, AV2H_TX_16X16
     };
-    static const Av2hFirstTxSize wide_sizes[] = {
+    static const Av2hTxSize wide_sizes[] = {
         AV2H_TX_32X4, AV2H_TX_32X8, AV2H_TX_32X16,
         AV2H_TX_64X4, AV2H_TX_64X8, AV2H_TX_64X16
     };
@@ -342,7 +342,7 @@ static void test_adst_dct_primary_mappings(void) {
             if (size_index < 5U && mode_index == AV2H_INTRA_PAETH) continue;
             check_primary_map(
                 compact_sizes[size_index],
-                (Av2hFirstLeafIntraMode)mode_index, 0U, 2U,
+                (Av2hIntraMode)mode_index, 0U, 2U,
                 AV2H_TX_ADST_DCT);
         }
     }
@@ -353,7 +353,7 @@ static void test_adst_dct_primary_mappings(void) {
              mode_index <= AV2H_INTRA_PAETH; ++mode_index) {
             check_primary_map(
                 wide_sizes[size_index],
-                (Av2hFirstLeafIntraMode)mode_index, 1U, 1U,
+                (Av2hIntraMode)mode_index, 1U, 1U,
                 AV2H_TX_ADST_DCT);
         }
     }
@@ -362,7 +362,7 @@ static void test_adst_dct_primary_mappings(void) {
 #if 0
 static void test_adst_flipadst_primary_mappings(void) {
     static const struct {
-        Av2hFirstTxSize tx_size;
+        Av2hTxSize tx_size;
         uint8_t size_class;
     } compact_sizes[] = {
         { AV2H_TX_4X4, 0U }, { AV2H_TX_4X8, 0U },
@@ -392,10 +392,10 @@ static void test_adst_flipadst_primary_mappings(void) {
             uint8_t symbol;
             for (symbol = 0U; symbol < AV2H_PRIMARY_TX_TYPE_SYMBOLS;
                  ++symbol) {
-                Av2hFirstTxType tx_type = AV2H_TX_TYPE_INVALID;
+                Av2hTxType tx_type = AV2H_TX_TYPE_INVALID;
                 Av2hStatus status = av2h_primary_tx_type_map(
                     compact_sizes[size_index].tx_size,
-                    (Av2hFirstLeafIntraMode)mode_index, 0U, symbol,
+                    (Av2hIntraMode)mode_index, 0U, symbol,
                     &tx_type);
                 if (symbol == expected_symbol) {
                     CHECK(status == AV2H_OK);
@@ -410,7 +410,7 @@ static void test_adst_flipadst_primary_mappings(void) {
 #endif
 
 static void test_idtx_primary_mappings(void) {
-    static const Av2hFirstTxSize idtx_sizes[] = {
+    static const Av2hTxSize idtx_sizes[] = {
         AV2H_TX_4X32, AV2H_TX_32X4, AV2H_TX_8X32,
         AV2H_TX_32X8, AV2H_TX_16X32, AV2H_TX_32X16
     };
@@ -423,19 +423,19 @@ static void test_idtx_primary_mappings(void) {
              mode_index <= AV2H_INTRA_PAETH; ++mode_index) {
             check_primary_map(
                 idtx_sizes[size_index],
-                (Av2hFirstLeafIntraMode)mode_index, 0U, 3U, AV2H_TX_IDTX);
+                (Av2hIntraMode)mode_index, 0U, 3U, AV2H_TX_IDTX);
         }
     }
 }
 
-static void check_secondary_signal(Av2hFirstTxSize tx_size,
-                                   Av2hFirstLeafIntraMode mode_value,
+static void check_secondary_signal(Av2hTxSize tx_size,
+                                   Av2hIntraMode mode_value,
                                    uint16_t eob,
-                                   Av2hFirstTxType primary_type,
+                                   Av2hTxType primary_type,
                                    uint8_t expected) {
     Av2hSequenceState sequence = { 0 };
-    Av2hFirstLeafMode mode = { 0 };
-    Av2hFirstCoeffPrefix coeff = { 0 };
+    Av2hLeafMode mode = { 0 };
+    Av2hCoeffPrefix coeff = { 0 };
     uint8_t signaled = 0U;
     sequence.enable_ist = 1U;
     mode.mode = mode_value;
@@ -448,8 +448,8 @@ static void check_secondary_signal(Av2hFirstTxSize tx_size,
 
 static void test_emerald_secondary_signaling(void) {
     Av2hSequenceState sequence = { 0 };
-    Av2hFirstLeafMode mode = { 0 };
-    Av2hFirstCoeffPrefix coeff = { 0 };
+    Av2hLeafMode mode = { 0 };
+    Av2hCoeffPrefix coeff = { 0 };
     uint8_t signaled;
     check_secondary_signal(
         AV2H_TX_32X32, AV2H_INTRA_SMOOTH, 19U, AV2H_TX_DCT_DCT, 1U);
@@ -511,7 +511,7 @@ static void test_emerald_secondary_signaling(void) {
 
 static void test_chroma_derived_transform_types(void) {
     static const unsigned char bytes[] = { 0U, 0U, 0U, 0U };
-    static const Av2hFirstTxType mode_types[13U] = {
+    static const Av2hTxType mode_types[13U] = {
         AV2H_TX_DCT_DCT,
         AV2H_TX_ADST_DCT,
         AV2H_TX_DCT_ADST,
@@ -527,19 +527,19 @@ static void test_chroma_derived_transform_types(void) {
         AV2H_TX_ADST_ADST
     };
     Av2hSpan span = { bytes, sizeof(bytes) };
-    Av2hFirstTransformCdfs cdfs;
+    Av2hTransformCdfs cdfs;
     Av2hFrameState frame = { 0 };
-    Av2hFirstChromaMode mode = { 0 };
-    Av2hFirstCoeffPrefix prefix = { 0 };
+    Av2hChromaLeafMode mode = { 0 };
+    Av2hCoeffPrefix prefix = { 0 };
     size_t mode_index;
 
     prefix.tx_size = AV2H_TX_16X16;
     prefix.eob = 1U;
-    CHECK(av2h_first_transform_cdfs_init(&cdfs) == AV2H_OK);
+    CHECK(av2h_transform_cdfs_init(&cdfs) == AV2H_OK);
     for (mode_index = 0U; mode_index < 13U; ++mode_index) {
         Av2hRangeDecoder decoder;
-        Av2hFirstTransformType transform;
-        mode.mode = (Av2hFirstLeafIntraMode)mode_index;
+        Av2hTransformType transform;
+        mode.mode = (Av2hIntraMode)mode_index;
         CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
         CHECK(av2h_chroma_transform_type_read(
                   &decoder, &cdfs, &frame, &mode, 1U, 1U, &prefix,
@@ -554,7 +554,7 @@ static void test_chroma_derived_transform_types(void) {
     mode.mode = AV2H_INTRA_D203;
     {
         Av2hRangeDecoder decoder;
-        Av2hFirstTransformType transform;
+        Av2hTransformType transform;
         CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
         CHECK(av2h_chroma_transform_type_read(
                   &decoder, &cdfs, &frame, &mode, 1U, 1U, &prefix,
@@ -564,13 +564,13 @@ static void test_chroma_derived_transform_types(void) {
 
     mode.mode = AV2H_INTRA_SMOOTH;
     {
-        static const Av2hFirstTxSize sizes[] = {
+        static const Av2hTxSize sizes[] = {
             AV2H_TX_16X32, AV2H_TX_32X16
         };
         size_t size_index;
         for (size_index = 0U; size_index < 2U; ++size_index) {
             Av2hRangeDecoder decoder;
-            Av2hFirstTransformType transform;
+            Av2hTransformType transform;
             prefix.tx_size = sizes[size_index];
             CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
             CHECK(av2h_chroma_transform_type_read(
@@ -584,7 +584,7 @@ static void test_chroma_derived_transform_types(void) {
     mode.mode = AV2H_INTRA_VERTICAL;
     {
         Av2hRangeDecoder decoder;
-        Av2hFirstTransformType transform;
+        Av2hTransformType transform;
         CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
         CHECK(av2h_chroma_transform_type_read(
                   &decoder, &cdfs, &frame, &mode, 1U, 1U, &prefix,
@@ -595,7 +595,7 @@ static void test_chroma_derived_transform_types(void) {
     mode.mode = AV2H_INTRA_HORIZONTAL;
     {
         Av2hRangeDecoder decoder;
-        Av2hFirstTransformType transform;
+        Av2hTransformType transform;
         CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
         CHECK(av2h_chroma_transform_type_read(
                   &decoder, &cdfs, &frame, &mode, 1U, 1U, &prefix,
@@ -607,7 +607,7 @@ static void test_chroma_derived_transform_types(void) {
     frame.reduced_tx_set = 1U;
     {
         Av2hRangeDecoder decoder;
-        Av2hFirstTransformType transform;
+        Av2hTransformType transform;
         CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
         CHECK(av2h_chroma_transform_type_read(
                   &decoder, &cdfs, &frame, &mode, 1U, 1U, &prefix,
@@ -620,7 +620,7 @@ static void test_chroma_derived_transform_types(void) {
     prefix.eob = 0U;
     {
         Av2hRangeDecoder decoder;
-        Av2hFirstTransformType transform;
+        Av2hTransformType transform;
         CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
         CHECK(av2h_chroma_transform_type_read(
                   &decoder, &cdfs, &frame, &mode, 1U, 1U, &prefix,
@@ -633,8 +633,8 @@ static void test_chroma_derived_transform_types(void) {
     {
         Av2hRangeDecoder u_decoder;
         Av2hRangeDecoder v_decoder;
-        Av2hFirstTransformType transform;
-        CHECK(av2h_first_transform_cdfs_init(&cdfs) == AV2H_OK);
+        Av2hTransformType transform;
+        CHECK(av2h_transform_cdfs_init(&cdfs) == AV2H_OK);
         CHECK(av2h_range_init(&u_decoder, &span, 1U) == AV2H_OK);
         CHECK(av2h_chroma_transform_type_read(
                   &u_decoder, &cdfs, &frame, &mode, 1U, 1U, &prefix,
@@ -661,8 +661,8 @@ static void test_luma_wide_angle_transform_mapping(void) {
     Av2hSpan span = { bytes, sizeof(bytes) };
     Av2hSequenceState sequence = { 0 };
     Av2hFrameState frame = { 0 };
-    Av2hFirstLeafMode mode = { 0 };
-    Av2hFirstCoeffPrefix prefix = { 0 };
+    Av2hLeafMode mode = { 0 };
+    Av2hCoeffPrefix prefix = { 0 };
     uint8_t found = 0U;
     unsigned int value;
 
@@ -672,12 +672,12 @@ static void test_luma_wide_angle_transform_mapping(void) {
     prefix.eob = 32U;
     for (value = 0U; value < 256U && found == 0U; ++value) {
         Av2hRangeDecoder decoder;
-        Av2hFirstTransformCdfs cdfs;
-        Av2hFirstTransformType transform;
+        Av2hTransformCdfs cdfs;
+        Av2hTransformType transform;
         bytes[0] = (unsigned char)value;
-        CHECK(av2h_first_transform_cdfs_init(&cdfs) == AV2H_OK);
+        CHECK(av2h_transform_cdfs_init(&cdfs) == AV2H_OK);
         CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
-        if (av2h_first_transform_type_read(
+        if (av2h_transform_type_read(
                 &decoder, &cdfs, &sequence, &frame, &mode, &prefix,
                 &transform) == AV2H_OK && transform.primary_symbol == 5U) {
             CHECK(transform.primary_type == AV2H_TX_ADST_FLIPADST);
@@ -693,12 +693,12 @@ static void test_luma_wide_angle_transform_mapping(void) {
     found = 0U;
     for (value = 0U; value < 256U && found == 0U; ++value) {
         Av2hRangeDecoder decoder;
-        Av2hFirstTransformCdfs cdfs;
-        Av2hFirstTransformType transform;
+        Av2hTransformCdfs cdfs;
+        Av2hTransformType transform;
         bytes[0] = (unsigned char)value;
-        CHECK(av2h_first_transform_cdfs_init(&cdfs) == AV2H_OK);
+        CHECK(av2h_transform_cdfs_init(&cdfs) == AV2H_OK);
         CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
-        if (av2h_first_transform_type_read(
+        if (av2h_transform_type_read(
                 &decoder, &cdfs, &sequence, &frame, &mode, &prefix,
                 &transform) == AV2H_OK && transform.primary_symbol == 4U) {
             CHECK(transform.primary_type == AV2H_TX_FLIPADST_DCT);
@@ -713,19 +713,19 @@ static void test_16x4_d203_uses_size0_cdf(void) {
     Av2hSpan span = { bytes, sizeof(bytes) };
     Av2hSequenceState sequence = { 0 };
     Av2hFrameState frame = { 0 };
-    Av2hFirstLeafMode mode = { 0 };
-    Av2hFirstCoeffPrefix prefix = { 0 };
-    Av2hFirstTransformCdfs cdfs;
-    Av2hFirstTransformType transform;
+    Av2hLeafMode mode = { 0 };
+    Av2hCoeffPrefix prefix = { 0 };
+    Av2hTransformCdfs cdfs;
+    Av2hTransformType transform;
     Av2hRangeDecoder decoder;
 
     mode.mode = AV2H_INTRA_D203;
     mode.angle_delta = -2;
     prefix.tx_size = AV2H_TX_16X4;
     prefix.eob = 3U;
-    CHECK(av2h_first_transform_cdfs_init(&cdfs) == AV2H_OK);
+    CHECK(av2h_transform_cdfs_init(&cdfs) == AV2H_OK);
     CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
-    CHECK(av2h_first_transform_type_read(
+    CHECK(av2h_transform_type_read(
               &decoder, &cdfs, &sequence, &frame, &mode, &prefix,
               &transform) == AV2H_OK);
     CHECK(transform.primary_signaled != 0U);
@@ -741,14 +741,14 @@ static void test_16x4_d203_uses_size0_cdf(void) {
 static void test_chroma_wide_angle_uses_angle_delta(void) {
     static const unsigned char bytes[] = { 0U, 0U, 0U, 0U };
     Av2hSpan span = { bytes, sizeof(bytes) };
-    Av2hFirstTransformCdfs cdfs;
+    Av2hTransformCdfs cdfs;
     Av2hFrameState frame = { 0 };
-    Av2hFirstChromaMode mode = { 0 };
-    Av2hFirstCoeffPrefix prefix = { 0 };
+    Av2hChromaLeafMode mode = { 0 };
+    Av2hCoeffPrefix prefix = { 0 };
     Av2hRangeDecoder decoder;
-    Av2hFirstTransformType transform;
+    Av2hTransformType transform;
 
-    CHECK(av2h_first_transform_cdfs_init(&cdfs) == AV2H_OK);
+    CHECK(av2h_transform_cdfs_init(&cdfs) == AV2H_OK);
     prefix.tx_size = AV2H_TX_4X16;
     prefix.eob = 1U;
     mode.mode = AV2H_INTRA_D67;

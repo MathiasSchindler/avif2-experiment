@@ -31,7 +31,7 @@ typedef enum {
     AV2H_TX_64X4 = 24,
     AV2H_TX_SIZE_COUNT = 25,
     AV2H_TX_INVALID = 255
-} Av2hFirstTxSize;
+} Av2hTxSize;
 
 typedef enum {
     AV2H_TX_SQUARE_4 = 0,
@@ -63,7 +63,7 @@ typedef enum {
 } Av2hTxSignalingClass;
 
 typedef struct {
-    Av2hFirstTxSize tx_size;
+    Av2hTxSize tx_size;
     uint8_t output_width;
     uint8_t output_height;
     uint8_t coefficient_width;
@@ -77,7 +77,7 @@ typedef struct {
 } Av2hTxDescriptor;
 
 Av2hStatus av2h_tx_descriptor_get(
-    Av2hFirstTxSize tx_size,
+    Av2hTxSize tx_size,
     const Av2hTxDescriptor **descriptor);
 Av2hStatus av2h_luma_tx_descriptor_get(
     Av2hBlockSize block_size,

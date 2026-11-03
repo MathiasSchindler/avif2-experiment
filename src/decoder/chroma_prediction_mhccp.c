@@ -717,7 +717,7 @@ static Av2hStatus mhccp_predict_direction01(
 }
 Av2hStatus av2h_mhccp_predict_observed(
     Av2hDecodeDiagnostics *diagnostics,
-    const Av2hFirstChromaMode *mode,
+    const Av2hChromaLeafMode *mode,
     const Av2hReconstructionPlane *luma_plane,
     const Av2hReconstructionPlane *chroma_plane,
     uint16_t block_x,
@@ -1021,7 +1021,7 @@ static uint16_t mhccp_luma_sample_q3_u16_444(
 }
 
 static Av2hStatus mhccp_predict_u16_444(
-    const Av2hFirstChromaMode *mode,
+    const Av2hChromaLeafMode *mode,
     const Av2hReconstructionPlaneU16 *luma_plane,
     const Av2hReconstructionPlaneU16 *chroma_plane,
     uint16_t block_x,
@@ -1280,7 +1280,7 @@ static Av2hStatus mhccp_predict_u16_444(
 }
 
 Av2hStatus av2h_mhccp_predict_observed_u16(
-    const Av2hFirstChromaMode *mode,
+    const Av2hChromaLeafMode *mode,
     const Av2hReconstructionPlaneU16 *luma_plane,
     const Av2hReconstructionPlaneU16 *chroma_plane,
     uint16_t block_x,

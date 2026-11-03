@@ -108,7 +108,7 @@ static int directional_ibp_canonical_derivative(int angle) {
 }
 
 static Av2hStatus predict_directional(
-    const Av2hFirstLeafMode *mode,
+    const Av2hLeafMode *mode,
     int angle,
     uint16_t width,
     uint16_t height,
@@ -339,7 +339,7 @@ static Av2hStatus predict_directional(
     return AV2H_OK;
 }
 
-int av2h_directional_base_angle(Av2hFirstLeafIntraMode mode) {
+int av2h_directional_base_angle(Av2hIntraMode mode) {
     return mode == AV2H_INTRA_VERTICAL ? 90 :
            mode == AV2H_INTRA_HORIZONTAL ? 180 :
            mode == AV2H_INTRA_D45 ? 45 :
@@ -364,7 +364,7 @@ int av2h_luma_wide_angle(int angle, uint16_t width, uint16_t height) {
 }
 
 Av2hStatus av2h_predict_directional(
-    const Av2hFirstLeafMode *mode,
+    const Av2hLeafMode *mode,
     int angle,
     uint16_t width,
     uint16_t height,
@@ -379,7 +379,7 @@ Av2hStatus av2h_predict_directional(
 }
 
 Av2hStatus av2h_predict_directional_idif(
-    const Av2hFirstLeafMode *mode,
+    const Av2hLeafMode *mode,
     int angle,
     uint16_t width,
     uint16_t height,
@@ -392,7 +392,7 @@ Av2hStatus av2h_predict_directional_idif(
 }
 
 Av2hStatus av2h_predict_directional_idif_unfiltered(
-    const Av2hFirstLeafMode *mode,
+    const Av2hLeafMode *mode,
     int angle,
     uint16_t width,
     uint16_t height,
@@ -475,14 +475,14 @@ Av2hStatus av2h_predict_d45_8x4_ibp(
 }
 
 Av2hStatus av2h_predict_luma_directional_feature(
-    const Av2hFirstLeafMode *mode,
+    const Av2hLeafMode *mode,
     uint16_t width,
     uint16_t height,
     const Av2hLumaReferences *references,
     uint8_t *predictor,
     size_t predictor_stride_samples) {
-    Av2hFirstLeafMode primary_mode;
-    Av2hFirstLeafMode secondary_mode;
+    Av2hLeafMode primary_mode;
+    Av2hLeafMode secondary_mode;
     Av2hLumaReferences secondary_references;
     uint8_t secondary_predictor[AV2H_RECON_SAMPLE_CAPACITY];
     Av2hStatus status;
@@ -548,7 +548,7 @@ Av2hStatus av2h_predict_luma_directional_feature(
 }
 
 Av2hStatus av2h_predict_d203_fallback(
-    const Av2hFirstLeafMode *mode,
+    const Av2hLeafMode *mode,
     uint16_t width,
     uint16_t height,
     const Av2hLumaReferences *references,
@@ -715,7 +715,7 @@ Av2hStatus av2h_predict_horizontal_multiline(
 }
 
 Av2hStatus av2h_predict_directional_multiline_ibp(
-    const Av2hFirstLeafMode *mode,
+    const Av2hLeafMode *mode,
     uint16_t width,
     uint16_t height,
     const Av2hLumaReferences *references,
@@ -723,8 +723,8 @@ Av2hStatus av2h_predict_directional_multiline_ibp(
     size_t predictor_stride_samples) {
     uint16_t row;
     uint16_t column;
-    Av2hFirstLeafMode primary_mode;
-    Av2hFirstLeafMode secondary_mode;
+    Av2hLeafMode primary_mode;
+    Av2hLeafMode secondary_mode;
     Av2hLumaReferences secondary_references;
     uint8_t secondary_predictor[16U * 32U];
     Av2hStatus status;
@@ -776,7 +776,7 @@ Av2hStatus av2h_predict_directional_multiline_ibp(
 }
 
 Av2hStatus av2h_predict_horizontal_multiline_angle(
-    const Av2hFirstLeafMode *mode,
+    const Av2hLeafMode *mode,
     uint16_t width,
     uint16_t height,
     const Av2hLumaReferences *references,
@@ -784,8 +784,8 @@ Av2hStatus av2h_predict_horizontal_multiline_angle(
     size_t predictor_stride_samples) {
     uint16_t row;
     uint16_t column;
-    Av2hFirstLeafMode primary_mode;
-    Av2hFirstLeafMode secondary_mode;
+    Av2hLeafMode primary_mode;
+    Av2hLeafMode secondary_mode;
     Av2hLumaReferences secondary_references;
     uint8_t secondary_predictor[32U * 16U];
             int angle = 180 + mode->angle_delta * 3;
@@ -857,7 +857,7 @@ Av2hStatus av2h_predict_vertical_reference(
 }
 
 Av2hStatus av2h_predict_horizontal_multiline_tall(
-    const Av2hFirstLeafMode *mode,
+    const Av2hLeafMode *mode,
     uint16_t width,
     uint16_t height,
     const Av2hLumaReferences *references,
@@ -865,8 +865,8 @@ Av2hStatus av2h_predict_horizontal_multiline_tall(
     size_t predictor_stride_samples) {
     uint16_t row;
     uint16_t column;
-    Av2hFirstLeafMode primary_mode;
-    Av2hFirstLeafMode secondary_mode;
+    Av2hLeafMode primary_mode;
+    Av2hLeafMode secondary_mode;
     Av2hLumaReferences secondary_references;
     uint8_t secondary_predictor[16U * 64U];
     Av2hStatus status;
@@ -915,7 +915,7 @@ Av2hStatus av2h_predict_horizontal_multiline_tall(
 }
 
 Av2hStatus av2h_predict_vertical_multiline_tall(
-    const Av2hFirstLeafMode *mode,
+    const Av2hLeafMode *mode,
     uint16_t width,
     uint16_t height,
     const Av2hLumaReferences *references,
@@ -923,7 +923,7 @@ Av2hStatus av2h_predict_vertical_multiline_tall(
     size_t predictor_stride_samples) {
     uint16_t row;
     uint16_t column;
-    Av2hFirstLeafMode single_line_mode;
+    Av2hLeafMode single_line_mode;
     Av2hLumaReferences secondary_references;
     uint8_t secondary_predictor[8U * 32U];
     Av2hStatus status;
@@ -969,7 +969,7 @@ Av2hStatus av2h_predict_vertical_multiline_tall(
 }
 
 Av2hStatus av2h_predict_d203_multiline(
-    const Av2hFirstLeafMode *mode,
+    const Av2hLeafMode *mode,
     uint16_t width,
     uint16_t height,
     const Av2hLumaReferences *references,
@@ -977,8 +977,8 @@ Av2hStatus av2h_predict_d203_multiline(
     size_t predictor_stride_samples) {
     uint16_t row;
     uint16_t column;
-    Av2hFirstLeafMode primary_mode;
-    Av2hFirstLeafMode secondary_mode;
+    Av2hLeafMode primary_mode;
+    Av2hLeafMode secondary_mode;
     Av2hLumaReferences secondary_references;
     uint8_t secondary_predictor[16U * 64U];
     Av2hStatus status;
@@ -1140,7 +1140,7 @@ Av2hStatus av2h_predict_d45_mrl1(
 }
 
 Av2hStatus av2h_predict_zone2_mrl2(
-    const Av2hFirstLeafMode *mode,
+    const Av2hLeafMode *mode,
     uint16_t width,
     uint16_t height,
     const Av2hLumaReferences *references,
@@ -1535,7 +1535,7 @@ Av2hStatus av2h_predict_d45_mrl1_plus_three(
 }
 
 Av2hStatus av2h_predict_d203_mrl1_plus_three(
-    const Av2hFirstLeafMode *mode,
+    const Av2hLeafMode *mode,
     uint16_t width,
     uint16_t height,
     const Av2hLumaReferences *references,
@@ -1642,7 +1642,7 @@ Av2hStatus av2h_predict_d203_plus_three(
 }
 
 Av2hStatus av2h_predict_multiline_u16(
-    const Av2hFirstLeafMode *mode,
+    const Av2hLeafMode *mode,
     uint16_t width,
     uint16_t height,
     const Av2hLumaReferencesU16 *references,
@@ -1651,8 +1651,8 @@ Av2hStatus av2h_predict_multiline_u16(
     uint8_t use_idif) {
     uint16_t row;
     uint16_t column;
-    Av2hFirstLeafMode primary_mode;
-    Av2hFirstLeafMode secondary_mode;
+    Av2hLeafMode primary_mode;
+    Av2hLeafMode secondary_mode;
     Av2hLumaReferencesU16 secondary_references;
     uint16_t secondary_predictor[AV2H_RECON_SAMPLE_CAPACITY];
     Av2hStatus status;
@@ -1708,7 +1708,7 @@ Av2hStatus av2h_predict_multiline_u16(
 }
 
 Av2hStatus av2h_predict_zone2_u16(
-    const Av2hFirstLeafMode *mode,
+    const Av2hLeafMode *mode,
     uint16_t width,
     uint16_t height,
     const Av2hLumaReferencesU16 *references,
@@ -1776,7 +1776,7 @@ Av2hStatus av2h_predict_zone2_u16(
 }
 
 Av2hStatus av2h_predict_zone1_u16(
-    const Av2hFirstLeafMode *mode,
+    const Av2hLeafMode *mode,
     uint16_t width,
     uint16_t height,
     const Av2hLumaReferencesU16 *references,
@@ -1868,7 +1868,7 @@ Av2hStatus av2h_predict_zone1_u16(
 }
 
 Av2hStatus av2h_predict_zone3_u16(
-    const Av2hFirstLeafMode *mode,
+    const Av2hLeafMode *mode,
     uint16_t width,
     uint16_t height,
     const Av2hLumaReferencesU16 *references,
@@ -1972,7 +1972,7 @@ Av2hStatus av2h_predict_zone3_u16(
 }
 
 Av2hStatus av2h_predict_cardinal_u16(
-    const Av2hFirstLeafMode *mode,
+    const Av2hLeafMode *mode,
     uint16_t width,
     uint16_t height,
     const Av2hLumaReferencesU16 *references,

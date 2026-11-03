@@ -37,7 +37,7 @@ static void check_fixture(const char *name,
                           uint16_t height,
                           Av2hFrameState frame,
                           Av2hBlockSize expected_leaf,
-                          Av2hFirstTxSize expected_tx,
+                          Av2hTxSize expected_tx,
                           uint8_t expected_tx_context,
                           size_t expected_before,
                           size_t expected_after_all_zero,
@@ -53,16 +53,16 @@ static void check_fixture(const char *name,
     Av2hRangeDecoder decoder;
     Av2hPartitionCdfs partition_cdfs;
     Av2hLeafCdfs leaf_cdfs;
-    Av2hFirstCoeffCdfs coeff_cdfs;
-    Av2hFirstLeafPath path;
-    Av2hFirstLeafMode mode;
-    Av2hFirstCoeffPrefix prefix;
+    Av2hCoeffCdfs coeff_cdfs;
+    Av2hLeafPath path;
+    Av2hLeafMode mode;
+    Av2hCoeffPrefix prefix;
     Av2hStatus status;
     sequence.enable_sdp = 1U;
     sequence.enable_idtx_intra = 1U;
     CHECK(av2h_partition_cdfs_init(&partition_cdfs) == AV2H_OK);
     CHECK(av2h_leaf_cdfs_init(&leaf_cdfs) == AV2H_OK);
-    CHECK(av2h_first_coeff_cdfs_init(&coeff_cdfs) == AV2H_OK);
+    CHECK(av2h_coeff_cdfs_init(&coeff_cdfs) == AV2H_OK);
     CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
     CHECK(av2h_partition_first_leaf_read(
               &decoder, &partition_cdfs, width, height, 1U, &path) == AV2H_OK);
@@ -187,41 +187,41 @@ static void test_arguments(void) {
         UINT64_C(11085992068949705981)
     };
     Av2hRangeDecoder decoder;
-    Av2hFirstCoeffCdfs cdfs;
+    Av2hCoeffCdfs cdfs;
     Av2hFrameState frame = { 0 };
     Av2hPartitionNode leaf = { 0U, 0U, AV2H_BLOCK_8X8 };
-    Av2hFirstLeafMode mode = { 0 };
-    Av2hFirstCoeffPrefix prefix;
+    Av2hLeafMode mode = { 0 };
+    Av2hCoeffPrefix prefix;
     size_t index;
-    CHECK(sizeof(Av2hFirstCoeffCdfs) == 1964U);
-    CHECK(av2h_first_coeff_cdfs_init(0) == AV2H_INVALID_ARGUMENT);
-    CHECK(av2h_first_coeff_cdfs_init_for_q(0, 64U) ==
+    CHECK(sizeof(Av2hCoeffCdfs) == 1964U);
+    CHECK(av2h_coeff_cdfs_init(0) == AV2H_INVALID_ARGUMENT);
+    CHECK(av2h_coeff_cdfs_init_for_q(0, 64U) ==
           AV2H_INVALID_ARGUMENT);
-    CHECK(av2h_first_coeff_cdfs_init_for_q(&cdfs, 64U) == AV2H_OK);
+    CHECK(av2h_coeff_cdfs_init_for_q(&cdfs, 64U) == AV2H_OK);
     CHECK(cdfs.q_context == 0U);
     CHECK(cdfs.txb_skip_txs2[0] == 13822U);
     CHECK(cdfs.txb_skip_txs4[0] == 29968U);
     CHECK(cdfs.eob_pt_128[0] == 32432U);
     CHECK(cdfs.eob_extra[0] == 16377U);
-    CHECK(av2h_first_coeff_cdfs_init_for_q(&cdfs, 160U) == AV2H_OK);
+    CHECK(av2h_coeff_cdfs_init_for_q(&cdfs, 160U) == AV2H_OK);
     CHECK(cdfs.q_context == 2U);
     CHECK(cdfs.txb_skip_txs3[0] == 961U);
     CHECK(cdfs.txb_skip_txs4[0] == 490U);
     CHECK(cdfs.eob_pt_512[0] == 31114U);
     CHECK(cdfs.eob_extra[0] == 13095U);
-    CHECK(av2h_first_coeff_cdfs_init_for_q(&cdfs, 208U) == AV2H_OK);
+    CHECK(av2h_coeff_cdfs_init_for_q(&cdfs, 208U) == AV2H_OK);
     CHECK(cdfs.q_context == 3U);
     CHECK(cdfs.txb_skip_txs3[0] == 210U);
     CHECK(cdfs.txb_skip_txs4[0] == 85U);
     CHECK(cdfs.eob_pt_1024[0] == 26930U);
     CHECK(cdfs.eob_extra[0] == 12404U);
-    CHECK(av2h_first_coeff_cdfs_init(&cdfs) == AV2H_OK);
+    CHECK(av2h_coeff_cdfs_init(&cdfs) == AV2H_OK);
     CHECK(cdfs.q_context == 1U);
     CHECK(cdfs.txb_skip_txs4[0] == 9706U);
     CHECK(cdfs.eob_pt_512[9] == 1U);
     for (index = 0U; index < sizeof(q_indices) / sizeof(q_indices[0]);
          ++index) {
-        CHECK(av2h_first_coeff_cdfs_init_for_q(
+        CHECK(av2h_coeff_cdfs_init_for_q(
                   &cdfs, q_indices[index]) == AV2H_OK);
         CHECK(word_hash(&cdfs.full_luma_txb_skip[0U][0U][0U][0U],
                         sizeof(cdfs.full_luma_txb_skip) / sizeof(uint16_t)) ==
@@ -236,7 +236,7 @@ static void test_arguments(void) {
                         sizeof(cdfs.eob_extra) / sizeof(uint16_t)) ==
               eob_extra_hashes[index]);
     }
-    CHECK(av2h_first_coeff_cdfs_init(&cdfs) == AV2H_OK);
+    CHECK(av2h_coeff_cdfs_init(&cdfs) == AV2H_OK);
     CHECK(av2h_first_coeff_prefix_read(
               0, &cdfs, &frame, &leaf, &mode, &prefix) ==
           AV2H_INVALID_ARGUMENT);
@@ -260,21 +260,21 @@ static void test_tx_32x32_eob_point_extension(void) {
     Av2hSpan span = { bytes, sizeof(bytes) };
     Av2hRangeDecoder decoder;
     Av2hRangeDecoder point_decoder;
-    Av2hFirstCoeffCdfs cdfs;
-    Av2hFirstCoeffCdfs point_cdfs;
+    Av2hCoeffCdfs cdfs;
+    Av2hCoeffCdfs point_cdfs;
     Av2hFrameState frame = { 0 };
     Av2hPartitionNode leaf = { 0U, 0U, AV2H_BLOCK_32X32 };
-    Av2hFirstLeafMode mode = { 0 };
-    Av2hFirstCoeffPrefix prefix;
+    Av2hLeafMode mode = { 0 };
+    Av2hCoeffPrefix prefix;
     uint32_t value;
 
     frame.base_q_index = 96U;
     frame.width = 256U;
     frame.height = 171U;
     frame.tx_mode = 1U;
-    CHECK(av2h_first_coeff_cdfs_init_for_q(&cdfs, frame.base_q_index) ==
+    CHECK(av2h_coeff_cdfs_init_for_q(&cdfs, frame.base_q_index) ==
           AV2H_OK);
-    CHECK(av2h_first_coeff_cdfs_init_for_q(
+    CHECK(av2h_coeff_cdfs_init_for_q(
               &point_cdfs, frame.base_q_index) == AV2H_OK);
     CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
     CHECK(av2h_range_init(&point_decoder, &span, 1U) == AV2H_OK);
@@ -393,7 +393,7 @@ static void test_context_state(void) {
 }
 
 static void test_tx_descriptors(void) {
-    static const Av2hFirstTxSize luma_tx_sizes[AV2H_BLOCK_SIZE_COUNT] = {
+    static const Av2hTxSize luma_tx_sizes[AV2H_BLOCK_SIZE_COUNT] = {
         AV2H_TX_4X4, AV2H_TX_4X8, AV2H_TX_8X4, AV2H_TX_8X8,
         AV2H_TX_8X16, AV2H_TX_16X8, AV2H_TX_16X16, AV2H_TX_16X32,
         AV2H_TX_32X16, AV2H_TX_32X32, AV2H_TX_32X64, AV2H_TX_64X32,
@@ -453,9 +453,9 @@ static void test_tx_descriptors(void) {
         uint16_t capacity =
             (uint16_t)coefficient_width * coefficient_height;
         CHECK(av2h_tx_descriptor_get(
-                  (Av2hFirstTxSize)index, &descriptor) == AV2H_OK);
+                  (Av2hTxSize)index, &descriptor) == AV2H_OK);
         CHECK(descriptor != 0);
-        CHECK(descriptor->tx_size == (Av2hFirstTxSize)index);
+        CHECK(descriptor->tx_size == (Av2hTxSize)index);
         CHECK(descriptor->output_width == widths[index]);
         CHECK(descriptor->output_height == heights[index]);
         CHECK(descriptor->coefficient_width == coefficient_width);

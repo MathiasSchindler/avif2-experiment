@@ -52,7 +52,7 @@ typedef struct {
     size_t rect_type_context;
     size_t extension_context;
     Av2hOrdinaryPartitionPrefix ordinary;
-} Av2hFirstPartitionPrefix;
+} Av2hPartitionPrefix;
 
 typedef struct Av2hPartitionDecision {
     Av2hPartitionNode node;
@@ -70,7 +70,7 @@ typedef struct {
     Av2hPartitionDecision decisions[AV2H_MAX_FIRST_LEAF_PARTITIONS];
     size_t decision_count;
     Av2hPartitionNode leaf;
-} Av2hFirstLeafPath;
+} Av2hLeafPath;
 
 typedef struct {
     uint8_t *above[AV2H_PARTITION_STRUCTURE_COUNT];
@@ -151,7 +151,7 @@ Av2hStatus av2h_partition_traversal_next(
     Av2hRangeDecoder *decoder,
     Av2hPartitionCdfs *cdfs,
     const Av2hPartitionContextState *state,
-    Av2hFirstLeafPath *path,
+    Av2hLeafPath *path,
     uint8_t *has_leaf);
 Av2hStatus av2h_partition_traversal_commit_leaf(
     Av2hPartitionTraversal *traversal,
@@ -180,14 +180,14 @@ Av2hStatus av2h_partition_first_prefix_read(
     Av2hPartitionCdfs *cdfs,
     uint16_t frame_width,
     uint16_t frame_height,
-    Av2hFirstPartitionPrefix *prefix);
+    Av2hPartitionPrefix *prefix);
 Av2hStatus av2h_partition_first_leaf_read(
     Av2hRangeDecoder *decoder,
     Av2hPartitionCdfs *cdfs,
     uint16_t frame_width,
     uint16_t frame_height,
     unsigned int enable_ext_partitions,
-    Av2hFirstLeafPath *path);
+    Av2hLeafPath *path);
 
 Av2hStatus av2h_partition_ordinary_prefix_read(
     Av2hRangeDecoder *decoder,

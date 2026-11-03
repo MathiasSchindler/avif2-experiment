@@ -21,7 +21,7 @@ static int failures;
     } while (0)
 
 static void test_chroma_geometry_through_64(void) {
-    Av2hFirstChromaMode mode = { 0 };
+    Av2hChromaLeafMode mode = { 0 };
     Av2hLumaReferences references = { 0 };
     uint8_t predictor[64U * 64U];
     uint8_t above[128U];
@@ -74,11 +74,11 @@ static void test_cfl_dc_uses_avm_reciprocal_rounding(void) {
 }
 
 static void test_ist_4x4_set11_type3(void) {
-    Av2hFirstLeafMode mode = { 0 };
-    Av2hFirstCoeffPrefix prefix = { 0 };
-    Av2hFirstTransformType transform = { 0 };
-    Av2hFirstCoeffBlock coefficients = { 0 };
-    int32_t dequantized[AV2H_FIRST_COEFF_CAPACITY] = { 0 };
+    Av2hLeafMode mode = { 0 };
+    Av2hCoeffPrefix prefix = { 0 };
+    Av2hTransformType transform = { 0 };
+    Av2hCoeffBlock coefficients = { 0 };
+    int32_t dequantized[AV2H_COEFF_CAPACITY] = { 0 };
     mode.mode = AV2H_INTRA_D113;
     prefix.tx_size = AV2H_TX_4X4;
     transform.secondary_set = 11U;
@@ -96,11 +96,11 @@ static void test_ist_4x4_set11_type3(void) {
 }
 
 static void test_ist_8x32_uses_primary_scan_inputs(void) {
-    Av2hFirstLeafMode mode = { 0 };
-    Av2hFirstCoeffPrefix prefix = { 0 };
-    Av2hFirstTransformType transform = { 0 };
-    Av2hFirstCoeffBlock coefficients = { 0 };
-    int32_t dequantized[AV2H_FIRST_COEFF_CAPACITY] = { 0 };
+    Av2hLeafMode mode = { 0 };
+    Av2hCoeffPrefix prefix = { 0 };
+    Av2hTransformType transform = { 0 };
+    Av2hCoeffBlock coefficients = { 0 };
+    int32_t dequantized[AV2H_COEFF_CAPACITY] = { 0 };
     mode.mode = AV2H_INTRA_D67;
     prefix.tx_size = AV2H_TX_8X32;
     transform.primary_type = AV2H_TX_DCT_DCT;
@@ -119,11 +119,11 @@ static void test_ist_8x32_uses_primary_scan_inputs(void) {
 }
 
 static void test_ist_adst_uses_twenty_inputs(void) {
-    Av2hFirstLeafMode mode = { 0 };
-    Av2hFirstCoeffPrefix prefix = { 0 };
-    Av2hFirstTransformType transform = { 0 };
-    Av2hFirstCoeffBlock coefficients = { 0 };
-    int32_t dequantized[AV2H_FIRST_COEFF_CAPACITY] = { 0 };
+    Av2hLeafMode mode = { 0 };
+    Av2hCoeffPrefix prefix = { 0 };
+    Av2hTransformType transform = { 0 };
+    Av2hCoeffBlock coefficients = { 0 };
+    int32_t dequantized[AV2H_COEFF_CAPACITY] = { 0 };
 
     mode.mode = AV2H_INTRA_D113;
     mode.angle_delta = -1;
@@ -145,11 +145,11 @@ static void test_ist_adst_uses_twenty_inputs(void) {
 }
 
 static void test_palace_ist_gaps(void) {
-    Av2hFirstLeafMode mode = { 0 };
-    Av2hFirstCoeffPrefix prefix = { 0 };
-    Av2hFirstTransformType transform = { 0 };
-    Av2hFirstCoeffBlock coefficients = { 0 };
-    int32_t dequantized[AV2H_FIRST_COEFF_CAPACITY] = { 0 };
+    Av2hLeafMode mode = { 0 };
+    Av2hCoeffPrefix prefix = { 0 };
+    Av2hTransformType transform = { 0 };
+    Av2hCoeffBlock coefficients = { 0 };
+    int32_t dequantized[AV2H_COEFF_CAPACITY] = { 0 };
 
     mode.mode = AV2H_INTRA_VERTICAL;
     prefix.tx_size = AV2H_TX_8X4;
@@ -271,7 +271,7 @@ static void test_palace_ist_gaps(void) {
     CHECK(dequantized[86] == -2);
 }
 
-static uint64_t pixel_hash(const Av2hFirstReconstruction *reconstruction) {
+static uint64_t pixel_hash(const Av2hBlockReconstruction *reconstruction) {
     uint64_t hash = UINT64_C(1469598103934665603);
     size_t index;
     size_t count = (size_t)reconstruction->width * reconstruction->height;
@@ -343,16 +343,16 @@ static void check_fixture(const char *name,
     Av2hRangeDecoder decoder;
     Av2hPartitionCdfs partition_cdfs;
     Av2hLeafCdfs leaf_cdfs;
-    Av2hFirstCoeffCdfs coeff_cdfs;
-    Av2hFirstTransformCdfs transform_cdfs;
-    Av2hFirstCoeffLevelCdfs level_cdfs;
-    Av2hFirstLeafPath path;
-    Av2hFirstLeafMode mode;
-    Av2hFirstCoeffPrefix prefix;
-    Av2hFirstTransformType transform;
-    Av2hFirstCoeffBlock block;
+    Av2hCoeffCdfs coeff_cdfs;
+    Av2hTransformCdfs transform_cdfs;
+    Av2hCoeffLevelCdfs level_cdfs;
+    Av2hLeafPath path;
+    Av2hLeafMode mode;
+    Av2hCoeffPrefix prefix;
+    Av2hTransformType transform;
+    Av2hCoeffBlock block;
     Av2hReconstructionScratch scratch;
-    Av2hFirstReconstruction reconstruction;
+    Av2hBlockReconstruction reconstruction;
     Av2hStatus status;
     size_t index;
     sequence.enable_sdp = 1U;
@@ -360,9 +360,9 @@ static void check_fixture(const char *name,
     sequence.enable_ist = 1U;
     CHECK(av2h_partition_cdfs_init(&partition_cdfs) == AV2H_OK);
     CHECK(av2h_leaf_cdfs_init(&leaf_cdfs) == AV2H_OK);
-    CHECK(av2h_first_coeff_cdfs_init(&coeff_cdfs) == AV2H_OK);
-    CHECK(av2h_first_transform_cdfs_init(&transform_cdfs) == AV2H_OK);
-    CHECK(av2h_first_coeff_level_cdfs_init(&level_cdfs) == AV2H_OK);
+    CHECK(av2h_coeff_cdfs_init(&coeff_cdfs) == AV2H_OK);
+    CHECK(av2h_transform_cdfs_init(&transform_cdfs) == AV2H_OK);
+    CHECK(av2h_coeff_level_cdfs_init(&level_cdfs) == AV2H_OK);
     CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
     CHECK(av2h_partition_first_leaf_read(
               &decoder, &partition_cdfs, width, height, 1U, &path) == AV2H_OK);
@@ -372,13 +372,13 @@ static void check_fixture(const char *name,
     CHECK(av2h_first_coeff_prefix_read(
               &decoder, &coeff_cdfs, &frame, &path.leaf, &mode, &prefix) ==
           AV2H_OK);
-    CHECK(av2h_first_transform_type_read(
+    CHECK(av2h_transform_type_read(
               &decoder, &transform_cdfs, &sequence, &frame, &mode, &prefix,
               &transform) == AV2H_OK);
-    CHECK(av2h_first_coeff_block_read(
+    CHECK(av2h_coeff_block_read_default_context(
               &decoder, &level_cdfs, &sequence, &frame, &mode, &prefix,
               &transform, &block) == AV2H_OK);
-    status = av2h_first_luma_reconstruct(
+    status = av2h_luma_reconstruct_without_predictor(
         &mode, &prefix, &transform, &block, &scratch, &reconstruction);
     if (status != AV2H_OK) {
         fprintf(stderr, "%s: reconstruction status=%d\n", name, status);
@@ -480,34 +480,34 @@ static void test_fixture_reconstruction(void) {
 #endif
 
 static void test_arguments(void) {
-    Av2hFirstLeafMode mode = { 0 };
-    Av2hFirstCoeffPrefix prefix = { 0 };
-    Av2hFirstTransformType transform = { 0 };
-    Av2hFirstCoeffBlock block = { 0 };
+    Av2hLeafMode mode = { 0 };
+    Av2hCoeffPrefix prefix = { 0 };
+    Av2hTransformType transform = { 0 };
+    Av2hCoeffBlock block = { 0 };
     Av2hReconstructionScratch scratch;
-    Av2hFirstReconstruction reconstruction;
+    Av2hBlockReconstruction reconstruction;
     block.width = 8U;
     block.height = 8U;
     block.coefficient_count = 64U;
-    CHECK(av2h_first_luma_reconstruct(
+    CHECK(av2h_luma_reconstruct_without_predictor(
               0, &prefix, &transform, &block, &scratch, &reconstruction) ==
           AV2H_INVALID_ARGUMENT);
     mode.mode = AV2H_INTRA_SMOOTH;
     prefix.tx_size = AV2H_TX_8X8;
     transform.primary_type = AV2H_TX_TYPE_INVALID;
-    CHECK(av2h_first_luma_reconstruct(
+    CHECK(av2h_luma_reconstruct_without_predictor(
               &mode, &prefix, &transform, &block, &scratch,
               &reconstruction) ==
           AV2H_UNSUPPORTED);
 }
 
 static void test_skipped_16x8_intrabc_reconstruction(void) {
-    Av2hFirstLeafMode mode = { 0 };
-    Av2hFirstCoeffPrefix prefix = { 0 };
-    Av2hFirstTransformType transform = { 0 };
-    Av2hFirstCoeffBlock block = { 0 };
+    Av2hLeafMode mode = { 0 };
+    Av2hCoeffPrefix prefix = { 0 };
+    Av2hTransformType transform = { 0 };
+    Av2hCoeffBlock block = { 0 };
     Av2hReconstructionScratch scratch;
-    Av2hFirstReconstruction reconstruction;
+    Av2hBlockReconstruction reconstruction;
     uint8_t predictor[128U];
     size_t index;
     mode.mode = AV2H_INTRA_DC;
@@ -554,10 +554,10 @@ static void test_16x8_intrabc_morph_centered_template(void) {
         reconstructed, 16U, sizeof(reconstructed)
     };
     Av2hPartitionNode leaf = { 8U, 8U, AV2H_BLOCK_16X8 };
-    Av2hFirstLeafMode mode = { 0 };
-    Av2hFirstCoeffPrefix prefix = { 0 };
-    Av2hFirstTransformType transform = { 0 };
-    Av2hFirstCoeffBlock block = { 0 };
+    Av2hLeafMode mode = { 0 };
+    Av2hCoeffPrefix prefix = { 0 };
+    Av2hTransformType transform = { 0 };
+    Av2hCoeffBlock block = { 0 };
     Av2hReconstructionScratch scratch;
     size_t index;
 
@@ -635,7 +635,7 @@ static void test_skipped_intrabc_geometry_matrix(void) {
         AV2H_BLOCK_64X8
     };
     Av2hReconstructionScratch scratch;
-    Av2hFirstReconstruction reconstruction;
+    Av2hBlockReconstruction reconstruction;
     uint8_t predictor[AV2H_RECON_SAMPLE_CAPACITY];
     size_t block_index;
     size_t index;
@@ -647,10 +647,10 @@ static void test_skipped_intrabc_geometry_matrix(void) {
          block_index < sizeof(block_sizes) / sizeof(block_sizes[0]);
          ++block_index) {
         const Av2hTxDescriptor *descriptor = 0;
-        Av2hFirstLeafMode mode = { 0 };
-        Av2hFirstCoeffPrefix prefix = { 0 };
-        Av2hFirstTransformType transform = { 0 };
-        Av2hFirstCoeffBlock block = { 0 };
+        Av2hLeafMode mode = { 0 };
+        Av2hCoeffPrefix prefix = { 0 };
+        Av2hTransformType transform = { 0 };
+        Av2hCoeffBlock block = { 0 };
         size_t output_count;
         CHECK(av2h_luma_tx_descriptor_get(
                   block_sizes[block_index], &descriptor) == AV2H_OK);
@@ -691,10 +691,10 @@ static void test_palette_prediction(void) {
         reconstructed, 2U, sizeof(reconstructed)
     };
     Av2hPartitionNode leaf = { 0U, 0U, AV2H_BLOCK_8X8 };
-    Av2hFirstLeafMode mode = { 0 };
-    Av2hFirstCoeffPrefix prefix = { 0 };
-    Av2hFirstTransformType transform = { 0 };
-    Av2hFirstCoeffBlock block = { 0 };
+    Av2hLeafMode mode = { 0 };
+    Av2hCoeffPrefix prefix = { 0 };
+    Av2hTransformType transform = { 0 };
+    Av2hCoeffBlock block = { 0 };
     Av2hReconstructionScratch scratch;
     size_t index;
 
@@ -748,7 +748,7 @@ static void test_complete_palette_tables_and_map(void) {
         { 22471U, 7542U, 7582U, 22102U, 30524U }
     };
     Av2hLeafCdfs cdfs;
-    Av2hFirstLeafMode mode;
+    Av2hLeafMode mode;
     size_t palette_index;
     size_t context;
     av2h_memory_fill(&mode, 0U, sizeof(mode));
@@ -780,8 +780,8 @@ static void test_first_leaf_dc_without_references(void) {
         pixels, 64U, 64U, 16U, 64U, 16U,
         reconstructed, 16U, sizeof(reconstructed)
     };
-    Av2hFirstLeafMode mode = { 0 };
-    Av2hFirstTransformType transform = { 0 };
+    Av2hLeafMode mode = { 0 };
+    Av2hTransformType transform = { 0 };
     Av2hReconstructionScratch scratch;
     size_t block_index;
 
@@ -793,8 +793,8 @@ static void test_first_leaf_dc_without_references(void) {
          ++block_index) {
         const Av2hTxDescriptor *descriptor = 0;
         Av2hPartitionNode leaf = { 0U, 0U, block_sizes[block_index] };
-        Av2hFirstCoeffPrefix prefix = { 0 };
-        Av2hFirstCoeffBlock block = { 0 };
+        Av2hCoeffPrefix prefix = { 0 };
+        Av2hCoeffBlock block = { 0 };
         size_t index;
         size_t map_width;
         size_t map_height;
@@ -841,10 +841,10 @@ static void test_first_leaf_intra_dip_without_references(void) {
         reconstructed, 2U, sizeof(reconstructed)
     };
     Av2hPartitionNode leaf = { 0U, 0U, AV2H_BLOCK_8X8 };
-    Av2hFirstLeafMode mode = { 0 };
-    Av2hFirstCoeffPrefix prefix = { 0 };
-    Av2hFirstTransformType transform = { 0 };
-    Av2hFirstCoeffBlock block = { 0 };
+    Av2hLeafMode mode = { 0 };
+    Av2hCoeffPrefix prefix = { 0 };
+    Av2hTransformType transform = { 0 };
+    Av2hCoeffBlock block = { 0 };
     Av2hLumaReferences references = { 0 };
     Av2hReconstructionScratch scratch;
     size_t index;
@@ -873,12 +873,12 @@ static void test_first_leaf_intra_dip_without_references(void) {
 }
 
 static void test_all_zero_16x16_reconstruction(void) {
-    Av2hFirstLeafMode mode = { 0 };
-    Av2hFirstCoeffPrefix prefix = { 0 };
-    Av2hFirstTransformType transform = { 0 };
-    Av2hFirstCoeffBlock block = { 0 };
+    Av2hLeafMode mode = { 0 };
+    Av2hCoeffPrefix prefix = { 0 };
+    Av2hTransformType transform = { 0 };
+    Av2hCoeffBlock block = { 0 };
     Av2hReconstructionScratch scratch;
-    Av2hFirstReconstruction reconstruction;
+    Av2hBlockReconstruction reconstruction;
     Av2hLumaReferences references = { 0 };
     uint8_t above[16U];
     uint8_t predictor[256U];
@@ -930,12 +930,12 @@ static void test_all_zero_16x16_reconstruction(void) {
             98U, 98U, 98U, 98U, 98U, 99U, 99U, 99U,
             99U, 99U, 99U, 99U, 99U, 99U, 99U, 99U
         };
-        Av2hFirstLeafMode mode = { 0 };
-        Av2hFirstCoeffPrefix prefix = { 0 };
-        Av2hFirstTransformType transform = { 0 };
-        Av2hFirstCoeffBlock block = { 0 };
+        Av2hLeafMode mode = { 0 };
+        Av2hCoeffPrefix prefix = { 0 };
+        Av2hTransformType transform = { 0 };
+        Av2hCoeffBlock block = { 0 };
         Av2hReconstructionScratch scratch;
-        Av2hFirstReconstruction reconstruction;
+        Av2hBlockReconstruction reconstruction;
         uint8_t predictor[256U];
         size_t index;
 
@@ -1035,13 +1035,13 @@ static void test_laarim_q96_32x32_reconstruction(void) {
         133U, 126U, 119U, 114U, 114U, 117U, 124U, 130U,
         134U, 134U, 132U, 129U, 127U, 126U, 126U, 127U
     };
-    Av2hFirstLeafMode mode = { 0 };
-    Av2hFirstCoeffPrefix prefix = { 0 };
-    Av2hFirstTransformType transform = { 0 };
-    Av2hFirstCoeffBlock block = { 0 };
+    Av2hLeafMode mode = { 0 };
+    Av2hCoeffPrefix prefix = { 0 };
+    Av2hTransformType transform = { 0 };
+    Av2hCoeffBlock block = { 0 };
     Av2hLumaReferences references = { 0 };
     Av2hReconstructionScratch scratch;
-    Av2hFirstReconstruction reconstruction;
+    Av2hBlockReconstruction reconstruction;
     size_t index;
 
     mode.mode = AV2H_INTRA_D45;
@@ -1125,13 +1125,13 @@ static void test_schwaebisch_q208_64x16_reconstruction(void) {
     };
     Av2hTileDecoder decoder;
     Av2hTileLumaLeaf leaf;
-    Av2hFirstCoeffBlock block;
+    Av2hCoeffBlock block;
     Av2hReconstructionPlane plane = {
         pixels, 417U, 417U, 277U, 417U, 277U,
         reconstructed, MI_COLUMNS, sizeof(reconstructed)
     };
     Av2hReconstructionScratch scratch;
-    Av2hFirstReconstruction reconstruction;
+    Av2hBlockReconstruction reconstruction;
     Av2hStatus status;
     FILE *source;
     long file_size;
@@ -1307,7 +1307,7 @@ static void test_d45_minus_one_16x4_prediction(void) {
         143U, 145U, 147U, 149U, 151U, 153U, 154U, 156U,
         158U, 160U, 162U, 164U, 167U, 169U, 171U, 172U
     };
-    Av2hFirstLeafMode mode = { 0 };
+    Av2hLeafMode mode = { 0 };
     Av2hLumaReferences references = { 0 };
     uint8_t predictor[80U];
     size_t row;
@@ -1346,7 +1346,7 @@ static void test_d45_8x4_ibp_prediction(void) {
         233U, 235U, 237U, 238U, 240U, 241U, 242U, 244U,
         236U, 238U, 240U, 241U, 242U, 243U, 244U, 246U
     };
-    Av2hFirstLeafMode mode = { 0 };
+    Av2hLeafMode mode = { 0 };
     Av2hLumaReferences references = { 0 };
     uint8_t predictor[40U];
     size_t row;
@@ -1388,7 +1388,7 @@ static void test_d45_16x8_prediction(void) {
         239U, 241U, 244U, 246U, 247U, 249U, 250U, 252U,
         253U, 254U, 255U, 255U, 255U, 255U, 255U, 255U
     };
-    Av2hFirstLeafMode mode = { 0 };
+    Av2hLeafMode mode = { 0 };
     Av2hLumaReferences references = { 0 };
     uint8_t predictor[16U * 8U];
 
@@ -1414,7 +1414,7 @@ static void test_d45_no_neighbor_ibp_prediction(void) {
         129U, 129U, 128U, 128U, 128U, 128U, 128U, 128U,
         129U, 129U, 128U, 128U, 128U, 128U, 128U, 128U
     };
-    Av2hFirstLeafMode mode = { 0 };
+    Av2hLeafMode mode = { 0 };
     Av2hLumaReferences references = { 0 };
     uint8_t predictor[32U * 32U];
     size_t size_index;
@@ -1455,12 +1455,12 @@ static void test_tx16x4_dct_reconstruction(void) {
         143U, 145U, 147U, 149U, 151U, 153U, 154U, 156U,
         158U, 160U, 162U, 164U, 167U, 169U, 171U, 171U
     };
-    Av2hFirstLeafMode mode = { 0 };
-    Av2hFirstCoeffPrefix prefix = { 0 };
-    Av2hFirstTransformType transform = { 0 };
-    Av2hFirstCoeffBlock block = { 0 };
+    Av2hLeafMode mode = { 0 };
+    Av2hCoeffPrefix prefix = { 0 };
+    Av2hTransformType transform = { 0 };
+    Av2hCoeffBlock block = { 0 };
     Av2hReconstructionScratch scratch;
-    Av2hFirstReconstruction reconstruction;
+    Av2hBlockReconstruction reconstruction;
     size_t index;
 
     mode.mode = AV2H_INTRA_D45;
@@ -1507,12 +1507,12 @@ static void test_tx16x4_fsc_reconstruction(void) {
     static const uint8_t nonzero_positions[10U] = {
         59U, 60U, 45U, 30U, 61U, 46U, 31U, 62U, 47U, 63U
     };
-    Av2hFirstLeafMode mode = { 0 };
-    Av2hFirstCoeffPrefix prefix = { 0 };
-    Av2hFirstTransformType transform = { 0 };
-    Av2hFirstCoeffBlock block = { 0 };
+    Av2hLeafMode mode = { 0 };
+    Av2hCoeffPrefix prefix = { 0 };
+    Av2hTransformType transform = { 0 };
+    Av2hCoeffBlock block = { 0 };
     Av2hReconstructionScratch scratch;
-    Av2hFirstReconstruction reconstruction;
+    Av2hBlockReconstruction reconstruction;
     size_t index;
 
     mode.mode = AV2H_INTRA_D45;
@@ -1541,12 +1541,12 @@ static void test_tx16x4_fsc_reconstruction(void) {
 
 static void test_tx4x16_fsc_reconstruction(void) {
     uint8_t predictor[64U];
-    Av2hFirstLeafMode mode = { 0 };
-    Av2hFirstCoeffPrefix prefix = { 0 };
-    Av2hFirstTransformType transform = { 0 };
-    Av2hFirstCoeffBlock block = { 0 };
+    Av2hLeafMode mode = { 0 };
+    Av2hCoeffPrefix prefix = { 0 };
+    Av2hTransformType transform = { 0 };
+    Av2hCoeffBlock block = { 0 };
     Av2hReconstructionScratch scratch;
-    Av2hFirstReconstruction reconstruction;
+    Av2hBlockReconstruction reconstruction;
     size_t index;
 
     av2h_memory_fill(predictor, 128U, sizeof(predictor));
@@ -1571,8 +1571,8 @@ static void test_tx4x16_fsc_reconstruction(void) {
 }
 
 static void test_fsc_generic_selection_requires_identity(void) {
-    Av2hFirstLeafMode mode = { 0 };
-    Av2hFirstTransformType transform = { 0 };
+    Av2hLeafMode mode = { 0 };
+    Av2hTransformType transform = { 0 };
 
     mode.fsc_mode = 1U;
     transform.primary_type = AV2H_TX_DCT_DCT;
@@ -1598,12 +1598,12 @@ static void test_4x4_secondary_transform_precedes_primary_transform(void) {
         105, 40, 0, 1
     };
     uint8_t predictor[16U];
-    Av2hFirstLeafMode mode = { 0 };
-    Av2hFirstCoeffPrefix prefix = { 0 };
-    Av2hFirstTransformType transform = { 0 };
-    Av2hFirstCoeffBlock block = { 0 };
+    Av2hLeafMode mode = { 0 };
+    Av2hCoeffPrefix prefix = { 0 };
+    Av2hTransformType transform = { 0 };
+    Av2hCoeffBlock block = { 0 };
     Av2hReconstructionScratch scratch;
-    Av2hFirstReconstruction reconstruction;
+    Av2hBlockReconstruction reconstruction;
     size_t index;
 
     av2h_memory_fill(predictor, 6U, sizeof(predictor));
@@ -1634,10 +1634,10 @@ static void test_4x4_secondary_transform_precedes_primary_transform(void) {
 }
 
 static void test_lossless_negative_coefficient_floor_shift(void) {
-    Av2hFirstLeafMode mode = { 0 };
-    Av2hFirstTransformType transform = { 0 };
-    Av2hFirstCoeffBlock coefficients = { 0 };
-    Av2hFirstReconstruction reconstruction;
+    Av2hLeafMode mode = { 0 };
+    Av2hTransformType transform = { 0 };
+    Av2hCoeffBlock coefficients = { 0 };
+    Av2hBlockReconstruction reconstruction;
     uint8_t predictor[16U];
     size_t index;
 
@@ -1671,10 +1671,10 @@ static void test_lossless_vertical_dpcm_bypasses_wht(void) {
         11, 13, 13, -1,
         11, 13, 12, 0
     };
-    Av2hFirstLeafMode mode = { 0 };
-    Av2hFirstTransformType transform = { 0 };
-    Av2hFirstCoeffBlock coefficients = { 0 };
-    Av2hFirstReconstruction reconstruction;
+    Av2hLeafMode mode = { 0 };
+    Av2hTransformType transform = { 0 };
+    Av2hCoeffBlock coefficients = { 0 };
+    Av2hBlockReconstruction reconstruction;
     uint8_t predictor[16U];
     size_t index;
 
@@ -1710,12 +1710,12 @@ static void test_tx4x4_intrabc_idtx_reconstruction(void) {
         250U, 251U, 251U, 6U,
         251U, 6U, 6U, 6U
     };
-    Av2hFirstLeafMode mode = { 0 };
-    Av2hFirstCoeffPrefix prefix = { 0 };
-    Av2hFirstTransformType transform = { 0 };
-    Av2hFirstCoeffBlock block = { 0 };
+    Av2hLeafMode mode = { 0 };
+    Av2hCoeffPrefix prefix = { 0 };
+    Av2hTransformType transform = { 0 };
+    Av2hCoeffBlock block = { 0 };
     Av2hReconstructionScratch scratch;
-    Av2hFirstReconstruction reconstruction;
+    Av2hBlockReconstruction reconstruction;
     size_t index;
 
     mode.mode = AV2H_INTRA_DC;
@@ -1768,21 +1768,21 @@ static int32_t idtx_test_residual(int32_t coefficient,
         (int64_t)row * idtx_test_scale(height), column_shift), -256, 255);
 }
 
-static void check_idtx_reconstruction(Av2hFirstTxSize tx_size,
+static void check_idtx_reconstruction(Av2hTxSize tx_size,
                                        uint16_t width, uint16_t height,
                                        uint8_t row_shift,
                                        uint8_t column_shift,
                                        uint8_t rectangular,
-                                       Av2hFirstLeafIntraMode intra_mode,
+                                       Av2hIntraMode intra_mode,
                                        uint8_t fsc_mode,
                                        uint8_t use_intrabc) {
     static Av2hReconstructionScratch scratch;
-    static Av2hFirstReconstruction reconstruction;
-    static Av2hFirstCoeffBlock block;
+    static Av2hBlockReconstruction reconstruction;
+    static Av2hCoeffBlock block;
     static uint8_t predictor[AV2H_RECON_SAMPLE_CAPACITY];
-    Av2hFirstLeafMode mode = { 0 };
-    Av2hFirstCoeffPrefix prefix = { 0 };
-    Av2hFirstTransformType transform = { 0 };
+    Av2hLeafMode mode = { 0 };
+    Av2hCoeffPrefix prefix = { 0 };
+    Av2hTransformType transform = { 0 };
     size_t count = (size_t)width * height;
     size_t index;
     av2h_memory_fill(&block, 0U, sizeof(block));
@@ -1821,7 +1821,7 @@ static void check_idtx_reconstruction(Av2hFirstTxSize tx_size,
 
 static void test_primary_idtx_reconstruction_matrix(void) {
     static const struct {
-        Av2hFirstTxSize tx_size;
+        Av2hTxSize tx_size;
         uint16_t width;
         uint16_t height;
         uint8_t row_shift;
@@ -1836,7 +1836,7 @@ static void test_primary_idtx_reconstruction_matrix(void) {
         { AV2H_TX_32X16, 32U, 16U, 6U, 12U, 1U }
     };
     static const struct {
-        Av2hFirstTxSize tx_size;
+        Av2hTxSize tx_size;
         uint16_t width;
         uint16_t height;
         uint8_t row_shift;
@@ -1854,10 +1854,10 @@ static void test_primary_idtx_reconstruction_matrix(void) {
         { AV2H_TX_16X4, 16U, 4U, 6U, 12U, 0U },
         { AV2H_TX_32X4, 32U, 4U, 7U, 11U, 1U }
     };
-    Av2hFirstLeafIntraMode mode;
+    Av2hIntraMode mode;
     size_t geometry;
     for (mode = AV2H_INTRA_DC; mode <= AV2H_INTRA_PAETH;
-         mode = (Av2hFirstLeafIntraMode)(mode + 1)) {
+         mode = (Av2hIntraMode)(mode + 1)) {
         for (geometry = 0U;
              geometry < sizeof(signaled) / sizeof(signaled[0]); ++geometry) {
             check_idtx_reconstruction(
@@ -1893,13 +1893,13 @@ static void test_tx4x4_d203_fsc_reconstruction(void) {
         0U, 6U, 6U, 6U,
         6U, 6U, 6U, 6U
     };
-    Av2hFirstLeafMode mode = { 0 };
-    Av2hFirstCoeffPrefix prefix = { 0 };
-    Av2hFirstTransformType transform = { 0 };
-    Av2hFirstCoeffBlock block = { 0 };
+    Av2hLeafMode mode = { 0 };
+    Av2hCoeffPrefix prefix = { 0 };
+    Av2hTransformType transform = { 0 };
+    Av2hCoeffBlock block = { 0 };
     Av2hLumaReferences references = { 0 };
     Av2hReconstructionScratch scratch;
-    Av2hFirstReconstruction reconstruction;
+    Av2hBlockReconstruction reconstruction;
     uint8_t predicted[16U];
     size_t index;
 
@@ -1952,13 +1952,13 @@ static void test_tx8x4_d203_reconstruction(void) {
         7U, 8U, 9U, 11U, 14U, 16U, 18U, 19U,
         10U, 11U, 13U, 15U, 17U, 19U, 21U, 22U
     };
-    Av2hFirstLeafMode mode = { 0 };
-    Av2hFirstCoeffPrefix prefix = { 0 };
-    Av2hFirstTransformType transform = { 0 };
-    Av2hFirstCoeffBlock block = { 0 };
+    Av2hLeafMode mode = { 0 };
+    Av2hCoeffPrefix prefix = { 0 };
+    Av2hTransformType transform = { 0 };
+    Av2hCoeffBlock block = { 0 };
     Av2hLumaReferences references = { 0 };
     Av2hReconstructionScratch scratch;
-    Av2hFirstReconstruction reconstruction;
+    Av2hBlockReconstruction reconstruction;
     uint8_t predicted[32U];
     size_t index;
 
@@ -2018,13 +2018,13 @@ static void test_tx8x8_d203_mrl_reconstruction(void) {
         23U, 26U, 29U, 31U, 33U, 35U, 36U, 36U,
         23U, 27U, 30U, 32U, 35U, 37U, 38U, 39U
     };
-    Av2hFirstLeafMode mode = { 0 };
-    Av2hFirstCoeffPrefix prefix = { 0 };
-    Av2hFirstTransformType transform = { 0 };
-    Av2hFirstCoeffBlock block = { 0 };
+    Av2hLeafMode mode = { 0 };
+    Av2hCoeffPrefix prefix = { 0 };
+    Av2hTransformType transform = { 0 };
+    Av2hCoeffBlock block = { 0 };
     Av2hLumaReferences references = { 0 };
     Av2hReconstructionScratch scratch;
-    Av2hFirstReconstruction reconstruction;
+    Av2hBlockReconstruction reconstruction;
     uint8_t predicted[64U];
     size_t index;
 
@@ -2077,9 +2077,9 @@ static void test_live_plane_reconstruction(void) {
     Av2hRangeDecoder decoder;
     Av2hPartitionCdfs partition_cdfs;
     Av2hLeafCdfs leaf_cdfs;
-    Av2hFirstCoeffCdfs coeff_cdfs;
-    Av2hFirstTransformCdfs transform_cdfs;
-    Av2hFirstCoeffLevelCdfs level_cdfs;
+    Av2hCoeffCdfs coeff_cdfs;
+    Av2hTransformCdfs transform_cdfs;
+    Av2hCoeffLevelCdfs level_cdfs;
     Av2hPartitionContextState partition_state;
     Av2hLumaModeContextState mode_state;
     Av2hCoeffContextState coeff_state;
@@ -2099,11 +2099,11 @@ static void test_live_plane_reconstruction(void) {
         reconstructed, 4U, sizeof(reconstructed)
     };
     Av2hReconstructionScratch scratch;
-    Av2hFirstLeafPath path;
-    Av2hFirstLeafMode mode;
-    Av2hFirstCoeffPrefix prefix;
-    Av2hFirstTransformType transform;
-    Av2hFirstCoeffBlock block;
+    Av2hLeafPath path;
+    Av2hLeafMode mode;
+    Av2hCoeffPrefix prefix;
+    Av2hTransformType transform;
+    Av2hCoeffBlock block;
     uint8_t dc_sign_context;
     uint8_t has_leaf;
     size_t index;
@@ -2121,9 +2121,9 @@ static void test_live_plane_reconstruction(void) {
     frame.cdef_strength_count = 1U;
     CHECK(av2h_partition_cdfs_init(&partition_cdfs) == AV2H_OK);
     CHECK(av2h_leaf_cdfs_init(&leaf_cdfs) == AV2H_OK);
-    CHECK(av2h_first_coeff_cdfs_init(&coeff_cdfs) == AV2H_OK);
-    CHECK(av2h_first_transform_cdfs_init(&transform_cdfs) == AV2H_OK);
-    CHECK(av2h_first_coeff_level_cdfs_init(&level_cdfs) == AV2H_OK);
+    CHECK(av2h_coeff_cdfs_init(&coeff_cdfs) == AV2H_OK);
+    CHECK(av2h_transform_cdfs_init(&transform_cdfs) == AV2H_OK);
+    CHECK(av2h_coeff_level_cdfs_init(&level_cdfs) == AV2H_OK);
     CHECK(av2h_partition_context_state_init(
               &partition_state, partition_above, partition_left,
               chroma_partition_above, chroma_partition_left, 16U, 16U) ==
@@ -2150,7 +2150,7 @@ static void test_live_plane_reconstruction(void) {
         CHECK(av2h_coeff_prefix_read_with_state(
                   &decoder, &coeff_cdfs, &frame, &path.leaf, &mode,
                   &coeff_state, &prefix, &dc_sign_context) == AV2H_OK);
-        CHECK(av2h_first_transform_type_read(
+        CHECK(av2h_transform_type_read(
                   &decoder, &transform_cdfs, &sequence, &frame, &mode,
                   &prefix, &transform) == AV2H_OK);
         CHECK(av2h_coeff_block_read_with_state(
@@ -2179,12 +2179,12 @@ static void test_tx16x32_dc_dct_reconstruction(void) {
         114U, 114U, 114U, 115U, 116U, 117U, 118U, 119U,
         120U, 121U, 122U, 123U, 123U, 124U, 124U, 125U
     };
-    Av2hFirstLeafMode mode = { 0 };
-    Av2hFirstCoeffPrefix prefix = { 0 };
-    Av2hFirstTransformType transform = { 0 };
-    Av2hFirstCoeffBlock block = { 0 };
+    Av2hLeafMode mode = { 0 };
+    Av2hCoeffPrefix prefix = { 0 };
+    Av2hTransformType transform = { 0 };
+    Av2hCoeffBlock block = { 0 };
     Av2hReconstructionScratch scratch;
-    Av2hFirstReconstruction reconstruction;
+    Av2hBlockReconstruction reconstruction;
     Av2hStatus status;
     size_t index;
 
@@ -2202,7 +2202,7 @@ static void test_tx16x32_dc_dct_reconstruction(void) {
     block.dequantized[17] = 248;
     block.dequantized[32] = 248;
 
-    CHECK(av2h_first_luma_reconstruct(
+    CHECK(av2h_luma_reconstruct_without_predictor(
               &mode, &prefix, &transform, &block, &scratch,
               &reconstruction) == AV2H_OK);
     CHECK(reconstruction.width == 16U);
@@ -2216,7 +2216,7 @@ static void test_tx16x32_dc_dct_reconstruction(void) {
     }
 
     block.dequantized[96U] = 248;
-    status = av2h_first_luma_reconstruct(
+    status = av2h_luma_reconstruct_without_predictor(
         &mode, &prefix, &transform, &block, &scratch, &reconstruction);
     CHECK(status == AV2H_OK);
     CHECK(pixel_hash(&reconstruction) == UINT64_C(0x675e7f3b31f00b94));
@@ -2231,12 +2231,12 @@ static void test_tx16x32_dc_flipadst_reconstruction(void) {
         95U, 97U, 101U, 105U, 107U, 108U, 107U, 105U,
         103U, 102U, 103U, 106U, 111U, 116U, 120U, 125U
     };
-    Av2hFirstLeafMode mode = { 0 };
-    Av2hFirstCoeffPrefix prefix = { 0 };
-    Av2hFirstTransformType transform = { 0 };
-    Av2hFirstCoeffBlock block = { 0 };
+    Av2hLeafMode mode = { 0 };
+    Av2hCoeffPrefix prefix = { 0 };
+    Av2hTransformType transform = { 0 };
+    Av2hCoeffBlock block = { 0 };
     Av2hReconstructionScratch scratch;
-    Av2hFirstReconstruction reconstruction;
+    Av2hBlockReconstruction reconstruction;
     Av2hStatus status;
     size_t index;
 
@@ -2260,7 +2260,7 @@ static void test_tx16x32_dc_flipadst_reconstruction(void) {
     block.dequantized[33] = -248;
     block.dequantized[34] = -248;
 
-    CHECK(av2h_first_luma_reconstruct(
+    CHECK(av2h_luma_reconstruct_without_predictor(
               &mode, &prefix, &transform, &block, &scratch,
               &reconstruction) == AV2H_OK);
     CHECK(reconstruction.width == 16U);
@@ -2274,7 +2274,7 @@ static void test_tx16x32_dc_flipadst_reconstruction(void) {
     }
 
     block.dequantized[4U] = -248;
-    status = av2h_first_luma_reconstruct(
+    status = av2h_luma_reconstruct_without_predictor(
         &mode, &prefix, &transform, &block, &scratch, &reconstruction);
     CHECK(status == AV2H_OK);
     CHECK(pixel_hash(&reconstruction) == UINT64_C(0xe217fa29c5ee582c));
@@ -2291,7 +2291,7 @@ static void test_dc_16x32_prediction(void) {
         112U, 114U, 116U, 118U, 120U, 122U, 124U, 126U,
         128U, 130U, 132U, 134U, 136U, 138U, 140U, 142U
     };
-    Av2hFirstLeafMode mode = { 0 };
+    Av2hLeafMode mode = { 0 };
     Av2hLumaReferences references = { 0 };
     uint8_t predictor[16U * 32U];
     unsigned int sum;
@@ -2337,7 +2337,7 @@ static void test_dc_16x32_ibp_prediction(void) {
         50U, 50U, 50U, 50U, 50U, 50U, 50U, 50U,
         50U, 50U, 50U, 50U, 50U, 50U, 50U, 50U
     };
-    Av2hFirstLeafMode mode = { 0 };
+    Av2hLeafMode mode = { 0 };
     Av2hLumaReferences references = { 0 };
     uint8_t predictor[16U * 32U];
     uint8_t dc;
@@ -2389,7 +2389,7 @@ static void test_dc_4x64_and_64x4_prediction(void) {
         size_t stride = width + 3U;
         size_t test;
         for (test = 0U; test < 8U; ++test) {
-            Av2hFirstLeafMode mode = { 0 };
+            Av2hLeafMode mode = { 0 };
             Av2hLumaReferences references = { 0 };
             Av2hStatus status;
             size_t row;
@@ -2430,7 +2430,7 @@ static void test_dc_4x64_and_64x4_prediction(void) {
 }
 
 static void test_d113_16x64_prediction(void) {
-    Av2hFirstLeafMode mode = { 0 };
+    Av2hLeafMode mode = { 0 };
     Av2hLumaReferences references = { 0 };
     uint8_t above[80U];
     uint8_t left[80U];
@@ -2474,7 +2474,7 @@ static void test_d203_16x16_ibp_prediction(void) {
         147U, 148U, 150U, 153U, 156U, 158U, 161U, 163U,
         166U, 168U, 171U, 173U, 175U, 177U, 178U, 178U
     };
-    Av2hFirstLeafMode mode = { 0 };
+    Av2hLeafMode mode = { 0 };
     Av2hLumaReferences references = { 0 };
     uint8_t predictor[16U * 16U];
 
@@ -2495,14 +2495,14 @@ static void test_d203_16x16_ibp_prediction(void) {
 }
 
 static void test_luma_directional_feature_matrix(void) {
-    static const Av2hFirstLeafIntraMode modes[] = {
+    static const Av2hIntraMode modes[] = {
         AV2H_INTRA_D45,        AV2H_INTRA_D67,  AV2H_INTRA_VERTICAL,
         AV2H_INTRA_D113,       AV2H_INTRA_D135, AV2H_INTRA_D157,
         AV2H_INTRA_HORIZONTAL, AV2H_INTRA_D203
     };
     static const uint16_t dimensions[] = { 4U, 8U, 16U, 32U, 64U };
     static const int8_t angle_deltas[] = { -3, -2, -1, 0, 1, 2, 3 };
-    Av2hFirstLeafMode mode = { 0 };
+    Av2hLeafMode mode = { 0 };
     Av2hLumaReferences references = { 0 };
     uint8_t above[136U];
     uint8_t left[136U];
@@ -2600,7 +2600,7 @@ static void test_luma_directional_feature_matrix(void) {
                                 }
                                 if (expected == AV2H_OK &&
                                     multi_line_mrl != 0U) {
-                                    Av2hFirstLeafMode component_mode = mode;
+                                    Av2hLeafMode component_mode = mode;
                                     Av2hLumaReferences boundary_references =
                                         references;
                                     Av2hLumaReferences secondary_references =
@@ -2712,7 +2712,7 @@ static void test_luma_directional_feature_matrix(void) {
 }
 
 static void test_cardinal_prediction_without_references(void) {
-    Av2hFirstLeafMode mode = { 0 };
+    Av2hLeafMode mode = { 0 };
     Av2hLumaReferences references = { 0 };
     uint8_t predictor[8U * 8U];
     size_t index;
@@ -2734,7 +2734,7 @@ static void test_cardinal_prediction_without_references(void) {
 
 static void test_luma_zero_angle_frontier_matrix(void) {
     static const struct {
-        Av2hFirstLeafIntraMode mode;
+        Av2hIntraMode mode;
         uint16_t width;
         uint16_t height;
     } cases[] = {
@@ -2770,7 +2770,7 @@ static void test_luma_zero_angle_frontier_matrix(void) {
         { AV2H_INTRA_D203, 64U, 64U },
         { AV2H_INTRA_D45, 4U, 16U }
     };
-    Av2hFirstLeafMode mode = { 0 };
+    Av2hLeafMode mode = { 0 };
     Av2hLumaReferences references = { 0 };
     uint8_t above[136U];
     uint8_t left[136U];
@@ -2822,7 +2822,7 @@ static void test_luma_zero_angle_frontier_matrix(void) {
 
 static void test_luma_smooth_vertical_geometry_matrix(void) {
     static const uint16_t dimensions[] = { 4U, 8U, 16U, 32U, 64U };
-    Av2hFirstLeafMode mode = { 0 };
+    Av2hLeafMode mode = { 0 };
     Av2hLumaReferences references = { 0 };
     uint8_t above[65U];
     uint8_t left[65U];
@@ -2861,7 +2861,7 @@ static void test_luma_smooth_vertical_geometry_matrix(void) {
 }
 
 static void test_luma_smooth_partial_left_extension(void) {
-    static const Av2hFirstLeafIntraMode modes[] = {
+    static const Av2hIntraMode modes[] = {
         AV2H_INTRA_SMOOTH, AV2H_INTRA_PAETH
     };
     uint8_t pixels[32U * 32U];
@@ -2874,10 +2874,10 @@ static void test_luma_smooth_partial_left_extension(void) {
         reconstructed, 8U, sizeof(reconstructed)
     };
     Av2hPartitionNode leaf = { 1U, 2U, AV2H_BLOCK_16X16 };
-    Av2hFirstLeafMode mode = { 0 };
-    Av2hFirstCoeffPrefix prefix = { 0 };
-    Av2hFirstTransformType transform = { 0 };
-    Av2hFirstCoeffBlock block = { 0 };
+    Av2hLeafMode mode = { 0 };
+    Av2hCoeffPrefix prefix = { 0 };
+    Av2hTransformType transform = { 0 };
+    Av2hCoeffBlock block = { 0 };
     Av2hReconstructionScratch scratch;
     Av2hLumaReferences references = { 0 };
     size_t mode_index;
@@ -2927,15 +2927,15 @@ static void test_luma_smooth_partial_left_extension(void) {
 }
 
 static void test_chroma_angle_delta_matrix(void) {
-    static const Av2hFirstLeafIntraMode modes[] = {
+    static const Av2hIntraMode modes[] = {
         AV2H_INTRA_D45,        AV2H_INTRA_D67,  AV2H_INTRA_VERTICAL,
         AV2H_INTRA_D113,       AV2H_INTRA_D135, AV2H_INTRA_D157,
         AV2H_INTRA_HORIZONTAL, AV2H_INTRA_D203
     };
     static const int8_t angle_deltas[] = { -3, -2, -1, 0, 1, 2, 3 };
     static const uint16_t dimensions[] = { 4U, 8U, 16U, 32U };
-    Av2hFirstChromaMode chroma_mode = { 0 };
-    Av2hFirstLeafMode luma_mode = { 0 };
+    Av2hChromaLeafMode chroma_mode = { 0 };
+    Av2hLeafMode luma_mode = { 0 };
     Av2hLumaReferences references = { 0 };
     uint8_t above[72U];
     uint8_t left[72U];
@@ -4192,7 +4192,7 @@ static const uint8_t recon_last_block_19_32_20[8] = {
 typedef struct {
     const char *name;
     uint8_t tx_size;
-    Av2hFirstTxType tx_type;
+    Av2hTxType tx_type;
     uint8_t all_zero;
     uint16_t eob;
     uint16_t output_width;
@@ -4244,22 +4244,22 @@ static const Av2hEmeraldCase emerald_cases[] = {
 
 static void test_emerald_q208_luma_blocks(void) {
     static Av2hReconstructionScratch scratch;
-    static Av2hFirstReconstruction reconstruction;
+    static Av2hBlockReconstruction reconstruction;
     size_t case_index;
     for (case_index = 0U;
          case_index < sizeof(emerald_cases) / sizeof(emerald_cases[0]);
          ++case_index) {
         const Av2hEmeraldCase *test_case = &emerald_cases[case_index];
-        Av2hFirstLeafMode mode = { 0 };
-        Av2hFirstCoeffPrefix prefix = { 0 };
-        Av2hFirstTransformType transform = { 0 };
-        Av2hFirstCoeffBlock block = { 0 };
+        Av2hLeafMode mode = { 0 };
+        Av2hCoeffPrefix prefix = { 0 };
+        Av2hTransformType transform = { 0 };
+        Av2hCoeffBlock block = { 0 };
         size_t sample_count =
             (size_t)test_case->output_width * test_case->output_height;
         uint16_t coeff_index;
         size_t index;
         Av2hStatus status;
-        prefix.tx_size = (Av2hFirstTxSize)test_case->tx_size;
+        prefix.tx_size = (Av2hTxSize)test_case->tx_size;
         prefix.all_zero = test_case->all_zero;
         prefix.eob = test_case->eob;
         transform.primary_type = test_case->tx_type;
@@ -4305,12 +4305,12 @@ static void test_emerald_q208_luma_blocks(void) {
 
 
 static void test_emerald_reconstruct_clipping(void) {
-    Av2hFirstLeafMode mode = { 0 };
-    Av2hFirstCoeffPrefix prefix = { 0 };
-    Av2hFirstTransformType transform = { 0 };
-    Av2hFirstCoeffBlock block = { 0 };
+    Av2hLeafMode mode = { 0 };
+    Av2hCoeffPrefix prefix = { 0 };
+    Av2hTransformType transform = { 0 };
+    Av2hCoeffBlock block = { 0 };
     static Av2hReconstructionScratch scratch;
-    static Av2hFirstReconstruction reconstruction;
+    static Av2hBlockReconstruction reconstruction;
     uint8_t predictor[256U];
     size_t index;
 
@@ -4344,7 +4344,7 @@ static void test_emerald_reconstruct_clipping(void) {
 
 static void test_dct_adst_geometry_matrix(void) {
     static const struct {
-        Av2hFirstTxSize tx_size;
+        Av2hTxSize tx_size;
         uint16_t output_width;
         uint16_t output_height;
         uint16_t coefficient_width;
@@ -4368,7 +4368,7 @@ static void test_dct_adst_geometry_matrix(void) {
         { AV2H_TX_16X64, 16U, 64U, 16U, 32U, 0x20a6dd05U }
     };
     static const struct {
-        Av2hFirstTxSize tx_size;
+        Av2hTxSize tx_size;
         uint16_t output_width;
         uint16_t coefficient_width;
         uint16_t coefficient_height;
@@ -4384,12 +4384,12 @@ static void test_dct_adst_geometry_matrix(void) {
         { AV2H_TX_64X32, 64U, 32U, 32U },
         { AV2H_TX_64X64, 64U, 32U, 32U }
     };
-    Av2hFirstLeafMode mode = { 0 };
-    Av2hFirstCoeffPrefix prefix = { 0 };
-    Av2hFirstTransformType transform = { 0 };
-    Av2hFirstCoeffBlock block = { 0 };
+    Av2hLeafMode mode = { 0 };
+    Av2hCoeffPrefix prefix = { 0 };
+    Av2hTransformType transform = { 0 };
+    Av2hCoeffBlock block = { 0 };
     static Av2hReconstructionScratch scratch;
-    static Av2hFirstReconstruction reconstruction;
+    static Av2hBlockReconstruction reconstruction;
     uint8_t predictor[AV2H_RECON_SAMPLE_CAPACITY];
     size_t geometry;
     size_t mode_index;
@@ -4408,7 +4408,7 @@ static void test_dct_adst_geometry_matrix(void) {
         block.dequantized[0U] = 512;
         for (mode_index = AV2H_INTRA_DC;
              mode_index <= AV2H_INTRA_PAETH; ++mode_index) {
-            mode.mode = (Av2hFirstLeafIntraMode)mode_index;
+            mode.mode = (Av2hIntraMode)mode_index;
             CHECK(av2h_luma_reconstruct(
                       &mode, &prefix, &transform, &block, predictor,
                       supported[geometry].output_width, &scratch,
@@ -4443,7 +4443,7 @@ static void test_dct_adst_geometry_matrix(void) {
 
 static void test_adst_dct_geometry_matrix(void) {
     static const struct {
-        Av2hFirstTxSize tx_size;
+        Av2hTxSize tx_size;
         uint16_t output_width;
         uint16_t output_height;
         uint16_t coefficient_width;
@@ -4467,7 +4467,7 @@ static void test_adst_dct_geometry_matrix(void) {
         { AV2H_TX_64X16, 64U, 16U, 32U, 16U, 0x7205d505U }
     };
     static const struct {
-        Av2hFirstTxSize tx_size;
+        Av2hTxSize tx_size;
         uint16_t output_width;
         uint16_t coefficient_width;
         uint16_t coefficient_height;
@@ -4479,12 +4479,12 @@ static void test_adst_dct_geometry_matrix(void) {
         { AV2H_TX_8X64, 8U, 8U, 32U },
         { AV2H_TX_16X64, 16U, 16U, 32U }
     };
-    Av2hFirstLeafMode mode = { 0 };
-    Av2hFirstCoeffPrefix prefix = { 0 };
-    Av2hFirstTransformType transform = { 0 };
-    Av2hFirstCoeffBlock block = { 0 };
+    Av2hLeafMode mode = { 0 };
+    Av2hCoeffPrefix prefix = { 0 };
+    Av2hTransformType transform = { 0 };
+    Av2hCoeffBlock block = { 0 };
     static Av2hReconstructionScratch scratch;
-    static Av2hFirstReconstruction reconstruction;
+    static Av2hBlockReconstruction reconstruction;
     uint8_t predictor[AV2H_RECON_SAMPLE_CAPACITY];
     size_t geometry;
     size_t mode_index;
@@ -4502,7 +4502,7 @@ static void test_adst_dct_geometry_matrix(void) {
         block.dequantized[0U] = 512;
         for (mode_index = AV2H_INTRA_DC;
              mode_index <= AV2H_INTRA_PAETH; ++mode_index) {
-            mode.mode = (Av2hFirstLeafIntraMode)mode_index;
+            mode.mode = (Av2hIntraMode)mode_index;
             CHECK(av2h_luma_reconstruct(
                       &mode, &prefix, &transform, &block, predictor,
                       supported[geometry].output_width, &scratch,
@@ -4537,7 +4537,7 @@ static void test_adst_dct_geometry_matrix(void) {
 
 static void test_adst_flipadst_geometry_matrix(void) {
     static const struct {
-        Av2hFirstTxSize tx_size;
+        Av2hTxSize tx_size;
         uint16_t width;
         uint16_t height;
         uint32_t expected_hash;
@@ -4552,7 +4552,7 @@ static void test_adst_flipadst_geometry_matrix(void) {
         { AV2H_TX_16X8, 16U, 8U, 0xa6098b8cU },
         { AV2H_TX_16X16, 16U, 16U, 0xce550a63U }
     };
-    static const Av2hFirstTxSize unsupported[] = {
+    static const Av2hTxSize unsupported[] = {
         AV2H_TX_32X32, AV2H_TX_64X64,
         AV2H_TX_16X32, AV2H_TX_32X16,
         AV2H_TX_32X64, AV2H_TX_64X32,
@@ -4562,12 +4562,12 @@ static void test_adst_flipadst_geometry_matrix(void) {
         AV2H_TX_8X64, AV2H_TX_64X8,
         AV2H_TX_4X64, AV2H_TX_64X4
     };
-    Av2hFirstLeafMode mode = { 0 };
-    Av2hFirstCoeffPrefix prefix = { 0 };
-    Av2hFirstTransformType transform = { 0 };
-    Av2hFirstCoeffBlock block = { 0 };
+    Av2hLeafMode mode = { 0 };
+    Av2hCoeffPrefix prefix = { 0 };
+    Av2hTransformType transform = { 0 };
+    Av2hCoeffBlock block = { 0 };
     static Av2hReconstructionScratch scratch;
-    static Av2hFirstReconstruction reconstruction;
+    static Av2hBlockReconstruction reconstruction;
     uint8_t predictor[AV2H_RECON_SAMPLE_CAPACITY];
     size_t geometry;
 
@@ -4587,7 +4587,7 @@ static void test_adst_flipadst_geometry_matrix(void) {
              mode_index <= AV2H_INTRA_PAETH; ++mode_index) {
             Av2hStatus status;
             uint32_t hash;
-            mode.mode = (Av2hFirstLeafIntraMode)mode_index;
+            mode.mode = (Av2hIntraMode)mode_index;
             status = av2h_luma_reconstruct(
                 &mode, &prefix, &transform, &block, predictor,
                 supported[geometry].width, &scratch, &reconstruction);
@@ -4626,7 +4626,7 @@ static void test_adst_flipadst_geometry_matrix(void) {
 
 static void test_requested_transform_geometry_matrix(void) {
     struct TransformGeometry {
-        Av2hFirstTxSize tx_size;
+        Av2hTxSize tx_size;
         uint32_t expected_hash;
     };
     static const struct TransformGeometry flipadst_adst[] = {
@@ -4717,7 +4717,7 @@ static void test_requested_transform_geometry_matrix(void) {
         { AV2H_TX_16X8, 0x22824e2dU }
     };
     static const struct {
-        Av2hFirstTxType type;
+        Av2hTxType type;
         const struct TransformGeometry *geometries;
         size_t count;
     } matrices[] = {
@@ -4742,12 +4742,12 @@ static void test_requested_transform_geometry_matrix(void) {
                 { AV2H_TX_H_FLIPADST, h_flipadst,
                     sizeof(h_flipadst) / sizeof(h_flipadst[0]) }
     };
-    Av2hFirstLeafMode mode = { 0 };
-    Av2hFirstCoeffPrefix prefix = { 0 };
-    Av2hFirstTransformType transform = { 0 };
-    Av2hFirstCoeffBlock block = { 0 };
+    Av2hLeafMode mode = { 0 };
+    Av2hCoeffPrefix prefix = { 0 };
+    Av2hTransformType transform = { 0 };
+    Av2hCoeffBlock block = { 0 };
     static Av2hReconstructionScratch scratch;
-    static Av2hFirstReconstruction reconstruction;
+    static Av2hBlockReconstruction reconstruction;
     uint8_t predictor[AV2H_RECON_SAMPLE_CAPACITY];
     size_t matrix;
 
@@ -4777,7 +4777,7 @@ static void test_requested_transform_geometry_matrix(void) {
                                              AV2H_INTRA_PAETH);
                   ++mode_index) {
                 Av2hStatus status;
-                mode.mode = (Av2hFirstLeafIntraMode)mode_index;
+                mode.mode = (Av2hIntraMode)mode_index;
                 status = av2h_luma_reconstruct(
                     &mode, &prefix, &transform, &block, predictor,
                     descriptor->output_width, &scratch, &reconstruction);
@@ -4797,8 +4797,8 @@ static void test_requested_transform_geometry_matrix(void) {
 }
 
 static void test_cctx_updates_nonzero_counts(void) {
-    Av2hFirstCoeffBlock u = { 0 };
-    Av2hFirstCoeffBlock v = { 0 };
+    Av2hCoeffBlock u = { 0 };
+    Av2hCoeffBlock v = { 0 };
     u.coefficient_count = 2U;
     v.coefficient_count = 2U;
     u.nonzero_count = 1U;
@@ -4811,12 +4811,12 @@ static void test_cctx_updates_nonzero_counts(void) {
 }
 
 static void test_emerald_reconstruct_invalid_preserves_output(void) {
-    Av2hFirstLeafMode mode = { 0 };
-    Av2hFirstCoeffPrefix prefix = { 0 };
-    Av2hFirstTransformType transform = { 0 };
-    Av2hFirstCoeffBlock block = { 0 };
+    Av2hLeafMode mode = { 0 };
+    Av2hCoeffPrefix prefix = { 0 };
+    Av2hTransformType transform = { 0 };
+    Av2hCoeffBlock block = { 0 };
     static Av2hReconstructionScratch scratch;
-    static Av2hFirstReconstruction reconstruction;
+    static Av2hBlockReconstruction reconstruction;
     uint8_t predictor[256U];
     size_t index;
 
@@ -4931,7 +4931,7 @@ typedef struct {
     uint16_t height;
     uint8_t tx_size;
     uint8_t plane;
-    Av2hFirstLeafIntraMode mode;
+    Av2hIntraMode mode;
     uint8_t all_zero;
     uint16_t nonzero;
     const uint8_t *above;
@@ -4985,10 +4985,10 @@ static void test_emerald_q208_chroma_leaves(void) {
          ++case_index) {
         const Av2hChromaLeafCase *tc = &emerald_chroma_cases[case_index];
         Av2hPartitionNode leaf = { tc->mi_row, tc->mi_col, 0U };
-        Av2hFirstChromaMode mode = { 0 };
-        Av2hFirstCoeffPrefix prefix = { 0 };
-        Av2hFirstTransformType transform = { 0 };
-        Av2hFirstCoeffBlock block = { 0 };
+        Av2hChromaLeafMode mode = { 0 };
+        Av2hCoeffPrefix prefix = { 0 };
+        Av2hTransformType transform = { 0 };
+        Av2hCoeffBlock block = { 0 };
         size_t count = (size_t)tc->width * tc->height;
         uint16_t block_x = (uint16_t)(tc->mi_col * 2U);
         uint16_t block_y = (uint16_t)(tc->mi_row * 2U);
@@ -5023,7 +5023,7 @@ static void test_emerald_q208_chroma_leaves(void) {
         };
         mode.mode = tc->mode;
         mode.angle_delta = 0;
-        prefix.tx_size = (Av2hFirstTxSize)tc->tx_size;
+        prefix.tx_size = (Av2hTxSize)tc->tx_size;
         prefix.all_zero = tc->all_zero;
         prefix.eob = tc->all_zero ? 0U : tc->nonzero;
         transform.primary_type = AV2H_TX_DCT_DCT;
@@ -5102,10 +5102,10 @@ static void test_emerald_q208_chroma_cfl(void) {
         const uint8_t *recon8 = plane_index == 0 ? cfl_u_recon8 : cfl_v_recon8;
         uint8_t all_zero = plane_index == 0 ? 0U : 1U;
         Av2hPartitionNode leaf = { 0U, 32U, 0U };
-        Av2hFirstChromaMode mode = { 0 };
-        Av2hFirstCoeffPrefix prefix = { 0 };
-        Av2hFirstTransformType transform = { 0 };
-        Av2hFirstCoeffBlock block = { 0 };
+        Av2hChromaLeafMode mode = { 0 };
+        Av2hCoeffPrefix prefix = { 0 };
+        Av2hTransformType transform = { 0 };
+        Av2hCoeffBlock block = { 0 };
         Av2hStatus status;
         av2h_memory_fill(chroma_data, 0U, sizeof(chroma_data));
         for (r = 0U; r < 32U; ++r) {
@@ -5125,7 +5125,7 @@ static void test_emerald_q208_chroma_cfl(void) {
         mode.is_cfl = 1U;
         mode.cfl_kind = AV2H_CFL_DERIVED_ALPHA;
         mode.mode = AV2H_INTRA_DC;
-        prefix.tx_size = (Av2hFirstTxSize)3;
+        prefix.tx_size = (Av2hTxSize)3;
         prefix.all_zero = all_zero;
         prefix.eob = all_zero ? 0U : 1U;
         transform.primary_type = AV2H_TX_DCT_DCT;
@@ -5172,10 +5172,10 @@ static void test_cfl_filter1_explicit_alpha(void) {
     uint8_t pred_rec[1U];
     Av2hReconstructionScratch scratch = { 0 };
     Av2hPartitionNode leaf = { 0U, 0U, 0U };
-    Av2hFirstChromaMode mode = { 0 };
-    Av2hFirstCoeffPrefix prefix = { 0 };
-    Av2hFirstTransformType transform = { 0 };
-    Av2hFirstCoeffBlock block = { 0 };
+    Av2hChromaLeafMode mode = { 0 };
+    Av2hCoeffPrefix prefix = { 0 };
+    Av2hTransformType transform = { 0 };
+    Av2hCoeffBlock block = { 0 };
     Av2hReconstructionPlane luma = {
         luma_data, 8U, 8U, 8U, 8U, 8U, luma_rec, 2U, sizeof(luma_rec)
     };
@@ -5277,10 +5277,10 @@ static void test_cfl_coded_bottom_edge(void) {
     uint8_t pred_rec[8U * 3U];
     Av2hReconstructionScratch scratch = { 0 };
     Av2hPartitionNode leaf = { 5U, 0U, AV2H_BLOCK_64X8 };
-    Av2hFirstChromaMode mode = { 0 };
-    Av2hFirstCoeffPrefix prefix = { 0 };
-    Av2hFirstTransformType transform = { 0 };
-    Av2hFirstCoeffBlock block = { 0 };
+    Av2hChromaLeafMode mode = { 0 };
+    Av2hCoeffPrefix prefix = { 0 };
+    Av2hTransformType transform = { 0 };
+    Av2hCoeffBlock block = { 0 };
     Av2hReconstructionPlane luma = {
         luma_data, 64U, 64U, 24U, 61U, 21U, luma_rec, 16U,
         sizeof(luma_rec)
@@ -5370,7 +5370,7 @@ static void test_i444_cfl_coded_right_edge(void) {
 
 static void test_cfl_explicit_geometry_filter_matrix(void) {
     static const struct {
-        Av2hFirstTxSize tx;
+        Av2hTxSize tx;
         uint16_t width;
         uint16_t height;
     } geometries[] = {
@@ -5428,10 +5428,10 @@ static void test_cfl_explicit_geometry_filter_matrix(void) {
          ++geometry_index) {
         for (filter_index = 0U; filter_index < 3U; ++filter_index) {
             for (plane_index = 1U; plane_index <= 2U; ++plane_index) {
-                Av2hFirstChromaMode mode = { 0 };
-                Av2hFirstCoeffPrefix prefix = { 0 };
-                Av2hFirstTransformType transform = { 0 };
-                Av2hFirstCoeffBlock block = { 0 };
+                Av2hChromaLeafMode mode = { 0 };
+                Av2hCoeffPrefix prefix = { 0 };
+                Av2hTransformType transform = { 0 };
+                Av2hCoeffBlock block = { 0 };
                 uint16_t width = geometries[geometry_index].width;
                 uint16_t height = geometries[geometry_index].height;
                 int32_t alpha_q3 = plane_index == 1U ? 3 : 5;
@@ -5510,7 +5510,7 @@ static void test_cfl_explicit_geometry_filter_matrix(void) {
 
 static void test_mhccp_geometry_direction_matrix(void) {
     static const struct {
-        Av2hFirstTxSize tx;
+        Av2hTxSize tx;
         uint16_t width;
         uint16_t height;
     } geometries[] = {
@@ -5569,10 +5569,10 @@ static void test_mhccp_geometry_direction_matrix(void) {
         for (direction = 0U; direction < 3U; ++direction) {
             for (filter_index = 0U; filter_index < 3U; ++filter_index) {
                 for (plane_index = 1U; plane_index <= 2U; ++plane_index) {
-                Av2hFirstChromaMode mode = { 0 };
-                Av2hFirstCoeffPrefix prefix = { 0 };
-                Av2hFirstTransformType transform = { 0 };
-                Av2hFirstCoeffBlock block = { 0 };
+                Av2hChromaLeafMode mode = { 0 };
+                Av2hCoeffPrefix prefix = { 0 };
+                Av2hTransformType transform = { 0 };
+                Av2hCoeffBlock block = { 0 };
                 Av2hPartitionNode leaf = { 0U, 0U, 0U };
                 uint16_t width = geometries[geometry_index].width;
                 uint16_t height = geometries[geometry_index].height;
@@ -5720,10 +5720,10 @@ static void test_i444_mhccp_long_left_reference(void) {
         pred_data, 80U, 80U, 80U, 80U, 80U, pred_rec, 20U,
         sizeof(pred_rec)
     };
-    Av2hFirstChromaMode mode = { 0 };
-    Av2hFirstCoeffPrefix prefix = { 0 };
-    Av2hFirstTransformType transform = { 0 };
-    Av2hFirstCoeffBlock block = { 0 };
+    Av2hChromaLeafMode mode = { 0 };
+    Av2hCoeffPrefix prefix = { 0 };
+    Av2hTransformType transform = { 0 };
+    Av2hCoeffBlock block = { 0 };
     Av2hPartitionNode leaf = { 1U, 2U, AV2H_BLOCK_8X32 };
     size_t row;
     size_t column;
@@ -5781,7 +5781,7 @@ static void test_i444_64x64_bottom_left_limit(void) {
     static uint8_t pred_rec[50U * 50U];
     static uint8_t expected[64U * 64U];
     static Av2hReconstructionScratch scratch;
-    static Av2hFirstCoeffBlock block;
+    static Av2hCoeffBlock block;
     Av2hReconstructionPlane chroma = {
         chroma_data, 200U, 200U, 200U, 200U, 200U, chroma_rec, 50U,
         sizeof(chroma_rec)
@@ -5790,9 +5790,9 @@ static void test_i444_64x64_bottom_left_limit(void) {
         pred_data, 200U, 200U, 200U, 200U, 200U, pred_rec, 50U,
         sizeof(pred_rec)
     };
-    Av2hFirstChromaMode mode = { 0 };
-    Av2hFirstCoeffPrefix prefix = { 0 };
-    Av2hFirstTransformType transform = { 0 };
+    Av2hChromaLeafMode mode = { 0 };
+    Av2hCoeffPrefix prefix = { 0 };
+    Av2hTransformType transform = { 0 };
     Av2hPartitionNode leaf = { 16U, 16U, AV2H_BLOCK_64X64 };
     size_t row;
     size_t column;
@@ -5876,7 +5876,7 @@ static void test_i444_64x16_directional_top_right_limit(void) {
     static uint8_t pred_rec[50U * 50U];
     static uint8_t expected[64U * 16U];
     static Av2hReconstructionScratch scratch;
-    static Av2hFirstCoeffBlock block;
+    static Av2hCoeffBlock block;
     Av2hReconstructionPlane chroma = {
         chroma_data, 200U, 200U, 200U, 200U, 200U, chroma_rec, 50U,
         sizeof(chroma_rec)
@@ -5885,9 +5885,9 @@ static void test_i444_64x16_directional_top_right_limit(void) {
         pred_data, 200U, 200U, 200U, 200U, 200U, pred_rec, 50U,
         sizeof(pred_rec)
     };
-    Av2hFirstChromaMode mode = { 0 };
-    Av2hFirstCoeffPrefix prefix = { 0 };
-    Av2hFirstTransformType transform = { 0 };
+    Av2hChromaLeafMode mode = { 0 };
+    Av2hCoeffPrefix prefix = { 0 };
+    Av2hTransformType transform = { 0 };
     Av2hPartitionNode leaf = { 16U, 16U, AV2H_BLOCK_64X16 };
     size_t row;
     size_t column;
@@ -5957,10 +5957,10 @@ static void test_i444_mhccp_long_top_reference(void) {
         pred_data, 80U, 80U, 80U, 80U, 80U, pred_rec, 20U,
         sizeof(pred_rec)
     };
-    Av2hFirstChromaMode mode = { 0 };
-    Av2hFirstCoeffPrefix prefix = { 0 };
-    Av2hFirstTransformType transform = { 0 };
-    Av2hFirstCoeffBlock block = { 0 };
+    Av2hChromaLeafMode mode = { 0 };
+    Av2hCoeffPrefix prefix = { 0 };
+    Av2hTransformType transform = { 0 };
+    Av2hCoeffBlock block = { 0 };
     Av2hPartitionNode leaf = { 2U, 1U, AV2H_BLOCK_32X8 };
     size_t row;
     size_t column;
@@ -6021,10 +6021,10 @@ static void test_emerald_chroma_plane_ex_checks(void) {
     size_t c;
     size_t index;
     Av2hPartitionNode cfl_leaf = { 0U, 32U, 0U };
-    Av2hFirstChromaMode cfl_mode = { 0 };
-    Av2hFirstCoeffPrefix prefix = { 0 };
-    Av2hFirstTransformType transform = { 0 };
-    Av2hFirstCoeffBlock block = { 0 };
+    Av2hChromaLeafMode cfl_mode = { 0 };
+    Av2hCoeffPrefix prefix = { 0 };
+    Av2hTransformType transform = { 0 };
+    Av2hCoeffBlock block = { 0 };
     Av2hStatus status;
     av2h_memory_fill(luma_data, 60U, sizeof(luma_data));
     for (r = 0U; r < 64U; ++r) {
@@ -6040,7 +6040,7 @@ static void test_emerald_chroma_plane_ex_checks(void) {
     cfl_mode.is_cfl = 1U;
     cfl_mode.cfl_kind = AV2H_CFL_DERIVED_ALPHA;
     cfl_mode.mode = AV2H_INTRA_DC;
-    prefix.tx_size = (Av2hFirstTxSize)3;
+    prefix.tx_size = (Av2hTxSize)3;
     prefix.all_zero = 1U;
     transform.primary_type = AV2H_TX_DCT_DCT;
     block.width = 32U;
@@ -6088,8 +6088,8 @@ static void test_emerald_chroma_plane_ex_checks(void) {
             chroma_data, 96U, 96U, 48U, 96U, 48U, chroma_rec, 96U / 4U,
             sizeof(chroma_rec)
         };
-        Av2hFirstChromaMode dc_mode = { 0 };
-        Av2hFirstCoeffBlock bad = { 0 };
+        Av2hChromaLeafMode dc_mode = { 0 };
+        Av2hCoeffBlock bad = { 0 };
         Av2hStatus bad_status;
         dc_mode.mode = AV2H_INTRA_DC;
         bad.width = 8U;
@@ -6116,7 +6116,7 @@ static void test_emerald_chroma_plane_ex_checks(void) {
             chroma_data, 8U, 96U, 48U, 96U, 48U, chroma_rec, 96U / 4U,
             sizeof(chroma_rec)
         };
-        Av2hFirstChromaMode dc_mode = { 0 };
+        Av2hChromaLeafMode dc_mode = { 0 };
         dc_mode.mode = AV2H_INTRA_DC;
         CHECK(av2h_chroma_reconstruct_to_plane_ex(
                   &cfl_leaf, &dc_mode, &prefix, &transform, &block, &cp,
@@ -6131,10 +6131,10 @@ static void test_emerald_chroma_plane_ex_checks(void) {
             sizeof(chroma_rec)
         };
         Av2hPartitionNode leaf = { 0U, 16U, 0U };
-        Av2hFirstChromaMode dc_mode = { 0 };
-        Av2hFirstCoeffBlock az = { 0 };
+        Av2hChromaLeafMode dc_mode = { 0 };
+        Av2hCoeffBlock az = { 0 };
         dc_mode.mode = AV2H_INTRA_DC;
-        prefix.tx_size = (Av2hFirstTxSize)10;
+        prefix.tx_size = (Av2hTxSize)10;
         az.width = 32U;
         az.height = 16U;
         az.coefficient_count = 512U;
@@ -6156,8 +6156,8 @@ static void test_emerald_chroma_plane_ex_checks(void) {
 
 static void test_luma_ist_frontier_matrix(void) {
         static const struct {
-                Av2hFirstLeafIntraMode mode;
-                Av2hFirstTxSize tx_size;
+                Av2hIntraMode mode;
+                Av2hTxSize tx_size;
                 uint16_t output_width;
                 uint16_t output_height;
                 uint16_t coefficient_width;
@@ -6275,17 +6275,17 @@ static void test_luma_ist_frontier_matrix(void) {
                     16U, 4U, 16U, 4U, 3U, 12U }
         };
         static Av2hReconstructionScratch scratch;
-        static Av2hFirstReconstruction reconstruction;
-        static Av2hFirstCoeffBlock block;
+        static Av2hBlockReconstruction reconstruction;
+        static Av2hCoeffBlock block;
         uint8_t predictor_storage[AV2H_RECON_SAMPLE_CAPACITY + 2U];
         uint8_t *predictor = &predictor_storage[1U];
         size_t case_index;
         for (case_index = 0U;
                  case_index < sizeof(cases) / sizeof(cases[0]);
                  ++case_index) {
-                Av2hFirstLeafMode mode = { 0 };
-                Av2hFirstCoeffPrefix prefix = { 0 };
-                Av2hFirstTransformType transform = { 0 };
+                Av2hLeafMode mode = { 0 };
+                Av2hCoeffPrefix prefix = { 0 };
+                Av2hTransformType transform = { 0 };
                 size_t output_count =
                         (size_t)cases[case_index].output_width *
                         cases[case_index].output_height;
@@ -6321,9 +6321,9 @@ static void test_luma_ist_frontier_matrix(void) {
         }
 
         {
-            Av2hFirstLeafMode mode = { 0 };
-            Av2hFirstCoeffPrefix prefix = { 0 };
-            Av2hFirstTransformType transform = { 0 };
+            Av2hLeafMode mode = { 0 };
+            Av2hCoeffPrefix prefix = { 0 };
+            Av2hTransformType transform = { 0 };
             uint8_t predictor[32U * 32U];
             mode.mode = AV2H_INTRA_D203;
             prefix.tx_size = AV2H_TX_32X32;
@@ -6352,12 +6352,12 @@ static void test_luma_ist_frontier_matrix(void) {
 }
 
 static void test_tx8x4_adst_adst_reconstruction(void) {
-    Av2hFirstLeafMode mode = { 0 };
-    Av2hFirstCoeffPrefix prefix = { 0 };
-    Av2hFirstTransformType transform = { 0 };
-    Av2hFirstCoeffBlock block = { 0 };
+    Av2hLeafMode mode = { 0 };
+    Av2hCoeffPrefix prefix = { 0 };
+    Av2hTransformType transform = { 0 };
+    Av2hCoeffBlock block = { 0 };
     Av2hReconstructionScratch scratch;
-    Av2hFirstReconstruction reconstruction;
+    Av2hBlockReconstruction reconstruction;
     uint8_t predictor[32U];
     size_t index;
     int changed = 0;
@@ -6386,22 +6386,22 @@ static void test_tx8x4_adst_adst_reconstruction(void) {
 
 static void test_emerald_chroma_dct_geometries(void) {
     static Av2hReconstructionScratch scratch;
-    static Av2hFirstReconstruction reconstruction;
+    static Av2hBlockReconstruction reconstruction;
     static uint8_t predictor[1024U];
     static const struct { uint8_t tx; uint16_t w; uint16_t h; } geos[] = {
         { 10U, 32U, 16U }, { 3U, 32U, 32U }
     };
     size_t g;
     for (g = 0U; g < sizeof(geos) / sizeof(geos[0]); ++g) {
-        Av2hFirstLeafMode mode = { 0 };
-        Av2hFirstCoeffPrefix prefix = { 0 };
-        Av2hFirstTransformType transform = { 0 };
-        Av2hFirstCoeffBlock block = { 0 };
+        Av2hLeafMode mode = { 0 };
+        Av2hCoeffPrefix prefix = { 0 };
+        Av2hTransformType transform = { 0 };
+        Av2hCoeffBlock block = { 0 };
         size_t count = (size_t)geos[g].w * geos[g].h;
         size_t index;
         mode.mode = AV2H_INTRA_DC;
         transform.primary_type = AV2H_TX_DCT_DCT;
-        prefix.tx_size = (Av2hFirstTxSize)geos[g].tx;
+        prefix.tx_size = (Av2hTxSize)geos[g].tx;
         block.width = geos[g].w;
         block.height = geos[g].h;
         block.coefficient_count = (uint32_t)count;
@@ -6640,7 +6640,7 @@ static void test_10bit_wp5_frame_fixture(void) {
         Av2hStatus status;
         if (decoder.control.phase == AV2H_TILE_DECODE_LUMA) {
             Av2hTileLumaLeaf leaf;
-            Av2hFirstCoeffBlock block;
+            Av2hCoeffBlock block;
             av2h_memory_fill(&leaf, 0U, sizeof(leaf));
             av2h_memory_fill(&block, 0U, sizeof(block));
             status = av2h_tile_decoder_next_luma(
@@ -6697,7 +6697,7 @@ static void test_10bit_wp5_frame_fixture(void) {
             ++luma_count;
         } else if (decoder.control.phase == AV2H_TILE_DECODE_CHROMA) {
             Av2hTileChromaLeaf leaf;
-            Av2hFirstCoeffBlock blocks[2U];
+            Av2hCoeffBlock blocks[2U];
             av2h_memory_fill(&leaf, 0U, sizeof(leaf));
             av2h_memory_fill(blocks, 0U, sizeof(blocks));
             status = av2h_tile_decoder_next_chroma(

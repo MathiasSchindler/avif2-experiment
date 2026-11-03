@@ -324,7 +324,7 @@ Av2hStatus av2h_partition_first_prefix_read(
     Av2hPartitionCdfs *cdfs,
     uint16_t frame_width,
     uint16_t frame_height,
-    Av2hFirstPartitionPrefix *prefix) {
+    Av2hPartitionPrefix *prefix) {
     uint16_t mi_rows;
     uint16_t mi_columns;
     Av2hStatus status;
@@ -349,7 +349,7 @@ Av2hStatus av2h_partition_first_prefix_read(
         prefix->extension_context, &prefix->ordinary);
 }
 
-static Av2hStatus append_decision(Av2hFirstLeafPath *path,
+static Av2hStatus append_decision(Av2hLeafPath *path,
                                   Av2hPartitionNode node,
                                   Av2hPartitionType partition,
                                   unsigned int forced,
@@ -382,7 +382,7 @@ Av2hStatus av2h_partition_first_leaf_read(
     uint16_t frame_width,
     uint16_t frame_height,
     unsigned int enable_ext_partitions,
-    Av2hFirstLeafPath *path) {
+    Av2hLeafPath *path) {
     Av2hPartitionNode node = { 0U, 0U, AV2H_BLOCK_64X64 };
     uint16_t mi_rows;
     uint16_t mi_columns;
@@ -1147,7 +1147,7 @@ Av2hStatus av2h_partition_traversal_next(
     Av2hRangeDecoder *decoder,
     Av2hPartitionCdfs *cdfs,
     const Av2hPartitionContextState *state,
-    Av2hFirstLeafPath *path,
+    Av2hLeafPath *path,
     uint8_t *has_leaf) {
     if (traversal == NULL || decoder == NULL || cdfs == NULL || state == NULL ||
         path == NULL || has_leaf == NULL || traversal->has_pending_leaf) {

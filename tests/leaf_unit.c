@@ -47,7 +47,7 @@ static void test_arguments(void) {
     Av2hSequenceState sequence = { 0 };
     Av2hFrameState frame = { 0 };
     Av2hPartitionNode leaf = { 0U, 0U, AV2H_BLOCK_8X8 };
-    Av2hFirstLeafMode mode;
+    Av2hLeafMode mode;
     Av2hGdfEntropyState gdf;
     Av2hCdefEntropyState cdef;
     Av2hCcsoEntropyState ccso;
@@ -209,7 +209,7 @@ static void test_gdf_after_intrabc(void) {
     Av2hLeafCdfs cdfs;
     Av2hLumaModeContextState contexts;
     Av2hGdfEntropyState gdf;
-    Av2hFirstLeafMode mode;
+    Av2hLeafMode mode;
     Av2hRangeDecoder decoder;
     unsigned int first_byte;
     uint8_t found = 0U;
@@ -265,7 +265,7 @@ static void test_chroma_cfl_derived_alpha(void) {
     static const uint8_t dc[] = { 0x00U, 0x00U, 0x00U };
     Av2hSpan span;
     Av2hRangeDecoder decoder;
-    Av2hFirstChromaMode mode;
+    Av2hChromaLeafMode mode;
 
     sequence.enable_cfl_intra = 1U;
 
@@ -385,7 +385,7 @@ static void test_intrabc_bank_survives_superblock_boundary(void) {
     Av2hLumaModeContext above[32U];
     Av2hLumaModeContext left[32U];
     Av2hPartitionNode leaf = { 0U, 16U, AV2H_BLOCK_32X8 };
-    Av2hFirstLeafMode mode = { 0 };
+    Av2hLeafMode mode = { 0 };
     CHECK(av2h_luma_mode_context_state_init(
               &state, above, 32U, left, 32U) == AV2H_OK);
     state.superblock_mi = 16U;
@@ -539,7 +539,7 @@ static void test_large_luma_block_spans_cdef_strength(void) {
     Av2hSequenceState sequence = { 0 };
     Av2hFrameState frame = { 0 };
     Av2hCdefEntropyState state;
-    Av2hFirstLeafMode mode = { 0 };
+    Av2hLeafMode mode = { 0 };
     Av2hPartitionNode leaf = { 0U, 0U, AV2H_BLOCK_64X128 };
     Av2hSpan span = { bytes, sizeof(bytes) };
     Av2hRangeDecoder decoder;

@@ -5,7 +5,7 @@
 #include "quantizer.h"
 #include "tx_geometry.h"
 
-#define AV2H_FIRST_COEFF_CAPACITY 1024U
+#define AV2H_COEFF_CAPACITY 1024U
 
 typedef int32_t Av2hDequantizedCoefficient;
 
@@ -17,7 +17,7 @@ typedef struct {
 } Av2hCoeffDequantSteps;
 
 typedef struct {
-    Av2hFirstTxSize tx_size;
+    Av2hTxSize tx_size;
     uint8_t tx_size_context;
     uint8_t txb_skip_context;
     uint8_t all_zero;
@@ -31,12 +31,12 @@ typedef struct {
     size_t after_eob_point_bits;
     size_t after_eob_extra_bit;
     size_t after_eob_bits;
-} Av2hFirstCoeffPrefix;
+} Av2hCoeffPrefix;
 
 typedef struct {
-    uint8_t base_levels[AV2H_FIRST_COEFF_CAPACITY];
-    int32_t quantized[AV2H_FIRST_COEFF_CAPACITY];
-    Av2hDequantizedCoefficient dequantized[AV2H_FIRST_COEFF_CAPACITY];
+    uint8_t base_levels[AV2H_COEFF_CAPACITY];
+    int32_t quantized[AV2H_COEFF_CAPACITY];
+    Av2hDequantizedCoefficient dequantized[AV2H_COEFF_CAPACITY];
     uint16_t width;
     uint16_t height;
     uint16_t coefficient_count;
@@ -51,7 +51,7 @@ typedef struct {
     uint32_t after_levels_range;
     uint32_t after_levels_value;
     size_t after_coefficients_bits;
-} Av2hFirstCoeffBlock;
+} Av2hCoeffBlock;
 
 /*
  * Coefficient-level transform geometry, derived purely from transform
@@ -96,7 +96,7 @@ Av2hStatus av2h_coeff_tx_geometry_from_dims(
     Av2hCoeffTxGeometry *geometry);
 
 Av2hStatus av2h_coeff_tx_geometry(
-    Av2hFirstTxSize tx_size,
+    Av2hTxSize tx_size,
     Av2hCoeffTxGeometry *geometry);
 
 uint32_t av2h_coeff_dequant_step_8bit(Av2hQIndex base_q_index, int delta);

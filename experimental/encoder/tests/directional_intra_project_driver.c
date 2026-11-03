@@ -1,4 +1,4 @@
-#include "decoder/internal/reconstruct_modules.h"
+#include "decoder/internal/intra_prediction.h"
 #include "encoder/directional.h"
 #include <stdio.h>
 
@@ -55,13 +55,13 @@ static int check_full_directional(void) {
         uint8_t joint;
         uint8_t mode_value;
         int8_t delta;
-        Av2hFirstLeafMode mode = {0};
+        Av2hLeafMode mode = {0};
         if (!enc_directional_token_to_joint(token, &joint) ||
             !enc_directional_joint_to_mode(
                 joint, &mode_value, &delta)) {
             return 10;
         }
-        mode.mode = (Av2hFirstLeafIntraMode)mode_value;
+        mode.mode = (Av2hIntraMode)mode_value;
         mode.angle_delta = delta;
         for (size_index = 0U; size_index < 7U; ++size_index) {
             size_t width = sizes[size_index][0U];
@@ -109,7 +109,7 @@ int main(void) {
     static const uint8_t expected_horizontal[] = {
         20U, 20U, 20U, 21U, 21U, 21U
     };
-    Av2hFirstLeafMode mode = { 0 };
+    Av2hLeafMode mode = { 0 };
     Av2hLumaReferences references = { 0 };
     uint8_t output[16U];
     size_t index;

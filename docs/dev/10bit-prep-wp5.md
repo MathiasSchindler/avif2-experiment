@@ -13,7 +13,7 @@ type now carries Q-index values across these boundaries:
 | --- | --- |
 | Frame header state | `Av2hFrameState.base_q_index` |
 | Delta-Q state | `Av2hTileDecoder.current_q_index` and leaf delta-Q interfaces |
-| Transform coefficient state | `Av2hFirstCoeffPrefix.q_index` |
+| Transform coefficient state | `Av2hCoeffPrefix.q_index` |
 | Coefficient CDF and 8-bit dequant interfaces | `Av2hQIndex` parameters |
 | Filter handoff | `Av2hDeblockCell.q_index` |
 
@@ -44,7 +44,7 @@ tables remains later work.
 Focused tests inject Q-index 400, which cannot fit in `uint8_t`:
 
 - a tile decode probe verifies `current_q_index` reaches
-  `Av2hFirstCoeffPrefix.q_index` intact; and
+  `Av2hCoeffPrefix.q_index` intact; and
 - the filter test verifies the prefix value reaches
   `Av2hDeblockCell.q_index` intact through deblock-map commit.
 
@@ -53,7 +53,7 @@ LP64 private layout locks record the reviewed carriers:
 | Type | Size | Alignment |
 | --- | ---: | ---: |
 | `Av2hQIndex` | 2 | 2 |
-| `Av2hFirstCoeffPrefix` | 56 | 8 |
+| `Av2hCoeffPrefix` | 56 | 8 |
 | `Av2hDeblockCell` | 14 | 2 |
 
 Existing frame and tile aggregate sizes remain unchanged because their prior

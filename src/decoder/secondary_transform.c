@@ -34,7 +34,7 @@ static uint16_t ist_scan_position(
         }
         remaining -= diagonal_count;
     }
-    return AV2H_FIRST_COEFF_CAPACITY;
+    return AV2H_COEFF_CAPACITY;
 }
 
 static uint16_t ist_output_position(
@@ -62,14 +62,14 @@ static uint16_t ist_output_position(
         column = diagonal - row;
         return (uint16_t)(row * stride + column);
     }
-    return AV2H_FIRST_COEFF_CAPACITY;
+    return AV2H_COEFF_CAPACITY;
 }
 
 static Av2hStatus inverse_secondary_transform_4x4(
-    const Av2hFirstLeafMode *mode,
-    const Av2hFirstTransformType *transform,
-    const Av2hFirstCoeffBlock *coefficients,
-    int32_t dequantized[AV2H_FIRST_COEFF_CAPACITY]) {
+    const Av2hLeafMode *mode,
+    const Av2hTransformType *transform,
+    const Av2hCoeffBlock *coefficients,
+    int32_t dequantized[AV2H_COEFF_CAPACITY]) {
     const int16_t (*kernel)[16U];
     uint8_t transpose_output = (uint8_t)(
         mode->mode == AV2H_INTRA_HORIZONTAL ||
@@ -234,12 +234,12 @@ static Av2hStatus inverse_secondary_transform_4x4(
 }
 
 Av2hStatus av2h_inverse_secondary_transform(
-    const Av2hFirstLeafMode *mode,
-    const Av2hFirstCoeffPrefix *prefix,
-    const Av2hFirstTransformType *transform,
-    const Av2hFirstCoeffBlock *coefficients,
-    int32_t dequantized[AV2H_FIRST_COEFF_CAPACITY]) {
-    Av2hFirstLeafMode mapped_mode;
+    const Av2hLeafMode *mode,
+    const Av2hCoeffPrefix *prefix,
+    const Av2hTransformType *transform,
+    const Av2hCoeffBlock *coefficients,
+    int32_t dequantized[AV2H_COEFF_CAPACITY]) {
+    Av2hLeafMode mapped_mode;
     const Av2hTxDescriptor *descriptor;
     int32_t input[32U];
     const int16_t (*kernel)[48U];

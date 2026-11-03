@@ -100,16 +100,16 @@ typedef struct {
 
 typedef struct {
     Av2hPartitionNode node;
-    Av2hFirstLeafMode mode;
-    Av2hFirstCoeffPrefix prefix;
-    Av2hFirstTransformType transform;
+    Av2hLeafMode mode;
+    Av2hCoeffPrefix prefix;
+    Av2hTransformType transform;
 } Av2hTileLumaLeaf;
 
 typedef struct {
     Av2hPartitionNode node;
-    Av2hFirstChromaMode mode;
-    Av2hFirstCoeffPrefix prefix[2U];
-    Av2hFirstTransformType transform[2U];
+    Av2hChromaLeafMode mode;
+    Av2hCoeffPrefix prefix[2U];
+    Av2hTransformType transform[2U];
     uint8_t decoded_plane;
 } Av2hTileChromaLeaf;
 
@@ -135,9 +135,9 @@ typedef struct {
     const Av2hFrameState *frame;
     Av2hPartitionCdfs partition_cdfs;
     Av2hLeafCdfs leaf_cdfs;
-    Av2hFirstCoeffCdfs coeff_cdfs;
-    Av2hFirstTransformCdfs transform_cdfs;
-    Av2hFirstCoeffLevelCdfs level_cdfs;
+    Av2hCoeffCdfs coeff_cdfs;
+    Av2hTransformCdfs transform_cdfs;
+    Av2hCoeffLevelCdfs level_cdfs;
     Av2hPartitionContextState partition_contexts;
     Av2hLumaModeContextState luma_mode_contexts;
     Av2hCoeffContextState coefficient_contexts;
@@ -189,7 +189,7 @@ typedef struct {
 
 typedef struct {
     Av2hPartitionNode coding_node;
-    Av2hFirstLeafMode coding_mode;
+    Av2hLeafMode coding_mode;
     uint16_t tx_index;
     uint16_t tx_count;
     uint8_t tx_partition;
@@ -199,7 +199,7 @@ typedef struct {
 
 typedef struct {
     Av2hPartitionNode coding_node;
-    Av2hFirstChromaMode coding_mode;
+    Av2hChromaLeafMode coding_mode;
     uint16_t tx_index;
     uint16_t tx_count;
     uint16_t tx_unit_start;
@@ -214,7 +214,7 @@ typedef struct {
 
 typedef struct {
     Av2hPartitionNode node;
-    Av2hFirstChromaMode mode;
+    Av2hChromaLeafMode mode;
 } Av2hTileSharedChromaState;
 
 typedef struct {
@@ -267,7 +267,7 @@ Av2hStatus av2h_tile_decoder_init_at(
 Av2hStatus av2h_tile_decoder_next_luma(
     Av2hTileDecoder *decoder,
     Av2hTileLumaLeaf *leaf,
-    Av2hFirstCoeffBlock *block,
+    Av2hCoeffBlock *block,
     uint8_t *has_leaf);
 Av2hStatus av2h_tile_decoder_reconstruct_next_luma(
     Av2hTileDecoder *decoder,
@@ -278,8 +278,8 @@ Av2hStatus av2h_tile_decoder_reconstruct_next_luma(
 Av2hStatus av2h_tile_decoder_next_chroma(
     Av2hTileDecoder *decoder,
     Av2hTileChromaLeaf *leaf,
-    Av2hFirstCoeffBlock *u_block,
-    Av2hFirstCoeffBlock *v_block,
+    Av2hCoeffBlock *u_block,
+    Av2hCoeffBlock *v_block,
     uint8_t *has_leaf);
 Av2hStatus av2h_tile_decoder_read_shared_chroma_mode(
     Av2hTileDecoder *decoder,

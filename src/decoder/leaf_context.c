@@ -192,7 +192,7 @@ Av2hStatus av2h_luma_mode_neighbors_from_state(
 Av2hStatus av2h_luma_mode_context_state_update(
     Av2hLumaModeContextState *state,
     const Av2hPartitionNode *leaf,
-    const Av2hFirstLeafMode *mode) {
+    const Av2hLeafMode *mode) {
     Av2hLumaModeContext context;
     size_t width;
     size_t height;

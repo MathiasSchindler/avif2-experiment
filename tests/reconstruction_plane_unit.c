@@ -34,8 +34,8 @@ static uint64_t hash_value(uint64_t hash, uint32_t value, unsigned int bytes) {
 }
 
 static void plane_case(Snapshot *snapshot, unsigned int path,
-                       Av2hFirstTxSize tx_size,
-                       Av2hFirstLeafIntraMode intra_mode,
+                       Av2hTxSize tx_size,
+                       Av2hIntraMode intra_mode,
                        unsigned int edges, unsigned int variant) {
     enum { WIDTH = 67, HEIGHT = 65, STRIDE = 71, CELLS = 17 * 17 };
     static uint8_t pixels[STRIDE * HEIGHT];
@@ -56,11 +56,11 @@ static void plane_case(Snapshot *snapshot, unsigned int path,
     Av2hReconstructionPlane predictor_plane = {
         predictor, STRIDE, WIDTH, HEIGHT, WIDTH, HEIGHT, ready, 17U, CELLS
     };
-    Av2hFirstLeafMode mode = { 0 };
-    Av2hFirstChromaMode chroma = { 0 };
-    Av2hFirstCoeffPrefix prefix = { 0 };
-    Av2hFirstTransformType transform = { 0 };
-    Av2hFirstCoeffBlock coefficients = { 0 };
+    Av2hLeafMode mode = { 0 };
+    Av2hChromaLeafMode chroma = { 0 };
+    Av2hCoeffPrefix prefix = { 0 };
+    Av2hTransformType transform = { 0 };
+    Av2hCoeffBlock coefficients = { 0 };
     Av2hPartitionNode leaf = { 0 };
     Av2hDecodeDiagnostics diagnostics;
     const Av2hTxDescriptor *descriptor;
@@ -184,7 +184,7 @@ static void plane_case(Snapshot *snapshot, unsigned int path,
 }
 
 int main(void) {
-    static const Av2hFirstLeafIntraMode modes[] = {
+    static const Av2hIntraMode modes[] = {
         AV2H_INTRA_DC, AV2H_INTRA_VERTICAL, AV2H_INTRA_SMOOTH, AV2H_INTRA_D135
     };
     /* Frozen against the pre-M3 implementation, not additional AVM admission. */
@@ -223,7 +223,7 @@ int main(void) {
             for (mode = 0U; mode < sizeof(modes) / sizeof(modes[0]); ++mode) {
                 for (edges = 0U; edges < 6U; ++edges) {
                     for (variant = 0U; variant < 6U; ++variant) {
-                        plane_case(&actual, path, (Av2hFirstTxSize)tx,
+                        plane_case(&actual, path, (Av2hTxSize)tx,
                                    modes[mode], edges, variant);
                     }
                 }

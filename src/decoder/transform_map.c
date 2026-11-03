@@ -4,8 +4,8 @@
 
 #include <stddef.h>
 
-Av2hFirstLeafIntraMode av2h_transform_mode(
-    Av2hFirstLeafIntraMode mode, int8_t angle_delta,
+Av2hIntraMode av2h_transform_mode(
+    Av2hIntraMode mode, int8_t angle_delta,
     uint8_t mrl_index,
     const Av2hTxDescriptor *descriptor) {
     static const int mrl_delta[4U] = { 0, 1, -1, 0 };
@@ -47,11 +47,11 @@ Av2hFirstLeafIntraMode av2h_transform_mode(
 }
 
 Av2hStatus av2h_chroma_primary_type_map(
-    const Av2hFirstChromaMode *mode,
+    const Av2hChromaLeafMode *mode,
     const Av2hTxDescriptor *descriptor,
     uint8_t reduced_tx_set,
-    Av2hFirstTxType *tx_type) {
-    static const Av2hFirstTxType mode_types[13U] = {
+    Av2hTxType *tx_type) {
+    static const Av2hTxType mode_types[13U] = {
         AV2H_TX_DCT_DCT,
         AV2H_TX_ADST_DCT,
         AV2H_TX_DCT_ADST,
@@ -93,7 +93,7 @@ Av2hStatus av2h_chroma_primary_type_map(
 }
 
 Av2hStatus av2h_secondary_tx_set_map(
-    Av2hFirstLeafIntraMode mode, uint8_t symbol, uint8_t *set) {
+    Av2hIntraMode mode, uint8_t symbol, uint8_t *set) {
     static const uint8_t inverse_mapping[12U][7U] = {
         { 6U, 1U, 0U, 5U, 4U, 3U, 2U },
         { 1U, 6U, 0U, 4U, 2U, 5U, 3U },
@@ -117,7 +117,7 @@ Av2hStatus av2h_secondary_tx_set_map(
 }
 
 Av2hStatus av2h_secondary_adst_tx_set_map(
-    Av2hFirstLeafIntraMode mode, uint8_t symbol, uint8_t *set) {
+    Av2hIntraMode mode, uint8_t symbol, uint8_t *set) {
     static const uint8_t inverse_mapping[12U][4U] = {
         { 3U, 1U, 0U, 2U },
         { 1U, 3U, 0U, 2U },
@@ -142,11 +142,11 @@ Av2hStatus av2h_secondary_adst_tx_set_map(
 }
 
 Av2hStatus av2h_primary_tx_type_map(
-    Av2hFirstTxSize tx_size,
-    Av2hFirstLeafIntraMode mode,
+    Av2hTxSize tx_size,
+    Av2hIntraMode mode,
     uint8_t long_side_symbol,
     uint8_t primary_symbol,
-    Av2hFirstTxType *tx_type) {
+    Av2hTxType *tx_type) {
     static const uint8_t intra_types[3U][13U][7U] = {
         {
             { 0U, 3U, 1U, 2U, 7U, 8U, 13U },
@@ -227,7 +227,7 @@ Av2hStatus av2h_primary_tx_type_map(
         (uint8_t)mode <= (uint8_t)AV2H_INTRA_PAETH &&
         long_side_symbol == 0U &&
         primary_symbol < AV2H_PRIMARY_TX_TYPE_SYMBOLS) {
-        *tx_type = (Av2hFirstTxType)
+        *tx_type = (Av2hTxType)
             intra_types[size_class][(uint8_t)mode][primary_symbol];
         return AV2H_OK;
     }

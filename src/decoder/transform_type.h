@@ -32,10 +32,10 @@ typedef enum {
     AV2H_TX_V_FLIPADST = 14,
     AV2H_TX_H_FLIPADST = 15,
     AV2H_TX_TYPE_INVALID = 255
-} Av2hFirstTxType;
+} Av2hTxType;
 
 typedef struct {
-    Av2hFirstTxType primary_type;
+    Av2hTxType primary_type;
     uint8_t primary_signaled;
     uint8_t primary_symbol;
     uint8_t primary_long_side_symbol;
@@ -48,6 +48,6 @@ typedef struct {
     size_t after_primary_bits;
     size_t after_secondary_type_bits;
     size_t after_secondary_bits;
-} Av2hFirstTransformType;
+} Av2hTransformType;
 
 #endif

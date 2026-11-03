@@ -9,7 +9,7 @@ remain with reconstruction as planned.
 
 ## Ownership
 
-- `transform_cdf.c`: `Av2hFirstTransformCdfs` initialization and all transform
+- `transform_cdf.c`: `Av2hTransformCdfs` initialization and all transform
   CDF seed tables.
 - `transform_map.c`: angle-adjusted mode mapping, luma/chroma primary transform
   maps, and ordinary/reduced secondary set maps.

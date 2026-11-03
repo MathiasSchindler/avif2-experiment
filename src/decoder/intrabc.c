@@ -273,7 +273,7 @@ Av2hStatus av2h_leaf_read_first_intrabc(
     const Av2hPartitionNode *leaf,
     const Av2hLumaModeContextState *state,
     const Av2hLumaModeNeighbors *neighbors,
-    Av2hFirstLeafMode *mode) {
+    Av2hLeafMode *mode) {
     size_t width_mi;
     size_t height_mi;
     uint32_t value;

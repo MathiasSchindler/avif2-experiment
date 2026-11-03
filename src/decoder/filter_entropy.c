@@ -71,7 +71,7 @@ Av2hStatus av2h_leaf_read_gdf_entropy(
     const Av2hFrameState *frame,
     const Av2hPartitionNode *leaf,
     Av2hGdfEntropyState *state,
-    Av2hFirstLeafMode *mode) {
+    Av2hLeafMode *mode) {
     size_t mi_rows = ((size_t)frame->height + 3U) / 4U;
     size_t mi_columns = ((size_t)frame->width + 3U) / 4U;
     size_t mi_row;
@@ -307,7 +307,7 @@ Av2hStatus av2h_leaf_read_cdef_entropy(
     const Av2hFrameState *frame,
     const Av2hPartitionNode *leaf,
     Av2hCdefEntropyState *state,
-    Av2hFirstLeafMode *mode) {
+    Av2hLeafMode *mode) {
     size_t width;
     size_t height;
     size_t unit_row;
@@ -551,7 +551,7 @@ Av2hStatus av2h_leaf_read_ccso_entropy(
     const Av2hPartitionNode *leaf,
     const Av2hLumaModeNeighbors *neighbors,
     Av2hCcsoEntropyState *state,
-    Av2hFirstLeafMode *mode) {
+    Av2hLeafMode *mode) {
     size_t plane;
     size_t width;
     size_t height;
@@ -673,7 +673,7 @@ Av2hStatus av2h_leaf_read_first_ccso_without_state(
     const Av2hSequenceState *sequence,
     const Av2hFrameState *frame,
     const Av2hPartitionNode *leaf,
-    Av2hFirstLeafMode *mode) {
+    Av2hLeafMode *mode) {
     size_t plane;
     uint16_t unit_size;
     uint16_t unit_size_mi;

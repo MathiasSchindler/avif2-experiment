@@ -325,7 +325,7 @@ static void test_deblock_metadata(void) {
                         Av2hDeblockCell cells[8U * 5U] = { { 0 } };
                         Av2hDeblockMap map = { 0 };
                         Av2hPartitionNode leaf = { 0 };
-                        Av2hFirstCoeffPrefix prefix = { 0 };
+                        Av2hCoeffPrefix prefix = { 0 };
                         const Av2hTxDescriptor *descriptor;
                         size_t columns;
                         size_t rows;
@@ -334,7 +334,7 @@ static void test_deblock_metadata(void) {
                         leaf.column = edge ? 5U : 0U;
                         leaf.row = edge ? 4U : 0U;
                         leaf.block_size = AV2H_BLOCK_64X64;
-                        prefix.tx_size = (Av2hFirstTxSize)tx;
+                        prefix.tx_size = (Av2hTxSize)tx;
                         prefix.q_index = 300U;
                         map.plane[plane] = cells;
                         map.stride_cells[plane] = 8U;
@@ -379,7 +379,7 @@ static void test_deblock_metadata(void) {
         Av2hDeblockCell cells[8U * 5U] = { { 0 } };
         Av2hDeblockMap map = { 0 };
         Av2hPartitionNode leaf = { 0 };
-        Av2hFirstCoeffPrefix prefix = { 0 };
+        Av2hCoeffPrefix prefix = { 0 };
         map.plane[0] = cells;
         map.stride_cells[0] = 8U;
         map.columns[0] = 6U;
@@ -406,7 +406,7 @@ static void test_restoration_metadata(void) {
                 uint8_t cells[8U * 5U];
                 Av2hFilterWorkspace workspace = { 0 };
                 Av2hPartitionNode leaf = { 0 };
-                Av2hFirstCoeffPrefix prefix = { 0 };
+                Av2hCoeffPrefix prefix = { 0 };
                 const Av2hTxDescriptor *descriptor;
                 size_t columns;
                 size_t rows;
@@ -418,7 +418,7 @@ static void test_restoration_metadata(void) {
                 workspace.deblock_map.rows[0] = 5U;
                 leaf.column = edge ? 5U : 0U;
                 leaf.row = edge ? 4U : 0U;
-                prefix.tx_size = (Av2hFirstTxSize)tx;
+                prefix.tx_size = (Av2hTxSize)tx;
                 prefix.all_zero = (uint8_t)zero;
                 CHECK(av2h_tx_descriptor_get(prefix.tx_size, &descriptor) ==
                       AV2H_OK);

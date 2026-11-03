@@ -313,7 +313,7 @@ Av2hStatus av2h_coeff_tx_geometry_from_dims(
 }
 
 Av2hStatus av2h_coeff_tx_geometry(
-    Av2hFirstTxSize tx_size,
+    Av2hTxSize tx_size,
     Av2hCoeffTxGeometry *geometry) {
     uint16_t tx_width;
     uint16_t tx_height;

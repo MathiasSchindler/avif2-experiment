@@ -2,7 +2,7 @@
 
 #include "internal/coeff_common.h"
 
-static unsigned int level_at(const Av2hFirstCoeffBlock *block,
+static unsigned int level_at(const Av2hCoeffBlock *block,
                              int row, int column) {
     if (row < 0 || column < 0 || row >= (int)block->height ||
         column >= (int)block->width) {
@@ -32,11 +32,11 @@ uint16_t av2h_coeff_scan_position(
         }
         remaining -= diagonal_count;
     }
-    return AV2H_FIRST_COEFF_CAPACITY;
+    return AV2H_COEFF_CAPACITY;
 }
 
 uint8_t av2h_coeff_lf_context(
-    const Av2hFirstCoeffBlock *block, uint16_t position,
+    const Av2hCoeffBlock *block, uint16_t position,
     uint8_t vertical, uint8_t horizontal) {
     int row = position / block->width;
     int column = position % block->width;
@@ -77,7 +77,7 @@ uint8_t av2h_coeff_lf_context(
 }
 
 uint8_t av2h_coeff_base_context(
-    const Av2hFirstCoeffBlock *block, uint16_t position,
+    const Av2hCoeffBlock *block, uint16_t position,
     uint8_t vertical, uint8_t horizontal) {
     int row = position / block->width;
     int column = position % block->width;
@@ -110,7 +110,7 @@ uint8_t av2h_coeff_base_context(
 }
 
 uint8_t av2h_coeff_br_context(
-    const Av2hFirstCoeffBlock *block, uint16_t position,
+    const Av2hCoeffBlock *block, uint16_t position,
     uint8_t vertical, uint8_t low, uint8_t horizontal) {
     int row = position / block->width;
     int column = position % block->width;
@@ -148,7 +148,7 @@ uint8_t av2h_coeff_eob_context(uint16_t scan_index, uint16_t capacity) {
 }
 
 uint8_t av2h_coeff_uv_level_context(
-    const Av2hFirstCoeffBlock *block, uint16_t position,
+    const Av2hCoeffBlock *block, uint16_t position,
     uint8_t plane, uint8_t low) {
     int row = position / block->width;
     int column = position % block->width;
@@ -163,7 +163,7 @@ uint8_t av2h_coeff_uv_level_context(
 }
 
 uint8_t av2h_coeff_fsc_base_context(
-    const Av2hFirstCoeffBlock *block, uint16_t position) {
+    const Av2hCoeffBlock *block, uint16_t position) {
     int row = position / block->width;
     int column = position % block->width;
     unsigned int magnitude =
@@ -173,7 +173,7 @@ uint8_t av2h_coeff_fsc_base_context(
 }
 
 uint8_t av2h_coeff_fsc_br_context(
-    const Av2hFirstCoeffBlock *block, uint16_t position) {
+    const Av2hCoeffBlock *block, uint16_t position) {
     int row = position / block->width;
     int column = position % block->width;
     unsigned int magnitude =
@@ -183,7 +183,7 @@ uint8_t av2h_coeff_fsc_br_context(
 }
 
 static int fsc_sign_at(
-    const Av2hFirstCoeffBlock *block, int row, int column) {
+    const Av2hCoeffBlock *block, int row, int column) {
     int32_t value;
     if (row < 0 || column < 0 || row >= (int)block->height ||
         column >= (int)block->width) {
@@ -194,7 +194,7 @@ static int fsc_sign_at(
 }
 
 uint8_t av2h_coeff_fsc_sign_context(
-    const Av2hFirstCoeffBlock *block, uint16_t position) {
+    const Av2hCoeffBlock *block, uint16_t position) {
     int row = position / block->width;
     int column = position % block->width;
     int sum = fsc_sign_at(block, row, column - 1) +

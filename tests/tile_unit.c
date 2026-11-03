@@ -306,8 +306,8 @@ static void test_bounded_orchestrator(void) {
         luma_reconstructed, 4U, sizeof(luma_reconstructed)
     };
     Av2hReconstructionScratch reconstruction_scratch;
-    Av2hFirstCoeffBlock u_block;
-    Av2hFirstCoeffBlock v_block;
+    Av2hCoeffBlock u_block;
+    Av2hCoeffBlock v_block;
     Av2hStatus status;
     uint8_t has_leaf;
     size_t luma_count = 0U;
@@ -473,7 +473,7 @@ static void test_odd_luma_reconstruction(void) {
     Av2hTileDecoder decoder;
     Av2hTileLumaLeaf leaf;
     Av2hTileChromaLeaf chroma_leaf;
-    Av2hFirstCoeffBlock block;
+    Av2hCoeffBlock block;
     Av2hError error;
     Av2hStatus status;
     uint8_t has_leaf = 0U;
@@ -696,7 +696,7 @@ static void test_odd_luma_reconstruction(void) {
     }
     {
         Av2hTileDecoder probe = decoder;
-        Av2hFirstLeafPath path;
+        Av2hLeafPath path;
         size_t decision_index;
         CHECK(av2h_partition_traversal_next(
                   &probe.traversal.chroma_traversal, &probe.entropy_state.range,
@@ -820,7 +820,7 @@ static void test_ordinary_luma_frontier(void) {
     Av2hFrameState frame = { 0 };
     Av2hTileDecoder decoder;
     Av2hTileLumaLeaf leaf;
-    Av2hFirstCoeffBlock block;
+    Av2hCoeffBlock block;
     Av2hStatus status;
     Av2hStatus reconstruction_status = AV2H_OK;
     uint8_t has_leaf = 0U;
@@ -1278,7 +1278,7 @@ static void test_high_detail_frame(void) {
     Av2hTileDecoder decoder;
     Av2hTileLumaLeaf luma_leaf;
     Av2hTileChromaLeaf chroma_leaf;
-    Av2hFirstCoeffBlock chroma_blocks[2U];
+    Av2hCoeffBlock chroma_blocks[2U];
     Av2hStatus status = AV2H_OK;
     uint8_t has_leaf = 0U;
     size_t luma_count = 0U;
@@ -1465,7 +1465,7 @@ static void test_orchestrator_failures(void) {
     Av2hFrameState frame = { 0 };
     Av2hTileDecoder decoder;
     Av2hTileLumaLeaf leaf;
-    Av2hFirstCoeffBlock block;
+    Av2hCoeffBlock block;
     uint8_t has_leaf;
 
     frame.width = 16U;

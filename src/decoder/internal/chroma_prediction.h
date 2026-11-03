@@ -140,7 +140,7 @@ Av2hStatus av2h_cfl_explicit_predict_u16_444(
 
 Av2hStatus av2h_mhccp_predict_observed(
     struct Av2hDecodeDiagnostics *diagnostics,
-    const Av2hFirstChromaMode *mode,
+    const Av2hChromaLeafMode *mode,
     const Av2hReconstructionPlane *luma_plane,
     const Av2hReconstructionPlane *chroma_plane,
     uint16_t block_x,
@@ -151,7 +151,7 @@ Av2hStatus av2h_mhccp_predict_observed(
     size_t predictor_stride_samples);
 
 Av2hStatus av2h_mhccp_predict_observed_u16(
-    const Av2hFirstChromaMode *mode,
+    const Av2hChromaLeafMode *mode,
     const Av2hReconstructionPlaneU16 *luma_plane,
     const Av2hReconstructionPlaneU16 *chroma_plane,
     uint16_t block_x,

@@ -1,4 +1,4 @@
-#include "decoder/reconstruct.h"
+#include "decoder/prediction.h"
 
 static int log2_size(int value) {
     int result = 0;
@@ -48,7 +48,7 @@ static int check(uint8_t intra_mode, uint16_t width, uint16_t height) {
     uint8_t above_storage[18U];
     uint8_t left[17U];
     uint8_t output[16U * 16U];
-    Av2hFirstLeafMode mode = { 0 };
+    Av2hLeafMode mode = { 0 };
     Av2hLumaReferences references = { 0 };
     uint8_t *above = &above_storage[1U];
     uint16_t row;

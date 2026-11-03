@@ -24,21 +24,21 @@ Av2hStatus av2h_leaf_palette_read_colors(
     Av2hRangeDecoder *decoder,
     const Av2hSequenceState *sequence,
     const Av2hLumaModeNeighbors *neighbors,
-    Av2hFirstLeafMode *mode);
+    Av2hLeafMode *mode);
 
 Av2hStatus av2h_leaf_read_gdf_entropy(
     Av2hRangeDecoder *decoder,
     const Av2hFrameState *frame,
     const Av2hPartitionNode *leaf,
     Av2hGdfEntropyState *state,
-    Av2hFirstLeafMode *mode);
+    Av2hLeafMode *mode);
 
 Av2hStatus av2h_leaf_read_cdef_entropy(
     Av2hRangeDecoder *decoder,
     const Av2hFrameState *frame,
     const Av2hPartitionNode *leaf,
     Av2hCdefEntropyState *state,
-    Av2hFirstLeafMode *mode);
+    Av2hLeafMode *mode);
 
 Av2hStatus av2h_leaf_read_ccso_entropy(
     Av2hRangeDecoder *decoder,
@@ -48,7 +48,7 @@ Av2hStatus av2h_leaf_read_ccso_entropy(
     const Av2hPartitionNode *leaf,
     const Av2hLumaModeNeighbors *neighbors,
     Av2hCcsoEntropyState *state,
-    Av2hFirstLeafMode *mode);
+    Av2hLeafMode *mode);
 
 Av2hStatus av2h_leaf_read_first_ccso_without_state(
     Av2hRangeDecoder *decoder,
@@ -56,7 +56,7 @@ Av2hStatus av2h_leaf_read_first_ccso_without_state(
     const Av2hSequenceState *sequence,
     const Av2hFrameState *frame,
     const Av2hPartitionNode *leaf,
-    Av2hFirstLeafMode *mode);
+    Av2hLeafMode *mode);
 
 Av2hStatus av2h_leaf_read_first_intrabc(
     Av2hRangeDecoder *decoder,
@@ -66,7 +66,7 @@ Av2hStatus av2h_leaf_read_first_intrabc(
     const Av2hPartitionNode *leaf,
     const Av2hLumaModeContextState *state,
     const Av2hLumaModeNeighbors *neighbors,
-    Av2hFirstLeafMode *mode);
+    Av2hLeafMode *mode);
 
 int av2h_intrabc_bank_origin_valid(
     const Av2hFrameState *frame,

@@ -37,44 +37,44 @@ typedef struct {
     uint16_t secondary_set[AV2H_SECONDARY_TX_SET_SYMBOLS + 4U];
     uint16_t secondary_adst_set[AV2H_SECONDARY_ADST_TX_SET_SYMBOLS + 4U];
     uint16_t chroma_cross_type[7U + 4U];
-} Av2hFirstTransformCdfs;
+} Av2hTransformCdfs;
 
-Av2hStatus av2h_first_transform_cdfs_init(Av2hFirstTransformCdfs *cdfs);
+Av2hStatus av2h_transform_cdfs_init(Av2hTransformCdfs *cdfs);
 Av2hStatus av2h_primary_tx_type_map(
-    Av2hFirstTxSize tx_size,
-    Av2hFirstLeafIntraMode mode,
+    Av2hTxSize tx_size,
+    Av2hIntraMode mode,
     uint8_t long_side_symbol,
     uint8_t primary_symbol,
-    Av2hFirstTxType *tx_type);
+    Av2hTxType *tx_type);
 Av2hStatus av2h_secondary_tx_type_signal(
     const Av2hSequenceState *sequence,
-    const Av2hFirstLeafMode *mode,
-    const Av2hFirstCoeffPrefix *coeff,
-    Av2hFirstTxType primary_type,
+    const Av2hLeafMode *mode,
+    const Av2hCoeffPrefix *coeff,
+    Av2hTxType primary_type,
     uint8_t *signaled);
-Av2hStatus av2h_first_transform_type_read(
+Av2hStatus av2h_transform_type_read(
     Av2hRangeDecoder *decoder,
-    Av2hFirstTransformCdfs *cdfs,
+    Av2hTransformCdfs *cdfs,
     const Av2hSequenceState *sequence,
     const Av2hFrameState *frame,
-    const Av2hFirstLeafMode *mode,
-    const Av2hFirstCoeffPrefix *coeff,
-    Av2hFirstTransformType *transform);
-Av2hStatus av2h_first_chroma_transform_type_read(
+    const Av2hLeafMode *mode,
+    const Av2hCoeffPrefix *coeff,
+    Av2hTransformType *transform);
+Av2hStatus av2h_chroma_transform_type_read_dc(
     Av2hRangeDecoder *decoder,
-    Av2hFirstTransformCdfs *cdfs,
+    Av2hTransformCdfs *cdfs,
     const Av2hFrameState *frame,
     uint8_t plane,
-    const Av2hFirstCoeffPrefix *coeff,
-    Av2hFirstTransformType *transform);
+    const Av2hCoeffPrefix *coeff,
+    Av2hTransformType *transform);
 Av2hStatus av2h_chroma_transform_type_read(
     Av2hRangeDecoder *decoder,
-    Av2hFirstTransformCdfs *cdfs,
+    Av2hTransformCdfs *cdfs,
     const Av2hFrameState *frame,
-    const Av2hFirstChromaMode *mode,
+    const Av2hChromaLeafMode *mode,
     uint8_t plane,
     uint8_t cctx_allowed,
-    const Av2hFirstCoeffPrefix *coeff,
-    Av2hFirstTransformType *transform);
+    const Av2hCoeffPrefix *coeff,
+    Av2hTransformType *transform);
 
 #endif

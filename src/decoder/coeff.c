@@ -57,8 +57,8 @@ void av2h_coefficient_diagnostics_set_luma_prefix_stage(
 #endif
 }
 
-Av2hStatus av2h_first_coeff_cdfs_init_for_q(
-    Av2hFirstCoeffCdfs *cdfs,
+Av2hStatus av2h_coeff_cdfs_init_for_q(
+    Av2hCoeffCdfs *cdfs,
     Av2hQIndex base_q_index) {
     static const Av2hBinaryCdfSpec txb_skip[4U][5U] = {
         {
@@ -272,12 +272,12 @@ Av2hStatus av2h_first_coeff_cdfs_init_for_q(
     return av2h_binary_cdf_init(cdfs->eob_extra, eob_extra[q_context]);
 }
 
-Av2hStatus av2h_first_coeff_cdfs_init(Av2hFirstCoeffCdfs *cdfs) {
-    return av2h_first_coeff_cdfs_init_for_q(cdfs, 128U);
+Av2hStatus av2h_coeff_cdfs_init(Av2hCoeffCdfs *cdfs) {
+    return av2h_coeff_cdfs_init_for_q(cdfs, 128U);
 }
 
 static Av2hStatus derive_tx_size(Av2hBlockSize block_size,
-                                 Av2hFirstTxSize *tx_size,
+                                 Av2hTxSize *tx_size,
                                  uint8_t *tx_size_context) {
     const Av2hTxDescriptor *descriptor;
     Av2hStatus status;
@@ -558,8 +558,8 @@ Av2hStatus av2h_coeff_context_state_update(
 }
 
 static Av2hStatus eob_parameters(
-    Av2hFirstCoeffCdfs *cdfs,
-    Av2hFirstTxSize tx_size,
+    Av2hCoeffCdfs *cdfs,
+    Av2hTxSize tx_size,
     uint16_t **point_cdf,
     size_t *point_symbols,
     uint16_t *capacity,
@@ -602,10 +602,10 @@ static Av2hStatus eob_parameters(
 }
 
 static Av2hStatus decode_eob(Av2hRangeDecoder *decoder,
-                             Av2hFirstCoeffCdfs *cdfs,
+                             Av2hCoeffCdfs *cdfs,
                              uint16_t *point_override,
                              size_t point_override_symbols,
-                             Av2hFirstCoeffPrefix *prefix) {
+                             Av2hCoeffPrefix *prefix) {
     static const uint16_t group_start[] = {
         0U, 1U, 2U, 3U, 5U, 9U, 17U, 33U, 65U, 129U, 257U, 513U
     };
@@ -680,12 +680,12 @@ static Av2hStatus decode_eob(Av2hRangeDecoder *decoder,
 
 Av2hStatus av2h_coeff_prefix_read(
     Av2hRangeDecoder *decoder,
-    Av2hFirstCoeffCdfs *cdfs,
+    Av2hCoeffCdfs *cdfs,
     const Av2hFrameState *frame,
     const Av2hPartitionNode *leaf,
-    const Av2hFirstLeafMode *mode,
+    const Av2hLeafMode *mode,
     uint8_t txb_skip_context,
-    Av2hFirstCoeffPrefix *prefix) {
+    Av2hCoeffPrefix *prefix) {
     uint16_t *cdf;
     uint32_t value;
     Av2hStatus status;
@@ -764,11 +764,11 @@ Av2hStatus av2h_coeff_prefix_read(
 
 Av2hStatus av2h_first_coeff_prefix_read(
     Av2hRangeDecoder *decoder,
-    Av2hFirstCoeffCdfs *cdfs,
+    Av2hCoeffCdfs *cdfs,
     const Av2hFrameState *frame,
     const Av2hPartitionNode *leaf,
-    const Av2hFirstLeafMode *mode,
-    Av2hFirstCoeffPrefix *prefix) {
+    const Av2hLeafMode *mode,
+    Av2hCoeffPrefix *prefix) {
     if (leaf == NULL) return AV2H_INVALID_ARGUMENT;
     if (leaf->row != 0U || leaf->column != 0U) return AV2H_UNSUPPORTED;
     return av2h_coeff_prefix_read(decoder, cdfs, frame, leaf, mode, 0U,
@@ -777,12 +777,12 @@ Av2hStatus av2h_first_coeff_prefix_read(
 
 Av2hStatus av2h_coeff_prefix_read_with_state(
     Av2hRangeDecoder *decoder,
-    Av2hFirstCoeffCdfs *cdfs,
+    Av2hCoeffCdfs *cdfs,
     const Av2hFrameState *frame,
     const Av2hPartitionNode *leaf,
-    const Av2hFirstLeafMode *mode,
+    const Av2hLeafMode *mode,
     const Av2hCoeffContextState *state,
-    Av2hFirstCoeffPrefix *prefix,
+    Av2hCoeffPrefix *prefix,
     uint8_t *dc_sign_context) {
     uint8_t txb_skip_context;
     Av2hStatus status = av2h_coeff_contexts_from_state(
@@ -797,14 +797,14 @@ Av2hStatus av2h_coeff_prefix_read_with_state(
 
 Av2hStatus av2h_chroma_coeff_prefix_read_with_state(
     Av2hRangeDecoder *decoder,
-    Av2hFirstCoeffCdfs *cdfs,
+    Av2hCoeffCdfs *cdfs,
     const Av2hFrameState *frame,
     const Av2hPartitionNode *leaf,
     Av2hBlockSize coding_block_size,
     uint8_t plane,
     uint16_t u_eob,
     const Av2hCoeffContextState *state,
-    Av2hFirstCoeffPrefix *prefix) {
+    Av2hCoeffPrefix *prefix) {
     uint8_t txb_skip_context;
     uint8_t dc_sign_context;
     Av2hStatus status = av2h_coeff_contexts_from_state_for_coding_block(
@@ -818,25 +818,25 @@ Av2hStatus av2h_chroma_coeff_prefix_read_with_state(
         decoder, cdfs, frame, leaf, plane, txb_skip_context, prefix);
 }
 
-Av2hStatus av2h_first_chroma_coeff_prefix_read(
+Av2hStatus av2h_chroma_coeff_prefix_read_default_context(
     Av2hRangeDecoder *decoder,
-    Av2hFirstCoeffCdfs *cdfs,
+    Av2hCoeffCdfs *cdfs,
     const Av2hFrameState *frame,
     const Av2hPartitionNode *leaf,
     uint8_t plane,
-    Av2hFirstCoeffPrefix *prefix) {
+    Av2hCoeffPrefix *prefix) {
     return av2h_chroma_coeff_prefix_read(
         decoder, cdfs, frame, leaf, plane, plane == 1U ? 6U : 9U, prefix);
 }
 
 Av2hStatus av2h_chroma_coeff_prefix_read(
     Av2hRangeDecoder *decoder,
-    Av2hFirstCoeffCdfs *cdfs,
+    Av2hCoeffCdfs *cdfs,
     const Av2hFrameState *frame,
     const Av2hPartitionNode *leaf,
     uint8_t plane,
     uint8_t txb_skip_context,
-    Av2hFirstCoeffPrefix *prefix) {
+    Av2hCoeffPrefix *prefix) {
     const Av2hTxDescriptor *descriptor;
     uint16_t *eob_cdf = NULL;
     size_t eob_symbols = 0U;

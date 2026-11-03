@@ -47,7 +47,7 @@ static void *workspace_reconstruction_scratch(
     Av2hArena *arena,
     size_t bytes_per_sample) {
     const size_t coefficient_bytes =
-        3U * AV2H_FIRST_COEFF_CAPACITY * sizeof(int32_t);
+        3U * AV2H_COEFF_CAPACITY * sizeof(int32_t);
     const size_t sample_count = AV2H_RECON_SAMPLE_CAPACITY + 4U * 128U;
     size_t sample_bytes;
     size_t scratch_bytes;

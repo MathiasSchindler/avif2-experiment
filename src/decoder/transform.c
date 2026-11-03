@@ -27,9 +27,9 @@ void av2h_transform_diagnostics_set_stage(
 }
 Av2hStatus av2h_secondary_tx_type_signal(
     const Av2hSequenceState *sequence,
-    const Av2hFirstLeafMode *mode,
-    const Av2hFirstCoeffPrefix *coeff,
-    Av2hFirstTxType primary_type,
+    const Av2hLeafMode *mode,
+    const Av2hCoeffPrefix *coeff,
+    Av2hTxType primary_type,
     uint8_t *signaled) {
     const Av2hTxDescriptor *descriptor;
     uint8_t size_class;
@@ -71,12 +71,12 @@ Av2hStatus av2h_secondary_tx_type_signal(
 }
 
 static Av2hStatus read_primary(Av2hRangeDecoder *decoder,
-                               Av2hFirstTransformCdfs *cdfs,
-                               const Av2hFirstLeafMode *mode,
-                               const Av2hFirstCoeffPrefix *coeff,
-                               Av2hFirstTransformType *transform) {
+                               Av2hTransformCdfs *cdfs,
+                               const Av2hLeafMode *mode,
+                               const Av2hCoeffPrefix *coeff,
+                               Av2hTransformType *transform) {
     const Av2hTxDescriptor *descriptor;
-    Av2hFirstLeafMode mapped_mode;
+    Av2hLeafMode mapped_mode;
     uint32_t symbol;
     Av2hStatus status;
     transform->primary_signaled = 0U;
@@ -97,7 +97,7 @@ static Av2hStatus read_primary(Av2hRangeDecoder *decoder,
     }
     if (coeff->tx_size == AV2H_TX_8X8 &&
         mode->mode == AV2H_INTRA_D203) {
-        static const Av2hFirstTxType d203_size1[] = {
+        static const Av2hTxType d203_size1[] = {
             AV2H_TX_DCT_DCT, AV2H_TX_ADST_ADST,
             AV2H_TX_ADST_DCT, AV2H_TX_DCT_ADST,
             AV2H_TX_FLIPADST_DCT, AV2H_TX_FLIPADST_ADST,
@@ -115,7 +115,7 @@ static Av2hStatus read_primary(Av2hRangeDecoder *decoder,
     }
     if (coeff->tx_size == AV2H_TX_16X4 &&
         mode->mode == AV2H_INTRA_D203) {
-        static const Av2hFirstTxType d203_size1[] = {
+        static const Av2hTxType d203_size1[] = {
             AV2H_TX_DCT_DCT, AV2H_TX_ADST_ADST,
             AV2H_TX_ADST_DCT, AV2H_TX_DCT_ADST,
             AV2H_TX_FLIPADST_DCT, AV2H_TX_FLIPADST_ADST,
@@ -226,7 +226,7 @@ static Av2hStatus read_primary(Av2hRangeDecoder *decoder,
     }
             av2h_transform_diagnostics_set_stage(decoder->diagnostics, 3U);
             if (coeff->tx_size == AV2H_TX_32X32 && mode->use_intrabc) {
-        static const Av2hFirstTxType intrabc_32x32_types[] = {
+        static const Av2hTxType intrabc_32x32_types[] = {
             AV2H_TX_IDTX, AV2H_TX_DCT_DCT
         };
         symbol = av2h_range_read_adaptive(
@@ -263,7 +263,7 @@ static Av2hStatus read_primary(Av2hRangeDecoder *decoder,
         uint16_t *set_cdf;
         uint16_t *type_cdf;
         uint8_t signaling_set2 = square_context == 2U;
-        static const Av2hFirstTxType intrabc_types[] = {
+        static const Av2hTxType intrabc_types[] = {
             AV2H_TX_IDTX,
             AV2H_TX_V_DCT,
             AV2H_TX_H_DCT,
@@ -299,7 +299,7 @@ static Av2hStatus read_primary(Av2hRangeDecoder *decoder,
         transform->primary_long_side_symbol = (uint8_t)set;
         transform->primary_symbol = (uint8_t)symbol;
         if (signaling_set2) {
-            static const Av2hFirstTxType set2_types[12U] = {
+            static const Av2hTxType set2_types[12U] = {
                 AV2H_TX_IDTX, AV2H_TX_V_DCT, AV2H_TX_H_DCT,
                 AV2H_TX_DCT_DCT, AV2H_TX_ADST_DCT, AV2H_TX_DCT_ADST,
                 AV2H_TX_FLIPADST_DCT, AV2H_TX_DCT_FLIPADST,
@@ -328,7 +328,7 @@ static Av2hStatus read_primary(Av2hRangeDecoder *decoder,
         if (status == AV2H_OK) {
         } else if (coeff->tx_size == AV2H_TX_4X16 &&
             mode->mode == AV2H_INTRA_DC) {
-            static const Av2hFirstTxType dc_4x16[] = {
+            static const Av2hTxType dc_4x16[] = {
                 AV2H_TX_DCT_DCT, AV2H_TX_ADST_ADST,
                 AV2H_TX_ADST_DCT, AV2H_TX_DCT_ADST,
                 AV2H_TX_ADST_FLIPADST, AV2H_TX_FLIPADST_ADST,
@@ -337,7 +337,7 @@ static Av2hStatus read_primary(Av2hRangeDecoder *decoder,
             transform->primary_type = dc_4x16[symbol];
         } else if (coeff->tx_size == AV2H_TX_4X16 &&
             mode->mode == AV2H_INTRA_D67) {
-            static const Av2hFirstTxType d67_4x16[] = {
+            static const Av2hTxType d67_4x16[] = {
                 AV2H_TX_DCT_DCT, AV2H_TX_ADST_ADST,
                 AV2H_TX_ADST_DCT, AV2H_TX_DCT_ADST,
                 AV2H_TX_DCT_FLIPADST, AV2H_TX_FLIPADST_FLIPADST,
@@ -346,7 +346,7 @@ static Av2hStatus read_primary(Av2hRangeDecoder *decoder,
             transform->primary_type = d67_4x16[symbol];
         } else if (coeff->tx_size == AV2H_TX_4X16 &&
             mode->mode == AV2H_INTRA_D45) {
-            static const Av2hFirstTxType d45_4x16[] = {
+            static const Av2hTxType d45_4x16[] = {
                 AV2H_TX_DCT_DCT, AV2H_TX_ADST_ADST,
                 AV2H_TX_ADST_DCT, AV2H_TX_DCT_ADST,
                 AV2H_TX_FLIPADST_FLIPADST, AV2H_TX_ADST_FLIPADST,
@@ -355,7 +355,7 @@ static Av2hStatus read_primary(Av2hRangeDecoder *decoder,
             transform->primary_type = d45_4x16[symbol];
         } else if (coeff->tx_size == AV2H_TX_4X16 &&
             mode->mode == AV2H_INTRA_PAETH) {
-            static const Av2hFirstTxType paeth_4x16[] = {
+            static const Av2hTxType paeth_4x16[] = {
                 AV2H_TX_DCT_DCT, AV2H_TX_ADST_ADST,
                 AV2H_TX_ADST_DCT, AV2H_TX_DCT_ADST,
                 AV2H_TX_V_DCT, AV2H_TX_H_DCT, AV2H_TX_H_ADST
@@ -363,7 +363,7 @@ static Av2hStatus read_primary(Av2hRangeDecoder *decoder,
             transform->primary_type = paeth_4x16[symbol];
         } else if (coeff->tx_size == AV2H_TX_4X16 &&
             mode->mode == AV2H_INTRA_D135) {
-            static const Av2hFirstTxType d135_4x16[] = {
+            static const Av2hTxType d135_4x16[] = {
                 AV2H_TX_DCT_DCT, AV2H_TX_ADST_ADST,
                 AV2H_TX_ADST_DCT, AV2H_TX_DCT_ADST,
                 AV2H_TX_DCT_FLIPADST, AV2H_TX_ADST_FLIPADST,
@@ -372,7 +372,7 @@ static Av2hStatus read_primary(Av2hRangeDecoder *decoder,
             transform->primary_type = d135_4x16[symbol];
         } else if (coeff->tx_size == AV2H_TX_4X16 &&
                    mode->mode == AV2H_INTRA_HORIZONTAL) {
-            static const Av2hFirstTxType horizontal_4x16[] = {
+            static const Av2hTxType horizontal_4x16[] = {
                 AV2H_TX_DCT_DCT, AV2H_TX_ADST_ADST,
                 AV2H_TX_ADST_DCT, AV2H_TX_DCT_ADST,
                 AV2H_TX_FLIPADST_ADST, AV2H_TX_H_DCT,
@@ -381,7 +381,7 @@ static Av2hStatus read_primary(Av2hRangeDecoder *decoder,
             transform->primary_type = horizontal_4x16[symbol];
         } else if (coeff->tx_size == AV2H_TX_4X16 &&
                    mode->mode == AV2H_INTRA_SMOOTH_HORIZONTAL) {
-            static const Av2hFirstTxType smooth_horizontal_4x16[] = {
+            static const Av2hTxType smooth_horizontal_4x16[] = {
                 AV2H_TX_DCT_DCT, AV2H_TX_ADST_ADST,
                 AV2H_TX_ADST_DCT, AV2H_TX_DCT_ADST,
                 AV2H_TX_DCT_FLIPADST, AV2H_TX_ADST_FLIPADST,
@@ -389,7 +389,7 @@ static Av2hStatus read_primary(Av2hRangeDecoder *decoder,
             };
             transform->primary_type = smooth_horizontal_4x16[symbol];
         } else if (coeff->tx_size == AV2H_TX_4X16) {
-            static const Av2hFirstTxType d203_4x16[] = {
+            static const Av2hTxType d203_4x16[] = {
                 AV2H_TX_DCT_DCT, AV2H_TX_ADST_ADST,
                 AV2H_TX_ADST_DCT, AV2H_TX_DCT_ADST,
                 AV2H_TX_FLIPADST_DCT, AV2H_TX_FLIPADST_ADST,
@@ -398,7 +398,7 @@ static Av2hStatus read_primary(Av2hRangeDecoder *decoder,
             transform->primary_type = d203_4x16[symbol];
         } else if (coeff->tx_size == AV2H_TX_4X8 &&
                    mode->mode == AV2H_INTRA_VERTICAL) {
-            static const Av2hFirstTxType vertical_4x8[] = {
+            static const Av2hTxType vertical_4x8[] = {
                 AV2H_TX_DCT_DCT, AV2H_TX_ADST_ADST,
                 AV2H_TX_ADST_DCT, AV2H_TX_DCT_ADST,
                 AV2H_TX_ADST_FLIPADST, AV2H_TX_V_DCT,
@@ -407,7 +407,7 @@ static Av2hStatus read_primary(Av2hRangeDecoder *decoder,
             transform->primary_type = vertical_4x8[symbol];
         } else if (coeff->tx_size == AV2H_TX_4X8 &&
                    mode->mode == AV2H_INTRA_HORIZONTAL) {
-            static const Av2hFirstTxType horizontal_4x8[] = {
+            static const Av2hTxType horizontal_4x8[] = {
                 AV2H_TX_DCT_DCT, AV2H_TX_ADST_ADST,
                 AV2H_TX_ADST_DCT, AV2H_TX_DCT_ADST,
                 AV2H_TX_FLIPADST_ADST, AV2H_TX_H_DCT,
@@ -416,7 +416,7 @@ static Av2hStatus read_primary(Av2hRangeDecoder *decoder,
             transform->primary_type = horizontal_4x8[symbol];
         } else if (coeff->tx_size == AV2H_TX_4X8 &&
                    mode->mode == AV2H_INTRA_D45) {
-            static const Av2hFirstTxType d45_4x8[] = {
+            static const Av2hTxType d45_4x8[] = {
                 AV2H_TX_DCT_DCT, AV2H_TX_ADST_ADST,
                 AV2H_TX_ADST_DCT, AV2H_TX_DCT_ADST,
                 AV2H_TX_FLIPADST_FLIPADST, AV2H_TX_ADST_FLIPADST,
@@ -424,7 +424,7 @@ static Av2hStatus read_primary(Av2hRangeDecoder *decoder,
             };
             transform->primary_type = d45_4x8[symbol];
         } else if (coeff->tx_size == AV2H_TX_4X8) {
-            static const Av2hFirstTxType dc_4x8[] = {
+            static const Av2hTxType dc_4x8[] = {
                 AV2H_TX_DCT_DCT, AV2H_TX_ADST_ADST,
                 AV2H_TX_ADST_DCT, AV2H_TX_DCT_ADST,
                 AV2H_TX_ADST_FLIPADST, AV2H_TX_FLIPADST_ADST,
@@ -433,7 +433,7 @@ static Av2hStatus read_primary(Av2hRangeDecoder *decoder,
             transform->primary_type = dc_4x8[symbol];
         } else if (coeff->tx_size == AV2H_TX_8X4 &&
                    mode->mode == AV2H_INTRA_D135) {
-            static const Av2hFirstTxType d135_8x4[] = {
+            static const Av2hTxType d135_8x4[] = {
                 AV2H_TX_DCT_DCT, AV2H_TX_ADST_ADST,
                 AV2H_TX_ADST_DCT, AV2H_TX_DCT_ADST,
                 AV2H_TX_ADST_FLIPADST, AV2H_TX_FLIPADST_ADST,
@@ -488,7 +488,7 @@ static Av2hStatus read_primary(Av2hRangeDecoder *decoder,
             transform->primary_type = AV2H_TX_ADST_DCT;
         } else if (coeff->tx_size == AV2H_TX_16X4 &&
                    mode->mode == AV2H_INTRA_D67) {
-            static const Av2hFirstTxType d67_16x4[] = {
+            static const Av2hTxType d67_16x4[] = {
                 AV2H_TX_DCT_DCT, AV2H_TX_ADST_ADST,
                 AV2H_TX_ADST_DCT, AV2H_TX_DCT_ADST,
                 AV2H_TX_DCT_FLIPADST, AV2H_TX_FLIPADST_FLIPADST,
@@ -497,7 +497,7 @@ static Av2hStatus read_primary(Av2hRangeDecoder *decoder,
             transform->primary_type = d67_16x4[symbol];
         } else if (coeff->tx_size == AV2H_TX_4X4 &&
                    mode->mode == AV2H_INTRA_D67) {
-            static const Av2hFirstTxType d67_4x4[] = {
+            static const Av2hTxType d67_4x4[] = {
                 AV2H_TX_DCT_DCT, AV2H_TX_ADST_ADST,
                 AV2H_TX_ADST_DCT, AV2H_TX_DCT_ADST,
                 AV2H_TX_ADST_FLIPADST, AV2H_TX_V_DCT,
@@ -506,7 +506,7 @@ static Av2hStatus read_primary(Av2hRangeDecoder *decoder,
             transform->primary_type = d67_4x4[symbol];
         } else if (coeff->tx_size == AV2H_TX_4X4 &&
                    mode->mode == AV2H_INTRA_VERTICAL) {
-            static const Av2hFirstTxType vertical_4x4[] = {
+            static const Av2hTxType vertical_4x4[] = {
                 AV2H_TX_DCT_DCT, AV2H_TX_ADST_ADST,
                 AV2H_TX_ADST_DCT, AV2H_TX_DCT_ADST,
                 AV2H_TX_ADST_FLIPADST, AV2H_TX_V_DCT,
@@ -515,7 +515,7 @@ static Av2hStatus read_primary(Av2hRangeDecoder *decoder,
             transform->primary_type = vertical_4x4[symbol];
         } else if (coeff->tx_size == AV2H_TX_4X4 &&
                    mode->mode == AV2H_INTRA_D157) {
-            static const Av2hFirstTxType d157_4x4[] = {
+            static const Av2hTxType d157_4x4[] = {
                 AV2H_TX_DCT_DCT, AV2H_TX_ADST_ADST,
                 AV2H_TX_ADST_DCT, AV2H_TX_DCT_ADST,
                 AV2H_TX_ADST_FLIPADST, AV2H_TX_FLIPADST_ADST,
@@ -524,7 +524,7 @@ static Av2hStatus read_primary(Av2hRangeDecoder *decoder,
             transform->primary_type = d157_4x4[symbol];
         } else if (coeff->tx_size == AV2H_TX_4X4 &&
                    mode->mode == AV2H_INTRA_HORIZONTAL) {
-            static const Av2hFirstTxType horizontal_4x4[] = {
+            static const Av2hTxType horizontal_4x4[] = {
                 AV2H_TX_DCT_DCT, AV2H_TX_ADST_ADST,
                 AV2H_TX_ADST_DCT, AV2H_TX_DCT_ADST,
                 AV2H_TX_FLIPADST_ADST, AV2H_TX_H_DCT,
@@ -694,7 +694,7 @@ static Av2hStatus read_primary(Av2hRangeDecoder *decoder,
              transform->primary_type = AV2H_TX_FLIPADST_ADST;
         } else if (coeff->tx_size == AV2H_TX_8X16 &&
             mode->mode == AV2H_INTRA_D203) {
-            static const Av2hFirstTxType d203_8x16[] = {
+            static const Av2hTxType d203_8x16[] = {
                 AV2H_TX_DCT_DCT, AV2H_TX_ADST_ADST,
                 AV2H_TX_ADST_DCT, AV2H_TX_DCT_ADST,
                 AV2H_TX_FLIPADST_DCT, AV2H_TX_FLIPADST_ADST,
@@ -703,7 +703,7 @@ static Av2hStatus read_primary(Av2hRangeDecoder *decoder,
             transform->primary_type = d203_8x16[symbol];
         } else if (coeff->tx_size == AV2H_TX_16X8 &&
             mode->mode == AV2H_INTRA_D45) {
-            static const Av2hFirstTxType d45_16x8[] = {
+            static const Av2hTxType d45_16x8[] = {
                 AV2H_TX_DCT_DCT, AV2H_TX_ADST_ADST,
                 AV2H_TX_ADST_DCT, AV2H_TX_DCT_ADST,
                 AV2H_TX_FLIPADST_FLIPADST, AV2H_TX_ADST_FLIPADST,
@@ -712,7 +712,7 @@ static Av2hStatus read_primary(Av2hRangeDecoder *decoder,
             transform->primary_type = d45_16x8[symbol];
         } else if (coeff->tx_size == AV2H_TX_8X16 &&
             mode->mode == AV2H_INTRA_D45) {
-            static const Av2hFirstTxType d45_8x16[] = {
+            static const Av2hTxType d45_8x16[] = {
                 AV2H_TX_DCT_DCT, AV2H_TX_ADST_ADST,
                 AV2H_TX_ADST_DCT, AV2H_TX_DCT_ADST,
                 AV2H_TX_FLIPADST_FLIPADST, AV2H_TX_ADST_FLIPADST,
@@ -856,7 +856,7 @@ static Av2hStatus read_primary(Av2hRangeDecoder *decoder,
             transform->primary_type = AV2H_TX_ADST_ADST;
         } else if (coeff->tx_size == AV2H_TX_8X8 &&
                    mode->mode == AV2H_INTRA_D135) {
-            static const Av2hFirstTxType d135_8x8[] = {
+            static const Av2hTxType d135_8x8[] = {
                 AV2H_TX_DCT_DCT, AV2H_TX_ADST_ADST,
                 AV2H_TX_ADST_DCT, AV2H_TX_DCT_ADST,
                 AV2H_TX_DCT_FLIPADST, AV2H_TX_ADST_FLIPADST,
@@ -953,14 +953,14 @@ static Av2hStatus read_primary(Av2hRangeDecoder *decoder,
     return AV2H_OK;
 }
 
-Av2hStatus av2h_first_transform_type_read(
+Av2hStatus av2h_transform_type_read(
     Av2hRangeDecoder *decoder,
-    Av2hFirstTransformCdfs *cdfs,
+    Av2hTransformCdfs *cdfs,
     const Av2hSequenceState *sequence,
     const Av2hFrameState *frame,
-    const Av2hFirstLeafMode *mode,
-    const Av2hFirstCoeffPrefix *coeff,
-    Av2hFirstTransformType *transform) {
+    const Av2hLeafMode *mode,
+    const Av2hCoeffPrefix *coeff,
+    Av2hTransformType *transform) {
     uint32_t symbol;
     const Av2hTxDescriptor *descriptor;
     uint8_t secondary_signaled;
@@ -1048,7 +1048,7 @@ Av2hStatus av2h_first_transform_type_read(
                 transform->primary_type == AV2H_TX_ADST_ADST &&
                 descriptor->output_width >= 8U &&
                 descriptor->output_height >= 8U);
-            Av2hFirstLeafIntraMode secondary_mode = av2h_transform_mode(
+            Av2hIntraMode secondary_mode = av2h_transform_mode(
                 mode->mode, mode->angle_delta, mode->mrl_index, descriptor);
             symbol = av2h_range_read_adaptive(
                 decoder,
@@ -1075,14 +1075,14 @@ Av2hStatus av2h_first_transform_type_read(
     return AV2H_OK;
 }
 
-Av2hStatus av2h_first_chroma_transform_type_read(
+Av2hStatus av2h_chroma_transform_type_read_dc(
     Av2hRangeDecoder *decoder,
-    Av2hFirstTransformCdfs *cdfs,
+    Av2hTransformCdfs *cdfs,
     const Av2hFrameState *frame,
     uint8_t plane,
-    const Av2hFirstCoeffPrefix *coeff,
-    Av2hFirstTransformType *transform) {
-    Av2hFirstChromaMode mode = { 0 };
+    const Av2hCoeffPrefix *coeff,
+    Av2hTransformType *transform) {
+    Av2hChromaLeafMode mode = { 0 };
     mode.mode = AV2H_INTRA_DC;
     return av2h_chroma_transform_type_read(
         decoder, cdfs, frame, &mode, plane, 1U, coeff, transform);
@@ -1090,13 +1090,13 @@ Av2hStatus av2h_first_chroma_transform_type_read(
 
 Av2hStatus av2h_chroma_transform_type_read(
     Av2hRangeDecoder *decoder,
-    Av2hFirstTransformCdfs *cdfs,
+    Av2hTransformCdfs *cdfs,
     const Av2hFrameState *frame,
-    const Av2hFirstChromaMode *mode,
+    const Av2hChromaLeafMode *mode,
     uint8_t plane,
     uint8_t cctx_allowed,
-    const Av2hFirstCoeffPrefix *coeff,
-    Av2hFirstTransformType *transform) {
+    const Av2hCoeffPrefix *coeff,
+    Av2hTransformType *transform) {
     const Av2hTxDescriptor *descriptor;
     uint32_t symbol = 0U;
     Av2hStatus status;

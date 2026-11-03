@@ -18,7 +18,7 @@ Av2hStatus av2h_tile_decoder_fail(Av2hTileDecoder *decoder,
                                   Av2hStatus status);
 void av2h_tile_capture_root_partition(
     Av2hTileDecoder *decoder,
-    const Av2hFirstLeafPath *path,
+    const Av2hLeafPath *path,
     Av2hPartitionType *root_partition);
 uint8_t av2h_tile_partition_direction(Av2hPartitionType partition);
 

@@ -448,7 +448,7 @@ static Av2hStatus apply_intrabc_morph_prediction(
 
 Av2hStatus av2h_intrabc_predict(
     Av2hDecodeDiagnostics *diagnostics,
-    const Av2hFirstLeafMode *mode,
+    const Av2hLeafMode *mode,
     const Av2hReconstructionPlane *plane,
     uint16_t block_x,
     uint16_t block_y,

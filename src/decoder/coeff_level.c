@@ -33,10 +33,10 @@ uint8_t av2h_tcq_next_state(uint8_t state, uint32_t absolute_level) {
 }
 
 static int q_level_profile_supported(
-    const Av2hFirstCoeffLevelCdfs *cdfs,
+    const Av2hCoeffLevelCdfs *cdfs,
     const Av2hFrameState *frame,
-    const Av2hFirstCoeffPrefix *prefix,
-    const Av2hFirstTransformType *transform) {
+    const Av2hCoeffPrefix *prefix,
+    const Av2hTransformType *transform) {
     if (cdfs->q_context != av2h_coeff_q_context(frame->base_q_index)) {
         return 0;
     }
@@ -48,7 +48,7 @@ static int q_level_profile_supported(
 }
 
 static int q_eob_context_supported(
-    const Av2hFirstCoeffLevelCdfs *cdfs,
+    const Av2hCoeffLevelCdfs *cdfs,
     uint8_t tx_context,
     uint8_t context,
     uint8_t low) {
@@ -81,7 +81,7 @@ static int q_eob_context_supported(
 }
 
 static int q_base_context_supported(
-    const Av2hFirstCoeffLevelCdfs *cdfs,
+    const Av2hCoeffLevelCdfs *cdfs,
     uint8_t tx_context,
     uint8_t context,
     uint8_t low) {
@@ -154,7 +154,7 @@ static int q_base_context_supported(
 }
 
 static int q_br_context_supported(
-    const Av2hFirstCoeffLevelCdfs *cdfs,
+    const Av2hCoeffLevelCdfs *cdfs,
     uint8_t context,
     uint8_t low) {
     if (cdfs->q_context < 4U) return low ? context < 14U : context < 7U;
@@ -168,7 +168,7 @@ static int q_br_context_supported(
              context == 4U || context == 9U);
 }
 
-static uint16_t *q0_base_cdf(Av2hFirstCoeffLevelCdfs *cdfs,
+static uint16_t *q0_base_cdf(Av2hCoeffLevelCdfs *cdfs,
                              uint8_t tx_context, uint8_t context,
                              uint8_t low) {
     switch (tx_context) {
@@ -192,7 +192,7 @@ static uint16_t *q0_base_cdf(Av2hFirstCoeffLevelCdfs *cdfs,
     }
 }
 
-static uint16_t *q0_eob_cdf(Av2hFirstCoeffLevelCdfs *cdfs,
+static uint16_t *q0_eob_cdf(Av2hCoeffLevelCdfs *cdfs,
                             uint8_t tx_context, uint8_t context,
                             uint8_t low) {
     switch (tx_context) {
@@ -217,8 +217,8 @@ static uint16_t *q0_eob_cdf(Av2hFirstCoeffLevelCdfs *cdfs,
 }
 
 static Av2hStatus read_base_level(Av2hRangeDecoder *decoder,
-                                  Av2hFirstCoeffLevelCdfs *cdfs,
-                                  Av2hFirstCoeffBlock *block,
+                                  Av2hCoeffLevelCdfs *cdfs,
+                                  Av2hCoeffBlock *block,
                                   uint8_t tx_context, uint16_t position,
                                   uint8_t vertical, uint8_t low,
                                   uint8_t transpose, uint8_t tcq_quantizer,
@@ -468,10 +468,10 @@ static Av2hStatus read_high_range(Av2hRangeDecoder *decoder,
 }
 
 static Av2hStatus read_fsc_block(
-    Av2hRangeDecoder *decoder, Av2hFirstCoeffLevelCdfs *cdfs,
+    Av2hRangeDecoder *decoder, Av2hCoeffLevelCdfs *cdfs,
     const Av2hSequenceState *sequence, const Av2hFrameState *frame,
-    const Av2hFirstCoeffPrefix *prefix,
-    const Av2hFirstTransformType *transform, Av2hFirstCoeffBlock *block) {
+    const Av2hCoeffPrefix *prefix,
+    const Av2hTransformType *transform, Av2hCoeffBlock *block) {
     uint16_t scan_index;
     uint16_t bob;
     uint32_t high_average = 0U;
@@ -499,7 +499,7 @@ static Av2hStatus read_fsc_block(
     block->width = geometry.width;
     block->height = geometry.height;
     block->coefficient_count = (uint16_t)(block->width * block->height);
-    for (scan_index = 0U; scan_index < AV2H_FIRST_COEFF_CAPACITY;
+    for (scan_index = 0U; scan_index < AV2H_COEFF_CAPACITY;
          ++scan_index) {
         block->base_levels[scan_index] = 0U;
         block->quantized[scan_index] = 0;
@@ -617,14 +617,14 @@ static Av2hStatus read_fsc_block(
 
 Av2hStatus av2h_coeff_block_read(
     Av2hRangeDecoder *decoder,
-    Av2hFirstCoeffLevelCdfs *cdfs,
+    Av2hCoeffLevelCdfs *cdfs,
     const Av2hSequenceState *sequence,
     const Av2hFrameState *frame,
-    const Av2hFirstLeafMode *mode,
-    const Av2hFirstCoeffPrefix *prefix,
-    const Av2hFirstTransformType *transform,
+    const Av2hLeafMode *mode,
+    const Av2hCoeffPrefix *prefix,
+    const Av2hTransformType *transform,
     uint8_t dc_sign_context,
-    Av2hFirstCoeffBlock *block) {
+    Av2hCoeffBlock *block) {
     uint16_t scan_index;
     uint8_t tx_context;
     uint8_t vertical;
@@ -696,7 +696,7 @@ Av2hStatus av2h_coeff_block_read(
             prefix->q_index != 0U ? prefix->q_index : frame->base_q_index));
     block->coefficient_count = (uint16_t)(block->width * block->height);
     if (prefix->eob > block->coefficient_count) return AV2H_INVALID_DATA;
-    for (scan_index = 0U; scan_index < AV2H_FIRST_COEFF_CAPACITY;
+    for (scan_index = 0U; scan_index < AV2H_COEFF_CAPACITY;
          ++scan_index) {
         block->base_levels[scan_index] = 0U;
         block->quantized[scan_index] = 0;
@@ -1039,30 +1039,30 @@ Av2hStatus av2h_coeff_block_read(
     return AV2H_OK;
 }
 
-Av2hStatus av2h_first_coeff_block_read(
+Av2hStatus av2h_coeff_block_read_default_context(
     Av2hRangeDecoder *decoder,
-    Av2hFirstCoeffLevelCdfs *cdfs,
+    Av2hCoeffLevelCdfs *cdfs,
     const Av2hSequenceState *sequence,
     const Av2hFrameState *frame,
-    const Av2hFirstLeafMode *mode,
-    const Av2hFirstCoeffPrefix *prefix,
-    const Av2hFirstTransformType *transform,
-    Av2hFirstCoeffBlock *block) {
+    const Av2hLeafMode *mode,
+    const Av2hCoeffPrefix *prefix,
+    const Av2hTransformType *transform,
+    Av2hCoeffBlock *block) {
     return av2h_coeff_block_read(decoder, cdfs, sequence, frame, mode, prefix,
                                  transform, 0U, block);
 }
 
 Av2hStatus av2h_coeff_block_read_with_state(
     Av2hRangeDecoder *decoder,
-    Av2hFirstCoeffLevelCdfs *cdfs,
+    Av2hCoeffLevelCdfs *cdfs,
     const Av2hSequenceState *sequence,
     const Av2hFrameState *frame,
     const Av2hPartitionNode *leaf,
-    const Av2hFirstLeafMode *mode,
-    const Av2hFirstCoeffPrefix *prefix,
-    const Av2hFirstTransformType *transform,
+    const Av2hLeafMode *mode,
+    const Av2hCoeffPrefix *prefix,
+    const Av2hTransformType *transform,
     Av2hCoeffContextState *state,
-    Av2hFirstCoeffBlock *block) {
+    Av2hCoeffBlock *block) {
     uint8_t txb_skip_context;
     uint8_t dc_sign_context;
     block->diagnostic_position = leaf != NULL ? leaf->block_size : 0U;
@@ -1082,14 +1082,14 @@ Av2hStatus av2h_coeff_block_read_with_state(
 
 static Av2hStatus read_chroma_block(
     Av2hRangeDecoder *decoder,
-    Av2hFirstCoeffLevelCdfs *cdfs,
+    Av2hCoeffLevelCdfs *cdfs,
     const Av2hSequenceState *sequence,
     const Av2hFrameState *frame,
     uint8_t segment_id,
     uint8_t plane,
-    const Av2hFirstCoeffPrefix *prefix,
+    const Av2hCoeffPrefix *prefix,
     uint8_t primary_type,
-    Av2hFirstCoeffBlock *block) {
+    Av2hCoeffBlock *block) {
     Av2hCoeffTxGeometry geometry;
     uint16_t scan_index;
     uint32_t high_average = 0U;
@@ -1108,14 +1108,14 @@ static Av2hStatus read_chroma_block(
         block->diagnostic_kind = 103U;
         return status;
     }
-    if (geometry.coefficient_count > AV2H_FIRST_COEFF_CAPACITY) {
+    if (geometry.coefficient_count > AV2H_COEFF_CAPACITY) {
         block->diagnostic_kind = 104U;
         return AV2H_OVERFLOW;
     }
     block->width = geometry.width;
     block->height = geometry.height;
     block->coefficient_count = (uint16_t)geometry.coefficient_count;
-    for (scan_index = 0U; scan_index < AV2H_FIRST_COEFF_CAPACITY;
+    for (scan_index = 0U; scan_index < AV2H_COEFF_CAPACITY;
          ++scan_index) {
         block->base_levels[scan_index] = 0U;
         block->quantized[scan_index] = 0;
@@ -1253,15 +1253,15 @@ static Av2hStatus read_chroma_block(
     return AV2H_OK;
 }
 
-Av2hStatus av2h_first_chroma_coeff_block_read(
+Av2hStatus av2h_chroma_coeff_block_read(
     Av2hRangeDecoder *decoder,
-    Av2hFirstCoeffLevelCdfs *cdfs,
+    Av2hCoeffLevelCdfs *cdfs,
     const Av2hSequenceState *sequence,
     const Av2hFrameState *frame,
     uint8_t segment_id,
     uint8_t plane,
-    const Av2hFirstCoeffPrefix *prefix,
-    Av2hFirstCoeffBlock *block) {
+    const Av2hCoeffPrefix *prefix,
+    Av2hCoeffBlock *block) {
     uint16_t scan_index;
     Av2hCoeffTxGeometry geometry;
     Av2hStatus status;
@@ -1274,14 +1274,14 @@ Av2hStatus av2h_first_chroma_coeff_block_read(
     }
     status = av2h_coeff_tx_geometry(prefix->tx_size, &geometry);
     if (status != AV2H_OK) return status;
-    if (geometry.coefficient_count > AV2H_FIRST_COEFF_CAPACITY) {
+    if (geometry.coefficient_count > AV2H_COEFF_CAPACITY) {
         return AV2H_OVERFLOW;
     }
     if (prefix->all_zero && prefix->eob == 0U) {
         block->width = geometry.width;
         block->height = geometry.height;
         block->coefficient_count = (uint16_t)geometry.coefficient_count;
-        for (scan_index = 0U; scan_index < AV2H_FIRST_COEFF_CAPACITY;
+        for (scan_index = 0U; scan_index < AV2H_COEFF_CAPACITY;
              ++scan_index) {
             block->base_levels[scan_index] = 0U;
             block->quantized[scan_index] = 0;
@@ -1307,16 +1307,16 @@ Av2hStatus av2h_first_chroma_coeff_block_read(
 
 Av2hStatus av2h_chroma_coeff_block_read_with_state(
     Av2hRangeDecoder *decoder,
-    Av2hFirstCoeffLevelCdfs *cdfs,
+    Av2hCoeffLevelCdfs *cdfs,
     const Av2hSequenceState *sequence,
     const Av2hFrameState *frame,
     const Av2hPartitionNode *leaf,
     uint8_t segment_id,
     uint8_t plane,
-    const Av2hFirstCoeffPrefix *prefix,
-    const Av2hFirstTransformType *transform,
+    const Av2hCoeffPrefix *prefix,
+    const Av2hTransformType *transform,
     Av2hCoeffContextState *state,
-    Av2hFirstCoeffBlock *block) {
+    Av2hCoeffBlock *block) {
     Av2hStatus status;
     if (decoder == NULL || cdfs == NULL || sequence == NULL || frame == NULL ||
         leaf == NULL || prefix == NULL || transform == NULL || state == NULL ||

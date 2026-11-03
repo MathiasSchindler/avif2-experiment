@@ -86,7 +86,7 @@ void av2h_directional_filter_edge_u16(uint16_t *edge,
     }
 }
 
-void av2h_prepare_directional_edges(const Av2hFirstLeafMode *mode,
+void av2h_prepare_directional_edges(const Av2hLeafMode *mode,
                                     int angle,
                                     uint16_t width,
                                     uint16_t height,
@@ -229,7 +229,7 @@ void av2h_prepare_directional_edges(const Av2hFirstLeafMode *mode,
     }
 }
 
-static void prepare_negative_u16(const Av2hFirstLeafMode *mode,
+static void prepare_negative_u16(const Av2hLeafMode *mode,
                                  const Av2hLumaReferencesU16 *references,
                                  uint16_t *above_edge,
                                  uint16_t *left_edge,
@@ -253,7 +253,7 @@ static void prepare_negative_u16(const Av2hFirstLeafMode *mode,
 }
 
 Av2hStatus
-av2h_prepare_directional_zone1_u16(const Av2hFirstLeafMode *mode,
+av2h_prepare_directional_zone1_u16(const Av2hLeafMode *mode,
                                    uint16_t width,
                                    uint16_t height,
                                    const Av2hLumaReferencesU16 *references,
@@ -340,7 +340,7 @@ av2h_prepare_directional_zone1_u16(const Av2hFirstLeafMode *mode,
 }
 
 Av2hStatus
-av2h_prepare_directional_zone2_u16(const Av2hFirstLeafMode *mode,
+av2h_prepare_directional_zone2_u16(const Av2hLeafMode *mode,
                                    uint16_t width,
                                    uint16_t height,
                                    const Av2hLumaReferencesU16 *references,
@@ -424,7 +424,7 @@ av2h_prepare_directional_zone2_u16(const Av2hFirstLeafMode *mode,
 }
 
 Av2hStatus
-av2h_prepare_directional_zone3_u16(const Av2hFirstLeafMode *mode,
+av2h_prepare_directional_zone3_u16(const Av2hLeafMode *mode,
                                    uint16_t width,
                                    uint16_t height,
                                    const Av2hLumaReferencesU16 *references,

@@ -13,7 +13,7 @@ static int prediction_geometry_supported(uint16_t width, uint16_t height) {
 }
 
 /* Preserve direct-helper behavior outside the bitstream angle-delta range. */
-static int legacy_angle_geometry_supported(Av2hFirstLeafIntraMode mode,
+static int legacy_angle_geometry_supported(Av2hIntraMode mode,
                                            uint16_t width,
                                            uint16_t height) {
     switch (mode) {
@@ -38,7 +38,7 @@ static int legacy_angle_geometry_supported(Av2hFirstLeafIntraMode mode,
 }
 
 Av2hStatus
-av2h_luma_predict_u16_adjusted(const Av2hFirstLeafMode *mode,
+av2h_luma_predict_u16_adjusted(const Av2hLeafMode *mode,
                                uint16_t width,
                                uint16_t height,
                                const Av2hLumaReferencesU16 *references,
@@ -103,7 +103,7 @@ av2h_luma_predict_u16_adjusted(const Av2hFirstLeafMode *mode,
     return AV2H_UNSUPPORTED;
 }
 
-Av2hStatus av2h_luma_predict_u16(const Av2hFirstLeafMode *mode,
+Av2hStatus av2h_luma_predict_u16(const Av2hLeafMode *mode,
                                  uint16_t width,
                                  uint16_t height,
                                  const Av2hLumaReferencesU16 *references,
@@ -114,7 +114,7 @@ Av2hStatus av2h_luma_predict_u16(const Av2hFirstLeafMode *mode,
                                           0, 0U, 1U);
 }
 
-Av2hStatus av2h_chroma_predict_u16(const Av2hFirstLeafMode *mode,
+Av2hStatus av2h_chroma_predict_u16(const Av2hLeafMode *mode,
                                    uint16_t width,
                                    uint16_t height,
                                    const Av2hLumaReferencesU16 *references,
@@ -127,7 +127,7 @@ Av2hStatus av2h_chroma_predict_u16(const Av2hFirstLeafMode *mode,
 
 /* Compatibility for direct-helper fields outside canonical bitstream admission. */
 static Av2hStatus
-predict_legacy_directional(const Av2hFirstLeafMode *mode,
+predict_legacy_directional(const Av2hLeafMode *mode,
                            uint16_t width,
                            uint16_t height,
                            const Av2hLumaReferences *references,
@@ -326,7 +326,7 @@ predict_legacy_directional(const Av2hFirstLeafMode *mode,
                                       predictor, predictor_stride_samples);
 }
 
-Av2hStatus av2h_luma_predict(const Av2hFirstLeafMode *mode,
+Av2hStatus av2h_luma_predict(const Av2hLeafMode *mode,
                              uint16_t width,
                              uint16_t height,
                              const Av2hLumaReferences *references,

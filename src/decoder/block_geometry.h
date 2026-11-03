@@ -7,7 +7,7 @@
  * Predictor and reconstructed sample buffers must hold the full output
  * geometry of a luma transform block, which reaches 64x64 (4096 samples)
  * for the large Emerald Q208 blocks.  Coefficient buffers stay bounded at
- * AV2H_FIRST_COEFF_CAPACITY (1024) because AV2 clamps every coefficient
+ * AV2H_COEFF_CAPACITY (1024) because AV2 clamps every coefficient
  * dimension to at most 32 (the adjusted transform size).
  */
 #define AV2H_RECON_SAMPLE_CAPACITY 4096U

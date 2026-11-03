@@ -39,9 +39,9 @@ Av2hStatus av2h_chroma_mode_read(
     Av2hRangeDecoder *decoder,
     Av2hLeafCdfs *cdfs,
     const Av2hSequenceState *sequence,
-    Av2hFirstLeafIntraMode colocated_luma_mode,
+    Av2hIntraMode colocated_luma_mode,
     uint8_t cfl_context,
-    Av2hFirstChromaMode *mode) {
+    Av2hChromaLeafMode *mode) {
     return av2h_chroma_mode_read_with_delta(
         decoder, cdfs, sequence, colocated_luma_mode, 0,
         AV2H_BLOCK_INVALID, cfl_context, mode);
@@ -51,11 +51,11 @@ Av2hStatus av2h_chroma_mode_read_with_delta(
     Av2hRangeDecoder *decoder,
     Av2hLeafCdfs *cdfs,
     const Av2hSequenceState *sequence,
-    Av2hFirstLeafIntraMode colocated_luma_mode,
+    Av2hIntraMode colocated_luma_mode,
     int8_t colocated_luma_delta,
     Av2hBlockSize block_size,
     uint8_t cfl_context,
-    Av2hFirstChromaMode *mode) {
+    Av2hChromaLeafMode *mode) {
     return av2h_chroma_mode_read_with_delta_for_sdp(
         decoder, cdfs, sequence, colocated_luma_mode,
         colocated_luma_delta, block_size, cfl_context, 1U, 0U, mode);
@@ -65,13 +65,13 @@ Av2hStatus av2h_chroma_mode_read_with_delta_for_sdp(
     Av2hRangeDecoder *decoder,
     Av2hLeafCdfs *cdfs,
     const Av2hSequenceState *sequence,
-    Av2hFirstLeafIntraMode colocated_luma_mode,
+    Av2hIntraMode colocated_luma_mode,
     int8_t colocated_luma_delta,
     Av2hBlockSize block_size,
     uint8_t cfl_context,
     uint8_t cfl_allowed,
     uint8_t lossless,
-    Av2hFirstChromaMode *mode) {
+    Av2hChromaLeafMode *mode) {
     uint8_t mode_context;
     uint8_t mhccp_allowed = cfl_allowed;
     uint32_t value;
@@ -267,12 +267,12 @@ Av2hStatus av2h_chroma_mode_read_with_delta_for_sdp(
     mode->after_mode_bits = av2h_range_tell(decoder);
     if (value > 12U) return AV2H_INVALID_DATA;
     if (mode_context) {
-        static const Av2hFirstLeafIntraMode defaults[] = {
+        static const Av2hIntraMode defaults[] = {
             AV2H_INTRA_VERTICAL, AV2H_INTRA_HORIZONTAL, AV2H_INTRA_D45,
             AV2H_INTRA_D135, AV2H_INTRA_D67, AV2H_INTRA_D113,
             AV2H_INTRA_D157, AV2H_INTRA_D203
         };
-        Av2hFirstLeafIntraMode ordered[13U];
+        Av2hIntraMode ordered[13U];
         size_t count = 0U;
         size_t index;
         ordered[count++] = colocated_luma_mode;
@@ -290,7 +290,7 @@ Av2hStatus av2h_chroma_mode_read_with_delta_for_sdp(
         if (value >= count) return AV2H_INVALID_DATA;
         mode->mode = ordered[value];
     } else {
-        static const Av2hFirstLeafIntraMode ordered[] = {
+        static const Av2hIntraMode ordered[] = {
             AV2H_INTRA_DC, AV2H_INTRA_SMOOTH, AV2H_INTRA_SMOOTH_VERTICAL,
             AV2H_INTRA_SMOOTH_HORIZONTAL, AV2H_INTRA_PAETH,
             AV2H_INTRA_VERTICAL, AV2H_INTRA_HORIZONTAL, AV2H_INTRA_D45,
@@ -318,9 +318,9 @@ static const uint8_t default_directional_modes[] = {
 };
 
 static Av2hStatus map_joint_mode(uint8_t joint_mode,
-                                 Av2hFirstLeafIntraMode *mode,
+                                 Av2hIntraMode *mode,
                                  int8_t *angle_delta) {
-    static const Av2hFirstLeafIntraMode modes[] = {
+    static const Av2hIntraMode modes[] = {
         AV2H_INTRA_DC, AV2H_INTRA_SMOOTH, AV2H_INTRA_SMOOTH_VERTICAL,
         AV2H_INTRA_SMOOTH_HORIZONTAL, AV2H_INTRA_PAETH, AV2H_INTRA_D45,
         AV2H_INTRA_D67, AV2H_INTRA_VERTICAL, AV2H_INTRA_D113,
@@ -462,7 +462,7 @@ static Av2hStatus luma_mode_read_internal(
     Av2hCcsoEntropyState *ccso_state,
     Av2hQIndex *current_q_index,
     uint8_t defer_palette_and_dip,
-    Av2hFirstLeafMode *mode);
+    Av2hLeafMode *mode);
 
 Av2hStatus av2h_luma_mode_read_with_state(
     Av2hRangeDecoder *decoder,
@@ -471,7 +471,7 @@ Av2hStatus av2h_luma_mode_read_with_state(
     const Av2hFrameState *frame,
     const Av2hPartitionNode *leaf,
     const Av2hLumaModeContextState *state,
-    Av2hFirstLeafMode *mode) {
+    Av2hLeafMode *mode) {
     return av2h_luma_mode_read_with_state_and_gdf(
         decoder, cdfs, sequence, frame, leaf, state, NULL, NULL, NULL, mode);
 }
@@ -486,7 +486,7 @@ Av2hStatus av2h_luma_mode_read_with_state_and_gdf(
     Av2hGdfEntropyState *gdf_state,
     Av2hCdefEntropyState *cdef_state,
     Av2hCcsoEntropyState *ccso_state,
-    Av2hFirstLeafMode *mode) {
+    Av2hLeafMode *mode) {
     Av2hLumaModeNeighbors neighbors;
     Av2hStatus status = av2h_luma_mode_neighbors_from_state(
         state, leaf, &neighbors);
@@ -509,7 +509,7 @@ Av2hStatus av2h_luma_mode_read_with_state_and_delta_q(
     Av2hCcsoEntropyState *ccso_state,
     Av2hQIndex *current_q_index,
     uint8_t defer_palette_and_dip,
-    Av2hFirstLeafMode *mode) {
+    Av2hLeafMode *mode) {
     Av2hLumaModeNeighbors neighbors;
     Av2hStatus status = av2h_luma_mode_neighbors_from_state(
         state, leaf, &neighbors);
@@ -649,7 +649,7 @@ static Av2hStatus read_segment_id(
     const Av2hFrameState *frame,
     const Av2hPartitionNode *leaf,
     const Av2hLumaModeContextState *state,
-    Av2hFirstLeafMode *mode) {
+    Av2hLeafMode *mode) {
     const Av2hLumaModeContext *upper_left = segment_spatial_context(
         state, (int32_t)leaf->row - 1, (int32_t)leaf->column - 1);
     const Av2hLumaModeContext *above = segment_spatial_context(
@@ -710,7 +710,7 @@ static Av2hStatus luma_mode_read_internal(
     Av2hCcsoEntropyState *ccso_state,
     Av2hQIndex *current_q_index,
     uint8_t defer_palette_and_dip,
-    Av2hFirstLeafMode *mode) {
+    Av2hLeafMode *mode) {
     size_t plane;
     size_t neighbor;
     size_t mode_context = 0U;
@@ -1042,7 +1042,7 @@ Av2hStatus av2h_luma_mode_read_palette_and_dip(
     const Av2hFrameState *frame,
     const Av2hPartitionNode *leaf,
     const Av2hLumaModeNeighbors *neighbors,
-    Av2hFirstLeafMode *mode) {
+    Av2hLeafMode *mode) {
     uint32_t value;
     size_t neighbor;
     uint8_t has_spatial_neighbors;
@@ -1135,7 +1135,7 @@ Av2hStatus av2h_luma_mode_read(
     const Av2hFrameState *frame,
     const Av2hPartitionNode *leaf,
     const Av2hLumaModeNeighbors *neighbors,
-    Av2hFirstLeafMode *mode) {
+    Av2hLeafMode *mode) {
     return luma_mode_read_internal(
         decoder, cdfs, sequence, frame, leaf, neighbors, NULL, NULL, NULL, NULL, NULL, 0U,
         mode);
@@ -1146,7 +1146,7 @@ Av2hStatus av2h_first_leaf_mode_read(Av2hRangeDecoder *decoder,
                                      const Av2hSequenceState *sequence,
                                      const Av2hFrameState *frame,
                                      const Av2hPartitionNode *leaf,
-                                     Av2hFirstLeafMode *mode) {
+                                     Av2hLeafMode *mode) {
     const Av2hLumaModeNeighbors neighbors = { 0 };
     if (leaf == NULL) return AV2H_INVALID_ARGUMENT;
     if (leaf->row != 0U || leaf->column != 0U) return AV2H_UNSUPPORTED;

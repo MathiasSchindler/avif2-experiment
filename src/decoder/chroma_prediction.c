@@ -129,7 +129,7 @@ static void apply_ibp_dc(uint8_t *dst, size_t stride_samples, uint16_t width,
 }
 
 Av2hStatus av2h_chroma_predict(
-    const Av2hFirstChromaMode *mode,
+    const Av2hChromaLeafMode *mode,
     uint16_t width,
     uint16_t height,
     const Av2hLumaReferences *references,
@@ -145,7 +145,7 @@ Av2hStatus av2h_chroma_predict(
         directional_base_angle(mode->mode) != 0 &&
         luma_prediction_dimension_supported(width) &&
         luma_prediction_dimension_supported(height)) {
-        Av2hFirstLeafMode luma_mode;
+        Av2hLeafMode luma_mode;
         int angle = wide_angle_map(
             directional_base_angle(mode->mode) + mode->angle_delta * 3,
             width, height);
@@ -165,7 +165,7 @@ Av2hStatus av2h_chroma_predict(
         directional_base_angle(mode->mode) != 0 &&
         luma_prediction_dimension_supported(width) &&
         luma_prediction_dimension_supported(height)) {
-        Av2hFirstLeafMode luma_mode;
+        Av2hLeafMode luma_mode;
         int angle = wide_angle_map(
             directional_base_angle(mode->mode) + mode->angle_delta * 3,
             width, height);
@@ -183,7 +183,7 @@ Av2hStatus av2h_chroma_predict(
     if (mode->mode == AV2H_INTRA_SMOOTH && mode->angle_delta == 0 &&
         luma_prediction_dimension_supported(width) &&
         luma_prediction_dimension_supported(height)) {
-        Av2hFirstLeafMode luma_mode;
+        Av2hLeafMode luma_mode;
         av2h_memory_fill(&luma_mode, 0U, sizeof(luma_mode));
         luma_mode.mode = mode->mode;
         luma_mode.angle_delta = mode->angle_delta;
@@ -195,7 +195,7 @@ Av2hStatus av2h_chroma_predict(
         directional_base_angle(mode->mode) != 0 &&
         luma_prediction_dimension_supported(width) &&
         luma_prediction_dimension_supported(height)) {
-        Av2hFirstLeafMode luma_mode;
+        Av2hLeafMode luma_mode;
         int angle = wide_angle_map(
             directional_base_angle(mode->mode), width, height);
         av2h_memory_fill(&luma_mode, 0U, sizeof(luma_mode));
@@ -212,7 +212,7 @@ Av2hStatus av2h_chroma_predict(
         mode->angle_delta == 0 &&
         luma_prediction_dimension_supported(width) &&
         luma_prediction_dimension_supported(height)) {
-        Av2hFirstLeafMode luma_mode;
+        Av2hLeafMode luma_mode;
         av2h_memory_fill(&luma_mode, 0U, sizeof(luma_mode));
         luma_mode.mode = mode->mode;
         return av2h_luma_predict(
@@ -222,7 +222,7 @@ Av2hStatus av2h_chroma_predict(
     if (mode->mode == AV2H_INTRA_HORIZONTAL &&
         (mode->angle_delta == -3 || mode->angle_delta == -2) &&
         width == 32U && height == 32U) {
-        Av2hFirstLeafMode luma_mode;
+        Av2hLeafMode luma_mode;
         av2h_memory_fill(&luma_mode, 0U, sizeof(luma_mode));
         luma_mode.mode = mode->mode;
         luma_mode.angle_delta = mode->angle_delta;
@@ -234,7 +234,7 @@ Av2hStatus av2h_chroma_predict(
     if (mode->mode == AV2H_INTRA_HORIZONTAL &&
         (mode->angle_delta == -3 || mode->angle_delta == -2) &&
         width == 32U && height == 16U) {
-        Av2hFirstLeafMode luma_mode;
+        Av2hLeafMode luma_mode;
         av2h_memory_fill(&luma_mode, 0U, sizeof(luma_mode));
         luma_mode.mode = mode->mode;
         luma_mode.angle_delta = mode->angle_delta;
@@ -245,7 +245,7 @@ Av2hStatus av2h_chroma_predict(
     }
     if (mode->mode == AV2H_INTRA_HORIZONTAL && mode->angle_delta == 1 &&
         width == 16U && height == 32U) {
-        Av2hFirstLeafMode luma_mode;
+        Av2hLeafMode luma_mode;
         av2h_memory_fill(&luma_mode, 0U, sizeof(luma_mode));
         luma_mode.mode = mode->mode;
         luma_mode.angle_delta = mode->angle_delta;

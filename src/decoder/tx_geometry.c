@@ -92,7 +92,7 @@ static int tx_dimension_class(uint8_t dimension) {
 }
 
 static int tx_descriptor_valid(const Av2hTxDescriptor *descriptor,
-                               Av2hFirstTxSize tx_size) {
+                               Av2hTxSize tx_size) {
     Av2hTxSignalingClass signaling_class;
     uint8_t adjusted_width;
     uint8_t adjusted_height;
@@ -147,7 +147,7 @@ static int tx_descriptor_valid(const Av2hTxDescriptor *descriptor,
 }
 
 Av2hStatus av2h_tx_descriptor_get(
-    Av2hFirstTxSize tx_size,
+    Av2hTxSize tx_size,
     const Av2hTxDescriptor **descriptor) {
     const Av2hTxDescriptor *candidate;
     if (descriptor == NULL) return AV2H_INVALID_ARGUMENT;
@@ -164,7 +164,7 @@ Av2hStatus av2h_tx_descriptor_get(
 Av2hStatus av2h_luma_tx_descriptor_get(
     Av2hBlockSize block_size,
     const Av2hTxDescriptor **descriptor) {
-    Av2hFirstTxSize tx_size;
+    Av2hTxSize tx_size;
     switch (block_size) {
         case AV2H_BLOCK_4X4: tx_size = AV2H_TX_4X4; break;
         case AV2H_BLOCK_4X8: tx_size = AV2H_TX_4X8; break;

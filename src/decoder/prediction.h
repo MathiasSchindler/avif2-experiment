@@ -44,7 +44,7 @@ typedef struct {
 } Av2hLumaReferencesU16;
 
 Av2hStatus av2h_luma_predict(
-    const Av2hFirstLeafMode *mode,
+    const Av2hLeafMode *mode,
     uint16_t width,
     uint16_t height,
     const Av2hLumaReferences *references,
@@ -52,7 +52,7 @@ Av2hStatus av2h_luma_predict(
     size_t predictor_stride_samples);
 
 Av2hStatus av2h_chroma_predict(
-    const Av2hFirstChromaMode *mode,
+    const Av2hChromaLeafMode *mode,
     uint16_t width,
     uint16_t height,
     const Av2hLumaReferences *references,
@@ -60,7 +60,7 @@ Av2hStatus av2h_chroma_predict(
     size_t predictor_stride_samples);
 
 Av2hStatus av2h_luma_predict_u16(
-    const Av2hFirstLeafMode *mode,
+    const Av2hLeafMode *mode,
     uint16_t width,
     uint16_t height,
     const Av2hLumaReferencesU16 *references,
@@ -68,7 +68,7 @@ Av2hStatus av2h_luma_predict_u16(
     size_t predictor_stride_samples);
 
 Av2hStatus av2h_chroma_predict_u16(
-    const Av2hFirstLeafMode *mode,
+    const Av2hLeafMode *mode,
     uint16_t width,
     uint16_t height,
     const Av2hLumaReferencesU16 *references,

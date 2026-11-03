@@ -8,6 +8,11 @@ No production sources, AVM revisions, encoder recipes, retained media, golden
 pixels, or reference locks were changed. The new
 [baseline unit](../../tests/refactor_baseline_unit.c) runs in `make test-c`.
 
+The measured type labels below retain their original M0 names. [Cleanup
+C3](../cleanup.md) renamed the general-purpose decoder types without
+changing their layouts or baseline values; current inventory output uses the
+canonical names.
+
 ## Contract and retained regression
 
 [Capabilities](../capabilities.md) remains authoritative:

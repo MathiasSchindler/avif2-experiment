@@ -25,7 +25,7 @@ typedef enum {
     AV2H_INTRA_SMOOTH_VERTICAL = 10,
     AV2H_INTRA_SMOOTH_HORIZONTAL = 11,
     AV2H_INTRA_PAETH = 12
-} Av2hFirstLeafIntraMode;
+} Av2hIntraMode;
 
 typedef struct {
     uint8_t use_intrabc;
@@ -72,7 +72,7 @@ typedef struct {
     uint8_t above_smooth;
     uint8_t left_smooth;
     uint16_t superblock_size;
-    Av2hFirstLeafIntraMode mode;
+    Av2hIntraMode mode;
     size_t before_mode_bits;
     size_t after_mode_set_bits;
     size_t after_mode_index_bits;
@@ -92,7 +92,7 @@ typedef struct {
     size_t before_ccso_bits;
     size_t after_ccso_bits;
     uint8_t ccso_controls_read;
-} Av2hFirstLeafMode;
+} Av2hLeafMode;
 
 typedef enum {
     AV2H_CFL_NONE = 0,
@@ -123,7 +123,7 @@ typedef struct {
     Av2hChromaCflKind cfl_kind;
     uint8_t uv_mode;
     uint8_t mode_index;
-    Av2hFirstLeafIntraMode mode;
+    Av2hIntraMode mode;
     int8_t angle_delta;
     size_t before_cfl_bits;
     size_t after_cfl_bits;
@@ -134,12 +134,12 @@ typedef struct {
     size_t before_mhccp_direction_bits;
     size_t after_mhccp_direction_bits;
     size_t after_mode_bits;
-} Av2hFirstChromaMode;
+} Av2hChromaLeafMode;
 
 uint8_t av2h_palette_map_get(
-    const Av2hFirstLeafMode *mode, size_t index);
+    const Av2hLeafMode *mode, size_t index);
 
 Av2hStatus av2h_palette_map_set(
-    Av2hFirstLeafMode *mode, size_t index, uint8_t color);
+    Av2hLeafMode *mode, size_t index, uint8_t color);
 
 #endif

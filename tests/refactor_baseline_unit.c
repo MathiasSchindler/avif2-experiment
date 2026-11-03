@@ -95,7 +95,7 @@ static uint64_t hash_byte(uint64_t hash, unsigned int value) {
 }
 
 static void prediction_case(PredictionSnapshot *snapshot,
-                            const Av2hFirstLeafMode *mode,
+                            const Av2hLeafMode *mode,
                             uint16_t width, uint16_t height,
                             unsigned int edges, unsigned int high_bit_depth) {
     enum { EDGE_COUNT = 160, STRIDE = 67, SAMPLE_COUNT = STRIDE * 64 };
@@ -231,8 +231,8 @@ static void test_prediction_matrix(void) {
         for (mode_index = 0U; mode_index < 13U; ++mode_index) {
             PredictionSnapshot snapshot = { 0U, 0U, 0U,
                 UINT64_C(14695981039346656037) };
-            Av2hFirstLeafMode mode = { 0 };
-            mode.mode = (Av2hFirstLeafIntraMode)mode_index;
+            Av2hLeafMode mode = { 0 };
+            mode.mode = (Av2hIntraMode)mode_index;
             for (x = 0U; x < 5U; ++x) {
                 for (y = 0U; y < 5U; ++y) {
                     for (edges = 0U; edges < 4U; ++edges) {
@@ -251,11 +251,11 @@ static void test_prediction_matrix(void) {
         for (mode_index = 1U; mode_index <= 8U; ++mode_index) {
             PredictionSnapshot snapshot = { 0U, 0U, 0U,
                 UINT64_C(14695981039346656037) };
-            Av2hFirstLeafMode mode = { 0 };
+            Av2hLeafMode mode = { 0 };
             unsigned int mrl;
             unsigned int multi;
             int angle;
-            mode.mode = (Av2hFirstLeafIntraMode)mode_index;
+            mode.mode = (Av2hIntraMode)mode_index;
             for (x = 0U; x < 4U; ++x) {
                 for (mrl = 0U; mrl < 4U; ++mrl) {
                     for (multi = 0U; multi < 2U; ++multi) {
@@ -281,7 +281,7 @@ static void test_prediction_matrix(void) {
     for (mode_index = 0U; mode_index < 6U; ++mode_index) {
         PredictionSnapshot snapshot = { 0U, 0U, 0U,
             UINT64_C(14695981039346656037) };
-        Av2hFirstLeafMode mode = { 0 };
+        Av2hLeafMode mode = { 0 };
         unsigned int transpose;
         mode.use_intra_dip = 1U;
         for (x = 0U; x < 5U; ++x) {
@@ -348,7 +348,7 @@ static void test_prediction_dispatch(void) {
     static const struct {
         uint16_t width;
         uint16_t height;
-        Av2hFirstLeafIntraMode mode;
+        Av2hIntraMode mode;
         int8_t angle;
         uint8_t mrl;
         uint8_t multiline;
@@ -384,8 +384,8 @@ static void test_prediction_dispatch(void) {
             PredictionSnapshot actual = {
                 0U, 0U, 0U, UINT64_C(14695981039346656037)
             };
-            Av2hFirstLeafMode mode = { 0 };
-            mode.mode = (Av2hFirstLeafIntraMode)index;
+            Av2hLeafMode mode = { 0 };
+            mode.mode = (Av2hIntraMode)index;
             for (size_t x = 0U; x < 5U; ++x) {
                 for (size_t y = 0U; y < 5U; ++y) {
                     for (int angle = -3; angle <= 3; ++angle) {
@@ -455,14 +455,14 @@ static void test_prediction_dispatch(void) {
 }
 
 static void test_unsupported_reconstruction(void) {
-    Av2hFirstLeafMode mode = { 0 };
-    Av2hFirstCoeffPrefix prefix = { 0 };
-    Av2hFirstTransformType transform = { 0 };
-    static Av2hFirstCoeffBlock coefficients;
+    Av2hLeafMode mode = { 0 };
+    Av2hCoeffPrefix prefix = { 0 };
+    Av2hTransformType transform = { 0 };
+    static Av2hCoeffBlock coefficients;
     static Av2hReconstructionScratch scratch;
     static Av2hReconstructionScratchU16 scratch_u16;
-    static Av2hFirstReconstruction output;
-    static Av2hFirstReconstructionU16 output_u16;
+    static Av2hBlockReconstruction output;
+    static Av2hBlockReconstructionU16 output_u16;
     Av2hDecodeDiagnostics diagnostics = { 0 };
     uint8_t pixels[16U];
     uint16_t pixels_u16[16U];
@@ -600,12 +600,12 @@ static void test_private_layout_baseline(void) {
     CHECK_LAYOUT(Av2hFrameDecodeResult, 144U, 8U);
     CHECK_LAYOUT(Av2hFilterWorkspaceStorage, 56U, 8U);
     CHECK_LAYOUT(Av2hDecodeDiagnostics, 216U, 8U);
-    CHECK_LAYOUT(Av2hFirstLeafMode, 1760U, 8U);
-    CHECK_LAYOUT(Av2hFirstChromaMode, 112U, 8U);
+    CHECK_LAYOUT(Av2hLeafMode, 1760U, 8U);
+    CHECK_LAYOUT(Av2hChromaLeafMode, 112U, 8U);
     CHECK_LAYOUT(Av2hLumaReferences, 80U, 8U);
     CHECK_LAYOUT(Av2hLumaReferencesU16, 96U, 8U);
-    CHECK_LAYOUT(Av2hFirstReconstruction, 12292U, 2U);
-    CHECK_LAYOUT(Av2hFirstReconstructionU16, 24580U, 4U);
+    CHECK_LAYOUT(Av2hBlockReconstruction, 12292U, 2U);
+    CHECK_LAYOUT(Av2hBlockReconstructionU16, 24580U, 4U);
 #undef CHECK_LAYOUT
 }
 

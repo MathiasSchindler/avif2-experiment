@@ -5,34 +5,34 @@
 
 uint8_t av2h_coeff_q_context(Av2hQIndex base_q_index);
 uint8_t av2h_coeff_lf_context(
-    const Av2hFirstCoeffBlock *block, uint16_t position,
+    const Av2hCoeffBlock *block, uint16_t position,
     uint8_t vertical, uint8_t horizontal);
 uint8_t av2h_coeff_base_context(
-    const Av2hFirstCoeffBlock *block, uint16_t position,
+    const Av2hCoeffBlock *block, uint16_t position,
     uint8_t vertical, uint8_t horizontal);
 uint8_t av2h_coeff_br_context(
-    const Av2hFirstCoeffBlock *block, uint16_t position,
+    const Av2hCoeffBlock *block, uint16_t position,
     uint8_t vertical, uint8_t low, uint8_t horizontal);
 int av2h_coeff_is_low_frequency(
     uint16_t position, uint16_t width, uint8_t vertical,
     uint8_t horizontal);
 uint8_t av2h_coeff_eob_context(uint16_t scan_index, uint16_t capacity);
 uint8_t av2h_coeff_uv_level_context(
-    const Av2hFirstCoeffBlock *block, uint16_t position,
+    const Av2hCoeffBlock *block, uint16_t position,
     uint8_t plane, uint8_t low);
 uint8_t av2h_coeff_fsc_base_context(
-    const Av2hFirstCoeffBlock *block, uint16_t position);
+    const Av2hCoeffBlock *block, uint16_t position);
 uint8_t av2h_coeff_fsc_br_context(
-    const Av2hFirstCoeffBlock *block, uint16_t position);
+    const Av2hCoeffBlock *block, uint16_t position);
 uint8_t av2h_coeff_fsc_sign_context(
-    const Av2hFirstCoeffBlock *block, uint16_t position);
+    const Av2hCoeffBlock *block, uint16_t position);
 uint16_t *av2h_coeff_level_base_row(
-    Av2hFirstCoeffLevelCdfs *cdfs, uint8_t tx_context,
+    Av2hCoeffLevelCdfs *cdfs, uint8_t tx_context,
     uint8_t context, uint8_t low);
 uint16_t *av2h_coeff_level_br_row(
-    Av2hFirstCoeffLevelCdfs *cdfs, uint8_t context, uint8_t low);
+    Av2hCoeffLevelCdfs *cdfs, uint8_t context, uint8_t low);
 uint16_t *av2h_coeff_level_eob_row(
-    Av2hFirstCoeffLevelCdfs *cdfs, uint8_t tx_context, uint8_t context);
+    Av2hCoeffLevelCdfs *cdfs, uint8_t tx_context, uint8_t context);
 #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
 struct Av2hDecodeDiagnostics;
 const uint16_t *av2h_coeff_level_diagnostic_cdf(

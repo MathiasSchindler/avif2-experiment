@@ -628,7 +628,7 @@ static Av2hStatus tile_tx_partition_cdfs_init(Av2hTxPartitionCdfs *cdfs) {
 
 void av2h_tile_capture_root_partition(
     Av2hTileDecoder *decoder,
-    const Av2hFirstLeafPath *path,
+    const Av2hLeafPath *path,
     Av2hPartitionType *root_partition) {
     uint16_t root_row = decoder->superblock.sb_row;
     uint16_t root_column = decoder->superblock.sb_column;
@@ -848,12 +848,12 @@ Av2hStatus av2h_tile_decoder_init_at(
     if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
     status = tile_tx_partition_cdfs_init(&decoder->entropy_state.tx_partition_cdfs);
     if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
-    status = av2h_first_coeff_cdfs_init_for_q(
+    status = av2h_coeff_cdfs_init_for_q(
         &decoder->entropy_state.coeff_cdfs, frame->base_q_index);
     if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
-    status = av2h_first_transform_cdfs_init(&decoder->entropy_state.transform_cdfs);
+    status = av2h_transform_cdfs_init(&decoder->entropy_state.transform_cdfs);
     if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
-    status = av2h_first_coeff_level_cdfs_init_for_q(
+    status = av2h_coeff_level_cdfs_init_for_q(
         &decoder->entropy_state.level_cdfs, frame->base_q_index);
     if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
     status = av2h_partition_context_state_init(

@@ -36,7 +36,7 @@ Private decoder layouts are:
 | --- | ---: | ---: |
 | `Av2hSequenceState` | 66 | 2 |
 | `Av2hFrameState` | 3,192 | 8 |
-| `Av2hFirstCoeffLevelCdfs` | 20,464 | 2 |
+| `Av2hCoeffLevelCdfs` | 20,464 | 2 |
 | `Av2hLeafCdfs` | 2,522 | 2 |
 | `Av2hTileDecoder` | 35,464 | 8 |
 | `Av2hReconstructionScratch` | 16,896 | 4 |

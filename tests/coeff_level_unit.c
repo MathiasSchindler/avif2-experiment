@@ -18,7 +18,7 @@ static int failures;
         }                                                                      \
     } while (0)
 
-static uint64_t coefficient_hash(const Av2hFirstCoeffBlock *block) {
+static uint64_t coefficient_hash(const Av2hCoeffBlock *block) {
     uint64_t hash = UINT64_C(1469598103934665603);
     size_t index;
     for (index = 0U; index < block->coefficient_count; ++index) {
@@ -53,7 +53,7 @@ static uint64_t hash_words(uint64_t hash,
     return hash;
 }
 
-static uint64_t complete_bank_hash(const Av2hFirstCoeffLevelCdfs *cdfs) {
+static uint64_t complete_bank_hash(const Av2hCoeffLevelCdfs *cdfs) {
     uint64_t hash = UINT64_C(1469598103934665603);
     size_t context;
     size_t tx_context;
@@ -82,7 +82,7 @@ static uint64_t complete_bank_hash(const Av2hFirstCoeffLevelCdfs *cdfs) {
                       sizeof(cdfs->full_br_lf) / sizeof(uint16_t));
 }
 
-static uint64_t uv_bank_hash(const Av2hFirstCoeffLevelCdfs *cdfs) {
+static uint64_t uv_bank_hash(const Av2hCoeffLevelCdfs *cdfs) {
     uint64_t hash = UINT64_C(1469598103934665603);
 #define HASH_UV_FIELD(field)                                                  \
     hash = hash_words(hash, &cdfs->field[0][0],                              \
@@ -174,16 +174,16 @@ static void test_q_context_cdfs(void) {
         UINT64_C(944512808802140200),
         UINT64_C(2940253875236951700)
     };
-    Av2hFirstCoeffLevelCdfs cdfs;
+    Av2hCoeffLevelCdfs cdfs;
     size_t index;
-    CHECK(av2h_first_coeff_level_cdfs_init_for_q(0, 160U) ==
+    CHECK(av2h_coeff_level_cdfs_init_for_q(0, 160U) ==
           AV2H_INVALID_ARGUMENT);
-    CHECK(av2h_first_coeff_level_cdfs_init_for_q(&cdfs, 160U) == AV2H_OK);
+    CHECK(av2h_coeff_level_cdfs_init_for_q(&cdfs, 160U) == AV2H_OK);
     CHECK(cdfs.q_context == 2U);
     check_words(cdfs.base[21], q2_base_ctx0, 8U);
     check_words(cdfs.base_lf[46], q2_base_lf_ctx18, 10U);
     check_words(cdfs.dc_sign[0], q2_dc_sign_ctx0, 6U);
-    CHECK(av2h_first_coeff_level_cdfs_init_for_q(&cdfs, 224U) == AV2H_OK);
+    CHECK(av2h_coeff_level_cdfs_init_for_q(&cdfs, 224U) == AV2H_OK);
     CHECK(cdfs.q_context == 3U);
     check_words(cdfs.eob_lf[8], q3_eob_lf_ctx0, 9U);
     check_words(cdfs.eob_lf[9], q3_eob_lf_txs2_ctx0, 9U);
@@ -198,7 +198,7 @@ static void test_q_context_cdfs(void) {
     CHECK(cdfs.q3_uv_base_lf[0][0] == 24782U);
     CHECK(cdfs.q3_uv_base[0][0] == 6638U);
     CHECK(cdfs.q3_uv_br[0][0] == 5791U);
-    CHECK(av2h_first_coeff_level_cdfs_init_for_q(&cdfs, 96U) == AV2H_OK);
+    CHECK(av2h_coeff_level_cdfs_init_for_q(&cdfs, 96U) == AV2H_OK);
     CHECK(cdfs.q_context == 1U);
     check_words(cdfs.base[28], q1_base_txs3_ctx10, 8U);
     check_words(cdfs.base_lf[49], q1_base_lf_txs3_ctx20, 10U);
@@ -206,7 +206,7 @@ static void test_q_context_cdfs(void) {
                 q1_base_lf_txs0_ctx11, 10U);
     for (index = 0U; index < sizeof(q_indices) / sizeof(q_indices[0]);
          ++index) {
-        CHECK(av2h_first_coeff_level_cdfs_init_for_q(
+        CHECK(av2h_coeff_level_cdfs_init_for_q(
                   &cdfs, q_indices[index]) == AV2H_OK);
         CHECK(complete_bank_hash(&cdfs) == complete_hashes[index]);
         CHECK(uv_bank_hash(&cdfs) == uv_hashes[index]);
@@ -245,10 +245,10 @@ static void test_fsc_cdf_banks(void) {
             UINT64_C(0x4c4d1c86e6c919c8)
         }
     };
-    Av2hFirstCoeffLevelCdfs cdfs;
+    Av2hCoeffLevelCdfs cdfs;
     size_t q_context;
     for (q_context = 0U; q_context < 4U; ++q_context) {
-        CHECK(av2h_first_coeff_level_cdfs_init_for_q(
+        CHECK(av2h_coeff_level_cdfs_init_for_q(
                   &cdfs, q_indices[q_context]) == AV2H_OK);
         CHECK(cdfs.q_context == q_context);
         CHECK(word_hash(&cdfs.fsc_bob_all[0][0][0], 3U * 3U * 7U) ==
@@ -271,8 +271,8 @@ static void test_fsc_coefficient_matrix(void) {
     };
     Av2hSpan span = { bytes, sizeof(bytes) };
     Av2hSequenceState sequence = { 0 };
-    Av2hFirstLeafMode mode = { 0 };
-    Av2hFirstTransformType transform = { 0 };
+    Av2hLeafMode mode = { 0 };
+    Av2hTransformType transform = { 0 };
     size_t q_context;
     mode.fsc_mode = 1U;
     transform.primary_type = AV2H_TX_IDTX;
@@ -281,9 +281,9 @@ static void test_fsc_coefficient_matrix(void) {
         for (tx_index = 0U;
              tx_index < sizeof(tx_sizes) / sizeof(tx_sizes[0]); ++tx_index) {
             Av2hFrameState frame = { 0 };
-            Av2hFirstCoeffPrefix prefix = { 0 };
-            Av2hFirstCoeffLevelCdfs cdfs;
-            Av2hFirstCoeffBlock block;
+            Av2hCoeffPrefix prefix = { 0 };
+            Av2hCoeffLevelCdfs cdfs;
+            Av2hCoeffBlock block;
             Av2hCoeffTxGeometry geometry;
             Av2hRangeDecoder decoder;
             Av2hStatus status;
@@ -293,10 +293,10 @@ static void test_fsc_coefficient_matrix(void) {
             CHECK(av2h_coeff_tx_geometry(prefix.tx_size, &geometry) ==
                   AV2H_OK);
             prefix.eob = (uint16_t)geometry.coefficient_count;
-            CHECK(av2h_first_coeff_level_cdfs_init_for_q(
+            CHECK(av2h_coeff_level_cdfs_init_for_q(
                       &cdfs, frame.base_q_index) == AV2H_OK);
             CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
-            status = av2h_first_coeff_block_read(
+            status = av2h_coeff_block_read_default_context(
                 &decoder, &cdfs, &sequence, &frame, &mode, &prefix,
                 &transform, &block);
             if (status != AV2H_OK) {
@@ -326,11 +326,11 @@ static void test_fsc_bob_context_scales_with_transform_area(void) {
     Av2hSpan span = { bytes, sizeof(bytes) };
     Av2hSequenceState sequence = { 0 };
     Av2hFrameState frame = { 0 };
-    Av2hFirstLeafMode mode = { 0 };
-    Av2hFirstCoeffPrefix prefix = { 0 };
-    Av2hFirstTransformType transform = { 0 };
-    Av2hFirstCoeffLevelCdfs cdfs;
-    Av2hFirstCoeffBlock block;
+    Av2hLeafMode mode = { 0 };
+    Av2hCoeffPrefix prefix = { 0 };
+    Av2hTransformType transform = { 0 };
+    Av2hCoeffLevelCdfs cdfs;
+    Av2hCoeffBlock block;
     Av2hCoeffTxGeometry geometry;
     Av2hRangeDecoder decoder;
     uint64_t before[3U];
@@ -341,14 +341,14 @@ static void test_fsc_bob_context_scales_with_transform_area(void) {
     transform.primary_type = AV2H_TX_IDTX;
     CHECK(av2h_coeff_tx_geometry(prefix.tx_size, &geometry) == AV2H_OK);
     prefix.eob = (uint16_t)(geometry.coefficient_count * 3U / 4U);
-    CHECK(av2h_first_coeff_level_cdfs_init_for_q(
+    CHECK(av2h_coeff_level_cdfs_init_for_q(
               &cdfs, frame.base_q_index) == AV2H_OK);
     for (context = 0U; context < 3U; ++context) {
         before[context] = word_hash(
             cdfs.fsc_bob_all[geometry.tx_context][context], 7U);
     }
     CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
-    CHECK(av2h_first_coeff_block_read(
+    CHECK(av2h_coeff_block_read_default_context(
               &decoder, &cdfs, &sequence, &frame, &mode, &prefix,
               &transform, &block) == AV2H_OK);
     CHECK(word_hash(cdfs.fsc_bob_all[geometry.tx_context][0], 7U) ==
@@ -371,8 +371,8 @@ static void test_adst_dct_coefficient_matrix(void) {
     };
     Av2hSpan span = { bytes, sizeof(bytes) };
     Av2hSequenceState sequence = { 0 };
-    Av2hFirstLeafMode mode = { 0 };
-    Av2hFirstTransformType transform = { 0 };
+    Av2hLeafMode mode = { 0 };
+    Av2hTransformType transform = { 0 };
     size_t q_context;
 
     transform.primary_type = AV2H_TX_ADST_DCT;
@@ -382,9 +382,9 @@ static void test_adst_dct_coefficient_matrix(void) {
         for (tx_index = 0U;
              tx_index < sizeof(tx_sizes) / sizeof(tx_sizes[0]); ++tx_index) {
             Av2hFrameState frame = { 0 };
-            Av2hFirstCoeffPrefix prefix = { 0 };
-            Av2hFirstCoeffLevelCdfs cdfs;
-            Av2hFirstCoeffBlock block;
+            Av2hCoeffPrefix prefix = { 0 };
+            Av2hCoeffLevelCdfs cdfs;
+            Av2hCoeffBlock block;
             Av2hCoeffTxGeometry geometry;
             Av2hRangeDecoder decoder;
             Av2hStatus status;
@@ -394,10 +394,10 @@ static void test_adst_dct_coefficient_matrix(void) {
             CHECK(av2h_coeff_tx_geometry(prefix.tx_size, &geometry) ==
                   AV2H_OK);
             CHECK(geometry.height <= 16U);
-            CHECK(av2h_first_coeff_level_cdfs_init_for_q(
+            CHECK(av2h_coeff_level_cdfs_init_for_q(
                       &cdfs, frame.base_q_index) == AV2H_OK);
             CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
-            status = av2h_first_coeff_block_read(
+            status = av2h_coeff_block_read_default_context(
                 &decoder, &cdfs, &sequence, &frame, &mode, &prefix,
                 &transform, &block);
             if (status != AV2H_OK) {
@@ -422,8 +422,8 @@ static void test_adst_flipadst_coefficient_matrix(void) {
     };
     Av2hSpan span = { bytes, sizeof(bytes) };
     Av2hSequenceState sequence = { 0 };
-    Av2hFirstLeafMode mode = { 0 };
-    Av2hFirstTransformType transform = { 0 };
+    Av2hLeafMode mode = { 0 };
+    Av2hTransformType transform = { 0 };
     size_t q_context;
 
     transform.primary_type = AV2H_TX_ADST_FLIPADST;
@@ -433,9 +433,9 @@ static void test_adst_flipadst_coefficient_matrix(void) {
         for (tx_index = 0U;
              tx_index < sizeof(tx_sizes) / sizeof(tx_sizes[0]); ++tx_index) {
             Av2hFrameState frame = { 0 };
-            Av2hFirstCoeffPrefix prefix = { 0 };
-            Av2hFirstCoeffLevelCdfs cdfs;
-            Av2hFirstCoeffBlock block;
+            Av2hCoeffPrefix prefix = { 0 };
+            Av2hCoeffLevelCdfs cdfs;
+            Av2hCoeffBlock block;
             Av2hCoeffTxGeometry geometry;
             Av2hRangeDecoder decoder;
             Av2hStatus status;
@@ -446,10 +446,10 @@ static void test_adst_flipadst_coefficient_matrix(void) {
                   AV2H_OK);
             CHECK(geometry.width <= 16U);
             CHECK(geometry.height <= 16U);
-            CHECK(av2h_first_coeff_level_cdfs_init_for_q(
+            CHECK(av2h_coeff_level_cdfs_init_for_q(
                       &cdfs, frame.base_q_index) == AV2H_OK);
             CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
-            status = av2h_first_coeff_block_read(
+            status = av2h_coeff_block_read_default_context(
                 &decoder, &cdfs, &sequence, &frame, &mode, &prefix,
                 &transform, &block);
             if (status != AV2H_OK) {
@@ -510,7 +510,7 @@ static void test_requested_transform_coefficient_matrix(void) {
         AV2H_TX_8X8, AV2H_TX_16X8
     };
     static const struct {
-        Av2hFirstTxType type;
+        Av2hTxType type;
         const uint8_t *sizes;
         size_t count;
     } matrices[] = {
@@ -537,7 +537,7 @@ static void test_requested_transform_coefficient_matrix(void) {
     };
     Av2hSpan span = { bytes, sizeof(bytes) };
     Av2hSequenceState sequence = { 0 };
-    Av2hFirstLeafMode mode = { 0 };
+    Av2hLeafMode mode = { 0 };
     size_t matrix;
 
     for (matrix = 0U; matrix < sizeof(matrices) / sizeof(matrices[0]);
@@ -550,10 +550,10 @@ static void test_requested_transform_coefficient_matrix(void) {
             for (tx_index = 0U; tx_index < matrices[matrix].count;
                  ++tx_index) {
                 Av2hFrameState frame = { 0 };
-                Av2hFirstCoeffPrefix prefix = { 0 };
-                Av2hFirstTransformType transform = { 0 };
-                Av2hFirstCoeffLevelCdfs cdfs;
-                Av2hFirstCoeffBlock block;
+                Av2hCoeffPrefix prefix = { 0 };
+                Av2hTransformType transform = { 0 };
+                Av2hCoeffLevelCdfs cdfs;
+                Av2hCoeffBlock block;
                 Av2hCoeffTxGeometry geometry;
                 Av2hRangeDecoder decoder;
                 Av2hStatus status;
@@ -563,10 +563,10 @@ static void test_requested_transform_coefficient_matrix(void) {
                 transform.primary_type = matrices[matrix].type;
                 CHECK(av2h_coeff_tx_geometry(prefix.tx_size, &geometry) ==
                       AV2H_OK);
-                CHECK(av2h_first_coeff_level_cdfs_init_for_q(
+                CHECK(av2h_coeff_level_cdfs_init_for_q(
                           &cdfs, frame.base_q_index) == AV2H_OK);
                 CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
-                status = av2h_first_coeff_block_read(
+                status = av2h_coeff_block_read_default_context(
                     &decoder, &cdfs, &sequence, &frame, &mode, &prefix,
                     &transform, &block);
                 CHECK(status == AV2H_OK);
@@ -610,23 +610,23 @@ static void check_fixture(const char *name,
     Av2hRangeDecoder decoder;
     Av2hPartitionCdfs partition_cdfs;
     Av2hLeafCdfs leaf_cdfs;
-    Av2hFirstCoeffCdfs coeff_cdfs;
-    Av2hFirstTransformCdfs transform_cdfs;
-    Av2hFirstCoeffLevelCdfs level_cdfs;
-    Av2hFirstLeafPath path;
-    Av2hFirstLeafMode mode;
-    Av2hFirstCoeffPrefix prefix;
-    Av2hFirstTransformType transform;
-    Av2hFirstCoeffBlock block;
+    Av2hCoeffCdfs coeff_cdfs;
+    Av2hTransformCdfs transform_cdfs;
+    Av2hCoeffLevelCdfs level_cdfs;
+    Av2hLeafPath path;
+    Av2hLeafMode mode;
+    Av2hCoeffPrefix prefix;
+    Av2hTransformType transform;
+    Av2hCoeffBlock block;
     Av2hStatus status;
     sequence.enable_sdp = 1U;
     sequence.enable_idtx_intra = 1U;
     sequence.enable_ist = 1U;
     CHECK(av2h_partition_cdfs_init(&partition_cdfs) == AV2H_OK);
     CHECK(av2h_leaf_cdfs_init(&leaf_cdfs) == AV2H_OK);
-    CHECK(av2h_first_coeff_cdfs_init(&coeff_cdfs) == AV2H_OK);
-    CHECK(av2h_first_transform_cdfs_init(&transform_cdfs) == AV2H_OK);
-    CHECK(av2h_first_coeff_level_cdfs_init(&level_cdfs) == AV2H_OK);
+    CHECK(av2h_coeff_cdfs_init(&coeff_cdfs) == AV2H_OK);
+    CHECK(av2h_transform_cdfs_init(&transform_cdfs) == AV2H_OK);
+    CHECK(av2h_coeff_level_cdfs_init(&level_cdfs) == AV2H_OK);
     CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
     CHECK(av2h_partition_first_leaf_read(
               &decoder, &partition_cdfs, width, height, 1U, &path) == AV2H_OK);
@@ -636,10 +636,10 @@ static void check_fixture(const char *name,
     CHECK(av2h_first_coeff_prefix_read(
               &decoder, &coeff_cdfs, &frame, &path.leaf, &mode, &prefix) ==
           AV2H_OK);
-    CHECK(av2h_first_transform_type_read(
+    CHECK(av2h_transform_type_read(
               &decoder, &transform_cdfs, &sequence, &frame, &mode, &prefix,
               &transform) == AV2H_OK);
-    status = av2h_first_coeff_block_read(
+    status = av2h_coeff_block_read_default_context(
         &decoder, &level_cdfs, &sequence, &frame, &mode, &prefix, &transform,
         &block);
     if (status != AV2H_OK) {
@@ -781,11 +781,11 @@ static void test_emerald_remaining_luma_blocks(void) {
     /* Emerald frame quantiser: base_q_index 208 -> q-context 3; DC and AC share
      * dequant step 15872 (y_dc_delta_q == 0). */
     const uint32_t step = av2h_coeff_dequant_step_8bit(208U, 0);
-    Av2hFirstCoeffLevelCdfs cdfs;
+    Av2hCoeffLevelCdfs cdfs;
     size_t block_index;
     CHECK(step == 15872U);
     CHECK(av2h_coeff_dequantize_level(1U, 0U, step, 1U) == 992);
-    CHECK(av2h_first_coeff_level_cdfs_init_for_q(&cdfs, 208U) == AV2H_OK);
+    CHECK(av2h_coeff_level_cdfs_init_for_q(&cdfs, 208U) == AV2H_OK);
     CHECK(cdfs.q_context == 3U);
     for (block_index = 0U;
          block_index < sizeof(trace_blocks) / sizeof(trace_blocks[0]);
@@ -965,7 +965,7 @@ static void test_dequant_helper_edges(void) {
 }
 
 static void test_chroma_all_zero_geometry(void) {
-    static const Av2hFirstTxSize sizes[] = {
+    static const Av2hTxSize sizes[] = {
         AV2H_TX_4X4, AV2H_TX_32X32, AV2H_TX_64X32, AV2H_TX_32X64
     };
     static const uint16_t widths[] = { 4U, 32U, 32U, 32U };
@@ -975,18 +975,18 @@ static void test_chroma_all_zero_geometry(void) {
     Av2hSpan span = { bytes, sizeof(bytes) };
     Av2hSequenceState sequence = { 0 };
     Av2hFrameState frame = { 0 };
-    Av2hFirstCoeffLevelCdfs cdfs;
+    Av2hCoeffLevelCdfs cdfs;
     Av2hRangeDecoder decoder;
     size_t index;
     frame.base_q_index = 160U;
-    CHECK(av2h_first_coeff_level_cdfs_init_for_q(&cdfs, 160U) == AV2H_OK);
+    CHECK(av2h_coeff_level_cdfs_init_for_q(&cdfs, 160U) == AV2H_OK);
     for (index = 0U; index < sizeof(sizes) / sizeof(sizes[0]); ++index) {
-        Av2hFirstCoeffPrefix prefix = { 0 };
-        Av2hFirstCoeffBlock block;
+        Av2hCoeffPrefix prefix = { 0 };
+        Av2hCoeffBlock block;
         CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
         prefix.tx_size = sizes[index];
         prefix.all_zero = 1U;
-        CHECK(av2h_first_chroma_coeff_block_read(
+        CHECK(av2h_chroma_coeff_block_read(
                   &decoder, &cdfs, &sequence, &frame, 0U, 1U, &prefix,
                   &block) == AV2H_OK);
         CHECK(block.width == widths[index]);
@@ -998,20 +998,20 @@ static void test_chroma_all_zero_geometry(void) {
 }
 
 static void test_arguments(void) {
-    Av2hFirstCoeffLevelCdfs cdfs;
+    Av2hCoeffLevelCdfs cdfs;
     Av2hRangeDecoder decoder;
     Av2hSequenceState sequence = { 0 };
     Av2hFrameState frame = { 0 };
-    Av2hFirstLeafMode mode = { 0 };
-    Av2hFirstCoeffPrefix prefix = { 0 };
-    Av2hFirstTransformType transform = { 0 };
-    Av2hFirstCoeffBlock block;
-    CHECK(sizeof(Av2hFirstCoeffLevelCdfs) == 25480U);
-    CHECK(av2h_first_coeff_level_cdfs_init(0) == AV2H_INVALID_ARGUMENT);
-    CHECK(av2h_first_coeff_block_read(
+    Av2hLeafMode mode = { 0 };
+    Av2hCoeffPrefix prefix = { 0 };
+    Av2hTransformType transform = { 0 };
+    Av2hCoeffBlock block;
+    CHECK(sizeof(Av2hCoeffLevelCdfs) == 25480U);
+    CHECK(av2h_coeff_level_cdfs_init(0) == AV2H_INVALID_ARGUMENT);
+    CHECK(av2h_coeff_block_read_default_context(
               0, &cdfs, &sequence, &frame, &mode, &prefix, &transform,
               &block) == AV2H_INVALID_ARGUMENT);
-    CHECK(av2h_first_coeff_level_cdfs_init(&cdfs) == AV2H_OK);
+    CHECK(av2h_coeff_level_cdfs_init(&cdfs) == AV2H_OK);
     {
         static const uint16_t parity_cdf[8U] = {
             24576U, 16384U, 8192U, 0U, 0U, 3U, 4U, 5U
@@ -1032,7 +1032,7 @@ static void test_arguments(void) {
     prefix.tx_size = AV2H_TX_4X4;
     prefix.eob = 1U;
     transform.primary_type = AV2H_TX_IDTX;
-    CHECK(av2h_first_coeff_block_read(
+    CHECK(av2h_coeff_block_read_default_context(
               &decoder, &cdfs, &sequence, &frame, &mode, &prefix,
               &transform, &block) == AV2H_UNSUPPORTED);
 }
@@ -1042,11 +1042,11 @@ static void test_parity_hiding_gating(void) {
     Av2hSpan span = { bytes, sizeof(bytes) };
     Av2hSequenceState sequence = { 0 };
     Av2hFrameState frame = { 0 };
-    Av2hFirstLeafMode mode = { 0 };
-    Av2hFirstCoeffPrefix prefix = { 0 };
-    Av2hFirstTransformType transform = { 0 };
-    Av2hFirstCoeffLevelCdfs cdfs;
-    Av2hFirstCoeffBlock block;
+    Av2hLeafMode mode = { 0 };
+    Av2hCoeffPrefix prefix = { 0 };
+    Av2hTransformType transform = { 0 };
+    Av2hCoeffLevelCdfs cdfs;
+    Av2hCoeffBlock block;
     Av2hRangeDecoder decoder;
     uint64_t before;
     frame.base_q_index = 128U;
@@ -1055,32 +1055,32 @@ static void test_parity_hiding_gating(void) {
     prefix.eob = 5U;
     transform.primary_type = AV2H_TX_DCT_DCT;
 
-    CHECK(av2h_first_coeff_level_cdfs_init_for_q(&cdfs, 128U) == AV2H_OK);
+    CHECK(av2h_coeff_level_cdfs_init_for_q(&cdfs, 128U) == AV2H_OK);
     before = word_hash(cdfs.parity_base[0U], 8U);
     CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
-    CHECK(av2h_first_coeff_block_read(
+    CHECK(av2h_coeff_block_read_default_context(
               &decoder, &cdfs, &sequence, &frame, &mode, &prefix,
               &transform, &block) == AV2H_OK);
     CHECK(word_hash(cdfs.parity_base[0U], 8U) == before);
 
-    CHECK(av2h_first_coeff_level_cdfs_init_for_q(&cdfs, 128U) == AV2H_OK);
+    CHECK(av2h_coeff_level_cdfs_init_for_q(&cdfs, 128U) == AV2H_OK);
     before = word_hash(cdfs.parity_base[0U], 8U);
     sequence.enable_parity_hiding = 1U;
     transform.primary_type = AV2H_TX_IDTX;
     mode.fsc_mode = 1U;
     CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
-    CHECK(av2h_first_coeff_block_read(
+    CHECK(av2h_coeff_block_read_default_context(
               &decoder, &cdfs, &sequence, &frame, &mode, &prefix,
               &transform, &block) == AV2H_OK);
     CHECK(word_hash(cdfs.parity_base[0U], 8U) == before);
 
-    CHECK(av2h_first_coeff_level_cdfs_init_for_q(&cdfs, 128U) == AV2H_OK);
+    CHECK(av2h_coeff_level_cdfs_init_for_q(&cdfs, 128U) == AV2H_OK);
     before = word_hash(cdfs.parity_base[0U], 8U);
     transform.primary_type = AV2H_TX_DCT_DCT;
     mode.fsc_mode = 0U;
     sequence.enable_tcq = 1U;
     CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
-    CHECK(av2h_first_coeff_block_read(
+    CHECK(av2h_coeff_block_read_default_context(
               &decoder, &cdfs, &sequence, &frame, &mode, &prefix,
               &transform, &block) == AV2H_OK);
     CHECK(word_hash(cdfs.parity_base[0U], 8U) == before);
@@ -1096,7 +1096,7 @@ static void test_tcq_state_and_cdfs(void) {
     static const uint16_t q0_txs0_ctx0_q1[] = {
         24178U, 7415U, 1873U, 0U, 0U, 3U, 3U, 4U
     };
-    Av2hFirstCoeffLevelCdfs cdfs;
+    Av2hCoeffLevelCdfs cdfs;
     uint8_t state;
     for (state = 0U; state < 8U; ++state) {
         CHECK(av2h_tcq_quantizer(state) ==
@@ -1105,7 +1105,7 @@ static void test_tcq_state_and_cdfs(void) {
         CHECK(av2h_tcq_next_state(state, 3U) == expected_odd[state]);
     }
     CHECK(av2h_tcq_next_state(8U, 1U) == 4U);
-    CHECK(av2h_first_coeff_level_cdfs_init_for_q(&cdfs, 64U) == AV2H_OK);
+    CHECK(av2h_coeff_level_cdfs_init_for_q(&cdfs, 64U) == AV2H_OK);
     check_words(cdfs.full_base[0U][0U][1U], q0_txs0_ctx0_q1, 8U);
 }
 

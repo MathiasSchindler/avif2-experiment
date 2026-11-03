@@ -1,6 +1,6 @@
 # Code Quality and Consistency Cleanup Plan
 
-**Status:** C1 and C2 complete; C3-C6 planned
+**Status:** C1-C3 complete; C4-C6 planned
 
 **Scope:** [`src/`](../src/) and [`include/av2heif.h`](../include/av2heif.h)
 
@@ -148,13 +148,66 @@ Because these types now model general per-block and per-transform-unit state acr
 ### Exit Criteria
 - `grep "Av2hFirst\|av2h_first_\|AV2H_FIRST_" src/` returns zero matches (unless a function specifically tests or parses only the very first syntactic element by design).
 
+### Completion
+
+C3 is complete. Renamed 15 types, the coefficient-capacity constant, and
+12 functions throughout the decoder, internal interfaces, unit tests, and
+experimental encoder test drivers. No compatibility typedefs or old-name
+aliases were added. Enum values, struct members, array dimensions, signatures,
+default arguments, and the 1024-coefficient capacity are unchanged.
+
+The canonical types follow the mappings above, including `Av2hTxType`,
+`Av2hPartitionPrefix`, `Av2hLeafPath`, and `Av2hBlockReconstructionU16`.
+Coefficient/transform CDF initializers and generic readers no longer use
+`first_`. Wrappers whose shorter destination names already existed retain
+their separate implementations with descriptive names:
+
+| Canonical wrapper | Preserved behavior |
+| :--- | :--- |
+| `av2h_luma_reconstruct_without_predictor` | Calls luma reconstruction with a `NULL` predictor and zero stride |
+| `av2h_coeff_block_read_default_context` | Supplies DC-sign context zero |
+| `av2h_chroma_coeff_prefix_read_default_context` | Supplies skip context 6 for U and 9 for V |
+| `av2h_chroma_transform_type_read_dc` | Supplies a zero-initialized DC mode and `cctx_allowed = 1` |
+| `av2h_chroma_reconstruct_dc_4x4` | Retains 4x4 DCT_DCT reconstruction with DC intra prediction |
+
+Exactly two first-element exceptions remain:
+[`av2h_first_leaf_mode_read`](../src/decoder/leaf.h) and
+[`av2h_first_coeff_prefix_read`](../src/decoder/coeff.h). Both explicitly reject
+leaves outside frame origin `(0, 0)` with `AV2H_UNSUPPORTED`; their names describe
+their actual restricted parser behavior. These account for all four remaining
+legacy-name occurrences in production sources (declarations and definitions).
+C4 wrapper consolidation and function-renaming macros remain untouched.
+
+[`test_decoder_names.py`](../tests/test_decoder_names.py) rejects other legacy
+names in source, public headers, C tests, generators, and experimental C
+consumers; requires one owner for each canonical type; and guards both
+first-element restrictions. The experimental parity drivers also import their
+actual prediction interfaces rather than the obsolete reconstruction umbrella.
+Developer API references use current names; the original measured labels in
+the [M0 baseline record](dev/refactoring-m0.md) remain historical evidence.
+
+Validation:
+
+- Fresh ASan/UBSan builds with diagnostics absent and
+  `AV2HEIF_ENABLE_DIAGNOSTICS=1` pass all 31 C unit suites, runtime tests,
+  2,460 malformed-input fuzz cases, and frozen pixel/status/error checks.
+- The complete 77-line behavioral/resource inventory is identical after
+  normalizing type names, including private layouts and workspace measurements.
+- C1/C2/C3 source guards and private-header tests pass; all 55 standalone
+  headers and 35 value-only kernel roots compile in both diagnostic modes.
+- Forced native macOS rebuild and freestanding symbol checks pass. All
+  179 available corpus outputs retain their SHA-256 hashes: 133 8-bit
+  I400/I420/I444 cases and 46 10-bit I420/I444 cases.
+- Both experimental encoder project-driver parity tests compile and execute
+  successfully against the rebuilt native library.
+
 ---
 
 ## C4: Retire Historical Wrappers and Compatibility Aliases
 
 ### Problem
 Incremental milestones left behind multi-layered forwarding functions and preprocessor aliases that no longer serve an architectural boundary:
-- **Multi-generation function chains:** In [`src/decoder/reconstruct.h`](../src/decoder/reconstruct.h), chroma plane reconstruction exposes six overlapping entry points (`av2h_chroma_reconstruct_to_plane`, `_ex`, `_format`, `_format_with_diagnostics`, `_u16`, `_u16_with_diagnostics`), and luma reconstruction similarly duplicates `av2h_first_luma_reconstruct`, `av2h_luma_reconstruct`, `av2h_luma_reconstruct_with_diagnostics`, `av2h_luma_reconstruct_to_plane`, and `av2h_luma_reconstruct_to_plane_with_diagnostics`.
+- **Multi-generation function chains:** In [`src/decoder/reconstruct.h`](../src/decoder/reconstruct.h), chroma plane reconstruction exposes six overlapping entry points (`av2h_chroma_reconstruct_to_plane`, `_ex`, `_format`, `_format_with_diagnostics`, `_u16`, `_u16_with_diagnostics`), and luma reconstruction similarly duplicates `av2h_luma_reconstruct_without_predictor`, `av2h_luma_reconstruct`, `av2h_luma_reconstruct_with_diagnostics`, `av2h_luma_reconstruct_to_plane`, and `av2h_luma_reconstruct_to_plane_with_diagnostics`.
 - **Similar `_with_diagnostics` / `_with_execution` pass-throughs:** Several internal modules expose both a base function and a `_with_diagnostics` or `_with_sequence` wrapper where `diagnostics == NULL` is already safely handled as a no-op by the underlying implementation.
 - **Compatibility `#define`s after file splits:** Files like [`reconstruct.c`](../src/decoder/reconstruct.c) (`#define wide_angle_map av2h_luma_wide_angle`), [`chroma_prediction_cfl.c`](../src/decoder/chroma_prediction_cfl.c), and [`tile_luma.c`](../src/decoder/tile_luma.c) use `#define` macros to alias old local function names to new module-prefixed names.
 

@@ -14,7 +14,7 @@
 #include "fsc_cdf_data.inc"
 
 static void initialize_full_level_cdfs(
-    Av2hFirstCoeffLevelCdfs *cdfs, uint8_t q_context) {
+    Av2hCoeffLevelCdfs *cdfs, uint8_t q_context) {
     av2h_memory_copy(cdfs->full_eob_base,
                      av2h_coeff_eob_base[q_context],
                      sizeof(cdfs->full_eob_base));
@@ -47,7 +47,7 @@ static void initialize_full_level_cdfs(
 }
 
 static Av2hStatus initialize_fsc_cdfs(
-    Av2hFirstCoeffLevelCdfs *cdfs, uint8_t q_context) {
+    Av2hCoeffLevelCdfs *cdfs, uint8_t q_context) {
     size_t tx_context;
     size_t context;
     Av2hStatus status;
@@ -282,7 +282,7 @@ static const Av2hBrSpec br_lf_specs[] = {
     { 13U, { 4509U, 9609U, 11858U }, 93U }
 };
 
-Av2hStatus av2h_first_coeff_level_cdfs_init(Av2hFirstCoeffLevelCdfs *cdfs) {
+Av2hStatus av2h_coeff_level_cdfs_init(Av2hCoeffLevelCdfs *cdfs) {
     static const uint16_t eob_base_txs0[] = { 26028U, 30728U };
     static const uint16_t eob_lf_txs0[] = {
         28506U, 31820U, 32509U, 32686U
@@ -541,7 +541,7 @@ static uint16_t *find_context(uint16_t *rows, size_t row_words,
 }
 
 uint16_t *av2h_coeff_level_base_row(
-    Av2hFirstCoeffLevelCdfs *cdfs, uint8_t tx_context,
+    Av2hCoeffLevelCdfs *cdfs, uint8_t tx_context,
     uint8_t context, uint8_t low) {
     return low ?
         find_key(&cdfs->base_lf[0][0], 10U, base_lf_keys,
@@ -553,7 +553,7 @@ uint16_t *av2h_coeff_level_base_row(
 }
 
 uint16_t *av2h_coeff_level_br_row(
-    Av2hFirstCoeffLevelCdfs *cdfs, uint8_t context, uint8_t low) {
+    Av2hCoeffLevelCdfs *cdfs, uint8_t context, uint8_t low) {
     return low ?
         find_context(&cdfs->br_lf[0][0], 8U, br_lf_keys,
                      sizeof(br_lf_keys) / sizeof(br_lf_keys[0]), context) :
@@ -562,7 +562,7 @@ uint16_t *av2h_coeff_level_br_row(
 }
 
 uint16_t *av2h_coeff_level_eob_row(
-    Av2hFirstCoeffLevelCdfs *cdfs, uint8_t tx_context, uint8_t context) {
+    Av2hCoeffLevelCdfs *cdfs, uint8_t tx_context, uint8_t context) {
     return find_key(&cdfs->eob_base[0][0], 7U, eob_base_keys,
                     sizeof(eob_base_keys) / sizeof(eob_base_keys[0]),
                     tx_context, context);
@@ -579,8 +579,8 @@ static Av2hStatus initialize_level_row(
         row, row_words, thresholds, symbol_count, parameter, 0U);
 }
 
-Av2hStatus av2h_first_coeff_level_cdfs_init_for_q(
-    Av2hFirstCoeffLevelCdfs *cdfs,
+Av2hStatus av2h_coeff_level_cdfs_init_for_q(
+    Av2hCoeffLevelCdfs *cdfs,
     Av2hQIndex base_q_index) {
     static const uint16_t q1_eob_base_txs4_ctx1[] = {
         32710U, 32756U
@@ -1171,7 +1171,7 @@ Av2hStatus av2h_first_coeff_level_cdfs_init_for_q(
     };
     uint8_t q_context;
     size_t index;
-    Av2hStatus status = av2h_first_coeff_level_cdfs_init(cdfs);
+    Av2hStatus status = av2h_coeff_level_cdfs_init(cdfs);
     uint16_t *row;
     if (status != AV2H_OK) return status;
     q_context = av2h_coeff_q_context(base_q_index);

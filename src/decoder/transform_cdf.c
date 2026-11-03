@@ -2,7 +2,7 @@
 
 #include <stddef.h>
 
-Av2hStatus av2h_first_transform_cdfs_init(Av2hFirstTransformCdfs *cdfs) {
+Av2hStatus av2h_transform_cdfs_init(Av2hTransformCdfs *cdfs) {
     static const uint16_t primary_size0[] = {
         5026U, 16816U, 19974U, 23404U, 26845U, 30499U
     };

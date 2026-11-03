@@ -116,7 +116,7 @@ static int tile_derived_chroma_partition(
 static Av2hStatus tile_store_chroma_mode(
     Av2hTileDecoder *decoder,
     const Av2hPartitionNode *node,
-    const Av2hFirstChromaMode *mode) {
+    const Av2hChromaLeafMode *mode) {
     size_t width;
     size_t height;
     size_t row;
@@ -178,7 +178,7 @@ Av2hStatus av2h_tile_decoder_read_shared_chroma_mode(
     }
     status = av2h_chroma_mode_read_with_delta_for_sdp(
         &decoder->entropy_state.range, &decoder->entropy_state.leaf_cdfs, decoder->entropy_state.sequence,
-        (Av2hFirstLeafIntraMode)colocated->mode, colocated->angle_delta,
+        (Av2hIntraMode)colocated->mode, colocated->angle_delta,
         node->block_size, cfl_context,
         tile_cfl_allowed_for_sdp(decoder, node->block_size),
         (uint8_t)(colocated->context.q_index == 0U),
@@ -203,14 +203,14 @@ Av2hStatus av2h_tile_decoder_read_shared_chroma_mode(
 Av2hStatus av2h_tile_decoder_next_chroma(
     Av2hTileDecoder *decoder,
     Av2hTileChromaLeaf *leaf,
-    Av2hFirstCoeffBlock *u_block,
-    Av2hFirstCoeffBlock *v_block,
+    Av2hCoeffBlock *u_block,
+    Av2hCoeffBlock *v_block,
     uint8_t *has_leaf) {
-    Av2hFirstLeafPath path;
+    Av2hLeafPath path;
     Av2hTileLumaModeCell *colocated;
     uint8_t cfl_context;
     uint8_t continuing_transform;
-    Av2hFirstCoeffBlock *blocks[2U];
+    Av2hCoeffBlock *blocks[2U];
     size_t index;
     Av2hStatus status;
     if (decoder == NULL || leaf == NULL || u_block == NULL || v_block == NULL ||
@@ -437,7 +437,7 @@ Av2hStatus av2h_tile_decoder_next_chroma(
         } else {
             status = av2h_chroma_mode_read_with_delta_for_sdp(
                 &decoder->entropy_state.range, &decoder->entropy_state.leaf_cdfs, decoder->entropy_state.sequence,
-                (Av2hFirstLeafIntraMode)colocated->mode,
+                (Av2hIntraMode)colocated->mode,
                 colocated->angle_delta, leaf->node.block_size, cfl_context,
                 tile_cfl_allowed_for_sdp(
                     decoder, leaf->node.block_size), 1U, &leaf->mode);
@@ -446,7 +446,7 @@ Av2hStatus av2h_tile_decoder_next_chroma(
     } else {
         status = av2h_chroma_mode_read_with_delta_for_sdp(
             &decoder->entropy_state.range, &decoder->entropy_state.leaf_cdfs, decoder->entropy_state.sequence,
-            (Av2hFirstLeafIntraMode)colocated->mode, colocated->angle_delta,
+            (Av2hIntraMode)colocated->mode, colocated->angle_delta,
             leaf->node.block_size, cfl_context,
             tile_cfl_allowed_for_sdp(
                 decoder, leaf->node.block_size), 0U, &leaf->mode);
@@ -640,8 +640,8 @@ Av2hStatus av2h_tile_decoder_reconstruct_next_chroma(
     Av2hReconstructionScratch *scratch,
     Av2hTileChromaLeaf *leaf,
     uint8_t *has_leaf) {
-    Av2hFirstCoeffBlock u_block;
-    Av2hFirstCoeffBlock v_block;
+    Av2hCoeffBlock u_block;
+    Av2hCoeffBlock v_block;
     Av2hStatus status;
     if (decoder == NULL || u_plane == NULL || v_plane == NULL || scratch == NULL ||
         leaf == NULL || has_leaf == NULL) {

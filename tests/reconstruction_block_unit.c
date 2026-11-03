@@ -23,11 +23,11 @@ static void test_zero_geometry(void) {
     static uint16_t predictor_u16[AV2H_RECON_SAMPLE_CAPACITY];
     static Av2hReconstructionScratch scratch;
     static Av2hReconstructionScratchU16 scratch_u16;
-    static Av2hFirstReconstruction output;
-    static Av2hFirstReconstructionU16 output_u16;
-    Av2hFirstLeafMode mode = { 0 };
-    Av2hFirstChromaMode chroma = { 0 };
-    Av2hFirstTransformType transform = { 0 };
+    static Av2hBlockReconstruction output;
+    static Av2hBlockReconstructionU16 output_u16;
+    Av2hLeafMode mode = { 0 };
+    Av2hChromaLeafMode chroma = { 0 };
+    Av2hTransformType transform = { 0 };
     unsigned int tx;
     size_t index;
     for (index = 0U; index < AV2H_RECON_SAMPLE_CAPACITY; ++index) {
@@ -36,13 +36,13 @@ static void test_zero_geometry(void) {
     }
     for (tx = 0U; tx < AV2H_TX_SIZE_COUNT; ++tx) {
         const Av2hTxDescriptor *descriptor;
-        Av2hFirstCoeffPrefix prefix = { 0 };
-        Av2hFirstCoeffBlock coefficients = { 0 };
+        Av2hCoeffPrefix prefix = { 0 };
+        Av2hCoeffBlock coefficients = { 0 };
         unsigned int path;
         size_t count;
-        CHECK(av2h_tx_descriptor_get((Av2hFirstTxSize)tx, &descriptor) ==
+        CHECK(av2h_tx_descriptor_get((Av2hTxSize)tx, &descriptor) ==
               AV2H_OK);
-        prefix.tx_size = (Av2hFirstTxSize)tx;
+        prefix.tx_size = (Av2hTxSize)tx;
         prefix.q_index = 152U;
         prefix.all_zero = 1U;
         coefficients.width = descriptor->coefficient_width;
@@ -95,14 +95,14 @@ static void test_zero_geometry(void) {
 
 static void test_dpcm_rounding_and_clipping(void) {
     static const int32_t values[] = { -17, 16, 12000, -12000 };
-    Av2hFirstLeafMode mode = { 0 };
-    Av2hFirstCoeffPrefix prefix = { 0 };
-    Av2hFirstTransformType transform = { 0 };
-    Av2hFirstCoeffBlock coefficients = { 0 };
+    Av2hLeafMode mode = { 0 };
+    Av2hCoeffPrefix prefix = { 0 };
+    Av2hTransformType transform = { 0 };
+    Av2hCoeffBlock coefficients = { 0 };
     static Av2hReconstructionScratch scratch;
     static Av2hReconstructionScratchU16 scratch_u16;
-    static Av2hFirstReconstruction output;
-    static Av2hFirstReconstructionU16 output_u16;
+    static Av2hBlockReconstruction output;
+    static Av2hBlockReconstructionU16 output_u16;
     uint8_t predictor[64U];
     uint16_t predictor_u16[64U];
     unsigned int horizontal;
@@ -151,16 +151,16 @@ static void test_dpcm_rounding_and_clipping(void) {
 }
 
 static void test_lossless_chroma_and_rejection(void) {
-    Av2hFirstChromaMode mode = { 0 };
-    Av2hFirstCoeffPrefix prefix = { 0 };
-    Av2hFirstTransformType transform = { 0 };
-    Av2hFirstCoeffBlock coefficients = { 0 };
+    Av2hChromaLeafMode mode = { 0 };
+    Av2hCoeffPrefix prefix = { 0 };
+    Av2hTransformType transform = { 0 };
+    Av2hCoeffBlock coefficients = { 0 };
     static Av2hReconstructionScratch scratch;
     static Av2hReconstructionScratchU16 scratch_u16;
-    static Av2hFirstReconstruction output;
-    static Av2hFirstReconstructionU16 output_u16;
-    static Av2hFirstReconstruction original;
-    static Av2hFirstReconstructionU16 original_u16;
+    static Av2hBlockReconstruction output;
+    static Av2hBlockReconstructionU16 output_u16;
+    static Av2hBlockReconstruction original;
+    static Av2hBlockReconstructionU16 original_u16;
     uint8_t predictor[16U];
     uint16_t predictor_u16[16U];
     size_t index;
@@ -218,13 +218,13 @@ static void test_u16_transform_selection(void) {
         AV2H_TX_DCT_DCT, AV2H_TX_ADST_ADST, AV2H_TX_IDTX,
         AV2H_TX_H_ADST, AV2H_TX_V_DCT
     };
-    Av2hFirstLeafMode mode = { 0 };
-    Av2hFirstChromaMode chroma = { 0 };
+    Av2hLeafMode mode = { 0 };
+    Av2hChromaLeafMode chroma = { 0 };
     static uint16_t predictor[AV2H_RECON_SAMPLE_CAPACITY];
     static Av2hReconstructionScratchU16 scratch;
     static Av2hReconstructionScratchU16 expected_scratch;
-    static Av2hFirstReconstructionU16 output;
-    static Av2hFirstReconstructionU16 expected;
+    static Av2hBlockReconstructionU16 output;
+    static Av2hBlockReconstructionU16 expected;
     unsigned int tx;
     size_t type;
     size_t index;
@@ -233,11 +233,11 @@ static void test_u16_transform_selection(void) {
     }
     for (tx = 0U; tx < AV2H_TX_SIZE_COUNT; ++tx) {
         const Av2hTxDescriptor *descriptor;
-        Av2hFirstCoeffPrefix prefix = { 0 };
-        Av2hFirstCoeffBlock coefficients = { 0 };
-        CHECK(av2h_tx_descriptor_get((Av2hFirstTxSize)tx, &descriptor) ==
+        Av2hCoeffPrefix prefix = { 0 };
+        Av2hCoeffBlock coefficients = { 0 };
+        CHECK(av2h_tx_descriptor_get((Av2hTxSize)tx, &descriptor) ==
               AV2H_OK);
-        prefix.tx_size = (Av2hFirstTxSize)tx;
+        prefix.tx_size = (Av2hTxSize)tx;
         prefix.q_index = 152U;
         prefix.eob = 2U;
         coefficients.width = descriptor->coefficient_width;
@@ -247,7 +247,7 @@ static void test_u16_transform_selection(void) {
         coefficients.dequantized[0] = -512;
         coefficients.dequantized[1] = 128;
         for (type = 0U; type < sizeof(types) / sizeof(types[0]); ++type) {
-            Av2hFirstTransformType transform = { 0 };
+            Av2hTransformType transform = { 0 };
             Av2hStatus expected_status;
             transform.primary_type = types[type];
             memset(&expected, 0x7d, sizeof(expected));
@@ -269,13 +269,13 @@ static void test_u16_transform_selection(void) {
 }
 
 static void test_u16_lossless_wht(void) {
-    Av2hFirstLeafMode mode = { 0 };
-    Av2hFirstCoeffPrefix prefix = { 0 };
-    Av2hFirstTransformType transform = { 0 };
-    Av2hFirstCoeffBlock coefficients = { 0 };
+    Av2hLeafMode mode = { 0 };
+    Av2hCoeffPrefix prefix = { 0 };
+    Av2hTransformType transform = { 0 };
+    Av2hCoeffBlock coefficients = { 0 };
     static Av2hReconstructionScratchU16 scratch;
-    static Av2hFirstReconstructionU16 output;
-    static Av2hFirstReconstruction expected;
+    static Av2hBlockReconstructionU16 output;
+    static Av2hBlockReconstruction expected;
     uint8_t predictor[16U];
     uint16_t predictor_u16[16U];
     unsigned int direction;

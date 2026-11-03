@@ -43,7 +43,7 @@ static uint8_t dc_predictor_average(unsigned int sum, unsigned int count,
 }
 
 Av2hStatus av2h_predict_dc(
-    const Av2hFirstLeafMode *mode,
+    const Av2hLeafMode *mode,
     uint16_t width,
     uint16_t height,
     const Av2hLumaReferences *references,
@@ -433,7 +433,7 @@ Av2hStatus av2h_predict_paeth(
 }
 
 Av2hStatus av2h_predict_smooth_u16(
-    const Av2hFirstLeafMode *mode,
+    const Av2hLeafMode *mode,
     uint16_t width,
     uint16_t height,
     const Av2hLumaReferencesU16 *references,

@@ -32,7 +32,7 @@ static uint8_t intra_dip_edge_sample(const uint8_t *edge,
 }
 
 Av2hStatus av2h_predict_intra_dip(
-    const Av2hFirstLeafMode *mode,
+    const Av2hLeafMode *mode,
     uint16_t width,
     uint16_t height,
     const Av2hLumaReferences *references,

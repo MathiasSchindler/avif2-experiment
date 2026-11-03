@@ -70,7 +70,7 @@ static void test_wide_q_index_handoff(void) {
     Av2hDeblockCell cell;
     Av2hDeblockMap map;
     Av2hPartitionNode leaf = { 0U, 0U, AV2H_BLOCK_4X4 };
-    Av2hFirstCoeffPrefix prefix;
+    Av2hCoeffPrefix prefix;
     av2h_memory_fill(&cell, 0U, sizeof(cell));
     av2h_memory_fill(&map, 0U, sizeof(map));
     av2h_memory_fill(&prefix, 0U, sizeof(prefix));

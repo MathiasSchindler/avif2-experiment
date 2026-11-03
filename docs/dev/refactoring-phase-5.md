@@ -26,7 +26,7 @@ morph defaults, and frame-edge neighbor state. No active expectation changed.
 - `leaf.c`: luma/chroma mode syntax, joint-mode mapping, FSC/MRL signaling,
   filter/IntraBC/palette ordering, diagnostics, and compatibility wrappers.
 
-`leaf.h`, `Av2hLeafCdfs`, and `Av2hFirstLeafMode` remain stable. All new source
+`leaf.h`, `Av2hLeafCdfs`, and `Av2hLeafMode` remain stable. All new source
 files are listed explicitly in `AV2HEIF_CORE_SOURCES`.
 
 ## Internal boundary

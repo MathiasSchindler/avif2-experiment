@@ -28,11 +28,11 @@ typedef struct {
     uint16_t row;
     uint16_t column;
     Av2hBlockSize block_size;
-    Av2hFirstLeafIntraMode mode;
+    Av2hIntraMode mode;
     int8_t angle_delta;
     uint16_t tx_width;
     uint16_t tx_height;
-    Av2hFirstTxType tx_type;
+    Av2hTxType tx_type;
     uint16_t eob;
     uint8_t all_zero;
     uint16_t coefficient_count;
@@ -55,7 +55,7 @@ typedef enum {
 typedef struct {
     uint16_t tx_width;
     uint16_t tx_height;
-    Av2hFirstTxType tx_type;
+    Av2hTxType tx_type;
     uint16_t eob;
     uint8_t all_zero;
     uint16_t coefficient_offset;

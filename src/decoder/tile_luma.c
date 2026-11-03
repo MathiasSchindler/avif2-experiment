@@ -19,7 +19,7 @@
 #include "tx_geometry.h"
 
 static void tile_capture_luma_root_child(
-    Av2hTileDecoder *decoder, const Av2hFirstLeafPath *path) {
+    Av2hTileDecoder *decoder, const Av2hLeafPath *path) {
     Av2hBlockSize child_size;
     uint16_t first_row = decoder->superblock.sb_row;
     uint16_t first_column = decoder->superblock.sb_column;
@@ -115,7 +115,7 @@ static void tile_capture_luma_root_child(
 }
 
 static Av2hStatus tile_store_luma_partition_path(
-    Av2hTileDecoder *decoder, const Av2hFirstLeafPath *path) {
+    Av2hTileDecoder *decoder, const Av2hLeafPath *path) {
     size_t index;
     if (decoder == NULL || path == NULL) return AV2H_INVALID_ARGUMENT;
     for (index = 0U; index < path->decision_count; ++index) {
@@ -435,7 +435,7 @@ static int luma_geometry_supported(const Av2hPartitionNode *leaf) {
         leaf->block_size, &descriptor) == AV2H_OK;
 }
 
-static Av2hBlockSize tile_tx_block_size(Av2hFirstTxSize tx_size) {
+static Av2hBlockSize tile_tx_block_size(Av2hTxSize tx_size) {
     static const Av2hBlockSize block_sizes[AV2H_TX_SIZE_COUNT] = {
         AV2H_BLOCK_4X4, AV2H_BLOCK_8X8, AV2H_BLOCK_16X16,
         AV2H_BLOCK_32X32, AV2H_BLOCK_64X64, AV2H_BLOCK_4X8,
@@ -452,16 +452,16 @@ static Av2hBlockSize tile_tx_block_size(Av2hFirstTxSize tx_size) {
 }
 
 static Av2hStatus tile_tx_size_from_dimensions(
-    uint8_t width, uint8_t height, Av2hFirstTxSize *tx_size) {
+    uint8_t width, uint8_t height, Av2hTxSize *tx_size) {
     unsigned int index;
     if (tx_size == NULL) return AV2H_INVALID_ARGUMENT;
     for (index = 0U; index < AV2H_TX_SIZE_COUNT; ++index) {
         const Av2hTxDescriptor *descriptor;
         if (av2h_tx_descriptor_get(
-                (Av2hFirstTxSize)index, &descriptor) == AV2H_OK &&
+                (Av2hTxSize)index, &descriptor) == AV2H_OK &&
             descriptor->output_width == width &&
             descriptor->output_height == height) {
-            *tx_size = (Av2hFirstTxSize)index;
+            *tx_size = (Av2hTxSize)index;
             return AV2H_OK;
         }
     }
@@ -470,7 +470,7 @@ static Av2hStatus tile_tx_size_from_dimensions(
 
 static Av2hStatus tile_read_luma_tx_partition(
     Av2hTileDecoder *decoder, const Av2hPartitionNode *coding_node,
-    const Av2hFirstLeafMode *mode) {
+    const Av2hLeafMode *mode) {
     static const uint8_t split_group[AV2H_BLOCK_SIZE_COUNT] = {
         0U, 0U, 0U, 1U, 2U, 2U, 3U, 4U, 4U, 5U,
         6U, 6U, 7U, 7U, 7U, 7U, 7U, 7U, 7U, 8U,
@@ -505,7 +505,7 @@ static Av2hStatus tile_read_luma_tx_partition(
         { 0U, 1U, 0U, 0U, 1U }, { 0U, 0U, 1U, 3U, 3U }
     };
     const Av2hTxDescriptor *maximum;
-    Av2hFirstTxSize candidate;
+    Av2hTxSize candidate;
     uint8_t allow_horizontal;
     uint8_t allow_vertical;
     uint8_t partition = 0U;
@@ -599,7 +599,7 @@ static Av2hStatus tile_read_luma_tx_partition(
     if (partition == 6U) height_step = (uint8_t)(height_step / 2U);
     if (partition == 7U) width_step = (uint8_t)(width_step / 2U);
     for (index = 0U; index < count; ++index) {
-        Av2hFirstTxSize tx_size;
+        Av2hTxSize tx_size;
         Av2hBlockSize block_size;
         uint8_t width = (uint8_t)(
             maximum->output_width >> column_shift[partition][index]);
@@ -716,9 +716,9 @@ static Av2hStatus tile_handoff_square_child(Av2hTileDecoder *decoder,
 static Av2hStatus tile_initialize_skipped_intrabc(
     Av2hTileDecoder *decoder,
     const Av2hTileLumaLeaf *leaf,
-    Av2hFirstCoeffPrefix *prefix,
-    Av2hFirstTransformType *transform,
-    Av2hFirstCoeffBlock *block) {
+    Av2hCoeffPrefix *prefix,
+    Av2hTransformType *transform,
+    Av2hCoeffBlock *block) {
     size_t tell;
     const Av2hTxDescriptor *descriptor;
     Av2hStatus status;
@@ -737,7 +737,7 @@ static Av2hStatus tile_initialize_skipped_intrabc(
     prefix->tx_size_context = descriptor->tx_size_context;
     tell = av2h_range_tell(&decoder->entropy_state.range);
     {
-        Av2hFirstTxSize tx_size = prefix->tx_size;
+        Av2hTxSize tx_size = prefix->tx_size;
         uint8_t tx_size_context = prefix->tx_size_context;
         av2h_memory_fill(prefix, 0U, sizeof(*prefix));
         prefix->tx_size = tx_size;
@@ -773,8 +773,8 @@ static Av2hStatus tile_initialize_skipped_intrabc(
 static Av2hStatus tile_initialize_all_zero_luma(
     Av2hTileDecoder *decoder,
     const Av2hTileLumaLeaf *leaf,
-    Av2hFirstTransformType *transform,
-    Av2hFirstCoeffBlock *block) {
+    Av2hTransformType *transform,
+    Av2hCoeffBlock *block) {
     uint16_t width;
     uint16_t height;
     size_t tell;
@@ -814,7 +814,7 @@ static Av2hStatus tile_initialize_all_zero_luma(
 
 static Av2hStatus tile_store_luma_mode(Av2hTileDecoder *decoder,
                                        const Av2hPartitionNode *node,
-                                       const Av2hFirstLeafMode *mode) {
+                                       const Av2hLeafMode *mode) {
     size_t width;
     size_t height;
     size_t row;
@@ -864,9 +864,9 @@ static Av2hStatus tile_store_luma_mode(Av2hTileDecoder *decoder,
 Av2hStatus av2h_tile_decoder_next_luma(
     Av2hTileDecoder *decoder,
     Av2hTileLumaLeaf *leaf,
-    Av2hFirstCoeffBlock *block,
+    Av2hCoeffBlock *block,
     uint8_t *has_leaf) {
-    Av2hFirstLeafPath path;
+    Av2hLeafPath path;
     uint8_t dc_sign_context;
     uint8_t shared_chroma_tree;
     uint16_t tx_count;
@@ -1140,7 +1140,7 @@ read_transform:
         leaf->transform.after_secondary_bits = tell;
         status = AV2H_OK;
     } else {
-        status = av2h_first_transform_type_read(
+        status = av2h_transform_type_read(
             &decoder->entropy_state.range, &decoder->entropy_state.transform_cdfs, decoder->entropy_state.sequence,
             decoder->entropy_state.frame, &leaf->mode, &leaf->prefix, &leaf->transform);
     }
@@ -1205,7 +1205,7 @@ Av2hStatus av2h_tile_decoder_reconstruct_next_luma(
     Av2hReconstructionScratch *scratch,
     Av2hTileLumaLeaf *leaf,
     uint8_t *has_leaf) {
-    Av2hFirstCoeffBlock block;
+    Av2hCoeffBlock block;
     Av2hStatus status;
     if (decoder == NULL || plane == NULL || scratch == NULL || leaf == NULL ||
         has_leaf == NULL) {

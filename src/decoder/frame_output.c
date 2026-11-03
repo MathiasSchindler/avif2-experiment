@@ -186,7 +186,7 @@ Av2hStatus av2h_decode_frame_group_planar_with_execution_private(
     Av2hFilterPlanesU16 final_planes_u16;
     Av2hFrameDecodeResult decoded = { 0 };
     Av2hTileChromaLeaf pending_chroma_leaves[4U];
-    Av2hFirstCoeffBlock pending_chroma_blocks[4U][2U];
+    Av2hCoeffBlock pending_chroma_blocks[4U][2U];
     uint8_t pending_chroma_count = 0U;
     size_t required_output_bytes;
     size_t tile_index;
@@ -355,7 +355,7 @@ Av2hStatus av2h_decode_frame_group_planar_with_execution_private(
         }
         if (decoder.control.phase == AV2H_TILE_DECODE_LUMA) {
             Av2hTileLumaLeaf leaf;
-            Av2hFirstCoeffBlock block;
+            Av2hCoeffBlock block;
             av2h_memory_fill(&leaf, 0U, sizeof(leaf));
             av2h_memory_fill(&block, 0U, sizeof(block));
             status = av2h_tile_decoder_next_luma(
@@ -477,7 +477,7 @@ Av2hStatus av2h_decode_frame_group_planar_with_execution_private(
             ++decoded.luma_leaf_count;
         } else if (decoder.control.phase == AV2H_TILE_DECODE_CHROMA) {
             Av2hTileChromaLeaf leaf;
-            Av2hFirstCoeffBlock blocks[2U];
+            Av2hCoeffBlock blocks[2U];
             av2h_memory_fill(&leaf, 0U, sizeof(leaf));
             av2h_memory_fill(blocks, 0U, sizeof(blocks));
             status = av2h_tile_decoder_next_chroma(

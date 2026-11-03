@@ -30,7 +30,7 @@ static void check_prefix(const char *name,
     Av2hSpan span = { bytes, size };
     Av2hRangeDecoder decoder;
     Av2hPartitionCdfs cdfs;
-    Av2hFirstPartitionPrefix prefix;
+    Av2hPartitionPrefix prefix;
     CHECK(av2h_partition_cdfs_init(&cdfs) == AV2H_OK);
     CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
     {
@@ -203,7 +203,7 @@ static void check_first_leaf(const unsigned char *bytes,
     Av2hSpan span = { bytes, size };
     Av2hRangeDecoder decoder;
     Av2hPartitionCdfs cdfs;
-    Av2hFirstLeafPath path;
+    Av2hLeafPath path;
     Av2hPartitionTraversal traversal;
     Av2hPartitionContextState contexts;
     uint8_t luma_above[64U];
@@ -470,7 +470,7 @@ static void test_late_enum_blocks_are_terminal(void) {
         Av2hPartitionCdfs cdfs;
         Av2hPartitionContextState contexts;
         Av2hPartitionTraversal traversal;
-        Av2hFirstLeafPath path;
+        Av2hLeafPath path;
         uint8_t has_leaf;
         size_t before_bits;
         CHECK(av2h_partition_cdfs_init(&cdfs) == AV2H_OK);
@@ -504,7 +504,7 @@ static void test_traversal(void) {
     Av2hPartitionCdfs cdfs;
     Av2hPartitionContextState contexts;
     Av2hPartitionTraversal traversal;
-    Av2hFirstLeafPath path;
+    Av2hLeafPath path;
     uint8_t has_leaf;
 
     CHECK(av2h_partition_cdfs_init(&cdfs) == AV2H_OK);
@@ -557,7 +557,7 @@ static void test_traversal(void) {
         Av2hPartitionCdfs cdfs;
         Av2hPartitionContextState contexts;
         Av2hPartitionTraversal traversal;
-        Av2hFirstLeafPath path;
+        Av2hLeafPath path;
         size_t child_split_context;
         size_t split_context;
         size_t rect_context;
@@ -660,7 +660,7 @@ static void test_arguments(void) {
     Av2hRangeDecoder decoder;
     Av2hPartitionCdfs cdfs;
         Av2hOrdinaryPartitionPrefix prefix;
-    Av2hFirstPartitionPrefix first;
+    Av2hPartitionPrefix first;
         CHECK(av2h_partition_ordinary_prefix_read(
               0, &cdfs, 0U, 0U, 0U, &prefix) ==
           AV2H_INVALID_ARGUMENT);

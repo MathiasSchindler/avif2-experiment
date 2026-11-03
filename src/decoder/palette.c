@@ -29,7 +29,7 @@ Av2hStatus av2h_leaf_palette_read_colors(
     Av2hRangeDecoder *decoder,
     const Av2hSequenceState *sequence,
     const Av2hLumaModeNeighbors *neighbors,
-    Av2hFirstLeafMode *mode) {
+    Av2hLeafMode *mode) {
     uint16_t cache[2U * AV2H_PALETTE_MAX_SIZE];
     size_t above_index = 0U;
     size_t left_index = 0U;
@@ -138,7 +138,7 @@ static unsigned int palette_map_bit_width(uint8_t palette_size) {
 }
 
 uint8_t av2h_palette_map_get(
-    const Av2hFirstLeafMode *mode, size_t index) {
+    const Av2hLeafMode *mode, size_t index) {
     unsigned int bits;
     size_t bit_offset;
     size_t byte_offset;
@@ -164,7 +164,7 @@ uint8_t av2h_palette_map_get(
 }
 
 Av2hStatus av2h_palette_map_set(
-    Av2hFirstLeafMode *mode, size_t index, uint8_t color) {
+    Av2hLeafMode *mode, size_t index, uint8_t color) {
     unsigned int bits;
     size_t bit_offset;
     size_t byte_offset;
@@ -198,7 +198,7 @@ Av2hStatus av2h_palette_map_set(
 }
 
 static size_t palette_color_context(
-    const Av2hFirstLeafMode *mode,
+    const Av2hLeafMode *mode,
     size_t width,
     size_t row,
     size_t column,
@@ -261,7 +261,7 @@ Av2hStatus av2h_luma_palette_map_read(
     Av2hRangeDecoder *decoder,
     Av2hLeafCdfs *cdfs,
     const Av2hPartitionNode *leaf,
-    Av2hFirstLeafMode *mode) {
+    Av2hLeafMode *mode) {
     uint32_t direction;
     uint32_t previous_identity = 0U;
     size_t width_mi;

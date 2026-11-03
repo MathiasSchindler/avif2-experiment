@@ -245,14 +245,14 @@ Av2hStatus av2h_first_leaf_mode_read(Av2hRangeDecoder *decoder,
                                      const Av2hSequenceState *sequence,
                                      const Av2hFrameState *frame,
                                      const Av2hPartitionNode *leaf,
-                                     Av2hFirstLeafMode *mode);
+                                     Av2hLeafMode *mode);
 Av2hStatus av2h_luma_mode_read(Av2hRangeDecoder *decoder,
                                  Av2hLeafCdfs *cdfs,
                                  const Av2hSequenceState *sequence,
                                  const Av2hFrameState *frame,
                                  const Av2hPartitionNode *leaf,
                                  const Av2hLumaModeNeighbors *neighbors,
-                                 Av2hFirstLeafMode *mode);
+                                 Av2hLeafMode *mode);
 Av2hStatus av2h_luma_mode_context_state_init(
     Av2hLumaModeContextState *state,
     Av2hLumaModeContext *above,
@@ -296,7 +296,7 @@ Av2hStatus av2h_luma_mode_neighbors_from_state(
 Av2hStatus av2h_luma_mode_context_state_update(
     Av2hLumaModeContextState *state,
     const Av2hPartitionNode *leaf,
-    const Av2hFirstLeafMode *mode);
+    const Av2hLeafMode *mode);
 Av2hStatus av2h_luma_mode_read_with_state(
     Av2hRangeDecoder *decoder,
     Av2hLeafCdfs *cdfs,
@@ -304,7 +304,7 @@ Av2hStatus av2h_luma_mode_read_with_state(
     const Av2hFrameState *frame,
     const Av2hPartitionNode *leaf,
     const Av2hLumaModeContextState *state,
-    Av2hFirstLeafMode *mode);
+    Av2hLeafMode *mode);
 Av2hStatus av2h_luma_mode_read_with_state_and_gdf(
     Av2hRangeDecoder *decoder,
     Av2hLeafCdfs *cdfs,
@@ -315,7 +315,7 @@ Av2hStatus av2h_luma_mode_read_with_state_and_gdf(
     Av2hGdfEntropyState *gdf_state,
     Av2hCdefEntropyState *cdef_state,
     Av2hCcsoEntropyState *ccso_state,
-    Av2hFirstLeafMode *mode);
+    Av2hLeafMode *mode);
 Av2hStatus av2h_luma_mode_read_with_state_and_delta_q(
     Av2hRangeDecoder *decoder,
     Av2hLeafCdfs *cdfs,
@@ -328,7 +328,7 @@ Av2hStatus av2h_luma_mode_read_with_state_and_delta_q(
     Av2hCcsoEntropyState *ccso_state,
     Av2hQIndex *current_q_index,
     uint8_t defer_palette_and_dip,
-    Av2hFirstLeafMode *mode);
+    Av2hLeafMode *mode);
 Av2hStatus av2h_luma_mode_read_palette_and_dip(
     Av2hRangeDecoder *decoder,
     Av2hLeafCdfs *cdfs,
@@ -336,39 +336,39 @@ Av2hStatus av2h_luma_mode_read_palette_and_dip(
     const Av2hFrameState *frame,
     const Av2hPartitionNode *leaf,
     const Av2hLumaModeNeighbors *neighbors,
-    Av2hFirstLeafMode *mode);
+    Av2hLeafMode *mode);
 Av2hStatus av2h_luma_palette_map_read(
     Av2hRangeDecoder *decoder,
     Av2hLeafCdfs *cdfs,
     const Av2hPartitionNode *leaf,
-    Av2hFirstLeafMode *mode);
+    Av2hLeafMode *mode);
 Av2hStatus av2h_chroma_mode_read(
     Av2hRangeDecoder *decoder,
     Av2hLeafCdfs *cdfs,
     const Av2hSequenceState *sequence,
-    Av2hFirstLeafIntraMode colocated_luma_mode,
+    Av2hIntraMode colocated_luma_mode,
     uint8_t cfl_context,
-    Av2hFirstChromaMode *mode);
+    Av2hChromaLeafMode *mode);
 Av2hStatus av2h_chroma_mode_read_with_delta(
     Av2hRangeDecoder *decoder,
     Av2hLeafCdfs *cdfs,
     const Av2hSequenceState *sequence,
-    Av2hFirstLeafIntraMode colocated_luma_mode,
+    Av2hIntraMode colocated_luma_mode,
     int8_t colocated_luma_delta,
     Av2hBlockSize block_size,
     uint8_t cfl_context,
-    Av2hFirstChromaMode *mode);
+    Av2hChromaLeafMode *mode);
 Av2hStatus av2h_chroma_mode_read_with_delta_for_sdp(
     Av2hRangeDecoder *decoder,
     Av2hLeafCdfs *cdfs,
     const Av2hSequenceState *sequence,
-    Av2hFirstLeafIntraMode colocated_luma_mode,
+    Av2hIntraMode colocated_luma_mode,
     int8_t colocated_luma_delta,
     Av2hBlockSize block_size,
     uint8_t cfl_context,
     uint8_t cfl_allowed,
     uint8_t lossless,
-    Av2hFirstChromaMode *mode);
+    Av2hChromaLeafMode *mode);
 
 #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
 const int16_t *av2h_intrabc_diagnostic_candidates(
