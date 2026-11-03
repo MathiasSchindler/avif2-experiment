@@ -6,6 +6,7 @@
 typedef int (*Av2hParallelBody)(size_t begin, size_t end, unsigned int worker_index,
                                 void *argument);
 
+/* Cover [0, count) exactly once and join every callback before returning. */
 typedef int (*Av2hParallelDispatch)(void *context, size_t count, size_t min_chunk,
                                     Av2hParallelBody body, void *argument);
 

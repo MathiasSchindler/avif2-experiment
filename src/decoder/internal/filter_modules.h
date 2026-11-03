@@ -2,6 +2,14 @@
 #define AV2H_DECODER_INTERNAL_FILTER_MODULES_H
 
 #include "decoder/filter.h"
+void av2h_gdf_apply_rows(Av2hFilterPlane *destination, const Av2hFilterPlane *baseline,
+                         const Av2hFilterPlane *cdef, const Av2hFilterPlane *deblocked,
+                         const Av2hSequenceState *sequence, const Av2hFrameState *frame,
+                         const Av2hGdfControlMap *controls, size_t row_begin, size_t row_end);
+void av2h_gdf_apply_rows_u16(Av2hFilterPlaneU16 *destination, const Av2hFilterPlaneU16 *cdef,
+                             const Av2hFilterPlaneU16 *deblocked, const Av2hSequenceState *sequence,
+                             const Av2hFrameState *frame, const Av2hGdfControlMap *controls,
+                             size_t row_begin, size_t row_end, const Av2hSampleDomain *domain);
 
 int16_t av2h_deblock_side_threshold(size_t index);
 Av2hStatus av2h_deblock_quantizer_thresholds(const Av2hDeblockCell *cell,
@@ -25,13 +33,4 @@ av2h_gdf_validate_frame_u16(Av2hFilterPlaneU16 *destination, const Av2hFilterPla
                             const Av2hFilterPlaneU16 *deblocked_luma,
                             const Av2hSequenceState *sequence, const Av2hFrameState *frame,
                             const Av2hGdfControlMap *controls, const Av2hSampleDomain *domain);
-void av2h_gdf_apply_frame(Av2hFilterPlane *destination, const Av2hFilterPlane *baseline_luma,
-                          const Av2hFilterPlane *cdef_luma, const Av2hFilterPlane *deblocked_luma,
-                          const Av2hSequenceState *sequence, const Av2hFrameState *frame,
-                          const Av2hGdfControlMap *controls);
-void av2h_gdf_apply_frame_u16(Av2hFilterPlaneU16 *destination, const Av2hFilterPlaneU16 *cdef_luma,
-                              const Av2hFilterPlaneU16 *deblocked_luma,
-                              const Av2hSequenceState *sequence, const Av2hFrameState *frame,
-                              const Av2hGdfControlMap *controls, const Av2hSampleDomain *domain);
-
 #endif

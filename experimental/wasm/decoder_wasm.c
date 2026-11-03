@@ -142,7 +142,7 @@ uint32_t av2h_wasm_decode(uint32_t input_pointer, uint32_t input_size) {
         goto done;
     }
     status = av2h_frame_decode_workspace_query(
-        &sequence, &frame, bytes_per_sample, &workspace_layout);
+        &sequence, &frame, bytes_per_sample, NULL, &workspace_layout);
     if (status != AV2H_OK) goto done;
     workspace_memory = allocate_bytes(
         workspace_layout.size_bytes, workspace_layout.alignment);
@@ -154,7 +154,7 @@ uint32_t av2h_wasm_decode(uint32_t input_pointer, uint32_t input_size) {
     status = av2h_frame_decode_workspace_init(
         &sequence, &frame, bytes_per_sample, &workspace_layout,
         workspace_memory, workspace_layout.size_bytes,
-        &workspace, &filter_workspace, &filter_storage);
+        &workspace, &filter_workspace, &filter_storage, NULL);
     if (status != AV2H_OK) goto done;
     status = av2h_decode_frame_group_planar_private(
         &group, &sequence, &frame, &workspace, output, output_size,

@@ -495,3 +495,74 @@ between runs, so compare only paired ratios within each experiment. These
 results establish whole-decode gains for the selected filter-heavy cases,
 not the isolated contribution of each change, a universal corpus speedup,
 or performance guarantees on other machines or compilers.
+
+## A5 parallel execution
+
+A5 extends the existing injected `Av2hExecution` interface to independent
+filter ranges and tile waves. These measurements compare A4 (`cdbf571`)
+against A5, without changing optimization flags, admission, or pixel output.
+
+### Matched method
+
+- Same Apple M4 Max and Clang 22.1.8, diagnostics-disabled freestanding
+  `-O2` core, without LTO, explicit SIMD, or architecture-specific flags.
+  The shared raw-OBU CLI service includes parsing, caller allocations,
+  initialization, reconstruction, filters, output copying, and release.
+  Input loading, process startup, and file writing are outside timing.
+- A persistent test pthread executor supplies widths 2, 4, and 8. Pool
+  creation/destruction is outside timing; dispatch/barriers and optional
+  tile arena allocations are inside. This measures the execution interface,
+  not a new platform backend or an end-user CLI threading switch.
+- One warm decode, calibration for at least 30 ms, seven measured batches
+  per process, and nine deterministically shuffled paired rounds. Variant
+  order reverses on alternating rounds; builds/tests do not run concurrently.
+  Times are medians of batch medians. Speedups are medians of paired
+  A5-serial/parallel ratios, not necessarily ratios of displayed medians.
+- All 179 recorded pixel hashes and real 2/4/8-thread corpus comparisons pass
+  before timing. Native/full-LTO canonical hashes, container sizes, exact
+  rejections, and CLI contracts match in both diagnostic configurations.
+
+### Whole-decode scaling
+
+| Case | A5 serial, ms | 2 threads, ms | 4 threads, ms | 8 threads, ms | Paired speedup, 2 / 4 / 8 |
+|---|---:|---:|---:|---:|---:|
+| Baya, 896 I420 QP152 | 54.421 | 37.141 | 29.416 | 25.671 | 1.463 / 1.852 / 2.120x |
+| Baya, 896 I444 QP152 | 80.361 | 54.492 | 43.113 | 37.542 | 1.474 / 1.860 / 2.146x |
+| PC-Wiener fixture | 82.946 | 57.604 | 46.294 | 40.803 | 1.440 / 1.795 / 2.038x |
+| Two uniform tiles, 320x320 | 5.632 | 3.452 | 3.575 | 3.592 | 1.632 / 1.570 / 1.566x |
+| Four tiles/filter boundaries, 320x320 | 13.570 | 8.120 | 5.513 | 4.228 | 1.672 / 2.450 / 3.212x |
+
+Approximate 95% percentile bootstrap intervals (5,000 paired resamples) for
+the eight-thread speedups are respectively **2.095-2.123x**,
+**2.132-2.153x**, **2.022-2.049x**, **1.544-1.595x**, and
+**3.187-3.221x**. The two-tile case's two-thread interval is
+**1.609-1.673x**. It has only two independent tiles and little filter work;
+additional workers do not create more tile parallelism. The four-tile case
+also benefits from parallel filter ranges.
+
+### Serial overhead and small-image controls
+
+| Case | A4 serial, ms | A5 serial, ms | Paired A4/A5 ratio |
+|---|---:|---:|---:|
+| Baya, 896 I420 QP152 | 54.154 | 54.421 | 0.996x |
+| Baya, 896 I444 QP152 | 80.119 | 80.361 | 0.997x |
+| PC-Wiener fixture | 82.677 | 82.946 | 0.996x |
+| Two uniform tiles, 320x320 | 5.540 | 5.632 | 0.986x |
+| Four tiles/filter boundaries, 320x320 | 13.460 | 13.570 | 0.997x |
+| Pastel, 896 I420 QP0 | 69.252 | 69.852 | 0.991x |
+| High-detail 10-bit I420, 96x80 QP128 | 1.218 | 1.220 | 0.993x |
+| High-detail 10-bit I444, 96x80 QP128 | 2.715 | 2.708 | 1.006x |
+| Filtered boundary 10-bit I420, 65x63 | 0.297 | 0.298 | 0.997x |
+
+Most serial-control intervals include parity; the two-tile interval is
+**0.969-0.998x**, so this run does measure a small serial regression there.
+Do not describe A5 as having zero serial overhead.
+
+Lossless single-tile Pastel remains about 70 ms at every width, since it has
+little independent filter work. The small high-detail I420 case slows by
+roughly 3-4% with an injected pool (1.263-1.267 ms), while the small I444 and
+filtered-boundary cases are essentially flat. Scheduling is not free, and
+these data do not establish a universal corpus or cross-platform speedup.
+Deblocking stays serial; conservative tile fallbacks and existing platform
+backend limitations are documented in the
+[A5 architecture results](../improve-architecture.md#a5-implementation-and-verification-complete).

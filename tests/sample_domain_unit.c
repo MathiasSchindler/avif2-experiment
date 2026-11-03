@@ -109,7 +109,7 @@ static void test_cfl(void) {
     uint16_t luma[64U];
     uint16_t predictor[16U];
     uint8_t ready[4U] = {1U, 1U, 1U, 1U};
-    Av2hReconstructionPlaneU16 plane = {luma, 8U, 8U, 8U, 8U, 8U, ready, 2U, 4U};
+    Av2hReconstructionPlaneU16 plane = {luma, 8U, 8U, 8U, 8U, 8U, ready, 2U, 4U, {0}};
     unsigned int row;
     unsigned int column;
     for (row = 0U; row < 8U; ++row) {
@@ -136,7 +136,7 @@ static void test_cfl(void) {
         uint16_t samples[256U];
         uint8_t map[16U];
         Av2hReconstructionPlaneU16 neighbours = {samples, 16U, 16U, 16U,        16U,
-                                                 16U,     map, 4U,  sizeof(map)};
+                                                 16U,     map, 4U,  sizeof(map), {0}};
         av2h_memory_fill(map, 1U, sizeof(map));
         av2h_plane_fill_u16(samples, 16U, 16U, 16U, 2500U);
         av2h_plane_fill_u16(samples + 4U * 16U + 4U, 16U, 8U, 8U, 3000U);
@@ -167,7 +167,7 @@ static void test_cfl_filter_boundaries(void) {
                                      .reference_height = 128U,
                                      .reconstructed = ready,
                                      .reconstructed_stride_cells = 32U,
-                                     .reconstructed_count_cells = sizeof(ready)};
+                                     .reconstructed_count_cells = sizeof(ready), {0}};
     Av2hReconstructionPlaneU16 plane_u16 = {.data = luma_u16,
                                             .stride_samples = 128U,
                                             .width = 128U,
@@ -176,7 +176,7 @@ static void test_cfl_filter_boundaries(void) {
                                             .reference_height = 128U,
                                             .reconstructed = ready,
                                             .reconstructed_stride_cells = 32U,
-                                            .reconstructed_count_cells = sizeof(ready)};
+                                            .reconstructed_count_cells = sizeof(ready), {0}};
     const Av2hSampleDomain *domains[] = {&av2h_sample_domain_10bit, &av2h_sample_domain_12bit};
     size_t depth;
     size_t index;
@@ -359,8 +359,8 @@ static void test_filters(void) {
         av2h_plane_fill_u16(u, 4U, 4U, 4U, 2000U);
         av2h_plane_fill_u16(v, 4U, 4U, 4U, 3000U);
         u[0] = 4094U;
-        CHECK(av2h_ccso_filter_frame_u16(&planes, baseline, 8U, NULL, &frame, &controls,
-                                         &av2h_sample_domain_12bit) == AV2H_OK);
+        CHECK(av2h_ccso_filter_rows_u16(&planes, baseline, 8U, NULL, &frame, &controls,
+                                         0U, SIZE_MAX, &av2h_sample_domain_12bit) == AV2H_OK);
         CHECK(u[0] == 4095U);
         for (index = 1U; index < 16U; ++index)
             CHECK(u[index] == 2003U);
@@ -426,7 +426,7 @@ static void test_mhccp_extreme(void) {
     static uint8_t ready[48U * 48U];
     static uint16_t predictor[64U * 64U];
     Av2hReconstructionPlaneU16 luma_plane = {luma, 192U,  192U, 192U,         192U,
-                                             192U, ready, 48U,  sizeof(ready)};
+                                             192U, ready, 48U,  sizeof(ready), {0}};
     Av2hReconstructionPlaneU16 chroma_plane = luma_plane;
     Av2hChromaLeafMode mode = {0};
     size_t index;

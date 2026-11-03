@@ -66,6 +66,7 @@ typedef struct {
     size_t restoration_unit_flag_capacity;
     int16_t *restoration_unit_taps;
     size_t restoration_unit_tap_capacity;
+    uint8_t independent_tile;
 } Av2hTileContextStorage;
 
 typedef struct {

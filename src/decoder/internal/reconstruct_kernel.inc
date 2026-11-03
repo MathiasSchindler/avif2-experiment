@@ -2,7 +2,8 @@ static int AV2H_KERNEL_NAME(
     plane_sample_inside_active_tile,
     plane_sample_inside_active_tile_u16)(const AV2H_KERNEL_TYPE(Av2hReconstructionPlane, Av2hReconstructionPlaneU16) *plane, size_t x,
                                            size_t y) {
-    return plane_sample_inside_active_tile_cells(plane->reconstructed,
+    return av2h_plane_tile_contains(&plane->tile, x, y) &&
+           plane_sample_inside_active_tile_cells(plane->reconstructed,
                                                  plane->reconstructed_stride_cells,
                                                  plane->reconstructed_count_cells, x, y);
 }

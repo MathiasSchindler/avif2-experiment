@@ -129,7 +129,8 @@ static Av2hStatus decode_image(Av2hSpan input, const Av2hCliAllocator *allocator
     status = av2h_planar_output_size(&frame, bytes_per_sample, &output_size);
     if (status != AV2H_OK)
         return status;
-    status = av2h_frame_decode_workspace_query(&sequence, &frame, bytes_per_sample, &layout);
+    status = av2h_frame_decode_workspace_query(&sequence, &frame, bytes_per_sample,
+                                               options->execution, &layout);
     if (status != AV2H_OK)
         return status;
     if (!allocate_owned(allocator, layout.size_bytes, layout.alignment, &workspace_memory) ||
@@ -148,9 +149,9 @@ static Av2hStatus decode_image(Av2hSpan input, const Av2hCliAllocator *allocator
         }
     }
 #endif
-    status = av2h_frame_decode_workspace_init(&sequence, &frame, bytes_per_sample, &layout,
-                                              workspace_memory.memory, workspace_memory.size,
-                                              &workspace, &filter_workspace, &filter_storage);
+    status = av2h_frame_decode_workspace_init(
+        &sequence, &frame, bytes_per_sample, &layout, workspace_memory.memory,
+        workspace_memory.size, &workspace, &filter_workspace, &filter_storage, options->execution);
     if (status == AV2H_OK) {
         Av2hDecodePreparation *preparation = &workspace.decode_scratch->preparation;
         av2h_memory_copy(&preparation->sequence, &sequence, sizeof(sequence));

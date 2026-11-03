@@ -370,7 +370,7 @@ static void test_10bit_wp0_header(void) {
         luma_mode_above, luma_mode_left,
         coefficient_above, coefficient_left, colocated_luma,
         4U, 16U, 16U, 0, 0U, 0, 0U, { 0, 0, 0 }, 0U, 0, 0U, 0, 0U
-    };
+    , 0U};
     Av2hObu entries[3U];
     Av2hObuLedger ledger = { entries, 3U, 0U };
     Av2hError error;

@@ -71,9 +71,9 @@ static void test_storage_width_accounting(uint8_t chroma_format_idc) {
     CHECK(filter_u16.ccso_control_count == filter_u8.ccso_control_count);
 
     CHECK(av2h_frame_decode_workspace_query(
-              &sequence, &frame, 1U, &workspace_u8) == AV2H_OK);
+              &sequence, &frame, 1U, NULL, &workspace_u8) == AV2H_OK);
     CHECK(av2h_frame_decode_workspace_query(
-              &sequence, &frame, 2U, &workspace_u16) == AV2H_OK);
+              &sequence, &frame, 2U, NULL, &workspace_u16) == AV2H_OK);
     coded_plane_alignment_padding = av2h_frame_plane_count(&frame);
     CHECK(workspace_u16.size_bytes == workspace_u8.size_bytes +
           3U * sample_count + AV2H_RECON_SAMPLE_CAPACITY + 4U * 128U +
@@ -86,7 +86,7 @@ static void test_storage_width_accounting(uint8_t chroma_format_idc) {
         CHECK(av2h_frame_decode_workspace_init(
             &sequence, &frame, 1U, &workspace_u8, memory,
             workspace_u8.size_bytes, &workspace, &filter_workspace,
-            &filter_storage) == AV2H_OK);
+            &filter_storage, NULL) == AV2H_OK);
           CHECK(workspace.bytes_per_sample == 1U);
           CHECK(workspace.reconstruction_scratch != 0);
           CHECK(workspace.reconstruction_scratch_u16 == 0);
@@ -138,7 +138,7 @@ static void test_storage_width_accounting(uint8_t chroma_format_idc) {
         CHECK(av2h_frame_decode_workspace_init(
             &sequence, &frame, 1U, &workspace_u16, memory,
             workspace_u16.size_bytes, &workspace, &filter_workspace,
-            &filter_storage) ==
+            &filter_storage, NULL) ==
             AV2H_INVALID_ARGUMENT);
         CHECK(((const uint8_t *)&workspace)[0] == 0xa5U);
         CHECK(((const uint8_t *)&filter_workspace)[0] == 0xa5U);
@@ -148,7 +148,7 @@ static void test_storage_width_accounting(uint8_t chroma_format_idc) {
         CHECK(av2h_frame_decode_workspace_init(
               &sequence, &frame, 2U, &workspace_u16, memory,
               workspace_u16.size_bytes,
-              &workspace, &filter_workspace, &filter_storage) ==
+              &workspace, &filter_workspace, &filter_storage, NULL) ==
             AV2H_OK);
         CHECK(storage_memory[_Alignof(max_align_t) - 1U] == 0xa5U);
         CHECK(memory[workspace_u16.size_bytes] == 0xa5U);
@@ -234,7 +234,7 @@ static void test_storage_width_accounting(uint8_t chroma_format_idc) {
         av2h_memory_fill(&filter_storage, 0xa5U, sizeof(filter_storage));      \
         CHECK(av2h_frame_decode_workspace_init(                          \
               &sequence, &frame, 2U, (candidate_layout), (pointer), (size),   \
-              &workspace, &filter_workspace, &filter_storage) == (expected)); \
+              &workspace, &filter_workspace, &filter_storage, NULL) == (expected)); \
         CHECK(((const uint8_t *)&workspace)[0] == 0xa5U);                     \
         CHECK(((const uint8_t *)&filter_workspace)[0] == 0xa5U);              \
         CHECK(((const uint8_t *)&filter_storage)[0] == 0xa5U);                \
@@ -263,9 +263,9 @@ static void test_maximum_workspace(void) {
          ++chroma_format_idc) {
         initialize(&sequence, &frame, 16384U, 16384U, chroma_format_idc);
         CHECK(av2h_frame_decode_workspace_query(
-                  &sequence, &frame, 1U, &layout_u8) == AV2H_OK);
+                  &sequence, &frame, 1U, NULL, &layout_u8) == AV2H_OK);
         CHECK(av2h_frame_decode_workspace_query(
-                  &sequence, &frame, 2U, &layout_u16) == AV2H_OK);
+                  &sequence, &frame, 2U, NULL, &layout_u16) == AV2H_OK);
         CHECK(layout_u16.size_bytes > layout_u8.size_bytes);
         CHECK(layout_u16.size_bytes > limits.max_workspace_size);
         CHECK(layout_u16.alignment == layout_u8.alignment);
@@ -281,9 +281,9 @@ static void test_odd_u16_visible_crop(void) {
         sizeof(y), sizeof(u), sizeof(v)
     };
     Av2hReconstructionPlaneU16 coded[AV2H_FRAME_PLANE_COUNT] = {
-        { y, 26U, 24U, 16U, 24U, 16U, 0, 0U, 0U },
-        { u, 14U, 12U, 8U, 12U, 8U, 0, 0U, 0U },
-        { v, 14U, 12U, 8U, 12U, 8U, 0, 0U, 0U }
+        { y, 26U, 24U, 16U, 24U, 16U, 0, 0U, 0U , {0}},
+        { u, 14U, 12U, 8U, 12U, 8U, 0, 0U, 0U , {0}},
+        { v, 14U, 12U, 8U, 12U, 8U, 0, 0U, 0U , {0}}
     };
     Av2hSequenceState sequence;
     Av2hFrameState frame;
@@ -354,14 +354,14 @@ static void test_invalid_and_overflow(void) {
     CHECK(av2h_filter_workspace_query(
               &frame, 3U, &filter) == AV2H_INVALID_ARGUMENT);
     CHECK(av2h_frame_decode_workspace_query(
-              &sequence, &frame, 0U, &workspace) == AV2H_INVALID_ARGUMENT);
+              &sequence, &frame, 0U, NULL, &workspace) == AV2H_INVALID_ARGUMENT);
     CHECK(av2h_frame_decode_workspace_query(
-              &sequence, &frame, 3U, &workspace) == AV2H_INVALID_ARGUMENT);
+              &sequence, &frame, 3U, NULL, &workspace) == AV2H_INVALID_ARGUMENT);
     frame.width = UINT16_MAX;
     CHECK(av2h_frame_decode_workspace_query(
-              &sequence, &frame, 1U, &workspace) == AV2H_OVERFLOW);
+              &sequence, &frame, 1U, NULL, &workspace) == AV2H_OVERFLOW);
     CHECK(av2h_frame_decode_workspace_query(
-              &sequence, &frame, 2U, &workspace) == AV2H_OVERFLOW);
+              &sequence, &frame, 2U, NULL, &workspace) == AV2H_OVERFLOW);
 }
 
 int main(void) {

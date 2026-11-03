@@ -1,6 +1,6 @@
 # Decoder Architecture and Runtime Improvement Plan
 
-**Status:** A1-A4 complete; A5-A6 planned
+**Status:** A1-A5 complete; A6 planned
 **Scope:** [`src/`](../src/) and [`include/av2heif.h`](../include/av2heif.h)
 
 ## Purpose and Scope
@@ -518,7 +518,7 @@ Before A4, in [`src/decoder/filter.c`](../src/decoder/filter.c) and [`src/decode
 ## A5: Multi-Tile and Loop-Filter Parallelism via `Av2hExecution`
 
 ### Problem
-The repository includes a custom freestanding thread pool (`Av2hTaskPool` in [`src/runtime/concurrency.c`](../src/runtime/concurrency.c)) and an `Av2hExecution` interface, but:
+Before A5, the repository included a custom freestanding thread pool (`Av2hTaskPool` in [`src/runtime/concurrency.c`](../src/runtime/concurrency.c)) and an `Av2hExecution` interface, but:
 1. `Av2hExecution` is currently only wired into `av2h_copy_visible_planar_private` ([`src/decoder/frame_copy.c`](../src/decoder/frame_copy.c)), parallelizing only the final `memcpy` of decoded rows into the output buffer.
 2. All computationally heavy stages—tile entropy/reconstruction (`decode_tile_leaves`), Deblock, CDEF, CCSO, Restoration, and GDF—run strictly single-threaded.
 3. Furthermore, `Av2hFrameDecodeWorkspace` currently allocates a single `tile_context`, a single `reconstruction_scratch`, and mutates a single shared `coded[plane].reconstructed` readiness map (filling outside-tile cells with `2U` in `tile_readiness_clear`), which prevents decoding independent tiles in parallel.
@@ -534,6 +534,75 @@ The repository includes a custom freestanding thread pool (`Av2hTaskPool` in [`s
 ### Exit Criteria
 - Loop-filter stages (CDEF, CCSO, Restoration, GDF) and multi-tile frames scale across worker threads when an `Av2hExecution` pool is provided.
 - Single-threaded (`execution == NULL`) and multi-threaded (`execution->width > 1`) runs produce bit-for-bit identical output and deterministic error reporting.
+
+### A5 implementation and verification: complete
+
+- The typed [filter-stage owner](../src/decoder/internal/filter_stage.h)
+  dispatches CDEF, CCSO, PC-Wiener, Wiener-nonsep, and GDF over disjoint
+  64-luma-row ranges. Restoration retains its original 56/64-row source
+  stripe context; GDF retains global block/control coordinates. Each stage
+  joins before its successor starts. Deblocking remains serial. Filter arena
+  reservations do not grow, and accepted U8 aliases retain serial execution
+  and their A4 snapshots.
+- [Frame reference collection](../src/decoder/frame_output.c) uses explicit,
+  per-plane tile bounds before accessing readiness cells. No frame decode
+  mutates outside-tile readiness cells to `2U`. Existing cell rounding and
+  standalone-plane defaults remain supported.
+- The canonical private [workspace query/init](../src/decoder/internal/frame_workspace.h)
+  functions now take execution explicitly. Pass `NULL` for the unchanged
+  serial arena layout. Parallel requests append worker records, private
+  entropy contexts, coefficient/decoder state, and typed reconstruction
+  scratch for `min(tile_count, execution->width, 16)` workers. Worker zero
+  reuses the original arena state. Initialization requires the matching
+  queried layout; filter-only execution needs no extra tile storage. The
+  public API and its serial workspace requirements are unchanged.
+- [Tile waves](../src/decoder/frame_output.c) use logical batch slots, not
+  scheduler worker indices, and merge CDEF/CCSO controls in tile order after
+  joining. The [bounded range helper](../src/decoder/internal/parallel.h)
+  collects up to 32 ordered results rather than accepting whichever error a
+  pool observes first. Missing callbacks and dispatcher failures are errors.
+  Rejected tile batches replay serially because legacy failure records can
+  retain preceding-tile state; replay preserves exact diagnostics and
+  failure-side writes, never converting a parallel failure into success.
+- Tile reconstruction conservatively remains serial for GDF mode 2+,
+  restoration, unaligned CCSO tile/control boundaries, and attached partition
+  traces. Their independent filter work can still run concurrently. This
+  does not broaden feature admission or implement A6. Supplying execution to
+  a serial-sized workspace also leaves tile reconstruction serial.
+- The existing execution backends and frontend defaults are unchanged:
+  no new public threading API, POSIX CLI switch, or macOS/Windows worker
+  backend is introduced. Parallel callers supply the existing joined
+  [execution interface](../src/runtime/execution.h).
+
+Both complete diagnostic configurations pass the C/ASan/UBSan and fuzz
+suites. The frozen 288-case filter matrix passes serial, reverse-order, and
+real concurrent execution, including typed boundaries and Wiener-nonsep.
+Real 2/4/8-thread tests cover workspace reuse, exact malformed-tile results
+and diagnostics, actual tile participation, workspace/layout errors, and
+dispatcher failure. ThreadSanitizer passes the concurrent filter matrix and
+tile tests.
+
+All **179 raw hashes**, serial-versus-2/4/8-thread full-corpus results,
+**176 canonical hashes/container sizes**, three exact carriage rejections,
+and **14 CLI contracts** match in both diagnostic modes; canonical and CLI
+checks include native and full-LTO builds. Source/header/entrypoint guards
+remain intact. Native and full-LTO core objects have no undefined symbols, and
+the production frame ceiling remains **4,096 bytes**: native maximum
+**3,840 bytes**, with the twelve affected owners also checked across five
+foreign ABIs (largest **3,928 bytes**, diagnostic Windows x86-64).
+
+Full Python discovery additionally reports pre-existing prediction-evidence
+parser failures and the missing local
+`images/artifacts/emerald-192x96-qp208-decoded.i420` evidence file. The failing
+owners are unchanged by A5; the prediction failures also reproduce at A4 HEAD.
+
+Matched [performance measurements](dev/performance-baseline.md#a5-parallel-execution)
+show about **2.12-2.15x** eight-thread whole-decode speedup on the selected
+filter-heavy photographs, **2.04x** on PC-Wiener, **1.63x** with two workers
+on the two-tile case, and **3.21x** with eight workers on the four-tile
+filter-boundary case. These are measured gains, not dispatch-count proxies.
+Serial controls are close to A4, with a measured roughly 1.4% slowdown on
+the two-tile case; tiny/filter-light images do not generally benefit.
 
 ---
 

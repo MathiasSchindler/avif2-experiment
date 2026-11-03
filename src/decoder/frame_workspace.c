@@ -3,6 +3,7 @@
 #include "decoder/filter.h"
 #include "decoder/frame_output.h"
 #include "decoder/internal/filter_geometry.h"
+#include "decoder/internal/parallel.h"
 #include "decoder/internal/sample_ops.h"
 
 #include <stddef.h>
@@ -29,6 +30,15 @@ typedef struct {
 
 static int sized_u8_plane_bytes(size_t stride_samples, size_t height, size_t *size_bytes);
 static int sized_u16_plane_bytes(size_t stride_samples, size_t height, size_t *size_bytes);
+static void frame_tile_workspace_bind(Av2hArena *arena, const Av2hFrameState *frame,
+                                      size_t bytes_per_sample,
+                                      const Av2hFrameDecodeWorkspaceGeometry *geometry,
+                                      Av2hFrameDecodeWorkspace *workspace);
+static void frame_parallel_workspace_bind(Av2hArena *arena, const Av2hFrameState *frame,
+                                          size_t bytes_per_sample,
+                                          const Av2hFrameDecodeWorkspaceGeometry *geometry,
+                                          unsigned int worker_count,
+                                          Av2hFrameDecodeWorkspace *workspace);
 
 static void *workspace_arena_array(Av2hArena *arena, size_t count, size_t element_size,
                                    size_t alignment) {
@@ -108,7 +118,8 @@ static Av2hStatus frame_decode_workspace_geometry(const Av2hSequenceState *seque
 static void frame_decode_workspace_bind(Av2hArena *arena, const Av2hFrameState *frame,
                                         size_t bytes_per_sample,
                                         const Av2hFrameDecodeWorkspaceGeometry *geometry,
-                                        Av2hFrameDecodeWorkspace *workspace, void **filter_memory) {
+                                        Av2hFrameDecodeWorkspace *workspace, void **filter_memory,
+                                        unsigned int worker_count) {
     unsigned int plane;
     Av2hFrameDecodeScratch *decode_scratch = av2h_arena_allocate(
         arena, sizeof(Av2hFrameDecodeScratch), _Alignof(Av2hFrameDecodeScratch));
@@ -132,7 +143,8 @@ static void frame_decode_workspace_bind(Av2hArena *arena, const Av2hFrameState *
                     (uint16_t)av2h_frame_plane_dimension(frame, plane, frame->height),
                     reconstructed,
                     geometry->filter.deblock_columns[plane],
-                    geometry->filter.deblock_cell_count[plane]};
+                    geometry->filter.deblock_cell_count[plane],
+                    {0}};
             } else {
                 workspace->coded_u16[plane] = (Av2hReconstructionPlaneU16){
                     data,
@@ -143,11 +155,22 @@ static void frame_decode_workspace_bind(Av2hArena *arena, const Av2hFrameState *
                     (uint16_t)av2h_frame_plane_dimension(frame, plane, frame->height),
                     reconstructed,
                     geometry->filter.deblock_columns[plane],
-                    geometry->filter.deblock_cell_count[plane]};
+                    geometry->filter.deblock_cell_count[plane],
+                    {0}};
             }
             workspace->coded_data_size_bytes[plane] = geometry->filter.stage_plane_bytes[plane];
         }
     }
+    frame_tile_workspace_bind(arena, frame, bytes_per_sample, geometry, workspace);
+    frame_parallel_workspace_bind(arena, frame, bytes_per_sample, geometry, worker_count,
+                                  workspace);
+}
+
+static void frame_tile_workspace_bind(Av2hArena *arena, const Av2hFrameState *frame,
+                                      size_t bytes_per_sample,
+                                      const Av2hFrameDecodeWorkspaceGeometry *geometry,
+                                      Av2hFrameDecodeWorkspace *workspace) {
+    unsigned int plane;
 #define AV2H_BIND_WORKSPACE_FIELD(field, count, type)                                              \
     do {                                                                                           \
         void *allocated = workspace_arena_array(arena, (count), sizeof(type), _Alignof(type));     \
@@ -185,11 +208,69 @@ static void frame_decode_workspace_bind(Av2hArena *arena, const Av2hFrameState *
                 workspace->reconstruction_scratch_u16 = scratch;
             }
         }
+        if (workspace != NULL) {
+            workspace->tile_context.above_count = geometry->context_columns;
+            workspace->tile_context.left_count = geometry->context_rows;
+            workspace->tile_context.colocated_luma_count = geometry->mi_cells;
+            workspace->tile_context.gdf_block_flag_capacity = frame->gdf_block_count;
+            workspace->tile_context.cdef_unit_strength_capacity = geometry->cdef_count;
+            workspace->tile_context.ccso_unit_control_capacity =
+                geometry->filter.ccso_control_count;
+            workspace->tile_context.restoration_unit_flag_capacity = geometry->restoration_count;
+            workspace->tile_context.restoration_unit_tap_capacity = geometry->restoration_tap_count;
+        }
+    }
+}
+
+static unsigned int frame_tile_worker_count(const Av2hFrameState *frame,
+                                            const Av2hExecution *execution) {
+    unsigned int count = (unsigned int)frame->tile_column_count * frame->tile_row_count;
+    if (execution == NULL || execution->parallel_for == NULL || execution->width <= 1U ||
+        count <= 1U)
+        return 1U;
+    if (count > execution->width)
+        count = execution->width;
+    if (count > AV2H_PARALLEL_TILE_WORKERS)
+        count = AV2H_PARALLEL_TILE_WORKERS;
+    return count;
+}
+
+static void frame_parallel_workspace_bind(Av2hArena *arena, const Av2hFrameState *frame,
+                                          size_t bytes_per_sample,
+                                          const Av2hFrameDecodeWorkspaceGeometry *geometry,
+                                          unsigned int worker_count,
+                                          Av2hFrameDecodeWorkspace *workspace) {
+    Av2hFrameTileWorker *workers;
+    size_t start;
+    unsigned int index;
+    if (workspace != NULL)
+        workspace->tile_worker_count = worker_count;
+    if (worker_count <= 1U)
+        return;
+    workers =
+        workspace_arena_array(arena, worker_count, sizeof(*workers), _Alignof(Av2hFrameTileWorker));
+    if (arena->status != AV2H_OK)
+        return;
+    start = arena->used - worker_count * sizeof(*workers);
+    if (workspace != NULL)
+        av2h_memory_fill(workers, 0U, worker_count * sizeof(*workers));
+    for (index = 1U; index < worker_count; ++index) {
+        Av2hFrameDecodeScratch *scratch =
+            av2h_arena_allocate(arena, sizeof(*scratch), _Alignof(Av2hFrameDecodeScratch));
+        if (workspace != NULL)
+            workers[index].workspace.decode_scratch = scratch;
+        frame_tile_workspace_bind(arena, frame, bytes_per_sample, geometry,
+                                  workspace != NULL ? &workers[index].workspace : NULL);
+    }
+    if (workspace != NULL) {
+        workspace->tile_workers = workers;
+        workspace->parallel_size_bytes = arena->used - start;
     }
 }
 
 Av2hStatus av2h_frame_decode_workspace_query(const Av2hSequenceState *sequence,
                                              const Av2hFrameState *frame, size_t bytes_per_sample,
+                                             const Av2hExecution *execution,
                                              Av2hFrameDecodeWorkspaceLayout *layout) {
     Av2hFrameDecodeWorkspaceGeometry geometry;
     Av2hFrameDecodeWorkspaceLayout result;
@@ -205,7 +286,8 @@ Av2hStatus av2h_frame_decode_workspace_query(const Av2hSequenceState *sequence,
     if (status != AV2H_OK)
         return status;
     av2h_arena_init_sizing(&arena);
-    frame_decode_workspace_bind(&arena, frame, bytes_per_sample, &geometry, NULL, &filter_memory);
+    frame_decode_workspace_bind(&arena, frame, bytes_per_sample, &geometry, NULL, &filter_memory,
+                                frame_tile_worker_count(frame, execution));
     if (arena.status != AV2H_OK)
         return arena.status;
     result.size_bytes = av2h_arena_required(&arena);
@@ -224,7 +306,7 @@ AV2H_NOINLINE Av2hStatus av2h_frame_decode_workspace_init(
     const Av2hSequenceState *sequence, const Av2hFrameState *frame, size_t bytes_per_sample,
     const Av2hFrameDecodeWorkspaceLayout *layout, void *memory, size_t memory_size_bytes,
     Av2hFrameDecodeWorkspace *workspace, Av2hFilterWorkspace *filter_workspace,
-    Av2hFilterWorkspaceStorage *filter_storage) {
+    Av2hFilterWorkspaceStorage *filter_storage, const Av2hExecution *execution) {
     Av2hFrameDecodeWorkspaceGeometry geometry;
     Av2hFrameDecodeWorkspaceLayout fresh_layout;
     Av2hFrameDecodeWorkspace local_workspace;
@@ -244,7 +326,8 @@ AV2H_NOINLINE Av2hStatus av2h_frame_decode_workspace_init(
         (bytes_per_sample == 2U && sequence->info.bit_depth_idc != 0U)) {
         return AV2H_UNSUPPORTED;
     }
-    status = av2h_frame_decode_workspace_query(sequence, frame, bytes_per_sample, &fresh_layout);
+    status = av2h_frame_decode_workspace_query(sequence, frame, bytes_per_sample, execution,
+                                               &fresh_layout);
     if (status != AV2H_OK)
         return status;
     if (layout->size_bytes != fresh_layout.size_bytes ||
@@ -262,17 +345,9 @@ AV2H_NOINLINE Av2hStatus av2h_frame_decode_workspace_init(
     av2h_memory_fill(&local_filter_storage, 0U, sizeof(local_filter_storage));
     av2h_arena_init(&arena, memory, fresh_layout.size_bytes);
     frame_decode_workspace_bind(&arena, frame, bytes_per_sample, &geometry, &local_workspace,
-                                &filter_memory);
+                                &filter_memory, frame_tile_worker_count(frame, execution));
     if (arena.status != AV2H_OK)
         return arena.status;
-    local_workspace.tile_context.above_count = geometry.context_columns;
-    local_workspace.tile_context.left_count = geometry.context_rows;
-    local_workspace.tile_context.colocated_luma_count = geometry.mi_cells;
-    local_workspace.tile_context.gdf_block_flag_capacity = frame->gdf_block_count;
-    local_workspace.tile_context.cdef_unit_strength_capacity = geometry.cdef_count;
-    local_workspace.tile_context.ccso_unit_control_capacity = geometry.filter.ccso_control_count;
-    local_workspace.tile_context.restoration_unit_flag_capacity = geometry.restoration_count;
-    local_workspace.tile_context.restoration_unit_tap_capacity = geometry.restoration_tap_count;
     status = av2h_filter_workspace_init(frame, bytes_per_sample, filter_memory,
                                         geometry.filter.size_bytes, &local_filter_workspace,
                                         &local_filter_storage);
@@ -453,6 +528,9 @@ static int output_is_disjoint(uint8_t *output, size_t output_size_bytes,
                               const Av2hFrameDecodeWorkspace *workspace,
                               const Av2hFrameContextSizes *context_sizes,
                               const Av2hFrameDecodeResult *result) {
+    if (output_overlaps(output, output_size_bytes, workspace->tile_workers,
+                        workspace->parallel_size_bytes))
+        return 0;
     const Av2hTileContextStorage *context = &workspace->tile_context;
     unsigned int plane;
     for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
@@ -687,6 +765,24 @@ Av2hStatus av2h_frame_workspace_prepare(const Av2hSequenceState *sequence,
         frame, workspace != NULL ? workspace->bytes_per_sample : 0U, layout);
     if (status != AV2H_OK)
         return status;
+    if (workspace->tile_worker_count > AV2H_PARALLEL_TILE_WORKERS ||
+        (workspace->tile_worker_count > 1U &&
+         (workspace->tile_workers == NULL ||
+          (uintptr_t)workspace->tile_workers % _Alignof(Av2hFrameTileWorker) != 0U ||
+          workspace->parallel_size_bytes <
+              workspace->tile_worker_count * sizeof(*workspace->tile_workers)))) {
+        return AV2H_INVALID_ARGUMENT;
+    }
+    for (unsigned int index = 1U; index < workspace->tile_worker_count; ++index) {
+        const Av2hFrameDecodeWorkspace *worker = &workspace->tile_workers[index].workspace;
+        if (worker->decode_scratch == NULL ||
+            (uintptr_t)worker->decode_scratch % _Alignof(Av2hFrameDecodeScratch) != 0U ||
+            (workspace->bytes_per_sample == 1U && worker->reconstruction_scratch == NULL) ||
+            (workspace->bytes_per_sample == 2U && worker->reconstruction_scratch_u16 == NULL) ||
+            !tile_context_valid(sequence, frame, &worker->tile_context, &context_sizes)) {
+            return AV2H_INVALID_ARGUMENT;
+        }
+    }
     if (!av2h_frame_syntax_storage_valid(frame) || workspace->decode_scratch == NULL ||
         (uintptr_t)workspace->decode_scratch % _Alignof(Av2hFrameDecodeScratch) != 0U ||
         !filter_workspace_valid(frame, layout, workspace->filter_workspace,

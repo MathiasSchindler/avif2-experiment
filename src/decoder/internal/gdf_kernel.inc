@@ -229,33 +229,32 @@ Av2hStatus AV2H_KERNEL_NAME(av2h_gdf_validate_frame, av2h_gdf_validate_frame_u16
 
 /* Geometry, controls, and disjoint writable storage must be validated first.
  * The two immutable source planes may share storage in the stage router. */
-void AV2H_KERNEL_NAME(av2h_gdf_apply_frame, av2h_gdf_apply_frame_u16)(
+void AV2H_KERNEL_NAME(av2h_gdf_apply_rows, av2h_gdf_apply_rows_u16)(
     AV2H_KERNEL_TYPE(Av2hFilterPlane, Av2hFilterPlaneU16) *destination,
 #if !AV2H_KERNEL_WIDE
-                          const Av2hFilterPlane *baseline_luma,
+                         const Av2hFilterPlane *baseline_luma,
 #endif
-                          const AV2H_KERNEL_TYPE(Av2hFilterPlane, Av2hFilterPlaneU16) *cdef_luma, const AV2H_KERNEL_TYPE(Av2hFilterPlane, Av2hFilterPlaneU16) *deblocked_luma,
-                          const Av2hSequenceState *sequence, const Av2hFrameState *frame,
-                          const Av2hGdfControlMap *controls
+                         const AV2H_KERNEL_TYPE(Av2hFilterPlane, Av2hFilterPlaneU16) *cdef_luma, const AV2H_KERNEL_TYPE(Av2hFilterPlane, Av2hFilterPlaneU16) *deblocked_luma,
+                         const Av2hSequenceState *sequence, const Av2hFrameState *frame,
+                         const Av2hGdfControlMap *controls, size_t row_begin, size_t row_end
 #if AV2H_KERNEL_WIDE
-                          ,
-                          const Av2hSampleDomain *domain
+                         ,
+                         const Av2hSampleDomain *domain
 #endif
 ) {
     uint16_t row;
     unsigned int qp_index;
 #if AV2H_KERNEL_WIDE
     qp_index = gdf_training_qp_index(frame, domain->bit_depth);
-    av2h_plane_copy_u16(destination->data, destination->stride_samples, cdef_luma->data,
-                        cdef_luma->stride_samples, destination->width, destination->height);
+    filter_copy_rows_u16(destination, cdef_luma, row_begin, row_end);
 #else
     qp_index = gdf_training_qp_index(frame, 8U);
-    av2h_plane_copy_u8(destination->data, destination->stride_samples, baseline_luma->data,
-                       baseline_luma->stride_samples, destination->width, destination->height);
+    filter_copy_rows(destination, baseline_luma, row_begin, row_end);
 #endif
     if (frame->gdf_mode == 0U)
         return;
-    for (row = 0U; row < destination->height; row = (uint16_t)(row + 4U)) {
+    for (row = (uint16_t)row_begin; row < destination->height && row < row_end;
+         row = (uint16_t)(row + 4U)) {
         uint16_t column;
         for (column = 0U; column < destination->width; column = (uint16_t)(column + 4U)) {
             GdfTileBounds bounds = gdf_tile_bounds(sequence, frame, column, row);
@@ -313,15 +312,16 @@ Av2hStatus AV2H_KERNEL_NAME(av2h_gdf_filter_frame, av2h_gdf_filter_frame_u16)(
     );
     if (status != AV2H_OK)
         return status;
-    AV2H_KERNEL_NAME(av2h_gdf_apply_frame,
-                     av2h_gdf_apply_frame_u16)(destination,
+    AV2H_KERNEL_NAME(
+        av2h_gdf_apply_rows,
+        av2h_gdf_apply_rows_u16)(destination,
 #if !AV2H_KERNEL_WIDE
-                         baseline_luma,
+                        baseline_luma,
 #endif
-                         cdef_luma, deblocked_luma, sequence, frame, controls
+                        cdef_luma, deblocked_luma, sequence, frame, controls, 0U, SIZE_MAX
 #if AV2H_KERNEL_WIDE
-                         ,
-                         domain
+                        ,
+                        domain
 #endif
     );
     return AV2H_OK;

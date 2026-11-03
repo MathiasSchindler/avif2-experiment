@@ -445,7 +445,7 @@ static void test_odd_luma_reconstruction(void) {
         { ccso_unit_controls[0], ccso_unit_controls[1],
           ccso_unit_controls[2] },
                 1U, 0, 0U, 0, 0U
-    };
+    , 0U};
     uint8_t luma_pixels[24U * 16U];
     uint8_t u_pixels[12U * 8U];
     uint8_t v_pixels[12U * 8U];
@@ -455,15 +455,15 @@ static void test_odd_luma_reconstruction(void) {
     Av2hReconstructionPlane luma_plane = {
         luma_pixels, 24U, 24U, 16U, 17U, 15U,
         luma_reconstructed, 6U, sizeof(luma_reconstructed)
-    };
+    , {0}};
     Av2hReconstructionPlane u_plane = {
         u_pixels, 12U, 12U, 8U, 9U, 8U,
         u_reconstructed, 3U, sizeof(u_reconstructed)
-    };
+    , {0}};
     Av2hReconstructionPlane v_plane = {
         v_pixels, 12U, 12U, 8U, 9U, 8U,
         v_reconstructed, 3U, sizeof(v_reconstructed)
-    };
+    , {0}};
     Av2hReconstructionScratch reconstruction_scratch;
     Av2hObu obu;
     Av2hObuLedger ledger = { &obu, 1U, 0U };
@@ -797,13 +797,13 @@ static void test_ordinary_luma_frontier(void) {
         { ccso_unit_controls[0], ccso_unit_controls[1],
           ccso_unit_controls[2] },
                 1U, 0, 0U, 0, 0U
-    };
+    , 0U};
     uint8_t luma_pixels[160U * 128U];
     uint8_t luma_reconstructed[40U * 32U];
     Av2hReconstructionPlane luma_plane = {
         luma_pixels, 160U, 160U, 128U, 160U, 120U,
         luma_reconstructed, 40U, sizeof(luma_reconstructed)
-    };
+    , {0}};
     uint8_t u_pixels[80U * 64U];
     uint8_t v_pixels[80U * 64U];
     uint8_t u_reconstructed[20U * 16U];
@@ -811,11 +811,11 @@ static void test_ordinary_luma_frontier(void) {
     Av2hReconstructionPlane u_plane = {
         u_pixels, 80U, 80U, 64U, 80U, 60U,
         u_reconstructed, 20U, sizeof(u_reconstructed)
-    };
+    , {0}};
     Av2hReconstructionPlane v_plane = {
         v_pixels, 80U, 80U, 64U, 80U, 60U,
         v_reconstructed, 20U, sizeof(v_reconstructed)
-    };
+    , {0}};
     Av2hReconstructionScratch scratch;
     Av2hSequenceState sequence = { 0 };
     Av2hFrameState frame = { 0 };
@@ -1471,7 +1471,7 @@ static void test_orchestrator_failures(void) {
         { ccso_unit_controls[0], ccso_unit_controls[1],
           ccso_unit_controls[2] },
                 1U, 0, 0U, 0, 0U
-    };
+    , 0U};
     Av2hSequenceState sequence = { 0 };
     Av2hFrameState frame = { 0 };
     Av2hTileDecoder decoder;
@@ -1553,7 +1553,7 @@ static void test_sdp_superblock_scheduler(void) {
         { ccso_unit_controls[0], ccso_unit_controls[1],
           ccso_unit_controls[2] },
                 1U, 0, 0U, 0, 0U
-    };
+    , 0U};
     Av2hSequenceState sequence = { 0 };
     Av2hFrameState frame = { 0 };
     Av2hTileDecoder decoder;
@@ -1647,7 +1647,7 @@ static void test_scheduler_guards_and_root_size(void) {
         { ccso_unit_controls[0], ccso_unit_controls[1],
           ccso_unit_controls[2] },
                 1U, 0, 0U, 0, 0U
-    };
+    , 0U};
     Av2hSequenceState sequence = { 0 };
     Av2hFrameState frame = { 0 };
     Av2hTileDecoder decoder;

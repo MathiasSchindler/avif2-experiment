@@ -787,7 +787,7 @@ Av2hStatus av2h_tile_decoder_init(Av2hTileDecoder *decoder, Av2hSpan entropy,
                                     storage->gdf_block_flags, storage->gdf_block_flag_capacity);
     if (status != AV2H_OK)
         return av2h_tile_decoder_fail(decoder, status);
-    status = tile_id != UINT16_MAX && tile_id != 0U
+    status = tile_id != UINT16_MAX && tile_id != 0U && storage->independent_tile == 0U
                  ? av2h_cdef_entropy_state_init_preserving_controls(
                        &decoder->entropy_state.cdef_entropy, sequence, frame,
                        storage->cdef_unit_strengths, storage->cdef_unit_strength_capacity)
@@ -798,7 +798,7 @@ Av2hStatus av2h_tile_decoder_init(Av2hTileDecoder *decoder, Av2hSpan entropy,
         return av2h_tile_decoder_fail(decoder, status);
     decoder->entropy_state.cdef_entropy.tile_start_column = decoder->traversal.tile_start_column;
     decoder->entropy_state.cdef_entropy.tile_start_row = decoder->traversal.tile_start_row;
-    status = tile_id != UINT16_MAX && tile_id != 0U
+    status = tile_id != UINT16_MAX && tile_id != 0U && storage->independent_tile == 0U
                  ? av2h_ccso_entropy_state_init_preserving_controls(
                        &decoder->entropy_state.ccso_entropy, sequence, frame,
                        storage->ccso_unit_controls, storage->ccso_unit_control_capacity)

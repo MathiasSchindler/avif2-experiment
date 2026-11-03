@@ -444,7 +444,7 @@ class SourceConsistencyTests(unittest.TestCase):
     def test_typed_kernels_have_one_scoped_owner(self) -> None:
         internal = ROOT / "src/decoder/internal"
         templates = sorted(internal.glob("*_kernel.inc"))
-        self.assertEqual(len(templates), 17)
+        self.assertEqual(len(templates), 18)
         for template in templates:
             stem = template.stem.removesuffix("_kernel")
             owners = [ROOT / "src/decoder" / (stem + ".c"), internal / (stem + ".h")]

@@ -225,7 +225,7 @@ Av2hStatus av2h_decode_prepare(const Av2hHeifImage *image, Av2hDecodePreparation
         return decode_fail(error, status, AV2H_CONTEXT_OUTPUT);
     }
     status = av2h_frame_decode_workspace_query(&preparation->sequence, &preparation->frame,
-                                               image->pixel_format.bytes_per_sample,
+                                               image->pixel_format.bytes_per_sample, NULL,
                                                &preparation->workspace);
     if (status != AV2H_OK) {
         return decode_fail(error, status, AV2H_CONTEXT_WORKSPACE);
@@ -333,7 +333,7 @@ Av2hStatus av2h_decode(Av2hSpan input, const Av2hInfo *info, void *workspace_mem
     status = av2h_frame_decode_workspace_init(
         &preparation->sequence, &preparation->frame, fresh.image.pixel_format.bytes_per_sample,
         &preparation->workspace, workspace_memory, workspace_size, &workspace, &filter_workspace,
-        &filter_storage);
+        &filter_storage, NULL);
     if (status != AV2H_OK) {
         return decode_fail(error, status, AV2H_CONTEXT_WORKSPACE);
     }

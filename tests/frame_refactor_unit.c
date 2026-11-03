@@ -72,14 +72,14 @@ static void test_storage_offsets(void) {
                             frame.restoration_unit_count[0] = 3U;
                         }
                         CHECK(av2h_frame_decode_workspace_query(
-                                  &sequence, &frame, bytes, &layout) == AV2H_OK);
+                                  &sequence, &frame, bytes, NULL, &layout) == AV2H_OK);
                         CHECK(layout.size_bytes < sizeof(memory));
                         if (layout.size_bytes >= sizeof(memory)) return;
                         memset(memory, 0xa5, sizeof(memory));
                         CHECK(av2h_frame_decode_workspace_init(
                                   &sequence, &frame, bytes, &layout, memory,
                                   layout.size_bytes, &workspace, &filter,
-                                  &storage) == AV2H_OK);
+                                  &storage, NULL) == AV2H_OK);
                         CHECK(memory[layout.size_bytes] == 0xa5U);
                         hash = hash_value(hash, layout.size_bytes);
                         hash = hash_value(hash, layout.alignment);
@@ -194,7 +194,7 @@ static void test_copy(unsigned int bytes, uint8_t format, uint16_t width,
         };
         coded_u16[plane] = (Av2hReconstructionPlaneU16){
             source_u16[plane], stride, layout.plane_width[plane],
-            layout.plane_height[plane], 0U, 0U, 0, 0U, 0U
+            layout.plane_height[plane], 0U, 0U, 0, 0U, 0U, {0}
         };
         capacities[plane] = stride * layout.plane_height[plane] * bytes;
         for (row = 0U; row < layout.plane_height[plane]; ++row) {
@@ -495,12 +495,12 @@ static void test_frame_results(void) {
               frame.uncompressed_header_bits, &group) == AV2H_OK);
     CHECK(group.entropy.size >= 8U);
     CHECK(av2h_frame_decode_workspace_query(
-        &sequence, &frame, 1U, &layout) == AV2H_OK);
+        &sequence, &frame, 1U, NULL, &layout) == AV2H_OK);
     CHECK(layout.size_bytes <= sizeof(memory));
     if (group.entropy.size < 8U || layout.size_bytes > sizeof(memory)) return;
     CHECK(av2h_frame_decode_workspace_init(
         &sequence, &frame, 1U, &layout, memory, layout.size_bytes, &workspace,
-        &filter, &storage) == AV2H_OK);
+        &filter, &storage, NULL) == AV2H_OK);
     for (variant = 0U; variant <= 64U; ++variant) {
         Av2hFrameDecodeResult result = { 0 };
         size_t byte = variant ? (variant - 1U) / 8U : 0U;
@@ -607,12 +607,12 @@ static void test_frame_orchestration_results(void) {
         bytes = sequence.info.bit_depth_idc == 1U ? 1U : 2U;
         CHECK(av2h_planar_output_size(&frame, bytes, &required) == AV2H_OK);
         CHECK(required + 16U <= sizeof(output));
-        CHECK(av2h_frame_decode_workspace_query(&sequence, &frame, bytes, &layout) == AV2H_OK);
+        CHECK(av2h_frame_decode_workspace_query(&sequence, &frame, bytes, NULL, &layout) == AV2H_OK);
         CHECK(layout.size_bytes <= sizeof(memory));
         if (required + 16U > sizeof(output) || layout.size_bytes > sizeof(memory)) return;
         CHECK(av2h_frame_decode_workspace_init(
                   &sequence, &frame, bytes, &layout, memory, layout.size_bytes, &workspace,
-                  &filter, &storage) == AV2H_OK);
+                  &filter, &storage, NULL) == AV2H_OK);
         workspace.diagnostics = &workspace.diagnostics_storage;
         workspace.diagnostics->partition_trace = trace;
         workspace.diagnostics->partition_trace_structure = trace_structure;
@@ -667,7 +667,7 @@ static void test_frame_orchestration_results(void) {
             if (variant == 76U) {
                 CHECK(av2h_frame_decode_workspace_init(
                           &sequence, &frame, bytes, &layout, memory, layout.size_bytes, &workspace,
-                          &filter, &storage) == AV2H_OK);
+                          &filter, &storage, NULL) == AV2H_OK);
                 workspace.diagnostics = &workspace.diagnostics_storage;
                 workspace.diagnostics->partition_trace = trace;
                 workspace.diagnostics->partition_trace_structure = trace_structure;

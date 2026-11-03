@@ -107,3 +107,17 @@ static inline void AV2H_KERNEL_NAME(filter_copy_plane, filter_copy_plane_u16)(
         av2h_plane_copy_u16)(destination->data, destination->stride_samples, source->data,
                        source->stride_samples, source->width, source->height);
 }
+
+static inline void AV2H_KERNEL_NAME(filter_copy_rows, filter_copy_rows_u16)(
+    AV2H_KERNEL_TYPE(Av2hFilterPlane, Av2hFilterPlaneU16) *destination, const AV2H_KERNEL_TYPE(Av2hFilterPlane, Av2hFilterPlaneU16) *source,
+                                    size_t begin, size_t end) {
+    if (end > source->height)
+        end = source->height;
+    if (begin >= end)
+        return;
+    AV2H_KERNEL_NAME(
+        av2h_plane_copy_u8,
+        av2h_plane_copy_u16)(destination->data + begin * destination->stride_samples,
+                       destination->stride_samples, source->data + begin * source->stride_samples,
+                       source->stride_samples, source->width, end - begin);
+}

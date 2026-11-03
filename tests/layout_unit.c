@@ -56,9 +56,9 @@ static void test_64_bit_decoder_layout(void) {
     CHECK(_Alignof(Av2hReconstructionScratch) == 4U);
     CHECK(sizeof(Av2hReconstructionScratchU16) == 46084U);
     CHECK(_Alignof(Av2hReconstructionScratchU16) == 4U);
-    CHECK(sizeof(Av2hReconstructionPlane) == 48U);
+    CHECK(sizeof(Av2hReconstructionPlane) == 56U);
     CHECK(_Alignof(Av2hReconstructionPlane) == 8U);
-    CHECK(sizeof(Av2hReconstructionPlaneU16) == 48U);
+    CHECK(sizeof(Av2hReconstructionPlaneU16) == 56U);
     CHECK(_Alignof(Av2hReconstructionPlaneU16) == 8U);
     CHECK(sizeof(Av2hFilterPlane) == 24U);
     CHECK(_Alignof(Av2hFilterPlane) == 8U);

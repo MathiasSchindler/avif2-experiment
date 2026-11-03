@@ -131,7 +131,7 @@ static void test_u16_width_parity(void) {
         coded[plane] = (Av2hReconstructionPlaneU16){
             source_u16[plane], TEST_WIDTH, TEST_WIDTH, TEST_HEIGHT,
             TEST_WIDTH, TEST_HEIGHT, 0, 0U, 0U
-        };
+        , {0}};
         capacities[plane] = sizeof(source_u16[plane]);
     }
     CHECK(av2h_planar_output_size(

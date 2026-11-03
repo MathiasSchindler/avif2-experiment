@@ -160,6 +160,8 @@ static int plane_sample_inside_active_tile_cells(const uint8_t *reconstructed, s
 }
 
 int av2h_plane_sample_reconstructed(const Av2hReconstructionPlane *plane, size_t x, size_t y) {
+    if (!av2h_plane_tile_contains(&plane->tile, x, y))
+        return 0;
     return plane_sample_reconstructed_cells(plane->reconstructed, plane->reconstructed_stride_cells,
                                             plane->reconstructed_count_cells, x, y);
 }
@@ -181,7 +183,8 @@ static void plane_mark_reconstructed_cells(uint8_t *reconstructed, size_t stride
 
 static int plane_sample_reconstructed_u16(const Av2hReconstructionPlaneU16 *plane, size_t x,
                                           size_t y) {
-    return plane_sample_reconstructed_cells(plane->reconstructed, plane->reconstructed_stride_cells,
+    return av2h_plane_tile_contains(&plane->tile, x, y) &&
+           plane_sample_reconstructed_cells(plane->reconstructed, plane->reconstructed_stride_cells,
                                             plane->reconstructed_count_cells, x, y);
 }
 

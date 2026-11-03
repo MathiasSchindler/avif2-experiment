@@ -15,7 +15,8 @@ int av2h_chroma_plane_sample_reconstructed_u16(const Av2hReconstructionPlaneU16 
     cell_x = x / 4U;
     cell_y = y / 4U;
     index = cell_y * plane->reconstructed_stride_cells + cell_x;
-    return index < plane->reconstructed_count_cells && plane->reconstructed[index] != 0U;
+    return av2h_plane_tile_contains(&plane->tile, x, y) &&
+           index < plane->reconstructed_count_cells && plane->reconstructed[index] != 0U;
 }
 
 int av2h_chroma_geometry_supported(uint16_t width, uint16_t height) {

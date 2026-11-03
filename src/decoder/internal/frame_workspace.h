@@ -5,15 +5,14 @@
 
 Av2hStatus av2h_frame_decode_workspace_query(const Av2hSequenceState *sequence,
                                              const Av2hFrameState *frame, size_t bytes_per_sample,
+                                             const Av2hExecution *execution,
                                              Av2hFrameDecodeWorkspaceLayout *layout);
 
-Av2hStatus av2h_frame_decode_workspace_init(const Av2hSequenceState *sequence,
-                                            const Av2hFrameState *frame, size_t bytes_per_sample,
-                                            const Av2hFrameDecodeWorkspaceLayout *layout,
-                                            void *memory, size_t memory_size_bytes,
-                                            Av2hFrameDecodeWorkspace *workspace,
-                                            Av2hFilterWorkspace *filter_workspace,
-                                            Av2hFilterWorkspaceStorage *filter_storage);
+Av2hStatus av2h_frame_decode_workspace_init(
+    const Av2hSequenceState *sequence, const Av2hFrameState *frame, size_t bytes_per_sample,
+    const Av2hFrameDecodeWorkspaceLayout *layout, void *memory, size_t memory_size_bytes,
+    Av2hFrameDecodeWorkspace *workspace, Av2hFilterWorkspace *filter_workspace,
+    Av2hFilterWorkspaceStorage *filter_storage, const Av2hExecution *execution);
 
 Av2hStatus av2h_planar_output_bind_u16(const Av2hFrameState *frame, void *output,
                                        size_t output_size_bytes, Av2hPlanarOutputU16 *planes);

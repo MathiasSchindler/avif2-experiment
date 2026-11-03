@@ -48,6 +48,9 @@ typedef struct {
     Av2hPlanarOutputU16 output_u16;
     Av2hDecodeDiagnostics diagnostics_storage;
     Av2hDecodeDiagnostics *diagnostics;
+    struct Av2hFrameTileWorker *tile_workers;
+    size_t parallel_size_bytes;
+    unsigned int tile_worker_count;
     uint8_t bytes_per_sample;
 } Av2hFrameDecodeWorkspace;
 
@@ -129,6 +132,14 @@ typedef struct {
     uint8_t coefficient_kind;
     const Av2hDecodeDiagnostics *diagnostics;
 } Av2hFrameDecodeResult;
+
+typedef struct Av2hFrameTileWorker {
+    Av2hFrameDecodeWorkspace workspace;
+    Av2hFilterWorkspace filter;
+    Av2hFrameDecodeResult decoded;
+    Av2hStatus status;
+    uint8_t initialized;
+} Av2hFrameTileWorker;
 
 Av2hStatus av2h_planar_output_size(const Av2hFrameState *frame, size_t bytes_per_sample,
                                    size_t *size_bytes);

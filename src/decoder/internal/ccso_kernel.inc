@@ -29,7 +29,7 @@ static void AV2H_KERNEL_NAME(ccso_filter_plane, ccso_filter_plane_u16)(
                               const Av2hCcsoPlane *parameters, const uint8_t *controls,
                               size_t control_stride_units, uint16_t luma_unit_size,
                               unsigned int subsampling, const Av2hSequenceState *sequence,
-                              const Av2hFrameState *frame
+                              const Av2hFrameState *frame, size_t row_begin, size_t row_end
 #if AV2H_KERNEL_WIDE
                               ,
                               const Av2hSampleDomain *domain
@@ -51,7 +51,8 @@ static void AV2H_KERNEL_NAME(ccso_filter_plane, ccso_filter_plane_u16)(
         ccso_sample_offsets(parameters->extended_filter_support, &first_x, &first_y, &second_x,
                             &second_y);
     }
-    for (y = 0U; y < destination->height; ++y) {
+    for (y = (uint16_t)(row_begin >> subsampling);
+         y < destination->height && y < (row_end >> subsampling); ++y) {
         uint16_t x;
         for (x = 0U; x < destination->width; ++x) {
             size_t control_row = y / unit_size;
@@ -117,14 +118,15 @@ static void AV2H_KERNEL_NAME(ccso_filter_plane, ccso_filter_plane_u16)(
         }
     }
 }
-Av2hStatus AV2H_KERNEL_NAME(av2h_ccso_filter_frame, av2h_ccso_filter_frame_u16)(
+Av2hStatus AV2H_KERNEL_NAME(av2h_ccso_filter_rows, av2h_ccso_filter_rows_u16)(
     AV2H_KERNEL_TYPE(Av2hFilterPlanes, Av2hFilterPlanesU16) *planes, const AV2H_KERNEL_TYPE(uint8_t, uint16_t) *pre_cdef_luma,
-                                  size_t pre_cdef_luma_stride_samples,
-                                  const Av2hSequenceState *sequence, const Av2hFrameState *frame,
-                                  const Av2hCcsoControlMap *controls
+                                 size_t pre_cdef_luma_stride_samples,
+                                 const Av2hSequenceState *sequence, const Av2hFrameState *frame,
+                                 const Av2hCcsoControlMap *controls, size_t row_begin,
+                                 size_t row_end
 #if AV2H_KERNEL_WIDE
-                                  ,
-                                  const Av2hSampleDomain *domain
+                                 ,
+                                 const Av2hSampleDomain *domain
 #endif
 ) {
 #if AV2H_KERNEL_WIDE
@@ -132,8 +134,8 @@ Av2hStatus AV2H_KERNEL_NAME(av2h_ccso_filter_frame, av2h_ccso_filter_frame_u16)(
         return AV2H_INVALID_ARGUMENT;
 #endif
     unsigned int plane;
-    if (planes == NULL || pre_cdef_luma == NULL || frame == NULL || frame->width == 0U ||
-        frame->height == 0U ||
+    if (!filter_rows_valid(row_begin, row_end) || planes == NULL || pre_cdef_luma == NULL ||
+        frame == NULL || frame->width == 0U || frame->height == 0U ||
         pre_cdef_luma_stride_samples < av2h_filter_coded_dimension(frame->width) ||
         !AV2H_KERNEL_NAME(filter_dimensions_valid, filter_dimensions_valid_u16)(planes, frame) || !av2h_ccso_parameters_valid(frame) ||
         !av2h_ccso_controls_valid(frame, controls)) {
@@ -148,13 +150,14 @@ Av2hStatus AV2H_KERNEL_NAME(av2h_ccso_filter_frame, av2h_ccso_filter_frame_u16)(
                               controls->plane[plane], controls->stride_units[plane],
                               av2h_filter_ccso_unit_size(frame),
                               av2h_chroma_shift(frame->chroma_format_idc, plane), sequence, frame,
-                              domain);
+                              row_begin, row_end, domain);
 #else
         ccso_filter_plane(&planes->plane[plane], pre_cdef_luma, pre_cdef_luma_stride_samples,
                           planes->plane[0].width, planes->plane[0].height, &frame->ccso[plane],
                           controls->plane[plane], controls->stride_units[plane],
                           av2h_filter_ccso_unit_size(frame),
-                          av2h_chroma_shift(frame->chroma_format_idc, plane), sequence, frame);
+                          av2h_chroma_shift(frame->chroma_format_idc, plane), sequence, frame,
+                          row_begin, row_end);
 #endif
     }
     return AV2H_OK;

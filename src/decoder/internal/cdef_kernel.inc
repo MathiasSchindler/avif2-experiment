@@ -279,13 +279,14 @@ static Av2hStatus AV2H_KERNEL_NAME(
     return av2h_cdef_find_direction(&block, 0U, 0U, direction, variance);
 #endif
 }
-Av2hStatus AV2H_KERNEL_NAME(av2h_cdef_filter_frame, av2h_cdef_filter_frame_u16)(
+Av2hStatus AV2H_KERNEL_NAME(av2h_cdef_filter_rows, av2h_cdef_filter_rows_u16)(
     AV2H_KERNEL_TYPE(Av2hFilterPlanes, Av2hFilterPlanesU16) *destination, const AV2H_KERNEL_TYPE(Av2hFilterPlanes, Av2hFilterPlanesU16) *deblocked,
-                                  const Av2hSequenceState *sequence, const Av2hFrameState *frame,
-                                  const Av2hCdefControlMap *controls
+                                 const Av2hSequenceState *sequence, const Av2hFrameState *frame,
+                                 const Av2hCdefControlMap *controls, size_t row_begin,
+                                 size_t row_end
 #if AV2H_KERNEL_WIDE
-                                  ,
-                                  const Av2hSampleDomain *domain
+                                 ,
+                                 const Av2hSampleDomain *domain
 #endif
 ) {
 #if AV2H_KERNEL_WIDE
@@ -294,8 +295,10 @@ Av2hStatus AV2H_KERNEL_NAME(av2h_cdef_filter_frame, av2h_cdef_filter_frame_u16)(
 #endif
     uint16_t y;
     unsigned int plane;
-    if (destination == NULL || deblocked == NULL || frame == NULL || frame->width == 0U ||
-        frame->height == 0U || !AV2H_KERNEL_NAME(filter_dimensions_valid, filter_dimensions_valid_u16)(destination, frame) ||
+    if (!filter_rows_valid(row_begin, row_end) || destination == NULL || deblocked == NULL ||
+        frame == NULL || frame->width == 0U || frame->height == 0U ||
+        !AV2H_KERNEL_NAME(filter_dimensions_valid,
+                          filter_dimensions_valid_u16)(destination, frame) ||
         !AV2H_KERNEL_NAME(filter_dimensions_valid, filter_dimensions_valid_u16)(deblocked, frame)) {
         return AV2H_INVALID_ARGUMENT;
     }
@@ -325,14 +328,19 @@ Av2hStatus AV2H_KERNEL_NAME(av2h_cdef_filter_frame, av2h_cdef_filter_frame_u16)(
             return AV2H_INVALID_ARGUMENT;
         }
 #if AV2H_KERNEL_WIDE
-        filter_copy_plane_u16(&destination->plane[plane], &deblocked->plane[plane]);
+        filter_copy_rows_u16(&destination->plane[plane], &deblocked->plane[plane],
+                             row_begin >> av2h_chroma_shift(frame->chroma_format_idc, plane),
+                             row_end >> av2h_chroma_shift(frame->chroma_format_idc, plane));
 #else
-        filter_copy_plane(&destination->plane[plane], &deblocked->plane[plane]);
+        filter_copy_rows(&destination->plane[plane], &deblocked->plane[plane],
+                         row_begin >> av2h_chroma_shift(frame->chroma_format_idc, plane),
+                         row_end >> av2h_chroma_shift(frame->chroma_format_idc, plane));
 #endif
     }
     if (frame->cdef_strength_count == 0U)
         return AV2H_OK;
-    for (y = 0U; y < deblocked->plane[0].height; y = (uint16_t)(y + 8U)) {
+    for (y = (uint16_t)row_begin; y < deblocked->plane[0].height && y < row_end;
+         y = (uint16_t)(y + 8U)) {
         uint16_t x;
         for (x = 0U; x < deblocked->plane[0].width; x = (uint16_t)(x + 8U)) {
             size_t strength_index = 0U;

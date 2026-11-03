@@ -8,6 +8,11 @@
 
 #include <stddef.h>
 
+static inline int filter_rows_valid(size_t begin, size_t end) {
+    return begin <= UINT16_MAX && begin % 64U == 0U && begin <= end &&
+           (end == SIZE_MAX || end % 64U == 0U);
+}
+
 static inline int filter_plane_extent(const void *data, size_t stride, size_t width, size_t height,
                                       size_t sample_bytes, uintptr_t *end) {
     size_t bytes;

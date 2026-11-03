@@ -696,7 +696,7 @@ static void test_16x8_intrabc_morph_centered_template(void) {
     Av2hReconstructionPlane plane = {
         pixels, 64U, 64U, 64U, 64U, 64U,
         reconstructed, 16U, sizeof(reconstructed)
-    };
+    , {0}};
     Av2hPartitionNode leaf = { 8U, 8U, AV2H_BLOCK_16X8 };
     Av2hLeafMode mode = { 0 };
     Av2hCoeffPrefix prefix = { 0 };
@@ -830,7 +830,7 @@ static void test_palette_prediction(void) {
     Av2hReconstructionPlane plane = {
         pixels, 8U, 8U, 8U, 8U, 8U,
         reconstructed, 2U, sizeof(reconstructed)
-    };
+    , {0}};
     Av2hPartitionNode leaf = { 0U, 0U, AV2H_BLOCK_8X8 };
     Av2hLeafMode mode = { 0 };
     Av2hCoeffPrefix prefix = { 0 };
@@ -918,7 +918,7 @@ static void test_first_leaf_dc_without_references(void) {
     Av2hReconstructionPlane plane = {
         pixels, 64U, 64U, 16U, 64U, 16U,
         reconstructed, 16U, sizeof(reconstructed)
-    };
+    , {0}};
     Av2hLeafMode mode = { 0 };
     Av2hTransformType transform = { 0 };
     Av2hReconstructionScratch scratch;
@@ -977,7 +977,7 @@ static void test_first_leaf_intra_dip_without_references(void) {
     Av2hReconstructionPlane plane = {
         pixels, 8U, 8U, 8U, 8U, 8U,
         reconstructed, 2U, sizeof(reconstructed)
-    };
+    , {0}};
     Av2hPartitionNode leaf = { 0U, 0U, AV2H_BLOCK_8X8 };
     Av2hLeafMode mode = { 0 };
     Av2hCoeffPrefix prefix = { 0 };
@@ -2234,7 +2234,7 @@ static void test_live_plane_reconstruction(void) {
     Av2hReconstructionPlane plane = {
         pixels, 16U, 16U, 16U, 16U, 16U,
         reconstructed, 4U, sizeof(reconstructed)
-    };
+    , {0}};
     Av2hReconstructionScratch scratch;
     Av2hLeafPath path;
     Av2hLeafMode mode;
@@ -3019,7 +3019,7 @@ static void test_luma_smooth_partial_left_extension(void) {
     Av2hReconstructionPlane plane = {
         pixels, 32U, 32U, 32U, 32U, 32U,
         reconstructed, 8U, sizeof(reconstructed)
-    };
+    , {0}};
     Av2hPartitionNode leaf = { 1U, 2U, AV2H_BLOCK_16X16 };
     Av2hLeafMode mode = { 0 };
     Av2hCoeffPrefix prefix = { 0 };
@@ -5155,11 +5155,11 @@ static void test_emerald_q208_chroma_leaves(void) {
         Av2hReconstructionPlane cp = {
             chroma_data, 96U, 96U, 48U, 96U, 48U, chroma_rec, 96U / 4U,
             sizeof(chroma_rec)
-        };
+        , {0}};
         Av2hReconstructionPlane pp = {
             pred_data, 96U, 96U, 48U, 96U, 48U, pred_rec, 96U / 4U,
             sizeof(pred_rec)
-        };
+        , {0}};
         mode.mode = tc->mode;
         mode.angle_delta = 0;
         prefix.tx_size = (Av2hTxSize)tc->tx_size;
@@ -5230,7 +5230,7 @@ static void test_emerald_q208_chroma_cfl(void) {
     Av2hReconstructionPlane luma = {
         luma_data, 192U, 192U, 96U, 192U, 96U, luma_rec, 192U / 4U,
         sizeof(luma_rec)
-    };
+    , {0}};
     for (plane_index = 0; plane_index < 2; ++plane_index) {
         const uint8_t *left = plane_index == 0 ? cfl_u_left : cfl_v_left;
         uint32_t pred_hash = plane_index == 0 ?
@@ -5256,11 +5256,11 @@ static void test_emerald_q208_chroma_cfl(void) {
         Av2hReconstructionPlane cp = {
             chroma_data, 96U, 96U, 48U, 96U, 48U, chroma_rec, 96U / 4U,
             sizeof(chroma_rec)
-        };
+        , {0}};
         Av2hReconstructionPlane pp = {
             pred_data, 96U, 96U, 48U, 96U, 48U, pred_rec, 96U / 4U,
             sizeof(pred_rec)
-        };
+        , {0}};
         mode.is_cfl = 1U;
         mode.cfl_kind = AV2H_CFL_DERIVED_ALPHA;
         mode.mode = AV2H_INTRA_DC;
@@ -5317,14 +5317,14 @@ static void test_cfl_filter1_explicit_alpha(void) {
     Av2hCoeffBlock block = { 0 };
     Av2hReconstructionPlane luma = {
         luma_data, 8U, 8U, 8U, 8U, 8U, luma_rec, 2U, sizeof(luma_rec)
-    };
+    , {0}};
     Av2hReconstructionPlane chroma = {
         chroma_data, 4U, 4U, 4U, 4U, 4U, chroma_rec, 1U,
         sizeof(chroma_rec)
-    };
+    , {0}};
     Av2hReconstructionPlane predictor = {
         pred_data, 4U, 4U, 4U, 4U, 4U, pred_rec, 1U, sizeof(pred_rec)
-    };
+    , {0}};
     size_t row;
     size_t column;
     for (row = 0U; row < 8U; ++row) {
@@ -5385,11 +5385,11 @@ static void test_cfl_filter1_internal_boundary(void) {
     Av2hReconstructionPlane luma = {
         luma_data, 128U, 128U, 8U, 128U, 8U, luma_rec, 32U,
         sizeof(luma_rec)
-    };
+    , {0}};
     Av2hReconstructionPlane chroma = {
         chroma_data, 64U, 64U, 4U, 64U, 4U, chroma_rec, 16U,
         sizeof(chroma_rec)
-    };
+    , {0}};
     size_t row;
     av2h_memory_fill(luma_data, 128U, sizeof(luma_data));
     av2h_memory_fill(luma_rec, 1U, sizeof(luma_rec));
@@ -5423,15 +5423,15 @@ static void test_cfl_coded_bottom_edge(void) {
     Av2hReconstructionPlane luma = {
         luma_data, 64U, 64U, 24U, 61U, 21U, luma_rec, 16U,
         sizeof(luma_rec)
-    };
+    , {0}};
     Av2hReconstructionPlane chroma = {
         chroma_data, 32U, 32U, 12U, 31U, 11U, chroma_rec, 8U,
         sizeof(chroma_rec)
-    };
+    , {0}};
     Av2hReconstructionPlane predictor = {
         pred_data, 32U, 32U, 12U, 31U, 11U, pred_rec, 8U,
         sizeof(pred_rec)
-    };
+    , {0}};
     size_t row;
     size_t column;
     av2h_memory_fill(luma_data, 96U, sizeof(luma_data));
@@ -5471,11 +5471,11 @@ static void test_i444_cfl_coded_right_edge(void) {
     Av2hReconstructionPlane luma = {
         luma_data, 672U, 672U, 16U, 668U, 16U, luma_rec, 168U,
         sizeof(luma_rec)
-    };
+    , {0}};
     Av2hReconstructionPlane chroma = {
         chroma_data, 672U, 672U, 16U, 668U, 16U, chroma_rec, 168U,
         sizeof(chroma_rec)
-    };
+    , {0}};
     size_t row;
     size_t column;
     uint8_t changed = 0U;
@@ -5541,15 +5541,15 @@ static void test_cfl_explicit_geometry_filter_matrix(void) {
     Av2hReconstructionPlane luma = {
         luma_data, 80U, 80U, 80U, 80U, 80U, luma_rec, 20U,
         sizeof(luma_rec)
-    };
+    , {0}};
     Av2hReconstructionPlane chroma = {
         chroma_data, 40U, 40U, 40U, 40U, 40U, chroma_rec, 10U,
         sizeof(chroma_rec)
-    };
+    , {0}};
     Av2hReconstructionPlane predictor = {
         pred_data, 40U, 40U, 40U, 40U, 40U, pred_rec, 10U,
         sizeof(pred_rec)
-    };
+    , {0}};
     size_t geometry_index;
     size_t row;
     size_t column;
@@ -5680,15 +5680,15 @@ static void test_mhccp_geometry_direction_matrix(void) {
     Av2hReconstructionPlane luma = {
         luma_data, 80U, 80U, 80U, 80U, 80U, luma_rec, 20U,
         sizeof(luma_rec)
-    };
+    , {0}};
     Av2hReconstructionPlane chroma = {
         chroma_data, 40U, 40U, 40U, 40U, 40U, chroma_rec, 10U,
         sizeof(chroma_rec)
-    };
+    , {0}};
     Av2hReconstructionPlane predictor = {
         pred_data, 40U, 40U, 40U, 40U, 40U, pred_rec, 10U,
         sizeof(pred_rec)
-    };
+    , {0}};
     size_t geometry_index;
     size_t row;
     size_t column;
@@ -5845,15 +5845,15 @@ static void test_i444_mhccp_long_left_reference(void) {
     Av2hReconstructionPlane luma = {
         luma_data, 80U, 80U, 80U, 80U, 80U, luma_rec, 20U,
         sizeof(luma_rec)
-    };
+    , {0}};
     Av2hReconstructionPlane chroma = {
         chroma_data, 80U, 80U, 80U, 80U, 80U, chroma_rec, 20U,
         sizeof(chroma_rec)
-    };
+    , {0}};
     Av2hReconstructionPlane predictor = {
         pred_data, 80U, 80U, 80U, 80U, 80U, pred_rec, 20U,
         sizeof(pred_rec)
-    };
+    , {0}};
     Av2hChromaLeafMode mode = { 0 };
     Av2hCoeffPrefix prefix = { 0 };
     Av2hTransformType transform = { 0 };
@@ -5919,11 +5919,11 @@ static void test_i444_64x64_bottom_left_limit(void) {
     Av2hReconstructionPlane chroma = {
         chroma_data, 200U, 200U, 200U, 200U, 200U, chroma_rec, 50U,
         sizeof(chroma_rec)
-    };
+    , {0}};
     Av2hReconstructionPlane predictor = {
         pred_data, 200U, 200U, 200U, 200U, 200U, pred_rec, 50U,
         sizeof(pred_rec)
-    };
+    , {0}};
     Av2hChromaLeafMode mode = { 0 };
     Av2hCoeffPrefix prefix = { 0 };
     Av2hTransformType transform = { 0 };
@@ -6014,11 +6014,11 @@ static void test_i444_64x16_directional_top_right_limit(void) {
     Av2hReconstructionPlane chroma = {
         chroma_data, 200U, 200U, 200U, 200U, 200U, chroma_rec, 50U,
         sizeof(chroma_rec)
-    };
+    , {0}};
     Av2hReconstructionPlane predictor = {
         pred_data, 200U, 200U, 200U, 200U, 200U, pred_rec, 50U,
         sizeof(pred_rec)
-    };
+    , {0}};
     Av2hChromaLeafMode mode = { 0 };
     Av2hCoeffPrefix prefix = { 0 };
     Av2hTransformType transform = { 0 };
@@ -6082,15 +6082,15 @@ static void test_i444_mhccp_long_top_reference(void) {
     Av2hReconstructionPlane luma = {
         luma_data, 80U, 80U, 80U, 80U, 80U, luma_rec, 20U,
         sizeof(luma_rec)
-    };
+    , {0}};
     Av2hReconstructionPlane chroma = {
         chroma_data, 80U, 80U, 80U, 80U, 80U, chroma_rec, 20U,
         sizeof(chroma_rec)
-    };
+    , {0}};
     Av2hReconstructionPlane predictor = {
         pred_data, 80U, 80U, 80U, 80U, 80U, pred_rec, 20U,
         sizeof(pred_rec)
-    };
+    , {0}};
     Av2hChromaLeafMode mode = { 0 };
     Av2hCoeffPrefix prefix = { 0 };
     Av2hTransformType transform = { 0 };
@@ -6170,7 +6170,7 @@ static void test_emerald_chroma_plane_ex_checks(void) {
     Av2hReconstructionPlane luma = {
         luma_data, 192U, 192U, 96U, 192U, 96U, luma_rec, 192U / 4U,
         sizeof(luma_rec)
-    };
+    , {0}};
     cfl_mode.is_cfl = 1U;
     cfl_mode.cfl_kind = AV2H_CFL_DERIVED_ALPHA;
     cfl_mode.mode = AV2H_INTRA_DC;
@@ -6195,7 +6195,7 @@ static void test_emerald_chroma_plane_ex_checks(void) {
         Av2hReconstructionPlane cp = {
             chroma_data, 96U, 96U, 48U, 96U, 48U, chroma_rec, 96U / 4U,
             sizeof(chroma_rec)
-        };
+        , {0}};
         CHECK(av2h_chroma_reconstruct_to_plane(
             NULL, &cfl_leaf, &cfl_mode, &prefix, &transform, &block, &cp, &luma,
             1U, 0, 0U, &scratch) == AV2H_UNSUPPORTED);
@@ -6221,7 +6221,7 @@ static void test_emerald_chroma_plane_ex_checks(void) {
         Av2hReconstructionPlane cp = {
             chroma_data, 96U, 96U, 48U, 96U, 48U, chroma_rec, 96U / 4U,
             sizeof(chroma_rec)
-        };
+        , {0}};
         Av2hChromaLeafMode dc_mode = { 0 };
         Av2hCoeffBlock bad = { 0 };
         Av2hStatus bad_status;
@@ -6245,11 +6245,11 @@ static void test_emerald_chroma_plane_ex_checks(void) {
         Av2hReconstructionPlane cp = {
             chroma_data, 96U, 96U, 48U, 96U, 48U, chroma_rec, 96U / 4U,
             sizeof(chroma_rec)
-        };
+        , {0}};
         Av2hReconstructionPlane bad_pred = {
             chroma_data, 8U, 96U, 48U, 96U, 48U, chroma_rec, 96U / 4U,
             sizeof(chroma_rec)
-        };
+        , {0}};
         Av2hChromaLeafMode dc_mode = { 0 };
         dc_mode.mode = AV2H_INTRA_DC;
         CHECK(av2h_chroma_reconstruct_to_plane(
@@ -6263,7 +6263,7 @@ static void test_emerald_chroma_plane_ex_checks(void) {
         Av2hReconstructionPlane cp = {
             chroma_data, 96U, 96U, 48U, 96U, 48U, chroma_rec, 96U / 4U,
             sizeof(chroma_rec)
-        };
+        , {0}};
         Av2hPartitionNode leaf = { 0U, 16U, 0U };
         Av2hChromaLeafMode dc_mode = { 0 };
         Av2hCoeffBlock az = { 0 };
@@ -6642,7 +6642,7 @@ static void test_frame_unsupported_status(void) {
     /* A one-bit entropy mutation reaches an unsupported luma syntax tuple. */
     input[(size_t)(group.entropy.data - input)] ^= 1U;
     status = av2h_frame_decode_workspace_query(
-        &sequence, &frame, 1U, &layout);
+        &sequence, &frame, 1U, NULL, &layout);
     CHECK(status == AV2H_OK);
     if (status != AV2H_OK) return;
     allocation = (uint8_t *)malloc(
@@ -6653,7 +6653,7 @@ static void test_frame_unsupported_status(void) {
                       ~(uintptr_t)(layout.alignment - 1U));
     status = av2h_frame_decode_workspace_init(
         &sequence, &frame, 1U, &layout, memory, layout.size_bytes, &workspace,
-        &filter_workspace, &filter_storage);
+        &filter_workspace, &filter_storage, NULL);
     CHECK(status == AV2H_OK);
     if (status != AV2H_OK) {
         free(allocation);
@@ -6691,7 +6691,7 @@ static void test_10bit_wp5_frame_fixture(void) {
         luma_mode_above, luma_mode_left,
         coefficient_above, coefficient_left, colocated_luma,
         4U, 16U, 16U, 0, 0U, 0, 0U, { 0, 0, 0 }, 0U, 0, 0U, 0, 0U
-    };
+    , 0U};
     uint16_t pixels[16U * 16U] = { 0 };
     uint16_t chroma_pixels[2U][8U * 8U] = { { 0 } };
     uint8_t reconstructed[16U] = { 0 };
@@ -6699,12 +6699,12 @@ static void test_10bit_wp5_frame_fixture(void) {
     Av2hReconstructionPlaneU16 plane = {
         pixels, 16U, 16U, 16U, 16U, 16U,
         reconstructed, 4U, sizeof(reconstructed)
-    };
+    , {0}};
         Av2hReconstructionPlaneU16 chroma_planes[2U] = {
                 { chroma_pixels[0], 8U, 8U, 8U, 8U, 8U,
-                    chroma_reconstructed[0], 2U, 4U },
+                    chroma_reconstructed[0], 2U, 4U , {0}},
                 { chroma_pixels[1], 8U, 8U, 8U, 8U, 8U,
-                    chroma_reconstructed[1], 2U, 4U }
+                    chroma_reconstructed[1], 2U, 4U , {0}}
         };
     Av2hReconstructionScratchU16 scratch;
     Av2hObu entries[3U];
@@ -6935,7 +6935,7 @@ static void test_10bit_wp5_frame_fixture(void) {
         void *workspace_memory;
         Av2hStatus status;
         CHECK(av2h_frame_decode_workspace_query(
-                  &sequence, &frame, 2U, &layout) == AV2H_OK);
+                  &sequence, &frame, 2U, NULL, &layout) == AV2H_OK);
         allocation = (uint8_t *)malloc(
             layout.size_bytes + layout.alignment - 1U);
         CHECK(allocation != 0);
@@ -6945,7 +6945,7 @@ static void test_10bit_wp5_frame_fixture(void) {
         CHECK(av2h_frame_decode_workspace_init(
                   &sequence, &frame, 2U, &layout,
                   workspace_memory, layout.size_bytes, &workspace,
-                  &filter_workspace, &filter_storage) == AV2H_OK);
+                  &filter_workspace, &filter_storage, NULL) == AV2H_OK);
         restoration_sequence = sequence;
         restoration_sequence.enable_restoration = 1U;
         av2h_memory_fill(output, 0xa5U, sizeof(output));
@@ -7212,7 +7212,7 @@ static void test_10bit_wp6_tiny_matrix(void) {
         CHECK(status == AV2H_OK);
         if (status != AV2H_OK) continue;
         status = av2h_frame_decode_workspace_query(
-            &sequence, &frame, 2U, &layout);
+            &sequence, &frame, 2U, NULL, &layout);
         CHECK(status == AV2H_OK);
         if (status != AV2H_OK) continue;
         allocation = (uint8_t *)malloc(
@@ -7224,7 +7224,7 @@ static void test_10bit_wp6_tiny_matrix(void) {
         status = av2h_frame_decode_workspace_init(
             &sequence, &frame, 2U, &layout,
             workspace_memory, layout.size_bytes, &workspace,
-            &filter_workspace, &filter_storage);
+            &filter_workspace, &filter_storage, NULL);
         CHECK(status == AV2H_OK);
         if (status != AV2H_OK) {
             free(allocation);

@@ -49,13 +49,13 @@ static void plane_case(Snapshot *snapshot, unsigned int path,
     static Av2hReconstructionScratchU16 scratch_u16;
     Av2hReconstructionPlane plane = {
         pixels, STRIDE, WIDTH, HEIGHT, WIDTH, HEIGHT, ready, 17U, CELLS
-    };
+    , {0}};
     Av2hReconstructionPlaneU16 plane_u16 = {
         pixels_u16, STRIDE, WIDTH, HEIGHT, WIDTH, HEIGHT, ready, 17U, CELLS
-    };
+    , {0}};
     Av2hReconstructionPlane predictor_plane = {
         predictor, STRIDE, WIDTH, HEIGHT, WIDTH, HEIGHT, ready, 17U, CELLS
-    };
+    , {0}};
     Av2hLeafMode mode = { 0 };
     Av2hChromaLeafMode chroma = { 0 };
     Av2hCoeffPrefix prefix = { 0 };

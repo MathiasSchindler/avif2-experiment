@@ -411,7 +411,7 @@ HOST_UNIT_NAMES := substrate container range tile frame cdf partition leaf coeff
 	output_parallel pixel_format png_writer preview sample_math sample_ops sample_domain \
 	workspace_accounting public_decode refactor_baseline reconstruction_block \
 	reconstruction_plane frame_refactor carriage_refactor prediction_math \
-	error_refactor cli
+	error_refactor cli decode_parallel
 HOST_UNIT_BINARIES := $(foreach name,$(HOST_UNIT_NAMES),\
 	$(HOST_BUILD_DIR)/$(subst _,-,$(name))-unit)
 HOST_RUNTIME_UNIT := $(HOST_BUILD_DIR)/runtime-substrate-unit
@@ -595,7 +595,7 @@ $(HOST_BUILD_DIR)/$(subst _,-,$(1))-unit: tests/$(1)_unit.c $(HOST_LIBRARY)
 	@mkdir -p $$(@D)
 	$(CC) $(HOST_CFLAGS) -Isrc $$< $(HOST_LIBRARY) $(HOST_LDFLAGS) -o $$@
 endef
-$(foreach name,$(filter-out cli public_decode,$(HOST_UNIT_NAMES)),$(eval $(call HOST_UNIT_RULE,$(name))))
+$(foreach name,$(filter-out cli public_decode decode_parallel filter,$(HOST_UNIT_NAMES)),$(eval $(call HOST_UNIT_RULE,$(name))))
 
 # Count parser calls without adding instrumentation to production sources.
 $(HOST_BUILD_DIR)/obj/query-test/query.o: src/query.c Makefile
@@ -620,6 +620,17 @@ $(HOST_BUILD_DIR)/public-decode-unit: tests/public_decode_unit.c \
 $(HOST_BUILD_DIR)/cli-unit: tests/cli_unit.c $(HOST_CLI_OBJECTS) $(HOST_LIBRARY)
 	@mkdir -p $(@D)
 	$(CC) $(HOST_CFLAGS) $< $(HOST_CLI_OBJECTS) $(HOST_LIBRARY) $(HOST_LDFLAGS) -o $@
+
+$(HOST_BUILD_DIR)/decode-parallel-unit: tests/decode_parallel_unit.c tests/parallel_test.h \
+		$(HOST_CLI_OBJECTS) $(HOST_LIBRARY)
+	@mkdir -p $(@D)
+	$(CC) $(HOST_CFLAGS) $(if $(filter Darwin Linux,$(HOST_SYSTEM)),-pthread) $< \
+		$(HOST_CLI_OBJECTS) $(HOST_LIBRARY) $(HOST_LDFLAGS) -o $@
+
+$(HOST_BUILD_DIR)/filter-unit: tests/filter_unit.c tests/parallel_test.h $(HOST_LIBRARY)
+	@mkdir -p $(@D)
+	$(CC) $(HOST_CFLAGS) $(if $(filter Darwin Linux,$(HOST_SYSTEM)),-pthread) $< \
+		$(HOST_LIBRARY) $(HOST_LDFLAGS) -o $@
 
 $(HOST_RUNTIME_UNIT): tests/runtime_substrate_unit.c $(HOST_RUNTIME_LIBRARY)
 	@mkdir -p $(@D)

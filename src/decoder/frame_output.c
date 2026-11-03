@@ -2,7 +2,10 @@
 
 #include "decoder/internal/decode_diagnostics.h"
 #include "decoder/internal/filter_diagnostics.h"
+#include "decoder/internal/filter_geometry.h"
+#include "decoder/internal/filter_modules.h"
 #include "decoder/internal/frame_workspace.h"
+#include "decoder/internal/parallel.h"
 #include "decoder/internal/tile_modules.h"
 #include "decoder/tx_geometry.h"
 
@@ -18,6 +21,12 @@ typedef struct {
     Av2hFrameDecodeScratch *scratch;
     uint8_t pending_chroma_count;
 } Av2hFrameDecodeContext;
+
+typedef struct {
+    const Av2hSpan *tiles;
+    Av2hFrameDecodeContext *context;
+    uint16_t start_tile;
+} Av2hTileBatch;
 
 static void luma_failure_context(Av2hFrameDecodeResult *decoded, const Av2hTileLumaLeaf *leaf,
                                  const Av2hReconstructionDiagnostics *diagnostics) {
@@ -70,8 +79,8 @@ static uint8_t *tile_readiness_map(Av2hFrameDecodeWorkspace *workspace, unsigned
     return workspace->coded_u16[plane].reconstructed;
 }
 
-static void tile_readiness_clear(const Av2hFrameState *frame, Av2hFrameDecodeWorkspace *workspace,
-                                 const Av2hTileDecoder *decoder) {
+static void tile_reference_bounds(const Av2hFrameState *frame, Av2hFrameDecodeWorkspace *workspace,
+                                  const Av2hTileDecoder *decoder) {
     unsigned int plane;
     for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
         unsigned int shift = av2h_chroma_shift(frame->chroma_format_idc, plane);
@@ -79,17 +88,12 @@ static void tile_readiness_clear(const Av2hFrameState *frame, Av2hFrameDecodeWor
         size_t y0 = decoder->traversal.tile_start_row >> shift;
         size_t x1 = ((size_t)decoder->traversal.tile_end_column + (1U << shift) - 1U) >> shift;
         size_t y1 = ((size_t)decoder->traversal.tile_end_row + (1U << shift) - 1U) >> shift;
-        size_t stride;
-        size_t count;
-        uint8_t *map = tile_readiness_map(workspace, plane, &stride, &count);
-        size_t row;
-        av2h_memory_fill(map, 2U, count);
-        for (row = y0; row < y1; ++row) {
-            size_t width = x1 - x0;
-            if (row * stride + x0 < count && width <= count - (row * stride + x0)) {
-                av2h_memory_fill(map + row * stride + x0, 0U, width);
-            }
-        }
+        Av2hPlaneTileBounds bounds = {(uint16_t)(x0 * 4U), (uint16_t)(y0 * 4U), (uint16_t)(x1 * 4U),
+                                      (uint16_t)(y1 * 4U)};
+        if (workspace->bytes_per_sample == 1U)
+            workspace->coded[plane].tile = bounds;
+        else
+            workspace->coded_u16[plane].tile = bounds;
     }
 }
 
@@ -116,36 +120,6 @@ static int tile_readiness_complete(const Av2hFrameState *frame, Av2hFrameDecodeW
         }
     }
     return 1;
-}
-
-static void tile_readiness_restore_previous(const Av2hSequenceState *sequence,
-                                            const Av2hFrameState *frame,
-                                            Av2hFrameDecodeWorkspace *workspace, uint16_t tile_id) {
-    uint16_t previous;
-    uint16_t superblock_mi = (uint16_t)(sequence->superblock_size / 4U);
-    for (previous = 0U; previous < tile_id; ++previous) {
-        uint16_t tile_column = (uint16_t)(previous % frame->tile_column_count);
-        uint16_t tile_row = (uint16_t)(previous / frame->tile_column_count);
-        unsigned int plane;
-        for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
-            unsigned int shift = av2h_chroma_shift(frame->chroma_format_idc, plane);
-            size_t x0 = ((size_t)frame->tile_column_start_sb[tile_column] * superblock_mi) >> shift;
-            size_t y0 = ((size_t)frame->tile_row_start_sb[tile_row] * superblock_mi) >> shift;
-            size_t x1 =
-                ((size_t)frame->tile_column_start_sb[tile_column + 1U] * superblock_mi) >> shift;
-            size_t y1 = ((size_t)frame->tile_row_start_sb[tile_row + 1U] * superblock_mi) >> shift;
-            size_t stride;
-            size_t count;
-            uint8_t *map = tile_readiness_map(workspace, plane, &stride, &count);
-            size_t row;
-            for (row = y0; row < y1; ++row) {
-                size_t width = x1 - x0;
-                if (row * stride + x0 < count && width <= count - (row * stride + x0)) {
-                    av2h_memory_fill(map + row * stride + x0, 1U, width);
-                }
-            }
-        }
-    }
 }
 
 static Av2hStatus frame_decode_failure(Av2hFrameDecodeContext *context, Av2hStatus status,
@@ -607,8 +581,9 @@ static Av2hStatus filter_and_output_frame(Av2hFrameDecodeContext *context, uint8
                                      context->workspace->coded_u16[plane].width,
                                      context->workspace->coded_u16[plane].height};
         }
-        status = av2h_filter_stage_u16(&final_planes_u16, context->sequence, context->frame,
-                                       context->workspace->filter_workspace, context->domain);
+        status =
+            av2h_filter_stage_u16(&final_planes_u16, context->sequence, context->frame,
+                                  context->workspace->filter_workspace, context->domain, execution);
         if (status != AV2H_OK) {
             return frame_decode_failure(context, status, AV2H_FRAME_DECODE_STAGE_FILTER, 0U, NULL,
                                         0U);
@@ -628,7 +603,7 @@ static Av2hStatus filter_and_output_frame(Av2hFrameDecodeContext *context, uint8
             context->workspace->coded[plane].width, context->workspace->coded[plane].height};
     }
     status = av2h_filter_frame(&final_planes, context->sequence, context->frame,
-                               context->workspace->filter_workspace);
+                               context->workspace->filter_workspace, execution);
     if (status != AV2H_OK) {
         const Av2hFilterDiagnostics *filter_diagnostics =
             av2h_filter_diagnostics_get(context->workspace->diagnostics);
@@ -645,6 +620,208 @@ static Av2hStatus filter_and_output_frame(Av2hFrameDecodeContext *context, uint8
     return AV2H_OK;
 }
 
+static Av2hStatus decode_one_tile(Av2hFrameDecodeContext *context, Av2hSpan entropy,
+                                  uint16_t tile_id, uint8_t *initialized) {
+    Av2hStatus status;
+    *initialized = 0U;
+    context->pending_chroma_count = 0U;
+    status = av2h_tile_decoder_init(context->decoder, entropy, context->sequence, context->frame,
+                                    &context->workspace->tile_context, tile_id);
+    if (status != AV2H_OK)
+        return status;
+    *initialized = 1U;
+    tile_reference_bounds(context->frame, context->workspace, context->decoder);
+    context->decoder->diagnostics = context->workspace->diagnostics;
+    context->decoder->entropy_state.range.diagnostics = context->workspace->diagnostics;
+    context->decoder->traversal.luma_traversal.diagnostics = context->workspace->diagnostics;
+    context->decoder->traversal.chroma_traversal.diagnostics = context->workspace->diagnostics;
+    status = decode_tile_leaves(context);
+    if (status != AV2H_OK)
+        return status;
+    if (!tile_readiness_complete(context->frame, context->workspace, context->decoder)) {
+        return frame_decode_failure(context, AV2H_INVALID_DATA,
+                                    AV2H_FRAME_DECODE_STAGE_COMPLETENESS, 0U, NULL, 0U);
+    }
+    return AV2H_OK;
+}
+
+static int decode_tile_batch(size_t begin, size_t end, unsigned int worker_index, void *argument) {
+    Av2hTileBatch *batch = argument;
+    size_t index;
+    (void)worker_index;
+    for (index = begin; index < end; ++index) {
+        Av2hFrameTileWorker *worker = &batch->context->workspace->tile_workers[index];
+        Av2hFrameDecodeContext context = {batch->context->sequence,
+                                          batch->context->frame,
+                                          &worker->workspace,
+                                          batch->context->domain,
+                                          &worker->workspace.decode_scratch->tile_decoder,
+                                          &worker->decoded,
+                                          worker->workspace.decode_scratch,
+                                          0U};
+        av2h_memory_fill(&worker->decoded, 0U, sizeof(worker->decoded));
+        reset_frame_diagnostics(&context);
+        worker->status =
+            decode_one_tile(&context, batch->tiles[index], (uint16_t)(batch->start_tile + index),
+                            &worker->initialized);
+    }
+    return 0;
+}
+
+static int tiles_parallel_safe(const Av2hFrameDecodeContext *context) {
+    const Av2hFrameState *frame = context->frame;
+    unsigned int plane;
+    unsigned int index;
+    unsigned int ccso_size = av2h_filter_ccso_unit_size(frame);
+    if (frame->gdf_mode >= 2U)
+        return 0;
+    for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
+        if (frame->restoration_type[plane] != AV2H_RESTORE_NONE)
+            return 0;
+        if (frame->ccso[plane].enabled != 0U) {
+            for (index = 1U; index < frame->tile_column_count; ++index) {
+                if ((size_t)frame->tile_column_start_sb[index] *
+                        context->sequence->superblock_size % ccso_size !=
+                    0U)
+                    return 0;
+            }
+            for (index = 1U; index < frame->tile_row_count; ++index) {
+                if ((size_t)frame->tile_row_start_sb[index] * context->sequence->superblock_size %
+                        ccso_size !=
+                    0U)
+                    return 0;
+            }
+        }
+    }
+#if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
+    if (context->workspace->diagnostics != NULL &&
+        (context->workspace->diagnostics->partition_trace != NULL ||
+         context->workspace->diagnostics->partition_leaf_trace != NULL))
+        return 0;
+#endif
+    return 1;
+}
+
+static void tile_controls_merge(uint8_t *destination, const uint8_t *source, size_t columns,
+                                size_t rows, size_t unit_size, const Av2hTileDecoder *decoder) {
+    size_t x0 = (size_t)decoder->traversal.tile_start_column * 4U / unit_size;
+    size_t x1 = ((size_t)decoder->traversal.tile_end_column * 4U + unit_size - 1U) / unit_size;
+    size_t y0 = (size_t)decoder->traversal.tile_start_row * 4U / unit_size;
+    size_t y1 = ((size_t)decoder->traversal.tile_end_row * 4U + unit_size - 1U) / unit_size;
+    size_t row;
+    if (x1 > columns)
+        x1 = columns;
+    if (y1 > rows)
+        y1 = rows;
+    for (row = y0; row < y1; ++row)
+        av2h_memory_copy(destination + row * columns + x0, source + row * columns + x0, x1 - x0);
+}
+
+static void prepare_tile_worker(Av2hFrameTileWorker *worker, Av2hFrameDecodeWorkspace *workspace,
+                                unsigned int index) {
+    Av2hTileContextStorage storage;
+    av2h_memory_copy(&storage,
+                     index == 0U ? &workspace->tile_context : &worker->workspace.tile_context,
+                     sizeof(storage));
+    Av2hFrameDecodeScratch *scratch =
+        index == 0U ? workspace->decode_scratch : worker->workspace.decode_scratch;
+    Av2hReconstructionScratch *reconstruction =
+        index == 0U ? workspace->reconstruction_scratch : worker->workspace.reconstruction_scratch;
+    Av2hReconstructionScratchU16 *reconstruction_u16 =
+        index == 0U ? workspace->reconstruction_scratch_u16
+                    : worker->workspace.reconstruction_scratch_u16;
+    av2h_memory_copy(&worker->workspace, workspace, sizeof(worker->workspace));
+    av2h_memory_copy(&worker->workspace.tile_context, &storage, sizeof(storage));
+    worker->workspace.tile_context.independent_tile = (uint8_t)(index != 0U);
+    worker->workspace.decode_scratch = scratch;
+    worker->workspace.reconstruction_scratch = reconstruction;
+    worker->workspace.reconstruction_scratch_u16 = reconstruction_u16;
+    worker->workspace.tile_workers = NULL;
+    worker->workspace.tile_worker_count = 1U;
+    worker->workspace.parallel_size_bytes = 0U;
+    worker->workspace.diagnostics =
+        workspace->diagnostics != NULL ? &worker->workspace.diagnostics_storage : NULL;
+    if (worker->workspace.diagnostics != NULL)
+        av2h_memory_copy(worker->workspace.diagnostics, workspace->diagnostics,
+                         sizeof(*worker->workspace.diagnostics));
+    av2h_memory_copy(&worker->filter, workspace->filter_workspace, sizeof(worker->filter));
+    worker->filter.diagnostics = worker->workspace.diagnostics;
+    worker->workspace.filter_workspace = &worker->filter;
+}
+
+static AV2H_NOINLINE Av2hStatus decode_parallel_tiles(Av2hFrameDecodeContext *context,
+                                                      const Av2hSpan *tiles, size_t tile_count,
+                                                      uint16_t start_tile,
+                                                      const Av2hExecution *execution,
+                                                      uint8_t *initialized) {
+    Av2hFrameDecodeWorkspace *workspace = context->workspace;
+    unsigned int width = workspace->tile_worker_count;
+    size_t offset;
+    unsigned int index;
+    if (width > execution->width)
+        width = execution->width;
+    if (width > AV2H_PARALLEL_TILE_WORKERS || workspace->tile_workers == NULL)
+        return AV2H_INVALID_ARGUMENT;
+    for (index = 0U; index < width; ++index)
+        prepare_tile_worker(&workspace->tile_workers[index], workspace, index);
+    for (offset = 0U; offset < tile_count; offset += width) {
+        size_t count = tile_count - offset;
+        Av2hTileBatch batch = {tiles + offset, context, (uint16_t)(start_tile + offset)};
+        if (count > width)
+            count = width;
+        if (av2h_parallel_ranges(execution, count, decode_tile_batch, &batch) != 0) {
+            *initialized = 2U;
+            return AV2H_INVALID_DATA;
+        }
+        for (index = 0U; index < count; ++index) {
+            Av2hFrameTileWorker *worker = &workspace->tile_workers[index];
+            size_t luma = context->decoded->luma_leaf_count;
+            size_t chroma = context->decoded->chroma_leaf_count;
+            unsigned int plane;
+            *initialized = worker->initialized;
+            if (*initialized == 0U)
+                return worker->status;
+            av2h_memory_copy(context->decoded, &worker->decoded, sizeof(worker->decoded));
+            context->decoded->luma_leaf_count += luma;
+            context->decoded->chroma_leaf_count += chroma;
+            context->decoder = &worker->workspace.decode_scratch->tile_decoder;
+#if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
+            if (workspace->diagnostics != NULL) {
+                av2h_memory_copy(workspace->diagnostics, worker->workspace.diagnostics,
+                                 sizeof(*workspace->diagnostics));
+                context->decoded->diagnostics = workspace->diagnostics;
+            }
+#endif
+            if (worker->status != AV2H_OK)
+                return worker->status;
+            if (index == 0U)
+                continue;
+            if (context->frame->cdef_strength_count > 1U) {
+                const Av2hCdefEntropyState *state = &context->decoder->entropy_state.cdef_entropy;
+                tile_controls_merge(workspace->tile_context.cdef_unit_strengths,
+                                    worker->workspace.tile_context.cdef_unit_strengths,
+                                    state->unit_columns, state->unit_rows, 64U, context->decoder);
+            }
+            for (plane = 0U; plane < av2h_frame_plane_count(context->frame); ++plane) {
+                if (context->frame->ccso[plane].enabled != 0U) {
+                    const Av2hCcsoEntropyState *state =
+                        &context->decoder->entropy_state.ccso_entropy;
+                    tile_controls_merge(workspace->tile_context.ccso_unit_controls[plane],
+                                        worker->workspace.tile_context.ccso_unit_controls[plane],
+                                        state->unit_columns, state->unit_rows, state->unit_size,
+                                        context->decoder);
+                }
+            }
+        }
+    }
+    context->decoder->entropy_state.cdef_entropy.unit_strengths =
+        workspace->tile_context.cdef_unit_strengths;
+    for (index = 0U; index < av2h_frame_plane_count(context->frame); ++index)
+        context->decoder->entropy_state.ccso_entropy.unit_controls[index] =
+            workspace->tile_context.ccso_unit_controls[index];
+    return AV2H_OK;
+}
+
 static AV2H_NOINLINE Av2hStatus decode_frame_tiles_planar(
     const Av2hSpan *tiles, size_t tile_count, uint16_t start_tile,
     const Av2hSequenceState *sequence, const Av2hFrameState *frame,
@@ -655,6 +832,8 @@ static AV2H_NOINLINE Av2hStatus decode_frame_tiles_planar(
     Av2hFilterWorkspaceLayout layout;
     size_t required_output_bytes;
     size_t tile_index;
+    int replayed_failure = 0;
+    Av2hStatus parallel_failure = AV2H_OK;
     Av2hStatus status;
     if (tiles == NULL || tile_count == 0U || tile_count > AV2H_PROFILE_MAX_TILES ||
         sequence == NULL || frame == NULL || workspace == NULL || output == NULL) {
@@ -683,27 +862,47 @@ static AV2H_NOINLINE Av2hStatus decode_frame_tiles_planar(
         return status;
     context.scratch = workspace->decode_scratch;
     context.decoder = &context.scratch->tile_decoder;
-    for (tile_index = 0U; tile_index < tile_count; ++tile_index) {
-        uint16_t tile_id = (uint16_t)(start_tile + tile_index);
-        context.pending_chroma_count = 0U;
-        status = av2h_tile_decoder_init(context.decoder, tiles[tile_index], sequence, frame,
-                                        &workspace->tile_context, tile_id);
-        if (status != AV2H_OK)
-            return status;
-        tile_readiness_clear(frame, workspace, context.decoder);
-        context.decoder->diagnostics = workspace->diagnostics;
-        context.decoder->entropy_state.range.diagnostics = workspace->diagnostics;
-        context.decoder->traversal.luma_traversal.diagnostics = workspace->diagnostics;
-        context.decoder->traversal.chroma_traversal.diagnostics = workspace->diagnostics;
-        status = decode_tile_leaves(&context);
-        if (status != AV2H_OK)
-            goto finished;
-        if (!tile_readiness_complete(frame, workspace, context.decoder)) {
-            status = frame_decode_failure(&context, AV2H_INVALID_DATA,
-                                          AV2H_FRAME_DECODE_STAGE_COMPLETENESS, 0U, NULL, 0U);
+    if (tile_count > 1U && workspace->tile_worker_count > 1U && execution != NULL &&
+        execution->parallel_for != NULL && execution->width > 1U && tiles_parallel_safe(&context)) {
+        uint8_t initialized = 1U;
+        status =
+            decode_parallel_tiles(&context, tiles, tile_count, start_tile, execution, &initialized);
+        if (initialized == 2U) {
+            status = frame_decode_failure(&context, status, AV2H_FRAME_DECODE_STAGE_INITIALIZE, 0U,
+                                          NULL, 0U);
             goto finished;
         }
-        tile_readiness_restore_previous(sequence, frame, workspace, tile_id);
+        if (status != AV2H_OK) {
+            /* Legacy failure metadata can retain state from the preceding tile.
+             * Replay rejection only, restoring its exact diagnostics and writes. */
+            parallel_failure = status;
+            status = av2h_frame_workspace_prepare(sequence, frame, workspace, output,
+                                                  required_output_bytes, result, &layout);
+            if (status != AV2H_OK)
+                return status;
+            av2h_memory_fill(&decoded, 0U, sizeof(decoded));
+            reset_frame_diagnostics(&context);
+            context.decoder = &context.scratch->tile_decoder;
+            replayed_failure = 1;
+        }
+    } else {
+        replayed_failure = 1;
+    }
+    if (replayed_failure) {
+        for (tile_index = 0U; tile_index < tile_count; ++tile_index) {
+            uint8_t initialized;
+            status = decode_one_tile(&context, tiles[tile_index],
+                                     (uint16_t)(start_tile + tile_index), &initialized);
+            if (initialized == 0U)
+                return status;
+            if (status != AV2H_OK)
+                goto finished;
+        }
+    }
+    if (parallel_failure != AV2H_OK) {
+        status = frame_decode_failure(&context, parallel_failure,
+                                      AV2H_FRAME_DECODE_STAGE_INITIALIZE, 0U, NULL, 0U);
+        goto finished;
     }
     status = finish_frame_tiles(&context, &layout);
     if (status != AV2H_OK)

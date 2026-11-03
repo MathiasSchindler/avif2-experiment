@@ -3,6 +3,7 @@
 #include "decoder/internal/filter_common.h"
 #include "decoder/internal/wiener_nonsep.h"
 #include "decoder/internal/frame_workspace.h"
+#include "parallel_test.h"
 
 #include <stddef.h>
 #include <stdio.h>
@@ -223,13 +224,13 @@ static void test_frame_decode_workspace_model(void) {
     frame.width = 17U;
     frame.height = 15U;
     CHECK(av2h_frame_decode_workspace_query(
-        &sequence, &frame, 1U, &layout) == AV2H_OK);
+        &sequence, &frame, 1U, NULL, &layout) == AV2H_OK);
     CHECK(layout.size_bytes != 0U);
     CHECK(layout.alignment != 0U);
     CHECK(layout.size_bytes <= sizeof(memory));
     CHECK(av2h_frame_decode_workspace_init(
         &sequence, &frame, 1U, &layout, memory, layout.size_bytes, &workspace,
-        &filter_workspace, &filter_storage) == AV2H_OK);
+        &filter_workspace, &filter_storage, NULL) == AV2H_OK);
 
 #define CHECK_FRAME_WORKSPACE_FAILURE(expected, pointer, size) \
     do { \
@@ -239,7 +240,7 @@ static void test_frame_decode_workspace_model(void) {
         av2h_memory_fill(&filter_storage, 0xa5U, sizeof(filter_storage)); \
         CHECK(av2h_frame_decode_workspace_init( \
             &sequence, &frame, 1U, &layout, (pointer), (size), &workspace, \
-            &filter_workspace, &filter_storage) == \
+            &filter_workspace, &filter_storage, NULL) == \
               (expected)); \
         CHECK(buffer_is_value( \
             (const uint8_t *)&workspace, sizeof(workspace), 0xa5U)); \
@@ -280,11 +281,11 @@ static void test_frame_workspace_prepare_rejection(size_t bytes_per_sample) {
     frame.width = 17U;
     frame.height = 15U;
     CHECK(av2h_frame_decode_workspace_query(
-        &sequence, &frame, bytes_per_sample, &decode_layout) == AV2H_OK);
+        &sequence, &frame, bytes_per_sample, NULL, &decode_layout) == AV2H_OK);
     CHECK(decode_layout.size_bytes <= sizeof(memory));
     CHECK(av2h_frame_decode_workspace_init(
         &sequence, &frame, bytes_per_sample, &decode_layout, memory, decode_layout.size_bytes,
-        &workspace, &filter_workspace, &filter_storage) == AV2H_OK);
+        &workspace, &filter_workspace, &filter_storage, NULL) == AV2H_OK);
     CHECK(av2h_planar_output_size(
         &frame, bytes_per_sample, &output_size) == AV2H_OK);
     CHECK(output_size <= sizeof(output));
@@ -440,15 +441,15 @@ static void test_filter_pipeline(void) {
     CHECK(av2h_memory_compare(
               original_y, expected_workspace.deblocked.plane[0].data,
               sizeof(original_y)) != 0);
-    CHECK(av2h_cdef_filter_frame(
+    CHECK(av2h_cdef_filter_rows(
         &expected_workspace.cdef, &expected_workspace.deblocked, NULL, &frame,
-        NULL) == AV2H_OK);
+        NULL, 0U, SIZE_MAX) == AV2H_OK);
     av2h_memory_copy(
         cdef_y, expected_workspace.cdef.plane[0].data, sizeof(cdef_y));
-    CHECK(av2h_ccso_filter_frame(
+    CHECK(av2h_ccso_filter_rows(
         &expected_workspace.cdef, expected_workspace.deblocked.plane[0].data,
         expected_workspace.deblocked.plane[0].stride_samples, NULL, &frame,
-        &expected_workspace.ccso_controls) == AV2H_OK);
+        &expected_workspace.ccso_controls, 0U, SIZE_MAX) == AV2H_OK);
     CHECK(av2h_memory_compare(
               cdef_y, expected_workspace.cdef.plane[0].data,
               sizeof(cdef_y)) != 0);
@@ -468,7 +469,7 @@ static void test_filter_pipeline(void) {
             expected_workspace.cdef.plane[2].height);
 
     CHECK(av2h_filter_frame(
-              &actual, &sequence, &frame, &actual_workspace) == AV2H_OK);
+              &actual, &sequence, &frame, &actual_workspace, NULL) == AV2H_OK);
     CHECK(av2h_memory_compare(actual_y, expected_y, sizeof(actual_y)) == 0);
     CHECK(av2h_memory_compare(actual_u, expected_u, sizeof(actual_u)) == 0);
     CHECK(av2h_memory_compare(actual_v, expected_v, sizeof(actual_v)) == 0);
@@ -524,7 +525,7 @@ static void test_disabled_filters_no_op(void) {
                         layout.stage_plane_bytes[index]);
     }
     CHECK(av2h_filter_frame(
-              &planes, &sequence, &frame, &workspace) == AV2H_OK);
+              &planes, &sequence, &frame, &workspace, NULL) == AV2H_OK);
     CHECK(av2h_memory_compare(y, expected_y, sizeof(y)) == 0);
     CHECK(av2h_memory_compare(u, expected_u, sizeof(u)) == 0);
     CHECK(av2h_memory_compare(v, expected_v, sizeof(v)) == 0);
@@ -1275,8 +1276,8 @@ static void test_cdef_u16_odd_geometry(void) {
     frame.cdef_on_skip_transform = 1U;
     frame.cdef_damping = 5U;
     frame.cdef_uv_strength[0] = 56U;
-    CHECK(av2h_cdef_filter_frame_u16(
-        &destination, &source, NULL, &frame, NULL, &av2h_sample_domain_10bit) == AV2H_OK);
+    CHECK(av2h_cdef_filter_rows_u16(
+        &destination, &source, NULL, &frame, NULL, 0U, SIZE_MAX, &av2h_sample_domain_10bit) == AV2H_OK);
     CHECK(destination_y[15U * 24U + 23U] == 400U);
     CHECK(destination_u[7U * 12U + 10U] < 456U);
     CHECK(source_u[7U * 12U + 10U] == 456U);
@@ -1361,19 +1362,19 @@ static void test_cdef_frame(void) {
     frame.cdef_damping = 5U;
     frame.cdef_y_strength[0] = 58U;
     frame.cdef_uv_strength[0] = 56U;
-    CHECK(av2h_cdef_filter_frame(
-        &destination, &source, NULL, &frame, NULL) == AV2H_OK);
+    CHECK(av2h_cdef_filter_rows(
+        &destination, &source, NULL, &frame, NULL, 0U, SIZE_MAX) == AV2H_OK);
     CHECK(destination_y[4U * 16U + 4U] < 108U);
     CHECK(source_y[4U * 16U + 4U] == 108U);
-    CHECK(av2h_cdef_filter_frame(
-        &source, &source, NULL, &frame, NULL) ==
+    CHECK(av2h_cdef_filter_rows(
+        &source, &source, NULL, &frame, NULL, 0U, SIZE_MAX) ==
           AV2H_INVALID_ARGUMENT);
     frame.cdef_strength_count = 2U;
         frame.cdef_y_strength[1] = 0U;
         frame.cdef_uv_strength[1] = 0U;
     controls = (Av2hCdefControlMap){ &strength, 1U, 1U };
-    CHECK(av2h_cdef_filter_frame(
-        &destination, &source, NULL, &frame, &controls) == AV2H_OK);
+    CHECK(av2h_cdef_filter_rows(
+        &destination, &source, NULL, &frame, &controls, 0U, SIZE_MAX) == AV2H_OK);
         CHECK(destination_y[4U * 16U + 4U] == 108U);
 
     for (index = 0U; index < sizeof(source_y); ++index) {
@@ -1391,8 +1392,8 @@ static void test_cdef_frame(void) {
                   &expected, &source.plane[0], x, y, 8U, 8U, 0U,
                   0U, 2U, frame.cdef_damping, 0U, 0U) == AV2H_OK);
     }
-    CHECK(av2h_cdef_filter_frame(
-        &destination, &source, NULL, &frame, NULL) == AV2H_OK);
+    CHECK(av2h_cdef_filter_rows(
+        &destination, &source, NULL, &frame, NULL, 0U, SIZE_MAX) == AV2H_OK);
     CHECK(av2h_memory_compare(
               destination_y, expected_y, sizeof(expected_y)) == 0);
 }
@@ -1689,15 +1690,15 @@ static void test_band_only_and_control(void) {
     controls.stride_units[1] = 1U;
     controls.columns = 1U;
     controls.rows = 1U;
-    CHECK(av2h_ccso_filter_frame(
-        &planes, reference, 8U, NULL, &frame, &controls) == AV2H_OK);
+    CHECK(av2h_ccso_filter_rows(
+        &planes, reference, 8U, NULL, &frame, &controls, 0U, SIZE_MAX) == AV2H_OK);
     CHECK(u[0] == 255U);
     for (index = 1U; index < 16U; ++index) CHECK(u[index] == 103U);
     for (index = 0U; index < 16U; ++index) CHECK(v[index] == 77U);
 
     control = 0U;
-    CHECK(av2h_ccso_filter_frame(
-        &planes, reference, 8U, NULL, &frame, &controls) == AV2H_OK);
+    CHECK(av2h_ccso_filter_rows(
+        &planes, reference, 8U, NULL, &frame, &controls, 0U, SIZE_MAX) == AV2H_OK);
     CHECK(u[1] == 103U);
 }
 
@@ -1737,8 +1738,8 @@ static void test_ccso_u16(void) {
     controls.stride_units[1] = 1U;
     controls.columns = 1U;
     controls.rows = 1U;
-    CHECK(av2h_ccso_filter_frame_u16(
-        &planes, reference, 8U, NULL, &frame, &controls, &av2h_sample_domain_10bit) == AV2H_OK);
+    CHECK(av2h_ccso_filter_rows_u16(
+        &planes, reference, 8U, NULL, &frame, &controls, 0U, SIZE_MAX, &av2h_sample_domain_10bit) == AV2H_OK);
     CHECK(u[0] == 1023U);
     CHECK(u[1] == 403U);
 
@@ -1752,8 +1753,8 @@ static void test_ccso_u16(void) {
     u[1] = 400U;
     reference[0] = 700U;
     reference[1] = 900U;
-    CHECK(av2h_ccso_filter_frame_u16(
-        &planes, reference, 8U, NULL, &frame, &controls, &av2h_sample_domain_10bit) == AV2H_OK);
+    CHECK(av2h_ccso_filter_rows_u16(
+        &planes, reference, 8U, NULL, &frame, &controls, 0U, SIZE_MAX, &av2h_sample_domain_10bit) == AV2H_OK);
     CHECK(u[0] == 0U);
     CHECK(u[1] == 407U);
 }
@@ -1797,8 +1798,8 @@ static void test_ccso_multi_unit_chroma(void) {
     controls.stride_units[1] = 2U;
     controls.columns = 2U;
     controls.rows = 1U;
-    CHECK(av2h_ccso_filter_frame(
-        &planes, reference, 128U, NULL, &frame, &controls) == AV2H_OK);
+    CHECK(av2h_ccso_filter_rows(
+        &planes, reference, 128U, NULL, &frame, &controls, 0U, SIZE_MAX) == AV2H_OK);
     for (row = 0U; row < 32U; ++row) {
         for (column = 0U; column < 64U; ++column) {
             CHECK(u[row * 64U + column] ==
@@ -1807,8 +1808,8 @@ static void test_ccso_multi_unit_chroma(void) {
     }
     av2h_memory_fill(u, 100U, sizeof(u));
     control[1] = 0U;
-    CHECK(av2h_ccso_filter_frame(
-        &planes, reference, 128U, NULL, &frame, &controls) == AV2H_OK);
+    CHECK(av2h_ccso_filter_rows(
+        &planes, reference, 128U, NULL, &frame, &controls, 0U, SIZE_MAX) == AV2H_OK);
     for (row = 0U; row < 32U; ++row) {
         for (column = 0U; column < 64U; ++column) {
             CHECK(u[row * 64U + column] ==
@@ -1852,8 +1853,8 @@ static void test_edge_classes(void) {
     controls.stride_units[0] = 1U;
     controls.columns = 1U;
     controls.rows = 1U;
-    CHECK(av2h_ccso_filter_frame(
-        &planes, reference, 8U, NULL, &frame, &controls) == AV2H_OK);
+    CHECK(av2h_ccso_filter_rows(
+        &planes, reference, 8U, NULL, &frame, &controls, 0U, SIZE_MAX) == AV2H_OK);
     CHECK(y[0] == 105U);
     CHECK(y[1] == 93U);
     CHECK(y[2] == 100U);
@@ -1887,27 +1888,27 @@ static void test_ccso_validation(void) {
     controls.columns = 1U;
     controls.rows = 1U;
 
-    CHECK(av2h_ccso_filter_frame(
-        &planes, reference, 8U, NULL, &frame, &controls) ==
+    CHECK(av2h_ccso_filter_rows(
+        &planes, reference, 8U, NULL, &frame, &controls, 0U, SIZE_MAX) ==
           AV2H_INVALID_ARGUMENT);
     CHECK(y[0] == 100U);
     frame.ccso[0].offset_count = 1U;
     control = 2U;
-    CHECK(av2h_ccso_filter_frame(
-        &planes, reference, 8U, NULL, &frame, &controls) ==
+    CHECK(av2h_ccso_filter_rows(
+        &planes, reference, 8U, NULL, &frame, &controls, 0U, SIZE_MAX) ==
           AV2H_INVALID_ARGUMENT);
     CHECK(y[0] == 100U);
     control = 1U;
     frame.ccso[0].band_only = 2U;
-    CHECK(av2h_ccso_filter_frame(
-        &planes, reference, 8U, NULL, &frame, &controls) ==
+    CHECK(av2h_ccso_filter_rows(
+        &planes, reference, 8U, NULL, &frame, &controls, 0U, SIZE_MAX) ==
           AV2H_INVALID_ARGUMENT);
     CHECK(y[0] == 100U);
     frame.ccso[0].band_only = 0U;
     frame.ccso[0].max_band_log2 = 4U;
     frame.ccso[0].offset_count = 144U;
-    CHECK(av2h_ccso_filter_frame(
-        &planes, reference, 8U, NULL, &frame, &controls) ==
+    CHECK(av2h_ccso_filter_rows(
+        &planes, reference, 8U, NULL, &frame, &controls, 0U, SIZE_MAX) ==
           AV2H_INVALID_ARGUMENT);
     CHECK(y[0] == 100U);
 }
@@ -1984,7 +1985,7 @@ static void test_fail_closed(void) {
     sequence.enable_ccso = 1U;
 
     sequence.enable_restoration = 1U;
-    CHECK(av2h_filter_frame(&planes, &sequence, &frame, &workspace) ==
+    CHECK(av2h_filter_frame(&planes, &sequence, &frame, &workspace, NULL) ==
             AV2H_OK);
         CHECK(y[0] == 100U);
         av2h_memory_fill(y, 91U, sizeof(y));
@@ -1996,7 +1997,7 @@ static void test_fail_closed(void) {
     workspace.cdef_controls.strengths = &cdef_strength;
     workspace.cdef_controls.columns = 1U;
     workspace.cdef_controls.rows = 1U;
-    CHECK(av2h_filter_frame(&planes, &sequence, &frame, &workspace) ==
+    CHECK(av2h_filter_frame(&planes, &sequence, &frame, &workspace, NULL) ==
             AV2H_OK);
         CHECK(y[0] == 100U);
         av2h_memory_fill(y, 91U, sizeof(y));
@@ -2004,22 +2005,22 @@ static void test_fail_closed(void) {
     frame.cdef_strength_count = 1U;
     frame.cdef_on_skip_transform = 1U;
     frame.cdef_damping = 5U;
-    CHECK(av2h_filter_frame(&planes, &sequence, &frame, &workspace) ==
+    CHECK(av2h_filter_frame(&planes, &sequence, &frame, &workspace, NULL) ==
           AV2H_INVALID_ARGUMENT);
     CHECK(y[0] == 91U);
     frame.cdef_strength_count = 0U;
     sequence.enable_ccso = 0U;
-    CHECK(av2h_filter_frame(&planes, &sequence, &frame, &workspace) ==
+    CHECK(av2h_filter_frame(&planes, &sequence, &frame, &workspace, NULL) ==
           AV2H_INVALID_ARGUMENT);
     CHECK(y[0] == 91U);
     sequence.enable_ccso = 1U;
-    CHECK(av2h_filter_frame(&planes, &sequence, &frame, &workspace) ==
+    CHECK(av2h_filter_frame(&planes, &sequence, &frame, &workspace, NULL) ==
           AV2H_OK);
     CHECK(y[0] == 100U);
     y[0] = 91U;
     controls.columns = 2U;
-    CHECK(av2h_ccso_filter_frame(
-        &planes, y, 8U, NULL, &frame, &controls) == AV2H_INVALID_ARGUMENT);
+    CHECK(av2h_ccso_filter_rows(
+        &planes, y, 8U, NULL, &frame, &controls, 0U, SIZE_MAX) == AV2H_INVALID_ARGUMENT);
     CHECK(y[0] == 91U);
 
         controls.columns = 1U;
@@ -2035,13 +2036,13 @@ static void test_fail_closed(void) {
         workspace.restoration_controls.unit_columns[1] = 1U;
         workspace.restoration_controls.unit_rows[1] = 2U;
         workspace.restoration_controls.unit_size[1] = 8U;
-        CHECK(av2h_filter_frame(&planes, &sequence, &frame, &workspace) ==
+        CHECK(av2h_filter_frame(&planes, &sequence, &frame, &workspace, NULL) ==
             AV2H_INVALID_ARGUMENT);
         CHECK(y[0] == 91U);
         CHECK(u[0] == 92U);
         workspace.restoration_controls.unit_rows[1] = 1U;
         restoration_control = AV2H_RESTORE_PC_WIENER;
-        CHECK(av2h_filter_frame(&planes, &sequence, &frame, &workspace) ==
+        CHECK(av2h_filter_frame(&planes, &sequence, &frame, &workspace, NULL) ==
             AV2H_INVALID_ARGUMENT);
         CHECK(y[0] == 91U);
         CHECK(u[0] == 92U);
@@ -2254,9 +2255,9 @@ static void test_restoration_format_and_switchable_dispatch(void) {
 
     frame.chroma_format_idc = 1U;
     frame.restoration_type[0] = AV2H_RESTORE_WIENER_NONSEP;
-    CHECK(av2h_wiener_nonsep_filter_frame(
+    CHECK(av2h_wiener_nonsep_filter_rows(
               &destination, &source, &deblocked, &sequence, &frame,
-              &controls) == AV2H_OK);
+              &controls, 0U, SIZE_MAX) == AV2H_OK);
     CHECK(memcmp(destination_data[0], source_data[0], 64U) == 0);
 
     frame.chroma_format_idc = 2U;
@@ -2268,18 +2269,18 @@ static void test_restoration_format_and_switchable_dispatch(void) {
         frame.restoration_unit_count[plane] = 1U;
         frame.restoration_unit_size[plane] = 8U;
     }
-    CHECK(av2h_wiener_nonsep_filter_frame(
+    CHECK(av2h_wiener_nonsep_filter_rows(
               &destination, &source, &deblocked, &sequence, &frame,
-              &controls) == AV2H_OK);
+              &controls, 0U, SIZE_MAX) == AV2H_OK);
     for (plane = 0U; plane < 3U; ++plane) {
         CHECK(memcmp(destination_data[plane], source_data[plane], 64U) == 0);
     }
 
     frame.restoration_type[0] = AV2H_RESTORE_SWITCHABLE;
     unit_type[0] = AV2H_RESTORE_PC_WIENER;
-    CHECK(av2h_pc_wiener_filter_luma(
+    CHECK(av2h_pc_wiener_filter_rows(
               &destination.plane[0], &source.plane[0], &deblocked.plane[0],
-              &frame, &controls) == AV2H_OK);
+              &frame, &controls, 0U, SIZE_MAX) == AV2H_OK);
 }
 
 static int reference_rows_overlap(uintptr_t left, size_t left_stride, size_t left_width,
@@ -2364,12 +2365,12 @@ static Av2hStatus reference_filter_pipeline(Av2hFilterPlanes *planes,
     if (wide != NULL) {
         status = av2h_deblock_stage_u16(wide, sequence, frame, work, domain);
         if (status != AV2H_OK) return status;
-        status = av2h_cdef_filter_frame_u16(&work->cdef_u16, &work->deblocked_u16,
-                                            sequence, frame, &work->cdef_controls, domain);
+        status = av2h_cdef_filter_rows_u16(&work->cdef_u16, &work->deblocked_u16,
+                                            sequence, frame, &work->cdef_controls, 0U, SIZE_MAX, domain);
         if (status != AV2H_OK) return status;
-        status = av2h_ccso_filter_frame_u16(&work->cdef_u16,
+        status = av2h_ccso_filter_rows_u16(&work->cdef_u16,
             work->deblocked_u16.plane[0].data, work->deblocked_u16.plane[0].stride_samples,
-            sequence, frame, &work->ccso_controls, domain);
+            sequence, frame, &work->ccso_controls, 0U, SIZE_MAX, domain);
         if (status != AV2H_OK) return status;
         status = av2h_gdf_filter_frame_u16(&wide->plane[0], &work->cdef_u16.plane[0],
             &work->deblocked_u16.plane[0], sequence, frame, &work->gdf_controls, domain);
@@ -2382,17 +2383,17 @@ static Av2hStatus reference_filter_pipeline(Av2hFilterPlanes *planes,
         filter_copy_plane(&work->deblocked.plane[plane], &planes->plane[plane]);
     status = av2h_deblock_filter_frame(&work->deblocked, sequence, frame, &work->deblock_map);
     if (status != AV2H_OK) return status;
-    status = av2h_cdef_filter_frame(&work->cdef, &work->deblocked, sequence, frame,
-                                    &work->cdef_controls);
+    status = av2h_cdef_filter_rows(&work->cdef, &work->deblocked, sequence, frame,
+                                    &work->cdef_controls, 0U, SIZE_MAX);
     if (status != AV2H_OK) return status;
-    status = av2h_ccso_filter_frame(&work->cdef, work->deblocked.plane[0].data,
-        work->deblocked.plane[0].stride_samples, sequence, frame, &work->ccso_controls);
+    status = av2h_ccso_filter_rows(&work->cdef, work->deblocked.plane[0].data,
+        work->deblocked.plane[0].stride_samples, sequence, frame, &work->ccso_controls, 0U, SIZE_MAX);
     if (status != AV2H_OK) return status;
     if (frame->restoration_type[0] != AV2H_RESTORE_NONE) {
         Av2hFilterPlanes restored = *planes;
         restored.plane[0] = work->restoration;
-        status = av2h_wiener_nonsep_filter_frame(&restored, &work->cdef, &work->deblocked,
-                                                  sequence, frame, &work->restoration_controls);
+        status = av2h_wiener_nonsep_filter_rows(&restored, &work->cdef, &work->deblocked,
+                                                  sequence, frame, &work->restoration_controls, 0U, SIZE_MAX);
         if (status != AV2H_OK) return status;
     }
     status = av2h_gdf_filter_frame(&planes->plane[0],
@@ -2467,12 +2468,27 @@ static void test_accepted_filter_aliases(void) {
         }
         CHECK(reference_filter_pipeline(&planes[0], NULL, &sequence, &frame, &work[0],
                                         &av2h_sample_domain_10bit) == AV2H_OK);
-        CHECK(av2h_filter_frame(&planes[1], &sequence, &frame, &work[1]) == AV2H_OK);
+        CHECK(av2h_filter_frame(&planes[1], &sequence, &frame, &work[1], NULL) == AV2H_OK);
         CHECK(memcmp(pixels[0], pixels[1], sizeof(pixels[0])) == 0);
     }
 }
 
-static void test_active_filter_stages(void) {
+static int filter_reverse_dispatch(void *context, size_t count, size_t min_chunk,
+    Av2hParallelBody body, void *argument) {
+    size_t index = count;
+    (void)context;
+    (void)min_chunk;
+    while (index != 0U) {
+        int status;
+        --index;
+        status = body(index, index + 1U, (unsigned int)(index % 4U), argument);
+        if (status != 0)
+            return status;
+    }
+    return 0;
+}
+
+static void test_active_filter_stages(const Av2hExecution *execution) {
     uint64_t transcript = UINT64_C(14695981039346656037);
     size_t cases = 0U;
     unsigned int bytes, format, geometry, features;
@@ -2483,14 +2499,14 @@ static void test_active_filter_stages(void) {
         Av2hFrameState frame = {0};
         Av2hFrameSyntaxStorage syntax = {0};
         Av2hSequenceState sequence = {0};
-        Av2hFilterWorkspace work[2];
-        Av2hFilterWorkspaceStorage storage[2];
+        Av2hFilterWorkspace work[3];
+        Av2hFilterWorkspaceStorage storage[3];
         Av2hFilterWorkspaceLayout layout;
-        Av2hFilterPlanes planes[2] = {0};
-        Av2hFilterPlanesU16 wide[2] = {0};
+        Av2hFilterPlanes planes[3] = {0};
+        Av2hFilterPlanesU16 wide[3] = {0};
         const Av2hSampleDomain *domain = &av2h_sample_domain_10bit;
-        void *memory[2];
-        void *pixels[2][3] = {{0}};
+        void *memory[3];
+        void *pixels[3][3] = {{0}};
         uint8_t cdef_flags[4] = {0U, 1U, 1U, 0U};
         uint8_t gdf_flags[4] = {1U, 0U, 1U, 1U};
         uint8_t restoration_flags[3][4] = {{0}};
@@ -2549,7 +2565,7 @@ static void test_active_filter_stages(void) {
         frame.gdf_block_columns = (frame.width + 63U) / 64U;
         frame.gdf_block_rows = (frame.height + 63U) / 64U;
         CHECK(av2h_filter_workspace_query(&frame, bytes, &layout) == AV2H_OK);
-        for (copy = 0U; copy < 2U; ++copy) {
+        for (copy = 0U; copy < 3U; ++copy) {
             memory[copy] = malloc(layout.size_bytes);
             CHECK(memory[copy] != NULL);
             if (memory[copy] == NULL) exit(1);
@@ -2585,7 +2601,7 @@ static void test_active_filter_stages(void) {
                         else wide[copy].plane[plane].data[index] = (uint16_t)((random >> 16U) & 1023U);
                     }
                 }
-                if (copy == 1U) memcpy(pixels[1][plane], pixels[0][plane],
+                if (copy != 0U) memcpy(pixels[copy][plane], pixels[0][plane],
                                        layout.stage_plane_bytes[plane]);
                 av2h_memory_fill(storage[copy].ccso_controls[plane], 1U, layout.ccso_control_count);
                 for (index = 0U; index < 4U; ++index) {
@@ -2600,20 +2616,37 @@ static void test_active_filter_stages(void) {
                 work[copy].restoration_controls.unit_size[plane] = frame.restoration_unit_size[plane];
             }
         }
+        CHECK((bytes == 1U ?
+            av2h_cdef_filter_rows(&planes[1], &work[1].deblocked, &sequence, &frame,
+                &work[1].cdef_controls, 1U, SIZE_MAX) :
+            av2h_cdef_filter_rows_u16(&wide[1], &work[1].deblocked_u16, &sequence, &frame,
+                &work[1].cdef_controls, 1U, SIZE_MAX, domain)) == AV2H_INVALID_ARGUMENT);
+        CHECK((bytes == 1U ?
+            av2h_ccso_filter_rows(&planes[1], planes[1].plane[0].data,
+                planes[1].plane[0].stride_samples, &sequence, &frame,
+                &work[1].ccso_controls, 64U, 0U) :
+            av2h_ccso_filter_rows_u16(&wide[1], wide[1].plane[0].data,
+                wide[1].plane[0].stride_samples, &sequence, &frame,
+                &work[1].ccso_controls, 64U, 0U, domain)) == AV2H_INVALID_ARGUMENT);
         CHECK(reference_filter_pipeline(&planes[0], bytes == 2U ? &wide[0] : NULL,
             &sequence, &frame, &work[0], domain) == AV2H_OK);
         {
             Av2hStatus status = bytes == 1U ?
-                av2h_filter_frame(&planes[1], &sequence, &frame, &work[1]) :
-                av2h_filter_stage_u16(&wide[1], &sequence, &frame, &work[1], domain);
+                av2h_filter_frame(&planes[1], &sequence, &frame, &work[1], NULL) :
+                av2h_filter_stage_u16(&wide[1], &sequence, &frame, &work[1], domain, NULL);
             if (status != AV2H_OK)
                 fprintf(stderr, "staging bytes=%u format=%u geometry=%u features=%u status=%d\n",
                         bytes, format, geometry, features, (int)status);
             CHECK(status == AV2H_OK);
         }
+        CHECK((bytes == 1U ?
+            av2h_filter_frame(&planes[2], &sequence, &frame, &work[2], execution) :
+            av2h_filter_stage_u16(&wide[2], &sequence, &frame, &work[2], domain,
+                                             execution)) == AV2H_OK);
         for (plane = 0U; plane < av2h_frame_plane_count(&frame); ++plane) {
             size_t index;
             CHECK(memcmp(pixels[0][plane], pixels[1][plane], layout.stage_plane_bytes[plane]) == 0);
+            CHECK(memcmp(pixels[0][plane], pixels[2][plane], layout.stage_plane_bytes[plane]) == 0);
             for (index = 0U; index < layout.stage_plane_bytes[plane] / bytes; ++index) {
                 uint16_t sample = bytes == 1U ? planes[0].plane[plane].data[index]
                                                : wide[0].plane[plane].data[index];
@@ -2637,9 +2670,11 @@ static void test_active_filter_stages(void) {
             }
             free(pixels[0][plane]);
             free(pixels[1][plane]);
+            free(pixels[2][plane]);
         }
         free(memory[0]);
         free(memory[1]);
+        free(memory[2]);
         ++cases;
     }
     printf("filter staging: %zu cases, %016llx\n", cases, (unsigned long long)transcript);
@@ -2648,7 +2683,17 @@ static void test_active_filter_stages(void) {
 
 int main(void) {
     test_plane_overlap_bounds();
-    test_active_filter_stages();
+    {
+        Av2hExecution reverse = {NULL, filter_reverse_dispatch, 4U};
+        Av2hTestPool pool;
+        Av2hExecution concurrent;
+        test_active_filter_stages(&reverse);
+        av2h_test_pool_init(&pool, 4U);
+        concurrent = av2h_test_pool_execution(&pool);
+        test_active_filter_stages(&concurrent);
+        CHECK((pool.workers_used & ~1U) != 0U);
+        av2h_test_pool_destroy(&pool);
+    }
     test_accepted_filter_aliases();
     test_workspace_model();
     test_wide_q_index_handoff();

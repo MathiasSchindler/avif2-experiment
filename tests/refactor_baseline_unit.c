@@ -473,10 +473,10 @@ static void test_unsupported_reconstruction(void) {
     Av2hPartitionNode leaf = { 0 };
     Av2hReconstructionPlane plane = {
         pixels, 4U, 4U, 4U, 4U, 4U, ready, 1U, 1U
-    };
+    , {0}};
     Av2hReconstructionPlaneU16 plane_u16 = {
         pixels_u16, 4U, 4U, 4U, 4U, 4U, ready, 1U, 1U
-    };
+    , {0}};
     prefix.tx_size = AV2H_TX_4X4;
     prefix.q_index = 152U;
     prefix.all_zero = 1U;
@@ -569,7 +569,7 @@ static void test_resource_baseline(void) {
                 &frame, (uint8_t)(storage + 1U), &filter) == AV2H_OK);
             CHECK(av2h_frame_decode_workspace_query(
                 &sequence, &frame, (uint8_t)(storage + 1U),
-                &workspace) == AV2H_OK);
+                NULL, &workspace) == AV2H_OK);
             CHECK(av2h_planar_output_size(
                 &frame, (uint8_t)(storage + 1U), &output_size) == AV2H_OK);
             if (inventory) {
@@ -601,7 +601,7 @@ static void test_private_layout_baseline(void) {
             CHECK(_Alignof(type) == (alignment));                              \
         }                                                                      \
     } while (0)
-    CHECK_LAYOUT(Av2hFrameDecodeWorkspace, 840U, 8U);
+    CHECK_LAYOUT(Av2hFrameDecodeWorkspace, 912U, 8U);
     CHECK_LAYOUT(Av2hFrameDecodeScratch, 179872U, 8U);
     CHECK_LAYOUT(Av2hDecodePreparation, 1024U, 8U);
     CHECK_LAYOUT(Av2hFrameDecodeResult, 144U, 8U);
