@@ -2,7 +2,7 @@
 
 **Status:** complete, 2 November 2026.
 
-This implements [M2](../refactor.md#m2-simplify-prediction-admission-and-dispatch)
+This implements [M2](../history/refactor.md#m2-simplify-prediction-admission-and-dispatch)
 after [M1](refactoring-m1.md), without expanding the
 [capability contract](../capabilities.md).
 

@@ -7,13 +7,13 @@ corpora are not required.
 ## Purpose and scope
 
 Improve ownership, admission logic, and private interfaces in
-[`src/decoder/`](../src/decoder/) and the files directly under
-[`src/`](../src/). This is a second incremental refactoring pass, not a rewrite
+[`src/decoder/`](../../src/decoder/) and the files directly under
+[`src/`](../../src/). This is a second incremental refactoring pass, not a rewrite
 or an expansion of the supported AV2 profile.
 
-The [previous refactoring plan](dev/decoder-refactoring-plan.md) and its phase
+The [previous refactoring plan](../dev/decoder-refactoring-plan.md) and its phase
 reports remain historical evidence. This plan builds on those extractions.
-[Decoder capabilities](capabilities.md) remains the authoritative contract.
+[Decoder capabilities](../capabilities.md) remains the authoritative contract.
 
 Supporting changes may touch tests, build source lists, generators, and
 documentation where an extraction requires them. Platform behavior, public
@@ -25,12 +25,12 @@ Source sizes measured on 2 November 2026:
 
 | Owner | Lines | Main opportunity |
 | --- | ---: | --- |
-| [`intra_prediction.c`](../src/decoder/intra_prediction.c) | 3,839 | Separate kernels, edge preparation, and admission/dispatch |
-| [`reconstruct.c`](../src/decoder/reconstruct.c) | 3,080 | Separate residual reconstruction from picture-plane integration |
-| [`frame_workspace.c`](../src/decoder/frame_workspace.c) | 1,482 | Separate storage planning, output copying, and filter metadata |
-| [`frame_output.c`](../src/decoder/frame_output.c) | 964 | Shorten orchestration and repeated failure-context assembly |
-| [`carriage.c`](../src/carriage.c) | 1,121 | Separate OBU framing, codec syntax, and carriage policy |
-| [`container.c`](../src/container.c) | 1,201 | Separate container reading/probing from writing |
+| [`intra_prediction.c`](../../src/decoder/intra_prediction.c) | 3,839 | Separate kernels, edge preparation, and admission/dispatch |
+| [`reconstruct.c`](../../src/decoder/reconstruct.c) | 3,080 | Separate residual reconstruction from picture-plane integration |
+| [`frame_workspace.c`](../../src/decoder/frame_workspace.c) | 1,482 | Separate storage planning, output copying, and filter metadata |
+| [`frame_output.c`](../../src/decoder/frame_output.c) | 964 | Shorten orchestration and repeated failure-context assembly |
+| [`carriage.c`](../../src/carriage.c) | 1,121 | Separate OBU framing, codec syntax, and carriage policy |
+| [`container.c`](../../src/container.c) | 1,201 | Separate container reading/probing from writing |
 
 Size alone does not justify splitting a file. Existing focused filter,
 arithmetic, geometry, and layout owners should remain intact unless a concrete
@@ -59,7 +59,7 @@ move-only changes may adjust linkage, includes, and forwarding wrappers, but
 must not change arithmetic, constants, conditions, or error precedence.
 
 Update all affected explicit source manifests, including the
-[Makefile](../Makefile) and existing platform/WebAssembly build scripts. Do not
+[Makefile](../../Makefile) and existing platform/WebAssembly build scripts. Do not
 introduce source globbing, a generic dispatch framework, or a new utility
 bucket. Proposed owner names below are illustrative, not mandatory file counts.
 
@@ -87,7 +87,7 @@ M6 is the broader dependency cleanup, not a reason to postpone necessary headers
 
 ## M0: freeze behavior and resource evidence
 
-**Completed:** [behavioral and resource baseline](dev/refactoring-m0.md).
+**Completed:** [behavioral and resource baseline](../dev/refactoring-m0.md).
 The baseline adds implementation-characterization tests, freezes measured
 resources, maps extraction owners to active tests, and records the existing
 missing-media failures. It does not claim that the full corpus gate passes.
@@ -97,7 +97,7 @@ Before moving code:
 - Record the current native test results, admitted profile boundaries, layout
   assertions, and representative workspace sizes.
 - Preserve the retained Baya Weaver regression and its
-  [provenance](../tests/fixtures/baya-weaver-current-i420-qp152.json).
+  [provenance](../../tests/fixtures/baya-weaver-current-i420-qp152.json).
 - Inventory prediction coverage by geometry, bit depth, mode, edge
   availability, MRL, and IBP. Distinguish tested, implemented, and unsupported
   combinations rather than assuming every cross-product is supported.
@@ -119,12 +119,12 @@ media are explicit; no expected output is weakened to obtain a green baseline.
 
 ## M1: extract prediction families
 
-**Completed:** [prediction-family extraction and evidence](dev/refactoring-m1.md).
+**Completed:** [prediction-family extraction and evidence](../dev/refactoring-m1.md).
 Typed numerical owners now sit behind the existing entry points. Dispatch
 precedence, legacy branches, and frozen M0 expectations remain unchanged.
 
 Separate the responsibilities currently concentrated in
-[`intra_prediction.c`](../src/decoder/intra_prediction.c):
+[`intra_prediction.c`](../../src/decoder/intra_prediction.c):
 
 - Reference-edge preparation and filtering.
 - Nondirectional DC, smooth, and Paeth kernels.
@@ -146,7 +146,7 @@ workspace change has occurred.
 
 ## M2: simplify prediction admission and dispatch
 
-**Completed:** [admission consolidation and equivalence evidence](dev/refactoring-m2.md).
+**Completed:** [admission consolidation and equivalence evidence](../dev/refactoring-m2.md).
 Canonical families now have explicit geometry/feature rules and one dispatch
 path. Observable noncanonical direct-helper behavior remains isolated rather
 than being silently removed or reclassified.
@@ -154,7 +154,7 @@ than being silently removed or reclassified.
 Only after M1 is stable:
 
 - Replace repeated geometry facts with the existing
-  [transform geometry descriptors](../src/decoder/tx_geometry.c) or a small
+  [transform geometry descriptors](../../src/decoder/tx_geometry.c) or a small
   prediction-owned predicate where appropriate.
 - Keep implemented-feature restrictions explicit and separate from legal
   transform geometry. A valid descriptor is not sufficient proof that a
@@ -174,9 +174,9 @@ rule and dispatch path, with unchanged pixels, rejection statuses, and bounds.
 
 ## M3: separate block reconstruction from plane integration
 
-**Completed:** [block/plane ownership and equivalence evidence](dev/refactoring-m3.md).
+**Completed:** [block/plane ownership and equivalence evidence](../dev/refactoring-m3.md).
 
-Split [`reconstruct.c`](../src/decoder/reconstruct.c) at the boundary between:
+Split [`reconstruct.c`](../../src/decoder/reconstruct.c) at the boundary between:
 
 1. Reconstructing samples from a supplied predictor and coefficient block:
    lossless reconstruction, inverse-transform selection, residual composition,
@@ -200,8 +200,8 @@ Scratch layouts and exact decoded output remain unchanged.
 ## M4: clarify frame responsibilities
 
 Refine the ownership currently shared by
-[`frame_workspace.c`](../src/decoder/frame_workspace.c) and
-[`frame_output.c`](../src/decoder/frame_output.c):
+[`frame_workspace.c`](../../src/decoder/frame_workspace.c) and
+[`frame_output.c`](../../src/decoder/frame_output.c):
 
 - Keep arena planning/binding, capacities, overlap validation, and preflight
   together. Query and initialization must retain the same allocation order.
@@ -221,23 +221,23 @@ hiding buffer bounds, increasing workspace, or changing lifetimes.
 owners. Layout, overlap, parallel-output, tile-boundary, filter-order, and
 failure-path tests preserve existing behavior.
 
-**Completed:** see [M4 ownership and validation evidence](dev/refactoring-m4.md),
+**Completed:** see [M4 ownership and validation evidence](../dev/refactoring-m4.md),
 including unchanged allocation/scheduling bodies, frozen frame characterizations,
 and the existing missing-media limits on aggregate gates.
 
 ## M5: separate codec syntax and container carriage
 
-For [`carriage.c`](../src/carriage.c):
+For [`carriage.c`](../../src/carriage.c):
 
 - Move sequence-state parsing alongside the
-  [decoder sequence interface](../src/decoder/sequence.h).
+  [decoder sequence interface](../../src/decoder/sequence.h).
 - Give OBU framing/LEB128 and content-interpretation syntax explicit owners.
 - Keep configuration-box handling and container-carriage validation distinct
   from parsing codec tool flags.
 - Preserve existing public parsing entry points and supported HEIF/OBU shapes.
   This milestone does not add container support for previously rejected forms.
 
-For [`container.c`](../src/container.c):
+For [`container.c`](../../src/container.c):
 
 - Separate deterministic writing from reading/probing.
 - Retain shared interpretation rules between probing and parsing; do not
@@ -245,7 +245,7 @@ For [`container.c`](../src/container.c):
 - Continue using the existing BMFF box primitives rather than introducing a
   second box parser.
 
-Move container-probe declarations out of [`base.h`](../src/base.h) into a
+Move container-probe declarations out of [`base.h`](../../src/base.h) into a
 private container interface. Keep root-level public query/decode functions as
 thin coordinators rather than moving codec internals into them.
 
@@ -253,14 +253,14 @@ thin coordinators rather than moving codec internals into them.
 Container round-trip/determinism, dialect detection, metadata consistency, OBU
 validation, offsets, error precedence, and public decode tests remain exact.
 
-**Completed:** see [M5 ownership and validation evidence](dev/refactoring-m5.md),
+**Completed:** see [M5 ownership and validation evidence](../dev/refactoring-m5.md),
 including all 57 preserved function bodies, 52,630 frozen parsing/container
 scenario groups, and the unchanged missing-media limits on aggregate gates.
 
 ## M6: narrow private interfaces
 
 Reduce the transitive dependency chain currently pulled in by
-[`reconstruct.h`](../src/decoder/reconstruct.h):
+[`reconstruct.h`](../../src/decoder/reconstruct.h):
 coefficient-level, transform, coefficient, leaf, and frame interfaces.
 
 - Separate the value types needed by kernels from entropy/CDF banks, parser
@@ -280,7 +280,7 @@ coefficient-level, transform, coefficient, leaf, and frame interfaces.
 are self-contained, no include cycle is introduced, and state sizes and
 freestanding linkage remain unchanged.
 
-**Completed:** see [M6 interface and validation evidence](dev/refactoring-m6.md),
+**Completed:** see [M6 interface and validation evidence](../dev/refactoring-m6.md),
 including 52 standalone private headers, 35 value-only kernel dependency roots,
 unchanged M0 inventories, and the preserved numerical/state declarations.
 
@@ -302,7 +302,7 @@ observable behavior change belongs in a separate fix with its own tests.
 syntax, luma/chroma reconstruction, filtering, and output validation retain
 their status, location, stage/cause, and documented caller-buffer behavior.
 
-**Completed:** see [M7 error-construction evidence](dev/refactoring-m7.md),
+**Completed:** see [M7 error-construction evidence](../dev/refactoring-m7.md),
 including 43,878 frozen error scenarios and 84,144 old/new diagnostic
 comparisons per configuration, preserved partial updates and buffer behavior,
 and unchanged M0 layouts.
@@ -332,7 +332,7 @@ output, ownership/dependencies are documented, and coverage limitations are
 stated without claiming unexecuted platform or full-corpus gates.
 
 **Completed under the revised acceptance scope:** see
-[M8 integration and final ownership evidence](dev/refactoring-m8.md).
+[M8 integration and final ownership evidence](../dev/refactoring-m8.md).
 The normal hosted macOS ARM64 decoder builds and runs, with exact retained
 Baya 8-bit output and a passing 10-bit WP0 oracle check. The earlier native,
 WebAssembly and layout evidence remains valid. Missing media, the separate
@@ -370,8 +370,8 @@ Record the resolved oracle revision and binary hashes from each report.
 Changed encoder output alone is not a decoder regression. Do not fetch a new
 oracle or regenerate the pinned references as part of a move-only change.
 
-The [spatial platform gate](dev/spatial-still.md) and
-[10-bit release evidence](dev/10bit-wp14.md) describe additional platform
+The [spatial platform gate](../dev/spatial-still.md) and
+[10-bit release evidence](../dev/10bit-wp14.md) describe additional platform
 validation. Use applicable commands on supported hosts rather than claiming
 every platform was exercised by a native-only run.
 

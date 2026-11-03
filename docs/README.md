@@ -19,6 +19,10 @@ read as the current capability boundary.
 
 - [Current roadmap](roadmap.md): unfinished reliability, maintainability, and
   product work.
+- [Decoder architecture improvement plan](improve-architecture.md): milestones
+  for stack footprint reduction, single-pass query/decode preparation, entropy
+  hot-loop optimization, filter staging, multi-tile/filter parallelism, and
+  8-bit/16-bit behavioral convergence.
 - [Spatial-still 8-bit decoder plan](dev/spatial-still.md): milestones for the
   broad one-picture spatial profile and its missing decoder capabilities.
 - [Coding opportunities](research/feature.md): encoder experiments and research
@@ -31,8 +35,6 @@ Files under `dev/` record focused implementation and validation work. The main
 release summaries include:
 
 - [10-bit release gate](dev/10bit-wp14.md)
-- [Decoder refactoring milestones](refactor.md): M0-M8 complete under the
-  revised local-macOS acceptance scope.
 - [Refactoring M0 baseline](dev/refactoring-m0.md)
 - [Refactoring M1 prediction owners](dev/refactoring-m1.md)
 - [Refactoring M2 admission and dispatch](dev/refactoring-m2.md)
@@ -61,6 +63,8 @@ The following documents are frozen historical records:
 - [10-bit implementation plan](history/10bitplan.md)
 - [10-bit preparation plan](history/10bitplan-prepwork.md)
 - [Dated AV2 still-image design report](history/avif-2.md)
+- [Decoder refactoring milestones (M0–M8)](history/refactor.md)
+- [Code quality and consistency cleanup plan (C1–C10)](history/cleanup.md)
 
 Their status notices point readers back to current documentation. Historical
 references use repository-relative paths so evidence remains unambiguous after

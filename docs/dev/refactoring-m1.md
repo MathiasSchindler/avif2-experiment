@@ -2,7 +2,7 @@
 
 **Status:** complete, 2 November 2026.
 
-This implements [M1](../refactor.md#m1-extract-prediction-families) against the
+This implements [M1](../history/refactor.md#m1-extract-prediction-families) against the
 unchanged [M0 baseline](refactoring-m0.md). It extracts numerical ownership,
 not prediction admission or the supported AV2 profile.
 

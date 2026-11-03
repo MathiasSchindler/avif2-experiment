@@ -222,7 +222,7 @@ The original broader closeout would require restoring locked media, resolving
 the macOS linker limitation in a separately validated change, and rerunning
 the full native/platform gates on suitable hosts. These are now optional
 follow-up coverage, not M8 exit conditions; the revised local-macOS acceptance
-is complete in [`refactor.md`](../refactor.md). Any future restoration must use
+is complete in [`refactor.md`](../history/refactor.md). Any future restoration must use
 the recorded provenance rather than replacing pinned data with new encodes or
 relaxing hashes.
 
