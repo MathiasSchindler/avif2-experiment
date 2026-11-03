@@ -1,4 +1,5 @@
 import re
+import subprocess
 import unittest
 from pathlib import Path
 
@@ -62,6 +63,17 @@ TYPED_ADAPTERS = {
     "av2h_chroma_predict_u16": "av2h_luma_predict_u16_adjusted",
 }
 
+def kernel_specializations(path: Path):
+    for width in ("u8", "u16"):
+        source = (
+            f'#include "decoder/internal/sample_kernel_{width}.inc"\n'
+            f'#include "{path.relative_to(ROOT / "src")}"\n'
+            '#include "decoder/internal/sample_kernel_end.inc"\n')
+        yield subprocess.run(
+            ["clang", "-E", "-P", "-x", "c", "-Isrc", "-Iinclude", "-"],
+            input=source, cwd=ROOT, text=True, capture_output=True,
+            check=True).stdout
+
 
 class DecoderEntrypointTests(unittest.TestCase):
     def test_no_retired_entrypoints_in_code(self) -> None:
@@ -86,15 +98,22 @@ class DecoderEntrypointTests(unittest.TestCase):
     def test_no_default_only_forwarding_functions(self) -> None:
         pattern = re.compile(
             r"^(?:static\s+)?[A-Za-z_]\w*\s+(av2h_\w+)\s*\([^;{}]*\)"
-            r"\s*\{\s*return\s+(av2h_\w+)\s*\([^;{}]*\);\s*\}",
+            r"\s*\{\s*(?:if\s*\(!av2h_sample_domain_valid\(domain\)\)"
+            r"\s*return AV2H_INVALID_ARGUMENT;\s*)?"
+            r"return\s+(av2h_\w+)\s*\([^;{}]*\);\s*\}",
             re.MULTILINE,
         )
         found = {}
-        for path in (ROOT / "src/decoder").rglob("*.c"):
-            for match in pattern.finditer(path.read_text()):
-                with self.subTest(path=path.relative_to(ROOT), function=match[1]):
-                    self.assertIn(match[1], TYPED_ADAPTERS)
-                    found[match[1]] = match[2]
+        paths = [*(ROOT / "src/decoder").rglob("*.c"),
+                 *(ROOT / "src/decoder/internal").glob("*_kernel.inc")]
+        for path in paths:
+            sources = (kernel_specializations(path) if path.suffix == ".inc"
+                       else [path.read_text()])
+            for source in sources:
+                for match in pattern.finditer(source):
+                    with self.subTest(path=path.relative_to(ROOT), function=match[1]):
+                        self.assertIn(match[1], TYPED_ADAPTERS)
+                        found[match[1]] = match[2]
         self.assertEqual(found, TYPED_ADAPTERS)
 
 

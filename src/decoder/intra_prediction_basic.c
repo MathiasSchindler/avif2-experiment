@@ -17,6 +17,18 @@ static const uint8_t ibp_weights[5U][16U] = {
       98U, 102U, 106U, 109U, 113U, 117U, 121U, 124U }
 };
 
+Av2hStatus av2h_predict_smooth(uint16_t width, uint16_t height,
+                               const Av2hLumaReferences *references, uint8_t *predictor,
+                               size_t predictor_stride_samples);
+Av2hStatus av2h_predict_smooth_u16(const Av2hLeafMode *mode, uint16_t width, uint16_t height,
+                                   const Av2hLumaReferencesU16 *references, uint16_t *predictor,
+                                   size_t predictor_stride_samples, const Av2hSampleDomain *domain);
+Av2hStatus av2h_predict_paeth(uint16_t width, uint16_t height, const Av2hLumaReferences *references,
+                              uint8_t *predictor, size_t predictor_stride_samples);
+Av2hStatus av2h_predict_paeth_u16(uint16_t width, uint16_t height,
+                                  const Av2hLumaReferencesU16 *references, uint16_t *predictor,
+                                  size_t predictor_stride_samples, const Av2hSampleDomain *domain);
+
 static uint8_t smooth_scale(uint16_t width, uint16_t height) {
     unsigned int sum =
         (unsigned int)av2h_sample_block_log2(width) - 2U +
@@ -215,67 +227,6 @@ Av2hStatus av2h_predict_smooth_horizontal(
 
 }
 
-Av2hStatus av2h_predict_smooth(
-    uint16_t width,
-    uint16_t height,
-    const Av2hLumaReferences *references,
-    uint8_t *predictor,
-    size_t predictor_stride_samples) {
-    uint16_t row;
-    uint16_t column;
-    uint8_t scale = smooth_scale(width, height);
-    uint8_t bottom_left;
-    uint8_t top_right;
-    int have_above = references->above != NULL &&
-        references->above_count != 0U;
-    int have_left = references->left != NULL &&
-        references->left_count != 0U;
-    if ((have_above && references->above_count < width) ||
-        (have_left && references->left_count < height)) {
-        return AV2H_INVALID_ARGUMENT;
-    }
-    bottom_left = !have_left ? have_above ? references->above[0] :
-        av2h_sample_above_midpoint_8bit() :
-        references->left_count > height ?
-        references->left[height] : references->left[height - 1U];
-    top_right = !have_above ? have_left ? references->left[0] :
-        av2h_sample_below_midpoint_8bit() :
-        references->above_count > width ?
-        references->above[width] : references->above[width - 1U];
-    for (row = 0U; row < height; ++row) {
-        for (column = 0U; column < width; ++column) {
-            uint8_t top = !have_above ?
-                have_left ? references->left[0] :
-                av2h_sample_below_midpoint_8bit() :
-                references->above[column];
-            uint8_t left = !have_left ?
-                have_above ? references->above[0] :
-                av2h_sample_above_midpoint_8bit() :
-                references->left[row];
-            uint8_t top_blend = smooth_blend(row, scale);
-            uint8_t left_blend = smooth_blend(column, scale);
-            int32_t vertical = bottom_left + av2h_sample_round_pow2(
-                ((int64_t)top - bottom_left) *
-                    (height - 1U - row),
-                av2h_sample_block_log2(height));
-            int32_t horizontal = top_right + av2h_sample_round_pow2(
-                ((int64_t)left - top_right) *
-                    (width - 1U - column),
-                av2h_sample_block_log2(width));
-            vertical += av2h_sample_round_pow2(
-                ((int64_t)top - vertical) *
-                    top_blend, 7U);
-            horizontal += av2h_sample_round_pow2(
-                ((int64_t)left - horizontal) *
-                    left_blend, 7U);
-            predictor[(size_t)row * predictor_stride_samples + column] =
-                (uint8_t)av2h_sample_round_pow2(vertical + horizontal, 1U);
-        }
-    }
-    return AV2H_OK;
-
-}
-
 Av2hStatus av2h_predict_smooth_16x8(
     uint16_t width,
     uint16_t height,
@@ -368,199 +319,9 @@ Av2hStatus av2h_predict_smooth_8x32(
 
 }
 
-Av2hStatus av2h_predict_paeth(
-    uint16_t width,
-    uint16_t height,
-    const Av2hLumaReferences *references,
-    uint8_t *predictor,
-    size_t predictor_stride_samples) {
-    uint16_t row;
-    uint16_t column;
-    if (references->above != NULL && references->above_count >= width &&
-        (references->left == NULL || references->left_count == 0U)) {
-        for (row = 0U; row < height; ++row) {
-            for (column = 0U; column < width; ++column) {
-                predictor[(size_t)row * predictor_stride_samples + column] =
-                    references->above[column];
-            }
-        }
-        return AV2H_OK;
-    }
-    if (references->left != NULL && references->left_count >= height &&
-        (references->above == NULL || references->above_count == 0U)) {
-        for (row = 0U; row < height; ++row) {
-            for (column = 0U; column < width; ++column) {
-                predictor[(size_t)row * predictor_stride_samples + column] =
-                    references->left[row];
-            }
-        }
-        return AV2H_OK;
-    }
-    if ((references->above == NULL || references->above_count == 0U) &&
-        (references->left == NULL || references->left_count == 0U)) {
-        for (row = 0U; row < height; ++row) {
-            for (column = 0U; column < width; ++column) {
-                predictor[(size_t)row * predictor_stride_samples + column] =
-                    av2h_sample_midpoint_8bit();
-            }
-        }
-        return AV2H_OK;
-    }
-    if (references->above == NULL || references->above_count < width ||
-        references->left == NULL || references->left_count < height ||
-        !references->has_above_left) {
-        return AV2H_INVALID_ARGUMENT;
-    }
-    for (row = 0U; row < height; ++row) {
-        for (column = 0U; column < width; ++column) {
-            int32_t top = references->above[column];
-            int32_t side = references->left[row];
-            int32_t corner = references->above_left;
-            int32_t base = top + side - corner;
-            int32_t side_distance = base > side ? base - side : side - base;
-            int32_t top_distance = base > top ? base - top : top - base;
-            int32_t corner_distance = base > corner ?
-                base - corner : corner - base;
-            int32_t value = side_distance <= top_distance &&
-                side_distance <= corner_distance ? side :
-                top_distance <= corner_distance ? top : corner;
-            predictor[(size_t)row * predictor_stride_samples + column] =
-                (uint8_t)value;
-        }
-    }
-    return AV2H_OK;
-
-}
-
-Av2hStatus av2h_predict_smooth_u16(
-    const Av2hLeafMode *mode,
-    uint16_t width,
-    uint16_t height,
-    const Av2hLumaReferencesU16 *references,
-    uint16_t *predictor,
-    size_t predictor_stride_samples) {
-    const uint16_t *above;
-    const uint16_t *left;
-    size_t above_count;
-    size_t left_count;
-    uint16_t row;
-    uint16_t column;
-    int have_above;
-    int have_left;
-    above = references->above;
-    above_count = references->above_count;
-    left = references->left;
-    left_count = references->left_count;
-    have_above = above != NULL && above_count != 0U;
-    have_left = left != NULL && left_count != 0U;
-    uint8_t scale = smooth_scale(width, height);
-    uint16_t bottom_left = !have_left ? have_above ? above[0] : 513U :
-        left_count > height ? left[height] : left[left_count - 1U];
-    uint16_t top_right = !have_above ? have_left ? left[0] : 511U :
-        above_count > width ? above[width] : above[above_count - 1U];
-    if ((have_above && above_count < width) ||
-        (have_left && left_count < height)) {
-        return AV2H_INVALID_ARGUMENT;
-    }
-    for (row = 0U; row < height; ++row) {
-        for (column = 0U; column < width; ++column) {
-            uint16_t top = have_above ? above[column] :
-                have_left ? left[0] : 511U;
-            uint16_t side = have_left ? left[row] :
-                have_above ? above[0] : 513U;
-            int32_t vertical = bottom_left + av2h_sample_round_pow2(
-                ((int64_t)top - bottom_left) *
-                    (height - 1U - row),
-                av2h_sample_block_log2(height));
-            int32_t horizontal = top_right + av2h_sample_round_pow2(
-                ((int64_t)side - top_right) *
-                    (width - 1U - column),
-                av2h_sample_block_log2(width));
-            vertical += av2h_sample_round_pow2(
-                ((int64_t)top - vertical) * smooth_blend(row, scale),
-                7U);
-            horizontal += av2h_sample_round_pow2(
-                ((int64_t)side - horizontal) *
-                    smooth_blend(column, scale),
-                7U);
-            predictor[(size_t)row * predictor_stride_samples + column] =
-                mode->mode == AV2H_INTRA_SMOOTH_VERTICAL ?
-                    (uint16_t)vertical :
-                mode->mode == AV2H_INTRA_SMOOTH_HORIZONTAL ?
-                    (uint16_t)horizontal :
-                    (uint16_t)av2h_sample_round_pow2(vertical + horizontal, 1U);
-        }
-    }
-    return AV2H_OK;
-
-}
-
-Av2hStatus av2h_predict_paeth_u16(
-    uint16_t width,
-    uint16_t height,
-    const Av2hLumaReferencesU16 *references,
-    uint16_t *predictor,
-    size_t predictor_stride_samples) {
-    const uint16_t *above;
-    const uint16_t *left;
-    size_t above_count;
-    size_t left_count;
-    uint16_t above_left;
-    uint8_t has_above_left;
-    uint16_t row;
-    uint16_t column;
-    int have_above;
-    int have_left;
-    above = references->above;
-    above_count = references->above_count;
-    left = references->left;
-    left_count = references->left_count;
-    above_left = references->above_left;
-    has_above_left = references->has_above_left;
-    have_above = above != NULL && above_count != 0U;
-    have_left = left != NULL && left_count != 0U;
-    if (!have_above && !have_left) {
-        for (row = 0U; row < height; ++row) {
-            for (column = 0U; column < width; ++column) {
-                predictor[(size_t)row * predictor_stride_samples +
-                          column] = 512U;
-            }
-        }
-        return AV2H_OK;
-    }
-    if (!have_left || !have_above) {
-        for (row = 0U; row < height; ++row) {
-            for (column = 0U; column < width; ++column) {
-                predictor[(size_t)row * predictor_stride_samples +
-                          column] = have_above ?
-                    above[column < above_count ? column :
-                          above_count - 1U] :
-                    left[row < left_count ? row : left_count - 1U];
-            }
-        }
-        return AV2H_OK;
-    }
-    if (above_count < width || left_count < height ||
-        has_above_left == 0U) {
-        return AV2H_INVALID_ARGUMENT;
-    }
-    for (row = 0U; row < height; ++row) {
-        for (column = 0U; column < width; ++column) {
-            int32_t top = above[column];
-            int32_t side = left[row];
-            int32_t corner = above_left;
-            int32_t base = top + side - corner;
-            int32_t side_distance = base > side ?
-                base - side : side - base;
-            int32_t top_distance = base > top ? base - top : top - base;
-            int32_t corner_distance = base > corner ?
-                base - corner : corner - base;
-            predictor[(size_t)row * predictor_stride_samples + column] =
-                (uint16_t)(side_distance <= top_distance &&
-                    side_distance <= corner_distance ? side :
-                    top_distance <= corner_distance ? top : corner);
-        }
-    }
-    return AV2H_OK;
-
-}
+#include "internal/sample_kernel_u8.inc"
+#include "internal/intra_prediction_basic_kernel.inc"
+#include "internal/sample_kernel_end.inc"
+#include "internal/sample_kernel_u16.inc"
+#include "internal/intra_prediction_basic_kernel.inc"
+#include "internal/sample_kernel_end.inc"

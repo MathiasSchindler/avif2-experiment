@@ -6644,7 +6644,7 @@ static void test_10bit_wp5_frame_fixture(void) {
             CHECK(leaf.transform.primary_type == AV2H_TX_DCT_DCT);
             CHECK(av2h_luma_reconstruct_to_plane_u16(
                 NULL, &leaf.node, &leaf.mode, &leaf.prefix, &leaf.transform,
-                &block, &plane, &scratch) == AV2H_OK);
+                &block, &plane, &scratch, &av2h_sample_domain_10bit) == AV2H_OK);
             for (index = 0U; index < 128U; ++index) {
                 uint16_t expected_predictor;
                 if (luma_count == 0U) {
@@ -6703,7 +6703,7 @@ static void test_10bit_wp5_frame_fixture(void) {
                     NULL, &leaf.node, &leaf.mode, &leaf.prefix[index],
                     &leaf.transform[index], &blocks[index],
                     &chroma_planes[index], &plane, (uint8_t)(index + 1U),
-                    frame.chroma_format_idc, &scratch) == AV2H_OK);
+                    frame.chroma_format_idc, &scratch, &av2h_sample_domain_10bit) == AV2H_OK);
                  if (chroma_count == 0U) {
                     expected_predictor = 512U;
                  } else {

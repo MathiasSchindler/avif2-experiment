@@ -27,6 +27,17 @@ typedef struct {
     size_t restoration_tap_count;
 } Av2hFrameDecodeWorkspaceGeometry;
 
+static int sized_u8_plane_bytes(size_t stride_samples, size_t height, size_t *size_bytes);
+static int sized_u16_plane_bytes(size_t stride_samples, size_t height, size_t *size_bytes);
+Av2hStatus av2h_frame_output_validate_u8(const Av2hFrameState *frame, const Av2hFilterPlanes *coded,
+                                         const size_t coded_data_size_bytes[AV2H_FRAME_PLANE_COUNT],
+                                         uint8_t *output, size_t output_size_bytes);
+Av2hStatus
+av2h_frame_output_validate_u16(const Av2hFrameState *frame,
+                               const Av2hReconstructionPlaneU16 coded[AV2H_FRAME_PLANE_COUNT],
+                               const size_t coded_data_size_bytes[AV2H_FRAME_PLANE_COUNT],
+                               uint8_t *output, size_t output_size_bytes);
+
 static void *workspace_arena_array(Av2hArena *arena,
                                    size_t count,
                                    size_t element_size,
@@ -373,97 +384,6 @@ static int output_overlaps(uint8_t *output,
                            const void *memory,
                            size_t memory_size_bytes) {
     return ranges_overlap(output, output_size_bytes, memory, memory_size_bytes);
-}
-
-static int sized_u8_plane_bytes(size_t stride_samples,
-                                size_t height,
-                                size_t *size_bytes) {
-    return av2h_size_multiply(stride_samples, height, size_bytes);
-}
-
-static int sized_u16_plane_bytes(size_t stride_samples,
-                                 size_t height,
-                                 size_t *size_bytes) {
-    size_t sample_count;
-    return av2h_size_multiply(stride_samples, height, &sample_count) &&
-        av2h_size_multiply(sample_count, sizeof(uint16_t), size_bytes);
-}
-
-Av2hStatus av2h_frame_output_validate_u8(
-    const Av2hFrameState *frame,
-    const Av2hFilterPlanes *coded,
-    const size_t coded_data_size_bytes[AV2H_FRAME_PLANE_COUNT],
-    uint8_t *output,
-    size_t output_size_bytes) {
-    Av2hFilterWorkspaceLayout layout;
-    size_t required_output_bytes;
-    unsigned int plane;
-    Av2hStatus status;
-    if (frame == NULL || coded == NULL || coded_data_size_bytes == NULL || output == NULL) {
-        return AV2H_INVALID_ARGUMENT;
-    }
-    status = av2h_planar_output_size(
-        frame, 1U, &required_output_bytes);
-    if (status != AV2H_OK) return status;
-    if (output_size_bytes < required_output_bytes) return AV2H_OUT_OF_MEMORY;
-    status = av2h_filter_workspace_query(
-        frame, 1U, &layout);
-    if (status != AV2H_OK) return status;
-    for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
-        const Av2hFilterPlane *source = &coded->plane[plane];
-        size_t source_size_bytes;
-        if (source->data == NULL ||
-            source->width != layout.plane_width[plane] ||
-            source->height != layout.plane_height[plane] ||
-            source->stride_samples < source->width ||
-            !sized_u8_plane_bytes(
-                source->stride_samples, source->height, &source_size_bytes) ||
-            source_size_bytes > coded_data_size_bytes[plane] ||
-            output_overlaps(
-                output, required_output_bytes, source->data, source_size_bytes)) {
-            return AV2H_INVALID_ARGUMENT;
-        }
-    }
-    return AV2H_OK;
-}
-
-Av2hStatus av2h_frame_output_validate_u16(
-    const Av2hFrameState *frame,
-    const Av2hReconstructionPlaneU16 coded[AV2H_FRAME_PLANE_COUNT],
-    const size_t coded_data_size_bytes[AV2H_FRAME_PLANE_COUNT],
-    uint8_t *output,
-    size_t output_size_bytes) {
-    Av2hFilterWorkspaceLayout layout;
-    size_t required_output_bytes;
-    unsigned int plane;
-    Av2hStatus status;
-    if (frame == NULL || coded == NULL || coded_data_size_bytes == NULL || output == NULL) {
-        return AV2H_INVALID_ARGUMENT;
-    }
-    status = av2h_planar_output_size(
-        frame, sizeof(uint16_t), &required_output_bytes);
-    if (status != AV2H_OK) return status;
-    if (output_size_bytes < required_output_bytes) return AV2H_OUT_OF_MEMORY;
-    status = av2h_filter_workspace_query(
-        frame, sizeof(uint16_t), &layout);
-    if (status != AV2H_OK) return status;
-    for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
-        const Av2hReconstructionPlaneU16 *source = &coded[plane];
-        size_t source_size_bytes;
-        if (source->data == NULL ||
-            source->width != layout.plane_width[plane] ||
-            source->height != layout.plane_height[plane] ||
-            source->stride_samples < source->width ||
-            !sized_u16_plane_bytes(
-                source->stride_samples, source->height, &source_size_bytes) ||
-            source_size_bytes > coded_data_size_bytes[plane] ||
-            output_overlaps(
-                output, required_output_bytes, source->data,
-                source_size_bytes)) {
-            return AV2H_INVALID_ARGUMENT;
-        }
-    }
-    return AV2H_OK;
 }
 
 static int filter_workspace_valid(
@@ -1191,3 +1111,10 @@ Av2hStatus av2h_filter_workspace_init(
     }
     return AV2H_OK;
 }
+
+#include "internal/sample_kernel_u8.inc"
+#include "internal/frame_workspace_kernel.inc"
+#include "internal/sample_kernel_end.inc"
+#include "internal/sample_kernel_u16.inc"
+#include "internal/frame_workspace_kernel.inc"
+#include "internal/sample_kernel_end.inc"

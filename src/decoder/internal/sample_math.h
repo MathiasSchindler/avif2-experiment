@@ -1,6 +1,7 @@
 #ifndef AV2H_DECODER_INTERNAL_SAMPLE_MATH_H
 #define AV2H_DECODER_INTERNAL_SAMPLE_MATH_H
 
+#include <stddef.h>
 #include <stdint.h>
 
 typedef struct {
@@ -17,6 +18,31 @@ static const Av2hSampleDomain av2h_sample_domain_8bit = {
 static const Av2hSampleDomain av2h_sample_domain_10bit = {
     10U, 2U, 512U, 1023U
 };
+
+static const Av2hSampleDomain av2h_sample_domain_12bit = {12U, 2U, 2048U, 4095U};
+
+static inline const Av2hSampleDomain *av2h_sample_domain_get(uint8_t bit_depth) {
+    return bit_depth == 8U    ? &av2h_sample_domain_8bit
+           : bit_depth == 10U ? &av2h_sample_domain_10bit
+           : bit_depth == 12U ? &av2h_sample_domain_12bit
+                              : NULL;
+}
+
+static inline const Av2hSampleDomain *av2h_sample_domain_from_idc(uint8_t bit_depth_idc) {
+    return bit_depth_idc == 1U   ? &av2h_sample_domain_8bit
+           : bit_depth_idc == 0U ? &av2h_sample_domain_10bit
+           : bit_depth_idc == 2U ? &av2h_sample_domain_12bit
+                                 : NULL;
+}
+
+static inline int av2h_sample_domain_valid(const Av2hSampleDomain *domain) {
+    const Av2hSampleDomain *canonical;
+    if (domain == NULL)
+        return 0;
+    canonical = av2h_sample_domain_get(domain->bit_depth);
+    return canonical != NULL && domain->bytes_per_sample == canonical->bytes_per_sample &&
+           domain->midpoint == canonical->midpoint && domain->maximum == canonical->maximum;
+}
 
 static inline int32_t av2h_sample_clamp(
     int32_t value, int32_t minimum, int32_t maximum) {
@@ -39,6 +65,10 @@ static inline uint16_t av2h_sample_clip_to_domain(
     int32_t value, const Av2hSampleDomain *domain) {
     return (uint16_t)av2h_sample_clamp(
         value, 0, (int32_t)domain->maximum);
+}
+
+static inline uint16_t av2h_sample_q3_maximum(const Av2hSampleDomain *domain) {
+    return (uint16_t)((domain->maximum << 3U) | 7U);
 }
 
 static inline uint8_t av2h_sample_midpoint_8bit(void) {

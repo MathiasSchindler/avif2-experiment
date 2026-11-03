@@ -2,6 +2,13 @@
 
 #include <stddef.h>
 
+Av2hStatus av2h_luma_predict(const Av2hLeafMode *mode, uint16_t width, uint16_t height,
+                             const Av2hLumaReferences *references, uint8_t *predictor,
+                             size_t predictor_stride_samples);
+Av2hStatus av2h_luma_predict_u16(const Av2hLeafMode *mode, uint16_t width, uint16_t height,
+                                 const Av2hLumaReferencesU16 *references, uint16_t *predictor,
+                                 size_t predictor_stride_samples, const Av2hSampleDomain *domain);
+
 int av2h_luma_prediction_dimension_supported(uint16_t dimension) {
     return dimension == 4U || dimension == 8U || dimension == 16U ||
            dimension == 32U || dimension == 64U;
@@ -37,16 +44,13 @@ static int legacy_angle_geometry_supported(Av2hIntraMode mode,
     }
 }
 
-Av2hStatus
-av2h_luma_predict_u16_adjusted(const Av2hLeafMode *mode,
-                               uint16_t width,
-                               uint16_t height,
-                               const Av2hLumaReferencesU16 *references,
-                               uint16_t *predictor,
-                               size_t predictor_stride_samples,
-                               int angle_adjust,
-                               uint8_t disable_edge_filter,
-                               uint8_t use_idif) {
+Av2hStatus av2h_luma_predict_u16_adjusted(const Av2hLeafMode *mode, uint16_t width, uint16_t height,
+                                          const Av2hLumaReferencesU16 *references,
+                                          uint16_t *predictor, size_t predictor_stride_samples,
+                                          int angle_adjust, uint8_t disable_edge_filter,
+                                          uint8_t use_idif, const Av2hSampleDomain *domain) {
+    if (!av2h_sample_domain_valid(domain))
+        return AV2H_INVALID_ARGUMENT;
 
     int angle;
     if (mode == NULL || references == NULL || predictor == NULL ||
@@ -56,9 +60,8 @@ av2h_luma_predict_u16_adjusted(const Av2hLeafMode *mode,
     }
     if (mode->multi_line_mrl == 1U && mode->mrl_index != 0U &&
         mode->mrl_index <= 3U) {
-        return av2h_predict_multiline_u16(mode, width, height, references,
-                                          predictor, predictor_stride_samples,
-                                          use_idif);
+        return av2h_predict_multiline_u16(mode, width, height, references, predictor,
+                                          predictor_stride_samples, use_idif, domain);
     }
     if ((mode->angle_delta != 0 &&
          av2h_directional_base_angle(mode->mode) == 0) ||
@@ -71,58 +74,46 @@ av2h_luma_predict_u16_adjusted(const Av2hLeafMode *mode,
         width, height);
 
     if (angle > 90 && angle < 180) {
-        return av2h_predict_zone2_u16(mode, width, height, references,
-                                      predictor, predictor_stride_samples,
-                                      disable_edge_filter, use_idif, angle);
+        return av2h_predict_zone2_u16(mode, width, height, references, predictor,
+                                      predictor_stride_samples, disable_edge_filter, use_idif,
+                                      angle, domain);
     }
     if (angle > 0 && angle < 90 && mode->enable_ibp <= 1U) {
-        return av2h_predict_zone1_u16(mode, width, height, references,
-                                      predictor, predictor_stride_samples,
-                                      disable_edge_filter, use_idif, angle);
+        return av2h_predict_zone1_u16(mode, width, height, references, predictor,
+                                      predictor_stride_samples, disable_edge_filter, use_idif,
+                                      angle, domain);
     }
     if (angle > 180 && angle < 270 && mode->enable_ibp <= 1U) {
-        return av2h_predict_zone3_u16(mode, width, height, references,
-                                      predictor, predictor_stride_samples,
-                                      disable_edge_filter, use_idif, angle);
+        return av2h_predict_zone3_u16(mode, width, height, references, predictor,
+                                      predictor_stride_samples, disable_edge_filter, use_idif,
+                                      angle, domain);
     }
     if (mode->mode == AV2H_INTRA_VERTICAL ||
         mode->mode == AV2H_INTRA_HORIZONTAL) {
-        return av2h_predict_cardinal_u16(mode, width, height, references,
-                                         predictor, predictor_stride_samples);
+        return av2h_predict_cardinal_u16(mode, width, height, references, predictor,
+                                         predictor_stride_samples, domain);
     }
     if (mode->mode == AV2H_INTRA_SMOOTH_VERTICAL ||
         mode->mode == AV2H_INTRA_SMOOTH_HORIZONTAL ||
         mode->mode == AV2H_INTRA_SMOOTH) {
-        return av2h_predict_smooth_u16(mode, width, height, references,
-                                       predictor, predictor_stride_samples);
+        return av2h_predict_smooth_u16(mode, width, height, references, predictor,
+                                       predictor_stride_samples, domain);
     }
     if (mode->mode == AV2H_INTRA_PAETH) {
         return av2h_predict_paeth_u16(width, height, references, predictor,
-                                      predictor_stride_samples);
+                                      predictor_stride_samples, domain);
     }
     return AV2H_UNSUPPORTED;
 }
 
-Av2hStatus av2h_luma_predict_u16(const Av2hLeafMode *mode,
-                                 uint16_t width,
-                                 uint16_t height,
-                                 const Av2hLumaReferencesU16 *references,
-                                 uint16_t *predictor,
-                                 size_t predictor_stride_samples) {
-    return av2h_luma_predict_u16_adjusted(mode, width, height, references,
-                                          predictor, predictor_stride_samples,
-                                          0, 0U, 1U);
-}
-
-Av2hStatus av2h_chroma_predict_u16(const Av2hLeafMode *mode,
-                                   uint16_t width,
-                                   uint16_t height,
-                                   const Av2hLumaReferencesU16 *references,
-                                   uint16_t *predictor,
-                                   size_t predictor_stride_samples) {
-    return av2h_luma_predict_u16_adjusted(mode, width, height, references,
-                                          predictor, predictor_stride_samples,
-                                          0, 0U, 0U);
+Av2hStatus av2h_chroma_predict_u16(const Av2hLeafMode *mode, uint16_t width, uint16_t height,
+                                   const Av2hLumaReferencesU16 *references, uint16_t *predictor,
+                                   size_t predictor_stride_samples,
+                                   const Av2hSampleDomain *domain) {
+    if (!av2h_sample_domain_valid(domain))
+        return AV2H_INVALID_ARGUMENT;
+    return av2h_luma_predict_u16_adjusted(mode, width, height, references, predictor,
+                                          predictor_stride_samples, 0, 0U, 0U, domain);
 }
 
 /* Compatibility for direct-helper fields outside canonical bitstream admission. */
@@ -326,62 +317,62 @@ predict_legacy_directional(const Av2hLeafMode *mode,
                                       predictor, predictor_stride_samples);
 }
 
-Av2hStatus av2h_luma_predict(const Av2hLeafMode *mode,
-                             uint16_t width,
-                             uint16_t height,
-                             const Av2hLumaReferences *references,
-                             uint8_t *predictor,
+Av2hStatus av2h_luma_predict(const Av2hLeafMode *mode, uint16_t width, uint16_t height,
+                             const Av2hLumaReferences *references, uint8_t *predictor,
                              size_t predictor_stride_samples) {
     if (mode == NULL || references == NULL || predictor == NULL ||
         predictor_stride_samples < width) {
         return AV2H_INVALID_ARGUMENT;
     }
     if (mode->use_intra_dip != 0U) {
-        return av2h_predict_intra_dip(mode, width, height, references,
-                                      predictor, predictor_stride_samples);
+        return av2h_predict_intra_dip(mode, width, height, references, predictor,
+                                      predictor_stride_samples);
     }
     int base_angle = av2h_directional_base_angle(mode->mode);
     if (base_angle != 0) {
-        int plain = mode->angle_delta == 0 && mode->mrl_index == 0U &&
-                    mode->multi_line_mrl == 0U;
+        int plain = mode->angle_delta == 0 && mode->mrl_index == 0U && mode->multi_line_mrl == 0U;
         if (prediction_geometry_supported(width, height) &&
             (plain || (mode->angle_delta >= -3 && mode->angle_delta <= 3 &&
-                       mode->mrl_index < AV2H_MRL_INDEX_SYMBOLS &&
-                       mode->multi_line_mrl <= 1U && mode->enable_ibp <= 1U))) {
-            return av2h_predict_luma_directional_feature(
-                mode, width, height, references, predictor,
-                predictor_stride_samples);
+                       mode->mrl_index < AV2H_MRL_INDEX_SYMBOLS && mode->multi_line_mrl <= 1U &&
+                       mode->enable_ibp <= 1U))) {
+            return av2h_predict_luma_directional_feature(mode, width, height, references, predictor,
+                                                         predictor_stride_samples);
         }
-        return predict_legacy_directional(mode, width, height, references,
-                                          predictor, predictor_stride_samples);
+        return predict_legacy_directional(mode, width, height, references, predictor,
+                                          predictor_stride_samples);
     }
-    if (mode->angle_delta != 0 || mode->mrl_index != 0U ||
-        mode->multi_line_mrl != 0U) {
+    if (mode->angle_delta != 0 || mode->mrl_index != 0U || mode->multi_line_mrl != 0U) {
         return AV2H_UNSUPPORTED;
     }
     if (prediction_geometry_supported(width, height)) {
         switch (mode->mode) {
-            case AV2H_INTRA_DC:
-                return av2h_predict_dc(mode, width, height, references,
-                                       predictor, predictor_stride_samples);
-            case AV2H_INTRA_SMOOTH:
-                return av2h_predict_smooth(width, height, references, predictor,
-                                           predictor_stride_samples);
-            case AV2H_INTRA_SMOOTH_VERTICAL:
-                return av2h_predict_smooth_vertical(width, height, references,
-                                                    predictor,
-                                                    predictor_stride_samples);
-            case AV2H_INTRA_SMOOTH_HORIZONTAL:
-                return av2h_predict_smooth_horizontal(width, height, references,
-                                                      predictor,
-                                                      predictor_stride_samples);
-            default:
-                break;
+        case AV2H_INTRA_DC:
+            return av2h_predict_dc(mode, width, height, references, predictor,
+                                   predictor_stride_samples);
+        case AV2H_INTRA_SMOOTH:
+            return av2h_predict_smooth(width, height, references, predictor,
+                                       predictor_stride_samples);
+        case AV2H_INTRA_SMOOTH_VERTICAL:
+            return av2h_predict_smooth_vertical(width, height, references, predictor,
+                                                predictor_stride_samples);
+        case AV2H_INTRA_SMOOTH_HORIZONTAL:
+            return av2h_predict_smooth_horizontal(width, height, references, predictor,
+                                                  predictor_stride_samples);
+        default:
+            break;
         }
     }
     if (mode->mode == AV2H_INTRA_PAETH && width <= 64U && height <= 64U) {
-        return av2h_predict_paeth(width, height, references, predictor,
-                                  predictor_stride_samples);
+        return av2h_predict_paeth(width, height, references, predictor, predictor_stride_samples);
     }
     return AV2H_UNSUPPORTED;
+}
+
+Av2hStatus av2h_luma_predict_u16(const Av2hLeafMode *mode, uint16_t width, uint16_t height,
+                                 const Av2hLumaReferencesU16 *references, uint16_t *predictor,
+                                 size_t predictor_stride_samples, const Av2hSampleDomain *domain) {
+    if (!av2h_sample_domain_valid(domain))
+        return AV2H_INVALID_ARGUMENT;
+    return av2h_luma_predict_u16_adjusted(mode, width, height, references, predictor,
+                                          predictor_stride_samples, 0, 0U, 1U, domain);
 }

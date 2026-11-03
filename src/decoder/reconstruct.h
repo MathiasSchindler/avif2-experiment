@@ -3,6 +3,7 @@
 
 #include "block_geometry.h"
 #include "coeff_block.h"
+#include "decoder/internal/sample_math.h"
 #include "leaf_mode.h"
 #include "plane.h"
 #include "transform_type.h"
@@ -78,7 +79,7 @@ Av2hStatus av2h_luma_reconstruct_to_plane_u16(
     const Av2hTransformType *transform,
     const Av2hCoeffBlock *coefficients,
     Av2hReconstructionPlaneU16 *plane,
-    Av2hReconstructionScratchU16 *scratch);
+    Av2hReconstructionScratchU16 *scratch, const Av2hSampleDomain *domain);
 
 /*
  * `luma_plane` supplies the same-superblock
@@ -115,7 +116,7 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_u16(
     const Av2hReconstructionPlaneU16 *luma_plane,
     uint8_t chroma_plane,
     uint8_t chroma_format_idc,
-    Av2hReconstructionScratchU16 *scratch);
+    Av2hReconstructionScratchU16 *scratch, const Av2hSampleDomain *domain);
 Av2hStatus av2h_chroma_inverse_cross_transform(
     Av2hCoeffBlock *u_coefficients,
     Av2hCoeffBlock *v_coefficients,

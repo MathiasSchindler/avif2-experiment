@@ -120,7 +120,7 @@ static void plane_case(Snapshot *snapshot, unsigned int path,
     } else if (path == 1U) {
         status = av2h_luma_reconstruct_to_plane_u16(
             &diagnostics, &leaf, &mode, &prefix, &transform, &coefficients,
-            &plane_u16, &scratch_u16);
+            &plane_u16, &scratch_u16, &av2h_sample_domain_10bit);
     } else if (!high) {
         status = av2h_chroma_reconstruct_to_plane(
             &diagnostics, &leaf, &chroma, &prefix, &transform, &coefficients,
@@ -128,7 +128,7 @@ static void plane_case(Snapshot *snapshot, unsigned int path,
     } else {
         status = av2h_chroma_reconstruct_to_plane_u16(
             &diagnostics, &leaf, &chroma, &prefix, &transform, &coefficients,
-            &plane_u16, 0, 2U, format, &scratch_u16);
+            &plane_u16, 0, 2U, format, &scratch_u16, &av2h_sample_domain_10bit);
     }
     if (status == AV2H_OK) ++snapshot->ok;
     else if (status == AV2H_UNSUPPORTED) ++snapshot->unsupported;

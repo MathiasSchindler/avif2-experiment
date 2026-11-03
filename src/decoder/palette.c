@@ -50,8 +50,9 @@ Av2hStatus av2h_leaf_palette_read_colors(
         mode->palette_size > AV2H_PALETTE_MAX_SIZE) {
         return AV2H_INVALID_DATA;
     }
-    color_bits = sequence->info.bit_depth_idc == 0U ? 10U : 8U;
-    maximum = (1U << color_bits) - 1U;
+    const Av2hSampleDomain *domain = av2h_sample_domain_from_idc(sequence->info.bit_depth_idc);
+    color_bits = domain->bit_depth;
+    maximum = domain->maximum;
     if (neighbors != NULL) {
         while (above_index < neighbors->palette_size[1] &&
                left_index < neighbors->palette_size[0]) {

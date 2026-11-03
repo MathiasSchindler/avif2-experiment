@@ -1,6 +1,6 @@
 # Code Quality and Consistency Cleanup Plan
 
-**Status:** C1-C5 complete; C6 planned
+**Status:** C1-C6 complete
 
 **Scope:** [`src/`](../src/) and [`include/av2heif.h`](../include/av2heif.h)
 
@@ -253,7 +253,8 @@ entropy-span to tile-group adaptation, state-derived entropy contexts,
 baseline versus quantizer-adjusted level-CDF initialization, binary-CDF and
 coordinate-unit adapters, and typed luma/chroma or 8/16-bit interfaces.
 The remaining six single-call adapters enforce these typed/unit contracts,
-rather than supplying historical optional defaults. C5/C6 are not implemented.
+rather than supplying historical optional defaults. C5/C6 remained outside
+the scope of C4; their completed implementations are documented below.
 Platform syscall ABI-selection macros remain OS bindings, not decoder
 compatibility shims.
 
@@ -377,19 +378,21 @@ Before C5, the three standalone CLI entry points—[`src/platform/posix/decoder.
   in both diagnostic modes; foreign runtime builds and media regeneration
   were not required.
 - Decoder public APIs, workspace layouts, core allocation policy, samples,
-  oracle revisions, and expected hashes are unchanged. C6 sample-kernel
-  deduplication remains out of scope.
+  oracle revisions, and expected hashes are unchanged. Sample-kernel
+  deduplication was not part of C5; it is completed in C6 below.
 
 ---
 
 ## C6: Deduplicate 8-Bit, 10-Bit, and Future 12-Bit Sample Paths
 
+**Status:** Complete on native macOS.
+
 ### Problem
-The AV2 specification supports 8-bit, 10-bit, and 12-bit sample depths (`bit_depth_idc` 1, 0, and 2—note [`src/container.c`](../src/container.c) already recognizes `bit_depth_idc == 2` as 12-bit). Currently, [`src/decoder/`](../src/decoder/) duplicates nearly the entire sample-processing pipeline between `uint8_t` and `uint16_t` (`_u16`, ~275 occurrences across 31 files):
+The AV2 specification supports 8-bit, 10-bit, and 12-bit sample depths (`bit_depth_idc` 1, 0, and 2—note [`src/container.c`](../src/container.c) already recognizes `bit_depth_idc == 2` as 12-bit). Before C6, [`src/decoder/`](../src/decoder/) duplicated nearly the entire sample-processing pipeline between `uint8_t` and `uint16_t` (`_u16`, ~275 occurrences across 31 files):
 - **Plane and Scratch Types:** `Av2hReconstructionPlane` vs `Av2hReconstructionPlaneU16`, `Av2hReconstructionScratch` vs `Av2hReconstructionScratchU16`, `Av2hFilterPlane` vs `Av2hFilterPlaneU16`.
 - **Prediction & Reconstruction:** Near-identical functions in [`reconstruct.c`](../src/decoder/reconstruct.c), [`reconstruct_block.c`](../src/decoder/reconstruct_block.c), [`chroma_prediction_cfl.c`](../src/decoder/chroma_prediction_cfl.c), [`chroma_prediction_mhccp.c`](../src/decoder/chroma_prediction_mhccp.c), [`intra_prediction_*.c`](../src/decoder/intra_prediction.c), and [`frame_output.c`](../src/decoder/frame_output.c).
 - **Loop Filters:** Repeated 8-bit and 16-bit kernels in [`deblock.c`](../src/decoder/deblock.c), [`cdef.c`](../src/decoder/cdef.c), [`ccso.c`](../src/decoder/ccso.c), [`gdf.c`](../src/decoder/gdf.c), and [`restoration.c`](../src/decoder/restoration.c).
-- Adding 12-bit support under the current pattern would either require parameterizing `_u16` everywhere by `bit_depth` / `Av2hSampleDomain` or risk further branching duplication.
+- Adding 12-bit support under that pattern would either require parameterizing `_u16` everywhere by `bit_depth` / `Av2hSampleDomain` or risk further branching duplication.
 
 ### Actions
 1. **Parameterize All High-Bit-Depth (`u16`) Kernels by `Av2hSampleDomain` / `bit_depth`:**
@@ -407,3 +410,78 @@ The AV2 specification supports 8-bit, 10-bit, and 12-bit sample depths (`bit_dep
 - Prediction, reconstruction, and loop-filter algorithms are maintained as a single source of truth rather than parallel copy-pasted `u8` and `u16` implementations.
 - All `u16` sample paths use `Av2hSampleDomain` (or explicit `bit_depth`) rather than hardcoded 10-bit constants, making 12-bit sample plumbing straightforward.
 - Workspace sizes, performance, and exact decoded outputs remain within frozen baselines.
+
+### Implemented
+
+- Chose typed kernel includes rather than widening 8-bit planes, reference
+  edges, predictors, or residual workspaces. Sixty-one typed function families
+  now have a shared source across 17 internal kernel includes, covering
+  prediction, reconstruction, inverse transforms, CDEF, CCSO, GDF, deblocking,
+  plane operations, output copying/validation, and filter geometry.
+  Each owner instantiates its kernel for byte and 16-bit storage using
+  [`sample_kernel_u8.inc`](../src/decoder/internal/sample_kernel_u8.inc),
+  [`sample_kernel_u16.inc`](../src/decoder/internal/sample_kernel_u16.inc), and
+  an explicit macro-reset include.
+- Directional projection loops are shared independently of typed reference
+  preparation and admission. The lossless 4x4 inverse transform and DPCM
+  accumulation share one implementation in
+  [`inverse_transform.c`](../src/decoder/inverse_transform.c).
+  CfL sign/magnitude decoding is shared in
+  [`reconstruct.c`](../src/decoder/reconstruct.c). Existing common readiness
+  maps, transform descriptors, and deblock-map commits remain common owners.
+- [`sample_math.h`](../src/decoder/internal/sample_math.h) provides canonical
+  8/10/12-bit domains, validated domain values, IDC-to-domain lookup, and Q3
+  limits. High-depth numerical paths receive explicit domains or bit depths
+  for clipping, fallback samples, transform bounds, prediction, and filter
+  normalization. Optional sequence arguments in CCSO/GDF remain optional;
+  sample domains are not obtained by dereferencing those arguments.
+- Corrected tightly coupled 12-bit arithmetic: CfL average limits and MHCCP
+  quadratic features/normalization are depth-dependent. Extreme 12-bit MHCCP
+  reference products require bounded 64-bit statistics before narrowing into
+  the existing fixed-point solver. These temporaries do not change allocated
+  workspace layouts. GDF normalizes spatial inputs to its learned 10-bit
+  units and scales output corrections to the sample depth. Its learned-network
+  clamp and transform/diagnostic constants remain fixed rather than being
+  mistaken for sample-depth limits.
+- Preserved intentional policy differences in the typed branches, including
+  predictor handling, transform admission, diagnostics, reference boundaries,
+  and high-depth filter alias checks. Restoration and DIP remain 8-bit-only
+  where previously supported. A dispatcher and a forwarding adapter are not
+  treated as duplicated numerical algorithms.
+- The decoder still admits the same 8/10-bit image profiles. This milestone
+  prepares numerical plumbing for 12-bit; it does **not** enable 12-bit stream
+  decoding, claim 12-bit AVM conformance, or introduce new restoration support.
+  No AVM code, oracle revisions, fixtures, or golden hashes were changed.
+- Make tracks transitive header/kernel-include dependencies for core and CLI
+  objects. Source guards allow only complete, correctly ordered, owner-matched
+  typed instantiation scopes; ordinary late includes and macros remain errors.
+
+### Validation
+
+- All 33 C suites plus runtime checks pass with ASan/UBSan and halting
+  undefined-behavior checks, with diagnostics absent and enabled. Each
+  configuration also passes 2,460 public-decode fuzz cases.
+- [`sample_domain_unit.c`](../tests/sample_domain_unit.c) directly tests domain
+  validation, 12-bit prediction/fallbacks and padded strides, 4:2:0/4:4:4 CfL
+  averages above the old 10-bit limit, inverse-transform/DPCM results, CDEF
+  direction normalization, CCSO band selection/clipping, deblocking, GDF, and
+  extreme MHCCP accumulation. A nonconstant, padded-stride GDF regression
+  verifies fourfold 10-to-12-bit input/output scaling across all four QP
+  selections, with nonzero corrections and untouched padding.
+- All 26 targeted source/ownership/header guards pass. The 55 standalone
+  headers and 35 value-only kernel roots compile in both diagnostic modes,
+  with no include cycles. All 77 frozen behavior/resource inventory lines
+  remain byte-identical in each configuration.
+- The default `make` produces the working macOS binary, with no undefined
+  freestanding symbols. All 179 retained native corpus hashes and all 14 exact
+  CLI output/error contracts remain unchanged, including 12-bit rejection and
+  preservation of pre-existing output files.
+- In-process decode timings exclude startup/input I/O and retain allocations.
+  Fifteen cases cover the smallest, middle, and slowest previously measured
+  case in each of I400, I420, I444, and both 10-bit color formats. Five
+  interleaved before/after runs against retained executables show per-case
+  median changes from -1.20% to +2.40%, a median change of -0.06%, and a
+  time-weighted change of -0.43%. The largest relative increase was approximately
+  0.7 microseconds on a 30-microsecond case. No material regression was observed; compiler
+  optimization defaults are unchanged. Foreign runtime builds and media
+  regeneration were not required.

@@ -73,17 +73,40 @@ static const int16_t directional_derivative[90U] = {
     10, 10, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1
 };
 
-static uint8_t directional_reference(const uint8_t *reference,
-                                     size_t reference_count,
-                                     uint8_t above_left,
-                                     int index) {
-    if (index < 0) return above_left;
-    if (reference == NULL || reference_count == 0U) return above_left;
-    if ((size_t)index >= reference_count) {
-        return reference[reference_count - 1U];
-    }
-    return reference[index];
-}
+static uint8_t directional_reference(const uint8_t *reference, size_t reference_count,
+                                     uint8_t above_left, int index);
+static uint16_t directional_reference_u16(const uint16_t *reference, size_t reference_count,
+                                          uint16_t above_left, int index);
+static void directional_project_zone1_u8(const Av2hLeafMode *mode, int angle, uint16_t width,
+                                         uint16_t height, const uint8_t *above_edge,
+                                         const uint8_t *left_edge, uint8_t *predictor,
+                                         size_t predictor_stride_samples, uint8_t use_idif,
+                                         const Av2hSampleDomain *domain);
+static void directional_project_zone1_u16(const Av2hLeafMode *mode, int angle, uint16_t width,
+                                          uint16_t height, const uint16_t *above_edge,
+                                          const uint16_t *left_edge, uint16_t *predictor,
+                                          size_t predictor_stride_samples, uint8_t use_idif,
+                                          const Av2hSampleDomain *domain);
+static void directional_project_zone2_u8(const Av2hLeafMode *mode, int angle, uint16_t width,
+                                         uint16_t height, const uint8_t *above_edge,
+                                         const uint8_t *left_edge, size_t edge_count,
+                                         uint8_t *predictor, size_t predictor_stride_samples,
+                                         uint8_t use_idif, const Av2hSampleDomain *domain);
+static void directional_project_zone2_u16(const Av2hLeafMode *mode, int angle, uint16_t width,
+                                          uint16_t height, const uint16_t *above_edge,
+                                          const uint16_t *left_edge, size_t edge_count,
+                                          uint16_t *predictor, size_t predictor_stride_samples,
+                                          uint8_t use_idif, const Av2hSampleDomain *domain);
+static void directional_project_zone3_u8(const Av2hLeafMode *mode, int angle, uint16_t width,
+                                         uint16_t height, const uint8_t *above_edge,
+                                         const uint8_t *left_edge, size_t edge_count,
+                                         uint8_t *predictor, size_t predictor_stride_samples,
+                                         uint8_t use_idif, const Av2hSampleDomain *domain);
+static void directional_project_zone3_u16(const Av2hLeafMode *mode, int angle, uint16_t width,
+                                          uint16_t height, const uint16_t *above_edge,
+                                          const uint16_t *left_edge, size_t edge_count,
+                                          uint16_t *predictor, size_t predictor_stride_samples,
+                                          uint8_t use_idif, const Av2hSampleDomain *domain);
 
 static uint8_t directional_ibp_weight(unsigned int row,
                                       unsigned int column,
@@ -117,8 +140,6 @@ static Av2hStatus predict_directional(
     size_t predictor_stride_samples,
     uint8_t use_idif,
     uint8_t filter_edges) {
-    int dx;
-    int dy;
     uint8_t above_storage[141U];
     uint8_t left_storage[141U];
     uint8_t *above = &above_storage[5U];
@@ -167,174 +188,23 @@ static Av2hStatus predict_directional(
         mode->mrl_index == 0U && mode->enable_ibp == 1U &&
         (references->left == NULL || references->left_count == 0U) &&
         references->above != NULL && references->above_count != 0U;
-    dx = angle < 90 ? directional_derivative[angle] :
-         angle < 180 ? directional_derivative[180 - angle] : 1;
-    dy = angle < 90 ? 1 :
-         angle < 180 ? directional_derivative[angle - 90] :
-                       directional_derivative[270 - angle];
     if (edge_count > 136U) return AV2H_UNSUPPORTED;
     av2h_prepare_directional_edges(
         mode, angle, width, height, references, filter_edges, above, left, edge_count, missing_left_ibp, edge_ibp);
     if (angle < 90) {
-        int max_base =
-            (int)width + height - 1 + 2 * mode->mrl_index;
-        int x = dx * (1 + mode->mrl_index);
-        for (row = 0U; row < height; ++row, x += dx) {
-            int base = x >> 6;
-            int shift = (x & 0x3f) >> 1;
-            for (column = 0U; column < width; ++column, ++base) {
-                int32_t sum = 0;
-                size_t tap;
-                uint8_t primary;
-                if (base > max_base || (!use_idif && base == max_base)) {
-                    primary = above[max_base];
-                } else if (!use_idif) {
-                    primary = (uint8_t)((above[base] * (32 - shift) +
-                        above[base + 1] * shift + 16) >> 5U);
-                } else {
-                    for (tap = 0U; tap < 4U; ++tap) {
-                        sum += dr_interp_filter[shift][tap] *
-                            above[base + (int)tap - 1];
-                    }
-                    primary = av2h_sample_clip((sum + 64) >> 7U);
-                }
-                if (mode->mrl_index == 0U && mode->enable_ibp &&
-                    mode->angle_delta % 2 == 0) {
-                    int secondary_dy = directional_derivative[90 - angle];
-                    int weight_dy =
-                        directional_ibp_canonical_derivative(angle);
-                    int secondary_y = secondary_dy * ((int)column + 1);
-                    int secondary_base = (secondary_y >> 6) + row;
-                    int secondary_shift = (secondary_y & 0x3f) >> 1;
-                    uint8_t secondary;
-                    unsigned int row_shift = height >> 5U;
-                    unsigned int column_shift = width >> 5U;
-                    uint8_t weight;
-                    if (secondary_base > max_base) {
-                        secondary = left[max_base];
-                    } else {
-                        sum = 0;
-                        for (tap = 0U; tap < 4U; ++tap) {
-                            sum += dr_interp_filter[secondary_shift][tap] *
-                                left[secondary_base + (int)tap - 1];
-                        }
-                        secondary = av2h_sample_clip((sum + 64) >> 7U);
-                    }
-                    weight = directional_ibp_weight(
-                        row >> row_shift, column >> column_shift,
-                        weight_dy);
-                    primary = (uint8_t)((primary * weight +
-                        secondary * (128U - weight) + 64U) >> 7U);
-                }
-                predictor[(size_t)row * predictor_stride_samples + column] = primary;
-            }
-        }
+        directional_project_zone1_u8(mode, angle, width, height, above, left, predictor,
+                                     predictor_stride_samples, use_idif, &av2h_sample_domain_8bit);
         return AV2H_OK;
     }
     if (angle < 180) {
-        const int min_base = -1 - mode->mrl_index;
-        for (row = 0U; row < height; ++row) {
-            for (column = 0U; column < width; ++column) {
-                int x = ((int)column << 6) -
-                    ((int)row + 1 + mode->mrl_index) * dx;
-                int base = x >> 6;
-                int shift = (x & 0x3f) >> 1;
-                const uint8_t *reference;
-                int32_t sum = 0;
-                size_t tap;
-                if (base >= min_base) {
-                    reference = above;
-                } else {
-                    int y = ((int)row << 6) -
-                        ((int)column + 1 + mode->mrl_index) * dy;
-                    base = y >> 6;
-                    shift = (y & 0x3f) >> 1;
-                    reference = left;
-                }
-                if (!use_idif) {
-                    sum = reference[base] * (32 - shift) +
-                        reference[base + 1] * shift;
-                } else {
-                    for (tap = 0U; tap < 4U; ++tap) {
-                        int reference_index = base + (int)tap - 1;
-                        uint8_t sample = mode->mrl_index != 0U ?
-                            reference[reference_index] :
-                            directional_reference(
-                                reference, edge_count, reference[-1],
-                                reference_index);
-                        sum += dr_interp_filter[shift][tap] * sample;
-                    }
-                }
-                predictor[(size_t)row * predictor_stride_samples + column] =
-                    av2h_sample_clip(use_idif ? (sum + 64) >> 7U :
-                        (sum + 16) >> 5U);
-            }
-        }
+        directional_project_zone2_u8(mode, angle, width, height, above, left, edge_count, predictor,
+                                     predictor_stride_samples, use_idif, &av2h_sample_domain_8bit);
         return AV2H_OK;
     }
     {
-        int max_base = (int)width + height - 1 + 2 * mode->mrl_index;
-        int y = dy * (1 + mode->mrl_index);
-    for (column = 0U; column < width; ++column) {
-        int base = y >> 6;
-        int shift = (y & 0x3f) >> 1;
-        y += dy;
-        for (row = 0U; row < height; ++row, ++base) {
-            int32_t sum = 0;
-            size_t tap;
-            if (base > max_base || (!use_idif && base == max_base)) {
-                sum = (int32_t)left[max_base] << (use_idif ? 7U : 5U);
-            } else if (!use_idif) {
-                sum = left[base] * (32 - shift) +
-                    left[base + 1] * shift;
-            } else {
-                for (tap = 0U; tap < 4U; ++tap) {
-                    sum += dr_interp_filter[shift][tap] *
-                        directional_reference(
-                            left, edge_count, left[-1],
-                            base + (int)tap - 1);
-                }
-            }
-            {
-                uint8_t primary = av2h_sample_clip(
-                    use_idif ? (sum + 64) >> 7U : (sum + 16) >> 5U);
-                if (mode->mrl_index == 0U && mode->enable_ibp &&
-                    mode->angle_delta % 2 == 0) {
-                    int secondary_dx = directional_derivative[angle - 180];
-                    int weight_dy = directional_ibp_canonical_derivative(
-                        270 - angle);
-                    int secondary_x = secondary_dx * ((int)row + 1);
-                    int secondary_base =
-                        (secondary_x >> 6) + (int)column;
-                    int secondary_shift = (secondary_x & 0x3f) >> 1;
-                    int32_t secondary_sum = 0;
-                    uint8_t secondary;
-                    unsigned int row_shift = height >> 5U;
-                    unsigned int column_shift = width >> 5U;
-                    uint8_t weight;
-                    if (secondary_base > max_base) {
-                        secondary = above[max_base];
-                    } else {
-                        for (tap = 0U; tap < 4U; ++tap) {
-                            secondary_sum +=
-                                dr_interp_filter[secondary_shift][tap] *
-                                directional_reference(
-                                    above, edge_count, above[-1],
-                                    secondary_base + (int)tap - 1);
-                        }
-                        secondary = av2h_sample_clip(
-                            (secondary_sum + 64) >> 7U);
-                    }
-                    weight = directional_ibp_weight(
-                        column >> column_shift, row >> row_shift,
-                        weight_dy);
-                    primary = (uint8_t)((primary * weight +
-                        secondary * (128U - weight) + 64U) >> 7U);
-                }
-                predictor[(size_t)row * predictor_stride_samples + column] = primary;
-            }
-        }
-    }
+        directional_project_zone3_u8(mode, angle, width, height, above, left, edge_count, predictor,
+                                     predictor_stride_samples, use_idif, &av2h_sample_domain_8bit);
+        return AV2H_OK;
     }
     return AV2H_OK;
 }
@@ -1641,14 +1511,12 @@ Av2hStatus av2h_predict_d203_plus_three(
 
 }
 
-Av2hStatus av2h_predict_multiline_u16(
-    const Av2hLeafMode *mode,
-    uint16_t width,
-    uint16_t height,
-    const Av2hLumaReferencesU16 *references,
-    uint16_t *predictor,
-    size_t predictor_stride_samples,
-    uint8_t use_idif) {
+Av2hStatus av2h_predict_multiline_u16(const Av2hLeafMode *mode, uint16_t width, uint16_t height,
+                                      const Av2hLumaReferencesU16 *references, uint16_t *predictor,
+                                      size_t predictor_stride_samples, uint8_t use_idif,
+                                      const Av2hSampleDomain *domain) {
+    if (!av2h_sample_domain_valid(domain))
+        return AV2H_INVALID_ARGUMENT;
     uint16_t row;
     uint16_t column;
     Av2hLeafMode primary_mode;
@@ -1673,9 +1541,8 @@ Av2hStatus av2h_predict_multiline_u16(
     secondary_mode.mrl_index = 0U;
     secondary_mode.multi_line_mrl = 0U;
     secondary_mode.enable_ibp = 0U;
-    status = av2h_luma_predict_u16_adjusted(
-        &primary_mode, width, height, references,
-        predictor, predictor_stride_samples, 0, 1U, use_idif);
+    status = av2h_luma_predict_u16_adjusted(&primary_mode, width, height, references, predictor,
+                                            predictor_stride_samples, 0, 1U, use_idif, domain);
     if (status != AV2H_OK) return status;
     if (width == 4U && height == 4U) return AV2H_OK;
     secondary_references.above = references->secondary_above;
@@ -1689,9 +1556,8 @@ Av2hStatus av2h_predict_multiline_u16(
     secondary_references.has_above_left =
         references->has_secondary_above_left;
     status = av2h_luma_predict_u16_adjusted(
-        &secondary_mode, width, height, &secondary_references,
-        secondary_predictor, width,
-        av2h_intra_mrl_angle_delta(mode->mrl_index), 1U, use_idif);
+        &secondary_mode, width, height, &secondary_references, secondary_predictor, width,
+        av2h_intra_mrl_angle_delta(mode->mrl_index), 1U, use_idif, domain);
     if (status != AV2H_OK) return status;
     for (row = 0U; row < height; ++row) {
         for (column = 0U; column < width; ++column) {
@@ -1704,280 +1570,85 @@ Av2hStatus av2h_predict_multiline_u16(
         }
     }
     return AV2H_OK;
-
 }
 
-Av2hStatus av2h_predict_zone2_u16(
-    const Av2hLeafMode *mode,
-    uint16_t width,
-    uint16_t height,
-    const Av2hLumaReferencesU16 *references,
-    uint16_t *predictor,
-    size_t predictor_stride_samples,
-    uint8_t disable_edge_filter,
-    uint8_t use_idif,
-    int angle) {
-
-    uint16_t row;
-    uint16_t column;
+Av2hStatus av2h_predict_zone2_u16(const Av2hLeafMode *mode, uint16_t width, uint16_t height,
+                                  const Av2hLumaReferencesU16 *references, uint16_t *predictor,
+                                  size_t predictor_stride_samples, uint8_t disable_edge_filter,
+                                  uint8_t use_idif, int angle, const Av2hSampleDomain *domain) {
+    if (!av2h_sample_domain_valid(domain))
+        return AV2H_INVALID_ARGUMENT;
 
     uint16_t above_storage[141U];
     uint16_t left_storage[141U];
     uint16_t *above_edge = &above_storage[5U];
     uint16_t *left_edge = &left_storage[5U];
-    const int dx = directional_derivative[180 - angle];
-    const int dy = directional_derivative[angle - 90];
-    const int min_base = -1 - mode->mrl_index;
-    size_t edge_count = (size_t)width + height + 2U +
-        2U * mode->mrl_index;
+    size_t edge_count = (size_t)width + height + 2U + 2U * mode->mrl_index;
 
-    Av2hStatus edge_status = av2h_prepare_directional_zone2_u16(
-        mode, width, height, references, disable_edge_filter, angle, above_edge, left_edge, edge_count);
-    if (edge_status != AV2H_OK) return edge_status;
-    for (row = 0U; row < height; ++row) {
-        for (column = 0U; column < width; ++column) {
-            int position = ((int)column << 6) -
-                ((int)row + 1 + mode->mrl_index) * dx;
-            int base = position >> 6;
-            int shift = (position & 0x3f) >> 1;
-            const uint16_t *reference = above_edge;
-            int32_t sum = 0;
-            size_t tap;
-            if (base < min_base) {
-                position = ((int)row << 6) -
-                    ((int)column + 1 + mode->mrl_index) * dy;
-                base = position >> 6;
-                shift = (position & 0x3f) >> 1;
-                reference = left_edge;
-            }
-            if (mode->edge_ibp != 0U || use_idif == 0U) {
-                sum = reference[base] * (32 - shift) +
-                    reference[base + 1] * shift;
-            } else {
-                for (tap = 0U; tap < 4U; ++tap) {
-                    int reference_index = base + (int)tap - 1;
-                    uint16_t sample = mode->mrl_index != 0U ?
-                        reference[reference_index] :
-                        reference_index < 0 ? reference[-1] :
-                        (size_t)reference_index >= edge_count ?
-                            reference[edge_count - 1U] :
-                            reference[reference_index];
-                    sum += dr_interp_filter[shift][tap] * sample;
-                }
-            }
-            predictor[(size_t)row * predictor_stride_samples + column] =
-                av2h_sample_clip_10bit(
-                    mode->edge_ibp != 0U || use_idif == 0U ?
-                    (sum + 16) >> 5U : (sum + 64) >> 7U);
-        }
-    }
+    Av2hStatus edge_status =
+        av2h_prepare_directional_zone2_u16(mode, width, height, references, disable_edge_filter,
+                                           angle, above_edge, left_edge, edge_count, domain);
+    if (edge_status != AV2H_OK)
+        return edge_status;
+    directional_project_zone2_u16(mode, angle, width, height, above_edge, left_edge, edge_count,
+                                  predictor, predictor_stride_samples, use_idif, domain);
     return AV2H_OK;
-
 }
 
-Av2hStatus av2h_predict_zone1_u16(
-    const Av2hLeafMode *mode,
-    uint16_t width,
-    uint16_t height,
-    const Av2hLumaReferencesU16 *references,
-    uint16_t *predictor,
-    size_t predictor_stride_samples,
-    uint8_t disable_edge_filter,
-    uint8_t use_idif,
-    int angle) {
-
-    uint16_t row;
-    uint16_t column;
+Av2hStatus av2h_predict_zone1_u16(const Av2hLeafMode *mode, uint16_t width, uint16_t height,
+                                  const Av2hLumaReferencesU16 *references, uint16_t *predictor,
+                                  size_t predictor_stride_samples, uint8_t disable_edge_filter,
+                                  uint8_t use_idif, int angle, const Av2hSampleDomain *domain) {
+    if (!av2h_sample_domain_valid(domain))
+        return AV2H_INVALID_ARGUMENT;
 
     uint16_t above_storage[141U];
     uint16_t left_storage[141U];
     uint16_t *above_edge = &above_storage[5U];
     uint16_t *left_edge = &left_storage[5U];
-    int dx = directional_derivative[angle];
-    int max_base = (int)width + height - 1 +
-        2 * mode->mrl_index;
-    size_t edge_count = (size_t)width + height + 2U +
-        2U * mode->mrl_index;
-
-    int x = dx * (1 + mode->mrl_index);
-    Av2hStatus edge_status = av2h_prepare_directional_zone1_u16(
-        mode, width, height, references, disable_edge_filter, angle, above_edge, left_edge, max_base, edge_count);
-    if (edge_status != AV2H_OK) return edge_status;
-    for (row = 0U; row < height; ++row, x += dx) {
-        int base = x >> 6;
-        int shift = (x & 0x3f) >> 1;
-        for (column = 0U; column < width; ++column, ++base) {
-            int32_t sum = 0;
-            uint16_t primary;
-            size_t tap;
-            if (base > max_base ||
-                (mode->edge_ibp != 0U && base == max_base)) {
-                primary = above_edge[max_base];
-            } else if (mode->edge_ibp != 0U || use_idif == 0U) {
-                primary = av2h_sample_clip_10bit((
-                    above_edge[base] * (32 - shift) +
-                    above_edge[base + 1] * shift + 16) >> 5U);
-            } else {
-                for (tap = 0U; tap < 4U; ++tap) {
-                    sum += dr_interp_filter[shift][tap] *
-                        above_edge[base + (int)tap - 1];
-                }
-                primary = av2h_sample_clip_10bit((sum + 64) >> 7U);
-            }
-            if (mode->mrl_index == 0U && mode->enable_ibp &&
-                mode->angle_delta % 2 == 0) {
-                int secondary_dy = directional_derivative[90 - angle];
-                int weight_dy =
-                    directional_ibp_canonical_derivative(angle);
-                int secondary_y =
-                    secondary_dy * ((int)column + 1);
-                int secondary_base = (secondary_y >> 6) + row;
-                int secondary_shift = (secondary_y & 0x3f) >> 1;
-                uint16_t secondary;
-                uint8_t weight;
-                if (secondary_base > max_base) {
-                    secondary = left_edge[max_base];
-                } else if (use_idif == 0U) {
-                    secondary = av2h_sample_clip_10bit((
-                        left_edge[secondary_base] *
-                            (32 - secondary_shift) +
-                        left_edge[secondary_base + 1] * secondary_shift +
-                        16) >> 5U);
-                } else {
-                    sum = 0;
-                    for (tap = 0U; tap < 4U; ++tap) {
-                        sum += dr_interp_filter[secondary_shift][tap] *
-                            left_edge[secondary_base + (int)tap - 1];
-                    }
-                    secondary = av2h_sample_clip_10bit(
-                        (sum + 64) >> 7U);
-                }
-                weight = directional_ibp_weight(
-                    row >> (height >> 5U),
-                    column >> (width >> 5U), weight_dy);
-                primary = (uint16_t)(
-                    (primary * weight +
-                     secondary * (128U - weight) + 64U) >> 7U);
-            }
-            predictor[(size_t)row * predictor_stride_samples + column] =
-                primary;
-        }
-    }
-    return AV2H_OK;
-
-}
-
-Av2hStatus av2h_predict_zone3_u16(
-    const Av2hLeafMode *mode,
-    uint16_t width,
-    uint16_t height,
-    const Av2hLumaReferencesU16 *references,
-    uint16_t *predictor,
-    size_t predictor_stride_samples,
-    uint8_t disable_edge_filter,
-    uint8_t use_idif,
-    int angle) {
-
-    uint16_t row;
-    uint16_t column;
-
-    uint16_t above_storage[141U];
-    uint16_t left_storage[141U];
-    uint16_t *above_edge = &above_storage[5U];
-    uint16_t *left_edge = &left_storage[5U];
-    int dy = directional_derivative[270 - angle];
     int max_base = (int)width + height - 1 + 2 * mode->mrl_index;
-    int y = dy * (1 + mode->mrl_index);
-    size_t edge_count = (size_t)width + height + 2U +
-        2U * mode->mrl_index;
+    size_t edge_count = (size_t)width + height + 2U + 2U * mode->mrl_index;
+
+    Av2hStatus edge_status = av2h_prepare_directional_zone1_u16(
+        mode, width, height, references, disable_edge_filter, angle, above_edge, left_edge,
+        max_base, edge_count, domain);
+    if (edge_status != AV2H_OK)
+        return edge_status;
+    directional_project_zone1_u16(mode, angle, width, height, above_edge, left_edge, predictor,
+                                  predictor_stride_samples, use_idif, domain);
+    return AV2H_OK;
+}
+
+Av2hStatus av2h_predict_zone3_u16(const Av2hLeafMode *mode, uint16_t width, uint16_t height,
+                                  const Av2hLumaReferencesU16 *references, uint16_t *predictor,
+                                  size_t predictor_stride_samples, uint8_t disable_edge_filter,
+                                  uint8_t use_idif, int angle, const Av2hSampleDomain *domain) {
+    if (!av2h_sample_domain_valid(domain))
+        return AV2H_INVALID_ARGUMENT;
+
+    uint16_t above_storage[141U];
+    uint16_t left_storage[141U];
+    uint16_t *above_edge = &above_storage[5U];
+    uint16_t *left_edge = &left_storage[5U];
+    int max_base = (int)width + height - 1 + 2 * mode->mrl_index;
+    size_t edge_count = (size_t)width + height + 2U + 2U * mode->mrl_index;
 
     Av2hStatus edge_status = av2h_prepare_directional_zone3_u16(
-        mode, width, height, references, disable_edge_filter, angle, above_edge, left_edge, max_base, edge_count);
-    if (edge_status != AV2H_OK) return edge_status;
-    for (column = 0U; column < width; ++column, y += dy) {
-        int base = y >> 6;
-        int shift = (y & 0x3f) >> 1;
-        for (row = 0U; row < height; ++row, ++base) {
-            int32_t sum = 0;
-            uint16_t primary;
-            size_t tap;
-            if (base > max_base ||
-                (mode->edge_ibp != 0U && base == max_base)) {
-                primary = left_edge[max_base];
-            } else if (mode->edge_ibp != 0U || use_idif == 0U) {
-                primary = av2h_sample_clip_10bit((
-                    left_edge[base] * (32 - shift) +
-                    left_edge[base + 1] * shift + 16) >> 5U);
-            } else {
-                for (tap = 0U; tap < 4U; ++tap) {
-                    int reference_index = base + (int)tap - 1;
-                    uint16_t sample = mode->mrl_index != 0U ?
-                        left_edge[reference_index] :
-                        reference_index < 0 ? left_edge[-1] :
-                        (size_t)reference_index >= edge_count ?
-                            left_edge[edge_count - 1U] :
-                            left_edge[reference_index];
-                    sum += dr_interp_filter[shift][tap] * sample;
-                }
-                primary = av2h_sample_clip_10bit((sum + 64) >> 7U);
-            }
-            if (mode->mrl_index == 0U && mode->enable_ibp != 0U &&
-                mode->angle_delta % 2 == 0) {
-                int secondary_dx = directional_derivative[angle - 180];
-                int weight_dy = directional_ibp_canonical_derivative(
-                    270 - angle);
-                int secondary_x = secondary_dx * ((int)row + 1);
-                int secondary_base =
-                    (secondary_x >> 6) + (int)column;
-                int secondary_shift = (secondary_x & 0x3f) >> 1;
-                int32_t secondary_sum = 0;
-                uint16_t secondary;
-                uint8_t weight;
-                if (secondary_base > max_base) {
-                    secondary = above_edge[max_base];
-                } else if (use_idif == 0U) {
-                    secondary = av2h_sample_clip_10bit((
-                        above_edge[secondary_base] *
-                            (32 - secondary_shift) +
-                        above_edge[secondary_base + 1] * secondary_shift +
-                        16) >> 5U);
-                } else {
-                    for (tap = 0U; tap < 4U; ++tap) {
-                        int reference_index =
-                            secondary_base + (int)tap - 1;
-                        uint16_t sample = reference_index < 0 ?
-                            above_edge[-1] :
-                            (size_t)reference_index >= edge_count ?
-                                above_edge[edge_count - 1U] :
-                                above_edge[reference_index];
-                        secondary_sum +=
-                            dr_interp_filter[secondary_shift][tap] *
-                            sample;
-                    }
-                    secondary = av2h_sample_clip_10bit(
-                        (secondary_sum + 64) >> 7U);
-                }
-                weight = directional_ibp_weight(
-                    column >> (width >> 5U), row >> (height >> 5U),
-                    weight_dy);
-                primary = (uint16_t)((primary * weight +
-                    secondary * (128U - weight) + 64U) >> 7U);
-            }
-            predictor[(size_t)row * predictor_stride_samples + column] =
-                primary;
-        }
-    }
+        mode, width, height, references, disable_edge_filter, angle, above_edge, left_edge,
+        max_base, edge_count, domain);
+    if (edge_status != AV2H_OK)
+        return edge_status;
+    directional_project_zone3_u16(mode, angle, width, height, above_edge, left_edge, edge_count,
+                                  predictor, predictor_stride_samples, use_idif, domain);
     return AV2H_OK;
-
 }
 
-Av2hStatus av2h_predict_cardinal_u16(
-    const Av2hLeafMode *mode,
-    uint16_t width,
-    uint16_t height,
-    const Av2hLumaReferencesU16 *references,
-    uint16_t *predictor,
-    size_t predictor_stride_samples) {
+Av2hStatus av2h_predict_cardinal_u16(const Av2hLeafMode *mode, uint16_t width, uint16_t height,
+                                     const Av2hLumaReferencesU16 *references, uint16_t *predictor,
+                                     size_t predictor_stride_samples,
+                                     const Av2hSampleDomain *domain) {
+    if (!av2h_sample_domain_valid(domain))
+        return AV2H_INVALID_ARGUMENT;
     const uint16_t *above;
     const uint16_t *left;
     size_t above_count;
@@ -1995,15 +1666,21 @@ Av2hStatus av2h_predict_cardinal_u16(
     for (row = 0U; row < height; ++row) {
         for (column = 0U; column < width; ++column) {
             predictor[(size_t)row * predictor_stride_samples + column] =
-                mode->mode == AV2H_INTRA_VERTICAL ?
-                    have_above ? above[column < above_count ?
-                        column : above_count - 1U] :
-                        have_left ? left[0] : 511U :
-                    have_left ? left[row < left_count ?
-                        row : left_count - 1U] :
-                        have_above ? above[0] : 513U;
+                mode->mode == AV2H_INTRA_VERTICAL
+                    ? have_above  ? above[column < above_count ? column : above_count - 1U]
+                      : have_left ? left[0]
+                                  : (domain->midpoint - 1U)
+                : have_left  ? left[row < left_count ? row : left_count - 1U]
+                : have_above ? above[0]
+                             : (domain->midpoint + 1U);
         }
     }
     return AV2H_OK;
-
 }
+
+#include "internal/sample_kernel_u8.inc"
+#include "internal/intra_prediction_directional_kernel.inc"
+#include "internal/sample_kernel_end.inc"
+#include "internal/sample_kernel_u16.inc"
+#include "internal/intra_prediction_directional_kernel.inc"
+#include "internal/sample_kernel_end.inc"

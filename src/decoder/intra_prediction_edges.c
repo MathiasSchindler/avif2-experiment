@@ -4,6 +4,9 @@
 
 #include <stddef.h>
 
+void av2h_directional_filter_edge(uint8_t *edge, size_t count, int strength);
+void av2h_directional_filter_edge_u16(uint16_t *edge, size_t count, int strength);
+
 int av2h_directional_filter_strength(int size0,
                                      int size1,
                                      int delta,
@@ -32,58 +35,6 @@ int av2h_directional_filter_strength(int size0,
         return distance >= 32 ? 3 : distance >= 4 ? 2 : distance >= 1 ? 1 : 0;
     }
     return distance >= 1 ? 3 : 0;
-}
-
-void av2h_directional_filter_edge(uint8_t *edge, size_t count, int strength) {
-    static const uint8_t kernels[3U][5U] = {
-        {0U, 4U, 8U, 4U, 0U}, {0U, 5U, 6U, 5U, 0U}, {2U, 4U, 4U, 4U, 2U}};
-    uint8_t source[132U];
-    size_t index;
-    if (strength == 0 || count > sizeof(source))
-        return;
-    for (index = 0U; index < count; ++index)
-        source[index] = edge[index];
-    for (index = 1U; index < count; ++index) {
-        unsigned int sum = 0U;
-        size_t tap;
-        for (tap = 0U; tap < 5U; ++tap) {
-            int source_index = (int)index - 2 + (int)tap;
-            if (source_index < 0)
-                source_index = 0;
-            if ((size_t)source_index >= count) {
-                source_index = (int)count - 1;
-            }
-            sum += source[source_index] * kernels[strength - 1][tap];
-        }
-        edge[index] = (uint8_t)((sum + 8U) >> 4U);
-    }
-}
-
-void av2h_directional_filter_edge_u16(uint16_t *edge,
-                                      size_t count,
-                                      int strength) {
-    static const uint8_t kernels[3U][5U] = {
-        {0U, 4U, 8U, 4U, 0U}, {0U, 5U, 6U, 5U, 0U}, {2U, 4U, 4U, 4U, 2U}};
-    uint16_t source[132U];
-    size_t index;
-    if (strength == 0 || count > 132U)
-        return;
-    for (index = 0U; index < count; ++index)
-        source[index] = edge[index];
-    for (index = 1U; index < count; ++index) {
-        uint32_t sum = 0U;
-        size_t tap;
-        for (tap = 0U; tap < 5U; ++tap) {
-            int source_index = (int)index - 2 + (int)tap;
-            if (source_index < 0)
-                source_index = 0;
-            if ((size_t)source_index >= count) {
-                source_index = (int)count - 1;
-            }
-            sum += source[source_index] * kernels[strength - 1][tap];
-        }
-        edge[index] = (uint16_t)((sum + 8U) >> 4U);
-    }
 }
 
 void av2h_prepare_directional_edges(const Av2hLeafMode *mode,
@@ -252,17 +203,15 @@ static void prepare_negative_u16(const Av2hLeafMode *mode,
     }
 }
 
-Av2hStatus
-av2h_prepare_directional_zone1_u16(const Av2hLeafMode *mode,
-                                   uint16_t width,
-                                   uint16_t height,
-                                   const Av2hLumaReferencesU16 *references,
-                                   uint8_t disable_edge_filter,
-                                   int angle,
-                                   uint16_t *above_edge,
-                                   uint16_t *left_edge,
-                                   int max_base,
-                                   size_t edge_count) {
+Av2hStatus av2h_prepare_directional_zone1_u16(const Av2hLeafMode *mode, uint16_t width,
+                                              uint16_t height,
+                                              const Av2hLumaReferencesU16 *references,
+                                              uint8_t disable_edge_filter, int angle,
+                                              uint16_t *above_edge, uint16_t *left_edge,
+                                              int max_base, size_t edge_count,
+                                              const Av2hSampleDomain *domain) {
+    if (!av2h_sample_domain_valid(domain))
+        return AV2H_INVALID_ARGUMENT;
     const uint16_t *above;
     const uint16_t *left;
     size_t above_count;
@@ -280,9 +229,9 @@ av2h_prepare_directional_zone1_u16(const Av2hLeafMode *mode,
     has_above_left = references->has_above_left;
     have_above = above != NULL && above_count != 0U;
     have_left = left != NULL && left_count != 0U;
-    uint16_t fallback = have_above ? above[0] : have_left ? left[0] : 512U;
-    uint16_t above_fallback = !have_above && !have_left ? 511U : fallback;
-    uint16_t left_fallback = !have_above && !have_left ? 513U : fallback;
+    uint16_t fallback = have_above ? above[0] : have_left ? left[0] : domain->midpoint;
+    uint16_t above_fallback = !have_above && !have_left ? (domain->midpoint - 1U) : fallback;
+    uint16_t left_fallback = !have_above && !have_left ? (domain->midpoint + 1U) : fallback;
     uint16_t corner = has_above_left ? above_left : fallback;
     if (edge_count > 136U)
         return AV2H_UNSUPPORTED;
@@ -339,16 +288,14 @@ av2h_prepare_directional_zone1_u16(const Av2hLeafMode *mode,
     return AV2H_OK;
 }
 
-Av2hStatus
-av2h_prepare_directional_zone2_u16(const Av2hLeafMode *mode,
-                                   uint16_t width,
-                                   uint16_t height,
-                                   const Av2hLumaReferencesU16 *references,
-                                   uint8_t disable_edge_filter,
-                                   int angle,
-                                   uint16_t *above_edge,
-                                   uint16_t *left_edge,
-                                   size_t edge_count) {
+Av2hStatus av2h_prepare_directional_zone2_u16(const Av2hLeafMode *mode, uint16_t width,
+                                              uint16_t height,
+                                              const Av2hLumaReferencesU16 *references,
+                                              uint8_t disable_edge_filter, int angle,
+                                              uint16_t *above_edge, uint16_t *left_edge,
+                                              size_t edge_count, const Av2hSampleDomain *domain) {
+    if (!av2h_sample_domain_valid(domain))
+        return AV2H_INVALID_ARGUMENT;
     const uint16_t *above;
     const uint16_t *left;
     size_t above_count;
@@ -366,26 +313,23 @@ av2h_prepare_directional_zone2_u16(const Av2hLeafMode *mode,
     has_above_left = references->has_above_left;
     have_above = above != NULL && above_count != 0U;
     have_left = left != NULL && left_count != 0U;
-    uint16_t fallback = have_above ? above[0] : have_left ? left[0] : 512U;
+    uint16_t fallback = have_above ? above[0] : have_left ? left[0] : domain->midpoint;
     uint16_t corner = has_above_left ? above_left : fallback;
     if (edge_count > 136U)
         return AV2H_UNSUPPORTED;
     prepare_negative_u16(mode, references, above_edge, left_edge, corner);
     for (index = 0U; index < edge_count; ++index) {
-        above_edge[index] =
-            have_above
-                ? above[index < above_count && index < width
-                            ? index
-                            : (above_count < width ? above_count : width) - 1U]
-            : have_left ? left[0]
-                        : 511U;
-        left_edge[index] =
-            have_left
-                ? left[index < left_count && index < height
-                           ? index
-                           : (left_count < height ? left_count : height) - 1U]
-            : have_above ? above[0]
-                         : 513U;
+        above_edge[index] = have_above
+                                ? above[index < above_count && index < width
+                                            ? index
+                                            : (above_count < width ? above_count : width) - 1U]
+                            : have_left ? left[0]
+                                        : (domain->midpoint - 1U);
+        left_edge[index] = have_left ? left[index < left_count && index < height
+                                                ? index
+                                                : (left_count < height ? left_count : height) - 1U]
+                           : have_above ? above[0]
+                                        : (domain->midpoint + 1U);
     }
     if (disable_edge_filter == 0U && mode->mrl_index == 0U && have_above &&
         have_left && width + height >= 24U) {
@@ -423,17 +367,15 @@ av2h_prepare_directional_zone2_u16(const Av2hLeafMode *mode,
     return AV2H_OK;
 }
 
-Av2hStatus
-av2h_prepare_directional_zone3_u16(const Av2hLeafMode *mode,
-                                   uint16_t width,
-                                   uint16_t height,
-                                   const Av2hLumaReferencesU16 *references,
-                                   uint8_t disable_edge_filter,
-                                   int angle,
-                                   uint16_t *above_edge,
-                                   uint16_t *left_edge,
-                                   int max_base,
-                                   size_t edge_count) {
+Av2hStatus av2h_prepare_directional_zone3_u16(const Av2hLeafMode *mode, uint16_t width,
+                                              uint16_t height,
+                                              const Av2hLumaReferencesU16 *references,
+                                              uint8_t disable_edge_filter, int angle,
+                                              uint16_t *above_edge, uint16_t *left_edge,
+                                              int max_base, size_t edge_count,
+                                              const Av2hSampleDomain *domain) {
+    if (!av2h_sample_domain_valid(domain))
+        return AV2H_INVALID_ARGUMENT;
     const uint16_t *above;
     const uint16_t *left;
     size_t above_count;
@@ -451,9 +393,9 @@ av2h_prepare_directional_zone3_u16(const Av2hLeafMode *mode,
     has_above_left = references->has_above_left;
     have_above = above != NULL && above_count != 0U;
     have_left = left != NULL && left_count != 0U;
-    uint16_t fallback = have_above ? above[0] : have_left ? left[0] : 512U;
-    uint16_t above_fallback = !have_above && !have_left ? 511U : fallback;
-    uint16_t left_fallback = !have_above && !have_left ? 513U : fallback;
+    uint16_t fallback = have_above ? above[0] : have_left ? left[0] : domain->midpoint;
+    uint16_t above_fallback = !have_above && !have_left ? (domain->midpoint - 1U) : fallback;
+    uint16_t left_fallback = !have_above && !have_left ? (domain->midpoint + 1U) : fallback;
     uint16_t corner = has_above_left ? above_left : fallback;
     if (edge_count > 136U)
         return AV2H_UNSUPPORTED;
@@ -509,3 +451,10 @@ av2h_prepare_directional_zone3_u16(const Av2hLeafMode *mode,
     }
     return AV2H_OK;
 }
+
+#include "internal/sample_kernel_u8.inc"
+#include "internal/intra_prediction_edges_kernel.inc"
+#include "internal/sample_kernel_end.inc"
+#include "internal/sample_kernel_u16.inc"
+#include "internal/intra_prediction_edges_kernel.inc"
+#include "internal/sample_kernel_end.inc"

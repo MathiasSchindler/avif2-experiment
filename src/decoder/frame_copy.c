@@ -21,6 +21,18 @@ typedef struct {
     size_t width;
 } Av2hCopyRowsU16;
 
+static int copy_rows_u8(size_t begin, size_t end, unsigned int worker_index, void *argument);
+static int copy_rows_u16(size_t begin, size_t end, unsigned int worker_index, void *argument);
+Av2hStatus
+av2h_copy_visible_planar_private(const Av2hFrameState *frame, const Av2hFilterPlanes *coded,
+                                 const size_t coded_data_size_bytes[AV2H_FRAME_PLANE_COUNT],
+                                 uint8_t *output, size_t output_size_bytes,
+                                 const Av2hExecution *execution);
+Av2hStatus av2h_copy_visible_planar_u16_private(
+    const Av2hFrameState *frame, const Av2hReconstructionPlaneU16 coded[AV2H_FRAME_PLANE_COUNT],
+    const size_t coded_data_size_bytes[AV2H_FRAME_PLANE_COUNT], uint8_t *output,
+    size_t output_size_bytes, const Av2hExecution *execution);
+
 Av2hStatus av2h_planar_output_size(
     const Av2hFrameState *frame,
     size_t bytes_per_sample,
@@ -67,20 +79,6 @@ Av2hStatus av2h_planar_output_bind_u16(
     return AV2H_OK;
 }
 
-static int copy_rows_u8(size_t begin, size_t end,
-                        unsigned int worker_index, void *argument) {
-    Av2hCopyRowsU8 *copy = (Av2hCopyRowsU8 *)argument;
-    size_t row;
-    (void)worker_index;
-    for (row = begin; row < end; ++row) {
-        av2h_memory_copy(
-            copy->destination + row * copy->row_bytes,
-            copy->source + row * copy->source_stride,
-            copy->row_bytes);
-    }
-    return 0;
-}
-
 static int copy_rows_dispatch(const Av2hExecution *execution,
                               size_t height,
                               size_t row_bytes,
@@ -99,83 +97,9 @@ static int copy_rows_dispatch(const Av2hExecution *execution,
         execution->context, height, min_chunk, body, argument);
 }
 
-Av2hStatus av2h_copy_visible_planar_private(
-    const Av2hFrameState *frame,
-    const Av2hFilterPlanes *coded,
-    const size_t coded_data_size_bytes[AV2H_FRAME_PLANE_COUNT],
-    uint8_t *output,
-    size_t output_size_bytes,
-    const Av2hExecution *execution) {
-    size_t offset = 0U;
-    unsigned int plane;
-    Av2hStatus status = av2h_frame_output_validate_u8(
-        frame, coded, coded_data_size_bytes, output, output_size_bytes);
-    if (status != AV2H_OK) return status;
-    for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
-        const Av2hFilterPlane *source = &coded->plane[plane];
-        size_t width = av2h_frame_plane_dimension(
-            frame, plane, frame->width);
-        size_t height = av2h_frame_plane_dimension(
-            frame, plane, frame->height);
-        Av2hCopyRowsU8 copy = {
-            source->data, output + offset, source->stride_samples, width
-        };
-        if (copy_rows_dispatch(
-                execution, height, width, copy_rows_u8, &copy) != 0) {
-            return AV2H_INVALID_DATA;
-        }
-        offset += width * height;
-    }
-    return AV2H_OK;
-}
-
-static int copy_rows_u16(size_t begin, size_t end,
-                         unsigned int worker_index, void *argument) {
-    Av2hCopyRowsU16 *copy = (Av2hCopyRowsU16 *)argument;
-    size_t row;
-    (void)worker_index;
-    for (row = begin; row < end; ++row) {
-        size_t column;
-        uint8_t *destination =
-            copy->destination + row * copy->width * sizeof(uint16_t);
-        const uint16_t *source =
-            copy->source + row * copy->source_stride;
-        for (column = 0U; column < copy->width; ++column) {
-            uint16_t sample = source[column];
-            destination[column * 2U] = (uint8_t)sample;
-            destination[column * 2U + 1U] = (uint8_t)(sample >> 8U);
-        }
-    }
-    return 0;
-}
-
-Av2hStatus av2h_copy_visible_planar_u16_private(
-    const Av2hFrameState *frame,
-    const Av2hReconstructionPlaneU16 coded[AV2H_FRAME_PLANE_COUNT],
-    const size_t coded_data_size_bytes[AV2H_FRAME_PLANE_COUNT],
-    uint8_t *output,
-    size_t output_size_bytes,
-    const Av2hExecution *execution) {
-    size_t offset = 0U;
-    unsigned int plane;
-    Av2hStatus status = av2h_frame_output_validate_u16(
-        frame, coded, coded_data_size_bytes, output, output_size_bytes);
-    if (status != AV2H_OK) return status;
-    for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
-        const Av2hReconstructionPlaneU16 *source = &coded[plane];
-        size_t width = av2h_frame_plane_dimension(
-            frame, plane, frame->width);
-        size_t height = av2h_frame_plane_dimension(
-            frame, plane, frame->height);
-        size_t row_bytes = width * sizeof(uint16_t);
-        Av2hCopyRowsU16 copy = {
-            source->data, output + offset, source->stride_samples, width
-        };
-        if (copy_rows_dispatch(
-                execution, height, row_bytes, copy_rows_u16, &copy) != 0) {
-            return AV2H_INVALID_DATA;
-        }
-        offset += row_bytes * height;
-    }
-    return AV2H_OK;
-}
+#include "internal/sample_kernel_u8.inc"
+#include "internal/frame_copy_kernel.inc"
+#include "internal/sample_kernel_end.inc"
+#include "internal/sample_kernel_u16.inc"
+#include "internal/frame_copy_kernel.inc"
+#include "internal/sample_kernel_end.inc"

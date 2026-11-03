@@ -303,81 +303,44 @@ Av2hStatus av2h_predict_d203_plus_three(
     uint8_t *predictor,
     size_t predictor_stride_samples);
 
-Av2hStatus av2h_predict_multiline_u16(
-    const Av2hLeafMode *mode,
-    uint16_t width,
-    uint16_t height,
-    const Av2hLumaReferencesU16 *references,
-    uint16_t *predictor,
-    size_t predictor_stride_samples,
-    uint8_t use_idif);
+Av2hStatus av2h_predict_multiline_u16(const Av2hLeafMode *mode, uint16_t width, uint16_t height,
+                                      const Av2hLumaReferencesU16 *references, uint16_t *predictor,
+                                      size_t predictor_stride_samples, uint8_t use_idif,
+                                      const Av2hSampleDomain *domain);
 
-Av2hStatus av2h_predict_zone2_u16(
-    const Av2hLeafMode *mode,
-    uint16_t width,
-    uint16_t height,
-    const Av2hLumaReferencesU16 *references,
-    uint16_t *predictor,
-    size_t predictor_stride_samples,
-    uint8_t disable_edge_filter,
-    uint8_t use_idif,
-    int angle);
+Av2hStatus av2h_predict_zone2_u16(const Av2hLeafMode *mode, uint16_t width, uint16_t height,
+                                  const Av2hLumaReferencesU16 *references, uint16_t *predictor,
+                                  size_t predictor_stride_samples, uint8_t disable_edge_filter,
+                                  uint8_t use_idif, int angle, const Av2hSampleDomain *domain);
 
-Av2hStatus av2h_predict_zone1_u16(
-    const Av2hLeafMode *mode,
-    uint16_t width,
-    uint16_t height,
-    const Av2hLumaReferencesU16 *references,
-    uint16_t *predictor,
-    size_t predictor_stride_samples,
-    uint8_t disable_edge_filter,
-    uint8_t use_idif,
-    int angle);
+Av2hStatus av2h_predict_zone1_u16(const Av2hLeafMode *mode, uint16_t width, uint16_t height,
+                                  const Av2hLumaReferencesU16 *references, uint16_t *predictor,
+                                  size_t predictor_stride_samples, uint8_t disable_edge_filter,
+                                  uint8_t use_idif, int angle, const Av2hSampleDomain *domain);
 
-Av2hStatus av2h_predict_zone3_u16(
-    const Av2hLeafMode *mode,
-    uint16_t width,
-    uint16_t height,
-    const Av2hLumaReferencesU16 *references,
-    uint16_t *predictor,
-    size_t predictor_stride_samples,
-    uint8_t disable_edge_filter,
-    uint8_t use_idif,
-    int angle);
+Av2hStatus av2h_predict_zone3_u16(const Av2hLeafMode *mode, uint16_t width, uint16_t height,
+                                  const Av2hLumaReferencesU16 *references, uint16_t *predictor,
+                                  size_t predictor_stride_samples, uint8_t disable_edge_filter,
+                                  uint8_t use_idif, int angle, const Av2hSampleDomain *domain);
 
-Av2hStatus av2h_predict_cardinal_u16(
-    const Av2hLeafMode *mode,
-    uint16_t width,
-    uint16_t height,
-    const Av2hLumaReferencesU16 *references,
-    uint16_t *predictor,
-    size_t predictor_stride_samples);
+Av2hStatus av2h_predict_cardinal_u16(const Av2hLeafMode *mode, uint16_t width, uint16_t height,
+                                     const Av2hLumaReferencesU16 *references, uint16_t *predictor,
+                                     size_t predictor_stride_samples,
+                                     const Av2hSampleDomain *domain);
 
-Av2hStatus av2h_predict_smooth_u16(
-    const Av2hLeafMode *mode,
-    uint16_t width,
-    uint16_t height,
-    const Av2hLumaReferencesU16 *references,
-    uint16_t *predictor,
-    size_t predictor_stride_samples);
+Av2hStatus av2h_predict_smooth_u16(const Av2hLeafMode *mode, uint16_t width, uint16_t height,
+                                   const Av2hLumaReferencesU16 *references, uint16_t *predictor,
+                                   size_t predictor_stride_samples, const Av2hSampleDomain *domain);
 
-Av2hStatus av2h_predict_paeth_u16(
-    uint16_t width,
-    uint16_t height,
-    const Av2hLumaReferencesU16 *references,
-    uint16_t *predictor,
-    size_t predictor_stride_samples);
+Av2hStatus av2h_predict_paeth_u16(uint16_t width, uint16_t height,
+                                  const Av2hLumaReferencesU16 *references, uint16_t *predictor,
+                                  size_t predictor_stride_samples, const Av2hSampleDomain *domain);
 
-Av2hStatus av2h_luma_predict_u16_adjusted(
-    const Av2hLeafMode *mode,
-    uint16_t width,
-    uint16_t height,
-    const Av2hLumaReferencesU16 *references,
-    uint16_t *predictor,
-    size_t predictor_stride_samples,
-    int angle_adjust,
-    uint8_t disable_edge_filter,
-    uint8_t use_idif);
+Av2hStatus av2h_luma_predict_u16_adjusted(const Av2hLeafMode *mode, uint16_t width, uint16_t height,
+                                          const Av2hLumaReferencesU16 *references,
+                                          uint16_t *predictor, size_t predictor_stride_samples,
+                                          int angle_adjust, uint8_t disable_edge_filter,
+                                          uint8_t use_idif, const Av2hSampleDomain *domain);
 
 /* Edge pointers have five negative and 136 nonnegative sample slots. */
 void av2h_prepare_directional_edges(
@@ -393,39 +356,27 @@ void av2h_prepare_directional_edges(
     int missing_left_ibp,
     uint8_t edge_ibp);
 
-Av2hStatus av2h_prepare_directional_zone1_u16(
-    const Av2hLeafMode *mode,
-    uint16_t width,
-    uint16_t height,
-    const Av2hLumaReferencesU16 *references,
-    uint8_t disable_edge_filter,
-    int angle,
-    uint16_t *above_edge,
-    uint16_t *left_edge,
-    int max_base,
-    size_t edge_count);
+Av2hStatus av2h_prepare_directional_zone1_u16(const Av2hLeafMode *mode, uint16_t width,
+                                              uint16_t height,
+                                              const Av2hLumaReferencesU16 *references,
+                                              uint8_t disable_edge_filter, int angle,
+                                              uint16_t *above_edge, uint16_t *left_edge,
+                                              int max_base, size_t edge_count,
+                                              const Av2hSampleDomain *domain);
 
-Av2hStatus av2h_prepare_directional_zone2_u16(
-    const Av2hLeafMode *mode,
-    uint16_t width,
-    uint16_t height,
-    const Av2hLumaReferencesU16 *references,
-    uint8_t disable_edge_filter,
-    int angle,
-    uint16_t *above_edge,
-    uint16_t *left_edge,
-    size_t edge_count);
+Av2hStatus av2h_prepare_directional_zone2_u16(const Av2hLeafMode *mode, uint16_t width,
+                                              uint16_t height,
+                                              const Av2hLumaReferencesU16 *references,
+                                              uint8_t disable_edge_filter, int angle,
+                                              uint16_t *above_edge, uint16_t *left_edge,
+                                              size_t edge_count, const Av2hSampleDomain *domain);
 
-Av2hStatus av2h_prepare_directional_zone3_u16(
-    const Av2hLeafMode *mode,
-    uint16_t width,
-    uint16_t height,
-    const Av2hLumaReferencesU16 *references,
-    uint8_t disable_edge_filter,
-    int angle,
-    uint16_t *above_edge,
-    uint16_t *left_edge,
-    int max_base,
-    size_t edge_count);
+Av2hStatus av2h_prepare_directional_zone3_u16(const Av2hLeafMode *mode, uint16_t width,
+                                              uint16_t height,
+                                              const Av2hLumaReferencesU16 *references,
+                                              uint8_t disable_edge_filter, int angle,
+                                              uint16_t *above_edge, uint16_t *left_edge,
+                                              int max_base, size_t edge_count,
+                                              const Av2hSampleDomain *domain);
 
 #endif

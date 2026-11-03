@@ -8,57 +8,12 @@
 
 #include <stddef.h>
 
-static inline int filter_dimensions_valid(
-    const Av2hFilterPlanes *planes, const Av2hFrameState *frame) {
-    unsigned int plane;
-    for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
-        size_t width = av2h_frame_plane_dimension(
-            frame, plane, av2h_filter_coded_dimension(frame->width));
-        size_t height = av2h_frame_plane_dimension(
-            frame, plane, av2h_filter_coded_dimension(frame->height));
-        if (planes->plane[plane].data == NULL ||
-            planes->plane[plane].width != width ||
-            planes->plane[plane].height != height ||
-            planes->plane[plane].stride_samples < width) {
-            return 0;
-        }
-    }
-    return 1;
-}
-
-static inline int filter_dimensions_valid_u16(
-    const Av2hFilterPlanesU16 *planes, const Av2hFrameState *frame) {
-    unsigned int plane;
-    for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
-        size_t width = av2h_frame_plane_dimension(
-            frame, plane, av2h_filter_coded_dimension(frame->width));
-        size_t height = av2h_frame_plane_dimension(
-            frame, plane, av2h_filter_coded_dimension(frame->height));
-        if (planes->plane[plane].data == NULL ||
-            planes->plane[plane].width != width ||
-            planes->plane[plane].height != height ||
-            planes->plane[plane].stride_samples < width) {
-            return 0;
-        }
-    }
-    return 1;
-}
-
-static inline void filter_copy_plane(
-    Av2hFilterPlane *destination, const Av2hFilterPlane *source) {
-    av2h_plane_copy_u8(
-        destination->data, destination->stride_samples,
-        source->data, source->stride_samples,
-        source->width, source->height);
-}
-
-static inline void filter_copy_plane_u16(
-    Av2hFilterPlaneU16 *destination, const Av2hFilterPlaneU16 *source) {
-    av2h_plane_copy_u16(
-        destination->data, destination->stride_samples,
-        source->data, source->stride_samples,
-        source->width, source->height);
-}
+#include "sample_kernel_u8.inc"
+#include "filter_common_kernel.inc"
+#include "sample_kernel_end.inc"
+#include "sample_kernel_u16.inc"
+#include "filter_common_kernel.inc"
+#include "sample_kernel_end.inc"
 
 static inline int filter_plane_rows_overlap_u16(
     const Av2hFilterPlaneU16 *left,

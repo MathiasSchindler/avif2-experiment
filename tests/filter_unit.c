@@ -590,7 +590,7 @@ static void test_deblock_edge_u16(void) {
         }
     }
     CHECK(av2h_deblock_edge_u16(
-              &plane, 8U, 2U, 1U, 4U, 4U, 12U, 12U) == AV2H_OK);
+              &plane, 8U, 2U, 1U, 4U, 4U, 12U, 12U, &av2h_sample_domain_10bit) == AV2H_OK);
     for (row = 2U; row < 6U; ++row) {
         CHECK(pixels[row * 16U + 7U] == 405U);
         CHECK(pixels[row * 16U + 8U] == 411U);
@@ -604,7 +604,7 @@ static void test_deblock_edge_u16(void) {
         }
     }
     CHECK(av2h_deblock_edge_u16(
-              &plane, 2U, 8U, 0U, 4U, 4U, 12U, 12U) == AV2H_OK);
+              &plane, 2U, 8U, 0U, 4U, 4U, 12U, 12U, &av2h_sample_domain_10bit) == AV2H_OK);
     for (column = 2U; column < 6U; ++column) {
         CHECK(pixels[7U * 16U + column] == 405U);
         CHECK(pixels[8U * 16U + column] == 411U);
@@ -618,7 +618,7 @@ static void test_deblock_edge_u16(void) {
         }
     }
     CHECK(av2h_deblock_edge_u16(
-              &plane, 8U, 2U, 1U, 4U, 4U, 0U, 12U) == AV2H_OK);
+              &plane, 8U, 2U, 1U, 4U, 4U, 0U, 12U, &av2h_sample_domain_10bit) == AV2H_OK);
     CHECK(pixels[2U * 16U + 7U] == 400U);
     CHECK(pixels[2U * 16U + 8U] == 416U);
 
@@ -628,7 +628,7 @@ static void test_deblock_edge_u16(void) {
         }
     }
     CHECK(av2h_deblock_edge_u16(
-              &plane, 8U, 2U, 1U, 4U, 4U, 12U, 12U) == AV2H_OK);
+              &plane, 8U, 2U, 1U, 4U, 4U, 12U, 12U, &av2h_sample_domain_10bit) == AV2H_OK);
     CHECK(pixels[2U * 16U + 7U] == 0U);
     CHECK(pixels[2U * 16U + 8U] == 0U);
     for (row = 0U; row < 12U; ++row) {
@@ -637,7 +637,7 @@ static void test_deblock_edge_u16(void) {
         }
     }
     CHECK(av2h_deblock_edge_u16(
-              &plane, 8U, 2U, 1U, 4U, 4U, 12U, 12U) == AV2H_OK);
+              &plane, 8U, 2U, 1U, 4U, 4U, 12U, 12U, &av2h_sample_domain_10bit) == AV2H_OK);
     CHECK(pixels[2U * 16U + 7U] == 1023U);
     CHECK(pixels[2U * 16U + 8U] == 1023U);
 }
@@ -808,7 +808,7 @@ static void test_deblock_frame_u16(void) {
     frame.height = 8U;
     frame.deblock_enabled[0] = 1U;
     CHECK(av2h_deblock_filter_frame_u16(
-              &planes, &sequence, &frame, &map) == AV2H_OK);
+              &planes, &sequence, &frame, &map, &av2h_sample_domain_10bit) == AV2H_OK);
     for (row = 0U; row < 8U; ++row) {
         CHECK(y[row * 16U + 7U] == 404U);
         CHECK(y[row * 16U + 8U] == 412U);
@@ -821,7 +821,7 @@ static void test_deblock_frame_u16(void) {
     }
     y_cells[1].lossless = 1U;
     CHECK(av2h_deblock_filter_frame_u16(
-              &planes, &sequence, &frame, &map) == AV2H_OK);
+              &planes, &sequence, &frame, &map, &av2h_sample_domain_10bit) == AV2H_OK);
     CHECK(y[7U] == 400U && y[8U] == 412U);
     for (row = 0U; row < 8U; ++row) {
         for (column = 0U; column < 16U; ++column) {
@@ -830,12 +830,12 @@ static void test_deblock_frame_u16(void) {
     }
     y_cells[2].lossless = 1U;
     CHECK(av2h_deblock_filter_frame_u16(
-              &planes, &sequence, &frame, &map) == AV2H_OK);
+              &planes, &sequence, &frame, &map, &av2h_sample_domain_10bit) == AV2H_OK);
     CHECK(y[7U] == 400U && y[8U] == 416U);
     map.columns[0] = 3U;
     y[0] = 77U;
     CHECK(av2h_deblock_filter_frame_u16(
-              &planes, &sequence, &frame, &map) == AV2H_INVALID_ARGUMENT);
+              &planes, &sequence, &frame, &map, &av2h_sample_domain_10bit) == AV2H_INVALID_ARGUMENT);
     CHECK(y[0] == 77U);
 }
 
@@ -896,7 +896,7 @@ static void test_deblock_stage_u16_odd_noop(void) {
         }
     }
     CHECK(av2h_deblock_stage_u16(
-              &reconstructed, &sequence, &frame, &workspace) == AV2H_OK);
+              &reconstructed, &sequence, &frame, &workspace, &av2h_sample_domain_10bit) == AV2H_OK);
     for (plane = 0U; plane < 3U; ++plane) {
         CHECK(av2h_memory_compare(
                   sources[plane], destinations[plane],
@@ -905,7 +905,7 @@ static void test_deblock_stage_u16_odd_noop(void) {
     sequence.info.bit_depth_idc = 1U;
     destination_y[0] = 0xa5U;
     CHECK(av2h_deblock_stage_u16(
-              &reconstructed, &sequence, &frame, &workspace) ==
+              &reconstructed, &sequence, &frame, &workspace, &av2h_sample_domain_10bit) ==
           AV2H_INVALID_ARGUMENT);
     CHECK(destination_y[0] == 0xa5U);
 }
@@ -1157,7 +1157,7 @@ static void test_cdef_u16(void) {
         }
     }
     CHECK(av2h_cdef_find_direction_u16(
-              &source, 0U, 0U, &direction, &variance) == AV2H_OK);
+              &source, 0U, 0U, &direction, &variance, &av2h_sample_domain_10bit) == AV2H_OK);
     CHECK(direction == 0U && variance == 0U);
     for (row = 0U; row < 8U; ++row) {
         for (column = 0U; column < 8U; ++column) {
@@ -1165,7 +1165,7 @@ static void test_cdef_u16(void) {
         }
     }
     CHECK(av2h_cdef_find_direction_u16(
-              &source, 0U, 0U, &direction, &variance) == AV2H_OK);
+              &source, 0U, 0U, &direction, &variance, &av2h_sample_domain_10bit) == AV2H_OK);
     CHECK(direction == 6U && variance != 0U);
     for (row = 0U; row < 16U; ++row) {
         for (column = 0U; column < 16U; ++column) {
@@ -1177,7 +1177,7 @@ static void test_cdef_u16(void) {
     destination_data[8U * 16U + 8U] = 560U;
     CHECK(av2h_cdef_filter_block_u16(
               &destination, &source, 8U, 8U, 8U, 8U, 0U,
-              14U, 0U, 5U, 2U, 262144U) == AV2H_OK);
+              14U, 0U, 5U, 2U, 262144U, &av2h_sample_domain_10bit) == AV2H_OK);
     CHECK(destination_data[8U * 16U + 8U] == 548U);
     CHECK(source_data[8U * 16U + 8U] == 560U);
 }
@@ -1221,7 +1221,7 @@ static void test_cdef_u16_odd_geometry(void) {
     frame.cdef_damping = 5U;
     frame.cdef_uv_strength[0] = 56U;
     CHECK(av2h_cdef_filter_frame_u16(
-        &destination, &source, NULL, &frame, NULL) == AV2H_OK);
+        &destination, &source, NULL, &frame, NULL, &av2h_sample_domain_10bit) == AV2H_OK);
     CHECK(destination_y[15U * 24U + 23U] == 400U);
     CHECK(destination_u[7U * 12U + 10U] < 456U);
     CHECK(source_u[7U * 12U + 10U] == 456U);
@@ -1489,12 +1489,12 @@ static void test_gdf_frame_u16(void) {
     frame.gdf_qp_index = 3U;
     frame.gdf_scale_index = 3U;
     CHECK(av2h_gdf_filter_frame_u16(
-        &destination, &cdef, &source, NULL, &frame, NULL) == AV2H_OK);
+        &destination, &cdef, &source, NULL, &frame, NULL, &av2h_sample_domain_10bit) == AV2H_OK);
     for (row = 0U; row < 64U; ++row) {
         CHECK(destination_data[row] == expected[row]);
     }
     CHECK(av2h_gdf_filter_frame_u16(
-        &source, &source, &source, NULL, &frame, NULL) ==
+        &source, &source, &source, NULL, &frame, NULL, &av2h_sample_domain_10bit) ==
           AV2H_INVALID_ARGUMENT);
 }
 
@@ -1679,7 +1679,7 @@ static void test_ccso_u16(void) {
     controls.columns = 1U;
     controls.rows = 1U;
     CHECK(av2h_ccso_filter_frame_u16(
-        &planes, reference, 8U, NULL, &frame, &controls) == AV2H_OK);
+        &planes, reference, 8U, NULL, &frame, &controls, &av2h_sample_domain_10bit) == AV2H_OK);
     CHECK(u[0] == 1023U);
     CHECK(u[1] == 403U);
 
@@ -1694,7 +1694,7 @@ static void test_ccso_u16(void) {
     reference[0] = 700U;
     reference[1] = 900U;
     CHECK(av2h_ccso_filter_frame_u16(
-        &planes, reference, 8U, NULL, &frame, &controls) == AV2H_OK);
+        &planes, reference, 8U, NULL, &frame, &controls, &av2h_sample_domain_10bit) == AV2H_OK);
     CHECK(u[0] == 0U);
     CHECK(u[1] == 407U);
 }

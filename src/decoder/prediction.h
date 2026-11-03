@@ -3,6 +3,7 @@
 
 #include "base.h"
 #include "block_geometry.h"
+#include "decoder/internal/sample_math.h"
 #include "leaf_mode.h"
 
 typedef int64_t Av2hPredictionSum;
@@ -65,7 +66,7 @@ Av2hStatus av2h_luma_predict_u16(
     uint16_t height,
     const Av2hLumaReferencesU16 *references,
     uint16_t *predictor,
-    size_t predictor_stride_samples);
+    size_t predictor_stride_samples, const Av2hSampleDomain *domain);
 
 Av2hStatus av2h_chroma_predict_u16(
     const Av2hLeafMode *mode,
@@ -73,6 +74,6 @@ Av2hStatus av2h_chroma_predict_u16(
     uint16_t height,
     const Av2hLumaReferencesU16 *references,
     uint16_t *predictor,
-    size_t predictor_stride_samples);
+    size_t predictor_stride_samples, const Av2hSampleDomain *domain);
 
 #endif

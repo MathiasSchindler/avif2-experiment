@@ -152,7 +152,7 @@ static void prediction_case(PredictionSnapshot *snapshot,
     av2h_memory_fill(storage_u16, 0xa5U, sizeof(storage_u16));
     if (high_bit_depth != 0U) {
         status = av2h_luma_predict_u16(
-            mode, width, height, &references_u16, storage_u16 + 1U, STRIDE);
+            mode, width, height, &references_u16, storage_u16 + 1U, STRIDE, &av2h_sample_domain_10bit);
     } else {
         status = av2h_luma_predict(
             mode, width, height, &references, storage + 1U, STRIDE);
@@ -490,7 +490,7 @@ static void test_unsupported_reconstruction(void) {
     CHECK(bytes_are(&output, sizeof(output), 0xa5U));
     CHECK(av2h_reconstruct_transform_generic_u16(
         &diagnostics, &mode, &prefix, &transform, &coefficients,
-        pixels_u16, 4U, &scratch_u16, &output_u16) == AV2H_UNSUPPORTED);
+        pixels_u16, 4U, &scratch_u16, &output_u16, &av2h_sample_domain_10bit) == AV2H_UNSUPPORTED);
     CHECK(bytes_are(&output_u16, sizeof(output_u16), 0xa5U));
     CHECK(av2h_luma_reconstruct_to_plane(
         &diagnostics, &leaf, &mode, &prefix, &transform, &coefficients,
@@ -499,7 +499,7 @@ static void test_unsupported_reconstruction(void) {
     CHECK(ready[0U] == 0U);
     CHECK(av2h_luma_reconstruct_to_plane_u16(
         &diagnostics, &leaf, &mode, &prefix, &transform, &coefficients,
-        &plane_u16, &scratch_u16) == AV2H_UNSUPPORTED);
+        &plane_u16, &scratch_u16, &av2h_sample_domain_10bit) == AV2H_UNSUPPORTED);
     CHECK(bytes_are(pixels_u16, sizeof(pixels_u16), 0xa5U));
     CHECK(ready[0U] == 0U);
 #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)

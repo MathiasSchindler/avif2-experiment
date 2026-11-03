@@ -23,6 +23,22 @@ PREDICATES = {
     "tile_chroma_lossless_unit_complete", "tile_cfl_allowed_for_sdp",
 }
 
+KERNEL_BLOCK = re.compile(
+    r'^#include "(?P<prefix>(?:internal/)?)sample_kernel_u8\.inc"\n'
+    r'#include "(?P=prefix)(?P<kernel>\w+_kernel\.inc)"\n'
+    r'#include "(?P=prefix)sample_kernel_end\.inc"\n'
+    r'#include "(?P=prefix)sample_kernel_u16\.inc"\n'
+    r'#include "(?P=prefix)(?P=kernel)"\n'
+    r'#include "(?P=prefix)sample_kernel_end\.inc"\n', re.M)
+
+
+def without_kernel_blocks(text: str, owner: str | None = None) -> str:
+    def replace(match: re.Match[str]) -> str:
+        if owner is not None and match["kernel"] != owner + "_kernel.inc":
+            return match[0]
+        return "\n"
+    return KERNEL_BLOCK.sub(replace, text)
+
 
 def layout_errors(text: str) -> list[str]:
     errors: list[str] = []
@@ -75,7 +91,7 @@ class SourceConsistencyTests(unittest.TestCase):
         for path in SOURCES:
             for block in re.finditer(
                     r"^#include[^\n]*\n(?:[ \t]*\n|#include[^\n]*\n)*",
-                    path.read_text(), re.M):
+                    without_kernel_blocks(path.read_text(), path.stem), re.M):
                 lines = [line for line in block.group().splitlines() if line.strip()]
                 names = [re.search(r'["<]([^">]+)[">]', line)[1] for line in lines]
                 primary = None
@@ -99,7 +115,26 @@ class SourceConsistencyTests(unittest.TestCase):
     def test_includes_macros_and_types_precede_code(self) -> None:
         for path in SOURCES:
             with self.subTest(path=path.relative_to(ROOT)):
-                self.assertEqual(layout_errors(path.read_text()), [])
+                self.assertEqual(layout_errors(
+                    without_kernel_blocks(path.read_text(), path.stem)), [])
+
+    def test_kernel_exception_requires_complete_owned_scopes(self) -> None:
+        block = (
+            '#include "internal/sample_kernel_u8.inc"\n'
+            '#include "internal/example_kernel.inc"\n'
+            '#include "internal/sample_kernel_end.inc"\n'
+            '#include "internal/sample_kernel_u16.inc"\n'
+            '#include "internal/example_kernel.inc"\n'
+            '#include "internal/sample_kernel_end.inc"\n')
+        self.assertEqual(without_kernel_blocks(block, "example"), "\n")
+        self.assertEqual(without_kernel_blocks(block, "other"), block)
+        for invalid in (
+                block.replace("sample_kernel_u16", "sample_kernel_u8"),
+                block.replace('example_kernel.inc"\n', 'other_kernel.inc"\n', 1),
+                block.rsplit("#include", 1)[0],
+                block.replace("sample_kernel_end", "unrelated", 1)):
+            with self.subTest(block=invalid):
+                self.assertEqual(without_kernel_blocks(invalid, "example"), invalid)
 
     def test_null_users_include_stddef(self) -> None:
         for path in SOURCES:
@@ -144,6 +179,41 @@ class SourceConsistencyTests(unittest.TestCase):
         self.assertEqual(base.count("uint8_t sizing_only;"), 3)
         pool = (ROOT / "src/runtime/concurrency.h").read_text()
         self.assertIn("volatile uint8_t stop;", pool)
+
+    def test_typed_kernels_have_one_scoped_owner(self) -> None:
+        internal = ROOT / "src/decoder/internal"
+        templates = sorted(internal.glob("*_kernel.inc"))
+        self.assertEqual(len(templates), 17)
+        for template in templates:
+            stem = template.stem.removesuffix("_kernel")
+            owners = [ROOT / "src/decoder" / (stem + ".c"), internal / (stem + ".h")]
+            owners = [path for path in owners if path.exists() and
+                      any(block["kernel"] == template.name
+                          for block in KERNEL_BLOCK.finditer(path.read_text()))]
+            with self.subTest(template=template.name):
+                self.assertEqual(len(owners), 1)
+                blocks = list(KERNEL_BLOCK.finditer(owners[0].read_text()))
+                self.assertEqual(len(blocks), 1)
+                self.assertEqual(blocks[0]["kernel"], template.name)
+                self.assertIn("AV2H_KERNEL_NAME(", template.read_text())
+        for width in ("u8", "u16"):
+            configuration = (internal / f"sample_kernel_{width}.inc").read_text()
+            for name in ("WIDE", "TYPE", "NAME"):
+                self.assertIn(f"#define AV2H_KERNEL_{name}", configuration)
+                self.assertIn(f"#undef AV2H_KERNEL_{name}",
+                              (internal / "sample_kernel_end.inc").read_text())
+
+    def test_sample_depth_arithmetic_uses_domains(self) -> None:
+        legacy = re.compile(
+            r"\bav2h_sample_(?:clip|midpoint|below_midpoint|above_midpoint|maximum)_10bit\b")
+        for path in (ROOT / "src/decoder").rglob("*"):
+            if path.suffix not in {".c", ".h", ".inc"} or path.name == "sample_math.h":
+                continue
+            with self.subTest(path=path.relative_to(ROOT)):
+                self.assertIsNone(legacy.search(path.read_text()))
+                if path.suffix == ".c":
+                    self.assertIsNone(re.search(
+                        r"bit_depth_idc\s*==\s*0U\s*\?\s*10U\s*:\s*8U", path.read_text()))
 
 
 if __name__ == "__main__":

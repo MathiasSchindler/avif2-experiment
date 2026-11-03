@@ -80,6 +80,14 @@ static int restoration_controls_valid(
     return 1;
 }
 
+static int filter_enables_valid(const Av2hSequenceState *sequence, const Av2hFrameState *frame) {
+    return (frame->cdef_strength_count == 0U || sequence->enable_cdef != 0U) &&
+           ((frame->ccso[0].enabled == 0U && frame->ccso[1].enabled == 0U &&
+             frame->ccso[2].enabled == 0U) ||
+            sequence->enable_ccso != 0U) &&
+           (frame->gdf_mode == 0U || sequence->enable_gdf != 0U);
+}
+
 Av2hStatus av2h_filter_frame(
     Av2hFilterPlanes *planes,
     const Av2hSequenceState *sequence,
@@ -119,23 +127,14 @@ Av2hStatus av2h_filter_frame(
         set_filter_reason(workspace, 5U);
         return AV2H_UNSUPPORTED;
     }
-    if ((frame->cdef_strength_count != 0U &&
-         sequence->enable_cdef == 0U) ||
-        ((frame->ccso[0].enabled != 0U ||
-          frame->ccso[1].enabled != 0U ||
-          frame->ccso[2].enabled != 0U) &&
-         sequence->enable_ccso == 0U) ||
-        (frame->gdf_mode != 0U && sequence->enable_gdf == 0U) ||
+    if (!filter_enables_valid(sequence, frame) ||
         (frame->cdef_strength_count != 0U &&
-         (frame->cdef_damping > 6U ||
-          frame->cdef_y_strength[0] > 63U ||
+         (frame->cdef_damping > 6U || frame->cdef_y_strength[0] > 63U ||
           frame->cdef_uv_strength[0] > 63U)) ||
-        !av2h_ccso_parameters_valid(frame) ||
-        !filter_dimensions_valid(planes, frame) ||
+        !av2h_ccso_parameters_valid(frame) || !filter_dimensions_valid(planes, frame) ||
         !filter_dimensions_valid(&workspace->deblocked, frame) ||
         !filter_dimensions_valid(&workspace->cdef, frame) ||
-        !av2h_deblock_map_valid(&workspace->deblocked,
-                           &workspace->deblock_map) ||
+        !av2h_deblock_map_valid(&workspace->deblocked, &workspace->deblock_map) ||
         !av2h_ccso_controls_valid(frame, &workspace->ccso_controls)) {
         set_filter_reason(workspace, 6U);
         return AV2H_INVALID_ARGUMENT;
@@ -217,24 +216,19 @@ Av2hStatus av2h_filter_frame(
     return AV2H_OK;
 }
 
-Av2hStatus av2h_filter_stage_u16(
-    Av2hFilterPlanesU16 *planes,
-    const Av2hSequenceState *sequence,
-    const Av2hFrameState *frame,
-    Av2hFilterWorkspace *workspace) {
+Av2hStatus av2h_filter_stage_u16(Av2hFilterPlanesU16 *planes, const Av2hSequenceState *sequence,
+                                 const Av2hFrameState *frame, Av2hFilterWorkspace *workspace,
+                                 const Av2hSampleDomain *domain) {
+    if (!av2h_sample_domain_valid(domain))
+        return AV2H_INVALID_ARGUMENT;
     Av2hStatus status;
     const Av2hFilterPlaneU16 *stage_planes[AV2H_FRAME_PLANE_COUNT * 3U];
     size_t stage_plane_count = 0U;
     size_t left;
     unsigned int plane;
     if (planes == NULL || sequence == NULL || frame == NULL || workspace == NULL ||
-        sequence->info.bit_depth_idc != 0U ||
-        (frame->cdef_strength_count != 0U && sequence->enable_cdef == 0U) ||
-        ((frame->ccso[0].enabled != 0U ||
-          frame->ccso[1].enabled != 0U ||
-          frame->ccso[2].enabled != 0U) && sequence->enable_ccso == 0U) ||
-            (frame->gdf_mode != 0U && sequence->enable_gdf == 0U) ||
-            !filter_dimensions_valid_u16(planes, frame) ||
+        sequence->info.bit_depth_idc != 0U || domain->bit_depth != 10U ||
+        !filter_enables_valid(sequence, frame) || !filter_dimensions_valid_u16(planes, frame) ||
         !filter_dimensions_valid_u16(&workspace->deblocked_u16, frame) ||
         !filter_dimensions_valid_u16(&workspace->cdef_u16, frame) ||
         !av2h_ccso_parameters_valid(frame) ||
@@ -257,22 +251,19 @@ Av2hStatus av2h_filter_stage_u16(
             }
         }
     }
-    status = av2h_deblock_stage_u16(
-        planes, sequence, frame, workspace);
+    status = av2h_deblock_stage_u16(planes, sequence, frame, workspace, domain);
     if (status != AV2H_OK) return status;
-    status = av2h_cdef_filter_frame_u16(
-        &workspace->cdef_u16, &workspace->deblocked_u16, sequence, frame,
-        &workspace->cdef_controls);
+    status = av2h_cdef_filter_frame_u16(&workspace->cdef_u16, &workspace->deblocked_u16, sequence,
+                                        frame, &workspace->cdef_controls, domain);
     if (status != AV2H_OK) return status;
-    status = av2h_ccso_filter_frame_u16(
-        &workspace->cdef_u16, workspace->deblocked_u16.plane[0].data,
-        workspace->deblocked_u16.plane[0].stride_samples, sequence, frame,
-        &workspace->ccso_controls);
+    status =
+        av2h_ccso_filter_frame_u16(&workspace->cdef_u16, workspace->deblocked_u16.plane[0].data,
+                                   workspace->deblocked_u16.plane[0].stride_samples, sequence,
+                                   frame, &workspace->ccso_controls, domain);
     if (status != AV2H_OK) return status;
-    status = av2h_gdf_filter_frame_u16(
-        &planes->plane[0], &workspace->cdef_u16.plane[0],
-        &workspace->deblocked_u16.plane[0], sequence, frame,
-        &workspace->gdf_controls);
+    status = av2h_gdf_filter_frame_u16(&planes->plane[0], &workspace->cdef_u16.plane[0],
+                                       &workspace->deblocked_u16.plane[0], sequence, frame,
+                                       &workspace->gdf_controls, domain);
     if (status != AV2H_OK) return status;
     for (plane = 1U; plane < av2h_frame_plane_count(frame); ++plane) {
         filter_copy_plane_u16(

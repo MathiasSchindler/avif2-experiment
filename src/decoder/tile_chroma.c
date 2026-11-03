@@ -652,7 +652,8 @@ Av2hStatus av2h_tile_decoder_reconstruct_next_chroma(
     if (status != AV2H_OK || !*has_leaf) return status;
     status = av2h_chroma_inverse_cross_transform(
         &u_block, &v_block, leaf->transform[0].cctx_type,
-        decoder->entropy_state.sequence->info.bit_depth_idc == 0U ? 10U : 8U);
+        av2h_sample_domain_from_idc(decoder->entropy_state.sequence->info.bit_depth_idc)
+            ->bit_depth);
     if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
     status = av2h_chroma_reconstruct_to_plane(
         NULL, &leaf->node, &leaf->mode, &leaf->prefix[0], &leaf->transform[0],

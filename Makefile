@@ -248,7 +248,7 @@ $(CENSUS): tools/census/census.c $(AVM_BUILD_DIR)/libavm.a
 
 $(NATIVE_BUILD_DIR)/obj/%.o: %.c
 	@mkdir -p $(@D)
-	$(COMPILE_CC) $(FREESTANDING_CFLAGS) -c $< -o $@
+	$(COMPILE_CC) $(FREESTANDING_CFLAGS) -MMD -MP -c $< -o $@
 
 $(NATIVE_LIBRARY): $(NATIVE_OBJECTS)
 	@mkdir -p $(@D)
@@ -257,7 +257,7 @@ $(NATIVE_LIBRARY): $(NATIVE_OBJECTS)
 
 $(NATIVE_BUILD_DIR)/obj/cli/%.o: %.c
 	@mkdir -p $(@D)
-	$(COMPILE_CC) $(FREESTANDING_CFLAGS) -c $< -o $@
+	$(COMPILE_CC) $(FREESTANDING_CFLAGS) -MMD -MP -c $< -o $@
 
 $(NATIVE_DECODER): src/platform/posix/decoder.c $(NATIVE_CLI_OBJECTS) $(NATIVE_LIBRARY)
 	@mkdir -p $(@D)
@@ -298,11 +298,11 @@ endif
 
 $(NOLIBC_BUILD_DIR)/obj/core/%.o: %.c
 	@mkdir -p $(@D)
-	$(COMPILE_CC) $(FREESTANDING_CFLAGS) $(NOLIBC_CORE_EXTRA_CFLAGS) -c $< -o $@
+	$(COMPILE_CC) $(FREESTANDING_CFLAGS) $(NOLIBC_CORE_EXTRA_CFLAGS) -MMD -MP -c $< -o $@
 
 $(NOLIBC_BUILD_DIR)/obj/cli/%.o: %.c
 	@mkdir -p $(@D)
-	$(COMPILE_CC) $(FREESTANDING_CFLAGS) $(NOLIBC_CORE_EXTRA_CFLAGS) -c $< -o $@
+	$(COMPILE_CC) $(FREESTANDING_CFLAGS) $(NOLIBC_CORE_EXTRA_CFLAGS) -MMD -MP -c $< -o $@
 
 $(NOLIBC_BUILD_DIR)/obj/runtime/%.o: %.c
 	@mkdir -p $(@D)
@@ -399,7 +399,7 @@ HOST_RUNTIME_OBJECTS := $(HOST_RUNTIME_C_OBJECTS) $(HOST_RUNTIME_ASM_OBJECTS)
 HOST_RUNTIME_LIBRARY := $(HOST_BUILD_DIR)/libav2heif-runtime.a
 HOST_UNIT_NAMES := substrate container range tile frame cdf partition leaf coeff \
 	transform coeff_level reconstruct filter artifact_profile layout output_layout \
-	output_parallel pixel_format png_writer preview sample_math sample_ops \
+	output_parallel pixel_format png_writer preview sample_math sample_ops sample_domain \
 	workspace_accounting public_decode refactor_baseline reconstruction_block \
 	reconstruction_plane frame_refactor carriage_refactor prediction_math \
 	error_refactor cli
@@ -416,6 +416,12 @@ WP13_DECODER ?= $(HOST_BUILD_DIR)/av2heif-decoder
 WP13_WASM ?= build/wasm-wp13/decoder.wasm
 WP10_WASM ?= build/wasm-wp10/decoder.wasm
 WP11_WASM ?= build/wasm-wp11/decoder.wasm
+
+SAMPLE_DEPENDENCY_OBJECTS := $(NATIVE_OBJECTS) $(NATIVE_CLI_OBJECTS) \
+	$(NOLIBC_CORE_OBJECTS) $(NOLIBC_CLI_OBJECTS) \
+	$(HOST_CORE_OBJECTS) $(HOST_CLI_OBJECTS)
+$(SAMPLE_DEPENDENCY_OBJECTS): Makefile
+-include $(SAMPLE_DEPENDENCY_OBJECTS:.o=.d)
 WP11_WINDOWS_TARGET ?= windows-x86_64
 WP11_WINDOWS_BUILD_DIR ?= build/windows-x86_64
 WP12_WINDOWS_TARGET ?= windows-x86_64
@@ -471,11 +477,14 @@ windows-arm64:
 
 $(WINDOWS_BUILD_DIR)/obj/core/%.o: %.c
 	@mkdir -p $(@D)
-	$(COMPILE_CC) $(WINDOWS_CFLAGS) -c $< -o $@
+	$(COMPILE_CC) $(WINDOWS_CFLAGS) -MMD -MP -c $< -o $@
+
+$(WINDOWS_CORE_OBJECTS) $(WINDOWS_CLI_OBJECTS): Makefile
+-include $(WINDOWS_CORE_OBJECTS:.o=.d) $(WINDOWS_CLI_OBJECTS:.o=.d)
 
 $(WINDOWS_BUILD_DIR)/obj/cli/%.o: %.c
 	@mkdir -p $(@D)
-	$(COMPILE_CC) $(WINDOWS_CFLAGS) -c $< -o $@
+	$(COMPILE_CC) $(WINDOWS_CFLAGS) -MMD -MP -c $< -o $@
 
 $(WINDOWS_LIBRARY): $(WINDOWS_CORE_OBJECTS)
 	@mkdir -p $(@D)
@@ -545,11 +554,11 @@ test: test-c test-corpus test-reference-locks test-freestanding test-private-hea
 
 $(HOST_BUILD_DIR)/obj/core/%.o: %.c
 	@mkdir -p $(@D)
-	$(COMPILE_CC) $(HOST_CFLAGS) -c $< -o $@
+	$(COMPILE_CC) $(HOST_CFLAGS) -MMD -MP -c $< -o $@
 
 $(HOST_BUILD_DIR)/obj/cli/%.o: %.c
 	@mkdir -p $(@D)
-	$(COMPILE_CC) $(HOST_CFLAGS) -c $< -o $@
+	$(COMPILE_CC) $(HOST_CFLAGS) -MMD -MP -c $< -o $@
 
 $(HOST_LIBRARY): $(HOST_CORE_OBJECTS)
 	@mkdir -p $(@D)
