@@ -173,11 +173,12 @@ Av2hStatus AV2H_KERNEL_NAME(av2h_cdef_filter_block, av2h_cdef_filter_block_u16)(
             adjusted_primary = (uint8_t)((primary_strength * (4U + strength_scale) + 8U) >> 4U);
 #endif
         }
-#if !AV2H_KERNEL_WIDE
-    } else if (damping != 0U) {
-        --damping;
-#endif
     }
+#if !AV2H_KERNEL_WIDE
+    if (plane_index != 0U && damping != 0U) {
+        --damping;
+    }
+#endif
 #if AV2H_KERNEL_WIDE
     tap_set = (adjusted_primary >> (domain->bit_depth - 8U)) & 1U;
     clipping_required = adjusted_primary != 0U && adjusted_secondary != 0U;
@@ -289,15 +290,11 @@ Av2hStatus AV2H_KERNEL_NAME(av2h_cdef_filter_frame, av2h_cdef_filter_frame_u16)(
 #endif
     uint16_t y;
     unsigned int plane;
-#if AV2H_KERNEL_WIDE
     if (destination == NULL || deblocked == NULL || frame == NULL || frame->width == 0U ||
-        frame->height == 0U || !filter_dimensions_valid_u16(destination, frame) ||
-        !filter_dimensions_valid_u16(deblocked, frame)) {
-#else
-    if (destination == NULL || deblocked == NULL || frame == NULL || frame->width == 0U ||
-        frame->height == 0U || !filter_dimensions_valid(destination, frame) ||
-        !filter_dimensions_valid(deblocked, frame)) {
-#endif
+        frame->height == 0U ||
+        !AV2H_KERNEL_NAME(filter_dimensions_valid, filter_dimensions_valid_u16)(destination,
+                                                                                frame) ||
+        !AV2H_KERNEL_NAME(filter_dimensions_valid, filter_dimensions_valid_u16)(deblocked, frame)) {
         return AV2H_INVALID_ARGUMENT;
     }
     if (frame->cdef_strength_count != 0U &&

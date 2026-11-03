@@ -213,6 +213,79 @@ static void test_lossless_chroma_and_rejection(void) {
               &scratch_u16, &output_u16, &av2h_sample_domain_10bit) == AV2H_INVALID_ARGUMENT);
 }
 
+static void test_dpcm_scale_and_stride(void) {
+    static const Av2hTxSize sizes[] = {AV2H_TX_16X16, AV2H_TX_16X32, AV2H_TX_32X32};
+    static Av2hCoeffBlock coefficients;
+    static Av2hReconstructionScratch scratch;
+    static Av2hReconstructionScratchU16 scratch_u16;
+    static Av2hBlockReconstruction output;
+    static Av2hBlockReconstructionU16 output_u16;
+    static uint8_t predictor[35U * 32U];
+    static uint16_t predictor_u16[1024U];
+    int32_t expected[1024U];
+    Av2hLeafMode mode = {0};
+    Av2hCoeffPrefix prefix = {0};
+    Av2hTransformType transform = {0};
+    size_t geometry;
+    mode.use_dpcm_y = 1U;
+    mode.fsc_mode = 1U;
+    transform.primary_type = AV2H_TX_IDTX;
+    for (geometry = 0U; geometry < sizeof(sizes) / sizeof(sizes[0]); ++geometry) {
+        const Av2hTxDescriptor *descriptor;
+        size_t width;
+        size_t height;
+        size_t stride;
+        size_t index;
+        unsigned int horizontal;
+        int32_t divisor = geometry == 0U ? 8 : 4;
+        CHECK(av2h_tx_descriptor_get(sizes[geometry], &descriptor) == AV2H_OK);
+        prefix.tx_size = sizes[geometry];
+        width = descriptor->output_width;
+        height = descriptor->output_height;
+        stride = width + 3U;
+        coefficients.width = (uint16_t)width;
+        coefficients.height = (uint16_t)height;
+        coefficients.coefficient_count = width * height;
+        memset(predictor, 0xD6, sizeof(predictor));
+        for (index = 0U; index < width * height; ++index) {
+            coefficients.dequantized[index] = index % 3U == 0U ? -17 : 16;
+            predictor[index / width * stride + index % width] = 128U;
+            predictor_u16[index] = 2048U;
+        }
+        for (horizontal = 0U; horizontal < 2U; ++horizontal) {
+            mode.dpcm_mode_y = (uint8_t)horizontal;
+            CHECK(av2h_luma_reconstruct(NULL, &mode, &prefix, &transform, &coefficients, predictor,
+                                        stride, &scratch, &output) == AV2H_OK);
+            for (index = 0U; index < width * height; ++index) {
+                int32_t value = coefficients.dequantized[index];
+                size_t step = horizontal ? 1U : width;
+                int previous = horizontal ? index % width != 0U : index >= width;
+                expected[index] =
+                    value >= 0 ? value / divisor : -((-value + divisor - 1) / divisor);
+                if (previous)
+                    expected[index] += expected[index - step];
+                CHECK(output.residual[index] == expected[index]);
+                CHECK(output.pixels[index] == clip(128 + expected[index], 255));
+            }
+            CHECK(av2h_luma_reconstruct_u16(NULL, &mode, &prefix, &transform, &coefficients,
+                                            predictor_u16, &scratch_u16, &output_u16,
+                                            &av2h_sample_domain_12bit) == AV2H_OK);
+            for (index = 0U; index < width * height; ++index) {
+                size_t step = horizontal ? 1U : width;
+                int previous = horizontal ? index % width != 0U : index >= width;
+                expected[index] = coefficients.dequantized[index] / 8;
+                if (previous)
+                    expected[index] += expected[index - step];
+                CHECK(output_u16.residual[index] == expected[index]);
+                CHECK(output_u16.pixels[index] == clip(2048 + expected[index], 4095));
+            }
+        }
+        for (index = 0U; index < height; ++index) {
+            CHECK(predictor[index * stride + width] == 0xD6);
+        }
+    }
+}
+
 static void test_u16_transform_selection(void) {
     static const uint8_t types[] = {
         AV2H_TX_DCT_DCT, AV2H_TX_ADST_ADST, AV2H_TX_IDTX,
@@ -308,6 +381,7 @@ static void test_u16_lossless_wht(void) {
 int main(void) {
     test_zero_geometry();
     test_dpcm_rounding_and_clipping();
+    test_dpcm_scale_and_stride();
     test_lossless_chroma_and_rejection();
     test_u16_transform_selection();
     test_u16_lossless_wht();

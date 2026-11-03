@@ -128,19 +128,11 @@ Av2hStatus AV2H_KERNEL_NAME(av2h_ccso_filter_frame, av2h_ccso_filter_frame_u16)(
         return AV2H_INVALID_ARGUMENT;
 #endif
     unsigned int plane;
-#if AV2H_KERNEL_WIDE
     if (planes == NULL || pre_cdef_luma == NULL || frame == NULL || frame->width == 0U ||
         frame->height == 0U ||
         pre_cdef_luma_stride_samples < av2h_filter_coded_dimension(frame->width) ||
-        !filter_dimensions_valid_u16(planes, frame) || !av2h_ccso_parameters_valid(frame) ||
-        !av2h_ccso_controls_valid(frame, controls)) {
-#else
-    if (planes == NULL || pre_cdef_luma == NULL || frame == NULL || frame->width == 0U ||
-        frame->height == 0U ||
-        pre_cdef_luma_stride_samples < av2h_filter_coded_dimension(frame->width) ||
-        !filter_dimensions_valid(planes, frame) || !av2h_ccso_parameters_valid(frame) ||
-        !av2h_ccso_controls_valid(frame, controls)) {
-#endif
+        !AV2H_KERNEL_NAME(filter_dimensions_valid, filter_dimensions_valid_u16)(planes, frame) ||
+        !av2h_ccso_parameters_valid(frame) || !av2h_ccso_controls_valid(frame, controls)) {
         return AV2H_INVALID_ARGUMENT;
     }
     for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {

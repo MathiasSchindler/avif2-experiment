@@ -17,6 +17,26 @@ static const uint8_t ibp_weights[5U][16U] = {
       98U, 102U, 106U, 109U, 113U, 117U, 121U, 124U }
 };
 
+static void predict_smooth_samples(uint16_t width, uint16_t height,
+                                   const Av2hLumaReferences *references, uint8_t *predictor,
+                                   size_t predictor_stride_samples, Av2hIntraMode mode,
+                                   uint16_t bottom_left, uint16_t top_right,
+                                   const Av2hSampleDomain *domain);
+
+static void predict_paeth_samples(uint16_t width, uint16_t height,
+                                  const Av2hLumaReferences *references, uint8_t *predictor,
+                                  size_t predictor_stride_samples);
+
+static void predict_smooth_samples_u16(uint16_t width, uint16_t height,
+                                       const Av2hLumaReferencesU16 *references, uint16_t *predictor,
+                                       size_t predictor_stride_samples, Av2hIntraMode mode,
+                                       uint16_t bottom_left, uint16_t top_right,
+                                       const Av2hSampleDomain *domain);
+
+static void predict_paeth_samples_u16(uint16_t width, uint16_t height,
+                                      const Av2hLumaReferencesU16 *references, uint16_t *predictor,
+                                      size_t predictor_stride_samples);
+
 static uint8_t smooth_scale(uint16_t width, uint16_t height) {
     unsigned int sum =
         (unsigned int)av2h_sample_block_log2(width) - 2U +
@@ -305,6 +325,148 @@ Av2hStatus av2h_predict_smooth_8x32(
     }
     return AV2H_OK;
 
+}
+
+Av2hStatus av2h_predict_smooth(uint16_t width, uint16_t height,
+                               const Av2hLumaReferences *references, uint8_t *predictor,
+                               size_t predictor_stride_samples) {
+    const Av2hSampleDomain *domain = &av2h_sample_domain_8bit;
+    uint8_t bottom_left;
+    uint8_t top_right;
+    int have_above = references->above != NULL && references->above_count != 0U;
+    int have_left = references->left != NULL && references->left_count != 0U;
+    if ((have_above && references->above_count < width) ||
+        (have_left && references->left_count < height)) {
+        return AV2H_INVALID_ARGUMENT;
+    }
+    bottom_left = !have_left ? have_above ? references->above[0] : (domain->midpoint + 1U)
+                  : references->left_count > height ? references->left[height]
+                                                    : references->left[height - 1U];
+    top_right = !have_above ? have_left ? references->left[0] : (domain->midpoint - 1U)
+                : references->above_count > width ? references->above[width]
+                                                  : references->above[width - 1U];
+    predict_smooth_samples(width, height, references, predictor, predictor_stride_samples,
+                           AV2H_INTRA_SMOOTH, bottom_left, top_right, domain);
+    return AV2H_OK;
+}
+
+Av2hStatus av2h_predict_paeth(uint16_t width, uint16_t height, const Av2hLumaReferences *references,
+                              uint8_t *predictor, size_t predictor_stride_samples) {
+    const Av2hSampleDomain *domain = &av2h_sample_domain_8bit;
+    uint16_t row;
+    uint16_t column;
+    if (references->above != NULL && references->above_count >= width &&
+        (references->left == NULL || references->left_count == 0U)) {
+        for (row = 0U; row < height; ++row) {
+            for (column = 0U; column < width; ++column) {
+                predictor[(size_t)row * predictor_stride_samples + column] =
+                    references->above[column];
+            }
+        }
+        return AV2H_OK;
+    }
+    if (references->left != NULL && references->left_count >= height &&
+        (references->above == NULL || references->above_count == 0U)) {
+        for (row = 0U; row < height; ++row) {
+            for (column = 0U; column < width; ++column) {
+                predictor[(size_t)row * predictor_stride_samples + column] = references->left[row];
+            }
+        }
+        return AV2H_OK;
+    }
+    if ((references->above == NULL || references->above_count == 0U) &&
+        (references->left == NULL || references->left_count == 0U)) {
+        for (row = 0U; row < height; ++row) {
+            for (column = 0U; column < width; ++column) {
+                predictor[(size_t)row * predictor_stride_samples + column] = domain->midpoint;
+            }
+        }
+        return AV2H_OK;
+    }
+    if (references->above == NULL || references->above_count < width || references->left == NULL ||
+        references->left_count < height || !references->has_above_left) {
+        return AV2H_INVALID_ARGUMENT;
+    }
+    predict_paeth_samples(width, height, references, predictor, predictor_stride_samples);
+    return AV2H_OK;
+}
+
+Av2hStatus av2h_predict_smooth_u16(const Av2hLeafMode *mode, uint16_t width, uint16_t height,
+                                   const Av2hLumaReferencesU16 *references, uint16_t *predictor,
+                                   size_t predictor_stride_samples,
+                                   const Av2hSampleDomain *domain) {
+    if (!av2h_sample_domain_valid(domain))
+        return AV2H_INVALID_ARGUMENT;
+    const uint16_t *above;
+    const uint16_t *left;
+    size_t above_count;
+    size_t left_count;
+    int have_above;
+    int have_left;
+    above = references->above;
+    above_count = references->above_count;
+    left = references->left;
+    left_count = references->left_count;
+    have_above = above != NULL && above_count != 0U;
+    have_left = left != NULL && left_count != 0U;
+    uint16_t bottom_left = !have_left            ? have_above ? above[0] : (domain->midpoint + 1U)
+                           : left_count > height ? left[height]
+                                                 : left[left_count - 1U];
+    uint16_t top_right = !have_above           ? have_left ? left[0] : (domain->midpoint - 1U)
+                         : above_count > width ? above[width]
+                                               : above[above_count - 1U];
+    if ((have_above && above_count < width) || (have_left && left_count < height)) {
+        return AV2H_INVALID_ARGUMENT;
+    }
+    predict_smooth_samples_u16(width, height, references, predictor, predictor_stride_samples,
+                               mode->mode, bottom_left, top_right, domain);
+    return AV2H_OK;
+}
+
+Av2hStatus av2h_predict_paeth_u16(uint16_t width, uint16_t height,
+                                  const Av2hLumaReferencesU16 *references, uint16_t *predictor,
+                                  size_t predictor_stride_samples, const Av2hSampleDomain *domain) {
+    if (!av2h_sample_domain_valid(domain))
+        return AV2H_INVALID_ARGUMENT;
+    const uint16_t *above;
+    const uint16_t *left;
+    size_t above_count;
+    size_t left_count;
+    uint8_t has_above_left;
+    uint16_t row;
+    uint16_t column;
+    int have_above;
+    int have_left;
+    above = references->above;
+    above_count = references->above_count;
+    left = references->left;
+    left_count = references->left_count;
+    has_above_left = references->has_above_left;
+    have_above = above != NULL && above_count != 0U;
+    have_left = left != NULL && left_count != 0U;
+    if (!have_above && !have_left) {
+        for (row = 0U; row < height; ++row) {
+            for (column = 0U; column < width; ++column) {
+                predictor[(size_t)row * predictor_stride_samples + column] = domain->midpoint;
+            }
+        }
+        return AV2H_OK;
+    }
+    if (!have_left || !have_above) {
+        for (row = 0U; row < height; ++row) {
+            for (column = 0U; column < width; ++column) {
+                predictor[(size_t)row * predictor_stride_samples + column] =
+                    have_above ? above[column < above_count ? column : above_count - 1U]
+                               : left[row < left_count ? row : left_count - 1U];
+            }
+        }
+        return AV2H_OK;
+    }
+    if (above_count < width || left_count < height || has_above_left == 0U) {
+        return AV2H_INVALID_ARGUMENT;
+    }
+    predict_paeth_samples_u16(width, height, references, predictor, predictor_stride_samples);
+    return AV2H_OK;
 }
 
 /* Instantiate typed kernels after the shared helpers. */

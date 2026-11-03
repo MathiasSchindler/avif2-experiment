@@ -146,6 +146,86 @@ static void test_cfl(void) {
     }
 }
 
+static void test_cfl_filter_boundaries(void) {
+    static uint8_t luma[128U * 128U];
+    static uint16_t luma_u16[128U * 128U];
+    static uint8_t ready[32U * 32U];
+    static uint8_t predictor[67U * 64U];
+    static uint16_t predictor_u16[67U * 64U];
+    Av2hReconstructionPlane plane = {.data = luma,
+                                     .stride_samples = 128U,
+                                     .width = 128U,
+                                     .height = 128U,
+                                     .reference_width = 128U,
+                                     .reference_height = 128U,
+                                     .reconstructed = ready,
+                                     .reconstructed_stride_cells = 32U,
+                                     .reconstructed_count_cells = sizeof(ready)};
+    Av2hReconstructionPlaneU16 plane_u16 = {.data = luma_u16,
+                                            .stride_samples = 128U,
+                                            .width = 128U,
+                                            .height = 128U,
+                                            .reference_width = 128U,
+                                            .reference_height = 128U,
+                                            .reconstructed = ready,
+                                            .reconstructed_stride_cells = 32U,
+                                            .reconstructed_count_cells = sizeof(ready)};
+    const Av2hSampleDomain *domains[] = {&av2h_sample_domain_10bit, &av2h_sample_domain_12bit};
+    size_t depth;
+    size_t index;
+    uint8_t filter;
+    av2h_memory_fill(ready, 1U, sizeof(ready));
+    for (index = 0U; index < sizeof(luma); ++index) {
+        size_t row = index / 128U;
+        size_t column = index % 128U;
+        luma[index] = (uint8_t)((7U * row + 13U * column + row * column % 17U) & 255U);
+    }
+    for (depth = 0U; depth < sizeof(domains) / sizeof(domains[0]); ++depth) {
+        const Av2hSampleDomain *domain = domains[depth];
+        int32_t scale = (int32_t)1 << (domain->bit_depth - 8U);
+        for (index = 0U; index < sizeof(luma); ++index)
+            luma_u16[index] = (uint16_t)(luma[index] * scale);
+        for (filter = 0U; filter < 3U; ++filter) {
+            av2h_memory_fill(predictor, 0xD6, sizeof(predictor));
+            av2h_plane_fill_u16(predictor_u16, 67U, 67U, 64U, 0xD6D6);
+            av2h_plane_fill_u8(predictor, 67U, 64U, 64U, 128U);
+            av2h_plane_fill_u16(predictor_u16, 67U, 64U, 64U, domain->midpoint);
+            CHECK(av2h_cfl_derived_predict(&plane, &plane, filter, 0U, 8, 64U, 0U, 0U, 0U, 64U, 64U,
+                                           0U, 0U, predictor, 67U) == AV2H_OK);
+            CHECK(av2h_cfl_explicit_predict_u16(&plane_u16, filter, 8, 64U, 0U, 0U, 64U, 64U, 0U,
+                                                0U, predictor_u16, 67U, domain) == AV2H_OK);
+            for (index = 0U; index < 64U * 64U; ++index) {
+                size_t row = index / 64U;
+                size_t column = index % 64U;
+                size_t x = column * 2U;
+                size_t y = row * 2U;
+                size_t left = (column & 31U) == 0U ? x : x - 1U;
+                size_t top = (row & 31U) == 0U ? y : y - 1U;
+                int32_t q3 =
+                    filter == 0U ? 2 * (luma[y * 128U + x] + luma[y * 128U + x + 1U] +
+                                        luma[(y + 1U) * 128U + x] + luma[(y + 1U) * 128U + x + 1U])
+                    : filter == 1U
+                        ? luma[y * 128U + left] + 2 * luma[y * 128U + x] + luma[y * 128U + x + 1U] +
+                              luma[(y + 1U) * 128U + left] + 2 * luma[(y + 1U) * 128U + x] +
+                              luma[(y + 1U) * 128U + x + 1U]
+                        : luma[y * 128U + left] + 4 * luma[y * 128U + x] + luma[y * 128U + x + 1U] +
+                              luma[top * 128U + x] + luma[(y + 1U) * 128U + x];
+                int32_t correction = q3 - 1024;
+                int32_t correction_u16 = correction * scale;
+                int32_t expected =
+                    128 + (correction < 0 ? -((-correction + 4) / 8) : (correction + 4) / 8);
+                int32_t expected_u16 =
+                    domain->midpoint +
+                    (correction_u16 < 0 ? -((-correction_u16 + 4) / 8) : (correction_u16 + 4) / 8);
+                CHECK(predictor[row * 67U + column] == expected);
+                CHECK(predictor_u16[row * 67U + column] == expected_u16);
+                CHECK(predictor[row * 67U + 64U] == 0xD6);
+                CHECK(predictor_u16[row * 67U + 64U] == 0xD6D6);
+            }
+        }
+    }
+}
+
 static void test_reconstruction(void) {
     static Av2hReconstructionScratchU16 scratch;
     static Av2hBlockReconstructionU16 reconstruction;
@@ -360,6 +440,7 @@ int main(void) {
     test_domains();
     test_prediction();
     test_cfl();
+    test_cfl_filter_boundaries();
     test_reconstruction();
     test_filters();
     test_gdf_depth_scaling();

@@ -387,13 +387,9 @@ Av2hStatus AV2H_KERNEL_NAME(av2h_deblock_filter_frame, av2h_deblock_filter_frame
         return AV2H_INVALID_ARGUMENT;
 #endif
     unsigned int plane;
-#if AV2H_KERNEL_WIDE
     if (planes == NULL || sequence == NULL || frame == NULL ||
-        !filter_dimensions_valid_u16(planes, frame) || !av2h_deblock_map_valid_u16(planes, map)) {
-#else
-    if (planes == NULL || sequence == NULL || frame == NULL ||
-        !filter_dimensions_valid(planes, frame) || !av2h_deblock_map_valid(planes, map)) {
-#endif
+        !AV2H_KERNEL_NAME(filter_dimensions_valid, filter_dimensions_valid_u16)(planes, frame) ||
+        !AV2H_KERNEL_NAME(av2h_deblock_map_valid, av2h_deblock_map_valid_u16)(planes, map)) {
         return AV2H_INVALID_ARGUMENT;
     }
     for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {

@@ -5,11 +5,7 @@ void AV2H_KERNEL_NAME(av2h_directional_filter_edge,
         {0U, 4U, 8U, 4U, 0U}, {0U, 5U, 6U, 5U, 0U}, {2U, 4U, 4U, 4U, 2U}};
     AV2H_KERNEL_TYPE(uint8_t, uint16_t) source[132U];
     size_t index;
-#if AV2H_KERNEL_WIDE
-    if (strength == 0 || count > 132U)
-#else
-    if (strength == 0 || count > sizeof(source))
-#endif
+    if (strength == 0 || count > sizeof(source) / sizeof(source[0]))
         return;
     for (index = 0U; index < count; ++index)
         source[index] = edge[index];

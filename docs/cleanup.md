@@ -1,6 +1,6 @@
 # Code Quality and Consistency Cleanup Plan
 
-**Status:** C1-C6 complete
+**Status:** C1-C7 complete; C8-C10 planned
 
 **Scope:** [`src/`](../src/) and [`include/av2heif.h`](../include/av2heif.h)
 
@@ -27,6 +27,10 @@ This is a strictly behavior-preserving cleanup pass. Every milestone must preser
 | **C4** | Retire evolutionary wrapper functions and compatibility `#define` aliases | [`reconstruct.h`](../src/decoder/reconstruct.h), [`leaf.h`](../src/decoder/leaf.h), [`coeff.h`](../src/decoder/coeff.h), [`filter.h`](../src/decoder/filter.h) | C3 |
 | **C5** | Deduplicate CLI frontends across POSIX, Windows, and `nolibc` | [`src/platform/`](../src/platform/), [`src/shared/`](../src/shared/) | C1, C2 |
 | **C6** | Deduplicate 8-bit, 10-bit (and future 12-bit) sample paths | [`reconstruct*.c`](../src/decoder/reconstruct.c), [`*prediction*.c`](../src/decoder/intra_prediction.c), [`filter.c`](../src/decoder/filter.c), [`frame_output.c`](../src/decoder/frame_output.c) | C1, C3, C4 |
+| **C7** | De-interleave heavily branched `*_kernel.inc` templates into clean shared helpers and inner kernels | [`reconstruct_kernel.inc`](../src/decoder/internal/reconstruct_kernel.inc), [`reconstruct_block_kernel.inc`](../src/decoder/internal/reconstruct_block_kernel.inc), [`chroma_prediction_cfl_kernel.inc`](../src/decoder/internal/chroma_prediction_cfl_kernel.inc), [`chroma_prediction_mhccp_kernel.inc`](../src/decoder/internal/chroma_prediction_mhccp_kernel.inc) | C6 |
+| **C8** | Replace hardcoded tuple branches and boolean walls with table-driven rules and remove dead checks | [`secondary_transform.c`](../src/decoder/secondary_transform.c), [`inverse_transform.c`](../src/decoder/inverse_transform.c), [`coeff_level.c`](../src/decoder/coeff_level.c) | C4, C6 |
+| **C9** | Decompose mega-function orchestration in [`frame_output.c`](../src/decoder/frame_output.c) | [`frame_output.c`](../src/decoder/frame_output.c) | C7 |
+| **C10** | Normalize formatting, indentation, and line wrapping with a zero-binary-diff guarantee | All `.c`, `.h`, and `*_kernel.inc` files under [`src/`](../src/) and [`include/`](../include/) | C7, C8, C9 |
 
 ---
 
@@ -541,3 +545,166 @@ The AV2 specification supports 8-bit, 10-bit, and 12-bit sample depths (`bit_dep
   0.7 microseconds on a 30-microsecond case. No material regression was observed; compiler
   optimization defaults are unchanged. Foreign runtime builds and media
   regeneration were not required.
+
+---
+
+## C7: De-interleave Heavily Branched `*_kernel.inc` Templates
+
+**Status:** Complete on native macOS.
+
+### Problem
+While many of the C6 kernel templates ([`deblock_kernel.inc`](../src/decoder/internal/deblock_kernel.inc), [`ccso_kernel.inc`](../src/decoder/internal/ccso_kernel.inc), [`gdf_kernel.inc`](../src/decoder/internal/gdf_kernel.inc), [`cdef_kernel.inc`](../src/decoder/internal/cdef_kernel.inc)) share 90–98% of their code with only minimal `#if AV2H_KERNEL_WIDE` adjustments for bit-depth shifts, a few of the largest `.inc` files interleave two structurally different implementations using frequent `#if AV2H_KERNEL_WIDE ... #else ... #endif` blocks:
+- **[`reconstruct_kernel.inc`](../src/decoder/internal/reconstruct_kernel.inc) (1,370 lines, 70 `#if AV2H_KERNEL_WIDE` blocks):** In `av2h_luma_reconstruct_to_plane` and `av2h_chroma_reconstruct_to_plane`, the 8-bit and 16-bit paths have different local variables, different admission checks, and different reference-collection flows braided together every few lines (occasionally splitting `if (...) {` and `}` across preprocessor branches).
+- **[`reconstruct_block_kernel.inc`](../src/decoder/internal/reconstruct_block_kernel.inc) (1,009 lines, 25 `#if AV2H_KERNEL_WIDE` blocks):** Function parameter lists vary conditionally (`#if !AV2H_KERNEL_WIDE size_t predictor_stride_samples, #endif`), and large sections of `av2h_luma_reconstruct` / `av2h_reconstruct_transform_generic` execute distinct code under `#if AV2H_KERNEL_WIDE` vs `#else`.
+- **[`chroma_prediction_cfl_kernel.inc`](../src/decoder/internal/chroma_prediction_cfl_kernel.inc) (457 lines) and [`chroma_prediction_mhccp_kernel.inc`](../src/decoder/internal/chroma_prediction_mhccp_kernel.inc) (413 lines):** `av2h_cfl_derived_predict` and `av2h_mhccp_predict_observed` have conditional parameters (`derive_alpha`, `supplied_alpha_q3`, `chroma_format_idc`, `diagnostics`) and diverge into largely separate 8-bit and 16-bit bodies inside the same function template.
+
+Braiding divergent control flow with `#if / #else` inside a single function body hurts readability and makes reasoning about braces, variable lifetimes, and control flow harder than necessary.
+
+### Actions
+1. **Forbid Split Control-Flow Braces Across `#if AV2H_KERNEL_WIDE`:**
+   Never open a block (`{`) inside `#if AV2H_KERNEL_WIDE` and close it in `#else` or outside the conditional. Every preprocessor branch must be syntactically balanced on its own.
+2. **Separate Bit-Depth-Independent Admission and Reference Geometry from Typed Sample Loops:**
+   Extract shared bit-depth-independent calculations (such as `above_target` / `left_target` edge lengths, MRL boundary flags, CfL/MHCCP region bounds, and DPCM scale bits) into non-templated helper structs/functions in the owning `.c` file.
+3. **Keep Only Genuinely Shared Numerical Loops in `*_kernel.inc`:**
+   - Where 8-bit and 16-bit paths share the same algorithm (e.g., downsampling filters, regression accumulation, predictor + residual clipping, palette lookup), keep them in clean, un-braided `*_kernel.inc` functions with uniform parameter lists (using `predictor_stride_samples` consistently or passing `const Av2hSampleDomain *domain` uniformly to internal helpers).
+   - Where 8-bit and 16-bit entry points intentionally enforce different historical admission policies or dispatch rules, keep those top-level admission wrappers separate in the `.c` owner and have both call the shared typed inner kernels.
+
+### Exit Criteria
+- Zero unbalanced braces or split control-flow statements across `#if AV2H_KERNEL_WIDE` branches.
+- `#if AV2H_KERNEL_WIDE` in `*_kernel.inc` files is restricted to genuine sample-width / domain differences (types, bit-depth shift amounts, and external signature adapters where required), rather than switching between two unrelated function bodies.
+
+### Completed Implementation
+
+- Moved the 18 historically divergent reconstruction, generic-transform, derived
+  CfL/MHCCP, smooth, and Paeth entry points into their ordinary `.c` owners.
+  Their admission order, optional predictors, return codes, and diagnostic
+  stages remain separate and unchanged. The long legacy transform-selection
+  ladder remains intact for C8.
+- Extracted ordinary helpers for visible reconstruction bounds, reference
+  extension lengths, MRL superblock/angle geometry, CfL reference counts and
+  regression, MHCCP reference extents and vector prediction, and DPCM scaling.
+- Kept shared typed numerical kernels for palette prediction, DPCM accumulation,
+  generic inverse transforms, all three CfL current-block filters and 4:4:4
+  application, MHCCP downsampling/statistics, smooth/Paeth, and directional
+  projection. Their internal parameter lists are uniform. DPCM explicitly
+  preserves byte-path floor rounding versus wide-path truncation, and MHCCP
+  retains 64-bit wide statistics for future 12-bit samples.
+- Directional projection receives explicit interpolation/boundary policy flags
+  from its ordinary owner instead of selecting control flow with preprocessor
+  branches. The seven policy-heavy templates now contain no
+  `AV2H_KERNEL_WIDE` conditionals:
+
+  | Template | Before (lines) | After (lines) |
+  | :--- | ---: | ---: |
+  | [`reconstruct_kernel.inc`](../src/decoder/internal/reconstruct_kernel.inc) | 1,370 | 36 |
+  | [`reconstruct_block_kernel.inc`](../src/decoder/internal/reconstruct_block_kernel.inc) | 1,009 | 28 |
+  | [`chroma_prediction_cfl_kernel.inc`](../src/decoder/internal/chroma_prediction_cfl_kernel.inc) | 457 | 81 |
+  | [`chroma_prediction_mhccp_kernel.inc`](../src/decoder/internal/chroma_prediction_mhccp_kernel.inc) | 413 | 96 |
+  | [`inverse_transform_kernel.inc`](../src/decoder/internal/inverse_transform_kernel.inc) | 212 | 69 |
+  | [`intra_prediction_basic_kernel.inc`](../src/decoder/internal/intra_prediction_basic_kernel.inc) | 217 | 60 |
+  | [`intra_prediction_directional_kernel.inc`](../src/decoder/internal/intra_prediction_directional_kernel.inc) | 263 | 198 |
+
+- Removed split validation/control flow from the smaller filter, reference,
+  edge, and frame-copy templates too. GDF's differing argument/alias validation
+  now lives in ordinary owner helpers; its shared filtering traversal remains
+  typed. Remaining width conditionals describe sample arithmetic, storage,
+  accessors, or signature adapters.
+- Preserved all 17 single-owner trailing instantiation sections and their
+  configuration resets. Necessary private forwards remain above ordinary
+  functions; both configurations also pass `-Wredundant-decls`. No public
+  header, workspace layout, stream admission, oracle, or media changes were
+  needed. C8-C10 remain future work.
+
+### Validation
+
+- All 33 sanitized C suites and 2,460 deterministic public-decode fuzz cases
+  pass with diagnostics absent and enabled. Both frozen 77-line admission,
+  numerical, layout, and diagnostic inventories match exactly.
+- Added independent DPCM scale/negative-rounding/stride checks and CfL filter
+  checks across the 32-sample boundary, padded output strides, and 8/10/12-bit
+  sample arithmetic. This does not enable 12-bit stream decoding.
+- All 30 related Python checks pass. The token-aware source guard checks every
+  conditional branch in all 17 templates for unmatched delimiters and dangling
+  control-flow headers, ignoring comments and strings. It also keeps divergent
+  public admission outside the seven numerical templates and protects their
+  uniform, width-branch-free implementations.
+- All 55 standalone private headers and 35 value-only kernel roots pass in
+  both configurations, without include cycles. The native default build and
+  freestanding undefined-symbol check pass.
+- All 179 available native corpus hashes and 14 exact CLI output/error/
+  destination-preservation contracts match the retained baseline.
+- Five interleaved before/after timing rounds over 15 cases spanning all five
+  admitted profiles measured median **+0.45%**, aggregate-time-weighted
+  **+0.66%**, and per-case changes from **-1.57% to +2.59%** on the M4 Max.
+  No material decode-speed regression was observed; optimization defaults are
+  unchanged. Cross-builds and media regeneration were not required.
+
+---
+
+## C8: Table-Drive Hardcoded Tuple Branches and Remove Dead Checks
+
+### Problem
+Several core decoder modules contain bring-up-era special-case cascades or irregularly formatted boolean walls that can be expressed more clearly and compactly:
+1. **Repeated 4x4/8x4/4x8 Secondary Transform Special Cases in [`secondary_transform.c`](../src/decoder/secondary_transform.c):**
+   Lines 269–365 contain four nearly identical 25-line blocks for specific `(mode, tx_size, secondary_symbol, secondary_set)` tuples (`(DC, 4x4, 1, 8)`, `(DC, 8x4, 2, 12)`, `(SMOOTH, 8x4, 1, 6)`, `(D135, 4x8, 1, 3)`), each copying 8 inputs via a scan table and running the same 8×16 matrix-multiply loop. Similarly, `inverse_secondary_transform_4x4` (lines 72–239) uses a 42-branch `if / else if` ladder to map `(secondary_set, secondary_symbol)` to `av2h_ist_4x4_setX_typeY_kernel`.
+2. **Single-Geometry 16-Bit Transform Helpers in [`inverse_transform.c`](../src/decoder/inverse_transform.c):**
+   [`av2h_reconstruct_transform_8x16_u16`](../src/decoder/inverse_transform.c) and [`av2h_reconstruct_transform_8x4_u16`](../src/decoder/inverse_transform.c) duplicate the scaling, secondary transform, 1D row/column transform, and residual-addition flow already present in `av2h_reconstruct_transform_generic_u16`.
+3. **Boolean Walls and Unreachable Branches in [`coeff_level.c`](../src/decoder/coeff_level.c):**
+   - In `q_eob_context_supported` (lines 54–56), `q_base_context_supported` (lines 87–89), and `q_br_context_supported` (lines 166–167), the check `if (cdfs->q_context < 4U) return ...;` is immediately followed by `if (cdfs->q_context == 1U) return 1;`, making the `q_context == 1U`, `2U`, and `3U` branches below it completely dead/unreachable.
+   - If those branches are obsolete bring-up guards superseded by `cdfs->q_context < 4U`, they should be removed; if they are still intended under specific conditions, the guard logic must be clarified and represented as a compact lookup table or bitmask rather than a 70-line nested boolean expression.
+
+### Actions
+1. **Replace the 42-Branch 4x4 IST Kernel Ladder and 4 Tuple Blocks in [`secondary_transform.c`](../src/decoder/secondary_transform.c):**
+   - Index a static 2D pointer table `ist_4x4_kernels[14][3]` by `[secondary_set][secondary_symbol - 1]`.
+   - Factor the 8×16 small-input secondary transform loop into a single `static` helper driven by a small descriptor table for the four special-case tuples.
+2. **Consolidate or Table-Drive [`coeff_level.c`](../src/decoder/coeff_level.c) Context Admission:**
+   - Remove the unreachable `q_context == 1U / 2U / 3U` dead code after `if (cdfs->q_context < 4U)` (and verify with `-Wunreachable-code` and the full test suite).
+3. **Unify `8x16_u16` and `8x4_u16` Transform Paths in [`inverse_transform.c`](../src/decoder/inverse_transform.c):**
+   - Route or share the 16-bit 8×16 and 8×4 DCT transform bodies through the common 16-bit transform helper while preserving exact admission statuses (`AV2H_INVALID_ARGUMENT` vs `AV2H_UNSUPPORTED` vs `AV2H_INVALID_DATA`).
+
+### Exit Criteria
+- `inverse_secondary_transform_4x4` uses a table lookup instead of a 42-way `if / else if` chain, and the 8×16 IST inner loop appears once.
+- Zero unreachable code branches remain in [`coeff_level.c`](../src/decoder/coeff_level.c) when compiled with `-Wunreachable-code`.
+
+---
+
+## C9: Decompose [`frame_output.c`](../src/decoder/frame_output.c) Orchestration
+
+### Problem
+`av2h_decode_frame_group_planar` in [`frame_output.c`](../src/decoder/frame_output.c) spans roughly 550 lines in a single function. Much of this bulk comes from:
+- Duplicated loops that flush `pending_chroma_leaves` (once mid-tile when `decoder.chroma.shared_complete` transitions, and once at the end of the tile), with each loop further branching on `workspace->bytes_per_sample == 2U` vs `1U`.
+- Nearly 200 lines of inline diagnostic field copying (`decoded.syntax_stage = ...`, `decoded.eob_range = ...`, `decoded.after_all_zero_tell = ...`) embedded directly inside the main tile-decoding `while` loop for luma parse, luma reconstruct, chroma parse, chroma cross-transform, and chroma reconstruct failures.
+
+### Actions
+1. **Extract Shared Pending-Chroma Flush Helper:**
+   - Extract `flush_pending_chroma_leaves(...)` as a `static` helper in [`frame_output.c`](../src/decoder/frame_output.c) called both mid-tile and post-tile to reconstruct and commit deblock metadata for queued shared-chroma leaves.
+2. **Extract Diagnostic-Failure Builders:**
+   - Extract `populate_luma_parse_failure(...)` and `populate_chroma_parse_failure(...)` (or stage-specific failure helpers) out of the main tile loop so the high-level Luma $\rightarrow$ Chroma $\rightarrow$ Completeness $\rightarrow$ Filter $\rightarrow$ Output state machine fits on a single screen.
+
+### Exit Criteria
+- `av2h_decode_frame_group_planar` in [`frame_output.c`](../src/decoder/frame_output.c) is under 200 lines, with zero duplicated pending-chroma flush loops.
+- All failure statuses, diagnostic fields, and entropy tell values remain identical.
+
+---
+
+## C10: Normalize Formatting, Indentation, and Line Wrapping
+
+### Problem
+Incremental manual edits and localized automated formatting passes across earlier milestones left visible formatting and indentation inconsistencies:
+- **Unindented control-flow bodies:** In [`frame_output.c`](../src/decoder/frame_output.c), the `while (decoder.control.phase != AV2H_TILE_DECODE_DONE)` loop body (lines 258–580) is at the same indentation level as its enclosing `while` statement.
+- **Deeply drifted boolean/continuation indentation:** In [`coeff_level.c`](../src/decoder/coeff_level.c) (lines 58–158), [`container.c`](../src/container.c), and [`reconstruct.c`](../src/decoder/reconstruct.c), continuation lines drift between 4-space, 8-space, and 60+-column alignments.
+- **Mixed column limits and brace/pointer styles:** Older files use ~80-column manual wrapping with multi-line function signatures, whereas newer or C6-touched files (`*_kernel.inc`, [`reconstruct_block.c`](../src/decoder/reconstruct_block.c)) use ~100-column `clang-format` wrapping and compact single-line declarations.
+
+### Actions
+1. **Define a Canonical `.clang-format` Configuration:**
+   - Establish a single project-wide `.clang-format` (4-space indentation, consistent column limit, pointer alignment, and macro-aware continuation rules for `AV2H_KERNEL_NAME` / `AV2H_KERNEL_TYPE`).
+   - Protect dense static lookup tables (such as generated `.inc` tables or compact matrix literals in [`inverse_transform.c`](../src/decoder/inverse_transform.c)) with `/* clang-format off */` / `/* clang-format on */` where tabular layout aids readability.
+2. **Apply Pure Whitespace/Formatting Pass Across [`src/`](../src/) and [`include/`](../include/):**
+   - Run formatting as a standalone, behavior-free pass after C7–C9 so structural diffs and whitespace diffs are never mixed in the same commit.
+3. **Add Automated Formatting & Zero-Binary-Diff Verification:**
+   - Verify that stripped object files (`.o`) and the final decoder binary are byte-for-byte identical before and after C10.
+   - Add a lightweight check to the Python source-consistency suite so future edits do not reintroduce unindented blocks or formatting drift.
+
+### Exit Criteria
+- Uniform indentation, brace placement, and line wrapping across all `.c`, `.h`, and `*_kernel.inc` files in [`src/`](../src/) and [`include/`](../include/).
+- Byte-for-byte identical compiled code before and after the formatting pass.

@@ -73,36 +73,57 @@ static const int16_t directional_derivative[90U] = {
     10, 10, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1
 };
 
+typedef struct {
+    uint8_t primary_linear;
+    uint8_t secondary_linear;
+    uint8_t clamp_last;
+    uint8_t unclamped_mrl;
+} Av2hDirectionalProjectionPolicy;
+
 static void directional_project_zone1_u8(const Av2hLeafMode *mode, int angle, uint16_t width,
                                          uint16_t height, const uint8_t *above_edge,
                                          const uint8_t *left_edge, uint8_t *predictor,
-                                         size_t predictor_stride_samples, uint8_t use_idif,
+                                         size_t predictor_stride_samples,
+                                         Av2hDirectionalProjectionPolicy policy,
                                          const Av2hSampleDomain *domain);
 static void directional_project_zone1_u16(const Av2hLeafMode *mode, int angle, uint16_t width,
                                           uint16_t height, const uint16_t *above_edge,
                                           const uint16_t *left_edge, uint16_t *predictor,
-                                          size_t predictor_stride_samples, uint8_t use_idif,
+                                          size_t predictor_stride_samples,
+                                          Av2hDirectionalProjectionPolicy policy,
                                           const Av2hSampleDomain *domain);
 static void directional_project_zone2_u8(const Av2hLeafMode *mode, int angle, uint16_t width,
                                          uint16_t height, const uint8_t *above_edge,
                                          const uint8_t *left_edge, size_t edge_count,
                                          uint8_t *predictor, size_t predictor_stride_samples,
-                                         uint8_t use_idif, const Av2hSampleDomain *domain);
+                                         Av2hDirectionalProjectionPolicy policy,
+                                         const Av2hSampleDomain *domain);
 static void directional_project_zone2_u16(const Av2hLeafMode *mode, int angle, uint16_t width,
                                           uint16_t height, const uint16_t *above_edge,
                                           const uint16_t *left_edge, size_t edge_count,
                                           uint16_t *predictor, size_t predictor_stride_samples,
-                                          uint8_t use_idif, const Av2hSampleDomain *domain);
+                                          Av2hDirectionalProjectionPolicy policy,
+                                          const Av2hSampleDomain *domain);
 static void directional_project_zone3_u8(const Av2hLeafMode *mode, int angle, uint16_t width,
                                          uint16_t height, const uint8_t *above_edge,
                                          const uint8_t *left_edge, size_t edge_count,
                                          uint8_t *predictor, size_t predictor_stride_samples,
-                                         uint8_t use_idif, const Av2hSampleDomain *domain);
+                                         Av2hDirectionalProjectionPolicy policy,
+                                         const Av2hSampleDomain *domain);
 static void directional_project_zone3_u16(const Av2hLeafMode *mode, int angle, uint16_t width,
                                           uint16_t height, const uint16_t *above_edge,
                                           const uint16_t *left_edge, size_t edge_count,
                                           uint16_t *predictor, size_t predictor_stride_samples,
-                                          uint8_t use_idif, const Av2hSampleDomain *domain);
+                                          Av2hDirectionalProjectionPolicy policy,
+                                          const Av2hSampleDomain *domain);
+
+static Av2hDirectionalProjectionPolicy
+directional_projection_policy(const Av2hLeafMode *mode, uint8_t use_idif, uint8_t extended_mrl) {
+    Av2hDirectionalProjectionPolicy policy = {
+        use_idif == 0U || (extended_mrl && mode->edge_ibp != 0U), extended_mrl && use_idif == 0U,
+        extended_mrl ? mode->edge_ibp != 0U : use_idif == 0U, extended_mrl};
+    return policy;
+}
 
 static uint8_t directional_ibp_weight(unsigned int row,
                                       unsigned int column,
@@ -188,18 +209,23 @@ static Av2hStatus predict_directional(
     av2h_prepare_directional_edges(
         mode, angle, width, height, references, filter_edges, above, left, edge_count, missing_left_ibp, edge_ibp);
     if (angle < 90) {
-        directional_project_zone1_u8(mode, angle, width, height, above, left, predictor,
-                                     predictor_stride_samples, use_idif, &av2h_sample_domain_8bit);
+        directional_project_zone1_u8(
+            mode, angle, width, height, above, left, predictor, predictor_stride_samples,
+            directional_projection_policy(mode, use_idif, 0U), &av2h_sample_domain_8bit);
         return AV2H_OK;
     }
     if (angle < 180) {
         directional_project_zone2_u8(mode, angle, width, height, above, left, edge_count, predictor,
-                                     predictor_stride_samples, use_idif, &av2h_sample_domain_8bit);
+                                     predictor_stride_samples,
+                                     directional_projection_policy(mode, use_idif, 0U),
+                                     &av2h_sample_domain_8bit);
         return AV2H_OK;
     }
     {
         directional_project_zone3_u8(mode, angle, width, height, above, left, edge_count, predictor,
-                                     predictor_stride_samples, use_idif, &av2h_sample_domain_8bit);
+                                     predictor_stride_samples,
+                                     directional_projection_policy(mode, use_idif, 0U),
+                                     &av2h_sample_domain_8bit);
         return AV2H_OK;
     }
     return AV2H_OK;
@@ -1587,7 +1613,8 @@ Av2hStatus av2h_predict_zone2_u16(const Av2hLeafMode *mode, uint16_t width, uint
     if (edge_status != AV2H_OK)
         return edge_status;
     directional_project_zone2_u16(mode, angle, width, height, above_edge, left_edge, edge_count,
-                                  predictor, predictor_stride_samples, use_idif, domain);
+                                  predictor, predictor_stride_samples,
+                                  directional_projection_policy(mode, use_idif, 1U), domain);
     return AV2H_OK;
 }
 
@@ -1611,7 +1638,8 @@ Av2hStatus av2h_predict_zone1_u16(const Av2hLeafMode *mode, uint16_t width, uint
     if (edge_status != AV2H_OK)
         return edge_status;
     directional_project_zone1_u16(mode, angle, width, height, above_edge, left_edge, predictor,
-                                  predictor_stride_samples, use_idif, domain);
+                                  predictor_stride_samples,
+                                  directional_projection_policy(mode, use_idif, 1U), domain);
     return AV2H_OK;
 }
 
@@ -1635,7 +1663,8 @@ Av2hStatus av2h_predict_zone3_u16(const Av2hLeafMode *mode, uint16_t width, uint
     if (edge_status != AV2H_OK)
         return edge_status;
     directional_project_zone3_u16(mode, angle, width, height, above_edge, left_edge, edge_count,
-                                  predictor, predictor_stride_samples, use_idif, domain);
+                                  predictor, predictor_stride_samples,
+                                  directional_projection_policy(mode, use_idif, 1U), domain);
     return AV2H_OK;
 }
 

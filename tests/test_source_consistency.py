@@ -23,6 +23,7 @@ PREDICATES = {
     "plane_sample_inside_active_tile", "plane_sample_reconstructed_u16",
     "plane_sample_inside_active_tile_u16", "tile_luma_lossless_unit_complete",
     "tile_chroma_lossless_unit_complete", "tile_cfl_allowed_for_sdp",
+    "luma_top_superblock_boundary", "gdf_frame_arguments_valid", "gdf_frame_arguments_valid_u16",
 }
 
 KERNEL_BLOCK = re.compile(
@@ -102,7 +103,106 @@ def layout_errors(text: str) -> list[str]:
     return errors
 
 
+def kernel_branch_errors(text: str) -> list[str]:
+    errors: list[str] = []
+    frames: list[tuple[int, list[str], list[str]]] = []
+    closing = {")": "(", "]": "[", "}": "{"}
+
+    def finish_branch(line: int, brackets: list[str], tokens: list[str]) -> None:
+        if brackets:
+            errors.append(f"line {line}: unclosed branch delimiters {''.join(brackets)}")
+        if (any(token in {"if", "else", "for", "while", "switch", "do"} for token in tokens)
+                and tokens[-1] not in {";", "}"}):
+            errors.append(f"line {line}: split control-flow statement")
+
+    for token in TOKENS.finditer(text):
+        if token.lastgroup == "comment":
+            continue
+        value = token.group()
+        if token.lastgroup == "directive":
+            directive = re.match(r"\s*#\s*(\w+)", value)
+            if directive is None:
+                continue
+            kind = directive[1]
+            line = text.count("\n", 0, token.start()) + 1
+            if kind in {"if", "ifdef", "ifndef"}:
+                frames.append((line, [], []))
+            elif kind in {"else", "elif", "endif"}:
+                if not frames:
+                    errors.append(f"line {line}: unmatched #{kind}")
+                    continue
+                finish_branch(*frames.pop())
+                if kind != "endif":
+                    frames.append((line, [], []))
+            continue
+        for line, brackets, tokens in frames:
+            tokens.append(value)
+            if token.lastgroup != "symbol":
+                continue
+            if value in {"(", "[", "{"}:
+                brackets.append(value)
+            elif value in closing:
+                if not brackets or brackets[-1] != closing[value]:
+                    errors.append(f"line {line}: unmatched branch delimiter {value}")
+                else:
+                    brackets.pop()
+    for line, brackets, tokens in frames:
+        finish_branch(line, brackets, tokens)
+        errors.append(f"line {line}: unterminated conditional")
+    return errors
+
+
 class SourceConsistencyTests(unittest.TestCase):
+    def test_kernel_branch_guard_detects_split_control_flow(self) -> None:
+        for invalid in (
+                "#if AV2H_KERNEL_WIDE\nif (wide) {\n#else\nif (low) {\n#endif\n}\n",
+                "#if AV2H_KERNEL_WIDE\n} if (value) {\n#endif\n",
+                "#if AV2H_KERNEL_WIDE\nif (wide)\n#else\nif (low)\n#endif\nreturn 0;\n",
+                "#if AV2H_KERNEL_WIDE\nif (\n#else\nif (low)\n#endif\nvalue) return 0;\n",
+                "#if AV2H_KERNEL_WIDE\nif (wide) {} else\n#endif\nreturn 0;\n",
+                "#if AV2H_KERNEL_WIDE\n#if ENABLED\n{\n#endif\n}\n#endif\n"):
+            with self.subTest(source=invalid):
+                self.assertTrue(kernel_branch_errors(invalid))
+        for valid in (
+                "#if AV2H_KERNEL_WIDE\nif (wide) { return 0; }\n#else\nreturn 1;\n#endif\n",
+                "if (value) {\n#if AV2H_KERNEL_WIDE\nvalue = load_wide();\n#endif\n}\n",
+                "f(first,\n#if AV2H_KERNEL_WIDE\n&domain,\n#endif\nlast);\n",
+                '#if AV2H_KERNEL_WIDE\nconst char *s = "} if (";\n/* {\n#else\n} */\n#endif\n',
+                "#if AV2H_KERNEL_WIDE\nif (value)\n#if ENABLED\nreturn 1;\n#else\nreturn 0;\n#endif\n#endif\n"):
+            with self.subTest(source=valid):
+                self.assertEqual(kernel_branch_errors(valid), [])
+
+    def test_kernel_branches_are_balanced(self) -> None:
+        for template in (ROOT / "src/decoder/internal").glob("*_kernel.inc"):
+            with self.subTest(template=template.name):
+                self.assertEqual(kernel_branch_errors(template.read_text()), [])
+
+    def test_divergent_admission_stays_outside_numerical_kernels(self) -> None:
+        families = {
+            "reconstruct": ("av2h_luma_reconstruct_to_plane", "av2h_chroma_reconstruct_to_plane"),
+            "reconstruct_block": ("av2h_luma_reconstruct", "av2h_chroma_reconstruct"),
+            "inverse_transform": ("av2h_reconstruct_transform_generic",),
+            "chroma_prediction_cfl": ("av2h_cfl_derived_predict",),
+            "chroma_prediction_mhccp": ("av2h_mhccp_predict_observed",),
+            "intra_prediction_basic": ("av2h_predict_smooth", "av2h_predict_paeth"),
+            "intra_prediction_directional": (),
+        }
+        for family, entrypoints in families.items():
+            owner = ROOT / "src/decoder" / f"{family}.c"
+            template = ROOT / "src/decoder/internal" / f"{family}_kernel.inc"
+            with self.subTest(family=family):
+                self.assertNotIn("AV2H_KERNEL_WIDE", template.read_text())
+                for specialized in kernel_specializations(template):
+                    definitions = re.findall(
+                        r"^((?:static\s+)?\w+\s+\w+\s*\([^;{}]*\))\s*\{",
+                        specialized, re.M)
+                    self.assertTrue(definitions)
+                    self.assertTrue(all(header.startswith("static ") for header in definitions))
+                for entrypoint in entrypoints:
+                    for suffix in ("", "_u16"):
+                        self.assertRegex(
+                            owner.read_text(), r"\bAv2hStatus\s+" + entrypoint + suffix + r"\s*\(")
+
     def test_layout_guard_detects_late_directives_and_types(self) -> None:
         self.assertEqual(layout_errors(
             '#include "first.h"\n#define SIZE 4\n'

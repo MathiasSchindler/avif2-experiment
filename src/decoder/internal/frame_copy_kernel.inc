@@ -55,21 +55,14 @@ Av2hStatus AV2H_KERNEL_NAME(av2h_copy_visible_planar_private, av2h_copy_visible_
 #endif
         size_t width = av2h_frame_plane_dimension(frame, plane, frame->width);
         size_t height = av2h_frame_plane_dimension(frame, plane, frame->height);
-#if AV2H_KERNEL_WIDE
-        size_t row_bytes = width * sizeof(uint16_t);
-        Av2hCopyRowsU16 copy = {source->data, output + offset, source->stride_samples, width};
-        if (copy_rows_dispatch(execution, height, row_bytes, copy_rows_u16, &copy) != 0) {
-#else
-        Av2hCopyRowsU8 copy = {source->data, output + offset, source->stride_samples, width};
-        if (copy_rows_dispatch(execution, height, width, copy_rows_u8, &copy) != 0) {
-#endif
+        size_t row_bytes = width * sizeof(AV2H_KERNEL_TYPE(uint8_t, uint16_t));
+        AV2H_KERNEL_TYPE(Av2hCopyRowsU8, Av2hCopyRowsU16)
+        copy = {source->data, output + offset, source->stride_samples, width};
+        if (copy_rows_dispatch(execution, height, row_bytes,
+                               AV2H_KERNEL_NAME(copy_rows_u8, copy_rows_u16), &copy) != 0) {
             return AV2H_INVALID_DATA;
         }
-#if AV2H_KERNEL_WIDE
         offset += row_bytes * height;
-#else
-        offset += width * height;
-#endif
     }
     return AV2H_OK;
 }
