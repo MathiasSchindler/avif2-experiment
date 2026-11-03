@@ -13,7 +13,13 @@ static Av2hStatus AV2H_KERNEL_NAME(inverse_transform_samples, inverse_transform_
                                     1U);
     Av2hStatus status;
     for (index = 0U; index < coefficients->coefficient_count; ++index) {
-        scratch->scaled[index] = coefficients->dequantized[index];
+        int32_t value = coefficients->dequantized[index];
+        /* Specialized rectangular paths retain their pre-IST scaling and fixed clamp. */
+        scratch->scaled[index] =
+            plan->scale_before_secondary
+                ? av2h_sample_clamp(av2h_sample_round_pow2((int64_t)value * 2896, 12U),
+                                     -131072, 131071)
+                : value;
     }
     av2h_reconstruction_diagnostics_set_inverse_transform_stage(diagnostics, first_stage);
     status =
@@ -28,7 +34,8 @@ static Av2hStatus AV2H_KERNEL_NAME(inverse_transform_samples, inverse_transform_
         for (column = 0U; column < plan->coeff_width; ++column) {
             int32_t value = scratch->scaled[(size_t)row * plan->coeff_width + column];
             row_input[column] =
-                rectangular ? av2h_sample_round_pow2((int64_t)value * 2896, 12U) : value;
+                rectangular && !plan->scale_before_secondary
+                    ? av2h_sample_round_pow2((int64_t)value * 2896, 12U) : value;
         }
         recon_transform_1d(row_input, row_output, plan->row_kind, plan->coeff_width,
                            plan->row_shift, 0U, domain->bit_depth);

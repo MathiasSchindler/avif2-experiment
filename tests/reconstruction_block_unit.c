@@ -18,6 +18,118 @@ static uint16_t clip(int32_t value, int32_t maximum) {
     return (uint16_t)(value < 0 ? 0 : value > maximum ? maximum : value);
 }
 
+static void test_specialized_wide_transform_policies(void) {
+    typedef Av2hStatus (*WideTransform)(
+        const Av2hLeafMode *, const Av2hCoeffPrefix *, const Av2hTransformType *,
+        const Av2hCoeffBlock *, const uint16_t *, size_t, Av2hReconstructionScratchU16 *,
+        Av2hBlockReconstructionU16 *, const Av2hSampleDomain *);
+    static const WideTransform transforms[] = {
+        av2h_reconstruct_transform_8x16_u16, av2h_reconstruct_transform_8x4_u16
+    };
+    const Av2hSampleDomain *domains[] = {
+        &av2h_sample_domain_8bit, &av2h_sample_domain_10bit, &av2h_sample_domain_12bit
+    };
+    static Av2hReconstructionScratchU16 scratch;
+    static Av2hReconstructionScratchU16 generic_scratch;
+    static Av2hBlockReconstructionU16 output;
+    static Av2hBlockReconstructionU16 generic_output;
+    uint16_t predictor[11U * 16U];
+    size_t geometry;
+    size_t depth;
+    size_t index;
+    for (index = 0U; index < sizeof(predictor) / sizeof(predictor[0]); ++index)
+        predictor[index] = (uint16_t)((index * 7U) & 255U);
+    for (geometry = 0U; geometry < 2U; ++geometry) {
+        WideTransform reconstruct = transforms[geometry];
+        for (depth = 0U; depth < 3U; ++depth) {
+            Av2hLeafMode mode = {0};
+            Av2hCoeffPrefix prefix = {0};
+            Av2hTransformType transform = {0};
+            Av2hCoeffBlock coefficients = {0};
+            int32_t scaled[AV2H_COEFF_CAPACITY] = {0};
+            size_t count = geometry == 0U ? 128U : 32U;
+            unsigned int argument;
+            prefix.tx_size = geometry == 0U ? AV2H_TX_8X16 : AV2H_TX_8X4;
+            coefficients.width = 8U;
+            coefficients.height = geometry == 0U ? 16U : 4U;
+            coefficients.coefficient_count = (uint16_t)count;
+            for (index = 0U; index < count; ++index)
+                coefficients.dequantized[index] = (int32_t)(index * 53U) - 900;
+            CHECK(reconstruct(&mode, &prefix, &transform, &coefficients, predictor, 11U,
+                              &scratch, &output, domains[depth]) == AV2H_OK);
+            CHECK(av2h_reconstruct_transform_generic_u16(
+                      NULL, &mode, &prefix, &transform, &coefficients, predictor, 11U,
+                      &generic_scratch, &generic_output, domains[depth]) == AV2H_OK);
+            CHECK(output.width == 8U && output.height == coefficients.height);
+            for (index = 0U; index < count; ++index) {
+                CHECK(output.residual[index] == generic_output.residual[index]);
+                CHECK(output.pixels[index] == generic_output.pixels[index]);
+            }
+            for (index = 0U; index < count; ++index) {
+                coefficients.dequantized[index] = index & 1U ? 300000 : -300001;
+                scaled[index] = index & 1U ? 131071 : -131072;
+            }
+            transform.secondary_set = 8U;
+            transform.secondary_symbol = 1U;
+            CHECK(av2h_inverse_secondary_transform(
+                      &mode, &prefix, &transform, &coefficients, scaled) == AV2H_OK);
+            CHECK(reconstruct(&mode, &prefix, &transform, &coefficients, predictor, 11U,
+                              &scratch, &output, domains[depth]) == AV2H_OK);
+            for (index = 0U; index < count; ++index) CHECK(scratch.scaled[index] == scaled[index]);
+            transform.secondary_symbol = 0U;
+            mode.mrl_index = mode.use_intrabc = mode.fsc_mode = mode.palette_size = 1U;
+            CHECK(reconstruct(&mode, &prefix, &transform, &coefficients, predictor, 11U,
+                              &scratch, &output, domains[depth]) ==
+                  (geometry == 0U ? AV2H_UNSUPPORTED : AV2H_OK));
+            memset(&mode, 0, sizeof(mode));
+            mode.skip_transform = 1U;
+            CHECK(reconstruct(&mode, &prefix, &transform, &coefficients, predictor, 11U,
+                              &scratch, &output, domains[depth]) == AV2H_OK);
+            mode.skip_transform = 0U;
+            transform.secondary_signaled = 1U;
+            CHECK(reconstruct(&mode, &prefix, &transform, &coefficients, predictor, 11U,
+                              &scratch, &output, domains[depth]) == AV2H_UNSUPPORTED);
+            transform.secondary_signaled = 0U;
+            CHECK(reconstruct(&mode, &prefix, &transform, &coefficients, predictor, 7U,
+                              &scratch, &output, domains[depth]) == AV2H_UNSUPPORTED);
+            for (argument = 0U; argument < 8U; ++argument) {
+                CHECK(reconstruct(
+                          argument == 0U ? NULL : &mode, argument == 1U ? NULL : &prefix,
+                          argument == 2U ? NULL : &transform, argument == 3U ? NULL : &coefficients,
+                          argument == 4U ? NULL : predictor, 11U,
+                          argument == 5U ? NULL : &scratch, argument == 6U ? NULL : &output,
+                          argument == 7U ? NULL : domains[depth]) == AV2H_INVALID_ARGUMENT);
+            }
+            memset(coefficients.dequantized, 0, sizeof(coefficients.dequantized));
+            prefix.all_zero = 1U;
+            coefficients.quantized[17U] = 1;
+            memset(&output, 0x55, sizeof(output));
+            CHECK(reconstruct(&mode, &prefix, &transform, &coefficients, predictor, 11U,
+                              &scratch, &output, domains[depth]) ==
+                  (geometry == 0U ? AV2H_INVALID_DATA : AV2H_OK));
+            for (index = 0U; index < count; ++index) {
+                if (geometry == 0U && index >= 17U) {
+                    CHECK(output.residual[index] == 0x55555555);
+                    CHECK(output.pixels[index] == 0x5555U);
+                } else {
+                    CHECK(output.residual[index] == 0);
+                    CHECK(output.pixels[index] == predictor[(index / 8U) * 11U + index % 8U]);
+                }
+            }
+            coefficients.quantized[17U] = 0;
+            prefix.eob = 1U;
+            CHECK(reconstruct(&mode, &prefix, &transform, &coefficients, predictor, 11U,
+                              &scratch, &output, domains[depth]) ==
+                  (geometry == 0U ? AV2H_INVALID_DATA : AV2H_OK));
+            prefix.eob = 0U;
+            coefficients.nonzero_count = 1U;
+            CHECK(reconstruct(&mode, &prefix, &transform, &coefficients, predictor, 11U,
+                              &scratch, &output, domains[depth]) ==
+                  (geometry == 0U ? AV2H_INVALID_DATA : AV2H_OK));
+        }
+    }
+}
+
 static void test_zero_geometry(void) {
     static uint8_t predictor[AV2H_RECON_SAMPLE_CAPACITY];
     static uint16_t predictor_u16[AV2H_RECON_SAMPLE_CAPACITY];
@@ -379,6 +491,7 @@ static void test_u16_lossless_wht(void) {
 }
 
 int main(void) {
+    test_specialized_wide_transform_policies();
     test_zero_geometry();
     test_dpcm_rounding_and_clipping();
     test_dpcm_scale_and_stride();

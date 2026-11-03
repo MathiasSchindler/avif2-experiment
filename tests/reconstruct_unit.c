@@ -21,6 +21,144 @@ static int failures;
         }                                                                      \
     } while (0)
 
+static uint64_t small_ist_hash(const int32_t *values) {
+    uint64_t hash = UINT64_C(1469598103934665603);
+    size_t index;
+    for (index = 0U; index < AV2H_COEFF_CAPACITY; ++index) {
+        unsigned int shift;
+        for (shift = 0U; shift < 32U; shift += 8U) {
+            hash ^= ((uint32_t)values[index] >> shift) & 255U;
+            hash *= UINT64_C(1099511628211);
+        }
+    }
+    return hash;
+}
+
+static void seed_small_ist(int32_t *values) {
+    size_t index;
+    for (index = 0U; index < AV2H_COEFF_CAPACITY; ++index) {
+        values[index] = (int32_t)(index * 37U) - 255;
+    }
+}
+
+static void test_small_ist_kernel_matrix(void) {
+    /* Frozen before the C8 table conversion; hashes use little-endian words. */
+    static const uint64_t expected[14U][3U] = {
+        {UINT64_C(0x426d16ee66b7a3e8), UINT64_C(0xd51da44a5dd464e3), UINT64_C(0xbe7d8c8264e0355b)},
+        {UINT64_C(0x4af050b407b565b5), UINT64_C(0xf0d7fff7ea2cfea2), UINT64_C(0x8e6b1f99c22ccb40)},
+        {UINT64_C(0x75d488ac4f55a985), UINT64_C(0x3823e4afd5ebea77), UINT64_C(0x25abadede6949bf2)},
+        {UINT64_C(0x6611dfa7e537a115), UINT64_C(0x052591c666c297d2), UINT64_C(0xf4741313059a3848)},
+        {UINT64_C(0x67faccaeb25cf599), UINT64_C(0x8b34d47535a4f9e9), UINT64_C(0x42bc086dc0a570ee)},
+        {UINT64_C(0x93cedbed3892a3e2), UINT64_C(0xb9fde8319f2e712d), UINT64_C(0x0da2d7ab1c5f98ff)},
+        {UINT64_C(0x6c85b54153fde5b8), UINT64_C(0x2ff9a0e892b2f55f), UINT64_C(0x88131e9b3733721f)},
+        {UINT64_C(0xbe27cce53d1c4f6b), UINT64_C(0x27efc0bcee0a487d), UINT64_C(0x3efe9e0176995562)},
+        {UINT64_C(0x9f0e20e134865b1a), UINT64_C(0x9a42acfd220b566e), UINT64_C(0x2cb4d0e3ce2dde71)},
+        {UINT64_C(0x6bac215eed4c5699), UINT64_C(0x0875d5f7690e71c4), UINT64_C(0xfbc9528126296b8a)},
+        {UINT64_C(0x7e6abd4964c8e999), UINT64_C(0x90400e4cf466ce98), UINT64_C(0x5bf852eaece24d6c)},
+        {UINT64_C(0xd16e2bbc9dcc232b), UINT64_C(0xcca4f92abb323bad), UINT64_C(0x76c214cd234670e2)},
+        {UINT64_C(0xdd932e864612d13d), UINT64_C(0xadbacb93e621ed0d), UINT64_C(0xddc2cb0bea1cc801)},
+        {UINT64_C(0xb5b73e5693d77886), UINT64_C(0xf813f033b8c31392), UINT64_C(0x05021502b3737251)}
+    };
+    Av2hLeafMode mode = {0};
+    Av2hCoeffPrefix prefix = {0};
+    Av2hTransformType transform = {0};
+    Av2hCoeffBlock coefficients = {0};
+    int32_t values[AV2H_COEFF_CAPACITY];
+    int32_t normal[16U];
+    unsigned int set;
+    unsigned int symbol;
+    size_t index;
+    prefix.tx_size = AV2H_TX_4X4;
+    coefficients.width = 4U;
+    coefficients.height = 4U;
+    coefficients.coefficient_count = 16U;
+    for (set = 0U; set < 14U; ++set) {
+        for (symbol = 1U; symbol <= 3U; ++symbol) {
+            transform.secondary_set = (uint8_t)set;
+            transform.secondary_symbol = (uint8_t)symbol;
+            mode.mode = AV2H_INTRA_DC;
+            seed_small_ist(values);
+            CHECK(av2h_inverse_secondary_transform(
+                      &mode, &prefix, &transform, &coefficients, values) == AV2H_OK);
+            CHECK(small_ist_hash(values) == expected[set][symbol - 1U]);
+            for (index = 0U; index < 16U; ++index) normal[index] = values[index];
+            mode.mode = AV2H_INTRA_HORIZONTAL;
+            seed_small_ist(values);
+            CHECK(av2h_inverse_secondary_transform(
+                      &mode, &prefix, &transform, &coefficients, values) == AV2H_OK);
+            for (index = 0U; index < 16U; ++index) {
+                CHECK(values[index] == normal[(index % 4U) * 4U + index / 4U]);
+            }
+        }
+    }
+    mode.mode = AV2H_INTRA_DC;
+    transform.secondary_set = 0U;
+    transform.secondary_symbol = 1U;
+    coefficients.coefficient_count = 7U;
+    seed_small_ist(values);
+    CHECK(av2h_inverse_secondary_transform(
+              &mode, &prefix, &transform, &coefficients, values) == AV2H_INVALID_DATA);
+    CHECK(small_ist_hash(values) == UINT64_C(0x9a5d15f62912f2f0));
+    coefficients.coefficient_count = 15U;
+    seed_small_ist(values);
+    CHECK(av2h_inverse_secondary_transform(
+              &mode, &prefix, &transform, &coefficients, values) == AV2H_INVALID_DATA);
+    CHECK(small_ist_hash(values) == UINT64_C(0x334b026190c403d8));
+    for (set = 0U; set < 256U; ++set) {
+        for (symbol = 0U; symbol < 256U; ++symbol) {
+            uint64_t before;
+            if (set < 14U && symbol >= 1U && symbol <= 3U) continue;
+            transform.secondary_set = (uint8_t)set;
+            transform.secondary_symbol = (uint8_t)symbol;
+            seed_small_ist(values);
+            before = small_ist_hash(values);
+            CHECK(av2h_inverse_secondary_transform(
+                      &mode, &prefix, &transform, &coefficients, values) ==
+                  (symbol == 0U ? AV2H_OK : AV2H_UNSUPPORTED));
+            CHECK(small_ist_hash(values) == before);
+        }
+    }
+}
+
+static void test_small_ist_tuple_descriptors(void) {
+    static const Av2hIntraMode modes[] = {
+        AV2H_INTRA_DC, AV2H_INTRA_DC, AV2H_INTRA_SMOOTH, AV2H_INTRA_D135
+    };
+    static const Av2hTxSize sizes[] = {
+        AV2H_TX_4X4, AV2H_TX_8X4, AV2H_TX_8X4, AV2H_TX_4X8
+    };
+    static const uint8_t sets[] = {8U, 12U, 6U, 3U};
+    static const uint8_t symbols[] = {1U, 2U, 1U, 1U};
+    static const uint64_t expected[4U][2U] = {
+        {UINT64_C(0x9f0e20e134865b1a), UINT64_C(0xf836bed612d885d7)},
+        {UINT64_C(0xaa29696d0ce98d45), UINT64_C(0x4c9384448fa68397)},
+        {UINT64_C(0x674e95137810bd34), UINT64_C(0x283e22ee356e6df6)},
+        {UINT64_C(0x6611dfa7e537a115), UINT64_C(0x32b972779d9a0ae4)}
+    };
+    Av2hLeafMode mode = {0};
+    Av2hCoeffPrefix prefix = {0};
+    Av2hTransformType transform = {0};
+    Av2hCoeffBlock coefficients = {0};
+    int32_t values[AV2H_COEFF_CAPACITY];
+    size_t tuple;
+    unsigned int variant;
+    coefficients.width = 8U;
+    coefficients.height = 8U;
+    for (tuple = 0U; tuple < 4U; ++tuple) {
+        mode.mode = modes[tuple];
+        prefix.tx_size = sizes[tuple];
+        transform.secondary_set = sets[tuple];
+        transform.secondary_symbol = symbols[tuple];
+        for (variant = 0U; variant < 2U; ++variant) {
+            coefficients.coefficient_count = variant ? 32U : 0U;
+            seed_small_ist(values);
+            CHECK(av2h_inverse_secondary_transform(
+                      &mode, &prefix, &transform, &coefficients, values) == AV2H_OK);
+            CHECK(small_ist_hash(values) == expected[tuple][variant]);
+        }
+    }
+}
+
 static void test_chroma_geometry_through_64(void) {
     Av2hChromaLeafMode mode = { 0 };
     Av2hLumaReferences references = { 0 };
@@ -7259,6 +7397,8 @@ static void test_10bit_wp6_tiny_matrix(void) {
 }
 
 int main(void) {
+    test_small_ist_kernel_matrix();
+    test_small_ist_tuple_descriptors();
     test_chroma_geometry_through_64();
     test_cfl_dc_uses_avm_reciprocal_rounding();
     test_ist_4x4_set11_type3();

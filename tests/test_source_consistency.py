@@ -153,6 +153,11 @@ def kernel_branch_errors(text: str) -> list[str]:
 
 
 class SourceConsistencyTests(unittest.TestCase):
+    def test_coefficient_admission_uses_complete_context_banks(self) -> None:
+        text = (ROOT / "src/decoder/coeff_level.c").read_text()
+        self.assertNotRegex(text, r"\bq_context\s*==\s*[123]U\b")
+        self.assertNotRegex(text, r"\bav2h_coeff_level_(?:base|eob|br)_row\s*\(")
+
     def test_kernel_branch_guard_detects_split_control_flow(self) -> None:
         for invalid in (
                 "#if AV2H_KERNEL_WIDE\nif (wide) {\n#else\nif (low) {\n#endif\n}\n",

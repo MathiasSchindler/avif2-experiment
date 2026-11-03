@@ -48,6 +48,7 @@ typedef struct {
     uint8_t column_shift;
     Av2hRecon1dKind row_kind;
     Av2hRecon1dKind column_kind;
+    uint8_t scale_before_secondary;
 } Av2hInverseTransformPlan;
 
 static const int8_t dct4[4U][4U] = {
@@ -802,10 +803,7 @@ Av2hStatus av2h_reconstruct_transform_8x16_u16(
     const Av2hSampleDomain *domain) {
     if (!av2h_sample_domain_valid(domain))
         return AV2H_INVALID_ARGUMENT;
-    uint16_t row;
-    uint16_t column;
     size_t index;
-    Av2hStatus status;
     if (mode == NULL || prefix == NULL || transform == NULL || coefficients == NULL ||
         predictor == NULL || scratch == NULL || reconstruction == NULL) {
         return AV2H_INVALID_ARGUMENT;
@@ -838,45 +836,14 @@ Av2hStatus av2h_reconstruct_transform_8x16_u16(
         }
         return AV2H_OK;
     }
-    for (index = 0U; index < 128U; ++index) {
-        scratch->scaled[index] = av2h_sample_clamp(av2h_sample_round_pow2(
-            (int64_t)coefficients->dequantized[index] * 2896, 12U),
-            -131072, 131071);
+    {
+        const Av2hInverseTransformPlan plan = {
+            8U, 16U, 8U, 16U, 7U, 11U, RECON_1D_DCT, RECON_1D_DCT, 1U
+        };
+        return inverse_transform_samples_u16(
+            NULL, mode, prefix, transform, coefficients, predictor, predictor_stride_samples,
+            scratch, reconstruction, &plan, 0U, domain);
     }
-    status = av2h_inverse_secondary_transform(
-        mode, prefix, transform, coefficients, scratch->scaled);
-    if (status != AV2H_OK) return status;
-    for (row = 0U; row < 16U; ++row) {
-        int32_t row_output[8U];
-        recon_transform_1d(scratch->scaled + (size_t)row * 8U, row_output, RECON_1D_DCT, 8U, 7U, 0U,
-                           domain->bit_depth);
-        for (column = 0U; column < 8U; ++column) {
-            scratch->transposed[(size_t)row * 8U + column] =
-                row_output[column];
-        }
-    }
-    for (column = 0U; column < 8U; ++column) {
-        int32_t column_input[16U];
-        int32_t column_output[16U];
-        for (row = 0U; row < 16U; ++row) {
-            column_input[row] =
-                scratch->transposed[(size_t)row * 8U + column];
-        }
-        recon_transform_1d(column_input, column_output, RECON_1D_DCT, 16U, 11U, 1U,
-                           domain->bit_depth);
-        for (row = 0U; row < 16U; ++row) {
-            scratch->residual[(size_t)row * 8U + column] =
-                column_output[row];
-        }
-    }
-    for (index = 0U; index < 128U; ++index) {
-        int32_t residual = scratch->residual[index];
-        int32_t predicted = predictor[
-            (index / 8U) * predictor_stride_samples + index % 8U];
-        reconstruction->residual[index] = residual;
-        reconstruction->pixels[index] = av2h_sample_clip_to_domain(predicted + residual, domain);
-    }
-    return AV2H_OK;
 }
 
 Av2hStatus av2h_reconstruct_transform_8x4_u16(
@@ -886,10 +853,6 @@ Av2hStatus av2h_reconstruct_transform_8x4_u16(
     const Av2hSampleDomain *domain) {
     if (!av2h_sample_domain_valid(domain))
         return AV2H_INVALID_ARGUMENT;
-    uint16_t row;
-    uint16_t column;
-    size_t index;
-    Av2hStatus status;
     if (mode == NULL || prefix == NULL || transform == NULL || coefficients == NULL ||
         predictor == NULL || scratch == NULL || reconstruction == NULL) {
         return AV2H_INVALID_ARGUMENT;
@@ -904,45 +867,14 @@ Av2hStatus av2h_reconstruct_transform_8x4_u16(
     }
     reconstruction->width = 8U;
     reconstruction->height = 4U;
-    for (index = 0U; index < 32U; ++index) {
-        scratch->scaled[index] = av2h_sample_clamp(av2h_sample_round_pow2(
-            (int64_t)coefficients->dequantized[index] * 2896, 12U),
-            -131072, 131071);
+    {
+        const Av2hInverseTransformPlan plan = {
+            8U, 4U, 8U, 4U, 7U, 10U, RECON_1D_DCT, RECON_1D_DCT, 1U
+        };
+        return inverse_transform_samples_u16(
+            NULL, mode, prefix, transform, coefficients, predictor, predictor_stride_samples,
+            scratch, reconstruction, &plan, 0U, domain);
     }
-    status = av2h_inverse_secondary_transform(
-        mode, prefix, transform, coefficients, scratch->scaled);
-    if (status != AV2H_OK) return status;
-    for (row = 0U; row < 4U; ++row) {
-        int32_t row_output[8U];
-        recon_transform_1d(scratch->scaled + (size_t)row * 8U, row_output, RECON_1D_DCT, 8U, 7U, 0U,
-                           domain->bit_depth);
-        for (column = 0U; column < 8U; ++column) {
-            scratch->transposed[(size_t)row * 8U + column] =
-                row_output[column];
-        }
-    }
-    for (column = 0U; column < 8U; ++column) {
-        int32_t column_input[4U];
-        int32_t column_output[4U];
-        for (row = 0U; row < 4U; ++row) {
-            column_input[row] =
-                scratch->transposed[(size_t)row * 8U + column];
-        }
-        recon_transform_1d(column_input, column_output, RECON_1D_DCT, 4U, 10U, 1U,
-                           domain->bit_depth);
-        for (row = 0U; row < 4U; ++row) {
-            scratch->residual[(size_t)row * 8U + column] =
-                column_output[row];
-        }
-    }
-    for (index = 0U; index < 32U; ++index) {
-        int32_t residual = scratch->residual[index];
-        int32_t predicted = predictor[
-            (index / 8U) * predictor_stride_samples + index % 8U];
-        reconstruction->residual[index] = residual;
-        reconstruction->pixels[index] = av2h_sample_clip_to_domain(predicted + residual, domain);
-    }
-    return AV2H_OK;
 }
 
 int av2h_reconstruct_generic_selected(
@@ -1088,7 +1020,7 @@ Av2hStatus av2h_reconstruct_transform_generic(
     reconstruction->height = output_height;
     {
         Av2hInverseTransformPlan plan = {output_width, output_height, coeff_width, coeff_height,
-                                         row_shift,    column_shift,  row_kind,    column_kind};
+                                         row_shift,    column_shift,  row_kind,    column_kind, 0U};
         return inverse_transform_samples(diagnostics, mode, prefix, transform, coefficients,
                                          predictor, predictor_stride_samples, scratch,
                                          reconstruction, &plan, 4U, domain);
@@ -1165,7 +1097,7 @@ Av2hStatus av2h_reconstruct_transform_generic_u16(
     }
     {
         Av2hInverseTransformPlan plan = {output_width, output_height, coeff_width, coeff_height,
-                                         row_shift,    column_shift,  row_kind,    column_kind};
+                                         row_shift,    column_shift,  row_kind,    column_kind, 0U};
         return inverse_transform_samples_u16(diagnostics, mode, prefix, transform, coefficients,
                                              predictor, predictor_stride_samples, scratch,
                                              reconstruction, &plan, 3U, domain);

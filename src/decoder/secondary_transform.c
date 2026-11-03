@@ -18,6 +18,83 @@
 #include "ist_type1_data.inc"
 #include "ist_type2_data.inc"
 
+typedef struct {
+    Av2hIntraMode mode;
+    Av2hTxSize tx_size;
+    uint8_t secondary_symbol;
+    uint8_t secondary_set;
+    const uint8_t *input_scan;
+    const uint8_t *output_scan;
+} Av2hSmallIstDescriptor;
+
+static const int16_t (*const ist_4x4_kernels[14U][3U])[16U] = {
+    {av2h_ist_4x4_set0_type1_kernel, av2h_ist_4x4_set0_type2_kernel, av2h_ist_4x4_set0_type3_kernel},
+    {av2h_ist_4x4_set1_type1_kernel, av2h_ist_4x4_set1_type2_kernel, av2h_ist_4x4_set1_type3_kernel},
+    {av2h_ist_4x4_set2_type1_kernel, av2h_ist_4x4_set2_type2_kernel, av2h_ist_4x4_set2_type3_kernel},
+    {av2h_ist_4x4_set3_type1_kernel, av2h_ist_4x4_set3_type2_kernel, av2h_ist_4x4_set3_type3_kernel},
+    {av2h_ist_4x4_set4_type1_kernel, av2h_ist_4x4_set4_type2_kernel, av2h_ist_4x4_set4_type3_kernel},
+    {av2h_ist_4x4_set5_type1_kernel, av2h_ist_4x4_set5_type2_kernel, av2h_ist_4x4_set5_type3_kernel},
+    {av2h_ist_4x4_set6_type1_kernel, av2h_ist_4x4_set6_type2_kernel, av2h_ist_4x4_set6_type3_kernel},
+    {av2h_ist_4x4_set7_type1_kernel, av2h_ist_4x4_set7_type2_kernel, av2h_ist_4x4_set7_type3_kernel},
+    {av2h_ist_4x4_set8_type1_kernel, av2h_ist_4x4_set8_type2_kernel, av2h_ist_4x4_set8_type3_kernel},
+    {av2h_ist_4x4_set9_type1_kernel, av2h_ist_4x4_set9_type2_kernel, av2h_ist_4x4_set9_type3_kernel},
+    {av2h_ist_4x4_set10_type1_kernel, av2h_ist_4x4_set10_type2_kernel, av2h_ist_4x4_set10_type3_kernel},
+    {av2h_ist_4x4_set11_type1_kernel, av2h_ist_4x4_set11_type2_kernel, av2h_ist_4x4_set11_type3_kernel},
+    {av2h_ist_4x4_set12_type1_kernel, av2h_ist_4x4_set12_type2_kernel, av2h_ist_4x4_set12_type3_kernel},
+    {av2h_ist_4x4_set13_type1_kernel, av2h_ist_4x4_set13_type2_kernel, av2h_ist_4x4_set13_type3_kernel}
+};
+
+static const Av2hSmallIstDescriptor small_ist_descriptors[] = {
+    {AV2H_INTRA_DC, AV2H_TX_4X4, 1U, 8U,
+     av2h_ist_4x4_tx4_input_scan, av2h_ist_4x4_tx4_output_scan},
+    {AV2H_INTRA_DC, AV2H_TX_8X4, 2U, 12U,
+     av2h_ist_4x4_tx8_input_scan, av2h_ist_4x4_tx8_output_scan},
+    {AV2H_INTRA_SMOOTH, AV2H_TX_8X4, 1U, 6U,
+     av2h_ist_4x4_tx8_input_scan, av2h_ist_4x4_tx8_output_scan},
+    {AV2H_INTRA_D135, AV2H_TX_4X8, 1U, 3U,
+     av2h_ist_4x4_tx4_input_scan, av2h_ist_4x4_tx4_output_scan}
+};
+
+static Av2hStatus inverse_small_ist(
+    const int32_t input[8U], const int16_t kernel[8U][16U],
+    const uint16_t positions[16U], uint16_t capacity,
+    int32_t dequantized[AV2H_COEFF_CAPACITY]) {
+    uint16_t index;
+    for (index = 0U; index < 16U; ++index) {
+        uint16_t row;
+        uint16_t position = positions[index];
+        int64_t sum = 0;
+        if (position >= capacity) return AV2H_INVALID_DATA;
+        for (row = 0U; row < 8U; ++row) {
+            sum += (int64_t)input[row] * kernel[row][index];
+        }
+        dequantized[position] =
+            av2h_sample_clamp(av2h_sample_round_pow2_signed(sum, 7U), -32768, 32767);
+    }
+    return AV2H_OK;
+}
+
+static Av2hStatus inverse_small_ist_descriptor(
+    const Av2hSmallIstDescriptor *descriptor, const Av2hCoeffBlock *coefficients,
+    int32_t dequantized[AV2H_COEFF_CAPACITY]) {
+    int32_t input[8U];
+    uint16_t positions[16U];
+    uint16_t index;
+    for (index = 0U; index < 8U; ++index) {
+        input[index] = dequantized[descriptor->input_scan[index]];
+    }
+    for (index = 0U; index < coefficients->coefficient_count; ++index) {
+        dequantized[index] = 0;
+    }
+    for (index = 0U; index < 16U; ++index) {
+        positions[index] = descriptor->output_scan[index];
+    }
+    /* Fixed scans historically address the full buffer, not the declared count. */
+    return inverse_small_ist(
+        input, ist_4x4_kernels[descriptor->secondary_set][descriptor->secondary_symbol - 1U],
+        positions, AV2H_COEFF_CAPACITY, dequantized);
+}
+
 static uint16_t ist_scan_position(
     uint16_t scan_index, uint16_t width, uint16_t height) {
     unsigned int diagonal;
@@ -77,136 +154,13 @@ static Av2hStatus inverse_secondary_transform_4x4(
         mode->mode == AV2H_INTRA_D67 ||
         mode->mode == AV2H_INTRA_SMOOTH_HORIZONTAL);
     int32_t input[8U];
+    uint16_t positions[16U];
     uint16_t index;
-    if (transform->secondary_set == 0U &&
-        transform->secondary_symbol == 1U) {
-        kernel = av2h_ist_4x4_set0_type1_kernel;
-    } else if (transform->secondary_set == 0U &&
-        transform->secondary_symbol == 2U) {
-        kernel = av2h_ist_4x4_set0_type2_kernel;
-    } else if (transform->secondary_set == 0U &&
-               transform->secondary_symbol == 3U) {
-        kernel = av2h_ist_4x4_set0_type3_kernel;
-    } else if (transform->secondary_set == 1U &&
-               transform->secondary_symbol == 1U) {
-        kernel = av2h_ist_4x4_set1_type1_kernel;
-    } else if (transform->secondary_set == 1U &&
-               transform->secondary_symbol == 2U) {
-        kernel = av2h_ist_4x4_set1_type2_kernel;
-    } else if (transform->secondary_set == 1U &&
-               transform->secondary_symbol == 3U) {
-        kernel = av2h_ist_4x4_set1_type3_kernel;
-    } else if (transform->secondary_set == 2U &&
-               transform->secondary_symbol == 1U) {
-        kernel = av2h_ist_4x4_set2_type1_kernel;
-    } else if (transform->secondary_set == 2U &&
-        transform->secondary_symbol == 2U) {
-        kernel = av2h_ist_4x4_set2_type2_kernel;
-    } else if (transform->secondary_set == 2U &&
-               transform->secondary_symbol == 3U) {
-        kernel = av2h_ist_4x4_set2_type3_kernel;
-    } else if (transform->secondary_set == 3U &&
-               transform->secondary_symbol == 1U) {
-        kernel = av2h_ist_4x4_set3_type1_kernel;
-    } else if (transform->secondary_set == 3U &&
-               transform->secondary_symbol == 2U) {
-        kernel = av2h_ist_4x4_set3_type2_kernel;
-    } else if (transform->secondary_set == 3U &&
-               transform->secondary_symbol == 3U) {
-        kernel = av2h_ist_4x4_set3_type3_kernel;
-    } else if (transform->secondary_set == 4U &&
-               transform->secondary_symbol == 1U) {
-        kernel = av2h_ist_4x4_set4_type1_kernel;
-    } else if (transform->secondary_set == 4U &&
-               transform->secondary_symbol == 2U) {
-        kernel = av2h_ist_4x4_set4_type2_kernel;
-    } else if (transform->secondary_set == 4U &&
-               transform->secondary_symbol == 3U) {
-        kernel = av2h_ist_4x4_set4_type3_kernel;
-    } else if (transform->secondary_set == 5U &&
-               transform->secondary_symbol == 1U) {
-        kernel = av2h_ist_4x4_set5_type1_kernel;
-    } else if (transform->secondary_set == 5U &&
-               transform->secondary_symbol == 2U) {
-        kernel = av2h_ist_4x4_set5_type2_kernel;
-    } else if (transform->secondary_set == 5U &&
-               transform->secondary_symbol == 3U) {
-        kernel = av2h_ist_4x4_set5_type3_kernel;
-    } else if (transform->secondary_set == 6U &&
-               transform->secondary_symbol == 1U) {
-        kernel = av2h_ist_4x4_set6_type1_kernel;
-    } else if (transform->secondary_set == 6U &&
-               transform->secondary_symbol == 2U) {
-        kernel = av2h_ist_4x4_set6_type2_kernel;
-    } else if (transform->secondary_set == 6U &&
-               transform->secondary_symbol == 3U) {
-        kernel = av2h_ist_4x4_set6_type3_kernel;
-    } else if (transform->secondary_set == 7U &&
-               transform->secondary_symbol == 1U) {
-        kernel = av2h_ist_4x4_set7_type1_kernel;
-    } else if (transform->secondary_set == 7U &&
-               transform->secondary_symbol == 2U) {
-        kernel = av2h_ist_4x4_set7_type2_kernel;
-    } else if (transform->secondary_set == 7U &&
-               transform->secondary_symbol == 3U) {
-        kernel = av2h_ist_4x4_set7_type3_kernel;
-    } else if (transform->secondary_set == 8U &&
-               transform->secondary_symbol == 1U) {
-        kernel = av2h_ist_4x4_set8_type1_kernel;
-    } else if (transform->secondary_set == 8U &&
-               transform->secondary_symbol == 2U) {
-        kernel = av2h_ist_4x4_set8_type2_kernel;
-    } else if (transform->secondary_set == 8U &&
-               transform->secondary_symbol == 3U) {
-        kernel = av2h_ist_4x4_set8_type3_kernel;
-    } else if (transform->secondary_set == 9U &&
-               transform->secondary_symbol == 1U) {
-        kernel = av2h_ist_4x4_set9_type1_kernel;
-    } else if (transform->secondary_set == 9U &&
-               transform->secondary_symbol == 2U) {
-        kernel = av2h_ist_4x4_set9_type2_kernel;
-    } else if (transform->secondary_set == 9U &&
-               transform->secondary_symbol == 3U) {
-        kernel = av2h_ist_4x4_set9_type3_kernel;
-    } else if (transform->secondary_set == 10U &&
-               transform->secondary_symbol == 1U) {
-        kernel = av2h_ist_4x4_set10_type1_kernel;
-    } else if (transform->secondary_set == 10U &&
-               transform->secondary_symbol == 2U) {
-        kernel = av2h_ist_4x4_set10_type2_kernel;
-    } else if (transform->secondary_set == 10U &&
-               transform->secondary_symbol == 3U) {
-        kernel = av2h_ist_4x4_set10_type3_kernel;
-    } else if (transform->secondary_set == 11U &&
-               transform->secondary_symbol == 1U) {
-        kernel = av2h_ist_4x4_set11_type1_kernel;
-    } else if (transform->secondary_set == 11U &&
-               transform->secondary_symbol == 2U) {
-        kernel = av2h_ist_4x4_set11_type2_kernel;
-    } else if (transform->secondary_set == 11U &&
-               transform->secondary_symbol == 3U) {
-        kernel = av2h_ist_4x4_set11_type3_kernel;
-    } else if (transform->secondary_set == 12U &&
-               transform->secondary_symbol == 1U) {
-        kernel = av2h_ist_4x4_set12_type1_kernel;
-    } else if (transform->secondary_set == 12U &&
-               transform->secondary_symbol == 2U) {
-        kernel = av2h_ist_4x4_set12_type2_kernel;
-    } else if (transform->secondary_set == 12U &&
-               transform->secondary_symbol == 3U) {
-        kernel = av2h_ist_4x4_set12_type3_kernel;
-    } else if (transform->secondary_set == 13U &&
-               transform->secondary_symbol == 1U) {
-        kernel = av2h_ist_4x4_set13_type1_kernel;
-    } else if (transform->secondary_set == 13U &&
-               transform->secondary_symbol == 2U) {
-        kernel = av2h_ist_4x4_set13_type2_kernel;
-    } else if (transform->secondary_set == 13U &&
-               transform->secondary_symbol == 3U) {
-        kernel = av2h_ist_4x4_set13_type3_kernel;
-    } else {
+    if (transform->secondary_set >= 14U ||
+        transform->secondary_symbol < 1U || transform->secondary_symbol > 3U) {
         return AV2H_UNSUPPORTED;
     }
+    kernel = ist_4x4_kernels[transform->secondary_set][transform->secondary_symbol - 1U];
     for (index = 0U; index < 8U; ++index) {
         uint16_t position = ist_scan_position(
             index, coefficients->width, coefficients->height);
@@ -217,20 +171,11 @@ static Av2hStatus inverse_secondary_transform_4x4(
         dequantized[position] = 0;
     }
     for (index = 0U; index < 16U; ++index) {
-        uint16_t row;
-        uint16_t position = ist_output_position(
+        positions[index] = ist_output_position(
             index, coefficients->width, 4U, transpose_output);
-        int64_t sum = 0;
-        if (position >= coefficients->coefficient_count) {
-            return AV2H_INVALID_DATA;
-        }
-        for (row = 0U; row < 8U; ++row) {
-            sum += (int64_t)input[row] * kernel[row][index];
-        }
-        dequantized[position] =
-            av2h_sample_clamp(av2h_sample_round_pow2_signed(sum, 7U), -32768, 32767);
     }
-    return AV2H_OK;
+    return inverse_small_ist(
+        input, kernel, positions, coefficients->coefficient_count, dequantized);
 }
 
 Av2hStatus av2h_inverse_secondary_transform(
@@ -262,105 +207,14 @@ Av2hStatus av2h_inverse_secondary_transform(
         return inverse_secondary_transform_4x4(
             mode, transform, coefficients, dequantized);
     }
-    if (mode->mode == AV2H_INTRA_DC &&
-        prefix->tx_size == AV2H_TX_4X4 &&
-        transform->secondary_symbol == 1U &&
-        transform->secondary_set == 8U) {
-        int32_t small_input[8U];
-        for (index = 0U; index < 8U; ++index) {
-            uint16_t position = av2h_ist_4x4_tx4_input_scan[index];
-            small_input[index] = dequantized[position];
+    for (index = 0U; index < sizeof(small_ist_descriptors) / sizeof(small_ist_descriptors[0]);
+         ++index) {
+        const Av2hSmallIstDescriptor *small = &small_ist_descriptors[index];
+        if (mode->mode == small->mode && prefix->tx_size == small->tx_size &&
+            transform->secondary_symbol == small->secondary_symbol &&
+            transform->secondary_set == small->secondary_set) {
+            return inverse_small_ist_descriptor(small, coefficients, dequantized);
         }
-        for (index = 0U; index < coefficients->coefficient_count; ++index) {
-            dequantized[index] = 0;
-        }
-        for (index = 0U; index < 16U; ++index) {
-            uint16_t row;
-            int64_t sum = 0;
-            uint16_t position = av2h_ist_4x4_tx4_output_scan[index];
-            for (row = 0U; row < 8U; ++row) {
-                sum += (int64_t)small_input[row] *
-                    av2h_ist_4x4_set8_type1_kernel[row][index];
-            }
-            dequantized[position] =
-                av2h_sample_clamp(av2h_sample_round_pow2_signed(sum, 7U), -32768, 32767);
-        }
-        return AV2H_OK;
-    }
-    if (mode->mode == AV2H_INTRA_DC &&
-        prefix->tx_size == AV2H_TX_8X4 &&
-        transform->secondary_symbol == 2U &&
-        transform->secondary_set == 12U) {
-        int32_t small_input[8U];
-        for (index = 0U; index < 8U; ++index) {
-            uint16_t position = av2h_ist_4x4_tx8_input_scan[index];
-            small_input[index] = dequantized[position];
-        }
-        for (index = 0U; index < coefficients->coefficient_count; ++index) {
-            dequantized[index] = 0;
-        }
-        for (index = 0U; index < 16U; ++index) {
-            uint16_t row;
-            int64_t sum = 0;
-            uint16_t position = av2h_ist_4x4_tx8_output_scan[index];
-            for (row = 0U; row < 8U; ++row) {
-                sum += (int64_t)small_input[row] *
-                    av2h_ist_4x4_set12_type2_kernel[row][index];
-            }
-            dequantized[position] =
-                av2h_sample_clamp(av2h_sample_round_pow2_signed(sum, 7U), -32768, 32767);
-        }
-        return AV2H_OK;
-    }
-    if (mode->mode == AV2H_INTRA_SMOOTH &&
-        prefix->tx_size == AV2H_TX_8X4 &&
-        transform->secondary_symbol == 1U &&
-        transform->secondary_set == 6U) {
-        int32_t small_input[8U];
-        for (index = 0U; index < 8U; ++index) {
-            uint16_t position = av2h_ist_4x4_tx8_input_scan[index];
-            small_input[index] = dequantized[position];
-        }
-        for (index = 0U; index < coefficients->coefficient_count; ++index) {
-            dequantized[index] = 0;
-        }
-        for (index = 0U; index < 16U; ++index) {
-            uint16_t row;
-            int64_t sum = 0;
-            uint16_t position = av2h_ist_4x4_tx8_output_scan[index];
-            for (row = 0U; row < 8U; ++row) {
-                sum += (int64_t)small_input[row] *
-                    av2h_ist_4x4_set6_type1_kernel[row][index];
-            }
-            dequantized[position] =
-                av2h_sample_clamp(av2h_sample_round_pow2_signed(sum, 7U), -32768, 32767);
-        }
-        return AV2H_OK;
-    }
-    if (mode->mode == AV2H_INTRA_D135 &&
-        prefix->tx_size == AV2H_TX_4X8 &&
-        transform->secondary_symbol == 1U &&
-        transform->secondary_set == 3U) {
-        int32_t small_input[8U];
-        for (index = 0U; index < 8U; ++index) {
-            uint16_t position = av2h_ist_4x4_tx4_input_scan[index];
-            small_input[index] = dequantized[position];
-        }
-        for (index = 0U; index < coefficients->coefficient_count; ++index) {
-            dequantized[index] = 0;
-        }
-        for (index = 0U; index < 16U; ++index) {
-            uint16_t row;
-            int64_t sum = 0;
-            uint16_t position = av2h_ist_4x4_tx4_output_scan[index];
-            for (row = 0U; row < 8U; ++row) {
-                sum += (int64_t)small_input[row] *
-                    av2h_ist_4x4_set3_type1_kernel[row][index];
-            }
-            dequantized[position] =
-                av2h_sample_clamp(av2h_sample_round_pow2_signed(sum, 7U), -32768, 32767);
-        }
-        return AV2H_OK;
     }
     transpose_output = (uint8_t)(
         mode->mode == AV2H_INTRA_HORIZONTAL ||

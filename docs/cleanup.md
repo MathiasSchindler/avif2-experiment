@@ -1,6 +1,6 @@
 # Code Quality and Consistency Cleanup Plan
 
-**Status:** C1-C7 complete; C8-C10 planned
+**Status:** C1-C8 complete; C9-C10 planned
 
 **Scope:** [`src/`](../src/) and [`include/av2heif.h`](../include/av2heif.h)
 
@@ -665,6 +665,60 @@ Several core decoder modules contain bring-up-era special-case cascades or irreg
 ### Exit Criteria
 - `inverse_secondary_transform_4x4` uses a table lookup instead of a 42-way `if / else if` chain, and the 8×16 IST inner loop appears once.
 - Zero unreachable code branches remain in [`coeff_level.c`](../src/decoder/coeff_level.c) when compiled with `-Wunreachable-code`.
+
+### Completed
+
+- Replaced the 42-kernel ladder with the bounded
+  `ist_4x4_kernels[14][3]` table. Four tuple descriptors select the fixed
+  input/output scans and use the same small-IST numerical helper as the
+  ordinary 4x4 path. Input clearing, transposition, signed rounding, clipping,
+  unsupported selection, and partial writes on malformed counts are unchanged.
+- Preserved the dispatch ordering and the historically admitted mismatched
+  prefix/coefficient geometries that reach the four fixed-scan tuples.
+  Their whole-block clearing and trusted full-buffer scans remain distinct
+  from ordinary 4x4 admission.
+- Reduced the three coefficient-context predicates to their effective bounds
+  and removed the downstream unreachable legacy CDF-selection ladders.
+  Q0-specific banks, TCQ bank indexing, CDF adaptation, entropy reads,
+  diagnostic fields, and error ordering are unchanged. A source guard prevents
+  the retired fallback selectors from returning.
+- Routed the specialized 16-bit 8x16 and 8x4 numerical bodies through
+  [`inverse_transform_kernel.inc`](../src/decoder/internal/inverse_transform_kernel.inc).
+  An explicit private preparation flag preserves their pre-secondary
+  rectangular scaling and fixed clamp; generic paths still scale afterward.
+  Each ordinary wrapper retains its own admission, zero-block validation,
+  partial-output behavior, and exact status distinctions.
+- Kept C2 include/type layout and all 17 trailing typed-instantiation sections.
+  Public headers, workspace layouts, stream admission, oracle data, and media
+  are unchanged. Future 12-bit arithmetic remains tested without enabling
+  12-bit streams. C9 and C10 remain future work.
+
+### Validation
+
+- All 33 sanitized C suites and 2,460 deterministic public-decode fuzz cases
+  pass in each diagnostic configuration. Both frozen 77-line inventories
+  match exactly.
+- Pre/post characterization matches all 7,257 records in both configurations,
+  including exhaustive byte-valued q/transform/context inputs with low flags
+  0, 1, and 255 (50,331,648 combinations), small-IST selections and mutations,
+  fixed-scan tuples, and specialized wide-transform statuses, scratch buffers,
+  and outputs.
+- Added persistent checks for all 42 small IST kernels, output transposition,
+  all byte-valued set/symbol bounds, partial writes, four tuple descriptors,
+  and specialized wide numerical/admission/zero-block behavior across
+  8/10/12-bit sample domains. The new C regressions also pass against the
+  retained pre-C8 library.
+- All 31 related Python checks pass. The three changed owners compile with
+  `-Wunreachable-code -Wredundant-decls -Werror` in both configurations.
+  All 55 standalone private headers and 35 value-only roots pass, without
+  include cycles; native and freestanding checks pass.
+- All 179 available native corpus hashes and 14 exact CLI output/error/
+  destination-preservation contracts match the baseline.
+- Five interleaved before/after rounds over 15 cases spanning all five admitted
+  profiles measured median **-0.73%**, aggregate-time-weighted **-0.98%**, and
+  per-case changes from **-1.83% to +1.75%** on the M4 Max. No material
+  decode-speed regression was observed. Cross-builds and media regeneration
+  were not required.
 
 ---
 
