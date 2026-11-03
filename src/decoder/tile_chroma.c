@@ -176,7 +176,7 @@ Av2hStatus av2h_tile_decoder_read_shared_chroma_mode(
             (size_t)node->row * decoder->traversal.mi_columns +
             node->column - 1U].chroma_cfl);
     }
-    status = av2h_chroma_mode_read_with_delta_for_sdp(
+    status = av2h_chroma_mode_read(
         &decoder->entropy_state.range, &decoder->entropy_state.leaf_cdfs, decoder->entropy_state.sequence,
         (Av2hIntraMode)colocated->mode, colocated->angle_delta,
         node->block_size, cfl_context,
@@ -435,7 +435,7 @@ Av2hStatus av2h_tile_decoder_next_chroma(
             leaf->mode.edge_ibp = decoder->entropy_state.sequence->enable_ibp;
             status = AV2H_OK;
         } else {
-            status = av2h_chroma_mode_read_with_delta_for_sdp(
+            status = av2h_chroma_mode_read(
                 &decoder->entropy_state.range, &decoder->entropy_state.leaf_cdfs, decoder->entropy_state.sequence,
                 (Av2hIntraMode)colocated->mode,
                 colocated->angle_delta, leaf->node.block_size, cfl_context,
@@ -444,7 +444,7 @@ Av2hStatus av2h_tile_decoder_next_chroma(
         }
         if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
     } else {
-        status = av2h_chroma_mode_read_with_delta_for_sdp(
+        status = av2h_chroma_mode_read(
             &decoder->entropy_state.range, &decoder->entropy_state.leaf_cdfs, decoder->entropy_state.sequence,
             (Av2hIntraMode)colocated->mode, colocated->angle_delta,
             leaf->node.block_size, cfl_context,
@@ -654,13 +654,13 @@ Av2hStatus av2h_tile_decoder_reconstruct_next_chroma(
         &u_block, &v_block, leaf->transform[0].cctx_type,
         decoder->entropy_state.sequence->info.bit_depth_idc == 0U ? 10U : 8U);
     if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
-    status = av2h_chroma_reconstruct_to_plane_format(
-        &leaf->node, &leaf->mode, &leaf->prefix[0], &leaf->transform[0],
+    status = av2h_chroma_reconstruct_to_plane(
+        NULL, &leaf->node, &leaf->mode, &leaf->prefix[0], &leaf->transform[0],
         &u_block, u_plane, NULL, 1U, NULL,
         decoder->entropy_state.sequence->info.chroma_format_idc, scratch);
     if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
-    status = av2h_chroma_reconstruct_to_plane_format(
-        &leaf->node, &leaf->mode, &leaf->prefix[1], &leaf->transform[1],
+    status = av2h_chroma_reconstruct_to_plane(
+        NULL, &leaf->node, &leaf->mode, &leaf->prefix[1], &leaf->transform[1],
         &v_block, v_plane, NULL, 2U, NULL,
         decoder->entropy_state.sequence->info.chroma_format_idc, scratch);
     if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);

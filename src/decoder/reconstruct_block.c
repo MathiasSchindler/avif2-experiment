@@ -120,7 +120,7 @@ static Av2hStatus reconstruct_lossless_4x4_u16(
     return AV2H_OK;
 }
 
-Av2hStatus av2h_luma_reconstruct_with_diagnostics(
+Av2hStatus av2h_luma_reconstruct(
     Av2hDecodeDiagnostics *diagnostics,
     const Av2hLeafMode *mode,
     const Av2hCoeffPrefix *prefix,
@@ -250,7 +250,7 @@ Av2hStatus av2h_luma_reconstruct_with_diagnostics(
         return AV2H_OK;
     }
     if (av2h_reconstruct_generic_selected(mode, transform, prefix->tx_size)) {
-        return av2h_reconstruct_transform_generic_with_diagnostics(
+        return av2h_reconstruct_transform_generic(
             diagnostics, mode, prefix, transform, coefficients, predictor, predictor_stride_samples,
             scratch, reconstruction);
     }
@@ -1086,53 +1086,6 @@ Av2hStatus av2h_luma_reconstruct_with_diagnostics(
     return AV2H_OK;
 }
 
-Av2hStatus av2h_luma_reconstruct_without_predictor(
-    const Av2hLeafMode *mode,
-    const Av2hCoeffPrefix *prefix,
-    const Av2hTransformType *transform,
-    const Av2hCoeffBlock *coefficients,
-    Av2hReconstructionScratch *scratch,
-    Av2hBlockReconstruction *reconstruction) {
-    return av2h_luma_reconstruct(mode, prefix, transform, coefficients,
-                                 NULL, 0U, scratch, reconstruction);
-}
-
-Av2hStatus av2h_luma_reconstruct(
-    const Av2hLeafMode *mode,
-    const Av2hCoeffPrefix *prefix,
-    const Av2hTransformType *transform,
-    const Av2hCoeffBlock *coefficients,
-    const uint8_t *predictor,
-    size_t predictor_stride_samples,
-    Av2hReconstructionScratch *scratch,
-    Av2hBlockReconstruction *reconstruction) {
-    return av2h_luma_reconstruct_with_diagnostics(
-        NULL, mode, prefix, transform, coefficients, predictor,
-        predictor_stride_samples, scratch, reconstruction);
-}
-
-Av2hStatus av2h_chroma_reconstruct_dc_4x4(
-    const Av2hCoeffPrefix *prefix,
-    const Av2hTransformType *transform,
-    const Av2hCoeffBlock *coefficients,
-    Av2hReconstructionScratch *scratch,
-    Av2hBlockReconstruction *reconstruction) {
-    Av2hLeafMode mode;
-    if (prefix == NULL || transform == NULL || coefficients == NULL || scratch == NULL ||
-        reconstruction == NULL) {
-        return AV2H_INVALID_ARGUMENT;
-    }
-    if (prefix->tx_size != AV2H_TX_4X4 ||
-        transform->primary_type != AV2H_TX_DCT_DCT ||
-        coefficients->width != 4U || coefficients->height != 4U) {
-        return AV2H_UNSUPPORTED;
-    }
-    av2h_memory_fill(&mode, 0U, sizeof(mode));
-    mode.mode = AV2H_INTRA_DC;
-    return av2h_luma_reconstruct(&mode, prefix, transform, coefficients,
-                                 NULL, 0U, scratch, reconstruction);
-}
-
 Av2hStatus av2h_chroma_inverse_cross_transform(
     Av2hCoeffBlock *u_coefficients,
     Av2hCoeffBlock *v_coefficients,
@@ -1179,7 +1132,7 @@ Av2hStatus av2h_chroma_inverse_cross_transform(
     return AV2H_OK;
 }
 
-Av2hStatus av2h_luma_reconstruct_u16_with_diagnostics(
+Av2hStatus av2h_luma_reconstruct_u16(
     Av2hDecodeDiagnostics *diagnostics,
     const Av2hLeafMode *mode,
     const Av2hCoeffPrefix *prefix,
@@ -1249,14 +1202,14 @@ Av2hStatus av2h_luma_reconstruct_u16_with_diagnostics(
     } else {
         av2h_reconstruction_diagnostics_set_luma_stage(
             diagnostics, 2U);
-        status = av2h_reconstruct_transform_generic_u16_with_diagnostics(
+        status = av2h_reconstruct_transform_generic_u16(
             diagnostics, mode, prefix, transform, coefficients, predictor,
             descriptor->output_width, scratch, reconstruction);
     }
     return status;
 }
 
-Av2hStatus av2h_chroma_reconstruct_with_diagnostics(
+Av2hStatus av2h_chroma_reconstruct(
     Av2hDecodeDiagnostics *diagnostics,
     const Av2hChromaLeafMode *mode,
     const Av2hCoeffPrefix *prefix,
@@ -1305,12 +1258,12 @@ Av2hStatus av2h_chroma_reconstruct_with_diagnostics(
     if (coefficients->nonzero_count != 0U) {
         effective_prefix.all_zero = 0U;
     }
-    return av2h_luma_reconstruct_with_diagnostics(
+    return av2h_luma_reconstruct(
         diagnostics, &luma_mode, &effective_prefix, transform, coefficients,
         predictor, width, scratch, reconstruction);
 }
 
-Av2hStatus av2h_chroma_reconstruct_u16_with_diagnostics(
+Av2hStatus av2h_chroma_reconstruct_u16(
     Av2hDecodeDiagnostics *diagnostics,
     const Av2hChromaLeafMode *mode,
     const Av2hCoeffPrefix *prefix,
@@ -1342,7 +1295,7 @@ Av2hStatus av2h_chroma_reconstruct_u16_with_diagnostics(
         luma_mode.edge_ibp = mode->edge_ibp;
         luma_mode.above_smooth = mode->above_smooth;
         luma_mode.left_smooth = mode->left_smooth;
-        status = av2h_reconstruct_transform_generic_u16_with_diagnostics(
+        status = av2h_reconstruct_transform_generic_u16(
             diagnostics, &luma_mode, prefix, transform, coefficients,
             predictor, descriptor->output_width, scratch, reconstruction);
     }

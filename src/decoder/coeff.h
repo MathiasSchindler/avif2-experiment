@@ -41,8 +41,7 @@ typedef struct {
     size_t mi_rows;
 } Av2hCoeffContextState;
 
-Av2hStatus av2h_coeff_cdfs_init(Av2hCoeffCdfs *cdfs);
-Av2hStatus av2h_coeff_cdfs_init_for_q(
+Av2hStatus av2h_coeff_cdfs_init(
     Av2hCoeffCdfs *cdfs,
     Av2hQIndex base_q_index);
 Av2hStatus av2h_coeff_context_state_init(
@@ -71,20 +70,7 @@ Av2hStatus av2h_coeff_context_state_update(
     uint8_t plane,
     const Av2hPartitionNode *leaf,
     uint8_t cul_level);
-Av2hStatus av2h_first_coeff_prefix_read(
-    Av2hRangeDecoder *decoder,
-    Av2hCoeffCdfs *cdfs,
-    const Av2hFrameState *frame,
-    const Av2hPartitionNode *leaf,
-    const Av2hLeafMode *mode,
-    Av2hCoeffPrefix *prefix);
-Av2hStatus av2h_chroma_coeff_prefix_read_default_context(
-    Av2hRangeDecoder *decoder,
-    Av2hCoeffCdfs *cdfs,
-    const Av2hFrameState *frame,
-    const Av2hPartitionNode *leaf,
-    uint8_t plane,
-    Av2hCoeffPrefix *prefix);
+
 Av2hStatus av2h_chroma_coeff_prefix_read(
     Av2hRangeDecoder *decoder,
     Av2hCoeffCdfs *cdfs,

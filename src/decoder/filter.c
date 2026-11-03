@@ -169,11 +169,11 @@ Av2hStatus av2h_filter_frame(
         &workspace->deblocked, sequence, frame,
         &workspace->deblock_map);
     if (status != AV2H_OK) return status;
-    status = av2h_cdef_filter_frame_with_sequence(
+    status = av2h_cdef_filter_frame(
         &workspace->cdef, &workspace->deblocked, sequence, frame,
         &workspace->cdef_controls);
     if (status != AV2H_OK) return status;
-    status = av2h_ccso_filter_frame_with_sequence(
+    status = av2h_ccso_filter_frame(
         &workspace->cdef, workspace->deblocked.plane[0].data,
         workspace->deblocked.plane[0].stride_samples, sequence, frame,
         &workspace->ccso_controls);
@@ -203,7 +203,7 @@ Av2hStatus av2h_filter_frame(
     }
     gdf_baseline = frame->restoration_type[0] != AV2H_RESTORE_NONE ?
         &workspace->restoration : &workspace->cdef.plane[0];
-    status = av2h_gdf_filter_frame_with_sequence(
+    status = av2h_gdf_filter_frame(
         &planes->plane[0], gdf_baseline, &workspace->cdef.plane[0],
         &workspace->deblocked.plane[0], sequence, frame,
         &workspace->gdf_controls);
@@ -260,16 +260,16 @@ Av2hStatus av2h_filter_stage_u16(
     status = av2h_deblock_stage_u16(
         planes, sequence, frame, workspace);
     if (status != AV2H_OK) return status;
-    status = av2h_cdef_filter_frame_u16_with_sequence(
+    status = av2h_cdef_filter_frame_u16(
         &workspace->cdef_u16, &workspace->deblocked_u16, sequence, frame,
         &workspace->cdef_controls);
     if (status != AV2H_OK) return status;
-    status = av2h_ccso_filter_frame_u16_with_sequence(
+    status = av2h_ccso_filter_frame_u16(
         &workspace->cdef_u16, workspace->deblocked_u16.plane[0].data,
         workspace->deblocked_u16.plane[0].stride_samples, sequence, frame,
         &workspace->ccso_controls);
     if (status != AV2H_OK) return status;
-    status = av2h_gdf_filter_frame_u16_with_sequence(
+    status = av2h_gdf_filter_frame_u16(
         &planes->plane[0], &workspace->cdef_u16.plane[0],
         &workspace->deblocked_u16.plane[0], sequence, frame,
         &workspace->gdf_controls);

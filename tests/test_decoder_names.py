@@ -6,8 +6,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 LEGACY = re.compile(r"\b(?:Av2hFirst\w*|av2h_first_\w*|AV2H_FIRST_\w*)\b")
 FIRST_ELEMENT_PARSERS = {
-    "av2h_first_coeff_prefix_read": "src/decoder/coeff.c",
-    "av2h_first_leaf_mode_read": "src/decoder/leaf.c",
+    "test_first_coeff_prefix_read": "tests/decoder_test_helpers.h",
+    "test_first_leaf_mode_read": "tests/decoder_test_helpers.h",
 }
 TYPE_OWNERS = {
     "Av2hIntraMode": "leaf_mode.h",

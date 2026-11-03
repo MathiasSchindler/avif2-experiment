@@ -856,7 +856,7 @@ static Av2hStatus frame_diagnostic_fail(Av2hError *error,
     return status;
 }
 
-Av2hStatus av2h_frame_header_closed_key_parse_diagnostic(
+Av2hStatus av2h_frame_header_closed_key_parse(
     Av2hSpan payload,
     const Av2hSequenceState *sequence,
     Av2hFrameState *frame,
@@ -1075,12 +1075,4 @@ Av2hStatus av2h_frame_header_closed_key_parse_diagnostic(
     if (reader.status != AV2H_OK) return reader.status;
     frame->uncompressed_header_bits = reader.bit_position - 1U;
     return AV2H_OK;
-}
-
-Av2hStatus av2h_frame_header_closed_key_parse(
-    Av2hSpan payload,
-    const Av2hSequenceState *sequence,
-    Av2hFrameState *frame) {
-    return av2h_frame_header_closed_key_parse_diagnostic(
-        payload, sequence, frame, NULL);
 }

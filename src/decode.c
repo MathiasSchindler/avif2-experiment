@@ -187,7 +187,7 @@ Av2hStatus av2h_decode_prepare(const Av2hHeifImage *image,
         image->source.config_obus, sequence_obu,
         &preparation->sequence, error);
     if (status != AV2H_OK) return status;
-    status = av2h_frame_header_closed_key_parse_diagnostic(
+    status = av2h_frame_header_closed_key_parse(
         (Av2hSpan){
             image->source.item_payload.data + frame_obu->payload_offset,
             frame_obu->payload_size
@@ -219,13 +219,13 @@ Av2hStatus av2h_decode_prepare(const Av2hHeifImage *image,
     if (status != AV2H_OK) {
         return decode_fail(error, status, AV2H_CONTEXT_FRAME);
     }
-    status = av2h_planar_output_size_bytes(
+    status = av2h_planar_output_size(
         &preparation->frame, image->pixel_format.bytes_per_sample,
         &preparation->output_size);
     if (status != AV2H_OK) {
         return decode_fail(error, status, AV2H_CONTEXT_OUTPUT);
     }
-    status = av2h_frame_decode_workspace_query_bytes(
+    status = av2h_frame_decode_workspace_query(
         &preparation->sequence, &preparation->frame,
         image->pixel_format.bytes_per_sample, &preparation->workspace);
     if (status != AV2H_OK) {
@@ -295,7 +295,7 @@ Av2hStatus av2h_decode(Av2hSpan input,
     }
     status = av2h_decode_prepare(&fresh.image, &preparation, error);
     if (status != AV2H_OK) return status;
-    status = av2h_frame_decode_workspace_init_bytes(
+    status = av2h_frame_decode_workspace_init(
         &preparation.sequence, &preparation.frame,
         fresh.image.pixel_format.bytes_per_sample,
         &preparation.workspace, workspace_memory, workspace_size,
@@ -313,9 +313,8 @@ Av2hStatus av2h_decode(Av2hSpan input,
     }
     av2h_memory_fill(&result, 0U, sizeof(result));
     status = av2h_decode_frame_group_planar_private(
-        &preparation.group, &preparation.sequence,
-        &preparation.frame, &workspace, (uint8_t *)output_memory,
-        output_size, &result);
+        &preparation.group, &preparation.sequence, &preparation.frame,
+        &workspace, (uint8_t *)output_memory, output_size, &result, NULL);
     if (status != AV2H_OK) {
         status = decode_fail(error, status, decode_result_context(&result));
         decode_result_diagnostics(error, &result);

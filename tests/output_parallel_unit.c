@@ -85,7 +85,8 @@ static void test_u8_width_parity(void) {
     size_t output_size;
     unsigned int plane;
     initialize_frame(&frame, TEST_WIDTH, TEST_HEIGHT);
-    CHECK(av2h_filter_workspace_query(&frame, &layout) == AV2H_OK);
+    CHECK(av2h_filter_workspace_query(
+        &frame, 1U, &layout) == AV2H_OK);
     for (plane = 0U; plane < 3U; ++plane) {
         CHECK(layout.plane_width[plane] == TEST_WIDTH);
         CHECK(layout.plane_height[plane] == TEST_HEIGHT);
@@ -94,12 +95,13 @@ static void test_u8_width_parity(void) {
         };
         capacities[plane] = sizeof(source_u8[plane]);
     }
-    CHECK(av2h_planar_output_size(&frame, &output_size) == AV2H_OK);
-    CHECK(av2h_copy_visible_planar_with_execution_private(
+    CHECK(av2h_planar_output_size(
+        &frame, 1U, &output_size) == AV2H_OK);
+    CHECK(av2h_copy_visible_planar_private(
               &frame, &coded, capacities, serial_output,
               sizeof(serial_output), &serial) == AV2H_OK);
     CHECK(serial_dispatch.calls == 0U);
-    CHECK(av2h_copy_visible_planar_with_execution_private(
+    CHECK(av2h_copy_visible_planar_private(
               &frame, &coded, capacities, parallel_output,
               sizeof(parallel_output), &parallel) == AV2H_OK);
     CHECK(parallel_dispatch.calls == 3U);
@@ -123,7 +125,7 @@ static void test_u16_width_parity(void) {
     size_t output_size;
     unsigned int plane;
     initialize_frame(&frame, TEST_WIDTH, TEST_HEIGHT);
-    CHECK(av2h_filter_workspace_query_bytes(
+    CHECK(av2h_filter_workspace_query(
               &frame, sizeof(uint16_t), &layout) == AV2H_OK);
     for (plane = 0U; plane < 3U; ++plane) {
         coded[plane] = (Av2hReconstructionPlaneU16){
@@ -132,13 +134,13 @@ static void test_u16_width_parity(void) {
         };
         capacities[plane] = sizeof(source_u16[plane]);
     }
-    CHECK(av2h_planar_output_size_bytes(
+    CHECK(av2h_planar_output_size(
               &frame, sizeof(uint16_t), &output_size) == AV2H_OK);
-    CHECK(av2h_copy_visible_planar_u16_with_execution_private(
+    CHECK(av2h_copy_visible_planar_u16_private(
               &frame, coded, capacities, serial_output,
               sizeof(serial_output), &serial) == AV2H_OK);
     CHECK(serial_dispatch.calls == 0U);
-    CHECK(av2h_copy_visible_planar_u16_with_execution_private(
+    CHECK(av2h_copy_visible_planar_u16_private(
               &frame, coded, capacities, parallel_output,
               sizeof(parallel_output), &parallel) == AV2H_OK);
     CHECK(parallel_dispatch.calls == 3U);
@@ -157,7 +159,8 @@ static void test_small_copy_stays_serial(void) {
     };
     unsigned int plane;
     initialize_frame(&frame, 64U, 64U);
-    CHECK(av2h_filter_workspace_query(&frame, &layout) == AV2H_OK);
+    CHECK(av2h_filter_workspace_query(
+        &frame, 1U, &layout) == AV2H_OK);
     for (plane = 0U; plane < 3U; ++plane) {
         coded.plane[plane] = (Av2hFilterPlane){
             source_u8[plane], layout.plane_width[plane],
@@ -165,7 +168,7 @@ static void test_small_copy_stays_serial(void) {
         };
         capacities[plane] = sizeof(source_u8[plane]);
     }
-    CHECK(av2h_copy_visible_planar_with_execution_private(
+    CHECK(av2h_copy_visible_planar_private(
               &frame, &coded, capacities, parallel_output,
               sizeof(parallel_output), &execution) == AV2H_OK);
     CHECK(dispatch.calls == 0U);

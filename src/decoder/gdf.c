@@ -463,19 +463,7 @@ static void gdf_filter_block_u16(Av2hFilterPlaneU16 *destination,
     }
 }
 
-Av2hStatus av2h_gdf_filter_frame_with_baseline(
-    Av2hFilterPlane *destination,
-    const Av2hFilterPlane *baseline_luma,
-    const Av2hFilterPlane *cdef_luma,
-    const Av2hFilterPlane *deblocked_luma,
-    const Av2hFrameState *frame,
-    const Av2hGdfControlMap *controls) {
-    return av2h_gdf_filter_frame_with_sequence(
-        destination, baseline_luma, cdef_luma, deblocked_luma,
-        NULL, frame, controls);
-}
-
-Av2hStatus av2h_gdf_filter_frame_with_sequence(
+Av2hStatus av2h_gdf_filter_frame(
     Av2hFilterPlane *destination,
     const Av2hFilterPlane *baseline_luma,
     const Av2hFilterPlane *cdef_luma,
@@ -576,37 +564,7 @@ Av2hStatus av2h_gdf_filter_frame_with_sequence(
     return AV2H_OK;
 }
 
-Av2hStatus av2h_gdf_filter_frame_with_controls(
-    Av2hFilterPlane *destination,
-    const Av2hFilterPlane *cdef_luma,
-    const Av2hFilterPlane *deblocked_luma,
-    const Av2hFrameState *frame,
-    const Av2hGdfControlMap *controls) {
-    return av2h_gdf_filter_frame_with_baseline(
-        destination, cdef_luma, cdef_luma, deblocked_luma,
-        frame, controls);
-}
-
-Av2hStatus av2h_gdf_filter_frame(
-    Av2hFilterPlane *destination,
-    const Av2hFilterPlane *cdef_luma,
-    const Av2hFilterPlane *deblocked_luma,
-    const Av2hFrameState *frame) {
-    return av2h_gdf_filter_frame_with_controls(
-        destination, cdef_luma, deblocked_luma, frame, NULL);
-}
-
-Av2hStatus av2h_gdf_filter_frame_u16_with_controls(
-    Av2hFilterPlaneU16 *destination,
-    const Av2hFilterPlaneU16 *cdef_luma,
-    const Av2hFilterPlaneU16 *deblocked_luma,
-    const Av2hFrameState *frame,
-    const Av2hGdfControlMap *controls) {
-    return av2h_gdf_filter_frame_u16_with_sequence(
-        destination, cdef_luma, deblocked_luma, NULL, frame, controls);
-}
-
-Av2hStatus av2h_gdf_filter_frame_u16_with_sequence(
+Av2hStatus av2h_gdf_filter_frame_u16(
     Av2hFilterPlaneU16 *destination,
     const Av2hFilterPlaneU16 *cdef_luma,
     const Av2hFilterPlaneU16 *deblocked_luma,
@@ -700,13 +658,3 @@ Av2hStatus av2h_gdf_filter_frame_u16_with_sequence(
     }
     return AV2H_OK;
 }
-
-Av2hStatus av2h_gdf_filter_frame_u16(
-    Av2hFilterPlaneU16 *destination,
-    const Av2hFilterPlaneU16 *cdef_luma,
-    const Av2hFilterPlaneU16 *deblocked_luma,
-    const Av2hFrameState *frame) {
-    return av2h_gdf_filter_frame_u16_with_controls(
-        destination, cdef_luma, deblocked_luma, frame, NULL);
-}
-

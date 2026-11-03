@@ -563,16 +563,7 @@ static Av2hStatus cdef_partial_direction_u16(
         &block, 0U, 0U, direction, variance);
 }
 
-Av2hStatus av2h_cdef_filter_frame_with_controls(
-    Av2hFilterPlanes *destination,
-    const Av2hFilterPlanes *deblocked,
-    const Av2hFrameState *frame,
-    const Av2hCdefControlMap *controls) {
-    return av2h_cdef_filter_frame_with_sequence(
-        destination, deblocked, NULL, frame, controls);
-}
-
-Av2hStatus av2h_cdef_filter_frame_with_sequence(
+Av2hStatus av2h_cdef_filter_frame(
     Av2hFilterPlanes *destination,
     const Av2hFilterPlanes *deblocked,
     const Av2hSequenceState *sequence,
@@ -705,24 +696,7 @@ Av2hStatus av2h_cdef_filter_frame_with_sequence(
     return AV2H_OK;
 }
 
-Av2hStatus av2h_cdef_filter_frame(
-    Av2hFilterPlanes *destination,
-    const Av2hFilterPlanes *deblocked,
-    const Av2hFrameState *frame) {
-    return av2h_cdef_filter_frame_with_controls(
-        destination, deblocked, frame, NULL);
-}
-
-Av2hStatus av2h_cdef_filter_frame_u16_with_controls(
-    Av2hFilterPlanesU16 *destination,
-    const Av2hFilterPlanesU16 *deblocked,
-    const Av2hFrameState *frame,
-    const Av2hCdefControlMap *controls) {
-    return av2h_cdef_filter_frame_u16_with_sequence(
-        destination, deblocked, NULL, frame, controls);
-}
-
-Av2hStatus av2h_cdef_filter_frame_u16_with_sequence(
+Av2hStatus av2h_cdef_filter_frame_u16(
     Av2hFilterPlanesU16 *destination,
     const Av2hFilterPlanesU16 *deblocked,
     const Av2hSequenceState *sequence,
@@ -849,12 +823,4 @@ Av2hStatus av2h_cdef_filter_frame_u16_with_sequence(
         }
     }
     return AV2H_OK;
-}
-
-Av2hStatus av2h_cdef_filter_frame_u16(
-    Av2hFilterPlanesU16 *destination,
-    const Av2hFilterPlanesU16 *deblocked,
-    const Av2hFrameState *frame) {
-    return av2h_cdef_filter_frame_u16_with_controls(
-        destination, deblocked, frame, NULL);
 }

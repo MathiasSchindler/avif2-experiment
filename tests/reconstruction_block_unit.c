@@ -55,19 +55,19 @@ static void test_zero_geometry(void) {
             memset(&output_u16, 0x7d, sizeof(output_u16));
             if (path == 0U) {
                 status = av2h_luma_reconstruct(
-                    &mode, &prefix, &transform, &coefficients, predictor,
+                    NULL, &mode, &prefix, &transform, &coefficients, predictor,
                     descriptor->output_width, &scratch, &output);
             } else if (path == 1U) {
-                status = av2h_luma_reconstruct_u16_with_diagnostics(
+                status = av2h_luma_reconstruct_u16(
                     0, &mode, &prefix, &transform, &coefficients, predictor_u16,
                     &scratch_u16, &output_u16);
             } else if (path == 2U) {
-                status = av2h_chroma_reconstruct_with_diagnostics(
+                status = av2h_chroma_reconstruct(
                     0, &chroma, &prefix, &transform, &coefficients, predictor,
                     descriptor->output_width, descriptor->output_height,
                     &scratch, &output);
             } else {
-                status = av2h_chroma_reconstruct_u16_with_diagnostics(
+                status = av2h_chroma_reconstruct_u16(
                     0, &chroma, &prefix, &transform, &coefficients, predictor_u16,
                     &scratch_u16, &output_u16);
             }
@@ -124,9 +124,9 @@ static void test_dpcm_rounding_and_clipping(void) {
         int32_t residual_u16[64U] = { 0 };
         mode.dpcm_mode_y = (uint8_t)horizontal;
         CHECK(av2h_luma_reconstruct(
-                  &mode, &prefix, &transform, &coefficients, predictor, 8U,
-                  &scratch, &output) == AV2H_OK);
-        CHECK(av2h_luma_reconstruct_u16_with_diagnostics(
+            NULL, &mode, &prefix, &transform, &coefficients, predictor, 8U,
+            &scratch, &output) == AV2H_OK);
+        CHECK(av2h_luma_reconstruct_u16(
                   0, &mode, &prefix, &transform, &coefficients, predictor_u16,
                   &scratch_u16, &output_u16) == AV2H_OK);
         for (index = 0U; index < 64U; ++index) {
@@ -174,10 +174,10 @@ static void test_lossless_chroma_and_rejection(void) {
     coefficients.height = 4U;
     coefficients.coefficient_count = 16U;
     coefficients.dequantized[0] = -17;
-    CHECK(av2h_chroma_reconstruct_with_diagnostics(
+    CHECK(av2h_chroma_reconstruct(
               0, &mode, &prefix, &transform, &coefficients, predictor, 4U, 4U,
               &scratch, &output) == AV2H_OK);
-    CHECK(av2h_chroma_reconstruct_u16_with_diagnostics(
+    CHECK(av2h_chroma_reconstruct_u16(
               0, &mode, &prefix, &transform, &coefficients, predictor_u16,
               &scratch_u16, &output_u16) == AV2H_OK);
     for (index = 0U; index < 16U; ++index) {
@@ -192,23 +192,23 @@ static void test_lossless_chroma_and_rejection(void) {
     memset(&output_u16, 0x7d, sizeof(output_u16));
     original = output;
     original_u16 = output_u16;
-    CHECK(av2h_chroma_reconstruct_with_diagnostics(
+    CHECK(av2h_chroma_reconstruct(
               0, &mode, &prefix, &transform, &coefficients, predictor, 4U, 4U,
               &scratch, &output) == AV2H_UNSUPPORTED);
     CHECK(memcmp(&output, &original, sizeof(output)) == 0);
     coefficients.dequantized[0] = 0;
     coefficients.coefficient_count = 15U;
-    CHECK(av2h_chroma_reconstruct_u16_with_diagnostics(
+    CHECK(av2h_chroma_reconstruct_u16(
               0, &mode, &prefix, &transform, &coefficients, predictor_u16,
               &scratch_u16, &output_u16) == AV2H_UNSUPPORTED);
     CHECK(memcmp(&output_u16, &original_u16, sizeof(output_u16)) == 0);
-    CHECK(av2h_luma_reconstruct_u16_with_diagnostics(
+    CHECK(av2h_luma_reconstruct_u16(
               0, 0, &prefix, &transform, &coefficients, predictor_u16,
               &scratch_u16, &output_u16) == AV2H_INVALID_ARGUMENT);
-    CHECK(av2h_chroma_reconstruct_with_diagnostics(
+    CHECK(av2h_chroma_reconstruct(
               0, &mode, &prefix, &transform, &coefficients, predictor, 0U, 4U,
               &scratch, &output) == AV2H_INVALID_ARGUMENT);
-    CHECK(av2h_chroma_reconstruct_u16_with_diagnostics(
+    CHECK(av2h_chroma_reconstruct_u16(
               0, &mode, &prefix, &transform, &coefficients, 0,
               &scratch_u16, &output_u16) == AV2H_INVALID_ARGUMENT);
 }
@@ -252,15 +252,15 @@ static void test_u16_transform_selection(void) {
             transform.primary_type = types[type];
             memset(&expected, 0x7d, sizeof(expected));
             expected_status = av2h_reconstruct_transform_generic_u16(
-                &mode, &prefix, &transform, &coefficients, predictor,
+                NULL, &mode, &prefix, &transform, &coefficients, predictor,
                 descriptor->output_width, &expected_scratch, &expected);
             memset(&output, 0x7d, sizeof(output));
-            CHECK(av2h_luma_reconstruct_u16_with_diagnostics(
+            CHECK(av2h_luma_reconstruct_u16(
                       0, &mode, &prefix, &transform, &coefficients, predictor,
                       &scratch, &output) == expected_status);
             CHECK(memcmp(&output, &expected, sizeof(output)) == 0);
             memset(&output, 0x7d, sizeof(output));
-            CHECK(av2h_chroma_reconstruct_u16_with_diagnostics(
+            CHECK(av2h_chroma_reconstruct_u16(
                       0, &chroma, &prefix, &transform, &coefficients, predictor,
                       &scratch, &output) == expected_status);
             CHECK(memcmp(&output, &expected, sizeof(output)) == 0);
@@ -295,7 +295,7 @@ static void test_u16_lossless_wht(void) {
         CHECK(av2h_reconstruct_lossless_4x4(
                   &mode, &transform, &coefficients, predictor, 4U, &expected) ==
               AV2H_OK);
-        CHECK(av2h_luma_reconstruct_u16_with_diagnostics(
+        CHECK(av2h_luma_reconstruct_u16(
                   0, &mode, &prefix, &transform, &coefficients, predictor_u16,
                   &scratch, &output) == AV2H_OK);
         for (index = 0U; index < 16U; ++index) {

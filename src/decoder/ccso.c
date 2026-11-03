@@ -377,17 +377,6 @@ Av2hStatus av2h_ccso_filter_frame(
     Av2hFilterPlanes *planes,
     const uint8_t *pre_cdef_luma,
     size_t pre_cdef_luma_stride_samples,
-    const Av2hFrameState *frame,
-    const Av2hCcsoControlMap *controls) {
-    return av2h_ccso_filter_frame_with_sequence(
-        planes, pre_cdef_luma, pre_cdef_luma_stride_samples,
-        NULL, frame, controls);
-}
-
-Av2hStatus av2h_ccso_filter_frame_with_sequence(
-    Av2hFilterPlanes *planes,
-    const uint8_t *pre_cdef_luma,
-    size_t pre_cdef_luma_stride_samples,
     const Av2hSequenceState *sequence,
     const Av2hFrameState *frame,
     const Av2hCcsoControlMap *controls) {
@@ -414,17 +403,6 @@ Av2hStatus av2h_ccso_filter_frame_with_sequence(
 }
 
 Av2hStatus av2h_ccso_filter_frame_u16(
-    Av2hFilterPlanesU16 *planes,
-    const uint16_t *pre_cdef_luma,
-    size_t pre_cdef_luma_stride_samples,
-    const Av2hFrameState *frame,
-    const Av2hCcsoControlMap *controls) {
-    return av2h_ccso_filter_frame_u16_with_sequence(
-        planes, pre_cdef_luma, pre_cdef_luma_stride_samples,
-        NULL, frame, controls);
-}
-
-Av2hStatus av2h_ccso_filter_frame_u16_with_sequence(
     Av2hFilterPlanesU16 *planes,
     const uint16_t *pre_cdef_luma,
     size_t pre_cdef_luma_stride_samples,

@@ -289,7 +289,7 @@ static Av2hStatus decode_obu(Av2hSpan input,
     status = av2h_frame_header_closed_key_parse(
         (Av2hSpan){ input.data + frame_obu->payload_offset,
                     frame_obu->payload_size },
-        &sequence, &frame);
+        &sequence, &frame, NULL);
     if (status != AV2H_OK) return status;
     av2h_qmatrix_state_reset(&frame);
     status = av2h_qmatrix_ledger_parse(input, &ledger, &frame, &error);
@@ -297,10 +297,10 @@ static Av2hStatus decode_obu(Av2hSpan input,
     if (status != AV2H_OK) return status;
     status = av2h_tile_groups_ledger_parse(input, &ledger, &frame, &group);
     if (status != AV2H_OK) return status;
-    status = av2h_planar_output_size_bytes(
+    status = av2h_planar_output_size(
         &frame, bytes_per_sample, &output_size);
     if (status != AV2H_OK) return status;
-    status = av2h_frame_decode_workspace_query_bytes(
+    status = av2h_frame_decode_workspace_query(
         &sequence, &frame, bytes_per_sample, &workspace_layout);
     if (status != AV2H_OK) return status;
     if (!allocate_memory(
@@ -311,12 +311,12 @@ static Av2hStatus decode_obu(Av2hSpan input,
         release_memory(output);
         return AV2H_OUT_OF_MEMORY;
     }
-    status = av2h_frame_decode_workspace_init_bytes(
+    status = av2h_frame_decode_workspace_init(
         &sequence, &frame, bytes_per_sample, &workspace_layout,
         workspace_memory.memory, workspace_memory.size,
         &workspace, &filter_workspace, &filter_storage);
     if (status == AV2H_OK) {
-        status = av2h_decode_frame_group_planar_with_execution_private(
+        status = av2h_decode_frame_group_planar_private(
             &group, &sequence, &frame, &workspace,
             output->memory, output->size, &decode_result, execution);
     }

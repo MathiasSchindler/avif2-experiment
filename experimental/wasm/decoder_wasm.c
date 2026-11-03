@@ -126,7 +126,7 @@ uint32_t av2h_wasm_decode(uint32_t input_pointer, uint32_t input_size) {
     status = av2h_frame_header_closed_key_parse(
         (Av2hSpan){ input.data + frame_obu->payload_offset,
                     frame_obu->payload_size },
-        &sequence, &frame);
+        &sequence, &frame, NULL);
     if (status != AV2H_OK) goto done;
     av2h_qmatrix_state_reset(&frame);
     status = av2h_qmatrix_ledger_parse(input, &ledger, &frame, &error);
@@ -134,14 +134,14 @@ uint32_t av2h_wasm_decode(uint32_t input_pointer, uint32_t input_size) {
     if (status != AV2H_OK) goto done;
     status = av2h_tile_groups_ledger_parse(input, &ledger, &frame, &group);
     if (status != AV2H_OK) goto done;
-    status = av2h_planar_output_size_bytes(
+    status = av2h_planar_output_size(
         &frame, bytes_per_sample, &output_size);
     if (status != AV2H_OK) goto done;
     if (output_size > UINT32_MAX) {
         status = AV2H_OVERFLOW;
         goto done;
     }
-    status = av2h_frame_decode_workspace_query_bytes(
+    status = av2h_frame_decode_workspace_query(
         &sequence, &frame, bytes_per_sample, &workspace_layout);
     if (status != AV2H_OK) goto done;
     workspace_memory = allocate_bytes(
@@ -151,14 +151,14 @@ uint32_t av2h_wasm_decode(uint32_t input_pointer, uint32_t input_size) {
         status = AV2H_OUT_OF_MEMORY;
         goto done;
     }
-    status = av2h_frame_decode_workspace_init_bytes(
+    status = av2h_frame_decode_workspace_init(
         &sequence, &frame, bytes_per_sample, &workspace_layout,
         workspace_memory, workspace_layout.size_bytes,
         &workspace, &filter_workspace, &filter_storage);
     if (status != AV2H_OK) goto done;
     status = av2h_decode_frame_group_planar_private(
-        &group, &sequence, &frame, &workspace,
-        output, output_size, &decode_result);
+        &group, &sequence, &frame, &workspace, output, output_size,
+        &decode_result, NULL);
     if (status != AV2H_OK) goto done;
     wasm_result.output_pointer = (uint32_t)(uintptr_t)output;
     wasm_result.output_size = (uint32_t)output_size;

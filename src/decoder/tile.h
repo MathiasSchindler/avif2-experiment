@@ -251,13 +251,8 @@ Av2hStatus av2h_tile_groups_ledger_parse(
     const Av2hObuLedger *ledger,
     const Av2hFrameState *frame,
     Av2hTileGroup *group);
+
 Av2hStatus av2h_tile_decoder_init(
-    Av2hTileDecoder *decoder,
-    Av2hSpan entropy,
-    const Av2hSequenceState *sequence,
-    const Av2hFrameState *frame,
-    const Av2hTileContextStorage *storage);
-Av2hStatus av2h_tile_decoder_init_at(
     Av2hTileDecoder *decoder,
     Av2hSpan entropy,
     const Av2hSequenceState *sequence,

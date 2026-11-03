@@ -114,19 +114,19 @@ static void plane_case(Snapshot *snapshot, unsigned int path,
     memset(&scratch_u16, 0x13, sizeof(scratch_u16));
     memset(&diagnostics, 0x5a, sizeof(diagnostics));
     if (path == 0U) {
-        status = av2h_luma_reconstruct_to_plane_with_diagnostics(
+        status = av2h_luma_reconstruct_to_plane(
             &diagnostics, &leaf, &mode, &prefix, &transform, &coefficients,
             &plane, &scratch);
     } else if (path == 1U) {
-        status = av2h_luma_reconstruct_to_plane_u16_with_diagnostics(
+        status = av2h_luma_reconstruct_to_plane_u16(
             &diagnostics, &leaf, &mode, &prefix, &transform, &coefficients,
             &plane_u16, &scratch_u16);
     } else if (!high) {
-        status = av2h_chroma_reconstruct_to_plane_format_with_diagnostics(
+        status = av2h_chroma_reconstruct_to_plane(
             &diagnostics, &leaf, &chroma, &prefix, &transform, &coefficients,
             &plane, 0, 1U, &predictor_plane, format, &scratch);
     } else {
-        status = av2h_chroma_reconstruct_to_plane_u16_with_diagnostics(
+        status = av2h_chroma_reconstruct_to_plane_u16(
             &diagnostics, &leaf, &chroma, &prefix, &transform, &coefficients,
             &plane_u16, 0, 2U, format, &scratch_u16);
     }

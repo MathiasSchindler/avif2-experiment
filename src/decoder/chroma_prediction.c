@@ -5,10 +5,6 @@
 
 #include <stddef.h>
 
-#define directional_base_angle av2h_directional_base_angle
-#define luma_prediction_dimension_supported \
-    av2h_luma_prediction_dimension_supported
-
 static int wide_angle_map(int angle, uint16_t width, uint16_t height) {
     if ((height == 2U * width && angle < 61) ||
         (height == 4U * width && angle < 73) ||
@@ -142,12 +138,12 @@ Av2hStatus av2h_chroma_predict(
         return AV2H_INVALID_ARGUMENT;
     }
     if ((mode->angle_delta == -2 || mode->angle_delta == 2) &&
-        directional_base_angle(mode->mode) != 0 &&
-        luma_prediction_dimension_supported(width) &&
-        luma_prediction_dimension_supported(height)) {
+        av2h_directional_base_angle(mode->mode) != 0 &&
+        av2h_luma_prediction_dimension_supported(width) &&
+        av2h_luma_prediction_dimension_supported(height)) {
         Av2hLeafMode luma_mode;
         int angle = wide_angle_map(
-            directional_base_angle(mode->mode) + mode->angle_delta * 3,
+            av2h_directional_base_angle(mode->mode) + mode->angle_delta * 3,
             width, height);
         av2h_memory_fill(&luma_mode, 0U, sizeof(luma_mode));
         luma_mode.mode = mode->mode;
@@ -162,12 +158,12 @@ Av2hStatus av2h_chroma_predict(
     }
     if ((mode->angle_delta == -3 || mode->angle_delta == -1 ||
          mode->angle_delta == 1 || mode->angle_delta == 3) &&
-        directional_base_angle(mode->mode) != 0 &&
-        luma_prediction_dimension_supported(width) &&
-        luma_prediction_dimension_supported(height)) {
+        av2h_directional_base_angle(mode->mode) != 0 &&
+        av2h_luma_prediction_dimension_supported(width) &&
+        av2h_luma_prediction_dimension_supported(height)) {
         Av2hLeafMode luma_mode;
         int angle = wide_angle_map(
-            directional_base_angle(mode->mode) + mode->angle_delta * 3,
+            av2h_directional_base_angle(mode->mode) + mode->angle_delta * 3,
             width, height);
         av2h_memory_fill(&luma_mode, 0U, sizeof(luma_mode));
         luma_mode.mode = mode->mode;
@@ -181,8 +177,8 @@ Av2hStatus av2h_chroma_predict(
             predictor, predictor_stride_samples, 0U, 1U);
     }
     if (mode->mode == AV2H_INTRA_SMOOTH && mode->angle_delta == 0 &&
-        luma_prediction_dimension_supported(width) &&
-        luma_prediction_dimension_supported(height)) {
+        av2h_luma_prediction_dimension_supported(width) &&
+        av2h_luma_prediction_dimension_supported(height)) {
         Av2hLeafMode luma_mode;
         av2h_memory_fill(&luma_mode, 0U, sizeof(luma_mode));
         luma_mode.mode = mode->mode;
@@ -192,12 +188,12 @@ Av2hStatus av2h_chroma_predict(
             predictor, predictor_stride_samples);
     }
     if (mode->angle_delta == 0 &&
-        directional_base_angle(mode->mode) != 0 &&
-        luma_prediction_dimension_supported(width) &&
-        luma_prediction_dimension_supported(height)) {
+        av2h_directional_base_angle(mode->mode) != 0 &&
+        av2h_luma_prediction_dimension_supported(width) &&
+        av2h_luma_prediction_dimension_supported(height)) {
         Av2hLeafMode luma_mode;
         int angle = wide_angle_map(
-            directional_base_angle(mode->mode), width, height);
+            av2h_directional_base_angle(mode->mode), width, height);
         av2h_memory_fill(&luma_mode, 0U, sizeof(luma_mode));
         luma_mode.mode = mode->mode;
         luma_mode.edge_ibp = (uint8_t)(
@@ -210,8 +206,8 @@ Av2hStatus av2h_chroma_predict(
     }
     if (mode->mode == AV2H_INTRA_SMOOTH_VERTICAL &&
         mode->angle_delta == 0 &&
-        luma_prediction_dimension_supported(width) &&
-        luma_prediction_dimension_supported(height)) {
+        av2h_luma_prediction_dimension_supported(width) &&
+        av2h_luma_prediction_dimension_supported(height)) {
         Av2hLeafMode luma_mode;
         av2h_memory_fill(&luma_mode, 0U, sizeof(luma_mode));
         luma_mode.mode = mode->mode;
@@ -304,8 +300,8 @@ Av2hStatus av2h_chroma_predict(
                                              av2h_chroma_geometry_supported(width, height)) ||
                                             ((mode->mode == AV2H_INTRA_SMOOTH_HORIZONTAL ||
                                                 mode->mode == AV2H_INTRA_PAETH) &&
-                                             luma_prediction_dimension_supported(width) &&
-                                                            luma_prediction_dimension_supported(height)))))) {
+                                             av2h_luma_prediction_dimension_supported(width) &&
+                                                            av2h_luma_prediction_dimension_supported(height)))))) {
         return AV2H_UNSUPPORTED;
     }
     if (mode->mode == AV2H_INTRA_HORIZONTAL) {

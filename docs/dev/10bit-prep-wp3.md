@@ -25,9 +25,11 @@ decode workspace and remains absent in the production path.
 
 ## Query contract
 
-`av2h_filter_workspace_query_bytes` and
-`av2h_frame_decode_workspace_query_bytes` accept only one- or two-byte sample
-storage. Existing query functions remain one-byte compatibility wrappers.
+`av2h_filter_workspace_query` and
+`av2h_frame_decode_workspace_query` accept only one- or two-byte sample
+storage. C4 consolidated the byte-aware queries under these canonical names;
+callers now supply bytes per sample explicitly instead of using one-byte
+compatibility wrappers.
 Decode preparation passes the WP1 descriptor's `bytes_per_sample` into the
 byte-aware frame workspace query.
 

@@ -32,7 +32,7 @@ sample strides.
 
 ## Binding and alignment
 
-`av2h_frame_decode_workspace_init_bytes` mirrors the byte-aware workspace
+`av2h_frame_decode_workspace_init` mirrors the byte-aware workspace
 query. It accepts one or two bytes per sample, verifies that the requested width
 matches sequence bit depth, recomputes and compares the complete layout, and
 binds only the matching U8 or U16 views. The original initializer remains a

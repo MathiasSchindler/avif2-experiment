@@ -57,7 +57,7 @@ void av2h_coefficient_diagnostics_set_luma_prefix_stage(
 #endif
 }
 
-Av2hStatus av2h_coeff_cdfs_init_for_q(
+Av2hStatus av2h_coeff_cdfs_init(
     Av2hCoeffCdfs *cdfs,
     Av2hQIndex base_q_index) {
     static const Av2hBinaryCdfSpec txb_skip[4U][5U] = {
@@ -270,10 +270,6 @@ Av2hStatus av2h_coeff_cdfs_init_for_q(
         }
     }
     return av2h_binary_cdf_init(cdfs->eob_extra, eob_extra[q_context]);
-}
-
-Av2hStatus av2h_coeff_cdfs_init(Av2hCoeffCdfs *cdfs) {
-    return av2h_coeff_cdfs_init_for_q(cdfs, 128U);
 }
 
 static Av2hStatus derive_tx_size(Av2hBlockSize block_size,
@@ -762,19 +758,6 @@ Av2hStatus av2h_coeff_prefix_read(
     return decode_eob(decoder, cdfs, NULL, 0U, prefix);
 }
 
-Av2hStatus av2h_first_coeff_prefix_read(
-    Av2hRangeDecoder *decoder,
-    Av2hCoeffCdfs *cdfs,
-    const Av2hFrameState *frame,
-    const Av2hPartitionNode *leaf,
-    const Av2hLeafMode *mode,
-    Av2hCoeffPrefix *prefix) {
-    if (leaf == NULL) return AV2H_INVALID_ARGUMENT;
-    if (leaf->row != 0U || leaf->column != 0U) return AV2H_UNSUPPORTED;
-    return av2h_coeff_prefix_read(decoder, cdfs, frame, leaf, mode, 0U,
-                                  prefix);
-}
-
 Av2hStatus av2h_coeff_prefix_read_with_state(
     Av2hRangeDecoder *decoder,
     Av2hCoeffCdfs *cdfs,
@@ -816,17 +799,6 @@ Av2hStatus av2h_chroma_coeff_prefix_read_with_state(
     }
     return av2h_chroma_coeff_prefix_read(
         decoder, cdfs, frame, leaf, plane, txb_skip_context, prefix);
-}
-
-Av2hStatus av2h_chroma_coeff_prefix_read_default_context(
-    Av2hRangeDecoder *decoder,
-    Av2hCoeffCdfs *cdfs,
-    const Av2hFrameState *frame,
-    const Av2hPartitionNode *leaf,
-    uint8_t plane,
-    Av2hCoeffPrefix *prefix) {
-    return av2h_chroma_coeff_prefix_read(
-        decoder, cdfs, frame, leaf, plane, plane == 1U ? 6U : 9U, prefix);
 }
 
 Av2hStatus av2h_chroma_coeff_prefix_read(

@@ -1,6 +1,6 @@
 # Code Quality and Consistency Cleanup Plan
 
-**Status:** C1-C3 complete; C4-C6 planned
+**Status:** C1-C4 complete; C5-C6 planned
 
 **Scope:** [`src/`](../src/) and [`include/av2heif.h`](../include/av2heif.h)
 
@@ -170,13 +170,12 @@ their separate implementations with descriptive names:
 | `av2h_chroma_transform_type_read_dc` | Supplies a zero-initialized DC mode and `cctx_allowed = 1` |
 | `av2h_chroma_reconstruct_dc_4x4` | Retains 4x4 DCT_DCT reconstruction with DC intra prediction |
 
-Exactly two first-element exceptions remain:
-[`av2h_first_leaf_mode_read`](../src/decoder/leaf.h) and
-[`av2h_first_coeff_prefix_read`](../src/decoder/coeff.h). Both explicitly reject
-leaves outside frame origin `(0, 0)` with `AV2H_UNSUPPORTED`; their names describe
-their actual restricted parser behavior. These account for all four remaining
-legacy-name occurrences in production sources (declarations and definitions).
-C4 wrapper consolidation and function-renaming macros remain untouched.
+At C3 completion, two origin-only parsers were explicit naming exceptions.
+C4 subsequently moved them to [test helpers](../tests/decoder_test_helpers.h),
+preserving their `AV2H_UNSUPPORTED` checks outside frame origin `(0, 0)`.
+Production sources now have zero legacy-name occurrences. The wrapper names
+in the table above record C3's rename step; C4 subsequently retired those
+forwarding layers.
 
 [`test_decoder_names.py`](../tests/test_decoder_names.py) rejects other legacy
 names in source, public headers, C tests, generators, and experimental C
@@ -206,8 +205,8 @@ Validation:
 ## C4: Retire Historical Wrappers and Compatibility Aliases
 
 ### Problem
-Incremental milestones left behind multi-layered forwarding functions and preprocessor aliases that no longer serve an architectural boundary:
-- **Multi-generation function chains:** In [`src/decoder/reconstruct.h`](../src/decoder/reconstruct.h), chroma plane reconstruction exposes six overlapping entry points (`av2h_chroma_reconstruct_to_plane`, `_ex`, `_format`, `_format_with_diagnostics`, `_u16`, `_u16_with_diagnostics`), and luma reconstruction similarly duplicates `av2h_luma_reconstruct_without_predictor`, `av2h_luma_reconstruct`, `av2h_luma_reconstruct_with_diagnostics`, `av2h_luma_reconstruct_to_plane`, and `av2h_luma_reconstruct_to_plane_with_diagnostics`.
+Incremental milestones left behind multi-layered forwarding functions and preprocessor aliases that no longer served an architectural boundary:
+- **Multi-generation function chains:** Before C4, [`src/decoder/reconstruct.h`](../src/decoder/reconstruct.h) exposed six overlapping chroma plane reconstruction entry points (`av2h_chroma_reconstruct_to_plane`, `_ex`, `_format`, `_format_with_diagnostics`, `_u16`, `_u16_with_diagnostics`), while luma reconstruction duplicated `av2h_luma_reconstruct_without_predictor`, `av2h_luma_reconstruct`, `av2h_luma_reconstruct_with_diagnostics`, `av2h_luma_reconstruct_to_plane`, and `av2h_luma_reconstruct_to_plane_with_diagnostics`.
 - **Similar `_with_diagnostics` / `_with_execution` pass-throughs:** Several internal modules expose both a base function and a `_with_diagnostics` or `_with_sequence` wrapper where `diagnostics == NULL` is already safely handled as a no-op by the underlying implementation.
 - **Compatibility `#define`s after file splits:** Files like [`reconstruct.c`](../src/decoder/reconstruct.c) (`#define wide_angle_map av2h_luma_wide_angle`), [`chroma_prediction_cfl.c`](../src/decoder/chroma_prediction_cfl.c), and [`tile_luma.c`](../src/decoder/tile_luma.c) use `#define` macros to alias old local function names to new module-prefixed names.
 
@@ -219,6 +218,64 @@ Incremental milestones left behind multi-layered forwarding functions and prepro
 ### Exit Criteria
 - Each internal operation in [`src/decoder/`](../src/decoder/) has one canonical entry point per responsibility.
 - Zero `#define` function-renaming shims remain in `.c` files.
+
+### Completion
+
+C4 is complete. Removed 40 forwarding definitions and four production
+scaffolding definitions, and replaced all 15 decoder function-alias macros
+with direct, explicitly parameterized calls. Internal declarations, production
+callers, tests, and affected experimental consumers were migrated together.
+No compatibility aliases were introduced.
+
+Canonical interfaces now take formerly hidden defaults explicitly:
+
+| Owner | Consolidated operation |
+| :--- | :--- |
+| [`reconstruct.h`](../src/decoder/reconstruct.h) and private reconstruction interfaces | Block and plane reconstruction receive optional diagnostics directly; chroma callers specify format, U/V selection, and any luma/predictor planes |
+| [`filter.h`](../src/decoder/filter.h) | CDEF, CCSO, and GDF receive sequence/control maps directly; 8-bit GDF also receives its baseline plane explicitly |
+| [`leaf.h`](../src/decoder/leaf.h) | Chroma syntax receives delta/SDP settings directly; stateful luma syntax receives optional filter/Q-index state and deferred-palette settings |
+| [`coeff.h`](../src/decoder/coeff.h), [`coeff_level.h`](../src/decoder/coeff_level.h) | Prefix/block callers supply entropy contexts; coefficient-CDF initialization supplies the quantizer index |
+| [`frame_output.h`](../src/decoder/frame_output.h) and [`frame_workspace.h`](../src/decoder/internal/frame_workspace.h) | Copy/decode operations receive optional execution; size/workspace operations receive bytes per sample |
+| [`frame.h`](../src/decoder/frame.h), [`tile.h`](../src/decoder/tile.h), [`partition.h`](../src/decoder/partition.h) | Header parsing receives optional diagnostics; tile initialization and partition parsing receive their selection/structure values |
+
+Previously omitted pointers still pass `NULL`; their existing no-op/default
+semantics, validation order, and diagnostics are unchanged. Presets such as
+QP 128, zero DC-sign context, U/V skip contexts 6/9, format 0, and automatic
+tile selection remain explicit at the original callers.
+
+The two origin-only parser conveniences now live exclusively in
+[`decoder_test_helpers.h`](../tests/decoder_test_helpers.h). Their rejection
+checks and executing tests are retained. The unused DC-4x4 reconstruction and
+DC-mode chroma-transform conveniences were deleted outright.
+
+Distinct responsibilities remain separate: block versus plane ownership,
+entropy-span to tile-group adaptation, state-derived entropy contexts,
+baseline versus quantizer-adjusted level-CDF initialization, binary-CDF and
+coordinate-unit adapters, and typed luma/chroma or 8/16-bit interfaces.
+The remaining six single-call adapters enforce these typed/unit contracts,
+rather than supplying historical optional defaults. C5/C6 are not implemented.
+Platform syscall ABI-selection macros remain OS bindings, not decoder
+compatibility shims.
+
+[`test_decoder_entrypoints.py`](../tests/test_decoder_entrypoints.py) rejects
+retired symbols and decoder function-alias macros, and permits only the six
+documented typed/unit forwarding adapters.
+
+Validation:
+
+- Both diagnostic configurations pass all 31 ASan/UBSan C unit suites,
+  runtime tests, 2,460 malformed-input fuzz cases, and frozen pixel/status/error
+  checks.
+- All 77 lines of the behavioral/resource inventory are byte-identical to
+  the pre-C4 baseline, without name normalization.
+- All 21 source/header guards pass; 55 standalone headers and 35 value-only
+  kernel roots compile in both diagnostic modes.
+- Forced native macOS rebuild and freestanding symbol checks pass. All
+  179 decoded corpus SHA-256 hashes remain unchanged.
+- Both experimental encoder project-driver parity tests compile and run
+  against the rebuilt native library. The public API, workspace layouts,
+  heap-allocation policy, media, oracle revisions, and expected hashes are
+  unchanged.
 
 ---
 

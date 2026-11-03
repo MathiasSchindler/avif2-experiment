@@ -1,5 +1,6 @@
 #include "decoder/reconstruct.h"
 #include "decoder/internal/leaf_modules.h"
+#include "decoder_test_helpers.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -40,7 +41,6 @@ static void test_larger_mode_ordering(void) {
           AV2H_INVALID_ARGUMENT);
 }
 
-
 static void test_arguments(void) {
     Av2hRangeDecoder decoder;
     Av2hLeafCdfs cdfs;
@@ -62,7 +62,7 @@ static void test_arguments(void) {
     size_t tell;
     CHECK(sizeof(Av2hLeafCdfs) == 2914U);
     CHECK(av2h_leaf_cdfs_init(0) == AV2H_INVALID_ARGUMENT);
-    CHECK(av2h_first_leaf_mode_read(
+    CHECK(test_first_leaf_mode_read(
               0, &cdfs, &sequence, &frame, &leaf, &mode) ==
           AV2H_INVALID_ARGUMENT);
     CHECK(av2h_gdf_entropy_state_init(
@@ -150,7 +150,7 @@ static void test_arguments(void) {
     frame.gdf_mode = 0U;
     frame.base_q_index = 128U;
     frame.disable_cdf_update = 1U;
-    CHECK(av2h_first_leaf_mode_read(
+    CHECK(test_first_leaf_mode_read(
               &decoder, &cdfs, &sequence, &frame, &leaf, &mode) ==
           AV2H_UNSUPPORTED);
     CHECK(av2h_leaf_cdfs_init(&cdfs) == AV2H_OK);
@@ -188,7 +188,7 @@ static void test_arguments(void) {
     frame.allow_intrabc = 1U;
     frame.allow_screen_content_tools = 1U;
     tell = av2h_range_tell(&decoder);
-    CHECK(av2h_first_leaf_mode_read(
+    CHECK(test_first_leaf_mode_read(
               &decoder, &cdfs, &sequence, &frame, &leaf, &mode) ==
           AV2H_OK);
     CHECK(av2h_range_tell(&decoder) > tell);
@@ -235,9 +235,9 @@ static void test_gdf_after_intrabc(void) {
         CHECK(av2h_gdf_entropy_state_init(
                   &gdf, &sequence, &frame, flags, 2U) == AV2H_OK);
         CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
-        status = av2h_luma_mode_read_with_state_and_gdf(
-            &decoder, &cdfs, &sequence, &frame, &leaf, &contexts,
-            &gdf, 0, 0, &mode);
+        status = av2h_luma_mode_read_with_state(
+            &decoder, &cdfs, &sequence, &frame, &leaf, &contexts, &gdf, 0, 0,
+            NULL, 0U, &mode);
         if (mode.use_intrabc != 0U) {
             CHECK(status == AV2H_OK);
             CHECK(mode.gdf_flags_read == 1U);
@@ -273,7 +273,8 @@ static void test_chroma_cfl_derived_alpha(void) {
     CHECK(av2h_leaf_cdfs_init(&cdfs) == AV2H_OK);
     CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
     CHECK(av2h_chroma_mode_read(
-              &decoder, &cdfs, &sequence, AV2H_INTRA_DC, 0U, &mode) == AV2H_OK);
+        &decoder, &cdfs, &sequence, AV2H_INTRA_DC, 0, AV2H_BLOCK_INVALID, 0U, 1U,
+        0U, &mode) == AV2H_OK);
     CHECK(mode.is_cfl == 1U);
     CHECK(mode.uses_cfl == 1U);
     CHECK(mode.cfl_index == 1U);
@@ -292,7 +293,8 @@ static void test_chroma_cfl_derived_alpha(void) {
     CHECK(av2h_leaf_cdfs_init(&cdfs) == AV2H_OK);
     CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
     CHECK(av2h_chroma_mode_read(
-              &decoder, &cdfs, &sequence, AV2H_INTRA_DC, 0U, &mode) ==
+        &decoder, &cdfs, &sequence, AV2H_INTRA_DC, 0, AV2H_BLOCK_INVALID, 0U, 1U,
+        0U, &mode) ==
           AV2H_OK);
     CHECK(mode.is_cfl == 1U);
     CHECK(mode.uses_cfl == 1U);
@@ -305,7 +307,8 @@ static void test_chroma_cfl_derived_alpha(void) {
     CHECK(av2h_leaf_cdfs_init(&cdfs) == AV2H_OK);
     CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
     CHECK(av2h_chroma_mode_read(
-              &decoder, &cdfs, &sequence, AV2H_INTRA_DC, 0U, &mode) == AV2H_OK);
+        &decoder, &cdfs, &sequence, AV2H_INTRA_DC, 0, AV2H_BLOCK_INVALID, 0U, 1U,
+        0U, &mode) == AV2H_OK);
     CHECK(mode.is_cfl == 0U);
     CHECK(mode.uses_cfl == 0U);
     CHECK(mode.cfl_kind == AV2H_CFL_NONE);
@@ -317,50 +320,50 @@ static void test_chroma_cfl_derived_alpha(void) {
     span = (Av2hSpan){ derived, sizeof(derived) };
     CHECK(av2h_leaf_cdfs_init(&cdfs) == AV2H_OK);
     CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
-    CHECK(av2h_chroma_mode_read_with_delta(
-              &decoder, &cdfs, &sequence, AV2H_INTRA_DC, 0,
-              AV2H_BLOCK_8X8, 0U, &mode) == AV2H_OK);
+    CHECK(av2h_chroma_mode_read(
+        &decoder, &cdfs, &sequence, AV2H_INTRA_DC, 0, AV2H_BLOCK_8X8, 0U, 1U, 0U,
+        &mode) == AV2H_OK);
     CHECK(cdfs.cfl_mhccp_switch[2] == 0U);
 
     span = (Av2hSpan){ derived, sizeof(derived) };
     CHECK(av2h_leaf_cdfs_init(&cdfs) == AV2H_OK);
     CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
-    CHECK(av2h_chroma_mode_read_with_delta(
-              &decoder, &cdfs, &sequence, AV2H_INTRA_DC, 0,
-              AV2H_BLOCK_4X4, 0U, &mode) == AV2H_OK);
+    CHECK(av2h_chroma_mode_read(
+        &decoder, &cdfs, &sequence, AV2H_INTRA_DC, 0, AV2H_BLOCK_4X4, 0U, 1U, 0U,
+        &mode) == AV2H_OK);
     CHECK(cdfs.cfl_mhccp_switch[2] == 0U);
 
     span = (Av2hSpan){ derived, sizeof(derived) };
     CHECK(av2h_leaf_cdfs_init(&cdfs) == AV2H_OK);
     CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
-    CHECK(av2h_chroma_mode_read_with_delta(
-              &decoder, &cdfs, &sequence, AV2H_INTRA_DC, 0,
-              AV2H_BLOCK_4X8, 0U, &mode) == AV2H_OK);
+    CHECK(av2h_chroma_mode_read(
+        &decoder, &cdfs, &sequence, AV2H_INTRA_DC, 0, AV2H_BLOCK_4X8, 0U, 1U, 0U,
+        &mode) == AV2H_OK);
     CHECK(cdfs.cfl_mhccp_switch[2] == 0U);
 
     sequence.info.chroma_format_idc = 2U;
     span = (Av2hSpan){ derived, sizeof(derived) };
     CHECK(av2h_leaf_cdfs_init(&cdfs) == AV2H_OK);
     CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
-    CHECK(av2h_chroma_mode_read_with_delta(
-              &decoder, &cdfs, &sequence, AV2H_INTRA_DC, 0,
-              AV2H_BLOCK_4X8, 0U, &mode) == AV2H_OK);
+    CHECK(av2h_chroma_mode_read(
+        &decoder, &cdfs, &sequence, AV2H_INTRA_DC, 0, AV2H_BLOCK_4X8, 0U, 1U, 0U,
+        &mode) == AV2H_OK);
     CHECK(cdfs.cfl_mhccp_switch[2] == 1U);
 
     span = (Av2hSpan){ derived, sizeof(derived) };
     CHECK(av2h_leaf_cdfs_init(&cdfs) == AV2H_OK);
     CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
-    CHECK(av2h_chroma_mode_read_with_delta(
-              &decoder, &cdfs, &sequence, AV2H_INTRA_DC, 0,
-              AV2H_BLOCK_32X32, 0U, &mode) == AV2H_OK);
+    CHECK(av2h_chroma_mode_read(
+        &decoder, &cdfs, &sequence, AV2H_INTRA_DC, 0, AV2H_BLOCK_32X32, 0U, 1U,
+        0U, &mode) == AV2H_OK);
     CHECK(cdfs.cfl_mhccp_switch[2] == 1U);
 
     span = (Av2hSpan){ derived, sizeof(derived) };
     CHECK(av2h_leaf_cdfs_init(&cdfs) == AV2H_OK);
     CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
-    CHECK(av2h_chroma_mode_read_with_delta(
-              &decoder, &cdfs, &sequence, AV2H_INTRA_DC, 0,
-              AV2H_BLOCK_16X64, 0U, &mode) == AV2H_OK);
+    CHECK(av2h_chroma_mode_read(
+        &decoder, &cdfs, &sequence, AV2H_INTRA_DC, 0, AV2H_BLOCK_16X64, 0U, 1U,
+        0U, &mode) == AV2H_OK);
     CHECK(cdfs.cfl_mhccp_switch[2] == 0U);
 }
 

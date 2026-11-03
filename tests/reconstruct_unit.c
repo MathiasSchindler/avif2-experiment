@@ -5,6 +5,7 @@
 #include "decoder/internal/chroma_prediction.h"
 #include "decoder/internal/intrabc_prediction.h"
 #include "decoder/prediction.h"
+#include "decoder_test_helpers.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -360,26 +361,28 @@ static void check_fixture(const char *name,
     sequence.enable_ist = 1U;
     CHECK(av2h_partition_cdfs_init(&partition_cdfs) == AV2H_OK);
     CHECK(av2h_leaf_cdfs_init(&leaf_cdfs) == AV2H_OK);
-    CHECK(av2h_coeff_cdfs_init(&coeff_cdfs) == AV2H_OK);
+    CHECK(av2h_coeff_cdfs_init(
+        &coeff_cdfs, 128U) == AV2H_OK);
     CHECK(av2h_transform_cdfs_init(&transform_cdfs) == AV2H_OK);
     CHECK(av2h_coeff_level_cdfs_init(&level_cdfs) == AV2H_OK);
     CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
     CHECK(av2h_partition_first_leaf_read(
               &decoder, &partition_cdfs, width, height, 1U, &path) == AV2H_OK);
-    CHECK(av2h_first_leaf_mode_read(
+    CHECK(test_first_leaf_mode_read(
               &decoder, &leaf_cdfs, &sequence, &frame, &path.leaf, &mode) ==
           AV2H_OK);
-    CHECK(av2h_first_coeff_prefix_read(
+    CHECK(test_first_coeff_prefix_read(
               &decoder, &coeff_cdfs, &frame, &path.leaf, &mode, &prefix) ==
           AV2H_OK);
     CHECK(av2h_transform_type_read(
               &decoder, &transform_cdfs, &sequence, &frame, &mode, &prefix,
               &transform) == AV2H_OK);
-    CHECK(av2h_coeff_block_read_default_context(
-              &decoder, &level_cdfs, &sequence, &frame, &mode, &prefix,
-              &transform, &block) == AV2H_OK);
-    status = av2h_luma_reconstruct_without_predictor(
-        &mode, &prefix, &transform, &block, &scratch, &reconstruction);
+    CHECK(av2h_coeff_block_read(
+        &decoder, &level_cdfs, &sequence, &frame, &mode, &prefix, &transform, 0U,
+        &block) == AV2H_OK);
+    status = av2h_luma_reconstruct(
+        NULL, &mode, &prefix, &transform, &block, NULL, 0U, &scratch,
+        &reconstruction);
     if (status != AV2H_OK) {
         fprintf(stderr, "%s: reconstruction status=%d\n", name, status);
         ++failures;
@@ -489,15 +492,16 @@ static void test_arguments(void) {
     block.width = 8U;
     block.height = 8U;
     block.coefficient_count = 64U;
-    CHECK(av2h_luma_reconstruct_without_predictor(
-              0, &prefix, &transform, &block, &scratch, &reconstruction) ==
+    CHECK(av2h_luma_reconstruct(
+        NULL, 0, &prefix, &transform, &block, NULL, 0U, &scratch,
+        &reconstruction) ==
           AV2H_INVALID_ARGUMENT);
     mode.mode = AV2H_INTRA_SMOOTH;
     prefix.tx_size = AV2H_TX_8X8;
     transform.primary_type = AV2H_TX_TYPE_INVALID;
-    CHECK(av2h_luma_reconstruct_without_predictor(
-              &mode, &prefix, &transform, &block, &scratch,
-              &reconstruction) ==
+    CHECK(av2h_luma_reconstruct(
+        NULL, &mode, &prefix, &transform, &block, NULL, 0U, &scratch,
+        &reconstruction) ==
           AV2H_UNSUPPORTED);
 }
 
@@ -527,8 +531,8 @@ static void test_skipped_16x8_intrabc_reconstruction(void) {
         predictor[index] = (uint8_t)(index * 17U + 3U);
     }
     CHECK(av2h_luma_reconstruct(
-              &mode, &prefix, &transform, &block, predictor, 16U,
-              &scratch, &reconstruction) == AV2H_OK);
+        NULL, &mode, &prefix, &transform, &block, predictor, 16U, &scratch,
+        &reconstruction) == AV2H_OK);
     CHECK(reconstruction.width == 16U);
     CHECK(reconstruction.height == 8U);
     for (index = 0U; index < sizeof(predictor); ++index) {
@@ -537,13 +541,13 @@ static void test_skipped_16x8_intrabc_reconstruction(void) {
     }
     block.nonzero_count = 1U;
     CHECK(av2h_luma_reconstruct(
-              &mode, &prefix, &transform, &block, predictor, 16U,
-              &scratch, &reconstruction) == AV2H_UNSUPPORTED);
+        NULL, &mode, &prefix, &transform, &block, predictor, 16U, &scratch,
+        &reconstruction) == AV2H_UNSUPPORTED);
     block.nonzero_count = 0U;
     block.quantized[17U] = 1;
     CHECK(av2h_luma_reconstruct(
-              &mode, &prefix, &transform, &block, predictor, 16U,
-              &scratch, &reconstruction) == AV2H_UNSUPPORTED);
+        NULL, &mode, &prefix, &transform, &block, predictor, 16U, &scratch,
+        &reconstruction) == AV2H_UNSUPPORTED);
 }
 
 static void test_16x8_intrabc_morph_centered_template(void) {
@@ -583,8 +587,7 @@ static void test_16x8_intrabc_morph_centered_template(void) {
        verbatim before the morph parameters are applied. */
     mode.morph_pred = 0U;
     CHECK(av2h_luma_reconstruct_to_plane(
-              &leaf, &mode, &prefix, &transform, &block,
-              &plane, &scratch) == AV2H_OK);
+        NULL, &leaf, &mode, &prefix, &transform, &block, &plane, &scratch) == AV2H_OK);
     for (index = 0U; index < 128U; ++index) {
         size_t row = index / 16U;
         size_t column = index % 16U;
@@ -599,8 +602,7 @@ static void test_16x8_intrabc_morph_centered_template(void) {
        match the reference block but stay inside the 8 bit range. */
     mode.morph_pred = 1U;
     CHECK(av2h_luma_reconstruct_to_plane(
-              &leaf, &mode, &prefix, &transform, &block,
-              &plane, &scratch) == AV2H_OK);
+        NULL, &leaf, &mode, &prefix, &transform, &block, &plane, &scratch) == AV2H_OK);
     CHECK(sample_hash(scratch.predictor, 128U) ==
           UINT64_C(0xd7a7828f06706523));
     for (index = 0U; index < 128U; ++index) {
@@ -670,9 +672,8 @@ static void test_skipped_intrabc_geometry_matrix(void) {
             mode.skip_transform = 1U;
             mode.mv_precision = 3U;
             CHECK(av2h_luma_reconstruct(
-                      &mode, &prefix, &transform, &block, predictor,
-                      descriptor->output_width, &scratch,
-                      &reconstruction) == AV2H_OK);
+                NULL, &mode, &prefix, &transform, &block, predictor,
+                descriptor->output_width, &scratch, &reconstruction) == AV2H_OK);
             CHECK(reconstruction.width == descriptor->output_width);
             CHECK(reconstruction.height == descriptor->output_height);
             for (index = 0U; index < output_count; ++index) {
@@ -719,8 +720,7 @@ static void test_palette_prediction(void) {
     av2h_memory_fill(pixels, 0U, sizeof(pixels));
     av2h_memory_fill(reconstructed, 0U, sizeof(reconstructed));
     CHECK(av2h_luma_reconstruct_to_plane(
-              &leaf, &mode, &prefix, &transform, &block,
-              &plane, &scratch) == AV2H_OK);
+        NULL, &leaf, &mode, &prefix, &transform, &block, &plane, &scratch) == AV2H_OK);
     for (index = 0U; index < 64U; ++index) {
         uint8_t expected = mode.palette_colors[
             av2h_palette_map_get(&mode, index)];
@@ -732,8 +732,7 @@ static void test_palette_prediction(void) {
         mode.palette_map, 0U, AV2H_PALETTE_MAP_CAPACITY);
     mode.palette_map[15U] = 3U << 6U;
     CHECK(av2h_luma_reconstruct_to_plane(
-              &leaf, &mode, &prefix, &transform, &block,
-              &plane, &scratch) == AV2H_INVALID_DATA);
+        NULL, &leaf, &mode, &prefix, &transform, &block, &plane, &scratch) == AV2H_INVALID_DATA);
 }
 
 static void test_complete_palette_tables_and_map(void) {
@@ -810,8 +809,7 @@ static void test_first_leaf_dc_without_references(void) {
         av2h_memory_fill(pixels, 0U, sizeof(pixels));
         av2h_memory_fill(reconstructed, 0U, sizeof(reconstructed));
         CHECK(av2h_luma_reconstruct_to_plane(
-                  &leaf, &mode, &prefix, &transform, &block,
-                  &plane, &scratch) == AV2H_OK);
+            NULL, &leaf, &mode, &prefix, &transform, &block, &plane, &scratch) == AV2H_OK);
         for (index = 0U;
              index < (size_t)descriptor->output_width *
                  descriptor->output_height;
@@ -864,8 +862,7 @@ static void test_first_leaf_intra_dip_without_references(void) {
     av2h_memory_fill(pixels, 0U, sizeof(pixels));
     av2h_memory_fill(reconstructed, 0U, sizeof(reconstructed));
     CHECK(av2h_luma_reconstruct_to_plane(
-              &leaf, &mode, &prefix, &transform, &block,
-              &plane, &scratch) == AV2H_OK);
+        NULL, &leaf, &mode, &prefix, &transform, &block, &plane, &scratch) == AV2H_OK);
     for (index = 0U; index < sizeof(expected); ++index) {
         CHECK(scratch.predictor[index] == expected[index]);
         CHECK(pixels[index] == expected[index]);
@@ -953,8 +950,8 @@ static void test_all_zero_16x16_reconstruction(void) {
         block.dequantized[32U] = -1984;
 
         CHECK(av2h_luma_reconstruct(
-                  &mode, &prefix, &transform, &block, predictor, 16U,
-                  &scratch, &reconstruction) == AV2H_OK);
+            NULL, &mode, &prefix, &transform, &block, predictor, 16U, &scratch,
+            &reconstruction) == AV2H_OK);
         CHECK(reconstruction.width == 16U);
         CHECK(reconstruction.height == 16U);
         CHECK(trace_sample_hash(reconstruction.pixels, 256U) == 0x7959e335U);
@@ -972,8 +969,8 @@ static void test_all_zero_16x16_reconstruction(void) {
     block.height = 16U;
     block.coefficient_count = 256U;
     CHECK(av2h_luma_reconstruct(
-                  &mode, &prefix, &transform, &block, predictor, 16U,
-                  &scratch, &reconstruction) == AV2H_OK);
+        NULL, &mode, &prefix, &transform, &block, predictor, 16U, &scratch,
+        &reconstruction) == AV2H_OK);
     CHECK(reconstruction.width == 16U);
     CHECK(reconstruction.height == 16U);
     for (index = 0U; index < 256U; ++index) {
@@ -983,8 +980,8 @@ static void test_all_zero_16x16_reconstruction(void) {
 
     block.quantized[255U] = 1;
     CHECK(av2h_luma_reconstruct(
-                  &mode, &prefix, &transform, &block, predictor, 16U,
-                  &scratch, &reconstruction) == AV2H_UNSUPPORTED);
+        NULL, &mode, &prefix, &transform, &block, predictor, 16U, &scratch,
+        &reconstruction) == AV2H_UNSUPPORTED);
 }
 
 static void test_laarim_q96_32x32_reconstruction(void) {
@@ -1068,8 +1065,8 @@ static void test_laarim_q96_32x32_reconstruction(void) {
     CHECK(sample_hash(scratch.predictor, 1024U) ==
           UINT64_C(0x75290844cee19be7));
     CHECK(av2h_luma_reconstruct(
-              &mode, &prefix, &transform, &block, scratch.predictor, 32U,
-              &scratch, &reconstruction) == AV2H_OK);
+        NULL, &mode, &prefix, &transform, &block, scratch.predictor, 32U,
+        &scratch, &reconstruction) == AV2H_OK);
     CHECK(sample_hash(reconstruction.pixels, 1024U) ==
           UINT64_C(0x51b573f06c63948a));
     for (index = 0U; index < 32U; ++index) {
@@ -1176,9 +1173,9 @@ static void test_schwaebisch_q208_64x16_reconstruction(void) {
               (Av2hSpan){ stream, stream_size }, sequence_obu,
               &sequence, &error) == AV2H_OK);
     CHECK(av2h_frame_header_closed_key_parse(
-              (Av2hSpan){ stream + frame_obu->payload_offset,
+        (Av2hSpan){ stream + frame_obu->payload_offset,
                            frame_obu->payload_size },
-              &sequence, &frame) == AV2H_OK);
+        &sequence, &frame, NULL) == AV2H_OK);
     CHECK(frame.width == 417U);
     CHECK(frame.height == 277U);
     CHECK(frame.base_q_index == 208U);
@@ -1187,7 +1184,7 @@ static void test_schwaebisch_q208_64x16_reconstruction(void) {
                            frame_obu->payload_size },
               frame.uncompressed_header_bits, &group) == AV2H_OK);
     CHECK(av2h_tile_decoder_init(
-              &decoder, group.entropy, &sequence, &frame, &storage) ==
+        &decoder, group.entropy, &sequence, &frame, &storage, UINT16_MAX) ==
           AV2H_OK);
 
     av2h_memory_fill(pixels, 0U, sizeof(pixels));
@@ -1241,8 +1238,8 @@ static void test_schwaebisch_q208_64x16_reconstruction(void) {
     }
 
     CHECK(av2h_luma_reconstruct_to_plane(
-              &leaf.node, &leaf.mode, &leaf.prefix, &leaf.transform,
-              &block, &plane, &scratch) == AV2H_OK);
+        NULL, &leaf.node, &leaf.mode, &leaf.prefix, &leaf.transform, &block,
+        &plane, &scratch) == AV2H_OK);
     CHECK(av2h_range_tell(&decoder.entropy_state.range) == 17U);
     for (index = 0U; index < 1024U; ++index) {
         size_t row = index >> 6U;
@@ -1260,8 +1257,8 @@ static void test_schwaebisch_q208_64x16_reconstruction(void) {
 
     block.quantized[511U] = 1;
     CHECK(av2h_luma_reconstruct(
-              &leaf.mode, &leaf.prefix, &leaf.transform, &block,
-              scratch.predictor, 64U, &scratch, &reconstruction) ==
+        NULL, &leaf.mode, &leaf.prefix, &leaf.transform, &block,
+        scratch.predictor, 64U, &scratch, &reconstruction) ==
           AV2H_UNSUPPORTED);
     block.quantized[511U] = 0;
     CHECK(av2h_tile_decoder_commit_leaf(&decoder, leaf.node) == AV2H_OK);
@@ -1473,8 +1470,8 @@ static void test_tx16x4_dct_reconstruction(void) {
     block.dequantized[0] = 5096;
 
     CHECK(av2h_luma_reconstruct(
-              &mode, &prefix, &transform, &block, predictor, 16U,
-              &scratch, &reconstruction) == AV2H_OK);
+        NULL, &mode, &prefix, &transform, &block, predictor, 16U, &scratch,
+        &reconstruction) == AV2H_OK);
     CHECK(reconstruction.width == 16U);
     CHECK(reconstruction.height == 4U);
     for (index = 0U; index < 64U; ++index) {
@@ -1528,8 +1525,8 @@ static void test_tx16x4_fsc_reconstruction(void) {
     }
 
     CHECK(av2h_luma_reconstruct(
-              &mode, &prefix, &transform, &block, predictor, 16U,
-              &scratch, &reconstruction) == AV2H_OK);
+        NULL, &mode, &prefix, &transform, &block, predictor, 16U, &scratch,
+        &reconstruction) == AV2H_OK);
     CHECK(reconstruction.width == 16U);
     CHECK(reconstruction.height == 4U);
     for (index = 0U; index < 64U; ++index) {
@@ -1560,8 +1557,8 @@ static void test_tx4x16_fsc_reconstruction(void) {
     block.dequantized[63U] = -1960;
 
     CHECK(av2h_luma_reconstruct(
-              &mode, &prefix, &transform, &block, predictor, 4U,
-              &scratch, &reconstruction) == AV2H_OK);
+        NULL, &mode, &prefix, &transform, &block, predictor, 4U, &scratch,
+        &reconstruction) == AV2H_OK);
     CHECK(reconstruction.width == 4U);
     CHECK(reconstruction.height == 16U);
     for (index = 0U; index < 64U; ++index) {
@@ -1623,8 +1620,8 @@ static void test_4x4_secondary_transform_precedes_primary_transform(void) {
     block.dequantized[4U] = 392;
 
     CHECK(av2h_luma_reconstruct(
-              &mode, &prefix, &transform, &block, predictor, 4U,
-              &scratch, &reconstruction) == AV2H_OK);
+        NULL, &mode, &prefix, &transform, &block, predictor, 4U, &scratch,
+        &reconstruction) == AV2H_OK);
     CHECK(reconstruction.width == 4U);
     CHECK(reconstruction.height == 4U);
     for (index = 0U; index < 16U; ++index) {
@@ -1728,8 +1725,8 @@ static void test_tx4x4_intrabc_idtx_reconstruction(void) {
     block.dequantized[10U] = 1960;
 
     CHECK(av2h_luma_reconstruct(
-              &mode, &prefix, &transform, &block, predictor, 4U,
-              &scratch, &reconstruction) == AV2H_OK);
+        NULL, &mode, &prefix, &transform, &block, predictor, 4U, &scratch,
+        &reconstruction) == AV2H_OK);
     CHECK(reconstruction.width == 4U);
     CHECK(reconstruction.height == 4U);
     for (index = 0U; index < 16U; ++index) {
@@ -1802,8 +1799,8 @@ static void check_idtx_reconstruction(Av2hTxSize tx_size,
         predictor[index] = (uint8_t)(40U + index % 151U);
     }
     CHECK(av2h_luma_reconstruct(
-              &mode, &prefix, &transform, &block, predictor, width,
-              &scratch, &reconstruction) == AV2H_OK);
+        NULL, &mode, &prefix, &transform, &block, predictor, width, &scratch,
+        &reconstruction) == AV2H_OK);
     CHECK(reconstruction.width == width);
     CHECK(reconstruction.height == height);
     for (index = 0U; index < count; ++index) {
@@ -1923,8 +1920,8 @@ static void test_tx4x4_d203_fsc_reconstruction(void) {
     block.dequantized[4U] = -784;
 
     CHECK(av2h_luma_reconstruct(
-              &mode, &prefix, &transform, &block, predictor, 4U,
-              &scratch, &reconstruction) == AV2H_OK);
+        NULL, &mode, &prefix, &transform, &block, predictor, 4U, &scratch,
+        &reconstruction) == AV2H_OK);
     CHECK(reconstruction.width == 4U);
     CHECK(reconstruction.height == 4U);
     for (index = 0U; index < 16U; ++index) {
@@ -1983,8 +1980,8 @@ static void test_tx8x4_d203_reconstruction(void) {
     block.dequantized[1U] = -196;
     block.dequantized[8U] = -196;
     CHECK(av2h_luma_reconstruct(
-              &mode, &prefix, &transform, &block, predictor, 8U,
-              &scratch, &reconstruction) == AV2H_OK);
+        NULL, &mode, &prefix, &transform, &block, predictor, 8U, &scratch,
+        &reconstruction) == AV2H_OK);
     for (index = 0U; index < 32U; ++index) {
         int32_t expected_residual =
             index == 1U ? -6 :
@@ -2049,8 +2046,8 @@ static void test_tx8x8_d203_mrl_reconstruction(void) {
     block.dequantized[0U] = 392;
     block.dequantized[8U] = -196;
     CHECK(av2h_luma_reconstruct(
-              &mode, &prefix, &transform, &block, predictor, 8U,
-              &scratch, &reconstruction) == AV2H_OK);
+        NULL, &mode, &prefix, &transform, &block, predictor, 8U, &scratch,
+        &reconstruction) == AV2H_OK);
     for (index = 0U; index < 64U; ++index) {
         CHECK(reconstruction.pixels[index] == expected[index]);
         CHECK(reconstruction.residual[index] ==
@@ -2121,7 +2118,8 @@ static void test_live_plane_reconstruction(void) {
     frame.cdef_strength_count = 1U;
     CHECK(av2h_partition_cdfs_init(&partition_cdfs) == AV2H_OK);
     CHECK(av2h_leaf_cdfs_init(&leaf_cdfs) == AV2H_OK);
-    CHECK(av2h_coeff_cdfs_init(&coeff_cdfs) == AV2H_OK);
+    CHECK(av2h_coeff_cdfs_init(
+        &coeff_cdfs, 128U) == AV2H_OK);
     CHECK(av2h_transform_cdfs_init(&transform_cdfs) == AV2H_OK);
     CHECK(av2h_coeff_level_cdfs_init(&level_cdfs) == AV2H_OK);
     CHECK(av2h_partition_context_state_init(
@@ -2143,8 +2141,8 @@ static void test_live_plane_reconstruction(void) {
                   &path, &has_leaf) == AV2H_OK);
         CHECK(has_leaf == 1U);
         CHECK(av2h_luma_mode_read_with_state(
-                  &decoder, &leaf_cdfs, &sequence, &frame, &path.leaf,
-                  &mode_state, &mode) == AV2H_OK);
+            &decoder, &leaf_cdfs, &sequence, &frame, &path.leaf, &mode_state,
+            NULL, NULL, NULL, NULL, 0U, &mode) == AV2H_OK);
         CHECK(av2h_luma_mode_context_state_update(
                   &mode_state, &path.leaf, &mode) == AV2H_OK);
         CHECK(av2h_coeff_prefix_read_with_state(
@@ -2158,8 +2156,8 @@ static void test_live_plane_reconstruction(void) {
                   &mode, &prefix, &transform, &coeff_state, &block) ==
               AV2H_OK);
         CHECK(av2h_luma_reconstruct_to_plane(
-                  &path.leaf, &mode, &prefix, &transform, &block,
-                  &plane, &scratch) == AV2H_OK);
+            NULL, &path.leaf, &mode, &prefix, &transform, &block, &plane,
+            &scratch) == AV2H_OK);
         CHECK(av2h_partition_traversal_commit_leaf(
                   &traversal, &partition_state, path.leaf) == AV2H_OK);
     }
@@ -2202,9 +2200,9 @@ static void test_tx16x32_dc_dct_reconstruction(void) {
     block.dequantized[17] = 248;
     block.dequantized[32] = 248;
 
-    CHECK(av2h_luma_reconstruct_without_predictor(
-              &mode, &prefix, &transform, &block, &scratch,
-              &reconstruction) == AV2H_OK);
+    CHECK(av2h_luma_reconstruct(
+        NULL, &mode, &prefix, &transform, &block, NULL, 0U, &scratch,
+        &reconstruction) == AV2H_OK);
     CHECK(reconstruction.width == 16U);
     CHECK(reconstruction.height == 32U);
     CHECK(pixel_hash(&reconstruction) == UINT64_C(0xfb97d9776de897f5));
@@ -2216,8 +2214,9 @@ static void test_tx16x32_dc_dct_reconstruction(void) {
     }
 
     block.dequantized[96U] = 248;
-    status = av2h_luma_reconstruct_without_predictor(
-        &mode, &prefix, &transform, &block, &scratch, &reconstruction);
+    status = av2h_luma_reconstruct(
+        NULL, &mode, &prefix, &transform, &block, NULL, 0U, &scratch,
+        &reconstruction);
     CHECK(status == AV2H_OK);
     CHECK(pixel_hash(&reconstruction) == UINT64_C(0x675e7f3b31f00b94));
 }
@@ -2260,9 +2259,9 @@ static void test_tx16x32_dc_flipadst_reconstruction(void) {
     block.dequantized[33] = -248;
     block.dequantized[34] = -248;
 
-    CHECK(av2h_luma_reconstruct_without_predictor(
-              &mode, &prefix, &transform, &block, &scratch,
-              &reconstruction) == AV2H_OK);
+    CHECK(av2h_luma_reconstruct(
+        NULL, &mode, &prefix, &transform, &block, NULL, 0U, &scratch,
+        &reconstruction) == AV2H_OK);
     CHECK(reconstruction.width == 16U);
     CHECK(reconstruction.height == 32U);
     CHECK(pixel_hash(&reconstruction) == UINT64_C(0x73f9aa733e29f1c7));
@@ -2274,8 +2273,9 @@ static void test_tx16x32_dc_flipadst_reconstruction(void) {
     }
 
     block.dequantized[4U] = -248;
-    status = av2h_luma_reconstruct_without_predictor(
-        &mode, &prefix, &transform, &block, &scratch, &reconstruction);
+    status = av2h_luma_reconstruct(
+        NULL, &mode, &prefix, &transform, &block, NULL, 0U, &scratch,
+        &reconstruction);
     CHECK(status == AV2H_OK);
     CHECK(pixel_hash(&reconstruction) == UINT64_C(0xe217fa29c5ee582c));
 }
@@ -2918,8 +2918,7 @@ static void test_luma_smooth_partial_left_extension(void) {
                   &mode, 16U, 16U, &references,
                   expected, 16U) == AV2H_OK);
         CHECK(av2h_luma_reconstruct_to_plane(
-                  &leaf, &mode, &prefix, &transform, &block,
-                  &plane, &scratch) == AV2H_OK);
+            NULL, &leaf, &mode, &prefix, &transform, &block, &plane, &scratch) == AV2H_OK);
         for (index = 0U; index < sizeof(expected); ++index) {
             CHECK(scratch.predictor[index] == expected[index]);
         }
@@ -4275,7 +4274,7 @@ static void test_emerald_q208_luma_blocks(void) {
                 test_case->coeff_values[coeff_index];
         }
         status = av2h_luma_reconstruct(
-            &mode, &prefix, &transform, &block, test_case->predictor,
+            NULL, &mode, &prefix, &transform, &block, test_case->predictor,
             test_case->output_width, &scratch, &reconstruction);
         if (status != AV2H_OK) {
             fprintf(stderr, "%s: reconstruct status %d\n",
@@ -4303,7 +4302,6 @@ static void test_emerald_q208_luma_blocks(void) {
     }
 }
 
-
 static void test_emerald_reconstruct_clipping(void) {
     Av2hLeafMode mode = { 0 };
     Av2hCoeffPrefix prefix = { 0 };
@@ -4324,9 +4322,9 @@ static void test_emerald_reconstruct_clipping(void) {
     /* A large positive DC residual saturates every sample to the maximum. */
     av2h_memory_fill(predictor, 240U, sizeof(predictor));
     block.dequantized[0U] = 32000;
-    CHECK(av2h_luma_reconstruct(&mode, &prefix, &transform, &block,
-                                predictor, 16U, &scratch,
-                                &reconstruction) == AV2H_OK);
+    CHECK(av2h_luma_reconstruct(
+        NULL, &mode, &prefix, &transform, &block, predictor, 16U, &scratch,
+        &reconstruction) == AV2H_OK);
     for (index = 0U; index < 256U; ++index) {
         CHECK(reconstruction.pixels[index] == 255U);
     }
@@ -4334,9 +4332,9 @@ static void test_emerald_reconstruct_clipping(void) {
     /* A large negative DC residual saturates every sample to the minimum. */
     av2h_memory_fill(predictor, 12U, sizeof(predictor));
     block.dequantized[0U] = -32000;
-    CHECK(av2h_luma_reconstruct(&mode, &prefix, &transform, &block,
-                                predictor, 16U, &scratch,
-                                &reconstruction) == AV2H_OK);
+    CHECK(av2h_luma_reconstruct(
+        NULL, &mode, &prefix, &transform, &block, predictor, 16U, &scratch,
+        &reconstruction) == AV2H_OK);
     for (index = 0U; index < 256U; ++index) {
         CHECK(reconstruction.pixels[index] == 0U);
     }
@@ -4410,9 +4408,8 @@ static void test_dct_adst_geometry_matrix(void) {
              mode_index <= AV2H_INTRA_PAETH; ++mode_index) {
             mode.mode = (Av2hIntraMode)mode_index;
             CHECK(av2h_luma_reconstruct(
-                      &mode, &prefix, &transform, &block, predictor,
-                      supported[geometry].output_width, &scratch,
-                      &reconstruction) == AV2H_OK);
+                NULL, &mode, &prefix, &transform, &block, predictor,
+                supported[geometry].output_width, &scratch, &reconstruction) == AV2H_OK);
             CHECK(reconstruction.width == supported[geometry].output_width);
             CHECK(reconstruction.height == supported[geometry].output_height);
             CHECK(trace_sample_hash(
@@ -4434,9 +4431,8 @@ static void test_dct_adst_geometry_matrix(void) {
         block.nonzero_count = 1U;
         block.dequantized[0U] = 512;
         CHECK(av2h_luma_reconstruct(
-                  &mode, &prefix, &transform, &block, predictor,
-                  unsupported[geometry].output_width, &scratch,
-                  &reconstruction) == AV2H_UNSUPPORTED);
+            NULL, &mode, &prefix, &transform, &block, predictor,
+            unsupported[geometry].output_width, &scratch, &reconstruction) == AV2H_UNSUPPORTED);
         av2h_memory_fill(&block, 0U, sizeof(block));
     }
 }
@@ -4504,9 +4500,8 @@ static void test_adst_dct_geometry_matrix(void) {
              mode_index <= AV2H_INTRA_PAETH; ++mode_index) {
             mode.mode = (Av2hIntraMode)mode_index;
             CHECK(av2h_luma_reconstruct(
-                      &mode, &prefix, &transform, &block, predictor,
-                      supported[geometry].output_width, &scratch,
-                      &reconstruction) == AV2H_OK);
+                NULL, &mode, &prefix, &transform, &block, predictor,
+                supported[geometry].output_width, &scratch, &reconstruction) == AV2H_OK);
             CHECK(reconstruction.width == supported[geometry].output_width);
             CHECK(reconstruction.height == supported[geometry].output_height);
             CHECK(trace_sample_hash(
@@ -4528,9 +4523,8 @@ static void test_adst_dct_geometry_matrix(void) {
         block.nonzero_count = 1U;
         block.dequantized[0U] = 512;
         CHECK(av2h_luma_reconstruct(
-                  &mode, &prefix, &transform, &block, predictor,
-                  unsupported[geometry].output_width, &scratch,
-                  &reconstruction) == AV2H_UNSUPPORTED);
+            NULL, &mode, &prefix, &transform, &block, predictor,
+            unsupported[geometry].output_width, &scratch, &reconstruction) == AV2H_UNSUPPORTED);
         av2h_memory_fill(&block, 0U, sizeof(block));
     }
 }
@@ -4589,7 +4583,7 @@ static void test_adst_flipadst_geometry_matrix(void) {
             uint32_t hash;
             mode.mode = (Av2hIntraMode)mode_index;
             status = av2h_luma_reconstruct(
-                &mode, &prefix, &transform, &block, predictor,
+                NULL, &mode, &prefix, &transform, &block, predictor,
                 supported[geometry].width, &scratch, &reconstruction);
             CHECK(status == AV2H_OK);
             if (status != AV2H_OK) continue;
@@ -4617,9 +4611,8 @@ static void test_adst_flipadst_geometry_matrix(void) {
         block.nonzero_count = 1U;
         block.dequantized[0U] = 512;
         CHECK(av2h_luma_reconstruct(
-                  &mode, &prefix, &transform, &block, predictor,
-                  descriptor->output_width, &scratch,
-                  &reconstruction) == AV2H_UNSUPPORTED);
+            NULL, &mode, &prefix, &transform, &block, predictor,
+            descriptor->output_width, &scratch, &reconstruction) == AV2H_UNSUPPORTED);
         av2h_memory_fill(&block, 0U, sizeof(block));
     }
 }
@@ -4779,7 +4772,7 @@ static void test_requested_transform_geometry_matrix(void) {
                 Av2hStatus status;
                 mode.mode = (Av2hIntraMode)mode_index;
                 status = av2h_luma_reconstruct(
-                    &mode, &prefix, &transform, &block, predictor,
+                    NULL, &mode, &prefix, &transform, &block, predictor,
                     descriptor->output_width, &scratch, &reconstruction);
                 CHECK(status == AV2H_OK);
                 if (status != AV2H_OK) continue;
@@ -4835,9 +4828,9 @@ static void test_emerald_reconstruct_invalid_preserves_output(void) {
     block.coefficient_count = 256U;
     block.nonzero_count = 0U;
     block.dequantized[5U] = 42;
-    CHECK(av2h_luma_reconstruct(&mode, &prefix, &transform, &block,
-                                predictor, 16U, &scratch,
-                                &reconstruction) == AV2H_UNSUPPORTED);
+    CHECK(av2h_luma_reconstruct(
+        NULL, &mode, &prefix, &transform, &block, predictor, 16U, &scratch,
+        &reconstruction) == AV2H_UNSUPPORTED);
     for (index = 0U; index < 256U; ++index) {
         CHECK(reconstruction.pixels[index] == 0xABU);
     }
@@ -4848,14 +4841,13 @@ static void test_emerald_reconstruct_invalid_preserves_output(void) {
     prefix.all_zero = 0U;
     block.nonzero_count = 1U;
     block.dequantized[0U] = 2048;
-    CHECK(av2h_luma_reconstruct(&mode, &prefix, &transform, &block,
-                                predictor, 8U, &scratch,
-                                &reconstruction) == AV2H_INVALID_ARGUMENT);
+    CHECK(av2h_luma_reconstruct(
+        NULL, &mode, &prefix, &transform, &block, predictor, 8U, &scratch,
+        &reconstruction) == AV2H_INVALID_ARGUMENT);
     for (index = 0U; index < 256U; ++index) {
         CHECK(reconstruction.pixels[index] == 0xABU);
     }
 }
-
 
 static const uint16_t l_00_00_u_cp[1]={0};
 static const int32_t l_00_00_u_cv[1]={1984};
@@ -5034,8 +5026,8 @@ static void test_emerald_q208_chroma_leaves(void) {
         for (index = 0U; index < (tc->all_zero ? 0U : tc->nonzero); ++index) {
             block.dequantized[tc->coeff_pos[index]] = tc->coeff_val[index];
         }
-        status = av2h_chroma_reconstruct_to_plane_ex(
-            &leaf, &mode, &prefix, &transform, &block, &cp, 0, 1U, &pp,
+        status = av2h_chroma_reconstruct_to_plane(
+            NULL, &leaf, &mode, &prefix, &transform, &block, &cp, 0, 1U, &pp, 0U,
             &scratch);
         if (status != AV2H_OK) {
             fprintf(stderr, "%s: reconstruct status %d\n", tc->name, status);
@@ -5134,9 +5126,9 @@ static void test_emerald_q208_chroma_cfl(void) {
         block.coefficient_count = 1024U;
         block.nonzero_count = all_zero ? 0U : 1U;
         if (!all_zero) block.dequantized[0] = -992;
-        status = av2h_chroma_reconstruct_to_plane_ex(
-            &leaf, &mode, &prefix, &transform, &block, &cp, &luma,
-            (uint8_t)(plane_index + 1), &pp, &scratch);
+        status = av2h_chroma_reconstruct_to_plane(
+            NULL, &leaf, &mode, &prefix, &transform, &block, &cp, &luma,
+            (uint8_t)(plane_index + 1), &pp, 0U, &scratch);
         if (status != AV2H_OK) {
             fprintf(stderr, "cfl plane %d: status %d\n", plane_index, status);
             ++failures;
@@ -5210,9 +5202,9 @@ static void test_cfl_filter1_explicit_alpha(void) {
     block.width = 4U;
     block.height = 4U;
     block.coefficient_count = 16U;
-    CHECK(av2h_chroma_reconstruct_to_plane_ex(
-              &leaf, &mode, &prefix, &transform, &block, &chroma, &luma,
-              1U, &predictor, &scratch) == AV2H_OK);
+    CHECK(av2h_chroma_reconstruct_to_plane(
+        NULL, &leaf, &mode, &prefix, &transform, &block, &chroma, &luma, 1U,
+        &predictor, 0U, &scratch) == AV2H_OK);
     for (row = 0U; row < 4U; ++row) {
         for (column = 0U; column < 4U; ++column) {
             size_t luma_row = row * 2U;
@@ -5311,9 +5303,9 @@ static void test_cfl_coded_bottom_edge(void) {
     block.width = 32U;
     block.height = 4U;
     block.coefficient_count = 128U;
-    CHECK(av2h_chroma_reconstruct_to_plane_ex(
-              &leaf, &mode, &prefix, &transform, &block, &chroma, &luma,
-              1U, &predictor, &scratch) == AV2H_OK);
+    CHECK(av2h_chroma_reconstruct_to_plane(
+        NULL, &leaf, &mode, &prefix, &transform, &block, &chroma, &luma, 1U,
+        &predictor, 0U, &scratch) == AV2H_OK);
     for (row = 10U; row < 12U; ++row) {
         for (column = 0U; column < 32U; ++column) {
             CHECK(pred_data[row * 32U + column] == 128U);
@@ -5450,9 +5442,9 @@ static void test_cfl_explicit_geometry_filter_matrix(void) {
                 block.width = width;
                 block.height = height;
                 block.coefficient_count = (uint32_t)width * height;
-                CHECK(av2h_chroma_reconstruct_to_plane_ex(
-                          &leaf, &mode, &prefix, &transform, &block, &chroma,
-                          &luma, plane_index, &predictor, &scratch) == AV2H_OK);
+                CHECK(av2h_chroma_reconstruct_to_plane(
+                    NULL, &leaf, &mode, &prefix, &transform, &block, &chroma,
+                    &luma, plane_index, &predictor, 0U, &scratch) == AV2H_OK);
                 for (row = 0U; row < height; ++row) {
                     for (column = 0U; column < width; ++column) {
                         size_t sample_x = 8U + column * 2U;
@@ -5591,9 +5583,9 @@ static void test_mhccp_geometry_direction_matrix(void) {
                 av2h_memory_fill(chroma_rec, 0U, sizeof(chroma_rec));
                 av2h_memory_fill(pred_data, 0U, sizeof(pred_data));
                 av2h_memory_fill(pred_rec, 0U, sizeof(pred_rec));
-                CHECK(av2h_chroma_reconstruct_to_plane_ex(
-                          &leaf, &mode, &prefix, &transform, &block, &chroma,
-                          &luma, plane_index, &predictor, &scratch) == AV2H_OK);
+                CHECK(av2h_chroma_reconstruct_to_plane(
+                    NULL, &leaf, &mode, &prefix, &transform, &block, &chroma,
+                    &luma, plane_index, &predictor, 0U, &scratch) == AV2H_OK);
                 for (row = 0U; row < height; ++row) {
                     for (column = 0U; column < width; ++column) {
                         CHECK(pred_data[row * 40U + column] == 128U);
@@ -5613,9 +5605,9 @@ static void test_mhccp_geometry_direction_matrix(void) {
                 av2h_memory_fill(chroma_rec, 1U, sizeof(chroma_rec));
                 av2h_memory_fill(pred_data, 0U, sizeof(pred_data));
                 av2h_memory_fill(pred_rec, 0U, sizeof(pred_rec));
-                CHECK(av2h_chroma_reconstruct_to_plane_ex(
-                          &leaf, &mode, &prefix, &transform, &block, &chroma,
-                          &luma, plane_index, &predictor, &scratch) == AV2H_OK);
+                CHECK(av2h_chroma_reconstruct_to_plane(
+                    NULL, &leaf, &mode, &prefix, &transform, &block, &chroma,
+                    &luma, plane_index, &predictor, 0U, &scratch) == AV2H_OK);
                 for (row = 0U; row < height; ++row) {
                     for (column = 0U; column < width; ++column) {
                         CHECK(pred_data[(row + 4U) * 40U + column + 4U] ==
@@ -5627,10 +5619,9 @@ static void test_mhccp_geometry_direction_matrix(void) {
                     leaf.column = 2U;
                     av2h_memory_fill(pred_data, 0U, sizeof(pred_data));
                     av2h_memory_fill(pred_rec, 0U, sizeof(pred_rec));
-                    CHECK(av2h_chroma_reconstruct_to_plane_ex(
-                              &leaf, &mode, &prefix, &transform, &block,
-                              &chroma, &luma, plane_index, &predictor,
-                              &scratch) == AV2H_OK);
+                    CHECK(av2h_chroma_reconstruct_to_plane(
+                        NULL, &leaf, &mode, &prefix, &transform, &block, &chroma,
+                        &luma, plane_index, &predictor, 0U, &scratch) == AV2H_OK);
                 }
                 if (width == 4U && height == 32U &&
                     filter_index == 2U && direction == 0U) {
@@ -5638,10 +5629,9 @@ static void test_mhccp_geometry_direction_matrix(void) {
                     leaf.column = 2U;
                     av2h_memory_fill(pred_data, 0U, sizeof(pred_data));
                     av2h_memory_fill(pred_rec, 0U, sizeof(pred_rec));
-                    CHECK(av2h_chroma_reconstruct_to_plane_ex(
-                              &leaf, &mode, &prefix, &transform, &block,
-                              &chroma, &luma, plane_index, &predictor,
-                              &scratch) == AV2H_OK);
+                    CHECK(av2h_chroma_reconstruct_to_plane(
+                        NULL, &leaf, &mode, &prefix, &transform, &block, &chroma,
+                        &luma, plane_index, &predictor, 0U, &scratch) == AV2H_OK);
                 }
                 if (width == 32U && height == 32U && filter_index == 0U &&
                     direction == 0U && plane_index == 1U) {
@@ -5651,10 +5641,9 @@ static void test_mhccp_geometry_direction_matrix(void) {
                     leaf.column = 2U;
                     av2h_memory_fill(pred_data, 0U, sizeof(pred_data));
                     av2h_memory_fill(pred_rec, 0U, sizeof(pred_rec));
-                    CHECK(av2h_chroma_reconstruct_to_plane_ex(
-                              &leaf, &mode, &prefix, &transform, &block,
-                              &chroma, &luma, plane_index, &predictor,
-                              &scratch) == AV2H_OK);
+                    CHECK(av2h_chroma_reconstruct_to_plane(
+                        NULL, &leaf, &mode, &prefix, &transform, &block, &chroma,
+                        &luma, plane_index, &predictor, 0U, &scratch) == AV2H_OK);
                     for (row = 0U; row < 32U; ++row) {
                         for (column = 0U; column < 32U; ++column) {
                             expected[row * 32U + column] =
@@ -5665,10 +5654,9 @@ static void test_mhccp_geometry_direction_matrix(void) {
                     chroma_data[3U] ^= 0x7fU;
                     av2h_memory_fill(pred_data, 0U, sizeof(pred_data));
                     av2h_memory_fill(pred_rec, 0U, sizeof(pred_rec));
-                    CHECK(av2h_chroma_reconstruct_to_plane_ex(
-                              &leaf, &mode, &prefix, &transform, &block,
-                              &chroma, &luma, plane_index, &predictor,
-                              &scratch) == AV2H_OK);
+                    CHECK(av2h_chroma_reconstruct_to_plane(
+                        NULL, &leaf, &mode, &prefix, &transform, &block, &chroma,
+                        &luma, plane_index, &predictor, 0U, &scratch) == AV2H_OK);
                     for (row = 0U; row < 32U; ++row) {
                         for (column = 0U; column < 32U; ++column) {
                             CHECK(pred_data[row * 40U + column + 4U] ==
@@ -5681,10 +5669,9 @@ static void test_mhccp_geometry_direction_matrix(void) {
                     av2h_memory_fill(chroma_rec, 1U, sizeof(chroma_rec));
                     av2h_memory_fill(pred_data, 0U, sizeof(pred_data));
                     av2h_memory_fill(pred_rec, 0U, sizeof(pred_rec));
-                    CHECK(av2h_chroma_reconstruct_to_plane_ex(
-                              &leaf, &mode, &prefix, &transform, &block,
-                              &chroma, &luma, plane_index, &predictor,
-                              &scratch) == AV2H_OK);
+                    CHECK(av2h_chroma_reconstruct_to_plane(
+                        NULL, &leaf, &mode, &prefix, &transform, &block, &chroma,
+                        &luma, plane_index, &predictor, 0U, &scratch) == AV2H_OK);
                     for (row = 0U; row < 32U; ++row) {
                         uint8_t edge = chroma_data[row * 40U + 26U];
                         for (column = 27U; column < 40U; ++column) {
@@ -5749,9 +5736,9 @@ static void test_i444_mhccp_long_left_reference(void) {
     block.width = 8U;
     block.height = 32U;
     block.coefficient_count = 256U;
-    CHECK(av2h_chroma_reconstruct_to_plane_format(
-              &leaf, &mode, &prefix, &transform, &block, &chroma, &luma, 1U,
-              &predictor, 2U, &scratch) == AV2H_OK);
+    CHECK(av2h_chroma_reconstruct_to_plane(
+        NULL, &leaf, &mode, &prefix, &transform, &block, &chroma, &luma, 1U,
+        &predictor, 2U, &scratch) == AV2H_OK);
     for (row = 0U; row < 32U; ++row) {
         for (column = 0U; column < 8U; ++column) {
             expected[row * 8U + column] =
@@ -5762,9 +5749,9 @@ static void test_i444_mhccp_long_left_reference(void) {
     chroma_data[66U * 80U + 7U] = 255U;
     av2h_memory_fill(pred_data, 0U, sizeof(pred_data));
     av2h_memory_fill(pred_rec, 0U, sizeof(pred_rec));
-    CHECK(av2h_chroma_reconstruct_to_plane_format(
-              &leaf, &mode, &prefix, &transform, &block, &chroma, &luma, 1U,
-              &predictor, 2U, &scratch) == AV2H_OK);
+    CHECK(av2h_chroma_reconstruct_to_plane(
+        NULL, &leaf, &mode, &prefix, &transform, &block, &chroma, &luma, 1U,
+        &predictor, 2U, &scratch) == AV2H_OK);
     for (row = 0U; row < 32U; ++row) {
         for (column = 0U; column < 8U; ++column) {
             changed |= (uint8_t)(expected[row * 8U + column] !=
@@ -5816,9 +5803,9 @@ static void test_i444_64x64_bottom_left_limit(void) {
     block.width = 32U;
     block.height = 32U;
     block.coefficient_count = 32U * 32U;
-    CHECK(av2h_chroma_reconstruct_to_plane_format(
-              &leaf, &mode, &prefix, &transform, &block, &chroma, &chroma,
-              2U, &predictor, 2U, &scratch) == AV2H_OK);
+    CHECK(av2h_chroma_reconstruct_to_plane(
+        NULL, &leaf, &mode, &prefix, &transform, &block, &chroma, &chroma, 2U,
+        &predictor, 2U, &scratch) == AV2H_OK);
     for (row = 0U; row < 64U; ++row) {
         for (column = 0U; column < 64U; ++column) {
             expected[row * 64U + column] =
@@ -5830,9 +5817,9 @@ static void test_i444_64x64_bottom_left_limit(void) {
     }
     av2h_memory_fill(pred_data, 0U, sizeof(pred_data));
     av2h_memory_fill(pred_rec, 0U, sizeof(pred_rec));
-    CHECK(av2h_chroma_reconstruct_to_plane_format(
-              &leaf, &mode, &prefix, &transform, &block, &chroma, &chroma,
-              2U, &predictor, 2U, &scratch) == AV2H_OK);
+    CHECK(av2h_chroma_reconstruct_to_plane(
+        NULL, &leaf, &mode, &prefix, &transform, &block, &chroma, &chroma, 2U,
+        &predictor, 2U, &scratch) == AV2H_OK);
     for (row = 0U; row < 64U; ++row) {
         for (column = 0U; column < 64U; ++column) {
             CHECK(pred_data[(row + 64U) * 200U + column + 64U] ==
@@ -5846,9 +5833,9 @@ static void test_i444_64x64_bottom_left_limit(void) {
     mode.angle_delta = 0;
     av2h_memory_fill(pred_data, 0U, sizeof(pred_data));
     av2h_memory_fill(pred_rec, 0U, sizeof(pred_rec));
-    CHECK(av2h_chroma_reconstruct_to_plane_format(
-              &leaf, &mode, &prefix, &transform, &block, &chroma, &chroma,
-              2U, &predictor, 2U, &scratch) == AV2H_OK);
+    CHECK(av2h_chroma_reconstruct_to_plane(
+        NULL, &leaf, &mode, &prefix, &transform, &block, &chroma, &chroma, 2U,
+        &predictor, 2U, &scratch) == AV2H_OK);
     for (row = 0U; row < 64U; ++row) {
         for (column = 0U; column < 64U; ++column) {
             expected[row * 64U + column] =
@@ -5858,9 +5845,9 @@ static void test_i444_64x64_bottom_left_limit(void) {
     chroma_data[128U * 200U + 63U] ^= 0xffU;
     av2h_memory_fill(pred_data, 0U, sizeof(pred_data));
     av2h_memory_fill(pred_rec, 0U, sizeof(pred_rec));
-    CHECK(av2h_chroma_reconstruct_to_plane_format(
-              &leaf, &mode, &prefix, &transform, &block, &chroma, &chroma,
-              2U, &predictor, 2U, &scratch) == AV2H_OK);
+    CHECK(av2h_chroma_reconstruct_to_plane(
+        NULL, &leaf, &mode, &prefix, &transform, &block, &chroma, &chroma, 2U,
+        &predictor, 2U, &scratch) == AV2H_OK);
     for (row = 0U; row < 64U; ++row) {
         for (column = 0U; column < 64U; ++column) {
             CHECK(pred_data[(row + 64U) * 200U + column + 64U] ==
@@ -5911,9 +5898,9 @@ static void test_i444_64x16_directional_top_right_limit(void) {
     block.width = 32U;
     block.height = 16U;
     block.coefficient_count = 32U * 16U;
-    CHECK(av2h_chroma_reconstruct_to_plane_format(
-              &leaf, &mode, &prefix, &transform, &block, &chroma, &chroma,
-              1U, &predictor, 2U, &scratch) == AV2H_OK);
+    CHECK(av2h_chroma_reconstruct_to_plane(
+        NULL, &leaf, &mode, &prefix, &transform, &block, &chroma, &chroma, 1U,
+        &predictor, 2U, &scratch) == AV2H_OK);
     for (row = 0U; row < 16U; ++row) {
         for (column = 0U; column < 64U; ++column) {
             expected[row * 64U + column] =
@@ -5925,9 +5912,9 @@ static void test_i444_64x16_directional_top_right_limit(void) {
     }
     av2h_memory_fill(pred_data, 0U, sizeof(pred_data));
     av2h_memory_fill(pred_rec, 0U, sizeof(pred_rec));
-    CHECK(av2h_chroma_reconstruct_to_plane_format(
-              &leaf, &mode, &prefix, &transform, &block, &chroma, &chroma,
-              1U, &predictor, 2U, &scratch) == AV2H_OK);
+    CHECK(av2h_chroma_reconstruct_to_plane(
+        NULL, &leaf, &mode, &prefix, &transform, &block, &chroma, &chroma, 1U,
+        &predictor, 2U, &scratch) == AV2H_OK);
     for (row = 0U; row < 16U; ++row) {
         for (column = 0U; column < 64U; ++column) {
             CHECK(pred_data[(row + 64U) * 200U + column + 64U] ==
@@ -5986,9 +5973,9 @@ static void test_i444_mhccp_long_top_reference(void) {
     block.width = 32U;
     block.height = 8U;
     block.coefficient_count = 256U;
-    CHECK(av2h_chroma_reconstruct_to_plane_format(
-              &leaf, &mode, &prefix, &transform, &block, &chroma, &luma, 1U,
-              &predictor, 2U, &scratch) == AV2H_OK);
+    CHECK(av2h_chroma_reconstruct_to_plane(
+        NULL, &leaf, &mode, &prefix, &transform, &block, &chroma, &luma, 1U,
+        &predictor, 2U, &scratch) == AV2H_OK);
     for (row = 0U; row < 8U; ++row) {
         for (column = 0U; column < 32U; ++column) {
             expected[row * 32U + column] =
@@ -5999,9 +5986,9 @@ static void test_i444_mhccp_long_top_reference(void) {
     chroma_data[7U * 80U + 66U] = 255U;
     av2h_memory_fill(pred_data, 0U, sizeof(pred_data));
     av2h_memory_fill(pred_rec, 0U, sizeof(pred_rec));
-    CHECK(av2h_chroma_reconstruct_to_plane_format(
-              &leaf, &mode, &prefix, &transform, &block, &chroma, &luma, 1U,
-              &predictor, 2U, &scratch) == AV2H_OK);
+    CHECK(av2h_chroma_reconstruct_to_plane(
+        NULL, &leaf, &mode, &prefix, &transform, &block, &chroma, &luma, 1U,
+        &predictor, 2U, &scratch) == AV2H_OK);
     for (row = 0U; row < 8U; ++row) {
         for (column = 0U; column < 32U; ++column) {
             changed |= (uint8_t)(expected[row * 32U + column] !=
@@ -6062,18 +6049,18 @@ static void test_emerald_chroma_plane_ex_checks(void) {
             chroma_data, 96U, 96U, 48U, 96U, 48U, chroma_rec, 96U / 4U,
             sizeof(chroma_rec)
         };
-        CHECK(av2h_chroma_reconstruct_to_plane_ex(
-                  &cfl_leaf, &cfl_mode, &prefix, &transform, &block, &cp,
-                  &luma, 1U, 0, &scratch) == AV2H_UNSUPPORTED);
+        CHECK(av2h_chroma_reconstruct_to_plane(
+            NULL, &cfl_leaf, &cfl_mode, &prefix, &transform, &block, &cp, &luma,
+            1U, 0, 0U, &scratch) == AV2H_UNSUPPORTED);
         for (r = 0U; r < 32U; ++r) {
             for (c = 0U; c < 32U; ++c) {
                 CHECK(chroma_data[r * 96U + 64U + c] == 0xABU);
             }
         }
         /* A NULL luma plane also fails closed for CFL. */
-        CHECK(av2h_chroma_reconstruct_to_plane_ex(
-                  &cfl_leaf, &cfl_mode, &prefix, &transform, &block, &cp,
-                  0, 1U, 0, &scratch) == AV2H_UNSUPPORTED);
+        CHECK(av2h_chroma_reconstruct_to_plane(
+            NULL, &cfl_leaf, &cfl_mode, &prefix, &transform, &block, &cp, 0, 1U,
+            0, 0U, &scratch) == AV2H_UNSUPPORTED);
         for (r = 0U; r < 32U; ++r) {
             for (c = 0U; c < 32U; ++c) {
                 CHECK(chroma_data[r * 96U + 64U + c] == 0xABU);
@@ -6095,9 +6082,9 @@ static void test_emerald_chroma_plane_ex_checks(void) {
         bad.width = 8U;
         bad.height = 8U;
         bad.coefficient_count = 64U;
-        bad_status = av2h_chroma_reconstruct_to_plane_ex(
-            &cfl_leaf, &dc_mode, &prefix, &transform, &bad, &cp,
-            &luma, 1U, 0, &scratch);
+        bad_status = av2h_chroma_reconstruct_to_plane(
+            NULL, &cfl_leaf, &dc_mode, &prefix, &transform, &bad, &cp, &luma, 1U,
+            0, 0U, &scratch);
         CHECK(bad_status == AV2H_OK);
         for (r = 0U; r < 8U; ++r) {
             for (c = 0U; c < 8U; ++c) {
@@ -6118,9 +6105,9 @@ static void test_emerald_chroma_plane_ex_checks(void) {
         };
         Av2hChromaLeafMode dc_mode = { 0 };
         dc_mode.mode = AV2H_INTRA_DC;
-        CHECK(av2h_chroma_reconstruct_to_plane_ex(
-                  &cfl_leaf, &dc_mode, &prefix, &transform, &block, &cp,
-                  &luma, 1U, &bad_pred, &scratch) == AV2H_INVALID_ARGUMENT);
+        CHECK(av2h_chroma_reconstruct_to_plane(
+            NULL, &cfl_leaf, &dc_mode, &prefix, &transform, &block, &cp, &luma,
+            1U, &bad_pred, 0U, &scratch) == AV2H_INVALID_ARGUMENT);
     }
 
     /* A neighbour-only all-zero DC leaf reconstructs to the flat DC surface
@@ -6141,8 +6128,8 @@ static void test_emerald_chroma_plane_ex_checks(void) {
         av2h_memory_fill(chroma_data, 0U, sizeof(chroma_data));
         for (r = 0U; r < 16U; ++r) chroma_data[r * 96U + 31U] = 150U;
         av2h_memory_fill(chroma_rec, 1U, sizeof(chroma_rec));
-        status = av2h_chroma_reconstruct_to_plane_ex(
-            &leaf, &dc_mode, &prefix, &transform, &az, &cp, 0, 1U, 0,
+        status = av2h_chroma_reconstruct_to_plane(
+            NULL, &leaf, &dc_mode, &prefix, &transform, &az, &cp, 0, 1U, 0, 0U,
             &scratch);
         CHECK(status == AV2H_OK);
         for (r = 0U; r < 16U; ++r) {
@@ -6307,9 +6294,8 @@ static void test_luma_ist_frontier_matrix(void) {
                 block.nonzero_count = 1U;
                 block.dequantized[0] = 256;
                 CHECK(av2h_luma_reconstruct(
-                                    &mode, &prefix, &transform, &block, predictor,
-                                    cases[case_index].output_width, &scratch,
-                                    &reconstruction) == AV2H_OK);
+                    NULL, &mode, &prefix, &transform, &block, predictor,
+                    cases[case_index].output_width, &scratch, &reconstruction) == AV2H_OK);
                 CHECK(reconstruction.width == cases[case_index].output_width);
                 CHECK(reconstruction.height == cases[case_index].output_height);
                 CHECK(predictor_storage[0U] == 100U);
@@ -6339,14 +6325,14 @@ static void test_luma_ist_frontier_matrix(void) {
             block.nonzero_count = 1U;
             block.dequantized[0] = 256;
             CHECK(av2h_luma_reconstruct(
-                  &mode, &prefix, &transform, &block, predictor, 32U,
-                  &scratch, &reconstruction) == AV2H_OK);
+                NULL, &mode, &prefix, &transform, &block, predictor, 32U,
+                &scratch, &reconstruction) == AV2H_OK);
 
             mode.mode = AV2H_INTRA_D135;
             transform.secondary_symbol = 2U;
             transform.secondary_set = 3U;
             CHECK(av2h_luma_reconstruct(
-                  &mode, &prefix, &transform, &block, predictor, 32U,
+                NULL, &mode, &prefix, &transform, &block, predictor, 32U,
                 &scratch, &reconstruction) == AV2H_OK);
         }
 }
@@ -6372,8 +6358,8 @@ static void test_tx8x4_adst_adst_reconstruction(void) {
     block.nonzero_count = 1U;
     block.dequantized[0] = 256;
     CHECK(av2h_luma_reconstruct(
-          &mode, &prefix, &transform, &block, predictor, 8U,
-          &scratch, &reconstruction) == AV2H_OK);
+        NULL, &mode, &prefix, &transform, &block, predictor, 8U, &scratch,
+        &reconstruction) == AV2H_OK);
     CHECK(reconstruction.width == 8U);
     CHECK(reconstruction.height == 4U);
     for (index = 0U; index < 32U; ++index) {
@@ -6410,9 +6396,9 @@ static void test_emerald_chroma_dct_geometries(void) {
         /* Predictor-only all-zero path preserves the predictor exactly. */
         prefix.all_zero = 1U;
         block.nonzero_count = 0U;
-        CHECK(av2h_luma_reconstruct(&mode, &prefix, &transform, &block,
-                                    predictor, geos[g].w, &scratch,
-                                    &reconstruction) == AV2H_OK);
+        CHECK(av2h_luma_reconstruct(
+            NULL, &mode, &prefix, &transform, &block, predictor, geos[g].w,
+            &scratch, &reconstruction) == AV2H_OK);
         CHECK(reconstruction.width == geos[g].w);
         CHECK(reconstruction.height == geos[g].h);
         for (index = 0U; index < count; ++index) {
@@ -6424,25 +6410,25 @@ static void test_emerald_chroma_dct_geometries(void) {
         prefix.eob = 1U;
         block.nonzero_count = 1U;
         block.dequantized[0] = 1984;
-        CHECK(av2h_luma_reconstruct(&mode, &prefix, &transform, &block,
-                                    predictor, geos[g].w, &scratch,
-                                    &reconstruction) == AV2H_OK);
+        CHECK(av2h_luma_reconstruct(
+            NULL, &mode, &prefix, &transform, &block, predictor, geos[g].w,
+            &scratch, &reconstruction) == AV2H_OK);
         for (index = 1U; index < count; ++index) {
             CHECK(reconstruction.pixels[index] == reconstruction.pixels[0]);
         }
 
         /* Saturating DC residuals clip to the valid range. */
         block.dequantized[0] = 400000;
-        CHECK(av2h_luma_reconstruct(&mode, &prefix, &transform, &block,
-                                    predictor, geos[g].w, &scratch,
-                                    &reconstruction) == AV2H_OK);
+        CHECK(av2h_luma_reconstruct(
+            NULL, &mode, &prefix, &transform, &block, predictor, geos[g].w,
+            &scratch, &reconstruction) == AV2H_OK);
         for (index = 0U; index < count; ++index) {
             CHECK(reconstruction.pixels[index] == 255U);
         }
         block.dequantized[0] = -400000;
-        CHECK(av2h_luma_reconstruct(&mode, &prefix, &transform, &block,
-                                    predictor, geos[g].w, &scratch,
-                                    &reconstruction) == AV2H_OK);
+        CHECK(av2h_luma_reconstruct(
+            NULL, &mode, &prefix, &transform, &block, predictor, geos[g].w,
+            &scratch, &reconstruction) == AV2H_OK);
         for (index = 0U; index < count; ++index) {
             CHECK(reconstruction.pixels[index] == 0U);
         }
@@ -6496,7 +6482,8 @@ static void test_frame_unsupported_status(void) {
     if (status != AV2H_OK) return;
     status = av2h_frame_header_closed_key_parse(
         (Av2hSpan){ input + frame_obu->payload_offset,
-                     frame_obu->payload_size }, &sequence, &frame);
+                     frame_obu->payload_size },
+        &sequence, &frame, NULL);
     CHECK(status == AV2H_OK);
     if (status != AV2H_OK) return;
     status = av2h_tile_group_single_parse(
@@ -6507,7 +6494,8 @@ static void test_frame_unsupported_status(void) {
     if (status != AV2H_OK || group.entropy.size == 0U) return;
     /* A one-bit entropy mutation reaches an unsupported luma syntax tuple. */
     input[(size_t)(group.entropy.data - input)] ^= 1U;
-    status = av2h_frame_decode_workspace_query(&sequence, &frame, &layout);
+    status = av2h_frame_decode_workspace_query(
+        &sequence, &frame, 1U, &layout);
     CHECK(status == AV2H_OK);
     if (status != AV2H_OK) return;
     allocation = (uint8_t *)malloc(
@@ -6517,7 +6505,7 @@ static void test_frame_unsupported_status(void) {
     memory = (void *)(((uintptr_t)allocation + layout.alignment - 1U) &
                       ~(uintptr_t)(layout.alignment - 1U));
     status = av2h_frame_decode_workspace_init(
-        &sequence, &frame, &layout, memory, layout.size_bytes, &workspace,
+        &sequence, &frame, 1U, &layout, memory, layout.size_bytes, &workspace,
         &filter_workspace, &filter_storage);
     CHECK(status == AV2H_OK);
     if (status != AV2H_OK) {
@@ -6526,8 +6514,8 @@ static void test_frame_unsupported_status(void) {
     }
     av2h_memory_fill(output, 0xa5U, sizeof(output));
     status = av2h_decode_frame_planar_private(
-        group.entropy, &sequence, &frame, &workspace,
-        output, sizeof(output), &result);
+        group.entropy, &sequence, &frame, &workspace, output, sizeof(output),
+        &result, NULL);
     CHECK(status == AV2H_UNSUPPORTED);
     CHECK(result.cause == AV2H_UNSUPPORTED);
     CHECK(result.stage == AV2H_FRAME_DECODE_STAGE_LUMA_PARSE);
@@ -6624,15 +6612,15 @@ static void test_10bit_wp5_frame_fixture(void) {
               (Av2hSpan){ input, input_size }, sequence_obu,
               &sequence, &error) == AV2H_OK);
     CHECK(av2h_frame_header_closed_key_parse(
-              (Av2hSpan){ input + frame_obu->payload_offset,
+        (Av2hSpan){ input + frame_obu->payload_offset,
                            frame_obu->payload_size },
-              &sequence, &frame) == AV2H_OK);
+        &sequence, &frame, NULL) == AV2H_OK);
     CHECK(av2h_tile_group_single_parse(
               (Av2hSpan){ input + frame_obu->payload_offset,
                            frame_obu->payload_size },
               frame.uncompressed_header_bits, &group) == AV2H_OK);
     CHECK(av2h_tile_decoder_init(
-              &decoder, group.entropy, &sequence, &frame, &storage) ==
+        &decoder, group.entropy, &sequence, &frame, &storage, UINT16_MAX) ==
           AV2H_OK);
 
     while (decoder.control.phase != AV2H_TILE_DECODE_DONE) {
@@ -6655,8 +6643,8 @@ static void test_10bit_wp5_frame_fixture(void) {
             CHECK(leaf.prefix.tx_size == AV2H_TX_8X16);
             CHECK(leaf.transform.primary_type == AV2H_TX_DCT_DCT);
             CHECK(av2h_luma_reconstruct_to_plane_u16(
-                      &leaf.node, &leaf.mode, &leaf.prefix, &leaf.transform,
-                      &block, &plane, &scratch) == AV2H_OK);
+                NULL, &leaf.node, &leaf.mode, &leaf.prefix, &leaf.transform,
+                &block, &plane, &scratch) == AV2H_OK);
             for (index = 0U; index < 128U; ++index) {
                 uint16_t expected_predictor;
                 if (luma_count == 0U) {
@@ -6712,12 +6700,10 @@ static void test_10bit_wp5_frame_fixture(void) {
                 uint16_t expected_predictor;
                 size_t sample_index;
                 CHECK(av2h_chroma_reconstruct_to_plane_u16(
-                          &leaf.node, &leaf.mode, &leaf.prefix[index],
-                          &leaf.transform[index], &blocks[index],
-                          &chroma_planes[index], &plane,
-                          (uint8_t)(index + 1U),
-                          frame.chroma_format_idc,
-                          &scratch) == AV2H_OK);
+                    NULL, &leaf.node, &leaf.mode, &leaf.prefix[index],
+                    &leaf.transform[index], &blocks[index],
+                    &chroma_planes[index], &plane, (uint8_t)(index + 1U),
+                    frame.chroma_format_idc, &scratch) == AV2H_OK);
                  if (chroma_count == 0U) {
                     expected_predictor = 512U;
                  } else {
@@ -6801,7 +6787,7 @@ static void test_10bit_wp5_frame_fixture(void) {
         uint8_t *allocation;
         void *workspace_memory;
         Av2hStatus status;
-        CHECK(av2h_frame_decode_workspace_query_bytes(
+        CHECK(av2h_frame_decode_workspace_query(
                   &sequence, &frame, 2U, &layout) == AV2H_OK);
         allocation = (uint8_t *)malloc(
             layout.size_bytes + layout.alignment - 1U);
@@ -6809,7 +6795,7 @@ static void test_10bit_wp5_frame_fixture(void) {
         if (allocation == 0) return;
         workspace_memory = (void *)(((uintptr_t)allocation +
             layout.alignment - 1U) & ~(uintptr_t)(layout.alignment - 1U));
-        CHECK(av2h_frame_decode_workspace_init_bytes(
+        CHECK(av2h_frame_decode_workspace_init(
                   &sequence, &frame, 2U, &layout,
                   workspace_memory, layout.size_bytes, &workspace,
                   &filter_workspace, &filter_storage) == AV2H_OK);
@@ -6818,14 +6804,14 @@ static void test_10bit_wp5_frame_fixture(void) {
         av2h_memory_fill(output, 0xa5U, sizeof(output));
         status = av2h_decode_frame_planar_private(
             group.entropy, &restoration_sequence, &frame, &workspace,
-            (uint8_t *)output, sizeof(output), &result);
+            (uint8_t *)output, sizeof(output), &result, NULL);
         CHECK(status == AV2H_UNSUPPORTED);
         for (index = 0U; index < sizeof(output); ++index) {
             CHECK(((uint8_t *)output)[index] == 0xa5U);
         }
         status = av2h_decode_frame_planar_private(
-            group.entropy, &sequence, &frame, &workspace,
-            (uint8_t *)output, sizeof(output) - 1U, &result);
+            group.entropy, &sequence, &frame, &workspace, (uint8_t *)output,
+            sizeof(output) - 1U, &result, NULL);
         CHECK(status == AV2H_OUT_OF_MEMORY);
         for (index = 0U; index < sizeof(output); ++index) {
             CHECK(((uint8_t *)output)[index] == 0xa5U);
@@ -6834,8 +6820,8 @@ static void test_10bit_wp5_frame_fixture(void) {
         filter_workspace.deblocked_u16.plane[0].data =
             workspace.coded_u16[1].data;
         status = av2h_decode_frame_planar_private(
-            group.entropy, &sequence, &frame, &workspace,
-            (uint8_t *)output, sizeof(output), &result);
+            group.entropy, &sequence, &frame, &workspace, (uint8_t *)output,
+            sizeof(output), &result, NULL);
         CHECK(status == AV2H_INVALID_ARGUMENT);
         for (index = 0U; index < sizeof(output); ++index) {
             CHECK(((uint8_t *)output)[index] == 0xa5U);
@@ -6844,8 +6830,8 @@ static void test_10bit_wp5_frame_fixture(void) {
         av2h_memory_fill(output, 0xa5U, sizeof(output));
         av2h_memory_fill(&result, 0U, sizeof(result));
         status = av2h_decode_frame_planar_private(
-            group.entropy, &sequence, &frame, &workspace,
-            (uint8_t *)output, sizeof(output), &result);
+            group.entropy, &sequence, &frame, &workspace, (uint8_t *)output,
+            sizeof(output), &result, NULL);
         CHECK(status == AV2H_OK);
         CHECK(result.cause == AV2H_OK);
         CHECK(result.stage == AV2H_FRAME_DECODE_STAGE_NONE);
@@ -6938,9 +6924,9 @@ static void test_10bit_wp9_gdf_stage(void) {
               (Av2hSpan){ input, input_size }, sequence_obu,
               &sequence, &error) == AV2H_OK);
     CHECK(av2h_frame_header_closed_key_parse(
-              (Av2hSpan){ input + frame_obu->payload_offset,
+        (Av2hSpan){ input + frame_obu->payload_offset,
                            frame_obu->payload_size },
-              &sequence, &frame) == AV2H_OK);
+        &sequence, &frame, NULL) == AV2H_OK);
     CHECK(frame.width == 65U && frame.height == 63U);
     CHECK(frame.gdf_mode == 1U);
     {
@@ -7069,7 +7055,7 @@ static void test_10bit_wp6_tiny_matrix(void) {
         status = av2h_frame_header_closed_key_parse(
             (Av2hSpan){ input + frame_obu->payload_offset,
                          frame_obu->payload_size },
-            &sequence, &frame);
+            &sequence, &frame, NULL);
         CHECK(status == AV2H_OK);
         if (status != AV2H_OK) continue;
         status = av2h_tile_group_single_parse(
@@ -7078,7 +7064,7 @@ static void test_10bit_wp6_tiny_matrix(void) {
             frame.uncompressed_header_bits, &group);
         CHECK(status == AV2H_OK);
         if (status != AV2H_OK) continue;
-        status = av2h_frame_decode_workspace_query_bytes(
+        status = av2h_frame_decode_workspace_query(
             &sequence, &frame, 2U, &layout);
         CHECK(status == AV2H_OK);
         if (status != AV2H_OK) continue;
@@ -7088,7 +7074,7 @@ static void test_10bit_wp6_tiny_matrix(void) {
         if (allocation == 0) continue;
         workspace_memory = (void *)(((uintptr_t)allocation +
             layout.alignment - 1U) & ~(uintptr_t)(layout.alignment - 1U));
-        status = av2h_frame_decode_workspace_init_bytes(
+        status = av2h_frame_decode_workspace_init(
             &sequence, &frame, 2U, &layout,
             workspace_memory, layout.size_bytes, &workspace,
             &filter_workspace, &filter_storage);
@@ -7100,8 +7086,8 @@ static void test_10bit_wp6_tiny_matrix(void) {
         av2h_memory_fill(output, 0xa5U, sizeof(output));
         av2h_memory_fill(&result, 0U, sizeof(result));
         status = av2h_decode_frame_planar_private(
-            group.entropy, &sequence, &frame, &workspace,
-            output, sizeof(output), &result);
+            group.entropy, &sequence, &frame, &workspace, output, sizeof(output),
+            &result, NULL);
         if (status != AV2H_OK) {
             fprintf(stderr,
                     "%s: status=%u cause=%u stage=%u plane=%u "
@@ -7271,7 +7257,6 @@ static void test_10bit_wp6_tiny_matrix(void) {
         free(allocation);
     }
 }
-
 
 int main(void) {
     test_chroma_geometry_through_64();

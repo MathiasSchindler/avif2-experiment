@@ -537,7 +537,7 @@ Av2hStatus av2h_partition_ordinary_prefix_read(
     return value == 0U ? AV2H_OK : AV2H_UNSUPPORTED;
 }
 
-Av2hStatus av2h_partition_node_read_for_structure(
+Av2hStatus av2h_partition_node_read(
     Av2hRangeDecoder *decoder,
     Av2hPartitionCdfs *cdfs,
     size_t structure,
@@ -639,21 +639,6 @@ Av2hStatus av2h_partition_node_read_for_structure(
                                          decision->partition);
     if (child->block_size == AV2H_BLOCK_INVALID) return AV2H_UNSUPPORTED;
     return AV2H_OK;
-}
-
-Av2hStatus av2h_partition_node_read(
-    Av2hRangeDecoder *decoder,
-    Av2hPartitionCdfs *cdfs,
-    Av2hPartitionNode node,
-    size_t split_context,
-    size_t rect_type_context,
-    size_t extension_context,
-    unsigned int enable_ext_partitions,
-    Av2hPartitionDecision *decision,
-    Av2hPartitionNode *child) {
-    return av2h_partition_node_read_for_structure(
-        decoder, cdfs, 0U, node, split_context, rect_type_context,
-        extension_context, enable_ext_partitions, decision, child);
 }
 
 Av2hStatus av2h_partition_node_read_with_state(

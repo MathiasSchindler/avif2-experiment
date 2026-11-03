@@ -254,15 +254,7 @@ Av2hStatus av2h_coeff_block_read_with_state(
     const Av2hTransformType *transform,
     Av2hCoeffContextState *state,
     Av2hCoeffBlock *block);
-Av2hStatus av2h_coeff_block_read_default_context(
-    Av2hRangeDecoder *decoder,
-    Av2hCoeffLevelCdfs *cdfs,
-    const Av2hSequenceState *sequence,
-    const Av2hFrameState *frame,
-    const Av2hLeafMode *mode,
-    const Av2hCoeffPrefix *prefix,
-    const Av2hTransformType *transform,
-    Av2hCoeffBlock *block);
+
 Av2hStatus av2h_chroma_coeff_block_read(
     Av2hRangeDecoder *decoder,
     Av2hCoeffLevelCdfs *cdfs,

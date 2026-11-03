@@ -40,32 +40,6 @@ Av2hStatus av2h_chroma_mode_read(
     Av2hLeafCdfs *cdfs,
     const Av2hSequenceState *sequence,
     Av2hIntraMode colocated_luma_mode,
-    uint8_t cfl_context,
-    Av2hChromaLeafMode *mode) {
-    return av2h_chroma_mode_read_with_delta(
-        decoder, cdfs, sequence, colocated_luma_mode, 0,
-        AV2H_BLOCK_INVALID, cfl_context, mode);
-}
-
-Av2hStatus av2h_chroma_mode_read_with_delta(
-    Av2hRangeDecoder *decoder,
-    Av2hLeafCdfs *cdfs,
-    const Av2hSequenceState *sequence,
-    Av2hIntraMode colocated_luma_mode,
-    int8_t colocated_luma_delta,
-    Av2hBlockSize block_size,
-    uint8_t cfl_context,
-    Av2hChromaLeafMode *mode) {
-    return av2h_chroma_mode_read_with_delta_for_sdp(
-        decoder, cdfs, sequence, colocated_luma_mode,
-        colocated_luma_delta, block_size, cfl_context, 1U, 0U, mode);
-}
-
-Av2hStatus av2h_chroma_mode_read_with_delta_for_sdp(
-    Av2hRangeDecoder *decoder,
-    Av2hLeafCdfs *cdfs,
-    const Av2hSequenceState *sequence,
-    Av2hIntraMode colocated_luma_mode,
     int8_t colocated_luma_delta,
     Av2hBlockSize block_size,
     uint8_t cfl_context,
@@ -465,39 +439,6 @@ static Av2hStatus luma_mode_read_internal(
     Av2hLeafMode *mode);
 
 Av2hStatus av2h_luma_mode_read_with_state(
-    Av2hRangeDecoder *decoder,
-    Av2hLeafCdfs *cdfs,
-    const Av2hSequenceState *sequence,
-    const Av2hFrameState *frame,
-    const Av2hPartitionNode *leaf,
-    const Av2hLumaModeContextState *state,
-    Av2hLeafMode *mode) {
-    return av2h_luma_mode_read_with_state_and_gdf(
-        decoder, cdfs, sequence, frame, leaf, state, NULL, NULL, NULL, mode);
-}
-
-Av2hStatus av2h_luma_mode_read_with_state_and_gdf(
-    Av2hRangeDecoder *decoder,
-    Av2hLeafCdfs *cdfs,
-    const Av2hSequenceState *sequence,
-    const Av2hFrameState *frame,
-    const Av2hPartitionNode *leaf,
-    const Av2hLumaModeContextState *state,
-    Av2hGdfEntropyState *gdf_state,
-    Av2hCdefEntropyState *cdef_state,
-    Av2hCcsoEntropyState *ccso_state,
-    Av2hLeafMode *mode) {
-    Av2hLumaModeNeighbors neighbors;
-    Av2hStatus status = av2h_luma_mode_neighbors_from_state(
-        state, leaf, &neighbors);
-    if (status != AV2H_OK) return status;
-    status = luma_mode_read_internal(
-        decoder, cdfs, sequence, frame, leaf, &neighbors, state, gdf_state,
-        cdef_state, ccso_state, NULL, 0U, mode);
-    return status;
-}
-
-Av2hStatus av2h_luma_mode_read_with_state_and_delta_q(
     Av2hRangeDecoder *decoder,
     Av2hLeafCdfs *cdfs,
     const Av2hSequenceState *sequence,
@@ -1139,17 +1080,4 @@ Av2hStatus av2h_luma_mode_read(
     return luma_mode_read_internal(
         decoder, cdfs, sequence, frame, leaf, neighbors, NULL, NULL, NULL, NULL, NULL, 0U,
         mode);
-}
-
-Av2hStatus av2h_first_leaf_mode_read(Av2hRangeDecoder *decoder,
-                                     Av2hLeafCdfs *cdfs,
-                                     const Av2hSequenceState *sequence,
-                                     const Av2hFrameState *frame,
-                                     const Av2hPartitionNode *leaf,
-                                     Av2hLeafMode *mode) {
-    const Av2hLumaModeNeighbors neighbors = { 0 };
-    if (leaf == NULL) return AV2H_INVALID_ARGUMENT;
-    if (leaf->row != 0U || leaf->column != 0U) return AV2H_UNSUPPORTED;
-    return av2h_luma_mode_read(decoder, cdfs, sequence, frame, leaf,
-                               &neighbors, mode);
 }

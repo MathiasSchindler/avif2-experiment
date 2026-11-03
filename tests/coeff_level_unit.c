@@ -4,6 +4,7 @@
 #include "decoder/partition_cdf.h"
 #include "decoder/qmatrix.h"
 #include "decoder/transform.h"
+#include "decoder_test_helpers.h"
 
 #include <stdio.h>
 
@@ -296,9 +297,9 @@ static void test_fsc_coefficient_matrix(void) {
             CHECK(av2h_coeff_level_cdfs_init_for_q(
                       &cdfs, frame.base_q_index) == AV2H_OK);
             CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
-            status = av2h_coeff_block_read_default_context(
-                &decoder, &cdfs, &sequence, &frame, &mode, &prefix,
-                &transform, &block);
+            status = av2h_coeff_block_read(
+                &decoder, &cdfs, &sequence, &frame, &mode, &prefix, &transform,
+                0U, &block);
             if (status != AV2H_OK) {
                 fprintf(stderr, "FSC q%zu tx%u: status=%d kind=%u ctx=%u\n",
                         q_context, (unsigned int)prefix.tx_size, status,
@@ -348,9 +349,9 @@ static void test_fsc_bob_context_scales_with_transform_area(void) {
             cdfs.fsc_bob_all[geometry.tx_context][context], 7U);
     }
     CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
-    CHECK(av2h_coeff_block_read_default_context(
-              &decoder, &cdfs, &sequence, &frame, &mode, &prefix,
-              &transform, &block) == AV2H_OK);
+    CHECK(av2h_coeff_block_read(
+        &decoder, &cdfs, &sequence, &frame, &mode, &prefix, &transform, 0U,
+        &block) == AV2H_OK);
     CHECK(word_hash(cdfs.fsc_bob_all[geometry.tx_context][0], 7U) ==
           before[0]);
     CHECK(word_hash(cdfs.fsc_bob_all[geometry.tx_context][1], 7U) !=
@@ -397,9 +398,9 @@ static void test_adst_dct_coefficient_matrix(void) {
             CHECK(av2h_coeff_level_cdfs_init_for_q(
                       &cdfs, frame.base_q_index) == AV2H_OK);
             CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
-            status = av2h_coeff_block_read_default_context(
-                &decoder, &cdfs, &sequence, &frame, &mode, &prefix,
-                &transform, &block);
+            status = av2h_coeff_block_read(
+                &decoder, &cdfs, &sequence, &frame, &mode, &prefix, &transform,
+                0U, &block);
             if (status != AV2H_OK) {
                 fprintf(stderr, "ADST_DCT q%zu tx%u: status=%d\n",
                         q_context, (unsigned int)prefix.tx_size, status);
@@ -449,9 +450,9 @@ static void test_adst_flipadst_coefficient_matrix(void) {
             CHECK(av2h_coeff_level_cdfs_init_for_q(
                       &cdfs, frame.base_q_index) == AV2H_OK);
             CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
-            status = av2h_coeff_block_read_default_context(
-                &decoder, &cdfs, &sequence, &frame, &mode, &prefix,
-                &transform, &block);
+            status = av2h_coeff_block_read(
+                &decoder, &cdfs, &sequence, &frame, &mode, &prefix, &transform,
+                0U, &block);
             if (status != AV2H_OK) {
                 fprintf(stderr, "ADST_FLIPADST q%zu tx%u: status=%d\n",
                         q_context, (unsigned int)prefix.tx_size, status);
@@ -566,9 +567,9 @@ static void test_requested_transform_coefficient_matrix(void) {
                 CHECK(av2h_coeff_level_cdfs_init_for_q(
                           &cdfs, frame.base_q_index) == AV2H_OK);
                 CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
-                status = av2h_coeff_block_read_default_context(
+                status = av2h_coeff_block_read(
                     &decoder, &cdfs, &sequence, &frame, &mode, &prefix,
-                    &transform, &block);
+                    &transform, 0U, &block);
                 CHECK(status == AV2H_OK);
                 if (status != AV2H_OK) continue;
                 CHECK(block.coefficient_count == geometry.coefficient_count);
@@ -624,23 +625,24 @@ static void check_fixture(const char *name,
     sequence.enable_ist = 1U;
     CHECK(av2h_partition_cdfs_init(&partition_cdfs) == AV2H_OK);
     CHECK(av2h_leaf_cdfs_init(&leaf_cdfs) == AV2H_OK);
-    CHECK(av2h_coeff_cdfs_init(&coeff_cdfs) == AV2H_OK);
+    CHECK(av2h_coeff_cdfs_init(
+        &coeff_cdfs, 128U) == AV2H_OK);
     CHECK(av2h_transform_cdfs_init(&transform_cdfs) == AV2H_OK);
     CHECK(av2h_coeff_level_cdfs_init(&level_cdfs) == AV2H_OK);
     CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
     CHECK(av2h_partition_first_leaf_read(
               &decoder, &partition_cdfs, width, height, 1U, &path) == AV2H_OK);
-    CHECK(av2h_first_leaf_mode_read(
+    CHECK(test_first_leaf_mode_read(
               &decoder, &leaf_cdfs, &sequence, &frame, &path.leaf, &mode) ==
           AV2H_OK);
-    CHECK(av2h_first_coeff_prefix_read(
+    CHECK(test_first_coeff_prefix_read(
               &decoder, &coeff_cdfs, &frame, &path.leaf, &mode, &prefix) ==
           AV2H_OK);
     CHECK(av2h_transform_type_read(
               &decoder, &transform_cdfs, &sequence, &frame, &mode, &prefix,
               &transform) == AV2H_OK);
-    status = av2h_coeff_block_read_default_context(
-        &decoder, &level_cdfs, &sequence, &frame, &mode, &prefix, &transform,
+    status = av2h_coeff_block_read(
+        &decoder, &level_cdfs, &sequence, &frame, &mode, &prefix, &transform, 0U,
         &block);
     if (status != AV2H_OK) {
         fprintf(stderr, "%s: coefficient level status=%d tell=%zu\n", name,
@@ -1008,9 +1010,8 @@ static void test_arguments(void) {
     Av2hCoeffBlock block;
     CHECK(sizeof(Av2hCoeffLevelCdfs) == 25480U);
     CHECK(av2h_coeff_level_cdfs_init(0) == AV2H_INVALID_ARGUMENT);
-    CHECK(av2h_coeff_block_read_default_context(
-              0, &cdfs, &sequence, &frame, &mode, &prefix, &transform,
-              &block) == AV2H_INVALID_ARGUMENT);
+    CHECK(av2h_coeff_block_read(
+        0, &cdfs, &sequence, &frame, &mode, &prefix, &transform, 0U, &block) == AV2H_INVALID_ARGUMENT);
     CHECK(av2h_coeff_level_cdfs_init(&cdfs) == AV2H_OK);
     {
         static const uint16_t parity_cdf[8U] = {
@@ -1032,9 +1033,9 @@ static void test_arguments(void) {
     prefix.tx_size = AV2H_TX_4X4;
     prefix.eob = 1U;
     transform.primary_type = AV2H_TX_IDTX;
-    CHECK(av2h_coeff_block_read_default_context(
-              &decoder, &cdfs, &sequence, &frame, &mode, &prefix,
-              &transform, &block) == AV2H_UNSUPPORTED);
+    CHECK(av2h_coeff_block_read(
+        &decoder, &cdfs, &sequence, &frame, &mode, &prefix, &transform, 0U,
+        &block) == AV2H_UNSUPPORTED);
 }
 
 static void test_parity_hiding_gating(void) {
@@ -1058,9 +1059,9 @@ static void test_parity_hiding_gating(void) {
     CHECK(av2h_coeff_level_cdfs_init_for_q(&cdfs, 128U) == AV2H_OK);
     before = word_hash(cdfs.parity_base[0U], 8U);
     CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
-    CHECK(av2h_coeff_block_read_default_context(
-              &decoder, &cdfs, &sequence, &frame, &mode, &prefix,
-              &transform, &block) == AV2H_OK);
+    CHECK(av2h_coeff_block_read(
+        &decoder, &cdfs, &sequence, &frame, &mode, &prefix, &transform, 0U,
+        &block) == AV2H_OK);
     CHECK(word_hash(cdfs.parity_base[0U], 8U) == before);
 
     CHECK(av2h_coeff_level_cdfs_init_for_q(&cdfs, 128U) == AV2H_OK);
@@ -1069,9 +1070,9 @@ static void test_parity_hiding_gating(void) {
     transform.primary_type = AV2H_TX_IDTX;
     mode.fsc_mode = 1U;
     CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
-    CHECK(av2h_coeff_block_read_default_context(
-              &decoder, &cdfs, &sequence, &frame, &mode, &prefix,
-              &transform, &block) == AV2H_OK);
+    CHECK(av2h_coeff_block_read(
+        &decoder, &cdfs, &sequence, &frame, &mode, &prefix, &transform, 0U,
+        &block) == AV2H_OK);
     CHECK(word_hash(cdfs.parity_base[0U], 8U) == before);
 
     CHECK(av2h_coeff_level_cdfs_init_for_q(&cdfs, 128U) == AV2H_OK);
@@ -1080,9 +1081,9 @@ static void test_parity_hiding_gating(void) {
     mode.fsc_mode = 0U;
     sequence.enable_tcq = 1U;
     CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
-    CHECK(av2h_coeff_block_read_default_context(
-              &decoder, &cdfs, &sequence, &frame, &mode, &prefix,
-              &transform, &block) == AV2H_OK);
+    CHECK(av2h_coeff_block_read(
+        &decoder, &cdfs, &sequence, &frame, &mode, &prefix, &transform, 0U,
+        &block) == AV2H_OK);
     CHECK(word_hash(cdfs.parity_base[0U], 8U) == before);
 }
 

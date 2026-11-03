@@ -13,10 +13,6 @@
 
 #include <stddef.h>
 
-#define directional_base_angle av2h_directional_base_angle
-#define luma_wide_angle av2h_luma_wide_angle
-#define wide_angle_map av2h_luma_wide_angle
-
 const Av2hReconstructionDiagnostics *av2h_reconstruction_diagnostics_get(
     const Av2hDecodeDiagnostics *diagnostics) {
 #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
@@ -301,7 +297,7 @@ static Av2hStatus palette_fill_predictor_u16(
     return AV2H_OK;
 }
 
-Av2hStatus av2h_luma_reconstruct_to_plane_with_diagnostics(
+Av2hStatus av2h_luma_reconstruct_to_plane(
     Av2hDecodeDiagnostics *diagnostics,
     const Av2hPartitionNode *leaf,
     const Av2hLeafMode *mode,
@@ -417,9 +413,9 @@ Av2hStatus av2h_luma_reconstruct_to_plane_with_diagnostics(
         block_y + left_count < plane->height) {
         ++left_count;
     } else if (left_count != 0U && mode->mrl_index == 0U &&
-               directional_base_angle(mode->mode) != 0) {
-        int angle = luma_wide_angle(
-            directional_base_angle(mode->mode) + mode->angle_delta * 3,
+               av2h_directional_base_angle(mode->mode) != 0) {
+        int angle = av2h_luma_wide_angle(
+            av2h_directional_base_angle(mode->mode) + mode->angle_delta * 3,
             output_width, output_height);
         if (mode->tx_extended_edges_unavailable == 0U &&
             (angle > 180 ||
@@ -431,15 +427,15 @@ Av2hStatus av2h_luma_reconstruct_to_plane_with_diagnostics(
         }
     } else if (left_count != 0U && mode->mrl_index != 0U &&
                mode->tx_extended_edges_unavailable == 0U &&
-               directional_base_angle(mode->mode) != 0 &&
-               (luma_wide_angle(
-                   directional_base_angle(mode->mode) +
+               av2h_directional_base_angle(mode->mode) != 0 &&
+               (av2h_luma_wide_angle(
+                   av2h_directional_base_angle(mode->mode) +
                        mode->angle_delta * 3 +
                        (mode->mrl_index == 1U ? 1 :
                         mode->mrl_index == 2U ? -1 : 0),
                    output_width, output_height) > 180 ||
-                (mode->enable_ibp != 0U && luma_wide_angle(
-                    directional_base_angle(mode->mode) +
+                (mode->enable_ibp != 0U && av2h_luma_wide_angle(
+                    av2h_directional_base_angle(mode->mode) +
                         mode->angle_delta * 3 +
                         (mode->mrl_index == 1U ? 1 :
                          mode->mrl_index == 2U ? -1 : 0),
@@ -513,9 +509,9 @@ Av2hStatus av2h_luma_reconstruct_to_plane_with_diagnostics(
         if (block_x != 0U) {
             secondary_left_count = output_height;
             if (mode->tx_extended_edges_unavailable == 0U &&
-                directional_base_angle(mode->mode) != 0 &&
-                luma_wide_angle(
-                    directional_base_angle(mode->mode) +
+                av2h_directional_base_angle(mode->mode) != 0 &&
+                av2h_luma_wide_angle(
+                    av2h_directional_base_angle(mode->mode) +
                         mode->angle_delta * 3 +
                         (mode->mrl_index == 1U ? 1 :
                          mode->mrl_index == 2U ? -1 : 0),
@@ -589,7 +585,7 @@ Av2hStatus av2h_luma_reconstruct_to_plane_with_diagnostics(
             mode, block_x, block_y, output_width, output_height,
             scratch->predictor);
         if (status != AV2H_OK) return status;
-        status = av2h_luma_reconstruct_with_diagnostics(
+        status = av2h_luma_reconstruct(
             diagnostics, mode, prefix, transform, coefficients,
             scratch->predictor,
             output_width, scratch, &reconstruction);
@@ -599,7 +595,7 @@ Av2hStatus av2h_luma_reconstruct_to_plane_with_diagnostics(
             output_width, output_height,
             scratch->predictor);
         if (status != AV2H_OK) return status;
-        status = av2h_luma_reconstruct_with_diagnostics(
+        status = av2h_luma_reconstruct(
             diagnostics, mode, prefix, transform, coefficients,
             scratch->predictor,
             output_width, scratch, &reconstruction);
@@ -609,7 +605,7 @@ Av2hStatus av2h_luma_reconstruct_to_plane_with_diagnostics(
              ++index) {
             scratch->predictor[index] = av2h_sample_midpoint_8bit();
         }
-        status = av2h_luma_reconstruct_with_diagnostics(
+        status = av2h_luma_reconstruct(
             diagnostics, mode, prefix, transform, coefficients,
             scratch->predictor,
             output_width,
@@ -627,7 +623,7 @@ Av2hStatus av2h_luma_reconstruct_to_plane_with_diagnostics(
         if (status != AV2H_OK) return status;
         av2h_reconstruction_diagnostics_set_luma_stage(
             diagnostics, 2U);
-        status = av2h_luma_reconstruct_with_diagnostics(
+        status = av2h_luma_reconstruct(
             diagnostics, mode, prefix, transform, coefficients,
             scratch->predictor,
             output_width, scratch, &reconstruction);
@@ -648,7 +644,7 @@ Av2hStatus av2h_luma_reconstruct_to_plane_with_diagnostics(
     return AV2H_OK;
 }
 
-Av2hStatus av2h_luma_reconstruct_to_plane_u16_with_diagnostics(
+Av2hStatus av2h_luma_reconstruct_to_plane_u16(
     Av2hDecodeDiagnostics *diagnostics,
     const Av2hPartitionNode *leaf,
     const Av2hLeafMode *mode,
@@ -704,7 +700,7 @@ Av2hStatus av2h_luma_reconstruct_to_plane_u16_with_diagnostics(
             diagnostics, 20U);
         return AV2H_UNSUPPORTED;
     }
-    prediction_angle = luma_wide_angle(
+    prediction_angle = av2h_luma_wide_angle(
         av2h_directional_base_angle(mode->mode) + mode->angle_delta * 3 +
             (mode->mrl_index == 1U ? 1 :
              mode->mrl_index == 2U ? -1 : 0),
@@ -891,7 +887,7 @@ Av2hStatus av2h_luma_reconstruct_to_plane_u16_with_diagnostics(
         }
         if (block_x != 0U) {
             secondary_left_count = descriptor->output_height;
-            if (luma_wide_angle(
+            if (av2h_luma_wide_angle(
                     av2h_directional_base_angle(mode->mode) +
                         mode->angle_delta * 3 +
                         (mode->mrl_index == 1U ? 1 :
@@ -1095,7 +1091,7 @@ Av2hStatus av2h_luma_reconstruct_to_plane_u16_with_diagnostics(
             descriptor->output_width);
         if (status != AV2H_OK) return status;
     }
-    status = av2h_luma_reconstruct_u16_with_diagnostics(
+    status = av2h_luma_reconstruct_u16(
         diagnostics, mode, prefix, transform, coefficients,
         scratch->predictor, scratch, &reconstruction);
     if (status != AV2H_OK) return status;
@@ -1111,92 +1107,7 @@ Av2hStatus av2h_luma_reconstruct_to_plane_u16_with_diagnostics(
     return AV2H_OK;
 }
 
-Av2hStatus av2h_luma_reconstruct_to_plane(
-    const Av2hPartitionNode *leaf,
-    const Av2hLeafMode *mode,
-    const Av2hCoeffPrefix *prefix,
-    const Av2hTransformType *transform,
-    const Av2hCoeffBlock *coefficients,
-    Av2hReconstructionPlane *plane,
-    Av2hReconstructionScratch *scratch) {
-    return av2h_luma_reconstruct_to_plane_with_diagnostics(
-        NULL, leaf, mode, prefix, transform, coefficients, plane, scratch);
-}
-
-Av2hStatus av2h_luma_reconstruct_to_plane_u16(
-    const Av2hPartitionNode *leaf,
-    const Av2hLeafMode *mode,
-    const Av2hCoeffPrefix *prefix,
-    const Av2hTransformType *transform,
-    const Av2hCoeffBlock *coefficients,
-    Av2hReconstructionPlaneU16 *plane,
-    Av2hReconstructionScratchU16 *scratch) {
-    return av2h_luma_reconstruct_to_plane_u16_with_diagnostics(
-        NULL, leaf, mode, prefix, transform, coefficients, plane, scratch);
-}
-
-Av2hStatus av2h_chroma_reconstruct_to_plane_format(
-    const Av2hPartitionNode *leaf,
-    const Av2hChromaLeafMode *mode,
-    const Av2hCoeffPrefix *prefix,
-    const Av2hTransformType *transform,
-    const Av2hCoeffBlock *coefficients,
-    Av2hReconstructionPlane *plane,
-    const Av2hReconstructionPlane *luma_plane,
-    uint8_t chroma_plane,
-    Av2hReconstructionPlane *predictor_plane,
-    uint8_t chroma_format_idc,
-    Av2hReconstructionScratch *scratch) {
-    return av2h_chroma_reconstruct_to_plane_format_with_diagnostics(
-        NULL, leaf, mode, prefix, transform, coefficients, plane, luma_plane,
-        chroma_plane, predictor_plane, chroma_format_idc, scratch);
-}
-
-Av2hStatus av2h_chroma_reconstruct_to_plane_u16(
-    const Av2hPartitionNode *leaf,
-    const Av2hChromaLeafMode *mode,
-    const Av2hCoeffPrefix *prefix,
-    const Av2hTransformType *transform,
-    const Av2hCoeffBlock *coefficients,
-    Av2hReconstructionPlaneU16 *plane,
-    const Av2hReconstructionPlaneU16 *luma_plane,
-    uint8_t chroma_plane,
-    uint8_t chroma_format_idc,
-    Av2hReconstructionScratchU16 *scratch) {
-    return av2h_chroma_reconstruct_to_plane_u16_with_diagnostics(
-        NULL, leaf, mode, prefix, transform, coefficients, plane, luma_plane,
-        chroma_plane, chroma_format_idc, scratch);
-}
 Av2hStatus av2h_chroma_reconstruct_to_plane(
-    const Av2hPartitionNode *leaf,
-    const Av2hChromaLeafMode *mode,
-    const Av2hCoeffPrefix *prefix,
-    const Av2hTransformType *transform,
-    const Av2hCoeffBlock *coefficients,
-    Av2hReconstructionPlane *plane,
-    Av2hReconstructionScratch *scratch) {
-    return av2h_chroma_reconstruct_to_plane_ex(
-        leaf, mode, prefix, transform, coefficients, plane, NULL, 1U, NULL,
-        scratch);
-}
-
-Av2hStatus av2h_chroma_reconstruct_to_plane_ex(
-    const Av2hPartitionNode *leaf,
-    const Av2hChromaLeafMode *mode,
-    const Av2hCoeffPrefix *prefix,
-    const Av2hTransformType *transform,
-    const Av2hCoeffBlock *coefficients,
-    Av2hReconstructionPlane *plane,
-    const Av2hReconstructionPlane *luma_plane,
-    uint8_t chroma_plane,
-    Av2hReconstructionPlane *predictor_plane,
-    Av2hReconstructionScratch *scratch) {
-    return av2h_chroma_reconstruct_to_plane_format(
-        leaf, mode, prefix, transform, coefficients, plane, luma_plane,
-        chroma_plane, predictor_plane, 0U, scratch);
-}
-
-Av2hStatus av2h_chroma_reconstruct_to_plane_format_with_diagnostics(
     Av2hDecodeDiagnostics *diagnostics,
     const Av2hPartitionNode *leaf,
     const Av2hChromaLeafMode *mode,
@@ -1277,8 +1188,8 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_format_with_diagnostics(
             block_x >= plane->width ? 0U :
             (size_t)plane->width - block_x;
         size_t left_count = block_x == 0U ? 0U : height;
-        int angle = wide_angle_map(
-            directional_base_angle(mode->mode) + mode->angle_delta * 3,
+        int angle = av2h_luma_wide_angle(
+            av2h_directional_base_angle(mode->mode) + mode->angle_delta * 3,
             width, height);
         if (width > 32U && above_count > width) above_count = width;
         if (left_count != 0U && height <= 32U &&
@@ -1449,7 +1360,7 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_format_with_diagnostics(
             predictor_plane->stride_samples,
             scratch->predictor, width, visible_width, visible_height);
     }
-    status = av2h_chroma_reconstruct_with_diagnostics(
+    status = av2h_chroma_reconstruct(
         diagnostics, mode, prefix, transform, coefficients,
         scratch->predictor, width, height, scratch, &reconstruction);
     if (status != AV2H_OK) {
@@ -1477,7 +1388,7 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_format_with_diagnostics(
     return AV2H_OK;
 }
 
-Av2hStatus av2h_chroma_reconstruct_to_plane_u16_with_diagnostics(
+Av2hStatus av2h_chroma_reconstruct_to_plane_u16(
     Av2hDecodeDiagnostics *diagnostics,
     const Av2hPartitionNode *leaf,
     const Av2hChromaLeafMode *mode,
@@ -1558,7 +1469,7 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_u16_with_diagnostics(
     visible_height = height < plane->height - block_y ?
         height : (uint16_t)(plane->height - block_y);
     prediction_angle = av2h_directional_base_angle(mode->mode) == 0 ? 0 :
-        luma_wide_angle(
+        av2h_luma_wide_angle(
             av2h_directional_base_angle(mode->mode) +
                 mode->angle_delta * 3,
             width, height);
@@ -1792,7 +1703,7 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_u16_with_diagnostics(
     }
     av2h_reconstruction_diagnostics_set_chroma_stage(
         diagnostics, 2U);
-    status = av2h_chroma_reconstruct_u16_with_diagnostics(
+    status = av2h_chroma_reconstruct_u16(
         diagnostics, mode, prefix, transform, coefficients,
         scratch->predictor, scratch, &reconstruction);
     if (status != AV2H_OK) return status;

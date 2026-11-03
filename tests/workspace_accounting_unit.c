@@ -53,9 +53,9 @@ static void test_storage_width_accounting(uint8_t chroma_format_idc) {
     uint8_t *memory = storage_memory + _Alignof(max_align_t);
     unsigned int plane;
     initialize(&sequence, &frame, 17U, 15U, chroma_format_idc);
-    CHECK(av2h_filter_workspace_query_bytes(
+    CHECK(av2h_filter_workspace_query(
               &frame, 1U, &filter_u8) == AV2H_OK);
-    CHECK(av2h_filter_workspace_query_bytes(
+    CHECK(av2h_filter_workspace_query(
               &frame, 2U, &filter_u16) == AV2H_OK);
     sample_count = stage_sample_count(&filter_u8);
     CHECK(stage_sample_count(&filter_u16) == 2U * sample_count);
@@ -70,9 +70,9 @@ static void test_storage_width_accounting(uint8_t chroma_format_idc) {
           filter_u8.deblock_cell_count[2]);
     CHECK(filter_u16.ccso_control_count == filter_u8.ccso_control_count);
 
-    CHECK(av2h_frame_decode_workspace_query_bytes(
+    CHECK(av2h_frame_decode_workspace_query(
               &sequence, &frame, 1U, &workspace_u8) == AV2H_OK);
-    CHECK(av2h_frame_decode_workspace_query_bytes(
+    CHECK(av2h_frame_decode_workspace_query(
               &sequence, &frame, 2U, &workspace_u16) == AV2H_OK);
     coded_plane_alignment_padding = av2h_frame_plane_count(&frame);
     CHECK(workspace_u16.size_bytes == workspace_u8.size_bytes +
@@ -83,9 +83,9 @@ static void test_storage_width_accounting(uint8_t chroma_format_idc) {
           CHECK(workspace_u16.size_bytes <=
               sizeof(storage_memory) - 2U * _Alignof(max_align_t));
         CHECK(av2h_frame_decode_workspace_init(
-              &sequence, &frame, &workspace_u8, memory,
-              workspace_u8.size_bytes,
-              &workspace, &filter_workspace, &filter_storage) == AV2H_OK);
+            &sequence, &frame, 1U, &workspace_u8, memory,
+            workspace_u8.size_bytes, &workspace, &filter_workspace,
+            &filter_storage) == AV2H_OK);
           CHECK(workspace.bytes_per_sample == 1U);
           CHECK(workspace.reconstruction_scratch != 0);
           CHECK(workspace.reconstruction_scratch_u16 == 0);
@@ -98,16 +98,16 @@ static void test_storage_width_accounting(uint8_t chroma_format_idc) {
         av2h_memory_fill(&filter_workspace, 0xa5U, sizeof(filter_workspace));
         av2h_memory_fill(&filter_storage, 0xa5U, sizeof(filter_storage));
         CHECK(av2h_frame_decode_workspace_init(
-              &sequence, &frame, &workspace_u16, memory,
-              workspace_u16.size_bytes,
-              &workspace, &filter_workspace, &filter_storage) ==
+            &sequence, &frame, 1U, &workspace_u16, memory,
+            workspace_u16.size_bytes, &workspace, &filter_workspace,
+            &filter_storage) ==
             AV2H_INVALID_ARGUMENT);
         CHECK(((const uint8_t *)&workspace)[0] == 0xa5U);
         CHECK(((const uint8_t *)&filter_workspace)[0] == 0xa5U);
         CHECK(((const uint8_t *)&filter_storage)[0] == 0xa5U);
         sequence.info.bit_depth_idc = 0U;
         av2h_memory_fill(storage_memory, 0xa5U, sizeof(storage_memory));
-        CHECK(av2h_frame_decode_workspace_init_bytes(
+        CHECK(av2h_frame_decode_workspace_init(
               &sequence, &frame, 2U, &workspace_u16, memory,
               workspace_u16.size_bytes,
               &workspace, &filter_workspace, &filter_storage) ==
@@ -139,7 +139,7 @@ static void test_storage_width_accounting(uint8_t chroma_format_idc) {
             CHECK(filter_storage.ccso_controls[plane] != 0);
             CHECK(sizeof(*filter_storage.ccso_controls[plane]) == 1U);
         }
-        CHECK(av2h_planar_output_size_bytes(
+        CHECK(av2h_planar_output_size(
                   &frame, 2U, &output_size) == AV2H_OK);
         CHECK(output_size + 2U <= sizeof(output_memory));
         av2h_memory_fill(output_memory, 0xa5U, sizeof(output_memory));
@@ -183,7 +183,7 @@ static void test_storage_width_accounting(uint8_t chroma_format_idc) {
         av2h_memory_fill(                                                       \
             &filter_workspace, 0xa5U, sizeof(filter_workspace));              \
         av2h_memory_fill(&filter_storage, 0xa5U, sizeof(filter_storage));      \
-        CHECK(av2h_frame_decode_workspace_init_bytes(                          \
+        CHECK(av2h_frame_decode_workspace_init(                          \
               &sequence, &frame, 2U, (candidate_layout), (pointer), (size),   \
               &workspace, &filter_workspace, &filter_storage) == (expected)); \
         CHECK(((const uint8_t *)&workspace)[0] == 0xa5U);                     \
@@ -213,9 +213,9 @@ static void test_maximum_workspace(void) {
     for (chroma_format_idc = 0U; chroma_format_idc <= 2U;
          ++chroma_format_idc) {
         initialize(&sequence, &frame, 16384U, 16384U, chroma_format_idc);
-        CHECK(av2h_frame_decode_workspace_query_bytes(
+        CHECK(av2h_frame_decode_workspace_query(
                   &sequence, &frame, 1U, &layout_u8) == AV2H_OK);
-        CHECK(av2h_frame_decode_workspace_query_bytes(
+        CHECK(av2h_frame_decode_workspace_query(
                   &sequence, &frame, 2U, &layout_u16) == AV2H_OK);
         CHECK(layout_u16.size_bytes > layout_u8.size_bytes);
         CHECK(layout_u16.size_bytes > limits.max_workspace_size);
@@ -259,19 +259,17 @@ static void test_odd_u16_visible_crop(void) {
             v[row * 14U + column] = (uint16_t)(800U + row * 9U + column);
         }
     }
-    CHECK(av2h_planar_output_size_bytes(
+    CHECK(av2h_planar_output_size(
               &frame, 2U, &expected_size) == AV2H_OK);
     CHECK(expected_size == 798U);
     av2h_memory_fill(output, 0xa5U, sizeof(output));
     CHECK(av2h_copy_visible_planar_u16_private(
-              &frame, coded, capacities, output,
-              expected_size - 1U) == AV2H_OUT_OF_MEMORY);
+        &frame, coded, capacities, output, expected_size - 1U, NULL) == AV2H_OUT_OF_MEMORY);
     for (offset = 0U; offset < sizeof(output); ++offset) {
         CHECK(output[offset] == 0xa5U);
     }
     CHECK(av2h_copy_visible_planar_u16_private(
-              &frame, coded, capacities, output,
-              sizeof(output)) == AV2H_OK);
+        &frame, coded, capacities, output, sizeof(output), NULL) == AV2H_OK);
     offset = 0U;
 #define CHECK_PLANE_BYTES(samples, stride, width, height)                     \
     do {                                                                       \
@@ -302,18 +300,18 @@ static void test_invalid_and_overflow(void) {
     Av2hFilterWorkspaceLayout filter;
     Av2hFrameDecodeWorkspaceLayout workspace;
     initialize(&sequence, &frame, 17U, 15U, 0U);
-    CHECK(av2h_filter_workspace_query_bytes(
+    CHECK(av2h_filter_workspace_query(
               &frame, 0U, &filter) == AV2H_INVALID_ARGUMENT);
-    CHECK(av2h_filter_workspace_query_bytes(
+    CHECK(av2h_filter_workspace_query(
               &frame, 3U, &filter) == AV2H_INVALID_ARGUMENT);
-    CHECK(av2h_frame_decode_workspace_query_bytes(
+    CHECK(av2h_frame_decode_workspace_query(
               &sequence, &frame, 0U, &workspace) == AV2H_INVALID_ARGUMENT);
-    CHECK(av2h_frame_decode_workspace_query_bytes(
+    CHECK(av2h_frame_decode_workspace_query(
               &sequence, &frame, 3U, &workspace) == AV2H_INVALID_ARGUMENT);
     frame.width = UINT16_MAX;
-    CHECK(av2h_frame_decode_workspace_query_bytes(
+    CHECK(av2h_frame_decode_workspace_query(
               &sequence, &frame, 1U, &workspace) == AV2H_OVERFLOW);
-    CHECK(av2h_frame_decode_workspace_query_bytes(
+    CHECK(av2h_frame_decode_workspace_query(
               &sequence, &frame, 2U, &workspace) == AV2H_OVERFLOW);
 }
 

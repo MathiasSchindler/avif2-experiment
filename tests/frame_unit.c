@@ -239,8 +239,7 @@ static void check_fixture(const unsigned char *sequence_bytes,
               (Av2hSpan){ sequence_bytes, sequence_size }, &obu,
               &sequence, &error) == AV2H_OK);
     CHECK(av2h_frame_header_closed_key_parse(
-              (Av2hSpan){ payload, payload_size }, &sequence,
-              &frame) == AV2H_OK);
+        (Av2hSpan){ payload, payload_size }, &sequence, &frame, NULL) == AV2H_OK);
     CHECK(frame.uncompressed_header_bits == expected_header_bits);
     CHECK(frame.width == sequence.info.max_frame_width_minus_1 + 1U);
     CHECK(frame.height == sequence.info.max_frame_height_minus_1 + 1U);
@@ -257,8 +256,7 @@ static void check_fixture(const unsigned char *sequence_bytes,
     sequence.seq_seg_info_present_flag = 1U;
     sequence.seg_allow_info_change = 0U;
     CHECK(av2h_frame_header_closed_key_parse(
-              (Av2hSpan){ payload, payload_size }, &sequence,
-              &frame) == AV2H_OK);
+        (Av2hSpan){ payload, payload_size }, &sequence, &frame, NULL) == AV2H_OK);
     CHECK(frame.segmentation_enabled == 0U);
     sequence.seq_seg_info_present_flag = 0U;
     CHECK(av2h_tile_group_single_parse(
@@ -267,8 +265,7 @@ static void check_fixture(const unsigned char *sequence_bytes,
     CHECK(group.header_size == (expected_header_bits + 8U) / 8U);
     for (prefix_size = 0U; prefix_size < group.header_size; ++prefix_size) {
         CHECK(av2h_frame_header_closed_key_parse(
-                  (Av2hSpan){ payload, prefix_size }, &sequence,
-                  &frame) != AV2H_OK);
+            (Av2hSpan){ payload, prefix_size }, &sequence, &frame, NULL) != AV2H_OK);
     }
 }
 
@@ -323,11 +320,9 @@ static void test_failures(void) {
     sequence.info.still_picture = 1U;
     sequence.info.bit_depth_idc = 1U;
     CHECK(av2h_frame_header_closed_key_parse(
-              (Av2hSpan){ payload, sizeof(payload) }, &sequence,
-              &frame) == AV2H_UNSUPPORTED);
+        (Av2hSpan){ payload, sizeof(payload) }, &sequence, &frame, NULL) == AV2H_UNSUPPORTED);
     CHECK(av2h_frame_header_closed_key_parse(
-              (Av2hSpan){ payload, sizeof(payload) }, 0,
-              &frame) == AV2H_INVALID_ARGUMENT);
+        (Av2hSpan){ payload, sizeof(payload) }, 0, &frame, NULL) == AV2H_INVALID_ARGUMENT);
 }
 
 static void test_10bit_wp0_header(void) {
@@ -390,9 +385,9 @@ static void test_10bit_wp0_header(void) {
     CHECK(sequence.info.bit_depth_idc == 0U);
     CHECK(sequence.info.chroma_format_idc == 0U);
     CHECK(av2h_frame_header_closed_key_parse(
-              (Av2hSpan){ input + frame_obu->payload_offset,
+        (Av2hSpan){ input + frame_obu->payload_offset,
                            frame_obu->payload_size },
-              &sequence, &frame) == AV2H_OK);
+        &sequence, &frame, NULL) == AV2H_OK);
     CHECK(frame.width == 16U);
     CHECK(frame.height == 16U);
     CHECK(frame.base_q_index == 256U);
@@ -409,20 +404,19 @@ static void test_10bit_wp0_header(void) {
               frame.uncompressed_header_bits, &group) == AV2H_OK);
     CHECK(group.header_size == 4U);
     CHECK(av2h_tile_decoder_init(
-              &decoder, group.entropy, &sequence, &frame,
-              &storage) == AV2H_OK);
+        &decoder, group.entropy, &sequence, &frame, &storage, UINT16_MAX) == AV2H_OK);
     CHECK(decoder.superblock.current_q_index == 256U);
     CHECK(decoder.entropy_state.coeff_cdfs.q_context == 3U);
     CHECK(decoder.entropy_state.level_cdfs.q_context == 3U);
     for (index = 0U; index < group.header_size; ++index) {
         CHECK(av2h_frame_header_closed_key_parse(
-                  (Av2hSpan){ input + frame_obu->payload_offset, index },
-                  &sequence, &frame) != AV2H_OK);
+            (Av2hSpan){ input + frame_obu->payload_offset, index }, &sequence,
+            &frame, NULL) != AV2H_OK);
     }
 
     changed_sequence = sequence;
     changed_sequence.info.bit_depth_idc = 2U;
-    CHECK(av2h_frame_header_closed_key_parse_diagnostic(
+    CHECK(av2h_frame_header_closed_key_parse(
               (Av2hSpan){ input + frame_obu->payload_offset,
                            frame_obu->payload_size },
               &changed_sequence, &frame, &error) == AV2H_UNSUPPORTED);
@@ -434,7 +428,7 @@ static void test_10bit_wp0_header(void) {
     CHECK(error.parsed_value == 0x200U);
     changed_sequence = sequence;
     changed_sequence.info.chroma_format_idc = 3U;
-    CHECK(av2h_frame_header_closed_key_parse_diagnostic(
+    CHECK(av2h_frame_header_closed_key_parse(
               (Av2hSpan){ input + frame_obu->payload_offset,
                            frame_obu->payload_size },
               &changed_sequence, &frame, &error) == AV2H_UNSUPPORTED);
@@ -442,7 +436,7 @@ static void test_10bit_wp0_header(void) {
     CHECK(error.parsed_value == 0x003U);
     changed_sequence = sequence;
     changed_sequence.info.still_picture = 0U;
-    CHECK(av2h_frame_header_closed_key_parse_diagnostic(
+    CHECK(av2h_frame_header_closed_key_parse(
               (Av2hSpan){ input + frame_obu->payload_offset,
                            frame_obu->payload_size },
               &changed_sequence, &frame, &error) == AV2H_UNSUPPORTED);
@@ -450,42 +444,40 @@ static void test_10bit_wp0_header(void) {
     changed_sequence = sequence;
     changed_sequence.info.chroma_format_idc = 1U;
     CHECK(av2h_frame_header_closed_key_parse(
-              (Av2hSpan){ input + frame_obu->payload_offset,
+        (Av2hSpan){ input + frame_obu->payload_offset,
                            frame_obu->payload_size },
-              &changed_sequence, &frame) == AV2H_UNSUPPORTED);
+        &changed_sequence, &frame, NULL) == AV2H_UNSUPPORTED);
     changed_sequence = sequence;
     changed_sequence.info.seq_profile_idc = 4U;
     changed_sequence.info.chroma_format_idc = 2U;
     CHECK(av2h_frame_header_closed_key_parse(
-              (Av2hSpan){ input + frame_obu->payload_offset,
+        (Av2hSpan){ input + frame_obu->payload_offset,
                            frame_obu->payload_size },
-              &changed_sequence, &frame) == AV2H_OK);
+        &changed_sequence, &frame, NULL) == AV2H_OK);
     changed_sequence.info.seq_profile_idc = 0U;
     CHECK(av2h_frame_header_closed_key_parse(
-              (Av2hSpan){ input + frame_obu->payload_offset,
+        (Av2hSpan){ input + frame_obu->payload_offset,
                            frame_obu->payload_size },
-              &changed_sequence, &frame) == AV2H_UNSUPPORTED);
+        &changed_sequence, &frame, NULL) == AV2H_UNSUPPORTED);
     changed_sequence.info.seq_profile_idc = 4U;
     changed_sequence.info.chroma_format_idc = 0U;
     CHECK(av2h_frame_header_closed_key_parse(
-              (Av2hSpan){ input + frame_obu->payload_offset,
+        (Av2hSpan){ input + frame_obu->payload_offset,
                            frame_obu->payload_size },
-              &changed_sequence, &frame) == AV2H_UNSUPPORTED);
+        &changed_sequence, &frame, NULL) == AV2H_UNSUPPORTED);
 
     av2h_memory_copy(
         mutated, input + frame_obu->payload_offset, frame_obu->payload_size);
     mutated[2] |= 0x40U;
     CHECK(av2h_frame_header_closed_key_parse(
-              (Av2hSpan){ mutated, frame_obu->payload_size },
-              &sequence, &frame) == AV2H_OK);
+        (Av2hSpan){ mutated, frame_obu->payload_size }, &sequence, &frame, NULL) == AV2H_OK);
     CHECK(frame.using_qmatrix == 1U);
     CHECK(frame.qm_u[0] == frame.qm_v[0]);
     av2h_memory_copy(
         mutated, input + frame_obu->payload_offset, frame_obu->payload_size);
     mutated[0] &= 0xfeU;
     CHECK(av2h_frame_header_closed_key_parse(
-              (Av2hSpan){ mutated, frame_obu->payload_size },
-              &sequence, &frame) == AV2H_OK);
+        (Av2hSpan){ mutated, frame_obu->payload_size }, &sequence, &frame, NULL) == AV2H_OK);
 }
 
 static void test_emerald_q208_deblock_header(void) {
@@ -524,9 +516,9 @@ static void test_emerald_q208_deblock_header(void) {
               (Av2hSpan){ input, size }, sequence_obu,
               &sequence, &error) == AV2H_OK);
     CHECK(av2h_frame_header_closed_key_parse(
-              (Av2hSpan){ input + frame_obu->payload_offset,
+        (Av2hSpan){ input + frame_obu->payload_offset,
                            frame_obu->payload_size },
-              &sequence, &frame) == AV2H_OK);
+        &sequence, &frame, NULL) == AV2H_OK);
     CHECK(frame.width == 192U);
     CHECK(frame.height == 96U);
     CHECK(frame.base_q_index == 208U);

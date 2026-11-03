@@ -1,5 +1,6 @@
 #include "decoder/transform.h"
 #include "decoder/tx_geometry.h"
+#include "decoder_test_helpers.h"
 
 #include <stdio.h>
 
@@ -54,15 +55,16 @@ static void check_fixture(const char *name,
     sequence.enable_ist = 1U;
     CHECK(av2h_partition_cdfs_init(&partition_cdfs) == AV2H_OK);
     CHECK(av2h_leaf_cdfs_init(&leaf_cdfs) == AV2H_OK);
-    CHECK(av2h_coeff_cdfs_init(&coeff_cdfs) == AV2H_OK);
+    CHECK(av2h_coeff_cdfs_init(
+        &coeff_cdfs, 128U) == AV2H_OK);
     CHECK(av2h_transform_cdfs_init(&transform_cdfs) == AV2H_OK);
     CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
     CHECK(av2h_partition_first_leaf_read(
               &decoder, &partition_cdfs, width, height, 1U, &path) == AV2H_OK);
-    CHECK(av2h_first_leaf_mode_read(
+    CHECK(test_first_leaf_mode_read(
               &decoder, &leaf_cdfs, &sequence, &frame, &path.leaf, &mode) ==
           AV2H_OK);
-    CHECK(av2h_first_coeff_prefix_read(
+    CHECK(test_first_coeff_prefix_read(
               &decoder, &coeff_cdfs, &frame, &path.leaf, &mode, &prefix) ==
           AV2H_OK);
     status = av2h_transform_type_read(

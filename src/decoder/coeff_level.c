@@ -1039,19 +1039,6 @@ Av2hStatus av2h_coeff_block_read(
     return AV2H_OK;
 }
 
-Av2hStatus av2h_coeff_block_read_default_context(
-    Av2hRangeDecoder *decoder,
-    Av2hCoeffLevelCdfs *cdfs,
-    const Av2hSequenceState *sequence,
-    const Av2hFrameState *frame,
-    const Av2hLeafMode *mode,
-    const Av2hCoeffPrefix *prefix,
-    const Av2hTransformType *transform,
-    Av2hCoeffBlock *block) {
-    return av2h_coeff_block_read(decoder, cdfs, sequence, frame, mode, prefix,
-                                 transform, 0U, block);
-}
-
 Av2hStatus av2h_coeff_block_read_with_state(
     Av2hRangeDecoder *decoder,
     Av2hCoeffLevelCdfs *cdfs,

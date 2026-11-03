@@ -60,13 +60,7 @@ Av2hStatus av2h_transform_type_read(
     const Av2hLeafMode *mode,
     const Av2hCoeffPrefix *coeff,
     Av2hTransformType *transform);
-Av2hStatus av2h_chroma_transform_type_read_dc(
-    Av2hRangeDecoder *decoder,
-    Av2hTransformCdfs *cdfs,
-    const Av2hFrameState *frame,
-    uint8_t plane,
-    const Av2hCoeffPrefix *coeff,
-    Av2hTransformType *transform);
+
 Av2hStatus av2h_chroma_transform_type_read(
     Av2hRangeDecoder *decoder,
     Av2hTransformCdfs *cdfs,

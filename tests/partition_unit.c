@@ -443,7 +443,7 @@ static void test_chroma_rect_axis_is_implied(void) {
         Av2hPartitionNode child;
         CHECK(av2h_partition_cdfs_init(&cdfs) == AV2H_OK);
         CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
-        CHECK(av2h_partition_node_read_for_structure(
+        CHECK(av2h_partition_node_read(
                   &decoder, &cdfs, 1U,
                   (Av2hPartitionNode){ 0U, 0U, blocks[index] },
                   0U, 0U, 0U, 1U, &decision, &child) == AV2H_OK);

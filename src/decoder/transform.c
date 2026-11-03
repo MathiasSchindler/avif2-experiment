@@ -1075,19 +1075,6 @@ Av2hStatus av2h_transform_type_read(
     return AV2H_OK;
 }
 
-Av2hStatus av2h_chroma_transform_type_read_dc(
-    Av2hRangeDecoder *decoder,
-    Av2hTransformCdfs *cdfs,
-    const Av2hFrameState *frame,
-    uint8_t plane,
-    const Av2hCoeffPrefix *coeff,
-    Av2hTransformType *transform) {
-    Av2hChromaLeafMode mode = { 0 };
-    mode.mode = AV2H_INTRA_DC;
-    return av2h_chroma_transform_type_read(
-        decoder, cdfs, frame, &mode, plane, 1U, coeff, transform);
-}
-
 Av2hStatus av2h_chroma_transform_type_read(
     Av2hRangeDecoder *decoder,
     Av2hTransformCdfs *cdfs,

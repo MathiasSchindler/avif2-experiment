@@ -677,16 +677,6 @@ Av2hStatus av2h_tile_decoder_init(
     Av2hSpan entropy,
     const Av2hSequenceState *sequence,
     const Av2hFrameState *frame,
-    const Av2hTileContextStorage *storage) {
-    return av2h_tile_decoder_init_at(
-        decoder, entropy, sequence, frame, storage, UINT16_MAX);
-}
-
-Av2hStatus av2h_tile_decoder_init_at(
-    Av2hTileDecoder *decoder,
-    Av2hSpan entropy,
-    const Av2hSequenceState *sequence,
-    const Av2hFrameState *frame,
     const Av2hTileContextStorage *storage,
     uint16_t tile_id) {
     size_t cell_count;
@@ -848,7 +838,7 @@ Av2hStatus av2h_tile_decoder_init_at(
     if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
     status = tile_tx_partition_cdfs_init(&decoder->entropy_state.tx_partition_cdfs);
     if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
-    status = av2h_coeff_cdfs_init_for_q(
+    status = av2h_coeff_cdfs_init(
         &decoder->entropy_state.coeff_cdfs, frame->base_q_index);
     if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
     status = av2h_transform_cdfs_init(&decoder->entropy_state.transform_cdfs);

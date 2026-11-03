@@ -327,8 +327,8 @@ static void test_bounded_orchestrator(void) {
     av2h_memory_fill(luma_pixels, 0U, sizeof(luma_pixels));
     av2h_memory_fill(luma_reconstructed, 0U, sizeof(luma_reconstructed));
     CHECK(av2h_tile_decoder_init(
-              &decoder, (Av2hSpan){ tiny, sizeof(tiny) }, &sequence, &frame,
-              &storage) == AV2H_OK);
+        &decoder, (Av2hSpan){ tiny, sizeof(tiny) }, &sequence, &frame, &storage,
+        UINT16_MAX) == AV2H_OK);
     for (;;) {
         status = av2h_tile_decoder_reconstruct_next_luma(
             &decoder, &luma_plane, &reconstruction_scratch,
@@ -486,8 +486,7 @@ static void test_odd_luma_reconstruction(void) {
               (Av2hSpan){ sequence_bytes, sizeof(sequence_bytes) }, &obu,
               &sequence, &error) == AV2H_OK);
     CHECK(av2h_frame_header_closed_key_parse(
-              (Av2hSpan){ frame_bytes, sizeof(frame_bytes) }, &sequence,
-              &frame) == AV2H_OK);
+        (Av2hSpan){ frame_bytes, sizeof(frame_bytes) }, &sequence, &frame, NULL) == AV2H_OK);
     CHECK(av2h_tile_group_single_parse(
               (Av2hSpan){ frame_bytes, sizeof(frame_bytes) },
               frame.uncompressed_header_bits, &group) == AV2H_OK);
@@ -503,7 +502,7 @@ static void test_odd_luma_reconstruction(void) {
     av2h_memory_fill(u_reconstructed, 0U, sizeof(u_reconstructed));
     av2h_memory_fill(v_reconstructed, 0U, sizeof(v_reconstructed));
         CHECK(av2h_tile_decoder_init(
-                  &decoder, group.entropy, &sequence, &frame, &storage) ==
+            &decoder, group.entropy, &sequence, &frame, &storage, UINT16_MAX) ==
               AV2H_OK);
     decoder.superblock.current_q_index = 400U;
     CHECK(av2h_tile_decoder_next_luma(
@@ -511,7 +510,7 @@ static void test_odd_luma_reconstruction(void) {
     CHECK(has_leaf != 0U);
     CHECK(leaf.prefix.q_index == 400U);
     CHECK(av2h_tile_decoder_init(
-              &decoder, group.entropy, &sequence, &frame, &storage) ==
+        &decoder, group.entropy, &sequence, &frame, &storage, UINT16_MAX) ==
           AV2H_OK);
     has_leaf = 0U;
     do {
@@ -629,7 +628,7 @@ static void test_odd_luma_reconstruction(void) {
                 }
             }
             status = av2h_luma_reconstruct_to_plane(
-                &leaf.node, &leaf.mode, &leaf.prefix, &leaf.transform,
+                NULL, &leaf.node, &leaf.mode, &leaf.prefix, &leaf.transform,
                 &block, &luma_plane, &reconstruction_scratch);
             if (status != AV2H_OK) {
                 fprintf(stderr,
@@ -836,9 +835,9 @@ static void test_ordinary_luma_frontier(void) {
               (Av2hSpan){ stream, stream_size }, &entries[0],
               &sequence, &error) == AV2H_OK);
     CHECK(av2h_frame_header_closed_key_parse(
-              (Av2hSpan){ stream + entries[1].payload_offset,
+        (Av2hSpan){ stream + entries[1].payload_offset,
                            entries[1].payload_size },
-              &sequence, &frame) == AV2H_OK);
+        &sequence, &frame, NULL) == AV2H_OK);
     CHECK(av2h_tile_group_single_parse(
               (Av2hSpan){ stream + entries[1].payload_offset,
                            entries[1].payload_size },
@@ -846,8 +845,7 @@ static void test_ordinary_luma_frontier(void) {
     av2h_memory_fill(luma_pixels, 0U, sizeof(luma_pixels));
     av2h_memory_fill(luma_reconstructed, 0U, sizeof(luma_reconstructed));
     CHECK(av2h_tile_decoder_init(
-              &decoder, group.entropy, &sequence,
-              &frame, &storage) == AV2H_OK);
+        &decoder, group.entropy, &sequence, &frame, &storage, UINT16_MAX) == AV2H_OK);
     for (;;) {
         av2h_memory_fill(&leaf, 0U, sizeof(leaf));
         av2h_memory_fill(&block, 0U, sizeof(block));
@@ -1175,8 +1173,8 @@ static void test_ordinary_luma_frontier(void) {
             CHECK(block.after_coefficients_bits == 762U);
         }
         reconstruction_status = av2h_luma_reconstruct_to_plane(
-            &leaf.node, &leaf.mode, &leaf.prefix, &leaf.transform,
-            &block, &luma_plane, &scratch);
+            NULL, &leaf.node, &leaf.mode, &leaf.prefix, &leaf.transform, &block,
+            &luma_plane, &scratch);
         if (reconstruction_status != AV2H_OK) break;
         CHECK(av2h_tile_decoder_commit_leaf(
                   &decoder, leaf.node) == AV2H_OK);
@@ -1296,9 +1294,9 @@ static void test_high_detail_frame(void) {
               (Av2hSpan){ stream, stream_size }, &entries[1],
               &sequence, &error) == AV2H_OK);
     CHECK(av2h_frame_header_closed_key_parse(
-              (Av2hSpan){ stream + entries[2].payload_offset,
+        (Av2hSpan){ stream + entries[2].payload_offset,
                            entries[2].payload_size },
-              &sequence, &frame) == AV2H_OK);
+        &sequence, &frame, NULL) == AV2H_OK);
     CHECK(frame.width == 96U && frame.height == 80U);
     CHECK(av2h_tile_group_single_parse(
               (Av2hSpan){ stream + entries[2].payload_offset,
@@ -1311,7 +1309,7 @@ static void test_high_detail_frame(void) {
     av2h_memory_fill(u_reconstructed, 0U, sizeof(u_reconstructed));
     av2h_memory_fill(v_reconstructed, 0U, sizeof(v_reconstructed));
     CHECK(av2h_tile_decoder_init(
-              &decoder, group.entropy, &sequence, &frame, &storage) ==
+        &decoder, group.entropy, &sequence, &frame, &storage, UINT16_MAX) ==
           AV2H_OK);
     while (status == AV2H_OK && decoder.control.phase != AV2H_TILE_DECODE_DONE) {
         if (decoder.control.phase == AV2H_TILE_DECODE_LUMA) {
@@ -1343,17 +1341,17 @@ static void test_high_detail_frame(void) {
                     chroma_leaf.transform[0].cctx_type, 8U);
             }
             if (status == AV2H_OK && has_leaf) {
-                status = av2h_chroma_reconstruct_to_plane_ex(
-                    &chroma_leaf.node, &chroma_leaf.mode,
+                status = av2h_chroma_reconstruct_to_plane(
+                    NULL, &chroma_leaf.node, &chroma_leaf.mode,
                     &chroma_leaf.prefix[0], &chroma_leaf.transform[0],
-                    &chroma_blocks[0], &u_plane, &luma_plane, 1U, 0,
+                    &chroma_blocks[0], &u_plane, &luma_plane, 1U, 0, 0U,
                     &scratch);
             }
             if (status == AV2H_OK && has_leaf) {
-                status = av2h_chroma_reconstruct_to_plane_ex(
-                    &chroma_leaf.node, &chroma_leaf.mode,
+                status = av2h_chroma_reconstruct_to_plane(
+                    NULL, &chroma_leaf.node, &chroma_leaf.mode,
                     &chroma_leaf.prefix[1], &chroma_leaf.transform[1],
-                    &chroma_blocks[1], &v_plane, &luma_plane, 2U, 0,
+                    &chroma_blocks[1], &v_plane, &luma_plane, 2U, 0, 0U,
                     &scratch);
             }
             if (status == AV2H_OK && has_leaf) {
@@ -1472,29 +1470,29 @@ static void test_orchestrator_failures(void) {
     frame.height = 16U;
     storage.colocated_luma_count = 15U;
     CHECK(av2h_tile_decoder_init(
-              &decoder, (Av2hSpan){ entropy, sizeof(entropy) }, &sequence,
-              &frame, &storage) == AV2H_OUT_OF_MEMORY);
+        &decoder, (Av2hSpan){ entropy, sizeof(entropy) }, &sequence, &frame,
+        &storage, UINT16_MAX) == AV2H_OUT_OF_MEMORY);
     storage.colocated_luma_count = 4U;
     CHECK(av2h_tile_decoder_init(
-              &decoder, (Av2hSpan){ entropy, sizeof(entropy) }, &sequence,
-              &frame, &storage) == AV2H_OUT_OF_MEMORY);
+        &decoder, (Av2hSpan){ entropy, sizeof(entropy) }, &sequence, &frame,
+        &storage, UINT16_MAX) == AV2H_OUT_OF_MEMORY);
 
     frame.width = 4U;
     frame.height = 4U;
     storage.left_count = 4U;
     CHECK(av2h_tile_decoder_init(
-              &decoder, (Av2hSpan){ entropy, sizeof(entropy) }, &sequence,
-              &frame, &storage) == AV2H_OUT_OF_MEMORY);
+        &decoder, (Av2hSpan){ entropy, sizeof(entropy) }, &sequence, &frame,
+        &storage, UINT16_MAX) == AV2H_OUT_OF_MEMORY);
     storage.left_count = 16U;
     sequence.enable_ext_partitions = 1U;
     frame.gdf_mode = 2U;
     CHECK(av2h_tile_decoder_init(
-              &decoder, (Av2hSpan){ entropy, sizeof(entropy) }, &sequence,
-              &frame, &storage) == AV2H_INVALID_DATA);
+        &decoder, (Av2hSpan){ entropy, sizeof(entropy) }, &sequence, &frame,
+        &storage, UINT16_MAX) == AV2H_INVALID_DATA);
     frame.gdf_mode = 0U;
     CHECK(av2h_tile_decoder_init(
-              &decoder, (Av2hSpan){ entropy, sizeof(entropy) }, &sequence,
-              &frame, &storage) == AV2H_OK);
+        &decoder, (Av2hSpan){ entropy, sizeof(entropy) }, &sequence, &frame,
+        &storage, UINT16_MAX) == AV2H_OK);
     CHECK(av2h_tile_decoder_next_luma(
               &decoder, &leaf, &block, &has_leaf) == AV2H_UNSUPPORTED);
     CHECK(decoder.control.status == AV2H_UNSUPPORTED);
@@ -1502,10 +1500,10 @@ static void test_orchestrator_failures(void) {
               &decoder, (Av2hPartitionNode){ 0U, 0U, AV2H_BLOCK_4X4 }) ==
           AV2H_UNSUPPORTED);
     CHECK(av2h_tile_decoder_init(
-              0, (Av2hSpan){ entropy, sizeof(entropy) }, &sequence, &frame,
-              &storage) == AV2H_INVALID_ARGUMENT);
+        0, (Av2hSpan){ entropy, sizeof(entropy) }, &sequence, &frame, &storage,
+        UINT16_MAX) == AV2H_INVALID_ARGUMENT);
     CHECK(av2h_tile_decoder_init(
-              &decoder, (Av2hSpan){ 0, 0U }, &sequence, &frame, &storage) ==
+        &decoder, (Av2hSpan){ 0, 0U }, &sequence, &frame, &storage, UINT16_MAX) ==
           AV2H_INVALID_ARGUMENT);
 }
 
@@ -1516,8 +1514,8 @@ static void initialize_scheduler_decoder(
     Av2hTileContextStorage *storage) {
     static const unsigned char entropy[] = { 0U, 0U, 0U, 0U };
     CHECK(av2h_tile_decoder_init(
-              decoder, (Av2hSpan){ entropy, sizeof(entropy) }, sequence,
-              frame, storage) == AV2H_OK);
+        decoder, (Av2hSpan){ entropy, sizeof(entropy) }, sequence, frame,
+        storage, UINT16_MAX) == AV2H_OK);
 }
 
 static void test_sdp_superblock_scheduler(void) {
@@ -1681,8 +1679,8 @@ static void test_scheduler_guards_and_root_size(void) {
     sequence.superblock_size = 256U;
     frame.gdf_mode = 0U;
     CHECK(av2h_tile_decoder_init(
-              &decoder, (Av2hSpan){ entropy, sizeof(entropy) }, &sequence,
-              &frame, &storage) == AV2H_UNSUPPORTED);
+        &decoder, (Av2hSpan){ entropy, sizeof(entropy) }, &sequence, &frame,
+        &storage, UINT16_MAX) == AV2H_UNSUPPORTED);
 }
 
 int main(void) {

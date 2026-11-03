@@ -7,13 +7,6 @@
 
 #include <stddef.h>
 
-#define plane_region_reconstructed \
-    av2h_chroma_plane_region_reconstructed
-#define plane_sample_reconstructed_u16 \
-    av2h_chroma_plane_sample_reconstructed_u16
-#define plane_region_reconstructed_u16 \
-    av2h_chroma_plane_region_reconstructed_u16
-
 #define AV2H_MHCCP_DECIM_BITS 16
 #define AV2H_MHCCP_DIV_PREC_BITS 14
 #define AV2H_MHCCP_DIV_SLOT_BITS 3
@@ -418,7 +411,7 @@ static Av2hStatus mhccp_predict_direction01(
     prediction_height = height < chroma_plane->height - block_y ?
         height : (uint16_t)(chroma_plane->height - block_y);
     if (!have_top && !have_left) {
-        if (!plane_region_reconstructed(
+        if (!av2h_chroma_plane_region_reconstructed(
                 luma_plane, (uint16_t)(block_x * 2U),
                 (uint16_t)(block_y * 2U),
                 (uint16_t)(prediction_width * 2U),
@@ -509,14 +502,14 @@ static Av2hStatus mhccp_predict_direction01(
     }
     if (have_top &&
         (top_chroma_width == 0U || top_luma_width == 0U ||
-         !plane_region_reconstructed(
+         !av2h_chroma_plane_region_reconstructed(
              chroma_plane, top_start_x, (uint16_t)(block_y - 1U),
              top_chroma_width, 1U))) {
         av2h_prediction_diagnostics_set_mhccp_reason(
             diagnostics, 1U);
         return AV2H_UNSUPPORTED;
     }
-    if (have_top && !plane_region_reconstructed(
+    if (have_top && !av2h_chroma_plane_region_reconstructed(
             luma_plane, (uint16_t)(top_start_x * scale),
             (uint16_t)(block_y * scale - scale), top_luma_width,
             (uint16_t)scale)) {
@@ -524,14 +517,14 @@ static Av2hStatus mhccp_predict_direction01(
             diagnostics, 2U);
         return AV2H_UNSUPPORTED;
     }
-    if (have_left && !plane_region_reconstructed(
+    if (have_left && !av2h_chroma_plane_region_reconstructed(
             chroma_plane, (uint16_t)(block_x - 1U), block_y, 1U,
             left_count)) {
         av2h_prediction_diagnostics_set_mhccp_reason(
             diagnostics, 3U);
         return AV2H_UNSUPPORTED;
     }
-    if (have_left && !plane_region_reconstructed(
+    if (have_left && !av2h_chroma_plane_region_reconstructed(
             luma_plane, (uint16_t)(block_x * scale - scale),
             (uint16_t)(block_y * scale), (uint16_t)scale,
             (uint16_t)(left_count * scale))) {
@@ -539,7 +532,7 @@ static Av2hStatus mhccp_predict_direction01(
             diagnostics, 4U);
         return AV2H_UNSUPPORTED;
     }
-    if (!plane_region_reconstructed(
+    if (!av2h_chroma_plane_region_reconstructed(
             luma_plane, (uint16_t)(block_x * scale),
             (uint16_t)(block_y * scale),
             (uint16_t)(prediction_width * scale),
@@ -549,7 +542,7 @@ static Av2hStatus mhccp_predict_direction01(
         return AV2H_UNSUPPORTED;
     }
     if (direction == 1U && have_top &&
-        !plane_region_reconstructed(
+        !av2h_chroma_plane_region_reconstructed(
             luma_plane, (uint16_t)(top_start_x * scale),
             (uint16_t)(block_y * scale - 2U * scale),
             top_luma_width, (uint16_t)scale)) {
@@ -751,11 +744,11 @@ Av2hStatus av2h_mhccp_predict_observed(
         luma_plane->stride_samples < luma_plane->width ||
         (size_t)block_x * 2U >= luma_plane->width ||
         (size_t)(block_y + height) * 2U > luma_plane->height ||
-        !plane_region_reconstructed(
+        !av2h_chroma_plane_region_reconstructed(
             luma_plane, (uint16_t)(block_x * 2U - 4U), 0U,
             (uint16_t)(luma_plane->width - (block_x * 2U - 4U)),
             (uint16_t)(height * 2U)) ||
-        !plane_region_reconstructed(
+        !av2h_chroma_plane_region_reconstructed(
             chroma_plane, (uint16_t)(block_x - 2U), 0U, 2U, height)) {
         return AV2H_UNSUPPORTED;
     }
@@ -1064,7 +1057,7 @@ static Av2hStatus mhccp_predict_u16_444(
         width : (uint16_t)(chroma_plane->width - block_x);
     prediction_height = height < chroma_plane->height - block_y ?
         height : (uint16_t)(chroma_plane->height - block_y);
-    if (!plane_region_reconstructed_u16(
+    if (!av2h_chroma_plane_region_reconstructed_u16(
             luma_plane, block_x, block_y,
             prediction_width, prediction_height)) {
         return AV2H_UNSUPPORTED;
@@ -1093,7 +1086,7 @@ static Av2hStatus mhccp_predict_u16_444(
     if (have_left) {
         uint16_t available_left = 0U;
         while (available_left < left_count &&
-               plane_sample_reconstructed_u16(
+               av2h_chroma_plane_sample_reconstructed_u16(
                    chroma_plane, block_x - 1U,
                    (size_t)block_y + available_left)) {
             ++available_left;
@@ -1128,7 +1121,7 @@ static Av2hStatus mhccp_predict_u16_444(
         }
         if (top_count > limit) top_count = limit;
         while (available_top < top_count &&
-               plane_sample_reconstructed_u16(
+               av2h_chroma_plane_sample_reconstructed_u16(
                    chroma_plane, (size_t)top_start_x + available_top,
                    block_y - 1U)) {
             ++available_top;
@@ -1143,18 +1136,18 @@ static Av2hStatus mhccp_predict_u16_444(
         top_count = available_top;
         have_top = (uint8_t)(top_count != 0U);
     }
-    if (have_top && (!plane_region_reconstructed_u16(
+    if (have_top && (!av2h_chroma_plane_region_reconstructed_u16(
             chroma_plane, top_start_x, (uint16_t)(block_y - 1U),
             top_count, 1U) ||
-        !plane_region_reconstructed_u16(
+        !av2h_chroma_plane_region_reconstructed_u16(
             luma_plane, top_start_x, (uint16_t)(block_y - 1U),
             top_count, 1U))) {
         return AV2H_UNSUPPORTED;
     }
-    if (have_left && (!plane_region_reconstructed_u16(
+    if (have_left && (!av2h_chroma_plane_region_reconstructed_u16(
             chroma_plane, (uint16_t)(block_x - 1U), block_y,
             1U, left_count) ||
-        !plane_region_reconstructed_u16(
+        !av2h_chroma_plane_region_reconstructed_u16(
             luma_plane, (uint16_t)(block_x - 1U), block_y,
             1U, left_count))) {
         return AV2H_UNSUPPORTED;
@@ -1327,7 +1320,7 @@ Av2hStatus av2h_mhccp_predict_observed_u16(
         width : (uint16_t)(chroma_plane->width - block_x);
     prediction_height = height < chroma_plane->height - block_y ?
         height : (uint16_t)(chroma_plane->height - block_y);
-    if (!plane_region_reconstructed_u16(
+    if (!av2h_chroma_plane_region_reconstructed_u16(
             luma_plane, (uint16_t)(block_x * 2U),
             (uint16_t)(block_y * 2U),
             (uint16_t)(prediction_width * 2U),
@@ -1358,7 +1351,7 @@ Av2hStatus av2h_mhccp_predict_observed_u16(
     if (have_left) {
         uint16_t available_left = 0U;
         while (available_left < left_count &&
-               plane_sample_reconstructed_u16(
+               av2h_chroma_plane_sample_reconstructed_u16(
                    chroma_plane, block_x - 1U,
                    (size_t)block_y + available_left)) {
             ++available_left;
@@ -1378,7 +1371,7 @@ Av2hStatus av2h_mhccp_predict_observed_u16(
             0U;
         if (top_count > limit) top_count = limit;
         while (available < top_count &&
-               plane_sample_reconstructed_u16(
+               av2h_chroma_plane_sample_reconstructed_u16(
                    chroma_plane, (size_t)top_start_x + available,
                    block_y - 1U)) {
             ++available;

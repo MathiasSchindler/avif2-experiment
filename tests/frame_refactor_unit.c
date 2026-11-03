@@ -71,12 +71,12 @@ static void test_storage_offsets(void) {
                             frame.restoration_type[0] = AV2H_RESTORE_PC_WIENER;
                             frame.restoration_unit_count[0] = 3U;
                         }
-                        CHECK(av2h_frame_decode_workspace_query_bytes(
+                        CHECK(av2h_frame_decode_workspace_query(
                                   &sequence, &frame, bytes, &layout) == AV2H_OK);
                         CHECK(layout.size_bytes < sizeof(memory));
                         if (layout.size_bytes >= sizeof(memory)) return;
                         memset(memory, 0xa5, sizeof(memory));
-                        CHECK(av2h_frame_decode_workspace_init_bytes(
+                        CHECK(av2h_frame_decode_workspace_init(
                                   &sequence, &frame, bytes, &layout, memory,
                                   layout.size_bytes, &workspace, &filter,
                                   &storage) == AV2H_OK);
@@ -174,8 +174,8 @@ static void test_copy(unsigned int bytes, uint8_t format, uint16_t width,
     size_t expected_calls = 0U;
     unsigned int plane;
     initialize(&sequence, &frame, width, height, format, bytes);
-    CHECK(av2h_filter_workspace_query_bytes(&frame, bytes, &layout) == AV2H_OK);
-    CHECK(av2h_planar_output_size_bytes(&frame, bytes, &required) == AV2H_OK);
+    CHECK(av2h_filter_workspace_query(&frame, bytes, &layout) == AV2H_OK);
+    CHECK(av2h_planar_output_size(&frame, bytes, &required) == AV2H_OK);
     CHECK(required + 16U < sizeof(output));
     if (required + 16U >= sizeof(output)) return;
     memset(output, 0xa5, sizeof(output));
@@ -239,10 +239,10 @@ static void test_copy(unsigned int bytes, uint8_t format, uint16_t width,
     }
     {
         Av2hStatus status = bytes == 1U ?
-            av2h_copy_visible_planar_with_execution_private(
+            av2h_copy_visible_planar_private(
                 &frame, &coded, capacities, output, required + 16U,
                 execution_kind == 0U ? 0 : &execution) :
-            av2h_copy_visible_planar_u16_with_execution_private(
+            av2h_copy_visible_planar_u16_private(
                 &frame, coded_u16, capacities, output, required + 16U,
                 execution_kind == 0U ? 0 : &execution);
         CHECK(status == (state.fail && expected_calls ?
@@ -266,24 +266,24 @@ static void test_copy(unsigned int bytes, uint8_t format, uint16_t width,
     }
     memset(output, 0xa5, sizeof(output));
     CHECK((bytes == 1U ? av2h_copy_visible_planar_private(
-              &frame, &coded, capacities, output, required - 1U) :
+        &frame, &coded, capacities, output, required - 1U, NULL) :
           av2h_copy_visible_planar_u16_private(
-              &frame, coded_u16, capacities, output, required - 1U)) ==
+              &frame, coded_u16, capacities, output, required - 1U, NULL)) ==
           AV2H_OUT_OF_MEMORY);
     if (!state.fail) {
         unsigned int last = av2h_frame_plane_count(&frame) - 1U;
         --capacities[last];
         CHECK((bytes == 1U ? av2h_copy_visible_planar_private(
-                  &frame, &coded, capacities, output, sizeof(output)) :
+            &frame, &coded, capacities, output, sizeof(output), NULL) :
               av2h_copy_visible_planar_u16_private(
-                  &frame, coded_u16, capacities, output, sizeof(output))) ==
+                  &frame, coded_u16, capacities, output, sizeof(output), NULL)) ==
               AV2H_INVALID_ARGUMENT);
         ++capacities[last];
         CHECK((bytes == 1U ? av2h_copy_visible_planar_private(
-                  &frame, &coded, capacities, source[0], required) :
+            &frame, &coded, capacities, source[0], required, NULL) :
               av2h_copy_visible_planar_u16_private(
                   &frame, coded_u16, capacities, (uint8_t *)source_u16[0],
-                  required)) == AV2H_INVALID_ARGUMENT);
+                  required, NULL)) == AV2H_INVALID_ARGUMENT);
     }
     for (offset = 0U; offset < sizeof(output); ++offset) CHECK(output[offset] == 0xa5U);
 }
@@ -488,18 +488,19 @@ static void test_frame_results(void) {
     CHECK(av2h_sequence_state_parse((Av2hSpan){ input, size }, sequence_obu,
                                    &sequence, &error) == AV2H_OK);
     CHECK(av2h_frame_header_closed_key_parse(
-              (Av2hSpan){ input + frame_obu->payload_offset, frame_obu->payload_size },
-              &sequence, &frame) == AV2H_OK);
+        (Av2hSpan){ input + frame_obu->payload_offset, frame_obu->payload_size },
+        &sequence, &frame, NULL) == AV2H_OK);
     CHECK(av2h_tile_group_single_parse(
               (Av2hSpan){ input + frame_obu->payload_offset, frame_obu->payload_size },
               frame.uncompressed_header_bits, &group) == AV2H_OK);
     CHECK(group.entropy.size >= 8U);
-    CHECK(av2h_frame_decode_workspace_query(&sequence, &frame, &layout) == AV2H_OK);
+    CHECK(av2h_frame_decode_workspace_query(
+        &sequence, &frame, 1U, &layout) == AV2H_OK);
     CHECK(layout.size_bytes <= sizeof(memory));
     if (group.entropy.size < 8U || layout.size_bytes > sizeof(memory)) return;
     CHECK(av2h_frame_decode_workspace_init(
-              &sequence, &frame, &layout, memory, layout.size_bytes,
-              &workspace, &filter, &storage) == AV2H_OK);
+        &sequence, &frame, 1U, &layout, memory, layout.size_bytes, &workspace,
+        &filter, &storage) == AV2H_OK);
     for (variant = 0U; variant <= 64U; ++variant) {
         Av2hFrameDecodeResult result = { 0 };
         size_t byte = variant ? (variant - 1U) / 8U : 0U;
@@ -510,7 +511,7 @@ static void test_frame_results(void) {
         memset(output, 0xa5, sizeof(output));
         status = av2h_decode_frame_planar_private(
             group.entropy, &sequence, &frame, &workspace, output, sizeof(output),
-            &result);
+            &result, NULL);
         input[entropy_offset + byte] ^= bit;
         CHECK(result.stage <= AV2H_FRAME_DECODE_STAGE_OUTPUT);
         if (result.stage <= AV2H_FRAME_DECODE_STAGE_OUTPUT) ++stages[result.stage];

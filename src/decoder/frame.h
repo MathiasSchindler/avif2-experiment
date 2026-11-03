@@ -149,10 +149,6 @@ static inline int av2h_frame_restoration_needs_tx_skip(
 Av2hStatus av2h_frame_header_closed_key_parse(
     Av2hSpan payload,
     const Av2hSequenceState *sequence,
-    Av2hFrameState *frame);
-Av2hStatus av2h_frame_header_closed_key_parse_diagnostic(
-    Av2hSpan payload,
-    const Av2hSequenceState *sequence,
     Av2hFrameState *frame,
     Av2hError *error);
 

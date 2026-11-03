@@ -170,7 +170,7 @@ static void tile_readiness_restore_previous(
     }
 }
 
-Av2hStatus av2h_decode_frame_group_planar_with_execution_private(
+Av2hStatus av2h_decode_frame_group_planar_private(
     const Av2hTileGroup *group,
     const Av2hSequenceState *sequence,
     const Av2hFrameState *frame,
@@ -247,7 +247,7 @@ Av2hStatus av2h_decode_frame_group_planar_with_execution_private(
         (workspace->bytes_per_sample == 2U &&
          workspace->reconstruction_scratch_u16 == NULL) ||
         workspace->filter_workspace == NULL) return AV2H_INVALID_ARGUMENT;
-    status = av2h_planar_output_size_bytes(
+    status = av2h_planar_output_size(
         frame, workspace->bytes_per_sample, &required_output_bytes);
     if (status != AV2H_OK) return status;
     if (output_size_bytes < required_output_bytes) return AV2H_OUT_OF_MEMORY;
@@ -258,7 +258,7 @@ Av2hStatus av2h_decode_frame_group_planar_with_execution_private(
     for (tile_index = 0U; tile_index < group->tile_count; ++tile_index) {
         uint16_t tile_id = (uint16_t)(group->start_tile + tile_index);
         pending_chroma_count = 0U;
-        status = av2h_tile_decoder_init_at(
+        status = av2h_tile_decoder_init(
             &decoder, group->tiles[tile_index], sequence, frame,
             &workspace->tile_context, tile_id);
         if (status != AV2H_OK) return status;
@@ -281,7 +281,7 @@ Av2hStatus av2h_decode_frame_group_planar_with_execution_private(
                     for (plane = 1U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
                         unsigned int index = plane - 1U;
                         status =
-                            av2h_chroma_reconstruct_to_plane_u16_with_diagnostics(
+                            av2h_chroma_reconstruct_to_plane_u16(
                             workspace->diagnostics,
                             &pending_leaf->node, &pending_leaf->mode,
                             &pending_leaf->prefix[index],
@@ -319,7 +319,7 @@ Av2hStatus av2h_decode_frame_group_planar_with_execution_private(
                 for (plane = 1U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
                     unsigned int index = plane - 1U;
                     status =
-                        av2h_chroma_reconstruct_to_plane_format_with_diagnostics(
+                        av2h_chroma_reconstruct_to_plane(
                         workspace->diagnostics,
                         &pending_leaf->node, &pending_leaf->mode,
                         &pending_leaf->prefix[index],
@@ -423,14 +423,14 @@ Av2hStatus av2h_decode_frame_group_planar_with_execution_private(
             }
             if (!has_leaf) continue;
             if (workspace->bytes_per_sample == 1U) {
-                status = av2h_luma_reconstruct_to_plane_with_diagnostics(
+                status = av2h_luma_reconstruct_to_plane(
                     workspace->diagnostics,
                     &leaf.node, &leaf.mode, &leaf.prefix, &leaf.transform,
                     &block, &workspace->coded[0],
                     workspace->reconstruction_scratch);
             } else {
                 status =
-                    av2h_luma_reconstruct_to_plane_u16_with_diagnostics(
+                    av2h_luma_reconstruct_to_plane_u16(
                     workspace->diagnostics,
                     &leaf.node, &leaf.mode, &leaf.prefix, &leaf.transform,
                     &block, &workspace->coded_u16[0],
@@ -526,7 +526,7 @@ Av2hStatus av2h_decode_frame_group_planar_with_execution_private(
                 plane = leaf.decoded_plane;
                 if (workspace->bytes_per_sample == 1U) {
                     status =
-                        av2h_chroma_reconstruct_to_plane_format_with_diagnostics(
+                        av2h_chroma_reconstruct_to_plane(
                         workspace->diagnostics,
                         &leaf.node, &leaf.mode, &leaf.prefix[index],
                         &leaf.transform[index], &blocks[index],
@@ -535,7 +535,7 @@ Av2hStatus av2h_decode_frame_group_planar_with_execution_private(
                         workspace->reconstruction_scratch);
                 } else {
                     status =
-                        av2h_chroma_reconstruct_to_plane_u16_with_diagnostics(
+                        av2h_chroma_reconstruct_to_plane_u16(
                         workspace->diagnostics,
                         &leaf.node, &leaf.mode, &leaf.prefix[index],
                         &leaf.transform[index], &blocks[index],
@@ -611,7 +611,7 @@ Av2hStatus av2h_decode_frame_group_planar_with_execution_private(
                 for (plane = 1U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
                     unsigned int index = plane - 1U;
                     status =
-                        av2h_chroma_reconstruct_to_plane_format_with_diagnostics(
+                        av2h_chroma_reconstruct_to_plane(
                         workspace->diagnostics,
                         &leaf.node, &leaf.mode, &leaf.prefix[index],
                         &leaf.transform[index], &blocks[index],
@@ -663,7 +663,7 @@ Av2hStatus av2h_decode_frame_group_planar_with_execution_private(
                 for (plane = 1U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
                     unsigned int index = plane - 1U;
                     status =
-                        av2h_chroma_reconstruct_to_plane_u16_with_diagnostics(
+                        av2h_chroma_reconstruct_to_plane_u16(
                         workspace->diagnostics,
                         &leaf.node, &leaf.mode, &leaf.prefix[index],
                         &leaf.transform[index], &blocks[index],
@@ -797,7 +797,7 @@ Av2hStatus av2h_decode_frame_group_planar_with_execution_private(
                 status, status, AV2H_FRAME_DECODE_STAGE_FILTER,
                 0U, 0, 0U);
         }
-        status = av2h_copy_visible_planar_u16_with_execution_private(
+        status = av2h_copy_visible_planar_u16_private(
             frame, workspace->coded_u16, workspace->coded_data_size_bytes,
             output, output_size_bytes, execution);
         if (status != AV2H_OK) {
@@ -827,7 +827,7 @@ Av2hStatus av2h_decode_frame_group_planar_with_execution_private(
             status, status, AV2H_FRAME_DECODE_STAGE_FILTER,
             0U, 0, 0U);
     }
-    status = av2h_copy_visible_planar_with_execution_private(
+    status = av2h_copy_visible_planar_private(
         frame, &final_planes, workspace->coded_data_size_bytes,
         output, output_size_bytes, execution);
     if (status != AV2H_OK) {
@@ -847,19 +847,6 @@ Av2hStatus av2h_decode_frame_planar_private(
     Av2hFrameDecodeWorkspace *workspace,
     uint8_t *output,
     size_t output_size_bytes,
-    Av2hFrameDecodeResult *result) {
-    return av2h_decode_frame_planar_with_execution_private(
-        entropy, sequence, frame, workspace, output, output_size_bytes,
-        result, NULL);
-}
-
-Av2hStatus av2h_decode_frame_planar_with_execution_private(
-    Av2hSpan entropy,
-    const Av2hSequenceState *sequence,
-    const Av2hFrameState *frame,
-    Av2hFrameDecodeWorkspace *workspace,
-    uint8_t *output,
-    size_t output_size_bytes,
     Av2hFrameDecodeResult *result,
     const Av2hExecution *execution) {
     Av2hTileGroup group;
@@ -867,20 +854,7 @@ Av2hStatus av2h_decode_frame_planar_with_execution_private(
     group.tile_count = 1U;
     group.tiles[0] = entropy;
     group.entropy = entropy;
-    return av2h_decode_frame_group_planar_with_execution_private(
+    return av2h_decode_frame_group_planar_private(
         &group, sequence, frame, workspace, output, output_size_bytes,
         result, execution);
-}
-
-Av2hStatus av2h_decode_frame_group_planar_private(
-    const Av2hTileGroup *group,
-    const Av2hSequenceState *sequence,
-    const Av2hFrameState *frame,
-    Av2hFrameDecodeWorkspace *workspace,
-    uint8_t *output,
-    size_t output_size_bytes,
-    Av2hFrameDecodeResult *result) {
-    return av2h_decode_frame_group_planar_with_execution_private(
-        group, sequence, frame, workspace, output, output_size_bytes,
-        result, NULL);
 }

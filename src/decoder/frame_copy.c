@@ -23,12 +23,6 @@ typedef struct {
 
 Av2hStatus av2h_planar_output_size(
     const Av2hFrameState *frame,
-    size_t *size_bytes) {
-    return av2h_planar_output_size_bytes(frame, 1U, size_bytes);
-}
-
-Av2hStatus av2h_planar_output_size_bytes(
-    const Av2hFrameState *frame,
     size_t bytes_per_sample,
     size_t *size_bytes) {
     Av2hPlaneLayout planes[3];
@@ -105,7 +99,7 @@ static int copy_rows_dispatch(const Av2hExecution *execution,
         execution->context, height, min_chunk, body, argument);
 }
 
-Av2hStatus av2h_copy_visible_planar_with_execution_private(
+Av2hStatus av2h_copy_visible_planar_private(
     const Av2hFrameState *frame,
     const Av2hFilterPlanes *coded,
     const size_t coded_data_size_bytes[AV2H_FRAME_PLANE_COUNT],
@@ -135,16 +129,6 @@ Av2hStatus av2h_copy_visible_planar_with_execution_private(
     return AV2H_OK;
 }
 
-Av2hStatus av2h_copy_visible_planar_private(
-    const Av2hFrameState *frame,
-    const Av2hFilterPlanes *coded,
-    const size_t coded_data_size_bytes[AV2H_FRAME_PLANE_COUNT],
-    uint8_t *output,
-    size_t output_size_bytes) {
-    return av2h_copy_visible_planar_with_execution_private(
-        frame, coded, coded_data_size_bytes, output, output_size_bytes, NULL);
-}
-
 static int copy_rows_u16(size_t begin, size_t end,
                          unsigned int worker_index, void *argument) {
     Av2hCopyRowsU16 *copy = (Av2hCopyRowsU16 *)argument;
@@ -165,7 +149,7 @@ static int copy_rows_u16(size_t begin, size_t end,
     return 0;
 }
 
-Av2hStatus av2h_copy_visible_planar_u16_with_execution_private(
+Av2hStatus av2h_copy_visible_planar_u16_private(
     const Av2hFrameState *frame,
     const Av2hReconstructionPlaneU16 coded[AV2H_FRAME_PLANE_COUNT],
     const size_t coded_data_size_bytes[AV2H_FRAME_PLANE_COUNT],
@@ -194,14 +178,4 @@ Av2hStatus av2h_copy_visible_planar_u16_with_execution_private(
         offset += row_bytes * height;
     }
     return AV2H_OK;
-}
-
-Av2hStatus av2h_copy_visible_planar_u16_private(
-    const Av2hFrameState *frame,
-    const Av2hReconstructionPlaneU16 coded[AV2H_FRAME_PLANE_COUNT],
-    const size_t coded_data_size_bytes[AV2H_FRAME_PLANE_COUNT],
-    uint8_t *output,
-    size_t output_size_bytes) {
-    return av2h_copy_visible_planar_u16_with_execution_private(
-        frame, coded, coded_data_size_bytes, output, output_size_bytes, NULL);
 }

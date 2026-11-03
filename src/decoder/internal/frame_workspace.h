@@ -11,23 +11,10 @@ typedef struct {
 Av2hStatus av2h_frame_decode_workspace_query(
     const Av2hSequenceState *sequence,
     const Av2hFrameState *frame,
-    Av2hFrameDecodeWorkspaceLayout *layout);
-Av2hStatus av2h_frame_decode_workspace_query_bytes(
-    const Av2hSequenceState *sequence,
-    const Av2hFrameState *frame,
     size_t bytes_per_sample,
     Av2hFrameDecodeWorkspaceLayout *layout);
 
 Av2hStatus av2h_frame_decode_workspace_init(
-    const Av2hSequenceState *sequence,
-    const Av2hFrameState *frame,
-    const Av2hFrameDecodeWorkspaceLayout *layout,
-    void *memory,
-    size_t memory_size_bytes,
-    Av2hFrameDecodeWorkspace *workspace,
-    Av2hFilterWorkspace *filter_workspace,
-    Av2hFilterWorkspaceStorage *filter_storage);
-Av2hStatus av2h_frame_decode_workspace_init_bytes(
     const Av2hSequenceState *sequence,
     const Av2hFrameState *frame,
     size_t bytes_per_sample,
@@ -45,12 +32,6 @@ Av2hStatus av2h_planar_output_bind_u16(
     Av2hPlanarOutputU16 *planes);
 
 Av2hStatus av2h_copy_visible_planar_u16_private(
-    const Av2hFrameState *frame,
-    const Av2hReconstructionPlaneU16 coded[AV2H_FRAME_PLANE_COUNT],
-    const size_t coded_data_size_bytes[AV2H_FRAME_PLANE_COUNT],
-    uint8_t *output,
-    size_t output_size_bytes);
-Av2hStatus av2h_copy_visible_planar_u16_with_execution_private(
     const Av2hFrameState *frame,
     const Av2hReconstructionPlaneU16 coded[AV2H_FRAME_PLANE_COUNT],
     const size_t coded_data_size_bytes[AV2H_FRAME_PLANE_COUNT],

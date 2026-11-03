@@ -484,20 +484,20 @@ static void test_unsupported_reconstruction(void) {
     av2h_memory_fill(pixels_u16, 0xa5U, sizeof(pixels_u16));
     av2h_memory_fill(&output, 0xa5U, sizeof(output));
     av2h_memory_fill(&output_u16, 0xa5U, sizeof(output_u16));
-    CHECK(av2h_luma_reconstruct_with_diagnostics(
+    CHECK(av2h_luma_reconstruct(
         &diagnostics, &mode, &prefix, &transform, &coefficients,
         pixels, 4U, &scratch, &output) == AV2H_UNSUPPORTED);
     CHECK(bytes_are(&output, sizeof(output), 0xa5U));
-    CHECK(av2h_reconstruct_transform_generic_u16_with_diagnostics(
+    CHECK(av2h_reconstruct_transform_generic_u16(
         &diagnostics, &mode, &prefix, &transform, &coefficients,
         pixels_u16, 4U, &scratch_u16, &output_u16) == AV2H_UNSUPPORTED);
     CHECK(bytes_are(&output_u16, sizeof(output_u16), 0xa5U));
-    CHECK(av2h_luma_reconstruct_to_plane_with_diagnostics(
+    CHECK(av2h_luma_reconstruct_to_plane(
         &diagnostics, &leaf, &mode, &prefix, &transform, &coefficients,
         &plane, &scratch) == AV2H_UNSUPPORTED);
     CHECK(bytes_are(pixels, sizeof(pixels), 0xa5U));
     CHECK(ready[0U] == 0U);
-    CHECK(av2h_luma_reconstruct_to_plane_u16_with_diagnostics(
+    CHECK(av2h_luma_reconstruct_to_plane_u16(
         &diagnostics, &leaf, &mode, &prefix, &transform, &coefficients,
         &plane_u16, &scratch_u16) == AV2H_UNSUPPORTED);
     CHECK(bytes_are(pixels_u16, sizeof(pixels_u16), 0xa5U));
@@ -561,12 +561,12 @@ static void test_resource_baseline(void) {
             Av2hFrameDecodeWorkspaceLayout workspace = { 0 };
             size_t output_size = 0U;
             sequence.info.bit_depth_idc = storage == 0U ? 1U : 0U;
-            CHECK(av2h_filter_workspace_query_bytes(
+            CHECK(av2h_filter_workspace_query(
                 &frame, (uint8_t)(storage + 1U), &filter) == AV2H_OK);
-            CHECK(av2h_frame_decode_workspace_query_bytes(
+            CHECK(av2h_frame_decode_workspace_query(
                 &sequence, &frame, (uint8_t)(storage + 1U),
                 &workspace) == AV2H_OK);
-            CHECK(av2h_planar_output_size_bytes(
+            CHECK(av2h_planar_output_size(
                 &frame, (uint8_t)(storage + 1U), &output_size) == AV2H_OK);
             if (inventory) {
                 printf("resource,%u,%u,%u,%u,%zu,%zu,%zu,%zu,%zu\n",

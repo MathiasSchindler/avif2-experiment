@@ -774,7 +774,7 @@ Av2hStatus av2h_reconstruct_lossless_4x4(
     return AV2H_OK;
 }
 
-Av2hStatus av2h_reconstruct_transform_generic_with_diagnostics(
+Av2hStatus av2h_reconstruct_transform_generic(
     Av2hDecodeDiagnostics *diagnostics,
     const Av2hLeafMode *mode,
     const Av2hCoeffPrefix *prefix,
@@ -922,7 +922,7 @@ Av2hStatus av2h_reconstruct_transform_generic_with_diagnostics(
     return AV2H_OK;
 }
 
-Av2hStatus av2h_reconstruct_transform_generic_u16_with_diagnostics(
+Av2hStatus av2h_reconstruct_transform_generic_u16(
     Av2hDecodeDiagnostics *diagnostics,
     const Av2hLeafMode *mode,
     const Av2hCoeffPrefix *prefix,
@@ -1066,34 +1066,6 @@ Av2hStatus av2h_reconstruct_transform_generic_u16_with_diagnostics(
         }
     }
     return AV2H_OK;
-}
-
-Av2hStatus av2h_reconstruct_transform_generic(
-    const Av2hLeafMode *mode,
-    const Av2hCoeffPrefix *prefix,
-    const Av2hTransformType *transform,
-    const Av2hCoeffBlock *coefficients,
-    const uint8_t *predictor,
-    size_t predictor_stride_samples,
-    Av2hReconstructionScratch *scratch,
-    Av2hBlockReconstruction *reconstruction) {
-    return av2h_reconstruct_transform_generic_with_diagnostics(
-        NULL, mode, prefix, transform, coefficients, predictor,
-        predictor_stride_samples, scratch, reconstruction);
-}
-
-Av2hStatus av2h_reconstruct_transform_generic_u16(
-    const Av2hLeafMode *mode,
-    const Av2hCoeffPrefix *prefix,
-    const Av2hTransformType *transform,
-    const Av2hCoeffBlock *coefficients,
-    const uint16_t *predictor,
-    size_t predictor_stride_samples,
-    Av2hReconstructionScratchU16 *scratch,
-    Av2hBlockReconstructionU16 *reconstruction) {
-    return av2h_reconstruct_transform_generic_u16_with_diagnostics(
-        NULL, mode, prefix, transform, coefficients, predictor,
-        predictor_stride_samples, scratch, reconstruction);
 }
 
 Av2hStatus av2h_reconstruct_transform_8x16_u16(

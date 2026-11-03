@@ -310,7 +310,7 @@ static void test_syntax_errors(void) {
         }
         for (index = 0U; index <= 64U; ++index) {
             seed_error(&error, seed * 165U);
-            status = av2h_frame_header_closed_key_parse_diagnostic(
+            status = av2h_frame_header_closed_key_parse(
                 (Av2hSpan){ raw + frame_obu.payload_offset, index },
                 &preparation.sequence, &frame, &error);
             record_error(&record, status, &error);
@@ -319,7 +319,7 @@ static void test_syntax_errors(void) {
             for (bit = 0U; bit < 8U; ++bit) {
                 raw[frame_obu.payload_offset + index] ^= (unsigned char)(1U << bit);
                 seed_error(&error, seed * 165U);
-                status = av2h_frame_header_closed_key_parse_diagnostic(
+                status = av2h_frame_header_closed_key_parse(
                     (Av2hSpan){ raw + frame_obu.payload_offset, frame_obu.payload_size },
                     &preparation.sequence, &frame, &error);
                 record_error(&record, status, &error);

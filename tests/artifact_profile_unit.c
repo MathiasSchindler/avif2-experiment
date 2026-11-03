@@ -126,7 +126,7 @@ static void check_artifact(const ArtifactCase *artifact) {
         av2h_frame_header_closed_key_parse(
             (Av2hSpan){ stream + frame_obu->payload_offset,
                         frame_obu->payload_size },
-            &sequence, &frame) == AV2H_OK);
+            &sequence, &frame, NULL) == AV2H_OK);
     CHECK_ARTIFACT(artifact->name, frame.width == artifact->width);
     CHECK_ARTIFACT(artifact->name, frame.height == artifact->height);
     CHECK_ARTIFACT(

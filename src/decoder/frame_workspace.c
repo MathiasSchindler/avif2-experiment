@@ -80,7 +80,7 @@ static Av2hStatus frame_decode_workspace_geometry(
          sequence->superblock_size != 128U)) {
         return AV2H_INVALID_ARGUMENT;
     }
-    status = av2h_filter_workspace_query_bytes(
+    status = av2h_filter_workspace_query(
         frame, bytes_per_sample, &geometry->filter);
     if (status != AV2H_OK) return status;
     mi_columns = av2h_frame_mi_dimension(frame->width);
@@ -237,14 +237,6 @@ static void frame_decode_workspace_bind(
 Av2hStatus av2h_frame_decode_workspace_query(
     const Av2hSequenceState *sequence,
     const Av2hFrameState *frame,
-    Av2hFrameDecodeWorkspaceLayout *layout) {
-    return av2h_frame_decode_workspace_query_bytes(
-        sequence, frame, 1U, layout);
-}
-
-Av2hStatus av2h_frame_decode_workspace_query_bytes(
-    const Av2hSequenceState *sequence,
-    const Av2hFrameState *frame,
     size_t bytes_per_sample,
     Av2hFrameDecodeWorkspaceLayout *layout) {
     Av2hFrameDecodeWorkspaceGeometry geometry;
@@ -278,20 +270,6 @@ Av2hStatus av2h_frame_decode_workspace_query_bytes(
 Av2hStatus av2h_frame_decode_workspace_init(
     const Av2hSequenceState *sequence,
     const Av2hFrameState *frame,
-    const Av2hFrameDecodeWorkspaceLayout *layout,
-    void *memory,
-    size_t memory_size_bytes,
-    Av2hFrameDecodeWorkspace *workspace,
-    Av2hFilterWorkspace *filter_workspace,
-    Av2hFilterWorkspaceStorage *filter_storage) {
-    return av2h_frame_decode_workspace_init_bytes(
-        sequence, frame, 1U, layout, memory, memory_size_bytes,
-        workspace, filter_workspace, filter_storage);
-}
-
-Av2hStatus av2h_frame_decode_workspace_init_bytes(
-    const Av2hSequenceState *sequence,
-    const Av2hFrameState *frame,
     size_t bytes_per_sample,
     const Av2hFrameDecodeWorkspaceLayout *layout,
     void *memory,
@@ -318,7 +296,7 @@ Av2hStatus av2h_frame_decode_workspace_init_bytes(
         (bytes_per_sample == 2U && sequence->info.bit_depth_idc != 0U)) {
         return AV2H_UNSUPPORTED;
     }
-    status = av2h_frame_decode_workspace_query_bytes(
+    status = av2h_frame_decode_workspace_query(
         sequence, frame, bytes_per_sample, &fresh_layout);
     if (status != AV2H_OK) return status;
     if (layout->size_bytes != fresh_layout.size_bytes ||
@@ -353,7 +331,7 @@ Av2hStatus av2h_frame_decode_workspace_init_bytes(
         geometry.restoration_count;
     local_workspace.tile_context.restoration_unit_tap_capacity =
         geometry.restoration_tap_count;
-    status = av2h_filter_workspace_init_bytes(
+    status = av2h_filter_workspace_init(
         frame, bytes_per_sample, filter_memory, geometry.filter.size_bytes,
         &local_filter_workspace, &local_filter_storage);
     if (status != AV2H_OK) return status;
@@ -424,10 +402,12 @@ Av2hStatus av2h_frame_output_validate_u8(
     if (frame == NULL || coded == NULL || coded_data_size_bytes == NULL || output == NULL) {
         return AV2H_INVALID_ARGUMENT;
     }
-    status = av2h_planar_output_size(frame, &required_output_bytes);
+    status = av2h_planar_output_size(
+        frame, 1U, &required_output_bytes);
     if (status != AV2H_OK) return status;
     if (output_size_bytes < required_output_bytes) return AV2H_OUT_OF_MEMORY;
-    status = av2h_filter_workspace_query(frame, &layout);
+    status = av2h_filter_workspace_query(
+        frame, 1U, &layout);
     if (status != AV2H_OK) return status;
     for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
         const Av2hFilterPlane *source = &coded->plane[plane];
@@ -460,11 +440,11 @@ Av2hStatus av2h_frame_output_validate_u16(
     if (frame == NULL || coded == NULL || coded_data_size_bytes == NULL || output == NULL) {
         return AV2H_INVALID_ARGUMENT;
     }
-    status = av2h_planar_output_size_bytes(
+    status = av2h_planar_output_size(
         frame, sizeof(uint16_t), &required_output_bytes);
     if (status != AV2H_OK) return status;
     if (output_size_bytes < required_output_bytes) return AV2H_OUT_OF_MEMORY;
-    status = av2h_filter_workspace_query_bytes(
+    status = av2h_filter_workspace_query(
         frame, sizeof(uint16_t), &layout);
     if (status != AV2H_OK) return status;
     for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
@@ -975,7 +955,7 @@ Av2hStatus av2h_frame_workspace_prepare(
     const Av2hFrameDecodeResult *result,
     Av2hFilterWorkspaceLayout *layout) {
     Av2hFrameContextSizes context_sizes;
-    Av2hStatus status = av2h_filter_workspace_query_bytes(
+    Av2hStatus status = av2h_filter_workspace_query(
         frame, workspace != NULL ? workspace->bytes_per_sample : 0U, layout);
     if (status != AV2H_OK) return status;
     if (!filter_workspace_valid(
@@ -1014,12 +994,6 @@ static int workspace_reserve(size_t *size_bytes,
 }
 
 Av2hStatus av2h_filter_workspace_query(
-    const Av2hFrameState *frame,
-    Av2hFilterWorkspaceLayout *layout) {
-    return av2h_filter_workspace_query_bytes(frame, 1U, layout);
-}
-
-Av2hStatus av2h_filter_workspace_query_bytes(
     const Av2hFrameState *frame,
     size_t bytes_per_sample,
     Av2hFilterWorkspaceLayout *layout) {
@@ -1123,16 +1097,6 @@ Av2hStatus av2h_filter_workspace_query_bytes(
 
 Av2hStatus av2h_filter_workspace_init(
     const Av2hFrameState *frame,
-    void *memory,
-    size_t memory_size_bytes,
-    Av2hFilterWorkspace *workspace,
-    Av2hFilterWorkspaceStorage *storage) {
-    return av2h_filter_workspace_init_bytes(
-        frame, 1U, memory, memory_size_bytes, workspace, storage);
-}
-
-Av2hStatus av2h_filter_workspace_init_bytes(
-    const Av2hFrameState *frame,
     size_t bytes_per_sample,
     void *memory,
     size_t memory_size_bytes,
@@ -1143,7 +1107,7 @@ Av2hStatus av2h_filter_workspace_init_bytes(
     unsigned int plane;
     Av2hStatus status;
     if (workspace == NULL || storage == NULL) return AV2H_INVALID_ARGUMENT;
-    status = av2h_filter_workspace_query_bytes(
+    status = av2h_filter_workspace_query(
         frame, bytes_per_sample, &layout);
     if (status != AV2H_OK) return status;
     if (memory == NULL ||

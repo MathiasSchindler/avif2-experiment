@@ -5,7 +5,7 @@
 
 /* These predictors are contiguous, with the full output geometry, not the
  * capped coefficient geometry. No picture-plane state is read or committed. */
-Av2hStatus av2h_luma_reconstruct_u16_with_diagnostics(
+Av2hStatus av2h_luma_reconstruct_u16(
     struct Av2hDecodeDiagnostics *diagnostics,
     const Av2hLeafMode *mode,
     const Av2hCoeffPrefix *prefix,
@@ -15,7 +15,7 @@ Av2hStatus av2h_luma_reconstruct_u16_with_diagnostics(
     Av2hReconstructionScratchU16 *scratch,
     Av2hBlockReconstructionU16 *reconstruction);
 
-Av2hStatus av2h_chroma_reconstruct_with_diagnostics(
+Av2hStatus av2h_chroma_reconstruct(
     struct Av2hDecodeDiagnostics *diagnostics,
     const Av2hChromaLeafMode *mode,
     const Av2hCoeffPrefix *prefix,
@@ -27,7 +27,7 @@ Av2hStatus av2h_chroma_reconstruct_with_diagnostics(
     Av2hReconstructionScratch *scratch,
     Av2hBlockReconstruction *reconstruction);
 
-Av2hStatus av2h_chroma_reconstruct_u16_with_diagnostics(
+Av2hStatus av2h_chroma_reconstruct_u16(
     struct Av2hDecodeDiagnostics *diagnostics,
     const Av2hChromaLeafMode *mode,
     const Av2hCoeffPrefix *prefix,

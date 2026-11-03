@@ -4,19 +4,10 @@
 #include "internal/decode_diagnostics.h"
 #include "internal/tile_modules.h"
 
-#include <stddef.h>
-
-#define av2h_partition_diagnostic_leaf_stage(...) \
-    av2h_partition_diagnostic_leaf_stage(          \
-        decoder->entropy_state.range.diagnostics, __VA_ARGS__)
-#define av2h_tile_diagnostics_set_luma_range(...) \
-    av2h_tile_diagnostics_set_luma_range(          \
-        decoder->entropy_state.range.diagnostics, __VA_ARGS__)
-#define av2h_tile_diagnostics_set_luma_stage(...) \
-    av2h_tile_diagnostics_set_luma_stage(          \
-        decoder->entropy_state.range.diagnostics, __VA_ARGS__)
 #include "internal/wiener_nonsep.h"
 #include "tx_geometry.h"
+
+#include <stddef.h>
 
 static void tile_capture_luma_root_child(
     Av2hTileDecoder *decoder, const Av2hLeafPath *path) {
@@ -637,6 +628,7 @@ static Av2hStatus tile_handoff_square_child(Av2hTileDecoder *decoder,
     if (decoder->superblock.sb_row == 0U && decoder->superblock.sb_column == 480U &&
         decoder->root.square_root_child_index == 1U) {
         av2h_partition_diagnostic_leaf_stage(
+            decoder->entropy_state.range.diagnostics,
             (Av2hPartitionNode){ 0U, 496U, AV2H_BLOCK_64X64 }, 90U,
             (uint8_t)decoder->root.luma_root_partition,
             (uint16_t)decoder->traversal.luma_traversal.stack_count,
@@ -667,6 +659,7 @@ static Av2hStatus tile_handoff_square_child(Av2hTileDecoder *decoder,
         if (decoder->superblock.sb_row == 0U && decoder->superblock.sb_column == 480U &&
             decoder->root.square_root_child_index == 1U) {
             av2h_partition_diagnostic_leaf_stage(
+            decoder->entropy_state.range.diagnostics,
                 (Av2hPartitionNode){ 0U, 496U, AV2H_BLOCK_64X64 }, 91U,
                 (uint8_t)pending->row, pending->column,
                 av2h_range_tell(&decoder->entropy_state.range));
@@ -684,6 +677,7 @@ static Av2hStatus tile_handoff_square_child(Av2hTileDecoder *decoder,
 #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
     if (chroma_root.row == 0U && chroma_root.column == 496U) {
         av2h_partition_diagnostic_leaf_stage(
+            decoder->entropy_state.range.diagnostics,
             chroma_root, 100U,
             (uint8_t)decoder->root.square_child_luma_partition,
             decoder->root.square_child_luma_child_count,
@@ -903,7 +897,8 @@ Av2hStatus av2h_tile_decoder_next_luma(
         *has_leaf = 1U;
         goto read_transform;
     }
-    av2h_tile_diagnostics_set_luma_stage(0U);
+    av2h_tile_diagnostics_set_luma_stage(
+            decoder->entropy_state.range.diagnostics, 0U);
     status = tile_handoff_square_child(decoder, has_leaf);
     if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
     if (decoder->control.phase == AV2H_TILE_DECODE_CHROMA) return AV2H_OK;
@@ -925,7 +920,8 @@ Av2hStatus av2h_tile_decoder_next_luma(
         decoder, &path, &decoder->root.luma_root_partition);
     tile_capture_luma_root_child(decoder, &path);
     leaf->node = path.leaf;
-    av2h_tile_diagnostics_set_luma_range(0U, decoder->entropy_state.range.range);
+    av2h_tile_diagnostics_set_luma_range(
+            decoder->entropy_state.range.diagnostics, 0U, decoder->entropy_state.range.range);
     if (!luma_geometry_supported(&leaf->node)) {
         return av2h_tile_decoder_fail(decoder, AV2H_UNSUPPORTED);
     }
@@ -938,7 +934,8 @@ Av2hStatus av2h_tile_decoder_next_luma(
         decoder->entropy_state.luma_mode_contexts.intrabc_bank_unit_hits = 0U;
         decoder->entropy_state.luma_mode_contexts.intrabc_bank_superblock_hits = 0U;
     }
-    av2h_tile_diagnostics_set_luma_stage(1U);
+    av2h_tile_diagnostics_set_luma_stage(
+            decoder->entropy_state.range.diagnostics, 1U);
     shared_chroma_tree = (uint8_t)(decoder->entropy_state.sequence->enable_sdp &&
         ((leaf->node.block_size == AV2H_BLOCK_128X128 &&
             decoder->root.luma_root_partition == AV2H_PARTITION_NONE) ||
@@ -946,7 +943,7 @@ Av2hStatus av2h_tile_decoder_next_luma(
              leaf->node.block_size == AV2H_BLOCK_128X64) &&
             av2h_tile_partition_direction(
                 decoder->root.luma_root_partition) != 0U)));
-    status = av2h_luma_mode_read_with_state_and_delta_q(
+    status = av2h_luma_mode_read_with_state(
         &decoder->entropy_state.range, &decoder->entropy_state.leaf_cdfs, decoder->entropy_state.sequence,
         decoder->entropy_state.frame, &leaf->node, &decoder->entropy_state.luma_mode_contexts,
         &decoder->entropy_state.gdf_entropy, &decoder->entropy_state.cdef_entropy,
@@ -1001,22 +998,28 @@ Av2hStatus av2h_tile_decoder_next_luma(
     }
 #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
     av2h_partition_diagnostic_leaf_stage(
+            decoder->entropy_state.range.diagnostics,
         leaf->node, 60U, leaf->mode.gdf_flags_read,
         leaf->mode.cdef_strengths_read, leaf->mode.after_gdf_bits);
     av2h_partition_diagnostic_leaf_stage(
+            decoder->entropy_state.range.diagnostics,
         leaf->node, 61U, leaf->mode.ccso_controls_read,
         leaf->mode.mode_index, leaf->mode.after_ccso_bits);
     av2h_partition_diagnostic_leaf_stage(
+            decoder->entropy_state.range.diagnostics,
         leaf->node, 62U, leaf->mode.mode_set,
         leaf->mode.mode_index, leaf->mode.after_mode_index_bits);
     av2h_partition_diagnostic_leaf_stage(
+            decoder->entropy_state.range.diagnostics,
         leaf->node, 63U, leaf->mode.fsc_mode,
         leaf->mode.mrl_index, leaf->mode.after_mrl_bits);
     av2h_partition_diagnostic_leaf_stage(
+            decoder->entropy_state.range.diagnostics,
         leaf->node, 1U, (uint8_t)leaf->mode.mode, 0U,
         av2h_range_tell(&decoder->entropy_state.range));
 #endif
-    av2h_tile_diagnostics_set_luma_range(1U, decoder->entropy_state.range.range);
+    av2h_tile_diagnostics_set_luma_range(
+            decoder->entropy_state.range.diagnostics, 1U, decoder->entropy_state.range.range);
     status = av2h_luma_mode_context_state_update(
         &decoder->entropy_state.luma_mode_contexts, &leaf->node, &leaf->mode);
     if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
@@ -1025,6 +1028,7 @@ Av2hStatus av2h_tile_decoder_next_luma(
 #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
     if (shared_chroma_tree) {
         av2h_partition_diagnostic_leaf_stage(
+            decoder->entropy_state.range.diagnostics,
             leaf->node, 70U, decoder->shared_chroma.mode.mode_index,
             decoder->shared_chroma.mode.cfl_kind,
             av2h_range_tell(&decoder->entropy_state.range));
@@ -1073,7 +1077,8 @@ read_transform:
         decoder->control.event = AV2H_TILE_EVENT_LUMA_LEAF;
         return AV2H_OK;
     }
-    av2h_tile_diagnostics_set_luma_stage(2U);
+    av2h_tile_diagnostics_set_luma_stage(
+            decoder->entropy_state.range.diagnostics, 2U);
     if (decoder->luma.tx_count != 0U) {
         uint8_t txb_skip_context;
         status = av2h_coeff_contexts_from_state_for_coding_block(
@@ -1095,16 +1100,20 @@ read_transform:
     leaf->prefix.q_index = decoder->superblock.current_block_q_index;
 #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
     av2h_partition_diagnostic_leaf_stage(
+            decoder->entropy_state.range.diagnostics,
         leaf->node, 21U, leaf->prefix.eob_point, leaf->prefix.eob_extra,
         leaf->prefix.after_eob_point_bits);
     av2h_partition_diagnostic_leaf_stage(
+            decoder->entropy_state.range.diagnostics,
         leaf->node, 22U, leaf->prefix.eob_offset_bits,
         leaf->prefix.eob_extra, leaf->prefix.after_eob_extra_bit);
     av2h_partition_diagnostic_leaf_stage(
+            decoder->entropy_state.range.diagnostics,
         leaf->node, 2U, (uint8_t)leaf->mode.mode, leaf->prefix.eob,
         av2h_range_tell(&decoder->entropy_state.range));
 #endif
-    av2h_tile_diagnostics_set_luma_range(2U, decoder->entropy_state.range.range);
+    av2h_tile_diagnostics_set_luma_range(
+            decoder->entropy_state.range.diagnostics, 2U, decoder->entropy_state.range.range);
     if (leaf->prefix.all_zero) {
         status = tile_initialize_all_zero_luma(
             decoder, leaf, &leaf->transform, block);
@@ -1112,7 +1121,8 @@ read_transform:
         decoder->control.event = AV2H_TILE_EVENT_LUMA_LEAF;
         return AV2H_OK;
     }
-    av2h_tile_diagnostics_set_luma_stage(3U);
+    av2h_tile_diagnostics_set_luma_stage(
+            decoder->entropy_state.range.diagnostics, 3U);
     if (decoder->superblock.current_block_q_index == 0U) {
         size_t tell = av2h_range_tell(&decoder->entropy_state.range);
         size_t before_primary = tell;
@@ -1147,16 +1157,20 @@ read_transform:
     if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
 #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
     av2h_partition_diagnostic_leaf_stage(
+            decoder->entropy_state.range.diagnostics,
         leaf->node, 3U, (uint8_t)leaf->mode.mode, leaf->prefix.eob,
         av2h_range_tell(&decoder->entropy_state.range));
     if (leaf->node.row == 0U && leaf->node.column == 0U) {
         av2h_partition_diagnostic_leaf_stage(
+            decoder->entropy_state.range.diagnostics,
             leaf->node, 89U, leaf->transform.primary_type,
             leaf->transform.secondary_symbol, leaf->prefix.tx_size);
     }
 #endif
-    av2h_tile_diagnostics_set_luma_range(3U, decoder->entropy_state.range.range);
-    av2h_tile_diagnostics_set_luma_stage(4U);
+    av2h_tile_diagnostics_set_luma_range(
+            decoder->entropy_state.range.diagnostics, 3U, decoder->entropy_state.range.range);
+    av2h_tile_diagnostics_set_luma_stage(
+            decoder->entropy_state.range.diagnostics, 4U);
     status = av2h_coeff_block_read_with_state(
         &decoder->entropy_state.range, &decoder->entropy_state.level_cdfs, decoder->entropy_state.sequence,
         decoder->entropy_state.frame, &leaf->node, &leaf->mode, &leaf->prefix,
@@ -1168,6 +1182,7 @@ read_transform:
         for (coefficient_index = 0U; coefficient_index < 8U;
              ++coefficient_index) {
             av2h_partition_diagnostic_leaf_stage(
+            decoder->entropy_state.range.diagnostics,
                 leaf->node, (uint8_t)(80U + coefficient_index),
                 (uint8_t)block->quantized[coefficient_index],
                 (uint16_t)block->dequantized[coefficient_index],
@@ -1183,18 +1198,22 @@ read_transform:
             position = av2h_coeff_scan_position(
                 scan_index, block->width, block->height, 0U, 0U);
             av2h_partition_diagnostic_leaf_stage(
+            decoder->entropy_state.range.diagnostics,
                 leaf->node, 40U, block->base_levels[position], position,
                 scan_index);
         }
     }
     av2h_partition_diagnostic_leaf_stage(
+            decoder->entropy_state.range.diagnostics,
         leaf->node, 31U, (uint8_t)leaf->mode.mode, leaf->prefix.eob,
         block->after_levels_bits);
     av2h_partition_diagnostic_leaf_stage(
+            decoder->entropy_state.range.diagnostics,
         leaf->node, 4U, (uint8_t)leaf->mode.mode, leaf->prefix.eob,
         av2h_range_tell(&decoder->entropy_state.range));
 #endif
-    av2h_tile_diagnostics_set_luma_range(4U, decoder->entropy_state.range.range);
+    av2h_tile_diagnostics_set_luma_range(
+            decoder->entropy_state.range.diagnostics, 4U, decoder->entropy_state.range.range);
     decoder->control.event = AV2H_TILE_EVENT_LUMA_LEAF;
     return AV2H_OK;
 }
@@ -1215,14 +1234,15 @@ Av2hStatus av2h_tile_decoder_reconstruct_next_luma(
         decoder, leaf, &block, has_leaf);
     if (status != AV2H_OK || !*has_leaf) return status;
     status = av2h_luma_reconstruct_to_plane(
-        &leaf->node, &leaf->mode, &leaf->prefix, &leaf->transform,
-        &block, plane, scratch);
+        NULL, &leaf->node, &leaf->mode, &leaf->prefix, &leaf->transform, &block,
+        plane, scratch);
     if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
 #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
     if (leaf->node.row == 0U && leaf->node.column == 0U) {
         size_t residual_index;
         for (residual_index = 0U; residual_index < 8U; ++residual_index) {
             av2h_partition_diagnostic_leaf_stage(
+            decoder->entropy_state.range.diagnostics,
                 leaf->node, (uint8_t)(90U + residual_index), 0U,
                 (uint16_t)scratch->residual[residual_index], residual_index);
         }
