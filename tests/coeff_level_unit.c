@@ -1155,7 +1155,84 @@ static void test_predefined_qmatrix_steps(void) {
               AV2H_TX_DCT_DCT, 0U, 100U, &step) == AV2H_UNSUPPORTED);
 }
 
+static void test_qmatrix_materialization(void) {
+    unsigned int planes;
+    for (planes = 1U; planes <= 3U; planes += 2U) {
+        unsigned char bytes[2][1024] = {{0}};
+        Av2hFrameState direct = {0};
+        Av2hFrameState deferred = {0};
+        Av2hFrameSyntaxStorage syntax = {0};
+        Av2hFrameSyntaxStorage deferred_syntax;
+        Av2hQMatrixSyntaxReferences references = {0};
+        Av2hError error = {0};
+        unsigned int part;
+        av2h_frame_syntax_storage_bind(&direct, &syntax);
+        for (part = 0U; part < 2U; ++part) {
+            Av2hBitWriter writer;
+            Av2hObu obu = {0};
+            uint16_t bitmap = part == 0U ? 0x00ffU : 0x7f00U;
+            unsigned int id;
+            av2h_bit_writer_init(&writer, bytes[part] + 3U, sizeof(bytes[part]) - 3U);
+            CHECK(av2h_bit_writer_write(&writer, bitmap, 15U) == AV2H_OK);
+            CHECK(av2h_bit_writer_write(&writer, planes == 3U, 1U) == AV2H_OK);
+            for (id = 0U; id < AV2H_CUSTOM_QM_COUNT; ++id) {
+                unsigned int shape;
+                if ((bitmap & (1U << id)) == 0U)
+                    continue;
+                CHECK(av2h_bit_writer_write(&writer, id % 3U == 0U, 1U) == AV2H_OK);
+                if (id % 3U == 0U)
+                    continue;
+                for (shape = 0U; shape < 3U; ++shape) {
+                    unsigned int plane;
+                    for (plane = 0U; plane < planes; ++plane) {
+                        unsigned int coefficient;
+                        unsigned int count = shape == 0U ? 36U : 32U;
+                        if (plane != 0U) {
+                            CHECK(av2h_bit_writer_write(&writer, plane == 1U, 1U) == AV2H_OK);
+                            if (plane == 1U)
+                                continue;
+                        }
+                        if (shape == 2U) {
+                            CHECK(av2h_bit_writer_write(&writer, 1U, 1U) == AV2H_OK);
+                            continue;
+                        }
+                        if (shape == 0U)
+                            CHECK(av2h_bit_writer_write(&writer, 1U, 1U) == AV2H_OK);
+                        for (coefficient = 0U; coefficient < count; ++coefficient) {
+                            int delta = coefficient == 0U && ((id + plane + shape) & 1U) != 0U;
+                            CHECK(av2h_bit_writer_write(&writer, delta ? 2U : 1U,
+                                                          delta ? 3U : 1U) == AV2H_OK);
+                        }
+                    }
+                }
+            }
+            CHECK(av2h_bit_writer_write(&writer, 1U, 1U) == AV2H_OK);
+            CHECK(av2h_bit_writer_align_zero(&writer) == AV2H_OK);
+            obu.type = AV2H_OBU_QUANTIZATION_MATRIX;
+            obu.index = part;
+            obu.payload_offset = 3U;
+            obu.payload_size = av2h_bit_writer_required(&writer);
+            CHECK(av2h_qmatrix_obu_parse((Av2hSpan){bytes[part], obu.payload_size + 3U}, &obu,
+                                          &direct, NULL, &error) == AV2H_OK);
+            CHECK(av2h_qmatrix_obu_parse((Av2hSpan){bytes[part], obu.payload_size + 3U}, &obu,
+                                          &deferred, &references, &error) == AV2H_OK);
+        }
+        av2h_memory_fill(&deferred_syntax, 0xa5U, sizeof(deferred_syntax));
+        av2h_frame_syntax_storage_bind(&deferred, &deferred_syntax);
+        CHECK(av2h_qmatrix_materialize(&deferred, &references, &error) == AV2H_OK);
+        CHECK(av2h_memory_compare(syntax.custom_qm, deferred_syntax.custom_qm,
+                                  sizeof(syntax.custom_qm)) == 0);
+        CHECK(direct.custom_qm_bitmap == deferred.custom_qm_bitmap);
+        CHECK(direct.custom_qm_definition_bitmap == deferred.custom_qm_definition_bitmap);
+        CHECK(av2h_memory_compare(direct.custom_qm_plane_count, deferred.custom_qm_plane_count,
+                                  sizeof(direct.custom_qm_plane_count)) == 0);
+        references.definition[1].payload.size = 0U;
+        CHECK(av2h_qmatrix_materialize(&deferred, &references, &error) == AV2H_TRUNCATED);
+    }
+}
+
 static void test_custom_qmatrix(void) {
+    test_qmatrix_materialization();
     unsigned char bytes[32] = { 0 };
     Av2hBitWriter writer;
     Av2hObu obu = { 0 };
@@ -1183,7 +1260,7 @@ static void test_custom_qmatrix(void) {
     obu.payload_size = av2h_bit_writer_required(&writer);
     CHECK(av2h_qmatrix_obu_parse(
               (Av2hSpan){ bytes, obu.payload_size }, &obu, &frame,
-              &error) == AV2H_OK);
+              NULL, &error) == AV2H_OK);
     CHECK(frame.custom_qm_bitmap == 1U);
     CHECK(frame.custom_qm[0][0][0] == 32U);
     CHECK(frame.custom_qm[0][0][127] == 32U);
@@ -1194,26 +1271,36 @@ static void test_custom_qmatrix(void) {
             Av2hFrameState materialized = {0};
             Av2hFrameState metadata = {0};
             Av2hFrameSyntaxStorage syntax = {0};
+            Av2hFrameSyntaxStorage deferred_syntax;
+            Av2hQMatrixSyntaxReferences references = {0};
             Av2hError materialized_error = {0};
             Av2hError metadata_error = {0};
             Av2hStatus status;
             av2h_frame_syntax_storage_bind(&materialized, &syntax);
             obu.payload_size = length;
             status = av2h_qmatrix_obu_parse(
-                (Av2hSpan){bytes, length}, &obu, &materialized, &materialized_error);
+                (Av2hSpan){bytes, length}, &obu, &materialized, NULL, &materialized_error);
             CHECK(av2h_qmatrix_obu_parse(
-                (Av2hSpan){bytes, length}, &obu, &metadata, &metadata_error) == status);
+                (Av2hSpan){bytes, length}, &obu, &metadata, &references, &metadata_error) == status);
             CHECK(metadata.custom_qm == NULL);
             CHECK(metadata.custom_qm_bitmap == materialized.custom_qm_bitmap);
             CHECK(metadata.custom_qm_plane_count[0] == materialized.custom_qm_plane_count[0]);
             CHECK(metadata_error.status == materialized_error.status);
             CHECK(metadata_error.offset == materialized_error.offset);
+            if (status == AV2H_OK) {
+                av2h_memory_fill(&deferred_syntax, 0xa5U, sizeof(deferred_syntax));
+                av2h_frame_syntax_storage_bind(&metadata, &deferred_syntax);
+                CHECK(av2h_qmatrix_materialize(&metadata, &references, &metadata_error) ==
+                      AV2H_OK);
+                CHECK(av2h_memory_compare(syntax.custom_qm, deferred_syntax.custom_qm,
+                                          sizeof(syntax.custom_qm)) == 0);
+            }
         }
         obu.payload_size = full_size;
     }
     CHECK(av2h_qmatrix_obu_parse(
               (Av2hSpan){ bytes, obu.payload_size }, &obu, &frame,
-              &error) == AV2H_INVALID_DATA);
+              NULL, &error) == AV2H_INVALID_DATA);
 
     sequence.info.bit_depth_idc = 1U;
     frame.using_qmatrix = 1U;

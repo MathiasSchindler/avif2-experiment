@@ -1,4 +1,6 @@
 #include "base.h"
+#include "decode.h"
+#include "pixel_format.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -7,6 +9,54 @@
 #define CONTAINER_CAPACITY 65536U
 
 static int failures;
+
+static unsigned int heif_parse_count;
+static unsigned int preparation_count;
+static unsigned int sequence_parse_count;
+static unsigned int frame_parse_count;
+static unsigned int qmatrix_ledger_count;
+
+Av2hStatus test_heif_parse(Av2hSpan input, Av2hHeifImage *image, Av2hError *error) {
+    ++heif_parse_count;
+    return av2h_heif_parse(input, image, error);
+}
+
+Av2hStatus test_decode_prepare(const Av2hHeifImage *image, Av2hDecodePreparation *preparation,
+                                Av2hFrameSyntaxStorage *storage, Av2hTileGroup *group,
+                                Av2hDecodeSyntaxReferences *references, Av2hError *error) {
+    ++preparation_count;
+    return av2h_decode_prepare(image, preparation, storage, group, references, error);
+}
+
+Av2hStatus test_sequence_state_parse(Av2hSpan input, const Av2hObu *obu,
+                                      Av2hSequenceState *sequence, Av2hError *error) {
+    ++sequence_parse_count;
+    return av2h_sequence_state_parse(input, obu, sequence, error);
+}
+
+Av2hStatus test_frame_header_parse(Av2hSpan payload, const Av2hSequenceState *sequence,
+                                    Av2hFrameState *frame, Av2hFrameSyntaxStorage *storage,
+                                    Av2hFrameSyntaxReferences *references, Av2hError *error) {
+    ++frame_parse_count;
+    return av2h_frame_header_closed_key_parse(payload, sequence, frame, storage, references,
+                                              error);
+}
+
+Av2hStatus test_qmatrix_ledger_parse(Av2hSpan input, const Av2hObuLedger *ledger,
+                                      Av2hFrameState *frame,
+                                      Av2hQMatrixSyntaxReferences *references,
+                                      Av2hError *error) {
+    ++qmatrix_ledger_count;
+    return av2h_qmatrix_ledger_parse(input, ledger, frame, references, error);
+}
+
+static void reset_parse_counts(void) {
+    heif_parse_count = 0U;
+    preparation_count = 0U;
+    sequence_parse_count = 0U;
+    frame_parse_count = 0U;
+    qmatrix_ledger_count = 0U;
+}
 
 static const unsigned char tiny_obu[] = {
         0x01U, 0x08U, 0x0cU, 0x04U, 0x82U, 0x0aU, 0x33U, 0xffU, 0x1cU, 0x39U,
@@ -151,6 +201,112 @@ static size_t find_fourcc(const unsigned char *bytes,
     return SIZE_MAX;
 }
 
+static void check_parse_counts(void) {
+    CHECK(heif_parse_count == 1U);
+    CHECK(preparation_count == 1U);
+    CHECK(sequence_parse_count == 1U);
+    CHECK(frame_parse_count == 1U);
+    CHECK(qmatrix_ledger_count == 2U);
+}
+
+static void check_dialect_parse(Av2hSpan input) {
+    Av2hDialect dialect;
+    Av2hError error;
+    Av2hError seeded;
+    av2h_memory_fill(&error, 0xa5U, sizeof(error));
+    seeded = error;
+    reset_parse_counts();
+    CHECK(av2h_dialect_detect(input, &dialect, &error) == AV2H_OK);
+    CHECK(dialect == AV2H_DIALECT_CANONICAL_V0);
+    CHECK(heif_parse_count == 1U && preparation_count == 0U);
+    CHECK(av2h_memory_compare(&seeded, &error, sizeof(error)) == 0);
+}
+
+static void check_preparation_reuse(const Av2hHeifImage *image) {
+    Av2hDecodePreparation direct;
+    Av2hDecodePreparation deferred;
+    Av2hFrameSyntaxStorage direct_syntax;
+    Av2hFrameSyntaxStorage deferred_syntax;
+    Av2hTileGroup direct_group;
+    Av2hTileGroup deferred_group;
+    Av2hDecodeSyntaxReferences references;
+    Av2hError error;
+    Av2hHeifImage extended = *image;
+    size_t size = image->source.item_payload.size;
+    unsigned char *padded = malloc(size + 2U);
+    unsigned int variant;
+    size_t obu_count = 0U;
+    CHECK(padded != NULL);
+    av2h_memory_copy(padded, image->source.item_payload.data, size);
+    padded[size] = 1U;
+    padded[size + 1U] = (unsigned char)(AV2H_OBU_PADDING << 2U);
+    extended.source.item_payload = (Av2hSpan){padded, size + 2U};
+    for (variant = 0U; variant < 2U; ++variant) {
+        const Av2hHeifImage *active = variant == 0U ? image : &extended;
+        av2h_memory_fill(&direct, 0U, sizeof(direct));
+        av2h_memory_fill(&deferred, 0U, sizeof(deferred));
+        av2h_memory_fill(&direct_syntax, 0xa5U, sizeof(direct_syntax));
+        av2h_memory_fill(&deferred_syntax, 0x5aU, sizeof(deferred_syntax));
+        av2h_memory_fill(&references, 0xa5U, sizeof(references));
+        CHECK(av2h_decode_prepare(active, &direct, &direct_syntax, &direct_group, NULL, &error) ==
+              AV2H_OK);
+        CHECK(av2h_decode_prepare(active, &deferred, NULL, NULL, &references, &error) == AV2H_OK);
+        if (variant == 0U)
+            obu_count = references.payload_obu_count;
+        CHECK(references.payload_obu_count == obu_count + variant);
+        CHECK(av2h_decode_materialize(active, &deferred, &references, &deferred_syntax,
+                                      &deferred_group, &error) == AV2H_OK);
+        CHECK(av2h_memory_compare(&direct_syntax, &deferred_syntax, sizeof(direct_syntax)) == 0);
+        CHECK(av2h_memory_compare(&direct_group, &deferred_group, sizeof(direct_group)) == 0);
+        av2h_frame_syntax_storage_bind(&direct.frame, NULL);
+        av2h_frame_syntax_storage_bind(&deferred.frame, NULL);
+        direct.group = NULL;
+        deferred.group = NULL;
+        CHECK(av2h_memory_compare(&direct, &deferred, sizeof(direct)) == 0);
+    }
+    free(padded);
+}
+
+static void test_multigroup_preparation(void) {
+    const PublicFixture fixture = {.path = "tests/fixtures/spatial-tile-filtered-nonuniform.obu"};
+    unsigned char stream[STREAM_CAPACITY];
+    Av2hObu entries[16];
+    Av2hObuLedger ledger = {entries, 16U, 0U};
+    Av2hHeifImage image = {0};
+    Av2hError error = {0};
+    size_t size = load_fixture(&fixture, stream, sizeof(stream));
+    size_t index;
+    unsigned int groups = 0U;
+    CHECK(size != 0U);
+    CHECK(av2h_obu_parse((Av2hSpan){stream, size}, &ledger, &error) == AV2H_OK);
+    for (index = 0U; index < ledger.count; ++index) {
+        const Av2hObu *obu = &entries[index];
+        if (obu->type == AV2H_OBU_SEQUENCE_HEADER) {
+            image.source.config_obus =
+                (Av2hSpan){stream + obu->offset, obu->length_field_size + obu->obu_size};
+            CHECK(av2h_sequence_header_parse((Av2hSpan){stream, size}, obu, &image.sequence,
+                                              &error) == AV2H_OK);
+        } else if (obu->type == AV2H_OBU_CLOSED_LOOP_KEY) {
+            if (image.source.item_payload.data == NULL) {
+                image.source.item_payload = (Av2hSpan){stream + obu->offset, size - obu->offset};
+            } else {
+                /* This fixture labels later tile groups as key OBUs; keep their payloads. */
+                size_t header = obu->offset + obu->length_field_size;
+                stream[header] = (unsigned char)((stream[header] & 0x83U) |
+                                                 (AV2H_OBU_REGULAR_TILE_GROUP << 2U));
+                ++groups;
+            }
+        } else if (obu->type == AV2H_OBU_REGULAR_TILE_GROUP) {
+            ++groups;
+        }
+    }
+    CHECK(groups != 0U && image.sequence.bit_depth_idc == 1U);
+    image.width = (uint32_t)image.sequence.max_frame_width_minus_1 + 1U;
+    image.height = (uint32_t)image.sequence.max_frame_height_minus_1 + 1U;
+    CHECK(av2h_pixel_format_init_8bit(image.sequence.chroma_format_idc, &image.pixel_format));
+    check_preparation_reuse(&image);
+}
+
 static void test_public_decode(const PublicFixture *fixture) {
     unsigned char stream[STREAM_CAPACITY];
     unsigned char container[CONTAINER_CAPACITY];
@@ -196,8 +352,12 @@ static void test_public_decode(const PublicFixture *fixture) {
     av2h_color_info_default(&source.color);
     CHECK(av2h_heif_write(&source, container, sizeof(container),
                            &container_size, &error) == AV2H_OK);
+    check_dialect_parse((Av2hSpan){container, container_size});
+    reset_parse_counts();
     CHECK(av2h_query((Av2hSpan){ container, container_size }, 0,
                      &info, &error) == AV2H_OK);
+    check_parse_counts();
+    check_preparation_reuse(&info.image);
     CHECK(info.image.width == fixture->width &&
           info.image.height == fixture->height);
     CHECK(info.image.channel_count == fixture->channel_count);
@@ -264,9 +424,11 @@ static void test_public_decode(const PublicFixture *fixture) {
         info.workspace_alignment - 1U) & ~(info.workspace_alignment - 1U));
     output = workspace + info.workspace_size;
     av2h_memory_fill(output, 0xa5U, info.output_size);
+    reset_parse_counts();
     decode_status = av2h_decode(
         (Av2hSpan){ container, container_size }, &info,
         workspace, info.workspace_size, output, info.output_size, &error);
+    check_parse_counts();
     if (decode_status != AV2H_OK) {
         fprintf(stderr, "%s: decode status=%d context=%u offset=%zu\n",
                 fixture->path != 0 ? fixture->path : "embedded",
@@ -437,8 +599,12 @@ static void test_10bit_public_decode(const TenBitPublicFixture *fixture) {
         CHECK(error.context == AV2H_CONTEXT_HEIF);
         container[pixi_type + 9U] = depth;
     }
+    check_dialect_parse((Av2hSpan){container, container_size});
+    reset_parse_counts();
     CHECK(av2h_query((Av2hSpan){ container, container_size }, 0,
                      &info, &error) == AV2H_OK);
+    check_parse_counts();
+    check_preparation_reuse(&info.image);
         CHECK(info.image.width == fixture->width &&
             info.image.height == fixture->height);
     CHECK(info.image.channel_count == 3U);
@@ -494,9 +660,11 @@ static void test_10bit_public_decode(const TenBitPublicFixture *fixture) {
     output = (unsigned char *)(((uintptr_t)(workspace + info.workspace_size) +
         _Alignof(uint16_t) - 1U) & ~(_Alignof(uint16_t) - 1U));
     av2h_memory_fill(output, 0xa5U, info.output_size);
+    reset_parse_counts();
     decode_status = av2h_decode(
         (Av2hSpan){ container, container_size }, &info,
         workspace, info.workspace_size, output, info.output_size, &error);
+    check_parse_counts();
     if (decode_status != AV2H_OK) {
         fprintf(stderr, "%s: decode status=%d context=%u offset=%zu\n",
                 fixture->name, (int)decode_status, error.context, error.offset);
@@ -609,6 +777,7 @@ int main(void) {
         }
     };
     size_t index;
+    test_multigroup_preparation();
     for (index = 0U; index < sizeof(fixtures) / sizeof(fixtures[0]); ++index) {
         test_public_decode(&fixtures[index]);
     }

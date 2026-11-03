@@ -1315,7 +1315,7 @@ static void test_schwaebisch_q208_64x16_reconstruction(void) {
     CHECK(av2h_frame_header_closed_key_parse(
         (Av2hSpan){ stream + frame_obu->payload_offset,
                            frame_obu->payload_size },
-        &sequence, &frame, &(Av2hFrameSyntaxStorage){0},  NULL) == AV2H_OK);
+        &sequence, &frame, &(Av2hFrameSyntaxStorage){0},  NULL, NULL) == AV2H_OK);
     CHECK(frame.width == 417U);
     CHECK(frame.height == 277U);
     CHECK(frame.base_q_index == 208U);
@@ -6630,7 +6630,7 @@ static void test_frame_unsupported_status(void) {
     status = av2h_frame_header_closed_key_parse(
         (Av2hSpan){ input + frame_obu->payload_offset,
                      frame_obu->payload_size },
-        &sequence, &frame, &(Av2hFrameSyntaxStorage){0},  NULL);
+        &sequence, &frame, &(Av2hFrameSyntaxStorage){0},  NULL, NULL);
     CHECK(status == AV2H_OK);
     if (status != AV2H_OK) return;
     status = av2h_tile_group_single_parse(
@@ -6761,7 +6761,7 @@ static void test_10bit_wp5_frame_fixture(void) {
     CHECK(av2h_frame_header_closed_key_parse(
         (Av2hSpan){ input + frame_obu->payload_offset,
                            frame_obu->payload_size },
-        &sequence, &frame, &(Av2hFrameSyntaxStorage){0},  NULL) == AV2H_OK);
+        &sequence, &frame, &(Av2hFrameSyntaxStorage){0},  NULL, NULL) == AV2H_OK);
     CHECK(av2h_tile_group_single_parse(
               (Av2hSpan){ input + frame_obu->payload_offset,
                            frame_obu->payload_size },
@@ -7073,7 +7073,7 @@ static void test_10bit_wp9_gdf_stage(void) {
     CHECK(av2h_frame_header_closed_key_parse(
         (Av2hSpan){ input + frame_obu->payload_offset,
                            frame_obu->payload_size },
-        &sequence, &frame, &(Av2hFrameSyntaxStorage){0},  NULL) == AV2H_OK);
+        &sequence, &frame, &(Av2hFrameSyntaxStorage){0},  NULL, NULL) == AV2H_OK);
     CHECK(frame.width == 65U && frame.height == 63U);
     CHECK(frame.gdf_mode == 1U);
     {
@@ -7202,7 +7202,7 @@ static void test_10bit_wp6_tiny_matrix(void) {
         status = av2h_frame_header_closed_key_parse(
             (Av2hSpan){ input + frame_obu->payload_offset,
                          frame_obu->payload_size },
-            &sequence, &frame, &(Av2hFrameSyntaxStorage){0},  NULL);
+            &sequence, &frame, &(Av2hFrameSyntaxStorage){0},  NULL, NULL);
         CHECK(status == AV2H_OK);
         if (status != AV2H_OK) continue;
         status = av2h_tile_group_single_parse(

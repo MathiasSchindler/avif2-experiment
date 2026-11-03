@@ -60,8 +60,8 @@ static Av2hStatus qmatrix_read_fundamental(Av2hBitReader *reader, uint8_t *matri
     return AV2H_OK;
 }
 
-static Av2hStatus qmatrix_read_definition(Av2hBitReader *reader, Av2hFrameState *frame, uint8_t id,
-                                          uint8_t plane_count) {
+static Av2hStatus qmatrix_read_custom_definition(Av2hBitReader *reader, Av2hFrameState *frame,
+                                                 uint8_t id, uint8_t plane_count) {
     static const uint16_t widths[3] = {8U, 8U, 4U};
     static const uint16_t heights[3] = {8U, 4U, 8U};
     static const uint16_t offsets[3] = {0U, 64U, 96U};
@@ -72,10 +72,6 @@ static Av2hStatus qmatrix_read_definition(Av2hBitReader *reader, Av2hFrameState 
     unsigned int plane;
     if (frame->custom_qm == NULL)
         av2h_memory_fill(validation_definition, 0U, sizeof(validation_definition));
-    if (av2h_bit_reader_read(reader, 1U) != 0U)
-        return reader->status;
-    frame->custom_qm_bitmap |= (uint16_t)(1U << id);
-    frame->custom_qm_plane_count[id] = plane_count;
     for (shape = 0U; shape < 3U; ++shape) {
         for (plane = 0U; plane < plane_count; ++plane) {
             uint8_t *matrix = &definition[plane][offsets[shape]];
@@ -107,6 +103,22 @@ static Av2hStatus qmatrix_read_definition(Av2hBitReader *reader, Av2hFrameState 
     return reader->status;
 }
 
+static Av2hStatus qmatrix_read_definition(Av2hBitReader *reader, Av2hFrameState *frame, uint8_t id,
+                                          uint8_t plane_count,
+                                          Av2hQMatrixSyntaxReferences *references) {
+    if (av2h_bit_reader_read(reader, 1U) != 0U)
+        return reader->status;
+    frame->custom_qm_bitmap |= (uint16_t)(1U << id);
+    frame->custom_qm_plane_count[id] = plane_count;
+    if (references != NULL) {
+        Av2hQMatrixSyntaxReference *reference = &references->definition[id];
+        reference->payload = (Av2hSpan){reader->data, reader->size};
+        reference->bit_position = reader->bit_position;
+        reference->byte_offset = reader->base_offset;
+    }
+    return qmatrix_read_custom_definition(reader, frame, id, plane_count);
+}
+
 void av2h_qmatrix_state_reset(Av2hFrameState *frame) {
     if (frame == NULL)
         return;
@@ -118,7 +130,7 @@ void av2h_qmatrix_state_reset(Av2hFrameState *frame) {
 }
 
 Av2hStatus av2h_qmatrix_obu_parse(Av2hSpan input, const Av2hObu *obu, Av2hFrameState *frame,
-                                  Av2hError *error) {
+                                  Av2hQMatrixSyntaxReferences *references, Av2hError *error) {
     Av2hBitReader reader;
     uint16_t bitmap;
     uint8_t plane_count;
@@ -148,7 +160,7 @@ Av2hStatus av2h_qmatrix_obu_parse(Av2hSpan input, const Av2hObu *obu, Av2hFrameS
             Av2hStatus status;
             if ((bitmap & (uint16_t)(1U << id)) == 0U)
                 continue;
-            status = qmatrix_read_definition(&reader, frame, id, plane_count);
+            status = qmatrix_read_definition(&reader, frame, id, plane_count, references);
             if (status != AV2H_OK) {
                 return qmatrix_fail(error, status, obu, &reader, id);
             }
@@ -162,7 +174,8 @@ Av2hStatus av2h_qmatrix_obu_parse(Av2hSpan input, const Av2hObu *obu, Av2hFrameS
 }
 
 Av2hStatus av2h_qmatrix_ledger_parse(Av2hSpan input, const Av2hObuLedger *ledger,
-                                     Av2hFrameState *frame, Av2hError *error) {
+                                     Av2hFrameState *frame, Av2hQMatrixSyntaxReferences *references,
+                                     Av2hError *error) {
     size_t index;
     if (ledger == NULL || frame == NULL)
         return AV2H_INVALID_ARGUMENT;
@@ -170,9 +183,36 @@ Av2hStatus av2h_qmatrix_ledger_parse(Av2hSpan input, const Av2hObuLedger *ledger
         Av2hStatus status;
         if (ledger->entries[index].type != AV2H_OBU_QUANTIZATION_MATRIX)
             continue;
-        status = av2h_qmatrix_obu_parse(input, &ledger->entries[index], frame, error);
+        status = av2h_qmatrix_obu_parse(input, &ledger->entries[index], frame, references, error);
         if (status != AV2H_OK)
             return status;
+    }
+    return AV2H_OK;
+}
+
+Av2hStatus av2h_qmatrix_materialize(Av2hFrameState *frame,
+                                    const Av2hQMatrixSyntaxReferences *references,
+                                    Av2hError *error) {
+    unsigned int id;
+    if (frame == NULL || references == NULL || frame->custom_qm == NULL)
+        return qmatrix_fail(error, AV2H_INVALID_ARGUMENT, NULL, NULL, 0U);
+    av2h_memory_fill(frame->custom_qm, 0U, sizeof(((Av2hFrameSyntaxStorage *)0)->custom_qm));
+    for (id = 0U; id < AV2H_CUSTOM_QM_COUNT; ++id) {
+        const Av2hQMatrixSyntaxReference *reference = &references->definition[id];
+        Av2hBitReader reader;
+        Av2hStatus status;
+        if ((frame->custom_qm_bitmap & (uint16_t)(1U << id)) == 0U)
+            continue;
+        if (reference->payload.data == NULL ||
+            (frame->custom_qm_plane_count[id] != 1U && frame->custom_qm_plane_count[id] != 3U))
+            return qmatrix_fail(error, AV2H_INVALID_ARGUMENT, NULL, NULL, id);
+        av2h_bit_reader_init(&reader, reference->payload.data, reference->payload.size,
+                             reference->byte_offset);
+        (void)av2h_bit_reader_skip(&reader, reference->bit_position);
+        status = qmatrix_read_custom_definition(&reader, frame, (uint8_t)id,
+                                                frame->custom_qm_plane_count[id]);
+        if (status != AV2H_OK)
+            return qmatrix_fail(error, status, NULL, &reader, id);
     }
     return AV2H_OK;
 }

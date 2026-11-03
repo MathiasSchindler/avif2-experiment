@@ -224,15 +224,24 @@ static void check_validation_parity(Av2hSpan payload, const Av2hSequenceState *s
     Av2hFrameState materialized;
     Av2hFrameState metadata;
     Av2hFrameSyntaxStorage syntax;
+    Av2hFrameSyntaxStorage deferred_syntax;
+    Av2hFrameSyntaxReferences references;
     Av2hError materialized_error = {0};
     Av2hError metadata_error = {0};
     Av2hStatus status = av2h_frame_header_closed_key_parse(
-        payload, sequence, &materialized, &syntax, &materialized_error);
+        payload, sequence, &materialized, &syntax, NULL, &materialized_error);
     CHECK(av2h_frame_header_closed_key_parse(
-        payload, sequence, &metadata, NULL, &metadata_error) == status);
+        payload, sequence, &metadata, NULL, &references, &metadata_error) == status);
+    CHECK(memcmp(&materialized_error, &metadata_error, sizeof(metadata_error)) == 0);
+    if (status == AV2H_OK) {
+        av2h_memory_fill(&deferred_syntax, 0xa5U, sizeof(deferred_syntax));
+        CHECK(av2h_frame_syntax_materialize(payload, sequence, &metadata, &references,
+                                             &deferred_syntax, &metadata_error) == AV2H_OK);
+        CHECK(memcmp(&syntax, &deferred_syntax, sizeof(syntax)) == 0);
+        av2h_frame_syntax_storage_bind(&metadata, NULL);
+    }
     av2h_frame_syntax_storage_bind(&materialized, NULL);
     CHECK(memcmp(&materialized, &metadata, sizeof(metadata)) == 0);
-    CHECK(memcmp(&materialized_error, &metadata_error, sizeof(metadata_error)) == 0);
 }
 
 static void check_fixture(const unsigned char *sequence_bytes,
@@ -255,7 +264,7 @@ static void check_fixture(const unsigned char *sequence_bytes,
               (Av2hSpan){ sequence_bytes, sequence_size }, &obu,
               &sequence, &error) == AV2H_OK);
     CHECK(av2h_frame_header_closed_key_parse(
-        (Av2hSpan){ payload, payload_size }, &sequence, &frame, &(Av2hFrameSyntaxStorage){0},  NULL) == AV2H_OK);
+        (Av2hSpan){ payload, payload_size }, &sequence, &frame, &(Av2hFrameSyntaxStorage){0},  NULL, NULL) == AV2H_OK);
     CHECK(frame.uncompressed_header_bits == expected_header_bits);
     CHECK(frame.width == sequence.info.max_frame_width_minus_1 + 1U);
     CHECK(frame.height == sequence.info.max_frame_height_minus_1 + 1U);
@@ -273,7 +282,7 @@ static void check_fixture(const unsigned char *sequence_bytes,
     sequence.seq_seg_info_present_flag = 1U;
     sequence.seg_allow_info_change = 0U;
     CHECK(av2h_frame_header_closed_key_parse(
-        (Av2hSpan){ payload, payload_size }, &sequence, &frame, &(Av2hFrameSyntaxStorage){0},  NULL) == AV2H_OK);
+        (Av2hSpan){ payload, payload_size }, &sequence, &frame, &(Av2hFrameSyntaxStorage){0},  NULL, NULL) == AV2H_OK);
     CHECK(frame.segmentation_enabled == 0U);
     sequence.seq_seg_info_present_flag = 0U;
     CHECK(av2h_tile_group_single_parse(
@@ -283,7 +292,7 @@ static void check_fixture(const unsigned char *sequence_bytes,
     for (prefix_size = 0U; prefix_size < group.header_size; ++prefix_size) {
         check_validation_parity((Av2hSpan){payload, prefix_size}, &sequence);
         CHECK(av2h_frame_header_closed_key_parse(
-            (Av2hSpan){ payload, prefix_size }, &sequence, &frame, &(Av2hFrameSyntaxStorage){0},  NULL) != AV2H_OK);
+            (Av2hSpan){ payload, prefix_size }, &sequence, &frame, &(Av2hFrameSyntaxStorage){0},  NULL, NULL) != AV2H_OK);
     }
 }
 
@@ -338,9 +347,9 @@ static void test_failures(void) {
     sequence.info.still_picture = 1U;
     sequence.info.bit_depth_idc = 1U;
     CHECK(av2h_frame_header_closed_key_parse(
-        (Av2hSpan){ payload, sizeof(payload) }, &sequence, &frame, &(Av2hFrameSyntaxStorage){0},  NULL) == AV2H_UNSUPPORTED);
+        (Av2hSpan){ payload, sizeof(payload) }, &sequence, &frame, &(Av2hFrameSyntaxStorage){0},  NULL, NULL) == AV2H_UNSUPPORTED);
     CHECK(av2h_frame_header_closed_key_parse(
-        (Av2hSpan){ payload, sizeof(payload) }, 0, &frame, &(Av2hFrameSyntaxStorage){0},  NULL) == AV2H_INVALID_ARGUMENT);
+        (Av2hSpan){ payload, sizeof(payload) }, 0, &frame, &(Av2hFrameSyntaxStorage){0},  NULL, NULL) == AV2H_INVALID_ARGUMENT);
 }
 
 static void test_10bit_wp0_header(void) {
@@ -405,7 +414,7 @@ static void test_10bit_wp0_header(void) {
     CHECK(av2h_frame_header_closed_key_parse(
         (Av2hSpan){ input + frame_obu->payload_offset,
                            frame_obu->payload_size },
-        &sequence, &frame, &(Av2hFrameSyntaxStorage){0},  NULL) == AV2H_OK);
+        &sequence, &frame, &(Av2hFrameSyntaxStorage){0},  NULL, NULL) == AV2H_OK);
     CHECK(frame.width == 16U);
     CHECK(frame.height == 16U);
     CHECK(frame.base_q_index == 256U);
@@ -429,7 +438,7 @@ static void test_10bit_wp0_header(void) {
     for (index = 0U; index < group.header_size; ++index) {
         CHECK(av2h_frame_header_closed_key_parse(
             (Av2hSpan){ input + frame_obu->payload_offset, index }, &sequence,
-            &frame, &(Av2hFrameSyntaxStorage){0},  NULL) != AV2H_OK);
+            &frame, &(Av2hFrameSyntaxStorage){0},  NULL, NULL) != AV2H_OK);
     }
 
     changed_sequence = sequence;
@@ -437,7 +446,7 @@ static void test_10bit_wp0_header(void) {
     CHECK(av2h_frame_header_closed_key_parse(
               (Av2hSpan){ input + frame_obu->payload_offset,
                            frame_obu->payload_size },
-              &changed_sequence, &frame, &(Av2hFrameSyntaxStorage){0},  &error) == AV2H_UNSUPPORTED);
+              &changed_sequence, &frame, &(Av2hFrameSyntaxStorage){0},  NULL, &error) == AV2H_UNSUPPORTED);
     CHECK(error.context == AV2H_CONTEXT_FRAME);
     CHECK(error.diagnostic_stage == AV2H_DIAGNOSTIC_STAGE_FRAME_HEADER);
     CHECK(error.diagnostic_reason ==
@@ -449,7 +458,7 @@ static void test_10bit_wp0_header(void) {
     CHECK(av2h_frame_header_closed_key_parse(
               (Av2hSpan){ input + frame_obu->payload_offset,
                            frame_obu->payload_size },
-              &changed_sequence, &frame, &(Av2hFrameSyntaxStorage){0},  &error) == AV2H_UNSUPPORTED);
+              &changed_sequence, &frame, &(Av2hFrameSyntaxStorage){0},  NULL, &error) == AV2H_UNSUPPORTED);
     CHECK(error.syntax_stage == AV2H_DIAGNOSTIC_SYNTAX_FRAME_PROFILE);
     CHECK(error.parsed_value == 0x003U);
     changed_sequence = sequence;
@@ -457,45 +466,45 @@ static void test_10bit_wp0_header(void) {
     CHECK(av2h_frame_header_closed_key_parse(
               (Av2hSpan){ input + frame_obu->payload_offset,
                            frame_obu->payload_size },
-              &changed_sequence, &frame, &(Av2hFrameSyntaxStorage){0},  &error) == AV2H_UNSUPPORTED);
+              &changed_sequence, &frame, &(Av2hFrameSyntaxStorage){0},  NULL, &error) == AV2H_UNSUPPORTED);
     CHECK(error.syntax_stage == AV2H_DIAGNOSTIC_SYNTAX_FRAME_PROFILE);
     changed_sequence = sequence;
     changed_sequence.info.chroma_format_idc = 1U;
     CHECK(av2h_frame_header_closed_key_parse(
         (Av2hSpan){ input + frame_obu->payload_offset,
                            frame_obu->payload_size },
-        &changed_sequence, &frame, &(Av2hFrameSyntaxStorage){0},  NULL) == AV2H_UNSUPPORTED);
+        &changed_sequence, &frame, &(Av2hFrameSyntaxStorage){0},  NULL, NULL) == AV2H_UNSUPPORTED);
     changed_sequence = sequence;
     changed_sequence.info.seq_profile_idc = 4U;
     changed_sequence.info.chroma_format_idc = 2U;
     CHECK(av2h_frame_header_closed_key_parse(
         (Av2hSpan){ input + frame_obu->payload_offset,
                            frame_obu->payload_size },
-        &changed_sequence, &frame, &(Av2hFrameSyntaxStorage){0},  NULL) == AV2H_OK);
+        &changed_sequence, &frame, &(Av2hFrameSyntaxStorage){0},  NULL, NULL) == AV2H_OK);
     changed_sequence.info.seq_profile_idc = 0U;
     CHECK(av2h_frame_header_closed_key_parse(
         (Av2hSpan){ input + frame_obu->payload_offset,
                            frame_obu->payload_size },
-        &changed_sequence, &frame, &(Av2hFrameSyntaxStorage){0},  NULL) == AV2H_UNSUPPORTED);
+        &changed_sequence, &frame, &(Av2hFrameSyntaxStorage){0},  NULL, NULL) == AV2H_UNSUPPORTED);
     changed_sequence.info.seq_profile_idc = 4U;
     changed_sequence.info.chroma_format_idc = 0U;
     CHECK(av2h_frame_header_closed_key_parse(
         (Av2hSpan){ input + frame_obu->payload_offset,
                            frame_obu->payload_size },
-        &changed_sequence, &frame, &(Av2hFrameSyntaxStorage){0},  NULL) == AV2H_UNSUPPORTED);
+        &changed_sequence, &frame, &(Av2hFrameSyntaxStorage){0},  NULL, NULL) == AV2H_UNSUPPORTED);
 
     av2h_memory_copy(
         mutated, input + frame_obu->payload_offset, frame_obu->payload_size);
     mutated[2] |= 0x40U;
     CHECK(av2h_frame_header_closed_key_parse(
-        (Av2hSpan){ mutated, frame_obu->payload_size }, &sequence, &frame, &(Av2hFrameSyntaxStorage){0},  NULL) == AV2H_OK);
+        (Av2hSpan){ mutated, frame_obu->payload_size }, &sequence, &frame, &(Av2hFrameSyntaxStorage){0},  NULL, NULL) == AV2H_OK);
     CHECK(frame.using_qmatrix == 1U);
     CHECK(frame.qm_u[0] == frame.qm_v[0]);
     av2h_memory_copy(
         mutated, input + frame_obu->payload_offset, frame_obu->payload_size);
     mutated[0] &= 0xfeU;
     CHECK(av2h_frame_header_closed_key_parse(
-        (Av2hSpan){ mutated, frame_obu->payload_size }, &sequence, &frame, &(Av2hFrameSyntaxStorage){0},  NULL) == AV2H_OK);
+        (Av2hSpan){ mutated, frame_obu->payload_size }, &sequence, &frame, &(Av2hFrameSyntaxStorage){0},  NULL, NULL) == AV2H_OK);
 }
 
 static void test_emerald_q208_deblock_header(void) {
@@ -536,7 +545,7 @@ static void test_emerald_q208_deblock_header(void) {
     CHECK(av2h_frame_header_closed_key_parse(
         (Av2hSpan){ input + frame_obu->payload_offset,
                            frame_obu->payload_size },
-        &sequence, &frame, &(Av2hFrameSyntaxStorage){0},  NULL) == AV2H_OK);
+        &sequence, &frame, &(Av2hFrameSyntaxStorage){0},  NULL, NULL) == AV2H_OK);
     CHECK(frame.width == 192U);
     CHECK(frame.height == 96U);
     CHECK(frame.base_q_index == 208U);

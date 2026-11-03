@@ -153,7 +153,7 @@ static uint32_t decode_result_context(const Av2hFrameDecodeResult *result) {
 
 Av2hStatus av2h_decode_prepare(const Av2hHeifImage *image, Av2hDecodePreparation *preparation,
                                Av2hFrameSyntaxStorage *storage, Av2hTileGroup *group,
-                               Av2hError *error) {
+                               Av2hDecodeSyntaxReferences *references, Av2hError *error) {
     Av2hObu config_entries[16U];
     Av2hObu payload_entries[16U];
     Av2hObuLedger config = {config_entries, 16U, 0U};
@@ -164,6 +164,8 @@ Av2hStatus av2h_decode_prepare(const Av2hHeifImage *image, Av2hDecodePreparation
     if (image == NULL || preparation == NULL) {
         return decode_fail(error, AV2H_INVALID_ARGUMENT, AV2H_CONTEXT_DECODE);
     }
+    if (references != NULL)
+        av2h_memory_fill(references, 0U, sizeof(*references));
     preparation->group = group;
     status = av2h_obu_parse(image->source.config_obus, &config, error);
     if (status != AV2H_OK)
@@ -176,6 +178,10 @@ Av2hStatus av2h_decode_prepare(const Av2hHeifImage *image, Av2hDecodePreparation
     if (sequence_obu == NULL || frame_obu == NULL) {
         return decode_fail(error, AV2H_INVALID_DATA, AV2H_CONTEXT_DECODE);
     }
+    if (references != NULL) {
+        references->frame_obu = *frame_obu;
+        references->payload_obu_count = payload.count;
+    }
     status = av2h_sequence_state_parse(image->source.config_obus, sequence_obu,
                                        &preparation->sequence, error);
     if (status != AV2H_OK)
@@ -183,18 +189,20 @@ Av2hStatus av2h_decode_prepare(const Av2hHeifImage *image, Av2hDecodePreparation
     status = av2h_frame_header_closed_key_parse(
         (Av2hSpan){image->source.item_payload.data + frame_obu->payload_offset,
                    frame_obu->payload_size},
-        &preparation->sequence, &preparation->frame, storage, error);
+        &preparation->sequence, &preparation->frame, storage,
+        references != NULL ? &references->frame : NULL, error);
     if (status != AV2H_OK) {
         if (error != NULL)
             error->offset += frame_obu->payload_offset;
         return status;
     }
     av2h_qmatrix_state_reset(&preparation->frame);
-    status =
-        av2h_qmatrix_ledger_parse(image->source.config_obus, &config, &preparation->frame, error);
+    status = av2h_qmatrix_ledger_parse(image->source.config_obus, &config, &preparation->frame,
+                                       references != NULL ? &references->qmatrix : NULL, error);
     if (status == AV2H_OK) {
-        status = av2h_qmatrix_ledger_parse(image->source.item_payload, &payload,
-                                           &preparation->frame, error);
+        status =
+            av2h_qmatrix_ledger_parse(image->source.item_payload, &payload, &preparation->frame,
+                                      references != NULL ? &references->qmatrix : NULL, error);
     }
     if (status == AV2H_OK) {
         status = av2h_qmatrix_references_validate(&preparation->frame);
@@ -225,10 +233,58 @@ Av2hStatus av2h_decode_prepare(const Av2hHeifImage *image, Av2hDecodePreparation
     return AV2H_OK;
 }
 
+Av2hStatus av2h_decode_materialize(const Av2hHeifImage *image, Av2hDecodePreparation *preparation,
+                                   const Av2hDecodeSyntaxReferences *references,
+                                   Av2hFrameSyntaxStorage *storage, Av2hTileGroup *group,
+                                   Av2hError *error) {
+    Av2hObu entries[16U];
+    Av2hObuLedger payload = {entries, 16U, 0U};
+    const Av2hObu *frame_obu;
+    Av2hStatus status;
+    if (image == NULL || preparation == NULL || references == NULL || storage == NULL ||
+        group == NULL || image->source.item_payload.data == NULL ||
+        references->frame_obu.type != AV2H_OBU_CLOSED_LOOP_KEY ||
+        references->payload_obu_count == 0U || references->payload_obu_count > 16U) {
+        return decode_fail(error, AV2H_INVALID_ARGUMENT, AV2H_CONTEXT_DECODE);
+    }
+    frame_obu = &references->frame_obu;
+    if (frame_obu->payload_offset > image->source.item_payload.size ||
+        frame_obu->payload_size > image->source.item_payload.size - frame_obu->payload_offset) {
+        return decode_fail(error, AV2H_TRUNCATED, AV2H_CONTEXT_FRAME);
+    }
+    status = av2h_frame_syntax_materialize(
+        (Av2hSpan){image->source.item_payload.data + frame_obu->payload_offset,
+                   frame_obu->payload_size},
+        &preparation->sequence, &preparation->frame, &references->frame, storage, error);
+    if (status != AV2H_OK) {
+        if (error != NULL)
+            error->offset += frame_obu->payload_offset;
+        return status;
+    }
+    status = av2h_qmatrix_materialize(&preparation->frame, &references->qmatrix, error);
+    if (status != AV2H_OK)
+        return status;
+    if (references->payload_obu_count == 1U) {
+        entries[0] = *frame_obu;
+        payload.count = 1U;
+    } else {
+        /* Private callers can carry additional regular tile-group OBUs. */
+        status = av2h_obu_parse(image->source.item_payload, &payload, error);
+        if (status != AV2H_OK)
+            return status;
+    }
+    preparation->group = group;
+    status = av2h_tile_groups_ledger_parse(image->source.item_payload, &payload,
+                                           &preparation->frame, group);
+    return status == AV2H_OK ? AV2H_OK : decode_fail(error, status, AV2H_CONTEXT_FRAME);
+}
+
 Av2hStatus av2h_decode(Av2hSpan input, const Av2hInfo *info, void *workspace_memory,
                        size_t workspace_size, void *output_memory, size_t output_size,
                        Av2hError *error) {
     Av2hInfo fresh;
+    Av2hDecodePreparation validated;
+    Av2hDecodeSyntaxReferences references;
     Av2hDecodePreparation *preparation;
     Av2hFrameDecodeScratch *scratch;
     Av2hFrameDecodeWorkspace workspace;
@@ -244,7 +300,7 @@ Av2hStatus av2h_decode(Av2hSpan input, const Av2hInfo *info, void *workspace_mem
         return AV2H_INVALID_ARGUMENT;
     }
     av2h_error_reset_diagnostics(error, AV2H_DIAGNOSTIC_STAGE_NONE, AV2H_DIAGNOSTIC_REASON_NONE);
-    status = av2h_query(input, NULL, &fresh, error);
+    status = av2h_query_with_preparation(input, NULL, &fresh, &validated, &references, error);
     if (status != AV2H_OK)
         return status;
     if (!info_matches(info, &fresh)) {
@@ -268,8 +324,10 @@ Av2hStatus av2h_decode(Av2hSpan input, const Av2hInfo *info, void *workspace_mem
     }
     scratch = workspace_memory;
     preparation = &scratch->preparation;
-    status =
-        av2h_decode_prepare(&fresh.image, preparation, &scratch->syntax, &scratch->group, error);
+    /* No arena writes are allowed until fresh binding and buffer checks succeed. */
+    av2h_memory_copy(preparation, &validated, sizeof(*preparation));
+    status = av2h_decode_materialize(&fresh.image, preparation, &references, &scratch->syntax,
+                                     &scratch->group, error);
     if (status != AV2H_OK)
         return status;
     status = av2h_frame_decode_workspace_init(

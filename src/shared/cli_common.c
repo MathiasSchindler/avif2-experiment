@@ -104,7 +104,7 @@ static Av2hStatus decode_image(Av2hSpan input, const Av2hCliAllocator *allocator
     }
     status = av2h_frame_header_closed_key_parse(
         (Av2hSpan){input.data + frame_obu->payload_offset, frame_obu->payload_size}, &sequence,
-        &frame, NULL, options->validate_format_first ? NULL : &image->error);
+        &frame, NULL, NULL, options->validate_format_first ? NULL : &image->error);
     if (status != AV2H_OK) {
         if (!options->validate_format_first) {
             image->error.offset += frame_obu->payload_offset;
@@ -112,7 +112,7 @@ static Av2hStatus decode_image(Av2hSpan input, const Av2hCliAllocator *allocator
         return status;
     }
     av2h_qmatrix_state_reset(&frame);
-    status = av2h_qmatrix_ledger_parse(input, &ledger, &frame, &image->error);
+    status = av2h_qmatrix_ledger_parse(input, &ledger, &frame, NULL, &image->error);
     if (status == AV2H_OK)
         status = av2h_qmatrix_references_validate(&frame);
     if (status != AV2H_OK)
@@ -157,13 +157,14 @@ static Av2hStatus decode_image(Av2hSpan input, const Av2hCliAllocator *allocator
         preparation->group = &workspace.decode_scratch->group;
         status = av2h_frame_header_closed_key_parse(
             (Av2hSpan){input.data + frame_obu->payload_offset, frame_obu->payload_size},
-            &preparation->sequence, &preparation->frame, &workspace.decode_scratch->syntax,
+            &preparation->sequence, &preparation->frame, &workspace.decode_scratch->syntax, NULL,
             options->validate_format_first ? NULL : &image->error);
         if (status != AV2H_OK && !options->validate_format_first)
             image->error.offset += frame_obu->payload_offset;
         if (status == AV2H_OK) {
             av2h_qmatrix_state_reset(&preparation->frame);
-            status = av2h_qmatrix_ledger_parse(input, &ledger, &preparation->frame, &image->error);
+            status =
+                av2h_qmatrix_ledger_parse(input, &ledger, &preparation->frame, NULL, &image->error);
         }
         if (status == AV2H_OK)
             status = av2h_qmatrix_references_validate(&preparation->frame);

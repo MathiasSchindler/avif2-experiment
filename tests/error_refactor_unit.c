@@ -192,7 +192,7 @@ static void prepare_fixture(void) {
     CHECK(av2h_query((Av2hSpan){ container, container_size },
                      0, &info, &error) == AV2H_OK);
     CHECK(av2h_decode_prepare(&info.image, &preparation, &preparation_syntax,
-                              &preparation_group, &error) == AV2H_OK);
+                              &preparation_group, NULL, &error) == AV2H_OK);
     CHECK(info.workspace_size < sizeof(workspace));
     CHECK(info.output_size <= sizeof(output));
     CHECK(preparation.group->entropy.size >= 8U);
@@ -315,7 +315,7 @@ static void test_syntax_errors(void) {
             seed_error(&error, seed * 165U);
             status = av2h_frame_header_closed_key_parse(
                 (Av2hSpan){ raw + frame_obu.payload_offset, index },
-                &preparation.sequence, &frame, &(Av2hFrameSyntaxStorage){0},  &error);
+                &preparation.sequence, &frame, &(Av2hFrameSyntaxStorage){0},  NULL, &error);
             record_error(&record, status, &error);
         }
         for (index = 0U; index < 8U; ++index) {
@@ -324,7 +324,7 @@ static void test_syntax_errors(void) {
                 seed_error(&error, seed * 165U);
                 status = av2h_frame_header_closed_key_parse(
                     (Av2hSpan){ raw + frame_obu.payload_offset, frame_obu.payload_size },
-                    &preparation.sequence, &frame, &(Av2hFrameSyntaxStorage){0},  &error);
+                    &preparation.sequence, &frame, &(Av2hFrameSyntaxStorage){0},  NULL, &error);
                 record_error(&record, status, &error);
                 raw[frame_obu.payload_offset + index] ^= (unsigned char)(1U << bit);
             }

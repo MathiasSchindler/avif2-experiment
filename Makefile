@@ -398,6 +398,8 @@ HOST_CFLAGS := $(COMMON_WARNINGS) -O1 -g -fsanitize=address,undefined \
 	-fno-omit-frame-pointer -Iinclude -Isrc
 HOST_LDFLAGS := -fsanitize=address,undefined -fno-omit-frame-pointer
 HOST_CORE_OBJECTS := $(CORE_SOURCES:%.c=$(HOST_BUILD_DIR)/obj/core/%.o)
+HOST_QUERY_TEST_OBJECTS := $(HOST_BUILD_DIR)/obj/query-test/query.o \
+	$(HOST_BUILD_DIR)/obj/query-test/decode.o
 HOST_CLI_OBJECTS := $(CLI_SOURCES:%.c=$(HOST_BUILD_DIR)/obj/cli/%.o)
 HOST_LIBRARY := $(HOST_BUILD_DIR)/libav2heif-host-core.a
 HOST_RUNTIME_C_OBJECTS := $(RUNTIME_C_SOURCES:%.c=$(HOST_BUILD_DIR)/obj/runtime/%.o)
@@ -429,6 +431,7 @@ SAMPLE_DEPENDENCY_OBJECTS := $(NATIVE_OBJECTS) $(NATIVE_CLI_OBJECTS) \
 	$(HOST_CORE_OBJECTS) $(HOST_CLI_OBJECTS)
 $(SAMPLE_DEPENDENCY_OBJECTS): Makefile
 -include $(SAMPLE_DEPENDENCY_OBJECTS:.o=.d)
+-include $(HOST_QUERY_TEST_OBJECTS:.o=.d)
 WP11_WINDOWS_TARGET ?= windows-x86_64
 WP11_WINDOWS_BUILD_DIR ?= build/windows-x86_64
 WP12_WINDOWS_TARGET ?= windows-x86_64
@@ -592,7 +595,27 @@ $(HOST_BUILD_DIR)/$(subst _,-,$(1))-unit: tests/$(1)_unit.c $(HOST_LIBRARY)
 	@mkdir -p $$(@D)
 	$(CC) $(HOST_CFLAGS) -Isrc $$< $(HOST_LIBRARY) $(HOST_LDFLAGS) -o $$@
 endef
-$(foreach name,$(filter-out cli,$(HOST_UNIT_NAMES)),$(eval $(call HOST_UNIT_RULE,$(name))))
+$(foreach name,$(filter-out cli public_decode,$(HOST_UNIT_NAMES)),$(eval $(call HOST_UNIT_RULE,$(name))))
+
+# Count parser calls without adding instrumentation to production sources.
+$(HOST_BUILD_DIR)/obj/query-test/query.o: src/query.c Makefile
+	@mkdir -p $(@D)
+	$(COMPILE_CC) $(HOST_CFLAGS) -MMD -MP \
+		-Dav2h_heif_parse=test_heif_parse \
+		-Dav2h_decode_prepare=test_decode_prepare -c $< -o $@
+
+$(HOST_BUILD_DIR)/obj/query-test/decode.o: src/decode.c Makefile
+	@mkdir -p $(@D)
+	$(COMPILE_CC) $(HOST_CFLAGS) -MMD -MP \
+		-Dav2h_sequence_state_parse=test_sequence_state_parse \
+		-Dav2h_frame_header_closed_key_parse=test_frame_header_parse \
+		-Dav2h_qmatrix_ledger_parse=test_qmatrix_ledger_parse -c $< -o $@
+
+$(HOST_BUILD_DIR)/public-decode-unit: tests/public_decode_unit.c \
+		$(HOST_QUERY_TEST_OBJECTS) $(HOST_LIBRARY)
+	@mkdir -p $(@D)
+	$(CC) $(HOST_CFLAGS) $< $(HOST_QUERY_TEST_OBJECTS) $(HOST_LIBRARY) \
+		$(HOST_LDFLAGS) -o $@
 
 $(HOST_BUILD_DIR)/cli-unit: tests/cli_unit.c $(HOST_CLI_OBJECTS) $(HOST_LIBRARY)
 	@mkdir -p $(@D)

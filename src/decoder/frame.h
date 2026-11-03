@@ -45,6 +45,11 @@ typedef struct {
 } Av2hFrameSyntaxStorage;
 
 typedef struct {
+    size_t restoration_bit_positions[AV2H_FRAME_PLANE_COUNT];
+    size_t ccso_bit_positions[AV2H_FRAME_PLANE_COUNT];
+} Av2hFrameSyntaxReferences;
+
+typedef struct {
     size_t uncompressed_header_bits;
     uint16_t width;
     uint16_t height;
@@ -172,6 +177,12 @@ static inline int av2h_frame_restoration_needs_tx_skip(const Av2hFrameState *fra
 
 Av2hStatus av2h_frame_header_closed_key_parse(Av2hSpan payload, const Av2hSequenceState *sequence,
                                               Av2hFrameState *frame,
-                                              Av2hFrameSyntaxStorage *storage, Av2hError *error);
+                                              Av2hFrameSyntaxStorage *storage,
+                                              Av2hFrameSyntaxReferences *references,
+                                              Av2hError *error);
+Av2hStatus av2h_frame_syntax_materialize(Av2hSpan payload, const Av2hSequenceState *sequence,
+                                         Av2hFrameState *frame,
+                                         const Av2hFrameSyntaxReferences *references,
+                                         Av2hFrameSyntaxStorage *storage, Av2hError *error);
 
 #endif

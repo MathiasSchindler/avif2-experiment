@@ -63,8 +63,9 @@ void av2h_limits_default(Av2hLimits *limits) {
     limits->max_recursion_depth = 3U;
 }
 
-Av2hStatus av2h_dialect_detect(Av2hSpan input, Av2hDialect *dialect, Av2hError *error) {
-    Av2hHeifImage image;
+static Av2hStatus av2h_dialect_and_heif_parse(Av2hSpan input, Av2hDialect *dialect,
+                                              Av2hHeifImage *image, Av2hError *error) {
+    Av2hHeifImage parsed;
     Av2hContainerProbe probe;
     Av2hError strict_error;
     Av2hStatus status;
@@ -77,9 +78,11 @@ Av2hStatus av2h_dialect_detect(Av2hSpan input, Av2hDialect *dialect, Av2hError *
         return query_fail(error, AV2H_INVALID_ARGUMENT, 0U, AV2H_CONTEXT_DIALECT);
     }
     *dialect = AV2H_DIALECT_UNKNOWN;
-    strict_status = av2h_heif_parse(input, &image, &strict_error);
+    strict_status = av2h_heif_parse(input, &parsed, &strict_error);
     if (strict_status == AV2H_OK) {
         *dialect = AV2H_DIALECT_CANONICAL_V0;
+        if (image != NULL)
+            *image = parsed;
         return AV2H_OK;
     }
     status = av2h_container_probe(input, &probe, error);
@@ -125,19 +128,26 @@ Av2hStatus av2h_dialect_detect(Av2hSpan input, Av2hDialect *dialect, Av2hError *
     return query_fail(error, AV2H_UNSUPPORTED, 0U, AV2H_CONTEXT_DIALECT);
 }
 
-Av2hStatus av2h_query(Av2hSpan input, const Av2hLimits *limits, Av2hInfo *info, Av2hError *error) {
+Av2hStatus av2h_dialect_detect(Av2hSpan input, Av2hDialect *dialect, Av2hError *error) {
+    return av2h_dialect_and_heif_parse(input, dialect, NULL, error);
+}
+
+AV2H_NOINLINE Av2hStatus av2h_query_with_preparation(Av2hSpan input, const Av2hLimits *limits,
+                                                     Av2hInfo *info,
+                                                     Av2hDecodePreparation *preparation,
+                                                     Av2hDecodeSyntaxReferences *references,
+                                                     Av2hError *error) {
     Av2hLimits defaults;
     const Av2hLimits *active = limits;
     Av2hStatus status;
     size_t pixels;
     size_t output_size;
-    Av2hDecodePreparation preparation;
     Av2hObu config_entries[2];
     Av2hObu item_entry;
     Av2hObuLedger config_ledger = {config_entries, 2U, 0U};
     Av2hObuLedger item_ledger = {&item_entry, 1U, 0U};
     unsigned int plane_count;
-    if (info == NULL || (input.data == NULL && input.size != 0U)) {
+    if (info == NULL || preparation == NULL || (input.data == NULL && input.size != 0U)) {
         return query_fail(error, AV2H_INVALID_ARGUMENT, 0U, AV2H_CONTEXT_QUERY);
     }
     if (active == NULL) {
@@ -147,15 +157,12 @@ Av2hStatus av2h_query(Av2hSpan input, const Av2hLimits *limits, Av2hInfo *info, 
     if (input.size > active->max_input_size) {
         return query_fail(error, AV2H_LIMIT_EXCEEDED, input.size, AV2H_CONTEXT_LIMITS);
     }
-    status = av2h_dialect_detect(input, &info->dialect, error);
+    status = av2h_dialect_and_heif_parse(input, &info->dialect, &info->image, error);
     if (status != AV2H_OK)
         return status;
     if (info->dialect != AV2H_DIALECT_CANONICAL_V0) {
         return query_fail(error, AV2H_UNSUPPORTED, 0U, AV2H_CONTEXT_DIALECT);
     }
-    status = av2h_heif_parse(input, &info->image, error);
-    if (status != AV2H_OK)
-        return status;
     if (info->image.source.config_obus.size > active->max_config_obus_size ||
         info->image.source.item_payload.size > active->max_item_payload_size ||
         info->image.width > active->max_width || info->image.height > active->max_height) {
@@ -194,14 +201,14 @@ Av2hStatus av2h_query(Av2hSpan input, const Av2hLimits *limits, Av2hInfo *info, 
         return query_fail(error, AV2H_LIMIT_EXCEEDED, 0U, AV2H_CONTEXT_LIMITS);
     }
     info->output_size = output_size;
-    status = av2h_decode_prepare(&info->image, &preparation, NULL, NULL, error);
+    status = av2h_decode_prepare(&info->image, preparation, NULL, NULL, references, error);
     if (status != AV2H_OK)
         return status;
-    if (preparation.output_size != output_size) {
+    if (preparation->output_size != output_size) {
         return query_fail(error, AV2H_INVALID_DATA, 0U, AV2H_CONTEXT_OUTPUT);
     }
-    info->workspace_size = preparation.workspace.size_bytes;
-    info->workspace_alignment = preparation.workspace.alignment;
+    info->workspace_size = preparation->workspace.size_bytes;
+    info->workspace_alignment = preparation->workspace.alignment;
     if (info->workspace_alignment == 0U ||
         (info->workspace_alignment & (info->workspace_alignment - 1U)) != 0U) {
         return query_fail(error, AV2H_INVALID_DATA, 0U, AV2H_CONTEXT_WORKSPACE);
@@ -212,6 +219,11 @@ Av2hStatus av2h_query(Av2hSpan input, const Av2hLimits *limits, Av2hInfo *info, 
     info->input_size = input.size;
     info->input_fingerprint = input_fingerprint(input);
     return AV2H_OK;
+}
+
+Av2hStatus av2h_query(Av2hSpan input, const Av2hLimits *limits, Av2hInfo *info, Av2hError *error) {
+    Av2hDecodePreparation preparation;
+    return av2h_query_with_preparation(input, limits, info, &preparation, NULL, error);
 }
 
 Av2hStatus av2h_validate(Av2hSpan input, const Av2hLimits *limits, Av2hError *error) {

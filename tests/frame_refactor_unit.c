@@ -489,7 +489,7 @@ static void test_frame_results(void) {
                                    &sequence, &error) == AV2H_OK);
     CHECK(av2h_frame_header_closed_key_parse(
         (Av2hSpan){ input + frame_obu->payload_offset, frame_obu->payload_size },
-        &sequence, &frame, &(Av2hFrameSyntaxStorage){0},  NULL) == AV2H_OK);
+        &sequence, &frame, &(Av2hFrameSyntaxStorage){0},  NULL, NULL) == AV2H_OK);
     CHECK(av2h_tile_group_single_parse(
               (Av2hSpan){ input + frame_obu->payload_offset, frame_obu->payload_size },
               frame.uncompressed_header_bits, &group) == AV2H_OK);
@@ -601,7 +601,7 @@ static void test_frame_orchestration_results(void) {
                                        &sequence, &error) == AV2H_OK);
         CHECK(av2h_frame_header_closed_key_parse(
                   (Av2hSpan){input + frame_obu->payload_offset, frame_obu->payload_size},
-                  &sequence, &frame, &(Av2hFrameSyntaxStorage){0},  NULL) == AV2H_OK);
+                  &sequence, &frame, &(Av2hFrameSyntaxStorage){0},  NULL, NULL) == AV2H_OK);
         CHECK(av2h_tile_groups_ledger_parse(
                   (Av2hSpan){input, size}, &ledger, &frame, &original) == AV2H_OK);
         bytes = sequence.info.bit_depth_idc == 1U ? 1U : 2U;

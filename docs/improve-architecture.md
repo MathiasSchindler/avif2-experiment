@@ -253,10 +253,12 @@ Validation:
 
 ---
 
-## A2: Eliminate Redundant Parsing and Full-Input Hashing in `av2h_query` / `av2h_decode`
+## A2: Eliminate Redundant Parsing in `av2h_query` / `av2h_decode`
+
+**Status: complete.** Exact full-input fingerprinting is retained.
 
 ### Problem
-In the normal two-step public API workflow (`av2h_query` followed by `av2h_decode`), header parsing and full-file hashing are repeated multiple times before decoding starts:
+Before A2, in the normal two-step public API workflow (`av2h_query` followed by `av2h_decode`), header parsing and full-file hashing were repeated multiple times before decoding started:
 1. **Double HEIF Container Parse in `av2h_query`:** `av2h_query` ([`src/query.c`](../src/query.c)) calls `av2h_dialect_detect(input, ...)`—which runs `av2h_heif_parse(input, &image, &strict_error)`—and on the very next step calls `av2h_heif_parse(input, &info->image, error)` again on the same bytes.
 2. **Redundant Full `av2h_query` + Double `av2h_decode_prepare` in `av2h_decode`:**
    - `av2h_decode` ([`src/decode.c`](../src/decode.c)) calls `av2h_query(input, NULL, &fresh, error)` from scratch (re-running `av2h_dialect_detect`, both `av2h_heif_parse` passes, `av2h_decode_prepare`, and the full-buffer `input_fingerprint` FNV-1a loop over every byte of `input`).
@@ -275,6 +277,58 @@ In the normal two-step public API workflow (`av2h_query` followed by `av2h_decod
 - `av2h_query` parses a canonical HEIF container once and runs `av2h_decode_prepare` once.
 - `av2h_decode` runs `av2h_decode_prepare` once rather than twice.
 - All public `av2h_query` / `av2h_decode` tamper, mismatch, and error-precedence tests pass unchanged.
+
+### Implementation
+
+- [`query.c`](../src/query.c) shares canonical dialect detection and HEIF parsing.
+  The parsed image is published only on canonical success; the public dialect
+  detector still leaves the caller's error record untouched on that path.
+  Legacy/conflicting-container probing and strict-error precedence are unchanged.
+- The private `av2h_query_with_preparation` returns validated compact preparation
+  and borrowed syntax references. [`decode.c`](../src/decode.c) compares the fresh
+  information and checks buffer sizes, alignment, and overlaps **before any arena
+  writes**. It then copies that preparation into A1's arena rather than invoking
+  full preparation again. The query phase remains an explicit no-inline stack
+  boundary under LTO.
+- Large CCSO, restoration, and custom-matrix tables are materialized from captured
+  bit positions using the same table-body readers as direct parsing. Sequence and
+  frame control syntax are not replayed. Tile lengths are walked again to build
+  arena-owned spans; canonical input reuses its captured frame OBU without
+  reparsing its ledger. Private multi-OBU preparation retains support for regular
+  tile groups. References borrow immutable input only for the current call.
+- Public structures, arena accounting, and queried workspace sizes do not grow.
+  Full FNV-1a hashing remains once per query/decode call, including entropy bytes:
+  the two-call workflow deliberately hashes twice to preserve exact
+  pointer/size/fingerprint binding and payload-tamper detection.
+
+### Verification
+
+- Test-only parser counters confirm **one HEIF parse, one preparation, and one
+  full sequence/frame parse per canonical query or decode call**. Direct and
+  deferred tables/spans compare exactly, including poisoned storage, truncations,
+  three-plane matrices, multiple matrix OBUs, and regular tile groups.
+- Both diagnostic configurations pass **33 sanitized C suites**, **2,460**
+  deterministic public-decode fuzz cases, the existing **560** orchestration
+  variants, and **64** poisoned-scratch reuse cases. Frozen error records,
+  tamper/mismatch checks, buffer-rejection behavior, and resource baselines are
+  unchanged.
+- All **179 raw image hashes** and **14 exact CLI contracts** remain unchanged
+  per configuration. All **176 canonically admitted corpus cases** also match
+  through instrumented public decoding, the native canonical artifact frontend,
+  and its full-LTO build. The other three raw fixtures carry multiple key OBUs
+  and remain rejected by canonical carriage; admission was not broadened.
+- All **76 production C sources** pass the 4,096-byte frame guard in both
+  configurations. Native public query, private query phase, and public decode
+  frames are **1,056**, **496**, and **3,696 bytes**, respectively; the native
+  maximum remains **3,760 bytes**. Changed sources also pass Linux and Windows
+  x86-64/ARM64 and Wasm32 frame guards; their largest measured frame is **3,848
+  bytes**. Full-LTO canonical backend objects retain the changed decode/query
+  phases and emit no oversized-frame warnings. LTO verification links explicit
+  LLVM objects to bypass the host archive-loader incompatibility.
+- **38** related Python checks, **55** standalone private headers, **35**
+  value-only kernel roots, native freestanding symbols, formatting, and
+  whitespace checks pass. The previously documented nolibc toolchain limitations
+  are outside A2.
 
 ---
 

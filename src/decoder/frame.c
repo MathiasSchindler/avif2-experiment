@@ -604,7 +604,7 @@ static void read_wienerns_frame_filter(Av2hBitReader *reader, const Av2hSequence
 }
 
 static void read_restoration(Av2hBitReader *reader, const Av2hSequenceState *sequence,
-                             Av2hFrameState *frame) {
+                             Av2hFrameState *frame, Av2hFrameSyntaxReferences *references) {
     unsigned int plane;
     uint8_t uses_luma = 0U;
     uint8_t uses_chroma = 0U;
@@ -697,6 +697,8 @@ static void read_restoration(Av2hBitReader *reader, const Av2hSequenceState *seq
     for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
         if (frame->restoration_frame_filters_on[plane] == 0U)
             continue;
+        if (references != NULL)
+            references->restoration_bit_positions[plane] = reader->bit_position;
         read_wienerns_frame_filter(reader, sequence, frame, plane);
         if (reader->status != AV2H_OK)
             return;
@@ -734,7 +736,8 @@ static uint16_t read_ccso_offsets(Av2hBitReader *reader, Av2hCcsoPlane *plane,
     return count;
 }
 
-static void read_ccso(Av2hBitReader *reader, Av2hFrameState *frame) {
+static void read_ccso(Av2hBitReader *reader, Av2hFrameState *frame,
+                      Av2hFrameSyntaxReferences *references) {
     unsigned int plane_index;
     for (plane_index = 0U; plane_index < frame->plane_count; ++plane_index) {
         Av2hCcsoPlane *plane = &frame->ccso[plane_index];
@@ -766,6 +769,8 @@ static void read_ccso(Av2hBitReader *reader, Av2hFrameState *frame) {
             edge_intervals = plane->edge_classifier != 0U ? 2U : 3U;
         }
         band_count = (uint32_t)1U << plane->max_band_log2;
+        if (references != NULL)
+            references->ccso_bit_positions[plane_index] = reader->bit_position;
         plane->offset_count = read_ccso_offsets(reader, plane, edge_intervals, band_count);
         if (reader->status != AV2H_OK)
             return;
@@ -797,7 +802,9 @@ static Av2hStatus frame_diagnostic_fail(Av2hError *error, Av2hStatus status,
 
 Av2hStatus av2h_frame_header_closed_key_parse(Av2hSpan payload, const Av2hSequenceState *sequence,
                                               Av2hFrameState *frame,
-                                              Av2hFrameSyntaxStorage *storage, Av2hError *error) {
+                                              Av2hFrameSyntaxStorage *storage,
+                                              Av2hFrameSyntaxReferences *references,
+                                              Av2hError *error) {
     Av2hBitReader reader;
     uint32_t multi_frame_header_id;
     uint32_t sequence_header_id;
@@ -806,6 +813,8 @@ Av2hStatus av2h_frame_header_closed_key_parse(Av2hSpan payload, const Av2hSequen
                                      AV2H_DIAGNOSTIC_SYNTAX_FRAME_PROFILE, 0U);
     }
     av2h_memory_fill(frame, 0U, sizeof(*frame));
+    if (references != NULL)
+        av2h_memory_fill(references, 0U, sizeof(*references));
     if (storage != NULL)
         av2h_memory_fill(storage, 0U, sizeof(*storage));
     av2h_frame_syntax_storage_bind(frame, storage);
@@ -980,14 +989,54 @@ Av2hStatus av2h_frame_header_closed_key_parse(Av2hSpan payload, const Av2hSequen
     if (sequence->enable_cdef != 0U)
         read_cdef(&reader, frame);
     if (sequence->enable_restoration != 0U) {
-        read_restoration(&reader, sequence, frame);
+        read_restoration(&reader, sequence, frame, references);
     }
     if (sequence->enable_ccso != 0U)
-        read_ccso(&reader, frame);
+        read_ccso(&reader, frame, references);
     frame->tx_mode = av2h_bit_reader_read(&reader, 1U) != 0U ? 2U : 1U;
     frame->reduced_tx_set = (uint8_t)av2h_bit_reader_read(&reader, 2U);
     if (reader.status != AV2H_OK)
         return reader.status;
     frame->uncompressed_header_bits = reader.bit_position - 1U;
+    return AV2H_OK;
+}
+
+Av2hStatus av2h_frame_syntax_materialize(Av2hSpan payload, const Av2hSequenceState *sequence,
+                                         Av2hFrameState *frame,
+                                         const Av2hFrameSyntaxReferences *references,
+                                         Av2hFrameSyntaxStorage *storage, Av2hError *error) {
+    Av2hBitReader reader;
+    unsigned int plane;
+    if (payload.data == NULL || sequence == NULL || frame == NULL || references == NULL ||
+        storage == NULL || frame->plane_count == 0U ||
+        frame->plane_count > AV2H_FRAME_PLANE_COUNT) {
+        return frame_diagnostic_fail(error, AV2H_INVALID_ARGUMENT, NULL,
+                                     AV2H_DIAGNOSTIC_SYNTAX_FRAME_PROFILE, 0U);
+    }
+    av2h_memory_fill(storage, 0U, sizeof(*storage));
+    av2h_frame_syntax_storage_bind(frame, storage);
+    for (plane = 0U; plane < frame->plane_count; ++plane) {
+        if (frame->restoration_frame_filters_on[plane] != 0U) {
+            av2h_bit_reader_init(&reader, payload.data, payload.size, 0U);
+            (void)av2h_bit_reader_skip(&reader, references->restoration_bit_positions[plane]);
+            read_wienerns_frame_filter(&reader, sequence, frame, plane);
+            if (reader.status != AV2H_OK)
+                return frame_diagnostic_fail(error, reader.status, &reader,
+                                             AV2H_DIAGNOSTIC_SYNTAX_FRAME_PROFILE, 0U);
+        }
+        if (frame->ccso[plane].enabled != 0U) {
+            Av2hCcsoPlane *parameters = &frame->ccso[plane];
+            uint32_t edge_intervals = parameters->band_only != 0U         ? 1U
+                                      : parameters->edge_classifier != 0U ? 2U
+                                                                          : 3U;
+            av2h_bit_reader_init(&reader, payload.data, payload.size, 0U);
+            (void)av2h_bit_reader_skip(&reader, references->ccso_bit_positions[plane]);
+            (void)read_ccso_offsets(&reader, parameters, edge_intervals,
+                                    (uint32_t)1U << parameters->max_band_log2);
+            if (reader.status != AV2H_OK)
+                return frame_diagnostic_fail(error, reader.status, &reader,
+                                             AV2H_DIAGNOSTIC_SYNTAX_FRAME_PROFILE, 0U);
+        }
+    }
     return AV2H_OK;
 }
