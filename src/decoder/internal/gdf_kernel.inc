@@ -36,6 +36,8 @@ static void AV2H_KERNEL_NAME(gdf_filter_block, gdf_filter_block_u16)(
 #endif
 ) {
     uint16_t gradient[4][6][6];
+    unsigned int gradient_sums[4][2][2];
+    AV2H_KERNEL_TYPE(uint8_t, uint16_t) samples[16][16];
     uint8_t classes[2][2];
     unsigned int stripe_number = ((unsigned int)block_y + 8U) / 64U;
     int stripe_start = (int)(stripe_number * 64U) - 8;
@@ -45,6 +47,15 @@ static void AV2H_KERNEL_NAME(gdf_filter_block, gdf_filter_block_u16)(
         stripe_start = bounds->top;
     if (stripe_end >= bounds->bottom)
         stripe_end = bounds->bottom - 1;
+    for (row = 0U; row < 16U; ++row) {
+        unsigned int column;
+        for (column = 0U; column < 16U; ++column) {
+            samples[row][column] = AV2H_KERNEL_NAME(
+                gdf_source_sample,
+                gdf_source_sample_u16)(cdef_luma, deblocked_luma, (int)block_x - 6 + (int)column,
+                                  (int)block_y - 6 + (int)row, stripe_start, stripe_end, bounds);
+        }
+    }
     for (row = 0U; row < 6U; ++row) {
         unsigned int column;
         for (column = 0U; column < 6U; ++column) {
@@ -53,20 +64,11 @@ static void AV2H_KERNEL_NAME(gdf_filter_block, gdf_filter_block_u16)(
                 static const int8_t direction_offset[4][2] = {{0, 1}, {1, 0}, {1, 1}, {1, -1}};
                 int dx = direction_offset[direction][0];
                 int dy = direction_offset[direction][1];
-                int x = (int)block_x - 1 + (int)column;
-                int y = (int)block_y - 1 + (int)row;
-                int center = AV2H_KERNEL_NAME(
-                    gdf_source_sample,
-                    gdf_source_sample_u16)(cdef_luma, deblocked_luma, x, y, stripe_start,
-                                               stripe_end, bounds);
-                int first = AV2H_KERNEL_NAME(
-                    gdf_source_sample,
-                    gdf_source_sample_u16)(cdef_luma, deblocked_luma, x - dx, y - dy,
-                                              stripe_start, stripe_end, bounds);
-                int second = AV2H_KERNEL_NAME(
-                    gdf_source_sample,
-                    gdf_source_sample_u16)(cdef_luma, deblocked_luma, x + dx, y + dy,
-                                               stripe_start, stripe_end, bounds);
+                int x = (int)column + 5;
+                int y = (int)row + 5;
+                int center = samples[y][x];
+                int first = samples[y - dy][x - dx];
+                int second = samples[y + dy][x + dx];
                 gradient[direction][row][column] =
                     (uint16_t)av2h_sample_abs(center * 2 - first - second);
             }
@@ -79,6 +81,10 @@ static void AV2H_KERNEL_NAME(gdf_filter_block, gdf_filter_block_u16)(
             unsigned int horizontal = gdf_gradient_sum(gradient, 1U, row * 2U, column * 2U);
             unsigned int diagonal_zero = gdf_gradient_sum(gradient, 2U, row * 2U, column * 2U);
             unsigned int diagonal_one = gdf_gradient_sum(gradient, 3U, row * 2U, column * 2U);
+            gradient_sums[0][row][column] = vertical;
+            gradient_sums[1][row][column] = horizontal;
+            gradient_sums[2][row][column] = diagonal_zero;
+            gradient_sums[3][row][column] = diagonal_one;
             classes[row][column] = (uint8_t)((vertical > horizontal ? 0U : 1U) |
                                              (diagonal_zero > diagonal_one ? 0U : 2U));
         }
@@ -92,10 +98,7 @@ static void AV2H_KERNEL_NAME(gdf_filter_block, gdf_filter_block_u16)(
             unsigned int output_index;
             size_t destination_index =
                 ((size_t)block_y + row) * destination->stride_samples + block_x + column;
-            int center = AV2H_KERNEL_NAME(
-                gdf_source_sample,
-                gdf_source_sample_u16)(cdef_luma, deblocked_luma, (int)block_x + (int)column,
-                                  (int)block_y + (int)row, stripe_start, stripe_end, bounds);
+            int center = samples[row + 6U][column + 6U];
             for (kernel_index = 0U; kernel_index < 22U; ++kernel_index) {
                 unsigned int alpha =
                     gdf_alpha[gdf_alpha_index(qp_index, kernel_index, class_index)];
@@ -103,22 +106,8 @@ static void AV2H_KERNEL_NAME(gdf_filter_block, gdf_filter_block_u16)(
                 if (kernel_index < 18U) {
                     int dy = gdf_coordinates[kernel_index][0];
                     int dx = gdf_coordinates[kernel_index][1];
-                    int above =
-                        AV2H_KERNEL_NAME(
-                            gdf_source_sample,
-                            gdf_source_sample_u16)(cdef_luma, deblocked_luma,
-                                                  (int)block_x + (int)column - dx,
-                                                  (int)block_y + (int)row - dy, stripe_start,
-                                                  stripe_end, bounds) -
-                                center;
-                    int below =
-                        AV2H_KERNEL_NAME(
-                            gdf_source_sample,
-                            gdf_source_sample_u16)(cdef_luma, deblocked_luma,
-                                                  (int)block_x + (int)column + dx,
-                                                  (int)block_y + (int)row + dy, stripe_start,
-                                                  stripe_end, bounds) -
-                                center;
+                    int above = samples[(int)row + 6 - dy][(int)column + 6 - dx] - center;
+                    int below = samples[(int)row + 6 + dy][(int)column + 6 + dx] - center;
 #if AV2H_KERNEL_WIDE
                     /* Learned spatial inputs use 10-bit units, independently of sample depth. */
                     if (domain->bit_depth < 10U) {
@@ -138,14 +127,11 @@ static void AV2H_KERNEL_NAME(gdf_filter_block, gdf_filter_block_u16)(
                 } else {
 #if AV2H_KERNEL_WIDE
                     unsigned int value =
-                        gdf_gradient_sum(gradient, kernel_index - 18U, (row >> 1U) << 1U,
-                                         (column >> 1U) << 1U) >>
+                        gradient_sums[kernel_index - 18U][row >> 1U][column >> 1U] >>
                         (domain->bit_depth - 6U);
 #else
                     unsigned int value =
-                        gdf_gradient_sum(gradient, kernel_index - 18U, (row >> 1U) << 1U,
-                                         (column >> 1U) << 1U) >>
-                        2U;
+                        gradient_sums[kernel_index - 18U][row >> 1U][column >> 1U] >> 2U;
 #endif
                     combination = value < alpha ? (int)value : (int)alpha;
                 }
@@ -187,28 +173,27 @@ static void AV2H_KERNEL_NAME(gdf_filter_block, gdf_filter_block_u16)(
         }
     }
 }
-Av2hStatus AV2H_KERNEL_NAME(av2h_gdf_filter_frame, av2h_gdf_filter_frame_u16)(
+Av2hStatus AV2H_KERNEL_NAME(av2h_gdf_validate_frame, av2h_gdf_validate_frame_u16)(
     AV2H_KERNEL_TYPE(Av2hFilterPlane, Av2hFilterPlaneU16) *destination
 #if !AV2H_KERNEL_WIDE
-                                 ,
-                                 const Av2hFilterPlane *baseline_luma
+                                   ,
+                                   const Av2hFilterPlane *baseline_luma
 #endif
-                                 ,
-                                 const AV2H_KERNEL_TYPE(Av2hFilterPlane, Av2hFilterPlaneU16) *cdef_luma,
-                                 const AV2H_KERNEL_TYPE(Av2hFilterPlane, Av2hFilterPlaneU16) *deblocked_luma,
-                                 const Av2hSequenceState *sequence, const Av2hFrameState *frame,
-                                 const Av2hGdfControlMap *controls
+                                   ,
+                                   const AV2H_KERNEL_TYPE(Av2hFilterPlane, Av2hFilterPlaneU16) *cdef_luma,
+                                   const AV2H_KERNEL_TYPE(Av2hFilterPlane, Av2hFilterPlaneU16) *deblocked_luma,
+                                   const Av2hSequenceState *sequence, const Av2hFrameState *frame,
+                                   const Av2hGdfControlMap *controls
 #if AV2H_KERNEL_WIDE
-                                 ,
-                                 const Av2hSampleDomain *domain
+                                   ,
+                                   const Av2hSampleDomain *domain
 #endif
 ) {
+    (void)sequence;
 #if AV2H_KERNEL_WIDE
     if (!av2h_sample_domain_valid(domain))
         return AV2H_INVALID_ARGUMENT;
 #endif
-    uint16_t row;
-    unsigned int qp_index;
     if (!AV2H_KERNEL_NAME(gdf_frame_arguments_valid,
                           gdf_frame_arguments_valid_u16)(destination,
 #if !AV2H_KERNEL_WIDE
@@ -239,6 +224,26 @@ Av2hStatus AV2H_KERNEL_NAME(av2h_gdf_filter_frame, av2h_gdf_filter_frame_u16)(
             }
         }
     }
+    return AV2H_OK;
+}
+
+/* Geometry, controls, and disjoint writable storage must be validated first.
+ * The two immutable source planes may share storage in the stage router. */
+void AV2H_KERNEL_NAME(av2h_gdf_apply_frame, av2h_gdf_apply_frame_u16)(
+    AV2H_KERNEL_TYPE(Av2hFilterPlane, Av2hFilterPlaneU16) *destination,
+#if !AV2H_KERNEL_WIDE
+                          const Av2hFilterPlane *baseline_luma,
+#endif
+                          const AV2H_KERNEL_TYPE(Av2hFilterPlane, Av2hFilterPlaneU16) *cdef_luma, const AV2H_KERNEL_TYPE(Av2hFilterPlane, Av2hFilterPlaneU16) *deblocked_luma,
+                          const Av2hSequenceState *sequence, const Av2hFrameState *frame,
+                          const Av2hGdfControlMap *controls
+#if AV2H_KERNEL_WIDE
+                          ,
+                          const Av2hSampleDomain *domain
+#endif
+) {
+    uint16_t row;
+    unsigned int qp_index;
 #if AV2H_KERNEL_WIDE
     qp_index = gdf_training_qp_index(frame, domain->bit_depth);
     av2h_plane_copy_u16(destination->data, destination->stride_samples, cdef_luma->data,
@@ -249,7 +254,7 @@ Av2hStatus AV2H_KERNEL_NAME(av2h_gdf_filter_frame, av2h_gdf_filter_frame_u16)(
                        baseline_luma->stride_samples, destination->width, destination->height);
 #endif
     if (frame->gdf_mode == 0U)
-        return AV2H_OK;
+        return;
     for (row = 0U; row < destination->height; row = (uint16_t)(row + 4U)) {
         uint16_t column;
         for (column = 0U; column < destination->width; column = (uint16_t)(column + 4U)) {
@@ -278,5 +283,46 @@ Av2hStatus AV2H_KERNEL_NAME(av2h_gdf_filter_frame, av2h_gdf_filter_frame_u16)(
 #endif
         }
     }
+}
+
+Av2hStatus AV2H_KERNEL_NAME(av2h_gdf_filter_frame, av2h_gdf_filter_frame_u16)(
+    AV2H_KERNEL_TYPE(Av2hFilterPlane, Av2hFilterPlaneU16) *destination,
+#if !AV2H_KERNEL_WIDE
+                                 const Av2hFilterPlane *baseline_luma,
+#endif
+                                 const AV2H_KERNEL_TYPE(Av2hFilterPlane, Av2hFilterPlaneU16) *cdef_luma,
+                                 const AV2H_KERNEL_TYPE(Av2hFilterPlane, Av2hFilterPlaneU16) *deblocked_luma,
+                                 const Av2hSequenceState *sequence, const Av2hFrameState *frame,
+                                 const Av2hGdfControlMap *controls
+#if AV2H_KERNEL_WIDE
+                                 ,
+                                 const Av2hSampleDomain *domain
+#endif
+) {
+    Av2hStatus status = AV2H_KERNEL_NAME(
+        av2h_gdf_validate_frame,
+        av2h_gdf_validate_frame_u16)(destination,
+#if !AV2H_KERNEL_WIDE
+                                                baseline_luma,
+#endif
+                                                cdef_luma, deblocked_luma, sequence, frame, controls
+#if AV2H_KERNEL_WIDE
+                                                ,
+                                                domain
+#endif
+    );
+    if (status != AV2H_OK)
+        return status;
+    AV2H_KERNEL_NAME(av2h_gdf_apply_frame,
+                     av2h_gdf_apply_frame_u16)(destination,
+#if !AV2H_KERNEL_WIDE
+                         baseline_luma,
+#endif
+                         cdef_luma, deblocked_luma, sequence, frame, controls
+#if AV2H_KERNEL_WIDE
+                         ,
+                         domain
+#endif
+    );
     return AV2H_OK;
 }

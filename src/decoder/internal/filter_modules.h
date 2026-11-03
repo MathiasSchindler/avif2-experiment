@@ -14,4 +14,24 @@ int av2h_deblock_map_valid_u16(const Av2hFilterPlanesU16 *planes, const Av2hDebl
 int av2h_ccso_parameters_valid(const Av2hFrameState *frame);
 int av2h_ccso_controls_valid(const Av2hFrameState *frame, const Av2hCcsoControlMap *controls);
 
+Av2hStatus av2h_gdf_validate_frame(Av2hFilterPlane *destination,
+                                   const Av2hFilterPlane *baseline_luma,
+                                   const Av2hFilterPlane *cdef_luma,
+                                   const Av2hFilterPlane *deblocked_luma,
+                                   const Av2hSequenceState *sequence, const Av2hFrameState *frame,
+                                   const Av2hGdfControlMap *controls);
+Av2hStatus
+av2h_gdf_validate_frame_u16(Av2hFilterPlaneU16 *destination, const Av2hFilterPlaneU16 *cdef_luma,
+                            const Av2hFilterPlaneU16 *deblocked_luma,
+                            const Av2hSequenceState *sequence, const Av2hFrameState *frame,
+                            const Av2hGdfControlMap *controls, const Av2hSampleDomain *domain);
+void av2h_gdf_apply_frame(Av2hFilterPlane *destination, const Av2hFilterPlane *baseline_luma,
+                          const Av2hFilterPlane *cdef_luma, const Av2hFilterPlane *deblocked_luma,
+                          const Av2hSequenceState *sequence, const Av2hFrameState *frame,
+                          const Av2hGdfControlMap *controls);
+void av2h_gdf_apply_frame_u16(Av2hFilterPlaneU16 *destination, const Av2hFilterPlaneU16 *cdef_luma,
+                              const Av2hFilterPlaneU16 *deblocked_luma,
+                              const Av2hSequenceState *sequence, const Av2hFrameState *frame,
+                              const Av2hGdfControlMap *controls, const Av2hSampleDomain *domain);
+
 #endif

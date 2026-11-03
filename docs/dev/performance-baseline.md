@@ -2,7 +2,9 @@
 
 Measured on 2026-11-03 at `b7cd879aab6291efa9d194e330e8c44ca72c49d2`.
 This is a local performance investigation, not a new capability or release gate.
-Production decoder code and default build flags were not changed.
+That investigation did not change production decoder code or default build
+flags. The later A3 and A4 sections record integrated implementations against
+their own matched baselines.
 
 ## Conclusions
 
@@ -200,7 +202,11 @@ to predict a combined result.
 
 ### GDF: the strongest measured portable opportunity
 
-In [the GDF block kernel](../../src/decoder/gdf.c#L193), one 4x4 output block
+This section records the original isolated prototype; see
+[A4's integrated results](#a4-filter-staging-and-gdf-implementation) below for
+the completed parity, resource, and non-GDF control checks.
+
+In [the GDF block kernel](../../src/decoder/internal/gdf_kernel.inc), one 4x4 output block
 repeatedly resolves the same nearby samples, tile bounds, and stripe-specific
 choice between CDEF and deblocked input.
 
@@ -260,9 +266,11 @@ The Mach-O `__TEXT` segment grows from 770,048 to 835,584 bytes
 This is a speed/size decision to validate separately, not a reason to enable
 unsafe arithmetic flags or replace the size-oriented freestanding targets.
 
-## Further opportunities, in priority order
+## Further opportunities identified at the baseline
 
 The following are **hotspot-backed proposals, not measured speedup claims**:
+the A3 and A4 implementation results below supersede their corresponding
+baseline priorities.
 
 | Priority | Work | Evidence and approach | Portability / risk |
 |---|---|---|---|
@@ -416,3 +424,74 @@ filter-heavy controls. They do not measure the individual contribution of each
 source change, establish the speed of the portable fallback on other compilers,
 or imply the same gain across the whole corpus. GDF/CDEF/transform work remains
 unchanged and is still important for ordinary lossy photographs.
+
+## A4 filter-staging and GDF implementation
+
+A4 implements the GDF locality/reuse priority, constant-time disjoint-plane
+overlap rejection, and active-stage routing, compared against A3 (`8b3dd19`).
+The historical prototype numbers above remain unchanged; these measurements
+use the final implementation, including compatibility snapshots for accepted
+U8 aliases.
+
+The shared typed GDF kernel resolves each block's exact 16x16 neighborhood
+once and retains 16 directional class-region sums. This reduces sample
+resolver calls from 1,024 to 256 and directional sum evaluations from 80 to 16
+per 4x4 block, preserving boundary/stripe selection and integer arithmetic.
+The coordinator bypasses redundant inactive-stage copies while preserving
+immutable pre-CDEF sources. Checked standalone filter behavior, U16 overlap
+rejection, workspace capacities, admission, and final coded-plane ownership
+are unchanged. Reserved stage buffers are not compacted.
+
+### Matched method
+
+- Same Apple M4 Max, Clang 22.1.8, diagnostics-disabled freestanding `-O2`
+  core, shared raw-OBU decode service, and timing boundary as A3 above.
+  No LTO, explicit SIMD, architecture-specific flags, threading, or default
+  compiler-setting changes.
+- One warm decode, calibration for at least 30 ms, and seven measured batches
+  per process. Nine deterministically shuffled paired rounds alternate
+  before/after order. Builds, tests, and measurements run without contention.
+- Times are medians of process batch medians; speedups are medians of paired
+  ratios, not necessarily ratios of displayed times. Approximate 95%
+  percentile bootstrap intervals use 5,000 paired resamples.
+- Pixel hashes match before timing. Complete regression gates preserve all
+  179 raw hashes, 176 canonical public query/decode hashes through native and
+  full-LTO frontends, and 14 CLI contracts in both diagnostic configurations.
+  Both complete sanitizer/fuzz suites and the 4,096-byte production frame
+  ceiling pass; the native maximum remains 3,760 bytes.
+
+### Whole-decode results
+
+| Case | Before, ms | After, ms | Paired speedup | Approx. 95% interval |
+|---|---:|---:|---:|---:|
+| Pastel, 896 I420 QP0 (lossless) | 66.2430 | 65.5680 | 1.009x | 1.007-1.012x |
+| Pastel, 896 I420 QP48 | 69.0360 | 64.8640 | 1.030x | 1.020-1.049x |
+| High-detail 10-bit I420, 96x80 QP128 | 1.2038 | 1.1491 | 1.021x | 1.013-1.060x |
+| High-detail 10-bit I444, 96x80 QP128 | 2.6093 | 2.6370 | 1.001x | 0.980-1.014x |
+| Baya, 896 I420 QP152 | 85.0250 | 52.3270 | 1.611x | 1.600-1.621x |
+| Baya, 896 I444 QP152 | 111.1100 | 76.9620 | 1.413x | 1.410-1.439x |
+| Pastel, 896 I420 QP255 | 83.0220 | 51.1530 | 1.622x | 1.617-1.632x |
+| Baya, 1440 I420 QP96 | 199.8610 | 129.2830 | 1.568x | 1.532-1.585x |
+| Baya, 896 I400 QP152 | 74.4780 | 42.3280 | 1.765x | 1.732-1.768x |
+| PC-Wiener fixture | 109.4280 | 80.3470 | 1.359x | 1.351-1.366x |
+| Filtered boundary 10-bit I420 QP128 | 0.5913 | 0.2857 | 2.063x | 2.052-2.073x |
+
+### Additional non-GDF controls
+
+The original isolated prototype regressed the high-detail controls by roughly
+3.5-3.7%, without an established cause. The integrated version was therefore
+checked in **21 additional paired rounds** using the same method:
+
+| Case | Before, ms | After, ms | Paired speedup | Approx. 95% interval |
+|---|---:|---:|---:|---:|
+| Pastel, 896 I420 QP0 (lossless) | 69.0140 | 69.0620 | 1.000x | 0.998-1.002x |
+| Pastel, 896 I420 QP48 | 69.9390 | 68.2730 | 1.023x | 1.021-1.025x |
+| High-detail 10-bit I420, 96x80 QP128 | 1.2370 | 1.2180 | 1.017x | 1.006-1.023x |
+| High-detail 10-bit I444, 96x80 QP128 | 2.7335 | 2.6993 | 1.009x | 1.005-1.024x |
+
+The prototype's non-GDF regression does not reproduce here: lossless remains
+flat, while the other controls show small gains. Absolute times differ
+between runs, so compare only paired ratios within each experiment. These
+results establish whole-decode gains for the selected filter-heavy cases,
+not the isolated contribution of each change, a universal corpus speedup,
+or performance guarantees on other machines or compilers.

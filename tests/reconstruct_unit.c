@@ -7333,10 +7333,17 @@ static void test_10bit_wp6_tiny_matrix(void) {
                 uint16_t expected = (uint16_t)(
                     deblocked_reference[index * 2U] |
                     ((uint16_t)deblocked_reference[index * 2U + 1U] << 8U));
-                CHECK(filter_workspace.deblocked_u16.plane[plane_index].data[
-                          row * filter_workspace.deblocked_u16.
-                              plane[plane_index].stride_samples + column] ==
-                      expected);
+                const uint16_t *stage_data =
+                    filter_workspace.deblocked_u16.plane[plane_index].data;
+                size_t stage_stride =
+                    filter_workspace.deblocked_u16.plane[plane_index].stride_samples;
+                if (plane_index == 0U
+                        ? frame.deblock_enabled[0] == 0U && frame.deblock_enabled[1] == 0U
+                        : frame.deblock_enabled[plane_index + 1U] == 0U) {
+                    stage_data = workspace.coded_u16[plane_index].data;
+                    stage_stride = workspace.coded_u16[plane_index].stride_samples;
+                }
+                CHECK(stage_data[row * stage_stride + column] == expected);
             }
         }
         if (status == AV2H_OK &&
@@ -7395,10 +7402,15 @@ static void test_10bit_wp6_tiny_matrix(void) {
                 size_t column = sample_index % width;
                 uint16_t expected = (uint16_t)(wp8_reference[index * 2U] |
                     ((uint16_t)wp8_reference[index * 2U + 1U] << 8U));
-                CHECK(filter_workspace.cdef_u16.plane[plane_index].data[
-                          row * filter_workspace.cdef_u16.
-                              plane[plane_index].stride_samples + column] ==
-                      expected);
+                const uint16_t *stage_data =
+                    filter_workspace.cdef_u16.plane[plane_index].data;
+                size_t stage_stride =
+                    filter_workspace.cdef_u16.plane[plane_index].stride_samples;
+                if (frame.cdef_strength_count == 0U && frame.ccso[plane_index].enabled == 0U) {
+                    stage_data = workspace.coded_u16[plane_index].data;
+                    stage_stride = workspace.coded_u16[plane_index].stride_samples;
+                }
+                CHECK(stage_data[row * stage_stride + column] == expected);
             }
         }
         free(allocation);

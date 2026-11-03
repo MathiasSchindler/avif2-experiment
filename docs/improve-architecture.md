@@ -1,6 +1,6 @@
 # Decoder Architecture and Runtime Improvement Plan
 
-**Status:** A1-A3 complete; A4-A6 planned
+**Status:** A1-A4 complete; A5-A6 planned
 **Scope:** [`src/`](../src/) and [`include/av2heif.h`](../include/av2heif.h)
 
 ## Purpose and Scope
@@ -24,7 +24,7 @@ Every milestone must preserve:
 | **A1** | Move large decoder state (`Av2hTileDecoder`, `Av2hCoeffBlock`, preparation state) off the C call stack into the caller-owned workspace arena | [`frame_workspace.c`](../src/decoder/frame_workspace.c), [`frame_output.c`](../src/decoder/frame_output.c), [`tile.h`](../src/decoder/tile.h), [`decode.c`](../src/decode.c) | None |
 | **A2** | Eliminate redundant parsing and full-input hashing across `av2h_query` and `av2h_decode` | [`query.c`](../src/query.c), [`decode.c`](../src/decode.c), [`decode.h`](../src/decode.h) | A1 |
 | **A3** | Replace bit-by-bit refills with byte-chunk reads, fuse CDF validation/search, and accelerate range normalization while retaining checked decoding | [`range.c`](../src/decoder/range.c), [`base.c`](../src/base.c), [`shared/bit_math.h`](../src/shared/bit_math.h) | None |
-| **A4** | Eliminate unconditional full-frame plane copies and redundant $O(H)$ overlap scans in the loop-filter pipeline | [`filter.c`](../src/decoder/filter.c), [`frame_workspace.c`](../src/decoder/frame_workspace.c), [`internal/filter_common.h`](../src/decoder/internal/filter_common.h) | A1 |
+| **A4** | Eliminate redundant inactive-stage copies and $O(H)$ overlap scans; reuse GDF neighborhoods and gradients | [`filter.c`](../src/decoder/filter.c), [`internal/filter_common_kernel.inc`](../src/decoder/internal/filter_common_kernel.inc), [`internal/gdf_kernel.inc`](../src/decoder/internal/gdf_kernel.inc) | A1 |
 | **A5** | Extend `Av2hExecution` parallelism from final output `memcpy` to multi-tile decoding and loop-filter stripes | [`frame_output.c`](../src/decoder/frame_output.c), [`frame_workspace.c`](../src/decoder/frame_workspace.c), [`filter.c`](../src/decoder/filter.c), [`cdef.c`](../src/decoder/cdef.c), [`gdf.c`](../src/decoder/gdf.c) | A1, A4 |
 | **A6** | Converge 8-bit and 16-bit (`_u16`) admission rules, DPCM semantics, and loop-filter support | [`reconstruct.c`](../src/decoder/reconstruct.c), [`reconstruct_block.c`](../src/decoder/reconstruct_block.c), [`chroma_prediction_*.c`](../src/decoder/chroma_prediction.c), [`filter.c`](../src/decoder/filter.c), [`restoration.c`](../src/decoder/restoration.c) | A4 |
 
@@ -423,7 +423,7 @@ As noted in [`dev/performance-baseline.md`](dev/performance-baseline.md), lossle
 ## A4: Streamline Loop-Filter Staging and Plane Copies
 
 ### Problem
-In [`src/decoder/filter.c`](../src/decoder/filter.c) and [`src/decoder/frame_workspace.c`](../src/decoder/frame_workspace.c):
+Before A4, in [`src/decoder/filter.c`](../src/decoder/filter.c) and [`src/decoder/frame_workspace.c`](../src/decoder/frame_workspace.c):
 1. **Unconditional Multi-Plane Copies Across Inactive Filter Stages:**
    - `av2h_filter_frame` unconditionally copies all 3 planes from `planes` (`coded`) $\rightarrow$ `workspace->deblocked`, then runs CDEF into `workspace->cdef` (copying every block even when CDEF is disabled), then runs GDF / copies chroma back into `planes`, and finally `frame_copy.c` copies `planes` into the caller's `output` buffer.
    - When a filter stage (Deblock, CDEF, CCSO, Restoration, GDF) is disabled in the sequence/frame header, copying full-frame YUV planes into intermediate stage buffers wastes memory bandwidth.
@@ -442,8 +442,76 @@ In [`src/decoder/filter.c`](../src/decoder/filter.c) and [`src/decoder/frame_wor
 
 ### Exit Criteria
 - Disjoint plane overlap checks complete in $O(1)$ time.
-- Disabled filter stages do not perform redundant full-frame copies.
+- Disabled filter stages do not perform redundant full-frame copies in normal disjoint layouts; snapshots required for accepted aliases retain their original semantics.
 - Exact pixel parity across all 179 reference streams and all filter unit tests.
+
+### A4 completed: active stage views and portable GDF reuse
+
+- Both sample widths share checked bounding-span rejection and the exact
+  row-strided fallback. Disjoint arena planes return in constant time.
+  Intersecting bounds still permit disjoint interleaved rows. Overflowing
+  bounds also fall back rather than changing the old row walk's result.
+- The coordinator tracks active planes and immutable pre-CDEF views. Only
+  enabled deblocking planes are snapshotted; disabled CDEF and GDF stages are
+  bypassed. CCSO without CDEF materializes only the affected planes before
+  mutation. Restoration and GDF select disjoint writable destinations while
+  retaining their original pre-CDEF references. Final results still reside
+  in the original coded planes, preserving output-copy ownership.
+- The U8 entry point previously accepted some cross-plane aliases. Those
+  layouts retain the original snapshot/materialization and commit order;
+  eliminating those copies would change pixels. U16's stricter original
+  overlap rejection is unchanged. Standalone checked filter APIs retain
+  disabled-stage copies and their existing argument errors.
+- Checked GDF validation is separate from application. The coordinator
+  validates the original workspace and controls at the original stage, then
+  applies GDF only when enabled, allowing identical immutable source views
+  without relaxing writable-destination separation.
+- The shared typed GDF kernel resolves one exact 16x16 neighborhood per 4x4
+  block and retains its 16 directional class-region sums. Boundary-resolved
+  sample queries fall from **1,024 to 256**, and directional sum evaluations
+  from **80 to 16**. Tile/stripe selection, U8/U16 scaling, rounding, saturation,
+  and control indexing are unchanged.
+- Workspace capacities, allocation layout, persistent structure sizes,
+  admission rules, and error/resource records are unchanged. This milestone
+  removes memory traffic and repeated computation, not reserved stage
+  capacity. No heap allocation, mutable global state, SIMD, new compiler
+  flags, or AVM code was added.
+- Nine alternating paired whole-decode rounds against A3 at identical `-O2`
+  flags show **1.413-1.765x** on selected GDF-heavy photographs, **1.359x** on
+  the PC-Wiener fixture, and **2.063x** on the filtered 10-bit boundary case.
+  Twenty-one additional paired control rounds do not reproduce the original
+  prototype's non-GDF regressions. Individual timings, intervals, and limits
+  are recorded in
+  [`dev/performance-baseline.md`](dev/performance-baseline.md#a4-filter-staging-and-gdf-implementation).
+
+### Verification
+
+- **24,000** U8/U16 overlap comparisons retain the original checked row-walk
+  results, including arithmetic overflow, plus explicit interleaved-row and
+  maximum-height disjoint cases.
+- **288** filter combinations compare every coded sample against the original
+  materialized pipeline across monochrome, I420, I444, odd crops, multiple
+  tiles, stripe boundaries, and enabled-stage combinations. Their frozen
+  transcript, **`cd102d5953a1827e`**, was independently verified against the
+  unmodified A3 core. Poisoned scratch verifies inactive stages are untouched.
+  Another **48** cases preserve accepted U8 cross-plane aliases.
+- Both diagnostic configurations pass **33 ASan/UBSan C suites**, **2,460**
+  deterministic public-decode fuzz cases, orchestration and poisoned-scratch
+  reuse tests, and unchanged frozen error/resource transcripts.
+  Intermediate oracle assertions follow the active source when a stage is
+  bypassed; no reference pixels or complete output expectations were changed.
+- All **179 raw hashes**, **14 exact CLI contracts**, and **176 canonical
+  public query/decode hashes** match per configuration. Native and full-LTO
+  canonical frontends preserve container sizes and the three raw-only
+  fixtures' exact rejection records.
+- All **76 production C sources** pass the **4,096-byte** frame guard in both
+  configurations; the native maximum remains **3,760 bytes**. The six changed
+  or helper-dependent filter consumers also pass on Linux and Windows
+  x86-64/ARM64 and Wasm32; their largest measured frame is **1,312 bytes**.
+  Full-LTO canonical backend links emit no oversized-frame warnings.
+- **38** related Python checks, **55** standalone private headers, **35**
+  value-only kernel roots, freestanding symbol checks, formatting, and
+  whitespace checks pass.
 
 ---
 

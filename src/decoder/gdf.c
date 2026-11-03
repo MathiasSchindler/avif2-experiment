@@ -75,43 +75,6 @@ int16_t av2h_deblock_side_threshold(size_t index) {
     return deblock_side_threshold[index];
 }
 
-static int filter_planes_overlap(const Av2hFilterPlane *left, const Av2hFilterPlane *right) {
-    size_t left_row = 0U;
-    size_t right_row = 0U;
-    uintptr_t pointer_max = (uintptr_t)-1;
-    while (left_row < left->height && right_row < right->height) {
-        size_t left_offset;
-        size_t right_offset;
-        uintptr_t left_start;
-        uintptr_t left_end;
-        uintptr_t right_start;
-        uintptr_t right_end;
-        if (!av2h_size_multiply(left_row, left->stride_samples, &left_offset) ||
-            !av2h_size_multiply(right_row, right->stride_samples, &right_offset) ||
-            left_offset > (size_t)pointer_max || right_offset > (size_t)pointer_max ||
-            (uintptr_t)left->data > pointer_max - (uintptr_t)left_offset ||
-            (uintptr_t)right->data > pointer_max - (uintptr_t)right_offset) {
-            return 1;
-        }
-        left_start = (uintptr_t)left->data + (uintptr_t)left_offset;
-        right_start = (uintptr_t)right->data + (uintptr_t)right_offset;
-        if ((uintptr_t)left->width > pointer_max - left_start ||
-            (uintptr_t)right->width > pointer_max - right_start) {
-            return 1;
-        }
-        left_end = left_start + (uintptr_t)left->width;
-        right_end = right_start + (uintptr_t)right->width;
-        if (left_start < right_end && right_start < left_end)
-            return 1;
-        if (left_end <= right_start) {
-            ++left_row;
-        } else {
-            ++right_row;
-        }
-    }
-    return 0;
-}
-
 static unsigned int gdf_gradient_sum(const uint16_t gradient[4][6][6], unsigned int direction,
                                      unsigned int row, unsigned int column) {
     unsigned int sum = 0U;
@@ -162,13 +125,13 @@ static int gdf_frame_arguments_valid(const Av2hFilterPlane *destination,
              destination->width != cdef_luma->width || destination->height != cdef_luma->height ||
              destination->width != deblocked_luma->width ||
              destination->height != deblocked_luma->height ||
-             filter_planes_overlap(destination, baseline_luma) ||
-             filter_planes_overlap(destination, cdef_luma) ||
-             filter_planes_overlap(destination, deblocked_luma) ||
+             filter_plane_rows_overlap(destination, baseline_luma) ||
+             filter_plane_rows_overlap(destination, cdef_luma) ||
+             filter_plane_rows_overlap(destination, deblocked_luma) ||
              (baseline_luma->data != cdef_luma->data &&
-              filter_planes_overlap(baseline_luma, cdef_luma)) ||
-             filter_planes_overlap(baseline_luma, deblocked_luma) ||
-             filter_planes_overlap(cdef_luma, deblocked_luma) || frame->gdf_mode > 2U ||
+              filter_plane_rows_overlap(baseline_luma, cdef_luma)) ||
+             filter_plane_rows_overlap(baseline_luma, deblocked_luma) ||
+             filter_plane_rows_overlap(cdef_luma, deblocked_luma) || frame->gdf_mode > 2U ||
              frame->gdf_qp_index >= 4U || frame->gdf_scale_index >= 4U ||
              (destination->width & 3U) != 0U || (destination->height & 3U) != 0U);
 }
