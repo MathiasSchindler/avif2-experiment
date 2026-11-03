@@ -54,15 +54,11 @@ static Av2hStatus reconstruct_lossless_4x4_u16(const Av2hCoeffBlock *coefficient
     return AV2H_OK;
 }
 
-Av2hStatus av2h_chroma_inverse_cross_transform(
-    Av2hCoeffBlock *u_coefficients,
-    Av2hCoeffBlock *v_coefficients,
-    uint8_t cctx_type,
-    uint8_t bit_depth) {
-    static const int32_t matrix[6U][2U] = {
-        { 181, 181 }, { 222, 128 }, { 128, 222 },
-        { 181, -181 }, { 222, -128 }, { 128, -222 }
-    };
+Av2hStatus av2h_chroma_inverse_cross_transform(Av2hCoeffBlock *u_coefficients,
+                                               Av2hCoeffBlock *v_coefficients, uint8_t cctx_type,
+                                               uint8_t bit_depth) {
+    static const int32_t matrix[6U][2U] = {{181, 181},  {222, 128},  {128, 222},
+                                           {181, -181}, {222, -128}, {128, -222}};
     size_t index;
     int32_t coefficient_limit;
     if (u_coefficients == NULL || v_coefficients == NULL || cctx_type > 6U ||
@@ -70,7 +66,8 @@ Av2hStatus av2h_chroma_inverse_cross_transform(
         u_coefficients->coefficient_count != v_coefficients->coefficient_count) {
         return AV2H_INVALID_ARGUMENT;
     }
-    if (cctx_type == 0U) return AV2H_OK;
+    if (cctx_type == 0U)
+        return AV2H_OK;
     coefficient_limit = 1 << (7U + bit_depth);
     u_coefficients->nonzero_count = 0U;
     v_coefficients->nonzero_count = 0U;
@@ -78,13 +75,9 @@ Av2hStatus av2h_chroma_inverse_cross_transform(
         int32_t u = u_coefficients->dequantized[index];
         int32_t v = v_coefficients->dequantized[index];
         int32_t first = av2h_sample_round_pow2_signed(
-            (int64_t)matrix[cctx_type - 1U][0U] * u -
-                (int64_t)matrix[cctx_type - 1U][1U] * v,
-            8U);
+            (int64_t)matrix[cctx_type - 1U][0U] * u - (int64_t)matrix[cctx_type - 1U][1U] * v, 8U);
         int32_t second = av2h_sample_round_pow2_signed(
-            (int64_t)matrix[cctx_type - 1U][1U] * u +
-                (int64_t)matrix[cctx_type - 1U][0U] * v,
-            8U);
+            (int64_t)matrix[cctx_type - 1U][1U] * u + (int64_t)matrix[cctx_type - 1U][0U] * v, 8U);
         u_coefficients->dequantized[index] =
             av2h_sample_clamp(first, -coefficient_limit, coefficient_limit - 1);
         v_coefficients->dequantized[index] =

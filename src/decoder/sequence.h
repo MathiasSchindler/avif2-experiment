@@ -79,53 +79,44 @@ typedef struct {
     uint16_t tile_row_start_sb[AV2H_MAX_TILE_ROWS + 1U];
 } Av2hSequenceState;
 
-static inline size_t av2h_sequence_segment_count(
-    const Av2hSequenceState *sequence) {
-    return sequence != NULL && sequence->enable_ext_seg != 0U ?
-        AV2H_SEGMENT_COUNT : AV2H_BASE_SEGMENT_COUNT;
+static inline size_t av2h_sequence_segment_count(const Av2hSequenceState *sequence) {
+    return sequence != NULL && sequence->enable_ext_seg != 0U ? AV2H_SEGMENT_COUNT
+                                                              : AV2H_BASE_SEGMENT_COUNT;
 }
 
-static inline int av2h_sequence_is_monochrome(
-    const Av2hSequenceState *sequence) {
+static inline int av2h_sequence_is_monochrome(const Av2hSequenceState *sequence) {
     return sequence != NULL && sequence->info.chroma_format_idc == 1U;
 }
 
-static inline unsigned int av2h_sequence_plane_count(
-    const Av2hSequenceState *sequence) {
+static inline unsigned int av2h_sequence_plane_count(const Av2hSequenceState *sequence) {
     return av2h_sequence_is_monochrome(sequence) ? 1U : 3U;
 }
 
-static inline uint16_t av2h_sequence_max_q_index(
-    const Av2hSequenceState *sequence) {
+static inline uint16_t av2h_sequence_max_q_index(const Av2hSequenceState *sequence) {
     return sequence != NULL && sequence->info.bit_depth_idc == 0U ? 303U : 255U;
 }
 
-static inline uint16_t av2h_sequence_clamp_delta_q_index(
-    const Av2hSequenceState *sequence,
-    int q_index) {
+static inline uint16_t av2h_sequence_clamp_delta_q_index(const Av2hSequenceState *sequence,
+                                                         int q_index) {
     int maximum = (int)av2h_sequence_max_q_index(sequence);
-    if (q_index < 1) return 1U;
-    if (q_index > maximum) return (uint16_t)maximum;
+    if (q_index < 1)
+        return 1U;
+    if (q_index > maximum)
+        return (uint16_t)maximum;
     return (uint16_t)q_index;
 }
 
-static inline unsigned int av2h_chroma_shift(
-    uint8_t chroma_format_idc,
-    unsigned int plane) {
+static inline unsigned int av2h_chroma_shift(uint8_t chroma_format_idc, unsigned int plane) {
     return plane != 0U && chroma_format_idc != 2U ? 1U : 0U;
 }
 
-static inline size_t av2h_plane_dimension(
-    size_t luma_dimension,
-    uint8_t chroma_format_idc,
-    unsigned int plane) {
+static inline size_t av2h_plane_dimension(size_t luma_dimension, uint8_t chroma_format_idc,
+                                          unsigned int plane) {
     unsigned int shift = av2h_chroma_shift(chroma_format_idc, plane);
     return (luma_dimension + ((size_t)1U << shift) - 1U) >> shift;
 }
 
-Av2hStatus av2h_sequence_state_parse(Av2hSpan input,
-                                      const Av2hObu *obu,
-                                      Av2hSequenceState *state,
-                                      Av2hError *error);
+Av2hStatus av2h_sequence_state_parse(Av2hSpan input, const Av2hObu *obu, Av2hSequenceState *state,
+                                     Av2hError *error);
 
 #endif

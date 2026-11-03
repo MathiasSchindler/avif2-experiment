@@ -1,6 +1,6 @@
-static int AV2H_KERNEL_NAME(sized_u8_plane_bytes, sized_u16_plane_bytes)(size_t stride_samples,
-                                                                         size_t height,
-                                                                         size_t *size_bytes) {
+static int
+AV2H_KERNEL_NAME(sized_u8_plane_bytes,
+                 sized_u16_plane_bytes)(size_t stride_samples, size_t height, size_t *size_bytes) {
 #if AV2H_KERNEL_WIDE
     size_t sample_count;
     return av2h_size_multiply(stride_samples, height, &sample_count) &&
@@ -9,21 +9,22 @@ static int AV2H_KERNEL_NAME(sized_u8_plane_bytes, sized_u16_plane_bytes)(size_t 
     return av2h_size_multiply(stride_samples, height, size_bytes);
 #endif
 }
-Av2hStatus AV2H_KERNEL_NAME(av2h_frame_output_validate_u8, av2h_frame_output_validate_u16)(
-    const Av2hFrameState *frame,
-    const
+Av2hStatus AV2H_KERNEL_NAME(
+    av2h_frame_output_validate_u8,
+    av2h_frame_output_validate_u16)(const Av2hFrameState *frame,
+                                         const
 #if AV2H_KERNEL_WIDE
-    Av2hReconstructionPlaneU16
+                                         Av2hReconstructionPlaneU16
 #else
-    Av2hFilterPlanes *
+                              Av2hFilterPlanes *
 #endif
-        coded
+                                             coded
 #if AV2H_KERNEL_WIDE
-            [AV2H_FRAME_PLANE_COUNT]
+                                                 [AV2H_FRAME_PLANE_COUNT]
 #endif
-    ,
-    const size_t coded_data_size_bytes[AV2H_FRAME_PLANE_COUNT], uint8_t *output,
-    size_t output_size_bytes) {
+                                         ,
+                                         const size_t coded_data_size_bytes[AV2H_FRAME_PLANE_COUNT],
+                                         uint8_t *output, size_t output_size_bytes) {
     Av2hFilterWorkspaceLayout layout;
     size_t required_output_bytes;
     unsigned int plane;
@@ -57,8 +58,9 @@ Av2hStatus AV2H_KERNEL_NAME(av2h_frame_output_validate_u8, av2h_frame_output_val
         if (source->data == NULL || source->width != layout.plane_width[plane] ||
             source->height != layout.plane_height[plane] ||
             source->stride_samples < source->width ||
-            !AV2H_KERNEL_NAME(sized_u8_plane_bytes, sized_u16_plane_bytes)(
-                source->stride_samples, source->height, &source_size_bytes) ||
+            !AV2H_KERNEL_NAME(
+                sized_u8_plane_bytes,
+                sized_u16_plane_bytes)(source->stride_samples, source->height, &source_size_bytes) ||
             source_size_bytes > coded_data_size_bytes[plane] ||
             output_overlaps(output, required_output_bytes, source->data, source_size_bytes)) {
             return AV2H_INVALID_ARGUMENT;

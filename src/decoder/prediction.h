@@ -44,36 +44,20 @@ typedef struct {
     uint8_t has_above_left;
 } Av2hLumaReferencesU16;
 
-Av2hStatus av2h_luma_predict(
-    const Av2hLeafMode *mode,
-    uint16_t width,
-    uint16_t height,
-    const Av2hLumaReferences *references,
-    uint8_t *predictor,
-    size_t predictor_stride_samples);
+Av2hStatus av2h_luma_predict(const Av2hLeafMode *mode, uint16_t width, uint16_t height,
+                             const Av2hLumaReferences *references, uint8_t *predictor,
+                             size_t predictor_stride_samples);
 
-Av2hStatus av2h_chroma_predict(
-    const Av2hChromaLeafMode *mode,
-    uint16_t width,
-    uint16_t height,
-    const Av2hLumaReferences *references,
-    uint8_t *predictor,
-    size_t predictor_stride_samples);
+Av2hStatus av2h_chroma_predict(const Av2hChromaLeafMode *mode, uint16_t width, uint16_t height,
+                               const Av2hLumaReferences *references, uint8_t *predictor,
+                               size_t predictor_stride_samples);
 
-Av2hStatus av2h_luma_predict_u16(
-    const Av2hLeafMode *mode,
-    uint16_t width,
-    uint16_t height,
-    const Av2hLumaReferencesU16 *references,
-    uint16_t *predictor,
-    size_t predictor_stride_samples, const Av2hSampleDomain *domain);
+Av2hStatus av2h_luma_predict_u16(const Av2hLeafMode *mode, uint16_t width, uint16_t height,
+                                 const Av2hLumaReferencesU16 *references, uint16_t *predictor,
+                                 size_t predictor_stride_samples, const Av2hSampleDomain *domain);
 
-Av2hStatus av2h_chroma_predict_u16(
-    const Av2hLeafMode *mode,
-    uint16_t width,
-    uint16_t height,
-    const Av2hLumaReferencesU16 *references,
-    uint16_t *predictor,
-    size_t predictor_stride_samples, const Av2hSampleDomain *domain);
+Av2hStatus av2h_chroma_predict_u16(const Av2hLeafMode *mode, uint16_t width, uint16_t height,
+                                   const Av2hLumaReferencesU16 *references, uint16_t *predictor,
+                                   size_t predictor_stride_samples, const Av2hSampleDomain *domain);
 
 #endif

@@ -1,7 +1,7 @@
-static AV2H_KERNEL_TYPE(uint8_t, uint16_t)
-    AV2H_KERNEL_NAME(directional_reference, directional_reference_u16)(
-        const AV2H_KERNEL_TYPE(uint8_t, uint16_t) * reference, size_t reference_count,
-        AV2H_KERNEL_TYPE(uint8_t, uint16_t) above_left, int index) {
+static AV2H_KERNEL_TYPE(uint8_t, uint16_t) AV2H_KERNEL_NAME(
+    directional_reference,
+    directional_reference_u16)(const AV2H_KERNEL_TYPE(uint8_t, uint16_t) *reference, size_t reference_count,
+                               AV2H_KERNEL_TYPE(uint8_t, uint16_t) above_left, int index) {
     if (index < 0 || reference == NULL || reference_count == 0U)
         return above_left;
     if ((size_t)index >= reference_count)
@@ -9,12 +9,15 @@ static AV2H_KERNEL_TYPE(uint8_t, uint16_t)
     return reference[index];
 }
 
-static void AV2H_KERNEL_NAME(directional_project_zone1_u8, directional_project_zone1_u16)(
-    const Av2hLeafMode *mode, int angle, uint16_t width, uint16_t height,
-    const AV2H_KERNEL_TYPE(uint8_t, uint16_t) * above_edge,
-    const AV2H_KERNEL_TYPE(uint8_t, uint16_t) * left_edge,
-    AV2H_KERNEL_TYPE(uint8_t, uint16_t) * predictor, size_t predictor_stride_samples,
-    Av2hDirectionalProjectionPolicy policy, const Av2hSampleDomain *domain) {
+static void AV2H_KERNEL_NAME(
+    directional_project_zone1_u8,
+    directional_project_zone1_u16)(const Av2hLeafMode *mode, int angle, uint16_t width,
+                                         uint16_t height, const AV2H_KERNEL_TYPE(uint8_t, uint16_t) *above_edge,
+                                         const AV2H_KERNEL_TYPE(uint8_t, uint16_t) *left_edge,
+                                   AV2H_KERNEL_TYPE(uint8_t, uint16_t) *predictor,
+                                         size_t predictor_stride_samples,
+                                         Av2hDirectionalProjectionPolicy policy,
+                                         const Av2hSampleDomain *domain) {
     uint16_t row;
     int dx = directional_derivative[angle];
     int max_base = (int)width + height - 1 + 2 * mode->mrl_index;
@@ -37,8 +40,8 @@ static void AV2H_KERNEL_NAME(directional_project_zone1_u8, directional_project_z
                 for (tap = 0U; tap < 4U; ++tap) {
                     sum += dr_interp_filter[shift][tap] * above_edge[base + (int)tap - 1];
                 }
-                primary = (AV2H_KERNEL_TYPE(uint8_t, uint16_t))av2h_sample_clip_to_domain(
-                    (sum + 64) >> 7U, domain);
+                primary = (AV2H_KERNEL_TYPE(
+                    uint8_t, uint16_t))av2h_sample_clip_to_domain((sum + 64) >> 7U, domain);
             }
             if (mode->mrl_index == 0U && mode->enable_ibp && mode->angle_delta % 2 == 0) {
                 int secondary_dy = directional_derivative[90 - angle];
@@ -62,25 +65,28 @@ static void AV2H_KERNEL_NAME(directional_project_zone1_u8, directional_project_z
                         sum += dr_interp_filter[secondary_shift][tap] *
                                left_edge[secondary_base + (int)tap - 1];
                     }
-                    secondary = (AV2H_KERNEL_TYPE(uint8_t, uint16_t))av2h_sample_clip_to_domain(
-                        (sum + 64) >> 7U, domain);
+                    secondary = (AV2H_KERNEL_TYPE(
+                        uint8_t, uint16_t))av2h_sample_clip_to_domain((sum + 64) >> 7U, domain);
                 }
                 weight = directional_ibp_weight(row >> (height >> 5U), column >> (width >> 5U),
                                                 weight_dy);
-                primary = (AV2H_KERNEL_TYPE(uint8_t, uint16_t))(
-                    (primary * weight + secondary * (128U - weight) + 64U) >> 7U);
+                primary = (AV2H_KERNEL_TYPE(
+                    uint8_t,
+                    uint16_t))((primary * weight + secondary * (128U - weight) + 64U) >> 7U);
             }
             predictor[(size_t)row * predictor_stride_samples + column] = primary;
         }
     }
 }
 
-static void AV2H_KERNEL_NAME(directional_project_zone2_u8, directional_project_zone2_u16)(
-    const Av2hLeafMode *mode, int angle, uint16_t width, uint16_t height,
-    const AV2H_KERNEL_TYPE(uint8_t, uint16_t) * above_edge,
-    const AV2H_KERNEL_TYPE(uint8_t, uint16_t) * left_edge, size_t edge_count,
-    AV2H_KERNEL_TYPE(uint8_t, uint16_t) * predictor, size_t predictor_stride_samples,
-    Av2hDirectionalProjectionPolicy policy, const Av2hSampleDomain *domain) {
+static void AV2H_KERNEL_NAME(
+    directional_project_zone2_u8,
+    directional_project_zone2_u16)(const Av2hLeafMode *mode, int angle, uint16_t width,
+                                         uint16_t height, const AV2H_KERNEL_TYPE(uint8_t, uint16_t) *above_edge,
+                                         const AV2H_KERNEL_TYPE(uint8_t, uint16_t) *left_edge, size_t edge_count,
+                                   AV2H_KERNEL_TYPE(uint8_t, uint16_t) *predictor, size_t predictor_stride_samples,
+                                         Av2hDirectionalProjectionPolicy policy,
+                                         const Av2hSampleDomain *domain) {
     uint16_t row;
     const int dx = directional_derivative[180 - angle];
     const int dy = directional_derivative[angle - 90];
@@ -105,12 +111,10 @@ static void AV2H_KERNEL_NAME(directional_project_zone2_u8, directional_project_z
             } else {
                 for (tap = 0U; tap < 4U; ++tap) {
                     int reference_index = base + (int)tap - 1;
-                    AV2H_KERNEL_TYPE(uint8_t, uint16_t)
-                    sample =
-                        mode->mrl_index != 0U
-                            ? reference[reference_index]
-                            : AV2H_KERNEL_NAME(directional_reference, directional_reference_u16)(
-                                  reference, edge_count, reference[-1], reference_index);
+                    AV2H_KERNEL_TYPE(uint8_t, uint16_t) sample = mode->mrl_index != 0U
+                                         ? reference[reference_index]
+                                         : AV2H_KERNEL_NAME(directional_reference, directional_reference_u16)(reference, edge_count,
+                                                                 reference[-1], reference_index);
                     sum += dr_interp_filter[shift][tap] * sample;
                 }
             }
@@ -121,12 +125,14 @@ static void AV2H_KERNEL_NAME(directional_project_zone2_u8, directional_project_z
     }
 }
 
-static void AV2H_KERNEL_NAME(directional_project_zone3_u8, directional_project_zone3_u16)(
-    const Av2hLeafMode *mode, int angle, uint16_t width, uint16_t height,
-    const AV2H_KERNEL_TYPE(uint8_t, uint16_t) * above_edge,
-    const AV2H_KERNEL_TYPE(uint8_t, uint16_t) * left_edge, size_t edge_count,
-    AV2H_KERNEL_TYPE(uint8_t, uint16_t) * predictor, size_t predictor_stride_samples,
-    Av2hDirectionalProjectionPolicy policy, const Av2hSampleDomain *domain) {
+static void AV2H_KERNEL_NAME(
+    directional_project_zone3_u8,
+    directional_project_zone3_u16)(const Av2hLeafMode *mode, int angle, uint16_t width,
+                                         uint16_t height, const AV2H_KERNEL_TYPE(uint8_t, uint16_t) *above_edge,
+                                         const AV2H_KERNEL_TYPE(uint8_t, uint16_t) *left_edge, size_t edge_count,
+                                   AV2H_KERNEL_TYPE(uint8_t, uint16_t) *predictor, size_t predictor_stride_samples,
+                                         Av2hDirectionalProjectionPolicy policy,
+                                         const Av2hSampleDomain *domain) {
     uint16_t column;
     int dy = directional_derivative[270 - angle];
     int max_base = (int)width + height - 1 + 2 * mode->mrl_index;
@@ -148,16 +154,14 @@ static void AV2H_KERNEL_NAME(directional_project_zone3_u8, directional_project_z
             } else {
                 for (tap = 0U; tap < 4U; ++tap) {
                     int reference_index = base + (int)tap - 1;
-                    AV2H_KERNEL_TYPE(uint8_t, uint16_t)
-                    sample =
-                        policy.unclamped_mrl && mode->mrl_index != 0U
-                            ? left_edge[reference_index]
-                            : AV2H_KERNEL_NAME(directional_reference, directional_reference_u16)(
-                                  left_edge, edge_count, left_edge[-1], reference_index);
+                    AV2H_KERNEL_TYPE(uint8_t, uint16_t) sample = policy.unclamped_mrl && mode->mrl_index != 0U
+                                         ? left_edge[reference_index]
+                                         : AV2H_KERNEL_NAME(directional_reference, directional_reference_u16)(left_edge, edge_count,
+                                                                 left_edge[-1], reference_index);
                     sum += dr_interp_filter[shift][tap] * sample;
                 }
-                primary = (AV2H_KERNEL_TYPE(uint8_t, uint16_t))av2h_sample_clip_to_domain(
-                    (sum + 64) >> 7U, domain);
+                primary = (AV2H_KERNEL_TYPE(
+                    uint8_t, uint16_t))av2h_sample_clip_to_domain((sum + 64) >> 7U, domain);
             }
             if (mode->mrl_index == 0U && mode->enable_ibp && mode->angle_delta % 2 == 0) {
                 int secondary_dx = directional_derivative[angle - 180];
@@ -180,17 +184,21 @@ static void AV2H_KERNEL_NAME(directional_project_zone3_u8, directional_project_z
                     for (tap = 0U; tap < 4U; ++tap) {
                         secondary_sum +=
                             dr_interp_filter[secondary_shift][tap] *
-                            AV2H_KERNEL_NAME(directional_reference, directional_reference_u16)(
-                                above_edge, edge_count, above_edge[-1],
-                                secondary_base + (int)tap - 1);
+                            AV2H_KERNEL_NAME(
+                                directional_reference,
+                                directional_reference_u16)(above_edge, edge_count, above_edge[-1],
+                                                  secondary_base + (int)tap - 1);
                     }
-                    secondary = (AV2H_KERNEL_TYPE(uint8_t, uint16_t))av2h_sample_clip_to_domain(
-                        (secondary_sum + 64) >> 7U, domain);
+                    secondary =
+                        (AV2H_KERNEL_TYPE(
+                            uint8_t,
+                            uint16_t))av2h_sample_clip_to_domain((secondary_sum + 64) >> 7U, domain);
                 }
                 weight = directional_ibp_weight(column >> (width >> 5U), row >> (height >> 5U),
                                                 weight_dy);
-                primary = (AV2H_KERNEL_TYPE(uint8_t, uint16_t))(
-                    (primary * weight + secondary * (128U - weight) + 64U) >> 7U);
+                primary = (AV2H_KERNEL_TYPE(
+                    uint8_t,
+                    uint16_t))((primary * weight + secondary * (128U - weight) + 64U) >> 7U);
             }
             predictor[(size_t)row * predictor_stride_samples + column] = primary;
         }

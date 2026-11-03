@@ -1,7 +1,7 @@
-static int AV2H_KERNEL_NAME(deblock_direction_error, deblock_direction_error_u16)(
-    const AV2H_KERNEL_TYPE(uint8_t, uint16_t) * sample,
-    const AV2H_KERNEL_TYPE(uint8_t, uint16_t) * parallel_sample, ptrdiff_t step,
-    unsigned int distance, int negative) {
+static int AV2H_KERNEL_NAME(
+    deblock_direction_error,
+    deblock_direction_error_u16)(const AV2H_KERNEL_TYPE(uint8_t, uint16_t) *sample, const AV2H_KERNEL_TYPE(uint8_t, uint16_t) *parallel_sample,
+                                   ptrdiff_t step, unsigned int distance, int negative) {
     ptrdiff_t endpoint = negative ? -((ptrdiff_t)distance + 1) * step : (ptrdiff_t)distance * step;
     ptrdiff_t edge = negative ? -step : 0;
     ptrdiff_t adjacent = negative ? -2 * step : step;
@@ -11,10 +11,12 @@ static int AV2H_KERNEL_NAME(deblock_direction_error, deblock_direction_error_u16
                  (int)distance * (parallel_sample[edge] - parallel_sample[adjacent]);
     return (av2h_sample_abs(first) + av2h_sample_abs(second) + 1) >> 1;
 }
-static unsigned int AV2H_KERNEL_NAME(deblock_filter_choice, deblock_filter_choice_u16)(
-    const AV2H_KERNEL_TYPE(uint8_t, uint16_t) * sample, ptrdiff_t step, uint8_t negative_length,
-    uint8_t positive_length, uint16_t q_threshold, uint16_t side_threshold,
-    const AV2H_KERNEL_TYPE(uint8_t, uint16_t) * parallel_sample) {
+static unsigned int AV2H_KERNEL_NAME(
+    deblock_filter_choice,
+    deblock_filter_choice_u16)(const AV2H_KERNEL_TYPE(uint8_t, uint16_t) *sample, ptrdiff_t step,
+                                          uint8_t negative_length, uint8_t positive_length,
+                                          uint16_t q_threshold, uint16_t side_threshold,
+                                          const AV2H_KERNEL_TYPE(uint8_t, uint16_t) *parallel_sample) {
     int second_derivative[4];
     unsigned int negative_max = negative_length / 2U - 1U;
     unsigned int positive_max = positive_length / 2U - 1U;
@@ -68,10 +70,12 @@ static unsigned int AV2H_KERNEL_NAME(deblock_filter_choice, deblock_filter_choic
     }
     end_threshold = ((int)side_threshold * 3) >> 4;
     if ((negative_max > 2U &&
-         AV2H_KERNEL_NAME(deblock_direction_error, deblock_direction_error_u16)(
-             sample, parallel_sample, step, 3U, 1) > end_threshold) ||
-        AV2H_KERNEL_NAME(deblock_direction_error, deblock_direction_error_u16)(
-            sample, parallel_sample, step, 3U, 0) > end_threshold) {
+         AV2H_KERNEL_NAME(
+             deblock_direction_error,
+             deblock_direction_error_u16)(sample, parallel_sample, step, 3U, 1) > end_threshold) ||
+        AV2H_KERNEL_NAME(
+            deblock_direction_error,
+            deblock_direction_error_u16)(sample, parallel_sample, step, 3U, 0) > end_threshold) {
         return 2U;
     }
     if (positive_max == 3U)
@@ -82,10 +86,14 @@ static unsigned int AV2H_KERNEL_NAME(deblock_filter_choice, deblock_filter_choic
         end_threshold = ((int)side_threshold * (int)distance) >> 4;
         if (transition > (int)q_threshold * deblock_first_threshold[distance - 4U] ||
             (negative_max >= tested_distance &&
-             AV2H_KERNEL_NAME(deblock_direction_error, deblock_direction_error_u16)(
-                 sample, parallel_sample, step, tested_distance, 1) > end_threshold) ||
-            AV2H_KERNEL_NAME(deblock_direction_error, deblock_direction_error_u16)(
-                sample, parallel_sample, step, tested_distance, 0) > end_threshold) {
+             AV2H_KERNEL_NAME(
+                 deblock_direction_error,
+                 deblock_direction_error_u16)(sample, parallel_sample, step, tested_distance, 1) >
+                 end_threshold) ||
+            AV2H_KERNEL_NAME(
+                deblock_direction_error,
+                deblock_direction_error_u16)(sample, parallel_sample, step, tested_distance, 0) >
+                end_threshold) {
             return distance == 4U ? 3U : distance - 2U;
         }
         if (positive_max <= tested_distance) {
@@ -95,12 +103,12 @@ static unsigned int AV2H_KERNEL_NAME(deblock_filter_choice, deblock_filter_choic
     return AV2H_DEBLOCK_MAX_SAMPLES;
 }
 static void AV2H_KERNEL_NAME(deblock_filter_lane, deblock_filter_lane_u16)(
-    AV2H_KERNEL_TYPE(uint8_t, uint16_t) * sample, ptrdiff_t step, unsigned int negative_width,
-    unsigned int positive_width, uint16_t q_threshold, uint8_t negative_lossless,
-    uint8_t positive_lossless
+    AV2H_KERNEL_TYPE(uint8_t, uint16_t) *sample, ptrdiff_t step, unsigned int negative_width,
+                                unsigned int positive_width, uint16_t q_threshold,
+                                uint8_t negative_lossless, uint8_t positive_lossless
 #if AV2H_KERNEL_WIDE
-    ,
-    const Av2hSampleDomain *domain
+                                ,
+                                const Av2hSampleDomain *domain
 #endif
 ) {
 #if !AV2H_KERNEL_WIDE
@@ -129,12 +137,13 @@ static void AV2H_KERNEL_NAME(deblock_filter_lane, deblock_filter_lane_u16)(
     }
 }
 static Av2hStatus AV2H_KERNEL_NAME(deblock_edge, deblock_edge_u16)(
-    AV2H_KERNEL_TYPE(Av2hFilterPlane, Av2hFilterPlaneU16) * plane, uint16_t x, uint16_t y,
-    uint8_t vertical, uint8_t negative_length, uint8_t positive_length, uint16_t q_threshold,
-    uint16_t side_threshold, uint8_t negative_lossless, uint8_t positive_lossless
+    AV2H_KERNEL_TYPE(Av2hFilterPlane, Av2hFilterPlaneU16) *plane, uint16_t x, uint16_t y, uint8_t vertical,
+                               uint8_t negative_length, uint8_t positive_length,
+                               uint16_t q_threshold, uint16_t side_threshold,
+                               uint8_t negative_lossless, uint8_t positive_lossless
 #if AV2H_KERNEL_WIDE
-    ,
-    const Av2hSampleDomain *domain
+                               ,
+                               const Av2hSampleDomain *domain
 #endif
 ) {
 #if AV2H_KERNEL_WIDE
@@ -147,7 +156,7 @@ static Av2hStatus AV2H_KERNEL_NAME(deblock_edge, deblock_edge_u16)(
     unsigned int positive_required;
     ptrdiff_t step;
     ptrdiff_t lane_step;
-    AV2H_KERNEL_TYPE(uint8_t, uint16_t) * sample;
+    AV2H_KERNEL_TYPE(uint8_t, uint16_t) *sample;
     unsigned int filter;
     unsigned int lane;
     if (plane == NULL || plane->data == NULL || plane->stride_samples < plane->width ||
@@ -171,9 +180,10 @@ static Av2hStatus AV2H_KERNEL_NAME(deblock_edge, deblock_edge_u16)(
     step = vertical != 0U ? 1 : (ptrdiff_t)plane->stride_samples;
     lane_step = vertical != 0U ? (ptrdiff_t)plane->stride_samples : 1;
     sample = plane->data + (size_t)y * plane->stride_samples + x;
-    filter = AV2H_KERNEL_NAME(deblock_filter_choice, deblock_filter_choice_u16)(
-        sample, step, negative_length, positive_length, q_threshold, side_threshold,
-        sample + 3 * lane_step);
+    filter = AV2H_KERNEL_NAME(
+        deblock_filter_choice,
+        deblock_filter_choice_u16)(sample, step, negative_length, positive_length, q_threshold,
+                                   side_threshold, sample + 3 * lane_step);
     if (filter == 0U)
         return AV2H_OK;
     if (negative_max > filter)
@@ -190,12 +200,12 @@ static Av2hStatus AV2H_KERNEL_NAME(deblock_edge, deblock_edge_u16)(
     return AV2H_OK;
 }
 Av2hStatus AV2H_KERNEL_NAME(av2h_deblock_edge, av2h_deblock_edge_u16)(
-    AV2H_KERNEL_TYPE(Av2hFilterPlane, Av2hFilterPlaneU16) * plane, uint16_t x, uint16_t y,
-    uint8_t vertical, uint8_t negative_length, uint8_t positive_length, uint16_t q_threshold,
-    uint16_t side_threshold
+    AV2H_KERNEL_TYPE(Av2hFilterPlane, Av2hFilterPlaneU16) *plane, uint16_t x, uint16_t y, uint8_t vertical,
+                             uint8_t negative_length, uint8_t positive_length, uint16_t q_threshold,
+                             uint16_t side_threshold
 #if AV2H_KERNEL_WIDE
-    ,
-    const Av2hSampleDomain *domain
+                             ,
+                             const Av2hSampleDomain *domain
 #endif
 ) {
 #if AV2H_KERNEL_WIDE
@@ -208,9 +218,9 @@ Av2hStatus AV2H_KERNEL_NAME(av2h_deblock_edge, av2h_deblock_edge_u16)(
                         side_threshold, 0U, 0U);
 #endif
 }
-int AV2H_KERNEL_NAME(av2h_deblock_map_valid, av2h_deblock_map_valid_u16)(
-    const AV2H_KERNEL_TYPE(Av2hFilterPlanes, Av2hFilterPlanesU16) * planes,
-    const Av2hDeblockMap *map) {
+int AV2H_KERNEL_NAME(
+    av2h_deblock_map_valid,
+    av2h_deblock_map_valid_u16)(const AV2H_KERNEL_TYPE(Av2hFilterPlanes, Av2hFilterPlanesU16) *planes, const Av2hDeblockMap *map) {
     unsigned int plane;
     if (map == NULL)
         return 0;
@@ -245,12 +255,13 @@ int AV2H_KERNEL_NAME(av2h_deblock_map_valid, av2h_deblock_map_valid_u16)(
     return 1;
 }
 static Av2hStatus AV2H_KERNEL_NAME(deblock_frame_edge, deblock_frame_edge_u16)(
-    AV2H_KERNEL_TYPE(Av2hFilterPlane, Av2hFilterPlaneU16) * plane_data,
-    const Av2hSequenceState *sequence, const Av2hFrameState *frame, const Av2hDeblockMap *map,
-    unsigned int plane, unsigned int pass, size_t row, size_t column
+    AV2H_KERNEL_TYPE(Av2hFilterPlane, Av2hFilterPlaneU16) *plane_data, const Av2hSequenceState *sequence,
+                                     const Av2hFrameState *frame, const Av2hDeblockMap *map,
+                                     unsigned int plane, unsigned int pass, size_t row,
+                                     size_t column
 #if AV2H_KERNEL_WIDE
-    ,
-    const Av2hSampleDomain *domain
+                                     ,
+                                     const Av2hSampleDomain *domain
 #endif
 ) {
 #if AV2H_KERNEL_WIDE
@@ -375,11 +386,11 @@ static Av2hStatus AV2H_KERNEL_NAME(deblock_frame_edge, deblock_frame_edge_u16)(
 #endif
 }
 Av2hStatus AV2H_KERNEL_NAME(av2h_deblock_filter_frame, av2h_deblock_filter_frame_u16)(
-    AV2H_KERNEL_TYPE(Av2hFilterPlanes, Av2hFilterPlanesU16) * planes,
-    const Av2hSequenceState *sequence, const Av2hFrameState *frame, const Av2hDeblockMap *map
+    AV2H_KERNEL_TYPE(Av2hFilterPlanes, Av2hFilterPlanesU16) *planes, const Av2hSequenceState *sequence,
+                                     const Av2hFrameState *frame, const Av2hDeblockMap *map
 #if AV2H_KERNEL_WIDE
-    ,
-    const Av2hSampleDomain *domain
+                                     ,
+                                     const Av2hSampleDomain *domain
 #endif
 ) {
 #if AV2H_KERNEL_WIDE
@@ -388,8 +399,7 @@ Av2hStatus AV2H_KERNEL_NAME(av2h_deblock_filter_frame, av2h_deblock_filter_frame
 #endif
     unsigned int plane;
     if (planes == NULL || sequence == NULL || frame == NULL ||
-        !AV2H_KERNEL_NAME(filter_dimensions_valid, filter_dimensions_valid_u16)(planes, frame) ||
-        !AV2H_KERNEL_NAME(av2h_deblock_map_valid, av2h_deblock_map_valid_u16)(planes, map)) {
+        !AV2H_KERNEL_NAME(filter_dimensions_valid, filter_dimensions_valid_u16)(planes, frame) || !AV2H_KERNEL_NAME(av2h_deblock_map_valid, av2h_deblock_map_valid_u16)(planes, map)) {
         return AV2H_INVALID_ARGUMENT;
     }
     for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {

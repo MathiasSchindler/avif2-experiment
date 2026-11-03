@@ -1,7 +1,7 @@
-static AV2H_KERNEL_TYPE(Av2hFilterPlane, Av2hFilterPlaneU16)
-    AV2H_KERNEL_NAME(cdef_plane_view, cdef_plane_view_u16)(
-        const AV2H_KERNEL_TYPE(Av2hFilterPlane, Av2hFilterPlaneU16) * plane,
-        const CdefTileBounds *bounds, unsigned int shift) {
+static AV2H_KERNEL_TYPE(Av2hFilterPlane, Av2hFilterPlaneU16) AV2H_KERNEL_NAME(
+    cdef_plane_view,
+    cdef_plane_view_u16)(const AV2H_KERNEL_TYPE(Av2hFilterPlane, Av2hFilterPlaneU16) *plane, const CdefTileBounds *bounds,
+                                       unsigned int shift) {
     AV2H_KERNEL_TYPE(Av2hFilterPlane, Av2hFilterPlaneU16) view = *plane;
     size_t left = bounds->left >> shift;
     size_t top = bounds->top >> shift;
@@ -10,12 +10,13 @@ static AV2H_KERNEL_TYPE(Av2hFilterPlane, Av2hFilterPlaneU16)
     view.height = (uint16_t)((bounds->bottom >> shift) - top);
     return view;
 }
-Av2hStatus AV2H_KERNEL_NAME(av2h_cdef_find_direction, av2h_cdef_find_direction_u16)(
-    const AV2H_KERNEL_TYPE(Av2hFilterPlane, Av2hFilterPlaneU16) * luma, uint16_t x, uint16_t y,
-    uint8_t *direction, uint32_t *variance
+Av2hStatus AV2H_KERNEL_NAME(
+    av2h_cdef_find_direction,
+    av2h_cdef_find_direction_u16)(const AV2H_KERNEL_TYPE(Av2hFilterPlane, Av2hFilterPlaneU16) *luma, uint16_t x, uint16_t y,
+                                    uint8_t *direction, uint32_t *variance
 #if AV2H_KERNEL_WIDE
-    ,
-    const Av2hSampleDomain *domain
+                                    ,
+                                    const Av2hSampleDomain *domain
 #endif
 ) {
 #if AV2H_KERNEL_WIDE
@@ -101,10 +102,11 @@ Av2hStatus AV2H_KERNEL_NAME(av2h_cdef_find_direction, av2h_cdef_find_direction_u
     *variance = (uint32_t)((best_cost - cost[(best_direction + 4U) & 7U]) >> 10U);
     return AV2H_OK;
 }
-static int AV2H_KERNEL_NAME(cdef_tap, cdef_tap_u16)(
-    const AV2H_KERNEL_TYPE(Av2hFilterPlane, Av2hFilterPlaneU16) * source, int x, int y, int center,
-    unsigned int strength, unsigned int damping, int *minimum, int *maximum, int clipping_required,
-    int weight) {
+static int AV2H_KERNEL_NAME(
+    cdef_tap,
+    cdef_tap_u16)(const AV2H_KERNEL_TYPE(Av2hFilterPlane, Av2hFilterPlaneU16) *source, int x, int y, int center, unsigned int strength,
+                    unsigned int damping, int *minimum, int *maximum, int clipping_required,
+                    int weight) {
     int sample;
     if (x < 0 || y < 0 || x >= (int)source->width || y >= (int)source->height) {
         return 0;
@@ -119,13 +121,14 @@ static int AV2H_KERNEL_NAME(cdef_tap, cdef_tap_u16)(
     return weight * cdef_constrain(sample - center, strength, damping);
 }
 Av2hStatus AV2H_KERNEL_NAME(av2h_cdef_filter_block, av2h_cdef_filter_block_u16)(
-    AV2H_KERNEL_TYPE(Av2hFilterPlane, Av2hFilterPlaneU16) * destination,
-    const AV2H_KERNEL_TYPE(Av2hFilterPlane, Av2hFilterPlaneU16) * source, uint16_t x, uint16_t y,
-    uint16_t width, uint16_t height, unsigned int plane_index, uint8_t primary_strength,
-    uint8_t secondary_strength, uint8_t damping, uint8_t direction, uint32_t variance
+    AV2H_KERNEL_TYPE(Av2hFilterPlane, Av2hFilterPlaneU16) *destination, const AV2H_KERNEL_TYPE(Av2hFilterPlane, Av2hFilterPlaneU16) *source,
+                                  uint16_t x, uint16_t y, uint16_t width, uint16_t height,
+                                  unsigned int plane_index, uint8_t primary_strength,
+                                  uint8_t secondary_strength, uint8_t damping, uint8_t direction,
+                                  uint32_t variance
 #if AV2H_KERNEL_WIDE
-    ,
-    const Av2hSampleDomain *domain
+                                  ,
+                                  const Av2hSampleDomain *domain
 #endif
 ) {
 #if AV2H_KERNEL_WIDE
@@ -202,10 +205,11 @@ Av2hStatus AV2H_KERNEL_NAME(av2h_cdef_filter_block, av2h_cdef_filter_block_u16)(
                     unsigned int secondary_index;
                     int primary_y = directions[direction][distance][0];
                     int primary_x = directions[direction][distance][1];
-                    sum += AV2H_KERNEL_NAME(cdef_tap, cdef_tap_u16)(
-                        source, sample_x + sign * primary_x, sample_y + sign * primary_y, center,
-                        adjusted_primary, damping, &minimum, &maximum, clipping_required,
-                        primary_taps[tap_set][distance]);
+                    sum += AV2H_KERNEL_NAME(
+                        cdef_tap,
+                        cdef_tap_u16)(source, sample_x + sign * primary_x, sample_y + sign * primary_y,
+                                 center, adjusted_primary, damping, &minimum, &maximum,
+                                 clipping_required, primary_taps[tap_set][distance]);
                     for (secondary_index = 0U; secondary_index < 2U; ++secondary_index) {
                         unsigned int secondary_direction =
                             (direction + (secondary_index == 0U ? 2U : 6U)) & 7U;
@@ -240,12 +244,13 @@ Av2hStatus AV2H_KERNEL_NAME(av2h_cdef_filter_block, av2h_cdef_filter_block_u16)(
     }
     return AV2H_OK;
 }
-static Av2hStatus AV2H_KERNEL_NAME(cdef_partial_direction, cdef_partial_direction_u16)(
-    const AV2H_KERNEL_TYPE(Av2hFilterPlane, Av2hFilterPlaneU16) * luma, uint16_t x, uint16_t y,
-    uint8_t *direction, uint32_t *variance
+static Av2hStatus AV2H_KERNEL_NAME(
+    cdef_partial_direction,
+    cdef_partial_direction_u16)(const AV2H_KERNEL_TYPE(Av2hFilterPlane, Av2hFilterPlaneU16) *luma, uint16_t x, uint16_t y,
+                                         uint8_t *direction, uint32_t *variance
 #if AV2H_KERNEL_WIDE
-    ,
-    const Av2hSampleDomain *domain
+                                         ,
+                                         const Av2hSampleDomain *domain
 #endif
 ) {
 #if AV2H_KERNEL_WIDE
@@ -275,13 +280,12 @@ static Av2hStatus AV2H_KERNEL_NAME(cdef_partial_direction, cdef_partial_directio
 #endif
 }
 Av2hStatus AV2H_KERNEL_NAME(av2h_cdef_filter_frame, av2h_cdef_filter_frame_u16)(
-    AV2H_KERNEL_TYPE(Av2hFilterPlanes, Av2hFilterPlanesU16) * destination,
-    const AV2H_KERNEL_TYPE(Av2hFilterPlanes, Av2hFilterPlanesU16) * deblocked,
-    const Av2hSequenceState *sequence, const Av2hFrameState *frame,
-    const Av2hCdefControlMap *controls
+    AV2H_KERNEL_TYPE(Av2hFilterPlanes, Av2hFilterPlanesU16) *destination, const AV2H_KERNEL_TYPE(Av2hFilterPlanes, Av2hFilterPlanesU16) *deblocked,
+                                  const Av2hSequenceState *sequence, const Av2hFrameState *frame,
+                                  const Av2hCdefControlMap *controls
 #if AV2H_KERNEL_WIDE
-    ,
-    const Av2hSampleDomain *domain
+                                  ,
+                                  const Av2hSampleDomain *domain
 #endif
 ) {
 #if AV2H_KERNEL_WIDE
@@ -291,9 +295,7 @@ Av2hStatus AV2H_KERNEL_NAME(av2h_cdef_filter_frame, av2h_cdef_filter_frame_u16)(
     uint16_t y;
     unsigned int plane;
     if (destination == NULL || deblocked == NULL || frame == NULL || frame->width == 0U ||
-        frame->height == 0U ||
-        !AV2H_KERNEL_NAME(filter_dimensions_valid, filter_dimensions_valid_u16)(destination,
-                                                                                frame) ||
+        frame->height == 0U || !AV2H_KERNEL_NAME(filter_dimensions_valid, filter_dimensions_valid_u16)(destination, frame) ||
         !AV2H_KERNEL_NAME(filter_dimensions_valid, filter_dimensions_valid_u16)(deblocked, frame)) {
         return AV2H_INVALID_ARGUMENT;
     }
@@ -349,11 +351,8 @@ Av2hStatus AV2H_KERNEL_NAME(av2h_cdef_filter_frame, av2h_cdef_filter_frame_u16)(
                 bounds.right = deblocked->plane[0].width;
                 bounds.bottom = deblocked->plane[0].height;
             }
-            AV2H_KERNEL_TYPE(Av2hFilterPlane, Av2hFilterPlaneU16)
-            luma_destination = AV2H_KERNEL_NAME(cdef_plane_view, cdef_plane_view_u16)(
-                &destination->plane[0], &bounds, 0U);
-            AV2H_KERNEL_TYPE(Av2hFilterPlane, Av2hFilterPlaneU16)
-            luma_source = AV2H_KERNEL_NAME(cdef_plane_view,
+            AV2H_KERNEL_TYPE(Av2hFilterPlane, Av2hFilterPlaneU16) luma_destination = AV2H_KERNEL_NAME(cdef_plane_view, cdef_plane_view_u16)(&destination->plane[0], &bounds, 0U);
+            AV2H_KERNEL_TYPE(Av2hFilterPlane, Av2hFilterPlaneU16) luma_source = AV2H_KERNEL_NAME(cdef_plane_view,
                                            cdef_plane_view_u16)(&deblocked->plane[0], &bounds, 0U);
             uint16_t tile_x = (uint16_t)(x - bounds.left);
             uint16_t tile_y = (uint16_t)(y - bounds.top);
@@ -415,12 +414,8 @@ Av2hStatus AV2H_KERNEL_NAME(av2h_cdef_filter_frame, av2h_cdef_filter_frame_u16)(
                     (uint16_t)(((uint32_t)width + ((uint32_t)1U << shift) - 1U) >> shift);
                 uint16_t chroma_height =
                     (uint16_t)(((uint32_t)height + ((uint32_t)1U << shift) - 1U) >> shift);
-                AV2H_KERNEL_TYPE(Av2hFilterPlane, Av2hFilterPlaneU16)
-                chroma_destination = AV2H_KERNEL_NAME(cdef_plane_view, cdef_plane_view_u16)(
-                    &destination->plane[plane], &bounds, shift);
-                AV2H_KERNEL_TYPE(Av2hFilterPlane, Av2hFilterPlaneU16)
-                chroma_source = AV2H_KERNEL_NAME(cdef_plane_view, cdef_plane_view_u16)(
-                    &deblocked->plane[plane], &bounds, shift);
+                AV2H_KERNEL_TYPE(Av2hFilterPlane, Av2hFilterPlaneU16) chroma_destination = AV2H_KERNEL_NAME(cdef_plane_view, cdef_plane_view_u16)(&destination->plane[plane], &bounds, shift);
+                AV2H_KERNEL_TYPE(Av2hFilterPlane, Av2hFilterPlaneU16) chroma_source = AV2H_KERNEL_NAME(cdef_plane_view, cdef_plane_view_u16)(&deblocked->plane[plane], &bounds, shift);
 #if AV2H_KERNEL_WIDE
                 status = av2h_cdef_filter_block_u16(
                     &chroma_destination, &chroma_source,

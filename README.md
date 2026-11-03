@@ -90,6 +90,22 @@ make decoder
 
 That hosted executable is written to `build/native/av2heif-decoder`.
 
+Production C formatting uses clang-format 22.x and the root `.clang-format`:
+
+```sh
+make format-check
+make format
+```
+
+Set `CLANG_FORMAT` to select the executable, for example
+`make format-check CLANG_FORMAT=/opt/homebrew/opt/llvm/bin/clang-format`.
+The Python source-consistency tests also require this formatter. Formatting covers
+`src/` and `include/` C sources, headers, typed kernels, and sample-kernel setup/reset
+includes. Generated data-only `.inc` tables retain their generator's layout;
+explicit `clang-format off/on` regions preserve compact transform matrices.
+Include sorting is deliberately disabled to preserve C2 ordering and typed
+instantiations.
+
 The Makefile contains the authoritative source lists and invokes the compiler,
 archiver, linker, and tests directly. It does not use CMake, Ninja, generated
 dependency files, or a separate test registry.

@@ -11,8 +11,7 @@ typedef struct {
     size_t output_size;
 } Av2hDecodePreparation;
 
-Av2hStatus av2h_decode_prepare(const Av2hHeifImage *image,
-                               Av2hDecodePreparation *preparation,
+Av2hStatus av2h_decode_prepare(const Av2hHeifImage *image, Av2hDecodePreparation *preparation,
                                Av2hError *error);
 
 #endif

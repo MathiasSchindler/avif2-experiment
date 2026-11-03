@@ -11,13 +11,10 @@ __declspec(noreturn) void mainCRTStartup(void) {
     Av2hStatus status;
 
     status = av2h_leb128_write(300U, encoded, sizeof(encoded), &encoded_size);
-    if (status == AV2H_OK && encoded_size == sizeof(encoded) &&
-        encoded[0] == 0xacU && encoded[1] == 0x02U) {
-        status = av2h_leb128_read(
-            (Av2hSpan){ encoded, encoded_size }, &decoded, &decoded_size, &error);
+    if (status == AV2H_OK && encoded_size == sizeof(encoded) && encoded[0] == 0xacU &&
+        encoded[1] == 0x02U) {
+        status =
+            av2h_leb128_read((Av2hSpan){encoded, encoded_size}, &decoded, &decoded_size, &error);
     }
-    ExitProcess(status == AV2H_OK && decoded == 300U &&
-                        decoded_size == encoded_size
-                    ? 0U
-                    : 1U);
+    ExitProcess(status == AV2H_OK && decoded == 300U && decoded_size == encoded_size ? 0U : 1U);
 }

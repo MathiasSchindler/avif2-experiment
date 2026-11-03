@@ -60,8 +60,8 @@ static inline uint16_t av2h_load_u16le(const unsigned char *bytes) {
 }
 
 static inline uint32_t av2h_load_u32le(const unsigned char *bytes) {
-    return (uint32_t)bytes[0] | ((uint32_t)bytes[1] << 8U) |
-        ((uint32_t)bytes[2] << 16U) | ((uint32_t)bytes[3] << 24U);
+    return (uint32_t)bytes[0] | ((uint32_t)bytes[1] << 8U) | ((uint32_t)bytes[2] << 16U) |
+           ((uint32_t)bytes[3] << 24U);
 }
 
 static inline void av2h_store_u16le(unsigned char *bytes, uint16_t value) {
@@ -88,9 +88,7 @@ static inline void av2h_store_u32be(unsigned char *bytes, uint32_t value) {
     bytes[3] = (unsigned char)value;
 }
 
-void av2h_byte_reader_init(Av2hByteReader *reader,
-                           const void *data,
-                           size_t size,
+void av2h_byte_reader_init(Av2hByteReader *reader, const void *data, size_t size,
                            size_t base_offset);
 size_t av2h_byte_reader_offset(const Av2hByteReader *reader);
 size_t av2h_byte_reader_remaining(const Av2hByteReader *reader);
@@ -100,10 +98,7 @@ uint16_t av2h_byte_reader_u16be(Av2hByteReader *reader);
 uint32_t av2h_byte_reader_u32be(Av2hByteReader *reader);
 Av2hStatus av2h_byte_reader_skip(Av2hByteReader *reader, size_t count);
 
-void av2h_bit_reader_init(Av2hBitReader *reader,
-                          const void *data,
-                          size_t size,
-                          size_t base_offset);
+void av2h_bit_reader_init(Av2hBitReader *reader, const void *data, size_t size, size_t base_offset);
 size_t av2h_bit_reader_offset(const Av2hBitReader *reader);
 size_t av2h_bit_reader_remaining(const Av2hBitReader *reader);
 uint32_t av2h_bit_reader_read(Av2hBitReader *reader, unsigned int bit_count);
@@ -112,16 +107,12 @@ Av2hStatus av2h_bit_reader_align(Av2hBitReader *reader);
 Av2hStatus av2h_bit_reader_align_zero(Av2hBitReader *reader);
 uint32_t av2h_bit_reader_uvlc(Av2hBitReader *reader);
 int32_t av2h_bit_reader_svlc(Av2hBitReader *reader);
-int32_t av2h_bit_reader_inverse_signed(Av2hBitReader *reader,
-                                       unsigned int magnitude_bits);
-uint32_t av2h_bit_reader_quasi_uniform(Av2hBitReader *reader,
-                                       uint32_t symbol_count);
+int32_t av2h_bit_reader_inverse_signed(Av2hBitReader *reader, unsigned int magnitude_bits);
+uint32_t av2h_bit_reader_quasi_uniform(Av2hBitReader *reader, uint32_t symbol_count);
 
 void av2h_byte_writer_init(Av2hByteWriter *writer, void *data, size_t size);
 void av2h_byte_writer_init_sizing(Av2hByteWriter *writer);
-Av2hStatus av2h_byte_writer_write(Av2hByteWriter *writer,
-                                  const void *data,
-                                  size_t size);
+Av2hStatus av2h_byte_writer_write(Av2hByteWriter *writer, const void *data, size_t size);
 Av2hStatus av2h_byte_writer_u8(Av2hByteWriter *writer, uint8_t value);
 Av2hStatus av2h_byte_writer_u16be(Av2hByteWriter *writer, uint16_t value);
 Av2hStatus av2h_byte_writer_u32be(Av2hByteWriter *writer, uint32_t value);
@@ -129,9 +120,7 @@ size_t av2h_byte_writer_required(const Av2hByteWriter *writer);
 
 void av2h_bit_writer_init(Av2hBitWriter *writer, void *data, size_t size);
 void av2h_bit_writer_init_sizing(Av2hBitWriter *writer);
-Av2hStatus av2h_bit_writer_write(Av2hBitWriter *writer,
-                                 uint32_t value,
-                                 unsigned int bit_count);
+Av2hStatus av2h_bit_writer_write(Av2hBitWriter *writer, uint32_t value, unsigned int bit_count);
 Av2hStatus av2h_bit_writer_align_zero(Av2hBitWriter *writer);
 size_t av2h_bit_writer_required(const Av2hBitWriter *writer);
 

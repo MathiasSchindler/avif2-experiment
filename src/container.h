@@ -3,9 +3,8 @@
 
 #include "av2heif.h"
 
-#define AV2H_FOURCC(a, b, c, d) \
-    (((uint32_t)(a) << 24) | ((uint32_t)(b) << 16) | \
-     ((uint32_t)(c) << 8) | (uint32_t)(d))
+#define AV2H_FOURCC(a, b, c, d)                                                                    \
+    (((uint32_t)(a) << 24) | ((uint32_t)(b) << 16) | ((uint32_t)(c) << 8) | (uint32_t)(d))
 
 enum {
     BOX_FTYP = AV2H_FOURCC('f', 't', 'y', 'p'),
@@ -44,16 +43,10 @@ typedef struct {
     uint8_t bits_per_channel;
 } ContainerPixelMetadata;
 
-Av2hStatus av2h_container_probe(Av2hSpan input,
-                                Av2hContainerProbe *probe,
-                                Av2hError *error);
-Av2hStatus av2h_container_fail(Av2hError *error,
-                               Av2hStatus status,
-                               size_t offset);
-Av2hStatus av2h_container_sequence_pixel_metadata(
-    const Av2hSequenceInfo *sequence,
-    ContainerPixelMetadata *metadata);
-int av2h_container_color_description_equal(const Av2hColorInfo *left,
-                                           const Av2hColorInfo *right);
+Av2hStatus av2h_container_probe(Av2hSpan input, Av2hContainerProbe *probe, Av2hError *error);
+Av2hStatus av2h_container_fail(Av2hError *error, Av2hStatus status, size_t offset);
+Av2hStatus av2h_container_sequence_pixel_metadata(const Av2hSequenceInfo *sequence,
+                                                  ContainerPixelMetadata *metadata);
+int av2h_container_color_description_equal(const Av2hColorInfo *left, const Av2hColorInfo *right);
 
 #endif

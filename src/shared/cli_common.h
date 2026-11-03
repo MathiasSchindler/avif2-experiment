@@ -13,8 +13,7 @@ typedef struct {
 
 typedef struct {
     void *context;
-    int (*allocate)(
-        void *context, size_t size, size_t alignment, Av2hOwnedMemory *owned);
+    int (*allocate)(void *context, size_t size, size_t alignment, Av2hOwnedMemory *owned);
     void (*release)(void *context, Av2hOwnedMemory *owned);
 } Av2hCliAllocator;
 
@@ -79,41 +78,29 @@ typedef enum {
     AV2H_CLI_MESSAGE_DIAGNOSTICS
 } Av2hCliMessage;
 
-Av2hStatus av2h_cli_decode(
-    Av2hSpan input,
-    const Av2hCliAllocator *allocator,
-    const Av2hCliDecodeOptions *options,
-    Av2hCliImage *image);
-void av2h_cli_image_release(
-    const Av2hCliAllocator *allocator, Av2hCliImage *image);
+Av2hStatus av2h_cli_decode(Av2hSpan input, const Av2hCliAllocator *allocator,
+                           const Av2hCliDecodeOptions *options, Av2hCliImage *image);
+void av2h_cli_image_release(const Av2hCliAllocator *allocator, Av2hCliImage *image);
 
-Av2hStatus av2h_cli_output_parse(
-    Av2hCliPath path, Av2hCliOutput *output);
-Av2hCliWriteResult av2h_cli_write_output(
-    const Av2hCliImage *image,
-    const Av2hCliOutput *output,
-    const Av2hCliAllocator *allocator,
-    const Av2hCliFile *file);
+Av2hStatus av2h_cli_output_parse(Av2hCliPath path, Av2hCliOutput *output);
+Av2hCliWriteResult av2h_cli_write_output(const Av2hCliImage *image, const Av2hCliOutput *output,
+                                         const Av2hCliAllocator *allocator,
+                                         const Av2hCliFile *file);
 int av2h_cli_write_exit_code(Av2hCliWriteResult result);
 
-Av2hStatus av2h_cli_write_usage(
-    const char *program, int diagnostics_supported,
-    Av2hCliDiagnosticStyle style,
-    Av2hPngWriteCallback write, void *context);
-Av2hStatus av2h_cli_write_message(
-    Av2hCliMessage message, Av2hCliDiagnosticStyle style,
-    Av2hPngWriteCallback write, void *context);
-Av2hStatus av2h_cli_write_decode_error(
-    const Av2hCliImage *image, Av2hStatus status,
-    Av2hCliDiagnosticStyle style,
-    Av2hPngWriteCallback write, void *context);
-Av2hStatus av2h_cli_write_output_error(
-    Av2hCliWriteResult result, Av2hCliDiagnosticStyle style,
-    Av2hPngWriteCallback write, void *context);
-Av2hStatus av2h_cli_write_json(
-    const Av2hCliImage *image, Av2hPngWriteCallback write, void *context);
-Av2hStatus av2h_cli_write_trace(
-    const Av2hFrameDecodeResult *result,
-    Av2hPngWriteCallback write, void *context);
+Av2hStatus av2h_cli_write_usage(const char *program, int diagnostics_supported,
+                                Av2hCliDiagnosticStyle style, Av2hPngWriteCallback write,
+                                void *context);
+Av2hStatus av2h_cli_write_message(Av2hCliMessage message, Av2hCliDiagnosticStyle style,
+                                  Av2hPngWriteCallback write, void *context);
+Av2hStatus av2h_cli_write_decode_error(const Av2hCliImage *image, Av2hStatus status,
+                                       Av2hCliDiagnosticStyle style, Av2hPngWriteCallback write,
+                                       void *context);
+Av2hStatus av2h_cli_write_output_error(Av2hCliWriteResult result, Av2hCliDiagnosticStyle style,
+                                       Av2hPngWriteCallback write, void *context);
+Av2hStatus av2h_cli_write_json(const Av2hCliImage *image, Av2hPngWriteCallback write,
+                               void *context);
+Av2hStatus av2h_cli_write_trace(const Av2hFrameDecodeResult *result, Av2hPngWriteCallback write,
+                                void *context);
 
 #endif

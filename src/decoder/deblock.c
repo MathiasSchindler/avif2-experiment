@@ -8,17 +8,13 @@
 
 #define AV2H_DEBLOCK_MAX_SAMPLES 8U
 
-static const uint8_t deblock_weight[AV2H_DEBLOCK_MAX_SAMPLES] = {
-    85U, 51U, 37U, 28U, 23U, 20U, 17U, 15U
-};
+static const uint8_t deblock_weight[AV2H_DEBLOCK_MAX_SAMPLES] = {85U, 51U, 37U, 28U,
+                                                                 23U, 20U, 17U, 15U};
 
-static const uint8_t deblock_q_multiplier[AV2H_DEBLOCK_MAX_SAMPLES] = {
-    32U, 25U, 19U, 19U, 18U, 18U, 17U, 17U
-};
+static const uint8_t deblock_q_multiplier[AV2H_DEBLOCK_MAX_SAMPLES] = {32U, 25U, 19U, 19U,
+                                                                       18U, 18U, 17U, 17U};
 
-static const uint8_t deblock_first_threshold[5] = {
-    45U, 43U, 40U, 35U, 32U
-};
+static const uint8_t deblock_first_threshold[5] = {45U, 43U, 40U, 35U, 32U};
 
 Av2hStatus av2h_deblock_quantizer_thresholds(const Av2hDeblockCell *cell,
                                              const Av2hSequenceState *sequence,
@@ -86,27 +82,21 @@ Av2hStatus av2h_deblock_stage_u16(const Av2hFilterPlanesU16 *reconstructed,
         return AV2H_INVALID_ARGUMENT;
     unsigned int plane;
     if (reconstructed == NULL || sequence == NULL || frame == NULL || workspace == NULL ||
-        sequence->info.bit_depth_idc != 0U ||
-        !filter_dimensions_valid_u16(reconstructed, frame) ||
+        sequence->info.bit_depth_idc != 0U || !filter_dimensions_valid_u16(reconstructed, frame) ||
         !filter_dimensions_valid_u16(&workspace->deblocked_u16, frame) ||
-        !av2h_deblock_map_valid_u16(
-            &workspace->deblocked_u16, &workspace->deblock_map)) {
+        !av2h_deblock_map_valid_u16(&workspace->deblocked_u16, &workspace->deblock_map)) {
         return AV2H_INVALID_ARGUMENT;
     }
     for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
-        if (reconstructed->plane[plane].data ==
-            workspace->deblocked_u16.plane[plane].data) {
+        if (reconstructed->plane[plane].data == workspace->deblocked_u16.plane[plane].data) {
             return AV2H_INVALID_ARGUMENT;
         }
     }
     for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
         const Av2hFilterPlaneU16 *source = &reconstructed->plane[plane];
-        Av2hFilterPlaneU16 *destination =
-            &workspace->deblocked_u16.plane[plane];
-        av2h_plane_copy_u16(
-            destination->data, destination->stride_samples,
-            source->data, source->stride_samples,
-            source->width, source->height);
+        Av2hFilterPlaneU16 *destination = &workspace->deblocked_u16.plane[plane];
+        av2h_plane_copy_u16(destination->data, destination->stride_samples, source->data,
+                            source->stride_samples, source->width, source->height);
     }
     return av2h_deblock_filter_frame_u16(&workspace->deblocked_u16, sequence, frame,
                                          &workspace->deblock_map, domain);

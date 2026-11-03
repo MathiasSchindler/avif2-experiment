@@ -1,10 +1,10 @@
 static Av2hStatus AV2H_KERNEL_NAME(inverse_transform_samples, inverse_transform_samples_u16)(
     Av2hDecodeDiagnostics *diagnostics, const Av2hLeafMode *mode, const Av2hCoeffPrefix *prefix,
     const Av2hTransformType *transform, const Av2hCoeffBlock *coefficients,
-    const AV2H_KERNEL_TYPE(uint8_t, uint16_t) * predictor, size_t predictor_stride_samples,
-    AV2H_KERNEL_TYPE(Av2hReconstructionScratch, Av2hReconstructionScratchU16) * scratch,
-    AV2H_KERNEL_TYPE(Av2hBlockReconstruction, Av2hBlockReconstructionU16) * reconstruction,
-    const Av2hInverseTransformPlan *plan, uint8_t first_stage, const Av2hSampleDomain *domain) {
+    const AV2H_KERNEL_TYPE(uint8_t, uint16_t) *predictor, size_t predictor_stride_samples,
+    AV2H_KERNEL_TYPE(Av2hReconstructionScratch, Av2hReconstructionScratchU16) *scratch,
+    AV2H_KERNEL_TYPE(Av2hBlockReconstruction, Av2hBlockReconstructionU16) *reconstruction, const Av2hInverseTransformPlan *plan,
+    uint8_t first_stage, const Av2hSampleDomain *domain) {
     uint16_t row;
     uint16_t column;
     size_t index;
@@ -17,8 +17,8 @@ static Av2hStatus AV2H_KERNEL_NAME(inverse_transform_samples, inverse_transform_
         /* Specialized rectangular paths retain their pre-IST scaling and fixed clamp. */
         scratch->scaled[index] =
             plan->scale_before_secondary
-                ? av2h_sample_clamp(av2h_sample_round_pow2((int64_t)value * 2896, 12U),
-                                     -131072, 131071)
+                ? av2h_sample_clamp(av2h_sample_round_pow2((int64_t)value * 2896, 12U), -131072,
+                                    131071)
                 : value;
     }
     av2h_reconstruction_diagnostics_set_inverse_transform_stage(diagnostics, first_stage);
@@ -33,9 +33,9 @@ static Av2hStatus AV2H_KERNEL_NAME(inverse_transform_samples, inverse_transform_
         int32_t row_output[32U];
         for (column = 0U; column < plan->coeff_width; ++column) {
             int32_t value = scratch->scaled[(size_t)row * plan->coeff_width + column];
-            row_input[column] =
-                rectangular && !plan->scale_before_secondary
-                    ? av2h_sample_round_pow2((int64_t)value * 2896, 12U) : value;
+            row_input[column] = rectangular && !plan->scale_before_secondary
+                                    ? av2h_sample_round_pow2((int64_t)value * 2896, 12U)
+                                    : value;
         }
         recon_transform_1d(row_input, row_output, plan->row_kind, plan->coeff_width,
                            plan->row_shift, 0U, domain->bit_depth);
@@ -69,8 +69,8 @@ static Av2hStatus AV2H_KERNEL_NAME(inverse_transform_samples, inverse_transform_
                                  : predictor[(size_t)row * predictor_stride_samples + column];
             reconstruction->residual[output] = (AV2H_KERNEL_TYPE(int16_t, int32_t))residual;
             reconstruction->pixels[output] =
-                (AV2H_KERNEL_TYPE(uint8_t, uint16_t))av2h_sample_clip_to_domain(sample + residual,
-                                                                                domain);
+                (AV2H_KERNEL_TYPE(uint8_t,
+                                  uint16_t))av2h_sample_clip_to_domain(sample + residual, domain);
         }
     }
     return AV2H_OK;

@@ -49,7 +49,7 @@ void av2h_task_pool_execution(Av2hTaskPool *pool, Av2hExecution *execution);
  * before return, and the first observed nonzero callback result is returned.
  * A null pool is an explicit serial fallback with worker_index zero.
  */
-int av2h_parallel_for(Av2hTaskPool *pool, size_t count, size_t min_chunk,
-                      Av2hParallelBody body, void *argument);
+int av2h_parallel_for(Av2hTaskPool *pool, size_t count, size_t min_chunk, Av2hParallelBody body,
+                      void *argument);
 
 #endif

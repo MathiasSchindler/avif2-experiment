@@ -17,16 +17,11 @@ typedef struct {
     uint32_t second;
 } Av2hAdler32;
 
-static uint32_t crc32_update(
-    uint32_t crc,
-    const uint8_t *data,
-    size_t size) {
-    static const uint32_t table[16U] = {
-        0x00000000U, 0x1db71064U, 0x3b6e20c8U, 0x26d930acU,
-        0x76dc4190U, 0x6b6b51f4U, 0x4db26158U, 0x5005713cU,
-        0xedb88320U, 0xf00f9344U, 0xd6d6a3e8U, 0xcb61b38cU,
-        0x9b64c2b0U, 0x86d3d2d4U, 0xa00ae278U, 0xbdbdf21cU
-    };
+static uint32_t crc32_update(uint32_t crc, const uint8_t *data, size_t size) {
+    static const uint32_t table[16U] = {0x00000000U, 0x1db71064U, 0x3b6e20c8U, 0x26d930acU,
+                                        0x76dc4190U, 0x6b6b51f4U, 0x4db26158U, 0x5005713cU,
+                                        0xedb88320U, 0xf00f9344U, 0xd6d6a3e8U, 0xcb61b38cU,
+                                        0x9b64c2b0U, 0x86d3d2d4U, 0xa00ae278U, 0xbdbdf21cU};
     size_t index;
     for (index = 0U; index < size; ++index) {
         crc ^= data[index];
@@ -36,10 +31,7 @@ static uint32_t crc32_update(
     return crc;
 }
 
-static void adler32_update(
-    Av2hAdler32 *adler,
-    const uint8_t *data,
-    size_t size) {
+static void adler32_update(Av2hAdler32 *adler, const uint8_t *data, size_t size) {
     while (size != 0U) {
         size_t chunk = size > 5552U ? 5552U : size;
         size_t index;
@@ -54,19 +46,13 @@ static void adler32_update(
     }
 }
 
-static void output_raw(
-    Av2hPngOutput *output,
-    const uint8_t *data,
-    size_t size) {
+static void output_raw(Av2hPngOutput *output, const uint8_t *data, size_t size) {
     if (output->status == AV2H_OK && size != 0U) {
         output->status = output->callback(output->context, data, size);
     }
 }
 
-static void chunk_data(
-    Av2hPngOutput *output,
-    const uint8_t *data,
-    size_t size) {
+static void chunk_data(Av2hPngOutput *output, const uint8_t *data, size_t size) {
     if (output->status == AV2H_OK && size != 0U) {
         output->status = output->callback(output->context, data, size);
         if (output->status == AV2H_OK) {
@@ -75,10 +61,7 @@ static void chunk_data(
     }
 }
 
-static void chunk_begin(
-    Av2hPngOutput *output,
-    uint32_t size,
-    const uint8_t type[4U]) {
+static void chunk_begin(Av2hPngOutput *output, uint32_t size, const uint8_t type[4U]) {
     uint8_t encoded_size[4U];
     av2h_store_u32be(encoded_size, size);
     output_raw(output, encoded_size, sizeof(encoded_size));
@@ -92,29 +75,21 @@ static void chunk_end(Av2hPngOutput *output) {
     output_raw(output, encoded_crc, sizeof(encoded_crc));
 }
 
-static void write_chunk(
-    Av2hPngOutput *output,
-    const uint8_t type[4U],
-    const uint8_t *data,
-    uint32_t size) {
+static void write_chunk(Av2hPngOutput *output, const uint8_t type[4U], const uint8_t *data,
+                        uint32_t size) {
     chunk_begin(output, size, type);
     chunk_data(output, data, size);
     chunk_end(output);
 }
 
-static void write_stored_data(
-    Av2hPngOutput *output,
-    Av2hAdler32 *adler,
-    const uint8_t *data,
-    size_t size,
-    size_t *stream_remaining,
-    size_t *block_remaining) {
+static void write_stored_data(Av2hPngOutput *output, Av2hAdler32 *adler, const uint8_t *data,
+                              size_t size, size_t *stream_remaining, size_t *block_remaining) {
     while (size != 0U && output->status == AV2H_OK) {
         size_t part;
         if (*block_remaining == 0U) {
-            uint16_t block_size = (uint16_t)(
-                *stream_remaining > AV2H_PNG_STORED_BLOCK_MAX ?
-                    AV2H_PNG_STORED_BLOCK_MAX : *stream_remaining);
+            uint16_t block_size =
+                (uint16_t)(*stream_remaining > AV2H_PNG_STORED_BLOCK_MAX ? AV2H_PNG_STORED_BLOCK_MAX
+                                                                         : *stream_remaining);
             uint8_t header[5U];
             header[0U] = *stream_remaining == block_size ? 1U : 0U;
             av2h_store_u16le(header + 1U, block_size);
@@ -132,24 +107,19 @@ static void write_stored_data(
     }
 }
 
-Av2hStatus av2h_png_write_rgb(
-    const Av2hPngRgbImage *image,
-    uint8_t *row_buffer,
-    size_t row_buffer_size,
-    Av2hPngWriteCallback write_callback,
-    void *write_context) {
-    static const uint8_t signature[8U] = {
-        0x89U, 'P', 'N', 'G', 0x0dU, 0x0aU, 0x1aU, 0x0aU
-    };
-    static const uint8_t ihdr_type[4U] = { 'I', 'H', 'D', 'R' };
-    static const uint8_t idat_type[4U] = { 'I', 'D', 'A', 'T' };
-    static const uint8_t iend_type[4U] = { 'I', 'E', 'N', 'D' };
-    static const uint8_t zlib_header[2U] = { 0x78U, 0x01U };
+Av2hStatus av2h_png_write_rgb(const Av2hPngRgbImage *image, uint8_t *row_buffer,
+                              size_t row_buffer_size, Av2hPngWriteCallback write_callback,
+                              void *write_context) {
+    static const uint8_t signature[8U] = {0x89U, 'P', 'N', 'G', 0x0dU, 0x0aU, 0x1aU, 0x0aU};
+    static const uint8_t ihdr_type[4U] = {'I', 'H', 'D', 'R'};
+    static const uint8_t idat_type[4U] = {'I', 'D', 'A', 'T'};
+    static const uint8_t iend_type[4U] = {'I', 'E', 'N', 'D'};
+    static const uint8_t zlib_header[2U] = {0x78U, 0x01U};
     static const uint8_t filter_none = 0U;
     uint8_t ihdr[13U];
     uint8_t encoded_adler[4U];
     Av2hPngOutput output;
-    Av2hAdler32 adler = { 1U, 0U };
+    Av2hAdler32 adler = {1U, 0U};
     size_t bytes_per_channel;
     size_t row_size;
     size_t scanline_size;
@@ -161,9 +131,8 @@ Av2hStatus av2h_png_write_rgb(
     size_t block_remaining = 0U;
     uint32_t row;
     if (image == NULL || row_buffer == NULL || write_callback == NULL ||
-        image->row_callback == NULL || image->width == 0U ||
-        image->height == 0U || image->width > AV2H_PNG_MAX_CHUNK_SIZE ||
-        image->height > AV2H_PNG_MAX_CHUNK_SIZE ||
+        image->row_callback == NULL || image->width == 0U || image->height == 0U ||
+        image->width > AV2H_PNG_MAX_CHUNK_SIZE || image->height > AV2H_PNG_MAX_CHUNK_SIZE ||
         (image->bit_depth != 8U && image->bit_depth != 16U)) {
         return AV2H_INVALID_ARGUMENT;
     }
@@ -176,11 +145,11 @@ Av2hStatus av2h_png_write_rgb(
         return AV2H_OVERFLOW;
     }
     block_count = stream_size / AV2H_PNG_STORED_BLOCK_MAX;
-    if (stream_size % AV2H_PNG_STORED_BLOCK_MAX != 0U) ++block_count;
+    if (stream_size % AV2H_PNG_STORED_BLOCK_MAX != 0U)
+        ++block_count;
     if (!av2h_size_multiply(block_count, 5U, &block_overhead) ||
         !av2h_size_add(stream_size, block_overhead, &idat_size) ||
-        !av2h_size_add(idat_size, 6U, &idat_size) ||
-        idat_size > AV2H_PNG_MAX_CHUNK_SIZE) {
+        !av2h_size_add(idat_size, 6U, &idat_size) || idat_size > AV2H_PNG_MAX_CHUNK_SIZE) {
         return AV2H_LIMIT_EXCEEDED;
     }
     output.callback = write_callback;
@@ -200,18 +169,14 @@ Av2hStatus av2h_png_write_rgb(
     chunk_data(&output, zlib_header, sizeof(zlib_header));
     stream_remaining = stream_size;
     for (row = 0U; row < image->height && output.status == AV2H_OK; ++row) {
-        Av2hStatus row_status = image->row_callback(
-            image->row_context, row, row_buffer, row_size);
+        Av2hStatus row_status = image->row_callback(image->row_context, row, row_buffer, row_size);
         if (row_status != AV2H_OK) {
             output.status = row_status;
             break;
         }
-        write_stored_data(
-            &output, &adler, &filter_none, 1U,
-            &stream_remaining, &block_remaining);
-        write_stored_data(
-            &output, &adler, row_buffer, row_size,
-            &stream_remaining, &block_remaining);
+        write_stored_data(&output, &adler, &filter_none, 1U, &stream_remaining, &block_remaining);
+        write_stored_data(&output, &adler, row_buffer, row_size, &stream_remaining,
+                          &block_remaining);
     }
     av2h_store_u32be(encoded_adler, (adler.second << 16U) | adler.first);
     chunk_data(&output, encoded_adler, sizeof(encoded_adler));

@@ -11,49 +11,43 @@ typedef struct {
 } Av2hIntrabcCandidate;
 
 #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
-const int16_t *av2h_intrabc_diagnostic_candidates(
-    const Av2hDecodeDiagnostics *diagnostics, size_t *count) {
+const int16_t *av2h_intrabc_diagnostic_candidates(const Av2hDecodeDiagnostics *diagnostics,
+                                                  size_t *count) {
     *count = diagnostics != NULL ? diagnostics->intrabc_candidate_count : 0U;
     return diagnostics != NULL ? diagnostics->intrabc_candidates : NULL;
 }
 
-const int16_t *av2h_intrabc_diagnostic_bank(
-    const Av2hDecodeDiagnostics *diagnostics, size_t *count) {
+const int16_t *av2h_intrabc_diagnostic_bank(const Av2hDecodeDiagnostics *diagnostics,
+                                            size_t *count) {
     *count = diagnostics != NULL ? diagnostics->intrabc_bank_count : 0U;
     return diagnostics != NULL ? diagnostics->intrabc_bank : NULL;
 }
 
 #endif
 
-static void add_intrabc_candidate(
-    Av2hIntrabcCandidate candidates[4U],
-    size_t *count,
-    const Av2hLumaModeContext *context,
-    uint8_t weight) {
+static void add_intrabc_candidate(Av2hIntrabcCandidate candidates[4U], size_t *count,
+                                  const Av2hLumaModeContext *context, uint8_t weight) {
     size_t index;
-    if (context == NULL || !context->present || !context->use_intrabc) return;
+    if (context == NULL || !context->present || !context->use_intrabc)
+        return;
     for (index = 0U; index < *count; ++index) {
         if (candidates[index].x == context->displacement_x &&
             candidates[index].y == context->displacement_y) {
-            candidates[index].weight = (uint8_t)(
-                candidates[index].weight + weight);
+            candidates[index].weight = (uint8_t)(candidates[index].weight + weight);
             return;
         }
     }
-    if (*count >= 4U) return;
+    if (*count >= 4U)
+        return;
     candidates[*count].x = context->displacement_x;
     candidates[*count].y = context->displacement_y;
     candidates[*count].weight = weight;
     ++*count;
 }
 
-static void add_intrabc_vector(
-    Av2hIntrabcCandidate candidates[4U],
-    size_t *count,
-    int16_t x,
-    int16_t y,
-    uint8_t weight) {
-    Av2hLumaModeContext context = { 0 };
+static void add_intrabc_vector(Av2hIntrabcCandidate candidates[4U], size_t *count, int16_t x,
+                               int16_t y, uint8_t weight) {
+    Av2hLumaModeContext context = {0};
     context.present = 1U;
     context.use_intrabc = 1U;
     context.displacement_x = x;
@@ -61,56 +55,40 @@ static void add_intrabc_vector(
     add_intrabc_candidate(candidates, count, &context, weight);
 }
 
-static const Av2hLumaModeContext *intrabc_spatial_context(
-    const Av2hLumaModeContextState *state,
-    int32_t row,
-    int32_t column) {
+static const Av2hLumaModeContext *intrabc_spatial_context(const Av2hLumaModeContextState *state,
+                                                          int32_t row, int32_t column) {
     size_t index;
     if (state == NULL || state->spatial == NULL || row < 0 || column < 0 ||
-        (size_t)row >= state->spatial_rows ||
-        (size_t)column >= state->spatial_columns) {
+        (size_t)row >= state->spatial_rows || (size_t)column >= state->spatial_columns) {
         return NULL;
     }
     index = (size_t)row * state->spatial_columns + (size_t)column;
-    return (const Av2hLumaModeContext *)(
-        state->spatial + index * state->spatial_stride_bytes);
+    return (const Av2hLumaModeContext *)(state->spatial + index * state->spatial_stride_bytes);
 }
 
-int av2h_intrabc_bank_origin_valid(
-    const Av2hFrameState *frame,
-    const Av2hPartitionNode *leaf,
-    size_t width_mi,
-    size_t height_mi,
-    int16_t displacement_x,
-    int16_t displacement_y) {
-    int32_t reference_x =
-        (int32_t)leaf->column * 4 + displacement_x / 8;
-    int32_t reference_y =
-        (int32_t)leaf->row * 4 + displacement_y / 8;
+int av2h_intrabc_bank_origin_valid(const Av2hFrameState *frame, const Av2hPartitionNode *leaf,
+                                   size_t width_mi, size_t height_mi, int16_t displacement_x,
+                                   int16_t displacement_y) {
+    int32_t reference_x = (int32_t)leaf->column * 4 + displacement_x / 8;
+    int32_t reference_y = (int32_t)leaf->row * 4 + displacement_y / 8;
     size_t coded_width = ((size_t)frame->width + 7U) & ~(size_t)7U;
     size_t coded_height = ((size_t)frame->height + 7U) & ~(size_t)7U;
-    return reference_x > -(int32_t)(width_mi * 4U) &&
-        reference_y > -(int32_t)(height_mi * 4U) &&
-        reference_x < (int32_t)coded_width &&
-        reference_y < (int32_t)coded_height;
+    return reference_x > -(int32_t)(width_mi * 4U) && reference_y > -(int32_t)(height_mi * 4U) &&
+           reference_x < (int32_t)coded_width && reference_y < (int32_t)coded_height;
 }
 
-static void build_intrabc_candidates(
-    const Av2hSequenceState *sequence,
-    const Av2hFrameState *frame,
-    const Av2hPartitionNode *leaf,
-    size_t width_mi,
-    size_t height_mi,
-    const Av2hLumaModeContextState *state,
-    Av2hIntrabcCandidate candidates[4U],
-    size_t *count) {
+static void build_intrabc_candidates(const Av2hSequenceState *sequence, const Av2hFrameState *frame,
+                                     const Av2hPartitionNode *leaf, size_t width_mi,
+                                     size_t height_mi, const Av2hLumaModeContextState *state,
+                                     Av2hIntrabcCandidate candidates[4U], size_t *count) {
     static const int16_t delay_pixels = 256;
     const Av2hLumaModeContext *context;
     size_t index;
     size_t nearest_count = 0U;
     size_t limit = (size_t)frame->max_bvp_drl_bits + 1U;
     *count = 0U;
-    if (limit > 4U) limit = 4U;
+    if (limit > 4U)
+        limit = 4U;
     if (state != NULL) {
         if (state->spatial != NULL) {
             int32_t row = leaf->row;
@@ -119,16 +97,13 @@ static void build_intrabc_candidates(
             int32_t above_column;
             int32_t top_right_column;
             int32_t top_left_column;
-            uint8_t at_superblock_boundary = (uint8_t)(
-                state->superblock_mi != 0U &&
-                leaf->row % state->superblock_mi == 0U);
+            uint8_t at_superblock_boundary =
+                (uint8_t)(state->superblock_mi != 0U && leaf->row % state->superblock_mi == 0U);
             if (at_superblock_boundary) {
                 int32_t aligned_column = (column >> 1) << 1;
-                above_right_column = aligned_column +
-                    (width_mi >= 4U ? (int32_t)width_mi - 2 : 0);
+                above_right_column = aligned_column + (width_mi >= 4U ? (int32_t)width_mi - 2 : 0);
                 above_column = width_mi >= 4U ? aligned_column : -1;
-                top_right_column = aligned_column +
-                    (width_mi >= 4U ? (int32_t)width_mi : 2);
+                top_right_column = aligned_column + (width_mi >= 4U ? (int32_t)width_mi : 2);
                 top_left_column = aligned_column - 2;
             } else {
                 above_right_column = column + (int32_t)width_mi - 1;
@@ -136,55 +111,42 @@ static void build_intrabc_candidates(
                 top_right_column = column + (int32_t)width_mi;
                 top_left_column = column - 1;
             }
-            context = intrabc_spatial_context(
-                state, row + (int32_t)height_mi - 1, column - 1);
+            context = intrabc_spatial_context(state, row + (int32_t)height_mi - 1, column - 1);
             add_intrabc_candidate(candidates, count, context, 1U);
-            context = intrabc_spatial_context(
-                state, row - 1, above_right_column);
-            add_intrabc_candidate(
-                candidates, count, context,
-                above_right_column - column <= -1 ? 0U : 1U);
+            context = intrabc_spatial_context(state, row - 1, above_right_column);
+            add_intrabc_candidate(candidates, count, context,
+                                  above_right_column - column <= -1 ? 0U : 1U);
             if (height_mi > 1U) {
-                context = intrabc_spatial_context(
-                    state, row, column - 1);
+                context = intrabc_spatial_context(state, row, column - 1);
                 add_intrabc_candidate(candidates, count, context, 1U);
             }
             context = intrabc_spatial_context(state, row - 1, above_column);
-            add_intrabc_candidate(
-                candidates, count, context,
-                above_column - column <= -1 ? 0U : 1U);
-            context = intrabc_spatial_context(
-                state, row + (int32_t)height_mi, column - 1);
+            add_intrabc_candidate(candidates, count, context,
+                                  above_column - column <= -1 ? 0U : 1U);
+            context = intrabc_spatial_context(state, row + (int32_t)height_mi, column - 1);
             add_intrabc_candidate(candidates, count, context, 1U);
-            context = intrabc_spatial_context(
-                state, row - 1, top_right_column);
+            context = intrabc_spatial_context(state, row - 1, top_right_column);
             add_intrabc_candidate(candidates, count, context, 1U);
-            context = intrabc_spatial_context(
-                state, row - 1, top_left_column);
+            context = intrabc_spatial_context(state, row - 1, top_left_column);
             add_intrabc_candidate(candidates, count, context, 0U);
             nearest_count = *count;
             {
-                int32_t column_adjustment =
-                    width_mi < 2U && (leaf->column & 1U) != 0U ? 1 : 0;
+                int32_t column_adjustment = width_mi < 2U && (leaf->column & 1U) != 0U ? 1 : 0;
                 int32_t nonadjacent_column = column - 3 + column_adjustment;
-                context = intrabc_spatial_context(
-                    state, row + (int32_t)height_mi - 1,
-                    nonadjacent_column);
+                context = intrabc_spatial_context(state, row + (int32_t)height_mi - 1,
+                                                  nonadjacent_column);
                 add_intrabc_candidate(candidates, count, context, 0U);
                 if (height_mi > 1U) {
-                    context = intrabc_spatial_context(
-                        state, row, nonadjacent_column);
+                    context = intrabc_spatial_context(state, row, nonadjacent_column);
                     add_intrabc_candidate(candidates, count, context, 0U);
                 }
             }
         } else {
             if (leaf->column != 0U) {
-                context = &state->left[
-                    (leaf->row + height_mi - 1U) % state->left_count];
+                context = &state->left[(leaf->row + height_mi - 1U) % state->left_count];
                 add_intrabc_candidate(candidates, count, context, 1U);
             }
-            if (leaf->row != 0U &&
-                (size_t)leaf->column + width_mi - 1U < state->above_count) {
+            if (leaf->row != 0U && (size_t)leaf->column + width_mi - 1U < state->above_count) {
                 context = &state->above[leaf->column + width_mi - 1U];
                 add_intrabc_candidate(candidates, count, context, 1U);
             }
@@ -192,8 +154,7 @@ static void build_intrabc_candidates(
                 context = &state->left[leaf->row % state->left_count];
                 add_intrabc_candidate(candidates, count, context, 1U);
             }
-            if (leaf->row != 0U && width_mi > 1U &&
-                leaf->column < state->above_count) {
+            if (leaf->row != 0U && width_mi > 1U && leaf->column < state->above_count) {
                 context = &state->above[leaf->column];
                 add_intrabc_candidate(candidates, count, context, 1U);
             }
@@ -216,16 +177,13 @@ static void build_intrabc_candidates(
         }
         if (sequence->enable_refmvbank) {
             size_t bank_offset;
-            for (bank_offset = 0U;
-                 bank_offset < state->intrabc_bank_count && *count < limit;
+            for (bank_offset = 0U; bank_offset < state->intrabc_bank_count && *count < limit;
                  ++bank_offset) {
                 size_t bank_index =
-                    (state->intrabc_bank_start +
-                     state->intrabc_bank_count - 1U - bank_offset) % 4U;
+                    (state->intrabc_bank_start + state->intrabc_bank_count - 1U - bank_offset) % 4U;
                 int16_t x = state->intrabc_bank_x[bank_index];
                 int16_t y = state->intrabc_bank_y[bank_index];
-                if (!av2h_intrabc_bank_origin_valid(
-                        frame, leaf, width_mi, height_mi, x, y)) {
+                if (!av2h_intrabc_bank_origin_valid(frame, leaf, width_mi, height_mi, x, y)) {
                     continue;
                 }
                 add_intrabc_vector(candidates, count, x, y, 0U);
@@ -233,12 +191,11 @@ static void build_intrabc_candidates(
         }
     }
     for (index = 0U; index < limit && *count < limit; ++index) {
-        Av2hIntrabcCandidate candidate = { 0, 0, 0U };
+        Av2hIntrabcCandidate candidate = {0, 0, 0U};
         if (index == 0U) {
             candidate.y = (int16_t)(-(int32_t)sequence->superblock_size * 8);
         } else if (index == 1U) {
-            candidate.x = (int16_t)(
-                -((int32_t)sequence->superblock_size + delay_pixels) * 8);
+            candidate.x = (int16_t)(-((int32_t)sequence->superblock_size + delay_pixels) * 8);
         } else if (index == 2U) {
             candidate.y = (int16_t)(-(int32_t)height_mi * 32);
         } else {
@@ -254,10 +211,12 @@ static void build_intrabc_candidates(
 static int32_t intrabc_lower_precision(int32_t value, uint8_t precision) {
     int32_t radix;
     int32_t remainder;
-    if (precision >= 4U) return value;
+    if (precision >= 4U)
+        return value;
     radix = (int32_t)1 << (6U - precision);
     remainder = value % radix;
-    if (remainder == 0) return value;
+    if (remainder == 0)
+        return value;
     value -= remainder;
     if ((remainder < 0 ? -remainder : remainder) > (radix >> 1)) {
         value += remainder > 0 ? radix : -radix;
@@ -265,15 +224,12 @@ static int32_t intrabc_lower_precision(int32_t value, uint8_t precision) {
     return value;
 }
 
-Av2hStatus av2h_leaf_read_first_intrabc(
-    Av2hRangeDecoder *decoder,
-    Av2hLeafCdfs *cdfs,
-    const Av2hSequenceState *sequence,
-    const Av2hFrameState *frame,
-    const Av2hPartitionNode *leaf,
-    const Av2hLumaModeContextState *state,
-    const Av2hLumaModeNeighbors *neighbors,
-    Av2hLeafMode *mode) {
+Av2hStatus av2h_leaf_read_first_intrabc(Av2hRangeDecoder *decoder, Av2hLeafCdfs *cdfs,
+                                        const Av2hSequenceState *sequence,
+                                        const Av2hFrameState *frame, const Av2hPartitionNode *leaf,
+                                        const Av2hLumaModeContextState *state,
+                                        const Av2hLumaModeNeighbors *neighbors,
+                                        Av2hLeafMode *mode) {
     size_t width_mi;
     size_t height_mi;
     uint32_t value;
@@ -289,13 +245,12 @@ Av2hStatus av2h_leaf_read_first_intrabc(
     int32_t reference_y;
     int32_t difference_x = 0;
     int32_t difference_y = 0;
-    Av2hStatus status = av2h_block_dimensions_mi(
-        leaf->block_size, &width_mi, &height_mi);
-    if (status != AV2H_OK) return status;
+    Av2hStatus status = av2h_block_dimensions_mi(leaf->block_size, &width_mi, &height_mi);
+    if (status != AV2H_OK)
+        return status;
     av2h_leaf_diagnostics_set_luma_stage(decoder->diagnostics, 20U);
     mode->before_mode_bits = av2h_range_tell(decoder);
-    mode->intrabc_mode = (uint8_t)av2h_range_read_adaptive(
-        decoder, cdfs->intrabc_mode, 2U);
+    mode->intrabc_mode = (uint8_t)av2h_range_read_adaptive(decoder, cdfs->intrabc_mode, 2U);
     if (av2h_range_status(decoder) != AV2H_OK) {
         return av2h_range_status(decoder);
     }
@@ -308,41 +263,35 @@ Av2hStatus av2h_leaf_read_first_intrabc(
             return av2h_range_status(decoder);
         }
         mode->intrabc_drl_index = (uint8_t)(index + value);
-        if (value == 0U) break;
+        if (value == 0U)
+            break;
     }
     mode->after_mode_index_bits = av2h_range_tell(decoder);
     av2h_leaf_diagnostics_set_luma_stage(decoder->diagnostics, 22U);
-    build_intrabc_candidates(
-        sequence, frame, leaf, width_mi, height_mi, state,
-        candidates, &candidate_count);
+    build_intrabc_candidates(sequence, frame, leaf, width_mi, height_mi, state, candidates,
+                             &candidate_count);
 #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
-    if (decoder->diagnostics != NULL &&
-        leaf->row == 64U && leaf->column == 104U) {
+    if (decoder->diagnostics != NULL && leaf->row == 64U && leaf->column == 104U) {
         decoder->diagnostics->intrabc_candidate_count = candidate_count;
         for (index = 0U; index < candidate_count; ++index) {
-            decoder->diagnostics->intrabc_candidates[index * 2U] =
-                candidates[index].x;
-            decoder->diagnostics->intrabc_candidates[index * 2U + 1U] =
-                candidates[index].y;
+            decoder->diagnostics->intrabc_candidates[index * 2U] = candidates[index].x;
+            decoder->diagnostics->intrabc_candidates[index * 2U + 1U] = candidates[index].y;
         }
         decoder->diagnostics->intrabc_bank_count = state->intrabc_bank_count;
         for (index = 0U; index < state->intrabc_bank_count; ++index) {
-            size_t bank_index =
-                (state->intrabc_bank_start + index) % 4U;
-            decoder->diagnostics->intrabc_bank[index * 2U] =
-                state->intrabc_bank_x[bank_index];
-            decoder->diagnostics->intrabc_bank[index * 2U + 1U] =
-                state->intrabc_bank_y[bank_index];
+            size_t bank_index = (state->intrabc_bank_start + index) % 4U;
+            decoder->diagnostics->intrabc_bank[index * 2U] = state->intrabc_bank_x[bank_index];
+            decoder->diagnostics->intrabc_bank[index * 2U + 1U] = state->intrabc_bank_y[bank_index];
         }
     }
 #endif
-    if (mode->intrabc_drl_index >= candidate_count) return AV2H_INVALID_DATA;
+    if (mode->intrabc_drl_index >= candidate_count)
+        return AV2H_INVALID_DATA;
     reference_x = candidates[mode->intrabc_drl_index].x;
     reference_y = candidates[mode->intrabc_drl_index].y;
     mode->mv_precision = 3U;
     if (mode->intrabc_mode == 0U && !frame->force_integer_mv) {
-        value = av2h_range_read_adaptive(
-            decoder, cdfs->intrabc_precision, 2U);
+        value = av2h_range_read_adaptive(decoder, cdfs->intrabc_precision, 2U);
         if (av2h_range_status(decoder) != AV2H_OK) {
             return av2h_range_status(decoder);
         }
@@ -351,64 +300,60 @@ Av2hStatus av2h_leaf_read_first_intrabc(
     mode->after_fsc_bits = av2h_range_tell(decoder);
     av2h_leaf_diagnostics_set_luma_stage(decoder->diagnostics, 23U);
     if (mode->intrabc_mode == 0U) {
-        value = av2h_range_read_adaptive(
-            decoder, cdfs->intrabc_shell_set, 2U);
+        value = av2h_range_read_adaptive(decoder, cdfs->intrabc_shell_set, 2U);
         if (av2h_range_status(decoder) != AV2H_OK) {
             return av2h_range_status(decoder);
         }
         if (mode->mv_precision != 3U && mode->mv_precision != 5U) {
-            av2h_leaf_diagnostics_set_luma_stage(
-                decoder->diagnostics, value == 0U ? 231U : 233U);
+            av2h_leaf_diagnostics_set_luma_stage(decoder->diagnostics, value == 0U ? 231U : 233U);
             return AV2H_UNSUPPORTED;
         }
         av2h_leaf_diagnostics_set_luma_stage(decoder->diagnostics, 24U);
         mode->after_mrl_bits = av2h_range_tell(decoder);
         if (value != 0U) {
             shell_class = (mode->mv_precision == 5U ? 8U : 7U) +
-                av2h_range_read_adaptive(
-                decoder,
-                mode->mv_precision == 5U ?
-                    cdfs->intrabc_qtr_shell_class_set1 :
-                    cdfs->intrabc_shell_class_set1,
-                mode->mv_precision == 5U ?
-                    AV2H_INTRABC_QTR_SHELL_CLASS_SET1_SYMBOLS :
-                    AV2H_INTRABC_SHELL_CLASS_SET1_SYMBOLS);
+                          av2h_range_read_adaptive(
+                              decoder,
+                              mode->mv_precision == 5U ? cdfs->intrabc_qtr_shell_class_set1
+                                                       : cdfs->intrabc_shell_class_set1,
+                              mode->mv_precision == 5U ? AV2H_INTRABC_QTR_SHELL_CLASS_SET1_SYMBOLS
+                                                       : AV2H_INTRABC_SHELL_CLASS_SET1_SYMBOLS);
         } else {
             shell_class = av2h_range_read_adaptive(
                 decoder,
-                mode->mv_precision == 5U ? cdfs->intrabc_qtr_shell_class :
-                                           cdfs->intrabc_shell_class,
-                mode->mv_precision == 5U ?
-                    AV2H_INTRABC_QTR_SHELL_CLASS_SYMBOLS :
-                    AV2H_INTRABC_SHELL_CLASS_SYMBOLS);
+                mode->mv_precision == 5U ? cdfs->intrabc_qtr_shell_class
+                                         : cdfs->intrabc_shell_class,
+                mode->mv_precision == 5U ? AV2H_INTRABC_QTR_SHELL_CLASS_SYMBOLS
+                                         : AV2H_INTRABC_SHELL_CLASS_SYMBOLS);
         }
         if (av2h_range_status(decoder) != AV2H_OK) {
             return av2h_range_status(decoder);
         }
         if (shell_class < AV2H_INTRABC_LOW_CLASS_COUNT) {
-            shell_offset = av2h_range_read_adaptive(
-                decoder, cdfs->intrabc_shell_offset[shell_class], 2U);
+            shell_offset =
+                av2h_range_read_adaptive(decoder, cdfs->intrabc_shell_offset[shell_class], 2U);
             if (av2h_range_status(decoder) != AV2H_OK) {
                 return av2h_range_status(decoder);
             }
         } else if (shell_class == 2U) {
             shell_offset = 0U;
             for (index = 0U; index < 3U; ++index) {
-                value = index == 0U ? av2h_range_read_adaptive(
-                    decoder, cdfs->intrabc_shell_offset_class2, 2U) :
-                    av2h_range_read_bypass(decoder, 1U);
+                value =
+                    index == 0U
+                        ? av2h_range_read_adaptive(decoder, cdfs->intrabc_shell_offset_class2, 2U)
+                        : av2h_range_read_bypass(decoder, 1U);
                 if (av2h_range_status(decoder) != AV2H_OK) {
                     return av2h_range_status(decoder);
                 }
                 shell_offset = index + value;
-                if (value == 0U) break;
+                if (value == 0U)
+                    break;
             }
-        } else if (shell_class <
-                   AV2H_INTRABC_OTHER_CLASS_OFFSET_COUNT + 1U) {
+        } else if (shell_class < AV2H_INTRABC_OTHER_CLASS_OFFSET_COUNT + 1U) {
             shell_offset = 0U;
             for (index = 0U; index < shell_class; ++index) {
-                shell_offset |= av2h_range_read_adaptive(
-                    decoder, cdfs->intrabc_shell_offset_other[index], 2U)
+                shell_offset |=
+                    av2h_range_read_adaptive(decoder, cdfs->intrabc_shell_offset_other[index], 2U)
                     << index;
                 if (av2h_range_status(decoder) != AV2H_OK) {
                     return av2h_range_status(decoder);
@@ -417,58 +362,52 @@ Av2hStatus av2h_leaf_read_first_intrabc(
         } else {
             return AV2H_UNSUPPORTED;
         }
-        shell_index = (shell_class == 0U ? 0U : 1U << shell_class) +
-                      shell_offset;
+        shell_index = (shell_class == 0U ? 0U : 1U << shell_class) + shell_offset;
         maximum_pair_index = shell_index >> 1U;
-        for (index = 0U;
-             index < maximum_pair_index &&
-             index < AV2H_INTRABC_GREATER_CONTEXT_COUNT;
+        for (index = 0U; index < maximum_pair_index && index < AV2H_INTRABC_GREATER_CONTEXT_COUNT;
              ++index) {
-            size_t greater_context =
-                index < AV2H_INTRABC_GREATER_CONTEXT_COUNT ?
-                    index : AV2H_INTRABC_GREATER_CONTEXT_COUNT - 1U;
-            value = av2h_range_read_adaptive(
-                decoder, cdfs->intrabc_col_greater[greater_context], 2U);
+            size_t greater_context = index < AV2H_INTRABC_GREATER_CONTEXT_COUNT
+                                         ? index
+                                         : AV2H_INTRABC_GREATER_CONTEXT_COUNT - 1U;
+            value =
+                av2h_range_read_adaptive(decoder, cdfs->intrabc_col_greater[greater_context], 2U);
             if (av2h_range_status(decoder) != AV2H_OK) {
                 return av2h_range_status(decoder);
             }
             pair_index = index + value;
-            if (value == 0U) break;
+            if (value == 0U)
+                break;
         }
         if (maximum_pair_index > AV2H_INTRABC_GREATER_CONTEXT_COUNT &&
             pair_index == AV2H_INTRABC_GREATER_CONTEXT_COUNT) {
-            uint32_t symbol_count = maximum_pair_index -
-                AV2H_INTRABC_GREATER_CONTEXT_COUNT + 1U;
+            uint32_t symbol_count = maximum_pair_index - AV2H_INTRABC_GREATER_CONTEXT_COUNT + 1U;
             uint32_t bits = 0U;
             uint32_t threshold;
             uint32_t remainder;
-            while ((1U << (bits + 1U)) <= symbol_count) ++bits;
+            while ((1U << (bits + 1U)) <= symbol_count)
+                ++bits;
             threshold = (1U << (bits + 1U)) - symbol_count;
             remainder = av2h_range_read_bypass(decoder, bits);
             if (av2h_range_status(decoder) != AV2H_OK) {
                 return av2h_range_status(decoder);
             }
             if (remainder >= threshold) {
-                remainder = (remainder << 1U) - threshold +
-                    av2h_range_read_bypass(decoder, 1U);
+                remainder = (remainder << 1U) - threshold + av2h_range_read_bypass(decoder, 1U);
                 if (av2h_range_status(decoder) != AV2H_OK) {
                     return av2h_range_status(decoder);
                 }
             }
             pair_index = AV2H_INTRABC_GREATER_CONTEXT_COUNT + remainder;
         }
-        if (!(pair_index == maximum_pair_index &&
-              (shell_index & 1U) == 0U)) {
-            size_t index_context =
-                shell_class < AV2H_INTRABC_INDEX_CONTEXT_COUNT ?
-                    shell_class : AV2H_INTRABC_INDEX_CONTEXT_COUNT - 1U;
-            value = av2h_range_read_adaptive(
-                decoder, cdfs->intrabc_col_index[index_context], 2U);
+        if (!(pair_index == maximum_pair_index && (shell_index & 1U) == 0U)) {
+            size_t index_context = shell_class < AV2H_INTRABC_INDEX_CONTEXT_COUNT
+                                       ? shell_class
+                                       : AV2H_INTRABC_INDEX_CONTEXT_COUNT - 1U;
+            value = av2h_range_read_adaptive(decoder, cdfs->intrabc_col_index[index_context], 2U);
             if (av2h_range_status(decoder) != AV2H_OK) {
                 return av2h_range_status(decoder);
             }
-            difference_x = (int32_t)(value == 0U ? pair_index :
-                                     shell_index - pair_index);
+            difference_x = (int32_t)(value == 0U ? pair_index : shell_index - pair_index);
         } else {
             difference_x = (int32_t)maximum_pair_index;
         }
@@ -484,10 +423,8 @@ Av2hStatus av2h_leaf_read_first_intrabc(
         if (av2h_range_status(decoder) != AV2H_OK) {
             return av2h_range_status(decoder);
         }
-        reference_x = intrabc_lower_precision(reference_x,
-                                              mode->mv_precision);
-        reference_y = intrabc_lower_precision(reference_y,
-                                              mode->mv_precision);
+        reference_x = intrabc_lower_precision(reference_x, mode->mv_precision);
+        reference_y = intrabc_lower_precision(reference_y, mode->mv_precision);
     }
     mode->displacement_x = (int16_t)(reference_x + difference_x);
     mode->displacement_y = (int16_t)(reference_y + difference_y);
@@ -495,14 +432,12 @@ Av2hStatus av2h_leaf_read_first_intrabc(
     if (sequence->enable_bawp && frame->allow_screen_content_tools) {
         uint8_t morph_context = 0U;
         for (index = 0U; index < 2U; ++index) {
-            if (neighbors->spatial_present[index] &&
-                neighbors->spatial_use_intrabc[index] &&
+            if (neighbors->spatial_present[index] && neighbors->spatial_use_intrabc[index] &&
                 neighbors->spatial_morph_pred[index]) {
                 ++morph_context;
             }
         }
-        value = av2h_range_read_adaptive(
-            decoder, cdfs->morph_pred[morph_context], 2U);
+        value = av2h_range_read_adaptive(decoder, cdfs->morph_pred[morph_context], 2U);
         if (av2h_range_status(decoder) != AV2H_OK) {
             return av2h_range_status(decoder);
         }

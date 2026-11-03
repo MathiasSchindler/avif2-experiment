@@ -51,6 +51,7 @@ typedef struct {
     uint8_t scale_before_secondary;
 } Av2hInverseTransformPlan;
 
+/* clang-format off */
 static const int8_t dct4[4U][4U] = {
     { 64, 64, 64, 64 },
     { 83, 35, -35, -83 },
@@ -296,6 +297,8 @@ static const int8_t dct32[32][32] = {
     }
 };
 
+/* clang-format on */
+
 static Av2hStatus inverse_transform_samples(
     Av2hDecodeDiagnostics *diagnostics, const Av2hLeafMode *mode, const Av2hCoeffPrefix *prefix,
     const Av2hTransformType *transform, const Av2hCoeffBlock *coefficients,
@@ -311,12 +314,10 @@ static Av2hStatus inverse_transform_samples_u16(
     const Av2hInverseTransformPlan *plan, uint8_t first_stage, const Av2hSampleDomain *domain);
 
 static int32_t identity_scale(uint16_t size) {
-    return size == 4U ? 128 : size == 8U ? 181 :
-        size == 16U ? 256 : 362;
+    return size == 4U ? 128 : size == 8U ? 181 : size == 16U ? 256 : 362;
 }
 
-static Av2hStatus matrix_value(uint16_t size, uint16_t frequency,
-                               uint16_t output, int32_t *value) {
+static Av2hStatus matrix_value(uint16_t size, uint16_t frequency, uint16_t output, int32_t *value) {
     size_t index;
     if (size == 4U) {
         *value = dct4[frequency][output];
@@ -327,9 +328,7 @@ static Av2hStatus matrix_value(uint16_t size, uint16_t frequency,
         return AV2H_OK;
     }
     if (size == 16U) {
-        for (index = 0U;
-             index < sizeof(dct16_frequency) / sizeof(dct16_frequency[0]);
-             ++index) {
+        for (index = 0U; index < sizeof(dct16_frequency) / sizeof(dct16_frequency[0]); ++index) {
             if (dct16_frequency[index] == frequency) {
                 *value = dct16[index][output];
                 return AV2H_OK;
@@ -338,9 +337,7 @@ static Av2hStatus matrix_value(uint16_t size, uint16_t frequency,
         return AV2H_UNSUPPORTED;
     }
     if (size == 32U) {
-        for (index = 0U;
-             index < sizeof(dct32_frequency) / sizeof(dct32_frequency[0]);
-             ++index) {
+        for (index = 0U; index < sizeof(dct32_frequency) / sizeof(dct32_frequency[0]); ++index) {
             if (dct32_frequency[index] == frequency) {
                 *value = dct32[index][output];
                 return AV2H_OK;
@@ -351,11 +348,12 @@ static Av2hStatus matrix_value(uint16_t size, uint16_t frequency,
     return AV2H_UNSUPPORTED;
 }
 
-static Av2hStatus flip_adst_matrix_value(uint16_t size, uint16_t frequency,
-                                         uint16_t output, int32_t *value) {
+static Av2hStatus flip_adst_matrix_value(uint16_t size, uint16_t frequency, uint16_t output,
+                                         int32_t *value) {
     if (size == 4U) {
         *value = adst4[frequency][size - output - 1U];
-        if ((frequency & 1U) != 0U) *value = -*value;
+        if ((frequency & 1U) != 0U)
+            *value = -*value;
         return AV2H_OK;
     }
     if (size == 8U) {
@@ -364,16 +362,16 @@ static Av2hStatus flip_adst_matrix_value(uint16_t size, uint16_t frequency,
     }
     if (size == 16U) {
         *value = adst16[frequency][size - output - 1U];
-        if ((frequency & 1U) != 0U) *value = -*value;
+        if ((frequency & 1U) != 0U)
+            *value = -*value;
         return AV2H_OK;
     }
     return AV2H_UNSUPPORTED;
 }
 
-Av2hStatus av2h_inverse_rows(const int32_t *input, int32_t *transposed,
-                               uint16_t width, uint16_t height,
-                               uint8_t shift, uint8_t identity,
-                               uint8_t adst, uint8_t flip_adst) {
+Av2hStatus av2h_inverse_rows(const int32_t *input, int32_t *transposed, uint16_t width,
+                             uint16_t height, uint8_t shift, uint8_t identity, uint8_t adst,
+                             uint8_t flip_adst) {
     uint16_t row;
     uint16_t output;
     uint16_t frequency;
@@ -381,26 +379,22 @@ Av2hStatus av2h_inverse_rows(const int32_t *input, int32_t *transposed,
         for (output = 0U; output < width; ++output) {
             int64_t sum = 0;
             if (identity) {
-                sum = (int64_t)input[(size_t)row * width + output] *
-                      identity_scale(width);
+                sum = (int64_t)input[(size_t)row * width + output] * identity_scale(width);
             } else if (adst) {
                 if (width == 4U) {
                     for (frequency = 0U; frequency < width; ++frequency) {
-                        sum +=
-                            (int64_t)input[(size_t)row * width + frequency] *
-                            adst4[frequency][output];
+                        sum += (int64_t)input[(size_t)row * width + frequency] *
+                               adst4[frequency][output];
                     }
                 } else if (width == 8U) {
                     for (frequency = 0U; frequency < width; ++frequency) {
-                        sum += (int64_t)input[
-                            (size_t)row * width + frequency] *
-                            adst8[frequency][output];
+                        sum += (int64_t)input[(size_t)row * width + frequency] *
+                               adst8[frequency][output];
                     }
                 } else if (width == 16U) {
                     for (frequency = 0U; frequency < width; ++frequency) {
-                        sum += (int64_t)input[
-                            (size_t)row * width + frequency] *
-                            adst16[frequency][output];
+                        sum += (int64_t)input[(size_t)row * width + frequency] *
+                               adst16[frequency][output];
                     }
                 } else {
                     return AV2H_UNSUPPORTED;
@@ -410,12 +404,12 @@ Av2hStatus av2h_inverse_rows(const int32_t *input, int32_t *transposed,
                     int32_t source = input[(size_t)row * width + frequency];
                     int32_t matrix;
                     Av2hStatus status;
-                    if (source == 0) continue;
-                    status = flip_adst ?
-                        flip_adst_matrix_value(width, frequency, output,
-                                               &matrix) :
-                        matrix_value(width, frequency, output, &matrix);
-                    if (status != AV2H_OK) return status;
+                    if (source == 0)
+                        continue;
+                    status = flip_adst ? flip_adst_matrix_value(width, frequency, output, &matrix)
+                                       : matrix_value(width, frequency, output, &matrix);
+                    if (status != AV2H_OK)
+                        return status;
                     sum += (int64_t)source * matrix;
                 }
             }
@@ -426,11 +420,9 @@ Av2hStatus av2h_inverse_rows(const int32_t *input, int32_t *transposed,
     return AV2H_OK;
 }
 
-Av2hStatus av2h_inverse_columns(const int32_t *transposed,
-                                  int32_t *output_block,
-                                  uint16_t width, uint16_t height,
-                                  uint8_t shift, uint8_t identity,
-                                  uint8_t adst, uint8_t flip_adst) {
+Av2hStatus av2h_inverse_columns(const int32_t *transposed, int32_t *output_block, uint16_t width,
+                                uint16_t height, uint8_t shift, uint8_t identity, uint8_t adst,
+                                uint8_t flip_adst) {
     uint16_t column;
     uint16_t output;
     uint16_t frequency;
@@ -438,14 +430,15 @@ Av2hStatus av2h_inverse_columns(const int32_t *transposed,
         for (output = 0U; output < height; ++output) {
             int64_t sum = 0;
             if (identity) {
-                sum = (int64_t)transposed[(size_t)column * height + output] *
-                      identity_scale(height);
+                sum =
+                    (int64_t)transposed[(size_t)column * height + output] * identity_scale(height);
             }
             for (frequency = 0U; !identity && frequency < height; ++frequency) {
                 int32_t source = transposed[(size_t)column * height + frequency];
                 int32_t matrix;
                 Av2hStatus status;
-                if (source == 0) continue;
+                if (source == 0)
+                    continue;
                 if (adst) {
                     if (height == 4U) {
                         matrix = adst4[frequency][output];
@@ -458,12 +451,11 @@ Av2hStatus av2h_inverse_columns(const int32_t *transposed,
                     }
                     status = AV2H_OK;
                 } else {
-                    status = flip_adst ?
-                        flip_adst_matrix_value(height, frequency, output,
-                                               &matrix) :
-                        matrix_value(height, frequency, output, &matrix);
+                    status = flip_adst ? flip_adst_matrix_value(height, frequency, output, &matrix)
+                                       : matrix_value(height, frequency, output, &matrix);
                 }
-                if (status != AV2H_OK) return status;
+                if (status != AV2H_OK)
+                    return status;
                 sum += (int64_t)source * matrix;
             }
             output_block[(size_t)output * width + column] =
@@ -490,221 +482,297 @@ Av2hStatus av2h_inverse_columns(const int32_t *transposed,
  * independent of the parallel geometry branch.
  */
 
-static Av2hStatus recon_geometry(uint8_t tx_size,
-                                 uint16_t *output_width,
-                                 uint16_t *output_height,
-                                 uint8_t *row_shift,
-                                 uint8_t *column_shift) {
+static Av2hStatus recon_geometry(uint8_t tx_size, uint16_t *output_width, uint16_t *output_height,
+                                 uint8_t *row_shift, uint8_t *column_shift) {
     switch (tx_size) {
-        case RECON_TX_4X4:
-            *output_width = 4U; *output_height = 4U;
-            *row_shift = 7U; *column_shift = 10U; return AV2H_OK;
-        case RECON_TX_4X8:
-            *output_width = 4U; *output_height = 8U;
-            *row_shift = 7U; *column_shift = 10U; return AV2H_OK;
-        case RECON_TX_8X8:
-            *output_width = 8U; *output_height = 8U;
-            *row_shift = 7U; *column_shift = 11U; return AV2H_OK;
-        case RECON_TX_8X4:
-            *output_width = 8U; *output_height = 4U;
-            *row_shift = 7U; *column_shift = 10U; return AV2H_OK;
-        case RECON_TX_16X16:
-            *output_width = 16U; *output_height = 16U;
-            *row_shift = 6U; *column_shift = 13U; return AV2H_OK;
-        case RECON_TX_32X32:
-            *output_width = 32U; *output_height = 32U;
-            *row_shift = 6U; *column_shift = 13U; return AV2H_OK;
-        case RECON_TX_64X64:
-            *output_width = 64U; *output_height = 64U;
-            *row_shift = 6U; *column_shift = 13U; return AV2H_OK;
-        case RECON_TX_8X16:
-            *output_width = 8U; *output_height = 16U;
-            *row_shift = 7U; *column_shift = 11U; return AV2H_OK;
-        case RECON_TX_16X8:
-            *output_width = 16U; *output_height = 8U;
-            *row_shift = 7U; *column_shift = 11U; return AV2H_OK;
-        case RECON_TX_16X4:
-            *output_width = 16U; *output_height = 4U;
-            *row_shift = 6U; *column_shift = 12U; return AV2H_OK;
-        case RECON_TX_4X16:
-            *output_width = 4U; *output_height = 16U;
-            *row_shift = 6U; *column_shift = 12U; return AV2H_OK;
-        case RECON_TX_32X8:
-            *output_width = 32U; *output_height = 8U;
-            *row_shift = 6U; *column_shift = 13U; return AV2H_OK;
-        case RECON_TX_32X4:
-            *output_width = 32U; *output_height = 4U;
-            *row_shift = 7U; *column_shift = 11U; return AV2H_OK;
-        case RECON_TX_64X16:
-            *output_width = 64U; *output_height = 16U;
-            *row_shift = 6U; *column_shift = 13U; return AV2H_OK;
-        case RECON_TX_4X32:
-            *output_width = 4U; *output_height = 32U;
-            *row_shift = 7U; *column_shift = 11U; return AV2H_OK;
-        case RECON_TX_32X16:
-            *output_width = 32U; *output_height = 16U;
-            *row_shift = 6U; *column_shift = 12U; return AV2H_OK;
-        case RECON_TX_16X32:
-            *output_width = 16U; *output_height = 32U;
-            *row_shift = 6U; *column_shift = 12U; return AV2H_OK;
-        case RECON_TX_64X32:
-            *output_width = 64U; *output_height = 32U;
-            *row_shift = 6U; *column_shift = 12U; return AV2H_OK;
-        case RECON_TX_16X64:
-            *output_width = 16U; *output_height = 64U;
-            *row_shift = 6U; *column_shift = 13U; return AV2H_OK;
-        case RECON_TX_8X64:
-            *output_width = 8U; *output_height = 64U;
-            *row_shift = 6U; *column_shift = 12U; return AV2H_OK;
-        case RECON_TX_4X64:
-            *output_width = 4U; *output_height = 64U;
-            *row_shift = 6U; *column_shift = 13U; return AV2H_OK;
-        case RECON_TX_64X4:
-            *output_width = 64U; *output_height = 4U;
-            *row_shift = 6U; *column_shift = 13U; return AV2H_OK;
-        case RECON_TX_64X8:
-            *output_width = 64U; *output_height = 8U;
-            *row_shift = 6U; *column_shift = 12U; return AV2H_OK;
-        case RECON_TX_8X32:
-            *output_width = 8U; *output_height = 32U;
-            *row_shift = 6U; *column_shift = 13U; return AV2H_OK;
-        case RECON_TX_32X64:
-            *output_width = 32U; *output_height = 64U;
-            *row_shift = 6U; *column_shift = 12U; return AV2H_OK;
-        default:
-            return AV2H_UNSUPPORTED;
+    case RECON_TX_4X4:
+        *output_width = 4U;
+        *output_height = 4U;
+        *row_shift = 7U;
+        *column_shift = 10U;
+        return AV2H_OK;
+    case RECON_TX_4X8:
+        *output_width = 4U;
+        *output_height = 8U;
+        *row_shift = 7U;
+        *column_shift = 10U;
+        return AV2H_OK;
+    case RECON_TX_8X8:
+        *output_width = 8U;
+        *output_height = 8U;
+        *row_shift = 7U;
+        *column_shift = 11U;
+        return AV2H_OK;
+    case RECON_TX_8X4:
+        *output_width = 8U;
+        *output_height = 4U;
+        *row_shift = 7U;
+        *column_shift = 10U;
+        return AV2H_OK;
+    case RECON_TX_16X16:
+        *output_width = 16U;
+        *output_height = 16U;
+        *row_shift = 6U;
+        *column_shift = 13U;
+        return AV2H_OK;
+    case RECON_TX_32X32:
+        *output_width = 32U;
+        *output_height = 32U;
+        *row_shift = 6U;
+        *column_shift = 13U;
+        return AV2H_OK;
+    case RECON_TX_64X64:
+        *output_width = 64U;
+        *output_height = 64U;
+        *row_shift = 6U;
+        *column_shift = 13U;
+        return AV2H_OK;
+    case RECON_TX_8X16:
+        *output_width = 8U;
+        *output_height = 16U;
+        *row_shift = 7U;
+        *column_shift = 11U;
+        return AV2H_OK;
+    case RECON_TX_16X8:
+        *output_width = 16U;
+        *output_height = 8U;
+        *row_shift = 7U;
+        *column_shift = 11U;
+        return AV2H_OK;
+    case RECON_TX_16X4:
+        *output_width = 16U;
+        *output_height = 4U;
+        *row_shift = 6U;
+        *column_shift = 12U;
+        return AV2H_OK;
+    case RECON_TX_4X16:
+        *output_width = 4U;
+        *output_height = 16U;
+        *row_shift = 6U;
+        *column_shift = 12U;
+        return AV2H_OK;
+    case RECON_TX_32X8:
+        *output_width = 32U;
+        *output_height = 8U;
+        *row_shift = 6U;
+        *column_shift = 13U;
+        return AV2H_OK;
+    case RECON_TX_32X4:
+        *output_width = 32U;
+        *output_height = 4U;
+        *row_shift = 7U;
+        *column_shift = 11U;
+        return AV2H_OK;
+    case RECON_TX_64X16:
+        *output_width = 64U;
+        *output_height = 16U;
+        *row_shift = 6U;
+        *column_shift = 13U;
+        return AV2H_OK;
+    case RECON_TX_4X32:
+        *output_width = 4U;
+        *output_height = 32U;
+        *row_shift = 7U;
+        *column_shift = 11U;
+        return AV2H_OK;
+    case RECON_TX_32X16:
+        *output_width = 32U;
+        *output_height = 16U;
+        *row_shift = 6U;
+        *column_shift = 12U;
+        return AV2H_OK;
+    case RECON_TX_16X32:
+        *output_width = 16U;
+        *output_height = 32U;
+        *row_shift = 6U;
+        *column_shift = 12U;
+        return AV2H_OK;
+    case RECON_TX_64X32:
+        *output_width = 64U;
+        *output_height = 32U;
+        *row_shift = 6U;
+        *column_shift = 12U;
+        return AV2H_OK;
+    case RECON_TX_16X64:
+        *output_width = 16U;
+        *output_height = 64U;
+        *row_shift = 6U;
+        *column_shift = 13U;
+        return AV2H_OK;
+    case RECON_TX_8X64:
+        *output_width = 8U;
+        *output_height = 64U;
+        *row_shift = 6U;
+        *column_shift = 12U;
+        return AV2H_OK;
+    case RECON_TX_4X64:
+        *output_width = 4U;
+        *output_height = 64U;
+        *row_shift = 6U;
+        *column_shift = 13U;
+        return AV2H_OK;
+    case RECON_TX_64X4:
+        *output_width = 64U;
+        *output_height = 4U;
+        *row_shift = 6U;
+        *column_shift = 13U;
+        return AV2H_OK;
+    case RECON_TX_64X8:
+        *output_width = 64U;
+        *output_height = 8U;
+        *row_shift = 6U;
+        *column_shift = 12U;
+        return AV2H_OK;
+    case RECON_TX_8X32:
+        *output_width = 8U;
+        *output_height = 32U;
+        *row_shift = 6U;
+        *column_shift = 13U;
+        return AV2H_OK;
+    case RECON_TX_32X64:
+        *output_width = 32U;
+        *output_height = 64U;
+        *row_shift = 6U;
+        *column_shift = 12U;
+        return AV2H_OK;
+    default:
+        return AV2H_UNSUPPORTED;
     }
 }
 
-static Av2hStatus recon_transform_kinds(uint8_t primary_type,
-                                        Av2hRecon1dKind *row_kind,
+static Av2hStatus recon_transform_kinds(uint8_t primary_type, Av2hRecon1dKind *row_kind,
                                         Av2hRecon1dKind *column_kind) {
     switch (primary_type) {
-        case AV2H_TX_DCT_DCT:
-            *row_kind = RECON_1D_DCT; *column_kind = RECON_1D_DCT;
-            return AV2H_OK;
-        case AV2H_TX_ADST_DCT:
-            *row_kind = RECON_1D_DCT; *column_kind = RECON_1D_ADST;
-            return AV2H_OK;
-        case AV2H_TX_DCT_ADST:
-            *row_kind = RECON_1D_ADST; *column_kind = RECON_1D_DCT;
-            return AV2H_OK;
-        case AV2H_TX_DCT_FLIPADST:
-            *row_kind = RECON_1D_FLIPADST;
-            *column_kind = RECON_1D_DCT;
-            return AV2H_OK;
-        case AV2H_TX_FLIPADST_DCT:
-            *row_kind = RECON_1D_DCT;
-            *column_kind = RECON_1D_FLIPADST;
-            return AV2H_OK;
-        case AV2H_TX_ADST_ADST:
-            *row_kind = RECON_1D_ADST; *column_kind = RECON_1D_ADST;
-            return AV2H_OK;
-        case AV2H_TX_FLIPADST_FLIPADST:
-            *row_kind = RECON_1D_FLIPADST;
-            *column_kind = RECON_1D_FLIPADST;
-            return AV2H_OK;
-        case AV2H_TX_FLIPADST_ADST:
-            *row_kind = RECON_1D_ADST;
-            *column_kind = RECON_1D_FLIPADST;
-            return AV2H_OK;
-        case AV2H_TX_ADST_FLIPADST:
-            *row_kind = RECON_1D_FLIPADST;
-            *column_kind = RECON_1D_ADST;
-            return AV2H_OK;
-        case AV2H_TX_H_ADST:
-            *row_kind = RECON_1D_ADST;
-            *column_kind = RECON_1D_IDENTITY;
-            return AV2H_OK;
-        case AV2H_TX_V_ADST:
-            *row_kind = RECON_1D_IDENTITY;
-            *column_kind = RECON_1D_ADST;
-            return AV2H_OK;
-        case AV2H_TX_V_DCT:
-            *row_kind = RECON_1D_IDENTITY;
-            *column_kind = RECON_1D_DCT;
-            return AV2H_OK;
-        case AV2H_TX_H_DCT:
-            *row_kind = RECON_1D_DCT;
-            *column_kind = RECON_1D_IDENTITY;
-            return AV2H_OK;
-        case AV2H_TX_V_FLIPADST:
-            *row_kind = RECON_1D_IDENTITY;
-            *column_kind = RECON_1D_FLIPADST;
-            return AV2H_OK;
-        case AV2H_TX_H_FLIPADST:
-            *row_kind = RECON_1D_FLIPADST;
-            *column_kind = RECON_1D_IDENTITY;
-            return AV2H_OK;
-        case AV2H_TX_IDTX:
-            *row_kind = RECON_1D_IDENTITY;
-            *column_kind = RECON_1D_IDENTITY;
-            return AV2H_OK;
-        default:
-            *row_kind = RECON_1D_NONE; *column_kind = RECON_1D_NONE;
-            return AV2H_UNSUPPORTED;
+    case AV2H_TX_DCT_DCT:
+        *row_kind = RECON_1D_DCT;
+        *column_kind = RECON_1D_DCT;
+        return AV2H_OK;
+    case AV2H_TX_ADST_DCT:
+        *row_kind = RECON_1D_DCT;
+        *column_kind = RECON_1D_ADST;
+        return AV2H_OK;
+    case AV2H_TX_DCT_ADST:
+        *row_kind = RECON_1D_ADST;
+        *column_kind = RECON_1D_DCT;
+        return AV2H_OK;
+    case AV2H_TX_DCT_FLIPADST:
+        *row_kind = RECON_1D_FLIPADST;
+        *column_kind = RECON_1D_DCT;
+        return AV2H_OK;
+    case AV2H_TX_FLIPADST_DCT:
+        *row_kind = RECON_1D_DCT;
+        *column_kind = RECON_1D_FLIPADST;
+        return AV2H_OK;
+    case AV2H_TX_ADST_ADST:
+        *row_kind = RECON_1D_ADST;
+        *column_kind = RECON_1D_ADST;
+        return AV2H_OK;
+    case AV2H_TX_FLIPADST_FLIPADST:
+        *row_kind = RECON_1D_FLIPADST;
+        *column_kind = RECON_1D_FLIPADST;
+        return AV2H_OK;
+    case AV2H_TX_FLIPADST_ADST:
+        *row_kind = RECON_1D_ADST;
+        *column_kind = RECON_1D_FLIPADST;
+        return AV2H_OK;
+    case AV2H_TX_ADST_FLIPADST:
+        *row_kind = RECON_1D_FLIPADST;
+        *column_kind = RECON_1D_ADST;
+        return AV2H_OK;
+    case AV2H_TX_H_ADST:
+        *row_kind = RECON_1D_ADST;
+        *column_kind = RECON_1D_IDENTITY;
+        return AV2H_OK;
+    case AV2H_TX_V_ADST:
+        *row_kind = RECON_1D_IDENTITY;
+        *column_kind = RECON_1D_ADST;
+        return AV2H_OK;
+    case AV2H_TX_V_DCT:
+        *row_kind = RECON_1D_IDENTITY;
+        *column_kind = RECON_1D_DCT;
+        return AV2H_OK;
+    case AV2H_TX_H_DCT:
+        *row_kind = RECON_1D_DCT;
+        *column_kind = RECON_1D_IDENTITY;
+        return AV2H_OK;
+    case AV2H_TX_V_FLIPADST:
+        *row_kind = RECON_1D_IDENTITY;
+        *column_kind = RECON_1D_FLIPADST;
+        return AV2H_OK;
+    case AV2H_TX_H_FLIPADST:
+        *row_kind = RECON_1D_FLIPADST;
+        *column_kind = RECON_1D_IDENTITY;
+        return AV2H_OK;
+    case AV2H_TX_IDTX:
+        *row_kind = RECON_1D_IDENTITY;
+        *column_kind = RECON_1D_IDENTITY;
+        return AV2H_OK;
+    default:
+        *row_kind = RECON_1D_NONE;
+        *column_kind = RECON_1D_NONE;
+        return AV2H_UNSUPPORTED;
     }
 }
 
 static Av2hStatus recon_kind_supported(Av2hRecon1dKind kind, uint16_t size) {
     if (kind == RECON_1D_DCT) {
-        return (size == 4U || size == 8U || size == 16U || size == 32U) ?
-            AV2H_OK : AV2H_UNSUPPORTED;
+        return (size == 4U || size == 8U || size == 16U || size == 32U) ? AV2H_OK
+                                                                        : AV2H_UNSUPPORTED;
     }
     if (kind == RECON_1D_ADST || kind == RECON_1D_FLIPADST) {
-        return (size == 4U || size == 8U || size == 16U) ?
-            AV2H_OK : AV2H_UNSUPPORTED;
+        return (size == 4U || size == 8U || size == 16U) ? AV2H_OK : AV2H_UNSUPPORTED;
     }
     if (kind == RECON_1D_IDENTITY) {
-        return (size == 4U || size == 8U || size == 16U || size == 32U) ?
-            AV2H_OK : AV2H_UNSUPPORTED;
+        return (size == 4U || size == 8U || size == 16U || size == 32U) ? AV2H_OK
+                                                                        : AV2H_UNSUPPORTED;
     }
     return AV2H_UNSUPPORTED;
 }
 
-static int32_t recon_kernel_value(Av2hRecon1dKind kind, uint16_t size,
-                                  uint16_t frequency, uint16_t output) {
+static int32_t recon_kernel_value(Av2hRecon1dKind kind, uint16_t size, uint16_t frequency,
+                                  uint16_t output) {
     if (kind == RECON_1D_DCT) {
-        if (size == 4U) return dct4[frequency][output];
-        if (size == 8U) return dct8[frequency][output];
-        if (size == 16U) return dct16[frequency][output];
+        if (size == 4U)
+            return dct4[frequency][output];
+        if (size == 8U)
+            return dct8[frequency][output];
+        if (size == 16U)
+            return dct16[frequency][output];
         return dct32[frequency][output];
     }
     if (kind == RECON_1D_FLIPADST) {
-        int32_t value = size == 4U ?
-            adst4[frequency][size - output - 1U] : size == 8U ?
-            adst8[frequency][size - output - 1U] :
-            adst16[frequency][size - output - 1U];
+        int32_t value = size == 4U   ? adst4[frequency][size - output - 1U]
+                        : size == 8U ? adst8[frequency][size - output - 1U]
+                                     : adst16[frequency][size - output - 1U];
         return size != 8U && (frequency & 1U) != 0U ? -value : value;
     }
-    if (size == 4U) return adst4[frequency][output];
-    if (size == 8U) return adst8[frequency][output];
+    if (size == 4U)
+        return adst4[frequency][output];
+    if (size == 8U)
+        return adst8[frequency][output];
     return adst16[frequency][output];
 }
 
-static void recon_transform_1d(const int32_t *input, int32_t *output,
-                               Av2hRecon1dKind kind, uint16_t size,
-                               uint8_t shift, uint8_t column_transform,
+static void recon_transform_1d(const int32_t *input, int32_t *output, Av2hRecon1dKind kind,
+                               uint16_t size, uint8_t shift, uint8_t column_transform,
                                uint8_t bit_depth) {
-    int32_t magnitude_bits =
-        (int32_t)bit_depth + (column_transform ? 0 : 7);
+    int32_t magnitude_bits = (int32_t)bit_depth + (column_transform ? 0 : 7);
     int32_t minimum = -((int32_t)1 << magnitude_bits);
     int32_t maximum = ((int32_t)1 << magnitude_bits) - 1;
     uint16_t out;
     uint16_t frequency;
     if (kind == RECON_1D_IDENTITY) {
         for (out = 0U; out < size; ++out) {
-            output[out] = av2h_sample_clamp(av2h_sample_round_pow2(
-                (int64_t)input[out] * identity_scale(size), shift),
-                minimum, maximum);
+            output[out] = av2h_sample_clamp(
+                av2h_sample_round_pow2((int64_t)input[out] * identity_scale(size), shift), minimum,
+                maximum);
         }
         return;
     }
     for (out = 0U; out < size; ++out) {
         int64_t sum = 0;
         for (frequency = 0U; frequency < size; ++frequency) {
-            sum += (int64_t)recon_kernel_value(kind, size, frequency, out) *
-                   input[frequency];
+            sum += (int64_t)recon_kernel_value(kind, size, frequency, out) * input[frequency];
         }
         output[out] = av2h_sample_clamp(av2h_sample_round_pow2(sum, shift), minimum, maximum);
     }
@@ -808,15 +876,12 @@ Av2hStatus av2h_reconstruct_transform_8x16_u16(
         predictor == NULL || scratch == NULL || reconstruction == NULL) {
         return AV2H_INVALID_ARGUMENT;
     }
-    if (mode->mode != AV2H_INTRA_DC || mode->angle_delta != 0 ||
-        mode->mrl_index != 0U || mode->enable_ibp != 0U ||
-        mode->use_intrabc != 0U || mode->fsc_mode != 0U ||
+    if (mode->mode != AV2H_INTRA_DC || mode->angle_delta != 0 || mode->mrl_index != 0U ||
+        mode->enable_ibp != 0U || mode->use_intrabc != 0U || mode->fsc_mode != 0U ||
         mode->palette_size != 0U || prefix->tx_size != RECON_TX_8X16 ||
-        transform->primary_type != AV2H_TX_DCT_DCT ||
-        transform->secondary_signaled != 0U || coefficients->width != 8U ||
-        coefficients->height != 16U ||
-        coefficients->coefficient_count != 128U ||
-        predictor_stride_samples < 8U) {
+        transform->primary_type != AV2H_TX_DCT_DCT || transform->secondary_signaled != 0U ||
+        coefficients->width != 8U || coefficients->height != 16U ||
+        coefficients->coefficient_count != 128U || predictor_stride_samples < 8U) {
         return AV2H_UNSUPPORTED;
     }
     reconstruction->width = 8U;
@@ -826,23 +891,21 @@ Av2hStatus av2h_reconstruct_transform_8x16_u16(
             return AV2H_INVALID_DATA;
         }
         for (index = 0U; index < 128U; ++index) {
-            if (coefficients->quantized[index] != 0 ||
-                coefficients->dequantized[index] != 0) {
+            if (coefficients->quantized[index] != 0 || coefficients->dequantized[index] != 0) {
                 return AV2H_INVALID_DATA;
             }
             reconstruction->residual[index] = 0;
-            reconstruction->pixels[index] = predictor[
-                (index / 8U) * predictor_stride_samples + index % 8U];
+            reconstruction->pixels[index] =
+                predictor[(index / 8U) * predictor_stride_samples + index % 8U];
         }
         return AV2H_OK;
     }
     {
-        const Av2hInverseTransformPlan plan = {
-            8U, 16U, 8U, 16U, 7U, 11U, RECON_1D_DCT, RECON_1D_DCT, 1U
-        };
-        return inverse_transform_samples_u16(
-            NULL, mode, prefix, transform, coefficients, predictor, predictor_stride_samples,
-            scratch, reconstruction, &plan, 0U, domain);
+        const Av2hInverseTransformPlan plan = {8U,  16U,          8U,           16U, 7U,
+                                               11U, RECON_1D_DCT, RECON_1D_DCT, 1U};
+        return inverse_transform_samples_u16(NULL, mode, prefix, transform, coefficients, predictor,
+                                             predictor_stride_samples, scratch, reconstruction,
+                                             &plan, 0U, domain);
     }
 }
 
@@ -857,9 +920,8 @@ Av2hStatus av2h_reconstruct_transform_8x4_u16(
         predictor == NULL || scratch == NULL || reconstruction == NULL) {
         return AV2H_INVALID_ARGUMENT;
     }
-    if (mode->mode != AV2H_INTRA_DC || mode->angle_delta != 0 ||
-        mode->enable_ibp != 0U || prefix->tx_size != RECON_TX_8X4 ||
-        transform->primary_type != AV2H_TX_DCT_DCT ||
+    if (mode->mode != AV2H_INTRA_DC || mode->angle_delta != 0 || mode->enable_ibp != 0U ||
+        prefix->tx_size != RECON_TX_8X4 || transform->primary_type != AV2H_TX_DCT_DCT ||
         transform->secondary_signaled != 0U || coefficients->width != 8U ||
         coefficients->height != 4U || coefficients->coefficient_count != 32U ||
         predictor_stride_samples < 8U) {
@@ -868,19 +930,16 @@ Av2hStatus av2h_reconstruct_transform_8x4_u16(
     reconstruction->width = 8U;
     reconstruction->height = 4U;
     {
-        const Av2hInverseTransformPlan plan = {
-            8U, 4U, 8U, 4U, 7U, 10U, RECON_1D_DCT, RECON_1D_DCT, 1U
-        };
-        return inverse_transform_samples_u16(
-            NULL, mode, prefix, transform, coefficients, predictor, predictor_stride_samples,
-            scratch, reconstruction, &plan, 0U, domain);
+        const Av2hInverseTransformPlan plan = {8U,  4U,           8U,           4U, 7U,
+                                               10U, RECON_1D_DCT, RECON_1D_DCT, 1U};
+        return inverse_transform_samples_u16(NULL, mode, prefix, transform, coefficients, predictor,
+                                             predictor_stride_samples, scratch, reconstruction,
+                                             &plan, 0U, domain);
     }
 }
 
-int av2h_reconstruct_generic_selected(
-    const Av2hLeafMode *mode,
-    const Av2hTransformType *transform,
-    uint8_t tx_size) {
+int av2h_reconstruct_generic_selected(const Av2hLeafMode *mode, const Av2hTransformType *transform,
+                                      uint8_t tx_size) {
     uint16_t output_width;
     uint16_t output_height;
     uint8_t row_shift;
@@ -890,38 +949,33 @@ int av2h_reconstruct_generic_selected(
     int identity = transform->primary_type == AV2H_TX_IDTX;
     if (identity) {
         int legal_identity =
-                        mode->fsc_mode ||
-            mode->use_intrabc ||
+            mode->fsc_mode || mode->use_intrabc ||
             (!mode->fsc_mode && !mode->use_intrabc &&
-             (tx_size == RECON_TX_4X32 || tx_size == RECON_TX_32X4 ||
-              tx_size == RECON_TX_8X32 || tx_size == RECON_TX_32X8 ||
-              tx_size == RECON_TX_16X32 || tx_size == RECON_TX_32X16));
-        if (mode->skip_transform || !legal_identity) return 0;
+             (tx_size == RECON_TX_4X32 || tx_size == RECON_TX_32X4 || tx_size == RECON_TX_8X32 ||
+              tx_size == RECON_TX_32X8 || tx_size == RECON_TX_16X32 || tx_size == RECON_TX_32X16));
+        if (mode->skip_transform || !legal_identity)
+            return 0;
     } else if (mode->skip_transform || mode->fsc_mode) {
         return 0;
     }
-    if (recon_geometry(tx_size, &output_width, &output_height,
-                       &row_shift, &column_shift) != AV2H_OK) {
+    if (recon_geometry(tx_size, &output_width, &output_height, &row_shift, &column_shift) !=
+        AV2H_OK) {
         return 0;
     }
     if (!identity && !mode->use_intrabc && tx_size == RECON_TX_4X4 &&
-                transform->primary_type != AV2H_TX_FLIPADST_FLIPADST &&
-                transform->primary_type != AV2H_TX_ADST_DCT &&
-                transform->primary_type != AV2H_TX_DCT_ADST &&
-                transform->primary_type != AV2H_TX_DCT_FLIPADST &&
-                transform->primary_type != AV2H_TX_FLIPADST_DCT &&
-                transform->primary_type != AV2H_TX_ADST_FLIPADST &&
-                transform->primary_type != AV2H_TX_FLIPADST_ADST &&
-                transform->primary_type != AV2H_TX_ADST_ADST &&
-                transform->primary_type != AV2H_TX_H_ADST &&
-                transform->primary_type != AV2H_TX_V_ADST &&
-                transform->primary_type != AV2H_TX_V_DCT &&
-                transform->primary_type != AV2H_TX_H_DCT &&
-                transform->primary_type != AV2H_TX_V_FLIPADST &&
-                transform->primary_type != AV2H_TX_H_FLIPADST &&
-                !((mode->mode == AV2H_INTRA_D157 ||
-                   mode->mode == AV2H_INTRA_VERTICAL) &&
-                    transform->primary_type == AV2H_TX_DCT_ADST)) {
+        transform->primary_type != AV2H_TX_FLIPADST_FLIPADST &&
+        transform->primary_type != AV2H_TX_ADST_DCT &&
+        transform->primary_type != AV2H_TX_DCT_ADST &&
+        transform->primary_type != AV2H_TX_DCT_FLIPADST &&
+        transform->primary_type != AV2H_TX_FLIPADST_DCT &&
+        transform->primary_type != AV2H_TX_ADST_FLIPADST &&
+        transform->primary_type != AV2H_TX_FLIPADST_ADST &&
+        transform->primary_type != AV2H_TX_ADST_ADST && transform->primary_type != AV2H_TX_H_ADST &&
+        transform->primary_type != AV2H_TX_V_ADST && transform->primary_type != AV2H_TX_V_DCT &&
+        transform->primary_type != AV2H_TX_H_DCT && transform->primary_type != AV2H_TX_V_FLIPADST &&
+        transform->primary_type != AV2H_TX_H_FLIPADST &&
+        !((mode->mode == AV2H_INTRA_D157 || mode->mode == AV2H_INTRA_VERTICAL) &&
+          transform->primary_type == AV2H_TX_DCT_ADST)) {
         return 0;
     }
     if (!identity && !mode->use_intrabc && tx_size == RECON_TX_8X4 &&
@@ -933,17 +987,13 @@ int av2h_reconstruct_generic_selected(
         transform->primary_type != AV2H_TX_FLIPADST_DCT &&
         transform->primary_type != AV2H_TX_ADST_FLIPADST &&
         transform->primary_type != AV2H_TX_FLIPADST_ADST &&
-        transform->primary_type != AV2H_TX_ADST_ADST &&
-        transform->primary_type != AV2H_TX_H_ADST &&
-        transform->primary_type != AV2H_TX_V_ADST &&
-        transform->primary_type != AV2H_TX_V_DCT &&
-        transform->primary_type != AV2H_TX_H_DCT &&
-        transform->primary_type != AV2H_TX_V_FLIPADST &&
+        transform->primary_type != AV2H_TX_ADST_ADST && transform->primary_type != AV2H_TX_H_ADST &&
+        transform->primary_type != AV2H_TX_V_ADST && transform->primary_type != AV2H_TX_V_DCT &&
+        transform->primary_type != AV2H_TX_H_DCT && transform->primary_type != AV2H_TX_V_FLIPADST &&
         transform->primary_type != AV2H_TX_H_FLIPADST) {
         return 0;
     }
-    if (recon_transform_kinds(transform->primary_type, &row_kind,
-                              &column_kind) != AV2H_OK) {
+    if (recon_transform_kinds(transform->primary_type, &row_kind, &column_kind) != AV2H_OK) {
         return 0;
     }
     return 1;
@@ -1019,8 +1069,9 @@ Av2hStatus av2h_reconstruct_transform_generic(
     reconstruction->width = output_width;
     reconstruction->height = output_height;
     {
-        Av2hInverseTransformPlan plan = {output_width, output_height, coeff_width, coeff_height,
-                                         row_shift,    column_shift,  row_kind,    column_kind, 0U};
+        Av2hInverseTransformPlan plan = {output_width, output_height, coeff_width,
+                                         coeff_height, row_shift,     column_shift,
+                                         row_kind,     column_kind,   0U};
         return inverse_transform_samples(diagnostics, mode, prefix, transform, coefficients,
                                          predictor, predictor_stride_samples, scratch,
                                          reconstruction, &plan, 4U, domain);
@@ -1096,8 +1147,9 @@ Av2hStatus av2h_reconstruct_transform_generic_u16(
         return AV2H_UNSUPPORTED;
     }
     {
-        Av2hInverseTransformPlan plan = {output_width, output_height, coeff_width, coeff_height,
-                                         row_shift,    column_shift,  row_kind,    column_kind, 0U};
+        Av2hInverseTransformPlan plan = {output_width, output_height, coeff_width,
+                                         coeff_height, row_shift,     column_shift,
+                                         row_kind,     column_kind,   0U};
         return inverse_transform_samples_u16(diagnostics, mode, prefix, transform, coefficients,
                                              predictor, predictor_stride_samples, scratch,
                                              reconstruction, &plan, 3U, domain);

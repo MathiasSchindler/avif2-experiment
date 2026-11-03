@@ -54,8 +54,6 @@ typedef struct {
     Av2hBlockSize block_size;
 } Av2hPartitionNode;
 
-Av2hStatus av2h_block_dimensions_mi(Av2hBlockSize block_size,
-                                     size_t *width,
-                                     size_t *height);
+Av2hStatus av2h_block_dimensions_mi(Av2hBlockSize block_size, size_t *width, size_t *height);
 
 #endif

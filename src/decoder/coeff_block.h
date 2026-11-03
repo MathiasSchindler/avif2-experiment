@@ -82,49 +82,32 @@ typedef struct {
     uint8_t dequant_shift;
 } Av2hCoeffTxGeometry;
 
-int32_t av2h_coeff_clamp_dequantized_8bit(
-    uint64_t magnitude,
-    uint8_t sign);
+int32_t av2h_coeff_clamp_dequantized_8bit(uint64_t magnitude, uint8_t sign);
 
-Av2hDequantizedCoefficient av2h_coeff_clamp_dequantized_10bit(
-    uint64_t magnitude,
-    uint8_t sign);
+Av2hDequantizedCoefficient av2h_coeff_clamp_dequantized_10bit(uint64_t magnitude, uint8_t sign);
 
-Av2hStatus av2h_coeff_tx_geometry_from_dims(
-    uint16_t tx_width,
-    uint16_t tx_height,
-    Av2hCoeffTxGeometry *geometry);
+Av2hStatus av2h_coeff_tx_geometry_from_dims(uint16_t tx_width, uint16_t tx_height,
+                                            Av2hCoeffTxGeometry *geometry);
 
-Av2hStatus av2h_coeff_tx_geometry(
-    Av2hTxSize tx_size,
-    Av2hCoeffTxGeometry *geometry);
+Av2hStatus av2h_coeff_tx_geometry(Av2hTxSize tx_size, Av2hCoeffTxGeometry *geometry);
 
 uint32_t av2h_coeff_dequant_step_8bit(Av2hQIndex base_q_index, int delta);
 
 uint32_t av2h_coeff_dequant_step_10bit(Av2hQIndex base_q_index, int delta);
 
-int32_t av2h_coeff_dequantize_level(
-    uint32_t level,
-    uint8_t sign,
-    uint32_t dequant_step,
-    uint8_t shift);
+int32_t av2h_coeff_dequantize_level(uint32_t level, uint8_t sign, uint32_t dequant_step,
+                                    uint8_t shift);
 
-Av2hDequantizedCoefficient av2h_coeff_dequantize_level_10bit(
-    uint32_t level,
-    uint8_t sign,
-    uint32_t dequant_step,
-    uint8_t shift);
+Av2hDequantizedCoefficient av2h_coeff_dequantize_level_10bit(uint32_t level, uint8_t sign,
+                                                             uint32_t dequant_step, uint8_t shift);
 
-uint8_t av2h_coeff_finalize_cul_level(
-    uint32_t summed_level,
-    int32_t dc_value);
+uint8_t av2h_coeff_finalize_cul_level(uint32_t summed_level, int32_t dc_value);
 
 uint8_t av2h_tcq_quantizer(uint8_t state);
 
 uint8_t av2h_tcq_next_state(uint8_t state, uint32_t absolute_level);
 
-uint16_t av2h_coeff_scan_position(
-    uint16_t scan_index, uint16_t width, uint16_t height,
-    uint8_t vertical, uint8_t column_scan);
+uint16_t av2h_coeff_scan_position(uint16_t scan_index, uint16_t width, uint16_t height,
+                                  uint8_t vertical, uint8_t column_scan);
 
 #endif

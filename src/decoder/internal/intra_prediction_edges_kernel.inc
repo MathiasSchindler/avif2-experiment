@@ -1,6 +1,5 @@
-void AV2H_KERNEL_NAME(av2h_directional_filter_edge,
-                      av2h_directional_filter_edge_u16)(AV2H_KERNEL_TYPE(uint8_t, uint16_t) * edge,
-                                                        size_t count, int strength) {
+void AV2H_KERNEL_NAME(av2h_directional_filter_edge, av2h_directional_filter_edge_u16)(
+    AV2H_KERNEL_TYPE(uint8_t, uint16_t) *edge, size_t count, int strength) {
     static const uint8_t kernels[3U][5U] = {
         {0U, 4U, 8U, 4U, 0U}, {0U, 5U, 6U, 5U, 0U}, {2U, 4U, 4U, 4U, 2U}};
     AV2H_KERNEL_TYPE(uint8_t, uint16_t) source[132U];

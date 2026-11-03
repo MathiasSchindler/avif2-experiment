@@ -25,8 +25,7 @@ static inline unsigned int av2h_floor_log2_u32(uint32_t value) {
 }
 
 /* Smallest shift with unit * 2^shift >= value; unit must be positive. */
-static inline unsigned int av2h_ceil_log2_ratio_u32(
-    uint32_t unit, uint32_t value) {
+static inline unsigned int av2h_ceil_log2_ratio_u32(uint32_t unit, uint32_t value) {
     unsigned int bits = 0U;
     uint64_t limit = unit;
     while (limit < value) {

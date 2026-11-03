@@ -104,37 +104,24 @@ typedef struct {
     const Av2hDecodeDiagnostics *diagnostics;
 } Av2hFrameDecodeResult;
 
-Av2hStatus av2h_planar_output_size(
-    const Av2hFrameState *frame,
-    size_t bytes_per_sample,
-    size_t *size_bytes);
+Av2hStatus av2h_planar_output_size(const Av2hFrameState *frame, size_t bytes_per_sample,
+                                   size_t *size_bytes);
 
-Av2hStatus av2h_copy_visible_planar_private(
-    const Av2hFrameState *frame,
-    const Av2hFilterPlanes *coded,
-    const size_t coded_data_size_bytes[AV2H_FRAME_PLANE_COUNT],
-    uint8_t *output,
-    size_t output_size_bytes,
-    const Av2hExecution *execution);
+Av2hStatus
+av2h_copy_visible_planar_private(const Av2hFrameState *frame, const Av2hFilterPlanes *coded,
+                                 const size_t coded_data_size_bytes[AV2H_FRAME_PLANE_COUNT],
+                                 uint8_t *output, size_t output_size_bytes,
+                                 const Av2hExecution *execution);
 
-Av2hStatus av2h_decode_frame_planar_private(
-    Av2hSpan entropy,
-    const Av2hSequenceState *sequence,
-    const Av2hFrameState *frame,
-    Av2hFrameDecodeWorkspace *workspace,
-    uint8_t *output,
-    size_t output_size_bytes,
-    Av2hFrameDecodeResult *result,
-    const Av2hExecution *execution);
+Av2hStatus av2h_decode_frame_planar_private(Av2hSpan entropy, const Av2hSequenceState *sequence,
+                                            const Av2hFrameState *frame,
+                                            Av2hFrameDecodeWorkspace *workspace, uint8_t *output,
+                                            size_t output_size_bytes, Av2hFrameDecodeResult *result,
+                                            const Av2hExecution *execution);
 
 Av2hStatus av2h_decode_frame_group_planar_private(
-    const Av2hTileGroup *group,
-    const Av2hSequenceState *sequence,
-    const Av2hFrameState *frame,
-    Av2hFrameDecodeWorkspace *workspace,
-    uint8_t *output,
-    size_t output_size_bytes,
-    Av2hFrameDecodeResult *result,
-    const Av2hExecution *execution);
+    const Av2hTileGroup *group, const Av2hSequenceState *sequence, const Av2hFrameState *frame,
+    Av2hFrameDecodeWorkspace *workspace, uint8_t *output, size_t output_size_bytes,
+    Av2hFrameDecodeResult *result, const Av2hExecution *execution);
 
 #endif

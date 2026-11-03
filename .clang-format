@@ -1,0 +1,27 @@
+# Canonical production C style; use clang-format 22.x.
+BasedOnStyle: LLVM
+Language: Cpp
+IndentWidth: 4
+ContinuationIndentWidth: 4
+ColumnLimit: 100
+UseTab: Never
+BreakBeforeBraces: Attach
+PointerAlignment: Right
+DerivePointerAlignment: false
+AlignAfterOpenBracket: Align
+AllowShortFunctionsOnASingleLine: Empty
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+# C2 orders ordinary includes; typed instantiation includes are order-sensitive.
+SortIncludes: Never
+IncludeBlocks: Preserve
+IndentPPDirectives: None
+BreakStringLiterals: false
+ReflowComments: Never
+InsertBraces: false
+RemoveBracesLLVM: false
+RemoveParentheses: Leave
+QualifierAlignment: Leave
+Macros:
+  - 'AV2H_KERNEL_NAME(low, wide)=low'
+  - 'AV2H_KERNEL_TYPE(low, wide)=low'

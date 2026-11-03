@@ -1,8 +1,8 @@
-static AV2H_KERNEL_TYPE(uint8_t, uint16_t)
-    AV2H_KERNEL_NAME(gdf_source_sample, gdf_source_sample_u16)(
-        const AV2H_KERNEL_TYPE(Av2hFilterPlane, Av2hFilterPlaneU16) * cdef_luma,
-        const AV2H_KERNEL_TYPE(Av2hFilterPlane, Av2hFilterPlaneU16) * deblocked_luma, int x, int y,
-        int stripe_start, int stripe_end, const GdfTileBounds *bounds) {
+static AV2H_KERNEL_TYPE(uint8_t, uint16_t) AV2H_KERNEL_NAME(
+    gdf_source_sample,
+    gdf_source_sample_u16)(const AV2H_KERNEL_TYPE(Av2hFilterPlane, Av2hFilterPlaneU16) *cdef_luma,
+                                 const AV2H_KERNEL_TYPE(Av2hFilterPlane, Av2hFilterPlaneU16) *deblocked_luma, int x, int y,
+                                 int stripe_start, int stripe_end, const GdfTileBounds *bounds) {
     const AV2H_KERNEL_TYPE(Av2hFilterPlane, Av2hFilterPlaneU16) *source = cdef_luma;
     if (x < bounds->left)
         x = bounds->left;
@@ -26,13 +26,13 @@ static AV2H_KERNEL_TYPE(uint8_t, uint16_t)
     return source->data[(size_t)y * source->stride_samples + (size_t)x];
 }
 static void AV2H_KERNEL_NAME(gdf_filter_block, gdf_filter_block_u16)(
-    AV2H_KERNEL_TYPE(Av2hFilterPlane, Av2hFilterPlaneU16) * destination,
-    const AV2H_KERNEL_TYPE(Av2hFilterPlane, Av2hFilterPlaneU16) * cdef_luma,
-    const AV2H_KERNEL_TYPE(Av2hFilterPlane, Av2hFilterPlaneU16) * deblocked_luma, uint16_t block_x,
-    uint16_t block_y, unsigned int qp_index, unsigned int pixel_scale, const GdfTileBounds *bounds
+    AV2H_KERNEL_TYPE(Av2hFilterPlane, Av2hFilterPlaneU16) *destination, const AV2H_KERNEL_TYPE(Av2hFilterPlane, Av2hFilterPlaneU16) *cdef_luma,
+                             const AV2H_KERNEL_TYPE(Av2hFilterPlane, Av2hFilterPlaneU16) *deblocked_luma, uint16_t block_x,
+                             uint16_t block_y, unsigned int qp_index, unsigned int pixel_scale,
+                             const GdfTileBounds *bounds
 #if AV2H_KERNEL_WIDE
-    ,
-    const Av2hSampleDomain *domain
+                             ,
+                             const Av2hSampleDomain *domain
 #endif
 ) {
     uint16_t gradient[4][6][6];
@@ -55,12 +55,18 @@ static void AV2H_KERNEL_NAME(gdf_filter_block, gdf_filter_block_u16)(
                 int dy = direction_offset[direction][1];
                 int x = (int)block_x - 1 + (int)column;
                 int y = (int)block_y - 1 + (int)row;
-                int center = AV2H_KERNEL_NAME(gdf_source_sample, gdf_source_sample_u16)(
-                    cdef_luma, deblocked_luma, x, y, stripe_start, stripe_end, bounds);
-                int first = AV2H_KERNEL_NAME(gdf_source_sample, gdf_source_sample_u16)(
-                    cdef_luma, deblocked_luma, x - dx, y - dy, stripe_start, stripe_end, bounds);
-                int second = AV2H_KERNEL_NAME(gdf_source_sample, gdf_source_sample_u16)(
-                    cdef_luma, deblocked_luma, x + dx, y + dy, stripe_start, stripe_end, bounds);
+                int center = AV2H_KERNEL_NAME(
+                    gdf_source_sample,
+                    gdf_source_sample_u16)(cdef_luma, deblocked_luma, x, y, stripe_start,
+                                               stripe_end, bounds);
+                int first = AV2H_KERNEL_NAME(
+                    gdf_source_sample,
+                    gdf_source_sample_u16)(cdef_luma, deblocked_luma, x - dx, y - dy,
+                                              stripe_start, stripe_end, bounds);
+                int second = AV2H_KERNEL_NAME(
+                    gdf_source_sample,
+                    gdf_source_sample_u16)(cdef_luma, deblocked_luma, x + dx, y + dy,
+                                               stripe_start, stripe_end, bounds);
                 gradient[direction][row][column] =
                     (uint16_t)av2h_sample_abs(center * 2 - first - second);
             }
@@ -86,9 +92,10 @@ static void AV2H_KERNEL_NAME(gdf_filter_block, gdf_filter_block_u16)(
             unsigned int output_index;
             size_t destination_index =
                 ((size_t)block_y + row) * destination->stride_samples + block_x + column;
-            int center = AV2H_KERNEL_NAME(gdf_source_sample, gdf_source_sample_u16)(
-                cdef_luma, deblocked_luma, (int)block_x + (int)column, (int)block_y + (int)row,
-                stripe_start, stripe_end, bounds);
+            int center = AV2H_KERNEL_NAME(
+                gdf_source_sample,
+                gdf_source_sample_u16)(cdef_luma, deblocked_luma, (int)block_x + (int)column,
+                                  (int)block_y + (int)row, stripe_start, stripe_end, bounds);
             for (kernel_index = 0U; kernel_index < 22U; ++kernel_index) {
                 unsigned int alpha =
                     gdf_alpha[gdf_alpha_index(qp_index, kernel_index, class_index)];
@@ -97,15 +104,21 @@ static void AV2H_KERNEL_NAME(gdf_filter_block, gdf_filter_block_u16)(
                     int dy = gdf_coordinates[kernel_index][0];
                     int dx = gdf_coordinates[kernel_index][1];
                     int above =
-                        AV2H_KERNEL_NAME(gdf_source_sample, gdf_source_sample_u16)(
-                            cdef_luma, deblocked_luma, (int)block_x + (int)column - dx,
-                            (int)block_y + (int)row - dy, stripe_start, stripe_end, bounds) -
-                        center;
+                        AV2H_KERNEL_NAME(
+                            gdf_source_sample,
+                            gdf_source_sample_u16)(cdef_luma, deblocked_luma,
+                                                  (int)block_x + (int)column - dx,
+                                                  (int)block_y + (int)row - dy, stripe_start,
+                                                  stripe_end, bounds) -
+                                center;
                     int below =
-                        AV2H_KERNEL_NAME(gdf_source_sample, gdf_source_sample_u16)(
-                            cdef_luma, deblocked_luma, (int)block_x + (int)column + dx,
-                            (int)block_y + (int)row + dy, stripe_start, stripe_end, bounds) -
-                        center;
+                        AV2H_KERNEL_NAME(
+                            gdf_source_sample,
+                            gdf_source_sample_u16)(cdef_luma, deblocked_luma,
+                                                  (int)block_x + (int)column + dx,
+                                                  (int)block_y + (int)row + dy, stripe_start,
+                                                  stripe_end, bounds) -
+                                center;
 #if AV2H_KERNEL_WIDE
                     /* Learned spatial inputs use 10-bit units, independently of sample depth. */
                     if (domain->bit_depth < 10U) {
@@ -175,19 +188,19 @@ static void AV2H_KERNEL_NAME(gdf_filter_block, gdf_filter_block_u16)(
     }
 }
 Av2hStatus AV2H_KERNEL_NAME(av2h_gdf_filter_frame, av2h_gdf_filter_frame_u16)(
-    AV2H_KERNEL_TYPE(Av2hFilterPlane, Av2hFilterPlaneU16) * destination
+    AV2H_KERNEL_TYPE(Av2hFilterPlane, Av2hFilterPlaneU16) *destination
 #if !AV2H_KERNEL_WIDE
-    ,
-    const Av2hFilterPlane *baseline_luma
+                                 ,
+                                 const Av2hFilterPlane *baseline_luma
 #endif
-    ,
-    const AV2H_KERNEL_TYPE(Av2hFilterPlane, Av2hFilterPlaneU16) * cdef_luma,
-    const AV2H_KERNEL_TYPE(Av2hFilterPlane, Av2hFilterPlaneU16) * deblocked_luma,
-    const Av2hSequenceState *sequence, const Av2hFrameState *frame,
-    const Av2hGdfControlMap *controls
+                                 ,
+                                 const AV2H_KERNEL_TYPE(Av2hFilterPlane, Av2hFilterPlaneU16) *cdef_luma,
+                                 const AV2H_KERNEL_TYPE(Av2hFilterPlane, Av2hFilterPlaneU16) *deblocked_luma,
+                                 const Av2hSequenceState *sequence, const Av2hFrameState *frame,
+                                 const Av2hGdfControlMap *controls
 #if AV2H_KERNEL_WIDE
-    ,
-    const Av2hSampleDomain *domain
+                                 ,
+                                 const Av2hSampleDomain *domain
 #endif
 ) {
 #if AV2H_KERNEL_WIDE
@@ -199,9 +212,9 @@ Av2hStatus AV2H_KERNEL_NAME(av2h_gdf_filter_frame, av2h_gdf_filter_frame_u16)(
     if (!AV2H_KERNEL_NAME(gdf_frame_arguments_valid,
                           gdf_frame_arguments_valid_u16)(destination,
 #if !AV2H_KERNEL_WIDE
-                                                         baseline_luma,
+                                   baseline_luma,
 #endif
-                                                         cdef_luma, deblocked_luma, frame)) {
+                                   cdef_luma, deblocked_luma, frame)) {
         return AV2H_INVALID_ARGUMENT;
     }
     if (frame->gdf_mode == 2U) {

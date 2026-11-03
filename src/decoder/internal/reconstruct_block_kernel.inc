@@ -1,9 +1,11 @@
-static void AV2H_KERNEL_NAME(reconstruct_dpcm_samples, reconstruct_dpcm_samples_u16)(
-    const Av2hCoeffBlock *coefficients, const AV2H_KERNEL_TYPE(uint8_t, uint16_t) * predictor,
-    size_t predictor_stride_samples, uint16_t width, uint16_t height, uint8_t horizontal,
-    unsigned int scale_bits, uint8_t truncate_toward_zero,
-    AV2H_KERNEL_TYPE(Av2hBlockReconstruction, Av2hBlockReconstructionU16) * reconstruction,
-    const Av2hSampleDomain *domain) {
+static void AV2H_KERNEL_NAME(
+    reconstruct_dpcm_samples,
+    reconstruct_dpcm_samples_u16)(const Av2hCoeffBlock *coefficients, const AV2H_KERNEL_TYPE(uint8_t, uint16_t) *predictor,
+                                     size_t predictor_stride_samples, uint16_t width,
+                                     uint16_t height, uint8_t horizontal, unsigned int scale_bits,
+                                     uint8_t truncate_toward_zero,
+                                  AV2H_KERNEL_TYPE(Av2hBlockReconstruction, Av2hBlockReconstructionU16) *reconstruction,
+                                     const Av2hSampleDomain *domain) {
     uint16_t lane;
     uint16_t lane_count = horizontal ? height : width;
     uint16_t lane_length = horizontal ? width : height;
@@ -19,10 +21,9 @@ static void AV2H_KERNEL_NAME(reconstruct_dpcm_samples, reconstruct_dpcm_samples_
                                   : coefficients->dequantized[sample] >> scale_bits;
             int32_t residual = current + delay;
             reconstruction->residual[sample] = (AV2H_KERNEL_TYPE(int16_t, int32_t))residual;
-            reconstruction->pixels[sample] =
-                (AV2H_KERNEL_TYPE(uint8_t, uint16_t))av2h_sample_clip_to_domain(
-                    (int32_t)predictor[(size_t)row * predictor_stride_samples + column] + residual,
-                    domain);
+            reconstruction->pixels[sample] = (AV2H_KERNEL_TYPE(uint8_t, uint16_t))av2h_sample_clip_to_domain(
+                (int32_t)predictor[(size_t)row * predictor_stride_samples + column] + residual,
+                domain);
             delay += current;
         }
     }

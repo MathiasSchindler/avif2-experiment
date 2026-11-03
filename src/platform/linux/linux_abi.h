@@ -42,13 +42,11 @@
 #if defined(__x86_64__)
 long av2h_linux_syscall1(long number, long argument0);
 long av2h_linux_syscall2(long number, long argument0, long argument1);
-long av2h_linux_syscall3(long number, long argument0, long argument1,
-                         long argument2);
-long av2h_linux_syscall4(long number, long argument0, long argument1,
-                         long argument2, long argument3);
-long av2h_linux_syscall6(long number, long argument0, long argument1,
-                         long argument2, long argument3, long argument4,
-                         long argument5);
+long av2h_linux_syscall3(long number, long argument0, long argument1, long argument2);
+long av2h_linux_syscall4(long number, long argument0, long argument1, long argument2,
+                         long argument3);
+long av2h_linux_syscall6(long number, long argument0, long argument1, long argument2,
+                         long argument3, long argument4, long argument5);
 #elif defined(__aarch64__)
 static inline long av2h_linux_syscall1(long number, long argument0) {
     register long x8 __asm__("x8") = number;
@@ -57,8 +55,7 @@ static inline long av2h_linux_syscall1(long number, long argument0) {
     return x0;
 }
 
-static inline long av2h_linux_syscall2(long number, long argument0,
-                                       long argument1) {
+static inline long av2h_linux_syscall2(long number, long argument0, long argument1) {
     register long x8 __asm__("x8") = number;
     register long x0 __asm__("x0") = argument0;
     register long x1 __asm__("x1") = argument1;
@@ -66,34 +63,29 @@ static inline long av2h_linux_syscall2(long number, long argument0,
     return x0;
 }
 
-static inline long av2h_linux_syscall3(long number, long argument0,
-                                       long argument1, long argument2) {
+static inline long av2h_linux_syscall3(long number, long argument0, long argument1,
+                                       long argument2) {
     register long x8 __asm__("x8") = number;
     register long x0 __asm__("x0") = argument0;
     register long x1 __asm__("x1") = argument1;
     register long x2 __asm__("x2") = argument2;
-    __asm__ volatile("svc #0" : "+r"(x0) :
-                     "r"(x1), "r"(x2), "r"(x8) : "memory");
+    __asm__ volatile("svc #0" : "+r"(x0) : "r"(x1), "r"(x2), "r"(x8) : "memory");
     return x0;
 }
 
-static inline long av2h_linux_syscall4(long number, long argument0,
-                                       long argument1, long argument2,
+static inline long av2h_linux_syscall4(long number, long argument0, long argument1, long argument2,
                                        long argument3) {
     register long x8 __asm__("x8") = number;
     register long x0 __asm__("x0") = argument0;
     register long x1 __asm__("x1") = argument1;
     register long x2 __asm__("x2") = argument2;
     register long x3 __asm__("x3") = argument3;
-    __asm__ volatile("svc #0" : "+r"(x0) :
-                     "r"(x1), "r"(x2), "r"(x3), "r"(x8) : "memory");
+    __asm__ volatile("svc #0" : "+r"(x0) : "r"(x1), "r"(x2), "r"(x3), "r"(x8) : "memory");
     return x0;
 }
 
-static inline long av2h_linux_syscall6(long number, long argument0,
-                                       long argument1, long argument2,
-                                       long argument3, long argument4,
-                                       long argument5) {
+static inline long av2h_linux_syscall6(long number, long argument0, long argument1, long argument2,
+                                       long argument3, long argument4, long argument5) {
     register long x8 __asm__("x8") = number;
     register long x0 __asm__("x0") = argument0;
     register long x1 __asm__("x1") = argument1;
@@ -101,9 +93,10 @@ static inline long av2h_linux_syscall6(long number, long argument0,
     register long x3 __asm__("x3") = argument3;
     register long x4 __asm__("x4") = argument4;
     register long x5 __asm__("x5") = argument5;
-    __asm__ volatile("svc #0" : "+r"(x0) :
-                     "r"(x1), "r"(x2), "r"(x3), "r"(x4), "r"(x5),
-                     "r"(x8) : "memory");
+    __asm__ volatile("svc #0"
+                     : "+r"(x0)
+                     : "r"(x1), "r"(x2), "r"(x3), "r"(x4), "r"(x5), "r"(x8)
+                     : "memory");
     return x0;
 }
 #endif

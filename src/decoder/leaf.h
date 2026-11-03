@@ -51,36 +51,24 @@ typedef struct {
     uint16_t intrabc[AV2H_INTRABC_CONTEXT_COUNT][AV2H_BINARY_CDF_SIZE];
     uint16_t intrabc_mode[AV2H_BINARY_CDF_SIZE];
     uint16_t intrabc_precision[AV2H_BINARY_CDF_SIZE];
-    uint16_t morph_pred[AV2H_MORPH_PRED_CONTEXT_COUNT]
-                       [AV2H_BINARY_CDF_SIZE];
+    uint16_t morph_pred[AV2H_MORPH_PRED_CONTEXT_COUNT][AV2H_BINARY_CDF_SIZE];
     uint16_t intrabc_shell_set[AV2H_BINARY_CDF_SIZE];
     uint16_t intrabc_shell_class[AV2H_INTRABC_SHELL_CLASS_SYMBOLS + 4U];
-    uint16_t intrabc_qtr_shell_class
-        [AV2H_INTRABC_QTR_SHELL_CLASS_SYMBOLS + 4U];
-    uint16_t intrabc_shell_class_set1
-        [AV2H_INTRABC_SHELL_CLASS_SET1_SYMBOLS + 4U];
-    uint16_t intrabc_qtr_shell_class_set1
-        [AV2H_INTRABC_QTR_SHELL_CLASS_SET1_SYMBOLS + 4U];
-    uint16_t intrabc_shell_offset[AV2H_INTRABC_LOW_CLASS_COUNT]
-                                  [AV2H_BINARY_CDF_SIZE];
+    uint16_t intrabc_qtr_shell_class[AV2H_INTRABC_QTR_SHELL_CLASS_SYMBOLS + 4U];
+    uint16_t intrabc_shell_class_set1[AV2H_INTRABC_SHELL_CLASS_SET1_SYMBOLS + 4U];
+    uint16_t intrabc_qtr_shell_class_set1[AV2H_INTRABC_QTR_SHELL_CLASS_SET1_SYMBOLS + 4U];
+    uint16_t intrabc_shell_offset[AV2H_INTRABC_LOW_CLASS_COUNT][AV2H_BINARY_CDF_SIZE];
     uint16_t intrabc_shell_offset_class2[AV2H_BINARY_CDF_SIZE];
-    uint16_t intrabc_shell_offset_other
-        [AV2H_INTRABC_OTHER_CLASS_OFFSET_COUNT][AV2H_BINARY_CDF_SIZE];
-    uint16_t intrabc_col_greater[AV2H_INTRABC_GREATER_CONTEXT_COUNT]
-                                [AV2H_BINARY_CDF_SIZE];
-    uint16_t intrabc_col_index[AV2H_INTRABC_INDEX_CONTEXT_COUNT]
-                              [AV2H_BINARY_CDF_SIZE];
-    uint16_t skip_transform[AV2H_SKIP_TRANSFORM_CONTEXT_COUNT]
-                           [AV2H_BINARY_CDF_SIZE];
+    uint16_t intrabc_shell_offset_other[AV2H_INTRABC_OTHER_CLASS_OFFSET_COUNT]
+                                       [AV2H_BINARY_CDF_SIZE];
+    uint16_t intrabc_col_greater[AV2H_INTRABC_GREATER_CONTEXT_COUNT][AV2H_BINARY_CDF_SIZE];
+    uint16_t intrabc_col_index[AV2H_INTRABC_INDEX_CONTEXT_COUNT][AV2H_BINARY_CDF_SIZE];
+    uint16_t skip_transform[AV2H_SKIP_TRANSFORM_CONTEXT_COUNT][AV2H_BINARY_CDF_SIZE];
     uint16_t delta_q[AV2H_DELTA_Q_SYMBOLS + 4U];
-    uint16_t segment_id[AV2H_SEGMENT_ID_CONTEXTS]
-                       [AV2H_BASE_SEGMENT_COUNT + 4U];
-    uint16_t segment_id_ext[AV2H_SEGMENT_ID_CONTEXTS]
-                           [AV2H_BASE_SEGMENT_COUNT + 4U];
-    uint16_t segment_id_ext_flag[AV2H_SEGMENT_ID_CONTEXTS]
-                                [AV2H_BINARY_CDF_SIZE];
-    uint16_t ccso[AV2H_FRAME_PLANE_COUNT][AV2H_CCSO_CONTEXT_COUNT]
-                 [AV2H_BINARY_CDF_SIZE];
+    uint16_t segment_id[AV2H_SEGMENT_ID_CONTEXTS][AV2H_BASE_SEGMENT_COUNT + 4U];
+    uint16_t segment_id_ext[AV2H_SEGMENT_ID_CONTEXTS][AV2H_BASE_SEGMENT_COUNT + 4U];
+    uint16_t segment_id_ext_flag[AV2H_SEGMENT_ID_CONTEXTS][AV2H_BINARY_CDF_SIZE];
+    uint16_t ccso[AV2H_FRAME_PLANE_COUNT][AV2H_CCSO_CONTEXT_COUNT][AV2H_BINARY_CDF_SIZE];
     uint16_t y_mode_set[AV2H_Y_MODE_SET_SYMBOLS + 4U];
     uint16_t dpcm[AV2H_BINARY_CDF_SIZE];
     uint16_t dpcm_vert_horz[AV2H_BINARY_CDF_SIZE];
@@ -88,29 +76,22 @@ typedef struct {
     uint16_t dpcm_uv_vert_horz[AV2H_BINARY_CDF_SIZE];
     uint16_t lossless_tx_size[4U][2U][AV2H_BINARY_CDF_SIZE];
     uint16_t lossless_inter_tx_type[AV2H_BINARY_CDF_SIZE];
-    uint16_t y_mode_index[AV2H_Y_MODE_CONTEXT_COUNT]
-                         [AV2H_Y_MODE_INDEX_SYMBOLS + 4U];
-    uint16_t y_mode_offset[AV2H_Y_MODE_CONTEXT_COUNT]
-                          [AV2H_Y_MODE_OFFSET_SYMBOLS + 4U];
+    uint16_t y_mode_index[AV2H_Y_MODE_CONTEXT_COUNT][AV2H_Y_MODE_INDEX_SYMBOLS + 4U];
+    uint16_t y_mode_offset[AV2H_Y_MODE_CONTEXT_COUNT][AV2H_Y_MODE_OFFSET_SYMBOLS + 4U];
     uint16_t palette_y_mode[AV2H_BINARY_CDF_SIZE];
     uint16_t palette_y_size[7U + 4U];
     uint16_t palette_y_identity[AV2H_PALETTE_ROW_CONTEXT_COUNT][3U + 4U];
-    uint16_t palette_y_color_index[AV2H_PALETTE_SIZE_COUNT]
-                                  [AV2H_PALETTE_COLOR_CONTEXT_COUNT]
+    uint16_t palette_y_color_index[AV2H_PALETTE_SIZE_COUNT][AV2H_PALETTE_COLOR_CONTEXT_COUNT]
                                   [AV2H_PALETTE_MAX_SIZE + 4U];
     uint16_t intra_dip[AV2H_INTRA_DIP_CONTEXTS][AV2H_BINARY_CDF_SIZE];
     uint16_t intra_dip_mode[AV2H_INTRA_DIP_MODES + 4U];
-    uint16_t fsc_mode[AV2H_FSC_MODE_CONTEXT_COUNT]
-                     [AV2H_FSC_BLOCK_CONTEXT_COUNT]
+    uint16_t fsc_mode[AV2H_FSC_MODE_CONTEXT_COUNT][AV2H_FSC_BLOCK_CONTEXT_COUNT]
                      [AV2H_BINARY_CDF_SIZE];
-    uint16_t mrl_index[AV2H_MRL_CONTEXT_COUNT]
-                      [AV2H_MRL_INDEX_SYMBOLS + 4U];
-    uint16_t mrl_secondary[AV2H_MRL_CONTEXT_COUNT]
-                          [AV2H_BINARY_CDF_SIZE];
+    uint16_t mrl_index[AV2H_MRL_CONTEXT_COUNT][AV2H_MRL_INDEX_SYMBOLS + 4U];
+    uint16_t mrl_secondary[AV2H_MRL_CONTEXT_COUNT][AV2H_BINARY_CDF_SIZE];
     uint16_t is_cfl[AV2H_CFL_CONTEXT_COUNT][AV2H_BINARY_CDF_SIZE];
     uint16_t cfl_mhccp_switch[AV2H_BINARY_CDF_SIZE];
-    uint16_t mhccp_direction[AV2H_MHCCP_CONTEXT_GROUP_COUNT]
-                            [AV2H_MHCCP_DIRECTION_SYMBOLS + 4U];
+    uint16_t mhccp_direction[AV2H_MHCCP_CONTEXT_GROUP_COUNT][AV2H_MHCCP_DIRECTION_SYMBOLS + 4U];
     uint16_t cfl_index[AV2H_BINARY_CDF_SIZE];
     uint16_t cfl_sign[8U + 4U];
     uint16_t cfl_alpha[6U][8U + 4U];
@@ -206,10 +187,8 @@ typedef struct {
 } Av2hGdfEntropyState;
 
 typedef struct {
-    uint16_t index0_cdf[AV2H_CDEF_INDEX0_CONTEXT_COUNT]
-                       [AV2H_BINARY_CDF_SIZE];
-    uint16_t remainder_cdf[AV2H_CDEF_REMAINDER_CDF_COUNT]
-                           [AV2H_CDEF_MAX_REMAINDER_SYMBOLS + 4U];
+    uint16_t index0_cdf[AV2H_CDEF_INDEX0_CONTEXT_COUNT][AV2H_BINARY_CDF_SIZE];
+    uint16_t remainder_cdf[AV2H_CDEF_REMAINDER_CDF_COUNT][AV2H_CDEF_MAX_REMAINDER_SYMBOLS + 4U];
     uint8_t *unit_strengths;
     size_t unit_strength_capacity;
     size_t unit_count;
@@ -235,108 +214,72 @@ typedef struct {
 } Av2hCcsoEntropyState;
 
 Av2hStatus av2h_leaf_cdfs_init(Av2hLeafCdfs *cdfs);
-Av2hStatus av2h_luma_joint_mode_from_index(
-    uint8_t mode_index,
-    Av2hBlockSize block_size,
-    const Av2hLumaModeNeighbors *neighbors,
-    uint8_t *joint_mode);
+Av2hStatus av2h_luma_joint_mode_from_index(uint8_t mode_index, Av2hBlockSize block_size,
+                                           const Av2hLumaModeNeighbors *neighbors,
+                                           uint8_t *joint_mode);
 
-Av2hStatus av2h_luma_mode_read(Av2hRangeDecoder *decoder,
-                                 Av2hLeafCdfs *cdfs,
-                                 const Av2hSequenceState *sequence,
-                                 const Av2hFrameState *frame,
-                                 const Av2hPartitionNode *leaf,
-                                 const Av2hLumaModeNeighbors *neighbors,
-                                 Av2hLeafMode *mode);
-Av2hStatus av2h_luma_mode_context_state_init(
-    Av2hLumaModeContextState *state,
-    Av2hLumaModeContext *above,
-    size_t above_count,
-    Av2hLumaModeContext *left,
-    size_t left_count);
-Av2hStatus av2h_gdf_entropy_state_init(
-    Av2hGdfEntropyState *state,
-    const Av2hSequenceState *sequence,
-    const Av2hFrameState *frame,
-    uint8_t *block_flags,
-    size_t block_flag_capacity);
-Av2hStatus av2h_cdef_entropy_state_init(
-    Av2hCdefEntropyState *state,
-    const Av2hSequenceState *sequence,
-    const Av2hFrameState *frame,
-    uint8_t *unit_strengths,
-    size_t unit_strength_capacity);
-Av2hStatus av2h_cdef_entropy_state_init_preserving_controls(
-    Av2hCdefEntropyState *state,
-    const Av2hSequenceState *sequence,
-    const Av2hFrameState *frame,
-    uint8_t *unit_strengths,
-    size_t unit_strength_capacity);
-Av2hStatus av2h_ccso_entropy_state_init(
-    Av2hCcsoEntropyState *state,
-    const Av2hSequenceState *sequence,
-    const Av2hFrameState *frame,
-    uint8_t *const unit_controls[AV2H_FRAME_PLANE_COUNT],
-    size_t unit_control_capacity);
+Av2hStatus av2h_luma_mode_read(Av2hRangeDecoder *decoder, Av2hLeafCdfs *cdfs,
+                               const Av2hSequenceState *sequence, const Av2hFrameState *frame,
+                               const Av2hPartitionNode *leaf,
+                               const Av2hLumaModeNeighbors *neighbors, Av2hLeafMode *mode);
+Av2hStatus av2h_luma_mode_context_state_init(Av2hLumaModeContextState *state,
+                                             Av2hLumaModeContext *above, size_t above_count,
+                                             Av2hLumaModeContext *left, size_t left_count);
+Av2hStatus av2h_gdf_entropy_state_init(Av2hGdfEntropyState *state,
+                                       const Av2hSequenceState *sequence,
+                                       const Av2hFrameState *frame, uint8_t *block_flags,
+                                       size_t block_flag_capacity);
+Av2hStatus av2h_cdef_entropy_state_init(Av2hCdefEntropyState *state,
+                                        const Av2hSequenceState *sequence,
+                                        const Av2hFrameState *frame, uint8_t *unit_strengths,
+                                        size_t unit_strength_capacity);
+Av2hStatus av2h_cdef_entropy_state_init_preserving_controls(Av2hCdefEntropyState *state,
+                                                            const Av2hSequenceState *sequence,
+                                                            const Av2hFrameState *frame,
+                                                            uint8_t *unit_strengths,
+                                                            size_t unit_strength_capacity);
+Av2hStatus av2h_ccso_entropy_state_init(Av2hCcsoEntropyState *state,
+                                        const Av2hSequenceState *sequence,
+                                        const Av2hFrameState *frame,
+                                        uint8_t *const unit_controls[AV2H_FRAME_PLANE_COUNT],
+                                        size_t unit_control_capacity);
 Av2hStatus av2h_ccso_entropy_state_init_preserving_controls(
-    Av2hCcsoEntropyState *state,
-    const Av2hSequenceState *sequence,
-    const Av2hFrameState *frame,
-    uint8_t *const unit_controls[AV2H_FRAME_PLANE_COUNT],
-    size_t unit_control_capacity);
-Av2hStatus av2h_luma_mode_neighbors_from_state(
-    const Av2hLumaModeContextState *state,
-    const Av2hPartitionNode *leaf,
-    Av2hLumaModeNeighbors *neighbors);
-Av2hStatus av2h_luma_mode_context_state_update(
-    Av2hLumaModeContextState *state,
-    const Av2hPartitionNode *leaf,
-    const Av2hLeafMode *mode);
+    Av2hCcsoEntropyState *state, const Av2hSequenceState *sequence, const Av2hFrameState *frame,
+    uint8_t *const unit_controls[AV2H_FRAME_PLANE_COUNT], size_t unit_control_capacity);
+Av2hStatus av2h_luma_mode_neighbors_from_state(const Av2hLumaModeContextState *state,
+                                               const Av2hPartitionNode *leaf,
+                                               Av2hLumaModeNeighbors *neighbors);
+Av2hStatus av2h_luma_mode_context_state_update(Av2hLumaModeContextState *state,
+                                               const Av2hPartitionNode *leaf,
+                                               const Av2hLeafMode *mode);
 
-Av2hStatus av2h_luma_mode_read_with_state(
-    Av2hRangeDecoder *decoder,
-    Av2hLeafCdfs *cdfs,
-    const Av2hSequenceState *sequence,
-    const Av2hFrameState *frame,
-    const Av2hPartitionNode *leaf,
-    const Av2hLumaModeContextState *state,
-    Av2hGdfEntropyState *gdf_state,
-    Av2hCdefEntropyState *cdef_state,
-    Av2hCcsoEntropyState *ccso_state,
-    Av2hQIndex *current_q_index,
-    uint8_t defer_palette_and_dip,
-    Av2hLeafMode *mode);
-Av2hStatus av2h_luma_mode_read_palette_and_dip(
-    Av2hRangeDecoder *decoder,
-    Av2hLeafCdfs *cdfs,
-    const Av2hSequenceState *sequence,
-    const Av2hFrameState *frame,
-    const Av2hPartitionNode *leaf,
-    const Av2hLumaModeNeighbors *neighbors,
-    Av2hLeafMode *mode);
-Av2hStatus av2h_luma_palette_map_read(
-    Av2hRangeDecoder *decoder,
-    Av2hLeafCdfs *cdfs,
-    const Av2hPartitionNode *leaf,
-    Av2hLeafMode *mode);
+Av2hStatus
+av2h_luma_mode_read_with_state(Av2hRangeDecoder *decoder, Av2hLeafCdfs *cdfs,
+                               const Av2hSequenceState *sequence, const Av2hFrameState *frame,
+                               const Av2hPartitionNode *leaf, const Av2hLumaModeContextState *state,
+                               Av2hGdfEntropyState *gdf_state, Av2hCdefEntropyState *cdef_state,
+                               Av2hCcsoEntropyState *ccso_state, Av2hQIndex *current_q_index,
+                               uint8_t defer_palette_and_dip, Av2hLeafMode *mode);
+Av2hStatus av2h_luma_mode_read_palette_and_dip(Av2hRangeDecoder *decoder, Av2hLeafCdfs *cdfs,
+                                               const Av2hSequenceState *sequence,
+                                               const Av2hFrameState *frame,
+                                               const Av2hPartitionNode *leaf,
+                                               const Av2hLumaModeNeighbors *neighbors,
+                                               Av2hLeafMode *mode);
+Av2hStatus av2h_luma_palette_map_read(Av2hRangeDecoder *decoder, Av2hLeafCdfs *cdfs,
+                                      const Av2hPartitionNode *leaf, Av2hLeafMode *mode);
 
-Av2hStatus av2h_chroma_mode_read(
-    Av2hRangeDecoder *decoder,
-    Av2hLeafCdfs *cdfs,
-    const Av2hSequenceState *sequence,
-    Av2hIntraMode colocated_luma_mode,
-    int8_t colocated_luma_delta,
-    Av2hBlockSize block_size,
-    uint8_t cfl_context,
-    uint8_t cfl_allowed,
-    uint8_t lossless,
-    Av2hChromaLeafMode *mode);
+Av2hStatus av2h_chroma_mode_read(Av2hRangeDecoder *decoder, Av2hLeafCdfs *cdfs,
+                                 const Av2hSequenceState *sequence,
+                                 Av2hIntraMode colocated_luma_mode, int8_t colocated_luma_delta,
+                                 Av2hBlockSize block_size, uint8_t cfl_context, uint8_t cfl_allowed,
+                                 uint8_t lossless, Av2hChromaLeafMode *mode);
 
 #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
-const int16_t *av2h_intrabc_diagnostic_candidates(
-    const struct Av2hDecodeDiagnostics *diagnostics, size_t *count);
-const int16_t *av2h_intrabc_diagnostic_bank(
-    const struct Av2hDecodeDiagnostics *diagnostics, size_t *count);
+const int16_t *av2h_intrabc_diagnostic_candidates(const struct Av2hDecodeDiagnostics *diagnostics,
+                                                  size_t *count);
+const int16_t *av2h_intrabc_diagnostic_bank(const struct Av2hDecodeDiagnostics *diagnostics,
+                                            size_t *count);
 #endif
 
 #endif

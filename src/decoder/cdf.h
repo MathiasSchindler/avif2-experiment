@@ -13,15 +13,10 @@ typedef struct {
     uint8_t count;
 } Av2hBinaryCdfSpec;
 
-Av2hStatus av2h_cdf_init(uint16_t *inverse_cdf,
-                          size_t inverse_cdf_size,
-                          const uint16_t *thresholds,
-                          size_t symbol_count,
-                          uint8_t parameter_index,
-                          uint8_t count);
+Av2hStatus av2h_cdf_init(uint16_t *inverse_cdf, size_t inverse_cdf_size, const uint16_t *thresholds,
+                         size_t symbol_count, uint8_t parameter_index, uint8_t count);
 
-Av2hStatus av2h_binary_cdf_init(
-    uint16_t inverse_cdf[AV2H_BINARY_CDF_SIZE],
-    Av2hBinaryCdfSpec specification);
+Av2hStatus av2h_binary_cdf_init(uint16_t inverse_cdf[AV2H_BINARY_CDF_SIZE],
+                                Av2hBinaryCdfSpec specification);
 
 #endif

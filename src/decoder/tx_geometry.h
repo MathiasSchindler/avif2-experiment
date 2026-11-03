@@ -76,55 +76,29 @@ typedef struct {
     Av2hTxSignalingClass signaling_class;
 } Av2hTxDescriptor;
 
-Av2hStatus av2h_tx_descriptor_get(
-    Av2hTxSize tx_size,
-    const Av2hTxDescriptor **descriptor);
-Av2hStatus av2h_luma_tx_descriptor_get(
-    Av2hBlockSize block_size,
-    const Av2hTxDescriptor **descriptor);
-Av2hStatus av2h_luma_tx_node_count(
-    Av2hBlockSize block_size,
-    uint16_t *count);
-Av2hStatus av2h_luma_tx_node_get(
-    const Av2hPartitionNode *coding_node,
-    uint16_t index,
-    Av2hPartitionNode *tx_node);
-Av2hStatus av2h_luma_lossless_tx_node_count(
-    const Av2hPartitionNode *coding_node,
-    uint16_t mi_columns,
-    uint16_t mi_rows,
-    uint16_t *count);
-Av2hStatus av2h_luma_lossless_tx_node_get(
-    const Av2hPartitionNode *coding_node,
-    uint16_t mi_columns,
-    uint16_t mi_rows,
-    uint16_t index,
-    Av2hPartitionNode *tx_node);
-Av2hStatus av2h_chroma_tx_descriptor_get(
-    Av2hBlockSize block_size,
-    uint8_t chroma_format_idc,
-    const Av2hTxDescriptor **descriptor);
-Av2hStatus av2h_chroma_tx_node_count(
-    Av2hBlockSize block_size,
-    uint8_t chroma_format_idc,
-    uint16_t *count);
-Av2hStatus av2h_chroma_tx_node_get(
-    const Av2hPartitionNode *coding_node,
-    uint8_t chroma_format_idc,
-    uint16_t index,
-    Av2hPartitionNode *tx_node);
-Av2hStatus av2h_chroma_lossless_tx_node_count(
-    const Av2hPartitionNode *coding_node,
-    uint16_t mi_columns,
-    uint16_t mi_rows,
-    uint8_t chroma_format_idc,
-    uint16_t *count);
-Av2hStatus av2h_chroma_lossless_tx_node_get(
-    const Av2hPartitionNode *coding_node,
-    uint16_t mi_columns,
-    uint16_t mi_rows,
-    uint8_t chroma_format_idc,
-    uint16_t index,
-    Av2hPartitionNode *tx_node);
+Av2hStatus av2h_tx_descriptor_get(Av2hTxSize tx_size, const Av2hTxDescriptor **descriptor);
+Av2hStatus av2h_luma_tx_descriptor_get(Av2hBlockSize block_size,
+                                       const Av2hTxDescriptor **descriptor);
+Av2hStatus av2h_luma_tx_node_count(Av2hBlockSize block_size, uint16_t *count);
+Av2hStatus av2h_luma_tx_node_get(const Av2hPartitionNode *coding_node, uint16_t index,
+                                 Av2hPartitionNode *tx_node);
+Av2hStatus av2h_luma_lossless_tx_node_count(const Av2hPartitionNode *coding_node,
+                                            uint16_t mi_columns, uint16_t mi_rows, uint16_t *count);
+Av2hStatus av2h_luma_lossless_tx_node_get(const Av2hPartitionNode *coding_node, uint16_t mi_columns,
+                                          uint16_t mi_rows, uint16_t index,
+                                          Av2hPartitionNode *tx_node);
+Av2hStatus av2h_chroma_tx_descriptor_get(Av2hBlockSize block_size, uint8_t chroma_format_idc,
+                                         const Av2hTxDescriptor **descriptor);
+Av2hStatus av2h_chroma_tx_node_count(Av2hBlockSize block_size, uint8_t chroma_format_idc,
+                                     uint16_t *count);
+Av2hStatus av2h_chroma_tx_node_get(const Av2hPartitionNode *coding_node, uint8_t chroma_format_idc,
+                                   uint16_t index, Av2hPartitionNode *tx_node);
+Av2hStatus av2h_chroma_lossless_tx_node_count(const Av2hPartitionNode *coding_node,
+                                              uint16_t mi_columns, uint16_t mi_rows,
+                                              uint8_t chroma_format_idc, uint16_t *count);
+Av2hStatus av2h_chroma_lossless_tx_node_get(const Av2hPartitionNode *coding_node,
+                                            uint16_t mi_columns, uint16_t mi_rows,
+                                            uint8_t chroma_format_idc, uint16_t index,
+                                            Av2hPartitionNode *tx_node);
 
 #endif

@@ -23,10 +23,7 @@ typedef enum {
     AV2H_PARTITION_INVALID = 255
 } Av2hPartitionType;
 
-typedef enum {
-    AV2H_PARTITION_HORIZONTAL = 0,
-    AV2H_PARTITION_VERTICAL = 1
-} Av2hPartitionAxis;
+typedef enum { AV2H_PARTITION_HORIZONTAL = 0, AV2H_PARTITION_VERTICAL = 1 } Av2hPartitionAxis;
 
 typedef struct {
     Av2hPartitionNode node;
@@ -94,131 +91,77 @@ typedef struct {
     struct Av2hDecodeDiagnostics *diagnostics;
 } Av2hPartitionTraversal;
 
-Av2hStatus av2h_partition_forced_path(uint16_t mi_rows,
-                                       uint16_t mi_columns,
-                                       Av2hPartitionNode root,
-                                       Av2hForcedPartitionPath *path);
-Av2hStatus av2h_partition_contexts(Av2hBlockSize block_size,
-                                    unsigned int left_smaller,
-                                    unsigned int above_smaller,
-                                    unsigned int first_half_smaller,
-                                    unsigned int second_half_smaller,
-                                    size_t *split_context,
-                                    size_t *rect_type_context,
-                                    size_t *extension_context);
-Av2hStatus av2h_partition_context_state_init(
-    Av2hPartitionContextState *state,
-    uint8_t *luma_above,
-    uint8_t *luma_left,
-    uint8_t *chroma_above,
-    uint8_t *chroma_left,
-    size_t above_count,
-    size_t left_count);
-Av2hStatus av2h_partition_contexts_from_state(
-    const Av2hPartitionContextState *state,
-    size_t structure,
-    Av2hPartitionNode node,
-    Av2hPartitionAxis axis,
-    size_t *split_context,
-    size_t *rect_type_context,
-    size_t *extension_context);
-Av2hStatus av2h_partition_context_state_update(
-    Av2hPartitionContextState *state,
-    size_t structure,
-    Av2hPartitionNode leaf);
-Av2hStatus av2h_partition_traversal_init(
-    Av2hPartitionTraversal *traversal,
-    uint16_t mi_rows,
-    uint16_t mi_columns,
-    Av2hPartitionNode root,
-    size_t structure,
-    unsigned int enable_ext_partitions,
-    unsigned int enable_uneven_4way_partitions);
-Av2hStatus av2h_partition_traversal_reset_root(
-    Av2hPartitionTraversal *traversal,
-    Av2hPartitionNode root);
-Av2hStatus av2h_partition_child_nodes(
-    Av2hPartitionNode node,
-    Av2hPartitionType partition,
-    Av2hPartitionNode children[4U],
-    size_t *child_count);
-Av2hStatus av2h_partition_traversal_force(
-    Av2hPartitionTraversal *traversal,
-    Av2hPartitionType partition,
-    uint8_t *has_leaf);
-Av2hStatus av2h_partition_traversal_next(
-    Av2hPartitionTraversal *traversal,
-    Av2hRangeDecoder *decoder,
-    Av2hPartitionCdfs *cdfs,
-    const Av2hPartitionContextState *state,
-    Av2hLeafPath *path,
-    uint8_t *has_leaf);
-Av2hStatus av2h_partition_traversal_commit_leaf(
-    Av2hPartitionTraversal *traversal,
-    Av2hPartitionContextState *state,
-    Av2hPartitionNode leaf);
+Av2hStatus av2h_partition_forced_path(uint16_t mi_rows, uint16_t mi_columns, Av2hPartitionNode root,
+                                      Av2hForcedPartitionPath *path);
+Av2hStatus av2h_partition_contexts(Av2hBlockSize block_size, unsigned int left_smaller,
+                                   unsigned int above_smaller, unsigned int first_half_smaller,
+                                   unsigned int second_half_smaller, size_t *split_context,
+                                   size_t *rect_type_context, size_t *extension_context);
+Av2hStatus av2h_partition_context_state_init(Av2hPartitionContextState *state, uint8_t *luma_above,
+                                             uint8_t *luma_left, uint8_t *chroma_above,
+                                             uint8_t *chroma_left, size_t above_count,
+                                             size_t left_count);
+Av2hStatus av2h_partition_contexts_from_state(const Av2hPartitionContextState *state,
+                                              size_t structure, Av2hPartitionNode node,
+                                              Av2hPartitionAxis axis, size_t *split_context,
+                                              size_t *rect_type_context, size_t *extension_context);
+Av2hStatus av2h_partition_context_state_update(Av2hPartitionContextState *state, size_t structure,
+                                               Av2hPartitionNode leaf);
+Av2hStatus av2h_partition_traversal_init(Av2hPartitionTraversal *traversal, uint16_t mi_rows,
+                                         uint16_t mi_columns, Av2hPartitionNode root,
+                                         size_t structure, unsigned int enable_ext_partitions,
+                                         unsigned int enable_uneven_4way_partitions);
+Av2hStatus av2h_partition_traversal_reset_root(Av2hPartitionTraversal *traversal,
+                                               Av2hPartitionNode root);
+Av2hStatus av2h_partition_child_nodes(Av2hPartitionNode node, Av2hPartitionType partition,
+                                      Av2hPartitionNode children[4U], size_t *child_count);
+Av2hStatus av2h_partition_traversal_force(Av2hPartitionTraversal *traversal,
+                                          Av2hPartitionType partition, uint8_t *has_leaf);
+Av2hStatus av2h_partition_traversal_next(Av2hPartitionTraversal *traversal,
+                                         Av2hRangeDecoder *decoder, Av2hPartitionCdfs *cdfs,
+                                         const Av2hPartitionContextState *state, Av2hLeafPath *path,
+                                         uint8_t *has_leaf);
+Av2hStatus av2h_partition_traversal_commit_leaf(Av2hPartitionTraversal *traversal,
+                                                Av2hPartitionContextState *state,
+                                                Av2hPartitionNode leaf);
 #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
 struct Av2hDecodeDiagnostics;
 typedef struct Av2hPartitionLeafDiagnostic Av2hPartitionLeafDiagnostic;
-const Av2hPartitionDecision *av2h_partition_diagnostic_trace(
-    const struct Av2hDecodeDiagnostics *diagnostics, size_t *count);
-const uint8_t *av2h_partition_diagnostic_trace_structure(
-    const struct Av2hDecodeDiagnostics *diagnostics);
-void av2h_partition_diagnostic_forced_decision(
-    struct Av2hDecodeDiagnostics *diagnostics,
-    Av2hPartitionNode node,
-    Av2hPartitionType partition,
-    uint8_t structure);
-void av2h_partition_diagnostic_leaf_stage(
-    struct Av2hDecodeDiagnostics *diagnostics, Av2hPartitionNode node,
-    uint8_t stage, uint8_t mode, uint16_t eob, size_t tell);
-const Av2hPartitionLeafDiagnostic *av2h_partition_diagnostic_leaf_trace(
-    const struct Av2hDecodeDiagnostics *diagnostics, size_t *count);
+const Av2hPartitionDecision *
+av2h_partition_diagnostic_trace(const struct Av2hDecodeDiagnostics *diagnostics, size_t *count);
+const uint8_t *
+av2h_partition_diagnostic_trace_structure(const struct Av2hDecodeDiagnostics *diagnostics);
+void av2h_partition_diagnostic_forced_decision(struct Av2hDecodeDiagnostics *diagnostics,
+                                               Av2hPartitionNode node, Av2hPartitionType partition,
+                                               uint8_t structure);
+void av2h_partition_diagnostic_leaf_stage(struct Av2hDecodeDiagnostics *diagnostics,
+                                          Av2hPartitionNode node, uint8_t stage, uint8_t mode,
+                                          uint16_t eob, size_t tell);
+const Av2hPartitionLeafDiagnostic *
+av2h_partition_diagnostic_leaf_trace(const struct Av2hDecodeDiagnostics *diagnostics,
+                                     size_t *count);
 #endif
-Av2hStatus av2h_partition_first_prefix_read(
-    Av2hRangeDecoder *decoder,
-    Av2hPartitionCdfs *cdfs,
-    uint16_t frame_width,
-    uint16_t frame_height,
-    Av2hPartitionPrefix *prefix);
-Av2hStatus av2h_partition_first_leaf_read(
-    Av2hRangeDecoder *decoder,
-    Av2hPartitionCdfs *cdfs,
-    uint16_t frame_width,
-    uint16_t frame_height,
-    unsigned int enable_ext_partitions,
-    Av2hLeafPath *path);
+Av2hStatus av2h_partition_first_prefix_read(Av2hRangeDecoder *decoder, Av2hPartitionCdfs *cdfs,
+                                            uint16_t frame_width, uint16_t frame_height,
+                                            Av2hPartitionPrefix *prefix);
+Av2hStatus av2h_partition_first_leaf_read(Av2hRangeDecoder *decoder, Av2hPartitionCdfs *cdfs,
+                                          uint16_t frame_width, uint16_t frame_height,
+                                          unsigned int enable_ext_partitions, Av2hLeafPath *path);
 
-Av2hStatus av2h_partition_ordinary_prefix_read(
-    Av2hRangeDecoder *decoder,
-    Av2hPartitionCdfs *cdfs,
-    size_t split_context,
-    size_t rect_type_context,
-    size_t extension_context,
-    Av2hOrdinaryPartitionPrefix *prefix);
+Av2hStatus av2h_partition_ordinary_prefix_read(Av2hRangeDecoder *decoder, Av2hPartitionCdfs *cdfs,
+                                               size_t split_context, size_t rect_type_context,
+                                               size_t extension_context,
+                                               Av2hOrdinaryPartitionPrefix *prefix);
 
-Av2hStatus av2h_partition_node_read(
-    Av2hRangeDecoder *decoder,
-    Av2hPartitionCdfs *cdfs,
-    size_t structure,
-    Av2hPartitionNode node,
-    size_t split_context,
-    size_t rect_type_context,
-    size_t extension_context,
-    unsigned int enable_ext_partitions,
-    Av2hPartitionDecision *decision,
-    Av2hPartitionNode *child);
+Av2hStatus av2h_partition_node_read(Av2hRangeDecoder *decoder, Av2hPartitionCdfs *cdfs,
+                                    size_t structure, Av2hPartitionNode node, size_t split_context,
+                                    size_t rect_type_context, size_t extension_context,
+                                    unsigned int enable_ext_partitions,
+                                    Av2hPartitionDecision *decision, Av2hPartitionNode *child);
 Av2hStatus av2h_partition_node_read_with_state(
-    Av2hRangeDecoder *decoder,
-    Av2hPartitionCdfs *cdfs,
-    const Av2hPartitionContextState *state,
-    size_t structure,
-    Av2hPartitionNode node,
-    uint16_t mi_rows,
-    uint16_t mi_columns,
-    unsigned int enable_ext_partitions,
-    unsigned int enable_uneven_4way_partitions,
-    Av2hPartitionDecision *decision,
-    Av2hPartitionNode *child);
+    Av2hRangeDecoder *decoder, Av2hPartitionCdfs *cdfs, const Av2hPartitionContextState *state,
+    size_t structure, Av2hPartitionNode node, uint16_t mi_rows, uint16_t mi_columns,
+    unsigned int enable_ext_partitions, unsigned int enable_uneven_4way_partitions,
+    Av2hPartitionDecision *decision, Av2hPartitionNode *child);
 
 #endif

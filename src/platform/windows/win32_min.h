@@ -5,7 +5,7 @@
 #include <stdint.h>
 
 #define AV2H_WIN_INVALID_HANDLE ((Av2hWinHandle)(intptr_t)-1)
-#define AV2H_WIN_STD_ERROR_HANDLE ((Av2hWinDword)-12)
+#define AV2H_WIN_STD_ERROR_HANDLE ((Av2hWinDword) - 12)
 #define AV2H_WIN_GENERIC_READ 0x80000000U
 #define AV2H_WIN_GENERIC_WRITE 0x40000000U
 #define AV2H_WIN_FILE_SHARE_READ 0x00000001U
@@ -32,40 +32,22 @@ typedef union {
 
 __declspec(dllimport) void *__stdcall GetCommandLineW(void);
 __declspec(dllimport) Av2hWinHandle __stdcall GetStdHandle(Av2hWinDword value);
-__declspec(dllimport) Av2hWinHandle __stdcall CreateFileW(
-    const Av2hWinChar *name,
-    Av2hWinDword access,
-    Av2hWinDword share,
-    void *security,
-    Av2hWinDword creation,
-    Av2hWinDword attributes,
-    Av2hWinHandle template_file);
-__declspec(dllimport) Av2hWinBool __stdcall GetFileSizeEx(
-    Av2hWinHandle file,
-    Av2hWinLargeInteger *size);
-__declspec(dllimport) Av2hWinBool __stdcall ReadFile(
-    Av2hWinHandle file,
-    void *buffer,
-    Av2hWinDword bytes,
-    Av2hWinDword *read,
-    void *overlapped);
-__declspec(dllimport) Av2hWinBool __stdcall WriteFile(
-    Av2hWinHandle file,
-    const void *buffer,
-    Av2hWinDword bytes,
-    Av2hWinDword *written,
-    void *overlapped);
+__declspec(dllimport) Av2hWinHandle __stdcall
+CreateFileW(const Av2hWinChar *name, Av2hWinDword access, Av2hWinDword share, void *security,
+            Av2hWinDword creation, Av2hWinDword attributes, Av2hWinHandle template_file);
+__declspec(dllimport) Av2hWinBool __stdcall GetFileSizeEx(Av2hWinHandle file,
+                                                          Av2hWinLargeInteger *size);
+__declspec(dllimport) Av2hWinBool __stdcall ReadFile(Av2hWinHandle file, void *buffer,
+                                                     Av2hWinDword bytes, Av2hWinDword *read,
+                                                     void *overlapped);
+__declspec(dllimport) Av2hWinBool __stdcall WriteFile(Av2hWinHandle file, const void *buffer,
+                                                      Av2hWinDword bytes, Av2hWinDword *written,
+                                                      void *overlapped);
 __declspec(dllimport) Av2hWinBool __stdcall CloseHandle(Av2hWinHandle handle);
-__declspec(dllimport) void *__stdcall VirtualAlloc(
-    void *address,
-    size_t size,
-    Av2hWinDword allocation_type,
-    Av2hWinDword protection);
-__declspec(dllimport) Av2hWinBool __stdcall VirtualFree(
-    void *address,
-    size_t size,
-    Av2hWinDword free_type);
-__declspec(dllimport) __attribute__((noreturn))
-void __stdcall ExitProcess(unsigned int exit_code);
+__declspec(dllimport) void *__stdcall
+VirtualAlloc(void *address, size_t size, Av2hWinDword allocation_type, Av2hWinDword protection);
+__declspec(dllimport) Av2hWinBool __stdcall VirtualFree(void *address, size_t size,
+                                                        Av2hWinDword free_type);
+__declspec(dllimport) __attribute__((noreturn)) void __stdcall ExitProcess(unsigned int exit_code);
 
 #endif

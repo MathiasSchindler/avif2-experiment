@@ -8,18 +8,15 @@
 #define AV2H_SQUARE_SPLIT_CONTEXT_COUNT 8U
 
 typedef struct {
-    uint16_t do_split[AV2H_PARTITION_STRUCTURE_COUNT]
-                     [AV2H_PARTITION_CONTEXT_COUNT][AV2H_BINARY_CDF_SIZE];
-    uint16_t do_square_split[AV2H_PARTITION_STRUCTURE_COUNT]
-                            [AV2H_SQUARE_SPLIT_CONTEXT_COUNT]
+    uint16_t do_split[AV2H_PARTITION_STRUCTURE_COUNT][AV2H_PARTITION_CONTEXT_COUNT]
+                     [AV2H_BINARY_CDF_SIZE];
+    uint16_t do_square_split[AV2H_PARTITION_STRUCTURE_COUNT][AV2H_SQUARE_SPLIT_CONTEXT_COUNT]
                             [AV2H_BINARY_CDF_SIZE];
-    uint16_t rect_type[AV2H_PARTITION_STRUCTURE_COUNT]
-                      [AV2H_PARTITION_CONTEXT_COUNT][AV2H_BINARY_CDF_SIZE];
-    uint16_t do_ext_partition[AV2H_PARTITION_STRUCTURE_COUNT]
-                             [AV2H_PARTITION_CONTEXT_COUNT]
+    uint16_t rect_type[AV2H_PARTITION_STRUCTURE_COUNT][AV2H_PARTITION_CONTEXT_COUNT]
+                      [AV2H_BINARY_CDF_SIZE];
+    uint16_t do_ext_partition[AV2H_PARTITION_STRUCTURE_COUNT][AV2H_PARTITION_CONTEXT_COUNT]
                              [AV2H_BINARY_CDF_SIZE];
-    uint16_t do_uneven_4way_partition[AV2H_PARTITION_STRUCTURE_COUNT]
-                                     [AV2H_PARTITION_CONTEXT_COUNT]
+    uint16_t do_uneven_4way_partition[AV2H_PARTITION_STRUCTURE_COUNT][AV2H_PARTITION_CONTEXT_COUNT]
                                      [AV2H_BINARY_CDF_SIZE];
 } Av2hPartitionCdfs;
 

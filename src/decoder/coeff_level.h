@@ -201,80 +201,44 @@ typedef struct {
     uint8_t q_context;
 } Av2hCoeffLevelCdfs;
 
-Av2hStatus av2h_coeff_dequant_steps(
-    const Av2hSequenceState *sequence,
-    const Av2hFrameState *frame,
-    Av2hQIndex q_index,
-    uint8_t plane,
-    Av2hCoeffDequantSteps *steps);
-Av2hDequantizedCoefficient av2h_coeff_dequantize_level_for_sequence(
-    const Av2hSequenceState *sequence,
-    uint32_t level,
-    uint8_t sign,
-    uint32_t dequant_step,
-    uint8_t shift);
-int av2h_quantizer_is_lossless(
-    const Av2hSequenceState *sequence,
-    const Av2hFrameState *frame,
-    Av2hQIndex q_index);
-Av2hStatus av2h_coeff_qmatrix_dequant_step(
-    const Av2hSequenceState *sequence,
-    const Av2hFrameState *frame,
-    Av2hQIndex q_index,
-    uint8_t segment_id,
-    uint8_t plane,
-    uint16_t tx_width,
-    uint16_t tx_height,
-    uint8_t primary_type,
-    uint16_t position,
-    uint32_t dequant_step,
-    uint32_t *weighted_step);
+Av2hStatus av2h_coeff_dequant_steps(const Av2hSequenceState *sequence, const Av2hFrameState *frame,
+                                    Av2hQIndex q_index, uint8_t plane,
+                                    Av2hCoeffDequantSteps *steps);
+Av2hDequantizedCoefficient
+av2h_coeff_dequantize_level_for_sequence(const Av2hSequenceState *sequence, uint32_t level,
+                                         uint8_t sign, uint32_t dequant_step, uint8_t shift);
+int av2h_quantizer_is_lossless(const Av2hSequenceState *sequence, const Av2hFrameState *frame,
+                               Av2hQIndex q_index);
+Av2hStatus av2h_coeff_qmatrix_dequant_step(const Av2hSequenceState *sequence,
+                                           const Av2hFrameState *frame, Av2hQIndex q_index,
+                                           uint8_t segment_id, uint8_t plane, uint16_t tx_width,
+                                           uint16_t tx_height, uint8_t primary_type,
+                                           uint16_t position, uint32_t dequant_step,
+                                           uint32_t *weighted_step);
 Av2hStatus av2h_coeff_level_cdfs_init(Av2hCoeffLevelCdfs *cdfs);
-Av2hStatus av2h_coeff_level_cdfs_init_for_q(
-    Av2hCoeffLevelCdfs *cdfs,
-    Av2hQIndex base_q_index);
-Av2hStatus av2h_coeff_block_read(
-    Av2hRangeDecoder *decoder,
-    Av2hCoeffLevelCdfs *cdfs,
-    const Av2hSequenceState *sequence,
-    const Av2hFrameState *frame,
-    const Av2hLeafMode *mode,
-    const Av2hCoeffPrefix *prefix,
-    const Av2hTransformType *transform,
-    uint8_t dc_sign_context,
-    Av2hCoeffBlock *block);
-Av2hStatus av2h_coeff_block_read_with_state(
-    Av2hRangeDecoder *decoder,
-    Av2hCoeffLevelCdfs *cdfs,
-    const Av2hSequenceState *sequence,
-    const Av2hFrameState *frame,
-    const Av2hPartitionNode *leaf,
-    const Av2hLeafMode *mode,
-    const Av2hCoeffPrefix *prefix,
-    const Av2hTransformType *transform,
-    Av2hCoeffContextState *state,
-    Av2hCoeffBlock *block);
+Av2hStatus av2h_coeff_level_cdfs_init_for_q(Av2hCoeffLevelCdfs *cdfs, Av2hQIndex base_q_index);
+Av2hStatus av2h_coeff_block_read(Av2hRangeDecoder *decoder, Av2hCoeffLevelCdfs *cdfs,
+                                 const Av2hSequenceState *sequence, const Av2hFrameState *frame,
+                                 const Av2hLeafMode *mode, const Av2hCoeffPrefix *prefix,
+                                 const Av2hTransformType *transform, uint8_t dc_sign_context,
+                                 Av2hCoeffBlock *block);
+Av2hStatus av2h_coeff_block_read_with_state(Av2hRangeDecoder *decoder, Av2hCoeffLevelCdfs *cdfs,
+                                            const Av2hSequenceState *sequence,
+                                            const Av2hFrameState *frame,
+                                            const Av2hPartitionNode *leaf, const Av2hLeafMode *mode,
+                                            const Av2hCoeffPrefix *prefix,
+                                            const Av2hTransformType *transform,
+                                            Av2hCoeffContextState *state, Av2hCoeffBlock *block);
 
-Av2hStatus av2h_chroma_coeff_block_read(
-    Av2hRangeDecoder *decoder,
-    Av2hCoeffLevelCdfs *cdfs,
-    const Av2hSequenceState *sequence,
-    const Av2hFrameState *frame,
-    uint8_t segment_id,
-    uint8_t plane,
-    const Av2hCoeffPrefix *prefix,
-    Av2hCoeffBlock *block);
+Av2hStatus av2h_chroma_coeff_block_read(Av2hRangeDecoder *decoder, Av2hCoeffLevelCdfs *cdfs,
+                                        const Av2hSequenceState *sequence,
+                                        const Av2hFrameState *frame, uint8_t segment_id,
+                                        uint8_t plane, const Av2hCoeffPrefix *prefix,
+                                        Av2hCoeffBlock *block);
 Av2hStatus av2h_chroma_coeff_block_read_with_state(
-    Av2hRangeDecoder *decoder,
-    Av2hCoeffLevelCdfs *cdfs,
-    const Av2hSequenceState *sequence,
-    const Av2hFrameState *frame,
-    const Av2hPartitionNode *leaf,
-    uint8_t segment_id,
-    uint8_t plane,
-    const Av2hCoeffPrefix *prefix,
-    const Av2hTransformType *transform,
-    Av2hCoeffContextState *state,
+    Av2hRangeDecoder *decoder, Av2hCoeffLevelCdfs *cdfs, const Av2hSequenceState *sequence,
+    const Av2hFrameState *frame, const Av2hPartitionNode *leaf, uint8_t segment_id, uint8_t plane,
+    const Av2hCoeffPrefix *prefix, const Av2hTransformType *transform, Av2hCoeffContextState *state,
     Av2hCoeffBlock *block);
 
 #endif

@@ -1,11 +1,20 @@
 import re
+import subprocess
+import sys
+import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from test_decoder_entrypoints import kernel_specializations
 
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+
+from tools.check_format import run_formatter, source_paths  # noqa: E402
+
+
 SOURCES = sorted(path for path in (ROOT / "src").rglob("*")
                  if path.suffix in {".c", ".h"})
 TOKENS = re.compile(
@@ -153,6 +162,77 @@ def kernel_branch_errors(text: str) -> list[str]:
 
 
 class SourceConsistencyTests(unittest.TestCase):
+    def test_production_formatting(self) -> None:
+        result = run_formatter(source_paths())
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_format_scope_includes_headers_and_typed_kernels_not_generated_data(self) -> None:
+        paths = source_paths()
+        self.assertIn(ROOT / "include/av2heif.h", paths)
+        self.assertIn(ROOT / "src/decoder/internal/sample_ops_kernel.inc", paths)
+        self.assertIn(ROOT / "src/decoder/internal/sample_kernel_u16.inc", paths)
+        self.assertNotIn(ROOT / "src/decoder/coeff_cdf_all.inc", paths)
+        self.assertNotIn(ROOT / "tests/frame_refactor_unit.c", paths)
+
+    def test_formatter_detects_and_repairs_indentation_drift(self) -> None:
+        with tempfile.TemporaryDirectory() as name:
+            path = Path(name) / "drift.c"
+            path.write_text("int f(int * value) {\nif (*value) {\nreturn 1;\n}\nreturn 0;\n}\n")
+            result = run_formatter([path])
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("code should be clang-formatted", result.stderr)
+            result = run_formatter([path], write=True)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn("int *value", path.read_text())
+            self.assertIn("    if (*value) {\n        return 1;\n    }", path.read_text())
+            result = run_formatter([path])
+            self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_formatter_understands_typed_kernel_declarations(self) -> None:
+        with tempfile.TemporaryDirectory() as name:
+            path = Path(name) / "example_kernel.inc"
+            path.write_text(
+                "static AV2H_KERNEL_TYPE(uint8_t, uint16_t)\n"
+                "AV2H_KERNEL_NAME(load_u8, load_u16)("
+                "const AV2H_KERNEL_TYPE(uint8_t, uint16_t) * samples) {\n"
+                "return samples[0];\n}\n")
+            result = run_formatter([path], write=True)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn("AV2H_KERNEL_TYPE(uint8_t, uint16_t) *samples", path.read_text())
+            self.assertIn("    return samples[0];\n}", path.read_text())
+            result = run_formatter([path])
+            self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_formatter_rejects_other_major_versions_before_writing(self) -> None:
+        version = subprocess.CompletedProcess(
+            ["clang-format", "--version"], 0, stdout="clang-format version 21.1.0")
+        with patch("tools.check_format.subprocess.run", return_value=version) as command:
+            with self.assertRaisesRegex(RuntimeError, "clang-format 22.x required"):
+                run_formatter(source_paths(), write=True)
+            command.assert_called_once()
+
+    def test_formatter_reports_a_missing_executable(self) -> None:
+        with tempfile.TemporaryDirectory() as name:
+            result = subprocess.run(
+                [sys.executable, str(ROOT / "tools/check_format.py"),
+                 "--clang-format", str(Path(name) / "missing-clang-format")],
+                text=True, capture_output=True)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("formatting:", result.stderr)
+        self.assertIn("missing-clang-format", result.stderr)
+
+    def test_frame_coordinator_stays_small_and_owns_one_pending_drain(self) -> None:
+        text = (ROOT / "src/decoder/frame_output.c").read_text()
+        coordinator = re.search(
+            r"^Av2hStatus av2h_decode_frame_group_planar_private\([^{}]*\)\s*\{.*?^\}",
+            text, re.M | re.S)
+        self.assertIsNotNone(coordinator)
+        if coordinator is not None:
+            self.assertLess(len(coordinator.group().splitlines()), 200)
+        self.assertEqual(len(re.findall(r"\bfor\s*\(\s*pending_index\s*=", text)), 1)
+        self.assertRegex(text, r"\bstatic Av2hStatus flush_pending_chroma_leaves\s*\(")
+        self.assertNotIn("AV2H_DECODE_FAIL", text)
+
     def test_coefficient_admission_uses_complete_context_banks(self) -> None:
         text = (ROOT / "src/decoder/coeff_level.c").read_text()
         self.assertNotRegex(text, r"\bq_context\s*==\s*[123]U\b")

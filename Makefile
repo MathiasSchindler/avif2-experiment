@@ -3,6 +3,7 @@ CC := clang
 endif
 AR ?= ar
 NM ?= nm
+CLANG_FORMAT ?= clang-format
 JOBS ?= $(or $(NUMBER_OF_PROCESSORS),$(shell nproc 2>/dev/null),$(shell getconf _NPROCESSORS_ONLN 2>/dev/null),$(shell sysctl -n hw.ncpu 2>/dev/null),1)
 ifeq ($(filter -j% --jobs%,$(MAKEFLAGS)),)
 MAKEFLAGS += -j$(JOBS)
@@ -225,13 +226,19 @@ NOLIBC_SUBSTRATE_ASM_OBJECTS := $(NOLIBC_SUBSTRATE_ASM_SOURCES:%.S=$(NOLIBC_BUIL
 
 VIEWER_BUILD_ARGS ?= --skip-assets --jobs $(JOBS)
 
-.PHONY: all decoder nolibc clean wasm reference-gallery census
+.PHONY: all decoder nolibc clean wasm reference-gallery census format format-check
 
 ifeq ($(HOST_SYSTEM),Linux)
 all: nolibc
 else
 all: decoder
 endif
+
+format:
+	$(PYTHON) tools/check_format.py --clang-format "$(CLANG_FORMAT)" --write
+
+format-check:
+	$(PYTHON) tools/check_format.py --clang-format "$(CLANG_FORMAT)"
 
 decoder:
 ifeq ($(OS),Windows_NT)

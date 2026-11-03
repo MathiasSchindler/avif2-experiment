@@ -82,8 +82,7 @@ typedef struct {
     uint16_t unit_columns[AV2H_FRAME_PLANE_COUNT];
     uint16_t unit_rows[AV2H_FRAME_PLANE_COUNT];
     uint16_t unit_size[AV2H_FRAME_PLANE_COUNT];
-    int16_t bank[AV2H_FRAME_PLANE_COUNT][4U]
-                [AV2H_WIENER_NONSEP_MAX_TAPS];
+    int16_t bank[AV2H_FRAME_PLANE_COUNT][4U][AV2H_WIENER_NONSEP_MAX_TAPS];
     uint8_t bank_size[AV2H_FRAME_PLANE_COUNT];
     uint8_t bank_pointer[AV2H_FRAME_PLANE_COUNT];
     uint16_t superblock_mi;
@@ -91,11 +90,10 @@ typedef struct {
 } Av2hRestorationEntropyState;
 
 typedef struct {
-    uint16_t do_partition[2U][2U][AV2H_TX_PARTITION_GROUPS]
-                          [AV2H_BINARY_CDF_SIZE];
+    uint16_t do_partition[2U][2U][AV2H_TX_PARTITION_GROUPS][AV2H_BINARY_CDF_SIZE];
     uint16_t two_or_three_way[2U][2U][2U][AV2H_BINARY_CDF_SIZE];
     uint16_t partition_type[2U][2U][AV2H_TX_PARTITION_TYPE_GROUPS]
-                            [AV2H_TX_PARTITION_TYPE_SYMBOLS + 4U];
+                           [AV2H_TX_PARTITION_TYPE_SYMBOLS + 4U];
 } Av2hTxPartitionCdfs;
 
 typedef struct {
@@ -151,8 +149,7 @@ typedef struct {
 typedef struct {
     Av2hPartitionTraversal luma_traversal;
     Av2hPartitionTraversal chroma_traversal;
-    Av2hTileLumaPartitionNode
-        luma_partition_nodes[AV2H_MAX_LUMA_PARTITION_NODES];
+    Av2hTileLumaPartitionNode luma_partition_nodes[AV2H_MAX_LUMA_PARTITION_NODES];
     size_t luma_partition_node_count;
     Av2hTileLumaModeCell *colocated_luma;
     size_t colocated_luma_count;
@@ -235,60 +232,36 @@ typedef struct {
     struct Av2hDecodeDiagnostics *diagnostics;
 } Av2hTileDecoder;
 
-Av2hStatus av2h_tile_luma_tx_node_get(
-    const Av2hTileDecoder *decoder, uint16_t index,
-    Av2hPartitionNode *node);
+Av2hStatus av2h_tile_luma_tx_node_get(const Av2hTileDecoder *decoder, uint16_t index,
+                                      Av2hPartitionNode *node);
 
-Av2hStatus av2h_tile_group_single_parse(Av2hSpan payload,
-                                         size_t uncompressed_header_bits,
-                                         Av2hTileGroup *group);
-Av2hStatus av2h_tile_group_parse(Av2hSpan payload,
-                                 const Av2hFrameState *frame,
-                                 uint16_t expected_start_tile,
-                                 Av2hTileGroup *group);
-Av2hStatus av2h_tile_groups_ledger_parse(
-    Av2hSpan input,
-    const Av2hObuLedger *ledger,
-    const Av2hFrameState *frame,
-    Av2hTileGroup *group);
+Av2hStatus av2h_tile_group_single_parse(Av2hSpan payload, size_t uncompressed_header_bits,
+                                        Av2hTileGroup *group);
+Av2hStatus av2h_tile_group_parse(Av2hSpan payload, const Av2hFrameState *frame,
+                                 uint16_t expected_start_tile, Av2hTileGroup *group);
+Av2hStatus av2h_tile_groups_ledger_parse(Av2hSpan input, const Av2hObuLedger *ledger,
+                                         const Av2hFrameState *frame, Av2hTileGroup *group);
 
-Av2hStatus av2h_tile_decoder_init(
-    Av2hTileDecoder *decoder,
-    Av2hSpan entropy,
-    const Av2hSequenceState *sequence,
-    const Av2hFrameState *frame,
-    const Av2hTileContextStorage *storage,
-    uint16_t tile_id);
-Av2hStatus av2h_tile_decoder_next_luma(
-    Av2hTileDecoder *decoder,
-    Av2hTileLumaLeaf *leaf,
-    Av2hCoeffBlock *block,
-    uint8_t *has_leaf);
-Av2hStatus av2h_tile_decoder_reconstruct_next_luma(
-    Av2hTileDecoder *decoder,
-    Av2hReconstructionPlane *plane,
-    Av2hReconstructionScratch *scratch,
-    Av2hTileLumaLeaf *leaf,
-    uint8_t *has_leaf);
-Av2hStatus av2h_tile_decoder_next_chroma(
-    Av2hTileDecoder *decoder,
-    Av2hTileChromaLeaf *leaf,
-    Av2hCoeffBlock *u_block,
-    Av2hCoeffBlock *v_block,
-    uint8_t *has_leaf);
-Av2hStatus av2h_tile_decoder_read_shared_chroma_mode(
-    Av2hTileDecoder *decoder,
-    const Av2hPartitionNode *node);
-Av2hStatus av2h_tile_decoder_reconstruct_next_chroma(
-    Av2hTileDecoder *decoder,
-    Av2hReconstructionPlane *u_plane,
-    Av2hReconstructionPlane *v_plane,
-    Av2hReconstructionScratch *scratch,
-    Av2hTileChromaLeaf *leaf,
-    uint8_t *has_leaf);
+Av2hStatus av2h_tile_decoder_init(Av2hTileDecoder *decoder, Av2hSpan entropy,
+                                  const Av2hSequenceState *sequence, const Av2hFrameState *frame,
+                                  const Av2hTileContextStorage *storage, uint16_t tile_id);
+Av2hStatus av2h_tile_decoder_next_luma(Av2hTileDecoder *decoder, Av2hTileLumaLeaf *leaf,
+                                       Av2hCoeffBlock *block, uint8_t *has_leaf);
+Av2hStatus av2h_tile_decoder_reconstruct_next_luma(Av2hTileDecoder *decoder,
+                                                   Av2hReconstructionPlane *plane,
+                                                   Av2hReconstructionScratch *scratch,
+                                                   Av2hTileLumaLeaf *leaf, uint8_t *has_leaf);
+Av2hStatus av2h_tile_decoder_next_chroma(Av2hTileDecoder *decoder, Av2hTileChromaLeaf *leaf,
+                                         Av2hCoeffBlock *u_block, Av2hCoeffBlock *v_block,
+                                         uint8_t *has_leaf);
+Av2hStatus av2h_tile_decoder_read_shared_chroma_mode(Av2hTileDecoder *decoder,
+                                                     const Av2hPartitionNode *node);
+Av2hStatus av2h_tile_decoder_reconstruct_next_chroma(Av2hTileDecoder *decoder,
+                                                     Av2hReconstructionPlane *u_plane,
+                                                     Av2hReconstructionPlane *v_plane,
+                                                     Av2hReconstructionScratch *scratch,
+                                                     Av2hTileChromaLeaf *leaf, uint8_t *has_leaf);
 Av2hStatus av2h_tile_decoder_finish_root(Av2hTileDecoder *decoder);
-Av2hStatus av2h_tile_decoder_commit_leaf(
-    Av2hTileDecoder *decoder,
-    Av2hPartitionNode leaf);
+Av2hStatus av2h_tile_decoder_commit_leaf(Av2hTileDecoder *decoder, Av2hPartitionNode leaf);
 
 #endif

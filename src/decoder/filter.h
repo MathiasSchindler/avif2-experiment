@@ -113,158 +113,92 @@ typedef struct {
     uint8_t *restoration_tx_skip;
 } Av2hFilterWorkspaceStorage;
 
-Av2hStatus av2h_pc_wiener_filter_luma(
-    Av2hFilterPlane *destination,
-    const Av2hFilterPlane *source,
-    const Av2hFilterPlane *deblocked,
-    const Av2hFrameState *frame,
-    const Av2hRestorationControlMap *controls);
-Av2hStatus av2h_wiener_nonsep_filter_frame(
-    Av2hFilterPlanes *destination,
-    const Av2hFilterPlanes *source,
-    const Av2hFilterPlanes *deblocked,
-    const Av2hSequenceState *sequence,
-    const Av2hFrameState *frame,
-    const Av2hRestorationControlMap *controls);
+Av2hStatus av2h_pc_wiener_filter_luma(Av2hFilterPlane *destination, const Av2hFilterPlane *source,
+                                      const Av2hFilterPlane *deblocked, const Av2hFrameState *frame,
+                                      const Av2hRestorationControlMap *controls);
+Av2hStatus av2h_wiener_nonsep_filter_frame(Av2hFilterPlanes *destination,
+                                           const Av2hFilterPlanes *source,
+                                           const Av2hFilterPlanes *deblocked,
+                                           const Av2hSequenceState *sequence,
+                                           const Av2hFrameState *frame,
+                                           const Av2hRestorationControlMap *controls);
 
-Av2hStatus av2h_filter_workspace_query(
-    const Av2hFrameState *frame,
-    size_t bytes_per_sample,
-    Av2hFilterWorkspaceLayout *layout);
+Av2hStatus av2h_filter_workspace_query(const Av2hFrameState *frame, size_t bytes_per_sample,
+                                       Av2hFilterWorkspaceLayout *layout);
 
-Av2hStatus av2h_filter_workspace_init(
-    const Av2hFrameState *frame,
-    size_t bytes_per_sample,
-    void *memory,
-    size_t memory_size_bytes,
-    Av2hFilterWorkspace *workspace,
-    Av2hFilterWorkspaceStorage *storage);
+Av2hStatus av2h_filter_workspace_init(const Av2hFrameState *frame, size_t bytes_per_sample,
+                                      void *memory, size_t memory_size_bytes,
+                                      Av2hFilterWorkspace *workspace,
+                                      Av2hFilterWorkspaceStorage *storage);
 
-Av2hStatus av2h_deblock_edge(
-    Av2hFilterPlane *plane,
-    uint16_t x,
-    uint16_t y,
-    uint8_t vertical,
-    uint8_t negative_length,
-    uint8_t positive_length,
-    uint16_t q_threshold,
-    uint16_t side_threshold);
-Av2hStatus av2h_deblock_edge_u16(
-    Av2hFilterPlaneU16 *plane,
-    uint16_t x,
-    uint16_t y,
-    uint8_t vertical,
-    uint8_t negative_length,
-    uint8_t positive_length,
-    uint16_t q_threshold,
-    uint16_t side_threshold, const Av2hSampleDomain *domain);
-Av2hStatus av2h_deblock_filter_frame(
-    Av2hFilterPlanes *planes,
-    const Av2hSequenceState *sequence,
-    const Av2hFrameState *frame,
-    const Av2hDeblockMap *map);
-Av2hStatus av2h_deblock_filter_frame_u16(
-    Av2hFilterPlanesU16 *planes,
-    const Av2hSequenceState *sequence,
-    const Av2hFrameState *frame,
-    const Av2hDeblockMap *map, const Av2hSampleDomain *domain);
-Av2hStatus av2h_deblock_stage_u16(
-    const Av2hFilterPlanesU16 *reconstructed,
-    const Av2hSequenceState *sequence,
-    const Av2hFrameState *frame,
-    Av2hFilterWorkspace *workspace, const Av2hSampleDomain *domain);
+Av2hStatus av2h_deblock_edge(Av2hFilterPlane *plane, uint16_t x, uint16_t y, uint8_t vertical,
+                             uint8_t negative_length, uint8_t positive_length, uint16_t q_threshold,
+                             uint16_t side_threshold);
+Av2hStatus av2h_deblock_edge_u16(Av2hFilterPlaneU16 *plane, uint16_t x, uint16_t y,
+                                 uint8_t vertical, uint8_t negative_length, uint8_t positive_length,
+                                 uint16_t q_threshold, uint16_t side_threshold,
+                                 const Av2hSampleDomain *domain);
+Av2hStatus av2h_deblock_filter_frame(Av2hFilterPlanes *planes, const Av2hSequenceState *sequence,
+                                     const Av2hFrameState *frame, const Av2hDeblockMap *map);
+Av2hStatus av2h_deblock_filter_frame_u16(Av2hFilterPlanesU16 *planes,
+                                         const Av2hSequenceState *sequence,
+                                         const Av2hFrameState *frame, const Av2hDeblockMap *map,
+                                         const Av2hSampleDomain *domain);
+Av2hStatus av2h_deblock_stage_u16(const Av2hFilterPlanesU16 *reconstructed,
+                                  const Av2hSequenceState *sequence, const Av2hFrameState *frame,
+                                  Av2hFilterWorkspace *workspace, const Av2hSampleDomain *domain);
 
-Av2hStatus av2h_cdef_find_direction(
-    const Av2hFilterPlane *luma,
-    uint16_t x,
-    uint16_t y,
-    uint8_t *direction,
-    uint32_t *variance);
-Av2hStatus av2h_cdef_find_direction_u16(
-    const Av2hFilterPlaneU16 *luma,
-    uint16_t x,
-    uint16_t y,
-    uint8_t *direction,
-    uint32_t *variance, const Av2hSampleDomain *domain);
-Av2hStatus av2h_cdef_filter_block(
-    Av2hFilterPlane *destination,
-    const Av2hFilterPlane *source,
-    uint16_t x,
-    uint16_t y,
-    uint16_t width,
-    uint16_t height,
-    unsigned int plane_index,
-    uint8_t primary_strength,
-    uint8_t secondary_strength,
-    uint8_t damping,
-    uint8_t direction,
-    uint32_t variance);
-Av2hStatus av2h_cdef_filter_block_u16(
-    Av2hFilterPlaneU16 *destination,
-    const Av2hFilterPlaneU16 *source,
-    uint16_t x,
-    uint16_t y,
-    uint16_t width,
-    uint16_t height,
-    unsigned int plane_index,
-    uint8_t primary_strength,
-    uint8_t secondary_strength,
-    uint8_t damping,
-    uint8_t direction,
-    uint32_t variance, const Av2hSampleDomain *domain);
+Av2hStatus av2h_cdef_find_direction(const Av2hFilterPlane *luma, uint16_t x, uint16_t y,
+                                    uint8_t *direction, uint32_t *variance);
+Av2hStatus av2h_cdef_find_direction_u16(const Av2hFilterPlaneU16 *luma, uint16_t x, uint16_t y,
+                                        uint8_t *direction, uint32_t *variance,
+                                        const Av2hSampleDomain *domain);
+Av2hStatus av2h_cdef_filter_block(Av2hFilterPlane *destination, const Av2hFilterPlane *source,
+                                  uint16_t x, uint16_t y, uint16_t width, uint16_t height,
+                                  unsigned int plane_index, uint8_t primary_strength,
+                                  uint8_t secondary_strength, uint8_t damping, uint8_t direction,
+                                  uint32_t variance);
+Av2hStatus av2h_cdef_filter_block_u16(Av2hFilterPlaneU16 *destination,
+                                      const Av2hFilterPlaneU16 *source, uint16_t x, uint16_t y,
+                                      uint16_t width, uint16_t height, unsigned int plane_index,
+                                      uint8_t primary_strength, uint8_t secondary_strength,
+                                      uint8_t damping, uint8_t direction, uint32_t variance,
+                                      const Av2hSampleDomain *domain);
 
-Av2hStatus av2h_filter_stage_u16(
-    Av2hFilterPlanesU16 *planes,
-    const Av2hSequenceState *sequence,
-    const Av2hFrameState *frame,
-    Av2hFilterWorkspace *workspace, const Av2hSampleDomain *domain);
+Av2hStatus av2h_filter_stage_u16(Av2hFilterPlanesU16 *planes, const Av2hSequenceState *sequence,
+                                 const Av2hFrameState *frame, Av2hFilterWorkspace *workspace,
+                                 const Av2hSampleDomain *domain);
 
-Av2hStatus av2h_filter_frame(
-    Av2hFilterPlanes *planes,
-    const Av2hSequenceState *sequence,
-    const Av2hFrameState *frame,
-    Av2hFilterWorkspace *workspace);
+Av2hStatus av2h_filter_frame(Av2hFilterPlanes *planes, const Av2hSequenceState *sequence,
+                             const Av2hFrameState *frame, Av2hFilterWorkspace *workspace);
 
-Av2hStatus av2h_cdef_filter_frame(
-    Av2hFilterPlanes *destination,
-    const Av2hFilterPlanes *deblocked,
-    const Av2hSequenceState *sequence,
-    const Av2hFrameState *frame,
-    const Av2hCdefControlMap *controls);
-Av2hStatus av2h_cdef_filter_frame_u16(
-    Av2hFilterPlanesU16 *destination,
-    const Av2hFilterPlanesU16 *deblocked,
-    const Av2hSequenceState *sequence,
-    const Av2hFrameState *frame,
-    const Av2hCdefControlMap *controls, const Av2hSampleDomain *domain);
-Av2hStatus av2h_ccso_filter_frame(
-    Av2hFilterPlanes *planes,
-    const uint8_t *pre_cdef_luma,
-    size_t pre_cdef_luma_stride_samples,
-    const Av2hSequenceState *sequence,
-    const Av2hFrameState *frame,
-    const Av2hCcsoControlMap *controls);
-Av2hStatus av2h_ccso_filter_frame_u16(
-    Av2hFilterPlanesU16 *planes,
-    const uint16_t *pre_cdef_luma,
-    size_t pre_cdef_luma_stride_samples,
-    const Av2hSequenceState *sequence,
-    const Av2hFrameState *frame,
-    const Av2hCcsoControlMap *controls, const Av2hSampleDomain *domain);
-Av2hStatus av2h_gdf_filter_frame(
-    Av2hFilterPlane *destination,
-    const Av2hFilterPlane *baseline_luma,
-    const Av2hFilterPlane *cdef_luma,
-    const Av2hFilterPlane *deblocked_luma,
-    const Av2hSequenceState *sequence,
-    const Av2hFrameState *frame,
-    const Av2hGdfControlMap *controls);
-Av2hStatus av2h_gdf_filter_frame_u16(
-    Av2hFilterPlaneU16 *destination,
-    const Av2hFilterPlaneU16 *cdef_luma,
-    const Av2hFilterPlaneU16 *deblocked_luma,
-    const Av2hSequenceState *sequence,
-    const Av2hFrameState *frame,
-    const Av2hGdfControlMap *controls, const Av2hSampleDomain *domain);
+Av2hStatus av2h_cdef_filter_frame(Av2hFilterPlanes *destination, const Av2hFilterPlanes *deblocked,
+                                  const Av2hSequenceState *sequence, const Av2hFrameState *frame,
+                                  const Av2hCdefControlMap *controls);
+Av2hStatus
+av2h_cdef_filter_frame_u16(Av2hFilterPlanesU16 *destination, const Av2hFilterPlanesU16 *deblocked,
+                           const Av2hSequenceState *sequence, const Av2hFrameState *frame,
+                           const Av2hCdefControlMap *controls, const Av2hSampleDomain *domain);
+Av2hStatus av2h_ccso_filter_frame(Av2hFilterPlanes *planes, const uint8_t *pre_cdef_luma,
+                                  size_t pre_cdef_luma_stride_samples,
+                                  const Av2hSequenceState *sequence, const Av2hFrameState *frame,
+                                  const Av2hCcsoControlMap *controls);
+Av2hStatus av2h_ccso_filter_frame_u16(Av2hFilterPlanesU16 *planes, const uint16_t *pre_cdef_luma,
+                                      size_t pre_cdef_luma_stride_samples,
+                                      const Av2hSequenceState *sequence,
+                                      const Av2hFrameState *frame,
+                                      const Av2hCcsoControlMap *controls,
+                                      const Av2hSampleDomain *domain);
+Av2hStatus av2h_gdf_filter_frame(Av2hFilterPlane *destination, const Av2hFilterPlane *baseline_luma,
+                                 const Av2hFilterPlane *cdef_luma,
+                                 const Av2hFilterPlane *deblocked_luma,
+                                 const Av2hSequenceState *sequence, const Av2hFrameState *frame,
+                                 const Av2hGdfControlMap *controls);
+Av2hStatus av2h_gdf_filter_frame_u16(Av2hFilterPlaneU16 *destination,
+                                     const Av2hFilterPlaneU16 *cdef_luma,
+                                     const Av2hFilterPlaneU16 *deblocked_luma,
+                                     const Av2hSequenceState *sequence, const Av2hFrameState *frame,
+                                     const Av2hGdfControlMap *controls,
+                                     const Av2hSampleDomain *domain);
 
 #endif

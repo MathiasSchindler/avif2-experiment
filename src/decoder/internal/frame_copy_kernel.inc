@@ -1,6 +1,6 @@
-static int AV2H_KERNEL_NAME(copy_rows_u8, copy_rows_u16)(size_t begin, size_t end,
-                                                         unsigned int worker_index,
-                                                         void *argument) {
+static int AV2H_KERNEL_NAME(
+    copy_rows_u8,
+    copy_rows_u16)(size_t begin, size_t end, unsigned int worker_index, void *argument) {
 #if AV2H_KERNEL_WIDE
     Av2hCopyRowsU16 *copy = (Av2hCopyRowsU16 *)argument;
 #else
@@ -25,26 +25,29 @@ static int AV2H_KERNEL_NAME(copy_rows_u8, copy_rows_u16)(size_t begin, size_t en
     }
     return 0;
 }
-Av2hStatus AV2H_KERNEL_NAME(av2h_copy_visible_planar_private, av2h_copy_visible_planar_u16_private)(
-    const Av2hFrameState *frame,
-    const
+Av2hStatus AV2H_KERNEL_NAME(
+    av2h_copy_visible_planar_private,
+    av2h_copy_visible_planar_u16_private)(const Av2hFrameState *frame,
+                                 const
 #if AV2H_KERNEL_WIDE
-    Av2hReconstructionPlaneU16
+                                 Av2hReconstructionPlaneU16
 #else
-    Av2hFilterPlanes *
+                                 Av2hFilterPlanes *
 #endif
-        coded
+                                     coded
 #if AV2H_KERNEL_WIDE
-            [AV2H_FRAME_PLANE_COUNT]
+                                         [AV2H_FRAME_PLANE_COUNT]
 #endif
-    ,
-    const size_t coded_data_size_bytes[AV2H_FRAME_PLANE_COUNT], uint8_t *output,
-    size_t output_size_bytes, const Av2hExecution *execution) {
+                                 ,
+                                 const size_t coded_data_size_bytes[AV2H_FRAME_PLANE_COUNT],
+                                 uint8_t *output, size_t output_size_bytes,
+                                 const Av2hExecution *execution) {
     size_t offset = 0U;
     unsigned int plane;
-    Av2hStatus status =
-        AV2H_KERNEL_NAME(av2h_frame_output_validate_u8, av2h_frame_output_validate_u16)(
-            frame, coded, coded_data_size_bytes, output, output_size_bytes);
+    Av2hStatus status = AV2H_KERNEL_NAME(
+        av2h_frame_output_validate_u8,
+        av2h_frame_output_validate_u16)(frame, coded, coded_data_size_bytes, output,
+                                                      output_size_bytes);
     if (status != AV2H_OK)
         return status;
     for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
@@ -56,8 +59,7 @@ Av2hStatus AV2H_KERNEL_NAME(av2h_copy_visible_planar_private, av2h_copy_visible_
         size_t width = av2h_frame_plane_dimension(frame, plane, frame->width);
         size_t height = av2h_frame_plane_dimension(frame, plane, frame->height);
         size_t row_bytes = width * sizeof(AV2H_KERNEL_TYPE(uint8_t, uint16_t));
-        AV2H_KERNEL_TYPE(Av2hCopyRowsU8, Av2hCopyRowsU16)
-        copy = {source->data, output + offset, source->stride_samples, width};
+        AV2H_KERNEL_TYPE(Av2hCopyRowsU8, Av2hCopyRowsU16) copy = {source->data, output + offset, source->stride_samples, width};
         if (copy_rows_dispatch(execution, height, row_bytes,
                                AV2H_KERNEL_NAME(copy_rows_u8, copy_rows_u16), &copy) != 0) {
             return AV2H_INVALID_DATA;

@@ -136,10 +136,8 @@ typedef struct {
     size_t after_mode_bits;
 } Av2hChromaLeafMode;
 
-uint8_t av2h_palette_map_get(
-    const Av2hLeafMode *mode, size_t index);
+uint8_t av2h_palette_map_get(const Av2hLeafMode *mode, size_t index);
 
-Av2hStatus av2h_palette_map_set(
-    Av2hLeafMode *mode, size_t index, uint8_t color);
+Av2hStatus av2h_palette_map_set(Av2hLeafMode *mode, size_t index, uint8_t color);
 
 #endif

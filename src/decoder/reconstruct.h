@@ -50,35 +50,26 @@ typedef struct {
     uint16_t secondary_left[128U];
 } Av2hReconstructionScratchU16;
 
-Av2hStatus av2h_luma_reconstruct(
-    struct Av2hDecodeDiagnostics *diagnostics,
-    const Av2hLeafMode *mode,
-    const Av2hCoeffPrefix *prefix,
-    const Av2hTransformType *transform,
-    const Av2hCoeffBlock *coefficients,
-    const uint8_t *predictor,
-    size_t predictor_stride_samples,
-    Av2hReconstructionScratch *scratch,
-    Av2hBlockReconstruction *reconstruction);
+Av2hStatus av2h_luma_reconstruct(struct Av2hDecodeDiagnostics *diagnostics,
+                                 const Av2hLeafMode *mode, const Av2hCoeffPrefix *prefix,
+                                 const Av2hTransformType *transform,
+                                 const Av2hCoeffBlock *coefficients, const uint8_t *predictor,
+                                 size_t predictor_stride_samples,
+                                 Av2hReconstructionScratch *scratch,
+                                 Av2hBlockReconstruction *reconstruction);
 
-Av2hStatus av2h_luma_reconstruct_to_plane(
-    struct Av2hDecodeDiagnostics *diagnostics,
-    const Av2hPartitionNode *leaf,
-    const Av2hLeafMode *mode,
-    const Av2hCoeffPrefix *prefix,
-    const Av2hTransformType *transform,
-    const Av2hCoeffBlock *coefficients,
-    Av2hReconstructionPlane *plane,
-    Av2hReconstructionScratch *scratch);
+Av2hStatus av2h_luma_reconstruct_to_plane(struct Av2hDecodeDiagnostics *diagnostics,
+                                          const Av2hPartitionNode *leaf, const Av2hLeafMode *mode,
+                                          const Av2hCoeffPrefix *prefix,
+                                          const Av2hTransformType *transform,
+                                          const Av2hCoeffBlock *coefficients,
+                                          Av2hReconstructionPlane *plane,
+                                          Av2hReconstructionScratch *scratch);
 
 Av2hStatus av2h_luma_reconstruct_to_plane_u16(
-    struct Av2hDecodeDiagnostics *diagnostics,
-    const Av2hPartitionNode *leaf,
-    const Av2hLeafMode *mode,
-    const Av2hCoeffPrefix *prefix,
-    const Av2hTransformType *transform,
-    const Av2hCoeffBlock *coefficients,
-    Av2hReconstructionPlaneU16 *plane,
+    struct Av2hDecodeDiagnostics *diagnostics, const Av2hPartitionNode *leaf,
+    const Av2hLeafMode *mode, const Av2hCoeffPrefix *prefix, const Av2hTransformType *transform,
+    const Av2hCoeffBlock *coefficients, Av2hReconstructionPlaneU16 *plane,
     Av2hReconstructionScratchU16 *scratch, const Av2hSampleDomain *domain);
 
 /*
@@ -91,36 +82,24 @@ Av2hStatus av2h_luma_reconstruct_to_plane_u16(
  * are optional; callers provide the chroma plane and format explicitly.
  */
 
-Av2hStatus av2h_chroma_reconstruct_to_plane(
-    struct Av2hDecodeDiagnostics *diagnostics,
-    const Av2hPartitionNode *leaf,
-    const Av2hChromaLeafMode *mode,
-    const Av2hCoeffPrefix *prefix,
-    const Av2hTransformType *transform,
-    const Av2hCoeffBlock *coefficients,
-    Av2hReconstructionPlane *plane,
-    const Av2hReconstructionPlane *luma_plane,
-    uint8_t chroma_plane,
-    Av2hReconstructionPlane *predictor_plane,
-    uint8_t chroma_format_idc,
-    Av2hReconstructionScratch *scratch);
+Av2hStatus
+av2h_chroma_reconstruct_to_plane(struct Av2hDecodeDiagnostics *diagnostics,
+                                 const Av2hPartitionNode *leaf, const Av2hChromaLeafMode *mode,
+                                 const Av2hCoeffPrefix *prefix, const Av2hTransformType *transform,
+                                 const Av2hCoeffBlock *coefficients, Av2hReconstructionPlane *plane,
+                                 const Av2hReconstructionPlane *luma_plane, uint8_t chroma_plane,
+                                 Av2hReconstructionPlane *predictor_plane,
+                                 uint8_t chroma_format_idc, Av2hReconstructionScratch *scratch);
 
 Av2hStatus av2h_chroma_reconstruct_to_plane_u16(
-    struct Av2hDecodeDiagnostics *diagnostics,
-    const Av2hPartitionNode *leaf,
-    const Av2hChromaLeafMode *mode,
-    const Av2hCoeffPrefix *prefix,
-    const Av2hTransformType *transform,
-    const Av2hCoeffBlock *coefficients,
-    Av2hReconstructionPlaneU16 *plane,
-    const Av2hReconstructionPlaneU16 *luma_plane,
-    uint8_t chroma_plane,
-    uint8_t chroma_format_idc,
-    Av2hReconstructionScratchU16 *scratch, const Av2hSampleDomain *domain);
-Av2hStatus av2h_chroma_inverse_cross_transform(
-    Av2hCoeffBlock *u_coefficients,
-    Av2hCoeffBlock *v_coefficients,
-    uint8_t cctx_type,
-    uint8_t bit_depth);
+    struct Av2hDecodeDiagnostics *diagnostics, const Av2hPartitionNode *leaf,
+    const Av2hChromaLeafMode *mode, const Av2hCoeffPrefix *prefix,
+    const Av2hTransformType *transform, const Av2hCoeffBlock *coefficients,
+    Av2hReconstructionPlaneU16 *plane, const Av2hReconstructionPlaneU16 *luma_plane,
+    uint8_t chroma_plane, uint8_t chroma_format_idc, Av2hReconstructionScratchU16 *scratch,
+    const Av2hSampleDomain *domain);
+Av2hStatus av2h_chroma_inverse_cross_transform(Av2hCoeffBlock *u_coefficients,
+                                               Av2hCoeffBlock *v_coefficients, uint8_t cctx_type,
+                                               uint8_t bit_depth);
 
 #endif

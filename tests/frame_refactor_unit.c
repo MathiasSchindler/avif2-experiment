@@ -534,6 +534,160 @@ static void test_frame_results(void) {
 #endif
 }
 
+static void test_frame_orchestration_results(void) {
+    static const char *const paths[] = {
+        "tests/fixtures/monochrome-tiny.obu",
+        "tests/fixtures/ordinary-160x120.obu",
+        "tests/fixtures/lossless-i420.obu",
+        "tests/fixtures/spatial-tile-filtered-disabled-2x2.obu",
+        "tests/fixtures/spatial-tile-filtered-nonuniform.obu",
+        "tests/fixtures/10bit/avm-reference/tiny-precision-16x16-yuv420p10le-qp160.obu",
+        "tests/fixtures/10bit/avm-reference/tiny-precision-16x16-yuv444p10le-qp128.obu"
+    };
+    /* Frame fields, entropy tells, output bytes and guard bytes frozen before C9. */
+    static const uint64_t expected[7U][2U] = {
+        {UINT64_C(0xef68fa57994c3d43), UINT64_C(0xc9d75e745ba982b0)},
+        {UINT64_C(0x43d917cfd867591c), UINT64_C(0x9d49e6063c1702ed)},
+        {UINT64_C(0xd6a383a848d0697c), UINT64_C(0x87efc9bb80473623)},
+        {UINT64_C(0x82b56e940268c1ba), UINT64_C(0x3c59ee17cc09cc96)},
+        {UINT64_C(0x06c0d53564fed226), UINT64_C(0xce774e626c2cc84b)},
+        {UINT64_C(0x80c55175bf202253), UINT64_C(0x76c0e59323fec417)},
+        {UINT64_C(0xc7ab3808eed328c1), UINT64_C(0x8d083a108759f524)}
+    };
+    static uint8_t input[262144U];
+    static uint8_t output[256U * 256U * 6U];
+    static _Alignas(max_align_t) uint8_t memory[4U * 1024U * 1024U];
+    size_t fixture;
+    for (fixture = 0U; fixture < sizeof(paths) / sizeof(paths[0]); ++fixture) {
+        Av2hObu entries[64U];
+        Av2hObuLedger ledger = {entries, 64U, 0U};
+        Av2hError error;
+        Av2hSequenceState sequence;
+        Av2hFrameState frame;
+        Av2hTileGroup original;
+        Av2hFrameDecodeWorkspaceLayout layout;
+        Av2hFrameDecodeWorkspace workspace;
+        Av2hFilterWorkspace filter;
+        Av2hFilterWorkspaceStorage storage;
+        const Av2hObu *sequence_obu = NULL;
+        const Av2hObu *frame_obu = NULL;
+        Av2hPartitionDecision trace[8U];
+        uint8_t trace_structure[8U];
+        Av2hPartitionLeafDiagnostic leaf_trace[8U];
+        uint64_t hash = UINT64_C(14695981039346656037);
+        size_t stages[AV2H_FRAME_DECODE_STAGE_OUTPUT + 1U] = {0};
+        FILE *file = fopen(paths[fixture], "rb");
+        size_t size;
+        size_t required;
+        size_t bytes;
+        size_t index;
+        unsigned int variant;
+        unsigned int diagnostics_enabled = 0U;
+        CHECK(file != NULL);
+        if (file == NULL) return;
+        size = fread(input, 1U, sizeof(input), file);
+        CHECK(!ferror(file) && feof(file));
+        CHECK(fclose(file) == 0);
+        CHECK(av2h_obu_parse((Av2hSpan){input, size}, &ledger, &error) == AV2H_OK);
+        for (index = 0U; index < ledger.count; ++index) {
+            if (entries[index].type == AV2H_OBU_SEQUENCE_HEADER && sequence_obu == NULL)
+                sequence_obu = &entries[index];
+            if (entries[index].type == AV2H_OBU_CLOSED_LOOP_KEY && frame_obu == NULL)
+                frame_obu = &entries[index];
+        }
+        CHECK(sequence_obu != NULL && frame_obu != NULL);
+        if (sequence_obu == NULL || frame_obu == NULL) return;
+        CHECK(av2h_sequence_state_parse((Av2hSpan){input, size}, sequence_obu,
+                                       &sequence, &error) == AV2H_OK);
+        CHECK(av2h_frame_header_closed_key_parse(
+                  (Av2hSpan){input + frame_obu->payload_offset, frame_obu->payload_size},
+                  &sequence, &frame, NULL) == AV2H_OK);
+        CHECK(av2h_tile_groups_ledger_parse(
+                  (Av2hSpan){input, size}, &ledger, &frame, &original) == AV2H_OK);
+        bytes = sequence.info.bit_depth_idc == 1U ? 1U : 2U;
+        CHECK(av2h_planar_output_size(&frame, bytes, &required) == AV2H_OK);
+        CHECK(required + 16U <= sizeof(output));
+        CHECK(av2h_frame_decode_workspace_query(&sequence, &frame, bytes, &layout) == AV2H_OK);
+        CHECK(layout.size_bytes <= sizeof(memory));
+        if (required + 16U > sizeof(output) || layout.size_bytes > sizeof(memory)) return;
+        CHECK(av2h_frame_decode_workspace_init(
+                  &sequence, &frame, bytes, &layout, memory, layout.size_bytes, &workspace,
+                  &filter, &storage) == AV2H_OK);
+        workspace.diagnostics = &workspace.diagnostics_storage;
+        workspace.diagnostics->partition_trace = trace;
+        workspace.diagnostics->partition_trace_structure = trace_structure;
+        workspace.diagnostics->partition_trace_capacity = 8U;
+        workspace.diagnostics->partition_leaf_trace = leaf_trace;
+        workspace.diagnostics->partition_leaf_trace_capacity = 8U;
+        for (variant = 0U; variant < 80U; ++variant) {
+            Av2hTileGroup group = original;
+            Av2hFrameDecodeResult result = {0};
+            Av2hStatus status;
+            size_t byte = variant ? (variant - 1U) / 8U : 0U;
+            uint8_t bit = variant >= 1U && variant <= 64U
+                ? (uint8_t)(1U << ((variant - 1U) % 8U)) : 0U;
+            size_t output_size = variant == 73U ? required - 1U : required;
+            result.entropy_tell = SIZE_MAX;
+            result.stage = AV2H_FRAME_DECODE_STAGE_OUTPUT;
+            result.cause = AV2H_OUT_OF_MEMORY;
+            result.row = UINT16_MAX;
+            CHECK(bit == 0U || byte < group.tiles[0].size);
+            if (bit != 0U && byte >= group.tiles[0].size) return;
+            if (bit != 0U) input[(size_t)(group.tiles[0].data - input) + byte] ^= bit;
+            if (variant >= 65U && variant <= 72U)
+                group.tiles[group.tile_count - 1U].size =
+                    original.tiles[group.tile_count - 1U].size * (variant - 65U) / 8U;
+            if (variant == 75U) workspace.bytes_per_sample = 3U;
+            if (variant == 76U) {
+                if (bytes == 1U) workspace.reconstruction_scratch = NULL;
+                else workspace.reconstruction_scratch_u16 = NULL;
+            }
+            if (variant == 77U) group.tile_count = 0U;
+            if (variant == 79U) group.start_tile = AV2H_PROFILE_MAX_TILES;
+            memset(output, 0xa5, required + 16U);
+            status = av2h_decode_frame_group_planar_private(
+                &group, &sequence, &frame, &workspace, variant == 78U ? NULL : output,
+                output_size, variant == 74U ? NULL : &result, NULL);
+            if (bit != 0U) input[(size_t)(group.tiles[0].data - input) + byte] ^= bit;
+            CHECK(result.stage <= AV2H_FRAME_DECODE_STAGE_OUTPUT);
+            if (result.stage <= AV2H_FRAME_DECODE_STAGE_OUTPUT) ++stages[result.stage];
+            if (variant == 0U) CHECK(status == AV2H_OK);
+            if (variant == 73U) CHECK(status == AV2H_OUT_OF_MEMORY);
+            if (variant == 75U) CHECK(status == AV2H_UNSUPPORTED);
+            if (variant >= 76U && variant <= 78U) CHECK(status == AV2H_INVALID_ARGUMENT);
+            CHECK(workspace.diagnostics->partition_trace == trace);
+            CHECK(workspace.diagnostics->partition_trace_structure == trace_structure);
+            CHECK(workspace.diagnostics->partition_trace_capacity == 8U);
+            CHECK(workspace.diagnostics->partition_leaf_trace == leaf_trace);
+            CHECK(workspace.diagnostics->partition_leaf_trace_capacity == 8U);
+            hash = hash_value(hash, status);
+            hash = hash_result(hash, &result);
+            for (index = 0U; index < required + 16U; ++index)
+                hash = hash_value(hash, output[index]);
+            if (variant == 76U) {
+                CHECK(av2h_frame_decode_workspace_init(
+                          &sequence, &frame, bytes, &layout, memory, layout.size_bytes, &workspace,
+                          &filter, &storage) == AV2H_OK);
+                workspace.diagnostics = &workspace.diagnostics_storage;
+                workspace.diagnostics->partition_trace = trace;
+                workspace.diagnostics->partition_trace_structure = trace_structure;
+                workspace.diagnostics->partition_trace_capacity = 8U;
+                workspace.diagnostics->partition_leaf_trace = leaf_trace;
+                workspace.diagnostics->partition_leaf_trace_capacity = 8U;
+            }
+            workspace.bytes_per_sample = (uint8_t)bytes;
+        }
+        printf("frame orchestration %zu: %016" PRIx64 "; stages", fixture, hash);
+        for (index = 0U; index < sizeof(stages) / sizeof(stages[0]); ++index)
+            if (stages[index]) printf(" %zu=%zu", index, stages[index]);
+        puts("");
+#if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
+        diagnostics_enabled = 1U;
+#endif
+        CHECK(hash == expected[fixture][diagnostics_enabled]);
+    }
+}
+
 int main(void) {
     unsigned int bytes;
     uint8_t format;
@@ -553,5 +707,6 @@ int main(void) {
         }
     }
     test_frame_results();
+    test_frame_orchestration_results();
     return failures != 0;
 }

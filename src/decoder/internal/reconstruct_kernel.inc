@@ -1,19 +1,23 @@
-static int AV2H_KERNEL_NAME(plane_sample_inside_active_tile, plane_sample_inside_active_tile_u16)(
-    const AV2H_KERNEL_TYPE(Av2hReconstructionPlane, Av2hReconstructionPlaneU16) * plane, size_t x,
-    size_t y) {
+static int AV2H_KERNEL_NAME(
+    plane_sample_inside_active_tile,
+    plane_sample_inside_active_tile_u16)(const AV2H_KERNEL_TYPE(Av2hReconstructionPlane, Av2hReconstructionPlaneU16) *plane, size_t x,
+                                           size_t y) {
     return plane_sample_inside_active_tile_cells(plane->reconstructed,
                                                  plane->reconstructed_stride_cells,
                                                  plane->reconstructed_count_cells, x, y);
 }
 static void AV2H_KERNEL_NAME(plane_mark_reconstructed, plane_mark_reconstructed_u16)(
-    AV2H_KERNEL_TYPE(Av2hReconstructionPlane, Av2hReconstructionPlaneU16) * plane, uint16_t x,
-    uint16_t y, uint16_t width, uint16_t height) {
+    AV2H_KERNEL_TYPE(Av2hReconstructionPlane, Av2hReconstructionPlaneU16) *plane, uint16_t x, uint16_t y,
+                                     uint16_t width, uint16_t height) {
     plane_mark_reconstructed_cells(plane->reconstructed, plane->reconstructed_stride_cells, x, y,
                                    width, height);
 }
-static Av2hStatus AV2H_KERNEL_NAME(palette_fill_predictor, palette_fill_predictor_u16)(
-    const Av2hLeafMode *mode, uint16_t block_x, uint16_t block_y, uint16_t output_width,
-    uint16_t output_height, AV2H_KERNEL_TYPE(uint8_t, uint16_t) * predictor) {
+static Av2hStatus
+AV2H_KERNEL_NAME(palette_fill_predictor,
+                 palette_fill_predictor_u16)(const Av2hLeafMode *mode, uint16_t block_x,
+                                         uint16_t block_y, uint16_t output_width,
+                                         uint16_t output_height,
+                                             AV2H_KERNEL_TYPE(uint8_t, uint16_t) *predictor) {
     size_t offset_x;
     size_t offset_y;
     size_t row;

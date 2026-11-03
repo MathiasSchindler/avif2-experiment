@@ -18,17 +18,12 @@ typedef struct {
     struct Av2hDecodeDiagnostics *diagnostics;
 } Av2hRangeDecoder;
 
-Av2hStatus av2h_range_init(Av2hRangeDecoder *decoder,
-                            const Av2hSpan *spans,
-                            size_t span_count);
-uint32_t av2h_range_read_symbol(Av2hRangeDecoder *decoder,
-                                const uint16_t *inverse_cdf,
+Av2hStatus av2h_range_init(Av2hRangeDecoder *decoder, const Av2hSpan *spans, size_t span_count);
+uint32_t av2h_range_read_symbol(Av2hRangeDecoder *decoder, const uint16_t *inverse_cdf,
                                 size_t symbol_count);
-uint32_t av2h_range_read_adaptive(Av2hRangeDecoder *decoder,
-                                  uint16_t *inverse_cdf,
+uint32_t av2h_range_read_adaptive(Av2hRangeDecoder *decoder, uint16_t *inverse_cdf,
                                   size_t symbol_count);
-uint32_t av2h_range_read_bypass(Av2hRangeDecoder *decoder,
-                                unsigned int bit_count);
+uint32_t av2h_range_read_bypass(Av2hRangeDecoder *decoder, unsigned int bit_count);
 size_t av2h_range_tell(const Av2hRangeDecoder *decoder);
 Av2hStatus av2h_range_status(const Av2hRangeDecoder *decoder);
 

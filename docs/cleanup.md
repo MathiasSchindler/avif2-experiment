@@ -1,6 +1,6 @@
 # Code Quality and Consistency Cleanup Plan
 
-**Status:** C1-C8 complete; C9-C10 planned
+**Status:** C1-C10 complete
 
 **Scope:** [`src/`](../src/) and [`include/av2heif.h`](../include/av2heif.h)
 
@@ -725,27 +725,81 @@ Several core decoder modules contain bring-up-era special-case cascades or irreg
 ## C9: Decompose [`frame_output.c`](../src/decoder/frame_output.c) Orchestration
 
 ### Problem
-`av2h_decode_frame_group_planar` in [`frame_output.c`](../src/decoder/frame_output.c) spans roughly 550 lines in a single function. Much of this bulk comes from:
-- Duplicated loops that flush `pending_chroma_leaves` (once mid-tile when `decoder.chroma.shared_complete` transitions, and once at the end of the tile), with each loop further branching on `workspace->bytes_per_sample == 2U` vs `1U`.
+At the start of C9, `av2h_decode_frame_group_planar_private` in [`frame_output.c`](../src/decoder/frame_output.c) spanned 652 lines in a single function. Much of this bulk came from:
+- Duplicated byte/wide reconstruction and deblock-commit loops inside the mid-tile pending-chroma drain, triggered when `decoder.chroma.shared_complete` transitions. The earlier plan also described a post-tile drain, but none existed in the C8 implementation.
 - Nearly 200 lines of inline diagnostic field copying (`decoded.syntax_stage = ...`, `decoded.eob_range = ...`, `decoded.after_all_zero_tell = ...`) embedded directly inside the main tile-decoding `while` loop for luma parse, luma reconstruct, chroma parse, chroma cross-transform, and chroma reconstruct failures.
 
 ### Actions
 1. **Extract Shared Pending-Chroma Flush Helper:**
-   - Extract `flush_pending_chroma_leaves(...)` as a `static` helper in [`frame_output.c`](../src/decoder/frame_output.c) called both mid-tile and post-tile to reconstruct and commit deblock metadata for queued shared-chroma leaves.
+   - Extract `flush_pending_chroma_leaves(...)` as a `static` helper in [`frame_output.c`](../src/decoder/frame_output.c) to reconstruct and commit deblock metadata at the existing shared-chroma completion boundary. Preserve the drain timing rather than introduce a new post-tile path.
 2. **Extract Diagnostic-Failure Builders:**
    - Extract `populate_luma_parse_failure(...)` and `populate_chroma_parse_failure(...)` (or stage-specific failure helpers) out of the main tile loop so the high-level Luma $\rightarrow$ Chroma $\rightarrow$ Completeness $\rightarrow$ Filter $\rightarrow$ Output state machine fits on a single screen.
 
 ### Exit Criteria
-- `av2h_decode_frame_group_planar` in [`frame_output.c`](../src/decoder/frame_output.c) is under 200 lines, with zero duplicated pending-chroma flush loops.
+- `av2h_decode_frame_group_planar_private` in [`frame_output.c`](../src/decoder/frame_output.c) is under 200 lines, with zero duplicated pending-chroma flush loops.
 - All failure statuses, diagnostic fields, and entropy tell values remain identical.
+
+### Completed
+
+- Reduced the frame-group coordinator from **652 to 61 lines**. Private
+  helpers now own luma/chroma leaf processing, tile-phase dispatch,
+  completeness/filter-control handoff, and filtering/output. The private
+  context binds existing stack state; it adds no heap allocation or workspace
+  layout changes.
+- Extracted one pending-chroma drain for both sample widths. Queue ordering,
+  clearing only after a successful drain, per-leaf counts, and partial
+  reconstruction/deblock updates on failure are unchanged.
+- Preserved the ordinary byte path's reconstruct-both-planes-before-deblock
+  ordering, the wide path's per-plane ordering, and the separately decoded
+  lossless-plane path. Deferred reconstruction retains its less detailed
+  failure records rather than adopting the ordinary path's diagnostics.
+- Extracted luma/chroma parse and chroma-reconstruction failure builders,
+  retaining width-specific diagnostic fields. A shared failure recorder
+  replaces the local return macro without changing causes, stages, coordinates,
+  syntax fallbacks, entropy tells, or result-publication timing.
+- Preserved trace-buffer pointers/capacities during diagnostic reset, readiness
+  checks, restoration completeness, filter handoff, and output/error ordering.
+  Public/private headers, stream admission, oracle data, and media are unchanged.
+  C2/C7 layout and typed ownership remain intact; C10 remains separate work.
+
+### Validation
+
+- Added **560 frozen frame-orchestration cases per diagnostic configuration**
+  across seven fixtures, covering monochrome/color, lossless, multi-tile,
+  10-bit 4:2:0/4:4:4, entropy mutations/truncations, invalid workspace/output
+  arguments, absent result storage, diagnostic trace bindings, and output guard
+  bytes. These pass against both the retained C8 library and C9.
+- Session-only sanitized fault injection matches **384 additional records per
+  configuration**, including parse/reconstruction/deblock/commit,
+  cross-transform, filter, and output failures. It compares all result fields,
+  entropy tells, output bytes, coded pixels, readiness maps, and deblock cells.
+  Coverage confirms 60 forced deferred-drain executions, including both sample
+  widths, successful drains, and U/V reconstruction/deblock failures. No
+  production test hooks or exported interfaces were added.
+- All 33 sanitized C suites and 2,460 deterministic public-decode fuzz cases
+  pass in each diagnostic configuration. Both 77-line inventories match.
+  All 32 related Python checks pass, including the under-200-line and
+  single-pending-drain source guard.
+- Strict compiler warnings, including `-Wredundant-decls -Wunreachable-code`,
+  pass in both configurations. All 55 standalone private headers and 35
+  value-only roots pass without include cycles; native and freestanding checks
+  pass.
+- All 179 native corpus hashes and 14 exact CLI output/error/
+  destination-preservation contracts match the baseline.
+- Five interleaved timing rounds over 15 cases spanning all five admitted
+  profiles measured median **+0.34%**, aggregate-time-weighted **+1.21%**,
+  and per-case changes from **-1.45% to +1.75%** on the M4 Max. Keeping decoder
+  and result storage separate from the private context reduced the initial
+  weighted overhead of +1.84%. Optimization defaults are unchanged; cross-builds
+  and media regeneration were not required.
 
 ---
 
 ## C10: Normalize Formatting, Indentation, and Line Wrapping
 
 ### Problem
-Incremental manual edits and localized automated formatting passes across earlier milestones left visible formatting and indentation inconsistencies:
-- **Unindented control-flow bodies:** In [`frame_output.c`](../src/decoder/frame_output.c), the `while (decoder.control.phase != AV2H_TILE_DECODE_DONE)` loop body (lines 258–580) is at the same indentation level as its enclosing `while` statement.
+Incremental manual edits and localized automated formatting passes across earlier milestones left visible formatting and indentation inconsistencies. These observations refer to the pre-C7–C9 source layout:
+- **Unindented control-flow bodies:** The original frame coordinator's tile-loop body in [`frame_output.c`](../src/decoder/frame_output.c) was at the same indentation level as its enclosing `while` statement. C9 extracted that loop; C10 formats the resulting owner and helpers without changing their structure.
 - **Deeply drifted boolean/continuation indentation:** In [`coeff_level.c`](../src/decoder/coeff_level.c) (lines 58–158), [`container.c`](../src/container.c), and [`reconstruct.c`](../src/decoder/reconstruct.c), continuation lines drift between 4-space, 8-space, and 60+-column alignments.
 - **Mixed column limits and brace/pointer styles:** Older files use ~80-column manual wrapping with multi-line function signatures, whereas newer or C6-touched files (`*_kernel.inc`, [`reconstruct_block.c`](../src/decoder/reconstruct_block.c)) use ~100-column `clang-format` wrapping and compact single-line declarations.
 
@@ -762,3 +816,56 @@ Incremental manual edits and localized automated formatting passes across earlie
 ### Exit Criteria
 - Uniform indentation, brace placement, and line wrapping across all `.c`, `.h`, and `*_kernel.inc` files in [`src/`](../src/) and [`include/`](../include/).
 - Byte-for-byte identical compiled code before and after the formatting pass.
+
+### Completed implementation
+
+1. Added the root [`.clang-format`](../.clang-format), using clang-format 22.x,
+   four-space indentation, a 100-column limit, attached braces, and right-aligned
+   pointers. Formatter-only expansions of `AV2H_KERNEL_NAME` and
+   `AV2H_KERNEL_TYPE` let typed declarations and their bodies indent normally.
+   Include sorting and regrouping are disabled: C2's include ordering and all
+   17 terminal typed-instantiation sections remain intact. Brace insertion,
+   brace removal, qualifier rewriting, and string-literal splitting are disabled.
+2. Formatted all 164 production C sources, headers, typed kernels, and sample-kernel
+   setup/reset includes under [`src/`](../src/) and [`include/`](../include/).
+   The compact DCT/ADST matrix region in
+   [`inverse_transform.c`](../src/decoder/inverse_transform.c) is protected with
+   `clang-format off/on` comments. All 23 generated, data-only `.inc` files remain
+   outside the formatter's scope and byte-for-byte unchanged, preserving their
+   generator-owned table layouts. No generator, media, oracle, or reference hash
+   was changed.
+3. Added [`tools/check_format.py`](../tools/check_format.py), `make format`, and
+   `make format-check`. `CLANG_FORMAT` selects the formatter; incompatible major
+   versions and missing executables fail explicitly. The
+   [source-consistency suite](../tests/test_source_consistency.py) checks the
+   entire production formatting scope and tests drift detection/repair,
+   macro-aware typed declarations, scope boundaries, and formatter failures.
+   Contributor commands are documented in the [README](../README.md).
+
+### Validation
+
+- Captured the completed C9 worktree before formatting, including both native
+  diagnostic configurations. Forced before/after rebuilds used the same compiler,
+  flags, source paths, and output paths with compiler caching disabled.
+- **Every one of the 67 native object files and the final decoder is byte-for-byte
+  identical in each configuration, both raw and stripped.** Native macOS
+  `/usr/bin/strip -S -x` was applied to snapshot copies. Matching output basenames
+  preserve the same Mach-O ad-hoc signing identifier; no UUID, signature, section,
+  or instruction normalization was needed for comparison.
+- All 187 production `.c`, `.h`, and `.inc` files retain identical non-comment C
+  tokens after standard preprocessor line-continuation splicing. The protected
+  matrix text and all generated data includes are unchanged.
+- Canonical formatting is idempotent and `make format-check` passes. All **38**
+  related Python checks pass, including the C2 layout, C7 branch ownership, C8
+  admission, and C9 coordinator guards. The coordinator remains **68 lines**.
+- All **33 sanitized C suites** and **2,460 deterministic public-decode fuzz cases**
+  pass in each diagnostic configuration. Both frozen 77-line inventories match
+  the preceding milestone.
+- All **179 native corpus hashes** and **14 exact CLI output/error/destination
+  contracts** match. The default native build, freestanding undefined-symbol
+  checks, **55 standalone private headers**, and **35 value-only kernel roots**
+  pass; plain `make` still builds the decoder.
+
+C10 introduces no decoder behavior or compiled-code change. Native macOS
+verification satisfies the agreed scope; no cross-build or media regeneration
+was required.

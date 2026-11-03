@@ -101,8 +101,7 @@ typedef struct {
     uint8_t restoration_type[AV2H_FRAME_PLANE_COUNT];
     uint8_t restoration_frame_filters_on[AV2H_FRAME_PLANE_COUNT];
     uint8_t restoration_num_filter_classes[AV2H_FRAME_PLANE_COUNT];
-    int16_t restoration_frame_filter[AV2H_FRAME_PLANE_COUNT]
-                                    [AV2H_WIENER_NONSEP_MAX_CLASSES]
+    int16_t restoration_frame_filter[AV2H_FRAME_PLANE_COUNT][AV2H_WIENER_NONSEP_MAX_CLASSES]
                                     [AV2H_WIENER_NONSEP_MAX_TAPS];
     uint16_t restoration_unit_size[AV2H_FRAME_PLANE_COUNT];
     uint16_t restoration_unit_columns[AV2H_FRAME_PLANE_COUNT];
@@ -114,42 +113,34 @@ typedef struct {
     uint8_t reduced_tx_set;
 } Av2hFrameState;
 
-static inline unsigned int av2h_frame_plane_count(
-    const Av2hFrameState *frame) {
-    return frame != NULL && frame->plane_count == 1U ?
-        1U : AV2H_FRAME_PLANE_COUNT;
+static inline unsigned int av2h_frame_plane_count(const Av2hFrameState *frame) {
+    return frame != NULL && frame->plane_count == 1U ? 1U : AV2H_FRAME_PLANE_COUNT;
 }
 
-static inline size_t av2h_frame_plane_dimension(
-    const Av2hFrameState *frame,
-    unsigned int plane,
-    size_t luma_dimension) {
-    return av2h_plane_dimension(
-        luma_dimension, frame != NULL ? frame->chroma_format_idc : 0U, plane);
+static inline size_t av2h_frame_plane_dimension(const Av2hFrameState *frame, unsigned int plane,
+                                                size_t luma_dimension) {
+    return av2h_plane_dimension(luma_dimension, frame != NULL ? frame->chroma_format_idc : 0U,
+                                plane);
 }
 
 static inline size_t av2h_frame_mi_dimension(uint16_t pixels) {
     return (((size_t)pixels + 7U) / 8U) * 2U;
 }
 
-int av2h_frame_tile_layout_read(
-    Av2hBitReader *reader,
-    const Av2hSequenceState *sequence,
-    Av2hFrameState *frame);
+int av2h_frame_tile_layout_read(Av2hBitReader *reader, const Av2hSequenceState *sequence,
+                                Av2hFrameState *frame);
 
-static inline int av2h_frame_restoration_needs_tx_skip(
-    const Av2hFrameState *frame) {
-    if (frame == NULL) return 0;
+static inline int av2h_frame_restoration_needs_tx_skip(const Av2hFrameState *frame) {
+    if (frame == NULL)
+        return 0;
     if (frame->restoration_type[0] == AV2H_RESTORE_PC_WIENER ||
-        frame->restoration_type[0] == AV2H_RESTORE_SWITCHABLE) return 1;
+        frame->restoration_type[0] == AV2H_RESTORE_SWITCHABLE)
+        return 1;
     return frame->restoration_type[0] == AV2H_RESTORE_WIENER_NONSEP &&
-        frame->restoration_num_filter_classes[0] > 1U;
+           frame->restoration_num_filter_classes[0] > 1U;
 }
 
-Av2hStatus av2h_frame_header_closed_key_parse(
-    Av2hSpan payload,
-    const Av2hSequenceState *sequence,
-    Av2hFrameState *frame,
-    Av2hError *error);
+Av2hStatus av2h_frame_header_closed_key_parse(Av2hSpan payload, const Av2hSequenceState *sequence,
+                                              Av2hFrameState *frame, Av2hError *error);
 
 #endif

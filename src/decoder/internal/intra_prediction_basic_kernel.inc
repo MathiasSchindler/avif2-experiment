@@ -1,8 +1,11 @@
-static void AV2H_KERNEL_NAME(predict_smooth_samples, predict_smooth_samples_u16)(
-    uint16_t width, uint16_t height,
-    const AV2H_KERNEL_TYPE(Av2hLumaReferences, Av2hLumaReferencesU16) * references,
-    AV2H_KERNEL_TYPE(uint8_t, uint16_t) * predictor, size_t predictor_stride_samples,
-    Av2hIntraMode mode, uint16_t bottom_left, uint16_t top_right, const Av2hSampleDomain *domain) {
+static void AV2H_KERNEL_NAME(
+    predict_smooth_samples,
+    predict_smooth_samples_u16)(uint16_t width, uint16_t height,
+                                   const AV2H_KERNEL_TYPE(Av2hLumaReferences, Av2hLumaReferencesU16) *references,
+                                AV2H_KERNEL_TYPE(uint8_t, uint16_t) *predictor,
+                                   size_t predictor_stride_samples, Av2hIntraMode mode,
+                                   uint16_t bottom_left, uint16_t top_right,
+                                   const Av2hSampleDomain *domain) {
     uint16_t row;
     uint8_t scale = smooth_scale(width, height);
     int have_above = references->above != NULL && references->above_count != 0U;
@@ -26,19 +29,22 @@ static void AV2H_KERNEL_NAME(predict_smooth_samples, predict_smooth_samples_u16)
                 av2h_sample_round_pow2(((int64_t)top - vertical) * smooth_blend(row, scale), 7U);
             horizontal += av2h_sample_round_pow2(
                 ((int64_t)side - horizontal) * smooth_blend(column, scale), 7U);
-            predictor[(size_t)row * predictor_stride_samples + column] = (AV2H_KERNEL_TYPE(
-                uint8_t, uint16_t))(mode == AV2H_INTRA_SMOOTH_VERTICAL ? vertical
-                                    : mode == AV2H_INTRA_SMOOTH_HORIZONTAL
-                                        ? horizontal
-                                        : av2h_sample_round_pow2(vertical + horizontal, 1U));
+            predictor[(size_t)row * predictor_stride_samples + column] =
+                (AV2H_KERNEL_TYPE(
+                    uint8_t, uint16_t))(mode == AV2H_INTRA_SMOOTH_VERTICAL ? vertical
+                          : mode == AV2H_INTRA_SMOOTH_HORIZONTAL
+                              ? horizontal
+                              : av2h_sample_round_pow2(vertical + horizontal, 1U));
         }
     }
 }
 
-static void AV2H_KERNEL_NAME(predict_paeth_samples, predict_paeth_samples_u16)(
-    uint16_t width, uint16_t height,
-    const AV2H_KERNEL_TYPE(Av2hLumaReferences, Av2hLumaReferencesU16) * references,
-    AV2H_KERNEL_TYPE(uint8_t, uint16_t) * predictor, size_t predictor_stride_samples) {
+static void AV2H_KERNEL_NAME(
+    predict_paeth_samples,
+    predict_paeth_samples_u16)(uint16_t width, uint16_t height,
+                                  const AV2H_KERNEL_TYPE(Av2hLumaReferences, Av2hLumaReferencesU16) *references,
+                               AV2H_KERNEL_TYPE(uint8_t, uint16_t) *predictor,
+                                  size_t predictor_stride_samples) {
     uint16_t row;
     for (row = 0U; row < height; ++row) {
         uint16_t column;
@@ -51,10 +57,11 @@ static void AV2H_KERNEL_NAME(predict_paeth_samples, predict_paeth_samples_u16)(
             int32_t top_distance = base > top ? base - top : top - base;
             int32_t corner_distance = base > corner ? base - corner : corner - base;
             predictor[(size_t)row * predictor_stride_samples + column] =
-                (AV2H_KERNEL_TYPE(uint8_t, uint16_t))(
-                    side_distance <= top_distance && side_distance <= corner_distance ? side
-                    : top_distance <= corner_distance                                 ? top
-                                                                                      : corner);
+                (AV2H_KERNEL_TYPE(
+                    uint8_t,
+                    uint16_t))(side_distance <= top_distance && side_distance <= corner_distance ? side
+                          : top_distance <= corner_distance ? top
+                                                            : corner);
         }
     }
 }

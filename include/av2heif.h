@@ -230,10 +230,7 @@ typedef enum {
     AV2H_BYTE_ORDER_BIG_ENDIAN
 } Av2hByteOrder;
 
-typedef enum {
-    AV2H_PLANE_ORDER_UNKNOWN = 0,
-    AV2H_PLANE_ORDER_YUV
-} Av2hPlaneOrder;
+typedef enum { AV2H_PLANE_ORDER_UNKNOWN = 0, AV2H_PLANE_ORDER_YUV } Av2hPlaneOrder;
 
 typedef struct {
     uint8_t chroma_format_idc;
@@ -301,74 +298,34 @@ typedef struct {
     uint64_t input_fingerprint;
 } Av2hInfo;
 
-Av2hStatus av2h_leb128_read(Av2hSpan input,
-                            size_t *value,
-                            size_t *encoded_size,
-                            Av2hError *error);
-Av2hStatus av2h_leb128_write(size_t value,
-                             void *output,
-                             size_t output_size,
-                             size_t *written);
-Av2hStatus av2h_obu_parse(Av2hSpan input,
-                          Av2hObuLedger *ledger,
-                          Av2hError *error);
-Av2hStatus av2h_sequence_header_parse(Av2hSpan input,
-                                      const Av2hObu *obu,
-                                      Av2hSequenceInfo *sequence,
-                                      Av2hError *error);
+Av2hStatus av2h_leb128_read(Av2hSpan input, size_t *value, size_t *encoded_size, Av2hError *error);
+Av2hStatus av2h_leb128_write(size_t value, void *output, size_t output_size, size_t *written);
+Av2hStatus av2h_obu_parse(Av2hSpan input, Av2hObuLedger *ledger, Av2hError *error);
+Av2hStatus av2h_sequence_header_parse(Av2hSpan input, const Av2hObu *obu,
+                                      Av2hSequenceInfo *sequence, Av2hError *error);
 void av2h_color_info_default(Av2hColorInfo *color);
-Av2hStatus av2h_content_interpretation_parse(Av2hSpan input,
-                                             const Av2hObu *obu,
-                                             Av2hColorInfo *color,
-                                             Av2hError *error);
-Av2hStatus av2h_av2c_parse(Av2hSpan input,
-                           Av2hAv2C *configuration,
-                           Av2hObuLedger *ledger,
+Av2hStatus av2h_content_interpretation_parse(Av2hSpan input, const Av2hObu *obu,
+                                             Av2hColorInfo *color, Av2hError *error);
+Av2hStatus av2h_av2c_parse(Av2hSpan input, Av2hAv2C *configuration, Av2hObuLedger *ledger,
                            Av2hError *error);
-Av2hStatus av2h_av2c_write(const Av2hAv2C *configuration,
-                           void *output,
-                           size_t output_size,
+Av2hStatus av2h_av2c_write(const Av2hAv2C *configuration, void *output, size_t output_size,
                            size_t *written);
-Av2hStatus av2h_carriage_validate(Av2hSpan config_obus,
-                                  Av2hSpan item_payload,
-                                  Av2hSequenceInfo *sequence,
-                                  Av2hError *error);
-Av2hStatus av2h_box_header_parse(Av2hSpan input,
-                                 size_t offset,
-                                 Av2hBoxHeader *box,
+Av2hStatus av2h_carriage_validate(Av2hSpan config_obus, Av2hSpan item_payload,
+                                  Av2hSequenceInfo *sequence, Av2hError *error);
+Av2hStatus av2h_box_header_parse(Av2hSpan input, size_t offset, Av2hBoxHeader *box,
                                  Av2hError *error);
-Av2hStatus av2h_box_header_write(uint32_t type,
-                                 uint64_t payload_size,
-                                 void *output,
-                                 size_t output_size,
-                                 size_t *written);
-Av2hStatus av2h_heif_parse(Av2hSpan input,
-                           Av2hHeifImage *image,
-                           Av2hError *error);
-Av2hStatus av2h_heif_write(const Av2hHeifSource *source,
-                           void *output,
-                           size_t output_size,
-                           size_t *written,
-                           Av2hError *error);
+Av2hStatus av2h_box_header_write(uint32_t type, uint64_t payload_size, void *output,
+                                 size_t output_size, size_t *written);
+Av2hStatus av2h_heif_parse(Av2hSpan input, Av2hHeifImage *image, Av2hError *error);
+Av2hStatus av2h_heif_write(const Av2hHeifSource *source, void *output, size_t output_size,
+                           size_t *written, Av2hError *error);
 void av2h_limits_default(Av2hLimits *limits);
-Av2hStatus av2h_dialect_detect(Av2hSpan input,
-                               Av2hDialect *dialect,
-                               Av2hError *error);
-Av2hStatus av2h_query(Av2hSpan input,
-                      const Av2hLimits *limits,
-                      Av2hInfo *info,
-                      Av2hError *error);
-Av2hStatus av2h_validate(Av2hSpan input,
-                         const Av2hLimits *limits,
-                         Av2hError *error);
+Av2hStatus av2h_dialect_detect(Av2hSpan input, Av2hDialect *dialect, Av2hError *error);
+Av2hStatus av2h_query(Av2hSpan input, const Av2hLimits *limits, Av2hInfo *info, Av2hError *error);
+Av2hStatus av2h_validate(Av2hSpan input, const Av2hLimits *limits, Av2hError *error);
 
 /* Decode canonical AV2-HEIF into the contiguous planar layout from info. */
-Av2hStatus av2h_decode(Av2hSpan input,
-                       const Av2hInfo *info,
-                       void *workspace,
-                       size_t workspace_size,
-                       void *output,
-                       size_t output_size,
-                       Av2hError *error);
+Av2hStatus av2h_decode(Av2hSpan input, const Av2hInfo *info, void *workspace, size_t workspace_size,
+                       void *output, size_t output_size, Av2hError *error);
 
 #endif
