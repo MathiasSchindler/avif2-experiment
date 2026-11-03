@@ -1,6 +1,9 @@
 #include "decoder/filter.h"
+
 #include "decoder/internal/filter_common.h"
 #include "decoder/internal/wiener_nonsep.h"
+
+#include <stddef.h>
 
 #define RESTORATION_PROC_UNIT_SIZE 64
 #define NUM_PC_WIENER_TAPS_LUMA 13
@@ -8,6 +11,18 @@
 #define AV2H_PC_WIENER_CLASS_COUNT 256U
 
 #include "pc_wiener_data.inc"
+
+#define AV2H_PC_WIENER_BLOCK_SIZE 4
+#define AV2H_PC_WIENER_FEATURE_LEAD 1
+#define AV2H_PC_WIENER_FEATURE_LAG 4
+#define AV2H_PC_WIENER_UNIT_OFFSET 8
+
+typedef struct {
+    const Av2hFilterPlane *source;
+    const Av2hFilterPlane *deblocked;
+    int stripe_start;
+    int stripe_end;
+} Av2hPcWienerSource;
 
 static const int32_t pc_wiener_feature_normalizers[4] = {
     0, 3739, 3273, 3074
@@ -87,7 +102,7 @@ Av2hStatus av2h_wienerns_frame_predictor(
     const int16_t *source;
     unsigned int index;
     unsigned int count;
-    if (taps == 0 || decoded == 0 || class_count == 0U ||
+    if (taps == NULL || decoded == NULL || class_count == 0U ||
         class_count > AV2H_WIENER_NONSEP_MAX_CLASSES ||
         class_index >= class_count) {
         return AV2H_INVALID_ARGUMENT;
@@ -142,18 +157,6 @@ const uint8_t *av2h_wienerns_class_map(unsigned int class_count,
         ((size_t)(set_index & 3U) * 8U + class_index) *
             AV2H_PC_WIENER_CLASS_COUNT;
 }
-
-#define AV2H_PC_WIENER_BLOCK_SIZE 4
-#define AV2H_PC_WIENER_FEATURE_LEAD 1
-#define AV2H_PC_WIENER_FEATURE_LAG 4
-#define AV2H_PC_WIENER_UNIT_OFFSET 8
-
-typedef struct {
-    const Av2hFilterPlane *source;
-    const Av2hFilterPlane *deblocked;
-    int stripe_start;
-    int stripe_end;
-} Av2hPcWienerSource;
 
 static uint8_t pc_wiener_source_sample(
     const Av2hPcWienerSource *context, int row, int column) {
@@ -339,10 +342,10 @@ Av2hStatus av2h_pc_wiener_filter_luma(
     const int16_t *filters;
     const uint8_t *selector;
     unsigned int filter_set;
-    if (destination == 0 || source == 0 || deblocked == 0 || frame == 0 ||
-        controls == 0 || destination->data == 0 || source->data == 0 ||
-        deblocked->data == 0 || controls->unit_flags[0] == 0 ||
-        controls->tx_skip == 0 || controls->unit_size[0] == 0U ||
+    if (destination == NULL || source == NULL || deblocked == NULL || frame == NULL ||
+        controls == NULL || destination->data == NULL || source->data == NULL ||
+        deblocked->data == NULL || controls->unit_flags[0] == NULL ||
+        controls->tx_skip == NULL || controls->unit_size[0] == 0U ||
         controls->unit_columns[0] == 0U || controls->unit_rows[0] == 0U ||
         controls->tx_skip_stride < ((size_t)source->width + 3U) / 4U ||
         destination->width != source->width ||
@@ -549,8 +552,8 @@ Av2hStatus av2h_wiener_nonsep_filter_frame(
     const Av2hFrameState *frame,
     const Av2hRestorationControlMap *controls) {
     unsigned int plane;
-    if (destination == 0 || source == 0 || deblocked == 0 || sequence == 0 ||
-        frame == 0 || controls == 0 || frame->chroma_format_idc > 2U) {
+    if (destination == NULL || source == NULL || deblocked == NULL || sequence == NULL ||
+        frame == NULL || controls == NULL || frame->chroma_format_idc > 2U) {
         return AV2H_INVALID_ARGUMENT;
     }
     for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
@@ -564,13 +567,13 @@ Av2hStatus av2h_wiener_nonsep_filter_frame(
         int unit_offset = AV2H_PC_WIENER_UNIT_OFFSET >> shift;
         unsigned int class_count =
             frame->restoration_num_filter_classes[plane];
-        const uint8_t *class_map = 0;
+        const uint8_t *class_map = NULL;
         if (frame->restoration_type[plane] != AV2H_RESTORE_WIENER_NONSEP &&
             frame->restoration_type[plane] != AV2H_RESTORE_SWITCHABLE) {
             continue;
         }
-        if (input->data == 0 || deblocked_plane->data == 0 ||
-            output->data == 0 ||
+        if (input->data == NULL || deblocked_plane->data == NULL ||
+            output->data == NULL ||
             input->width != output->width ||
             input->height != output->height ||
             input->width != deblocked_plane->width ||
@@ -582,8 +585,8 @@ Av2hStatus av2h_wiener_nonsep_filter_frame(
         }
         if (class_count == 0U ||
             class_count > AV2H_WIENER_NONSEP_MAX_CLASSES ||
-            controls->unit_flags[plane] == 0 ||
-            controls->unit_taps[plane] == 0 ||
+            controls->unit_flags[plane] == NULL ||
+            controls->unit_taps[plane] == NULL ||
             controls->unit_columns[plane] == 0U ||
             controls->unit_rows[plane] == 0U ||
             controls->unit_size[plane] == 0U) {
@@ -592,7 +595,7 @@ Av2hStatus av2h_wiener_nonsep_filter_frame(
         if (class_count > 1U) {
             if (plane != 0U ||
                 frame->restoration_frame_filters_on[plane] == 0U ||
-                controls->tx_skip == 0 ||
+                controls->tx_skip == NULL ||
                 controls->tx_skip_stride < ((size_t)input->width + 3U) / 4U) {
                 return AV2H_UNSUPPORTED;
             }

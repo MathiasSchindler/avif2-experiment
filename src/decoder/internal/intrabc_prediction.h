@@ -4,10 +4,10 @@
 #include "decoder/leaf_mode.h"
 #include "decoder/plane.h"
 
-struct Av2hDecodeDiagnostics;
-
 #define AV2H_SUBPEL_BITS 4U
 #define AV2H_INTRABC_MAX_BLOCK 128U
+
+struct Av2hDecodeDiagnostics;
 
 int32_t av2h_intrabc_plane_position(
     uint16_t block_position, int32_t displacement, uint8_t subsampling);

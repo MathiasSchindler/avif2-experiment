@@ -1,8 +1,8 @@
 #ifndef AV2H_DECODER_INTERNAL_INTRA_PREDICTION_H
 #define AV2H_DECODER_INTERNAL_INTRA_PREDICTION_H
 
-#include "decoder/prediction.h"
 #include "decoder/internal/sample_math.h"
+#include "decoder/prediction.h"
 
 int av2h_luma_prediction_dimension_supported(uint16_t dimension);
 

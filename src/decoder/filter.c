@@ -1,23 +1,26 @@
 #include "decoder/filter.h"
+
 #include "decoder/internal/filter_common.h"
 #include "decoder/internal/filter_diagnostics.h"
 #include "decoder/internal/filter_geometry.h"
 #include "decoder/internal/filter_modules.h"
 #include "decoder/internal/sample_math.h"
 
+#include <stddef.h>
+
 const Av2hFilterDiagnostics *av2h_filter_diagnostics_get(
     const Av2hDecodeDiagnostics *diagnostics) {
 #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
-    return diagnostics != 0 ? &diagnostics->filter : 0;
+    return diagnostics != NULL ? &diagnostics->filter : NULL;
 #else
     (void)diagnostics;
-    return 0;
+    return NULL;
 #endif
 }
 
 static void reset_filter_diagnostics(Av2hFilterWorkspace *workspace) {
 #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
-    if (workspace != 0 && workspace->diagnostics != 0) {
+    if (workspace != NULL && workspace->diagnostics != NULL) {
         workspace->diagnostics->filter.reason = 0U;
     }
 #else
@@ -28,7 +31,7 @@ static void reset_filter_diagnostics(Av2hFilterWorkspace *workspace) {
 static void set_filter_reason(
     Av2hFilterWorkspace *workspace, uint8_t reason) {
 #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
-    if (workspace != 0 && workspace->diagnostics != 0) {
+    if (workspace != NULL && workspace->diagnostics != NULL) {
         workspace->diagnostics->filter.reason = reason;
     }
 #else
@@ -46,8 +49,8 @@ static int restoration_controls_valid(
         size_t unit_index;
         uint8_t frame_type = frame->restoration_type[plane];
         if (frame_type == AV2H_RESTORE_NONE) continue;
-        if (controls->unit_flags[plane] == 0 ||
-            controls->unit_taps[plane] == 0 ||
+        if (controls->unit_flags[plane] == NULL ||
+            controls->unit_taps[plane] == NULL ||
             controls->unit_columns[plane] !=
                 frame->restoration_unit_columns[plane] ||
             controls->unit_rows[plane] !=
@@ -87,7 +90,7 @@ Av2hStatus av2h_filter_frame(
     const Av2hFilterPlane *gdf_baseline;
     Av2hFilterPlanes restoration_planes;
     reset_filter_diagnostics(workspace);
-    if (sequence == 0 || frame == 0 || planes == 0 || workspace == 0) {
+    if (sequence == NULL || frame == NULL || planes == NULL || workspace == NULL) {
         set_filter_reason(workspace, 1U);
         return AV2H_INVALID_ARGUMENT;
     }
@@ -140,7 +143,7 @@ Av2hStatus av2h_filter_frame(
     if (!restoration_controls_valid(
             frame, &workspace->restoration_controls) ||
         (frame->restoration_type[0] != AV2H_RESTORE_NONE &&
-         (workspace->restoration.data == 0 ||
+         (workspace->restoration.data == NULL ||
          planes->plane[0].data == workspace->restoration.data ||
          workspace->deblocked.plane[0].data ==
              workspace->restoration.data ||
@@ -177,7 +180,7 @@ Av2hStatus av2h_filter_frame(
     if (status != AV2H_OK) return status;
     if (frame->restoration_type[0] == AV2H_RESTORE_PC_WIENER ||
         frame->restoration_type[0] == AV2H_RESTORE_SWITCHABLE) {
-        if (workspace->restoration_controls.tx_skip == 0) {
+        if (workspace->restoration_controls.tx_skip == NULL) {
             return AV2H_INVALID_ARGUMENT;
         }
         status = av2h_pc_wiener_filter_luma(
@@ -224,7 +227,7 @@ Av2hStatus av2h_filter_stage_u16(
     size_t stage_plane_count = 0U;
     size_t left;
     unsigned int plane;
-    if (planes == 0 || sequence == 0 || frame == 0 || workspace == 0 ||
+    if (planes == NULL || sequence == NULL || frame == NULL || workspace == NULL ||
         sequence->info.bit_depth_idc != 0U ||
         (frame->cdef_strength_count != 0U && sequence->enable_cdef == 0U) ||
         ((frame->ccso[0].enabled != 0U ||

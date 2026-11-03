@@ -3,7 +3,7 @@
 
 #include "decoder/leaf.h"
 
-uint8_t av2h_leaf_block_allows_palette(Av2hBlockSize block_size);
+int av2h_leaf_block_allows_palette(Av2hBlockSize block_size);
 
 Av2hStatus av2h_leaf_segment_id_read(
     Av2hRangeDecoder *decoder,
@@ -68,7 +68,7 @@ Av2hStatus av2h_leaf_read_first_intrabc(
     const Av2hLumaModeNeighbors *neighbors,
     Av2hFirstLeafMode *mode);
 
-uint8_t av2h_intrabc_bank_origin_valid(
+int av2h_intrabc_bank_origin_valid(
     const Av2hFrameState *frame,
     const Av2hPartitionNode *leaf,
     size_t width_mi,

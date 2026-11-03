@@ -6,14 +6,6 @@
 #include "leaf_mode.h"
 #include "partition.h"
 
-#if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
-struct Av2hDecodeDiagnostics;
-const int16_t *av2h_intrabc_diagnostic_candidates(
-    const struct Av2hDecodeDiagnostics *diagnostics, size_t *count);
-const int16_t *av2h_intrabc_diagnostic_bank(
-    const struct Av2hDecodeDiagnostics *diagnostics, size_t *count);
-#endif
-
 #define AV2H_INTRABC_CONTEXT_COUNT 3U
 #define AV2H_CCSO_CONTEXT_COUNT 4U
 #define AV2H_Y_MODE_CONTEXT_COUNT 3U
@@ -50,6 +42,10 @@ const int16_t *av2h_intrabc_diagnostic_bank(
 #define AV2H_DELTA_Q_SYMBOLS 8U
 #define AV2H_SEGMENT_ID_CONTEXTS 3U
 #define AV2H_INTRA_DIP_CONTEXTS 3U
+
+#if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
+struct Av2hDecodeDiagnostics;
+#endif
 
 typedef struct {
     uint16_t intrabc[AV2H_INTRABC_CONTEXT_COUNT][AV2H_BINARY_CDF_SIZE];
@@ -373,5 +369,12 @@ Av2hStatus av2h_chroma_mode_read_with_delta_for_sdp(
     uint8_t cfl_allowed,
     uint8_t lossless,
     Av2hFirstChromaMode *mode);
+
+#if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
+const int16_t *av2h_intrabc_diagnostic_candidates(
+    const struct Av2hDecodeDiagnostics *diagnostics, size_t *count);
+const int16_t *av2h_intrabc_diagnostic_bank(
+    const struct Av2hDecodeDiagnostics *diagnostics, size_t *count);
+#endif
 
 #endif

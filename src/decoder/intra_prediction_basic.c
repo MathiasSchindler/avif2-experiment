@@ -1,5 +1,8 @@
 #include "internal/intra_prediction.h"
+
 #include "internal/sample_math.h"
+
+#include <stddef.h>
 
 static const uint8_t smooth8_blend[8U] = {
     32U, 16U, 8U, 4U, 2U, 1U, 0U, 0U
@@ -52,13 +55,13 @@ Av2hStatus av2h_predict_dc(
     unsigned int sum = 0U;
     unsigned int count = 0U;
     uint8_t value;
-    if (references->above != 0 && references->above_count >= width) {
+    if (references->above != NULL && references->above_count >= width) {
         for (index = 0U; index < width; ++index) {
             sum += references->above[index];
         }
         count += width;
     }
-    if (references->left != 0 && references->left_count >= height) {
+    if (references->left != NULL && references->left_count >= height) {
         for (index = 0U; index < height; ++index) {
             sum += references->left[index];
         }
@@ -66,9 +69,9 @@ Av2hStatus av2h_predict_dc(
     }
     value = dc_predictor_average(
         sum, count, width, height,
-        (uint8_t)(references->above != 0 &&
+        (uint8_t)(references->above != NULL &&
                   references->above_count >= width),
-        (uint8_t)(references->left != 0 &&
+        (uint8_t)(references->left != NULL &&
                   references->left_count >= height));
     for (row = 0U; row < height; ++row) {
         for (column = 0U; column < width; ++column) {
@@ -76,11 +79,11 @@ Av2hStatus av2h_predict_dc(
         }
     }
     if (mode->enable_ibp && !(width == 4U && height == 4U)) {
-        if (references->above != 0 &&
+        if (references->above != NULL &&
             references->above_count >= width) {
             uint16_t row_limit = (uint16_t)(height >> 2U);
             uint16_t column_start =
-                width < height && references->left != 0 &&
+                width < height && references->left != NULL &&
                     references->left_count >= height ?
                     (uint16_t)(width >> 2U) : 0U;
             uint8_t weight_row = (uint8_t)(av2h_sample_block_log2(height) - 2U);
@@ -99,10 +102,10 @@ Av2hStatus av2h_predict_dc(
                 }
             }
         }
-        if (references->left != 0 &&
+        if (references->left != NULL &&
             references->left_count >= height) {
             uint16_t row_start =
-                width >= height && references->above != 0 &&
+                width >= height && references->above != NULL &&
                     references->above_count >= width ?
                     (uint16_t)(height >> 2U) : 0U;
             uint16_t column_limit = (uint16_t)(width >> 2U);
@@ -138,9 +141,9 @@ Av2hStatus av2h_predict_smooth_vertical(
     uint16_t column;
     uint8_t scale = smooth_scale(width, height);
     uint8_t bottom_left;
-    int have_above = references->above != 0 &&
+    int have_above = references->above != NULL &&
         references->above_count != 0U;
-    int have_left = references->left != 0 &&
+    int have_left = references->left != NULL &&
         references->left_count != 0U;
     if (have_left && references->left_count < height) {
         return AV2H_INVALID_ARGUMENT;
@@ -181,9 +184,9 @@ Av2hStatus av2h_predict_smooth_horizontal(
     uint16_t column;
     uint8_t scale = smooth_scale(width, height);
     uint8_t top_right;
-    int have_above = references->above != 0 &&
+    int have_above = references->above != NULL &&
         references->above_count != 0U;
-    int have_left = references->left != 0 &&
+    int have_left = references->left != NULL &&
         references->left_count != 0U;
     top_right = !have_above ? have_left ? references->left[0] :
         av2h_sample_below_midpoint_8bit() :
@@ -223,9 +226,9 @@ Av2hStatus av2h_predict_smooth(
     uint8_t scale = smooth_scale(width, height);
     uint8_t bottom_left;
     uint8_t top_right;
-    int have_above = references->above != 0 &&
+    int have_above = references->above != NULL &&
         references->above_count != 0U;
-    int have_left = references->left != 0 &&
+    int have_left = references->left != NULL &&
         references->left_count != 0U;
     if ((have_above && references->above_count < width) ||
         (have_left && references->left_count < height)) {
@@ -284,8 +287,8 @@ Av2hStatus av2h_predict_smooth_16x8(
     uint8_t scale = smooth_scale(width, height);
     uint8_t bottom_left;
     uint8_t top_right;
-    if (references->above == 0 || references->above_count < width ||
-        references->left == 0 || references->left_count < height) {
+    if (references->above == NULL || references->above_count < width ||
+        references->left == NULL || references->left_count < height) {
         return AV2H_INVALID_ARGUMENT;
     }
     bottom_left = references->left_count > height ?
@@ -328,7 +331,7 @@ Av2hStatus av2h_predict_smooth_8x32(
     uint16_t column;
     uint8_t bottom_left;
     uint8_t top_right;
-    if (references->left == 0 || references->left_count < height) {
+    if (references->left == NULL || references->left_count < height) {
         return AV2H_INVALID_ARGUMENT;
     }
     bottom_left = references->left_count > height ?
@@ -373,8 +376,8 @@ Av2hStatus av2h_predict_paeth(
     size_t predictor_stride_samples) {
     uint16_t row;
     uint16_t column;
-    if (references->above != 0 && references->above_count >= width &&
-        (references->left == 0 || references->left_count == 0U)) {
+    if (references->above != NULL && references->above_count >= width &&
+        (references->left == NULL || references->left_count == 0U)) {
         for (row = 0U; row < height; ++row) {
             for (column = 0U; column < width; ++column) {
                 predictor[(size_t)row * predictor_stride_samples + column] =
@@ -383,8 +386,8 @@ Av2hStatus av2h_predict_paeth(
         }
         return AV2H_OK;
     }
-    if (references->left != 0 && references->left_count >= height &&
-        (references->above == 0 || references->above_count == 0U)) {
+    if (references->left != NULL && references->left_count >= height &&
+        (references->above == NULL || references->above_count == 0U)) {
         for (row = 0U; row < height; ++row) {
             for (column = 0U; column < width; ++column) {
                 predictor[(size_t)row * predictor_stride_samples + column] =
@@ -393,8 +396,8 @@ Av2hStatus av2h_predict_paeth(
         }
         return AV2H_OK;
     }
-    if ((references->above == 0 || references->above_count == 0U) &&
-        (references->left == 0 || references->left_count == 0U)) {
+    if ((references->above == NULL || references->above_count == 0U) &&
+        (references->left == NULL || references->left_count == 0U)) {
         for (row = 0U; row < height; ++row) {
             for (column = 0U; column < width; ++column) {
                 predictor[(size_t)row * predictor_stride_samples + column] =
@@ -403,8 +406,8 @@ Av2hStatus av2h_predict_paeth(
         }
         return AV2H_OK;
     }
-    if (references->above == 0 || references->above_count < width ||
-        references->left == 0 || references->left_count < height ||
+    if (references->above == NULL || references->above_count < width ||
+        references->left == NULL || references->left_count < height ||
         !references->has_above_left) {
         return AV2H_INVALID_ARGUMENT;
     }
@@ -448,8 +451,8 @@ Av2hStatus av2h_predict_smooth_u16(
     above_count = references->above_count;
     left = references->left;
     left_count = references->left_count;
-    have_above = above != 0 && above_count != 0U;
-    have_left = left != 0 && left_count != 0U;
+    have_above = above != NULL && above_count != 0U;
+    have_left = left != NULL && left_count != 0U;
     uint8_t scale = smooth_scale(width, height);
     uint16_t bottom_left = !have_left ? have_above ? above[0] : 513U :
         left_count > height ? left[height] : left[left_count - 1U];
@@ -514,8 +517,8 @@ Av2hStatus av2h_predict_paeth_u16(
     left_count = references->left_count;
     above_left = references->above_left;
     has_above_left = references->has_above_left;
-    have_above = above != 0 && above_count != 0U;
-    have_left = left != 0 && left_count != 0U;
+    have_above = above != NULL && above_count != 0U;
+    have_left = left != NULL && left_count != 0U;
     if (!have_above && !have_left) {
         for (row = 0U; row < height; ++row) {
             for (column = 0U; column < width; ++column) {

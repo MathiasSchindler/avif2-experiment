@@ -1,5 +1,7 @@
 #include "internal/intra_prediction.h"
 
+#include <stddef.h>
+
 int av2h_luma_prediction_dimension_supported(uint16_t dimension) {
     return dimension == 4U || dimension == 8U || dimension == 16U ||
            dimension == 32U || dimension == 64U;
@@ -47,7 +49,7 @@ av2h_luma_predict_u16_adjusted(const Av2hFirstLeafMode *mode,
                                uint8_t use_idif) {
 
     int angle;
-    if (mode == 0 || references == 0 || predictor == 0 ||
+    if (mode == NULL || references == NULL || predictor == NULL ||
         predictor_stride_samples < width ||
         !prediction_geometry_supported(width, height)) {
         return AV2H_INVALID_ARGUMENT;
@@ -330,7 +332,7 @@ Av2hStatus av2h_luma_predict(const Av2hFirstLeafMode *mode,
                              const Av2hLumaReferences *references,
                              uint8_t *predictor,
                              size_t predictor_stride_samples) {
-    if (mode == 0 || references == 0 || predictor == 0 ||
+    if (mode == NULL || references == NULL || predictor == NULL ||
         predictor_stride_samples < width) {
         return AV2H_INVALID_ARGUMENT;
     }

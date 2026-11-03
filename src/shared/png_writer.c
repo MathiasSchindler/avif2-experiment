@@ -1,5 +1,7 @@
 #include "png_writer.h"
 
+#include <stddef.h>
+
 #define AV2H_PNG_STORED_BLOCK_MAX 65535U
 #define AV2H_PNG_MAX_CHUNK_SIZE 0x7fffffffU
 
@@ -158,8 +160,8 @@ Av2hStatus av2h_png_write_rgb(
     size_t stream_remaining;
     size_t block_remaining = 0U;
     uint32_t row;
-    if (image == 0 || row_buffer == 0 || write_callback == 0 ||
-        image->row_callback == 0 || image->width == 0U ||
+    if (image == NULL || row_buffer == NULL || write_callback == NULL ||
+        image->row_callback == NULL || image->width == 0U ||
         image->height == 0U || image->width > AV2H_PNG_MAX_CHUNK_SIZE ||
         image->height > AV2H_PNG_MAX_CHUNK_SIZE ||
         (image->bit_depth != 8U && image->bit_depth != 16U)) {
@@ -214,6 +216,6 @@ Av2hStatus av2h_png_write_rgb(
     av2h_store_u32be(encoded_adler, (adler.second << 16U) | adler.first);
     chunk_data(&output, encoded_adler, sizeof(encoded_adler));
     chunk_end(&output);
-    write_chunk(&output, iend_type, 0, 0U);
+    write_chunk(&output, iend_type, NULL, 0U);
     return output.status;
 }

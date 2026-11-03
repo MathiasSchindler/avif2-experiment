@@ -1,6 +1,9 @@
+#include "container.h"
+
 #include "base.h"
 #include "carriage.h"
-#include "container.h"
+
+#include <stddef.h>
 
 static void write_box_header(Av2hByteWriter *writer,
                              uint32_t size,
@@ -35,11 +38,11 @@ Av2hStatus av2h_heif_write(const Av2hHeifSource *source,
     uint32_t width;
     uint32_t height;
     ContainerPixelMetadata pixel_metadata;
-    if (source == 0 || written == 0 ||
-        (output == 0 && output_size != 0U) ||
-        (source != 0 && source->config_obus.data == 0 &&
+    if (source == NULL || written == NULL ||
+        (output == NULL && output_size != 0U) ||
+        (source != NULL && source->config_obus.data == NULL &&
          source->config_obus.size != 0U) ||
-        (source != 0 && source->item_payload.data == 0 &&
+        (source != NULL && source->item_payload.data == NULL &&
          source->item_payload.size != 0U) ||
         source->color.full_range_flag > 1U) {
         return av2h_container_fail(error, AV2H_INVALID_ARGUMENT, 0U);
@@ -66,7 +69,7 @@ Av2hStatus av2h_heif_write(const Av2hHeifSource *source,
     configuration.configuration_version = 1U;
     configuration.sequence = sequence;
     configuration.config_obus = source->config_obus;
-    status = av2h_av2c_write(&configuration, 0, 0U, &av2c_size);
+    status = av2h_av2c_write(&configuration, NULL, 0U, &av2c_size);
     if (status != AV2H_OK) return status;
     if (add_size(&meta_size, av2c_size) != AV2H_OK ||
         add_size(&required, meta_size) != AV2H_OK ||
@@ -83,7 +86,7 @@ Av2hStatus av2h_heif_write(const Av2hHeifSource *source,
     width = (uint32_t)sequence.max_frame_width_minus_1 + 1U;
     height = (uint32_t)sequence.max_frame_height_minus_1 + 1U;
     *written = required;
-    if (output == 0 && output_size == 0U) return AV2H_OK;
+    if (output == NULL && output_size == 0U) return AV2H_OK;
     if (required > output_size) return av2h_container_fail(error, AV2H_OUT_OF_MEMORY, 0U);
 
     av2h_byte_writer_init(&writer, output, output_size);

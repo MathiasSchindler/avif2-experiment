@@ -1,6 +1,9 @@
-#include "internal/intra_prediction.h"
 #include "internal/chroma_prediction.h"
+
+#include "internal/intra_prediction.h"
 #include "internal/sample_math.h"
+
+#include <stddef.h>
 
 #define directional_base_angle av2h_directional_base_angle
 #define luma_prediction_dimension_supported \
@@ -74,7 +77,7 @@ static void apply_ibp_dc(uint8_t *dst, size_t stride_samples, uint16_t width,
                          const uint8_t *left) {
     uint16_t row;
     uint16_t column;
-    if (above != 0 && left != 0) {
+    if (above != NULL && left != NULL) {
         uint16_t len_h = (uint16_t)(height >> 2U);
         uint16_t len_w = (uint16_t)(width >> 2U);
         uint16_t row_start = width >= height ? len_h : 0U;
@@ -98,7 +101,7 @@ static void apply_ibp_dc(uint8_t *dst, size_t stride_samples, uint16_t width,
                 dst[(size_t)row * stride_samples + column] = (uint8_t)value;
             }
         }
-    } else if (above != 0) {
+    } else if (above != NULL) {
         uint16_t len_h = (uint16_t)(height >> 2U);
         const uint8_t *weights =
             ibp_weights[ibp_size_to_weights_index[height >> 3U]];
@@ -110,7 +113,7 @@ static void apply_ibp_dc(uint8_t *dst, size_t stride_samples, uint16_t width,
                 dst[(size_t)row * stride_samples + column] = (uint8_t)value;
             }
         }
-    } else if (left != 0) {
+    } else if (left != NULL) {
         uint16_t len_w = (uint16_t)(width >> 2U);
         const uint8_t *weights =
             ibp_weights[ibp_size_to_weights_index[width >> 3U]];
@@ -134,7 +137,7 @@ Av2hStatus av2h_chroma_predict(
     size_t predictor_stride_samples) {
     uint16_t row;
     uint16_t column;
-    if (mode == 0 || references == 0 || predictor == 0 ||
+    if (mode == NULL || references == NULL || predictor == NULL ||
         predictor_stride_samples < width) {
         return AV2H_INVALID_ARGUMENT;
     }
@@ -253,7 +256,7 @@ Av2hStatus av2h_chroma_predict(
     }
     if (mode->mode == AV2H_INTRA_VERTICAL && mode->angle_delta == 0 &&
         width == 32U && height == 16U) {
-        if (references->above == 0 || references->above_count == 0U) {
+        if (references->above == NULL || references->above_count == 0U) {
             return AV2H_UNSUPPORTED;
         }
         for (row = 0U; row < height; ++row) {
@@ -270,7 +273,7 @@ Av2hStatus av2h_chroma_predict(
         for (row = 0U; row < height; ++row) {
             for (column = 0U; column < width; ++column) {
                 predictor[(size_t)row * predictor_stride_samples + column] =
-                    references->above != 0 &&
+                    references->above != NULL &&
                     references->above_count != 0U ?
                         references->above[
                             column < references->above_count ? column :
@@ -307,7 +310,7 @@ Av2hStatus av2h_chroma_predict(
     }
     if (mode->mode == AV2H_INTRA_HORIZONTAL) {
         uint8_t fallback;
-        if (references->left != 0 && references->left_count != 0U) {
+        if (references->left != NULL && references->left_count != 0U) {
             for (row = 0U; row < height; ++row) {
                 size_t source = row < references->left_count ?
                     row : references->left_count - 1U;
@@ -320,7 +323,7 @@ Av2hStatus av2h_chroma_predict(
         }
         /* No left neighbour: AV2 fills the left edge with the first above
          * sample when the block has an above neighbour, else the mid value. */
-        fallback = (references->above != 0 && references->above_count != 0U) ?
+        fallback = (references->above != NULL && references->above_count != 0U) ?
             references->above[0] : av2h_sample_midpoint_8bit();
         for (row = 0U; row < height; ++row) {
             for (column = 0U; column < width; ++column) {
@@ -333,13 +336,13 @@ Av2hStatus av2h_chroma_predict(
         unsigned int sum = 0U;
         unsigned int count = 0U;
         uint8_t value;
-        if (references->above != 0) {
+        if (references->above != NULL) {
             for (column = 0U; column < width; ++column) {
                 sum += references->above[column];
             }
             count += width;
         }
-        if (references->left != 0) {
+        if (references->left != NULL) {
             for (row = 0U; row < height; ++row) {
                 sum += references->left[row];
             }
@@ -347,7 +350,7 @@ Av2hStatus av2h_chroma_predict(
         }
         value = av2h_chroma_dc_predictor_average(
             sum, count, width, height,
-            references->above != 0, references->left != 0);
+            references->above != NULL, references->left != NULL);
         for (row = 0U; row < height; ++row) {
             for (column = 0U; column < width; ++column) {
                 predictor[(size_t)row * predictor_stride_samples + column] = value;
@@ -363,14 +366,14 @@ Av2hStatus av2h_chroma_predict(
     if (mode->mode == AV2H_INTRA_SMOOTH_HORIZONTAL) {
         uint8_t scale = smooth_scale(width, height);
         uint8_t top_right;
-        if (references->above == 0 || references->above_count < width) {
+        if (references->above == NULL || references->above_count < width) {
             return AV2H_INVALID_ARGUMENT;
         }
         top_right = references->above_count > width ?
             references->above[width] : references->above[width - 1U];
         for (row = 0U; row < height; ++row) {
             for (column = 0U; column < width; ++column) {
-                uint8_t left = references->left == 0 ?
+                uint8_t left = references->left == NULL ?
                     references->above[0] : references->left[row];
                 uint8_t blend = smooth_blend(column, scale);
                 int32_t value = top_right + av2h_sample_round_pow2(
@@ -386,8 +389,8 @@ Av2hStatus av2h_chroma_predict(
         return AV2H_OK;
     }
     if (mode->mode == AV2H_INTRA_PAETH) {
-        if (references->above == 0 || references->above_count < width ||
-            references->left == 0 || references->left_count < height ||
+        if (references->above == NULL || references->above_count < width ||
+            references->left == NULL || references->left_count < height ||
             !references->has_above_left) {
             return AV2H_INVALID_ARGUMENT;
         }
@@ -418,7 +421,7 @@ Av2hStatus av2h_chroma_predict(
         uint8_t edge[13U];
         uint8_t filtered[13U];
         size_t edge_index;
-        if (references->left == 0 || references->left_count == 0U) {
+        if (references->left == NULL || references->left_count == 0U) {
             return AV2H_INVALID_ARGUMENT;
         }
         edge[0] = references->left[0];
@@ -455,7 +458,7 @@ Av2hStatus av2h_chroma_predict(
         return AV2H_OK;
     }
     if (mode->mode == AV2H_INTRA_D45) {
-        if (references->above == 0 || references->above_count == 0U) {
+        if (references->above == NULL || references->above_count == 0U) {
             return AV2H_INVALID_ARGUMENT;
         }
         for (row = 0U; row < height; ++row) {
@@ -473,7 +476,7 @@ Av2hStatus av2h_chroma_predict(
     if (mode->mode == AV2H_INTRA_D67) {
         uint16_t derivative = mode->angle_delta == -1 ? 28U :
             mode->angle_delta == -2 ? 32U : 24U;
-        if (references->above == 0 || references->above_count == 0U) {
+        if (references->above == NULL || references->above_count == 0U) {
             return AV2H_INVALID_ARGUMENT;
         }
         for (row = 0U; row < height; ++row) {
@@ -493,7 +496,7 @@ Av2hStatus av2h_chroma_predict(
         }
         return AV2H_OK;
     }
-    if (references->left == 0 || references->left_count == 0U) {
+    if (references->left == NULL || references->left_count == 0U) {
         return AV2H_INVALID_ARGUMENT;
     }
     for (column = 0U; column < width; ++column) {

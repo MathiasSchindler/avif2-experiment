@@ -6,6 +6,8 @@
 #include "decoder/internal/sample_math.h"
 #include "decoder/internal/sample_ops.h"
 
+#include <stddef.h>
+
 static inline int filter_dimensions_valid(
     const Av2hFilterPlanes *planes, const Av2hFrameState *frame) {
     unsigned int plane;
@@ -14,7 +16,7 @@ static inline int filter_dimensions_valid(
             frame, plane, av2h_filter_coded_dimension(frame->width));
         size_t height = av2h_frame_plane_dimension(
             frame, plane, av2h_filter_coded_dimension(frame->height));
-        if (planes->plane[plane].data == 0 ||
+        if (planes->plane[plane].data == NULL ||
             planes->plane[plane].width != width ||
             planes->plane[plane].height != height ||
             planes->plane[plane].stride_samples < width) {
@@ -32,7 +34,7 @@ static inline int filter_dimensions_valid_u16(
             frame, plane, av2h_filter_coded_dimension(frame->width));
         size_t height = av2h_frame_plane_dimension(
             frame, plane, av2h_filter_coded_dimension(frame->height));
-        if (planes->plane[plane].data == 0 ||
+        if (planes->plane[plane].data == NULL ||
             planes->plane[plane].width != width ||
             planes->plane[plane].height != height ||
             planes->plane[plane].stride_samples < width) {

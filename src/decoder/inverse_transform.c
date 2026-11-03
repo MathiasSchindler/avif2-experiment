@@ -1,6 +1,43 @@
 #include "internal/reconstruct_modules.h"
+
 #include "internal/decode_diagnostics.h"
 #include "internal/sample_math.h"
+
+#include <stddef.h>
+
+#define RECON_TX_4X4 0
+#define RECON_TX_8X8 1
+#define RECON_TX_16X16 2
+#define RECON_TX_32X32 3
+#define RECON_TX_64X64 4
+#define RECON_TX_4X8 5
+#define RECON_TX_8X4 6
+#define RECON_TX_8X16 7
+#define RECON_TX_16X8 8
+#define RECON_TX_16X32 9
+#define RECON_TX_32X64 11
+#define RECON_TX_32X16 10
+#define RECON_TX_64X32 12
+#define RECON_TX_4X16 13
+#define RECON_TX_16X4 14
+#define RECON_TX_16X64 17
+#define RECON_TX_32X8 16
+#define RECON_TX_8X32 15
+#define RECON_TX_64X16 18
+#define RECON_TX_4X32 19
+#define RECON_TX_32X4 20
+#define RECON_TX_8X64 21
+#define RECON_TX_64X8 22
+#define RECON_TX_4X64 23
+#define RECON_TX_64X4 24
+
+typedef enum {
+    RECON_1D_DCT,
+    RECON_1D_ADST,
+    RECON_1D_FLIPADST,
+    RECON_1D_IDENTITY,
+    RECON_1D_NONE
+} Av2hRecon1dKind;
 
 static const int8_t dct4[4U][4U] = {
     { 64, 64, 64, 64 },
@@ -426,39 +463,6 @@ Av2hStatus av2h_inverse_columns(const int32_t *transposed,
  * are not yet named in coeff.h; use the raw values so the kernel stays
  * independent of the parallel geometry branch.
  */
-#define RECON_TX_4X4 0
-#define RECON_TX_8X8 1
-#define RECON_TX_16X16 2
-#define RECON_TX_32X32 3
-#define RECON_TX_64X64 4
-#define RECON_TX_4X8 5
-#define RECON_TX_8X4 6
-#define RECON_TX_8X16 7
-#define RECON_TX_16X8 8
-#define RECON_TX_16X32 9
-#define RECON_TX_32X64 11
-#define RECON_TX_32X16 10
-#define RECON_TX_64X32 12
-#define RECON_TX_4X16 13
-#define RECON_TX_16X4 14
-#define RECON_TX_16X64 17
-#define RECON_TX_32X8 16
-#define RECON_TX_8X32 15
-#define RECON_TX_64X16 18
-#define RECON_TX_4X32 19
-#define RECON_TX_32X4 20
-#define RECON_TX_8X64 21
-#define RECON_TX_64X8 22
-#define RECON_TX_4X64 23
-#define RECON_TX_64X4 24
-
-typedef enum {
-    RECON_1D_DCT,
-    RECON_1D_ADST,
-    RECON_1D_FLIPADST,
-    RECON_1D_IDENTITY,
-    RECON_1D_NONE
-} Av2hRecon1dKind;
 
 static Av2hStatus recon_geometry(uint8_t tx_size,
                                  uint16_t *output_width,
@@ -710,7 +714,7 @@ Av2hStatus av2h_reconstruct_lossless_4x4(
         coefficients->coefficient_count != 16U ||
         (transform->primary_type != AV2H_TX_DCT_DCT &&
          transform->primary_type != AV2H_TX_IDTX) ||
-        (predictor != 0 && predictor_stride_samples < 4U)) {
+        (predictor != NULL && predictor_stride_samples < 4U)) {
         return AV2H_UNSUPPORTED;
     }
     for (row = 0U; row < 4U; ++row) {
@@ -759,7 +763,7 @@ Av2hStatus av2h_reconstruct_lossless_4x4(
     for (row = 0U; row < 4U; ++row) {
         for (column = 0U; column < 4U; ++column) {
             size_t index = row * 4U + column;
-            int32_t predicted = predictor == 0 ?
+            int32_t predicted = predictor == NULL ?
                 av2h_sample_midpoint_8bit() :
                 predictor[row * predictor_stride_samples + column];
             reconstruction->residual[index] = (int16_t)residual[index];
@@ -809,7 +813,7 @@ Av2hStatus av2h_reconstruct_transform_generic_with_diagnostics(
             (uint32_t)coeff_width * coeff_height) {
         return AV2H_UNSUPPORTED;
     }
-    if (predictor != 0 && predictor_stride_samples < output_width) {
+    if (predictor != NULL && predictor_stride_samples < output_width) {
         return AV2H_INVALID_ARGUMENT;
     }
     if (prefix->q_index == 0U && prefix->tx_size == AV2H_TX_4X4 &&
@@ -832,7 +836,7 @@ Av2hStatus av2h_reconstruct_transform_generic_with_diagnostics(
         for (row = 0U; row < output_height; ++row) {
             for (column = 0U; column < output_width; ++column) {
                 size_t out_index = (size_t)row * output_width + column;
-                int32_t sample = predictor == 0 ?
+                int32_t sample = predictor == NULL ?
                     av2h_sample_midpoint_8bit() :
                     predictor[(size_t)row * predictor_stride_samples + column];
                 reconstruction->residual[out_index] = 0;
@@ -907,7 +911,7 @@ Av2hStatus av2h_reconstruct_transform_generic_with_diagnostics(
             int32_t residual = scratch->residual[
                 (size_t)source_row * coeff_width + source_column];
             size_t out_index = (size_t)row * output_width + column;
-            int32_t sample = predictor == 0 ?
+            int32_t sample = predictor == NULL ?
                 av2h_sample_midpoint_8bit() :
                 predictor[(size_t)row * predictor_stride_samples + column];
             reconstruction->residual[out_index] = (int16_t)residual;
@@ -943,8 +947,8 @@ Av2hStatus av2h_reconstruct_transform_generic_u16_with_diagnostics(
     size_t index;
     av2h_reconstruction_diagnostics_set_inverse_transform_stage(
         diagnostics, 1U);
-    if (mode == 0 || prefix == 0 || transform == 0 || coefficients == 0 ||
-        predictor == 0 || scratch == 0 || reconstruction == 0 ||
+    if (mode == NULL || prefix == NULL || transform == NULL || coefficients == NULL ||
+        predictor == NULL || scratch == NULL || reconstruction == NULL ||
         recon_geometry(prefix->tx_size, &output_width, &output_height,
                        &row_shift, &column_shift) != AV2H_OK) {
         return AV2H_INVALID_ARGUMENT;
@@ -1074,7 +1078,7 @@ Av2hStatus av2h_reconstruct_transform_generic(
     Av2hReconstructionScratch *scratch,
     Av2hFirstReconstruction *reconstruction) {
     return av2h_reconstruct_transform_generic_with_diagnostics(
-        0, mode, prefix, transform, coefficients, predictor,
+        NULL, mode, prefix, transform, coefficients, predictor,
         predictor_stride_samples, scratch, reconstruction);
 }
 
@@ -1088,7 +1092,7 @@ Av2hStatus av2h_reconstruct_transform_generic_u16(
     Av2hReconstructionScratchU16 *scratch,
     Av2hFirstReconstructionU16 *reconstruction) {
     return av2h_reconstruct_transform_generic_u16_with_diagnostics(
-        0, mode, prefix, transform, coefficients, predictor,
+        NULL, mode, prefix, transform, coefficients, predictor,
         predictor_stride_samples, scratch, reconstruction);
 }
 
@@ -1105,8 +1109,8 @@ Av2hStatus av2h_reconstruct_transform_8x16_u16(
     uint16_t column;
     size_t index;
     Av2hStatus status;
-    if (mode == 0 || prefix == 0 || transform == 0 || coefficients == 0 ||
-        predictor == 0 || scratch == 0 || reconstruction == 0) {
+    if (mode == NULL || prefix == NULL || transform == NULL || coefficients == NULL ||
+        predictor == NULL || scratch == NULL || reconstruction == NULL) {
         return AV2H_INVALID_ARGUMENT;
     }
     if (mode->mode != AV2H_INTRA_DC || mode->angle_delta != 0 ||
@@ -1194,8 +1198,8 @@ Av2hStatus av2h_reconstruct_transform_8x4_u16(
     uint16_t column;
     size_t index;
     Av2hStatus status;
-    if (mode == 0 || prefix == 0 || transform == 0 || coefficients == 0 ||
-        predictor == 0 || scratch == 0 || reconstruction == 0) {
+    if (mode == NULL || prefix == NULL || transform == NULL || coefficients == NULL ||
+        predictor == NULL || scratch == NULL || reconstruction == NULL) {
         return AV2H_INVALID_ARGUMENT;
     }
     if (mode->mode != AV2H_INTRA_DC || mode->angle_delta != 0 ||

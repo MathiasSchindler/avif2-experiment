@@ -2,14 +2,16 @@
 
 #include "internal/coeff_modules.h"
 
+#include <stddef.h>
+
 static Av2hStatus qmatrix_fail(
     Av2hError *error, Av2hStatus status, const Av2hObu *obu,
     const Av2hBitReader *reader, uint32_t value) {
-    if (error != 0) {
+    if (error != NULL) {
         error->status = status;
-        error->offset = reader != 0 ? av2h_bit_reader_offset(reader) : 0U;
+        error->offset = reader != NULL ? av2h_bit_reader_offset(reader) : 0U;
         error->context = AV2H_CONTEXT_DECODE;
-        error->obu_index = obu != 0 ? obu->index : SIZE_MAX;
+        error->obu_index = obu != NULL ? obu->index : SIZE_MAX;
         error->obu_type = AV2H_OBU_QUANTIZATION_MATRIX;
         error->parsed_value = value;
     }
@@ -104,7 +106,7 @@ static Av2hStatus qmatrix_read_definition(
 }
 
 void av2h_qmatrix_state_reset(Av2hFrameState *frame) {
-    if (frame == 0) return;
+    if (frame == NULL) return;
     frame->custom_qm_definition_bitmap = 0U;
     frame->custom_qm_bitmap = 0U;
     av2h_memory_fill(frame->custom_qm_plane_count, 0U,
@@ -119,11 +121,11 @@ Av2hStatus av2h_qmatrix_obu_parse(
     uint16_t bitmap;
     uint8_t plane_count;
     uint8_t id;
-    if (obu == 0 || frame == 0 || input.data == 0 ||
+    if (obu == NULL || frame == NULL || input.data == NULL ||
         obu->type != AV2H_OBU_QUANTIZATION_MATRIX ||
         obu->payload_offset > input.size ||
         obu->payload_size > input.size - obu->payload_offset) {
-        return qmatrix_fail(error, AV2H_INVALID_ARGUMENT, obu, 0, 0U);
+        return qmatrix_fail(error, AV2H_INVALID_ARGUMENT, obu, NULL, 0U);
     }
     av2h_bit_reader_init(&reader, input.data + obu->payload_offset,
                          obu->payload_size, obu->payload_offset);
@@ -163,7 +165,7 @@ Av2hStatus av2h_qmatrix_ledger_parse(
     Av2hSpan input, const Av2hObuLedger *ledger,
     Av2hFrameState *frame, Av2hError *error) {
     size_t index;
-    if (ledger == 0 || frame == 0) return AV2H_INVALID_ARGUMENT;
+    if (ledger == NULL || frame == NULL) return AV2H_INVALID_ARGUMENT;
     for (index = 0U; index < ledger->count; ++index) {
         Av2hStatus status;
         if (ledger->entries[index].type !=
@@ -178,7 +180,7 @@ Av2hStatus av2h_qmatrix_ledger_parse(
 Av2hStatus av2h_qmatrix_references_validate(const Av2hFrameState *frame) {
     size_t matrix;
     unsigned int plane;
-    if (frame == 0) return AV2H_INVALID_ARGUMENT;
+    if (frame == NULL) return AV2H_INVALID_ARGUMENT;
     if (frame->using_qmatrix == 0U) return AV2H_OK;
     for (matrix = 0U; matrix < frame->picture_qm_count; ++matrix) {
         for (plane = 0U; plane < frame->plane_count; ++plane) {

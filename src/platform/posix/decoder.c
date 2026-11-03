@@ -1,6 +1,7 @@
 #define _POSIX_C_SOURCE 200112L
 
 #include "base.h"
+
 #include "decoder/frame_output.h"
 #include "decoder/internal/frame_workspace.h"
 #include "decoder/partition.h"
@@ -9,6 +10,7 @@
 #include "preview.h"
 #include "shared/png_writer.h"
 
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -439,7 +441,7 @@ int main(int argc, char **argv) {
     }
     raw_extension = av2h_raw_output_extension(&output_format);
     if (!ends_with(argv[3], ".bmp") && !ends_with(argv[3], ".png") &&
-        (raw_extension == 0 || !ends_with(argv[3], raw_extension))) {
+        (raw_extension == NULL || !ends_with(argv[3], raw_extension))) {
         fprintf(stderr,
                 "error: raw output extension does not match decoded format\n");
         release_memory(&output);

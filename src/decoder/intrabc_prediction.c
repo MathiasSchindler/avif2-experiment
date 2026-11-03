@@ -1,6 +1,9 @@
 #include "internal/intrabc_prediction.h"
+
 #include "internal/decode_diagnostics.h"
 #include "internal/sample_math.h"
+
+#include <stddef.h>
 
 /*
  * IntraBC displacement vectors are coded in eighth-pel luma units.  The
@@ -12,6 +15,9 @@
  */
 #define AV2H_INTRABC_FILTER_BITS 7
 #define AV2H_INTRABC_ROUND0_BITS 3
+
+#define AV2H_BAWP_MAX_REF 16U
+#define AV2H_BAWP_SHIFT 8
 
 int32_t av2h_intrabc_plane_position(
     uint16_t block_position, int32_t displacement, uint8_t subsampling) {
@@ -34,7 +40,7 @@ static uint32_t intrabc_load(
     size_t stride,
     size_t x,
     size_t y) {
-    return source8 != 0 ? source8[y * stride + x] : source16[y * stride + x];
+    return source8 != NULL ? source8[y * stride + x] : source16[y * stride + x];
 }
 
 static void intrabc_store(
@@ -45,7 +51,7 @@ static void intrabc_store(
     uint8_t bit_depth) {
     int32_t maximum = (int32_t)((1U << bit_depth) - 1U);
     int32_t clipped = av2h_sample_clamp(value, 0, maximum);
-    if (destination8 != 0) {
+    if (destination8 != NULL) {
         destination8[index] = (uint8_t)clipped;
     } else {
         destination16[index] = (uint16_t)clipped;
@@ -76,8 +82,8 @@ Av2hStatus av2h_intrabc_convolve(
         AV2H_INTRABC_ROUND0_BITS + 2;
     size_t row;
     size_t column;
-    if ((source8 == 0) == (source16 == 0) ||
-        (destination8 == 0) == (destination16 == 0) ||
+    if ((source8 == NULL) == (source16 == NULL) ||
+        (destination8 == NULL) == (destination16 == NULL) ||
         width == 0U || height == 0U || width > AV2H_INTRABC_MAX_BLOCK ||
         source_x < 0 || source_y < 0 || bit_depth < 8U || bit_depth > 12U) {
         return AV2H_INVALID_ARGUMENT;
@@ -200,9 +206,6 @@ int32_t av2h_intrabc_full_pel(int16_t displacement) {
     return (value + 3 + (value >= 0 ? 1 : 0)) >> 3;
 }
 
-#define AV2H_BAWP_MAX_REF 16U
-#define AV2H_BAWP_SHIFT 8
-
 static const uint8_t av2h_bawp_size_log2[AV2H_BAWP_MAX_REF + 1U] = {
     0U, 0U, 0U, 2U, 2U, 2U, 2U, 3U, 3U, 3U, 3U, 3U, 3U, 4U, 4U, 4U, 4U
 };
@@ -244,7 +247,7 @@ static void intrabc_morph_sample_counts(
 
 static int32_t intrabc_morph_sample(
     const uint8_t *data8, const uint16_t *data16, size_t index) {
-    return data8 != 0 ? (int32_t)data8[index] : (int32_t)data16[index];
+    return data8 != NULL ? (int32_t)data8[index] : (int32_t)data16[index];
 }
 
 /*
@@ -400,9 +403,9 @@ Av2hStatus av2h_intrabc_morph_u16(
     int32_t maximum = (int32_t)((1U << bit_depth) - 1U);
     size_t index;
     Av2hStatus status;
-    if (plane_data == 0 || predictor == 0) return AV2H_INVALID_DATA;
+    if (plane_data == NULL || predictor == NULL) return AV2H_INVALID_DATA;
     status = intrabc_morph_parameters(
-        0, plane_data, stride, plane_width, plane_height, coding_x, coding_y,
+        NULL, plane_data, stride, plane_width, plane_height, coding_x, coding_y,
         coding_width, coding_height, reference_x, reference_y, &alpha, &beta);
     if (status != AV2H_OK) return status;
     for (index = 0U; index < (size_t)width * height; ++index) {
@@ -430,9 +433,9 @@ static Av2hStatus apply_intrabc_morph_prediction(
     int32_t beta;
     size_t index;
     Av2hStatus status;
-    if (plane == 0 || predictor == 0) return AV2H_INVALID_DATA;
+    if (plane == NULL || predictor == NULL) return AV2H_INVALID_DATA;
     status = intrabc_morph_parameters(
-        plane->data, 0, plane->stride_samples, plane->width, plane->height,
+        plane->data, NULL, plane->stride_samples, plane->width, plane->height,
         coding_x, coding_y, coding_width, coding_height,
         reference_x, reference_y, &alpha, &beta);
     if (status != AV2H_OK) return status;
@@ -498,8 +501,8 @@ Av2hStatus av2h_intrabc_predict(
         }
     }
     status = av2h_intrabc_convolve(
-        plane->data, 0, plane->stride_samples, source_x, source_y,
-        subpel_x, subpel_y, width, height, 8U, predictor, 0);
+        plane->data, NULL, plane->stride_samples, source_x, source_y,
+        subpel_x, subpel_y, width, height, 8U, predictor, NULL);
     if (status != AV2H_OK) return status;
     if (mode->morph_pred) {
         uint16_t coding_x = (uint16_t)(mode->block_origin_column * 4U);

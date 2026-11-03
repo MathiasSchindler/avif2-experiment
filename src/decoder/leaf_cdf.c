@@ -1,5 +1,7 @@
 #include "leaf.h"
 
+#include <stddef.h>
+
 static const Av2hBinaryCdfSpec intrabc_defaults[] = {
     { 32085U, 5U, 0U }, { 15172U, 30U, 0U }, { 4503U, 0U, 0U }
 };
@@ -242,7 +244,7 @@ Av2hStatus av2h_leaf_cdfs_init(Av2hLeafCdfs *cdfs) {
     };
     Av2hStatus status;
     size_t context;
-    if (cdfs == 0) return AV2H_INVALID_ARGUMENT;
+    if (cdfs == NULL) return AV2H_INVALID_ARGUMENT;
     status = av2h_cdf_init(
         cdfs->delta_q, AV2H_DELTA_Q_SYMBOLS + 4U,
         delta_q, AV2H_DELTA_Q_SYMBOLS, 56U, 0U);

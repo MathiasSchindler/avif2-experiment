@@ -1,11 +1,25 @@
 #include "base.h"
+
 #include "decoder/frame_output.h"
 #include "decoder/internal/frame_workspace.h"
 #include "decoder/partition.h"
 #include "decoder/qmatrix.h"
 #include "decoder/tile.h"
+
 #if defined(__APPLE__) && defined(__aarch64__)
 #include "platform/macos/macos_abi.h"
+
+#else
+#include "platform/linux/linux_abi.h"
+
+#endif
+#include "preview.h"
+#include "runtime/concurrency.h"
+#include "shared/png_writer.h"
+
+#include <stddef.h>
+
+#if defined(__APPLE__) && defined(__aarch64__)
 #define AV2H_ABI_EINTR AV2H_MACOS_EINTR
 #define AV2H_ABI_PAGE_SIZE AV2H_MACOS_PAGE_SIZE
 #define AV2H_ABI_SYS_WRITE AV2H_MACOS_SYS_WRITE
@@ -32,7 +46,6 @@
 #define av2h_abi_open(path, flags, mode) \
     av2h_macos_syscall3(AV2H_MACOS_SYS_OPEN, (long)(path), (flags), (mode))
 #else
-#include "platform/linux/linux_abi.h"
 #define AV2H_ABI_EINTR 4
 #define AV2H_ABI_PAGE_SIZE 4096U
 #define AV2H_ABI_SYS_WRITE AV2H_LINUX_SYS_WRITE
@@ -60,10 +73,6 @@
     av2h_linux_syscall4(AV2H_LINUX_SYS_OPENAT, AV2H_LINUX_AT_FDCWD, \
                         (long)(path), (flags), (mode))
 #endif
-#include "preview.h"
-#include "runtime/concurrency.h"
-#include "shared/png_writer.h"
-
 #define AV2H_CLI_MAX_INPUT (256U * 1024U * 1024U)
 #define AV2H_BMP_HEADER_SIZE 54U
 typedef struct {
@@ -483,7 +492,7 @@ int main(int argc, char **argv) {
     }
     raw_extension = av2h_raw_output_extension(&output_format);
     if (!ends_with(argv[3], ".bmp") && !ends_with(argv[3], ".png") &&
-        (raw_extension == 0 || !ends_with(argv[3], raw_extension))) {
+        (raw_extension == NULL || !ends_with(argv[3], raw_extension))) {
         write_console(
             "error: raw output extension does not match decoded format\n");
         release_memory(&output);

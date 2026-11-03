@@ -1,8 +1,11 @@
 #include "decoder/filter.h"
+
 #include "decoder/internal/filter_common.h"
 #include "decoder/internal/filter_modules.h"
 #include "decoder/internal/sample_math.h"
 #include "shared/bit_math.h"
+
+#include <stddef.h>
 
 typedef struct {
     uint16_t left;
@@ -19,7 +22,7 @@ static CdefTileBounds cdef_tile_bounds(
     CdefTileBounds bounds = { 0U, 0U, frame->width, frame->height };
     unsigned int column;
     unsigned int row;
-    if (sequence == 0 || sequence->disable_loopfilters_across_tiles == 0U) {
+    if (sequence == NULL || sequence->disable_loopfilters_across_tiles == 0U) {
         return bounds;
     }
     for (column = 0U; column < frame->tile_column_count; ++column) {
@@ -89,8 +92,8 @@ Av2hStatus av2h_cdef_find_direction(
     unsigned int row;
     unsigned int column;
     unsigned int index;
-    if (luma == 0 || luma->data == 0 || luma->stride_samples < luma->width ||
-        direction == 0 || variance == 0 ||
+    if (luma == NULL || luma->data == NULL || luma->stride_samples < luma->width ||
+        direction == NULL || variance == NULL ||
         (uint32_t)x + 8U > luma->width ||
         (uint32_t)y + 8U > luma->height) {
         return AV2H_INVALID_ARGUMENT;
@@ -173,8 +176,8 @@ Av2hStatus av2h_cdef_find_direction_u16(
     unsigned int row;
     unsigned int column;
     unsigned int index;
-    if (luma == 0 || luma->data == 0 || luma->stride_samples < luma->width ||
-        direction == 0 || variance == 0 ||
+    if (luma == NULL || luma->data == NULL || luma->stride_samples < luma->width ||
+        direction == NULL || variance == NULL ||
         (uint32_t)x + 8U > luma->width ||
         (uint32_t)y + 8U > luma->height) {
         return AV2H_INVALID_ARGUMENT;
@@ -326,8 +329,8 @@ Av2hStatus av2h_cdef_filter_block(
     unsigned int tap_set;
     int clipping_required;
     uint16_t row;
-    if (destination == 0 || source == 0 || destination->data == 0 ||
-        source->data == 0 || destination->stride_samples < destination->width ||
+    if (destination == NULL || source == NULL || destination->data == NULL ||
+        source->data == NULL || destination->stride_samples < destination->width ||
         source->stride_samples < source->width || plane_index >= 3U ||
         primary_strength > 15U ||
         (secondary_strength != 0U && secondary_strength != 1U &&
@@ -433,8 +436,8 @@ Av2hStatus av2h_cdef_filter_block_u16(
     unsigned int tap_set;
     int clipping_required;
     uint16_t row;
-    if (destination == 0 || source == 0 || destination->data == 0 ||
-        source->data == 0 || destination->stride_samples < destination->width ||
+    if (destination == NULL || source == NULL || destination->data == NULL ||
+        source->data == NULL || destination->stride_samples < destination->width ||
         source->stride_samples < source->width || plane_index >= 3U ||
         primary_strength > 15U ||
         (secondary_strength != 0U && secondary_strength != 1U &&
@@ -566,7 +569,7 @@ Av2hStatus av2h_cdef_filter_frame_with_controls(
     const Av2hFrameState *frame,
     const Av2hCdefControlMap *controls) {
     return av2h_cdef_filter_frame_with_sequence(
-        destination, deblocked, 0, frame, controls);
+        destination, deblocked, NULL, frame, controls);
 }
 
 Av2hStatus av2h_cdef_filter_frame_with_sequence(
@@ -577,7 +580,7 @@ Av2hStatus av2h_cdef_filter_frame_with_sequence(
     const Av2hCdefControlMap *controls) {
     uint16_t y;
     unsigned int plane;
-    if (destination == 0 || deblocked == 0 || frame == 0 ||
+    if (destination == NULL || deblocked == NULL || frame == NULL ||
         frame->width == 0U || frame->height == 0U ||
         !filter_dimensions_valid(destination, frame) ||
         !filter_dimensions_valid(deblocked, frame)) {
@@ -601,7 +604,7 @@ Av2hStatus av2h_cdef_filter_frame_with_sequence(
         }
     }
     if (frame->cdef_strength_count > 1U &&
-        (controls == 0 || controls->strengths == 0 ||
+        (controls == NULL || controls->strengths == NULL ||
          controls->columns != ((size_t)frame->width + 63U) / 64U ||
          controls->rows != ((size_t)frame->height + 63U) / 64U)) {
         return AV2H_UNSUPPORTED;
@@ -630,7 +633,7 @@ Av2hStatus av2h_cdef_filter_frame_with_sequence(
             uint32_t variance;
             Av2hStatus status;
             CdefTileBounds bounds = cdef_tile_bounds(sequence, frame, x, y);
-            if (sequence == 0 ||
+            if (sequence == NULL ||
                 sequence->disable_loopfilters_across_tiles == 0U ||
                 (uint32_t)frame->tile_column_count *
                     frame->tile_row_count <= 1U) {
@@ -707,7 +710,7 @@ Av2hStatus av2h_cdef_filter_frame(
     const Av2hFilterPlanes *deblocked,
     const Av2hFrameState *frame) {
     return av2h_cdef_filter_frame_with_controls(
-        destination, deblocked, frame, 0);
+        destination, deblocked, frame, NULL);
 }
 
 Av2hStatus av2h_cdef_filter_frame_u16_with_controls(
@@ -716,7 +719,7 @@ Av2hStatus av2h_cdef_filter_frame_u16_with_controls(
     const Av2hFrameState *frame,
     const Av2hCdefControlMap *controls) {
     return av2h_cdef_filter_frame_u16_with_sequence(
-        destination, deblocked, 0, frame, controls);
+        destination, deblocked, NULL, frame, controls);
 }
 
 Av2hStatus av2h_cdef_filter_frame_u16_with_sequence(
@@ -727,7 +730,7 @@ Av2hStatus av2h_cdef_filter_frame_u16_with_sequence(
     const Av2hCdefControlMap *controls) {
     uint16_t y;
     unsigned int plane;
-    if (destination == 0 || deblocked == 0 || frame == 0 ||
+    if (destination == NULL || deblocked == NULL || frame == NULL ||
         frame->width == 0U || frame->height == 0U ||
         !filter_dimensions_valid_u16(destination, frame) ||
         !filter_dimensions_valid_u16(deblocked, frame)) {
@@ -750,7 +753,7 @@ Av2hStatus av2h_cdef_filter_frame_u16_with_sequence(
         }
     }
     if (frame->cdef_strength_count > 1U &&
-        (controls == 0 || controls->strengths == 0 ||
+        (controls == NULL || controls->strengths == NULL ||
          controls->columns != ((size_t)frame->width + 63U) / 64U ||
          controls->rows != ((size_t)frame->height + 63U) / 64U)) {
         return AV2H_UNSUPPORTED;
@@ -778,7 +781,7 @@ Av2hStatus av2h_cdef_filter_frame_u16_with_sequence(
             uint32_t variance;
             Av2hStatus status;
             CdefTileBounds bounds = cdef_tile_bounds(sequence, frame, x, y);
-            if (sequence == 0 ||
+            if (sequence == NULL ||
                 sequence->disable_loopfilters_across_tiles == 0U ||
                 (uint32_t)frame->tile_column_count *
                     frame->tile_row_count <= 1U) {
@@ -853,5 +856,5 @@ Av2hStatus av2h_cdef_filter_frame_u16(
     const Av2hFilterPlanesU16 *deblocked,
     const Av2hFrameState *frame) {
     return av2h_cdef_filter_frame_u16_with_controls(
-        destination, deblocked, frame, 0);
+        destination, deblocked, frame, NULL);
 }

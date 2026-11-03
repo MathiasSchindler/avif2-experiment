@@ -1,8 +1,8 @@
 #ifndef AV2H_DECODER_INTERNAL_TILE_MODULES_H
 #define AV2H_DECODER_INTERNAL_TILE_MODULES_H
 
-#include "../tile.h"
 #include "../filter.h"
+#include "../tile.h"
 
 typedef struct {
     Av2hCdefControlMap cdef;

@@ -1,8 +1,11 @@
 #include "base.h"
+
 #include "internal/obu.h"
 
+#include <stddef.h>
+
 void av2h_color_info_default(Av2hColorInfo *color) {
-    if (color == 0) return;
+    if (color == NULL) return;
     color->color_description_present = 0U;
     color->color_description_idc = 0U;
     color->color_primaries = 2U;
@@ -36,7 +39,7 @@ Av2hStatus av2h_content_interpretation_parse(Av2hSpan input,
     uint32_t aspect_present;
     uint32_t timing_present;
     uint32_t identifier;
-    if (obu == 0 || color == 0 || input.data == 0 ||
+    if (obu == NULL || color == NULL || input.data == NULL ||
         obu->type != AV2H_OBU_CONTENT_INTERPRETATION ||
         obu->payload_offset > input.size || obu->payload_size > input.size - obu->payload_offset) {
         return av2h_obu_fail_at(error, AV2H_INVALID_ARGUMENT, obu, 0U,

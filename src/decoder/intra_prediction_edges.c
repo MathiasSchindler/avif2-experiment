@@ -1,5 +1,8 @@
 #include "internal/intra_prediction.h"
+
 #include "internal/sample_math.h"
+
+#include <stddef.h>
 
 int av2h_directional_filter_strength(int size0,
                                      int size1,
@@ -96,11 +99,11 @@ void av2h_prepare_directional_edges(const Av2hFirstLeafMode *mode,
                                     uint8_t edge_ibp) {
     size_t index;
     uint8_t no_references =
-        (references->above == 0 || references->above_count == 0U) &&
-        (references->left == 0 || references->left_count == 0U);
-    uint8_t fallback = references->above != 0 && references->above_count != 0U
+        (references->above == NULL || references->above_count == 0U) &&
+        (references->left == NULL || references->left_count == 0U);
+    uint8_t fallback = references->above != NULL && references->above_count != 0U
                            ? references->above[0]
-                       : references->left != 0 && references->left_count != 0U
+                       : references->left != NULL && references->left_count != 0U
                            ? references->left[0]
                            : av2h_sample_midpoint_8bit();
     uint8_t above_fallback =
@@ -153,27 +156,27 @@ void av2h_prepare_directional_edges(const Av2hFirstLeafMode *mode,
             : index < height ? index
                              : height - 1U;
         above[index] =
-            references->above != 0 && references->above_count != 0U
+            references->above != NULL && references->above_count != 0U
                 ? references->above[above_source < references->above_count
                                         ? above_source
                                         : references->above_count - 1U]
                 : above_fallback;
         left[index] =
-            references->left != 0 && references->left_count != 0U
+            references->left != NULL && references->left_count != 0U
                 ? references
                       ->left[left_source < left_available ? left_source
                                                           : left_available - 1U]
                 : left_fallback;
     }
-    if (filter_edges != 0U && mode->mrl_index == 0U && references->above != 0 &&
-        references->above_count != 0U && references->left != 0 &&
+    if (filter_edges != 0U && mode->mrl_index == 0U && references->above != NULL &&
+        references->above_count != 0U && references->left != NULL &&
         references->left_count != 0U && width + height >= 24U) {
         corner =
             (uint8_t)((left[0] * 5U + above[-1] * 6U + above[0] * 5U + 8U) >>
                       4U);
         above[-1] = left[-1] = corner;
     }
-    if (filter_edges != 0U && mode->mrl_index == 0U && references->above != 0 &&
+    if (filter_edges != 0U && mode->mrl_index == 0U && references->above != NULL &&
         references->above_count != 0U) {
         size_t above_filter_count =
             angle < 90                ? (size_t)width + height + 1U
@@ -188,7 +191,7 @@ void av2h_prepare_directional_edges(const Av2hFirstLeafMode *mode,
                 edge_ibp ? mode->above_smooth
                          : (uint8_t)(mode->above_smooth || mode->left_smooth)));
     }
-    if (filter_edges != 0U && mode->mrl_index == 0U && references->left != 0 &&
+    if (filter_edges != 0U && mode->mrl_index == 0U && references->left != NULL &&
         references->left_count != 0U) {
         size_t left_filter_count = (size_t)height + 1U;
         if (angle > 180 || (angle < 90 && edge_ibp)) {
@@ -275,8 +278,8 @@ av2h_prepare_directional_zone1_u16(const Av2hFirstLeafMode *mode,
     left_count = references->left_count;
     above_left = references->above_left;
     has_above_left = references->has_above_left;
-    have_above = above != 0 && above_count != 0U;
-    have_left = left != 0 && left_count != 0U;
+    have_above = above != NULL && above_count != 0U;
+    have_left = left != NULL && left_count != 0U;
     uint16_t fallback = have_above ? above[0] : have_left ? left[0] : 512U;
     uint16_t above_fallback = !have_above && !have_left ? 511U : fallback;
     uint16_t left_fallback = !have_above && !have_left ? 513U : fallback;
@@ -361,8 +364,8 @@ av2h_prepare_directional_zone2_u16(const Av2hFirstLeafMode *mode,
     left_count = references->left_count;
     above_left = references->above_left;
     has_above_left = references->has_above_left;
-    have_above = above != 0 && above_count != 0U;
-    have_left = left != 0 && left_count != 0U;
+    have_above = above != NULL && above_count != 0U;
+    have_left = left != NULL && left_count != 0U;
     uint16_t fallback = have_above ? above[0] : have_left ? left[0] : 512U;
     uint16_t corner = has_above_left ? above_left : fallback;
     if (edge_count > 136U)
@@ -446,8 +449,8 @@ av2h_prepare_directional_zone3_u16(const Av2hFirstLeafMode *mode,
     left_count = references->left_count;
     above_left = references->above_left;
     has_above_left = references->has_above_left;
-    have_above = above != 0 && above_count != 0U;
-    have_left = left != 0 && left_count != 0U;
+    have_above = above != NULL && above_count != 0U;
+    have_left = left != NULL && left_count != 0U;
     uint16_t fallback = have_above ? above[0] : have_left ? left[0] : 512U;
     uint16_t above_fallback = !have_above && !have_left ? 511U : fallback;
     uint16_t left_fallback = !have_above && !have_left ? 513U : fallback;

@@ -1,5 +1,7 @@
 #include "partition_cdf.h"
 
+#include <stddef.h>
+
 #include "partition_cdf_data.inc"
 
 static Av2hStatus initialize_table(uint16_t (*destination)[AV2H_BINARY_CDF_SIZE],
@@ -16,7 +18,7 @@ static Av2hStatus initialize_table(uint16_t (*destination)[AV2H_BINARY_CDF_SIZE]
 
 Av2hStatus av2h_partition_cdfs_init(Av2hPartitionCdfs *context) {
     Av2hStatus status;
-    if (context == 0) return AV2H_INVALID_ARGUMENT;
+    if (context == NULL) return AV2H_INVALID_ARGUMENT;
     status = initialize_table(&context->do_split[0][0], do_split_defaults,
                               sizeof(do_split_defaults) /
                                   sizeof(do_split_defaults[0]));

@@ -1,8 +1,11 @@
 #include "internal/chroma_prediction.h"
+
 #include "internal/decode_diagnostics.h"
 #include "internal/sample_math.h"
 #include "internal/sample_ops.h"
 #include "shared/bit_math.h"
+
+#include <stddef.h>
 
 #define plane_region_reconstructed \
     av2h_chroma_plane_region_reconstructed
@@ -11,14 +14,14 @@
 #define plane_region_reconstructed_u16 \
     av2h_chroma_plane_region_reconstructed_u16
 
+#define AV2H_MHCCP_DECIM_BITS 16
+#define AV2H_MHCCP_DIV_PREC_BITS 14
+#define AV2H_MHCCP_DIV_SLOT_BITS 3
+
 static uint16_t mhccp_luma_filter2_q3(
     const Av2hReconstructionPlane *luma_plane,
     uint16_t chroma_x,
     uint16_t chroma_y);
-
-#define AV2H_MHCCP_DECIM_BITS 16
-#define AV2H_MHCCP_DIV_PREC_BITS 14
-#define AV2H_MHCCP_DIV_SLOT_BITS 3
 
 static int32_t mhccp_mul_fixed(int32_t left, int32_t right, int shift) {
     uint32_t abs_left = (uint32_t)(left < 0 ? -left : left);
@@ -340,17 +343,17 @@ static uint16_t mhccp_luma_sample_q3(
 const Av2hPredictionDiagnostics *av2h_prediction_diagnostics_get(
     const Av2hDecodeDiagnostics *diagnostics) {
 #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
-    return diagnostics != 0 ? &diagnostics->prediction : 0;
+    return diagnostics != NULL ? &diagnostics->prediction : NULL;
 #else
     (void)diagnostics;
-    return 0;
+    return NULL;
 #endif
 }
 
 void av2h_prediction_diagnostics_set_mhccp_reason(
     Av2hDecodeDiagnostics *diagnostics, uint8_t value) {
 #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
-    if (diagnostics != 0) diagnostics->prediction.mhccp_reason = value;
+    if (diagnostics != NULL) diagnostics->prediction.mhccp_reason = value;
 #else
     (void)diagnostics;
     (void)value;
@@ -731,8 +734,8 @@ Av2hStatus av2h_mhccp_predict_observed(
     uint16_t row;
     if (mode->mhccp_direction <= 2U &&
         av2h_chroma_geometry_supported(width, height) &&
-        luma_plane != 0 && luma_plane->data != 0 &&
-        luma_plane->reconstructed != 0 &&
+        luma_plane != NULL && luma_plane->data != NULL &&
+        luma_plane->reconstructed != NULL &&
         luma_plane->stride_samples >= luma_plane->width) {
         return mhccp_predict_direction01(
             diagnostics, luma_plane, chroma_plane,
@@ -743,8 +746,8 @@ Av2hStatus av2h_mhccp_predict_observed(
             predictor, predictor_stride_samples);
     }
     if (mode->mhccp_direction != 2U || block_y != 0U || block_x < 2U ||
-        width != 16U || height != 32U || luma_plane == 0 ||
-        luma_plane->data == 0 || luma_plane->reconstructed == 0 ||
+        width != 16U || height != 32U || luma_plane == NULL ||
+        luma_plane->data == NULL || luma_plane->reconstructed == NULL ||
         luma_plane->stride_samples < luma_plane->width ||
         (size_t)block_x * 2U >= luma_plane->width ||
         (size_t)(block_y + height) * 2U > luma_plane->height ||
@@ -1045,9 +1048,9 @@ static Av2hStatus mhccp_predict_u16_444(
     int32_t top_left_center = 0;
     int matrix_shift;
     uint32_t count_ceiling;
-    if (mode == 0 || luma_plane == 0 || chroma_plane == 0 ||
-        predictor == 0 || luma_plane->data == 0 ||
-        chroma_plane->data == 0 || luma_plane->reconstructed == 0 ||
+    if (mode == NULL || luma_plane == NULL || chroma_plane == NULL ||
+        predictor == NULL || luma_plane->data == NULL ||
+        chroma_plane->data == NULL || luma_plane->reconstructed == NULL ||
         mode->cfl_kind != AV2H_CFL_MULTI_PARAM ||
         mode->mhccp_direction > 2U || mode->chroma_format_idc != 2U ||
         !av2h_chroma_geometry_supported(width, height) ||
@@ -1304,14 +1307,14 @@ Av2hStatus av2h_mhccp_predict_observed_u16(
     int32_t top_left_center = 0;
     int matrix_shift;
     uint32_t count_ceiling;
-    if (mode != 0 && mode->chroma_format_idc == 2U) {
+    if (mode != NULL && mode->chroma_format_idc == 2U) {
         return mhccp_predict_u16_444(
             mode, luma_plane, chroma_plane, block_x, block_y,
             width, height, predictor, predictor_stride_samples);
     }
-    if (mode == 0 || luma_plane == 0 || chroma_plane == 0 ||
-        predictor == 0 || luma_plane->data == 0 ||
-        chroma_plane->data == 0 || mode->cfl_kind != AV2H_CFL_MULTI_PARAM ||
+    if (mode == NULL || luma_plane == NULL || chroma_plane == NULL ||
+        predictor == NULL || luma_plane->data == NULL ||
+        chroma_plane->data == NULL || mode->cfl_kind != AV2H_CFL_MULTI_PARAM ||
         mode->mhccp_direction > 2U ||
         mode->cfl_downsample_filter_index > 2U ||
         mode->chroma_format_idc != 0U ||

@@ -1,8 +1,11 @@
 #include "decoder/filter.h"
+
 #include "decoder/internal/filter_common.h"
 #include "decoder/internal/filter_geometry.h"
 #include "decoder/internal/filter_modules.h"
 #include "decoder/internal/sample_math.h"
+
+#include <stddef.h>
 
 static const uint16_t ccso_quant_size[4][4] = {
     { 16U, 8U, 32U, 0U },
@@ -19,14 +22,14 @@ int av2h_ccso_controls_valid(const Av2hFrameState *frame,
     size_t rows = (av2h_filter_coded_dimension(frame->height) +
                    unit_size - 1U) / unit_size;
     unsigned int plane;
-    if (controls == 0 || controls->columns != columns ||
+    if (controls == NULL || controls->columns != columns ||
         controls->rows != rows ||
         (unit_size != 64U && unit_size != 128U && unit_size != 256U)) {
         return 0;
     }
     for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
         if (frame->ccso[plane].enabled != 0U &&
-            (controls->plane[plane] == 0 ||
+            (controls->plane[plane] == NULL ||
              controls->stride_units[plane] < columns)) {
             return 0;
         }
@@ -166,7 +169,7 @@ static void ccso_tile_bounds(const Av2hSequenceState *sequence,
     *top = 0;
     *right = frame->width;
     *bottom = frame->height;
-    if (sequence == 0 || sequence->disable_loopfilters_across_tiles == 0U) {
+    if (sequence == NULL || sequence->disable_loopfilters_across_tiles == 0U) {
         return;
     }
     for (column = 0U; column < frame->tile_column_count; ++column) {
@@ -240,7 +243,7 @@ static void ccso_filter_plane(Av2hFilterPlane *destination,
             luma_y = (int)((uint32_t)y << subsampling);
             ccso_tile_bounds(sequence, frame, luma_x, luma_y,
                              &tile_left, &tile_top, &tile_right, &tile_bottom);
-            if (sequence == 0 ||
+            if (sequence == NULL ||
                 sequence->disable_loopfilters_across_tiles == 0U ||
                 (uint32_t)frame->tile_column_count *
                     frame->tile_row_count <= 1U) {
@@ -330,7 +333,7 @@ static void ccso_filter_plane_u16(Av2hFilterPlaneU16 *destination,
             luma_y = (int)((uint32_t)y << subsampling);
             ccso_tile_bounds(sequence, frame, luma_x, luma_y,
                              &tile_left, &tile_top, &tile_right, &tile_bottom);
-            if (sequence == 0 ||
+            if (sequence == NULL ||
                 sequence->disable_loopfilters_across_tiles == 0U ||
                 (uint32_t)frame->tile_column_count *
                     frame->tile_row_count <= 1U) {
@@ -378,7 +381,7 @@ Av2hStatus av2h_ccso_filter_frame(
     const Av2hCcsoControlMap *controls) {
     return av2h_ccso_filter_frame_with_sequence(
         planes, pre_cdef_luma, pre_cdef_luma_stride_samples,
-        0, frame, controls);
+        NULL, frame, controls);
 }
 
 Av2hStatus av2h_ccso_filter_frame_with_sequence(
@@ -389,7 +392,7 @@ Av2hStatus av2h_ccso_filter_frame_with_sequence(
     const Av2hFrameState *frame,
     const Av2hCcsoControlMap *controls) {
     unsigned int plane;
-    if (planes == 0 || pre_cdef_luma == 0 || frame == 0 ||
+    if (planes == NULL || pre_cdef_luma == NULL || frame == NULL ||
         frame->width == 0U || frame->height == 0U ||
         pre_cdef_luma_stride_samples < av2h_filter_coded_dimension(frame->width) ||
         !filter_dimensions_valid(planes, frame) ||
@@ -418,7 +421,7 @@ Av2hStatus av2h_ccso_filter_frame_u16(
     const Av2hCcsoControlMap *controls) {
     return av2h_ccso_filter_frame_u16_with_sequence(
         planes, pre_cdef_luma, pre_cdef_luma_stride_samples,
-        0, frame, controls);
+        NULL, frame, controls);
 }
 
 Av2hStatus av2h_ccso_filter_frame_u16_with_sequence(
@@ -429,7 +432,7 @@ Av2hStatus av2h_ccso_filter_frame_u16_with_sequence(
     const Av2hFrameState *frame,
     const Av2hCcsoControlMap *controls) {
     unsigned int plane;
-    if (planes == 0 || pre_cdef_luma == 0 || frame == 0 ||
+    if (planes == NULL || pre_cdef_luma == NULL || frame == NULL ||
         frame->width == 0U || frame->height == 0U ||
         pre_cdef_luma_stride_samples <
             av2h_filter_coded_dimension(frame->width) ||

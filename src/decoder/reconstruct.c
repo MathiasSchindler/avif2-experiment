@@ -1,23 +1,36 @@
-#include "prediction.h"
-#include "internal/intra_prediction.h"
-#include "internal/chroma_prediction.h"
-#include "internal/intrabc_prediction.h"
 #include "reconstruct.h"
+
+#include "internal/chroma_prediction.h"
 #include "internal/decode_diagnostics.h"
+#include "internal/intra_prediction.h"
+#include "internal/intrabc_prediction.h"
+#include "internal/reconstruct_block.h"
+#include "internal/reconstruct_modules.h"
+#include "internal/sample_math.h"
+#include "internal/sample_ops.h"
+#include "prediction.h"
+#include "tx_geometry.h"
+
+#include <stddef.h>
+
+#define directional_base_angle av2h_directional_base_angle
+#define luma_wide_angle av2h_luma_wide_angle
+#define wide_angle_map av2h_luma_wide_angle
+
 const Av2hReconstructionDiagnostics *av2h_reconstruction_diagnostics_get(
     const Av2hDecodeDiagnostics *diagnostics) {
 #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
-    return diagnostics != 0 ? &diagnostics->reconstruction : 0;
+    return diagnostics != NULL ? &diagnostics->reconstruction : NULL;
 #else
     (void)diagnostics;
-    return 0;
+    return NULL;
 #endif
 }
 
 void av2h_reconstruction_diagnostics_set_luma_stage(
     Av2hDecodeDiagnostics *diagnostics, uint8_t value) {
 #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
-    if (diagnostics != 0) diagnostics->reconstruction.luma_stage = value;
+    if (diagnostics != NULL) diagnostics->reconstruction.luma_stage = value;
 #else
     (void)diagnostics;
     (void)value;
@@ -28,7 +41,7 @@ void av2h_reconstruction_diagnostics_set_intrabc_source(
     Av2hDecodeDiagnostics *diagnostics,
     uint16_t x, uint16_t y, size_t map_index) {
 #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
-    if (diagnostics != 0) {
+    if (diagnostics != NULL) {
         diagnostics->reconstruction.intrabc_source_x = x;
         diagnostics->reconstruction.intrabc_source_y = y;
         diagnostics->reconstruction.intrabc_map_index = map_index;
@@ -43,7 +56,7 @@ void av2h_reconstruction_diagnostics_set_intrabc_source(
 void av2h_reconstruction_diagnostics_set_chroma_stage(
     Av2hDecodeDiagnostics *diagnostics, uint8_t value) {
 #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
-    if (diagnostics != 0) diagnostics->reconstruction.chroma_stage = value;
+    if (diagnostics != NULL) diagnostics->reconstruction.chroma_stage = value;
 #else
     (void)diagnostics;
     (void)value;
@@ -53,7 +66,7 @@ void av2h_reconstruction_diagnostics_set_chroma_stage(
 void av2h_reconstruction_diagnostics_set_inverse_transform_stage(
     Av2hDecodeDiagnostics *diagnostics, uint8_t value) {
 #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
-    if (diagnostics != 0) {
+    if (diagnostics != NULL) {
         diagnostics->reconstruction.inverse_transform_stage = value;
     }
 #else
@@ -61,17 +74,7 @@ void av2h_reconstruction_diagnostics_set_inverse_transform_stage(
     (void)value;
 #endif
 }
-#include "internal/reconstruct_block.h"
-#include "internal/reconstruct_modules.h"
-#include "internal/sample_math.h"
-#include "internal/sample_ops.h"
-#include "tx_geometry.h"
-
-#define directional_base_angle av2h_directional_base_angle
-#define luma_wide_angle av2h_luma_wide_angle
-#define wide_angle_map av2h_luma_wide_angle
-
-static uint8_t plane_sample_reconstructed_cells(
+static int plane_sample_reconstructed_cells(
     const uint8_t *reconstructed, size_t stride, size_t count,
     size_t x, size_t y) {
     size_t index = (y / 4U) * stride + x / 4U;
@@ -79,21 +82,21 @@ static uint8_t plane_sample_reconstructed_cells(
         reconstructed[index] != 0U && reconstructed[index] != 2U;
 }
 
-static uint8_t plane_sample_inside_active_tile_cells(
+static int plane_sample_inside_active_tile_cells(
     const uint8_t *reconstructed, size_t stride, size_t count,
     size_t x, size_t y) {
     size_t index = (y / 4U) * stride + x / 4U;
     return index < count && reconstructed[index] != 2U;
 }
 
-uint8_t av2h_plane_sample_reconstructed(
+int av2h_plane_sample_reconstructed(
     const Av2hReconstructionPlane *plane, size_t x, size_t y) {
     return plane_sample_reconstructed_cells(
         plane->reconstructed, plane->reconstructed_stride_cells,
         plane->reconstructed_count_cells, x, y);
 }
 
-static uint8_t plane_sample_inside_active_tile(
+static int plane_sample_inside_active_tile(
     const Av2hReconstructionPlane *plane, size_t x, size_t y) {
     return plane_sample_inside_active_tile_cells(
         plane->reconstructed, plane->reconstructed_stride_cells,
@@ -124,14 +127,14 @@ static void plane_mark_reconstructed(
         x, y, width, height);
 }
 
-static uint8_t plane_sample_reconstructed_u16(
+static int plane_sample_reconstructed_u16(
     const Av2hReconstructionPlaneU16 *plane, size_t x, size_t y) {
     return plane_sample_reconstructed_cells(
         plane->reconstructed, plane->reconstructed_stride_cells,
         plane->reconstructed_count_cells, x, y);
 }
 
-static uint8_t plane_sample_inside_active_tile_u16(
+static int plane_sample_inside_active_tile_u16(
     const Av2hReconstructionPlaneU16 *plane, size_t x, size_t y) {
     return plane_sample_inside_active_tile_cells(
         plane->reconstructed, plane->reconstructed_stride_cells,
@@ -202,8 +205,8 @@ static Av2hStatus intrabc_predict_u16(
         }
     }
     status = av2h_intrabc_convolve(
-        0, plane->data, plane->stride_samples, source_x, source_y,
-        subpel_x, subpel_y, width, height, 10U, 0, predictor);
+        NULL, plane->data, plane->stride_samples, source_x, source_y,
+        subpel_x, subpel_y, width, height, 10U, NULL, predictor);
     if (status != AV2H_OK) return status;
     if (mode->morph_pred != 0U) {
         uint16_t coding_x = (uint16_t)(mode->block_origin_column * 4U);
@@ -325,10 +328,10 @@ Av2hStatus av2h_luma_reconstruct_to_plane_with_diagnostics(
     size_t index;
     Av2hStatus status;
     Av2hFirstLeafMode effective_mode;
-    if (leaf == 0 || mode == 0 || prefix == 0 || transform == 0 ||
-        coefficients == 0 || plane == 0 || scratch == 0 || plane->data == 0 ||
+    if (leaf == NULL || mode == NULL || prefix == NULL || transform == NULL ||
+        coefficients == NULL || plane == NULL || scratch == NULL || plane->data == NULL ||
         plane->stride_samples < plane->width || plane->reference_width == 0U ||
-        plane->reference_height == 0U || plane->reconstructed == 0 ||
+        plane->reference_height == 0U || plane->reconstructed == NULL ||
         plane->reference_width > plane->width ||
         plane->reference_height > plane->height ||
         plane->reconstructed_stride_cells < ((size_t)plane->width + 3U) / 4U ||
@@ -542,15 +545,15 @@ Av2hStatus av2h_luma_reconstruct_to_plane_with_diagnostics(
             }
         }
     }
-    references.left = left_count == 0U ? 0 : scratch->left;
+    references.left = left_count == 0U ? NULL : scratch->left;
     references.left_count = left_count;
-    references.above = above_count == 0U ? 0 : scratch->above;
+    references.above = above_count == 0U ? NULL : scratch->above;
     references.above_count = above_count;
     references.secondary_left = secondary_left_count == 0U ?
-        0 : scratch->secondary_left;
+        NULL : scratch->secondary_left;
     references.secondary_left_count = secondary_left_count;
     references.secondary_above = secondary_above_count == 0U ?
-        0 : scratch->secondary_above;
+        NULL : scratch->secondary_above;
     references.secondary_above_count = secondary_above_count;
     references.has_secondary_above_left =
         secondary_above_count != 0U && secondary_left_count != 0U;
@@ -670,7 +673,7 @@ Av2hStatus av2h_luma_reconstruct_to_plane_u16_with_diagnostics(
     size_t secondary_above_count = 0U;
     size_t secondary_left_count = 0U;
     size_t above_reference_y;
-    Av2hLumaReferencesU16 references = { 0 };
+    Av2hLumaReferencesU16 references = { .left = NULL };
     uint16_t dc_value;
     uint8_t is_top_superblock_boundary;
     uint8_t top_vertical_multi_line_mrl;
@@ -679,9 +682,9 @@ Av2hStatus av2h_luma_reconstruct_to_plane_u16_with_diagnostics(
     uint8_t directional_multi_line_mrl;
     int prediction_angle;
     Av2hStatus status;
-    if (leaf == 0 || mode == 0 || prefix == 0 || transform == 0 ||
-        coefficients == 0 || plane == 0 || scratch == 0 || plane->data == 0 ||
-        plane->reconstructed == 0 || plane->stride_samples < plane->width ||
+    if (leaf == NULL || mode == NULL || prefix == NULL || transform == NULL ||
+        coefficients == NULL || plane == NULL || scratch == NULL || plane->data == NULL ||
+        plane->reconstructed == NULL || plane->stride_samples < plane->width ||
         plane->reference_width == 0U || plane->reference_height == 0U ||
         plane->reference_width > plane->width ||
         plane->reference_height > plane->height ||
@@ -929,15 +932,15 @@ Av2hStatus av2h_luma_reconstruct_to_plane_u16_with_diagnostics(
         above_count != 0U && left_count != 0U ?
             dc_average_rectangular_u16(sum, count) :
             (uint16_t)((sum + count / 2U) / count);
-    references.left = left_count == 0U ? 0 : scratch->left;
+    references.left = left_count == 0U ? NULL : scratch->left;
     references.left_count = left_count;
-    references.above = above_count == 0U ? 0 : scratch->above;
+    references.above = above_count == 0U ? NULL : scratch->above;
     references.above_count = above_count;
     references.secondary_left = secondary_left_count == 0U ?
-        0 : scratch->secondary_left;
+        NULL : scratch->secondary_left;
     references.secondary_left_count = secondary_left_count;
     references.secondary_above = secondary_above_count == 0U ?
-        0 : scratch->secondary_above;
+        NULL : scratch->secondary_above;
     references.secondary_above_count = secondary_above_count;
     references.has_secondary_above_left = (uint8_t)(
         secondary_above_count != 0U && secondary_left_count != 0U);
@@ -1117,7 +1120,7 @@ Av2hStatus av2h_luma_reconstruct_to_plane(
     Av2hReconstructionPlane *plane,
     Av2hReconstructionScratch *scratch) {
     return av2h_luma_reconstruct_to_plane_with_diagnostics(
-        0, leaf, mode, prefix, transform, coefficients, plane, scratch);
+        NULL, leaf, mode, prefix, transform, coefficients, plane, scratch);
 }
 
 Av2hStatus av2h_luma_reconstruct_to_plane_u16(
@@ -1129,7 +1132,7 @@ Av2hStatus av2h_luma_reconstruct_to_plane_u16(
     Av2hReconstructionPlaneU16 *plane,
     Av2hReconstructionScratchU16 *scratch) {
     return av2h_luma_reconstruct_to_plane_u16_with_diagnostics(
-        0, leaf, mode, prefix, transform, coefficients, plane, scratch);
+        NULL, leaf, mode, prefix, transform, coefficients, plane, scratch);
 }
 
 Av2hStatus av2h_chroma_reconstruct_to_plane_format(
@@ -1145,7 +1148,7 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_format(
     uint8_t chroma_format_idc,
     Av2hReconstructionScratch *scratch) {
     return av2h_chroma_reconstruct_to_plane_format_with_diagnostics(
-        0, leaf, mode, prefix, transform, coefficients, plane, luma_plane,
+        NULL, leaf, mode, prefix, transform, coefficients, plane, luma_plane,
         chroma_plane, predictor_plane, chroma_format_idc, scratch);
 }
 
@@ -1161,7 +1164,7 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_u16(
     uint8_t chroma_format_idc,
     Av2hReconstructionScratchU16 *scratch) {
     return av2h_chroma_reconstruct_to_plane_u16_with_diagnostics(
-        0, leaf, mode, prefix, transform, coefficients, plane, luma_plane,
+        NULL, leaf, mode, prefix, transform, coefficients, plane, luma_plane,
         chroma_plane, chroma_format_idc, scratch);
 }
 Av2hStatus av2h_chroma_reconstruct_to_plane(
@@ -1173,7 +1176,7 @@ Av2hStatus av2h_chroma_reconstruct_to_plane(
     Av2hReconstructionPlane *plane,
     Av2hReconstructionScratch *scratch) {
     return av2h_chroma_reconstruct_to_plane_ex(
-        leaf, mode, prefix, transform, coefficients, plane, 0, 1U, 0,
+        leaf, mode, prefix, transform, coefficients, plane, NULL, 1U, NULL,
         scratch);
 }
 
@@ -1221,12 +1224,12 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_format_with_diagnostics(
     Av2hStatus status;
     av2h_reconstruction_diagnostics_set_chroma_stage(
         diagnostics, 0U);
-    if (leaf == 0 || mode == 0 || prefix == 0 || transform == 0 ||
-        coefficients == 0 || plane == 0 || scratch == 0 || plane->data == 0 ||
+    if (leaf == NULL || mode == NULL || prefix == NULL || transform == NULL ||
+        coefficients == NULL || plane == NULL || scratch == NULL || plane->data == NULL ||
         chroma_plane < 1U || chroma_plane > 2U ||
         (chroma_format_idc != 0U && chroma_format_idc != 2U) ||
         plane->stride_samples < plane->width || plane->reference_width == 0U ||
-        plane->reference_height == 0U || plane->reconstructed == 0 ||
+        plane->reference_height == 0U || plane->reconstructed == NULL ||
         plane->reference_width > plane->width ||
         plane->reference_height > plane->height ||
         plane->reconstructed_stride_cells < ((size_t)plane->width + 3U) / 4U ||
@@ -1254,8 +1257,8 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_format_with_diagnostics(
         width : (uint16_t)(plane->width - block_x);
     visible_height = height < plane->height - block_y ?
         height : (uint16_t)(plane->height - block_y);
-    if (predictor_plane != 0 &&
-        (predictor_plane->data == 0 ||
+    if (predictor_plane != NULL &&
+        (predictor_plane->data == NULL ||
          predictor_plane->stride_samples < predictor_plane->width ||
          block_x >= predictor_plane->width ||
          block_y >= predictor_plane->height ||
@@ -1330,9 +1333,9 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_format_with_diagnostics(
             scratch->left[index] = av2h_reconstructed_sample_load_u8(
                 plane->data, plane->stride_samples, block_x - 1U, sy);
         }
-        references.left = left_count == 0U ? 0 : scratch->left;
+        references.left = left_count == 0U ? NULL : scratch->left;
         references.left_count = left_count;
-        references.above = above_count == 0U ? 0 : scratch->above;
+        references.above = above_count == 0U ? NULL : scratch->above;
         references.above_count = above_count;
         have_top = above_count >= width ? 1U : 0U;
         have_left = left_count >= height ? 1U : 0U;
@@ -1439,7 +1442,7 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_format_with_diagnostics(
     }
     av2h_reconstruction_diagnostics_set_chroma_stage(
         diagnostics, 2U);
-    if (predictor_plane != 0) {
+    if (predictor_plane != NULL) {
         av2h_predictor_commit_u8(
             predictor_plane->data +
                 (size_t)block_y * predictor_plane->stride_samples + block_x,
@@ -1457,7 +1460,7 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_format_with_diagnostics(
             av2h_reconstruction_diagnostics_get(diagnostics);
         av2h_reconstruction_diagnostics_set_chroma_stage(
             diagnostics, (uint8_t)(
-            10U + (snapshot != 0 ?
+            10U + (snapshot != NULL ?
                 snapshot->inverse_transform_stage : 0U)));
         return status;
     }
@@ -1503,12 +1506,12 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_u16_with_diagnostics(
     int prediction_angle;
     uint8_t apply_edge_ibp;
     Av2hStatus status;
-    Av2hLumaReferencesU16 references = { 0 };
+    Av2hLumaReferencesU16 references = { .left = NULL };
     av2h_reconstruction_diagnostics_set_chroma_stage(
         diagnostics, 0U);
-    if (leaf == 0 || mode == 0 || prefix == 0 || transform == 0 ||
-        coefficients == 0 || plane == 0 || scratch == 0 || plane->data == 0 ||
-        plane->reconstructed == 0 ||
+    if (leaf == NULL || mode == NULL || prefix == NULL || transform == NULL ||
+        coefficients == NULL || plane == NULL || scratch == NULL || plane->data == NULL ||
+        plane->reconstructed == NULL ||
         (chroma_format_idc != 0U && chroma_format_idc != 2U) ||
         chroma_plane < 1U || chroma_plane > 2U ||
         plane->stride_samples < plane->width || plane->reference_width == 0U ||
@@ -1778,9 +1781,9 @@ Av2hStatus av2h_chroma_reconstruct_to_plane_u16_with_diagnostics(
             av2h_reconstructed_sample_load_u16(
                 plane->data, plane->stride_samples,
                 block_x - 1U, block_y - 1U) : 0U;
-        references.above = above_count == 0U ? 0 : scratch->above;
+        references.above = above_count == 0U ? NULL : scratch->above;
         references.above_count = above_count;
-        references.left = left_count == 0U ? 0 : scratch->left;
+        references.left = left_count == 0U ? NULL : scratch->left;
         references.left_count = left_count;
         status = av2h_chroma_predict_u16(
             &luma_mode, width, height, &references,

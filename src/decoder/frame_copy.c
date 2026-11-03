@@ -1,5 +1,25 @@
 #include "decoder/internal/frame_workspace.h"
+
 #include "output_layout.h"
+
+#include <stddef.h>
+
+#define AV2H_PARALLEL_COPY_MIN_BYTES (64U * 1024U)
+#define AV2H_PARALLEL_COPY_TARGET_CHUNK_BYTES (16U * 1024U)
+
+typedef struct {
+    const uint8_t *source;
+    uint8_t *destination;
+    size_t source_stride;
+    size_t row_bytes;
+} Av2hCopyRowsU8;
+
+typedef struct {
+    const uint16_t *source;
+    uint8_t *destination;
+    size_t source_stride;
+    size_t width;
+} Av2hCopyRowsU16;
 
 Av2hStatus av2h_planar_output_size(
     const Av2hFrameState *frame,
@@ -12,13 +32,13 @@ Av2hStatus av2h_planar_output_size_bytes(
     size_t bytes_per_sample,
     size_t *size_bytes) {
     Av2hPlaneLayout planes[3];
-    if (frame == 0 || size_bytes == 0 || frame->width == 0U ||
+    if (frame == NULL || size_bytes == NULL || frame->width == 0U ||
         frame->height == 0U) {
         return AV2H_INVALID_ARGUMENT;
     }
     return av2h_output_layout_calculate(
         frame->width, frame->height, frame->chroma_format_idc,
-        bytes_per_sample, planes, size_bytes, 0);
+        bytes_per_sample, planes, size_bytes, NULL);
 }
 
 Av2hStatus av2h_planar_output_bind_u16(
@@ -31,13 +51,13 @@ Av2hStatus av2h_planar_output_bind_u16(
     size_t required_size;
     unsigned int plane;
     Av2hStatus status;
-    if (frame == 0 || output == 0 || planes == 0 ||
+    if (frame == NULL || output == NULL || planes == NULL ||
         ((uintptr_t)output & (_Alignof(uint16_t) - 1U)) != 0U) {
         return AV2H_INVALID_ARGUMENT;
     }
     status = av2h_output_layout_calculate(
         frame->width, frame->height, frame->chroma_format_idc, 2U,
-        layout, &required_size, 0);
+        layout, &required_size, NULL);
     if (status != AV2H_OK) return status;
     if (output_size_bytes < required_size) return AV2H_OUT_OF_MEMORY;
     av2h_memory_fill(&bound, 0U, sizeof(bound));
@@ -52,16 +72,6 @@ Av2hStatus av2h_planar_output_bind_u16(
     *planes = bound;
     return AV2H_OK;
 }
-
-#define AV2H_PARALLEL_COPY_MIN_BYTES (64U * 1024U)
-#define AV2H_PARALLEL_COPY_TARGET_CHUNK_BYTES (16U * 1024U)
-
-typedef struct {
-    const uint8_t *source;
-    uint8_t *destination;
-    size_t source_stride;
-    size_t row_bytes;
-} Av2hCopyRowsU8;
 
 static int copy_rows_u8(size_t begin, size_t end,
                         unsigned int worker_index, void *argument) {
@@ -84,7 +94,7 @@ static int copy_rows_dispatch(const Av2hExecution *execution,
                               void *argument) {
     size_t total_bytes = height * row_bytes;
     size_t min_chunk;
-    if (execution == 0 || execution->parallel_for == 0 ||
+    if (execution == NULL || execution->parallel_for == NULL ||
         execution->width <= 1U || height <= 1U ||
         total_bytes < AV2H_PARALLEL_COPY_MIN_BYTES) {
         return body(0U, height, 0U, argument);
@@ -132,15 +142,8 @@ Av2hStatus av2h_copy_visible_planar_private(
     uint8_t *output,
     size_t output_size_bytes) {
     return av2h_copy_visible_planar_with_execution_private(
-        frame, coded, coded_data_size_bytes, output, output_size_bytes, 0);
+        frame, coded, coded_data_size_bytes, output, output_size_bytes, NULL);
 }
-
-typedef struct {
-    const uint16_t *source;
-    uint8_t *destination;
-    size_t source_stride;
-    size_t width;
-} Av2hCopyRowsU16;
 
 static int copy_rows_u16(size_t begin, size_t end,
                          unsigned int worker_index, void *argument) {
@@ -200,5 +203,5 @@ Av2hStatus av2h_copy_visible_planar_u16_private(
     uint8_t *output,
     size_t output_size_bytes) {
     return av2h_copy_visible_planar_u16_with_execution_private(
-        frame, coded, coded_data_size_bytes, output, output_size_bytes, 0);
+        frame, coded, coded_data_size_bytes, output, output_size_bytes, NULL);
 }

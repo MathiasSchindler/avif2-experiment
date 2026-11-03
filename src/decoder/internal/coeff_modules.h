@@ -13,7 +13,7 @@ uint8_t av2h_coeff_base_context(
 uint8_t av2h_coeff_br_context(
     const Av2hFirstCoeffBlock *block, uint16_t position,
     uint8_t vertical, uint8_t low, uint8_t horizontal);
-uint8_t av2h_coeff_is_low_frequency(
+int av2h_coeff_is_low_frequency(
     uint16_t position, uint16_t width, uint8_t vertical,
     uint8_t horizontal);
 uint8_t av2h_coeff_eob_context(uint16_t scan_index, uint16_t capacity);

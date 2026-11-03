@@ -1,5 +1,8 @@
 #include "concurrency.h"
+
 #include "concurrency_platform.h"
+
+#include <stddef.h>
 
 #define AV2H_TASK_CHUNKS_PER_WORKER 8U
 
@@ -54,9 +57,9 @@ static void run_work(Av2hTaskPool *pool, unsigned int worker_index) {
 
 static int task_worker_main(void *argument) {
     Av2hTaskWorker *worker = (Av2hTaskWorker *)argument;
-    Av2hTaskPool *pool = worker == 0 ? 0 : worker->pool;
+    Av2hTaskPool *pool = worker == NULL ? NULL : worker->pool;
     unsigned int observed_generation = 0U;
-    if (pool == 0) return -1;
+    if (pool == NULL) return -1;
     for (;;) {
         unsigned int generation =
             __atomic_load_n(&pool->generation, __ATOMIC_ACQUIRE);
@@ -89,7 +92,7 @@ static void stop_workers(Av2hTaskPool *pool) {
 
 int av2h_task_pool_init(Av2hTaskPool *pool, unsigned int worker_count) {
     unsigned int index;
-    if (pool == 0) return -1;
+    if (pool == NULL) return -1;
     task_pool_clear(pool);
     if (worker_count == 0U) worker_count = av2h_platform_worker_count();
     if (worker_count == 0U) worker_count = 1U;
@@ -120,13 +123,13 @@ int av2h_task_pool_init(Av2hTaskPool *pool, unsigned int worker_count) {
 }
 
 void av2h_task_pool_destroy(Av2hTaskPool *pool) {
-    if (pool == 0 || pool->width == 0U) return;
+    if (pool == NULL || pool->width == 0U) return;
     stop_workers(pool);
     task_pool_clear(pool);
 }
 
 unsigned int av2h_task_pool_width(const Av2hTaskPool *pool) {
-    return pool == 0 || pool->width == 0U ? 1U : pool->width;
+    return pool == NULL || pool->width == 0U ? 1U : pool->width;
 }
 
 static int task_pool_dispatch(void *context, size_t count, size_t min_chunk,
@@ -136,7 +139,7 @@ static int task_pool_dispatch(void *context, size_t count, size_t min_chunk,
 }
 
 void av2h_task_pool_execution(Av2hTaskPool *pool, Av2hExecution *execution) {
-    if (execution == 0) return;
+    if (execution == NULL) return;
     execution->context = pool;
     execution->parallel_for = task_pool_dispatch;
     execution->width = av2h_task_pool_width(pool);
@@ -161,9 +164,9 @@ static int run_serial(size_t count, size_t min_chunk, Av2hParallelBody body,
 int av2h_parallel_for(Av2hTaskPool *pool, size_t count, size_t min_chunk,
                       Av2hParallelBody body, void *argument) {
     unsigned int finished;
-    if (body == 0) return -1;
+    if (body == NULL) return -1;
     if (count == 0U) return 0;
-    if (pool == 0 || pool->native_width <= 1U) {
+    if (pool == NULL || pool->native_width <= 1U) {
         return run_serial(count, min_chunk, body, argument);
     }
     min_chunk = effective_min_chunk(pool, count, min_chunk);

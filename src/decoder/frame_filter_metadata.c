@@ -1,5 +1,8 @@
 #include "decoder/internal/frame_filter_metadata.h"
+
 #include "decoder/tx_geometry.h"
+
+#include <stddef.h>
 
 Av2hStatus av2h_deblock_map_commit_transform(
     Av2hDeblockMap *map,
@@ -20,9 +23,9 @@ Av2hStatus av2h_deblock_map_commit_transform(
     size_t transform_rows;
     size_t row;
     Av2hStatus status;
-    if (map == 0 || leaf == 0 || prefix == 0 ||
+    if (map == NULL || leaf == NULL || prefix == NULL ||
         plane >= AV2H_FRAME_PLANE_COUNT || skip > 1U ||
-        all_zero > 1U || lossless > 1U || map->plane[plane] == 0 ||
+        all_zero > 1U || lossless > 1U || map->plane[plane] == NULL ||
         map->columns[plane] == 0U || map->rows[plane] == 0U ||
         map->stride_cells[plane] < map->columns[plane]) {
         return AV2H_INVALID_ARGUMENT;
@@ -88,8 +91,8 @@ Av2hStatus av2h_restoration_tx_skip_commit(
     size_t rows;
     size_t row;
     Av2hStatus status;
-    if (workspace == 0 || leaf == 0 || prefix == 0 ||
-        workspace->restoration_tx_skip == 0 ||
+    if (workspace == NULL || leaf == NULL || prefix == NULL ||
+        workspace->restoration_tx_skip == NULL ||
         workspace->restoration_controls.tx_skip_stride == 0U) {
         return AV2H_INVALID_ARGUMENT;
     }

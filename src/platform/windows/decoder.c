@@ -1,4 +1,5 @@
 #include "base.h"
+
 #include "decoder/frame_output.h"
 #include "decoder/internal/coeff_modules.h"
 #include "decoder/internal/frame_workspace.h"
@@ -8,6 +9,8 @@
 #include "platform/windows/win32_min.h"
 #include "preview.h"
 #include "shared/png_writer.h"
+
+#include <stddef.h>
 
 #define AV2H_CLI_MAX_INPUT (256U * 1024U * 1024U)
 #define AV2H_CLI_ARGUMENT_CAPACITY 4
@@ -63,9 +66,9 @@ static void write_console(const char *text) {
     size_t length = 0U;
     Av2hWinDword written;
     while (text[length] != '\0') ++length;
-    if (error != 0 && error != AV2H_WIN_INVALID_HANDLE &&
+    if (error != NULL && error != AV2H_WIN_INVALID_HANDLE &&
         length <= UINT32_MAX) {
-        (void)WriteFile(error, text, (Av2hWinDword)length, &written, 0);
+        (void)WriteFile(error, text, (Av2hWinDword)length, &written, NULL);
     }
 }
 
@@ -330,7 +333,7 @@ static void write_decode_diagnostic(const Av2hFrameDecodeResult *result) {
     write_console("/");
     write_unsigned(result->eob_class);
     coefficient_cdf = av2h_coeff_level_diagnostic_cdf(result->diagnostics);
-    if (coefficient_cdf == 0) coefficient_cdf = zero_cdf;
+    if (coefficient_cdf == NULL) coefficient_cdf = zero_cdf;
     write_console("\r\n  coeff-cdf=");
     write_unsigned(coefficient_cdf[0]);
     write_console("/");
@@ -341,7 +344,7 @@ static void write_decode_diagnostic(const Av2hFrameDecodeResult *result) {
     write_unsigned(coefficient_cdf[3]);
     coefficient_range = av2h_coeff_level_diagnostic_range(
         result->diagnostics);
-    if (coefficient_range == 0) coefficient_range = zero_range;
+    if (coefficient_range == NULL) coefficient_range = zero_range;
     {
         size_t candidate_count;
         size_t candidate;
@@ -447,27 +450,27 @@ static int parse_arguments(Av2hWinChar *text,
 }
 
 static void release_memory(Av2hOwnedMemory *owned) {
-    if (owned->memory != 0) {
+    if (owned->memory != NULL) {
         (void)VirtualFree(owned->memory, 0U, AV2H_WIN_MEM_RELEASE);
     }
-    owned->memory = 0;
+    owned->memory = NULL;
     owned->size = 0U;
 }
 
 static int allocate_memory(size_t size, Av2hOwnedMemory *owned) {
     owned->memory = VirtualAlloc(
-        0, size == 0U ? 1U : size,
+        NULL, size == 0U ? 1U : size,
         AV2H_WIN_MEM_RESERVE | AV2H_WIN_MEM_COMMIT,
         AV2H_WIN_PAGE_READWRITE);
-    owned->size = owned->memory != 0 ? size : 0U;
-    return owned->memory != 0;
+    owned->size = owned->memory != NULL ? size : 0U;
+    return owned->memory != NULL;
 }
 
 static int read_entire_file(const Av2hWinChar *path,
                             Av2hOwnedMemory *owned) {
     Av2hWinHandle file = CreateFileW(
-        path, AV2H_WIN_GENERIC_READ, AV2H_WIN_FILE_SHARE_READ, 0,
-        AV2H_WIN_OPEN_EXISTING, AV2H_WIN_FILE_ATTRIBUTE_NORMAL, 0);
+        path, AV2H_WIN_GENERIC_READ, AV2H_WIN_FILE_SHARE_READ, NULL,
+        AV2H_WIN_OPEN_EXISTING, AV2H_WIN_FILE_ATTRIBUTE_NORMAL, NULL);
     Av2hWinLargeInteger size;
     Av2hWinDword read = 0U;
     int result = 0;
@@ -478,7 +481,7 @@ static int read_entire_file(const Av2hWinChar *path,
         (void)CloseHandle(file);
         return 0;
     }
-    if (ReadFile(file, owned->memory, (Av2hWinDword)owned->size, &read, 0) &&
+    if (ReadFile(file, owned->memory, (Av2hWinDword)owned->size, &read, NULL) &&
         read == owned->size) {
         result = 1;
     }
@@ -493,7 +496,7 @@ static int write_all(Av2hWinHandle file, const void *data, size_t size) {
         Av2hWinDword chunk = size > UINT32_MAX ? UINT32_MAX :
             (Av2hWinDword)size;
         Av2hWinDword written = 0U;
-        if (!WriteFile(file, bytes, chunk, &written, 0) || written != chunk) {
+        if (!WriteFile(file, bytes, chunk, &written, NULL) || written != chunk) {
             return 0;
         }
         bytes += chunk;
@@ -506,8 +509,8 @@ static int write_entire_file(const Av2hWinChar *path,
                              const void *data,
                              size_t size) {
     Av2hWinHandle file = CreateFileW(
-        path, AV2H_WIN_GENERIC_WRITE, 0U, 0, AV2H_WIN_CREATE_ALWAYS,
-        AV2H_WIN_FILE_ATTRIBUTE_NORMAL, 0);
+        path, AV2H_WIN_GENERIC_WRITE, 0U, NULL, AV2H_WIN_CREATE_ALWAYS,
+        AV2H_WIN_FILE_ATTRIBUTE_NORMAL, NULL);
     int result;
     if (file == AV2H_WIN_INVALID_HANDLE) return 0;
     result = write_all(file, data, size);
@@ -520,7 +523,7 @@ static const Av2hObu *find_obu(const Av2hObuLedger *ledger, uint8_t type) {
     for (index = 0U; index < ledger->count; ++index) {
         if (ledger->entries[index].type == type) return &ledger->entries[index];
     }
-    return 0;
+    return NULL;
 }
 
 static Av2hStatus decode_obu(Av2hSpan input,
@@ -539,7 +542,7 @@ static Av2hStatus decode_obu(Av2hSpan input,
     Av2hSequenceState sequence;
     Av2hFrameState frame;
     Av2hTileGroup group;
-    Av2hOwnedMemory workspace_memory = { 0, 0U };
+    Av2hOwnedMemory workspace_memory = { NULL, 0U };
     Av2hFrameDecodeWorkspace workspace;
     Av2hFilterWorkspace filter_workspace;
     Av2hFilterWorkspaceStorage filter_storage;
@@ -551,7 +554,7 @@ static Av2hStatus decode_obu(Av2hSpan input,
     if (status != AV2H_OK) return status;
     sequence_obu = find_obu(&ledger, AV2H_OBU_SEQUENCE_HEADER);
     frame_obu = find_obu(&ledger, AV2H_OBU_CLOSED_LOOP_KEY);
-    if (sequence_obu == 0 || frame_obu == 0) return AV2H_INVALID_DATA;
+    if (sequence_obu == NULL || frame_obu == NULL) return AV2H_INVALID_DATA;
     status = av2h_sequence_state_parse(input, sequence_obu, &sequence, &error);
     if (status != AV2H_OK) return status;
     bytes_per_sample = sequence.info.bit_depth_idc == 0U ? 2U : 1U;
@@ -661,7 +664,7 @@ static int write_bmp(const Av2hWinChar *path,
     size_t row_bytes;
     size_t pixel_bytes;
     size_t file_size;
-    Av2hOwnedMemory row_memory = { 0, 0U };
+    Av2hOwnedMemory row_memory = { NULL, 0U };
     uint8_t header[AV2H_BMP_HEADER_SIZE];
     Av2hPlanarPreview preview;
     Av2hWinHandle file;
@@ -690,8 +693,8 @@ static int write_bmp(const Av2hWinChar *path,
     av2h_store_u16le(header + 28U, 24U);
     av2h_store_u32le(header + 34U, (uint32_t)pixel_bytes);
     file = CreateFileW(
-        path, AV2H_WIN_GENERIC_WRITE, 0U, 0, AV2H_WIN_CREATE_ALWAYS,
-        AV2H_WIN_FILE_ATTRIBUTE_NORMAL, 0);
+        path, AV2H_WIN_GENERIC_WRITE, 0U, NULL, AV2H_WIN_CREATE_ALWAYS,
+        AV2H_WIN_FILE_ATTRIBUTE_NORMAL, NULL);
     if (file == AV2H_WIN_INVALID_HANDLE) {
         release_memory(&row_memory);
         return 0;
@@ -738,7 +741,7 @@ static int write_png(const Av2hWinChar *path,
                      uint8_t chroma_format_idc) {
     Av2hPlanarPreview preview;
     Av2hPngRgbImage image;
-    Av2hOwnedMemory row_memory = { 0, 0U };
+    Av2hOwnedMemory row_memory = { NULL, 0U };
     size_t row_size;
     Av2hWinHandle file;
     int result;
@@ -755,8 +758,8 @@ static int write_png(const Av2hWinChar *path,
     image.row_callback = png_preview_row;
     image.row_context = &preview;
     file = CreateFileW(
-        path, AV2H_WIN_GENERIC_WRITE, 0U, 0, AV2H_WIN_CREATE_ALWAYS,
-        AV2H_WIN_FILE_ATTRIBUTE_NORMAL, 0);
+        path, AV2H_WIN_GENERIC_WRITE, 0U, NULL, AV2H_WIN_CREATE_ALWAYS,
+        AV2H_WIN_FILE_ATTRIBUTE_NORMAL, NULL);
     if (file == AV2H_WIN_INVALID_HANDLE) {
         release_memory(&row_memory);
         return 0;
@@ -772,10 +775,10 @@ static int write_png(const Av2hWinChar *path,
 static unsigned int run_decoder(void) {
     const Av2hWinChar *system_command_line = GetCommandLineW();
     size_t command_line_units = wide_length(system_command_line) + 1U;
-    Av2hOwnedMemory command_line = { 0, 0U };
-    Av2hOwnedMemory input = { 0, 0U };
-    Av2hOwnedMemory output = { 0, 0U };
-    Av2hOwnedMemory diagnostic_memory = { 0, 0U };
+    Av2hOwnedMemory command_line = { NULL, 0U };
+    Av2hOwnedMemory input = { NULL, 0U };
+    Av2hOwnedMemory output = { NULL, 0U };
+    Av2hOwnedMemory diagnostic_memory = { NULL, 0U };
     Av2hWinChar *arguments[AV2H_CLI_ARGUMENT_CAPACITY];
     int argument_count;
     uint16_t width = 0U;
@@ -832,7 +835,7 @@ static unsigned int run_decoder(void) {
     raw_extension = av2h_raw_output_extension(&output_format);
     if (!wide_ends_with_ascii(arguments[3], ".bmp") &&
         !wide_ends_with_ascii(arguments[3], ".png") &&
-        (raw_extension == 0 ||
+        (raw_extension == NULL ||
          !wide_ends_with_ascii(arguments[3], raw_extension))) {
         write_console("error: raw output extension does not match decoded format\r\n");
         release_memory(&output);

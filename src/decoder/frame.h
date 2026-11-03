@@ -1,9 +1,11 @@
 #ifndef AV2H_DECODER_FRAME_H
 #define AV2H_DECODER_FRAME_H
 
-#include "decoder/sequence.h"
 #include "decoder/plane.h"
 #include "decoder/quantizer.h"
+#include "decoder/sequence.h"
+
+#include <stddef.h>
 
 #define AV2H_CDEF_MAX_STRENGTHS 8U
 #define AV2H_CCSO_BAND_COUNT 64U
@@ -114,7 +116,7 @@ typedef struct {
 
 static inline unsigned int av2h_frame_plane_count(
     const Av2hFrameState *frame) {
-    return frame != 0 && frame->plane_count == 1U ?
+    return frame != NULL && frame->plane_count == 1U ?
         1U : AV2H_FRAME_PLANE_COUNT;
 }
 
@@ -123,7 +125,7 @@ static inline size_t av2h_frame_plane_dimension(
     unsigned int plane,
     size_t luma_dimension) {
     return av2h_plane_dimension(
-        luma_dimension, frame != 0 ? frame->chroma_format_idc : 0U, plane);
+        luma_dimension, frame != NULL ? frame->chroma_format_idc : 0U, plane);
 }
 
 static inline size_t av2h_frame_mi_dimension(uint16_t pixels) {
@@ -137,7 +139,7 @@ int av2h_frame_tile_layout_read(
 
 static inline int av2h_frame_restoration_needs_tx_skip(
     const Av2hFrameState *frame) {
-    if (frame == 0) return 0;
+    if (frame == NULL) return 0;
     if (frame->restoration_type[0] == AV2H_RESTORE_PC_WIENER ||
         frame->restoration_type[0] == AV2H_RESTORE_SWITCHABLE) return 1;
     return frame->restoration_type[0] == AV2H_RESTORE_WIENER_NONSEP &&

@@ -3,6 +3,8 @@
 
 #include "base.h"
 
+#include <stddef.h>
+
 #define AV2H_BASE_SEGMENT_COUNT 8U
 #define AV2H_SEGMENT_COUNT 16U
 #define AV2H_MAX_TILE_COLUMNS 64U
@@ -79,13 +81,13 @@ typedef struct {
 
 static inline size_t av2h_sequence_segment_count(
     const Av2hSequenceState *sequence) {
-    return sequence != 0 && sequence->enable_ext_seg != 0U ?
+    return sequence != NULL && sequence->enable_ext_seg != 0U ?
         AV2H_SEGMENT_COUNT : AV2H_BASE_SEGMENT_COUNT;
 }
 
 static inline int av2h_sequence_is_monochrome(
     const Av2hSequenceState *sequence) {
-    return sequence != 0 && sequence->info.chroma_format_idc == 1U;
+    return sequence != NULL && sequence->info.chroma_format_idc == 1U;
 }
 
 static inline unsigned int av2h_sequence_plane_count(
@@ -95,7 +97,7 @@ static inline unsigned int av2h_sequence_plane_count(
 
 static inline uint16_t av2h_sequence_max_q_index(
     const Av2hSequenceState *sequence) {
-    return sequence != 0 && sequence->info.bit_depth_idc == 0U ? 303U : 255U;
+    return sequence != NULL && sequence->info.bit_depth_idc == 0U ? 303U : 255U;
 }
 
 static inline uint16_t av2h_sequence_clamp_delta_q_index(

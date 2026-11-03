@@ -1,14 +1,17 @@
 #include "decoder/internal/partition_modules.h"
+
 #include "decoder/internal/decode_diagnostics.h"
+
+#include <stddef.h>
 
 #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
 static void record_diagnostic_decision(
     Av2hDecodeDiagnostics *diagnostics,
     const Av2hPartitionDecision *decision,
     uint8_t structure) {
-    if (diagnostics == 0 || decision == 0 ||
-        diagnostics->partition_trace == 0 ||
-        diagnostics->partition_trace_structure == 0 ||
+    if (diagnostics == NULL || decision == NULL ||
+        diagnostics->partition_trace == NULL ||
+        diagnostics->partition_trace_structure == NULL ||
         diagnostics->partition_trace_count >=
             diagnostics->partition_trace_capacity) {
         return;
@@ -21,15 +24,15 @@ static void record_diagnostic_decision(
 
 const Av2hPartitionDecision *av2h_partition_diagnostic_trace(
     const Av2hDecodeDiagnostics *diagnostics, size_t *count) {
-    if (count != 0) {
-        *count = diagnostics != 0 ? diagnostics->partition_trace_count : 0U;
+    if (count != NULL) {
+        *count = diagnostics != NULL ? diagnostics->partition_trace_count : 0U;
     }
-    return diagnostics != 0 ? diagnostics->partition_trace : 0;
+    return diagnostics != NULL ? diagnostics->partition_trace : NULL;
 }
 
 const uint8_t *av2h_partition_diagnostic_trace_structure(
     const Av2hDecodeDiagnostics *diagnostics) {
-    return diagnostics != 0 ? diagnostics->partition_trace_structure : 0;
+    return diagnostics != NULL ? diagnostics->partition_trace_structure : NULL;
 }
 
 void av2h_partition_diagnostic_forced_decision(
@@ -49,8 +52,8 @@ void av2h_partition_diagnostic_leaf_stage(
     uint8_t stage, uint8_t mode, uint16_t eob, size_t tell) {
     Av2hPartitionLeafDiagnostic *diagnostic;
     (void)node;
-    if (diagnostics == 0 ||
-        diagnostics->partition_leaf_trace == 0 ||
+    if (diagnostics == NULL ||
+        diagnostics->partition_leaf_trace == NULL ||
         diagnostics->partition_leaf_trace_count >=
             diagnostics->partition_leaf_trace_capacity) {
         return;
@@ -65,11 +68,11 @@ void av2h_partition_diagnostic_leaf_stage(
 
 const Av2hPartitionLeafDiagnostic *av2h_partition_diagnostic_leaf_trace(
     const Av2hDecodeDiagnostics *diagnostics, size_t *count) {
-    if (count != 0) {
-        *count = diagnostics != 0 ?
+    if (count != NULL) {
+        *count = diagnostics != NULL ?
             diagnostics->partition_leaf_trace_count : 0U;
     }
-    return diagnostics != 0 ? diagnostics->partition_leaf_trace : 0;
+    return diagnostics != NULL ? diagnostics->partition_leaf_trace : NULL;
 }
 #endif
 
@@ -289,7 +292,7 @@ Av2hStatus av2h_partition_forced_path(uint16_t mi_rows,
                                        Av2hForcedPartitionPath *path) {
     Av2hPartitionNode node = root;
     size_t count = 0U;
-    if (path == 0 || mi_rows == 0U || mi_columns == 0U ||
+    if (path == NULL || mi_rows == 0U || mi_columns == 0U ||
         root.block_size >= AV2H_BLOCK_SIZE_COUNT ||
         root.row >= mi_rows || root.column >= mi_columns) {
         return AV2H_INVALID_ARGUMENT;
@@ -325,7 +328,7 @@ Av2hStatus av2h_partition_first_prefix_read(
     uint16_t mi_rows;
     uint16_t mi_columns;
     Av2hStatus status;
-    if (decoder == 0 || cdfs == 0 || prefix == 0 ||
+    if (decoder == NULL || cdfs == NULL || prefix == NULL ||
         frame_width == 0U || frame_height == 0U) {
         return AV2H_INVALID_ARGUMENT;
     }
@@ -383,7 +386,7 @@ Av2hStatus av2h_partition_first_leaf_read(
     Av2hPartitionNode node = { 0U, 0U, AV2H_BLOCK_64X64 };
     uint16_t mi_rows;
     uint16_t mi_columns;
-    if (decoder == 0 || cdfs == 0 || path == 0 || frame_width == 0U ||
+    if (decoder == NULL || cdfs == NULL || path == NULL || frame_width == 0U ||
         frame_height == 0U || enable_ext_partitions > 1U) {
         return AV2H_INVALID_ARGUMENT;
     }
@@ -499,7 +502,7 @@ Av2hStatus av2h_partition_ordinary_prefix_read(
     size_t extension_context,
     Av2hOrdinaryPartitionPrefix *prefix) {
     uint32_t value;
-    if (decoder == 0 || cdfs == 0 || prefix == 0) {
+    if (decoder == NULL || cdfs == NULL || prefix == NULL) {
         return AV2H_INVALID_ARGUMENT;
     }
     if (split_context >= AV2H_PARTITION_CONTEXT_COUNT ||
@@ -547,7 +550,7 @@ Av2hStatus av2h_partition_node_read_for_structure(
     Av2hPartitionNode *child) {
     Av2hPartitionAxis axis;
     uint32_t value;
-    if (decoder == 0 || cdfs == 0 || decision == 0 || child == 0 ||
+    if (decoder == NULL || cdfs == NULL || decision == NULL || child == NULL ||
         structure >= AV2H_PARTITION_STRUCTURE_COUNT ||
         node.block_size >= AV2H_BLOCK_SIZE_COUNT ||
         split_context >= AV2H_PARTITION_CONTEXT_COUNT ||
@@ -672,8 +675,8 @@ Av2hStatus av2h_partition_node_read_with_state(
     size_t extension_context;
     Av2hStatus status;
     uint32_t value;
-    if (decoder == 0 || cdfs == 0 || state == 0 || decision == 0 ||
-        child == 0 || structure >= AV2H_PARTITION_STRUCTURE_COUNT ||
+    if (decoder == NULL || cdfs == NULL || state == NULL || decision == NULL ||
+        child == NULL || structure >= AV2H_PARTITION_STRUCTURE_COUNT ||
         node.block_size >= AV2H_BLOCK_SIZE_COUNT ||
         mi_rows == 0U || mi_columns == 0U ||
         enable_ext_partitions > 1U ||
@@ -1046,7 +1049,7 @@ Av2hStatus av2h_partition_child_nodes(
     Av2hPartitionTraversal traversal;
     Av2hStatus status;
     size_t index;
-    if (children == 0 || child_count == 0 ||
+    if (children == NULL || child_count == NULL ||
         partition == AV2H_PARTITION_NONE ||
         partition >= AV2H_PARTITION_INVALID) {
         return AV2H_INVALID_ARGUMENT;
@@ -1069,7 +1072,7 @@ Av2hStatus av2h_partition_traversal_init(
     size_t structure,
     unsigned int enable_ext_partitions,
     unsigned int enable_uneven_4way_partitions) {
-    if (traversal == 0 || mi_rows == 0U || mi_columns == 0U ||
+    if (traversal == NULL || mi_rows == 0U || mi_columns == 0U ||
         root.row >= mi_rows || root.column >= mi_columns ||
         root.block_size >= AV2H_BLOCK_SIZE_COUNT ||
         structure >= AV2H_PARTITION_STRUCTURE_COUNT ||
@@ -1089,14 +1092,14 @@ Av2hStatus av2h_partition_traversal_init(
     traversal->has_pending_leaf = 0U;
     traversal->diagnostic_node = root;
     traversal->diagnostic_before_bits = 0U;
-    traversal->diagnostics = 0;
+    traversal->diagnostics = NULL;
     return AV2H_OK;
 }
 
 Av2hStatus av2h_partition_traversal_reset_root(
     Av2hPartitionTraversal *traversal,
     Av2hPartitionNode root) {
-    if (traversal == 0 || traversal->mi_rows == 0U ||
+    if (traversal == NULL || traversal->mi_rows == 0U ||
         traversal->mi_columns == 0U || traversal->has_pending_leaf ||
         root.row >= traversal->mi_rows ||
         root.column >= traversal->mi_columns ||
@@ -1118,7 +1121,7 @@ Av2hStatus av2h_partition_traversal_force(
     uint8_t *has_leaf) {
     Av2hPartitionNode node;
     Av2hStatus status;
-    if (traversal == 0 || has_leaf == 0 || traversal->has_pending_leaf ||
+    if (traversal == NULL || has_leaf == NULL || traversal->has_pending_leaf ||
         traversal->stack_count == 0U ||
         partition >= AV2H_PARTITION_INVALID) {
         return AV2H_INVALID_ARGUMENT;
@@ -1146,8 +1149,8 @@ Av2hStatus av2h_partition_traversal_next(
     const Av2hPartitionContextState *state,
     Av2hFirstLeafPath *path,
     uint8_t *has_leaf) {
-    if (traversal == 0 || decoder == 0 || cdfs == 0 || state == 0 ||
-        path == 0 || has_leaf == 0 || traversal->has_pending_leaf) {
+    if (traversal == NULL || decoder == NULL || cdfs == NULL || state == NULL ||
+        path == NULL || has_leaf == NULL || traversal->has_pending_leaf) {
         return AV2H_INVALID_ARGUMENT;
     }
     path->decision_count = 0U;
@@ -1230,7 +1233,7 @@ Av2hStatus av2h_partition_traversal_commit_leaf(
     Av2hPartitionContextState *state,
     Av2hPartitionNode leaf) {
     Av2hStatus status;
-    if (traversal == 0 || state == 0 || !traversal->has_pending_leaf ||
+    if (traversal == NULL || state == NULL || !traversal->has_pending_leaf ||
         traversal->pending_leaf.row != leaf.row ||
         traversal->pending_leaf.column != leaf.column ||
         traversal->pending_leaf.block_size != leaf.block_size) {

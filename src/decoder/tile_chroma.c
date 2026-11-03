@@ -1,9 +1,12 @@
 #include "tile.h"
+
 #include "internal/decode_diagnostics.h"
 #include "internal/tile_modules.h"
 #include "tx_geometry.h"
 
-static uint8_t tile_cfl_allowed_for_sdp(
+#include <stddef.h>
+
+static int tile_cfl_allowed_for_sdp(
     const Av2hTileDecoder *decoder,
     Av2hBlockSize block_size) {
     Av2hPartitionType luma_root_partition = decoder->root.luma_root_partition;
@@ -12,28 +15,28 @@ static uint8_t tile_cfl_allowed_for_sdp(
     if (decoder->superblock.current_block_q_index == 0U &&
         decoder->entropy_state.frame->chroma_format_idc == 2U &&
         block_size != AV2H_BLOCK_4X4) {
-        return 0U;
+        return 0;
     }
-    if (!decoder->entropy_state.sequence->enable_sdp) return 1U;
+    if (!decoder->entropy_state.sequence->enable_sdp) return 1;
     if (block_size == AV2H_BLOCK_128X128 ||
         block_size == AV2H_BLOCK_64X128 ||
         block_size == AV2H_BLOCK_128X64) {
-        return 1U;
+        return 1;
     }
     if (decoder->root.root_block_size == AV2H_BLOCK_128X128 &&
         decoder->root.square_root_child_index < 4U &&
         decoder->root.square_child_luma_partition != AV2H_PARTITION_INVALID) {
         luma_root_partition = decoder->root.square_child_luma_partition;
     }
-    if (decoder->root.chroma_root_partition == AV2H_PARTITION_NONE) return 1U;
+    if (decoder->root.chroma_root_partition == AV2H_PARTITION_NONE) return 1;
     if (luma_root_partition == decoder->root.chroma_root_partition) {
-        return 1U;
+        return 1;
     }
     luma_direction = av2h_tile_partition_direction(
         luma_root_partition);
     chroma_direction = av2h_tile_partition_direction(
         decoder->root.chroma_root_partition);
-    return (uint8_t)(luma_direction != 0U &&
+    return (luma_direction != 0U &&
                      luma_direction == chroma_direction);
 }
 
@@ -153,7 +156,7 @@ Av2hStatus av2h_tile_decoder_read_shared_chroma_mode(
     uint8_t cfl_context = 0U;
     size_t index;
     Av2hStatus status;
-    if (decoder == 0 || node == 0 ||
+    if (decoder == NULL || node == NULL ||
         (node->block_size != AV2H_BLOCK_128X128 &&
          node->block_size != AV2H_BLOCK_64X128 &&
          node->block_size != AV2H_BLOCK_128X64)) {
@@ -210,8 +213,8 @@ Av2hStatus av2h_tile_decoder_next_chroma(
     Av2hFirstCoeffBlock *blocks[2U];
     size_t index;
     Av2hStatus status;
-    if (decoder == 0 || leaf == 0 || u_block == 0 || v_block == 0 ||
-        has_leaf == 0) {
+    if (decoder == NULL || leaf == NULL || u_block == NULL || v_block == NULL ||
+        has_leaf == NULL) {
         return AV2H_INVALID_ARGUMENT;
     }
     if (decoder->control.status != AV2H_OK) return decoder->control.status;
@@ -640,8 +643,8 @@ Av2hStatus av2h_tile_decoder_reconstruct_next_chroma(
     Av2hFirstCoeffBlock u_block;
     Av2hFirstCoeffBlock v_block;
     Av2hStatus status;
-    if (decoder == 0 || u_plane == 0 || v_plane == 0 || scratch == 0 ||
-        leaf == 0 || has_leaf == 0) {
+    if (decoder == NULL || u_plane == NULL || v_plane == NULL || scratch == NULL ||
+        leaf == NULL || has_leaf == NULL) {
         return AV2H_INVALID_ARGUMENT;
     }
     status = av2h_tile_decoder_next_chroma(
@@ -653,12 +656,12 @@ Av2hStatus av2h_tile_decoder_reconstruct_next_chroma(
     if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
     status = av2h_chroma_reconstruct_to_plane_format(
         &leaf->node, &leaf->mode, &leaf->prefix[0], &leaf->transform[0],
-        &u_block, u_plane, 0, 1U, 0,
+        &u_block, u_plane, NULL, 1U, NULL,
         decoder->entropy_state.sequence->info.chroma_format_idc, scratch);
     if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
     status = av2h_chroma_reconstruct_to_plane_format(
         &leaf->node, &leaf->mode, &leaf->prefix[1], &leaf->transform[1],
-        &v_block, v_plane, 0, 2U, 0,
+        &v_block, v_plane, NULL, 2U, NULL,
         decoder->entropy_state.sequence->info.chroma_format_idc, scratch);
     if (status != AV2H_OK) return av2h_tile_decoder_fail(decoder, status);
     return av2h_tile_decoder_commit_leaf(decoder, leaf->node);

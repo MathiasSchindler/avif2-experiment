@@ -5,6 +5,10 @@
 #include "partition_cdf.h"
 #include "range.h"
 
+#define AV2H_MAX_FORCED_PARTITION_ANCESTORS 8U
+#define AV2H_MAX_FIRST_LEAF_PARTITIONS 16U
+#define AV2H_MAX_PARTITION_TRAVERSAL_NODES 32U
+
 typedef enum {
     AV2H_PARTITION_NONE,
     AV2H_PARTITION_HORZ,
@@ -23,10 +27,6 @@ typedef enum {
     AV2H_PARTITION_HORIZONTAL = 0,
     AV2H_PARTITION_VERTICAL = 1
 } Av2hPartitionAxis;
-
-#define AV2H_MAX_FORCED_PARTITION_ANCESTORS 8U
-#define AV2H_MAX_FIRST_LEAF_PARTITIONS 16U
-#define AV2H_MAX_PARTITION_TRAVERSAL_NODES 32U
 
 typedef struct {
     Av2hPartitionNode node;

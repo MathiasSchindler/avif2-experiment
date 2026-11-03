@@ -1,6 +1,9 @@
-#include "base.h"
 #include "carriage.h"
+
+#include "base.h"
 #include "decoder/internal/obu.h"
+
+#include <stddef.h>
 
 static Av2hStatus reject_extra_obu(Av2hSpan input,
                                     const Av2hObu *first,
@@ -18,7 +21,7 @@ static Av2hStatus reject_extra_obu(Av2hSpan input,
     Av2hError extra_error;
     Av2hStatus status = av2h_obu_parse(extra, &extra_ledger, &extra_error);
     if (status != AV2H_OK && status != AV2H_LIMIT_EXCEEDED) {
-        if (error != 0) {
+        if (error != NULL) {
             *error = extra_error;
             error->offset += base_offset + extra_offset;
             error->obu_index = 1U;
@@ -56,8 +59,8 @@ Av2hStatus av2h_av2c_parse(Av2hSpan input,
     Av2hObuLedger local_ledger = { local_entries, 2U, 0U };
     Av2hSequenceInfo parsed;
     Av2hStatus status;
-    if ((input.data == 0 && input.size != 0U) || configuration == 0 || ledger == 0 ||
-        (ledger->entries == 0 && ledger->capacity != 0U)) {
+    if ((input.data == NULL && input.size != 0U) || configuration == NULL || ledger == NULL ||
+        (ledger->entries == NULL && ledger->capacity != 0U)) {
         return av2h_obu_fail(error, AV2H_INVALID_ARGUMENT, 0U, AV2H_CONTEXT_AV2C);
     }
     ledger->count = 0U;
@@ -105,7 +108,7 @@ Av2hStatus av2h_av2c_parse(Av2hSpan input,
                                 9U, AV2H_CONTEXT_AV2C, error);
     }
     if (status != AV2H_OK) {
-        if (error != 0) error->offset += 9U;
+        if (error != NULL) error->offset += 9U;
         return status;
     }
     if ((local_ledger.count != 1U && local_ledger.count != 2U) ||
@@ -114,10 +117,10 @@ Av2hStatus av2h_av2c_parse(Av2hSpan input,
          local_entries[1].type != AV2H_OBU_CONTENT_INTERPRETATION)) {
         const Av2hObu *offending = local_ledger.count == 2U ?
             &local_entries[1] :
-            (local_ledger.count == 0U ? 0 : &local_entries[0]);
+            (local_ledger.count == 0U ? NULL : &local_entries[0]);
         return av2h_obu_fail_at(error, AV2H_INVALID_DATA,
                 offending,
-                9U + (offending == 0 ? 0U : offending->offset),
+                9U + (offending == NULL ? 0U : offending->offset),
                 AV2H_CONTEXT_AV2C);
     }
     if (ledger->capacity < local_ledger.count) {
@@ -129,7 +132,7 @@ Av2hStatus av2h_av2c_parse(Av2hSpan input,
     status = av2h_sequence_header_parse(configuration->config_obus,
                                         &local_entries[0], &parsed, error);
     if (status != AV2H_OK) {
-        if (error != 0) error->offset += 9U;
+        if (error != NULL) error->offset += 9U;
         return status;
     }
     if (local_ledger.count == 2U) {
@@ -137,7 +140,7 @@ Av2hStatus av2h_av2c_parse(Av2hSpan input,
         status = av2h_content_interpretation_parse(
             configuration->config_obus, &local_entries[1], &color, error);
         if (status != AV2H_OK) {
-            if (error != 0) error->offset += 9U;
+            if (error != NULL) error->offset += 9U;
             return status;
         }
     }
@@ -159,8 +162,8 @@ Av2hStatus av2h_av2c_write(const Av2hAv2C *configuration,
     Av2hError error;
     unsigned char packed[4];
     size_t required;
-    if (configuration == 0 || written == 0 ||
-        (configuration->config_obus.data == 0 && configuration->config_obus.size != 0U) ||
+    if (configuration == NULL || written == NULL ||
+        (configuration->config_obus.data == NULL && configuration->config_obus.size != 0U) ||
         !av2h_size_add(9U, configuration->config_obus.size, &required)) {
         return AV2H_INVALID_ARGUMENT;
     }
@@ -198,7 +201,7 @@ Av2hStatus av2h_av2c_write(const Av2hAv2C *configuration,
         }
     }
     *written = required;
-    if (output == 0 && output_size == 0U) return AV2H_OK;
+    if (output == NULL && output_size == 0U) return AV2H_OK;
     av2h_byte_writer_init(&bytes, output, output_size);
     if (required > output_size) return AV2H_OUT_OF_MEMORY;
     av2h_bit_writer_init(&bits, packed, sizeof(packed));
@@ -234,10 +237,10 @@ Av2hStatus av2h_carriage_validate_metadata(Av2hSpan config_obus,
     Av2hObuLedger config_ledger = { config_entries, 2U, 0U };
     Av2hObuLedger payload_ledger = { &payload_entry, 1U, 0U };
     Av2hStatus status;
-    if (sequence == 0 || (color == 0) != (color_present == 0)) {
+    if (sequence == NULL || (color == NULL) != (color_present == NULL)) {
         return av2h_obu_fail(error, AV2H_INVALID_ARGUMENT, 0U, AV2H_CONTEXT_OBU_ORDER);
     }
-    if (color_present != 0) *color_present = 0U;
+    if (color_present != NULL) *color_present = 0U;
     status = av2h_obu_parse(config_obus, &config_ledger, error);
     if (status == AV2H_LIMIT_EXCEEDED) {
         return reject_extra_obu(config_obus, &config_entries[1], 0U,
@@ -250,10 +253,10 @@ Av2hStatus av2h_carriage_validate_metadata(Av2hSpan config_obus,
          config_entries[1].type != AV2H_OBU_CONTENT_INTERPRETATION)) {
         const Av2hObu *offending = config_ledger.count == 2U ?
             &config_entries[1] :
-            (config_ledger.count == 0U ? 0 : &config_entries[0]);
+            (config_ledger.count == 0U ? NULL : &config_entries[0]);
         return av2h_obu_fail_at(error, AV2H_INVALID_DATA,
                         offending,
-                        offending == 0 ? 0U : offending->offset,
+                        offending == NULL ? 0U : offending->offset,
                         AV2H_CONTEXT_OBU_ORDER);
     }
     status = av2h_sequence_header_parse(config_obus, &config_entries[0],
@@ -262,10 +265,10 @@ Av2hStatus av2h_carriage_validate_metadata(Av2hSpan config_obus,
     if (config_ledger.count == 2U) {
         Av2hColorInfo ignored;
         status = av2h_content_interpretation_parse(
-            config_obus, &config_entries[1], color != 0 ? color : &ignored,
+            config_obus, &config_entries[1], color != NULL ? color : &ignored,
             error);
         if (status != AV2H_OK) return status;
-        if (color_present != 0) *color_present = 1U;
+        if (color_present != NULL) *color_present = 1U;
     }
     status = av2h_obu_parse(item_payload, &payload_ledger, error);
     if (status == AV2H_LIMIT_EXCEEDED) {
@@ -279,7 +282,7 @@ Av2hStatus av2h_carriage_validate_metadata(Av2hSpan config_obus,
         payload_entry.temporal_id != 0U ||
         payload_entry.payload_size == 0U) {
         return av2h_obu_fail_at(error, AV2H_INVALID_DATA,
-            payload_ledger.count == 0U ? 0 : &payload_entry,
+            payload_ledger.count == 0U ? NULL : &payload_entry,
             payload_ledger.count == 0U ? 0U : payload_entry.offset,
                 AV2H_CONTEXT_OBU_ORDER);
     }
@@ -291,5 +294,5 @@ Av2hStatus av2h_carriage_validate(Av2hSpan config_obus,
                                   Av2hSequenceInfo *sequence,
                                   Av2hError *error) {
     return av2h_carriage_validate_metadata(
-        config_obus, item_payload, sequence, 0, 0, error);
+        config_obus, item_payload, sequence, NULL, NULL, error);
 }

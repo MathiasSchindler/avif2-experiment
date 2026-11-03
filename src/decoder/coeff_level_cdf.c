@@ -1,9 +1,17 @@
 #include "coeff_level.h"
 
+#include "internal/coeff_cdf_specs.h"
 #include "internal/coeff_common.h"
 #include "internal/coeff_modules.h"
 
+#include <stddef.h>
+
 #include "coeff_cdf_all.inc"
+#include "coeff_cdf_q0_txs012.inc"
+#include "coeff_cdf_q0_txs3.inc"
+#include "coeff_cdf_q0_txs4.inc"
+#include "coeff_cdf_q0_uv.inc"
+#include "fsc_cdf_data.inc"
 
 static void initialize_full_level_cdfs(
     Av2hFirstCoeffLevelCdfs *cdfs, uint8_t q_context) {
@@ -37,42 +45,6 @@ static void initialize_full_level_cdfs(
                      av2h_coeff_br_uv[q_context],
                      sizeof(cdfs->full_uv_br));
 }
-
-typedef struct {
-    uint8_t tx_context;
-    uint8_t context;
-} Av2hCoeffKey;
-
-typedef struct {
-    uint8_t tx_context;
-    uint8_t context;
-    uint16_t threshold[3U];
-    uint8_t parameter;
-} Av2hBaseSpec;
-
-typedef struct {
-    uint8_t tx_context;
-    uint8_t context;
-    uint16_t threshold[5U];
-    uint8_t parameter;
-} Av2hLfSpec;
-
-typedef struct {
-    uint8_t context;
-    uint16_t threshold[3U];
-    uint8_t parameter;
-} Av2hBrSpec;
-
-typedef struct {
-    uint16_t threshold[3U];
-    uint8_t parameter;
-} Av2hFscCdfSpec;
-
-#include "fsc_cdf_data.inc"
-#include "coeff_cdf_q0_txs4.inc"
-#include "coeff_cdf_q0_txs3.inc"
-#include "coeff_cdf_q0_txs012.inc"
-#include "coeff_cdf_q0_uv.inc"
 
 static Av2hStatus initialize_fsc_cdfs(
     Av2hFirstCoeffLevelCdfs *cdfs, uint8_t q_context) {
@@ -388,7 +360,7 @@ Av2hStatus av2h_first_coeff_level_cdfs_init(Av2hFirstCoeffLevelCdfs *cdfs) {
     };
     size_t index;
     Av2hStatus status;
-    if (cdfs == 0) return AV2H_INVALID_ARGUMENT;
+    if (cdfs == NULL) return AV2H_INVALID_ARGUMENT;
     cdfs->q_context = 1U;
     initialize_full_level_cdfs(cdfs, cdfs->q_context);
     status = av2h_cdf_init(cdfs->eob_base[0], 7U, eob_base_txs0, 3U, 3U, 0U);
@@ -443,7 +415,7 @@ Av2hStatus av2h_first_coeff_level_cdfs_init(Av2hFirstCoeffLevelCdfs *cdfs) {
             &cdfs->base[0][0], 8U, base_keys,
             sizeof(base_keys) / sizeof(base_keys[0]),
             base_specs[index].tx_context, base_specs[index].context);
-        if (base == 0) return AV2H_UNSUPPORTED;
+        if (base == NULL) return AV2H_UNSUPPORTED;
         status = av2h_cdf_init(base, 8U,
                                base_specs[index].threshold, 4U,
                                base_specs[index].parameter, 0U);
@@ -456,7 +428,7 @@ Av2hStatus av2h_first_coeff_level_cdfs_init(Av2hFirstCoeffLevelCdfs *cdfs) {
             sizeof(base_lf_keys) / sizeof(base_lf_keys[0]),
             base_lf_specs[index].tx_context,
             base_lf_specs[index].context);
-        if (base_lf == 0) return AV2H_UNSUPPORTED;
+        if (base_lf == NULL) return AV2H_UNSUPPORTED;
         status = av2h_cdf_init(base_lf, 10U,
                                base_lf_specs[index].threshold, 6U,
                                base_lf_specs[index].parameter, 0U);
@@ -555,7 +527,7 @@ static uint16_t *find_key(uint16_t *rows, size_t row_words,
             return rows + index * row_words;
         }
     }
-    return 0;
+    return NULL;
 }
 
 static uint16_t *find_context(uint16_t *rows, size_t row_words,
@@ -565,7 +537,7 @@ static uint16_t *find_context(uint16_t *rows, size_t row_words,
     for (index = 0U; index < key_count; ++index) {
         if (keys[index] == context) return rows + index * row_words;
     }
-    return 0;
+    return NULL;
 }
 
 uint16_t *av2h_coeff_level_base_row(
@@ -602,7 +574,7 @@ static Av2hStatus initialize_level_row(
     const uint16_t *thresholds,
     size_t symbol_count,
     uint8_t parameter) {
-    if (row == 0) return AV2H_UNSUPPORTED;
+    if (row == NULL) return AV2H_UNSUPPORTED;
     return av2h_cdf_init(
         row, row_words, thresholds, symbol_count, parameter, 0U);
 }
@@ -2025,4 +1997,3 @@ Av2hStatus av2h_first_coeff_level_cdfs_init_for_q(
     }
     return AV2H_OK;
 }
-

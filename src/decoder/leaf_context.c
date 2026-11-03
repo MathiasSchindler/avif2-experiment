@@ -1,5 +1,7 @@
 #include "leaf.h"
 
+#include <stddef.h>
+
 Av2hStatus av2h_luma_mode_context_state_init(
     Av2hLumaModeContextState *state,
     Av2hLumaModeContext *above,
@@ -7,13 +9,13 @@ Av2hStatus av2h_luma_mode_context_state_init(
     Av2hLumaModeContext *left,
     size_t left_count) {
     size_t index;
-    if (state == 0 || above == 0 || left == 0 || above_count == 0U ||
+    if (state == NULL || above == NULL || left == NULL || above_count == 0U ||
         left_count == 0U) {
         return AV2H_INVALID_ARGUMENT;
     }
     state->above = above;
     state->left = left;
-    state->spatial = 0;
+    state->spatial = NULL;
     state->above_count = above_count;
     state->left_count = left_count;
     state->spatial_stride_bytes = 0U;
@@ -39,16 +41,16 @@ Av2hStatus av2h_luma_mode_neighbors_from_state(
     const Av2hLumaModeContextState *state,
     const Av2hPartitionNode *leaf,
     Av2hLumaModeNeighbors *neighbors) {
-    const Av2hLumaModeContext *candidates[4U] = { 0, 0, 0, 0 };
-    const Av2hLumaModeContext *selected[2U] = { 0, 0 };
-    const Av2hLumaModeContext *spatial[2U] = { 0, 0 };
+    const Av2hLumaModeContext *candidates[4U] = { NULL, NULL, NULL, NULL };
+    const Av2hLumaModeContext *selected[2U] = { NULL, NULL };
+    const Av2hLumaModeContext *spatial[2U] = { NULL, NULL };
     size_t spatial_count = 0U;
     size_t width;
     size_t height;
     size_t left_index;
     size_t index;
     uint8_t not_at_superblock_top;
-    if (state == 0 || leaf == 0 || neighbors == 0 ||
+    if (state == NULL || leaf == NULL || neighbors == NULL ||
         leaf->block_size >= AV2H_BLOCK_SIZE_COUNT) {
         return AV2H_INVALID_ARGUMENT;
     }
@@ -69,9 +71,9 @@ Av2hStatus av2h_luma_mode_neighbors_from_state(
         size_t bottom_row = (size_t)leaf->row + height - 1U;
         candidates[2] = left;
         selected[0] = left;
-        if (state->spatial != 0 && state->spatial_rows != 0U &&
+        if (state->spatial != NULL && state->spatial_rows != 0U &&
             bottom_row >= state->spatial_rows) {
-            selected[0] = 0;
+            selected[0] = NULL;
         } else if (state->spatial_rows == 0U ||
                    bottom_row < state->spatial_rows) {
             const Av2hLumaModeContext *bottom_left =
@@ -98,7 +100,7 @@ Av2hStatus av2h_luma_mode_neighbors_from_state(
         if (!not_at_superblock_top && (index == 1U || index == 3U)) {
             continue;
         }
-        if (candidates[index] != 0 && candidates[index]->present) {
+        if (candidates[index] != NULL && candidates[index]->present) {
             spatial[spatial_count++] = candidates[index];
         }
     }
@@ -106,7 +108,7 @@ Av2hStatus av2h_luma_mode_neighbors_from_state(
     {
         size_t line_count = 0U;
         for (index = 0U; index < 4U && line_count < 2U; ++index) {
-            if (candidates[index] != 0 && candidates[index]->present) {
+            if (candidates[index] != NULL && candidates[index]->present) {
                 neighbors->line_present[line_count] = 1U;
                 neighbors->line_skip_transform[line_count] =
                     candidates[index]->skip_transform;
@@ -116,72 +118,72 @@ Av2hStatus av2h_luma_mode_neighbors_from_state(
     }
     neighbors->spatial_valid = state->superblock_mi != 0U;
     neighbors->ccso_present[0] =
-        (uint8_t)(candidates[2] != 0 && candidates[2]->present);
+        (uint8_t)(candidates[2] != NULL && candidates[2]->present);
     neighbors->ccso_present[1] =
-        (uint8_t)(candidates[3] != 0 && candidates[3]->present);
+        (uint8_t)(candidates[3] != NULL && candidates[3]->present);
     neighbors->ccso_owner_row[0] =
-        candidates[2] != 0 ? candidates[2]->owner_row : 0U;
+        candidates[2] != NULL ? candidates[2]->owner_row : 0U;
     neighbors->ccso_owner_row[1] =
-        candidates[3] != 0 ? candidates[3]->owner_row : 0U;
+        candidates[3] != NULL ? candidates[3]->owner_row : 0U;
     neighbors->ccso_owner_column[0] =
-        candidates[2] != 0 ? candidates[2]->owner_column : 0U;
+        candidates[2] != NULL ? candidates[2]->owner_column : 0U;
     neighbors->ccso_owner_column[1] =
-        candidates[3] != 0 ? candidates[3]->owner_column : 0U;
+        candidates[3] != NULL ? candidates[3]->owner_column : 0U;
     for (index = 0U; index < 2U; ++index) {
         const Av2hLumaModeContext *context = selected[index];
         const Av2hLumaModeContext *spatial_context = spatial[index];
         neighbors->present[index] =
-            (uint8_t)(context != 0 && context->present);
-        neighbors->use_intrabc[index] = context != 0 ? context->use_intrabc : 0U;
+            (uint8_t)(context != NULL && context->present);
+        neighbors->use_intrabc[index] = context != NULL ? context->use_intrabc : 0U;
         neighbors->skip_transform[index] =
-            context != 0 ? context->skip_transform : 0U;
-        neighbors->joint_mode[index] = context != 0 ? context->joint_mode : 0U;
-        neighbors->fsc_mode[index] = context != 0 ? context->fsc_mode : 0U;
-        neighbors->mrl_index[index] = context != 0 ? context->mrl_index : 0U;
+            context != NULL ? context->skip_transform : 0U;
+        neighbors->joint_mode[index] = context != NULL ? context->joint_mode : 0U;
+        neighbors->fsc_mode[index] = context != NULL ? context->fsc_mode : 0U;
+        neighbors->mrl_index[index] = context != NULL ? context->mrl_index : 0U;
         neighbors->multi_line_mrl[index] =
-            context != 0 ? context->multi_line_mrl : 0U;
+            context != NULL ? context->multi_line_mrl : 0U;
         neighbors->use_intra_dip[index] =
-            context != 0 ? context->use_intra_dip : 0U;
+            context != NULL ? context->use_intra_dip : 0U;
         neighbors->morph_pred[index] =
-            context != 0 ? context->morph_pred : 0U;
+            context != NULL ? context->morph_pred : 0U;
         neighbors->owner_row[index] =
-            context != 0 ? context->owner_row : 0U;
+            context != NULL ? context->owner_row : 0U;
         neighbors->owner_column[index] =
-            context != 0 ? context->owner_column : 0U;
+            context != NULL ? context->owner_column : 0U;
         neighbors->spatial_present[index] =
-            (uint8_t)(spatial_context != 0 && spatial_context->present);
+            (uint8_t)(spatial_context != NULL && spatial_context->present);
         neighbors->spatial_use_intrabc[index] =
-            spatial_context != 0 ? spatial_context->use_intrabc : 0U;
-        neighbors->spatial_skip_transform[index] = spatial_context != 0 ?
+            spatial_context != NULL ? spatial_context->use_intrabc : 0U;
+        neighbors->spatial_skip_transform[index] = spatial_context != NULL ?
             spatial_context->skip_transform : 0U;
-        neighbors->spatial_joint_mode[index] = spatial_context != 0 ?
+        neighbors->spatial_joint_mode[index] = spatial_context != NULL ?
             spatial_context->joint_mode : 0U;
         neighbors->spatial_fsc_mode[index] =
-            spatial_context != 0 ? spatial_context->fsc_mode : 0U;
+            spatial_context != NULL ? spatial_context->fsc_mode : 0U;
         neighbors->spatial_mrl_index[index] =
-            spatial_context != 0 ? spatial_context->mrl_index : 0U;
+            spatial_context != NULL ? spatial_context->mrl_index : 0U;
         neighbors->spatial_multi_line_mrl[index] =
-            spatial_context != 0 ? spatial_context->multi_line_mrl : 0U;
+            spatial_context != NULL ? spatial_context->multi_line_mrl : 0U;
         neighbors->spatial_morph_pred[index] =
-            spatial_context != 0 ? spatial_context->morph_pred : 0U;
-        neighbors->spatial_use_intra_dip[index] = spatial_context != 0 ?
+            spatial_context != NULL ? spatial_context->morph_pred : 0U;
+        neighbors->spatial_use_intra_dip[index] = spatial_context != NULL ?
             spatial_context->use_intra_dip : 0U;
     }
     neighbors->edge_smooth[0] = (uint8_t)(
-        candidates[2] != 0 && candidates[2]->present &&
+        candidates[2] != NULL && candidates[2]->present &&
         candidates[2]->joint_mode >= 1U && candidates[2]->joint_mode <= 3U);
     neighbors->edge_smooth[1] = (uint8_t)(
-        candidates[3] != 0 && candidates[3]->present &&
+        candidates[3] != NULL && candidates[3]->present &&
         candidates[3]->joint_mode >= 1U && candidates[3]->joint_mode <= 3U);
-    neighbors->palette_size[0] = candidates[2] != 0 ?
+    neighbors->palette_size[0] = candidates[2] != NULL ?
         candidates[2]->palette_size : 0U;
     neighbors->palette_size[1] =
-        candidates[3] != 0 && leaf->row % 16U != 0U ?
+        candidates[3] != NULL && leaf->row % 16U != 0U ?
             candidates[3]->palette_size : 0U;
     for (index = 0U; index < AV2H_PALETTE_MAX_SIZE; ++index) {
-        neighbors->palette_colors[0][index] = candidates[2] != 0 ?
+        neighbors->palette_colors[0][index] = candidates[2] != NULL ?
             candidates[2]->palette_colors[index] : 0U;
-        neighbors->palette_colors[1][index] = candidates[3] != 0 ?
+        neighbors->palette_colors[1][index] = candidates[3] != NULL ?
             candidates[3]->palette_colors[index] : 0U;
     }
     return AV2H_OK;
@@ -197,7 +199,7 @@ Av2hStatus av2h_luma_mode_context_state_update(
     size_t left_index;
     size_t index;
     Av2hStatus status;
-    if (state == 0 || leaf == 0 || mode == 0) {
+    if (state == NULL || leaf == NULL || mode == NULL) {
         return AV2H_INVALID_ARGUMENT;
     }
     status = av2h_block_dimensions_mi(leaf->block_size, &width, &height);

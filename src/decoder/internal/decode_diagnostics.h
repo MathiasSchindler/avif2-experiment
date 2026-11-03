@@ -3,10 +3,10 @@
 
 #include "base.h"
 
-typedef struct Av2hPartitionDecision Av2hPartitionDecision;
-
 #define AV2H_PARTITION_DIAGNOSTIC_CAPACITY 131072U
 #define AV2H_PARTITION_LEAF_DIAGNOSTIC_CAPACITY 512U
+
+typedef struct Av2hPartitionDecision Av2hPartitionDecision;
 
 typedef struct {
     uint32_t luma_stage_ranges[5U];

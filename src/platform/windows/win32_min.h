@@ -4,19 +4,6 @@
 #include <stddef.h>
 #include <stdint.h>
 
-typedef void *Av2hWinHandle;
-typedef uint16_t Av2hWinChar;
-typedef int Av2hWinBool;
-typedef uint32_t Av2hWinDword;
-
-typedef union {
-    struct {
-        uint32_t low;
-        int32_t high;
-    } parts;
-    int64_t quad;
-} Av2hWinLargeInteger;
-
 #define AV2H_WIN_INVALID_HANDLE ((Av2hWinHandle)(intptr_t)-1)
 #define AV2H_WIN_STD_ERROR_HANDLE ((Av2hWinDword)-12)
 #define AV2H_WIN_GENERIC_READ 0x80000000U
@@ -29,6 +16,19 @@ typedef union {
 #define AV2H_WIN_MEM_RESERVE 0x00002000U
 #define AV2H_WIN_MEM_RELEASE 0x00008000U
 #define AV2H_WIN_PAGE_READWRITE 0x00000004U
+
+typedef void *Av2hWinHandle;
+typedef uint16_t Av2hWinChar;
+typedef int Av2hWinBool;
+typedef uint32_t Av2hWinDword;
+
+typedef union {
+    struct {
+        uint32_t low;
+        int32_t high;
+    } parts;
+    int64_t quad;
+} Av2hWinLargeInteger;
 
 __declspec(dllimport) void *__stdcall GetCommandLineW(void);
 __declspec(dllimport) Av2hWinHandle __stdcall GetStdHandle(Av2hWinDword value);

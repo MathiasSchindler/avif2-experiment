@@ -1,12 +1,15 @@
 #include "tile.h"
+
 #include "internal/decode_diagnostics.h"
 #include "internal/tile_modules.h"
 #include "tx_geometry.h"
 
+#include <stddef.h>
+
 Av2hStatus av2h_tile_luma_tx_node_get(
     const Av2hTileDecoder *decoder, uint16_t index,
     Av2hPartitionNode *node) {
-    if (decoder == 0 || node == 0) return AV2H_INVALID_ARGUMENT;
+    if (decoder == NULL || node == NULL) return AV2H_INVALID_ARGUMENT;
     if (decoder->luma.selected_tx_count != 0U) {
         if (index >= decoder->luma.selected_tx_count) {
             return AV2H_INVALID_ARGUMENT;
@@ -32,17 +35,17 @@ static void tile_reset_left_partition_contexts(Av2hTileDecoder *decoder) {
 const Av2hTileDiagnostics *av2h_tile_diagnostics_get(
     const Av2hDecodeDiagnostics *diagnostics) {
 #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
-    return diagnostics != 0 ? &diagnostics->tile : 0;
+    return diagnostics != NULL ? &diagnostics->tile : NULL;
 #else
     (void)diagnostics;
-    return 0;
+    return NULL;
 #endif
 }
 
 void av2h_tile_diagnostics_set_luma_range(
     Av2hDecodeDiagnostics *diagnostics, size_t index, uint32_t value) {
 #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
-    if (diagnostics != 0 && index < 5U) {
+    if (diagnostics != NULL && index < 5U) {
         diagnostics->tile.luma_stage_ranges[index] = value;
     }
 #else
@@ -55,7 +58,7 @@ void av2h_tile_diagnostics_set_luma_range(
 void av2h_tile_diagnostics_set_luma_stage(
     Av2hDecodeDiagnostics *diagnostics, uint8_t value) {
 #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
-    if (diagnostics != 0) diagnostics->tile.luma_tile_stage = value;
+    if (diagnostics != NULL) diagnostics->tile.luma_tile_stage = value;
 #else
     (void)diagnostics;
     (void)value;
@@ -65,7 +68,7 @@ void av2h_tile_diagnostics_set_luma_stage(
 void av2h_tile_diagnostics_set_chroma_stage(
     Av2hDecodeDiagnostics *diagnostics, uint8_t value) {
 #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
-    if (diagnostics != 0) diagnostics->tile.chroma_tile_stage = value;
+    if (diagnostics != NULL) diagnostics->tile.chroma_tile_stage = value;
 #else
     (void)diagnostics;
     (void)value;
@@ -75,42 +78,42 @@ void av2h_tile_diagnostics_set_chroma_stage(
 void av2h_tile_diagnostics_set_chroma_reason(
     Av2hDecodeDiagnostics *diagnostics, uint8_t value) {
 #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
-    if (diagnostics != 0) diagnostics->tile.chroma_parse_reason = value;
+    if (diagnostics != NULL) diagnostics->tile.chroma_parse_reason = value;
 #else
     (void)diagnostics;
     (void)value;
 #endif
 }
 
-static uint8_t tile_luma_lossless_unit_complete(
+static int tile_luma_lossless_unit_complete(
     const Av2hTileDecoder *decoder,
     Av2hPartitionNode leaf) {
     Av2hPartitionNode next;
-    if (decoder->luma.tx_index >= decoder->luma.tx_count) return 1U;
+    if (decoder->luma.tx_index >= decoder->luma.tx_count) return 1;
     if (av2h_luma_lossless_tx_node_get(
             &decoder->luma.coding_node, decoder->traversal.mi_columns,
             decoder->traversal.mi_rows, decoder->luma.tx_index, &next) != AV2H_OK) {
-        return 0U;
+        return 0;
     }
-    return (uint8_t)(
+    return (
         (leaf.row - decoder->luma.coding_node.row) / 16U !=
             (next.row - decoder->luma.coding_node.row) / 16U ||
         (leaf.column - decoder->luma.coding_node.column) / 16U !=
             (next.column - decoder->luma.coding_node.column) / 16U);
 }
 
-static uint8_t tile_chroma_lossless_unit_complete(
+static int tile_chroma_lossless_unit_complete(
     const Av2hTileDecoder *decoder,
     Av2hPartitionNode leaf) {
     Av2hPartitionNode next;
-    if (decoder->chroma.tx_index >= decoder->chroma.tx_count) return 1U;
+    if (decoder->chroma.tx_index >= decoder->chroma.tx_count) return 1;
     if (av2h_chroma_lossless_tx_node_get(
             &decoder->chroma.coding_node, decoder->traversal.mi_columns,
             decoder->traversal.mi_rows, decoder->entropy_state.frame->chroma_format_idc,
             decoder->chroma.tx_index, &next) != AV2H_OK) {
-        return 0U;
+        return 0;
     }
-    return (uint8_t)(
+    return (
         (leaf.row - decoder->chroma.coding_node.row) / 16U !=
             (next.row - decoder->chroma.coding_node.row) / 16U ||
         (leaf.column - decoder->chroma.coding_node.column) / 16U !=
@@ -130,7 +133,7 @@ static Av2hStatus tile_group_parse(
     size_t header_size;
     size_t cursor;
     size_t tile_index;
-    if (group == 0 || (payload.data == 0 && payload.size != 0U)) {
+    if (group == NULL || (payload.data == NULL && payload.size != 0U)) {
         return AV2H_INVALID_ARGUMENT;
     }
     av2h_memory_fill(group, 0U, sizeof(*group));
@@ -211,7 +214,7 @@ Av2hStatus av2h_tile_group_parse(Av2hSpan payload,
                                  uint16_t expected_start_tile,
                                  Av2hTileGroup *group) {
     uint32_t tile_count;
-    if (frame == 0) return AV2H_INVALID_ARGUMENT;
+    if (frame == NULL) return AV2H_INVALID_ARGUMENT;
     tile_count = (uint32_t)frame->tile_column_count * frame->tile_row_count;
     if (tile_count == 0U || tile_count > AV2H_PROFILE_MAX_TILES) {
         return AV2H_LIMIT_EXCEEDED;
@@ -232,8 +235,8 @@ Av2hStatus av2h_tile_groups_ledger_parse(
     uint16_t expected_tile = 0U;
     uint8_t found_frame = 0U;
     size_t obu_index;
-    if (ledger == 0 || frame == 0 || group == 0 ||
-        (input.data == 0 && input.size != 0U)) {
+    if (ledger == NULL || frame == NULL || group == NULL ||
+        (input.data == NULL && input.size != 0U)) {
         return AV2H_INVALID_ARGUMENT;
     }
     total_tiles =
@@ -307,7 +310,7 @@ Av2hStatus av2h_tile_groups_ledger_parse(
 
 Av2hStatus av2h_tile_decoder_fail(Av2hTileDecoder *decoder,
                                   Av2hStatus status) {
-    if (decoder != 0 && status != AV2H_OK) decoder->control.status = status;
+    if (decoder != NULL && status != AV2H_OK) decoder->control.status = status;
     return status;
 }
 
@@ -315,7 +318,7 @@ static Av2hStatus tile_superblock_geometry(
     const Av2hSequenceState *sequence,
     uint16_t *superblock_mi,
     Av2hBlockSize *root_block_size) {
-    if (sequence == 0 || superblock_mi == 0 || root_block_size == 0) {
+    if (sequence == NULL || superblock_mi == NULL || root_block_size == NULL) {
         return AV2H_INVALID_ARGUMENT;
     }
     if (sequence->superblock_size == 0U ||
@@ -335,7 +338,7 @@ static Av2hStatus tile_superblock_geometry(
 static Av2hStatus tile_reset_traversal_roots(Av2hTileDecoder *decoder) {
     Av2hPartitionNode root;
     Av2hStatus status;
-    if (decoder == 0) return AV2H_INVALID_ARGUMENT;
+    if (decoder == NULL) return AV2H_INVALID_ARGUMENT;
     root.row = decoder->superblock.sb_row;
     root.column = decoder->superblock.sb_column;
     root.block_size = decoder->root.root_block_size;
@@ -367,7 +370,7 @@ static Av2hStatus tile_restoration_entropy_init(
     size_t tap_offset = 0U;
     unsigned int plane;
     Av2hStatus status;
-    if (state == 0 || sequence == 0 || frame == 0 || storage == 0) {
+    if (state == NULL || sequence == NULL || frame == NULL || storage == NULL) {
         return AV2H_INVALID_ARGUMENT;
     }
     av2h_memory_fill(state, 0U, sizeof(*state));
@@ -387,8 +390,8 @@ static Av2hStatus tile_restoration_entropy_init(
             count == 0U ||
             !av2h_size_multiply(
                 count, AV2H_WIENER_NONSEP_MAX_TAPS, &plane_taps) ||
-            storage->restoration_unit_flags == 0 ||
-            storage->restoration_unit_taps == 0 ||
+            storage->restoration_unit_flags == NULL ||
+            storage->restoration_unit_taps == NULL ||
             flag_offset > storage->restoration_unit_flag_capacity ||
             count > storage->restoration_unit_flag_capacity - flag_offset ||
             tap_offset > storage->restoration_unit_tap_capacity ||
@@ -587,7 +590,7 @@ static Av2hStatus tile_tx_partition_cdfs_init(Av2hTxPartitionCdfs *cdfs) {
     };
     size_t index;
     Av2hStatus status;
-    if (cdfs == 0) return AV2H_INVALID_ARGUMENT;
+    if (cdfs == NULL) return AV2H_INVALID_ARGUMENT;
     for (index = 0U; index < 4U * AV2H_TX_PARTITION_GROUPS; ++index) {
         size_t fsc = index / (2U * AV2H_TX_PARTITION_GROUPS);
         size_t is_inter =
@@ -694,16 +697,16 @@ Av2hStatus av2h_tile_decoder_init_at(
     uint16_t tile_row;
     size_t index;
     Av2hStatus status;
-    if (decoder == 0 || sequence == 0 || frame == 0 || storage == 0 ||
-        entropy.data == 0 || entropy.size == 0U || frame->width == 0U ||
+    if (decoder == NULL || sequence == NULL || frame == NULL || storage == NULL ||
+        entropy.data == NULL || entropy.size == 0U || frame->width == 0U ||
         frame->height == 0U || storage->above_count == 0U ||
-        storage->left_count == 0U || storage->luma_partition_above == 0 ||
-        storage->luma_partition_left == 0 ||
-        storage->chroma_partition_above == 0 ||
-        storage->chroma_partition_left == 0 ||
-        storage->luma_mode_above == 0 || storage->luma_mode_left == 0 ||
-        storage->coefficient_above == 0 || storage->coefficient_left == 0 ||
-        storage->colocated_luma == 0) {
+        storage->left_count == 0U || storage->luma_partition_above == NULL ||
+        storage->luma_partition_left == NULL ||
+        storage->chroma_partition_above == NULL ||
+        storage->chroma_partition_left == NULL ||
+        storage->luma_mode_above == NULL || storage->luma_mode_left == NULL ||
+        storage->coefficient_above == NULL || storage->coefficient_left == NULL ||
+        storage->colocated_luma == NULL) {
         return AV2H_INVALID_ARGUMENT;
     }
     decoder->traversal.mi_columns = av2h_frame_mi_dimension(frame->width);
@@ -941,7 +944,7 @@ static Av2hStatus tile_advance_root_or_finish(Av2hTileDecoder *decoder) {
 Av2hStatus av2h_tile_decoder_finish_root(Av2hTileDecoder *decoder) {
     Av2hPartitionTraversal *traversal;
     Av2hStatus status;
-    if (decoder == 0) return AV2H_INVALID_ARGUMENT;
+    if (decoder == NULL) return AV2H_INVALID_ARGUMENT;
     if (decoder->control.status != AV2H_OK) return decoder->control.status;
     if (decoder->control.phase == AV2H_TILE_DECODE_LUMA) {
         traversal = &decoder->traversal.luma_traversal;
@@ -1001,7 +1004,7 @@ Av2hStatus av2h_tile_decoder_finish_root(Av2hTileDecoder *decoder) {
     if (decoder->entropy_state.sequence->enable_sdp &&
         decoder->root.root_block_size == AV2H_BLOCK_128X128 &&
         decoder->root.square_root_child_index < 4U) {
-        const Av2hPartitionNode *pending = 0;
+        const Av2hPartitionNode *pending = NULL;
         size_t pending_index = decoder->traversal.luma_traversal.stack_count;
         while (pending_index != 0U) {
             const Av2hPartitionNode *candidate =
@@ -1012,7 +1015,7 @@ Av2hStatus av2h_tile_decoder_finish_root(Av2hTileDecoder *decoder) {
                 break;
             }
         }
-        if (pending != 0) {
+        if (pending != NULL) {
             decoder->root.square_root_child_index = (uint8_t)(
                 (pending->row >= decoder->superblock.sb_row + 16U ? 2U : 0U) +
                 (pending->column >= decoder->superblock.sb_column + 16U ? 1U : 0U));
@@ -1030,7 +1033,7 @@ Av2hStatus av2h_tile_decoder_commit_leaf(
     Av2hTileDecoder *decoder,
     Av2hPartitionNode leaf) {
     Av2hStatus status;
-    if (decoder == 0) return AV2H_INVALID_ARGUMENT;
+    if (decoder == NULL) return AV2H_INVALID_ARGUMENT;
     if (decoder->control.status != AV2H_OK) return decoder->control.status;
     if (decoder->control.phase == AV2H_TILE_DECODE_LUMA) {
         if (decoder->luma.tx_count != 0U) {

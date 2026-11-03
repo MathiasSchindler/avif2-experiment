@@ -1,5 +1,8 @@
 #include "internal/intra_prediction.h"
+
 #include "internal/sample_math.h"
+
+#include <stddef.h>
 
 static const int8_t d45_filter[4U][4U] = {
     { -9, 46, 102, -11 },
@@ -75,7 +78,7 @@ static uint8_t directional_reference(const uint8_t *reference,
                                      uint8_t above_left,
                                      int index) {
     if (index < 0) return above_left;
-    if (reference == 0 || reference_count == 0U) return above_left;
+    if (reference == NULL || reference_count == 0U) return above_left;
     if ((size_t)index >= reference_count) {
         return reference[reference_count - 1U];
     }
@@ -141,15 +144,15 @@ static Av2hStatus predict_directional(
         size_t edge_count_available = angle == 90 ? references->above_count :
             references->left_count;
         uint8_t fallback = angle == 90 ?
-            (references->left != 0 && references->left_count != 0U ?
+            (references->left != NULL && references->left_count != 0U ?
                 references->left[0] : av2h_sample_below_midpoint_8bit()) :
-            (references->above != 0 && references->above_count != 0U ?
+            (references->above != NULL && references->above_count != 0U ?
                 references->above[0] : av2h_sample_above_midpoint_8bit());
         for (row = 0U; row < height; ++row) {
             for (column = 0U; column < width; ++column) {
                 size_t edge_index = angle == 90 ? column : row;
                 predictor[(size_t)row * predictor_stride_samples + column] =
-                    edge != 0 && edge_count_available != 0U ?
+                    edge != NULL && edge_count_available != 0U ?
                         edge[edge_index < edge_count_available ? edge_index :
                              edge_count_available - 1U] : fallback;
             }
@@ -162,8 +165,8 @@ static Av2hStatus predict_directional(
          (mode->mode == AV2H_INTRA_HORIZONTAL && mode->angle_delta == 2 &&
           width == 64U && height == 16U)) &&
         mode->mrl_index == 0U && mode->enable_ibp == 1U &&
-        (references->left == 0 || references->left_count == 0U) &&
-        references->above != 0 && references->above_count != 0U;
+        (references->left == NULL || references->left_count == 0U) &&
+        references->above != NULL && references->above_count != 0U;
     dx = angle < 90 ? directional_derivative[angle] :
          angle < 180 ? directional_derivative[180 - angle] : 1;
     dy = angle < 90 ? 1 :
@@ -500,9 +503,9 @@ Av2hStatus av2h_predict_luma_directional_feature(
         return AV2H_INVALID_ARGUMENT;
     }
     if ((width != 4U || height != 4U) &&
-        (references->secondary_above == 0 ||
+        (references->secondary_above == NULL ||
          references->secondary_above_count == 0U) &&
-        (references->secondary_left == 0 ||
+        (references->secondary_left == NULL ||
          references->secondary_left_count == 0U)) {
         return AV2H_INVALID_ARGUMENT;
     }
@@ -569,7 +572,7 @@ Av2hStatus av2h_predict_d203_fallback(
            (width == 8U && height == 4U)))) {
         return AV2H_UNSUPPORTED;
     }
-    if (references->left == 0 || references->left_count == 0U) {
+    if (references->left == NULL || references->left_count == 0U) {
         return AV2H_INVALID_ARGUMENT;
     }
     left[-1] = references->left[0];
@@ -637,8 +640,8 @@ Av2hStatus av2h_predict_vertical_multiline(
     size_t predictor_stride_samples) {
     uint16_t row;
     uint16_t column;
-    if (references->above == 0 || references->above_count == 0U ||
-        references->secondary_above == 0 ||
+    if (references->above == NULL || references->above_count == 0U ||
+        references->secondary_above == NULL ||
         references->secondary_above_count == 0U) {
         return AV2H_INVALID_ARGUMENT;
     }
@@ -667,7 +670,7 @@ Av2hStatus av2h_predict_horizontal_mrl(
     size_t predictor_stride_samples) {
     uint16_t row;
     uint16_t column;
-    if (references->left == 0 || references->left_count == 0U) {
+    if (references->left == NULL || references->left_count == 0U) {
         return AV2H_INVALID_ARGUMENT;
     }
     for (row = 0U; row < height; ++row) {
@@ -690,8 +693,8 @@ Av2hStatus av2h_predict_horizontal_multiline(
     size_t predictor_stride_samples) {
     uint16_t row;
     uint16_t column;
-    if (references->left == 0 || references->left_count == 0U ||
-        references->secondary_left == 0 ||
+    if (references->left == NULL || references->left_count == 0U ||
+        references->secondary_left == NULL ||
         references->secondary_left_count == 0U) {
         return AV2H_INVALID_ARGUMENT;
     }
@@ -725,9 +728,9 @@ Av2hStatus av2h_predict_directional_multiline_ibp(
     Av2hLumaReferences secondary_references;
     uint8_t secondary_predictor[16U * 32U];
     Av2hStatus status;
-    if (references->secondary_above == 0 ||
+    if (references->secondary_above == NULL ||
         references->secondary_above_count == 0U ||
-        references->secondary_left == 0 ||
+        references->secondary_left == NULL ||
         references->secondary_left_count == 0U) {
         return AV2H_INVALID_ARGUMENT;
     }
@@ -787,9 +790,9 @@ Av2hStatus av2h_predict_horizontal_multiline_angle(
     uint8_t secondary_predictor[32U * 16U];
             int angle = 180 + mode->angle_delta * 3;
     Av2hStatus status;
-    if (references->secondary_above == 0 ||
+    if (references->secondary_above == NULL ||
         references->secondary_above_count == 0U ||
-        references->secondary_left == 0 ||
+        references->secondary_left == NULL ||
         references->secondary_left_count == 0U) {
         return AV2H_INVALID_ARGUMENT;
     }
@@ -839,7 +842,7 @@ Av2hStatus av2h_predict_vertical_reference(
     size_t predictor_stride_samples) {
     uint16_t row;
     uint16_t column;
-    if (references->above == 0 || references->above_count == 0U) {
+    if (references->above == NULL || references->above_count == 0U) {
         return AV2H_INVALID_ARGUMENT;
     }
     for (row = 0U; row < height; ++row) {
@@ -867,9 +870,9 @@ Av2hStatus av2h_predict_horizontal_multiline_tall(
     Av2hLumaReferences secondary_references;
     uint8_t secondary_predictor[16U * 64U];
     Av2hStatus status;
-    if (references->secondary_above == 0 ||
+    if (references->secondary_above == NULL ||
         references->secondary_above_count == 0U ||
-        references->secondary_left == 0 ||
+        references->secondary_left == NULL ||
         references->secondary_left_count == 0U) {
         return AV2H_INVALID_ARGUMENT;
     }
@@ -924,9 +927,9 @@ Av2hStatus av2h_predict_vertical_multiline_tall(
     Av2hLumaReferences secondary_references;
     uint8_t secondary_predictor[8U * 32U];
     Av2hStatus status;
-    if (references->secondary_above == 0 ||
+    if (references->secondary_above == NULL ||
         references->secondary_above_count == 0U ||
-        references->secondary_left == 0 ||
+        references->secondary_left == NULL ||
         references->secondary_left_count == 0U) {
         return AV2H_INVALID_ARGUMENT;
     }
@@ -979,7 +982,7 @@ Av2hStatus av2h_predict_d203_multiline(
     Av2hLumaReferences secondary_references;
     uint8_t secondary_predictor[16U * 64U];
     Av2hStatus status;
-    if (references->secondary_left == 0 ||
+    if (references->secondary_left == NULL ||
         references->secondary_left_count == 0U) {
         return AV2H_INVALID_ARGUMENT;
     }
@@ -1029,7 +1032,7 @@ Av2hStatus av2h_predict_vertical_small(
     size_t predictor_stride_samples) {
     uint16_t row;
     uint16_t column;
-    if (references->above == 0 || references->above_count == 0U) {
+    if (references->above == NULL || references->above_count == 0U) {
         return AV2H_UNSUPPORTED;
     }
     for (row = 0U; row < height; ++row) {
@@ -1052,11 +1055,11 @@ Av2hStatus av2h_predict_horizontal(
     uint16_t row;
     uint16_t column;
     for (row = 0U; row < height; ++row) {
-        uint8_t value = references->left != 0 &&
+        uint8_t value = references->left != NULL &&
             references->left_count != 0U ?
             references->left[row < references->left_count ?
                              row : references->left_count - 1U] :
-            references->above != 0 &&
+            references->above != NULL &&
                 references->above_count != 0U ?
                 references->above[0] :
                 av2h_sample_above_midpoint_8bit();
@@ -1104,7 +1107,7 @@ Av2hStatus av2h_predict_d45_mrl1(
     size_t index;
     uint8_t edge[68U];
     int x = directional_derivative[46U] * 2;
-    if (references->above == 0 || references->above_count == 0U) {
+    if (references->above == NULL || references->above_count == 0U) {
         return AV2H_INVALID_ARGUMENT;
     }
     for (index = 0U; index <= 65U; ++index) {
@@ -1154,7 +1157,7 @@ Av2hStatus av2h_predict_zone2_mrl2(
               mode->angle_delta * 3 - 1;
     const int dx = directional_derivative[180 - angle];
     const int dy = directional_derivative[angle - 90];
-    if (references->above == 0 || references->left == 0 ||
+    if (references->above == NULL || references->left == NULL ||
         references->above_count == 0U ||
         references->left_count == 0U ||
         references->negative_count < 3U) {
@@ -1245,7 +1248,7 @@ Av2hStatus av2h_predict_d67_mrl1_minus_one(
     size_t index;
     uint8_t storage[21U];
     uint8_t *edge = &storage[1U];
-    if (references->above == 0 || references->above_count == 0U) {
+    if (references->above == NULL || references->above_count == 0U) {
         return AV2H_INVALID_ARGUMENT;
     }
     for (index = 0U; index < 20U; ++index) {
@@ -1282,7 +1285,7 @@ Av2hStatus av2h_predict_d67_4x4_mrl1_minus_two(
     size_t index;
     uint8_t storage[13U];
     uint8_t *edge = &storage[1U];
-    if (references->above == 0 || references->above_count == 0U) {
+    if (references->above == NULL || references->above_count == 0U) {
         return AV2H_INVALID_ARGUMENT;
     }
     edge[-1] = references->has_above_left ? references->above_left :
@@ -1320,7 +1323,7 @@ Av2hStatus av2h_predict_d67_8x8_mrl1_minus_two(
     size_t index;
     uint8_t storage[21U];
     uint8_t *edge = &storage[1U];
-    if (references->above == 0 || references->above_count == 0U) {
+    if (references->above == NULL || references->above_count == 0U) {
         return AV2H_INVALID_ARGUMENT;
     }
     edge[-1] = references->has_above_left ? references->above_left :
@@ -1357,7 +1360,7 @@ Av2hStatus av2h_predict_d67_4x4_mrl3_minus_three(
     uint16_t column;
     size_t index;
     uint8_t edge[12U];
-    if (references->above == 0 || references->above_count == 0U) {
+    if (references->above == NULL || references->above_count == 0U) {
         return AV2H_INVALID_ARGUMENT;
     }
     for (index = 0U; index < 12U; ++index) {
@@ -1398,7 +1401,7 @@ Av2hStatus av2h_predict_d45_minus_one(
     uint8_t *filtered = &edge[-1];
     size_t edge_count = (size_t)width + height;
     size_t filtered_count = edge_count + 1U;
-    if (references->above == 0 || references->above_count == 0U) {
+    if (references->above == NULL || references->above_count == 0U) {
         return AV2H_INVALID_ARGUMENT;
     }
     edge[-1] = references->has_above_left ? references->above_left :
@@ -1462,7 +1465,7 @@ Av2hStatus av2h_predict_d45_plus_three(
     uint16_t row;
     uint16_t column;
     size_t index;
-    if (references->above == 0 || references->above_count == 0U) {
+    if (references->above == NULL || references->above_count == 0U) {
         return AV2H_INVALID_ARGUMENT;
     }
     above[-1] = references->above[0];
@@ -1505,7 +1508,7 @@ Av2hStatus av2h_predict_d45_mrl1_plus_three(
     uint16_t row;
     uint16_t column;
     const uint16_t derivative = 97U;
-    if (references->left == 0 || references->left_count == 0U) {
+    if (references->left == NULL || references->left_count == 0U) {
         return AV2H_INVALID_ARGUMENT;
     }
     for (column = 0U; column < width; ++column) {
@@ -1545,7 +1548,7 @@ Av2hStatus av2h_predict_d203_mrl1_plus_three(
     size_t index;
     const uint16_t derivative = 41U;
     size_t edge_count = (size_t)width + height + 2U;
-    if (references->left == 0 || references->left_count == 0U) {
+    if (references->left == NULL || references->left_count == 0U) {
         return AV2H_INVALID_ARGUMENT;
     }
     left[-1] = references->has_above_left ? references->above_left :
@@ -1592,7 +1595,7 @@ Av2hStatus av2h_predict_d203_plus_three(
     size_t edge_count = (size_t)width + height;
     uint8_t source[13U];
     uint8_t *filtered = &above[-1];
-    if (references->above == 0 || references->above_count == 0U) {
+    if (references->above == NULL || references->above_count == 0U) {
         return AV2H_INVALID_ARGUMENT;
     }
     above[-1] = references->has_above_left ? references->above_left :
@@ -1654,9 +1657,9 @@ Av2hStatus av2h_predict_multiline_u16(
     uint16_t secondary_predictor[AV2H_RECON_SAMPLE_CAPACITY];
     Av2hStatus status;
     if ((width != 4U || height != 4U) &&
-        (references->secondary_above == 0 ||
+        (references->secondary_above == NULL ||
          references->secondary_above_count == 0U) &&
-        (references->secondary_left == 0 ||
+        (references->secondary_left == NULL ||
          references->secondary_left_count == 0U)) {
         return AV2H_INVALID_ARGUMENT;
     }
@@ -1987,8 +1990,8 @@ Av2hStatus av2h_predict_cardinal_u16(
     above_count = references->above_count;
     left = references->left;
     left_count = references->left_count;
-    have_above = above != 0 && above_count != 0U;
-    have_left = left != 0 && left_count != 0U;
+    have_above = above != NULL && above_count != 0U;
+    have_left = left != NULL && left_count != 0U;
     for (row = 0U; row < height; ++row) {
         for (column = 0U; column < width; ++column) {
             predictor[(size_t)row * predictor_stride_samples + column] =

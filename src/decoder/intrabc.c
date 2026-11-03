@@ -1,5 +1,8 @@
 #include "leaf.h"
+
 #include "internal/decode_diagnostics.h"
+
+#include <stddef.h>
 
 typedef struct {
     int16_t x;
@@ -10,14 +13,14 @@ typedef struct {
 #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
 const int16_t *av2h_intrabc_diagnostic_candidates(
     const Av2hDecodeDiagnostics *diagnostics, size_t *count) {
-    *count = diagnostics != 0 ? diagnostics->intrabc_candidate_count : 0U;
-    return diagnostics != 0 ? diagnostics->intrabc_candidates : 0;
+    *count = diagnostics != NULL ? diagnostics->intrabc_candidate_count : 0U;
+    return diagnostics != NULL ? diagnostics->intrabc_candidates : NULL;
 }
 
 const int16_t *av2h_intrabc_diagnostic_bank(
     const Av2hDecodeDiagnostics *diagnostics, size_t *count) {
-    *count = diagnostics != 0 ? diagnostics->intrabc_bank_count : 0U;
-    return diagnostics != 0 ? diagnostics->intrabc_bank : 0;
+    *count = diagnostics != NULL ? diagnostics->intrabc_bank_count : 0U;
+    return diagnostics != NULL ? diagnostics->intrabc_bank : NULL;
 }
 
 #endif
@@ -28,7 +31,7 @@ static void add_intrabc_candidate(
     const Av2hLumaModeContext *context,
     uint8_t weight) {
     size_t index;
-    if (context == 0 || !context->present || !context->use_intrabc) return;
+    if (context == NULL || !context->present || !context->use_intrabc) return;
     for (index = 0U; index < *count; ++index) {
         if (candidates[index].x == context->displacement_x &&
             candidates[index].y == context->displacement_y) {
@@ -63,17 +66,17 @@ static const Av2hLumaModeContext *intrabc_spatial_context(
     int32_t row,
     int32_t column) {
     size_t index;
-    if (state == 0 || state->spatial == 0 || row < 0 || column < 0 ||
+    if (state == NULL || state->spatial == NULL || row < 0 || column < 0 ||
         (size_t)row >= state->spatial_rows ||
         (size_t)column >= state->spatial_columns) {
-        return 0;
+        return NULL;
     }
     index = (size_t)row * state->spatial_columns + (size_t)column;
     return (const Av2hLumaModeContext *)(
         state->spatial + index * state->spatial_stride_bytes);
 }
 
-uint8_t av2h_intrabc_bank_origin_valid(
+int av2h_intrabc_bank_origin_valid(
     const Av2hFrameState *frame,
     const Av2hPartitionNode *leaf,
     size_t width_mi,
@@ -108,8 +111,8 @@ static void build_intrabc_candidates(
     size_t limit = (size_t)frame->max_bvp_drl_bits + 1U;
     *count = 0U;
     if (limit > 4U) limit = 4U;
-    if (state != 0) {
-        if (state->spatial != 0) {
+    if (state != NULL) {
+        if (state->spatial != NULL) {
             int32_t row = leaf->row;
             int32_t column = leaf->column;
             int32_t above_right_column;
@@ -313,7 +316,7 @@ Av2hStatus av2h_leaf_read_first_intrabc(
         sequence, frame, leaf, width_mi, height_mi, state,
         candidates, &candidate_count);
 #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
-    if (decoder->diagnostics != 0 &&
+    if (decoder->diagnostics != NULL &&
         leaf->row == 64U && leaf->column == 104U) {
         decoder->diagnostics->intrabc_candidate_count = candidate_count;
         for (index = 0U; index < candidate_count; ++index) {

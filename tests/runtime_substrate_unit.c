@@ -1,6 +1,15 @@
 #include "runtime/concurrency.h"
 
+#include <stddef.h>
 #include <stdio.h>
+
+_Static_assert(sizeof(((Av2hTaskPool *)NULL)->stop) == sizeof(uint8_t),
+               "stop flag is not byte-sized");
+_Static_assert(offsetof(Av2hTaskPool, generation) ==
+                   offsetof(Av2hTaskPool, stop) + sizeof(unsigned int),
+               "task pool synchronization-word offset changed");
+_Static_assert(sizeof(((Av2hTaskPool *)NULL)->generation) == sizeof(unsigned int),
+               "platform wait-word width changed");
 
 static int failures;
 

@@ -1,28 +1,30 @@
 #include "transform.h"
+
 #include "internal/decode_diagnostics.h"
 #include "internal/transform_modules.h"
+#include "tx_geometry.h"
+
+#include <stddef.h>
 
 const Av2hTransformDiagnostics *av2h_transform_diagnostics_get(
     const Av2hDecodeDiagnostics *diagnostics) {
 #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
-    return diagnostics != 0 ? &diagnostics->transform : 0;
+    return diagnostics != NULL ? &diagnostics->transform : NULL;
 #else
     (void)diagnostics;
-    return 0;
+    return NULL;
 #endif
 }
 
 void av2h_transform_diagnostics_set_stage(
     Av2hDecodeDiagnostics *diagnostics, uint8_t value) {
 #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
-    if (diagnostics != 0) diagnostics->transform.transform_stage = value;
+    if (diagnostics != NULL) diagnostics->transform.transform_stage = value;
 #else
     (void)diagnostics;
     (void)value;
 #endif
 }
-#include "tx_geometry.h"
-
 Av2hStatus av2h_secondary_tx_type_signal(
     const Av2hSequenceState *sequence,
     const Av2hFirstLeafMode *mode,
@@ -33,7 +35,7 @@ Av2hStatus av2h_secondary_tx_type_signal(
     uint8_t size_class;
     uint16_t eob_limit;
     Av2hStatus status;
-    if (sequence == 0 || mode == 0 || coeff == 0 || signaled == 0) {
+    if (sequence == NULL || mode == NULL || coeff == NULL || signaled == NULL) {
         return AV2H_INVALID_ARGUMENT;
     }
     *signaled = 0U;
@@ -963,12 +965,12 @@ Av2hStatus av2h_first_transform_type_read(
     const Av2hTxDescriptor *descriptor;
     uint8_t secondary_signaled;
     Av2hStatus status;
-    if (decoder == 0 || cdfs == 0 || sequence == 0 || frame == 0 ||
-        mode == 0 || coeff == 0 || transform == 0) {
+    if (decoder == NULL || cdfs == NULL || sequence == NULL || frame == NULL ||
+        mode == NULL || coeff == NULL || transform == NULL) {
         return AV2H_INVALID_ARGUMENT;
     }
     av2h_transform_diagnostics_set_stage(
-        decoder != 0 ? decoder->diagnostics : 0, 1U);
+        decoder != NULL ? decoder->diagnostics : NULL, 1U);
     if (frame->reduced_tx_set || coeff->all_zero || coeff->eob == 0U) {
         return AV2H_UNSUPPORTED;
     }
@@ -1098,8 +1100,8 @@ Av2hStatus av2h_chroma_transform_type_read(
     const Av2hTxDescriptor *descriptor;
     uint32_t symbol = 0U;
     Av2hStatus status;
-    if (decoder == 0 || cdfs == 0 || frame == 0 || mode == 0 || coeff == 0 ||
-        transform == 0) {
+    if (decoder == NULL || cdfs == NULL || frame == NULL || mode == NULL || coeff == NULL ||
+        transform == NULL) {
         return AV2H_INVALID_ARGUMENT;
     }
     status = av2h_tx_descriptor_get(coeff->tx_size, &descriptor);

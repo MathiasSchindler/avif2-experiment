@@ -1,4 +1,5 @@
 #include "av2heif.h"
+
 #include "platform/windows/win32_min.h"
 
 __declspec(noreturn) void mainCRTStartup(void) {

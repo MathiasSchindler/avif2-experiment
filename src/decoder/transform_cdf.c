@@ -1,5 +1,7 @@
 #include "transform.h"
 
+#include <stddef.h>
+
 Av2hStatus av2h_first_transform_cdfs_init(Av2hFirstTransformCdfs *cdfs) {
     static const uint16_t primary_size0[] = {
         5026U, 16816U, 19974U, 23404U, 26845U, 30499U
@@ -116,7 +118,7 @@ Av2hStatus av2h_first_transform_cdfs_init(Av2hFirstTransformCdfs *cdfs) {
         14350U, 14836U, 16054U, 17075U, 19408U, 28530U
     };
     Av2hStatus status;
-    if (cdfs == 0) return AV2H_INVALID_ARGUMENT;
+    if (cdfs == NULL) return AV2H_INVALID_ARGUMENT;
     status = av2h_cdf_init(
         cdfs->primary_size0, AV2H_PRIMARY_TX_TYPE_SYMBOLS + 4U,
         primary_size0, AV2H_PRIMARY_TX_TYPE_SYMBOLS, 8U, 0U);

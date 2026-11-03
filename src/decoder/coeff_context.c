@@ -131,12 +131,12 @@ uint8_t av2h_coeff_br_context(
     return (uint8_t)(magnitude + 7U);
 }
 
-uint8_t av2h_coeff_is_low_frequency(
+int av2h_coeff_is_low_frequency(
     uint16_t position, uint16_t width, uint8_t vertical,
     uint8_t horizontal) {
     unsigned int row = position / width;
     unsigned int column = position % width;
-    return (uint8_t)(vertical ? row < 2U :
+    return (vertical ? row < 2U :
                      horizontal ? column < 2U : row + column < 4U);
 }
 

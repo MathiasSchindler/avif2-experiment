@@ -1,8 +1,11 @@
+#include "decoder/internal/frame_workspace.h"
+
 #include "decoder/filter.h"
 #include "decoder/frame_output.h"
 #include "decoder/internal/filter_geometry.h"
-#include "decoder/internal/frame_workspace.h"
 #include "decoder/internal/sample_ops.h"
+
+#include <stddef.h>
 
 typedef struct {
     size_t luma_mode_above;
@@ -31,7 +34,7 @@ static void *workspace_arena_array(Av2hArena *arena,
     size_t bytes;
     if (!av2h_size_multiply(count, element_size, &bytes)) {
         arena->status = AV2H_OVERFLOW;
-        return 0;
+        return NULL;
     }
     return av2h_arena_allocate(arena, bytes, alignment);
 }
@@ -53,7 +56,7 @@ static void *workspace_reconstruction_scratch(
         !av2h_size_add(
             coefficient_bytes, sample_bytes, &scratch_bytes)) {
         arena->status = AV2H_OVERFLOW;
-        return 0;
+        return NULL;
     }
     return av2h_arena_allocate(
         arena, scratch_bytes, _Alignof(Av2hReconstructionScratch));
@@ -72,7 +75,7 @@ static Av2hStatus frame_decode_workspace_geometry(
     size_t cdef_rows;
     unsigned int plane;
     Av2hStatus status;
-    if (sequence == 0 || frame == 0 || geometry == 0 ||
+    if (sequence == NULL || frame == NULL || geometry == NULL ||
         (sequence->superblock_size != 64U &&
          sequence->superblock_size != 128U)) {
         return AV2H_INVALID_ARGUMENT;
@@ -141,7 +144,7 @@ static void frame_decode_workspace_bind(
         uint8_t *reconstructed = workspace_arena_array(
             arena, geometry->filter.deblock_cell_count[plane],
             sizeof(uint8_t), _Alignof(uint8_t));
-        if (workspace != 0) {
+        if (workspace != NULL) {
             if (bytes_per_sample == 1U) {
                 workspace->coded[plane] = (Av2hReconstructionPlane){
                     data,
@@ -179,7 +182,7 @@ static void frame_decode_workspace_bind(
     do {                                                                       \
         void *allocated = workspace_arena_array(                               \
             arena, (count), sizeof(type), _Alignof(type));                     \
-        if (workspace != 0) {                                                  \
+        if (workspace != NULL) {                                               \
             workspace->tile_context.field = (type *)allocated;                \
         }                                                                      \
     } while (0)
@@ -214,14 +217,14 @@ static void frame_decode_workspace_bind(
         uint8_t *controls = workspace_arena_array(
             arena, geometry->filter.ccso_control_count,
             sizeof(uint8_t), _Alignof(uint8_t));
-        if (workspace != 0) {
+        if (workspace != NULL) {
             workspace->tile_context.ccso_unit_controls[plane] = controls;
         }
     }
     {
         void *scratch = workspace_reconstruction_scratch(
             arena, bytes_per_sample);
-        if (workspace != 0) {
+        if (workspace != NULL) {
             if (bytes_per_sample == 1U) {
                 workspace->reconstruction_scratch = scratch;
             } else {
@@ -249,7 +252,7 @@ Av2hStatus av2h_frame_decode_workspace_query_bytes(
     Av2hArena arena;
     void *filter_memory;
     Av2hStatus status;
-    if (layout == 0) return AV2H_INVALID_ARGUMENT;
+    if (layout == NULL) return AV2H_INVALID_ARGUMENT;
     if (bytes_per_sample != 1U && bytes_per_sample != 2U) {
         return AV2H_INVALID_ARGUMENT;
     }
@@ -258,7 +261,7 @@ Av2hStatus av2h_frame_decode_workspace_query_bytes(
     if (status != AV2H_OK) return status;
     av2h_arena_init_sizing(&arena);
     frame_decode_workspace_bind(
-        &arena, frame, bytes_per_sample, &geometry, 0, &filter_memory);
+        &arena, frame, bytes_per_sample, &geometry, NULL, &filter_memory);
     if (arena.status != AV2H_OK) return arena.status;
     result.size_bytes = av2h_arena_required(&arena);
     result.alignment = geometry.filter.alignment;
@@ -304,8 +307,8 @@ Av2hStatus av2h_frame_decode_workspace_init_bytes(
     Av2hArena arena;
     void *filter_memory;
     Av2hStatus status;
-    if (sequence == 0 || frame == 0 || layout == 0 || workspace == 0 ||
-        filter_workspace == 0 || filter_storage == 0) {
+    if (sequence == NULL || frame == NULL || layout == NULL || workspace == NULL ||
+        filter_workspace == NULL || filter_storage == NULL) {
         return AV2H_INVALID_ARGUMENT;
     }
     if (bytes_per_sample != 1U && bytes_per_sample != 2U) {
@@ -319,7 +322,7 @@ Av2hStatus av2h_frame_decode_workspace_init_bytes(
         sequence, frame, bytes_per_sample, &fresh_layout);
     if (status != AV2H_OK) return status;
     if (layout->size_bytes != fresh_layout.size_bytes ||
-        layout->alignment != fresh_layout.alignment || memory == 0 ||
+        layout->alignment != fresh_layout.alignment || memory == NULL ||
         ((uintptr_t)memory & (fresh_layout.alignment - 1U)) != 0U) {
         return AV2H_INVALID_ARGUMENT;
     }
@@ -377,7 +380,7 @@ static int ranges_overlap(const void *left,
     uintptr_t left_end;
     uintptr_t right_end;
     if (left_size_bytes == 0U || right_size_bytes == 0U) return 0;
-    if (left == 0 || right == 0 ||
+    if (left == NULL || right == NULL ||
         left_size_bytes > maximum - left_start ||
         right_size_bytes > maximum - right_start) {
         return 1;
@@ -418,7 +421,7 @@ Av2hStatus av2h_frame_output_validate_u8(
     size_t required_output_bytes;
     unsigned int plane;
     Av2hStatus status;
-    if (frame == 0 || coded == 0 || coded_data_size_bytes == 0 || output == 0) {
+    if (frame == NULL || coded == NULL || coded_data_size_bytes == NULL || output == NULL) {
         return AV2H_INVALID_ARGUMENT;
     }
     status = av2h_planar_output_size(frame, &required_output_bytes);
@@ -429,7 +432,7 @@ Av2hStatus av2h_frame_output_validate_u8(
     for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
         const Av2hFilterPlane *source = &coded->plane[plane];
         size_t source_size_bytes;
-        if (source->data == 0 ||
+        if (source->data == NULL ||
             source->width != layout.plane_width[plane] ||
             source->height != layout.plane_height[plane] ||
             source->stride_samples < source->width ||
@@ -454,7 +457,7 @@ Av2hStatus av2h_frame_output_validate_u16(
     size_t required_output_bytes;
     unsigned int plane;
     Av2hStatus status;
-    if (frame == 0 || coded == 0 || coded_data_size_bytes == 0 || output == 0) {
+    if (frame == NULL || coded == NULL || coded_data_size_bytes == NULL || output == NULL) {
         return AV2H_INVALID_ARGUMENT;
     }
     status = av2h_planar_output_size_bytes(
@@ -467,7 +470,7 @@ Av2hStatus av2h_frame_output_validate_u16(
     for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
         const Av2hReconstructionPlaneU16 *source = &coded[plane];
         size_t source_size_bytes;
-        if (source->data == 0 ||
+        if (source->data == NULL ||
             source->width != layout.plane_width[plane] ||
             source->height != layout.plane_height[plane] ||
             source->stride_samples < source->width ||
@@ -489,7 +492,7 @@ static int filter_workspace_valid(
     const Av2hFilterWorkspace *workspace,
     size_t bytes_per_sample) {
     unsigned int plane;
-    if (layout == 0 || workspace == 0 ||
+    if (layout == NULL || workspace == NULL ||
         workspace->ccso_controls.columns != layout->ccso_columns ||
         workspace->ccso_controls.rows != layout->ccso_rows) {
         return 0;
@@ -502,7 +505,7 @@ static int filter_workspace_valid(
         const Av2hFilterPlaneU16 *cdef_u16 =
             &workspace->cdef_u16.plane[plane];
         if ((bytes_per_sample == 1U &&
-             (deblocked->data == 0 || cdef->data == 0 ||
+             (deblocked->data == NULL || cdef->data == NULL ||
               deblocked->width != layout->plane_width[plane] ||
               deblocked->height != layout->plane_height[plane] ||
               cdef->width != layout->plane_width[plane] ||
@@ -510,21 +513,21 @@ static int filter_workspace_valid(
               deblocked->stride_samples < deblocked->width ||
               cdef->stride_samples < cdef->width)) ||
             (bytes_per_sample == 2U &&
-             (deblocked_u16->data == 0 || cdef_u16->data == 0 ||
+             (deblocked_u16->data == NULL || cdef_u16->data == NULL ||
               deblocked_u16->width != layout->plane_width[plane] ||
               deblocked_u16->height != layout->plane_height[plane] ||
               cdef_u16->width != layout->plane_width[plane] ||
               cdef_u16->height != layout->plane_height[plane] ||
               deblocked_u16->stride_samples < deblocked_u16->width ||
               cdef_u16->stride_samples < cdef_u16->width)) ||
-            workspace->deblock_map.plane[plane] == 0 ||
+            workspace->deblock_map.plane[plane] == NULL ||
             workspace->deblock_map.columns[plane] !=
                 layout->deblock_columns[plane] ||
             workspace->deblock_map.rows[plane] !=
                 layout->deblock_rows[plane] ||
             workspace->deblock_map.stride_cells[plane] !=
                 layout->deblock_columns[plane] ||
-            workspace->ccso_controls.plane[plane] == 0 ||
+            workspace->ccso_controls.plane[plane] == NULL ||
             workspace->ccso_controls.stride_units[plane] !=
                 layout->ccso_columns) {
             return 0;
@@ -532,13 +535,13 @@ static int filter_workspace_valid(
     }
     if (bytes_per_sample == 1U &&
         frame->restoration_type[0] != AV2H_RESTORE_NONE &&
-        (workspace->restoration.data == 0 ||
+        (workspace->restoration.data == NULL ||
          workspace->restoration.width != layout->plane_width[0] ||
          workspace->restoration.height != layout->plane_height[0] ||
          workspace->restoration.stride_samples <
              workspace->restoration.width ||
          (av2h_frame_restoration_needs_tx_skip(frame) &&
-          (workspace->restoration_tx_skip == 0 ||
+          (workspace->restoration_tx_skip == NULL ||
            workspace->restoration_controls.tx_skip !=
                workspace->restoration_tx_skip ||
            workspace->restoration_controls.tx_skip_stride !=
@@ -562,7 +565,7 @@ static int decode_planes_valid(
             frame, plane, frame->height);
         if (workspace->bytes_per_sample == 1U) {
             const Av2hReconstructionPlane *coded = &workspace->coded[plane];
-            if (coded->data == 0 || coded->reconstructed == 0 ||
+            if (coded->data == NULL || coded->reconstructed == NULL ||
                 coded->width != layout->plane_width[plane] ||
                 coded->height != layout->plane_height[plane] ||
                 coded->stride_samples < coded->width ||
@@ -583,7 +586,7 @@ static int decode_planes_valid(
         } else {
             const Av2hReconstructionPlaneU16 *coded =
                 &workspace->coded_u16[plane];
-            if (coded->data == 0 || coded->reconstructed == 0 ||
+            if (coded->data == NULL || coded->reconstructed == NULL ||
                 coded->width != layout->plane_width[plane] ||
                 coded->height != layout->plane_height[plane] ||
                 coded->stride_samples < coded->width ||
@@ -617,15 +620,15 @@ static int tile_context_valid(
     size_t context_rows;
     size_t superblock_mi;
     size_t cell_count;
-    if (sequence == 0 || frame == 0 || context == 0 || sizes == 0 ||
-        context->luma_partition_above == 0 ||
-        context->luma_partition_left == 0 ||
-        context->chroma_partition_above == 0 ||
-        context->chroma_partition_left == 0 ||
-        context->luma_mode_above == 0 || context->luma_mode_left == 0 ||
-        context->coefficient_above == 0 ||
-        context->coefficient_left == 0 ||
-        context->colocated_luma == 0) {
+    if (sequence == NULL || frame == NULL || context == NULL || sizes == NULL ||
+        context->luma_partition_above == NULL ||
+        context->luma_partition_left == NULL ||
+        context->chroma_partition_above == NULL ||
+        context->chroma_partition_left == NULL ||
+        context->luma_mode_above == NULL || context->luma_mode_left == NULL ||
+        context->coefficient_above == NULL ||
+        context->coefficient_left == NULL ||
+        context->colocated_luma == NULL) {
         return 0;
     }
     mi_columns = av2h_frame_mi_dimension(frame->width);
@@ -656,11 +659,11 @@ static int tile_context_valid(
             sizeof(*context->colocated_luma),
             &sizes->colocated_luma) ||
         (context->gdf_block_flag_capacity != 0U &&
-         context->gdf_block_flags == 0) ||
+         context->gdf_block_flags == NULL) ||
         (context->cdef_unit_strength_capacity != 0U &&
-         context->cdef_unit_strengths == 0) ||
+         context->cdef_unit_strengths == NULL) ||
         (context->restoration_unit_flag_capacity != 0U &&
-         context->restoration_unit_flags == 0)) {
+         context->restoration_unit_flags == NULL)) {
         return 0;
     }
     return 1;
@@ -825,7 +828,7 @@ static int output_is_disjoint(
             workspace->bytes_per_sample == 1U ?
                 sizeof(*workspace->reconstruction_scratch) :
                 sizeof(*workspace->reconstruction_scratch_u16)) ||
-        (result != 0 &&
+        (result != NULL &&
          output_overlaps(output, output_size_bytes, result, sizeof(*result)))) {
         return 0;
     }
@@ -866,17 +869,17 @@ static void clear_decode_storage(
         context->coefficient_left, 0U, context_sizes->coefficient_left);
     av2h_memory_fill(
         context->colocated_luma, 0U, context_sizes->colocated_luma);
-    if (context->gdf_block_flags != 0) {
+    if (context->gdf_block_flags != NULL) {
         av2h_memory_fill(
             context->gdf_block_flags, 0U,
             context->gdf_block_flag_capacity);
     }
-    if (context->cdef_unit_strengths != 0) {
+    if (context->cdef_unit_strengths != NULL) {
         av2h_memory_fill(
             context->cdef_unit_strengths, 0U,
             context->cdef_unit_strength_capacity);
     }
-    if (workspace->filter_workspace->restoration_tx_skip != 0) {
+    if (workspace->filter_workspace->restoration_tx_skip != NULL) {
         av2h_memory_fill(
             workspace->filter_workspace->restoration_tx_skip,
             0U, layout->restoration_tx_skip_count);
@@ -913,7 +916,7 @@ static void clear_decode_storage(
         av2h_memory_fill(
             (void *)workspace->filter_workspace->ccso_controls.plane[plane],
             0U, control_size_bytes);
-        if (context->ccso_unit_controls[plane] != 0) {
+        if (context->ccso_unit_controls[plane] != NULL) {
             av2h_memory_fill(
                 context->ccso_unit_controls[plane], 0U,
                 context->ccso_unit_control_capacity);
@@ -925,7 +928,7 @@ static int maps_and_readiness_complete(
     const Av2hFrameState *frame,
     const Av2hFrameDecodeWorkspace *workspace) {
     unsigned int plane;
-    if (frame == 0) return 0;
+    if (frame == NULL) return 0;
     for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
         const Av2hDeblockMap *map =
             &workspace->filter_workspace->deblock_map;
@@ -973,7 +976,7 @@ Av2hStatus av2h_frame_workspace_prepare(
     Av2hFilterWorkspaceLayout *layout) {
     Av2hFrameContextSizes context_sizes;
     Av2hStatus status = av2h_filter_workspace_query_bytes(
-        frame, workspace != 0 ? workspace->bytes_per_sample : 0U, layout);
+        frame, workspace != NULL ? workspace->bytes_per_sample : 0U, layout);
     if (status != AV2H_OK) return status;
     if (!filter_workspace_valid(
             frame, layout, workspace->filter_workspace,
@@ -1025,7 +1028,7 @@ Av2hStatus av2h_filter_workspace_query_bytes(
     size_t size_bytes = 0U;
     unsigned int stage;
     unsigned int plane;
-    if (frame == 0 || layout == 0 || frame->width == 0U ||
+    if (frame == NULL || layout == NULL || frame->width == 0U ||
         frame->height == 0U ||
         (bytes_per_sample != 1U && bytes_per_sample != 2U)) {
         return AV2H_INVALID_ARGUMENT;
@@ -1139,11 +1142,11 @@ Av2hStatus av2h_filter_workspace_init_bytes(
     Av2hArena arena;
     unsigned int plane;
     Av2hStatus status;
-    if (workspace == 0 || storage == 0) return AV2H_INVALID_ARGUMENT;
+    if (workspace == NULL || storage == NULL) return AV2H_INVALID_ARGUMENT;
     status = av2h_filter_workspace_query_bytes(
         frame, bytes_per_sample, &layout);
     if (status != AV2H_OK) return status;
-    if (memory == 0 ||
+    if (memory == NULL ||
         ((uintptr_t)memory & (layout.alignment - 1U)) != 0U) {
         return AV2H_INVALID_ARGUMENT;
     }

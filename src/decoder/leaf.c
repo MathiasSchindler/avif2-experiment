@@ -1,21 +1,24 @@
 #include "leaf.h"
+
 #include "internal/decode_diagnostics.h"
 #include "internal/leaf_modules.h"
+
+#include <stddef.h>
 
 const Av2hLeafDiagnostics *av2h_leaf_diagnostics_get(
     const Av2hDecodeDiagnostics *diagnostics) {
 #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
-    return diagnostics != 0 ? &diagnostics->leaf : 0;
+    return diagnostics != NULL ? &diagnostics->leaf : NULL;
 #else
     (void)diagnostics;
-    return 0;
+    return NULL;
 #endif
 }
 
 void av2h_leaf_diagnostics_set_luma_stage(
     Av2hDecodeDiagnostics *diagnostics, uint8_t value) {
 #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
-    if (diagnostics != 0) diagnostics->leaf.luma_mode_stage = value;
+    if (diagnostics != NULL) diagnostics->leaf.luma_mode_stage = value;
 #else
     (void)diagnostics;
     (void)value;
@@ -25,7 +28,7 @@ void av2h_leaf_diagnostics_set_luma_stage(
 void av2h_leaf_diagnostics_set_chroma_stage(
     Av2hDecodeDiagnostics *diagnostics, uint8_t value) {
 #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
-    if (diagnostics != 0) diagnostics->leaf.chroma_mode_stage = value;
+    if (diagnostics != NULL) diagnostics->leaf.chroma_mode_stage = value;
 #else
     (void)diagnostics;
     (void)value;
@@ -72,7 +75,7 @@ Av2hStatus av2h_chroma_mode_read_with_delta_for_sdp(
     uint8_t mode_context;
     uint8_t mhccp_allowed = cfl_allowed;
     uint32_t value;
-    if (decoder == 0 || cdfs == 0 || sequence == 0 || mode == 0) {
+    if (decoder == NULL || cdfs == NULL || sequence == NULL || mode == NULL) {
         return AV2H_INVALID_ARGUMENT;
     }
     av2h_leaf_diagnostics_set_chroma_stage(decoder->diagnostics, 1U);
@@ -302,7 +305,7 @@ Av2hStatus av2h_chroma_mode_read_with_delta_for_sdp(
     return AV2H_OK;
 }
 
-static uint8_t is_directional_joint_mode(uint8_t joint_mode) {
+static int is_directional_joint_mode(uint8_t joint_mode) {
     return joint_mode >= 5U;
 }
 
@@ -420,7 +423,7 @@ Av2hStatus av2h_luma_joint_mode_from_index(
     Av2hBlockSize block_size,
     const Av2hLumaModeNeighbors *neighbors,
     uint8_t *joint_mode) {
-    if (neighbors == 0 || joint_mode == 0 ||
+    if (neighbors == NULL || joint_mode == NULL ||
         block_size >= AV2H_BLOCK_SIZE_COUNT) {
         return AV2H_INVALID_ARGUMENT;
     }
@@ -431,7 +434,7 @@ Av2hStatus av2h_luma_joint_mode_from_index(
         mode_index, block_size, neighbors, joint_mode);
 }
 
-static uint8_t block_allows_intrabc(Av2hBlockSize block_size) {
+static int block_allows_intrabc(Av2hBlockSize block_size) {
     return block_size != AV2H_BLOCK_64X64 &&
            !(block_size >= AV2H_BLOCK_64X128 &&
              block_size <= AV2H_BLOCK_256X256);
@@ -470,7 +473,7 @@ Av2hStatus av2h_luma_mode_read_with_state(
     const Av2hLumaModeContextState *state,
     Av2hFirstLeafMode *mode) {
     return av2h_luma_mode_read_with_state_and_gdf(
-        decoder, cdfs, sequence, frame, leaf, state, 0, 0, 0, mode);
+        decoder, cdfs, sequence, frame, leaf, state, NULL, NULL, NULL, mode);
 }
 
 Av2hStatus av2h_luma_mode_read_with_state_and_gdf(
@@ -490,7 +493,7 @@ Av2hStatus av2h_luma_mode_read_with_state_and_gdf(
     if (status != AV2H_OK) return status;
     status = luma_mode_read_internal(
         decoder, cdfs, sequence, frame, leaf, &neighbors, state, gdf_state,
-        cdef_state, ccso_state, 0, 0U, mode);
+        cdef_state, ccso_state, NULL, 0U, mode);
     return status;
 }
 
@@ -530,7 +533,7 @@ static Av2hStatus read_delta_q(
     uint32_t magnitude;
     int q_index;
     if (frame->delta_q_present == 0U) return AV2H_OK;
-    if (current_q_index == 0 || frame->delta_q_res == 0U) {
+    if (current_q_index == NULL || frame->delta_q_res == 0U) {
         return AV2H_INVALID_ARGUMENT;
     }
     superblock_mi = (uint16_t)(sequence->superblock_size / 4U);
@@ -569,10 +572,10 @@ static const Av2hLumaModeContext *segment_spatial_context(
     int32_t row,
     int32_t column) {
     size_t index;
-    if (state == 0 || state->spatial == 0 || row < 0 || column < 0 ||
+    if (state == NULL || state->spatial == NULL || row < 0 || column < 0 ||
         (size_t)row >= state->spatial_rows ||
         (size_t)column >= state->spatial_columns) {
-        return 0;
+        return NULL;
     }
     index = (size_t)row * state->spatial_columns + (size_t)column;
     return (const Av2hLumaModeContext *)(
@@ -614,7 +617,7 @@ Av2hStatus av2h_leaf_segment_id_read(
     uint8_t *segment_id) {
     uint8_t coded_id;
     uint8_t extended = 0U;
-    if (decoder == 0 || cdfs == 0 || segment_id == 0 ||
+    if (decoder == NULL || cdfs == NULL || segment_id == NULL ||
         context >= AV2H_SEGMENT_ID_CONTEXTS || maximum == 0U ||
         maximum > (extended_enabled != 0U ? AV2H_SEGMENT_COUNT :
                                             AV2H_BASE_SEGMENT_COUNT) ||
@@ -653,10 +656,10 @@ static Av2hStatus read_segment_id(
         state, (int32_t)leaf->row - 1, leaf->column);
     const Av2hLumaModeContext *left = segment_spatial_context(
         state, leaf->row, (int32_t)leaf->column - 1);
-    int upper_left_id = upper_left != 0 && upper_left->present ?
+    int upper_left_id = upper_left != NULL && upper_left->present ?
         upper_left->segment_id : -1;
-    int above_id = above != 0 && above->present ? above->segment_id : -1;
-    int left_id = left != 0 && left->present ? left->segment_id : -1;
+    int above_id = above != NULL && above->present ? above->segment_id : -1;
+    int left_id = left != NULL && left->present ? left->segment_id : -1;
     uint8_t context;
     uint8_t predictor;
     uint8_t maximum = (uint8_t)(frame->seg_last_active_id + 1U);
@@ -718,15 +721,15 @@ static Av2hStatus luma_mode_read_internal(
     size_t secondary_context = 0U;
     uint8_t has_spatial_neighbors;
     uint32_t value;
-    if (decoder == 0 || cdfs == 0 || sequence == 0 || frame == 0 ||
-        leaf == 0 || neighbors == 0 || mode == 0) {
+    if (decoder == NULL || cdfs == NULL || sequence == NULL || frame == NULL ||
+        leaf == NULL || neighbors == NULL || mode == NULL) {
         return AV2H_INVALID_ARGUMENT;
     }
     if (leaf->block_size >= AV2H_BLOCK_SIZE_COUNT ||
         frame->disable_cdf_update ||
         (!sequence->enable_sdp && !av2h_sequence_is_monochrome(sequence)) ||
-        (frame->gdf_mode >= 2U && gdf_state == 0) ||
-        (frame->cdef_strength_count > 1U && cdef_state == 0)) {
+        (frame->gdf_mode >= 2U && gdf_state == NULL) ||
+        (frame->cdef_strength_count > 1U && cdef_state == NULL)) {
         return AV2H_UNSUPPORTED;
     }
     mode->enable_ibp = sequence->enable_ibp;
@@ -849,7 +852,7 @@ static Av2hStatus luma_mode_read_internal(
             status = av2h_leaf_read_cdef_entropy(
                 decoder, frame, leaf, cdef_state, mode);
             if (status != AV2H_OK) return status;
-            if (ccso_state != 0 && ccso_state->enabled_mask != 0U) {
+            if (ccso_state != NULL && ccso_state->enabled_mask != 0U) {
                 status = av2h_leaf_read_ccso_entropy(
                     decoder, cdfs, sequence, frame, leaf,
                     neighbors, ccso_state, mode);
@@ -864,7 +867,7 @@ static Av2hStatus luma_mode_read_internal(
             if (status != AV2H_OK) return status;
             mode->q_index = av2h_leaf_segment_q_index(
                 sequence, frame,
-                current_q_index != 0 ? *current_q_index : frame->base_q_index,
+                current_q_index != NULL ? *current_q_index : frame->base_q_index,
                 mode->segment_id);
             av2h_leaf_diagnostics_set_luma_stage(decoder->diagnostics, 3U);
             status = av2h_leaf_read_first_intrabc(
@@ -887,7 +890,7 @@ static Av2hStatus luma_mode_read_internal(
             decoder, frame, leaf, cdef_state, mode);
         if (status != AV2H_OK) return status;
     }
-    if (ccso_state != 0 && ccso_state->enabled_mask != 0U) {
+    if (ccso_state != NULL && ccso_state->enabled_mask != 0U) {
         Av2hStatus status = av2h_leaf_read_ccso_entropy(
             decoder, cdfs, sequence, frame, leaf, neighbors,
             ccso_state, mode);
@@ -905,7 +908,7 @@ static Av2hStatus luma_mode_read_internal(
     }
     mode->q_index = av2h_leaf_segment_q_index(
         sequence, frame,
-        current_q_index != 0 ? *current_q_index : frame->base_q_index,
+        current_q_index != NULL ? *current_q_index : frame->base_q_index,
         mode->segment_id);
     mode->before_mode_bits = av2h_range_tell(decoder);
     if (mode->q_index == 0U) {
@@ -1043,8 +1046,8 @@ Av2hStatus av2h_luma_mode_read_palette_and_dip(
     uint32_t value;
     size_t neighbor;
     uint8_t has_spatial_neighbors;
-    if (decoder == 0 || cdfs == 0 || sequence == 0 || frame == 0 ||
-        leaf == 0 || neighbors == 0 || mode == 0) {
+    if (decoder == NULL || cdfs == NULL || sequence == NULL || frame == NULL ||
+        leaf == NULL || neighbors == NULL || mode == NULL) {
         return AV2H_INVALID_ARGUMENT;
     }
     has_spatial_neighbors = neighbors->spatial_valid;
@@ -1134,7 +1137,7 @@ Av2hStatus av2h_luma_mode_read(
     const Av2hLumaModeNeighbors *neighbors,
     Av2hFirstLeafMode *mode) {
     return luma_mode_read_internal(
-        decoder, cdfs, sequence, frame, leaf, neighbors, 0, 0, 0, 0, 0, 0U,
+        decoder, cdfs, sequence, frame, leaf, neighbors, NULL, NULL, NULL, NULL, NULL, 0U,
         mode);
 }
 
@@ -1145,7 +1148,7 @@ Av2hStatus av2h_first_leaf_mode_read(Av2hRangeDecoder *decoder,
                                      const Av2hPartitionNode *leaf,
                                      Av2hFirstLeafMode *mode) {
     const Av2hLumaModeNeighbors neighbors = { 0 };
-    if (leaf == 0) return AV2H_INVALID_ARGUMENT;
+    if (leaf == NULL) return AV2H_INVALID_ARGUMENT;
     if (leaf->row != 0U || leaf->column != 0U) return AV2H_UNSUPPORTED;
     return av2h_luma_mode_read(decoder, cdfs, sequence, frame, leaf,
                                &neighbors, mode);

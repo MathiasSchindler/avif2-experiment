@@ -1,8 +1,11 @@
 #include "internal/reconstruct_block.h"
+
 #include "internal/decode_diagnostics.h"
 #include "internal/reconstruct_modules.h"
 #include "internal/sample_math.h"
 #include "tx_geometry.h"
+
+#include <stddef.h>
 
 static Av2hStatus reconstruct_lossless_4x4_u16(
     const Av2hFirstCoeffBlock *coefficients,
@@ -16,7 +19,7 @@ static Av2hStatus reconstruct_lossless_4x4_u16(
     int32_t residual[16U];
     size_t row;
     size_t column;
-    if (coefficients == 0 || predictor == 0 || reconstruction == 0 ||
+    if (coefficients == NULL || predictor == NULL || reconstruction == NULL ||
         coefficients->width != 4U || coefficients->height != 4U ||
         coefficients->coefficient_count != 16U || use_dpcm > 1U ||
         dpcm_horizontal > 1U || identity_transform > 1U ||
@@ -139,8 +142,8 @@ Av2hStatus av2h_luma_reconstruct_with_diagnostics(
     uint8_t adst_columns;
     uint8_t flip_adst_columns = 0U;
     Av2hStatus status;
-    if (mode == 0 || prefix == 0 || transform == 0 || coefficients == 0 ||
-        scratch == 0 || reconstruction == 0) {
+    if (mode == NULL || prefix == NULL || transform == NULL || coefficients == NULL ||
+        scratch == NULL || reconstruction == NULL) {
         return AV2H_INVALID_ARGUMENT;
     }
     if (prefix->q_index == 0U && prefix->tx_size == AV2H_TX_4X4 &&
@@ -155,7 +158,7 @@ Av2hStatus av2h_luma_reconstruct_with_diagnostics(
         size_t output_count;
         Av2hStatus descriptor_status;
         if (prefix->eob != 0U || coefficients->nonzero_count != 0U ||
-            predictor == 0) {
+            predictor == NULL) {
             return AV2H_UNSUPPORTED;
         }
         descriptor_status = av2h_tx_descriptor_get(
@@ -204,7 +207,7 @@ Av2hStatus av2h_luma_reconstruct_with_diagnostics(
         height = descriptor->output_height;
         if (coefficients->width != width || coefficients->height != height ||
             coefficients->coefficient_count != width * height ||
-            predictor == 0 || predictor_stride_samples < width) {
+            predictor == NULL || predictor_stride_samples < width) {
             return AV2H_UNSUPPORTED;
         }
         scale_bits = 3U - (coefficients->coefficient_count > 256U ? 1U : 0U) -
@@ -272,14 +275,14 @@ Av2hStatus av2h_luma_reconstruct_with_diagnostics(
         const Av2hTxDescriptor *descriptor;
         size_t output_count;
         if (av2h_tx_descriptor_get(prefix->tx_size, &descriptor) != AV2H_OK ||
-            descriptor == 0 || mode->intrabc_mode > 1U ||
+            descriptor == NULL || mode->intrabc_mode > 1U ||
             mode->mv_precision != 3U || !prefix->all_zero ||
             prefix->eob != 0U ||
             transform->primary_type != AV2H_TX_DCT_DCT ||
             coefficients->width != descriptor->coefficient_width ||
             coefficients->height != descriptor->coefficient_height ||
             coefficients->coefficient_count != descriptor->eob_capacity ||
-            coefficients->nonzero_count != 0U || predictor == 0 ||
+            coefficients->nonzero_count != 0U || predictor == NULL ||
             predictor_stride_samples < descriptor->output_width) {
             return AV2H_UNSUPPORTED;
         }
@@ -311,7 +314,7 @@ Av2hStatus av2h_luma_reconstruct_with_diagnostics(
         transform->primary_type == AV2H_TX_DCT_DCT &&
         coefficients->width == 16U && coefficients->height == 16U &&
         coefficients->coefficient_count == 256U &&
-        coefficients->nonzero_count == 0U && predictor != 0 &&
+        coefficients->nonzero_count == 0U && predictor != NULL &&
         predictor_stride_samples >= 16U) {
         reconstruction->width = 16U;
         reconstruction->height = 16U;
@@ -337,7 +340,7 @@ Av2hStatus av2h_luma_reconstruct_with_diagnostics(
         transform->primary_type == AV2H_TX_DCT_DCT &&
         coefficients->width == 32U && coefficients->height == 16U &&
         coefficients->coefficient_count == 512U &&
-        coefficients->nonzero_count == 0U && predictor != 0 &&
+        coefficients->nonzero_count == 0U && predictor != NULL &&
         predictor_stride_samples >= 64U) {
         reconstruction->width = 64U;
         reconstruction->height = 16U;
@@ -1071,7 +1074,7 @@ Av2hStatus av2h_luma_reconstruct_with_diagnostics(
                              flip_adst_columns);
     if (status != AV2H_OK) return status;
     for (index = 0U; index < count; ++index) {
-        int32_t predicted = predictor == 0 ?
+        int32_t predicted = predictor == NULL ?
             av2h_sample_midpoint_8bit() :
             predictor[(index / coefficients->width) * predictor_stride_samples +
                       index % coefficients->width];
@@ -1091,7 +1094,7 @@ Av2hStatus av2h_first_luma_reconstruct(
     Av2hReconstructionScratch *scratch,
     Av2hFirstReconstruction *reconstruction) {
     return av2h_luma_reconstruct(mode, prefix, transform, coefficients,
-                                 0, 0U, scratch, reconstruction);
+                                 NULL, 0U, scratch, reconstruction);
 }
 
 Av2hStatus av2h_luma_reconstruct(
@@ -1104,7 +1107,7 @@ Av2hStatus av2h_luma_reconstruct(
     Av2hReconstructionScratch *scratch,
     Av2hFirstReconstruction *reconstruction) {
     return av2h_luma_reconstruct_with_diagnostics(
-        0, mode, prefix, transform, coefficients, predictor,
+        NULL, mode, prefix, transform, coefficients, predictor,
         predictor_stride_samples, scratch, reconstruction);
 }
 
@@ -1115,8 +1118,8 @@ Av2hStatus av2h_first_chroma_reconstruct(
     Av2hReconstructionScratch *scratch,
     Av2hFirstReconstruction *reconstruction) {
     Av2hFirstLeafMode mode;
-    if (prefix == 0 || transform == 0 || coefficients == 0 || scratch == 0 ||
-        reconstruction == 0) {
+    if (prefix == NULL || transform == NULL || coefficients == NULL || scratch == NULL ||
+        reconstruction == NULL) {
         return AV2H_INVALID_ARGUMENT;
     }
     if (prefix->tx_size != AV2H_TX_4X4 ||
@@ -1127,7 +1130,7 @@ Av2hStatus av2h_first_chroma_reconstruct(
     av2h_memory_fill(&mode, 0U, sizeof(mode));
     mode.mode = AV2H_INTRA_DC;
     return av2h_luma_reconstruct(&mode, prefix, transform, coefficients,
-                                 0, 0U, scratch, reconstruction);
+                                 NULL, 0U, scratch, reconstruction);
 }
 
 Av2hStatus av2h_chroma_inverse_cross_transform(
@@ -1141,7 +1144,7 @@ Av2hStatus av2h_chroma_inverse_cross_transform(
     };
     size_t index;
     int32_t coefficient_limit;
-    if (u_coefficients == 0 || v_coefficients == 0 || cctx_type > 6U ||
+    if (u_coefficients == NULL || v_coefficients == NULL || cctx_type > 6U ||
         (bit_depth != 8U && bit_depth != 10U) ||
         u_coefficients->coefficient_count !=
             v_coefficients->coefficient_count) {
@@ -1187,8 +1190,8 @@ Av2hStatus av2h_luma_reconstruct_u16_with_diagnostics(
     Av2hFirstReconstructionU16 *reconstruction) {
     const Av2hTxDescriptor *descriptor;
     Av2hStatus status;
-    if (mode == 0 || prefix == 0 || transform == 0 || coefficients == 0 ||
-        predictor == 0 || scratch == 0 || reconstruction == 0) {
+    if (mode == NULL || prefix == NULL || transform == NULL || coefficients == NULL ||
+        predictor == NULL || scratch == NULL || reconstruction == NULL) {
         return AV2H_INVALID_ARGUMENT;
     }
     status = av2h_tx_descriptor_get(prefix->tx_size, &descriptor);
@@ -1267,8 +1270,8 @@ Av2hStatus av2h_chroma_reconstruct_with_diagnostics(
     Av2hFirstLeafMode luma_mode;
     Av2hFirstCoeffPrefix effective_prefix;
     size_t index;
-    if (mode == 0 || prefix == 0 || transform == 0 || coefficients == 0 ||
-        predictor == 0 || scratch == 0 || reconstruction == 0 ||
+    if (mode == NULL || prefix == NULL || transform == NULL || coefficients == NULL ||
+        predictor == NULL || scratch == NULL || reconstruction == NULL ||
         width == 0U || height == 0U ||
         (size_t)width * height > AV2H_RECON_SAMPLE_CAPACITY) {
         return AV2H_INVALID_ARGUMENT;
@@ -1319,8 +1322,8 @@ Av2hStatus av2h_chroma_reconstruct_u16_with_diagnostics(
     Av2hFirstLeafMode luma_mode;
     const Av2hTxDescriptor *descriptor;
     Av2hStatus status;
-    if (mode == 0 || prefix == 0 || transform == 0 || coefficients == 0 ||
-        predictor == 0 || scratch == 0 || reconstruction == 0) {
+    if (mode == NULL || prefix == NULL || transform == NULL || coefficients == NULL ||
+        predictor == NULL || scratch == NULL || reconstruction == NULL) {
         return AV2H_INVALID_ARGUMENT;
     }
     status = av2h_tx_descriptor_get(prefix->tx_size, &descriptor);

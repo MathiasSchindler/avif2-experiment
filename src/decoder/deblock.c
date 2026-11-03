@@ -1,7 +1,10 @@
 #include "decoder/filter.h"
+
 #include "decoder/coeff_level.h"
 #include "decoder/internal/filter_common.h"
 #include "decoder/internal/filter_modules.h"
+
+#include <stddef.h>
 
 #define AV2H_DEBLOCK_MAX_SAMPLES 8U
 
@@ -34,8 +37,8 @@ Av2hStatus av2h_deblock_quantizer_thresholds(
     uint32_t q_step;
     Av2hQIndex q_step_index;
     unsigned int delta_index = plane == 0U ? pass : plane + 1U;
-    if (cell == 0 || sequence == 0 || frame == 0 || q_threshold == 0 ||
-        side_threshold == 0 || plane >= AV2H_FRAME_PLANE_COUNT || pass > 1U) {
+    if (cell == NULL || sequence == NULL || frame == NULL || q_threshold == NULL ||
+        side_threshold == NULL || plane >= AV2H_FRAME_PLANE_COUNT || pass > 1U) {
         return AV2H_INVALID_ARGUMENT;
     }
     if (sequence->info.bit_depth_idc != 0U &&
@@ -375,7 +378,7 @@ static Av2hStatus deblock_edge(
     uint8_t *sample;
     unsigned int filter;
     unsigned int lane;
-    if (plane == 0 || plane->data == 0 || plane->stride_samples < plane->width ||
+    if (plane == NULL || plane->data == NULL || plane->stride_samples < plane->width ||
         vertical > 1U || negative_length < 4U ||
         (negative_length & 1U) != 0U || positive_length < negative_length ||
         positive_length > 18U || (positive_length & 1U) != 0U) {
@@ -445,7 +448,7 @@ static Av2hStatus deblock_edge_u16(
     uint16_t *sample;
     unsigned int filter;
     unsigned int lane;
-    if (plane == 0 || plane->data == 0 || plane->stride_samples < plane->width ||
+    if (plane == NULL || plane->data == NULL || plane->stride_samples < plane->width ||
         vertical > 1U || negative_length < 4U ||
         (negative_length & 1U) != 0U || positive_length < negative_length ||
         positive_length > 18U || (positive_length & 1U) != 0U) {
@@ -504,9 +507,9 @@ static int deblock_transform_dimension_valid(uint8_t value) {
 int av2h_deblock_map_valid(const Av2hFilterPlanes *planes,
                              const Av2hDeblockMap *map) {
     unsigned int plane;
-    if (map == 0) return 0;
+    if (map == NULL) return 0;
     for (plane = 0U;
-         plane < AV2H_FRAME_PLANE_COUNT && planes->plane[plane].data != 0;
+         plane < AV2H_FRAME_PLANE_COUNT && planes->plane[plane].data != NULL;
          ++plane) {
         size_t grid_size = plane == 0U ? 4U : 2U;
         size_t columns = planes->plane[plane].width / grid_size;
@@ -517,7 +520,7 @@ int av2h_deblock_map_valid(const Av2hFilterPlanes *planes,
             columns /= 2U;
             rows /= 2U;
         }
-        if (map->plane[plane] == 0 || map->columns[plane] != columns ||
+        if (map->plane[plane] == NULL || map->columns[plane] != columns ||
             map->rows[plane] != rows || map->stride_cells[plane] < columns) {
             return 0;
         }
@@ -545,9 +548,9 @@ int av2h_deblock_map_valid(const Av2hFilterPlanes *planes,
 int av2h_deblock_map_valid_u16(const Av2hFilterPlanesU16 *planes,
                                const Av2hDeblockMap *map) {
     unsigned int plane;
-    if (map == 0) return 0;
+    if (map == NULL) return 0;
     for (plane = 0U;
-         plane < AV2H_FRAME_PLANE_COUNT && planes->plane[plane].data != 0;
+         plane < AV2H_FRAME_PLANE_COUNT && planes->plane[plane].data != NULL;
          ++plane) {
         size_t grid_size = plane == 0U ? 4U : 2U;
         size_t columns = planes->plane[plane].width / grid_size;
@@ -558,7 +561,7 @@ int av2h_deblock_map_valid_u16(const Av2hFilterPlanesU16 *planes,
             columns /= 2U;
             rows /= 2U;
         }
-        if (map->plane[plane] == 0 || map->columns[plane] != columns ||
+        if (map->plane[plane] == NULL || map->columns[plane] != columns ||
             map->rows[plane] != rows || map->stride_cells[plane] < columns) {
             return 0;
         }
@@ -849,7 +852,7 @@ Av2hStatus av2h_deblock_filter_frame(
     const Av2hFrameState *frame,
     const Av2hDeblockMap *map) {
     unsigned int plane;
-    if (planes == 0 || sequence == 0 || frame == 0 ||
+    if (planes == NULL || sequence == NULL || frame == NULL ||
         !filter_dimensions_valid(planes, frame) ||
         !av2h_deblock_map_valid(planes, map)) {
         return AV2H_INVALID_ARGUMENT;
@@ -885,7 +888,7 @@ Av2hStatus av2h_deblock_filter_frame_u16(
     const Av2hFrameState *frame,
     const Av2hDeblockMap *map) {
     unsigned int plane;
-    if (planes == 0 || sequence == 0 || frame == 0 ||
+    if (planes == NULL || sequence == NULL || frame == NULL ||
         !filter_dimensions_valid_u16(planes, frame) ||
         !av2h_deblock_map_valid_u16(planes, map)) {
         return AV2H_INVALID_ARGUMENT;
@@ -921,7 +924,7 @@ Av2hStatus av2h_deblock_stage_u16(
     const Av2hFrameState *frame,
     Av2hFilterWorkspace *workspace) {
     unsigned int plane;
-    if (reconstructed == 0 || sequence == 0 || frame == 0 || workspace == 0 ||
+    if (reconstructed == NULL || sequence == NULL || frame == NULL || workspace == NULL ||
         sequence->info.bit_depth_idc != 0U ||
         !filter_dimensions_valid_u16(reconstructed, frame) ||
         !filter_dimensions_valid_u16(&workspace->deblocked_u16, frame) ||

@@ -1,5 +1,8 @@
-#include "base.h"
 #include "internal/obu.h"
+
+#include "base.h"
+
+#include <stddef.h>
 
 static size_t leb128_size(size_t value) {
     size_t size = 1U;
@@ -58,7 +61,7 @@ Av2hStatus av2h_leb128_read(Av2hSpan input,
                             Av2hError *error) {
     uint64_t result = 0U;
     size_t index;
-    if ((input.data == 0 && input.size != 0U) || value == 0 || encoded_size == 0) {
+    if ((input.data == NULL && input.size != 0U) || value == NULL || encoded_size == NULL) {
         return av2h_obu_fail(error, AV2H_INVALID_ARGUMENT, 0U, AV2H_CONTEXT_LEB128);
     }
     for (index = 0U; index < 8U; ++index) {
@@ -87,10 +90,10 @@ Av2hStatus av2h_leb128_write(size_t value,
     unsigned char *bytes = (unsigned char *)output;
     size_t required = leb128_size(value);
     size_t index;
-    if (written == 0 || (output == 0 && output_size != 0U)) return AV2H_INVALID_ARGUMENT;
+    if (written == NULL || (output == NULL && output_size != 0U)) return AV2H_INVALID_ARGUMENT;
     if (value >= ((uint64_t)1U << 56)) return AV2H_OVERFLOW;
     *written = required;
-    if (output == 0 && output_size == 0U) return AV2H_OK;
+    if (output == NULL && output_size == 0U) return AV2H_OK;
     if (required > output_size) return AV2H_OUT_OF_MEMORY;
     for (index = 0U; index < required; ++index) {
         unsigned char byte = (unsigned char)(value & 0x7fU);
@@ -105,8 +108,8 @@ Av2hStatus av2h_obu_parse(Av2hSpan input,
                           Av2hObuLedger *ledger,
                           Av2hError *error) {
     size_t offset = 0U;
-    if ((input.data == 0 && input.size != 0U) || ledger == 0 ||
-        (ledger->entries == 0 && ledger->capacity != 0U)) {
+    if ((input.data == NULL && input.size != 0U) || ledger == NULL ||
+        (ledger->entries == NULL && ledger->capacity != 0U)) {
         return av2h_obu_fail(error, AV2H_INVALID_ARGUMENT, 0U, AV2H_CONTEXT_OBU_HEADER);
     }
     ledger->count = 0U;
@@ -119,7 +122,7 @@ Av2hStatus av2h_obu_parse(Av2hSpan input,
         Av2hObu *obu;
         Av2hStatus status = av2h_leb128_read(remaining, &obu_size, &length_size, error);
         if (status != AV2H_OK) {
-            if (error != 0) {
+            if (error != NULL) {
                 error->offset += offset;
                 error->obu_index = ledger->count;
             }

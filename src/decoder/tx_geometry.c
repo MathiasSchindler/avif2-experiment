@@ -1,5 +1,7 @@
 #include "tx_geometry.h"
 
+#include <stddef.h>
+
 #define TX_DESC(id, ow, oh, cw, ch, ctx, sq, up, eob, capacity, signal)         \
     { id, ow, oh, cw, ch, ctx, sq, up, eob, capacity, signal }
 
@@ -100,7 +102,7 @@ static int tx_descriptor_valid(const Av2hTxDescriptor *descriptor,
     int height_class;
     int square_class;
     int square_up_class;
-    if (descriptor == 0 || descriptor->tx_size != tx_size ||
+    if (descriptor == NULL || descriptor->tx_size != tx_size ||
         descriptor->output_width == 0U || descriptor->output_height == 0U) {
         return 0;
     }
@@ -148,8 +150,8 @@ Av2hStatus av2h_tx_descriptor_get(
     Av2hFirstTxSize tx_size,
     const Av2hTxDescriptor **descriptor) {
     const Av2hTxDescriptor *candidate;
-    if (descriptor == 0) return AV2H_INVALID_ARGUMENT;
-    *descriptor = 0;
+    if (descriptor == NULL) return AV2H_INVALID_ARGUMENT;
+    *descriptor = NULL;
     if ((unsigned int)tx_size >= AV2H_TX_SIZE_COUNT) {
         return AV2H_UNSUPPORTED;
     }
@@ -193,8 +195,8 @@ Av2hStatus av2h_luma_tx_descriptor_get(
         case AV2H_BLOCK_4X64: tx_size = AV2H_TX_4X64; break;
         case AV2H_BLOCK_64X4: tx_size = AV2H_TX_64X4; break;
         default:
-            if (descriptor != 0) *descriptor = 0;
-            return descriptor == 0 ? AV2H_INVALID_ARGUMENT :
+            if (descriptor != NULL) *descriptor = NULL;
+            return descriptor == NULL ? AV2H_INVALID_ARGUMENT :
                                      AV2H_UNSUPPORTED;
     }
     return av2h_tx_descriptor_get(tx_size, descriptor);
@@ -205,7 +207,7 @@ Av2hStatus av2h_luma_tx_node_count(
         uint16_t *count) {
         const Av2hTxDescriptor *descriptor;
         Av2hStatus status;
-        if (count == 0) return AV2H_INVALID_ARGUMENT;
+        if (count == NULL) return AV2H_INVALID_ARGUMENT;
         status = av2h_luma_tx_descriptor_get(block_size, &descriptor);
         if (status != AV2H_OK) return status;
         (void)descriptor;
@@ -220,7 +222,7 @@ Av2hStatus av2h_luma_tx_node_get(
         Av2hPartitionNode *tx_node) {
         uint16_t count;
         Av2hStatus status;
-        if (coding_node == 0 || tx_node == 0) return AV2H_INVALID_ARGUMENT;
+        if (coding_node == NULL || tx_node == NULL) return AV2H_INVALID_ARGUMENT;
         status = av2h_luma_tx_node_count(coding_node->block_size, &count);
         if (status != AV2H_OK) return status;
         if (index >= count) return AV2H_INVALID_ARGUMENT;
@@ -247,7 +249,7 @@ Av2hStatus av2h_luma_lossless_tx_node_count(
         size_t width_mi;
         size_t height_mi;
         Av2hStatus status;
-        if (coding_node == 0 || count == 0 ||
+        if (coding_node == NULL || count == NULL ||
                 coding_node->column >= mi_columns ||
                 coding_node->row >= mi_rows) return AV2H_INVALID_ARGUMENT;
         status = av2h_block_dimensions_mi(
@@ -280,7 +282,7 @@ Av2hStatus av2h_luma_lossless_tx_node_get(
         size_t node_index;
         uint16_t count;
         Av2hStatus status;
-        if (coding_node == 0 || tx_node == 0) return AV2H_INVALID_ARGUMENT;
+        if (coding_node == NULL || tx_node == NULL) return AV2H_INVALID_ARGUMENT;
         status = av2h_luma_lossless_tx_node_count(
                 coding_node, mi_columns, mi_rows, &count);
         if (status != AV2H_OK) return status;
@@ -328,8 +330,8 @@ Av2hStatus av2h_chroma_tx_descriptor_get(
     uint8_t height;
     size_t index;
     Av2hStatus status;
-    if (descriptor == 0) return AV2H_INVALID_ARGUMENT;
-    *descriptor = 0;
+    if (descriptor == NULL) return AV2H_INVALID_ARGUMENT;
+    *descriptor = NULL;
     status = av2h_block_dimensions_mi(block_size, &width_mi, &height_mi);
     if (status != AV2H_OK) return status;
     if (width_mi > 32U || height_mi > 32U) return AV2H_UNSUPPORTED;
@@ -363,7 +365,7 @@ Av2hStatus av2h_chroma_tx_node_count(
         size_t columns;
         size_t rows;
         Av2hStatus status;
-        if (count == 0) return AV2H_INVALID_ARGUMENT;
+        if (count == NULL) return AV2H_INVALID_ARGUMENT;
         if (chroma_format_idc != 0U && chroma_format_idc != 2U) {
                 return AV2H_UNSUPPORTED;
         }
@@ -393,7 +395,7 @@ Av2hStatus av2h_chroma_tx_node_get(
         size_t columns;
         uint16_t count;
         Av2hStatus status;
-        if (coding_node == 0 || tx_node == 0) return AV2H_INVALID_ARGUMENT;
+        if (coding_node == NULL || tx_node == NULL) return AV2H_INVALID_ARGUMENT;
         status = av2h_chroma_tx_node_count(
                 coding_node->block_size, chroma_format_idc, &count);
         if (status != AV2H_OK) return status;
@@ -424,7 +426,7 @@ Av2hStatus av2h_chroma_lossless_tx_node_count(
         size_t columns;
         size_t rows;
         Av2hStatus status;
-        if (coding_node == 0 || count == 0 ||
+        if (coding_node == NULL || count == NULL ||
                 coding_node->column >= mi_columns ||
                 coding_node->row >= mi_rows) return AV2H_INVALID_ARGUMENT;
         if (chroma_format_idc != 0U && chroma_format_idc != 2U) {
@@ -467,7 +469,7 @@ Av2hStatus av2h_chroma_lossless_tx_node_get(
         size_t step_mi;
         uint16_t count;
         Av2hStatus status;
-        if (coding_node == 0 || tx_node == 0) return AV2H_INVALID_ARGUMENT;
+        if (coding_node == NULL || tx_node == NULL) return AV2H_INVALID_ARGUMENT;
         status = av2h_chroma_lossless_tx_node_count(
                 coding_node, mi_columns, mi_rows, chroma_format_idc, &count);
         if (status != AV2H_OK) return status;

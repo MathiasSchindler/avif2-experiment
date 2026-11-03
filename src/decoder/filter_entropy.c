@@ -1,5 +1,8 @@
 #include "leaf.h"
+
 #include "internal/leaf_modules.h"
+
+#include <stddef.h>
 
 Av2hStatus av2h_gdf_entropy_state_init(
     Av2hGdfEntropyState *state,
@@ -9,7 +12,7 @@ Av2hStatus av2h_gdf_entropy_state_init(
     size_t block_flag_capacity) {
     size_t index;
     Av2hStatus status;
-    if (state == 0 || sequence == 0 || frame == 0) {
+    if (state == NULL || sequence == NULL || frame == NULL) {
         return AV2H_INVALID_ARGUMENT;
     }
     av2h_memory_fill(state, 0U, sizeof(*state));
@@ -48,7 +51,7 @@ Av2hStatus av2h_gdf_entropy_state_init(
             return AV2H_INVALID_DATA;
         }
     }
-    if (block_flags == 0 ||
+    if (block_flags == NULL ||
         block_flag_capacity < frame->gdf_block_count) {
         return AV2H_OUT_OF_MEMORY;
     }
@@ -77,8 +80,8 @@ Av2hStatus av2h_leaf_read_gdf_entropy(
     mode->after_gdf_bits = mode->before_gdf_bits;
     mode->gdf_flags_read = 0U;
     if (frame->gdf_mode < 2U) return AV2H_OK;
-    if (state == 0 || state->mode != frame->gdf_mode ||
-        state->block_flags == 0 ||
+    if (state == NULL || state->mode != frame->gdf_mode ||
+        state->block_flags == NULL ||
         state->block_flag_capacity < frame->gdf_block_count) {
         return AV2H_UNSUPPORTED;
     }
@@ -145,7 +148,7 @@ static Av2hStatus cdef_entropy_state_init(
         32U, 32U, 37U, 37U, 32U, 32U
     };
     size_t index;
-    if (state == 0 || sequence == 0 || frame == 0) {
+    if (state == NULL || sequence == NULL || frame == NULL) {
         return AV2H_INVALID_ARGUMENT;
     }
     av2h_memory_fill(state, 0U, sizeof(*state));
@@ -169,7 +172,7 @@ static Av2hStatus cdef_entropy_state_init(
                             &state->unit_count)) {
         return AV2H_INVALID_DATA;
     }
-    if (unit_strengths == 0 ||
+    if (unit_strengths == NULL ||
         unit_strength_capacity < state->unit_count) {
         return AV2H_OUT_OF_MEMORY;
     }
@@ -227,7 +230,7 @@ static Av2hStatus cdef_index0_context(
     uint8_t above = AV2H_CDEF_UNTRANSMITTED;
     uint8_t left_available;
     uint8_t above_available;
-    if (state == 0 || leaf == 0 || context == 0 ||
+    if (state == NULL || leaf == NULL || context == NULL ||
         unit_row >= state->unit_rows ||
         unit_column >= state->unit_columns) {
         return AV2H_INVALID_ARGUMENT;
@@ -329,13 +332,13 @@ Av2hStatus av2h_leaf_read_cdef_entropy(
             expected_columns, expected_rows, &expected_count)) {
         return AV2H_INVALID_DATA;
     }
-    if (state == 0 ||
+    if (state == NULL ||
         state->strength_count != frame->cdef_strength_count ||
         (state->superblock_mi != 16U && state->superblock_mi != 32U) ||
         state->unit_columns != expected_columns ||
         state->unit_rows != expected_rows ||
         state->unit_count != expected_count ||
-        state->unit_strengths == 0 ||
+        state->unit_strengths == NULL ||
         state->unit_strength_capacity < state->unit_count) {
         return AV2H_INVALID_DATA;
     }
@@ -404,7 +407,7 @@ static Av2hStatus ccso_entropy_state_init(
     uint8_t preserve_controls) {
     size_t plane;
     size_t index;
-    if (state == 0 || sequence == 0 || frame == 0) {
+    if (state == NULL || sequence == NULL || frame == NULL) {
         return AV2H_INVALID_ARGUMENT;
     }
     av2h_memory_fill(state, 0U, sizeof(*state));
@@ -441,7 +444,7 @@ static Av2hStatus ccso_entropy_state_init(
                             &state->unit_count)) {
         return AV2H_INVALID_DATA;
     }
-    if (unit_controls == 0) {
+    if (unit_controls == NULL) {
         return AV2H_OUT_OF_MEMORY;
     }
     if (unit_control_capacity < state->unit_count) {
@@ -451,7 +454,7 @@ static Av2hStatus ccso_entropy_state_init(
         if ((state->enabled_mask & (uint8_t)(1U << plane)) == 0U) {
             continue;
         }
-        if (unit_controls[plane] == 0) {
+        if (unit_controls[plane] == NULL) {
             return AV2H_OUT_OF_MEMORY;
         }
         state->unit_controls[plane] = unit_controls[plane];
@@ -497,20 +500,20 @@ static Av2hStatus ccso_context(
     uint8_t above = AV2H_CCSO_UNTRANSMITTED;
     uint8_t left_available;
     uint8_t above_available;
-    if (state == 0 || context == 0 ||
+    if (state == NULL || context == NULL ||
         plane >= AV2H_FRAME_PLANE_COUNT ||
         unit_row >= state->unit_rows ||
         unit_column >= state->unit_columns ||
-        state->unit_controls[plane] == 0) {
+        state->unit_controls[plane] == NULL) {
         return AV2H_INVALID_ARGUMENT;
     }
-    if (unit_column != 0U && neighbors != 0 &&
+    if (unit_column != 0U && neighbors != NULL &&
         neighbors->ccso_present[0] != 0U &&
         unit_column * state->unit_size_mi > state->tile_start_column) {
         left = state->unit_controls[plane][
             unit_row * state->unit_columns + unit_column - 1U];
     }
-    if (unit_row != 0U && neighbors != 0 &&
+    if (unit_row != 0U && neighbors != NULL &&
         neighbors->ccso_present[1] != 0U &&
         unit_row * state->unit_size_mi > state->tile_start_row &&
         above_available_at_leaf) {
@@ -523,7 +526,7 @@ static Av2hStatus ccso_context(
         (above_available && above > 1U)) {
         return AV2H_INVALID_DATA;
     }
-    if (left_available && above_available && neighbors != 0 &&
+    if (left_available && above_available && neighbors != NULL &&
         (neighbors->ccso_owner_row[0] / state->unit_size_mi) ==
             (neighbors->ccso_owner_row[1] / state->unit_size_mi) &&
         (neighbors->ccso_owner_column[0] / state->unit_size_mi) ==
@@ -564,7 +567,7 @@ Av2hStatus av2h_leaf_read_ccso_entropy(
     mode->before_ccso_bits = av2h_range_tell(decoder);
     mode->after_ccso_bits = mode->before_ccso_bits;
     mode->ccso_controls_read = 0U;
-    if (state == 0 || state->enabled_mask == 0U) return AV2H_OK;
+    if (state == NULL || state->enabled_mask == 0U) return AV2H_OK;
     for (plane = 0U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
         if (frame->ccso[plane].enabled) {
             expected_mask |= (uint8_t)(1U << plane);
@@ -618,7 +621,7 @@ Av2hStatus av2h_leaf_read_ccso_entropy(
         if ((state->enabled_mask & (uint8_t)(1U << plane)) == 0U) {
             continue;
         }
-        if (state->unit_controls[plane] == 0 ||
+        if (state->unit_controls[plane] == NULL ||
             state->unit_controls[plane][unit_index] !=
                 AV2H_CCSO_UNTRANSMITTED) {
             return AV2H_INVALID_DATA;

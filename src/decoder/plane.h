@@ -30,7 +30,7 @@ typedef struct {
     size_t reconstructed_count_cells;
 } Av2hReconstructionPlaneU16;
 
-uint8_t av2h_plane_sample_reconstructed(
+int av2h_plane_sample_reconstructed(
     const Av2hReconstructionPlane *plane,
     size_t x,
     size_t y);

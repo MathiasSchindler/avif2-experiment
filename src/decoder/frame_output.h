@@ -2,10 +2,10 @@
 #define AV2H_DECODER_FRAME_OUTPUT_H
 
 #include "filter.h"
-#include "tile.h"
 #include "internal/decode_diagnostics.h"
 #include "internal/frame_filter_metadata.h"
 #include "runtime/execution.h"
+#include "tile.h"
 
 typedef struct {
     Av2hFilterPlaneU16 plane[AV2H_FRAME_PLANE_COUNT];

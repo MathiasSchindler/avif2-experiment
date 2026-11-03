@@ -3,10 +3,12 @@
 
 #include "av2heif.h"
 
+#include <stddef.h>
+
 /* Preserve extended diagnostics unless the caller explicitly starts new ones. */
 static inline Av2hStatus av2h_error_set_core(
     Av2hError *error, Av2hStatus status, size_t offset, uint32_t context) {
-    if (error != 0) {
+    if (error != NULL) {
         error->status = status;
         error->offset = offset;
         error->context = context;
@@ -18,7 +20,7 @@ static inline Av2hStatus av2h_error_set_core(
 
 static inline void av2h_error_reset_diagnostics(
     Av2hError *error, uint8_t stage, uint8_t reason) {
-    if (error == 0) return;
+    if (error == NULL) return;
     error->diagnostic_stage = stage;
     error->diagnostic_reason = reason;
     error->syntax_stage = 0U;

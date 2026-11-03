@@ -1,8 +1,11 @@
+#include "container.h"
+
 #include "base.h"
 #include "carriage.h"
-#include "container.h"
 #include "error.h"
 #include "pixel_format.h"
+
+#include <stddef.h>
 
 enum {
     PROPERTY_UNKNOWN = 0,
@@ -54,7 +57,7 @@ Av2hStatus av2h_container_fail(Av2hError *error,
 Av2hStatus av2h_container_sequence_pixel_metadata(
     const Av2hSequenceInfo *sequence,
     ContainerPixelMetadata *metadata) {
-    if (sequence == 0 || metadata == 0 ||
+    if (sequence == NULL || metadata == NULL ||
         sequence->chroma_format_idc > 2U) {
         return AV2H_INVALID_ARGUMENT;
     }
@@ -126,13 +129,13 @@ static Av2hStatus read_box(Av2hSpan input,
                            Av2hError *error) {
     Av2hBoxHeader header;
     Av2hStatus status;
-    if (box == 0 || limit > input.size || offset > limit) {
+    if (box == NULL || limit > input.size || offset > limit) {
         return av2h_container_fail(error, AV2H_INVALID_ARGUMENT, offset);
     }
     status = av2h_box_header_parse((Av2hSpan){ input.data, limit }, offset,
                                    &header, error);
     if (status != AV2H_OK) {
-        if (error != 0) error->context = AV2H_CONTEXT_HEIF;
+        if (error != NULL) error->context = AV2H_CONTEXT_HEIF;
         return status;
     }
     if (header.header_size != 8U) {
@@ -229,7 +232,7 @@ static Av2hStatus parse_hdlr(Av2hSpan input,
     }
     name_size = av2h_byte_reader_remaining(&reader);
     name = av2h_byte_reader_take(&reader, name_size);
-    if (name_size == 0U || name == 0 || name[name_size - 1U] != 0U) {
+    if (name_size == 0U || name == NULL || name[name_size - 1U] != 0U) {
         return av2h_container_fail(error, AV2H_INVALID_DATA,
                          av2h_byte_reader_offset(&reader));
     }
@@ -324,7 +327,7 @@ static Av2hStatus parse_infe(Av2hSpan input,
     name = av2h_byte_reader_take(&reader, name_size);
     status = reader_status(&reader, error);
     if (status != AV2H_OK) return status;
-    if (name_size == 0U || name == 0 || name[name_size - 1U] != 0U) {
+    if (name_size == 0U || name == NULL || name[name_size - 1U] != 0U) {
         return av2h_container_fail(error, AV2H_INVALID_DATA,
                          av2h_byte_reader_offset(&reader));
     }
@@ -368,7 +371,7 @@ static Av2hStatus parse_av2c_property(Av2hSpan input,
     };
     Av2hStatus status = av2h_av2c_parse(payload, &state->configuration,
                                         &ledger, error);
-    if (status != AV2H_OK && error != 0) error->offset += box->payload_offset;
+    if (status != AV2H_OK && error != NULL) error->offset += box->payload_offset;
     return status;
 }
 
@@ -697,7 +700,7 @@ static Av2hStatus probe_iprp(Av2hSpan input,
         status = read_box(input, offset, ipco.end, &property, error);
         if (status != AV2H_OK) return status;
         if (property.type == BOX_AV2C) {
-            if (probe->av2c_payload.data != 0) {
+            if (probe->av2c_payload.data != NULL) {
                 return av2h_container_fail(error, AV2H_INVALID_DATA, property.offset);
             }
             kind = PROPERTY_AV2C;
@@ -791,7 +794,7 @@ Av2hStatus av2h_container_probe(Av2hSpan input,
     int seen_ftyp = 0;
     int seen_meta = 0;
     int seen_mdat = 0;
-    if (probe == 0 || (input.data == 0 && input.size != 0U)) {
+    if (probe == NULL || (input.data == NULL && input.size != 0U)) {
         return av2h_container_fail(error, AV2H_INVALID_ARGUMENT, 0U);
     }
     av2h_memory_fill(probe, 0U, sizeof(*probe));
@@ -819,7 +822,7 @@ Av2hStatus av2h_container_probe(Av2hSpan input,
         offset = box.end;
     }
     if (!seen_ftyp || !seen_meta || !seen_mdat || !probe->has_primary_av02 ||
-        probe->av2c_associated != 1U || probe->av2c_payload.data == 0) {
+        probe->av2c_associated != 1U || probe->av2c_payload.data == NULL) {
         return av2h_container_fail(error, AV2H_INVALID_DATA, 0U);
     }
     if (!av2h_size_add(state.extent_offset, state.extent_length, &extent_end) ||
@@ -848,7 +851,7 @@ Av2hStatus av2h_heif_parse(Av2hSpan input,
     int seen_meta = 0;
     int seen_mdat = 0;
     Av2hStatus status;
-    if (image == 0 || (input.data == 0 && input.size != 0U)) {
+    if (image == NULL || (input.data == NULL && input.size != 0U)) {
         return av2h_container_fail(error, AV2H_INVALID_ARGUMENT, 0U);
     }
     while (offset < input.size) {

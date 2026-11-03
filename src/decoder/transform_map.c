@@ -1,5 +1,8 @@
 #include "internal/transform_modules.h"
+
 #include "tx_geometry.h"
+
+#include <stddef.h>
 
 Av2hFirstLeafIntraMode av2h_transform_mode(
     Av2hFirstLeafIntraMode mode, int8_t angle_delta,
@@ -63,7 +66,7 @@ Av2hStatus av2h_chroma_primary_type_map(
         AV2H_TX_DCT_ADST,
         AV2H_TX_ADST_ADST
     };
-    if (mode == 0 || descriptor == 0 || tx_type == 0 ||
+    if (mode == NULL || descriptor == NULL || tx_type == NULL ||
         (uint8_t)mode->mode >= 13U) {
         return AV2H_INVALID_ARGUMENT;
     }
@@ -105,7 +108,7 @@ Av2hStatus av2h_secondary_tx_set_map(
         { 1U, 6U, 0U, 4U, 2U, 5U, 3U },
         { 1U, 6U, 0U, 4U, 2U, 5U, 3U }
     };
-    if (set == 0) return AV2H_INVALID_ARGUMENT;
+    if (set == NULL) return AV2H_INVALID_ARGUMENT;
     if ((uint8_t)mode >= 12U || symbol >= AV2H_SECONDARY_TX_SET_SYMBOLS) {
         return AV2H_UNSUPPORTED;
     }
@@ -129,7 +132,7 @@ Av2hStatus av2h_secondary_adst_tx_set_map(
         { 1U, 3U, 0U, 2U },
         { 1U, 3U, 0U, 2U }
     };
-    if (set == 0) return AV2H_INVALID_ARGUMENT;
+    if (set == NULL) return AV2H_INVALID_ARGUMENT;
     if ((uint8_t)mode >= 12U ||
         symbol >= AV2H_SECONDARY_ADST_TX_SET_SYMBOLS) {
         return AV2H_UNSUPPORTED;
@@ -202,7 +205,7 @@ Av2hStatus av2h_primary_tx_type_map(
     const Av2hTxDescriptor *descriptor;
         uint8_t size_class;
     Av2hStatus status;
-    if (tx_type == 0) return AV2H_INVALID_ARGUMENT;
+    if (tx_type == NULL) return AV2H_INVALID_ARGUMENT;
     *tx_type = AV2H_TX_TYPE_INVALID;
     status = av2h_tx_descriptor_get(tx_size, &descriptor);
     if (status != AV2H_OK) return status;

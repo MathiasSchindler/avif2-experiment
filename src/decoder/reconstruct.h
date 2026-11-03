@@ -7,6 +7,8 @@
 #include "plane.h"
 #include "transform_type.h"
 
+#include <stddef.h>
+
 struct Av2hDecodeDiagnostics;
 
 typedef int64_t Av2hReconstructionSum;

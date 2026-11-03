@@ -1,5 +1,7 @@
 #include "decoder/internal/partition_modules.h"
 
+#include <stddef.h>
+
 const Av2hBlockGeometry av2h_block_geometry[AV2H_BLOCK_SIZE_COUNT] = {
     { 1U, 1U, 0U, 0U }, { 1U, 2U, 0U, 0U },
     { 2U, 1U, 0U, 0U }, { 2U, 2U, 0U, 0U },
@@ -22,7 +24,7 @@ const Av2hBlockGeometry av2h_block_geometry[AV2H_BLOCK_SIZE_COUNT] = {
 Av2hStatus av2h_block_dimensions_mi(Av2hBlockSize block_size,
                                      size_t *width,
                                      size_t *height) {
-    if (block_size >= AV2H_BLOCK_SIZE_COUNT || width == 0 || height == 0) {
+    if (block_size >= AV2H_BLOCK_SIZE_COUNT || width == NULL || height == NULL) {
         return AV2H_INVALID_ARGUMENT;
     }
     *width = av2h_block_geometry[block_size].mi_width;
@@ -39,8 +41,8 @@ Av2hStatus av2h_partition_contexts(Av2hBlockSize block_size,
                                     size_t *rect_type_context,
                                     size_t *extension_context) {
     const Av2hBlockGeometry *geometry;
-    if (block_size >= AV2H_BLOCK_SIZE_COUNT || split_context == 0 ||
-        rect_type_context == 0 || extension_context == 0 ||
+    if (block_size >= AV2H_BLOCK_SIZE_COUNT || split_context == NULL ||
+        rect_type_context == NULL || extension_context == NULL ||
         left_smaller > 1U || above_smaller > 1U ||
         first_half_smaller > 1U || second_half_smaller > 1U) {
         return AV2H_INVALID_ARGUMENT;
@@ -81,8 +83,8 @@ Av2hStatus av2h_partition_context_state_init(
     size_t above_count,
     size_t left_count) {
     size_t index;
-    if (state == 0 || luma_above == 0 || luma_left == 0 ||
-        chroma_above == 0 || chroma_left == 0 || above_count == 0U ||
+    if (state == NULL || luma_above == NULL || luma_left == NULL ||
+        chroma_above == NULL || chroma_left == NULL || above_count == 0U ||
         left_count == 0U) {
         return AV2H_INVALID_ARGUMENT;
     }
@@ -118,10 +120,10 @@ Av2hStatus av2h_partition_contexts_from_state(
     unsigned int above_smaller;
     unsigned int first_half_smaller;
     unsigned int second_half_smaller;
-    if (state == 0 || structure >= AV2H_PARTITION_STRUCTURE_COUNT ||
+    if (state == NULL || structure >= AV2H_PARTITION_STRUCTURE_COUNT ||
         node.block_size >= AV2H_BLOCK_SIZE_COUNT ||
-        axis > AV2H_PARTITION_VERTICAL || split_context == 0 ||
-        rect_type_context == 0 || extension_context == 0) {
+        axis > AV2H_PARTITION_VERTICAL || split_context == NULL ||
+        rect_type_context == NULL || extension_context == NULL) {
         return AV2H_INVALID_ARGUMENT;
     }
     geometry = &av2h_block_geometry[node.block_size];
@@ -164,7 +166,7 @@ Av2hStatus av2h_partition_context_state_update(
     size_t height;
     size_t index;
     size_t left_index;
-    if (state == 0 || structure >= AV2H_PARTITION_STRUCTURE_COUNT ||
+    if (state == NULL || structure >= AV2H_PARTITION_STRUCTURE_COUNT ||
         leaf.block_size >= AV2H_BLOCK_SIZE_COUNT) {
         return AV2H_INVALID_ARGUMENT;
     }

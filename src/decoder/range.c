@@ -1,5 +1,8 @@
 #include "range.h"
+
 #include "shared/bit_math.h"
+
+#include <stddef.h>
 
 #define AV2H_RANGE_TOP 32768U
 #define AV2H_RANGE_PROB_SHIFT 7U
@@ -81,11 +84,11 @@ Av2hStatus av2h_range_init(Av2hRangeDecoder *decoder,
     size_t index;
     unsigned int initial_bits;
     uint32_t initial_value;
-    if (decoder == 0 || spans == 0 || span_count == 0U) {
+    if (decoder == NULL || spans == NULL || span_count == 0U) {
         return AV2H_INVALID_ARGUMENT;
     }
     for (index = 0U; index < span_count; ++index) {
-        if (spans[index].data == 0 && spans[index].size != 0U) {
+        if (spans[index].data == NULL && spans[index].size != 0U) {
             return AV2H_INVALID_ARGUMENT;
         }
         if (!av2h_size_add(size, spans[index].size, &size)) {
@@ -101,7 +104,7 @@ Av2hStatus av2h_range_init(Av2hRangeDecoder *decoder,
     decoder->available_bits = (int64_t)(size * 8U) - 15;
     decoder->tell = 1U;
     decoder->status = AV2H_OK;
-    decoder->diagnostics = 0;
+    decoder->diagnostics = NULL;
     initial_bits = size * 8U < 15U ? (unsigned int)(size * 8U) : 15U;
     initial_value = range_input_bits(decoder, initial_bits);
     decoder->value = (AV2H_RANGE_TOP - 1U) ^
@@ -117,9 +120,9 @@ uint32_t av2h_range_read_symbol(Av2hRangeDecoder *decoder,
     uint32_t lower;
     size_t symbol;
     size_t index;
-    if (decoder == 0 || inverse_cdf == 0 ||
+    if (decoder == NULL || inverse_cdf == NULL ||
         symbol_count < 2U || symbol_count > 16U) {
-        if (decoder != 0) decoder->status = AV2H_INVALID_ARGUMENT;
+        if (decoder != NULL) decoder->status = AV2H_INVALID_ARGUMENT;
         return 0U;
     }
     if (decoder->status != AV2H_OK) return 0U;
@@ -161,7 +164,7 @@ uint32_t av2h_range_read_adaptive(Av2hRangeDecoder *decoder,
     uint32_t target = AV2H_RANGE_TOP;
     size_t index;
     symbol = av2h_range_read_symbol(decoder, inverse_cdf, symbol_count);
-    if (decoder == 0 || decoder->status != AV2H_OK) return 0U;
+    if (decoder == NULL || decoder->status != AV2H_OK) return 0U;
     if (inverse_cdf[symbol_count] > 32U) {
         decoder->status = AV2H_INVALID_ARGUMENT;
         return 0U;
@@ -191,8 +194,8 @@ uint32_t av2h_range_read_bypass(Av2hRangeDecoder *decoder,
                                 unsigned int bit_count) {
     uint32_t result = 0U;
     unsigned int index;
-    if (decoder == 0 || bit_count > 32U) {
-        if (decoder != 0) decoder->status = AV2H_INVALID_ARGUMENT;
+    if (decoder == NULL || bit_count > 32U) {
+        if (decoder != NULL) decoder->status = AV2H_INVALID_ARGUMENT;
         return 0U;
     }
     if (decoder->status != AV2H_OK) return 0U;
@@ -217,9 +220,9 @@ uint32_t av2h_range_read_bypass(Av2hRangeDecoder *decoder,
 }
 
 size_t av2h_range_tell(const Av2hRangeDecoder *decoder) {
-    return decoder != 0 ? decoder->tell : 0U;
+    return decoder != NULL ? decoder->tell : 0U;
 }
 
 Av2hStatus av2h_range_status(const Av2hRangeDecoder *decoder) {
-    return decoder != 0 ? decoder->status : AV2H_INVALID_ARGUMENT;
+    return decoder != NULL ? decoder->status : AV2H_INVALID_ARGUMENT;
 }

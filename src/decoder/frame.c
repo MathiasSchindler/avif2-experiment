@@ -1,9 +1,12 @@
 #include "frame.h"
-#include "error.h"
+
 #include "coeff_level.h"
+#include "error.h"
 #include "internal/leaf_modules.h"
 #include "internal/wiener_nonsep.h"
 #include "shared/bit_math.h"
+
+#include <stddef.h>
 
 static void frame_fail(Av2hBitReader *reader, Av2hStatus status) {
     if (reader->status == AV2H_OK) reader->status = status;
@@ -563,7 +566,6 @@ static void read_wienerns_match_indices(Av2hBitReader *reader,
     }
 }
 
-
 static void read_wienerns_frame_filter(Av2hBitReader *reader,
                                        const Av2hSequenceState *sequence,
                                        Av2hFrameState *frame,
@@ -833,9 +835,9 @@ static Av2hStatus frame_diagnostic_fail(Av2hError *error,
                                         const Av2hBitReader *reader,
                                         uint8_t syntax,
                                         uint32_t parsed_value) {
-    if (error != 0) {
+    if (error != NULL) {
         (void)av2h_error_set_core(
-            error, status, reader != 0 ? reader->bit_position / 8U : 0U,
+            error, status, reader != NULL ? reader->bit_position / 8U : 0U,
             AV2H_CONTEXT_FRAME);
         error->obu_type = AV2H_OBU_CLOSED_LOOP_KEY;
         error->diagnostic_stage = AV2H_DIAGNOSTIC_STAGE_FRAME_HEADER;
@@ -848,7 +850,7 @@ static Av2hStatus frame_diagnostic_fail(Av2hError *error,
         error->plane = 0U;
         error->row = 0U;
         error->column = 0U;
-        error->entropy_tell = reader != 0 ? reader->bit_position : 0U;
+        error->entropy_tell = reader != NULL ? reader->bit_position : 0U;
         error->parsed_value = parsed_value;
     }
     return status;
@@ -862,10 +864,10 @@ Av2hStatus av2h_frame_header_closed_key_parse_diagnostic(
     Av2hBitReader reader;
     uint32_t multi_frame_header_id;
     uint32_t sequence_header_id;
-    if (sequence == 0 || frame == 0 ||
-        (payload.data == 0 && payload.size != 0U)) {
+    if (sequence == NULL || frame == NULL ||
+        (payload.data == NULL && payload.size != 0U)) {
         return frame_diagnostic_fail(
-            error, AV2H_INVALID_ARGUMENT, 0,
+            error, AV2H_INVALID_ARGUMENT, NULL,
             AV2H_DIAGNOSTIC_SYNTAX_FRAME_PROFILE, 0U);
     }
     av2h_memory_fill(frame, 0U, sizeof(*frame));
@@ -876,7 +878,7 @@ Av2hStatus av2h_frame_header_closed_key_parse_diagnostic(
             sequence->superblock_size : 256U;
     if (payload.size == 0U) {
         return frame_diagnostic_fail(
-            error, AV2H_TRUNCATED, 0,
+            error, AV2H_TRUNCATED, NULL,
             AV2H_DIAGNOSTIC_SYNTAX_FRAME_PROFILE, 0U);
     }
     if (sequence->info.still_picture == 0U ||
@@ -888,7 +890,7 @@ Av2hStatus av2h_frame_header_closed_key_parse_diagnostic(
              sequence->info.chroma_format_idc == 2U)))) ||
         sequence->info.chroma_format_idc > 2U) {
         return frame_diagnostic_fail(
-            error, AV2H_UNSUPPORTED, 0,
+            error, AV2H_UNSUPPORTED, NULL,
             AV2H_DIAGNOSTIC_SYNTAX_FRAME_PROFILE,
             ((uint32_t)sequence->info.bit_depth_idc << 8U) |
                 sequence->info.chroma_format_idc);
@@ -1080,5 +1082,5 @@ Av2hStatus av2h_frame_header_closed_key_parse(
     const Av2hSequenceState *sequence,
     Av2hFrameState *frame) {
     return av2h_frame_header_closed_key_parse_diagnostic(
-        payload, sequence, frame, 0);
+        payload, sequence, frame, NULL);
 }

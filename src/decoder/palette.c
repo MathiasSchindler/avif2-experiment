@@ -1,8 +1,11 @@
 #include "internal/leaf_modules.h"
+
 #include "internal/sample_math.h"
 #include "shared/bit_math.h"
 
-uint8_t av2h_leaf_block_allows_palette(Av2hBlockSize block_size) {
+#include <stddef.h>
+
+int av2h_leaf_block_allows_palette(Av2hBlockSize block_size) {
     size_t width;
     size_t height;
     return av2h_block_dimensions_mi(block_size, &width, &height) == AV2H_OK &&
@@ -36,7 +39,7 @@ Av2hStatus av2h_leaf_palette_read_colors(
     unsigned int bits;
     unsigned int color_bits;
     size_t index = 0U;
-    if (decoder == 0 || sequence == 0 || mode == 0) {
+    if (decoder == NULL || sequence == NULL || mode == NULL) {
         return AV2H_INVALID_ARGUMENT;
     }
     if (sequence->info.bit_depth_idc != 0U &&
@@ -49,7 +52,7 @@ Av2hStatus av2h_leaf_palette_read_colors(
     }
     color_bits = sequence->info.bit_depth_idc == 0U ? 10U : 8U;
     maximum = (1U << color_bits) - 1U;
-    if (neighbors != 0) {
+    if (neighbors != NULL) {
         while (above_index < neighbors->palette_size[1] &&
                left_index < neighbors->palette_size[0]) {
             cache[cache_count++] =
@@ -141,7 +144,7 @@ uint8_t av2h_palette_map_get(
     size_t byte_offset;
     unsigned int shift;
     uint16_t packed;
-    if (mode == 0 || mode->palette_size < 2U ||
+    if (mode == NULL || mode->palette_size < 2U ||
         mode->palette_size > AV2H_PALETTE_MAX_SIZE) {
         return AV2H_PALETTE_MAX_SIZE;
     }
@@ -168,7 +171,7 @@ Av2hStatus av2h_palette_map_set(
     unsigned int shift;
     uint16_t mask;
     uint16_t packed;
-    if (mode == 0 || mode->palette_size < 2U ||
+    if (mode == NULL || mode->palette_size < 2U ||
         mode->palette_size > AV2H_PALETTE_MAX_SIZE ||
         color >= mode->palette_size) {
         return AV2H_INVALID_ARGUMENT;
@@ -266,7 +269,7 @@ Av2hStatus av2h_luma_palette_map_read(
     size_t width;
     size_t height;
     size_t axis2;
-    if (decoder == 0 || cdfs == 0 || leaf == 0 || mode == 0) {
+    if (decoder == NULL || cdfs == NULL || leaf == NULL || mode == NULL) {
         return AV2H_INVALID_ARGUMENT;
     }
     if (mode->palette_size == 0U) return AV2H_OK;

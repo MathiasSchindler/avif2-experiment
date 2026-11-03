@@ -1,8 +1,8 @@
 #ifndef AV2H_DECODER_INTERNAL_CHROMA_PREDICTION_H
 #define AV2H_DECODER_INTERNAL_CHROMA_PREDICTION_H
 
-#include "decoder/prediction.h"
 #include "decoder/plane.h"
+#include "decoder/prediction.h"
 
 struct Av2hDecodeDiagnostics;
 

@@ -1,7 +1,9 @@
 #include "preview.h"
 
+#include <stddef.h>
+
 static int format_is_u8(const Av2hPixelFormat *format) {
-    return format != 0 && format->bit_depth == 8U &&
+    return format != NULL && format->bit_depth == 8U &&
         format->bytes_per_sample == 1U &&
         format->sample_storage == (uint8_t)AV2H_SAMPLE_STORAGE_U8 &&
         format->byte_order == (uint8_t)AV2H_BYTE_ORDER_NOT_APPLICABLE &&
@@ -9,7 +11,7 @@ static int format_is_u8(const Av2hPixelFormat *format) {
 }
 
 static int format_is_10bit_le(const Av2hPixelFormat *format) {
-    return format != 0 && format->bit_depth == 10U &&
+    return format != NULL && format->bit_depth == 10U &&
         format->bytes_per_sample == 2U &&
         format->sample_storage == (uint8_t)AV2H_SAMPLE_STORAGE_U16 &&
         format->byte_order == (uint8_t)AV2H_BYTE_ORDER_LITTLE_ENDIAN &&
@@ -26,7 +28,7 @@ const char *av2h_raw_output_format_name(const Av2hPixelFormat *format) {
         if (format->chroma_format_idc == 0U) return "yuv420p10le";
         if (format->chroma_format_idc == 2U) return "yuv444p10le";
     }
-    return 0;
+    return NULL;
 }
 
 const char *av2h_raw_output_extension(const Av2hPixelFormat *format) {
@@ -39,7 +41,7 @@ const char *av2h_raw_output_extension(const Av2hPixelFormat *format) {
         if (format->chroma_format_idc == 0U) return ".yuv420p10le";
         if (format->chroma_format_idc == 2U) return ".yuv444p10le";
     }
-    return 0;
+    return NULL;
 }
 
 size_t av2h_raw_output_extension_count(void) {
@@ -52,7 +54,7 @@ const char *av2h_raw_output_extension_at(size_t index) {
     if (index == 2U) return ".i444";
     if (index == 3U) return ".yuv420p10le";
     if (index == 4U) return ".yuv444p10le";
-    return 0;
+    return NULL;
 }
 
 Av2hStatus av2h_planar_preview_init_tight_8bit(
@@ -68,7 +70,7 @@ Av2hStatus av2h_planar_preview_init_tight_8bit(
     size_t chroma_width;
     size_t chroma_height;
     size_t chroma_size;
-    if (planar == 0 || preview == 0 || width == 0U || height == 0U ||
+    if (planar == NULL || preview == NULL || width == 0U || height == 0U ||
         color_range != (uint8_t)AV2H_COLOR_RANGE_LIMITED ||
         matrix_coefficients != 6U ||
         !av2h_pixel_format_init_8bit(chroma_format_idc, &format) ||
@@ -89,8 +91,8 @@ Av2hStatus av2h_planar_preview_init_tight_8bit(
     preview->plane[0U] = planar;
     preview->stride_samples[0U] = width;
     if (chroma_format_idc == 1U) {
-        preview->plane[1U] = 0;
-        preview->plane[2U] = 0;
+        preview->plane[1U] = NULL;
+        preview->plane[2U] = NULL;
         preview->stride_samples[1U] = 0U;
         preview->stride_samples[2U] = 0U;
     } else {
@@ -116,15 +118,15 @@ static Av2hStatus planar_to_color8_row(
     size_t destination_size_bytes,
     int blue_first) {
     const uint8_t *luma;
-    const uint8_t *chroma_blue = 0;
-    const uint8_t *chroma_red = 0;
+    const uint8_t *chroma_blue = NULL;
+    const uint8_t *chroma_red = NULL;
     size_t required_size;
     size_t chroma_row;
     uint32_t column;
-    if (preview == 0 || destination == 0 ||
+    if (preview == NULL || destination == NULL ||
         !format_is_u8(&preview->format) || preview->width == 0U ||
         preview->height == 0U || row >= preview->height ||
-        preview->plane[0U] == 0 ||
+        preview->plane[0U] == NULL ||
         preview->stride_samples[0U] < preview->width ||
         preview->color_range != (uint8_t)AV2H_COLOR_RANGE_LIMITED ||
         preview->matrix_coefficients != 6U ||
@@ -138,7 +140,7 @@ static Av2hStatus planar_to_color8_row(
     if (preview->format.chroma_format_idc != 1U) {
         size_t chroma_width = preview->format.chroma_format_idc == 2U ?
             preview->width : ((size_t)preview->width + 1U) / 2U;
-        if (preview->plane[1U] == 0 || preview->plane[2U] == 0 ||
+        if (preview->plane[1U] == NULL || preview->plane[2U] == NULL ||
             preview->stride_samples[1U] < chroma_width ||
             preview->stride_samples[2U] < chroma_width) {
             return AV2H_INVALID_ARGUMENT;

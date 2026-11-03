@@ -1,8 +1,10 @@
 #include "pixel_format.h"
 
+#include <stddef.h>
+
 int av2h_pixel_format_init_8bit(uint8_t chroma_format_idc,
                                 Av2hPixelFormat *format) {
-    if (format == 0 || chroma_format_idc > 2U) return 0;
+    if (format == NULL || chroma_format_idc > 2U) return 0;
     format->chroma_format_idc = chroma_format_idc;
     format->bit_depth = 8U;
     format->bytes_per_sample = 1U;
@@ -13,7 +15,7 @@ int av2h_pixel_format_init_8bit(uint8_t chroma_format_idc,
 }
 
 int av2h_pixel_format_init_10bit_420(Av2hPixelFormat *format) {
-    if (format == 0) return 0;
+    if (format == NULL) return 0;
     format->chroma_format_idc = 0U;
     format->bit_depth = 10U;
     format->bytes_per_sample = 2U;
@@ -32,7 +34,7 @@ int av2h_pixel_format_init_10bit_444(Av2hPixelFormat *format) {
 int av2h_pixel_format_is_valid(const Av2hPixelFormat *format) {
     int is_8bit;
     int is_10bit;
-    if (format == 0 || format->plane_order != (uint8_t)AV2H_PLANE_ORDER_YUV) {
+    if (format == NULL || format->plane_order != (uint8_t)AV2H_PLANE_ORDER_YUV) {
         return 0;
     }
     is_8bit = format->chroma_format_idc <= 2U &&
@@ -49,7 +51,7 @@ int av2h_pixel_format_is_valid(const Av2hPixelFormat *format) {
 
 int av2h_pixel_format_equal(const Av2hPixelFormat *left,
                             const Av2hPixelFormat *right) {
-    return left != 0 && right != 0 &&
+    return left != NULL && right != NULL &&
            left->chroma_format_idc == right->chroma_format_idc &&
            left->bit_depth == right->bit_depth &&
            left->bytes_per_sample == right->bytes_per_sample &&

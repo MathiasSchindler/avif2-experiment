@@ -1,5 +1,8 @@
 #include "internal/chroma_prediction.h"
+
 #include "internal/sample_ops.h"
+
+#include <stddef.h>
 
 int av2h_chroma_plane_region_reconstructed(
     const Av2hReconstructionPlane *plane,
@@ -29,8 +32,8 @@ int av2h_chroma_plane_sample_reconstructed_u16(
     size_t cell_x;
     size_t cell_y;
     size_t index;
-    if (plane == 0 || x >= plane->width || y >= plane->height ||
-        plane->reconstructed == 0) {
+    if (plane == NULL || x >= plane->width || y >= plane->height ||
+        plane->reconstructed == NULL) {
         return 0;
     }
     cell_x = x / 4U;

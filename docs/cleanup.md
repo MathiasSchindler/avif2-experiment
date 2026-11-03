@@ -1,6 +1,7 @@
 # Code Quality and Consistency Cleanup Plan
 
-**Status:** C1 complete; C2-C6 planned  
+**Status:** C1 and C2 complete; C3-C6 planned
+
 **Scope:** [`src/`](../src/) and [`include/av2heif.h`](../include/av2heif.h)
 
 ## Purpose and Scope
@@ -97,6 +98,25 @@ Validation:
 - No `#include` appears after the first declaration or function in any file.
 - Pointer checks and null pointer literals use `NULL` consistently across [`src/`](../src/).
 - Predicate return types and struct boolean fields follow the documented convention.
+
+### Completion
+
+C2 is complete for the native macOS target.
+
+- Module/interface headers come first, other project headers are alphabetical, and standard headers follow them. Generated `.inc` definition fragments come after their prerequisite headers and constants, but before explicit declarations or functions. The CDF table types now live in [`internal/coeff_cdf_specs.h`](../src/decoder/internal/coeff_cdf_specs.h), allowing every CDF include to move to the top without changing generated tables.
+- File-scope constants, aliases, and type definitions precede function definitions. Conditional ABI imports and constants retain their original architecture guards. Header guards and `_POSIX_C_SOURCE` remain before includes where preprocessing requires it; function-local temporary macros retain their local uses and `#undef`s.
+- Pointer comparisons, assignments, arguments, and returns use `NULL`, with direct `<stddef.h>` includes at use sites. Pointer-first universal zero initializers use designated `NULL` members, preserving implicit zero initialization of other members. Compiler-assisted rewrites and a separate macro audit distinguish pointer zero from integer, enum, pixel, and raw syscall values.
+- All 14 formerly byte-returning predicates now return `int`, including their declarations and callers. Encoded context indices, quantizer selectors, pixel values, and other numeric results retain their original types even when their current value range happens to be 0/1.
+- The three `sizing_only` fields and task-pool `stop` flag are `uint8_t`, stored as 0U/1U. Platform wait words, counters, thread IDs, and Win32 ABI types retain their required integer widths. Public API declarations and workspace budgets are unchanged.
+
+Validation:
+
+- Eight new checks in [`test_source_consistency.py`](../tests/test_source_consistency.py) cover include ordering, file-scope macro/type placement, direct `NULL` dependencies, ordinary and macro-based pointer checks, predicate signatures, and byte-sized flags. All 15 targeted Python checks, including retained C1 ownership and private-header checks, pass.
+- Compiler audits of all 140 source/header files in both diagnostic modes find no remaining typed null literals, implicit pointer truth checks, or audited macro-pointer zero comparisons.
+- [`substrate_unit.c`](../tests/substrate_unit.c) compares writer/arena sizes, alignments, and cursor/status/flag offsets with their pre-C2 layouts. [`runtime_substrate_unit.c`](../tests/runtime_substrate_unit.c) verifies byte-sized stop storage without moving or narrowing the platform synchronization word.
+- Forced sanitized rebuilds pass all 31 C unit suites, runtime checks, 2,460 malformed-input fuzz cases, and frozen status/diagnostic/pixel/output-policy checks with `AV2HEIF_ENABLE_DIAGNOSTICS` absent and enabled. Private-header checks pass 55 standalone headers and 35 value-only kernel roots.
+- The rebuilt native decoder matches all 179 available pre-cleanup decoded SHA-256 values across the existing 8-bit and 10-bit profiles. Freestanding undefined-symbol checks and affected macOS/Linux/Windows frontend object compilations pass; separate macOS `nolibc` executable linking retains the existing limitation recorded under C1.
+- Full Python discovery runs 97 tests: 94 pass, two skip, and the unchanged legacy Emerald artifact check errors because its generated reference file is absent. That optional image asset was not regenerated or replaced as part of C2.
 
 ---
 

@@ -1,18 +1,22 @@
 #include "reconstruct.h"
+
 #include "coeff_block.h"
 #include "internal/sample_math.h"
 #include "internal/transform_modules.h"
+
+#include <stddef.h>
+
+#include "ist_adst_data.inc"
 #include "ist_data.inc"
-#include "ist_type1_data.inc"
-#include "ist_type2_data.inc"
-#include "ist_set6_data.inc"
+#include "ist_palace_data.inc"
+#include "ist_reached_gaps_data.inc"
 #include "ist_set2_data.inc"
 #include "ist_set4_type3_data.inc"
 #include "ist_set5_type1_data.inc"
+#include "ist_set6_data.inc"
 #include "ist_set9_type1_data.inc"
-#include "ist_adst_data.inc"
-#include "ist_reached_gaps_data.inc"
-#include "ist_palace_data.inc"
+#include "ist_type1_data.inc"
+#include "ist_type2_data.inc"
 
 static uint16_t ist_scan_position(
     uint16_t scan_index, uint16_t width, uint16_t height) {
@@ -240,7 +244,7 @@ Av2hStatus av2h_inverse_secondary_transform(
     int32_t input[32U];
     const int16_t (*kernel)[48U];
     const uint8_t *scan_map = av2h_ist_8x8_set1_type3_scan_map;
-    const uint16_t *output_positions = 0;
+    const uint16_t *output_positions = NULL;
     uint8_t transpose_output;
     uint16_t input_count;
     uint16_t index;
@@ -1608,7 +1612,7 @@ apply_transform:
         input[index] = dequantized[position];
         dequantized[position] = 0;
     }
-    if (output_positions != 0) {
+    if (output_positions != NULL) {
         for (index = 0U; index < coefficients->coefficient_count; ++index) {
             dequantized[index] = 0;
         }
@@ -1620,7 +1624,7 @@ apply_transform:
         for (row = 0U; row < input_count; ++row) {
             sum += (int64_t)input[row] * kernel[row][index];
         }
-        if (output_positions != 0) {
+        if (output_positions != NULL) {
             position = output_positions[index];
         } else {
             position = ist_output_position(

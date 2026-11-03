@@ -1,6 +1,9 @@
 #include "internal/chroma_prediction.h"
+
 #include "internal/sample_math.h"
 #include "internal/sample_ops.h"
+
+#include <stddef.h>
 
 #define plane_region_reconstructed \
     av2h_chroma_plane_region_reconstructed
@@ -91,7 +94,7 @@ Av2hStatus av2h_cfl_derived_predict(
     uint16_t effective_luma_height;
     uint16_t effective_chroma_width;
     uint16_t effective_chroma_height;
-    if (luma_plane == 0 || luma_plane->data == 0 ||
+    if (luma_plane == NULL || luma_plane->data == NULL ||
         (chroma_format_idc != 0U && chroma_format_idc != 2U) ||
         filter_index > 2U ||
         width > 64U ||
@@ -100,7 +103,7 @@ Av2hStatus av2h_cfl_derived_predict(
     }
     if (luma_x >= luma_plane->width ||
         luma_y >= luma_plane->height ||
-        luma_plane->stride_samples < luma_plane->width || luma_plane->reconstructed == 0) {
+        luma_plane->stride_samples < luma_plane->width || luma_plane->reconstructed == NULL) {
         return AV2H_UNSUPPORTED;
     }
     effective_luma_width = (uint16_t)(
@@ -463,8 +466,8 @@ static Av2hStatus cfl_predict_u16_scaled(
     uint8_t is_top_sb_boundary;
     int top_offset;
     int bottom_offset;
-    if (luma_plane == 0 || luma_plane->data == 0 ||
-        luma_plane->reconstructed == 0 || predictor == 0 ||
+    if (luma_plane == NULL || luma_plane->data == NULL ||
+        luma_plane->reconstructed == NULL || predictor == NULL ||
         filter_index > 2U || width == 0U || height == 0U ||
         width > 64U || height > 64U ||
         predictor_stride_samples < width ||
@@ -746,8 +749,8 @@ Av2hStatus av2h_cfl_explicit_predict_u16_444(
     int32_t avg_l;
     uint16_t row;
     uint16_t column;
-    if (luma_plane == 0 || luma_plane->data == 0 ||
-        luma_plane->reconstructed == 0 || predictor == 0 ||
+    if (luma_plane == NULL || luma_plane->data == NULL ||
+        luma_plane->reconstructed == NULL || predictor == NULL ||
         width == 0U || height == 0U || width > 64U || height > 64U ||
         predictor_stride_samples < width ||
         block_x >= luma_plane->width || block_y >= luma_plane->height ||
@@ -872,9 +875,9 @@ Av2hStatus av2h_cfl_derived_predict_u16(
     int32_t sum_xy = 0;
     int32_t alpha;
     uint8_t is_top_sb_boundary;
-    if (luma_plane == 0 || chroma_plane == 0 || predictor == 0 ||
-        luma_plane->data == 0 || chroma_plane->data == 0 ||
-        luma_plane->reconstructed == 0 || filter_index > 2U ||
+    if (luma_plane == NULL || chroma_plane == NULL || predictor == NULL ||
+        luma_plane->data == NULL || chroma_plane->data == NULL ||
+        luma_plane->reconstructed == NULL || filter_index > 2U ||
         width == 0U || height == 0U || width > 64U || height > 64U ||
         predictor_stride_samples < width ||
         (have_top && block_y == 0U) || (have_left && block_x == 0U)) {
@@ -995,9 +998,9 @@ Av2hStatus av2h_cfl_derived_predict_u16_444(
     int32_t alpha;
     uint16_t visible_width;
     uint16_t visible_height;
-    if (luma_plane == 0 || chroma_plane == 0 || predictor == 0 ||
-        luma_plane->data == 0 || chroma_plane->data == 0 ||
-        luma_plane->reconstructed == 0 || width == 0U || height == 0U ||
+    if (luma_plane == NULL || chroma_plane == NULL || predictor == NULL ||
+        luma_plane->data == NULL || chroma_plane->data == NULL ||
+        luma_plane->reconstructed == NULL || width == 0U || height == 0U ||
         width > 64U || height > 64U ||
         predictor_stride_samples < width ||
         (have_top != 0U && block_y == 0U) ||

@@ -4,15 +4,17 @@
 #include "internal/coeff_modules.h"
 #include "internal/decode_diagnostics.h"
 
+#include <stddef.h>
+
 #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
 const uint16_t *av2h_coeff_level_diagnostic_cdf(
     const Av2hDecodeDiagnostics *diagnostics) {
-    return diagnostics != 0 ? diagnostics->coefficient_level_cdf : 0;
+    return diagnostics != NULL ? diagnostics->coefficient_level_cdf : NULL;
 }
 
 const uint64_t *av2h_coeff_level_diagnostic_range(
     const Av2hDecodeDiagnostics *diagnostics) {
-    return diagnostics != 0 ? diagnostics->coefficient_level_range : 0;
+    return diagnostics != NULL ? diagnostics->coefficient_level_range : NULL;
 }
 
 #endif
@@ -186,7 +188,7 @@ static uint16_t *q0_base_cdf(Av2hFirstCoeffLevelCdfs *cdfs,
             return low ? cdfs->q0_txs4_base_lf[context] :
                          cdfs->q0_txs4_base[context];
         default:
-            return 0;
+            return NULL;
     }
 }
 
@@ -210,7 +212,7 @@ static uint16_t *q0_eob_cdf(Av2hFirstCoeffLevelCdfs *cdfs,
             return low ? cdfs->q0_txs4_eob_base_lf[context] :
                          cdfs->q0_txs4_eob_base[context];
         default:
-            return 0;
+            return NULL;
     }
 }
 
@@ -384,7 +386,7 @@ static Av2hStatus read_base_level(Av2hRangeDecoder *decoder,
         cdf = av2h_coeff_level_base_row(
             cdfs, tx_context, context, low);
     }
-    if (cdf == 0) return AV2H_UNSUPPORTED;
+    if (cdf == NULL) return AV2H_UNSUPPORTED;
     symbol = av2h_range_read_adaptive(decoder, cdf, low ? 6U : 4U);
     if (av2h_range_status(decoder) != AV2H_OK) {
         return av2h_range_status(decoder);
@@ -411,7 +413,7 @@ static Av2hStatus read_base_level(Av2hRangeDecoder *decoder,
                 av2h_coeff_level_br_row(cdfs, context_br, 1U)) :
                     (cdfs->q_context < 4U ? cdfs->full_br[context_br] :
                      av2h_coeff_level_br_row(cdfs, context_br, 0U));
-        if (cdf == 0) return AV2H_UNSUPPORTED;
+        if (cdf == NULL) return AV2H_UNSUPPORTED;
         symbol = av2h_range_read_adaptive(decoder, cdf, 4U);
         if (av2h_range_status(decoder) != AV2H_OK) {
             return av2h_range_status(decoder);
@@ -517,7 +519,7 @@ static Av2hStatus read_fsc_block(
         block->diagnostic_position = position;
         block->diagnostic_context = context;
         block->diagnostic_kind = 13U;
-        if (cdf == 0) return AV2H_UNSUPPORTED;
+        if (cdf == NULL) return AV2H_UNSUPPORTED;
         symbol = av2h_range_read_adaptive(decoder, cdf, 3U);
         if (av2h_range_status(decoder) != AV2H_OK) {
             return av2h_range_status(decoder);
@@ -546,7 +548,7 @@ static Av2hStatus read_fsc_block(
         block->diagnostic_position = position;
         block->diagnostic_context = context;
         block->diagnostic_kind = 15U;
-        if (cdf == 0) return AV2H_UNSUPPORTED;
+        if (cdf == NULL) return AV2H_UNSUPPORTED;
         symbol = av2h_range_read_adaptive(decoder, cdf, 4U);
         if (av2h_range_status(decoder) != AV2H_OK) {
             return av2h_range_status(decoder);
@@ -640,8 +642,8 @@ Av2hStatus av2h_coeff_block_read(
     Av2hCoeffTxGeometry geometry;
     Av2hCoeffDequantSteps dequant_steps;
     Av2hStatus status;
-    if (decoder == 0 || cdfs == 0 || sequence == 0 || frame == 0 ||
-        mode == 0 || prefix == 0 || transform == 0 || block == 0) {
+    if (decoder == NULL || cdfs == NULL || sequence == NULL || frame == NULL ||
+        mode == NULL || prefix == NULL || transform == NULL || block == NULL) {
         return AV2H_INVALID_ARGUMENT;
     }
     if (cdfs->q_context != av2h_coeff_q_context(frame->base_q_index)) {
@@ -788,7 +790,7 @@ Av2hStatus av2h_coeff_block_read(
                     cdfs->q_context == 3U && context == 9U ?
                     cdfs->q3_br_lf_ctx9 :
                     av2h_coeff_level_br_row(cdfs, context, 1U);
-                if (cdf == 0) return AV2H_UNSUPPORTED;
+                if (cdf == NULL) return AV2H_UNSUPPORTED;
                 symbol = av2h_range_read_adaptive(decoder, cdf, 4U);
                 if (av2h_range_status(decoder) != AV2H_OK) {
                     return av2h_range_status(decoder);
@@ -825,9 +827,9 @@ Av2hStatus av2h_coeff_block_read(
                 cdf = av2h_coeff_level_eob_row(
                     cdfs, tx_context, context);
             }
-            if (cdf == 0) return AV2H_UNSUPPORTED;
+            if (cdf == NULL) return AV2H_UNSUPPORTED;
 #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
-            if (decoder->diagnostics != 0 &&
+            if (decoder->diagnostics != NULL &&
                 av2h_range_tell(decoder) == 745163U &&
                 scan_index == 335U) {
                 size_t diagnostic_index;
@@ -854,7 +856,7 @@ Av2hStatus av2h_coeff_block_read(
                 }
                 cdf = cdfs->q_context < 4U ? cdfs->full_br[0U] :
                     av2h_coeff_level_br_row(cdfs, 0U, 0U);
-                if (cdf == 0) return AV2H_UNSUPPORTED;
+                if (cdf == NULL) return AV2H_UNSUPPORTED;
                 symbol = av2h_range_read_adaptive(decoder, cdf, 4U);
                 if (av2h_range_status(decoder) != AV2H_OK) {
                     return av2h_range_status(decoder);
@@ -1063,11 +1065,11 @@ Av2hStatus av2h_coeff_block_read_with_state(
     Av2hFirstCoeffBlock *block) {
     uint8_t txb_skip_context;
     uint8_t dc_sign_context;
-    block->diagnostic_position = leaf != 0 ? leaf->block_size : 0U;
+    block->diagnostic_position = leaf != NULL ? leaf->block_size : 0U;
     block->diagnostic_context = 0U;
     block->diagnostic_kind = 11U;
     Av2hStatus status = av2h_coeff_contexts_from_state(
-        state, 0U, leaf, mode != 0 ? mode->fsc_mode : 0U,
+        state, 0U, leaf, mode != NULL ? mode->fsc_mode : 0U,
         &txb_skip_context, &dc_sign_context);
     if (status != AV2H_OK) return status;
     block->diagnostic_context = dc_sign_context;
@@ -1263,8 +1265,8 @@ Av2hStatus av2h_first_chroma_coeff_block_read(
     uint16_t scan_index;
     Av2hCoeffTxGeometry geometry;
     Av2hStatus status;
-    if (decoder == 0 || cdfs == 0 || sequence == 0 || frame == 0 ||
-        prefix == 0 || block == 0) {
+    if (decoder == NULL || cdfs == NULL || sequence == NULL || frame == NULL ||
+        prefix == NULL || block == NULL) {
         return AV2H_INVALID_ARGUMENT;
     }
     if (plane != 1U && plane != 2U) {
@@ -1316,9 +1318,9 @@ Av2hStatus av2h_chroma_coeff_block_read_with_state(
     Av2hCoeffContextState *state,
     Av2hFirstCoeffBlock *block) {
     Av2hStatus status;
-    if (decoder == 0 || cdfs == 0 || sequence == 0 || frame == 0 ||
-        leaf == 0 || prefix == 0 || transform == 0 || state == 0 ||
-        block == 0 || (plane != 1U && plane != 2U)) {
+    if (decoder == NULL || cdfs == NULL || sequence == NULL || frame == NULL ||
+        leaf == NULL || prefix == NULL || transform == NULL || state == NULL ||
+        block == NULL || (plane != 1U && plane != 2U)) {
         return AV2H_INVALID_ARGUMENT;
     }
     status = read_chroma_block(

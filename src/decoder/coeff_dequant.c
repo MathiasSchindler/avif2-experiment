@@ -1,5 +1,8 @@
 #include "internal/coeff_modules.h"
+
 #include "shared/bit_math.h"
+
+#include <stddef.h>
 
 #include "predefined_qmatrix.inc"
 
@@ -106,7 +109,7 @@ Av2hStatus av2h_coeff_dequant_steps(
     Av2hCoeffDequantSteps *steps) {
     int dc_delta;
     int ac_delta;
-    if (sequence == 0 || frame == 0 || steps == 0 || plane >= 3U) {
+    if (sequence == NULL || frame == NULL || steps == NULL || plane >= 3U) {
         return AV2H_INVALID_ARGUMENT;
     }
     if (sequence->info.bit_depth_idc != 0U &&
@@ -139,7 +142,7 @@ Av2hDequantizedCoefficient av2h_coeff_dequantize_level_for_sequence(
     uint8_t sign,
     uint32_t dequant_step,
     uint8_t shift) {
-    if (sequence != 0 && sequence->info.bit_depth_idc == 0U) {
+    if (sequence != NULL && sequence->info.bit_depth_idc == 0U) {
         return av2h_coeff_dequantize_level_10bit(
             level, sign, dequant_step, shift);
     }
@@ -151,7 +154,7 @@ int av2h_quantizer_is_lossless(
     const Av2hSequenceState *sequence,
     const Av2hFrameState *frame,
     Av2hQIndex q_index) {
-    if (sequence == 0 || frame == 0 || q_index != 0U ||
+    if (sequence == NULL || frame == NULL || q_index != 0U ||
         frame->delta_q_present != 0U) {
         return 0;
     }
@@ -188,12 +191,12 @@ static const uint8_t *custom_qmatrix(
     const uint8_t *fundamental = frame->custom_qm[id][plane];
     uint16_t row;
     uint16_t column;
-    if (position >= (uint32_t)width * height) return 0;
+    if (position >= (uint32_t)width * height) return NULL;
     if (!((width == 4U && height == 4U) ||
           (width == 8U && height == 8U) ||
           (width == 8U && height == 4U) ||
           (width == 4U && height == 8U))) {
-        return 0;
+        return NULL;
     }
     row = position / width;
     column = position % width;
@@ -203,7 +206,7 @@ static const uint8_t *custom_qmatrix(
     if (width == 8U && height == 8U) return &fundamental[position];
     if (width == 8U && height == 4U) return &fundamental[64U + position];
     if (width == 4U && height == 8U) return &fundamental[96U + position];
-    return 0;
+    return NULL;
 }
 
 Av2hStatus av2h_coeff_qmatrix_dequant_step(
@@ -223,7 +226,7 @@ Av2hStatus av2h_coeff_qmatrix_dequant_step(
     uint64_t product;
     uint8_t matrix;
     const uint8_t *custom_weight;
-    if (sequence == 0 || frame == 0 || weighted_step == 0 || plane >= 3U ||
+    if (sequence == NULL || frame == NULL || weighted_step == NULL || plane >= 3U ||
         segment_id >= av2h_sequence_segment_count(sequence)) {
         return AV2H_INVALID_ARGUMENT;
     }
@@ -243,8 +246,8 @@ Av2hStatus av2h_coeff_qmatrix_dequant_step(
     }
     custom_weight = (frame->custom_qm_bitmap &
                      (uint16_t)(1U << level)) != 0U ?
-        custom_qmatrix(frame, level, plane, tx_width, tx_height, position) : 0;
-    if (custom_weight != 0) {
+        custom_qmatrix(frame, level, plane, tx_width, tx_height, position) : NULL;
+    if (custom_weight != NULL) {
         product = (uint64_t)dequant_step * *custom_weight;
         product = (product + 16U) >> 5U;
         if (product > UINT32_MAX) return AV2H_OVERFLOW;
@@ -284,7 +287,7 @@ Av2hStatus av2h_coeff_tx_geometry_from_dims(
     uint32_t pels;
     uint8_t low_log2;
     uint8_t high_log2;
-    if (geometry == 0) return AV2H_INVALID_ARGUMENT;
+    if (geometry == NULL) return AV2H_INVALID_ARGUMENT;
     if (tx_width < 4U || tx_width > 64U || tx_height < 4U ||
         tx_height > 64U ||
         (tx_width & (tx_width - 1U)) != 0U ||
@@ -315,7 +318,7 @@ Av2hStatus av2h_coeff_tx_geometry(
     uint16_t tx_width;
     uint16_t tx_height;
     Av2hStatus status;
-    if (geometry == 0) return AV2H_INVALID_ARGUMENT;
+    if (geometry == NULL) return AV2H_INVALID_ARGUMENT;
     switch (tx_size) {
         case AV2H_TX_4X4: tx_width = 4U; tx_height = 4U; break;
         case AV2H_TX_8X8: tx_width = 8U; tx_height = 8U; break;

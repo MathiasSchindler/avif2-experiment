@@ -1,4 +1,5 @@
 #include "internal/sample_math.h"
+
 #include "shared/bit_math.h"
 
 #define AV2H_DIV_LUT_BITS 7

@@ -1,5 +1,7 @@
 #include "cdf.h"
 
+#include <stddef.h>
+
 #define AV2H_CDF_TOP 32768U
 #define AV2H_PARAMETER_COMBINATIONS 125U
 
@@ -20,7 +22,7 @@ Av2hStatus av2h_cdf_init(uint16_t *inverse_cdf,
     int first;
     int second;
     int third;
-    if (inverse_cdf == 0 || thresholds == 0) return AV2H_INVALID_ARGUMENT;
+    if (inverse_cdf == NULL || thresholds == NULL) return AV2H_INVALID_ARGUMENT;
     if (symbol_count < 2U || symbol_count > AV2H_MAX_CDF_SYMBOLS ||
         inverse_cdf_size < symbol_count + 4U ||
         parameter >= AV2H_PARAMETER_COMBINATIONS || count > 32U) {

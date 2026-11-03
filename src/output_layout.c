@@ -1,5 +1,8 @@
 #include "output_layout.h"
+
 #include "error.h"
+
+#include <stddef.h>
 
 static Av2hStatus output_layout_fail(Av2hError *error, Av2hStatus status) {
     return av2h_error_set_core(error, status, 0U, AV2H_CONTEXT_QUERY);
@@ -38,7 +41,7 @@ Av2hStatus av2h_output_layout_calculate(uint32_t width,
     uint32_t chroma_width;
     uint32_t chroma_height;
     if (width == 0U || height == 0U || chroma_format_idc > 2U ||
-        bytes_per_sample == 0U || planes == 0 || output_size == 0) {
+        bytes_per_sample == 0U || planes == NULL || output_size == NULL) {
         return output_layout_fail(error, AV2H_INVALID_ARGUMENT);
     }
     av2h_memory_fill(calculated, 0U, sizeof(calculated));

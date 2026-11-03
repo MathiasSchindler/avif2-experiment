@@ -2,7 +2,39 @@
 #include "decoder/sequence.h"
 #include "shared/bit_math.h"
 
+#include <stddef.h>
 #include <stdio.h>
+
+typedef struct {
+    unsigned char *data;
+    size_t size;
+    size_t cursor;
+    Av2hStatus status;
+    int sizing_only;
+} WriterLayoutBeforeC2;
+
+#define CHECK_WRITER_LAYOUT(type, cursor_member)                               \
+    _Static_assert(sizeof(type) == sizeof(WriterLayoutBeforeC2),               \
+                   #type " size changed");                                   \
+    _Static_assert(_Alignof(type) == _Alignof(WriterLayoutBeforeC2),            \
+                   #type " alignment changed");                              \
+    _Static_assert(offsetof(type, cursor_member) ==                            \
+                       offsetof(WriterLayoutBeforeC2, cursor),                \
+                   #type " cursor offset changed");                          \
+    _Static_assert(offsetof(type, status) ==                                   \
+                       offsetof(WriterLayoutBeforeC2, status),                \
+                   #type " status offset changed");                          \
+    _Static_assert(offsetof(type, sizing_only) ==                              \
+                       offsetof(WriterLayoutBeforeC2, sizing_only),           \
+                   #type " flag offset changed");                            \
+    _Static_assert(sizeof(((type *)NULL)->sizing_only) == sizeof(uint8_t),     \
+                   #type " flag is not byte-sized")
+
+CHECK_WRITER_LAYOUT(Av2hByteWriter, position);
+CHECK_WRITER_LAYOUT(Av2hBitWriter, bit_position);
+CHECK_WRITER_LAYOUT(Av2hArena, used);
+
+#undef CHECK_WRITER_LAYOUT
 
 static int failures;
 

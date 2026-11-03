@@ -1,7 +1,10 @@
 #include "decode.h"
+
 #include "decoder/qmatrix.h"
 #include "error.h"
 #include "pixel_format.h"
+
+#include <stddef.h>
 
 static uint8_t diagnostic_reason_from_status(Av2hStatus status) {
     switch (status) {
@@ -21,7 +24,7 @@ static uint8_t diagnostic_reason_from_status(Av2hStatus status) {
 static Av2hStatus decode_fail(Av2hError *error,
                               Av2hStatus status,
                               uint32_t context) {
-    if (error != 0) {
+    if (error != NULL) {
         (void)av2h_error_set_core(error, status, 0U, context);
         av2h_error_reset_diagnostics(error, AV2H_DIAGNOSTIC_STAGE_NONE,
                                     AV2H_DIAGNOSTIC_REASON_NONE);
@@ -51,7 +54,7 @@ static uint8_t decode_result_stage(const Av2hFrameDecodeResult *result) {
 
 static void decode_result_diagnostics(Av2hError *error,
                                       const Av2hFrameDecodeResult *result) {
-    if (error == 0 || result == 0) return;
+    if (error == NULL || result == NULL) return;
     error->diagnostic_stage = decode_result_stage(result);
     error->diagnostic_reason = diagnostic_reason_from_status(result->cause);
     if (error->diagnostic_stage == AV2H_DIAGNOSTIC_STAGE_RECONSTRUCTION) {
@@ -83,11 +86,11 @@ static void decode_result_diagnostics(Av2hError *error,
 
 static const Av2hObu *find_unique_obu(const Av2hObuLedger *ledger,
                                       uint8_t type) {
-    const Av2hObu *found = 0;
+    const Av2hObu *found = NULL;
     size_t index;
     for (index = 0U; index < ledger->count; ++index) {
         if (ledger->entries[index].type != type) continue;
-        if (found != 0) return 0;
+        if (found != NULL) return NULL;
         found = &ledger->entries[index];
     }
     return found;
@@ -101,7 +104,7 @@ static int ranges_overlap(const void *left,
     uintptr_t right_start = (uintptr_t)right;
     uintptr_t maximum = (uintptr_t)-1;
     if (left_size == 0U || right_size == 0U) return 0;
-    if (left == 0 || right == 0 || left_size > maximum - left_start ||
+    if (left == NULL || right == NULL || left_size > maximum - left_start ||
         right_size > maximum - right_start) {
         return 1;
     }
@@ -166,7 +169,7 @@ Av2hStatus av2h_decode_prepare(const Av2hHeifImage *image,
     const Av2hObu *sequence_obu;
     const Av2hObu *frame_obu;
     Av2hStatus status;
-    if (image == 0 || preparation == 0) {
+    if (image == NULL || preparation == NULL) {
         return decode_fail(error, AV2H_INVALID_ARGUMENT,
                            AV2H_CONTEXT_DECODE);
     }
@@ -176,7 +179,7 @@ Av2hStatus av2h_decode_prepare(const Av2hHeifImage *image,
     if (status != AV2H_OK) return status;
     sequence_obu = find_unique_obu(&config, AV2H_OBU_SEQUENCE_HEADER);
     frame_obu = find_unique_obu(&payload, AV2H_OBU_CLOSED_LOOP_KEY);
-    if (sequence_obu == 0 || frame_obu == 0) {
+    if (sequence_obu == NULL || frame_obu == NULL) {
         return decode_fail(error, AV2H_INVALID_DATA,
                            AV2H_CONTEXT_DECODE);
     }
@@ -191,7 +194,7 @@ Av2hStatus av2h_decode_prepare(const Av2hHeifImage *image,
         },
         &preparation->sequence, &preparation->frame, error);
     if (status != AV2H_OK) {
-        if (error != 0) error->offset += frame_obu->payload_offset;
+        if (error != NULL) error->offset += frame_obu->payload_offset;
         return status;
     }
     av2h_qmatrix_state_reset(&preparation->frame);
@@ -245,11 +248,11 @@ Av2hStatus av2h_decode(Av2hSpan input,
     Av2hFilterWorkspaceStorage filter_storage;
     Av2hFrameDecodeResult result;
     Av2hStatus status;
-    if (info == 0 || (input.data == 0 && input.size != 0U)) {
+    if (info == NULL || (input.data == NULL && input.size != 0U)) {
         return decode_fail(error, AV2H_INVALID_ARGUMENT,
                            AV2H_CONTEXT_DECODE);
     }
-    if (error != 0 &&
+    if (error != NULL &&
         (ranges_overlap(workspace_memory, workspace_size,
                         error, sizeof(*error)) ||
          ranges_overlap(output_memory, output_size,
@@ -258,13 +261,13 @@ Av2hStatus av2h_decode(Av2hSpan input,
     }
     av2h_error_reset_diagnostics(error, AV2H_DIAGNOSTIC_STAGE_NONE,
                                 AV2H_DIAGNOSTIC_REASON_NONE);
-    status = av2h_query(input, 0, &fresh, error);
+    status = av2h_query(input, NULL, &fresh, error);
     if (status != AV2H_OK) return status;
     if (!info_matches(info, &fresh)) {
         return decode_fail(error, AV2H_INVALID_DATA,
                            AV2H_CONTEXT_BINDING);
     }
-    if (workspace_memory == 0 || workspace_size < fresh.workspace_size) {
+    if (workspace_memory == NULL || workspace_size < fresh.workspace_size) {
         return decode_fail(error, AV2H_OUT_OF_MEMORY,
                            AV2H_CONTEXT_WORKSPACE);
     }
@@ -273,7 +276,7 @@ Av2hStatus av2h_decode(Av2hSpan input,
         return decode_fail(error, AV2H_INVALID_ARGUMENT,
                            AV2H_CONTEXT_WORKSPACE);
     }
-    if (output_memory == 0 || output_size < fresh.output_size) {
+    if (output_memory == NULL || output_size < fresh.output_size) {
         return decode_fail(error, AV2H_OUT_OF_MEMORY,
                            AV2H_CONTEXT_OUTPUT);
     }
@@ -318,7 +321,7 @@ Av2hStatus av2h_decode(Av2hSpan input,
         decode_result_diagnostics(error, &result);
         return status;
     }
-    if (error != 0) {
+    if (error != NULL) {
         av2h_error_reset_diagnostics(error, AV2H_DIAGNOSTIC_STAGE_NONE,
                                     AV2H_DIAGNOSTIC_REASON_NONE);
         error->status = AV2H_OK;

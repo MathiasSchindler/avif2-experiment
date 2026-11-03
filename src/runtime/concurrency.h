@@ -3,6 +3,8 @@
 
 #include "execution.h"
 
+#include <stdint.h>
+
 #define AV2H_TASK_POOL_MAX_WORKERS 16U
 #define AV2H_TASK_POOL_STACK_SIZE (256U * 1024U)
 
@@ -20,7 +22,7 @@ typedef struct {
 struct Av2hTaskPool {
     unsigned int width;
     unsigned int native_width;
-    volatile unsigned int stop;
+    volatile uint8_t stop;
     volatile unsigned int generation;
     volatile unsigned int finished_workers;
     size_t next_index;

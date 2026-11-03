@@ -1,9 +1,12 @@
 #include "base.h"
+
 #include "container.h"
 #include "decode.h"
 #include "error.h"
 #include "output_layout.h"
 #include "pixel_format.h"
+
+#include <stddef.h>
 
 static Av2hStatus query_fail(Av2hError *error,
                              Av2hStatus status,
@@ -50,7 +53,7 @@ static Av2hStatus span_has_sequence_header(Av2hSpan span,
 }
 
 void av2h_limits_default(Av2hLimits *limits) {
-    if (limits == 0) return;
+    if (limits == NULL) return;
     limits->max_input_size = (size_t)UINT32_MAX;
     limits->max_config_obus_size = 1024U * 1024U;
     limits->max_item_payload_size = 256U * 1024U * 1024U;
@@ -76,7 +79,7 @@ Av2hStatus av2h_dialect_detect(Av2hSpan input,
     int legacy_shape;
     int config_has_sequence;
     int payload_has_sequence;
-    if (dialect == 0 || (input.data == 0 && input.size != 0U)) {
+    if (dialect == NULL || (input.data == NULL && input.size != 0U)) {
         return query_fail(error, AV2H_INVALID_ARGUMENT, 0U,
                           AV2H_CONTEXT_DIALECT);
     }
@@ -113,7 +116,7 @@ Av2hStatus av2h_dialect_detect(Av2hSpan input,
                               AV2H_CONTEXT_DIALECT);
         }
         if (probe.has_mif1_brand) {
-            if (error != 0) *error = strict_error;
+            if (error != NULL) *error = strict_error;
             return strict_status;
         }
     }
@@ -127,7 +130,7 @@ Av2hStatus av2h_dialect_detect(Av2hSpan input,
         }
     }
     if (probe.has_mif1_brand) {
-        if (error != 0) *error = strict_error;
+        if (error != NULL) *error = strict_error;
         return strict_status;
     }
     return query_fail(error, AV2H_UNSUPPORTED, 0U, AV2H_CONTEXT_DIALECT);
@@ -148,11 +151,11 @@ Av2hStatus av2h_query(Av2hSpan input,
     Av2hObuLedger config_ledger = { config_entries, 2U, 0U };
     Av2hObuLedger item_ledger = { &item_entry, 1U, 0U };
     unsigned int plane_count;
-    if (info == 0 || (input.data == 0 && input.size != 0U)) {
+    if (info == NULL || (input.data == NULL && input.size != 0U)) {
         return query_fail(error, AV2H_INVALID_ARGUMENT, 0U,
                           AV2H_CONTEXT_QUERY);
     }
-    if (active == 0) {
+    if (active == NULL) {
         av2h_limits_default(&defaults);
         active = &defaults;
     }

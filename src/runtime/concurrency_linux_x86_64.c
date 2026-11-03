@@ -1,5 +1,7 @@
 #include "concurrency_platform.h"
 
+#include <stddef.h>
+
 #define AV2H_LINUX_SYS_MMAP 9
 #define AV2H_LINUX_SYS_MUNMAP 11
 #define AV2H_LINUX_SYS_SCHED_GETAFFINITY 204
@@ -109,7 +111,7 @@ int av2h_platform_worker_start(Av2hTaskWorker *worker,
     unsigned long flags;
     long mapping;
     long tid;
-    if (worker == 0 || entry == 0) return -1;
+    if (worker == NULL || entry == NULL) return -1;
     mapping = syscall6(AV2H_LINUX_SYS_MMAP, 0,
                        (long)AV2H_TASK_POOL_STACK_SIZE,
                        AV2H_LINUX_PROT_READ | AV2H_LINUX_PROT_WRITE,
@@ -130,7 +132,7 @@ int av2h_platform_worker_start(Av2hTaskWorker *worker,
     if (tid < 0) {
         (void)syscall2(AV2H_LINUX_SYS_MUNMAP, mapping,
                        (long)worker->stack_size);
-        worker->stack = 0;
+        worker->stack = NULL;
         worker->stack_size = 0U;
         return -1;
     }
@@ -139,7 +141,7 @@ int av2h_platform_worker_start(Av2hTaskWorker *worker,
 }
 
 int av2h_platform_worker_join(Av2hTaskWorker *worker) {
-    if (worker == 0) return -1;
+    if (worker == NULL) return -1;
     for (;;) {
         int value = __atomic_load_n(&worker->clear_tid, __ATOMIC_ACQUIRE);
         if (value == 0) break;
@@ -153,11 +155,11 @@ int av2h_platform_worker_join(Av2hTaskWorker *worker) {
             }
         }
     }
-    if (worker->stack != 0) {
+    if (worker->stack != NULL) {
         (void)syscall2(AV2H_LINUX_SYS_MUNMAP, (long)worker->stack,
                        (long)worker->stack_size);
     }
-    worker->stack = 0;
+    worker->stack = NULL;
     worker->stack_size = 0U;
     worker->tid = 0;
     return 0;

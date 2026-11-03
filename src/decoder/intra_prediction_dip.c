@@ -1,5 +1,8 @@
 #include "internal/intra_prediction.h"
+
 #include "internal/sample_math.h"
+
+#include <stddef.h>
 
 #include "intra_dip_data.inc"
 
@@ -24,7 +27,7 @@ static uint8_t intra_dip_edge_sample(const uint8_t *edge,
                                      size_t count,
                                      size_t index,
                                      uint8_t fallback) {
-    if (edge == 0 || count == 0U) return fallback;
+    if (edge == NULL || count == 0U) return fallback;
     return edge[index < count ? index : count - 1U];
 }
 
@@ -60,7 +63,7 @@ Av2hStatus av2h_predict_intra_dip(
     unsigned int divisor_y;
     unsigned int row;
     unsigned int column;
-    if (mode == 0 || references == 0 || predictor == 0 ||
+    if (mode == NULL || references == NULL || predictor == NULL ||
         predictor_stride_samples < width ||
         !av2h_luma_prediction_dimension_supported(width) ||
         !av2h_luma_prediction_dimension_supported(height)) {

@@ -27,7 +27,19 @@
 #define AV2H_LINUX_SYS_MMAP 9
 #define AV2H_LINUX_SYS_MUNMAP 11
 #define AV2H_LINUX_SYS_OPENAT 257
+#elif defined(__aarch64__)
+#define AV2H_LINUX_SYS_OPENAT 56
+#define AV2H_LINUX_SYS_CLOSE 57
+#define AV2H_LINUX_SYS_LSEEK 62
+#define AV2H_LINUX_SYS_READ 63
+#define AV2H_LINUX_SYS_WRITE 64
+#define AV2H_LINUX_SYS_MUNMAP 215
+#define AV2H_LINUX_SYS_MMAP 222
+#else
+#error "The Linux no-libc decoder supports only x86-64 and AArch64"
+#endif
 
+#if defined(__x86_64__)
 long av2h_linux_syscall1(long number, long argument0);
 long av2h_linux_syscall2(long number, long argument0, long argument1);
 long av2h_linux_syscall3(long number, long argument0, long argument1,
@@ -38,14 +50,6 @@ long av2h_linux_syscall6(long number, long argument0, long argument1,
                          long argument2, long argument3, long argument4,
                          long argument5);
 #elif defined(__aarch64__)
-#define AV2H_LINUX_SYS_OPENAT 56
-#define AV2H_LINUX_SYS_CLOSE 57
-#define AV2H_LINUX_SYS_LSEEK 62
-#define AV2H_LINUX_SYS_READ 63
-#define AV2H_LINUX_SYS_WRITE 64
-#define AV2H_LINUX_SYS_MUNMAP 215
-#define AV2H_LINUX_SYS_MMAP 222
-
 static inline long av2h_linux_syscall1(long number, long argument0) {
     register long x8 __asm__("x8") = number;
     register long x0 __asm__("x0") = argument0;
@@ -102,8 +106,6 @@ static inline long av2h_linux_syscall6(long number, long argument0,
                      "r"(x8) : "memory");
     return x0;
 }
-#else
-#error "The Linux no-libc decoder supports only x86-64 and AArch64"
 #endif
 
 #endif

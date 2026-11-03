@@ -1,6 +1,9 @@
 #include "sequence.h"
+
 #include "internal/obu.h"
 #include "shared/bit_math.h"
+
+#include <stddef.h>
 
 static Av2hStatus fail_obu_syntax(Av2hError *error,
                                   Av2hStatus status,
@@ -10,7 +13,7 @@ static Av2hStatus fail_obu_syntax(Av2hError *error,
                                   uint32_t parsed_value) {
     status = av2h_obu_fail_at(error, status, obu, offset,
                       AV2H_CONTEXT_SEQUENCE_HEADER);
-    if (error != 0) {
+    if (error != NULL) {
         error->syntax_stage = syntax;
         error->parsed_value = parsed_value;
     }
@@ -309,7 +312,7 @@ Av2hStatus av2h_sequence_state_parse(Av2hSpan input,
     uint32_t bit_depth;
     uint32_t width_bits;
     uint32_t height_bits;
-    if (obu == 0 || state == 0 || input.data == 0 ||
+    if (obu == NULL || state == NULL || input.data == NULL ||
         obu->type != AV2H_OBU_SEQUENCE_HEADER || obu->extension_flag != 0U ||
         obu->temporal_id != 0U || obu->payload_offset > input.size ||
         obu->payload_size > input.size - obu->payload_offset) {
@@ -425,7 +428,7 @@ Av2hStatus av2h_sequence_header_parse(Av2hSpan input,
                                       Av2hError *error) {
     Av2hSequenceState state;
     Av2hStatus status;
-    if (sequence == 0) {
+    if (sequence == NULL) {
         return av2h_obu_fail_at(error, AV2H_INVALID_ARGUMENT, obu, 0U,
                         AV2H_CONTEXT_SEQUENCE_HEADER);
     }

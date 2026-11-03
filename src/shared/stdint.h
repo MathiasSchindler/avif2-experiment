@@ -3,6 +3,17 @@
 
 #include <limits.h>
 
+#define UINT8_MAX UCHAR_MAX
+#define UINT16_MAX USHRT_MAX
+#define UINT32_MAX UINT_MAX
+#define UINT64_MAX ULLONG_MAX
+
+#ifdef __SIZE_MAX__
+#define SIZE_MAX __SIZE_MAX__
+#else
+#define SIZE_MAX ULONG_MAX
+#endif
+
 typedef signed char int8_t;
 typedef unsigned char uint8_t;
 typedef short int16_t;
@@ -22,17 +33,6 @@ typedef long intptr_t;
 typedef __UINTPTR_TYPE__ uintptr_t;
 #else
 typedef unsigned long uintptr_t;
-#endif
-
-#define UINT8_MAX UCHAR_MAX
-#define UINT16_MAX USHRT_MAX
-#define UINT32_MAX UINT_MAX
-#define UINT64_MAX ULLONG_MAX
-
-#ifdef __SIZE_MAX__
-#define SIZE_MAX __SIZE_MAX__
-#else
-#define SIZE_MAX ULONG_MAX
 #endif
 
 #endif

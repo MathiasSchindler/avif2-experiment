@@ -1,7 +1,10 @@
 #include "decoder/filter.h"
+
 #include "decoder/internal/filter_common.h"
 #include "decoder/internal/filter_modules.h"
 #include "decoder/internal/sample_math.h"
+
+#include <stddef.h>
 
 #include "gdf_data.inc"
 
@@ -27,7 +30,7 @@ static GdfTileBounds gdf_tile_bounds(
     GdfTileBounds bounds = { 0, 0, frame->width, frame->height };
     unsigned int column;
     unsigned int row;
-    if (sequence == 0 || sequence->disable_loopfilters_across_tiles == 0U) {
+    if (sequence == NULL || sequence->disable_loopfilters_across_tiles == 0U) {
         return bounds;
     }
     for (column = 0U; column < frame->tile_column_count; ++column) {
@@ -469,7 +472,7 @@ Av2hStatus av2h_gdf_filter_frame_with_baseline(
     const Av2hGdfControlMap *controls) {
     return av2h_gdf_filter_frame_with_sequence(
         destination, baseline_luma, cdef_luma, deblocked_luma,
-        0, frame, controls);
+        NULL, frame, controls);
 }
 
 Av2hStatus av2h_gdf_filter_frame_with_sequence(
@@ -482,10 +485,10 @@ Av2hStatus av2h_gdf_filter_frame_with_sequence(
     const Av2hGdfControlMap *controls) {
     uint16_t row;
     unsigned int qp_index;
-    if (destination == 0 || baseline_luma == 0 || cdef_luma == 0 ||
-        deblocked_luma == 0 || frame == 0 || destination->data == 0 ||
-        baseline_luma->data == 0 || cdef_luma->data == 0 ||
-        deblocked_luma->data == 0 || destination->stride_samples < destination->width ||
+    if (destination == NULL || baseline_luma == NULL || cdef_luma == NULL ||
+        deblocked_luma == NULL || frame == NULL || destination->data == NULL ||
+        baseline_luma->data == NULL || cdef_luma->data == NULL ||
+        deblocked_luma->data == NULL || destination->stride_samples < destination->width ||
         baseline_luma->stride_samples < baseline_luma->width ||
         cdef_luma->stride_samples < cdef_luma->width ||
         deblocked_luma->stride_samples < deblocked_luma->width ||
@@ -511,7 +514,7 @@ Av2hStatus av2h_gdf_filter_frame_with_sequence(
     }
     if (frame->gdf_mode == 2U) {
         size_t index;
-        if (controls == 0 || controls->flags == 0 ||
+        if (controls == NULL || controls->flags == NULL ||
             controls->block_size != frame->gdf_block_size ||
             controls->columns != frame->gdf_block_columns ||
             controls->rows != frame->gdf_block_rows ||
@@ -545,7 +548,7 @@ Av2hStatus av2h_gdf_filter_frame_with_sequence(
              column = (uint16_t)(column + 4U)) {
             GdfTileBounds bounds = gdf_tile_bounds(
                 sequence, frame, column, row);
-            if (sequence == 0 ||
+            if (sequence == NULL ||
                 sequence->disable_loopfilters_across_tiles == 0U ||
                 (uint32_t)frame->tile_column_count *
                     frame->tile_row_count <= 1U) {
@@ -590,7 +593,7 @@ Av2hStatus av2h_gdf_filter_frame(
     const Av2hFilterPlane *deblocked_luma,
     const Av2hFrameState *frame) {
     return av2h_gdf_filter_frame_with_controls(
-        destination, cdef_luma, deblocked_luma, frame, 0);
+        destination, cdef_luma, deblocked_luma, frame, NULL);
 }
 
 Av2hStatus av2h_gdf_filter_frame_u16_with_controls(
@@ -600,7 +603,7 @@ Av2hStatus av2h_gdf_filter_frame_u16_with_controls(
     const Av2hFrameState *frame,
     const Av2hGdfControlMap *controls) {
     return av2h_gdf_filter_frame_u16_with_sequence(
-        destination, cdef_luma, deblocked_luma, 0, frame, controls);
+        destination, cdef_luma, deblocked_luma, NULL, frame, controls);
 }
 
 Av2hStatus av2h_gdf_filter_frame_u16_with_sequence(
@@ -612,9 +615,9 @@ Av2hStatus av2h_gdf_filter_frame_u16_with_sequence(
     const Av2hGdfControlMap *controls) {
     uint16_t row;
     unsigned int qp_index;
-    if (destination == 0 || cdef_luma == 0 || deblocked_luma == 0 ||
-        frame == 0 || destination->data == 0 || cdef_luma->data == 0 ||
-        deblocked_luma->data == 0 ||
+    if (destination == NULL || cdef_luma == NULL || deblocked_luma == NULL ||
+        frame == NULL || destination->data == NULL || cdef_luma->data == NULL ||
+        deblocked_luma->data == NULL ||
         destination->stride_samples < destination->width ||
         cdef_luma->stride_samples < cdef_luma->width ||
         deblocked_luma->stride_samples < deblocked_luma->width ||
@@ -634,7 +637,7 @@ Av2hStatus av2h_gdf_filter_frame_u16_with_sequence(
     }
     if (frame->gdf_mode == 2U) {
         size_t index;
-        if (controls == 0 || controls->flags == 0 ||
+        if (controls == NULL || controls->flags == NULL ||
             controls->block_size != frame->gdf_block_size ||
             controls->columns != frame->gdf_block_columns ||
             controls->rows != frame->gdf_block_rows ||
@@ -669,7 +672,7 @@ Av2hStatus av2h_gdf_filter_frame_u16_with_sequence(
              column = (uint16_t)(column + 4U)) {
             GdfTileBounds bounds = gdf_tile_bounds(
                 sequence, frame, column, row);
-            if (sequence == 0 ||
+            if (sequence == NULL ||
                 sequence->disable_loopfilters_across_tiles == 0U ||
                 (uint32_t)frame->tile_column_count *
                     frame->tile_row_count <= 1U) {
@@ -704,6 +707,6 @@ Av2hStatus av2h_gdf_filter_frame_u16(
     const Av2hFilterPlaneU16 *deblocked_luma,
     const Av2hFrameState *frame) {
     return av2h_gdf_filter_frame_u16_with_controls(
-        destination, cdef_luma, deblocked_luma, frame, 0);
+        destination, cdef_luma, deblocked_luma, frame, NULL);
 }
 
