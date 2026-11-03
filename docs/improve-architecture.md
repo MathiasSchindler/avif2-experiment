@@ -1,6 +1,6 @@
 # Decoder Architecture and Runtime Improvement Plan
 
-**Status:** A1 complete; A2-A6 planned
+**Status:** A1-A3 complete; A4-A6 planned
 **Scope:** [`src/`](../src/) and [`include/av2heif.h`](../include/av2heif.h)
 
 ## Purpose and Scope
@@ -23,7 +23,7 @@ Every milestone must preserve:
 | :--- | :--- | :--- | :--- |
 | **A1** | Move large decoder state (`Av2hTileDecoder`, `Av2hCoeffBlock`, preparation state) off the C call stack into the caller-owned workspace arena | [`frame_workspace.c`](../src/decoder/frame_workspace.c), [`frame_output.c`](../src/decoder/frame_output.c), [`tile.h`](../src/decoder/tile.h), [`decode.c`](../src/decode.c) | None |
 | **A2** | Eliminate redundant parsing and full-input hashing across `av2h_query` and `av2h_decode` | [`query.c`](../src/query.c), [`decode.c`](../src/decode.c), [`decode.h`](../src/decode.h) | A1 |
-| **A3** | Replace bit-by-bit loops and per-symbol CDF invariant scans in [`range.c`](../src/decoder/range.c) and [`base.c`](../src/base.c) with byte/word-buffered refills and debug-only CDF assertions | [`range.c`](../src/decoder/range.c), [`range.h`](../src/decoder/range.h), [`base.c`](../src/base.c) | None |
+| **A3** | Replace bit-by-bit refills with byte-chunk reads, fuse CDF validation/search, and accelerate range normalization while retaining checked decoding | [`range.c`](../src/decoder/range.c), [`base.c`](../src/base.c), [`shared/bit_math.h`](../src/shared/bit_math.h) | None |
 | **A4** | Eliminate unconditional full-frame plane copies and redundant $O(H)$ overlap scans in the loop-filter pipeline | [`filter.c`](../src/decoder/filter.c), [`frame_workspace.c`](../src/decoder/frame_workspace.c), [`internal/filter_common.h`](../src/decoder/internal/filter_common.h) | A1 |
 | **A5** | Extend `Av2hExecution` parallelism from final output `memcpy` to multi-tile decoding and loop-filter stripes | [`frame_output.c`](../src/decoder/frame_output.c), [`frame_workspace.c`](../src/decoder/frame_workspace.c), [`filter.c`](../src/decoder/filter.c), [`cdef.c`](../src/decoder/cdef.c), [`gdf.c`](../src/decoder/gdf.c) | A1, A4 |
 | **A6** | Converge 8-bit and 16-bit (`_u16`) admission rules, DPCM semantics, and loop-filter support | [`reconstruct.c`](../src/decoder/reconstruct.c), [`reconstruct_block.c`](../src/decoder/reconstruct_block.c), [`chroma_prediction_*.c`](../src/decoder/chroma_prediction.c), [`filter.c`](../src/decoder/filter.c), [`restoration.c`](../src/decoder/restoration.c) | A4 |
@@ -335,7 +335,7 @@ Before A2, in the normal two-step public API workflow (`av2h_query` followed by 
 ## A3: Optimize Entropy Range Decoder and Bit Reader Hot Loops
 
 ### Problem
-As noted in [`dev/performance-baseline.md`](dev/performance-baseline.md), lossless photographs and coefficient-heavy 10-bit streams spend a large share of decode time in entropy decoding ([`src/decoder/range.c`](../src/decoder/range.c)). Inspecting [`range.c`](../src/decoder/range.c) and [`base.c`](../src/base.c) reveals three inner-loop inefficiencies:
+As noted in [`dev/performance-baseline.md`](dev/performance-baseline.md), lossless photographs and coefficient-heavy 10-bit streams spend a large share of decode time in entropy decoding ([`src/decoder/range.c`](../src/decoder/range.c)). Before A3, [`range.c`](../src/decoder/range.c) and [`base.c`](../src/base.c) had four inner-loop inefficiencies:
 1. **Bit-by-bit refill with per-bit span lookup in `range_input_bits`:**
    `range_input_bits` ([`src/decoder/range.c`](../src/decoder/range.c)) loops `for (index = 0U; index < bit_count; ++index)` one bit at a time, calling `range_byte_at(decoder, position >> 3U, &byte)` on **every single bit** (which itself loops over `decoder->spans`).
 2. **Bit-by-bit bypass reading in `av2h_range_read_bypass`:**
@@ -349,6 +349,10 @@ As noted in [`dev/performance-baseline.md`](dev/performance-baseline.md), lossle
    }
    ```
    before scanning the CDF for `decoder->value >= lower`. Because CDF tables are initialized and adapted exclusively by internal decoder code (which preserves monotonicity), scanning the entire CDF for validity on every symbol read doubles the loop work in the hottest function of the entropy decoder.
+4. **Repeated shifting during range normalization:**
+   `av2h_floor_log2_u32` shifted through the range on every normalization.
+   The measured ARM64 compiler retained this loop rather than recognizing a
+   count-leading-zeros operation.
 
 ### Actions
 1. **Fast Byte/Word Bit Refill in `Av2hRangeDecoder` and `Av2hBitReader`:**
@@ -359,6 +363,60 @@ As noted in [`dev/performance-baseline.md`](dev/performance-baseline.md), lossle
 ### Exit Criteria
 - `range_input_bits` and `av2h_bit_reader_read` avoid per-bit span/byte re-indexing on contiguous byte-aligned/multi-bit reads.
 - Measurable speedup on lossless and high-bitrate cases in [`dev/performance-baseline.md`](dev/performance-baseline.md) with 100% identical decoded hashes and fuzz/unit test results.
+
+### A3 completed: bounded refills and checked entropy decoding
+
+- The range and ordinary bit readers share a bounded MSB-first byte-chunk
+  extractor, with a direct single-byte path. Contiguous range input avoids span
+  searches; scattered input gathers at most five bytes, locating each byte
+  once. Reads never require speculative, unaligned, or out-of-bounds word loads.
+  No cursor fields, workspace reservations, or public/private ABI sizes changed.
+- Bypass reads fetch their input together while retaining the dependent
+  arithmetic steps. A truncated read stops after exactly the original first
+  failing step, preserving `value`, `tell`, `available_bits`, input position,
+  sticky errors, and zero-bit behavior.
+- CDF validation remains enabled in every build. The search validates its prefix
+  and then checks the unsearched tail before committing entropy state, using
+  one traversal instead of two. Binary CDFs use a constant-size checked path:
+  the terminal zero check already establishes monotonicity for their unsigned
+  first entry.
+  Adaptive metadata checks retain their original ordering after symbol decoding.
+- The shared floor-log2 helper uses guarded GCC/Clang leading-zero builtins,
+  explicitly handles zero, and retains the portable C fallback for other
+  compilers. Native disassembly confirms that normalization's shift loop is
+  gone. No ISA-specific source, SIMD, new build flags, or AVM code was added.
+- Nine alternating paired whole-decode rounds against A2 at identical `-O2`
+  flags show **1.156x** on lossless Pastel, **1.149x** on its high-bitrate case,
+  and **1.100-1.136x** on coefficient-heavy 10-bit cases. The four filter-heavy
+  controls also improve (**1.035-1.055x**). All paired bootstrap intervals are
+  above 1.0; methodology and individual timings are recorded in
+  [`dev/performance-baseline.md`](dev/performance-baseline.md#a3-entropy-loop-implementation).
+
+### Verification
+
+- Both diagnostic configurations pass **33 sanitized C suites**, **2,460**
+  deterministic public-decode fuzz cases, **560** orchestration variants, and
+  **64** poisoned-scratch reuse cases. Frozen error/resource records remain
+  unchanged. A new **49,920-operation** entropy-state transcript retains its
+  pre-optimization fingerprint, `6b158c47ce691433`, across contiguous, split,
+  and scattered spans, including exhaustion and malformed CDFs.
+- Exact-sized bit-reader buffers exercise every cursor and 0-33-bit request
+  around small-buffer boundaries under ASan/UBSan. Additional CDF tests reject
+  invalid entries even after an earlier symbol could have been selected.
+- All **179 raw hashes** and **14 exact CLI contracts** match per configuration.
+  All **176 canonical public query/decode hashes** also match through native and
+  full-LTO frontends. Canonical admission is unchanged; the three raw-only
+  multi-key fixtures retain identical rejection records.
+- All **76 production C sources** pass the **4,096-byte** frame guard in both
+  configurations; the native maximum remains **3,760 bytes**. All nine changed
+  or helper-dependent sources also pass on Linux and Windows x86-64/ARM64 and
+  Wasm32; their largest measured frame is **872 bytes**. Full-LTO canonical
+  backend objects emit no oversized-frame warnings; verification links
+  explicit LLVM objects to bypass the documented host archive-loader issue.
+- **38** related Python checks, **55** standalone private headers, **35**
+  value-only kernel roots, freestanding symbols, formatting, and whitespace
+  checks pass. The previously documented nolibc toolchain limitations remain
+  outside A3.
 
 ---
 

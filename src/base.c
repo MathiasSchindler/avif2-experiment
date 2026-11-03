@@ -1,5 +1,7 @@
 #include "base.h"
 
+#include "shared/bit_math.h"
+
 #include <stddef.h>
 
 const char *av2h_status_string(Av2hStatus status) {
@@ -226,8 +228,7 @@ size_t av2h_bit_reader_remaining(const Av2hBitReader *reader) {
 }
 
 uint32_t av2h_bit_reader_read(Av2hBitReader *reader, unsigned int bit_count) {
-    uint32_t value = 0U;
-    unsigned int index;
+    uint32_t value;
     if (reader == NULL || reader->status != AV2H_OK)
         return 0U;
     if (bit_count > 32U) {
@@ -238,12 +239,11 @@ uint32_t av2h_bit_reader_read(Av2hBitReader *reader, unsigned int bit_count) {
         bit_reader_fail(reader, AV2H_TRUNCATED);
         return 0U;
     }
-    for (index = 0U; index < bit_count; ++index) {
-        size_t byte_index = reader->bit_position >> 3;
-        unsigned int shift = 7U - (unsigned int)(reader->bit_position & 7U);
-        value = (value << 1) | ((uint32_t)(reader->data[byte_index] >> shift) & 1U);
-        ++reader->bit_position;
-    }
+    if (bit_count == 0U)
+        return 0U;
+    value = av2h_read_bits_msb(reader->data + (reader->bit_position >> 3U),
+                               (unsigned int)(reader->bit_position & 7U), bit_count);
+    reader->bit_position += bit_count;
     return value;
 }
 

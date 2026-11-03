@@ -5,6 +5,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 CANONICAL_OWNERS = {
+    "av2h_read_bits_msb": "src/shared/bit_math.h",
     "av2h_ceil_log2_u32": "src/shared/bit_math.h",
     "av2h_floor_log2_u32": "src/shared/bit_math.h",
     "av2h_ceil_log2_ratio_u32": "src/shared/bit_math.h",

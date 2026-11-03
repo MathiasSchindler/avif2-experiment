@@ -356,3 +356,63 @@ Use fresh build directories when changing flags; the object rules do not
 track every flag change. Do not run `make clean` between building and measuring:
 it removes these performance build directories while preserving AVM oracles.
 All experiments and timings should remain serial to avoid CPU contention.
+
+## A3 entropy-loop implementation
+
+A3 implements the normalization/refill priority above, compared against A2
+(`369db20`). The historical baseline and prototype measurements above are
+unchanged; these are new matched measurements, not comparisons between runs
+made at different revisions or with different optimization flags.
+
+The implementation adds bounded byte-chunk input extraction, contiguous range
+refills, batched bypass input with exact scalar exhaustion behavior, fused CDF
+validation/search, and a checked binary-CDF path. CDF checks remain enabled in
+production. Range normalization uses the shared floor-log2 helper's guarded
+compiler builtin, with defined zero handling and the existing portable C
+fallback. ARM64 disassembly confirms a leading-zero instruction replaces the
+original repeated shift loop. The first byte-chunk/CDF-fusion version alone
+showed no measurable whole-image gain; the results below include the subsequent
+normalization and common-case refinements.
+
+### Matched method
+
+- Same Apple M4 Max and Clang 22.1.8, normal freestanding `-O2` core flags,
+  diagnostics disabled. No LTO, explicit SIMD, architecture-specific flags,
+  threading, or changes to the default optimization level.
+- The harness calls the actual shared raw-OBU CLI decode service. Input loading
+  is outside timing; parsing, allocation, initialization, entropy decoding,
+  reconstruction, filters, planar copying, and release are inside it. No CLI
+  subprocess startup or output-file writing is timed.
+- One warm decode, calibration for at least 30 ms, and seven measured batches
+  per process. Nine paired rounds alternate before/after and after/before,
+  using the same deterministically shuffled case order within each pair.
+  Measurements run serially without concurrent builds or tests.
+- Times below are medians of the nine per-process batch medians. Speedup is
+  the median of the nine paired before/after ratios, so it need not equal the
+  ratio of the two displayed medians. Intervals are approximate 95% percentile
+  bootstrap intervals from 5,000 resamples of the paired ratios, not latency
+  bounds or cross-machine guarantees.
+- Both binaries produce the recorded pixel SHA-256 for each measured case
+  before timing. Complete subsequent regression checks preserve all 179 raw
+  hashes, 176 admitted canonical public-API hashes, and 14 CLI contracts in
+  both diagnostic configurations, alongside sanitizer suites and fuzzing.
+
+### Whole-decode results
+
+| Case | Before, ms | After, ms | Paired speedup | Approx. 95% interval |
+|---|---:|---:|---:|---:|
+| Pastel, 896 I420 QP0 (lossless) | 75.643 | 65.267 | 1.156x | 1.146-1.164x |
+| Pastel, 896 I420 QP48 | 76.234 | 66.193 | 1.149x | 1.140-1.151x |
+| High-detail 10-bit I420, 96x80 QP128 | 1.293 | 1.139 | 1.136x | 1.092-1.171x |
+| High-detail 10-bit I444, 96x80 QP128 | 2.808 | 2.553 | 1.100x | 1.074-1.108x |
+| Baya, 896 I420 QP152 | 86.816 | 83.883 | 1.035x | 1.031-1.055x |
+| Baya, 896 I444 QP152 | 114.323 | 108.665 | 1.051x | 1.050-1.059x |
+| Pastel, 896 I420 QP255 | 86.217 | 82.823 | 1.043x | 1.038-1.044x |
+| Baya, 1440 I420 QP96 | 207.399 | 196.799 | 1.055x | 1.048-1.059x |
+
+These establish a measurable whole-image benefit on the lossless/high-bitrate
+and coefficient-heavy cases, without a measured regression in the selected
+filter-heavy controls. They do not measure the individual contribution of each
+source change, establish the speed of the portable fallback on other compilers,
+or imply the same gain across the whole corpus. GDF/CDEF/transform work remains
+unchanged and is still important for ordinary lossy photographs.

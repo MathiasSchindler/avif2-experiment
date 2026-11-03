@@ -19,16 +19,30 @@ static int range_byte_at(const Av2hRangeDecoder *decoder, size_t position, uint8
     return 0;
 }
 
-static uint32_t range_input_bits(Av2hRangeDecoder *decoder, unsigned int bit_count) {
-    uint32_t value = 0U;
+static uint32_t range_spanning_bits(const Av2hRangeDecoder *decoder, size_t position,
+                                    unsigned int offset, unsigned int bit_count) {
+    unsigned char gathered[5U] = {0U};
+    unsigned int byte_count = (offset + bit_count + 7U) >> 3U;
     unsigned int index;
-    for (index = 0U; index < bit_count; ++index) {
-        size_t position = decoder->bit_position++;
-        uint8_t byte = 0U;
-        if (range_byte_at(decoder, position >> 3U, &byte)) {
-            value |= (uint32_t)((byte >> (7U - (position & 7U))) & 1U) << (bit_count - index - 1U);
-        }
+    for (index = 0U; index < byte_count; ++index)
+        (void)range_byte_at(decoder, position + index, &gathered[index]);
+    return av2h_read_bits_msb(gathered, offset, bit_count);
+}
+
+static uint32_t range_input_bits(Av2hRangeDecoder *decoder, unsigned int bit_count) {
+    uint32_t value;
+    size_t position = decoder->bit_position >> 3U;
+    unsigned int offset = (unsigned int)(decoder->bit_position & 7U);
+    unsigned int byte_count = (offset + bit_count + 7U) >> 3U;
+    if (bit_count == 0U)
+        return 0U;
+    if (decoder->span_count == 1U && position <= decoder->spans[0].size &&
+        byte_count <= decoder->spans[0].size - position) {
+        value = av2h_read_bits_msb(decoder->spans[0].data + position, offset, bit_count);
+    } else {
+        value = range_spanning_bits(decoder, position, offset, bit_count);
     }
+    decoder->bit_position += bit_count;
     return value;
 }
 
@@ -107,6 +121,7 @@ uint32_t av2h_range_read_symbol(Av2hRangeDecoder *decoder, const uint16_t *inver
                                 size_t symbol_count) {
     uint32_t upper;
     uint32_t lower;
+    uint16_t previous;
     size_t symbol;
     size_t index;
     if (decoder == NULL || inverse_cdf == NULL || symbol_count < 2U || symbol_count > 16U) {
@@ -120,23 +135,43 @@ uint32_t av2h_range_read_symbol(Av2hRangeDecoder *decoder, const uint16_t *inver
         decoder->status = AV2H_INVALID_ARGUMENT;
         return 0U;
     }
-    for (index = 1U; index < symbol_count; ++index) {
-        if (inverse_cdf[index - 1U] < inverse_cdf[index]) {
-            decoder->status = AV2H_INVALID_ARGUMENT;
-            return 0U;
-        }
-    }
     upper = decoder->range;
     symbol = 0U;
-    for (;;) {
-        lower = range_probability_scale(inverse_cdf[symbol], decoder->range, symbol, symbol_count);
-        if (decoder->value >= lower)
-            break;
-        upper = lower;
-        ++symbol;
-        if (symbol >= symbol_count) {
-            decoder->status = AV2H_INVALID_DATA;
-            return 0U;
+    if (symbol_count == 2U) {
+        lower = range_probability_scale(inverse_cdf[0], decoder->range, 0U, 2U);
+        if (decoder->value < lower) {
+            symbol = 1U;
+            upper = lower;
+            lower = 0U;
+        }
+    } else {
+        previous = inverse_cdf[0];
+        for (;;) {
+            uint16_t current;
+            lower = range_probability_scale(previous, decoder->range, symbol, symbol_count);
+            if (decoder->value >= lower)
+                break;
+            upper = lower;
+            ++symbol;
+            if (symbol >= symbol_count) {
+                decoder->status = AV2H_INVALID_DATA;
+                return 0U;
+            }
+            current = inverse_cdf[symbol];
+            if (previous < current) {
+                decoder->status = AV2H_INVALID_ARGUMENT;
+                return 0U;
+            }
+            previous = current;
+        }
+        /* Validate the unsearched tail before committing any entropy state. */
+        for (index = symbol + 1U; index < symbol_count; ++index) {
+            uint16_t current = inverse_cdf[index];
+            if (previous < current) {
+                decoder->status = AV2H_INVALID_ARGUMENT;
+                return 0U;
+            }
+            previous = current;
         }
     }
     decoder->range = upper - lower;
@@ -183,6 +218,12 @@ uint32_t av2h_range_read_adaptive(Av2hRangeDecoder *decoder, uint16_t *inverse_c
 
 uint32_t av2h_range_read_bypass(Av2hRangeDecoder *decoder, unsigned int bit_count) {
     uint32_t result = 0U;
+    uint32_t input;
+    uint32_t value;
+    uint32_t split;
+    unsigned int steps = bit_count;
+    unsigned int input_bits;
+    size_t total_bits;
     unsigned int index;
     if (decoder == NULL || bit_count > 32U) {
         if (decoder != NULL)
@@ -191,24 +232,39 @@ uint32_t av2h_range_read_bypass(Av2hRangeDecoder *decoder, unsigned int bit_coun
     }
     if (decoder->status != AV2H_OK)
         return 0U;
-    for (index = 0U; index < bit_count; ++index) {
-        uint32_t split = decoder->range >> 1U;
-        uint32_t input;
+    if (bit_count == 0U)
+        return 0U;
+    total_bits = decoder->size * 8U;
+    /* Include exactly the first failing step to retain scalar truncation state. */
+    if (decoder->tell > total_bits)
+        steps = 1U;
+    else if (steps > total_bits - decoder->tell)
+        steps = (unsigned int)(total_bits - decoder->tell) + 1U;
+    input_bits =
+        decoder->available_bits > 0
+            ? (unsigned int)(decoder->available_bits < (int64_t)steps ? decoder->available_bits
+                                                                      : (int64_t)steps)
+            : 0U;
+    input = range_input_bits(decoder, input_bits);
+    if (input_bits != 0U)
+        input <<= 32U - input_bits;
+    value = decoder->value;
+    split = decoder->range >> 1U;
+    for (index = 0U; index < steps; ++index) {
         result <<= 1U;
-        if (decoder->value < split) {
+        if (value < split) {
             result |= 1U;
         } else {
-            decoder->value -= split;
+            value -= split;
         }
-        input = decoder->available_bits > 0 ? range_input_bits(decoder, 1U) : 0U;
-        decoder->value = input ^ ((decoder->value << 1U) | 1U);
-        --decoder->available_bits;
-        ++decoder->tell;
-        range_check_overflow(decoder);
-        if (decoder->status != AV2H_OK)
-            return 0U;
+        value = (input >> 31U) ^ ((value << 1U) | 1U);
+        input <<= 1U;
     }
-    return result;
+    decoder->value = value;
+    decoder->available_bits -= steps;
+    decoder->tell += steps;
+    range_check_overflow(decoder);
+    return decoder->status == AV2H_OK ? result : 0U;
 }
 
 size_t av2h_range_tell(const Av2hRangeDecoder *decoder) {

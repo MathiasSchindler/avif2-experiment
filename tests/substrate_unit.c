@@ -4,6 +4,7 @@
 
 #include <stddef.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 typedef struct {
     unsigned char *data;
@@ -163,6 +164,65 @@ static void test_readers(void) {
     CHECK(av2h_bit_reader_read(&bit_reader, 4U) == 1U);
     CHECK(av2h_bit_reader_read(&bit_reader, 8U) == 0x23U);
     CHECK(av2h_bit_reader_remaining(&bit_reader) == 20U);
+}
+
+static void test_bit_reader_chunks(void) {
+    size_t size;
+    for (size = 0U; size <= 8U; ++size) {
+        unsigned char *bytes = size != 0U ? malloc(size) : NULL;
+        size_t position;
+        size_t index;
+        CHECK(bytes != NULL || size == 0U);
+        if (bytes == NULL && size != 0U)
+            return;
+        for (index = 0U; index < size; ++index)
+            bytes[index] = (unsigned char)(0x97U + 53U * index);
+        for (position = 0U; position <= size * 8U + 1U; ++position) {
+            unsigned int count;
+            for (count = 0U; count <= 33U; ++count) {
+                Av2hBitReader reader;
+                Av2hStatus expected_status = AV2H_OK;
+                uint32_t expected = 0U;
+                size_t expected_position = position;
+                size_t remaining = position <= size * 8U ? size * 8U - position : 0U;
+                av2h_bit_reader_init(&reader, bytes, size, 17U);
+                reader.bit_position = position;
+                if (count > 32U) {
+                    expected_status = AV2H_INVALID_ARGUMENT;
+                } else if (count > remaining) {
+                    expected_status = AV2H_TRUNCATED;
+                } else {
+                    unsigned int bit;
+                    for (bit = 0U; bit < count; ++bit) {
+                        size_t cursor = position + bit;
+                        expected = (expected << 1U) |
+                                   ((bytes[cursor >> 3U] >> (7U - (cursor & 7U))) & 1U);
+                    }
+                    expected_position += count;
+                }
+                CHECK(av2h_bit_reader_read(&reader, count) == expected);
+                CHECK(reader.status == expected_status);
+                CHECK(reader.bit_position == expected_position);
+                CHECK(av2h_bit_reader_offset(&reader) == 17U + (expected_position >> 3U));
+                if (reader.status != AV2H_OK) {
+                    CHECK(av2h_bit_reader_read(&reader, 33U) == 0U);
+                    CHECK(reader.status == expected_status);
+                    CHECK(reader.bit_position == expected_position);
+                }
+            }
+        }
+        free(bytes);
+    }
+    {
+        unsigned char byte = 0U;
+        Av2hBitReader reader;
+        av2h_bit_reader_init(&reader, &byte, SIZE_MAX / 8U + 1U, 0U);
+        CHECK(av2h_bit_reader_read(&reader, 0U) == 0U);
+        CHECK(reader.status == AV2H_OK && reader.bit_position == 0U);
+        CHECK(av2h_bit_reader_read(&reader, 1U) == 0U);
+        CHECK(reader.status == AV2H_TRUNCATED && reader.bit_position == 0U);
+        CHECK(av2h_bit_reader_read(NULL, 32U) == 0U);
+    }
 }
 
 static void test_raw_syntax_readers(void) {
@@ -756,6 +816,7 @@ int main(void) {
     test_endian();
     test_arithmetic();
     test_readers();
+    test_bit_reader_chunks();
     test_raw_syntax_readers();
     test_writers();
     test_arena();
