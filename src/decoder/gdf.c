@@ -22,34 +22,6 @@ typedef struct {
     int bottom;
 } GdfTileBounds;
 
-static uint8_t gdf_source_sample(const Av2hFilterPlane *cdef_luma,
-                                 const Av2hFilterPlane *deblocked_luma, int x, int y,
-                                 int stripe_start, int stripe_end, const GdfTileBounds *bounds);
-static uint16_t gdf_source_sample_u16(const Av2hFilterPlaneU16 *cdef_luma,
-                                      const Av2hFilterPlaneU16 *deblocked_luma, int x, int y,
-                                      int stripe_start, int stripe_end,
-                                      const GdfTileBounds *bounds);
-static void gdf_filter_block(Av2hFilterPlane *destination, const Av2hFilterPlane *cdef_luma,
-                             const Av2hFilterPlane *deblocked_luma, uint16_t block_x,
-                             uint16_t block_y, unsigned int qp_index, unsigned int pixel_scale,
-                             const GdfTileBounds *bounds);
-static void gdf_filter_block_u16(Av2hFilterPlaneU16 *destination,
-                                 const Av2hFilterPlaneU16 *cdef_luma,
-                                 const Av2hFilterPlaneU16 *deblocked_luma, uint16_t block_x,
-                                 uint16_t block_y, unsigned int qp_index, unsigned int pixel_scale,
-                                 const GdfTileBounds *bounds, const Av2hSampleDomain *domain);
-Av2hStatus av2h_gdf_filter_frame(Av2hFilterPlane *destination, const Av2hFilterPlane *baseline_luma,
-                                 const Av2hFilterPlane *cdef_luma,
-                                 const Av2hFilterPlane *deblocked_luma,
-                                 const Av2hSequenceState *sequence, const Av2hFrameState *frame,
-                                 const Av2hGdfControlMap *controls);
-Av2hStatus av2h_gdf_filter_frame_u16(Av2hFilterPlaneU16 *destination,
-                                     const Av2hFilterPlaneU16 *cdef_luma,
-                                     const Av2hFilterPlaneU16 *deblocked_luma,
-                                     const Av2hSequenceState *sequence, const Av2hFrameState *frame,
-                                     const Av2hGdfControlMap *controls,
-                                     const Av2hSampleDomain *domain);
-
 static GdfTileBounds gdf_tile_bounds(
     const Av2hSequenceState *sequence,
     const Av2hFrameState *frame,
@@ -172,6 +144,7 @@ static unsigned int gdf_gradient_sum(const uint16_t gradient[4][6][6],
     return sum;
 }
 
+/* Instantiate typed kernels after the shared helpers. */
 #include "internal/sample_kernel_u8.inc"
 #include "internal/gdf_kernel.inc"
 #include "internal/sample_kernel_end.inc"

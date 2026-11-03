@@ -73,10 +73,6 @@ static const int16_t directional_derivative[90U] = {
     10, 10, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1
 };
 
-static uint8_t directional_reference(const uint8_t *reference, size_t reference_count,
-                                     uint8_t above_left, int index);
-static uint16_t directional_reference_u16(const uint16_t *reference, size_t reference_count,
-                                          uint16_t above_left, int index);
 static void directional_project_zone1_u8(const Av2hLeafMode *mode, int angle, uint16_t width,
                                          uint16_t height, const uint8_t *above_edge,
                                          const uint8_t *left_edge, uint8_t *predictor,
@@ -1678,6 +1674,7 @@ Av2hStatus av2h_predict_cardinal_u16(const Av2hLeafMode *mode, uint16_t width, u
     return AV2H_OK;
 }
 
+/* Instantiate typed kernels after the shared helpers. */
 #include "internal/sample_kernel_u8.inc"
 #include "internal/intra_prediction_directional_kernel.inc"
 #include "internal/sample_kernel_end.inc"

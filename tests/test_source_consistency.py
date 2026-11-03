@@ -2,6 +2,8 @@ import re
 import unittest
 from pathlib import Path
 
+from test_decoder_entrypoints import kernel_specializations
+
 
 ROOT = Path(__file__).resolve().parents[1]
 SOURCES = sorted(path for path in (ROOT / "src").rglob("*")
@@ -24,7 +26,8 @@ PREDICATES = {
 }
 
 KERNEL_BLOCK = re.compile(
-    r'^#include "(?P<prefix>(?:internal/)?)sample_kernel_u8\.inc"\n'
+    r'^/\* Instantiate typed kernels after the shared helpers\. \*/\n'
+    r'#include "(?P<prefix>(?:internal/)?)sample_kernel_u8\.inc"\n'
     r'#include "(?P=prefix)(?P<kernel>\w+_kernel\.inc)"\n'
     r'#include "(?P=prefix)sample_kernel_end\.inc"\n'
     r'#include "(?P=prefix)sample_kernel_u16\.inc"\n'
@@ -33,11 +36,41 @@ KERNEL_BLOCK = re.compile(
 
 
 def without_kernel_blocks(text: str, owner: str | None = None) -> str:
-    def replace(match: re.Match[str]) -> str:
-        if owner is not None and match["kernel"] != owner + "_kernel.inc":
-            return match[0]
-        return "\n"
-    return KERNEL_BLOCK.sub(replace, text)
+    blocks = list(KERNEL_BLOCK.finditer(text))
+    if len(blocks) != 1 or owner is None:
+        return text
+    block = blocks[0]
+    if block["kernel"] != owner + "_kernel.inc":
+        return text
+    tokens = list(TOKENS.finditer(text))
+    section = [token for token in tokens
+               if token.start() >= block.start() and token.end() <= block.end()]
+    if [token.lastgroup for token in section] != ["comment"] + ["directive"] * 6:
+        return text
+    depth = 0
+    conditional_depth = 0
+    for token in tokens:
+        if token.start() >= block.start():
+            break
+        if token.lastgroup == "symbol":
+            depth += (token.group() == "{") - (token.group() == "}")
+        elif token.lastgroup == "directive":
+            if re.match(r"\s*#\s*(?:if|ifdef|ifndef)\b", token.group()):
+                conditional_depth += 1
+            elif re.match(r"\s*#\s*endif\b", token.group()):
+                conditional_depth -= 1
+    header = block["prefix"] == ""
+    if depth != 0 or conditional_depth != int(header):
+        return text
+    following = [token for token in tokens
+                 if token.start() >= block.end() and token.lastgroup != "comment"]
+    if header:
+        if (len(following) != 1 or following[0].lastgroup != "directive" or
+                not re.match(r"\s*#\s*endif\b", following[0].group())):
+            return text
+    elif following:
+        return text
+    return text[:block.start()] + "\n" + text[block.end():]
 
 
 def layout_errors(text: str) -> list[str]:
@@ -120,6 +153,7 @@ class SourceConsistencyTests(unittest.TestCase):
 
     def test_kernel_exception_requires_complete_owned_scopes(self) -> None:
         block = (
+            '/* Instantiate typed kernels after the shared helpers. */\n'
             '#include "internal/sample_kernel_u8.inc"\n'
             '#include "internal/example_kernel.inc"\n'
             '#include "internal/sample_kernel_end.inc"\n'
@@ -129,11 +163,48 @@ class SourceConsistencyTests(unittest.TestCase):
         self.assertEqual(without_kernel_blocks(block, "example"), "\n")
         self.assertEqual(without_kernel_blocks(block, "other"), block)
         for invalid in (
+                block.replace('/* Instantiate typed kernels after the shared helpers. */\n', ''),
                 block.replace("sample_kernel_u16", "sample_kernel_u8"),
                 block.replace('example_kernel.inc"\n', 'other_kernel.inc"\n', 1),
                 block.rsplit("#include", 1)[0],
                 block.replace("sample_kernel_end", "unrelated", 1)):
             with self.subTest(block=invalid):
+                self.assertEqual(without_kernel_blocks(invalid, "example"), invalid)
+
+    def test_kernel_exception_requires_a_trailing_file_scope_section(self) -> None:
+        block = (
+            '/* Instantiate typed kernels after the shared helpers. */\n'
+            '#include "internal/sample_kernel_u8.inc"\n'
+            '#include "internal/example_kernel.inc"\n'
+            '#include "internal/sample_kernel_end.inc"\n'
+            '#include "internal/sample_kernel_u16.inc"\n'
+            '#include "internal/example_kernel.inc"\n'
+            '#include "internal/sample_kernel_end.inc"\n')
+        helper = 'static int helper(void) { return 0; }\n\n'
+        self.assertEqual(without_kernel_blocks(helper + block, "example"), helper + "\n")
+        for invalid in (
+                'int f(void) {\n' + block + 'return 0;\n}\n',
+                '#if ENABLED\n' + block + '#endif\n',
+                '  #if ENABLED\n' + block + '  #endif\n',
+                helper + block + 'int later(void) { return 0; }\n',
+                helper + block + '#define LATE 1\n',
+                helper + block + '#include "late.h"\n',
+                '/*\n' + block + '*/\n',
+                '#define EXPAND \\\n' + block,
+                block + block,
+                block.replace('internal/', '')):
+            with self.subTest(source=invalid):
+                self.assertEqual(without_kernel_blocks(invalid, "example"), invalid)
+        header_block = block.replace('internal/', '')
+        header = '#ifndef EXAMPLE_H\n#define EXAMPLE_H\n\n'
+        self.assertEqual(
+            without_kernel_blocks(header + helper + header_block + '\n#endif\n', "example"),
+            header + helper + '\n\n#endif\n')
+        for invalid in (
+                header + helper + header_block,
+                header + helper + header_block + '\nint later;\n#endif\n',
+                header + helper + '#if ENABLED\n' + header_block + '#endif\n#endif\n'):
+            with self.subTest(source=invalid):
                 self.assertEqual(without_kernel_blocks(invalid, "example"), invalid)
 
     def test_null_users_include_stddef(self) -> None:
@@ -167,11 +238,15 @@ class SourceConsistencyTests(unittest.TestCase):
         names = "|".join(sorted(PREDICATES))
         declarations = re.compile(r"\b(int|uint8_t)\s+(" + names + r")\s*\(")
         found: set[str] = set()
-        for path in SOURCES:
-            for match in declarations.finditer(path.read_text()):
-                with self.subTest(path=path.relative_to(ROOT), predicate=match[2]):
-                    self.assertEqual(match[1], "int")
-                found.add(match[2])
+        paths = [*SOURCES, *(ROOT / "src/decoder/internal").glob("*_kernel.inc")]
+        for path in paths:
+            sources = (kernel_specializations(path) if path.suffix == ".inc"
+                       else [path.read_text()])
+            for source in sources:
+                for match in declarations.finditer(source):
+                    with self.subTest(path=path.relative_to(ROOT), predicate=match[2]):
+                        self.assertEqual(match[1], "int")
+                    found.add(match[2])
         self.assertEqual(found, PREDICATES)
 
     def test_boolean_storage_is_byte_sized(self) -> None:
@@ -195,13 +270,26 @@ class SourceConsistencyTests(unittest.TestCase):
                 blocks = list(KERNEL_BLOCK.finditer(owners[0].read_text()))
                 self.assertEqual(len(blocks), 1)
                 self.assertEqual(blocks[0]["kernel"], template.name)
+                self.assertEqual(blocks[0]["prefix"],
+                                 "internal/" if owners[0].suffix == ".c" else "")
+                self.assertNotEqual(
+                    without_kernel_blocks(owners[0].read_text(), stem), owners[0].read_text())
                 self.assertIn("AV2H_KERNEL_NAME(", template.read_text())
+                for token in TOKENS.finditer(template.read_text()):
+                    if token.lastgroup == "directive":
+                        self.assertIsNone(re.match(
+                            r"\s*#\s*(?:include|define|undef)\b", token.group()))
         for width in ("u8", "u16"):
             configuration = (internal / f"sample_kernel_{width}.inc").read_text()
-            for name in ("WIDE", "TYPE", "NAME"):
-                self.assertIn(f"#define AV2H_KERNEL_{name}", configuration)
-                self.assertIn(f"#undef AV2H_KERNEL_{name}",
-                              (internal / "sample_kernel_end.inc").read_text())
+            sample = "low" if width == "u8" else "high"
+            self.assertEqual(configuration, (
+                f"#define AV2H_KERNEL_WIDE {int(width == 'u16')}\n"
+                f"#define AV2H_KERNEL_TYPE(low, high) {sample}\n"
+                f"#define AV2H_KERNEL_NAME(low, high) {sample}\n"))
+        self.assertEqual((internal / "sample_kernel_end.inc").read_text(), (
+            "#undef AV2H_KERNEL_WIDE\n"
+            "#undef AV2H_KERNEL_TYPE\n"
+            "#undef AV2H_KERNEL_NAME\n"))
 
     def test_sample_depth_arithmetic_uses_domains(self) -> None:
         legacy = re.compile(

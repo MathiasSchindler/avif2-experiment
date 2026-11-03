@@ -14,38 +14,6 @@ static const uint16_t ccso_quant_size[4][4] = {
     { 80U, 112U, 160U, 256U }
 };
 
-static uint8_t luma_sample(const uint8_t *luma, size_t stride_samples, uint16_t width,
-                           uint16_t height, int x, int y);
-static uint16_t luma_sample_u16(const uint16_t *luma, size_t stride_samples, uint16_t width,
-                                uint16_t height, int x, int y);
-static unsigned int ccso_class(uint8_t neighbor, uint8_t center, uint16_t threshold,
-                               uint8_t edge_classifier);
-static unsigned int ccso_class_u16(uint16_t neighbor, uint16_t center, uint16_t threshold,
-                                   uint8_t edge_classifier);
-static void ccso_filter_plane(Av2hFilterPlane *destination, const uint8_t *luma,
-                              size_t luma_stride_samples, uint16_t luma_width, uint16_t luma_height,
-                              const Av2hCcsoPlane *parameters, const uint8_t *controls,
-                              size_t control_stride_units, uint16_t luma_unit_size,
-                              unsigned int subsampling, const Av2hSequenceState *sequence,
-                              const Av2hFrameState *frame);
-static void ccso_filter_plane_u16(Av2hFilterPlaneU16 *destination, const uint16_t *luma,
-                                  size_t luma_stride_samples, uint16_t luma_width,
-                                  uint16_t luma_height, const Av2hCcsoPlane *parameters,
-                                  const uint8_t *controls, size_t control_stride_units,
-                                  uint16_t luma_unit_size, unsigned int subsampling,
-                                  const Av2hSequenceState *sequence, const Av2hFrameState *frame,
-                                  const Av2hSampleDomain *domain);
-Av2hStatus av2h_ccso_filter_frame(Av2hFilterPlanes *planes, const uint8_t *pre_cdef_luma,
-                                  size_t pre_cdef_luma_stride_samples,
-                                  const Av2hSequenceState *sequence, const Av2hFrameState *frame,
-                                  const Av2hCcsoControlMap *controls);
-Av2hStatus av2h_ccso_filter_frame_u16(Av2hFilterPlanesU16 *planes, const uint16_t *pre_cdef_luma,
-                                      size_t pre_cdef_luma_stride_samples,
-                                      const Av2hSequenceState *sequence,
-                                      const Av2hFrameState *frame,
-                                      const Av2hCcsoControlMap *controls,
-                                      const Av2hSampleDomain *domain);
-
 int av2h_ccso_controls_valid(const Av2hFrameState *frame,
                              const Av2hCcsoControlMap *controls) {
     uint16_t unit_size = av2h_filter_ccso_unit_size(frame);
@@ -180,6 +148,7 @@ static void ccso_tile_bounds(const Av2hSequenceState *sequence,
     }
 }
 
+/* Instantiate typed kernels after the shared helpers. */
 #include "internal/sample_kernel_u8.inc"
 #include "internal/ccso_kernel.inc"
 #include "internal/sample_kernel_end.inc"

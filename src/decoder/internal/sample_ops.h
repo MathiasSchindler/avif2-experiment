@@ -9,6 +9,8 @@
  * arithmetic before entering these typed inner operations. Reference loads
  * additionally require nonzero width and height.
  */
+
+/* Instantiate typed kernels after the shared helpers. */
 #include "sample_kernel_u8.inc"
 #include "sample_ops_kernel.inc"
 #include "sample_kernel_end.inc"

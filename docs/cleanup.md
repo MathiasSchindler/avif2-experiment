@@ -84,18 +84,19 @@ Validation:
 3. **Boolean return and storage types (`int` vs `uint8_t`):** Predicate functions and boolean flags mix `int` and `uint8_t` without a clear convention between bitfield/compact-struct storage and function return values.
 
 ### Actions
-1. **Header & Macro Ordering:** Move all `#include` directives to the top of every `.c` and `.h` file:
+1. **Header & Macro Ordering:** Move ordinary dependency headers and generated table includes to the top of every `.c` and `.h` file:
    - Corresponding module header first,
    - Project headers in alphabetical order,
    - Shared/freestanding standard headers (`<stddef.h>`, `<stdint.h>`, `<limits.h>`) last.
    - Place all file-scope `#define` constants and type definitions immediately after `#include`s and before any function definitions.
+   - Typed implementation instantiations introduced by C6 use the narrowly scoped trailing-section convention documented below, rather than dependency-header ordering.
 2. **Pointer Nullability (`NULL`):** Standardize on `NULL` (from [`src/shared/stddef.h`](../src/shared/stddef.h)) for all pointer comparisons (`ptr == NULL`, `ptr != NULL`), pointer assignments, and null-pointer returns (`return NULL;`), reserving `0` / `0U` strictly for integer and enum values.
 3. **Boolean Convention:** Establish and apply a single rule across [`src/`](../src/):
    - **Struct fields and compact arrays:** Use `uint8_t` (`0U` / `1U`) so memory layout and workspace sizing remain explicit and architecture-independent.
    - **Predicate function return types:** Use `int` (`0` / `1`) consistently across all validation and query helpers (matching C's comparison operator type and existing [`base.h`](../src/base.h) predicates like `av2h_size_add`).
 
 ### Exit Criteria
-- No `#include` appears after the first declaration or function in any file.
+- No dependency-header or generated-table `#include` appears after the first declaration or function. Only validated typed implementation instantiations may occupy the trailing section described below.
 - Pointer checks and null pointer literals use `NULL` consistently across [`src/`](../src/).
 - Predicate return types and struct boolean fields follow the documented convention.
 
@@ -103,7 +104,7 @@ Validation:
 
 C2 is complete for the native macOS target.
 
-- Module/interface headers come first, other project headers are alphabetical, and standard headers follow them. Generated `.inc` definition fragments come after their prerequisite headers and constants, but before explicit declarations or functions. The CDF table types now live in [`internal/coeff_cdf_specs.h`](../src/decoder/internal/coeff_cdf_specs.h), allowing every CDF include to move to the top without changing generated tables.
+- Module/interface headers come first, other project headers are alphabetical, and standard headers follow them. Generated table `.inc` fragments come after their prerequisite headers and constants, but before explicit declarations or functions. The CDF table types now live in [`internal/coeff_cdf_specs.h`](../src/decoder/internal/coeff_cdf_specs.h), allowing every CDF include to move to the top without changing generated tables. C6's typed implementation fragments follow the explicit exception below.
 - File-scope constants, aliases, and type definitions precede function definitions. Conditional ABI imports and constants retain their original architecture guards. Header guards and `_POSIX_C_SOURCE` remain before includes where preprocessing requires it; function-local temporary macros retain their local uses and `#undef`s.
 - Pointer comparisons, assignments, arguments, and returns use `NULL`, with direct `<stddef.h>` includes at use sites. Pointer-first universal zero initializers use designated `NULL` members, preserving implicit zero initialization of other members. Compiler-assisted rewrites and a separate macro audit distinguish pointer zero from integer, enum, pixel, and raw syscall values.
 - All 14 formerly byte-returning predicates now return `int`, including their declarations and callers. Encoded context indices, quantizer selectors, pixel values, and other numeric results retain their original types even when their current value range happens to be 0/1.
@@ -117,6 +118,61 @@ Validation:
 - Forced sanitized rebuilds pass all 31 C unit suites, runtime checks, 2,460 malformed-input fuzz cases, and frozen status/diagnostic/pixel/output-policy checks with `AV2HEIF_ENABLE_DIAGNOSTICS` absent and enabled. Private-header checks pass 55 standalone headers and 35 value-only kernel roots.
 - The rebuilt native decoder matches all 179 available pre-cleanup decoded SHA-256 values across the existing 8-bit and 10-bit profiles. Freestanding undefined-symbol checks and affected macOS/Linux/Windows frontend object compilations pass; separate macOS `nolibc` executable linking retains the existing limitation recorded under C1.
 - Full Python discovery runs 97 tests: 94 pass, two skip, and the unchanged legacy Emerald artifact check errors because its generated reference file is absent. That optional image asset was not regenerated or replaced as part of C2.
+
+### C2 follow-up after C6
+
+The original C2 criterion prohibited every late include. C3-C5 retained that
+layout; C6 introduced implementation-template instantiations after shared
+helpers and exempted their six-include sequences from the checker. That was a
+change to the convention, not preservation of the original criterion.
+
+The follow-up retains C6's shared algorithms and makes the exception explicit:
+
+1. Keep ordinary headers, table includes, file constants, types, and necessary
+   private forward declarations above function definitions. Do not duplicate
+   declarations already supplied by an included interface header.
+2. Put shared helpers before the typed implementations. Each of the 17 owners
+   ends with one section beginning with
+   `/* Instantiate typed kernels after the shared helpers. */`.
+   In headers, this section immediately precedes the closing header guard.
+3. Keep the two instantiations contiguous and in this exact order:
+   byte configuration, the owner's kernel, reset; then 16-bit configuration,
+   the same kernel, reset. Source owners use `internal/` paths; internal
+   header owners use local paths. Never alphabetize these six includes.
+4. The section must be at file scope, outside additional conditionals, with no
+   declarations, functions, or other directives following it except the
+   header's closing guard. Comments and whitespace are allowed. Kernel
+   fragments cannot introduce dependency includes or define/undefine macros;
+   the configuration/reset files own exactly the three specialization macros.
+
+Removed 83 redundant forward declarations from the 15 source owners, including
+all eight in [`ccso.c`](../src/decoder/ccso.c). Necessary private forwards remain
+for earlier callers in directional prediction, MHCCP, and workspace helpers.
+The filter-common header now follows the same trailing-section layout as the
+other owners; no new headers, translation units, numerical branches, or
+workspace types were needed.
+
+[`test_source_consistency.py`](../tests/test_source_consistency.py) checks the
+marker, ownership, file scope, terminal placement, include order, and exact
+configuration/reset contents. Negative cases cover nested functions,
+conditionals, commented-out sequences, duplicate sections, missing resets, and
+code or directives after a section. Predicate checks now inspect expanded
+kernel definitions as well as ordinary sources, rather than relying on
+redundant prototypes to expose their return types.
+
+Validation:
+
+- All 27 related source/header/frontend tests pass; the updated Python guard
+  has no syntax or editor diagnostics.
+- All 15 source owners compile with `-Wredundant-decls -Werror` with
+  diagnostics absent and enabled.
+- Both ASan/UBSan configurations pass all 33 C suites, runtime checks,
+  2,460 fuzz cases, and the 55-header/35-kernel-root dependency checks.
+- Both frozen behavior/resource inventories, all 179 native decoded hashes,
+  and all 14 exact CLI contracts remain unchanged.
+- Default `make` and freestanding checks pass. The rebuilt native executable
+  is byte-for-byte identical to the pre-follow-up executable, so this cleanup
+  does not alter its numerical code or decode performance.
 
 ---
 

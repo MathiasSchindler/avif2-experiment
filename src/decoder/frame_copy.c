@@ -21,18 +21,6 @@ typedef struct {
     size_t width;
 } Av2hCopyRowsU16;
 
-static int copy_rows_u8(size_t begin, size_t end, unsigned int worker_index, void *argument);
-static int copy_rows_u16(size_t begin, size_t end, unsigned int worker_index, void *argument);
-Av2hStatus
-av2h_copy_visible_planar_private(const Av2hFrameState *frame, const Av2hFilterPlanes *coded,
-                                 const size_t coded_data_size_bytes[AV2H_FRAME_PLANE_COUNT],
-                                 uint8_t *output, size_t output_size_bytes,
-                                 const Av2hExecution *execution);
-Av2hStatus av2h_copy_visible_planar_u16_private(
-    const Av2hFrameState *frame, const Av2hReconstructionPlaneU16 coded[AV2H_FRAME_PLANE_COUNT],
-    const size_t coded_data_size_bytes[AV2H_FRAME_PLANE_COUNT], uint8_t *output,
-    size_t output_size_bytes, const Av2hExecution *execution);
-
 Av2hStatus av2h_planar_output_size(
     const Av2hFrameState *frame,
     size_t bytes_per_sample,
@@ -97,6 +85,7 @@ static int copy_rows_dispatch(const Av2hExecution *execution,
         execution->context, height, min_chunk, body, argument);
 }
 
+/* Instantiate typed kernels after the shared helpers. */
 #include "internal/sample_kernel_u8.inc"
 #include "internal/frame_copy_kernel.inc"
 #include "internal/sample_kernel_end.inc"

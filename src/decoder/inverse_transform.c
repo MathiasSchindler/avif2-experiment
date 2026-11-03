@@ -284,18 +284,6 @@ static const int8_t dct32[32][32] = {
     }
 };
 
-Av2hStatus av2h_reconstruct_transform_generic(
-    Av2hDecodeDiagnostics *diagnostics, const Av2hLeafMode *mode, const Av2hCoeffPrefix *prefix,
-    const Av2hTransformType *transform, const Av2hCoeffBlock *coefficients,
-    const uint8_t *predictor, size_t predictor_stride_samples, Av2hReconstructionScratch *scratch,
-    Av2hBlockReconstruction *reconstruction);
-Av2hStatus av2h_reconstruct_transform_generic_u16(
-    Av2hDecodeDiagnostics *diagnostics, const Av2hLeafMode *mode, const Av2hCoeffPrefix *prefix,
-    const Av2hTransformType *transform, const Av2hCoeffBlock *coefficients,
-    const uint16_t *predictor, size_t predictor_stride_samples,
-    Av2hReconstructionScratchU16 *scratch, Av2hBlockReconstructionU16 *reconstruction,
-    const Av2hSampleDomain *domain);
-
 static int32_t identity_scale(uint16_t size) {
     return size == 4U ? 128 : size == 8U ? 181 :
         size == 16U ? 256 : 362;
@@ -1004,6 +992,7 @@ int av2h_reconstruct_generic_selected(
     return 1;
 }
 
+/* Instantiate typed kernels after the shared helpers. */
 #include "internal/sample_kernel_u8.inc"
 #include "internal/inverse_transform_kernel.inc"
 #include "internal/sample_kernel_end.inc"

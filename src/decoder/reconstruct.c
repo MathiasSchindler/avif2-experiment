@@ -27,48 +27,6 @@ static Av2hStatus cfl_explicit_alpha_q3(const Av2hChromaLeafMode *mode, uint8_t 
     return AV2H_OK;
 }
 
-static int plane_sample_inside_active_tile(const Av2hReconstructionPlane *plane, size_t x,
-                                           size_t y);
-static int plane_sample_inside_active_tile_u16(const Av2hReconstructionPlaneU16 *plane, size_t x,
-                                               size_t y);
-static void plane_mark_reconstructed(Av2hReconstructionPlane *plane, uint16_t x, uint16_t y,
-                                     uint16_t width, uint16_t height);
-static void plane_mark_reconstructed_u16(Av2hReconstructionPlaneU16 *plane, uint16_t x, uint16_t y,
-                                         uint16_t width, uint16_t height);
-static Av2hStatus palette_fill_predictor(const Av2hLeafMode *mode, uint16_t block_x,
-                                         uint16_t block_y, uint16_t output_width,
-                                         uint16_t output_height, uint8_t *predictor);
-static Av2hStatus palette_fill_predictor_u16(const Av2hLeafMode *mode, uint16_t block_x,
-                                             uint16_t block_y, uint16_t output_width,
-                                             uint16_t output_height, uint16_t *predictor);
-Av2hStatus av2h_luma_reconstruct_to_plane(Av2hDecodeDiagnostics *diagnostics,
-                                          const Av2hPartitionNode *leaf, const Av2hLeafMode *mode,
-                                          const Av2hCoeffPrefix *prefix,
-                                          const Av2hTransformType *transform,
-                                          const Av2hCoeffBlock *coefficients,
-                                          Av2hReconstructionPlane *plane,
-                                          Av2hReconstructionScratch *scratch);
-Av2hStatus av2h_luma_reconstruct_to_plane_u16(
-    Av2hDecodeDiagnostics *diagnostics, const Av2hPartitionNode *leaf, const Av2hLeafMode *mode,
-    const Av2hCoeffPrefix *prefix, const Av2hTransformType *transform,
-    const Av2hCoeffBlock *coefficients, Av2hReconstructionPlaneU16 *plane,
-    Av2hReconstructionScratchU16 *scratch, const Av2hSampleDomain *domain);
-Av2hStatus
-av2h_chroma_reconstruct_to_plane(Av2hDecodeDiagnostics *diagnostics, const Av2hPartitionNode *leaf,
-                                 const Av2hChromaLeafMode *mode, const Av2hCoeffPrefix *prefix,
-                                 const Av2hTransformType *transform,
-                                 const Av2hCoeffBlock *coefficients, Av2hReconstructionPlane *plane,
-                                 const Av2hReconstructionPlane *luma_plane, uint8_t chroma_plane,
-                                 Av2hReconstructionPlane *predictor_plane,
-                                 uint8_t chroma_format_idc, Av2hReconstructionScratch *scratch);
-Av2hStatus av2h_chroma_reconstruct_to_plane_u16(
-    Av2hDecodeDiagnostics *diagnostics, const Av2hPartitionNode *leaf,
-    const Av2hChromaLeafMode *mode, const Av2hCoeffPrefix *prefix,
-    const Av2hTransformType *transform, const Av2hCoeffBlock *coefficients,
-    Av2hReconstructionPlaneU16 *plane, const Av2hReconstructionPlaneU16 *luma_plane,
-    uint8_t chroma_plane, uint8_t chroma_format_idc, Av2hReconstructionScratchU16 *scratch,
-    const Av2hSampleDomain *domain);
-
 const Av2hReconstructionDiagnostics *av2h_reconstruction_diagnostics_get(
     const Av2hDecodeDiagnostics *diagnostics) {
 #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
@@ -264,6 +222,7 @@ static Av2hStatus palette_map_origin(
     return AV2H_OK;
 }
 
+/* Instantiate typed kernels after the shared helpers. */
 #include "internal/sample_kernel_u8.inc"
 #include "internal/reconstruct_kernel.inc"
 #include "internal/sample_kernel_end.inc"

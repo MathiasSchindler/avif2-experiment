@@ -4,14 +4,6 @@
 
 #include <stddef.h>
 
-int av2h_chroma_plane_region_reconstructed(const Av2hReconstructionPlane *plane, uint16_t x,
-                                           uint16_t y, uint16_t width, uint16_t height);
-int av2h_chroma_plane_region_reconstructed_u16(const Av2hReconstructionPlaneU16 *plane, uint16_t x,
-                                               uint16_t y, uint16_t width, uint16_t height);
-uint8_t av2h_chroma_plane_coded_sample(const Av2hReconstructionPlane *plane, size_t x, size_t y);
-uint16_t av2h_chroma_plane_coded_sample_u16(const Av2hReconstructionPlaneU16 *plane, size_t x,
-                                            size_t y);
-
 int av2h_chroma_plane_sample_reconstructed_u16(
     const Av2hReconstructionPlaneU16 *plane, size_t x, size_t y) {
     size_t cell_x;
@@ -45,6 +37,7 @@ int av2h_chroma_geometry_supported(uint16_t width, uint16_t height) {
                  height == 32U || height == 64U));
 }
 
+/* Instantiate typed kernels after the shared helpers. */
 #include "internal/sample_kernel_u8.inc"
 #include "internal/chroma_prediction_common_kernel.inc"
 #include "internal/sample_kernel_end.inc"

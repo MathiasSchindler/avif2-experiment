@@ -4,9 +4,6 @@
 
 #include <stddef.h>
 
-void av2h_directional_filter_edge(uint8_t *edge, size_t count, int strength);
-void av2h_directional_filter_edge_u16(uint16_t *edge, size_t count, int strength);
-
 int av2h_directional_filter_strength(int size0,
                                      int size1,
                                      int delta,
@@ -452,6 +449,7 @@ Av2hStatus av2h_prepare_directional_zone3_u16(const Av2hLeafMode *mode, uint16_t
     return AV2H_OK;
 }
 
+/* Instantiate typed kernels after the shared helpers. */
 #include "internal/sample_kernel_u8.inc"
 #include "internal/intra_prediction_edges_kernel.inc"
 #include "internal/sample_kernel_end.inc"

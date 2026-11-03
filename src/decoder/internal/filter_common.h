@@ -8,13 +8,6 @@
 
 #include <stddef.h>
 
-#include "sample_kernel_u8.inc"
-#include "filter_common_kernel.inc"
-#include "sample_kernel_end.inc"
-#include "sample_kernel_u16.inc"
-#include "filter_common_kernel.inc"
-#include "sample_kernel_end.inc"
-
 static inline int filter_plane_rows_overlap_u16(
     const Av2hFilterPlaneU16 *left,
     const Av2hFilterPlaneU16 *right) {
@@ -64,5 +57,13 @@ static inline int filter_plane_rows_overlap_u16(
     }
     return 0;
 }
+
+/* Instantiate typed kernels after the shared helpers. */
+#include "sample_kernel_u8.inc"
+#include "filter_common_kernel.inc"
+#include "sample_kernel_end.inc"
+#include "sample_kernel_u16.inc"
+#include "filter_common_kernel.inc"
+#include "sample_kernel_end.inc"
 
 #endif

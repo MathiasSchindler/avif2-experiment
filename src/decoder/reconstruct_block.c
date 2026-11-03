@@ -7,34 +7,6 @@
 
 #include <stddef.h>
 
-Av2hStatus av2h_luma_reconstruct(Av2hDecodeDiagnostics *diagnostics, const Av2hLeafMode *mode,
-                                 const Av2hCoeffPrefix *prefix, const Av2hTransformType *transform,
-                                 const Av2hCoeffBlock *coefficients, const uint8_t *predictor,
-                                 size_t predictor_stride_samples,
-                                 Av2hReconstructionScratch *scratch,
-                                 Av2hBlockReconstruction *reconstruction);
-Av2hStatus av2h_luma_reconstruct_u16(Av2hDecodeDiagnostics *diagnostics, const Av2hLeafMode *mode,
-                                     const Av2hCoeffPrefix *prefix,
-                                     const Av2hTransformType *transform,
-                                     const Av2hCoeffBlock *coefficients, const uint16_t *predictor,
-                                     Av2hReconstructionScratchU16 *scratch,
-                                     Av2hBlockReconstructionU16 *reconstruction,
-                                     const Av2hSampleDomain *domain);
-Av2hStatus av2h_chroma_reconstruct(Av2hDecodeDiagnostics *diagnostics,
-                                   const Av2hChromaLeafMode *mode, const Av2hCoeffPrefix *prefix,
-                                   const Av2hTransformType *transform,
-                                   const Av2hCoeffBlock *coefficients, const uint8_t *predictor,
-                                   uint16_t width, uint16_t height,
-                                   Av2hReconstructionScratch *scratch,
-                                   Av2hBlockReconstruction *reconstruction);
-Av2hStatus
-av2h_chroma_reconstruct_u16(Av2hDecodeDiagnostics *diagnostics, const Av2hChromaLeafMode *mode,
-                            const Av2hCoeffPrefix *prefix, const Av2hTransformType *transform,
-                            const Av2hCoeffBlock *coefficients, const uint16_t *predictor,
-                            Av2hReconstructionScratchU16 *scratch,
-                            Av2hBlockReconstructionU16 *reconstruction,
-                            const Av2hSampleDomain *domain);
-
 static Av2hStatus reconstruct_lossless_4x4_u16(const Av2hCoeffBlock *coefficients,
                                                const uint16_t *predictor, uint8_t use_dpcm,
                                                uint8_t dpcm_horizontal, uint8_t identity_transform,
@@ -109,6 +81,7 @@ Av2hStatus av2h_chroma_inverse_cross_transform(
     return AV2H_OK;
 }
 
+/* Instantiate typed kernels after the shared helpers. */
 #include "internal/sample_kernel_u8.inc"
 #include "internal/reconstruct_block_kernel.inc"
 #include "internal/sample_kernel_end.inc"

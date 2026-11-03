@@ -29,14 +29,6 @@ typedef struct {
 
 static int sized_u8_plane_bytes(size_t stride_samples, size_t height, size_t *size_bytes);
 static int sized_u16_plane_bytes(size_t stride_samples, size_t height, size_t *size_bytes);
-Av2hStatus av2h_frame_output_validate_u8(const Av2hFrameState *frame, const Av2hFilterPlanes *coded,
-                                         const size_t coded_data_size_bytes[AV2H_FRAME_PLANE_COUNT],
-                                         uint8_t *output, size_t output_size_bytes);
-Av2hStatus
-av2h_frame_output_validate_u16(const Av2hFrameState *frame,
-                               const Av2hReconstructionPlaneU16 coded[AV2H_FRAME_PLANE_COUNT],
-                               const size_t coded_data_size_bytes[AV2H_FRAME_PLANE_COUNT],
-                               uint8_t *output, size_t output_size_bytes);
 
 static void *workspace_arena_array(Av2hArena *arena,
                                    size_t count,
@@ -1112,6 +1104,7 @@ Av2hStatus av2h_filter_workspace_init(
     return AV2H_OK;
 }
 
+/* Instantiate typed kernels after the shared helpers. */
 #include "internal/sample_kernel_u8.inc"
 #include "internal/frame_workspace_kernel.inc"
 #include "internal/sample_kernel_end.inc"

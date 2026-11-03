@@ -11,11 +11,6 @@
 #define AV2H_MHCCP_DIV_PREC_BITS 14
 #define AV2H_MHCCP_DIV_SLOT_BITS 3
 
-static uint16_t mhccp_luma_filter2_q3(
-    const Av2hReconstructionPlane *luma_plane,
-    uint16_t chroma_x,
-    uint16_t chroma_y);
-
 static uint16_t mhccp_luma_q3(const Av2hReconstructionPlane *luma_plane, uint16_t chroma_x,
                               uint16_t chroma_y);
 static uint16_t mhccp_luma_q3_u16(const Av2hReconstructionPlaneU16 *luma_plane, uint16_t chroma_x,
@@ -26,8 +21,6 @@ static uint16_t mhccp_luma_filter2_q3_u16(const Av2hReconstructionPlaneU16 *luma
                                           uint16_t chroma_x, uint16_t chroma_y);
 static uint16_t mhccp_luma_filter2_top_clamped_q3(const Av2hReconstructionPlane *luma_plane,
                                                   uint16_t chroma_x, uint16_t chroma_y);
-static uint16_t mhccp_luma_filter2_top_clamped_q3_u16(const Av2hReconstructionPlaneU16 *luma_plane,
-                                                      uint16_t chroma_x, uint16_t chroma_y);
 static uint16_t mhccp_luma_filter2_sb_top_q3(const Av2hReconstructionPlane *luma_plane,
                                              uint16_t chroma_x, uint16_t block_y);
 static uint16_t mhccp_luma_filter2_sb_top_q3_u16(const Av2hReconstructionPlaneU16 *luma_plane,
@@ -40,20 +33,6 @@ static uint16_t mhccp_luma_filter1_sb_top_q3(const Av2hReconstructionPlane *luma
                                              uint16_t chroma_x, uint16_t block_y);
 static uint16_t mhccp_luma_filter1_sb_top_q3_u16(const Av2hReconstructionPlaneU16 *luma_plane,
                                                  uint16_t chroma_x, uint16_t block_y);
-Av2hStatus av2h_mhccp_predict_observed(Av2hDecodeDiagnostics *diagnostics,
-                                       const Av2hChromaLeafMode *mode,
-                                       const Av2hReconstructionPlane *luma_plane,
-                                       const Av2hReconstructionPlane *chroma_plane,
-                                       uint16_t block_x, uint16_t block_y, uint16_t width,
-                                       uint16_t height, uint8_t *predictor,
-                                       size_t predictor_stride_samples);
-Av2hStatus av2h_mhccp_predict_observed_u16(const Av2hChromaLeafMode *mode,
-                                           const Av2hReconstructionPlaneU16 *luma_plane,
-                                           const Av2hReconstructionPlaneU16 *chroma_plane,
-                                           uint16_t block_x, uint16_t block_y, uint16_t width,
-                                           uint16_t height, uint16_t *predictor,
-                                           size_t predictor_stride_samples,
-                                           const Av2hSampleDomain *domain);
 
 static int32_t mhccp_mul_fixed(int32_t left, int32_t right, int shift) {
     uint32_t abs_left = (uint32_t)(left < 0 ? -left : left);
@@ -312,7 +291,6 @@ void av2h_prediction_diagnostics_set_mhccp_reason(
     (void)value;
 #endif
 }
-int av2h_chroma_geometry_supported(uint16_t width, uint16_t height);
 
 static Av2hStatus mhccp_predict_direction01(
     Av2hDecodeDiagnostics *diagnostics,
@@ -1001,6 +979,7 @@ mhccp_predict_u16_444(const Av2hChromaLeafMode *mode, const Av2hReconstructionPl
     return AV2H_OK;
 }
 
+/* Instantiate typed kernels after the shared helpers. */
 #include "internal/sample_kernel_u8.inc"
 #include "internal/chroma_prediction_mhccp_kernel.inc"
 #include "internal/sample_kernel_end.inc"

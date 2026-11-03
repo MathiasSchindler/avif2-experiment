@@ -12,18 +12,6 @@
  */
 #define AV2H_CFL_ADD_BITS_ALPHA 5
 #define AV2H_CFL_NUM_REF_SAM 8
-Av2hStatus av2h_cfl_derived_predict(
-    const Av2hReconstructionPlane *luma_plane, const Av2hReconstructionPlane *chroma_plane,
-    uint8_t filter_index, uint8_t derive_alpha, int32_t supplied_alpha_q3, uint16_t superblock_size,
-    uint8_t chroma_format_idc, uint16_t block_x, uint16_t block_y, uint16_t width, uint16_t height,
-    uint8_t have_top, uint8_t have_left, uint8_t *predictor, size_t predictor_stride_samples);
-Av2hStatus av2h_cfl_derived_predict_u16(const Av2hReconstructionPlaneU16 *luma_plane,
-                                        const Av2hReconstructionPlaneU16 *chroma_plane,
-                                        uint8_t filter_index, uint16_t superblock_size,
-                                        uint16_t block_x, uint16_t block_y, uint16_t width,
-                                        uint16_t height, uint8_t have_top, uint8_t have_left,
-                                        uint16_t *predictor, size_t predictor_stride_samples,
-                                        const Av2hSampleDomain *domain);
 
 static uint16_t cfl_luma_filter2_current_q3(
     const Av2hReconstructionPlane *luma_plane,
@@ -666,6 +654,7 @@ Av2hStatus av2h_cfl_derived_predict_u16_444(const Av2hReconstructionPlaneU16 *lu
     return AV2H_OK;
 }
 
+/* Instantiate typed kernels after the shared helpers. */
 #include "internal/sample_kernel_u8.inc"
 #include "internal/chroma_prediction_cfl_kernel.inc"
 #include "internal/sample_kernel_end.inc"

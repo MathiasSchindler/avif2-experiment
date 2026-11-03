@@ -20,59 +20,6 @@ static const uint8_t deblock_first_threshold[5] = {
     45U, 43U, 40U, 35U, 32U
 };
 
-static int deblock_direction_error(const uint8_t *sample, const uint8_t *parallel_sample,
-                                   ptrdiff_t step, unsigned int distance, int negative);
-static int deblock_direction_error_u16(const uint16_t *sample, const uint16_t *parallel_sample,
-                                       ptrdiff_t step, unsigned int distance, int negative);
-static unsigned int deblock_filter_choice(const uint8_t *sample, ptrdiff_t step,
-                                          uint8_t negative_length, uint8_t positive_length,
-                                          uint16_t q_threshold, uint16_t side_threshold,
-                                          const uint8_t *parallel_sample);
-static unsigned int deblock_filter_choice_u16(const uint16_t *sample, ptrdiff_t step,
-                                              uint8_t negative_length, uint8_t positive_length,
-                                              uint16_t q_threshold, uint16_t side_threshold,
-                                              const uint16_t *parallel_sample);
-static void deblock_filter_lane(uint8_t *sample, ptrdiff_t step, unsigned int negative_width,
-                                unsigned int positive_width, uint16_t q_threshold,
-                                uint8_t negative_lossless, uint8_t positive_lossless);
-static void deblock_filter_lane_u16(uint16_t *sample, ptrdiff_t step, unsigned int negative_width,
-                                    unsigned int positive_width, uint16_t q_threshold,
-                                    uint8_t negative_lossless, uint8_t positive_lossless,
-                                    const Av2hSampleDomain *domain);
-static Av2hStatus deblock_edge(Av2hFilterPlane *plane, uint16_t x, uint16_t y, uint8_t vertical,
-                               uint8_t negative_length, uint8_t positive_length,
-                               uint16_t q_threshold, uint16_t side_threshold,
-                               uint8_t negative_lossless, uint8_t positive_lossless);
-static Av2hStatus deblock_edge_u16(Av2hFilterPlaneU16 *plane, uint16_t x, uint16_t y,
-                                   uint8_t vertical, uint8_t negative_length,
-                                   uint8_t positive_length, uint16_t q_threshold,
-                                   uint16_t side_threshold, uint8_t negative_lossless,
-                                   uint8_t positive_lossless, const Av2hSampleDomain *domain);
-Av2hStatus av2h_deblock_edge(Av2hFilterPlane *plane, uint16_t x, uint16_t y, uint8_t vertical,
-                             uint8_t negative_length, uint8_t positive_length, uint16_t q_threshold,
-                             uint16_t side_threshold);
-Av2hStatus av2h_deblock_edge_u16(Av2hFilterPlaneU16 *plane, uint16_t x, uint16_t y,
-                                 uint8_t vertical, uint8_t negative_length, uint8_t positive_length,
-                                 uint16_t q_threshold, uint16_t side_threshold,
-                                 const Av2hSampleDomain *domain);
-int av2h_deblock_map_valid(const Av2hFilterPlanes *planes, const Av2hDeblockMap *map);
-int av2h_deblock_map_valid_u16(const Av2hFilterPlanesU16 *planes, const Av2hDeblockMap *map);
-static Av2hStatus deblock_frame_edge(Av2hFilterPlane *plane_data, const Av2hSequenceState *sequence,
-                                     const Av2hFrameState *frame, const Av2hDeblockMap *map,
-                                     unsigned int plane, unsigned int pass, size_t row,
-                                     size_t column);
-static Av2hStatus deblock_frame_edge_u16(Av2hFilterPlaneU16 *plane_data,
-                                         const Av2hSequenceState *sequence,
-                                         const Av2hFrameState *frame, const Av2hDeblockMap *map,
-                                         unsigned int plane, unsigned int pass, size_t row,
-                                         size_t column, const Av2hSampleDomain *domain);
-Av2hStatus av2h_deblock_filter_frame(Av2hFilterPlanes *planes, const Av2hSequenceState *sequence,
-                                     const Av2hFrameState *frame, const Av2hDeblockMap *map);
-Av2hStatus av2h_deblock_filter_frame_u16(Av2hFilterPlanesU16 *planes,
-                                         const Av2hSequenceState *sequence,
-                                         const Av2hFrameState *frame, const Av2hDeblockMap *map,
-                                         const Av2hSampleDomain *domain);
-
 Av2hStatus av2h_deblock_quantizer_thresholds(const Av2hDeblockCell *cell,
                                              const Av2hSequenceState *sequence,
                                              const Av2hFrameState *frame, unsigned int plane,
@@ -165,6 +112,7 @@ Av2hStatus av2h_deblock_stage_u16(const Av2hFilterPlanesU16 *reconstructed,
                                          &workspace->deblock_map, domain);
 }
 
+/* Instantiate typed kernels after the shared helpers. */
 #include "internal/sample_kernel_u8.inc"
 #include "internal/deblock_kernel.inc"
 #include "internal/sample_kernel_end.inc"

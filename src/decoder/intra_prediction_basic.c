@@ -17,18 +17,6 @@ static const uint8_t ibp_weights[5U][16U] = {
       98U, 102U, 106U, 109U, 113U, 117U, 121U, 124U }
 };
 
-Av2hStatus av2h_predict_smooth(uint16_t width, uint16_t height,
-                               const Av2hLumaReferences *references, uint8_t *predictor,
-                               size_t predictor_stride_samples);
-Av2hStatus av2h_predict_smooth_u16(const Av2hLeafMode *mode, uint16_t width, uint16_t height,
-                                   const Av2hLumaReferencesU16 *references, uint16_t *predictor,
-                                   size_t predictor_stride_samples, const Av2hSampleDomain *domain);
-Av2hStatus av2h_predict_paeth(uint16_t width, uint16_t height, const Av2hLumaReferences *references,
-                              uint8_t *predictor, size_t predictor_stride_samples);
-Av2hStatus av2h_predict_paeth_u16(uint16_t width, uint16_t height,
-                                  const Av2hLumaReferencesU16 *references, uint16_t *predictor,
-                                  size_t predictor_stride_samples, const Av2hSampleDomain *domain);
-
 static uint8_t smooth_scale(uint16_t width, uint16_t height) {
     unsigned int sum =
         (unsigned int)av2h_sample_block_log2(width) - 2U +
@@ -319,6 +307,7 @@ Av2hStatus av2h_predict_smooth_8x32(
 
 }
 
+/* Instantiate typed kernels after the shared helpers. */
 #include "internal/sample_kernel_u8.inc"
 #include "internal/intra_prediction_basic_kernel.inc"
 #include "internal/sample_kernel_end.inc"

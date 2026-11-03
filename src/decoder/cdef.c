@@ -14,45 +14,6 @@ typedef struct {
     uint16_t bottom;
 } CdefTileBounds;
 
-static Av2hFilterPlane cdef_plane_view(const Av2hFilterPlane *plane, const CdefTileBounds *bounds,
-                                       unsigned int shift);
-static Av2hFilterPlaneU16 cdef_plane_view_u16(const Av2hFilterPlaneU16 *plane,
-                                              const CdefTileBounds *bounds, unsigned int shift);
-Av2hStatus av2h_cdef_find_direction(const Av2hFilterPlane *luma, uint16_t x, uint16_t y,
-                                    uint8_t *direction, uint32_t *variance);
-Av2hStatus av2h_cdef_find_direction_u16(const Av2hFilterPlaneU16 *luma, uint16_t x, uint16_t y,
-                                        uint8_t *direction, uint32_t *variance,
-                                        const Av2hSampleDomain *domain);
-static int cdef_tap(const Av2hFilterPlane *source, int x, int y, int center, unsigned int strength,
-                    unsigned int damping, int *minimum, int *maximum, int clipping_required,
-                    int weight);
-static int cdef_tap_u16(const Av2hFilterPlaneU16 *source, int x, int y, int center,
-                        unsigned int strength, unsigned int damping, int *minimum, int *maximum,
-                        int clipping_required, int weight);
-Av2hStatus av2h_cdef_filter_block(Av2hFilterPlane *destination, const Av2hFilterPlane *source,
-                                  uint16_t x, uint16_t y, uint16_t width, uint16_t height,
-                                  unsigned int plane_index, uint8_t primary_strength,
-                                  uint8_t secondary_strength, uint8_t damping, uint8_t direction,
-                                  uint32_t variance);
-Av2hStatus av2h_cdef_filter_block_u16(Av2hFilterPlaneU16 *destination,
-                                      const Av2hFilterPlaneU16 *source, uint16_t x, uint16_t y,
-                                      uint16_t width, uint16_t height, unsigned int plane_index,
-                                      uint8_t primary_strength, uint8_t secondary_strength,
-                                      uint8_t damping, uint8_t direction, uint32_t variance,
-                                      const Av2hSampleDomain *domain);
-static Av2hStatus cdef_partial_direction(const Av2hFilterPlane *luma, uint16_t x, uint16_t y,
-                                         uint8_t *direction, uint32_t *variance);
-static Av2hStatus cdef_partial_direction_u16(const Av2hFilterPlaneU16 *luma, uint16_t x, uint16_t y,
-                                             uint8_t *direction, uint32_t *variance,
-                                             const Av2hSampleDomain *domain);
-Av2hStatus av2h_cdef_filter_frame(Av2hFilterPlanes *destination, const Av2hFilterPlanes *deblocked,
-                                  const Av2hSequenceState *sequence, const Av2hFrameState *frame,
-                                  const Av2hCdefControlMap *controls);
-Av2hStatus
-av2h_cdef_filter_frame_u16(Av2hFilterPlanesU16 *destination, const Av2hFilterPlanesU16 *deblocked,
-                           const Av2hSequenceState *sequence, const Av2hFrameState *frame,
-                           const Av2hCdefControlMap *controls, const Av2hSampleDomain *domain);
-
 static CdefTileBounds cdef_tile_bounds(const Av2hSequenceState *sequence,
                                        const Av2hFrameState *frame, uint16_t x, uint16_t y) {
     CdefTileBounds bounds = {0U, 0U, frame->width, frame->height};
@@ -96,6 +57,7 @@ static int cdef_constrain(int difference, unsigned int threshold, unsigned int d
     return difference < 0 ? -constrained : constrained;
 }
 
+/* Instantiate typed kernels after the shared helpers. */
 #include "internal/sample_kernel_u8.inc"
 #include "internal/cdef_kernel.inc"
 #include "internal/sample_kernel_end.inc"
