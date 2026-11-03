@@ -79,6 +79,8 @@ CORE_SOURCES := \
 	src/decoder/transform_map.c \
 	src/decoder/tx_geometry.c
 
+CLI_SOURCES := src/shared/cli_common.c src/shared/cli_diagnostics.c
+
 COMMON_WARNINGS := -std=c11 -Wall -Wextra -Wpedantic -Werror -pipe
 FREESTANDING_CFLAGS := $(COMMON_WARNINGS) -O2 \
 	-ffreestanding -fno-builtin -fno-stack-protector \
@@ -102,6 +104,7 @@ endif
 
 NATIVE_BUILD_DIR ?= $(DECODER_BUILD_DIR)
 NATIVE_OBJECTS := $(CORE_SOURCES:%.c=$(NATIVE_BUILD_DIR)/obj/%.o)
+NATIVE_CLI_OBJECTS := $(CLI_SOURCES:%.c=$(NATIVE_BUILD_DIR)/obj/cli/%.o)
 NATIVE_LIBRARY := $(NATIVE_BUILD_DIR)/libav2heif-core.a
 NATIVE_DECODER := $(NATIVE_BUILD_DIR)/av2heif-decoder
 NATIVE_FREESTANDING_STAMP := $(NATIVE_BUILD_DIR)/freestanding/symbols-checked
@@ -203,6 +206,7 @@ endif
 endif
 
 NOLIBC_CORE_OBJECTS := $(CORE_SOURCES:%.c=$(NOLIBC_BUILD_DIR)/obj/core/%.o)
+NOLIBC_CLI_OBJECTS := $(CLI_SOURCES:%.c=$(NOLIBC_BUILD_DIR)/obj/cli/%.o)
 NOLIBC_RUNTIME_C_OBJECTS := $(RUNTIME_C_SOURCES:%.c=$(NOLIBC_BUILD_DIR)/obj/runtime/%.o)
 NOLIBC_RUNTIME_ASM_OBJECTS := $(RUNTIME_ASM_SOURCES:%.S=$(NOLIBC_BUILD_DIR)/obj/runtime/%.o)
 NOLIBC_RUNTIME_OBJECTS := $(NOLIBC_RUNTIME_C_OBJECTS) $(NOLIBC_RUNTIME_ASM_OBJECTS)
@@ -251,13 +255,17 @@ $(NATIVE_LIBRARY): $(NATIVE_OBJECTS)
 	rm -f $@
 	$(AR) rcs $@ $^
 
-$(NATIVE_DECODER): src/platform/posix/decoder.c $(NATIVE_LIBRARY)
+$(NATIVE_BUILD_DIR)/obj/cli/%.o: %.c
 	@mkdir -p $(@D)
-	$(CC) $(COMMON_WARNINGS) -O2 -Iinclude -Isrc $< $(NATIVE_LIBRARY) -o $@
+	$(COMPILE_CC) $(FREESTANDING_CFLAGS) -c $< -o $@
 
-$(NATIVE_FREESTANDING_STAMP): $(NATIVE_OBJECTS) scripts/check-undefined-symbols.sh
+$(NATIVE_DECODER): src/platform/posix/decoder.c $(NATIVE_CLI_OBJECTS) $(NATIVE_LIBRARY)
 	@mkdir -p $(@D)
-	@sh scripts/check-undefined-symbols.sh "$(NM)" $(NATIVE_OBJECTS)
+	$(CC) $(COMMON_WARNINGS) -O2 -Iinclude -Isrc $< $(NATIVE_CLI_OBJECTS) $(NATIVE_LIBRARY) -o $@
+
+$(NATIVE_FREESTANDING_STAMP): $(NATIVE_OBJECTS) $(NATIVE_CLI_OBJECTS) scripts/check-undefined-symbols.sh
+	@mkdir -p $(@D)
+	@sh scripts/check-undefined-symbols.sh "$(NM)" $(NATIVE_OBJECTS) $(NATIVE_CLI_OBJECTS)
 	@touch $@
 
 nolibc:
@@ -292,6 +300,10 @@ $(NOLIBC_BUILD_DIR)/obj/core/%.o: %.c
 	@mkdir -p $(@D)
 	$(COMPILE_CC) $(FREESTANDING_CFLAGS) $(NOLIBC_CORE_EXTRA_CFLAGS) -c $< -o $@
 
+$(NOLIBC_BUILD_DIR)/obj/cli/%.o: %.c
+	@mkdir -p $(@D)
+	$(COMPILE_CC) $(FREESTANDING_CFLAGS) $(NOLIBC_CORE_EXTRA_CFLAGS) -c $< -o $@
+
 $(NOLIBC_BUILD_DIR)/obj/runtime/%.o: %.c
 	@mkdir -p $(@D)
 	$(COMPILE_CC) $(COMMON_WARNINGS) -ffreestanding -fno-builtin \
@@ -319,18 +331,18 @@ $(NOLIBC_LINKER): $(NEWOS_LINKER_SOURCES)
 	$(CC) $(NEWOS_LINKER_CFLAGS) $^ $(NEWOS_LINKER_LDFLAGS) -o $@
 
 ifeq ($(HOST_SYSTEM),Darwin)
-$(NOLIBC_DECODER): $(NOLIBC_LINKER) $(NOLIBC_PLATFORM_OBJECTS) $(NOLIBC_CORE_OBJECTS) $(NOLIBC_RUNTIME_OBJECTS)
+$(NOLIBC_DECODER): $(NOLIBC_LINKER) $(NOLIBC_PLATFORM_OBJECTS) $(NOLIBC_CLI_OBJECTS) $(NOLIBC_CORE_OBJECTS) $(NOLIBC_RUNTIME_OBJECTS)
 	$(NOLIBC_LINKER) --target=mach-o-arm64 --macho-compact --gc-sections \
 		--lto-cc=$(CC) -o $@ $(NOLIBC_PLATFORM_OBJECTS) \
-		$(NOLIBC_CORE_OBJECTS) $(NOLIBC_RUNTIME_OBJECTS)
+		$(NOLIBC_CLI_OBJECTS) $(NOLIBC_CORE_OBJECTS) $(NOLIBC_RUNTIME_OBJECTS)
 else
 ifneq ($(filter x86_64 amd64 AMD64,$(HOST_ARCH)),)
-$(NOLIBC_DECODER): $(NOLIBC_LINKER) $(NOLIBC_PLATFORM_OBJECTS) $(NOLIBC_CORE_OBJECTS) $(NOLIBC_RUNTIME_OBJECTS)
+$(NOLIBC_DECODER): $(NOLIBC_LINKER) $(NOLIBC_PLATFORM_OBJECTS) $(NOLIBC_CLI_OBJECTS) $(NOLIBC_CORE_OBJECTS) $(NOLIBC_RUNTIME_OBJECTS)
 	$(NOLIBC_LINKER) --target=elf64-x86_64 --gc-sections --icf=safe --entry=_start \
 		$(if $(filter 1,$(NOLIBC_LTO)),--lto-cc=$(firstword $(CC))) \
-		-o $@ $(NOLIBC_PLATFORM_OBJECTS) $(NOLIBC_CORE_OBJECTS) $(NOLIBC_RUNTIME_OBJECTS)
+		-o $@ $(NOLIBC_PLATFORM_OBJECTS) $(NOLIBC_CLI_OBJECTS) $(NOLIBC_CORE_OBJECTS) $(NOLIBC_RUNTIME_OBJECTS)
 else
-$(NOLIBC_DECODER): $(NOLIBC_PLATFORM_OBJECTS) $(NOLIBC_CORE_OBJECTS) $(NOLIBC_RUNTIME_OBJECTS)
+$(NOLIBC_DECODER): $(NOLIBC_PLATFORM_OBJECTS) $(NOLIBC_CLI_OBJECTS) $(NOLIBC_CORE_OBJECTS) $(NOLIBC_RUNTIME_OBJECTS)
 	$(CC) $(NOLIBC_LTO_CFLAGS) -nostdlib -static -fuse-ld=lld -Wl,-e,_start \
 		-Wl,--gc-sections,--icf=safe,--build-id=none -o $@ $^
 endif
@@ -379,6 +391,7 @@ HOST_CFLAGS := $(COMMON_WARNINGS) -O1 -g -fsanitize=address,undefined \
 	-fno-omit-frame-pointer -Iinclude -Isrc
 HOST_LDFLAGS := -fsanitize=address,undefined -fno-omit-frame-pointer
 HOST_CORE_OBJECTS := $(CORE_SOURCES:%.c=$(HOST_BUILD_DIR)/obj/core/%.o)
+HOST_CLI_OBJECTS := $(CLI_SOURCES:%.c=$(HOST_BUILD_DIR)/obj/cli/%.o)
 HOST_LIBRARY := $(HOST_BUILD_DIR)/libav2heif-host-core.a
 HOST_RUNTIME_C_OBJECTS := $(RUNTIME_C_SOURCES:%.c=$(HOST_BUILD_DIR)/obj/runtime/%.o)
 HOST_RUNTIME_ASM_OBJECTS := $(RUNTIME_ASM_SOURCES:%.S=$(HOST_BUILD_DIR)/obj/runtime/%.o)
@@ -389,7 +402,7 @@ HOST_UNIT_NAMES := substrate container range tile frame cdf partition leaf coeff
 	output_parallel pixel_format png_writer preview sample_math sample_ops \
 	workspace_accounting public_decode refactor_baseline reconstruction_block \
 	reconstruction_plane frame_refactor carriage_refactor prediction_math \
-	error_refactor
+	error_refactor cli
 HOST_UNIT_BINARIES := $(foreach name,$(HOST_UNIT_NAMES),\
 	$(HOST_BUILD_DIR)/$(subst _,-,$(name))-unit)
 HOST_RUNTIME_UNIT := $(HOST_BUILD_DIR)/runtime-substrate-unit
@@ -436,6 +449,7 @@ endif
 WINDOWS_CFLAGS := $(FREESTANDING_CFLAGS) --target=$(WINDOWS_TARGET) \
 	-mno-stack-arg-probe
 WINDOWS_CORE_OBJECTS := $(CORE_SOURCES:%.c=$(WINDOWS_BUILD_DIR)/obj/core/%.o)
+WINDOWS_CLI_OBJECTS := $(CLI_SOURCES:%.c=$(WINDOWS_BUILD_DIR)/obj/cli/%.o)
 WINDOWS_LIBRARY := $(WINDOWS_BUILD_DIR)/libav2heif-core.a
 WINDOWS_IMPORT_LIBRARY := $(WINDOWS_BUILD_DIR)/platform/windows/kernel32.lib
 WINDOWS_DECODER_OBJECT := $(WINDOWS_BUILD_DIR)/obj/platform/src/platform/windows/decoder.o
@@ -459,6 +473,10 @@ $(WINDOWS_BUILD_DIR)/obj/core/%.o: %.c
 	@mkdir -p $(@D)
 	$(COMPILE_CC) $(WINDOWS_CFLAGS) -c $< -o $@
 
+$(WINDOWS_BUILD_DIR)/obj/cli/%.o: %.c
+	@mkdir -p $(@D)
+	$(COMPILE_CC) $(WINDOWS_CFLAGS) -c $< -o $@
+
 $(WINDOWS_LIBRARY): $(WINDOWS_CORE_OBJECTS)
 	@mkdir -p $(@D)
 	rm -f $@
@@ -472,10 +490,10 @@ $(WINDOWS_BUILD_DIR)/obj/platform/%.o: %.c
 	@mkdir -p $(@D)
 	$(COMPILE_CC) $(WINDOWS_CFLAGS) -Oz -Isrc/shared -c $< -o $@
 
-$(WINDOWS_DECODER): $(WINDOWS_DECODER_OBJECT) $(WINDOWS_LIBRARY) $(WINDOWS_IMPORT_LIBRARY)
+$(WINDOWS_DECODER): $(WINDOWS_DECODER_OBJECT) $(WINDOWS_CLI_OBJECTS) $(WINDOWS_LIBRARY) $(WINDOWS_IMPORT_LIBRARY)
 	$(CC) --target=$(WINDOWS_TARGET) -nostdlib -fuse-ld=lld \
 		-Wl,-e,mainCRTStartup -Wl,-s,--gc-sections,--stack,8388608 \
-		-o $@ $(WINDOWS_DECODER_OBJECT) $(WINDOWS_LIBRARY) $(WINDOWS_IMPORT_LIBRARY)
+		-o $@ $(WINDOWS_DECODER_OBJECT) $(WINDOWS_CLI_OBJECTS) $(WINDOWS_LIBRARY) $(WINDOWS_IMPORT_LIBRARY)
 
 $(WINDOWS_SMOKE): $(WINDOWS_SMOKE_OBJECT) $(WINDOWS_LIBRARY) $(WINDOWS_IMPORT_LIBRARY)
 	$(CC) --target=$(WINDOWS_TARGET) -nostdlib -fuse-ld=lld \
@@ -529,6 +547,10 @@ $(HOST_BUILD_DIR)/obj/core/%.o: %.c
 	@mkdir -p $(@D)
 	$(COMPILE_CC) $(HOST_CFLAGS) -c $< -o $@
 
+$(HOST_BUILD_DIR)/obj/cli/%.o: %.c
+	@mkdir -p $(@D)
+	$(COMPILE_CC) $(HOST_CFLAGS) -c $< -o $@
+
 $(HOST_LIBRARY): $(HOST_CORE_OBJECTS)
 	@mkdir -p $(@D)
 	rm -f $@
@@ -554,7 +576,11 @@ $(HOST_BUILD_DIR)/$(subst _,-,$(1))-unit: tests/$(1)_unit.c $(HOST_LIBRARY)
 	@mkdir -p $$(@D)
 	$(CC) $(HOST_CFLAGS) -Isrc $$< $(HOST_LIBRARY) $(HOST_LDFLAGS) -o $$@
 endef
-$(foreach name,$(HOST_UNIT_NAMES),$(eval $(call HOST_UNIT_RULE,$(name))))
+$(foreach name,$(filter-out cli,$(HOST_UNIT_NAMES)),$(eval $(call HOST_UNIT_RULE,$(name))))
+
+$(HOST_BUILD_DIR)/cli-unit: tests/cli_unit.c $(HOST_CLI_OBJECTS) $(HOST_LIBRARY)
+	@mkdir -p $(@D)
+	$(CC) $(HOST_CFLAGS) $< $(HOST_CLI_OBJECTS) $(HOST_LIBRARY) $(HOST_LDFLAGS) -o $@
 
 $(HOST_RUNTIME_UNIT): tests/runtime_substrate_unit.c $(HOST_RUNTIME_LIBRARY)
 	@mkdir -p $(@D)
@@ -565,9 +591,9 @@ $(HOST_FUZZ): tests/public_decode_fuzz.c $(HOST_LIBRARY)
 	$(CC) $(HOST_CFLAGS) -DAV2H_FUZZ_STANDALONE=1 $< $(HOST_LIBRARY) \
 		$(HOST_LDFLAGS) -o $@
 
-$(HOST_DECODER): src/platform/posix/decoder.c $(HOST_LIBRARY)
+$(HOST_DECODER): src/platform/posix/decoder.c $(HOST_CLI_OBJECTS) $(HOST_LIBRARY)
 	@mkdir -p $(@D)
-	$(CC) $(HOST_CFLAGS) $< $(HOST_LIBRARY) $(HOST_LDFLAGS) -o $@
+	$(CC) $(HOST_CFLAGS) $< $(HOST_CLI_OBJECTS) $(HOST_LIBRARY) $(HOST_LDFLAGS) -o $@
 
 $(HOST_ARTIFACT_TOOL): tools/av2heif_artifact.c $(HOST_LIBRARY)
 	@mkdir -p $(@D)

@@ -1,6 +1,6 @@
 # Code Quality and Consistency Cleanup Plan
 
-**Status:** C1-C4 complete; C5-C6 planned
+**Status:** C1-C5 complete; C6 planned
 
 **Scope:** [`src/`](../src/) and [`include/av2heif.h`](../include/av2heif.h)
 
@@ -282,7 +282,7 @@ Validation:
 ## C5: Deduplicate Platform CLI Frontends
 
 ### Problem
-The three standalone CLI entry points—[`src/platform/posix/decoder.c`](../src/platform/posix/decoder.c) (480 lines), [`src/platform/nolibc/decoder.c`](../src/platform/nolibc/decoder.c) (521 lines), and [`src/platform/windows/decoder.c`](../src/platform/windows/decoder.c) (877 lines)—duplicate significant platform-independent logic:
+Before C5, the three standalone CLI entry points—[`src/platform/posix/decoder.c`](../src/platform/posix/decoder.c) (471 lines), [`src/platform/nolibc/decoder.c`](../src/platform/nolibc/decoder.c) (519 lines), and [`src/platform/windows/decoder.c`](../src/platform/windows/decoder.c) (869 lines)—duplicated significant platform-independent logic:
 - Raw OBU stream orchestration (`decode_obu`, `find_obu`, sequence/frame/qmatrix/tile-group setup, workspace query and binding).
 - Output image encoding (`write_bmp`, `write_png` row callbacks, raw extension matching).
 - Diagnostic formatting and stage-to-string tables (heavily expanded in [`windows/decoder.c`](../src/platform/windows/decoder.c) and partially duplicated or Divergent in POSIX/`nolibc`).
@@ -302,6 +302,83 @@ The three standalone CLI entry points—[`src/platform/posix/decoder.c`](../src/
 ### Exit Criteria
 - OBU decode orchestration, BMP/PNG serialization glue, and diagnostic formatting exist in exactly one place.
 - Each platform `decoder.c` contains only OS-specific I/O, memory, and entry-point glue.
+
+### Completed Implementation
+
+- [`cli_common.h`](../src/shared/cli_common.h) defines the internal CLI-only
+  allocator, owned-image, output-file, narrow/UTF-16 path, and diagnostic
+  callback contracts.
+- [`cli_common.c`](../src/shared/cli_common.c) owns OBU lookup and parsing,
+  format admission, qmatrix and tile-group setup, workspace/output allocation,
+  execution binding, optional retained diagnostics, and RAW/BMP/PNG output.
+  It reuses the existing pixel-format registry, planar preview conversion,
+  output-layout arithmetic, and PNG writer.
+- [`cli_diagnostics.c`](../src/shared/cli_diagnostics.c) owns usage and error
+  messages, POSIX JSON and compact diagnostics, and the complete Windows
+  stage/syntax/coefficient/IntraBC/partition trace formatter. The first
+  callback failure stops emission and is returned to the frontend.
+- [`Makefile`](../Makefile) compiles shared CLI objects separately for native,
+  sanitized-host, `nolibc`, and Windows executables. They are not added to the
+  decoder core archive or public API. Native freestanding symbol validation
+  includes the CLI objects.
+- The frontends retain only startup/argument handling, OS allocation and
+  file/console adapters, task-pool setup, and service invocation:
+
+  | Frontend | Before | After |
+  | :--- | ---: | ---: |
+  | [POSIX](../src/platform/posix/decoder.c) | 471 lines | 146 lines |
+  | [`nolibc`](../src/platform/nolibc/decoder.c) | 519 lines | 260 lines |
+  | [Windows](../src/platform/windows/decoder.c) | 869 lines | 226 lines |
+
+### Preserved Platform Policies
+
+- POSIX retains late format admission, frame-parser error offsets, LF human
+  errors on stderr, optional `--diagnostics` JSON on stdout, and success JSON
+  only after successful output writing.
+- `nolibc` retains early admission, status-only LF errors, syscall adapters,
+  and task-pool execution/destruction around decoding.
+- Windows retains UTF-16 parsing and `CreateFileW`, early admission, CRLF,
+  and diagnostics-enabled rich traces on success and failure before output
+  validation. Its separately allocated trace remains valid after decoder
+  workspace release and is freed before preview/output serialization.
+- Raw-extension mismatches still exit 2; unsupported decoding exits 3;
+  other decode/output failures exit 1. Raw mismatch and high-bit-depth preview
+  rejection do not open or truncate the destination.
+- Allocator results are checked for capacity and alignment, and partial
+  allocations are released. Owned sizes describe capacity; serialization
+  writes logical pixel/row lengths, not extra allocator capacity. File write
+  callbacks must complete the supplied buffer or return an error. Open,
+  partial-write, close, and diagnostic-write failures are propagated;
+  POSIX JSON flushing failures now explicitly report a diagnostic-output
+  error rather than appearing successful.
+
+### Validation
+
+- Both diagnostics-absent and diagnostics-enabled ASan/UBSan builds pass all
+  32 C suites, runtime tests, 2,460 fuzz cases, and existing output-policy and
+  frozen error/pixel checks.
+- [`cli_unit.c`](../tests/cli_unit.c) covers narrow/UTF-16 suffixes, lexical
+  raw-extension matching, odd-sized BMP headers/padding and PNG dimensions,
+  over-capacity allocators, failed/partial/invalid allocation results, trace
+  lifetime, no-open rejection policies, every serialization write-failure
+  position, close errors, and sticky diagnostic callback failures.
+- [`test_cli_frontends.py`](../tests/test_cli_frontends.py) guards frontend
+  ownership and separation of CLI objects from the core archive. All 23
+  targeted cleanup/source/header guards pass, as do the existing 55 standalone
+  private-header and 35 value-only kernel-root checks in both configurations.
+- All 14 captured native CLI contracts match exactly: exit codes, stdout,
+  stderr, output sizes/hashes, and pre-existing destination preservation.
+  Nine success/unsupported/truncated rich traces match the original Windows
+  formatter byte-for-byte using native sanitized callbacks.
+- All 77 frozen behavior/resource inventory lines are unchanged. The rebuilt
+  macOS binary passes freestanding symbol checks and retains all 179 available
+  corpus hashes across I400, I420, I444, and both 10-bit color formats.
+  Shared services and `nolibc`/Windows adapters pass freestanding syntax checks
+  in both diagnostic modes; foreign runtime builds and media regeneration
+  were not required.
+- Decoder public APIs, workspace layouts, core allocation policy, samples,
+  oracle revisions, and expected hashes are unchanged. C6 sample-kernel
+  deduplication remains out of scope.
 
 ---
 

@@ -1,25 +1,15 @@
-#include "base.h"
+#include "shared/cli_common.h"
 
-#include "decoder/frame_output.h"
-#include "decoder/internal/coeff_modules.h"
-#include "decoder/internal/frame_workspace.h"
-#include "decoder/partition.h"
-#include "decoder/qmatrix.h"
-#include "decoder/tile.h"
 #include "platform/windows/win32_min.h"
-#include "preview.h"
-#include "shared/png_writer.h"
 
 #include <stddef.h>
 
-#define AV2H_CLI_MAX_INPUT (256U * 1024U * 1024U)
 #define AV2H_CLI_ARGUMENT_CAPACITY 4
-#define AV2H_BMP_HEADER_SIZE 54U
 
 typedef struct {
-    void *memory;
-    size_t size;
-} Av2hOwnedMemory;
+    const Av2hWinChar *path;
+    Av2hWinHandle handle;
+} Av2hWindowsFile;
 
 static size_t wide_length(const Av2hWinChar *text) {
     size_t length = 0U;
@@ -35,390 +25,6 @@ static int ascii_equal(const Av2hWinChar *wide, const char *ascii) {
     }
     return wide[index] == 0U && ascii[index] == '\0';
 }
-
-static int wide_ends_with_ascii(const Av2hWinChar *wide, const char *ascii) {
-    size_t wide_size = wide_length(wide);
-    size_t ascii_size = 0U;
-    size_t index;
-    while (ascii[ascii_size] != '\0') ++ascii_size;
-    if (ascii_size > wide_size) return 0;
-    for (index = 0U; index < ascii_size; ++index) {
-        uint16_t left = wide[wide_size - ascii_size + index];
-        uint8_t right = (uint8_t)ascii[index];
-        if (left >= 'A' && left <= 'Z') left = (uint16_t)(left + 32U);
-        if (right >= 'A' && right <= 'Z') right = (uint8_t)(right + 32U);
-        if (left != right) return 0;
-    }
-    return 1;
-}
-
-static int is_raw_output_path(const Av2hWinChar *path) {
-    size_t index;
-    for (index = 0U; index < av2h_raw_output_extension_count(); ++index) {
-        if (wide_ends_with_ascii(
-                path, av2h_raw_output_extension_at(index))) return 1;
-    }
-    return 0;
-}
-
-static void write_console(const char *text) {
-    Av2hWinHandle error = GetStdHandle(AV2H_WIN_STD_ERROR_HANDLE);
-    size_t length = 0U;
-    Av2hWinDword written;
-    while (text[length] != '\0') ++length;
-    if (error != NULL && error != AV2H_WIN_INVALID_HANDLE &&
-        length <= UINT32_MAX) {
-        (void)WriteFile(error, text, (Av2hWinDword)length, &written, NULL);
-    }
-}
-
-static void write_status(const char *prefix, Av2hStatus status) {
-    write_console(prefix);
-    write_console(av2h_status_string(status));
-    write_console("\r\n");
-}
-
-#if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
-static void write_unsigned(size_t value) {
-    char buffer[3U * sizeof(size_t) + 1U];
-    size_t index = sizeof(buffer);
-    buffer[--index] = '\0';
-    do {
-        buffer[--index] = (char)('0' + value % 10U);
-        value /= 10U;
-    } while (value != 0U);
-    write_console(buffer + index);
-}
-
-static void write_signed(int value) {
-    if (value < 0) {
-        write_console("-");
-        write_unsigned((size_t)(-(int64_t)value));
-    } else {
-        write_unsigned((size_t)value);
-    }
-}
-
-static const char *decode_stage_name(Av2hFrameDecodeStage stage) {
-    switch (stage) {
-        case AV2H_FRAME_DECODE_STAGE_INITIALIZE: return "initialize";
-        case AV2H_FRAME_DECODE_STAGE_LUMA_PARSE: return "luma parse";
-        case AV2H_FRAME_DECODE_STAGE_LUMA_RECONSTRUCT:
-            return "luma reconstruction";
-        case AV2H_FRAME_DECODE_STAGE_LUMA_DEBLOCK: return "luma deblock map";
-        case AV2H_FRAME_DECODE_STAGE_LUMA_COMMIT: return "luma commit";
-        case AV2H_FRAME_DECODE_STAGE_CHROMA_PARSE: return "chroma parse";
-        case AV2H_FRAME_DECODE_STAGE_CHROMA_CROSS_TRANSFORM:
-            return "chroma cross transform";
-        case AV2H_FRAME_DECODE_STAGE_CHROMA_RECONSTRUCT:
-            return "chroma reconstruction";
-        case AV2H_FRAME_DECODE_STAGE_CHROMA_DEBLOCK:
-            return "chroma deblock map";
-        case AV2H_FRAME_DECODE_STAGE_CHROMA_COMMIT: return "chroma commit";
-        case AV2H_FRAME_DECODE_STAGE_COMPLETENESS: return "completeness check";
-        case AV2H_FRAME_DECODE_STAGE_FILTER: return "frame filter";
-        case AV2H_FRAME_DECODE_STAGE_OUTPUT: return "planar output";
-        default: return "unknown";
-    }
-}
-
-static const char *luma_syntax_stage_name(uint8_t stage) {
-    switch (stage) {
-        case 0U: return "partition or geometry";
-        case 1U: return "mode or palette";
-        case 2U: return "coefficient prefix";
-        case 3U: return "transform type";
-        case 4U: return "coefficient levels";
-        default: return "unknown";
-    }
-}
-
-static const char *chroma_syntax_stage_name(uint8_t stage) {
-    switch (stage) {
-        case 0U: return "partition or mode";
-        case 1U: return "U coefficient prefix";
-        case 2U: return "U transform type";
-        case 3U: return "U coefficient levels";
-        case 4U: return "V coefficient prefix";
-        case 5U: return "V transform type";
-        case 6U: return "V coefficient levels";
-        default: return "unknown";
-    }
-}
-
-static const char *reconstruction_stage_name(uint8_t stage) {
-    switch (stage) {
-        case 0U: return "setup or special predictor";
-        case 1U: return "prediction";
-        case 2U: return "inverse transform";
-        case 3U: return "output geometry";
-        case 10U: return "IntraBC precision";
-        case 11U: return "IntraBC source bounds";
-        case 12U: return "IntraBC reference availability";
-        case 13U: return "IntraBC inverse transform";
-        default: return "unknown";
-    }
-}
-
-static const char *chroma_reconstruction_stage_name(uint8_t stage) {
-    switch (stage) {
-        case 0U: return "setup";
-        case 1U: return "prediction";
-        case 2U: return "output";
-        case 3U: return "all-zero output";
-        case 11U: return "inverse transform geometry";
-        case 12U: return "inverse transform type";
-        case 13U: return "secondary inverse transform";
-        case 14U: return "primary inverse transform";
-        default: return "unknown";
-    }
-}
-
-static const char *block_size_name(uint8_t block_size) {
-    static const char *const names[AV2H_BLOCK_SIZE_COUNT] = {
-        "4x4", "4x8", "8x4", "8x8", "8x16", "16x8", "16x16",
-        "16x32", "32x16", "32x32", "32x64", "64x32", "64x64",
-        "64x128", "128x64", "128x128", "128x256", "256x128",
-        "256x256", "4x16", "16x4", "8x32", "32x8", "16x64",
-        "64x16", "4x32", "32x4", "8x64", "64x8"
-    };
-    return block_size < AV2H_BLOCK_SIZE_COUNT ? names[block_size] : "unknown";
-}
-
-static void write_decode_diagnostic(const Av2hFrameDecodeResult *result) {
-    static const uint16_t zero_cdf[4U] = { 0U, 0U, 0U, 0U };
-    static const uint64_t zero_range[4U] = { 0U, 0U, 0U, 0U };
-    const uint16_t *coefficient_cdf;
-    const uint64_t *coefficient_range;
-    const Av2hPartitionDecision *partition_trace;
-    const uint8_t *partition_trace_structure;
-    const Av2hPartitionLeafDiagnostic *leaf_trace;
-    size_t partition_trace_count;
-    size_t partition_trace_index;
-    size_t leaf_trace_count;
-    size_t leaf_trace_index;
-    write_console("  cause: ");
-    write_console(av2h_status_string(result->cause));
-    write_console("\r\n  stage: ");
-    write_console(decode_stage_name(result->stage));
-    if (result->stage == AV2H_FRAME_DECODE_STAGE_LUMA_PARSE) {
-        write_console(" / ");
-        write_console(luma_syntax_stage_name(result->syntax_stage));
-    } else if (result->stage == AV2H_FRAME_DECODE_STAGE_CHROMA_PARSE) {
-        write_console(" / ");
-        write_console(chroma_syntax_stage_name(result->syntax_stage));
-    } else if (result->stage == AV2H_FRAME_DECODE_STAGE_LUMA_RECONSTRUCT ||
-               result->stage == AV2H_FRAME_DECODE_STAGE_CHROMA_RECONSTRUCT) {
-        write_console(" / ");
-        write_console(result->stage ==
-            AV2H_FRAME_DECODE_STAGE_CHROMA_RECONSTRUCT ?
-            chroma_reconstruction_stage_name(result->syntax_stage) :
-            reconstruction_stage_name(result->syntax_stage));
-    }
-    write_console("\r\n  leaf: (");
-    write_unsigned(result->row);
-    write_console(",");
-    write_unsigned(result->column);
-    write_console(") block=");
-    write_console(block_size_name(result->block_size));
-    write_console(" plane=");
-    write_console(result->plane == 0U ? "Y" : result->plane == 1U ? "U" : "V");
-    write_console("\r\n  entropy tell: ");
-    write_unsigned(result->entropy_tell);
-    write_console("; completed leaves: Y=");
-    write_unsigned(result->luma_leaf_count);
-    write_console(" UV=");
-    write_unsigned(result->chroma_leaf_count);
-    write_console("\r\n  syntax: mode=");
-    write_unsigned(result->mode);
-    write_console(" angle=");
-    if (result->angle_delta < 0) {
-        write_console("-");
-        write_unsigned((size_t)(-result->angle_delta));
-    } else {
-        write_unsigned((size_t)result->angle_delta);
-    }
-    write_console(" mrl=");
-    write_unsigned(result->mrl_index);
-    write_console(" multi-line=");
-    write_unsigned(result->multi_line_mrl);
-    write_console(" ibp=");
-    write_unsigned(result->enable_ibp);
-    write_console(" intrabc=");
-    write_unsigned(result->use_intrabc);
-    write_console(" displacement=");
-    write_signed(result->displacement_x);
-    write_console("/");
-    write_signed(result->displacement_y);
-    write_console(" morph=");
-    write_unsigned(result->morph_pred);
-    write_console(" fsc=");
-    write_unsigned(result->fsc_mode);
-    write_console(" skip-transform=");
-    write_unsigned(result->skip_transform);
-    write_console(" palette-size=");
-    write_unsigned(result->palette_size);
-    write_console(" tx-size=");
-    write_unsigned(result->tx_size);
-    write_console(" inverse-stage=");
-    write_unsigned(result->inverse_transform_stage);
-    write_console(" intrabc-source=");
-    write_unsigned(result->intrabc_source_x);
-    write_console("/");
-    write_unsigned(result->intrabc_source_y);
-    write_console("/");
-    write_unsigned(result->intrabc_map_index);
-    write_console(" prefix-stage=");
-    write_unsigned(result->prefix_stage);
-    write_console(" syntax-stage=");
-    write_unsigned(result->syntax_stage);
-    write_console(" skip-ctx=");
-    write_unsigned(result->txb_skip_context);
-    write_console(" all-zero=");
-    write_unsigned(result->all_zero);
-    write_console(" eob-point=");
-    write_unsigned(result->eob_point);
-    write_console(" tx-type=");
-    write_unsigned(result->primary_type);
-    write_console(" primary-symbol=");
-    write_unsigned(result->primary_symbol);
-    write_console(" primary-set-symbol=");
-    write_unsigned(result->primary_set_symbol);
-    write_console(" secondary-symbol=");
-    write_unsigned(result->secondary_symbol);
-    write_console(" secondary-set=");
-    write_unsigned(result->secondary_set);
-    write_console(" cctx-type=");
-    write_unsigned(result->cctx_type);
-    write_console(" is-cfl=");
-    write_unsigned(result->is_cfl);
-    write_console(" cfl-kind=");
-    write_unsigned(result->cfl_kind);
-    write_console(" mhccp-direction=");
-    write_unsigned(result->mhccp_direction);
-    write_console(" cfl-filter=");
-    write_unsigned(result->cfl_filter_index);
-    write_console(" mhccp-reason=");
-    write_unsigned(result->mhccp_reason);
-    write_console(" chroma-parse-reason=");
-    write_unsigned(result->chroma_parse_reason);
-    write_console(" chroma-mode-index=");
-    write_unsigned(result->chroma_mode_index);
-    write_console(" filter-reason=");
-    write_unsigned(result->filter_reason);
-    write_console(" eob=");
-    write_unsigned(result->eob);
-    write_console(" uv-coeff-counts=");
-    write_unsigned(result->u_coefficient_count);
-    write_console("/");
-    write_unsigned(result->v_coefficient_count);
-    write_console(" coeff-kind=");
-    write_unsigned(result->coefficient_kind);
-    write_console(" coeff-pos=");
-    write_unsigned(result->coefficient_position);
-    write_console(" coeff-ctx=");
-    write_unsigned(result->coefficient_context);
-    write_console(" prefix-tells=");
-    write_unsigned(result->after_all_zero_tell);
-    write_console("/");
-    write_unsigned(result->after_eob_point_tell);
-    write_console(" eob-range=");
-    write_unsigned(result->eob_range);
-    write_console(" skip-range=");
-    write_unsigned(result->skip_range);
-    write_console(" prefix-range=");
-    write_unsigned(result->before_prefix_range);
-    write_console(" eob-tx/class=");
-    write_unsigned(result->eob_tx_size);
-    write_console("/");
-    write_unsigned(result->eob_class);
-    coefficient_cdf = av2h_coeff_level_diagnostic_cdf(result->diagnostics);
-    if (coefficient_cdf == NULL) coefficient_cdf = zero_cdf;
-    write_console("\r\n  coeff-cdf=");
-    write_unsigned(coefficient_cdf[0]);
-    write_console("/");
-    write_unsigned(coefficient_cdf[1]);
-    write_console("/");
-    write_unsigned(coefficient_cdf[2]);
-    write_console("/");
-    write_unsigned(coefficient_cdf[3]);
-    coefficient_range = av2h_coeff_level_diagnostic_range(
-        result->diagnostics);
-    if (coefficient_range == NULL) coefficient_range = zero_range;
-    {
-        size_t candidate_count;
-        size_t candidate;
-        const int16_t *candidates =
-            av2h_intrabc_diagnostic_candidates(
-                result->diagnostics, &candidate_count);
-        write_console("\r\n  intrabc-candidates=");
-        for (candidate = 0U; candidate < candidate_count; ++candidate) {
-            if (candidate != 0U) write_console(" ");
-            write_signed(candidates[candidate * 2U]);
-            write_console("/");
-            write_signed(candidates[candidate * 2U + 1U]);
-        }
-        candidates = av2h_intrabc_diagnostic_bank(
-            result->diagnostics, &candidate_count);
-        write_console("\r\n  intrabc-bank=");
-        for (candidate = 0U; candidate < candidate_count; ++candidate) {
-            if (candidate != 0U) write_console(" ");
-            write_signed(candidates[candidate * 2U]);
-            write_console("/");
-            write_signed(candidates[candidate * 2U + 1U]);
-        }
-    }
-    write_console("\r\n  coeff-range=");
-    write_unsigned(coefficient_range[0]);
-    write_console("/");
-    write_unsigned(coefficient_range[1]);
-    write_console("/");
-    write_unsigned(coefficient_range[2]);
-    write_console("/");
-    write_unsigned(coefficient_range[3]);
-    partition_trace = av2h_partition_diagnostic_trace(
-        result->diagnostics, &partition_trace_count);
-    partition_trace_structure = av2h_partition_diagnostic_trace_structure(
-        result->diagnostics);
-    for (partition_trace_index = 0U;
-         partition_trace_index < partition_trace_count;
-         ++partition_trace_index) {
-        const Av2hPartitionDecision *decision =
-            &partition_trace[partition_trace_index];
-        write_console(partition_trace_structure[partition_trace_index] == 0U ?
-            "\r\n  local-part: (" : "\r\n  local-cpart: (");
-        write_unsigned(decision->node.row);
-        write_console(",");
-        write_unsigned(decision->node.column);
-        write_console(") bsize=");
-        write_unsigned(decision->node.block_size);
-        write_console(" partition=");
-        write_unsigned(decision->partition);
-        write_console(" contexts=");
-        write_unsigned(decision->split_context);
-        write_console("/");
-        write_unsigned(decision->rect_type_context);
-        write_console("/");
-        write_unsigned(decision->extension_context);
-        write_console(" tell=");
-        write_unsigned(decision->after_bits);
-    }
-    leaf_trace = av2h_partition_diagnostic_leaf_trace(
-        result->diagnostics, &leaf_trace_count);
-    for (leaf_trace_index = 0U; leaf_trace_index < leaf_trace_count;
-         ++leaf_trace_index) {
-        write_console("\r\n  local-leaf: stage=");
-        write_unsigned(leaf_trace[leaf_trace_index].stage);
-        write_console(" mode=");
-        write_unsigned(leaf_trace[leaf_trace_index].mode);
-        write_console(" eob=");
-        write_unsigned(leaf_trace[leaf_trace_index].eob);
-        write_console(" tell=");
-        write_unsigned(leaf_trace[leaf_trace_index].tell);
-    }
-    write_console("\r\n");
-}
-#endif
 
 static int parse_arguments(Av2hWinChar *text,
                            Av2hWinChar **arguments,
@@ -449,7 +55,8 @@ static int parse_arguments(Av2hWinChar *text,
     return count;
 }
 
-static void release_memory(Av2hOwnedMemory *owned) {
+static void release_memory(void *context, Av2hOwnedMemory *owned) {
+    (void)context;
     if (owned->memory != NULL) {
         (void)VirtualFree(owned->memory, 0U, AV2H_WIN_MEM_RELEASE);
     }
@@ -457,7 +64,10 @@ static void release_memory(Av2hOwnedMemory *owned) {
     owned->size = 0U;
 }
 
-static int allocate_memory(size_t size, Av2hOwnedMemory *owned) {
+static int allocate_memory(
+    void *context, size_t size, size_t alignment, Av2hOwnedMemory *owned) {
+    (void)context;
+    if (alignment > 65536U) return 0;
     owned->memory = VirtualAlloc(
         NULL, size == 0U ? 1U : size,
         AV2H_WIN_MEM_RESERVE | AV2H_WIN_MEM_COMMIT,
@@ -477,7 +87,7 @@ static int read_entire_file(const Av2hWinChar *path,
     if (file == AV2H_WIN_INVALID_HANDLE) return 0;
     if (!GetFileSizeEx(file, &size) || size.quad <= 0 ||
         (uint64_t)size.quad > AV2H_CLI_MAX_INPUT ||
-        !allocate_memory((size_t)size.quad, owned)) {
+        !allocate_memory(NULL, (size_t)size.quad, sizeof(void *), owned)) {
         (void)CloseHandle(file);
         return 0;
     }
@@ -486,7 +96,7 @@ static int read_entire_file(const Av2hWinChar *path,
         result = 1;
     }
     (void)CloseHandle(file);
-    if (!result) release_memory(owned);
+    if (!result) release_memory(NULL, owned);
     return result;
 }
 
@@ -505,271 +115,36 @@ static int write_all(Av2hWinHandle file, const void *data, size_t size) {
     return 1;
 }
 
-static int write_entire_file(const Av2hWinChar *path,
-                             const void *data,
-                             size_t size) {
-    Av2hWinHandle file = CreateFileW(
-        path, AV2H_WIN_GENERIC_WRITE, 0U, NULL, AV2H_WIN_CREATE_ALWAYS,
+static Av2hStatus write_console(
+    void *context, const uint8_t *data, size_t size) {
+    Av2hWinHandle error = GetStdHandle(AV2H_WIN_STD_ERROR_HANDLE);
+    (void)context;
+    if (error == NULL || error == AV2H_WIN_INVALID_HANDLE) {
+        return AV2H_INVALID_DATA;
+    }
+    return write_all(error, data, size) ? AV2H_OK : AV2H_INVALID_DATA;
+}
+
+static Av2hStatus open_output(void *context) {
+    Av2hWindowsFile *file = context;
+    file->handle = CreateFileW(
+        file->path, AV2H_WIN_GENERIC_WRITE, 0U, NULL, AV2H_WIN_CREATE_ALWAYS,
         AV2H_WIN_FILE_ATTRIBUTE_NORMAL, NULL);
-    int result;
-    if (file == AV2H_WIN_INVALID_HANDLE) return 0;
-    result = write_all(file, data, size);
-    if (!CloseHandle(file)) result = 0;
-    return result;
+    return file->handle != AV2H_WIN_INVALID_HANDLE ?
+        AV2H_OK : AV2H_INVALID_DATA;
 }
 
-static const Av2hObu *find_obu(const Av2hObuLedger *ledger, uint8_t type) {
-    size_t index;
-    for (index = 0U; index < ledger->count; ++index) {
-        if (ledger->entries[index].type == type) return &ledger->entries[index];
-    }
-    return NULL;
+static Av2hStatus write_output(
+    void *context, const uint8_t *data, size_t size) {
+    Av2hWindowsFile *file = context;
+    return write_all(file->handle, data, size) ? AV2H_OK : AV2H_INVALID_DATA;
 }
 
-static Av2hStatus decode_obu(Av2hSpan input,
-                            Av2hOwnedMemory *output,
-                            Av2hOwnedMemory *diagnostic_memory,
-                            uint16_t *width,
-                            uint16_t *height,
-                            uint8_t *chroma_format_idc,
-                            Av2hPixelFormat *output_format,
-                            Av2hFrameDecodeResult *decode_result) {
-    Av2hObu entries[16U];
-    Av2hObuLedger ledger = { entries, 16U, 0U };
-    Av2hError error;
-    const Av2hObu *sequence_obu;
-    const Av2hObu *frame_obu;
-    Av2hSequenceState sequence;
-    Av2hFrameState frame;
-    Av2hTileGroup group;
-    Av2hOwnedMemory workspace_memory = { NULL, 0U };
-    Av2hFrameDecodeWorkspace workspace;
-    Av2hFilterWorkspace filter_workspace;
-    Av2hFilterWorkspaceStorage filter_storage;
-    Av2hFrameDecodeWorkspaceLayout workspace_layout;
-    size_t workspace_size = 0U;
-    size_t output_size = 0U;
-    size_t bytes_per_sample;
-    Av2hStatus status = av2h_obu_parse(input, &ledger, &error);
-    if (status != AV2H_OK) return status;
-    sequence_obu = find_obu(&ledger, AV2H_OBU_SEQUENCE_HEADER);
-    frame_obu = find_obu(&ledger, AV2H_OBU_CLOSED_LOOP_KEY);
-    if (sequence_obu == NULL || frame_obu == NULL) return AV2H_INVALID_DATA;
-    status = av2h_sequence_state_parse(input, sequence_obu, &sequence, &error);
-    if (status != AV2H_OK) return status;
-    bytes_per_sample = sequence.info.bit_depth_idc == 0U ? 2U : 1U;
-    if ((bytes_per_sample == 2U &&
-         !(sequence.info.chroma_format_idc == 0U ?
-             av2h_pixel_format_init_10bit_420(output_format) :
-             sequence.info.chroma_format_idc == 2U ?
-             av2h_pixel_format_init_10bit_444(output_format) : 0)) ||
-        (bytes_per_sample == 1U &&
-         !av2h_pixel_format_init_8bit(
-             sequence.info.chroma_format_idc, output_format))) {
-        return AV2H_UNSUPPORTED;
-    }
-    status = av2h_frame_header_closed_key_parse(
-        (Av2hSpan){ input.data + frame_obu->payload_offset,
-                    frame_obu->payload_size },
-        &sequence, &frame, NULL);
-    if (status != AV2H_OK) return status;
-    av2h_qmatrix_state_reset(&frame);
-    status = av2h_qmatrix_ledger_parse(input, &ledger, &frame, &error);
-    if (status == AV2H_OK) status = av2h_qmatrix_references_validate(&frame);
-    if (status != AV2H_OK) return status;
-    status = av2h_tile_groups_ledger_parse(input, &ledger, &frame, &group);
-    if (status != AV2H_OK) return status;
-    status = av2h_planar_output_size(
-        &frame, bytes_per_sample, &output_size);
-    if (status != AV2H_OK) return status;
-    status = av2h_frame_decode_workspace_query(
-        &sequence, &frame, bytes_per_sample, &workspace_layout);
-    if (status != AV2H_OK) return status;
-    workspace_size = workspace_layout.size_bytes;
-    if (!allocate_memory(workspace_size, &workspace_memory) ||
-        !allocate_memory(output_size, output)) {
-        release_memory(&workspace_memory);
-        release_memory(output);
-        return AV2H_OUT_OF_MEMORY;
-    }
-#if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
-    {
-        size_t diagnostic_size =
-            sizeof(Av2hDecodeDiagnostics) +
-            AV2H_PARTITION_DIAGNOSTIC_CAPACITY *
-                sizeof(Av2hPartitionDecision) +
-            AV2H_PARTITION_DIAGNOSTIC_CAPACITY * sizeof(uint8_t) +
-            AV2H_PARTITION_LEAF_DIAGNOSTIC_CAPACITY *
-                sizeof(Av2hPartitionLeafDiagnostic) +
-            _Alignof(Av2hPartitionDecision) +
-            _Alignof(Av2hPartitionLeafDiagnostic);
-        if (!allocate_memory(diagnostic_size, diagnostic_memory)) {
-            release_memory(&workspace_memory);
-            release_memory(output);
-            return AV2H_OUT_OF_MEMORY;
-        }
-    }
-#endif
-    status = av2h_frame_decode_workspace_init(
-        &sequence, &frame, bytes_per_sample, &workspace_layout,
-        workspace_memory.memory, workspace_memory.size,
-        &workspace, &filter_workspace, &filter_storage);
-    if (status == AV2H_OK) {
-#if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
-        uintptr_t cursor = (uintptr_t)diagnostic_memory->memory;
-        Av2hDecodeDiagnostics *diagnostics =
-            (Av2hDecodeDiagnostics *)cursor;
-        cursor += sizeof(*diagnostics);
-        cursor = (cursor + _Alignof(Av2hPartitionDecision) - 1U) &
-            ~(uintptr_t)(_Alignof(Av2hPartitionDecision) - 1U);
-        av2h_memory_fill(diagnostics, 0U, sizeof(*diagnostics));
-        diagnostics->partition_trace = (Av2hPartitionDecision *)cursor;
-        cursor += AV2H_PARTITION_DIAGNOSTIC_CAPACITY *
-            sizeof(Av2hPartitionDecision);
-        diagnostics->partition_trace_structure = (uint8_t *)cursor;
-        cursor += AV2H_PARTITION_DIAGNOSTIC_CAPACITY;
-        cursor = (cursor + _Alignof(Av2hPartitionLeafDiagnostic) - 1U) &
-            ~(uintptr_t)(_Alignof(Av2hPartitionLeafDiagnostic) - 1U);
-        diagnostics->partition_leaf_trace =
-            (Av2hPartitionLeafDiagnostic *)cursor;
-        diagnostics->partition_trace_capacity =
-            AV2H_PARTITION_DIAGNOSTIC_CAPACITY;
-        diagnostics->partition_leaf_trace_capacity =
-            AV2H_PARTITION_LEAF_DIAGNOSTIC_CAPACITY;
-        workspace.diagnostics = diagnostics;
-        workspace.filter_workspace->diagnostics = diagnostics;
-#else
-        (void)diagnostic_memory;
-#endif
-        status = av2h_decode_frame_group_planar_private(
-            &group, &sequence, &frame, &workspace, output->memory, output->size,
-            decode_result, NULL);
-    }
-    release_memory(&workspace_memory);
-    if (status != AV2H_OK) {
-        release_memory(output);
-        return status;
-    }
-    *width = frame.width;
-    *height = frame.height;
-    *chroma_format_idc = frame.chroma_format_idc;
-    return AV2H_OK;
-}
-
-static int write_bmp(const Av2hWinChar *path,
-                     const uint8_t *planar,
-                     uint16_t width,
-                     uint16_t height,
-                     uint8_t chroma_format_idc) {
-    size_t row_bytes;
-    size_t pixel_bytes;
-    size_t file_size;
-    Av2hOwnedMemory row_memory = { NULL, 0U };
-    uint8_t header[AV2H_BMP_HEADER_SIZE];
-    Av2hPlanarPreview preview;
-    Av2hWinHandle file;
-    size_t row;
-    int result = 0;
-    if (!av2h_size_multiply(width, 3U, &row_bytes) ||
-        !av2h_size_align(row_bytes, 4U, &row_bytes) ||
-        !av2h_size_multiply(row_bytes, height, &pixel_bytes) ||
-        !av2h_size_add(AV2H_BMP_HEADER_SIZE, pixel_bytes, &file_size) ||
-        file_size > UINT32_MAX ||
-        av2h_planar_preview_init_tight_8bit(
-            planar, width, height, chroma_format_idc,
-            AV2H_COLOR_RANGE_LIMITED, 6U, &preview) != AV2H_OK ||
-        !allocate_memory(row_bytes, &row_memory)) {
-        return 0;
-    }
-    av2h_memory_fill(header, 0U, sizeof(header));
-    header[0] = 'B';
-    header[1] = 'M';
-    av2h_store_u32le(header + 2U, (uint32_t)file_size);
-    av2h_store_u32le(header + 10U, AV2H_BMP_HEADER_SIZE);
-    av2h_store_u32le(header + 14U, 40U);
-    av2h_store_u32le(header + 18U, width);
-    av2h_store_u32le(header + 22U, height);
-    av2h_store_u16le(header + 26U, 1U);
-    av2h_store_u16le(header + 28U, 24U);
-    av2h_store_u32le(header + 34U, (uint32_t)pixel_bytes);
-    file = CreateFileW(
-        path, AV2H_WIN_GENERIC_WRITE, 0U, NULL, AV2H_WIN_CREATE_ALWAYS,
-        AV2H_WIN_FILE_ATTRIBUTE_NORMAL, NULL);
-    if (file == AV2H_WIN_INVALID_HANDLE) {
-        release_memory(&row_memory);
-        return 0;
-    }
-    if (!write_all(file, header, sizeof(header))) goto done;
-    for (row = height; row != 0U; --row) {
-        size_t y_row = row - 1U;
-        uint8_t *destination = row_memory.memory;
-        av2h_memory_fill(destination, 0U, row_bytes);
-        if (av2h_planar_to_bgr8_row(
-                &preview, (uint32_t)y_row,
-                destination, row_bytes) != AV2H_OK) goto done;
-        if (!write_all(file, destination, row_bytes)) goto done;
-    }
-    result = 1;
-done:
-    if (!CloseHandle(file)) result = 0;
-    release_memory(&row_memory);
-    return result;
-}
-
-static Av2hStatus png_write_file(
-    void *context,
-    const uint8_t *data,
-    size_t size) {
-    Av2hWinHandle file = *(const Av2hWinHandle *)context;
-    return write_all(file, data, size) ? AV2H_OK : AV2H_INVALID_DATA;
-}
-
-static Av2hStatus png_preview_row(
-    void *context,
-    uint32_t row,
-    uint8_t *destination,
-    size_t destination_size_bytes) {
-    return av2h_planar_to_rgb8_row(
-        (const Av2hPlanarPreview *)context, row,
-        destination, destination_size_bytes);
-}
-
-static int write_png(const Av2hWinChar *path,
-                     const uint8_t *planar,
-                     uint16_t width,
-                     uint16_t height,
-                     uint8_t chroma_format_idc) {
-    Av2hPlanarPreview preview;
-    Av2hPngRgbImage image;
-    Av2hOwnedMemory row_memory = { NULL, 0U };
-    size_t row_size;
-    Av2hWinHandle file;
-    int result;
-    if (!av2h_size_multiply(width, 3U, &row_size) ||
-        av2h_planar_preview_init_tight_8bit(
-            planar, width, height, chroma_format_idc,
-            AV2H_COLOR_RANGE_LIMITED, 6U, &preview) != AV2H_OK ||
-        !allocate_memory(row_size, &row_memory)) {
-        return 0;
-    }
-    image.width = width;
-    image.height = height;
-    image.bit_depth = 8U;
-    image.row_callback = png_preview_row;
-    image.row_context = &preview;
-    file = CreateFileW(
-        path, AV2H_WIN_GENERIC_WRITE, 0U, NULL, AV2H_WIN_CREATE_ALWAYS,
-        AV2H_WIN_FILE_ATTRIBUTE_NORMAL, NULL);
-    if (file == AV2H_WIN_INVALID_HANDLE) {
-        release_memory(&row_memory);
-        return 0;
-    }
-    result = av2h_png_write_rgb(
-        &image, row_memory.memory, row_size,
-        png_write_file, &file) == AV2H_OK;
-    if (!CloseHandle(file)) result = 0;
-    release_memory(&row_memory);
-    return result;
+static Av2hStatus close_output(void *context) {
+    Av2hWindowsFile *file = context;
+    int result = CloseHandle(file->handle);
+    file->handle = AV2H_WIN_INVALID_HANDLE;
+    return result ? AV2H_OK : AV2H_INVALID_DATA;
 }
 
 static unsigned int run_decoder(void) {
@@ -777,22 +152,25 @@ static unsigned int run_decoder(void) {
     size_t command_line_units = wide_length(system_command_line) + 1U;
     Av2hOwnedMemory command_line = { NULL, 0U };
     Av2hOwnedMemory input = { NULL, 0U };
-    Av2hOwnedMemory output = { NULL, 0U };
-    Av2hOwnedMemory diagnostic_memory = { NULL, 0U };
+    Av2hCliAllocator allocator = { NULL, allocate_memory, release_memory };
+    Av2hCliDecodeOptions options = { NULL, 1, 1 };
+    Av2hCliImage image;
+    Av2hCliOutput output;
+    Av2hWindowsFile output_file;
+    Av2hCliFile file = {
+        &output_file, open_output, write_output, close_output
+    };
     Av2hWinChar *arguments[AV2H_CLI_ARGUMENT_CAPACITY];
-    int argument_count;
-    uint16_t width = 0U;
-    uint16_t height = 0U;
-    uint8_t chroma_format_idc = 0U;
-    Av2hPixelFormat output_format;
-    const char *raw_extension;
-    Av2hFrameDecodeResult decode_result;
     Av2hStatus status;
-    int written;
-    av2h_memory_fill(&decode_result, 0U, sizeof(decode_result));
+    Av2hCliWriteResult result;
+    int argument_count;
+    unsigned int exit_code;
     if (!allocate_memory(
-            command_line_units * sizeof(Av2hWinChar), &command_line)) {
-        write_console("error: cannot allocate command line\r\n");
+            NULL, command_line_units * sizeof(Av2hWinChar),
+            sizeof(void *), &command_line)) {
+        (void)av2h_cli_write_message(
+            AV2H_CLI_MESSAGE_COMMAND_LINE, AV2H_CLI_DIAGNOSTIC_TRACE,
+            write_console, NULL);
         return 1U;
     }
     av2h_memory_copy(
@@ -801,67 +179,46 @@ static unsigned int run_decoder(void) {
     argument_count = parse_arguments(
         command_line.memory, arguments, AV2H_CLI_ARGUMENT_CAPACITY);
     if (argument_count != 4 || !ascii_equal(arguments[2], "-o") ||
-        !(is_raw_output_path(arguments[3]) ||
-                    wide_ends_with_ascii(arguments[3], ".bmp") ||
-                    wide_ends_with_ascii(arguments[3], ".png"))) {
-        write_console(
-                        "usage: av2heif-decoder.exe INPUT.obu -o OUTPUT.i400|OUTPUT.i420|OUTPUT.i444|OUTPUT.yuv420p10le|OUTPUT.yuv444p10le|OUTPUT.bmp|OUTPUT.png\r\n");
-        release_memory(&command_line);
-        return 2U;
+        av2h_cli_output_parse(
+            (Av2hCliPath){ NULL, arguments[3] }, &output) != AV2H_OK) {
+        exit_code = av2h_cli_write_usage(
+            "av2heif-decoder.exe", 0, AV2H_CLI_DIAGNOSTIC_TRACE,
+            write_console, NULL) == AV2H_OK ? 2U : 1U;
+        release_memory(NULL, &command_line);
+        return exit_code;
     }
     if (!read_entire_file(arguments[1], &input)) {
-        write_console("error: cannot read input OBU\r\n");
-        release_memory(&command_line);
+        (void)av2h_cli_write_message(
+            AV2H_CLI_MESSAGE_READ_INPUT, AV2H_CLI_DIAGNOSTIC_TRACE,
+            write_console, NULL);
+        release_memory(NULL, &command_line);
         return 1U;
     }
-    status = decode_obu(
-        (Av2hSpan){ input.memory, input.size }, &output, &diagnostic_memory,
-        &width, &height, &chroma_format_idc, &output_format, &decode_result);
+    status = av2h_cli_decode(
+        (Av2hSpan){ input.memory, input.size }, &allocator, &options, &image);
     if (status != AV2H_OK) {
-        write_status("error: decode failed: ", status);
-#if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
-        write_decode_diagnostic(&decode_result);
-#endif
-        release_memory(&diagnostic_memory);
-        release_memory(&output);
-        release_memory(&input);
-        release_memory(&command_line);
-        return status == AV2H_UNSUPPORTED ? 3U : 1U;
-    }
-#if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
-    write_decode_diagnostic(&decode_result);
-#endif
-    release_memory(&diagnostic_memory);
-    raw_extension = av2h_raw_output_extension(&output_format);
-    if (!wide_ends_with_ascii(arguments[3], ".bmp") &&
-        !wide_ends_with_ascii(arguments[3], ".png") &&
-        (raw_extension == NULL ||
-         !wide_ends_with_ascii(arguments[3], raw_extension))) {
-        write_console("error: raw output extension does not match decoded format\r\n");
-        release_memory(&output);
-        release_memory(&input);
-        release_memory(&command_line);
-        return 2U;
-    }
-    if ((wide_ends_with_ascii(arguments[3], ".bmp") ||
-         wide_ends_with_ascii(arguments[3], ".png")) &&
-        output_format.bytes_per_sample != 1U) {
-        write_console("error: preview output requires 8-bit input\r\n");
-        written = 0;
-    } else if (wide_ends_with_ascii(arguments[3], ".bmp")) {
-        written = write_bmp(
-            arguments[3], output.memory, width, height, chroma_format_idc);
-    } else if (wide_ends_with_ascii(arguments[3], ".png")) {
-        written = write_png(
-            arguments[3], output.memory, width, height, chroma_format_idc);
+        int reported = av2h_cli_write_decode_error(
+            &image, status, AV2H_CLI_DIAGNOSTIC_TRACE,
+            write_console, NULL) == AV2H_OK;
+        exit_code = reported && status == AV2H_UNSUPPORTED ? 3U : 1U;
+    } else if (av2h_cli_write_trace(
+            &image.result, write_console, NULL) != AV2H_OK) {
+        exit_code = 1U;
     } else {
-        written = write_entire_file(arguments[3], output.memory, output.size);
+        release_memory(NULL, &image.diagnostic_memory);
+        image.result.diagnostics = NULL;
+        output_file.path = arguments[3];
+        output_file.handle = AV2H_WIN_INVALID_HANDLE;
+        result = av2h_cli_write_output(&image, &output, &allocator, &file);
+        exit_code = (unsigned int)av2h_cli_write_exit_code(result);
+        if (av2h_cli_write_output_error(
+                result, AV2H_CLI_DIAGNOSTIC_TRACE,
+                write_console, NULL) != AV2H_OK) exit_code = 1U;
     }
-    if (!written) write_console("error: cannot write output\r\n");
-    release_memory(&output);
-    release_memory(&input);
-    release_memory(&command_line);
-    return written ? 0U : 1U;
+    av2h_cli_image_release(&allocator, &image);
+    release_memory(NULL, &input);
+    release_memory(NULL, &command_line);
+    return exit_code;
 }
 
 __declspec(noreturn) void mainCRTStartup(void) {
