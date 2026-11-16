@@ -19,27 +19,44 @@ static CdefTileBounds cdef_tile_bounds(const Av2hSequenceState *sequence,
     CdefTileBounds bounds = {0U, 0U, frame->width, frame->height};
     unsigned int column;
     unsigned int row;
-    if (sequence == NULL || sequence->disable_loopfilters_across_tiles == 0U) {
-        return bounds;
-    }
-    for (column = 0U; column < frame->tile_column_count; ++column) {
-        uint32_t end =
-            (uint32_t)frame->tile_column_start_sb[column + 1U] * sequence->superblock_size;
-        if (x < end || column + 1U == frame->tile_column_count) {
-            bounds.left =
-                (uint16_t)(frame->tile_column_start_sb[column] * sequence->superblock_size);
-            bounds.right = (uint16_t)(end < frame->width ? end : frame->width);
-            break;
+    unsigned int max_columns = (unsigned int)(sizeof(frame->tile_column_start_sb) /
+                                                  sizeof(frame->tile_column_start_sb[0]) -
+                                              1U);
+    unsigned int max_rows =
+        (unsigned int)(sizeof(frame->tile_row_start_sb) / sizeof(frame->tile_row_start_sb[0]) - 1U);
+    unsigned int column_count =
+        frame->tile_column_count <= max_columns ? frame->tile_column_count : max_columns;
+    unsigned int row_count = frame->tile_row_count <= max_rows ? frame->tile_row_count : max_rows;
+    if (sequence != NULL && sequence->disable_loopfilters_across_tiles != 0U) {
+        for (column = 0U; column < column_count; ++column) {
+            uint32_t start =
+                (uint32_t)frame->tile_column_start_sb[column] * sequence->superblock_size;
+            uint32_t end =
+                (uint32_t)frame->tile_column_start_sb[column + 1U] * sequence->superblock_size;
+            if (x < end || column + 1U == column_count) {
+                bounds.left = (uint16_t)(start <= x ? start : x);
+                bounds.right = (uint16_t)(end < frame->width ? end : frame->width);
+                break;
+            }
+        }
+        for (row = 0U; row < row_count; ++row) {
+            uint32_t start = (uint32_t)frame->tile_row_start_sb[row] * sequence->superblock_size;
+            uint32_t end = (uint32_t)frame->tile_row_start_sb[row + 1U] * sequence->superblock_size;
+            if (y < end || row + 1U == row_count) {
+                bounds.top = (uint16_t)(start <= y ? start : y);
+                bounds.bottom = (uint16_t)(end < frame->height ? end : frame->height);
+                break;
+            }
         }
     }
-    for (row = 0U; row < frame->tile_row_count; ++row) {
-        uint32_t end = (uint32_t)frame->tile_row_start_sb[row + 1U] * sequence->superblock_size;
-        if (y < end || row + 1U == frame->tile_row_count) {
-            bounds.top = (uint16_t)(frame->tile_row_start_sb[row] * sequence->superblock_size);
-            bounds.bottom = (uint16_t)(end < frame->height ? end : frame->height);
-            break;
-        }
-    }
+    if (bounds.right <= x)
+        bounds.right = frame->width;
+    if (bounds.left > x)
+        bounds.left = 0U;
+    if (bounds.bottom <= y)
+        bounds.bottom = frame->height;
+    if (bounds.top > y)
+        bounds.top = 0U;
     return bounds;
 }
 

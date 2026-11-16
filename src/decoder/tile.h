@@ -273,6 +273,10 @@ _Static_assert(AV2H_PROFILE_MAX_TILES <= AV2H_MAX_TILE_COUNT,
                "profile tile cap must not exceed sequence tile cap");
 _Static_assert(AV2H_MAX_LOSSLESS_CHROMA_TX_NODES >= (128U / 4U) * (128U / 4U),
                "lossless chroma TX node array must cover a 128x128 superblock");
+_Static_assert(AV2H_MAX_LUMA_PARTITION_NODES >= (128U / 4U) * (128U / 4U),
+               "luma partition node cache must cover a 128x128 superblock");
+_Static_assert(AV2H_MAX_TX_PARTITION_NODES == 5U,
+               "luma TX partition node capacity must hold up to 5 sub-transforms");
 _Static_assert(AV2H_TX_PARTITION_TYPE_SYMBOLS <= AV2H_MAX_CDF_SYMBOLS,
                "TX partition CDF symbols must not exceed AV2H_MAX_CDF_SYMBOLS");
 

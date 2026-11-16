@@ -14,6 +14,7 @@ typedef struct {
     size_t coefficient_above;
     size_t coefficient_left;
     size_t colocated_luma;
+    size_t restoration_taps;
 } Av2hFrameContextSizes;
 
 typedef struct {
@@ -514,10 +515,13 @@ static int tile_context_valid(const Av2hSequenceState *sequence, const Av2hFrame
                             &sizes->coefficient_left) ||
         !av2h_size_multiply(context->colocated_luma_count, sizeof(*context->colocated_luma),
                             &sizes->colocated_luma) ||
+        !av2h_size_multiply(context->restoration_unit_tap_capacity,
+                            sizeof(*context->restoration_unit_taps), &sizes->restoration_taps) ||
         (context->gdf_block_flag_capacity != 0U && context->gdf_block_flags == NULL) ||
         (context->cdef_unit_strength_capacity != 0U && context->cdef_unit_strengths == NULL) ||
         (context->restoration_unit_flag_capacity != 0U &&
-         context->restoration_unit_flags == NULL)) {
+         context->restoration_unit_flags == NULL) ||
+        (context->restoration_unit_tap_capacity != 0U && context->restoration_unit_taps == NULL)) {
         return 0;
     }
     return 1;
@@ -641,6 +645,8 @@ static int output_is_disjoint(uint8_t *output, size_t output_size_bytes,
                         context->cdef_unit_strength_capacity) ||
         output_overlaps(output, output_size_bytes, context->restoration_unit_flags,
                         context->restoration_unit_flag_capacity) ||
+        output_overlaps(output, output_size_bytes, context->restoration_unit_taps,
+                        context_sizes->restoration_taps) ||
         output_overlaps(
             output, output_size_bytes,
             workspace->bytes_per_sample == 1U ? (const void *)workspace->reconstruction_scratch

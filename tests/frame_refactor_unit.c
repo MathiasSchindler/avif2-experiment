@@ -1,4 +1,6 @@
 #include "decoder/internal/frame_workspace.h"
+#include "decoder/internal/leaf_modules.h"
+#include "decoder/internal/tile_modules.h"
 #include "decoder/tx_geometry.h"
 
 #include <inttypes.h>
@@ -724,6 +726,177 @@ static void test_frame_orchestration_results(void) {
     }
 }
 
+static void test_s4_state_desynchronization_and_filter_bounds(void) {
+    static _Alignas(max_align_t) uint8_t memory[512U * 1024U];
+    uint8_t dummy_entropy[16U] = {0x80U};
+    Av2hSpan span = {dummy_entropy, sizeof(dummy_entropy)};
+    Av2hSequenceState sequence;
+    Av2hFrameState frame;
+    Av2hFrameDecodeWorkspaceLayout layout;
+    Av2hFrameDecodeWorkspace workspace;
+    Av2hFilterWorkspace filter;
+    Av2hFilterWorkspaceStorage storage;
+    Av2hPartitionNode node_out;
+
+    initialize(&sequence, &frame, 64U, 64U, 0U, 1U);
+    sequence.enable_restoration = 1U;
+    frame.restoration_type[1] = AV2H_RESTORE_PC_WIENER;
+    frame.restoration_unit_size[1] = 32U;
+    frame.restoration_unit_columns[1] = 1U;
+    frame.restoration_unit_rows[1] = 1U;
+    frame.restoration_unit_count[1] = 1U;
+    CHECK(av2h_frame_decode_workspace_query(&sequence, &frame, 1U, NULL, &layout) == AV2H_OK);
+    CHECK(layout.size_bytes <= sizeof(memory));
+    CHECK(av2h_frame_decode_workspace_init(&sequence, &frame, 1U, &layout, memory,
+                                           layout.size_bytes, &workspace, &filter, &storage,
+                                           NULL) == AV2H_OK);
+
+    /* Output aliasing onto restoration_unit_taps must be rejected. */
+    {
+        size_t required = 0U;
+        Av2hFrameDecodeResult res = {0};
+        CHECK(av2h_planar_output_size(&frame, 1U, &required) == AV2H_OK);
+        CHECK(workspace.tile_context.restoration_unit_taps != NULL);
+        CHECK(av2h_decode_frame_planar_private(
+                  span, &sequence, &frame, &workspace,
+                  (uint8_t *)workspace.tile_context.restoration_unit_taps, required, &res, NULL) ==
+              AV2H_INVALID_ARGUMENT);
+    }
+
+    /* Tile decoder sub-TX, monochrome chroma, lossless 256x256 overflow, and finish_root guards. */
+    {
+        Av2hTileDecoder *dec = &workspace.decode_scratch->tile_decoder;
+        Av2hTileChromaLeaf chroma_leaf = {0};
+        Av2hCoeffBlock u_blk = {0};
+        Av2hCoeffBlock v_blk = {0};
+        uint8_t has_leaf = 0U;
+
+        CHECK(av2h_tile_decoder_init(dec, span, &sequence, &frame, &workspace.tile_context, 0U) ==
+              AV2H_OK);
+        dec->luma.selected_tx_count = AV2H_MAX_TX_PARTITION_NODES + 1U;
+        CHECK(av2h_tile_luma_tx_node_get(dec, AV2H_MAX_TX_PARTITION_NODES, &node_out) ==
+              AV2H_INVALID_ARGUMENT);
+        dec->luma.selected_tx_count = 0U;
+
+        /* Unconsumed in-bounds node on traversal stack must fail finish_root / advance_root. */
+        dec->traversal.luma_traversal.stack_count = 0U;
+        dec->traversal.chroma_traversal.stack_count = 1U;
+        dec->traversal.chroma_traversal.stack[0] = (Av2hPartitionNode){0U, 0U, AV2H_BLOCK_64X64};
+        dec->luma.tx_count = 2U;
+        CHECK(av2h_tile_decoder_finish_root(dec) == AV2H_INVALID_DATA ||
+              av2h_tile_decoder_finish_root(dec) == AV2H_INVALID_ARGUMENT);
+
+        /* Lossless chroma coding node exceeding AV2H_MAX_LOSSLESS_CHROMA_TX_NODES must overflow. */
+        initialize(&sequence, &frame, 256U, 256U, 2U, 1U);
+        frame.base_q_index = 0U;
+        CHECK(av2h_frame_decode_workspace_query(&sequence, &frame, 1U, NULL, &layout) == AV2H_OK);
+        if (layout.size_bytes <= sizeof(memory)) {
+            CHECK(av2h_frame_decode_workspace_init(&sequence, &frame, 1U, &layout, memory,
+                                                   layout.size_bytes, &workspace, &filter, &storage,
+                                                   NULL) == AV2H_OK);
+            dec = &workspace.decode_scratch->tile_decoder;
+            CHECK(av2h_tile_decoder_init(dec, span, &sequence, &frame, &workspace.tile_context,
+                                         0U) == AV2H_OK);
+            dec->control.phase = AV2H_TILE_DECODE_CHROMA;
+            dec->traversal.colocated_luma[0].context.present = 1U;
+            dec->traversal.colocated_luma[0].context.q_index = 0U;
+            dec->traversal.chroma_traversal.stack_count = 0U;
+            dec->traversal.chroma_traversal.has_pending_leaf = 1U;
+            dec->traversal.chroma_traversal.pending_leaf =
+                (Av2hPartitionNode){0U, 0U, AV2H_BLOCK_256X256};
+            CHECK(av2h_tile_decoder_next_chroma(dec, &chroma_leaf, &u_blk, &v_blk, &has_leaf) ==
+                  AV2H_OVERFLOW);
+        }
+
+        /* Monochrome frame must reject chroma decode even if phase is forced. */
+        initialize(&sequence, &frame, 64U, 64U, 1U, 1U);
+        CHECK(av2h_frame_decode_workspace_query(&sequence, &frame, 1U, NULL, &layout) == AV2H_OK);
+        CHECK(av2h_frame_decode_workspace_init(&sequence, &frame, 1U, &layout, memory,
+                                               layout.size_bytes, &workspace, &filter, &storage,
+                                               NULL) == AV2H_OK);
+        dec = &workspace.decode_scratch->tile_decoder;
+        CHECK(av2h_tile_decoder_init(dec, span, &sequence, &frame, &workspace.tile_context, 0U) ==
+              AV2H_OK);
+        dec->control.phase = AV2H_TILE_DECODE_CHROMA;
+        CHECK(av2h_tile_decoder_next_chroma(dec, &chroma_leaf, &u_blk, &v_blk, &has_leaf) ==
+              AV2H_INVALID_ARGUMENT);
+    }
+
+    /* Filter handoff completeness: non-zero plane restoration, CDEF untransmitted, and metadata. */
+    {
+        Av2hTileDecoder *dec = &workspace.decode_scratch->tile_decoder;
+        Av2hTileFilterControls controls;
+        uint8_t cdef_strengths[1U] = {AV2H_CDEF_UNTRANSMITTED};
+        Av2hRangeDecoder range;
+        Av2hLeafCdfs leaf_cdfs = {0};
+        Av2hPartitionNode leaf = {0U, 0U, AV2H_BLOCK_64X64};
+        Av2hLeafMode mode = {0};
+        Av2hCoeffPrefix prefix = {0};
+        Av2hGdfEntropyState gdf_zero = {0};
+
+        initialize(&sequence, &frame, 64U, 64U, 0U, 1U);
+        sequence.enable_restoration = 1U;
+        frame.restoration_type[1] = AV2H_RESTORE_PC_WIENER;
+        frame.restoration_unit_size[1] = 32U;
+        frame.restoration_unit_columns[1] = 1U;
+        frame.restoration_unit_rows[1] = 1U;
+        frame.restoration_unit_count[1] = 1U;
+        CHECK(av2h_frame_decode_workspace_query(&sequence, &frame, 1U, NULL, &layout) == AV2H_OK);
+        CHECK(av2h_frame_decode_workspace_init(&sequence, &frame, 1U, &layout, memory,
+                                               layout.size_bytes, &workspace, &filter, &storage,
+                                               NULL) == AV2H_OK);
+        dec = &workspace.decode_scratch->tile_decoder;
+        CHECK(av2h_tile_decoder_init(dec, span, &sequence, &frame, &workspace.tile_context, 0U) ==
+              AV2H_OK);
+        /* Plane 0 has 0 restoration units, plane 1 has 1 unit still undecoded (0 != 1). */
+        CHECK(av2h_tile_filter_controls_handoff(dec, &controls) == AV2H_UNSUPPORTED);
+        dec->entropy_state.restoration_entropy.decoded_count[1] = 1U;
+        CHECK(av2h_tile_filter_controls_handoff(dec, &controls) == AV2H_OK);
+
+        /* Untransmitted CDEF unit when cdef_on_skip_transform == 1 must fail handoff. */
+        frame.cdef_strength_count = 2U;
+        frame.cdef_on_skip_transform = 1U;
+        dec->entropy_state.cdef_entropy.strength_count = 2U;
+        dec->entropy_state.cdef_entropy.unit_columns = 1U;
+        dec->entropy_state.cdef_entropy.unit_rows = 1U;
+        dec->entropy_state.cdef_entropy.unit_count = 1U;
+        dec->entropy_state.cdef_entropy.unit_strength_capacity = 1U;
+        dec->entropy_state.cdef_entropy.unit_strengths = cdef_strengths;
+        CHECK(av2h_tile_filter_controls_handoff(dec, &controls) == AV2H_UNSUPPORTED);
+        cdef_strengths[0] = 2U;
+        CHECK(av2h_tile_filter_controls_handoff(dec, &controls) == AV2H_UNSUPPORTED);
+        cdef_strengths[0] = 1U;
+        CHECK(av2h_tile_filter_controls_handoff(dec, &controls) == AV2H_OK);
+
+        /* Zero-divisor / out-of-range guards in filter_entropy, metadata, and CDEF. */
+        CHECK(av2h_range_init(&range, &span, 1U) == AV2H_OK);
+        frame.gdf_mode = 2U;
+        gdf_zero.mode = 2U;
+        gdf_zero.block_flags = dummy_entropy;
+        gdf_zero.block_flag_capacity = 4U;
+        CHECK(av2h_leaf_read_gdf_entropy(&range, &frame, &leaf, &gdf_zero, &mode) ==
+              AV2H_UNSUPPORTED);
+        frame.cdef_strength_count = AV2H_CDEF_MAX_STRENGTHS + 1U;
+        CHECK(av2h_leaf_read_cdef_entropy(&range, &frame, &leaf, &dec->entropy_state.cdef_entropy,
+                                          &mode) == AV2H_INVALID_DATA);
+        sequence.superblock_size = 0U;
+        frame.ccso[0].enabled = 1U;
+        dec->entropy_state.ccso_entropy.enabled_mask = 1U;
+        CHECK(av2h_leaf_read_ccso_entropy(&range, &leaf_cdfs, &sequence, &frame, &leaf, NULL,
+                                          &dec->entropy_state.ccso_entropy, &mode) ==
+              AV2H_INVALID_DATA);
+
+        prefix.tx_size = AV2H_TX_16X16;
+        CHECK(av2h_deblock_map_commit_transform(&filter.deblock_map, 3U, 0U, &leaf, &prefix, 0U,
+                                                0U, 0U) == AV2H_INVALID_ARGUMENT);
+        CHECK(av2h_deblock_map_commit_transform(&filter.deblock_map, 1U, 1U, &leaf, &prefix, 0U,
+                                                0U, 0U) == AV2H_INVALID_ARGUMENT);
+        filter.restoration_tx_skip = dummy_entropy;
+        filter.restoration_controls.tx_skip_stride = filter.deblock_map.columns[0] - 1U;
+        CHECK(av2h_restoration_tx_skip_commit(&filter, &leaf, &prefix) == AV2H_INVALID_ARGUMENT);
+    }
+}
+
 int main(void) {
     unsigned int bytes;
     uint8_t format;
@@ -744,5 +917,6 @@ int main(void) {
     }
     test_frame_results();
     test_frame_orchestration_results();
+    test_s4_state_desynchronization_and_filter_bounds();
     return failures != 0;
 }

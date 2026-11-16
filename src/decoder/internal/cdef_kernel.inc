@@ -308,8 +308,9 @@ Av2hStatus AV2H_KERNEL_NAME(av2h_cdef_filter_rows, av2h_cdef_filter_rows_u16)(
     }
     if (frame->cdef_strength_count != 0U) {
         size_t strength_index;
-        if (frame->cdef_damping > 6U)
+        if (frame->cdef_damping > 6U || frame->cdef_strength_count > AV2H_CDEF_MAX_STRENGTHS) {
             return AV2H_INVALID_ARGUMENT;
+        }
         for (strength_index = 0U; strength_index < frame->cdef_strength_count; ++strength_index) {
             if (frame->cdef_y_strength[strength_index] > 63U ||
                 frame->cdef_uv_strength[strength_index] > 63U) {

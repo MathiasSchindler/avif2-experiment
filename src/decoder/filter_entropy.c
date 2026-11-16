@@ -62,16 +62,22 @@ Av2hStatus av2h_gdf_entropy_state_init(Av2hGdfEntropyState *state,
 Av2hStatus av2h_leaf_read_gdf_entropy(Av2hRangeDecoder *decoder, const Av2hFrameState *frame,
                                       const Av2hPartitionNode *leaf, Av2hGdfEntropyState *state,
                                       Av2hLeafMode *mode) {
-    size_t mi_rows = ((size_t)frame->height + 3U) / 4U;
-    size_t mi_columns = ((size_t)frame->width + 3U) / 4U;
+    size_t mi_rows;
+    size_t mi_columns;
     size_t mi_row;
     size_t mi_column;
+    if (decoder == NULL || frame == NULL || leaf == NULL || mode == NULL) {
+        return AV2H_INVALID_ARGUMENT;
+    }
+    mi_rows = ((size_t)frame->height + 3U) / 4U;
+    mi_columns = ((size_t)frame->width + 3U) / 4U;
     mode->before_gdf_bits = av2h_range_tell(decoder);
     mode->after_gdf_bits = mode->before_gdf_bits;
     mode->gdf_flags_read = 0U;
     if (frame->gdf_mode < 2U)
         return AV2H_OK;
     if (state == NULL || state->mode != frame->gdf_mode || state->block_flags == NULL ||
+        state->block_size == 0U || state->superblock_mi == 0U ||
         state->block_flag_capacity < frame->gdf_block_count) {
         return AV2H_UNSUPPORTED;
     }
@@ -93,7 +99,8 @@ Av2hStatus av2h_leaf_read_gdf_entropy(Av2hRangeDecoder *decoder, const Av2hFrame
                 continue;
             block_index = (pixel_row / state->block_size) * state->block_columns +
                           pixel_column / state->block_size;
-            if (block_index >= frame->gdf_block_count || block_index != state->decoded_count) {
+            if (block_index >= frame->gdf_block_count ||
+                block_index >= state->block_flag_capacity || block_index != state->decoded_count) {
                 return AV2H_INVALID_DATA;
             }
             value = av2h_range_read_adaptive(decoder, state->cdf, 2U);
@@ -197,16 +204,25 @@ static Av2hStatus cdef_index0_context(const Av2hCdefEntropyState *state,
     uint8_t above = AV2H_CDEF_UNTRANSMITTED;
     uint8_t left_available;
     uint8_t above_available;
-    if (state == NULL || leaf == NULL || context == NULL || unit_row >= state->unit_rows ||
+    if (state == NULL || leaf == NULL || context == NULL || state->superblock_mi == 0U ||
+        state->unit_strengths == NULL || unit_row >= state->unit_rows ||
         unit_column >= state->unit_columns) {
         return AV2H_INVALID_ARGUMENT;
     }
     if (unit_column != 0U && unit_column * 16U > state->tile_start_column) {
-        left = state->unit_strengths[unit_row * state->unit_columns + unit_column - 1U];
+        size_t left_index = unit_row * state->unit_columns + unit_column - 1U;
+        if (left_index >= state->unit_strength_capacity) {
+            return AV2H_INVALID_DATA;
+        }
+        left = state->unit_strengths[left_index];
     }
     if (unit_row != 0U && unit_row * 16U > state->tile_start_row && leaf->row >= 16U &&
         leaf->row / state->superblock_mi == (leaf->row - 16U) / state->superblock_mi) {
-        above = state->unit_strengths[(unit_row - 1U) * state->unit_columns + unit_column];
+        size_t above_index = (unit_row - 1U) * state->unit_columns + unit_column;
+        if (above_index >= state->unit_strength_capacity) {
+            return AV2H_INVALID_DATA;
+        }
+        above = state->unit_strengths[above_index];
     }
     left_available = left != AV2H_CDEF_UNTRANSMITTED;
     above_available = above != AV2H_CDEF_UNTRANSMITTED;
@@ -229,12 +245,19 @@ static Av2hStatus cdef_index0_context(const Av2hCdefEntropyState *state,
 
 static Av2hStatus cdef_span_strength(Av2hCdefEntropyState *state, const Av2hPartitionNode *leaf,
                                      size_t width, size_t height, uint8_t strength) {
-    size_t first_row = leaf->row / 16U;
-    size_t first_column = leaf->column / 16U;
-    size_t last_row = ((size_t)leaf->row + height - 1U) / 16U;
-    size_t last_column = ((size_t)leaf->column + width - 1U) / 16U;
+    size_t first_row;
+    size_t first_column;
+    size_t last_row;
+    size_t last_column;
     size_t row;
     size_t column;
+    if (width == 0U || height == 0U) {
+        return AV2H_INVALID_DATA;
+    }
+    first_row = leaf->row / 16U;
+    first_column = leaf->column / 16U;
+    last_row = ((size_t)leaf->row + height - 1U) / 16U;
+    last_column = ((size_t)leaf->column + width - 1U) / 16U;
     if (first_row >= state->unit_rows || first_column >= state->unit_columns ||
         strength >= state->strength_count) {
         return AV2H_INVALID_DATA;
@@ -247,7 +270,11 @@ static Av2hStatus cdef_span_strength(Av2hCdefEntropyState *state, const Av2hPart
     for (row = first_row; row <= last_row; ++row) {
         for (column = first_column; column <= last_column; ++column) {
             size_t index = row * state->unit_columns + column;
-            uint8_t current = state->unit_strengths[index];
+            uint8_t current;
+            if (index >= state->unit_strength_capacity) {
+                return AV2H_INVALID_DATA;
+            }
+            current = state->unit_strengths[index];
             if (current != AV2H_CDEF_UNTRANSMITTED && current != strength) {
                 return AV2H_INVALID_DATA;
             }
@@ -271,12 +298,18 @@ Av2hStatus av2h_leaf_read_cdef_entropy(Av2hRangeDecoder *decoder, const Av2hFram
     size_t expected_count;
     uint16_t expected_columns;
     uint16_t expected_rows;
+    if (decoder == NULL || frame == NULL || leaf == NULL || mode == NULL) {
+        return AV2H_INVALID_ARGUMENT;
+    }
     mode->before_cdef_bits = av2h_range_tell(decoder);
     mode->after_cdef_bits = mode->before_cdef_bits;
     mode->cdef_strengths_read = 0U;
     mode->cdef_strength_index = 0U;
     if (frame->cdef_strength_count <= 1U)
         return AV2H_OK;
+    if (frame->cdef_strength_count > AV2H_CDEF_MAX_STRENGTHS) {
+        return AV2H_INVALID_DATA;
+    }
     expected_columns = (uint16_t)(((uint32_t)frame->width + 63U) / 64U);
     expected_rows = (uint16_t)(((uint32_t)frame->height + 63U) / 64U);
     if (!av2h_size_multiply(expected_columns, expected_rows, &expected_count)) {
@@ -479,6 +512,10 @@ Av2hStatus av2h_leaf_read_ccso_entropy(Av2hRangeDecoder *decoder, Av2hLeafCdfs *
     uint16_t expected_rows;
     uint8_t expected_mask = 0U;
     Av2hStatus status;
+    if (decoder == NULL || cdfs == NULL || sequence == NULL || frame == NULL || leaf == NULL ||
+        mode == NULL) {
+        return AV2H_INVALID_ARGUMENT;
+    }
     mode->before_ccso_bits = av2h_range_tell(decoder);
     mode->after_ccso_bits = mode->before_ccso_bits;
     mode->ccso_controls_read = 0U;
@@ -493,6 +530,9 @@ Av2hStatus av2h_leaf_read_ccso_entropy(Av2hRangeDecoder *decoder, Av2hLeafCdfs *
                         ? frame->ccso_unit_size
                         : (sequence->ccso_unit_matches_superblock_size ? sequence->superblock_size
                                                                        : AV2H_CCSO_MAX_UNIT_SIZE);
+    if (expected_size < 4U || sequence->superblock_size < 4U) {
+        return AV2H_INVALID_DATA;
+    }
     expected_columns = (uint16_t)(((uint32_t)frame->width + expected_size - 1U) / expected_size);
     expected_rows = (uint16_t)(((uint32_t)frame->height + expected_size - 1U) / expected_size);
     if (!av2h_size_multiply(expected_columns, expected_rows, &expected_count) ||
@@ -552,7 +592,11 @@ Av2hStatus av2h_leaf_read_ccso_entropy(Av2hRangeDecoder *decoder, Av2hLeafCdfs *
             size_t span_column;
             for (span_column = unit_column; span_column <= last_unit_column; ++span_column) {
                 size_t span_index = span_row * state->unit_columns + span_column;
-                uint8_t current = state->unit_controls[plane][span_index];
+                uint8_t current;
+                if (span_index >= state->unit_control_capacity) {
+                    return AV2H_INVALID_DATA;
+                }
+                current = state->unit_controls[plane][span_index];
                 if (current != AV2H_CCSO_UNTRANSMITTED && current != value) {
                     return AV2H_INVALID_DATA;
                 }

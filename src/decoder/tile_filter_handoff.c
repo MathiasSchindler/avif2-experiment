@@ -4,11 +4,37 @@
 
 #include <stddef.h>
 
+static int cdef_entropy_complete(const Av2hFrameState *frame, const Av2hCdefEntropyState *state) {
+    size_t index;
+    if (frame == NULL || state == NULL)
+        return 0;
+    if (frame->cdef_strength_count <= 1U)
+        return 1;
+    if (state->unit_strengths == NULL || state->unit_strength_capacity < state->unit_count ||
+        state->strength_count != frame->cdef_strength_count ||
+        state->unit_count != (size_t)state->unit_columns * state->unit_rows) {
+        return 0;
+    }
+    for (index = 0U; index < state->unit_count; ++index) {
+        uint8_t strength = state->unit_strengths[index];
+        if (strength == AV2H_CDEF_UNTRANSMITTED) {
+            if (frame->cdef_on_skip_transform != 0U)
+                return 0;
+        } else if (strength >= state->strength_count) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
 static int ccso_entropy_complete(const Av2hCcsoEntropyState *state) {
     size_t plane;
     size_t index;
     if (state == NULL)
         return 0;
+    if (state->enabled_mask != 0U && state->unit_control_capacity < state->unit_count) {
+        return 0;
+    }
     for (plane = 0U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
         if ((state->enabled_mask & (uint8_t)(1U << plane)) == 0U) {
             continue;
@@ -28,20 +54,31 @@ Av2hStatus av2h_tile_filter_controls_handoff(const Av2hTileDecoder *decoder,
                                              Av2hTileFilterControls *controls) {
     uint16_t ccso_unit_size;
     size_t plane;
-    if (decoder == NULL || controls == NULL)
+    if (decoder == NULL || controls == NULL || decoder->entropy_state.frame == NULL)
         return AV2H_INVALID_ARGUMENT;
     av2h_memory_fill(controls, 0U, sizeof(*controls));
     if (decoder->entropy_state.frame->gdf_mode >= 2U &&
-        decoder->entropy_state.gdf_entropy.decoded_count !=
-            decoder->entropy_state.frame->gdf_block_count) {
+        (decoder->entropy_state.gdf_entropy.block_flags == NULL ||
+         decoder->entropy_state.gdf_entropy.block_flag_capacity <
+             decoder->entropy_state.frame->gdf_block_count ||
+         decoder->entropy_state.gdf_entropy.decoded_count !=
+             decoder->entropy_state.frame->gdf_block_count)) {
         return AV2H_UNSUPPORTED;
     }
-    if (decoder->entropy_state.restoration_entropy.active_mask != 0U &&
-        decoder->entropy_state.restoration_entropy.decoded_count[0] !=
-            decoder->entropy_state.frame->restoration_unit_count[0]) {
-        return AV2H_UNSUPPORTED;
+    if (decoder->entropy_state.restoration_entropy.active_mask != 0U) {
+        for (plane = 0U; plane < av2h_frame_plane_count(decoder->entropy_state.frame); ++plane) {
+            if ((decoder->entropy_state.restoration_entropy.active_mask & (1U << plane)) != 0U &&
+                (decoder->entropy_state.restoration_entropy.decoded_count[plane] !=
+                     decoder->entropy_state.frame->restoration_unit_count[plane] ||
+                 decoder->entropy_state.restoration_entropy.unit_capacity[plane] <
+                     decoder->entropy_state.frame->restoration_unit_count[plane])) {
+                return AV2H_UNSUPPORTED;
+            }
+        }
     }
-    if (!ccso_entropy_complete(&decoder->entropy_state.ccso_entropy)) {
+    if (!cdef_entropy_complete(decoder->entropy_state.frame,
+                               &decoder->entropy_state.cdef_entropy) ||
+        !ccso_entropy_complete(&decoder->entropy_state.ccso_entropy)) {
         return AV2H_UNSUPPORTED;
     }
     controls->cdef.strengths = decoder->entropy_state.cdef_entropy.unit_strengths;

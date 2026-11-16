@@ -335,7 +335,11 @@ static Av2hStatus reconstruct_chroma_plane(Av2hFrameDecodeContext *context,
                                            const Av2hTileChromaLeaf *leaf,
                                            const Av2hCoeffBlock blocks[2U], unsigned int plane) {
     Av2hFrameDecodeWorkspace *workspace = context->workspace;
-    unsigned int index = plane - 1U;
+    unsigned int index;
+    if (plane < 1U || plane >= av2h_frame_plane_count(context->frame)) {
+        return AV2H_INVALID_DATA;
+    }
+    index = plane - 1U;
     if (workspace->bytes_per_sample == 1U) {
         return av2h_chroma_reconstruct_to_plane(
             workspace->diagnostics, &leaf->node, &leaf->mode, &leaf->prefix[index],
@@ -361,10 +365,14 @@ static Av2hStatus commit_chroma_deblock(Av2hFrameDecodeContext *context,
 
 static Av2hStatus flush_pending_chroma_leaves(Av2hFrameDecodeContext *context) {
     uint8_t pending_index;
+    if (context->pending_chroma_count > AV2H_PENDING_CHROMA_CAPACITY) {
+        return frame_decode_failure(context, AV2H_OVERFLOW, AV2H_FRAME_DECODE_STAGE_CHROMA_COMMIT,
+                                    0U, NULL, 0U);
+    }
     for (pending_index = 0U; pending_index < context->pending_chroma_count; ++pending_index) {
         const Av2hTileChromaLeaf *leaf = &context->scratch->pending_chroma_leaves[pending_index];
         unsigned int plane;
-        for (plane = 1U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
+        for (plane = 1U; plane < av2h_frame_plane_count(context->frame); ++plane) {
             Av2hStatus status = reconstruct_chroma_plane(
                 context, leaf, context->scratch->pending_chroma_blocks[pending_index], plane);
             if (status != AV2H_OK) {
@@ -508,6 +516,13 @@ static Av2hStatus decode_tile_leaves(Av2hFrameDecodeContext *context) {
         if (status != AV2H_OK)
             return status;
     }
+    if (context->pending_chroma_count != 0U || context->decoder->luma.tx_count != 0U ||
+        context->decoder->chroma.tx_count != 0U ||
+        context->decoder->chroma.shared_resume_luma != 0U ||
+        context->decoder->chroma.shared_commit_luma != 0U) {
+        return frame_decode_failure(context, AV2H_INVALID_DATA,
+                                    AV2H_FRAME_DECODE_STAGE_COMPLETENESS, 0U, NULL, 0U);
+    }
     return AV2H_OK;
 }
 
@@ -516,7 +531,8 @@ static Av2hStatus finish_frame_tiles(Av2hFrameDecodeContext *context,
     Av2hTileFilterControls filter_controls;
     Av2hStatus status;
     unsigned int plane;
-    if (!av2h_frame_workspace_complete(context->frame, context->workspace)) {
+    if (context->pending_chroma_count != 0U ||
+        !av2h_frame_workspace_complete(context->frame, context->workspace)) {
         return frame_decode_failure(context, AV2H_INVALID_DATA,
                                     AV2H_FRAME_DECODE_STAGE_COMPLETENESS, 0U, NULL, 0U);
     }
@@ -553,6 +569,14 @@ static Av2hStatus finish_frame_tiles(Av2hFrameDecodeContext *context,
     }
     for (plane = 0U; plane < av2h_frame_plane_count(context->frame); ++plane) {
         if (filter_controls.ccso.plane[plane] != NULL) {
+            if (context->workspace->filter_workspace->ccso_controls.plane[plane] == NULL ||
+                context->decoder->entropy_state.ccso_entropy.unit_count >
+                    layout->ccso_control_count ||
+                context->decoder->entropy_state.ccso_entropy.unit_control_capacity <
+                    layout->ccso_control_count) {
+                return frame_decode_failure(context, AV2H_INVALID_DATA,
+                                            AV2H_FRAME_DECODE_STAGE_COMPLETENESS, plane, NULL, 0U);
+            }
             av2h_memory_copy(
                 (void *)context->workspace->filter_workspace->ccso_controls.plane[plane],
                 filter_controls.ccso.plane[plane], layout->ccso_control_count);
@@ -703,18 +727,35 @@ static int tiles_parallel_safe(const Av2hFrameDecodeContext *context) {
 }
 
 static void tile_controls_merge(uint8_t *destination, const uint8_t *source, size_t columns,
-                                size_t rows, size_t unit_size, const Av2hTileDecoder *decoder) {
-    size_t x0 = (size_t)decoder->traversal.tile_start_column * 4U / unit_size;
-    size_t x1 = ((size_t)decoder->traversal.tile_end_column * 4U + unit_size - 1U) / unit_size;
-    size_t y0 = (size_t)decoder->traversal.tile_start_row * 4U / unit_size;
-    size_t y1 = ((size_t)decoder->traversal.tile_end_row * 4U + unit_size - 1U) / unit_size;
+                                size_t rows, size_t capacity, size_t unit_size,
+                                const Av2hTileDecoder *decoder) {
+    size_t x0;
+    size_t x1;
+    size_t y0;
+    size_t y1;
     size_t row;
+    if (destination == NULL || source == NULL || decoder == NULL || unit_size == 0U ||
+        columns == 0U || rows == 0U) {
+        return;
+    }
+    x0 = (size_t)decoder->traversal.tile_start_column * 4U / unit_size;
+    x1 = ((size_t)decoder->traversal.tile_end_column * 4U + unit_size - 1U) / unit_size;
+    y0 = (size_t)decoder->traversal.tile_start_row * 4U / unit_size;
+    y1 = ((size_t)decoder->traversal.tile_end_row * 4U + unit_size - 1U) / unit_size;
     if (x1 > columns)
         x1 = columns;
     if (y1 > rows)
         y1 = rows;
-    for (row = y0; row < y1; ++row)
-        av2h_memory_copy(destination + row * columns + x0, source + row * columns + x0, x1 - x0);
+    if (x0 >= x1 || y0 >= y1)
+        return;
+    for (row = y0; row < y1; ++row) {
+        size_t offset;
+        if (!av2h_size_multiply(row, columns, &offset) || offset > capacity ||
+            x1 > capacity - offset) {
+            return;
+        }
+        av2h_memory_copy(destination + offset + x0, source + offset + x0, x1 - x0);
+    }
 }
 
 static void prepare_tile_worker(Av2hFrameTileWorker *worker, Av2hFrameDecodeWorkspace *workspace,
@@ -800,7 +841,9 @@ static AV2H_NOINLINE Av2hStatus decode_parallel_tiles(Av2hFrameDecodeContext *co
                 const Av2hCdefEntropyState *state = &context->decoder->entropy_state.cdef_entropy;
                 tile_controls_merge(workspace->tile_context.cdef_unit_strengths,
                                     worker->workspace.tile_context.cdef_unit_strengths,
-                                    state->unit_columns, state->unit_rows, 64U, context->decoder);
+                                    state->unit_columns, state->unit_rows,
+                                    workspace->tile_context.cdef_unit_strength_capacity, 64U,
+                                    context->decoder);
             }
             for (plane = 0U; plane < av2h_frame_plane_count(context->frame); ++plane) {
                 if (context->frame->ccso[plane].enabled != 0U) {
@@ -808,17 +851,23 @@ static AV2H_NOINLINE Av2hStatus decode_parallel_tiles(Av2hFrameDecodeContext *co
                         &context->decoder->entropy_state.ccso_entropy;
                     tile_controls_merge(workspace->tile_context.ccso_unit_controls[plane],
                                         worker->workspace.tile_context.ccso_unit_controls[plane],
-                                        state->unit_columns, state->unit_rows, state->unit_size,
-                                        context->decoder);
+                                        state->unit_columns, state->unit_rows,
+                                        workspace->tile_context.ccso_unit_control_capacity,
+                                        state->unit_size, context->decoder);
                 }
             }
         }
     }
-    context->decoder->entropy_state.cdef_entropy.unit_strengths =
-        workspace->tile_context.cdef_unit_strengths;
-    for (index = 0U; index < av2h_frame_plane_count(context->frame); ++index)
-        context->decoder->entropy_state.ccso_entropy.unit_controls[index] =
-            workspace->tile_context.ccso_unit_controls[index];
+    if (context->frame->cdef_strength_count > 1U) {
+        context->decoder->entropy_state.cdef_entropy.unit_strengths =
+            workspace->tile_context.cdef_unit_strengths;
+    }
+    for (index = 0U; index < av2h_frame_plane_count(context->frame); ++index) {
+        if (context->frame->ccso[index].enabled != 0U) {
+            context->decoder->entropy_state.ccso_entropy.unit_controls[index] =
+                workspace->tile_context.ccso_unit_controls[index];
+        }
+    }
     return AV2H_OK;
 }
 
@@ -827,7 +876,7 @@ static AV2H_NOINLINE Av2hStatus decode_frame_tiles_planar(
     const Av2hSequenceState *sequence, const Av2hFrameState *frame,
     Av2hFrameDecodeWorkspace *workspace, uint8_t *output, size_t output_size_bytes,
     Av2hFrameDecodeResult *result, const Av2hExecution *execution) {
-    Av2hFrameDecodeContext context;
+    Av2hFrameDecodeContext context = {0};
     Av2hFrameDecodeResult decoded = {0};
     Av2hFilterWorkspaceLayout layout;
     size_t required_output_bytes;

@@ -167,6 +167,10 @@ _Static_assert(sizeof(((Av2hFrameDecodeScratch *)0)->active_blocks) /
                        sizeof(((Av2hFrameDecodeScratch *)0)->active_blocks[0]) ==
                    2U,
                "active coefficient scratch must hold a U/V block pair");
+_Static_assert(sizeof(((Av2hFrameDecodeScratch *)0)->pending_chroma_leaves) /
+                       sizeof(((Av2hFrameDecodeScratch *)0)->pending_chroma_leaves[0]) ==
+                   AV2H_PENDING_CHROMA_CAPACITY,
+               "pending chroma leaf queue must match pending chroma leaf capacity");
 _Static_assert(sizeof(((Av2hFrameDecodeScratch *)0)->pending_chroma_blocks) /
                        sizeof(((Av2hFrameDecodeScratch *)0)->pending_chroma_blocks[0]) ==
                    AV2H_PENDING_CHROMA_CAPACITY,

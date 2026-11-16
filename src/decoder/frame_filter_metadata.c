@@ -19,9 +19,9 @@ Av2hStatus av2h_deblock_map_commit_transform(Av2hDeblockMap *map, uint8_t chroma
     size_t row;
     Av2hStatus status;
     if (map == NULL || leaf == NULL || prefix == NULL || plane >= AV2H_FRAME_PLANE_COUNT ||
-        skip > 1U || all_zero > 1U || lossless > 1U || map->plane[plane] == NULL ||
-        map->columns[plane] == 0U || map->rows[plane] == 0U ||
-        map->stride_cells[plane] < map->columns[plane]) {
+        chroma_format_idc > 2U || (chroma_format_idc == 1U && plane != 0U) || skip > 1U ||
+        all_zero > 1U || lossless > 1U || map->plane[plane] == NULL || map->columns[plane] == 0U ||
+        map->rows[plane] == 0U || map->stride_cells[plane] < map->columns[plane]) {
         return AV2H_INVALID_ARGUMENT;
     }
     status = av2h_tx_descriptor_get(prefix->tx_size, &descriptor);
@@ -83,8 +83,9 @@ Av2hStatus av2h_restoration_tx_skip_commit(Av2hFilterWorkspace *workspace,
     size_t row;
     Av2hStatus status;
     if (workspace == NULL || leaf == NULL || prefix == NULL ||
-        workspace->restoration_tx_skip == NULL ||
-        workspace->restoration_controls.tx_skip_stride == 0U) {
+        workspace->restoration_tx_skip == NULL || workspace->deblock_map.columns[0] == 0U ||
+        workspace->deblock_map.rows[0] == 0U ||
+        workspace->restoration_controls.tx_skip_stride < workspace->deblock_map.columns[0]) {
         return AV2H_INVALID_ARGUMENT;
     }
     status = av2h_tx_descriptor_get(prefix->tx_size, &descriptor);

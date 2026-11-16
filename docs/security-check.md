@@ -1,6 +1,6 @@
 # Security Audit and Hardening Plan
 
-**Status:** S1–S3 complete; S4–S10 planned
+**Status:** S1–S4 complete; S5–S10 planned
 **Scope:** [`src/`](../src/), [`include/av2heif.h`](../include/av2heif.h), [`Makefile`](../Makefile), and [`tools/`](../tools/)
 
 ## Purpose and Scope
@@ -135,6 +135,10 @@ In complex codecs, vulnerabilities frequently arise when the **syntax parser** a
 
 ### Exit Criteria
 - Every fixed-capacity queue and arena-backed control array in tile/leaf/filter parsing is guarded against overflow and checked for completeness before filter execution.
+
+### S4 Implementation Notes (Completed)
+- Audited and hardened fixed-capacity queues and syntax arrays across [`tile.h`](../src/decoder/tile.h), [`tile.c`](../src/decoder/tile.c), [`tile_luma.c`](../src/decoder/tile_luma.c), [`tile_chroma.c`](../src/decoder/tile_chroma.c), [`frame_output.h`](../src/decoder/frame_output.h), and [`frame_output.c`](../src/decoder/frame_output.c): enforced `tx_count <= AV2H_MAX_LOSSLESS_CHROMA_TX_NODES` prior to chroma TX splitting, bounded `tx_nodes[AV2H_MAX_TX_PARTITION_NODES]` and `luma_partition_nodes[AV2H_MAX_LUMA_PARTITION_NODES]`, prevented SDP chroma transitions on monochrome frames, and required zero undrained `pending_chroma_count`, zero active sub-TX state, and zero unconsumed in-bounds partition traversal nodes at superblock/tile completion.
+- Hardened filter entropy, metadata writers, and parallel control merging across [`filter_entropy.c`](../src/decoder/filter_entropy.c), [`tile_filter_handoff.c`](../src/decoder/tile_filter_handoff.c), [`frame_filter_metadata.c`](../src/decoder/frame_filter_metadata.c), [`frame_workspace.c`](../src/decoder/frame_workspace.c), [`cdef.c`](../src/decoder/cdef.c), and [`cdef_kernel.inc`](../src/decoder/internal/cdef_kernel.inc): verified restoration completeness across all active planes `0..2`, verified CDEF/GDF/CCSO unit completeness and arena capacities before handoff, eliminated `x1 - x0` `size_t` underflow and disabled-CCSO pointer clobbering in parallel tile control merging, validated `tx_skip_stride >= deblock_map.columns[0]` and `restoration_unit_taps` output disjointness, bounded `cdef_strength_count <= AV2H_CDEF_MAX_STRENGTHS`, and added regression tests in [`frame_refactor_unit.c`](../tests/frame_refactor_unit.c).
 
 ---
 

@@ -37,8 +37,10 @@ static int tile_cfl_allowed_for_sdp(const Av2hTileDecoder *decoder, Av2hBlockSiz
 
 static int tile_luma_partition_lookup(const Av2hTileDecoder *decoder, Av2hPartitionNode node,
                                       Av2hPartitionType *partition) {
-    size_t index;
-    for (index = decoder->traversal.luma_partition_node_count; index != 0U; --index) {
+    size_t index = decoder->traversal.luma_partition_node_count <= AV2H_MAX_LUMA_PARTITION_NODES
+                       ? decoder->traversal.luma_partition_node_count
+                       : AV2H_MAX_LUMA_PARTITION_NODES;
+    for (; index != 0U; --index) {
         const Av2hTileLumaPartitionNode *stored =
             &decoder->traversal.luma_partition_nodes[index - 1U];
         if (stored->node.row == node.row && stored->node.column == node.column &&
@@ -199,7 +201,8 @@ Av2hStatus av2h_tile_decoder_next_chroma(Av2hTileDecoder *decoder, Av2hTileChrom
     }
     if (decoder->control.status != AV2H_OK)
         return decoder->control.status;
-    if (decoder->control.phase != AV2H_TILE_DECODE_CHROMA) {
+    if (decoder->control.phase != AV2H_TILE_DECODE_CHROMA ||
+        av2h_frame_plane_count(decoder->entropy_state.frame) <= 1U) {
         return av2h_tile_decoder_fail(decoder, AV2H_INVALID_ARGUMENT);
     }
     av2h_tile_diagnostics_set_chroma_stage(decoder->entropy_state.range.diagnostics, 0U);
@@ -461,6 +464,10 @@ Av2hStatus av2h_tile_decoder_next_chroma(Av2hTileDecoder *decoder, Av2hTileChrom
                                                  &tx_count);
         if (status != AV2H_OK) {
             return av2h_tile_decoder_fail(decoder, status);
+        }
+        if (decoder->superblock.current_block_q_index == 0U &&
+            tx_count > AV2H_MAX_LOSSLESS_CHROMA_TX_NODES) {
+            return av2h_tile_decoder_fail(decoder, AV2H_OVERFLOW);
         }
         if (tx_count > 1U) {
             decoder->chroma.tx_count = tx_count;

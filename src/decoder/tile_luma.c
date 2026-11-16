@@ -118,7 +118,7 @@ static Av2hStatus tile_store_luma_partition_path(Av2hTileDecoder *decoder,
         }
         if (stored_index != 0U)
             continue;
-        if (decoder->traversal.luma_partition_node_count == AV2H_MAX_LUMA_PARTITION_NODES) {
+        if (decoder->traversal.luma_partition_node_count >= AV2H_MAX_LUMA_PARTITION_NODES) {
             return AV2H_OVERFLOW;
         }
         Av2hTileLumaPartitionNode *stored =
@@ -290,7 +290,8 @@ static Av2hStatus tile_read_restoration_units(Av2hTileDecoder *decoder) {
         if ((state->active_mask & (1U << plane)) == 0U)
             continue;
         if (state->unit_size[plane] == 0U || state->unit_columns[plane] == 0U ||
-            state->unit_rows[plane] == 0U) {
+            state->unit_rows[plane] == 0U || state->unit_flags[plane] == NULL ||
+            state->unit_taps[plane] == NULL) {
             return AV2H_INVALID_DATA;
         }
         shift = av2h_chroma_shift(decoder->entropy_state.frame->chroma_format_idc, plane);
@@ -577,6 +578,9 @@ static Av2hStatus tile_read_luma_tx_partition(Av2hTileDecoder *decoder,
             node.column >= decoder->traversal.mi_columns) {
             continue;
         }
+        if (selected_count >= AV2H_MAX_TX_PARTITION_NODES) {
+            return AV2H_OVERFLOW;
+        }
         decoder->luma.tx_nodes[selected_count++] = node;
     }
     decoder->luma.tx_partition = partition;
@@ -601,6 +605,7 @@ static Av2hStatus tile_handoff_square_child(Av2hTileDecoder *decoder, uint8_t *h
     }
 #endif
     if (!decoder->entropy_state.sequence->enable_sdp ||
+        av2h_frame_plane_count(decoder->entropy_state.frame) <= 1U ||
         decoder->root.root_block_size != AV2H_BLOCK_128X128 ||
         decoder->root.square_child_luma_partition == AV2H_PARTITION_INVALID ||
         decoder->root.square_root_child_index >= 4U) {
@@ -889,6 +894,7 @@ Av2hStatus av2h_tile_decoder_next_luma(Av2hTileDecoder *decoder, Av2hTileLumaLea
     av2h_tile_diagnostics_set_luma_stage(decoder->entropy_state.range.diagnostics, 1U);
     shared_chroma_tree =
         (uint8_t)(decoder->entropy_state.sequence->enable_sdp &&
+                  av2h_frame_plane_count(decoder->entropy_state.frame) > 1U &&
                   ((leaf->node.block_size == AV2H_BLOCK_128X128 &&
                     decoder->root.luma_root_partition == AV2H_PARTITION_NONE) ||
                    ((leaf->node.block_size == AV2H_BLOCK_64X128 ||

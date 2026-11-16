@@ -20,7 +20,7 @@ Av2hStatus av2h_tile_luma_tx_node_get(const Av2hTileDecoder *decoder, uint16_t i
     if (decoder == NULL || node == NULL)
         return AV2H_INVALID_ARGUMENT;
     if (decoder->luma.selected_tx_count != 0U) {
-        if (index >= decoder->luma.selected_tx_count) {
+        if (index >= decoder->luma.selected_tx_count || index >= AV2H_MAX_TX_PARTITION_NODES) {
             return AV2H_INVALID_ARGUMENT;
         }
         *node = decoder->luma.tx_nodes[index];
@@ -375,6 +375,7 @@ static Av2hStatus tile_reset_traversal_roots(Av2hTileDecoder *decoder) {
     decoder->root.square_child_luma_child_count = 0U;
     decoder->root.square_child_luma_children_share = 1U;
     decoder->root.square_root_child_index = 0U;
+    decoder->chroma.shared_mode_pending = 0U;
     decoder->traversal.luma_partition_node_count = 0U;
     status = av2h_partition_traversal_reset_root(&decoder->traversal.luma_traversal, root);
     if (status != AV2H_OK)
@@ -881,9 +882,34 @@ Av2hStatus av2h_tile_decoder_init(Av2hTileDecoder *decoder, Av2hSpan entropy,
     return AV2H_OK;
 }
 
+static int traversal_has_in_bounds_pending(const Av2hPartitionTraversal *traversal, size_t mi_rows,
+                                           size_t mi_columns) {
+    size_t index;
+    if (traversal->has_pending_leaf != 0U)
+        return 1;
+    for (index = 0U; index < traversal->stack_count; ++index) {
+        if (traversal->stack[index].row < mi_rows && traversal->stack[index].column < mi_columns) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
 static Av2hStatus tile_advance_root_or_finish(Av2hTileDecoder *decoder) {
     Av2hTileFilterControls controls;
     Av2hStatus status;
+    if (decoder->luma.tx_count != 0U || decoder->chroma.tx_count != 0U ||
+        decoder->chroma.shared_resume_luma != 0U || decoder->chroma.shared_commit_luma != 0U ||
+        traversal_has_in_bounds_pending(&decoder->traversal.luma_traversal,
+                                        decoder->traversal.mi_rows,
+                                        decoder->traversal.mi_columns) ||
+        (av2h_frame_plane_count(decoder->entropy_state.frame) > 1U &&
+         traversal_has_in_bounds_pending(&decoder->traversal.chroma_traversal,
+                                         decoder->traversal.mi_rows,
+                                         decoder->traversal.mi_columns))) {
+        return av2h_tile_decoder_fail(decoder, AV2H_INVALID_DATA);
+    }
+    decoder->chroma.shared_mode_pending = 0U;
     decoder->traversal.luma_partition_node_count = 0U;
     if (decoder->superblock.sb_index + 1U < decoder->superblock.sb_count) {
         ++decoder->superblock.sb_index;
@@ -1038,6 +1064,7 @@ Av2hStatus av2h_tile_decoder_commit_leaf(Av2hTileDecoder *decoder, Av2hPartition
                     return AV2H_OK;
                 }
                 if (decoder->entropy_state.sequence->enable_sdp &&
+                    av2h_frame_plane_count(decoder->entropy_state.frame) > 1U &&
                     ((decoder->luma.coding_mode.q_index == 0U &&
                       decoder->luma.coding_mode.lossless_tx_size_large == 0U)
                          ? tile_luma_lossless_unit_complete(decoder, leaf)
@@ -1080,6 +1107,7 @@ Av2hStatus av2h_tile_decoder_commit_leaf(Av2hTileDecoder *decoder, Av2hPartition
                 return AV2H_OK;
             }
             if (decoder->entropy_state.sequence->enable_sdp &&
+                av2h_frame_plane_count(decoder->entropy_state.frame) > 1U &&
                 decoder->chroma.shared_mode_pending && !decoder->chroma.shared_complete &&
                 (leaf.block_size == AV2H_BLOCK_64X128 || leaf.block_size == AV2H_BLOCK_128X64)) {
                 status = av2h_partition_traversal_reset_root(&decoder->traversal.chroma_traversal,
