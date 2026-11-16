@@ -1,6 +1,6 @@
 # Security Audit and Hardening Plan
 
-**Status:** S1–S2 complete; S3–S10 planned
+**Status:** S1–S3 complete; S4–S10 planned
 **Scope:** [`src/`](../src/), [`include/av2heif.h`](../include/av2heif.h), [`Makefile`](../Makefile), and [`tools/`](../tools/)
 
 ## Purpose and Scope
@@ -110,6 +110,12 @@ Spatial memory safety in an image decoder hinges on 2D index calculations `base 
 
 ### Exit Criteria
 - All 2D plane and LUT index expressions have verified lower (`>= 0`) and upper (`< capacity`) bounds across odd crops, tile boundaries, and maximum MRL/filter widths.
+
+### S3 Implementation Notes (Completed)
+- Fixed asymmetric positive-length OOB reads and over-wide writes in `deblock_filter_choice` / `deblock_edge` ([`deblock_kernel.inc`](../src/decoder/internal/deblock_kernel.inc)) for `positive_length == 6` (`positive_max == 2`) and `positive_length == 12` (`positive_max == 5`), and added `_Static_assert` table checks in [`deblock.c`](../src/decoder/deblock.c).
+- Exhaustively verified directional Zone 1/2/3 edge indices (`[-5, 135]` across all valid `(width, height, mrl_index, angle)` tuples) and closed `mrl_index >= 4` negative-prefix stack underflows and specialized helper stack-buffer bounds across [`intra_prediction.c`](../src/decoder/intra_prediction.c), [`intra_prediction_edges.c`](../src/decoder/intra_prediction_edges.c), [`intra_prediction_directional.c`](../src/decoder/intra_prediction_directional.c), and [`reconstruct.c`](../src/decoder/reconstruct.c) (alongside reconstructed-grid cell capacity validation in `av2h_chroma_reconstruct_to_plane_u16`).
+- Hardened cross-plane luma-to-chroma coordinate clamping and plane dimension/stride checks on odd frame crops across [`chroma_prediction_cfl.c`](../src/decoder/chroma_prediction_cfl.c), [`chroma_prediction_mhccp.c`](../src/decoder/chroma_prediction_mhccp.c), [`chroma_prediction_mhccp_kernel.inc`](../src/decoder/internal/chroma_prediction_mhccp_kernel.inc), and [`restoration.c`](../src/decoder/restoration.c).
+- Guarded LUT, palette, tile-bound, and IST scan capacities with explicit bounds checks and `_Static_assert` invariants across [`ccso.c`](../src/decoder/ccso.c), [`ccso_kernel.inc`](../src/decoder/internal/ccso_kernel.inc), [`gdf.c`](../src/decoder/gdf.c), [`gdf_kernel.inc`](../src/decoder/internal/gdf_kernel.inc), [`palette.c`](../src/decoder/palette.c) (added to `MATH_KERNEL_SOURCES` in [`Makefile`](../Makefile)), and [`secondary_transform.c`](../src/decoder/secondary_transform.c), and added tight-heap ASan/UBSan/IntegerSanitizer regression tests in [`prediction_math_unit.c`](../tests/prediction_math_unit.c) and [`reconstruction_block_unit.c`](../tests/reconstruction_block_unit.c).
 
 ---
 

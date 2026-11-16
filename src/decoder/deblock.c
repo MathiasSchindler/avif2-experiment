@@ -16,6 +16,15 @@ static const uint8_t deblock_q_multiplier[AV2H_DEBLOCK_MAX_SAMPLES] = {32U, 25U,
 
 static const uint8_t deblock_first_threshold[5] = {45U, 43U, 40U, 35U, 32U};
 
+_Static_assert(sizeof(deblock_weight) / sizeof(deblock_weight[0]) == AV2H_DEBLOCK_MAX_SAMPLES,
+               "deblock_weight must cover AV2H_DEBLOCK_MAX_SAMPLES filter widths");
+_Static_assert(sizeof(deblock_q_multiplier) / sizeof(deblock_q_multiplier[0]) ==
+                   AV2H_DEBLOCK_MAX_SAMPLES,
+               "deblock_q_multiplier must cover AV2H_DEBLOCK_MAX_SAMPLES filter widths");
+_Static_assert(sizeof(deblock_first_threshold) / sizeof(deblock_first_threshold[0]) ==
+                   AV2H_DEBLOCK_MAX_SAMPLES - 3U,
+               "deblock_first_threshold must cover distances 4..8");
+
 Av2hStatus av2h_deblock_quantizer_thresholds(const Av2hDeblockCell *cell,
                                              const Av2hSequenceState *sequence,
                                              const Av2hFrameState *frame, unsigned int plane,

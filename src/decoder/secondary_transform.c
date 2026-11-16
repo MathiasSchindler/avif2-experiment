@@ -66,6 +66,36 @@ static const Av2hSmallIstDescriptor small_ist_descriptors[] = {
     {AV2H_INTRA_D135, AV2H_TX_4X8, 1U, 3U, av2h_ist_4x4_tx4_input_scan,
      av2h_ist_4x4_tx4_output_scan}};
 
+_Static_assert(sizeof(av2h_ist_4x4_tx4_input_scan) / sizeof(av2h_ist_4x4_tx4_input_scan[0]) == 8U,
+               "av2h_ist_4x4_tx4_input_scan must hold 8 positions");
+_Static_assert(sizeof(av2h_ist_4x4_tx8_input_scan) / sizeof(av2h_ist_4x4_tx8_input_scan[0]) == 8U,
+               "av2h_ist_4x4_tx8_input_scan must hold 8 positions");
+_Static_assert(sizeof(av2h_ist_4x4_tx4_output_scan) / sizeof(av2h_ist_4x4_tx4_output_scan[0]) ==
+                   16U,
+               "av2h_ist_4x4_tx4_output_scan must hold 16 positions");
+_Static_assert(sizeof(av2h_ist_4x4_tx8_output_scan) / sizeof(av2h_ist_4x4_tx8_output_scan[0]) ==
+                   16U,
+               "av2h_ist_4x4_tx8_output_scan must hold 16 positions");
+_Static_assert(sizeof(av2h_ist_8x32_set0_type2_transpose_positions) /
+                       sizeof(av2h_ist_8x32_set0_type2_transpose_positions[0]) ==
+                   48U,
+               "av2h_ist_8x32_set0_type2_transpose_positions must hold 48 positions");
+_Static_assert(sizeof(av2h_ist_32x64_set0_type2_positions) /
+                       sizeof(av2h_ist_32x64_set0_type2_positions[0]) ==
+                   48U,
+               "av2h_ist_32x64_set0_type2_positions must hold 48 positions");
+_Static_assert(sizeof(av2h_ist_8x16_set6_positions) / sizeof(av2h_ist_8x16_set6_positions[0]) ==
+                   48U,
+               "av2h_ist_8x16_set6_positions must hold 48 positions");
+_Static_assert(sizeof(av2h_ist_16x16_scan_map) / sizeof(av2h_ist_16x16_scan_map[0]) == 48U,
+               "av2h_ist_16x16_scan_map must hold 48 positions");
+_Static_assert(sizeof(av2h_ist_64x64_set0_type1_transpose_positions) /
+                       sizeof(av2h_ist_64x64_set0_type1_transpose_positions[0]) ==
+                   48U,
+               "av2h_ist_64x64_set0_type1_transpose_positions must hold 48 positions");
+_Static_assert(AV2H_COEFF_CAPACITY >= 256U,
+               "AV2H_COEFF_CAPACITY must hold fixed uint8_t small-IST scan indices");
+
 static Av2hStatus inverse_small_ist(const int32_t input[8U], const int16_t kernel[8U][16U],
                                     const uint16_t positions[16U], uint16_t capacity,
                                     int32_t dequantized[AV2H_COEFF_CAPACITY]) {
@@ -193,10 +223,16 @@ Av2hStatus av2h_inverse_secondary_transform(const Av2hLeafMode *mode, const Av2h
     uint16_t index;
     uint8_t input_vertical;
     uint8_t input_column_scan;
-    Av2hStatus status = av2h_tx_descriptor_get(prefix->tx_size, &descriptor);
+    Av2hStatus status;
+    if (mode == NULL || prefix == NULL || transform == NULL || coefficients == NULL ||
+        dequantized == NULL || coefficients->width == 0U || coefficients->height == 0U ||
+        coefficients->coefficient_count > AV2H_COEFF_CAPACITY) {
+        return AV2H_INVALID_ARGUMENT;
+    }
+    status = av2h_tx_descriptor_get(prefix->tx_size, &descriptor);
     if (status != AV2H_OK)
         return status;
-    mapped_mode = *mode;
+    av2h_memory_copy(&mapped_mode, mode, sizeof(mapped_mode));
     mapped_mode.mode =
         av2h_transform_mode(mode->mode, mode->angle_delta, mode->mrl_index, descriptor);
     mode = &mapped_mode;

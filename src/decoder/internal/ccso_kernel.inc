@@ -103,7 +103,13 @@ static void AV2H_KERNEL_NAME(ccso_filter_plane, ccso_filter_plane_u16)(
                     center, threshold, parameters->edge_classifier);
             }
             band = parameters->max_band_log2 == 0U ? 0U : (unsigned int)center >> shift;
+            if (band >= (1U << parameters->max_band_log2)) {
+                band = (1U << parameters->max_band_log2) - 1U;
+            }
             lut_index = ((size_t)band << 4U) + ((size_t)first_class << 2U) + second_class;
+            if (lut_index >= AV2H_CCSO_LUT_SIZE) {
+                lut_index = AV2H_CCSO_LUT_SIZE - 1U;
+            }
             destination_index = (size_t)y * destination->stride_samples + x;
 #if AV2H_KERNEL_WIDE
             av2h_sample_clip_store_u16(destination->data, destination->stride_samples, x, y,

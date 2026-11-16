@@ -424,6 +424,7 @@ MATH_KERNEL_SOURCES := \
 	src/decoder/intra_prediction_directional.c \
 	src/decoder/intra_prediction_edges.c \
 	src/decoder/inverse_transform.c \
+	src/decoder/palette.c \
 	src/decoder/reconstruct.c \
 	src/decoder/reconstruct_block.c \
 	src/decoder/restoration.c \

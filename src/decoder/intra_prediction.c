@@ -127,6 +127,7 @@ static Av2hStatus predict_legacy_directional(const Av2hLeafMode *mode, uint16_t 
                                            predictor_stride_samples);
     }
     if (mode->mode == AV2H_INTRA_D67 && mode->angle_delta == 0 &&
+        mode->mrl_index < AV2H_MRL_INDEX_SYMBOLS &&
         ((width == 4U && height == 4U) || (width == 4U && height == 8U) ||
          (width == 8U && height == 16U) || (width == 16U && height == 8U) ||
          (width == 4U && height == 32U) || (width == 16U && height == 4U) ||
@@ -184,6 +185,7 @@ static Av2hStatus predict_legacy_directional(const Av2hLeafMode *mode, uint16_t 
                                                predictor_stride_samples);
     }
     if (mode->mode == AV2H_INTRA_VERTICAL && mode->angle_delta == 2 && mode->multi_line_mrl == 0U &&
+        mode->mrl_index < AV2H_MRL_INDEX_SYMBOLS &&
         ((mode->mrl_index == 1U && width == 16U && height == 16U) ||
          (mode->mrl_index == 0U && width == 8U && height == 16U) ||
          (mode->enable_ibp == 1U && width == 64U && height == 64U))) {

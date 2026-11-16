@@ -45,15 +45,18 @@ void av2h_prepare_directional_edges(const Av2hLeafMode *mode, int angle, uint16_
     uint8_t above_fallback = no_references ? av2h_sample_below_midpoint_8bit() : fallback;
     uint8_t left_fallback = no_references ? av2h_sample_above_midpoint_8bit() : fallback;
     uint8_t corner = references->has_above_left ? references->above_left : fallback;
-    above[-4] = above[-3] = above[-2] = above[-1] = corner;
-    left[-4] = left[-3] = left[-2] = left[-1] = corner;
+    above[-5] = above[-4] = above[-3] = above[-2] = above[-1] = corner;
+    left[-5] = left[-4] = left[-3] = left[-2] = left[-1] = corner;
     if (mode->mrl_index != 0U) {
-        size_t negative_count = (size_t)mode->mrl_index + 1U;
+        size_t negative_count =
+            mode->mrl_index < AV2H_MRL_INDEX_SYMBOLS ? (size_t)mode->mrl_index + 1U : 4U;
+        size_t available_negative =
+            references->negative_count <= 4U ? references->negative_count : 4U;
         for (index = 1U; index <= negative_count; ++index) {
             above[-(int)index] =
-                index <= references->negative_count ? references->above_negative[index] : corner;
+                index <= available_negative ? references->above_negative[index] : corner;
             left[-(int)index] =
-                index <= references->negative_count ? references->left_negative[index] : corner;
+                index <= available_negative ? references->left_negative[index] : corner;
         }
         above[-(int)negative_count - 1] = above[-(int)negative_count];
         left[-(int)negative_count - 1] = left[-(int)negative_count];
@@ -157,15 +160,18 @@ void av2h_prepare_directional_edges(const Av2hLeafMode *mode, int angle, uint16_
 static void prepare_negative_u16(const Av2hLeafMode *mode, const Av2hLumaReferencesU16 *references,
                                  uint16_t *above_edge, uint16_t *left_edge, uint16_t corner) {
     size_t index;
-    above_edge[-4] = above_edge[-3] = above_edge[-2] = above_edge[-1] = corner;
-    left_edge[-4] = left_edge[-3] = left_edge[-2] = left_edge[-1] = corner;
+    above_edge[-5] = above_edge[-4] = above_edge[-3] = above_edge[-2] = above_edge[-1] = corner;
+    left_edge[-5] = left_edge[-4] = left_edge[-3] = left_edge[-2] = left_edge[-1] = corner;
     if (mode->mrl_index != 0U) {
-        size_t negative_count = (size_t)mode->mrl_index + 1U;
+        size_t negative_count =
+            mode->mrl_index < AV2H_MRL_INDEX_SYMBOLS ? (size_t)mode->mrl_index + 1U : 4U;
+        size_t available_negative =
+            references->negative_count <= 4U ? references->negative_count : 4U;
         for (index = 1U; index <= negative_count; ++index) {
             above_edge[-(int)index] =
-                index <= references->negative_count ? references->above_negative[index] : corner;
+                index <= available_negative ? references->above_negative[index] : corner;
             left_edge[-(int)index] =
-                index <= references->negative_count ? references->left_negative[index] : corner;
+                index <= available_negative ? references->left_negative[index] : corner;
         }
         above_edge[-(int)negative_count - 1] = above_edge[-(int)negative_count];
         left_edge[-(int)negative_count - 1] = left_edge[-(int)negative_count];

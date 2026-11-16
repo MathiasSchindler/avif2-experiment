@@ -23,6 +23,14 @@ static AV2H_KERNEL_TYPE(uint8_t, uint16_t) AV2H_KERNEL_NAME(
             y = maximum;
         source = deblocked_luma;
     }
+    if (x < 0)
+        x = 0;
+    if ((size_t)x >= source->width)
+        x = (int)source->width - 1;
+    if (y < 0)
+        y = 0;
+    if ((size_t)y >= source->height)
+        y = (int)source->height - 1;
     return source->data[(size_t)y * source->stride_samples + (size_t)x];
 }
 static void AV2H_KERNEL_NAME(gdf_filter_block, gdf_filter_block_u16)(

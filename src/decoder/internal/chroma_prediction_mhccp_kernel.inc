@@ -18,12 +18,16 @@ static uint16_t AV2H_KERNEL_NAME(
                               uint16_t chroma_y) {
     size_t x0 = (size_t)chroma_x * 2U;
     size_t y0 = (size_t)chroma_y * 2U;
-    size_t x1 = x0 + 1U < luma_plane->width ? x0 + 1U : x0;
-    size_t y1 = y0 + 1U < luma_plane->height ? y0 + 1U : y0;
-    return (uint16_t)((luma_plane->data[y0 * luma_plane->stride_samples + x0] +
-                       luma_plane->data[y0 * luma_plane->stride_samples + x1] +
-                       luma_plane->data[y1 * luma_plane->stride_samples + x0] +
-                       luma_plane->data[y1 * luma_plane->stride_samples + x1])
+    size_t x1 = x0 + 1U;
+    size_t y1 = y0 + 1U;
+    return (uint16_t)((AV2H_KERNEL_NAME(av2h_chroma_plane_coded_sample,
+                                        av2h_chroma_plane_coded_sample_u16)(luma_plane, x0, y0) +
+                       AV2H_KERNEL_NAME(av2h_chroma_plane_coded_sample,
+                                        av2h_chroma_plane_coded_sample_u16)(luma_plane, x1, y0) +
+                       AV2H_KERNEL_NAME(av2h_chroma_plane_coded_sample,
+                                        av2h_chroma_plane_coded_sample_u16)(luma_plane, x0, y1) +
+                       AV2H_KERNEL_NAME(av2h_chroma_plane_coded_sample,
+                                        av2h_chroma_plane_coded_sample_u16)(luma_plane, x1, y1))
                       << 1U);
 }
 static uint16_t AV2H_KERNEL_NAME(
@@ -33,14 +37,24 @@ static uint16_t AV2H_KERNEL_NAME(
     size_t center_x = (size_t)chroma_x * 2U;
     size_t center_y = (size_t)chroma_y * 2U;
     size_t left_x = center_x == 0U ? center_x : center_x - 1U;
-    size_t right_x = center_x + 1U < luma_plane->width ? center_x + 1U : center_x;
+    size_t right_x = center_x + 1U;
     size_t top_y = center_y == 0U ? center_y : center_y - 1U;
-    size_t bottom_y = center_y + 1U < luma_plane->height ? center_y + 1U : center_y;
-    return (uint16_t)(luma_plane->data[center_y * luma_plane->stride_samples + left_x] +
-                      4U * luma_plane->data[center_y * luma_plane->stride_samples + center_x] +
-                      luma_plane->data[center_y * luma_plane->stride_samples + right_x] +
-                      luma_plane->data[top_y * luma_plane->stride_samples + center_x] +
-                      luma_plane->data[bottom_y * luma_plane->stride_samples + center_x]);
+    size_t bottom_y = center_y + 1U;
+    return (uint16_t)(AV2H_KERNEL_NAME(
+                          av2h_chroma_plane_coded_sample,
+                          av2h_chroma_plane_coded_sample_u16)(luma_plane, left_x, center_y) +
+                      4U * AV2H_KERNEL_NAME(
+                               av2h_chroma_plane_coded_sample,
+                               av2h_chroma_plane_coded_sample_u16)(luma_plane, center_x, center_y) +
+                      AV2H_KERNEL_NAME(
+                          av2h_chroma_plane_coded_sample,
+                          av2h_chroma_plane_coded_sample_u16)(luma_plane, right_x, center_y) +
+                      AV2H_KERNEL_NAME(
+                          av2h_chroma_plane_coded_sample,
+                          av2h_chroma_plane_coded_sample_u16)(luma_plane, center_x, top_y) +
+                      AV2H_KERNEL_NAME(
+                          av2h_chroma_plane_coded_sample,
+                          av2h_chroma_plane_coded_sample_u16)(luma_plane, center_x, bottom_y));
 }
 static uint16_t AV2H_KERNEL_NAME(
     mhccp_luma_filter2_top_clamped_q3,
@@ -49,12 +63,20 @@ static uint16_t AV2H_KERNEL_NAME(
     size_t center_x = (size_t)chroma_x * 2U;
     size_t center_y = (size_t)chroma_y * 2U;
     size_t left_x = center_x == 0U ? center_x : center_x - 1U;
-    size_t right_x = center_x + 1U < luma_plane->width ? center_x + 1U : center_x;
-    size_t bottom_y = center_y + 1U < luma_plane->height ? center_y + 1U : center_y;
-    return (uint16_t)(luma_plane->data[center_y * luma_plane->stride_samples + left_x] +
-                      5U * luma_plane->data[center_y * luma_plane->stride_samples + center_x] +
-                      luma_plane->data[center_y * luma_plane->stride_samples + right_x] +
-                      luma_plane->data[bottom_y * luma_plane->stride_samples + center_x]);
+    size_t right_x = center_x + 1U;
+    size_t bottom_y = center_y + 1U;
+    return (uint16_t)(AV2H_KERNEL_NAME(
+                          av2h_chroma_plane_coded_sample,
+                          av2h_chroma_plane_coded_sample_u16)(luma_plane, left_x, center_y) +
+                      5U * AV2H_KERNEL_NAME(
+                               av2h_chroma_plane_coded_sample,
+                               av2h_chroma_plane_coded_sample_u16)(luma_plane, center_x, center_y) +
+                      AV2H_KERNEL_NAME(
+                          av2h_chroma_plane_coded_sample,
+                          av2h_chroma_plane_coded_sample_u16)(luma_plane, right_x, center_y) +
+                      AV2H_KERNEL_NAME(
+                          av2h_chroma_plane_coded_sample,
+                          av2h_chroma_plane_coded_sample_u16)(luma_plane, center_x, bottom_y));
 }
 static uint16_t AV2H_KERNEL_NAME(
     mhccp_luma_filter1_q3,
@@ -63,37 +85,61 @@ static uint16_t AV2H_KERNEL_NAME(
     size_t center_x = (size_t)chroma_x * 2U;
     size_t center_y = (size_t)chroma_y * 2U;
     size_t left_x = center_x == 0U ? center_x : center_x - 1U;
-    size_t right_x = center_x + 1U < luma_plane->width ? center_x + 1U : center_x;
-    size_t bottom_y = center_y + 1U < luma_plane->height ? center_y + 1U : center_y;
-    return (uint16_t)(luma_plane->data[center_y * luma_plane->stride_samples + left_x] +
-                      2U * luma_plane->data[center_y * luma_plane->stride_samples + center_x] +
-                      luma_plane->data[center_y * luma_plane->stride_samples + right_x] +
-                      luma_plane->data[bottom_y * luma_plane->stride_samples + left_x] +
-                      2U * luma_plane->data[bottom_y * luma_plane->stride_samples + center_x] +
-                      luma_plane->data[bottom_y * luma_plane->stride_samples + right_x]);
+    size_t right_x = center_x + 1U;
+    size_t bottom_y = center_y + 1U;
+    return (uint16_t)(AV2H_KERNEL_NAME(
+                          av2h_chroma_plane_coded_sample,
+                          av2h_chroma_plane_coded_sample_u16)(luma_plane, left_x, center_y) +
+                      2U * AV2H_KERNEL_NAME(
+                               av2h_chroma_plane_coded_sample,
+                               av2h_chroma_plane_coded_sample_u16)(luma_plane, center_x, center_y) +
+                      AV2H_KERNEL_NAME(
+                          av2h_chroma_plane_coded_sample,
+                          av2h_chroma_plane_coded_sample_u16)(luma_plane, right_x, center_y) +
+                      AV2H_KERNEL_NAME(
+                          av2h_chroma_plane_coded_sample,
+                          av2h_chroma_plane_coded_sample_u16)(luma_plane, left_x, bottom_y) +
+                      2U * AV2H_KERNEL_NAME(
+                               av2h_chroma_plane_coded_sample,
+                               av2h_chroma_plane_coded_sample_u16)(luma_plane, center_x, bottom_y) +
+                      AV2H_KERNEL_NAME(
+                          av2h_chroma_plane_coded_sample,
+                          av2h_chroma_plane_coded_sample_u16)(luma_plane, right_x, bottom_y));
 }
 static uint16_t AV2H_KERNEL_NAME(
     mhccp_luma_filter1_sb_top_q3,
     mhccp_luma_filter1_sb_top_q3_u16)(const AV2H_KERNEL_TYPE(Av2hReconstructionPlane, Av2hReconstructionPlaneU16) *luma_plane,
                                              uint16_t chroma_x, uint16_t block_y) {
     size_t center_x = (size_t)chroma_x * 2U;
-    size_t center_y = (size_t)block_y * 2U - 1U;
+    size_t center_y = block_y == 0U ? 0U : (size_t)block_y * 2U - 1U;
     size_t left_x = center_x == 0U ? center_x : center_x - 1U;
-    size_t right_x = center_x + 1U < luma_plane->width ? center_x + 1U : center_x;
-    return (uint16_t)(2U *
-                      (luma_plane->data[center_y * luma_plane->stride_samples + left_x] +
-                       2U * luma_plane->data[center_y * luma_plane->stride_samples + center_x] +
-                       luma_plane->data[center_y * luma_plane->stride_samples + right_x]));
+    size_t right_x = center_x + 1U;
+    return (uint16_t)(2U * (AV2H_KERNEL_NAME(
+                                av2h_chroma_plane_coded_sample,
+                                av2h_chroma_plane_coded_sample_u16)(luma_plane, left_x, center_y) +
+                            2U *
+                                AV2H_KERNEL_NAME(
+                                    av2h_chroma_plane_coded_sample,
+                                    av2h_chroma_plane_coded_sample_u16)(luma_plane, center_x, center_y) +
+                            AV2H_KERNEL_NAME(
+                                av2h_chroma_plane_coded_sample,
+                                av2h_chroma_plane_coded_sample_u16)(luma_plane, right_x, center_y)));
 }
 static uint16_t AV2H_KERNEL_NAME(
     mhccp_luma_filter2_sb_top_q3,
     mhccp_luma_filter2_sb_top_q3_u16)(const AV2H_KERNEL_TYPE(Av2hReconstructionPlane, Av2hReconstructionPlaneU16) *luma_plane,
                                              uint16_t chroma_x, uint16_t block_y) {
     size_t center_x = (size_t)chroma_x * 2U;
-    size_t center_y = (size_t)block_y * 2U - 1U;
+    size_t center_y = block_y == 0U ? 0U : (size_t)block_y * 2U - 1U;
     size_t left_x = center_x == 0U ? center_x : center_x - 1U;
-    size_t right_x = center_x + 1U < luma_plane->width ? center_x + 1U : center_x;
-    return (uint16_t)(luma_plane->data[center_y * luma_plane->stride_samples + left_x] +
-                      6U * luma_plane->data[center_y * luma_plane->stride_samples + center_x] +
-                      luma_plane->data[center_y * luma_plane->stride_samples + right_x]);
+    size_t right_x = center_x + 1U;
+    return (uint16_t)(AV2H_KERNEL_NAME(
+                          av2h_chroma_plane_coded_sample,
+                          av2h_chroma_plane_coded_sample_u16)(luma_plane, left_x, center_y) +
+                      6U * AV2H_KERNEL_NAME(
+                               av2h_chroma_plane_coded_sample,
+                               av2h_chroma_plane_coded_sample_u16)(luma_plane, center_x, center_y) +
+                      AV2H_KERNEL_NAME(
+                          av2h_chroma_plane_coded_sample,
+                          av2h_chroma_plane_coded_sample_u16)(luma_plane, right_x, center_y));
 }

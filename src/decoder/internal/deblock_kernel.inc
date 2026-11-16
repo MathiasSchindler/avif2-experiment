@@ -65,7 +65,7 @@ static unsigned int AV2H_KERNEL_NAME(
     }
     if (second_derivative[0] > (side_threshold >> 3U) ||
         second_derivative[3] > (side_threshold >> 3U) ||
-        second_derivative[1] + second_derivative[2] > (int)q_threshold * 3) {
+        second_derivative[1] + second_derivative[2] > (int)q_threshold * 3 || positive_max == 2U) {
         return 2U;
     }
     end_threshold = ((int)side_threshold * 3) >> 4;
@@ -83,6 +83,9 @@ static unsigned int AV2H_KERNEL_NAME(
     transition = (second_derivative[1] + second_derivative[2]) << 4U;
     for (distance = 4U; distance <= AV2H_DEBLOCK_MAX_SAMPLES; distance += 2U) {
         unsigned int tested_distance = distance == 8U ? 7U : distance;
+        if (positive_max < tested_distance) {
+            return distance == 4U ? 3U : distance - 2U;
+        }
         end_threshold = ((int)side_threshold * (int)distance) >> 4;
         if (transition > (int)q_threshold * deblock_first_threshold[distance - 4U] ||
             (negative_max >= tested_distance &&
@@ -186,6 +189,8 @@ static Av2hStatus AV2H_KERNEL_NAME(deblock_edge, deblock_edge_u16)(
                                    side_threshold, sample + 3 * lane_step);
     if (filter == 0U)
         return AV2H_OK;
+    if (filter > positive_max)
+        filter = positive_max;
     if (negative_max > filter)
         negative_max = filter;
     for (lane = 0U; lane < 4U; ++lane) {

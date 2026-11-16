@@ -1,8 +1,10 @@
+#include "decoder/internal/leaf_modules.h"
 #include "decoder/internal/reconstruct_block.h"
 #include "decoder/internal/reconstruct_modules.h"
 #include "decoder/tx_geometry.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 static int failures;
@@ -610,6 +612,122 @@ static void test_extreme_coefficient_bounds(void) {
     }
 }
 
+static void test_s3_palette_ist_and_plane_bounds(void) {
+    static const uint8_t palette_sizes[] = { 2U, 4U, 8U };
+    size_t s;
+
+    /* Palette map index overflow protection across 1/2/3-bit widths. */
+    for (s = 0U; s < sizeof(palette_sizes) / sizeof(palette_sizes[0]); ++s) {
+        Av2hLeafMode mode = { 0 };
+        unsigned int bits = palette_sizes[s] <= 2U ? 1U : palette_sizes[s] <= 4U ? 2U : 3U;
+        size_t max_index = (AV2H_PALETTE_MAP_CAPACITY * 8U - bits) / bits;
+        mode.palette_size = palette_sizes[s];
+        CHECK(av2h_palette_map_set(&mode, max_index, (uint8_t)(palette_sizes[s] - 1U)) == AV2H_OK);
+        CHECK(av2h_palette_map_get(&mode, max_index) == (uint8_t)(palette_sizes[s] - 1U));
+        CHECK(av2h_palette_map_set(&mode, max_index + 1U, 0U) == AV2H_OUT_OF_MEMORY);
+        CHECK(av2h_palette_map_get(&mode, max_index + 1U) == AV2H_PALETTE_MAX_SIZE);
+        CHECK(av2h_palette_map_set(&mode, SIZE_MAX, 0U) == AV2H_OUT_OF_MEMORY);
+        CHECK(av2h_palette_map_get(&mode, SIZE_MAX) == AV2H_PALETTE_MAX_SIZE);
+        if (bits > 1U) {
+            CHECK(av2h_palette_map_set(&mode, SIZE_MAX / bits + 1U, 0U) == AV2H_OUT_OF_MEMORY);
+            CHECK(av2h_palette_map_get(&mode, SIZE_MAX / bits + 1U) == AV2H_PALETTE_MAX_SIZE);
+        }
+    }
+
+    /* Corrupted neighbor palette_size > AV2H_PALETTE_MAX_SIZE must not overflow cache[16]. */
+    {
+        uint8_t raw[16U] = { 0 };
+        Av2hSpan span = { raw, sizeof(raw) };
+        Av2hRangeDecoder decoder;
+        Av2hSequenceState seq = { 0 };
+        Av2hLumaModeNeighbors neighbors = { 0 };
+        Av2hLeafMode mode = { 0 };
+        CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
+        seq.info.bit_depth_idc = 0U;
+        neighbors.palette_size[0] = 255U;
+        neighbors.palette_size[1] = 255U;
+        mode.palette_size = 8U;
+        (void)av2h_leaf_palette_read_colors(&decoder, &seq, &neighbors, &mode);
+    }
+
+    /* IST capacity and zero-dimension guards on exact heap buffer. */
+    {
+        int32_t *deq = (int32_t *)calloc(AV2H_COEFF_CAPACITY, sizeof(int32_t));
+        Av2hLeafMode mode = { 0 };
+        Av2hCoeffPrefix prefix = { 0 };
+        Av2hTransformType transform = { 0 };
+        Av2hCoeffBlock coefficients = { 0 };
+        CHECK(deq != NULL);
+        prefix.tx_size = AV2H_TX_8X8;
+        transform.secondary_symbol = 1U;
+        coefficients.width = 8U;
+        coefficients.height = 8U;
+        coefficients.coefficient_count = AV2H_COEFF_CAPACITY + 1U;
+        CHECK(av2h_inverse_secondary_transform(&mode, &prefix, &transform, &coefficients, deq) ==
+              AV2H_INVALID_ARGUMENT);
+        coefficients.width = 0U;
+        coefficients.coefficient_count = 64U;
+        CHECK(av2h_inverse_secondary_transform(&mode, &prefix, &transform, &coefficients, deq) ==
+              AV2H_INVALID_ARGUMENT);
+        free(deq);
+    }
+
+    /* Plane reconstruction guards: out-of-range mrl_index and undersized reconstructed grid. */
+    {
+        static Av2hReconstructionScratch scratch8;
+        static Av2hReconstructionScratchU16 scratch16;
+        uint8_t pixels8[16U * 16U] = { 0 };
+        uint16_t pixels16[16U * 16U] = { 0 };
+        uint8_t rec[16U] = { 0 };
+        Av2hReconstructionPlane plane8 = { 0 };
+        Av2hReconstructionPlaneU16 plane16 = { 0 };
+        Av2hPartitionNode leaf = { 0 };
+        Av2hLeafMode mode = { 0 };
+        Av2hChromaLeafMode chroma = { 0 };
+        Av2hCoeffPrefix prefix = { 0 };
+        Av2hTransformType transform = { 0 };
+        Av2hCoeffBlock coefficients = { 0 };
+
+        leaf.column = 2U;
+        leaf.row = 2U;
+        leaf.block_size = AV2H_BLOCK_4X4;
+        memset(rec, 1, sizeof(rec));
+        plane8.data = pixels8;
+        plane8.stride_samples = 16U;
+        plane8.width = 16U;
+        plane8.height = 16U;
+        plane8.reference_width = 16U;
+        plane8.reference_height = 16U;
+        plane8.reconstructed = rec;
+        plane8.reconstructed_stride_cells = 4U;
+        plane8.reconstructed_count_cells = 16U;
+
+        prefix.tx_size = AV2H_TX_4X4;
+        prefix.all_zero = 1U;
+        coefficients.width = 4U;
+        coefficients.height = 4U;
+        coefficients.coefficient_count = 16U;
+        mode.mode = AV2H_INTRA_D67;
+        mode.mrl_index = 255U;
+        CHECK(av2h_luma_reconstruct_to_plane(NULL, &leaf, &mode, &prefix, &transform,
+                                             &coefficients, &plane8, &scratch8) ==
+              AV2H_UNSUPPORTED);
+
+        plane16.data = pixels16;
+        plane16.stride_samples = 16U;
+        plane16.width = 16U;
+        plane16.height = 16U;
+        plane16.reference_width = 16U;
+        plane16.reference_height = 16U;
+        plane16.reconstructed = rec;
+        plane16.reconstructed_stride_cells = 4U;
+        plane16.reconstructed_count_cells = 15U;
+        CHECK(av2h_chroma_reconstruct_to_plane_u16(
+                  NULL, &leaf, &chroma, &prefix, &transform, &coefficients, &plane16, NULL, 1U, 0U,
+                  &scratch16, &av2h_sample_domain_10bit) == AV2H_INVALID_ARGUMENT);
+    }
+}
+
 int main(void) {
     test_specialized_wide_transform_policies();
     test_zero_geometry();
@@ -619,6 +737,7 @@ int main(void) {
     test_u16_transform_selection();
     test_u16_lossless_wht();
     test_extreme_coefficient_bounds();
+    test_s3_palette_ist_and_plane_bounds();
     if (!failures) puts("supplied-predictor block reconstruction: passed");
     return failures != 0;
 }

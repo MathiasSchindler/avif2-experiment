@@ -513,8 +513,19 @@ Av2hStatus av2h_wiener_nonsep_filter_rows(Av2hFilterPlanes *destination,
             continue;
         }
         if (input->data == NULL || deblocked_plane->data == NULL || output->data == NULL ||
-            input->width != output->width || input->height != output->height ||
-            input->width != deblocked_plane->width || input->height != deblocked_plane->height) {
+            input->width == 0U || input->height == 0U || input->width != output->width ||
+            input->height != output->height || input->width != deblocked_plane->width ||
+            input->height != deblocked_plane->height || input->stride_samples < input->width ||
+            output->stride_samples < output->width ||
+            deblocked_plane->stride_samples < deblocked_plane->width) {
+            return AV2H_UNSUPPORTED;
+        }
+        if (plane != 0U && (source->plane[0].data == NULL || deblocked->plane[0].data == NULL ||
+                            source->plane[0].width == 0U || source->plane[0].height == 0U ||
+                            source->plane[0].width != deblocked->plane[0].width ||
+                            source->plane[0].height != deblocked->plane[0].height ||
+                            source->plane[0].stride_samples < source->plane[0].width ||
+                            deblocked->plane[0].stride_samples < deblocked->plane[0].width)) {
             return AV2H_UNSUPPORTED;
         }
         if (frame->restoration_type[plane] != AV2H_RESTORE_SWITCHABLE) {

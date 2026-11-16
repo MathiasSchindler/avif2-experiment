@@ -168,11 +168,17 @@ int av2h_plane_sample_reconstructed(const Av2hReconstructionPlane *plane, size_t
 
 static void plane_mark_reconstructed_cells(uint8_t *reconstructed, size_t stride, uint16_t x,
                                            uint16_t y, uint16_t width, uint16_t height) {
-    size_t first_column = x / 4U;
-    size_t first_row = y / 4U;
-    size_t last_column = ((size_t)x + width - 1U) / 4U;
-    size_t last_row = ((size_t)y + height - 1U) / 4U;
+    size_t first_column;
+    size_t first_row;
+    size_t last_column;
+    size_t last_row;
     size_t row;
+    if (width == 0U || height == 0U)
+        return;
+    first_column = x / 4U;
+    first_row = y / 4U;
+    last_column = ((size_t)x + width - 1U) / 4U;
+    last_row = ((size_t)y + height - 1U) / 4U;
     size_t column;
     for (row = first_row; row <= last_row; ++row) {
         for (column = first_column; column <= last_column; ++column) {
@@ -324,6 +330,10 @@ AV2H_NOINLINE Av2hStatus av2h_luma_reconstruct_to_plane(
     if (block_x >= plane->width || block_y >= plane->height || coefficients->width > 32U ||
         coefficients->height > 32U) {
         return AV2H_INVALID_ARGUMENT;
+    }
+    if (mode->mrl_index >= AV2H_MRL_INDEX_SYMBOLS && mode->palette_size == 0U &&
+        mode->use_intrabc == 0U) {
+        return AV2H_UNSUPPORTED;
     }
     {
         Av2hVisibleReconstruction visible = reconstruction_visible_block(
@@ -505,7 +515,8 @@ AV2H_NOINLINE Av2hStatus av2h_luma_reconstruct_to_plane(
                           block_x - 1U - mode->mrl_index]
             : 0U;
     references.negative_count = 0U;
-    if (mode->mrl_index != 0U && references.has_above_left) {
+    if (mode->mrl_index != 0U && mode->mrl_index < AV2H_MRL_INDEX_SYMBOLS &&
+        references.has_above_left) {
         size_t negative_index;
         references.negative_count = (uint8_t)(mode->mrl_index + 1U);
         for (negative_index = 1U; negative_index <= references.negative_count; ++negative_index) {
@@ -1212,7 +1223,10 @@ AV2H_NOINLINE Av2hStatus av2h_chroma_reconstruct_to_plane_u16(
         plane->reconstructed == NULL || (chroma_format_idc != 0U && chroma_format_idc != 2U) ||
         chroma_plane < 1U || chroma_plane > 2U || plane->stride_samples < plane->width ||
         plane->reference_width == 0U || plane->reference_height == 0U ||
-        plane->reference_width > plane->width || plane->reference_height > plane->height) {
+        plane->reference_width > plane->width || plane->reference_height > plane->height ||
+        plane->reconstructed_stride_cells < ((size_t)plane->width + 3U) / 4U ||
+        plane->reconstructed_count_cells <
+            plane->reconstructed_stride_cells * (((size_t)plane->height + 3U) / 4U)) {
         return AV2H_INVALID_ARGUMENT;
     }
     reconstruction = &scratch->reconstruction;

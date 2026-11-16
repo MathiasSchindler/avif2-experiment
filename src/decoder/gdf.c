@@ -19,30 +19,60 @@ typedef struct {
     int bottom;
 } GdfTileBounds;
 
+_Static_assert(sizeof(gdf_alpha) / sizeof(gdf_alpha[0]) >= 6U * 22U * 4U,
+               "gdf_alpha must cover 6 QP buckets * 22 kernels * 4 classes");
+_Static_assert(sizeof(gdf_weight) / sizeof(gdf_weight[0]) >= 6U * 3U * 22U * 4U,
+               "gdf_weight must cover 6 QP buckets * 3 outputs * 22 kernels * 4 classes");
+_Static_assert(sizeof(gdf_bias) / sizeof(gdf_bias[0]) >= 6U * 3U,
+               "gdf_bias must cover 6 QP buckets * 3 outputs");
+_Static_assert(sizeof(gdf_intra_error) / sizeof(gdf_intra_error[0]) == 6U * 4096U,
+               "gdf_intra_error must hold 6 QP buckets * 4096 LUT entries");
+_Static_assert(sizeof(deblock_side_threshold) / sizeof(deblock_side_threshold[0]) == 296U,
+               "deblock_side_threshold must hold 296 entries");
+
 static GdfTileBounds gdf_tile_bounds(const Av2hSequenceState *sequence, const Av2hFrameState *frame,
                                      uint16_t x, uint16_t y) {
     GdfTileBounds bounds = {0, 0, frame->width, frame->height};
     unsigned int column;
     unsigned int row;
-    if (sequence == NULL || sequence->disable_loopfilters_across_tiles == 0U) {
-        return bounds;
-    }
-    for (column = 0U; column < frame->tile_column_count; ++column) {
-        int end = (int)frame->tile_column_start_sb[column + 1U] * sequence->superblock_size;
-        if ((int)x < end || column + 1U == frame->tile_column_count) {
-            bounds.left = (int)frame->tile_column_start_sb[column] * sequence->superblock_size;
-            bounds.right = end < frame->width ? end : frame->width;
-            break;
+    unsigned int max_columns = (unsigned int)(sizeof(frame->tile_column_start_sb) /
+                                                  sizeof(frame->tile_column_start_sb[0]) -
+                                              1U);
+    unsigned int max_rows =
+        (unsigned int)(sizeof(frame->tile_row_start_sb) / sizeof(frame->tile_row_start_sb[0]) - 1U);
+    unsigned int column_count =
+        frame->tile_column_count <= max_columns ? frame->tile_column_count : max_columns;
+    unsigned int row_count = frame->tile_row_count <= max_rows ? frame->tile_row_count : max_rows;
+    if (sequence != NULL && sequence->disable_loopfilters_across_tiles != 0U) {
+        for (column = 0U; column < column_count; ++column) {
+            int end = (int)frame->tile_column_start_sb[column + 1U] * sequence->superblock_size;
+            if ((int)x < end || column + 1U == column_count) {
+                bounds.left = (int)frame->tile_column_start_sb[column] * sequence->superblock_size;
+                bounds.right = end < frame->width ? end : frame->width;
+                break;
+            }
+        }
+        for (row = 0U; row < row_count; ++row) {
+            int end = (int)frame->tile_row_start_sb[row + 1U] * sequence->superblock_size;
+            if ((int)y < end || row + 1U == row_count) {
+                bounds.top = (int)frame->tile_row_start_sb[row] * sequence->superblock_size;
+                bounds.bottom = end < frame->height ? end : frame->height;
+                break;
+            }
         }
     }
-    for (row = 0U; row < frame->tile_row_count; ++row) {
-        int end = (int)frame->tile_row_start_sb[row + 1U] * sequence->superblock_size;
-        if ((int)y < end || row + 1U == frame->tile_row_count) {
-            bounds.top = (int)frame->tile_row_start_sb[row] * sequence->superblock_size;
-            bounds.bottom = end < frame->height ? end : frame->height;
-            break;
-        }
-    }
+    if (bounds.right < 1)
+        bounds.right = 1;
+    if (bounds.left < 0)
+        bounds.left = 0;
+    if (bounds.left >= bounds.right)
+        bounds.left = bounds.right - 1;
+    if (bounds.bottom < 1)
+        bounds.bottom = 1;
+    if (bounds.top < 0)
+        bounds.top = 0;
+    if (bounds.top >= bounds.bottom)
+        bounds.top = bounds.bottom - 1;
     return bounds;
 }
 
@@ -68,11 +98,13 @@ static unsigned int gdf_training_qp_index(const Av2hFrameState *frame, unsigned 
     } else if (frame->base_q_index >= 147U + qp_offset) {
         base_index = 1U;
     }
-    return base_index + frame->gdf_qp_index;
+    unsigned int qp_index = base_index + frame->gdf_qp_index;
+    return qp_index < 6U ? qp_index : 5U;
 }
 
 int16_t av2h_deblock_side_threshold(size_t index) {
-    return deblock_side_threshold[index];
+    size_t count = sizeof(deblock_side_threshold) / sizeof(deblock_side_threshold[0]);
+    return deblock_side_threshold[index < count ? index : count - 1U];
 }
 
 static unsigned int gdf_gradient_sum(const uint16_t gradient[4][6][6], unsigned int direction,

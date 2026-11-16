@@ -10,6 +10,9 @@
 static const uint16_t ccso_quant_size[4][4] = {
     {16U, 8U, 32U, 0U}, {56U, 40U, 64U, 128U}, {48U, 24U, 96U, 192U}, {80U, 112U, 160U, 256U}};
 
+_Static_assert(AV2H_CCSO_LUT_SIZE == 1024U,
+               "AV2H_CCSO_LUT_SIZE must hold 64 bands * 16 edge-class pairs");
+
 int av2h_ccso_controls_valid(const Av2hFrameState *frame, const Av2hCcsoControlMap *controls) {
     uint16_t unit_size = av2h_filter_ccso_unit_size(frame);
     size_t columns = (av2h_filter_coded_dimension(frame->width) + unit_size - 1U) / unit_size;
@@ -91,6 +94,14 @@ static void ccso_tile_bounds(const Av2hSequenceState *sequence, const Av2hFrameS
                              int *bottom) {
     unsigned int column;
     unsigned int row;
+    unsigned int max_columns = (unsigned int)(sizeof(frame->tile_column_start_sb) /
+                                                  sizeof(frame->tile_column_start_sb[0]) -
+                                              1U);
+    unsigned int max_rows =
+        (unsigned int)(sizeof(frame->tile_row_start_sb) / sizeof(frame->tile_row_start_sb[0]) - 1U);
+    unsigned int column_count =
+        frame->tile_column_count <= max_columns ? frame->tile_column_count : max_columns;
+    unsigned int row_count = frame->tile_row_count <= max_rows ? frame->tile_row_count : max_rows;
     *left = 0;
     *top = 0;
     *right = frame->width;
@@ -98,22 +109,34 @@ static void ccso_tile_bounds(const Av2hSequenceState *sequence, const Av2hFrameS
     if (sequence == NULL || sequence->disable_loopfilters_across_tiles == 0U) {
         return;
     }
-    for (column = 0U; column < frame->tile_column_count; ++column) {
+    for (column = 0U; column < column_count; ++column) {
         int end = (int)frame->tile_column_start_sb[column + 1U] * sequence->superblock_size;
-        if (center_x < end || column + 1U == frame->tile_column_count) {
+        if (center_x < end || column + 1U == column_count) {
             *left = (int)frame->tile_column_start_sb[column] * sequence->superblock_size;
             *right = end < frame->width ? end : frame->width;
             break;
         }
     }
-    for (row = 0U; row < frame->tile_row_count; ++row) {
+    for (row = 0U; row < row_count; ++row) {
         int end = (int)frame->tile_row_start_sb[row + 1U] * sequence->superblock_size;
-        if (center_y < end || row + 1U == frame->tile_row_count) {
+        if (center_y < end || row + 1U == row_count) {
             *top = (int)frame->tile_row_start_sb[row] * sequence->superblock_size;
             *bottom = end < frame->height ? end : frame->height;
             break;
         }
     }
+    if (*right < 1)
+        *right = 1;
+    if (*left < 0)
+        *left = 0;
+    if (*left >= *right)
+        *left = *right - 1;
+    if (*bottom < 1)
+        *bottom = 1;
+    if (*top < 0)
+        *top = 0;
+    if (*top >= *bottom)
+        *top = *bottom - 1;
 }
 
 /* Instantiate typed kernels after the shared helpers. */

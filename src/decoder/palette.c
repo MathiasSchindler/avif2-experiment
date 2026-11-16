@@ -51,15 +51,20 @@ Av2hStatus av2h_leaf_palette_read_colors(Av2hRangeDecoder *decoder,
     color_bits = domain->bit_depth;
     maximum = domain->maximum;
     if (neighbors != NULL) {
-        while (above_index < neighbors->palette_size[1] &&
-               left_index < neighbors->palette_size[0]) {
+        uint8_t left_size = neighbors->palette_size[0] <= AV2H_PALETTE_MAX_SIZE
+                                ? neighbors->palette_size[0]
+                                : AV2H_PALETTE_MAX_SIZE;
+        uint8_t above_size = neighbors->palette_size[1] <= AV2H_PALETTE_MAX_SIZE
+                                 ? neighbors->palette_size[1]
+                                 : AV2H_PALETTE_MAX_SIZE;
+        while (above_index < above_size && left_index < left_size) {
             cache[cache_count++] = neighbors->palette_colors[1][above_index++];
             cache[cache_count++] = neighbors->palette_colors[0][left_index++];
         }
-        while (above_index < neighbors->palette_size[1]) {
+        while (above_index < above_size) {
             cache[cache_count++] = neighbors->palette_colors[1][above_index++];
         }
-        while (left_index < neighbors->palette_size[0]) {
+        while (left_index < left_size) {
             cache[cache_count++] = neighbors->palette_colors[0][left_index++];
         }
     }
@@ -115,6 +120,9 @@ sort_colors:
 static void palette_promote_color(uint8_t color_order[AV2H_PALETTE_MAX_SIZE],
                                   uint8_t color_seen[AV2H_PALETTE_MAX_SIZE], size_t destination,
                                   uint8_t color, size_t *seen_count) {
+    if (color >= AV2H_PALETTE_MAX_SIZE || destination >= AV2H_PALETTE_MAX_SIZE) {
+        return;
+    }
     if (!color_seen[color]) {
         color_order[destination] = color;
         color_seen[color] = 1U;
@@ -136,10 +144,10 @@ uint8_t av2h_palette_map_get(const Av2hLeafMode *mode, size_t index) {
         return AV2H_PALETTE_MAX_SIZE;
     }
     bits = palette_map_bit_width(mode->palette_size);
-    bit_offset = index * bits;
-    if (bit_offset + bits > AV2H_PALETTE_MAP_CAPACITY * 8U) {
+    if (index > (AV2H_PALETTE_MAP_CAPACITY * 8U - bits) / bits) {
         return AV2H_PALETTE_MAX_SIZE;
     }
+    bit_offset = index * bits;
     byte_offset = bit_offset >> 3U;
     shift = (unsigned int)(bit_offset & 7U);
     packed = mode->palette_map[byte_offset];
@@ -161,10 +169,10 @@ Av2hStatus av2h_palette_map_set(Av2hLeafMode *mode, size_t index, uint8_t color)
         return AV2H_INVALID_ARGUMENT;
     }
     bits = palette_map_bit_width(mode->palette_size);
-    bit_offset = index * bits;
-    if (bit_offset + bits > AV2H_PALETTE_MAP_CAPACITY * 8U) {
+    if (index > (AV2H_PALETTE_MAP_CAPACITY * 8U - bits) / bits) {
         return AV2H_OUT_OF_MEMORY;
     }
+    bit_offset = index * bits;
     byte_offset = bit_offset >> 3U;
     shift = (unsigned int)(bit_offset & 7U);
     mask = (uint16_t)(((1U << bits) - 1U) << shift);
