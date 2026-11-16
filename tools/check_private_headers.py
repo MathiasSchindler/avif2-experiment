@@ -103,6 +103,15 @@ def compile_header(
     return result.stdout
 
 
+def header_check_flags(directories: list[Path]) -> list[str]:
+    return [
+        "-std=c11", "-Wall", "-Wextra", "-Wpedantic",
+        "-Wconversion", "-Wsign-conversion", "-Wshadow", "-Wvla", "-Wundef",
+        "-Werror", "-fwrapv",
+        "-ffreestanding", "-nostdinc",
+        *(f"-I{path}" for path in directories)]
+
+
 def check(compiler: list[str]) -> None:
     if not compiler:
         raise ValueError("the compiler command must not be empty")
@@ -116,10 +125,7 @@ def check(compiler: list[str]) -> None:
         ROOT / name for name in (
             "include/av2heif.h", "src/base.h", "src/shared/limits.h",
             "src/shared/stddef.h", "src/shared/stdint.h", "src/shared/bit_math.h")}
-    flags = [
-        "-std=c11", "-Wall", "-Wextra", "-Wpedantic", "-Werror",
-        "-ffreestanding", "-nostdinc",
-        *(f"-I{path}" for path in directories)]
+    flags = header_check_flags(directories)
     for diagnostics in ([], ["-DAV2HEIF_ENABLE_DIAGNOSTICS=1"]):
         for header in headers:
             compile_header(compiler, [*flags, *diagnostics], header, "-fsyntax-only")

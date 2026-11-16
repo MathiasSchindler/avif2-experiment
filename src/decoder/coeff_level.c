@@ -408,7 +408,8 @@ Av2hStatus av2h_coeff_block_read(Av2hRangeDecoder *decoder, Av2hCoeffLevelCdfs *
     {
         uint16_t position = av2h_coeff_scan_position(scan_index, block->width, block->height,
                                                      vertical, column_scan);
-        uint8_t low = av2h_coeff_is_low_frequency(position, block->width, vertical, column_scan);
+        uint8_t low =
+            (uint8_t)av2h_coeff_is_low_frequency(position, block->width, vertical, column_scan);
         uint8_t level;
         context = av2h_coeff_eob_context(scan_index, block->coefficient_count);
         block->diagnostic_position = position;
@@ -499,7 +500,7 @@ Av2hStatus av2h_coeff_block_read(Av2hRangeDecoder *decoder, Av2hCoeffLevelCdfs *
         --scan_index;
         position = av2h_coeff_scan_position(scan_index, block->width, block->height, vertical,
                                             column_scan);
-        low = av2h_coeff_is_low_frequency(position, block->width, vertical, column_scan);
+        low = (uint8_t)av2h_coeff_is_low_frequency(position, block->width, vertical, column_scan);
         status =
             read_base_level(decoder, cdfs, block, tx_context, position, vertical, low, column_scan,
                             tcq_mode ? av2h_tcq_quantizer(tcq_state) : 0U, &level);
@@ -540,8 +541,8 @@ Av2hStatus av2h_coeff_block_read(Av2hRangeDecoder *decoder, Av2hCoeffLevelCdfs *
             parity_hidden = 1U;
         } else {
             uint8_t level = 0U;
-            uint8_t low =
-                av2h_coeff_is_low_frequency(hidden_position, block->width, vertical, column_scan);
+            uint8_t low = (uint8_t)av2h_coeff_is_low_frequency(hidden_position, block->width,
+                                                               vertical, column_scan);
             status = read_base_level(decoder, cdfs, block, tx_context, hidden_position, vertical,
                                      low, column_scan, 0U, &level);
             if (status != AV2H_OK)
@@ -592,7 +593,7 @@ Av2hStatus av2h_coeff_block_read(Av2hRangeDecoder *decoder, Av2hCoeffLevelCdfs *
             return av2h_range_status(decoder);
         }
         final_level = level;
-        low = av2h_coeff_is_low_frequency(position, block->width, vertical, column_scan);
+        low = (uint8_t)av2h_coeff_is_low_frequency(position, block->width, vertical, column_scan);
         if (parity_hidden != 0U && scan_index == 0U && final_level >= 6U) {
             uint32_t high;
             status = read_high_range(decoder, high_average >> 1U, &high);
@@ -661,7 +662,7 @@ Av2hStatus av2h_coeff_block_read_with_state(Av2hRangeDecoder *decoder, Av2hCoeff
                                             Av2hCoeffContextState *state, Av2hCoeffBlock *block) {
     uint8_t txb_skip_context;
     uint8_t dc_sign_context;
-    block->diagnostic_position = leaf != NULL ? leaf->block_size : 0U;
+    block->diagnostic_position = leaf != NULL ? (uint16_t)leaf->block_size : 0U;
     block->diagnostic_context = 0U;
     block->diagnostic_kind = 11U;
     Av2hStatus status = av2h_coeff_contexts_from_state(

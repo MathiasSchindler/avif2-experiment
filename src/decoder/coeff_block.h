@@ -110,4 +110,9 @@ uint8_t av2h_tcq_next_state(uint8_t state, uint32_t absolute_level);
 uint16_t av2h_coeff_scan_position(uint16_t scan_index, uint16_t width, uint16_t height,
                                   uint8_t vertical, uint8_t column_scan);
 
+_Static_assert(AV2H_COEFF_CAPACITY == 32U * 32U,
+               "coefficient capacity must hold a 32x32 coefficient block");
+_Static_assert(AV2H_COEFF_CAPACITY <= AV2H_RECON_SAMPLE_CAPACITY,
+               "coefficient capacity must not exceed reconstruction sample capacity");
+
 #endif

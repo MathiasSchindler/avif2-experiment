@@ -65,7 +65,7 @@ Av2hStatus av2h_deblock_quantizer_thresholds(const Av2hDeblockCell *cell,
         side_shift = 5U;
     }
     *side_threshold =
-        (uint16_t)(av2h_sample_clamp(av2h_deblock_side_threshold(side_index) + side_bias, 0,
+        (uint16_t)(av2h_sample_clamp(av2h_deblock_side_threshold((size_t)side_index) + side_bias, 0,
                                      65535) >>
                    side_shift);
     return AV2H_OK;

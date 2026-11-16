@@ -315,7 +315,7 @@ AV2H_NOINLINE Av2hStatus av2h_luma_reconstruct_to_plane(
         return status;
     output_width = descriptor->output_width;
     output_height = descriptor->output_height;
-    is_top_superblock_boundary = luma_top_superblock_boundary(mode, block_y);
+    is_top_superblock_boundary = (uint8_t)luma_top_superblock_boundary(mode, block_y);
     above_reference_y = (size_t)block_y - 1U - (is_top_superblock_boundary ? 0U : mode->mrl_index);
     if (block_x >= plane->width || block_y >= plane->height || coefficients->width > 32U ||
         coefficients->height > 32U) {
@@ -530,7 +530,7 @@ AV2H_NOINLINE Av2hStatus av2h_luma_reconstruct_to_plane(
     } else if (mode->mode == AV2H_INTRA_DC && above_count == 0U && left_count == 0U &&
                mode->use_intra_dip == 0U) {
         for (index = 0U; index < (size_t)output_width * output_height; ++index) {
-            scratch->predictor[index] = domain->midpoint;
+            scratch->predictor[index] = (uint8_t)domain->midpoint;
         }
         status = av2h_luma_reconstruct(diagnostics, mode, prefix, transform, coefficients,
                                        scratch->predictor, output_width, scratch, reconstruction);
@@ -698,8 +698,8 @@ AV2H_NOINLINE Av2hStatus av2h_chroma_reconstruct_to_plane(
         size_t left_count = (size_t)height + width;
         uint8_t had_above = references.above_count != 0U;
         uint8_t had_left = references.left_count != 0U;
-        uint8_t above_value = had_left ? references.left[0] : (domain->midpoint - 1U);
-        uint8_t left_value = had_above ? references.above[0] : (domain->midpoint + 1U);
+        uint8_t above_value = had_left ? references.left[0] : (uint8_t)(domain->midpoint - 1U);
+        uint8_t left_value = had_above ? references.above[0] : (uint8_t)(domain->midpoint + 1U);
         if (above_count > sizeof(scratch->above)) {
             above_count = sizeof(scratch->above);
         }
@@ -716,7 +716,9 @@ AV2H_NOINLINE Av2hStatus av2h_chroma_reconstruct_to_plane(
             references.left = scratch->left;
             references.left_count = left_count;
         }
-        references.above_left = had_above ? left_value : had_left ? above_value : domain->midpoint;
+        references.above_left = had_above  ? left_value
+                                : had_left ? above_value
+                                           : (uint8_t)domain->midpoint;
         references.has_above_left = 1U;
     }
     if (mode->is_cfl) {
@@ -906,7 +908,7 @@ AV2H_NOINLINE Av2hStatus av2h_luma_reconstruct_to_plane_u16(
             above_target = sizeof(scratch->above) / sizeof(scratch->above[0]);
         }
     }
-    is_top_superblock_boundary = luma_top_superblock_boundary(mode, block_y);
+    is_top_superblock_boundary = (uint8_t)luma_top_superblock_boundary(mode, block_y);
     above_reference_y = (size_t)block_y - 1U - (is_top_superblock_boundary ? 0U : mode->mrl_index);
     if (block_y != 0U) {
         for (index = 0U; index < above_target; ++index) {

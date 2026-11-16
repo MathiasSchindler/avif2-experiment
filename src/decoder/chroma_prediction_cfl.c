@@ -778,9 +778,9 @@ Av2hStatus av2h_cfl_derived_predict(
         }
         if (dc_count > 0) {
             int div_shift = 0;
-            uint16_t scale = av2h_sample_resolve_divisor_32((uint32_t)dc_count, &div_shift);
+            uint16_t div_scale = av2h_sample_resolve_divisor_32((uint32_t)dc_count, &div_shift);
             int32_t rounding = (1 << div_shift) >> 1;
-            int32_t val = (int32_t)(((int64_t)sum * scale + rounding) >> div_shift);
+            int32_t val = (int32_t)(((int64_t)sum * div_scale + rounding) >> div_shift);
             int32_t max_v = (1 << (bit_depth + 3)) - 1;
             avg_l = val > max_v ? max_v : val;
         } else {

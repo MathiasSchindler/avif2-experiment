@@ -56,4 +56,11 @@ typedef struct {
 
 Av2hStatus av2h_block_dimensions_mi(Av2hBlockSize block_size, size_t *width, size_t *height);
 
+_Static_assert(AV2H_BLOCK_SIZE_COUNT == 31, "unexpected Av2hBlockSize count");
+_Static_assert((unsigned int)AV2H_BLOCK_INVALID == UINT8_MAX &&
+                   (unsigned int)AV2H_BLOCK_SIZE_COUNT < (unsigned int)AV2H_BLOCK_INVALID,
+               "Av2hBlockSize must fit in uint8_t");
+_Static_assert(AV2H_RECON_SAMPLE_CAPACITY == 64U * 64U,
+               "reconstruction sample capacity must hold a 64x64 transform block");
+
 #endif

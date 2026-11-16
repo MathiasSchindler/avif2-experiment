@@ -82,8 +82,16 @@ CORE_SOURCES := \
 
 CLI_SOURCES := src/shared/cli_common.c src/shared/cli_diagnostics.c
 
+STRICT_WARNINGS := -Wconversion -Wsign-conversion -Wshadow -Wvla -Wundef
 COMMON_WARNINGS := -std=c11 -Wall -Wextra -Wpedantic -Werror -pipe
-FREESTANDING_CFLAGS := $(COMMON_WARNINGS) -Wframe-larger-than=4096 -O2 \
+PRODUCTION_WARNINGS := $(COMMON_WARNINGS) $(STRICT_WARNINGS)
+CC_SUPPORTS_FLAG = $(shell printf 'int av2h_flag_probe;\n' | $(CC) $(1) -Werror -x c -fsyntax-only - >/dev/null 2>&1 && printf '%s' '$(1)')
+AUTO_VAR_INIT_HOST_CFLAGS := $(call CC_SUPPORTS_FLAG,-ftrivial-auto-var-init=zero)
+AUTO_VAR_INIT_FREESTANDING_CFLAGS := $(call CC_SUPPORTS_FLAG,-ftrivial-auto-var-init=zero -ftrivial-auto-var-init-max-size=64)
+HOST_STACK_PROTECTOR_CFLAGS := $(call CC_SUPPORTS_FLAG,-fstack-protector-strong)
+
+FREESTANDING_CFLAGS := $(PRODUCTION_WARNINGS) -fwrapv \
+	$(AUTO_VAR_INIT_FREESTANDING_CFLAGS) -Wframe-larger-than=4096 -O2 \
 	-ffreestanding -fno-builtin -fno-stack-protector \
 	-fno-unwind-tables -fno-asynchronous-unwind-tables \
 	-ffunction-sections -fdata-sections -nostdinc \
@@ -268,7 +276,9 @@ $(NATIVE_BUILD_DIR)/obj/cli/%.o: %.c
 
 $(NATIVE_DECODER): src/platform/posix/decoder.c $(NATIVE_CLI_OBJECTS) $(NATIVE_LIBRARY)
 	@mkdir -p $(@D)
-	$(CC) $(COMMON_WARNINGS) -Wframe-larger-than=4096 -O2 -Iinclude -Isrc $< $(NATIVE_CLI_OBJECTS) $(NATIVE_LIBRARY) -o $@
+	$(CC) $(PRODUCTION_WARNINGS) -fwrapv $(AUTO_VAR_INIT_HOST_CFLAGS) \
+		$(HOST_STACK_PROTECTOR_CFLAGS) -Wframe-larger-than=4096 -O2 \
+		-Iinclude -Isrc $< $(NATIVE_CLI_OBJECTS) $(NATIVE_LIBRARY) -o $@
 
 $(NATIVE_FREESTANDING_STAMP): $(NATIVE_OBJECTS) $(NATIVE_CLI_OBJECTS) scripts/check-undefined-symbols.sh
 	@mkdir -p $(@D)
@@ -313,7 +323,8 @@ $(NOLIBC_BUILD_DIR)/obj/cli/%.o: %.c
 
 $(NOLIBC_BUILD_DIR)/obj/runtime/%.o: %.c
 	@mkdir -p $(@D)
-	$(COMPILE_CC) $(COMMON_WARNINGS) -Wframe-larger-than=4096 -ffreestanding -fno-builtin \
+	$(COMPILE_CC) $(PRODUCTION_WARNINGS) -fwrapv $(AUTO_VAR_INIT_FREESTANDING_CFLAGS) \
+		-Wframe-larger-than=4096 -ffreestanding -fno-builtin \
 		-fno-stack-protector -fno-unwind-tables -fno-asynchronous-unwind-tables \
 		-ffunction-sections -fdata-sections -nostdinc -Isrc -Isrc/shared \
 		$(NOLIBC_RUNTIME_EXTRA_CFLAGS) -c $< -o $@
@@ -324,7 +335,8 @@ $(NOLIBC_BUILD_DIR)/obj/runtime/%.o: %.S
 
 $(NOLIBC_BUILD_DIR)/obj/platform/%.o: %.c
 	@mkdir -p $(@D)
-	$(COMPILE_CC) $(COMMON_WARNINGS) -Wframe-larger-than=4096 -ffreestanding -fno-builtin \
+	$(COMPILE_CC) $(PRODUCTION_WARNINGS) -fwrapv $(AUTO_VAR_INIT_FREESTANDING_CFLAGS) \
+		-Wframe-larger-than=4096 -ffreestanding -fno-builtin \
 		-fno-stack-protector -fno-unwind-tables -fno-asynchronous-unwind-tables \
 		-ffunction-sections -fdata-sections -nostdinc -Iinclude -Isrc -Isrc/shared \
 		$(NOLIBC_PLATFORM_EXTRA_CFLAGS) -c $< -o $@
@@ -367,7 +379,8 @@ $(NOLIBC_RUNTIME_STAMP): $(NOLIBC_RUNTIME_OBJECTS) scripts/check-undefined-symbo
 
 $(NOLIBC_BUILD_DIR)/obj/substrate/%.o: %.c
 	@mkdir -p $(@D)
-	$(COMPILE_CC) $(COMMON_WARNINGS) -Oz -ffreestanding -fno-builtin \
+	$(COMPILE_CC) $(PRODUCTION_WARNINGS) -fwrapv $(AUTO_VAR_INIT_FREESTANDING_CFLAGS) \
+		-Oz -ffreestanding -fno-builtin \
 		-fno-stack-protector -fno-unwind-tables -fno-asynchronous-unwind-tables \
 		-ffunction-sections -fdata-sections -fno-pic -fno-pie -nostdinc \
 		-Isrc -Isrc/shared -c $< -o $@
@@ -394,9 +407,13 @@ reference-gallery:
 
 
 HOST_BUILD_DIR ?= build/host-sanitized
-HOST_CFLAGS := $(COMMON_WARNINGS) -O1 -g -fsanitize=address,undefined \
+# Omit -fwrapv under UBSan so signed-integer-overflow remains detectable.
+HOST_CFLAGS := $(COMMON_WARNINGS) $(AUTO_VAR_INIT_HOST_CFLAGS) \
+	$(HOST_STACK_PROTECTOR_CFLAGS) -O1 -g -fsanitize=address,undefined \
 	-fno-omit-frame-pointer -Iinclude -Isrc
-HOST_LDFLAGS := -fsanitize=address,undefined -fno-omit-frame-pointer
+HOST_PRODUCTION_CFLAGS := $(HOST_CFLAGS) $(STRICT_WARNINGS)
+HOST_LDFLAGS := $(HOST_STACK_PROTECTOR_CFLAGS) \
+	-fsanitize=address,undefined -fno-omit-frame-pointer
 HOST_CORE_OBJECTS := $(CORE_SOURCES:%.c=$(HOST_BUILD_DIR)/obj/core/%.o)
 HOST_QUERY_TEST_OBJECTS := $(HOST_BUILD_DIR)/obj/query-test/query.o \
 	$(HOST_BUILD_DIR)/obj/query-test/decode.o
@@ -564,11 +581,11 @@ test: test-c test-corpus test-reference-locks test-freestanding test-private-hea
 
 $(HOST_BUILD_DIR)/obj/core/%.o: %.c
 	@mkdir -p $(@D)
-	$(COMPILE_CC) $(HOST_CFLAGS) -MMD -MP -c $< -o $@
+	$(COMPILE_CC) $(HOST_PRODUCTION_CFLAGS) -MMD -MP -c $< -o $@
 
 $(HOST_BUILD_DIR)/obj/cli/%.o: %.c
 	@mkdir -p $(@D)
-	$(COMPILE_CC) $(HOST_CFLAGS) -MMD -MP -c $< -o $@
+	$(COMPILE_CC) $(HOST_PRODUCTION_CFLAGS) -MMD -MP -c $< -o $@
 
 $(HOST_LIBRARY): $(HOST_CORE_OBJECTS)
 	@mkdir -p $(@D)
@@ -577,7 +594,8 @@ $(HOST_LIBRARY): $(HOST_CORE_OBJECTS)
 
 $(HOST_BUILD_DIR)/obj/runtime/%.o: %.c
 	@mkdir -p $(@D)
-	$(COMPILE_CC) $(COMMON_WARNINGS) -Wframe-larger-than=4096 -O2 -ffreestanding -fno-builtin \
+	$(COMPILE_CC) $(PRODUCTION_WARNINGS) -fwrapv $(AUTO_VAR_INIT_FREESTANDING_CFLAGS) \
+		-Wframe-larger-than=4096 -O2 -ffreestanding -fno-builtin \
 		-fno-stack-protector -fno-unwind-tables -fno-asynchronous-unwind-tables \
 		-ffunction-sections -fdata-sections -nostdinc -Isrc -Isrc/shared -c $< -o $@
 
@@ -600,13 +618,13 @@ $(foreach name,$(filter-out cli public_decode decode_parallel filter,$(HOST_UNIT
 # Count parser calls without adding instrumentation to production sources.
 $(HOST_BUILD_DIR)/obj/query-test/query.o: src/query.c Makefile
 	@mkdir -p $(@D)
-	$(COMPILE_CC) $(HOST_CFLAGS) -MMD -MP \
+	$(COMPILE_CC) $(HOST_PRODUCTION_CFLAGS) -MMD -MP \
 		-Dav2h_heif_parse=test_heif_parse \
 		-Dav2h_decode_prepare=test_decode_prepare -c $< -o $@
 
 $(HOST_BUILD_DIR)/obj/query-test/decode.o: src/decode.c Makefile
 	@mkdir -p $(@D)
-	$(COMPILE_CC) $(HOST_CFLAGS) -MMD -MP \
+	$(COMPILE_CC) $(HOST_PRODUCTION_CFLAGS) -MMD -MP \
 		-Dav2h_sequence_state_parse=test_sequence_state_parse \
 		-Dav2h_frame_header_closed_key_parse=test_frame_header_parse \
 		-Dav2h_qmatrix_ledger_parse=test_qmatrix_ledger_parse -c $< -o $@
@@ -634,7 +652,8 @@ $(HOST_BUILD_DIR)/filter-unit: tests/filter_unit.c tests/parallel_test.h $(HOST_
 
 $(HOST_RUNTIME_UNIT): tests/runtime_substrate_unit.c $(HOST_RUNTIME_LIBRARY)
 	@mkdir -p $(@D)
-	$(CC) $(COMMON_WARNINGS) -O1 -g -Isrc $< $(HOST_RUNTIME_LIBRARY) -o $@
+	$(CC) $(COMMON_WARNINGS) $(AUTO_VAR_INIT_HOST_CFLAGS) \
+		$(HOST_STACK_PROTECTOR_CFLAGS) -O1 -g -Isrc $< $(HOST_RUNTIME_LIBRARY) -o $@
 
 $(HOST_FUZZ): tests/public_decode_fuzz.c $(HOST_LIBRARY)
 	@mkdir -p $(@D)
@@ -643,11 +662,11 @@ $(HOST_FUZZ): tests/public_decode_fuzz.c $(HOST_LIBRARY)
 
 $(HOST_DECODER): src/platform/posix/decoder.c $(HOST_CLI_OBJECTS) $(HOST_LIBRARY)
 	@mkdir -p $(@D)
-	$(CC) $(HOST_CFLAGS) $< $(HOST_CLI_OBJECTS) $(HOST_LIBRARY) $(HOST_LDFLAGS) -o $@
+	$(CC) $(HOST_PRODUCTION_CFLAGS) $< $(HOST_CLI_OBJECTS) $(HOST_LIBRARY) $(HOST_LDFLAGS) -o $@
 
 $(HOST_ARTIFACT_TOOL): tools/av2heif_artifact.c $(HOST_LIBRARY)
 	@mkdir -p $(@D)
-	$(CC) $(HOST_CFLAGS) -Isrc $< $(HOST_LIBRARY) $(HOST_LDFLAGS) -o $@
+	$(CC) $(HOST_PRODUCTION_CFLAGS) -Isrc $< $(HOST_LIBRARY) $(HOST_LDFLAGS) -o $@
 
 test-host-build: $(HOST_UNIT_BINARIES) $(HOST_RUNTIME_UNIT) $(HOST_FUZZ) \
 		$(HOST_DECODER) $(HOST_ARTIFACT_TOOL)

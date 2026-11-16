@@ -96,9 +96,9 @@ static int tile_luma_lossless_unit_complete(const Av2hTileDecoder *decoder,
     Av2hPartitionNode next;
     if (decoder->luma.tx_index >= decoder->luma.tx_count)
         return 1;
-    if (av2h_luma_lossless_tx_node_get(&decoder->luma.coding_node, decoder->traversal.mi_columns,
-                                       decoder->traversal.mi_rows, decoder->luma.tx_index,
-                                       &next) != AV2H_OK) {
+    if (av2h_luma_lossless_tx_node_get(
+            &decoder->luma.coding_node, (uint16_t)decoder->traversal.mi_columns,
+            (uint16_t)decoder->traversal.mi_rows, decoder->luma.tx_index, &next) != AV2H_OK) {
         return 0;
     }
     return ((leaf.row - decoder->luma.coding_node.row) / 16U !=
@@ -112,10 +112,10 @@ static int tile_chroma_lossless_unit_complete(const Av2hTileDecoder *decoder,
     Av2hPartitionNode next;
     if (decoder->chroma.tx_index >= decoder->chroma.tx_count)
         return 1;
-    if (av2h_chroma_lossless_tx_node_get(&decoder->chroma.coding_node,
-                                         decoder->traversal.mi_columns, decoder->traversal.mi_rows,
-                                         decoder->entropy_state.frame->chroma_format_idc,
-                                         decoder->chroma.tx_index, &next) != AV2H_OK) {
+    if (av2h_chroma_lossless_tx_node_get(
+            &decoder->chroma.coding_node, (uint16_t)decoder->traversal.mi_columns,
+            (uint16_t)decoder->traversal.mi_rows, decoder->entropy_state.frame->chroma_format_idc,
+            decoder->chroma.tx_index, &next) != AV2H_OK) {
         return 0;
     }
     return ((leaf.row - decoder->chroma.coding_node.row) / 16U !=
@@ -1013,9 +1013,10 @@ Av2hStatus av2h_tile_decoder_commit_leaf(Av2hTileDecoder *decoder, Av2hPartition
             Av2hPartitionNode expected;
             status = decoder->luma.coding_mode.q_index == 0U &&
                              decoder->luma.coding_mode.lossless_tx_size_large == 0U
-                         ? av2h_luma_lossless_tx_node_get(
-                               &decoder->luma.coding_node, decoder->traversal.mi_columns,
-                               decoder->traversal.mi_rows, decoder->luma.tx_index, &expected)
+                         ? av2h_luma_lossless_tx_node_get(&decoder->luma.coding_node,
+                                                          (uint16_t)decoder->traversal.mi_columns,
+                                                          (uint16_t)decoder->traversal.mi_rows,
+                                                          decoder->luma.tx_index, &expected)
                          : av2h_tile_luma_tx_node_get(decoder, decoder->luma.tx_index, &expected);
             if (status != AV2H_OK || expected.row != leaf.row || expected.column != leaf.column ||
                 expected.block_size != leaf.block_size) {
@@ -1099,15 +1100,16 @@ Av2hStatus av2h_tile_decoder_commit_leaf(Av2hTileDecoder *decoder, Av2hPartition
     } else if (decoder->control.phase == AV2H_TILE_DECODE_CHROMA) {
         if (decoder->chroma.tx_count != 0U) {
             Av2hPartitionNode expected;
-            status = decoder->superblock.current_block_q_index == 0U
-                         ? av2h_chroma_lossless_tx_node_get(
-                               &decoder->chroma.coding_node, decoder->traversal.mi_columns,
-                               decoder->traversal.mi_rows,
-                               decoder->entropy_state.frame->chroma_format_idc,
-                               decoder->chroma.tx_index, &expected)
-                         : av2h_chroma_tx_node_get(&decoder->chroma.coding_node,
-                                                   decoder->entropy_state.frame->chroma_format_idc,
-                                                   decoder->chroma.tx_index, &expected);
+            status =
+                decoder->superblock.current_block_q_index == 0U
+                    ? av2h_chroma_lossless_tx_node_get(
+                          &decoder->chroma.coding_node, (uint16_t)decoder->traversal.mi_columns,
+                          (uint16_t)decoder->traversal.mi_rows,
+                          decoder->entropy_state.frame->chroma_format_idc, decoder->chroma.tx_index,
+                          &expected)
+                    : av2h_chroma_tx_node_get(&decoder->chroma.coding_node,
+                                              decoder->entropy_state.frame->chroma_format_idc,
+                                              decoder->chroma.tx_index, &expected);
             if (status != AV2H_OK || expected.row != leaf.row || expected.column != leaf.column ||
                 expected.block_size != leaf.block_size) {
                 return av2h_tile_decoder_fail(decoder, AV2H_INVALID_ARGUMENT);

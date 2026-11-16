@@ -104,4 +104,17 @@ Av2hStatus av2h_chroma_inverse_cross_transform(Av2hCoeffBlock *u_coefficients,
                                                Av2hCoeffBlock *v_coefficients, uint8_t cctx_type,
                                                uint8_t bit_depth);
 
+_Static_assert(sizeof(((Av2hReconstructionScratch *)0)->scaled) /
+                       sizeof(((Av2hReconstructionScratch *)0)->scaled[0]) ==
+                   AV2H_COEFF_CAPACITY,
+               "transform scratch must match AV2H_COEFF_CAPACITY");
+_Static_assert(sizeof(((Av2hReconstructionScratch *)0)->predictor) /
+                       sizeof(((Av2hReconstructionScratch *)0)->predictor[0]) ==
+                   AV2H_RECON_SAMPLE_CAPACITY,
+               "predictor scratch must match AV2H_RECON_SAMPLE_CAPACITY");
+_Static_assert(sizeof(((Av2hReconstructionScratch *)0)->above) /
+                       sizeof(((Av2hReconstructionScratch *)0)->above[0]) >=
+                   2U * 64U,
+               "neighbor scratch must hold 2x64 reference samples");
+
 #endif

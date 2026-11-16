@@ -191,37 +191,37 @@ Av2hStatus av2h_coeff_cdfs_init(Av2hCoeffCdfs *cdfs, Av2hQIndex base_q_index) {
     av2h_memory_fill(cdfs->chroma_eob_pt, 0U, sizeof(cdfs->chroma_eob_pt));
     status = av2h_cdf_init(cdfs->chroma_eob_pt[AV2H_TX_EOB_16], 5U + 4U,
                            av2h_chroma_eob_pt_16[q_context], 5U,
-                           av2h_chroma_eob_pt_16[q_context][4U], 0U);
+                           (uint8_t)av2h_chroma_eob_pt_16[q_context][4U], 0U);
     if (status != AV2H_OK)
         return status;
     status = av2h_cdf_init(cdfs->chroma_eob_pt[AV2H_TX_EOB_32], 6U + 4U,
                            av2h_chroma_eob_pt_32[q_context], 6U,
-                           av2h_chroma_eob_pt_32[q_context][5U], 0U);
+                           (uint8_t)av2h_chroma_eob_pt_32[q_context][5U], 0U);
     if (status != AV2H_OK)
         return status;
     status = av2h_cdf_init(cdfs->chroma_eob_pt[AV2H_TX_EOB_64], 7U + 4U,
                            av2h_chroma_eob_pt_64[q_context], 7U,
-                           av2h_chroma_eob_pt_64[q_context][6U], 0U);
+                           (uint8_t)av2h_chroma_eob_pt_64[q_context][6U], 0U);
     if (status != AV2H_OK)
         return status;
     status = av2h_cdf_init(cdfs->chroma_eob_pt[AV2H_TX_EOB_128], 8U + 4U,
                            av2h_chroma_eob_pt_128[q_context], 8U,
-                           av2h_chroma_eob_pt_128[q_context][7U], 0U);
+                           (uint8_t)av2h_chroma_eob_pt_128[q_context][7U], 0U);
     if (status != AV2H_OK)
         return status;
     status = av2h_cdf_init(cdfs->chroma_eob_pt[AV2H_TX_EOB_256], 8U + 4U,
                            av2h_chroma_eob_pt_256[q_context], 8U,
-                           av2h_chroma_eob_pt_256[q_context][7U], 0U);
+                           (uint8_t)av2h_chroma_eob_pt_256[q_context][7U], 0U);
     if (status != AV2H_OK)
         return status;
     status = av2h_cdf_init(cdfs->chroma_eob_pt[AV2H_TX_EOB_512], 8U + 4U,
                            av2h_chroma_eob_pt_512[q_context], 8U,
-                           av2h_chroma_eob_pt_512[q_context][7U], 0U);
+                           (uint8_t)av2h_chroma_eob_pt_512[q_context][7U], 0U);
     if (status != AV2H_OK)
         return status;
     status = av2h_cdf_init(cdfs->chroma_eob_pt[AV2H_TX_EOB_1024], 8U + 4U,
                            av2h_chroma_eob_pt_1024[q_context], 8U,
-                           av2h_chroma_eob_pt_1024[q_context][7U], 0U);
+                           (uint8_t)av2h_chroma_eob_pt_1024[q_context][7U], 0U);
     if (status != AV2H_OK)
         return status;
     {
@@ -236,7 +236,7 @@ Av2hStatus av2h_coeff_cdfs_init(Av2hCoeffCdfs *cdfs, Av2hQIndex base_q_index) {
         for (eob_class = 0U; eob_class < 7U; ++eob_class) {
             status = av2h_cdf_init(cdfs->inter_eob_pt[eob_class], (size_t)symbols[eob_class] + 4U,
                                    inter_sources[eob_class], symbols[eob_class],
-                                   inter_sources[eob_class][symbols[eob_class] - 1U], 0U);
+                                   (uint8_t)inter_sources[eob_class][symbols[eob_class] - 1U], 0U);
             if (status != AV2H_OK)
                 return status;
         }
@@ -441,9 +441,9 @@ Av2hStatus av2h_coeff_contexts_from_state_for_coding_block(
         } else if (coding_width == width && coding_height == height) {
             *txb_skip_context = 0U;
         } else {
-            unsigned int top = above_nonzero > 4U ? 4U : above_nonzero;
-            unsigned int left = left_nonzero > 4U ? 4U : left_nonzero;
-            *txb_skip_context = skip_contexts[top][left];
+            unsigned int top_count = above_nonzero > 4U ? 4U : above_nonzero;
+            unsigned int left_count = left_nonzero > 4U ? 4U : left_nonzero;
+            *txb_skip_context = skip_contexts[top_count][left_count];
         }
     } else if (plane == 1U) {
         *txb_skip_context = (uint8_t)(6U + (above_nonzero != 0U) + (left_nonzero != 0U));

@@ -612,7 +612,7 @@ luma_mode_read_internal(Av2hRangeDecoder *decoder, Av2hLeafCdfs *cdfs,
             if (neighbors->joint_mode[neighbor] >= 61U) {
                 return AV2H_INVALID_ARGUMENT;
             }
-            mode_context += is_directional_joint_mode(neighbors->joint_mode[neighbor]);
+            mode_context += (size_t)is_directional_joint_mode(neighbors->joint_mode[neighbor]);
         }
         if (neighbors->line_valid && neighbors->line_present[neighbor]) {
             skip_transform_context += skip_transform;

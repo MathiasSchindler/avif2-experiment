@@ -653,14 +653,14 @@ Av2hStatus av2h_coeff_level_cdfs_init_for_q(Av2hCoeffLevelCdfs *cdfs, Av2hQIndex
     static const uint16_t adjusted_uv_eob[2U][2U] = {{31595U, 32587U}, {32086U, 32691U}};
     static const uint16_t adjusted_uv_base_q1[3U][3U] = {
         {26264U, 32282U, 32667U}, {16468U, 29532U, 31912U}, {8915U, 21647U, 27531U}};
-    static const uint16_t adjusted_uv_base_q1_parameter[3U] = {75U, 78U, 0U};
+    static const uint8_t adjusted_uv_base_q1_parameter[3U] = {75U, 78U, 0U};
     static const uint16_t adjusted_uv_base_q2[] = {26928U, 32457U, 32720U};
     static const uint16_t adjusted_uv_base_lf_q1[] = {2196U, 6512U, 10780U, 14847U, 18294U};
     static const uint16_t adjusted_uv_base_lf_q2[] = {10499U, 24975U, 30136U, 31803U, 32399U};
     static const uint16_t adjusted_uv_eob_lf_q2[] = {30964U, 32463U, 32673U, 32733U};
     static const uint16_t adjusted_uv_base_v_q1[3U][3U] = {
         {27171U, 32473U, 32714U}, {18547U, 30679U, 32297U}, {9723U, 23037U, 28561U}};
-    static const uint16_t adjusted_uv_base_v_q1_parameter[3U] = {90U, 75U, 0U};
+    static const uint8_t adjusted_uv_base_v_q1_parameter[3U] = {90U, 75U, 0U};
     static const uint16_t adjusted_uv_base_lf_v_q1[] = {2461U, 7239U, 11755U, 15869U, 19210U};
     static const uint16_t adjusted_uv_br_q1[2U][3U] = {{22490U, 28954U, 31256U},
                                                        {17882U, 25670U, 29377U}};

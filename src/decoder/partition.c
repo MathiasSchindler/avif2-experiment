@@ -835,8 +835,8 @@ static Av2hStatus traversal_push_children(Av2hPartitionTraversal *traversal, Av2
     }
     if (partition == AV2H_PARTITION_HORZ_3 || partition == AV2H_PARTITION_VERT_3) {
         Av2hPartitionNode children[4U];
-        uint8_t width = av2h_block_geometry[node.block_size].mi_width;
-        uint8_t height = av2h_block_geometry[node.block_size].mi_height;
+        uint8_t mi_width = av2h_block_geometry[node.block_size].mi_width;
+        uint8_t mi_height = av2h_block_geometry[node.block_size].mi_height;
         Av2hBlockSize outer;
         Av2hBlockSize middle;
         size_t index;
@@ -844,9 +844,9 @@ static Av2hStatus traversal_push_children(Av2hPartitionTraversal *traversal, Av2
             return AV2H_OVERFLOW;
         }
         outer = partition == AV2H_PARTITION_HORZ_3
-                    ? block_size_from_dimensions(width, (uint8_t)(height / 4U))
-                    : block_size_from_dimensions((uint8_t)(width / 4U), height);
-        middle = block_size_from_dimensions((uint8_t)(width / 2U), (uint8_t)(height / 2U));
+                    ? block_size_from_dimensions(mi_width, (uint8_t)(mi_height / 4U))
+                    : block_size_from_dimensions((uint8_t)(mi_width / 4U), mi_height);
+        middle = block_size_from_dimensions((uint8_t)(mi_width / 2U), (uint8_t)(mi_height / 2U));
         if (outer == AV2H_BLOCK_INVALID || middle == AV2H_BLOCK_INVALID) {
             return AV2H_UNSUPPORTED;
         }
@@ -857,15 +857,15 @@ static Av2hStatus traversal_push_children(Av2hPartitionTraversal *traversal, Av2
         children[1].block_size = middle;
         children[2].block_size = middle;
         if (partition == AV2H_PARTITION_HORZ_3) {
-            children[1].row = (uint16_t)(node.row + height / 4U);
+            children[1].row = (uint16_t)(node.row + mi_height / 4U);
             children[2].row = children[1].row;
-            children[2].column = (uint16_t)(node.column + width / 2U);
-            children[3].row = (uint16_t)(node.row + 3U * height / 4U);
+            children[2].column = (uint16_t)(node.column + mi_width / 2U);
+            children[3].row = (uint16_t)(node.row + 3U * mi_height / 4U);
         } else {
-            children[1].column = (uint16_t)(node.column + width / 4U);
+            children[1].column = (uint16_t)(node.column + mi_width / 4U);
             children[2].column = children[1].column;
-            children[2].row = (uint16_t)(node.row + height / 2U);
-            children[3].column = (uint16_t)(node.column + 3U * width / 4U);
+            children[2].row = (uint16_t)(node.row + mi_height / 2U);
+            children[3].column = (uint16_t)(node.column + 3U * mi_width / 4U);
         }
         for (index = 4U; index != 0U; --index) {
             traversal->stack[traversal->stack_count++] = children[index - 1U];

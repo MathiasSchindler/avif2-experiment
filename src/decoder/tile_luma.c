@@ -835,9 +835,10 @@ Av2hStatus av2h_tile_decoder_next_luma(Av2hTileDecoder *decoder, Av2hTileLumaLea
                       decoder->luma.tx_index >= 1U);
         status = decoder->luma.coding_mode.q_index == 0U &&
                          decoder->luma.coding_mode.lossless_tx_size_large == 0U
-                     ? av2h_luma_lossless_tx_node_get(
-                           &decoder->luma.coding_node, decoder->traversal.mi_columns,
-                           decoder->traversal.mi_rows, decoder->luma.tx_index, &leaf->node)
+                     ? av2h_luma_lossless_tx_node_get(&decoder->luma.coding_node,
+                                                      (uint16_t)decoder->traversal.mi_columns,
+                                                      (uint16_t)decoder->traversal.mi_rows,
+                                                      decoder->luma.tx_index, &leaf->node)
                      : av2h_tile_luma_tx_node_get(decoder, decoder->luma.tx_index, &leaf->node);
         if (status != AV2H_OK) {
             return av2h_tile_decoder_fail(decoder, status);
@@ -949,8 +950,8 @@ Av2hStatus av2h_tile_decoder_next_luma(Av2hTileDecoder *decoder, Av2hTileLumaLea
     }
 #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
     av2h_partition_diagnostic_leaf_stage(decoder->entropy_state.range.diagnostics, leaf->node, 60U,
-                                         leaf->mode.gdf_flags_read, leaf->mode.cdef_strengths_read,
-                                         leaf->mode.after_gdf_bits);
+                                         (uint8_t)leaf->mode.gdf_flags_read,
+                                         leaf->mode.cdef_strengths_read, leaf->mode.after_gdf_bits);
     av2h_partition_diagnostic_leaf_stage(decoder->entropy_state.range.diagnostics, leaf->node, 61U,
                                          leaf->mode.ccso_controls_read, leaf->mode.mode_index,
                                          leaf->mode.after_ccso_bits);
@@ -977,19 +978,20 @@ Av2hStatus av2h_tile_decoder_next_luma(Av2hTileDecoder *decoder, Av2hTileLumaLea
     if (shared_chroma_tree) {
         av2h_partition_diagnostic_leaf_stage(decoder->entropy_state.range.diagnostics, leaf->node,
                                              70U, decoder->shared_chroma.mode.mode_index,
-                                             decoder->shared_chroma.mode.cfl_kind,
+                                             (uint16_t)decoder->shared_chroma.mode.cfl_kind,
                                              av2h_range_tell(&decoder->entropy_state.range));
     }
 #endif
     status = tile_read_luma_tx_partition(decoder, &leaf->node, &leaf->mode);
     if (status != AV2H_OK)
         return av2h_tile_decoder_fail(decoder, status);
-    status = decoder->luma.selected_tx_count != 0U
-                 ? (tx_count = decoder->luma.selected_tx_count, AV2H_OK)
-             : leaf->mode.q_index == 0U && leaf->mode.lossless_tx_size_large == 0U
-                 ? av2h_luma_lossless_tx_node_count(&leaf->node, decoder->traversal.mi_columns,
-                                                    decoder->traversal.mi_rows, &tx_count)
-                 : av2h_luma_tx_node_count(leaf->node.block_size, &tx_count);
+    status =
+        decoder->luma.selected_tx_count != 0U
+            ? (tx_count = decoder->luma.selected_tx_count, AV2H_OK)
+        : leaf->mode.q_index == 0U && leaf->mode.lossless_tx_size_large == 0U
+            ? av2h_luma_lossless_tx_node_count(&leaf->node, (uint16_t)decoder->traversal.mi_columns,
+                                               (uint16_t)decoder->traversal.mi_rows, &tx_count)
+            : av2h_luma_tx_node_count(leaf->node.block_size, &tx_count);
     if (status != AV2H_OK)
         return av2h_tile_decoder_fail(decoder, status);
     if (tx_count > 1U) {
@@ -1000,9 +1002,9 @@ Av2hStatus av2h_tile_decoder_next_luma(Av2hTileDecoder *decoder, Av2hTileLumaLea
         decoder->luma.tx_count = tx_count;
         status = decoder->luma.coding_mode.q_index == 0U &&
                          decoder->luma.coding_mode.lossless_tx_size_large == 0U
-                     ? av2h_luma_lossless_tx_node_get(&decoder->luma.coding_node,
-                                                      decoder->traversal.mi_columns,
-                                                      decoder->traversal.mi_rows, 0U, &leaf->node)
+                     ? av2h_luma_lossless_tx_node_get(
+                           &decoder->luma.coding_node, (uint16_t)decoder->traversal.mi_columns,
+                           (uint16_t)decoder->traversal.mi_rows, 0U, &leaf->node)
                      : av2h_tile_luma_tx_node_get(decoder, 0U, &leaf->node);
         if (status != AV2H_OK) {
             return av2h_tile_decoder_fail(decoder, status);
@@ -1106,9 +1108,10 @@ read_transform:
                                          (uint8_t)leaf->mode.mode, leaf->prefix.eob,
                                          av2h_range_tell(&decoder->entropy_state.range));
     if (leaf->node.row == 0U && leaf->node.column == 0U) {
-        av2h_partition_diagnostic_leaf_stage(
-            decoder->entropy_state.range.diagnostics, leaf->node, 89U, leaf->transform.primary_type,
-            leaf->transform.secondary_symbol, leaf->prefix.tx_size);
+        av2h_partition_diagnostic_leaf_stage(decoder->entropy_state.range.diagnostics, leaf->node,
+                                             89U, (uint8_t)leaf->transform.primary_type,
+                                             leaf->transform.secondary_symbol,
+                                             (uint16_t)leaf->prefix.tx_size);
     }
 #endif
     av2h_tile_diagnostics_set_luma_range(decoder->entropy_state.range.diagnostics, 3U,

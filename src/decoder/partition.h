@@ -164,4 +164,10 @@ Av2hStatus av2h_partition_node_read_with_state(
     unsigned int enable_ext_partitions, unsigned int enable_uneven_4way_partitions,
     Av2hPartitionDecision *decision, Av2hPartitionNode *child);
 
+_Static_assert((unsigned int)AV2H_PARTITION_INVALID == UINT8_MAX &&
+                   (unsigned int)AV2H_PARTITION_SPLIT < (unsigned int)AV2H_PARTITION_INVALID,
+               "Av2hPartitionType must fit in uint8_t");
+_Static_assert(AV2H_MAX_FORCED_PARTITION_ANCESTORS <= AV2H_MAX_PARTITION_TRAVERSAL_NODES,
+               "forced partition path must fit within traversal stack capacity");
+
 #endif

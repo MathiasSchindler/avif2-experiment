@@ -177,7 +177,7 @@ Av2hStatus av2h_luma_reconstruct(Av2hDecodeDiagnostics *diagnostics, const Av2hL
                                  reconstruction, domain);
         return AV2H_OK;
     }
-    if (av2h_reconstruct_generic_selected(mode, transform, prefix->tx_size)) {
+    if (av2h_reconstruct_generic_selected(mode, transform, (uint8_t)prefix->tx_size)) {
         return av2h_reconstruct_transform_generic(diagnostics, mode, prefix, transform,
                                                   coefficients, predictor, predictor_stride_samples,
                                                   scratch, reconstruction);

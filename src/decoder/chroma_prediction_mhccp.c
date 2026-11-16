@@ -63,7 +63,7 @@ static Av2hMhccpReferenceExtent mhccp_reference_extent(uint16_t width, uint16_t 
     if (have_top && extent.left > left_limit)
         extent.left = left_limit;
     if (extent.left >= remaining_height)
-        extent.left = (uint16_t)(remaining_height - 1U);
+        extent.left = remaining_height > 0 ? (uint16_t)(remaining_height - 1) : 0U;
     return extent;
 }
 
@@ -964,7 +964,7 @@ Av2hStatus av2h_mhccp_predict_observed(Av2hDecodeDiagnostics *diagnostics,
             vector[2] = 128;
             sum = mhccp_predict_vector(parameters, vector);
             predictor[(size_t)row * predictor_stride_samples + column] =
-                av2h_sample_clip_to_domain(sum, domain);
+                (uint8_t)av2h_sample_clip_to_domain(sum, domain);
         }
     }
     return AV2H_OK;

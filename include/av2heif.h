@@ -328,4 +328,16 @@ Av2hStatus av2h_validate(Av2hSpan input, const Av2hLimits *limits, Av2hError *er
 Av2hStatus av2h_decode(Av2hSpan input, const Av2hInfo *info, void *workspace, size_t workspace_size,
                        void *output, size_t output_size, Av2hError *error);
 
+_Static_assert(AV2H_OK == 0, "AV2H_OK must equal zero");
+_Static_assert((unsigned int)AV2H_UNSUPPORTED <= UINT8_MAX, "Av2hStatus must fit in uint8_t");
+_Static_assert((unsigned int)AV2H_CONTEXT_FILTER <= UINT8_MAX,
+               "Av2hErrorContext must fit in uint8_t");
+_Static_assert((unsigned int)AV2H_DIAGNOSTIC_STAGE_COMPLETE <= UINT8_MAX,
+               "Av2hDiagnosticStage must fit in uint8_t");
+_Static_assert((unsigned int)AV2H_DIAGNOSTIC_REASON_RESOURCE <= UINT8_MAX,
+               "Av2hDiagnosticReason must fit in uint8_t");
+_Static_assert((unsigned int)AV2H_DIAGNOSTIC_SYNTAX_FILTER <= UINT8_MAX,
+               "Av2hDiagnosticSyntax must fit in uint8_t");
+_Static_assert((unsigned int)AV2H_OBU_PADDING <= UINT8_MAX, "Av2hObuType must fit in uint8_t");
+
 #endif

@@ -123,7 +123,7 @@ static void AV2H_KERNEL_NAME(deblock_filter_lane, deblock_filter_lane_u16)(
         for (index = 0U; index < negative_width; ++index) {
             int adjustment = av2h_sample_round_pow2(
                 delta * deblock_weight[negative_width - 1U] * (int)(negative_width - index), 11U);
-            sample[-((ptrdiff_t)index + 1) * step] = av2h_sample_clip_to_domain(
+            sample[-((ptrdiff_t)index + 1) * step] = (AV2H_KERNEL_TYPE(uint8_t, uint16_t))av2h_sample_clip_to_domain(
                 sample[-((ptrdiff_t)index + 1) * step] + adjustment, domain);
         }
     }
@@ -131,8 +131,8 @@ static void AV2H_KERNEL_NAME(deblock_filter_lane, deblock_filter_lane_u16)(
         for (index = 0U; index < positive_width; ++index) {
             int adjustment = av2h_sample_round_pow2(
                 delta * deblock_weight[positive_width - 1U] * (int)(positive_width - index), 11U);
-            sample[(ptrdiff_t)index * step] =
-                av2h_sample_clip_to_domain(sample[(ptrdiff_t)index * step] - adjustment, domain);
+            sample[(ptrdiff_t)index * step] = (AV2H_KERNEL_TYPE(uint8_t, uint16_t))av2h_sample_clip_to_domain(
+                sample[(ptrdiff_t)index * step] - adjustment, domain);
         }
     }
 }

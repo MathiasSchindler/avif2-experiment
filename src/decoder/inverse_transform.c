@@ -993,7 +993,8 @@ int av2h_reconstruct_generic_selected(const Av2hLeafMode *mode, const Av2hTransf
         transform->primary_type != AV2H_TX_H_FLIPADST) {
         return 0;
     }
-    if (recon_transform_kinds(transform->primary_type, &row_kind, &column_kind) != AV2H_OK) {
+    if (recon_transform_kinds((uint8_t)transform->primary_type, &row_kind, &column_kind) !=
+        AV2H_OK) {
         return 0;
     }
     return 1;
@@ -1017,8 +1018,8 @@ Av2hStatus av2h_reconstruct_transform_generic(
     uint16_t column;
     size_t index;
     av2h_reconstruction_diagnostics_set_inverse_transform_stage(diagnostics, 1U);
-    if (recon_geometry(prefix->tx_size, &output_width, &output_height, &row_shift, &column_shift) !=
-        AV2H_OK) {
+    if (recon_geometry((uint8_t)prefix->tx_size, &output_width, &output_height, &row_shift,
+                       &column_shift) != AV2H_OK) {
         return AV2H_UNSUPPORTED;
     }
     coeff_width = output_width > 32U ? 32U : output_width;
@@ -1057,7 +1058,8 @@ Av2hStatus av2h_reconstruct_transform_generic(
         return AV2H_OK;
     }
     av2h_reconstruction_diagnostics_set_inverse_transform_stage(diagnostics, 3U);
-    if (recon_transform_kinds(transform->primary_type, &row_kind, &column_kind) != AV2H_OK ||
+    if (recon_transform_kinds((uint8_t)transform->primary_type, &row_kind, &column_kind) !=
+            AV2H_OK ||
         recon_kind_supported(row_kind, coeff_width) != AV2H_OK ||
         recon_kind_supported(column_kind, coeff_height) != AV2H_OK) {
         return AV2H_UNSUPPORTED;
@@ -1100,8 +1102,8 @@ Av2hStatus av2h_reconstruct_transform_generic_u16(
     av2h_reconstruction_diagnostics_set_inverse_transform_stage(diagnostics, 1U);
     if (mode == NULL || prefix == NULL || transform == NULL || coefficients == NULL ||
         predictor == NULL || scratch == NULL || reconstruction == NULL ||
-        recon_geometry(prefix->tx_size, &output_width, &output_height, &row_shift, &column_shift) !=
-            AV2H_OK) {
+        recon_geometry((uint8_t)prefix->tx_size, &output_width, &output_height, &row_shift,
+                       &column_shift) != AV2H_OK) {
         return AV2H_INVALID_ARGUMENT;
     }
     coeff_width = output_width > 32U ? 32U : output_width;
@@ -1141,7 +1143,8 @@ Av2hStatus av2h_reconstruct_transform_generic_u16(
         return AV2H_OK;
     }
     av2h_reconstruction_diagnostics_set_inverse_transform_stage(diagnostics, 2U);
-    if (recon_transform_kinds(transform->primary_type, &row_kind, &column_kind) != AV2H_OK ||
+    if (recon_transform_kinds((uint8_t)transform->primary_type, &row_kind, &column_kind) !=
+            AV2H_OK ||
         recon_kind_supported(row_kind, coeff_width) != AV2H_OK ||
         recon_kind_supported(column_kind, coeff_height) != AV2H_OK) {
         return AV2H_UNSUPPORTED;

@@ -10,6 +10,9 @@ read as the current capability boundary.
   validation summary, security, and licensing.
 - [Decoder capabilities](capabilities.md): authoritative supported and
   fail-closed profile boundaries.
+- [Under the hood](under-the-hood.md): technical architecture, memory model,
+  entropy engine, tile/leaf state machine, prediction/transform kernels, and
+  loop-filter pipeline.
 - [Security policy](../SECURITY.md): threat model and vulnerability reporting.
 - [Local AV2 specification](spec/README.md): project-defined bitstream and
   container interpretation.
@@ -23,6 +26,11 @@ read as the current capability boundary.
   for stack footprint reduction, single-pass query/decode preparation, entropy
   hot-loop optimization, filter staging, multi-tile/filter parallelism, and
   8-bit/16-bit behavioral convergence.
+- [Security audit and hardening plan](security-check.md): milestones covering
+  compiler UB/warning hardening, signed arithmetic/shift audits, 2D boundary
+  and negative-stride checks, arena pointer segregation, cross-decode memory
+  hygiene, decompression-bomb limits, TOCTOU races, side-channel boundaries,
+  and coverage-guided fuzzing.
 - [Spatial-still 8-bit decoder plan](dev/spatial-still.md): milestones for the
   broad one-picture spatial profile and its missing decoder capabilities.
 - [Coding opportunities](research/feature.md): encoder experiments and research

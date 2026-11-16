@@ -62,7 +62,7 @@ static inline uint16_t av2h_sample_clip_to_domain(int32_t value, const Av2hSampl
 }
 
 static inline uint16_t av2h_sample_q3_maximum(const Av2hSampleDomain *domain) {
-    return (uint16_t)((domain->maximum << 3U) | 7U);
+    return (uint16_t)(((uint32_t)domain->maximum << 3U) | 7U);
 }
 
 static inline uint8_t av2h_sample_midpoint_8bit(void) {

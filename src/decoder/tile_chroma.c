@@ -159,7 +159,7 @@ Av2hStatus av2h_tile_decoder_read_shared_chroma_mode(Av2hTileDecoder *decoder,
     status = av2h_chroma_mode_read(
         &decoder->entropy_state.range, &decoder->entropy_state.leaf_cdfs,
         decoder->entropy_state.sequence, (Av2hIntraMode)colocated->mode, colocated->angle_delta,
-        node->block_size, cfl_context, tile_cfl_allowed_for_sdp(decoder, node->block_size),
+        node->block_size, cfl_context, (uint8_t)tile_cfl_allowed_for_sdp(decoder, node->block_size),
         (uint8_t)(colocated->context.q_index == 0U), &decoder->shared_chroma.mode);
     if (status != AV2H_OK)
         return status;
@@ -404,7 +404,7 @@ Av2hStatus av2h_tile_decoder_next_chroma(Av2hTileDecoder *decoder, Av2hTileChrom
                 &decoder->entropy_state.range, &decoder->entropy_state.leaf_cdfs,
                 decoder->entropy_state.sequence, (Av2hIntraMode)colocated->mode,
                 colocated->angle_delta, leaf->node.block_size, cfl_context,
-                tile_cfl_allowed_for_sdp(decoder, leaf->node.block_size), 1U, &leaf->mode);
+                (uint8_t)tile_cfl_allowed_for_sdp(decoder, leaf->node.block_size), 1U, &leaf->mode);
         }
         if (status != AV2H_OK)
             return av2h_tile_decoder_fail(decoder, status);
@@ -413,18 +413,18 @@ Av2hStatus av2h_tile_decoder_next_chroma(Av2hTileDecoder *decoder, Av2hTileChrom
             &decoder->entropy_state.range, &decoder->entropy_state.leaf_cdfs,
             decoder->entropy_state.sequence, (Av2hIntraMode)colocated->mode, colocated->angle_delta,
             leaf->node.block_size, cfl_context,
-            tile_cfl_allowed_for_sdp(decoder, leaf->node.block_size), 0U, &leaf->mode);
+            (uint8_t)tile_cfl_allowed_for_sdp(decoder, leaf->node.block_size), 0U, &leaf->mode);
         if (status != AV2H_OK)
             return av2h_tile_decoder_fail(decoder, status);
 #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
-        av2h_partition_diagnostic_leaf_stage(decoder->entropy_state.range.diagnostics, leaf->node,
-                                             71U, leaf->mode.mode_index, leaf->mode.cfl_kind,
-                                             av2h_range_tell(&decoder->entropy_state.range));
+        av2h_partition_diagnostic_leaf_stage(
+            decoder->entropy_state.range.diagnostics, leaf->node, 71U, leaf->mode.mode_index,
+            (uint16_t)leaf->mode.cfl_kind, av2h_range_tell(&decoder->entropy_state.range));
 #endif
     }
 #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
     av2h_partition_diagnostic_leaf_stage(decoder->entropy_state.range.diagnostics, leaf->node, 50U,
-                                         leaf->mode.mode_index, leaf->mode.cfl_kind,
+                                         leaf->mode.mode_index, (uint16_t)leaf->mode.cfl_kind,
                                          av2h_range_tell(&decoder->entropy_state.range));
 #endif
     if (!continuing_transform) {
@@ -453,7 +453,8 @@ Av2hStatus av2h_tile_decoder_next_chroma(Av2hTileDecoder *decoder, Av2hTileChrom
         uint16_t tx_count;
         status = decoder->superblock.current_block_q_index == 0U
                      ? av2h_chroma_lossless_tx_node_count(
-                           &leaf->node, decoder->traversal.mi_columns, decoder->traversal.mi_rows,
+                           &leaf->node, (uint16_t)decoder->traversal.mi_columns,
+                           (uint16_t)decoder->traversal.mi_rows,
                            decoder->entropy_state.frame->chroma_format_idc, &tx_count)
                      : av2h_chroma_tx_node_count(leaf->node.block_size,
                                                  decoder->entropy_state.frame->chroma_format_idc,
@@ -470,15 +471,15 @@ Av2hStatus av2h_tile_decoder_next_chroma(Av2hTileDecoder *decoder, Av2hTileChrom
         }
     }
     if (decoder->chroma.tx_count != 0U) {
-        status =
-            decoder->superblock.current_block_q_index == 0U
-                ? av2h_chroma_lossless_tx_node_get(
-                      &decoder->chroma.coding_node, decoder->traversal.mi_columns,
-                      decoder->traversal.mi_rows, decoder->entropy_state.frame->chroma_format_idc,
-                      decoder->chroma.tx_index, &leaf->node)
-                : av2h_chroma_tx_node_get(&decoder->chroma.coding_node,
-                                          decoder->entropy_state.frame->chroma_format_idc,
-                                          decoder->chroma.tx_index, &leaf->node);
+        status = decoder->superblock.current_block_q_index == 0U
+                     ? av2h_chroma_lossless_tx_node_get(
+                           &decoder->chroma.coding_node, (uint16_t)decoder->traversal.mi_columns,
+                           (uint16_t)decoder->traversal.mi_rows,
+                           decoder->entropy_state.frame->chroma_format_idc,
+                           decoder->chroma.tx_index, &leaf->node)
+                     : av2h_chroma_tx_node_get(&decoder->chroma.coding_node,
+                                               decoder->entropy_state.frame->chroma_format_idc,
+                                               decoder->chroma.tx_index, &leaf->node);
         if (status != AV2H_OK) {
             return av2h_tile_decoder_fail(decoder, status);
         }
@@ -559,7 +560,7 @@ Av2hStatus av2h_tile_decoder_next_chroma(Av2hTileDecoder *decoder, Av2hTileChrom
 #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
         av2h_partition_diagnostic_leaf_stage(
             decoder->entropy_state.range.diagnostics, leaf->node, (uint8_t)(52U + index * 3U),
-            leaf->transform[index].primary_type, leaf->transform[index].cctx_type,
+            (uint8_t)leaf->transform[index].primary_type, leaf->transform[index].cctx_type,
             av2h_range_tell(&decoder->entropy_state.range));
 #endif
         av2h_tile_diagnostics_set_chroma_stage(decoder->entropy_state.range.diagnostics,

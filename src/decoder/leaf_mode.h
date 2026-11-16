@@ -140,4 +140,8 @@ uint8_t av2h_palette_map_get(const Av2hLeafMode *mode, size_t index);
 
 Av2hStatus av2h_palette_map_set(Av2hLeafMode *mode, size_t index, uint8_t color);
 
+_Static_assert((unsigned int)AV2H_INTRA_PAETH == 12U, "unexpected Av2hIntraMode upper bound");
+_Static_assert(AV2H_PALETTE_MAX_SIZE == 8U && AV2H_MRL_INDEX_SYMBOLS == 4U,
+               "unexpected palette or MRL bounds");
+
 #endif

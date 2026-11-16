@@ -101,4 +101,10 @@ Av2hStatus av2h_chroma_lossless_tx_node_get(const Av2hPartitionNode *coding_node
                                             uint8_t chroma_format_idc, uint16_t index,
                                             Av2hPartitionNode *tx_node);
 
+_Static_assert(AV2H_TX_SIZE_COUNT == 25, "unexpected Av2hTxSize count");
+_Static_assert((unsigned int)AV2H_TX_INVALID == UINT8_MAX &&
+                   (unsigned int)AV2H_TX_SIZE_COUNT < (unsigned int)AV2H_TX_INVALID,
+               "Av2hTxSize must fit in uint8_t");
+_Static_assert(AV2H_TX_EOB_1024 == 6, "unexpected Av2hTxEobClass upper bound");
+
 #endif

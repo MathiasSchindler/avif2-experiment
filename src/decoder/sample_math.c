@@ -42,7 +42,7 @@ static int32_t resolve_fixed_ratio(int32_t n, int32_t d, int shift) {
     shift_n = (int)av2h_floor_log2_u32((uint32_t)n);
     shift_d = (int)av2h_floor_log2_u32((uint32_t)d);
     {
-        int32_t e_d = (int32_t)(d - ((uint32_t)1 << shift_d));
+        int32_t e_d = (int32_t)((uint32_t)d - ((uint32_t)1U << (unsigned int)shift_d));
         if (shift_d > AV2H_DIV_LUT_BITS) {
             f_d = av2h_sample_round_pow2(e_d, shift_d - AV2H_DIV_LUT_BITS);
         } else {

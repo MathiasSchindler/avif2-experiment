@@ -161,4 +161,15 @@ Av2hStatus av2h_decode_frame_group_planar_private(
     Av2hFrameDecodeWorkspace *workspace, uint8_t *output, size_t output_size_bytes,
     Av2hFrameDecodeResult *result, const Av2hExecution *execution);
 
+_Static_assert(AV2H_PENDING_CHROMA_CAPACITY == 4U,
+               "deferred shared-chroma queue must hold up to four leaves");
+_Static_assert(sizeof(((Av2hFrameDecodeScratch *)0)->active_blocks) /
+                       sizeof(((Av2hFrameDecodeScratch *)0)->active_blocks[0]) ==
+                   2U,
+               "active coefficient scratch must hold a U/V block pair");
+_Static_assert(sizeof(((Av2hFrameDecodeScratch *)0)->pending_chroma_blocks) /
+                       sizeof(((Av2hFrameDecodeScratch *)0)->pending_chroma_blocks[0]) ==
+                   AV2H_PENDING_CHROMA_CAPACITY,
+               "pending chroma coefficient blocks must match pending chroma leaf capacity");
+
 #endif

@@ -269,4 +269,11 @@ Av2hStatus av2h_tile_decoder_reconstruct_next_chroma(Av2hTileDecoder *decoder,
 Av2hStatus av2h_tile_decoder_finish_root(Av2hTileDecoder *decoder);
 Av2hStatus av2h_tile_decoder_commit_leaf(Av2hTileDecoder *decoder, Av2hPartitionNode leaf);
 
+_Static_assert(AV2H_PROFILE_MAX_TILES <= AV2H_MAX_TILE_COUNT,
+               "profile tile cap must not exceed sequence tile cap");
+_Static_assert(AV2H_MAX_LOSSLESS_CHROMA_TX_NODES >= (128U / 4U) * (128U / 4U),
+               "lossless chroma TX node array must cover a 128x128 superblock");
+_Static_assert(AV2H_TX_PARTITION_TYPE_SYMBOLS <= AV2H_MAX_CDF_SYMBOLS,
+               "TX partition CDF symbols must not exceed AV2H_MAX_CDF_SYMBOLS");
+
 #endif

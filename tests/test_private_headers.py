@@ -10,6 +10,8 @@ sys.path.insert(0, str(ROOT))
 from tools.check_private_headers import (  # noqa: E402
     check_cycles,
     check_kernel_dependencies,
+    compile_header,
+    header_check_flags,
     include_graph,
     parse_dependencies,
 )
@@ -59,6 +61,26 @@ class PrivateHeaderTests(unittest.TestCase):
         check_kernel_dependencies(source, {value, table}, {value})
         with self.assertRaisesRegex(RuntimeError, "frame.h"):
             check_kernel_dependencies(source, {value, parser}, {value})
+
+    def test_strict_s1_header_warnings_are_enforced(self) -> None:
+        directories = [ROOT / name for name in ("include", "src", "src/shared")]
+        flags = header_check_flags(directories)
+        self.assertIn("-fwrapv", flags)
+        snippets = (
+            ("narrowing.h", "#include <stdint.h>\nstatic inline uint8_t f(uint16_t x) { return x; }\n"),
+            ("sign.h", "static inline unsigned int f(int x) { return x; }\n"),
+            ("shadow.h", "static inline int f(int x) { { int x = 1; return x; } }\n"),
+            ("vla.h", "static inline int f(int n) { int a[n]; a[0] = 0; return a[0]; }\n"),
+            ("undef.h", "#if UNDEFINED_AV2H_GUARD_MACRO\n#endif\n"),
+        )
+        with tempfile.TemporaryDirectory() as name:
+            root = Path(name)
+            for filename, body in snippets:
+                header = root / filename
+                header.write_text(f"#ifndef TEST_H\n#define TEST_H\n{body}#endif\n")
+                with self.subTest(header=filename):
+                    with self.assertRaises(RuntimeError):
+                        compile_header(["clang"], flags, header, "-fsyntax-only")
 
 
 if __name__ == "__main__":

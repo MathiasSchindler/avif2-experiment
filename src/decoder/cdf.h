@@ -19,4 +19,12 @@ Av2hStatus av2h_cdf_init(uint16_t *inverse_cdf, size_t inverse_cdf_size, const u
 Av2hStatus av2h_binary_cdf_init(uint16_t inverse_cdf[AV2H_BINARY_CDF_SIZE],
                                 Av2hBinaryCdfSpec specification);
 
+_Static_assert(AV2H_MAX_CDF_SYMBOLS >= 2U, "CDF tables require at least two symbols");
+_Static_assert(AV2H_BINARY_CDF_SIZE == 2U + 4U,
+               "binary CDFs must hold two symbols plus four metadata slots");
+_Static_assert(AV2H_MAX_CDF_SIZE == AV2H_MAX_CDF_SYMBOLS + 4U,
+               "maximum CDF size must include four metadata slots");
+_Static_assert(AV2H_BINARY_CDF_SIZE <= AV2H_MAX_CDF_SIZE,
+               "binary CDF size must not exceed maximum CDF size");
+
 #endif

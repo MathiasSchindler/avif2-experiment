@@ -50,4 +50,10 @@ typedef struct {
     size_t after_secondary_bits;
 } Av2hTransformType;
 
+_Static_assert((unsigned int)AV2H_TX_TYPE_INVALID == UINT8_MAX &&
+                   (unsigned int)AV2H_TX_H_FLIPADST < (unsigned int)AV2H_TX_TYPE_INVALID,
+               "Av2hTxType must fit in uint8_t");
+_Static_assert(AV2H_PRIMARY_TX_TYPE_SYMBOLS <= 16U && AV2H_INTER_TX_TYPE_INDEX_SYMBOLS <= 16U,
+               "transform symbol counts must stay within CDF symbol limits");
+
 #endif

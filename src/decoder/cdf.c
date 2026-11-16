@@ -40,9 +40,9 @@ Av2hStatus av2h_cdf_init(uint16_t *inverse_cdf, size_t inverse_cdf_size, const u
     }
     inverse_cdf[symbol_count - 1U] = 0U;
     inverse_cdf[symbol_count] = count;
-    inverse_cdf[symbol_count + 1U] = (uint16_t)(rate_base + first);
-    inverse_cdf[symbol_count + 2U] = (uint16_t)(rate_base + 1U + second);
-    inverse_cdf[symbol_count + 3U] = (uint16_t)(rate_base + 2U + third);
+    inverse_cdf[symbol_count + 1U] = (uint16_t)((int)rate_base + first);
+    inverse_cdf[symbol_count + 2U] = (uint16_t)((int)rate_base + 1 + second);
+    inverse_cdf[symbol_count + 3U] = (uint16_t)((int)rate_base + 2 + third);
     return AV2H_OK;
 }
 

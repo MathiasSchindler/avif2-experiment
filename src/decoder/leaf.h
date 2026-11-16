@@ -282,4 +282,11 @@ const int16_t *av2h_intrabc_diagnostic_bank(const struct Av2hDecodeDiagnostics *
                                             size_t *count);
 #endif
 
+_Static_assert(AV2H_PALETTE_MAX_SIZE <= AV2H_MAX_CDF_SYMBOLS &&
+                   AV2H_UV_MODE_SYMBOLS <= AV2H_MAX_CDF_SYMBOLS &&
+                   AV2H_Y_MODE_INDEX_SYMBOLS <= AV2H_MAX_CDF_SYMBOLS,
+               "leaf CDF symbol counts must not exceed AV2H_MAX_CDF_SYMBOLS");
+_Static_assert(AV2H_CDEF_MAX_REMAINDER_SYMBOLS + 1U == AV2H_CDEF_MAX_STRENGTHS,
+               "CDEF remainder symbols must match maximum CDEF strengths");
+
 #endif

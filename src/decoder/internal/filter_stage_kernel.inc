@@ -19,35 +19,35 @@ static inline int AV2H_KERNEL_NAME(
     (void)worker_index;
     switch (work->stage) {
     case AV2H_FILTER_STAGE_CDEF:
-        return AV2H_KERNEL_NAME(
+        return (int)AV2H_KERNEL_NAME(
             av2h_cdef_filter_rows,
-            av2h_cdef_filter_rows_u16)(work->destination, work->source, work->sequence, work->frame,
-                                     &work->workspace->cdef_controls, first, last
+            av2h_cdef_filter_rows_u16)(work->destination, work->source, work->sequence,
+                                          work->frame, &work->workspace->cdef_controls, first, last
 #if AV2H_KERNEL_WIDE
-                                     ,
-                                     work->domain
+                                          ,
+                                          work->domain
 #endif
         );
     case AV2H_FILTER_STAGE_CCSO:
-        return AV2H_KERNEL_NAME(
+        return (int)AV2H_KERNEL_NAME(
             av2h_ccso_filter_rows,
             av2h_ccso_filter_rows_u16)(work->destination, work->pre_cdef->plane[0].data,
-                                     work->pre_cdef->plane[0].stride_samples, work->sequence,
-                                     work->frame, &work->workspace->ccso_controls, first, last
+                                          work->pre_cdef->plane[0].stride_samples, work->sequence,
+                                          work->frame, &work->workspace->ccso_controls, first, last
 #if AV2H_KERNEL_WIDE
-                                     ,
-                                     work->domain
+                                          ,
+                                          work->domain
 #endif
         );
 #if !AV2H_KERNEL_WIDE
     case AV2H_FILTER_STAGE_PC_WIENER:
-        return av2h_pc_wiener_filter_rows(&work->destination->plane[0], &work->source->plane[0],
-                                          &work->pre_cdef->plane[0], work->frame,
-                                          &work->workspace->restoration_controls, first, last);
+        return (int)av2h_pc_wiener_filter_rows(
+            &work->destination->plane[0], &work->source->plane[0], &work->pre_cdef->plane[0],
+            work->frame, &work->workspace->restoration_controls, first, last);
     case AV2H_FILTER_STAGE_WIENER_NONSEP:
-        return av2h_wiener_nonsep_filter_rows(work->destination, work->source, work->pre_cdef,
-                                              work->sequence, work->frame,
-                                              &work->workspace->restoration_controls, first, last);
+        return (int)av2h_wiener_nonsep_filter_rows(
+            work->destination, work->source, work->pre_cdef, work->sequence, work->frame,
+            &work->workspace->restoration_controls, first, last);
 #endif
     case AV2H_FILTER_STAGE_GDF:
         AV2H_KERNEL_NAME(
@@ -63,9 +63,9 @@ static inline int AV2H_KERNEL_NAME(
                             work->domain
 #endif
         );
-        return AV2H_OK;
+        return (int)AV2H_OK;
     default:
-        return AV2H_INVALID_ARGUMENT;
+        return (int)AV2H_INVALID_ARGUMENT;
     }
 }
 

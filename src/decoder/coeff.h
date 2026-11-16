@@ -73,4 +73,14 @@ Av2hStatus av2h_chroma_coeff_prefix_read_with_state(
     const Av2hPartitionNode *leaf, Av2hBlockSize coding_block_size, uint8_t plane, uint16_t u_eob,
     const Av2hCoeffContextState *state, Av2hCoeffPrefix *prefix);
 
+_Static_assert(sizeof(((Av2hCoeffCdfs *)0)->chroma_eob_pt) /
+                       sizeof(((Av2hCoeffCdfs *)0)->chroma_eob_pt[0]) ==
+                   (size_t)AV2H_TX_EOB_1024 + 1U,
+               "chroma_eob_pt must cover every Av2hTxEobClass");
+_Static_assert(sizeof(((Av2hCoeffCdfs *)0)->inter_eob_pt) /
+                       sizeof(((Av2hCoeffCdfs *)0)->inter_eob_pt[0]) ==
+                   (size_t)AV2H_TX_EOB_1024 + 1U,
+               "inter_eob_pt must cover every Av2hTxEobClass");
+_Static_assert(8U + 4U <= AV2H_MAX_CDF_SIZE, "EOB CDF rows must fit within AV2H_MAX_CDF_SIZE");
+
 #endif

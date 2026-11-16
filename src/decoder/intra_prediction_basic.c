@@ -279,10 +279,10 @@ Av2hStatus av2h_predict_smooth(uint16_t width, uint16_t height,
         (have_left && references->left_count < height)) {
         return AV2H_INVALID_ARGUMENT;
     }
-    bottom_left = !have_left ? have_above ? references->above[0] : (domain->midpoint + 1U)
+    bottom_left = !have_left ? have_above ? references->above[0] : (uint8_t)(domain->midpoint + 1U)
                   : references->left_count > height ? references->left[height]
                                                     : references->left[height - 1U];
-    top_right = !have_above ? have_left ? references->left[0] : (domain->midpoint - 1U)
+    top_right = !have_above ? have_left ? references->left[0] : (uint8_t)(domain->midpoint - 1U)
                 : references->above_count > width ? references->above[width]
                                                   : references->above[width - 1U];
     predict_smooth_samples(width, height, references, predictor, predictor_stride_samples,
@@ -318,7 +318,8 @@ Av2hStatus av2h_predict_paeth(uint16_t width, uint16_t height, const Av2hLumaRef
         (references->left == NULL || references->left_count == 0U)) {
         for (row = 0U; row < height; ++row) {
             for (column = 0U; column < width; ++column) {
-                predictor[(size_t)row * predictor_stride_samples + column] = domain->midpoint;
+                predictor[(size_t)row * predictor_stride_samples + column] =
+                    (uint8_t)domain->midpoint;
             }
         }
         return AV2H_OK;
