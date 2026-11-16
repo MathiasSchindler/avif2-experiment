@@ -1,4 +1,5 @@
 #include "decoder/internal/sample_math.h"
+#include "shared/bit_math.h"
 
 #include <stdio.h>
 
@@ -62,6 +63,78 @@ static void test_rounding(void) {
     CHECK(av2h_sample_floor_shift(INT64_MAX, 63U) == 0);
 }
 
+static void test_extreme_ub_boundaries(void) {
+    static const int64_t extreme_values[] = {
+        INT64_MIN,
+        INT64_MIN + 1,
+        (int64_t)INT32_MIN - 1,
+        (int64_t)INT32_MIN,
+        (int64_t)INT32_MIN + 1,
+        -1,
+        0,
+        1,
+        (int64_t)INT32_MAX - 1,
+        (int64_t)INT32_MAX,
+        (int64_t)INT32_MAX + 1,
+        INT64_MAX - 1,
+        INT64_MAX
+    };
+    static const int extreme_shifts[] = {
+        INT32_MIN, -65, -1, 0, 1, 30, 31, 32, 62, 63, 64, 65, INT32_MAX
+    };
+    static const unsigned int floor_shifts[] = {
+        0U, 1U, 30U, 31U, 32U, 62U, 63U, 64U, 65U, 128U
+    };
+    const unsigned char bits_input[4] = { 0xa5U, 0x5aU, 0xffU, 0x00U };
+    size_t v_idx;
+    size_t s_idx;
+
+    CHECK(av2h_sample_abs(INT32_MIN) == INT32_MAX);
+    CHECK(av2h_sample_abs_u32(INT32_MIN) == UINT32_C(0x80000000));
+    CHECK(av2h_sample_abs_u32(INT32_MAX) == (uint32_t)INT32_MAX);
+    CHECK(av2h_sample_abs_u32(0) == 0U);
+    CHECK(av2h_sample_abs_u64(INT64_MIN) == (UINT64_C(1) << 63U));
+    CHECK(av2h_sample_abs_u64(-1) == 1U);
+    CHECK(av2h_sample_abs_u64(INT64_MAX) == (uint64_t)INT64_MAX);
+    CHECK(av2h_sample_clamp_i64(INT64_MIN) == INT32_MIN);
+    CHECK(av2h_sample_clamp_i64(INT64_MAX) == INT32_MAX);
+
+    CHECK(av2h_sample_floor_shift(INT64_MIN, 64U) == -1);
+    CHECK(av2h_sample_floor_shift(-1, 64U) == -1);
+    CHECK(av2h_sample_floor_shift(0, 64U) == 0);
+    CHECK(av2h_sample_floor_shift(INT64_MAX, 64U) == 0);
+    CHECK(av2h_sample_round_pow2(INT64_MAX, 1) == INT32_MAX);
+    CHECK(av2h_sample_round_pow2(INT64_MAX, 63) == 1);
+    CHECK(av2h_sample_round_pow2(INT64_MIN, 63) == -1);
+    CHECK(av2h_sample_round_pow2(INT64_MIN, 64) == 0);
+    CHECK(av2h_sample_round_pow2(INT64_MAX, 64) == 0);
+    CHECK(av2h_sample_round_pow2(-5, -3) == -5);
+    CHECK(av2h_sample_round_pow2_signed(INT64_MIN, 64) == -1);
+    CHECK(av2h_sample_round_pow2_signed(INT64_MAX, 64) == 0);
+    CHECK(av2h_sample_round_pow2_signed(INT64_MIN, 65) == 0);
+    CHECK(av2h_sample_round_pow2_signed(-5, -3) == -5);
+
+    for (v_idx = 0U; v_idx < sizeof(extreme_values) / sizeof(extreme_values[0]); ++v_idx) {
+        int64_t value = extreme_values[v_idx];
+        for (s_idx = 0U; s_idx < sizeof(extreme_shifts) / sizeof(extreme_shifts[0]); ++s_idx) {
+            int shift = extreme_shifts[s_idx];
+            int32_t r1 = av2h_sample_round_pow2(value, shift);
+            int32_t r2 = av2h_sample_round_pow2_signed(value, shift);
+            CHECK(r1 >= INT32_MIN && r1 <= INT32_MAX);
+            CHECK(r2 >= INT32_MIN && r2 <= INT32_MAX);
+        }
+        for (s_idx = 0U; s_idx < sizeof(floor_shifts) / sizeof(floor_shifts[0]); ++s_idx) {
+            int32_t f = av2h_sample_floor_shift(value, floor_shifts[s_idx]);
+            CHECK(f >= INT32_MIN && f <= INT32_MAX);
+        }
+    }
+
+    CHECK(av2h_ceil_log2_ratio_u32(0U, 0U) == 0U);
+    CHECK(av2h_ceil_log2_ratio_u32(0U, UINT32_MAX) == 0U);
+    CHECK(av2h_read_bits_msb(bits_input, 8U, 4U) == 0U);
+    CHECK(av2h_read_bits_msb(bits_input, 0U, 33U) == 0U);
+    CHECK(av2h_read_bits_msb(bits_input, 0U, 32U) == UINT32_C(0xa55aff00));
+}
 static void test_block_log2(void) {
     uint32_t size;
     for (size = 0U; size <= UINT16_MAX; ++size) {
@@ -73,6 +146,7 @@ static void test_block_log2(void) {
 
 int main(void) {
     test_rounding();
+    test_extreme_ub_boundaries();
     test_block_log2();
     CHECK(av2h_sample_domain_8bit.bit_depth == 8U);
     CHECK(av2h_sample_domain_8bit.bytes_per_sample == 1U);

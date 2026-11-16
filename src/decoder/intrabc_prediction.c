@@ -21,8 +21,10 @@
 
 int32_t av2h_intrabc_plane_position(uint16_t block_position, int32_t displacement,
                                     uint8_t subsampling) {
-    return (int32_t)((uint32_t)block_position << AV2H_SUBPEL_BITS) +
-           (int32_t)((uint32_t)displacement << (1U - subsampling));
+    unsigned int shift = subsampling == 0U ? 1U : 0U;
+    int64_t scaled_block = (int64_t)block_position << AV2H_SUBPEL_BITS;
+    int64_t scaled_displacement = (int64_t)displacement * ((int64_t)1 << shift);
+    return av2h_sample_clamp_i64(scaled_block + scaled_displacement);
 }
 
 int32_t av2h_intrabc_integer_position(int32_t position) {
@@ -66,8 +68,9 @@ Av2hStatus av2h_intrabc_convolve(const uint8_t *source8, const uint16_t *source1
     size_t column;
     if ((source8 == NULL) == (source16 == NULL) ||
         (destination8 == NULL) == (destination16 == NULL) || width == 0U || height == 0U ||
-        width > AV2H_INTRABC_MAX_BLOCK || source_x < 0 || source_y < 0 || bit_depth < 8U ||
-        bit_depth > 12U) {
+        width > AV2H_INTRABC_MAX_BLOCK || source_x < 0 || source_y < 0 ||
+        subpel_x >= (1U << AV2H_SUBPEL_BITS) || subpel_y >= (1U << AV2H_SUBPEL_BITS) ||
+        bit_depth < 8U || bit_depth > 12U) {
         return AV2H_INVALID_ARGUMENT;
     }
     if (range > 16) {
@@ -207,8 +210,10 @@ static void intrabc_morph_sample_counts(uint8_t above_available, uint8_t left_av
     }
 }
 
-static int32_t intrabc_morph_sample(const uint8_t *data8, const uint16_t *data16, size_t index) {
-    return data8 != NULL ? (int32_t)data8[index] : (int32_t)data16[index];
+static int32_t intrabc_morph_sample(const uint8_t *data8, const uint16_t *data16, size_t index,
+                                    int32_t maximum) {
+    int32_t sample = data8 != NULL ? (int32_t)data8[index] : (int32_t)data16[index];
+    return av2h_sample_clamp(sample, 0, maximum);
 }
 
 /*
@@ -223,10 +228,11 @@ static Av2hStatus intrabc_morph_parameters(const uint8_t *data8, const uint16_t 
                                            uint32_t plane_height, uint16_t coding_x,
                                            uint16_t coding_y, uint16_t coding_width,
                                            uint16_t coding_height, int32_t reference_x,
-                                           int32_t reference_y, int32_t *alpha_out,
-                                           int32_t *beta_out) {
+                                           int32_t reference_y, uint8_t bit_depth,
+                                           int32_t *alpha_out, int32_t *beta_out) {
     uint16_t reference_width = coding_width;
     uint16_t reference_height = coding_height;
+    int32_t maximum = (int32_t)(((uint32_t)1U << bit_depth) - 1U);
     uint8_t clamped_width;
     uint8_t clamped_height;
     uint8_t padded_width;
@@ -269,9 +275,11 @@ static Av2hStatus intrabc_morph_parameters(const uint8_t *data8, const uint16_t 
         }
         for (index = 0U; index < clamped_width; ++index) {
             reference_pad[index] = intrabc_morph_sample(
-                data8, data16, ((size_t)reference_y - 1U) * stride + (size_t)reference_x + index);
+                data8, data16, ((size_t)reference_y - 1U) * stride + (size_t)reference_x + index,
+                maximum);
             recon_pad[index] = intrabc_morph_sample(
-                data8, data16, ((size_t)coding_y - 1U) * stride + (size_t)coding_x + index);
+                data8, data16, ((size_t)coding_y - 1U) * stride + (size_t)coding_x + index,
+                maximum);
         }
         for (index = 0U; index < delta; ++index) {
             reference_pad[index + clamped_width] = reference_pad[index];
@@ -298,9 +306,11 @@ static Av2hStatus intrabc_morph_parameters(const uint8_t *data8, const uint16_t 
         }
         for (index = 0U; index < clamped_height; ++index) {
             reference_pad[index] = intrabc_morph_sample(
-                data8, data16, ((size_t)reference_y + index) * stride + (size_t)reference_x - 1U);
+                data8, data16, ((size_t)reference_y + index) * stride + (size_t)reference_x - 1U,
+                maximum);
             recon_pad[index] = intrabc_morph_sample(
-                data8, data16, ((size_t)coding_y + index) * stride + (size_t)coding_x - 1U);
+                data8, data16, ((size_t)coding_y + index) * stride + (size_t)coding_x - 1U,
+                maximum);
         }
         for (index = 0U; index < delta; ++index) {
             reference_pad[index + clamped_height] = reference_pad[index];
@@ -322,7 +332,8 @@ static Av2hStatus intrabc_morph_parameters(const uint8_t *data8, const uint16_t 
         if (alpha == 0)
             alpha = 1 << AV2H_BAWP_SHIFT;
         *alpha_out = alpha;
-        *beta_out = (((int32_t)sum_y << AV2H_BAWP_SHIFT) - sum_x * alpha) / count;
+        *beta_out =
+            (int32_t)((((int64_t)sum_y << AV2H_BAWP_SHIFT) - (int64_t)sum_x * alpha) / count);
     } else {
         *alpha_out = 1 << AV2H_BAWP_SHIFT;
         *beta_out = -(1 << (AV2H_BAWP_SHIFT - 1));
@@ -337,23 +348,21 @@ Av2hStatus av2h_intrabc_morph_u16(const uint16_t *plane_data, size_t stride, uin
                                   uint16_t height, uint8_t bit_depth, uint16_t *predictor) {
     int32_t alpha;
     int32_t beta;
-    int32_t maximum = (int32_t)((1U << bit_depth) - 1U);
+    int32_t maximum;
     size_t index;
     Av2hStatus status;
-    if (plane_data == NULL || predictor == NULL)
+    if (plane_data == NULL || predictor == NULL || bit_depth < 8U || bit_depth > 12U)
         return AV2H_INVALID_DATA;
+    maximum = (int32_t)(((uint32_t)1U << bit_depth) - 1U);
     status = intrabc_morph_parameters(NULL, plane_data, stride, plane_width, plane_height, coding_x,
                                       coding_y, coding_width, coding_height, reference_x,
-                                      reference_y, &alpha, &beta);
+                                      reference_y, bit_depth, &alpha, &beta);
     if (status != AV2H_OK)
         return status;
     for (index = 0U; index < (size_t)width * height; ++index) {
-        int32_t value = ((int32_t)predictor[index] * alpha + beta) >> AV2H_BAWP_SHIFT;
-        if (value < 0)
-            value = 0;
-        if (value > maximum)
-            value = maximum;
-        predictor[index] = (uint16_t)value;
+        int32_t value =
+            av2h_sample_floor_shift((int64_t)predictor[index] * alpha + beta, AV2H_BAWP_SHIFT);
+        predictor[index] = (uint16_t)av2h_sample_clamp(value, 0, maximum);
     }
     return AV2H_OK;
 }
@@ -372,12 +381,12 @@ static Av2hStatus apply_intrabc_morph_prediction(const Av2hReconstructionPlane *
         return AV2H_INVALID_DATA;
     status = intrabc_morph_parameters(plane->data, NULL, plane->stride_samples, plane->width,
                                       plane->height, coding_x, coding_y, coding_width,
-                                      coding_height, reference_x, reference_y, &alpha, &beta);
+                                      coding_height, reference_x, reference_y, 8U, &alpha, &beta);
     if (status != AV2H_OK)
         return status;
     for (index = 0U; index < (size_t)width * height; ++index) {
-        predictor[index] =
-            av2h_sample_clip(((int32_t)predictor[index] * alpha + beta) >> AV2H_BAWP_SHIFT);
+        predictor[index] = av2h_sample_clip(
+            av2h_sample_floor_shift((int64_t)predictor[index] * alpha + beta, AV2H_BAWP_SHIFT));
     }
     return AV2H_OK;
 }

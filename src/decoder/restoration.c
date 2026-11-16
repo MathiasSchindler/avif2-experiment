@@ -190,19 +190,24 @@ static uint8_t pc_wiener_source_sample(const Av2hPcWienerSource *context, int ro
 static int32_t pc_wiener_quantizer(unsigned int qindex) {
     static const uint16_t lookup[25] = {64, 40, 41, 43, 44, 45, 47, 48, 49, 51, 52, 54, 55,
                                         57, 59, 60, 62, 64, 66, 68, 70, 72, 74, 76, 78};
+    unsigned int shift;
     if (qindex < 25U)
         return lookup[qindex];
-    return (int32_t)lookup[((qindex - 1U) % 24U) + 1U] << ((qindex - 1U) / 24U);
+    shift = (qindex - 1U) / 24U;
+    if (shift > 20U)
+        shift = 20U;
+    return (int32_t)((uint32_t)lookup[((qindex - 1U) % 24U) + 1U] << shift);
 }
 
-static int pc_wiener_q_adjustment(unsigned int qindex, unsigned int tskip, unsigned int feature) {
-    const int qstep = pc_wiener_quantizer(qindex);
-    const int tskip_shifted = (int)tskip << 5;
-    const int product = av2h_sample_round_pow2_signed((int)tskip * qstep, 8U);
-    int value = pc_wiener_mode_weights[feature][0] * tskip_shifted +
-                pc_wiener_mode_weights[feature][1] * qstep +
-                pc_wiener_mode_weights[feature][2] * product;
-    value = av2h_sample_round_pow2_signed(value, 13U);
+static int64_t pc_wiener_q_adjustment(unsigned int qindex, unsigned int tskip,
+                                      unsigned int feature) {
+    const int64_t qstep = pc_wiener_quantizer(qindex);
+    const int64_t tskip_shifted = (int64_t)tskip << 5U;
+    const int64_t product = av2h_sample_round_pow2_signed((int64_t)tskip * qstep, 8);
+    int64_t value = (int64_t)pc_wiener_mode_weights[feature][0] * tskip_shifted +
+                    (int64_t)pc_wiener_mode_weights[feature][1] * qstep +
+                    (int64_t)pc_wiener_mode_weights[feature][2] * product;
+    value = av2h_sample_round_pow2_signed(value, 13);
     return 255 * (value + pc_wiener_mode_offsets[feature]);
 }
 
@@ -255,9 +260,9 @@ static uint8_t pc_wiener_classify(const Av2hPcWienerSource *context,
     }
     for (row = 0; row < 4; ++row) {
         int value = av2h_sample_round_pow2_signed(
-            feature[row] * pc_wiener_feature_normalizers[row] +
+            (int64_t)feature[row] * pc_wiener_feature_normalizers[row] +
                 pc_wiener_q_adjustment(qindex, tskip, (unsigned int)row),
-            14U);
+            14);
         value = av2h_sample_clamp(value, 0, 255) >> 5U;
         lut_index += pc_wiener_lut_weights[row] * value;
     }
@@ -275,16 +280,16 @@ static void pc_wiener_filter_block(Av2hFilterPlane *destination, const Av2hPcWie
         for (column = 0; column < block_width; ++column) {
             int y = block_y + row;
             int x = block_x + column;
-            int32_t value = (filter[12] + 128) * pc_wiener_source_sample(context, y, x);
+            int64_t value = ((int64_t)filter[12] + 128) * pc_wiener_source_sample(context, y, x);
             unsigned int tap;
             for (tap = 0U; tap < 12U; ++tap) {
                 value +=
-                    filter[tap] *
+                    (int64_t)filter[tap] *
                     ((int)pc_wiener_source_sample(context, y + tap_row[tap], x + tap_column[tap]) +
                      pc_wiener_source_sample(context, y - tap_row[tap], x - tap_column[tap]));
             }
             destination->data[(size_t)y * destination->stride_samples + (size_t)x] =
-                av2h_sample_clip(av2h_sample_round_pow2_signed(value, 7U));
+                av2h_sample_clip(av2h_sample_round_pow2_signed(value, 7));
         }
     }
 }
@@ -424,17 +429,18 @@ static void wiener_nonsep_filter_luma_region(Av2hFilterPlane *destination,
         int column;
         for (column = x0; column < x1; ++column) {
             int center = pc_wiener_source_sample(source, row, column);
-            int32_t value = center << 7U;
+            int64_t value = (int64_t)center << 7U;
             unsigned int tap;
             for (tap = 0U; tap < 16U; ++tap) {
-                value += taps[tap] * ((int)pc_wiener_source_sample(source, row + tap_row[tap],
-                                                                   column + tap_column[tap]) +
-                                      pc_wiener_source_sample(source, row - tap_row[tap],
-                                                              column - tap_column[tap]) -
-                                      2 * center);
+                value +=
+                    (int64_t)taps[tap] *
+                    ((int)pc_wiener_source_sample(source, row + tap_row[tap],
+                                                  column + tap_column[tap]) +
+                     pc_wiener_source_sample(source, row - tap_row[tap], column - tap_column[tap]) -
+                     2 * center);
             }
             destination->data[(size_t)row * destination->stride_samples + (size_t)column] =
-                av2h_sample_clip(av2h_sample_round_pow2_signed(value, 7U));
+                av2h_sample_clip(av2h_sample_round_pow2_signed(value, 7));
         }
     }
 }
@@ -456,23 +462,25 @@ static void wiener_nonsep_filter_chroma_region(Av2hFilterPlane *destination,
             int center = pc_wiener_source_sample(source, row, column);
             int luma_center =
                 wiener_nonsep_luma_sample(luma, luma_filter_index, chroma_shift, row, column);
-            int32_t value = center << 7U;
+            int64_t value = (int64_t)center << 7U;
             unsigned int tap;
             for (tap = 0U; tap < 6U; ++tap) {
-                value += taps[tap] * ((int)pc_wiener_source_sample(source, row + uv_row[tap],
-                                                                   column + uv_column[tap]) +
-                                      pc_wiener_source_sample(source, row - uv_row[tap],
-                                                              column - uv_column[tap]) -
-                                      2 * center);
+                value +=
+                    (int64_t)taps[tap] *
+                    ((int)pc_wiener_source_sample(source, row + uv_row[tap],
+                                                  column + uv_column[tap]) +
+                     pc_wiener_source_sample(source, row - uv_row[tap], column - uv_column[tap]) -
+                     2 * center);
             }
             for (tap = 0U; tap < 12U; ++tap) {
-                value += taps[tap + 6U] * ((int)wiener_nonsep_luma_sample(
-                                               luma, luma_filter_index, chroma_shift,
-                                               row + luma_row[tap], column + luma_column[tap]) -
-                                           luma_center);
+                value += (int64_t)taps[tap + 6U] *
+                         ((int)wiener_nonsep_luma_sample(luma, luma_filter_index, chroma_shift,
+                                                         row + luma_row[tap],
+                                                         column + luma_column[tap]) -
+                          luma_center);
             }
             destination->data[(size_t)row * destination->stride_samples + (size_t)column] =
-                av2h_sample_clip(av2h_sample_round_pow2_signed(value, 7U));
+                av2h_sample_clip(av2h_sample_round_pow2_signed(value, 7));
         }
     }
 }

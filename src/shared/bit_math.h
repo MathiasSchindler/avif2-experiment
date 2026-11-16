@@ -7,9 +7,10 @@
 static inline uint32_t av2h_read_bits_msb(const unsigned char *bytes, unsigned int bit_offset,
                                           unsigned int bit_count) {
     uint32_t value = 0U;
-    unsigned int available = 8U - bit_offset;
-    if (bit_count == 0U)
+    unsigned int available;
+    if (bit_count == 0U || bit_offset >= 8U || bit_count > 32U)
         return 0U;
+    available = 8U - bit_offset;
     if (bit_count <= available)
         return ((uint32_t)*bytes >> (available - bit_count)) & ((1U << bit_count) - 1U);
     while (bit_count != 0U) {
@@ -52,6 +53,8 @@ static inline unsigned int av2h_floor_log2_u32(uint32_t value) {
 static inline unsigned int av2h_ceil_log2_ratio_u32(uint32_t unit, uint32_t value) {
     unsigned int bits = 0U;
     uint64_t limit = unit;
+    if (unit == 0U)
+        return 0U;
     while (limit < value) {
         limit <<= 1U;
         ++bits;

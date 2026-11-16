@@ -778,20 +778,20 @@ static void recon_transform_1d(const int32_t *input, int32_t *output, Av2hRecon1
     }
 }
 
-static int32_t lossless_half(int32_t value) {
+static int32_t lossless_half(int64_t value) {
     return av2h_sample_floor_shift(value, 1U);
 }
 
 static void lossless_iwht4(int32_t *values) {
-    int32_t first = values[0] + values[1];
-    int32_t fourth = values[2] - values[3];
-    int32_t half = lossless_half(first - fourth);
-    int32_t second = half - values[3];
-    int32_t third = half - values[1];
-    values[0] = first - second;
-    values[1] = second;
-    values[2] = third;
-    values[3] = fourth + third;
+    int64_t first = (int64_t)values[0] + values[1];
+    int64_t fourth = (int64_t)values[2] - values[3];
+    int64_t half = lossless_half(first - fourth);
+    int64_t second = half - values[3];
+    int64_t third = half - values[1];
+    values[0] = av2h_sample_clamp_i64(first - second);
+    values[1] = av2h_sample_clamp_i64(second);
+    values[2] = av2h_sample_clamp_i64(third);
+    values[3] = av2h_sample_clamp_i64(fourth + third);
 }
 
 void av2h_inverse_lossless_4x4(const int32_t *dequantized, uint8_t use_wht, uint8_t use_dpcm,
@@ -819,13 +819,15 @@ void av2h_inverse_lossless_4x4(const int32_t *dequantized, uint8_t use_wht, uint
     if (use_dpcm && horizontal) {
         for (row = 0U; row < 4U; ++row) {
             for (column = 1U; column < 4U; ++column) {
-                residual[row * 4U + column] += residual[row * 4U + column - 1U];
+                residual[row * 4U + column] = av2h_sample_clamp_i64(
+                    (int64_t)residual[row * 4U + column] + residual[row * 4U + column - 1U]);
             }
         }
     } else if (use_dpcm) {
         for (column = 0U; column < 4U; ++column) {
             for (row = 1U; row < 4U; ++row) {
-                residual[row * 4U + column] += residual[(row - 1U) * 4U + column];
+                residual[row * 4U + column] = av2h_sample_clamp_i64(
+                    (int64_t)residual[row * 4U + column] + residual[(row - 1U) * 4U + column]);
             }
         }
     }
@@ -858,7 +860,8 @@ Av2hStatus av2h_reconstruct_lossless_4x4(const Av2hLeafMode *mode,
                                     ? av2h_sample_midpoint_8bit()
                                     : predictor[row * predictor_stride_samples + column];
             reconstruction->residual[index] = (int16_t)residual[index];
-            reconstruction->pixels[index] = av2h_sample_clip(predicted + residual[index]);
+            reconstruction->pixels[index] =
+                av2h_sample_clip(av2h_sample_clamp_i64((int64_t)predicted + residual[index]));
         }
     }
     return AV2H_OK;

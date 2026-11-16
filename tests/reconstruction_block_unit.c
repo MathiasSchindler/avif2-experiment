@@ -494,6 +494,122 @@ static void test_u16_lossless_wht(void) {
     }
 }
 
+static void test_extreme_coefficient_bounds(void) {
+    static const int32_t extreme_patterns[6U] = {
+        -32768, 32767, -524288, 524287, INT32_MIN, INT32_MAX
+    };
+    static const Av2hTxSize tx_sizes[] = {
+        AV2H_TX_4X4, AV2H_TX_8X8, AV2H_TX_16X16, AV2H_TX_32X32, AV2H_TX_64X64, AV2H_TX_8X16
+    };
+    static const Av2hTxType tx_types[] = {
+        AV2H_TX_DCT_DCT, AV2H_TX_ADST_ADST, AV2H_TX_FLIPADST_FLIPADST, AV2H_TX_IDTX
+    };
+    const Av2hSampleDomain *domains[] = {
+        &av2h_sample_domain_8bit, &av2h_sample_domain_10bit, &av2h_sample_domain_12bit
+    };
+    static Av2hCoeffBlock coeff_u;
+    static Av2hCoeffBlock coeff_v;
+    static Av2hReconstructionScratch scratch8;
+    static Av2hReconstructionScratchU16 scratch16;
+    static Av2hBlockReconstruction out8;
+    static Av2hBlockReconstructionU16 out16;
+    static uint8_t pred8[AV2H_RECON_SAMPLE_CAPACITY];
+    static uint16_t pred16[AV2H_RECON_SAMPLE_CAPACITY];
+    size_t p_idx;
+    size_t index;
+
+    memset(pred8, 255, sizeof(pred8));
+    for (index = 0U; index < AV2H_RECON_SAMPLE_CAPACITY; ++index) {
+        pred16[index] = 4095U;
+    }
+
+    for (p_idx = 0U; p_idx < 7U; ++p_idx) {
+        size_t s_idx;
+        uint8_t cctx;
+        uint8_t depth_bits;
+        int32_t residual_4x4[16U];
+
+        for (index = 0U; index < AV2H_COEFF_CAPACITY; ++index) {
+            int32_t val = p_idx < 6U ? extreme_patterns[p_idx] :
+                ((index & 1U) ? INT32_MAX : INT32_MIN);
+            coeff_u.dequantized[index] = val;
+            coeff_v.dequantized[index] = (index & 1U) ? -1 : val;
+        }
+
+        /* Lossless 4x4 WHT + DPCM under extreme int32 inputs. */
+        av2h_inverse_lossless_4x4(coeff_u.dequantized, 1U, 1U, 0U, residual_4x4);
+        av2h_inverse_lossless_4x4(coeff_u.dequantized, 1U, 1U, 1U, residual_4x4);
+
+        /* CCTX across 8/10/12-bit domains under extreme int32 inputs. */
+        coeff_u.coefficient_count = 64U;
+        coeff_v.coefficient_count = 64U;
+        for (cctx = 1U; cctx <= 6U; ++cctx) {
+            for (depth_bits = 8U; depth_bits <= 12U; depth_bits += 2U) {
+                Av2hCoeffBlock u_copy = coeff_u;
+                Av2hCoeffBlock v_copy = coeff_v;
+                CHECK(av2h_chroma_inverse_cross_transform(&u_copy, &v_copy, cctx, depth_bits) ==
+                      AV2H_OK);
+            }
+        }
+
+        /* 32x32 DPCM lanes under extreme int32 inputs. */
+        {
+            Av2hLeafMode dpcm_mode = { 0 };
+            Av2hCoeffPrefix dpcm_prefix = { 0 };
+            Av2hTransformType dpcm_tx = { 0 };
+            dpcm_mode.use_dpcm_y = 1U;
+            dpcm_mode.fsc_mode = 1U;
+            dpcm_prefix.tx_size = AV2H_TX_32X32;
+            dpcm_prefix.eob = 1024U;
+            dpcm_tx.primary_type = AV2H_TX_IDTX;
+            coeff_u.width = 32U;
+            coeff_u.height = 32U;
+            coeff_u.coefficient_count = 1024U;
+            coeff_u.nonzero_count = 1024U;
+            CHECK(av2h_luma_reconstruct(NULL, &dpcm_mode, &dpcm_prefix, &dpcm_tx, &coeff_u,
+                                        pred8, 32U, &scratch8, &out8) == AV2H_OK);
+            CHECK(av2h_luma_reconstruct_u16(NULL, &dpcm_mode, &dpcm_prefix, &dpcm_tx, &coeff_u,
+                                            pred16, &scratch16, &out16,
+                                            &av2h_sample_domain_12bit) == AV2H_OK);
+        }
+
+        /* Primary + secondary transforms across 8/10/12-bit domains. */
+        for (s_idx = 0U; s_idx < sizeof(tx_sizes) / sizeof(tx_sizes[0]); ++s_idx) {
+            const Av2hTxDescriptor *desc = NULL;
+            size_t t_idx;
+            CHECK(av2h_tx_descriptor_get(tx_sizes[s_idx], &desc) == AV2H_OK);
+            coeff_u.width = desc->coefficient_width;
+            coeff_u.height = desc->coefficient_height;
+            coeff_u.coefficient_count = desc->eob_capacity;
+            coeff_u.nonzero_count = desc->eob_capacity;
+            for (t_idx = 0U; t_idx < sizeof(tx_types) / sizeof(tx_types[0]); ++t_idx) {
+                Av2hLeafMode mode = { 0 };
+                Av2hCoeffPrefix prefix = { 0 };
+                Av2hTransformType transform = { 0 };
+                size_t d_idx;
+                mode.fsc_mode = tx_types[t_idx] == AV2H_TX_IDTX ? 1U : 0U;
+                prefix.tx_size = tx_sizes[s_idx];
+                prefix.q_index = 128U;
+                prefix.eob = desc->eob_capacity;
+                transform.primary_type = tx_types[t_idx];
+                transform.secondary_symbol = tx_types[t_idx] == AV2H_TX_DCT_DCT ? 1U : 0U;
+                transform.secondary_set = 0U;
+                (void)av2h_reconstruct_transform_generic(
+                    NULL, &mode, &prefix, &transform, &coeff_u, pred8, desc->output_width,
+                    &scratch8, &out8);
+                for (d_idx = 0U; d_idx < 3U; ++d_idx) {
+                    Av2hStatus st = av2h_reconstruct_transform_generic_u16(
+                        NULL, &mode, &prefix, &transform, &coeff_u, pred16, desc->output_width,
+                        &scratch16, &out16, domains[d_idx]);
+                    if (st == AV2H_OK) {
+                        CHECK(out16.pixels[0] <= domains[d_idx]->maximum);
+                    }
+                }
+            }
+        }
+    }
+}
+
 int main(void) {
     test_specialized_wide_transform_policies();
     test_zero_geometry();
@@ -502,6 +618,7 @@ int main(void) {
     test_lossless_chroma_and_rejection();
     test_u16_transform_selection();
     test_u16_lossless_wht();
+    test_extreme_coefficient_bounds();
     if (!failures) puts("supplied-predictor block reconstruction: passed");
     return failures != 0;
 }

@@ -48,8 +48,24 @@ static inline int32_t av2h_sample_clamp(int32_t value, int32_t minimum, int32_t 
     return value;
 }
 
+static inline int32_t av2h_sample_clamp_i64(int64_t value) {
+    if (value < (int64_t)INT32_MIN)
+        return INT32_MIN;
+    if (value > (int64_t)INT32_MAX)
+        return INT32_MAX;
+    return (int32_t)value;
+}
+
+static inline uint32_t av2h_sample_abs_u32(int32_t value) {
+    return value < 0 ? (~(uint32_t)value) + 1U : (uint32_t)value;
+}
+
+static inline uint64_t av2h_sample_abs_u64(int64_t value) {
+    return value < 0 ? (~(uint64_t)value) + 1U : (uint64_t)value;
+}
+
 static inline int32_t av2h_sample_abs(int32_t value) {
-    return value < 0 ? -value : value;
+    return value == INT32_MIN ? INT32_MAX : (value < 0 ? -value : value);
 }
 
 /* Prediction/transform dispatch retains six for sizes outside 4/8/16/32. */
@@ -105,30 +121,61 @@ static inline uint16_t av2h_sample_clip_10bit(int32_t value) {
     return av2h_sample_clip_to_domain(value, &av2h_sample_domain_10bit);
 }
 
-/* Floor division by 2^shift without shifting a negative value; shift 0..63. */
+/* Floor division by 2^shift without shifting a negative value; safe for any shift. */
 static inline int32_t av2h_sample_floor_shift(int64_t value, unsigned int shift) {
-    if (value >= 0)
-        return (int32_t)((uint64_t)value >> shift);
+    if (shift >= 64U)
+        return value < 0 ? -1 : 0;
+    if (value >= 0) {
+        uint64_t quotient = (uint64_t)value >> shift;
+        return quotient > (uint64_t)INT32_MAX ? INT32_MAX : (int32_t)quotient;
+    }
     {
-        uint64_t magnitude = (uint64_t)0U - (uint64_t)value;
-        return (int32_t)(-(int64_t)((magnitude - 1U) >> shift) - 1);
+        uint64_t magnitude = av2h_sample_abs_u64(value);
+        uint64_t quotient = (magnitude - 1U) >> shift;
+        return quotient >= (uint64_t)INT32_MAX + 1U ? INT32_MIN : -(int32_t)quotient - 1;
     }
 }
 
-/* Half-up for nonnegative inputs; signed ties toward +infinity; shift 0..62. */
+/* Half-up for nonnegative inputs; signed ties toward +infinity; safe for any shift. */
 static inline int32_t av2h_sample_round_pow2(int64_t value, int shift) {
-    return av2h_sample_floor_shift(value + (((int64_t)1 << shift) >> 1), (unsigned int)shift);
+    uint64_t half;
+    if (shift <= 0)
+        return av2h_sample_clamp_i64(value);
+    if (shift >= 64)
+        return 0;
+    half = (uint64_t)1U << (unsigned int)(shift - 1);
+    if (value >= 0) {
+        uint64_t quotient = ((uint64_t)value + half) >> (unsigned int)shift;
+        return quotient > (uint64_t)INT32_MAX ? INT32_MAX : (int32_t)quotient;
+    }
+    {
+        uint64_t magnitude = av2h_sample_abs_u64(value);
+        uint64_t quotient;
+        if (magnitude <= half)
+            return 0;
+        quotient = (magnitude - half - 1U) >> (unsigned int)shift;
+        return quotient >= (uint64_t)INT32_MAX + 1U ? INT32_MIN : -(int32_t)quotient - 1;
+    }
 }
 
-/* Symmetric rounding, with ties away from zero; shift 0..62. */
+/* Symmetric rounding, with ties away from zero; safe for any shift. */
 static inline int32_t av2h_sample_round_pow2_signed(int64_t value, int shift) {
     uint64_t magnitude;
-    int64_t rounded;
-    if (shift == 0)
-        return (int32_t)value;
-    magnitude = value < 0 ? (uint64_t)0U - (uint64_t)value : (uint64_t)value;
-    rounded = (int64_t)((magnitude + ((uint64_t)1U << (shift - 1))) >> shift);
-    return (int32_t)(value < 0 ? -rounded : rounded);
+    uint64_t half;
+    uint64_t quotient;
+    if (shift <= 0)
+        return av2h_sample_clamp_i64(value);
+    if (shift > 64)
+        return 0;
+    if (shift == 64)
+        return value == INT64_MIN ? -1 : 0;
+    magnitude = av2h_sample_abs_u64(value);
+    half = (uint64_t)1U << (unsigned int)(shift - 1);
+    quotient = (magnitude + half) >> (unsigned int)shift;
+    if (value < 0) {
+        return quotient >= (uint64_t)INT32_MAX + 1U ? INT32_MIN : -(int32_t)quotient;
+    }
+    return quotient > (uint64_t)INT32_MAX ? INT32_MAX : (int32_t)quotient;
 }
 
 /* The reciprocal input is positive; shift receives its fixed-point scale. */

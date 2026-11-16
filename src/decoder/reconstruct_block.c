@@ -48,8 +48,8 @@ static Av2hStatus reconstruct_lossless_4x4_u16(const Av2hCoeffBlock *coefficient
     reconstruction->height = 4U;
     for (index = 0U; index < 16U; ++index) {
         reconstruction->residual[index] = residual[index];
-        reconstruction->pixels[index] =
-            av2h_sample_clip_to_domain((int32_t)predictor[index] + residual[index], domain);
+        reconstruction->pixels[index] = av2h_sample_clip_to_domain(
+            av2h_sample_clamp_i64((int64_t)predictor[index] + residual[index]), domain);
     }
     return AV2H_OK;
 }

@@ -5,8 +5,8 @@
 #include <stddef.h>
 
 int av2h_directional_filter_strength(int size0, int size1, int delta, uint8_t smooth) {
-    int distance = delta < 0 ? -delta : delta;
-    int sum = size0 + size1;
+    int32_t distance = av2h_sample_abs(delta);
+    int64_t sum = (int64_t)size0 + size1;
     if (smooth) {
         if (sum <= 8)
             return distance >= 64 ? 2 : distance >= 40 ? 1 : 0;
@@ -68,19 +68,25 @@ void av2h_prepare_directional_edges(const Av2hLeafMode *mode, int angle, uint16_
         if ((angle > 180 || (angle < 90 && edge_ibp)) && left_available > 2U * height) {
             left_available = 2U * height;
         }
-        size_t above_source = angle < 90 ? (index < above_available ? index : above_available - 1U)
-                              : angle > 180 && edge_ibp
-                                  ? (index < above_available ? index : above_available - 1U)
-                              : index < width ? index
-                                              : width - 1U;
-        size_t left_source = angle < 90 && edge_ibp
-                                 ? (index < directional_extent ? index : directional_extent - 1U)
-                             : angle > 180 ? index
-                             : mode->mode == AV2H_INTRA_HORIZONTAL && mode->angle_delta == 1 &&
-                                     width == 16U && height == 16U
-                                 ? index
-                             : index < height ? index
-                                              : height - 1U;
+        size_t above_clamped =
+            above_available == 0U ? 0U : (index < above_available ? index : above_available - 1U);
+        size_t above_source = angle < 90                ? above_clamped
+                              : angle > 180 && edge_ibp ? above_clamped
+                              : width == 0U             ? 0U
+                              : index < width           ? index
+                                                        : width - 1U;
+        size_t left_source =
+            angle < 90 && edge_ibp
+                ? (directional_extent == 0U
+                       ? 0U
+                       : (index < directional_extent ? index : directional_extent - 1U))
+            : angle > 180 ? index
+            : mode->mode == AV2H_INTRA_HORIZONTAL && mode->angle_delta == 1 && width == 16U &&
+                    height == 16U
+                ? index
+            : height == 0U   ? 0U
+            : index < height ? index
+                             : height - 1U;
         above[index] =
             references->above != NULL && references->above_count != 0U
                 ? references

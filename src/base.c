@@ -315,6 +315,10 @@ int32_t av2h_bit_reader_svlc(Av2hBitReader *reader) {
     uint32_t magnitude;
     if (reader == NULL || reader->status != AV2H_OK)
         return 0;
+    if (value == UINT32_MAX) {
+        bit_reader_fail(reader, AV2H_INVALID_DATA);
+        return 0;
+    }
     magnitude = (value >> 1U) + (value & 1U);
     return (value & 1U) != 0U ? (int32_t)magnitude : -(int32_t)magnitude;
 }
@@ -335,7 +339,7 @@ int32_t av2h_bit_reader_inverse_signed(Av2hBitReader *reader, unsigned int magni
     sign_bit = (uint32_t)1U << magnitude_bits;
     if ((value & sign_bit) == 0U)
         return (int32_t)value;
-    return (int32_t)(value | (~(uint32_t)0U << total_bits));
+    return (int32_t)(value | ~(((uint32_t)1U << total_bits) - 1U));
 }
 
 uint32_t av2h_bit_reader_quasi_uniform(Av2hBitReader *reader, uint32_t symbol_count) {

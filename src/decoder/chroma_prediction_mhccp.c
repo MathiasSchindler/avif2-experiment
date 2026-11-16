@@ -68,39 +68,46 @@ static Av2hMhccpReferenceExtent mhccp_reference_extent(uint16_t width, uint16_t 
 }
 
 static int32_t mhccp_mul_fixed(int32_t left, int32_t right, int shift) {
-    uint32_t abs_left = (uint32_t)(left < 0 ? -left : left);
-    uint32_t abs_right = (uint32_t)(right < 0 ? -right : right);
+    uint32_t abs_left = av2h_sample_abs_u32(left);
+    uint32_t abs_right = av2h_sample_abs_u32(right);
     int left_bits = (int)av2h_floor_log2_u32(abs_left) + 1;
     int right_bits = (int)av2h_floor_log2_u32(abs_right) + 1;
     int drop = left_bits + right_bits - 29;
     int left_drop;
     int right_drop;
     int adjusted_shift;
-    int32_t product;
-    uint32_t bias;
+    int64_t scaled_left;
+    int64_t scaled_right;
+    int64_t product;
+    uint64_t bias;
     if (drop < 0)
         drop = 0;
     left_drop = drop >> 1;
     right_drop = drop - left_drop;
     adjusted_shift = shift - left_drop - right_drop;
-    product = (left_drop != 0 ? left >> left_drop : left) *
-              (right_drop != 0 ? right >> right_drop : right);
+    scaled_left = left_drop != 0 ? (left >> left_drop) : left;
+    scaled_right = right_drop != 0 ? (right >> right_drop) : right;
+    product = scaled_left * scaled_right;
     if (adjusted_shift <= 0)
-        return product;
+        return av2h_sample_clamp_i64(product);
     if (adjusted_shift > 29)
         return 0;
-    bias = (uint32_t)1U << (adjusted_shift - 1);
-    return product >= 0 ? (int32_t)(((uint32_t)product + bias) >> adjusted_shift)
-                        : -(int32_t)(((uint32_t)(-product) + bias) >> adjusted_shift);
+    bias = (uint64_t)1U << (unsigned int)(adjusted_shift - 1);
+    if (product >= 0) {
+        return av2h_sample_clamp_i64(
+            (int64_t)(((uint64_t)product + bias) >> (unsigned int)adjusted_shift));
+    }
+    return -av2h_sample_clamp_i64(
+        (int64_t)((av2h_sample_abs_u64(product) + bias) >> (unsigned int)adjusted_shift));
 }
 
 static int32_t mhccp_predict_vector(const int32_t parameters[3U], const int32_t vector[3U]) {
-    int32_t sum = 0;
+    int64_t sum = 0;
     int parameter;
     for (parameter = 0; parameter < 3; ++parameter) {
         sum += mhccp_mul_fixed(parameters[parameter], vector[parameter], AV2H_MHCCP_DECIM_BITS);
     }
-    return sum;
+    return av2h_sample_clamp_i64(sum);
 }
 
 static void mhccp_division_scale(uint32_t denominator, int32_t *scale, int *shift) {
@@ -112,13 +119,15 @@ static void mhccp_division_scale(uint32_t denominator, int32_t *scale, int *shif
     int32_t fraction;
     int32_t centered;
     int32_t index;
+    if (denominator == 0U)
+        denominator = 1U;
     *shift = (int)av2h_floor_log2_u32(denominator);
     delta = *shift - AV2H_MHCCP_DIV_PREC_BITS;
     if (delta >= 0) {
-        int32_t rounding = delta > 0 ? (int32_t)((uint32_t)1U << (delta - 1)) : 0;
-        normalized = ((int32_t)denominator + rounding) >> delta;
+        uint64_t rounding = delta > 0 ? ((uint64_t)1U << (unsigned int)(delta - 1)) : 0U;
+        normalized = (int32_t)(((uint64_t)denominator + rounding) >> (unsigned int)delta);
     } else {
-        normalized = (int32_t)(denominator << -delta);
+        normalized = (int32_t)(denominator << (unsigned int)(-delta));
     }
     if (normalized < 1)
         normalized = 1;
@@ -136,17 +145,19 @@ static void mhccp_division_scale(uint32_t denominator, int32_t *scale, int *shif
 static void mhccp_solve(int32_t matrix[3U][3U], int32_t target[3U], int32_t result[3U],
                         uint8_t bit_depth) {
     int32_t work[3U][4U] = {{0}};
+    int32_t reg_shift = bit_depth >= 8U && bit_depth <= 16U ? (int32_t)(bit_depth - 8U) : 0;
     int row;
     for (row = 0; row < 3; ++row) {
         int column;
         for (column = 0; column < 3; ++column) {
             work[row][column] = column >= row ? matrix[row][column] : matrix[column][row];
         }
-        work[row][row] += 2 << (bit_depth - 8U);
+        work[row][row] = av2h_sample_clamp_i64((int64_t)work[row][row] +
+                                               ((int64_t)2 << (unsigned int)reg_shift));
         work[row][3] = target[row];
     }
     for (row = 0; row < 3; ++row) {
-        uint32_t diagonal = (uint32_t)(work[row][row] < 0 ? -work[row][row] : work[row][row]);
+        uint32_t diagonal = av2h_sample_abs_u32(work[row][row]);
         int32_t scale;
         int shift;
         int lower_row;
@@ -160,19 +171,37 @@ static void mhccp_solve(int32_t matrix[3U][3U], int32_t target[3U], int32_t resu
             int32_t factor = work[lower_row][row];
             int column;
             for (column = row + 1; column < 4; ++column) {
-                work[lower_row][column] -=
-                    mhccp_mul_fixed(factor, work[row][column], AV2H_MHCCP_DECIM_BITS);
+                work[lower_row][column] = av2h_sample_clamp_i64(
+                    (int64_t)work[lower_row][column] -
+                    mhccp_mul_fixed(factor, work[row][column], AV2H_MHCCP_DECIM_BITS));
             }
         }
     }
     result[2] = work[2][3];
     for (row = 1; row >= 0; --row) {
         int column;
-        result[row] = work[row][3];
+        int64_t acc = work[row][3];
         for (column = row + 1; column < 3; ++column) {
-            result[row] -=
-                mhccp_mul_fixed(work[row][column], result[column], AV2H_MHCCP_DECIM_BITS);
+            acc -= mhccp_mul_fixed(work[row][column], result[column], AV2H_MHCCP_DECIM_BITS);
         }
+        result[row] = av2h_sample_clamp_i64(acc);
+    }
+}
+
+static int32_t mhccp_scale_stat_i64(int64_t value, int shift) {
+    if (shift <= 0) {
+        unsigned int rshift = shift == INT32_MIN ? 64U : (unsigned int)(-shift);
+        return av2h_sample_floor_shift(value, rshift);
+    }
+    if (shift >= 31)
+        return value > 0 ? INT32_MAX : (value < 0 ? INT32_MIN : 0);
+    {
+        int64_t factor = (int64_t)((uint64_t)1U << (unsigned int)shift);
+        if (value > INT64_MAX / factor)
+            return INT32_MAX;
+        if (value < INT64_MIN / factor)
+            return INT32_MIN;
+        return av2h_sample_clamp_i64(value * factor);
     }
 }
 
@@ -180,19 +209,15 @@ static void mhccp_solve_samples(int64_t matrix[3U][3U], int64_t target[3U], uint
                                 const Av2hSampleDomain *domain, int32_t parameters[3U]) {
     int32_t normalized_matrix[3U][3U] = {{0}};
     int32_t normalized_target[3U];
-    int shift = (int)(12U - domain->bit_depth) - (int)av2h_ceil_log2_u32(count);
+    int shift = (int)12 - (int)domain->bit_depth - (int)av2h_ceil_log2_u32(count);
     unsigned int row;
     /* 12-bit products can exceed int32 before reference-count normalization. */
     for (row = 0U; row < 3U; ++row) {
         unsigned int column;
         for (column = row; column < 3U; ++column) {
-            normalized_matrix[row][column] =
-                shift > 0 ? (int32_t)(matrix[row][column] << shift)
-                          : av2h_sample_floor_shift(matrix[row][column], (unsigned int)-shift);
+            normalized_matrix[row][column] = mhccp_scale_stat_i64(matrix[row][column], shift);
         }
-        normalized_target[row] = shift > 0
-                                     ? (int32_t)(target[row] << shift)
-                                     : av2h_sample_floor_shift(target[row], (unsigned int)-shift);
+        normalized_target[row] = mhccp_scale_stat_i64(target[row], shift);
     }
     mhccp_solve(normalized_matrix, normalized_target, parameters, domain->bit_depth);
 }

@@ -316,7 +316,11 @@ AV2H_NOINLINE Av2hStatus av2h_luma_reconstruct_to_plane(
     output_width = descriptor->output_width;
     output_height = descriptor->output_height;
     is_top_superblock_boundary = (uint8_t)luma_top_superblock_boundary(mode, block_y);
-    above_reference_y = (size_t)block_y - 1U - (is_top_superblock_boundary ? 0U : mode->mrl_index);
+    {
+        size_t above_mrl_offset = is_top_superblock_boundary ? 0U : mode->mrl_index;
+        above_reference_y =
+            (size_t)block_y > above_mrl_offset ? (size_t)block_y - 1U - above_mrl_offset : 0U;
+    }
     if (block_x >= plane->width || block_y >= plane->height || coefficients->width > 32U ||
         coefficients->height > 32U) {
         return AV2H_INVALID_ARGUMENT;
@@ -909,23 +913,27 @@ AV2H_NOINLINE Av2hStatus av2h_luma_reconstruct_to_plane_u16(
         }
     }
     is_top_superblock_boundary = (uint8_t)luma_top_superblock_boundary(mode, block_y);
-    above_reference_y = (size_t)block_y - 1U - (is_top_superblock_boundary ? 0U : mode->mrl_index);
-    if (block_y != 0U) {
-        for (index = 0U; index < above_target; ++index) {
-            size_t sample_x = block_x + index;
-            if (sample_x >= plane->width) {
-                if (av2h_directional_base_angle(mode->mode) != 0)
+    {
+        size_t above_mrl_offset = is_top_superblock_boundary ? 0U : mode->mrl_index;
+        above_reference_y =
+            (size_t)block_y > above_mrl_offset ? (size_t)block_y - 1U - above_mrl_offset : 0U;
+        if ((size_t)block_y > above_mrl_offset) {
+            for (index = 0U; index < above_target; ++index) {
+                size_t sample_x = block_x + index;
+                if (sample_x >= plane->width) {
+                    if (av2h_directional_base_angle(mode->mode) != 0)
+                        break;
+                    sample_x = plane->width - 1U;
+                }
+                if (!plane_sample_reconstructed_u16(plane, sample_x, above_reference_y)) {
                     break;
-                sample_x = plane->width - 1U;
+                }
+                scratch->above[index] = av2h_reconstructed_sample_load_u16(
+                    plane->data, plane->stride_samples, sample_x, above_reference_y);
+                sum += scratch->above[index];
+                ++count;
+                ++above_count;
             }
-            if (!plane_sample_reconstructed_u16(plane, sample_x, above_reference_y)) {
-                break;
-            }
-            scratch->above[index] = av2h_reconstructed_sample_load_u16(
-                plane->data, plane->stride_samples, sample_x, above_reference_y);
-            sum += scratch->above[index];
-            ++count;
-            ++above_count;
         }
     }
     if (top_vertical_multi_line_mrl != 0U) {

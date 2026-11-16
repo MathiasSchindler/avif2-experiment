@@ -209,19 +209,24 @@ static void build_intrabc_candidates(const Av2hSequenceState *sequence, const Av
 /* Reference block vectors are rounded to the precision of the coded
    difference before the difference is applied. */
 static int32_t intrabc_lower_precision(int32_t value, uint8_t precision) {
-    int32_t radix;
-    int32_t remainder;
+    int64_t radix;
+    int64_t remainder;
+    int64_t rounded;
     if (precision >= 4U)
         return value;
-    radix = (int32_t)1 << (6U - precision);
-    remainder = value % radix;
+    radix = (int64_t)1 << (6U - precision);
+    remainder = (int64_t)value % radix;
     if (remainder == 0)
         return value;
-    value -= remainder;
+    rounded = (int64_t)value - remainder;
     if ((remainder < 0 ? -remainder : remainder) > (radix >> 1)) {
-        value += remainder > 0 ? radix : -radix;
+        rounded += remainder > 0 ? radix : -radix;
     }
-    return value;
+    if (rounded < (int64_t)INT32_MIN)
+        return INT32_MIN;
+    if (rounded > (int64_t)INT32_MAX)
+        return INT32_MAX;
+    return (int32_t)rounded;
 }
 
 Av2hStatus av2h_leaf_read_first_intrabc(Av2hRangeDecoder *decoder, Av2hLeafCdfs *cdfs,

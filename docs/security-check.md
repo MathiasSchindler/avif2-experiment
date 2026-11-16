@@ -1,6 +1,6 @@
 # Security Audit and Hardening Plan
 
-**Status:** S1 complete; S2–S10 planned  
+**Status:** S1–S2 complete; S3–S10 planned
 **Scope:** [`src/`](../src/), [`include/av2heif.h`](../include/av2heif.h), [`Makefile`](../Makefile), and [`tools/`](../tools/)
 
 ## Purpose and Scope
@@ -79,6 +79,11 @@ Codec math performs dense fixed-point multiplications, shifts, and matrix invers
 
 ### Exit Criteria
 - Every mathematical kernel passes exhaustive boundary-value tests under UBSan (`signed-integer-overflow`, `shift`, `negate-overflow`, `divide-by-zero`) with zero findings.
+
+### S2 Implementation Notes
+- Hardened [`sample_math.h`](../src/decoder/internal/sample_math.h), [`sample_math.c`](../src/decoder/sample_math.c), and [`bit_math.h`](../src/shared/bit_math.h) with overflow-free unsigned magnitude helpers (`av2h_sample_abs_u32`, `av2h_sample_abs_u64`), saturating `av2h_sample_abs(INT32_MIN)`, full shift-range guards (`shift <= 0`, `shift >= 64`) in `av2h_sample_floor_shift`, `av2h_sample_round_pow2`, and `av2h_sample_round_pow2_signed`, zero-divisor handling in `av2h_sample_resolve_divisor_32`, and 64-bit variance/covariance regression math in `av2h_sample_regression_slope`.
+- Eliminated `INT32_MIN` negation, shift-range hazards, unsigned coordinate underflows, and 32-bit accumulator overflows across [`chroma_prediction_mhccp.c`](../src/decoder/chroma_prediction_mhccp.c), [`chroma_prediction_cfl.c`](../src/decoder/chroma_prediction_cfl.c), [`inverse_transform.c`](../src/decoder/inverse_transform.c), [`reconstruct_block.c`](../src/decoder/reconstruct_block.c), [`reconstruct_block_kernel.inc`](../src/decoder/internal/reconstruct_block_kernel.inc), [`reconstruct.c`](../src/decoder/reconstruct.c), [`intrabc_prediction.c`](../src/decoder/intrabc_prediction.c), [`intrabc.c`](../src/decoder/intrabc.c), [`restoration.c`](../src/decoder/restoration.c), [`cdef.c`](../src/decoder/cdef.c), [`intra_prediction_edges.c`](../src/decoder/intra_prediction_edges.c), and [`base.c`](../src/base.c).
+- Enabled `-fno-sanitize-recover=undefined` globally in `HOST_CFLAGS` and `-fsanitize=integer -fno-sanitize-recover=integer` across all 22 mathematical kernel translation units (`MATH_KERNEL_SOURCES`) in [`Makefile`](../Makefile), and added extreme boundary-value tests in [`sample_math_unit.c`](../tests/sample_math_unit.c), [`prediction_math_unit.c`](../tests/prediction_math_unit.c), and [`reconstruction_block_unit.c`](../tests/reconstruction_block_unit.c).
 
 ---
 

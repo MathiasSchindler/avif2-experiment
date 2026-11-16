@@ -44,17 +44,24 @@ static CdefTileBounds cdef_tile_bounds(const Av2hSequenceState *sequence,
 }
 
 static int cdef_constrain(int difference, unsigned int threshold, unsigned int damping) {
-    unsigned int magnitude;
+    uint32_t magnitude;
     unsigned int adjustment;
-    int constrained;
+    uint32_t shifted;
+    uint32_t constrained;
     if (threshold == 0U)
         return 0;
-    magnitude = (unsigned int)av2h_sample_abs(difference);
+    magnitude = av2h_sample_abs_u32(difference);
     adjustment = av2h_floor_log2_u32(threshold);
     adjustment = damping > adjustment ? damping - adjustment : 0U;
-    constrained = (int)threshold - (int)(magnitude >> adjustment);
-    constrained = av2h_sample_clamp(constrained, 0, (int)magnitude);
-    return difference < 0 ? -constrained : constrained;
+    shifted = adjustment >= 32U ? 0U : (magnitude >> adjustment);
+    if (shifted >= threshold)
+        return 0;
+    constrained = threshold - shifted;
+    if (constrained > magnitude)
+        constrained = magnitude;
+    if (constrained > (uint32_t)INT32_MAX)
+        constrained = (uint32_t)INT32_MAX;
+    return difference < 0 ? -(int)constrained : (int)constrained;
 }
 
 /* Instantiate typed kernels after the shared helpers. */

@@ -65,10 +65,11 @@ static Av2hCflReferenceCounts cfl_reference_counts(uint16_t width, uint16_t heig
 }
 
 static void cfl_regression_add(Av2hCflRegression *regression, int32_t luma, int32_t chroma) {
-    regression->sum_x += luma;
-    regression->sum_y += chroma;
-    regression->sum_xx += luma * luma;
-    regression->sum_xy += luma * chroma;
+    regression->sum_x = av2h_sample_clamp_i64((int64_t)regression->sum_x + luma);
+    regression->sum_y = av2h_sample_clamp_i64((int64_t)regression->sum_y + chroma);
+    regression->sum_xx = av2h_sample_clamp_i64((int64_t)regression->sum_xx + (int64_t)luma * luma);
+    regression->sum_xy =
+        av2h_sample_clamp_i64((int64_t)regression->sum_xy + (int64_t)luma * chroma);
     ++regression->count;
 }
 
@@ -826,10 +827,11 @@ Av2hStatus av2h_cfl_derived_predict(
         }
     }
     shift = 3 + AV2H_CFL_ADD_BITS_ALPHA;
-    alpha = derive_alpha ? av2h_sample_regression_slope(regression.sum_x, regression.sum_y,
-                                                        regression.sum_xx, regression.sum_xy,
-                                                        regression.count, shift)
-                         : supplied_alpha_q3 * (1 << AV2H_CFL_ADD_BITS_ALPHA);
+    alpha =
+        derive_alpha
+            ? av2h_sample_regression_slope(regression.sum_x, regression.sum_y, regression.sum_xx,
+                                           regression.sum_xy, regression.count, shift)
+            : av2h_sample_clamp_i64((int64_t)supplied_alpha_q3 * (1 << AV2H_CFL_ADD_BITS_ALPHA));
     cfl_predict_samples(luma_plane, luma_x, luma_y, width, height, width, height, full_resolution,
                         filter_index, alpha, AV2H_CFL_ADD_BITS_ALPHA, avg_l, predictor,
                         predictor_stride_samples, domain);

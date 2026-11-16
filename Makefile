@@ -406,15 +406,41 @@ reference-gallery:
 	$(PYTHON) tools/publish_reference_gallery.py
 
 
+MATH_KERNEL_SOURCES := \
+	src/decoder/ccso.c \
+	src/decoder/cdef.c \
+	src/decoder/chroma_prediction.c \
+	src/decoder/chroma_prediction_cfl.c \
+	src/decoder/chroma_prediction_common.c \
+	src/decoder/chroma_prediction_mhccp.c \
+	src/decoder/coeff_dequant.c \
+	src/decoder/deblock.c \
+	src/decoder/gdf.c \
+	src/decoder/intrabc.c \
+	src/decoder/intrabc_prediction.c \
+	src/decoder/intra_prediction.c \
+	src/decoder/intra_prediction_basic.c \
+	src/decoder/intra_prediction_dip.c \
+	src/decoder/intra_prediction_directional.c \
+	src/decoder/intra_prediction_edges.c \
+	src/decoder/inverse_transform.c \
+	src/decoder/reconstruct.c \
+	src/decoder/reconstruct_block.c \
+	src/decoder/restoration.c \
+	src/decoder/sample_math.c \
+	src/decoder/secondary_transform.c
+
 HOST_BUILD_DIR ?= build/host-sanitized
+HOST_INTEGER_SANITIZE_CFLAGS := $(call CC_SUPPORTS_FLAG,-fsanitize=integer -fno-sanitize-recover=integer)
 # Omit -fwrapv under UBSan so signed-integer-overflow remains detectable.
 HOST_CFLAGS := $(COMMON_WARNINGS) $(AUTO_VAR_INIT_HOST_CFLAGS) \
 	$(HOST_STACK_PROTECTOR_CFLAGS) -O1 -g -fsanitize=address,undefined \
-	-fno-omit-frame-pointer -Iinclude -Isrc
+	-fno-sanitize-recover=undefined -fno-omit-frame-pointer -Iinclude -Isrc
 HOST_PRODUCTION_CFLAGS := $(HOST_CFLAGS) $(STRICT_WARNINGS)
 HOST_LDFLAGS := $(HOST_STACK_PROTECTOR_CFLAGS) \
 	-fsanitize=address,undefined -fno-omit-frame-pointer
 HOST_CORE_OBJECTS := $(CORE_SOURCES:%.c=$(HOST_BUILD_DIR)/obj/core/%.o)
+HOST_MATH_KERNEL_OBJECTS := $(MATH_KERNEL_SOURCES:%.c=$(HOST_BUILD_DIR)/obj/core/%.o)
 HOST_QUERY_TEST_OBJECTS := $(HOST_BUILD_DIR)/obj/query-test/query.o \
 	$(HOST_BUILD_DIR)/obj/query-test/decode.o
 HOST_CLI_OBJECTS := $(CLI_SOURCES:%.c=$(HOST_BUILD_DIR)/obj/cli/%.o)
@@ -578,6 +604,8 @@ SPATIAL_STILL_FIXTURES := \
 test: test-c test-corpus test-reference-locks test-freestanding test-private-headers \
 	spatial-still-admission
 	$(PYTHON) -m unittest discover -s tests -p 'test_*.py'
+
+$(HOST_MATH_KERNEL_OBJECTS): HOST_PRODUCTION_CFLAGS += $(HOST_INTEGER_SANITIZE_CFLAGS)
 
 $(HOST_BUILD_DIR)/obj/core/%.o: %.c
 	@mkdir -p $(@D)
