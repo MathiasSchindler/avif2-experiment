@@ -122,9 +122,11 @@ Av2hStatus av2h_chroma_mode_read(Av2hRangeDecoder *decoder, Av2hLeafCdfs *cdfs,
             mode->cfl_mhccp_switch = (uint8_t)value;
             mode->after_cfl_switch_bits = av2h_range_tell(decoder);
             if (value != 0U) {
-                static const uint8_t size_group[AV2H_BLOCK_SIZE_COUNT] = {
-                    0U, 0U, 0U, 1U, 1U, 1U, 2U, 2U, 2U, 3U, 3U, 3U, 3U, 3U, 3U,
-                    3U, 3U, 3U, 3U, 0U, 0U, 1U, 1U, 2U, 2U, 1U, 1U, 2U, 2U};
+                static const uint8_t size_group[] = {0U, 0U, 0U, 1U, 1U, 1U, 2U, 2U, 2U, 3U, 3U,
+                                                     3U, 3U, 3U, 3U, 3U, 3U, 3U, 3U, 0U, 0U, 1U,
+                                                     1U, 2U, 2U, 1U, 1U, 2U, 2U, 2U, 2U};
+                _Static_assert(sizeof(size_group) / sizeof(size_group[0]) == AV2H_BLOCK_SIZE_COUNT,
+                               "MHCCP size_group must cover every Av2hBlockSize");
                 uint8_t group;
                 mode->cfl_kind = AV2H_CFL_MULTI_PARAM;
                 mode->cfl_index = 2U;
@@ -393,10 +395,12 @@ static int block_allows_intrabc(Av2hBlockSize block_size) {
 }
 
 static uint8_t fsc_block_context(Av2hBlockSize block_size) {
-    static const uint8_t contexts[AV2H_BLOCK_SIZE_COUNT] = {0U, 1U, 1U, 2U, 3U, 3U, 4U, 5U, 5U, 5U,
-                                                            6U, 6U, 6U, 6U, 6U, 6U, 6U, 6U, 6U, 3U,
-                                                            3U, 4U, 4U, 6U, 6U, 4U, 4U, 6U, 6U};
-    return contexts[block_size];
+    static const uint8_t contexts[] = {0U, 1U, 1U, 2U, 3U, 3U, 4U, 5U, 5U, 5U, 6U,
+                                       6U, 6U, 6U, 6U, 6U, 6U, 6U, 6U, 3U, 3U, 4U,
+                                       4U, 6U, 6U, 4U, 4U, 6U, 6U, 6U, 6U};
+    _Static_assert(sizeof(contexts) / sizeof(contexts[0]) == AV2H_BLOCK_SIZE_COUNT,
+                   "fsc_block_context must cover every Av2hBlockSize");
+    return block_size < AV2H_BLOCK_SIZE_COUNT ? contexts[block_size] : 6U;
 }
 
 static Av2hStatus

@@ -421,12 +421,16 @@ static Av2hStatus tile_tx_size_from_dimensions(uint8_t width, uint8_t height, Av
 static Av2hStatus tile_read_luma_tx_partition(Av2hTileDecoder *decoder,
                                               const Av2hPartitionNode *coding_node,
                                               const Av2hLeafMode *mode) {
-    static const uint8_t split_group[AV2H_BLOCK_SIZE_COUNT] = {
-        0U, 0U, 0U, 1U, 2U, 2U, 3U, 4U, 4U, 5U, 6U, 6U, 7U, 7U, 7U,
-        7U, 7U, 7U, 7U, 8U, 8U, 8U, 8U, 8U, 8U, 8U, 8U, 8U, 8U};
-    static const uint8_t both_group[AV2H_BLOCK_SIZE_COUNT] = {
-        255U, 255U, 255U, 0U, 1U,   2U,   3U,  4U,  5U,  6U,  7U,   8U,   9U,  9U, 9U,
-        9U,   9U,   9U,   9U, 255U, 255U, 10U, 11U, 12U, 13U, 255U, 255U, 10U, 11U};
+    static const uint8_t split_group[] = {0U, 0U, 0U, 1U, 2U, 2U, 3U, 4U, 4U, 5U, 6U,
+                                          6U, 7U, 7U, 7U, 7U, 7U, 7U, 7U, 8U, 8U, 8U,
+                                          8U, 8U, 8U, 8U, 8U, 8U, 8U, 8U, 8U};
+    static const uint8_t both_group[] = {
+        255U, 255U, 255U, 0U,   1U,   2U,  3U,  4U,  5U,  6U,   7U,   8U,  9U,  9U,   9U,  9U,
+        9U,   9U,   9U,   255U, 255U, 10U, 11U, 12U, 13U, 255U, 255U, 10U, 11U, 255U, 255U};
+    _Static_assert(sizeof(split_group) / sizeof(split_group[0]) == AV2H_BLOCK_SIZE_COUNT,
+                   "TX split_group must cover every Av2hBlockSize");
+    _Static_assert(sizeof(both_group) / sizeof(both_group[0]) == AV2H_BLOCK_SIZE_COUNT,
+                   "TX both_group must cover every Av2hBlockSize");
     static const uint8_t partition_count[8U] = {1U, 4U, 2U, 2U, 4U, 4U, 5U, 5U};
     static const uint8_t row_shift[8U][5U] = {{0U},
                                               {1U, 1U, 1U, 1U},
@@ -529,10 +533,11 @@ static Av2hStatus tile_read_luma_tx_partition(Av2hTileDecoder *decoder,
     } else {
         uint8_t fixed_two_way = (uint8_t)(coding_node->block_size == AV2H_BLOCK_4X8 ||
                                           coding_node->block_size == AV2H_BLOCK_8X4);
-        uint8_t context =
-            coding_node->block_size == AV2H_BLOCK_4X16 || coding_node->block_size == AV2H_BLOCK_4X32
-                ? 0U
-                : 1U;
+        uint8_t context = coding_node->block_size == AV2H_BLOCK_4X16 ||
+                                  coding_node->block_size == AV2H_BLOCK_4X32 ||
+                                  coding_node->block_size == AV2H_BLOCK_4X64
+                              ? 0U
+                              : 1U;
         symbol = 0U;
         if (!fixed_two_way && !decoder->entropy_state.sequence->reduced_tx_partition_set) {
             symbol = av2h_range_read_adaptive(
@@ -941,9 +946,11 @@ Av2hStatus av2h_tile_decoder_next_luma(Av2hTileDecoder *decoder, Av2hTileLumaLea
     if (leaf->mode.q_index == 0U && leaf->mode.skip_transform == 0U &&
         (leaf->mode.fsc_mode != 0U || leaf->mode.use_intrabc != 0U) &&
         leaf->node.block_size != AV2H_BLOCK_4X4) {
-        static const uint8_t size_group[AV2H_BLOCK_SIZE_COUNT] = {
-            0U, 0U, 0U, 1U, 1U, 1U, 2U, 2U, 2U, 3U, 3U, 3U, 3U, 3U, 3U,
-            3U, 3U, 3U, 3U, 0U, 0U, 1U, 1U, 2U, 2U, 1U, 1U, 2U, 2U};
+        static const uint8_t size_group[] = {0U, 0U, 0U, 1U, 1U, 1U, 2U, 2U, 2U, 3U, 3U,
+                                             3U, 3U, 3U, 3U, 3U, 3U, 3U, 3U, 0U, 0U, 1U,
+                                             1U, 2U, 2U, 1U, 1U, 2U, 2U, 2U, 2U};
+        _Static_assert(sizeof(size_group) / sizeof(size_group[0]) == AV2H_BLOCK_SIZE_COUNT,
+                       "lossless_tx_size size_group must cover every Av2hBlockSize");
         uint8_t group = size_group[leaf->node.block_size];
         leaf->mode.lossless_tx_size_large = (uint8_t)av2h_range_read_adaptive(
             &decoder->entropy_state.range,

@@ -44,5 +44,7 @@ static inline int av2h_plane_tile_contains(const Av2hPlaneTileBounds *tile, size
 }
 
 int av2h_plane_sample_reconstructed(const Av2hReconstructionPlane *plane, size_t x, size_t y);
+int av2h_plane_sample_reconstructed_u16(const Av2hReconstructionPlaneU16 *plane, size_t x,
+                                        size_t y);
 
 #endif

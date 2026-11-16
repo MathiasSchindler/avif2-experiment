@@ -144,13 +144,13 @@ Av2hStatus av2h_tile_decoder_read_shared_chroma_mode(Av2hTileDecoder *decoder,
     colocated = &decoder->traversal.colocated_luma[index];
     if (!colocated->context.present)
         return AV2H_INVALID_DATA;
-    if (node->row != 0U) {
+    if (node->row > decoder->traversal.tile_start_row) {
         cfl_context = decoder->traversal
                           .colocated_luma[((size_t)node->row - 1U) * decoder->traversal.mi_columns +
                                           node->column]
                           .chroma_cfl;
     }
-    if (node->column != 0U) {
+    if (node->column > decoder->traversal.tile_start_column) {
         cfl_context =
             (uint8_t)(cfl_context +
                       decoder->traversal
@@ -166,18 +166,19 @@ Av2hStatus av2h_tile_decoder_read_shared_chroma_mode(Av2hTileDecoder *decoder,
     if (status != AV2H_OK)
         return status;
     decoder->shared_chroma.mode.above_smooth =
-        node->row == 0U
+        node->row <= decoder->traversal.tile_start_row
             ? 0U
             : decoder->traversal
                   .colocated_luma[((size_t)node->row - 1U) * decoder->traversal.mi_columns +
                                   node->column]
                   .chroma_smooth;
     decoder->shared_chroma.mode.left_smooth =
-        node->column == 0U ? 0U
-                           : decoder->traversal
-                                 .colocated_luma[(size_t)node->row * decoder->traversal.mi_columns +
-                                                 node->column - 1U]
-                                 .chroma_smooth;
+        node->column <= decoder->traversal.tile_start_column
+            ? 0U
+            : decoder->traversal
+                  .colocated_luma[(size_t)node->row * decoder->traversal.mi_columns + node->column -
+                                  1U]
+                  .chroma_smooth;
     status = tile_store_chroma_mode(decoder, node, &decoder->shared_chroma.mode);
     if (status != AV2H_OK)
         return status;
@@ -352,14 +353,14 @@ Av2hStatus av2h_tile_decoder_next_chroma(Av2hTileDecoder *decoder, Av2hTileChrom
         decoder->superblock.current_block_q_index = colocated->context.q_index;
     }
     cfl_context = 0U;
-    if (leaf->node.row != 0U) {
+    if (leaf->node.row > decoder->traversal.tile_start_row) {
         cfl_context =
             decoder->traversal
                 .colocated_luma[((size_t)leaf->node.row - 1U) * decoder->traversal.mi_columns +
                                 leaf->node.column]
                 .chroma_cfl;
     }
-    if (leaf->node.column != 0U) {
+    if (leaf->node.column > decoder->traversal.tile_start_column) {
         cfl_context =
             (uint8_t)(cfl_context +
                       decoder->traversal
@@ -431,7 +432,7 @@ Av2hStatus av2h_tile_decoder_next_chroma(Av2hTileDecoder *decoder, Av2hTileChrom
                                          av2h_range_tell(&decoder->entropy_state.range));
 #endif
     if (!continuing_transform) {
-        leaf->mode.above_smooth = leaf->node.row == 0U
+        leaf->mode.above_smooth = leaf->node.row <= decoder->traversal.tile_start_row
                                       ? 0U
                                       : decoder->traversal
                                             .colocated_luma[((size_t)leaf->node.row - 1U) *
@@ -439,7 +440,7 @@ Av2hStatus av2h_tile_decoder_next_chroma(Av2hTileDecoder *decoder, Av2hTileChrom
                                                             leaf->node.column]
                                             .chroma_smooth;
         leaf->mode.left_smooth =
-            leaf->node.column == 0U
+            leaf->node.column <= decoder->traversal.tile_start_column
                 ? 0U
                 : decoder->traversal
                       .colocated_luma[(size_t)leaf->node.row * decoder->traversal.mi_columns +

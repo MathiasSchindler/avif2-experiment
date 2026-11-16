@@ -156,13 +156,13 @@
     {
       "id": "intrabc-filter-composition",
       "test": "leaf-unit", "source": "tests/leaf_unit.c",
-      "source_sha256": "16f215f10901618ce27b54284bad745694bdcfecf672ab4038606899379d48cc",
+      "source_sha256": "1de22901c2b7b1e30217ca2510422295bfe676053f3cb30f41ef2d183753338a",
       "features": ["intrabc-restoration"]
     },
     {
       "id": "fsc-cctx-intrabc-reconstruction",
       "test": "reconstruct-unit", "source": "tests/reconstruct_unit.c",
-      "source_sha256": "ae1fd3fad05ec2bc5c2f94155c6f58b8e481cda31142d131a3b0f08f5f103dd8",
+      "source_sha256": "d2d81008824222853e009081645824e14bbf8ad930e22d7eb05ad23a7d81ef68",
       "features": ["fsc-cctx", "intrabc-restoration"]
     },
     {
@@ -174,7 +174,7 @@
     {
       "id": "malformed-tile-groups",
       "test": "tile-unit", "source": "tests/tile_unit.c",
-      "source_sha256": "e8fed52632100eabdb7719739c6ae83da01ca4a4824160753a98192edb39dad8",
+      "source_sha256": "149ab456af384e9470c0f9a7cf2416e896f3003e4fc074f6561636119e6315d5",
       "features": ["malformed-boundaries", "spatial-tiles", "multiple-tile-groups"]
     },
     {

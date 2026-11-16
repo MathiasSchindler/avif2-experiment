@@ -665,14 +665,11 @@ static int output_is_disjoint(uint8_t *output, size_t output_size_bytes,
     return 1;
 }
 
-static void clear_decode_storage(const Av2hFrameState *frame,
-                                 const Av2hFilterWorkspaceLayout *layout,
-                                 Av2hFrameDecodeWorkspace *workspace,
-                                 const Av2hFrameContextSizes *context_sizes) {
-    Av2hTileContextStorage *context = &workspace->tile_context;
+static void clear_tile_context_storage(const Av2hFrameState *frame, Av2hTileContextStorage *context,
+                                       Av2hFrameDecodeScratch *decode_scratch,
+                                       const Av2hFrameContextSizes *context_sizes) {
     unsigned int plane;
-    av2h_memory_fill(&workspace->decode_scratch->tile_decoder, 0U,
-                     sizeof(workspace->decode_scratch->tile_decoder));
+    av2h_memory_fill(&decode_scratch->tile_decoder, 0U, sizeof(decode_scratch->tile_decoder));
     av2h_memory_fill(context->luma_partition_above, 0U, context->above_count);
     av2h_memory_fill(context->luma_partition_left, 0U, context->left_count);
     av2h_memory_fill(context->chroma_partition_above, 0U, context->above_count);
@@ -687,6 +684,27 @@ static void clear_decode_storage(const Av2hFrameState *frame,
     }
     if (context->cdef_unit_strengths != NULL) {
         av2h_memory_fill(context->cdef_unit_strengths, 0U, context->cdef_unit_strength_capacity);
+    }
+    for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
+        if (context->ccso_unit_controls[plane] != NULL) {
+            av2h_memory_fill(context->ccso_unit_controls[plane], 0U,
+                             context->ccso_unit_control_capacity);
+        }
+    }
+}
+
+static void clear_decode_storage(const Av2hFrameState *frame,
+                                 const Av2hFilterWorkspaceLayout *layout,
+                                 Av2hFrameDecodeWorkspace *workspace,
+                                 const Av2hFrameContextSizes *context_sizes) {
+    unsigned int worker_index;
+    unsigned int plane;
+    clear_tile_context_storage(frame, &workspace->tile_context, workspace->decode_scratch,
+                               context_sizes);
+    for (worker_index = 1U; worker_index < workspace->tile_worker_count; ++worker_index) {
+        Av2hFrameDecodeWorkspace *worker = &workspace->tile_workers[worker_index].workspace;
+        clear_tile_context_storage(frame, &worker->tile_context, worker->decode_scratch,
+                                   context_sizes);
     }
     if (workspace->filter_workspace->restoration_tx_skip != NULL) {
         av2h_memory_fill(workspace->filter_workspace->restoration_tx_skip, 0U,
@@ -718,10 +736,6 @@ static void clear_decode_storage(const Av2hFrameState *frame,
                          map_size_bytes);
         av2h_memory_fill((void *)workspace->filter_workspace->ccso_controls.plane[plane], 0U,
                          control_size_bytes);
-        if (context->ccso_unit_controls[plane] != NULL) {
-            av2h_memory_fill(context->ccso_unit_controls[plane], 0U,
-                             context->ccso_unit_control_capacity);
-        }
     }
 }
 

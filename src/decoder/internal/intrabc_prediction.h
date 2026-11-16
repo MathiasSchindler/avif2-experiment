@@ -28,6 +28,12 @@ Av2hStatus av2h_intrabc_morph_u16(const uint16_t *plane_data, size_t stride, uin
                                   int32_t reference_x, int32_t reference_y, uint16_t width,
                                   uint16_t height, uint8_t bit_depth, uint16_t *predictor);
 
+Av2hStatus av2h_intrabc_morph_plane_u16(const Av2hReconstructionPlaneU16 *plane, uint16_t coding_x,
+                                        uint16_t coding_y, uint16_t coding_width,
+                                        uint16_t coding_height, int32_t reference_x,
+                                        int32_t reference_y, uint16_t width, uint16_t height,
+                                        uint8_t bit_depth, uint16_t *predictor);
+
 Av2hStatus av2h_intrabc_predict(struct Av2hDecodeDiagnostics *diagnostics, const Av2hLeafMode *mode,
                                 const Av2hReconstructionPlane *plane, uint16_t block_x,
                                 uint16_t block_y, uint16_t width, uint16_t height,

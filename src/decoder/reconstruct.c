@@ -187,11 +187,16 @@ static void plane_mark_reconstructed_cells(uint8_t *reconstructed, size_t stride
     }
 }
 
-static int plane_sample_reconstructed_u16(const Av2hReconstructionPlaneU16 *plane, size_t x,
-                                          size_t y) {
-    return av2h_plane_tile_contains(&plane->tile, x, y) &&
+int av2h_plane_sample_reconstructed_u16(const Av2hReconstructionPlaneU16 *plane, size_t x,
+                                        size_t y) {
+    return plane != NULL && av2h_plane_tile_contains(&plane->tile, x, y) &&
            plane_sample_reconstructed_cells(plane->reconstructed, plane->reconstructed_stride_cells,
                                             plane->reconstructed_count_cells, x, y);
+}
+
+static int plane_sample_reconstructed_u16(const Av2hReconstructionPlaneU16 *plane, size_t x,
+                                          size_t y) {
+    return av2h_plane_sample_reconstructed_u16(plane, x, y);
 }
 
 static uint16_t dc_average_rectangular_u16(uint64_t sum, size_t count) {
@@ -232,7 +237,7 @@ static Av2hStatus intrabc_predict_u16(Av2hDecodeDiagnostics *diagnostics, const 
         for (column = 0U; column < width + (subpel_x != 0U); ++column) {
             size_t sample_x = (size_t)source_x + column;
             size_t sample_y = (size_t)source_y + row;
-            if (!plane_sample_reconstructed_u16(plane, sample_x, sample_y)) {
+            if (!av2h_plane_sample_reconstructed_u16(plane, sample_x, sample_y)) {
                 av2h_reconstruction_diagnostics_set_intrabc_source(
                     diagnostics, (uint16_t)sample_x, (uint16_t)sample_y,
                     (sample_y / 4U) * plane->reconstructed_stride_cells + sample_x / 4U);
@@ -248,12 +253,11 @@ static Av2hStatus intrabc_predict_u16(Av2hDecodeDiagnostics *diagnostics, const 
     if (mode->morph_pred != 0U) {
         uint16_t coding_x = (uint16_t)(mode->block_origin_column * 4U);
         uint16_t coding_y = (uint16_t)(mode->block_origin_row * 4U);
-        status =
-            av2h_intrabc_morph_u16(plane->data, plane->stride_samples, plane->width, plane->height,
-                                   coding_x, coding_y, mode->block_width, mode->block_height,
-                                   (int32_t)coding_x + av2h_intrabc_full_pel(mode->displacement_x),
-                                   (int32_t)coding_y + av2h_intrabc_full_pel(mode->displacement_y),
-                                   width, height, domain->bit_depth, predictor);
+        status = av2h_intrabc_morph_plane_u16(
+            plane, coding_x, coding_y, mode->block_width, mode->block_height,
+            (int32_t)coding_x + av2h_intrabc_full_pel(mode->displacement_x),
+            (int32_t)coding_y + av2h_intrabc_full_pel(mode->displacement_y), width, height,
+            domain->bit_depth, predictor);
         if (status != AV2H_OK)
             return status;
     }

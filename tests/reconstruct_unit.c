@@ -765,6 +765,118 @@ static void test_intrabc_morph_reference_edge(void) {
               8, 7, 2U, 2U, 10U, predictor) == AV2H_INVALID_DATA);
 }
 
+static void test_intrabc_morph_tile_and_reconstruction_bounds(void) {
+    uint8_t pixels8[64U * 64U];
+    uint16_t pixels16[64U * 64U];
+    uint8_t reconstructed[16U * 16U];
+    Av2hReconstructionPlane plane8 = {
+        pixels8, 64U, 64U, 64U, 64U, 64U,
+        reconstructed, 16U, sizeof(reconstructed),
+        { 32U, 32U, 64U, 64U }
+    };
+    Av2hReconstructionPlaneU16 plane16 = {
+        pixels16, 64U, 64U, 64U, 64U, 64U,
+        reconstructed, 16U, sizeof(reconstructed),
+        { 32U, 32U, 64U, 64U }
+    };
+    Av2hPartitionNode leaf = { 8U, 8U, AV2H_BLOCK_8X8 };
+    Av2hLeafMode mode = { 0 };
+    Av2hCoeffPrefix prefix = { 0 };
+    Av2hTransformType transform = { 0 };
+    Av2hCoeffBlock block = { 0 };
+    Av2hReconstructionScratch scratch;
+    uint8_t baseline8[64U];
+    uint16_t pred16_a[64U];
+    uint16_t pred16_b[64U];
+    size_t index;
+
+    for (index = 0U; index < 64U * 64U; ++index) {
+        pixels8[index] = (uint8_t)((index * 19U + 11U) & 0xffU);
+        pixels16[index] = (uint16_t)((index * 37U + 23U) & 0x3ffU);
+    }
+    av2h_memory_fill(reconstructed, 1U, sizeof(reconstructed));
+    mode.mode = AV2H_INTRA_DC;
+    mode.use_intrabc = 1U;
+    mode.morph_pred = 1U;
+    mode.skip_transform = 1U;
+    mode.block_origin_column = 8U;
+    mode.block_origin_row = 8U;
+    mode.block_width = 8U;
+    mode.block_height = 8U;
+    mode.displacement_x = 64;
+    mode.displacement_y = 0;
+    prefix.tx_size = AV2H_TX_8X8;
+    prefix.all_zero = 1U;
+    transform.primary_type = AV2H_TX_DCT_DCT;
+    block.width = 8U;
+    block.height = 8U;
+    block.coefficient_count = 64U;
+
+    /* At tile top-left (32,32), BAWP must not read row 31 or col 31 in
+       neighboring tiles. */
+    for (index = 0U; index < 64U; ++index) {
+        pixels8[31U * 64U + index] = 0U;
+        pixels8[index * 64U + 31U] = 0U;
+        pixels16[31U * 64U + index] = 0U;
+        pixels16[index * 64U + 31U] = 0U;
+        pred16_a[index] = 512U;
+        pred16_b[index] = 512U;
+    }
+    CHECK(av2h_luma_reconstruct_to_plane(
+              NULL, &leaf, &mode, &prefix, &transform, &block, &plane8,
+              &scratch) == AV2H_OK);
+    av2h_memory_copy(baseline8, scratch.predictor, sizeof(baseline8));
+    CHECK(av2h_intrabc_morph_plane_u16(
+              &plane16, 32U, 32U, 8U, 8U, 40, 32, 8U, 8U, 10U,
+              pred16_a) == AV2H_OK);
+    for (index = 0U; index < 64U; ++index) {
+        pixels8[31U * 64U + index] = 255U;
+        pixels8[index * 64U + 31U] = 255U;
+        pixels16[31U * 64U + index] = 1023U;
+        pixels16[index * 64U + 31U] = 1023U;
+    }
+    CHECK(av2h_luma_reconstruct_to_plane(
+              NULL, &leaf, &mode, &prefix, &transform, &block, &plane8,
+              &scratch) == AV2H_OK);
+    CHECK(av2h_memory_compare(
+              baseline8, scratch.predictor, sizeof(baseline8)) == 0);
+    CHECK(av2h_intrabc_morph_plane_u16(
+              &plane16, 32U, 32U, 8U, 8U, 40, 32, 8U, 8U, 10U,
+              pred16_b) == AV2H_OK);
+    CHECK(av2h_memory_compare(pred16_a, pred16_b, sizeof(pred16_a)) == 0);
+
+    /* Interior block (40,40) whose reference block sits on tile border (32,40)
+       would read reference_x - 1 == 31 outside the active tile; must fail. */
+    leaf.row = 10U;
+    leaf.column = 10U;
+    mode.block_origin_row = 10U;
+    mode.block_origin_column = 10U;
+    mode.displacement_x = -64;
+    mode.displacement_y = 0;
+    CHECK(av2h_luma_reconstruct_to_plane(
+              NULL, &leaf, &mode, &prefix, &transform, &block, &plane8,
+              &scratch) == AV2H_INVALID_DATA);
+    CHECK(av2h_intrabc_morph_plane_u16(
+              &plane16, 40U, 40U, 8U, 8U, 32, 40, 8U, 8U, 10U,
+              pred16_a) == AV2H_INVALID_DATA);
+
+    /* Under TX split (coding_width = 16 > tx width = 8), unreconstructed
+       template samples in the second half of coding_width must be rejected. */
+    mode.block_width = 16U;
+    mode.displacement_x = -32;
+    mode.displacement_y = -32;
+    CHECK(av2h_luma_reconstruct_to_plane(
+              NULL, &leaf, &mode, &prefix, &transform, &block, &plane8,
+              &scratch) == AV2H_OK);
+    reconstructed[(35U / 4U) * 16U + (48U / 4U)] = 0U;
+    CHECK(av2h_luma_reconstruct_to_plane(
+              NULL, &leaf, &mode, &prefix, &transform, &block, &plane8,
+              &scratch) == AV2H_INVALID_DATA);
+    CHECK(av2h_intrabc_morph_plane_u16(
+              &plane16, 40U, 40U, 16U, 8U, 36, 36, 8U, 8U, 10U,
+              pred16_a) == AV2H_INVALID_DATA);
+}
+
 static void test_skipped_intrabc_geometry_matrix(void) {
     static const Av2hBlockSize block_sizes[] = {
         AV2H_BLOCK_4X4, AV2H_BLOCK_4X8, AV2H_BLOCK_8X4,
@@ -2269,7 +2381,8 @@ static void test_live_plane_reconstruction(void) {
     CHECK(av2h_luma_mode_context_state_init(
               &mode_state, mode_above, 16U, mode_left, 16U) == AV2H_OK);
     CHECK(av2h_coeff_context_state_init(
-              &coeff_state, coeff_above, 16U, coeff_left, 16U) == AV2H_OK);
+              &coeff_state, AV2H_FRAME_PLANE_COUNT, coeff_above, 16U,
+              coeff_left, 16U) == AV2H_OK);
     CHECK(av2h_partition_traversal_init(
               &traversal, 4U, 4U,
               (Av2hPartitionNode){ 0U, 0U, AV2H_BLOCK_64X64 }, 0U, 1U, 0U) ==
@@ -7446,6 +7559,7 @@ int main(void) {
     test_skipped_16x8_intrabc_reconstruction();
     test_16x8_intrabc_morph_centered_template();
     test_intrabc_morph_reference_edge();
+    test_intrabc_morph_tile_and_reconstruction_bounds();
     test_skipped_intrabc_geometry_matrix();
     test_palette_prediction();
     test_complete_palette_tables_and_map();

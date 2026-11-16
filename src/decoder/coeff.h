@@ -37,13 +37,15 @@ typedef struct {
     uint8_t *left;
     size_t above_count;
     size_t left_count;
-    size_t mi_columns;
-    size_t mi_rows;
+    uint32_t mi_columns;
+    uint32_t mi_rows;
+    uint8_t plane_count;
 } Av2hCoeffContextState;
 
 Av2hStatus av2h_coeff_cdfs_init(Av2hCoeffCdfs *cdfs, Av2hQIndex base_q_index);
-Av2hStatus av2h_coeff_context_state_init(Av2hCoeffContextState *state, uint8_t *above,
-                                         size_t above_count, uint8_t *left, size_t left_count);
+Av2hStatus av2h_coeff_context_state_init(Av2hCoeffContextState *state, uint8_t plane_count,
+                                         uint8_t *above, size_t above_count, uint8_t *left,
+                                         size_t left_count);
 Av2hStatus av2h_coeff_contexts_from_state(const Av2hCoeffContextState *state, uint8_t plane,
                                           const Av2hPartitionNode *leaf, uint8_t fsc_mode,
                                           uint8_t *txb_skip_context, uint8_t *dc_sign_context);

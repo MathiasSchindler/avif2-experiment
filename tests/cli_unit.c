@@ -303,6 +303,17 @@ static void test_diagnostics(void) {
     CHECK(sink.bytes[sink.size - 2U] == '\r');
     CHECK(sink.bytes[sink.size - 1U] == '\n');
     memset(&sink, 0, sizeof(sink));
+    image.result.block_size = 29U;
+    CHECK(av2h_cli_write_trace(&image.result, write_bytes, &sink) == AV2H_OK);
+    sink.bytes[sink.size] = 0U;
+    CHECK(strstr((const char *)sink.bytes, "block=4x64") != NULL);
+    memset(&sink, 0, sizeof(sink));
+    image.result.block_size = 30U;
+    CHECK(av2h_cli_write_trace(&image.result, write_bytes, &sink) == AV2H_OK);
+    sink.bytes[sink.size] = 0U;
+    CHECK(strstr((const char *)sink.bytes, "block=64x4") != NULL);
+    image.result.block_size = 0U;
+    memset(&sink, 0, sizeof(sink));
     sink.fail_write = 1U;
     CHECK(av2h_cli_write_trace(
         &image.result, write_bytes, &sink) == AV2H_TRUNCATED);

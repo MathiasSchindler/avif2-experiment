@@ -314,7 +314,7 @@ static void test_context_state(void) {
     uint8_t dc_sign_context;
 
     CHECK(av2h_coeff_context_state_init(
-              &state, above, 4U, left, 4U) == AV2H_OK);
+              &state, AV2H_FRAME_PLANE_COUNT, above, 4U, left, 4U) == AV2H_OK);
     CHECK(av2h_coeff_contexts_from_state(
               &state, 1U, &leaf, 0U, &skip_context, &dc_sign_context) ==
           AV2H_OK);
@@ -384,13 +384,42 @@ static void test_context_state(void) {
               &state, 0U, &leaf, 18U) == AV2H_OK);
     CHECK(left[2U] == 18U);
     CHECK(left[3U] == 18U);
-    state.mi_rows = state.left_count;
+    state.mi_rows = (uint32_t)state.left_count;
 
     leaf.column = 4U;
     CHECK(av2h_coeff_context_state_update(
               &state, 0U, &leaf, 0U) == AV2H_OVERFLOW);
     CHECK(av2h_coeff_context_state_init(
-              0, above, 4U, left, 4U) == AV2H_INVALID_ARGUMENT);
+              0, AV2H_FRAME_PLANE_COUNT, above, 4U, left, 4U) ==
+          AV2H_INVALID_ARGUMENT);
+    CHECK(av2h_coeff_context_state_init(
+              &state, 0U, above, 4U, left, 4U) == AV2H_INVALID_ARGUMENT);
+    CHECK(av2h_coeff_context_state_init(
+              &state, AV2H_FRAME_PLANE_COUNT + 1U, above, 4U, left, 4U) ==
+          AV2H_INVALID_ARGUMENT);
+    {
+        uint8_t mono_above[4U] = { 0xa5U, 0xa5U, 0xa5U, 0xa5U };
+        uint8_t mono_left[4U] = { 0xa5U, 0xa5U, 0xa5U, 0xa5U };
+        Av2hCoeffContextState mono_state;
+        Av2hPartitionNode mono_leaf = { 0U, 0U, AV2H_BLOCK_4X4 };
+        size_t i;
+        CHECK(av2h_coeff_context_state_init(
+                  &mono_state, 1U, mono_above, 4U, mono_left, 4U) == AV2H_OK);
+        for (i = 0U; i < 4U; ++i) {
+            CHECK(mono_above[i] == 0U && mono_left[i] == 0U);
+        }
+        CHECK(av2h_coeff_contexts_from_state(
+                  &mono_state, 0U, &mono_leaf, 0U, &skip_context,
+                  &dc_sign_context) == AV2H_OK);
+        CHECK(av2h_coeff_contexts_from_state(
+                  &mono_state, 1U, &mono_leaf, 0U, &skip_context,
+                  &dc_sign_context) == AV2H_INVALID_ARGUMENT);
+        CHECK(av2h_coeff_contexts_from_state_for_coding_block(
+                  &mono_state, 1U, &mono_leaf, AV2H_BLOCK_4X4, 0U,
+                  &skip_context, &dc_sign_context) == AV2H_INVALID_ARGUMENT);
+        CHECK(av2h_coeff_context_state_update(
+                  &mono_state, 1U, &mono_leaf, 1U) == AV2H_INVALID_ARGUMENT);
+    }
     state.above_count = 0U;
     CHECK(av2h_coeff_contexts_from_state(
               &state, 0U, &leaf, 0U, &skip_context, &dc_sign_context) ==

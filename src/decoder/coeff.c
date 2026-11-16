@@ -293,22 +293,26 @@ static uint8_t *coefficient_plane(uint8_t *contexts, size_t count, uint8_t plane
     return contexts + (size_t)plane * count;
 }
 
-Av2hStatus av2h_coeff_context_state_init(Av2hCoeffContextState *state, uint8_t *above,
-                                         size_t above_count, uint8_t *left, size_t left_count) {
+Av2hStatus av2h_coeff_context_state_init(Av2hCoeffContextState *state, uint8_t plane_count,
+                                         uint8_t *above, size_t above_count, uint8_t *left,
+                                         size_t left_count) {
     size_t index;
-    if (state == NULL || above == NULL || left == NULL || above_count == 0U || left_count == 0U) {
+    if (state == NULL || above == NULL || left == NULL || above_count == 0U || left_count == 0U ||
+        above_count > UINT32_MAX || left_count > UINT32_MAX || plane_count == 0U ||
+        plane_count > AV2H_FRAME_PLANE_COUNT) {
         return AV2H_INVALID_ARGUMENT;
     }
     state->above = above;
     state->left = left;
     state->above_count = above_count;
     state->left_count = left_count;
-    state->mi_columns = above_count;
-    state->mi_rows = left_count;
-    for (index = 0U; index < AV2H_FRAME_PLANE_COUNT * above_count; ++index) {
+    state->mi_columns = (uint32_t)above_count;
+    state->mi_rows = (uint32_t)left_count;
+    state->plane_count = plane_count;
+    for (index = 0U; index < (size_t)plane_count * above_count; ++index) {
         above[index] = 0U;
     }
-    for (index = 0U; index < AV2H_FRAME_PLANE_COUNT * left_count; ++index) {
+    for (index = 0U; index < (size_t)plane_count * left_count; ++index) {
         left[index] = 0U;
     }
     return AV2H_OK;
@@ -319,8 +323,6 @@ Av2hStatus av2h_coeff_contexts_from_state(const Av2hCoeffContextState *state, ui
                                           uint8_t *txb_skip_context, uint8_t *dc_sign_context) {
     const uint8_t *above;
     const uint8_t *left;
-    const uint8_t *u_above;
-    const uint8_t *u_left;
     size_t width;
     size_t height;
     size_t left_index;
@@ -330,8 +332,10 @@ Av2hStatus av2h_coeff_contexts_from_state(const Av2hCoeffContextState *state, ui
     unsigned int left_nonzero = 0U;
     Av2hStatus status;
     if (state == NULL || state->above == NULL || state->left == NULL || state->above_count == 0U ||
-        state->left_count == 0U || leaf == NULL || plane >= AV2H_FRAME_PLANE_COUNT ||
-        fsc_mode > 1U || txb_skip_context == NULL || dc_sign_context == NULL) {
+        state->left_count == 0U || state->plane_count == 0U ||
+        state->plane_count > AV2H_FRAME_PLANE_COUNT || leaf == NULL ||
+        plane >= state->plane_count || fsc_mode > 1U || txb_skip_context == NULL ||
+        dc_sign_context == NULL) {
         return AV2H_INVALID_ARGUMENT;
     }
     status = av2h_block_dimensions_mi(leaf->block_size, &width, &height);
@@ -350,8 +354,6 @@ Av2hStatus av2h_coeff_contexts_from_state(const Av2hCoeffContextState *state, ui
     }
     above = coefficient_plane(state->above, state->above_count, plane);
     left = coefficient_plane(state->left, state->left_count, plane);
-    u_above = coefficient_plane(state->above, state->above_count, 1U);
-    u_left = coefficient_plane(state->left, state->left_count, 1U);
     for (index = 0U; index < width; ++index) {
         uint8_t context = above[leaf->column + index];
         above_nonzero |= context & 7U;
@@ -367,6 +369,8 @@ Av2hStatus av2h_coeff_contexts_from_state(const Av2hCoeffContextState *state, ui
     } else if (plane == 1U) {
         *txb_skip_context = (uint8_t)(6U + (above_nonzero != 0U) + (left_nonzero != 0U));
     } else {
+        const uint8_t *u_above = coefficient_plane(state->above, state->above_count, 1U);
+        const uint8_t *u_left = coefficient_plane(state->left, state->left_count, 1U);
         unsigned int u_nonzero = (u_above[leaf->column] & 7U) | (u_left[left_index] & 7U);
         unsigned int neighbor_count = (above_nonzero != 0U) + (left_nonzero != 0U);
         *txb_skip_context = (uint8_t)(neighbor_count + (u_nonzero != 0U ? 6U : 0U));
@@ -394,9 +398,10 @@ Av2hStatus av2h_coeff_contexts_from_state_for_coding_block(
     size_t coding_height;
     Av2hStatus status;
     if (state == NULL || state->above == NULL || state->left == NULL || state->above_count == 0U ||
-        state->left_count == 0U || leaf == NULL || plane >= AV2H_FRAME_PLANE_COUNT ||
-        coding_block_size >= AV2H_BLOCK_SIZE_COUNT || fsc_mode > 1U || txb_skip_context == NULL ||
-        dc_sign_context == NULL) {
+        state->left_count == 0U || state->plane_count == 0U ||
+        state->plane_count > AV2H_FRAME_PLANE_COUNT || leaf == NULL ||
+        plane >= state->plane_count || coding_block_size >= AV2H_BLOCK_SIZE_COUNT ||
+        fsc_mode > 1U || txb_skip_context == NULL || dc_sign_context == NULL) {
         return AV2H_INVALID_ARGUMENT;
     }
     status = av2h_block_dimensions_mi(leaf->block_size, &width, &height);
@@ -466,7 +471,9 @@ Av2hStatus av2h_coeff_context_state_update(Av2hCoeffContextState *state, uint8_t
     size_t index;
     Av2hStatus status;
     if (state == NULL || state->above == NULL || state->left == NULL || state->above_count == 0U ||
-        state->left_count == 0U || leaf == NULL || plane >= AV2H_FRAME_PLANE_COUNT) {
+        state->left_count == 0U || state->plane_count == 0U ||
+        state->plane_count > AV2H_FRAME_PLANE_COUNT || leaf == NULL ||
+        plane >= state->plane_count) {
         return AV2H_INVALID_ARGUMENT;
     }
     status = av2h_block_dimensions_mi(leaf->block_size, &width, &height);

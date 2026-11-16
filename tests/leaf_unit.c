@@ -595,6 +595,51 @@ static void test_large_luma_block_spans_cdef_strength(void) {
     CHECK(strengths[3U] == AV2H_CDEF_UNTRANSMITTED);
 }
 
+static void test_narrow_64_block_contexts(void) {
+    static const uint8_t bytes[16U] = { 0xffU, 0xffU, 0xffU, 0xffU };
+    static const Av2hBlockSize narrow_sizes[2U] = {
+        AV2H_BLOCK_4X64, AV2H_BLOCK_64X4
+    };
+    Av2hSequenceState sequence = { 0 };
+    Av2hFrameState frame = { 0 };
+    Av2hLeafCdfs cdfs;
+    Av2hLumaModeContext above[16U];
+    Av2hLumaModeContext left[16U];
+    Av2hLumaModeContextState state;
+    size_t i;
+
+    sequence.info.bit_depth_idc = 1U;
+    sequence.superblock_size = 64U;
+    sequence.enable_sdp = 1U;
+    sequence.enable_idtx_intra = 1U;
+    sequence.enable_cfl_intra = 1U;
+    sequence.enable_mhccp = 1U;
+    frame.width = 64U;
+    frame.height = 64U;
+    frame.base_q_index = 128U;
+    for (i = 0U; i < 2U; ++i) {
+        Av2hSpan span = { bytes, sizeof(bytes) };
+        Av2hRangeDecoder decoder;
+        Av2hPartitionNode leaf = { 0U, 0U, narrow_sizes[i] };
+        Av2hLeafMode luma_mode = { 0 };
+        Av2hChromaLeafMode chroma_mode = { 0 };
+        Av2hQIndex current_q = 128U;
+        CHECK(av2h_leaf_cdfs_init(&cdfs) == AV2H_OK);
+        CHECK(av2h_luma_mode_context_state_init(
+                  &state, above, 16U, left, 16U) == AV2H_OK);
+        CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
+        CHECK(av2h_luma_mode_read_with_state(
+                  &decoder, &cdfs, &sequence, &frame, &leaf, &state, NULL, NULL,
+                  NULL, &current_q, 0U, &luma_mode) == AV2H_OK);
+        CHECK(luma_mode.fsc_block_context == 6U);
+        CHECK(luma_mode.fsc_mode == 0U);
+        CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
+        CHECK(av2h_chroma_mode_read(
+                  &decoder, &cdfs, &sequence, AV2H_INTRA_DC, 0, narrow_sizes[i],
+                  0U, 1U, 0U, &chroma_mode) == AV2H_OK);
+    }
+}
+
 int main(void) {
     test_larger_mode_ordering();
     test_arguments();
@@ -609,6 +654,7 @@ int main(void) {
     test_extended_segment_ids();
     test_segment_adjusted_q_index();
     test_large_luma_block_spans_cdef_strength();
+    test_narrow_64_block_contexts();
     if (failures != 0) {
         fprintf(stderr, "%d leaf checks failed\n", failures);
         return 1;

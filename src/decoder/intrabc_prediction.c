@@ -223,13 +223,28 @@ static int32_t intrabc_morph_sample(const uint8_t *data8, const uint16_t *data16
  * derived once per coding block, so the coding block geometry is used even
  * when the predictor is produced one transform block at a time.
  */
-static Av2hStatus intrabc_morph_parameters(const uint8_t *data8, const uint16_t *data16,
-                                           size_t stride, uint32_t plane_width,
-                                           uint32_t plane_height, uint16_t coding_x,
-                                           uint16_t coding_y, uint16_t coding_width,
-                                           uint16_t coding_height, int32_t reference_x,
-                                           int32_t reference_y, uint8_t bit_depth,
-                                           int32_t *alpha_out, int32_t *beta_out) {
+static int intrabc_morph_sample_ready(const Av2hReconstructionPlane *plane8,
+                                      const Av2hReconstructionPlaneU16 *plane16, size_t x,
+                                      size_t y) {
+    if (plane8 != NULL)
+        return av2h_plane_sample_reconstructed(plane8, x, y);
+    if (plane16 != NULL)
+        return av2h_plane_sample_reconstructed_u16(plane16, x, y);
+    return 1;
+}
+
+static Av2hStatus intrabc_morph_parameters(
+    const uint8_t *data8, const uint16_t *data16, size_t stride, uint32_t plane_width,
+    uint32_t plane_height, const Av2hReconstructionPlane *plane8,
+    const Av2hReconstructionPlaneU16 *plane16, const Av2hPlaneTileBounds *tile, uint16_t coding_x,
+    uint16_t coding_y, uint16_t coding_width, uint16_t coding_height, int32_t reference_x,
+    int32_t reference_y, uint8_t bit_depth, int32_t *alpha_out, int32_t *beta_out) {
+    uint32_t tile_x0 = tile != NULL && tile->x1 != 0U ? tile->x0 : 0U;
+    uint32_t tile_y0 = tile != NULL && tile->x1 != 0U ? tile->y0 : 0U;
+    uint32_t tile_x1 =
+        tile != NULL && tile->x1 != 0U && tile->x1 < plane_width ? tile->x1 : plane_width;
+    uint32_t tile_y1 =
+        tile != NULL && tile->x1 != 0U && tile->y1 < plane_height ? tile->y1 : plane_height;
     uint16_t reference_width = coding_width;
     uint16_t reference_height = coding_height;
     int32_t maximum = (int32_t)(((uint32_t)1U << bit_depth) - 1U);
@@ -247,14 +262,15 @@ static Av2hStatus intrabc_morph_parameters(const uint8_t *data8, const uint16_t 
     int32_t sum_xx = 0;
     int32_t count = 0;
     size_t index;
-    if (coding_x >= plane_width || coding_y >= plane_height) {
+    if (tile_x0 >= tile_x1 || tile_y0 >= tile_y1 || coding_x < tile_x0 || coding_y < tile_y0 ||
+        coding_x >= tile_x1 || coding_y >= tile_y1) {
         return AV2H_INVALID_DATA;
     }
-    if (coding_width > plane_width - coding_x) {
-        reference_width = (uint16_t)(plane_width - coding_x);
+    if (coding_width > tile_x1 - coding_x) {
+        reference_width = (uint16_t)(tile_x1 - coding_x);
     }
-    if (coding_height > plane_height - coding_y) {
-        reference_height = (uint16_t)(plane_height - coding_y);
+    if (coding_height > tile_y1 - coding_y) {
+        reference_height = (uint16_t)(tile_y1 - coding_y);
     }
     clamped_width =
         (uint8_t)(reference_width < AV2H_BAWP_MAX_REF ? reference_width : AV2H_BAWP_MAX_REF);
@@ -262,18 +278,25 @@ static Av2hStatus intrabc_morph_parameters(const uint8_t *data8, const uint16_t 
         (uint8_t)(reference_height < AV2H_BAWP_MAX_REF ? reference_height : AV2H_BAWP_MAX_REF);
     padded_width = av2h_bawp_log_to_size[av2h_bawp_size_log2[clamped_width]];
     padded_height = av2h_bawp_log_to_size[av2h_bawp_size_log2[clamped_height]];
-    intrabc_morph_sample_counts((uint8_t)(coding_y != 0U), (uint8_t)(coding_x != 0U), padded_width,
-                                padded_height, &above_count, &left_count);
+    intrabc_morph_sample_counts((uint8_t)(coding_y > tile_y0), (uint8_t)(coding_x > tile_x0),
+                                padded_width, padded_height, &above_count, &left_count);
     if (above_count != 0U) {
         uint8_t step = (uint8_t)(padded_width / above_count);
         uint8_t start = (uint8_t)(step == 1U ? 0U : step >> 1U);
         uint8_t delta = (uint8_t)(padded_width - clamped_width);
         uint8_t position;
-        if (reference_y <= 0 || reference_x < 0 || (uint32_t)reference_x >= plane_width ||
-            clamped_width > plane_width - (uint32_t)reference_x) {
+        if (reference_y <= (int32_t)tile_y0 || reference_x < (int32_t)tile_x0 ||
+            (uint32_t)reference_x >= tile_x1 || clamped_width > tile_x1 - (uint32_t)reference_x ||
+            (uint32_t)reference_y - 1U >= tile_y1) {
             return AV2H_INVALID_DATA;
         }
         for (index = 0U; index < clamped_width; ++index) {
+            if (!intrabc_morph_sample_ready(plane8, plane16, (size_t)reference_x + index,
+                                            (size_t)reference_y - 1U) ||
+                !intrabc_morph_sample_ready(plane8, plane16, (size_t)coding_x + index,
+                                            (size_t)coding_y - 1U)) {
+                return AV2H_INVALID_DATA;
+            }
             reference_pad[index] = intrabc_morph_sample(
                 data8, data16, ((size_t)reference_y - 1U) * stride + (size_t)reference_x + index,
                 maximum);
@@ -300,11 +323,18 @@ static Av2hStatus intrabc_morph_parameters(const uint8_t *data8, const uint16_t 
         uint8_t start = (uint8_t)(step == 1U ? 0U : step >> 1U);
         uint8_t delta = (uint8_t)(padded_height - clamped_height);
         uint8_t position;
-        if (reference_x <= 0 || reference_y < 0 || (uint32_t)reference_y >= plane_height ||
-            clamped_height > plane_height - (uint32_t)reference_y) {
+        if (reference_x <= (int32_t)tile_x0 || reference_y < (int32_t)tile_y0 ||
+            (uint32_t)reference_y >= tile_y1 || clamped_height > tile_y1 - (uint32_t)reference_y ||
+            (uint32_t)reference_x - 1U >= tile_x1) {
             return AV2H_INVALID_DATA;
         }
         for (index = 0U; index < clamped_height; ++index) {
+            if (!intrabc_morph_sample_ready(plane8, plane16, (size_t)reference_x - 1U,
+                                            (size_t)reference_y + index) ||
+                !intrabc_morph_sample_ready(plane8, plane16, (size_t)coding_x - 1U,
+                                            (size_t)coding_y + index)) {
+                return AV2H_INVALID_DATA;
+            }
             reference_pad[index] = intrabc_morph_sample(
                 data8, data16, ((size_t)reference_y + index) * stride + (size_t)reference_x - 1U,
                 maximum);
@@ -354,9 +384,37 @@ Av2hStatus av2h_intrabc_morph_u16(const uint16_t *plane_data, size_t stride, uin
     if (plane_data == NULL || predictor == NULL || bit_depth < 8U || bit_depth > 12U)
         return AV2H_INVALID_DATA;
     maximum = (int32_t)(((uint32_t)1U << bit_depth) - 1U);
-    status = intrabc_morph_parameters(NULL, plane_data, stride, plane_width, plane_height, coding_x,
-                                      coding_y, coding_width, coding_height, reference_x,
-                                      reference_y, bit_depth, &alpha, &beta);
+    status = intrabc_morph_parameters(NULL, plane_data, stride, plane_width, plane_height, NULL,
+                                      NULL, NULL, coding_x, coding_y, coding_width, coding_height,
+                                      reference_x, reference_y, bit_depth, &alpha, &beta);
+    if (status != AV2H_OK)
+        return status;
+    for (index = 0U; index < (size_t)width * height; ++index) {
+        int32_t value =
+            av2h_sample_floor_shift((int64_t)predictor[index] * alpha + beta, AV2H_BAWP_SHIFT);
+        predictor[index] = (uint16_t)av2h_sample_clamp(value, 0, maximum);
+    }
+    return AV2H_OK;
+}
+
+Av2hStatus av2h_intrabc_morph_plane_u16(const Av2hReconstructionPlaneU16 *plane, uint16_t coding_x,
+                                        uint16_t coding_y, uint16_t coding_width,
+                                        uint16_t coding_height, int32_t reference_x,
+                                        int32_t reference_y, uint16_t width, uint16_t height,
+                                        uint8_t bit_depth, uint16_t *predictor) {
+    int32_t alpha;
+    int32_t beta;
+    int32_t maximum;
+    size_t index;
+    Av2hStatus status;
+    if (plane == NULL || plane->data == NULL || predictor == NULL || bit_depth < 8U ||
+        bit_depth > 12U)
+        return AV2H_INVALID_DATA;
+    maximum = (int32_t)(((uint32_t)1U << bit_depth) - 1U);
+    status = intrabc_morph_parameters(NULL, plane->data, plane->stride_samples, plane->width,
+                                      plane->height, NULL, plane, &plane->tile, coding_x, coding_y,
+                                      coding_width, coding_height, reference_x, reference_y,
+                                      bit_depth, &alpha, &beta);
     if (status != AV2H_OK)
         return status;
     for (index = 0U; index < (size_t)width * height; ++index) {
@@ -377,11 +435,12 @@ static Av2hStatus apply_intrabc_morph_prediction(const Av2hReconstructionPlane *
     int32_t beta;
     size_t index;
     Av2hStatus status;
-    if (plane == NULL || predictor == NULL)
+    if (plane == NULL || plane->data == NULL || predictor == NULL)
         return AV2H_INVALID_DATA;
     status = intrabc_morph_parameters(plane->data, NULL, plane->stride_samples, plane->width,
-                                      plane->height, coding_x, coding_y, coding_width,
-                                      coding_height, reference_x, reference_y, 8U, &alpha, &beta);
+                                      plane->height, plane, NULL, &plane->tile, coding_x, coding_y,
+                                      coding_width, coding_height, reference_x, reference_y, 8U,
+                                      &alpha, &beta);
     if (status != AV2H_OK)
         return status;
     for (index = 0U; index < (size_t)width * height; ++index) {

@@ -1696,6 +1696,105 @@ static void test_scheduler_guards_and_root_size(void) {
         &storage, UINT16_MAX) == AV2H_UNSUPPORTED);
 }
 
+static void test_monochrome_coeff_and_chroma_smooth_tile_isolation(void) {
+    unsigned char entropy[64U];
+    uint8_t luma_partition_above[32U];
+    uint8_t luma_partition_left[32U];
+    uint8_t chroma_partition_above[32U];
+    uint8_t chroma_partition_left[32U];
+    Av2hLumaModeContext luma_mode_above[32U];
+    Av2hLumaModeContext luma_mode_left[32U];
+    uint8_t mono_coeff_above[16U];
+    uint8_t mono_coeff_left[16U];
+    uint8_t color_coeff_above[AV2H_FRAME_PLANE_COUNT * 32U];
+    uint8_t color_coeff_left[AV2H_FRAME_PLANE_COUNT * 32U];
+    Av2hTileLumaModeCell colocated_luma[32U * 32U];
+    uint8_t ccso_unit_controls[AV2H_FRAME_PLANE_COUNT][1U];
+    Av2hTileContextStorage mono_storage = {
+        luma_partition_above, luma_partition_left,
+        chroma_partition_above, chroma_partition_left,
+        luma_mode_above, luma_mode_left,
+        mono_coeff_above, mono_coeff_left, colocated_luma,
+        16U, 16U, 16U * 16U, 0, 0U, 0, 0U,
+        { ccso_unit_controls[0], 0, 0 },
+        1U, 0, 0U, 0, 0U, 0U
+    };
+    Av2hTileContextStorage color_storage = {
+        luma_partition_above, luma_partition_left,
+        chroma_partition_above, chroma_partition_left,
+        luma_mode_above, luma_mode_left,
+        color_coeff_above, color_coeff_left, colocated_luma,
+        32U, 32U, 32U * 32U, 0, 0U, 0, 0U,
+        { ccso_unit_controls[0], ccso_unit_controls[1], ccso_unit_controls[2] },
+        1U, 0, 0U, 0, 0U, 0U
+    };
+    Av2hSequenceState sequence = { 0 };
+    Av2hFrameState frame = { 0 };
+    Av2hTileDecoder decoder;
+    Av2hTileChromaLeaf chroma_leaf;
+    Av2hCoeffBlock u_block;
+    Av2hCoeffBlock v_block;
+    uint8_t has_leaf = 0U;
+    size_t i;
+
+    memset(entropy, 0xff, sizeof(entropy));
+    /* Issue 1: Monochrome 1-plane coefficient context buffers must not overflow. */
+    sequence.info.chroma_format_idc = 1U;
+    sequence.info.bit_depth_idc = 1U;
+    sequence.superblock_size = 64U;
+    frame.width = 64U;
+    frame.height = 64U;
+    frame.chroma_format_idc = 1U;
+    frame.plane_count = 1U;
+    frame.base_q_index = 128U;
+    memset(mono_coeff_above, 0xa5, sizeof(mono_coeff_above));
+    memset(mono_coeff_left, 0xa5, sizeof(mono_coeff_left));
+    CHECK(av2h_tile_decoder_init(
+              &decoder, (Av2hSpan){ entropy, sizeof(entropy) }, &sequence,
+              &frame, &mono_storage, UINT16_MAX) == AV2H_OK);
+
+    /* Issue 3: colocated_luma[].chroma_smooth must be zeroed on init and
+       must not bleed across tile boundaries on non-zero-origin tiles. */
+    memset(colocated_luma, 0xa5, sizeof(colocated_luma));
+    sequence.info.chroma_format_idc = 2U;
+    sequence.enable_sdp = 1U;
+    sequence.enable_cfl_intra = 1U;
+    frame.width = 128U;
+    frame.height = 128U;
+    frame.chroma_format_idc = 2U;
+    frame.plane_count = 3U;
+    frame.tx_mode = 1U;
+    frame.tile_column_count = 2U;
+    frame.tile_row_count = 2U;
+    frame.tile_column_start_sb[0] = 0U;
+    frame.tile_column_start_sb[1] = 1U;
+    frame.tile_column_start_sb[2] = 2U;
+    frame.tile_row_start_sb[0] = 0U;
+    frame.tile_row_start_sb[1] = 1U;
+    frame.tile_row_start_sb[2] = 2U;
+    CHECK(av2h_tile_decoder_init(
+              &decoder, (Av2hSpan){ entropy, sizeof(entropy) }, &sequence,
+              &frame, &color_storage, 3U) == AV2H_OK);
+    for (i = 0U; i < 32U * 32U; ++i) {
+        CHECK(decoder.traversal.colocated_luma[i].chroma_smooth == 0U);
+    }
+    decoder.traversal.colocated_luma[16U * 32U + 16U].context.present = 1U;
+    decoder.traversal.colocated_luma[16U * 32U + 16U].context.q_index = 128U;
+    decoder.traversal.colocated_luma[15U * 32U + 16U].chroma_smooth = 1U;
+    decoder.traversal.colocated_luma[16U * 32U + 15U].chroma_smooth = 1U;
+    decoder.traversal.colocated_luma[15U * 32U + 16U].chroma_cfl = 1U;
+    decoder.traversal.colocated_luma[16U * 32U + 15U].chroma_cfl = 1U;
+    decoder.root.luma_root_partition = AV2H_PARTITION_NONE;
+    decoder.traversal.luma_traversal.stack_count = 0U;
+    CHECK(av2h_tile_decoder_finish_root(&decoder) == AV2H_OK);
+    decoder.root.chroma_root_forced_partition = AV2H_PARTITION_NONE;
+    CHECK(av2h_tile_decoder_next_chroma(
+              &decoder, &chroma_leaf, &u_block, &v_block, &has_leaf) == AV2H_OK);
+    CHECK(has_leaf == 1U);
+    CHECK(chroma_leaf.mode.above_smooth == 0U);
+    CHECK(chroma_leaf.mode.left_smooth == 0U);
+}
+
 int main(void) {
     test_failures();
     test_tile_group_ledger();
@@ -1704,6 +1803,7 @@ int main(void) {
     test_orchestrator_failures();
     test_sdp_superblock_scheduler();
     test_scheduler_guards_and_root_size();
+    test_monochrome_coeff_and_chroma_smooth_tile_isolation();
     if (failures != 0) {
         fprintf(stderr, "%d tile checks failed\n", failures);
         return 1;

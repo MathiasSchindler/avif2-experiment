@@ -29,7 +29,7 @@
 static inline long av2h_macos_syscall1(long number, long argument0) {
     register long x16 __asm__("x16") = number;
     register long x0 __asm__("x0") = argument0;
-    __asm__ volatile("svc #0x80\n\tcneg %0, %0, cs" : "+r"(x0), "+r"(x16) : : "memory", "cc");
+    __asm__ volatile("svc #0x80\n\tcneg %0, %0, cs" : "+r"(x0), "+r"(x16) : : "x1", "memory", "cc");
     return x0;
 }
 

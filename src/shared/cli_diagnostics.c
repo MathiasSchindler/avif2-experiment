@@ -12,6 +12,8 @@ typedef struct {
 
 static void write_console(Av2hCliText *writer, const char *text) {
     size_t length = 0U;
+    if (writer == NULL || text == NULL)
+        return;
     while (text[length] != '\0')
         ++length;
     if (writer->status == AV2H_OK) {
@@ -259,11 +261,13 @@ static const char *chroma_reconstruction_stage_name(uint8_t stage) {
 }
 
 static const char *block_size_name(uint8_t block_size) {
-    static const char *const names[AV2H_BLOCK_SIZE_COUNT] = {
+    static const char *const names[] = {
         "4x4",     "4x8",     "8x4",     "8x8",   "8x16",  "16x8",   "16x16",  "16x32",
         "32x16",   "32x32",   "32x64",   "64x32", "64x64", "64x128", "128x64", "128x128",
         "128x256", "256x128", "256x256", "4x16",  "16x4",  "8x32",   "32x8",   "16x64",
-        "64x16",   "4x32",    "32x4",    "8x64",  "64x8"};
+        "64x16",   "4x32",    "32x4",    "8x64",  "64x8",  "4x64",   "64x4"};
+    _Static_assert(sizeof(names) / sizeof(names[0]) == AV2H_BLOCK_SIZE_COUNT,
+                   "block_size_name must cover every Av2hBlockSize");
     return block_size < AV2H_BLOCK_SIZE_COUNT ? names[block_size] : "unknown";
 }
 
