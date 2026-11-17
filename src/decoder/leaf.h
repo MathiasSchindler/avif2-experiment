@@ -161,8 +161,12 @@ typedef struct {
     size_t above_count;
     size_t left_count;
     size_t spatial_stride_bytes;
-    size_t spatial_columns;
-    size_t spatial_rows;
+    uint32_t spatial_columns;
+    uint32_t spatial_rows;
+    uint16_t tile_start_column;
+    uint16_t tile_end_column;
+    uint16_t tile_start_row;
+    uint16_t tile_end_row;
     int16_t intrabc_bank_x[4U];
     int16_t intrabc_bank_y[4U];
     uint16_t intrabc_bank_remaining_hits;

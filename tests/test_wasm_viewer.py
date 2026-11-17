@@ -1,4 +1,6 @@
 import re
+import shutil
+import subprocess
 import unittest
 from pathlib import Path
 
@@ -104,6 +106,45 @@ class WasmViewerTests(unittest.TestCase):
         self.assertIn('classList.toggle("local-mode", localMode)', self.javascript)
         self.assertIn('elements.comparison.hidden = localMode', self.javascript)
         self.assertIn('if (!localSource) copyCanvas(', self.javascript)
+
+    def test_wasm_module_enforces_pointer_bounds_reset_and_unique_obus(self) -> None:
+        node = shutil.which("node")
+        if node is None:
+            self.skipTest("node runtime is not available")
+        script = r"""
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
+(async () => {
+    const wasmBytes = fs.readFileSync("docs/decoder.wasm");
+    const fixture = fs.readFileSync("tests/fixtures/i444-tiny.obu");
+    const { instance } = await WebAssembly.instantiate(wasmBytes, {});
+    const e = instance.exports;
+    assert.equal(e.av2h_decode(0, 16), 1);
+    assert.equal(e.av2h_decode(16, 16), 1);
+    assert.equal(e.av2h_decode(0xfffffff0, 32), 1);
+    assert.equal(e.av2h_decode(e.memory.buffer.byteLength, 16), 1);
+
+    e.av2h_reset();
+    const ptr = e.av2h_alloc(fixture.length);
+    assert.notEqual(ptr, 0);
+    new Uint8Array(e.memory.buffer, ptr, fixture.length).set(fixture);
+    e.av2h_reset();
+    assert.equal(e.av2h_decode(ptr, fixture.length), 0);
+    const afterInput = Buffer.from(
+        new Uint8Array(e.memory.buffer, ptr, fixture.length)
+    );
+    assert.equal(Buffer.compare(afterInput, fixture), 0);
+
+    e.av2h_reset();
+    const dupPtr = e.av2h_alloc(fixture.length * 2);
+    new Uint8Array(e.memory.buffer, dupPtr, fixture.length).set(fixture);
+    new Uint8Array(
+        e.memory.buffer, dupPtr + fixture.length, fixture.length
+    ).set(fixture);
+    assert.equal(e.av2h_decode(dupPtr, fixture.length * 2), 3);
+})().catch((err) => { console.error(err); process.exit(1); });
+"""
+        subprocess.run([node, "-e", script], cwd=ROOT, check=True)
 
 
 if __name__ == "__main__":

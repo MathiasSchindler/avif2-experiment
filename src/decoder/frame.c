@@ -828,7 +828,7 @@ Av2hStatus av2h_frame_header_closed_key_parse(Av2hSpan payload, const Av2hSequen
     }
     if (sequence->info.still_picture == 0U ||
         (sequence->info.bit_depth_idc != 1U &&
-         (sequence->info.bit_depth_idc != 0U ||
+         (sequence->info.bit_depth_idc != 0U || sequence->enable_restoration != 0U ||
           !((sequence->info.seq_profile_idc == 0U && sequence->info.chroma_format_idc == 0U) ||
             (sequence->info.seq_profile_idc == 4U && sequence->info.chroma_format_idc == 2U)))) ||
         sequence->info.chroma_format_idc > 2U) {
@@ -850,6 +850,11 @@ Av2hStatus av2h_frame_header_closed_key_parse(Av2hSpan payload, const Av2hSequen
         return frame_diagnostic_fail(error, AV2H_UNSUPPORTED, &reader,
                                      AV2H_DIAGNOSTIC_SYNTAX_FRAME_HEADER_IDS,
                                      (multi_frame_header_id << 8U) | sequence_header_id);
+    }
+    if (sequence->info.max_frame_width_minus_1 == UINT16_MAX ||
+        sequence->info.max_frame_height_minus_1 == UINT16_MAX) {
+        return frame_diagnostic_fail(error, AV2H_LIMIT_EXCEEDED, &reader,
+                                     AV2H_DIAGNOSTIC_SYNTAX_FRAME_PROFILE, UINT16_MAX);
     }
     frame->width = (uint16_t)(sequence->info.max_frame_width_minus_1 + 1U);
     frame->height = (uint16_t)(sequence->info.max_frame_height_minus_1 + 1U);

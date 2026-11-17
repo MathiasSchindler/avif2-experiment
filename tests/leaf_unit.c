@@ -597,6 +597,7 @@ static void test_large_luma_block_spans_cdef_strength(void) {
 
 static void test_narrow_64_block_contexts(void) {
     static const uint8_t bytes[16U] = { 0xffU, 0xffU, 0xffU, 0xffU };
+    static const uint8_t zero_bytes[16U] = { 0U };
     static const Av2hBlockSize narrow_sizes[2U] = {
         AV2H_BLOCK_4X64, AV2H_BLOCK_64X4
     };
@@ -605,6 +606,7 @@ static void test_narrow_64_block_contexts(void) {
     Av2hLeafCdfs cdfs;
     Av2hLumaModeContext above[16U];
     Av2hLumaModeContext left[16U];
+    Av2hLumaModeContext spatial[8U * 8U];
     Av2hLumaModeContextState state;
     size_t i;
 
@@ -637,6 +639,77 @@ static void test_narrow_64_block_contexts(void) {
         CHECK(av2h_chroma_mode_read(
                   &decoder, &cdfs, &sequence, AV2H_INTRA_DC, 0, narrow_sizes[i],
                   0U, 1U, 0U, &chroma_mode) == AV2H_OK);
+    }
+
+    /* Issue 6: 10-bit use_intra_dip == 1 must fail closed with AV2H_UNSUPPORTED. */
+    {
+        uint8_t all_ff[16U];
+        Av2hSpan ff_span = { all_ff, sizeof(all_ff) };
+        Av2hRangeDecoder decoder;
+        Av2hPartitionNode dip_leaf = { 0U, 0U, AV2H_BLOCK_16X16 };
+        Av2hLumaModeNeighbors neighbors = { 0 };
+        Av2hLeafMode dip_mode = { 0 };
+        Av2hSequenceState seq10 = { 0 };
+        Av2hFrameState frame10 = { 0 };
+        memset(all_ff, 0xff, sizeof(all_ff));
+        seq10.info.bit_depth_idc = 0U;
+        seq10.superblock_size = 64U;
+        seq10.enable_sdp = 1U;
+        seq10.enable_intra_dip = 1U;
+        frame10.width = 64U;
+        frame10.height = 64U;
+        frame10.base_q_index = 128U;
+        dip_mode.mode = AV2H_INTRA_DC;
+        dip_mode.q_index = 128U;
+        CHECK(av2h_leaf_cdfs_init(&cdfs) == AV2H_OK);
+        CHECK(av2h_range_init(&decoder, &ff_span, 1U) == AV2H_OK);
+        CHECK(av2h_luma_mode_read_palette_and_dip(
+                  &decoder, &cdfs, &seq10, &frame10, &dip_leaf, &neighbors,
+                  &dip_mode) == AV2H_UNSUPPORTED);
+    }
+
+    /* Issue 10: segment spatial lookup must not cross tile boundaries. */
+    {
+        Av2hSpan span = { zero_bytes, sizeof(zero_bytes) };
+        Av2hRangeDecoder decoder;
+        Av2hPartitionNode seg_leaf = { 4U, 4U, AV2H_BLOCK_8X8 };
+        Av2hLeafMode seg_mode = { 0 };
+        Av2hSequenceState seg_seq = { 0 };
+        Av2hFrameState seg_frame = { 0 };
+        Av2hQIndex current_q = 128U;
+        memset(spatial, 0, sizeof(spatial));
+        spatial[3U * 8U + 3U].present = 1U;
+        spatial[3U * 8U + 3U].segment_id = 3U;
+        spatial[3U * 8U + 4U].present = 1U;
+        spatial[3U * 8U + 4U].segment_id = 3U;
+        spatial[4U * 8U + 3U].present = 1U;
+        spatial[4U * 8U + 3U].segment_id = 3U;
+        seg_seq.info.bit_depth_idc = 1U;
+        seg_seq.superblock_size = 64U;
+        seg_seq.enable_sdp = 1U;
+        seg_frame.width = 32U;
+        seg_frame.height = 32U;
+        seg_frame.base_q_index = 128U;
+        seg_frame.segmentation_enabled = 1U;
+        seg_frame.seg_last_active_id = 3U;
+        CHECK(av2h_leaf_cdfs_init(&cdfs) == AV2H_OK);
+        CHECK(av2h_luma_mode_context_state_init(
+                  &state, above, 8U, left, 8U) == AV2H_OK);
+        state.spatial = (const uint8_t *)spatial;
+        state.spatial_stride_bytes = sizeof(Av2hLumaModeContext);
+        state.spatial_columns = 8U;
+        state.spatial_rows = 8U;
+        state.tile_start_column = 4U;
+        state.tile_end_column = 8U;
+        state.tile_start_row = 4U;
+        state.tile_end_row = 8U;
+        CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
+        CHECK(av2h_luma_mode_read_with_state(
+                  &decoder, &cdfs, &seg_seq, &seg_frame, &seg_leaf, &state,
+                  NULL, NULL, NULL, &current_q, 0U, &seg_mode) == AV2H_OK);
+        /* With bytes=0xff, coded_id == 0, which equals predictor: 0 when
+           outside-tile neighbors are ignored (would have been 3 otherwise). */
+        CHECK(seg_mode.segment_id == 0U);
     }
 }
 

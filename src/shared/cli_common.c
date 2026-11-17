@@ -17,13 +17,27 @@ static int allocate_owned(const Av2hCliAllocator *allocator, size_t size, size_t
            (uintptr_t)owned->memory % alignment == 0U;
 }
 
-static const Av2hObu *find_obu(const Av2hObuLedger *ledger, uint8_t type) {
+static const Av2hObu *find_first_obu(const Av2hObuLedger *ledger, uint8_t type) {
     size_t index;
     for (index = 0U; index < ledger->count; ++index) {
         if (ledger->entries[index].type == type)
             return &ledger->entries[index];
     }
     return NULL;
+}
+
+static int find_unique_obu(const Av2hObuLedger *ledger, uint8_t type, const Av2hObu **found) {
+    size_t index;
+    const Av2hObu *match = NULL;
+    for (index = 0U; index < ledger->count; ++index) {
+        if (ledger->entries[index].type == type) {
+            if (match != NULL)
+                return 0;
+            match = &ledger->entries[index];
+        }
+    }
+    *found = match;
+    return match != NULL;
 }
 
 static Av2hStatus initialize_format(const Av2hSequenceState *sequence, Av2hPixelFormat *format) {
@@ -72,12 +86,15 @@ static void bind_trace(const Av2hOwnedMemory *memory, Av2hFrameDecodeWorkspace *
 }
 #endif
 
-static Av2hStatus decode_image(Av2hSpan input, const Av2hCliAllocator *allocator,
+static Av2hStatus decode_image(Av2hSpan input, const Av2hLimits *limits,
+                               const Av2hCliAllocator *allocator,
                                const Av2hCliDecodeOptions *options, Av2hCliImage *image) {
+    Av2hLimits default_limits;
+    const Av2hLimits *active_limits = limits;
     Av2hObu entries[16U];
     Av2hObuLedger ledger = {entries, 16U, 0U};
-    const Av2hObu *sequence_obu;
-    const Av2hObu *frame_obu;
+    const Av2hObu *sequence_obu = NULL;
+    const Av2hObu *frame_obu = NULL;
     Av2hSequenceState sequence;
     Av2hFrameState frame;
     Av2hOwnedMemory workspace_memory = {NULL, 0U};
@@ -85,14 +102,29 @@ static Av2hStatus decode_image(Av2hSpan input, const Av2hCliAllocator *allocator
     Av2hFilterWorkspace filter_workspace;
     Av2hFilterWorkspaceStorage filter_storage;
     Av2hFrameDecodeWorkspaceLayout layout;
+    size_t pixels;
     size_t output_size;
     size_t bytes_per_sample;
-    Av2hStatus status = av2h_obu_parse(input, &ledger, &image->error);
+    Av2hStatus status;
+    if (active_limits == NULL) {
+        av2h_limits_default(&default_limits);
+        if (default_limits.max_input_size > AV2H_CLI_MAX_INPUT) {
+            default_limits.max_input_size = AV2H_CLI_MAX_INPUT;
+        }
+        active_limits = &default_limits;
+    }
+    if (input.size > active_limits->max_input_size) {
+        return AV2H_LIMIT_EXCEEDED;
+    }
+    status = av2h_obu_parse(input, &ledger, &image->error);
     if (status != AV2H_OK)
         return status;
-    sequence_obu = find_obu(&ledger, AV2H_OBU_SEQUENCE_HEADER);
-    frame_obu = find_obu(&ledger, AV2H_OBU_CLOSED_LOOP_KEY);
-    if (sequence_obu == NULL || frame_obu == NULL)
+    if (limits != NULL && ledger.count > active_limits->max_obu_count)
+        return AV2H_LIMIT_EXCEEDED;
+    if (!find_unique_obu(&ledger, AV2H_OBU_SEQUENCE_HEADER, &sequence_obu))
+        return AV2H_INVALID_DATA;
+    frame_obu = find_first_obu(&ledger, AV2H_OBU_CLOSED_LOOP_KEY);
+    if (frame_obu == NULL)
         return AV2H_INVALID_DATA;
     status = av2h_sequence_state_parse(input, sequence_obu, &sequence, &image->error);
     if (status != AV2H_OK)
@@ -110,6 +142,15 @@ static Av2hStatus decode_image(Av2hSpan input, const Av2hCliAllocator *allocator
             image->error.offset += frame_obu->payload_offset;
         }
         return status;
+    }
+    if (frame.width > active_limits->max_width || frame.height > active_limits->max_height) {
+        return AV2H_LIMIT_EXCEEDED;
+    }
+    if (!av2h_size_multiply((size_t)frame.width, (size_t)frame.height, &pixels)) {
+        return AV2H_OVERFLOW;
+    }
+    if (pixels > active_limits->max_pixels) {
+        return AV2H_LIMIT_EXCEEDED;
     }
     av2h_qmatrix_state_reset(&frame);
     status = av2h_qmatrix_ledger_parse(input, &ledger, &frame, NULL, &image->error);
@@ -129,10 +170,14 @@ static Av2hStatus decode_image(Av2hSpan input, const Av2hCliAllocator *allocator
     status = av2h_planar_output_size(&frame, bytes_per_sample, &output_size);
     if (status != AV2H_OK)
         return status;
+    if (output_size > active_limits->max_output_size)
+        return AV2H_LIMIT_EXCEEDED;
     status = av2h_frame_decode_workspace_query(&sequence, &frame, bytes_per_sample,
                                                options->execution, &layout);
     if (status != AV2H_OK)
         return status;
+    if (layout.size_bytes > active_limits->max_workspace_size)
+        return AV2H_LIMIT_EXCEEDED;
     if (!allocate_owned(allocator, layout.size_bytes, layout.alignment, &workspace_memory) ||
         !allocate_owned(allocator, output_size, sizeof(void *), &image->output)) {
         allocator->release(allocator->context, &workspace_memory);
@@ -199,8 +244,10 @@ static Av2hStatus decode_image(Av2hSpan input, const Av2hCliAllocator *allocator
     return AV2H_OK;
 }
 
-AV2H_NOINLINE Av2hStatus av2h_cli_decode(Av2hSpan input, const Av2hCliAllocator *allocator,
-                                         const Av2hCliDecodeOptions *options, Av2hCliImage *image) {
+AV2H_NOINLINE Av2hStatus av2h_cli_decode_with_limits(Av2hSpan input, const Av2hLimits *limits,
+                                                     const Av2hCliAllocator *allocator,
+                                                     const Av2hCliDecodeOptions *options,
+                                                     Av2hCliImage *image) {
     Av2hStatus status;
     if ((input.data == NULL && input.size != 0U) || allocator == NULL ||
         allocator->allocate == NULL || allocator->release == NULL || options == NULL ||
@@ -208,9 +255,14 @@ AV2H_NOINLINE Av2hStatus av2h_cli_decode(Av2hSpan input, const Av2hCliAllocator 
         return AV2H_INVALID_ARGUMENT;
     }
     av2h_memory_fill(image, 0U, sizeof(*image));
-    status = decode_image(input, allocator, options, image);
+    status = decode_image(input, limits, allocator, options, image);
     image->error.status = status;
     return status;
+}
+
+AV2H_NOINLINE Av2hStatus av2h_cli_decode(Av2hSpan input, const Av2hCliAllocator *allocator,
+                                         const Av2hCliDecodeOptions *options, Av2hCliImage *image) {
+    return av2h_cli_decode_with_limits(input, NULL, allocator, options, image);
 }
 
 void av2h_cli_image_release(const Av2hCliAllocator *allocator, Av2hCliImage *image) {

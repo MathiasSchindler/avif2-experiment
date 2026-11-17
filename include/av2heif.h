@@ -327,6 +327,9 @@ Av2hStatus av2h_validate(Av2hSpan input, const Av2hLimits *limits, Av2hError *er
 /* Decode canonical AV2-HEIF into the contiguous planar layout from info. */
 Av2hStatus av2h_decode(Av2hSpan input, const Av2hInfo *info, void *workspace, size_t workspace_size,
                        void *output, size_t output_size, Av2hError *error);
+Av2hStatus av2h_decode_with_limits(Av2hSpan input, const Av2hLimits *limits, const Av2hInfo *info,
+                                   void *workspace, size_t workspace_size, void *output,
+                                   size_t output_size, Av2hError *error);
 
 _Static_assert(AV2H_OK == 0, "AV2H_OK must equal zero");
 _Static_assert((unsigned int)AV2H_UNSUPPORTED <= UINT8_MAX, "Av2hStatus must fit in uint8_t");

@@ -17,6 +17,10 @@ Av2hStatus av2h_luma_mode_context_state_init(Av2hLumaModeContextState *state,
     state->spatial_stride_bytes = 0U;
     state->spatial_columns = 0U;
     state->spatial_rows = 0U;
+    state->tile_start_column = 0U;
+    state->tile_end_column = 0U;
+    state->tile_start_row = 0U;
+    state->tile_end_row = 0U;
     state->intrabc_bank_remaining_hits = 0U;
     state->superblock_mi = 0U;
     state->intrabc_bank_count = 0U;

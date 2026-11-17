@@ -279,9 +279,9 @@ Av2hStatus av2h_decode_materialize(const Av2hHeifImage *image, Av2hDecodePrepara
     return status == AV2H_OK ? AV2H_OK : decode_fail(error, status, AV2H_CONTEXT_FRAME);
 }
 
-Av2hStatus av2h_decode(Av2hSpan input, const Av2hInfo *info, void *workspace_memory,
-                       size_t workspace_size, void *output_memory, size_t output_size,
-                       Av2hError *error) {
+Av2hStatus av2h_decode_with_limits(Av2hSpan input, const Av2hLimits *limits, const Av2hInfo *info,
+                                   void *workspace_memory, size_t workspace_size,
+                                   void *output_memory, size_t output_size, Av2hError *error) {
     Av2hInfo fresh;
     Av2hDecodePreparation validated;
     Av2hDecodeSyntaxReferences references;
@@ -300,7 +300,7 @@ Av2hStatus av2h_decode(Av2hSpan input, const Av2hInfo *info, void *workspace_mem
         return AV2H_INVALID_ARGUMENT;
     }
     av2h_error_reset_diagnostics(error, AV2H_DIAGNOSTIC_STAGE_NONE, AV2H_DIAGNOSTIC_REASON_NONE);
-    status = av2h_query_with_preparation(input, NULL, &fresh, &validated, &references, error);
+    status = av2h_query_with_preparation(input, limits, &fresh, &validated, &references, error);
     if (status != AV2H_OK)
         return status;
     if (!info_matches(info, &fresh)) {
@@ -360,4 +360,11 @@ Av2hStatus av2h_decode(Av2hSpan input, const Av2hInfo *info, void *workspace_mem
         error->diagnostic_stage = AV2H_DIAGNOSTIC_STAGE_COMPLETE;
     }
     return AV2H_OK;
+}
+
+Av2hStatus av2h_decode(Av2hSpan input, const Av2hInfo *info, void *workspace_memory,
+                       size_t workspace_size, void *output_memory, size_t output_size,
+                       Av2hError *error) {
+    return av2h_decode_with_limits(input, NULL, info, workspace_memory, workspace_size,
+                                   output_memory, output_size, error);
 }

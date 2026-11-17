@@ -57,9 +57,24 @@ static void add_intrabc_vector(Av2hIntrabcCandidate candidates[4U], size_t *coun
 
 static const Av2hLumaModeContext *intrabc_spatial_context(const Av2hLumaModeContextState *state,
                                                           int32_t row, int32_t column) {
+    size_t min_row;
+    size_t max_row;
+    size_t min_column;
+    size_t max_column;
     size_t index;
-    if (state == NULL || state->spatial == NULL || row < 0 || column < 0 ||
-        (size_t)row >= state->spatial_rows || (size_t)column >= state->spatial_columns) {
+    if (state == NULL || state->spatial == NULL || row < 0 || column < 0) {
+        return NULL;
+    }
+    min_row = state->tile_end_row != 0U ? state->tile_start_row : 0U;
+    max_row = state->tile_end_row != 0U && state->tile_end_row < state->spatial_rows
+                  ? state->tile_end_row
+                  : state->spatial_rows;
+    min_column = state->tile_end_column != 0U ? state->tile_start_column : 0U;
+    max_column = state->tile_end_column != 0U && state->tile_end_column < state->spatial_columns
+                     ? state->tile_end_column
+                     : state->spatial_columns;
+    if ((size_t)row < min_row || (size_t)row >= max_row || (size_t)column < min_column ||
+        (size_t)column >= max_column) {
         return NULL;
     }
     index = (size_t)row * state->spatial_columns + (size_t)column;

@@ -896,6 +896,8 @@ static AV2H_NOINLINE Av2hStatus decode_frame_tiles_planar(
     reset_frame_diagnostics(&context);
     if (workspace->bytes_per_sample != 1U && workspace->bytes_per_sample != 2U)
         return AV2H_UNSUPPORTED;
+    if (workspace->bytes_per_sample == 2U && sequence->enable_restoration != 0U)
+        return AV2H_UNSUPPORTED;
     if ((workspace->bytes_per_sample == 1U && workspace->reconstruction_scratch == NULL) ||
         (workspace->bytes_per_sample == 2U && workspace->reconstruction_scratch_u16 == NULL) ||
         workspace->filter_workspace == NULL)

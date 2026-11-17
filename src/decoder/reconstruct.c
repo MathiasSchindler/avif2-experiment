@@ -1153,6 +1153,8 @@ AV2H_NOINLINE Av2hStatus av2h_luma_reconstruct_to_plane_u16(
             av2h_reconstruction_diagnostics_set_luma_stage(diagnostics, 25U);
             return status;
         }
+    } else if (mode->use_intra_dip != 0U) {
+        return AV2H_UNSUPPORTED;
     } else if (top_vertical_multi_line_mrl != 0U) {
         uint16_t row;
         uint16_t column;

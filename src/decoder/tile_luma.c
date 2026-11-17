@@ -889,7 +889,7 @@ Av2hStatus av2h_tile_decoder_next_luma(Av2hTileDecoder *decoder, Av2hTileLumaLea
     }
     if (decoder->entropy_state.luma_mode_contexts.superblock_mi != 0U &&
         leaf->node.row % decoder->entropy_state.luma_mode_contexts.superblock_mi == 0U &&
-        leaf->node.column == 0U) {
+        leaf->node.column == decoder->traversal.tile_start_column) {
         decoder->entropy_state.luma_mode_contexts.intrabc_bank_count = 0U;
         decoder->entropy_state.luma_mode_contexts.intrabc_bank_start = 0U;
         decoder->entropy_state.luma_mode_contexts.intrabc_bank_remaining_hits = 0U;

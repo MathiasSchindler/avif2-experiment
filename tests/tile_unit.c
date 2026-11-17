@@ -1776,7 +1776,30 @@ static void test_monochrome_coeff_and_chroma_smooth_tile_isolation(void) {
               &decoder, (Av2hSpan){ entropy, sizeof(entropy) }, &sequence,
               &frame, &color_storage, 3U) == AV2H_OK);
     for (i = 0U; i < 32U * 32U; ++i) {
-        CHECK(decoder.traversal.colocated_luma[i].chroma_smooth == 0U);
+        size_t r = i / 32U;
+        size_t c = i % 32U;
+        if (r >= 16U && c >= 16U) {
+            CHECK(decoder.traversal.colocated_luma[i].chroma_smooth == 0U);
+        } else {
+            CHECK(decoder.traversal.colocated_luma[i].chroma_smooth == 0xa5U);
+        }
+    }
+    /* Issue 10: IntraBC MV-bank superblock-row reset must trigger at
+       tile_start_column (16) on non-zero-column tiles. */
+    {
+        Av2hTileLumaLeaf luma_leaf;
+        Av2hCoeffBlock luma_block;
+        uint8_t luma_has_leaf = 0U;
+        decoder.entropy_state.luma_mode_contexts.intrabc_bank_count = 2U;
+        decoder.entropy_state.luma_mode_contexts.intrabc_bank_start = 3U;
+        CHECK(av2h_tile_decoder_next_luma(
+                  &decoder, &luma_leaf, &luma_block, &luma_has_leaf) == AV2H_OK);
+        CHECK(luma_has_leaf == 1U);
+        CHECK(decoder.entropy_state.luma_mode_contexts.intrabc_bank_count == 0U);
+        CHECK(decoder.entropy_state.luma_mode_contexts.intrabc_bank_start == 0U);
+        CHECK(av2h_tile_decoder_init(
+                  &decoder, (Av2hSpan){ entropy, sizeof(entropy) }, &sequence,
+                  &frame, &color_storage, 3U) == AV2H_OK);
     }
     decoder.traversal.colocated_luma[16U * 32U + 16U].context.present = 1U;
     decoder.traversal.colocated_luma[16U * 32U + 16U].context.q_index = 128U;

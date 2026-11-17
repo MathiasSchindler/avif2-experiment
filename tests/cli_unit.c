@@ -387,6 +387,35 @@ static void test_decode_ownership(void) {
                         CHECK(state.live == 0U);
                     }
                 }
+                if (path_index == 0U && early == 0 && retain == 0) {
+                    Av2hLimits strict_limits;
+                    uint8_t duplicated[16384U];
+                    av2h_limits_default(&strict_limits);
+                    strict_limits.max_width = 8U;
+                    state.allocations = 0U;
+                    state.fail_allocation = 0U;
+                    CHECK(av2h_cli_decode_with_limits(
+                              (Av2hSpan){ input, size }, &strict_limits,
+                              &allocator, &options, &image) ==
+                          AV2H_LIMIT_EXCEEDED);
+                    CHECK(state.allocations == 0U && state.live == 0U);
+                    av2h_limits_default(&strict_limits);
+                    strict_limits.max_workspace_size = 128U;
+                    CHECK(av2h_cli_decode_with_limits(
+                              (Av2hSpan){ input, size }, &strict_limits,
+                              &allocator, &options, &image) ==
+                          AV2H_LIMIT_EXCEEDED);
+                    CHECK(state.allocations == 0U && state.live == 0U);
+                    if (size * 2U <= sizeof(duplicated)) {
+                        memcpy(duplicated, input, size);
+                        memcpy(duplicated + size, input, size);
+                        CHECK(av2h_cli_decode(
+                                  (Av2hSpan){ duplicated, size * 2U },
+                                  &allocator, &options, &image) ==
+                              AV2H_INVALID_DATA);
+                        CHECK(state.allocations == 0U && state.live == 0U);
+                    }
+                }
             }
         }
     }

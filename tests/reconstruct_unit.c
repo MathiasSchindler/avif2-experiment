@@ -875,6 +875,46 @@ static void test_intrabc_morph_tile_and_reconstruction_bounds(void) {
     CHECK(av2h_intrabc_morph_plane_u16(
               &plane16, 40U, 40U, 16U, 8U, 36, 36, 8U, 8U, 10U,
               pred16_a) == AV2H_INVALID_DATA);
+
+    /* Issue 6: 10-bit Intra-DIP in av2h_luma_reconstruct_to_plane_u16 must
+       fail closed instead of silently producing DC pixels. */
+    {
+        Av2hReconstructionScratchU16 scratch16;
+        const Av2hSampleDomain *domain10 = av2h_sample_domain_from_idc(0U);
+        Av2hLeafMode dip_mode = { 0 };
+        Av2hPartitionNode dip_leaf = { 8U, 8U, AV2H_BLOCK_8X8 };
+        dip_mode.mode = AV2H_INTRA_DC;
+        dip_mode.use_intra_dip = 1U;
+        dip_mode.skip_transform = 1U;
+        CHECK(av2h_luma_reconstruct_to_plane_u16(
+                  NULL, &dip_leaf, &dip_mode, &prefix, &transform, &block,
+                  &plane16, &scratch16, domain10) == AV2H_UNSUPPORTED);
+    }
+
+    /* Issues 8 & 9: 10-bit enable_restoration == 1 rejected at header parse,
+       and max_frame_width_minus_1 == 65535 rejected without uint16_t wrap. */
+    {
+        static const uint8_t minimal_header[8U] = { 0xf0U, 0U, 0U, 0U };
+        Av2hSequenceState seq = { 0 };
+        Av2hFrameState parsed = { 0 };
+        seq.info.still_picture = 1U;
+        seq.info.bit_depth_idc = 0U;
+        seq.info.seq_profile_idc = 0U;
+        seq.info.chroma_format_idc = 0U;
+        seq.superblock_size = 64U;
+        seq.info.max_frame_width_minus_1 = 15U;
+        seq.info.max_frame_height_minus_1 = 15U;
+        seq.enable_restoration = 1U;
+        CHECK(av2h_frame_header_closed_key_parse(
+                  (Av2hSpan){ minimal_header, sizeof(minimal_header) },
+                  &seq, &parsed, NULL, NULL, NULL) == AV2H_UNSUPPORTED);
+        seq.enable_restoration = 0U;
+        seq.info.bit_depth_idc = 1U;
+        seq.info.max_frame_width_minus_1 = 65535U;
+        CHECK(av2h_frame_header_closed_key_parse(
+                  (Av2hSpan){ minimal_header, sizeof(minimal_header) },
+                  &seq, &parsed, NULL, NULL, NULL) == AV2H_LIMIT_EXCEEDED);
+    }
 }
 
 static void test_skipped_intrabc_geometry_matrix(void) {

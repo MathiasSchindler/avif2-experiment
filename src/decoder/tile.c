@@ -771,12 +771,20 @@ Av2hStatus av2h_tile_decoder_init(Av2hTileDecoder *decoder, Av2hSpan entropy,
     decoder->chroma.shared_complete = 0U;
     decoder->chroma.shared_mode_pending = 0U;
     decoder->chroma.shared_commit_luma = 0U;
-    for (index = 0U; index < cell_count; ++index) {
-        decoder->traversal.colocated_luma[index].context = (Av2hLumaModeContext){0};
-        decoder->traversal.colocated_luma[index].mode = (uint8_t)AV2H_INTRA_DC;
-        decoder->traversal.colocated_luma[index].angle_delta = 0;
-        decoder->traversal.colocated_luma[index].chroma_cfl = 0U;
-        decoder->traversal.colocated_luma[index].chroma_smooth = 0U;
+    for (index = decoder->traversal.tile_start_row; index < decoder->traversal.tile_end_row;
+         ++index) {
+        size_t row_base = index * decoder->traversal.mi_columns;
+        size_t column_index;
+        for (column_index = decoder->traversal.tile_start_column;
+             column_index < decoder->traversal.tile_end_column; ++column_index) {
+            Av2hTileLumaModeCell *cell =
+                &decoder->traversal.colocated_luma[row_base + column_index];
+            cell->context = (Av2hLumaModeContext){0};
+            cell->mode = (uint8_t)AV2H_INTRA_DC;
+            cell->angle_delta = 0;
+            cell->chroma_cfl = 0U;
+            cell->chroma_smooth = 0U;
+        }
     }
     status = av2h_partition_cdfs_init(&decoder->entropy_state.partition_cdfs);
     if (status != AV2H_OK)
@@ -846,8 +854,14 @@ Av2hStatus av2h_tile_decoder_init(Av2hTileDecoder *decoder, Av2hSpan entropy,
         (const uint8_t *)decoder->traversal.colocated_luma;
     decoder->entropy_state.luma_mode_contexts.spatial_stride_bytes =
         sizeof(*decoder->traversal.colocated_luma);
-    decoder->entropy_state.luma_mode_contexts.spatial_columns = decoder->traversal.mi_columns;
-    decoder->entropy_state.luma_mode_contexts.spatial_rows = decoder->traversal.mi_rows;
+    decoder->entropy_state.luma_mode_contexts.spatial_columns =
+        (uint32_t)decoder->traversal.mi_columns;
+    decoder->entropy_state.luma_mode_contexts.spatial_rows = (uint32_t)decoder->traversal.mi_rows;
+    decoder->entropy_state.luma_mode_contexts.tile_start_column =
+        decoder->traversal.tile_start_column;
+    decoder->entropy_state.luma_mode_contexts.tile_end_column = decoder->traversal.tile_end_column;
+    decoder->entropy_state.luma_mode_contexts.tile_start_row = decoder->traversal.tile_start_row;
+    decoder->entropy_state.luma_mode_contexts.tile_end_row = decoder->traversal.tile_end_row;
     status = av2h_coeff_context_state_init(&decoder->entropy_state.coefficient_contexts,
                                            (uint8_t)av2h_frame_plane_count(frame),
                                            storage->coefficient_above, storage->above_count,

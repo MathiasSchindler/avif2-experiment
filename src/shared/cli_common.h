@@ -80,6 +80,9 @@ typedef enum {
 
 Av2hStatus av2h_cli_decode(Av2hSpan input, const Av2hCliAllocator *allocator,
                            const Av2hCliDecodeOptions *options, Av2hCliImage *image);
+Av2hStatus av2h_cli_decode_with_limits(Av2hSpan input, const Av2hLimits *limits,
+                                       const Av2hCliAllocator *allocator,
+                                       const Av2hCliDecodeOptions *options, Av2hCliImage *image);
 void av2h_cli_image_release(const Av2hCliAllocator *allocator, Av2hCliImage *image);
 
 Av2hStatus av2h_cli_output_parse(Av2hCliPath path, Av2hCliOutput *output);

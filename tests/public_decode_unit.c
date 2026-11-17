@@ -453,6 +453,16 @@ static void test_public_decode(const PublicFixture *fixture) {
         return;
     }
     av2h_memory_fill(output, 0xa5U, info.output_size);
+    {
+        Av2hLimits strict_limits;
+        av2h_limits_default(&strict_limits);
+        strict_limits.max_pixels = 1U;
+        CHECK(av2h_decode_with_limits(
+                  (Av2hSpan){ container, container_size }, &strict_limits,
+                  &info, workspace, info.workspace_size, output,
+                  info.output_size, &error) == AV2H_LIMIT_EXCEEDED);
+        CHECK(output[0] == 0xa5U);
+    }
     CHECK(av2h_decode((Av2hSpan){ container, container_size }, &info,
                        workspace, info.workspace_size - 1U, output,
                        info.output_size, &error) == AV2H_OUT_OF_MEMORY);

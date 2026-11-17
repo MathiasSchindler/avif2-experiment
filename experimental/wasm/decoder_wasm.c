@@ -61,12 +61,27 @@ static void *allocate_bytes(size_t size, size_t alignment) {
     return (void *)start;
 }
 
-static const Av2hObu *find_obu(const Av2hObuLedger *ledger, uint8_t type) {
+static const Av2hObu *find_first_obu(const Av2hObuLedger *ledger,
+                                     uint8_t type) {
     size_t index;
     for (index = 0U; index < ledger->count; ++index) {
         if (ledger->entries[index].type == type) return &ledger->entries[index];
     }
     return 0;
+}
+
+static int find_unique_obu(const Av2hObuLedger *ledger, uint8_t type,
+                           const Av2hObu **found) {
+    size_t index;
+    const Av2hObu *match = 0;
+    for (index = 0U; index < ledger->count; ++index) {
+        if (ledger->entries[index].type == type) {
+            if (match != 0) return 0;
+            match = &ledger->entries[index];
+        }
+    }
+    *found = match;
+    return match != 0;
 }
 
 __attribute__((export_name("av2h_reset")))
@@ -85,14 +100,14 @@ uint32_t av2h_wasm_alloc(uint32_t size) {
 
 __attribute__((export_name("av2h_decode")))
 uint32_t av2h_wasm_decode(uint32_t input_pointer, uint32_t input_size) {
+    Av2hLimits limits;
     Av2hObu entries[16U];
     Av2hObuLedger ledger = { entries, 16U, 0U };
     Av2hError error;
-    const Av2hObu *sequence_obu;
-    const Av2hObu *frame_obu;
+    const Av2hObu *sequence_obu = 0;
+    const Av2hObu *frame_obu = 0;
     Av2hSequenceState sequence;
     Av2hFrameState frame;
-    Av2hTileGroup group;
     Av2hFrameDecodeWorkspace workspace;
     Av2hFilterWorkspace filter_workspace;
     Av2hFilterWorkspaceStorage filter_storage;
@@ -100,6 +115,11 @@ uint32_t av2h_wasm_decode(uint32_t input_pointer, uint32_t input_size) {
     Av2hFrameDecodeResult decode_result = { 0 };
     uint8_t *workspace_memory;
     uint8_t *output;
+    size_t current_pages = __builtin_wasm_memory_size(0);
+    uintptr_t current_memory_bytes = (uintptr_t)current_pages * AV2H_WASM_PAGE_SIZE;
+    uintptr_t heap_base = (uintptr_t)&__heap_base;
+    uintptr_t input_start = (uintptr_t)input_pointer;
+    size_t pixels;
     size_t output_size;
     size_t bytes_per_sample;
     Av2hSpan input;
@@ -107,32 +127,63 @@ uint32_t av2h_wasm_decode(uint32_t input_pointer, uint32_t input_size) {
 
     wasm_result = (Av2hWasmResult){ 0 };
     if (input_pointer == 0U || input_size == 0U ||
-        input_size > AV2H_WASM_MAX_INPUT_SIZE) {
+        input_size > AV2H_WASM_MAX_INPUT_SIZE ||
+        input_start < heap_base || input_start >= current_memory_bytes ||
+        (uintptr_t)input_size > current_memory_bytes - input_start) {
         wasm_result.status = AV2H_INVALID_ARGUMENT;
         return wasm_result.status;
     }
-    input = (Av2hSpan){ (const uint8_t *)(uintptr_t)input_pointer, input_size };
+    if (heap_position < input_start + (uintptr_t)input_size) {
+        heap_position = input_start + (uintptr_t)input_size;
+    }
+    av2h_limits_default(&limits);
+    input = (Av2hSpan){ (const uint8_t *)input_start, input_size };
     status = av2h_obu_parse(input, &ledger, &error);
     if (status != AV2H_OK) goto done;
-    sequence_obu = find_obu(&ledger, AV2H_OBU_SEQUENCE_HEADER);
-    frame_obu = find_obu(&ledger, AV2H_OBU_CLOSED_LOOP_KEY);
-    if (sequence_obu == 0 || frame_obu == 0) {
+    if (!find_unique_obu(&ledger, AV2H_OBU_SEQUENCE_HEADER, &sequence_obu)) {
+        status = AV2H_INVALID_DATA;
+        goto done;
+    }
+    frame_obu = find_first_obu(&ledger, AV2H_OBU_CLOSED_LOOP_KEY);
+    if (frame_obu == 0) {
         status = AV2H_INVALID_DATA;
         goto done;
     }
     status = av2h_sequence_state_parse(input, sequence_obu, &sequence, &error);
     if (status != AV2H_OK) goto done;
+    if ((sequence.info.bit_depth_idc == 0U &&
+         sequence.info.chroma_format_idc != 0U &&
+         sequence.info.chroma_format_idc != 2U) ||
+        (sequence.info.bit_depth_idc != 0U &&
+         (sequence.info.bit_depth_idc != 1U ||
+          sequence.info.chroma_format_idc > 2U))) {
+        status = AV2H_UNSUPPORTED;
+        goto done;
+    }
     bytes_per_sample = sequence.info.bit_depth_idc == 0U ? 2U : 1U;
     status = av2h_frame_header_closed_key_parse(
         (Av2hSpan){ input.data + frame_obu->payload_offset,
                     frame_obu->payload_size },
-        &sequence, &frame, NULL);
+        &sequence, &frame, NULL, NULL, &error);
     if (status != AV2H_OK) goto done;
+    if (frame.width > limits.max_width || frame.height > limits.max_height) {
+        status = AV2H_LIMIT_EXCEEDED;
+        goto done;
+    }
+    if (!av2h_size_multiply((size_t)frame.width, (size_t)frame.height,
+                            &pixels)) {
+        status = AV2H_OVERFLOW;
+        goto done;
+    }
+    if (pixels > limits.max_pixels) {
+        status = AV2H_LIMIT_EXCEEDED;
+        goto done;
+    }
     av2h_qmatrix_state_reset(&frame);
-    status = av2h_qmatrix_ledger_parse(input, &ledger, &frame, &error);
+    status = av2h_qmatrix_ledger_parse(input, &ledger, &frame, NULL, &error);
     if (status == AV2H_OK) status = av2h_qmatrix_references_validate(&frame);
     if (status != AV2H_OK) goto done;
-    status = av2h_tile_groups_ledger_parse(input, &ledger, &frame, &group);
+    status = av2h_tile_groups_ledger_validate(input, &ledger, &frame);
     if (status != AV2H_OK) goto done;
     status = av2h_planar_output_size(
         &frame, bytes_per_sample, &output_size);
@@ -141,9 +192,17 @@ uint32_t av2h_wasm_decode(uint32_t input_pointer, uint32_t input_size) {
         status = AV2H_OVERFLOW;
         goto done;
     }
+    if (output_size > limits.max_output_size) {
+        status = AV2H_LIMIT_EXCEEDED;
+        goto done;
+    }
     status = av2h_frame_decode_workspace_query(
         &sequence, &frame, bytes_per_sample, NULL, &workspace_layout);
     if (status != AV2H_OK) goto done;
+    if (workspace_layout.size_bytes > limits.max_workspace_size) {
+        status = AV2H_LIMIT_EXCEEDED;
+        goto done;
+    }
     workspace_memory = allocate_bytes(
         workspace_layout.size_bytes, workspace_layout.alignment);
     output = allocate_bytes(output_size, 16U);
@@ -156,10 +215,32 @@ uint32_t av2h_wasm_decode(uint32_t input_pointer, uint32_t input_size) {
         workspace_memory, workspace_layout.size_bytes,
         &workspace, &filter_workspace, &filter_storage, NULL);
     if (status != AV2H_OK) goto done;
-    status = av2h_decode_frame_group_planar_private(
-        &group, &sequence, &frame, &workspace, output, output_size,
-        &decode_result, NULL);
-    if (status != AV2H_OK) goto done;
+    {
+        Av2hDecodePreparation *preparation =
+            &workspace.decode_scratch->preparation;
+        av2h_memory_copy(&preparation->sequence, &sequence, sizeof(sequence));
+        preparation->group = &workspace.decode_scratch->group;
+        status = av2h_frame_header_closed_key_parse(
+            (Av2hSpan){ input.data + frame_obu->payload_offset,
+                        frame_obu->payload_size },
+            &preparation->sequence, &preparation->frame,
+            &workspace.decode_scratch->syntax, NULL, &error);
+        if (status != AV2H_OK) goto done;
+        av2h_qmatrix_state_reset(&preparation->frame);
+        status = av2h_qmatrix_ledger_parse(
+            input, &ledger, &preparation->frame, NULL, &error);
+        if (status == AV2H_OK) {
+            status = av2h_qmatrix_references_validate(&preparation->frame);
+        }
+        if (status != AV2H_OK) goto done;
+        status = av2h_tile_groups_ledger_parse(
+            input, &ledger, &preparation->frame, preparation->group);
+        if (status != AV2H_OK) goto done;
+        status = av2h_decode_frame_group_planar_private(
+            preparation->group, &preparation->sequence, &preparation->frame,
+            &workspace, output, output_size, &decode_result, NULL);
+        if (status != AV2H_OK) goto done;
+    }
     wasm_result.output_pointer = (uint32_t)(uintptr_t)output;
     wasm_result.output_size = (uint32_t)output_size;
     wasm_result.width = frame.width;
