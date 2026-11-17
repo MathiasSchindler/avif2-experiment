@@ -1,4 +1,5 @@
 #include "decoder/coeff.h"
+#include "decoder/coeff_level.h"
 #include "decoder/frame.h"
 #include "decoder/leaf.h"
 #include "decoder/partition.h"
@@ -580,12 +581,45 @@ static void test_tx_descriptors(void) {
     }
 }
 
+static void test_fsc_eob_bounds(void) {
+    static const uint8_t bytes[16U] = { 0xffU, 0xffU, 0xffU, 0xffU };
+    Av2hSpan span = { bytes, sizeof(bytes) };
+    Av2hRangeDecoder decoder;
+    Av2hCoeffLevelCdfs cdfs;
+    Av2hSequenceState sequence = { 0 };
+    Av2hFrameState frame = { 0 };
+    Av2hLeafMode mode = { 0 };
+    Av2hCoeffPrefix prefix = { 0 };
+    Av2hTransformType transform = { 0 };
+    Av2hCoeffBlock block = { 0 };
+
+    sequence.info.bit_depth_idc = 1U;
+    frame.base_q_index = 128U;
+    mode.fsc_mode = 1U;
+    prefix.tx_size = AV2H_TX_4X4;
+    prefix.q_index = 128U;
+    transform.primary_type = AV2H_TX_IDTX;
+    CHECK(av2h_coeff_level_cdfs_init_for_q(&cdfs, frame.base_q_index) ==
+          AV2H_OK);
+    prefix.eob = 0U;
+    CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
+    CHECK(av2h_coeff_block_read(
+              &decoder, &cdfs, &sequence, &frame, &mode, &prefix, &transform,
+              0U, &block) == AV2H_UNSUPPORTED);
+    prefix.eob = 17U;
+    CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
+    CHECK(av2h_coeff_block_read(
+              &decoder, &cdfs, &sequence, &frame, &mode, &prefix, &transform,
+              0U, &block) == AV2H_INVALID_DATA);
+}
+
 int main(void) {
     test_fixture_prefixes();
     test_arguments();
     test_tx_32x32_eob_point_extension();
     test_context_state();
     test_tx_descriptors();
+    test_fsc_eob_bounds();
     if (failures != 0) {
         fprintf(stderr, "%d coefficient checks failed\n", failures);
         return 1;

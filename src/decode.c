@@ -335,12 +335,14 @@ Av2hStatus av2h_decode_with_limits(Av2hSpan input, const Av2hLimits *limits, con
         &preparation->workspace, workspace_memory, workspace_size, &workspace, &filter_workspace,
         &filter_storage, NULL);
     if (status != AV2H_OK) {
+        av2h_asan_unpoison(workspace_memory, workspace_size);
         return decode_fail(error, status, AV2H_CONTEXT_WORKSPACE);
     }
     if (fresh.image.pixel_format.bytes_per_sample == 2U) {
         status = av2h_planar_output_bind_u16(&preparation->frame, output_memory, output_size,
                                              &workspace.output_u16);
         if (status != AV2H_OK) {
+            av2h_asan_unpoison(workspace_memory, workspace_size);
             return decode_fail(error, status, AV2H_CONTEXT_OUTPUT);
         }
     }
@@ -348,6 +350,7 @@ Av2hStatus av2h_decode_with_limits(Av2hSpan input, const Av2hLimits *limits, con
     status = av2h_decode_frame_group_planar_private(
         preparation->group, &preparation->sequence, &preparation->frame, &workspace,
         (uint8_t *)output_memory, output_size, &result, NULL);
+    av2h_asan_unpoison(workspace_memory, workspace_size);
     if (status != AV2H_OK) {
         status = decode_fail(error, status, decode_result_context(&result));
         decode_result_diagnostics(error, &result);

@@ -229,6 +229,7 @@ static Av2hStatus decode_image(Av2hSpan input, const Av2hLimits *limits,
     if (image->diagnostic_memory.memory == NULL) {
         image->result.diagnostics = NULL;
     }
+    av2h_asan_unpoison(workspace_memory.memory, workspace_memory.size);
     allocator->release(allocator->context, &workspace_memory);
     if (status != AV2H_OK) {
         allocator->release(allocator->context, &image->output);

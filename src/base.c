@@ -506,6 +506,43 @@ size_t av2h_bit_writer_required(const Av2hBitWriter *writer) {
     return (writer->bit_position >> 3) + ((writer->bit_position & 7U) != 0U ? 1U : 0U);
 }
 
+#if defined(__SANITIZE_ADDRESS__)
+#define AV2H_HAS_ASAN 1
+#elif defined(__has_feature)
+#if __has_feature(address_sanitizer)
+#define AV2H_HAS_ASAN 1
+#endif
+#endif
+
+#if defined(AV2H_HAS_ASAN)
+void __asan_poison_memory_region(void const volatile *address, size_t size);
+void __asan_unpoison_memory_region(void const volatile *address, size_t size);
+#endif
+
+#ifndef AV2H_ASAN_ARENA_REDZONE
+#define AV2H_ASAN_ARENA_REDZONE 0U
+#endif
+
+void av2h_asan_poison(const void *data, size_t size) {
+#if defined(AV2H_HAS_ASAN)
+    if (data != NULL && size != 0U)
+        __asan_poison_memory_region(data, size);
+#else
+    (void)data;
+    (void)size;
+#endif
+}
+
+void av2h_asan_unpoison(const void *data, size_t size) {
+#if defined(AV2H_HAS_ASAN)
+    if (data != NULL && size != 0U)
+        __asan_unpoison_memory_region(data, size);
+#else
+    (void)data;
+    (void)size;
+#endif
+}
+
 void av2h_arena_init(Av2hArena *arena, void *data, size_t size) {
     if (arena == NULL)
         return;
@@ -514,6 +551,9 @@ void av2h_arena_init(Av2hArena *arena, void *data, size_t size) {
     arena->used = 0U;
     arena->status = data == NULL && size != 0U ? AV2H_INVALID_ARGUMENT : AV2H_OK;
     arena->sizing_only = 0U;
+    arena->redzone = (uint8_t)AV2H_ASAN_ARENA_REDZONE;
+    if (arena->status == AV2H_OK && arena->redzone != 0U)
+        av2h_asan_unpoison(data, size);
 }
 
 void av2h_arena_init_sizing(Av2hArena *arena) {
@@ -524,14 +564,22 @@ void av2h_arena_init_sizing(Av2hArena *arena) {
     arena->used = 0U;
     arena->status = AV2H_OK;
     arena->sizing_only = 1U;
+    arena->redzone = (uint8_t)AV2H_ASAN_ARENA_REDZONE;
+}
+
+void av2h_arena_set_redzone(Av2hArena *arena, uint8_t redzone) {
+    if (arena != NULL)
+        arena->redzone = redzone;
 }
 
 void *av2h_arena_allocate(Av2hArena *arena, size_t size, size_t alignment) {
+    size_t previous_used;
     size_t mask;
     size_t base_modulo;
     size_t used_modulo;
     size_t padding;
     size_t aligned;
+    size_t payload_end;
     size_t end;
     if (arena == NULL || arena->status != AV2H_OK)
         return NULL;
@@ -539,6 +587,7 @@ void *av2h_arena_allocate(Av2hArena *arena, size_t size, size_t alignment) {
         arena->status = AV2H_INVALID_ARGUMENT;
         return NULL;
     }
+    previous_used = arena->used;
     mask = alignment - 1U;
     if (arena->sizing_only) {
         padding = mask;
@@ -547,7 +596,9 @@ void *av2h_arena_allocate(Av2hArena *arena, size_t size, size_t alignment) {
         used_modulo = arena->used & mask;
         padding = (alignment - ((base_modulo + used_modulo) & mask)) & mask;
     }
-    if (!av2h_size_add(arena->used, padding, &aligned) || !av2h_size_add(aligned, size, &end)) {
+    if (!av2h_size_add(arena->used, padding, &aligned) ||
+        !av2h_size_add(aligned, size, &payload_end) ||
+        !av2h_size_add(payload_end, (size_t)arena->redzone, &end)) {
         arena->status = AV2H_OVERFLOW;
         return NULL;
     }
@@ -560,6 +611,11 @@ void *av2h_arena_allocate(Av2hArena *arena, size_t size, size_t alignment) {
     }
     if (arena->data == NULL)
         return NULL;
+    if (arena->redzone != 0U) {
+        av2h_asan_poison(arena->data + previous_used, aligned - previous_used);
+        av2h_asan_unpoison(arena->data + aligned, size);
+        av2h_asan_poison(arena->data + payload_end, end - payload_end);
+    }
     return arena->data + aligned;
 }
 

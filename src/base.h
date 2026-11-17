@@ -48,6 +48,7 @@ typedef struct {
     size_t used;
     Av2hStatus status;
     uint8_t sizing_only;
+    uint8_t redzone;
 } Av2hArena;
 
 int av2h_size_add(size_t left, size_t right, size_t *result);
@@ -133,7 +134,10 @@ size_t av2h_bit_writer_required(const Av2hBitWriter *writer);
 
 void av2h_arena_init(Av2hArena *arena, void *data, size_t size);
 void av2h_arena_init_sizing(Av2hArena *arena);
+void av2h_arena_set_redzone(Av2hArena *arena, uint8_t redzone);
 void *av2h_arena_allocate(Av2hArena *arena, size_t size, size_t alignment);
 size_t av2h_arena_required(const Av2hArena *arena);
+void av2h_asan_poison(const void *data, size_t size);
+void av2h_asan_unpoison(const void *data, size_t size);
 
 #endif

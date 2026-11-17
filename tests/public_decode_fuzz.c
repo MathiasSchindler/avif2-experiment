@@ -1,12 +1,17 @@
-#include "av2heif.h"
+#define _POSIX_C_SOURCE 200112L
 
+#include "av2heif.h"
+#include "shared/cli_common.h"
+#include "parallel_test.h"
+
+#include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
 #define FUZZ_MAX_INPUT_SIZE (1024U * 1024U)
 #define FUZZ_MAX_PIXELS (512U * 512U)
-#define FUZZ_MAX_ALLOCATION_SIZE (1024U * 1024U)
+#define FUZZ_MAX_ALLOCATION_SIZE (2U * 1024U * 1024U)
 
 static void require_unchanged(const unsigned char *bytes,
                               size_t size,
@@ -15,6 +20,71 @@ static void require_unchanged(const unsigned char *bytes,
     for (index = 0U; index < size; ++index) {
         if (bytes[index] != expected) abort();
     }
+}
+
+static int fuzz_allocate(void *context, size_t size, size_t alignment,
+                         Av2hOwnedMemory *owned) {
+    void *memory = NULL;
+    size_t actual = size == 0U ? 1U : size;
+    (void)context;
+    if (size > FUZZ_MAX_ALLOCATION_SIZE) return 0;
+    if (alignment < sizeof(void *)) alignment = sizeof(void *);
+    if (posix_memalign(&memory, alignment, actual) != 0) return 0;
+    owned->memory = memory;
+    owned->size = size;
+    return 1;
+}
+
+static void fuzz_release(void *context, Av2hOwnedMemory *owned) {
+    (void)context;
+    free(owned->memory);
+    owned->memory = NULL;
+    owned->size = 0U;
+}
+
+static Av2hTestPool fuzz_pool;
+static int fuzz_pool_initialized;
+
+static void fuzz_worker_pool_shutdown(void) {
+    if (fuzz_pool_initialized) {
+        av2h_test_pool_destroy(&fuzz_pool);
+        fuzz_pool_initialized = 0;
+    }
+}
+
+static Av2hTestPool *fuzz_worker_pool(void) {
+    if (!fuzz_pool_initialized) {
+        av2h_test_pool_init(&fuzz_pool, 2U);
+        fuzz_pool_initialized = 1;
+        atexit(fuzz_worker_pool_shutdown);
+    }
+    return &fuzz_pool;
+}
+
+static void fuzz_raw_obu(const uint8_t *data, size_t size,
+                         const Av2hLimits *limits) {
+    Av2hCliAllocator allocator = { NULL, fuzz_allocate, fuzz_release };
+    Av2hCliDecodeOptions serial_options = { NULL, 0U, 0U };
+    Av2hCliImage serial_image;
+    Av2hStatus serial_status = av2h_cli_decode_with_limits(
+        (Av2hSpan){ data, size }, limits, &allocator, &serial_options,
+        &serial_image);
+    if (serial_status == AV2H_OK) {
+        Av2hExecution execution = av2h_test_pool_execution(fuzz_worker_pool());
+        Av2hCliDecodeOptions parallel_options = { &execution, 0U, 0U };
+        Av2hCliImage parallel_image;
+        Av2hStatus parallel_status = av2h_cli_decode_with_limits(
+            (Av2hSpan){ data, size }, limits, &allocator, &parallel_options,
+            &parallel_image);
+        if (parallel_status != AV2H_OK ||
+            parallel_image.output.size != serial_image.output.size ||
+            memcmp(parallel_image.output.memory, serial_image.output.memory,
+                   serial_image.output.size) != 0) {
+            abort();
+        }
+        av2h_cli_image_release(&allocator, &parallel_image);
+    }
+    av2h_cli_image_release(&allocator, &serial_image);
 }
 
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
@@ -40,7 +110,13 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
     limits.max_width = 512U;
     limits.max_height = 512U;
     status = av2h_query((Av2hSpan){ data, size }, &limits, &info, &error);
-    if (status != AV2H_OK) return 0;
+    if (status != AV2H_OK) {
+        fuzz_raw_obu(data, size, &limits);
+        return 0;
+    }
+    if (av2h_validate((Av2hSpan){ data, size }, &limits, &error) != AV2H_OK) {
+        abort();
+    }
     if (info.workspace_alignment == 0U ||
         info.workspace_size > FUZZ_MAX_ALLOCATION_SIZE ||
         info.output_size > FUZZ_MAX_ALLOCATION_SIZE) {
@@ -57,30 +133,34 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
 
     memset(output, 0xa5, info.output_size);
     if (info.workspace_size != 0U) {
-        status = av2h_decode((Av2hSpan){ data, size }, &info,
-                            workspace, info.workspace_size - 1U,
-                            output, info.output_size, &error);
+        status = av2h_decode_with_limits(
+            (Av2hSpan){ data, size }, &limits, &info,
+            workspace, info.workspace_size - 1U,
+            output, info.output_size, &error);
         if (status != AV2H_OUT_OF_MEMORY) abort();
         require_unchanged(output, info.output_size, 0xa5U);
     }
     if (info.output_size != 0U) {
-        status = av2h_decode((Av2hSpan){ data, size }, &info,
-                            workspace, info.workspace_size,
-                            output, info.output_size - 1U, &error);
+        status = av2h_decode_with_limits(
+            (Av2hSpan){ data, size }, &limits, &info,
+            workspace, info.workspace_size,
+            output, info.output_size - 1U, &error);
         if (status != AV2H_OUT_OF_MEMORY) abort();
         require_unchanged(output, info.output_size, 0xa5U);
     }
     stale = info;
     ++stale.input_fingerprint;
-    status = av2h_decode((Av2hSpan){ data, size }, &stale,
-                        workspace, info.workspace_size,
-                        output, info.output_size, &error);
+    status = av2h_decode_with_limits(
+        (Av2hSpan){ data, size }, &limits, &stale,
+        workspace, info.workspace_size,
+        output, info.output_size, &error);
     if (status != AV2H_INVALID_DATA) abort();
     require_unchanged(output, info.output_size, 0xa5U);
 
-    (void)av2h_decode((Av2hSpan){ data, size }, &info,
-                      workspace, info.workspace_size,
-                      output, info.output_size, &error);
+    (void)av2h_decode_with_limits(
+        (Av2hSpan){ data, size }, &limits, &info,
+        workspace, info.workspace_size,
+        output, info.output_size, &error);
     free(allocation);
     return 0;
 }
@@ -119,12 +199,13 @@ static int wrap_obu_seed(const unsigned char *stream,
                          size_t stream_size,
                          unsigned char **container,
                          size_t *container_size) {
-    Av2hObu entries[8U];
-    Av2hObuLedger ledger = { entries, 8U, 0U };
+    Av2hObu entries[16U];
+    Av2hObuLedger ledger = { entries, 16U, 0U };
     Av2hHeifSource source;
     Av2hError error;
     const Av2hObu *sequence = 0;
     const Av2hObu *frame = 0;
+    size_t frame_count = 0U;
     size_t index;
     if (av2h_obu_parse((Av2hSpan){ stream, stream_size }, &ledger,
                        &error) != AV2H_OK) {
@@ -133,11 +214,16 @@ static int wrap_obu_seed(const unsigned char *stream,
     for (index = 0U; index < ledger.count; ++index) {
         if (entries[index].type == AV2H_OBU_SEQUENCE_HEADER) {
             sequence = &entries[index];
-        } else if (entries[index].type == AV2H_OBU_CLOSED_LOOP_KEY) {
-            frame = &entries[index];
+        } else if (entries[index].type == AV2H_OBU_CLOSED_LOOP_KEY ||
+                   entries[index].type == AV2H_OBU_REGULAR_TILE_GROUP ||
+                   entries[index].type == AV2H_OBU_QUANTIZATION_MATRIX) {
+            if (entries[index].type == AV2H_OBU_CLOSED_LOOP_KEY && frame == 0) {
+                frame = &entries[index];
+            }
+            ++frame_count;
         }
     }
-    if (sequence == 0 || frame == 0) return 0;
+    if (sequence == 0 || frame == 0 || frame_count != 1U) return 0;
     source.config_obus = (Av2hSpan){
         stream + sequence->offset,
         sequence->length_field_size + sequence->obu_size
@@ -216,15 +302,16 @@ int main(int argument_count, char **arguments) {
         size_t stream_size = 0U;
         size_t container_size = 0U;
         size_t seed_cases;
-        if (!load_file(arguments[argument_index], &stream, &stream_size) ||
-            !wrap_obu_seed(stream, stream_size, &container, &container_size)) {
+        if (!load_file(arguments[argument_index], &stream, &stream_size)) {
             fprintf(stderr, "could not prepare seed: %s\n",
                     arguments[argument_index]);
             free(stream);
-            free(container);
             return 1;
         }
-        seed_cases = exercise_seed(container, container_size);
+        seed_cases = exercise_seed(stream, stream_size);
+        if (wrap_obu_seed(stream, stream_size, &container, &container_size)) {
+            seed_cases += exercise_seed(container, container_size);
+        }
         total_cases += seed_cases;
         printf("%s: %zu deterministic cases\n",
                arguments[argument_index], seed_cases);

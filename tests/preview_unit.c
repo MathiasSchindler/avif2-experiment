@@ -122,6 +122,9 @@ static void test_i420_and_i444_rows(void) {
     preview.format.bit_depth = 10U;
     CHECK(av2h_planar_to_bgr8_row(
         &preview, 0U, row, sizeof(row)) == AV2H_INVALID_ARGUMENT);
+    CHECK(av2h_planar_preview_init_tight_8bit(
+        i444, UINT32_MAX, UINT32_MAX, 2U, AV2H_COLOR_RANGE_LIMITED, 6U,
+        &preview) == AV2H_OVERFLOW);
 }
 
 int main(void) {

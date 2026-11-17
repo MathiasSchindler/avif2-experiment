@@ -324,7 +324,19 @@ Av2hStatus av2h_dialect_detect(Av2hSpan input, Av2hDialect *dialect, Av2hError *
 Av2hStatus av2h_query(Av2hSpan input, const Av2hLimits *limits, Av2hInfo *info, Av2hError *error);
 Av2hStatus av2h_validate(Av2hSpan input, const Av2hLimits *limits, Av2hError *error);
 
-/* Decode canonical AV2-HEIF into the contiguous planar layout from info. */
+/*
+ * Decode canonical AV2-HEIF into the contiguous planar layout from info.
+ *
+ * Caller contracts:
+ * - `input` bytes must remain immutable for the entire duration of `av2h_query`,
+ *   `av2h_validate`, `av2h_decode`, and `av2h_decode_with_limits` (no concurrent
+ *   mutation via shared memory or memory-mapped files).
+ * - `workspace` must be aligned to `info->workspace_alignment` and need not be
+ *   zero-initialized by the caller.
+ * - `output` must be disjoint from `input`, `workspace`, `info`, and `error`,
+ *   and for >8-bit (`AV2H_SAMPLE_STORAGE_U16`) images `output` must be at least
+ *   2-byte (`_Alignof(uint16_t)`) aligned.
+ */
 Av2hStatus av2h_decode(Av2hSpan input, const Av2hInfo *info, void *workspace, size_t workspace_size,
                        void *output, size_t output_size, Av2hError *error);
 Av2hStatus av2h_decode_with_limits(Av2hSpan input, const Av2hLimits *limits, const Av2hInfo *info,

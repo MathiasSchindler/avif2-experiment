@@ -195,7 +195,7 @@ static Av2hStatus read_fsc_block(Av2hRangeDecoder *decoder, Av2hCoeffLevelCdfs *
     Av2hCoeffTxGeometry geometry;
     Av2hCoeffDequantSteps dequant_steps;
     Av2hStatus status;
-    if (prefix->all_zero ||
+    if (prefix->all_zero || prefix->eob == 0U ||
         (transform->primary_type != AV2H_TX_IDTX &&
          !(prefix->q_index == 0U && transform->primary_type == AV2H_TX_DCT_DCT)) ||
         transform->secondary_symbol != 0U) {
@@ -213,6 +213,9 @@ static Av2hStatus read_fsc_block(Av2hRangeDecoder *decoder, Av2hCoeffLevelCdfs *
     block->width = geometry.width;
     block->height = geometry.height;
     block->coefficient_count = (uint16_t)(block->width * block->height);
+    if (prefix->eob > block->coefficient_count) {
+        return AV2H_INVALID_DATA;
+    }
     for (scan_index = 0U; scan_index < AV2H_COEFF_CAPACITY; ++scan_index) {
         block->base_levels[scan_index] = 0U;
         block->quantized[scan_index] = 0;
@@ -229,6 +232,8 @@ static Av2hStatus read_fsc_block(Av2hRangeDecoder *decoder, Av2hCoeffLevelCdfs *
                                                                  : 2U;
         uint16_t *cdf = cdfs->fsc_bob_all[tx_context][context];
         uint32_t symbol;
+        if (position >= AV2H_COEFF_CAPACITY)
+            return AV2H_INVALID_DATA;
         block->diagnostic_position = position;
         block->diagnostic_context = context;
         block->diagnostic_kind = 13U;
@@ -352,6 +357,9 @@ Av2hStatus av2h_coeff_block_read(Av2hRangeDecoder *decoder, Av2hCoeffLevelCdfs *
         return AV2H_INVALID_ARGUMENT;
     }
     if (cdfs->q_context != av2h_coeff_q_context(frame->base_q_index)) {
+        return AV2H_UNSUPPORTED;
+    }
+    if (prefix->all_zero || prefix->eob == 0U) {
         return AV2H_UNSUPPORTED;
     }
     if (mode->fsc_mode || transform->primary_type == AV2H_TX_IDTX) {

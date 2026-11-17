@@ -3,14 +3,17 @@
 #include <stddef.h>
 
 #define AV2H_LINUX_SYS_MMAP 9
+#define AV2H_LINUX_SYS_MPROTECT 10
 #define AV2H_LINUX_SYS_MUNMAP 11
 #define AV2H_LINUX_SYS_SCHED_GETAFFINITY 204
 #define AV2H_LINUX_SYS_FUTEX 202
 
+#define AV2H_LINUX_PROT_NONE 0
 #define AV2H_LINUX_PROT_READ 1
 #define AV2H_LINUX_PROT_WRITE 2
 #define AV2H_LINUX_MAP_PRIVATE 2
 #define AV2H_LINUX_MAP_ANONYMOUS 0x20
+#define AV2H_LINUX_GUARD_PAGE_SIZE 4096U
 
 #define AV2H_LINUX_FUTEX_WAIT 0
 #define AV2H_LINUX_FUTEX_WAKE 1
@@ -99,18 +102,24 @@ unsigned int av2h_platform_worker_count(void) {
 }
 
 int av2h_platform_worker_start(Av2hTaskWorker *worker, int (*entry)(void *), void *argument) {
+    size_t total_size = AV2H_LINUX_GUARD_PAGE_SIZE + AV2H_TASK_POOL_STACK_SIZE;
     unsigned long flags;
     long mapping;
     long tid;
     if (worker == NULL || entry == NULL)
         return -1;
-    mapping = syscall6(AV2H_LINUX_SYS_MMAP, 0, (long)AV2H_TASK_POOL_STACK_SIZE,
-                       AV2H_LINUX_PROT_READ | AV2H_LINUX_PROT_WRITE,
+    mapping = syscall6(AV2H_LINUX_SYS_MMAP, 0, (long)total_size, AV2H_LINUX_PROT_NONE,
                        AV2H_LINUX_MAP_PRIVATE | AV2H_LINUX_MAP_ANONYMOUS, -1, 0);
-    if (mapping < 0)
+    if ((unsigned long)mapping >= (unsigned long)-4095L || mapping == 0)
         return -1;
+    if (syscall3(AV2H_LINUX_SYS_MPROTECT, mapping + (long)AV2H_LINUX_GUARD_PAGE_SIZE,
+                 (long)AV2H_TASK_POOL_STACK_SIZE,
+                 AV2H_LINUX_PROT_READ | AV2H_LINUX_PROT_WRITE) < 0) {
+        (void)syscall2(AV2H_LINUX_SYS_MUNMAP, mapping, (long)total_size);
+        return -1;
+    }
     worker->stack = (void *)mapping;
-    worker->stack_size = AV2H_TASK_POOL_STACK_SIZE;
+    worker->stack_size = total_size;
     worker->clear_tid = 0;
     flags = AV2H_LINUX_CLONE_VM | AV2H_LINUX_CLONE_FS | AV2H_LINUX_CLONE_FILES |
             AV2H_LINUX_CLONE_SIGHAND | AV2H_LINUX_CLONE_THREAD | AV2H_LINUX_CLONE_SYSVSEM |

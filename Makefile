@@ -684,10 +684,28 @@ $(HOST_RUNTIME_UNIT): tests/runtime_substrate_unit.c $(HOST_RUNTIME_LIBRARY)
 	$(CC) $(COMMON_WARNINGS) $(AUTO_VAR_INIT_HOST_CFLAGS) \
 		$(HOST_STACK_PROTECTOR_CFLAGS) -O1 -g -Isrc $< $(HOST_RUNTIME_LIBRARY) -o $@
 
-$(HOST_FUZZ): tests/public_decode_fuzz.c $(HOST_LIBRARY)
+$(HOST_FUZZ): tests/public_decode_fuzz.c tests/parallel_test.h \
+		$(HOST_CLI_OBJECTS) $(HOST_LIBRARY)
 	@mkdir -p $(@D)
-	$(CC) $(HOST_CFLAGS) -DAV2H_FUZZ_STANDALONE=1 $< $(HOST_LIBRARY) \
+	$(CC) $(HOST_CFLAGS) $(if $(filter Darwin Linux,$(HOST_SYSTEM)),-pthread) \
+		-DAV2H_FUZZ_STANDALONE=1 $< $(HOST_CLI_OBJECTS) $(HOST_LIBRARY) \
 		$(HOST_LDFLAGS) -o $@
+
+LIBFUZZER_BIN ?= build/libfuzzer/public-decode-fuzzer
+
+.PHONY: fuzz-libfuzzer
+fuzz-libfuzzer: $(LIBFUZZER_BIN)
+
+$(LIBFUZZER_BIN): tests/public_decode_fuzz.c tests/parallel_test.h \
+		$(CORE_SOURCES) $(CLI_SOURCES)
+	@mkdir -p $(@D)
+	$(CC) $(COMMON_WARNINGS) $(AUTO_VAR_INIT_HOST_CFLAGS) \
+		$(HOST_STACK_PROTECTOR_CFLAGS) -O1 -g \
+		-fsanitize=fuzzer,address,undefined -fno-sanitize-recover=undefined \
+		-fno-omit-frame-pointer -DAV2H_ASAN_ARENA_REDZONE=16 \
+		$(if $(filter Darwin Linux,$(HOST_SYSTEM)),-pthread) \
+		-Iinclude -Isrc tests/public_decode_fuzz.c $(CORE_SOURCES) $(CLI_SOURCES) \
+		-o $@
 
 $(HOST_DECODER): src/platform/posix/decoder.c $(HOST_CLI_OBJECTS) $(HOST_LIBRARY)
 	@mkdir -p $(@D)
@@ -714,6 +732,8 @@ test-c: test-host-build test-private-headers
 	@$(MAKE) run-host-tests TESTS='$(notdir $(HOST_UNIT_BINARIES))'
 	$(HOST_RUNTIME_UNIT)
 	$(HOST_FUZZ) tests/fixtures/i444-tiny.obu \
+		tests/fixtures/monochrome-tiny.obu \
+		tests/fixtures/spatial-tile-filtered-nonuniform.obu \
 		tests/fixtures/10bit/avm-reference/tiny-constrained-16x16-yuv420p10le-qp208.obu \
 		tests/fixtures/10bit/avm-reference/tiny-precision-16x16-yuv444p10le-qp128.obu
 

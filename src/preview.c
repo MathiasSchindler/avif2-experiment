@@ -78,7 +78,9 @@ Av2hStatus av2h_planar_preview_init_tight_8bit(const uint8_t *planar, uint32_t w
     size_t luma_size;
     size_t chroma_width;
     size_t chroma_height;
-    size_t chroma_size;
+    size_t chroma_size = 0U;
+    size_t u_end = 0U;
+    size_t total_size = 0U;
     if (planar == NULL || preview == NULL || width == 0U || height == 0U ||
         color_range != (uint8_t)AV2H_COLOR_RANGE_LIMITED || matrix_coefficients != 6U ||
         !av2h_pixel_format_init_8bit(chroma_format_idc, &format) ||
@@ -87,7 +89,10 @@ Av2hStatus av2h_planar_preview_init_tight_8bit(const uint8_t *planar, uint32_t w
     }
     chroma_width = av2h_pixel_format_plane_dimension(&format, width, 1U);
     chroma_height = av2h_pixel_format_plane_dimension(&format, height, 1U);
-    if (chroma_format_idc != 1U && !av2h_size_multiply(chroma_width, chroma_height, &chroma_size)) {
+    if (chroma_format_idc != 1U &&
+        (!av2h_size_multiply(chroma_width, chroma_height, &chroma_size) ||
+         !av2h_size_add(luma_size, chroma_size, &u_end) ||
+         !av2h_size_add(u_end, chroma_size, &total_size))) {
         return AV2H_OVERFLOW;
     }
     preview->format = format;
@@ -104,7 +109,7 @@ Av2hStatus av2h_planar_preview_init_tight_8bit(const uint8_t *planar, uint32_t w
         preview->stride_samples[2U] = 0U;
     } else {
         preview->plane[1U] = planar + luma_size;
-        preview->plane[2U] = planar + luma_size + chroma_size;
+        preview->plane[2U] = planar + u_end;
         preview->stride_samples[1U] = chroma_width;
         preview->stride_samples[2U] = chroma_width;
     }

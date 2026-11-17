@@ -314,6 +314,21 @@ static void test_arena(void) {
     CHECK(first != 0 && ((uintptr_t)first & 3U) == 0U);
     CHECK(second != 0 && ((uintptr_t)second & 7U) == 0U);
     CHECK(av2h_arena_required(&arena) <= sizeof(memory) - 1U);
+#if defined(__SANITIZE_ADDRESS__) || (defined(__has_feature) && __has_feature(address_sanitizer))
+    {
+        int __asan_address_is_poisoned(void const volatile *addr);
+        av2h_arena_init(&arena, memory, sizeof(memory));
+        av2h_arena_set_redzone(&arena, 16U);
+        first = av2h_arena_allocate(&arena, 8U, 8U);
+        second = av2h_arena_allocate(&arena, 8U, 8U);
+        CHECK(first != 0 && second != 0);
+        CHECK(__asan_address_is_poisoned(first) == 0);
+        CHECK(__asan_address_is_poisoned((const unsigned char *)first + 8U) != 0);
+        CHECK(__asan_address_is_poisoned(second) == 0);
+        CHECK(__asan_address_is_poisoned((const unsigned char *)second + 8U) != 0);
+        av2h_asan_unpoison(memory, sizeof(memory));
+    }
+#endif
 
     av2h_arena_init_sizing(&sizing);
     (void)av2h_arena_allocate(&sizing, 3U, 4U);
@@ -324,6 +339,7 @@ static void test_arena(void) {
         CHECK(av2h_arena_allocate(&arena, 8U, 8U) != 0);
         CHECK(av2h_arena_required(&arena) <= av2h_arena_required(&sizing));
     }
+    av2h_asan_unpoison(memory, sizeof(memory));
     av2h_arena_init_sizing(&sizing);
     CHECK(av2h_arena_allocate(&sizing, 1U, 3U) == 0);
     CHECK(sizing.status == AV2H_INVALID_ARGUMENT);
