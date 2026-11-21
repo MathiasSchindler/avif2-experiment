@@ -24,6 +24,9 @@ uint16_t av2h_chroma_plane_coded_sample_u16(const Av2hReconstructionPlaneU16 *pl
 uint16_t av2h_chroma_luma_sample_q3_u16(const Av2hReconstructionPlaneU16 *luma_plane,
                                         uint8_t filter_index, uint16_t chroma_x, uint16_t chroma_y);
 
+uint16_t av2h_chroma_luma_filter2_top_clamped_q3_u16(const Av2hReconstructionPlaneU16 *luma_plane,
+                                                     uint16_t chroma_x, uint16_t chroma_y);
+
 uint16_t av2h_chroma_luma_sb_top_sample_q3_u16(const Av2hReconstructionPlaneU16 *luma_plane,
                                                uint8_t filter_index, uint16_t chroma_x,
                                                uint16_t block_y);

@@ -763,6 +763,30 @@ test-c: test-host-build test-private-headers
 		--input tests/fixtures/baya-weaver-current-i420-qp152.obu \
 		--output $(HOST_BUILD_DIR)/baya-weaver-current-i420-qp152.i420 \
 		--expected 7324889ae632f9e4f75eab47dcc8e430e1df8efde8c9ba68e23884bf5f492b1f
+	$(PYTHON) tools/build_checks.py parity --decoder $(HOST_DECODER) \
+		--input tests/fixtures/baya-weaver-max-aspect-4-i420.obu \
+		--output $(HOST_BUILD_DIR)/baya-weaver-max-aspect-4.i420 \
+		--expected 8255ddbe962157281e9877f87dae30887e1347d3663f1b875b6fdd30f34a210a
+	$(PYTHON) tools/build_checks.py parity --decoder $(HOST_DECODER) \
+		--input tests/fixtures/baya-weaver-default-restoration-i444.obu \
+		--output $(HOST_BUILD_DIR)/baya-weaver-default-restoration.i444 \
+		--expected 9c2a8c60a095c81d88f525433bb2742afae4d80582a1fea7c0d529b1d795cb1a
+	$(PYTHON) tools/build_checks.py parity --decoder $(HOST_DECODER) \
+		--input tests/fixtures/10bit/baya-weaver-default-i420.obu \
+		--output $(HOST_BUILD_DIR)/baya-weaver-default.yuv420p10le \
+		--expected adb18c7fee3fc2c77e40316c3fe6582d4fe13620b6467ae8fab17dcc4f96f285
+	$(PYTHON) tools/build_checks.py parity --decoder $(HOST_DECODER) \
+		--input tests/fixtures/10bit/baya-weaver-default-i444.obu \
+		--output $(HOST_BUILD_DIR)/baya-weaver-default.yuv444p10le \
+		--expected 9c7b4174ed14cf75d240a6e6dbc4e7b81ba4b41c06993a71229143488516c59a
+	$(PYTHON) tools/build_checks.py parity --decoder $(HOST_DECODER) \
+		--input tests/fixtures/10bit/baya-weaver-pc-wiener-i420.obu \
+		--output $(HOST_BUILD_DIR)/baya-weaver-pc-wiener.yuv420p10le \
+		--expected 725a3dfa92d7d6ff01fed181fcf498dba16e92f8fc381be2eff6397f4952cf31
+	$(PYTHON) tools/build_checks.py parity --decoder $(HOST_DECODER) \
+		--input tests/fixtures/10bit/baya-weaver-wiener-nonsep-i444.obu \
+		--output $(HOST_BUILD_DIR)/baya-weaver-wiener-nonsep.yuv444p10le \
+		--expected 7b7e6bbf3e22e3882a8f189dba1f4d5eaf36dcd658a82e9683ca70d45b11d4fd
 
 spatial-still-admission: test-host-build
 	$(PYTHON) tools/validate_spatial_still_profile.py \

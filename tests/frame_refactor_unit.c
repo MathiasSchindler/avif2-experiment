@@ -43,9 +43,9 @@ static void test_storage_offsets(void) {
     static _Alignas(max_align_t) uint8_t memory[2U * 1024U * 1024U];
     /* A1 adds preparation, decoder/coefficient and reconstruction scratch; addresses are excluded. */
     static const uint64_t expected[6] = {
-        UINT64_C(0xa8031a162cb0fb90), UINT64_C(0xa41249720bf13222),
-        UINT64_C(0x3a64f61ec386d1a6), UINT64_C(0xa71bcc09bcedd7e6),
-        UINT64_C(0x9f5d7c1ece1d0909), UINT64_C(0x3a7d0479a3c5f7c9)
+        UINT64_C(0xa8031a162cb0fb90), UINT64_C(0x312b86629d014a01),
+        UINT64_C(0x3a64f61ec386d1a6), UINT64_C(0xdee729179a49c254),
+        UINT64_C(0x9f5d7c1ece1d0909), UINT64_C(0x7c11b1a7d7f58e68)
     };
     unsigned int format;
     unsigned int bytes;
@@ -102,7 +102,19 @@ static void test_storage_offsets(void) {
                             POINTER(workspace.tile_context.ccso_unit_controls[plane]);
                             hash = hash_value(hash, workspace.coded_data_size_bytes[plane]);
                         }
-                        POINTER(filter.restoration.data);
+                        if (bytes == 1U) {
+                            POINTER(filter.restoration.data);
+                        } else {
+                            CHECK((filter.restoration_u16.data != NULL) == (restoration != 0U));
+                            if (restoration != 0U) {
+                                CHECK(filter.restoration_u16.data != filter.deblocked_u16.plane[0].data);
+                                CHECK(filter.restoration_u16.width == filter.deblocked_u16.plane[0].width);
+                                CHECK(filter.restoration_u16.height == filter.deblocked_u16.plane[0].height);
+                                CHECK(filter.restoration_controls.tx_skip == storage.restoration_tx_skip);
+                                CHECK(storage.restoration_tx_skip != NULL);
+                            }
+                            POINTER(filter.restoration_u16.data);
+                        }
                         POINTER(filter.restoration_tx_skip);
                         POINTER(workspace.reconstruction_scratch);
                         POINTER(workspace.reconstruction_scratch_u16);
@@ -530,9 +542,9 @@ static void test_frame_results(void) {
     }
     puts("");
 #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
-    CHECK(hash == UINT64_C(0x89fa7c2c44953ee3));
+    CHECK(hash == UINT64_C(0xae34f5c9f8f8b81e));
 #else
-    CHECK(hash == UINT64_C(0xa33580bc4d759373));
+    CHECK(hash == UINT64_C(0xf6634f2da60a0426));
 #endif
 }
 
@@ -546,15 +558,15 @@ static void test_frame_orchestration_results(void) {
         "tests/fixtures/10bit/avm-reference/tiny-precision-16x16-yuv420p10le-qp160.obu",
         "tests/fixtures/10bit/avm-reference/tiny-precision-16x16-yuv444p10le-qp128.obu"
     };
-    /* A1 initializes decoder/neighbors and bounds wide secondary references in mutated streams. */
+    /* The transcript includes mutations rejected by tile entropy-end validation. */
     static const uint64_t expected[7U][2U] = {
-        {UINT64_C(0xef68fa57994c3d43), UINT64_C(0xc9d75e745ba982b0)},
-        {UINT64_C(0x43d917cfd867591c), UINT64_C(0x9d49e6063c1702ed)},
-        {UINT64_C(0x5b0a800d7c117abf), UINT64_C(0x4838d7ef837ba8e1)},
-        {UINT64_C(0x82b56e940268c1ba), UINT64_C(0x3c59ee17cc09cc96)},
-        {UINT64_C(0x06c0d53564fed226), UINT64_C(0xce774e626c2cc84b)},
-        {UINT64_C(0x80c55175bf202253), UINT64_C(0x76c0e59323fec417)},
-        {UINT64_C(0x0fea65915921bf11), UINT64_C(0x5caff6c493fb7afc)}
+        {UINT64_C(0xed40f5c32c3b6322), UINT64_C(0xb0d1c813fcc8c0e5)},
+        {UINT64_C(0xbaf48f3a03e473f7), UINT64_C(0xd7cc98453934ffba)},
+        {UINT64_C(0xf73e92bd112e3860), UINT64_C(0x890a5e6c691dbeee)},
+        {UINT64_C(0x82d00503228f9286), UINT64_C(0x633d68aa5a7b25d6)},
+        {UINT64_C(0x1eb3228f23edb841), UINT64_C(0x102fa5acd87513cc)},
+        {UINT64_C(0xf7b61b93e181e69c), UINT64_C(0x05e219dcf2999c7c)},
+        {UINT64_C(0x2e4a1a323d0afeb8), UINT64_C(0x157dc985807cda3d)}
     };
     static uint8_t input[262144U];
     static uint8_t output[256U * 256U * 6U];
@@ -704,7 +716,12 @@ static void test_frame_orchestration_results(void) {
                     memset(output, 0xa5, required + 16U);
                     status = av2h_decode_frame_group_planar_private(
                         &original, &sequence, &frame, &workspace, output, required, &result, NULL);
-                    if (mutation != 1U) CHECK(status == AV2H_OK);
+                    if (mutation == 0U) CHECK(status == AV2H_OK);
+                    if (mutation >= 2U) {
+                        CHECK(status == AV2H_INVALID_DATA);
+                        CHECK(result.stage == AV2H_FRAME_DECODE_STAGE_COMPLETENESS);
+                        CHECK(output[0] == 0xa5U);
+                    }
                     record = hash_result(hash_value(UINT64_C(14695981039346656037), status),
                                          &result);
                     for (index = 0U; index < required + 16U; ++index)

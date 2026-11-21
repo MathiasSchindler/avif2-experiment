@@ -971,9 +971,6 @@ Av2hStatus av2h_luma_mode_read_palette_and_dip(Av2hRangeDecoder *decoder, Av2hLe
                 return av2h_range_status(decoder);
             }
             if (mode->use_intra_dip != 0U) {
-                if (sequence->info.bit_depth_idc != 1U) {
-                    return AV2H_UNSUPPORTED;
-                }
                 mode->intra_dip_mode = (uint8_t)(av2h_range_read_bypass(decoder, 1U) << 4U);
                 mode->intra_dip_mode =
                     (uint8_t)(mode->intra_dip_mode +

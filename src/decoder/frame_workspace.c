@@ -438,16 +438,21 @@ static int filter_workspace_valid(const Av2hFrameState *frame,
             return 0;
         }
     }
-    if (bytes_per_sample == 1U && frame->restoration_type[0] != AV2H_RESTORE_NONE &&
-        (workspace->restoration.data == NULL ||
-         workspace->restoration.width != layout->plane_width[0] ||
-         workspace->restoration.height != layout->plane_height[0] ||
-         workspace->restoration.stride_samples < workspace->restoration.width ||
-         (av2h_frame_restoration_needs_tx_skip(frame) &&
-          (workspace->restoration_tx_skip == NULL ||
-           workspace->restoration_controls.tx_skip != workspace->restoration_tx_skip ||
-           workspace->restoration_controls.tx_skip_stride != layout->deblock_columns[0])))) {
-        return 0;
+    if (frame->restoration_type[0] != AV2H_RESTORE_NONE) {
+        const Av2hFilterPlane *narrow = &workspace->restoration;
+        const Av2hFilterPlaneU16 *wide = &workspace->restoration_u16;
+        if ((bytes_per_sample == 1U &&
+             (narrow->data == NULL || narrow->width != layout->plane_width[0] ||
+              narrow->height != layout->plane_height[0] ||
+              narrow->stride_samples < narrow->width)) ||
+            (bytes_per_sample == 2U &&
+             (wide->data == NULL || wide->width != layout->plane_width[0] ||
+              wide->height != layout->plane_height[0] || wide->stride_samples < wide->width)) ||
+            (av2h_frame_restoration_needs_tx_skip(frame) &&
+             (workspace->restoration_tx_skip == NULL ||
+              workspace->restoration_controls.tx_skip != workspace->restoration_tx_skip ||
+              workspace->restoration_controls.tx_skip_stride != layout->deblock_columns[0])))
+            return 0;
     }
     return 1;
 }
@@ -626,7 +631,10 @@ static int output_is_disjoint(uint8_t *output, size_t output_size_bytes,
             return 0;
         }
     }
-    if (output_overlaps(output, output_size_bytes, workspace->filter_workspace->restoration.data,
+    if (output_overlaps(output, output_size_bytes,
+                        workspace->bytes_per_sample == 1U
+                            ? (const void *)workspace->filter_workspace->restoration.data
+                            : (const void *)workspace->filter_workspace->restoration_u16.data,
                         layout->restoration_plane_bytes) ||
         output_overlaps(output, output_size_bytes,
                         workspace->filter_workspace->restoration_controls.tx_skip,
@@ -901,10 +909,10 @@ Av2hStatus av2h_filter_workspace_query(const Av2hFrameState *frame, size_t bytes
             }
         }
     }
-    if (bytes_per_sample == 1U && frame->restoration_type[0] != AV2H_RESTORE_NONE) {
+    if (frame->restoration_type[0] != AV2H_RESTORE_NONE) {
         layout->restoration_plane_bytes = layout->stage_plane_bytes[0];
         if (!workspace_reserve(&size_bytes, layout->restoration_plane_bytes, sizeof(uint8_t),
-                               _Alignof(uint8_t))) {
+                               bytes_per_sample)) {
             return AV2H_OVERFLOW;
         }
         if (av2h_frame_restoration_needs_tx_skip(frame)) {
@@ -968,9 +976,14 @@ Av2hStatus av2h_filter_workspace_init(const Av2hFrameState *frame, size_t bytes_
     }
     if (layout.restoration_plane_bytes != 0U) {
         void *samples =
-            av2h_arena_allocate(&arena, layout.restoration_plane_bytes, _Alignof(uint8_t));
-        workspace->restoration = (Av2hFilterPlane){samples, layout.plane_width[0],
-                                                   layout.plane_width[0], layout.plane_height[0]};
+            av2h_arena_allocate(&arena, layout.restoration_plane_bytes, bytes_per_sample);
+        if (bytes_per_sample == 1U) {
+            workspace->restoration = (Av2hFilterPlane){
+                samples, layout.plane_width[0], layout.plane_width[0], layout.plane_height[0]};
+        } else {
+            workspace->restoration_u16 = (Av2hFilterPlaneU16){
+                samples, layout.plane_width[0], layout.plane_width[0], layout.plane_height[0]};
+        }
         if (layout.restoration_tx_skip_count != 0U) {
             storage->restoration_tx_skip =
                 av2h_arena_allocate(&arena, layout.restoration_tx_skip_count, _Alignof(uint8_t));

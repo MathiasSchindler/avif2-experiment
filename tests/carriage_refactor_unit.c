@@ -124,7 +124,7 @@ static void hash_state(Characterization *record, const Av2hSequenceState *state)
         state->force_screen_content_tools, state->force_integer_mv,
         state->enable_sdp, state->enable_ext_partitions,
         state->enable_uneven_4way_partitions,
-        state->max_pb_aspect_ratio_log2_minus_1, state->enable_ext_seg,
+        state->max_pb_aspect_ratio, state->enable_ext_seg,
         state->seq_seg_info_present_flag, state->seg_allow_info_change,
         state->seg_last_active_id, state->enable_intra_dip,
         state->enable_intra_edge_filter, state->enable_mrls,
@@ -450,7 +450,7 @@ int main(void) {
     };
     static const uint64_t expected[] = {
         UINT64_C(0x1ab561e3a7fc4825), UINT64_C(0x33c82387f94cd6c5),
-        UINT64_C(0x11dd8e51712eb827), UINT64_C(0x1986dc98fde279c5),
+        UINT64_C(0xa7fbad490ead1242), UINT64_C(0x1986dc98fde279c5),
         UINT64_C(0x930c0e080d97ed0c), UINT64_C(0xee7fea65ce3bd619)
     };
     Characterization records[6];

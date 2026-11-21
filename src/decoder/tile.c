@@ -375,6 +375,10 @@ static Av2hStatus tile_reset_traversal_roots(Av2hTileDecoder *decoder) {
     decoder->root.square_child_luma_child_count = 0U;
     decoder->root.square_child_luma_children_share = 1U;
     decoder->root.square_root_child_index = 0U;
+    decoder->root.chroma_restoration_pending =
+        (uint8_t)(root.block_size == AV2H_BLOCK_64X64 &&
+                  decoder->entropy_state.sequence->enable_sdp &&
+                  (decoder->entropy_state.restoration_entropy.active_mask & 6U) != 0U);
     decoder->chroma.shared_mode_pending = 0U;
     decoder->traversal.luma_partition_node_count = 0U;
     status = av2h_partition_traversal_reset_root(&decoder->traversal.luma_traversal, root);
@@ -880,14 +884,16 @@ Av2hStatus av2h_tile_decoder_init(Av2hTileDecoder *decoder, Av2hSpan entropy,
         &decoder->traversal.luma_traversal, (uint16_t)decoder->traversal.mi_rows,
         (uint16_t)decoder->traversal.mi_columns,
         (Av2hPartitionNode){0U, 0U, decoder->root.root_block_size}, 0U,
-        sequence->enable_ext_partitions, sequence->enable_uneven_4way_partitions);
+        sequence->enable_ext_partitions, sequence->enable_uneven_4way_partitions,
+        sequence->max_pb_aspect_ratio != 0U ? sequence->max_pb_aspect_ratio : 8U);
     if (status != AV2H_OK)
         return av2h_tile_decoder_fail(decoder, status);
     status = av2h_partition_traversal_init(
         &decoder->traversal.chroma_traversal, (uint16_t)decoder->traversal.mi_rows,
         (uint16_t)decoder->traversal.mi_columns,
         (Av2hPartitionNode){0U, 0U, decoder->root.root_block_size}, 1U,
-        sequence->enable_ext_partitions, sequence->enable_uneven_4way_partitions);
+        sequence->enable_ext_partitions, sequence->enable_uneven_4way_partitions,
+        sequence->max_pb_aspect_ratio != 0U ? sequence->max_pb_aspect_ratio : 8U);
     if (status != AV2H_OK)
         return av2h_tile_decoder_fail(decoder, status);
     status = tile_reset_traversal_roots(decoder);

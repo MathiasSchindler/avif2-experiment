@@ -1,0 +1,46 @@
+{
+  "source": "Baya Weaver in Bhigwan August 2025 by Tisha Mukherjee 04",
+  "creator": "Tisha Mukherjee",
+  "source_page": "https://commons.wikimedia.org/wiki/File:Baya_Weaver_in_Bhigwan_August_2025_by_Tisha_Mukherjee_04.jpg",
+  "source_sha256": "376aaf85243f1e8186e82203440f6c18a96213138bf949d381daef5a4effe6d1",
+  "license": "CC-BY-SA-4.0",
+  "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+  "adaptation": "Resized with FFmpeg's Lanczos scaler to 160x106, converted to full-range yuv420p10le or yuv444p10le, and encoded as one AV2 still picture.",
+  "avm_revision": "1cfda4fa4879ef2da411b02fe2f51597daab3451",
+  "dimensions": [160, 106],
+  "encode_options": "--obu --limit=1 --passes=1 --width=160 --height=106 --input-bit-depth=10",
+  "fixtures": [
+    {
+      "file": "baya-weaver-default-i420.obu",
+      "format": "yuv420p10le",
+      "prepared_sha256": "c9788f8c17f4dfafa64e999c05364de994760ab92d14dee63bd84ed97827f958",
+      "encoded_sha256": "398a7cfa2ce42d89e5b55a6d2ea6a23f7f4e2d77c3b12e3e9813aba613f9db93",
+      "decoded_sha256": "adb18c7fee3fc2c77e40316c3fe6582d4fe13620b6467ae8fab17dcc4f96f285",
+      "extra_encode_options": "--i420"
+    },
+    {
+      "file": "baya-weaver-default-i444.obu",
+      "format": "yuv444p10le",
+      "prepared_sha256": "d93965352ea4a01c319e7630d18d57a65515aa4f272800439ce155620bc73575",
+      "encoded_sha256": "5f9adf22d51c3afeb6a27841e0f769808b5147b1a866e0cb9e10c72de48068f7",
+      "decoded_sha256": "9c7b4174ed14cf75d240a6e6dbc4e7b81ba4b41c06993a71229143488516c59a",
+      "extra_encode_options": "--i444"
+    },
+    {
+      "file": "baya-weaver-pc-wiener-i420.obu",
+      "format": "yuv420p10le",
+      "prepared_sha256": "c9788f8c17f4dfafa64e999c05364de994760ab92d14dee63bd84ed97827f958",
+      "encoded_sha256": "e67722572007dd722fa5b9e93e76280605d489546c491d301a5a507618302082",
+      "decoded_sha256": "725a3dfa92d7d6ff01fed181fcf498dba16e92f8fc381be2eff6397f4952cf31",
+      "extra_encode_options": "--i420 --cpu-used=5 --threads=1 --enable-restoration=1 --enable-pc-wiener=1 --enable-wiener-nonsep=0 --enable-cdef=0 --enable-ccso=0 --enable-gdf=0 --end-usage=q --qp=152 --quiet"
+    },
+    {
+      "file": "baya-weaver-wiener-nonsep-i444.obu",
+      "format": "yuv444p10le",
+      "prepared_sha256": "d93965352ea4a01c319e7630d18d57a65515aa4f272800439ce155620bc73575",
+      "encoded_sha256": "9dbb3b637d5d12b32a794a69d92a71052f4e96f5cd0a575ad1fde17e72d396e6",
+      "decoded_sha256": "7b7e6bbf3e22e3882a8f189dba1f4d5eaf36dcd658a82e9683ca70d45b11d4fd",
+      "extra_encode_options": "--i444 --cpu-used=5 --threads=1 --enable-restoration=1 --enable-pc-wiener=0 --enable-wiener-nonsep=1 --enable-cdef=0 --enable-ccso=0 --enable-gdf=0 --end-usage=q --qp=152 --quiet"
+    }
+  ]
+}

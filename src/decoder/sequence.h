@@ -21,7 +21,7 @@ typedef struct {
     uint8_t enable_sdp;
     uint8_t enable_ext_partitions;
     uint8_t enable_uneven_4way_partitions;
-    uint8_t max_pb_aspect_ratio_log2_minus_1;
+    uint8_t max_pb_aspect_ratio;
     uint8_t enable_ext_seg;
     uint8_t seq_seg_info_present_flag;
     uint8_t seg_allow_info_change;

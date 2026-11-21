@@ -208,6 +208,12 @@ Av2hStatus av2h_tile_decoder_next_chroma(Av2hTileDecoder *decoder, Av2hTileChrom
     }
     av2h_tile_diagnostics_set_chroma_stage(decoder->entropy_state.range.diagnostics, 0U);
     av2h_tile_diagnostics_set_chroma_reason(decoder->entropy_state.range.diagnostics, 1U);
+    if (decoder->root.chroma_restoration_pending) {
+        status = av2h_tile_read_restoration_units(decoder, 1U, AV2H_FRAME_PLANE_COUNT);
+        if (status != AV2H_OK)
+            return av2h_tile_decoder_fail(decoder, status);
+        decoder->root.chroma_restoration_pending = 0U;
+    }
     continuing_transform = decoder->chroma.tx_count != 0U;
     if (continuing_transform) {
         path.decision_count = 0U;

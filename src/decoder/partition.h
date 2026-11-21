@@ -83,8 +83,9 @@ typedef struct {
     uint16_t mi_rows;
     uint16_t mi_columns;
     uint8_t structure;
-    uint8_t enable_ext_partitions;
-    uint8_t enable_uneven_4way_partitions;
+    uint8_t enable_ext_partitions : 1;
+    uint8_t enable_uneven_4way_partitions : 1;
+    uint8_t max_aspect_ratio;
     uint8_t has_pending_leaf;
     Av2hPartitionNode diagnostic_node;
     size_t diagnostic_before_bits;
@@ -110,7 +111,8 @@ Av2hStatus av2h_partition_context_state_update(Av2hPartitionContextState *state,
 Av2hStatus av2h_partition_traversal_init(Av2hPartitionTraversal *traversal, uint16_t mi_rows,
                                          uint16_t mi_columns, Av2hPartitionNode root,
                                          size_t structure, unsigned int enable_ext_partitions,
-                                         unsigned int enable_uneven_4way_partitions);
+                                         unsigned int enable_uneven_4way_partitions,
+                                         uint8_t max_aspect_ratio);
 Av2hStatus av2h_partition_traversal_reset_root(Av2hPartitionTraversal *traversal,
                                                Av2hPartitionNode root);
 Av2hStatus av2h_partition_child_nodes(Av2hPartitionNode node, Av2hPartitionType partition,
@@ -162,7 +164,7 @@ Av2hStatus av2h_partition_node_read_with_state(
     Av2hRangeDecoder *decoder, Av2hPartitionCdfs *cdfs, const Av2hPartitionContextState *state,
     size_t structure, Av2hPartitionNode node, uint16_t mi_rows, uint16_t mi_columns,
     unsigned int enable_ext_partitions, unsigned int enable_uneven_4way_partitions,
-    Av2hPartitionDecision *decision, Av2hPartitionNode *child);
+    uint8_t max_aspect_ratio, Av2hPartitionDecision *decision, Av2hPartitionNode *child);
 
 _Static_assert((unsigned int)AV2H_PARTITION_INVALID == UINT8_MAX &&
                    (unsigned int)AV2H_PARTITION_SPLIT < (unsigned int)AV2H_PARTITION_INVALID,

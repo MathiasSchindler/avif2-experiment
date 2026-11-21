@@ -269,7 +269,8 @@ static Av2hStatus tile_read_wiener_unit_filter(Av2hTileDecoder *decoder, unsigne
     return AV2H_OK;
 }
 
-static Av2hStatus tile_read_restoration_units(Av2hTileDecoder *decoder) {
+Av2hStatus av2h_tile_read_restoration_units(Av2hTileDecoder *decoder, unsigned int plane_begin,
+                                            unsigned int plane_end) {
     Av2hRestorationEntropyState *state = &decoder->entropy_state.restoration_entropy;
     unsigned int plane;
     if (state->active_mask == 0U)
@@ -277,7 +278,7 @@ static Av2hStatus tile_read_restoration_units(Av2hTileDecoder *decoder) {
     if (state->superblock_mi == 0U) {
         return AV2H_INVALID_DATA;
     }
-    for (plane = 0U; plane < AV2H_FRAME_PLANE_COUNT; ++plane) {
+    for (plane = plane_begin; plane < plane_end; ++plane) {
         unsigned int shift;
         size_t pixel_row;
         size_t pixel_column;
@@ -863,7 +864,9 @@ Av2hStatus av2h_tile_decoder_next_luma(Av2hTileDecoder *decoder, Av2hTileLumaLea
     if (decoder->control.phase == AV2H_TILE_DECODE_CHROMA)
         return AV2H_OK;
     if (decoder->traversal.luma_partition_node_count == 0U) {
-        status = tile_read_restoration_units(decoder);
+        /* A 64x64 SDP superblock signals chroma restoration at the chroma root. */
+        status = av2h_tile_read_restoration_units(
+            decoder, 0U, decoder->root.chroma_restoration_pending ? 1U : AV2H_FRAME_PLANE_COUNT);
         if (status != AV2H_OK)
             return av2h_tile_decoder_fail(decoder, status);
     }

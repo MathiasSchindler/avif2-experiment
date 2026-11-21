@@ -182,12 +182,8 @@ static void AV2H_KERNEL_NAME(gdf_filter_block, gdf_filter_block_u16)(
     }
 }
 Av2hStatus AV2H_KERNEL_NAME(av2h_gdf_validate_frame, av2h_gdf_validate_frame_u16)(
-    AV2H_KERNEL_TYPE(Av2hFilterPlane, Av2hFilterPlaneU16) *destination
-#if !AV2H_KERNEL_WIDE
-                                   ,
-                                   const Av2hFilterPlane *baseline_luma
-#endif
-                                   ,
+    AV2H_KERNEL_TYPE(Av2hFilterPlane, Av2hFilterPlaneU16) *destination,
+                                   const AV2H_KERNEL_TYPE(Av2hFilterPlane, Av2hFilterPlaneU16) *baseline_luma,
                                    const AV2H_KERNEL_TYPE(Av2hFilterPlane, Av2hFilterPlaneU16) *cdef_luma,
                                    const AV2H_KERNEL_TYPE(Av2hFilterPlane, Av2hFilterPlaneU16) *deblocked_luma,
                                    const Av2hSequenceState *sequence, const Av2hFrameState *frame,
@@ -202,12 +198,9 @@ Av2hStatus AV2H_KERNEL_NAME(av2h_gdf_validate_frame, av2h_gdf_validate_frame_u16
     if (!av2h_sample_domain_valid(domain))
         return AV2H_INVALID_ARGUMENT;
 #endif
-    if (!AV2H_KERNEL_NAME(gdf_frame_arguments_valid,
-                          gdf_frame_arguments_valid_u16)(destination,
-#if !AV2H_KERNEL_WIDE
-                                   baseline_luma,
-#endif
-                                   cdef_luma, deblocked_luma, frame)) {
+    if (!AV2H_KERNEL_NAME(
+            gdf_frame_arguments_valid,
+            gdf_frame_arguments_valid_u16)(destination, baseline_luma, cdef_luma, deblocked_luma, frame)) {
         return AV2H_INVALID_ARGUMENT;
     }
     if (frame->gdf_mode == 2U) {
@@ -238,10 +231,7 @@ Av2hStatus AV2H_KERNEL_NAME(av2h_gdf_validate_frame, av2h_gdf_validate_frame_u16
 /* Geometry, controls, and disjoint writable storage must be validated first.
  * The two immutable source planes may share storage in the stage router. */
 void AV2H_KERNEL_NAME(av2h_gdf_apply_rows, av2h_gdf_apply_rows_u16)(
-    AV2H_KERNEL_TYPE(Av2hFilterPlane, Av2hFilterPlaneU16) *destination,
-#if !AV2H_KERNEL_WIDE
-                         const Av2hFilterPlane *baseline_luma,
-#endif
+    AV2H_KERNEL_TYPE(Av2hFilterPlane, Av2hFilterPlaneU16) *destination, const AV2H_KERNEL_TYPE(Av2hFilterPlane, Av2hFilterPlaneU16) *baseline_luma,
                          const AV2H_KERNEL_TYPE(Av2hFilterPlane, Av2hFilterPlaneU16) *cdef_luma, const AV2H_KERNEL_TYPE(Av2hFilterPlane, Av2hFilterPlaneU16) *deblocked_luma,
                          const Av2hSequenceState *sequence, const Av2hFrameState *frame,
                          const Av2hGdfControlMap *controls, size_t row_begin, size_t row_end
@@ -254,7 +244,7 @@ void AV2H_KERNEL_NAME(av2h_gdf_apply_rows, av2h_gdf_apply_rows_u16)(
     unsigned int qp_index;
 #if AV2H_KERNEL_WIDE
     qp_index = gdf_training_qp_index(frame, domain->bit_depth);
-    filter_copy_rows_u16(destination, cdef_luma, row_begin, row_end);
+    filter_copy_rows_u16(destination, baseline_luma, row_begin, row_end);
 #else
     qp_index = gdf_training_qp_index(frame, 8U);
     filter_copy_rows(destination, baseline_luma, row_begin, row_end);
@@ -309,8 +299,10 @@ Av2hStatus AV2H_KERNEL_NAME(av2h_gdf_filter_frame, av2h_gdf_filter_frame_u16)(
     Av2hStatus status = AV2H_KERNEL_NAME(
         av2h_gdf_validate_frame,
         av2h_gdf_validate_frame_u16)(destination,
-#if !AV2H_KERNEL_WIDE
-                                                baseline_luma,
+#if AV2H_KERNEL_WIDE
+                                                cdef_luma,
+#else
+                                baseline_luma,
 #endif
                                                 cdef_luma, deblocked_luma, sequence, frame, controls
 #if AV2H_KERNEL_WIDE
@@ -323,7 +315,9 @@ Av2hStatus AV2H_KERNEL_NAME(av2h_gdf_filter_frame, av2h_gdf_filter_frame_u16)(
     AV2H_KERNEL_NAME(
         av2h_gdf_apply_rows,
         av2h_gdf_apply_rows_u16)(destination,
-#if !AV2H_KERNEL_WIDE
+#if AV2H_KERNEL_WIDE
+                        cdef_luma,
+#else
                         baseline_luma,
 #endif
                         cdef_luma, deblocked_luma, sequence, frame, controls, 0U, SIZE_MAX

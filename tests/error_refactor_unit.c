@@ -418,9 +418,9 @@ static void test_public_errors(void) {
     CHECK(stages[AV2H_DIAGNOSTIC_STAGE_RECONSTRUCTION] != 0U);
     CHECK(stages[AV2H_DIAGNOSTIC_STAGE_COMPLETE] != 0U);
 #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)
-    check_record("public errors", &record, 156U, UINT64_C(0x33dcc7194e86770d));
+    check_record("public errors", &record, 156U, UINT64_C(0x84829635f82937b5));
 #else
-    check_record("public errors", &record, 156U, UINT64_C(0xe21571ba9b343da5));
+    check_record("public errors", &record, 156U, UINT64_C(0x4574f59d9e914dfd));
 #endif
 }
 

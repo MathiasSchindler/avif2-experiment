@@ -26,6 +26,8 @@ static uint16_t mhccp_luma_filter2_q3_u16(const Av2hReconstructionPlaneU16 *luma
                                           uint16_t chroma_x, uint16_t chroma_y);
 static uint16_t mhccp_luma_filter2_top_clamped_q3(const Av2hReconstructionPlane *luma_plane,
                                                   uint16_t chroma_x, uint16_t chroma_y);
+static uint16_t mhccp_luma_filter2_top_clamped_q3_u16(const Av2hReconstructionPlaneU16 *luma_plane,
+                                                      uint16_t chroma_x, uint16_t chroma_y);
 static uint16_t mhccp_luma_filter2_sb_top_q3(const Av2hReconstructionPlane *luma_plane,
                                              uint16_t chroma_x, uint16_t block_y);
 static uint16_t mhccp_luma_filter2_sb_top_q3_u16(const Av2hReconstructionPlaneU16 *luma_plane,
@@ -44,9 +46,6 @@ static void mhccp_accumulate(int32_t matrix[3U][3U], int32_t target[3U], const i
 
 static void mhccp_accumulate_u16(int64_t matrix[3U][3U], int64_t target[3U],
                                  const int32_t vector[3U], int32_t chroma);
-
-static uint16_t mhccp_luma_filter2_top_clamped_q3_u16(const Av2hReconstructionPlaneU16 *luma_plane,
-                                                      uint16_t chroma_x, uint16_t chroma_y);
 
 static Av2hMhccpReferenceExtent mhccp_reference_extent(uint16_t width, uint16_t height,
                                                        int remaining_height, uint8_t have_top,
@@ -658,6 +657,11 @@ uint16_t av2h_chroma_luma_sb_top_sample_q3_u16(const Av2hReconstructionPlaneU16 
     return filter_index == 0U   ? mhccp_luma_sb_top_q3_u16(luma_plane, chroma_x, block_y)
            : filter_index == 1U ? mhccp_luma_filter1_sb_top_q3_u16(luma_plane, chroma_x, block_y)
                                 : mhccp_luma_filter2_sb_top_q3_u16(luma_plane, chroma_x, block_y);
+}
+
+uint16_t av2h_chroma_luma_filter2_top_clamped_q3_u16(const Av2hReconstructionPlaneU16 *luma_plane,
+                                                     uint16_t chroma_x, uint16_t chroma_y) {
+    return mhccp_luma_filter2_top_clamped_q3_u16(luma_plane, chroma_x, chroma_y);
 }
 
 uint16_t av2h_chroma_luma_left_clamped_q3_u16(const Av2hReconstructionPlaneU16 *luma_plane,

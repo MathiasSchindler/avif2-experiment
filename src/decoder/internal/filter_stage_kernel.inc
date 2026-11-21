@@ -39,25 +39,31 @@ static inline int AV2H_KERNEL_NAME(
                                           work->domain
 #endif
         );
-#if !AV2H_KERNEL_WIDE
     case AV2H_FILTER_STAGE_PC_WIENER:
-        return (int)av2h_pc_wiener_filter_rows(
+        return (int)AV2H_KERNEL_NAME(av2h_pc_wiener_filter_rows, av2h_pc_wiener_filter_rows_u16)(
             &work->destination->plane[0], &work->source->plane[0], &work->pre_cdef->plane[0],
-            work->frame, &work->workspace->restoration_controls, first, last);
-    case AV2H_FILTER_STAGE_WIENER_NONSEP:
-        return (int)av2h_wiener_nonsep_filter_rows(
-            work->destination, work->source, work->pre_cdef, work->sequence, work->frame,
-            &work->workspace->restoration_controls, first, last);
+            work->frame, &work->workspace->restoration_controls, first, last
+#if AV2H_KERNEL_WIDE
+            ,
+            work->domain
 #endif
+        );
+    case AV2H_FILTER_STAGE_WIENER_NONSEP:
+        return (int)AV2H_KERNEL_NAME(av2h_wiener_nonsep_filter_rows,
+                                     av2h_wiener_nonsep_filter_rows_u16)(
+            work->destination, work->source, work->pre_cdef, work->sequence, work->frame,
+            &work->workspace->restoration_controls, first, last
+#if AV2H_KERNEL_WIDE
+            ,
+            work->domain
+#endif
+        );
     case AV2H_FILTER_STAGE_GDF:
         AV2H_KERNEL_NAME(
             av2h_gdf_apply_rows,
-            av2h_gdf_apply_rows_u16)(&work->destination->plane[0],
-#if !AV2H_KERNEL_WIDE
-                            work->baseline,
-#endif
-                            &work->source->plane[0], &work->pre_cdef->plane[0], work->sequence,
-                            work->frame, &work->workspace->gdf_controls, first, last
+            av2h_gdf_apply_rows_u16)(&work->destination->plane[0], work->baseline, &work->source->plane[0],
+                            &work->pre_cdef->plane[0], work->sequence, work->frame,
+                            &work->workspace->gdf_controls, first, last
 #if AV2H_KERNEL_WIDE
                             ,
                             work->domain
@@ -85,4 +91,48 @@ static inline Av2hStatus AV2H_KERNEL_NAME(
     int status = av2h_parallel_ranges(execution, ((size_t)source->plane[0].height + 63U) / 64U,
                                       AV2H_KERNEL_NAME(filter_stage_rows, filter_stage_rows_u16), &work);
     return status < 0 ? AV2H_INVALID_DATA : (Av2hStatus)status;
+}
+
+static inline Av2hStatus AV2H_KERNEL_NAME(
+    filter_restore,
+    filter_restore_u16)(const AV2H_KERNEL_TYPE(Av2hFilterPlanes, Av2hFilterPlanesU16) *coded,
+                        AV2H_KERNEL_TYPE(Av2hFilterPlanes, Av2hFilterPlanesU16) *active,
+               const AV2H_KERNEL_TYPE(Av2hFilterPlanes, Av2hFilterPlanesU16) *deblocked, const Av2hSequenceState *sequence,
+               const Av2hFrameState *frame, const Av2hFilterWorkspace *workspace,
+               const Av2hSampleDomain *domain, const Av2hExecution *execution) {
+    AV2H_KERNEL_TYPE(Av2hFilterPlanes, Av2hFilterPlanesU16) output = {0};
+    Av2hStatus status;
+    unsigned int plane;
+    const uint8_t luma_type = frame->restoration_type[0];
+    output.plane[0] = workspace->AV2H_KERNEL_TYPE(restoration, restoration_u16);
+    if (luma_type == AV2H_RESTORE_PC_WIENER || luma_type == AV2H_RESTORE_SWITCHABLE) {
+        if (workspace->restoration_controls.tx_skip == NULL)
+            return AV2H_INVALID_ARGUMENT;
+        status = AV2H_KERNEL_NAME(
+            filter_dispatch_stage,
+            filter_dispatch_stage_u16)(AV2H_FILTER_STAGE_PC_WIENER, &output, active, deblocked,
+                                       NULL, sequence, frame, workspace, domain, execution);
+        if (status != AV2H_OK)
+            return status;
+    }
+    if (luma_type != AV2H_RESTORE_WIENER_NONSEP && luma_type != AV2H_RESTORE_SWITCHABLE &&
+        frame->restoration_type[1] != AV2H_RESTORE_WIENER_NONSEP &&
+        frame->restoration_type[2] != AV2H_RESTORE_WIENER_NONSEP)
+        return AV2H_OK;
+    for (plane = 1U; plane < av2h_frame_plane_count(frame); ++plane) {
+        output.plane[plane] = deblocked->plane[plane].data == coded->plane[plane].data
+                                  ? workspace->AV2H_KERNEL_TYPE(deblocked, deblocked_u16).plane[plane]
+                                  : coded->plane[plane];
+    }
+    status = AV2H_KERNEL_NAME(
+        filter_dispatch_stage,
+        filter_dispatch_stage_u16)(AV2H_FILTER_STAGE_WIENER_NONSEP, &output, active, deblocked,
+                                   NULL, sequence, frame, workspace, domain, execution);
+    if (status != AV2H_OK)
+        return status;
+    for (plane = 1U; plane < av2h_frame_plane_count(frame); ++plane) {
+        if (frame->restoration_type[plane] != AV2H_RESTORE_NONE)
+            active->plane[plane] = output.plane[plane];
+    }
+    return AV2H_OK;
 }

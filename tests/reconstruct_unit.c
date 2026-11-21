@@ -2425,7 +2425,7 @@ static void test_live_plane_reconstruction(void) {
               coeff_left, 16U) == AV2H_OK);
     CHECK(av2h_partition_traversal_init(
               &traversal, 4U, 4U,
-              (Av2hPartitionNode){ 0U, 0U, AV2H_BLOCK_64X64 }, 0U, 1U, 0U) ==
+              (Av2hPartitionNode){ 0U, 0U, AV2H_BLOCK_64X64 }, 0U, 1U, 0U, 8U) ==
           AV2H_OK);
     CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
     for (index = 0U; index < 2U; ++index) {

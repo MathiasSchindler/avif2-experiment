@@ -917,6 +917,10 @@ AV2H_NOINLINE Av2hStatus av2h_luma_reconstruct_to_plane_u16(
         : mode->enable_ibp != 0U && prediction_angle > 180 ? descriptor->output_height
                                                            : 0U,
         2U * descriptor->output_width);
+    if (mode->use_intra_dip != 0U) {
+        above_target = descriptor->output_width +
+                       (mode->tx_extended_edges_unavailable ? 0U : descriptor->output_width / 4U);
+    }
     if (above_target > sizeof(scratch->above) / sizeof(scratch->above[0])) {
         above_target = sizeof(scratch->above) / sizeof(scratch->above[0]);
     }
@@ -969,6 +973,10 @@ AV2H_NOINLINE Av2hStatus av2h_luma_reconstruct_to_plane_u16(
             ? descriptor->output_width + 2U * mode->mrl_index
             : 0U,
         2U * descriptor->output_height);
+    if (mode->use_intra_dip != 0U) {
+        left_target = descriptor->output_height +
+                      (mode->tx_extended_edges_unavailable ? 0U : descriptor->output_height / 4U);
+    }
     if (left_target > sizeof(scratch->left) / sizeof(scratch->left[0])) {
         left_target = sizeof(scratch->left) / sizeof(scratch->left[0]);
     }
@@ -1082,6 +1090,7 @@ AV2H_NOINLINE Av2hStatus av2h_luma_reconstruct_to_plane_u16(
         scratch->predictor[index] = dc_value;
     }
     if (mode->mode == AV2H_INTRA_DC && mode->enable_ibp != 0U && mode->palette_size == 0U &&
+        mode->use_intra_dip == 0U &&
         !(descriptor->output_width == 4U && descriptor->output_height == 4U)) {
         static const uint8_t weights[5U][16U] = {{96U},
                                                  {86U, 107U},
@@ -1154,7 +1163,11 @@ AV2H_NOINLINE Av2hStatus av2h_luma_reconstruct_to_plane_u16(
             return status;
         }
     } else if (mode->use_intra_dip != 0U) {
-        return AV2H_UNSUPPORTED;
+        status = av2h_predict_intra_dip_u16(mode, descriptor->output_width,
+                                            descriptor->output_height, &references,
+                                            scratch->predictor, descriptor->output_width, domain);
+        if (status != AV2H_OK)
+            return status;
     } else if (top_vertical_multi_line_mrl != 0U) {
         uint16_t row;
         uint16_t column;

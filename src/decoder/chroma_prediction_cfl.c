@@ -157,17 +157,12 @@ static Av2hStatus cfl_predict_u16_scaled(const Av2hReconstructionPlaneU16 *luma_
                               av2h_chroma_plane_coded_sample_u16(luma_plane, center_x + 1U,
                                                                  center_y + 1U));
             } else if (filter_index == 2U) {
-                size_t top_y = row == 0U ? center_y : center_y - 1U;
-                luma_left_q3[row] =
-                    (int32_t)(av2h_chroma_plane_coded_sample_u16(luma_plane, center_x - 1U,
-                                                                 center_y) +
-                              4U * av2h_chroma_plane_coded_sample_u16(luma_plane, center_x,
-                                                                      center_y) +
-                              av2h_chroma_plane_coded_sample_u16(luma_plane, center_x + 1U,
-                                                                 center_y) +
-                              av2h_chroma_plane_coded_sample_u16(luma_plane, center_x, top_y) +
-                              av2h_chroma_plane_coded_sample_u16(luma_plane, center_x,
-                                                                 center_y + 1U));
+                luma_left_q3[row] = row == 0U
+                                        ? av2h_chroma_luma_filter2_top_clamped_q3_u16(
+                                              luma_plane, (uint16_t)(block_x - 1U), block_y)
+                                        : av2h_chroma_luma_sample_q3_u16(luma_plane, filter_index,
+                                                                         (uint16_t)(block_x - 1U),
+                                                                         (uint16_t)(block_y + row));
             } else {
                 luma_left_q3[row] =
                     (int32_t)(av2h_chroma_plane_coded_sample_u16(luma_plane, center_x, center_y) +
@@ -919,8 +914,12 @@ Av2hStatus av2h_cfl_derived_predict_u16(const Av2hReconstructionPlaneU16 *luma_p
             if (chroma_y >= chroma_plane->height) {
                 chroma_y = (uint16_t)(chroma_plane->height - 1U);
             }
-            luma = (int32_t)(av2h_chroma_luma_sample_q3_u16(luma_plane, filter_index,
-                                                            (uint16_t)(block_x - 1U), chroma_y) >>
+            luma = (int32_t)((filter_index == 2U && sample == 0
+                                  ? av2h_chroma_luma_filter2_top_clamped_q3_u16(
+                                        luma_plane, (uint16_t)(block_x - 1U), chroma_y)
+                                  : av2h_chroma_luma_sample_q3_u16(luma_plane, filter_index,
+                                                                   (uint16_t)(block_x - 1U),
+                                                                   chroma_y)) >>
                              3U);
             chroma =
                 chroma_plane->data[(size_t)chroma_y * chroma_plane->stride_samples + block_x - 1U];

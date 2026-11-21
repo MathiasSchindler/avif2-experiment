@@ -80,7 +80,10 @@ typedef struct {
 typedef struct {
     Av2hFilterPlanes deblocked;
     Av2hFilterPlanes cdef;
-    Av2hFilterPlane restoration;
+    union {
+        Av2hFilterPlane restoration;
+        Av2hFilterPlaneU16 restoration_u16;
+    };
     Av2hFilterPlanesU16 deblocked_u16;
     Av2hFilterPlanesU16 cdef_u16;
     Av2hDeblockMap deblock_map;
@@ -126,6 +129,16 @@ Av2hStatus av2h_wiener_nonsep_filter_rows(Av2hFilterPlanes *destination,
                                           const Av2hFrameState *frame,
                                           const Av2hRestorationControlMap *controls,
                                           size_t row_begin, size_t row_end);
+Av2hStatus
+av2h_pc_wiener_filter_rows_u16(Av2hFilterPlaneU16 *destination, const Av2hFilterPlaneU16 *source,
+                               const Av2hFilterPlaneU16 *deblocked, const Av2hFrameState *frame,
+                               const Av2hRestorationControlMap *controls, size_t row_begin,
+                               size_t row_end, const Av2hSampleDomain *domain);
+Av2hStatus av2h_wiener_nonsep_filter_rows_u16(
+    Av2hFilterPlanesU16 *destination, const Av2hFilterPlanesU16 *source,
+    const Av2hFilterPlanesU16 *deblocked, const Av2hSequenceState *sequence,
+    const Av2hFrameState *frame, const Av2hRestorationControlMap *controls, size_t row_begin,
+    size_t row_end, const Av2hSampleDomain *domain);
 
 Av2hStatus av2h_filter_workspace_query(const Av2hFrameState *frame, size_t bytes_per_sample,
                                        Av2hFilterWorkspaceLayout *layout);

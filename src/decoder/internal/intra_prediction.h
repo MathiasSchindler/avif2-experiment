@@ -13,6 +13,10 @@ static inline int av2h_intra_mrl_angle_delta(uint8_t mrl_index) {
 Av2hStatus av2h_predict_intra_dip(const Av2hLeafMode *mode, uint16_t width, uint16_t height,
                                   const Av2hLumaReferences *references, uint8_t *predictor,
                                   size_t predictor_stride_samples);
+Av2hStatus av2h_predict_intra_dip_u16(const Av2hLeafMode *mode, uint16_t width, uint16_t height,
+                                      const Av2hLumaReferencesU16 *references, uint16_t *predictor,
+                                      size_t predictor_stride_samples,
+                                      const Av2hSampleDomain *domain);
 
 int av2h_directional_filter_strength(int size0, int size1, int delta, uint8_t smooth);
 

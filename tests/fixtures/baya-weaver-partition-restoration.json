@@ -1,0 +1,30 @@
+{
+  "source": "Baya Weaver in Bhigwan August 2025 by Tisha Mukherjee 04",
+  "creator": "Tisha Mukherjee",
+  "source_page": "https://commons.wikimedia.org/wiki/File:Baya_Weaver_in_Bhigwan_August_2025_by_Tisha_Mukherjee_04.jpg",
+  "source_sha256": "376aaf85243f1e8186e82203440f6c18a96213138bf949d381daef5a4effe6d1",
+  "license": "CC-BY-SA-4.0",
+  "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+  "adaptation": "Resized, converted to 8-bit planar YUV, then encoded as a single AV2 still picture. These independently prepared inputs are not the pinned gallery inputs.",
+  "avm_revision": "1cfda4fa4879ef2da411b02fe2f51597daab3451",
+  "fixtures": [
+    {
+      "file": "baya-weaver-max-aspect-4-i420.obu",
+      "dimensions": [896, 598],
+      "format": "i420",
+      "prepared_sha256": "86d832d024530d9a84782283ac85fae7e15a8ad2e3142c1665e2e56cc43c1904",
+      "encoded_sha256": "323a707beb6ed7ccdf2d9cd126117e82c6c0d276228c0630dc73b2cfd0763d0e",
+      "decoded_sha256": "8255ddbe962157281e9877f87dae30887e1347d3663f1b875b6fdd30f34a210a",
+      "encode_options": "--debug --codec=av2 --obu --passes=1 --limit=1 --good --cpu-used=9 --threads=4 --row-mt=1 --profile=0 --bit-depth=8 --input-bit-depth=8 --width=896 --height=598 --i420 --input-chroma-subsampling-x=1 --input-chroma-subsampling-y=1 --chroma-sample-position=unspecified --force-video-mode=0 --film-grain-test=0 --enable-lcr=0 --enable-operating-point-sets=0 --enable-atlas=0 --enable-intrabc=0 --enable-restoration=0 --end-usage=q --qp=152 --test-decode=fatal --quiet"
+    },
+    {
+      "file": "baya-weaver-default-restoration-i444.obu",
+      "dimensions": [160, 106],
+      "format": "i444",
+      "prepared_sha256": "ba97e22fb04a17ac008f58a6a4e465b2b1506b8f72130ff318369fb69713f740",
+      "encoded_sha256": "80dc551efdbacf6e5ac1d8a4b01e9d3de79c07a2e81a24677112a56bfb2e9f83",
+      "decoded_sha256": "9c2a8c60a095c81d88f525433bb2742afae4d80582a1fea7c0d529b1d795cb1a",
+      "encode_options": "--obu --limit=1 --passes=1 --width=160 --height=106 --input-bit-depth=8 --i444"
+    }
+  ]
+}

@@ -244,7 +244,7 @@ static void check_first_leaf(const unsigned char *bytes,
               64U, 64U) == AV2H_OK);
     CHECK(av2h_partition_traversal_init(
               &traversal, mi_rows, mi_columns,
-              (Av2hPartitionNode){ 0U, 0U, AV2H_BLOCK_64X64 }, 0U, 1U, 0U) ==
+              (Av2hPartitionNode){ 0U, 0U, AV2H_BLOCK_64X64 }, 0U, 1U, 0U, 8U) ==
           AV2H_OK);
     {
         Av2hStatus traversal_status = av2h_partition_traversal_next(
@@ -481,7 +481,7 @@ static void test_late_enum_blocks_are_terminal(void) {
         CHECK(av2h_partition_traversal_init(
                   &traversal, 64U, 64U,
                   (Av2hPartitionNode){ 0U, 0U, blocks[index] },
-                  0U, 1U, 1U) == AV2H_OK);
+                  0U, 1U, 1U, 8U) == AV2H_OK);
         before_bits = av2h_range_tell(&decoder);
         CHECK(av2h_partition_traversal_next(
                   &traversal, &decoder, &cdfs, &contexts, &path,
@@ -514,7 +514,7 @@ static void test_traversal(void) {
               4U, 4U) == AV2H_OK);
     CHECK(av2h_partition_traversal_init(
               &traversal, 1U, 1U,
-              (Av2hPartitionNode){ 0U, 0U, AV2H_BLOCK_16X16 }, 0U, 1U, 0U) ==
+              (Av2hPartitionNode){ 0U, 0U, AV2H_BLOCK_16X16 }, 0U, 1U, 0U, 8U) ==
           AV2H_OK);
     CHECK(av2h_partition_traversal_next(
               &traversal, &decoder, &cdfs, &contexts, &path, &has_leaf) ==
@@ -540,7 +540,7 @@ static void test_traversal(void) {
     CHECK(has_leaf == 0U);
     CHECK(av2h_partition_traversal_init(
               &traversal, 0U, 1U,
-              (Av2hPartitionNode){ 0U, 0U, AV2H_BLOCK_4X4 }, 0U, 1U, 0U) ==
+              (Av2hPartitionNode){ 0U, 0U, AV2H_BLOCK_4X4 }, 0U, 1U, 0U, 8U) ==
           AV2H_INVALID_ARGUMENT);
 }
 
@@ -585,7 +585,7 @@ static void test_traversal(void) {
         CHECK(av2h_partition_traversal_init(
               &traversal, 32U, 32U,
               (Av2hPartitionNode){ 0U, 0U, AV2H_BLOCK_128X128 },
-              0U, 1U, 0U) == AV2H_OK);
+              0U, 1U, 0U, 8U) == AV2H_OK);
         CHECK(av2h_partition_traversal_next(
               &traversal, &decoder, &cdfs, &contexts, &path, &has_leaf) ==
             AV2H_OK);
@@ -613,7 +613,7 @@ static void test_superblock_roots(void) {
               &traversal, 24U, 48U,
               (Av2hPartitionNode){ rows[0], columns[0],
                                    AV2H_BLOCK_64X64 },
-              0U, 1U, 0U) == AV2H_OK);
+              0U, 1U, 0U, 8U) == AV2H_OK);
     for (index = 0U; index < 6U; ++index) {
         Av2hPartitionNode root = {
             rows[index], columns[index], AV2H_BLOCK_64X64
@@ -714,11 +714,46 @@ static void test_partial_boundary_implies_illegal_extension(void) {
     CHECK(av2h_partition_node_read_with_state(
               &decoder, &cdfs, &contexts, 0U,
               (Av2hPartitionNode){ 68U, 64U, AV2H_BLOCK_64X16 },
-              70U, 105U, 1U, 1U, &decision, &child) == AV2H_OK);
+              70U, 105U, 1U, 1U, 8U, &decision, &child) == AV2H_OK);
     CHECK(decision.partition == AV2H_PARTITION_HORZ);
     CHECK(decision.axis_implied == 0U);
     CHECK(decision.extension_implied == 1U);
     CHECK(child.block_size == AV2H_BLOCK_64X8);
+}
+
+static void test_aspect_limit_implies_rect_axis(void) {
+    static const uint8_t bytes[] = {0xffU, 0xffU, 0xffU};
+    Av2hSpan span = {bytes, sizeof(bytes)};
+    Av2hRangeDecoder decoder;
+    Av2hPartitionCdfs cdfs;
+    Av2hPartitionContextState contexts;
+    Av2hPartitionDecision decision;
+    Av2hPartitionNode child;
+    uint8_t above[32U], left[32U], chroma_above[32U], chroma_left[32U];
+    size_t context;
+    CHECK(av2h_partition_context_state_init(&contexts, above, left, chroma_above, chroma_left,
+                                            32U, 32U) == AV2H_OK);
+    for (context = 0U; context < 2U; ++context) {
+        const uint8_t limit = context == 0U ? 4U : 2U;
+        Av2hRangeDecoder split_only;
+        size_t split_context, rect_context, extension_context;
+        Av2hPartitionNode node = {0U, 0U, AV2H_BLOCK_64X16};
+        CHECK(av2h_partition_cdfs_init(&cdfs) == AV2H_OK);
+        CHECK(av2h_range_init(&decoder, &span, 1U) == AV2H_OK);
+        split_only = decoder;
+        if (limit == 4U) {
+            CHECK(av2h_partition_contexts_from_state(&contexts, 0U, node, AV2H_PARTITION_HORIZONTAL,
+                                                     &split_context, &rect_context,
+                                                     &extension_context) == AV2H_OK);
+            CHECK(av2h_range_read_symbol(&split_only, cdfs.do_split[0][split_context], 2U) == 1U);
+        }
+        CHECK(av2h_partition_node_read_with_state(&decoder, &cdfs, &contexts, 0U, node, 32U, 32U,
+                                                   0U, 0U, limit, &decision, &child) == AV2H_OK);
+        CHECK(decision.partition == AV2H_PARTITION_VERT && decision.axis_implied == 1U);
+        CHECK(child.block_size == AV2H_BLOCK_32X16);
+        CHECK(decoder.tell == split_only.tell && decoder.range == split_only.range &&
+              decoder.value == split_only.value);
+    }
 }
 
 static void test_partial_boundary_honors_implied_rect_axis(void) {
@@ -745,7 +780,7 @@ static void test_partial_boundary_honors_implied_rect_axis(void) {
     CHECK(av2h_partition_node_read_with_state(
               &decoder, &cdfs, &contexts, 0U,
               (Av2hPartitionNode){ 0U, 192U, AV2H_BLOCK_64X128 },
-              200U, 200U, 0U, 0U, &decision, &child) == AV2H_OK);
+              200U, 200U, 0U, 0U, 8U, &decision, &child) == AV2H_OK);
     CHECK(decision.partition == AV2H_PARTITION_HORZ);
     CHECK(decision.axis_implied == 1U);
     CHECK(decision.extension_implied == 1U);
@@ -805,7 +840,7 @@ static void test_diagnostic_context_isolation(void) {
         CHECK(children[3].row == 44U && children[3].column == 16U &&
             children[3].block_size == AV2H_BLOCK_64X16);
         CHECK(av2h_partition_traversal_init(
-              &traversal, 180U, 360U, root, 1U, 1U, 1U) == AV2H_OK);
+              &traversal, 180U, 360U, root, 1U, 1U, 1U, 8U) == AV2H_OK);
         CHECK(av2h_partition_traversal_force(
               &traversal, AV2H_PARTITION_HORZ_3, &has_leaf) == AV2H_OK);
         CHECK(has_leaf == 0U);
@@ -833,6 +868,7 @@ int main(void) {
     test_superblock_roots();
     test_arguments();
     test_partial_boundary_implies_illegal_extension();
+    test_aspect_limit_implies_rect_axis();
     test_partial_boundary_honors_implied_rect_axis();
     test_forced_horz_3_traversal();
 #if defined(AV2HEIF_ENABLE_DIAGNOSTICS)

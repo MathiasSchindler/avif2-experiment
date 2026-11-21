@@ -74,6 +74,19 @@ static int restoration_controls_valid(const Av2hFrameState *frame,
     return 1;
 }
 
+static int restoration_config_supported(const Av2hSequenceState *sequence,
+                                        const Av2hFrameState *frame) {
+    const uint8_t luma = frame->restoration_type[0];
+    const uint8_t u = frame->restoration_type[1];
+    const uint8_t v = frame->restoration_type[2];
+    if (sequence->enable_restoration == 0U)
+        return luma == AV2H_RESTORE_NONE && u == AV2H_RESTORE_NONE && v == AV2H_RESTORE_NONE;
+    return (luma == AV2H_RESTORE_NONE || luma == AV2H_RESTORE_PC_WIENER ||
+            luma == AV2H_RESTORE_WIENER_NONSEP || luma == AV2H_RESTORE_SWITCHABLE) &&
+           (u == AV2H_RESTORE_NONE || u == AV2H_RESTORE_WIENER_NONSEP) &&
+           (v == AV2H_RESTORE_NONE || v == AV2H_RESTORE_WIENER_NONSEP);
+}
+
 static int filter_enables_valid(const Av2hSequenceState *sequence, const Av2hFrameState *frame) {
     return (frame->cdef_strength_count == 0U || sequence->enable_cdef != 0U) &&
            ((frame->ccso[0].enabled == 0U && frame->ccso[1].enabled == 0U &&
@@ -96,28 +109,13 @@ Av2hStatus av2h_filter_frame(Av2hFilterPlanes *planes, const Av2hSequenceState *
     Av2hFilterPlanes deblocked = {0};
     Av2hFilterPlanes active;
     Av2hFilterPlanes gdf_output = {0};
-    Av2hFilterPlanes restoration_planes = {0};
     int preserve_stages;
     reset_filter_diagnostics(workspace);
     if (sequence == NULL || frame == NULL || planes == NULL || workspace == NULL) {
         set_filter_reason(workspace, 1U);
         return AV2H_INVALID_ARGUMENT;
     }
-    if (sequence->enable_restoration == 0U && (frame->restoration_type[0] != AV2H_RESTORE_NONE ||
-                                               frame->restoration_type[1] != AV2H_RESTORE_NONE ||
-                                               frame->restoration_type[2] != AV2H_RESTORE_NONE)) {
-        set_filter_reason(workspace, 2U);
-        return AV2H_UNSUPPORTED;
-    }
-    if (sequence->enable_restoration != 0U &&
-        ((frame->restoration_type[0] != AV2H_RESTORE_NONE &&
-          frame->restoration_type[0] != AV2H_RESTORE_PC_WIENER &&
-          frame->restoration_type[0] != AV2H_RESTORE_WIENER_NONSEP &&
-          frame->restoration_type[0] != AV2H_RESTORE_SWITCHABLE) ||
-         (frame->restoration_type[1] != AV2H_RESTORE_NONE &&
-          frame->restoration_type[1] != AV2H_RESTORE_WIENER_NONSEP) ||
-         (frame->restoration_type[2] != AV2H_RESTORE_NONE &&
-          frame->restoration_type[2] != AV2H_RESTORE_WIENER_NONSEP))) {
+    if (!restoration_config_supported(sequence, frame)) {
         set_filter_reason(workspace, 2U);
         return AV2H_UNSUPPORTED;
     }
@@ -198,38 +196,11 @@ Av2hStatus av2h_filter_frame(Av2hFilterPlanes *planes, const Av2hSequenceState *
                                    sequence, frame, workspace, NULL, execution);
     if (status != AV2H_OK)
         return status;
-    if (frame->restoration_type[0] == AV2H_RESTORE_PC_WIENER ||
-        frame->restoration_type[0] == AV2H_RESTORE_SWITCHABLE) {
-        if (workspace->restoration_controls.tx_skip == NULL) {
-            return AV2H_INVALID_ARGUMENT;
-        }
-        restoration_planes.plane[0] = workspace->restoration;
-        status =
-            filter_dispatch_stage(AV2H_FILTER_STAGE_PC_WIENER, &restoration_planes, &active,
-                                  &deblocked, NULL, sequence, frame, workspace, NULL, execution);
+    if (sequence->enable_restoration) {
+        status = filter_restore(planes, &active, &deblocked, sequence, frame, workspace, NULL,
+                                execution);
         if (status != AV2H_OK)
             return status;
-    }
-    if (frame->restoration_type[0] == AV2H_RESTORE_WIENER_NONSEP ||
-        frame->restoration_type[0] == AV2H_RESTORE_SWITCHABLE ||
-        frame->restoration_type[1] == AV2H_RESTORE_WIENER_NONSEP ||
-        frame->restoration_type[2] == AV2H_RESTORE_WIENER_NONSEP) {
-        restoration_planes.plane[0] = workspace->restoration;
-        for (plane = 1U; plane < av2h_frame_plane_count(frame); ++plane) {
-            restoration_planes.plane[plane] =
-                deblocked.plane[plane].data == planes->plane[plane].data
-                    ? workspace->deblocked.plane[plane]
-                    : planes->plane[plane];
-        }
-        status =
-            filter_dispatch_stage(AV2H_FILTER_STAGE_WIENER_NONSEP, &restoration_planes, &active,
-                                  &deblocked, NULL, sequence, frame, workspace, NULL, execution);
-        if (status != AV2H_OK)
-            return status;
-        for (plane = 1U; plane < av2h_frame_plane_count(frame); ++plane) {
-            if (frame->restoration_type[plane] != AV2H_RESTORE_NONE)
-                active.plane[plane] = restoration_planes.plane[plane];
-        }
     }
     gdf_baseline = frame->restoration_type[0] != AV2H_RESTORE_NONE ? &workspace->restoration
                                                                    : &workspace->cdef.plane[0];
@@ -269,6 +240,7 @@ Av2hStatus av2h_filter_stage_u16(Av2hFilterPlanesU16 *planes, const Av2hSequence
     Av2hFilterPlanesU16 deblocked = {0};
     Av2hFilterPlanesU16 active;
     Av2hFilterPlanesU16 gdf_output = {0};
+    const Av2hFilterPlaneU16 *gdf_baseline;
     if (planes == NULL || sequence == NULL || frame == NULL || workspace == NULL ||
         sequence->info.bit_depth_idc != 0U || domain->bit_depth != 10U ||
         !filter_enables_valid(sequence, frame) || !filter_dimensions_valid_u16(planes, frame) ||
@@ -278,8 +250,24 @@ Av2hStatus av2h_filter_stage_u16(Av2hFilterPlanesU16 *planes, const Av2hSequence
         !av2h_ccso_controls_valid(frame, &workspace->ccso_controls)) {
         return AV2H_INVALID_ARGUMENT;
     }
-    if (sequence->enable_restoration != 0U)
+    if (!restoration_config_supported(sequence, frame))
         return AV2H_UNSUPPORTED;
+    if (!restoration_controls_valid(frame, &workspace->restoration_controls))
+        return AV2H_INVALID_ARGUMENT;
+    if (frame->restoration_type[0] != AV2H_RESTORE_NONE) {
+        const Av2hFilterPlaneU16 *restoration = &workspace->restoration_u16;
+        if (restoration->data == NULL || restoration->width != planes->plane[0].width ||
+            restoration->height != planes->plane[0].height ||
+            restoration->stride_samples < restoration->width)
+            return AV2H_INVALID_ARGUMENT;
+        for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
+            if (filter_plane_rows_overlap_u16(restoration, &planes->plane[plane]) ||
+                filter_plane_rows_overlap_u16(restoration,
+                                              &workspace->deblocked_u16.plane[plane]) ||
+                filter_plane_rows_overlap_u16(restoration, &workspace->cdef_u16.plane[plane]))
+                return AV2H_INVALID_ARGUMENT;
+        }
+    }
     if (filter_stages_overlap_u16(planes, &workspace->deblocked_u16, &workspace->cdef_u16, frame))
         return AV2H_INVALID_ARGUMENT;
     if (!av2h_deblock_map_valid_u16(&workspace->deblocked_u16, &workspace->deblock_map))
@@ -315,20 +303,33 @@ Av2hStatus av2h_filter_stage_u16(Av2hFilterPlanesU16 *planes, const Av2hSequence
                                        sequence, frame, workspace, domain, execution);
     if (status != AV2H_OK)
         return status;
-    status = av2h_gdf_validate_frame_u16(&planes->plane[0], &workspace->cdef_u16.plane[0],
-                                         &workspace->deblocked_u16.plane[0], sequence, frame,
-                                         &workspace->gdf_controls, domain);
+    if (sequence->enable_restoration) {
+        status = filter_restore_u16(planes, &active, &deblocked, sequence, frame, workspace, domain,
+                                    execution);
+        if (status != AV2H_OK)
+            return status;
+    }
+    gdf_baseline = frame->restoration_type[0] != AV2H_RESTORE_NONE ? &workspace->restoration_u16
+                                                                   : &workspace->cdef_u16.plane[0];
+    status = av2h_gdf_validate_frame_u16(
+        &planes->plane[0], gdf_baseline, &workspace->cdef_u16.plane[0],
+        &workspace->deblocked_u16.plane[0], sequence, frame, &workspace->gdf_controls, domain);
     if (status != AV2H_OK)
         return status;
+    gdf_baseline = frame->restoration_type[0] != AV2H_RESTORE_NONE ? &workspace->restoration_u16
+                                                                   : &active.plane[0];
     if (frame->gdf_mode != 0U) {
         gdf_output.plane[0] = deblocked.plane[0].data == planes->plane[0].data
                                   ? workspace->deblocked_u16.plane[0]
                                   : planes->plane[0];
-        status = filter_dispatch_stage_u16(AV2H_FILTER_STAGE_GDF, &gdf_output, &active, &deblocked,
-                                           NULL, sequence, frame, workspace, domain, execution);
+        status =
+            filter_dispatch_stage_u16(AV2H_FILTER_STAGE_GDF, &gdf_output, &active, &deblocked,
+                                      gdf_baseline, sequence, frame, workspace, domain, execution);
         if (status != AV2H_OK)
             return status;
         active.plane[0] = gdf_output.plane[0];
+    } else {
+        active.plane[0] = *gdf_baseline;
     }
     for (plane = 0U; plane < av2h_frame_plane_count(frame); ++plane) {
         if (planes->plane[plane].data != active.plane[plane].data)

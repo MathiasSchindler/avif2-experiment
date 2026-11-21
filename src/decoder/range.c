@@ -52,6 +52,37 @@ static void range_check_overflow(Av2hRangeDecoder *decoder) {
     }
 }
 
+Av2hStatus av2h_range_validate_end(const Av2hRangeDecoder *decoder) {
+    size_t offset;
+    size_t index;
+    unsigned int marker;
+    if (decoder == NULL || decoder->tell == 0U)
+        return AV2H_INVALID_ARGUMENT;
+    if (decoder->status != AV2H_OK)
+        return decoder->status;
+    /* tell includes the stop bit; any remaining bits in the tile are padding. */
+    offset = (decoder->tell - 1U) / 8U;
+    marker = 128U >> ((decoder->tell - 1U) % 8U);
+    for (index = 0U; index < decoder->span_count; ++index) {
+        Av2hSpan span = decoder->spans[index];
+        if (offset >= span.size) {
+            offset -= span.size;
+            continue;
+        }
+        if (marker != 0U) {
+            if ((span.data[offset++] & (2U * marker - 1U)) != marker)
+                return AV2H_INVALID_DATA;
+            marker = 0U;
+        }
+        for (; offset < span.size; ++offset) {
+            if (span.data[offset] != 0U)
+                return AV2H_INVALID_DATA;
+        }
+        offset = 0U;
+    }
+    return marker == 0U ? AV2H_OK : AV2H_TRUNCATED;
+}
+
 static void range_normalize(Av2hRangeDecoder *decoder) {
     unsigned int shift;
     unsigned int input_bits;

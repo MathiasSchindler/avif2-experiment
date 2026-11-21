@@ -28,21 +28,29 @@ with pinned AVM. Encoder presets may choose a narrower subset.
 | Transforms and coefficients | Legal admitted transform partitions, primary/secondary transforms, TCQ, and parity hiding | Frame-adaptive video TCQ and out-of-profile bit depths |
 | Quantization | Lossy and lossless base Q, delta-Q, predefined/custom QMs, and segmented matrix selection | 10/12-bit combinations outside their separately documented profiles |
 | Segmentation | Still-applicable segment IDs, ALT_Q routing, extended segmentation, and lossless interaction | Temporal segment-map prediction |
-| Filters and restoration | Deblock, CDEF, CCSO, GDF, PC-Wiener, Wiener-nonsep, and switchable per-unit restoration in normative order and at tile boundaries | Temporal filtering and unadmitted 10-bit restoration |
+| Filters and restoration | Deblock, CDEF, CCSO, GDF, PC-Wiener, Wiener-nonsep, and switchable per-unit restoration in normative order and at tile boundaries | Temporal filtering |
 | Signaling and geometry | I400/I420/I444, odd visible dimensions, legal 8-bit color/chroma-location metadata, and checked workspace endpoints | I422, 12-bit, film grain, and independent clean-aperture transforms |
 
 Support for one row does not imply support for every cross-product with other
 rows. Unknown or unsupported combinations must fail closed.
 
+## Admitted 10-bit still images
+
+The single closed-loop key picture path supports Intra-DIP, luma PC-Wiener,
+luma and chroma Wiener-nonsep, and the existing luma switchable restoration
+syntax for profile-0 4:2:0 and profile-4 4:4:4. Restoration uses the 10-bit
+sample domain, including the luma classification and the restored baseline
+for GDF. This is not a claim that every tool combination is covered.
+
 ## Explicitly unsupported
 
 - Film-grain synthesis.
-- 10-bit restoration outside the separately admitted 10-bit decode profiles.
 - Temporal segmentation, inter pictures, and multi-frame or layered streams.
 - Container transforms, metadata expansion, auxiliary alpha, and image grids.
 
 Malformed input, inconsistent HEIF metadata, unsupported profile/chroma pairs,
-and insufficient or overlapping caller buffers are rejected.
+and insufficient or overlapping caller buffers are rejected. Each tile must
+end with the arithmetic-coder stop bit and zero padding.
 
 ## Evidence
 
@@ -54,6 +62,17 @@ bind the exact decoded output to AVM revision
 `edaf3ebc7ce3666290003f70a66efe5a508982a1`; this is fixture provenance, not a
 second pinned oracle. Frame-stage unsupported errors retain
 `AV2H_UNSUPPORTED`, without conversion to overflow or other unrelated statuses.
+
+Two further [moving-oracle regressions](../tests/fixtures/baya-weaver-partition-restoration.json)
+cover implied splits under a signaled 4:1 block aspect-ratio limit and
+chroma restoration syntax in a separate 64x64 superblock tree. The latter
+uses AVM's default coding tools. Both streams are checked against exact
+output from AVM `1cfda4fa4879ef2da411b02fe2f51597daab3451`.
+
+[10-bit moving-oracle regressions](../tests/fixtures/10bit/baya-weaver-current.json)
+cover default-tool 4:2:0 and 4:4:4 encodes, derived CfL feeding MHCCP,
+and focused luma PC-Wiener and Wiener-nonsep encodes from the same AVM
+revision. They supplement, rather than replace, the pinned 10-bit corpus.
 
 The 8-bit photographic reference tree contains 88 legacy streams and 14
 target-baseline streams. All 102 decode exactly with the hosted decoder and the

@@ -26,5 +26,6 @@ uint32_t av2h_range_read_adaptive(Av2hRangeDecoder *decoder, uint16_t *inverse_c
 uint32_t av2h_range_read_bypass(Av2hRangeDecoder *decoder, unsigned int bit_count);
 size_t av2h_range_tell(const Av2hRangeDecoder *decoder);
 Av2hStatus av2h_range_status(const Av2hRangeDecoder *decoder);
+Av2hStatus av2h_range_validate_end(const Av2hRangeDecoder *decoder);
 
 #endif

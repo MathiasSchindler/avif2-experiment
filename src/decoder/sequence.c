@@ -67,9 +67,9 @@ static int read_sequence_tools(Av2hBitReader *reader, uint8_t monochrome, uint8_
     if (state->enable_ext_partitions != 0U) {
         state->enable_uneven_4way_partitions = (uint8_t)av2h_bit_reader_read(reader, 1U);
     }
-    state->max_pb_aspect_ratio_log2_minus_1 = 2U;
+    state->max_pb_aspect_ratio = 8U;
     if (av2h_bit_reader_read(reader, 1U) != 0U) {
-        state->max_pb_aspect_ratio_log2_minus_1 = (uint8_t)av2h_bit_reader_read(reader, 1U);
+        state->max_pb_aspect_ratio = (uint8_t)(2U << av2h_bit_reader_read(reader, 1U));
     }
 
     state->enable_ext_seg = (uint8_t)av2h_bit_reader_read(reader, 1U);

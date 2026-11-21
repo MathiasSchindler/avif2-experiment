@@ -121,20 +121,29 @@ static unsigned int gdf_gradient_sum(const uint16_t gradient[4][6][6], unsigned 
 }
 
 static int gdf_frame_arguments_valid_u16(const Av2hFilterPlaneU16 *destination,
+                                         const Av2hFilterPlaneU16 *baseline_luma,
                                          const Av2hFilterPlaneU16 *cdef_luma,
                                          const Av2hFilterPlaneU16 *deblocked_luma,
                                          const Av2hFrameState *frame) {
-    return !(destination == NULL || cdef_luma == NULL || deblocked_luma == NULL || frame == NULL ||
-             destination->data == NULL || cdef_luma->data == NULL || deblocked_luma->data == NULL ||
-             destination->stride_samples < destination->width ||
+    return !(destination == NULL || baseline_luma == NULL || cdef_luma == NULL ||
+             deblocked_luma == NULL || frame == NULL || destination->data == NULL ||
+             baseline_luma->data == NULL || cdef_luma->data == NULL ||
+             deblocked_luma->data == NULL || destination->stride_samples < destination->width ||
+             baseline_luma->stride_samples < baseline_luma->width ||
              cdef_luma->stride_samples < cdef_luma->width ||
              deblocked_luma->stride_samples < deblocked_luma->width || destination->width == 0U ||
              destination->height == 0U || destination->width != cdef_luma->width ||
              destination->height != cdef_luma->height ||
+             destination->width != baseline_luma->width ||
+             destination->height != baseline_luma->height ||
              destination->width != deblocked_luma->width ||
              destination->height != deblocked_luma->height ||
              filter_plane_rows_overlap_u16(destination, cdef_luma) ||
              filter_plane_rows_overlap_u16(destination, deblocked_luma) ||
+             filter_plane_rows_overlap_u16(destination, baseline_luma) ||
+             (baseline_luma->data != cdef_luma->data &&
+              filter_plane_rows_overlap_u16(baseline_luma, cdef_luma)) ||
+             filter_plane_rows_overlap_u16(baseline_luma, deblocked_luma) ||
              filter_plane_rows_overlap_u16(cdef_luma, deblocked_luma) || frame->gdf_mode > 2U ||
              frame->gdf_qp_index >= 4U || frame->gdf_scale_index >= 4U ||
              (destination->width & 3U) != 0U || (destination->height & 3U) != 0U);

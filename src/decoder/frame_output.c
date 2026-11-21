@@ -662,6 +662,10 @@ static Av2hStatus decode_one_tile(Av2hFrameDecodeContext *context, Av2hSpan entr
     status = decode_tile_leaves(context);
     if (status != AV2H_OK)
         return status;
+    status = av2h_range_validate_end(&context->decoder->entropy_state.range);
+    if (status != AV2H_OK)
+        return frame_decode_failure(context, status, AV2H_FRAME_DECODE_STAGE_COMPLETENESS, 0U, NULL,
+                                    0U);
     if (!tile_readiness_complete(context->frame, context->workspace, context->decoder)) {
         return frame_decode_failure(context, AV2H_INVALID_DATA,
                                     AV2H_FRAME_DECODE_STAGE_COMPLETENESS, 0U, NULL, 0U);
@@ -896,8 +900,6 @@ static AV2H_NOINLINE Av2hStatus decode_frame_tiles_planar(
     reset_frame_diagnostics(&context);
     if (workspace->bytes_per_sample != 1U && workspace->bytes_per_sample != 2U)
         return AV2H_UNSUPPORTED;
-    if (workspace->bytes_per_sample == 2U && sequence->enable_restoration != 0U)
-        return AV2H_UNSUPPORTED;
     if ((workspace->bytes_per_sample == 1U && workspace->reconstruction_scratch == NULL) ||
         (workspace->bytes_per_sample == 2U && workspace->reconstruction_scratch_u16 == NULL) ||
         workspace->filter_workspace == NULL)
@@ -961,7 +963,7 @@ static AV2H_NOINLINE Av2hStatus decode_frame_tiles_planar(
     status = filter_and_output_frame(&context, output, output_size_bytes, execution);
 finished:
     if (result != NULL)
-        *result = decoded;
+        av2h_memory_copy(result, &decoded, sizeof(*result));
     return status;
 }
 

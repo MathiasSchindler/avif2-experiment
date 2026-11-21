@@ -64,7 +64,8 @@ Current evidence includes:
 - 16 retained `spatial-still-8bit` streams plus eight hash-bound focused
   cross-product witnesses, exact on hosted, Linux no-libc, and WebAssembly;
 - dedicated 8-bit I400, I420, and I444 corpora;
-- 10-bit 4:2:0 and 4:4:4 synthetic and photographic release gates; and
+- 10-bit 4:2:0 and 4:4:4 synthetic and photographic release gates, including
+  recent-AVM Intra-DIP and restoration regressions; and
 - hosted sanitizer, freestanding symbol, Linux/macOS no-libc, Windows, fuzz, and
   malformed-input checks.
 
@@ -228,7 +229,9 @@ outside this repository.
 The decoder source and other material covered by [LICENSE](LICENSE) are
 released under CC0 1.0. The photographs under `images/`, their prepared forms,
 encoded derivatives, previews, and decoded references are separately licensed.
-This includes the Baya Weaver regression fixture under `tests/fixtures/`,
-licensed CC-BY-SA-4.0 with [its attribution](tests/fixtures/baya-weaver-current-i420-qp152.json).
+This includes the Baya Weaver regression fixtures under `tests/fixtures/`,
+licensed CC-BY-SA-4.0 with [original](tests/fixtures/baya-weaver-current-i420-qp152.json)
+and [additional 8-bit](tests/fixtures/baya-weaver-partition-restoration.json)
+and [10-bit](tests/fixtures/10bit/baya-weaver-current.json) attribution records.
 See [images/README.md](images/README.md) and
 [images/ATTRIBUTION.md](images/ATTRIBUTION.md).

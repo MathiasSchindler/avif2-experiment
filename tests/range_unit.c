@@ -244,6 +244,29 @@ static void test_malformed_cdf_state(void) {
     }
 }
 
+static void test_tile_end(void) {
+    uint8_t payload[] = {0x5bU, 0x80U, 0U};
+    Av2hSpan spans[] = {{payload, 1U}, {payload + 1U, 2U}};
+    Av2hRangeDecoder decoder;
+    CHECK(av2h_range_init(&decoder, spans, 2U) == AV2H_OK);
+    CHECK(av2h_range_read_bypass(&decoder, 8U) == 0x5bU);
+    CHECK(av2h_range_validate_end(&decoder) == AV2H_OK);
+    payload[1] = 0U;
+    CHECK(av2h_range_validate_end(&decoder) == AV2H_INVALID_DATA);
+    payload[1] = 0xc0U;
+    CHECK(av2h_range_validate_end(&decoder) == AV2H_INVALID_DATA);
+    payload[1] = 0x80U;
+    payload[2] = 1U;
+    CHECK(av2h_range_validate_end(&decoder) == AV2H_INVALID_DATA);
+
+    payload[0] = 0xa0U;
+    CHECK(av2h_range_init(&decoder, spans, 1U) == AV2H_OK);
+    CHECK(av2h_range_read_bypass(&decoder, 2U) == 2U);
+    CHECK(av2h_range_validate_end(&decoder) == AV2H_OK);
+    (void)av2h_range_read_bypass(&decoder, 6U);
+    CHECK(av2h_range_validate_end(&decoder) == AV2H_TRUNCATED);
+}
+
 static void test_failures(void) {
     static const unsigned char bytes[] = { 0x2bU, 0x79U, 0x82U, 0x40U };
     static const uint16_t cdf2[] = { 16384U, 0U };
@@ -273,6 +296,7 @@ int main(void) {
     test_adaptive_transcript();
     test_refill_state_transcripts();
     test_malformed_cdf_state();
+    test_tile_end();
     test_failures();
     if (failures != 0) {
         fprintf(stderr, "%d range checks failed\n", failures);
